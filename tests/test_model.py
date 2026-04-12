@@ -1,4 +1,4 @@
-"""Tests for src/model/side_encoder – SpatialLOBEncoder."""
+"""Tests for src/model components (SpatialLOBEncoder, CausalTemporalEncoder)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import torch
 from src.model.side_encoder import SpatialLOBEncoder
+from src.model.temporal_encoder import CausalTemporalEncoder
 
 
 class TestSpatialEncoder(unittest.TestCase):
@@ -54,6 +55,66 @@ class TestSpatialEncoder(unittest.TestCase):
         diff = (out_orig[:, :5, :] - out_perturbed[:, :5, :]).abs().max().item()
         self.assertEqual(diff, 0.0,
                          f"Early timesteps changed after perturbing future; max diff = {diff}")
+
+
+class TestTemporalEncoder(unittest.TestCase):
+    """Unit tests for the CausalTemporalEncoder module."""
+
+    def test_temporal_encoder_causal(self) -> None:
+        """Modifying future tokens must NOT change output at earlier positions.
+
+        Strategy: run the encoder twice -- once on the original input and once
+        on a version where positions >= 25 are drastically perturbed.  Output
+        at position 24 must remain identical in both runs, proving that the
+        encoder is strictly causal.
+        """
+        torch.manual_seed(42)
+
+        B, L, d_model = 2, 50, 64
+        nhead, depth, d_ff = 4, 2, 128
+        conv_layers, conv_kernel = 2, 3
+
+        encoder = CausalTemporalEncoder(
+            d_model=d_model,
+            nhead=nhead,
+            depth=depth,
+            d_ff=d_ff,
+            dropout=0.0,  # disable dropout for deterministic comparison
+            conv_layers=conv_layers,
+            conv_kernel=conv_kernel,
+            conv_dilation_base=2,
+        )
+        encoder.eval()
+
+        x = torch.randn(B, L, d_model)
+
+        # First forward -- original input
+        with torch.no_grad():
+            out_original = encoder(x.clone())
+
+        # Modify future positions (25 onward) drastically
+        x_modified = x.clone()
+        x_modified[:, 25:, :] += 1000.0 * torch.randn_like(x_modified[:, 25:, :])
+
+        # Second forward -- modified input
+        with torch.no_grad():
+            out_modified = encoder(x_modified)
+
+        # Position 24 output must be unchanged
+        diff = (out_original[:, 24, :] - out_modified[:, 24, :]).abs().max().item()
+        self.assertLess(diff, 1e-5,
+                        f"Causality violated: max abs diff at position 24 = {diff:.2e}")
+
+
+# Standalone runner for test_temporal_encoder_causal
+def test_temporal_encoder_causal() -> None:
+    """Convenience function so the test can be called directly."""
+    suite = unittest.TestLoader().loadTestsFromName(
+        "test_temporal_encoder_causal", TestTemporalEncoder)
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+    if not result.wasSuccessful():
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
