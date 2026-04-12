@@ -297,9 +297,9 @@ def train_one_fold(
             f"r2={val_r2:.4f}"
         )
 
-        # ===== Early stopping & checkpointing =====
-        if avg_val_loss < best_val_loss:
-            best_val_loss = avg_val_loss
+        # ===== Early stopping & checkpointing (by CORRELATION, not loss) =====
+        best_corr_so_far = best_metrics.get("val_corr", -1.0)
+        if val_corr > best_corr_so_far + 1e-4:
             epochs_no_improve = 0
             best_metrics = {
                 "best_epoch": epoch,

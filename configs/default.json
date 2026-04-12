@@ -1,18 +1,18 @@
 {
     "data": {
         "csv_path": "BTCUSDT.csv.gz",
-        "npz_dir": "data/npz_h180",
+        "npz_dir": "data/npz_h180_s10",
         "n_levels": 25,
         "horizon_sec": 180,
         "input_len": 300,
-        "stride": 60
+        "stride": 10
     },
     "model": {
-        "d_model": 128,
+        "d_model": 64,
         "nhead": 4,
-        "depth": 3,
-        "d_ff": 512,
-        "dropout": 0.1,
+        "depth": 2,
+        "d_ff": 256,
+        "dropout": 0.15,
         "n_quantiles": 3,
         "n_direction_classes": 3,
         "n_regimes": 4,
@@ -20,11 +20,11 @@
         "conv_kernel": 9
     },
     "training": {
-        "epochs": 50,
-        "batch_size": 64,
-        "lr": 3e-4,
-        "weight_decay": 1e-4,
-        "patience": 10,
+        "epochs": 80,
+        "batch_size": 128,
+        "lr": 1e-3,
+        "weight_decay": 1e-3,
+        "patience": 15,
         "grad_clip": 1.0,
         "warmup_epochs": 5,
         "train_days": 14,
@@ -32,5 +32,5 @@
         "test_days": 5,
         "fold_stride": 5
     },
-    "output_dir": "experiments/v2"
+    "output_dir": "experiments/v2_small"
 }

@@ -49,7 +49,7 @@ def quantile_loss(
 def asymmetric_huber_loss(
     pred: torch.Tensor,
     target: torch.Tensor,
-    delta: float = 1.0,
+    delta: float = 2.0,
     neg_overestimate_weight: float = 2.0,
 ) -> torch.Tensor:
     """Huber loss with extra penalty when overestimating negative targets.
@@ -140,7 +140,9 @@ def uncertainty_loss(
     """
     var = uncertainty.clamp(min=1e-8)
     nll = 0.5 * (var.log() + (target - pred) ** 2 / var)
-    return nll.mean()
+    # Regularize: penalize very large variance to prevent collapse to "always uncertain"
+    var_penalty = 0.1 * var.mean()
+    return nll.mean() + var_penalty
 
 
 # ---------------------------------------------------------------------------
@@ -153,8 +155,8 @@ def combined_loss(
     mask: torch.Tensor,
     quantile_weight: float = 1.0,
     direction_weight: float = 0.3,
-    uncertainty_weight: float = 0.2,
-    asymmetric_weight: float = 0.5,
+    uncertainty_weight: float = 0.05,
+    asymmetric_weight: float = 1.0,
     **kwargs,
 ) -> Tuple[torch.Tensor, Dict[str, float]]:
     """Weighted sum of all component losses, applied only to valid (masked) samples.

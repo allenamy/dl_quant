@@ -202,8 +202,18 @@ def main() -> None:
         # Normalize full arrays
         X_norm = (full_ds.X - x_mean) / (x_std + 1e-8)
         X_norm = np.clip(X_norm, -10.0, 10.0)
-        y_all = full_ds.y
         mask_all = full_ds.mask
+
+        # Normalize targets by robust sigma (MAD) from training portion
+        y_raw = full_ds.y
+        y_train_valid = y_raw[:n_train][mask_all[:n_train] > 0]
+        y_median = float(np.median(y_train_valid))
+        y_mad = float(np.median(np.abs(y_train_valid - y_median)))
+        y_sigma = max(1.4826 * y_mad, 1e-9)
+        print(f"[pipeline] Target normalization: median={y_median:.6f}, sigma={y_sigma:.6f}")
+        y_all = (y_raw - y_median) / y_sigma
+        # Clip extreme targets
+        y_all = np.clip(y_all, -5.0, 5.0)
 
         # Temporal split (no shuffling)
         train_ds = SlicedDataset(
@@ -253,10 +263,12 @@ def main() -> None:
             os.path.join(fold_dir, "norm_params.npz"),
             x_mean=x_mean,
             x_std=x_std,
+            y_median=np.array(y_median),
+            y_sigma=np.array(y_sigma),
         )
 
         # --- Test evaluation ---
-        _run_test_evaluation(model, fold_dir, test_ds, train_cfg, device)
+        _run_test_evaluation(model, fold_dir, test_ds, train_cfg, device, y_sigma=y_sigma, y_median=y_median)
 
     print("\n[pipeline] All done.")
 
@@ -271,6 +283,8 @@ def _run_test_evaluation(
     test_ds: Dataset,
     train_cfg: dict,
     device: str,
+    y_sigma: float = 1.0,
+    y_median: float = 0.0,
 ) -> None:
     """Load best model, run inference on test set, compute and print metrics."""
     device_obj = torch.device(device)
@@ -319,10 +333,12 @@ def _run_test_evaluation(
         quantiles_pred=quantiles_pred,
     )
 
-    # --- Backtest ---
+    # --- Backtest (de-normalize to raw fractional returns for proper thresholding) ---
+    pred_raw = pred * y_sigma + y_median
+    target_raw = target * y_sigma + y_median
     bt_metrics = backtest_signal(
-        pred=pred,
-        target=target,
+        pred=pred_raw,
+        target=target_raw,
         mask=mask,
     )
 
