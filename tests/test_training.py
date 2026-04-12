@@ -1,11 +1,13 @@
-"""Tests for src/training/losses."""
+"""Tests for src/training – losses, dataset loader, and fold builder."""
 
 from __future__ import annotations
 
 import sys
 import os
+import tempfile
 import unittest
 
+import numpy as np
 import torch
 
 # Allow imports without pip install
@@ -16,6 +18,7 @@ from src.training.losses import (
     asymmetric_huber_loss,
     combined_loss,
 )
+from src.training.dataset import LOBDataset, build_time_series_folds
 
 
 class TestQuantileLoss(unittest.TestCase):
