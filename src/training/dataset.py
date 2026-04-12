@@ -76,11 +76,10 @@ class LOBDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        return (
-            torch.tensor(self.X[idx]),
-            torch.tensor(self.y[idx]),
-            torch.tensor(self.mask[idx]),
-        )
+        x = torch.FloatTensor(self.X[idx].tolist())
+        y = torch.tensor(float(self.y[idx]))
+        m = torch.tensor(float(self.mask[idx]))
+        return (x, y, m)
 
     # ------------------------------------------------------------------
     # statistics
