@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import torch
 from src.model.side_encoder import SpatialLOBEncoder
 from src.model.temporal_encoder import CausalTemporalEncoder
+from src.model.lob_transformer import LOBTransformerV2
 
 
 class TestSpatialEncoder(unittest.TestCase):
@@ -115,6 +116,99 @@ def test_temporal_encoder_causal() -> None:
     result = runner.run(suite)
     if not result.wasSuccessful():
         raise SystemExit(1)
+
+
+class TestFullModel(unittest.TestCase):
+    """Unit tests for the LOBTransformerV2 end-to-end model."""
+
+    def test_full_model_forward(self) -> None:
+        """Verify all output shapes, all values finite, and uncertainty > 0."""
+        torch.manual_seed(0)
+
+        B, L, n_features = 4, 20, 30
+        d_model, nhead, depth, d_ff = 64, 4, 2, 128
+        n_quantiles, n_direction_classes = 3, 3
+
+        model = LOBTransformerV2(
+            n_features=n_features,
+            d_model=d_model,
+            nhead=nhead,
+            depth=depth,
+            d_ff=d_ff,
+            dropout=0.0,
+            n_quantiles=n_quantiles,
+            n_direction_classes=n_direction_classes,
+            n_regimes=4,
+            conv_layers=2,
+            conv_kernel=9,
+        )
+        model.eval()
+
+        x = torch.randn(B, L, n_features)
+        with torch.no_grad():
+            out = model(x)
+
+        # Shape checks
+        self.assertEqual(out["quantiles"].shape, (B, n_quantiles))
+        self.assertEqual(out["direction_logits"].shape, (B, n_direction_classes))
+        self.assertEqual(out["uncertainty"].shape, (B,))
+        self.assertEqual(out["point_pred"].shape, (B,))
+
+        # All finite
+        for key in ("quantiles", "direction_logits", "uncertainty", "point_pred"):
+            self.assertTrue(
+                torch.isfinite(out[key]).all(),
+                f"Non-finite values in output '{key}'",
+            )
+
+        # Uncertainty must be strictly positive (Softplus output)
+        self.assertTrue(
+            (out["uncertainty"] > 0).all(),
+            f"Uncertainty contains non-positive values: {out['uncertainty']}",
+        )
+
+    def test_full_model_causal(self) -> None:
+        """Changing future inputs must not alter prediction at an earlier step."""
+        torch.manual_seed(42)
+
+        B, L, n_features = 2, 30, 24
+        d_model, nhead, depth, d_ff = 64, 4, 2, 128
+        pred_idx = 15  # predict at step 15
+
+        model = LOBTransformerV2(
+            n_features=n_features,
+            d_model=d_model,
+            nhead=nhead,
+            depth=depth,
+            d_ff=d_ff,
+            dropout=0.0,
+            conv_layers=2,
+            conv_kernel=9,
+        )
+        model.eval()
+
+        x = torch.randn(B, L, n_features)
+
+        with torch.no_grad():
+            out_orig = model(x.clone(), pred_step=pred_idx)
+
+        # Perturb future timesteps (after pred_idx)
+        x_perturbed = x.clone()
+        x_perturbed[:, pred_idx + 1 :, :] += 1000.0 * torch.randn_like(
+            x_perturbed[:, pred_idx + 1 :, :]
+        )
+
+        with torch.no_grad():
+            out_perturbed = model(x_perturbed, pred_step=pred_idx)
+
+        # All outputs at pred_idx must be unchanged
+        for key in ("quantiles", "direction_logits", "uncertainty", "point_pred"):
+            diff = (out_orig[key] - out_perturbed[key]).abs().max().item()
+            self.assertLess(
+                diff,
+                1e-5,
+                f"Causality violated for '{key}': max abs diff = {diff:.2e}",
+            )
 
 
 if __name__ == "__main__":
