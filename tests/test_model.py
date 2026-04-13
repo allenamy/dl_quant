@@ -12,6 +12,7 @@ import torch
 from src.model.side_encoder import SpatialLOBEncoder
 from src.model.temporal_encoder import CausalTemporalEncoder
 from src.model.lob_transformer import LOBTransformerV2
+from src.features.feature_groups import get_feature_groups, get_feature_group_indices
 
 
 class TestSpatialEncoder(unittest.TestCase):
@@ -209,6 +210,162 @@ class TestFullModel(unittest.TestCase):
                 1e-5,
                 f"Causality violated for '{key}': max abs diff = {diff:.2e}",
             )
+
+
+class TestFeatureGroups(unittest.TestCase):
+    """Unit tests for semantic feature grouping."""
+
+    # The 39 features produced by compute_microstructure_features (excluding
+    # timestamp and mid_price), in their exact output order.
+    ORIGINAL_39 = [
+        "log_return_1s", "log_return_5s", "log_return_30s",
+        "spread_bps", "spread_change",
+        "obi_L1", "obi_L5", "obi_L10", "obi_L25", "obi_L1_delta",
+        "bid_depth_L5", "ask_depth_L5", "bid_depth_L25", "ask_depth_L25",
+        "depth_ratio_L5",
+        "weighted_price_bid_L10", "weighted_price_ask_L10", "price_pressure",
+        "realized_vol_30s", "realized_vol_60s", "realized_vol_300s",
+        "kyle_lambda_30s", "amihud_30s",
+        "bid_slope_L10", "ask_slope_L10",
+        "bid_concentration", "ask_concentration",
+        "bid_amt_ratio_L0", "bid_amt_ratio_L1", "bid_amt_ratio_L2",
+        "bid_amt_ratio_L3", "bid_amt_ratio_L4",
+        "ask_amt_ratio_L0", "ask_amt_ratio_L1", "ask_amt_ratio_L2",
+        "ask_amt_ratio_L3", "ask_amt_ratio_L4",
+        "second_of_day_sin", "second_of_day_cos",
+    ]
+
+    # 5 new order-flow features (being added in parallel)
+    ORDER_FLOW_5 = [
+        "delta_bid_depth_L5", "delta_ask_depth_L5",
+        "net_order_flow_L5", "delta_obi_L5_5s", "delta_pressure_5s",
+    ]
+
+    ALL_44 = ORIGINAL_39 + ORDER_FLOW_5
+
+    def test_feature_group_assignment(self) -> None:
+        """Verify that known features are placed in the semantically correct group."""
+        groups = get_feature_groups()
+
+        # Bid group must contain bid-specific features
+        self.assertIn("bid_depth_L5", groups["bid"])
+        self.assertIn("bid_depth_L25", groups["bid"])
+        self.assertIn("weighted_price_bid_L10", groups["bid"])
+        self.assertIn("bid_slope_L10", groups["bid"])
+        self.assertIn("bid_concentration", groups["bid"])
+        self.assertIn("bid_amt_ratio_L0", groups["bid"])
+        self.assertIn("obi_L1", groups["bid"])
+        self.assertIn("delta_bid_depth_L5", groups["bid"])
+
+        # Ask group must contain ask-specific features
+        self.assertIn("ask_depth_L5", groups["ask"])
+        self.assertIn("ask_depth_L25", groups["ask"])
+        self.assertIn("weighted_price_ask_L10", groups["ask"])
+        self.assertIn("ask_slope_L10", groups["ask"])
+        self.assertIn("ask_concentration", groups["ask"])
+        self.assertIn("ask_amt_ratio_L0", groups["ask"])
+        self.assertIn("delta_ask_depth_L5", groups["ask"])
+
+        # Global group must contain cross-side and market-wide features
+        self.assertIn("log_return_1s", groups["global"])
+        self.assertIn("spread_bps", groups["global"])
+        self.assertIn("depth_ratio_L5", groups["global"])
+        self.assertIn("price_pressure", groups["global"])
+        self.assertIn("realized_vol_30s", groups["global"])
+        self.assertIn("second_of_day_sin", groups["global"])
+        self.assertIn("net_order_flow_L5", groups["global"])
+
+        # Bid features must NOT appear in ask or global groups
+        self.assertNotIn("bid_depth_L5", groups["ask"])
+        self.assertNotIn("bid_depth_L5", groups["global"])
+
+        # Ask features must NOT appear in bid or global groups
+        self.assertNotIn("ask_depth_L5", groups["bid"])
+        self.assertNotIn("ask_depth_L5", groups["global"])
+
+    def test_feature_groups_no_overlap(self) -> None:
+        """No feature should appear in more than one group."""
+        groups = get_feature_groups()
+
+        bid_set = set(groups["bid"])
+        ask_set = set(groups["ask"])
+        global_set = set(groups["global"])
+
+        self.assertEqual(len(bid_set & ask_set), 0,
+                         f"Overlap bid/ask: {bid_set & ask_set}")
+        self.assertEqual(len(bid_set & global_set), 0,
+                         f"Overlap bid/global: {bid_set & global_set}")
+        self.assertEqual(len(ask_set & global_set), 0,
+                         f"Overlap ask/global: {ask_set & global_set}")
+
+    def test_feature_groups_cover_all(self) -> None:
+        """All 44 canonical features must appear in exactly one group."""
+        groups = get_feature_groups()
+        all_grouped = set(groups["bid"]) | set(groups["ask"]) | set(groups["global"])
+
+        for feat in self.ALL_44:
+            self.assertIn(feat, all_grouped,
+                          f"Feature '{feat}' not in any group")
+
+    def test_feature_group_indices_original_39(self) -> None:
+        """Index mapping with the original 39 features must cover all and not overlap."""
+        idx = get_feature_group_indices(self.ORIGINAL_39)
+
+        all_indices = idx["bid_idx"] + idx["ask_idx"] + idx["global_idx"]
+        # Must cover every feature
+        self.assertEqual(sorted(all_indices), list(range(len(self.ORIGINAL_39))))
+        # No duplicates
+        self.assertEqual(len(all_indices), len(set(all_indices)))
+
+    def test_feature_group_indices_all_44(self) -> None:
+        """Index mapping with all 44 features must cover all and not overlap."""
+        idx = get_feature_group_indices(self.ALL_44)
+
+        all_indices = idx["bid_idx"] + idx["ask_idx"] + idx["global_idx"]
+        self.assertEqual(sorted(all_indices), list(range(len(self.ALL_44))))
+        self.assertEqual(len(all_indices), len(set(all_indices)))
+
+    def test_feature_group_indices_unknown_feature(self) -> None:
+        """Unknown features should be assigned to global group."""
+        names = ["bid_depth_L5", "some_mystery_feature", "log_return_1s"]
+        idx = get_feature_group_indices(names)
+
+        # mystery feature at index 1 should be in global
+        self.assertIn(1, idx["global_idx"])
+        # bid_depth_L5 at index 0 should be in bid
+        self.assertIn(0, idx["bid_idx"])
+
+    def test_spatial_encoder_with_semantic_groups(self) -> None:
+        """SpatialLOBEncoder forward pass works after set_feature_groups with correct grouping."""
+        torch.manual_seed(0)
+
+        n_features = len(self.ORIGINAL_39)
+        d_model = 64
+        B, L = 4, 10
+
+        model = SpatialLOBEncoder(n_features=n_features, d_model=d_model)
+
+        # Apply semantic groups
+        idx = get_feature_group_indices(self.ORIGINAL_39)
+        model.set_feature_groups(
+            bid_idx=idx["bid_idx"],
+            ask_idx=idx["ask_idx"],
+            global_idx=idx["global_idx"],
+        )
+
+        # Verify projection sizes match the semantic groups
+        self.assertEqual(model.proj_bid.in_features, len(idx["bid_idx"]))
+        self.assertEqual(model.proj_ask.in_features, len(idx["ask_idx"]))
+        self.assertEqual(model.proj_global.in_features, len(idx["global_idx"]))
+
+        # Forward pass must produce correct shape
+        model.eval()
+        x = torch.randn(B, L, n_features)
+        with torch.no_grad():
+            out = model(x)
+
+        self.assertEqual(out.shape, (B, L, d_model))
+        self.assertTrue(torch.isfinite(out).all(), "Non-finite values in output")
 
 
 if __name__ == "__main__":

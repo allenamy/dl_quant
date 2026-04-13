@@ -28,11 +28,42 @@ from src.training.dataset import LOBDataset, build_time_series_folds
 from src.training.trainer import train_one_fold
 from src.evaluation.metrics import evaluate_predictions
 from src.evaluation.backtest import backtest_signal
+from src.features.feature_groups import get_feature_group_indices
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _configure_feature_groups(model: LOBTransformerV2, npz_dir: str) -> None:
+    """Set semantic feature groups on the model's spatial encoder.
+
+    Reads feature names from the first NPZ file in *npz_dir* and maps them
+    to bid/ask/global index groups.  If no NPZ files exist or the file
+    lacks a ``features`` array, this is a silent no-op.
+    """
+    npz_files = sorted(Path(npz_dir).glob("*.npz"))
+    if not npz_files:
+        return
+    npz_sample = np.load(npz_files[0], allow_pickle=True)
+    raw_features = npz_sample.get("features", None)
+    if raw_features is None or len(raw_features) == 0:
+        return
+    feature_names = [str(f) for f in raw_features]
+    groups = get_feature_group_indices(feature_names)
+    if groups["bid_idx"] and groups["ask_idx"] and groups["global_idx"]:
+        model.spatial_encoder.set_feature_groups(
+            bid_idx=groups["bid_idx"],
+            ask_idx=groups["ask_idx"],
+            global_idx=groups["global_idx"],
+        )
+        print(
+            f"[pipeline] Semantic feature groups: "
+            f"bid={len(groups['bid_idx'])}, "
+            f"ask={len(groups['ask_idx'])}, "
+            f"global={len(groups['global_idx'])}"
+        )
+
 
 def detect_device() -> str:
     """Auto-detect best available device: cuda > mps > cpu."""
@@ -155,6 +186,7 @@ def main() -> None:
                 n_features=n_features,
                 **model_cfg,
             )
+            _configure_feature_groups(model, npz_dir)
 
             best = train_one_fold(
                 model=model,
@@ -239,6 +271,7 @@ def main() -> None:
             n_features=n_features,
             **model_cfg,
         )
+        _configure_feature_groups(model, npz_dir)
         total_params = sum(p.numel() for p in model.parameters())
         print(f"[pipeline] Model parameters: {total_params:,}")
 

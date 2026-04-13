@@ -1,20 +1,26 @@
-"""Compute 40 microstructure features from 1-second LOB bars.
+"""Compute 44 microstructure features from 1-second LOB bars.
 
 All features are **strictly causal**: the feature at time *t* depends only on
 data at time *t* and earlier.  No future information is used.
+
+The 44 base features comprise the original 39 (excluding mid_price) plus
+5 order flow features.  An optional Savitzky-Golay filtering step
+(``apply_savgol_filter``) can produce smoothed variants of selected noisy
+features.
 """
 
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from scipy.signal import savgol_filter
 
 
 def compute_microstructure_features(
     df: pd.DataFrame,
     n_levels: int = 25,
 ) -> pd.DataFrame:
-    """Compute 40 microstructure features from 1-second LOB bars.
+    """Compute 44 microstructure features from 1-second LOB bars.
 
     Parameters
     ----------
@@ -28,7 +34,8 @@ def compute_microstructure_features(
     Returns
     -------
     pd.DataFrame
-        DataFrame with ``timestamp`` plus exactly 40 feature columns.
+        DataFrame with ``timestamp`` plus exactly 44 feature columns
+        (excluding ``mid_price``).
         NaN values are filled with 0.0.
     """
 
@@ -205,11 +212,92 @@ def compute_microstructure_features(
     out["second_of_day_cos"] = np.cos(2 * np.pi * seconds_of_day / 86_400)
 
     # ==================================================================
+    # 12. ORDER FLOW features (5)
+    # ==================================================================
+    bid_depth_5_s = pd.Series(bid_depth_5)
+    ask_depth_5_s = pd.Series(ask_depth_5)
+
+    delta_bid = bid_depth_5_s.diff(1)
+    delta_ask = ask_depth_5_s.diff(1)
+
+    out["delta_bid_depth_L5"] = delta_bid.values
+    out["delta_ask_depth_L5"] = delta_ask.values
+    out["net_order_flow_L5"] = (delta_bid - delta_ask).values
+
+    obi_L5_s = pd.Series(out["obi_L5"].values)
+    out["delta_obi_L5_5s"] = obi_L5_s.diff(5).values
+
+    price_pressure_s = pd.Series(out["price_pressure"].values)
+    out["delta_pressure_5s"] = price_pressure_s.diff(5).values
+
+    # ==================================================================
     # Fill NaN with 0.0
     # ==================================================================
     out = out.fillna(0.0)
 
     return out
+
+
+# ---------------------------------------------------------------------------
+# Savitzky-Golay feature filtering
+# ---------------------------------------------------------------------------
+
+# Features to smooth — inherently noisy signals that benefit from denoising.
+# Returns, OBI, temporal features, and order flow deltas are NOT filtered.
+_SG_TARGET_PREFIXES = (
+    "realized_vol_",
+    "kyle_lambda_",
+    "amihud_",
+    "bid_depth_L",
+    "ask_depth_L",
+    "bid_slope_",
+    "ask_slope_",
+)
+
+
+def apply_savgol_filter(
+    df: pd.DataFrame,
+    window_length: int = 11,
+    polyorder: int = 3,
+) -> pd.DataFrame:
+    """Append Savitzky-Golay filtered variants of selected noisy features.
+
+    For each column whose name starts with one of the ``_SG_TARGET_PREFIXES``
+    the function adds a ``<col>_sg`` column containing the smoothed version.
+    Original columns are **kept unchanged**.
+
+    The filter is applied on the full array with ``mode='nearest'`` so that
+    boundary samples are handled gracefully.  This is acceptable because the
+    downstream pipeline already discards the first ``input_len`` rows (the
+    warm-up period).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Output of ``compute_microstructure_features``.
+    window_length : int
+        SG window length (must be odd).  Default 11 (~11 seconds at 1 Hz).
+    polyorder : int
+        Polynomial order for the local fit.  Default 3.
+
+    Returns
+    -------
+    pd.DataFrame
+        Copy of *df* with additional ``*_sg`` columns appended.
+    """
+    result = df.copy()
+
+    for col in df.columns:
+        if any(col.startswith(prefix) for prefix in _SG_TARGET_PREFIXES):
+            arr = df[col].values.astype(float)
+            # savgol_filter requires len(arr) >= window_length
+            if len(arr) >= window_length:
+                smoothed = savgol_filter(arr, window_length, polyorder, mode="nearest")
+            else:
+                smoothed = arr.copy()
+            result[f"{col}_sg"] = smoothed
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -226,7 +314,12 @@ if __name__ == "__main__":
     features = compute_microstructure_features(bars)
     print(f"  features shape: {features.shape}")
     feature_cols = [c for c in features.columns if c != "timestamp"]
-    print(f"  feature count: {len(feature_cols)}")
+    print(f"  base feature count (excl mid_price): {len(feature_cols) - 1}")
     print(f"  feature names: {feature_cols}")
-    print(features.head())
+
+    filtered = apply_savgol_filter(features)
+    sg_cols = [c for c in filtered.columns if c.endswith("_sg")]
+    print(f"  SG-filtered columns added: {len(sg_cols)}")
+    print(f"  total columns (incl SG): {len(filtered.columns)}")
+    print(filtered.head())
     print("OK")

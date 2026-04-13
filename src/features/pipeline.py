@@ -17,7 +17,13 @@ import numpy as np
 import pandas as pd
 
 from src.features.microstructure import compute_microstructure_features
+from src.features.raw_lob import extract_raw_lob_tensor
 from src.features.resample import resample_lob_to_1s
+from src.features.trade_features import (
+    TRADE_FEATURE_NAMES,
+    aggregate_trades_to_1s,
+    compute_trade_flow_features,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -27,6 +33,7 @@ from src.features.resample import resample_lob_to_1s
 def build_npz_for_day(
     df_1s: pd.DataFrame,
     *,
+    trades_df: pd.DataFrame | None = None,
     horizon_sec: int = 180,
     input_len: int = 300,
     stride: int = 60,
@@ -39,6 +46,11 @@ def build_npz_for_day(
     ----------
     df_1s : pd.DataFrame
         1-second LOB bars (output of ``resample_lob_to_1s``).
+    trades_df : pd.DataFrame, optional
+        Raw trade ticks for the same day.  If provided, 8 trade-flow
+        features are computed and appended to the feature matrix (total
+        44 + 8 = 52 features).  If None, only the 44 microstructure
+        features are used (backward compatible).
     horizon_sec : int
         Prediction horizon in seconds for the label (fractional return).
     input_len : int
@@ -54,6 +66,7 @@ def build_npz_for_day(
     -------
     dict with keys:
         X          – float32, shape (N_win, input_len, n_features)
+        X_raw      – float32, shape (N_win, input_len, raw_levels, 4)
         y          – float32, shape (N_win,)
         y_mask     – uint8,   shape (N_win,)  (1 if label is valid, 0 otherwise)
         timestamps – int64,   shape (N_win,)  (timestamp at pred_idx)
@@ -70,9 +83,33 @@ def build_npz_for_day(
 
     feat_matrix = feat_df[feature_cols].values.astype(np.float32)
 
+    # --- optionally add trade features --------------------------------------
+    if trades_df is not None and len(trades_df) > 0:
+        # Aggregate trade ticks to 1s bars aligned to the depth grid
+        start_ts = int(timestamps_all[0])
+        end_ts = int(timestamps_all[-1])
+        trade_bars = aggregate_trades_to_1s(
+            trades_df, start_ts_us=start_ts, end_ts_us=end_ts
+        )
+        trade_feat_df = compute_trade_flow_features(
+            trade_bars, mid_prices=mid_prices
+        )
+        trade_cols = [c for c in trade_feat_df.columns if c != "timestamp"]
+        trade_matrix = trade_feat_df[trade_cols].values.astype(np.float32)
+
+        # Verify alignment: trade bars must match depth bar count
+        if trade_matrix.shape[0] == feat_matrix.shape[0]:
+            feat_matrix = np.concatenate([feat_matrix, trade_matrix], axis=1)
+            feature_cols = feature_cols + trade_cols
+
     # Clean: nan_to_num then clip
     feat_matrix = np.nan_to_num(feat_matrix, nan=0.0, posinf=0.0, neginf=0.0)
     feat_matrix = np.clip(feat_matrix, -feature_clip, feature_clip)
+
+    # --- extract raw LOB tensor (Path B) ------------------------------------
+    raw_levels = min(n_levels, 20)  # cap at 20 for Binance compatibility
+    raw_tensor = extract_raw_lob_tensor(df_1s, n_levels=raw_levels)
+    # raw_tensor: (n_total, raw_levels, 4)
 
     n_total = len(feat_matrix)
 
@@ -80,12 +117,14 @@ def build_npz_for_day(
     starts = list(range(0, n_total - input_len + 1, stride))
 
     X_list = []
+    X_raw_list = []
     y_list = []
     mask_list = []
     ts_list = []
 
     for start in starts:
-        X_win = feat_matrix[start : start + input_len]  # (input_len, n_features)
+        X_win = feat_matrix[start : start + input_len]      # (input_len, n_features)
+        X_raw_win = raw_tensor[start : start + input_len]    # (input_len, raw_levels, 4)
 
         pred_idx = start + input_len - 1
         target_idx = pred_idx + horizon_sec
@@ -98,17 +137,20 @@ def build_npz_for_day(
             mask_val = 0
 
         X_list.append(X_win)
+        X_raw_list.append(X_raw_win)
         y_list.append(y_val)
         mask_list.append(mask_val)
         ts_list.append(timestamps_all[pred_idx])
 
-    X = np.array(X_list, dtype=np.float32)       # (N_win, input_len, n_features)
-    y = np.array(y_list, dtype=np.float32)        # (N_win,)
-    y_mask = np.array(mask_list, dtype=np.uint8)  # (N_win,)
-    timestamps = np.array(ts_list, dtype=np.int64)  # (N_win,)
+    X = np.array(X_list, dtype=np.float32)           # (N_win, input_len, n_features)
+    X_raw = np.array(X_raw_list, dtype=np.float32)   # (N_win, input_len, raw_levels, 4)
+    y = np.array(y_list, dtype=np.float32)            # (N_win,)
+    y_mask = np.array(mask_list, dtype=np.uint8)      # (N_win,)
+    timestamps = np.array(ts_list, dtype=np.int64)    # (N_win,)
 
     return {
         "X": X,
+        "X_raw": X_raw,
         "y": y,
         "y_mask": y_mask,
         "timestamps": timestamps,
@@ -187,6 +229,7 @@ def process_csv_to_npz(
         np.savez(
             out_path,
             X=result["X"],
+            X_raw=result["X_raw"],
             y=result["y"],
             y_mask=result["y_mask"],
             timestamps=result["timestamps"],

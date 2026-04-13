@@ -13,7 +13,10 @@ import pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.features.resample import resample_lob_to_1s
-from src.features.microstructure import compute_microstructure_features
+from src.features.microstructure import (
+    compute_microstructure_features,
+    apply_savgol_filter,
+)
 
 
 class TestResampleLobTo1s(unittest.TestCase):
@@ -132,15 +135,15 @@ class TestMicrostructureFeatures(unittest.TestCase):
         return pd.DataFrame(data)
 
     def test_microstructure_feature_count(self) -> None:
-        """Verify exactly 40 feature columns (excluding timestamp)."""
+        """Verify exactly 45 feature columns (44 features + mid_price, excluding timestamp)."""
         df = self._make_1s_bars()
         features = compute_microstructure_features(df, n_levels=self.N_LEVELS)
 
         feature_cols = [c for c in features.columns if c != "timestamp"]
         self.assertEqual(
             len(feature_cols),
-            40,
-            f"Expected 40 feature columns, got {len(feature_cols)}: {feature_cols}",
+            45,
+            f"Expected 45 feature columns (44 + mid_price), got {len(feature_cols)}: {feature_cols}",
         )
 
         # Also verify timestamp IS present
@@ -189,6 +192,132 @@ class TestMicrostructureFeatures(unittest.TestCase):
                 decimal=10,
                 err_msg=f"Feature '{col}' at rows <{T} changed when future data was modified — causality violation!",
             )
+
+
+    def test_order_flow_features_exist(self) -> None:
+        """Verify the 5 new order flow features are present and NaN-free."""
+        df = self._make_1s_bars()
+        features = compute_microstructure_features(df, n_levels=self.N_LEVELS)
+
+        expected_of_cols = [
+            "delta_bid_depth_L5",
+            "delta_ask_depth_L5",
+            "net_order_flow_L5",
+            "delta_obi_L5_5s",
+            "delta_pressure_5s",
+        ]
+        for col in expected_of_cols:
+            self.assertIn(col, features.columns, f"Missing order flow feature: {col}")
+            self.assertFalse(
+                features[col].isna().any(),
+                f"Order flow feature '{col}' has NaN values (should be filled with 0.0)",
+            )
+
+    def test_order_flow_features_causal(self) -> None:
+        """Verify diff-based order flow features don't use future data.
+
+        Strategy: compute features on the full DataFrame, then mutate rows
+        at index >= T and recompute.  Order flow features at index < T must
+        be identical.
+        """
+        df = self._make_1s_bars(n_rows=120)
+        features_full = compute_microstructure_features(df, n_levels=self.N_LEVELS)
+
+        # Modify data from row 60 onward
+        df_modified = df.copy()
+        rng = np.random.default_rng(777)
+        T = 60
+        for i in range(self.N_LEVELS):
+            for side in ("asks", "bids"):
+                for field in ("price", "amount"):
+                    col = f"{side}[{i}].{field}"
+                    df_modified.loc[T:, col] = rng.uniform(
+                        1.0, 50_000.0, size=len(df_modified) - T
+                    )
+
+        features_modified = compute_microstructure_features(
+            df_modified, n_levels=self.N_LEVELS
+        )
+
+        of_cols = [
+            "delta_bid_depth_L5",
+            "delta_ask_depth_L5",
+            "net_order_flow_L5",
+            "delta_obi_L5_5s",
+            "delta_pressure_5s",
+        ]
+        for col in of_cols:
+            orig = features_full[col].iloc[:T].values
+            modi = features_modified[col].iloc[:T].values
+            np.testing.assert_array_almost_equal(
+                orig,
+                modi,
+                decimal=10,
+                err_msg=(
+                    f"Order flow feature '{col}' at rows <{T} changed when "
+                    f"future data was modified — causality violation!"
+                ),
+            )
+
+    def test_savgol_filter(self) -> None:
+        """Verify filtered features are smoother than originals.
+
+        Smoothness is measured by variance of the first-difference: a smoother
+        signal has lower diff-variance.
+        """
+        df = self._make_1s_bars(n_rows=300)
+        features = compute_microstructure_features(df, n_levels=self.N_LEVELS)
+        filtered = apply_savgol_filter(features)
+
+        sg_cols = [c for c in filtered.columns if c.endswith("_sg")]
+        self.assertGreater(len(sg_cols), 0, "No SG-filtered columns were created")
+
+        for sg_col in sg_cols:
+            orig_col = sg_col[: -len("_sg")]
+            self.assertIn(orig_col, filtered.columns)
+
+            orig_vals = filtered[orig_col].values.astype(float)
+            sg_vals = filtered[sg_col].values.astype(float)
+
+            # First-difference variance as a smoothness proxy
+            orig_diff_var = np.var(np.diff(orig_vals))
+            sg_diff_var = np.var(np.diff(sg_vals))
+
+            # Filtered signal should be at least as smooth (lower or equal diff var)
+            self.assertLessEqual(
+                sg_diff_var,
+                orig_diff_var + 1e-15,  # tiny tolerance for float rounding
+                f"SG-filtered '{sg_col}' is noisier than original '{orig_col}': "
+                f"orig_diff_var={orig_diff_var:.6e}, sg_diff_var={sg_diff_var:.6e}",
+            )
+
+    def test_feature_count_with_savgol(self) -> None:
+        """Verify total feature count: 45 base + N SG-filtered variants."""
+        df = self._make_1s_bars()
+        features = compute_microstructure_features(df, n_levels=self.N_LEVELS)
+
+        base_cols = [c for c in features.columns if c != "timestamp"]
+        self.assertEqual(len(base_cols), 45, f"Base feature count wrong: {len(base_cols)}")
+
+        filtered = apply_savgol_filter(features)
+        sg_cols = [c for c in filtered.columns if c.endswith("_sg")]
+
+        # SG targets: realized_vol_ (3), kyle_lambda_ (1), amihud_ (1),
+        # bid_depth_L (2: L5, L25), ask_depth_L (2: L5, L25),
+        # bid_slope_ (1), ask_slope_ (1) = 11 columns
+        self.assertEqual(
+            len(sg_cols),
+            11,
+            f"Expected 11 SG-filtered columns, got {len(sg_cols)}: {sg_cols}",
+        )
+
+        # Total = base + SG
+        total_cols = [c for c in filtered.columns if c != "timestamp"]
+        self.assertEqual(
+            len(total_cols),
+            45 + 11,
+            f"Expected 56 total feature columns, got {len(total_cols)}",
+        )
 
 
 if __name__ == "__main__":
