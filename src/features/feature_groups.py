@@ -21,12 +21,6 @@ from typing import Dict, List
 # -----------------------------------------------------------------------
 
 _BID_FEATURES: List[str] = [
-    # OBI features (bid-dominated semantics: positive = bid > ask)
-    "obi_L1",
-    "obi_L5",
-    "obi_L10",
-    "obi_L25",
-    "obi_L1_delta",
     # Bid depth
     "bid_depth_L5",
     "bid_depth_L25",
@@ -67,6 +61,12 @@ _ASK_FEATURES: List[str] = [
 ]
 
 _GLOBAL_FEATURES: List[str] = [
+    # OBI features (cross-side metric: (bid - ask) / (bid + ask))
+    "obi_L1",
+    "obi_L5",
+    "obi_L10",
+    "obi_L25",
+    "obi_L1_delta",
     # Returns
     "log_return_1s",
     "log_return_5s",

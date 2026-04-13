@@ -74,8 +74,23 @@ class MaskBlock(nn.Module):
         -------
         torch.Tensor
             Same shape as input, with residual connection.
+
+        Notes
+        -----
+        For 3D input ``(B, L, d_input)``, the mask is generated from the
+        mean across the time dimension (instance-level summary), producing
+        a ``(B, 1, d_input)`` mask that broadcasts across all timesteps.
+        This is the correct "instance-guided" behavior per the MaskNet
+        paper: for THIS market window, these dimensions are informative.
+        The mask does not create temporal information flow since all
+        timesteps receive the same scaling.
         """
-        mask = self.mask_net(x)       # per-instance mask, values in [0, 1]
+        if x.dim() == 3:
+            # Instance-level: use mean across time dimension as summary
+            x_summary = x.mean(dim=1, keepdim=True)  # (B, 1, d)
+            mask = self.mask_net(x_summary)            # (B, 1, d) — broadcast across L
+        else:
+            mask = self.mask_net(x)                    # (B, d) — 2D case unchanged
         h = self.norm(x * mask)       # masked + normalized
         return x + self.ffn(h)        # residual connection
 

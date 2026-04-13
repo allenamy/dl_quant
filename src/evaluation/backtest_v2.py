@@ -123,7 +123,8 @@ class BacktestEngine:
         Round-trip taker fee in bps. Default 4.0 (Bybit/Binance: 0.02% per
         side = 4 bps round-trip).
     slippage_bps : float
-        Estimated slippage per side in bps. Default 1.0.
+        Estimated slippage per side in bps (already per-side, not
+        round-trip). Default 1.0.
     max_position : float
         Max position size (normalized, 1.0 = full allocation).
     signal_threshold : float
@@ -158,8 +159,9 @@ class BacktestEngine:
         self.max_position = max_position
         self.signal_threshold = signal_threshold
         self.confidence_sizing = confidence_sizing
-        # Total cost per side (fee + slippage)
-        self._cost_per_side = (fee_bps + slippage_bps) / 2.0
+        # Total cost per side: fee is round-trip (divide by 2);
+        # slippage is already per-side (no division).
+        self._cost_per_side = fee_bps / 2.0 + slippage_bps
 
     def run(
         self,
@@ -262,7 +264,7 @@ class BacktestEngine:
         if n_active > 0:
             win_rate = float(np.mean(net_pnl[active_mask] > 0))
         else:
-            win_rate = 0.0
+            win_rate = np.nan
 
         # --- Profit factor ---
         winning_sum = float(np.sum(net_pnl[net_pnl > 0]))
@@ -270,7 +272,7 @@ class BacktestEngine:
         if losing_sum > 0:
             profit_factor = winning_sum / losing_sum
         else:
-            profit_factor = float("inf") if winning_sum > 0 else 0.0
+            profit_factor = float("inf") if winning_sum > 0 else np.nan
 
         # --- Cumulative P&L and drawdown ---
         cumulative_pnl = np.cumsum(net_pnl)
@@ -280,20 +282,20 @@ class BacktestEngine:
 
         # --- Sharpe ratio (annualized) ---
         net_mean = np.mean(net_pnl)
-        net_std = np.std(net_pnl, ddof=1) if n > 1 else 0.0
-        if net_std > 0:
+        net_std = np.std(net_pnl, ddof=1) if n > 1 else np.nan
+        if not np.isfinite(net_std) or net_std == 0:
+            sharpe_annual = np.nan
+        else:
             sharpe_annual = float(
                 (net_mean / net_std) * np.sqrt(PERIODS_PER_YEAR)
             )
-        else:
-            sharpe_annual = 0.0
 
         # --- Calmar ratio (annualized return / max drawdown) ---
         annual_return = net_mean * PERIODS_PER_YEAR
         if max_drawdown > 0:
             calmar_ratio = float(annual_return / max_drawdown)
         else:
-            calmar_ratio = float("inf") if annual_return > 0 else 0.0
+            calmar_ratio = float("inf") if annual_return > 0 else np.nan
 
         # --- Trade log ---
         trade_log = self._build_trade_log(
@@ -355,7 +357,7 @@ class BacktestEngine:
         if self.confidence_sizing:
             # Quantile spread (ensure > 0 to avoid division by zero)
             spread = q90 - q10
-            spread = np.maximum(spread, 1e-10)
+            spread = np.maximum(spread, 0.01)  # minimum spread of 0.01 in normalized units
             # Confidence: ratio of signal strength to uncertainty
             size = np.abs(q50) / spread
             size = np.clip(size, 0.0, self.max_position)

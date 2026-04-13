@@ -63,6 +63,7 @@ def compute_microstructure_features(
     # 1. PRICE features (4)
     # ==================================================================
     mid = (bid_prices[:, 0] + ask_prices[:, 0]) / 2.0
+    mid = np.maximum(mid, 1e-10)  # guard against zero
     out["mid_price"] = mid
 
     mid_s = pd.Series(mid)
@@ -106,10 +107,10 @@ def compute_microstructure_features(
     bid_depth_25 = bid_amounts[:, :25].sum(axis=1)
     ask_depth_25 = ask_amounts[:, :25].sum(axis=1)
 
-    out["bid_depth_L5"] = bid_depth_5
-    out["ask_depth_L5"] = ask_depth_5
-    out["bid_depth_L25"] = bid_depth_25
-    out["ask_depth_L25"] = ask_depth_25
+    out["bid_depth_L5"] = np.log1p(bid_depth_5)
+    out["ask_depth_L5"] = np.log1p(ask_depth_5)
+    out["bid_depth_L25"] = np.log1p(bid_depth_25)
+    out["ask_depth_L25"] = np.log1p(ask_depth_25)
 
     depth_sum_5 = bid_depth_5 + ask_depth_5
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -141,8 +142,8 @@ def compute_microstructure_features(
             ask_prices[:, 0],
         )
 
-    out["weighted_price_bid_L10"] = wpb
-    out["weighted_price_ask_L10"] = wpa
+    out["weighted_price_bid_L10"] = ((wpb - mid) / mid) * 10_000.0
+    out["weighted_price_ask_L10"] = ((wpa - mid) / mid) * 10_000.0
     # price_pressure: difference between weighted mid and mid, in bps
     weighted_mid = (wpb + wpa) / 2.0
     out["price_pressure"] = ((weighted_mid - mid) / mid) * 10_000.0

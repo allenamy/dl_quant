@@ -21,6 +21,7 @@ def aggregate_trades_to_1s(
     trades_df: pd.DataFrame,
     start_ts_us: int | None = None,
     end_ts_us: int | None = None,
+    mid_prices_1s: np.ndarray | None = None,
 ) -> pd.DataFrame:
     """Aggregate raw trade ticks into 1-second bars.
 
@@ -34,6 +35,9 @@ def aggregate_trades_to_1s(
         First 1-second boundary (microseconds).  If None, derived from data.
     end_ts_us : int, optional
         Last 1-second boundary (microseconds).  If None, derived from data.
+    mid_prices_1s : np.ndarray, optional
+        Mid prices on the 1s grid, used to fill vwap for seconds with
+        no trades.  If None, vwap for no-trade seconds is filled with 0.
 
     Returns
     -------
@@ -42,7 +46,9 @@ def aggregate_trades_to_1s(
         ``timestamp``, ``trade_count``, ``buy_volume``, ``sell_volume``,
         ``net_trade_flow``, ``trade_imbalance``, ``vwap``, ``trade_intensity``.
 
-        Seconds with no trades get zeros (except ``trade_imbalance`` = 0.0).
+        Seconds with no trades get zeros for volume/flow/imbalance.
+        VWAP for no-trade seconds is filled with ``mid_prices_1s`` when
+        available, otherwise 0.
     """
     us_per_sec = 1_000_000
 
@@ -105,17 +111,29 @@ def aggregate_trades_to_1s(
 
     result = full_grid.merge(grouped, on="_ts_sec", how="left")
 
-    # Fill NaN with 0 for seconds with no trades
-    fill_cols = [
+    # Fill NaN with 0 for seconds with no trades (except vwap)
+    fill_zero_cols = [
         "trade_count", "buy_volume", "sell_volume",
-        "net_trade_flow", "trade_imbalance", "vwap", "trade_intensity",
+        "net_trade_flow", "trade_imbalance", "trade_intensity",
     ]
-    for col in fill_cols:
+    for col in fill_zero_cols:
         if col in result.columns:
             result[col] = result[col].fillna(0.0)
 
+    # Fill vwap: use mid prices if available, else 0
+    if "vwap" in result.columns:
+        if mid_prices_1s is not None and len(mid_prices_1s) == len(result):
+            # Fill no-trade seconds with mid price
+            vwap_na = result["vwap"].isna()
+            result.loc[vwap_na, "vwap"] = mid_prices_1s[vwap_na.values]
+        result["vwap"] = result["vwap"].fillna(0.0)
+
     result.rename(columns={"_ts_sec": "timestamp"}, inplace=True)
-    result = result[["timestamp"] + fill_cols].copy()
+    output_cols = [
+        "trade_count", "buy_volume", "sell_volume",
+        "net_trade_flow", "trade_imbalance", "vwap", "trade_intensity",
+    ]
+    result = result[["timestamp"] + output_cols].copy()
     result.reset_index(drop=True, inplace=True)
 
     return result

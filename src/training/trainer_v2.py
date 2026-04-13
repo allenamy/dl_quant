@@ -54,10 +54,16 @@ def train_one_fold_v2(
     """Train with quantile-only loss, dual-path support.
 
     The dataset ``__getitem__`` can return either:
-      ``(x_feat, y, mask)``          -- Path A only
-      ``(x_feat, x_raw, y, mask)``   -- dual path
+      ``(x_feat, y, mask)``                    -- Path A only
+      ``(x_feat, x_raw, y, mask)``             -- dual path
+      ``(x_feat, x_raw, regime_prior, y, mask)`` -- dual path + regime prior
 
-    Detect which mode by checking tuple length.
+    Detection: uses ``dataset.has_raw`` attribute when available (set by
+    ``LOBDatasetV2``), falling back to tuple-length probing.
+
+    Note: when using trainer_v2 with a PPNet gate model, the caller must
+    either set ``d_prior=0`` OR provide ``regime_prior`` in the dataset
+    (5-tuple mode). The trainer does NOT auto-compute regime_prior.
 
     Parameters
     ----------
@@ -92,9 +98,16 @@ def train_one_fold_v2(
     device_obj = torch.device(device)
     model = model.to(device_obj)
 
-    # --- detect dual-path mode from first sample ----------------------------
+    # --- detect input mode from dataset attribute or first sample ------------
+    if hasattr(train_dataset, 'has_raw'):
+        dual_path = train_dataset.has_raw
+    else:
+        sample = train_dataset[0]
+        dual_path = len(sample) >= 4
+
+    # Detect 5-tuple mode (with regime_prior)
     sample = train_dataset[0]
-    dual_path = len(sample) == 4
+    has_regime_prior = len(sample) == 5
 
     # --- data loaders --------------------------------------------------------
     train_loader = DataLoader(
@@ -132,7 +145,15 @@ def train_one_fold_v2(
         train_steps = 0
 
         for batch in train_loader:
-            if dual_path:
+            if has_regime_prior:
+                x_feat, x_raw, regime_prior, y, mask = batch
+                x_feat = x_feat.to(device_obj)
+                x_raw = x_raw.to(device_obj)
+                regime_prior = regime_prior.to(device_obj)
+                y = y.to(device_obj)
+                mask = mask.to(device_obj)
+                outputs = model(x_feat, x_raw, regime_prior=regime_prior)
+            elif dual_path:
                 x_feat, x_raw, y, mask = batch
                 x_feat = x_feat.to(device_obj)
                 x_raw = x_raw.to(device_obj)
@@ -174,7 +195,15 @@ def train_one_fold_v2(
 
         with torch.no_grad():
             for batch in val_loader:
-                if dual_path:
+                if has_regime_prior:
+                    x_feat, x_raw, regime_prior, y, mask = batch
+                    x_feat = x_feat.to(device_obj)
+                    x_raw = x_raw.to(device_obj)
+                    regime_prior = regime_prior.to(device_obj)
+                    y = y.to(device_obj)
+                    mask = mask.to(device_obj)
+                    outputs = model(x_feat, x_raw, regime_prior=regime_prior)
+                elif dual_path:
                     x_feat, x_raw, y, mask = batch
                     x_feat = x_feat.to(device_obj)
                     x_raw = x_raw.to(device_obj)

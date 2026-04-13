@@ -57,6 +57,10 @@ class StreamingFeatureComputer:
         Whether to include trade features (default True).
     feature_clip : float
         Clip feature values to ``[-feature_clip, +feature_clip]``.
+    warmup : int
+        Number of extra rows to buffer before the model input window.
+        Rolling features like ``realized_vol_300s`` need this much lookback
+        to be computed from sufficient data (default 300).
     """
 
     def __init__(
@@ -65,17 +69,21 @@ class StreamingFeatureComputer:
         n_levels: int = 25,
         use_trades: bool = True,
         feature_clip: float = 10.0,
+        warmup: int = 300,
     ) -> None:
         self.input_len = input_len
+        self.warmup = warmup
+        self._buffer_len = input_len + warmup  # extended buffer for feature warm-up
         self.n_levels = n_levels
         self.use_trades = use_trades
         self.feature_clip = feature_clip
         self.raw_levels = min(n_levels, 20)
 
         # Rolling buffers (deques with maxlen for automatic eviction)
-        # Each element is a dict with keys matching DataFrame columns.
-        self._depth_buffer: deque[dict] = deque(maxlen=input_len)
-        self._trade_buffer: deque[dict] = deque(maxlen=input_len)
+        # Extended to input_len + warmup so rolling features (e.g. realized_vol_300s)
+        # are computed from sufficient data.
+        self._depth_buffer: deque[dict] = deque(maxlen=self._buffer_len)
+        self._trade_buffer: deque[dict] = deque(maxlen=self._buffer_len)
 
     def update(
         self,
@@ -146,7 +154,7 @@ class StreamingFeatureComputer:
         """
         if not self.is_ready():
             raise RuntimeError(
-                f"Buffer not full: {len(self._depth_buffer)}/{self.input_len}. "
+                f"Buffer not full: {len(self._depth_buffer)}/{self._buffer_len}. "
                 f"Call update() until is_ready() returns True."
             )
 
@@ -187,6 +195,10 @@ class StreamingFeatureComputer:
         # --- Extract raw LOB tensor (same function as batch) ------------------
         raw_tensor = extract_raw_lob_tensor(df_1s, n_levels=self.raw_levels)
 
+        # --- Slice to last input_len rows (discard warmup prefix) ---------------
+        feat_matrix = feat_matrix[-self.input_len:]
+        raw_tensor = raw_tensor[-self.input_len:]
+
         # --- Shape into batch-of-1 tensors ------------------------------------
         x_feat = feat_matrix[np.newaxis, :, :]    # (1, input_len, n_features)
         x_raw = raw_tensor[np.newaxis, :, :, :]   # (1, input_len, raw_levels, 4)
@@ -203,8 +215,8 @@ class StreamingFeatureComputer:
         return base_cols
 
     def is_ready(self) -> bool:
-        """True when buffer has ``input_len`` rows."""
-        return len(self._depth_buffer) >= self.input_len
+        """True when buffer has ``input_len + warmup`` rows (full extended buffer)."""
+        return len(self._depth_buffer) >= self._buffer_len
 
     def reset(self) -> None:
         """Clear all buffers."""

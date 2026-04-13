@@ -421,17 +421,19 @@ class TestDualPathV3:
     def test_param_count(self):
         """Total params should be in a reasonable range.
 
-        V2 is ~29K. V3 adds attention + patching, targeting < 55K total.
+        V2 is ~39K (MaskNet+GDCN in feature space). V3 adds attention + patching.
+        MaskNet+GDCN operate in n_features-dim (52) before projection,
+        so params are higher than d_model-space versions.
         max_patches=150 supports up to L=1200 (20min input).
         """
         model = self._make_model(dropout=0.15)
         n_params = sum(p.numel() for p in model.parameters())
-        assert n_params < 55000, (
-            f"V3 has {n_params} params, expected < 55000"
+        assert n_params < 75000, (
+            f"V3 has {n_params} params, expected < 75000"
         )
-        # Should be more than V2 (~29K) due to attention
-        assert n_params > 30000, (
-            f"V3 has {n_params} params, expected > 30000 (should include attention)"
+        # Should be more than V2 (~39K) due to attention
+        assert n_params > 40000, (
+            f"V3 has {n_params} params, expected > 40000 (should include attention)"
         )
 
     def test_causality(self):
@@ -458,9 +460,10 @@ class TestDualPathV3:
 
         # Test conv causality: perturb the last half, check first half unchanged
         # We need to test the conv part separately
-        h_craft = model.input_proj(x_feat)
-        h_craft = model.masknet(h_craft)
+        # Path A: MaskNet -> GDCN -> proj (MaskNet+GDCN in feature space)
+        h_craft = model.masknet(x_feat)
         h_craft = model.gdcn(h_craft)
+        h_craft = model.input_proj(h_craft)
         h_raw = model.raw_encoder(x_raw)
         h = torch.cat([h_craft, h_raw], dim=-1)
         h = model.fusion(h)

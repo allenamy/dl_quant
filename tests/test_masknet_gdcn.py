@@ -339,7 +339,7 @@ class TestDualPathV2Forward(unittest.TestCase):
 
 
 class TestDualPathV2ParamCount(unittest.TestCase):
-    """Verify total params < 30K (Phase 2 budget)."""
+    """Verify total params < 40K (Phase 2 budget, MaskNet+GDCN in feature space)."""
 
     def test_param_count(self) -> None:
         model = DualPathLOBModelV2(
@@ -354,9 +354,11 @@ class TestDualPathV2ParamCount(unittest.TestCase):
             dropout=0.15,
         )
         n_params = sum(p.numel() for p in model.parameters())
+        # MaskNet+GDCN now operate in feature space (44-dim) before projection
+        # to d_model (32-dim), so param count is higher than d_model-space version.
         self.assertLess(
-            n_params, 30000,
-            f"DualPathLOBModelV2 has {n_params} params, expected < 30000",
+            n_params, 40000,
+            f"DualPathLOBModelV2 has {n_params} params, expected < 40000",
         )
 
     def test_param_breakdown(self) -> None:

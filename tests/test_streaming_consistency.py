@@ -190,6 +190,7 @@ class TestStreamingConsistency(unittest.TestCase):
             n_levels=self.N_LEVELS,
             use_trades=True,
             feature_clip=self.FEATURE_CLIP,
+            warmup=0,  # consistency test: match batch pipeline (no warmup)
         )
 
         us_per_sec = 1_000_000
@@ -294,6 +295,7 @@ class TestStreamingConsistency(unittest.TestCase):
             n_levels=self.N_LEVELS,
             use_trades=False,
             feature_clip=self.FEATURE_CLIP,
+            warmup=0,  # consistency test: match batch pipeline (no warmup)
         )
 
         # Feed all depth data
@@ -339,6 +341,7 @@ class TestStreamingConsistency(unittest.TestCase):
             n_levels=self.N_LEVELS,
             use_trades=True,
             feature_clip=self.FEATURE_CLIP,
+            warmup=0,  # consistency test: match batch pipeline (no warmup)
         )
 
         us_per_sec = 1_000_000
@@ -413,10 +416,12 @@ class TestStreamingConsistency(unittest.TestCase):
     def test_feature_count_and_names(self) -> None:
         """Verify streaming feature count matches expectations."""
         computer_with = StreamingFeatureComputer(
-            input_len=self.INPUT_LEN, n_levels=self.N_LEVELS, use_trades=True
+            input_len=self.INPUT_LEN, n_levels=self.N_LEVELS, use_trades=True,
+            warmup=0,
         )
         computer_without = StreamingFeatureComputer(
-            input_len=self.INPUT_LEN, n_levels=self.N_LEVELS, use_trades=False
+            input_len=self.INPUT_LEN, n_levels=self.N_LEVELS, use_trades=False,
+            warmup=0,
         )
 
         # Feed enough data to fill buffers
@@ -453,14 +458,14 @@ class TestStreamingConsistency(unittest.TestCase):
 
     def test_buffer_not_ready_raises(self) -> None:
         """get_tensors() must raise if buffer not full."""
-        computer = StreamingFeatureComputer(input_len=300)
+        computer = StreamingFeatureComputer(input_len=300, warmup=0)
         self.assertFalse(computer.is_ready())
         with self.assertRaises(RuntimeError):
             computer.get_tensors()
 
     def test_reset_clears_buffer(self) -> None:
         """reset() must clear all buffers."""
-        computer = StreamingFeatureComputer(input_len=10, n_levels=self.N_LEVELS)
+        computer = StreamingFeatureComputer(input_len=10, n_levels=self.N_LEVELS, warmup=0)
 
         for row_idx in range(10):
             ts = int(self.depth_df["timestamp"].iloc[row_idx])
@@ -479,7 +484,8 @@ class TestStreamingConsistency(unittest.TestCase):
     def test_output_shapes(self) -> None:
         """Verify output tensor shapes."""
         computer = StreamingFeatureComputer(
-            input_len=self.INPUT_LEN, n_levels=self.N_LEVELS, use_trades=True
+            input_len=self.INPUT_LEN, n_levels=self.N_LEVELS, use_trades=True,
+            warmup=0,
         )
 
         for row_idx in range(self.INPUT_LEN):
@@ -509,7 +515,8 @@ class TestStreamingConsistency(unittest.TestCase):
     def test_no_nan_or_inf_in_output(self) -> None:
         """Output tensors must not contain NaN or Inf."""
         computer = StreamingFeatureComputer(
-            input_len=self.INPUT_LEN, n_levels=self.N_LEVELS, use_trades=True
+            input_len=self.INPUT_LEN, n_levels=self.N_LEVELS, use_trades=True,
+            warmup=0,
         )
 
         for row_idx in range(self.INPUT_LEN):
@@ -528,6 +535,65 @@ class TestStreamingConsistency(unittest.TestCase):
         self.assertFalse(np.any(np.isinf(x_feat)), "Inf found in feature tensor")
         self.assertFalse(np.any(np.isnan(x_raw)), "NaN found in raw tensor")
         self.assertFalse(np.any(np.isinf(x_raw)), "Inf found in raw tensor")
+
+    def test_warmup_buffer(self) -> None:
+        """With warmup > 0, buffer needs input_len + warmup rows to be ready.
+
+        Output tensors must still be (1, input_len, ...) shaped.
+        """
+        warmup = 100
+        input_len = 200
+        computer = StreamingFeatureComputer(
+            input_len=input_len,
+            n_levels=self.N_LEVELS,
+            use_trades=False,
+            warmup=warmup,
+        )
+
+        # Feed data but not enough for warmup
+        for row_idx in range(input_len):
+            ts = int(self.depth_df["timestamp"].iloc[row_idx])
+            snapshot = {"timestamp": ts}
+            for i in range(self.N_LEVELS):
+                for side in ("asks", "bids"):
+                    for field in ("price", "amount"):
+                        col = f"{side}[{i}].{field}"
+                        snapshot[col] = float(self.depth_df[col].iloc[row_idx])
+            computer.update(snapshot, None)
+
+        # Should NOT be ready yet (need input_len + warmup = 300 rows)
+        self.assertFalse(
+            computer.is_ready(),
+            f"Should not be ready with only {input_len} rows (need {input_len + warmup})",
+        )
+
+        # Feed the remaining warmup rows
+        for row_idx in range(input_len, input_len + warmup):
+            ts = int(self.depth_df["timestamp"].iloc[row_idx])
+            snapshot = {"timestamp": ts}
+            for i in range(self.N_LEVELS):
+                for side in ("asks", "bids"):
+                    for field in ("price", "amount"):
+                        col = f"{side}[{i}].{field}"
+                        snapshot[col] = float(self.depth_df[col].iloc[row_idx])
+            computer.update(snapshot, None)
+
+        self.assertTrue(
+            computer.is_ready(),
+            f"Should be ready with {input_len + warmup} rows",
+        )
+
+        x_feat, x_raw = computer.get_tensors()
+
+        # Output must still be input_len rows, not input_len + warmup
+        self.assertEqual(
+            x_feat.shape[1], input_len,
+            f"Expected output length {input_len}, got {x_feat.shape[1]}",
+        )
+        self.assertEqual(
+            x_raw.shape[1], input_len,
+            f"Expected raw output length {input_len}, got {x_raw.shape[1]}",
+        )
 
 
 class TestTradeFeatures(unittest.TestCase):

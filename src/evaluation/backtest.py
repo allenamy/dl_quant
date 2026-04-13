@@ -87,7 +87,7 @@ def backtest_signal(
     periods_per_year = 365.25 * 24 * 60 / 3.0
     net_mean = np.mean(net_pnl)
     net_std = np.std(net_pnl, ddof=1) if n > 1 else np.nan
-    if net_std is np.nan or net_std == 0:
+    if not np.isfinite(net_std) or net_std == 0:
         sharpe_annual = np.nan
     else:
         sharpe_annual = float((net_mean / net_std) * np.sqrt(periods_per_year))

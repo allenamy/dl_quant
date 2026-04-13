@@ -76,7 +76,7 @@ class LOBDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        x = torch.FloatTensor(self.X[idx].tolist())
+        x = torch.from_numpy(np.array(self.X[idx], dtype=np.float32))
         y = torch.tensor(float(self.y[idx]))
         m = torch.tensor(float(self.mask[idx]))
         return (x, y, m)
@@ -199,12 +199,12 @@ class LOBDatasetV2(Dataset):
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
     ]:
-        x_feat = torch.FloatTensor(self.X[idx].tolist())
+        x_feat = torch.from_numpy(np.array(self.X[idx], dtype=np.float32))
         y = torch.tensor(float(self.y[idx]))
         m = torch.tensor(float(self.mask[idx]))
 
         if self._has_raw:
-            x_raw = torch.FloatTensor(self.X_raw[idx].tolist())
+            x_raw = torch.from_numpy(np.array(self.X_raw[idx], dtype=np.float32))
             return (x_feat, x_raw, y, m)
         return (x_feat, y, m)
 

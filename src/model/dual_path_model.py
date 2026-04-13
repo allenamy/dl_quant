@@ -185,19 +185,18 @@ class DualPathLOBModel(nn.Module):
 class DualPathLOBModelV2(nn.Module):
     """Enhanced dual-path model with MaskNet, GDCN, PPNet gate, and monotonic quantiles.
 
-    Path A: features -> Linear proj -> MaskNet (noise suppression) -> GDCN (gated crossing) -> h_craft
+    Path A: features -> MaskNet (noise suppression, n_features-dim) -> GDCN (gated crossing, n_features-dim) -> Linear proj -> h_craft
     Path B: raw LOB  -> RawLOBEncoder -> h_raw
     Fusion: concat   -> Linear(d_model + d_raw, d_model)
-    Temporal: CausalConv x2
+    Temporal: CausalConv x3 (dilated)
     Gate: PPNet regime gate (optional, from explicit hourly priors)
     Head: MonotonicQuantileHead (structurally guarantees q10 < q50 < q90)
 
     Compared to DualPathLOBModel:
-    - MaskNet replaces simple LayerNorm for input processing (per-sample noise suppression)
-    - GDCN adds explicit gated feature interactions after MaskNet
+    - MaskNet + GDCN operate in full feature space (n_features-dim) BEFORE projection
+    - This preserves GDCN's theoretical advantage (gated crossing on raw features)
     - PPNet gate conditions model on explicit regime priors (hourly timescale)
     - MonotonicQuantileHead prevents quantile crossing by construction
-    - Still targets < 30K total params (Phase 2 budget)
 
     Parameters
     ----------
@@ -243,24 +242,27 @@ class DualPathLOBModelV2(nn.Module):
         self.d_raw = d_raw
 
         # --- Path A: hand-crafted features ------------------------------------
-        # Project from n_features to d_model first, then apply MaskNet + GDCN
-        # in the d_model space (keeps param count manageable).
-        self.input_proj = nn.Linear(n_features, d_model)
+        # MaskNet + GDCN operate in full feature space (n_features-dim) BEFORE
+        # projection to d_model.  This preserves GDCN's theoretical advantage:
+        # gated crossing on raw features, not on a compressed representation.
 
-        # MaskNet: per-sample noise suppression in d_model space
+        # MaskNet: per-sample noise suppression in feature space
         self.masknet = MaskNet(
-            d_input=d_model,
-            d_hidden=d_model,
+            d_input=n_features,
+            d_hidden=n_features,
             n_blocks=n_mask_blocks,
             dropout=dropout,
         )
 
-        # GDCN: gated feature crossing in d_model space
+        # GDCN: gated feature crossing in feature space
         self.gdcn = GDCN(
-            d_input=d_model,
+            d_input=n_features,
             n_layers=n_cross_layers,
             dropout=dropout,
         )
+
+        # Project AFTER interaction: n_features -> d_model
+        self.input_proj = nn.Linear(n_features, d_model)
 
         # --- Path B: raw LOB tensor -------------------------------------------
         self.raw_encoder = RawLOBEncoder(
@@ -336,10 +338,10 @@ class DualPathLOBModelV2(nn.Module):
             - ``quantiles``: ``(B, 3)`` with [q10, q50, q90]
             - ``point_pred``: ``(B,)`` -- median prediction (q50)
         """
-        # Path A: features -> proj -> MaskNet -> GDCN
-        h_craft = self.input_proj(x_feat)       # (B, L, d_model)
-        h_craft = self.masknet(h_craft)          # (B, L, d_model) -- noise suppressed
-        h_craft = self.gdcn(h_craft)             # (B, L, d_model) -- feature interactions
+        # Path A: features -> MaskNet -> GDCN -> proj
+        h_craft = self.masknet(x_feat)           # (B, L, n_features) -- noise suppressed
+        h_craft = self.gdcn(h_craft)             # (B, L, n_features) -- feature interactions
+        h_craft = self.input_proj(h_craft)       # (B, L, d_model) -- project after interaction
 
         if x_raw is not None:
             # Path B: raw LOB tensor

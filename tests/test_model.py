@@ -254,7 +254,6 @@ class TestFeatureGroups(unittest.TestCase):
         self.assertIn("bid_slope_L10", groups["bid"])
         self.assertIn("bid_concentration", groups["bid"])
         self.assertIn("bid_amt_ratio_L0", groups["bid"])
-        self.assertIn("obi_L1", groups["bid"])
         self.assertIn("delta_bid_depth_L5", groups["bid"])
 
         # Ask group must contain ask-specific features
@@ -274,6 +273,12 @@ class TestFeatureGroups(unittest.TestCase):
         self.assertIn("realized_vol_30s", groups["global"])
         self.assertIn("second_of_day_sin", groups["global"])
         self.assertIn("net_order_flow_L5", groups["global"])
+        # OBI features are cross-side: (bid - ask) / (bid + ask)
+        self.assertIn("obi_L1", groups["global"])
+        self.assertIn("obi_L5", groups["global"])
+        self.assertIn("obi_L10", groups["global"])
+        self.assertIn("obi_L25", groups["global"])
+        self.assertIn("obi_L1_delta", groups["global"])
 
         # Bid features must NOT appear in ask or global groups
         self.assertNotIn("bid_depth_L5", groups["ask"])

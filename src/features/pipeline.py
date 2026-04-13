@@ -129,8 +129,8 @@ def build_npz_for_day(
         pred_idx = start + input_len - 1
         target_idx = pred_idx + horizon_sec
 
-        if target_idx < n_total:
-            y_val = mid_prices[target_idx] / mid_prices[pred_idx] - 1.0
+        if target_idx < n_total and mid_prices[pred_idx] > 0:
+            y_val = float(np.log(mid_prices[target_idx] / mid_prices[pred_idx]))
             mask_val = 1
         else:
             y_val = 0.0

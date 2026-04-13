@@ -4,8 +4,8 @@ Extends V2 with patched causal self-attention for long-range temporal
 dependencies, optional cross-asset attention, and multi-horizon support.
 
 Architecture:
-  === Input Processing (from V2, unchanged) ===
-  Path A: X_feat (B, L, n_feat) -> Linear -> MaskNet -> GDCN -> h_craft
+  === Input Processing (from V2, updated) ===
+  Path A: X_feat (B, L, n_feat) -> MaskNet -> GDCN -> Linear -> h_craft
   Path B: X_raw (B, L, n_levels, 4) -> RawLOBEncoder -> h_raw
   Fusion: concat(h_craft, h_raw) -> Linear -> h (B, L, d_model)
 
@@ -129,18 +129,22 @@ class DualPathLOBModelV3(nn.Module):
         self.use_monotonic_quantile = use_monotonic_quantile
 
         # --- Path A: hand-crafted features -----------------------------------
-        self.input_proj = nn.Linear(n_features, d_model)
+        # MaskNet + GDCN operate in full feature space (n_features-dim) BEFORE
+        # projection to d_model.  This preserves GDCN's theoretical advantage:
+        # gated crossing on raw features, not on a compressed representation.
         self.masknet = MaskNet(
-            d_input=d_model,
-            d_hidden=d_model,
+            d_input=n_features,
+            d_hidden=n_features,
             n_blocks=n_mask_blocks,
             dropout=dropout,
         )
         self.gdcn = GDCN(
-            d_input=d_model,
+            d_input=n_features,
             n_layers=n_cross_layers,
             dropout=dropout,
         )
+        # Project AFTER interaction: n_features -> d_model
+        self.input_proj = nn.Linear(n_features, d_model)
 
         # --- Path B: raw LOB tensor ------------------------------------------
         self.raw_encoder = RawLOBEncoder(
@@ -246,10 +250,10 @@ class DualPathLOBModelV3(nn.Module):
             - ``quantiles``: ``(B, 3)`` with [q10, q50, q90]
             - ``point_pred``: ``(B,)`` -- median prediction (q50)
         """
-        # 1. Path A: features -> proj -> MaskNet -> GDCN
-        h_craft = self.input_proj(x_feat)       # (B, L, d_model)
-        h_craft = self.masknet(h_craft)          # (B, L, d_model)
-        h_craft = self.gdcn(h_craft)             # (B, L, d_model)
+        # 1. Path A: features -> MaskNet -> GDCN -> proj
+        h_craft = self.masknet(x_feat)           # (B, L, n_features) -- noise suppressed
+        h_craft = self.gdcn(h_craft)             # (B, L, n_features) -- feature interactions
+        h_craft = self.input_proj(h_craft)       # (B, L, d_model) -- project after interaction
 
         # 2. Path B: raw LOB tensor (optional)
         if x_raw is not None:
