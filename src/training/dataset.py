@@ -66,7 +66,9 @@ class LOBDataset(Dataset):
         if normalize:
             if x_mean is None or x_std is None:
                 raise ValueError("x_mean and x_std must be provided when normalize=True")
-            self.X = (self.X - x_mean) / (x_std + 1e-8)
+            # Guard against near-zero std features (e.g. amihud when depth is large)
+            safe_std = np.where(x_std < 1e-4, 1.0, x_std).astype(np.float32)
+            self.X = (self.X - x_mean) / safe_std
             self.X = np.clip(self.X, -10.0, 10.0)
 
     # ------------------------------------------------------------------
@@ -178,7 +180,11 @@ class LOBDatasetV2(Dataset):
         if normalize:
             if x_mean is None or x_std is None:
                 raise ValueError("x_mean and x_std must be provided when normalize=True")
-            self.X = (self.X - x_mean) / (x_std + 1e-8)
+            # Guard against near-zero std: features with std < 1e-4 are
+            # essentially constants and normalizing them blows up the scale.
+            # Treat them as "dead" features (scale=1.0, center-only).
+            safe_std = np.where(x_std < 1e-4, 1.0, x_std).astype(np.float32)
+            self.X = (self.X - x_mean) / safe_std
             self.X = np.clip(self.X, -10.0, 10.0)
 
     # ------------------------------------------------------------------

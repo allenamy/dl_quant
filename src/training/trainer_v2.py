@@ -177,9 +177,20 @@ def train_one_fold_v2(
 
             loss = quantile_loss(m_quantiles, m_target)
 
+            # NaN guard: skip pathological batches
+            if not torch.isfinite(loss):
+                optimizer.zero_grad()
+                continue
+
             optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            # Skip step if grad norm is inf/nan — clip_grad_norm_ can produce
+            # NaN gradients when the original norm is huge (1e12+), which
+            # corrupts model parameters on the next step.
+            if not torch.isfinite(grad_norm):
+                optimizer.zero_grad()
+                continue
             optimizer.step()
 
             train_loss_sum += loss.item()
