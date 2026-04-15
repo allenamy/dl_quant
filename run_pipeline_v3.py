@@ -281,16 +281,35 @@ def main() -> None:
             )
             print(f"{'='*60}")
 
-            # Compute normalization stats on training data only
-            train_ds_raw = LOBDatasetV2(npz_dir, fold["train"], normalize=False)
-            x_mean, x_std = train_ds_raw.compute_stats()
+            # Load train once (un-normalized) to compute both X and y stats.
+            train_ds = LOBDatasetV2(npz_dir, fold["train"], normalize=False)
+            x_mean, x_std = train_ds.compute_stats()
+            val_ds = LOBDatasetV2(npz_dir, fold["val"], normalize=False)
+            test_ds = LOBDatasetV2(npz_dir, fold["test"], normalize=False)
 
-            train_ds = LOBDatasetV2(npz_dir, fold["train"], normalize=True,
-                                    x_mean=x_mean, x_std=x_std)
-            val_ds = LOBDatasetV2(npz_dir, fold["val"], normalize=True,
-                                  x_mean=x_mean, x_std=x_std)
-            test_ds = LOBDatasetV2(npz_dir, fold["test"], normalize=True,
-                                   x_mean=x_mean, x_std=x_std)
+            # Normalize X in-place (no disk re-read)
+            safe_std = np.where(x_std < 1e-4, 1.0, x_std).astype(np.float32)
+            for ds in (train_ds, val_ds, test_ds):
+                ds.X = np.clip((ds.X - x_mean) / safe_std, -10.0, 10.0).astype(np.float32)
+
+            # y normalization: MAD robust sigma on TRAINING portion only.
+            # MonotonicQuantileHead.MIN_DELTA=0.01 assumes normalized y in [-5,5].
+            y_train_valid = train_ds.y[train_ds.mask > 0]
+            if len(y_train_valid) > 0:
+                y_median = float(np.median(y_train_valid))
+                y_mad = float(np.median(np.abs(y_train_valid - y_median)))
+                y_sigma = max(1.4826 * y_mad, 1e-9)
+            else:
+                y_median, y_sigma = 0.0, 1.0
+            print(
+                f"[pipeline_v3] Fold {fold_idx} target normalization: "
+                f"median={y_median:.6e}, sigma={y_sigma:.6e}"
+            )
+
+            for ds in (train_ds, val_ds, test_ds):
+                ds.y = np.clip((ds.y - y_median) / y_sigma, -5.0, 5.0).astype(np.float32)
+                # Re-zero masked targets after re-scale
+                ds.y[ds.mask == 0] = 0.0
 
             n_features = train_ds.X.shape[-1]
             raw_levels = (train_ds.X_raw.shape[-2]
@@ -318,11 +337,14 @@ def main() -> None:
                 os.path.join(fold_dir, "norm_params.npz"),
                 x_mean=x_mean,
                 x_std=x_std,
+                y_median=np.array(y_median),
+                y_sigma=np.array(y_sigma),
             )
 
             _run_test_evaluation(
                 model, fold_dir, test_ds, train_cfg, device,
                 horizon_sec=horizon_sec, stride=stride,
+                y_sigma=y_sigma, y_median=y_median,
             )
 
     else:

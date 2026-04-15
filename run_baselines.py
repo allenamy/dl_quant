@@ -127,10 +127,15 @@ def load_days(npz_dir: str) -> Tuple[List[str], np.ndarray, np.ndarray,
             feature_names = list(d["features"])
         elif feature_names is not None and "features" in d:
             if list(d["features"]) != feature_names:
-                logger.warning(
-                    "Feature mismatch in %s (first=%d names, this=%d names). "
-                    "Using first file's names; downstream lookups may fail.",
-                    day, len(feature_names), len(d["features"]),
+                # Fail fast: subsequent np.concatenate would either crash
+                # (same count, different order → silent corruption) or raise
+                # (different counts). Either way, a mismatched NPZ is a
+                # build-pipeline bug and must be rebuilt before use.
+                raise ValueError(
+                    f"Feature-name mismatch in {day}.npz: "
+                    f"first file has {len(feature_names)} names, "
+                    f"this file has {len(d['features'])}. "
+                    f"Rebuild NPZs with a single pipeline version."
                 )
 
     if not days:

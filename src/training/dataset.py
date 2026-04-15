@@ -148,6 +148,8 @@ class LOBDatasetV2(Dataset):
         xs, ys, masks = [], [], []
         raws: List[np.ndarray] = []
         has_raw_all: Optional[bool] = None
+        feature_names_first: Optional[List[str]] = None
+        inconsistent_days: List[str] = []
 
         for day in self.days:
             path = os.path.join(data_dir, f"{day}.npz")
@@ -156,17 +158,42 @@ class LOBDatasetV2(Dataset):
             ys.append(npz["y"])
             masks.append(npz["y_mask"])
 
+            # Fail fast on feature-name drift across days. Silent schema
+            # mismatch would either crash np.concatenate (same n_features,
+            # wrong order) or pass and corrupt training (different n_features
+            # — impossible here, concatenate would raise).
+            if "features" in npz.files:
+                names = [str(f) for f in npz["features"]]
+                if feature_names_first is None:
+                    feature_names_first = names
+                elif names != feature_names_first:
+                    raise ValueError(
+                        f"Feature-name mismatch in {day}.npz: "
+                        f"expected {feature_names_first[:5]}... "
+                        f"got {names[:5]}... "
+                        f"Re-build NPZs with the same pipeline version."
+                    )
+
             day_has_raw = "X_raw" in npz.files
             if has_raw_all is None:
                 has_raw_all = day_has_raw
-            # If any day has raw, all must be consistent; fallback to False
-            if day_has_raw != has_raw_all:
-                has_raw_all = False
+            elif day_has_raw != has_raw_all:
+                # Day-to-day X_raw presence differs — silent fallback to
+                # Path-A-only would be a dual-path config bug. Fail loudly.
+                inconsistent_days.append(day)
 
             if day_has_raw:
                 raws.append(npz["X_raw"])
 
+        if inconsistent_days:
+            raise ValueError(
+                f"X_raw presence inconsistent across days (first={has_raw_all}, "
+                f"differing days: {inconsistent_days[:5]}...). "
+                f"Re-build affected NPZs with the same pipeline version."
+            )
+
         self._has_raw = bool(has_raw_all) and len(raws) == len(self.days)
+        self._feature_names = feature_names_first
 
         self.X = np.concatenate(xs, axis=0).astype(np.float32)
         self.y = np.concatenate(ys, axis=0).astype(np.float32)

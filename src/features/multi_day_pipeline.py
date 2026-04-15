@@ -304,12 +304,18 @@ def process_multi_day_crypto_folder(
             raw_book = _read_book_csv(book_path)
             df_1s = resample_lob_to_1s(raw_book, n_levels=n_levels)
 
-            if len(df_1s) < input_len:
+            # Require enough rows for at least one valid-mask window:
+            #   window spans [start, start+input_len-1]
+            #   label uses mid at pred_idx + horizon_sec
+            # So we need len(df_1s) >= input_len + horizon_sec, otherwise
+            # every window has mask=0 and the NPZ is useless.
+            min_rows = input_len + horizon_sec
+            if len(df_1s) < min_rows:
                 logger.warning(
-                    "[%s] only %d 1s rows (< input_len=%d); skipping",
+                    "[%s] only %d 1s rows (< input_len+horizon_sec=%d); skipping",
                     date_str,
                     len(df_1s),
-                    input_len,
+                    min_rows,
                 )
                 continue
 
