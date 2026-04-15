@@ -259,65 +259,13 @@ class TestMicrostructureFeatures(unittest.TestCase):
                 ),
             )
 
-    def test_savgol_filter(self) -> None:
-        """Verify filtered features are smoother than originals.
-
-        Smoothness is measured by variance of the first-difference: a smoother
-        signal has lower diff-variance.
-        """
+    def test_savgol_filter_disabled(self) -> None:
+        """apply_savgol_filter must raise — it was non-causal (leaked future)."""
         df = self._make_1s_bars(n_rows=300)
         features = compute_microstructure_features(df, n_levels=self.N_LEVELS)
-        filtered = apply_savgol_filter(features)
-
-        sg_cols = [c for c in filtered.columns if c.endswith("_sg")]
-        self.assertGreater(len(sg_cols), 0, "No SG-filtered columns were created")
-
-        for sg_col in sg_cols:
-            orig_col = sg_col[: -len("_sg")]
-            self.assertIn(orig_col, filtered.columns)
-
-            orig_vals = filtered[orig_col].values.astype(float)
-            sg_vals = filtered[sg_col].values.astype(float)
-
-            # First-difference variance as a smoothness proxy
-            orig_diff_var = np.var(np.diff(orig_vals))
-            sg_diff_var = np.var(np.diff(sg_vals))
-
-            # Filtered signal should be at least as smooth (lower or equal diff var)
-            self.assertLessEqual(
-                sg_diff_var,
-                orig_diff_var + 1e-15,  # tiny tolerance for float rounding
-                f"SG-filtered '{sg_col}' is noisier than original '{orig_col}': "
-                f"orig_diff_var={orig_diff_var:.6e}, sg_diff_var={sg_diff_var:.6e}",
-            )
-
-    def test_feature_count_with_savgol(self) -> None:
-        """Verify total feature count: 45 base + N SG-filtered variants."""
-        df = self._make_1s_bars()
-        features = compute_microstructure_features(df, n_levels=self.N_LEVELS)
-
-        base_cols = [c for c in features.columns if c != "timestamp"]
-        self.assertEqual(len(base_cols), 45, f"Base feature count wrong: {len(base_cols)}")
-
-        filtered = apply_savgol_filter(features)
-        sg_cols = [c for c in filtered.columns if c.endswith("_sg")]
-
-        # SG targets: realized_vol_ (3), kyle_lambda_ (1), amihud_ (1),
-        # bid_depth_L (2: L5, L25), ask_depth_L (2: L5, L25),
-        # bid_slope_ (1), ask_slope_ (1) = 11 columns
-        self.assertEqual(
-            len(sg_cols),
-            11,
-            f"Expected 11 SG-filtered columns, got {len(sg_cols)}: {sg_cols}",
-        )
-
-        # Total = base + SG
-        total_cols = [c for c in filtered.columns if c != "timestamp"]
-        self.assertEqual(
-            len(total_cols),
-            45 + 11,
-            f"Expected 56 total feature columns, got {len(total_cols)}",
-        )
+        with self.assertRaises(RuntimeError) as ctx:
+            apply_savgol_filter(features)
+        self.assertIn("non-causal", str(ctx.exception).lower())
 
 
 if __name__ == "__main__":

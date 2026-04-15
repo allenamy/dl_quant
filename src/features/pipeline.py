@@ -73,6 +73,18 @@ def build_npz_for_day(
         features   – list[str]                (feature column names)
     """
 
+    # --- validate windowing config -----------------------------------------
+    # stride < horizon causes label overlap: adjacent labels share (horizon-stride)
+    # seconds of forward return, inflating sample count and biasing residual
+    # autocorrelation. Backtest P&L is also incorrectly accumulated in this case.
+    if stride < horizon_sec:
+        import warnings
+        warnings.warn(
+            f"stride ({stride}) < horizon_sec ({horizon_sec}): labels will overlap "
+            f"by {horizon_sec - stride}s, inflating metrics and breaking backtest.",
+            stacklevel=2,
+        )
+
     # --- compute microstructure features ------------------------------------
     feat_df = compute_microstructure_features(df_1s, n_levels=n_levels)
 

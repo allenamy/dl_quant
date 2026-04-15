@@ -261,44 +261,25 @@ def apply_savgol_filter(
     window_length: int = 11,
     polyorder: int = 3,
 ) -> pd.DataFrame:
-    """Append Savitzky-Golay filtered variants of selected noisy features.
+    """DEPRECATED — this function is NON-CAUSAL and must not be used in training.
 
-    For each column whose name starts with one of the ``_SG_TARGET_PREFIXES``
-    the function adds a ``<col>_sg`` column containing the smoothed version.
-    Original columns are **kept unchanged**.
+    scipy.signal.savgol_filter with mode='nearest' uses a CENTERED window,
+    meaning each smoothed value at time t depends on (window_length-1)/2
+    FUTURE samples. Applying it to features would inject a ~5-second
+    look-ahead into every smoothed column, silently corrupting training
+    and inflating validation metrics.
 
-    The filter is applied on the full array with ``mode='nearest'`` so that
-    boundary samples are handled gracefully.  This is acceptable because the
-    downstream pipeline already discards the first ``input_len`` rows (the
-    warm-up period).
+    The function is kept only for the existing unit test and will raise
+    on any real use until replaced with a true causal filter.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Output of ``compute_microstructure_features``.
-    window_length : int
-        SG window length (must be odd).  Default 11 (~11 seconds at 1 Hz).
-    polyorder : int
-        Polynomial order for the local fit.  Default 3.
-
-    Returns
-    -------
-    pd.DataFrame
-        Copy of *df* with additional ``*_sg`` columns appended.
+    A correct causal implementation would use savgol_coeffs with a
+    one-sided window applied via np.convolve (only past samples).
     """
-    result = df.copy()
-
-    for col in df.columns:
-        if any(col.startswith(prefix) for prefix in _SG_TARGET_PREFIXES):
-            arr = df[col].values.astype(float)
-            # savgol_filter requires len(arr) >= window_length
-            if len(arr) >= window_length:
-                smoothed = savgol_filter(arr, window_length, polyorder, mode="nearest")
-            else:
-                smoothed = arr.copy()
-            result[f"{col}_sg"] = smoothed
-
-    return result
+    raise RuntimeError(
+        "apply_savgol_filter is non-causal (uses future data); "
+        "disabled to prevent training data leakage. "
+        "Implement a one-sided causal SG filter if needed."
+    )
 
 
 # ---------------------------------------------------------------------------

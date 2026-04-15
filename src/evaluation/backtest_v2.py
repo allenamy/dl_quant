@@ -169,6 +169,7 @@ class BacktestEngine:
         targets: np.ndarray,
         mask: np.ndarray,
         timestamps: Optional[np.ndarray] = None,
+        overlap_ratio: int = 1,
     ) -> BacktestResult:
         """Run backtest on a sequence of predictions vs realized returns.
 
@@ -182,6 +183,12 @@ class BacktestEngine:
             Boolean mask; True = valid observation.
         timestamps : (N,) array, optional
             Microsecond timestamps for the trade log.
+        overlap_ratio : int
+            Ratio of horizon to stride (e.g., horizon=180, stride=60 -> 3).
+            When >1, each realized return is "shared" across overlap_ratio
+            consecutive samples. Sharpe is corrected using Newey-West HAC
+            and per-period PnL is divided by overlap_ratio to avoid
+            triple-counting. Default 1 (non-overlapping labels).
 
         Returns
         -------
@@ -239,6 +246,11 @@ class BacktestEngine:
         costs = np.abs(position_change) * self._cost_per_side
 
         # --- Net P&L ---
+        # When overlap_ratio > 1 (e.g., stride=60, horizon=180 -> ratio=3),
+        # each realized return is shared across overlap_ratio consecutive
+        # windows. Dividing gross_pnl by overlap_ratio prevents triple-counting.
+        if overlap_ratio > 1:
+            gross_pnl = gross_pnl / float(overlap_ratio)
         net_pnl = gross_pnl - costs
 
         # --- Trade count ---
@@ -280,15 +292,38 @@ class BacktestEngine:
         drawdown = running_max - cumulative_pnl
         max_drawdown = float(np.max(drawdown)) if n > 0 else 0.0
 
-        # --- Sharpe ratio (annualized) ---
+        # --- Sharpe ratio (annualized, HAC-corrected) ---
+        # When overlap_ratio > 1, per-period PnL is autocorrelated (each
+        # realized return is shared across overlap_ratio samples). Naive
+        # Sharpe is inflated by approximately sqrt(overlap_ratio).
+        # Newey-West HAC correction with lag = overlap_ratio - 1 gives
+        # the correct standard error for autocorrelated samples.
         net_mean = np.mean(net_pnl)
-        net_std = np.std(net_pnl, ddof=1) if n > 1 else np.nan
-        if not np.isfinite(net_std) or net_std == 0:
+        if n <= 1:
             sharpe_annual = np.nan
         else:
-            sharpe_annual = float(
-                (net_mean / net_std) * np.sqrt(PERIODS_PER_YEAR)
-            )
+            net_std = np.std(net_pnl, ddof=1)
+            if not np.isfinite(net_std) or net_std == 0:
+                sharpe_annual = np.nan
+            else:
+                if overlap_ratio > 1:
+                    # Newey-West: variance = γ_0 + 2*Σ_{l=1..L} (1 - l/(L+1)) * γ_l
+                    L = overlap_ratio - 1
+                    residuals = net_pnl - net_mean
+                    var_nw = np.mean(residuals ** 2)
+                    for lag in range(1, L + 1):
+                        cov_l = np.mean(residuals[lag:] * residuals[:-lag])
+                        weight = 1.0 - lag / (L + 1.0)
+                        var_nw += 2.0 * weight * cov_l
+                    var_nw = max(var_nw, 1e-20)
+                    se_hac = float(np.sqrt(var_nw))
+                    sharpe_annual = float(
+                        (net_mean / se_hac) * np.sqrt(PERIODS_PER_YEAR / overlap_ratio)
+                    )
+                else:
+                    sharpe_annual = float(
+                        (net_mean / net_std) * np.sqrt(PERIODS_PER_YEAR)
+                    )
 
         # --- Calmar ratio (annualized return / max drawdown) ---
         annual_return = net_mean * PERIODS_PER_YEAR

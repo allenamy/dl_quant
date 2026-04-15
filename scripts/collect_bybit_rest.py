@@ -247,14 +247,28 @@ def collect(
                                 trade_writer.writerow(["timestamp", "price", "size", "side", "exec_id"])
                             trade_date = now_date
 
-                        for t in trades:
+                        # Dedup: track last written trade's (time, execId) tuple.
+                        # UUID execId lexicographic comparison is MEANINGLESS — use
+                        # timestamp (monotonic) and only fall back to execId set on
+                        # same-millisecond ties. Also keep a bounded set of recently
+                        # seen execIds to handle out-of-order API returns.
+                        for t in reversed(trades):  # Bybit returns newest-first
                             eid = t.get("execId", "")
-                            if last_trade_id is not None and eid <= last_trade_id:
-                                continue  # skip already-seen trades
-                            ts_us = int(t["time"]) * 1000
+                            ts_ms = int(t["time"])
+                            # Strict skip: older than last written timestamp
+                            if last_trade_id is not None:
+                                last_ts, last_eid_set = last_trade_id
+                                if ts_ms < last_ts:
+                                    continue
+                                if ts_ms == last_ts and eid in last_eid_set:
+                                    continue
+                            ts_us = ts_ms * 1000
                             trade_writer.writerow([ts_us, t["price"], t["size"], t["side"], eid])
-                        if trades:
-                            last_trade_id = trades[0].get("execId", "")
+                            # Update tracker
+                            if last_trade_id is None or ts_ms > last_trade_id[0]:
+                                last_trade_id = (ts_ms, {eid})
+                            else:  # same ts
+                                last_trade_id[1].add(eid)
                 except Exception:
                     pass  # trade collection is best-effort
 

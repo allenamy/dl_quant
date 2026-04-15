@@ -60,6 +60,11 @@ def aggregate_trades_to_1s(
         ])
 
     df = trades_df.copy()
+    # Defensive dedup: trade collectors may produce duplicate exec_ids due to
+    # REST polling overlap. Without this, volumes are inflated 2-3x and models
+    # learn fake signal. Safe to run on already-clean data (no-op).
+    if "exec_id" in df.columns:
+        df = df.drop_duplicates(subset=["exec_id"]).reset_index(drop=True)
     df["_ts_sec"] = (df["timestamp"] // us_per_sec) * us_per_sec
 
     # Per-second aggregation

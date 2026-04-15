@@ -70,6 +70,8 @@ class StreamingFeatureComputer:
         use_trades: bool = True,
         feature_clip: float = 10.0,
         warmup: int = 300,
+        x_mean: np.ndarray | None = None,
+        x_std: np.ndarray | None = None,
     ) -> None:
         self.input_len = input_len
         self.warmup = warmup
@@ -78,6 +80,18 @@ class StreamingFeatureComputer:
         self.use_trades = use_trades
         self.feature_clip = feature_clip
         self.raw_levels = min(n_levels, 20)
+
+        # Training stats for normalization. CRITICAL for training-inference
+        # consistency: if x_mean/x_std are provided, features are normalized
+        # identically to LOBDatasetV2. Without them, the model receives raw
+        # features while training was on normalized — guaranteed silent
+        # inference failure.
+        self.x_mean = x_mean
+        self.x_std = x_std
+        self._safe_std = None
+        if x_std is not None:
+            # Match LOBDatasetV2: features with std < 1e-4 are "dead" (scale=1)
+            self._safe_std = np.where(x_std < 1e-4, 1.0, x_std).astype(np.float32)
 
         # Rolling buffers (deques with maxlen for automatic eviction)
         # Extended to input_len + warmup so rolling features (e.g. realized_vol_300s)
@@ -191,6 +205,13 @@ class StreamingFeatureComputer:
         feat_matrix = np.clip(
             feat_matrix, -self.feature_clip, self.feature_clip
         )
+
+        # --- Apply training-time normalization (CRITICAL: must match LOBDatasetV2) ---
+        # Without this, live inference receives raw features while training was
+        # on normalized features -> guaranteed silent model failure.
+        if self.x_mean is not None and self._safe_std is not None:
+            feat_matrix = (feat_matrix - self.x_mean) / self._safe_std
+            feat_matrix = np.clip(feat_matrix, -10.0, 10.0).astype(np.float32)
 
         # --- Extract raw LOB tensor (same function as batch) ------------------
         raw_tensor = extract_raw_lob_tensor(df_1s, n_levels=self.raw_levels)
