@@ -91,10 +91,41 @@ def _list_dates(root: Path) -> list[str]:
     )
 
 
+def _read_gzipped_csv_robust(path: Path) -> pd.DataFrame:
+    """Load a possibly-truncated gzip CSV by streaming and ignoring EOF errors.
+
+    Many files in crypto_data/ are truncated at ~14MB (iCloud partial sync).
+    Standard pd.read_csv raises EOFError on the incomplete gzip stream,
+    discarding all successfully-decompressed rows. This helper streams line
+    by line, catches the truncation, and returns whatever was read.
+    """
+    import gzip as _gzip
+    header = None
+    rows = []
+    try:
+        with _gzip.open(path, "rt", errors="replace") as f:
+            for line in f:
+                if header is None:
+                    header = line.rstrip("\n").split(",")
+                    continue
+                rows.append(line)
+    except (EOFError, OSError):
+        pass  # truncated; use what we got
+    if header is None or not rows:
+        raise ValueError(f"{path}: no readable content")
+    # Build DataFrame from buffered lines
+    from io import StringIO
+    buf = StringIO("".join([",".join(header) + "\n"] + rows))
+    return pd.read_csv(buf, on_bad_lines="skip")
+
+
 def _read_book_csv(path: Path) -> pd.DataFrame:
-    """Load a depth-snapshot CSV (optionally gzip)."""
+    """Load a depth-snapshot CSV (optionally gzip), robust to truncation."""
     if path.suffix == ".gz" or path.name.endswith(".csv.gz"):
-        return pd.read_csv(path, compression="gzip")
+        try:
+            return pd.read_csv(path, compression="gzip")
+        except EOFError:
+            return _read_gzipped_csv_robust(path)
     return pd.read_csv(path)
 
 
@@ -109,7 +140,10 @@ def _read_and_normalise_trades(path: Path) -> pd.DataFrame:
     We rename/capitalise in place — cheap, string-only work.
     """
     if path.suffix == ".gz" or path.name.endswith(".csv.gz"):
-        df = pd.read_csv(path, compression="gzip")
+        try:
+            df = pd.read_csv(path, compression="gzip")
+        except EOFError:
+            df = _read_gzipped_csv_robust(path)
     else:
         df = pd.read_csv(path)
 
