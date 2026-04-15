@@ -42,7 +42,7 @@ def build_npz_for_day(
     input_len: int = 300,
     stride: int = 60,
     n_levels: int = 25,
-    feature_clip: float = 10.0,
+    feature_clip: float = 1000.0,
 ) -> dict:
     """Build sliding-window arrays for a single day of 1-second LOB bars.
 
@@ -138,17 +138,25 @@ def build_npz_for_day(
         trade_cols = [c for c in trade_feat_df.columns if c != "timestamp"]
         trade_matrix = trade_feat_df[trade_cols].values.astype(np.float32)
 
-        # Verify alignment: trade bars must match depth bar count
-        if trade_matrix.shape[0] == feat_matrix.shape[0]:
-            feat_matrix = np.concatenate([feat_matrix, trade_matrix], axis=1)
-            feature_cols = feature_cols + trade_cols
-            # Extract buy/sell volumes for derived features.
-            buy_volume_1s = trade_feat_df["buy_volume_1s"].values.astype(
-                np.float64
+        # Verify alignment: trade bars must match depth bar count.
+        # A mismatch is always a bug in aggregate_trades_to_1s / the caller —
+        # loop silently concatenating 49 vs 58 features per day will fail at
+        # LOBDatasetV2 load time with a cryptic concat error.  Fail fast here.
+        if trade_matrix.shape[0] != feat_matrix.shape[0]:
+            raise ValueError(
+                f"trade_matrix rows ({trade_matrix.shape[0]}) != feat_matrix "
+                f"rows ({feat_matrix.shape[0]}); aggregate_trades_to_1s must "
+                f"return a bar count matching the 1s depth grid."
             )
-            sell_volume_1s = trade_feat_df["sell_volume_1s"].values.astype(
-                np.float64
-            )
+        feat_matrix = np.concatenate([feat_matrix, trade_matrix], axis=1)
+        feature_cols = feature_cols + trade_cols
+        # Extract buy/sell volumes for derived features.
+        buy_volume_1s = trade_feat_df["buy_volume_1s"].values.astype(
+            np.float64
+        )
+        sell_volume_1s = trade_feat_df["sell_volume_1s"].values.astype(
+            np.float64
+        )
 
     # --- derived features (always computed; trade-dependent cols default 0) --
     derived_df = compute_derived_features(
@@ -163,9 +171,14 @@ def build_npz_for_day(
     )
     derived_cols = list(derived_df.columns)
     derived_matrix = derived_df.values.astype(np.float32)
-    if derived_matrix.shape[0] == feat_matrix.shape[0]:
-        feat_matrix = np.concatenate([feat_matrix, derived_matrix], axis=1)
-        feature_cols = feature_cols + derived_cols
+    if derived_matrix.shape[0] != feat_matrix.shape[0]:
+        raise ValueError(
+            f"derived_matrix rows ({derived_matrix.shape[0]}) != feat_matrix "
+            f"rows ({feat_matrix.shape[0]}); compute_derived_features must "
+            f"return one row per 1s depth bar."
+        )
+    feat_matrix = np.concatenate([feat_matrix, derived_matrix], axis=1)
+    feature_cols = feature_cols + derived_cols
 
     # Clean: nan_to_num then clip
     feat_matrix = np.nan_to_num(feat_matrix, nan=0.0, posinf=0.0, neginf=0.0)

@@ -74,9 +74,45 @@ def resample_lob_to_1s(
     merged.sort_values("_ts_sec", inplace=True)
     merged[lob_cols] = merged[lob_cols].ffill()
 
-    # Drop leading rows that couldn't be filled (no prior data)
-    merged.dropna(subset=lob_cols, how="any", inplace=True)
+    # Drop leading rows that lack top-of-book data (cannot compute mid price).
+    # IMPORTANT: deeper levels (L1..L24) are allowed to be NaN and are handled
+    # separately below — historically this was dropna(how="any") over *all*
+    # LOB columns, which silently voided entire days whenever any deep level
+    # was sparsely populated.
+    top_cols = [c for c in ("asks[0].price", "asks[0].amount",
+                            "bids[0].price", "bids[0].amount")
+                if c in lob_cols]
+    rows_before = len(merged)
+    merged.dropna(subset=top_cols, how="any", inplace=True)
+    rows_after = len(merged)
+
+    # Pad missing deeper-level prices / amounts rather than dropping rows.
+    # Deeper NaN prices are filled with the top-of-book price on the same side
+    # (a flat "wall" of zero liquidity); deeper NaN amounts are filled with 0.
+    if len(merged) > 0:
+        best_ask = merged["asks[0].price"] if "asks[0].price" in merged else None
+        best_bid = merged["bids[0].price"] if "bids[0].price" in merged else None
+        for col in lob_cols:
+            if col in top_cols:
+                continue
+            if col.endswith(".amount"):
+                merged[col] = merged[col].fillna(0.0)
+            elif col.endswith(".price") and best_ask is not None and best_bid is not None:
+                side_default = best_ask if col.startswith("asks[") else best_bid
+                merged[col] = merged[col].fillna(side_default)
+            else:
+                merged[col] = merged[col].fillna(0.0)
+
     merged.reset_index(drop=True, inplace=True)
+
+    # Warn loudly if we lost >5% of rows (likely sparse top-of-book coverage)
+    dropped = rows_before - rows_after
+    if rows_before > 0 and dropped / rows_before > 0.05:
+        import logging
+        logging.getLogger(__name__).warning(
+            "resample_lob_to_1s: dropped %d/%d rows (%.1f%%) lacking top-of-book data",
+            dropped, rows_before, 100.0 * dropped / rows_before,
+        )
 
     # Rename the second-boundary column back to the original ts name
     merged.rename(columns={"_ts_sec": ts_col}, inplace=True)

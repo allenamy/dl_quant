@@ -66,6 +66,29 @@ def aggregate_trades_to_1s(
     # learn fake signal. Safe to run on already-clean data (no-op).
     if "exec_id" in df.columns:
         df = df.drop_duplicates(subset=["exec_id"]).reset_index(drop=True)
+
+    # Drop rows with NaN in essential columns. The robust gzip reader can
+    # emit partial trailing rows (NaN side/size/price). Without this filter,
+    # `side != "Buy"` is True for NaN, silently crediting all bad rows to
+    # sell-side volume — biasing trade_imbalance negative.
+    required_cols = [c for c in ("side", "size", "price", "timestamp") if c in df.columns]
+    if required_cols:
+        before = len(df)
+        df = df.dropna(subset=required_cols).reset_index(drop=True)
+        dropped = before - len(df)
+        if dropped > 0:
+            import logging
+            logging.getLogger(__name__).warning(
+                "aggregate_trades_to_1s: dropped %d rows with NaN in %s",
+                dropped, required_cols,
+            )
+
+    if len(df) == 0:
+        return pd.DataFrame(columns=[
+            "timestamp", "trade_count", "buy_volume", "sell_volume",
+            "net_trade_flow", "trade_imbalance", "vwap", "trade_intensity",
+        ])
+
     df["_ts_sec"] = (df["timestamp"] // us_per_sec) * us_per_sec
 
     # Per-second aggregation

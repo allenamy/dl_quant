@@ -304,6 +304,31 @@ def process_multi_day_crypto_folder(
             raw_book = _read_book_csv(book_path)
             df_1s = resample_lob_to_1s(raw_book, n_levels=n_levels)
 
+            # Date-folder sanity: some upstream CSVs leak a few rows of the
+            # previous or next UTC day. Filter rows whose timestamp is
+            # outside the [folder_date_00:00:00, folder_date_24:00:00) range.
+            try:
+                folder_start_us = int(
+                    pd.Timestamp(date_str, tz="UTC").timestamp() * 1_000_000
+                )
+                folder_end_us = folder_start_us + 86_400 * 1_000_000
+                ts_col = "timestamp"
+                before_n = len(df_1s)
+                df_1s = df_1s[
+                    (df_1s[ts_col] >= folder_start_us)
+                    & (df_1s[ts_col] < folder_end_us)
+                ].reset_index(drop=True)
+                stripped = before_n - len(df_1s)
+                if stripped > 0:
+                    logger.warning(
+                        "[%s] stripped %d rows outside folder date range",
+                        date_str, stripped,
+                    )
+            except (ValueError, KeyError):
+                # If parsing fails, leave rows untouched; downstream will
+                # still work correctly on the uniform 1s grid.
+                pass
+
             # Require enough rows for at least one valid-mask window:
             #   window spans [start, start+input_len-1]
             #   label uses mid at pred_idx + horizon_sec

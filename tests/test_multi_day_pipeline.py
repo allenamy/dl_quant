@@ -110,7 +110,10 @@ def _materialise_day(
     include_trades: bool,
 ) -> None:
     """Write one day's book (and optionally trades) to the expected paths."""
-    day_start_us = (day_index + 19_000) * US_PER_DAY  # arbitrary epoch
+    # Use timestamps that match the folder date (UTC midnight start).
+    # The date-folder sanity filter in multi_day_pipeline strips rows
+    # outside the folder's UTC day, so synthetic timestamps must match.
+    day_start_us = int(pd.Timestamp(date_str, tz="UTC").timestamp() * US_PER_SEC)
 
     book_dir = book_root / date_str
     book_dir.mkdir(parents=True, exist_ok=True)
