@@ -82,16 +82,32 @@ _GLOBAL_FEATURES: List[str] = [
     "realized_vol_30s",
     "realized_vol_60s",
     "realized_vol_300s",
-    # Microstructure
-    "kyle_lambda_30s",
-    "amihud_30s",
+    # Depth-flow (replaces buggy kyle_lambda_30s / amihud_30s)
+    "depth_flow_ratio_30s",
     # Temporal
     "second_of_day_sin",
     "second_of_day_cos",
-    # Order-flow (cross-side, being added in parallel)
+    # Order-flow (cross-side)
     "net_order_flow_L5",
     "delta_obi_L5_5s",
     "delta_pressure_5s",
+    # Derived features (cross-side; Stoikov / Roll / VPIN / Kyle)
+    "microprice_dev_bps",
+    "roll_spread_60s",
+    "vpin_60s",
+    "vpin_300s",
+    "book_pressure_imbalance",
+    "price_impact_30s",
+    # Trade-flow features (cross-side)
+    "buy_volume_1s",
+    "sell_volume_1s",
+    "net_trade_flow_1s",
+    "trade_imbalance_1s",
+    "cumulative_net_flow_30s",
+    "cumulative_net_flow_300s",
+    "trade_intensity_30s",
+    "vwap_return_1s",
+    "kyle_lambda_30s",
 ]
 
 

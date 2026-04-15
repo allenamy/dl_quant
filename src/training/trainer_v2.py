@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict
+import random
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 import torch
@@ -31,6 +32,48 @@ from .losses import quantile_loss
 # Reuse OnlineMetrics from trainer.py
 # ---------------------------------------------------------------------------
 from .trainer import OnlineMetrics
+
+
+# ---------------------------------------------------------------------------
+# LR warmup helper
+# ---------------------------------------------------------------------------
+
+def _apply_warmup(
+    step: int,
+    warmup_steps: int,
+    base_lr: float,
+    optimizer: torch.optim.Optimizer,
+) -> None:
+    """Linearly ramp LR from ``base_lr / 100`` to ``base_lr`` over ``warmup_steps``.
+
+    Called *before* ``optimizer.step()`` during the first ``warmup_steps``
+    iterations.  After warmup, the caller should stop invoking this helper
+    so that the main scheduler (e.g. ``ReduceLROnPlateau``) takes over.
+
+    Uses a simple linear interpolation: at ``step=0`` the LR is
+    ``base_lr * 0.01``; at ``step=warmup_steps-1`` the LR is ~``base_lr``.
+    """
+    if warmup_steps <= 0:
+        return
+    if step >= warmup_steps:
+        return
+    scale = (step + 1) / warmup_steps
+    new_lr = base_lr * (0.01 + 0.99 * scale)
+    for pg in optimizer.param_groups:
+        pg["lr"] = new_lr
+
+
+# ---------------------------------------------------------------------------
+# Seed helper (ensemble-friendly)
+# ---------------------------------------------------------------------------
+
+def _seed_everything(seed: int) -> None:
+    """Seed Python's ``random``, NumPy and PyTorch for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +124,9 @@ def train_one_fold_v2(
     weight_decay: float = 1e-3,
     patience: int = 10,
     grad_clip: float = 1.0,
+    warmup_steps_pct: float = 0.05,
+    loss_fn: Optional[Callable[[Dict[str, torch.Tensor], torch.Tensor], torch.Tensor]] = None,
+    seed: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -119,15 +165,39 @@ def train_one_fold_v2(
         Early-stopping patience (epochs without improvement).
     grad_clip : float
         Max gradient norm for clipping.
+    warmup_steps_pct : float
+        Fraction of *total* optimizer steps (``epochs * steps_per_epoch``)
+        used for linear LR warmup.  The LR is ramped from ``lr/100`` to
+        ``lr`` over that many steps, then the main ``ReduceLROnPlateau``
+        scheduler takes over.  Set to ``0`` to disable warmup.
+    loss_fn : callable, optional
+        Signature ``loss_fn(outputs_dict, target) -> scalar tensor``.  When
+        ``None`` (default) the trainer uses pure quantile loss on
+        ``outputs["quantiles"]``.  Useful to swap in IC / rank / combined
+        losses without changing the training loop.
+    seed : int, optional
+        If provided, seed Python / NumPy / PyTorch for ensemble-friendly
+        deterministic training.  ``None`` (default) leaves global RNGs
+        untouched.
 
     Returns
     -------
     dict
         Best validation metrics (val_loss, val_corr, val_r2, best_epoch).
     """
+    # Seed *first* so DataLoader worker seeding / model init shuffle are
+    # reproducible when the caller requested it.
+    if seed is not None:
+        _seed_everything(seed)
+
     os.makedirs(out_dir, exist_ok=True)
     device_obj = torch.device(device)
     model = model.to(device_obj)
+
+    # Default loss: pure quantile on ``outputs["quantiles"]``
+    if loss_fn is None:
+        def loss_fn(outputs, target):  # type: ignore[no-redef]
+            return quantile_loss(outputs["quantiles"], target)
 
     # --- detect input mode from dataset attribute or first sample ------------
     if hasattr(train_dataset, 'has_raw'):
@@ -164,6 +234,13 @@ def train_one_fold_v2(
         patience=max(patience // 2, 2),
         min_lr=1e-6,
     )
+
+    # --- warmup bookkeeping --------------------------------------------------
+    # ``drop_last=True`` above, so steps_per_epoch = len(train_ds) // batch_size.
+    steps_per_epoch = max(len(train_dataset) // batch_size, 1)
+    total_steps = steps_per_epoch * epochs
+    warmup_steps = int(total_steps * max(warmup_steps_pct, 0.0))
+    global_step = 0
 
     # --- tracking ------------------------------------------------------------
     best_metrics: Dict[str, Any] = {}
@@ -203,14 +280,16 @@ def train_one_fold_v2(
             if len(idx) == 0:
                 continue
 
-            m_quantiles = outputs["quantiles"][idx]
+            # Masked outputs dict -- let loss_fn decide what it needs.
+            m_outputs = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
             m_target = y[idx]
 
-            loss = quantile_loss(m_quantiles, m_target)
+            loss = loss_fn(m_outputs, m_target)
 
             # NaN guard: skip pathological batches
             if not torch.isfinite(loss):
                 optimizer.zero_grad()
+                global_step += 1
                 continue
 
             optimizer.zero_grad()
@@ -221,11 +300,16 @@ def train_one_fold_v2(
             # corrupts model parameters on the next step.
             if not torch.isfinite(grad_norm):
                 optimizer.zero_grad()
+                global_step += 1
                 continue
+            # Apply linear LR warmup *before* the optimizer step. Once past
+            # ``warmup_steps`` this is a no-op and ReduceLROnPlateau owns the LR.
+            _apply_warmup(global_step, warmup_steps, lr, optimizer)
             optimizer.step()
 
             train_loss_sum += loss.item()
             train_steps += 1
+            global_step += 1
 
         avg_train_loss = train_loss_sum / max(train_steps, 1)
 
@@ -264,10 +348,10 @@ def train_one_fold_v2(
                 if len(idx) == 0:
                     continue
 
-                m_quantiles = outputs["quantiles"][idx]
+                m_outputs = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
                 m_target = y[idx]
 
-                loss = quantile_loss(m_quantiles, m_target)
+                loss = loss_fn(m_outputs, m_target)
                 val_loss_sum += loss.item()
                 val_steps += 1
 

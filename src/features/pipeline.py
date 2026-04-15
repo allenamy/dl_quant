@@ -16,6 +16,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.features.derived_features import (
+    DERIVED_FEATURE_NAMES,
+    compute_derived_features,
+)
 from src.features.microstructure import compute_microstructure_features
 from src.features.raw_lob import extract_raw_lob_tensor
 from src.features.resample import resample_lob_to_1s
@@ -47,10 +51,12 @@ def build_npz_for_day(
     df_1s : pd.DataFrame
         1-second LOB bars (output of ``resample_lob_to_1s``).
     trades_df : pd.DataFrame, optional
-        Raw trade ticks for the same day.  If provided, 8 trade-flow
-        features are computed and appended to the feature matrix (total
-        44 + 8 = 52 features).  If None, only the 44 microstructure
-        features are used (backward compatible).
+        Raw trade ticks for the same day.  If provided, 9 trade-flow
+        features and 6 derived features are computed and appended to the
+        feature matrix (total 43 + 9 + 6 = 58 features).  If None, only
+        the 43 microstructure features plus 6 LOB-only derived features
+        are used (the trade-dependent derived columns become zero in that
+        case — total 43 + 6 = 49 features).
     horizon_sec : int
         Prediction horizon in seconds for the label (fractional return).
     input_len : int
@@ -95,7 +101,24 @@ def build_npz_for_day(
 
     feat_matrix = feat_df[feature_cols].values.astype(np.float32)
 
+    # Per-level bid/ask arrays — reused by derived features below
+    bid_prices_arr = np.column_stack(
+        [df_1s[f"bids[{i}].price"].values for i in range(n_levels)]
+    )
+    ask_prices_arr = np.column_stack(
+        [df_1s[f"asks[{i}].price"].values for i in range(n_levels)]
+    )
+    bid_amounts_arr = np.column_stack(
+        [df_1s[f"bids[{i}].amount"].values for i in range(n_levels)]
+    )
+    ask_amounts_arr = np.column_stack(
+        [df_1s[f"asks[{i}].amount"].values for i in range(n_levels)]
+    )
+    log_returns_1s_arr = feat_df["log_return_1s"].values.astype(np.float64)
+
     # --- optionally add trade features --------------------------------------
+    buy_volume_1s: np.ndarray | None = None
+    sell_volume_1s: np.ndarray | None = None
     if trades_df is not None and len(trades_df) > 0:
         # Aggregate trade ticks to 1s bars aligned to the depth grid.
         # Pass mid_prices_1s so no-trade seconds get a sensible vwap (mid)
@@ -119,6 +142,30 @@ def build_npz_for_day(
         if trade_matrix.shape[0] == feat_matrix.shape[0]:
             feat_matrix = np.concatenate([feat_matrix, trade_matrix], axis=1)
             feature_cols = feature_cols + trade_cols
+            # Extract buy/sell volumes for derived features.
+            buy_volume_1s = trade_feat_df["buy_volume_1s"].values.astype(
+                np.float64
+            )
+            sell_volume_1s = trade_feat_df["sell_volume_1s"].values.astype(
+                np.float64
+            )
+
+    # --- derived features (always computed; trade-dependent cols default 0) --
+    derived_df = compute_derived_features(
+        bid_prices=bid_prices_arr,
+        ask_prices=ask_prices_arr,
+        bid_amounts=bid_amounts_arr,
+        ask_amounts=ask_amounts_arr,
+        mid=mid_prices,
+        log_returns_1s=log_returns_1s_arr,
+        buy_volume_1s=buy_volume_1s,
+        sell_volume_1s=sell_volume_1s,
+    )
+    derived_cols = list(derived_df.columns)
+    derived_matrix = derived_df.values.astype(np.float32)
+    if derived_matrix.shape[0] == feat_matrix.shape[0]:
+        feat_matrix = np.concatenate([feat_matrix, derived_matrix], axis=1)
+        feature_cols = feature_cols + derived_cols
 
     # Clean: nan_to_num then clip
     feat_matrix = np.nan_to_num(feat_matrix, nan=0.0, posinf=0.0, neginf=0.0)

@@ -1,12 +1,24 @@
-"""Compute 44 microstructure features from 1-second LOB bars.
+"""Compute 43 microstructure features from 1-second LOB bars.
 
 All features are **strictly causal**: the feature at time *t* depends only on
 data at time *t* and earlier.  No future information is used.
 
-The 44 base features comprise the original 39 (excluding mid_price) plus
-5 order flow features.  An optional Savitzky-Golay filtering step
-(``apply_savgol_filter``) can produce smoothed variants of selected noisy
-features.
+The 43 base features comprise the original 39 (excluding mid_price) plus
+5 order-flow features, **minus** ``kyle_lambda_30s`` and ``amihud_30s``
+(net -2) and **plus** ``depth_flow_ratio_30s`` (net +1), i.e. 44 - 2 + 1.
+
+Historical note
+---------------
+Previously this module emitted ``kyle_lambda_30s`` and ``amihud_30s``.
+Both used ``bid_depth_L5`` as a volume proxy, which conflates *available*
+liquidity with *executed* volume and inverts the sign of the intended
+price-impact signal.  The correct Kyle's lambda, using executed trade
+volume, now lives in ``derived_features.compute_price_impact_proxy``
+and ``trade_features.compute_trade_flow_features`` (as
+``kyle_lambda_30s``).  The LOB-only depth analogue retained here is
+``depth_flow_ratio_30s`` — rolling std of ``bid_depth - ask_depth`` —
+which is a valid liquidity-variation feature that does not pretend to
+estimate price impact.
 """
 
 from __future__ import annotations
@@ -20,7 +32,7 @@ def compute_microstructure_features(
     df: pd.DataFrame,
     n_levels: int = 25,
 ) -> pd.DataFrame:
-    """Compute 44 microstructure features from 1-second LOB bars.
+    """Compute 43 microstructure features from 1-second LOB bars.
 
     Parameters
     ----------
@@ -34,8 +46,9 @@ def compute_microstructure_features(
     Returns
     -------
     pd.DataFrame
-        DataFrame with ``timestamp`` plus exactly 44 feature columns
-        (excluding ``mid_price``).
+        DataFrame with ``timestamp`` plus exactly 43 feature columns
+        (plus ``mid_price`` for label construction, excluded from the feature
+        matrix downstream).
         NaN values are filled with 0.0.
     """
 
@@ -157,19 +170,20 @@ def compute_microstructure_features(
     out["realized_vol_300s"] = lr1.rolling(300, min_periods=1).std().values
 
     # ==================================================================
-    # 7. MICROSTRUCTURE features (2) — rolling means
+    # 7. DEPTH FLOW feature (1) — rolling std of (bid - ask) depth L5
     # ==================================================================
-    # Kyle's lambda proxy: |return| / volume (bid_depth_L5 as volume proxy)
-    abs_ret = lr1.abs()
-    with np.errstate(divide="ignore", invalid="ignore"):
-        kyle_raw = np.where(bid_depth_5 != 0, abs_ret.values / bid_depth_5, 0.0)
-    out["kyle_lambda_30s"] = pd.Series(kyle_raw).rolling(30, min_periods=1).mean().values
-
-    # Amihud illiquidity: |return| / dollar_volume
-    dollar_vol = bid_depth_5 * mid
-    with np.errstate(divide="ignore", invalid="ignore"):
-        amihud_raw = np.where(dollar_vol != 0, abs_ret.values / dollar_vol, 0.0)
-    out["amihud_30s"] = pd.Series(amihud_raw).rolling(30, min_periods=1).mean().values
+    # Previously this block emitted ``kyle_lambda_30s`` and ``amihud_30s``,
+    # both of which used ``bid_depth_L5`` as a *volume* proxy.  That
+    # quantity measures available liquidity, not executed flow — the
+    # opposite of what Kyle's lambda requires.  The correct, trade-volume
+    # based version now lives in ``trade_features`` and
+    # ``derived_features``.  What remains is a valid LOB-only feature:
+    # the 30s rolling dispersion of the top-of-book depth imbalance, which
+    # captures short-term liquidity variability.
+    depth_imb_5 = bid_depth_5 - ask_depth_5
+    out["depth_flow_ratio_30s"] = (
+        pd.Series(depth_imb_5).rolling(30, min_periods=1).std().fillna(0.0).values
+    )
 
     # ==================================================================
     # 8. SLOPES features (2) — price impact per level (bps)

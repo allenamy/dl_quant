@@ -135,15 +135,20 @@ class TestMicrostructureFeatures(unittest.TestCase):
         return pd.DataFrame(data)
 
     def test_microstructure_feature_count(self) -> None:
-        """Verify exactly 45 feature columns (44 features + mid_price, excluding timestamp)."""
+        """Verify exactly 44 feature columns (43 features + mid_price, excluding timestamp).
+
+        Base 44 minus the buggy ``kyle_lambda_30s`` / ``amihud_30s``
+        (which used LOB depth as a volume proxy) plus the new
+        ``depth_flow_ratio_30s`` gives 43 features.
+        """
         df = self._make_1s_bars()
         features = compute_microstructure_features(df, n_levels=self.N_LEVELS)
 
         feature_cols = [c for c in features.columns if c != "timestamp"]
         self.assertEqual(
             len(feature_cols),
-            45,
-            f"Expected 45 feature columns (44 + mid_price), got {len(feature_cols)}: {feature_cols}",
+            44,
+            f"Expected 44 feature columns (43 + mid_price), got {len(feature_cols)}: {feature_cols}",
         )
 
         # Also verify timestamp IS present

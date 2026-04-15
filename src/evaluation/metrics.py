@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 from scipy import stats
 
 
@@ -170,3 +171,159 @@ def evaluate_predictions(
             result["uncertainty_error_correlation"] = float(corr_ue)
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Stratified metrics (time-of-day, volatility regime)
+# ---------------------------------------------------------------------------
+
+
+def _safe_corr(a: np.ndarray, b: np.ndarray) -> float:
+    if len(a) < 2 or np.std(a) == 0 or np.std(b) == 0:
+        return float("nan")
+    return float(np.corrcoef(a, b)[0, 1])
+
+
+def _safe_r2(pred: np.ndarray, target: np.ndarray) -> float:
+    if len(target) < 2:
+        return float("nan")
+    ss_tot = float(np.sum((target - np.mean(target)) ** 2))
+    if ss_tot == 0:
+        return float("nan")
+    ss_res = float(np.sum((target - pred) ** 2))
+    return 1.0 - ss_res / ss_tot
+
+
+def stratified_metrics_by_hour(
+    predictions: np.ndarray,
+    targets: np.ndarray,
+    mask: np.ndarray,
+    timestamps: np.ndarray,
+) -> pd.DataFrame:
+    """Compute correlation / R^2 stratified by hour-of-day (0-23 UTC).
+
+    Useful for detecting time-of-day effects. If a model works in Asian
+    hours but fails in US hours, we want to see that.
+
+    Parameters
+    ----------
+    predictions, targets, mask : (N,) arrays.
+    timestamps : (N,) microsecond timestamps (int/float).
+
+    Returns
+    -------
+    pd.DataFrame
+        Rows sorted by ``hour`` (0..23). Columns: ``hour``, ``n_samples``,
+        ``corr``, ``r2``, ``mean_pred``, ``std_pred``. Hours with no
+        valid samples are included with NaN metrics and n_samples=0.
+    """
+    pred = np.asarray(predictions, dtype=np.float64).ravel()
+    tgt = np.asarray(targets, dtype=np.float64).ravel()
+    m = np.asarray(mask, dtype=bool).ravel()
+    ts = np.asarray(timestamps, dtype=np.int64).ravel()
+
+    n = min(len(pred), len(tgt), len(m), len(ts))
+    pred, tgt, m, ts = pred[:n], tgt[:n], m[:n], ts[:n]
+
+    # Apply validity mask
+    pred, tgt, ts = pred[m], tgt[m], ts[m]
+
+    # microseconds -> hour of day (UTC)
+    seconds = ts / 1_000_000.0
+    hours = ((seconds % 86400) / 3600).astype(int) % 24
+
+    rows = []
+    for h in range(24):
+        sel = hours == h
+        n_h = int(sel.sum())
+        if n_h == 0:
+            rows.append({
+                "hour": h, "n_samples": 0,
+                "corr": float("nan"), "r2": float("nan"),
+                "mean_pred": float("nan"), "std_pred": float("nan"),
+            })
+            continue
+        p_h, t_h = pred[sel], tgt[sel]
+        rows.append({
+            "hour": h,
+            "n_samples": n_h,
+            "corr": _safe_corr(p_h, t_h),
+            "r2": _safe_r2(p_h, t_h),
+            "mean_pred": float(np.mean(p_h)),
+            "std_pred": float(np.std(p_h, ddof=1)) if n_h > 1 else float("nan"),
+        })
+
+    return pd.DataFrame(rows)
+
+
+def stratified_metrics_by_vol_regime(
+    predictions: np.ndarray,
+    targets: np.ndarray,
+    mask: np.ndarray,
+    realized_vol: np.ndarray,
+    n_buckets: int = 3,
+) -> pd.DataFrame:
+    """Split samples into volatility regimes (by quantile), compute metrics.
+
+    Detects "model works in low vol but fails in high vol" type failures.
+
+    Parameters
+    ----------
+    predictions, targets, mask : (N,) arrays.
+    realized_vol : (N,) per-sample volatility measurement.
+    n_buckets : int
+        Number of quantile buckets (default 3 -> low / medium / high).
+
+    Returns
+    -------
+    pd.DataFrame
+        One row per regime (ordered low -> high). Columns:
+        ``regime``, ``vol_range``, ``n_samples``, ``corr``, ``r2``.
+    """
+    if n_buckets < 2:
+        raise ValueError(f"n_buckets must be >= 2, got {n_buckets}")
+
+    pred = np.asarray(predictions, dtype=np.float64).ravel()
+    tgt = np.asarray(targets, dtype=np.float64).ravel()
+    m = np.asarray(mask, dtype=bool).ravel()
+    vol = np.asarray(realized_vol, dtype=np.float64).ravel()
+
+    n = min(len(pred), len(tgt), len(m), len(vol))
+    pred, tgt, m, vol = pred[:n], tgt[:n], m[:n], vol[:n]
+    pred, tgt, vol = pred[m], tgt[m], vol[m]
+
+    if n_buckets == 3:
+        names = ["low", "medium", "high"]
+    elif n_buckets == 2:
+        names = ["low", "high"]
+    else:
+        names = [f"q{i+1}of{n_buckets}" for i in range(n_buckets)]
+
+    boundaries = np.linspace(0.0, 100.0, n_buckets + 1)
+    edges = [np.percentile(vol, b) for b in boundaries] if len(vol) > 0 else [0.0] * (n_buckets + 1)
+
+    rows = []
+    for i in range(n_buckets):
+        lo, hi = edges[i], edges[i + 1]
+        if i == n_buckets - 1:
+            sel = (vol >= lo) & (vol <= hi)
+        else:
+            sel = (vol >= lo) & (vol < hi)
+        n_r = int(sel.sum())
+        vol_range = f"[{lo:.4g}, {hi:.4g}]"
+        if n_r == 0:
+            rows.append({
+                "regime": names[i], "vol_range": vol_range, "n_samples": 0,
+                "corr": float("nan"), "r2": float("nan"),
+            })
+            continue
+        p_r, t_r = pred[sel], tgt[sel]
+        rows.append({
+            "regime": names[i],
+            "vol_range": vol_range,
+            "n_samples": n_r,
+            "corr": _safe_corr(p_r, t_r),
+            "r2": _safe_r2(p_r, t_r),
+        })
+
+    return pd.DataFrame(rows)

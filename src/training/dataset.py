@@ -121,6 +121,13 @@ class LOBDatasetV2(Dataset):
         X_raw is already normalized (bps + log1p), skip.
     x_mean, x_std : np.ndarray | None
         Pre-computed feature-wise mean/std.  Required when *normalize=True*.
+    smooth_target : int, default 0
+        If ``> 0``, requests target smoothing over this many seconds.  The
+        cleaner place to smooth is at NPZ-build time in ``pipeline.py``
+        (another agent owns that module), so for now this parameter is a
+        *pass-through*: the value is stored on ``self.smooth_target`` for
+        downstream code / logging but no smoothing is performed here.
+        Default ``0`` keeps behaviour unchanged.
     """
 
     def __init__(
@@ -130,10 +137,13 @@ class LOBDatasetV2(Dataset):
         normalize: bool = False,
         x_mean: Optional[np.ndarray] = None,
         x_std: Optional[np.ndarray] = None,
+        smooth_target: int = 0,
     ) -> None:
         super().__init__()
         self.data_dir = data_dir
         self.days = list(days)
+        # Pass-through; actual smoothing expected at NPZ-build time.
+        self.smooth_target = int(smooth_target)
 
         xs, ys, masks = [], [], []
         raws: List[np.ndarray] = []

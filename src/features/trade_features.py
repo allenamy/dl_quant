@@ -3,8 +3,9 @@
 All features are **strictly causal**: the feature at time *t* depends only on
 data at time *t* and earlier.  No future information is used.
 
-The 8 trade features complement the 44 microstructure features from
-``compute_microstructure_features``, bringing the total to 52.
+The 9 trade features complement the 43 microstructure features from
+``compute_microstructure_features`` and the 6 derived features from
+``derived_features``, bringing the base total to 58.
 """
 
 from __future__ import annotations
@@ -167,11 +168,11 @@ def compute_trade_flow_features(
     Returns
     -------
     pd.DataFrame
-        DataFrame with ``timestamp`` plus 8 trade feature columns:
+        DataFrame with ``timestamp`` plus 9 trade feature columns:
         ``buy_volume_1s``, ``sell_volume_1s``, ``net_trade_flow_1s``,
         ``trade_imbalance_1s``, ``cumulative_net_flow_30s``,
         ``cumulative_net_flow_300s``, ``trade_intensity_30s``,
-        ``vwap_return_1s``.
+        ``vwap_return_1s``, ``kyle_lambda_30s``.
 
         All features are backward-looking (causal).
     """
@@ -203,7 +204,31 @@ def compute_trade_flow_features(
         vwap_ret[valid] = np.log(vwap[valid] / mid[valid])
         out["vwap_return_1s"] = vwap_ret
     else:
-        out["vwap_return_1s"] = np.zeros(n, dtype=np.float64)
+        vwap_ret = np.zeros(n, dtype=np.float64)
+        out["vwap_return_1s"] = vwap_ret
+
+    # --- Kyle's lambda (1) --- |log_return_1s| / (total_volume_1s + eps)
+    # This is the *proper* Kyle's lambda using executed volume (not LOB
+    # depth).  ``mid_prices`` must be supplied so we can compute the
+    # 1-second log return; when absent we fall back to zeros.
+    if mid_prices is not None and len(mid_prices) == n:
+        mid = mid_prices.astype(np.float64)
+        log_mid = np.log(np.maximum(mid, 1e-10))
+        log_ret_1s = pd.Series(log_mid).diff(1).fillna(0.0).values
+        total_vol = (
+            out["buy_volume_1s"].values + out["sell_volume_1s"].values
+        )
+        impact = np.abs(log_ret_1s) / (total_vol + 1.0)
+        kyle = (
+            pd.Series(impact)
+            .rolling(30, min_periods=1)
+            .mean()
+            .fillna(0.0)
+            .values
+        )
+        out["kyle_lambda_30s"] = kyle
+    else:
+        out["kyle_lambda_30s"] = np.zeros(n, dtype=np.float64)
 
     # Fill any remaining NaN with 0.0
     out = out.fillna(0.0)
@@ -212,7 +237,7 @@ def compute_trade_flow_features(
 
 
 # ---------------------------------------------------------------------------
-# Canonical list of 8 trade feature names (in order)
+# Canonical list of 9 trade feature names (in order)
 # ---------------------------------------------------------------------------
 
 TRADE_FEATURE_NAMES: list[str] = [
@@ -224,6 +249,7 @@ TRADE_FEATURE_NAMES: list[str] = [
     "cumulative_net_flow_300s",
     "trade_intensity_30s",
     "vwap_return_1s",
+    "kyle_lambda_30s",
 ]
 
 

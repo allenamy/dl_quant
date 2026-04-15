@@ -19,6 +19,10 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+from src.features.derived_features import (
+    DERIVED_FEATURE_NAMES,
+    compute_derived_features,
+)
 from src.features.microstructure import compute_microstructure_features
 from src.features.raw_lob import extract_raw_lob_tensor
 from src.features.trade_features import (
@@ -198,7 +202,24 @@ class StreamingFeatureComputer:
 
         feat_matrix = feat_df[feature_cols].values.astype(np.float32)
 
+        # Per-level arrays for derived features
+        bid_prices_arr = np.column_stack(
+            [df_1s[f"bids[{i}].price"].values for i in range(self.n_levels)]
+        )
+        ask_prices_arr = np.column_stack(
+            [df_1s[f"asks[{i}].price"].values for i in range(self.n_levels)]
+        )
+        bid_amounts_arr = np.column_stack(
+            [df_1s[f"bids[{i}].amount"].values for i in range(self.n_levels)]
+        )
+        ask_amounts_arr = np.column_stack(
+            [df_1s[f"asks[{i}].amount"].values for i in range(self.n_levels)]
+        )
+        log_returns_1s_arr = feat_df["log_return_1s"].values.astype(np.float64)
+
         # --- Add trade features if enabled ------------------------------------
+        buy_volume_1s: np.ndarray | None = None
+        sell_volume_1s: np.ndarray | None = None
         if self.use_trades and len(self._trade_buffer) > 0:
             trade_bars_df = pd.DataFrame(list(self._trade_buffer))
             trade_feat_df = compute_trade_flow_features(
@@ -210,6 +231,28 @@ class StreamingFeatureComputer:
             trade_matrix = trade_feat_df[trade_cols].values.astype(np.float32)
             feat_matrix = np.concatenate([feat_matrix, trade_matrix], axis=1)
             feature_cols = feature_cols + trade_cols
+            buy_volume_1s = trade_feat_df["buy_volume_1s"].values.astype(
+                np.float64
+            )
+            sell_volume_1s = trade_feat_df["sell_volume_1s"].values.astype(
+                np.float64
+            )
+
+        # --- Derived features (always — trade-dependent cols zero if off) ------
+        derived_df = compute_derived_features(
+            bid_prices=bid_prices_arr,
+            ask_prices=ask_prices_arr,
+            bid_amounts=bid_amounts_arr,
+            ask_amounts=ask_amounts_arr,
+            mid=mid_prices,
+            log_returns_1s=log_returns_1s_arr,
+            buy_volume_1s=buy_volume_1s,
+            sell_volume_1s=sell_volume_1s,
+        )
+        derived_cols = list(derived_df.columns)
+        derived_matrix = derived_df.values.astype(np.float32)
+        feat_matrix = np.concatenate([feat_matrix, derived_matrix], axis=1)
+        feature_cols = feature_cols + derived_cols
 
         # --- Clean: nan_to_num then clip --------------------------------------
         feat_matrix = np.nan_to_num(
@@ -245,8 +288,10 @@ class StreamingFeatureComputer:
         # construct it from known column order.
         base_cols = self._microstructure_feature_names()
         if self.use_trades:
-            return base_cols + list(TRADE_FEATURE_NAMES)
-        return base_cols
+            base_cols = base_cols + list(TRADE_FEATURE_NAMES)
+        # Derived features are always appended (trade-dependent ones may
+        # be zero when use_trades=False).
+        return base_cols + list(DERIVED_FEATURE_NAMES)
 
     def is_ready(self) -> bool:
         """True when buffer has ``input_len + warmup`` rows (full extended buffer)."""
@@ -283,7 +328,7 @@ class StreamingFeatureComputer:
 
     @staticmethod
     def _microstructure_feature_names() -> List[str]:
-        """Return the canonical list of 44 microstructure feature names.
+        """Return the canonical list of 43 microstructure feature names.
 
         This must match the column order produced by
         ``compute_microstructure_features`` (excluding timestamp and mid_price).
@@ -302,8 +347,8 @@ class StreamingFeatureComputer:
             "weighted_price_bid_L10", "weighted_price_ask_L10", "price_pressure",
             # Volatility (3)
             "realized_vol_30s", "realized_vol_60s", "realized_vol_300s",
-            # Microstructure (2)
-            "kyle_lambda_30s", "amihud_30s",
+            # Depth-flow (1) — replaces the buggy kyle_lambda_30s / amihud_30s
+            "depth_flow_ratio_30s",
             # Slopes (2)
             "bid_slope_L10", "ask_slope_L10",
             # Concentration (2)

@@ -215,9 +215,14 @@ class TestFullModel(unittest.TestCase):
 class TestFeatureGroups(unittest.TestCase):
     """Unit tests for semantic feature grouping."""
 
-    # The 39 features produced by compute_microstructure_features (excluding
-    # timestamp and mid_price), in their exact output order.
-    ORIGINAL_39 = [
+    # The 38 base features produced by compute_microstructure_features
+    # (excluding timestamp, mid_price, and the 5 order-flow features),
+    # in their exact output order.  The previous ``kyle_lambda_30s`` and
+    # ``amihud_30s`` columns (both of which used LOB depth as a volume
+    # proxy — a known bug) are replaced by the single
+    # ``depth_flow_ratio_30s`` column; the trade-volume based Kyle's
+    # lambda now lives in trade_features.py.
+    ORIGINAL_38 = [
         "log_return_1s", "log_return_5s", "log_return_30s",
         "spread_bps", "spread_change",
         "obi_L1", "obi_L5", "obi_L10", "obi_L25", "obi_L1_delta",
@@ -225,7 +230,7 @@ class TestFeatureGroups(unittest.TestCase):
         "depth_ratio_L5",
         "weighted_price_bid_L10", "weighted_price_ask_L10", "price_pressure",
         "realized_vol_30s", "realized_vol_60s", "realized_vol_300s",
-        "kyle_lambda_30s", "amihud_30s",
+        "depth_flow_ratio_30s",
         "bid_slope_L10", "ask_slope_L10",
         "bid_concentration", "ask_concentration",
         "bid_amt_ratio_L0", "bid_amt_ratio_L1", "bid_amt_ratio_L2",
@@ -234,14 +239,18 @@ class TestFeatureGroups(unittest.TestCase):
         "ask_amt_ratio_L3", "ask_amt_ratio_L4",
         "second_of_day_sin", "second_of_day_cos",
     ]
+    # Back-compat alias
+    ORIGINAL_39 = ORIGINAL_38
 
-    # 5 new order-flow features (being added in parallel)
+    # 5 order-flow features
     ORDER_FLOW_5 = [
         "delta_bid_depth_L5", "delta_ask_depth_L5",
         "net_order_flow_L5", "delta_obi_L5_5s", "delta_pressure_5s",
     ]
 
-    ALL_44 = ORIGINAL_39 + ORDER_FLOW_5
+    ALL_43 = ORIGINAL_38 + ORDER_FLOW_5
+    # Back-compat alias
+    ALL_44 = ALL_43
 
     def test_feature_group_assignment(self) -> None:
         """Verify that known features are placed in the semantically correct group."""

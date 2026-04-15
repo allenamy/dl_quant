@@ -1,8 +1,12 @@
 """Loss functions for LOB models.
 
 Active (V2/V3 pipeline):
-    - ``quantile_loss``        -- pinball loss over [q10, q50, q90]
-    - ``asymmetric_huber_loss`` -- optional risk-asymmetric point loss
+    - ``quantile_loss``              -- pinball loss over [q10, q50, q90]
+    - ``asymmetric_huber_loss``      -- optional risk-asymmetric point loss
+    - ``rank_loss``                  -- pairwise ranking (scale-invariant)
+    - ``ic_loss``                    -- 1 - Pearson corr (scale-invariant)
+    - ``combined_ic_quantile_loss``  -- blend quantile + IC
+    - ``directional_huber_loss``     -- Huber with wrong-direction penalty
 
 DEPRECATED (legacy trainer.py + LOBTransformerV2 only):
     - ``direction_loss``       -- threshold-in-bps bug for normalized targets
@@ -16,11 +20,19 @@ Do NOT use the deprecated losses in new code.  They are kept solely for
 ``LOBTransformerV2`` model, which has a multi-head output
 (direction_logits + uncertainty + point_pred).  All V2/V3 models use
 ``quantile_loss`` via ``trainer_v2``.
+
+Rationale for the new scale-invariant losses
+--------------------------------------------
+At R^2 < 1% the quantile loss can degenerate to predicting unconditional
+quantiles (flat prediction).  Rank / IC losses focus purely on the
+*ordering* of pred vs target, which is what matters for trading decisions
+(direction + confidence).  ``combined_ic_quantile_loss`` hedges between
+proper probabilistic intervals and ordering.
 """
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -243,3 +255,208 @@ def combined_loss(
     }
 
     return total, loss_dict
+
+
+# ---------------------------------------------------------------------------
+# 6. Rank (pairwise) loss -- scale-invariant ordering loss
+# ---------------------------------------------------------------------------
+
+def rank_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    n_pairs: Optional[int] = None,
+    margin: float = 0.0,
+) -> torch.Tensor:
+    """Pairwise ranking loss (differentiable Spearman approximation).
+
+    For each sampled pair (i, j), i != j:
+        desired_diff = sign(target_i - target_j)
+        pred_diff    = pred_i - pred_j
+        loss_ij      = max(0, -desired_diff * pred_diff + margin)
+
+    The mean over pairs is returned.  Because the loss only depends on the
+    *ordering* of ``target``, any monotone transform of the predictions
+    yielding the same ranks produces the same loss (scale-invariance).
+
+    To avoid the O(N^2) cost of enumerating all pairs we sub-sample
+    ``n_pairs`` random pairs.  When ``n_pairs`` is ``None`` we default to
+    ``B`` (one pair per sample on average).
+
+    Pairs where ``target_i == target_j`` contribute ``max(0, margin)`` which
+    is zero when ``margin=0``.  This means "ties" are ignored rather than
+    biased.
+
+    Args:
+        pred: (B,) predictions.
+        target: (B,) targets.
+        n_pairs: number of pairs to sample.  Defaults to ``B``.
+        margin: hinge margin.  ``0`` gives a soft sign-agreement loss.
+
+    Returns:
+        Scalar mean hinge loss.  If ``B < 2`` returns ``0``.
+    """
+    B = pred.shape[0]
+    if B < 2:
+        return pred.new_zeros(())
+
+    if n_pairs is None:
+        n_pairs = B
+
+    # Scale-invariance: standardise pred *inside* the loss so that any
+    # affine transform of pred (scale + shift) yields the same loss.  We
+    # use ``unbiased=False`` so the normalisation is deterministic w.r.t.
+    # population.  A small epsilon guards against zero-variance pred.
+    pred_std = pred.std(unbiased=False)
+    pred_norm = (pred - pred.mean()) / (pred_std + 1e-8)
+
+    # Sample random pairs (i, j) with i != j. Resample any collisions.
+    device = pred.device
+    i = torch.randint(0, B, (n_pairs,), device=device)
+    j = torch.randint(0, B, (n_pairs,), device=device)
+    # Resample collisions in a loop-free way: shift j by 1 where equal.
+    collisions = (i == j)
+    if collisions.any():
+        j = torch.where(collisions, (j + 1) % B, j)
+
+    desired = torch.sign(target[i] - target[j])
+    pred_diff = pred_norm[i] - pred_norm[j]
+    # hinge: max(0, margin - desired * pred_diff)
+    raw = margin - desired * pred_diff
+    loss = torch.clamp(raw, min=0.0)
+    return loss.mean()
+
+
+# ---------------------------------------------------------------------------
+# 7. IC (Pearson-correlation) loss -- scale-invariant
+# ---------------------------------------------------------------------------
+
+def ic_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """Negative Pearson correlation as a loss.
+
+    ``loss = 1 - corr(pred, target)``
+
+    The loss is scale-invariant (corr doesn't care about scale/offset) and
+    commonly used in quantitative finance (IC = Information Coefficient).
+    Value is in ``[0, 2]`` (``0`` = perfectly correlated, ``2`` = perfectly
+    anti-correlated).
+
+    Args:
+        pred: (B,) predictions.
+        target: (B,) targets.
+        eps: numerical stabilizer added to the std-product denominator.
+
+    Returns:
+        Scalar loss.
+    """
+    if pred.numel() < 2:
+        return pred.new_zeros(())
+
+    pred_c = pred - pred.mean()
+    target_c = target - target.mean()
+    cov = (pred_c * target_c).mean()
+    std = pred_c.std(unbiased=False) * target_c.std(unbiased=False) + eps
+    return 1.0 - cov / std
+
+
+# ---------------------------------------------------------------------------
+# 8. Combined IC + quantile loss
+# ---------------------------------------------------------------------------
+
+def combined_ic_quantile_loss(
+    outputs: Dict[str, torch.Tensor],
+    target: torch.Tensor,
+    ic_weight: float = 0.5,
+    quantile_weight: float = 0.5,
+) -> Tuple[torch.Tensor, Dict[str, float]]:
+    """Weighted sum of IC loss and quantile (pinball) loss.
+
+    Hedges between:
+      * Quantile loss: learns proper probabilistic intervals (q10/q50/q90).
+      * IC loss:       learns ordering / direction (scale-invariant).
+
+    Args:
+        outputs: dict with at least the key ``"quantiles"`` (B, n_quantiles).
+            The median column (index ``n_quantiles // 2``) is used as the
+            point prediction for the IC term unless ``"point_pred"`` is
+            present, in which case it is preferred.
+        target: (B,) target values.
+        ic_weight: weight on ``ic_loss``.
+        quantile_weight: weight on ``quantile_loss``.
+
+    Returns:
+        ``(total_loss, loss_dict)`` with per-component scalars for logging.
+    """
+    q = outputs["quantiles"]
+    if "point_pred" in outputs:
+        point = outputs["point_pred"]
+    else:
+        # Median column (works for any odd n_quantiles incl. 3)
+        point = q[:, q.shape[1] // 2]
+
+    l_quantile = quantile_loss(q, target)
+    l_ic = ic_loss(point, target)
+
+    total = quantile_weight * l_quantile + ic_weight * l_ic
+
+    loss_dict = {
+        "quantile": l_quantile.item(),
+        "ic": l_ic.item(),
+        "total": total.item(),
+    }
+    return total, loss_dict
+
+
+# ---------------------------------------------------------------------------
+# 9. Directional Huber loss -- wrong-direction penalty
+# ---------------------------------------------------------------------------
+
+def directional_huber_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    delta: float = 1.0,
+    direction_weight: float = 2.0,
+) -> torch.Tensor:
+    """Huber loss with an extra multiplicative penalty on wrong-direction preds.
+
+    A sample is considered "wrong direction" when
+    ``sign(pred) != sign(target)`` AND both are nonzero.  For such samples
+    the per-sample Huber loss is multiplied by ``direction_weight`` (>= 1).
+    Zero-valued target or pred are treated as "neutral" (no penalty).
+
+    This prioritises getting direction right over getting magnitude right,
+    which is what matters for trading decisions.
+
+    Args:
+        pred: (B,) predictions.
+        target: (B,) targets.
+        delta: Huber transition threshold.
+        direction_weight: multiplier applied to wrong-direction samples
+            (must be >= 1 to make "wrong" strictly harder than "right").
+
+    Returns:
+        Scalar mean loss.
+    """
+    diff = pred - target
+    abs_diff = diff.abs()
+
+    huber = torch.where(
+        abs_diff <= delta,
+        0.5 * diff ** 2,
+        delta * (abs_diff - 0.5 * delta),
+    )
+
+    sp = torch.sign(pred)
+    st = torch.sign(target)
+    # Wrong direction only when BOTH have a definite sign and they differ.
+    wrong = (sp != st) & (sp != 0) & (st != 0)
+    weight = torch.where(
+        wrong,
+        torch.tensor(direction_weight, dtype=huber.dtype, device=huber.device),
+        torch.tensor(1.0, dtype=huber.dtype, device=huber.device),
+    )
+
+    return (huber * weight).mean()

@@ -223,6 +223,36 @@ class TestDatasetV2WithRaw(unittest.TestCase):
             self.assertEqual(x_raw.shape, (seq_len, n_levels, 4))
 
 
+class TestDatasetV2SmoothTargetPassThrough(unittest.TestCase):
+    """smooth_target is stored but not yet applied (handled at NPZ-build time)."""
+
+    def test_smooth_target_default_zero(self) -> None:
+        rng = np.random.default_rng(0)
+        n_win, seq_len, n_features = 10, 4, 3
+        with tempfile.TemporaryDirectory() as tmpdir:
+            X = rng.standard_normal((n_win, seq_len, n_features)).astype(np.float32)
+            y = rng.standard_normal(n_win).astype(np.float32)
+            y_mask = np.ones(n_win, dtype=np.float32)
+            np.savez(os.path.join(tmpdir, "day1.npz"), X=X, y=y, y_mask=y_mask)
+
+            ds = LOBDatasetV2(data_dir=tmpdir, days=["day1"])
+            self.assertEqual(ds.smooth_target, 0)
+
+    def test_smooth_target_custom_value_stored(self) -> None:
+        rng = np.random.default_rng(1)
+        n_win, seq_len, n_features = 10, 4, 3
+        with tempfile.TemporaryDirectory() as tmpdir:
+            X = rng.standard_normal((n_win, seq_len, n_features)).astype(np.float32)
+            y = rng.standard_normal(n_win).astype(np.float32)
+            y_mask = np.ones(n_win, dtype=np.float32)
+            np.savez(os.path.join(tmpdir, "day1.npz"), X=X, y=y, y_mask=y_mask)
+
+            ds = LOBDatasetV2(data_dir=tmpdir, days=["day1"], smooth_target=10)
+            self.assertEqual(ds.smooth_target, 10)
+            # y passthrough: values are untouched (no smoothing applied yet)
+            self.assertEqual(len(ds), n_win)
+
+
 class TestDatasetV2WithoutRaw(unittest.TestCase):
     """Verify LOBDatasetV2 works with old NPZ (no X_raw)."""
 
@@ -349,6 +379,117 @@ class TestGradNanGuard(unittest.TestCase):
                     torch.isfinite(p).all().item(),
                     f"Parameter {name} contains NaN/Inf -- grad NaN guard failed!",
                 )
+
+
+class TestLRWarmup(unittest.TestCase):
+    """Verify _apply_warmup ramps LR from base_lr/100 to base_lr linearly."""
+
+    def test_warmup_helper_schedule(self) -> None:
+        from src.training.trainer_v2 import _apply_warmup
+
+        model = nn.Linear(4, 3)
+        base_lr = 1e-3
+        optimizer = torch.optim.Adam(model.parameters(), lr=base_lr)
+
+        # Step 0 of 100-step warmup: lr ~= base_lr * 0.0199 (first increment)
+        _apply_warmup(step=0, warmup_steps=100, base_lr=base_lr, optimizer=optimizer)
+        lr0 = optimizer.param_groups[0]["lr"]
+        # Step 99 (last warmup step): lr == base_lr
+        _apply_warmup(step=99, warmup_steps=100, base_lr=base_lr, optimizer=optimizer)
+        lr99 = optimizer.param_groups[0]["lr"]
+        # Step 100 (past warmup): no change, should remain whatever it was
+        optimizer.param_groups[0]["lr"] = 0.5  # sentinel
+        _apply_warmup(step=100, warmup_steps=100, base_lr=base_lr, optimizer=optimizer)
+        lr_past = optimizer.param_groups[0]["lr"]
+
+        self.assertLess(lr0, lr99, "LR must increase during warmup")
+        self.assertAlmostEqual(lr99, base_lr, places=6)
+        self.assertGreaterEqual(lr0, base_lr * 0.01 - 1e-9)
+        self.assertEqual(lr_past, 0.5, "Past warmup, _apply_warmup must be a no-op")
+
+    def test_warmup_disabled_when_pct_zero(self) -> None:
+        """warmup_steps_pct=0 means training runs at the base lr from step 0."""
+        model = _TinySinglePathModel(n_features=5)
+        train_ds = _SinglePathDataset(n=32, seed=0)
+        val_ds = _SinglePathDataset(n=8, seed=1)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            train_one_fold_v2(
+                model=model,
+                train_dataset=train_ds,
+                val_dataset=val_ds,
+                out_dir=tmpdir,
+                epochs=1,
+                batch_size=8,
+                patience=5,
+                warmup_steps_pct=0.0,
+                lr=1e-3,
+            )
+            # Sanity: training completes, no exception
+
+
+class TestLossFnSelector(unittest.TestCase):
+    """Verify trainer accepts a custom loss_fn and uses it."""
+
+    def test_custom_loss_fn_invoked(self) -> None:
+        calls = {"n": 0}
+
+        def my_loss(outputs, target):
+            calls["n"] += 1
+            return (outputs["quantiles"] - target.unsqueeze(-1)).pow(2).mean()
+
+        model = _TinySinglePathModel(n_features=5)
+        train_ds = _SinglePathDataset(n=32, seed=0)
+        val_ds = _SinglePathDataset(n=8, seed=1)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            train_one_fold_v2(
+                model=model,
+                train_dataset=train_ds,
+                val_dataset=val_ds,
+                out_dir=tmpdir,
+                epochs=1,
+                batch_size=8,
+                patience=5,
+                loss_fn=my_loss,
+            )
+        self.assertGreater(calls["n"], 0, "Custom loss_fn was never called")
+
+
+class TestSeedDeterminism(unittest.TestCase):
+    """Same seed + same data => identical final weights.
+
+    NOTE: model weights are initialised by the caller *before* the trainer
+    runs, so the caller must seed before instantiating the model for full
+    determinism.  ``train_ensemble`` does this automatically; here we do
+    it explicitly for the same reason.
+    """
+
+    def test_same_seed_same_weights(self) -> None:
+        def _run(seed: int) -> torch.Tensor:
+            # Caller-side pre-seed so weight init is deterministic.
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            model = _TinySinglePathModel(n_features=5)
+            train_ds = _SinglePathDataset(n=32, seed=0)
+            val_ds = _SinglePathDataset(n=8, seed=1)
+            with tempfile.TemporaryDirectory() as tmpdir:
+                train_one_fold_v2(
+                    model=model,
+                    train_dataset=train_ds,
+                    val_dataset=val_ds,
+                    out_dir=tmpdir,
+                    epochs=2,
+                    batch_size=8,
+                    patience=5,
+                    seed=seed,
+                )
+            return model.proj.weight.detach().clone()
+
+        w_a = _run(seed=42)
+        w_b = _run(seed=42)
+        self.assertTrue(
+            torch.allclose(w_a, w_b, atol=1e-6),
+            "Same seed produced different weights -- seeding is not deterministic",
+        )
 
 
 class TestCheckpointByCorrelation(unittest.TestCase):

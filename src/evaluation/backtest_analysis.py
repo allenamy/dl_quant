@@ -249,6 +249,216 @@ def optimal_threshold_search(
     }
 
 
+def compare_predictions_table(
+    predictions_dict: Dict[str, tuple],
+    targets: np.ndarray,
+    timestamps: Optional[np.ndarray] = None,
+    baseline_key: Optional[str] = None,
+    run_backtest: bool = False,
+    fee_bps: float = 4.0,
+    slippage_bps: float = 1.0,
+) -> pd.DataFrame:
+    """Side-by-side comparison of multiple prediction sets.
+
+    Parameters
+    ----------
+    predictions_dict : dict[str, tuple]
+        ``{name: (preds, mask)}``. ``preds`` may be 1D (point predictions)
+        or 2D ``(N, 3)`` quantiles; ``mask`` is a boolean/float (N,) array.
+    targets : (N,) array of realised returns / targets.
+    timestamps : optional (N,) array of microsecond timestamps.
+        Currently unused but accepted for future time-slice extensions.
+    baseline_key : optional str
+        When provided, computes a ``win_rate_vs_baseline`` column = fraction
+        of samples where ``|pred - target| < |baseline_pred - target|``.
+    run_backtest : bool
+        When ``True`` and a prediction has 3 columns, run ``BacktestEngine``
+        to produce ``sharpe_bt`` and ``net_pnl_bps`` columns. Off by default
+        because it is slow and not always desired.
+    fee_bps, slippage_bps : float
+        Passed through to ``BacktestEngine`` when ``run_backtest=True``.
+
+    Returns
+    -------
+    pd.DataFrame
+        Rows = model names, columns at minimum ``n``, ``correlation``,
+        ``rank_correlation``, ``r2``, ``direction_accuracy``.
+        Additional columns added based on options.
+    """
+    from .metrics import evaluate_predictions
+
+    targets = np.asarray(targets, dtype=np.float64).ravel()
+
+    # Extract baseline predictions (point form) if requested
+    baseline_pred: Optional[np.ndarray] = None
+    if baseline_key is not None:
+        if baseline_key not in predictions_dict:
+            raise KeyError(
+                f"baseline_key '{baseline_key}' not in predictions_dict "
+                f"(keys: {list(predictions_dict.keys())})"
+            )
+        bp, _ = predictions_dict[baseline_key]
+        bp = np.asarray(bp)
+        baseline_pred = bp[:, 1] if bp.ndim == 2 else bp.ravel()
+
+    rows: List[Dict[str, object]] = []
+    for name, (preds, mask) in predictions_dict.items():
+        preds_arr = np.asarray(preds)
+        mask_arr = np.asarray(mask, dtype=bool).ravel()
+        point_pred = (
+            preds_arr[:, 1] if preds_arr.ndim == 2 else preds_arr.ravel()
+        )
+        metrics = evaluate_predictions(point_pred, targets, mask_arr)
+        row: Dict[str, object] = {"model": name}
+        for key in [
+            "n", "correlation", "rank_correlation", "r2",
+            "direction_accuracy", "residual_autocorr_lag1",
+        ]:
+            row[key] = metrics.get(key, float("nan"))
+
+        if baseline_pred is not None and name != baseline_key:
+            err_model = np.abs(point_pred - targets)
+            err_base = np.abs(baseline_pred - targets)
+            both = mask_arr & ~np.isnan(err_model) & ~np.isnan(err_base)
+            if both.sum() > 0:
+                row["win_rate_vs_baseline"] = float(
+                    np.mean(err_model[both] < err_base[both])
+                )
+            else:
+                row["win_rate_vs_baseline"] = float("nan")
+        elif baseline_pred is not None:
+            row["win_rate_vs_baseline"] = float("nan")  # baseline vs itself
+
+        if run_backtest and preds_arr.ndim == 2 and preds_arr.shape[1] == 3:
+            engine = BacktestEngine(
+                fee_bps=fee_bps, slippage_bps=slippage_bps,
+            )
+            res = engine.run(preds_arr, targets, mask_arr)
+            row["sharpe_bt"] = res.sharpe_annual
+            row["net_pnl_bps"] = res.net_pnl_bps
+            row["trade_rate"] = res.trade_rate
+
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    if len(df) > 0:
+        df = df.set_index("model")
+    return df
+
+
+def bootstrap_confidence_interval(
+    predictions: np.ndarray,
+    targets: np.ndarray,
+    mask: np.ndarray,
+    metric: str = "correlation",
+    n_bootstrap: int = 1000,
+    ci_level: float = 0.95,
+    block_size: int = 1,
+    seed: Optional[int] = None,
+) -> tuple:
+    """Bootstrap CI for a metric.
+
+    With stride < horizon, samples are autocorrelated, so use block
+    bootstrap with ``block_size = horizon / stride``. This preserves
+    short-range dependence so the CI is not artificially tight.
+
+    Parameters
+    ----------
+    predictions : (N,) or (N, 3) array.
+    targets : (N,) array.
+    mask : (N,) boolean/float mask.
+    metric : str
+        One of ``"correlation"``, ``"r2"``, ``"sharpe"`` (Sharpe uses
+        prediction * target as per-period PnL, no cost modelling).
+    n_bootstrap : int
+        Number of bootstrap resamples.
+    ci_level : float
+        Confidence level (0-1). Default 0.95 -> 2.5% / 97.5% percentiles.
+    block_size : int
+        Block size for moving-block bootstrap. Set to ``horizon / stride``
+        when labels are autocorrelated. Default 1 (iid bootstrap).
+    seed : optional int
+        RNG seed for reproducibility.
+
+    Returns
+    -------
+    (lower, upper) : tuple[float, float]
+    """
+    if metric not in {"correlation", "r2", "sharpe"}:
+        raise ValueError(
+            f"Unsupported metric '{metric}'. "
+            f"Use one of 'correlation', 'r2', 'sharpe'."
+        )
+    if not 0.0 < ci_level < 1.0:
+        raise ValueError(f"ci_level must be in (0, 1), got {ci_level}")
+    if block_size < 1:
+        raise ValueError(f"block_size must be >= 1, got {block_size}")
+
+    preds_arr = np.asarray(predictions)
+    point_pred = (
+        preds_arr[:, 1] if preds_arr.ndim == 2 else preds_arr.ravel()
+    ).astype(np.float64)
+    targets = np.asarray(targets, dtype=np.float64).ravel()
+    mask_bool = np.asarray(mask, dtype=bool).ravel()
+
+    p = point_pred[mask_bool]
+    t = targets[mask_bool]
+    n = len(p)
+    if n < 2:
+        return (float("nan"), float("nan"))
+
+    def _compute(pp: np.ndarray, tt: np.ndarray) -> float:
+        if metric == "correlation":
+            if np.std(pp) == 0 or np.std(tt) == 0:
+                return float("nan")
+            return float(np.corrcoef(pp, tt)[0, 1])
+        if metric == "r2":
+            ss_tot = float(np.sum((tt - np.mean(tt)) ** 2))
+            if ss_tot == 0:
+                return float("nan")
+            return 1.0 - float(np.sum((tt - pp) ** 2)) / ss_tot
+        # Sharpe of prediction-as-position strategy
+        pnl = pp * tt
+        if len(pnl) < 2:
+            return float("nan")
+        std = np.std(pnl, ddof=1)
+        if std == 0 or not np.isfinite(std):
+            return float("nan")
+        return float(np.mean(pnl) / std)
+
+    rng = np.random.default_rng(seed)
+    samples: List[float] = []
+
+    if block_size <= 1:
+        # iid bootstrap
+        for _ in range(n_bootstrap):
+            idx = rng.integers(0, n, size=n)
+            val = _compute(p[idx], t[idx])
+            if np.isfinite(val):
+                samples.append(val)
+    else:
+        # Moving-block bootstrap: sample starting indices with replacement,
+        # then glue blocks of length ``block_size`` together to length >= n.
+        n_blocks = int(np.ceil(n / block_size))
+        max_start = max(1, n - block_size + 1)
+        for _ in range(n_bootstrap):
+            starts = rng.integers(0, max_start, size=n_blocks)
+            idx = np.concatenate([
+                np.arange(s, s + block_size) for s in starts
+            ])[:n]
+            val = _compute(p[idx], t[idx])
+            if np.isfinite(val):
+                samples.append(val)
+
+    if not samples:
+        return (float("nan"), float("nan"))
+
+    alpha = (1.0 - ci_level) / 2.0
+    lower = float(np.percentile(samples, 100 * alpha))
+    upper = float(np.percentile(samples, 100 * (1 - alpha)))
+    return (lower, upper)
+
+
 def compare_models(results: Dict[str, BacktestResult]) -> pd.DataFrame:
     """Compare multiple backtest results side by side.
 

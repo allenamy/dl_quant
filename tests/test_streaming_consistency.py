@@ -25,6 +25,10 @@ import pandas as pd
 # Allow imports without pip install
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from src.features.derived_features import (
+    DERIVED_FEATURE_NAMES,
+    compute_derived_features,
+)
 from src.features.microstructure import compute_microstructure_features
 from src.features.raw_lob import extract_raw_lob_tensor
 from src.features.trade_features import (
@@ -33,6 +37,39 @@ from src.features.trade_features import (
     compute_trade_flow_features,
 )
 from src.inference.streaming import StreamingFeatureComputer
+
+
+# ---------------------------------------------------------------------------
+# Helpers to mirror the streaming pipeline in batch form for test comparison
+# ---------------------------------------------------------------------------
+
+def _batch_derived(
+    window_df: pd.DataFrame,
+    mid: np.ndarray,
+    log_ret_1s: np.ndarray,
+    buy_vol: np.ndarray | None,
+    sell_vol: np.ndarray | None,
+    n_levels: int,
+) -> np.ndarray:
+    bid_p = np.column_stack(
+        [window_df[f"bids[{i}].price"].values for i in range(n_levels)]
+    )
+    ask_p = np.column_stack(
+        [window_df[f"asks[{i}].price"].values for i in range(n_levels)]
+    )
+    bid_a = np.column_stack(
+        [window_df[f"bids[{i}].amount"].values for i in range(n_levels)]
+    )
+    ask_a = np.column_stack(
+        [window_df[f"asks[{i}].amount"].values for i in range(n_levels)]
+    )
+    d = compute_derived_features(
+        bid_prices=bid_p, ask_prices=ask_p,
+        bid_amounts=bid_a, ask_amounts=ask_a,
+        mid=mid, log_returns_1s=log_ret_1s,
+        buy_volume_1s=buy_vol, sell_volume_1s=sell_vol,
+    )
+    return d.values.astype(np.float32)
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +199,7 @@ class TestStreamingConsistency(unittest.TestCase):
             c for c in cls.batch_trade_feat_df.columns if c != "timestamp"
         ]
 
-        # Batch: full feature matrix (44 micro + 8 trade = 52)
+        # Batch: full feature matrix (42 micro + 9 trade + 6 derived = 57)
         micro_mat = cls.batch_feat_df[cls.batch_feature_cols].values.astype(
             np.float32
         )
@@ -252,7 +289,14 @@ class TestStreamingConsistency(unittest.TestCase):
 
                 micro_mat = batch_feat_df[batch_feature_cols].values.astype(np.float32)
                 trade_mat = win_trade_feat[win_trade_cols].values.astype(np.float32)
-                batch_feat_win = np.concatenate([micro_mat, trade_mat], axis=1)
+                derived_mat = _batch_derived(
+                    window_df, batch_mid,
+                    batch_feat_df["log_return_1s"].values.astype(np.float64),
+                    win_trade_feat["buy_volume_1s"].values.astype(np.float64),
+                    win_trade_feat["sell_volume_1s"].values.astype(np.float64),
+                    self.N_LEVELS,
+                )
+                batch_feat_win = np.concatenate([micro_mat, trade_mat, derived_mat], axis=1)
                 batch_feat_win = np.nan_to_num(batch_feat_win, nan=0.0, posinf=0.0, neginf=0.0)
                 batch_feat_win = np.clip(batch_feat_win, -self.FEATURE_CLIP, self.FEATURE_CLIP)
 
@@ -318,12 +362,19 @@ class TestStreamingConsistency(unittest.TestCase):
         window_df = self.depth_df.iloc[batch_start:].reset_index(drop=True)
         batch_feat_df = compute_microstructure_features(window_df, n_levels=self.N_LEVELS)
         batch_feature_cols = [c for c in batch_feat_df.columns if c not in ("timestamp", "mid_price")]
-        batch_feat_win = batch_feat_df[batch_feature_cols].values.astype(np.float32)
+        batch_mid_nt = batch_feat_df["mid_price"].values.astype(np.float64)
+        micro_mat = batch_feat_df[batch_feature_cols].values.astype(np.float32)
+        derived_mat = _batch_derived(
+            window_df, batch_mid_nt,
+            batch_feat_df["log_return_1s"].values.astype(np.float64),
+            None, None, self.N_LEVELS,
+        )
+        batch_feat_win = np.concatenate([micro_mat, derived_mat], axis=1)
         batch_feat_win = np.nan_to_num(batch_feat_win, nan=0.0, posinf=0.0, neginf=0.0)
         batch_feat_win = np.clip(batch_feat_win, -self.FEATURE_CLIP, self.FEATURE_CLIP)
         batch_raw_win = extract_raw_lob_tensor(window_df, n_levels=min(self.N_LEVELS, 20))
 
-        self.assertEqual(x_feat.shape[2], 44, f"Without trades: expected 44 features, got {x_feat.shape[2]}")
+        self.assertEqual(x_feat.shape[2], 49, f"Without trades: expected 49 features (43 micro + 6 derived), got {x_feat.shape[2]}")
 
         np.testing.assert_allclose(
             x_feat[0], batch_feat_win, atol=1e-6, rtol=1e-5,
@@ -392,7 +443,14 @@ class TestStreamingConsistency(unittest.TestCase):
 
                 micro_mat = batch_feat_df[batch_feature_cols].values.astype(np.float32)
                 trade_mat = win_trade_feat[win_trade_cols].values.astype(np.float32)
-                batch_feat_win = np.concatenate([micro_mat, trade_mat], axis=1)
+                derived_mat = _batch_derived(
+                    window_df, batch_mid,
+                    batch_feat_df["log_return_1s"].values.astype(np.float64),
+                    win_trade_feat["buy_volume_1s"].values.astype(np.float64),
+                    win_trade_feat["sell_volume_1s"].values.astype(np.float64),
+                    self.N_LEVELS,
+                )
+                batch_feat_win = np.concatenate([micro_mat, trade_mat, derived_mat], axis=1)
                 batch_feat_win = np.nan_to_num(batch_feat_win, nan=0.0, posinf=0.0, neginf=0.0)
                 batch_feat_win = np.clip(batch_feat_win, -self.FEATURE_CLIP, self.FEATURE_CLIP)
 
@@ -447,13 +505,13 @@ class TestStreamingConsistency(unittest.TestCase):
         x_with, _ = computer_with.get_tensors()
         x_without, _ = computer_without.get_tensors()
 
-        self.assertEqual(x_with.shape[2], 52, f"With trades: expected 52 features, got {x_with.shape[2]}")
-        self.assertEqual(x_without.shape[2], 44, f"Without trades: expected 44 features, got {x_without.shape[2]}")
+        self.assertEqual(x_with.shape[2], 58, f"With trades: expected 58 features (43+9+6), got {x_with.shape[2]}")
+        self.assertEqual(x_without.shape[2], 49, f"Without trades: expected 49 features (43+6), got {x_without.shape[2]}")
 
-        # First 44 features should be identical
+        # First 43 microstructure features must be identical regardless of trades.
         np.testing.assert_allclose(
-            x_with[0, :, :44], x_without[0, :, :44], atol=1e-6, rtol=1e-5,
-            err_msg="First 44 features differ between with/without trades",
+            x_with[0, :, :43], x_without[0, :, :43], atol=1e-6, rtol=1e-5,
+            err_msg="First 43 microstructure features differ between with/without trades",
         )
 
     def test_buffer_not_ready_raises(self) -> None:
@@ -507,7 +565,7 @@ class TestStreamingConsistency(unittest.TestCase):
 
         x_feat, x_raw = computer.get_tensors()
 
-        self.assertEqual(x_feat.shape, (1, self.INPUT_LEN, 52))
+        self.assertEqual(x_feat.shape, (1, self.INPUT_LEN, 58))
         self.assertEqual(x_raw.shape, (1, self.INPUT_LEN, 20, 4))
         self.assertEqual(x_feat.dtype, np.float32)
         self.assertEqual(x_raw.dtype, np.float32)
@@ -629,7 +687,14 @@ class TestStreamingConsistency(unittest.TestCase):
         ]
         micro_mat = batch_feat_df[batch_feature_cols].values.astype(np.float32)
         trade_mat = win_trade_feat[win_trade_cols].values.astype(np.float32)
-        batch_feat_full = np.concatenate([micro_mat, trade_mat], axis=1)
+        derived_mat = _batch_derived(
+            window_df, batch_mid,
+            batch_feat_df["log_return_1s"].values.astype(np.float64),
+            win_trade_feat["buy_volume_1s"].values.astype(np.float64),
+            win_trade_feat["sell_volume_1s"].values.astype(np.float64),
+            self.N_LEVELS,
+        )
+        batch_feat_full = np.concatenate([micro_mat, trade_mat, derived_mat], axis=1)
         batch_feat_full = np.nan_to_num(
             batch_feat_full, nan=0.0, posinf=0.0, neginf=0.0,
         )
@@ -769,7 +834,7 @@ class TestTradeFeatures(unittest.TestCase):
         self.assertEqual(bars.iloc[2]["sell_volume"], 0.0)
 
     def test_trade_flow_features_count(self) -> None:
-        """Verify exactly 8 trade feature columns."""
+        """Verify exactly 9 trade feature columns (8 original + kyle_lambda_30s)."""
         rng = np.random.default_rng(42)
         n = 200
         start_ts = 1_700_000_000_000_000
@@ -785,7 +850,7 @@ class TestTradeFeatures(unittest.TestCase):
         features = compute_trade_flow_features(bars)
 
         feat_cols = [c for c in features.columns if c != "timestamp"]
-        self.assertEqual(len(feat_cols), 8, f"Expected 8 trade features, got {len(feat_cols)}: {feat_cols}")
+        self.assertEqual(len(feat_cols), 9, f"Expected 9 trade features, got {len(feat_cols)}: {feat_cols}")
 
         expected = set(TRADE_FEATURE_NAMES)
         self.assertEqual(set(feat_cols), expected)
@@ -860,20 +925,21 @@ class TestPipelineTradeIntegration(unittest.TestCase):
     """Test that build_npz_for_day handles trades correctly."""
 
     def test_build_npz_backward_compatible(self) -> None:
-        """Without trades_df, build_npz_for_day must produce 44 features."""
+        """Without trades_df, build_npz_for_day must produce 49 features (43+6)."""
         from src.features.pipeline import build_npz_for_day
 
         depth_df = make_synthetic_depth_1s(n_rows=500, n_levels=25)
         result = build_npz_for_day(depth_df, input_len=300, stride=60)
 
         self.assertEqual(
-            len(result["features"]), 44,
-            f"Without trades: expected 44 features, got {len(result['features'])}",
+            len(result["features"]), 49,
+            f"Without trades: expected 49 features (43 micro + 6 derived), "
+            f"got {len(result['features'])}",
         )
-        self.assertEqual(result["X"].shape[2], 44)
+        self.assertEqual(result["X"].shape[2], 49)
 
     def test_build_npz_with_trades(self) -> None:
-        """With trades_df, build_npz_for_day must produce 52 features."""
+        """With trades_df, build_npz_for_day must produce 58 features (43+9+6)."""
         from src.features.pipeline import build_npz_for_day
 
         depth_df = make_synthetic_depth_1s(n_rows=500, n_levels=25)
@@ -884,18 +950,20 @@ class TestPipelineTradeIntegration(unittest.TestCase):
         )
 
         self.assertEqual(
-            len(result["features"]), 52,
-            f"With trades: expected 52 features, got {len(result['features'])}",
+            len(result["features"]), 58,
+            f"With trades: expected 58 features (43+9+6), got {len(result['features'])}",
         )
-        self.assertEqual(result["X"].shape[2], 52)
+        self.assertEqual(result["X"].shape[2], 58)
 
-        # First 44 features should match the no-trades run
+        # First 43 microstructure features must match between with/without
+        # trades (derived features differ because some of them consume
+        # trade volumes, so only the strict microstructure prefix aligns).
         result_no_trades = build_npz_for_day(depth_df, input_len=300, stride=60)
         np.testing.assert_allclose(
-            result["X"][:, :, :44],
-            result_no_trades["X"],
+            result["X"][:, :, :43],
+            result_no_trades["X"][:, :, :43],
             atol=1e-6,
-            err_msg="First 44 features differ between with/without trades in pipeline",
+            err_msg="First 43 microstructure features differ between with/without trades",
         )
 
 
