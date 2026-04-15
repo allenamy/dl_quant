@@ -291,7 +291,7 @@ def process_csv_to_npz(
         date_str = pd.Timestamp(day_id * us_per_day, unit="us", tz="UTC").strftime("%Y-%m-%d")
         out_path = output_dir / f"{date_str}.npz"
 
-        np.savez(
+        np.savez_compressed(
             out_path,
             X=result["X"],
             X_raw=result["X_raw"],
