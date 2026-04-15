@@ -130,7 +130,7 @@ class FlowBaseline(NaiveBaseline):
     Standard market-microstructure prior: net buy pressure -> price up.
     """
 
-    def __init__(self, flow_feature: str = "net_trade_flow_L5") -> None:
+    def __init__(self, flow_feature: str = "net_trade_flow_1s") -> None:
         self.flow_feature = flow_feature
         self.name = f"Flow[{self.flow_feature}]"
 
@@ -147,7 +147,7 @@ class MicropriceDeviationBaseline(NaiveBaseline):
     side of the book.
     """
 
-    def __init__(self, feature: str = "microprice_deviation_bps") -> None:
+    def __init__(self, feature: str = "microprice_dev_bps") -> None:
         self.feature = feature
         self.name = f"MicropriceDev[{self.feature}]"
 

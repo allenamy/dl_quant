@@ -28,7 +28,7 @@ class TestNaiveBaselineSigns(unittest.TestCase):
         np.random.seed(0)
         N, L, F = 50, 10, 3
         X = np.random.randn(N, L, F).astype(np.float32)
-        feature_names = ["obi_L5", "log_return_30s", "net_trade_flow_L5"]
+        feature_names = ["obi_L5", "log_return_30s", "net_trade_flow_1s"]
 
         bl = OBIBaseline(obi_feature="obi_L5", contrarian=True)
         pred = bl.predict(X, feature_names)
@@ -61,9 +61,9 @@ class TestNaiveBaselineSigns(unittest.TestCase):
         np.random.seed(3)
         N, L, F = 20, 4, 3
         X = np.random.randn(N, L, F).astype(np.float32)
-        feature_names = ["x", "net_trade_flow_L5", "y"]
+        feature_names = ["x", "net_trade_flow_1s", "y"]
 
-        bl = FlowBaseline(flow_feature="net_trade_flow_L5")
+        bl = FlowBaseline(flow_feature="net_trade_flow_1s")
         pred = bl.predict(X, feature_names)
         np.testing.assert_allclose(pred, X[:, -1, 1], rtol=1e-6)
 
@@ -71,9 +71,9 @@ class TestNaiveBaselineSigns(unittest.TestCase):
         np.random.seed(4)
         N, L, F = 15, 6, 2
         X = np.random.randn(N, L, F).astype(np.float32)
-        feature_names = ["microprice_deviation_bps", "z"]
+        feature_names = ["microprice_dev_bps", "z"]
 
-        bl = MicropriceDeviationBaseline(feature="microprice_deviation_bps")
+        bl = MicropriceDeviationBaseline(feature="microprice_dev_bps")
         pred = bl.predict(X, feature_names)
         np.testing.assert_allclose(pred, X[:, -1, 0], rtol=1e-6)
 
@@ -99,7 +99,7 @@ class TestRunAllBaselines(unittest.TestCase):
         np.random.seed(42)
         feature_names = [
             "obi_L5", "log_return_30s",
-            "net_trade_flow_L5", "microprice_deviation_bps",
+            "net_trade_flow_1s", "microprice_dev_bps",
         ]
         N, L, F = 200, 20, len(feature_names)
         X_train = np.random.randn(N, L, F).astype(np.float32)
