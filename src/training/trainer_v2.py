@@ -34,6 +34,37 @@ from .trainer import OnlineMetrics
 
 
 # ---------------------------------------------------------------------------
+# Checkpoint helper
+# ---------------------------------------------------------------------------
+
+def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
+    """Extract the construction-relevant config from a model for checkpointing.
+
+    We save shape-determining attributes so that the loader can reinstantiate
+    the model class without brittle state-dict key heuristics.
+
+    Only simple scalar attributes are captured (n_features, n_levels,
+    d_model, d_raw, etc.); anything missing is silently skipped.  If loading
+    code needs a field not captured here, it should be added.
+    """
+    candidate_attrs = [
+        "n_features", "n_levels", "d_model", "d_raw",
+        "n_mask_blocks", "n_cross_layers", "patch_size",
+        "attn_nhead", "attn_d_ff", "d_prior", "dropout",
+        "n_horizons", "n_symbols", "use_monotonic_quantile",
+        "n_quantiles",
+    ]
+    config: Dict[str, Any] = {}
+    for attr in candidate_attrs:
+        if hasattr(model, attr):
+            val = getattr(model, attr)
+            # Only record simple primitive types (not nn.Modules / tensors)
+            if isinstance(val, (int, float, bool, str)):
+                config[attr] = val
+    return config
+
+
+# ---------------------------------------------------------------------------
 # Training loop
 # ---------------------------------------------------------------------------
 
@@ -273,7 +304,16 @@ def train_one_fold_v2(
                 "val_corr": val_corr,
                 "val_r2": val_r2,
             }
-            torch.save(model.state_dict(), os.path.join(out_dir, "best_model.pt"))
+            # Save checkpoint in new format: wraps state_dict with the model
+            # class name so loaders can instantiate the right class without
+            # brittle state-dict key heuristics. See run_backtest.py for the
+            # matching loader (with fallback to raw state_dict for old ckpts).
+            ckpt = {
+                "state": model.state_dict(),
+                "class": type(model).__name__,
+                "config": _extract_model_config(model),
+            }
+            torch.save(ckpt, os.path.join(out_dir, "best_model.pt"))
         else:
             epochs_no_improve += 1
 

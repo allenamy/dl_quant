@@ -1,9 +1,16 @@
-"""End-to-end pipeline for LOB Transformer V2.
+"""DEPRECATED: End-to-end pipeline for the legacy LOBTransformerV2.
+
+This pipeline trains the OLD ``LOBTransformerV2`` (regime-aware feature gate,
+multi-task loss).  It is preserved for reference and backward compatibility
+only; all current work should use ``run_pipeline_v3.py`` which trains the
+DualPathLOBModelV3 (MaskNet + GDCN + RawLOBEncoder + Patched Attention).
 
 Steps:
     1. Feature engineering: CSV -> NPZ sliding-window datasets
     2. Single-day or multi-day training with temporal splits
     3. Evaluation: metrics + backtest on held-out test set
+
+STATUS: DEPRECATED -- kept for reference; do NOT extend.
 """
 
 from __future__ import annotations

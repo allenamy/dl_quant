@@ -536,6 +536,130 @@ class TestStreamingConsistency(unittest.TestCase):
         self.assertFalse(np.any(np.isnan(x_raw)), "NaN found in raw tensor")
         self.assertFalse(np.any(np.isinf(x_raw)), "Inf found in raw tensor")
 
+    def test_streaming_matches_batch_with_warmup_300(self) -> None:
+        """CRITICAL: streaming with warmup=300 must match batch on the same window.
+
+        This is the production-default configuration (features like
+        ``realized_vol_300s`` need ~300s of warm-up before they're well-
+        defined).  If this test fails, the model trained on batch features
+        will receive different inputs at inference time -- silent
+        training/inference skew.
+
+        Strategy:
+          1. Generate 900+ seconds of synthetic data.
+          2. Feed one second at a time into StreamingFeatureComputer with
+             input_len=300, warmup=300.
+          3. Once ready, ``get_tensors`` returns the last 300 rows (which
+             correspond to rows [warmup, warmup+input_len) of the fed data).
+          4. Run the batch pipeline on the full 600 rows (warmup + input),
+             take the last 300 rows.
+          5. Assert streaming == batch, atol=1e-6.
+        """
+        n_rows = 900
+        depth_df = make_synthetic_depth_1s(
+            n_rows=n_rows, n_levels=self.N_LEVELS, seed=11,
+        )
+        trades_df = make_synthetic_trades(depth_df, seed=77)
+
+        input_len = 300
+        warmup = 300
+
+        computer = StreamingFeatureComputer(
+            input_len=input_len,
+            n_levels=self.N_LEVELS,
+            use_trades=True,
+            feature_clip=self.FEATURE_CLIP,
+            warmup=warmup,
+        )
+
+        us_per_sec = 1_000_000
+
+        # Feed the first input_len + warmup rows (= 600) to fill the buffer
+        feed_n = input_len + warmup  # 600
+        for row_idx in range(feed_n):
+            ts = int(depth_df["timestamp"].iloc[row_idx])
+            snapshot = {"timestamp": ts}
+            for i in range(self.N_LEVELS):
+                for side in ("asks", "bids"):
+                    for field in ("price", "amount"):
+                        col = f"{side}[{i}].{field}"
+                        snapshot[col] = float(depth_df[col].iloc[row_idx])
+
+            sec_start = ts
+            sec_end = ts + us_per_sec
+            mask = (
+                (trades_df["timestamp"] >= sec_start)
+                & (trades_df["timestamp"] < sec_end)
+            )
+            sec_trades = trades_df[mask].to_dict("records")
+            computer.update(snapshot, sec_trades)
+
+        self.assertTrue(computer.is_ready())
+        x_feat_stream, x_raw_stream = computer.get_tensors()
+        self.assertEqual(x_feat_stream.shape[1], input_len)
+
+        # Batch: compute features on the same 600 rows (warmup + input)
+        window_df = depth_df.iloc[:feed_n].reset_index(drop=True)
+        batch_feat_df = compute_microstructure_features(
+            window_df, n_levels=self.N_LEVELS
+        )
+        batch_feature_cols = [
+            c for c in batch_feat_df.columns
+            if c not in ("timestamp", "mid_price")
+        ]
+        batch_mid = batch_feat_df["mid_price"].values.astype(np.float64)
+
+        # Trade bars aligned to the same 600-row window
+        win_ts_start = int(window_df["timestamp"].iloc[0])
+        win_ts_end = int(window_df["timestamp"].iloc[-1])
+        trades_mask = (
+            (trades_df["timestamp"] >= win_ts_start)
+            & (trades_df["timestamp"] < win_ts_end + us_per_sec)
+        )
+        win_trades = trades_df[trades_mask]
+        win_trade_bars = aggregate_trades_to_1s(
+            win_trades, start_ts_us=win_ts_start, end_ts_us=win_ts_end,
+            mid_prices_1s=batch_mid,
+        )
+        win_trade_feat = compute_trade_flow_features(
+            win_trade_bars, mid_prices=batch_mid,
+        )
+        win_trade_cols = [
+            c for c in win_trade_feat.columns if c != "timestamp"
+        ]
+        micro_mat = batch_feat_df[batch_feature_cols].values.astype(np.float32)
+        trade_mat = win_trade_feat[win_trade_cols].values.astype(np.float32)
+        batch_feat_full = np.concatenate([micro_mat, trade_mat], axis=1)
+        batch_feat_full = np.nan_to_num(
+            batch_feat_full, nan=0.0, posinf=0.0, neginf=0.0,
+        )
+        batch_feat_full = np.clip(
+            batch_feat_full, -self.FEATURE_CLIP, self.FEATURE_CLIP,
+        )
+        batch_raw_full = extract_raw_lob_tensor(
+            window_df, n_levels=min(self.N_LEVELS, 20),
+        )
+
+        # Last input_len rows == the streaming output
+        batch_feat_tail = batch_feat_full[-input_len:]
+        batch_raw_tail = batch_raw_full[-input_len:]
+
+        np.testing.assert_allclose(
+            x_feat_stream[0], batch_feat_tail,
+            atol=1e-6, rtol=1e-5,
+            err_msg=(
+                "warmup=300 streaming features differ from batch -- "
+                "this is a training/inference skew in production config!"
+            ),
+        )
+        np.testing.assert_allclose(
+            x_raw_stream[0], batch_raw_tail,
+            atol=1e-6, rtol=1e-5,
+            err_msg=(
+                "warmup=300 streaming raw tensor differs from batch."
+            ),
+        )
+
     def test_warmup_buffer(self) -> None:
         """With warmup > 0, buffer needs input_len + warmup rows to be ready.
 

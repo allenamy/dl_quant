@@ -1,7 +1,21 @@
-"""Loss functions for LOB Transformer V2.
+"""Loss functions for LOB models.
 
-Provides quantile, asymmetric Huber, direction (cross-entropy),
-uncertainty (Gaussian NLL), and a weighted combined loss.
+Active (V2/V3 pipeline):
+    - ``quantile_loss``        -- pinball loss over [q10, q50, q90]
+    - ``asymmetric_huber_loss`` -- optional risk-asymmetric point loss
+
+DEPRECATED (legacy trainer.py + LOBTransformerV2 only):
+    - ``direction_loss``       -- threshold-in-bps bug for normalized targets
+    - ``uncertainty_loss``     -- Gaussian NLL, unused outside combined_loss
+    - ``combined_loss``        -- 4-component weighted sum; caused gradient
+                                  conflicts that drove model outputs to near-
+                                  constant (see CLAUDE.md anti-patterns).
+
+Do NOT use the deprecated losses in new code.  They are kept solely for
+``src.training.trainer.train_one_fold`` backwards-compat with the old
+``LOBTransformerV2`` model, which has a multi-head output
+(direction_logits + uncertainty + point_pred).  All V2/V3 models use
+``quantile_loss`` via ``trainer_v2``.
 """
 
 from __future__ import annotations
@@ -96,7 +110,14 @@ def direction_loss(
     target: torch.Tensor,
     threshold_bps: float = 2.0,
 ) -> torch.Tensor:
-    """Cross-entropy on discretised return direction.
+    """DEPRECATED: Cross-entropy on discretised return direction.
+
+    Known bugs (see CLAUDE.md anti-patterns):
+    - ``threshold_bps`` assumes ``target`` is in raw fractional returns; if
+      the caller passes normalized targets (standard in V2/V3 pipelines),
+      the threshold is meaningless.
+    - Not called by any active trainer; kept only for ``combined_loss``
+      backward compatibility with the legacy trainer.py + LOBTransformerV2.
 
     Classes: 0=down (target < -thresh), 1=flat, 2=up (target > thresh).
 
@@ -126,7 +147,10 @@ def uncertainty_loss(
     target: torch.Tensor,
     uncertainty: torch.Tensor,
 ) -> torch.Tensor:
-    """Gaussian negative log-likelihood.
+    """DEPRECATED: Gaussian negative log-likelihood.
+
+    Not called by any active trainer; kept only for ``combined_loss``
+    backward compatibility with the legacy trainer.py + LOBTransformerV2.
 
     0.5 * (log(var) + (target - pred)^2 / var)
 
@@ -159,7 +183,18 @@ def combined_loss(
     asymmetric_weight: float = 1.0,
     **kwargs,
 ) -> Tuple[torch.Tensor, Dict[str, float]]:
-    """Weighted sum of all component losses, applied only to valid (masked) samples.
+    """DEPRECATED: Weighted sum of all component losses.
+
+    Only the legacy ``trainer.py`` + ``LOBTransformerV2`` call this.  Known
+    issues:
+    - 4-component gradient conflict caused model outputs to converge to
+      near-constant (see CLAUDE.md anti-pattern #3, "4 个 loss 同时训练").
+    - Expects output keys ``direction_logits`` and ``uncertainty`` that
+      V2/V3 models do NOT produce.
+    - Uses ``direction_loss`` with the bps-unit threshold bug.
+
+    All new training code should use ``quantile_loss`` via ``trainer_v2``.
+
 
     Args:
         outputs: dict with keys

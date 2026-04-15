@@ -177,7 +177,10 @@ def collect(
     """
 
     url = f"{_API_URL}?category=linear&symbol={symbol}&limit={n_levels}"
-    trade_url = f"https://api.bybit.com/v5/market/recent-trade?category=linear&symbol={symbol}&limit=50"
+    # Bybit V5 recent-trade: max limit is 1000 (raised from old 60 cap).
+    # BTCUSDT perp sees 100-500 trades/sec in busy periods; limit=50 would
+    # lose trades between polls, silently biasing VWAP / trade_imbalance.
+    trade_url = f"https://api.bybit.com/v5/market/recent-trade?category=linear&symbol={symbol}&limit=1000"
     writer = DailyCSVWriter(output_dir, symbol, n_levels)
 
     # Trade writer (separate file)
@@ -185,6 +188,9 @@ def collect(
     trade_writer = None
     trade_date = None
     last_trade_id = None
+    # Track trade rate to warn if we approach the 1000-trade-per-poll ceiling.
+    trade_rate_window_start = time.time()
+    trade_rate_count = 0
 
     # Graceful shutdown
     running = True
@@ -252,6 +258,7 @@ def collect(
                         # timestamp (monotonic) and only fall back to execId set on
                         # same-millisecond ties. Also keep a bounded set of recently
                         # seen execIds to handle out-of-order API returns.
+                        written_this_poll = 0
                         for t in reversed(trades):  # Bybit returns newest-first
                             eid = t.get("execId", "")
                             ts_ms = int(t["time"])
@@ -264,11 +271,30 @@ def collect(
                                     continue
                             ts_us = ts_ms * 1000
                             trade_writer.writerow([ts_us, t["price"], t["size"], t["side"], eid])
+                            written_this_poll += 1
                             # Update tracker
                             if last_trade_id is None or ts_ms > last_trade_id[0]:
                                 last_trade_id = (ts_ms, {eid})
                             else:  # same ts
                                 last_trade_id[1].add(eid)
+
+                        # Track rate; warn if >500 trades/s (approaching
+                        # the new 1000/poll ceiling -- if we hit 1000
+                        # consistently we're still dropping trades).
+                        trade_rate_count += written_this_poll
+                        now = time.time()
+                        win = now - trade_rate_window_start
+                        if win >= 30.0:  # evaluate every 30s
+                            rate = trade_rate_count / win
+                            if rate > 500.0:
+                                print(
+                                    f"[collector] WARN trade rate {rate:.1f}/s "
+                                    f"over last {win:.0f}s -- approaching "
+                                    f"1000/poll limit; consider reducing "
+                                    f"--interval."
+                                )
+                            trade_rate_window_start = now
+                            trade_rate_count = 0
                 except Exception:
                     pass  # trade collection is best-effort
 

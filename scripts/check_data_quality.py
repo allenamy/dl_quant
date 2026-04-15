@@ -193,6 +193,23 @@ def check_trades_quality(csv_path: str) -> dict:
         result["buy_count"] = "N/A"
         result["sell_count"] = "N/A"
 
+    # --- Duplicate exec_id detection -----------------------------------------
+    # REST collectors commonly double-poll and can produce duplicate trades.
+    # Without dedup, volumes / trade_imbalance are inflated and the model
+    # learns a fake signal.  Flag as ERROR at >1% duplicates (the pipeline
+    # defensively dedupes but we still want data quality visibility).
+    if "exec_id" in df.columns and total_rows > 0:
+        n_unique = int(df["exec_id"].nunique(dropna=False))
+        dup_count = total_rows - n_unique
+        dup_pct = (dup_count / total_rows) * 100.0
+        result["duplicate_exec_id_count"] = dup_count
+        result["duplicate_exec_id_pct"] = round(dup_pct, 2)
+    else:
+        dup_count = 0
+        dup_pct = 0.0
+        result["duplicate_exec_id_count"] = "N/A"
+        result["duplicate_exec_id_pct"] = "N/A"
+
     # --- Status determination ------------------------------------------------
     status = "OK"
     reasons = []
@@ -208,6 +225,10 @@ def check_trades_quality(csv_path: str) -> dict:
         if status != "ERROR":
             status = "WARNING"
         reasons.append(f"max_gap={max_gap_sec:.1f}s")
+
+    if isinstance(dup_pct, float) and dup_pct > 1.0:
+        status = "ERROR"
+        reasons.append(f"duplicates={dup_pct:.2f}% ({dup_count})")
 
     result["status"] = status
     if reasons:

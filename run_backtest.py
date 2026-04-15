@@ -114,27 +114,93 @@ def run_inference(
     # Load model
     device_obj = torch.device(device)
 
-    # Auto-detect model class from checkpoint
-    ckpt = torch.load(model_path, map_location=device_obj, weights_only=True)
+    # New-format checkpoints are dicts {"state": ..., "class": ..., "config": ...}
+    # The inner values (numpy scalars, bools) aren't part of the
+    # torch.load weights_only allow-list, so we must set weights_only=False.
+    # This is safe: we only load trusted checkpoints produced by our
+    # own trainer_v2. For raw state_dicts (old format) this still works.
+    ckpt = torch.load(model_path, map_location=device_obj, weights_only=False)
 
-    # Detect model architecture from state dict keys
-    state_keys = set(ckpt.keys())
-    if any("path_a" in k or "path_b" in k for k in state_keys):
-        from src.model.dual_path_model import DualPathLOBModelV2
-        n_features = test_ds.X.shape[-1]
-        n_levels = test_ds.X_raw.shape[-2] if dual_path else 20
-        model = DualPathLOBModelV2(n_features=n_features, n_levels=n_levels)
-    elif any("raw_lob" in k for k in state_keys):
-        from src.model.dual_path_model import DualPathLOBModel
-        n_features = test_ds.X.shape[-1]
-        n_levels = test_ds.X_raw.shape[-2] if dual_path else 20
-        model = DualPathLOBModel(n_features=n_features, n_levels=n_levels)
+    n_features = test_ds.X.shape[-1]
+    n_levels = test_ds.X_raw.shape[-2] if dual_path else 20
+
+    # New-format checkpoint: {"state": ..., "class": ..., "config": ...}
+    if isinstance(ckpt, dict) and "state" in ckpt and "class" in ckpt:
+        state = ckpt["state"]
+        cls_name = ckpt["class"]
+        cfg = ckpt.get("config", {}) or {}
+        # Instantiate by class name
+        if cls_name == "DualPathLOBModelV3":
+            from src.model.dual_path_model_v3 import DualPathLOBModelV3
+            kwargs = dict(
+                n_features=cfg.get("n_features", n_features),
+                n_levels=cfg.get("n_levels", n_levels),
+            )
+            # Pass through any additional shape-relevant kwargs
+            for k in ("d_model", "d_raw", "n_mask_blocks", "n_cross_layers",
+                      "patch_size", "attn_nhead", "attn_d_ff",
+                      "d_prior", "dropout", "n_horizons", "n_symbols",
+                      "use_monotonic_quantile"):
+                if k in cfg:
+                    kwargs[k] = cfg[k]
+            model = DualPathLOBModelV3(**kwargs)
+        elif cls_name == "DualPathLOBModelV2":
+            from src.model.dual_path_model import DualPathLOBModelV2
+            kwargs = dict(
+                n_features=cfg.get("n_features", n_features),
+                n_levels=cfg.get("n_levels", n_levels),
+            )
+            for k in ("d_model", "d_raw", "n_mask_blocks", "n_cross_layers",
+                      "d_prior", "dropout", "n_quantiles",
+                      "use_monotonic_quantile"):
+                if k in cfg:
+                    kwargs[k] = cfg[k]
+            model = DualPathLOBModelV2(**kwargs)
+        elif cls_name == "DualPathLOBModel":
+            from src.model.dual_path_model import DualPathLOBModel
+            kwargs = dict(
+                n_features=cfg.get("n_features", n_features),
+                n_levels=cfg.get("n_levels", n_levels),
+            )
+            for k in ("d_model", "d_raw", "dropout", "n_quantiles"):
+                if k in cfg:
+                    kwargs[k] = cfg[k]
+            model = DualPathLOBModel(**kwargs)
+        elif cls_name == "LOBTransformerV2":
+            from src.model.lob_transformer import LOBTransformerV2
+            kwargs = dict(n_features=cfg.get("n_features", n_features))
+            model = LOBTransformerV2(**kwargs)
+        else:
+            raise ValueError(
+                f"Unknown model class in checkpoint: {cls_name!r}. "
+                f"Update run_backtest.py to register this class."
+            )
     else:
-        from src.model.lob_transformer import LOBTransformerV2
-        n_features = test_ds.X.shape[-1]
-        model = LOBTransformerV2(n_features=n_features)
+        # Legacy raw state_dict: fall back to heuristic key matching
+        state = ckpt
+        state_keys = set(state.keys())
+        print(
+            "[backtest] WARNING: loading legacy state_dict checkpoint. "
+            "Retrain to get explicit class name in checkpoint."
+        )
+        # V3: has patch_embed + patch_attention + masknet
+        if any("patch_embed" in k or "patch_attention" in k for k in state_keys):
+            from src.model.dual_path_model_v3 import DualPathLOBModelV3
+            model = DualPathLOBModelV3(n_features=n_features, n_levels=n_levels)
+        # V2: has masknet + gdcn (but no patch_embed)
+        elif any("masknet" in k for k in state_keys) and any("gdcn" in k for k in state_keys):
+            from src.model.dual_path_model import DualPathLOBModelV2
+            model = DualPathLOBModelV2(n_features=n_features, n_levels=n_levels)
+        # V1: has raw_encoder + input_norm + fusion but no masknet
+        elif (any("raw_encoder" in k for k in state_keys)
+              and any("input_norm" in k for k in state_keys)):
+            from src.model.dual_path_model import DualPathLOBModel
+            model = DualPathLOBModel(n_features=n_features, n_levels=n_levels)
+        else:
+            from src.model.lob_transformer import LOBTransformerV2
+            model = LOBTransformerV2(n_features=n_features)
 
-    model.load_state_dict(ckpt)
+    model.load_state_dict(state)
     model.to(device_obj)
     model.eval()
 

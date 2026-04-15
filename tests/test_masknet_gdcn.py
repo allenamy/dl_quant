@@ -100,6 +100,62 @@ class TestMaskBlock(unittest.TestCase):
         diff = (out - x).abs().sum().item()
         self.assertGreater(diff, 0.0, "FFN should contribute to output")
 
+    def test_causality_future_does_not_leak(self) -> None:
+        """Modifying future timesteps must NOT change past outputs.
+
+        Critical for LOB use with pred_step != -1: a per-window instance mask
+        that averages over the full window would leak future data into past
+        positions.  The causal cumulative-mean summary prevents that.
+        """
+        torch.manual_seed(0)
+        B, L, D = 2, 20, 8
+        block = MaskBlock(d_input=D, d_hidden=D, dropout=0.0, causal=True)
+        block.eval()
+
+        x1 = torch.randn(B, L, D)
+        x2 = x1.clone()
+        # Modify the "future" half of the sequence
+        T = L // 2
+        x2[:, T:, :] = torch.randn(B, L - T, D) * 10.0
+
+        with torch.no_grad():
+            out1 = block(x1)
+            out2 = block(x2)
+
+        # Past outputs must be bit-for-bit identical (up to float roundoff)
+        torch.testing.assert_close(
+            out1[:, :T, :], out2[:, :T, :],
+            atol=1e-6, rtol=1e-5,
+            msg="Causality violation: past outputs changed when future was modified.",
+        )
+
+    def test_causal_last_step_matches_legacy_mean(self) -> None:
+        """At t=L-1, causal cumulative mean == full-window mean.
+
+        This documents backward compatibility for ``pred_step=-1`` callers
+        who only consume the last timestep.
+        """
+        torch.manual_seed(7)
+        B, L, D = 4, 12, 16
+        # Same weights for both
+        causal_block = MaskBlock(d_input=D, d_hidden=D, dropout=0.0, causal=True)
+        legacy_block = MaskBlock(d_input=D, d_hidden=D, dropout=0.0, causal=False)
+        legacy_block.load_state_dict(causal_block.state_dict())
+        causal_block.eval()
+        legacy_block.eval()
+
+        x = torch.randn(B, L, D)
+        with torch.no_grad():
+            out_causal = causal_block(x)
+            out_legacy = legacy_block(x)
+
+        # The last timestep must agree (both summaries are the full mean there)
+        torch.testing.assert_close(
+            out_causal[:, -1, :], out_legacy[:, -1, :],
+            atol=1e-6, rtol=1e-5,
+            msg="At t=L-1 causal mean should match full-window mean.",
+        )
+
 
 class TestMaskNet(unittest.TestCase):
     """Tests for MaskNet (stack of MaskBlocks)."""

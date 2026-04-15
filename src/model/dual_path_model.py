@@ -100,6 +100,11 @@ class DualPathLOBModel(nn.Module):
         super().__init__()
         self.d_model = d_model
         self.d_raw = d_raw
+        # Save for checkpoint-based rehydration
+        self.n_features = n_features
+        self.n_levels = n_levels
+        self.dropout = dropout
+        self.n_quantiles = n_quantiles
 
         # --- Path A: hand-crafted features ------------------------------------
         self.input_norm = nn.LayerNorm(n_features)
@@ -240,6 +245,14 @@ class DualPathLOBModelV2(nn.Module):
         super().__init__()
         self.d_model = d_model
         self.d_raw = d_raw
+        # Save for checkpoint-based rehydration
+        self.n_features = n_features
+        self.n_levels = n_levels
+        self.n_mask_blocks = n_mask_blocks
+        self.n_cross_layers = n_cross_layers
+        self.d_prior = d_prior
+        self.dropout = dropout
+        self.n_quantiles = n_quantiles
 
         # --- Path A: hand-crafted features ------------------------------------
         # MaskNet + GDCN operate in full feature space (n_features-dim) BEFORE

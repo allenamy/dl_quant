@@ -127,17 +127,30 @@ class StreamingFeatureComputer:
 
         if self.use_trades:
             ts = depth_snapshot["timestamp"]
+            # Derive mid from the depth snapshot we just appended, so that
+            # aggregate_trades_to_1s can fall back to mid (not 0) for the
+            # vwap of a no-trade second.  This matches how the batch
+            # pipeline populates vwap: see src.features.pipeline.
+            try:
+                best_ask = float(depth_snapshot["asks[0].price"])
+                best_bid = float(depth_snapshot["bids[0].price"])
+                mid = 0.5 * (best_ask + best_bid)
+            except (KeyError, TypeError, ValueError):
+                mid = 0.0
+            mid_arr = np.array([mid], dtype=np.float64)
+
             if trades and len(trades) > 0:
                 trades_df = pd.DataFrame(trades)
                 bar = aggregate_trades_to_1s(
-                    trades_df, start_ts_us=ts, end_ts_us=ts
+                    trades_df, start_ts_us=ts, end_ts_us=ts,
+                    mid_prices_1s=mid_arr,
                 )
                 if len(bar) > 0:
                     self._trade_buffer.append(bar.iloc[0].to_dict())
                 else:
-                    self._trade_buffer.append(self._zero_trade_bar(ts))
+                    self._trade_buffer.append(self._zero_trade_bar(ts, vwap=mid))
             else:
-                self._trade_buffer.append(self._zero_trade_bar(ts))
+                self._trade_buffer.append(self._zero_trade_bar(ts, vwap=mid))
 
         return self.is_ready()
 
@@ -249,8 +262,14 @@ class StreamingFeatureComputer:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _zero_trade_bar(ts: int) -> dict:
-        """Create a zero-volume trade bar for a second with no trades."""
+    def _zero_trade_bar(ts: int, vwap: float = 0.0) -> dict:
+        """Create a zero-volume trade bar for a second with no trades.
+
+        vwap is filled with the current mid price (when available) so that
+        downstream ``vwap_return_1s`` stays finite / near-zero instead of
+        degenerating to log(0/mid) for silent seconds.  This matches how
+        the batch pipeline handles the same case.
+        """
         return {
             "timestamp": ts,
             "trade_count": 0,
@@ -258,7 +277,7 @@ class StreamingFeatureComputer:
             "sell_volume": 0.0,
             "net_trade_flow": 0.0,
             "trade_imbalance": 0.0,
-            "vwap": 0.0,
+            "vwap": float(vwap),
             "trade_intensity": 0.0,
         }
 

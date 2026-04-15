@@ -255,6 +255,102 @@ class TestDatasetV2WithoutRaw(unittest.TestCase):
             self.assertEqual(x_feat.shape, (seq_len, n_features))
 
 
+class TestGradNanGuard(unittest.TestCase):
+    """Verify trainer_v2 skips optimizer.step() when gradients are NaN/Inf.
+
+    Without the guard, a single batch producing inf/nan gradients poisons
+    every parameter on the next step, turning all subsequent predictions
+    into NaN for the rest of training.  The guard checks ``grad_norm``
+    after ``clip_grad_norm_`` and skips ``optimizer.step()`` if the norm
+    is not finite.
+    """
+
+    def test_grad_nan_guard_skips_step(self) -> None:
+        from src.training.trainer_v2 import train_one_fold_v2
+
+        torch.manual_seed(0)
+
+        class _PathologicalModel(nn.Module):
+            """Model whose forward returns enormous quantile preds (huge loss).
+
+            When combined with enormous input values, this reliably produces
+            non-finite gradients in at least some of the early batches.
+            """
+
+            def __init__(self, n_features: int, scale: float):
+                super().__init__()
+                self.lin = nn.Linear(n_features, 3)
+                # Pre-scale weights to inf-size after first input
+                with torch.no_grad():
+                    self.lin.weight.fill_(scale)
+                    self.lin.bias.fill_(scale)
+
+            def forward(self, x: torch.Tensor, x_raw=None) -> dict:
+                h = x[:, -1, :]
+                q = self.lin(h)
+                return {"quantiles": q, "point_pred": q[:, 1]}
+
+        class _HugeInputDataset(Dataset):
+            """Dataset whose values are huge enough to overflow when multiplied.
+
+            This reliably produces inf/nan in the loss for some batches.
+            """
+
+            def __init__(self, n: int = 32, seq_len: int = 5, n_features: int = 4):
+                rng = np.random.default_rng(0)
+                # Mix normal + huge samples so some batches are fine, some not
+                X = rng.standard_normal((n, seq_len, n_features)).astype(np.float32)
+                # Inject huge values in half the samples
+                X[n // 2:] *= 1e20
+                self.X = X
+                self.y = rng.standard_normal(n).astype(np.float32) * 1e10
+                self.mask = np.ones(n, dtype=np.float32)
+
+            def __len__(self):
+                return len(self.X)
+
+            def __getitem__(self, idx):
+                return (
+                    torch.FloatTensor(self.X[idx]),
+                    torch.tensor(float(self.y[idx])),
+                    torch.tensor(float(self.mask[idx])),
+                )
+
+        n_features = 4
+        model = _PathologicalModel(n_features=n_features, scale=1e10)
+        train_ds = _HugeInputDataset(n=32, seq_len=5, n_features=n_features)
+        val_ds = _HugeInputDataset(n=8, seq_len=5, n_features=n_features)
+
+        # Capture the initial parameter snapshot so we can verify no NaN
+        # was ever written into the params.
+        initial_params = {
+            name: p.detach().clone()
+            for name, p in model.named_parameters()
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Run just 1 epoch -- enough to exercise the NaN guard path
+            train_one_fold_v2(
+                model=model,
+                train_dataset=train_ds,
+                val_dataset=val_ds,
+                out_dir=tmpdir,
+                epochs=1,
+                batch_size=4,
+                patience=5,
+                grad_clip=1.0,
+            )
+
+            # CRITICAL: no parameter should contain NaN/inf after training.
+            # If the guard had been bypassed, even one bad step would have
+            # corrupted these tensors.
+            for name, p in model.named_parameters():
+                self.assertTrue(
+                    torch.isfinite(p).all().item(),
+                    f"Parameter {name} contains NaN/Inf -- grad NaN guard failed!",
+                )
+
+
 class TestCheckpointByCorrelation(unittest.TestCase):
     """Verify best model is saved by val_correlation, not val_loss."""
 

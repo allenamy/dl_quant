@@ -97,11 +97,17 @@ def build_npz_for_day(
 
     # --- optionally add trade features --------------------------------------
     if trades_df is not None and len(trades_df) > 0:
-        # Aggregate trade ticks to 1s bars aligned to the depth grid
+        # Aggregate trade ticks to 1s bars aligned to the depth grid.
+        # Pass mid_prices_1s so no-trade seconds get a sensible vwap (mid)
+        # instead of 0 -- important for downstream vwap_return_1s to not
+        # report a -100% return for silent seconds.
         start_ts = int(timestamps_all[0])
         end_ts = int(timestamps_all[-1])
         trade_bars = aggregate_trades_to_1s(
-            trades_df, start_ts_us=start_ts, end_ts_us=end_ts
+            trades_df,
+            start_ts_us=start_ts,
+            end_ts_us=end_ts,
+            mid_prices_1s=mid_prices,
         )
         trade_feat_df = compute_trade_flow_features(
             trade_bars, mid_prices=mid_prices

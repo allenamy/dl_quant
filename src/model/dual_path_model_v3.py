@@ -127,6 +127,16 @@ class DualPathLOBModelV3(nn.Module):
         self.n_horizons = n_horizons
         self.n_symbols = n_symbols
         self.use_monotonic_quantile = use_monotonic_quantile
+        # Save construction-time scalars so the checkpoint loader can
+        # reinstantiate the class without guessing shapes from keys.
+        self.n_features = n_features
+        self.n_levels = n_levels
+        self.n_mask_blocks = n_mask_blocks
+        self.n_cross_layers = n_cross_layers
+        self.attn_nhead = attn_nhead
+        self.attn_d_ff = attn_d_ff
+        self.d_prior = d_prior
+        self.dropout = dropout
 
         # --- Path A: hand-crafted features -----------------------------------
         # MaskNet + GDCN operate in full feature space (n_features-dim) BEFORE

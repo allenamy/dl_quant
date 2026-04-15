@@ -11,6 +11,26 @@ Each MaskBlock generates a per-instance sigmoid mask that gates which
 input dimensions are informative for THIS sample, suppressing noisy
 dimensions element-wise.  This is critical for low-SNR financial data
 where different samples have different informative features.
+
+Causality (important for LOB / time-series use)
+-----------------------------------------------
+When operating on 3D input ``(B, L, d_input)``, the original MaskNet
+formulation would pool across the FULL sequence to build a single
+"instance-level" summary that gates every timestep identically.  In
+forecasting settings where the model extracts its prediction from a
+non-terminal timestep (e.g. ``pred_step=150`` on an L=300 window),
+this leaks **future** information into the mask at past positions.
+
+This implementation defaults to a **causal cumulative mean**: the mask
+at time *t* is produced from ``x[:, :t+1, :].mean(dim=1)``, so position
+*t* sees only its own past.  When the caller always reads the last
+timestep (``pred_step=-1``) the causal cumulative mean at *t=L-1* is
+identical to a mean over the full window -- so this change is a pure
+strengthening that preserves backwards compatibility for the dominant
+use case and FIXES the leakage for non-terminal prediction.
+
+Set ``causal=False`` to recover the exact legacy behavior (full-window
+mean) if you need it for reproducing old experiments.
 """
 
 from __future__ import annotations
@@ -29,10 +49,10 @@ class MaskBlock(nn.Module):
     Architecture::
 
         input -> LayerNorm -> [instance_mask * input] -> FFN -> output
-        instance_mask = sigmoid(Linear(LayerNorm(input)))
+        instance_mask = sigmoid(Linear(LayerNorm(summary(input))))
 
-    The mask is generated from each instance independently, so it
-    captures which dimensions are informative for THIS sample.
+    where ``summary`` is a causal cumulative mean over time for 3D inputs
+    (see module docstring).  For 2D inputs ``summary`` is the identity.
 
     Parameters
     ----------
@@ -42,10 +62,21 @@ class MaskBlock(nn.Module):
         Hidden dimension of the internal FFN.
     dropout : float
         Dropout probability inside the FFN.
+    causal : bool
+        For 3D inputs, if True (default) the mask at time *t* uses only
+        timesteps ``0..t``; if False, uses the full-window mean (legacy
+        behavior, leaks future into past when ``pred_step != -1``).
     """
 
-    def __init__(self, d_input: int, d_hidden: int, dropout: float = 0.1):
+    def __init__(
+        self,
+        d_input: int,
+        d_hidden: int,
+        dropout: float = 0.1,
+        causal: bool = True,
+    ):
         super().__init__()
+        self.causal = causal
         # Mask generator: from input -> per-dimension mask
         self.mask_net = nn.Sequential(
             nn.LayerNorm(d_input),
@@ -77,20 +108,29 @@ class MaskBlock(nn.Module):
 
         Notes
         -----
-        For 3D input ``(B, L, d_input)``, the mask is generated from the
-        mean across the time dimension (instance-level summary), producing
-        a ``(B, 1, d_input)`` mask that broadcasts across all timesteps.
-        This is the correct "instance-guided" behavior per the MaskNet
-        paper: for THIS market window, these dimensions are informative.
-        The mask does not create temporal information flow since all
-        timesteps receive the same scaling.
+        For 3D input ``(B, L, d_input)`` with ``causal=True`` (default),
+        the mask at time *t* is produced from the cumulative mean over
+        ``x[:, :t+1, :]``, so each timestep receives a (different) mask
+        derived only from its own past.  At ``t = L-1`` this matches the
+        full-window mean, so reading the last timestep (``pred_step=-1``)
+        is equivalent to the legacy behavior.
         """
         if x.dim() == 3:
-            # Instance-level: use mean across time dimension as summary
-            x_summary = x.mean(dim=1, keepdim=True)  # (B, 1, d)
-            mask = self.mask_net(x_summary)            # (B, 1, d) — broadcast across L
+            if self.causal:
+                # Causal cumulative mean: at time t, summary uses x[0..t]
+                # x: (B, L, d)
+                cumsum = x.cumsum(dim=1)                                  # (B, L, d)
+                counts = torch.arange(
+                    1, x.size(1) + 1, device=x.device, dtype=x.dtype,
+                ).view(1, -1, 1)                                          # (1, L, 1)
+                x_summary = cumsum / counts                               # (B, L, d)
+                mask = self.mask_net(x_summary)                           # (B, L, d)
+            else:
+                # Legacy: full-window mean -> single mask broadcast over L
+                x_summary = x.mean(dim=1, keepdim=True)                   # (B, 1, d)
+                mask = self.mask_net(x_summary)                           # (B, 1, d)
         else:
-            mask = self.mask_net(x)                    # (B, d) — 2D case unchanged
+            mask = self.mask_net(x)                                       # (B, d)
         h = self.norm(x * mask)       # masked + normalized
         return x + self.ffn(h)        # residual connection
 
@@ -111,6 +151,8 @@ class MaskNet(nn.Module):
         Number of serial MaskBlocks.
     dropout : float
         Dropout probability.
+    causal : bool
+        Forwarded to each MaskBlock (default True).
     """
 
     def __init__(
@@ -119,10 +161,11 @@ class MaskNet(nn.Module):
         d_hidden: int,
         n_blocks: int = 2,
         dropout: float = 0.1,
+        causal: bool = True,
     ):
         super().__init__()
         self.blocks = nn.ModuleList([
-            MaskBlock(d_input, d_hidden, dropout=dropout)
+            MaskBlock(d_input, d_hidden, dropout=dropout, causal=causal)
             for _ in range(n_blocks)
         ])
 
