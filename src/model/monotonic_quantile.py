@@ -42,9 +42,14 @@ class MonotonicQuantileHead(nn.Module):
     # Minimum delta floor to guarantee strict ordering even at float32
     # precision. Softplus can output values arbitrarily close to zero for
     # large negative inputs; this floor prevents q10 == q50 or q50 == q90.
-    # 1e-4 is large enough to survive float32 rounding when base values
-    # are in the hundreds (typical for un-normalized returns in bps).
-    MIN_DELTA: float = 1e-4
+    #
+    # Calibrated for NORMALIZED targets in [-5, 5] (after MAD sigma).
+    # 0.01 = 0.2% of the target range -- enough to be meaningful at the
+    # float32 precision scale (~1e-7 rel. error), small enough not to
+    # artificially widen the prediction interval.
+    # Previously 1e-4 was used; that is too tight on normalized targets
+    # (q10 and q50 could differ by only 0.0001 which is visually zero).
+    MIN_DELTA: float = 0.01
 
     def __init__(self, d_input: int, d_hidden: int, dropout: float = 0.1):
         super().__init__()
