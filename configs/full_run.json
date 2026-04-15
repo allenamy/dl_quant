@@ -1,0 +1,38 @@
+{
+    "_comment": "Full multi-day BTCUSDT LOB run. Targets ~100-300 windows/day over ~1004 days. Model size deliberately small to respect CLAUDE.md params-per-sample budget; actual V3 param count with these settings is ~58K, trades off feature-interaction capacity against low-SNR robustness. Treat this as Phase 2 signal-quality exploration, not a locked production config.",
+    "data": {
+        "csv_path": "",
+        "npz_dir": "data/npz_full",
+        "n_levels": 25,
+        "horizon_sec": 180,
+        "input_len": 300,
+        "stride": 180
+    },
+    "model": {
+        "d_model": 32,
+        "d_raw": 16,
+        "n_mask_blocks": 1,
+        "n_cross_layers": 1,
+        "patch_size": 10,
+        "attn_nhead": 2,
+        "attn_d_ff": 64,
+        "d_prior": 0,
+        "dropout": 0.15,
+        "n_horizons": 1,
+        "n_symbols": 1,
+        "use_monotonic_quantile": true
+    },
+    "training": {
+        "epochs": 60,
+        "batch_size": 128,
+        "lr": 5e-4,
+        "weight_decay": 1e-3,
+        "patience": 10,
+        "grad_clip": 1.0,
+        "train_days": 180,
+        "val_days": 30,
+        "test_days": 30,
+        "fold_stride": 60
+    },
+    "output_dir": "experiments/v3_full"
+}
