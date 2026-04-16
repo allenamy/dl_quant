@@ -245,11 +245,19 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
       lambda_calib         (default 0.0)
       utility_alpha        (default 1.0)
       n_pairs              (default None -> use batch size)
+
+    Explicit ``None`` values in ``cfg`` are treated as "use default"
+    (defensive: raw JSON config loaders may emit ``None`` for missing
+    fields).  Explicit ``0.0`` is preserved (do NOT use the ``or``
+    shortcut, which would resurrect the default for legitimate 0.0).
     """
-    lambda_q = float(cfg.get("lambda_quantile", 1.0))
-    lambda_u = float(cfg.get("lambda_utility_rank", 0.3))
-    lambda_c = float(cfg.get("lambda_calib", 0.0))
-    alpha_u = float(cfg.get("utility_alpha", 1.0))
+    def _pos_or_default(x, default):
+        return float(default) if x is None else float(x)
+
+    lambda_q = _pos_or_default(cfg.get("lambda_quantile"), 1.0)
+    lambda_u = _pos_or_default(cfg.get("lambda_utility_rank"), 0.3)
+    lambda_c = _pos_or_default(cfg.get("lambda_calib"), 0.0)
+    alpha_u = _pos_or_default(cfg.get("utility_alpha"), 1.0)
     n_pairs = cfg.get("n_pairs", None)
 
     def dul_loss_fn(outputs, target):

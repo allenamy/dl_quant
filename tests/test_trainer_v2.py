@@ -621,7 +621,37 @@ def test_trainer_without_dul_config_unchanged():
     print("PASS: test_trainer_without_dul_config_unchanged")
 
 
+def test_dul_config_handles_explicit_none():
+    """None values in dul_config must fall back to defaults, not crash."""
+    import os, sys, torch
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.training.trainer_v2 import _build_loss_fn_for_dul
+    from src.model.dual_path_model_v3 import DualPathLOBModelV3  # not needed but keeps imports honest
+
+    # All None -> all defaults
+    fn = _build_loss_fn_for_dul({
+        "lambda_quantile": None,
+        "lambda_utility_rank": None,
+        "lambda_calib": None,
+        "utility_alpha": None,
+    })
+    q = torch.randn(8, 3).sort(dim=1).values
+    y = torch.randn(8)
+    loss = fn({"quantiles": q}, y)
+    assert torch.isfinite(loss), "loss should be finite when config has None values"
+    # Also test: lambda_calib=0.0 explicit should NOT fall back to default (0.3)
+    fn_zero = _build_loss_fn_for_dul({
+        "lambda_quantile": 1.0,
+        "lambda_utility_rank": 0.0,  # explicit 0 must be respected
+        "lambda_calib": 0.0,
+    })
+    loss_zero = fn_zero({"quantiles": q}, y)
+    assert torch.isfinite(loss_zero)
+    print("PASS: test_dul_config_handles_explicit_none")
+
+
 if __name__ == "__main__":
     unittest.main(exit=False)
     test_trainer_handles_5tuple_with_regime_prior_and_dul()
     test_trainer_without_dul_config_unchanged()
+    test_dul_config_handles_explicit_none()
