@@ -26,6 +26,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from .dataset import DayChunkedSampler
+from .dul_loss import compute_dul_loss
 from .losses import quantile_loss
 
 
@@ -192,6 +193,80 @@ def _multi_horizon_loss(
 
 
 # ---------------------------------------------------------------------------
+# Batch / forward / loss helpers (DRY)
+# ---------------------------------------------------------------------------
+
+def _unpack_batch(
+    batch: tuple,
+    dual_path: bool,
+    has_regime_prior: bool,
+):
+    """Normalize batch tuple to 5-slot form (x_feat, x_raw, regime_prior, y, mask).
+
+    Absent parts are None. Supported shapes:
+      - 3-tuple: (x_feat, y, mask)                        -> Path A only
+      - 4-tuple: (x_feat, x_raw, y, mask)                 -> Dual path
+      - 5-tuple: (x_feat, x_raw, regime_prior, y, mask)   -> Dual + prior
+    """
+    if has_regime_prior:
+        x_feat, x_raw, regime_prior, y, mask = batch
+        return x_feat, x_raw, regime_prior, y, mask
+    if dual_path:
+        x_feat, x_raw, y, mask = batch
+        return x_feat, x_raw, None, y, mask
+    x_feat, y, mask = batch
+    return x_feat, None, None, y, mask
+
+
+def _forward_with_regime(
+    model: nn.Module,
+    x_feat: torch.Tensor,
+    x_raw: Optional[torch.Tensor],
+    regime_prior: Optional[torch.Tensor],
+    multi_horizon: bool,
+) -> Dict[str, torch.Tensor]:
+    """Dispatch the right forward call given what's available."""
+    kwargs: Dict[str, Any] = {}
+    if regime_prior is not None:
+        kwargs["regime_prior"] = regime_prior
+    if multi_horizon:
+        kwargs["all_horizons"] = True
+    if x_raw is not None:
+        return model(x_feat, x_raw, **kwargs)
+    return model(x_feat, **kwargs)
+
+
+def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
+    """Build a loss_fn(outputs, target) -> scalar from a DUL config dict.
+
+    Config keys (all optional with defaults):
+      lambda_quantile      (default 1.0)
+      lambda_utility_rank  (default 0.3)
+      lambda_calib         (default 0.0)
+      utility_alpha        (default 1.0)
+      n_pairs              (default None -> use batch size)
+    """
+    lambda_q = float(cfg.get("lambda_quantile", 1.0))
+    lambda_u = float(cfg.get("lambda_utility_rank", 0.3))
+    lambda_c = float(cfg.get("lambda_calib", 0.0))
+    alpha_u = float(cfg.get("utility_alpha", 1.0))
+    n_pairs = cfg.get("n_pairs", None)
+
+    def dul_loss_fn(outputs, target):
+        total, _ = compute_dul_loss(
+            outputs["quantiles"], target,
+            lambda_quantile=lambda_q,
+            lambda_utility_rank=lambda_u,
+            lambda_calib=lambda_c,
+            utility_alpha=alpha_u,
+            n_pairs=n_pairs,
+        )
+        return total
+
+    return dul_loss_fn
+
+
+# ---------------------------------------------------------------------------
 # Training loop
 # ---------------------------------------------------------------------------
 
@@ -211,6 +286,7 @@ def train_one_fold_v2(
     warmup_steps_pct: float = 0.05,
     loss_fn: Optional[Callable[[Dict[str, torch.Tensor], torch.Tensor], torch.Tensor]] = None,
     seed: Optional[int] = None,
+    dul_config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -263,6 +339,14 @@ def train_one_fold_v2(
         If provided, seed Python / NumPy / PyTorch for ensemble-friendly
         deterministic training.  ``None`` (default) leaves global RNGs
         untouched.
+    dul_config : dict, optional
+        If provided, overrides the default quantile loss with a DUL-composed
+        loss (pinball + utility-rank + calibration). Schema:
+          {"lambda_quantile": float, "lambda_utility_rank": float,
+           "lambda_calib": float, "utility_alpha": float, "n_pairs": int | None}
+        All keys optional; defaults: 1.0 / 0.3 / 0.0 / 1.0 / None.
+        Incompatible with ``loss_fn`` -- if both are given, ``dul_config``
+        wins and emits a warning.
 
     Returns
     -------
@@ -278,8 +362,18 @@ def train_one_fold_v2(
     device_obj = torch.device(device)
     model = model.to(device_obj)
 
-    # Default loss: pure quantile on ``outputs["quantiles"]``
-    if loss_fn is None:
+    # Default loss: pure quantile on ``outputs["quantiles"]``.
+    # dul_config, when supplied, replaces it with the DUL-composed loss.
+    if dul_config is not None:
+        if loss_fn is not None:
+            import warnings
+            warnings.warn(
+                "Both loss_fn and dul_config supplied; dul_config wins "
+                "(DUL composition overrides custom loss_fn).",
+                stacklevel=2,
+            )
+        loss_fn = _build_loss_fn_for_dul(dul_config)
+    elif loss_fn is None:
         def loss_fn(outputs, target):  # type: ignore[no-redef]
             return quantile_loss(outputs["quantiles"], target)
 
@@ -410,39 +504,20 @@ def train_one_fold_v2(
             # keeps the kwarg invisible to V2 / legacy models (whose forward
             # doesn't know about it) and makes single-horizon runs
             # bit-identical to the pre-multi-horizon trainer.
-            if has_regime_prior:
-                x_feat, x_raw, regime_prior, y, mask = batch
-                x_feat = x_feat.to(device_obj)
+            x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
+                batch, dual_path, has_regime_prior,
+            )
+            x_feat = x_feat.to(device_obj)
+            if x_raw is not None:
                 x_raw = x_raw.to(device_obj)
+            if regime_prior is not None:
                 regime_prior = regime_prior.to(device_obj)
-                y = y.to(device_obj)
-                mask = mask.to(device_obj)
-                if multi_horizon:
-                    outputs = model(
-                        x_feat, x_raw, regime_prior=regime_prior,
-                        all_horizons=True,
-                    )
-                else:
-                    outputs = model(x_feat, x_raw, regime_prior=regime_prior)
-            elif dual_path:
-                x_feat, x_raw, y, mask = batch
-                x_feat = x_feat.to(device_obj)
-                x_raw = x_raw.to(device_obj)
-                y = y.to(device_obj)
-                mask = mask.to(device_obj)
-                if multi_horizon:
-                    outputs = model(x_feat, x_raw, all_horizons=True)
-                else:
-                    outputs = model(x_feat, x_raw)
-            else:
-                x_feat, y, mask = batch
-                x_feat = x_feat.to(device_obj)
-                y = y.to(device_obj)
-                mask = mask.to(device_obj)
-                if multi_horizon:
-                    outputs = model(x_feat, all_horizons=True)
-                else:
-                    outputs = model(x_feat)
+            y = y.to(device_obj)
+            mask = mask.to(device_obj)
+
+            outputs = _forward_with_regime(
+                model, x_feat, x_raw, regime_prior, multi_horizon,
+            )
 
             # Loss computation: multi-horizon sums per-horizon quantile loss
             # with per-horizon masks (so a row with some horizons masked
@@ -498,41 +573,20 @@ def train_one_fold_v2(
 
         with torch.no_grad():
             for batch in val_loader:
-                if has_regime_prior:
-                    x_feat, x_raw, regime_prior, y, mask = batch
-                    x_feat = x_feat.to(device_obj)
+                x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
+                    batch, dual_path, has_regime_prior,
+                )
+                x_feat = x_feat.to(device_obj)
+                if x_raw is not None:
                     x_raw = x_raw.to(device_obj)
+                if regime_prior is not None:
                     regime_prior = regime_prior.to(device_obj)
-                    y = y.to(device_obj)
-                    mask = mask.to(device_obj)
-                    if multi_horizon:
-                        outputs = model(
-                            x_feat, x_raw, regime_prior=regime_prior,
-                            all_horizons=True,
-                        )
-                    else:
-                        outputs = model(
-                            x_feat, x_raw, regime_prior=regime_prior,
-                        )
-                elif dual_path:
-                    x_feat, x_raw, y, mask = batch
-                    x_feat = x_feat.to(device_obj)
-                    x_raw = x_raw.to(device_obj)
-                    y = y.to(device_obj)
-                    mask = mask.to(device_obj)
-                    if multi_horizon:
-                        outputs = model(x_feat, x_raw, all_horizons=True)
-                    else:
-                        outputs = model(x_feat, x_raw)
-                else:
-                    x_feat, y, mask = batch
-                    x_feat = x_feat.to(device_obj)
-                    y = y.to(device_obj)
-                    mask = mask.to(device_obj)
-                    if multi_horizon:
-                        outputs = model(x_feat, all_horizons=True)
-                    else:
-                        outputs = model(x_feat)
+                y = y.to(device_obj)
+                mask = mask.to(device_obj)
+
+                outputs = _forward_with_regime(
+                    model, x_feat, x_raw, regime_prior, multi_horizon,
+                )
 
                 if multi_horizon:
                     loss = _multi_horizon_loss(outputs, y, mask, loss_fn)

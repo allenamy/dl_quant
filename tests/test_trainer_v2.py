@@ -525,5 +525,103 @@ class TestCheckpointByCorrelation(unittest.TestCase):
             self.assertIsInstance(state, dict)
 
 
+def test_trainer_handles_5tuple_with_regime_prior_and_dul():
+    """Trainer accepts a dataset that returns 5-tuple and runs DUL loss."""
+    import os, sys, tempfile, numpy as np, torch
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.training.trainer_v2 import train_one_fold_v2
+    from src.model.dual_path_model_v3 import DualPathLOBModelV3
+    from src.training.dataset import LOBDatasetV2
+
+    with tempfile.TemporaryDirectory() as tmp:
+        rng = np.random.default_rng(0)
+        for name, n_win in [("2024-01-01", 32), ("2024-01-02", 16)]:
+            np.savez_compressed(
+                os.path.join(tmp, f"{name}.npz"),
+                X=rng.standard_normal((n_win, 100, 64)).astype(np.float32),
+                X_raw=rng.standard_normal((n_win, 100, 20, 4)).astype(np.float32),
+                y=(rng.standard_normal(n_win) * 0.001).astype(np.float32),
+                y_mask=np.ones(n_win, dtype=np.uint8),
+                regime_prior=rng.standard_normal((n_win, 6)).astype(np.float32),
+                timestamps=np.arange(n_win, dtype=np.int64),
+                features=np.array([f"f{i}" for i in range(64)], dtype=object),
+            )
+        train_ds = LOBDatasetV2(tmp, ["2024-01-01"], normalize=False)
+        val_ds = LOBDatasetV2(tmp, ["2024-01-02"], normalize=False)
+
+        model = DualPathLOBModelV3(
+            n_features=64, n_levels=20, d_model=16, d_raw=8,
+            patch_size=10, attn_nhead=2, attn_d_ff=32,
+            d_prior=6, n_horizons=1, dropout=0.0,
+            use_ppnet_gate=True,
+        )
+        metrics = train_one_fold_v2(
+            model=model,
+            train_dataset=train_ds,
+            val_dataset=val_ds,
+            out_dir=os.path.join(tmp, "ckpt"),
+            device="cpu",
+            epochs=1,
+            batch_size=16,
+            lr=1e-3,
+            weight_decay=0.0,
+            patience=2,
+            grad_clip=1.0,
+            dul_config={
+                "lambda_quantile": 1.0,
+                "lambda_utility_rank": 0.3,
+                "lambda_calib": 0.0,
+                "utility_alpha": 1.0,
+            },
+        )
+        assert metrics is not None
+        assert "val_corr" in metrics
+    print("PASS: test_trainer_handles_5tuple_with_regime_prior_and_dul")
+
+
+def test_trainer_without_dul_config_unchanged():
+    """Without dul_config, trainer behaviour is the pure quantile-loss path."""
+    import os, sys, tempfile, numpy as np, torch
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.training.trainer_v2 import train_one_fold_v2
+    from src.model.dual_path_model_v3 import DualPathLOBModelV3
+    from src.training.dataset import LOBDatasetV2
+
+    with tempfile.TemporaryDirectory() as tmp:
+        rng = np.random.default_rng(0)
+        for name, n_win in [("2024-01-01", 32), ("2024-01-02", 16)]:
+            np.savez_compressed(
+                os.path.join(tmp, f"{name}.npz"),
+                X=rng.standard_normal((n_win, 100, 64)).astype(np.float32),
+                X_raw=rng.standard_normal((n_win, 100, 20, 4)).astype(np.float32),
+                y=(rng.standard_normal(n_win) * 0.001).astype(np.float32),
+                y_mask=np.ones(n_win, dtype=np.uint8),
+                regime_prior=rng.standard_normal((n_win, 6)).astype(np.float32),
+                timestamps=np.arange(n_win, dtype=np.int64),
+                features=np.array([f"f{i}" for i in range(64)], dtype=object),
+            )
+        train_ds = LOBDatasetV2(tmp, ["2024-01-01"], normalize=False)
+        val_ds = LOBDatasetV2(tmp, ["2024-01-02"], normalize=False)
+
+        model = DualPathLOBModelV3(
+            n_features=64, n_levels=20, d_model=16, d_raw=8,
+            patch_size=10, attn_nhead=2, attn_d_ff=32,
+            d_prior=6, n_horizons=1, dropout=0.0,
+            use_ppnet_gate=True,
+        )
+        metrics = train_one_fold_v2(
+            model=model,
+            train_dataset=train_ds, val_dataset=val_ds,
+            out_dir=os.path.join(tmp, "ckpt2"),
+            device="cpu", epochs=1, batch_size=16, lr=1e-3,
+            weight_decay=0.0, patience=2, grad_clip=1.0,
+        )
+        assert metrics is not None
+        assert "val_corr" in metrics
+    print("PASS: test_trainer_without_dul_config_unchanged")
+
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(exit=False)
+    test_trainer_handles_5tuple_with_regime_prior_and_dul()
+    test_trainer_without_dul_config_unchanged()
