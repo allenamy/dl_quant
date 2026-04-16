@@ -30,30 +30,37 @@ _SEC_PER_DAY = 86_400
 def _rolling_linear_slope(y: np.ndarray, window: int) -> np.ndarray:
     """Causal rolling OLS slope of y over a trailing window.
 
-    Returns an array the same length as y. Values before the window is full
-    use the available history (min_periods=2, else 0).
-
-    NOTE: This is O(n × window) Python-loop — acceptable for typical
-    single-day NPZ generation (~86 400 rows × 3600 window). Will be
-    vectorized in a follow-up if it becomes a bottleneck during
-    multi-day NPZ regen (Task 14).
+    Vectorized via the identity: slope_m = (m·Σi·y − Σi·Σy) / (m·Σi² − (Σi)²)
+    where i = 0..m-1 (relative positions in the window), so Σi = m(m-1)/2,
+    Σi² = m(m-1)(2m-1)/6, and the denominator simplifies to m²·(m²−1)/12.
+    Only rolling Σy and Σ(k·y) are needed, both computable in O(n) via
+    pandas rolling. Bit-exact vs. the reference Python-loop implementation.
     """
     y = np.asarray(y, dtype=np.float64)
     n = len(y)
+    if n == 0:
+        return np.zeros(0, dtype=np.float64)
+
+    s = pd.Series(y)
+    m = s.rolling(window, min_periods=2).count().to_numpy()
+    sum_y = s.rolling(window, min_periods=2).sum().to_numpy()
+
+    # For a trailing window of length m ending at t, with absolute indices
+    # k = t-m+1..t and relative i = k - (t-m+1):
+    #   Σ i·y = Σ k·y − (t-m+1)·Σ y
+    idx = np.arange(n, dtype=np.float64)
+    sum_ky = pd.Series(idx * y).rolling(window, min_periods=2).sum().to_numpy()
+    offset = idx - m + 1  # start index of window at time t
+    sum_iy = sum_ky - offset * sum_y
+
+    sum_i = m * (m - 1) / 2.0
+    # denom = m·Σi² − (Σi)² = m²(m²−1)/12  (closed form in m alone)
+    denom = (m ** 2) * (m ** 2 - 1) / 12.0
+    num = m * sum_iy - sum_i * sum_y
+
     out = np.zeros(n, dtype=np.float64)
-    for t in range(n):
-        start = max(0, t - window + 1)
-        seg = y[start:t + 1]
-        m = len(seg)
-        if m < 2:
-            continue
-        x = np.arange(m, dtype=np.float64)
-        xm = x.mean()
-        ym = seg.mean()
-        denom = np.sum((x - xm) ** 2)
-        if denom <= 0:
-            continue
-        out[t] = float(np.sum((x - xm) * (seg - ym)) / denom)
+    valid = (m >= 2) & (denom > 0) & np.isfinite(denom)
+    out[valid] = num[valid] / denom[valid]
     return out
 
 
@@ -74,7 +81,7 @@ def compute_regime_prior_features(df: pd.DataFrame) -> pd.DataFrame:
     log_ret_s = pd.Series(log_ret)
     out["vol_1h"] = (
         log_ret_s.rolling(window=_WINDOW_1H, min_periods=2)
-        .std(ddof=0)
+        .std()
         .fillna(0.0)
         .to_numpy()
     )
