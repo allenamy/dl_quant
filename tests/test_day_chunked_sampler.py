@@ -55,17 +55,37 @@ class TestDayChunkedSampler(unittest.TestCase):
         sampler = DayChunkedSampler(self.ds, shuffle_days=True, shuffle_within_day=True, seed=42)
         sampler.set_epoch(0)
         indices = list(sampler)
+        # Still covers all 14 samples exactly once
         self.assertEqual(len(set(indices)), 14)
-        # But samples from each day still come in consecutive chunks:
-        # find the run lengths and verify they match day sizes [3, 5, 4, 2] in some order
-        day_sizes = []
-        run_start = 0
-        for i in range(1, len(indices) + 1):
-            if i == len(indices) or self.ds._locate(indices[i])[0] != self.ds._locate(indices[i-1])[0]:
-                day_sizes.append(i - run_start)
-                run_start = i
-        self.assertEqual(sorted(day_sizes), [2, 3, 4, 5])
+        self.assertEqual(sorted(indices), list(range(14)))
         print("PASS: test_shuffle_days_still_covers_all")
+
+    def test_chunk_size_one_is_pure_day_chunked(self):
+        """chunk_size=1: each day processed independently, contiguous runs."""
+        sampler = DayChunkedSampler(
+            self.ds, chunk_size=1,
+            shuffle_days=False, shuffle_within_day=False,
+        )
+        indices = list(sampler)
+        # Day 0 (3 samples) then day 1 (5) then day 2 (4) then day 3 (2)
+        self.assertEqual(indices, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+        print("PASS: test_chunk_size_one_is_pure_day_chunked")
+
+    def test_chunk_size_large_is_global_shuffle(self):
+        """chunk_size >= n_days: one chunk, samples globally shuffled."""
+        sampler = DayChunkedSampler(
+            self.ds, chunk_size=100,  # >= 4 days
+            shuffle_days=False, shuffle_within_day=True, seed=42,
+        )
+        indices = list(sampler)
+        # All 14 samples, but in random order (NOT contiguous-by-day)
+        self.assertEqual(sorted(indices), list(range(14)))
+        # Samples from different days will be interleaved
+        day_ids = [self.ds._locate(idx)[0] for idx in indices]
+        # Not monotonically non-decreasing → at least one day-jump happens
+        day_jumps = sum(1 for i in range(1, len(day_ids)) if day_ids[i] < day_ids[i-1])
+        self.assertGreater(day_jumps, 0)
+        print("PASS: test_chunk_size_large_is_global_shuffle")
 
     def test_set_epoch_changes_order(self):
         sampler = DayChunkedSampler(self.ds, shuffle_days=True, seed=42)

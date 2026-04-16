@@ -650,36 +650,56 @@ class LOBDatasetV2(Dataset):
 
 
 class DayChunkedSampler(Sampler):
-    """Sampler that groups samples by day for cache-friendly access.
+    """Chunked sampling: group days into chunks, shuffle globally WITHIN each chunk.
 
-    When LOBDatasetV2 uses lazy per-day loading, globally shuffled access
-    causes cache thrashing (each batch of 256 spans ~256 distinct days,
-    most cache-missing). This sampler instead iterates one day at a time,
-    shuffling sample order within the day. Day order is shuffled per
-    epoch. Cache hit rate is ~100% after the first sample of each day.
+    Balances cache efficiency (all days in a chunk fit in LRU cache) with
+    batch-level sample diversity (each batch spans ~chunk_size different
+    days, approximating i.i.d. SGD).
+
+    With ``chunk_size=1`` reduces to pure day-chunking (all samples from
+    one day in order, before next day). With ``chunk_size=n_days`` reduces
+    to global shuffle (and will cache-thrash if chunk_size > cache_size).
+
+    The recommended setting is ``chunk_size <= cache_size``, which keeps
+    cache hit rate ~100% while giving each batch ~chunk_size days of
+    gradient diversity.
+
+    **No data-leakage concerns.** Shuffling only reorders samples within a
+    single (train) set; walk-forward fold construction already guarantees
+    train < val < test day ordering. Val/test DataLoader should use
+    ``shuffle=False`` (sequential access is cache-friendly on its own).
 
     Parameters
     ----------
     dataset : LOBDatasetV2
         Must expose ``_offsets`` (cumulative per-day sample counts) and
         ``_day_paths`` (list of path length N_days).
+    chunk_size : int, default 32
+        Number of days per chunk. All samples from these days are pooled
+        and shuffled together, then yielded in shuffled order before the
+        next chunk begins. Choose ``<= dataset.cache_size`` for 100% hit
+        rate.
     shuffle_days : bool, default True
-        Whether to shuffle the order in which days are processed each epoch.
+        Whether to shuffle the order in which chunks (and days within
+        chunks) are processed each epoch.
     shuffle_within_day : bool, default True
-        Whether to shuffle sample order within each day.
+        DEPRECATED — kept for back-compat. When ``True`` (default), samples
+        within each chunk are globally shuffled (spans multiple days).
+        When ``False``, chunks are yielded as contiguous day-after-day
+        runs without intra-chunk shuffling.
     seed : int, optional
         Base RNG seed. Actual seed per epoch is ``seed + epoch`` (set via
         ``set_epoch()``). Default ``None`` means a fresh RNG each epoch
         (not reproducible).
     drop_last : bool, default False
-        If True, drops the final partial day(s) worth of samples so the
-        total count is a multiple of (shuffled day count). Mostly a
-        no-op unless downstream code requires exact divisibility.
+        Kept for Sampler interface compatibility. The actual DataLoader
+        ``drop_last`` parameter handles batch truncation.
     """
 
     def __init__(
         self,
         dataset,
+        chunk_size: int = 32,
         shuffle_days: bool = True,
         shuffle_within_day: bool = True,
         seed: Optional[int] = None,
@@ -691,7 +711,10 @@ class DayChunkedSampler(Sampler):
                 "DayChunkedSampler requires a dataset with _offsets and "
                 "_day_paths attributes (e.g. LOBDatasetV2)"
             )
+        if chunk_size < 1:
+            raise ValueError(f"chunk_size must be >= 1, got {chunk_size}")
         self.dataset = dataset
+        self.chunk_size = int(chunk_size)
         self.shuffle_days = shuffle_days
         self.shuffle_within_day = shuffle_within_day
         self.seed = seed
@@ -714,13 +737,24 @@ class DayChunkedSampler(Sampler):
         if self.shuffle_days:
             rng.shuffle(day_order)
 
-        for d in day_order:
-            start = int(self.dataset._offsets[d])
-            end = int(self.dataset._offsets[d + 1])
-            indices = list(range(start, end))
+        # Split day_order into chunks of chunk_size days
+        for chunk_start in range(0, n_days, self.chunk_size):
+            chunk_days = day_order[chunk_start : chunk_start + self.chunk_size]
+
+            # Gather all sample indices from this chunk of days
+            chunk_indices: List[int] = []
+            for d in chunk_days:
+                start = int(self.dataset._offsets[d])
+                end = int(self.dataset._offsets[d + 1])
+                chunk_indices.extend(range(start, end))
+
+            # Global shuffle WITHIN the chunk — gives batch-level day
+            # diversity while staying cache-resident. When chunk_size=1
+            # this is intra-day shuffle (legacy DayChunkedSampler behaviour).
             if self.shuffle_within_day:
-                rng.shuffle(indices)
-            yield from indices
+                rng.shuffle(chunk_indices)
+
+            yield from chunk_indices
 
     def __len__(self) -> int:
         return int(self.dataset._offsets[-1])

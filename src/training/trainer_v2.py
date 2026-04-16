@@ -327,8 +327,14 @@ def train_one_fold_v2(
     )
 
     if use_day_sampler:
+        # chunk_size=32 balances cache efficiency (100% hit at cache_size=128)
+        # with per-batch day diversity (~32 days per chunk → near-iid SGD).
+        # Shuffling is LEAKAGE-SAFE: fold builder already enforces strict
+        # train < val < test day ordering; DayChunkedSampler only reorders
+        # samples WITHIN the train set.
         train_sampler: Optional[DayChunkedSampler] = DayChunkedSampler(
             train_dataset,
+            chunk_size=32,
             shuffle_days=True,
             shuffle_within_day=True,
             seed=42,
