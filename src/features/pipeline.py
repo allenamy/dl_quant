@@ -234,20 +234,6 @@ def build_npz_for_day(
             compute_ridge_informed_features,
             RIDGE_INFORMED_FEATURE_NAMES,
         )
-        from src.features.trade_features import TRADE_FEATURE_NAMES as _TRADE_FEATURE_NAMES
-
-        # When trades_df was not provided, the 9 trade columns are absent.
-        # Inject them as zero columns so the feature matrix always has the full
-        # 58-column base (43 micro + 9 trade + 6 derived) before ridge features
-        # are appended — this keeps the final column count at 64 regardless of
-        # whether actual trade data is available.
-        for _tc in _TRADE_FEATURE_NAMES:
-            if _tc not in feature_cols:
-                feat_matrix = np.concatenate(
-                    [feat_matrix, np.zeros((len(feat_matrix), 1), dtype=np.float32)],
-                    axis=1,
-                )
-                feature_cols = feature_cols + [_tc]
 
         def _col(name: str) -> np.ndarray:
             if name not in feature_cols:
