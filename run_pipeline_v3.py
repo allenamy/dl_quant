@@ -286,39 +286,44 @@ def main() -> None:
             )
             print(f"{'='*60}")
 
-            # Load train once (un-normalized) to compute both X and y stats.
-            train_ds = LOBDatasetV2(npz_dir, fold["train"], normalize=False)
-            x_mean, x_std = train_ds.compute_stats()
-            val_ds = LOBDatasetV2(npz_dir, fold["val"], normalize=False)
-            test_ds = LOBDatasetV2(npz_dir, fold["test"], normalize=False)
-
-            # Normalize X in-place (no disk re-read)
-            safe_std = np.where(x_std < 1e-4, 1.0, x_std).astype(np.float32)
-            for ds in (train_ds, val_ds, test_ds):
-                ds.X = np.clip((ds.X - x_mean) / safe_std, -10.0, 10.0).astype(np.float32)
-
-            # y normalization: MAD robust sigma on TRAINING portion only.
-            # MonotonicQuantileHead.MIN_DELTA=0.01 assumes normalized y in [-5,5].
-            y_train_valid = train_ds.y[train_ds.mask > 0]
-            if len(y_train_valid) > 0:
-                y_median = float(np.median(y_train_valid))
-                y_mad = float(np.median(np.abs(y_train_valid - y_median)))
-                y_sigma = max(1.4826 * y_mad, 1e-9)
-            else:
-                y_median, y_sigma = 0.0, 1.0
+            # ---- Streaming stats on the un-normalised training days ------
+            # LOBDatasetV2 now loads lazily; ``compute_stats`` walks days
+            # through the LRU cache and accumulates in float64 without
+            # materialising the full (N, L, F) tensor.
+            stats_ds = LOBDatasetV2(npz_dir, fold["train"], normalize=False)
+            x_mean, x_std = stats_ds.compute_stats()
+            # MAD-robust target normalisation computed on the same un-
+            # normalised training split (mask-aware, streaming).
+            y_median, y_sigma = stats_ds.compute_y_stats()
+            stats_ds.clear_cache()
+            del stats_ds
             print(
                 f"[pipeline_v3] Fold {fold_idx} target normalization: "
                 f"median={y_median:.6e}, sigma={y_sigma:.6e}"
             )
 
-            for ds in (train_ds, val_ds, test_ds):
-                ds.y = np.clip((ds.y - y_median) / y_sigma, -5.0, 5.0).astype(np.float32)
-                # Re-zero masked targets after re-scale
-                ds.y[ds.mask == 0] = 0.0
+            # ---- Re-instantiate datasets with normalisation baked in ----
+            # Per-item normalisation happens inside ``_load_day``; nothing
+            # is written into ds.X / ds.y (which are now materialising
+            # properties and would OOM on large folds).
+            y_norm = (y_median, y_sigma, 5.0)
+            common_kwargs = dict(
+                normalize=True,
+                x_mean=x_mean,
+                x_std=x_std,
+                y_norm=y_norm,
+            )
+            train_ds = LOBDatasetV2(npz_dir, fold["train"], **common_kwargs)
+            val_ds = LOBDatasetV2(npz_dir, fold["val"], **common_kwargs)
+            test_ds = LOBDatasetV2(npz_dir, fold["test"], **common_kwargs)
 
-            n_features = train_ds.X.shape[-1]
-            raw_levels = (train_ds.X_raw.shape[-2]
-                          if train_ds.has_raw else 20)
+            # Peek at the first window via the lazy loader to discover
+            # feature / raw-level counts *without* concatenating every day.
+            sample0 = train_ds._load_day(0)
+            n_features = int(sample0["X"].shape[-1])
+            raw_levels = (
+                int(sample0["X_raw"].shape[-2]) if train_ds.has_raw else 20
+            )
             model = build_model(args.model, n_features, raw_levels, model_cfg)
             total_params = sum(p.numel() for p in model.parameters())
             print(f"[pipeline_v3] Model parameters: {total_params:,}")
@@ -361,7 +366,9 @@ def main() -> None:
         fold_dir = os.path.join(output_dir, "fold_0")
         os.makedirs(fold_dir, exist_ok=True)
 
-        # Load full dataset un-normalized to compute stats
+        # Load full dataset un-normalized to compute stats.
+        # Single-day mode: dataset is small enough to materialise, so we
+        # accept the one-shot cost of ds.X / ds.y property calls below.
         full_ds = LOBDatasetV2(npz_dir, days, normalize=False)
         x_mean, x_std = full_ds.compute_stats()
 
@@ -374,12 +381,12 @@ def main() -> None:
             f"train={n_train}, val={n_val}, test={n_test}"
         )
 
-        # Normalize X, clip
+        # Normalize X, clip.  ``full_ds.X`` materialises once here.
         safe_std = np.where(x_std < 1e-4, 1.0, x_std).astype(np.float32)
         X_norm = (full_ds.X - x_mean) / safe_std
         X_norm = np.clip(X_norm, -10.0, 10.0).astype(np.float32)
 
-        # Target normalization: robust sigma (MAD) from training portion
+        # Target normalization: robust sigma (MAD) from training portion.
         y_raw = full_ds.y
         mask_all = full_ds.mask
         y_train_valid = y_raw[:n_train][mask_all[:n_train] > 0]
@@ -393,8 +400,8 @@ def main() -> None:
         y_all = np.clip((y_raw - y_median) / y_sigma, -5.0, 5.0).astype(np.float32)
 
         # Build sliced in-memory datasets preserving raw tensor
-        X_raw_all = full_ds.X_raw  # may be None
         has_raw = full_ds.has_raw
+        X_raw_all = full_ds.X_raw if has_raw else None
 
         class _SlicedV2:
             """Thin slice wrapper matching LOBDatasetV2 interface."""
@@ -435,8 +442,8 @@ def main() -> None:
             X_raw_all[n_train + n_val:] if has_raw else None,
         )
 
-        n_features = full_ds.X.shape[-1]
-        raw_levels = full_ds.X_raw.shape[-2] if has_raw else 20
+        n_features = int(X_norm.shape[-1])
+        raw_levels = int(X_raw_all.shape[-2]) if has_raw else 20
         print(f"[pipeline_v3] n_features={n_features}, raw_levels={raw_levels}")
 
         model = build_model(args.model, n_features, raw_levels, model_cfg)
