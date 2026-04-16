@@ -237,7 +237,11 @@ def build_npz_for_day(
 
         def _col(name: str) -> np.ndarray:
             if name not in feature_cols:
-                return np.zeros(len(feat_matrix), dtype=np.float64)
+                raise KeyError(
+                    f"include_ridge_features=True requires column '{name}' "
+                    f"in the feature matrix; ensure trades_df is supplied "
+                    f"for trade-dependent inputs (e.g. net_trade_flow_1s)."
+                )
             idx = feature_cols.index(name)
             return feat_matrix[:, idx].astype(np.float64)
 
@@ -274,7 +278,10 @@ def build_npz_for_day(
 
         def _col_rp(name: str) -> np.ndarray:
             if name not in feature_cols:
-                return np.zeros(len(feat_matrix), dtype=np.float64)
+                raise KeyError(
+                    f"include_regime_prior=True requires column '{name}' "
+                    f"in the feature matrix."
+                )
             idx = feature_cols.index(name)
             return feat_matrix[:, idx].astype(np.float64)
 

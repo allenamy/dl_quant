@@ -198,7 +198,39 @@ def test_v4_npz_has_regime_prior_and_ridge_features():
     print("PASS: test_v4_npz_has_regime_prior_and_ridge_features")
 
 
+def test_v4_raises_when_ridge_flag_without_trades_df():
+    """include_ridge_features=True without trades_df should raise KeyError
+    instead of silently zero-filling trade-dependent inputs."""
+    import sys, os, numpy as np, pandas as pd
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.features.pipeline import build_npz_for_day
+
+    n, n_levels = 1500, 25
+    rng = np.random.default_rng(42)
+    base_ts = 1_704_067_200_000_000
+    cols = {"timestamp": base_ts + np.arange(n, dtype=np.int64) * 1_000_000}
+    mid = 60000.0 + np.cumsum(rng.normal(0, 0.5, n))
+    for i in range(n_levels):
+        cols[f"asks[{i}].price"] = mid + 0.1 * (i + 1)
+        cols[f"asks[{i}].amount"] = rng.exponential(1.0, n)
+        cols[f"bids[{i}].price"] = mid - 0.1 * (i + 1)
+        cols[f"bids[{i}].amount"] = rng.exponential(1.0, n)
+    df_1s = pd.DataFrame(cols)
+
+    try:
+        build_npz_for_day(
+            df_1s, horizons_sec=[60, 180], input_len=600, stride=60,
+            n_levels=n_levels, include_ridge_features=True,
+        )
+    except KeyError as e:
+        assert "net_trade_flow_1s" in str(e), f"Wrong column in error: {e}"
+        print("PASS: test_v4_raises_when_ridge_flag_without_trades_df")
+        return
+    raise AssertionError("Expected KeyError when trades_df missing and ridge flag on")
+
+
 if __name__ == "__main__":
     import unittest
     unittest.main(exit=False)
     test_v4_npz_has_regime_prior_and_ridge_features()
+    test_v4_raises_when_ridge_flag_without_trades_df()
