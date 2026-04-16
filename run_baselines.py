@@ -45,7 +45,7 @@ _REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src.baselines.linear_baseline import RidgeBaseline, TemporalRidgeBaseline
+from src.baselines.linear_baseline import RidgeBaseline
 from src.baselines.naive_baselines import (
     OBIBaseline,
     MomentumBaseline,
@@ -66,7 +66,11 @@ def _day_from_path(path: Path) -> str:
 
 
 def _load_single_day(path: Path) -> Dict[str, np.ndarray]:
-    """Load one NPZ file.  Returns a dict with numpy arrays (no torch)."""
+    """Load one NPZ file.  Returns a dict with numpy arrays (no torch).
+
+    Used only by ``_load_days_full``.  The streaming loaders below read
+    per-field slices of the NPZ directly to keep peak memory low.
+    """
     with np.load(str(path), allow_pickle=True) as npz:
         fields = set(npz.files)
         out: Dict[str, Any] = {
@@ -81,26 +85,254 @@ def _load_single_day(path: Path) -> Dict[str, np.ndarray]:
     return out
 
 
-def load_days(npz_dir: str) -> Tuple[List[str], np.ndarray, np.ndarray,
-                                      np.ndarray, List[str], List[int]]:
-    """Load and concatenate all ``<day>.npz`` files in ``npz_dir``.
+def _read_features_array(npz) -> Optional[List[str]]:
+    """Return the ``features`` list from an opened NPZ, or ``None``."""
+    if "features" in npz.files:
+        return [str(f) for f in npz["features"]]
+    return None
+
+
+def _check_feature_names(
+    existing: Optional[List[str]],
+    new_names: Optional[List[str]],
+    day: str,
+) -> List[str]:
+    """Validate per-day feature names against the running reference.
+
+    Raises ``ValueError`` if the new names exist and disagree with the
+    reference list.  Returns the effective (possibly first-seen)
+    reference list.
+    """
+    if existing is None:
+        return new_names if new_names is not None else existing
+    if new_names is None:
+        return existing
+    if new_names != existing:
+        raise ValueError(
+            f"Feature-name mismatch in {day}.npz: "
+            f"first file has {len(existing)} names, "
+            f"this file has {len(new_names)}. "
+            f"Rebuild NPZs with a single pipeline version."
+        )
+    return existing
+
+
+def _finalise_arrays(
+    xs: List[np.ndarray],
+    ys: List[np.ndarray],
+    ms: List[np.ndarray],
+    feature_names: Optional[List[str]],
+    feature_dim: int,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
+    """Concatenate per-day lists and sanitise in place.
+
+    Consolidates the nan-fix / mask-zero step that every loader needs,
+    so we don't duplicate it four times.
+    """
+    X = np.concatenate(xs, axis=0)
+    y = np.concatenate(ys, axis=0)
+    mask = np.concatenate(ms, axis=0)
+    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
+    y = np.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
+    mask = np.nan_to_num(mask, nan=0.0, posinf=0.0, neginf=0.0)
+    y[mask == 0] = 0.0
+    if feature_names is None:
+        feature_names = [f"f{i}" for i in range(feature_dim)]
+    return X, y, mask, feature_names
+
+
+def _resolve_paths(
+    npz_dir_or_paths, ctx: str = "loader",
+) -> List[Path]:
+    """Accept either a directory string or a pre-collected path list.
+
+    When the caller passes a directory we glob + sort.  When they pass a
+    list (e.g. a snapshot captured before a sequence of loads) we honour
+    the order as-is -- this keeps the three loaders (last / agg / full)
+    perfectly in sync even if the underlying directory is being written
+    to in the background.
+    """
+    if isinstance(npz_dir_or_paths, (list, tuple)):
+        paths = [Path(p) for p in npz_dir_or_paths]
+    else:
+        paths = sorted(Path(npz_dir_or_paths).glob("*.npz"))
+    if not paths:
+        raise FileNotFoundError(f"No .npz files found by {ctx}")
+    return paths
+
+
+def snapshot_npz_paths(npz_dir: str) -> List[Path]:
+    """Return a sorted snapshot of the NPZ paths in ``npz_dir``.
+
+    Capturing the list once and reusing it across every loader prevents
+    a concurrent data collector from injecting new files between passes
+    (which would cause day-count mismatches in the orchestration).
+    """
+    return _resolve_paths(npz_dir, ctx=f"snapshot({npz_dir})")
+
+
+def load_last_step_features(
+    npz_dir_or_paths,
+) -> Tuple[List[str], np.ndarray, np.ndarray, np.ndarray, List[str], List[int]]:
+    """Load per-day NPZs and keep only the **last timestep** of each window.
+
+    Memory-efficient variant of ``_load_days_full`` used by baselines that
+    never look further back than ``X[:, -1, :]`` (Ridge, XGBoost, naive
+    single-feature baselines).  Output ``X`` has shape ``(N, F)`` -- about
+    ``L`` times smaller than the full ``(N, L, F)`` tensor.
+
+    Parameters
+    ----------
+    npz_dir_or_paths : str | list[Path]
+        Either a directory (globbed then sorted) or a pre-collected path
+        list.  Passing a list keeps repeated loads perfectly in sync
+        even when the directory is being written to concurrently.
 
     Returns
     -------
     days : list[str]
         Day stems in chronological order.
-    X : (N, L, F) float32
+    X : (N, F) float32
     y : (N,) float32
     mask : (N,) float32 (0/1)
     feature_names : list[str]
-        Feature names from the first file (verified consistent across days).
     per_day_counts : list[int]
-        Number of windows contributed by each day, same order as ``days``.
-        Useful for slicing into day-respecting train / val / test splits.
     """
-    paths = sorted(Path(npz_dir).glob("*.npz"))
-    if not paths:
-        raise FileNotFoundError(f"No .npz files in {npz_dir}")
+    paths = _resolve_paths(npz_dir_or_paths, ctx="load_last_step_features")
+
+    days: List[str] = []
+    xs: List[np.ndarray] = []
+    ys: List[np.ndarray] = []
+    ms: List[np.ndarray] = []
+    per_day_counts: List[int] = []
+    feature_names: Optional[List[str]] = None
+
+    for path in paths:
+        with np.load(str(path), allow_pickle=True) as npz:
+            X_full = npz["X"]
+            n_win = X_full.shape[0]
+            if n_win == 0:
+                logger.warning("Day %s has 0 windows, skipping", path.stem)
+                continue
+            # Explicit copy so the NPZ's mmap/read buffer can be released
+            # at context-manager exit; otherwise large per-day views would
+            # keep the file open and defeat the memory-saving point.
+            X_last = X_full[:, -1, :].astype(np.float32, copy=True)
+            y_day = npz["y"].astype(np.float32, copy=True)
+            mask_day = npz["y_mask"].astype(np.float32, copy=True)
+            new_names = _read_features_array(npz)
+        feature_names = _check_feature_names(feature_names, new_names, path.stem)
+
+        days.append(path.stem)
+        xs.append(X_last)
+        ys.append(y_day)
+        ms.append(mask_day)
+        per_day_counts.append(int(n_win))
+
+    if not days:
+        raise RuntimeError("All NPZ files had 0 windows")
+
+    X, y, mask, feature_names = _finalise_arrays(
+        xs, ys, ms, feature_names, feature_dim=xs[0].shape[-1]
+    )
+    return days, X, y, mask, feature_names, per_day_counts
+
+
+def load_temporal_features(
+    npz_dir_or_paths,
+) -> Tuple[List[str], np.ndarray, np.ndarray, np.ndarray, List[str], List[int]]:
+    """Load per-day NPZs and compute ``(last, mean, std, trend)`` aggregates.
+
+    Used by ``TemporalRidgeBaseline``.  Output ``X`` has shape ``(N, 4F)``
+    -- about ``L/4`` times smaller than the full tensor (e.g. 75x on
+    ``L=300``).  Aggregates are computed per day **before** concatenation
+    so we never hold the full per-day ``(n_win, L, F)`` slice of more than
+    one day simultaneously.
+
+    Parameters
+    ----------
+    npz_dir_or_paths : str | list[Path]
+        Directory string or pre-collected path list (see
+        ``load_last_step_features``).
+
+    Returns
+    -------
+    days : list[str]
+    X_agg : (N, 4F) float32
+    y : (N,) float32
+    mask : (N,) float32
+    feature_names : list[str]
+        Original F feature names (not the 4F expanded set).  Naive
+        baselines use this list to look up columns in the raw NPZ, and
+        they are never called on the aggregated tensor.
+    per_day_counts : list[int]
+    """
+    paths = _resolve_paths(npz_dir_or_paths, ctx="load_temporal_features")
+
+    days: List[str] = []
+    xs: List[np.ndarray] = []
+    ys: List[np.ndarray] = []
+    ms: List[np.ndarray] = []
+    per_day_counts: List[int] = []
+    feature_names: Optional[List[str]] = None
+
+    for path in paths:
+        with np.load(str(path), allow_pickle=True) as npz:
+            X_full = npz["X"]
+            n_win = X_full.shape[0]
+            if n_win == 0:
+                logger.warning("Day %s has 0 windows, skipping", path.stem)
+                continue
+            # Force a float32 read for the day's window -- we need the whole
+            # (n_win, L, F) slice briefly to compute mean/std, but only for
+            # ONE day at a time, and we drop it before reading the next.
+            X_day = X_full.astype(np.float32, copy=True)
+            last = X_day[:, -1, :]
+            mean = X_day.mean(axis=1)
+            std = X_day.std(axis=1)
+            trend = X_day[:, -1, :] - X_day[:, 0, :]
+            X_agg = np.concatenate([last, mean, std, trend], axis=1).astype(
+                np.float32, copy=False
+            )
+            y_day = npz["y"].astype(np.float32, copy=True)
+            mask_day = npz["y_mask"].astype(np.float32, copy=True)
+            new_names = _read_features_array(npz)
+            # Drop the per-day 3D tensor eagerly -- Python will collect
+            # it once the with-block exits but we want that to happen
+            # before we accumulate the next day.
+            del X_day, last, mean, std, trend
+        feature_names = _check_feature_names(feature_names, new_names, path.stem)
+
+        days.append(path.stem)
+        xs.append(X_agg)
+        ys.append(y_day)
+        ms.append(mask_day)
+        per_day_counts.append(int(n_win))
+
+    if not days:
+        raise RuntimeError("All NPZ files had 0 windows")
+
+    X, y, mask, feature_names = _finalise_arrays(
+        xs, ys, ms, feature_names, feature_dim=xs[0].shape[-1]
+    )
+    return days, X, y, mask, feature_names, per_day_counts
+
+
+def _load_days_full(
+    npz_dir_or_paths,
+) -> Tuple[List[str], np.ndarray, np.ndarray, np.ndarray, List[str], List[int]]:
+    """Load and concatenate the **full** ``(N, L, F)`` NPZ tensor.
+
+    This is the original ``load_days`` behaviour, renamed to emphasise it
+    is memory-expensive: ``N * L * F * 4`` bytes.  For the full 1004-day
+    run that is ~100 GB which will OOM.  Only FITS needs the raw 3D
+    windows; everything else should use ``load_last_step_features`` or
+    ``load_temporal_features``.
+
+    Returns ``(days, X, y, mask, feature_names, per_day_counts)`` with
+    ``X.shape == (N, L, F)``.
+    """
+    paths = _resolve_paths(npz_dir_or_paths, ctx="_load_days_full")
 
     days: List[str] = []
     xs: List[np.ndarray] = []
@@ -114,8 +346,6 @@ def load_days(npz_dir: str) -> Tuple[List[str], np.ndarray, np.ndarray,
         day = _day_from_path(path)
         n_win = d["X"].shape[0]
         if n_win == 0:
-            # Skip empty days silently; they'd otherwise inflate the day list
-            # without contributing samples.
             logger.warning("Day %s has 0 windows, skipping", day)
             continue
         days.append(day)
@@ -123,40 +353,21 @@ def load_days(npz_dir: str) -> Tuple[List[str], np.ndarray, np.ndarray,
         ys.append(d["y"])
         ms.append(d["y_mask"])
         per_day_counts.append(n_win)
-        if feature_names is None and "features" in d:
-            feature_names = list(d["features"])
-        elif feature_names is not None and "features" in d:
-            if list(d["features"]) != feature_names:
-                # Fail fast: subsequent np.concatenate would either crash
-                # (same count, different order → silent corruption) or raise
-                # (different counts). Either way, a mismatched NPZ is a
-                # build-pipeline bug and must be rebuilt before use.
-                raise ValueError(
-                    f"Feature-name mismatch in {day}.npz: "
-                    f"first file has {len(feature_names)} names, "
-                    f"this file has {len(d['features'])}. "
-                    f"Rebuild NPZs with a single pipeline version."
-                )
+        new_names = list(d["features"]) if "features" in d else None
+        feature_names = _check_feature_names(feature_names, new_names, day)
 
     if not days:
-        raise RuntimeError(f"All NPZ files in {npz_dir} had 0 windows")
+        raise RuntimeError("All NPZ files had 0 windows")
 
-    X = np.concatenate(xs, axis=0).astype(np.float32)
-    y = np.concatenate(ys, axis=0).astype(np.float32)
-    mask = np.concatenate(ms, axis=0).astype(np.float32)
-
-    # Sanitise
-    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-    y = np.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
-    mask = np.nan_to_num(mask, nan=0.0, posinf=0.0, neginf=0.0)
-    y[mask == 0] = 0.0
-
-    if feature_names is None:
-        # Fallback: generate f0..fK so naive baselines fail loudly by KeyError
-        # rather than silently mis-indexing.
-        feature_names = [f"f{i}" for i in range(X.shape[-1])]
-
+    X, y, mask, feature_names = _finalise_arrays(
+        xs, ys, ms, feature_names, feature_dim=xs[0].shape[-1]
+    )
     return days, X, y, mask, feature_names, per_day_counts
+
+
+# Back-compat alias -- keep the original name callable for tests / scripts
+# that imported ``load_days`` before the streaming loaders were introduced.
+load_days = _load_days_full
 
 
 def temporal_split(
@@ -231,9 +442,19 @@ def compute_stats(
     Stats are computed on the *training* portion only (caller passes the
     sliced arrays).  ``mask`` is applied to the target so zero-mask samples
     don't pull the median.
+
+    Accepts both 3D ``(N, L, F)`` windows and 2D ``(N, F)`` last-timestep
+    slices so we can share this helper between the full loader and the
+    streaming loaders.
     """
-    x_mean = X.mean(axis=(0, 1)).astype(np.float32)
-    x_std = X.std(axis=(0, 1)).astype(np.float32)
+    if X.ndim == 3:
+        x_mean = X.mean(axis=(0, 1)).astype(np.float32)
+        x_std = X.std(axis=(0, 1)).astype(np.float32)
+    elif X.ndim == 2:
+        x_mean = X.mean(axis=0).astype(np.float32)
+        x_std = X.std(axis=0).astype(np.float32)
+    else:
+        raise ValueError(f"compute_stats expects 2D or 3D X, got shape {X.shape}")
 
     m = mask.astype(bool)
     y_valid = y[m] if m.any() else y
@@ -253,7 +474,12 @@ def compute_stats(
 def apply_stats(
     X: np.ndarray, y: np.ndarray, stats: Dict[str, Any]
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Z-score X (with dead-feature guard), MAD-normalise y."""
+    """Z-score X (with dead-feature guard), MAD-normalise y.
+
+    Broadcasting handles both 2D and 3D X -- ``x_mean`` / ``x_std`` are
+    1D over the feature axis, and numpy broadcasts them against a
+    trailing-feature axis regardless of whether there's a time axis.
+    """
     safe_std = np.where(stats["x_std"] < 1e-4, 1.0, stats["x_std"]).astype(np.float32)
     X_n = (X - stats["x_mean"]) / safe_std
     X_n = np.clip(X_n, -10.0, 10.0).astype(np.float32)
@@ -531,6 +757,41 @@ def _print_table(rows: List[Dict[str, Any]]) -> None:
     print(bar + "\n")
 
 
+#: Heuristic threshold above which we refuse to load the full 3D tensor
+#: for FITS unless the user explicitly opts in.  At L=300, F=58,
+#: 500K windows -> ~33 GB float32, which most workstations can't hold.
+_FITS_FULL_AUTOSKIP_WINDOWS = 500_000
+
+
+def _peek_npz_dims(npz_dir_or_paths) -> Optional[Tuple[int, int, int]]:
+    """Read one NPZ header to discover ``(approx_total_windows, L, F)``.
+
+    Used to decide whether to auto-skip FITS on large datasets without
+    actually materialising the full tensor.  Returns ``None`` if the
+    directory is empty or the first file can't be opened.
+
+    ``approx_total_windows`` is estimated as ``first_file_windows *
+    n_files`` -- not exact, but good enough for the 500K threshold
+    (tens of MB of error tolerance).
+    """
+    try:
+        paths = _resolve_paths(npz_dir_or_paths, ctx="_peek_npz_dims")
+    except FileNotFoundError:
+        return None
+    first = paths[0]
+    try:
+        with np.load(str(first), allow_pickle=True) as npz:
+            X = npz["X"]
+            if X.ndim != 3:
+                return None
+            n_win_first, seq_len, n_feat = int(X.shape[0]), int(X.shape[1]), int(X.shape[2])
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("Could not peek at %s (%s); skipping dim estimate", first, exc)
+        return None
+    approx_total = n_win_first * len(paths)
+    return approx_total, seq_len, n_feat
+
+
 def run_baselines(
     npz_dir: str,
     output_path: str,
@@ -540,18 +801,69 @@ def run_baselines(
     fits_lr: float = 1e-3,
     fits_batch_size: int = 256,
     run_fits: bool = True,
+    include_fits_full: bool = False,
 ) -> Dict[str, Any]:
     """End-to-end: load NPZ days, 80/10/10 split, evaluate baselines, save.
 
+    Uses **streaming loaders** to keep peak memory low: the full
+    ``(N, L, F)`` tensor is never materialised except when FITS is
+    explicitly enabled via ``include_fits_full=True``.
+
+    - Ridge / XGBoost / naive baselines read ``(N, F)`` (last timestep only).
+    - TemporalRidge reads ``(N, 4F)`` aggregates.
+    - FITS needs ``(N, L, F)`` -- so it's **auto-skipped** when the
+      dataset exceeds ``_FITS_FULL_AUTOSKIP_WINDOWS`` unless
+      ``include_fits_full=True``.
+
     Returns the same dict that's written to ``output_path``.
     """
-    logger.info("Loading NPZ files from %s", npz_dir)
-    days, X, y, mask, feature_names, per_day_counts = load_days(npz_dir)
+    # --- Snapshot the file list BEFORE any loads so we get consistent ------
+    # per-day counts across every pass.  Without this, a concurrent data
+    # collector writing new NPZs between the last-step load and the
+    # temporal-aggregate load would cause a day-count mismatch and
+    # silently kill TemporalRidge.
+    snapshot_paths = snapshot_npz_paths(npz_dir)
     logger.info(
-        "Loaded %d days, %d windows, %d features",
-        len(days), X.shape[0], X.shape[-1] if X.ndim == 3 else 0,
+        "Snapshot: %d NPZ files in %s", len(snapshot_paths), npz_dir,
     )
 
+    # --- Load last-timestep features once for all non-FITS baselines --------
+    # Every other model path only needs (N, F).  Loading once keeps us
+    # from touching 100 GB of per-window data 4 times.
+    logger.info("Loading last-timestep features")
+    (
+        days,
+        X_last,
+        y,
+        mask,
+        feature_names,
+        per_day_counts,
+    ) = load_last_step_features(snapshot_paths)
+    n_windows = X_last.shape[0]
+    n_features = X_last.shape[-1]
+    logger.info(
+        "Loaded %d days, %d windows, %d features",
+        len(days), n_windows, n_features,
+    )
+
+    # --- Probe sequence length without materialising the full tensor --------
+    dims = _peek_npz_dims(snapshot_paths)
+    seq_len = dims[1] if dims is not None else None
+
+    # --- Decide whether FITS will run (needs full 3D) -----------------------
+    fits_will_run = run_fits
+    fits_skip_reason: Optional[str] = None
+    if fits_will_run and not include_fits_full and n_windows > _FITS_FULL_AUTOSKIP_WINDOWS:
+        fits_will_run = False
+        fits_skip_reason = (
+            f"auto-skipped: {n_windows:,} windows > "
+            f"{_FITS_FULL_AUTOSKIP_WINDOWS:,}. "
+            f"Pass --include-fits-full to force-enable (requires "
+            f"~{n_windows * (seq_len or 300) * n_features * 4 / 1e9:.1f} GB RAM)."
+        )
+        logger.warning("FITS %s", fits_skip_reason)
+
+    # --- Temporal split on the (N, F) concat axis ---------------------------
     tr, va, te = temporal_split(per_day_counts, train_frac=0.80, val_frac=0.10)
     logger.info(
         "Split: train=%d windows (%s..%s), val=%d, test=%d",
@@ -561,27 +873,25 @@ def run_baselines(
         te.stop - te.start,
     )
 
-    X_train, y_train, m_train = X[tr], y[tr], mask[tr]
-    X_test, y_test, m_test = X[te], y[te], mask[te]
-    # (val is not used for hyper-tuning in this signal-verification runner;
-    # kept for future extension.)
+    X_train_last, y_train, m_train = X_last[tr], y[tr], mask[tr]
+    X_test_last, y_test, m_test = X_last[te], y[te], mask[te]
 
-    # Normalisation (train-only stats)
-    stats = compute_stats(X_train, y_train, m_train)
-    X_train_n, y_train_n = apply_stats(X_train, y_train, stats)
-    X_test_n, y_test_n = apply_stats(X_test, y_test, stats)
+    # --- Normalisation (train-only stats, on the last-timestep view) --------
+    stats = compute_stats(X_train_last, y_train, m_train)
+    X_train_ln, y_train_n = apply_stats(X_train_last, y_train, stats)
+    X_test_ln, y_test_n = apply_stats(X_test_last, y_test, stats)
 
-    # We report scores in bps at the original target scale.
+    # Target sigma -> bps back-scaling
     target_sigma = float(stats["y_sigma"])
 
     all_rows: List[Dict[str, Any]] = []
 
-    # --- Trainable baselines -------------------------------------------------
+    # --- Ridge on last timestep ---------------------------------------------
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=UserWarning)
         ridge = RidgeBaseline(alpha=1.0)
         ridge_pred = _safe_fit_predict_ridge(
-            ridge, X_train_n, y_train_n, m_train, X_test_n
+            ridge, X_train_ln, y_train_n, m_train, X_test_ln
         )
         all_rows.append(
             _score_predictions(
@@ -589,23 +899,56 @@ def run_baselines(
             )
         )
 
-        temp_ridge = TemporalRidgeBaseline(alpha=1.0)
-        temp_pred = _safe_fit_predict_ridge(
-            temp_ridge, X_train_n, y_train_n, m_train, X_test_n
+    # --- TemporalRidge: reload with (last, mean, std, trend) aggregates ------
+    # Separate pass keeps peak memory at (N, 4F) rather than combining with
+    # the last-timestep buffer.  Once this block exits, the aggregated
+    # tensor is freed before XGBoost / naive baselines run.  Uses the
+    # same snapshot path list so day counts match exactly.
+    try:
+        logger.info("Loading temporal aggregates for TemporalRidge")
+        (
+            _tr_days, X_agg, y_agg, mask_agg, _tr_feats, _tr_counts,
+        ) = load_temporal_features(snapshot_paths)
+        # Split must match the last-step split since it uses the same
+        # per_day_counts (sanity-checked below for defensive parity).
+        assert _tr_counts == per_day_counts, (
+            "temporal-loader day counts differ from last-step loader"
         )
-        all_rows.append(
-            _score_predictions(
-                "TemporalRidge", temp_pred, y_test_n, m_test, target_sigma
+        X_train_agg = X_agg[tr]
+        X_test_agg = X_agg[te]
+        agg_stats = compute_stats(X_train_agg, y_agg[tr], mask_agg[tr])
+        X_train_agg_n, _ = apply_stats(X_train_agg, y_agg[tr], agg_stats)
+        X_test_agg_n, _ = apply_stats(X_test_agg, y_agg[te], agg_stats)
+        # Use the generic RidgeBaseline on the pre-aggregated (N, 4F)
+        # features; its _extract_features is a no-op on 2D input so it
+        # just forwards to sklearn.Ridge.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            temp_ridge = RidgeBaseline(alpha=1.0)
+            temp_pred = _safe_fit_predict_ridge(
+                temp_ridge,
+                X_train_agg_n,
+                y_train_n,  # same normalised y as the Ridge block
+                m_train,
+                X_test_agg_n,
             )
-        )
+            all_rows.append(
+                _score_predictions(
+                    "TemporalRidge", temp_pred, y_test_n, m_test, target_sigma
+                )
+            )
+        # Free the aggregated buffers before moving on
+        del X_agg, X_train_agg, X_test_agg, X_train_agg_n, X_test_agg_n
+    except Exception as exc:
+        logger.warning("TemporalRidge failed: %s", exc)
 
-    # --- XGBoost baseline (non-linear signal detection) ----------------------
+    # --- XGBoost baseline (non-linear signal detection) ---------------------
     try:
         from src.baselines.xgb_baseline import XGBoostBaseline
 
         xgb_model = XGBoostBaseline()
         xgb_pred = _safe_fit_predict_ridge(
-            xgb_model, X_train_n, y_train_n, m_train, X_test_n
+            xgb_model, X_train_ln, y_train_n, m_train, X_test_ln
         )
         all_rows.append(
             _score_predictions(
@@ -620,36 +963,74 @@ def run_baselines(
     except Exception as exc:
         logger.warning("XGBoost baseline failed: %s", exc)
 
-    if run_fits:
-        fits_row = run_fits_baseline(
-            X_train_n, y_train_n, m_train,
-            X_test_n, y_test_n, m_test,
-            target_sigma=target_sigma,
-            n_epochs=fits_epochs,
-            batch_size=fits_batch_size,
-            lr=fits_lr,
-            device=device,
-        )
-        if fits_row is not None:
-            all_rows.append(fits_row)
+    # --- FITS baseline (full 3D tensor only if explicitly allowed) ----------
+    if fits_will_run:
+        try:
+            logger.info("Loading full (N, L, F) tensor for FITS")
+            (
+                _f_days, X_full, y_full, mask_full, _f_feats, _f_counts,
+            ) = _load_days_full(snapshot_paths)
+            assert _f_counts == per_day_counts, (
+                "full-loader day counts differ from last-step loader"
+            )
+            X_train_full = X_full[tr]
+            X_test_full = X_full[te]
+            full_stats = compute_stats(X_train_full, y_full[tr], mask_full[tr])
+            X_train_fn, _ = apply_stats(X_train_full, y_full[tr], full_stats)
+            X_test_fn, _ = apply_stats(X_test_full, y_full[te], full_stats)
 
-    # --- Naive baselines -----------------------------------------------------
-    # Naive baselines read *raw* features; run them on un-normalised X_test
-    # to keep the feature values on their natural scale.
+            fits_row = run_fits_baseline(
+                X_train_fn, y_train_n, m_train,
+                X_test_fn, y_test_n, m_test,
+                target_sigma=target_sigma,
+                n_epochs=fits_epochs,
+                batch_size=fits_batch_size,
+                lr=fits_lr,
+                device=device,
+            )
+            if fits_row is not None:
+                all_rows.append(fits_row)
+            del X_full, X_train_full, X_test_full, X_train_fn, X_test_fn
+        except MemoryError:
+            logger.error(
+                "FITS OOM'd while materialising the full tensor. "
+                "Re-run without --include-fits-full or on a smaller dataset."
+            )
+        except Exception as exc:
+            logger.warning("FITS run failed: %s", exc)
+    elif run_fits and not fits_will_run:
+        # User passed --run-fits (implicit default) but we auto-skipped.
+        all_rows.append({
+            "model": "FITS",
+            "correlation": float("nan"),
+            "rank_correlation": float("nan"),
+            "r2": float("nan"),
+            "direction_accuracy": float("nan"),
+            "residual_autocorr_lag1": float("nan"),
+            "score_bps": float("nan"),
+            "n": 0,
+            "note": fits_skip_reason or "skipped",
+        })
+
+    # --- Naive baselines ----------------------------------------------------
+    # Naive baselines read *raw* features from the last timestep.  They
+    # accept (N, F) directly (see NaiveBaseline._last_step), so we pass
+    # the un-normalised last-step tensor slice.
     naive_rows = run_naive_baselines(
-        X_test, y_test, m_test, feature_names, target_sigma
+        X_test_last, y_test, m_test, feature_names, target_sigma
     )
     all_rows.extend(naive_rows)
 
     _print_table(all_rows)
 
-    # --- Persist -------------------------------------------------------------
+    # --- Persist ------------------------------------------------------------
     output = {
         "npz_dir": npz_dir,
         "n_days": len(days),
-        "n_windows": int(X.shape[0]),
-        "seq_len": int(X.shape[1]) if X.ndim == 3 else None,
-        "n_features": int(X.shape[-1]) if X.ndim == 3 else None,
+        "n_windows": int(n_windows),
+        "seq_len": int(seq_len) if seq_len is not None else None,
+        "n_features": int(n_features),
+        "fits_skipped_reason": fits_skip_reason,
         "split": {
             "train_windows": int(tr.stop - tr.start),
             "val_windows": int(va.stop - va.start),
@@ -715,6 +1096,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="Skip FITS (e.g. in restricted-torch environments).",
     )
     parser.add_argument(
+        "--include-fits-full", action="store_true",
+        help=(
+            "Force-enable FITS even when the dataset has > "
+            f"{_FITS_FULL_AUTOSKIP_WINDOWS:,} windows.  Materialises the "
+            "full (N, L, F) tensor in RAM -- can easily exceed 100 GB on "
+            "the full 1004-day corpus."
+        ),
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable INFO logging.",
     )
     args = parser.parse_args(argv)
@@ -732,6 +1122,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         fits_lr=args.fits_lr,
         fits_batch_size=args.fits_batch_size,
         run_fits=not args.no_fits,
+        include_fits_full=args.include_fits_full,
     )
     return 0
 
