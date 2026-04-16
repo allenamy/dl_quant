@@ -599,6 +599,27 @@ def run_baselines(
             )
         )
 
+    # --- XGBoost baseline (non-linear signal detection) ----------------------
+    try:
+        from src.baselines.xgb_baseline import XGBoostBaseline
+
+        xgb_model = XGBoostBaseline()
+        xgb_pred = _safe_fit_predict_ridge(
+            xgb_model, X_train_n, y_train_n, m_train, X_test_n
+        )
+        all_rows.append(
+            _score_predictions(
+                "XGBoost", xgb_pred, y_test_n, m_test, target_sigma
+            )
+        )
+    except ImportError:
+        logger.warning(
+            "xgboost not installed -- skipping XGBoost baseline. "
+            "Install with: pip install xgboost"
+        )
+    except Exception as exc:
+        logger.warning("XGBoost baseline failed: %s", exc)
+
     if run_fits:
         fits_row = run_fits_baseline(
             X_train_n, y_train_n, m_train,
