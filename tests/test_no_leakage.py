@@ -144,5 +144,51 @@ class TestNpzShapeAndLabels(unittest.TestCase):
         self.assertEqual(n_features, len(self.result["features"]))
 
 
+def test_v4_npz_has_regime_prior_and_ridge_features():
+    """When pipeline runs with new flags, NPZ output includes regime_prior + ridge features."""
+    import tempfile, os, sys, numpy as np, pandas as pd
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.features.pipeline import build_npz_for_day
+
+    n = 1500  # 25 minutes at 1s
+    n_levels = 25
+    rng = np.random.default_rng(42)
+    base_ts = 1_704_067_200_000_000  # 2024-01-01 UTC
+    timestamps = base_ts + np.arange(n, dtype=np.int64) * 1_000_000
+    cols = {"timestamp": timestamps}
+    mid = 60000.0 + np.cumsum(rng.normal(0, 0.5, n))
+    for i in range(n_levels):
+        cols[f"asks[{i}].price"] = mid + 0.1 * (i + 1)
+        cols[f"asks[{i}].amount"] = rng.exponential(1.0, n)
+        cols[f"bids[{i}].price"] = mid - 0.1 * (i + 1)
+        cols[f"bids[{i}].amount"] = rng.exponential(1.0, n)
+    df_1s = pd.DataFrame(cols)
+
+    result = build_npz_for_day(
+        df_1s,
+        horizons_sec=[60, 180],
+        input_len=600,
+        stride=60,
+        n_levels=n_levels,
+        include_ridge_features=True,
+        include_regime_prior=True,
+    )
+
+    # Feature count = 58 base + 6 ridge-informed = 64
+    assert result["X"].shape[-1] == 64, \
+        f"Expected 64 features (58 + 6 ridge), got {result['X'].shape[-1]}"
+    # Regime prior: one vector per window (N_win, 6)
+    assert "regime_prior" in result
+    assert result["regime_prior"].shape == (result["X"].shape[0], 6)
+    # Feature name list has 64 entries
+    assert len(result["features"]) == 64
+    # Ridge-informed names present
+    for name in ("net_flow_x_spread", "obi_L5_rank_1h", "large_trade_arrival_60s"):
+        assert name in result["features"], f"{name} missing from features"
+    print("PASS: test_v4_npz_has_regime_prior_and_ridge_features")
+
+
 if __name__ == "__main__":
-    unittest.main()
+    import unittest
+    unittest.main(exit=False)
+    test_v4_npz_has_regime_prior_and_ridge_features()

@@ -44,6 +44,8 @@ def build_npz_for_day(
     stride: int = 60,
     n_levels: int = 25,
     feature_clip: float = 1000.0,
+    include_ridge_features: bool = False,
+    include_regime_prior: bool = False,
 ) -> dict:
     """Build sliding-window arrays for a single day of 1-second LOB bars.
 
@@ -74,6 +76,13 @@ def build_npz_for_day(
         Number of LOB levels passed to ``compute_microstructure_features``.
     feature_clip : float
         Clip feature values to [-feature_clip, +feature_clip] after nan_to_num.
+    include_ridge_features : bool
+        When True, append 6 ridge-informed interaction features (Task 1) to the
+        feature matrix (58 base → 64 cols). Default False keeps V3 behaviour.
+    include_regime_prior : bool
+        When True, compute hourly-scale regime-prior features and return them
+        as a separate ``regime_prior`` array of shape (N_win, 6) sliced at
+        each window's pred_idx. Default False; no overhead when disabled.
 
     Returns
     -------
@@ -86,6 +95,8 @@ def build_npz_for_day(
         y_{H}        – float32, shape (N_win,) for each H in horizons_sec
         y_mask_{H}   – uint8,   shape (N_win,) (1 if label valid, else 0)
         y, y_mask    – aliases pointing to the smallest horizon (back-compat)
+        regime_prior – float32, shape (N_win, 6) — only present when
+                       ``include_regime_prior=True``
     """
 
     # --- resolve horizon list -----------------------------------------------
@@ -217,9 +228,80 @@ def build_npz_for_day(
     feat_matrix = np.concatenate([feat_matrix, derived_matrix], axis=1)
     feature_cols = feature_cols + derived_cols
 
-    # Clean: nan_to_num then clip
+    # --- optional ridge-informed features ---------------------------------
+    if include_ridge_features:
+        from src.features.ridge_informed_features import (
+            compute_ridge_informed_features,
+            RIDGE_INFORMED_FEATURE_NAMES,
+        )
+        from src.features.trade_features import TRADE_FEATURE_NAMES as _TRADE_FEATURE_NAMES
+
+        # When trades_df was not provided, the 9 trade columns are absent.
+        # Inject them as zero columns so the feature matrix always has the full
+        # 58-column base (43 micro + 9 trade + 6 derived) before ridge features
+        # are appended — this keeps the final column count at 64 regardless of
+        # whether actual trade data is available.
+        for _tc in _TRADE_FEATURE_NAMES:
+            if _tc not in feature_cols:
+                feat_matrix = np.concatenate(
+                    [feat_matrix, np.zeros((len(feat_matrix), 1), dtype=np.float32)],
+                    axis=1,
+                )
+                feature_cols = feature_cols + [_tc]
+
+        def _col(name: str) -> np.ndarray:
+            if name not in feature_cols:
+                return np.zeros(len(feat_matrix), dtype=np.float64)
+            idx = feature_cols.index(name)
+            return feat_matrix[:, idx].astype(np.float64)
+
+        rf_df = pd.DataFrame({
+            "timestamp": timestamps_all,
+            "net_trade_flow_1s": _col("net_trade_flow_1s"),
+            "spread_bps": _col("spread_bps"),
+            "realized_vol_30s": _col("realized_vol_30s"),
+            "obi_L5": _col("obi_L5"),
+            "book_pressure_imbalance": _col("book_pressure_imbalance"),
+        })
+        ridge_df = compute_ridge_informed_features(rf_df)
+        ridge_cols = list(RIDGE_INFORMED_FEATURE_NAMES)
+        ridge_matrix = ridge_df[ridge_cols].to_numpy().astype(np.float32)
+        if ridge_matrix.shape[0] != feat_matrix.shape[0]:
+            raise ValueError(
+                f"ridge features rows ({ridge_matrix.shape[0]}) != "
+                f"feat_matrix rows ({feat_matrix.shape[0]})"
+            )
+        feat_matrix = np.concatenate([feat_matrix, ridge_matrix], axis=1)
+        feature_cols = feature_cols + ridge_cols
+
+    # Clean: nan_to_num then clip (covers all columns including ridge if added)
     feat_matrix = np.nan_to_num(feat_matrix, nan=0.0, posinf=0.0, neginf=0.0)
     feat_matrix = np.clip(feat_matrix, -feature_clip, feature_clip)
+
+    # --- optional regime-prior matrix -------------------------------------
+    regime_prior_matrix: np.ndarray | None = None
+    if include_regime_prior:
+        from src.features.regime_prior_features import (
+            compute_regime_prior_features,
+            REGIME_PRIOR_FEATURE_NAMES,
+        )
+
+        def _col_rp(name: str) -> np.ndarray:
+            if name not in feature_cols:
+                return np.zeros(len(feat_matrix), dtype=np.float64)
+            idx = feature_cols.index(name)
+            return feat_matrix[:, idx].astype(np.float64)
+
+        rp_df = pd.DataFrame({
+            "timestamp": timestamps_all,
+            "mid_price": mid_prices,
+            "log_return_1s": log_returns_1s_arr,
+            "obi_L5": _col_rp("obi_L5"),
+            "spread_bps": _col_rp("spread_bps"),
+        })
+        rp_out = compute_regime_prior_features(rp_df)
+        regime_prior_matrix = rp_out[list(REGIME_PRIOR_FEATURE_NAMES)].to_numpy().astype(np.float32)
+        regime_prior_matrix = np.nan_to_num(regime_prior_matrix, nan=0.0, posinf=0.0, neginf=0.0)
 
     # --- extract raw LOB tensor (Path B) ------------------------------------
     raw_levels = min(n_levels, 20)  # cap at 20 for Binance compatibility
@@ -237,6 +319,7 @@ def build_npz_for_day(
     y_lists: dict[int, list[float]] = {h: [] for h in horizons_sec_list}
     mask_lists: dict[int, list[int]] = {h: [] for h in horizons_sec_list}
     ts_list = []
+    regime_list: list[np.ndarray] = []
 
     for start in starts:
         X_win = feat_matrix[start : start + input_len]      # (input_len, n_features)
@@ -248,6 +331,8 @@ def build_npz_for_day(
         X_list.append(X_win)
         X_raw_list.append(X_raw_win)
         ts_list.append(timestamps_all[pred_idx])
+        if regime_prior_matrix is not None:
+            regime_list.append(regime_prior_matrix[pred_idx])
 
         for h in horizons_sec_list:
             target_idx = pred_idx + h
@@ -290,6 +375,9 @@ def build_npz_for_day(
     # single-horizon value and has the most valid labels near the end of day.
     out["y"] = ys_by_h[min_horizon]
     out["y_mask"] = masks_by_h[min_horizon]
+
+    if regime_prior_matrix is not None:
+        out["regime_prior"] = np.asarray(regime_list, dtype=np.float32)
 
     return out
 
