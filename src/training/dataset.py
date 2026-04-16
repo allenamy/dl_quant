@@ -335,6 +335,12 @@ class LOBDatasetV2(Dataset):
             if self._has_regime_prior_per_day else False
         )
 
+        if self._has_regime_prior and not self._has_raw:
+            raise ValueError(
+                "regime_prior requires X_raw to be present (V4 invariant). "
+                "Re-build NPZs with raw_lob=True, or strip regime_prior from the NPZ."
+            )
+
         self._feature_names = feature_names_first
 
         # --- offset array for O(log D) day lookup ----------------------------

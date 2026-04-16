@@ -572,8 +572,35 @@ def test_dataset_regime_prior_consistency_check():
         )
 
 
+def test_dataset_rejects_regime_prior_without_xraw():
+    """V4 invariant: regime_prior must not be present without X_raw."""
+    import tempfile, os, sys, numpy as np
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.training.dataset import LOBDatasetV2
+
+    with tempfile.TemporaryDirectory() as tmp:
+        np.savez_compressed(
+            os.path.join(tmp, "2024-01-01.npz"),
+            X=np.random.randn(8, 100, 64).astype(np.float32),
+            # NO X_raw
+            y=np.random.randn(8).astype(np.float32),
+            y_mask=np.ones(8, dtype=np.uint8),
+            regime_prior=np.random.randn(8, 6).astype(np.float32),
+            timestamps=np.arange(8, dtype=np.int64),
+            features=np.array([f"f{i}" for i in range(64)], dtype=object),
+        )
+        try:
+            LOBDatasetV2(tmp, ["2024-01-01"], normalize=False)
+        except ValueError as e:
+            assert "X_raw" in str(e) or "raw_lob" in str(e).lower()
+            print("PASS: test_dataset_rejects_regime_prior_without_xraw")
+            return
+        raise AssertionError("Expected ValueError when regime_prior without X_raw")
+
+
 if __name__ == "__main__":
     unittest.main(exit=False)
     test_dataset_returns_regime_prior_when_present()
     test_dataset_no_regime_prior_back_compat()
     test_dataset_regime_prior_consistency_check()
+    test_dataset_rejects_regime_prior_without_xraw()
