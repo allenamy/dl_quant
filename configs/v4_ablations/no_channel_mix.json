@@ -1,0 +1,63 @@
+{
+  "_comment": "V4 full run: RevIN + GDCN + RawLOB(1x1+AttnPool) + PatchAttn(AttnPool) + PPNet(d_prior=6) + 4 horizons + DUL loss. Expected ~32K params.",
+  "data": {
+    "csv_path": "",
+    "npz_dir": "data/npz_v4",
+    "n_levels": 25,
+    "horizon_sec": 180,
+    "input_len": 600,
+    "stride": 60,
+    "horizons_sec": [
+      60,
+      180,
+      300,
+      600
+    ],
+    "include_ridge_features": true,
+    "include_regime_prior": true
+  },
+  "model": {
+    "d_model": 32,
+    "d_raw": 16,
+    "n_mask_blocks": 1,
+    "n_cross_layers": 1,
+    "patch_size": 5,
+    "attn_nhead": 2,
+    "attn_d_ff": 64,
+    "d_prior": 6,
+    "dropout": 0.15,
+    "n_horizons": 4,
+    "n_symbols": 1,
+    "use_monotonic_quantile": true,
+    "use_revin": true,
+    "use_masknet": false,
+    "use_gdcn": true,
+    "use_raw_path": true,
+    "use_attention": true,
+    "use_conv": true,
+    "use_channel_mix_conv": false,
+    "use_level_attention_pool": true,
+    "use_patch_attention_pool": true,
+    "use_ppnet_gate": true
+  },
+  "training": {
+    "epochs": 40,
+    "batch_size": 256,
+    "lr": 0.0003,
+    "weight_decay": 0.001,
+    "patience": 8,
+    "grad_clip": 1.0,
+    "train_days": 700,
+    "val_days": 30,
+    "test_days": 90,
+    "fold_stride": 60,
+    "dul_config": {
+      "lambda_quantile": 1.0,
+      "lambda_utility_rank": 0.3,
+      "lambda_calib": 0.0,
+      "utility_alpha": 1.0
+    }
+  },
+  "output_dir": "experiments/v4_ablations/no_channel_mix",
+  "_ablation": "no_channel_mix"
+}
