@@ -10,6 +10,10 @@ Inputs expected on the dataframe:
     realized_vol_30s
     obi_L5
     book_pressure_imbalance
+
+Contract: callers must provide finite inputs (no NaN/inf). Upstream
+`build_npz_for_day` already sanitizes via ``np.nan_to_num``; this module
+relies on that guarantee rather than re-sanitizing.
 """
 from __future__ import annotations
 
@@ -65,12 +69,17 @@ def compute_ridge_informed_features(df: pd.DataFrame) -> pd.DataFrame:
 
     abs_flow = df["net_trade_flow_1s"].abs()
     # Causal p95 threshold: computed over the trailing 1-hour window so no
-    # future data influences the threshold at time t.
+    # future data influences the threshold at time t. Strict `>` plus a
+    # non-degenerate guard prevents the event from firing trivially when
+    # abs_flow is flat/zero (rolling_p95 would equal rolling_max otherwise).
     rolling_p95 = abs_flow.rolling(window=_WINDOW_1H, min_periods=_WINDOW_60).quantile(
         _LARGE_TRADE_QUANTILE
     )
     rolling_max_flow = abs_flow.rolling(window=_WINDOW_60, min_periods=1).max()
-    out["large_trade_arrival_60s"] = (rolling_max_flow >= rolling_p95).astype(np.float64).to_numpy()
+    is_nondegenerate = rolling_p95 > 0
+    out["large_trade_arrival_60s"] = (
+        (rolling_max_flow > rolling_p95) & is_nondegenerate
+    ).astype(np.float64).to_numpy()
 
     bpi = df["book_pressure_imbalance"].to_numpy()
     delta = np.zeros_like(bpi, dtype=np.float64)

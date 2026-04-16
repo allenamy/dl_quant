@@ -87,6 +87,23 @@ class TestRidgeInformedFeatures(unittest.TestCase):
         expected = df["book_pressure_imbalance"].to_numpy()[60:] - df["book_pressure_imbalance"].to_numpy()[:-60]
         np.testing.assert_allclose(deltas[60:], expected, rtol=1e-10)
 
+    def test_large_trade_arrival_not_triggered_on_flat_flow(self):
+        """Flat/zero flow must NOT repeatedly fire the event indicator."""
+        n = 600
+        df = pd.DataFrame({
+            "timestamp": np.arange(n, dtype=np.int64) * 1_000_000,
+            "net_trade_flow_1s": np.zeros(n),
+            "spread_bps": np.full(n, 0.05),
+            "realized_vol_30s": np.full(n, 1e-4),
+            "obi_L5": np.zeros(n),
+            "book_pressure_imbalance": np.zeros(n),
+        })
+        out = compute_ridge_informed_features(df)
+        # On all-zero flow, the indicator must be 0 everywhere after warmup.
+        fire_rate = out["large_trade_arrival_60s"].iloc[60:].mean()
+        self.assertLess(fire_rate, 0.05,
+                        f"Event fires on flat flow at rate {fire_rate:.2%}; expected ~0")
+
 
 if __name__ == "__main__":
     unittest.main()
