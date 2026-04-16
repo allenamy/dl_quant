@@ -50,22 +50,33 @@ from src.training.trainer_v2 import train_one_fold_v2  # noqa: E402
 # --------------------------------------------------------------------------- #
 # Ablation table -- each entry: (label, extra kwargs for model ctor)           #
 # --------------------------------------------------------------------------- #
+# V3 ablation reproducibility: pin all V4 flags to False so "full" in this
+# script means V3-full (historical semantics), not post-Task-7 V4-default.
+# V4 experiments live in configs/v4_full.json + configs/v4_ablations/.
+_V3_PINS: Dict[str, Any] = {
+    "use_channel_mix_conv": False,
+    "use_level_attention_pool": False,
+    "use_patch_attention_pool": False,
+    "use_ppnet_gate": False,
+}
+
 ABLATIONS: List[Tuple[str, Dict[str, Any]]] = [
-    ("full", {}),
-    ("no_masknet", dict(use_masknet=False)),
-    ("no_gdcn", dict(use_gdcn=False)),
-    ("no_raw_path", dict(use_raw_path=False)),
-    ("no_attention", dict(use_attention=False)),
-    ("no_conv", dict(use_conv=False)),
+    ("full", {**_V3_PINS}),
+    ("no_masknet", {**_V3_PINS, "use_masknet": False}),
+    ("no_gdcn", {**_V3_PINS, "use_gdcn": False}),
+    ("no_raw_path", {**_V3_PINS, "use_raw_path": False}),
+    ("no_attention", {**_V3_PINS, "use_attention": False}),
+    ("no_conv", {**_V3_PINS, "use_conv": False}),
     (
         "linear_only",
-        dict(
-            use_masknet=False,
-            use_gdcn=False,
-            use_raw_path=False,
-            use_attention=False,
-            use_conv=False,
-        ),
+        {
+            **_V3_PINS,
+            "use_masknet": False,
+            "use_gdcn": False,
+            "use_raw_path": False,
+            "use_attention": False,
+            "use_conv": False,
+        },
     ),
 ]
 
