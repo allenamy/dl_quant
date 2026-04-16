@@ -66,7 +66,10 @@ def build_model(model_tag: str, n_features: int, n_levels: int,
                    "use_masknet", "use_gdcn", "use_raw_path",
                    "use_attention", "use_conv",
                    # Phase A3 non-stationarity mitigation
-                   "use_revin"}
+                   "use_revin",
+                   # V4 ablation flags
+                   "use_channel_mix_conv", "use_level_attention_pool",
+                   "use_patch_attention_pool", "use_ppnet_gate"}
         kwargs = {k: v for k, v in model_cfg.items() if k in allowed}
         return DualPathLOBModelV3(n_features=n_features, n_levels=n_levels,
                                   **kwargs)
@@ -122,6 +125,7 @@ def _run_test_evaluation(
     )
 
     dual_path = test_ds.has_raw
+    has_regime_prior = getattr(test_ds, "has_regime_prior", False)
 
     all_quantiles = []
     all_target = []
@@ -129,7 +133,13 @@ def _run_test_evaluation(
 
     with torch.no_grad():
         for batch in test_loader:
-            if dual_path and len(batch) == 4:
+            if has_regime_prior and len(batch) == 5:
+                x_feat, x_raw, regime_prior, y, m = batch
+                x_feat = x_feat.to(device_obj)
+                x_raw = x_raw.to(device_obj)
+                regime_prior = regime_prior.to(device_obj)
+                outputs = model(x_feat, x_raw, regime_prior=regime_prior)
+            elif dual_path and len(batch) == 4:
                 x_feat, x_raw, y, m = batch
                 x_feat = x_feat.to(device_obj)
                 x_raw = x_raw.to(device_obj)
@@ -352,6 +362,7 @@ def main() -> None:
                 weight_decay=train_cfg["weight_decay"],
                 patience=train_cfg["patience"],
                 grad_clip=train_cfg["grad_clip"],
+                dul_config=train_cfg.get("dul_config"),
             )
             print(f"[pipeline_v3] Fold {fold_idx} best: {best}")
 
@@ -474,6 +485,7 @@ def main() -> None:
             weight_decay=train_cfg["weight_decay"],
             patience=train_cfg["patience"],
             grad_clip=train_cfg["grad_clip"],
+            dul_config=train_cfg.get("dul_config"),
         )
         print(f"[pipeline_v3] Training best metrics: {best}")
 
