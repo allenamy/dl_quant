@@ -119,6 +119,16 @@ class DualPathLOBModelV3(nn.Module):
         n_horizons: int = 1,
         n_symbols: int = 1,
         use_monotonic_quantile: bool = True,
+        # --- Ablation bypass flags (Phase A2) ---------------------------
+        # Each flag disables the corresponding module at ``forward`` time
+        # without changing construction-time shapes, so checkpoints remain
+        # compatible across ablations.  ``use_raw_path=False`` forces the
+        # Path-A-only branch even when ``x_raw`` is supplied.
+        use_masknet: bool = True,
+        use_gdcn: bool = True,
+        use_raw_path: bool = True,
+        use_attention: bool = True,
+        use_conv: bool = True,
     ):
         super().__init__()
         self.d_model = d_model
@@ -137,6 +147,13 @@ class DualPathLOBModelV3(nn.Module):
         self.attn_d_ff = attn_d_ff
         self.d_prior = d_prior
         self.dropout = dropout
+        # Persist ablation flags so checkpoints round-trip through
+        # ``_extract_model_config`` and so ``forward`` can gate on them.
+        self.use_masknet = bool(use_masknet)
+        self.use_gdcn = bool(use_gdcn)
+        self.use_raw_path = bool(use_raw_path)
+        self.use_attention = bool(use_attention)
+        self.use_conv = bool(use_conv)
 
         # --- Path A: hand-crafted features -----------------------------------
         # MaskNet + GDCN operate in full feature space (n_features-dim) BEFORE
@@ -261,29 +278,43 @@ class DualPathLOBModelV3(nn.Module):
             - ``point_pred``: ``(B,)`` -- median prediction (q50)
         """
         # 1. Path A: features -> MaskNet -> GDCN -> proj
-        h_craft = self.masknet(x_feat)           # (B, L, n_features) -- noise suppressed
-        h_craft = self.gdcn(h_craft)             # (B, L, n_features) -- feature interactions
+        # Ablation flags ``use_masknet`` / ``use_gdcn`` skip the corresponding
+        # interaction layer while preserving the n_features -> d_model shape
+        # via ``input_proj`` at the end of Path A.
+        if self.use_masknet:
+            h_craft = self.masknet(x_feat)       # (B, L, n_features) -- noise suppressed
+        else:
+            h_craft = x_feat                     # (B, L, n_features)
+
+        if self.use_gdcn:
+            h_craft = self.gdcn(h_craft)         # (B, L, n_features) -- feature interactions
+
         h_craft = self.input_proj(h_craft)       # (B, L, d_model) -- project after interaction
 
         # 2. Path B: raw LOB tensor (optional)
-        if x_raw is not None:
+        # ``use_raw_path`` gates Path B even when ``x_raw`` is supplied.  This
+        # lets the ablation runner disable Path B while still feeding x_raw.
+        if self.use_raw_path and x_raw is not None:
             h_raw = self.raw_encoder(x_raw)      # (B, L, d_raw)
             h = torch.cat([h_craft, h_raw], dim=-1)  # (B, L, d_model + d_raw)
             h = self.fusion(h)                   # (B, L, d_model)
         else:
             h = h_craft                          # (B, L, d_model)
 
-        # 3. Temporal: dilated causal convolutions (local patterns)
-        h = self.temporal_conv(h)                # (B, L, d_model)
+        # 3. Temporal: dilated causal convolutions (local patterns, optional)
+        if self.use_conv:
+            h = self.temporal_conv(h)            # (B, L, d_model)
 
-        # 4. Patching: (B, L, d_model) -> (B, n_patches, d_model)
-        h = self.patch_embed(h)                  # (B, n_patches, d_model)
-
-        # 5. Causal self-attention (global patterns)
-        h = self.patch_attention(h)              # (B, n_patches, d_model)
-
-        # 6. Extract last patch token (most recent context)
-        h_pred = h[:, -1, :]                     # (B, d_model)
+        # 4/5. Patching + Causal self-attention (global patterns, optional).
+        # When attention is disabled we pool the last timestep of the conv /
+        # fusion output directly; this keeps the downstream dimensionality
+        # stable (d_model) for the quantile head.
+        if self.use_attention:
+            h = self.patch_embed(h)              # (B, n_patches, d_model)
+            h = self.patch_attention(h)          # (B, n_patches, d_model)
+            h_pred = h[:, -1, :]                 # (B, d_model)
+        else:
+            h_pred = h[:, -1, :]                 # (B, d_model) -- last timestep pool
 
         # 7. Cross-asset attention (optional)
         if cross_asset_feats is not None and self.cross_asset_attn is not None:

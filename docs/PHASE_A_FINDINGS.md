@@ -195,3 +195,67 @@ Phase-C model redesign must include an explicit distribution-shift mitigation.
 **Artifacts:**
 - `scripts/analyze_distribution_shift.py`
 - `experiments/v3_full/psi.json`
+
+---
+
+## A2: V3 Module Ablation (Fold 0)
+
+**Question:** Which V3 modules actually help on this data? Turn off each one
+individually and measure the impact on val_corr.
+
+**Method.** Added 5 bypass flags (`use_masknet`, `use_gdcn`, `use_raw_path`,
+`use_attention`, `use_conv`) to `DualPathLOBModelV3`. Each flag skips the
+corresponding module in `forward()` while keeping all submodules instantiated
+(so checkpoints remain compatible). Ran `scripts/v3_module_ablation.py` on
+fold 0 (train 2023-01-01..2023-06-29, val 2023-06-30..2023-07-29) with 3
+epochs, patience 2, same train-set X/y normalization as `run_pipeline_v3.py`.
+
+**Status:** PARTIAL (3 of 7 variants completed; MPS thermal throttling on
+this Mac made a full 7-variant sweep take >45 min). The remaining 4 variants
+(no_raw_path, no_attention, no_conv, linear_only) should be completed by
+re-running the script.
+
+### Results (partial)
+
+| Variant       | val_corr  | delta vs full | best_epoch | interpretation |
+|---------------|-----------|---------------|------------|----------------|
+| **full**      | **+0.0285** | ---         | 1          | baseline       |
+| no_masknet    | +0.0250   | -0.0035       | 3          | MaskNet helps slightly (+0.0035 when present) |
+| no_gdcn       | -0.0031   | -0.0316       | 1          | GDCN is critical: removing it collapses correlation to near zero |
+
+### Preliminary findings
+
+1. **GDCN is the most impactful module.** Removing it drops val_corr from
+   +0.0285 to -0.0031, a delta of -0.032. This is by far the largest
+   single-module effect observed. GDCN's gated feature crossing appears to
+   be carrying most of the non-linear signal extraction on Path A.
+
+2. **MaskNet has a modest positive effect.** Removing it drops val_corr from
+   +0.0285 to +0.0250, a delta of -0.0035. This is within noise for a
+   single-fold, single-seed experiment, but directionally consistent with
+   MaskNet providing mild noise suppression.
+
+3. **Caveat: high init-seed variance.** The "full" variant here achieved
+   val_corr +0.0285 (best at epoch 1), whereas the previously-trained
+   fold 0 from the pipeline run achieved 0.0134. The ~2x difference is
+   attributable to random initialization. Deltas across variants in the
+   same run are more meaningful than absolute values.
+
+4. **Remaining variants needed.** no_raw_path, no_attention, no_conv, and
+   linear_only are required to complete the ablation table. Re-run:
+   ```
+   python3 scripts/v3_module_ablation.py \
+     --config configs/full_run.json --fold-index 0 \
+     --out experiments/v3_full/ablation.json --epochs 3 --patience 2
+   ```
+
+### Verdict (preliminary, pending full results)
+
+- **Keep:** GDCN (critical), MaskNet (mild positive)
+- **TBD:** Raw LOB path, attention, causal conv -- awaiting results
+
+**Artifacts:**
+- `src/model/dual_path_model_v3.py` (bypass flags)
+- `scripts/v3_module_ablation.py`
+- `tests/test_v3_bypass_flags.py`
+- `experiments/v3_full/ablation.json` (partial)

@@ -1,0 +1,40 @@
+{
+  "fold_index": 0,
+  "epochs": 3,
+  "patience": 2,
+  "train_days": 180,
+  "val_days": 30,
+  "test_days": 30,
+  "y_median": 0.0,
+  "y_sigma": 5.107132e-04,
+  "note": "Partial results (3/7 variants); MPS thermal throttling made full run infeasible in one session. Re-run with: python3 scripts/v3_module_ablation.py --config configs/full_run.json --fold-index 0 --out experiments/v3_full/ablation.json --epochs 3 --patience 2",
+  "variants": [
+    {
+      "label": "full",
+      "flags": {},
+      "params": 58433,
+      "best_epoch": 1,
+      "val_loss": 0.249901,
+      "val_corr": 0.0285,
+      "val_r2": -0.0003
+    },
+    {
+      "label": "no_masknet",
+      "flags": {"use_masknet": false},
+      "params": 58433,
+      "best_epoch": 3,
+      "val_loss": 0.238122,
+      "val_corr": 0.025,
+      "val_r2": -0.0003
+    },
+    {
+      "label": "no_gdcn",
+      "flags": {"use_gdcn": false},
+      "params": 58433,
+      "best_epoch": 1,
+      "val_loss": 0.249216,
+      "val_corr": -0.0031,
+      "val_r2": -0.0047
+    }
+  ]
+}

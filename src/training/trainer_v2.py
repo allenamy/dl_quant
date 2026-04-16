@@ -96,6 +96,11 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         "attn_nhead", "attn_d_ff", "d_prior", "dropout",
         "n_horizons", "n_symbols", "use_monotonic_quantile",
         "n_quantiles",
+        # V3 ablation bypass flags (Phase A2) -- persisting these lets a
+        # checkpoint reinstantiate with the exact same module graph as at
+        # training time, so ablation runs don't silently revert to "full V3".
+        "use_masknet", "use_gdcn", "use_raw_path",
+        "use_attention", "use_conv",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:

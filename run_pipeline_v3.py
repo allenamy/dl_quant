@@ -61,7 +61,10 @@ def build_model(model_tag: str, n_features: int, n_levels: int,
         allowed = {"d_model", "d_raw", "n_mask_blocks", "n_cross_layers",
                    "patch_size", "attn_nhead", "attn_d_ff", "d_prior",
                    "dropout", "n_horizons", "n_symbols",
-                   "use_monotonic_quantile"}
+                   "use_monotonic_quantile",
+                   # Phase A2 ablation bypass flags
+                   "use_masknet", "use_gdcn", "use_raw_path",
+                   "use_attention", "use_conv"}
         kwargs = {k: v for k, v in model_cfg.items() if k in allowed}
         return DualPathLOBModelV3(n_features=n_features, n_levels=n_levels,
                                   **kwargs)
