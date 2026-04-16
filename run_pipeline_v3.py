@@ -64,7 +64,9 @@ def build_model(model_tag: str, n_features: int, n_levels: int,
                    "use_monotonic_quantile",
                    # Phase A2 ablation bypass flags
                    "use_masknet", "use_gdcn", "use_raw_path",
-                   "use_attention", "use_conv"}
+                   "use_attention", "use_conv",
+                   # Phase A3 non-stationarity mitigation
+                   "use_revin"}
         kwargs = {k: v for k, v in model_cfg.items() if k in allowed}
         return DualPathLOBModelV3(n_features=n_features, n_levels=n_levels,
                                   **kwargs)

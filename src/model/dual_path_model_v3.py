@@ -53,6 +53,81 @@ from src.model.ppnet_gate import PPNetGate
 from src.model.monotonic_quantile import MonotonicQuantileHead
 
 
+class RevIN(nn.Module):
+    """Reversible Instance Normalization (Kim et al., ICLR 2022).
+
+    Normalizes each input instance (window) by its own mean/std.
+    This addresses non-stationarity: features from different market
+    regimes become comparable after per-instance normalization.
+
+    For return prediction, RevIN is applied to INPUT features only.
+    The output (predicted return) should NOT be denormalized because
+    returns are already stationary targets.
+
+    Parameters
+    ----------
+    n_features : int
+        Number of features in the last dimension of the input.
+    eps : float
+        Small constant for numerical stability in std computation.
+    affine : bool
+        If True, learn per-feature scale (weight) and shift (bias)
+        after normalization.
+    """
+
+    def __init__(self, n_features: int, eps: float = 1e-5, affine: bool = True):
+        super().__init__()
+        self.eps = eps
+        if affine:
+            self.affine_weight = nn.Parameter(torch.ones(n_features))
+            self.affine_bias = nn.Parameter(torch.zeros(n_features))
+        else:
+            self.affine_weight = None
+            self.affine_bias = None
+
+    def normalize(self, x: torch.Tensor) -> torch.Tensor:
+        """Normalize input per-instance.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Shape ``(B, L, F)`` -- input features.
+
+        Returns
+        -------
+        torch.Tensor
+            Shape ``(B, L, F)`` -- normalized features.
+        """
+        self._mean = x.mean(dim=1, keepdim=True)  # (B, 1, F)
+        self._std = x.std(dim=1, keepdim=True) + self.eps  # (B, 1, F)
+        x_norm = (x - self._mean) / self._std
+        if self.affine_weight is not None:
+            x_norm = x_norm * self.affine_weight + self.affine_bias
+        return x_norm
+
+    def denormalize(self, x: torch.Tensor) -> torch.Tensor:
+        """Reverse the normalization on model output.
+
+        NOTE: For return prediction, this method is NOT called because
+        the target (return) is already stationary. This method exists
+        for completeness and potential future use in feature-space
+        prediction tasks.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Shape ``(B, F')`` or ``(B, L, F')`` -- output to denormalize.
+
+        Returns
+        -------
+        torch.Tensor
+            Denormalized output in the original feature scale.
+        """
+        if self.affine_weight is not None:
+            x = (x - self.affine_bias) / (self.affine_weight + self.eps)
+        return x * self._std[:, 0, :x.shape[-1]] + self._mean[:, 0, :x.shape[-1]]
+
+
 class DualPathLOBModelV3(nn.Module):
     """Complete model with Conv + Attention temporal backbone.
 
@@ -129,6 +204,8 @@ class DualPathLOBModelV3(nn.Module):
         use_raw_path: bool = True,
         use_attention: bool = True,
         use_conv: bool = True,
+        # --- RevIN (Phase A3 non-stationarity mitigation) ------------------
+        use_revin: bool = True,
     ):
         super().__init__()
         self.d_model = d_model
@@ -154,6 +231,11 @@ class DualPathLOBModelV3(nn.Module):
         self.use_raw_path = bool(use_raw_path)
         self.use_attention = bool(use_attention)
         self.use_conv = bool(use_conv)
+        # RevIN flag (Kim et al., ICLR 2022) -- per-instance normalization
+        # of input features to handle cross-day non-stationarity (PSI=0.349).
+        self.use_revin = bool(use_revin)
+        if self.use_revin:
+            self.revin = RevIN(n_features, affine=True)
 
         # --- Path A: hand-crafted features -----------------------------------
         # MaskNet + GDCN operate in full feature space (n_features-dim) BEFORE
@@ -277,6 +359,15 @@ class DualPathLOBModelV3(nn.Module):
             - ``quantiles``: ``(B, 3)`` with [q10, q50, q90]
             - ``point_pred``: ``(B,)`` -- median prediction (q50)
         """
+        # 0. RevIN: per-instance normalization of input features (ICLR 2022).
+        # Applied BEFORE any learned layers so that MaskNet/GDCN see
+        # distribution-stable features regardless of market regime.
+        # NOTE: RevIN normalizes INPUT features only.  The OUTPUT (predicted
+        # return) is NOT denormalized because returns are already stationary
+        # targets -- RevIN addresses feature non-stationarity, not target shift.
+        if self.use_revin:
+            x_feat = self.revin.normalize(x_feat)
+
         # 1. Path A: features -> MaskNet -> GDCN -> proj
         # Ablation flags ``use_masknet`` / ``use_gdcn`` skip the corresponding
         # interaction layer while preserving the n_features -> d_model shape

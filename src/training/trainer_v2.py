@@ -101,6 +101,8 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         # training time, so ablation runs don't silently revert to "full V3".
         "use_masknet", "use_gdcn", "use_raw_path",
         "use_attention", "use_conv",
+        # RevIN flag (Phase A3 non-stationarity mitigation)
+        "use_revin",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:
