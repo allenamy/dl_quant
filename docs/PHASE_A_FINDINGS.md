@@ -6,6 +6,118 @@ analysis). Each section is appended by the agent that owns that task.
 
 ---
 
+## A1: Ridge Feature Importance
+
+**Question:** Which features carry the Ridge signal? Does the ~0.10 test
+correlation come from a small number of strong predictors or a large number of
+tiny ones? What does that tell us about targeted feature engineering in
+Phase C?
+
+**Measurement.** `scripts/analyze_ridge_weights.py` on `data/npz_full/`
+(1004 per-day NPZs). Last-timestep features only (matches the Ridge baseline in
+`run_baselines.py`), 80/20 temporal split (no shuffle), `StandardScaler` fit on
+train only, `Ridge(alpha=1.0, fit_intercept=True)`. Because `X` is standardized,
+`|coef|` is the standardized effect size per feature.
+
+### Run summary
+
+| field              | value                              |
+|--------------------|------------------------------------|
+| n_train            | 154,332                            |
+| n_test             | 38,583                             |
+| target_sigma (y)   | 8.79e-4                            |
+| **test_corr**      | **0.0830**                         |
+| alpha              | 1.0                                |
+| split              | 80/20 temporal, train-only scaler  |
+
+Single-split Ridge test_corr is ~0.083, slightly below the cross-validated
+baseline (0.1016) reported in `PROGRESS.md` — expected, since CV averages
+multiple folds while this single-split estimate has higher variance. The
+ordering of top features, not the absolute corr, is what matters here.
+
+### Top 10 features
+
+| rank | feature                 | coef       | marginal_corr | interpretation                                               |
+|------|-------------------------|------------|---------------|--------------------------------------------------------------|
+| 1    | net_trade_flow_1s       | +3.50e-4   | +0.029        | Net aggressor buy pressure (1s) → positive next-return       |
+| 2    | sell_volume_1s          | +2.83e-4   | -0.018        | Sign flip vs marginal: see multicollinearity note below      |
+| 3    | buy_volume_1s           | -2.81e-4   | +0.012        | Sign flip vs marginal: see multicollinearity note below      |
+| 4    | obi_L1                  | +4.57e-5   | +0.075        | Top-of-book bid-heavy imbalance predicts up-move             |
+| 5    | obi_L25                 | -3.47e-5   | +0.071        | Sign flip vs marginal — collinear with obi_L1/L10            |
+| 6    | ask_depth_L25           | -2.71e-5   | -0.054        | Deep ask liquidity predicts down-move (sellers queued)       |
+| 7    | weighted_price_ask_L10  | +2.01e-5   | +0.041        | Ask-side weighted price tilt → positive return               |
+| 8    | obi_L10                 | +1.99e-5   | +0.074        | Medium-depth imbalance, consistent with L1                   |
+| 9    | microprice_dev_bps      | -1.88e-5   | -0.010        | Small marginal corr, low magnitude                           |
+| 10   | bid_depth_L5            | +1.82e-5   | +0.056        | Shallow bid depth associated with up-moves                   |
+
+Full top-20 in `experiments/v3_full/ridge_weights.json`.
+
+### Headline findings
+
+1. **Signal lives in order flow, not price history.** The three biggest
+   standardized effects are all 1-second trade-flow features
+   (`net_trade_flow_1s`, `sell_volume_1s`, `buy_volume_1s`), each an order of
+   magnitude above the next feature. Price-based features (`log_return_*`,
+   `realized_vol_*`) do **not** appear in the top 10. Phase C feature
+   engineering should intensify the order-flow family: multi-window flow
+   aggregates, signed-flow × imbalance interactions, flow residuals after
+   regressing out volume magnitude.
+
+2. **Order book imbalance is a strong second family.** `obi_L1`, `obi_L10`,
+   `obi_L25` all land in the top 8 with marginal correlations 0.07-0.08 —
+   the highest marginal corrs in the top 10. They consume less Ridge weight
+   than order flow because the `obi_L*` features are mutually redundant
+   (see note 3). A single orthogonalized imbalance factor (PCA on `obi_L*`,
+   or an OBI "slope" = `obi_L1 − obi_L25`) should keep most of the signal
+   while freeing Ridge capacity for other features.
+
+3. **Multicollinearity warning — several sign flips.** `sell_volume_1s` has
+   coef = **+2.83e-4** but marginal_corr = **−0.018**. `buy_volume_1s` has
+   coef = **−2.81e-4** but marginal_corr = **+0.012**. `obi_L25` has
+   coef = **−3.47e-5** but marginal_corr = **+0.071**. When marginal and
+   Ridge signs disagree, Ridge is allocating predictive power across
+   colinear partners by pushing some coefficients into a sign that cancels
+   a dominant partner — the magnitudes are real but the individual signs
+   have no physical meaning. Phase C should:
+   - Rely on `net_trade_flow_1s = buy_volume_1s − sell_volume_1s` (already
+     present) and consider dropping the two unsigned volumes, **or**
+   - Replace raw volumes with flow residuals after regressing out
+     `net_trade_flow`.
+
+4. **Deeper book levels add marginal information.** `ask_depth_L25` and
+   `bid_depth_L5` both make the top 10 with non-trivial marginal
+   correlations. The Raw LOB path (Path B in the architecture doc) is
+   plausibly useful — but the information it would add is small unless
+   Phase C extracts interactions that a linear model on hand-crafted depth
+   features misses.
+
+5. **Volatility and spread are weak direct predictors.** `roll_spread_60s`,
+   `spread_change`, `spread_bps`, `realized_vol_30s` all make the top 20
+   but with marginal correlations near zero. They are probably useful as
+   **conditioning variables** (regime splits, feature interactions) rather
+   than direct predictors.
+
+### Implications for later phases
+
+- **Phase B (data scale):** the signal is real and comes from order flow +
+  imbalance; scaling data to multi-horizon / denser strides is worthwhile.
+- **Phase C1 (XGBoost):** critical sanity check — if XGBoost corr does not
+  exceed Ridge corr by at least 0.01, the signal is truly linear and V3
+  must be stripped to near-linear in Phase D.
+- **Phase C2 (interactions):** priority interactions from A1 top-k:
+  `net_trade_flow × obi_L1`, `obi_L1 × realized_vol`, `flow_1s × spread_bps`,
+  `(obi_L1 − obi_L25)` slope.
+- **Phase C3 (regime segmentation):** check whether Ridge corr collapses on
+  low-spread / low-vol windows — if so, the flow signal only fires in
+  liquid regimes and regime-conditional routing is needed.
+
+**Artifacts:**
+- `scripts/analyze_ridge_weights.py`
+- `tests/test_analyze_ridge_weights.py`
+- `experiments/v3_full/ridge_weights.json`
+
+---
+
 ## A3: Distribution Shift (Fold 0)
 
 **Question:** Is non-stationarity (not overfitting) the dominant V3 failure mode?
