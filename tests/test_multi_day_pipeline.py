@@ -373,5 +373,39 @@ class TestMultiDayPipelineDateFilter(unittest.TestCase, _FixtureMixin):
         self.assertEqual(paths[0].name, f"{DATES[1]}.npz")
 
 
+class TestMultiDayPipelineV4Flags(unittest.TestCase):
+    """``include_ridge_features`` and ``include_regime_prior`` are forwarded."""
+
+    def test_forwards_v4_flags(self) -> None:
+        """process_multi_day_crypto_folder accepts and forwards V4 flags."""
+        with tempfile.TemporaryDirectory() as tmp:
+            book_root = Path(tmp) / "book"
+            trades_root = Path(tmp) / "trades"
+            out_dir = Path(tmp) / "npz"
+            _materialise_day(
+                book_root, trades_root, "2024-01-01",
+                day_index=0, n_seconds=2400, include_trades=True,
+            )
+            paths = process_multi_day_crypto_folder(
+                book_root=str(book_root),
+                trades_root=str(trades_root),
+                output_dir=str(out_dir),
+                horizons_sec=[60, 180],
+                input_len=600,
+                stride=60,
+                n_levels=25,
+                include_ridge_features=True,
+                include_regime_prior=True,
+                skip_existing=False,
+                verbose=False,
+            )
+            self.assertEqual(len(paths), 1)
+            d = np.load(paths[0], allow_pickle=True)
+            self.assertIn("regime_prior", d.files)
+            self.assertEqual(d["regime_prior"].shape[1], 6)
+            self.assertEqual(d["X"].shape[-1], 64)
+            print("PASS: test_forwards_v4_flags")
+
+
 if __name__ == "__main__":
     unittest.main()
