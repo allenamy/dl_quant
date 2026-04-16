@@ -387,7 +387,7 @@ def train_one_fold_v2(
 
         # ===== Early stopping & checkpointing (by CORRELATION) =====
         best_corr_so_far = best_metrics.get("val_corr", -1.0)
-        if val_corr > best_corr_so_far + 1e-4:
+        if val_corr > best_corr_so_far + 5e-4:
             epochs_no_improve = 0
             best_metrics = {
                 "best_epoch": epoch,
