@@ -1,12 +1,12 @@
 {
-    "_comment": "Full multi-day BTCUSDT LOB run. Targets ~100-300 windows/day over ~1004 days. Model size deliberately small to respect CLAUDE.md params-per-sample budget; actual V3 param count with these settings is ~58K, trades off feature-interaction capacity against low-SNR robustness. Treat this as Phase 2 signal-quality exploration, not a locked production config.",
+    "_comment": "V3 full run: RevIN + 500-day train window + stride=60 dense NPZ. Params/samples = 58K/290K = 1:5.",
     "data": {
         "csv_path": "",
-        "npz_dir": "data/npz_full",
+        "npz_dir": "data/npz_dense",
         "n_levels": 25,
         "horizon_sec": 180,
         "input_len": 300,
-        "stride": 180
+        "stride": 60
     },
     "model": {
         "d_model": 32,
@@ -20,19 +20,20 @@
         "dropout": 0.15,
         "n_horizons": 1,
         "n_symbols": 1,
-        "use_monotonic_quantile": true
+        "use_monotonic_quantile": true,
+        "use_revin": true
     },
     "training": {
         "epochs": 60,
-        "batch_size": 128,
-        "lr": 5e-4,
+        "batch_size": 256,
+        "lr": 3e-4,
         "weight_decay": 1e-3,
         "patience": 10,
         "grad_clip": 1.0,
-        "train_days": 180,
+        "train_days": 500,
         "val_days": 30,
         "test_days": 30,
         "fold_stride": 60
     },
-    "output_dir": "experiments/v3_full"
+    "output_dir": "experiments/v3_revin"
 }
