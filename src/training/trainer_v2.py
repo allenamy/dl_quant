@@ -25,6 +25,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+from .dataset import DayChunkedSampler
 from .losses import quantile_loss
 
 
@@ -311,12 +312,43 @@ def train_one_fold_v2(
         )
 
     # --- data loaders --------------------------------------------------------
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        drop_last=True,
+    # Use day-chunked sampling when the dataset has per-day structure
+    # (LOBDatasetV2). With lazy per-day loading and an LRU cache of size
+    # ~128, globally shuffled access across 500+ days thrashes the cache
+    # (each batch of 256 spans ~256 distinct days, ~75% miss rate). A
+    # day-chunked sampler iterates one day at a time (random day order per
+    # epoch, random sample order within day), achieving ~100% cache hit
+    # rate after the first sample of each day. Falls back to plain
+    # shuffle=True for other datasets (legacy LOBDataset, _SlicedV2 from
+    # single-day mode).
+    use_day_sampler = (
+        hasattr(train_dataset, "_offsets")
+        and hasattr(train_dataset, "_day_paths")
     )
+
+    if use_day_sampler:
+        train_sampler: Optional[DayChunkedSampler] = DayChunkedSampler(
+            train_dataset,
+            shuffle_days=True,
+            shuffle_within_day=True,
+            seed=42,
+        )
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            sampler=train_sampler,   # mutually exclusive with shuffle
+            num_workers=0,
+            drop_last=True,
+        )
+    else:
+        train_sampler = None
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=0,
+            drop_last=True,
+        )
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
@@ -354,6 +386,11 @@ def train_one_fold_v2(
     epochs_no_improve = 0
 
     for epoch in range(1, epochs + 1):
+        # Refresh day-chunked sampler RNG so day order varies per epoch.
+        # No-op when falling back to shuffle=True DataLoader.
+        if train_sampler is not None:
+            train_sampler.set_epoch(epoch)
+
         # ===== Training =====
         model.train()
         train_loss_sum = 0.0

@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Sampler
 
 
 def _np_load_with_retry(
@@ -642,6 +642,88 @@ class LOBDatasetV2(Dataset):
         mad = float(np.median(np.abs(y_valid - median)))
         sigma = max(1.4826 * mad, 1e-9)
         return median, sigma
+
+
+# --------------------------------------------------------------------------
+# Day-chunked sampler (cache-friendly access for LOBDatasetV2)
+# --------------------------------------------------------------------------
+
+
+class DayChunkedSampler(Sampler):
+    """Sampler that groups samples by day for cache-friendly access.
+
+    When LOBDatasetV2 uses lazy per-day loading, globally shuffled access
+    causes cache thrashing (each batch of 256 spans ~256 distinct days,
+    most cache-missing). This sampler instead iterates one day at a time,
+    shuffling sample order within the day. Day order is shuffled per
+    epoch. Cache hit rate is ~100% after the first sample of each day.
+
+    Parameters
+    ----------
+    dataset : LOBDatasetV2
+        Must expose ``_offsets`` (cumulative per-day sample counts) and
+        ``_day_paths`` (list of path length N_days).
+    shuffle_days : bool, default True
+        Whether to shuffle the order in which days are processed each epoch.
+    shuffle_within_day : bool, default True
+        Whether to shuffle sample order within each day.
+    seed : int, optional
+        Base RNG seed. Actual seed per epoch is ``seed + epoch`` (set via
+        ``set_epoch()``). Default ``None`` means a fresh RNG each epoch
+        (not reproducible).
+    drop_last : bool, default False
+        If True, drops the final partial day(s) worth of samples so the
+        total count is a multiple of (shuffled day count). Mostly a
+        no-op unless downstream code requires exact divisibility.
+    """
+
+    def __init__(
+        self,
+        dataset,
+        shuffle_days: bool = True,
+        shuffle_within_day: bool = True,
+        seed: Optional[int] = None,
+        drop_last: bool = False,
+    ) -> None:
+        # Validate dataset has required attrs
+        if not hasattr(dataset, "_offsets") or not hasattr(dataset, "_day_paths"):
+            raise TypeError(
+                "DayChunkedSampler requires a dataset with _offsets and "
+                "_day_paths attributes (e.g. LOBDatasetV2)"
+            )
+        self.dataset = dataset
+        self.shuffle_days = shuffle_days
+        self.shuffle_within_day = shuffle_within_day
+        self.seed = seed
+        self.drop_last = drop_last
+        self._epoch = 0
+
+    def set_epoch(self, epoch: int) -> None:
+        """Set the epoch number (for reproducibility across epochs)."""
+        self._epoch = int(epoch)
+
+    def __iter__(self):
+        import random
+        if self.seed is not None:
+            rng = random.Random(self.seed + self._epoch)
+        else:
+            rng = random.Random()
+
+        n_days = len(self.dataset._day_paths)
+        day_order = list(range(n_days))
+        if self.shuffle_days:
+            rng.shuffle(day_order)
+
+        for d in day_order:
+            start = int(self.dataset._offsets[d])
+            end = int(self.dataset._offsets[d + 1])
+            indices = list(range(start, end))
+            if self.shuffle_within_day:
+                rng.shuffle(indices)
+            yield from indices
+
+    def __len__(self) -> int:
+        return int(self.dataset._offsets[-1])
 
 
 # --------------------------------------------------------------------------
