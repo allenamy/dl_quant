@@ -334,6 +334,7 @@ class DualPathLOBModelV3(nn.Module):
         regime_prior: torch.Tensor | None = None,
         cross_asset_feats: torch.Tensor | None = None,
         horizon_idx: int = 0,
+        all_horizons: bool = False,
     ) -> dict[str, torch.Tensor]:
         """Forward pass.
 
@@ -351,13 +352,25 @@ class DualPathLOBModelV3(nn.Module):
             Shape ``(B, n_symbols-1, d_model)`` -- other symbols' h_pred tokens.
             If None, cross-asset attention is skipped.
         horizon_idx : int
-            Which horizon head to use (0-indexed). Default 0.
+            Which horizon head to use (0-indexed).  Default 0.  Ignored when
+            ``all_horizons=True`` or when ``n_horizons == 1``.
+        all_horizons : bool
+            When ``True`` AND ``n_horizons > 1``, run every quantile head in
+            a single forward and return an extra ``quantiles_by_horizon``
+            key (shape ``(B, n_horizons, 3)``) alongside the original
+            ``quantiles`` / ``point_pred`` keys (selected via
+            ``horizon_idx`` for back-compat).  Default ``False`` keeps
+            legacy single-head behaviour.
 
         Returns
         -------
         dict[str, torch.Tensor]
-            - ``quantiles``: ``(B, 3)`` with [q10, q50, q90]
-            - ``point_pred``: ``(B,)`` -- median prediction (q50)
+            Always returned:
+              - ``quantiles``: ``(B, 3)`` with [q10, q50, q90]
+              - ``point_pred``: ``(B,)`` -- median prediction (q50)
+            Additionally when ``n_horizons > 1`` and ``all_horizons=True``:
+              - ``quantiles_by_horizon``: ``(B, n_horizons, 3)``
+              - ``point_pred_by_horizon``: ``(B, n_horizons)``
         """
         # 0. RevIN: per-instance normalization of input features (ICLR 2022).
         # Applied BEFORE any learned layers so that MaskNet/GDCN see
@@ -421,9 +434,38 @@ class DualPathLOBModelV3(nn.Module):
         if regime_prior is not None and self.ppnet_gate is not None:
             h_pred = self.ppnet_gate(h_pred, regime_prior)
 
-        # 9. Quantile head (horizon-specific if multi-horizon)
-        head = self.quantile_heads[horizon_idx]
+        # 9. Quantile head (horizon-specific if multi-horizon).
+        # ``all_horizons=True`` runs every head in one forward so the
+        # multi-horizon trainer can apply per-horizon losses without
+        # re-encoding the input.  ``n_horizons == 1`` short-circuits back to
+        # the legacy single-head path regardless of ``all_horizons`` to keep
+        # single-horizon checkpoints / training bit-identical.
+        if self.n_horizons > 1 and all_horizons:
+            q_list = []
+            p_list = []
+            for head in self.quantile_heads:
+                if self.use_monotonic_quantile:
+                    out = head(h_pred)
+                    q_list.append(out["quantiles"])
+                    p_list.append(out["point_pred"])
+                else:
+                    q = head(h_pred)
+                    q_list.append(q)
+                    p_list.append(q[:, 1])
+            # Stack along the horizon axis: (B, n_horizons, n_quantiles)
+            quantiles_by_h = torch.stack(q_list, dim=1)
+            point_pred_by_h = torch.stack(p_list, dim=1)
+            # Back-compat: top-level ``quantiles`` / ``point_pred`` expose the
+            # caller-selected horizon (default 0) so anything that reads
+            # outputs["quantiles"] (e.g. monitoring code) keeps working.
+            return {
+                "quantiles": quantiles_by_h[:, horizon_idx, :],
+                "point_pred": point_pred_by_h[:, horizon_idx],
+                "quantiles_by_horizon": quantiles_by_h,
+                "point_pred_by_horizon": point_pred_by_h,
+            }
 
+        head = self.quantile_heads[horizon_idx]
         if self.use_monotonic_quantile:
             return head(h_pred)
         else:

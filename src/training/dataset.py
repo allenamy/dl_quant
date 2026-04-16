@@ -97,18 +97,49 @@ class LOBDataset(Dataset):
         return mean, std
 
 
+def _derive_mask_key(horizon_key: str) -> str:
+    """Map a label key like ``"y"`` / ``"y_60"`` / ``"y_180"`` to its mask key.
+
+    The NPZ convention produced by ``build_npz_for_day`` is:
+      - ``"y"`` (back-compat alias) -> ``"y_mask"``
+      - ``"y_<H>"`` (per-horizon)   -> ``"y_mask_<H>"``
+
+    Anything else we refuse up-front -- a wrong mapping would silently train
+    on misaligned targets.
+    """
+    if horizon_key == "y":
+        return "y_mask"
+    if horizon_key.startswith("y_"):
+        return f"y_mask_{horizon_key[2:]}"
+    raise ValueError(
+        f"horizon_key must be 'y' or start with 'y_<H>', got {horizon_key!r}"
+    )
+
+
 class LOBDatasetV2(Dataset):
     """Extended dataset supporting dual-path (X_feat + X_raw) inputs.
 
     NPZ files may contain:
-      X       -- (N, L, n_features)  hand-crafted features (always present)
-      X_raw   -- (N, L, n_levels, 4) raw LOB tensor (optional)
-      y       -- (N,) targets
-      y_mask  -- (N,) validity mask
+      X             -- (N, L, n_features)  hand-crafted features (always present)
+      X_raw         -- (N, L, n_levels, 4) raw LOB tensor (optional)
+      y             -- (N,) back-compat target (alias of shortest horizon)
+      y_mask        -- (N,) validity mask (alias of shortest horizon)
+      y_{H}         -- (N,) target for horizon H seconds (multi-horizon NPZs)
+      y_mask_{H}    -- (N,) validity mask for horizon H seconds
 
     If X_raw is present, ``__getitem__`` returns ``(x_feat, x_raw, y, mask)``.
     If X_raw is absent, ``__getitem__`` returns ``(x_feat, y, mask)``.
     This matches ``trainer_v2``'s auto-detection.
+
+    Multi-horizon mode
+    ------------------
+    When ``horizons`` is supplied as a list of label keys
+    (e.g. ``["y_60", "y_180", "y_300", "y_600"]``) the dataset stacks the
+    per-horizon targets / masks along a new trailing axis.  In that mode
+    ``__getitem__`` returns ``y`` and ``mask`` tensors of shape
+    ``(n_horizons,)``, and batching yields ``(B, n_horizons)``.  Useful for a
+    single-forward shared-encoder trainer.  Default ``None`` preserves the
+    single-horizon (scalar y, scalar mask) behaviour.
 
     Parameters
     ----------
@@ -121,6 +152,16 @@ class LOBDatasetV2(Dataset):
         X_raw is already normalized (bps + log1p), skip.
     x_mean, x_std : np.ndarray | None
         Pre-computed feature-wise mean/std.  Required when *normalize=True*.
+    horizon_key : str, default ``"y"``
+        Which NPZ target field to load in single-horizon mode
+        (e.g. ``"y"``, ``"y_60"``, ``"y_180"``, ``"y_300"``, ``"y_600"``).
+    mask_key : str | None, default ``None``
+        Explicit mask field name.  When ``None`` (default) it is auto-derived
+        from ``horizon_key`` via :func:`_derive_mask_key`.
+    horizons : list[str] | None, default ``None``
+        When provided, enables multi-horizon mode.  Each element is a label
+        key (e.g. ``"y_60"``, ``"y_300"``).  Takes precedence over
+        ``horizon_key`` / ``mask_key``.
     smooth_target : int, default 0
         If ``> 0``, requests target smoothing over this many seconds.  The
         cleaner place to smooth is at NPZ-build time in ``pipeline.py``
@@ -137,6 +178,9 @@ class LOBDatasetV2(Dataset):
         normalize: bool = False,
         x_mean: Optional[np.ndarray] = None,
         x_std: Optional[np.ndarray] = None,
+        horizon_key: str = "y",
+        mask_key: Optional[str] = None,
+        horizons: Optional[List[str]] = None,
         smooth_target: int = 0,
     ) -> None:
         super().__init__()
@@ -145,7 +189,29 @@ class LOBDatasetV2(Dataset):
         # Pass-through; actual smoothing expected at NPZ-build time.
         self.smooth_target = int(smooth_target)
 
-        xs, ys, masks = [], [], []
+        # Resolve which label (and mask) fields to load.  Multi-horizon takes
+        # precedence; otherwise we honour ``horizon_key`` + ``mask_key``.
+        if horizons is not None:
+            if len(horizons) == 0:
+                raise ValueError("horizons must be a non-empty list when provided")
+            self._horizons: Optional[List[str]] = list(horizons)
+            self._horizon_key = None
+            self._mask_key = None
+            self._y_keys: List[str] = list(horizons)
+            self._mask_keys: List[str] = [_derive_mask_key(k) for k in horizons]
+        else:
+            if mask_key is None:
+                mask_key = _derive_mask_key(horizon_key)
+            self._horizons = None
+            self._horizon_key = horizon_key
+            self._mask_key = mask_key
+            self._y_keys = [horizon_key]
+            self._mask_keys = [mask_key]
+
+        xs: List[np.ndarray] = []
+        # Per-horizon buckets: index into ``self._y_keys`` -> list of day arrays.
+        ys_by_key: List[List[np.ndarray]] = [[] for _ in self._y_keys]
+        masks_by_key: List[List[np.ndarray]] = [[] for _ in self._mask_keys]
         raws: List[np.ndarray] = []
         has_raw_all: Optional[bool] = None
         feature_names_first: Optional[List[str]] = None
@@ -155,8 +221,27 @@ class LOBDatasetV2(Dataset):
             path = os.path.join(data_dir, f"{day}.npz")
             npz = np.load(path, allow_pickle=True)
             xs.append(npz["X"])
-            ys.append(npz["y"])
-            masks.append(npz["y_mask"])
+
+            # Fetch each requested (y, mask) pair.  Missing horizon keys are
+            # a pipeline-version mismatch -- fail loudly with a helpful msg.
+            for k_idx, (y_key, m_key) in enumerate(
+                zip(self._y_keys, self._mask_keys)
+            ):
+                if y_key not in npz.files:
+                    raise ValueError(
+                        f"Label key {y_key!r} not found in {day}.npz. "
+                        f"Available keys: {sorted(npz.files)}. "
+                        f"Rebuild NPZs via build_npz_for_day with "
+                        f"horizons_sec=[...] to populate multi-horizon labels."
+                    )
+                if m_key not in npz.files:
+                    raise ValueError(
+                        f"Mask key {m_key!r} not found in {day}.npz. "
+                        f"Expected alongside {y_key!r}. "
+                        f"Rebuild NPZs via build_npz_for_day."
+                    )
+                ys_by_key[k_idx].append(npz[y_key])
+                masks_by_key[k_idx].append(npz[m_key])
 
             # Fail fast on feature-name drift across days. Silent schema
             # mismatch would either crash np.concatenate (same n_features,
@@ -196,8 +281,22 @@ class LOBDatasetV2(Dataset):
         self._feature_names = feature_names_first
 
         self.X = np.concatenate(xs, axis=0).astype(np.float32)
-        self.y = np.concatenate(ys, axis=0).astype(np.float32)
-        self.mask = np.concatenate(masks, axis=0).astype(np.float32)
+
+        # Build y / mask arrays.  Shapes:
+        #   single-horizon: (N,)
+        #   multi-horizon:  (N, n_horizons)
+        per_key_y = [np.concatenate(b, axis=0).astype(np.float32) for b in ys_by_key]
+        per_key_mask = [
+            np.concatenate(b, axis=0).astype(np.float32) for b in masks_by_key
+        ]
+        if self._horizons is not None:
+            # Stack along a new trailing dimension so __getitem__ can return
+            # a 1-D tensor per sample of length n_horizons.
+            self.y = np.stack(per_key_y, axis=-1)           # (N, n_h)
+            self.mask = np.stack(per_key_mask, axis=-1)     # (N, n_h)
+        else:
+            self.y = per_key_y[0]
+            self.mask = per_key_mask[0]
 
         if self._has_raw:
             self.X_raw = np.concatenate(raws, axis=0).astype(np.float32)
@@ -208,7 +307,9 @@ class LOBDatasetV2(Dataset):
         self.X = np.nan_to_num(self.X, nan=0.0, posinf=0.0, neginf=0.0)
         self.y = np.nan_to_num(self.y, nan=0.0, posinf=0.0, neginf=0.0)
         self.mask = np.nan_to_num(self.mask, nan=0.0, posinf=0.0, neginf=0.0)
-        self.y[self.mask == 0] = 0.0
+        # Zero out targets where the mask is 0 (both single- and multi-horizon
+        # broadcasting works because shapes line up elementwise).
+        self.y = np.where(self.mask == 0, 0.0, self.y).astype(np.float32)
 
         if self.X_raw is not None:
             self.X_raw = np.nan_to_num(self.X_raw, nan=0.0, posinf=0.0, neginf=0.0)
@@ -230,6 +331,11 @@ class LOBDatasetV2(Dataset):
         """Whether X_raw is available (tells trainer which mode to use)."""
         return self._has_raw
 
+    @property
+    def horizons(self) -> Optional[List[str]]:
+        """The horizon label keys when in multi-horizon mode, else ``None``."""
+        return list(self._horizons) if self._horizons is not None else None
+
     # ------------------------------------------------------------------
     # torch Dataset interface
     # ------------------------------------------------------------------
@@ -243,8 +349,18 @@ class LOBDatasetV2(Dataset):
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
     ]:
         x_feat = torch.from_numpy(np.array(self.X[idx], dtype=np.float32))
-        y = torch.tensor(float(self.y[idx]))
-        m = torch.tensor(float(self.mask[idx]))
+        # In single-horizon mode ``self.y[idx]`` is scalar; in multi-horizon
+        # mode it's a 1-D array of length n_horizons.  ``torch.from_numpy``
+        # preserves the shape either way; ``torch.tensor`` with a scalar keeps
+        # the single-horizon legacy return shape.
+        y_item = self.y[idx]
+        m_item = self.mask[idx]
+        if self._horizons is not None:
+            y = torch.from_numpy(np.asarray(y_item, dtype=np.float32))
+            m = torch.from_numpy(np.asarray(m_item, dtype=np.float32))
+        else:
+            y = torch.tensor(float(y_item))
+            m = torch.tensor(float(m_item))
 
         if self._has_raw:
             x_raw = torch.from_numpy(np.array(self.X_raw[idx], dtype=np.float32))

@@ -115,6 +115,79 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Multi-horizon loss helper
+# ---------------------------------------------------------------------------
+
+def _multi_horizon_loss(
+    outputs: Dict[str, torch.Tensor],
+    y: torch.Tensor,
+    mask: torch.Tensor,
+    loss_fn: Callable[[Dict[str, torch.Tensor], torch.Tensor], torch.Tensor],
+) -> Optional[torch.Tensor]:
+    """Sum per-horizon quantile losses for multi-horizon training.
+
+    Parameters
+    ----------
+    outputs : dict
+        Model output.  Must contain ``quantiles_by_horizon`` of shape
+        ``(B, n_horizons, n_quantiles)`` AND ``point_pred_by_horizon`` of
+        shape ``(B, n_horizons)``.  The model is responsible for producing
+        these when called with ``all_horizons=True``.
+    y : torch.Tensor
+        Shape ``(B, n_horizons)`` targets.
+    mask : torch.Tensor
+        Shape ``(B, n_horizons)`` per-horizon validity mask.
+    loss_fn : callable
+        Same signature as the trainer-level ``loss_fn`` but invoked with
+        the single-horizon slice ``{"quantiles": (B', Q), "point_pred":
+        (B',)}`` and target ``(B',)``.  This lets the caller swap in IC /
+        rank / combined losses without changing the trainer.
+
+    Returns
+    -------
+    torch.Tensor or None
+        Summed loss across horizons that had at least one unmasked sample,
+        divided by the number of contributing horizons (so the scalar stays
+        comparable to the single-horizon case).  Returns ``None`` when every
+        horizon's mask is zero for this batch — caller should ``continue``.
+    """
+    if "quantiles_by_horizon" not in outputs:
+        raise KeyError(
+            "Multi-horizon mode requires model output to contain "
+            "'quantiles_by_horizon' -- make sure the model is called with "
+            "all_horizons=True and supports n_horizons > 1."
+        )
+    q_by_h = outputs["quantiles_by_horizon"]        # (B, n_h, Q)
+    p_by_h = outputs["point_pred_by_horizon"]       # (B, n_h)
+    n_h = q_by_h.shape[1]
+
+    total: Optional[torch.Tensor] = None
+    contributing = 0
+    for h_idx in range(n_h):
+        mask_h = mask[:, h_idx]
+        idx = mask_h.nonzero(as_tuple=True)[0]
+        if len(idx) == 0:
+            continue
+        m_outputs = {
+            "quantiles": q_by_h[idx, h_idx, :],
+            "point_pred": p_by_h[idx, h_idx],
+        }
+        m_target = y[idx, h_idx]
+        loss_h = loss_fn(m_outputs, m_target)
+        if not torch.isfinite(loss_h):
+            # A single bad horizon shouldn't poison the whole step; skip it.
+            continue
+        total = loss_h if total is None else total + loss_h
+        contributing += 1
+
+    if total is None or contributing == 0:
+        return None
+    # Average over contributing horizons so the learning-rate schedule /
+    # grad clipping behave the same regardless of n_horizons.
+    return total / contributing
+
+
+# ---------------------------------------------------------------------------
 # Training loop
 # ---------------------------------------------------------------------------
 
@@ -217,6 +290,26 @@ def train_one_fold_v2(
     sample = train_dataset[0]
     has_regime_prior = len(sample) == 5
 
+    # --- detect multi-horizon mode ------------------------------------------
+    # Convention: LOBDatasetV2 with ``horizons=[...]`` returns per-item y /
+    # mask of shape (n_horizons,) instead of scalar.  We detect this by
+    # inspecting the first sample's y tensor rank.  When active, the trainer
+    # calls ``model(..., all_horizons=True)`` so the model emits
+    # ``quantiles_by_horizon`` (B, n_horizons, 3) for per-horizon loss.
+    if has_regime_prior:
+        y_sample = sample[3]
+    elif dual_path:
+        y_sample = sample[2]
+    else:
+        y_sample = sample[1]
+    multi_horizon = torch.is_tensor(y_sample) and y_sample.ndim == 1 and y_sample.numel() > 1
+    n_horizons = int(y_sample.numel()) if multi_horizon else 1
+    if multi_horizon:
+        print(
+            f"[trainer_v2] Multi-horizon mode: n_horizons={n_horizons}. "
+            f"Per-horizon quantile loss will be summed with per-horizon masks."
+        )
+
     # --- data loaders --------------------------------------------------------
     train_loader = DataLoader(
         train_dataset,
@@ -260,6 +353,10 @@ def train_one_fold_v2(
         train_steps = 0
 
         for batch in train_loader:
+            # Only pass ``all_horizons`` when multi-horizon is active.  This
+            # keeps the kwarg invisible to V2 / legacy models (whose forward
+            # doesn't know about it) and makes single-horizon runs
+            # bit-identical to the pre-multi-horizon trainer.
             if has_regime_prior:
                 x_feat, x_raw, regime_prior, y, mask = batch
                 x_feat = x_feat.to(device_obj)
@@ -267,31 +364,51 @@ def train_one_fold_v2(
                 regime_prior = regime_prior.to(device_obj)
                 y = y.to(device_obj)
                 mask = mask.to(device_obj)
-                outputs = model(x_feat, x_raw, regime_prior=regime_prior)
+                if multi_horizon:
+                    outputs = model(
+                        x_feat, x_raw, regime_prior=regime_prior,
+                        all_horizons=True,
+                    )
+                else:
+                    outputs = model(x_feat, x_raw, regime_prior=regime_prior)
             elif dual_path:
                 x_feat, x_raw, y, mask = batch
                 x_feat = x_feat.to(device_obj)
                 x_raw = x_raw.to(device_obj)
                 y = y.to(device_obj)
                 mask = mask.to(device_obj)
-                outputs = model(x_feat, x_raw)
+                if multi_horizon:
+                    outputs = model(x_feat, x_raw, all_horizons=True)
+                else:
+                    outputs = model(x_feat, x_raw)
             else:
                 x_feat, y, mask = batch
                 x_feat = x_feat.to(device_obj)
                 y = y.to(device_obj)
                 mask = mask.to(device_obj)
-                outputs = model(x_feat)
+                if multi_horizon:
+                    outputs = model(x_feat, all_horizons=True)
+                else:
+                    outputs = model(x_feat)
 
-            # Apply mask
-            idx = mask.nonzero(as_tuple=True)[0]
-            if len(idx) == 0:
-                continue
-
-            # Masked outputs dict -- let loss_fn decide what it needs.
-            m_outputs = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
-            m_target = y[idx]
-
-            loss = loss_fn(m_outputs, m_target)
+            # Loss computation: multi-horizon sums per-horizon quantile loss
+            # with per-horizon masks (so a row with some horizons masked
+            # contributes only to the unmasked ones).  Single-horizon keeps
+            # the existing masked-select + scalar-loss path, bit-identical
+            # to pre-patch behaviour.
+            if multi_horizon:
+                loss = _multi_horizon_loss(outputs, y, mask, loss_fn)
+                if loss is None:
+                    continue
+            else:
+                idx = mask.nonzero(as_tuple=True)[0]
+                if len(idx) == 0:
+                    continue
+                m_outputs = {
+                    k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)
+                }
+                m_target = y[idx]
+                loss = loss_fn(m_outputs, m_target)
 
             # NaN guard: skip pathological batches
             if not torch.isfinite(loss):
@@ -335,37 +452,68 @@ def train_one_fold_v2(
                     regime_prior = regime_prior.to(device_obj)
                     y = y.to(device_obj)
                     mask = mask.to(device_obj)
-                    outputs = model(x_feat, x_raw, regime_prior=regime_prior)
+                    if multi_horizon:
+                        outputs = model(
+                            x_feat, x_raw, regime_prior=regime_prior,
+                            all_horizons=True,
+                        )
+                    else:
+                        outputs = model(
+                            x_feat, x_raw, regime_prior=regime_prior,
+                        )
                 elif dual_path:
                     x_feat, x_raw, y, mask = batch
                     x_feat = x_feat.to(device_obj)
                     x_raw = x_raw.to(device_obj)
                     y = y.to(device_obj)
                     mask = mask.to(device_obj)
-                    outputs = model(x_feat, x_raw)
+                    if multi_horizon:
+                        outputs = model(x_feat, x_raw, all_horizons=True)
+                    else:
+                        outputs = model(x_feat, x_raw)
                 else:
                     x_feat, y, mask = batch
                     x_feat = x_feat.to(device_obj)
                     y = y.to(device_obj)
                     mask = mask.to(device_obj)
-                    outputs = model(x_feat)
+                    if multi_horizon:
+                        outputs = model(x_feat, all_horizons=True)
+                    else:
+                        outputs = model(x_feat)
 
-                # Apply mask
-                idx = mask.nonzero(as_tuple=True)[0]
-                if len(idx) == 0:
-                    continue
+                if multi_horizon:
+                    loss = _multi_horizon_loss(outputs, y, mask, loss_fn)
+                    if loss is None:
+                        continue
+                    val_loss_sum += loss.item()
+                    val_steps += 1
 
-                m_outputs = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
-                m_target = y[idx]
+                    # Correlation / R2 are tracked on horizon 0 (shortest
+                    # horizon by convention) so the val_corr metric stays
+                    # comparable to single-horizon runs and to the V3
+                    # checkpoint-selection criterion.
+                    m0 = mask[:, 0].nonzero(as_tuple=True)[0]
+                    if len(m0) > 0:
+                        pred_np = (
+                            outputs["point_pred_by_horizon"][m0, 0].cpu().numpy()
+                        )
+                        target_np = y[m0, 0].cpu().numpy()
+                        metrics.update(pred_np, target_np)
+                else:
+                    idx = mask.nonzero(as_tuple=True)[0]
+                    if len(idx) == 0:
+                        continue
+                    m_outputs = {
+                        k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)
+                    }
+                    m_target = y[idx]
+                    loss = loss_fn(m_outputs, m_target)
+                    val_loss_sum += loss.item()
+                    val_steps += 1
 
-                loss = loss_fn(m_outputs, m_target)
-                val_loss_sum += loss.item()
-                val_steps += 1
-
-                # Collect masked predictions for correlation / R2
-                pred_np = outputs["point_pred"][idx].cpu().numpy()
-                target_np = y[idx].cpu().numpy()
-                metrics.update(pred_np, target_np)
+                    pred_np = outputs["point_pred"][idx].cpu().numpy()
+                    target_np = y[idx].cpu().numpy()
+                    metrics.update(pred_np, target_np)
 
         avg_val_loss = val_loss_sum / max(val_steps, 1)
         val_corr = metrics.corr()

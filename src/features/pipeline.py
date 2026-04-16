@@ -38,6 +38,7 @@ def build_npz_for_day(
     df_1s: pd.DataFrame,
     *,
     trades_df: pd.DataFrame | None = None,
+    horizons_sec: list[int] | None = None,
     horizon_sec: int = 180,
     input_len: int = 300,
     stride: int = 60,
@@ -57,8 +58,14 @@ def build_npz_for_day(
         the 43 microstructure features plus 6 LOB-only derived features
         are used (the trade-dependent derived columns become zero in that
         case — total 43 + 6 = 49 features).
+    horizons_sec : list[int] | None
+        List of prediction horizons in seconds; one label column per
+        horizon is produced.  When ``None`` (default) falls back to
+        ``[horizon_sec]`` (single-horizon behaviour, preserved for
+        back-compat).
     horizon_sec : int
         Prediction horizon in seconds for the label (fractional return).
+        Used only when ``horizons_sec`` is ``None``.
     input_len : int
         Number of 1-second rows per input window.
     stride : int
@@ -71,23 +78,53 @@ def build_npz_for_day(
     Returns
     -------
     dict with keys:
-        X          – float32, shape (N_win, input_len, n_features)
-        X_raw      – float32, shape (N_win, input_len, raw_levels, 4)
-        y          – float32, shape (N_win,)
-        y_mask     – uint8,   shape (N_win,)  (1 if label is valid, 0 otherwise)
-        timestamps – int64,   shape (N_win,)  (timestamp at pred_idx)
-        features   – list[str]                (feature column names)
+        X            – float32, shape (N_win, input_len, n_features)
+        X_raw        – float32, shape (N_win, input_len, raw_levels, 4)
+        timestamps   – int64,   shape (N_win,)  (timestamp at pred_idx)
+        features     – list[str]                (feature column names)
+        horizons_sec – list[int]                (the horizons actually built)
+        y_{H}        – float32, shape (N_win,) for each H in horizons_sec
+        y_mask_{H}   – uint8,   shape (N_win,) (1 if label valid, else 0)
+        y, y_mask    – aliases pointing to the smallest horizon (back-compat)
     """
 
+    # --- resolve horizon list -----------------------------------------------
+    # Multi-horizon is an additive feature: when ``horizons_sec`` is None we
+    # fall back to ``[horizon_sec]`` so every legacy caller is unaffected.
+    if horizons_sec is None:
+        horizons_sec_list = [int(horizon_sec)]
+    else:
+        if len(horizons_sec) == 0:
+            raise ValueError("horizons_sec must be a non-empty list")
+        horizons_sec_list = [int(h) for h in horizons_sec]
+        if any(h <= 0 for h in horizons_sec_list):
+            raise ValueError(
+                f"horizons_sec must contain positive integers, got {horizons_sec_list}"
+            )
+    # Deduplicate while preserving order; guard against caller passing
+    # [60, 60, 180] which would otherwise produce duplicate keys.
+    seen: set[int] = set()
+    deduped: list[int] = []
+    for h in horizons_sec_list:
+        if h not in seen:
+            seen.add(h)
+            deduped.append(h)
+    horizons_sec_list = deduped
+
+    max_horizon = max(horizons_sec_list)
+    min_horizon = min(horizons_sec_list)
+
     # --- validate windowing config -----------------------------------------
-    # stride < horizon causes label overlap: adjacent labels share (horizon-stride)
-    # seconds of forward return, inflating sample count and biasing residual
-    # autocorrelation. Backtest P&L is also incorrectly accumulated in this case.
-    if stride < horizon_sec:
+    # stride < max(horizons) causes label overlap for the longest horizon:
+    # adjacent labels share (H - stride) seconds of forward return, inflating
+    # sample count and biasing residual autocorrelation. Backtest P&L is also
+    # incorrectly accumulated in this case.
+    if stride < max_horizon:
         import warnings
         warnings.warn(
-            f"stride ({stride}) < horizon_sec ({horizon_sec}): labels will overlap "
-            f"by {horizon_sec - stride}s, inflating metrics and breaking backtest.",
+            f"stride ({stride}) < max(horizons_sec) ({max_horizon}): labels will "
+            f"overlap by {max_horizon - stride}s at the longest horizon, "
+            f"inflating metrics and breaking backtest.",
             stacklevel=2,
         )
 
@@ -196,8 +233,9 @@ def build_npz_for_day(
 
     X_list = []
     X_raw_list = []
-    y_list = []
-    mask_list = []
+    # Per-horizon label + mask buckets keyed by horizon (seconds).
+    y_lists: dict[int, list[float]] = {h: [] for h in horizons_sec_list}
+    mask_lists: dict[int, list[int]] = {h: [] for h in horizons_sec_list}
     ts_list = []
 
     for start in starts:
@@ -205,35 +243,55 @@ def build_npz_for_day(
         X_raw_win = raw_tensor[start : start + input_len]    # (input_len, raw_levels, 4)
 
         pred_idx = start + input_len - 1
-        target_idx = pred_idx + horizon_sec
-
-        if target_idx < n_total and mid_prices[pred_idx] > 0:
-            y_val = float(np.log(mid_prices[target_idx] / mid_prices[pred_idx]))
-            mask_val = 1
-        else:
-            y_val = 0.0
-            mask_val = 0
+        mid_ref = mid_prices[pred_idx]
 
         X_list.append(X_win)
         X_raw_list.append(X_raw_win)
-        y_list.append(y_val)
-        mask_list.append(mask_val)
         ts_list.append(timestamps_all[pred_idx])
+
+        for h in horizons_sec_list:
+            target_idx = pred_idx + h
+            if target_idx < n_total and mid_ref > 0:
+                y_val = float(np.log(mid_prices[target_idx] / mid_ref))
+                mask_val = 1
+            else:
+                y_val = 0.0
+                mask_val = 0
+            y_lists[h].append(y_val)
+            mask_lists[h].append(mask_val)
 
     X = np.array(X_list, dtype=np.float32)           # (N_win, input_len, n_features)
     X_raw = np.array(X_raw_list, dtype=np.float32)   # (N_win, input_len, raw_levels, 4)
-    y = np.array(y_list, dtype=np.float32)            # (N_win,)
-    y_mask = np.array(mask_list, dtype=np.uint8)      # (N_win,)
     timestamps = np.array(ts_list, dtype=np.int64)    # (N_win,)
 
-    return {
+    # Per-horizon arrays keyed as y_{H} / y_mask_{H}.
+    ys_by_h: dict[int, np.ndarray] = {
+        h: np.array(y_lists[h], dtype=np.float32) for h in horizons_sec_list
+    }
+    masks_by_h: dict[int, np.ndarray] = {
+        h: np.array(mask_lists[h], dtype=np.uint8) for h in horizons_sec_list
+    }
+
+    out: dict[str, object] = {
         "X": X,
         "X_raw": X_raw,
-        "y": y,
-        "y_mask": y_mask,
         "timestamps": timestamps,
         "features": feature_cols,
+        "horizons_sec": list(horizons_sec_list),
     }
+    for h in horizons_sec_list:
+        out[f"y_{h}"] = ys_by_h[h]
+        out[f"y_mask_{h}"] = masks_by_h[h]
+
+    # Back-compat aliases: ``y`` / ``y_mask`` point to the smallest-horizon
+    # label column so every legacy consumer (LOBDataset, LOBDatasetV2, old
+    # tests, run_pipeline_v3) keeps working without code changes.  The smallest
+    # horizon is the natural default because it is the closest to the original
+    # single-horizon value and has the most valid labels near the end of day.
+    out["y"] = ys_by_h[min_horizon]
+    out["y_mask"] = masks_by_h[min_horizon]
+
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -244,6 +302,7 @@ def process_csv_to_npz(
     csv_path: str | Path,
     output_dir: str | Path,
     *,
+    horizons_sec: list[int] | None = None,
     horizon_sec: int = 180,
     input_len: int = 300,
     stride: int = 60,
@@ -257,6 +316,10 @@ def process_csv_to_npz(
         Path to the raw LOB CSV (may be gzip-compressed with .gz extension).
     output_dir : str | Path
         Directory where per-day NPZ files will be written.
+    horizons_sec : list[int] | None
+        Optional multi-horizon list; forwarded to ``build_npz_for_day``.
+        When ``None`` we run in single-horizon mode using ``horizon_sec``
+        (back-compat).
     horizon_sec, input_len, stride, n_levels
         Forwarded to ``build_npz_for_day``.
 
@@ -294,6 +357,7 @@ def process_csv_to_npz(
 
         result = build_npz_for_day(
             df_day,
+            horizons_sec=horizons_sec,
             horizon_sec=horizon_sec,
             input_len=input_len,
             stride=stride,
@@ -304,18 +368,35 @@ def process_csv_to_npz(
         date_str = pd.Timestamp(day_id * us_per_day, unit="us", tz="UTC").strftime("%Y-%m-%d")
         out_path = output_dir / f"{date_str}.npz"
 
-        np.savez_compressed(
-            out_path,
-            X=result["X"],
-            X_raw=result["X_raw"],
-            y=result["y"],
-            y_mask=result["y_mask"],
-            timestamps=result["timestamps"],
-            features=np.array(result["features"], dtype=object),
-        )
+        _save_result_npz(out_path, result)
         saved_paths.append(out_path)
 
     return saved_paths
+
+
+def _save_result_npz(out_path: Path, result: dict) -> None:
+    """Save a ``build_npz_for_day`` result dict to a compressed NPZ.
+
+    Centralised so the per-day writer here and in ``multi_day_pipeline`` agree
+    on the field encoding (features as object array, horizons_sec as int
+    array, everything else as-is).  Using ``**kwargs`` expansion means every
+    ``y_{H}`` / ``y_mask_{H}`` key is forwarded automatically -- no caller
+    needs to know about multi-horizon specifics.
+    """
+    save_kwargs: dict[str, np.ndarray] = {}
+    for key, val in result.items():
+        if key == "features":
+            save_kwargs[key] = np.array(val, dtype=object)
+        elif key == "horizons_sec":
+            save_kwargs[key] = np.array(val, dtype=np.int64)
+        elif isinstance(val, np.ndarray):
+            save_kwargs[key] = val
+        else:
+            # Scalars / lists -- np.savez_compressed coerces them, but we're
+            # defensive: every known producer key is already an ndarray or
+            # list/str handled above.  For anything else, wrap in array.
+            save_kwargs[key] = np.asarray(val)
+    np.savez_compressed(out_path, **save_kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -328,14 +409,26 @@ if __name__ == "__main__":
     parser.add_argument("csv", help="Path to raw LOB CSV")
     parser.add_argument("--output-dir", default="data/npz", help="Output directory")
     parser.add_argument("--horizon", type=int, default=180)
+    parser.add_argument(
+        "--horizons",
+        type=str,
+        default=None,
+        help="Comma-separated list of horizons in seconds (e.g. '60,180,300,600'). "
+             "Overrides --horizon when supplied.",
+    )
     parser.add_argument("--input-len", type=int, default=300)
     parser.add_argument("--stride", type=int, default=60)
     parser.add_argument("--n-levels", type=int, default=25)
     args = parser.parse_args()
 
+    horizons_sec: list[int] | None = None
+    if args.horizons is not None:
+        horizons_sec = [int(h) for h in args.horizons.split(",") if h.strip()]
+
     paths = process_csv_to_npz(
         args.csv,
         args.output_dir,
+        horizons_sec=horizons_sec,
         horizon_sec=args.horizon,
         input_len=args.input_len,
         stride=args.stride,

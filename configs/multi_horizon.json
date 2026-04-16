@@ -1,0 +1,39 @@
+{
+    "_comment": "Multi-horizon V3: predict 60/180/300/600s simultaneously. Shared encoder, 4 quantile heads.",
+    "data": {
+        "csv_path": "",
+        "npz_dir": "data/npz_multi_horizon",
+        "n_levels": 25,
+        "horizons_sec": [60, 180, 300, 600],
+        "input_len": 300,
+        "stride": 60
+    },
+    "model": {
+        "d_model": 32,
+        "d_raw": 16,
+        "n_mask_blocks": 1,
+        "n_cross_layers": 1,
+        "patch_size": 10,
+        "attn_nhead": 2,
+        "attn_d_ff": 64,
+        "d_prior": 0,
+        "dropout": 0.15,
+        "n_horizons": 4,
+        "n_symbols": 1,
+        "use_monotonic_quantile": true,
+        "use_revin": true
+    },
+    "training": {
+        "epochs": 60,
+        "batch_size": 256,
+        "lr": 3e-4,
+        "weight_decay": 1e-3,
+        "patience": 10,
+        "grad_clip": 1.0,
+        "train_days": 500,
+        "val_days": 30,
+        "test_days": 30,
+        "fold_stride": 60
+    },
+    "output_dir": "experiments/v3_multi_horizon"
+}

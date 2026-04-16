@@ -42,7 +42,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.features.pipeline import build_npz_for_day
+from src.features.pipeline import _save_result_npz, build_npz_for_day
 from src.features.resample import resample_lob_to_1s
 
 
@@ -188,6 +188,7 @@ def process_multi_day_crypto_folder(
     trades_root: str | Path | None,
     output_dir: str | Path,
     *,
+    horizons_sec: list[int] | None = None,
     horizon_sec: int = 180,
     input_len: int = 300,
     stride: int = 180,
@@ -210,9 +211,16 @@ def process_multi_day_crypto_folder(
         handled gracefully — depth-only features (49) will be emitted.
     output_dir : str or Path
         Output directory for NPZ files (one per day).  Created if absent.
+    horizons_sec : list[int] | None
+        Multi-horizon label list.  When supplied the pipeline emits
+        ``y_{H}`` / ``y_mask_{H}`` for each horizon and requires
+        ``min_rows >= input_len + max(horizons_sec)`` for a day to be
+        emitted.  ``None`` (default) keeps single-horizon behaviour.
     horizon_sec, input_len, stride, n_levels
         Forwarded to ``build_npz_for_day``.  ``stride >= horizon_sec`` is
-        recommended (CLAUDE.md) to avoid label overlap.
+        recommended (CLAUDE.md) to avoid label overlap.  When
+        ``horizons_sec`` is supplied the recommendation becomes
+        ``stride >= max(horizons_sec)``.
     start_date, end_date
         Inclusive ``YYYY-MM-DD`` bounds.  ``None`` = unbounded on that side.
     skip_existing
@@ -231,16 +239,42 @@ def process_multi_day_crypto_folder(
     output_dir.mkdir(parents=True, exist_ok=True)
     trades_root_p: Path | None = Path(trades_root) if trades_root is not None else None
 
+    # Effective horizon set for all downstream size / skip logic.  We use the
+    # max for the ``min_rows`` gate (otherwise days that would produce a
+    # mostly-masked long horizon get silently dropped from the output).
+    if horizons_sec is not None:
+        if len(horizons_sec) == 0:
+            raise ValueError("horizons_sec must be a non-empty list")
+        horizons_list = [int(h) for h in horizons_sec]
+        if any(h <= 0 for h in horizons_list):
+            raise ValueError(
+                f"horizons_sec must contain positive integers, got {horizons_list}"
+            )
+        max_horizon = max(horizons_list)
+    else:
+        horizons_list = None
+        max_horizon = int(horizon_sec)
+
     # Warn the caller early about CLAUDE.md's stride >= horizon requirement.
     # build_npz_for_day already warns, but here we surface it once per run
-    # rather than once per day.
-    if stride < horizon_sec:
-        logger.warning(
-            "stride (%d) < horizon_sec (%d): labels will overlap by %ds",
-            stride,
-            horizon_sec,
-            horizon_sec - stride,
-        )
+    # rather than once per day.  When multi-horizon is requested we check
+    # against the longest horizon because that one governs label overlap.
+    if stride < max_horizon:
+        if horizons_list is not None:
+            logger.warning(
+                "stride (%d) < max(horizons_sec)=%d: labels will overlap by %ds "
+                "at the longest horizon",
+                stride,
+                max_horizon,
+                max_horizon - stride,
+            )
+        else:
+            logger.warning(
+                "stride (%d) < horizon_sec (%d): labels will overlap by %ds",
+                stride,
+                horizon_sec,
+                horizon_sec - stride,
+            )
 
     dates = _list_dates(book_root)
     if start_date is not None:
@@ -331,13 +365,13 @@ def process_multi_day_crypto_folder(
 
             # Require enough rows for at least one valid-mask window:
             #   window spans [start, start+input_len-1]
-            #   label uses mid at pred_idx + horizon_sec
-            # So we need len(df_1s) >= input_len + horizon_sec, otherwise
-            # every window has mask=0 and the NPZ is useless.
-            min_rows = input_len + horizon_sec
+            #   label uses mid at pred_idx + H for the largest horizon H
+            # Using max_horizon (not horizon_sec alone) ensures we don't emit
+            # a day whose longest-horizon labels would be entirely masked.
+            min_rows = input_len + max_horizon
             if len(df_1s) < min_rows:
                 logger.warning(
-                    "[%s] only %d 1s rows (< input_len+horizon_sec=%d); skipping",
+                    "[%s] only %d 1s rows (< input_len+max_horizon=%d); skipping",
                     date_str,
                     len(df_1s),
                     min_rows,
@@ -353,6 +387,7 @@ def process_multi_day_crypto_folder(
             result = build_npz_for_day(
                 df_1s,
                 trades_df=trades_df,
+                horizons_sec=horizons_list,
                 horizon_sec=horizon_sec,
                 input_len=input_len,
                 stride=stride,
@@ -371,15 +406,9 @@ def process_multi_day_crypto_folder(
                 )
                 break
 
-            np.savez_compressed(
-                out_path,
-                X=result["X"],
-                X_raw=result["X_raw"],
-                y=result["y"],
-                y_mask=result["y_mask"],
-                timestamps=result["timestamps"],
-                features=np.array(result["features"], dtype=object),
-            )
+            # Use the shared saver so every ``y_{H}`` / ``y_mask_{H}`` field
+            # and the ``horizons_sec`` metadata get persisted automatically.
+            _save_result_npz(out_path, result)
             saved_paths.append(out_path)
 
             if verbose:
@@ -436,6 +465,13 @@ if __name__ == "__main__":  # pragma: no cover
     parser.add_argument("--trades-root", default=None)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--horizon", type=int, default=180)
+    parser.add_argument(
+        "--horizons",
+        type=str,
+        default=None,
+        help="Comma-separated list of horizons in seconds (e.g. '60,180,300,600'). "
+             "Overrides --horizon when supplied.",
+    )
     parser.add_argument("--input-len", type=int, default=300)
     parser.add_argument("--stride", type=int, default=180)
     parser.add_argument("--n-levels", type=int, default=25)
@@ -444,10 +480,15 @@ if __name__ == "__main__":  # pragma: no cover
     parser.add_argument("--no-skip-existing", action="store_true")
     args = parser.parse_args()
 
+    horizons_sec: list[int] | None = None
+    if args.horizons is not None:
+        horizons_sec = [int(h) for h in args.horizons.split(",") if h.strip()]
+
     process_multi_day_crypto_folder(
         book_root=args.book_root,
         trades_root=args.trades_root,
         output_dir=args.output_dir,
+        horizons_sec=horizons_sec,
         horizon_sec=args.horizon,
         input_len=args.input_len,
         stride=args.stride,
