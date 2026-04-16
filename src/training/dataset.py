@@ -259,6 +259,7 @@ class LOBDatasetV2(Dataset):
         self._day_paths: List[str] = []
         self._day_counts: List[int] = []
         self._has_raw_per_day: List[bool] = []
+        self._has_regime_prior_per_day: List[bool] = []
         feature_names_first: Optional[List[str]] = None
 
         for day in self.days:
@@ -301,6 +302,7 @@ class LOBDatasetV2(Dataset):
                         )
 
                 self._has_raw_per_day.append("X_raw" in npz.files)
+                self._has_regime_prior_per_day.append("regime_prior" in npz.files)
             self._day_paths.append(path)
             self._day_counts.append(n_win)
 
@@ -316,6 +318,23 @@ class LOBDatasetV2(Dataset):
                 f"Re-build affected NPZs with the same pipeline version."
             )
         self._has_raw: bool = bool(self._has_raw_per_day[0]) if self._has_raw_per_day else False
+
+        # --- validate regime_prior consistency ------------------------------
+        if len(set(self._has_regime_prior_per_day)) > 1:
+            first = self._has_regime_prior_per_day[0]
+            inconsistent = [
+                d for d, h in zip(self.days, self._has_regime_prior_per_day) if h != first
+            ]
+            raise ValueError(
+                f"regime_prior presence inconsistent across days "
+                f"(first={first}, differing days: {inconsistent[:5]}...). "
+                f"Re-build affected NPZs with the same pipeline version."
+            )
+        self._has_regime_prior: bool = (
+            bool(self._has_regime_prior_per_day[0])
+            if self._has_regime_prior_per_day else False
+        )
+
         self._feature_names = feature_names_first
 
         # --- offset array for O(log D) day lookup ----------------------------
@@ -390,6 +409,11 @@ class LOBDatasetV2(Dataset):
                 Xr = np.asarray(npz["X_raw"], dtype=np.float32)
                 Xr = np.nan_to_num(Xr, nan=0.0, posinf=0.0, neginf=0.0)
                 data["X_raw"] = Xr
+
+            if self._has_regime_prior:
+                Rp = np.asarray(npz["regime_prior"], dtype=np.float32)
+                Rp = np.nan_to_num(Rp, nan=0.0, posinf=0.0, neginf=0.0)
+                data["regime_prior"] = Rp
 
             # y / mask
             per_key_y = [
@@ -474,6 +498,11 @@ class LOBDatasetV2(Dataset):
         return self._has_raw
 
     @property
+    def has_regime_prior(self) -> bool:
+        """Whether regime_prior is available."""
+        return self._has_regime_prior
+
+    @property
     def horizons(self) -> Optional[List[str]]:
         """Horizon label keys in multi-horizon mode, else ``None``."""
         return list(self._horizons) if self._horizons is not None else None
@@ -488,8 +517,9 @@ class LOBDatasetV2(Dataset):
         self,
         idx: int,
     ) -> Union[
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor],                                # 3-tuple
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],                  # 4-tuple
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],    # 5-tuple
     ]:
         if idx < 0:
             idx += self._total
@@ -514,7 +544,14 @@ class LOBDatasetV2(Dataset):
             x_raw = torch.from_numpy(
                 np.ascontiguousarray(data["X_raw"][local_idx], dtype=np.float32)
             )
+            if self._has_regime_prior:
+                rp = torch.from_numpy(
+                    np.ascontiguousarray(data["regime_prior"][local_idx], dtype=np.float32)
+                )
+                return (x_feat, x_raw, rp, y_t, m_t)
             return (x_feat, x_raw, y_t, m_t)
+        # No raw: if regime_prior is present, still skip it to keep tuple arity
+        # stable for back-compat callers. (No V4 flow uses this combo today.)
         return (x_feat, y_t, m_t)
 
     # ------------------------------------------------------------------

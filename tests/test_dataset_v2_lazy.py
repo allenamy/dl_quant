@@ -479,5 +479,101 @@ class TestGetAllTimestamps(unittest.TestCase):
             np.testing.assert_array_equal(actual, expected)
 
 
+def test_dataset_returns_regime_prior_when_present():
+    """If NPZ has regime_prior field, dataset returns it in the tuple."""
+    import tempfile, os, sys, numpy as np
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.training.dataset import LOBDatasetV2
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "2024-01-01.npz")
+        np.savez_compressed(
+            path,
+            X=np.random.randn(10, 600, 64).astype(np.float32),
+            X_raw=np.random.randn(10, 600, 20, 4).astype(np.float32),
+            y=np.random.randn(10).astype(np.float32),
+            y_mask=np.ones(10, dtype=np.uint8),
+            regime_prior=np.random.randn(10, 6).astype(np.float32),
+            timestamps=np.arange(10, dtype=np.int64),
+            features=np.array([f"f{i}" for i in range(64)], dtype=object),
+        )
+        ds = LOBDatasetV2(tmp, ["2024-01-01"], normalize=False)
+        assert ds.has_regime_prior is True, "expected has_regime_prior=True"
+        item = ds[3]
+        # With x_raw present, item is (x_feat, x_raw, regime_prior, y, mask)
+        assert len(item) == 5, f"expected 5-tuple, got {len(item)}"
+        x_feat, x_raw, regime_prior, y, mask = item
+        assert x_feat.shape == (600, 64)
+        assert x_raw.shape == (600, 20, 4)
+        assert regime_prior.shape == (6,)
+    print("PASS: test_dataset_returns_regime_prior_when_present")
+
+
+def test_dataset_no_regime_prior_back_compat():
+    """NPZ without regime_prior: dataset returns old 4-tuple shape."""
+    import tempfile, os, sys, numpy as np
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.training.dataset import LOBDatasetV2
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "2024-01-01.npz")
+        np.savez_compressed(
+            path,
+            X=np.random.randn(10, 300, 58).astype(np.float32),
+            X_raw=np.random.randn(10, 300, 20, 4).astype(np.float32),
+            y=np.random.randn(10).astype(np.float32),
+            y_mask=np.ones(10, dtype=np.uint8),
+            timestamps=np.arange(10, dtype=np.int64),
+            features=np.array([f"f{i}" for i in range(58)], dtype=object),
+        )
+        ds = LOBDatasetV2(tmp, ["2024-01-01"], normalize=False)
+        assert ds.has_regime_prior is False, "expected has_regime_prior=False"
+        item = ds[3]
+        assert len(item) == 4, f"expected 4-tuple (back-compat), got {len(item)}"
+    print("PASS: test_dataset_no_regime_prior_back_compat")
+
+
+def test_dataset_regime_prior_consistency_check():
+    """Mixing days with and without regime_prior must raise."""
+    import tempfile, os, sys, numpy as np
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.training.dataset import LOBDatasetV2
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # Day 1: with regime_prior
+        np.savez_compressed(
+            os.path.join(tmp, "2024-01-01.npz"),
+            X=np.random.randn(8, 100, 64).astype(np.float32),
+            X_raw=np.random.randn(8, 100, 20, 4).astype(np.float32),
+            y=np.random.randn(8).astype(np.float32),
+            y_mask=np.ones(8, dtype=np.uint8),
+            regime_prior=np.random.randn(8, 6).astype(np.float32),
+            timestamps=np.arange(8, dtype=np.int64),
+            features=np.array([f"f{i}" for i in range(64)], dtype=object),
+        )
+        # Day 2: without regime_prior
+        np.savez_compressed(
+            os.path.join(tmp, "2024-01-02.npz"),
+            X=np.random.randn(8, 100, 64).astype(np.float32),
+            X_raw=np.random.randn(8, 100, 20, 4).astype(np.float32),
+            y=np.random.randn(8).astype(np.float32),
+            y_mask=np.ones(8, dtype=np.uint8),
+            timestamps=np.arange(8, dtype=np.int64),
+            features=np.array([f"f{i}" for i in range(64)], dtype=object),
+        )
+        try:
+            ds = LOBDatasetV2(tmp, ["2024-01-01", "2024-01-02"], normalize=False)
+        except ValueError as e:
+            assert "regime_prior" in str(e).lower()
+            print("PASS: test_dataset_regime_prior_consistency_check")
+            return
+        raise AssertionError(
+            "Expected ValueError when regime_prior presence differs across days"
+        )
+
+
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(exit=False)
+    test_dataset_returns_regime_prior_when_present()
+    test_dataset_no_regime_prior_back_compat()
+    test_dataset_regime_prior_consistency_check()
