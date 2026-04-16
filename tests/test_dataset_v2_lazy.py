@@ -20,13 +20,15 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import numpy as np
 import torch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.training.dataset import LOBDatasetV2
+from src.training import dataset as ds_module
+from src.training.dataset import LOBDatasetV2, _np_load_with_retry
 
 
 # ---------------------------------------------------------------------------
@@ -386,6 +388,95 @@ class TestXRawConsistencyCheck(unittest.TestCase):
             with self.assertRaises(ValueError) as ctx:
                 LOBDatasetV2(tmp, days=["d1", "d2"])
             self.assertIn("X_raw", str(ctx.exception))
+
+
+class TestNpLoadRetry(unittest.TestCase):
+    """Retry wrapper — transient OSError should not bubble up if a later
+    attempt succeeds."""
+
+    def test_np_load_retry_on_transient_oserror(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "real.npz")
+            expected = np.arange(6, dtype=np.float32).reshape(2, 3)
+            np.savez_compressed(path, X=expected)
+
+            real_np_load = np.load
+            call_count = {"n": 0}
+
+            def flaky_load(p, **kwargs):
+                call_count["n"] += 1
+                if call_count["n"] < 3:
+                    raise OSError("transient stall (mocked)")
+                return real_np_load(p, **kwargs)
+
+            with mock.patch.object(ds_module.np, "load", side_effect=flaky_load):
+                # backoff_sec=0 so the test is fast; retry logic still exercised.
+                npz = _np_load_with_retry(
+                    path, allow_pickle=True,
+                    max_retries=5, backoff_sec=0.0,
+                )
+                try:
+                    np.testing.assert_array_equal(npz["X"], expected)
+                finally:
+                    npz.close()
+
+            self.assertEqual(call_count["n"], 3,
+                             "expected 2 failed attempts followed by success")
+
+    def test_np_load_retry_reraises_on_persistent_error(self) -> None:
+        """After ``max_retries`` failures the last exception propagates."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "missing.npz")  # never created
+
+            call_count = {"n": 0}
+
+            def always_fail(p, **kwargs):
+                call_count["n"] += 1
+                raise OSError("disk offline (mocked)")
+
+            with mock.patch.object(ds_module.np, "load", side_effect=always_fail):
+                with self.assertRaises(OSError):
+                    _np_load_with_retry(
+                        path, allow_pickle=True,
+                        max_retries=3, backoff_sec=0.0,
+                    )
+            self.assertEqual(call_count["n"], 3)
+
+
+class TestGetAllTimestamps(unittest.TestCase):
+    """``get_all_timestamps`` must stream across every day and return a
+    concatenated int64 array in day order matching ``__len__``."""
+
+    def test_returns_concatenated_in_day_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            # Three synthetic days with deterministic, distinguishable
+            # timestamp ranges so we can verify ordering, not just length.
+            # Day 0: 1000..1004, Day 1: 2000..2006, Day 2: 3000..3002
+            day_specs = [
+                ("day_000", np.array([1000, 1001, 1002, 1003, 1004], dtype=np.int64)),
+                ("day_001", np.array([2000, 2001, 2002, 2003, 2004, 2005, 2006],
+                                     dtype=np.int64)),
+                ("day_002", np.array([3000, 3001, 3002], dtype=np.int64)),
+            ]
+            rng = np.random.default_rng(0)
+            for day, ts in day_specs:
+                n_win = ts.shape[0]
+                np.savez_compressed(
+                    os.path.join(tmp, f"{day}.npz"),
+                    X=rng.standard_normal((n_win, 3, 2)).astype(np.float32),
+                    y=rng.standard_normal(n_win).astype(np.float32),
+                    y_mask=np.ones(n_win, dtype=np.float32),
+                    timestamps=ts,
+                    features=np.array(["f0", "f1"], dtype=object),
+                )
+
+            ds = LOBDatasetV2(tmp, days=[d for d, _ in day_specs], cache_size=2)
+            expected = np.concatenate([ts for _, ts in day_specs], axis=0)
+            actual = ds.get_all_timestamps()
+
+            self.assertEqual(actual.dtype, np.int64)
+            self.assertEqual(actual.shape, (len(ds),))
+            np.testing.assert_array_equal(actual, expected)
 
 
 if __name__ == "__main__":

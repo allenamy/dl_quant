@@ -9,13 +9,43 @@ computed in a streaming fashion.
 from __future__ import annotations
 
 import bisect
+import logging
 import os
+import time
 import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+
+
+def _np_load_with_retry(
+    path: str,
+    *,
+    max_retries: int = 3,
+    backoff_sec: float = 2.0,
+    **kwargs,
+):
+    """Load an NPZ file with retry on transient I/O errors.
+
+    iCloud / external volumes occasionally stall with TimeoutError when
+    opening many files in a row. A simple retry with exponential backoff
+    turns the fatal crash into a recoverable warning.
+    """
+    last_exc: Optional[BaseException] = None
+    for attempt in range(max_retries):
+        try:
+            return np.load(path, **kwargs)
+        except (TimeoutError, OSError) as exc:
+            last_exc = exc
+            wait = backoff_sec * (2 ** attempt)
+            logging.getLogger(__name__).warning(
+                "np.load(%s) failed on attempt %d/%d: %s; retrying in %.1fs",
+                path, attempt + 1, max_retries, exc, wait,
+            )
+            time.sleep(wait)
+    raise last_exc
 
 
 class LOBDataset(Dataset):
@@ -172,10 +202,15 @@ class LOBDatasetV2(Dataset):
     smooth_target : int, default 0
         Stored on ``self.smooth_target`` for downstream code / logging;
         no smoothing is performed here.
-    cache_size : int, default 32
+    cache_size : int, default 128
         Maximum number of days held in the LRU cache.  Peak additional RAM
         above the metadata scan is bounded by
-        ``cache_size * bytes_per_day``.
+        ``cache_size * bytes_per_day``.  This is an IO/memory tradeoff:
+        a larger cache avoids re-reading days that cycle back into the
+        DataLoader (especially under random shuffling of long folds) at
+        the cost of resident memory — at ~50-90 MB per day, a 128-day
+        cache peaks around 6-12 GB.  Tune down when running on smaller
+        hosts; tune up when the fold fits entirely in RAM.
     y_norm : tuple[float, float, float] | None, default ``None``
         ``(median, sigma, clip)`` triple.  When provided, each y value is
         transformed as ``clip((y - median) / sigma, -clip, +clip)`` inside
@@ -194,7 +229,7 @@ class LOBDatasetV2(Dataset):
         mask_key: Optional[str] = None,
         horizons: Optional[List[str]] = None,
         smooth_target: int = 0,
-        cache_size: int = 32,
+        cache_size: int = 128,
         y_norm: Optional[Tuple[float, float, float]] = None,
     ) -> None:
         super().__init__()
@@ -228,7 +263,7 @@ class LOBDatasetV2(Dataset):
 
         for day in self.days:
             path = os.path.join(data_dir, f"{day}.npz")
-            with np.load(path, allow_pickle=True) as npz:
+            with _np_load_with_retry(path, allow_pickle=True) as npz:
                 # npz["X"] lazily opens the array header -- ``.shape`` reads
                 # only shape metadata from the NPZ manifest, NOT the full
                 # tensor.  Confirmed via timing: ~ms per day regardless of
@@ -339,7 +374,7 @@ class LOBDatasetV2(Dataset):
             return self._cache[day_idx]
 
         path = self._day_paths[day_idx]
-        with np.load(path, allow_pickle=True) as npz:
+        with _np_load_with_retry(path, allow_pickle=True) as npz:
             # Read and sanitise X.
             X = np.asarray(npz["X"], dtype=np.float32)
             X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
@@ -410,6 +445,25 @@ class LOBDatasetV2(Dataset):
         """Drop all cached day data.  Useful between folds."""
         self._cache.clear()
         self._cache_order.clear()
+
+    # ------------------------------------------------------------------
+    # Timestamp streaming
+    # ------------------------------------------------------------------
+    def get_all_timestamps(self) -> np.ndarray:
+        """Stream timestamps across all days; returns shape ``(total,)`` int64.
+
+        Reads the ``timestamps`` field from each day's NPZ in day order and
+        concatenates.  Does NOT go through the LRU cache (timestamps are not
+        part of the cached per-day payload), so this is safe to call before
+        or after training without touching array data.
+        """
+        parts: List[np.ndarray] = []
+        for path in self._day_paths:
+            with _np_load_with_retry(path, allow_pickle=True) as npz:
+                parts.append(np.asarray(npz["timestamps"], dtype=np.int64))
+        if not parts:
+            return np.zeros(0, dtype=np.int64)
+        return np.concatenate(parts, axis=0)
 
     # ------------------------------------------------------------------
     # Public read-only properties

@@ -151,12 +151,24 @@ def _run_test_evaluation(
     preds_raw = predictions * y_sigma + y_median
     targets_raw = targets * y_sigma + y_median
 
+    # --- Collect timestamps for downstream regime-segmented evaluation ---
+    # LOBDatasetV2 exposes ``get_all_timestamps``; the _SlicedV2 wrapper does
+    # not have this attribute yet, so we fall back to whatever ``.timestamps``
+    # it may carry (or emit an empty array to stay schema-compatible).
+    if hasattr(test_ds, "get_all_timestamps"):
+        timestamps = test_ds.get_all_timestamps()
+    elif hasattr(test_ds, "timestamps"):
+        timestamps = np.asarray(getattr(test_ds, "timestamps"), dtype=np.int64)
+    else:
+        timestamps = np.zeros(0, dtype=np.int64)
+
     # --- Save predictions for run_backtest.py ---
     np.savez(
         os.path.join(fold_dir, "test_preds.npz"),
         predictions=predictions,
         targets=targets,
         mask=mask,
+        timestamps=timestamps,
         y_sigma=np.array(y_sigma),
         y_median=np.array(y_median),
     )

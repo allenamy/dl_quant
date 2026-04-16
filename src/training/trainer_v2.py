@@ -339,7 +339,14 @@ def train_one_fold_v2(
     # ``drop_last=True`` above, so steps_per_epoch = len(train_ds) // batch_size.
     steps_per_epoch = max(len(train_dataset) // batch_size, 1)
     total_steps = steps_per_epoch * epochs
-    warmup_steps = int(total_steps * max(warmup_steps_pct, 0.0))
+    # Warmup over at most 5 epochs (or fewer if training is short).
+    # patience=10 means early-stop can fire by epoch ~15; warmup must complete
+    # well before that so the model sees full base_lr for enough time.
+    # ``warmup_steps_pct`` is retained in the signature for back-compat but
+    # no longer drives the schedule — scaling with ``total_steps`` made
+    # warmup too long when ``epochs`` was set high as a safety ceiling.
+    warmup_epochs = min(5, epochs // 4)
+    warmup_steps = warmup_epochs * steps_per_epoch
     global_step = 0
 
     # --- tracking ------------------------------------------------------------
