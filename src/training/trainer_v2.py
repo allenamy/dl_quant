@@ -104,6 +104,9 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         "use_attention", "use_conv",
         # RevIN flag (Phase A3 non-stationarity mitigation)
         "use_revin",
+        # V4 additions
+        "use_channel_mix_conv", "use_level_attention_pool",
+        "use_patch_attention_pool", "use_ppnet_gate",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:

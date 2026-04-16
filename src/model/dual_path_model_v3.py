@@ -51,6 +51,7 @@ from src.model.patch_attention import PatchEmbedding, CausalPatchAttention
 from src.model.cross_asset import CrossAssetAttention
 from src.model.ppnet_gate import PPNetGate
 from src.model.monotonic_quantile import MonotonicQuantileHead
+from src.model.attention_pool import AttentionPool1D
 
 
 class RevIN(nn.Module):
@@ -206,6 +207,11 @@ class DualPathLOBModelV3(nn.Module):
         use_conv: bool = True,
         # --- RevIN (Phase A3 non-stationarity mitigation) ------------------
         use_revin: bool = True,
+        # --- V4 additions (default True) ---------------------------------
+        use_channel_mix_conv: bool = True,
+        use_level_attention_pool: bool = True,
+        use_patch_attention_pool: bool = True,
+        use_ppnet_gate: bool = True,
     ):
         super().__init__()
         self.d_model = d_model
@@ -234,6 +240,11 @@ class DualPathLOBModelV3(nn.Module):
         # RevIN flag (Kim et al., ICLR 2022) -- per-instance normalization
         # of input features to handle cross-day non-stationarity (PSI=0.349).
         self.use_revin = bool(use_revin)
+        # V4 flags
+        self.use_channel_mix_conv = bool(use_channel_mix_conv)
+        self.use_level_attention_pool = bool(use_level_attention_pool)
+        self.use_patch_attention_pool = bool(use_patch_attention_pool)
+        self.use_ppnet_gate = bool(use_ppnet_gate)
         if self.use_revin:
             self.revin = RevIN(n_features, affine=True)
 
@@ -260,6 +271,8 @@ class DualPathLOBModelV3(nn.Module):
             n_levels=n_levels,
             d_raw=d_raw,
             dropout=dropout,
+            use_channel_mix_conv=self.use_channel_mix_conv,
+            use_level_attention_pool=self.use_level_attention_pool,
         )
 
         # --- Fusion: concat -> Linear ---------------------------------------
@@ -286,6 +299,15 @@ class DualPathLOBModelV3(nn.Module):
             dropout=dropout,
         )
 
+        # Token-level attention pool over patches (V4). Alternative to the
+        # V3 last-token slice after patch attention.
+        if use_patch_attention_pool:
+            self.token_pool: Optional[AttentionPool1D] = AttentionPool1D(
+                d_model=d_model, input_is_last_dim=True
+            )
+        else:
+            self.token_pool = None
+
         # --- Cross-Asset Attention (optional) --------------------------------
         if n_symbols > 1:
             self.cross_asset_attn: Optional[CrossAssetAttention] = CrossAssetAttention(
@@ -297,7 +319,10 @@ class DualPathLOBModelV3(nn.Module):
             self.cross_asset_attn = None
 
         # --- PPNet Gate (optional) -------------------------------------------
-        if d_prior > 0:
+        # PPNet Gate: constructed only if BOTH d_prior > 0 AND use_ppnet_gate.
+        # use_ppnet_gate=False disables the gate even when d_prior > 0 for
+        # ablation.
+        if d_prior > 0 and use_ppnet_gate:
             self.ppnet_gate: Optional[PPNetGate] = PPNetGate(
                 d_prior=d_prior,
                 d_hidden=d_model,
@@ -410,13 +435,18 @@ class DualPathLOBModelV3(nn.Module):
             h = self.temporal_conv(h)            # (B, L, d_model)
 
         # 4/5. Patching + Causal self-attention (global patterns, optional).
-        # When attention is disabled we pool the last timestep of the conv /
-        # fusion output directly; this keeps the downstream dimensionality
-        # stable (d_model) for the quantile head.
+        # When attention is enabled, h_pred is pooled from patch tokens:
+        #   V4 (use_patch_attention_pool=True): learned attention pool
+        #   V3 fallback: last-token slice
+        # When attention is disabled, we fall back to last-timestep pool of
+        # the conv output (V3 behaviour).
         if self.use_attention:
             h = self.patch_embed(h)              # (B, n_patches, d_model)
             h = self.patch_attention(h)          # (B, n_patches, d_model)
-            h_pred = h[:, -1, :]                 # (B, d_model)
+            if self.use_patch_attention_pool and self.token_pool is not None:
+                h_pred = self.token_pool(h)      # (B, d_model)
+            else:
+                h_pred = h[:, -1, :]             # V3 fallback: last patch token
         else:
             h_pred = h[:, -1, :]                 # (B, d_model) -- last timestep pool
 
