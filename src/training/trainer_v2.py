@@ -444,11 +444,18 @@ def train_one_fold_v2(
             shuffle_within_day=True,
             seed=42,
         )
+        # num_workers=4 with persistent_workers parallelises NPZ loading from
+        # FUSE-mounted volumes (RunPod /workspace) — biggest perf win for
+        # GPU training when the bottleneck is per-batch I/O. Each worker forks
+        # its own LRU cache; chunk_size shuffle still preserves leakage safety
+        # since each worker sees a non-overlapping slice of indices.
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
             sampler=train_sampler,   # mutually exclusive with shuffle
-            num_workers=0,
+            num_workers=4,
+            persistent_workers=True,
+            pin_memory=torch.cuda.is_available(),
             drop_last=True,
         )
     else:
@@ -457,13 +464,18 @@ def train_one_fold_v2(
             train_dataset,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=0,
+            num_workers=4,
+            persistent_workers=True,
+            pin_memory=torch.cuda.is_available(),
             drop_last=True,
         )
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
+        num_workers=2,
+        persistent_workers=True,
+        pin_memory=torch.cuda.is_available(),
     )
 
     # --- optimizer & scheduler -----------------------------------------------
@@ -515,13 +527,13 @@ def train_one_fold_v2(
             x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
                 batch, dual_path, has_regime_prior,
             )
-            x_feat = x_feat.to(device_obj)
+            x_feat = x_feat.to(device_obj, non_blocking=True)
             if x_raw is not None:
-                x_raw = x_raw.to(device_obj)
+                x_raw = x_raw.to(device_obj, non_blocking=True)
             if regime_prior is not None:
-                regime_prior = regime_prior.to(device_obj)
-            y = y.to(device_obj)
-            mask = mask.to(device_obj)
+                regime_prior = regime_prior.to(device_obj, non_blocking=True)
+            y = y.to(device_obj, non_blocking=True)
+            mask = mask.to(device_obj, non_blocking=True)
 
             outputs = _forward_with_regime(
                 model, x_feat, x_raw, regime_prior, multi_horizon,
@@ -584,13 +596,13 @@ def train_one_fold_v2(
                 x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
                     batch, dual_path, has_regime_prior,
                 )
-                x_feat = x_feat.to(device_obj)
+                x_feat = x_feat.to(device_obj, non_blocking=True)
                 if x_raw is not None:
-                    x_raw = x_raw.to(device_obj)
+                    x_raw = x_raw.to(device_obj, non_blocking=True)
                 if regime_prior is not None:
-                    regime_prior = regime_prior.to(device_obj)
-                y = y.to(device_obj)
-                mask = mask.to(device_obj)
+                    regime_prior = regime_prior.to(device_obj, non_blocking=True)
+                y = y.to(device_obj, non_blocking=True)
+                mask = mask.to(device_obj, non_blocking=True)
 
                 outputs = _forward_with_regime(
                     model, x_feat, x_raw, regime_prior, multi_horizon,
