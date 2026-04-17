@@ -587,6 +587,9 @@ class LOBDatasetV2(Dataset):
             if self._horizons is not None:
                 y_t = torch.from_numpy(np.asarray(y_item, dtype=np.float32))
                 m_t = torch.from_numpy(np.asarray(m_item, dtype=np.float32))
+                if len(self._horizons) == 1:
+                    y_t = y_t.squeeze(-1)
+                    m_t = m_t.squeeze(-1)
             else:
                 y_t = torch.tensor(float(y_item))
                 m_t = torch.tensor(float(m_item))
@@ -615,6 +618,13 @@ class LOBDatasetV2(Dataset):
         if self._horizons is not None:
             y_t = torch.from_numpy(np.asarray(y_item, dtype=np.float32))
             m_t = torch.from_numpy(np.asarray(m_item, dtype=np.float32))
+            # When horizons is a single-element list, squeeze to scalar so
+            # batched (B, 1) tensors reduce to (B,). The single-horizon
+            # trainer path expects (B,) targets; (B, 1) silently broadcasts
+            # loss/corr incorrectly.
+            if len(self._horizons) == 1:
+                y_t = y_t.squeeze(-1)
+                m_t = m_t.squeeze(-1)
         else:
             y_t = torch.tensor(float(y_item))
             m_t = torch.tensor(float(m_item))
