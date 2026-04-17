@@ -68,28 +68,67 @@ say "Writing V4_RESULTS_AUTO.md (preliminary — baselines still running) …"
 python -c "
 import json, pathlib
 summary = json.loads(pathlib.Path('$EXP_DIR/SUMMARY.json').read_text())
-out = [
-  '# V4 Results (auto-generated)',
-  f'_Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_',
-  '',
-  '## Pooled OOS IC',
-  '',
-  f'- **Pooled Pearson corr:** {summary.get(\"pooled_corr\", \"N/A\")}',
-  f'- **Pass bar (spec):** 0.12 (vs Ridge 0.099)',
-  f'- **Pass (primary):** {\"YES\" if summary.get(\"pooled_corr\", 0) >= 0.12 else \"NO\"}',
-  '',
-  '## Per-fold',
-  '',
-]
-for f in summary.get('folds', []):
-    out.append(f'- {f.get(\"fold_dir\", \"?\")}: test_corr={f.get(\"test_corr\", \"?\"):.4f} (val_corr={f.get(\"val_corr\", \"?\"):.4f})')
+pooled = summary.get('pooled', {})
+pooled_corr = pooled.get('correlation')
+pooled_rank = pooled.get('rank_correlation')
+pooled_r2 = pooled.get('r2')
+delta = pooled.get('delta_vs_baseline')
+cross = summary.get('cross_fold', {})
+bt = summary.get('pooled_backtest', {})
+out = []
+out.append('# V4 Results (auto-generated)')
+out.append('')
+out.append(f'_Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")_')
+out.append('')
+out.append('## Pooled OOS IC (h=180, primary)')
+out.append('')
+out.append(f'- Pooled Pearson correlation: **{pooled_corr:.4f}**' if pooled_corr is not None else '- Pooled Pearson: N/A')
+if pooled_rank is not None:
+    out.append(f'- Pooled rank correlation: {pooled_rank:.4f}')
+if delta is not None:
+    out.append(f'- Delta vs Ridge 0.099 baseline: {delta:+.4f}')
+out.append(f'- Spec primary bar: 0.12')
+pass_p = pooled_corr is not None and pooled_corr >= 0.12
+out.append(f'- **PRIMARY PASS: {\"YES\" if pass_p else \"NO\"}**')
+out.append('')
+out.append('## Per-fold')
+out.append('')
+out.append('| Fold | val_corr | test_corr | Δ vs Ridge | Sharpe | NetPnL(bps) |')
+out.append('|------|---------:|----------:|-----------:|-------:|------------:|')
+for r in summary.get('per_fold', []):
+    vc = r.get('val_corr'); tc = r.get('test_corr')
+    d = r.get('delta_vs_baseline')
+    sh = r.get('test_sharpe_annual')
+    pn = r.get('test_net_pnl_bps')
+    out.append(
+        f'| {r.get(\"fold\",\"?\")} | '
+        f'{vc:+.4f} | {tc:+.4f} | '
+        + (f'{d:+.4f} | ' if d is not None else 'N/A | ')
+        + (f'{sh:+.2f} | ' if sh is not None else 'N/A | ')
+        + (f'{pn:+.2f} |' if pn is not None else 'N/A |')
+    )
+out.append('')
+out.append('## Cross-fold stability')
+out.append('')
+out.append(f'- mean_corr={cross.get(\"mean_corr\", 0):.4f}, std_corr={cross.get(\"std_corr\", 0):.4f}, IC-IR={cross.get(\"ic_ir\", 0):.4f}')
+out.append(f'- t_stat={cross.get(\"t_stat\", 0):.2f}, p_value={cross.get(\"p_value\", 0):.4f}, significant={cross.get(\"significant_at_p05\")}')
+out.append('')
+out.append('## Backtest (pooled)')
+out.append('')
+out.append(f'- Net PnL (bps): {bt.get(\"total_net_pnl_bps\", 0):.1f}')
+out.append(f'- Gross PnL (bps): {bt.get(\"total_gross_pnl_bps\", 0):.1f}')
+out.append(f'- Costs (bps): {bt.get(\"total_cost_bps\", 0):.1f}')
+out.append(f'- Weighted avg Sharpe: {bt.get(\"weighted_avg_sharpe\", 0):.3f}')
+out.append(f'- n_trades={bt.get(\"n_trades\", 0)}, n_periods={bt.get(\"n_periods\", 0)}')
 out.append('')
 out.append('## Next step')
 out.append('')
-out.append('- Baselines (Ridge/XGB on V4 features) still running on pod; see logs/baselines_v4.log')
-out.append('- If V4 passes primary AND the fair-baseline comparison holds, greenlight the 8-ablation sweep.')
-pathlib.Path('docs/V4_RESULTS_AUTO.md').write_text('\n'.join(out))
+out.append('- Ridge + XGBoost baselines on V4 features (h=180) running on pod — see logs/baselines_v4.log.')
+out.append('- If PRIMARY PASS = YES AND baseline comparison holds, greenlight the 8-ablation sweep.')
+out.append('- If NO, document the negative result honestly and revert production signal to Ridge.')
+pathlib.Path('docs/V4_RESULTS_AUTO.md').write_text('\n'.join(out) + '\n')
 print('Wrote docs/V4_RESULTS_AUTO.md')
+print('PRIMARY PASS:', pass_p)
 " 2>&1 | tee -a "$LOG"
 
 say "POSTPROCESS DONE"
