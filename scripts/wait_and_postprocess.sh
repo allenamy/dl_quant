@@ -30,13 +30,22 @@ while true; do
     break
   fi
   if [ -z "${PROC:-}" ] && [ "$N" -lt 4 ]; then
-    say "Training process exited without producing 4 folds. Investigate — aborting auto-postprocess."
-    exit 1
+    say "Training PID gone with only $N folds — still aggregating the partial result so the morning has actionable data."
+    break
   fi
   sleep 300
 done
+PARTIAL=0
+if [ "$N" -lt 4 ]; then
+  PARTIAL=1
+  say "WARNING: partial run (n_folds=$N). Aggregate will still be written but flagged as partial."
+fi
 
-# --- 2. Sync results dir from pod to local ---
+# --- 2. Sync results dir from pod to local (skip if no folds) ---
+if [ "$N" -eq 0 ]; then
+  say "Zero folds produced — nothing to aggregate. Exiting."
+  exit 0
+fi
 say "Syncing $EXP_DIR from pod …"
 rsync -avz --include='fold_*/' --include='*.json' --include='*.npz' --include='*.log' \
   --exclude='*' \
