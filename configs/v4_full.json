@@ -39,8 +39,8 @@
   },
   "training": {
     "epochs": 40,
-    "batch_size": 256,
-    "lr": 3e-4,
+    "batch_size": 1024,
+    "lr": 6e-4,
     "weight_decay": 1e-3,
     "patience": 8,
     "grad_clip": 1.0,
@@ -48,6 +48,8 @@
     "val_days": 30,
     "test_days": 90,
     "fold_stride": 60,
+    "num_workers": 8,
+    "prefetch_factor": 4,
     "dul_config": {
       "lambda_quantile": 1.0,
       "lambda_utility_rank": 0.3,

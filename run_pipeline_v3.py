@@ -452,6 +452,8 @@ def main() -> None:
                 patience=train_cfg["patience"],
                 grad_clip=train_cfg["grad_clip"],
                 dul_config=train_cfg.get("dul_config"),
+                num_workers=int(train_cfg.get("num_workers", 4)),
+                prefetch_factor=int(train_cfg.get("prefetch_factor", 2)),
             )
             print(f"[pipeline_v3] Fold {fold_idx} best: {best}")
 

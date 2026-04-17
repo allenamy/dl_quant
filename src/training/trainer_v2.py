@@ -301,6 +301,8 @@ def train_one_fold_v2(
     loss_fn: Optional[Callable[[Dict[str, torch.Tensor], torch.Tensor], torch.Tensor]] = None,
     seed: Optional[int] = None,
     dul_config: Optional[Dict[str, Any]] = None,
+    num_workers: int = 4,
+    prefetch_factor: int = 2,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -459,34 +461,40 @@ def train_one_fold_v2(
         # memory; workers would just fork the giant tensor, wasting RAM
         # and adding IPC overhead. Use num_workers=0 in that case.
         preloaded = getattr(train_dataset, "_preloaded", False)
+        _train_nw = 0 if preloaded else num_workers
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
             sampler=train_sampler,   # mutually exclusive with shuffle
-            num_workers=0 if preloaded else 4,
-            persistent_workers=False if preloaded else True,
+            num_workers=_train_nw,
+            persistent_workers=_train_nw > 0,
+            prefetch_factor=prefetch_factor if _train_nw > 0 else None,
             pin_memory=torch.cuda.is_available(),
             drop_last=True,
         )
     else:
         train_sampler = None
         preloaded = getattr(train_dataset, "_preloaded", False)
+        _train_nw = 0 if preloaded else num_workers
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=0 if preloaded else 4,
-            persistent_workers=False if preloaded else True,
+            num_workers=_train_nw,
+            persistent_workers=_train_nw > 0,
+            prefetch_factor=prefetch_factor if _train_nw > 0 else None,
             pin_memory=torch.cuda.is_available(),
             drop_last=True,
         )
     val_preloaded = getattr(val_dataset, "_preloaded", False)
+    _val_nw = 0 if val_preloaded else max(num_workers // 2, 1)
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=0 if val_preloaded else 2,
-        persistent_workers=False if val_preloaded else True,
+        num_workers=_val_nw,
+        persistent_workers=_val_nw > 0,
+        prefetch_factor=prefetch_factor if _val_nw > 0 else None,
         pin_memory=torch.cuda.is_available(),
     )
 
