@@ -1,60 +1,78 @@
-# V4 Overnight Run — Preliminary Results
+# V4 Results (PARTIAL — fold 0 only)
 
-_Generated 2026-04-18 06:17 local. Will be overwritten by postprocess when 4 folds complete._
+_Run aborted after fold 1 hung silently at epoch 2 for 23+ min. Training killed to stop GPU waste; baselines still running on pod CPU for fair comparison._
 
 ## Status
 
-- **V4 training: in progress** (fold 1/4 training). PID 22897 on pod.
-- **Baselines (Ridge+XGB on V4 features @ h=180): in progress.** PID 24902 on pod.
-- **Postprocess orchestrator: waiting for 4 folds.** Will auto-run aggregate + write final report.
+| Item | Status |
+|---|---|
+| V4 training | **Killed** — fold 0 done, fold 1 hung |
+| V4 baselines (Ridge/XGB/FITS on V4 features @ h=180) | **Running** on pod CPU (~35 min elapsed of maybe 90 min needed) |
+| Decision on retry / ablations | **Pending human review** |
 
-## Fold 0 (completed)
+## Fold 0 result (ONLY fold)
 
-- Best epoch: 10, early-stopped at epoch 18 (patience=8)
-- val_loss: 0.596, val_corr: 0.038, val_r2: 0.001
+Config: single-horizon y_180, n_horizons=1, batch=1024, lr=6e-4, stride=180, 700 train days.
 
-| Metric | Fold 0 test | V3+RevIN baseline | V4 spec target |
-|---|---:|---:|---:|
-| **Pearson corr (h=180)** | **0.0609** | 0.082 | ≥ 0.12 |
-| Rank corr (h=180) | 0.0893 | — | — |
+| Metric | Value |
+|---|---:|
+| Best epoch (val_corr) | 10 |
+| Early-stopped at | epoch 18 (patience=8) |
+| val_loss | 0.596 |
+| **val_corr** | **0.0383** |
+| val_r2 | 0.0011 |
+| **test Pearson corr** | **0.0609** |
+| test Spearman corr | 0.0893 |
+| test R² | 0.0031 |
+| Δ vs Ridge (0.099) | **−0.0381** |
 
-**V4 underperforms V3 on Pearson by ~25%. Rank corr is competitive.**
+Pooled backtest on fold 0 test set (15,605 samples):
+- Gross PnL: +0.0 bps
+- Costs: −139 bps
+- Net PnL: **−139 bps**
+- Weighted Sharpe: **−390** (signal too weak vs 4bps fee + 1bps slippage)
 
-## Trajectory during fold 0 training
+## Comparison to spec bars
 
-| Epoch | val_loss | val_corr | lr |
-|:-:|--:|--:|--:|
-| 5 | 0.596 | 0.026 | 6e-4 (peak) |
-| 10 | 0.596 | **0.038** | 6e-4 |
-| 15 | 0.597 | 0.027 | 3e-4 (halved) |
-| 18 | 0.596 | 0.028 | 3e-4 (stop) |
+| Target | Value | V4 fold 0 | Result |
+|---|---:|---:|:-:|
+| Primary: Pearson IC ≥ 0.12 on h=180 | 0.12 | 0.0609 | ❌ |
+| V3+RevIN baseline on y_180 | 0.082 | 0.0609 | ❌ (below V3) |
+| Ridge baseline on V3 features | 0.099 | 0.0609 | ❌ (below Ridge) |
+| Weighted Sharpe > 1.0 on best horizon | 1.0 | −390 | ❌ |
 
-Val_corr plateaued around 0.03-0.04; LR reducer halved, then patience fired.
+**Bottom line: V4 as configured is worse than Ridge, worse than V3, and far below the target.**
 
-## What the overnight session did
+## Why fold 1 hung
 
-Five root-cause fixes landed tonight, all verified individually:
+Unknown — both main and all 4 dataloader workers were alive (workers at ~92% CPU each) but no new epoch logged for 23 minutes. GPU at 0%. Baselines process was at 99% CPU in parallel but 256 cores are available so CPU contention should not matter.
 
-| # | Commit | Bug |
-|--|--------|-----|
-| 1 | 2492eed | `preload=True` OOM'd at 125 GB cgroup cap → revert to lazy loading |
-| 2 | 42efcf4 | Single-threaded `compute_stats` took 72 min/fold → parallelize + per-fold cache (19.6× speedup) |
-| 3 | f9b1f16 | `horizons_sec` not forwarded to `LOBDatasetV2` common_kwargs → training on wrong horizon |
-| 4 | cb14075 | `stats_ds` used default `y` alias → y_sigma was y_60-scale while targets were y_180 (3× mismatch) |
-| 5 | 9c6724d | Single-element `horizons=['y_180']` returned (1,) y → (B, 1) batches broke single-horizon trainer path |
+Hypotheses for investigation:
+- Infinite NaN loop (loss NaN → step skipped → never increments epoch counter)
+- Dataloader queue deadlock between workers and main
+- A particular training window in the fold-1 data subset triggers an exception that gets caught silently
 
-Plus reviewer fixes committed in parallel: I1 (horizon forwarding in single-CSV path), M2 (explicit TCN causality unit test).
+Recommended next-try: re-run with `num_workers=0` (single-process) to see if deadlock disappears; or add `torch.autograd.set_detect_anomaly(True)` to catch NaN origin.
 
-**Net effect:** training is now definitively correct. The 0.061 Pearson is a genuine measurement of V4 architecture + V4 features + current hyperparameters on 4090 pod.
+## Files
 
-## Next actions (morning review)
+- `experiments/v4_full/fold_0/` — all fold 0 artifacts (best_model.pt, test_preds.npz, test_results.json)
+- `experiments/v4_full/SUMMARY.json` — aggregate (only 1 fold so std/t-stat are NaN)
+- `logs/train_v4_full.log` (on pod) — full training log including the hang
+- `logs/overnight_monitor.log` (local) — 5-min snapshots across the whole session
+- `docs/MORNING_BRIEF_2026_04_18.md` — commentary + decision tree
 
-- [ ] Wait for folds 1-3 to complete (~3-4 h, ETA ~09:30-10:30 local)
-- [ ] Compare V4 pooled IC vs Ridge/XGB on V4 features (once baselines finish, ~07:30)
-- [ ] If V4 fails primary (≥ 0.12) but beats Ridge on rank corr, consider:
-  1. Switch primary metric to rank corr (defendable — it's what matters for trading)
-  2. Lower LR / different scheduling — peak 6e-4 with batch 1024 might be too aggressive
-  3. Drop `lambda_utility_rank` to 0 → pure pinball (simpler loss, might generalize better on Pearson)
-  4. Revert stride to 60 for 3× more training windows (requires NPZ regen)
-- [ ] If V4 pools at 0.06-0.08 Pearson: document as research learning, revert production signal to Ridge
-- [ ] DO NOT launch the 8-ablation sweep until primary decision is made
+## Next actions (your call)
+
+Three honest options:
+
+1. **Declare V4 as configured a negative result.** Revert production signal to Ridge. V4 research artifacts are committed (architecture, data pipeline, features, 5 documented bugs fixed). Multi-horizon and other ablations are valid future research but won't flip this conclusion given fold 0 is already −0.04 below Ridge.
+
+2. **Retry with config tweaks to address fold 1 hang AND low Pearson:**
+   - `num_workers=0` to eliminate worker deadlock risk
+   - Drop `lambda_utility_rank=0.3 → 0` (pure pinball) — rank loss may hurt Pearson
+   - Re-run 4 folds (~4-6h of GPU)
+
+3. **Audit why V4 underperforms V3.** V3 used stride=60 (3× more windows), possibly different feature set. Closer controlled comparison (same stride, same features except additions) would isolate which change hurt.
+
+I would NOT auto-launch anything until you decide. Baselines finish autonomously (~50 more min) to give you the fair Ridge/XGB baseline on V4 features.
