@@ -1,15 +1,16 @@
 {
-  "_comment": "V4 full run: RevIN + GDCN + RawLOB(1x1+AttnPool) + PatchAttn(AttnPool) + PPNet(d_prior=6) + 4 horizons + DUL loss. Expected ~32K params.",
+  "_comment": "V4 full run: RevIN + GDCN + RawLOB(1x1+AttnPool) + PatchAttn(AttnPool) + PPNet(d_prior=6) + 4 horizons + DUL loss. Expected ~32K params. Disk: stride=180 + fp16 quantized NPZ (~82GB for 1004 days, fits local budget).",
   "data": {
     "csv_path": "",
     "npz_dir": "data/npz_v4",
     "n_levels": 25,
     "horizon_sec": 180,
     "input_len": 600,
-    "stride": 60,
+    "stride": 180,
     "horizons_sec": [60, 180, 300, 600],
     "include_ridge_features": true,
-    "include_regime_prior": true
+    "include_regime_prior": true,
+    "quantize_features": true
   },
   "model": {
     "d_model": 32,

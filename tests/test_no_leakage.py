@@ -248,9 +248,54 @@ def test_process_csv_to_npz_forwards_v4_flags():
     print("PASS: test_process_csv_to_npz_forwards_v4_flags")
 
 
+def test_quantize_features_produces_fp16():
+    """When quantize_features=True, X and X_raw in NPZ are fp16."""
+    import tempfile, os, sys, numpy as np, pandas as pd
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.features.pipeline import build_npz_for_day
+
+    n = 1500
+    n_levels = 25
+    rng = np.random.default_rng(42)
+    base_ts = 1_704_067_200_000_000
+    timestamps = base_ts + np.arange(n, dtype=np.int64) * 1_000_000
+    cols = {"timestamp": timestamps}
+    mid = 60000.0 + np.cumsum(rng.normal(0, 0.5, n))
+    for i in range(n_levels):
+        cols[f"asks[{i}].price"] = mid + 0.1 * (i + 1)
+        cols[f"asks[{i}].amount"] = rng.exponential(1.0, n)
+        cols[f"bids[{i}].price"] = mid - 0.1 * (i + 1)
+        cols[f"bids[{i}].amount"] = rng.exponential(1.0, n)
+    df_1s = pd.DataFrame(cols)
+
+    result_fp32 = build_npz_for_day(
+        df_1s, horizons_sec=[60, 180], input_len=600, stride=180,
+        n_levels=n_levels, quantize_features=False,
+    )
+    result_fp16 = build_npz_for_day(
+        df_1s, horizons_sec=[60, 180], input_len=600, stride=180,
+        n_levels=n_levels, quantize_features=True,
+    )
+
+    assert result_fp32["X"].dtype == np.float32, f"fp32 case got {result_fp32['X'].dtype}"
+    assert result_fp16["X"].dtype == np.float16, f"fp16 case got {result_fp16['X'].dtype}"
+    assert result_fp32["X_raw"].dtype == np.float32
+    assert result_fp16["X_raw"].dtype == np.float16
+    # Precision check: fp16 should be close to fp32 but not identical
+    np.testing.assert_allclose(
+        result_fp32["X"].astype(np.float64),
+        result_fp16["X"].astype(np.float64),
+        rtol=0.01, atol=0.01,
+    )
+    # Size check: fp16 should be about half the memory of fp32
+    assert result_fp16["X"].nbytes == result_fp32["X"].nbytes // 2
+    print("PASS: test_quantize_features_produces_fp16")
+
+
 if __name__ == "__main__":
     import unittest
     unittest.main(exit=False)
     test_v4_npz_has_regime_prior_and_ridge_features()
     test_v4_raises_when_ridge_flag_without_trades_df()
     test_process_csv_to_npz_forwards_v4_flags()
+    test_quantize_features_produces_fp16()

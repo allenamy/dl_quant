@@ -199,6 +199,7 @@ def process_multi_day_crypto_folder(
     verbose: bool = True,
     include_ridge_features: bool = False,
     include_regime_prior: bool = False,
+    quantize_features: bool = False,
 ) -> list[Path]:
     """Iterate per-day folders, build sliding-window NPZ files.
 
@@ -236,6 +237,10 @@ def process_multi_day_crypto_folder(
         If True, 6 regime-prior features are computed and stored as a
         separate (N_win, 6) ``regime_prior`` array in the NPZ, keyed per
         window at pred_idx. Default False.
+    quantize_features : bool
+        If True, X and X_raw are stored as float16 in the NPZ (halves
+        disk footprint at negligible precision loss after per-sample
+        normalize + clip). Default False (V3 compatibility).
 
     Returns
     -------
@@ -403,6 +408,7 @@ def process_multi_day_crypto_folder(
                 n_levels=n_levels,
                 include_ridge_features=include_ridge_features,
                 include_regime_prior=include_regime_prior,
+                quantize_features=quantize_features,
             )
 
             # One more disk check immediately before the write, because

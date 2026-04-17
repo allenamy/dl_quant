@@ -261,6 +261,7 @@ def main() -> None:
             n_levels=n_levels,
             include_ridge_features=data_cfg.get("include_ridge_features", False),
             include_regime_prior=data_cfg.get("include_regime_prior", False),
+            quantize_features=data_cfg.get("quantize_features", False),
         )
         for p in saved:
             d = np.load(p, allow_pickle=True)

@@ -46,6 +46,7 @@ def build_npz_for_day(
     feature_clip: float = 1000.0,
     include_ridge_features: bool = False,
     include_regime_prior: bool = False,
+    quantize_features: bool = False,
 ) -> dict:
     """Build sliding-window arrays for a single day of 1-second LOB bars.
 
@@ -83,6 +84,10 @@ def build_npz_for_day(
         When True, compute hourly-scale regime-prior features and return them
         as a separate ``regime_prior`` array of shape (N_win, 6) sliced at
         each window's pred_idx. Default False; no overhead when disabled.
+    quantize_features : bool
+        If True, store X and X_raw as float16 (halves disk footprint at
+        negligible precision loss after per-sample normalization). NPZ
+        loaders cast back to float32. Default False (V3 compatibility).
 
     Returns
     -------
@@ -342,6 +347,15 @@ def build_npz_for_day(
     X_raw = np.array(X_raw_list, dtype=np.float32)   # (N_win, input_len, raw_levels, 4)
     timestamps = np.array(ts_list, dtype=np.int64)    # (N_win,)
 
+    # Optional disk-compression: downcast the two big arrays to float16 before
+    # they get serialised to NPZ. After per-sample normalize + clip the load
+    # path applies, features sit in a narrow ~[-10, 10] range where fp16's
+    # ~0.001 relative precision is well below the gradient noise floor.
+    # LOBDatasetV2._load_day upcasts back to float32 on read.
+    if quantize_features:
+        X = X.astype(np.float16)
+        X_raw = X_raw.astype(np.float16)
+
     # Per-horizon arrays keyed as y_{H} / y_mask_{H}.
     ys_by_h: dict[int, np.ndarray] = {
         h: np.array(y_lists[h], dtype=np.float32) for h in horizons_sec_list
@@ -390,6 +404,7 @@ def process_csv_to_npz(
     n_levels: int = 25,
     include_ridge_features: bool = False,
     include_regime_prior: bool = False,
+    quantize_features: bool = False,
 ) -> list[Path]:
     """Load a raw LOB CSV, resample to 1s, split by UTC day, and save NPZ files.
 
@@ -412,6 +427,9 @@ def process_csv_to_npz(
         When True, forwarded to ``build_npz_for_day`` to compute and save a
         per-window ``regime_prior`` matrix. Default False preserves V3
         behaviour.
+    quantize_features : bool
+        When True, forwarded to ``build_npz_for_day`` to store X / X_raw
+        as float16 (halves disk). Default False preserves V3 behaviour.
 
     Returns
     -------
@@ -454,6 +472,7 @@ def process_csv_to_npz(
             n_levels=n_levels,
             include_ridge_features=include_ridge_features,
             include_regime_prior=include_regime_prior,
+            quantize_features=quantize_features,
         )
 
         # Derive YYYY-MM-DD from the day_id (days since epoch)
