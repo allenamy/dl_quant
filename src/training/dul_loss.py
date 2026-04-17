@@ -124,6 +124,7 @@ def compute_dul_loss(
     lambda_calib: float = 0.0,
     utility_alpha: float = 1.0,
     n_pairs: Optional[int] = None,
+    return_parts: bool = True,
 ) -> Tuple[torch.Tensor, Dict[str, float]]:
     """Compose the three DUL components; each is computed only if λ > 0.
 
@@ -135,36 +136,47 @@ def compute_dul_loss(
         lambda_calib:        weight on calibration. Default 0.0 (disabled).
         utility_alpha:       risk aversion for utility score. Default 1.0.
         n_pairs:             pairs to sample for rank loss. Default N.
+        return_parts:        if True, calls .item() on each sub-component for
+                             logging. This triggers CPU-GPU syncs, so default
+                             False keeps the training hot path sync-free and
+                             lets the GPU pipeline fill. Use True only for
+                             one-off diagnostics or evaluation.
 
     Returns:
-        (total_loss, parts) where parts = dict with float values for each
-        component plus the total. Components with λ=0 are reported as 0.0.
+        (total_loss, parts). When return_parts=False (default), parts is an
+        empty dict — the total tensor still carries the full backward graph
+        for optimization. When True, parts contains float scalars for each
+        component (one sync per component).
     """
     parts: Dict[str, float] = {}
     total = torch.zeros((), device=quantiles.device, dtype=quantiles.dtype)
 
     if lambda_quantile > 0.0:
         lq = quantile_loss(quantiles, target)
-        parts["quantile"] = float(lq.item())
         total = total + lambda_quantile * lq
-    else:
+        if return_parts:
+            parts["quantile"] = float(lq.item())
+    elif return_parts:
         parts["quantile"] = 0.0
 
     if lambda_utility_rank > 0.0:
         lu = utility_rank_loss(
             quantiles, target, alpha=utility_alpha, n_pairs=n_pairs,
         )
-        parts["utility_rank"] = float(lu.item())
         total = total + lambda_utility_rank * lu
-    else:
+        if return_parts:
+            parts["utility_rank"] = float(lu.item())
+    elif return_parts:
         parts["utility_rank"] = 0.0
 
     if lambda_calib > 0.0:
         lc = coverage_calib_loss(quantiles, target)
-        parts["calib"] = float(lc.item())
         total = total + lambda_calib * lc
-    else:
+        if return_parts:
+            parts["calib"] = float(lc.item())
+    elif return_parts:
         parts["calib"] = 0.0
 
-    parts["total"] = float(total.item())
+    if return_parts:
+        parts["total"] = float(total.item())
     return total, parts

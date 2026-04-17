@@ -261,6 +261,11 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
     n_pairs = cfg.get("n_pairs", None)
 
     def dul_loss_fn(outputs, target):
+        # return_parts=False avoids per-component .item() syncs in the hot
+        # training loop — under multi-horizon this would call .item() up to
+        # 16× per step, draining the CUDA pipeline and pinning GPU util to
+        # single-digit %. The trainer only needs the total loss tensor for
+        # backward; per-component metrics are a diagnostic, not required.
         total, _ = compute_dul_loss(
             outputs["quantiles"], target,
             lambda_quantile=lambda_q,
@@ -268,6 +273,7 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
             lambda_calib=lambda_c,
             utility_alpha=alpha_u,
             n_pairs=n_pairs,
+            return_parts=False,
         )
         return total
 
