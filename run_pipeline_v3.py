@@ -24,6 +24,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import torch
@@ -103,8 +104,16 @@ def _run_test_evaluation(
     stride: int,
     y_sigma: float = 1.0,
     y_median: float = 0.0,
+    horizons_sec: Optional[list] = None,
 ) -> None:
-    """Load best model, run inference on test set, compute metrics + backtest."""
+    """Load best model, run inference on test set, compute metrics + backtest.
+
+    For multi-horizon models (n_horizons > 1), inference is run with
+    ``all_horizons=True`` and the backtest uses the horizon whose period
+    matches ``horizon_sec`` (defaulting to index 0 if not found).  Targets
+    and masks are sliced to the selected horizon so shapes are consistent
+    with the (N, 3) quantile predictions fed to BacktestEngine.
+    """
     device_obj = torch.device(device)
 
     ckpt_path = os.path.join(fold_dir, "best_model.pt")
@@ -127,6 +136,20 @@ def _run_test_evaluation(
     dual_path = test_ds.has_raw
     has_regime_prior = getattr(test_ds, "has_regime_prior", False)
 
+    # Detect multi-horizon model so we call all_horizons=True and slice
+    # targets / masks to the correct horizon index.  Single-horizon models
+    # keep the legacy path (no slicing needed).
+    n_horizons = getattr(model, "n_horizons", 1)
+    multi_horizon = n_horizons > 1
+
+    # Select which horizon index to use for the backtest.  If horizons_sec
+    # is provided, pick the index whose value equals horizon_sec; fall back
+    # to index 0 (shortest horizon) if not found.
+    if multi_horizon and horizons_sec is not None and horizon_sec in horizons_sec:
+        backtest_h_idx = horizons_sec.index(horizon_sec)
+    else:
+        backtest_h_idx = 0
+
     all_quantiles = []
     all_target = []
     all_mask = []
@@ -138,24 +161,45 @@ def _run_test_evaluation(
                 x_feat = x_feat.to(device_obj)
                 x_raw = x_raw.to(device_obj)
                 regime_prior = regime_prior.to(device_obj)
-                outputs = model(x_feat, x_raw, regime_prior=regime_prior)
+                if multi_horizon:
+                    outputs = model(x_feat, x_raw, regime_prior=regime_prior,
+                                    all_horizons=True)
+                else:
+                    outputs = model(x_feat, x_raw, regime_prior=regime_prior)
             elif dual_path and len(batch) == 4:
                 x_feat, x_raw, y, m = batch
                 x_feat = x_feat.to(device_obj)
                 x_raw = x_raw.to(device_obj)
-                outputs = model(x_feat, x_raw)
+                if multi_horizon:
+                    outputs = model(x_feat, x_raw, all_horizons=True)
+                else:
+                    outputs = model(x_feat, x_raw)
             else:
                 x_feat, y, m = batch[:3]
                 x_feat = x_feat.to(device_obj)
-                outputs = model(x_feat)
+                if multi_horizon:
+                    outputs = model(x_feat, all_horizons=True)
+                else:
+                    outputs = model(x_feat)
 
-            all_quantiles.append(outputs["quantiles"].cpu().numpy())
-            all_target.append(y.numpy())
-            all_mask.append(m.numpy())
+            if multi_horizon:
+                # quantiles_by_horizon: (B, n_horizons, 3) -> slice to (B, 3)
+                q = outputs["quantiles_by_horizon"][:, backtest_h_idx, :]
+                # y and m are (B, n_horizons) -- slice to (B,)
+                y_h = y[:, backtest_h_idx]
+                m_h = m[:, backtest_h_idx]
+            else:
+                q = outputs["quantiles"]
+                y_h = y
+                m_h = m
+
+            all_quantiles.append(q.cpu().numpy())
+            all_target.append(y_h.numpy())
+            all_mask.append(m_h.numpy())
 
     predictions = np.concatenate(all_quantiles)  # (N, 3)
-    targets = np.concatenate(all_target)
-    mask = np.concatenate(all_mask).astype(bool)
+    targets = np.concatenate(all_target)          # (N,)
+    mask = np.concatenate(all_mask).astype(bool)  # (N,)
 
     # --- De-normalize for backtest ---
     preds_raw = predictions * y_sigma + y_median
@@ -381,6 +425,7 @@ def main() -> None:
                 model, fold_dir, test_ds, train_cfg, device,
                 horizon_sec=horizon_sec, stride=stride,
                 y_sigma=y_sigma, y_median=y_median,
+                horizons_sec=data_cfg.get("horizons_sec"),
             )
 
     else:
@@ -502,6 +547,7 @@ def main() -> None:
             model, fold_dir, test_ds, train_cfg, device,
             horizon_sec=horizon_sec, stride=stride,
             y_sigma=y_sigma, y_median=y_median,
+            horizons_sec=data_cfg.get("horizons_sec"),
         )
 
     print("\n[pipeline_v3] All done.")
