@@ -417,6 +417,15 @@ def main() -> None:
             # 700-day fold at input_len=600, n_features=64.
             y_norm = (y_median, y_sigma, 5.0)
             preload = bool(data_cfg.get("preload", False))
+            # Wire horizons_sec → LOBDatasetV2 horizons list so multi-horizon NPZs
+            # actually produce (B, H) y/mask tensors (and not the single-horizon
+            # 'y' alias = y_60). Without this the model's n_horizons heads 1..N
+            # get zero gradient and test-eval slicing crashes.
+            _horizons_sec = data_cfg.get("horizons_sec")
+            _horizons_list = (
+                [f"y_{int(h)}" for h in _horizons_sec]
+                if _horizons_sec else None
+            )
             common_kwargs = dict(
                 normalize=True,
                 x_mean=x_mean,
@@ -424,6 +433,9 @@ def main() -> None:
                 y_norm=y_norm,
                 preload=preload,
             )
+            if _horizons_list is not None:
+                common_kwargs["horizons"] = _horizons_list
+                print(f"[pipeline_v3] multi-horizon dataset: {_horizons_list}")
             print(f"[pipeline_v3] preload={preload}")
             train_ds = LOBDatasetV2(npz_dir, fold["train"], **common_kwargs)
             val_ds = LOBDatasetV2(npz_dir, fold["val"], **common_kwargs)
