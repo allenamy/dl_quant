@@ -321,6 +321,7 @@ def main() -> None:
             include_ridge_features=data_cfg.get("include_ridge_features", False),
             include_regime_prior=data_cfg.get("include_regime_prior", False),
             quantize_features=data_cfg.get("quantize_features", False),
+            horizons_sec=data_cfg.get("horizons_sec"),
         )
         for p in saved:
             d = np.load(p, allow_pickle=True)
