@@ -50,8 +50,22 @@ def discover_days(npz_dir: str) -> List[str]:
     return days
 
 
-def load_days(npz_dir: str, days: List[str]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def load_days(
+    npz_dir: str,
+    days: List[str],
+    *,
+    horizon_key: str = "y",
+    mask_key: str = "y_mask",
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Load and concatenate X, y, y_mask from multiple day NPZ files.
+
+    Parameters
+    ----------
+    horizon_key : str
+        NPZ field name for the label array (e.g. ``"y_180"`` on V4 NPZ to
+        pin the 180s horizon and avoid silently reading the y_60 alias).
+    mask_key : str
+        NPZ field name for the mask array, matched to ``horizon_key``.
 
     Returns
     -------
@@ -64,8 +78,17 @@ def load_days(npz_dir: str, days: List[str]) -> Tuple[np.ndarray, np.ndarray, np
         path = os.path.join(npz_dir, f"{day}.npz")
         npz = np.load(path, allow_pickle=True)
         xs.append(npz["X"])
-        ys.append(npz["y"])
-        masks.append(npz["y_mask"])
+        if horizon_key not in npz.files:
+            raise KeyError(
+                f"{path}: missing horizon key {horizon_key!r}; "
+                f"available keys: {sorted(k for k in npz.files if k.startswith('y'))}"
+            )
+        if mask_key not in npz.files:
+            raise KeyError(
+                f"{path}: missing mask key {mask_key!r}"
+            )
+        ys.append(npz[horizon_key])
+        masks.append(npz[mask_key])
 
     X = np.concatenate(xs, axis=0).astype(np.float32)
     y = np.concatenate(ys, axis=0).astype(np.float32)
@@ -294,6 +317,8 @@ def run_all_baselines(
     val_days: int = 1,
     test_days: int = 1,
     fold_stride: int = 1,
+    horizon_key: str = "y",
+    mask_key: str = "y_mask",
 ) -> Dict[str, Any]:
     """Run Ridge, TemporalRidge, XGBoost (if available), and FITS on multi-day data.
 
@@ -354,9 +379,14 @@ def run_all_baselines(
             f"val={fold['val']}, test={fold['test']}"
         )
 
-        # Load data
-        X_train, y_train, mask_train = load_days(npz_dir, fold["train"])
-        X_test, y_test, mask_test = load_days(npz_dir, fold["test"])
+        # Load data (honor the horizon_key so V4 multi-horizon NPZ is loaded
+        # on the intended horizon rather than the shortest-horizon `y` alias).
+        X_train, y_train, mask_train = load_days(
+            npz_dir, fold["train"], horizon_key=horizon_key, mask_key=mask_key
+        )
+        X_test, y_test, mask_test = load_days(
+            npz_dir, fold["test"], horizon_key=horizon_key, mask_key=mask_key
+        )
 
         # Compute normalisation from train
         norm_stats = compute_normalisation_stats(X_train, y_train)
@@ -501,6 +531,14 @@ def main() -> None:
     parser.add_argument("--val-days", type=int, default=1)
     parser.add_argument("--test-days", type=int, default=1)
     parser.add_argument("--fold-stride", type=int, default=1)
+    parser.add_argument(
+        "--horizon-key", default="y",
+        help="NPZ field for labels (e.g. 'y_180' on V4 NPZ). Default 'y' (back-compat).",
+    )
+    parser.add_argument(
+        "--mask-key", default="y_mask",
+        help="NPZ field for the label mask. Default 'y_mask'.",
+    )
 
     args = parser.parse_args()
 
@@ -517,6 +555,8 @@ def main() -> None:
         val_days=args.val_days,
         test_days=args.test_days,
         fold_stride=args.fold_stride,
+        horizon_key=args.horizon_key,
+        mask_key=args.mask_key,
     )
 
 
