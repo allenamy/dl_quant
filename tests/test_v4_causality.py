@@ -107,6 +107,48 @@ class TestV4Forward(unittest.TestCase):
         self.assertGreater(float(diff), 0.0)
         self.assertTrue(torch.isfinite(diff))
 
+    def test_tcn_causal_under_perturbation(self):
+        """Explicit causality audit (reviewer M2): perturb x_feat[:, t=300, :] and
+        assert that post-TCN activations at positions < 300 are bit-identical.
+        A non-causal conv or pooled LN would fail this."""
+        m = self._build(
+            # RevIN is intentionally window-aware (not per-timestep causal); disable
+            # it so this test directly audits the temporal conv stack.
+            use_revin=False,
+        )
+        m.eval()
+        x_feat = torch.randn(1, 600, 64)
+        x_raw = torch.randn(1, 600, 20, 4)
+        regime_prior = torch.randn(1, 6)
+
+        captured = {}
+        def _hook(module, inp, out):
+            captured["tcn_out"] = out.detach().clone()
+
+        handle = m.temporal_conv.register_forward_hook(_hook)
+        try:
+            with torch.no_grad():
+                m(x_feat, x_raw=x_raw, regime_prior=regime_prior, all_horizons=True)
+                a1 = captured["tcn_out"]
+                x2 = x_feat.clone()
+                x2[:, 300, :] += 10.0   # perturb mid-sequence tick
+                m(x2, x_raw=x_raw, regime_prior=regime_prior, all_horizons=True)
+                a2 = captured["tcn_out"]
+        finally:
+            handle.remove()
+
+        self.assertEqual(a1.shape, a2.shape)
+        # Positions [0..299] must be bit-identical after the causal TCN.
+        self.assertTrue(
+            torch.allclose(a1[:, :300, :], a2[:, :300, :], atol=0.0),
+            "TCN output changed at t < 300 when x[300] was perturbed — non-causal!",
+        )
+        # Positions [300..] should of course differ (sanity).
+        self.assertGreater(
+            float((a1[:, 300:, :] - a2[:, 300:, :]).abs().max()), 0.0,
+            "TCN output at t >= 300 did NOT change when x[300] was perturbed — suspicious.",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
