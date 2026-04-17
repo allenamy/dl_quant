@@ -347,13 +347,21 @@ def build_npz_for_day(
     X_raw = np.array(X_raw_list, dtype=np.float32)   # (N_win, input_len, raw_levels, 4)
     timestamps = np.array(ts_list, dtype=np.int64)    # (N_win,)
 
-    # Optional disk-compression: downcast the two big arrays to float16 before
-    # they get serialised to NPZ. After per-sample normalize + clip the load
-    # path applies, features sit in a narrow ~[-10, 10] range where fp16's
-    # ~0.001 relative precision is well below the gradient noise floor.
-    # LOBDatasetV2._load_day upcasts back to float32 on read.
+    # Optional disk-compression: downcast X_raw (Path-B raw LOB tensor) to
+    # float16. X_raw values live in [0, ~6] (bid_delta_bps, log_amount) —
+    # entirely within fp16's normal range, so the ~0.001 relative precision
+    # is well below the gradient noise floor.
+    #
+    # X is intentionally kept at float32: several microstructure features
+    # (kyle_lambda_30s, price_impact_30s, roll_spread_60s, realized_vol_300s)
+    # have magnitudes near 1e-6..1e-5 which fall into fp16's *denormal* range,
+    # where precision collapses to 129-982 unique values — destroying the
+    # signal after fp16 round-trip. Keeping X in fp32 preserves all 64
+    # features at full precision.
+    #
+    # LOBDatasetV2._load_day upcasts X_raw to float32 on read so the model
+    # sees fp32 everywhere at compute time.
     if quantize_features:
-        X = X.astype(np.float16)
         X_raw = X_raw.astype(np.float16)
 
     # Per-horizon arrays keyed as y_{H} / y_mask_{H}.

@@ -249,7 +249,13 @@ def test_process_csv_to_npz_forwards_v4_flags():
 
 
 def test_quantize_features_produces_fp16():
-    """When quantize_features=True, X and X_raw in NPZ are fp16."""
+    """When quantize_features=True, X_raw is fp16 but X stays fp32.
+
+    X contains microstructure features (e.g. kyle_lambda_30s ~1e-6)
+    that fall into fp16's denormal range, which would collapse precision
+    to ~129 discrete levels. X_raw values live in [0, ~6] (bps deltas,
+    log amounts) — entirely within fp16's normal range, safe to quantize.
+    """
     import tempfile, os, sys, numpy as np, pandas as pd
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
     from src.features.pipeline import build_npz_for_day
@@ -277,18 +283,25 @@ def test_quantize_features_produces_fp16():
         n_levels=n_levels, quantize_features=True,
     )
 
+    # X stays fp32 in both cases (protects small-magnitude features)
     assert result_fp32["X"].dtype == np.float32, f"fp32 case got {result_fp32['X'].dtype}"
-    assert result_fp16["X"].dtype == np.float16, f"fp16 case got {result_fp16['X'].dtype}"
+    assert result_fp16["X"].dtype == np.float32, \
+        f"X should stay fp32 even with quantize_features=True; got {result_fp16['X'].dtype}"
+    # X_raw: fp32 by default, fp16 when quantize_features=True
     assert result_fp32["X_raw"].dtype == np.float32
     assert result_fp16["X_raw"].dtype == np.float16
-    # Precision check: fp16 should be close to fp32 but not identical
+    # X should be bit-identical between fp32 and quantized runs
+    np.testing.assert_array_equal(result_fp32["X"], result_fp16["X"])
+    # X_raw fp16 round-trip: close to fp32 within ~0.001 relative
     np.testing.assert_allclose(
-        result_fp32["X"].astype(np.float64),
-        result_fp16["X"].astype(np.float64),
+        result_fp32["X_raw"].astype(np.float64),
+        result_fp16["X_raw"].astype(np.float64),
         rtol=0.01, atol=0.01,
     )
-    # Size check: fp16 should be about half the memory of fp32
-    assert result_fp16["X"].nbytes == result_fp32["X"].nbytes // 2
+    # Size check: X_raw fp16 is exactly half of X_raw fp32
+    assert result_fp16["X_raw"].nbytes == result_fp32["X_raw"].nbytes // 2
+    # X total bytes unchanged across modes
+    assert result_fp16["X"].nbytes == result_fp32["X"].nbytes
     print("PASS: test_quantize_features_produces_fp16")
 
 
