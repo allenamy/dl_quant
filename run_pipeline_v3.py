@@ -372,16 +372,21 @@ def main() -> None:
             )
 
             # ---- Re-instantiate datasets with normalisation baked in ----
-            # Per-item normalisation happens inside ``_load_day``; nothing
-            # is written into ds.X / ds.y (which are now materialising
-            # properties and would OOM on large folds).
+            # When data_cfg.preload is true, the train/val/test datasets
+            # materialise the entire fold into a single in-memory tensor
+            # at construction. This eliminates dataloader I/O and lets
+            # the GPU saturate on training. Total RAM cost ~50 GB for a
+            # 700-day fold at input_len=600, n_features=64.
             y_norm = (y_median, y_sigma, 5.0)
+            preload = bool(data_cfg.get("preload", False))
             common_kwargs = dict(
                 normalize=True,
                 x_mean=x_mean,
                 x_std=x_std,
                 y_norm=y_norm,
+                preload=preload,
             )
+            print(f"[pipeline_v3] preload={preload}")
             train_ds = LOBDatasetV2(npz_dir, fold["train"], **common_kwargs)
             val_ds = LOBDatasetV2(npz_dir, fold["val"], **common_kwargs)
             test_ds = LOBDatasetV2(npz_dir, fold["test"], **common_kwargs)

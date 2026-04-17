@@ -231,6 +231,7 @@ class LOBDatasetV2(Dataset):
         smooth_target: int = 0,
         cache_size: int = 128,
         y_norm: Optional[Tuple[float, float, float]] = None,
+        preload: bool = False,
     ) -> None:
         super().__init__()
         self.data_dir = data_dir
@@ -386,6 +387,50 @@ class LOBDatasetV2(Dataset):
         if feature_names_first is not None:
             self.n_features_value = len(feature_names_first)
 
+        # --- Optional preload of all days into a single in-memory tensor.
+        # When the training fold fits in container RAM (here: ~50 GB for
+        # 700 days), preloading eliminates per-batch dataset I/O and lets
+        # the GPU saturate. Sets self._preloaded; __getitem__ then slices
+        # the global tensors directly with O(1) cost. Loaded arrays are
+        # already normalised and sanitised so __getitem__ is a pure view.
+        self._preloaded: bool = False
+        self._pre_X: Optional[np.ndarray] = None
+        self._pre_X_raw: Optional[np.ndarray] = None
+        self._pre_regime_prior: Optional[np.ndarray] = None
+        self._pre_y: Optional[np.ndarray] = None
+        self._pre_mask: Optional[np.ndarray] = None
+        if preload and self._total > 0:
+            self._do_preload()
+            self._preloaded = True
+
+    def _do_preload(self) -> None:
+        """Walk every day, load + normalise via _load_day, and concatenate
+        into single global tensors. After this call __getitem__ does pure
+        index lookups on self._pre_*."""
+        x_parts: List[np.ndarray] = []
+        xraw_parts: List[np.ndarray] = []
+        rp_parts: List[np.ndarray] = []
+        y_parts: List[np.ndarray] = []
+        mask_parts: List[np.ndarray] = []
+        for day_idx in range(len(self._day_paths)):
+            data = self._load_day(day_idx)
+            x_parts.append(data["X"])
+            if self._has_raw:
+                xraw_parts.append(data["X_raw"])
+            if self._has_regime_prior:
+                rp_parts.append(data["regime_prior"])
+            y_parts.append(data["y"])
+            mask_parts.append(data["mask"])
+        self._pre_X = np.concatenate(x_parts, axis=0)
+        if self._has_raw:
+            self._pre_X_raw = np.concatenate(xraw_parts, axis=0)
+        if self._has_regime_prior:
+            self._pre_regime_prior = np.concatenate(rp_parts, axis=0)
+        self._pre_y = np.concatenate(y_parts, axis=0)
+        self._pre_mask = np.concatenate(mask_parts, axis=0)
+        # Free the per-day LRU cache — preloaded tensors hold everything.
+        self.clear_cache()
+
     # ------------------------------------------------------------------
     # LRU cache management
     # ------------------------------------------------------------------
@@ -529,6 +574,33 @@ class LOBDatasetV2(Dataset):
     ]:
         if idx < 0:
             idx += self._total
+
+        # Fast path: when fully preloaded, slice the global tensors. No
+        # disk IO, no LRU lookup, near-zero overhead per item.
+        if self._preloaded:
+            x_feat = torch.from_numpy(
+                np.ascontiguousarray(self._pre_X[idx], dtype=np.float32)
+            )
+            y_item = self._pre_y[idx]
+            m_item = self._pre_mask[idx]
+            if self._horizons is not None:
+                y_t = torch.from_numpy(np.asarray(y_item, dtype=np.float32))
+                m_t = torch.from_numpy(np.asarray(m_item, dtype=np.float32))
+            else:
+                y_t = torch.tensor(float(y_item))
+                m_t = torch.tensor(float(m_item))
+            if self._has_raw:
+                x_raw = torch.from_numpy(
+                    np.ascontiguousarray(self._pre_X_raw[idx], dtype=np.float32)
+                )
+                if self._has_regime_prior:
+                    rp = torch.from_numpy(
+                        np.ascontiguousarray(self._pre_regime_prior[idx], dtype=np.float32)
+                    )
+                    return (x_feat, x_raw, rp, y_t, m_t)
+                return (x_feat, x_raw, y_t, m_t)
+            return (x_feat, y_t, m_t)
+
         day_idx, local_idx = self._locate(idx)
         data = self._load_day(day_idx)
 

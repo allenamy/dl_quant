@@ -449,32 +449,38 @@ def train_one_fold_v2(
         # GPU training when the bottleneck is per-batch I/O. Each worker forks
         # its own LRU cache; chunk_size shuffle still preserves leakage safety
         # since each worker sees a non-overlapping slice of indices.
+        # Exception: if the dataset is preloaded, all data is in process
+        # memory; workers would just fork the giant tensor, wasting RAM
+        # and adding IPC overhead. Use num_workers=0 in that case.
+        preloaded = getattr(train_dataset, "_preloaded", False)
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
             sampler=train_sampler,   # mutually exclusive with shuffle
-            num_workers=4,
-            persistent_workers=True,
+            num_workers=0 if preloaded else 4,
+            persistent_workers=False if preloaded else True,
             pin_memory=torch.cuda.is_available(),
             drop_last=True,
         )
     else:
         train_sampler = None
+        preloaded = getattr(train_dataset, "_preloaded", False)
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=4,
-            persistent_workers=True,
+            num_workers=0 if preloaded else 4,
+            persistent_workers=False if preloaded else True,
             pin_memory=torch.cuda.is_available(),
             drop_last=True,
         )
+    val_preloaded = getattr(val_dataset, "_preloaded", False)
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
-        persistent_workers=True,
+        num_workers=0 if val_preloaded else 2,
+        persistent_workers=False if val_preloaded else True,
         pin_memory=torch.cuda.is_available(),
     )
 
