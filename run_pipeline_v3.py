@@ -283,6 +283,8 @@ def main() -> None:
                         help="Skip feature engineering step")
     parser.add_argument("--model", default="V3", choices=["V1", "V2", "V3"],
                         help="Which model to train (V1/V2/V3, default V3)")
+    parser.add_argument("--max-folds", type=int, default=None,
+                        help="Stop after this many folds (e.g. 1 for quick sanity)")
     args = parser.parse_args()
 
     # --- Load config ---------------------------------------------------------
@@ -363,6 +365,9 @@ def main() -> None:
         print(f"[pipeline_v3] Built {len(folds)} fold(s)")
 
         for fold_idx, fold in enumerate(folds):
+            if args.max_folds is not None and fold_idx >= args.max_folds:
+                print(f"[pipeline_v3] --max-folds={args.max_folds} reached, stopping.")
+                break
             fold_dir = os.path.join(output_dir, f"fold_{fold_idx}")
             print(f"\n{'='*60}")
             print(
