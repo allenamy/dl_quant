@@ -13,6 +13,7 @@ import logging
 import os
 import time
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -688,34 +689,46 @@ class LOBDatasetV2(Dataset):
         return int(per_win) * self._total
 
     # ------------------------------------------------------------------
-    # Streaming statistics
+    # Streaming statistics (parallel I/O — FUSE-bound on remote storage)
     # ------------------------------------------------------------------
-    def compute_stats(self) -> Tuple[np.ndarray, np.ndarray]:
+    def _per_day_X_stats(self, day_idx: int) -> Tuple[int, np.ndarray, np.ndarray]:
+        """Stream X for one day; return (n, sum, sum_sq) over the flat F axis.
+
+        Loads ONLY the X array (not X_raw / labels / regime_prior) so the
+        compute_stats pass does ~20% of the I/O of a full _load_day.
+        """
+        path = self._day_paths[day_idx]
+        with _np_load_with_retry(path, allow_pickle=True) as npz:
+            X = np.asarray(npz["X"], dtype=np.float32)
+        if X.size == 0:
+            return 0, np.zeros(0, dtype=np.float64), np.zeros(0, dtype=np.float64)
+        X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
+        flat = X.astype(np.float64, copy=False).reshape(-1, X.shape[-1])
+        return flat.shape[0], flat.sum(axis=0), (flat * flat).sum(axis=0)
+
+    def compute_stats(self, max_workers: int = 8) -> Tuple[np.ndarray, np.ndarray]:
         """Return (mean, std) per feature by streaming through all days.
 
-        Equivalent to ``X.mean(axis=(0,1))`` / ``X.std(axis=(0,1))`` but
-        accumulates in float64 across every window × timestep without
-        materialising the full tensor.  Matches the monolithic result
-        within float32 tolerance.
+        Parallel I/O across ``max_workers`` threads — the bottleneck is
+        FUSE/remote NPZ reads, not Python-level compute. 8 workers sustain
+        close to the storage throughput ceiling on typical pod setups.
         """
         n_total = 0
         sum_: Optional[np.ndarray] = None
         sum_sq: Optional[np.ndarray] = None
 
-        for day_idx in range(len(self._day_paths)):
-            data = self._load_day(day_idx)
-            X = data["X"]
-            if X.size == 0:
-                continue
-            X64 = X.astype(np.float64, copy=False)
-            flat = X64.reshape(-1, X64.shape[-1])
-            if sum_ is None:
-                F = flat.shape[-1]
-                sum_ = np.zeros(F, dtype=np.float64)
-                sum_sq = np.zeros(F, dtype=np.float64)
-            n_total += flat.shape[0]
-            sum_ += flat.sum(axis=0)
-            sum_sq += (flat * flat).sum(axis=0)
+        n_days = len(self._day_paths)
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            for n, s, sq in ex.map(self._per_day_X_stats, range(n_days)):
+                if n == 0:
+                    continue
+                if sum_ is None:
+                    F = s.shape[0]
+                    sum_ = np.zeros(F, dtype=np.float64)
+                    sum_sq = np.zeros(F, dtype=np.float64)
+                n_total += n
+                sum_ += s
+                sum_sq += sq
 
         if n_total == 0 or sum_ is None:
             raise RuntimeError(
@@ -724,30 +737,40 @@ class LOBDatasetV2(Dataset):
             )
 
         mean = sum_ / n_total
-        var = (sum_sq / n_total) - mean * mean
-        var = np.maximum(var, 0.0)  # numerical safety for tiny negatives
+        var = np.maximum((sum_sq / n_total) - mean * mean, 0.0)
         std = np.sqrt(var)
         return mean.astype(np.float32), std.astype(np.float32)
 
-    def compute_y_stats(self) -> Tuple[float, float]:
+    def _per_day_y_valid(self, day_idx: int) -> Optional[np.ndarray]:
+        """Stream y + mask for one day; return the flat array of valid entries."""
+        path = self._day_paths[day_idx]
+        with _np_load_with_retry(path, allow_pickle=True) as npz:
+            per_key_y = [np.asarray(npz[k], dtype=np.float32) for k in self._y_keys]
+            per_key_m = [np.asarray(npz[k], dtype=np.float32) for k in self._mask_keys]
+        if self._horizons is not None:
+            y = np.stack(per_key_y, axis=-1)
+            m = np.stack(per_key_m, axis=-1)
+        else:
+            y = per_key_y[0]
+            m = per_key_m[0]
+        y = np.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
+        m = np.nan_to_num(m, nan=0.0, posinf=0.0, neginf=0.0)
+        valid = y[m > 0]
+        return valid.ravel() if valid.size else None
+
+    def compute_y_stats(self, max_workers: int = 8) -> Tuple[float, float]:
         """Return (median, mad_sigma) over all *valid* y values.
 
-        MAD-based sigma: ``1.4826 * MAD(y)``.  Streams through every day,
-        collects valid y entries (mask > 0), then runs np.median / MAD on
-        the accumulated 1-D array.  Memory: ~4 bytes × total_valid samples
-        (typically < 10 MB even on 500-day folds), so still lightweight.
-
-        In multi-horizon mode the statistics are computed over the
-        flattened joint array so callers get a single scalar pair.
+        MAD-based sigma: ``1.4826 * MAD(y)``. I/O parallel across days;
+        valid-y arrays are tiny (< 10 MB total), median/MAD runs serially
+        on the concatenated result.
         """
         parts: List[np.ndarray] = []
-        for day_idx in range(len(self._day_paths)):
-            data = self._load_day(day_idx)
-            y = np.asarray(data["y"], dtype=np.float32)
-            m = np.asarray(data["mask"], dtype=np.float32)
-            valid = y[m > 0]
-            if valid.size:
-                parts.append(valid.ravel())
+        n_days = len(self._day_paths)
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            for valid in ex.map(self._per_day_y_valid, range(n_days)):
+                if valid is not None:
+                    parts.append(valid)
 
         if not parts:
             return 0.0, 1.0

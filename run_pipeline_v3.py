@@ -20,9 +20,11 @@ Usage
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -36,6 +38,19 @@ from torch.utils.data import DataLoader
 from src.features.pipeline import process_csv_to_npz
 from src.training.dataset import LOBDatasetV2, build_time_series_folds
 from src.training.trainer_v2 import train_one_fold_v2, _extract_model_config
+
+
+def _stats_cache_key(train_days, horizons_sec) -> str:
+    """Stable fingerprint of (train day set, horizon list). The cache is
+    invalidated automatically if either changes."""
+    h = hashlib.sha256()
+    for d in sorted(str(x) for x in train_days):
+        h.update(d.encode()); h.update(b"|")
+    h.update(b"h=")
+    if horizons_sec is not None:
+        for x in horizons_sec:
+            h.update(str(int(x)).encode()); h.update(b",")
+    return h.hexdigest()[:16]
 
 
 # ---------------------------------------------------------------------------
@@ -356,16 +371,38 @@ def main() -> None:
             print(f"{'='*60}")
 
             # ---- Streaming stats on the un-normalised training days ------
-            # LOBDatasetV2 now loads lazily; ``compute_stats`` walks days
-            # through the LRU cache and accumulates in float64 without
-            # materialising the full (N, L, F) tensor.
-            stats_ds = LOBDatasetV2(npz_dir, fold["train"], normalize=False)
-            x_mean, x_std = stats_ds.compute_stats()
-            # MAD-robust target normalisation computed on the same un-
-            # normalised training split (mask-aware, streaming).
-            y_median, y_sigma = stats_ds.compute_y_stats()
-            stats_ds.clear_cache()
-            del stats_ds
+            # LOBDatasetV2 walks train-day NPZs through a parallel I/O pool
+            # to accumulate mean/std (X) and median/sigma (y). The result is
+            # cached per-fold so reruns (retries, ablations) skip this pass.
+            os.makedirs(fold_dir, exist_ok=True)
+            stats_cache = os.path.join(fold_dir, "stats_cache.npz")
+            cache_key = _stats_cache_key(fold["train"], data_cfg.get("horizons_sec"))
+            if os.path.exists(stats_cache):
+                _c = np.load(stats_cache, allow_pickle=True)
+                if str(_c.get("key", "")) == cache_key:
+                    x_mean = _c["x_mean"].astype(np.float32)
+                    x_std = _c["x_std"].astype(np.float32)
+                    y_median = float(_c["y_median"])
+                    y_sigma = float(_c["y_sigma"])
+                    print(f"[pipeline_v3] Fold {fold_idx} stats cache HIT")
+                else:
+                    print(f"[pipeline_v3] Fold {fold_idx} stats cache key mismatch — recomputing")
+                    os.remove(stats_cache)
+                    x_mean = x_std = None  # sentinel
+            else:
+                x_mean = x_std = None
+            if x_mean is None:
+                _t0 = time.time()
+                stats_ds = LOBDatasetV2(npz_dir, fold["train"], normalize=False)
+                x_mean, x_std = stats_ds.compute_stats()
+                y_median, y_sigma = stats_ds.compute_y_stats()
+                stats_ds.clear_cache()
+                del stats_ds
+                np.savez(stats_cache,
+                         x_mean=x_mean, x_std=x_std,
+                         y_median=np.float64(y_median), y_sigma=np.float64(y_sigma),
+                         key=np.array(cache_key))
+                print(f"[pipeline_v3] Fold {fold_idx} stats computed in {time.time()-_t0:.1f}s → cached")
             print(
                 f"[pipeline_v3] Fold {fold_idx} target normalization: "
                 f"median={y_median:.6e}, sigma={y_sigma:.6e}"
