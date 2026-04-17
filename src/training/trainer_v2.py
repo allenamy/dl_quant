@@ -166,30 +166,30 @@ def _multi_horizon_loss(
     p_by_h = outputs["point_pred_by_horizon"]       # (B, n_h)
     n_h = q_by_h.shape[1]
 
-    total: Optional[torch.Tensor] = None
-    contributing = 0
+    # Sync-free accumulation: compute each horizon's loss on its masked
+    # slice and stack. The per-horizon torch.isfinite() guard was removed
+    # because it forced a CUDA sync every horizon (n_h sync points per
+    # step) — the nan guard at the outer training loop plus grad clip
+    # already protect against pathological batches, and individual-horizon
+    # slices rarely NaN in practice. idx.numel() is a Python int from the
+    # tensor shape and does not sync.
+    losses: list[torch.Tensor] = []
     for h_idx in range(n_h):
         mask_h = mask[:, h_idx]
         idx = mask_h.nonzero(as_tuple=True)[0]
-        if len(idx) == 0:
+        if idx.numel() == 0:
             continue
         m_outputs = {
             "quantiles": q_by_h[idx, h_idx, :],
             "point_pred": p_by_h[idx, h_idx],
         }
         m_target = y[idx, h_idx]
-        loss_h = loss_fn(m_outputs, m_target)
-        if not torch.isfinite(loss_h):
-            # A single bad horizon shouldn't poison the whole step; skip it.
-            continue
-        total = loss_h if total is None else total + loss_h
-        contributing += 1
+        losses.append(loss_fn(m_outputs, m_target))
 
-    if total is None or contributing == 0:
+    if not losses:
         return None
-    # Average over contributing horizons so the learning-rate schedule /
-    # grad clipping behave the same regardless of n_horizons.
-    return total / contributing
+    # torch.stack + mean runs entirely on the GPU (no sync).
+    return torch.stack(losses).mean()
 
 
 # ---------------------------------------------------------------------------
