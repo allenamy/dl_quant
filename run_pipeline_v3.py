@@ -394,7 +394,19 @@ def main() -> None:
                 x_mean = x_std = None
             if x_mean is None:
                 _t0 = time.time()
-                stats_ds = LOBDatasetV2(npz_dir, fold["train"], normalize=False)
+                # Stats must be computed on the SAME y key(s) the training
+                # loop will consume. Otherwise y_sigma is computed on the
+                # default 'y' alias (= y_60 in V4 NPZ) but training targets
+                # y_180, leading to a 2-3× scale mismatch that silently
+                # prevents learning.
+                _stats_horizons = (
+                    [f"y_{int(h)}" for h in data_cfg["horizons_sec"]]
+                    if data_cfg.get("horizons_sec") else None
+                )
+                stats_kwargs = dict(normalize=False)
+                if _stats_horizons is not None:
+                    stats_kwargs["horizons"] = _stats_horizons
+                stats_ds = LOBDatasetV2(npz_dir, fold["train"], **stats_kwargs)
                 x_mean, x_std = stats_ds.compute_stats()
                 y_median, y_sigma = stats_ds.compute_y_stats()
                 stats_ds.clear_cache()
