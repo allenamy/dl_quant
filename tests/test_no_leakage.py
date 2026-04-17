@@ -229,8 +229,28 @@ def test_v4_raises_when_ridge_flag_without_trades_df():
     raise AssertionError("Expected KeyError when trades_df missing and ridge flag on")
 
 
+def test_process_csv_to_npz_forwards_v4_flags():
+    """process_csv_to_npz accepts and forwards include_ridge_features /
+    include_regime_prior flags."""
+    import tempfile, os, sys, numpy as np, pandas as pd
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+    from src.features.pipeline import process_csv_to_npz
+
+    # Inspect the signature to confirm the two flags are accepted kwargs.
+    import inspect
+    sig = inspect.signature(process_csv_to_npz)
+    assert "include_ridge_features" in sig.parameters, \
+        "process_csv_to_npz should accept include_ridge_features"
+    assert "include_regime_prior" in sig.parameters, \
+        "process_csv_to_npz should accept include_regime_prior"
+    assert sig.parameters["include_ridge_features"].default is False
+    assert sig.parameters["include_regime_prior"].default is False
+    print("PASS: test_process_csv_to_npz_forwards_v4_flags")
+
+
 if __name__ == "__main__":
     import unittest
     unittest.main(exit=False)
     test_v4_npz_has_regime_prior_and_ridge_features()
     test_v4_raises_when_ridge_flag_without_trades_df()
+    test_process_csv_to_npz_forwards_v4_flags()

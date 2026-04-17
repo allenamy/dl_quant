@@ -259,6 +259,8 @@ def main() -> None:
             input_len=input_len,
             stride=stride,
             n_levels=n_levels,
+            include_ridge_features=data_cfg.get("include_ridge_features", False),
+            include_regime_prior=data_cfg.get("include_regime_prior", False),
         )
         for p in saved:
             d = np.load(p, allow_pickle=True)

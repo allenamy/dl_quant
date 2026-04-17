@@ -388,6 +388,8 @@ def process_csv_to_npz(
     input_len: int = 300,
     stride: int = 60,
     n_levels: int = 25,
+    include_ridge_features: bool = False,
+    include_regime_prior: bool = False,
 ) -> list[Path]:
     """Load a raw LOB CSV, resample to 1s, split by UTC day, and save NPZ files.
 
@@ -403,6 +405,13 @@ def process_csv_to_npz(
         (back-compat).
     horizon_sec, input_len, stride, n_levels
         Forwarded to ``build_npz_for_day``.
+    include_ridge_features : bool
+        When True, forwarded to ``build_npz_for_day`` to append 6 ridge-
+        informed interaction features. Default False preserves V3 behaviour.
+    include_regime_prior : bool
+        When True, forwarded to ``build_npz_for_day`` to compute and save a
+        per-window ``regime_prior`` matrix. Default False preserves V3
+        behaviour.
 
     Returns
     -------
@@ -443,6 +452,8 @@ def process_csv_to_npz(
             input_len=input_len,
             stride=stride,
             n_levels=n_levels,
+            include_ridge_features=include_ridge_features,
+            include_regime_prior=include_regime_prior,
         )
 
         # Derive YYYY-MM-DD from the day_id (days since epoch)
