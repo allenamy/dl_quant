@@ -12,6 +12,7 @@ PORT="40087"
 KEY="$HOME/.ssh/runpod_ed25519"
 EXP_DIR="experiments/v4_full"
 LOG="logs/postprocess.log"
+TRAIN_PID="${TRAIN_PID:-19033}"  # override via env var
 
 mkdir -p "$(dirname "$LOG")"
 
@@ -23,7 +24,7 @@ while true; do
   N=$(ssh -i "$KEY" -p "$PORT" -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@"$HOST" \
         "ls /workspace/quant_research/$EXP_DIR/fold_*/test_results.json 2>/dev/null | wc -l" 2>/dev/null || echo 0)
   PROC=$(ssh -i "$KEY" -p "$PORT" -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@"$HOST" \
-        "ps -p 17303 -o pid= 2>/dev/null | tr -d ' '" 2>/dev/null || true)
+        "ps -p $TRAIN_PID -o pid= 2>/dev/null | tr -d ' '" 2>/dev/null || true)
   say "folds_done=$N train_pid_alive=${PROC:-gone}"
   if [ "$N" -ge 4 ]; then
     say "All 4 folds complete. Proceeding."
