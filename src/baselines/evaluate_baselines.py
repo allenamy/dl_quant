@@ -56,6 +56,7 @@ def load_days(
     *,
     horizon_key: str = "y",
     mask_key: str = "y_mask",
+    use_last_timestep: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Load and concatenate X, y, y_mask from multiple day NPZ files.
 
@@ -66,10 +67,22 @@ def load_days(
         pin the 180s horizon and avoid silently reading the y_60 alias).
     mask_key : str
         NPZ field name for the mask array, matched to ``horizon_key``.
+    use_last_timestep : bool
+        If True, slice ``X[:, -1:, :]`` per day BEFORE concatenation so the
+        memory footprint is ~600x smaller (one timestep per window, not L).
+        Ridge/TemporalRidge/XGBoost baselines already internally use
+        last-timestep features; pre-slicing here just avoids materialising
+        the full (N, L, F) tensor in RAM — critical for running on a local
+        machine with less than ~80 GB.
+        Note: when True, ``TemporalRidgeBaseline`` (which computes std, trend
+        over the time axis) becomes degenerate (std=0, trend=0) and yields
+        the same result as ``RidgeBaseline``. ``FITSBaseline`` needs a
+        sequence and is skipped by ``run_all_baselines`` in this mode.
 
     Returns
     -------
-    X : (N, L, F) float32
+    X : (N, L, F) float32 when use_last_timestep=False
+        (N, 1, F) float32 when use_last_timestep=True
     y : (N,) float32
     mask : (N,) float32
     """
@@ -77,7 +90,11 @@ def load_days(
     for day in days:
         path = os.path.join(npz_dir, f"{day}.npz")
         npz = np.load(path, allow_pickle=True)
-        xs.append(npz["X"])
+        x_day = npz["X"]  # (N, L, F)
+        if use_last_timestep:
+            # Keep 3D with L=1 so downstream ``X[:, -1, :]`` slicing still works.
+            x_day = x_day[:, -1:, :]
+        xs.append(x_day)
         if horizon_key not in npz.files:
             raise KeyError(
                 f"{path}: missing horizon key {horizon_key!r}; "
@@ -319,6 +336,7 @@ def run_all_baselines(
     fold_stride: int = 1,
     horizon_key: str = "y",
     mask_key: str = "y_mask",
+    use_last_timestep: bool = False,
 ) -> Dict[str, Any]:
     """Run Ridge, TemporalRidge, XGBoost (if available), and FITS on multi-day data.
 
@@ -382,10 +400,12 @@ def run_all_baselines(
         # Load data (honor the horizon_key so V4 multi-horizon NPZ is loaded
         # on the intended horizon rather than the shortest-horizon `y` alias).
         X_train, y_train, mask_train = load_days(
-            npz_dir, fold["train"], horizon_key=horizon_key, mask_key=mask_key
+            npz_dir, fold["train"], horizon_key=horizon_key, mask_key=mask_key,
+            use_last_timestep=use_last_timestep,
         )
         X_test, y_test, mask_test = load_days(
-            npz_dir, fold["test"], horizon_key=horizon_key, mask_key=mask_key
+            npz_dir, fold["test"], horizon_key=horizon_key, mask_key=mask_key,
+            use_last_timestep=use_last_timestep,
         )
 
         # Compute normalisation from train
@@ -539,6 +559,16 @@ def main() -> None:
         "--mask-key", default="y_mask",
         help="NPZ field for the label mask. Default 'y_mask'.",
     )
+    parser.add_argument(
+        "--use-last-timestep", action="store_true",
+        help=(
+            "Slice X[:, -1, :] per day BEFORE concatenation (memory = L× smaller). "
+            "Ridge/XGBoost already use last-timestep internally; this just avoids "
+            "materialising the full (N, L, F) tensor, enabling local runs with "
+            "<16GB RAM on 200-700 day folds. TemporalRidge becomes degenerate "
+            "(std=0, trend=0) and FITS is auto-skipped in this mode."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -557,6 +587,7 @@ def main() -> None:
         fold_stride=args.fold_stride,
         horizon_key=args.horizon_key,
         mask_key=args.mask_key,
+        use_last_timestep=args.use_last_timestep,
     )
 
 
