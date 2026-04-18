@@ -484,6 +484,7 @@ def main() -> None:
                 dul_config=train_cfg.get("dul_config"),
                 num_workers=int(train_cfg.get("num_workers", 4)),
                 prefetch_factor=int(train_cfg.get("prefetch_factor", 2)),
+                horizon_weights=train_cfg.get("horizon_weights"),
             )
             print(f"[pipeline_v3] Fold {fold_idx} best: {best}")
 

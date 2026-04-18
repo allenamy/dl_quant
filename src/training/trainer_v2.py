@@ -128,6 +128,7 @@ def _multi_horizon_loss(
     y: torch.Tensor,
     mask: torch.Tensor,
     loss_fn: Callable[[Dict[str, torch.Tensor], torch.Tensor], torch.Tensor],
+    horizon_weights: Optional[List[float]] = None,
 ) -> Optional[torch.Tensor]:
     """Sum per-horizon quantile losses for multi-horizon training.
 
@@ -174,6 +175,7 @@ def _multi_horizon_loss(
     # slices rarely NaN in practice. idx.numel() is a Python int from the
     # tensor shape and does not sync.
     losses: list[torch.Tensor] = []
+    weights: list[float] = []
     for h_idx in range(n_h):
         mask_h = mask[:, h_idx]
         idx = mask_h.nonzero(as_tuple=True)[0]
@@ -185,11 +187,17 @@ def _multi_horizon_loss(
         }
         m_target = y[idx, h_idx]
         losses.append(loss_fn(m_outputs, m_target))
+        # Per-horizon weight; default 1.0 each (unchanged from prior behavior).
+        w = 1.0 if horizon_weights is None else float(horizon_weights[h_idx])
+        weights.append(w)
 
     if not losses:
         return None
-    # torch.stack + mean runs entirely on the GPU (no sync).
-    return torch.stack(losses).mean()
+    # Weighted mean across horizons. When weights are all 1.0 this reduces to
+    # the original torch.stack(...).mean() (sync-free, same numerical path).
+    stacked = torch.stack(losses)  # (n_contributing,)
+    w_tensor = torch.tensor(weights, dtype=stacked.dtype, device=stacked.device)
+    return (stacked * w_tensor).sum() / w_tensor.sum()
 
 
 # ---------------------------------------------------------------------------
@@ -303,6 +311,7 @@ def train_one_fold_v2(
     dul_config: Optional[Dict[str, Any]] = None,
     num_workers: int = 4,
     prefetch_factor: int = 2,
+    horizon_weights: Optional[List[float]] = None,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -565,7 +574,7 @@ def train_one_fold_v2(
             # the existing masked-select + scalar-loss path, bit-identical
             # to pre-patch behaviour.
             if multi_horizon:
-                loss = _multi_horizon_loss(outputs, y, mask, loss_fn)
+                loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
                 if loss is None:
                     continue
             else:
@@ -629,7 +638,7 @@ def train_one_fold_v2(
                 )
 
                 if multi_horizon:
-                    loss = _multi_horizon_loss(outputs, y, mask, loss_fn)
+                    loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
                     if loss is None:
                         continue
                     val_loss_sum += loss.item()
@@ -702,6 +711,23 @@ def train_one_fold_v2(
             torch.save(ckpt, os.path.join(out_dir, "best_model.pt"))
         else:
             epochs_no_improve += 1
+
+        # ===== Top-K checkpoint capture (for SWA / median-ensemble) =====
+        # Save each epoch's checkpoint into a per-fold topk/ folder tagged
+        # by epoch and val_corr. scripts/ensemble_topk.py selects the K
+        # epochs with highest val_corr and averages their test predictions.
+        # Storage cost: ~300KB/epoch × ~25 epochs ≈ 7MB/fold — trivial.
+        topk_dir = os.path.join(out_dir, "topk")
+        os.makedirs(topk_dir, exist_ok=True)
+        topk_ckpt = {
+            "state": model.state_dict(),
+            "class": type(model).__name__,
+            "config": _extract_model_config(model),
+            "epoch": epoch,
+            "val_corr": float(val_corr),
+            "val_loss": float(avg_val_loss),
+        }
+        torch.save(topk_ckpt, os.path.join(topk_dir, f"epoch_{epoch:03d}.pt"))
 
         if epochs_no_improve >= patience:
             print(f"Early stopping at epoch {epoch} (patience={patience}).")
