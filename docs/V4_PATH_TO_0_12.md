@@ -107,6 +107,51 @@ If nothing materially moves: **~0.10 is our ceiling at 700d stride=180** — doc
 
 Above 0.14 is likely the SNR floor without alternative data (funding rate, perp-spot basis, cross-venue aggregated flow) per Agent 3.
 
+## Empirical fingerprint → technique match (grounded in our 2 days of experiments)
+
+This maps what WE OBSERVED to which recommendations have the highest evidence of fit, beyond generic literature alignment.
+
+### Our observation → best-matched technique
+
+| Our empirical fact (from logs) | What it implies | Technique that directly addresses it |
+|---|---|---|
+| **Val_corr peaks at E5 (0.066) regardless of config (no_attn, no_attn+no_conv, no_attn+no_raw, no_attn+wd, V4 full)** | The ceiling is NOT architecture-imposed — same 0.066 limit across 5+ variants | **P1 Dense-train stride=60** — bypasses the ceiling by giving more gradient steps |
+| **Val_corr oscillates 0.049–0.059 for 8 epochs post-peak before early stop** | Model is wandering within one flat basin; peak checkpoint is a lucky draw from a distribution | **P3 SWA / middle-epoch median** — *exact* textbook case per Izmailov 2018 |
+| **Train loss keeps dropping linearly while val stalls** | Classic bias-variance gap; overfitting noise, not missing structure | P5 cosine LR (stop learning when val stops) + P3 SWA |
+| **y_60 target reaches val_corr 0.145 at 700d vs y_180 0.066** (2× stronger signal) | 60s horizon has materially more predictable signal than 180s | **NEW: y_60 as auxiliary loss** — treat y_60 as regularizer that improves shared encoder |
+| **Removing patch attention = +0.055 Pearson** (biggest architecture lift we found) | Over-capacity modules overfit noise at SNR < 1% | Stay minimalist — don't add new modules without ablating cost |
+| **100d val_corr reached 0.126 (G_noconv) but 700d plateaued at 0.066** | Small val sets give noisy (often inflated) estimates; architecture ranking on 100d doesn't generalize | **Only trust ≥500d val sets** for ranking; use 100d only for detecting sign direction of effects |
+| **Removing raw path at 100d seemed ok (H_ridge_only test 0.080) but at 700d regressed to 0.057** | Raw LOB signal requires enough data to be extracted; it's additive at scale | Keep Path B — vindicates the DL pivot from pure linear/tree |
+| **V4 full (with attention) → 0.061 Pearson, V4 no_attn → 0.101 Pearson** at 700d | Architecture capacity WAS the bottleneck at V4 full; it's no longer the bottleneck at V4 no_attn | Next gains must come from data/labels, not architecture |
+
+### Net inference: where the remaining 0.02 lives
+
+We've saturated architecture at 0.10 Pearson. The 0.02 gap to target lives in one or a combination of:
+- **Data density** (stride=60 → +0.01)
+- **Target cleanness** (SG + TLOB smoothing → +0.01 individually, +0.015 combined)
+- **Ensemble variance reduction** (SWA → +0.005-0.015)
+- **Auxiliary y_60 signal leverage** (multi-task with y_60 regularizer → unknown, but y_60's 0.145 is sitting there)
+
+Conservative combination: 0.101 + 0.01 + 0.005 = 0.116 (still below 0.12).
+Aggressive combination: 0.101 + 0.02 + 0.015 + 0.010 = 0.146 (clears with room).
+
+### NEW (empirically motivated, not in agent reports): y_60 as auxiliary loss
+
+Our parallel-multi-horizon experiment showed adding 4 horizon heads with equal loss weight HURT because each head got 1/4 the gradient. But y_60 at 700d has **2× more val_corr** than y_180 — that's real signal.
+
+**Design:** keep n_horizons=1 + primary head predicting y_180. Add a cheap **auxiliary head** predicting y_60 with smaller loss weight (e.g., 0.2). The shared encoder gets a stronger learning signal from the y_60 side (where signal exists), which should improve y_180 representations through the shared backbone.
+
+This is different from our prior multi-horizon: not equal-weight parallel; y_60 as *regularizer*, not output.
+
+**Effort:** 2-3h (modify model + loss composition)
+**Expected lift:** Unknown — no published evidence on this specific trick, but mechanism is sound (richer shared backbone training signal in a low-SNR setting). Try this on a smoke first.
+
+### Sanity checks we still owe ourselves
+
+1. **XGBoost on V4 features** at h=180 — Wang 2025 says XGBoost > DeepLOB on our exact data. If XGBoost hits 0.12, we should have been iterating XGBoost features, not DL architecture.
+2. **Rolling retraining window** — 60/90/180-day rolling retrain vs single 700-day fit. If non-stationarity is the issue, a stale 700-day fit blends regimes.
+3. **Explicit outlier audit on the Pearson 0.101** — compute Pearson with top-1% and bottom-1% of residuals winsorized. If Pearson jumps, tails are eating variance; if Spearman > Pearson gap is real.
+
 ## Sources
 
 (Key citations from the 3 agents; full list in individual agent reports)
