@@ -285,6 +285,12 @@ def main() -> None:
                         help="Which model to train (V1/V2/V3, default V3)")
     parser.add_argument("--max-folds", type=int, default=None,
                         help="Stop after this many folds (e.g. 1 for quick sanity)")
+    parser.add_argument("--start-fold", type=int, default=0,
+                        help="Skip folds with index < start-fold (for resuming mid-run)")
+    parser.add_argument("--patience-override", type=int, default=None,
+                        help="Override config's patience (e.g. 4 for faster early-stop on resumed folds)")
+    parser.add_argument("--eval-only", action="store_true",
+                        help="Skip training, only run test evaluation on each fold's existing best_model.pt")
     args = parser.parse_args()
 
     # --- Load config ---------------------------------------------------------
@@ -365,6 +371,9 @@ def main() -> None:
         print(f"[pipeline_v3] Built {len(folds)} fold(s)")
 
         for fold_idx, fold in enumerate(folds):
+            if fold_idx < args.start_fold:
+                print(f"[pipeline_v3] --start-fold={args.start_fold} skipping fold {fold_idx}")
+                continue
             if args.max_folds is not None and fold_idx >= args.max_folds:
                 print(f"[pipeline_v3] --max-folds={args.max_folds} reached, stopping.")
                 break
@@ -469,24 +478,31 @@ def main() -> None:
             total_params = sum(p.numel() for p in model.parameters())
             print(f"[pipeline_v3] Model parameters: {total_params:,}")
 
-            best = train_one_fold_v2(
-                model=model,
-                train_dataset=train_ds,
-                val_dataset=val_ds,
-                out_dir=fold_dir,
-                device=device,
-                epochs=train_cfg["epochs"],
-                batch_size=train_cfg["batch_size"],
-                lr=train_cfg["lr"],
-                weight_decay=train_cfg["weight_decay"],
-                patience=train_cfg["patience"],
-                grad_clip=train_cfg["grad_clip"],
-                dul_config=train_cfg.get("dul_config"),
-                num_workers=int(train_cfg.get("num_workers", 4)),
-                prefetch_factor=int(train_cfg.get("prefetch_factor", 2)),
-                horizon_weights=train_cfg.get("horizon_weights"),
-            )
-            print(f"[pipeline_v3] Fold {fold_idx} best: {best}")
+            if args.eval_only:
+                print(f"[pipeline_v3] --eval-only: skipping training for fold {fold_idx}, reusing existing best_model.pt")
+                best = {"skipped_training": True}
+            else:
+                _patience = args.patience_override if args.patience_override is not None else train_cfg["patience"]
+                if args.patience_override is not None:
+                    print(f"[pipeline_v3] patience override: {_patience} (config was {train_cfg['patience']})")
+                best = train_one_fold_v2(
+                    model=model,
+                    train_dataset=train_ds,
+                    val_dataset=val_ds,
+                    out_dir=fold_dir,
+                    device=device,
+                    epochs=train_cfg["epochs"],
+                    batch_size=train_cfg["batch_size"],
+                    lr=train_cfg["lr"],
+                    weight_decay=train_cfg["weight_decay"],
+                    patience=_patience,
+                    grad_clip=train_cfg["grad_clip"],
+                    dul_config=train_cfg.get("dul_config"),
+                    num_workers=int(train_cfg.get("num_workers", 4)),
+                    prefetch_factor=int(train_cfg.get("prefetch_factor", 2)),
+                    horizon_weights=train_cfg.get("horizon_weights"),
+                )
+                print(f"[pipeline_v3] Fold {fold_idx} best: {best}")
 
             np.savez(
                 os.path.join(fold_dir, "norm_params.npz"),
