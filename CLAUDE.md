@@ -208,6 +208,43 @@ Raw data (JSONL/CSV) → resample_lob_to_1s
 
 ---
 
+## Metric Discipline (标准化评估口径)
+
+**所有训练/评估/消融实验必须同时报告以下指标**，不可只报一个。详细规则见 `docs/METRIC_DISCIPLINE.md`。
+
+### 指标分层（从首选到辅助）
+
+1. **Spearman rank IC** — **交易侧首选指标**
+   - 金融收益重尾，Pearson 易被少数极端日拉动
+   - 交易 P&L 依赖的是排序（谁涨谁跌），Spearman 直接度量
+   - 工业界（Two Sigma / RenTech / Citadel）alpha 研究的主 IC 报告口径
+
+2. **Pearson corr** — **规格合规 + 幅度校准**
+   - Spec (`docs/superpowers/specs/2026-04-16-v4-design.md`) 的硬性门槛
+   - 体现预测量级是否正确（影响仓位大小）
+   - 两者严重分歧时 (|Pearson − Spearman| > 0.03)，需要诊断是否极端值主导
+
+3. **Direction accuracy** — **卫生检查**，必须 > 50%
+4. **Weighted Sharpe (Newey-West HAC)** — **最终答案**，回测后
+
+### 分歧处理原则
+
+| Pearson ≥ 0.12 | Spearman ≥ 0.12 | 判定 |
+|:-:|:-:|:-|
+| ✅ | ✅ | 通过（规格 + 交易双达标） |
+| ❌ | ✅ | **交易可用但不合规** — 记录，诊断极端值影响，与 user 对齐是否放行 |
+| ✅ | ❌ | **危险信号** — Pearson 被少数样本带飞，实盘大概率无效 |
+| ❌ | ❌ | 不合规且交易不可用，必须继续迭代或记录为负面结果 |
+
+### 不可做的事
+
+- **不可** 只挑 Spearman 或只挑 Pearson 汇报，必须两者并列
+- **不可** 为了让 Pearson 达标而牺牲 Spearman（"游戏规格"）
+- **不可** 在 val_corr 单一指标上做 early stop 决定、checkpoint 选择 — 需要同时看两个指标的一致性
+- **不可** 把 r2 作为替代指标 — 在 r² < 1% 区间噪声主导，r2 数值波动无统计意义
+
+---
+
 ## Anti-Patterns (从失败经验中总结)
 
 1. **单日数据验证** — Val corr +0.088 → Test corr -0.102。时段差异 = regime 差异。无效。

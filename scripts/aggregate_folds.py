@@ -95,17 +95,31 @@ def aggregate(exp_dir: Path, baseline_corr: Optional[float] = None) -> Dict[str,
     # --- per-fold metrics table ---------------------------------------------
     per_fold: List[Dict[str, Any]] = []
     fold_test_corrs: List[float] = []
+    fold_test_rank_corrs: List[float] = []
     for f in folds:
         pred = f["point_pred"][f["mask"]]
         tgt = f["targets"][f["mask"]]
         test_corr = _safe_corr(pred, tgt)
+        # Per-fold Spearman (rank IC) — see docs/METRIC_DISCIPLINE.md
+        test_rank_corr = (
+            _safe_corr(
+                np.argsort(np.argsort(pred)).astype(float),
+                np.argsort(np.argsort(tgt)).astype(float),
+            )
+            if pred.size > 1 else float("nan")
+        )
+        # Direction accuracy (hygiene)
+        dir_acc = float(np.mean(np.sign(pred) == np.sign(tgt))) if pred.size else float("nan")
         fold_test_corrs.append(test_corr)
+        fold_test_rank_corrs.append(test_rank_corr)
         row = {
             "fold": f["fold_dir"],
             "val_corr": f["metrics"].get("val_corr"),
             "val_r2": f["metrics"].get("val_r2"),
             "best_epoch": f["metrics"].get("best_epoch"),
-            "test_corr": test_corr,
+            "test_corr": test_corr,           # Pearson (spec bar)
+            "test_rank_corr": test_rank_corr, # Spearman (trading primary)
+            "test_direction_acc": dir_acc,
             "test_n": int(f["mask"].sum()),
             "test_sharpe_annual": f["test_results"].get("sharpe_annual"),
             "test_net_pnl_bps": f["test_results"].get("net_pnl_bps"),

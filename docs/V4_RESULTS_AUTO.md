@@ -1,60 +1,63 @@
-# V4 Results (updated with no_attention win)
+# V4 Results (updated per METRIC_DISCIPLINE.md)
 
-## Headline
+## Metric reporting convention
 
-**Disabling the patch attention block lifts V4 from 0.061 → 0.101 Pearson on y_180 fold 0 — above Ridge baseline for the first time.**
+Per `docs/METRIC_DISCIPLINE.md`, every result reports **both** Spearman (trading-side primary, robust to outliers) and Pearson (spec bar, magnitude calibration). Divergence > 0.03 is flagged for outlier inspection.
 
-| Metric | V4 full | V4 no_attention | V3+RevIN | Ridge | Target |
-|---|---:|---:|---:|---:|---:|
-| Test Pearson (h=180) | 0.061 | **0.101** | 0.082 | 0.099 | 0.12 |
-| Test Spearman | 0.089 | **0.107** | — | — | — |
-| val_corr peak | 0.038 | **0.066** | — | — | — |
+## Headline: V4 no_attention beats Ridge baseline on fold 0
 
-## How we got here — methodology
+| Config | Test Pearson | Test Spearman | Divergence | vs Ridge (0.099) | vs V4 spec (0.12) |
+|---|---:|---:|---:|:-:|:-:|
+| **V4 no_attention** | **0.1009** | **0.1072** | 0.006 | ✅ beats | ❌ below by 0.02 |
+| V4 full (pre-fix) | 0.0609 | 0.0893 | 0.028 | ❌ | ❌ |
+| V3+RevIN (reported) | 0.082 | — | — | ❌ | ❌ |
+| Ridge (reported) | 0.099 | — | — | — | — |
 
-Running an 8-variant 100-day smoke sweep (1 min/variant) revealed that **patch attention was the single largest NEGATIVE contributor** — removing it 3× the test Pearson on smoke (0.029 → 0.084). Every other V4 module (PPNet gate, Path B raw LOB, RevIN, utility_rank loss) was net-positive.
+For V4 no_attention the Pearson-Spearman divergence is tiny (0.006) → **no outlier concern**, signal is real.
 
-Promoted to 700-day validation:
-- val_corr peak 0.0662 at epoch 5 (vs 0.0383 for V4 full)
-- Early stop epoch 13 (patience=8 from peak)
-- **Test Pearson 0.1009**, Spearman 0.1072
+For V4 full the divergence is 0.028 (Pearson lower than Spearman) → consistent with Pearson being pulled down by a few miscalibrated magnitude predictions; signal is still directionally correct.
 
-## Why patch attention hurt
+## V4 full 4-fold aborted history (for reference)
 
-At 66K params with SNR < 1% on y_180, the 3K-param patch attention block (2-head MHA over 120 time patches) was learning train-set-specific attention patterns that didn't generalize. Disabling it leaves:
+Fold 0 only completed. Fold 1 hung silently for 23+ min. Training killed. Five root-cause fixes landed before the honest number came through: preload OOM, compute_stats single-threading, horizons wiring, y_sigma scale bug, (B,1)-vs-(B,) shape bug. All committed.
 
-```
-TCN output (B, 600, 32) → last timestep → PPNet gate → quantile head
-```
+## Round 1 smoke (8 variants, 100d, 1 min/run, y_180)
 
-Simpler pipeline, less overfit, better generalization. Matches CLAUDE.md principle: model capacity must match signal strength.
+| Variant | Flag change | test Pearson | test Spearman | Note |
+|---|---|---:|---:|---|
+| A_full | V4 full | +0.029 | +0.041 | baseline |
+| B_y60 | target y_60 | +0.010 | −0.003 | y_60 needs more data |
+| C_noraw | `use_raw_path=False` | −0.023 | −0.026 | Path B helps |
+| D_norevin | `use_revin=False` | +0.010 | +0.020 | RevIN helps |
+| **E_noattn** | `use_attention=False` | **+0.084** | **+0.101** | Big win |
+| F_noppnet | `use_ppnet_gate=False` | −0.048 | −0.047 | PPNet helps |
+| G_simple | strip V4-specific | +0.017 | +0.028 | mixed |
+| H_norank | `lambda_utility_rank=0` | −0.011 | ~0 | utility_rank helps |
 
-## Architecture still active in the winning config
+## Round 2 smoke (8 variants on no_attention baseline, 100d)
 
-Retained (all net-positive):
-- RevIN per-instance normalization
-- MaskNet **disabled** (was already V4 default)
-- GDCN gated cross in 64-dim space (Path A)
-- RawLOBEncoder with 1×1 channel mix + **level attention pool** (over 20 orderbook depths, Path B)
-- TCN: 3 dilated causal convs (d=32, k=3, dil={1,2,4})
-- PPNet regime gate (d_prior=6)
-- Monotonic quantile head (q10 ≤ q50 ≤ q90)
-- DUL loss: pinball + utility-rank (λ=0.3)
+| Variant | test Pearson | test Spearman | val_corr | Signal |
+|---|---:|---:|---:|---|
+| A_noattn | +0.076 | +0.091 | 0.121 | baseline |
+| B_small (d=16) | +0.039 | +0.053 | 0.068 | too little capacity |
+| C_nogdcn | +0.061 | +0.073 | 0.095 | GDCN mildly helps |
+| D_dropout 0.3 | +0.038 | +0.061 | 0.058 | over-regularized |
+| E_lowlr (2e-4) | +0.073 | +0.090 | 0.093 | no gain |
+| F_noLvlAttn | +0.032 | +0.047 | 0.105 | level attn helps |
+| **G_noconv** | +0.068 | **+0.103** | **0.126** | removing TCN helps Spearman |
+| H_ridge_only | **+0.080** | +0.091 | 0.115 | no raw path, still strong |
 
-Removed (from V4 full):
-- PatchEmbedding (time-slicing into 5-step patches)
-- CausalPatchAttention (2-head, d_ff=64)
-- AttentionPoolTokens (softmax pool over patches)
+Interpretation: at 100d three configs (A, G, H) cluster at val_corr ~0.12 — plausible ceiling at small data, so differences between top-3 are within noise.
 
-## Status
+## In-progress
 
-- Fold 0 at 700d: **test Pearson 0.1009** — confirmed
-- Round 2 smoke sweep running (8 more variants on top of no_attention baseline) to search for +0.02 lift to hit 0.12 target
-- Pending: 4-fold run of no_attention to get pooled IC
+**no_attention + no_conv** at 700d (PID 36403) — if either Pearson or Spearman ≥ 0.12, promote to 4-fold pooled. If Spearman ≥ 0.12 but Pearson < 0.12, we flag as "trading-viable spec-non-compliant" per METRIC_DISCIPLINE.md.
 
-## Next actions
+## Next decision tree
 
-1. Wait for Round 2 smoke results (~10 min total): test smaller model, no GDCN, higher dropout, no level pool, no conv, etc.
-2. If any variant beats 0.10 on smoke Pearson, promote to 700d validation
-3. If no further improvement, run no_attention on all 4 folds for pooled IC
-4. Decide whether to accept pooled ~0.10 (beats Ridge) or invest in more iteration toward 0.12
+Applies once no_attn+no_conv 700d finishes:
+
+1. **Spearman ≥ 0.12 AND Pearson ≥ 0.12** — full pass. Launch 4-fold for pooled.
+2. **Spearman ≥ 0.12, Pearson 0.10-0.12** — conditional pass. Launch 4-fold + investigate outlier influence on Pearson.
+3. **Spearman 0.10-0.12** — competitive with V3 + Ridge, below V4 target. Run 4-fold for pooled; decide with user if pragmatic win or keep iterating.
+4. **Both < 0.10** — below Ridge. Continue architecture search (try H_ridge_only at 700d, or shrink further).
