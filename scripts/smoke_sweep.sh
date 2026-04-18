@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # Fast-smoke sweep over V4 variants.
-# For each config in configs/v4_smoke/*.json run fold 0 only, collect test corr.
-# Writes a summary table at logs/smoke_sweep_summary.tsv.
+# For each config in $1 (default configs/v4_smoke)/*.json run fold 0 only,
+# collect test corr into $2 (default logs/smoke_sweep_summary.tsv).
 set -euo pipefail
 
 cd /workspace/quant_research
 
-OUT=logs/smoke_sweep_summary.tsv
+CFG_DIR="${1:-configs/v4_smoke}"
+OUT="${2:-logs/smoke_sweep_summary.tsv}"
 mkdir -p logs
 printf "variant\twall_min\tbest_epoch\tval_corr\ttest_pearson\ttest_spearman\n" > "$OUT"
 
-for cfg in configs/v4_smoke/*.json; do
+for cfg in "$CFG_DIR"/*.json; do
     name=$(basename "$cfg" .json)
     log="logs/smoke_${name}.log"
     exp_dir="experiments/v4_smoke_${name}"
