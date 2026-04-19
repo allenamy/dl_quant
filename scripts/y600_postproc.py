@@ -76,13 +76,16 @@ def block_bootstrap_ci(
 
 
 def tail_metrics(p: np.ndarray, t: np.ndarray, mad_sigma: float, k: float = 2.0) -> Dict[str, Any]:
-    thresh = k * mad_sigma
+    # Targets in test_preds.npz are z-normalised (divided by y_sigma, clipped
+    # to ±5). So the k-σ tail threshold is simply k, not k·sigma.
+    thresh = k
     m = np.abs(t) > thresh
     n = int(m.sum())
     if n < 10:
         return {"n_tail": n, "diracc": None}
     return {
-        "threshold_bps": thresh * 1e4,
+        "threshold_z": thresh,
+        "threshold_bps_equiv": thresh * mad_sigma * 1e4,
         "k_sigma": k, "n_tail": n,
         "diracc": _diracc(p[m], t[m]),
         "pearson": _pearson(p[m], t[m]),
@@ -276,7 +279,7 @@ def format_md(results: Dict[str, Dict[str, Any]], blend: Optional[Dict[str, Any]
         t = r.get("tail")
         if t and t.get("n_tail"):
             lines.append(f"## Tail DirAcc ({name})\n")
-            lines.append(f"- threshold: {t['threshold_bps']:.2f} bps, N tail: {t['n_tail']}")
+            lines.append(f"- threshold: |z| > {t.get('threshold_z', 2.0):.1f} ({t.get('threshold_bps_equiv', 0):.2f} bps equivalent), N tail: {t['n_tail']}")
             lines.append(f"- DirAcc: {t['diracc']:.3f}  Pearson: {t['pearson']:+.4f}  Spearman: {t['spearman']:+.4f}")
             lines.append("")
             break
