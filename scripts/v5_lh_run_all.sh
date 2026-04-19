@@ -16,7 +16,8 @@ CONFIG=configs/v5_lh/v5_lh_base.json
 for FOLD in 0 1 2; do
   for SEED in 1 2 3; do
     echo "==== V5-LH fold=$FOLD seed=$SEED start $(date -Is) ===="
-    python3 scripts/v5_lh_train.py \
+    # -u = unbuffered stdout so `tee` and `tail -f` see progress in real time.
+    PYTHONUNBUFFERED=1 python3 -u scripts/v5_lh_train.py \
         --config "$CONFIG" \
         --fold "$FOLD" \
         --seed "$SEED" \
