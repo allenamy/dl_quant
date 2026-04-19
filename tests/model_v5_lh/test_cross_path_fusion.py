@@ -33,3 +33,23 @@ def test_gradient_flows_both_paths():
     out.sum().backward()
     assert h_A.grad is not None and h_A.grad.abs().sum().item() > 0
     assert h_B.grad is not None and h_B.grad.abs().sum().item() > 0
+
+
+def test_path_b_influences_output():
+    """Changing h_B should change output — verifies B actually contributes.
+
+    Weaker test than training-based residual check, but catches the failure
+    mode where residual_proj collapses to zero at init.
+    """
+    torch.manual_seed(0)
+    B, L = 2, 30
+    fusion = CrossPathFusion(d_A=32, d_B=24, d_out=32, nhead=4)
+    fusion.eval()
+    h_A = torch.randn(B, L, 32)
+    h_B = torch.randn(B, L, 24)
+    h_B_alt = torch.randn(B, L, 24)
+    with torch.no_grad():
+        out1 = fusion(h_A, h_B)
+        out2 = fusion(h_A, h_B_alt)
+    # Outputs should differ by more than numerical noise
+    assert (out1 - out2).abs().mean().item() > 1e-3

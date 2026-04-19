@@ -1,12 +1,15 @@
-"""Bidirectional cross-attention fusion with residual decomposition.
+"""Bidirectional cross-attention fusion with TRUE residual decomposition.
 
-  h_A_enh = CrossAttn(Q=h_A, K=h_B_proj, V=h_B_proj)   # A attends to B
-  h_B_enh = CrossAttn(Q=h_B_proj, K=h_A, V=h_A)         # B attends to A
-  residual = h_B_enh - Proj(h_A_enh)
-  h_fused  = Linear(h_A_enh) + Linear(residual)
+  h_A_enh = CrossAttn(Q=h_A, K=h_B, V=h_B)   # A attends to B
+  h_B_enh = CrossAttn(Q=h_B, K=h_A, V=h_A)   # B attends to A
+  residual = h_B_enh − detach(Proj(h_A_enh))
+  h_fused = Linear(h_A_enh) + Linear(residual)
 
-The subtraction forces the B-path to contribute what A cannot represent
-(residual / complementary signal), not redundant information.
+The stop-gradient on `Proj(h_A_enh)` is what makes this a true residual
+decomposition: gradient from the residual branch does NOT flow back into
+path A, so path B is trained to fit the part of y that A's representation
+cannot reach. Without the detach, the subtraction produces a different
+tensor but offers no learning pressure for complementarity.
 
 PyTorch < 1.9 compatibility: nn.MultiheadAttention does not accept
 batch_first=True. Inputs are transposed (B, L, d) → (L, B, d) for the
@@ -84,8 +87,12 @@ class CrossPathFusion(nn.Module):
         # B attends to A: enrich B with A's information
         h_B_enh = self.attn_B_from_A(h_B_proj, h_A, h_A)       # (B, L, d_A)
 
-        # Residual decomposition: what in B is NOT explained by A
-        residual = h_B_enh - self.a_to_common(h_A_enh)          # (B, L, d_A)
+        # Residual decomposition: what in B is NOT explained by A.
+        # Stop-gradient on A's projection so path B is trained to fit the
+        # residual y − A_prediction_space, not to copy A's signal. Without
+        # this detach, the subtraction produces a different tensor but
+        # provides no learning pressure for B to contribute orthogonal info.
+        residual = h_B_enh - self.a_to_common(h_A_enh).detach()  # (B, L, d_A)
 
         # Combine: primary path A signal + complementary B residual
         return self.out_proj(h_A_enh) + self.residual_proj(residual)  # (B, L, d_out)
