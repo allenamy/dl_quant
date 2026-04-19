@@ -49,7 +49,7 @@ def main():
     print(f"[smoke] using first {len(smoke_days)} days: {smoke_days[0]}..{smoke_days[-1]}")
 
     horizons = cfg["model"]["horizons"]
-    ds = LOBDatasetV2(npz_dir=str(npz_dir), days=smoke_days, horizons=horizons, preload=False)
+    ds = LOBDatasetV2(data_dir=str(npz_dir), days=smoke_days, horizons=horizons, preload=False)
     print(f"[smoke] total samples: {len(ds):,}")
 
     # Compute y_sigma

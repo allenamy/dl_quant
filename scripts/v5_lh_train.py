@@ -87,11 +87,11 @@ def _run_fold_seed(cfg: dict, fold_idx: int, seed: int, device: str) -> dict:
     print(f"[v5_lh] fold={fold_idx} seed={seed}: "
           f"train={len(fold['train'])} val={len(fold['val'])} test={len(fold['test'])} days")
 
-    train_ds = LOBDatasetV2(npz_dir=str(npz_dir), days=fold["train"],
+    train_ds = LOBDatasetV2(data_dir=str(npz_dir), days=fold["train"],
                             horizons=horizons, preload=False)
-    val_ds = LOBDatasetV2(npz_dir=str(npz_dir), days=fold["val"],
+    val_ds = LOBDatasetV2(data_dir=str(npz_dir), days=fold["val"],
                           horizons=horizons, preload=False)
-    test_ds = LOBDatasetV2(npz_dir=str(npz_dir), days=fold["test"],
+    test_ds = LOBDatasetV2(data_dir=str(npz_dir), days=fold["test"],
                            horizons=horizons, preload=False)
     print(f"[v5_lh] samples: train={len(train_ds):,} val={len(val_ds):,} test={len(test_ds):,}")
 
