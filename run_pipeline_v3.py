@@ -120,18 +120,25 @@ def _run_test_evaluation(
     y_sigma: float = 1.0,
     y_median: float = 0.0,
     horizons_sec: Optional[list] = None,
+    ckpt_name: str = "best_model.pt",
+    preds_name: str = "test_preds.npz",
+    results_name: str = "test_results.json",
 ) -> None:
-    """Load best model, run inference on test set, compute metrics + backtest.
+    """Load checkpoint, run inference on test set, compute metrics + backtest.
 
     For multi-horizon models (n_horizons > 1), inference is run with
     ``all_horizons=True`` and the backtest uses the horizon whose period
     matches ``horizon_sec`` (defaulting to index 0 if not found).  Targets
     and masks are sliced to the selected horizon so shapes are consistent
     with the (N, 3) quantile predictions fed to BacktestEngine.
+
+    ``ckpt_name`` / ``preds_name`` / ``results_name`` let the caller evaluate
+    multiple snapshots (e.g. ``best_model.pt`` vs ``ema_best.pt``) within the
+    same fold without overwriting each other's artefacts.
     """
     device_obj = torch.device(device)
 
-    ckpt_path = os.path.join(fold_dir, "best_model.pt")
+    ckpt_path = os.path.join(fold_dir, ckpt_name)
     ckpt = torch.load(ckpt_path, map_location=device_obj, weights_only=False)
 
     # Accept both new-format and legacy raw state_dict
@@ -233,7 +240,7 @@ def _run_test_evaluation(
 
     # --- Save predictions for run_backtest.py ---
     np.savez(
-        os.path.join(fold_dir, "test_preds.npz"),
+        os.path.join(fold_dir, preds_name),
         predictions=predictions,
         targets=targets,
         mask=mask,
@@ -260,10 +267,11 @@ def _run_test_evaluation(
         overlap_ratio=overlap_ratio,
     )
 
+    print(f"[pipeline_v3] --- {ckpt_name} ---")
     print(result.summary())
 
     # Persist scalar results
-    results_path = os.path.join(fold_dir, "test_results.json")
+    results_path = os.path.join(fold_dir, results_name)
     with open(results_path, "w") as f:
         json.dump(result.to_dict(), f, indent=2, default=str)
     print(f"[pipeline_v3] Test results saved to {results_path}")
@@ -291,6 +299,9 @@ def main() -> None:
                         help="Override config's patience (e.g. 4 for faster early-stop on resumed folds)")
     parser.add_argument("--eval-only", action="store_true",
                         help="Skip training, only run test evaluation on each fold's existing best_model.pt")
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Random seed for reproducibility / ensemble diversity. "
+                             "Passed through to trainer's _seed_everything. Default: None (stock torch seeding).")
     args = parser.parse_args()
 
     # --- Load config ---------------------------------------------------------
@@ -501,6 +512,10 @@ def main() -> None:
                     num_workers=int(train_cfg.get("num_workers", 4)),
                     prefetch_factor=int(train_cfg.get("prefetch_factor", 2)),
                     horizon_weights=train_cfg.get("horizon_weights"),
+                    seed=args.seed,
+                    val_metric=str(train_cfg.get("val_metric", "val_corr")),
+                    use_ema=bool(train_cfg.get("use_ema", False)),
+                    ema_decay=float(train_cfg.get("ema_decay", 0.999)),
                 )
                 print(f"[pipeline_v3] Fold {fold_idx} best: {best}")
 
@@ -518,6 +533,23 @@ def main() -> None:
                 y_sigma=y_sigma, y_median=y_median,
                 horizons_sec=data_cfg.get("horizons_sec"),
             )
+
+            # If EMA was enabled and ema_best.pt exists, evaluate it too and
+            # write separate ema_test_preds.npz / ema_test_results.json. The
+            # downstream "which checkpoint wins on pooled test" decision is
+            # made by scripts/pick_variant.py.
+            ema_ckpt_path = os.path.join(fold_dir, "ema_best.pt")
+            if os.path.exists(ema_ckpt_path):
+                print(f"[pipeline_v3] EMA checkpoint present, running EMA test eval")
+                _run_test_evaluation(
+                    model, fold_dir, test_ds, train_cfg, device,
+                    horizon_sec=horizon_sec, stride=stride,
+                    y_sigma=y_sigma, y_median=y_median,
+                    horizons_sec=data_cfg.get("horizons_sec"),
+                    ckpt_name="ema_best.pt",
+                    preds_name="ema_test_preds.npz",
+                    results_name="ema_test_results.json",
+                )
 
     else:
         # ----- Single-day mode -------------------------------------------------

@@ -312,6 +312,9 @@ def train_one_fold_v2(
     num_workers: int = 4,
     prefetch_factor: int = 2,
     horizon_weights: Optional[List[float]] = None,
+    val_metric: str = "val_corr",
+    use_ema: bool = False,
+    ema_decay: float = 0.999,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -533,8 +536,40 @@ def train_one_fold_v2(
     warmup_steps = warmup_epochs * steps_per_epoch
     global_step = 0
 
+    # --- Optional EMA wrapper (Y600 push Block B, edit E3) ------------------
+    # Polyak-averaged copy of model weights. Updated after every optimizer
+    # step. Evaluated alongside the regular model each epoch. Saved separately
+    # to ``ema_best.pt`` so downstream can pick whichever wins val composite.
+    # Legacy configs that don't set ``use_ema`` get behaviour identical to
+    # pre-patch trainer (ema_model stays None, all EMA branches skip).
+    ema_model = None
+    if use_ema:
+        # AveragedModel uses a callable avg_fn(averaged_param, new_param, count).
+        # Exponential moving average with given decay: avg = decay*avg + (1-decay)*new.
+        _one_minus_decay = 1.0 - float(ema_decay)
+
+        def _ema_avg(avg_param, new_param, num_averaged):  # noqa: ARG001
+            return avg_param + _one_minus_decay * (new_param - avg_param)
+
+        ema_model = torch.optim.swa_utils.AveragedModel(
+            model, avg_fn=_ema_avg,
+        ).to(device_obj)
+        print(f"[trainer_v2] EMA wrapper active (decay={ema_decay})")
+
+    # val_metric selector: "val_corr" (legacy, Pearson only) or
+    # "composite" (0.5 * Pearson + 0.5 * Spearman). Composite is designed for
+    # y_600 where Spearman is the trading-side primary metric and Pearson the
+    # spec-compliance gate; selecting by composite targets both simultaneously.
+    if val_metric not in ("val_corr", "composite"):
+        raise ValueError(
+            f"val_metric must be 'val_corr' or 'composite', got {val_metric!r}"
+        )
+    if val_metric == "composite":
+        print("[trainer_v2] val_metric=composite (0.5*Pearson + 0.5*Spearman)")
+
     # --- tracking ------------------------------------------------------------
     best_metrics: Dict[str, Any] = {}
+    best_ema_metrics: Dict[str, Any] = {}
     epochs_no_improve = 0
 
     for epoch in range(1, epochs + 1):
@@ -608,6 +643,10 @@ def train_one_fold_v2(
             _apply_warmup(global_step, warmup_steps, lr, optimizer)
             optimizer.step()
 
+            # EMA update after the parameter step. No-op when use_ema=False.
+            if ema_model is not None:
+                ema_model.update_parameters(model)
+
             train_loss_sum += loss.item()
             train_steps += 1
             global_step += 1
@@ -615,94 +654,140 @@ def train_one_fold_v2(
         avg_train_loss = train_loss_sum / max(train_steps, 1)
 
         # ===== Validation =====
-        model.eval()
-        val_loss_sum = 0.0
-        val_steps = 0
-        metrics = OnlineMetrics()
+        # Evaluate both the live model and (if enabled) the EMA model every
+        # epoch so we can save whichever wins the selection metric separately.
+        def _run_val(eval_model: nn.Module) -> Dict[str, Any]:
+            eval_model.eval()
+            loss_sum = 0.0
+            steps = 0
+            om = OnlineMetrics()
+            preds_all: list = []
+            targets_all: list = []
+            with torch.no_grad():
+                for batch in val_loader:
+                    x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
+                        batch, dual_path, has_regime_prior,
+                    )
+                    x_feat = x_feat.to(device_obj, non_blocking=True)
+                    if x_raw is not None:
+                        x_raw = x_raw.to(device_obj, non_blocking=True)
+                    if regime_prior is not None:
+                        regime_prior = regime_prior.to(device_obj, non_blocking=True)
+                    y = y.to(device_obj, non_blocking=True)
+                    mask = mask.to(device_obj, non_blocking=True)
 
-        with torch.no_grad():
-            for batch in val_loader:
-                x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
-                    batch, dual_path, has_regime_prior,
-                )
-                x_feat = x_feat.to(device_obj, non_blocking=True)
-                if x_raw is not None:
-                    x_raw = x_raw.to(device_obj, non_blocking=True)
-                if regime_prior is not None:
-                    regime_prior = regime_prior.to(device_obj, non_blocking=True)
-                y = y.to(device_obj, non_blocking=True)
-                mask = mask.to(device_obj, non_blocking=True)
+                    outputs = _forward_with_regime(
+                        eval_model, x_feat, x_raw, regime_prior, multi_horizon,
+                    )
 
-                outputs = _forward_with_regime(
-                    model, x_feat, x_raw, regime_prior, multi_horizon,
-                )
+                    if multi_horizon:
+                        loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
+                        if loss is None:
+                            continue
+                        loss_sum += loss.item()
+                        steps += 1
+                        m0 = mask[:, 0].nonzero(as_tuple=True)[0]
+                        if len(m0) > 0:
+                            pred_np = outputs["point_pred_by_horizon"][m0, 0].cpu().numpy()
+                            target_np = y[m0, 0].cpu().numpy()
+                            om.update(pred_np, target_np)
+                            preds_all.append(pred_np); targets_all.append(target_np)
+                    else:
+                        idx = mask.nonzero(as_tuple=True)[0]
+                        if len(idx) == 0:
+                            continue
+                        m_outputs = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
+                        m_target = y[idx]
+                        loss = loss_fn(m_outputs, m_target)
+                        loss_sum += loss.item()
+                        steps += 1
+                        pred_np = outputs["point_pred"][idx].cpu().numpy()
+                        target_np = y[idx].cpu().numpy()
+                        om.update(pred_np, target_np)
+                        preds_all.append(pred_np); targets_all.append(target_np)
 
-                if multi_horizon:
-                    loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
-                    if loss is None:
-                        continue
-                    val_loss_sum += loss.item()
-                    val_steps += 1
+            avg_loss = loss_sum / max(steps, 1)
+            pearson = om.corr()
+            r2 = om.r2()
 
-                    # Correlation / R2 are tracked on horizon 0 (shortest
-                    # horizon by convention) so the val_corr metric stays
-                    # comparable to single-horizon runs and to the V3
-                    # checkpoint-selection criterion.
-                    m0 = mask[:, 0].nonzero(as_tuple=True)[0]
-                    if len(m0) > 0:
-                        pred_np = (
-                            outputs["point_pred_by_horizon"][m0, 0].cpu().numpy()
-                        )
-                        target_np = y[m0, 0].cpu().numpy()
-                        metrics.update(pred_np, target_np)
-                else:
-                    idx = mask.nonzero(as_tuple=True)[0]
-                    if len(idx) == 0:
-                        continue
-                    m_outputs = {
-                        k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)
-                    }
-                    m_target = y[idx]
-                    loss = loss_fn(m_outputs, m_target)
-                    val_loss_sum += loss.item()
-                    val_steps += 1
+            # Compute Spearman from accumulated full arrays (memory ~4-5k
+            # samples × 8 bytes ≈ 40 kB, trivial). Fallback to Pearson if
+            # scipy is unavailable (should never happen in this repo).
+            if preds_all:
+                p_full = np.concatenate(preds_all).astype(np.float64)
+                t_full = np.concatenate(targets_all).astype(np.float64)
+                try:
+                    from scipy.stats import spearmanr
+                    spearman = float(spearmanr(p_full, t_full).statistic)
+                    if not np.isfinite(spearman):
+                        spearman = 0.0
+                except Exception:
+                    spearman = pearson
+            else:
+                spearman = 0.0
 
-                    pred_np = outputs["point_pred"][idx].cpu().numpy()
-                    target_np = y[idx].cpu().numpy()
-                    metrics.update(pred_np, target_np)
+            composite = 0.5 * pearson + 0.5 * spearman
+            return {
+                "val_loss": avg_loss,
+                "val_corr": pearson,
+                "val_spearman": spearman,
+                "val_composite": composite,
+                "val_r2": r2,
+            }
 
-        avg_val_loss = val_loss_sum / max(val_steps, 1)
-        val_corr = metrics.corr()
-        val_r2 = metrics.r2()
+        raw_val = _run_val(model)
+        avg_val_loss = raw_val["val_loss"]
+        val_corr = raw_val["val_corr"]
+        val_spearman = raw_val["val_spearman"]
+        val_composite = raw_val["val_composite"]
+        val_r2 = raw_val["val_r2"]
 
-        # ===== LR scheduler step (on correlation) =====
-        scheduler.step(val_corr)
+        # Also evaluate the EMA snapshot (if enabled)
+        ema_val = None
+        if ema_model is not None:
+            ema_val = _run_val(ema_model)
+
+        # Scalar used for scheduler + checkpoint gate. "composite" targets
+        # pooled Pearson AND Spearman simultaneously (y_600 push design).
+        if val_metric == "composite":
+            selector = val_composite
+        else:
+            selector = val_corr
+
+        # ===== LR scheduler step =====
+        scheduler.step(selector)
 
         # ===== Epoch summary =====
         current_lr = optimizer.param_groups[0]["lr"]
-        print(
+        line = (
             f"Epoch {epoch:3d}/{epochs} | "
             f"train_loss={avg_train_loss:.6f} | "
             f"val_loss={avg_val_loss:.6f} | "
-            f"corr={val_corr:.4f} | "
-            f"r2={val_r2:.4f} | "
-            f"lr={current_lr:.2e}"
+            f"P={val_corr:+.4f} S={val_spearman:+.4f} C={val_composite:+.4f} | "
+            f"r2={val_r2:.4f} | lr={current_lr:.2e}"
         )
+        if ema_val is not None:
+            line += (
+                f" | EMA P={ema_val['val_corr']:+.4f} "
+                f"S={ema_val['val_spearman']:+.4f} C={ema_val['val_composite']:+.4f}"
+            )
+        print(line)
 
-        # ===== Early stopping & checkpointing (by CORRELATION) =====
-        best_corr_so_far = best_metrics.get("val_corr", -1.0)
-        if val_corr > best_corr_so_far + 5e-4:
+        # ===== Early stopping & checkpointing =====
+        best_selector = (
+            best_metrics.get("val_composite", -1.0) if val_metric == "composite"
+            else best_metrics.get("val_corr", -1.0)
+        )
+        if selector > best_selector + 5e-4:
             epochs_no_improve = 0
             best_metrics = {
                 "best_epoch": epoch,
                 "val_loss": avg_val_loss,
                 "val_corr": val_corr,
+                "val_spearman": val_spearman,
+                "val_composite": val_composite,
                 "val_r2": val_r2,
             }
-            # Save checkpoint in new format: wraps state_dict with the model
-            # class name so loaders can instantiate the right class without
-            # brittle state-dict key heuristics. See run_backtest.py for the
-            # matching loader (with fallback to raw state_dict for old ckpts).
             ckpt = {
                 "state": model.state_dict(),
                 "class": type(model).__name__,
@@ -711,6 +796,32 @@ def train_one_fold_v2(
             torch.save(ckpt, os.path.join(out_dir, "best_model.pt"))
         else:
             epochs_no_improve += 1
+
+        # ===== EMA best-so-far tracking (separate checkpoint) =====
+        if ema_val is not None:
+            ema_selector = (
+                ema_val["val_composite"] if val_metric == "composite"
+                else ema_val["val_corr"]
+            )
+            best_ema_selector = (
+                best_ema_metrics.get("val_composite", -1.0) if val_metric == "composite"
+                else best_ema_metrics.get("val_corr", -1.0)
+            )
+            if ema_selector > best_ema_selector + 5e-4:
+                best_ema_metrics = {
+                    "best_epoch": epoch,
+                    "val_loss": ema_val["val_loss"],
+                    "val_corr": ema_val["val_corr"],
+                    "val_spearman": ema_val["val_spearman"],
+                    "val_composite": ema_val["val_composite"],
+                    "val_r2": ema_val["val_r2"],
+                }
+                ema_ckpt = {
+                    "state": ema_model.module.state_dict(),
+                    "class": type(ema_model.module).__name__,
+                    "config": _extract_model_config(ema_model.module),
+                }
+                torch.save(ema_ckpt, os.path.join(out_dir, "ema_best.pt"))
 
         # ===== Top-K checkpoint capture (for SWA / median-ensemble) =====
         # Save each epoch's checkpoint into a per-fold topk/ folder tagged
@@ -734,7 +845,11 @@ def train_one_fold_v2(
             break
 
     # --- persist metrics -----------------------------------------------------
+    out = dict(best_metrics)
+    if best_ema_metrics:
+        out["ema"] = best_ema_metrics
+    out["val_metric"] = val_metric
     with open(os.path.join(out_dir, "metrics.json"), "w") as f:
-        json.dump(best_metrics, f, indent=2)
+        json.dump(out, f, indent=2)
 
-    return best_metrics
+    return out
