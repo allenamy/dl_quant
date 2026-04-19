@@ -73,6 +73,7 @@ class DulPlusLoss(nn.Module):
         focal_weight: float = 2.0,
         focal_threshold_sigma: float = 2.0,
         taus: Tuple[float, ...] = (0.1, 0.5, 0.9),
+        use_unit: bool = True,
     ):
         super().__init__()
         if len(y_sigmas) != n_horizons:
@@ -88,7 +89,14 @@ class DulPlusLoss(nn.Module):
         self.focal_threshold_sigma = focal_threshold_sigma
         self.taus = taus
 
-        self.unit = UnitMultiTaskLoss(n_tasks=n_horizons)
+        # UNIT is only meaningful for multi-horizon training. For n_horizons=1,
+        # skip it entirely so there are no learnable log_vars to register with
+        # the optimizer — cleaner interface for single-horizon y_600 training.
+        self.use_unit = use_unit and n_horizons > 1
+        if self.use_unit:
+            self.unit = UnitMultiTaskLoss(n_tasks=n_horizons)
+        else:
+            self.unit = None
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -186,8 +194,11 @@ class DulPlusLoss(nn.Module):
             l_h = l_h_base + self.eta_utility * l_rank
             per_task_losses.append(l_h)
 
-        # UNIT: uncertainty-weighted multi-task combination
-        total = self.unit(per_task_losses)
+        # UNIT: uncertainty-weighted multi-task combination (only for n_horizons > 1)
+        if self.use_unit:
+            total = self.unit(per_task_losses)
+        else:
+            total = per_task_losses[0] if self.n_horizons == 1 else sum(per_task_losses)
 
         # Embedding decorrelation (optional)
         if embedding is not None and self.alpha_decorr > 0.0:
