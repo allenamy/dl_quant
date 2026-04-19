@@ -426,19 +426,23 @@ from src.losses.decorrelation_loss import decorrelation_loss
 
 
 def test_orthogonal_embeddings_zero_loss():
-    """Independent unit-variance features have zero decorrelation loss."""
+    """Independent unit-variance features have near-zero decorrelation loss.
+
+    Loss is normalized by d*(d-1), so for IID inputs it scales as 1/N ≈ 0.002
+    for N=500.  Threshold 0.05 gives >20× margin.
+    """
     torch.manual_seed(42)
     d = 8; n = 500
     x = torch.randn(n, d)  # IID -> off-diag corr ≈ 0
     loss = decorrelation_loss(x)
-    assert loss.item() < 0.1
+    assert loss.item() < 0.05
 
 
 def test_highly_correlated_embeddings_high_loss():
-    """All identical features have high decorrelation loss."""
+    """All identical features have decorrelation loss close to 1.0."""
     x = torch.randn(200, 1).repeat(1, 4)  # 4 identical features
     loss = decorrelation_loss(x)
-    assert loss.item() > 1.0
+    assert loss.item() > 0.9
 
 
 def test_gradient_flows():
@@ -454,14 +458,20 @@ def test_gradient_flows():
 
 ```python
 # src/losses/decorrelation_loss.py
-"""Cross-correlation off-diagonal penalty for embeddings.
+"""Cross-correlation off-diagonal mean-penalty for embeddings.
 
 Inspired by Barlow Twins (Zbontar et al. 2021). Given a batch of
 d-dim embeddings, compute the d×d cross-correlation matrix and
-penalize off-diagonal entries to reduce redundancy between feature
-channels.
+penalize the mean squared off-diagonal entry to reduce redundancy
+between feature channels.
 
-L = λ · Σ_{i≠j} C_ij²
+L = (1 / (d·(d-1))) · Σ_{i≠j} C_ij²
+
+Deviation from Zbontar 2021: they used the raw sum; we normalize
+by the number of off-diagonal entries so the loss magnitude is
+invariant to embedding dimension d. This keeps the composite-loss
+weight α_decorr meaningful across V5-LH ablations where d_model
+may vary.
 """
 import torch
 
@@ -474,13 +484,14 @@ def decorrelation_loss(embeddings: torch.Tensor, eps: float = 1e-6) -> torch.Ten
     eps : numerical stability for standardization.
     """
     N, d = embeddings.shape
-    # Standardize per dim
+    # Standardize per dim. unbiased=False (denominator N) matches the
+    # (e.T @ e) / N covariance convention below, ensuring C_ii = 1 exactly.
     e = embeddings - embeddings.mean(dim=0, keepdim=True)
-    e = e / (e.std(dim=0, keepdim=True) + eps)
+    e = e / (e.std(dim=0, keepdim=True, unbiased=False) + eps)
     # Cross-correlation matrix
     C = (e.T @ e) / N  # (d, d)
     off_diag = C - torch.diag(torch.diag(C))
-    return (off_diag ** 2).sum()
+    return (off_diag ** 2).sum() / (d * (d - 1))
 ```
 
 - [ ] **Step 4: Run test (expect PASS)**

@@ -1,10 +1,15 @@
-"""Cross-correlation off-diagonal penalty for embeddings.
+"""Cross-correlation off-diagonal mean-penalty for embeddings.
 
 Inspired by Barlow Twins (Zbontar et al. 2021). Given a batch of d-dim
-embeddings, compute the d×d cross-correlation matrix and penalize off-diagonal
-entries to reduce redundancy between feature channels.
+embeddings, compute the d×d cross-correlation matrix and penalize the mean
+squared off-diagonal entry to reduce redundancy between feature channels.
 
-L = λ · Σ_{i≠j} C_ij²
+L = (1 / (d·(d-1))) · Σ_{i≠j} C_ij²
+
+Deviation from Zbontar 2021: they used the raw sum; we normalize by the
+number of off-diagonal entries so the loss magnitude is invariant to
+embedding dimension d. This keeps the composite-loss weight α_decorr
+meaningful across V5-LH ablations where d_model may vary.
 """
 import torch
 
@@ -19,7 +24,9 @@ def decorrelation_loss(embeddings: torch.Tensor, eps: float = 1e-6) -> torch.Ten
     N, d = embeddings.shape
     # Standardize per dim
     e = embeddings - embeddings.mean(dim=0, keepdim=True)
-    e = e / (e.std(dim=0, keepdim=True) + eps)
+    # unbiased=False (denominator N) matches the (e.T @ e) / N covariance
+    # convention below, ensuring C_ii = 1 exactly given sufficient samples.
+    e = e / (e.std(dim=0, keepdim=True, unbiased=False) + eps)
     # Cross-correlation matrix
     C = (e.T @ e) / N  # (d, d)
     off_diag = C - torch.diag(torch.diag(C))
