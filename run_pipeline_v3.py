@@ -282,6 +282,20 @@ def _run_test_evaluation(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    # On pods with FUSE-mounted storage (MooseFS), fork()-spawned DataLoader
+    # workers can deadlock servicing mmap page faults. "spawn" workers re-import
+    # modules fresh in a new process and avoid the shared-mmap contention.
+    # Safe no-op on healthy systems. Controlled by env var so local dev can opt out.
+    import os as _os
+    if _os.environ.get("Y600_SPAWN", "1") == "1":
+        try:
+            import torch.multiprocessing as _mp
+            if _mp.get_start_method(allow_none=True) != "spawn":
+                _mp.set_start_method("spawn", force=True)
+                print("[pipeline_v3] multiprocessing start method = spawn (FUSE deadlock workaround)")
+        except RuntimeError:
+            pass
+
     parser = argparse.ArgumentParser(
         description="Dual-Path LOB V3 end-to-end pipeline"
     )
