@@ -47,5 +47,5 @@ def test_parameter_count():
     model = V5LHModel(n_features=52, n_levels=20, d_prior=6, horizons=[180, 600], use_fallback=True)
     total = sum(p.numel() for p in model.parameters())
     # With GRU fallback instead of real Mamba, count may differ slightly.
-    # The key is it's well below V4's 59K.
-    assert 15000 < total < 60000, f"param count {total} out of expected range"
+    # Shrunk defaults (d_model=24, n_mamba_layers=1) give ~22K params (1:5.4 ratio).
+    assert 10000 < total < 30000, f"param count {total} out of expected range"

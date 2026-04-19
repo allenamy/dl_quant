@@ -63,17 +63,23 @@ class V5LHModel(nn.Module):
         Inner-dimension expansion inside Mamba-2 blocks.
     use_fallback : bool
         If True, replaces Mamba-2 with a GRU stub (for CPU / unit-test environments).
+
+    Capacity tuning (2026-04-19 Option B):
+        d_model=24 (was 32), n_mamba_layers=1 (was 2) — shrunk after discovering
+        LH sample count is ~119K/fold (not 1M as spec estimated). At 1:2.5 param:sample
+        ratio the 47K-param version would overfit; the 22K version gives 1:5.4 which
+        is still tight but defensible in low-SNR regime.
     """
 
     def __init__(
         self,
         n_features: int,
         n_levels: int = 20,
-        d_model: int = 32,
-        d_raw: int = 24,
+        d_model: int = 24,
+        d_raw: int = 16,
         d_prior: int = 6,
         horizons: List[int] = None,
-        n_mamba_layers: int = 2,
+        n_mamba_layers: int = 1,
         mamba_d_state: int = 16,
         mamba_expand: int = 1,
         use_fallback: bool = False,
