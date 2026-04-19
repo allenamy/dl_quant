@@ -13,6 +13,9 @@ set -u
 mkdir -p logs
 CONFIG=configs/v5_lh/v5_lh_base.json
 
+# Reduce GPU memory fragmentation on long seq + batched Mamba-2 activations
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 for FOLD in 0 1 2; do
   for SEED in 1 2 3; do
     echo "==== V5-LH fold=$FOLD seed=$SEED start $(date -Is) ===="
