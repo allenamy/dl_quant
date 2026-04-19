@@ -14,6 +14,41 @@
 
 ---
 
+## Option B Revisions (applied 2026-04-19 after ultrareview)
+
+After the ultrareview caught several design issues, the plan was adjusted
+before launching pod training. These Option B revisions are live in the
+committed code; where this plan's per-task code blocks differ from the
+committed source, trust the source.
+
+1. **CRPS term dropped (γ_crps=0 default).** Task 2's CRPS was delegating
+   to V4's `quantile_loss`, making the composite's `γ_crps·CRPS` a
+   redundant pinball scalar multiplier. Dropped by default; parameter kept
+   for a future true-CRPS swap-in. (commit `a5121ca`)
+2. **Model capacity shrunk.** Spec assumed ~1M samples/fold; actual is
+   ~119K. Shrunk to d_model=24, d_raw=16, n_mamba_layers=1 → ~22K params
+   (1:5.4 ratio). (commit `9852c80`)
+3. **Single-horizon y_600 default.** DUL+ auto-disables UNIT at n_horizons=1
+   so the primary goal gets full gradient. (commit `65a60ed`)
+4. **Optional SG filter on handcrafted features.** `--sg-window` param in
+   NPZ build. (commit `efb6d48`)
+5. **Correct trainer dataset API.** 5-tuple `(x_feat, x_raw, regime_prior,
+   y, mask)` unpacking; **mask filter applied BEFORE loss** so masked
+   samples do not poison gradients. (commit `2a0eec8`)
+6. **Early-exit thresholds.** Abort at ep-5 val Pearson < 0.01 or 3
+   consecutive grad-norm > 10 spikes. (commit `2a0eec8`)
+7. **Cross-path detach placement fixed.** Detach INPUT of `a_to_common`,
+   not output — else the Linear's weights stayed at random init.
+   Regression test added. (commit `d1f12c0`)
+8. **Side encoder preserves per-level info.** Replaced the levels-destroying
+   AdaptiveAvgPool with a tapered Conv + flatten-levels projection.
+   (commit `3f044ac`)
+9. **UNIT log_var clamp and optimizer-registration note.** `log_vars` clamp
+   to [-5, 5] in forward; docstring warns callers to add loss_fn.parameters()
+   to the optimizer. (commit `2514e2d`)
+
+---
+
 ## Reused V4 Modules (imported verbatim, not rewritten)
 
 These are stateless, pure PyTorch modules with well-defined interfaces. V5-LH imports them directly — no copy-paste, no forking. Data leakage audit passed: each module is a deterministic function of its inputs with no hidden buffers that could carry train-time info into test.
