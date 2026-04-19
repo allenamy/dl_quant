@@ -39,6 +39,38 @@ def load_v4_pooled():
     return np.concatenate(all_p), np.concatenate(all_y)
 
 
+def load_v5_lh_pooled(exp_dir: str = "experiments/v5_lh", horizon: int = 600,
+                      seeds=(1, 2, 3)):
+    """Load V5-LH median-ensemble (across seeds) q50 pooled across 3 folds.
+
+    Returns (predictions, targets) for all valid samples, or (empty, empty) if
+    the experiments directory has no runs yet.
+    """
+    all_p, all_y = [], []
+    for f in range(3):
+        preds_3s = []
+        ys = None
+        m = None
+        for s in seeds:
+            path = pathlib.Path(exp_dir) / f"fold_{f}_seed{s}" / f"test_preds_y{horizon}.npz"
+            if not path.exists():
+                continue
+            d = np.load(str(path))
+            preds_3s.append(d["predictions"][:, 1])
+            if ys is None:
+                ys = d["targets"]
+                m = d["mask"].astype(bool)
+        if not preds_3s:
+            continue
+        p = np.median(np.stack(preds_3s, axis=0), axis=0)
+        sel = m & np.isfinite(p) & np.isfinite(ys)
+        all_p.append(p[sel])
+        all_y.append(ys[sel])
+    if not all_p:
+        return np.array([], dtype=np.float32), np.array([], dtype=np.float32)
+    return np.concatenate(all_p), np.concatenate(all_y)
+
+
 def load_xgb_pooled():
     all_p, all_y = [], []
     for f in range(3):
@@ -170,6 +202,20 @@ def main():
         ("V4 y_180 (q50)", v4_p_z, v4_y_z),
         ("XGBoost y_180", xgb_p_z, xgb_y_z),
     ]
+
+    # Optionally append V5-LH y_600 if available
+    try:
+        v5_p, v5_y = load_v5_lh_pooled(horizon=600)
+        if len(v5_p) > 100:
+            v5_p_z = standardize(v5_p)
+            v5_y_z = standardize(v5_y)
+            datasets.append(("V5-LH y_600 (3-seed median)", v5_p_z, v5_y_z))
+            print(f"  V5-LH y_600: {len(v5_p):,} samples, "
+                  f"Pearson={pearsonr(v5_p, v5_y)[0]:.4f}")
+        else:
+            print(f"  (V5-LH skipped: only {len(v5_p)} samples, need > 100)")
+    except Exception as e:
+        print(f"  (V5-LH not available: {e})")
 
     out = OUT_DIR / "21_bin_plot_yhat_given_y.png"
     make_plot(datasets, out, n_bins=10)
