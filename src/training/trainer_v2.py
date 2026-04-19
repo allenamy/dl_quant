@@ -315,6 +315,7 @@ def train_one_fold_v2(
     val_metric: str = "val_corr",
     use_ema: bool = False,
     ema_decay: float = 0.999,
+    primary_horizon_idx: int = 0,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -686,10 +687,15 @@ def train_one_fold_v2(
                             continue
                         loss_sum += loss.item()
                         steps += 1
-                        m0 = mask[:, 0].nonzero(as_tuple=True)[0]
+                        # Track metrics on the PRIMARY horizon (defaults to
+                        # index 0 = shortest horizon; Block D sets this to the
+                        # index of horizon_sec in horizons_sec so selection
+                        # targets y_600 even when shorter horizons are aux).
+                        h_idx = primary_horizon_idx
+                        m0 = mask[:, h_idx].nonzero(as_tuple=True)[0]
                         if len(m0) > 0:
-                            pred_np = outputs["point_pred_by_horizon"][m0, 0].cpu().numpy()
-                            target_np = y[m0, 0].cpu().numpy()
+                            pred_np = outputs["point_pred_by_horizon"][m0, h_idx].cpu().numpy()
+                            target_np = y[m0, h_idx].cpu().numpy()
                             om.update(pred_np, target_np)
                             preds_all.append(pred_np); targets_all.append(target_np)
                     else:
