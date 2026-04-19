@@ -1,14 +1,14 @@
 {
-  "_comment": "V4 noattn at 700d with y_600 horizon — definitive test whether V4 architecture can beat V5-LH on y_600. Clone of y_300 config, horizon→600.",
+  "_comment": "V4 noattn short-window on y_180 — sanity check that V4's proven architecture trains quickly on 100-day slice. If it gets Pearson > 0.03 in 5 epochs, V4 architecture is viable; if < 0.01, even V4 needs more data on this slice.",
   "data": {
     "csv_path": "",
     "npz_dir": "data/npz_v4",
     "n_levels": 25,
-    "horizon_sec": 600,
+    "horizon_sec": 180,
     "input_len": 600,
     "stride": 180,
     "horizons_sec": [
-      600
+      180
     ],
     "include_ridge_features": true,
     "include_regime_prior": true,
@@ -40,15 +40,15 @@
     "use_ppnet_gate": true
   },
   "training": {
-    "epochs": 40,
-    "batch_size": 1024,
-    "lr": 0.0006,
-    "weight_decay": 0.001,
-    "patience": 8,
+    "epochs": 15,
+    "batch_size": 256,
+    "lr": 0.0003,
+    "weight_decay": 0.01,
+    "patience": 6,
     "grad_clip": 1.0,
-    "train_days": 700,
+    "train_days": 100,
     "val_days": 30,
-    "test_days": 90,
+    "test_days": 30,
     "fold_stride": 60,
     "num_workers": 4,
     "prefetch_factor": 2,
@@ -59,5 +59,5 @@
       "utility_alpha": 1.0
     }
   },
-  "output_dir": "experiments/v4_noattn_700d_y600"
+  "output_dir": "experiments/v4_noattn_100d_y180"
 }
