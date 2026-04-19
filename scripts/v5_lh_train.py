@@ -108,8 +108,16 @@ def _run_fold_seed(cfg: dict, fold_idx: int, seed: int, device: str) -> dict:
     y_stats = train_ds.compute_y_stats(max_workers=4)
     y_sigma_train = y_stats[1] if isinstance(y_stats, tuple) else float(y_stats)
     print(f"[v5_lh] train y MAD-sigma = {y_sigma_train:.4f}")
-    # For single-horizon, y_sigmas is (sigma,)
-    y_sigmas = tuple([y_sigma_train] * len(horizons))
+    # We NORMALIZE targets by this sigma inside the loss loop (divide y by
+    # sigma so typical |y_norm| ~ 1). This matches the MonotonicQuantileHead's
+    # MIN_DELTA=0.01 floor assumption (designed for z-score targets in [-5, 5]).
+    # Without normalization the floor is ~10× the natural y scale for y_600
+    # (raw MAD-sigma ~9 bps, floor corresponds to 100 bps), clamps softplus
+    # gradient, and negatively biases q50.
+    # Pearson/Spearman are scale-invariant so eval metrics are unchanged.
+    # After normalization, pass sigma=1.0 to DulPlusLoss so focal threshold
+    # |y_norm| > 2*1 = 2 is the right 2σ test on the normalized scale.
+    y_sigmas = tuple([1.0] * len(horizons))
 
     # Derive input dims from one batch
     sample = train_ds[0]
@@ -210,6 +218,9 @@ def _run_fold_seed(cfg: dict, fold_idx: int, seed: int, device: str) -> dict:
             rp = rp.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
             mask = mask.to(device, non_blocking=True)
+            # Normalize y by train MAD-sigma so quantile head's MIN_DELTA=0.01
+            # floor (calibrated for z-score targets) is no longer 10× too wide.
+            y = y / y_sigma_train
 
             opt.zero_grad()
             out = model(X=x_feat, X_raw=x_raw, regime_prior=rp)
@@ -273,6 +284,9 @@ def _run_fold_seed(cfg: dict, fold_idx: int, seed: int, device: str) -> dict:
             )
             for batch in val_loader:
                 x_feat, x_raw, rp, y, mask = batch
+                # Normalize val targets by train sigma. Pearson/Spearman are
+                # scale-invariant; predictions are also in z-score space.
+                y = y / y_sigma_train
                 out = model(
                     X=x_feat.to(device),
                     X_raw=x_raw.to(device),
@@ -360,6 +374,10 @@ def _run_fold_seed(cfg: dict, fold_idx: int, seed: int, device: str) -> dict:
         )
         for batch in test_loader:
             x_feat, x_raw, rp, y, mask = batch
+            # Test targets also normalized. Predictions in z-score space;
+            # Pearson/Spearman identical to raw-space; downstream eval script
+            # also operates on these stored z-score preds so is consistent.
+            y = y / y_sigma_train
             out = model(
                 X=x_feat.to(device),
                 X_raw=x_raw.to(device),
