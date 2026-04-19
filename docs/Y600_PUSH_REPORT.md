@@ -64,6 +64,18 @@ Large-move prediction is stronger than the average-sample signal — the model's
 - **rank_blend** (baseline + SWA rank-average): higher pooled Pearson (0.070) but DirAcc 0.493 — ranks destroy sign, unusable for P&L.
 - **Per-fold z-normalize then pool**: no change (SWA already well-centered per fold).
 - **Quantile extraction variants** (q10 vs q50 vs mean(q10,q50) vs spread): q50 remains most consistent; other variants help some folds but hurt others.
+- **K sweep** (K=3, 5, 7) on SWA weight averaging: K=5 wins.
+
+    | K | Pearson | Spearman | Composite |
+    |---:|---:|---:|---:|
+    | 3 | +0.0607 | +0.0730 | +0.0669 |
+    | **5** | **+0.0656** | **+0.0786** | **+0.0721** |
+    | 7 | +0.0659 | +0.0770 | +0.0715 |
+    | K=3,5,7 median-ensemble | +0.0652 | +0.0774 | +0.0713 |
+
+   K=3 too aggressive (not enough smoothing), K=7 slightly over-averages Spearman. Ensembling K variants hurts (they're too correlated to add diversity).
+- **Sharpe analysis** (binance_regular cost model, holding strategy 10-0.2-0.05-10-600): SWA gives net Sharpe −4.24 (vs −4.78 baseline). Both deeply negative — pooled gross PnL +29,362 bps is overwhelmed by 214,449 bps in costs. Confirms Phase C finding: y_600 IC 0.08 is real signal but single-asset economics don't close. Need breadth (multi-asset) for positive Sharpe.
+- **Residual autocorrelation check**: AC(1) 0.66-0.69 (70% label overlap at stride=180 confirmed), AC(10) ≈ 0. Validates stride_every=10 clean evaluation.
 
 ### Blocks C/D/E/F — SKIPPED due to infrastructure
 - Attention screen, multi-horizon aux loss, seed ensemble all required 3-fold retraining which could not complete on tonight's pod.
