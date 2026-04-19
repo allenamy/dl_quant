@@ -33,16 +33,18 @@ def select_features(
     X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
     y = np.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
 
-    # Compute |IC| of each feature with target
+    # Compute |IC| of each feature with target.
+    # Suppress benign RuntimeWarning from zero-variance columns — NaN is
+    # handled downstream (NaN > threshold is False, NaN ICs stay 0).
     ics = np.zeros(F)
-    for i in range(F):
-        if np.std(X[:, i]) < 1e-12:
-            ics[i] = 0.0
-        else:
-            ics[i] = abs(np.corrcoef(X[:, i], y)[0, 1])
-
-    # Feature-feature correlation (absolute values)
-    C = np.abs(np.corrcoef(X, rowvar=False))
+    with np.errstate(invalid="ignore", divide="ignore"):
+        for i in range(F):
+            if np.std(X[:, i]) < 1e-12:
+                ics[i] = 0.0
+            else:
+                ics[i] = abs(np.corrcoef(X[:, i], y)[0, 1])
+        # Feature-feature correlation (absolute values)
+        C = np.abs(np.corrcoef(X, rowvar=False))
 
     # Greedy: iterate over pairs in order, drop lower-IC feature of each
     # correlated pair; once a feature is dropped it cannot drop others
