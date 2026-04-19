@@ -2,14 +2,16 @@
 
   h_A_enh = CrossAttn(Q=h_A, K=h_B, V=h_B)   # A attends to B
   h_B_enh = CrossAttn(Q=h_B, K=h_A, V=h_A)   # B attends to A
-  residual = h_B_enh − detach(Proj(h_A_enh))
+  residual = h_B_enh − Proj(detach(h_A_enh))
   h_fused = Linear(h_A_enh) + Linear(residual)
 
-The stop-gradient on `Proj(h_A_enh)` is what makes this a true residual
-decomposition: gradient from the residual branch does NOT flow back into
-path A, so path B is trained to fit the part of y that A's representation
-cannot reach. Without the detach, the subtraction produces a different
-tensor but offers no learning pressure for complementarity.
+The stop-gradient is on the INPUT to `Proj` (not its output). This way
+gradient from the residual branch does NOT flow back into path A
+(h_A_enh.detach() blocks it) while the `a_to_common` projection itself
+still receives gradient and learns a useful mapping from A's enhanced
+representation into the shared residual space. Detaching the Linear's
+OUTPUT would freeze `a_to_common` at random init and break the claim
+that the subtracted term represents "A's prediction space".
 
 PyTorch < 1.9 compatibility: nn.MultiheadAttention does not accept
 batch_first=True. Inputs are transposed (B, L, d) → (L, B, d) for the
@@ -88,11 +90,14 @@ class CrossPathFusion(nn.Module):
         h_B_enh = self.attn_B_from_A(h_B_proj, h_A, h_A)       # (B, L, d_A)
 
         # Residual decomposition: what in B is NOT explained by A.
-        # Stop-gradient on A's projection so path B is trained to fit the
-        # residual y − A_prediction_space, not to copy A's signal. Without
-        # this detach, the subtraction produces a different tensor but
-        # provides no learning pressure for B to contribute orthogonal info.
-        residual = h_B_enh - self.a_to_common(h_A_enh).detach()  # (B, L, d_A)
+        # Stop-gradient on the INPUT to a_to_common (h_A_enh.detach()), not
+        # its output. This blocks gradient from flowing back into path A via
+        # the residual branch — so B is trained to fit y − A_prediction_space
+        # rather than to copy A's signal — while still allowing a_to_common's
+        # own weights to learn a useful mapping. Detaching the output of
+        # a_to_common would freeze that Linear at random init, defeating the
+        # purpose of projecting h_A_enh into the residual space at all.
+        residual = h_B_enh - self.a_to_common(h_A_enh.detach())  # (B, L, d_A)
 
         # Combine: primary path A signal + complementary B residual
         return self.out_proj(h_A_enh) + self.residual_proj(residual)  # (B, L, d_out)

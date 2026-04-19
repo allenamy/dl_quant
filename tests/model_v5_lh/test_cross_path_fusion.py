@@ -53,3 +53,22 @@ def test_path_b_influences_output():
         out2 = fusion(h_A, h_B_alt)
     # Outputs should differ by more than numerical noise
     assert (out1 - out2).abs().mean().item() > 1e-3
+
+
+def test_a_to_common_receives_gradient():
+    """Regression test: a_to_common Linear must learn, not stay at random init.
+
+    If the detach is misplaced (on Linear's output instead of its input),
+    a_to_common params get zero gradient and the residual decomposition
+    claim breaks down.
+    """
+    torch.manual_seed(0)
+    fusion = CrossPathFusion(d_A=32, d_B=24, d_out=32, nhead=4)
+    h_A = torch.randn(2, 10, 32)
+    h_B = torch.randn(2, 10, 24)
+    out = fusion(h_A, h_B).sum()
+    out.backward()
+    assert fusion.a_to_common.weight.grad is not None
+    assert fusion.a_to_common.weight.grad.abs().sum().item() > 0, (
+        "a_to_common weight received no gradient — detach likely misplaced"
+    )
