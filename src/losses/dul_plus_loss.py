@@ -1,24 +1,14 @@
-"""DUL+ loss: pinball + CRPS + utility_rank + focal + UNIT + decorrelation.
+"""DUL+ loss: pinball + utility_rank + focal + UNIT + decorrelation.
 
 Composition:
   For each horizon h:
     w_h     = tail_focal_weights(y_h, sigma_h, focal_weight, focal_threshold_sigma)
     l_pin_h = weighted mean-pinball (focal)
-    l_crps_h = weighted CRPS-surrogate (focal)  [same math as pinball at 3 taus]
     l_rank_h = utility_rank_loss(q_h, y_h)       [ranking; no focal needed]
-    l_h     = l_pin_h + gamma_crps * l_crps_h + eta_utility * l_rank_h
+    l_h     = l_pin_h + eta_utility * l_rank_h
 
   total = UnitMultiTaskLoss([l_0, ..., l_{H-1}])
   total += alpha_decorr * decorrelation_loss(embedding)  [if embedding given]
-
-Note on pinball/CRPS duplication
----------------------------------
-_pinball_weighted and _crps_weighted implement identical mathematics.
-CRPS (at K quantiles) IS the mean-pinball integral approximation. Concretely,
-with gamma_crps=0.5 and 3 taus this becomes 1.5 × weighted-pinball — a stable
-and intentional up-weighting of distributional calibration. The design keeps
-them as separate named terms so callers can zero out gamma_crps to ablate the
-CRPS contribution without touching the base pinball weight.
 """
 from typing import List, Tuple, Optional
 
@@ -32,24 +22,21 @@ from src.training.dul_loss import utility_rank_loss
 
 
 class DulPlusLoss(nn.Module):
-    """DUL+ composite loss (pinball + CRPS + utility_rank + UNIT + focal + decorrelation).
+    """DUL+ composite loss (pinball + utility_rank + UNIT + focal + decorrelation).
 
-    Composite loss for V5-LH multi-horizon quantile training.
+    Per-horizon: tail-focal-weighted pinball + eta·utility_rank.
+    Multi-horizon: wrapped by UNIT uncertainty weighting.
+    Optional: decorrelation regularizer on embedding.
 
-    IMPORTANT — current `gamma_crps` semantics: the CRPS term in this implementation
-    reuses the per-sample pinball-mean formula. Because CRPS-at-K-quantiles IS
-    mean-pinball, the composite currently computes::
-
-        l_h = l_pin + gamma_crps * l_pin + eta_utility * l_rank
-            = (1 + gamma_crps) * l_pin + eta_utility * l_rank
-
-    i.e. gamma_crps acts as an additional scalar multiplier on pinball, NOT as a
-    genuinely different distributional surrogate. Setting gamma_crps=0 recovers
-    plain pinball; default gamma_crps=0.5 gives 1.5× pinball weight.
-
-    The composite keeps the separate CRPS import path so a future swap-in (e.g.,
-    energy-score, CRPS of piecewise-linear CDF analytic form, or multi-τ grid)
-    can replace the redundant call without refactoring the composite interface.
+    Historical note: this composite originally included a separate "CRPS" term.
+    That term used the mean-pinball formula, which is mathematically identical to
+    the pinball we already compute — it was a scalar multiplier with no distinct
+    distributional signal. Dropped by default (gamma_crps=0.0). The parameter is
+    kept for backwards ablation interface; setting gamma_crps > 0 adds (1+γ)×pinball
+    weighting but NOT a true-CRPS distributional score. If a genuine CRPS surrogate
+    is desired in future (e.g., analytic piecewise-linear CDF integral or energy-
+    score), replace the `_weighted_pinball(q, y, w)` call in forward with the new
+    surrogate.
 
     Parameters
     ----------
@@ -59,8 +46,8 @@ class DulPlusLoss(nn.Module):
         Typical scale (e.g. MAD-sigma from training set) of each horizon's
         target. Used by tail_focal_weights to identify tail samples.
     gamma_crps : float
-        Weight on the CRPS surrogate term (default 0.5). See note above:
-        currently acts as a pinball scalar multiplier.
+        Weight on the CRPS surrogate term (default 0.0). See historical note
+        above: currently acts as a pinball scalar multiplier only.
     eta_utility : float
         Weight on the utility-rank pairwise loss (default 0.3).
     alpha_decorr : float
@@ -80,7 +67,7 @@ class DulPlusLoss(nn.Module):
         self,
         n_horizons: int,
         y_sigmas: Tuple[float, ...],
-        gamma_crps: float = 0.5,
+        gamma_crps: float = 0.0,
         eta_utility: float = 0.3,
         alpha_decorr: float = 0.1,
         focal_weight: float = 2.0,
@@ -186,16 +173,17 @@ class DulPlusLoss(nn.Module):
 
             # Pinball term (base distributional calibration)
             l_pin = self._weighted_pinball(q, y, w)
-
-            # CRPS surrogate term (same math as pinball at K quantiles;
-            # kept as a separate named term so gamma_crps can ablate it)
-            l_crps = self._weighted_pinball(q, y, w)
+            if self.gamma_crps > 0:
+                l_crps = self._weighted_pinball(q, y, w)   # same as l_pin, scalar multiplier
+                l_h_base = l_pin + self.gamma_crps * l_crps
+            else:
+                l_h_base = l_pin
 
             # Utility-rank term: pairwise logistic loss on risk-adj score
             # utility_rank_loss signature: (quantiles, target, *, alpha, ...)
             l_rank = utility_rank_loss(q, y, alpha=1.0)
 
-            l_h = l_pin + self.gamma_crps * l_crps + self.eta_utility * l_rank
+            l_h = l_h_base + self.eta_utility * l_rank
             per_task_losses.append(l_h)
 
         # UNIT: uncertainty-weighted multi-task combination
