@@ -1,0 +1,49 @@
+{
+  "_comment_1": "V5-LH Option B base config. Primary goal: y_600 clean Pearson >= 0.07.",
+  "_comment_2": "Capacity shrunk after ultrareview: d_model=24 (was 32), n_mamba_layers=1 (was 2).",
+  "_comment_3": "Single-horizon y_600 by default (UNIT auto-disables at n_horizons=1).",
+
+  "data": {
+    "npz_dir": "data/npz_v5_lh",
+    "input_len": 1800,
+    "eval_subsample_stride": 10
+  },
+  "model": {
+    "d_model": 24,
+    "d_raw": 16,
+    "d_prior": 6,
+    "horizons": ["y_600"],
+    "n_mamba_layers": 1,
+    "mamba_d_state": 16,
+    "mamba_expand": 1,
+    "use_fallback": false
+  },
+  "loss": {
+    "gamma_crps": 0.0,
+    "eta_utility": 0.3,
+    "alpha_decorr": 0.1,
+    "focal_weight": 2.0,
+    "focal_threshold_sigma": 2.0,
+    "use_unit": true
+  },
+  "training": {
+    "epochs": 40,
+    "batch_size": 256,
+    "lr": 6e-4,
+    "weight_decay": 1e-3,
+    "warmup_epochs": 0,
+    "patience": 8,
+    "grad_clip": 1.0,
+    "train_days": 700,
+    "val_days": 30,
+    "test_days": 90,
+    "fold_stride": 60,
+    "num_workers": 4
+  },
+  "early_exit": {
+    "min_epoch5_pearson": 0.010,
+    "max_grad_norm": 10.0,
+    "grad_spike_window": 3
+  },
+  "output_dir": "experiments/v5_lh"
+}
