@@ -155,6 +155,33 @@ $$\text{需要盈利} \Leftrightarrow \text{IC} \times \sigma_y(\text{bps}) \tim
 - V4 捕捉独特非线性（R² 简单因子→q50 仅 0.004）
 - 但**绝对收益差距**（V4 vs Ridge）**不值得**相差 1000× 计算成本
 
+### 3.5 Bin Plot 诊断：long/short 非对称
+
+条件期望 E[ŷ | y ∈ bin] vs y bin center：
+
+![Bin Plot](figures/bin_plot_yhat_given_y.png)
+
+**V4 和 XGBoost 在 y 极端负区域行为一致：**
+
+| Bin | y center (z) | E[ŷ\|y] | OLS 期望 (0.094·y) | 偏差 |
+|:-:|:-:|:-:|:-:|:-:|
+| 1（极端负 y）| **−1.84** | **−0.063** | −0.173 | **欠预测 64%** ⚠️ |
+| 2 | −0.85 | −0.154 | −0.080 | 适度过预测 |
+| ... | ... | ... | ... | ... |
+| 10（极端正 y）| **+1.87** | **+0.220** | +0.176 | 略过预测 25% |
+
+**三个发现：**
+1. **极端负 y 严重欠预测**（bin 1 "钩子"）— 当 BTC 真的暴跌时，V4 q50 只给 −0.063 而应该 −0.173
+2. **正负尾部不对称** — 上涨预测校准（bin 10 接近 OLS），下跌预测大幅收缩
+3. **V4 和 XGBoost 行为一致** → 不是模型 bug，是**信号本身属性**：crypto 下跌更突然（flash crash 无预兆），上涨有 momentum 可提前检测
+
+**Implications：**
+- 做多策略校准可靠 → 正向 τ=0.10 门控可信
+- 做空策略系统性弱化 → 建议 short 侧 τ=0.15（更高置信度），或改 long-only
+- 单调性 Spearman(bin, E[ŷ|y]) = **+0.855**（非完美 +1.0，有 2 处反转）
+
+**原始数据与脚本：** `scripts/bin_plot_diagnostic.py`，完整 10-bin 表见 `experiments/eval_comprehensive/REPORT_ZH.md` 图 21 章节。
+
 ---
 
 ## 4. 方法论遗产（对未来项目有价值）
