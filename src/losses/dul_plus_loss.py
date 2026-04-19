@@ -32,7 +32,24 @@ from src.training.dul_loss import utility_rank_loss
 
 
 class DulPlusLoss(nn.Module):
-    """Composite loss for V5-LH multi-horizon quantile training.
+    """DUL+ composite loss (pinball + CRPS + utility_rank + UNIT + focal + decorrelation).
+
+    Composite loss for V5-LH multi-horizon quantile training.
+
+    IMPORTANT — current `gamma_crps` semantics: the CRPS term in this implementation
+    reuses the per-sample pinball-mean formula. Because CRPS-at-K-quantiles IS
+    mean-pinball, the composite currently computes::
+
+        l_h = l_pin + gamma_crps * l_pin + eta_utility * l_rank
+            = (1 + gamma_crps) * l_pin + eta_utility * l_rank
+
+    i.e. gamma_crps acts as an additional scalar multiplier on pinball, NOT as a
+    genuinely different distributional surrogate. Setting gamma_crps=0 recovers
+    plain pinball; default gamma_crps=0.5 gives 1.5× pinball weight.
+
+    The composite keeps the separate CRPS import path so a future swap-in (e.g.,
+    energy-score, CRPS of piecewise-linear CDF analytic form, or multi-τ grid)
+    can replace the redundant call without refactoring the composite interface.
 
     Parameters
     ----------
@@ -42,7 +59,8 @@ class DulPlusLoss(nn.Module):
         Typical scale (e.g. MAD-sigma from training set) of each horizon's
         target. Used by tail_focal_weights to identify tail samples.
     gamma_crps : float
-        Weight on the CRPS surrogate term (default 0.5).
+        Weight on the CRPS surrogate term (default 0.5). See note above:
+        currently acts as a pinball scalar multiplier.
     eta_utility : float
         Weight on the utility-rank pairwise loss (default 0.3).
     alpha_decorr : float
@@ -142,6 +160,14 @@ class DulPlusLoss(nn.Module):
             raise ValueError(
                 f"Expected {self.n_horizons} target tensors, "
                 f"got {len(targets_by_h)}"
+            )
+
+        # Caller contract: NaN/Inf targets must be filtered upstream using
+        # y_mask_{horizon} from the NPZ. Silent NaN would poison the gradient.
+        for i, y in enumerate(targets_by_h):
+            assert torch.isfinite(y).all(), (
+                f"horizon {i}: targets contain NaN/Inf — caller must filter masked "
+                f"values before invoking DulPlusLoss (use y_mask_{{horizon}} in trainer)"
             )
 
         per_task_losses: List[torch.Tensor] = []
