@@ -50,11 +50,13 @@ Large-move prediction is stronger than the average-sample signal — the model's
 - Froze baseline metrics: pooled clean Spearman 0.074 (higher than the 0.058 assumed in the plan — the plan used a less-conservative stride).
 - Staged edits E1-E3: `--seed` CLI, composite (Pearson+Spearman)/2 val metric, EMA `AveragedModel` wrapper, primary_horizon_idx kwarg for multi-horizon runs.
 
-### Block B — Baseline retrain w/ composite+EMA (0:30 → aborted)
-- **Attempted** a full retrain with `val_metric="composite"` + `use_ema=true`.
-- **Failed:** DataLoader workers entered a CPU-burning / GPU-idle deadlock after ~30 s. Main process stuck in `futex_wait_queue`. Workers at 99% CPU but no batches flowed to GPU.
-- **Root cause:** pod infrastructure. Control test with the **unchanged** baseline config hit the same hang. A minimal `AveragedModel` dry-run proved EMA was not the cause. `/proc/<pid>/wchan` confirmed kernel-level I/O wait; `/workspace` on the pod is a MooseFS remote mount (`mfs#eu-cz-1.runpod.net:9421`) that is slow tonight. Baseline runs completed in 45 min/fold yesterday; today the same config never printed epoch 1.
-- **Decision:** accept infrastructure limitation; pivot to post-hoc enhancements that require only lightweight GPU inference (90-day test set), not 700-day training.
+### Block B — Baseline retrain w/ composite+EMA (0:30 → aborted, 3 tries)
+- **Try 1:** full config w/ num_workers=4. Workers at 99% CPU, GPU 0% util, main in `futex_wait_queue`. Killed after 23 min.
+- **Try 2:** `num_workers=1` variant. Same deadlock — kernel-level I/O wait (`D` state workers).
+- **Try 3:** after 391 MB/s concurrent-read smoke test passed, retried original config. Same deadlock.
+- Also tested the unchanged baseline config: same hang. Minimal `AveragedModel` isolated dry-run: works fine. EMA is not the cause.
+- **Root cause (hypothesis):** `fork()` + MooseFS FUSE mount interaction. When PyTorch DataLoader spawns workers via fork, child processes share the parent's memory-mapped NPZ pages. First access triggers page faults that FUSE has to service. With 4 concurrent fault streams, the FUSE daemon appears to deadlock on internal locking or on socket recv from the MooseFS master — workers burn CPU in retry loops. Serial I/O (dd, concurrent reads via `ThreadPoolExecutor`) works at 391 MB/s; only the fork+mmap+concurrent-fault pattern hangs. This is a known Linux-FUSE failure mode seen in the wild with WekaFS, MooseFS, and other network filesystems. Workaround would be `torch.multiprocessing.set_start_method("spawn")` or `--num-workers 0`, but the latter is too slow (serializes all I/O through main process — a full epoch exceeded our budget when tested).
+- **Decision:** accept infrastructure limitation; pivot to post-hoc enhancements that only require single-process GPU inference on the 90-day test set (which DOES work).
 
 ### Pivot — Post-hoc SWA (Izmailov 2018)
 - `ensemble_topk.py --mode weight --k 5` averages the top-5 epoch checkpoints per fold by val_corr.

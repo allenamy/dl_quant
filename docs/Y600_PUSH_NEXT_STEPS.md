@@ -118,6 +118,17 @@ Local artefacts:
 
 Fall back to `num_workers=0` configs (`configs/y600_push/baseline_plus_nw0.json`). Epoch time inflates 2-3× but training WILL progress. A full fold would take ~90 min instead of 45 min.
 
+**Alternate workaround — try fork → spawn.** The deadlock signature (99% CPU workers, GPU idle, main in `futex_wait_queue`) matches known fork()+FUSE failure modes. Try setting the multiprocessing start method to `spawn` before DataLoader creation:
+
+```python
+# Add near the top of run_pipeline_v3.py's main()
+import torch.multiprocessing as mp
+if not mp.get_start_method(allow_none=True) == "spawn":
+    mp.set_start_method("spawn", force=True)
+```
+
+With `spawn`, workers re-import modules freshly rather than inheriting fork-copied memory-maps. Slower to start up (~10 s overhead per fold) but may avoid the FUSE page-fault contention. If this works, training might complete in a single session without waiting for pod recovery.
+
 ## Anti-patterns logged in memory (next session's Claude will see these)
 
 - `swa_y600_post_hoc_2026_04_20.md` — SWA as a free +0.010/+0.004 uplift recipe.
