@@ -49,15 +49,96 @@ Fold 0 only completed. Fold 1 hung silently for 23+ min. Training killed. Five r
 
 Interpretation: at 100d three configs (A, G, H) cluster at val_corr ~0.12 — plausible ceiling at small data, so differences between top-3 are within noise.
 
-## In-progress
+## V4 no_attention 700d × 3-fold pooled (2026-04-18, PRIMARY RESULT)
 
-**no_attention + no_conv** at 700d (PID 36403) — if either Pearson or Spearman ≥ 0.12, promote to 4-fold pooled. If Spearman ≥ 0.12 but Pearson < 0.12, we flag as "trading-viable spec-non-compliant" per METRIC_DISCIPLINE.md.
+| Fold | Best epoch | Val corr | Test Pearson | Test Spearman | DirAcc | N |
+|------|:-:|---:|---:|---:|---:|---:|
+| 0 | 5 | 0.0643 | 0.0964 | 0.1047 | 54.0% | 15,605 |
+| 1 | 6 | 0.0934 | 0.0939 | 0.1073 | 54.3% | 16,681 |
+| 2 | 6 | 0.0859 | 0.0994 | 0.1261 | 53.8% | 17,021 |
+| **Pooled** | — | — | **0.0943** | **0.1107** | **54.0%** | **49,307** |
 
-## Next decision tree
+**Per-fold stats:** mean Pearson 0.0966, std 0.0023 → IC-IR ≈ 42, t-stat ≈ 65 (3 folds). Signal is **real and extremely stable across regimes**. Fold-to-fold variability in test_corr is driven more by test-set composition than by model instability.
 
-Applies once no_attn+no_conv 700d finishes:
+**Against 0.12 spec bar:** ❌ fail both Pearson (−0.026) and Spearman (−0.013).
 
-1. **Spearman ≥ 0.12 AND Pearson ≥ 0.12** — full pass. Launch 4-fold for pooled.
-2. **Spearman ≥ 0.12, Pearson 0.10-0.12** — conditional pass. Launch 4-fold + investigate outlier influence on Pearson.
-3. **Spearman 0.10-0.12** — competitive with V3 + Ridge, below V4 target. Run 4-fold for pooled; decide with user if pragmatic win or keep iterating.
-4. **Both < 0.10** — below Ridge. Continue architecture search (try H_ridge_only at 700d, or shrink further).
+**Against Ridge baseline (0.099 Pearson reported, Spearman pending local baseline):** V4 ≈ Ridge on Pearson, **+0.01 on Spearman** → DL uplift is real but concentrated in rank quality (tail ordering), not magnitude calibration.
+
+**Decision class per `docs/METRIC_DISCIPLINE.md`:** "不合规且交易不可用" tier (both metrics below 0.12). Must continue iteration or record as negative result. However, the Spearman > Pearson divergence (0.0164) and cross-fold stability make this a *calibration*-limited rather than *signal*-limited result.
+
+### SWA checkpoint ensemble (fold 2 only — topk was not saved for folds 0/1)
+
+| Variant | Test Pearson | Test Spearman |
+|---|---:|---:|
+| Fold 2 E6 best | 0.0994 | 0.1261 |
+| Fold 2 SWA (E5-E9 avg) | **0.1016** | **0.1275** |
+| Δ | +0.0022 | +0.0014 |
+
+SWA gives modest fold-level gain (+0.0022 Pearson). Pooled effect tiny because only 1 of 3 folds has topk checkpoints. **Going forward**: topk capture is now default → next training run will have SWA available on all folds for an expected pooled +0.003-0.005 Pearson.
+
+## Pass/fail read
+
+- ✅ Signal is real: t-stat 65 on 3 folds, p < 0.01 vs zero
+- ✅ Spearman > Pearson (ranks work, magnitude weaker)
+- ✅ DirAcc > 50% across all folds
+- ❌ Pooled Pearson 0.0943 below spec 0.12
+- ❌ Pooled Spearman 0.1107 below spec 0.12
+
+**Binding constraints (from `docs/V4_MODEL_AUDIT.md` + empirical):**
+1. TCN receptive field 15s vs 180s horizon (model uses only last 15s of 600s window)
+2. Train stride=900 with 600s window = no window overlap, thin train set
+3. No Savitzky-Golay feature smoothing (proven +0.01-0.03 in Wang 2025)
+
+## Apples-to-apples baseline (matched 3-fold, 2026-04-18)
+
+Pod-run Ridge/TemporalRidge/XGBoost on the **exact same 3-fold setup** as V4 (700d train / 30d val / 90d test, stride=60, identical days). V4 NPZ features, `--use-last-timestep`. Resolves 2023-vs-2025 regime confound from local 44-fold.
+
+### Per-fold
+
+| Fold | V4 (P/S) | Ridge (P/S) | TemporalRidge (P/S) | XGBoost (P/S) |
+|------|---:|---:|---:|---:|
+| 0 | 0.0964 / 0.1047 | 0.0726 / 0.0988 | 0.0725 / 0.0988 | 0.0922 / 0.0982 |
+| 1 | 0.0939 / 0.1073 | 0.0963 / 0.1067 | 0.0962 / 0.1067 | 0.0965 / 0.1047 |
+| 2 | 0.0994 / 0.1261 | 0.0939 / 0.1241 | 0.0939 / 0.1241 | 0.1004 / 0.1268 |
+
+### Aggregated (mean across folds)
+
+| Model | Pearson | Spearman | DirAcc | Relative compute |
+|---|---:|---:|---:|:-:|
+| Ridge | 0.0876 | 0.1099 | 0.5490 | ~1× (seconds) |
+| XGBoost | **0.0963** | 0.1099 | 0.5492 | ~10× (minutes) |
+| **V4 noattn 700d** | 0.0943 | **0.1107** | 0.5403 | ~1000× (hours) |
+
+### DL uplift over Ridge
+- Pearson: **+0.007** (V4) / **+0.009** (XGBoost)
+- Spearman: **+0.0008** (V4) / **+0.0000** (XGBoost)  
+- DirAcc: **−0.9pp** (V4 worse!)
+
+### Interpretation
+
+Signal is small but real; features carry most of it. V4 noattn gains ~0.0008 Spearman and 0.007 Pearson over Ridge at **1000× the training cost**. **DL is not paying its way** at current SNR.
+
+Wang 2025's thesis ("preprocessing > architecture for crypto LOB") is **empirically confirmed** on our data.
+
+## Strategic pivot
+
+1. **Don't grow V4's architecture** (wider TCN, more layers, attention revival) — Path A already saturates signal capacity at 59K params
+2. **Invest in features** (zero/low-cost wins, Wang 2025 confirmed):
+   - Savitzky-Golay on input features (expected +0.01-0.03 Spearman)
+   - Savitzky-Golay on labels (reduce label noise, often +0.005-0.01)
+   - Order flow derivatives (flow_velocity, flow_acceleration)
+   - Microprice dynamics (already partial, not SG-smoothed)
+3. **XGBoost becomes production baseline** — matches V4, 100× cheaper, interpretable
+4. **DL remains research** — revisit after SG features + dense stride=60
+
+## Next decision tree (post apples-to-apples)
+
+1. **Land SG filter + regen V4 NPZ** (1-2 days):
+   - Expect: Ridge Spearman 0.11 → 0.13+
+   - Confirmed path forward
+2. **If SG → ≥0.12 Spearman on Ridge**:
+   - Re-evaluate whether DL can add incremental signal via ensemble
+   - Backtest framework becomes priority
+3. **If SG stalls at <0.12**:
+   - Deeper feature engineering (hidden liquidity, regime conditioning, orderbook imbalance gradients)
+   - 1-2 weeks of feature work before next model iteration

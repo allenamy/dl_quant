@@ -57,8 +57,11 @@ def load_days(
     horizon_key: str = "y",
     mask_key: str = "y_mask",
     use_last_timestep: bool = False,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Load and concatenate X, y, y_mask from multiple day NPZ files.
+    return_timestamps: bool = False,
+    sg_window: int = 0,
+    sg_polyorder: int = 2,
+) -> Tuple[np.ndarray, ...]:
+    """Load and concatenate X, y, y_mask (+ optional timestamps) from day NPZ files.
 
     Parameters
     ----------
@@ -78,6 +81,17 @@ def load_days(
         over the time axis) becomes degenerate (std=0, trend=0) and yields
         the same result as ``RidgeBaseline``. ``FITSBaseline`` needs a
         sequence and is skipped by ``run_all_baselines`` in this mode.
+    return_timestamps : bool
+        If True, also concatenate the NPZ ``timestamps`` array and return
+        it as a fourth element. Used by `--save-predictions` so downstream
+        eval can align predictions to wall-clock time.
+    sg_window : int
+        Savitzky-Golay filter window size in timesteps (must be odd). 0 = off.
+        Applied along the time axis of X before ``use_last_timestep`` slicing.
+        Wang et al. 2025 report this preprocessing step is decisive for crypto
+        LOB models at sub-minute frequencies. Zero-preserves legacy behaviour.
+    sg_polyorder : int
+        Polynomial order for SG filter (must be < sg_window). Default 2.
 
     Returns
     -------
@@ -85,12 +99,33 @@ def load_days(
         (N, 1, F) float32 when use_last_timestep=True
     y : (N,) float32
     mask : (N,) float32
+    timestamps : (N,) int64  (only when return_timestamps=True)
     """
-    xs, ys, masks = [], [], []
+    if sg_window > 0:
+        from scipy.signal import savgol_filter
+        if sg_window % 2 == 0:
+            raise ValueError(f"sg_window must be odd, got {sg_window}")
+        if sg_polyorder >= sg_window:
+            raise ValueError(
+                f"sg_polyorder ({sg_polyorder}) must be < sg_window ({sg_window})"
+            )
+
+    xs, ys, masks, tss = [], [], [], []
     for day in days:
         path = os.path.join(npz_dir, f"{day}.npz")
         npz = np.load(path, allow_pickle=True)
         x_day = npz["X"]  # (N, L, F)
+        if sg_window > 0:
+            # Smooth along time axis (axis=1) per feature channel, per window.
+            # Cast to float32 up-front: savgol_filter returns float64 otherwise
+            # and doubles memory.
+            x_day = savgol_filter(
+                x_day.astype(np.float32, copy=False),
+                window_length=sg_window,
+                polyorder=sg_polyorder,
+                axis=1,
+                mode="nearest",
+            ).astype(np.float32, copy=False)
         if use_last_timestep:
             # Keep 3D with L=1 so downstream ``X[:, -1, :]`` slicing still works.
             x_day = x_day[:, -1:, :]
@@ -106,6 +141,11 @@ def load_days(
             )
         ys.append(npz[horizon_key])
         masks.append(npz[mask_key])
+        if return_timestamps:
+            if "timestamps" in npz.files:
+                tss.append(npz["timestamps"])
+            else:
+                tss.append(np.zeros(len(npz[horizon_key]), dtype=np.int64))
 
     X = np.concatenate(xs, axis=0).astype(np.float32)
     y = np.concatenate(ys, axis=0).astype(np.float32)
@@ -117,6 +157,9 @@ def load_days(
     mask = np.nan_to_num(mask, nan=0.0, posinf=0.0, neginf=0.0)
     y[mask == 0] = 0.0
 
+    if return_timestamps:
+        ts = np.concatenate(tss, axis=0).astype(np.int64)
+        return X, y, mask, ts
     return X, y, mask
 
 
@@ -337,6 +380,9 @@ def run_all_baselines(
     horizon_key: str = "y",
     mask_key: str = "y_mask",
     use_last_timestep: bool = False,
+    save_predictions_dir: Optional[str] = None,
+    sg_window: int = 0,
+    sg_polyorder: int = 2,
 ) -> Dict[str, Any]:
     """Run Ridge, TemporalRidge, XGBoost (if available), and FITS on multi-day data.
 
@@ -352,12 +398,19 @@ def run_all_baselines(
         Window sizes for temporal CV folds.
     fold_stride : int
         Stride for sliding-window CV.
+    save_predictions_dir : Optional[str]
+        If set, save per-fold per-model prediction NPZ files to this directory.
+        Format: ``fold_{i}_{model}_preds.npz`` with keys
+        ``predictions`` (N,), ``targets`` (N,), ``mask`` (N,), ``timestamps`` (N,).
+        Used by the comprehensive evaluation script.
 
     Returns
     -------
     dict with per-fold and aggregate results.
     """
     os.makedirs(output_dir, exist_ok=True)
+    if save_predictions_dir is not None:
+        os.makedirs(save_predictions_dir, exist_ok=True)
 
     # 1. Discover days
     days = discover_days(npz_dir)
@@ -402,11 +455,21 @@ def run_all_baselines(
         X_train, y_train, mask_train = load_days(
             npz_dir, fold["train"], horizon_key=horizon_key, mask_key=mask_key,
             use_last_timestep=use_last_timestep,
+            sg_window=sg_window, sg_polyorder=sg_polyorder,
         )
-        X_test, y_test, mask_test = load_days(
-            npz_dir, fold["test"], horizon_key=horizon_key, mask_key=mask_key,
-            use_last_timestep=use_last_timestep,
-        )
+        if save_predictions_dir is not None:
+            X_test, y_test, mask_test, ts_test = load_days(
+                npz_dir, fold["test"], horizon_key=horizon_key, mask_key=mask_key,
+                use_last_timestep=use_last_timestep, return_timestamps=True,
+                sg_window=sg_window, sg_polyorder=sg_polyorder,
+            )
+        else:
+            X_test, y_test, mask_test = load_days(
+                npz_dir, fold["test"], horizon_key=horizon_key, mask_key=mask_key,
+                use_last_timestep=use_last_timestep,
+                sg_window=sg_window, sg_polyorder=sg_polyorder,
+            )
+            ts_test = None
 
         # Compute normalisation from train
         norm_stats = compute_normalisation_stats(X_train, y_train)
@@ -414,6 +477,24 @@ def run_all_baselines(
         # Normalise
         X_train_n, y_train_n = normalise_data(X_train, y_train, norm_stats)
         X_test_n, y_test_n = normalise_data(X_test, y_test, norm_stats)
+
+        def _maybe_save(model_name: str, pred: np.ndarray) -> None:
+            if save_predictions_dir is None:
+                return
+            path = os.path.join(
+                save_predictions_dir,
+                f"fold_{fold_idx}_{model_name}_preds.npz",
+            )
+            np.savez(
+                path,
+                predictions=pred.astype(np.float32),
+                targets=y_test_n.astype(np.float32),
+                mask=mask_test.astype(np.float32),
+                timestamps=(ts_test if ts_test is not None else np.zeros(len(pred), dtype=np.int64)),
+                norm_y_median=np.float64(norm_stats["y_median"]),
+                norm_y_sigma=np.float64(norm_stats["y_mad_sigma"]),
+            )
+            logger.info(f"  → saved {path}")
 
         # --- Ridge baselines ---
         ridge_preds = run_ridge_baselines(X_train_n, y_train_n, X_test_n)
@@ -424,6 +505,7 @@ def run_all_baselines(
             metrics["fold"] = fold_idx
             metrics["model"] = name
             all_results[name].append(metrics)
+            _maybe_save(name, pred)
 
         # --- XGBoost ---
         xgb_pred = run_xgboost_baseline(X_train_n, y_train_n, X_test_n)
@@ -432,6 +514,7 @@ def run_all_baselines(
             metrics["fold"] = fold_idx
             metrics["model"] = "XGBoost"
             all_results["XGBoost"].append(metrics)
+            _maybe_save("XGBoost", xgb_pred)
 
         # --- FITS ---
         if X_train.ndim == 3 and X_train.shape[1] > 1:
@@ -569,6 +652,26 @@ def main() -> None:
             "(std=0, trend=0) and FITS is auto-skipped in this mode."
         ),
     )
+    parser.add_argument(
+        "--save-predictions", default=None, metavar="DIR",
+        help=(
+            "When set, save per-fold per-model predictions to this directory as "
+            "fold_{i}_{model}_preds.npz (keys: predictions, targets, mask, timestamps, "
+            "norm_y_median, norm_y_sigma). Consumed by scripts/comprehensive_eval.py."
+        ),
+    )
+    parser.add_argument(
+        "--sg-window", type=int, default=0,
+        help=(
+            "Savitzky-Golay filter window (odd, in timesteps). 0 = off. "
+            "Applied along time axis before use-last-timestep slicing. "
+            "Wang 2025 validated this on crypto LOB."
+        ),
+    )
+    parser.add_argument(
+        "--sg-polyorder", type=int, default=2,
+        help="SG polynomial order (default 2, must be < sg-window).",
+    )
 
     args = parser.parse_args()
 
@@ -588,6 +691,9 @@ def main() -> None:
         horizon_key=args.horizon_key,
         mask_key=args.mask_key,
         use_last_timestep=args.use_last_timestep,
+        save_predictions_dir=args.save_predictions,
+        sg_window=args.sg_window,
+        sg_polyorder=args.sg_polyorder,
     )
 
 
