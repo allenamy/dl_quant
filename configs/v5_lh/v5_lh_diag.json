@@ -1,0 +1,51 @@
+{
+  "_comment_1": "V5-LH diagnostic config. Strip loss to pure pinball, drop lr.",
+  "_comment_2": "Goal: find whether base architecture trains stably + shows positive IC",
+  "_comment_3": "before re-enabling focal / rank / decorrelation.",
+
+  "data": {
+    "npz_dir": "data/npz_v5_lh",
+    "input_len": 1800,
+    "eval_subsample_stride": 10
+  },
+  "model": {
+    "d_model": 24,
+    "d_raw": 16,
+    "d_prior": 6,
+    "horizons": ["y_600"],
+    "n_mamba_layers": 1,
+    "mamba_d_state": 16,
+    "mamba_expand": 1,
+    "use_fallback": false
+  },
+  "loss": {
+    "gamma_crps": 0.0,
+    "eta_utility": 0.0,
+    "alpha_decorr": 0.0,
+    "focal_weight": 0.0,
+    "focal_threshold_sigma": 2.0,
+    "use_unit": false
+  },
+  "training": {
+    "epochs": 30,
+    "batch_size": 32,
+    "lr": 2e-4,
+    "weight_decay": 1e-3,
+    "warmup_epochs": 0,
+    "patience": 8,
+    "grad_clip": 1.0,
+    "train_days": 700,
+    "val_days": 30,
+    "test_days": 90,
+    "fold_stride": 60,
+    "num_workers": 2,
+    "cache_size": 8,
+    "chunk_size": 8
+  },
+  "early_exit": {
+    "min_epoch5_pearson": -0.05,
+    "max_grad_norm": 50.0,
+    "grad_spike_window": 10
+  },
+  "output_dir": "experiments/v5_lh_diag"
+}
