@@ -33,6 +33,10 @@ class _RealMambaBlock(nn.Module):
 
     def __init__(self, d_model: int, d_state: int, expand: int):
         super().__init__()
+        assert d_model % 4 == 0, (
+            f"d_model={d_model} must be divisible by 4 (headdim = d_model // 4 "
+            f"requires d_model % headdim == 0 inside mamba-ssm)"
+        )
         from mamba_ssm import Mamba2
         self.block = Mamba2(
             d_model=d_model,
@@ -47,6 +51,15 @@ class _RealMambaBlock(nn.Module):
 
 
 class MambaBackbone(nn.Module):
+    """Mamba-2 temporal backbone with GRU CPU fallback.
+
+    Parameter budget note: the GRU fallback and real Mamba-2 have DIFFERENT
+    parameter counts (fallback ~12.8K vs real ~8-10K for d_model=32, n_layers=2,
+    d_state=16). Local development-time param counts do NOT match pod
+    training-time compute. Use `use_fallback=False` with the real block when
+    comparing against V4's 59K parameter budget.
+    """
+
     def __init__(
         self,
         d_model: int = 32,
