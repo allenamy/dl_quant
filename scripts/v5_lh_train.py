@@ -31,7 +31,7 @@ from scipy.stats import pearsonr, spearmanr
 
 from src.model_v5_lh.v5_lh_model import V5LHModel
 from src.losses.dul_plus_loss import DulPlusLoss
-from src.training.dataset import LOBDatasetV2, build_time_series_folds
+from src.training.dataset import LOBDatasetV2, DayChunkedSampler, build_time_series_folds
 
 
 def _mask_filter(
@@ -87,12 +87,20 @@ def _run_fold_seed(cfg: dict, fold_idx: int, seed: int, device: str) -> dict:
     print(f"[v5_lh] fold={fold_idx} seed={seed}: "
           f"train={len(fold['train'])} val={len(fold['val'])} test={len(fold['test'])} days")
 
+    # cache_size limits per-worker LRU of per-day NPZ arrays in RAM.
+    # V5-LH per-day NPZ is ~100 MB (1800-step × 59 feat + fp16 raw). With
+    # num_workers=N and cache_size=C, peak data-loader RAM ≈ N*C*100 MB.
+    # cgroup limit is 125 GB — we stay well under by keeping C small.
+    cache_size = int(train_cfg.get("cache_size", 8))
     train_ds = LOBDatasetV2(data_dir=str(npz_dir), days=fold["train"],
-                            horizons=horizons, preload=False)
+                            horizons=horizons, preload=False,
+                            cache_size=cache_size)
     val_ds = LOBDatasetV2(data_dir=str(npz_dir), days=fold["val"],
-                          horizons=horizons, preload=False)
+                          horizons=horizons, preload=False,
+                          cache_size=cache_size)
     test_ds = LOBDatasetV2(data_dir=str(npz_dir), days=fold["test"],
-                           horizons=horizons, preload=False)
+                           horizons=horizons, preload=False,
+                           cache_size=cache_size)
     print(f"[v5_lh] samples: train={len(train_ds):,} val={len(val_ds):,} test={len(test_ds):,}")
 
     # Compute per-horizon y_sigma from TRAIN set (MAD-sigma)
@@ -172,11 +180,24 @@ def _run_fold_seed(cfg: dict, fold_idx: int, seed: int, device: str) -> dict:
     consecutive_grad_spikes = 0
     training_log = []
 
+    # DayChunkedSampler keeps each batch local to ~chunk_size days, so
+    # LRU cache hits ~100%. This avoids the RAM blowup that shuffle=True
+    # caused on V5-LH's larger per-day NPZ (killed the pod last run).
+    chunk_size = int(train_cfg.get("chunk_size", cache_size))
+    train_sampler = DayChunkedSampler(
+        train_ds, chunk_size=chunk_size, shuffle_days=True,
+        shuffle_within_day=True, seed=seed,
+    )
+    print(f"[v5_lh] DataLoader: cache_size={cache_size} "
+          f"chunk_size={chunk_size} num_workers={train_cfg['num_workers']}")
+
     for epoch in range(train_cfg["epochs"]):
         model.train()
         t0 = time.time()
+        train_sampler.set_epoch(epoch) if hasattr(train_sampler, "set_epoch") else None
         train_loader = torch.utils.data.DataLoader(
-            train_ds, batch_size=train_cfg["batch_size"], shuffle=True,
+            train_ds, batch_size=train_cfg["batch_size"],
+            sampler=train_sampler,
             num_workers=train_cfg["num_workers"],
             pin_memory=(device == "cuda"),
             persistent_workers=(train_cfg["num_workers"] > 0),
