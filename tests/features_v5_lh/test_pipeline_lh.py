@@ -4,6 +4,41 @@ import pathlib
 from src.features_v5_lh.pipeline_lh import build_lh_npz_from_v4
 
 
+def test_sg_filter_smooths_features():
+    """When sg_window is set, high-frequency noise in features is reduced."""
+    tmpdir = tempfile.mkdtemp()
+    src_npz = pathlib.Path(tmpdir) / "day.npz"
+    N = 30  # small: 10 LH windows
+    # Noisy features: signal + white noise
+    signal = np.sin(np.arange(600) * 0.1).astype(np.float32)  # (600,)
+    X = np.broadcast_to(signal[None, :, None], (N, 600, 2)).copy()
+    X = X + 0.3 * np.random.randn(N, 600, 2).astype(np.float32)
+    np.savez(
+        str(src_npz),
+        X=X,
+        X_raw=np.random.randn(N, 600, 20, 4).astype(np.float16),
+        features=np.array(["a", "b"], dtype=object),
+        regime_prior=np.random.randn(N, 6).astype(np.float32),
+        timestamps=np.arange(N, dtype=np.int64),
+        y_600=np.random.randn(N).astype(np.float32),
+        y_mask_600=np.ones(N, dtype=np.uint8),
+    )
+    dst_raw = pathlib.Path(tmpdir) / "raw_lh.npz"
+    dst_sg = pathlib.Path(tmpdir) / "sg_lh.npz"
+    build_lh_npz_from_v4(src_npz, dst_raw, input_len=1800, kept_feature_indices=[0, 1])
+    build_lh_npz_from_v4(src_npz, dst_sg, input_len=1800, kept_feature_indices=[0, 1], sg_window=21, sg_polyorder=2)
+    raw = np.load(str(dst_raw))["X"]
+    sg = np.load(str(dst_sg))["X"]
+    # SG-filtered should have smaller lag-1 diff magnitude (less high-freq noise)
+    raw_diff = np.abs(np.diff(raw, axis=1)).mean()
+    sg_diff = np.abs(np.diff(sg, axis=1)).mean()
+    assert sg_diff < raw_diff * 0.7, (
+        f"SG filter did not smooth enough: raw_diff={raw_diff:.4f}, sg_diff={sg_diff:.4f}"
+    )
+    # Shape preserved
+    assert sg.shape == raw.shape
+
+
 def test_stride_and_input_len_transform():
     """Given V4 NPZ with window=600 stride=60 -> build LH NPZ with input_len=1800.
 

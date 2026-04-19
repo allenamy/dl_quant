@@ -39,6 +39,8 @@ def build_lh_npz_from_v4(
     dst_path: pathlib.Path,
     input_len: int = 1800,
     kept_feature_indices: Optional[List[int]] = None,
+    sg_window: Optional[int] = None,
+    sg_polyorder: int = 2,
 ) -> None:
     """Produce V5-LH NPZ from a single V4 NPZ day.
 
@@ -50,6 +52,16 @@ def build_lh_npz_from_v4(
                 (600) so it divides evenly into N non-overlapping V4 windows.
     kept_feature_indices : which V4 feature columns to carry over (output from
                 the redundancy filter). If None, keep all.
+    sg_window : optional Savitzky-Golay filter window length (must be an odd
+                integer >= 3). When set, applies SG smoothing along the time axis
+                (axis=1) of the handcrafted feature array X before saving.
+                Applied ONLY to X (handcrafted features), NOT to X_raw (raw LOB
+                snapshots which are already denoised by their own structure).
+                Typically sg_window=21, sg_polyorder=2 per Phase B experiments.
+                None (default) disables filtering and preserves exact backwards
+                compatibility.
+    sg_polyorder : polynomial order for the SG filter (default 2). Ignored when
+                sg_window is None.
     """
     assert input_len % V4_WINDOW_SEC == 0, (
         f"input_len must be a multiple of V4 window size ({V4_WINDOW_SEC}); "
@@ -111,6 +123,17 @@ def build_lh_npz_from_v4(
             # X_v4[v4_idx] shape: (600, F); [:, kept_idx_arr] → (600, F_kept)
             X_lh[lh_idx, seg, :] = X_v4[v4_idx][:, kept_idx_arr]
             X_raw_lh[lh_idx, seg, :, :] = X_raw_v4[v4_idx, :, :, :]
+
+    # Optional Savitzky-Golay smoothing on handcrafted features (X only, not X_raw)
+    if sg_window is not None:
+        from scipy.signal import savgol_filter
+        assert sg_window % 2 == 1 and sg_window >= 3, (
+            f"sg_window must be odd >= 3, got {sg_window}"
+        )
+        X_lh = savgol_filter(
+            X_lh, window_length=sg_window, polyorder=sg_polyorder, axis=1, mode="nearest"
+        )
+        X_lh = X_lh.astype(np.float32)  # savgol_filter may promote to float64
 
     out_kwargs = {
         "X": X_lh,
