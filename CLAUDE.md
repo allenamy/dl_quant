@@ -2,195 +2,138 @@
 
 ## Project Identity
 
-**What:** 利用创新的深度学习模型，对 Binance BTCUSDT 永续合约进行中高频交易预测（过去若干时间步预测未来 1-10min 收益率）。
+**Goal:** Binance BTCUSDT 永续合约中频交易预测。给定过去盘口序列，预测未来 1-10 min 收益率。不同 horizon (y_60 / y_180 / y_300 / y_600 / y_1800) 在不同 trade-off 下创新性地持续提高模型表现。
 
-**Who:** 个人或极小团队。资源有限但追求理论深度和工程质量。
+**Who:** 个人或极小团队。追求理论深度 + 工程质量的平衡，不追求工业级规模。
 
-**Vision:** 创新、稳定、综合性能兼备的框架，实现稳定可观的决策收益。不是极限 HFT（不需要 co-location/FPGA），而是 mid-frequency alpha — 用更聪明的模型和特征工程弥补基础设施的不足。
+**Vision:** 创新、稳定、综合性能兼备。mid-frequency alpha，不是 HFT。用更聪明的模型、特征、训练策略弥补基础设施不足。
+
+**Benchmark 实力参照：**
+- V4 y_180 已达 clean Pearson 0.09 / Spearman 0.099（已证 solid）
+- V4 y_600 fold 0 clean Spearman 0.073（证据显示可达 0.07-0.08）
+- Ridge y_180 baseline ≈ 0.05 Pearson，DL uplift 约 2×
+
+**当前关键目标：** y_600 clean Spearman ≥ 0.08，多 fold pooled；创新方法不断突破上限。
+
+---
+
+## Behavioral Guidelines (CRITICAL — 避免常见 LLM 错误)
+
+这些原则存在偏差到谨慎而非速度。对 trivial 任务用判断力。
+
+### 1. Think Before Coding
+
+- 明确说出假设。不确定就问。
+- 存在多种解读时，列出来让用户选，**不要静默决定**。
+- 若简化方案存在，先提出。必要时 push back。
+- 有困惑就停。说出困惑点。问问题。
+
+### 2. Simplicity First
+
+解决问题的最小代码，没有投机性扩展。
+
+- 不写未请求的功能
+- 单次使用代码不抽象
+- 未请求的"灵活性 / 可配置性"——不加
+- 不可能场景的 error handling——不加
+- 200 行能 50 行搞定，就 50 行
+
+自检："资深工程师会说这过于复杂吗？" 是 → 简化。
+
+### 3. Surgical Changes
+
+只改必须改的。只清理自己的垃圾。
+
+- 不改邻近代码 / 注释 / 格式
+- 不 refactor 没坏的东西
+- 匹配现有风格，即使我会换种写法
+- 发现无关 dead code → 提一下，不删
+- 当自己的改动制造 orphans → 清理掉（imports / vars / funcs）
+- 预先存在的 dead code → 不删除除非被要求
+
+测试：每一行变更都要能追溯到用户的请求。
+
+### 4. Goal-Driven Execution
+
+把任务变成可验证的 goal：
+
+- "加校验" → "写 invalid input 的测试，让它们 pass"
+- "修 bug" → "写能复现 bug 的测试，让它 pass"
+- "refactor X" → "refactor 前后测试都 pass"
+
+多步任务先给简短计划：
+```
+1. [步骤] → 验证：[check]
+2. [步骤] → 验证：[check]
+3. [步骤] → 验证：[check]
+```
+
+成功标准越强 → 越能独立 loop，越少 clarification 反复。
+
+### 5. 不偷懒、反复调研、精准改进
+
+- 看到异常结果必须深入 root-cause，不接受"玄学"
+- 遇到 ceiling 时先挑战数据假设，再挑战模型假设——可能是 window size / 数据 slice / loss 配置的问题
+- 失败实验 ≠ 失败项目。失败经验和成功经验同等重要，必须记录根因
+- 鼓励创新：在验证信号存在的前提下，尝试新架构 / 新 loss / 新特征
 
 ---
 
 ## Core Constraints (不可违反)
 
 1. **信号极弱 (R² < 1%)** — 任何设计决策都必须尊重这个物理事实。模型容量必须匹配信号强度，不能用复杂度"强行拟合"噪声。
-2. **数据有限** — 当前仅 1 天数据，目标 30-90 天。在数据规模验证之前，不做超过 15K 参数的模型。
-3. **非平稳性** — 金融序列的分布和特征-收益关系持续漂移。任何"在训练集上很好"的结论都必须在多日时序 CV 上验证。
-4. **预处理 > 架构** — Wang et al. (2025) 在 crypto LOB 上验证：Savitzky-Golay/Kalman 滤波 + 简单模型 ≥ 复杂深度学习。特征工程的优先级永远高于模型创新。
-5. **个人/小团队** — 不追求工业级规模（无 1B 参数模型），追求理论深度和实践效果的平衡。
-
----
-
-## First Principles (所有决策的理论依据)
+2. **非平稳性** — 金融序列的分布和特征-收益关系持续漂移。任何"在训练集上很好"的结论都必须在多日时序 CV 上验证。不同时期 y 和特征的关系可能**反号**。
+3. **预处理 > 架构** — 特征工程的优先级永远高于模型创新。简单 Ridge 在某些 slice 能匹配 DL，说明特征本身承载主要信号。
+4. **个人/小团队** — 不追求工业级规模，追求理论深度 + 实践效果的平衡。
 
 ### 决策检查清单
 
 每次做出架构、特征、训练策略的改动，必须回答：
 
-- [ ] **信号验证：** 这个改动解决的是"找到信号"还是"拟合噪声"？用 Ridge/XGBoost 做 ablation 了吗？
-- [ ] **复杂度预算：** 新增了多少参数？在当前数据规模下 params/unique_samples 比是否合理 (目标 < 1:10)？
-- [ ] **理论依据：** 这个方法有论文验证吗？在低 SNR 环境下测试过吗？还是只在 high-SNR 场景（NLP/CV/RecSys CTR）验证过？
-- [ ] **噪声鲁棒性：** 如果输入是纯噪声，这个组件会不会"学到"虚假模式？有没有过拟合的结构性风险？
-- [ ] **时间尺度匹配：** 特征/模型组件的时间尺度和预测 horizon (3min) 匹配吗？不要用 5 分钟窗口推断小时级 regime。
-- [ ] **OOS 验证：** 在时间上严格隔离的测试集上验证了吗？不是同一天的不同时段。
+- [ ] **信号验证**：改动解决的是"找到信号"还是"拟合噪声"？用 Ridge/XGBoost 对比了吗？
+- [ ] **复杂度预算**：新增多少参数？`params/unique_samples` 比是否合理（目标 1:5 以上）？
+- [ ] **理论依据**：有论文 / 工业验证吗？在低 SNR 环境下测试过吗？
+- [ ] **噪声鲁棒性**：输入纯噪声时这个组件会不会"学到"虚假模式？
+- [ ] **时间尺度匹配**：特征/模型的时间尺度与预测 horizon 匹配吗？
+- [ ] **OOS 验证**：时间上严格隔离的测试集验证了吗？不是同一天的不同时段。
 
 ### 禁止事项
 
-- **禁止** 在单日数据上声称模型有效
-- **禁止** stride < horizon (会导致标签重叠，虚假低 loss)
-- **禁止** 不经 baseline 对比就采用复杂架构
-- **禁止** 引用方法时使用过时/未验证的来源
-- **禁止** 盲目乐观地描述数据源/方法的可用性（必须实际验证）
+- **禁止**单日数据上声称模型有效
+- **禁止** `stride < horizon`（会导致标签重叠，虚假低 loss）
+- **禁止**不经 baseline 对比就采用复杂架构
+- **禁止**引用过时/未验证的方法
+- **禁止**盲目乐观地描述数据源/方法的可用性（必须实际验证）
 
 ---
 
-## Architecture Philosophy
+## Metric Discipline (标准化评估口径)
 
-### 双路径输入原则 (Domain Knowledge + Learned Representation)
+**所有训练/评估实验必须同时报告 Pearson + Spearman。** 详细规则见 `docs/METRIC_DISCIPLINE.md`。
 
-**核心理念：** 不是 "手工特征 OR 原始盘口"，而是 **"手工特征 AND 原始盘口"**。
-- **Path A (Domain Knowledge):** 手工特征编码已知有效信号（OBI, volatility, flow），在有限数据下提供稳定锚点
-- **Path B (Learned from Raw):** 原始盘口张量让模型发现人类没想到的结构（深度剖面形状、隐含支撑阻力、cross-level 相关性）
-- **Deep learning 的正确使用方式是补充领域知识，而非替代领域知识**
+### 指标分层（从首选到辅助）
 
-```
-Path A: 44 手工特征 → MaskNet + GDCN → h_craft (B, L, d_model)
-Path B: Raw LOB (B, L, 20, 4) → Spatial Conv → h_raw (B, L, d_raw)
-Fusion: concat → Linear → CausalConv → Temporal → Quantile Output
-```
+1. **Spearman rank IC** — **交易侧首选**。金融收益重尾，Spearman 更稳。
+2. **Pearson corr** — 规格合规 + 幅度校准。
+3. **Direction accuracy** — 卫生检查，必须 > 50%。
+4. **Weighted Sharpe (Newey-West HAC)** — 回测后最终答案。
+5. **Clean vs Dense evaluation** — Clean 用 `stride ≥ horizon` 的 subsample（非重叠标签）；dense 是 overlap-inflated。**报告必须同时给 clean + dense**，clean 才是 honest measure。
 
-Raw LOB 张量设计：
-- 每档 4 值: [bid_delta_bps, bid_log_amt, ask_delta_bps, ask_log_amt]
-- 价格: 相对 mid 的 bps (消除非平稳性)
-- 数量: log1p (压缩重尾分布)
-- 用 Conv2d 跨档位卷积 (局部感受野匹配盘口的局部结构)
+### 分歧处理
 
-### 递进验证原则
+| Pearson | Spearman | 判定 |
+|:-:|:-:|:-|
+| ✅ | ✅ | 通过 |
+| ❌ | ✅ | 交易可用但不合规，记录 + 诊断极端值 |
+| ✅ | ❌ | **危险信号** — Pearson 被极端值带飞 |
+| ❌ | ❌ | 不合规，继续迭代或记录为负面结果 |
 
-```
-Layer 1: 特征工程 + 线性/树模型     → 证明信号存在 (Ridge, XGBoost, FITS)
-Layer 2: 双路径神经网络             → 证明 raw path 和非线性有价值
-Layer 3: 创新组件 (有理论依据)      → 证明每个组件贡献正向
-```
+### 不可做
 
-**不跳层。** 如果 Layer 1 失败，不进入 Layer 2。Layer 2 中 Path A 和 Path B 需独立验证各自贡献后再 fusion。
-
-### 当前采纳的 SOTA 方法（每个都有论文和工业验证）
-
-| 组件 | 来源 | 作用 | 验证 |
-|---|---|---|---|
-| Savitzky-Golay 滤波 | Wang 2025 (crypto LOB) | 输入预处理降噪 | BTC/USDT LOB 直接验证 |
-| **Raw LOB Conv encoder** | DeepLOB 2019 + TLOB 2025 | 学习盘口空间结构 | **Bitcoin 直接验证** |
-| GDCN 门控交叉层 | CIKM 2023 | 噪声门控的特征交叉 | Criteo #1 |
-| MaskNet Instance-Guided Mask | DLP-KDD 2021 | 逐样本噪声抑制 | Twitter/X 生产 |
-| PPNet Gate | KDD 2023 | Regime 条件化（显式先验） | 快手 300M DAU |
-| FITS | ICLR 2024 Spotlight | 频域 baseline (10K params) | 多 benchmark SOTA |
-| Masked MA Pre-training | arXiv 2506.16746 (2025) | 金融自监督 | 金融时序验证 |
-| TLOB 双注意力 | Feb 2025 | LOB 空间+时序 | Bitcoin F1=74.7% |
-
-### 已识别的当前架构缺陷
-
-1. **SpatialLOBEncoder 分组语义错误** — `set_feature_groups()` 从未调用，三组按索引位置分割
-2. **RegimeAwareFeatureGate 时间尺度错误** — 5 分钟窗口无法推断小时级 regime
-3. **多任务损失梯度冲突** — 4 个 loss 导致 0.94 残差自相关（模型输出近常数）
-4. **Direction loss 阈值单位不匹配** — 归一化后的 target 用了 raw bps 阈值
-5. **分位数交叉未约束** — q10 可能 > q50 > q90
-6. **标签重叠** — stride=10, horizon=180, 相邻 label 共享 170/180 秒
-
----
-
-## Data Strategy
-
-### 数据源（已验证，2026.4）
-
-| 来源 | 状态 | 格式 | 成本 |
-|---|---|---|---|
-| Bybit 免费历史 (ob500/ob1000) | 已确认可用 | JSONL, 需适配器 | $0 |
-| Binance WebSocket 自建采集 (20档 @100ms) | 可行 | JSON stream | $0-5/月 VPS |
-| Crypto Lake | 已确认有免费样本 | API | $64/月 |
-| tardis.dev | 已确认可用 | CSV (完美匹配) | ≥$300/月 |
-
-### 数据递进策略（先小后大，逐步验证）
-
-```
-Step 1: 下载 3-5 天 Bybit 数据 → 截取 25 档 → 跑通完整 pipeline
-        验证: 格式、特征计算、NPZ 生成、baseline 训练全链路通
-        
-Step 2: 扩展到 30 天 → 25 档
-        验证: 多日 temporal CV, baseline 指标, 存储/内存可控
-        
-Step 3: (仅在 Step 2 证明信号存在后) 考虑是否需要更深档位
-        大概率不需要 — 3min 预测深档信号极弱
-```
-
-Bybit 适配器已内置截取逻辑（从 500 档取前 25 档），无需额外代码。
-不要一上来就用全量 500 档 — 数据量和处理复杂度会大 20x，且深档对 3min 预测贡献极小。
-
-### 数据处理管道
-
-```
-Raw data (JSONL/CSV) → resample_lob_to_1s
-  ├─ Path A: compute_microstructure_features → SG 滤波 → order flow 特征 → feat_matrix (N, 44+)
-  ├─ Path B: extract_raw_lob_tensor → normalize (bps + log1p) → lob_tensor (N, n_levels, 4)
-  └─ build_npz_for_day (stride ≥ 60): 保存 X_feat, X_raw, y, y_mask
-```
-
----
-
-## Development Process
-
-### Review Gates
-
-每完成一个 Phase 或重要改动后，执行全面 Review：
-
-1. **目标对齐检查：** 这个改动是否让我们更接近"稳定可观的决策收益"？还是只是技术上的探索？
-2. **理论验证：** 改动的每个部分是否经得起第一性原理的审视？
-3. **指标检查：** OOS correlation、residual autocorrelation、left tail bias 是否改善？
-4. **复杂度审计：** 总参数量、训练时间、推理时间是否在预算内？
-5. **失败分析：** 如果指标没有改善，根因是什么？是数据不够、特征不对、还是模型假设错误？
-
-### Documentation Requirements
-
-- **每次实验** 记录：假设 → 改动 → 结果 → 结论
-- **失败经验** 和成功经验同等重要，必须记录根因分析
-- **Plan 文档** 保持更新 (`docs/superpowers/plans/`)
-- **Memory** 记录跨会话需要保留的洞察
-
----
-
-## Current Phase: Phase 0-1 (Parallel)
-
-### Phase 0: Data Acquisition
-- [ ] Bybit 历史数据下载 + JSONL→CSV 适配器
-- [ ] Binance WebSocket 采集脚本 (后台持续运行)
-- [ ] 数据质量验证（gap 检测、异常值、时间连续性）
-
-### Phase 1: Signal Verification
-- [ ] 添加 5 个 order flow 特征
-- [ ] 添加 Savitzky-Golay 特征滤波
-- [ ] 修复 SpatialLOBEncoder 特征分组
-- [ ] 构建 Ridge / XGBoost / FITS baseline (手工特征)
-- [ ] **构建 Raw LOB tensor 提取 + Conv baseline** (原始盘口)
-- [ ] 在 30 天数据上运行多日时序 CV
-- [ ] 对比: 手工特征 vs 原始盘口 vs 双路径融合
-- [ ] **Gate Decision:** 任一路径 OOS corr > 0.03 → 进入 Phase 2
-
-### Phase 2: Theory-Driven Innovation (Phase 1 通过后)
-- [ ] **双路径融合架构**: Path A (MaskNet+GDCN) + Path B (Spatial Conv) → Fusion
-- [ ] MaskNet instance-guided noise suppression (Path A)
-- [ ] GDCN gated cross layers for feature interaction (Path A)
-- [ ] Raw LOB Conv encoder with learned spatial features (Path B)
-- [ ] PPNet-style regime gate with explicit hourly priors (Fusion层)
-- [ ] Quantile head with monotonic constraint
-- [ ] **Gate Decision:** 双路径显著优于单路径 baselines (p < 0.05)
-
-### Phase 3: 回测验证 + 实盘对接
-- [ ] 回测框架 (BacktestEngine, 分位数驱动仓位, 成本模型)
-- [ ] 端到端: 模型 → 回测 → Sharpe/MaxDD 评估
-- [ ] 实盘 paper trading 对接 (Bybit REST API)
-
-### 观察项 (仅当 Phase 2 不达标时考虑)
-- ~~Masked Moving Average pre-training~~ — 降级。理由: 26K params / 43K windows 数据不稀缺;
-  额外复杂度 (两阶段训练、超参增多) 对小团队维护和线上稳定性是负面因素。
+- 不可只报 Pearson 或只报 Spearman
+- 不可为 Pearson 达标牺牲 Spearman（"游戏规格"）
+- 不可在单指标上做 early stop / checkpoint
+- 不可用 R² 作为替代——R² < 1% 噪声主导，数值波动无意义
 
 ---
 
@@ -198,57 +141,93 @@ Raw data (JSONL/CSV) → resample_lob_to_1s
 
 - **Python**: 3.9+
 - **Framework**: PyTorch 2.0+
-- **Branch**: `siyu_dev`
-- **Testing**: pytest, 每个新组件必须有单元测试
-- **Stride**: ≥ 60 (最好 ≥ horizon=180)
-- **Max model params**: Phase 1: <15K, Phase 2: <30K
-- **Loss**: Quantile only (q10/q50/q90), 不做多任务直到单任务稳定
-- **Checkpoint selection**: val_correlation, NOT val_loss
-- **CV**: 多日时序 CV, train/val/test 严格按时间顺序
+- **Testing**: pytest, 新组件必须有单元测试
+- **Stride**: ≥ 60；eval subsample 到 stride ≥ horizon
+- **Loss**: Quantile (q10/q50/q90) 为主，单任务稳定后再考虑多任务
+- **Checkpoint selection**: Pearson + Spearman composite，不是单一指标
+- **CV**: 多日时序 walk-forward，train/val/test 严格按时间顺序
+- **目标 normalization**: y 除以 train 的 MAD-σ，统一量级（避免 MonotonicQuantileHead 等组件的常量假设失效）
+
+### 模型容量指南
+
+- Low SNR + 小数据 → 小模型 + 强正则
+- `params:sample` 合理区间 1:5 到 1:30
+- 超过 1:2 几乎必定过拟合
+- 同等数据下，小模型 seed 方差大，多 seed ensemble 可显著提升
 
 ---
 
-## Metric Discipline (标准化评估口径)
+## Architecture Philosophy
 
-**所有训练/评估/消融实验必须同时报告以下指标**，不可只报一个。详细规则见 `docs/METRIC_DISCIPLINE.md`。
+### 双路径输入原则 (Domain Knowledge + Learned Representation)
 
-### 指标分层（从首选到辅助）
+核心理念：**"手工特征 AND 原始盘口"**，不是 OR。
 
-1. **Spearman rank IC** — **交易侧首选指标**
-   - 金融收益重尾，Pearson 易被少数极端日拉动
-   - 交易 P&L 依赖的是排序（谁涨谁跌），Spearman 直接度量
-   - 工业界（Two Sigma / RenTech / Citadel）alpha 研究的主 IC 报告口径
+- **Path A (领域知识)**：手工特征编码已知有效信号（OBI, vol, flow）
+- **Path B (学习表示)**：原始盘口张量让模型发现人未想到的结构
 
-2. **Pearson corr** — **规格合规 + 幅度校准**
-   - Spec (`docs/superpowers/specs/2026-04-16-v4-design.md`) 的硬性门槛
-   - 体现预测量级是否正确（影响仓位大小）
-   - 两者严重分歧时 (|Pearson − Spearman| > 0.03)，需要诊断是否极端值主导
+Raw LOB 张量设计：
+- 每档 4 值：`[bid_delta_bps, bid_log_amt, ask_delta_bps, ask_log_amt]`
+- 价格：相对 mid 的 bps（消除非平稳性）
+- 数量：log1p（压缩重尾）
 
-3. **Direction accuracy** — **卫生检查**，必须 > 50%
-4. **Weighted Sharpe (Newey-West HAC)** — **最终答案**，回测后
+### 递进验证原则
 
-### 分歧处理原则
+```
+Layer 1: 特征 + 线性/树模型 → 证明信号存在
+Layer 2: 双路径 NN → 证明 raw path + 非线性有价值
+Layer 3: 创新组件 → 证明每个组件贡献正向
+```
 
-| Pearson ≥ 0.12 | Spearman ≥ 0.12 | 判定 |
-|:-:|:-:|:-|
-| ✅ | ✅ | 通过（规格 + 交易双达标） |
-| ❌ | ✅ | **交易可用但不合规** — 记录，诊断极端值影响，与 user 对齐是否放行 |
-| ✅ | ❌ | **危险信号** — Pearson 被少数样本带飞，实盘大概率无效 |
-| ❌ | ❌ | 不合规且交易不可用，必须继续迭代或记录为负面结果 |
+**不跳层**。如果 Layer 1 失败，不进入 Layer 2。
 
-### 不可做的事
+---
 
-- **不可** 只挑 Spearman 或只挑 Pearson 汇报，必须两者并列
-- **不可** 为了让 Pearson 达标而牺牲 Spearman（"游戏规格"）
-- **不可** 在 val_corr 单一指标上做 early stop 决定、checkpoint 选择 — 需要同时看两个指标的一致性
-- **不可** 把 r2 作为替代指标 — 在 r² < 1% 区间噪声主导，r2 数值波动无统计意义
+## Development Process
+
+### Review Gates
+
+每完成一个 Phase / 重要改动后：
+
+1. **目标对齐**：改动是否让我们更接近"稳定可观的决策收益"？
+2. **理论验证**：改动每部分是否经得起第一性原理？
+3. **指标检查**：clean Spearman / Pearson / DirAcc / 残差自相关是否改善？
+4. **复杂度审计**：参数量、训练时间、推理时间是否在预算内？
+5. **失败分析**：指标没改善 → 根因是什么？数据？特征？模型假设？
+
+### Documentation
+
+- **每次实验**记录：假设 → 改动 → 结果 → 结论
+- **失败经验** = 成功经验，必须记录根因
+- **Plan 文档**保持更新（`docs/superpowers/plans/`）
+- **Memory** 记录跨会话需要保留的洞察
 
 ---
 
 ## Anti-Patterns (从失败经验中总结)
 
 1. **单日数据验证** — Val corr +0.088 → Test corr -0.102。时段差异 = regime 差异。无效。
-2. **Stride=10 + Horizon=180** — 标签共享 170/180 秒。残差自相关 0.94。模型学到"延续上一个预测"。
-3. **4 个 loss 同时训练** — 梯度冲突 → 模型输出近常数。Direction accuracy 40.7% < 随机。
-4. **Regime 从 5min 窗口推断** — 时间尺度不匹配。Regime 变化发生在小时到天的尺度。
-5. **219K 参数 / 6K 样本** — 36:1 参数样本比，在 0.25% R² 的信号下 = 纯过拟合。
+2. **`stride < horizon`** — 标签共享导致残差自相关 0.94，模型学到"延续上一个预测"。
+3. **多 loss 同时训练** — 梯度冲突导致模型输出近常数，DirAcc < 随机（V5-LH 实测）。
+4. **Regime 从 5min 窗口推断** — 时间尺度不匹配。Regime 变化在小时到天尺度。
+5. **过大 params/samples 比** — V4 219K 参数 / 6K 样本 = 36:1 过拟合。
+6. **测错了 slice** — V5-LH 在 late-2024/2025 val (days 700+) Spearman 0.073，早期测试在 100 天切片只到 0.013。time slice 影响极大，换几个 slice 再下定论。
+7. **y 量级不归一** — MonotonicQuantileHead 的 `MIN_DELTA=0.01` 假设 z-score 目标。用 raw log return (σ≈10bps) 会让 softplus 被 clamp 钉死、梯度消失、q50 负偏，val Pearson 变负。
+8. **V4 验证 vs V5-LH 验证** — 换架构前必须先用 **V4 proven 架构在新 horizon 跑一遍**作为 fair baseline。直接 V5-LH 跑 y_600 得 0.01，切到 V4 同 horizon 可得 0.07，证明 architecture 是 bottleneck 而非数据。
+
+---
+
+## Current Priority
+
+**主线：** DL 模型在 y_600（以及 y_900 / y_1800）上的性能突破。不干扰 V4 y_180 已证明的框架。
+
+**路径：**
+1. **Validate**：V4 架构 + 700d 训练在各 horizon 建立 baseline（y_180 已 ✓，y_600 进行中）
+2. **Innovate**：发现 bottleneck 后创新性改进 loss / 特征 / 架构
+3. **Ensemble**：seed + fold + horizon 三维 ensemble 寻找 uplift
+4. **Execute**：回测 + holding strategy + 实盘 paper trading
+
+每个创新前必须先:
+- 用 Ridge/XGBoost baseline 锚定数据信号上限
+- 用 V4 proven 架构在同 slice 跑一遍做公平对照
+- 验证多个时间 slice 而非单一 slice
