@@ -1,8 +1,17 @@
 """Side-aware bid/ask raw LOB encoder with cross-side attention.
 
-Raw LOB input: (B, L, n_levels, 4) with channels = [bid_px_bps, bid_log_amt,
-ask_px_bps, ask_log_amt]. Split into bid (B, L, n_levels, 2) and ask halves,
-encode separately via Conv2d, then cross-side attention + asymmetry feature.
+Raw LOB input: (B, L, n_levels, 4) with channels [bid_px_bps, bid_log_amt,
+ask_px_bps, ask_log_amt]. Split into bid/ask halves, each encoded INDEPENDENTLY
+by Conv2d(3, 1) stack over the levels axis. Per-level structure is preserved
+via Linear projection of the flattened (channels × levels) feature map rather
+than a global pool.
+
+Cross-side attention operates on the TEMPORAL axis: at each timestep t, bid's
+embedding attends to the full ask sequence (t0..tL-1) and vice versa. This
+captures cross-flow lead-lag patterns (Kyle 1985) rather than same-timestep
+level-by-level alignment.
+
+Output = Linear([h_bid_enhanced; h_ask_enhanced; h_bid_enhanced - h_ask_enhanced]).
 
 Reference: Kyle 1985, Easley 1996 — buyer- vs seller-initiated flow have
 distinct predictive content.
@@ -12,29 +21,39 @@ import torch.nn as nn
 
 
 class _SideConvEncoder(nn.Module):
-    """Conv over (levels, 2) for one side."""
+    """Conv2d over (levels, 2) for one side, preserving per-level structure.
+
+    Two Conv2d layers with kernel (3, 1) over the levels axis learn local
+    cross-level patterns (touch vs near-touch vs deep). The second conv
+    tapers channels down so the final flatten + Linear stays inside the
+    parameter budget. Unlike a global pool, this preserves which level
+    contributed to each embedding dim.
+    """
 
     def __init__(self, n_levels: int, d_out: int):
         super().__init__()
-        # Input (B, L, levels, 2) → treat as (B*L, 2, levels, 1) for Conv2d
+        self.n_levels = n_levels
         self.conv = nn.Sequential(
             nn.Conv2d(2, 8, kernel_size=(3, 1), padding=(1, 0)),
             nn.GELU(),
-            nn.Conv2d(8, 16, kernel_size=(3, 1), padding=(1, 0)),
+            nn.Conv2d(8, 4, kernel_size=(3, 1), padding=(1, 0)),
             nn.GELU(),
         )
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.proj = nn.Linear(16, d_out)
+        # Flatten (4 channels × n_levels levels) → d_out
+        self.proj = nn.Linear(4 * n_levels, d_out)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, L, levels, two = x.shape
         assert two == 2, f"expected last dim 2, got {two}"
-        # reshape to (B*L, 2, levels, 1) for Conv2d input
+        assert levels == self.n_levels, (
+            f"encoder built for n_levels={self.n_levels}, got {levels}"
+        )
+        # (B, L, levels, 2) → (B*L, 2, levels, 1) via explicit reshape
         x = x.reshape(B * L, levels, 2).permute(0, 2, 1).unsqueeze(-1)
-        h = self.conv(x)                          # (B*L, 16, levels, 1)
-        h = self.pool(h).squeeze(-1).squeeze(-1)  # (B*L, 16)
-        h = self.proj(h)                          # (B*L, d_out)
-        return h.view(B, L, -1)                   # (B, L, d_out)
+        h = self.conv(x)                             # (B*L, 4, levels, 1)
+        h = h.squeeze(-1).reshape(B * L, -1)         # (B*L, 4 * levels)
+        h = self.proj(h)                             # (B*L, d_out)
+        return h.view(B, L, -1)                      # (B, L, d_out)
 
 
 class _CrossSideAttention(nn.Module):
