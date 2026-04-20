@@ -512,6 +512,8 @@ class LOBDatasetV2(Dataset):
             if self.smooth_target_dir is not None and _is_single_y600:
                 day_name = self.days[day_idx]
                 overlay_path = os.path.join(self.smooth_target_dir, f"{day_name}.npz")
+                lcf_scaled_filled = np.zeros((X.shape[0], 6), dtype=np.float32)
+                overlay_loaded = False
                 if os.path.exists(overlay_path):
                     try:
                         with _np_load_with_retry(overlay_path, allow_pickle=True) as ov:
@@ -521,28 +523,28 @@ class LOBDatasetV2(Dataset):
                         if self._y_norm is not None:
                             median, sigma, clip = self._y_norm
                             y_smooth = np.clip((y_smooth - median) / sigma, -clip, clip).astype(np.float32)
-                        # Reshape smoothed arrays to match y_arr shape (handle
-                        # multi-horizon wrapping: y_arr can be (N,) or (N, n_h=1)).
+                        # Reshape smoothed arrays to match y_arr shape
                         if y_arr.ndim == 2 and y_smooth.ndim == 1:
                             y_smooth = y_smooth[:, None]
                             m_smooth = m_smooth[:, None]
-                        # Optional target smoothing (soft blend: use smoothed where valid)
                         m_use = (m_smooth > 0) & (m_arr > 0)
                         y_arr = np.where(m_use, y_smooth, y_arr).astype(np.float32)
-                        # Append long_context_feats to X as extra per-timestep channels.
-                        # lcf: (N, 6) → broadcast to (N, T, 6) → concat to X (N, T, 64+6).
                         if lcf.shape[-1] == 6 and lcf.shape[0] == X.shape[0]:
-                            # Scale per-feature so magnitudes match X's ~1-std range
                             scale = np.maximum(np.median(np.abs(lcf), axis=0), 1e-3)
-                            lcf_scaled = np.clip(lcf / scale, -10.0, 10.0).astype(np.float32)
-                            # Broadcast: (N, 1, 6) → repeat along time dim
-                            lcf_broadcast = np.broadcast_to(
-                                lcf_scaled[:, None, :], (X.shape[0], X.shape[1], 6)
-                            )
-                            X_aug = np.concatenate([X, lcf_broadcast], axis=-1).astype(np.float32)
-                            data["X"] = X_aug
+                            lcf_scaled_filled = np.clip(lcf / scale, -10.0, 10.0).astype(np.float32)
+                            overlay_loaded = True
                     except Exception:
                         pass
+                # ALWAYS extend X to 70 dims — overlay-missing days get zero-filled
+                # last-6 channels. This guarantees consistent shape across days
+                # so DataLoader collate doesn't fail on shape mismatch.
+                lcf_broadcast = np.broadcast_to(
+                    lcf_scaled_filled[:, None, :], (X.shape[0], X.shape[1], 6)
+                )
+                X_aug = np.concatenate([X, lcf_broadcast], axis=-1).astype(np.float32)
+                # Force contiguous allocation so DataLoader workers can
+                # resize/pin_memory without issues.
+                data["X"] = np.ascontiguousarray(X_aug)
 
             # Final assignment (runs whether or not overlay was applied)
             data["y"] = y_arr
