@@ -316,6 +316,7 @@ def train_one_fold_v2(
     use_ema: bool = False,
     ema_decay: float = 0.999,
     primary_horizon_idx: int = 0,
+    train_index_stride: int = 1,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -464,7 +465,12 @@ def train_one_fold_v2(
             shuffle_days=True,
             shuffle_within_day=True,
             seed=42,
+            index_stride=train_index_stride,
         )
+        if train_index_stride > 1:
+            print(f"[trainer_v2] train_index_stride={train_index_stride} → "
+                  f"subsampling train set to break label overlap "
+                  f"(effective samples ≈ {len(train_dataset) // train_index_stride})")
         # num_workers=4 with persistent_workers parallelises NPZ loading from
         # FUSE-mounted volumes (RunPod /workspace) — biggest perf win for
         # GPU training when the bottleneck is per-batch I/O. Each worker forks

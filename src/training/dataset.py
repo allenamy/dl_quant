@@ -852,6 +852,7 @@ class DayChunkedSampler(Sampler):
         shuffle_within_day: bool = True,
         seed: Optional[int] = None,
         drop_last: bool = False,
+        index_stride: int = 1,
     ) -> None:
         # Validate dataset has required attrs
         if not hasattr(dataset, "_offsets") or not hasattr(dataset, "_day_paths"):
@@ -861,12 +862,15 @@ class DayChunkedSampler(Sampler):
             )
         if chunk_size < 1:
             raise ValueError(f"chunk_size must be >= 1, got {chunk_size}")
+        if index_stride < 1:
+            raise ValueError(f"index_stride must be >= 1, got {index_stride}")
         self.dataset = dataset
         self.chunk_size = int(chunk_size)
         self.shuffle_days = shuffle_days
         self.shuffle_within_day = shuffle_within_day
         self.seed = seed
         self.drop_last = drop_last
+        self.index_stride = int(index_stride)
         self._epoch = 0
 
     def set_epoch(self, epoch: int) -> None:
@@ -889,12 +893,22 @@ class DayChunkedSampler(Sampler):
         for chunk_start in range(0, n_days, self.chunk_size):
             chunk_days = day_order[chunk_start : chunk_start + self.chunk_size]
 
-            # Gather all sample indices from this chunk of days
+            # Gather all sample indices from this chunk of days.
+            # index_stride > 1 subsamples every Nth sample WITHIN each day
+            # (randomly-offset per-epoch). Used to break label overlap for
+            # horizons where stride < horizon — e.g. y_600 with stride=180
+            # has 70% overlap, index_stride=4 skips to ~720 s spacing =
+            # non-overlapping training samples.
             chunk_indices: List[int] = []
             for d in chunk_days:
                 start = int(self.dataset._offsets[d])
                 end = int(self.dataset._offsets[d + 1])
-                chunk_indices.extend(range(start, end))
+                if self.index_stride > 1:
+                    # Random offset in [0, index_stride) per day per epoch
+                    offset = rng.randrange(self.index_stride)
+                    chunk_indices.extend(range(start + offset, end, self.index_stride))
+                else:
+                    chunk_indices.extend(range(start, end))
 
             # Global shuffle WITHIN the chunk — gives batch-level day
             # diversity while staying cache-resident. When chunk_size=1

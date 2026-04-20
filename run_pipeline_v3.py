@@ -556,6 +556,7 @@ def main() -> None:
                     val_metric=str(train_cfg.get("val_metric", "val_corr")),
                     use_ema=bool(train_cfg.get("use_ema", False)),
                     ema_decay=float(train_cfg.get("ema_decay", 0.999)),
+                    train_index_stride=int(train_cfg.get("train_index_stride", 1)),
                     primary_horizon_idx=(
                         data_cfg["horizons_sec"].index(horizon_sec)
                         if data_cfg.get("horizons_sec")
