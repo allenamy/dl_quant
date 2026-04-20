@@ -49,88 +49,88 @@ def rolling_std_causal(x: np.ndarray, window: int) -> np.ndarray:
     return np.sqrt(var + EPS).astype(x.dtype)
 
 
-def compute_long_horizon_features(x_raw_day: np.ndarray) -> np.ndarray:
+def compute_long_horizon_features(x_raw_day: np.ndarray, x_day: np.ndarray, lr_idx: int) -> np.ndarray:
     """Compute 8 new features per (sample, timestep).
+
+    NOTE: mid-prices drift across timesteps but x_raw's best-bid/ask are bps
+    relative to each step's own mid (so bid_bps + ask_bps ≡ 0 structurally).
+    Actual price drift isn't recoverable from x_raw alone. We use X's existing
+    `log_return_1s` column for return-based features and x_raw for book-shape
+    features.
 
     Parameters
     ----------
-    x_raw_day : (N_samples, 600, 20, 4) float (could be fp16; promoted to fp32)
+    x_raw_day : (N_samples, 600, 20, 4) float
+    x_day     : (N_samples, 600, 64) float — existing V4 feature tensor
+    lr_idx    : int — column index of `log_return_1s` in x_day
 
     Returns
     -------
     features : (N_samples, 600, 8) float32
     """
-    x = x_raw_day.astype(np.float32)
-    N, T, L, C = x.shape
-    assert T == 600 and C == 4, f"unexpected shape {x.shape}"
+    x_raw = x_raw_day.astype(np.float32)
+    x = x_day.astype(np.float32)
+    N, T, L, C = x_raw.shape
+    assert T == 600 and C == 4, f"unexpected shape {x_raw.shape}"
 
-    # Extract best-bid/ask deltas (in bps relative to per-timestep mid)
-    best_bid_bps = x[:, :, 0, 0]  # (N, T)
-    best_ask_bps = x[:, :, 0, 2]
-    best_bid_sz = x[:, :, 0, 1]   # log amounts
-    best_ask_sz = x[:, :, 0, 3]
+    # Get log_return_1s series from X (it's already z-normalized if normalize=True,
+    # but NPZ stores unnormalized — we're running pre-normalize)
+    lr1 = x[:, :, lr_idx]  # (N, T) log returns at 1s
 
-    # Mid-drift proxy: (best_bid_bps + best_ask_bps) / 2 — non-zero under
-    # asymmetric book because the mid used for bps-normalization drifts.
-    mid_drift = (best_bid_bps + best_ask_bps) / 2.0  # (N, T)
-
-    # Step-to-step mid returns (in bps; approximate log return since scales small)
-    # mid_return[t] ≈ mid_drift[t] - mid_drift[t-1]  (first-difference proxy)
-    mid_return = np.diff(mid_drift, axis=1, prepend=mid_drift[:, :1])  # (N, T)
-
-    # Spread in bps (ask - bid); sometimes slightly negative in noisy data
+    # Features from x_raw (book shape)
+    best_bid_bps = x_raw[:, :, 0, 0]
+    best_ask_bps = x_raw[:, :, 0, 2]
+    best_bid_sz = x_raw[:, :, 0, 1]
+    best_ask_sz = x_raw[:, :, 0, 3]
     spread_bps = np.maximum(best_ask_bps - best_bid_bps, 0.0)
-
-    # Top-level OBI (using log amounts as size proxy)
     obi_L0 = (best_bid_sz - best_ask_sz) / (np.abs(best_bid_sz) + np.abs(best_ask_sz) + 1e-3)
-
-    # Total depth imbalance across 20 levels
-    total_bid = x[:, :, :, 1].sum(axis=-1)  # (N, T)
-    total_ask = x[:, :, :, 3].sum(axis=-1)
+    total_bid = x_raw[:, :, :, 1].sum(axis=-1)
+    total_ask = x_raw[:, :, :, 3].sum(axis=-1)
     depth_asym = (total_bid - total_ask) / (np.abs(total_bid) + np.abs(total_ask) + 1e-3)
 
-    # Compute per-sample rolling features (vectorized over N via loop or
-    # broadcasting). Loop is simpler and fast enough for N~150.
     feats = np.empty((N, T, 8), dtype=np.float32)
     for i in range(N):
-        # 1. log_return_300s: trailing mid drift at lag 300 (mid_drift now - mid_drift 300 ago)
-        md = mid_drift[i]
+        r = lr1[i]  # 1s log returns (T,)
+
+        # 1. log_return_300s = sum of last 300 log_return_1s
+        cum = np.cumsum(r)
         lr_300 = np.zeros(T, dtype=np.float32)
-        if T > 300:
-            lr_300[300:] = md[300:] - md[:-300]
-            lr_300[:300] = md[:300] - md[0]  # pad with earliest available
+        lr_300[300:] = (cum[300:] - cum[:-300]).astype(np.float32)
+        lr_300[:300] = cum[:300].astype(np.float32)
         feats[i, :, 0] = lr_300
 
-        # 2. log_return_600s: full-window return (end - start)
-        feats[i, :, 1] = md - md[0]  # cumulative drift from window start
+        # 2. log_return_600s = full window cumsum (cum itself)
+        feats[i, :, 1] = cum.astype(np.float32)
 
-        # 3. realized_vol_600s: rolling std of 1s returns over 600s
-        feats[i, :, 2] = rolling_std_causal(mid_return[i], window=300)  # 5min as strong proxy
+        # 3. realized_vol_600s: rolling std of 1s log returns (300s window used,
+        #    since full-600 window would need padding all the way)
+        feats[i, :, 2] = rolling_std_causal(r, window=300)
 
-        # 4. mid_drift_600s: rolling mean of mid_drift over 300s (avg mid deviation)
-        feats[i, :, 3] = rolling_mean_causal(md, window=300)
+        # 4. mid_mean_reversion_300s: -cumsum/300 (if price moved up, this expects reversion)
+        #    i.e., z-score of cumulative move relative to rolling vol
+        rv = rolling_std_causal(r, window=60) + 1e-6
+        # Sum over trailing 300 normalized by vol
+        feats[i, :, 3] = lr_300 / (rv * np.sqrt(300.0))
 
-        # 5. spread_z-score over window: (spread_t - mean_window) / std_window
+        # 5. spread_z-score over window
         sp = spread_bps[i]
         sp_m = rolling_mean_causal(sp, window=300)
         sp_s = rolling_std_causal(sp, window=300)
         feats[i, :, 4] = (sp - sp_m) / (sp_s + 0.1)
 
-        # 6. depth_asym_300s: rolling mean of total-depth asymmetry
+        # 6. depth_asym_300s: rolling mean of depth asymmetry
         feats[i, :, 5] = rolling_mean_causal(depth_asym[i], window=300)
 
-        # 7. obi_persistence: current_OBI × lag-60 OBI (sign-agreement proxy)
+        # 7. obi_persistence: current OBI × lag-60 OBI
         obi = obi_L0[i]
         obi_lag60 = np.concatenate([np.zeros(60, dtype=np.float32), obi[:-60]])
-        feats[i, :, 6] = obi * obi_lag60  # positive = persistent direction
+        feats[i, :, 6] = obi * obi_lag60
 
-        # 8. hurst_approx: log(RV_60) - log(RV_300) as simple vol-scaling proxy
-        # True Hurst is expensive; this captures whether vol grows with timescale
-        rv60 = rolling_std_causal(mid_return[i], window=60) + 1e-6
-        rv300 = rolling_std_causal(mid_return[i], window=300) + 1e-6
-        feats[i, :, 7] = np.log(rv60 / rv300)  # -0.5 random walk; > -0.5 mean revert
+        # 8. hurst_approx: log(RV_60 / RV_300) — vol scaling indicator
+        rv60 = rolling_std_causal(r, window=60) + 1e-6
+        rv300 = rolling_std_causal(r, window=300) + 1e-6
+        feats[i, :, 7] = np.log(rv60 / rv300)
 
-    # Clip extremes
     feats = np.nan_to_num(feats, nan=0.0, posinf=10.0, neginf=-10.0)
     feats = np.clip(feats, -10.0, 10.0)
     return feats
@@ -151,17 +151,21 @@ def augment_day(in_path: Path, out_dir: Path) -> tuple[str, float, str]:
             np.savez(str(out_path), **{k: d[k] for k in d.files})
             return (in_path.name, time.time() - t0, "EMPTY")
 
-        aug = compute_long_horizon_features(x_raw)  # (N, 600, 8)
+        feat_names_old = list(d["features"]) if "features" in d.files else []
+        try:
+            lr_idx = feat_names_old.index("log_return_1s")
+        except ValueError:
+            return (in_path.name, time.time() - t0, "ERR: no log_return_1s column")
+        aug = compute_long_horizon_features(x_raw, x, lr_idx)  # (N, 600, 8)
         x_new = np.concatenate([x.astype(np.float32), aug], axis=-1)  # (N, 600, 72)
 
         # Update features list
         new_feat_names = [
             "log_return_300s_win", "log_return_600s_win",
-            "rv_300s_win", "mid_drift_300s_win",
+            "rv_300s_win", "mean_rev_z_300s",
             "spread_z_300s_win", "depth_asym_300s_win",
             "obi_persistence_60lag", "hurst_log_ratio",
         ]
-        feat_names_old = list(d["features"]) if "features" in d.files else []
         feat_names = feat_names_old + new_feat_names
 
         # Save all original fields, swap X, update features
