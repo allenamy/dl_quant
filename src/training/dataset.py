@@ -498,10 +498,12 @@ class LOBDatasetV2(Dataset):
                 # Re-zero masked entries so they do not leak normalised offset.
                 y_arr = np.where(m_arr == 0, 0.0, y_arr).astype(np.float32)
 
-            # --- Optional smoothed target overlay -------------------------
-            # When smooth_target_dir is set, merge y_600_smooth and mask_smooth
-            # from overlay NPZ. Falls back to raw y_600 where smoothing is
-            # unavailable (early/late day-boundary samples).
+            # --- Optional smoothed target / long-context overlay -----------
+            # When smooth_target_dir is set, merge y_600_smooth, mask_smooth,
+            # and long_context_feats from overlay NPZ. Long_context_feats are
+            # 6-dim per-sample aggregates computed from data BEFORE the
+            # window (truly new info). We REPLACE regime_prior with these
+            # since both are 6-dim per-sample scalars fed through PPNet gate.
             if self.smooth_target_dir is not None and self._horizons is None:
                 day_name = self.days[day_idx]
                 overlay_path = os.path.join(self.smooth_target_dir, f"{day_name}.npz")
@@ -510,13 +512,25 @@ class LOBDatasetV2(Dataset):
                         with _np_load_with_retry(overlay_path, allow_pickle=True) as ov:
                             y_smooth = np.asarray(ov["y_600_smooth"], dtype=np.float32)
                             m_smooth = np.asarray(ov["mask_smooth"], dtype=np.float32)
+                            lcf = np.asarray(ov["long_context_feats"], dtype=np.float32)
                         if self._y_norm is not None:
                             median, sigma, clip = self._y_norm
                             y_smooth = np.clip((y_smooth - median) / sigma, -clip, clip).astype(np.float32)
                         # Replace y with smoothed where both smooth + raw masks are valid.
-                        # Keep raw y (already normalized above) elsewhere.
                         use_smooth = (m_smooth > 0) & (m_arr > 0)
                         y_arr = np.where(use_smooth, y_smooth, y_arr).astype(np.float32)
+                        # Per-sample standardize long_context_feats across TRAIN
+                        # set would be ideal, but we don't have those stats.
+                        # Use a simple clip + scale that matches regime_prior's
+                        # existing amplitude (std ~1 per-feature).
+                        lcf = np.clip(lcf, -10.0, 10.0)
+                        # Per-feature empirical scaling: divide by median abs value
+                        # at day level (stable enough across days for this input).
+                        scale = np.maximum(np.median(np.abs(lcf), axis=0), 1e-3)
+                        lcf = (lcf / scale).astype(np.float32)
+                        # Replace regime_prior with long_context_feats (both 6-dim)
+                        if lcf.shape[-1] == 6 and lcf.shape[0] == y_arr.shape[0]:
+                            data["regime_prior"] = lcf
                     except Exception:
                         pass
 
