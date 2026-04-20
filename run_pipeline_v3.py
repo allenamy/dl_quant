@@ -316,6 +316,10 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=None,
                         help="Random seed for reproducibility / ensemble diversity. "
                              "Passed through to trainer's _seed_everything. Default: None (stock torch seeding).")
+    parser.add_argument("--init-from", type=str, default=None,
+                        help="Path to a checkpoint directory pattern with {fold} placeholder. "
+                             "If provided, the model is warm-started from these weights before training. "
+                             "Example: 'experiments/v4_noattn_700d/fold_{fold}/best_model.pt'")
     args = parser.parse_args()
 
     # --- Load config ---------------------------------------------------------
@@ -502,6 +506,28 @@ def main() -> None:
             model = build_model(args.model, n_features, raw_levels, model_cfg)
             total_params = sum(p.numel() for p in model.parameters())
             print(f"[pipeline_v3] Model parameters: {total_params:,}")
+
+            # Warm-start from another model's weights (e.g. V4 y_180 teacher).
+            # Shape-mismatched layers are skipped; caller is responsible for
+            # compatible architecture. Useful for transfer learning across
+            # horizons where the encoder is shared but target-specific heads
+            # may differ.
+            if args.init_from is not None:
+                init_path = args.init_from.format(fold=fold_idx)
+                if not os.path.exists(init_path):
+                    print(f"[pipeline_v3] WARN: --init-from path missing: {init_path}")
+                else:
+                    ck = torch.load(init_path, map_location="cpu", weights_only=False)
+                    state = ck["state"] if isinstance(ck, dict) and "state" in ck else ck
+                    own_state = model.state_dict()
+                    matched = 0; skipped = 0
+                    for k, v in state.items():
+                        if k in own_state and own_state[k].shape == v.shape:
+                            own_state[k].copy_(v)
+                            matched += 1
+                        else:
+                            skipped += 1
+                    print(f"[pipeline_v3] Warm-start from {init_path}: matched {matched} tensors, skipped {skipped}")
 
             if args.eval_only:
                 print(f"[pipeline_v3] --eval-only: skipping training for fold {fold_idx}, reusing existing best_model.pt")
