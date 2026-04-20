@@ -488,6 +488,7 @@ def main() -> None:
                 x_std=x_std,
                 y_norm=y_norm,
                 preload=preload,
+                smooth_target_dir=data_cfg.get("smooth_target_dir"),
             )
             if _horizons_list is not None:
                 common_kwargs["horizons"] = _horizons_list

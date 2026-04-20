@@ -233,11 +233,16 @@ class LOBDatasetV2(Dataset):
         cache_size: int = 128,
         y_norm: Optional[Tuple[float, float, float]] = None,
         preload: bool = False,
+        smooth_target_dir: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.data_dir = data_dir
         self.days = list(days)
         self.smooth_target = int(smooth_target)
+        # Optional overlay directory with y_600_smooth + mask_smooth + long_context_feats
+        # per-day NPZs. When set and when horizon is y_600, the loader replaces
+        # y_600 with y_600_smooth and AND's the mask with mask_smooth.
+        self.smooth_target_dir = smooth_target_dir
 
         # --- resolve horizon / mask keys -------------------------------------
         if horizons is not None:
@@ -493,6 +498,29 @@ class LOBDatasetV2(Dataset):
                 # Re-zero masked entries so they do not leak normalised offset.
                 y_arr = np.where(m_arr == 0, 0.0, y_arr).astype(np.float32)
 
+            # --- Optional smoothed target overlay -------------------------
+            # When smooth_target_dir is set, merge y_600_smooth and mask_smooth
+            # from overlay NPZ. Falls back to raw y_600 where smoothing is
+            # unavailable (early/late day-boundary samples).
+            if self.smooth_target_dir is not None and self._horizons is None:
+                day_name = self.days[day_idx]
+                overlay_path = os.path.join(self.smooth_target_dir, f"{day_name}.npz")
+                if os.path.exists(overlay_path):
+                    try:
+                        with _np_load_with_retry(overlay_path, allow_pickle=True) as ov:
+                            y_smooth = np.asarray(ov["y_600_smooth"], dtype=np.float32)
+                            m_smooth = np.asarray(ov["mask_smooth"], dtype=np.float32)
+                        if self._y_norm is not None:
+                            median, sigma, clip = self._y_norm
+                            y_smooth = np.clip((y_smooth - median) / sigma, -clip, clip).astype(np.float32)
+                        # Replace y with smoothed where both smooth + raw masks are valid.
+                        # Keep raw y (already normalized above) elsewhere.
+                        use_smooth = (m_smooth > 0) & (m_arr > 0)
+                        y_arr = np.where(use_smooth, y_smooth, y_arr).astype(np.float32)
+                    except Exception:
+                        pass
+
+            # Final assignment (runs whether or not overlay was applied)
             data["y"] = y_arr
             data["mask"] = m_arr.astype(np.float32)
 
