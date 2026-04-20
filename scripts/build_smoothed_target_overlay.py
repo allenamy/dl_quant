@@ -39,22 +39,41 @@ EPS = 1e-9
 
 def build_second_grid(mid_data: dict) -> tuple[np.ndarray, np.ndarray]:
     """Return (ts_grid_sec, mid_grid) at 1-second resolution with NaN for
-    gaps. `mid_data` is an npz with timestamps_s and mid_price."""
+    gaps. `mid_data` is an npz with timestamps_s and mid_price.
+
+    Robust against non-monotonic / bad-timestamp source data: clips the
+    range to monotonically increasing subset first.
+    """
     ts = mid_data["timestamps_s"].astype(np.int64)
     mid = mid_data["mid_price"].astype(np.float64)
     if len(ts) == 0:
         return np.zeros(0, dtype=np.int64), np.zeros(0)
+    # Filter to monotonic non-decreasing subset: keep only ticks whose
+    # timestamp is >= the running max.
+    order_valid = np.zeros(len(ts), dtype=bool)
+    current_max = -1
+    for i, t in enumerate(ts):
+        if t >= current_max:
+            order_valid[i] = True
+            current_max = t
+    ts = ts[order_valid]
+    mid = mid[order_valid]
+    if len(ts) < 2:
+        return np.zeros(0, dtype=np.int64), np.zeros(0)
     t_start = int(ts[0])
     t_end = int(ts[-1]) + 1
-    grid = np.full(t_end - t_start, np.nan, dtype=np.float64)
+    span = t_end - t_start
+    # Sanity cap: reject if span > 2 days (suggests remaining bad data)
+    if span <= 0 or span > 3 * 86400:
+        return np.zeros(0, dtype=np.int64), np.zeros(0)
+    grid = np.full(span, np.nan, dtype=np.float64)
     offsets = ts - t_start
-    # Take last observation per second if duplicates (np.maximum.at handles ordering)
-    grid[offsets] = mid
-    # Forward-fill small gaps (NaN propagation is acceptable beyond ~30s gaps)
-    # Use pandas for robust ffill
+    # Only keep in-range offsets
+    in_range = (offsets >= 0) & (offsets < span)
+    grid[offsets[in_range]] = mid[in_range]
     import pandas as pd
     s = pd.Series(grid)
-    s = s.ffill(limit=60)  # fill up to 1-min gaps
+    s = s.ffill(limit=60)
     return np.arange(t_start, t_end, dtype=np.int64), s.to_numpy()
 
 
