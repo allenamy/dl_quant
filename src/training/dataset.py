@@ -503,8 +503,13 @@ class LOBDatasetV2(Dataset):
             # APPEND them as 6 extra per-timestep channels to X (broadcast
             # per-sample scalar to all 600 steps). This expands X from
             # (N, T, 64) to (N, T, 70). Preserves original regime_prior.
-            # y_600_smooth is also loaded but used as optional target overlay.
-            if self.smooth_target_dir is not None and self._horizons is None:
+            # y_600_smooth is also loaded and used as target overlay when
+            # single-horizon y_600 is active.
+            _is_single_y600 = (
+                self._horizons is None
+                or (len(self._horizons) == 1 and self._horizons[0] == "y_600")
+            )
+            if self.smooth_target_dir is not None and _is_single_y600:
                 day_name = self.days[day_idx]
                 overlay_path = os.path.join(self.smooth_target_dir, f"{day_name}.npz")
                 if os.path.exists(overlay_path):
@@ -516,9 +521,14 @@ class LOBDatasetV2(Dataset):
                         if self._y_norm is not None:
                             median, sigma, clip = self._y_norm
                             y_smooth = np.clip((y_smooth - median) / sigma, -clip, clip).astype(np.float32)
+                        # Reshape smoothed arrays to match y_arr shape (handle
+                        # multi-horizon wrapping: y_arr can be (N,) or (N, n_h=1)).
+                        if y_arr.ndim == 2 and y_smooth.ndim == 1:
+                            y_smooth = y_smooth[:, None]
+                            m_smooth = m_smooth[:, None]
                         # Optional target smoothing (soft blend: use smoothed where valid)
-                        use_smooth = (m_smooth > 0) & (m_arr > 0)
-                        y_arr = np.where(use_smooth, y_smooth, y_arr).astype(np.float32)
+                        m_use = (m_smooth > 0) & (m_arr > 0)
+                        y_arr = np.where(m_use, y_smooth, y_arr).astype(np.float32)
                         # Append long_context_feats to X as extra per-timestep channels.
                         # lcf: (N, 6) → broadcast to (N, T, 6) → concat to X (N, T, 64+6).
                         if lcf.shape[-1] == 6 and lcf.shape[0] == X.shape[0]:
