@@ -266,6 +266,9 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
     lambda_u = _pos_or_default(cfg.get("lambda_utility_rank"), 0.3)
     lambda_c = _pos_or_default(cfg.get("lambda_calib"), 0.0)
     alpha_u = _pos_or_default(cfg.get("utility_alpha"), 1.0)
+    lambda_pearson = _pos_or_default(cfg.get("lambda_pearson"), 0.0)
+    focal_threshold = _pos_or_default(cfg.get("focal_threshold"), 0.0)
+    focal_gamma = _pos_or_default(cfg.get("focal_gamma"), 2.0)
     n_pairs = cfg.get("n_pairs", None)
 
     def dul_loss_fn(outputs, target):
@@ -283,6 +286,32 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
             n_pairs=n_pairs,
             return_parts=False,
         )
+        # Direct Pearson auxiliary loss — negative because we MINIMISE.
+        # Pearson is scale-invariant; acts as rank-preserving shaping force.
+        # Complementary to pinball (magnitude) and utility_rank (pairwise).
+        if lambda_pearson > 0.0:
+            pred = outputs["point_pred"]
+            # De-mean pred and target
+            p_c = pred - pred.mean()
+            t_c = target - target.mean()
+            denom = torch.norm(p_c) * torch.norm(t_c) + 1e-8
+            corr = (p_c * t_c).sum() / denom
+            total = total - lambda_pearson * corr  # maximise corr = minimise -corr
+        # Focal weighting on tail samples — upweight |target| > threshold
+        # This adds a secondary quantile loss on tail subset, pushing model
+        # to fit large-magnitude targets better (where P&L lives).
+        if focal_threshold > 0.0:
+            with torch.no_grad():
+                tail_mask = (target.abs() > focal_threshold).float()
+            if tail_mask.sum() > 0:
+                # Extra quantile loss on tail samples, weighted by magnitude
+                tail_weight = (target.abs() / max(focal_threshold, 1e-3)) ** focal_gamma * tail_mask
+                quantiles = outputs["quantiles"]
+                # Pinball for q_50 only (median) on tail samples
+                residual = target - quantiles[:, 1]
+                pinball_50 = torch.where(residual >= 0, 0.5 * residual, -0.5 * residual)
+                tail_loss = (pinball_50 * tail_weight).sum() / (tail_weight.sum() + 1e-8)
+                total = total + tail_loss
         return total
 
     return dul_loss_fn
