@@ -108,6 +108,7 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         # V4 additions
         "use_channel_mix_conv", "use_level_attention_pool",
         "use_patch_attention_pool", "use_ppnet_gate",
+        "use_multi_scale",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:

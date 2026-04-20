@@ -212,6 +212,12 @@ class DualPathLOBModelV3(nn.Module):
         use_level_attention_pool: bool = True,
         use_patch_attention_pool: bool = True,
         use_ppnet_gate: bool = True,
+        # --- Y600 push: multi-scale feature augmentation ---------------
+        # Computes 60/180/600s scale features from x_raw (raw LOB),
+        # injects as residual after Path A+B fusion. Targets feature-
+        # horizon mismatch (existing X tops out at RV_300s while y_600
+        # horizon is 600s). 18 new features (6 per scale × 3 scales).
+        use_multi_scale: bool = False,
     ):
         super().__init__()
         self.d_model = d_model
@@ -245,6 +251,21 @@ class DualPathLOBModelV3(nn.Module):
         self.use_level_attention_pool = bool(use_level_attention_pool)
         self.use_patch_attention_pool = bool(use_patch_attention_pool)
         self.use_ppnet_gate = bool(use_ppnet_gate)
+        # Multi-scale flag (Y600 push)
+        self.use_multi_scale = bool(use_multi_scale)
+        if self.use_multi_scale:
+            from .multi_scale_features import MultiScaleRawAugment
+            self.multi_scale_aug = MultiScaleRawAugment(scales=(60, 180, 600))
+            n_ms = self.multi_scale_aug.n_out
+            # Per-sample layer-norm on augmented features (scales differ by
+            # orders of magnitude) and small MLP projection to d_model.
+            self.ms_norm = nn.LayerNorm(n_ms)
+            self.ms_encoder = nn.Sequential(
+                nn.Linear(n_ms, d_model * 2),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(d_model * 2, d_model),
+            )
         if self.use_revin:
             self.revin = RevIN(n_features, affine=True)
 
@@ -429,6 +450,16 @@ class DualPathLOBModelV3(nn.Module):
             h = self.fusion(h)                   # (B, L, d_model)
         else:
             h = h_craft                          # (B, L, d_model)
+
+        # 2.5 Multi-scale feature augmentation (Y600 push).
+        # Computes 60/180/600s scale microstructure features from x_raw and
+        # injects as residual. Targets feature-horizon mismatch — existing
+        # X tops out at RV_300s but y_600 horizon is 600s.
+        if self.use_multi_scale and x_raw is not None:
+            ms_feat = self.multi_scale_aug(x_raw.float())  # (B, L, 18)
+            ms_feat = self.ms_norm(ms_feat)
+            ms_h = self.ms_encoder(ms_feat)                # (B, L, d_model)
+            h = h + ms_h                                    # residual inject
 
         # 3. Temporal: dilated causal convolutions (local patterns, optional)
         if self.use_conv:
