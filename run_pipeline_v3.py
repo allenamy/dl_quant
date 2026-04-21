@@ -38,6 +38,7 @@ from torch.utils.data import DataLoader
 from src.features.pipeline import process_csv_to_npz
 from src.training.dataset import LOBDatasetV2, build_time_series_folds
 from src.training.trainer_v2 import train_one_fold_v2, _extract_model_config
+from src.losses.multi_horizon_dul import MultiHorizonDulFocalUnit
 
 
 def _stats_cache_key(train_days, horizons_sec) -> str:
@@ -489,6 +490,8 @@ def main() -> None:
                 y_norm=y_norm,
                 preload=preload,
                 smooth_target_dir=data_cfg.get("smooth_target_dir"),
+                tradeflow_dir=data_cfg.get("tradeflow_dir"),
+                use_smoothed_target=bool(data_cfg.get("use_smoothed_target", True)),
             )
             if _horizons_list is not None:
                 common_kwargs["horizons"] = _horizons_list
@@ -538,6 +541,34 @@ def main() -> None:
                 _patience = args.patience_override if args.patience_override is not None else train_cfg["patience"]
                 if args.patience_override is not None:
                     print(f"[pipeline_v3] patience override: {_patience} (config was {train_cfg['patience']})")
+
+                # Optional multi-horizon loss module (UNIT + tail-focal).
+                # Built only when multi-horizon AND config opts in.
+                _mh_loss_module = None
+                _mh_cfg = train_cfg.get("multi_horizon_loss") or {}
+                if _horizons_list is not None and len(_horizons_list) > 1 and (
+                    _mh_cfg.get("use_unit") or _mh_cfg.get("focal_extra_weight", 0) > 0
+                ):
+                    _dul_cfg = train_cfg.get("dul_config") or {}
+                    _mh_loss_module = MultiHorizonDulFocalUnit(
+                        n_horizons=len(_horizons_list),
+                        y_sigmas=[1.0] * len(_horizons_list),
+                        use_unit=bool(_mh_cfg.get("use_unit", True)),
+                        horizon_weights=_mh_cfg.get("horizon_weights"),
+                        focal_extra_weight=float(_mh_cfg.get("focal_extra_weight", 2.0)),
+                        focal_threshold_sigma=float(_mh_cfg.get("focal_threshold_sigma", 2.0)),
+                        lambda_quantile=float(_dul_cfg.get("lambda_quantile", 1.0)),
+                        lambda_rank=float(_dul_cfg.get("lambda_utility_rank", 0.3)),
+                        utility_alpha=float(_dul_cfg.get("utility_alpha", 1.0)),
+                    )
+                    print(
+                        f"[pipeline_v3] MultiHorizonDulFocalUnit active: "
+                        f"n_h={len(_horizons_list)} use_unit={_mh_loss_module.use_unit} "
+                        f"h_weights={_mh_loss_module.horizon_weights} "
+                        f"focal_extra={_mh_loss_module.focal_extra_weight} "
+                        f"focal_thresh={_mh_loss_module.focal_threshold_sigma}"
+                    )
+
                 best = train_one_fold_v2(
                     model=model,
                     train_dataset=train_ds,
@@ -565,6 +596,7 @@ def main() -> None:
                         and horizon_sec in data_cfg["horizons_sec"]
                         else 0
                     ),
+                    multi_horizon_loss_module=_mh_loss_module,
                 )
                 print(f"[pipeline_v3] Fold {fold_idx} best: {best}")
 

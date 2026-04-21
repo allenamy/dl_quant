@@ -234,15 +234,19 @@ class LOBDatasetV2(Dataset):
         y_norm: Optional[Tuple[float, float, float]] = None,
         preload: bool = False,
         smooth_target_dir: Optional[str] = None,
+        tradeflow_dir: Optional[str] = None,
+        use_smoothed_target: bool = True,
     ) -> None:
         super().__init__()
         self.data_dir = data_dir
         self.days = list(days)
         self.smooth_target = int(smooth_target)
-        # Optional overlay directory with y_600_smooth + mask_smooth + long_context_feats
-        # per-day NPZs. When set and when horizon is y_600, the loader replaces
-        # y_600 with y_600_smooth and AND's the mask with mask_smooth.
         self.smooth_target_dir = smooth_target_dir
+        self.tradeflow_dir = tradeflow_dir
+        # When False AND smooth_target_dir is set, inject long_context_feats
+        # into X but KEEP raw y_600 as target (training + eval). Used to
+        # isolate feature contribution from target smoothing confound.
+        self.use_smoothed_target = bool(use_smoothed_target)
 
         # --- resolve horizon / mask keys -------------------------------------
         if horizons is not None:
@@ -498,52 +502,82 @@ class LOBDatasetV2(Dataset):
                 # Re-zero masked entries so they do not leak normalised offset.
                 y_arr = np.where(m_arr == 0, 0.0, y_arr).astype(np.float32)
 
-            # --- Optional overlay (long-context features via X-concat) -----
-            # When smooth_target_dir is set, load long_context_feats and
-            # APPEND them as 6 extra per-timestep channels to X (broadcast
-            # per-sample scalar to all 600 steps). This expands X from
-            # (N, T, 64) to (N, T, 70). Preserves original regime_prior.
-            # y_600_smooth is also loaded and used as target overlay when
-            # single-horizon y_600 is active.
-            _is_single_y600 = (
+            # --- Optional overlays: long-context (+6) and tradeflow (+5) -----
+            # Per-sample scalar features broadcast to all timesteps via
+            # X-concat. Target smoothing (y_600_smooth) is applied only when
+            # use_smoothed_target=True to keep train/val/test on a single
+            # target distribution when the caller requests raw.
+            # Long-context (and optional target smoothing) applies whenever
+            # y_600 is one of the targets. In multi-horizon mode, target
+            # smoothing touches only the y_600 slice.
+            _has_y600 = (
                 self._horizons is None
-                or (len(self._horizons) == 1 and self._horizons[0] == "y_600")
+                or "y_600" in self._horizons
             )
-            if self.smooth_target_dir is not None and _is_single_y600:
+            # Index of y_600 within self._horizons (for multi-horizon smooth
+            # replacement). -1 when single-horizon (we'll treat the single
+            # slot as y_600).
+            _y600_idx = -1
+            if self._horizons is not None:
+                for _k, _name in enumerate(self._horizons):
+                    if _name == "y_600":
+                        _y600_idx = _k
+                        break
+            extra_channels: List[np.ndarray] = []
+
+            if self.smooth_target_dir is not None and _has_y600:
                 day_name = self.days[day_idx]
                 overlay_path = os.path.join(self.smooth_target_dir, f"{day_name}.npz")
                 lcf_scaled_filled = np.zeros((X.shape[0], 6), dtype=np.float32)
-                overlay_loaded = False
                 if os.path.exists(overlay_path):
                     try:
                         with _np_load_with_retry(overlay_path, allow_pickle=True) as ov:
                             y_smooth = np.asarray(ov["y_600_smooth"], dtype=np.float32)
                             m_smooth = np.asarray(ov["mask_smooth"], dtype=np.float32)
                             lcf = np.asarray(ov["long_context_feats"], dtype=np.float32)
-                        if self._y_norm is not None:
-                            median, sigma, clip = self._y_norm
-                            y_smooth = np.clip((y_smooth - median) / sigma, -clip, clip).astype(np.float32)
-                        # Reshape smoothed arrays to match y_arr shape
-                        if y_arr.ndim == 2 and y_smooth.ndim == 1:
-                            y_smooth = y_smooth[:, None]
-                            m_smooth = m_smooth[:, None]
-                        m_use = (m_smooth > 0) & (m_arr > 0)
-                        y_arr = np.where(m_use, y_smooth, y_arr).astype(np.float32)
+                        if self.use_smoothed_target:
+                            if self._y_norm is not None:
+                                median, sigma, clip = self._y_norm
+                                y_smooth = np.clip((y_smooth - median) / sigma, -clip, clip).astype(np.float32)
+                            if self._horizons is None:
+                                # Single-horizon (default horizon_key=y or y_600)
+                                m_use = (m_smooth > 0) & (m_arr > 0)
+                                y_arr = np.where(m_use, y_smooth, y_arr).astype(np.float32)
+                            elif _y600_idx >= 0:
+                                # Multi-horizon: replace only the y_600 slice
+                                col_m = m_arr[:, _y600_idx]
+                                m_use_col = (m_smooth > 0) & (col_m > 0)
+                                y_arr[:, _y600_idx] = np.where(
+                                    m_use_col, y_smooth, y_arr[:, _y600_idx]
+                                )
                         if lcf.shape[-1] == 6 and lcf.shape[0] == X.shape[0]:
                             scale = np.maximum(np.median(np.abs(lcf), axis=0), 1e-3)
                             lcf_scaled_filled = np.clip(lcf / scale, -10.0, 10.0).astype(np.float32)
-                            overlay_loaded = True
                     except Exception:
                         pass
-                # ALWAYS extend X to 70 dims — overlay-missing days get zero-filled
-                # last-6 channels. This guarantees consistent shape across days
-                # so DataLoader collate doesn't fail on shape mismatch.
-                lcf_broadcast = np.broadcast_to(
-                    lcf_scaled_filled[:, None, :], (X.shape[0], X.shape[1], 6)
+                extra_channels.append(lcf_scaled_filled)
+
+            if self.tradeflow_dir is not None and _has_y600:
+                day_name = self.days[day_idx]
+                tf_path = os.path.join(self.tradeflow_dir, f"{day_name}.npz")
+                tf_scaled_filled = np.zeros((X.shape[0], 5), dtype=np.float32)
+                if os.path.exists(tf_path):
+                    try:
+                        with _np_load_with_retry(tf_path, allow_pickle=True) as tv:
+                            tf = np.asarray(tv["trade_feats"], dtype=np.float32)
+                        if tf.shape[-1] == 5 and tf.shape[0] == X.shape[0]:
+                            scale = np.maximum(np.median(np.abs(tf), axis=0), 1e-3)
+                            tf_scaled_filled = np.clip(tf / scale, -10.0, 10.0).astype(np.float32)
+                    except Exception:
+                        pass
+                extra_channels.append(tf_scaled_filled)
+
+            if extra_channels:
+                extra = np.concatenate(extra_channels, axis=1)  # (N, K)
+                extra_broadcast = np.broadcast_to(
+                    extra[:, None, :], (X.shape[0], X.shape[1], extra.shape[1])
                 )
-                X_aug = np.concatenate([X, lcf_broadcast], axis=-1).astype(np.float32)
-                # Force contiguous allocation so DataLoader workers can
-                # resize/pin_memory without issues.
+                X_aug = np.concatenate([X, extra_broadcast], axis=-1).astype(np.float32)
                 data["X"] = np.ascontiguousarray(X_aug)
 
             # Final assignment (runs whether or not overlay was applied)

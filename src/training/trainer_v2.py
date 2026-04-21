@@ -347,6 +347,7 @@ def train_one_fold_v2(
     ema_decay: float = 0.999,
     primary_horizon_idx: int = 0,
     train_index_stride: int = 1,
+    multi_horizon_loss_module: Optional[torch.nn.Module] = None,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -548,8 +549,17 @@ def train_one_fold_v2(
     )
 
     # --- optimizer & scheduler -----------------------------------------------
+    # Register loss-module params (e.g. UNIT log_vars) with the optimizer so
+    # they actually update. Otherwise UNIT degenerates to static weighting.
+    _trainable_params = list(model.parameters())
+    if multi_horizon_loss_module is not None:
+        multi_horizon_loss_module = multi_horizon_loss_module.to(device_obj)
+        _extra = [p for p in multi_horizon_loss_module.parameters() if p.requires_grad]
+        _trainable_params.extend(_extra)
+        if _extra:
+            print(f"[trainer_v2] multi_horizon_loss_module adds {sum(p.numel() for p in _extra)} trainable params")
     optimizer = torch.optim.AdamW(
-        model.parameters(), lr=lr, weight_decay=weight_decay,
+        _trainable_params, lr=lr, weight_decay=weight_decay,
     )
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
@@ -646,7 +656,10 @@ def train_one_fold_v2(
             # the existing masked-select + scalar-loss path, bit-identical
             # to pre-patch behaviour.
             if multi_horizon:
-                loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
+                if multi_horizon_loss_module is not None:
+                    loss = multi_horizon_loss_module(outputs, y, mask)
+                else:
+                    loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
                 if loss is None:
                     continue
             else:
@@ -718,7 +731,10 @@ def train_one_fold_v2(
                     )
 
                     if multi_horizon:
-                        loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
+                        if multi_horizon_loss_module is not None:
+                            loss = multi_horizon_loss_module(outputs, y, mask)
+                        else:
+                            loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
                         if loss is None:
                             continue
                         loss_sum += loss.item()

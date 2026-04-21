@@ -1,0 +1,9 @@
+{
+  "_comment": "Plan B2: scale up to d_model=40, n_mamba_layers=2, d_raw=20 (~50K params, near V4). Used if capacity was the bottleneck.",
+  "data": {"npz_dir": "data/npz_v5_lh", "input_len": 1800, "eval_subsample_stride": 10},
+  "model": {"d_model": 40, "d_raw": 20, "d_prior": 6, "horizons": ["y_600"], "n_mamba_layers": 2, "mamba_d_state": 16, "mamba_expand": 1, "use_fallback": false},
+  "loss": {"gamma_crps": 0.0, "eta_utility": 0.3, "alpha_decorr": 0.1, "focal_weight": 0.0, "focal_threshold_sigma": 2.0, "use_unit": true},
+  "training": {"epochs": 40, "batch_size": 32, "lr": 5e-4, "weight_decay": 1e-3, "warmup_epochs": 0, "patience": 8, "grad_clip": 1.0, "train_days": 700, "val_days": 30, "test_days": 90, "fold_stride": 60, "num_workers": 2, "cache_size": 8, "chunk_size": 8},
+  "early_exit": {"min_epoch5_pearson": 0.010, "max_grad_norm": 10.0, "grad_spike_window": 3},
+  "output_dir": "experiments/v5_lh_bigger"
+}
