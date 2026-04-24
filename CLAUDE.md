@@ -9,11 +9,18 @@
 **Vision:** 创新、稳定、综合性能兼备。mid-frequency alpha，不是 HFT。用更聪明的模型、特征、训练策略弥补基础设施不足。
 
 **Benchmark 实力参照：**
-- V4 y_180 已达 clean Pearson 0.09 / Spearman 0.099（已证 solid）
-- V4 y_600 fold 0 clean Spearman 0.073（证据显示可达 0.07-0.08）
+- V4 y_180 已达 clean Pearson 0.09 / Spearman 0.099（已证 solid, production）
+- V4 y_600 final_stack (0.5·SWA + 0.5·EMA blend) pooled clean P=0.054-0.074, S=0.056-0.087 (95% CI [0.03, 0.09])
+  - fold 0 最强 P=0.083 S=0.109; fold 2 P=0.061 S=0.086; 跨 fold CoV 0.12
 - Ridge y_180 baseline ≈ 0.05 Pearson，DL uplift 约 2×
 
-**当前关键目标：** y_600 clean Spearman ≥ 0.08，多 fold pooled；创新方法不断突破上限。
+**当前状态 (2026-04-21)：** y_600 pooled clean S=0.087 已接近 0.10 stretch, 但天花板受限于**单资产 + 现有特征空间**。以下路径已**全部验证 null**:
+- 特征工程 (tradeflow / long_context / infoflow): 978-day Ridge 3-fold 全部 mean ΔP≈0
+- V5-LH 架构 (Mamba + side-aware + cross-path): test variance collapse, clean P=-0.06
+- Multi-horizon UNIT: 机制与 primary/secondary asymmetric 错配
+- Tail-focal loss: P/S 分歧 (P 被极值带飞)
+
+**下一步方向 (突破 0.10 只剩):** 多资产 breadth, 正交数据源 (funding/OI/basis), 缩短 horizon (y_180 更实用).
 
 ---
 
@@ -214,20 +221,44 @@ Layer 3: 创新组件 → 证明每个组件贡献正向
 6. **测错了 slice** — V5-LH 在 late-2024/2025 val (days 700+) Spearman 0.073，早期测试在 100 天切片只到 0.013。time slice 影响极大，换几个 slice 再下定论。
 7. **y 量级不归一** — MonotonicQuantileHead 的 `MIN_DELTA=0.01` 假设 z-score 目标。用 raw log return (σ≈10bps) 会让 softplus 被 clamp 钉死、梯度消失、q50 负偏，val Pearson 变负。
 8. **V4 验证 vs V5-LH 验证** — 换架构前必须先用 **V4 proven 架构在新 horizon 跑一遍**作为 fair baseline。直接 V5-LH 跑 y_600 得 0.01，切到 V4 同 horizon 可得 0.07，证明 architecture 是 bottleneck 而非数据。
+9. **Fold-0 DL 单次结果当 feature 信号** — 2026-04-21 session: LC feature "fold 0 +0.014 P" 被当 breakthrough, 投入 3h pod 训练, 但 978-day Ridge 3-fold 其实是 mean ΔP=-0.002 (null)。**规则:** 新特征必须先 Ridge walk-forward (500+ days, 3+ folds) ΔP ≥ +0.005 才上 pod DL。
+10. **UNIT loss 用于 primary/secondary asymmetric tasks** — UNIT (Kendall 2018) 假设所有 task 同等重要, σ 大的被降 weight。若 primary task 噪声更大 (y_600 vs y_180), UNIT 会**反向** sabotage primary。用固定权重 (primary=1.0, aux=0.3) 或 PCGrad。
+11. **Prediction variance collapse** — V5-LH test yp_std / y_std < 5% = 模型输出近常数 q50, 任何 val IC 都是 spurious。**规则:** 每次 test eval 检查 `yp_std / y_std`, 低于 20% 直接 reject, 无论 val 好坏。
+12. **Tail-focal 在低 SNR 上 P/S 分歧** — focal_weight=2.0 (tail 3× 权重) 让模型过度拟合 |y|>2σ 极值, Pearson 被极值带飞而 Spearman 不升。低 SNR 场景 focal 未证有效。
 
 ---
 
 ## Current Priority
 
-**主线：** DL 模型在 y_600（以及 y_900 / y_1800）上的性能突破。不干扰 V4 y_180 已证明的框架。
+**主线：** y_180 和 y_600 的 V4 final_stack 已到单资产 ceiling。下一阶段突破需要跳出"单资产 + LOB-time-aggregated"特征空间。
 
-**路径：**
-1. **Validate**：V4 架构 + 700d 训练在各 horizon 建立 baseline（y_180 已 ✓，y_600 进行中）
-2. **Innovate**：发现 bottleneck 后创新性改进 loss / 特征 / 架构
-3. **Ensemble**：seed + fold + horizon 三维 ensemble 寻找 uplift
-4. **Execute**：回测 + holding strategy + 实盘 paper trading
+**完成状态：**
+1. ✓ **Validate**：V4 架构 y_180 (P=0.094) / y_600 (P=0.074) 建立 baseline
+2. ✓ **Innovate 实验**：特征 × 3, 架构 V5-LH × 4 全部 null
+3. ~ **Ensemble**：final_stack (SWA + EMA) 完成; seed ensemble 被 user 排除 (post-hoc, non-fundamental)
+4. 待办 **Execute**：回测 + holding strategy 已完成 eval (cost-aware break-even); paper trading 未启
 
-每个创新前必须先:
-- 用 Ridge/XGBoost baseline 锚定数据信号上限
+**下一步 (突破 0.10 的 fundamental 路径):**
+1. **多资产 breadth** — ETH/SOL/BNB data, cross-asset factor, IC-IR 可 1.5+
+2. **正交数据源** — Funding rate, open interest, basis, on-chain (非 LOB aggregation)
+3. **缩短 horizon 深耕** — y_180 P=0.094 已生产化, y_120 / y_300 可能性
+4. **实盘 paper trading** — 单资产即使亏损, 基础设施搭建有价值
+
+**每个创新前必须 (硬门槛):**
+- 用 Ridge walk-forward (500+ days, 3+ folds) 验证 mean ΔP ≥ +0.005 才上 DL pod
 - 用 V4 proven 架构在同 slice 跑一遍做公平对照
+- 每次 test eval 检查 `yp_std / y_std` 不低于 20%
+- P 和 S 同时报告且同向改善, 不接受 P/S 分歧
 - 验证多个时间 slice 而非单一 slice
+
+**明确不做 (已证无效):**
+- ❌ V5-LH Mamba 变种 (test variance collapse)
+- ❌ 单资产 V4 特征空间新扩展 (3 次 Ridge null)
+- ❌ Multi-horizon UNIT (机制错配)
+- ❌ 过激进 post-hoc blending (user 排除)
+
+**关键工具:**
+- `scripts/comprehensive_eval.py` — 12-category eval + 图
+- `scripts/bin_plot_diagnostic.py` — E[ŷ|y_bin] 反向校准
+- `scripts/backtest_y600_final_stack.py` — cost-aware holding strategies
+- `docs/Y600_SUMMARY.md` — 完整 y_600 findings 参考
