@@ -266,11 +266,16 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
     lambda_q = _pos_or_default(cfg.get("lambda_quantile"), 1.0)
     lambda_u = _pos_or_default(cfg.get("lambda_utility_rank"), 0.3)
     lambda_c = _pos_or_default(cfg.get("lambda_calib"), 0.0)
+    lambda_dh = _pos_or_default(cfg.get("lambda_dir_huber"), 0.0)
+    lambda_bc = _pos_or_default(cfg.get("lambda_beta_calib"), 0.0)
     alpha_u = _pos_or_default(cfg.get("utility_alpha"), 1.0)
     lambda_pearson = _pos_or_default(cfg.get("lambda_pearson"), 0.0)
     focal_threshold = _pos_or_default(cfg.get("focal_threshold"), 0.0)
     focal_gamma = _pos_or_default(cfg.get("focal_gamma"), 2.0)
     n_pairs = cfg.get("n_pairs", None)
+    dh_delta = _pos_or_default(cfg.get("dir_huber_delta"), 2.0)
+    dh_w_wrong = _pos_or_default(cfg.get("dir_huber_w_wrong"), 2.0)
+    dh_w_extreme = _pos_or_default(cfg.get("dir_huber_w_extreme"), 3.0)
 
     def dul_loss_fn(outputs, target):
         # return_parts=False avoids per-component .item() syncs in the hot
@@ -283,9 +288,14 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
             lambda_quantile=lambda_q,
             lambda_utility_rank=lambda_u,
             lambda_calib=lambda_c,
+            lambda_dir_huber=lambda_dh,
+            lambda_beta_calib=lambda_bc,
             utility_alpha=alpha_u,
             n_pairs=n_pairs,
             return_parts=False,
+            dir_huber_delta=dh_delta,
+            dir_huber_w_wrong=dh_w_wrong,
+            dir_huber_w_extreme=dh_w_extreme,
         )
         # Direct Pearson auxiliary loss — negative because we MINIMISE.
         # Pearson is scale-invariant; acts as rank-preserving shaping force.

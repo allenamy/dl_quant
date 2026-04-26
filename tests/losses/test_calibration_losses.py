@@ -207,3 +207,51 @@ def test_multi_horizon_dul_calibration_term_actually_increases_loss():
         f"adding non-zero λ_dir_huber + λ_beta_calib should increase total loss; "
         f"baseline={loss_baseline.item():.4f} with_calib={loss_with_calib.item():.4f}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Integration: single-horizon compute_dul_loss with calibration losses
+# ---------------------------------------------------------------------------
+
+def test_compute_dul_loss_with_calibration_runs():
+    """Single-horizon compute_dul_loss accepts new λs and produces finite loss."""
+    from src.training.dul_loss import compute_dul_loss
+
+    torch.manual_seed(0)
+    quantiles = torch.randn(512, 3, requires_grad=True)
+    target = torch.randn(512)
+    total, parts = compute_dul_loss(
+        quantiles, target,
+        lambda_quantile=1.0,
+        lambda_utility_rank=0.3,
+        lambda_calib=0.0,
+        lambda_dir_huber=0.2,
+        lambda_beta_calib=0.05,
+        utility_alpha=1.0,
+        return_parts=True,
+    )
+    assert torch.isfinite(total), f"loss must be finite, got {total}"
+    assert "dir_huber" in parts and parts["dir_huber"] > 0
+    assert "beta_calib" in parts and parts["beta_calib"] > 0
+    total.backward()
+    assert quantiles.grad is not None
+
+
+def test_compute_dul_loss_calib_disabled_when_lambda_zero():
+    """λ=0 → component absent from gradient + reported as 0 in parts."""
+    from src.training.dul_loss import compute_dul_loss
+
+    torch.manual_seed(0)
+    quantiles = torch.randn(512, 3, requires_grad=True)
+    target = torch.randn(512)
+    _, parts = compute_dul_loss(
+        quantiles, target,
+        lambda_quantile=1.0,
+        lambda_utility_rank=0.0,
+        lambda_calib=0.0,
+        lambda_dir_huber=0.0,
+        lambda_beta_calib=0.0,
+        return_parts=True,
+    )
+    assert parts["dir_huber"] == 0.0
+    assert parts["beta_calib"] == 0.0

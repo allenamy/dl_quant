@@ -17,6 +17,7 @@ import torch
 import torch.nn.functional as F
 
 from src.training.losses import quantile_loss
+from src.losses.calibration_losses import directional_huber_loss, beta_calib_loss
 
 
 def utility_rank_loss(
@@ -122,9 +123,14 @@ def compute_dul_loss(
     lambda_quantile: float = 1.0,
     lambda_utility_rank: float = 0.3,
     lambda_calib: float = 0.0,
+    lambda_dir_huber: float = 0.0,
+    lambda_beta_calib: float = 0.0,
     utility_alpha: float = 1.0,
     n_pairs: Optional[int] = None,
     return_parts: bool = True,
+    dir_huber_delta: float = 2.0,
+    dir_huber_w_wrong: float = 2.0,
+    dir_huber_w_extreme: float = 3.0,
 ) -> Tuple[torch.Tensor, Dict[str, float]]:
     """Compose the three DUL components; each is computed only if λ > 0.
 
@@ -176,6 +182,27 @@ def compute_dul_loss(
             parts["calib"] = float(lc.item())
     elif return_parts:
         parts["calib"] = 0.0
+
+    if lambda_dir_huber > 0.0:
+        ldh = directional_huber_loss(
+            quantiles[:, 1], target,
+            delta=dir_huber_delta,
+            w_wrong=dir_huber_w_wrong,
+            w_extreme=dir_huber_w_extreme,
+        )
+        total = total + lambda_dir_huber * ldh
+        if return_parts:
+            parts["dir_huber"] = float(ldh.item())
+    elif return_parts:
+        parts["dir_huber"] = 0.0
+
+    if lambda_beta_calib > 0.0 and target.numel() >= 256:
+        lbc = beta_calib_loss(quantiles[:, 1], target)
+        total = total + lambda_beta_calib * lbc
+        if return_parts:
+            parts["beta_calib"] = float(lbc.item())
+    elif return_parts:
+        parts["beta_calib"] = 0.0
 
     if return_parts:
         parts["total"] = float(total.item())
