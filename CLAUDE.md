@@ -144,6 +144,33 @@
 
 ---
 
+## Documentation Discipline (避免文档迭代混乱)
+
+**所有 Claude 生成的 docs / notes / summaries 必须在文件首行附带元信息**,格式:
+
+```markdown
+> **创建:** 2026-04-27 21:30 UTC+8 | **Session:** y1800-track-AB | **关键事件:** Track A V1 fold 1 mid-train, Track B NPZ build 启动
+> **上一版本:** docs/Y600_TRACK_A_V1_INTERIM.md (2026-04-26 18:00) — V1 fold 0 finished, ema_test_preds 已存
+> **状态:** in-progress | **作废条件:** Track A V2/V3 启动后此文件归档
+```
+
+**字段:**
+- **创建** — `YYYY-MM-DD HH:MM TZ` 必须精确到分钟,不可省略时区
+- **Session** — 一句话标识当时上下文 (e.g. `y600-calib-V1-launch`, `y1800-NPZ-build`)
+- **关键事件** — 1-3 个 bullet 总结当时 pod/local 在做的事 (帮助未来 LLM 理解时序)
+- **上一版本** — 若有迭代关系,指明前一份相关文档路径 + 时间
+- **状态** — `draft | in-progress | final | superseded | archived`
+- **作废条件** — 何时此文档应被新文档取代或归档
+
+**禁止:**
+- 创建无元信息的 status / interim / progress 类文档
+- 用 `_v2` `_final` `_final_v2` 之类后缀替代日期标识
+- 同主题多份文档不互相 cross-reference (留下 orphan docs)
+
+**目的:** 跨会话 / 跨 LLM 迭代时不混淆"现在"与"昨天",避免基于过期文档做决策。
+
+---
+
 ## Technical Defaults
 
 - **Python**: 3.9+
