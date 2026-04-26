@@ -66,13 +66,16 @@ def main():
     ok_pearson = cal_p >= ref_p - 0.02
     ok_beta = cal_b >= 0.5
     ok_no_ps_div = (cal_s - ref_s) >= -0.02  # don't trade Spearman for β
+    ok_no_collapse = cal_sr >= 0.20          # CLAUDE.md anti-pattern #11
     print(f"  Pearson >= ref − 0.02 ({ref_p - 0.02:+.4f})? "
           f"got {cal_p:+.4f} — {'PASS' if ok_pearson else 'FAIL'}")
     print(f"  β >= 0.50?                                got {cal_b:+.4f} — "
           f"{'PASS' if ok_beta else 'FAIL'}")
     print(f"  Spearman >= ref − 0.02?                   got {cal_s:+.4f} — "
           f"{'PASS' if ok_no_ps_div else 'FAIL'}")
-    overall = ok_pearson and ok_beta and ok_no_ps_div
+    print(f"  σ_ŷ/σ_y >= 0.20 (no collapse)?            got {cal_sr:.4f} — "
+          f"{'PASS' if ok_no_collapse else 'FAIL'}")
+    overall = ok_pearson and ok_beta and ok_no_ps_div and ok_no_collapse
     print(f"  OVERALL: {'PASS — proceed to Track B' if overall else 'FAIL — tune λ_β / λ_dh'}")
 
 

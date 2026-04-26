@@ -68,11 +68,12 @@ def cross_sectional_ic_loss(
     pc = torch.where(valid, pred - mp, torch.zeros_like(pred))
     tc = torch.where(valid, target - mt, torch.zeros_like(target))
     num = (pc * tc).sum(dim=1)                      # (T, H)
-    den = torch.sqrt(torch.clamp(
-        (pc * pc).sum(dim=1) * (tc * tc).sum(dim=1),
-        min=eps,
-    ))                                              # (T, H)
-    ic = num / den                                   # (T, H)
+    # Clamp σ_pred and σ_target SEPARATELY so the IC can't artificially
+    # explode when one of them is near zero (a single-clamp on the product
+    # would let num/den swing to ±1e3 if num is also small but nonzero).
+    sp = torch.sqrt((pc * pc).sum(dim=1).clamp(min=eps))
+    st = torch.sqrt((tc * tc).sum(dim=1).clamp(min=eps))
+    ic = num / (sp * st)                             # (T, H)
 
     # Loss = mean over valid (timestep, horizon) of (1 - IC)
     losses = (1.0 - ic) * enough.to(pred.dtype)

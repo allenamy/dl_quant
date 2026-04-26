@@ -38,7 +38,7 @@ Parameter budget: ~35-45K total (V2 is ~29K, attention adds ~8K).
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import torch
 import torch.nn as nn
