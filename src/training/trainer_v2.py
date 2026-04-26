@@ -109,13 +109,15 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         "use_channel_mix_conv", "use_level_attention_pool",
         "use_patch_attention_pool", "use_ppnet_gate",
         "use_multi_scale",
+        # Y1800 push: pluggable temporal backbone
+        "backbone_kind", "backbone_kwargs",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:
         if hasattr(model, attr):
             val = getattr(model, attr)
-            # Only record simple primitive types (not nn.Modules / tensors)
-            if isinstance(val, (int, float, bool, str)):
+            # Record primitives + plain dict (e.g. backbone_kwargs).
+            if isinstance(val, (int, float, bool, str, dict)):
                 config[attr] = val
     return config
 

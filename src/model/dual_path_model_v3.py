@@ -218,6 +218,13 @@ class DualPathLOBModelV3(nn.Module):
         # horizon mismatch (existing X tops out at RV_300s while y_600
         # horizon is 600s). 18 new features (6 per scale × 3 scales).
         use_multi_scale: bool = False,
+        # --- Y1800: pluggable temporal backbone (replaces conv+last-ts) ----
+        # Default ``conv_lasts`` keeps the inline V4 temporal_conv path
+        # for back-compat (existing checkpoints round-trip). Other values
+        # (``ema_pool`` | ``gru`` | ``mamba``) bypass the inline conv
+        # and use a dedicated backbone module instead.
+        backbone_kind: str = "conv_lasts",
+        backbone_kwargs: Optional[Dict[str, Any]] = None,
     ):
         super().__init__()
         self.d_model = d_model
@@ -306,6 +313,46 @@ class DualPathLOBModelV3(nn.Module):
             CausalConv1dBlock(d_model, kernel_size=3, dilation=2, dropout=dropout),
             CausalConv1dBlock(d_model, kernel_size=3, dilation=4, dropout=dropout),
         )
+
+        # --- Pluggable backbone (Y1800 push) -------------------------------
+        # When backbone_kind != "conv_lasts" we route the post-fusion h
+        # through a dedicated backbone module instead of the inline
+        # temporal_conv + last-timestep slice. The inline temporal_conv
+        # is kept as an attribute for back-compat (old V4 checkpoints
+        # have those keys) but not invoked when an alt backbone is chosen.
+        self.backbone_kind = str(backbone_kind or "conv_lasts")
+        self.backbone_kwargs = dict(backbone_kwargs or {})
+        if self.backbone_kind == "conv_lasts":
+            # Inline path is the default — no extra module to construct.
+            self.backbone: Optional[nn.Module] = None
+        elif self.backbone_kind == "ema_pool":
+            from src.model.backbones.ema_pool_backbone import EMAPoolBackbone
+            self.backbone = EMAPoolBackbone(
+                d_model=d_model,
+                dropout=dropout,
+                decay=float(self.backbone_kwargs.get("decay", 0.95)),
+            )
+        elif self.backbone_kind == "gru":
+            from src.model.backbones.gru_backbone import GRUBackbone
+            self.backbone = GRUBackbone(
+                d_model=d_model,
+                hidden=int(self.backbone_kwargs.get("hidden", d_model)),
+                n_layers=int(self.backbone_kwargs.get("n_layers", 1)),
+                dropout=dropout,
+            )
+        elif self.backbone_kind == "mamba":
+            from src.model.backbones.mamba_backbone_v2 import MambaBackboneV2
+            self.backbone = MambaBackboneV2(
+                d_model=d_model,
+                d_state=int(self.backbone_kwargs.get("d_state", 16)),
+                expand=int(self.backbone_kwargs.get("expand", 1)),
+                dropout=dropout,
+            )
+        else:
+            raise ValueError(
+                f"unknown backbone_kind={self.backbone_kind!r}; "
+                "expected one of: conv_lasts, ema_pool, gru, mamba"
+            )
 
         # --- Patching + Causal Self-Attention (global patterns) --------------
         self.patch_embed = PatchEmbedding(
@@ -461,25 +508,29 @@ class DualPathLOBModelV3(nn.Module):
             ms_h = self.ms_encoder(ms_feat)                # (B, L, d_model)
             h = h + ms_h                                    # residual inject
 
-        # 3. Temporal: dilated causal convolutions (local patterns, optional)
-        if self.use_conv:
-            h = self.temporal_conv(h)            # (B, L, d_model)
-
-        # 4/5. Patching + Causal self-attention (global patterns, optional).
-        # When attention is enabled, h_pred is pooled from patch tokens:
-        #   V4 (use_patch_attention_pool=True): learned attention pool
-        #   V3 fallback: last-token slice
-        # When attention is disabled, we fall back to last-timestep pool of
-        # the conv output (V3 behaviour).
-        if self.use_attention:
-            h = self.patch_embed(h)              # (B, n_patches, d_model)
-            h = self.patch_attention(h)          # (B, n_patches, d_model)
+        # 3. Temporal backbone.
+        # Default conv_lasts: inline temporal_conv (RF=15s) + last-timestep
+        # slice (V4 behaviour, bit-identical when backbone_kind="conv_lasts").
+        # Other backbones (ema_pool/gru/mamba) bypass the inline conv path.
+        if self.backbone is not None:
+            # Pluggable backbone consumes (B, L, d_model) → (B, d_model).
+            h_pred = self.backbone(h)
+        elif self.use_attention:
+            # Legacy attention path (use_attention=True is V4 ablation; off in
+            # baseline_plus). Patching + causal self-attention.
+            if self.use_conv:
+                h = self.temporal_conv(h)
+            h = self.patch_embed(h)
+            h = self.patch_attention(h)
             if self.use_patch_attention_pool and self.token_pool is not None:
-                h_pred = self.token_pool(h)      # (B, d_model)
+                h_pred = self.token_pool(h)
             else:
-                h_pred = h[:, -1, :]             # V3 fallback: last patch token
+                h_pred = h[:, -1, :]
         else:
-            h_pred = h[:, -1, :]                 # (B, d_model) -- last timestep pool
+            # Legacy V4 default: dilated causal conv + last-timestep slice.
+            if self.use_conv:
+                h = self.temporal_conv(h)
+            h_pred = h[:, -1, :]
 
         # 7. Cross-asset attention (optional)
         if cross_asset_feats is not None and self.cross_asset_attn is not None:

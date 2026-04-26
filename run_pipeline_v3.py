@@ -87,7 +87,9 @@ def build_model(model_tag: str, n_features: int, n_levels: int,
                    # V4 ablation flags
                    "use_channel_mix_conv", "use_level_attention_pool",
                    "use_patch_attention_pool", "use_ppnet_gate",
-                   "use_multi_scale"}
+                   "use_multi_scale",
+                   # Y1800 push: pluggable temporal backbone
+                   "backbone_kind", "backbone_kwargs"}
         kwargs = {k: v for k, v in model_cfg.items() if k in allowed}
         return DualPathLOBModelV3(n_features=n_features, n_levels=n_levels,
                                   **kwargs)
