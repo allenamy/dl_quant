@@ -36,28 +36,26 @@ def test_directional_huber_same_sign_smaller_loss():
 def test_directional_huber_extreme_miss_heavier_than_normal_miss():
     """When |target|>1.5 AND signs disagree, the extreme-tier weight kicks in.
 
-    Compare normalized: same |err|, different |target| triggering extreme tier.
+    Use non-zero pred so sign() is unambiguous: sign(0) is 0, not -1, which
+    would silently disable the directional check.
     """
-    # Both have |err|=1.0 and signs disagree, but only one has |target|>1.5
-    pred_extreme_miss = torch.tensor([-0.0])
-    target_extreme = torch.tensor([2.0])         # |y|>1.5 → tier-3 weight applies
-    pred_normal_miss = torch.tensor([-0.0])
-    target_normal = torch.tensor([1.0])           # |y|<1.5 → only tier-2 weight
+    # Both: pred is clearly negative, target is positive (signs disagree).
+    pred_extreme = torch.tensor([-0.5])
+    target_extreme = torch.tensor([2.0])         # |y|=2>1.5 → tier-3 (1+2+3=6)
+    pred_normal = torch.tensor([-0.5])
+    target_normal = torch.tensor([1.0])           # |y|=1<1.5 → tier-2 (1+2=3)
 
     loss_extreme = directional_huber_loss(
-        pred_extreme_miss, target_extreme,
+        pred_extreme, target_extreme,
         delta=2.0, w_wrong=2.0, w_extreme=3.0,
     )
     loss_normal = directional_huber_loss(
-        pred_normal_miss, target_normal,
+        pred_normal, target_normal,
         delta=2.0, w_wrong=2.0, w_extreme=3.0,
     )
-    # Tier-3 weight = 1 + 2 + 3 = 6; tier-2 weight = 1 + 2 = 3
-    # |err| differs (2 vs 1), Huber base differs accordingly.
-    # Just check the extreme has the larger normalized weight.
-    # Computed values:
-    #   normal: huber(|err|=1) = 0.5 (Huber within delta=2), × 3 = 1.5
-    #   extreme: huber(|err|=2) = 0.5*4 = 2.0 (still within delta), × 6 = 12.0
+    # extreme: |err|=2.5 → linear Huber 2*(2.5-1)=3.0, × 6 = 18.0
+    # normal:  |err|=1.5 → quadratic Huber 0.5*2.25=1.125, × 3 = 3.375
+    # Ratio ≈ 5.33×.
     assert loss_extreme > loss_normal * 5.0, (
         f"extreme miss should weight much more than normal miss: "
         f"{loss_extreme} vs {loss_normal}"
