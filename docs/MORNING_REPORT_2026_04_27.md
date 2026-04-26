@@ -1,7 +1,8 @@
-> **创建:** 2026-04-27 06:30 UTC+8 (2026-04-26 22:30 UTC) | **Session:** y600-y1800-overnight-final
-> **关键事件:** Track A V1 final 3-fold ✓; V4 y_1800 baseline 3-fold ✓; GRU 3-fold ✓ underperforms; ema_pool fold 0 done; mamba pending relaunch
-> **上一版本:** docs/Y600_Y1800_AUTONOMOUS_2026_04_27.md (16:50 UTC) + docs/Y600_TRACK_A_V1_FINAL_2026_04_27.md (18:05 UTC)
-> **状态:** in-progress (ema_pool fold 1+2 + mamba pending) | **作废条件:** mamba 完成 + 全部 4 backbone 对照表落地后归档
+> **创建:** 2026-04-27 06:30 UTC+8 (2026-04-26 22:30 UTC) | **更新:** 07:32 UTC+8 (23:32 UTC)
+> **Session:** y600-y1800-overnight-final
+> **关键事件:** Track A V1 ✓; V4 y_1800 baseline ✓; GRU ✓ underperforms; **ema_pool ✓ matches baseline EMA on P + beats on S (0.033 vs 0.022)**; mamba RELAUNCHED 23:32 UTC (mamba-ssm 装好)
+> **上一版本:** docs/Y600_Y1800_AUTONOMOUS_2026_04_27.md (16:50) + docs/Y600_TRACK_A_V1_FINAL_2026_04_27.md (18:05)
+> **状态:** in-progress (mamba 跑中 ETA 25:30 UTC) | **作废条件:** mamba 完成后归档
 
 # 早晨自主运行 总结报告 — 2026-04-27 (本地时间 7am 检查点)
 
@@ -57,17 +58,17 @@
 | **V4 baseline** (conv_lasts) | EMA | **0.023** | 0.022 | 0.45 | 0.051 | f0=0.034 f1=0.024 f2=0.010 |
 | GRU | LIVE | 0.001 | 0.003 | 0.02 | 0.075 | f0=0.002 f1=0.004 f2=-0.002 |
 | GRU | EMA | 0.012 | 0.015 | 0.37 | 0.033 | f0=0.007 f1=0.012 f2=0.015 |
-| ema_pool | LIVE | (fold 0 only) | | | | f0=0.012 |
-| ema_pool | EMA | (fold 0 only) | | | | f0=0.026 |
-| **mamba** | — | **CRASHED** at startup (mamba-ssm 未装,已修复 v2.3.1) | | | |
+| **ema_pool** | LIVE | **0.022** | **0.033** | 0.37 | 0.060 | **f0=0.012 f1=0.028 f2=0.023** ← 跨 fold 最一致 |
+| **ema_pool** | EMA | 0.021 | **0.027** | 0.47 | 0.045 | f0=0.026 f1=0.027 f2=0.013 |
+| **mamba** | — | RELAUNCHED 23:32 UTC after mamba-ssm install (v2.3.1) | | | TBD by user check-up + 2h |
 
-### 关键观察
+### 关键观察 (3-fold full results)
 
-1. **y_1800 IC ≈ 50% of y_600** (EMA pooled 0.023 vs y_600 0.051). 30-min 标签噪声大,信号衰减符合预期。
-2. **per-fold variance 极高**: V4 baseline fold 0 P=0.046 (carry signal), folds 1+2 几乎为零 (P=0.001/0.001 LIVE)。后期 test slice (2025) IC 显著低于早期。
-3. **GRU val→test 严重 drift**: val composite ~0.04-0.06 但 test 几乎为零 (P=0.002 LIVE)。GRU σŷ/σy 偏高 (0.075) — 模型 spread 大但不与 y 对齐 — overfit val。
-4. **ema_pool fold 0 better than GRU but worse than baseline**: P=0.026 EMA vs baseline 0.034。β=0.80 (calibration ok)。fold 1/2 待续。
-5. **β 都低于 1** 在 y_1800 上 (baseline EMA β=0.45, ema_pool β=0.80) — 模型预测幅度系统性偏小。30-min horizon 噪声大,calibration loss 难以推到 β=1。
+1. **ema_pool 是 best backbone**: LIVE P=0.022 S=**0.033** 超过 baseline LIVE (0.011, 0.014) 且 LIVE Spearman 0.033 > baseline EMA Spearman 0.022。**EMA**: P 持平 (0.021 vs 0.023), S 略高 (0.027 vs 0.022)。
+2. **ema_pool per-fold consistency 最佳**: LIVE per-fold P [0.012, 0.028, 0.023] — 全部 positive 且方差小。baseline LIVE [0.046, 0.001, 0.001] — fold 0 carry,后两 fold 近零。说明 EMA-over-time pooling 让模型对 regime 更 robust。
+3. **GRU val→test 严重 drift**: val composite ~0.04-0.06 但 test 几乎为零 (P=0.002 LIVE)。GRU σŷ/σy 偏高 — overfit val。
+4. **y_1800 IC ≈ 50% of y_600** (EMA pooled 0.023 vs y_600 0.051). 30-min 标签噪声大,信号衰减符合预期。
+5. **β 都低于 1** 在 y_1800 上 (baseline EMA β=0.45, ema_pool β=0.47, GRU β=0.37) — 模型预测幅度系统性偏小。30-min horizon 噪声大,calibration loss 难以推到 β=1。
 
 ### 已知 caveats
 
