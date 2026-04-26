@@ -783,6 +783,8 @@ def train_one_fold_v2(
             # Compute Spearman from accumulated full arrays (memory ~4-5k
             # samples × 8 bytes ≈ 40 kB, trivial). Fallback to Pearson if
             # scipy is unavailable (should never happen in this repo).
+            sigma_ratio = 0.0
+            beta = 0.0
             if preds_all:
                 p_full = np.concatenate(preds_all).astype(np.float64)
                 t_full = np.concatenate(targets_all).astype(np.float64)
@@ -793,6 +795,15 @@ def train_one_fold_v2(
                         spearman = 0.0
                 except Exception:
                     spearman = pearson
+                # σ_ŷ/σ_y and β diagnostics — variance-collapse early-warn.
+                # Per CLAUDE.md anti-pattern #11: σ_ŷ/σ_y < 20% means model
+                # is outputting near-constant; any IC is spurious.
+                sp = float(np.std(p_full))
+                st = float(np.std(t_full))
+                sigma_ratio = sp / st if st > 1e-12 else 0.0
+                if sp > 1e-12:
+                    cov = float(np.mean((p_full - p_full.mean()) * (t_full - t_full.mean())))
+                    beta = cov / (sp * sp)
             else:
                 spearman = 0.0
 
@@ -803,6 +814,8 @@ def train_one_fold_v2(
                 "val_spearman": spearman,
                 "val_composite": composite,
                 "val_r2": r2,
+                "val_sigma_ratio": sigma_ratio,
+                "val_beta": beta,
             }
 
         raw_val = _run_val(model)
@@ -834,12 +847,14 @@ def train_one_fold_v2(
             f"train_loss={avg_train_loss:.6f} | "
             f"val_loss={avg_val_loss:.6f} | "
             f"P={val_corr:+.4f} S={val_spearman:+.4f} C={val_composite:+.4f} | "
+            f"σŷ/σy={raw_val.get('val_sigma_ratio', 0.0):.3f} β={raw_val.get('val_beta', 0.0):+.3f} | "
             f"r2={val_r2:.4f} | lr={current_lr:.2e}"
         )
         if ema_val is not None:
             line += (
                 f" | EMA P={ema_val['val_corr']:+.4f} "
-                f"S={ema_val['val_spearman']:+.4f} C={ema_val['val_composite']:+.4f}"
+                f"S={ema_val['val_spearman']:+.4f} C={ema_val['val_composite']:+.4f} "
+                f"σŷ/σy={ema_val.get('val_sigma_ratio', 0.0):.3f}"
             )
         print(line)
 
