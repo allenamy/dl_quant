@@ -1,5 +1,5 @@
 {
-  "_comment": "Variant B: V4 conv + 1-layer GRU + last hidden state, ~6K extra params. Well-understood RNN; deploy-friendly. Same calibrated loss + V4 dual-path as baseline_v4 \u2014 only backbone differs.",
+  "_comment": "Variant B: V4 conv + 1-layer GRU + last hidden state, ~6K extra params. Well-understood RNN; deploy-friendly. Same calibrated loss + V4 dual-path as baseline_v4 \u2014 only backbone differs. [Hotfix 2026-04-27: include_ridge_features=false to match depth-only NPZ. Rebuild NPZ + flip flag to true once trades synced for full 64-feat parity with y_180/y_600 V4.]",
   "data": {
     "csv_path": "",
     "npz_dir": "data/npz_v4_y1800",
@@ -10,7 +10,7 @@
     "horizons_sec": [
       1800
     ],
-    "include_ridge_features": true,
+    "include_ridge_features": false,
     "include_regime_prior": true,
     "quantize_features": true,
     "preload": false
