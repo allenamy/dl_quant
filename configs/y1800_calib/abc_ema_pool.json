@@ -1,0 +1,75 @@
+{
+  "_comment": "Variant A: V4 conv + EMA pool over time (decay=0.95). 0 extra params, weighted-recent context. Same calibrated loss + V4 dual-path as baseline_v4 \u2014 only backbone differs.",
+  "data": {
+    "csv_path": "",
+    "npz_dir": "data/npz_v4_y1800",
+    "n_levels": 20,
+    "horizon_sec": 1800,
+    "input_len": 1200,
+    "stride": 600,
+    "horizons_sec": [
+      1800
+    ],
+    "include_ridge_features": true,
+    "include_regime_prior": true,
+    "quantize_features": true,
+    "preload": false
+  },
+  "model": {
+    "d_model": 32,
+    "d_raw": 16,
+    "n_mask_blocks": 1,
+    "n_cross_layers": 1,
+    "patch_size": 5,
+    "attn_nhead": 2,
+    "attn_d_ff": 64,
+    "d_prior": 6,
+    "dropout": 0.15,
+    "n_horizons": 1,
+    "n_symbols": 1,
+    "use_monotonic_quantile": true,
+    "use_revin": true,
+    "use_masknet": false,
+    "use_gdcn": true,
+    "use_raw_path": true,
+    "use_attention": false,
+    "use_conv": true,
+    "use_channel_mix_conv": true,
+    "use_level_attention_pool": true,
+    "use_patch_attention_pool": false,
+    "use_ppnet_gate": true,
+    "backbone_kind": "ema_pool",
+    "backbone_kwargs": {
+      "decay": 0.95
+    }
+  },
+  "training": {
+    "epochs": 40,
+    "batch_size": 512,
+    "lr": 0.0006,
+    "weight_decay": 0.001,
+    "patience": 8,
+    "grad_clip": 1.0,
+    "train_days": 700,
+    "val_days": 30,
+    "test_days": 90,
+    "fold_stride": 60,
+    "num_workers": 4,
+    "prefetch_factor": 2,
+    "val_metric": "composite",
+    "use_ema": true,
+    "ema_decay": 0.999,
+    "dul_config": {
+      "lambda_quantile": 1.0,
+      "lambda_utility_rank": 0.3,
+      "lambda_calib": 0.0,
+      "lambda_dir_huber": 0.2,
+      "lambda_beta_calib": 0.05,
+      "utility_alpha": 1.0,
+      "dir_huber_delta": 2.0,
+      "dir_huber_w_wrong": 2.0,
+      "dir_huber_w_extreme": 3.0
+    }
+  },
+  "output_dir": "experiments/y1800_calib/abc_ema_pool"
+}
