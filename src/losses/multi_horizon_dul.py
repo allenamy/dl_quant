@@ -25,6 +25,7 @@ import torch.nn.functional as F
 
 from src.losses.unit_loss import UnitMultiTaskLoss
 from src.losses.focal_weighting import tail_focal_weights
+from src.losses.calibration_losses import directional_huber_loss, beta_calib_loss
 
 
 def _weighted_pinball(
@@ -93,6 +94,12 @@ class MultiHorizonDulFocalUnit(nn.Module):
         Weight on utility-rank loss component (default 0.3 matches V4 DUL).
     utility_alpha : float
         Risk aversion weight for rank-loss score.
+    lambda_dir_huber : float
+        Weight on directional-Huber on q50 (default 0.0 — disabled).
+    lambda_beta_calib : float
+        Weight on Mincer-Zarnowitz β-regularizer on q50 (default 0.0 — disabled).
+    dir_huber_delta, dir_huber_w_wrong, dir_huber_w_extreme : float
+        Directional-Huber params (see calibration_losses.directional_huber_loss).
     """
 
     def __init__(
@@ -107,6 +114,11 @@ class MultiHorizonDulFocalUnit(nn.Module):
         lambda_quantile: float = 1.0,
         lambda_rank: float = 0.3,
         utility_alpha: float = 1.0,
+        lambda_dir_huber: float = 0.0,
+        lambda_beta_calib: float = 0.0,
+        dir_huber_delta: float = 2.0,
+        dir_huber_w_wrong: float = 2.0,
+        dir_huber_w_extreme: float = 3.0,
     ) -> None:
         super().__init__()
         if n_horizons < 1:
@@ -130,6 +142,11 @@ class MultiHorizonDulFocalUnit(nn.Module):
         self.lambda_quantile = float(lambda_quantile)
         self.lambda_rank = float(lambda_rank)
         self.utility_alpha = float(utility_alpha)
+        self.lambda_dir_huber = float(lambda_dir_huber)
+        self.lambda_beta_calib = float(lambda_beta_calib)
+        self.dir_huber_delta = float(dir_huber_delta)
+        self.dir_huber_w_wrong = float(dir_huber_w_wrong)
+        self.dir_huber_w_extreme = float(dir_huber_w_extreme)
 
         if self.use_unit:
             self.unit = UnitMultiTaskLoss(n_tasks=n_horizons)
@@ -195,7 +212,29 @@ class MultiHorizonDulFocalUnit(nn.Module):
             else:
                 rank = torch.zeros((), device=q_h.device, dtype=q_h.dtype)
 
-            l_h = self.lambda_quantile * pinball + self.lambda_rank * rank
+            # Directional Huber on q50 (sign-aware magnitude calibration).
+            if self.lambda_dir_huber > 0.0:
+                dh = directional_huber_loss(
+                    q_h[:, 1], y_h,
+                    delta=self.dir_huber_delta,
+                    w_wrong=self.dir_huber_w_wrong,
+                    w_extreme=self.dir_huber_w_extreme,
+                )
+            else:
+                dh = torch.zeros((), device=q_h.device, dtype=q_h.dtype)
+
+            # Mincer-Zarnowitz β-regularizer on q50 (need batch ≥ 256 for stability).
+            if self.lambda_beta_calib > 0.0 and y_h.numel() >= 256:
+                bc = beta_calib_loss(q_h[:, 1], y_h)
+            else:
+                bc = torch.zeros((), device=q_h.device, dtype=q_h.dtype)
+
+            l_h = (
+                self.lambda_quantile * pinball
+                + self.lambda_rank * rank
+                + self.lambda_dir_huber * dh
+                + self.lambda_beta_calib * bc
+            )
             per_horizon_losses.append(l_h)
             contributing.append(h)
 

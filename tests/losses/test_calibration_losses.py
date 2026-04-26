@@ -143,3 +143,67 @@ def test_beta_calib_gradient_flows():
     loss.backward()
     assert pred.grad is not None
     assert torch.isfinite(pred.grad).all()
+
+
+# ---------------------------------------------------------------------------
+# Integration: MultiHorizonDulFocalUnit with calibration losses
+# ---------------------------------------------------------------------------
+
+def test_multi_horizon_dul_with_calibration_losses_runs():
+    """MultiHorizonDulFocalUnit accepts new λ_dir_huber and λ_beta_calib params
+    and produces finite loss when invoked."""
+    from src.losses.multi_horizon_dul import MultiHorizonDulFocalUnit
+
+    torch.manual_seed(0)
+    B, n_h, Q = 512, 1, 3
+    outputs = {
+        "quantiles_by_horizon": torch.randn(B, n_h, Q, requires_grad=True),
+        "point_pred_by_horizon": torch.randn(B, n_h),
+    }
+    y = torch.randn(B, n_h)
+    mask = torch.ones(B, n_h)
+
+    loss_fn = MultiHorizonDulFocalUnit(
+        n_horizons=n_h,
+        y_sigmas=[1.0],
+        use_unit=False,
+        focal_extra_weight=0.0,
+        lambda_quantile=1.0,
+        lambda_rank=0.3,
+        lambda_dir_huber=0.2,
+        lambda_beta_calib=0.05,
+    )
+    loss = loss_fn(outputs, y, mask)
+    assert torch.isfinite(loss), f"loss must be finite, got {loss}"
+    loss.backward()
+    assert outputs["quantiles_by_horizon"].grad is not None
+
+
+def test_multi_horizon_dul_calibration_term_actually_increases_loss():
+    """When β-calib is enabled, total loss should INCREASE vs the baseline
+    composition (since β-calib ≥ 0 and adds to total). Symmetric for dir_huber."""
+    from src.losses.multi_horizon_dul import MultiHorizonDulFocalUnit
+
+    torch.manual_seed(0)
+    B, n_h, Q = 512, 1, 3
+    q = torch.randn(B, n_h, Q)
+    outputs = {"quantiles_by_horizon": q, "point_pred_by_horizon": q[:, :, 1]}
+    y = torch.randn(B, n_h)
+    mask = torch.ones(B, n_h)
+
+    loss_baseline = MultiHorizonDulFocalUnit(
+        n_horizons=n_h, y_sigmas=[1.0], use_unit=False,
+        focal_extra_weight=0.0, lambda_quantile=1.0, lambda_rank=0.3,
+        lambda_dir_huber=0.0, lambda_beta_calib=0.0,
+    )(outputs, y, mask)
+
+    loss_with_calib = MultiHorizonDulFocalUnit(
+        n_horizons=n_h, y_sigmas=[1.0], use_unit=False,
+        focal_extra_weight=0.0, lambda_quantile=1.0, lambda_rank=0.3,
+        lambda_dir_huber=0.2, lambda_beta_calib=0.05,
+    )(outputs, y, mask)
+
+    assert loss_with_calib > loss_baseline, (
+        f"adding non-zero λ_dir_huber + λ_beta_calib should increase total loss; "
+        f"baseline={loss_baseline.item():.4f} with_calib={loss_with_calib.item():.4f}"
+    )
