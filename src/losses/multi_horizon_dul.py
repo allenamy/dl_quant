@@ -25,7 +25,11 @@ import torch.nn.functional as F
 
 from src.losses.unit_loss import UnitMultiTaskLoss
 from src.losses.focal_weighting import tail_focal_weights
-from src.losses.calibration_losses import directional_huber_loss, beta_calib_loss
+from src.losses.calibration_losses import (
+    directional_huber_loss,
+    beta_calib_loss,
+    differentiable_spearman_loss,
+)
 
 
 def _weighted_pinball(
@@ -116,6 +120,8 @@ class MultiHorizonDulFocalUnit(nn.Module):
         utility_alpha: float = 1.0,
         lambda_dir_huber: float = 0.0,
         lambda_beta_calib: float = 0.0,
+        lambda_diff_spearman: float = 0.0,
+        diff_spearman_temperature: float = 1.0,
         dir_huber_delta: float = 2.0,
         dir_huber_w_wrong: float = 2.0,
         dir_huber_w_extreme: float = 3.0,
@@ -144,6 +150,8 @@ class MultiHorizonDulFocalUnit(nn.Module):
         self.utility_alpha = float(utility_alpha)
         self.lambda_dir_huber = float(lambda_dir_huber)
         self.lambda_beta_calib = float(lambda_beta_calib)
+        self.lambda_diff_spearman = float(lambda_diff_spearman)
+        self.diff_spearman_temperature = float(diff_spearman_temperature)
         self.dir_huber_delta = float(dir_huber_delta)
         self.dir_huber_w_wrong = float(dir_huber_w_wrong)
         self.dir_huber_w_extreme = float(dir_huber_w_extreme)
@@ -229,11 +237,26 @@ class MultiHorizonDulFocalUnit(nn.Module):
             else:
                 bc = torch.zeros((), device=q_h.device, dtype=q_h.dtype)
 
+            # Differentiable Spearman (soft-rank Pearson). Direct rank loss.
+            # Need batch ≥ 64 for sane rank statistics; O(N²) memory caps batch.
+            if (
+                self.lambda_diff_spearman > 0.0
+                and y_h.numel() >= 64
+                and y_h.numel() <= 2048
+            ):
+                dsp = differentiable_spearman_loss(
+                    q_h[:, 1], y_h,
+                    temperature=self.diff_spearman_temperature,
+                )
+            else:
+                dsp = torch.zeros((), device=q_h.device, dtype=q_h.dtype)
+
             l_h = (
                 self.lambda_quantile * pinball
                 + self.lambda_rank * rank
                 + self.lambda_dir_huber * dh
                 + self.lambda_beta_calib * bc
+                + self.lambda_diff_spearman * dsp
             )
             per_horizon_losses.append(l_h)
             contributing.append(h)

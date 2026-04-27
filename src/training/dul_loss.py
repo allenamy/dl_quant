@@ -17,7 +17,11 @@ import torch
 import torch.nn.functional as F
 
 from src.training.losses import quantile_loss
-from src.losses.calibration_losses import directional_huber_loss, beta_calib_loss
+from src.losses.calibration_losses import (
+    directional_huber_loss,
+    beta_calib_loss,
+    differentiable_spearman_loss,
+)
 
 
 def utility_rank_loss(
@@ -125,6 +129,8 @@ def compute_dul_loss(
     lambda_calib: float = 0.0,
     lambda_dir_huber: float = 0.0,
     lambda_beta_calib: float = 0.0,
+    lambda_diff_spearman: float = 0.0,
+    diff_spearman_temperature: float = 1.0,
     utility_alpha: float = 1.0,
     n_pairs: Optional[int] = None,
     return_parts: bool = True,
@@ -203,6 +209,22 @@ def compute_dul_loss(
             parts["beta_calib"] = float(lbc.item())
     elif return_parts:
         parts["beta_calib"] = 0.0
+
+    # Differentiable Spearman (1 - soft Spearman correlation). O(N²) memory,
+    # cap batch ≤ 2048 to keep memory < ~16 MB per loss eval.
+    if (
+        lambda_diff_spearman > 0.0
+        and target.numel() >= 64
+        and target.numel() <= 2048
+    ):
+        ldsp = differentiable_spearman_loss(
+            quantiles[:, 1], target, temperature=diff_spearman_temperature,
+        )
+        total = total + lambda_diff_spearman * ldsp
+        if return_parts:
+            parts["diff_spearman"] = float(ldsp.item())
+    elif return_parts:
+        parts["diff_spearman"] = 0.0
 
     if return_parts:
         parts["total"] = float(total.item())

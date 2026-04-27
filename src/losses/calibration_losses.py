@@ -79,3 +79,66 @@ def beta_calib_loss(pred: torch.Tensor, target: torch.Tensor, eps: float = 1e-8)
     var_p = (pc * pc).mean() + eps
     beta = cov / var_p
     return (beta - 1.0).pow(2)
+
+
+def soft_rank(x: torch.Tensor, temperature: float = 1.0) -> torch.Tensor:
+    """Differentiable soft rank via sigmoid-of-pairwise-differences (soft Borda count).
+
+    Each output is in [0.5, N-0.5]. Lower temperature → harder ranks (closer to
+    integer). Higher temperature → smoother but lower-fidelity ranks.
+
+    Cost: O(N²) memory + compute. For batch≤2048 this fits on a single GPU.
+
+    Parameters
+    ----------
+    x : (N,) 1D tensor.
+    temperature : sigmoid sharpness scaling. Default 1.0 assumes x is z-scored.
+
+    Returns
+    -------
+    (N,) soft ranks. Differentiable w.r.t. x.
+    """
+    diff = x.unsqueeze(0) - x.unsqueeze(1)        # (N, N), entry (i,j) = x_i - x_j
+    sig = torch.sigmoid(diff / temperature)       # (N, N), ≈ 1 if x_i > x_j
+    return sig.sum(dim=0) - 0.5                   # (N,) Σ_j sigmoid(x_i > x_j)
+
+
+def differentiable_spearman_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    temperature: float = 1.0,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """1 - Spearman rank correlation, fully differentiable.
+
+    Spearman = Pearson correlation between rank(pred) and rank(target).
+    We replace the non-diff rank op with `soft_rank` for end-to-end training.
+
+    Standardize inputs to z-score before ranking, so default temperature=1.0
+    gives reasonable rank fidelity.
+
+    Loss is in [0, 2]. Loss=0 ↔ perfect rank correlation. Loss=1 ↔ uncorrelated.
+
+    Parameters
+    ----------
+    pred : (N,) predictions (e.g. q50).
+    target : (N,) realized values.
+    temperature : passed to soft_rank.
+    eps : numerical floor for std.
+
+    Returns
+    -------
+    Scalar (1 - soft_spearman).
+    """
+    # z-score so soft_rank temperature has consistent meaning
+    pn = (pred - pred.mean()) / (pred.std() + eps)
+    tn = (target - target.mean()) / (target.std() + eps)
+    rp = soft_rank(pn, temperature=temperature)
+    rt = soft_rank(tn, temperature=temperature)
+    rpc = rp - rp.mean()
+    rtc = rt - rt.mean()
+    cov = (rpc * rtc).mean()
+    sp = rpc.std() + eps
+    st = rtc.std() + eps
+    spearman = cov / (sp * st)
+    return 1.0 - spearman
