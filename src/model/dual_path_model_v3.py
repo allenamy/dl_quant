@@ -225,6 +225,11 @@ class DualPathLOBModelV3(nn.Module):
         # and use a dedicated backbone module instead.
         backbone_kind: str = "conv_lasts",
         backbone_kwargs: Optional[Dict[str, Any]] = None,
+        # --- Phase A2: dual-path fusion variant ----------------------------
+        # "concat" (default) = legacy concat+Linear; "glu" = gated linear unit
+        # (data-dependent per-channel mixing of Path A vs Path B). Same param
+        # budget, more expressive at no capacity cost.
+        fusion_kind: str = "concat",
         # --- Y1800 Phase 1.2: in-graph σ-anchor scale layer ----------------
         # Learnable scalar α multiplied into all quantile/point outputs at
         # the end of forward. Allows the model to learn the post-hoc β
@@ -316,8 +321,15 @@ class DualPathLOBModelV3(nn.Module):
             use_level_attention_pool=self.use_level_attention_pool,
         )
 
-        # --- Fusion: concat -> Linear ---------------------------------------
-        self.fusion = nn.Linear(d_model + d_raw, d_model)
+        # --- Fusion: concat -> Linear (default) or GLU gated fusion --------
+        self.fusion_kind = str(fusion_kind or "concat")
+        if self.fusion_kind == "concat":
+            self.fusion = nn.Linear(d_model + d_raw, d_model)
+        elif self.fusion_kind == "glu":
+            from src.model.gated_fusion import GatedFusion
+            self.fusion = GatedFusion(d_a=d_model, d_b=d_raw, d_out=d_model, dropout=dropout)
+        else:
+            raise ValueError(f"unknown fusion_kind={self.fusion_kind!r}, expected 'concat' or 'glu'")
 
         # --- Temporal: Dilated CausalConv (local patterns) -------------------
         # Dilation [1, 2, 4] with kernel=3 gives RF = 15 steps
@@ -539,8 +551,11 @@ class DualPathLOBModelV3(nn.Module):
         # lets the ablation runner disable Path B while still feeding x_raw.
         if self.use_raw_path and x_raw is not None:
             h_raw = self.raw_encoder(x_raw)      # (B, L, d_raw)
-            h = torch.cat([h_craft, h_raw], dim=-1)  # (B, L, d_model + d_raw)
-            h = self.fusion(h)                   # (B, L, d_model)
+            if self.fusion_kind == "glu":
+                h = self.fusion(h_craft, h_raw)  # (B, L, d_model) gated
+            else:
+                h = torch.cat([h_craft, h_raw], dim=-1)  # (B, L, d_model + d_raw)
+                h = self.fusion(h)               # (B, L, d_model) concat-linear
         else:
             h = h_craft                          # (B, L, d_model)
 

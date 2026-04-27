@@ -129,6 +129,8 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         "output_scale_init",
         # Y1800 Phase 2: regime-aware FiLM modulation
         "use_regime_film", "regime_film_hidden",
+        # Y1800 Phase A2: dual-path fusion variant
+        "fusion_kind",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:
