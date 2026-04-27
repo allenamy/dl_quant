@@ -70,12 +70,26 @@ def _apply_warmup(
 # ---------------------------------------------------------------------------
 
 def _seed_everything(seed: int) -> None:
-    """Seed Python's ``random``, NumPy and PyTorch for reproducibility."""
+    """Seed Python's ``random``, NumPy and PyTorch + cudnn for reproducibility.
+
+    Forces cudnn deterministic mode (slower ~1.3-2× but reproducible).
+    Required for low-SNR research where single-run variance can flip
+    EMA test β from +0.94 to -0.49 between identical-config runs (observed
+    on y_1800 Phase 1.1 — see anti-pattern #14 in CLAUDE.md).
+
+    NOTE: torch.use_deterministic_algorithms(True) requires
+    CUBLAS_WORKSPACE_CONFIG env var but its absence only warns. We don't
+    set it here to allow training without env-var setup; cudnn flags alone
+    cover ~95% of non-determinism in our common ops (conv, attention).
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    # cudnn determinism (the main source of run-to-run variance in low SNR).
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 # ---------------------------------------------------------------------------

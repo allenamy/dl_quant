@@ -253,6 +253,7 @@ Layer 3: 创新组件 → 证明每个组件贡献正向
 11. **Prediction variance collapse** — V5-LH test yp_std / y_std < 5% = 模型输出近常数 q50, 任何 val IC 都是 spurious。**规则:** 每次 test eval 检查 `yp_std / y_std`, 低于 20% 直接 reject, 无论 val 好坏。
 12. **Tail-focal 在低 SNR 上 P/S 分歧** — focal_weight=2.0 (tail 3× 权重) 让模型过度拟合 |y|>2σ 极值, Pearson 被极值带飞而 Spearman 不升。低 SNR 场景 focal 未证有效。
 13. **Learnable scalar α (σ-anchor) 引入 val-tunable 自由度** — 2026-04-27 y_1800 Phase 1.2 实测: σ-anchor (output_scale_init=1.0, β_calib=0.1) val EMA P=0.060, S=0.068 → test EMA P=-0.003, S=0.000 (β=-0.11 翻负)。**catastrophic val→test drift**。机制: α 是单一标量,被 val 调到一个让 val ranks 对齐的特定值,但 test 是不同 vol regime 不 transfer。EMA 平均 *权重* 但 α *本身* 是同一标量,平均后没有平滑效果。**规则:** 不在低 SNR 上加 unconstrained learnable scalar, 任何"in-graph β scaling" 必须用 batch-statistics anchor (e.g. σ_y / σ_ŷ_running 而非 free Parameter)。
+14. **单 fold + 单 seed 在 y_1800 上完全不可靠 (cudnn 非确定性 + EMA 路径分歧)** — 2026-04-27 实测: 同 config (Phase 1.1 diff_spearman) 同 seed 两次 run 结果 EMA P 从 +0.036 翻到 -0.017,**β 从 +0.94 翻到 -0.49**。单次 run 的"赢/输"判断 100% 是 noise。**规则:** 任何 y_1800 实验 conclusion 必须基于 (a) 3-fold pooled 或 (b) ≥3 seed 平均。新加的 cudnn determinism (commit 待加) 只 partial 解决,multi-seed 是必须。下游影响: 历史所有 single-fold 0 screen 结果都需重新评估 (Phase 1.1 "winner", Phase 1.2 "fail", Phase 1.1b "fail" 都是 single-run 噪声)。
 
 ---
 
