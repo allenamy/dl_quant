@@ -386,10 +386,18 @@ class DualPathLOBModelV3(nn.Module):
                 expand=int(self.backbone_kwargs.get("expand", 1)),
                 dropout=dropout,
             )
+        elif self.backbone_kind == "multi_scale":
+            from src.model.backbones.multi_scale_backbone import MultiScaleBackbone
+            self.backbone = MultiScaleBackbone(
+                d_model=d_model,
+                scales=tuple(self.backbone_kwargs.get("scales", (60, 300, 1200))),
+                dropout=dropout,
+                ema_decay=float(self.backbone_kwargs.get("ema_decay", 0.95)),
+            )
         else:
             raise ValueError(
                 f"unknown backbone_kind={self.backbone_kind!r}; "
-                "expected one of: conv_lasts, ema_pool, gru, mamba"
+                "expected one of: conv_lasts, ema_pool, gru, mamba, multi_scale"
             )
 
         # --- Patching + Causal Self-Attention (global patterns) --------------
