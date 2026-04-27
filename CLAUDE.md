@@ -252,6 +252,7 @@ Layer 3: 创新组件 → 证明每个组件贡献正向
 10. **UNIT loss 用于 primary/secondary asymmetric tasks** — UNIT (Kendall 2018) 假设所有 task 同等重要, σ 大的被降 weight。若 primary task 噪声更大 (y_600 vs y_180), UNIT 会**反向** sabotage primary。用固定权重 (primary=1.0, aux=0.3) 或 PCGrad。
 11. **Prediction variance collapse** — V5-LH test yp_std / y_std < 5% = 模型输出近常数 q50, 任何 val IC 都是 spurious。**规则:** 每次 test eval 检查 `yp_std / y_std`, 低于 20% 直接 reject, 无论 val 好坏。
 12. **Tail-focal 在低 SNR 上 P/S 分歧** — focal_weight=2.0 (tail 3× 权重) 让模型过度拟合 |y|>2σ 极值, Pearson 被极值带飞而 Spearman 不升。低 SNR 场景 focal 未证有效。
+13. **Learnable scalar α (σ-anchor) 引入 val-tunable 自由度** — 2026-04-27 y_1800 Phase 1.2 实测: σ-anchor (output_scale_init=1.0, β_calib=0.1) val EMA P=0.060, S=0.068 → test EMA P=-0.003, S=0.000 (β=-0.11 翻负)。**catastrophic val→test drift**。机制: α 是单一标量,被 val 调到一个让 val ranks 对齐的特定值,但 test 是不同 vol regime 不 transfer。EMA 平均 *权重* 但 α *本身* 是同一标量,平均后没有平滑效果。**规则:** 不在低 SNR 上加 unconstrained learnable scalar, 任何"in-graph β scaling" 必须用 batch-statistics anchor (e.g. σ_y / σ_ŷ_running 而非 free Parameter)。
 
 ---
 
