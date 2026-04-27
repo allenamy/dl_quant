@@ -21,6 +21,7 @@ from src.losses.calibration_losses import (
     directional_huber_loss,
     beta_calib_loss,
     differentiable_spearman_loss,
+    crps_quantile_loss,
 )
 
 
@@ -131,6 +132,7 @@ def compute_dul_loss(
     lambda_beta_calib: float = 0.0,
     lambda_diff_spearman: float = 0.0,
     diff_spearman_temperature: float = 1.0,
+    lambda_crps: float = 0.0,
     utility_alpha: float = 1.0,
     n_pairs: Optional[int] = None,
     return_parts: bool = True,
@@ -225,6 +227,16 @@ def compute_dul_loss(
             parts["diff_spearman"] = float(ldsp.item())
     elif return_parts:
         parts["diff_spearman"] = 0.0
+
+    # CRPS — proper scoring rule on distribution. Operates on all quantile
+    # samples (q10/q50/q90), penalizes both location AND spread errors.
+    if lambda_crps > 0.0:
+        lcrps = crps_quantile_loss(quantiles, target)
+        total = total + lambda_crps * lcrps
+        if return_parts:
+            parts["crps"] = float(lcrps.item())
+    elif return_parts:
+        parts["crps"] = 0.0
 
     if return_parts:
         parts["total"] = float(total.item())

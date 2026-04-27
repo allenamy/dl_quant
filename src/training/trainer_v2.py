@@ -274,6 +274,7 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
     lambda_bc = _pos_or_default(cfg.get("lambda_beta_calib"), 0.0)
     lambda_dsp = _pos_or_default(cfg.get("lambda_diff_spearman"), 0.0)
     diff_sp_temp = _pos_or_default(cfg.get("diff_spearman_temperature"), 1.0)
+    lambda_crps_v = _pos_or_default(cfg.get("lambda_crps"), 0.0)
     alpha_u = _pos_or_default(cfg.get("utility_alpha"), 1.0)
     lambda_pearson = _pos_or_default(cfg.get("lambda_pearson"), 0.0)
     focal_threshold = _pos_or_default(cfg.get("focal_threshold"), 0.0)
@@ -298,6 +299,7 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
             lambda_beta_calib=lambda_bc,
             lambda_diff_spearman=lambda_dsp,
             diff_spearman_temperature=diff_sp_temp,
+            lambda_crps=lambda_crps_v,
             utility_alpha=alpha_u,
             n_pairs=n_pairs,
             return_parts=False,

@@ -103,6 +103,41 @@ def soft_rank(x: torch.Tensor, temperature: float = 1.0) -> torch.Tensor:
     return sig.sum(dim=0) - 0.5                   # (N,) Σ_j sigmoid(x_i > x_j)
 
 
+def crps_quantile_loss(
+    quantiles: torch.Tensor,
+    target: torch.Tensor,
+) -> torch.Tensor:
+    """Continuous Ranked Probability Score for finite-sample quantile predictions.
+
+    CRPS(F, y) = E_F|X - y| - 0.5 E_F E_F'|X - X'|
+    For K equi-weighted samples {q_1, ..., q_K}:
+      CRPS ≈ (1/K) Σ_i |q_i - y| - (1/(2K²)) Σ_i Σ_j |q_i - q_j|
+
+    Compared to pinball loss, CRPS is a STRICTLY PROPER scoring rule for
+    distributions — it penalizes both wrong location AND wrong spread,
+    naturally driving calibration without separate β regularization.
+
+    Use as primary or auxiliary loss. Lower is better (≥0).
+
+    Parameters
+    ----------
+    quantiles : (N, K) predicted quantile values, K ≥ 2.
+    target : (N,) realized values.
+
+    Returns
+    -------
+    Scalar mean CRPS.
+    """
+    K = quantiles.shape[-1]
+    # Term 1: E_F |X - y|  (mean absolute deviation from target)
+    abs_dev = (quantiles - target.unsqueeze(-1)).abs().mean(dim=-1)        # (N,)
+    # Term 2: 0.5 E_F E_F' |X - X'|  (mean pairwise absolute distance / 2)
+    diff = quantiles.unsqueeze(-1) - quantiles.unsqueeze(-2)               # (N, K, K)
+    pair_dev = 0.5 * diff.abs().mean(dim=(-1, -2))                         # (N,)
+    crps = abs_dev - pair_dev                                              # (N,)
+    return crps.mean()
+
+
 def differentiable_spearman_loss(
     pred: torch.Tensor,
     target: torch.Tensor,
