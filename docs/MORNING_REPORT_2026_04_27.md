@@ -1,8 +1,8 @@
-> **创建:** 2026-04-27 06:30 UTC+8 (2026-04-26 22:30 UTC) | **更新:** 07:32 UTC+8 (23:32 UTC)
+> **创建:** 2026-04-27 06:30 UTC+8 (2026-04-26 22:30 UTC) | **更新:** 09:10 UTC+8 (01:10 UTC 27日)
 > **Session:** y600-y1800-overnight-final
-> **关键事件:** Track A V1 ✓; V4 y_1800 baseline ✓; GRU ✓ underperforms; **ema_pool ✓ matches baseline EMA on P + beats on S (0.033 vs 0.022)**; mamba RELAUNCHED 23:32 UTC (mamba-ssm 装好)
+> **关键事件:** Track A V1 ✓; V4 y_1800 baseline ✓; **ema_pool 4-way 比较 winner**; **Mamba-2 3-fold ✓ (P 持平 baseline, S 略弱)**; **全部 4 backbones 比较完成**
 > **上一版本:** docs/Y600_Y1800_AUTONOMOUS_2026_04_27.md (16:50) + docs/Y600_TRACK_A_V1_FINAL_2026_04_27.md (18:05)
-> **状态:** in-progress (mamba 跑中 ETA 25:30 UTC) | **作废条件:** mamba 完成后归档
+> **状态:** **FINAL** | **作废条件:** 用户决定下一阶段方向 (多资产 / 正交数据源 etc.)
 
 # 早晨自主运行 总结报告 — 2026-04-27 (本地时间 7am 检查点)
 
@@ -58,17 +58,22 @@
 | **V4 baseline** (conv_lasts) | EMA | **0.023** | 0.022 | 0.45 | 0.051 | f0=0.034 f1=0.024 f2=0.010 |
 | GRU | LIVE | 0.001 | 0.003 | 0.02 | 0.075 | f0=0.002 f1=0.004 f2=-0.002 |
 | GRU | EMA | 0.012 | 0.015 | 0.37 | 0.033 | f0=0.007 f1=0.012 f2=0.015 |
-| **ema_pool** | LIVE | **0.022** | **0.033** | 0.37 | 0.060 | **f0=0.012 f1=0.028 f2=0.023** ← 跨 fold 最一致 |
-| **ema_pool** | EMA | 0.021 | **0.027** | 0.47 | 0.045 | f0=0.026 f1=0.027 f2=0.013 |
-| **mamba** | — | RELAUNCHED 23:32 UTC after mamba-ssm install (v2.3.1) | | | TBD by user check-up + 2h |
+| **ema_pool** ⭐ | LIVE | **0.022** | **0.033** | 0.37 | 0.060 | **f0=0.012 f1=0.028 f2=0.023** ← 跨 fold 最一致 |
+| **ema_pool** ⭐ | EMA | 0.021 | **0.027** | 0.47 | 0.045 | f0=0.026 f1=0.027 f2=0.013 |
+| Mamba-2 | LIVE | 0.016 | 0.010 | 0.28 | 0.058 | f0=0.023 f1=0.019 f2=0.006 |
+| Mamba-2 | EMA | 0.019 | 0.014 | 0.36 | 0.053 | f0=0.033 f1=0.018 f2=0.009 |
 
-### 关键观察 (3-fold full results)
+### 关键观察 (4-way full results)
 
-1. **ema_pool 是 best backbone**: LIVE P=0.022 S=**0.033** 超过 baseline LIVE (0.011, 0.014) 且 LIVE Spearman 0.033 > baseline EMA Spearman 0.022。**EMA**: P 持平 (0.021 vs 0.023), S 略高 (0.027 vs 0.022)。
-2. **ema_pool per-fold consistency 最佳**: LIVE per-fold P [0.012, 0.028, 0.023] — 全部 positive 且方差小。baseline LIVE [0.046, 0.001, 0.001] — fold 0 carry,后两 fold 近零。说明 EMA-over-time pooling 让模型对 regime 更 robust。
-3. **GRU val→test 严重 drift**: val composite ~0.04-0.06 但 test 几乎为零 (P=0.002 LIVE)。GRU σŷ/σy 偏高 — overfit val。
-4. **y_1800 IC ≈ 50% of y_600** (EMA pooled 0.023 vs y_600 0.051). 30-min 标签噪声大,信号衰减符合预期。
-5. **β 都低于 1** 在 y_1800 上 (baseline EMA β=0.45, ema_pool β=0.47, GRU β=0.37) — 模型预测幅度系统性偏小。30-min horizon 噪声大,calibration loss 难以推到 β=1。
+1. **ema_pool 是 backbone winner**: 
+   - LIVE Spearman 0.033 (best of all variants, beats baseline EMA's 0.022)
+   - per-fold LIVE P [0.012, 0.028, 0.023] — 全 positive 低方差
+   - 直觉解释: EMA-over-time 在 forward 时把 sequence 平均一次,等同 "soft long-window pooling",对 30-min horizon 的低频信号更适合
+2. **baseline conv_lasts 仍是 EMA Pearson 第一** (P=0.023) — last-timestep 简单粗暴反而稳;但 per-fold 方差极大 [0.046, 0.001, 0.001],fold 0 carry signal,fold 1+2 接近零
+3. **Mamba-2 没有展现 SSM 优势**: 4-way 中等 (LIVE P=0.016 S=0.010 EMA P=0.019 S=0.014),per-fold 也是 fold 0 强后续衰减,模式与 baseline 类似但绝对值更低。可能 Mamba-2 在 single-block 配置下没有发挥;或 y_1800 horizon 太长,SSM 的长程依赖优势在低 SNR 下被噪声淹没
+4. **GRU 灾难性 val→test drift**: val composite ~0.04-0.06 → test P=0.002。GRU σŷ/σy 偏高 (0.075) — predictions spread 大但与 y 不相关 — 经典 overfitting val
+5. **y_1800 IC ≈ 50% of y_600** (best EMA pooled 0.027 vs y_600 0.069 V1 EMA Spearman). 30-min 标签噪声大,所有 backbone 都受限
+6. **β 都低于 1** 在 y_1800 上 (0.36-0.47 范围) — calibration loss 难以推到 β=1。30-min horizon 信号弱,模型预测幅度系统性偏小
 
 ### 已知 caveats
 
