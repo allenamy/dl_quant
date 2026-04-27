@@ -406,10 +406,35 @@ class DualPathLOBModelV3(nn.Module):
                 dropout=dropout,
                 ema_decay=float(self.backbone_kwargs.get("ema_decay", 0.95)),
             )
+        elif self.backbone_kind == "itransformer":
+            from src.model.backbones.itransformer_backbone import ITransformerBackbone
+            self.backbone = ITransformerBackbone(
+                d_model=d_model,
+                L=int(self.backbone_kwargs.get("L", 1200)),
+                d_emb=int(self.backbone_kwargs.get("d_emb", 64)),
+                n_heads=int(self.backbone_kwargs.get("n_heads", 4)),
+                n_layers=int(self.backbone_kwargs.get("n_layers", 1)),
+                d_ff=int(self.backbone_kwargs.get("d_ff", 128)),
+                dropout=dropout,
+            )
+        elif self.backbone_kind == "moe":
+            from src.model.backbones.moe_backbone import MoEBackbone
+            self.backbone = MoEBackbone(
+                d_model=d_model,
+                n_experts=int(self.backbone_kwargs.get("n_experts", 4)),
+                top_k=int(self.backbone_kwargs.get("top_k", 2)),
+                expert_decay=float(self.backbone_kwargs.get("expert_decay", 0.9)),
+                regime_dim=self.backbone_kwargs.get("regime_dim", None),
+                router_hidden=int(self.backbone_kwargs.get("router_hidden", 32)),
+                dropout=dropout,
+                load_balance_aux_weight=float(
+                    self.backbone_kwargs.get("load_balance_aux_weight", 0.01)
+                ),
+            )
         else:
             raise ValueError(
                 f"unknown backbone_kind={self.backbone_kind!r}; "
-                "expected one of: conv_lasts, ema_pool, gru, mamba, multi_scale"
+                "expected one of: conv_lasts, ema_pool, gru, mamba, multi_scale, itransformer, moe"
             )
 
         # --- Patching + Causal Self-Attention (global patterns) --------------

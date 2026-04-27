@@ -14,6 +14,8 @@ import torch
 from src.model.backbones.conv_backbone import ConvLastTSBackbone
 from src.model.backbones.ema_pool_backbone import EMAPoolBackbone
 from src.model.backbones.gru_backbone import GRUBackbone
+from src.model.backbones.itransformer_backbone import ITransformerBackbone
+from src.model.backbones.moe_backbone import MoEBackbone
 
 
 B, L, D = 4, 1200, 32
@@ -89,6 +91,68 @@ def test_gru_backbone_extra_param_count():
     delta = sum(p.numel() for p in gru_bb.parameters()) - sum(p.numel() for p in conv_only.parameters())
     # GRU(32→32, 1 layer) has 4*hidden*(input+hidden+1) ~ 4*32*65 = 8320 params
     assert 4_000 < delta < 12_000, f"GRU extra params should be ~6-8K, got {delta}"
+
+
+def test_itransformer_backbone_contract():
+    _check_backbone_contract(
+        ITransformerBackbone(d_model=D, L=L, d_emb=64, n_heads=4, n_layers=1, dropout=0.0)
+    )
+
+
+def test_itransformer_d_emb_divisibility_check():
+    with pytest.raises(ValueError):
+        ITransformerBackbone(d_model=D, L=L, d_emb=63, n_heads=4)
+
+
+def test_itransformer_rejects_wrong_L():
+    bb = ITransformerBackbone(d_model=D, L=600, d_emb=32, n_heads=4)
+    bb.eval()
+    h_wrong = torch.randn(2, 1200, D)
+    with pytest.raises(ValueError):
+        bb(h_wrong)
+
+
+def test_moe_backbone_contract_no_regime():
+    """MoE w/o regime input — uses h.mean(dim=1) for routing."""
+    bb = MoEBackbone(d_model=D, n_experts=4, top_k=2, dropout=0.0,
+                     load_balance_aux_weight=0.0)
+    _check_backbone_contract(bb)
+
+
+def test_moe_backbone_with_regime_signature():
+    """MoE w/ regime_dim must be called with regime tensor."""
+    bb = MoEBackbone(d_model=D, n_experts=3, top_k=2, regime_dim=6, dropout=0.0,
+                     load_balance_aux_weight=0.0)
+    h = torch.randn(B, L, D)
+    regime = torch.randn(B, 6)
+    bb.eval()
+    out = bb(h, regime=regime)
+    assert out.shape == (B, D)
+    # Without regime, must raise
+    with pytest.raises(ValueError):
+        bb(h)
+
+
+def test_moe_top_k_validation():
+    with pytest.raises(ValueError):
+        MoEBackbone(d_model=D, n_experts=4, top_k=5)
+    with pytest.raises(ValueError):
+        MoEBackbone(d_model=D, n_experts=4, top_k=0)
+
+
+def test_moe_aux_loss_emitted_in_train_mode():
+    """Aux loss is finite in train mode, zero in eval mode."""
+    bb = MoEBackbone(d_model=D, n_experts=4, top_k=2, dropout=0.0,
+                     load_balance_aux_weight=0.01)
+    h = torch.randn(B, L, D)
+    bb.train()
+    bb(h)
+    assert torch.isfinite(bb.last_aux_loss)
+    assert bb.last_aux_loss.item() > 0  # nonzero in train
+
+    bb.eval()
+    bb(h)
+    assert bb.last_aux_loss.item() == 0.0
 
 
 def test_mamba_backbone_skipped_without_cuda_or_mamba():

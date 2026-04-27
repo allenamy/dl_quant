@@ -514,6 +514,9 @@ class LOBDatasetV2(Dataset):
                 self._horizons is None
                 or "y_600" in self._horizons
             )
+            _has_y1800 = (
+                self._horizons is not None and "y_1800" in self._horizons
+            )
             # Index of y_600 within self._horizons (for multi-horizon smooth
             # replacement). -1 when single-horizon (we'll treat the single
             # slot as y_600).
@@ -525,17 +528,36 @@ class LOBDatasetV2(Dataset):
                         break
             extra_channels: List[np.ndarray] = []
 
-            if self.smooth_target_dir is not None and _has_y600:
+            # Long-context overlay read: independent of horizon (y_600 path
+            # uses build_smoothed_target_overlay; y_1800 path uses
+            # build_long_context_overlay_y1800 which has no y_600_smooth key).
+            # Target smoothing still requires y_600 + use_smoothed_target=True.
+            if self.smooth_target_dir is not None and (_has_y600 or _has_y1800):
                 day_name = self.days[day_idx]
                 overlay_path = os.path.join(self.smooth_target_dir, f"{day_name}.npz")
                 lcf_scaled_filled = np.zeros((X.shape[0], 6), dtype=np.float32)
                 if os.path.exists(overlay_path):
                     try:
                         with _np_load_with_retry(overlay_path, allow_pickle=True) as ov:
-                            y_smooth = np.asarray(ov["y_600_smooth"], dtype=np.float32)
-                            m_smooth = np.asarray(ov["mask_smooth"], dtype=np.float32)
-                            lcf = np.asarray(ov["long_context_feats"], dtype=np.float32)
-                        if self.use_smoothed_target:
+                            ov_keys = set(ov.files)
+                            y_smooth = (
+                                np.asarray(ov["y_600_smooth"], dtype=np.float32)
+                                if "y_600_smooth" in ov_keys else None
+                            )
+                            m_smooth = (
+                                np.asarray(ov["mask_smooth"], dtype=np.float32)
+                                if "mask_smooth" in ov_keys else None
+                            )
+                            lcf = (
+                                np.asarray(ov["long_context_feats"], dtype=np.float32)
+                                if "long_context_feats" in ov_keys else None
+                            )
+                        if (
+                            self.use_smoothed_target
+                            and y_smooth is not None
+                            and m_smooth is not None
+                            and _has_y600
+                        ):
                             if self._y_norm is not None:
                                 median, sigma, clip = self._y_norm
                                 y_smooth = np.clip((y_smooth - median) / sigma, -clip, clip).astype(np.float32)
@@ -550,7 +572,7 @@ class LOBDatasetV2(Dataset):
                                 y_arr[:, _y600_idx] = np.where(
                                     m_use_col, y_smooth, y_arr[:, _y600_idx]
                                 )
-                        if lcf.shape[-1] == 6 and lcf.shape[0] == X.shape[0]:
+                        if lcf is not None and lcf.shape[-1] == 6 and lcf.shape[0] == X.shape[0]:
                             scale = np.maximum(np.median(np.abs(lcf), axis=0), 1e-3)
                             lcf_scaled_filled = np.clip(lcf / scale, -10.0, 10.0).astype(np.float32)
                     except Exception:
