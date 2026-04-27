@@ -225,6 +225,12 @@ class DualPathLOBModelV3(nn.Module):
         # and use a dedicated backbone module instead.
         backbone_kind: str = "conv_lasts",
         backbone_kwargs: Optional[Dict[str, Any]] = None,
+        # --- Y1800 Phase 1.2: in-graph σ-anchor scale layer ----------------
+        # Learnable scalar α multiplied into all quantile/point outputs at
+        # the end of forward. Allows the model to learn the post-hoc β
+        # scaling factor jointly with the rest of the network — backbone
+        # gradients see the scaled output. Set to None to disable.
+        output_scale_init: Optional[float] = None,
     ):
         super().__init__()
         self.d_model = d_model
@@ -320,6 +326,16 @@ class DualPathLOBModelV3(nn.Module):
         # temporal_conv + last-timestep slice. The inline temporal_conv
         # is kept as an attribute for back-compat (old V4 checkpoints
         # have those keys) but not invoked when an alt backbone is chosen.
+        # σ-anchor learnable output scale (Phase 1.2). Initialised to 1.0
+        # (no-op at start). Optimizer learns α to satisfy β_calib loss.
+        # When None, the layer is absent — back-compat with all prior runs.
+        if output_scale_init is not None:
+            self.output_scale = nn.Parameter(
+                torch.tensor(float(output_scale_init), dtype=torch.float32)
+            )
+        else:
+            self.output_scale = None
+
         self.backbone_kind = str(backbone_kind or "conv_lasts")
         self.backbone_kwargs = dict(backbone_kwargs or {})
         if self.backbone_kind == "conv_lasts":
@@ -579,8 +595,16 @@ class DualPathLOBModelV3(nn.Module):
 
         head = self.quantile_heads[horizon_idx]
         if self.use_monotonic_quantile:
-            return head(h_pred)
+            outputs = head(h_pred)
         else:
             quantiles = head(h_pred)
-            point_pred = quantiles[:, 1]
-            return {"quantiles": quantiles, "point_pred": point_pred}
+            outputs = {"quantiles": quantiles, "point_pred": quantiles[:, 1]}
+
+        # Apply σ-anchor scale if enabled. Scales quantile outputs and
+        # point pred by the learnable α. β_calib loss in compute_dul_loss
+        # applies AFTER this scaling, so optimizer sees the scaled output.
+        if self.output_scale is not None:
+            alpha = self.output_scale
+            outputs["quantiles"] = outputs["quantiles"] * alpha
+            outputs["point_pred"] = outputs["point_pred"] * alpha
+        return outputs

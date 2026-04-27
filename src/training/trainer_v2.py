@@ -111,6 +111,8 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         "use_multi_scale",
         # Y1800 push: pluggable temporal backbone
         "backbone_kind", "backbone_kwargs",
+        # Y1800 Phase 1.2: in-graph σ-anchor scale layer (learnable α)
+        "output_scale_init",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:
