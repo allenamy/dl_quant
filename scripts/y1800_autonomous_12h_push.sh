@@ -111,7 +111,7 @@ PY
 run_pipeline() {
   local cfg=$1; shift
   local extra="$*"
-  $PYTHON run_pipeline_v3.py --config "$cfg" $extra
+  $PYTHON run_pipeline_v3.py --config "$cfg" --skip-features --model V3 $extra
 }
 
 # STAGE 0: LC overlay --------------------------------------------------------
@@ -153,6 +153,14 @@ log_p "  phase3c (seed=42) EMA pooled : $PHASE3C_EMA"
 log_p "  phase5  (seed=7)  EMA pooled : $PHASE5_EMA"
 log_p "  phase5  (seed=7)  best pooled: $PHASE5_BEST"
 log_p "  phase3c fold0 EMA (baseline for STAGE 2 gate): $PHASE3C_F0"
+
+# Safety abort: if STAGE 1 produced no metrics, the pipeline is broken
+# (config / flags / install issue). Bailing here saves the next ~7h of
+# cascading failed stages.
+if [[ "$PHASE5_EMA" == "NO_DATA" ]] || [[ -z "$PHASE5_EMA" ]]; then
+  log_p "FATAL: STAGE 1 produced NO_DATA. Aborting before cascade. Inspect logs/y1800_12h_push.log."
+  exit 1
+fi
 
 # STAGE 2: fold-0 screens ----------------------------------------------------
 log_p "STAGE 2: fold-0 screens A3 iTransformer / A4 MoE / F1 LC"
