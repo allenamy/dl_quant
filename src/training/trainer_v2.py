@@ -127,6 +127,8 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         "backbone_kind", "backbone_kwargs",
         # Y1800 Phase 1.2: in-graph σ-anchor scale layer (learnable α)
         "output_scale_init",
+        # Y1800 Phase 2: regime-aware FiLM modulation
+        "use_regime_film", "regime_film_hidden",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:

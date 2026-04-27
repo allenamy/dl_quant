@@ -91,7 +91,9 @@ def build_model(model_tag: str, n_features: int, n_levels: int,
                    # Y1800 push: pluggable temporal backbone
                    "backbone_kind", "backbone_kwargs",
                    # Y1800 Phase 1.2: in-graph σ-anchor scale layer
-                   "output_scale_init"}
+                   "output_scale_init",
+                   # Y1800 Phase 2: regime-aware FiLM modulation
+                   "use_regime_film", "regime_film_hidden"}
         kwargs = {k: v for k, v in model_cfg.items() if k in allowed}
         return DualPathLOBModelV3(n_features=n_features, n_levels=n_levels,
                                   **kwargs)

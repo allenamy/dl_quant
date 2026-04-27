@@ -231,6 +231,13 @@ class DualPathLOBModelV3(nn.Module):
         # scaling factor jointly with the rest of the network — backbone
         # gradients see the scaled output. Set to None to disable.
         output_scale_init: Optional[float] = None,
+        # --- Regime-aware FiLM modulation (anti-pattern #15 mitigation) ----
+        # Applied to backbone output before quantile head. When True, a
+        # RegimeFeatureExtractor + FiLM layer modulates h_pred based on
+        # detected vol regime, attacking val→test drift driven by regime
+        # shift. See src/model/regime_film.py for mechanism.
+        use_regime_film: bool = False,
+        regime_film_hidden: int = 16,
     ):
         super().__init__()
         self.d_model = d_model
@@ -335,6 +342,21 @@ class DualPathLOBModelV3(nn.Module):
             )
         else:
             self.output_scale = None
+
+        # Regime-aware FiLM modulation (anti-pattern #15 mitigation).
+        self.use_regime_film = bool(use_regime_film)
+        if self.use_regime_film:
+            from src.model.regime_film import RegimeFeatureExtractor, FiLM
+            self.regime_extractor = RegimeFeatureExtractor()
+            self.regime_film = FiLM(
+                d_model=d_model,
+                n_regime_feats=self.regime_extractor.n_features_out,
+                hidden=int(regime_film_hidden),
+                dropout=dropout,
+            )
+        else:
+            self.regime_extractor = None
+            self.regime_film = None
 
         self.backbone_kind = str(backbone_kind or "conv_lasts")
         self.backbone_kwargs = dict(backbone_kwargs or {})
@@ -557,6 +579,14 @@ class DualPathLOBModelV3(nn.Module):
             )  # (B, n_symbols, d_model)
             all_symbols = self.cross_asset_attn(all_symbols)  # (B, n_symbols, d_model)
             h_pred = all_symbols[:, 0, :]  # extract target symbol
+
+        # 8a. Regime-aware FiLM modulation (anti-pattern #15 mitigation).
+        # Computed from input x_feat directly — provides regime-aware adaptation
+        # of backbone output BEFORE PPNet/quantile head. Closed-form regime
+        # extractor (no learned params) → no val-tunable degrees of freedom.
+        if self.use_regime_film and self.regime_film is not None:
+            regime_feats = self.regime_extractor(x_feat)               # (B, K)
+            h_pred = self.regime_film(h_pred, regime_feats)            # (B, d_model)
 
         # 8. PPNet regime-conditioned gating
         if regime_prior is not None and self.ppnet_gate is not None:
