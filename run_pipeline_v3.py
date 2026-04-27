@@ -393,17 +393,21 @@ def main() -> None:
     # =========================================================================
     # Step 3: Training -- single-day vs multi-day
     # =========================================================================
-    fold_window = train_cfg["train_days"] + train_cfg["val_days"] + train_cfg["test_days"]
+    embargo_days = int(train_cfg.get("embargo_days", 0))
+    fold_window = (train_cfg["train_days"] + embargo_days
+                   + train_cfg["val_days"] + train_cfg["test_days"])
 
     if len(days) >= fold_window:
         # ----- Multi-day mode --------------------------------------------------
-        print(f"[pipeline_v3] Multi-day mode ({len(days)} days)")
+        print(f"[pipeline_v3] Multi-day mode ({len(days)} days), "
+              f"embargo_days={embargo_days}")
         folds = build_time_series_folds(
             days,
             train_days=train_cfg["train_days"],
             val_days=train_cfg["val_days"],
             test_days=train_cfg["test_days"],
             stride=train_cfg["fold_stride"],
+            embargo_days=embargo_days,
         )
         print(f"[pipeline_v3] Built {len(folds)} fold(s)")
 

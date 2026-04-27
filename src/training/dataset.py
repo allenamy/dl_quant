@@ -1020,31 +1020,34 @@ def build_time_series_folds(
     val_days: int,
     test_days: int,
     stride: int,
+    embargo_days: int = 0,
 ) -> List[Dict[str, List[str]]]:
     """Create sliding-window cross-validation folds with strict temporal order.
 
     All training days come before all validation days, which come before all
-    test days within each fold.
+    test days within each fold. Optional ``embargo_days`` inserts a buffer
+    BEFORE val (between train end and val start) — used to break the
+    train→val regime adjacency that drives val-overfit selection in
+    non-stationary settings (anti-pattern #15 mitigation).
 
     Parameters
     ----------
     days : list[str]
         Chronologically sorted list of day identifiers.
     train_days : int
-        Number of days in the training window.
     val_days : int
-        Number of days in the validation window.
     test_days : int
-        Number of days in the test window.
     stride : int
         How many days the window slides forward between folds.
+    embargo_days : int, default 0
+        Days dropped between train end and val start. Days inside the
+        embargo are NOT used by any split (no train, no val, no test).
 
     Returns
     -------
-    list[dict]
-        Each element is ``{'train': [...], 'val': [...], 'test': [...]}``.
+    list[dict] of {train, val, test} day lists.
     """
-    window = train_days + val_days + test_days
+    window = train_days + embargo_days + val_days + test_days
     if window > len(days):
         return []
 
@@ -1052,12 +1055,13 @@ def build_time_series_folds(
     start = 0
     while start + window <= len(days):
         tr_end = start + train_days
-        va_end = tr_end + val_days
+        va_start = tr_end + embargo_days
+        va_end = va_start + val_days
         te_end = va_end + test_days
         folds.append(
             {
                 "train": days[start:tr_end],
-                "val": days[tr_end:va_end],
+                "val": days[va_start:va_end],
                 "test": days[va_end:te_end],
             }
         )
