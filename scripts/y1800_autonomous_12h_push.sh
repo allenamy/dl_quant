@@ -195,13 +195,20 @@ cands = [
     ("configs/y1800_calib/phase_A4_moe_3c.json",          parse(sys.argv[3])),
     ("configs/y1800_calib/phase_F1_lc_3c.json",           parse(sys.argv[4])),
 ]
+# Tightened gate: y_1800 seed variance is ~0.014 (Phase 5 mid-train data).
+# Require both ΔP ≥ +0.005 AND ΔS ≥ +0.005 AND avg(ΔP,ΔS) ≥ +0.012 — must
+# beat seed-noise floor on BOTH metrics, not just average. Avoids declaring
+# a winner that's actually just a lucky seed.
 winners = []
 if base is not None:
-    base_avg = (base[0] + base[1]) / 2
+    base_p, base_s = base
+    base_avg = (base_p + base_s) / 2
     for cfg, ps in cands:
         if ps is None: continue
-        avg = (ps[0] + ps[1]) / 2
-        if avg >= base_avg + 0.005:
+        p, s = ps
+        avg = (p + s) / 2
+        dp, ds = p - base_p, s - base_s
+        if dp >= 0.005 and ds >= 0.005 and (avg - base_avg) >= 0.012:
             winners.append((avg - base_avg, cfg))
 winners.sort(reverse=True)
 print(winners[0][1] if winners else "NONE")
