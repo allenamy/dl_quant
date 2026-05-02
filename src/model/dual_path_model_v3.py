@@ -328,8 +328,10 @@ class DualPathLOBModelV3(nn.Module):
         elif self.fusion_kind == "glu":
             from src.model.gated_fusion import GatedFusion
             self.fusion = GatedFusion(d_a=d_model, d_b=d_raw, d_out=d_model, dropout=dropout)
+        elif self.fusion_kind == "late":
+            self.fusion = None  # late fusion: backbone handles per-path temporal
         else:
-            raise ValueError(f"unknown fusion_kind={self.fusion_kind!r}, expected 'concat' or 'glu'")
+            raise ValueError(f"unknown fusion_kind={self.fusion_kind!r}, expected concat, glu, or late")
 
         # --- Temporal: Dilated CausalConv (local patterns) -------------------
         # Dilation [1, 2, 4] with kernel=3 gives RF = 15 steps
@@ -398,6 +400,18 @@ class DualPathLOBModelV3(nn.Module):
                 kernel_size=int(self.backbone_kwargs.get('kernel_size', 3)),
                 pool=self.backbone_kwargs.get('pool', 'last'),
             )
+        elif self.backbone_kind == "late_fusion":
+            from src.model.backbones.late_fusion_backbone import LateFusionBackbone
+            self.backbone = LateFusionBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                dilations_craft=tuple(self.backbone_kwargs.get('dilations_craft', (1, 2, 4, 8))),
+                dilations_raw=tuple(self.backbone_kwargs.get('dilations_raw', (1, 2, 4, 8))),
+                kernel_size=int(self.backbone_kwargs.get('kernel_size', 3)),
+                dropout=dropout,
+                pool_kind=self.backbone_kwargs.get('pool_kind', 'last'),
+            )
+            self.fusion_kind = 'late'  # auto-set
+            self.fusion = None
         elif self.backbone_kind == "mamba":
             from src.model.backbones.mamba_backbone_v2 import MambaBackboneV2
             self.backbone = MambaBackboneV2(
@@ -578,7 +592,9 @@ class DualPathLOBModelV3(nn.Module):
         # lets the ablation runner disable Path B while still feeding x_raw.
         if self.use_raw_path and x_raw is not None:
             h_raw = self.raw_encoder(x_raw)      # (B, L, d_raw)
-            if self.fusion_kind == "glu":
+            if self.fusion_kind == "late":
+                h = None  # late fusion: backbone receives h_craft and h_raw separately
+            elif self.fusion_kind == "glu":
                 h = self.fusion(h_craft, h_raw)  # (B, L, d_model) gated
             else:
                 h = torch.cat([h_craft, h_raw], dim=-1)  # (B, L, d_model + d_raw)
@@ -601,8 +617,10 @@ class DualPathLOBModelV3(nn.Module):
         # slice (V4 behaviour, bit-identical when backbone_kind="conv_lasts").
         # Other backbones (ema_pool/gru/mamba) bypass the inline conv path.
         if self.backbone is not None:
-            # Pluggable backbone consumes (B, L, d_model) → (B, d_model).
-            h_pred = self.backbone(h)
+            if self.fusion_kind == "late":
+                h_pred = self.backbone(h_craft, h_raw)
+            else:
+                h_pred = self.backbone(h)
         elif self.use_attention:
             # Legacy attention path (use_attention=True is V4 ablation; off in
             # baseline_plus). Patching + causal self-attention.

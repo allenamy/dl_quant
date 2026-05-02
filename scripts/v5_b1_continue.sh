@@ -32,6 +32,7 @@ run_extra conv_deep    configs/v5/screen/backbone_conv_deep.json
 run_extra conv_deeper  configs/v5/screen/backbone_conv_deeper.json
 run_extra attention_p20 configs/v5/screen/backbone_attention_p20.json
 # Phase 3: stretch (longer input)
+run_extra late_fusion configs/v5/screen/backbone_late_fusion.json
 run_extra mamba_long      configs/v5/screen/backbone_mamba_long.json
 run_extra attention_long  configs/v5/screen/backbone_attention_long.json
 run_extra attention_wide  configs/v5/screen/backbone_attention_wide.json
