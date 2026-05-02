@@ -135,6 +135,39 @@ def detect_device() -> str:
     return "cpu"
 
 
+def build_v5_model(
+    model_cfg: dict,
+    n_levels: int,
+    loss_cfg: dict,
+    train_cfg: dict,
+) -> torch.nn.Module:
+    """Build a V5Model (V4 encoder + HeteroscedasticHead).
+
+    Codex-patched dispatch for V5: strips DANN keys from ``model_cfg``
+    before handing them to the V3 backbone (which has no DANN support),
+    and asserts ``training.use_dann`` is not set (V5 incompatible with
+    DANN adversarial training).
+    """
+    from src.model.v5_model import V5Model
+
+    DANN_KEYS = {"use_dann", "n_domains", "dann_hidden_dim"}
+    v4_kwargs = dict(model_cfg)
+    stripped = [k for k in DANN_KEYS if v4_kwargs.pop(k, None) is not None]
+    if stripped:
+        print(f"[V5] Stripped unsupported DANN keys from model cfg: {stripped}")
+    if bool(train_cfg.get("use_dann", False)):
+        raise RuntimeError(
+            "V5 path is incompatible with training.use_dann=True (V3 backbone "
+            "has no DANN support). Set training.use_dann=False or remove DANN "
+            "from this config."
+        )
+    v4_kwargs["n_levels"] = int(n_levels)
+    head_hidden = int(loss_cfg.get("head_hidden", 0))
+    print(f"[V5] V5Model dispatched (head_hidden={head_hidden}, "
+          f"n_levels={n_levels})")
+    return V5Model(v4_kwargs=v4_kwargs, head_hidden=head_hidden)
+
+
 def build_model(model_tag: str, n_features: int, n_levels: int,
                 model_cfg: dict) -> torch.nn.Module:
     """Instantiate a model by tag (V1/V2/V3)."""
@@ -409,6 +442,23 @@ def main() -> None:
     train_cfg = cfg["training"]
     output_dir = cfg["output_dir"]
 
+    # --- V5 dispatch flag ----------------------------------------------------
+    # V5 path is activated by any V5-specific loss component flag in
+    # ``cfg["loss"]``. When active, build V5Model (V4 encoder + heteroscedastic
+    # head) instead of plain V4 via build_model(), and pass build_v5_loss_fn(...)
+    # to train_one_fold_v2 as the custom loss_fn.
+    loss_cfg = cfg.get("loss", {}) or {}
+    v5_loss_active = (
+        float(loss_cfg.get("w_gaussian_nll", 0)) > 0
+        or float(loss_cfg.get("w_huber_y", 0)) > 0
+        or bool(loss_cfg.get("use_v5_dual_head", False))
+    )
+    if v5_loss_active:
+        print(f"[pipeline_v3] V5 dispatch ACTIVE (loss flags: "
+              f"w_gaussian_nll={loss_cfg.get('w_gaussian_nll', 0)}, "
+              f"w_huber_y={loss_cfg.get('w_huber_y', 0)}, "
+              f"use_v5_dual_head={loss_cfg.get('use_v5_dual_head', False)})")
+
     # --- Device --------------------------------------------------------------
     device = detect_device()
     print(f"[pipeline_v3] Device: {device}")
@@ -588,7 +638,12 @@ def main() -> None:
             raw_levels = (
                 int(sample0["X_raw"].shape[-2]) if train_ds.has_raw else 20
             )
-            model = build_model(args.model, n_features, raw_levels, model_cfg)
+            if v5_loss_active:
+                model = build_v5_model(model_cfg, raw_levels, loss_cfg,
+                                       train_cfg)
+            else:
+                model = build_model(args.model, n_features, raw_levels,
+                                    model_cfg)
             total_params = sum(p.numel() for p in model.parameters())
             print(f"[pipeline_v3] Model parameters: {total_params:,}")
 
@@ -649,7 +704,17 @@ def main() -> None:
                         f"focal_thresh={_mh_loss_module.focal_threshold_sigma}"
                     )
 
-                best = train_one_fold_v2(
+                # V5 dispatch: build custom loss_fn from cfg["loss"] and
+                # assert use_dann=False (V5 incompatible with DANN, codex fix).
+                custom_loss_fn = None
+                if v5_loss_active:
+                    from src.training.v5_losses.v5_loss_fn import (
+                        build_v5_loss_fn,
+                    )
+                    custom_loss_fn = build_v5_loss_fn(loss_cfg)
+                    print("[V5] V5 loss_fn dispatched to train_one_fold_v2")
+
+                trainer_kwargs = dict(
                     model=model,
                     train_dataset=train_ds,
                     val_dataset=val_ds,
@@ -677,7 +742,13 @@ def main() -> None:
                         else 0
                     ),
                     multi_horizon_loss_module=_mh_loss_module,
+                    loss_fn=custom_loss_fn,
                 )
+                if v5_loss_active:
+                    # Codex fix: V5 incompatible with DANN — force off at
+                    # trainer level (model side already stripped DANN keys).
+                    trainer_kwargs["use_dann"] = False
+                best = train_one_fold_v2(**trainer_kwargs)
                 print(f"[pipeline_v3] Fold {fold_idx} best: {best}")
 
             np.savez(
@@ -801,11 +872,21 @@ def main() -> None:
         raw_levels = int(X_raw_all.shape[-2]) if has_raw else 20
         print(f"[pipeline_v3] n_features={n_features}, raw_levels={raw_levels}")
 
-        model = build_model(args.model, n_features, raw_levels, model_cfg)
+        if v5_loss_active:
+            model = build_v5_model(model_cfg, raw_levels, loss_cfg, train_cfg)
+        else:
+            model = build_model(args.model, n_features, raw_levels, model_cfg)
         total_params = sum(p.numel() for p in model.parameters())
         print(f"[pipeline_v3] Model parameters: {total_params:,}")
 
-        best = train_one_fold_v2(
+        # V5 dispatch (single-day): build custom loss_fn + use_dann=False.
+        custom_loss_fn = None
+        if v5_loss_active:
+            from src.training.v5_losses.v5_loss_fn import build_v5_loss_fn
+            custom_loss_fn = build_v5_loss_fn(loss_cfg)
+            print("[V5] V5 loss_fn dispatched to train_one_fold_v2 (single-day)")
+
+        trainer_kwargs = dict(
             model=model,
             train_dataset=train_ds,
             val_dataset=val_ds,
@@ -818,7 +899,11 @@ def main() -> None:
             patience=train_cfg["patience"],
             grad_clip=train_cfg["grad_clip"],
             dul_config=train_cfg.get("dul_config"),
+            loss_fn=custom_loss_fn,
         )
+        if v5_loss_active:
+            trainer_kwargs["use_dann"] = False
+        best = train_one_fold_v2(**trainer_kwargs)
         print(f"[pipeline_v3] Training best metrics: {best}")
 
         np.savez(
