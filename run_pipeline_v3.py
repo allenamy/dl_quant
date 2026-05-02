@@ -54,6 +54,74 @@ def _stats_cache_key(train_days, horizons_sec) -> str:
     return h.hexdigest()[:16]
 
 
+def build_fold_datasets(config: dict, fold_idx: int = 0):
+    """Construct (train, val, test) ``LOBDatasetV2`` for a given fold.
+
+    Mirrors the dataset-build logic in ``main()`` but is invokable in
+    isolation for tests / smoke probes. Reads ``training.embargo_days``
+    (the official embargo channel — codex review confirmed
+    ``data.embargo_seconds`` is silently ignored) and threads it through
+    ``build_time_series_folds``.
+
+    Used by ``tests/test_v5_embargo_observable.py`` to verify that any future
+    refactor preserves the embargo-observable contract.
+
+    Returns
+    -------
+    (train_ds, val_ds, test_ds) : tuple of LOBDatasetV2
+    """
+    data_cfg = config["data"]
+    train_cfg = config["training"]
+    npz_dir = data_cfg["npz_dir"]
+
+    npz_files = sorted(Path(npz_dir).glob("*.npz"))
+    days = [f.stem for f in npz_files]
+    if len(days) == 0:
+        raise FileNotFoundError(
+            f"No NPZ files found under {npz_dir}; cannot build fold datasets."
+        )
+
+    embargo_days = int(train_cfg.get("embargo_days", 0))
+    folds = build_time_series_folds(
+        days,
+        train_days=train_cfg["train_days"],
+        val_days=train_cfg["val_days"],
+        test_days=train_cfg["test_days"],
+        stride=train_cfg["fold_stride"],
+        embargo_days=embargo_days,
+    )
+    if not folds:
+        raise RuntimeError(
+            f"build_time_series_folds returned no folds for "
+            f"train={train_cfg['train_days']} embargo={embargo_days} "
+            f"val={train_cfg['val_days']} test={train_cfg['test_days']} "
+            f"with {len(days)} days available."
+        )
+    if fold_idx >= len(folds):
+        raise IndexError(
+            f"fold_idx={fold_idx} out of range; only {len(folds)} folds built."
+        )
+    fold = folds[fold_idx]
+
+    _horizons_sec = data_cfg.get("horizons_sec")
+    _horizons_list = (
+        [f"y_{int(h)}" for h in _horizons_sec] if _horizons_sec else None
+    )
+    common_kwargs = dict(
+        normalize=False,
+        smooth_target_dir=data_cfg.get("smooth_target_dir"),
+        tradeflow_dir=data_cfg.get("tradeflow_dir"),
+        use_smoothed_target=bool(data_cfg.get("use_smoothed_target", True)),
+    )
+    if _horizons_list is not None:
+        common_kwargs["horizons"] = _horizons_list
+
+    train_ds = LOBDatasetV2(npz_dir, fold["train"], **common_kwargs)
+    val_ds = LOBDatasetV2(npz_dir, fold["val"], **common_kwargs)
+    test_ds = LOBDatasetV2(npz_dir, fold["test"], **common_kwargs)
+    return train_ds, val_ds, test_ds
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
