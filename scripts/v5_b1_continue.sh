@@ -39,6 +39,5 @@ run_extra attention_long  configs/v5/screen/backbone_attention_long.json
 run_extra attention_wide  configs/v5/screen/backbone_attention_wide.json
 # Phase 4: post-B.1 (winner ID + B.2 loss screen)
 echo "[CONTINUE] launching post_b1 at $(date -u +%FT%TZ)"
-bash scripts/v5_b1_fold2_verify.sh
 bash scripts/v5_post_b1.sh
 echo "[CONTINUE] all done at $(date -u +%FT%TZ)"
