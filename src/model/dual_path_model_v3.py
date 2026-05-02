@@ -390,6 +390,14 @@ class DualPathLOBModelV3(nn.Module):
                 n_layers=int(self.backbone_kwargs.get("n_layers", 1)),
                 dropout=dropout,
             )
+        elif self.backbone_kind == 'conv_deep':
+            from src.model.backbones.conv_deep_backbone import ConvDeepBackbone
+            self.backbone = ConvDeepBackbone(
+                d_model=d_model, dropout=dropout,
+                dilations=tuple(self.backbone_kwargs.get('dilations', (1, 2, 4, 8, 16))),
+                kernel_size=int(self.backbone_kwargs.get('kernel_size', 3)),
+                pool=self.backbone_kwargs.get('pool', 'last'),
+            )
         elif self.backbone_kind == "mamba":
             from src.model.backbones.mamba_backbone_v2 import MambaBackboneV2
             self.backbone = MambaBackboneV2(
