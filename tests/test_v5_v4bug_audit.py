@@ -113,9 +113,12 @@ def test_static_audit_tcn_receptive_field():
 
     init_src = inspect.getsource(DualPathLOBModelV3.__init__)
 
-    # Check that the dilations (1, 2, 4) are used for the inline TCN.
-    assert "dilations=(1, 2, 4)" in init_src or "(1, 2, 4)" in init_src, (
-        "Expected dilations=(1, 2, 4) in DualPathLOBModelV3 init — re-audit if changed."
+    # The actual V4 source uses three CausalConv1dBlock calls with
+    # dilation=1, dilation=2, dilation=4 separately (not a tuple form).
+    # Verify all three individual dilation kwargs appear in __init__.
+    assert "dilation=1" in init_src and "dilation=2" in init_src and "dilation=4" in init_src, (
+        "Expected dilation=1, dilation=2, dilation=4 (separate CausalConv1dBlock calls) "
+        "in DualPathLOBModelV3 init — re-audit if changed."
     )
 
     # Compute and verify the RF formula.
