@@ -503,16 +503,24 @@ class DualPathLOBModelV3(nn.Module):
                 for _ in range(n_horizons)
             ])
 
-    def forward(
+    def encode(
         self,
         x_feat: torch.Tensor,
         x_raw: torch.Tensor | None = None,
         regime_prior: torch.Tensor | None = None,
         cross_asset_feats: torch.Tensor | None = None,
-        horizon_idx: int = 0,
-        all_horizons: bool = False,
-    ) -> dict[str, torch.Tensor]:
-        """Forward pass.
+    ) -> torch.Tensor:
+        """Encode inputs into pooled embedding ``h_pred`` (pre-head).
+
+        Runs every preprocessing / temporal / regime stage of ``forward``
+        EXCEPT the final quantile head and ``output_scale`` post-multiply.
+        Returned tensor is the same ``h_pred`` value the legacy ``forward``
+        used to feed ``self.quantile_heads[...]``.
+
+        This refactor enables V5 (and future heads) to reuse V4's proven
+        encoder without re-running quantile prediction. ``forward`` calls
+        ``encode`` then applies ``self.quantile_heads`` + ``output_scale``,
+        so behaviour is bit-identical pre/post refactor.
 
         Parameters
         ----------
@@ -523,30 +531,16 @@ class DualPathLOBModelV3(nn.Module):
             for Path-A-only mode.
         regime_prior : torch.Tensor | None
             Shape ``(B, d_prior)`` -- regime prior features for PPNet gate.
-            If None, PPNet gate is bypassed (identity).
+            If ``None``, PPNet gate is bypassed (identity).
         cross_asset_feats : torch.Tensor | None
-            Shape ``(B, n_symbols-1, d_model)`` -- other symbols' h_pred tokens.
-            If None, cross-asset attention is skipped.
-        horizon_idx : int
-            Which horizon head to use (0-indexed).  Default 0.  Ignored when
-            ``all_horizons=True`` or when ``n_horizons == 1``.
-        all_horizons : bool
-            When ``True`` AND ``n_horizons > 1``, run every quantile head in
-            a single forward and return an extra ``quantiles_by_horizon``
-            key (shape ``(B, n_horizons, 3)``) alongside the original
-            ``quantiles`` / ``point_pred`` keys (selected via
-            ``horizon_idx`` for back-compat).  Default ``False`` keeps
-            legacy single-head behaviour.
+            Shape ``(B, n_symbols-1, d_model)`` -- other symbols' h_pred
+            tokens. If ``None``, cross-asset attention is skipped.
 
         Returns
         -------
-        dict[str, torch.Tensor]
-            Always returned:
-              - ``quantiles``: ``(B, 3)`` with [q10, q50, q90]
-              - ``point_pred``: ``(B,)`` -- median prediction (q50)
-            Additionally when ``n_horizons > 1`` and ``all_horizons=True``:
-              - ``quantiles_by_horizon``: ``(B, n_horizons, 3)``
-              - ``point_pred_by_horizon``: ``(B, n_horizons)``
+        torch.Tensor
+            Shape ``(B, d_model)`` -- modulated, gated embedding ready for
+            a head.
         """
         # 0. RevIN: per-instance normalization of input features (ICLR 2022).
         # Applied BEFORE any learned layers so that MaskNet/GDCN see
@@ -639,6 +633,66 @@ class DualPathLOBModelV3(nn.Module):
         # 8. PPNet regime-conditioned gating
         if regime_prior is not None and self.ppnet_gate is not None:
             h_pred = self.ppnet_gate(h_pred, regime_prior)
+
+        return h_pred
+
+    def forward(
+        self,
+        x_feat: torch.Tensor,
+        x_raw: torch.Tensor | None = None,
+        regime_prior: torch.Tensor | None = None,
+        cross_asset_feats: torch.Tensor | None = None,
+        horizon_idx: int = 0,
+        all_horizons: bool = False,
+    ) -> dict[str, torch.Tensor]:
+        """Forward pass.
+
+        Calls :meth:`encode` to produce ``h_pred`` then applies the quantile
+        head(s) (and optional ``output_scale`` modulation). Behaviour is
+        bit-identical to the pre-refactor monolithic forward — only the
+        encoder body has been factored out into :meth:`encode` so V5 / future
+        heads can reuse the proven preprocessing.
+
+        Parameters
+        ----------
+        x_feat : torch.Tensor
+            Shape ``(B, L, n_features)`` -- hand-crafted features.
+        x_raw : torch.Tensor | None
+            Shape ``(B, L, n_levels, 4)`` -- raw LOB tensor, or ``None``
+            for Path-A-only mode.
+        regime_prior : torch.Tensor | None
+            Shape ``(B, d_prior)`` -- regime prior features for PPNet gate.
+            If None, PPNet gate is bypassed (identity).
+        cross_asset_feats : torch.Tensor | None
+            Shape ``(B, n_symbols-1, d_model)`` -- other symbols' h_pred tokens.
+            If None, cross-asset attention is skipped.
+        horizon_idx : int
+            Which horizon head to use (0-indexed).  Default 0.  Ignored when
+            ``all_horizons=True`` or when ``n_horizons == 1``.
+        all_horizons : bool
+            When ``True`` AND ``n_horizons > 1``, run every quantile head in
+            a single forward and return an extra ``quantiles_by_horizon``
+            key (shape ``(B, n_horizons, 3)``) alongside the original
+            ``quantiles`` / ``point_pred`` keys (selected via
+            ``horizon_idx`` for back-compat).  Default ``False`` keeps
+            legacy single-head behaviour.
+
+        Returns
+        -------
+        dict[str, torch.Tensor]
+            Always returned:
+              - ``quantiles``: ``(B, 3)`` with [q10, q50, q90]
+              - ``point_pred``: ``(B,)`` -- median prediction (q50)
+            Additionally when ``n_horizons > 1`` and ``all_horizons=True``:
+              - ``quantiles_by_horizon``: ``(B, n_horizons, 3)``
+              - ``point_pred_by_horizon``: ``(B, n_horizons)``
+        """
+        h_pred = self.encode(
+            x_feat=x_feat,
+            x_raw=x_raw,
+            regime_prior=regime_prior,
+            cross_asset_feats=cross_asset_feats,
+        )
 
         # 9. Quantile head (horizon-specific if multi-horizon).
         # ``all_horizons=True`` runs every head in one forward so the

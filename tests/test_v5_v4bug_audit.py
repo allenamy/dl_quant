@@ -34,27 +34,45 @@ def test_static_audit_forward_has_last_timestep_slice():
     """Confirm that dual_path_model_v3.py contains h[:, -1, :] in the else
     branch (baseline_plus path) via AST inspection.
 
+    Post-V5-A.8: the encoder body was extracted from ``forward`` into a
+    new ``encode`` method (pure refactor, no behaviour change). The
+    last-timestep slice still lives in the model — just in ``encode``
+    now — so this audit checks both methods to remain robust to the
+    refactor while still failing closed if the bug is genuinely fixed
+    or the slice path is removed.
+
     This is a hard audit gate — it FAILS CLOSED if the source cannot be
     found or parsed (do NOT convert to skip).
     """
     from src.model.dual_path_model_v3 import DualPathLOBModelV3
 
-    # Get the forward method source. Fail hard if unavailable.
+    # Get both encode and forward source. Fail hard if unavailable.
     try:
-        src = inspect.getsource(DualPathLOBModelV3.forward)
+        forward_src = inspect.getsource(DualPathLOBModelV3.forward)
     except OSError as e:
         raise RuntimeError(
             f"Cannot get source of DualPathLOBModelV3.forward: {e}. "
             "Audit cannot proceed — do NOT skip."
         )
+    encode_src = ""
+    if hasattr(DualPathLOBModelV3, "encode"):
+        try:
+            encode_src = inspect.getsource(DualPathLOBModelV3.encode)
+        except OSError as e:
+            raise RuntimeError(
+                f"Cannot get source of DualPathLOBModelV3.encode: {e}. "
+                "Audit cannot proceed — do NOT skip."
+            )
 
     # The critical pattern: h[:, -1, :] in the else-branch (use_attention=False, no backbone).
-    # We check for the string pattern directly (simpler and more resilient than full AST walk).
+    # Post-refactor it lives in encode(); pre-refactor it lived in forward().
+    src = forward_src + "\n" + encode_src
+    location = "encode" if "h[:, -1, :]" in encode_src else "forward"
     assert "h[:, -1, :]" in src, (
-        "AUDIT FAILED: h[:, -1, :] not found in DualPathLOBModelV3.forward source. "
+        "AUDIT FAILED: h[:, -1, :] not found in DualPathLOBModelV3.forward or .encode source. "
         "Either the bug was fixed (great!) or the path changed — re-audit needed before V5 proceeds."
     )
-    print("STATIC AUDIT PASS: h[:, -1, :] found in forward source (bug confirmed at code level)")
+    print(f"STATIC AUDIT PASS: h[:, -1, :] found in {location}() source (bug confirmed at code level)")
 
 
 def test_static_audit_else_branch_context():
