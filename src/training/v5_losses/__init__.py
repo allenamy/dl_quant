@@ -21,6 +21,7 @@ from .components import (
 from .heteroscedastic_components import loss_gaussian_nll
 from .huber_components import loss_huber_y
 from .loss_assembly import V5LossAssembly, V5LossConfig
+from .v5_loss_fn import build_v5_loss_fn
 
 __all__ = [
     "compute_sigma_local_mad",
@@ -34,4 +35,5 @@ __all__ = [
     "loss_huber_y",
     "V5LossAssembly",
     "V5LossConfig",
+    "build_v5_loss_fn",
 ]
