@@ -440,6 +440,27 @@ class DualPathLOBModelV3(nn.Module):
                 n_blocks=int(self.backbone_kwargs.get('n_blocks', 4)),
                 dropout=dropout,
             )
+        elif self.backbone_kind == "late_fusion_attn":
+            from src.model.backbones.late_fusion_attention_backbone import LateFusionAttentionBackbone
+            self.backbone = LateFusionAttentionBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                n_heads=int(self.backbone_kwargs.get('n_heads', 2)),
+                d_ff=int(self.backbone_kwargs.get('d_ff', 64)),
+                n_blocks=int(self.backbone_kwargs.get('n_blocks', 1)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "cross_attn":
+            from src.model.backbones.cross_attention_backbone import CrossAttentionBackbone
+            self.backbone = CrossAttentionBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                n_heads=int(self.backbone_kwargs.get('n_heads', 2)),
+                d_ff=int(self.backbone_kwargs.get('d_ff', 64)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
         elif self.backbone_kind == "mamba":
             from src.model.backbones.mamba_backbone_v2 import MambaBackboneV2
             self.backbone = MambaBackboneV2(
