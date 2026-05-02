@@ -412,6 +412,34 @@ class DualPathLOBModelV3(nn.Module):
             )
             self.fusion_kind = 'late'  # auto-set
             self.fusion = None
+        elif self.backbone_kind == "late_fusion_mamba":
+            from src.model.backbones.late_fusion_mamba_backbone import LateFusionMambaBackbone
+            self.backbone = LateFusionMambaBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "conformer":
+            from src.model.backbones.conformer_backbone import ConformerBackbone
+            self.backbone = ConformerBackbone(
+                d_model=d_model,
+                n_blocks=int(self.backbone_kwargs.get('n_blocks', 2)),
+                n_heads=int(self.backbone_kwargs.get('n_heads', 2)),
+                kernel_size=int(self.backbone_kwargs.get('kernel_size', 15)),
+                dropout=dropout,
+            )
+        elif self.backbone_kind == "tsmixer":
+            from src.model.backbones.tsmixer_backbone import TSMixerBackbone
+            self.backbone = TSMixerBackbone(
+                d_model=d_model,
+                L=int(self.backbone_kwargs.get('L', 600)),
+                n_blocks=int(self.backbone_kwargs.get('n_blocks', 4)),
+                dropout=dropout,
+            )
         elif self.backbone_kind == "mamba":
             from src.model.backbones.mamba_backbone_v2 import MambaBackboneV2
             self.backbone = MambaBackboneV2(
