@@ -30,6 +30,7 @@ run_extra gru          configs/v5/screen/backbone_gru.json
 run_extra itransformer configs/v5/screen/backbone_itransformer.json
 run_extra conv_deep    configs/v5/screen/backbone_conv_deep.json
 run_extra conv_deeper  configs/v5/screen/backbone_conv_deeper.json
+run_extra itransformer_retry configs/v5/screen/backbone_itransformer.json
 run_extra attention_p20 configs/v5/screen/backbone_attention_p20.json
 # Phase 3: stretch (longer input)
 run_extra late_fusion configs/v5/screen/backbone_late_fusion.json
@@ -38,5 +39,6 @@ run_extra attention_long  configs/v5/screen/backbone_attention_long.json
 run_extra attention_wide  configs/v5/screen/backbone_attention_wide.json
 # Phase 4: post-B.1 (winner ID + B.2 loss screen)
 echo "[CONTINUE] launching post_b1 at $(date -u +%FT%TZ)"
+bash scripts/v5_b1_fold2_verify.sh
 bash scripts/v5_post_b1.sh
 echo "[CONTINUE] all done at $(date -u +%FT%TZ)"
