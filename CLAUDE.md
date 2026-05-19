@@ -14,13 +14,26 @@
   - fold 0 最强 P=0.083 S=0.109; fold 2 P=0.061 S=0.086; 跨 fold CoV 0.12
 - Ridge y_180 baseline ≈ 0.05 Pearson，DL uplift 约 2×
 
-**当前状态 (2026-04-21)：** y_600 pooled clean S=0.087 已接近 0.10 stretch, 但天花板受限于**单资产 + 现有特征空间**。以下路径已**全部验证 null**:
-- 特征工程 (tradeflow / long_context / infoflow): 978-day Ridge 3-fold 全部 mean ΔP≈0
-- V5-LH 架构 (Mamba + side-aware + cross-path): test variance collapse, clean P=-0.06
-- Multi-horizon UNIT: 机制与 primary/secondary asymmetric 错配
-- Tail-focal loss: P/S 分歧 (P 被极值带飞)
+**当前 production (2026-05-08):** V5 singh α=0+Huber, single seed=42, BEST checkpoint。
 
-**下一步方向 (突破 0.10 只剩):** 多资产 breadth, 正交数据源 (funding/OI/basis), 缩短 horizon (y_180 更实用).
+- Production CSV: `exports/v5_singh_alpha0_huber/y600_predictions_live.csv` (含 causal EMA-demean live calibration)
+- Config: `configs/v5/screen/backbone_conformer_hardened_singleh_alpha0_huber.json`
+- Preds: `experiments/v5_final/singleh_alpha0_huber/fold_{0,1,2}/test_preds.npz`
+- Pool BEST (n=49,953, raw + dense): **P=+0.0617, S=+0.0686, β=+1.05, σŷ/σy=0.059, bias=+0.18 bps**
+- Per-fold P=[0.058, 0.062, 0.068] std=0.004 (CoV 0.062, 历史最紧)
+- Top-decile spread +2.64 bps, t-stat +7.14
+- 严格自测 15/15 gates pass (`exports/v5_singh_alpha0_huber/STRICT_EVAL.md`)
+- Production hygiene: live causal EMA-demean (Layer 2), `y_pred_q50_bps_live` 列
+
+**Architecture**: Conformer (kernel=15, 2 blocks) + LevelAttentionPool over time + 64 hand-crafted Path A + 25-level raw LOB Path B + MonotonicQuantileHead. 109K params, single horizon y_600, d_model=32, d_raw=16, dropout=0.20.
+
+**Loss**: `0.10·pinball + 0.50·utility_rank(α=0) + 0.50·plain Huber(δ=2, w_wrong=0)`. α=0 让 ranking by q50 直接 (避开 q10+softplus 偏负 artifact); plain Huber 避开 dir_huber 0-attractor σ collapse。
+
+**Recipe**: train_days=700, val_days=60, patience=4, val_metric=composite (0.5·P+0.5·S), EMA 0.999, lr=6e-4 cosine warmup, batch=1024。
+
+**完整 milestone + 下一步**: `~/.claude/projects/.../memory/y600_milestone_summary_2026_05_08.md`
+**架构 + loss 设计文档**: `docs/Y600_V5_SINGH_ALPHA0_HUBER_DESIGN.md`
+**Phase B regime adaptation 4 次失败复盘**: `docs/PHASE_B_OVERNIGHT_REPORT_2026_05_06.md`
 
 ---
 
@@ -240,55 +253,87 @@ Layer 3: 创新组件 → 证明每个组件贡献正向
 
 ## Anti-Patterns (从失败经验中总结)
 
-1. **单日数据验证** — Val corr +0.088 → Test corr -0.102。时段差异 = regime 差异。无效。
-2. **`stride < horizon`** — 标签共享导致残差自相关 0.94，模型学到"延续上一个预测"。
-3. **多 loss 同时训练** — 梯度冲突导致模型输出近常数，DirAcc < 随机（V5-LH 实测）。
-4. **Regime 从 5min 窗口推断** — 时间尺度不匹配。Regime 变化在小时到天尺度。
-5. **过大 params/samples 比** — V4 219K 参数 / 6K 样本 = 36:1 过拟合。
-6. **测错了 slice** — V5-LH 在 late-2024/2025 val (days 700+) Spearman 0.073，早期测试在 100 天切片只到 0.013。time slice 影响极大，换几个 slice 再下定论。
-7. **y 量级不归一** — MonotonicQuantileHead 的 `MIN_DELTA=0.01` 假设 z-score 目标。用 raw log return (σ≈10bps) 会让 softplus 被 clamp 钉死、梯度消失、q50 负偏，val Pearson 变负。
-8. **V4 验证 vs V5-LH 验证** — 换架构前必须先用 **V4 proven 架构在新 horizon 跑一遍**作为 fair baseline。直接 V5-LH 跑 y_600 得 0.01，切到 V4 同 horizon 可得 0.07，证明 architecture 是 bottleneck 而非数据。
-9. **Fold-0 DL 单次结果当 feature 信号** — 2026-04-21 session: LC feature "fold 0 +0.014 P" 被当 breakthrough, 投入 3h pod 训练, 但 978-day Ridge 3-fold 其实是 mean ΔP=-0.002 (null)。**规则:** 新特征必须先 Ridge walk-forward (500+ days, 3+ folds) ΔP ≥ +0.005 才上 pod DL。
-10. **UNIT loss 用于 primary/secondary asymmetric tasks** — UNIT (Kendall 2018) 假设所有 task 同等重要, σ 大的被降 weight。若 primary task 噪声更大 (y_600 vs y_180), UNIT 会**反向** sabotage primary。用固定权重 (primary=1.0, aux=0.3) 或 PCGrad。
-11. **Prediction variance collapse** — V5-LH test yp_std / y_std < 5% = 模型输出近常数 q50, 任何 val IC 都是 spurious。**规则:** 每次 test eval 检查 `yp_std / y_std`, 低于 20% 直接 reject, 无论 val 好坏。
-12. **Tail-focal 在低 SNR 上 P/S 分歧** — focal_weight=2.0 (tail 3× 权重) 让模型过度拟合 |y|>2σ 极值, Pearson 被极值带飞而 Spearman 不升。低 SNR 场景 focal 未证有效。
-13. **Learnable scalar α (σ-anchor) 引入 val-tunable 自由度** — 2026-04-27 y_1800 Phase 1.2 实测: σ-anchor (output_scale_init=1.0, β_calib=0.1) val EMA P=0.060, S=0.068 → test EMA P=-0.003, S=0.000 (β=-0.11 翻负)。**catastrophic val→test drift**。机制: α 是单一标量,被 val 调到一个让 val ranks 对齐的特定值,但 test 是不同 vol regime 不 transfer。EMA 平均 *权重* 但 α *本身* 是同一标量,平均后没有平滑效果。**规则:** 不在低 SNR 上加 unconstrained learnable scalar, 任何"in-graph β scaling" 必须用 batch-statistics anchor (e.g. σ_y / σ_ŷ_running 而非 free Parameter)。
-14. **单 fold + 单 seed 在 y_1800 上完全不可靠 (cudnn 非确定性 + EMA 路径分歧)** — 2026-04-27 实测: 同 config (Phase 1.1 diff_spearman) 同 seed 两次 run 结果 EMA P 从 +0.036 翻到 -0.017,**β 从 +0.94 翻到 -0.49**。单次 run 的"赢/输"判断 100% 是 noise。**规则:** 任何 y_1800 实验 conclusion 必须基于 (a) 3-fold pooled 或 (b) ≥3 seed 平均。新加的 cudnn determinism (commit 7efb6cc) 只 partial 解决,multi-seed 是必须。下游影响: 历史所有 single-fold 0 screen 结果都需重新评估 (Phase 1.1 "winner", Phase 1.2 "fail", Phase 1.1b "fail" 都是 single-run 噪声)。
-15. **Differentiable Spearman REPLACES utility_rank = catastrophic val→test drift (rank loss anti-pattern)** — 2026-04-27 完整 3-fold 实测: Phase 1.1 (REPLACE utility_rank with `lambda_diff_spearman=0.5`) val EMA fold 2 C=0.067 (史上最强) → test EMA P=-0.007 (drift -0.074!). 3-fold pooled EMA P=0.005 vs baseline 0.021 (**24%**), S=0.000 vs 0.027 (**消除**), β=0.10 vs 0.47 (calibration 崩)。**机制:** soft_rank pairwise sigmoid 让模型直接 optimize val rank distribution, val→test 不 transfer (val/test ranks 在不同 vol regime 不同). EMA 平均 *权重* 但 rank-overfitting 是 *学习目标本身* 的问题,EMA 救不了。**规则:** 在低 SNR 上不 REPLACE proxy losses (utility_rank) with direct rank losses (diff_spearman, soft_rank-Pearson 类)。proxy losses 隐式 regularize,直接 rank loss 隐式 overfit。要 boost rank IC, 应保留 proxy (utility_rank) 并 ADD 弱 weight 的 direct rank loss (Phase 1.1b 测试也失败,可能要 weight ≤ 0.1)。
+1. **单日数据验证** — Val corr +0.088 → Test corr -0.102。时段差异 = regime 差异。规则: 多日多 fold 验证。
+2. **`stride < horizon`** — 标签共享导致残差自相关 0.94, 模型学到"延续上一个预测"。规则: stride ≥ horizon, eval 用 stride10 IID clean.
+3. **多 loss 同时训练梯度冲突** — V5-LH 实测输出近常数 DirAcc < 随机. 规则: loss 权重必须实测 σŷ/σy 不崩.
+4. **Regime 从 5min 窗口推断** — 时间尺度不匹配, regime 变化在小时-天尺度. 长程 RV (rv_1h/4h/24h, Track R) 是正确方向.
+5. **过大 params/samples 比** — V4 219K / 6K = 36:1 过拟合. 规则: params:sample 1:5 到 1:30.
+6. **测错了 slice** — V5-LH late-2024 val Spearman 0.073 vs 100-day slice 0.013. 规则: 多 slice 验证再下定论.
+7. **y 量级不归一** — MonotonicQuantileHead `MIN_DELTA=0.01` 假设 z-score; raw log return σ≈10bps 会让 softplus 钉死. 规则: y 除以 MAD-σ.
+8. **V4 验证 vs V5-LH** — 换架构前必须 V4 proven 在新 horizon 跑一遍作 baseline. 直接 V5-LH y_600 = 0.01 但 V4 = 0.07.
+9. **Fold-0 DL 单次结果当 feature 信号** — 规则: 新特征先 Ridge walk-forward (500+ days, 3+ folds) ΔP ≥ +0.005 才上 DL.
+10. **UNIT loss 用于 asymmetric tasks** — 噪声大的 task 被降权 = 反向 sabotage primary. 规则: 固定权重 (primary=1.0, aux=0.3) 或 PCGrad.
+11. **Prediction variance collapse** — 规则: 每次 test eval 检查 `yp_std / y_std`, 低于 20% 直接 reject 无论 val 多好.
+12. **Tail-focal 在低 SNR 上 P/S 分歧** — focal_weight=2.0 让 Pearson 被极值带飞, Spearman 不升. 规则: REPLACE 原 loss 是危险的; AUXILIARY (≤0.30, 原 loss 不动) 是安全的 (#25 验证).
+13. **Learnable scalar α (σ-anchor)** — val→test catastrophic drift (β=+0.94 → -0.49). 机制: free Parameter 被 val 调到特定值, test regime 不 transfer. 规则: in-graph β scaling 必须用 batch-statistics anchor 不是 free Parameter. 详 memory.
+14. **单 fold/单 seed y_1800 完全不可靠** — 同 config 两次 run β=+0.94 → -0.49. 规则: y_1800 conclusion 必须 3-fold pooled 或 ≥3 seed 平均.
+15. **Direct rank loss REPLACE utility_rank = val→test drift** — diff_spearman REPLACE 后 val C=0.067 → test P=-0.007. 机制: rank loss 直接 overfit val rank distribution, EMA 救不了 (问题在学习目标本身). 规则: 不 REPLACE proxy losses; ADD 直接 rank loss 必须 weight ≤ 0.1.
+16. **β measurement discipline: provenance + dual formula + σ_ŷ check** — 之前"y_600 fold 2 β=-0.09 sign-flip"是测量错误 (rank-transformed blend 人为膨胀 σŷ). 规则: 报告 β 必须同时报 σ_ŷ/σ_y 和 per-fold ρ; 双向 β 命名明确 (β_y_on_ŷ trading slope vs β_ŷ_on_y shrinkage); npz provenance check (raw vs blend); rank 平均**禁用于** β-calibrated single-asset trading.
+17. **Baseline anchor discipline (HARD GATE)** — 历史损失 2 天 / $100 GPU. **Pre-launch checklist**: (a) 明确 production baseline 文件路径并当场重算 (禁止凭记忆引用), (b) SAME script + mask + stride + fold 重算, 偏差 >0.005 STOP, (c) 新 config 从 PRODUCTION baseline 派生, (d) 显式写 `anchor_value` + `gate=anchor+0.005`, (e) "惊人提升"第一反应是 anchor 错. 违反此规则结果作废.
+18. **Label engineering 必须在 RAW y 上 evaluate** — smooth_plus +22% P claim 是 *training on y_smooth, evaluating on y_smooth* 循环论证. 规则: evaluation target 必须是 raw production y; 跨 target distribution 不可比 (Pearson denominator var(y) 不同). Smoothing 即使 raw eval 仍可能 hurt tail events.
+19. **Eval methodology consistency** — 同一 prediction 在不同 stride/space P 可飘 0.029→0.058 (两倍). 4 个 axis 互相组合 (scale: z vs raw, stride: dense vs stride10, stride origin: per-fold vs concat, target source). **Hard rule**: production 数字 = raw + dense + per-fold-aware. statistical comparison = raw + per-fold-stride10 + block bootstrap CI. CSV 给同事必须 raw y_600 全 mask=1.
+20. **dir_huber sign-attraction 0-bug + L2 primary 在低 SNR 上 σ collapse** — `sign(0)=0` 让模型预测 ŷ≡0 dodge 惩罚, σŷ→0. L2-like primary 在 R²<1% 天然 push σ→0. 规则: (a) 不可单独用 L2 primary 在低 SNR; (b) dir_huber 必须 w_wrong=0 + w_extreme=0 (即 plain Huber). 详 `v5_dir_huber_pearson_collapse_2026_05_04.md`.
+21. **Calibration bias 投诉先做机制审计** (#21 RECTIFICATION, 反前一版"don't iterate loss"过度概括) — bias 可能是 **结构性 bug** (loss/head 耦合) 而非低 SNR 限制. 案例: utility_rank α=1 + MonotonicQuantileHead `q50=q10+softplus(δ)` → q50 偏负, surgical α=1→0 一行修复 bias -0.41→+0.14bps. **判定 protocol**: (a) 哪个 loss 推哪个 head 输出, (b) head 是否有 monotonic constraint 强加 offset, (c) ranking score 是否取自 head 的 biased 子输出. 结构性根因 → surgical fix; 否则才 post-hoc demean. 详 `v5_alpha0_huber_winner_2026_05_05.md`.
+
+22. **Multi-Resolution Pool (MRP) replace last-token slice 在 y_600 上 NULL (2026-05-13)** — Track E (MRP only) fold 0 P=+0.041 vs V5 prod 0.058 (-0.017); Track G (MRP+TV) fold 0 P=+0.034 更差。**根因**: V5 conformer 已有 2 blocks × kernel=15 effective RF ~30s 多尺度能力; 显式 3-window MRP (60/300/600) 稀释 attention 对 recent dynamics. **规则**: 不要 replace last-token slice with multi-window pool for y_600. 多尺度扩展应在 backbone 内 (dilation, kernel) 而非外部 pool.
+
+23. **Decoupled multiplicative head 在低 SNR 不稳定 (2026-05-13 Track P v1/v2 NULL)** — 尝试 (2σ(s)−1) × softplus(m) 替换 DAQH 的 tanh(s) × softplus(m): σ collapse fold 0 (q50=0 multiplicative attractor). **根因**: (a) (2σ−1) 在 s=0 处导数=0.5 (vs tanh 0.5×, 即 tanh 在 s=0 处导数=1.0) — 弱梯度通过 sign axis; (b) `cls_weight_mode="uniform"` 在低 SNR 50/50 noisy sign 推 sign_logit→0 = q50=0 强吸引子; (c) 移除 lambda_dir_huber 后无强 signed q50 梯度. **规则**: 保留 DAQH 结构 (tanh×softplus + dir_huber > 0 + sigmoid BCE weighting). 不要追求"完全 decoupled" multiplicative head 在低 SNR.
+
+24. **σ-collapse BEST checkpoint bug (trainer fix landed 2026-05-13)** — TV channels with non-zero mean (trade_rate, total_depth) cause epoch 1 init noise σ≈0.001 + spurious high P (random sign correlations). 早期"BEST"被 illusory init epoch 选中, 后续 healthy epochs (σ=0.03+, lower P) beat 不了, patience 早停 → broken checkpoint. **Fix**: trainer_v2.py 加 σŷ/σy ≥ 0.02 gate, 拒绝 init-noise epochs 入 BEST. 同时 gate EMA BEST. **规则**: 任何 BEST checkpoint selection 必须有 σ_ratio 阈值; 任何添加 TV channels 必须 zero-center 或确保 init-stage σ 不崩.
+
+25. **Tail-focal magnitude loss as AUXILIARY ≠ REPLACE (Track P3 vs anti-pattern #12)** — Anti-pattern #12 警告 "tail-focal P/S 分歧" 是 focal_weight=2.0 REPLACE 原 loss 时的现象. **新发现**: 把 `mag_focal_huber` (focal weight clip [0.3, 3.0]) 作为 AUXILIARY 加在 Track A baseline 之上 (保留原 dir_huber=0.50 + pinball + utility_rank) 不引发 P/S 分歧, 反而是 ensemble diversity 关键 (corr(P3, V5)=0.61 vs corr(A, V5)=0.79). **规则**: focal/特化 loss 作 AUXILIARY 加权 (≤ 0.30, 原 loss 不动) 是安全的; REPLACE 原 primary loss 是危险的 (P/S divergence). 详 `v5push_3way_ensemble_winner_2026_05_13.md`.
+
+26. **Causal regime indicator ≠ stratified regime — production-feasible 必须用 past-vol gating (2026-05-13)** — Track Q v2 在 stratified-by-|y| low vol regime P=+0.045 (vs P3 +0.039, +12%) — 真实改进. 但用 causal past-vol (HL=60 EWMA of |y|, lag-1) 分类 "lo regime", Q 优势完全消失 (Q P=+0.075 vs A P=+0.085, A 反而最强). **根因**: past-vol 预测 current-vol 准确度低; "causal lo regime" 样本实际包含 |y| jumps, 与真实 low |y| samples 不重合. **规则**: regime-aware ensemble 必须用 causal indicator 评估, 不可用 future-conditional |y| stratification 作为成功标准; conditional-on-future 的 P/DA 改进不可交易, 仅作 mechanism 验证.
 
 ---
 
 ## Current Priority
 
-**主线：** y_180 和 y_600 的 V4 final_stack 已到单资产 ceiling。下一阶段突破需要跳出"单资产 + LOB-time-aggregated"特征空间。
+**当前 production (2026-05-13)**: **3-way ensemble (Track P3 + Track A + V5 prod)**
+- Weights: w_P3=0.35, w_A=0.30, w_V5=0.35 (value-blend on live-calibrated q50)
+- Pool P=+0.0645, S=+0.0723, β=+1.10, σŷ/σy=0.058, DA=0.5288, **DA|y|>σ=0.5485**, TopSpread=+1.58 bps
+- vs V5 prod alone: +9.5% P, +9.4% S, +0.5% DA
+- High-vol regime (|y|>σ, 33% 样本) P=+0.091 S=+0.094 DA=0.547 — tradeable subset 远超 0.07 目标
+- CSV: `exports/v5push_3way_ensemble_p3_a_v5/y600_predictions_3way_p3_35_a_30_v5_35.csv`
+- Memory: `v5push_3way_ensemble_winner_2026_05_13.md`
 
-**完成状态：**
-1. ✓ **Validate**：V4 架构 y_180 (P=0.094) / y_600 (P=0.074) 建立 baseline
-2. ✓ **Innovate 实验**：特征 × 3, 架构 V5-LH × 4 全部 null
-3. ~ **Ensemble**：final_stack (SWA + EMA) 完成; seed ensemble 被 user 排除 (post-hoc, non-fundamental)
-4. 待办 **Execute**：回测 + holding strategy 已完成 eval (cost-aware break-even); paper trading 未启
+**Single-asset y_600 ceiling 待突破** (用户 push: P 0.07-0.08+, β~1, no bias, monotonic cal):
+- Bayes ρ ≈ σŷ/σy ≈ 0.07 物理上限附近
+- 3-way ensemble 已达 ρ ≈ 0.065, gap to 0.07 = -0.005
+- 通过 fusion / loss / 长程 regime feature / 架构精细化 可能突破 (未 exhausted, 见 Track R plan)
 
-**下一步 (突破 0.10 的 fundamental 路径):**
-1. **多资产 breadth** — ETH/SOL/BNB data, cross-asset factor, IC-IR 可 1.5+
-2. **正交数据源** — Funding rate, open interest, basis, on-chain (非 LOB aggregation)
-3. **缩短 horizon 深耕** — y_180 P=0.094 已生产化, y_120 / y_300 可能性
-4. **实盘 paper trading** — 单资产即使亏损, 基础设施搭建有价值
+**下一步突破 (按 ROI):**
+1. **Track R (current iteration)**: GLU fusion + β-calib loss + 长程 RV TV channels — 3 axis 联合 ablation
+2. **Multi-asset breadth (ETH/SOL/BNB)** — portfolio IR 0.6 → 1.5+, single-asset alpha ceiling 上的 Sharpe transformation
+3. **正交数据源** — funding rate / open interest / basis / on-chain (脱出 LOB aggregation)
+4. **缩短 horizon** — y_180 V4 已 P=0.094 production, y_120/y_300 可探
+5. **Production engineering** (regime adaptation 真解): online retraining (周/双周) + IC monitor + auto-stop
 
 **每个创新前必须 (硬门槛):**
-- 用 Ridge walk-forward (500+ days, 3+ folds) 验证 mean ΔP ≥ +0.005 才上 DL pod
-- 用 V4 proven 架构在同 slice 跑一遍做公平对照
-- 每次 test eval 检查 `yp_std / y_std` 不低于 20%
+- Ridge walk-forward (500+ days, 3+ folds) 验证 mean ΔP ≥ +0.005 才上 DL pod
+- V4 proven 架构在同 slice 跑一遍做公平对照
+- 每次 test eval 检查 `σŷ/σy ≥ 20%` (除非已证特定低 σ 仍 calibrated)
 - P 和 S 同时报告且同向改善, 不接受 P/S 分歧
 - 验证多个时间 slice 而非单一 slice
+- Calibration bias 投诉先做**机制审计** (anti-pattern #21 RECTIFICATION) → 结构性根因 surgical fix vs fundamental low-SNR limit
 
-**明确不做 (已证无效):**
-- ❌ V5-LH Mamba 变种 (test variance collapse)
-- ❌ 单资产 V4 特征空间新扩展 (3 次 Ridge null)
-- ❌ Multi-horizon UNIT (机制错配)
-- ❌ 过激进 post-hoc blending (user 排除)
+**明确不做 (已证无效, 详见 anti-patterns):**
+- ❌ V5-LH 系列 / multi_scale / pyramid backbones (variance collapse)
+- ❌ 单资产 V4 特征空间扩展 (3 次 Ridge null: tradeflow/LC/infoflow)
+- ❌ Multi-horizon UNIT (#10 机制错配)
+- ❌ Direct rank loss REPLACE utility_rank (#15 val→test drift)
+- ❌ dir_huber w_wrong>0 (#20 σ collapse)
+- ❌ smooth target overlay (#18 measurement artifact)
+- ❌ σ-anchor learnable scalar (#13)
+- ❌ y_300 / y_1800 horizon (#8 V4 -32% / 整条 line dead)
+- ❌ MRP (multi-resolution pool) replace last-token slice (#22)
+- ❌ Decoupled (2σ−1)×softplus head (#23 σ collapse)
+- ❌ TV channels REPLACE Track P3 (#25 — only AUXILIARY/ensemble)
 
 **关键工具:**
-- `scripts/comprehensive_eval.py` — 12-category eval + 图
-- `scripts/bin_plot_diagnostic.py` — E[ŷ|y_bin] 反向校准
-- `scripts/backtest_y600_final_stack.py` — cost-aware holding strategies
-- `docs/Y600_SUMMARY.md` — 完整 y_600 findings 参考
+- `scripts/v5_alpha0_huber_strict_eval.py` — 12-category strict eval + 15-gate scorecard
+- `scripts/v5_singh_live_strict_eval.py` — live calibration eval
+- `scripts/v5_singh_temporal_eval.py` — temporal stability + regime adaptation
+- `scripts/y600_live_calibrate.py` — causal EMA-demean (production calibration layer)
+- `scripts/export_y600_predictions.py` — CSV 生产
+- `scripts/bin_plot_diagnostic.py` — E[ŷ|y_bin] calibration plot

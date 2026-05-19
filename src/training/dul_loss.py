@@ -133,6 +133,7 @@ def compute_dul_loss(
     lambda_diff_spearman: float = 0.0,
     diff_spearman_temperature: float = 1.0,
     lambda_crps: float = 0.0,
+    lambda_mean_zero: float = 0.0,
     utility_alpha: float = 1.0,
     n_pairs: Optional[int] = None,
     return_parts: bool = True,
@@ -237,6 +238,20 @@ def compute_dul_loss(
             parts["crps"] = float(lcrps.item())
     elif return_parts:
         parts["crps"] = 0.0
+
+    # Mean-zero (DC offset) penalty: (mean(q50) - mean(y))² per batch.
+    # Pushes the model to match per-batch y_mean, removing systematic
+    # DC offset that would shift the entire calibration line off-origin.
+    # Doesn't affect rank or amplitude — only the bulk mean.
+    if lambda_mean_zero > 0.0 and target.numel() >= 32:
+        q50_mean = quantiles[:, 1].mean()
+        y_mean = target.mean()
+        lmz = (q50_mean - y_mean) ** 2
+        total = total + lambda_mean_zero * lmz
+        if return_parts:
+            parts["mean_zero"] = float(lmz.item())
+    elif return_parts:
+        parts["mean_zero"] = 0.0
 
     if return_parts:
         parts["total"] = float(total.item())

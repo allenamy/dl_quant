@@ -111,7 +111,20 @@ def build_fold_datasets(config: dict, fold_idx: int = 0):
         normalize=False,
         smooth_target_dir=data_cfg.get("smooth_target_dir"),
         tradeflow_dir=data_cfg.get("tradeflow_dir"),
+        novel_book_dir=data_cfg.get("novel_book_dir"),
+        novel_trade_dir=data_cfg.get("novel_trade_dir"),
+        y_rolling_sigma_path=data_cfg.get("y_rolling_sigma_path"),
+        tv_overlay_dir=data_cfg.get("tv_overlay_dir"),
+        intraday_regime_dir=data_cfg.get("intraday_regime_dir"),
+        microprice_trajectory_dir=data_cfg.get("microprice_trajectory_dir"),
         use_smoothed_target=bool(data_cfg.get("use_smoothed_target", True)),
+        use_time2vec=bool(data_cfg.get("use_time2vec", False)),
+        # Phase B.2: optional past-N-day y_mean as extra regime_prior column
+        recent_y_mean_path=data_cfg.get("recent_y_mean_path"),
+        recent_y_lookback_days=int(data_cfg.get("recent_y_lookback_days", 30)),
+        # Phase B.6 + v6b: multi-timescale daily y stats regime features
+        recent_y_stats_path=data_cfg.get("recent_y_stats_path"),
+        recent_y_features=data_cfg.get("recent_y_features"),
     )
     if _horizons_list is not None:
         common_kwargs["horizons"] = _horizons_list
@@ -196,7 +209,33 @@ def build_model(model_tag: str, n_features: int, n_levels: int,
                    # Y1800 Phase 2: regime-aware FiLM modulation
                    "use_regime_film", "regime_film_hidden",
                    # Y1800 Phase A2: dual-path fusion variant
-                   "fusion_kind"}
+                   "fusion_kind",
+                   # Y600 Phase B.1: regime additive bias head (2026-05-05)
+                   "use_regime_bias", "regime_bias_hidden",
+                   # v5push Phase 3: binary classification head for DirAcc
+                   "use_sign_head",
+                   # v5push Phase 3 (DAQH): direction-aware quantile head
+                   "use_direction_aware_head",
+                   # v5push Phase 3 (Track P): decoupled sign + magnitude head
+                   "use_decoupled_sign_mag_head",
+                   # v5push Phase 3 Track E: Multi-resolution temporal pool
+                   "use_multi_res_pool", "multi_res_recent", "multi_res_mid",
+                   # v5push Phase 3 Track REG_arch: FiLM multi-stage gating
+                   "use_film_multistage",
+                   # v5push Phase 3 Track REG_arch_v2: TV-conditioned per-timestep FiLM
+                   "use_tv_film", "n_tv_channels",
+                   # v5push Phase 3 Track REG_arch_v3: Cross-attention regime gate
+                   "use_xattn_regime",
+                   # v5push Phase 3 Track REG_arch_v5: Sequence direction head
+                   "use_seq_direction_head",
+                   # v5push Phase 3 Track REG_arch_v6a: Deeper FiLM trunk
+                   "film_gate_deeper_trunk",
+                   # v5push Track A1: SE-block input-channel attention
+                   "use_se_block_input"}
+        # Warn (not silent drop) about unknown model kwargs to catch typos
+        unknown = set(model_cfg) - allowed - {"_comment"}
+        if unknown:
+            print(f"[build_model] WARNING: unknown model_cfg keys ignored: {sorted(unknown)}")
         kwargs = {k: v for k, v in model_cfg.items() if k in allowed}
         return DualPathLOBModelV3(n_features=n_features, n_levels=n_levels,
                                   **kwargs)
@@ -521,15 +560,36 @@ def main() -> None:
         # ----- Multi-day mode --------------------------------------------------
         print(f"[pipeline_v3] Multi-day mode ({len(days)} days), "
               f"embargo_days={embargo_days}")
-        folds = build_time_series_folds(
-            days,
-            train_days=train_cfg["train_days"],
-            val_days=train_cfg["val_days"],
-            test_days=train_cfg["test_days"],
-            stride=train_cfg["fold_stride"],
-            embargo_days=embargo_days,
-        )
-        print(f"[pipeline_v3] Built {len(folds)} fold(s)")
+        # v5push (2026-05-12): optional fold_test_starts to anchor test periods.
+        # Default behavior: sliding window. With fold_test_starts, fix test start
+        # dates (e.g. V5 production fold 0 test=2025-02-09) and compute train
+        # backwards. Ensures apples-to-apples comparison when varying train_days.
+        fold_test_starts = train_cfg.get("fold_test_starts")
+        if fold_test_starts:
+            folds = []
+            for ts_str in fold_test_starts:
+                if ts_str not in days:
+                    raise RuntimeError(f"fold_test_starts {ts_str} not in available days")
+                ts_idx = days.index(ts_str)
+                test = days[ts_idx:ts_idx + train_cfg["test_days"]]
+                val_end_idx = ts_idx - embargo_days
+                val_start_idx = val_end_idx - train_cfg["val_days"]
+                val = days[val_start_idx:val_end_idx]
+                train_end_idx = val_start_idx - embargo_days
+                train_start_idx = max(0, train_end_idx - train_cfg["train_days"])
+                train = days[train_start_idx:train_end_idx]
+                folds.append({"train": train, "val": val, "test": test})
+            print(f"[pipeline_v3] Built {len(folds)} fold(s) with fixed test starts: {fold_test_starts}")
+        else:
+            folds = build_time_series_folds(
+                days,
+                train_days=train_cfg["train_days"],
+                val_days=train_cfg["val_days"],
+                test_days=train_cfg["test_days"],
+                stride=train_cfg["fold_stride"],
+                embargo_days=embargo_days,
+            )
+            print(f"[pipeline_v3] Built {len(folds)} fold(s)")
 
         for fold_idx, fold in enumerate(folds):
             if fold_idx < args.start_fold:
@@ -581,6 +641,11 @@ def main() -> None:
                 stats_kwargs = dict(normalize=False)
                 if _stats_horizons is not None:
                     stats_kwargs["horizons"] = _stats_horizons
+                # v5push: rolling y-normalize must also be applied during stats
+                # computation, otherwise y_sigma computed on raw y → at train
+                # time y_arr divided twice (by σ_day AND by 9.5e-4 fold σ) →
+                # values explode to ~1000, then clipped to ±5 = useless target.
+                stats_kwargs["y_rolling_sigma_path"] = data_cfg.get("y_rolling_sigma_path")
                 stats_ds = LOBDatasetV2(npz_dir, fold["train"], **stats_kwargs)
                 x_mean, x_std = stats_ds.compute_stats()
                 y_median, y_sigma = stats_ds.compute_y_stats()
@@ -621,7 +686,22 @@ def main() -> None:
                 preload=preload,
                 smooth_target_dir=data_cfg.get("smooth_target_dir"),
                 tradeflow_dir=data_cfg.get("tradeflow_dir"),
+                # NOTE: tv_overlay_dir intentionally NOT wired here — REG_arch
+                # baseline was trained with n_features=64 (verified via ckpt
+                # input_proj.weight=(32,64)). Adding tv_overlay would change
+                # existing baseline behavior. Track v7 uses a SEPARATE
+                # intraday_regime_dir for orthogonal regime-context overlay.
+                intraday_regime_dir=data_cfg.get("intraday_regime_dir"),
+                # v5push Track v8: microprice trajectory overlay (4 channels)
+                microprice_trajectory_dir=data_cfg.get("microprice_trajectory_dir"),
                 use_smoothed_target=bool(data_cfg.get("use_smoothed_target", True)),
+                use_time2vec=bool(data_cfg.get("use_time2vec", False)),
+                # Phase B.2: past-N-day y_mean as extra regime_prior column
+                recent_y_mean_path=data_cfg.get("recent_y_mean_path"),
+                recent_y_lookback_days=int(data_cfg.get("recent_y_lookback_days", 30)),
+                # Phase B.6 + v6b: multi-timescale daily y stats regime features
+                recent_y_stats_path=data_cfg.get("recent_y_stats_path"),
+                recent_y_features=data_cfg.get("recent_y_features"),
             )
             if _horizons_list is not None:
                 common_kwargs["horizons"] = _horizons_list
@@ -743,6 +823,8 @@ def main() -> None:
                     ),
                     multi_horizon_loss_module=_mh_loss_module,
                     loss_fn=custom_loss_fn,
+                    use_sam=bool(train_cfg.get("use_sam", False)),
+                    sam_rho=float(train_cfg.get("sam_rho", 0.05)),
                 )
                 if v5_loss_active:
                     # Codex fix: V5 incompatible with DANN — force off at

@@ -125,6 +125,10 @@ class MultiHorizonDulFocalUnit(nn.Module):
         dir_huber_delta: float = 2.0,
         dir_huber_w_wrong: float = 2.0,
         dir_huber_w_extreme: float = 3.0,
+        # v5push Phase 3: classification head BCE term for DirAcc.
+        # Reads outputs["sign_logit"] (B,) if present; BCE against (y > 0).
+        # Keep λ_cls small (0.05-0.10) to avoid anti-pattern #10 multi-task conflict.
+        lambda_cls: float = 0.0,
     ) -> None:
         super().__init__()
         if n_horizons < 1:
@@ -155,6 +159,7 @@ class MultiHorizonDulFocalUnit(nn.Module):
         self.dir_huber_delta = float(dir_huber_delta)
         self.dir_huber_w_wrong = float(dir_huber_w_wrong)
         self.dir_huber_w_extreme = float(dir_huber_w_extreme)
+        self.lambda_cls = float(lambda_cls)
 
         if self.use_unit:
             self.unit = UnitMultiTaskLoss(n_tasks=n_horizons)
@@ -251,12 +256,27 @@ class MultiHorizonDulFocalUnit(nn.Module):
             else:
                 dsp = torch.zeros((), device=q_h.device, dtype=q_h.dtype)
 
+            # v5push Phase 3: BCE on sign_logit (for DirAcc dual-task)
+            if self.lambda_cls > 0.0 and "sign_logit" in outputs:
+                # sign_logit may be (B,) (single horizon) or (B, n_h) (multi).
+                _sl = outputs["sign_logit"]
+                if _sl.dim() == 1:
+                    sl_h = _sl[idx]
+                else:
+                    sl_h = _sl[idx, h]
+                # Target: y > 0 ⇒ 1, else 0. Zero-y samples treated as 0 (slight bias toward neg-down).
+                cls_target = (y_h > 0.0).to(sl_h.dtype)
+                cls = torch.nn.functional.binary_cross_entropy_with_logits(sl_h, cls_target)
+            else:
+                cls = torch.zeros((), device=q_h.device, dtype=q_h.dtype)
+
             l_h = (
                 self.lambda_quantile * pinball
                 + self.lambda_rank * rank
                 + self.lambda_dir_huber * dh
                 + self.lambda_beta_calib * bc
                 + self.lambda_diff_spearman * dsp
+                + self.lambda_cls * cls
             )
             per_horizon_losses.append(l_h)
             contributing.append(h)

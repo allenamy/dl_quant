@@ -43,4 +43,4 @@ class HeteroscedasticHead(nn.Module):
         h_ls = self.log_sigma_trunk(emb)
         mu = self.mu_proj(h_mu)
         log_sigma = self.log_sigma_proj(h_ls)
-        return {"mu": mu, "log_sigma": log_sigma, "y_pred": mu}
+        return {"mu": mu, "log_sigma": log_sigma, "y_pred": mu, "point_pred": mu}

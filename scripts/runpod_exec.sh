@@ -3,8 +3,8 @@
 # Usage: ./scripts/runpod_exec.sh "your command"
 set -euo pipefail
 
-RUNPOD_HOST="${RUNPOD_HOST:-213.192.2.108}"
-RUNPOD_PORT="${RUNPOD_PORT:-40087}"
+RUNPOD_HOST="${RUNPOD_HOST:-213.192.2.84}"
+RUNPOD_PORT="${RUNPOD_PORT:-40007}"
 RUNPOD_USER="${RUNPOD_USER:-root}"
 RUNPOD_KEY="${RUNPOD_KEY:-$HOME/.ssh/runpod_ed25519}"
 

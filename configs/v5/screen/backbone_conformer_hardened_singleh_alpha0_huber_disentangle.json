@@ -1,0 +1,12 @@
+{
+  "_comment": "V5 singh α=0+Huber + STRICT DISENTANGLE two-tower (Phase B.5, RecSys-style debias). Identical to B.2 (recent_ymean) EXCEPT use_ppnet_gate=false. MAIN tower (LOB → Conformer → quantile head) sees ZERO regime info — forced to learn regime-invariant intrinsic alpha. BIAS tower (regime_bias_head, MLP 7→16→1) only path that takes regime → outputs DC offset added uniformly to q10/q50/q90. Inference flexibility: can use main alone (regime-invariant signal) or main+bias (full prediction). Mirrors RecSys position-bias / popularity-bias debias paradigms.",
+  "data": {"csv_path": "", "npz_dir": "data/npz_v4", "n_levels": 25, "horizon_sec": 600, "input_len": 600, "stride": 180, "horizons_sec": [600], "include_ridge_features": true, "include_regime_prior": true, "quantize_features": true, "preload": false,
+    "recent_y_mean_path": "data/npz_v4_daily_y_mean.json",
+    "recent_y_lookback_days": 30
+  },
+  "model": {"d_model": 32, "d_raw": 16, "n_mask_blocks": 1, "n_cross_layers": 1, "patch_size": 5, "attn_nhead": 2, "attn_d_ff": 64, "d_prior": 7, "dropout": 0.2, "n_horizons": 1, "n_symbols": 1, "use_monotonic_quantile": true, "use_revin": true, "use_masknet": false, "use_gdcn": true, "use_raw_path": true, "use_attention": false, "use_conv": false, "use_channel_mix_conv": true, "use_level_attention_pool": true, "use_patch_attention_pool": false, "use_ppnet_gate": false, "use_regime_bias": true, "regime_bias_hidden": 16, "backbone_kind": "conformer", "backbone_kwargs": {"n_blocks": 2, "n_heads": 2, "kernel_size": 15}},
+  "training": {"epochs": 25, "batch_size": 1024, "lr": 0.0006, "weight_decay": 0.001, "patience": 4, "grad_clip": 1.0, "train_days": 700, "val_days": 60, "test_days": 90, "fold_stride": 60, "num_workers": 4, "prefetch_factor": 2, "val_metric": "composite", "use_ema": true, "ema_decay": 0.999,
+    "dul_config": {"lambda_quantile": 0.10, "lambda_utility_rank": 0.50, "lambda_calib": 0.0, "lambda_dir_huber": 0.50, "lambda_pearson": 0.0, "lambda_beta_calib": 0.0, "utility_alpha": 0.0, "dir_huber_delta": 2.0, "dir_huber_w_wrong": 0.0, "dir_huber_w_extreme": 0.0},
+    "embargo_days": 1},
+  "output_dir": "experiments/v5_final/singleh_alpha0_huber_disentangle"
+}

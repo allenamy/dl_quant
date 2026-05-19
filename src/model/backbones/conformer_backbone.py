@@ -88,4 +88,6 @@ class ConformerBackbone(nn.Module):
     def forward(self, h):
         for blk in self.blocks:
             h = blk(h)
+        if getattr(self, 'return_sequence', False):
+            return h
         return h[:, -1, :]

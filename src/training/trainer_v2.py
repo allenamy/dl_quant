@@ -16,9 +16,10 @@ Key differences from V1:
 from __future__ import annotations
 
 import json
+import math
 import os
 import random
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -28,6 +29,7 @@ from torch.utils.data import DataLoader
 from .dataset import DayChunkedSampler
 from .dul_loss import compute_dul_loss
 from .losses import quantile_loss
+from .sam_optimizer import SAM
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +133,11 @@ def _extract_model_config(model: nn.Module) -> Dict[str, Any]:
         "use_regime_film", "regime_film_hidden",
         # Y1800 Phase A2: dual-path fusion variant
         "fusion_kind",
+        # v5push Phase 3: binary classification head for DirAcc
+        "use_sign_head",
+        # v5push Phase 3 (DAQH): direction-aware quantile head
+        "use_direction_aware_head",
+        "use_decoupled_sign_mag_head",
     ]
     config: Dict[str, Any] = {}
     for attr in candidate_attrs:
@@ -231,22 +238,31 @@ def _unpack_batch(
     batch: tuple,
     dual_path: bool,
     has_regime_prior: bool,
+    has_domain: bool = False,
 ):
-    """Normalize batch tuple to 5-slot form (x_feat, x_raw, regime_prior, y, mask).
+    """Normalize batch tuple to (x_feat, x_raw, regime_prior, y, mask, domain).
 
     Absent parts are None. Supported shapes:
       - 3-tuple: (x_feat, y, mask)                        -> Path A only
       - 4-tuple: (x_feat, x_raw, y, mask)                 -> Dual path
       - 5-tuple: (x_feat, x_raw, regime_prior, y, mask)   -> Dual + prior
+    With ``has_domain=True`` (DANN), each shape gains a trailing domain tensor.
     """
+    if has_domain:
+        # Domain is the last element; strip it then recurse with has_domain=False
+        *base, domain = batch
+        x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
+            tuple(base), dual_path, has_regime_prior, has_domain=False
+        )[:5]
+        return x_feat, x_raw, regime_prior, y, mask, domain
     if has_regime_prior:
         x_feat, x_raw, regime_prior, y, mask = batch
-        return x_feat, x_raw, regime_prior, y, mask
+        return x_feat, x_raw, regime_prior, y, mask, None
     if dual_path:
         x_feat, x_raw, y, mask = batch
-        return x_feat, x_raw, None, y, mask
+        return x_feat, x_raw, None, y, mask, None
     x_feat, y, mask = batch
-    return x_feat, None, None, y, mask
+    return x_feat, None, None, y, mask, None
 
 
 def _forward_with_regime(
@@ -301,6 +317,42 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
     dh_delta = _pos_or_default(cfg.get("dir_huber_delta"), 2.0)
     dh_w_wrong = _pos_or_default(cfg.get("dir_huber_w_wrong"), 2.0)
     dh_w_extreme = _pos_or_default(cfg.get("dir_huber_w_extreme"), 3.0)
+    # v5push Phase 3: BCE on sign_logit. Small weight (0.05-0.10) to avoid AP#10.
+    lambda_cls = _pos_or_default(cfg.get("lambda_cls"), 0.0)
+    # v5push Phase 3 (A2): uncertainty calibration loss. Encourages
+    # (q90-q10) to correlate with |q50-y| → trust score |q50|/(q90-q10) more
+    # reliable for DirAcc-gated trading. Loss = -corr(IQR, |residual|).
+    lambda_unc = _pos_or_default(cfg.get("lambda_unc"), 0.0)
+    # v5push Phase 3 (F): sign-correlation loss. Replaces BCE with continuous
+    # corr(tanh(sign_logit), sign(y)) on samples with |y_z| > 0.3.
+    lambda_signcorr = _pos_or_default(cfg.get("lambda_signcorr"), 0.0)
+    # v5push Phase 3 (P): magnitude-focal Huber on `magnitude_abs` head output.
+    # Loss = Huber(magnitude_abs, |y|) × clip(|y|/σ_y, 0.3, 3.0).
+    # Tail-focal weight concentrates magnitude learning on informative samples
+    # (anti-pattern #12 risk mitigated because applied to MAGNITUDE ONLY —
+    # sign head sees uniform BCE → Spearman protected).
+    lambda_mag_focal_huber = _pos_or_default(cfg.get("lambda_mag_focal_huber"), 0.0)
+    mag_focal_clip_min = _pos_or_default(cfg.get("mag_focal_clip_min"), 0.3)
+    mag_focal_clip_max = _pos_or_default(cfg.get("mag_focal_clip_max"), 3.0)
+    # v5push Phase 3 (P): BCE weighting mode. "sigmoid" (default) uses
+    # sigmoid((|y|−0.5)·5) weight (DAQH style); "uniform" uses no weight
+    # (Track P: pure sign supervision uncoupled from magnitude).
+    cls_weight_mode = str(cfg.get("cls_weight_mode", "sigmoid"))
+    # v5push Phase 3 Track REG_loss: magnitude-conditional Pearson loss.
+    # Computes Pearson(q50, y) on TAIL subset (|y| > σ_y) and adds
+    # `lambda_pearson_tail * (1 - corr)` to total loss. Auxiliary direct
+    # attack on tail Pearson (where signal concentrates). Pool P math:
+    # pool cov dominated by tail samples, so maximizing tail Pearson →
+    # higher pool P. AUXILIARY (typically λ≤0.10), original losses intact.
+    lambda_pearson_tail = _pos_or_default(cfg.get("lambda_pearson_tail"), 0.0)
+    # v5push Phase 3 Track REG_arch_v5: Sequence-level direction BCE (deep supervision).
+    # Adds BCE at anchor timesteps t∈anchors on `seq_dir_logits` (B, T) against
+    # sign(y_600). Forces intermediate temporal representations to encode the
+    # direction signal — auxiliary task improves DA (target 0.58).
+    # Requires model.use_seq_direction_head=True.
+    lambda_seq_direction = _pos_or_default(cfg.get("lambda_seq_direction"), 0.0)
+    seq_direction_anchors = cfg.get("seq_direction_anchors",
+                                     [100, 200, 300, 400, 500, -1])
 
     def dul_loss_fn(outputs, target):
         # return_parts=False avoids per-component .item() syncs in the hot
@@ -325,6 +377,21 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
             dir_huber_w_wrong=dh_w_wrong,
             dir_huber_w_extreme=dh_w_extreme,
         )
+        # v5push Phase 3 Track REG_loss: magnitude-conditional Pearson on tail.
+        # Compute Pearson(q50, y) on subset where |y| > σ_y. Pool P math:
+        # cov dominated by tail samples → maximize tail corr → higher pool P.
+        # AUXILIARY (small λ), original losses intact.
+        if lambda_pearson_tail > 0.0 and target.numel() >= 64:
+            sigy = target.std() + 1e-6
+            mask = target.abs() > sigy
+            if mask.sum() >= 32:
+                pred_t = outputs["point_pred"][mask]
+                tgt_t = target[mask]
+                p_c = pred_t - pred_t.mean()
+                t_c = tgt_t - tgt_t.mean()
+                denom = torch.norm(p_c) * torch.norm(t_c) + 1e-8
+                corr_tail = (p_c * t_c).sum() / denom
+                total = total + lambda_pearson_tail * (1.0 - corr_tail)
         # Direct Pearson auxiliary loss — negative because we MINIMISE.
         # Pearson is scale-invariant; acts as rank-preserving shaping force.
         # Complementary to pinball (magnitude) and utility_rank (pairwise).
@@ -336,6 +403,80 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
             denom = torch.norm(p_c) * torch.norm(t_c) + 1e-8
             corr = (p_c * t_c).sum() / denom
             total = total - lambda_pearson * corr  # maximise corr = minimise -corr
+        # v5push Phase 3 (A2): uncertainty calibration loss.
+        # Make (q90-q10) reflect actual |q50-y| → trust score = |q50|/(q90-q10)
+        # becomes meaningful confidence indicator. Needs batch ≥ 64 for stable corr.
+        if lambda_unc > 0.0 and target.numel() >= 64:
+            quantiles = outputs["quantiles"]
+            iqr = quantiles[:, 2] - quantiles[:, 0]  # (B,) ≥ 0 by monotonic constraint
+            abs_res = (quantiles[:, 1] - target).abs()  # (B,) ≥ 0
+            iqr_c = iqr - iqr.mean()
+            res_c = abs_res - abs_res.mean()
+            denom = torch.norm(iqr_c) * torch.norm(res_c) + 1e-8
+            unc_corr = (iqr_c * res_c).sum() / denom
+            # Maximize corr → minimize -corr
+            total = total - lambda_unc * unc_corr
+
+        # v5push Phase 3: BCE on sign_logit (DirAcc dual-task).
+        # Two modes:
+        #   - lambda_cls > 0: weighted BCE (discrete, original)
+        #   - lambda_signcorr > 0: continuous sign-correlation loss (smoother).
+        # Both supervise sign_logit. signcorr avoids BCE saturation when logit large.
+        if lambda_cls > 0.0 and "sign_logit" in outputs:
+            sign_logit = outputs["sign_logit"]
+            cls_target = (target > 0.0).to(sign_logit.dtype)
+            bce_per = torch.nn.functional.binary_cross_entropy_with_logits(
+                sign_logit, cls_target, reduction='none'
+            )
+            if cls_weight_mode == "uniform":
+                bce = bce_per.mean()
+            elif cls_weight_mode == "tail_focal_1p5":
+                # Track S: focal weight = clip(|y|/σ, 0.3, 3.0)^1.5
+                # Concentrate BCE gradient on tail samples where direction is reliable.
+                sigy = target.std() + 1e-6
+                cls_weight = (target.abs() / sigy).clamp(min=0.3, max=3.0).pow(1.5)
+                denom = cls_weight.sum().clamp(min=1e-9)
+                bce = (bce_per * cls_weight).sum() / denom
+            else:  # "sigmoid" — default DAQH-style (Track A baseline)
+                cls_weight = torch.sigmoid((target.abs() - 0.5) * 5.0)
+                denom = cls_weight.sum().clamp(min=1e-9)
+                bce = (bce_per * cls_weight).sum() / denom
+            total = total + lambda_cls * bce
+        # v5push Phase 3 (P): magnitude-focal Huber.
+        # Decouples magnitude learning from sign: applies Huber on
+        # |y| vs `magnitude_abs` head output. Focal weight clips |y|/σ to
+        # [0.3, 3.0] — concentrates gradient on informative tail samples.
+        if lambda_mag_focal_huber > 0.0 and "magnitude_abs" in outputs:
+            mag_pred = outputs["magnitude_abs"]                # ≥ 0
+            mag_target = target.abs()                          # ≥ 0
+            # Huber on residual
+            resid = mag_pred - mag_target
+            delta_h = 2.0
+            abs_resid = resid.abs()
+            quad = torch.minimum(abs_resid, torch.tensor(delta_h, device=resid.device, dtype=resid.dtype))
+            lin = abs_resid - quad
+            huber_per = 0.5 * quad * quad + delta_h * lin
+            # Focal weight from |y|/σ_y (σ_y ≈ 1 in z-space since y was normalized)
+            sigy = target.std() + 1e-6
+            focal_w = (mag_target / sigy).clamp(min=mag_focal_clip_min, max=mag_focal_clip_max)
+            denom_f = focal_w.sum().clamp(min=1e-9)
+            mag_focal = (huber_per * focal_w).sum() / denom_f
+            total = total + lambda_mag_focal_huber * mag_focal
+        if lambda_signcorr > 0.0 and "sign_logit" in outputs:
+            sign_logit = outputs["sign_logit"]
+            # Use samples where |y| above threshold so noise doesn't contribute
+            mask = target.abs() > 0.3
+            if mask.sum() >= 16:
+                sl = sign_logit[mask]
+                yt = target[mask]
+                # Map sign_logit to (-1, 1) via tanh; supervise against sign(y)
+                pred_sign = torch.tanh(sl)
+                true_sign = torch.sign(yt)
+                p_c = pred_sign - pred_sign.mean()
+                t_c = true_sign - true_sign.mean()
+                denom = torch.norm(p_c) * torch.norm(t_c) + 1e-8
+                corr = (p_c * t_c).sum() / denom
+                total = total - lambda_signcorr * corr
         # Focal weighting on tail samples — upweight |target| > threshold
         # This adds a secondary quantile loss on tail subset, pushing model
         # to fit large-magnitude targets better (where P&L lives).
@@ -351,6 +492,23 @@ def _build_loss_fn_for_dul(cfg: Dict[str, Any]) -> Callable:
                 pinball_50 = torch.where(residual >= 0, 0.5 * residual, -0.5 * residual)
                 tail_loss = (pinball_50 * tail_weight).sum() / (tail_weight.sum() + 1e-8)
                 total = total + tail_loss
+        # Track REG_arch_v5: sequence-level direction BCE at anchor timesteps.
+        if lambda_seq_direction > 0.0 and "seq_dir_logits" in outputs:
+            seq_logits = outputs["seq_dir_logits"]  # (B, T)
+            T = seq_logits.size(1)
+            cls_target = (target > 0.0).to(seq_logits.dtype)  # (B,)
+            anchor_losses = []
+            for a in seq_direction_anchors:
+                ai = T + a if a < 0 else a
+                if ai < 0 or ai >= T:
+                    continue
+                logit_a = seq_logits[:, ai]
+                bce_a = torch.nn.functional.binary_cross_entropy_with_logits(
+                    logit_a, cls_target, reduction='mean')
+                anchor_losses.append(bce_a)
+            if anchor_losses:
+                seq_dir_loss = torch.stack(anchor_losses).mean()
+                total = total + lambda_seq_direction * seq_dir_loss
         return total
 
     return dul_loss_fn
@@ -386,6 +544,14 @@ def train_one_fold_v2(
     primary_horizon_idx: int = 0,
     train_index_stride: int = 1,
     multi_horizon_loss_module: Optional[torch.nn.Module] = None,
+    use_sam: bool = False,
+    sam_rho: float = 0.05,
+    # --- DANN (Domain Adversarial NN) -----------------------------------
+    # When True, dataset must yield (..., domain) tuples (use DomainAwareDataset
+    # wrapper). Trainer adds CE on domain_logits in outputs, with lambda_grl
+    # scheduled per Ganin: 2/(1+exp(-10·p))-1 where p = epoch/total_epochs.
+    use_dann: bool = False,
+    lambda_dann_max: float = 1.0,
 ) -> Dict[str, Any]:
     """Train with quantile-only loss, dual-path support.
 
@@ -483,9 +649,16 @@ def train_one_fold_v2(
         sample = train_dataset[0]
         dual_path = len(sample) >= 4
 
-    # Detect 5-tuple mode (with regime_prior)
+    # Detect DANN wrapper (DomainAwareDataset) — adds trailing domain element
+    use_dann_dataset = hasattr(train_dataset, 'n_domains')
+    # Detect 5-tuple mode (with regime_prior). When DANN wrapper is active,
+    # the trailing element is domain (long tensor), so subtract 1 from length.
     sample = train_dataset[0]
-    has_regime_prior = len(sample) == 5
+    sample_len_no_domain = len(sample) - (1 if use_dann_dataset else 0)
+    has_regime_prior = sample_len_no_domain == 5
+    if use_dann_dataset:
+        # has_raw True if remaining length ≥ 4
+        dual_path = sample_len_no_domain >= 4
 
     # --- detect multi-horizon mode ------------------------------------------
     # Convention: LOBDatasetV2 with ``horizons=[...]`` returns per-item y /
@@ -596,9 +769,26 @@ def train_one_fold_v2(
         _trainable_params.extend(_extra)
         if _extra:
             print(f"[trainer_v2] multi_horizon_loss_module adds {sum(p.numel() for p in _extra)} trainable params")
-    optimizer = torch.optim.AdamW(
-        _trainable_params, lr=lr, weight_decay=weight_decay,
-    )
+    if use_sam:
+        # SAM (Sharpness-Aware Minimization) wraps AdamW; the inner AdamW owns
+        # LR / weight-decay / state, SAM only injects the rho-perturbation
+        # between two backward passes. Param groups are aliased so that the
+        # warmup helper's LR mutation propagates to both. See
+        # ``src/training/sam_optimizer.py`` for the algorithm derivation and
+        # CLAUDE.md (low-SNR ceiling discussion) for motivation.
+        optimizer = SAM(
+            _trainable_params,
+            torch.optim.AdamW,
+            rho=sam_rho,
+            lr=lr,
+            weight_decay=weight_decay,
+        )
+        print(f"[trainer_v2] SAM optimizer active (rho={sam_rho}, base=AdamW); "
+              f"per-step compute is ~2× (extra forward + backward).")
+    else:
+        optimizer = torch.optim.AdamW(
+            _trainable_params, lr=lr, weight_decay=weight_decay,
+        )
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode="max",       # maximize val_correlation
@@ -657,25 +847,47 @@ def train_one_fold_v2(
     best_ema_metrics: Dict[str, Any] = {}
     epochs_no_improve = 0
 
+    # DANN: lambda_grl schedule per Ganin & Lempitsky 2015.
+    # p = epoch/total_epochs ∈ [0,1]; lambda = 2/(1+exp(-10p)) - 1 ∈ [0,1].
+    # Multiply by lambda_dann_max (config-controlled cap).
+    if use_dann:
+        if not hasattr(model, "lambda_grl"):
+            raise AttributeError(
+                "use_dann=True but model has no `lambda_grl` attribute "
+                "(model must have `use_dann=True` in config)"
+            )
+        print(f"[trainer_v2] DANN active (lambda_dann_max={lambda_dann_max})")
+
     for epoch in range(1, epochs + 1):
         # Refresh day-chunked sampler RNG so day order varies per epoch.
         # No-op when falling back to shuffle=True DataLoader.
         if train_sampler is not None:
             train_sampler.set_epoch(epoch)
 
+        # DANN: update lambda_grl for this epoch (model uses self.lambda_grl).
+        if use_dann:
+            p = (epoch - 1) / max(epochs - 1, 1)
+            lambda_grl = lambda_dann_max * (2.0 / (1.0 + math.exp(-10.0 * p)) - 1.0)
+            model.lambda_grl = float(lambda_grl)
+
         # ===== Training =====
         model.train()
         train_loss_sum = 0.0
         train_steps = 0
+        domain_loss_sum = 0.0
+        domain_acc_sum = 0.0
+        domain_steps = 0
 
         for batch in train_loader:
             # Only pass ``all_horizons`` when multi-horizon is active.  This
             # keeps the kwarg invisible to V2 / legacy models (whose forward
             # doesn't know about it) and makes single-horizon runs
             # bit-identical to the pre-multi-horizon trainer.
-            x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
-                batch, dual_path, has_regime_prior,
+            x_feat, x_raw, regime_prior, y, mask, domain = _unpack_batch(
+                batch, dual_path, has_regime_prior, has_domain=use_dann,
             )
+            if domain is not None:
+                domain = domain.to(device_obj, non_blocking=True)
             x_feat = x_feat.to(device_obj, non_blocking=True)
             if x_raw is not None:
                 x_raw = x_raw.to(device_obj, non_blocking=True)
@@ -710,6 +922,29 @@ def train_one_fold_v2(
                 m_target = y[idx]
                 loss = loss_fn(m_outputs, m_target)
 
+            # DANN: domain CE loss on outputs["domain_logits"]. GRL in model
+            # already reverses the gradient, so we ADD the domain loss (the
+            # adversarial sign comes from GRL backward, not from negating here).
+            if use_dann and domain is not None and "domain_logits" in outputs:
+                d_logits = outputs["domain_logits"]
+                if multi_horizon:
+                    d_logits_sel, d_target_sel = d_logits, domain
+                else:
+                    d_logits_sel = d_logits[idx]
+                    d_target_sel = domain[idx]
+                if d_logits_sel.shape[0] > 0:
+                    domain_loss = torch.nn.functional.cross_entropy(
+                        d_logits_sel, d_target_sel
+                    )
+                    if torch.isfinite(domain_loss):
+                        loss = loss + domain_loss
+                        with torch.no_grad():
+                            d_pred = d_logits_sel.argmax(dim=-1)
+                            d_acc = (d_pred == d_target_sel).float().mean().item()
+                        domain_loss_sum += float(domain_loss.item())
+                        domain_acc_sum += d_acc
+                        domain_steps += 1
+
             # NaN guard: skip pathological batches
             if not torch.isfinite(loss):
                 optimizer.zero_grad()
@@ -729,7 +964,81 @@ def train_one_fold_v2(
             # Apply linear LR warmup *before* the optimizer step. Once past
             # ``warmup_steps`` this is a no-op and ReduceLROnPlateau owns the LR.
             _apply_warmup(global_step, warmup_steps, lr, optimizer)
-            optimizer.step()
+            if use_sam:
+                # SAM two-pass: first_step perturbs params to theta+epsilon,
+                # then we MUST recompute the *exact same* forward + loss
+                # assembly at the perturbed parameters so g_SAM = grad
+                # L(theta+eps). second_step rolls back theta and applies the
+                # base AdamW step using g_SAM.
+                #
+                # Stochastic dropout introduces a small extra noise term in
+                # the second pass (not the same dropout mask as pass 1); the
+                # paper found this acceptable, and forcing identical masks
+                # would require manual RNG state save/restore that is brittle
+                # across model variants.
+                optimizer.first_step(zero_grad=True)
+                outputs2 = _forward_with_regime(
+                    model, x_feat, x_raw, regime_prior, multi_horizon,
+                )
+                if multi_horizon:
+                    if multi_horizon_loss_module is not None:
+                        loss2 = multi_horizon_loss_module(outputs2, y, mask)
+                    else:
+                        loss2 = _multi_horizon_loss(
+                            outputs2, y, mask, loss_fn, horizon_weights,
+                        )
+                    if loss2 is None:
+                        # Should not happen (mask identical to first pass) but
+                        # be defensive: skip second_step, restore params.
+                        # Manual rollback because second_step requires grads.
+                        for group in optimizer.param_groups:
+                            for p in group["params"]:
+                                e_w = optimizer.state[p].get("e_w", None)
+                                if e_w is not None:
+                                    p.data.sub_(e_w)
+                                    optimizer.state[p].pop("e_w", None)
+                        optimizer.zero_grad()
+                        global_step += 1
+                        continue
+                else:
+                    # Reuse ``idx`` and ``m_target`` from the first pass —
+                    # they depend only on ``mask`` and ``y`` which are
+                    # unchanged. Re-slice ``outputs2`` with the same idx.
+                    m_outputs2 = {
+                        k: v[idx] for k, v in outputs2.items()
+                        if torch.is_tensor(v)
+                    }
+                    loss2 = loss_fn(m_outputs2, m_target)
+                # Replicate DANN domain CE add-on at perturbed params.
+                if use_dann and domain is not None and "domain_logits" in outputs2:
+                    d_logits2 = outputs2["domain_logits"]
+                    if multi_horizon:
+                        d_logits_sel2, d_target_sel2 = d_logits2, domain
+                    else:
+                        d_logits_sel2 = d_logits2[idx]
+                        d_target_sel2 = domain[idx]
+                    if d_logits_sel2.shape[0] > 0:
+                        domain_loss2 = torch.nn.functional.cross_entropy(
+                            d_logits_sel2, d_target_sel2
+                        )
+                        if torch.isfinite(domain_loss2):
+                            loss2 = loss2 + domain_loss2
+                if not torch.isfinite(loss2):
+                    # Pathological perturbed loss; rollback manually and skip.
+                    for group in optimizer.param_groups:
+                        for p in group["params"]:
+                            e_w = optimizer.state[p].get("e_w", None)
+                            if e_w is not None:
+                                p.data.sub_(e_w)
+                                optimizer.state[p].pop("e_w", None)
+                    optimizer.zero_grad()
+                    global_step += 1
+                    continue
+                loss2.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                optimizer.second_step(zero_grad=True)
+            else:
+                optimizer.step()
 
             # EMA update after the parameter step. No-op when use_ema=False.
             if ema_model is not None:
@@ -753,8 +1062,8 @@ def train_one_fold_v2(
             targets_all: list = []
             with torch.no_grad():
                 for batch in val_loader:
-                    x_feat, x_raw, regime_prior, y, mask = _unpack_batch(
-                        batch, dual_path, has_regime_prior,
+                    x_feat, x_raw, regime_prior, y, mask, _ = _unpack_batch(
+                        batch, dual_path, has_regime_prior, has_domain=use_dann,
                     )
                     x_feat = x_feat.to(device_obj, non_blocking=True)
                     if x_raw is not None:
@@ -885,11 +1194,16 @@ def train_one_fold_v2(
         print(line)
 
         # ===== Early stopping & checkpointing =====
+        # σ-ratio gate: reject epochs with σŷ/σy < 0.02 — these are init-noise
+        # epochs where Pearson is spuriously high due to ~0 predictions
+        # accidentally correlating with y. Anti-pattern #11 mitigation.
+        sigma_ratio = raw_val.get('val_sigma_ratio', 0.0)
+        sigma_ok = sigma_ratio >= 0.02
         best_selector = (
             best_metrics.get("val_composite", -1.0) if val_metric == "composite"
             else best_metrics.get("val_corr", -1.0)
         )
-        if selector > best_selector + 5e-4:
+        if sigma_ok and selector > best_selector + 5e-4:
             epochs_no_improve = 0
             best_metrics = {
                 "best_epoch": epoch,
@@ -918,7 +1232,9 @@ def train_one_fold_v2(
                 best_ema_metrics.get("val_composite", -1.0) if val_metric == "composite"
                 else best_ema_metrics.get("val_corr", -1.0)
             )
-            if ema_selector > best_ema_selector + 5e-4:
+            ema_sigma_ratio = ema_val.get('val_sigma_ratio', 0.0)
+            ema_sigma_ok = ema_sigma_ratio >= 0.02
+            if ema_sigma_ok and ema_selector > best_ema_selector + 5e-4:
                 best_ema_metrics = {
                     "best_epoch": epoch,
                     "val_loss": ema_val["val_loss"],

@@ -243,6 +243,88 @@ class DualPathLOBModelV3(nn.Module):
         # shift. See src/model/regime_film.py for mechanism.
         use_regime_film: bool = False,
         regime_film_hidden: int = 16,
+        # --- Regime additive bias head (Phase B.1, 2026-05-05) ---------------
+        # Feature audit (Y600_REGIME_FEATURE_AUDIT.md) showed 19 features
+        # carry regime info (max |corr|=0.14 with next-30d y_mean) AND past
+        # 30d y_mean has +0.32 corr with next 30d, but model output was
+        # regime-anti-correlated (-0.21). Root cause: PPNetGate is
+        # multiplicative-only, can't shift baseline.
+        #
+        # `regime_bias_head` is an MLP(d_prior → 16 → n_horizons) that
+        # outputs an additive scalar (per horizon), added uniformly to
+        # q10/q50/q90 (preserves monotonicity since adding constant doesn't
+        # change ordering). regime_prior fed as input (already 6-dim, has
+        # rp_5 |corr|=0.11, rp_0 |corr|=0.105 with future regime).
+        use_regime_bias: bool = False,
+        regime_bias_hidden: int = 16,
+        # --- v5push Phase 3: classification head for DirAcc ----------------
+        # Adds nn.Linear(d_model, 1) sign head. Output `sign_logit` returned
+        # in forward dict for trainer to compute BCE on sign(y). Designed for
+        # DirAcc-focused training without hurting q50 magnitude prediction.
+        # Risk: anti-pattern #10 multi-task gradient conflict — keep λ_cls small.
+        use_sign_head: bool = False,
+        # --- v5push Phase 3 (2026-05-12): Direction-Aware Quantile Head ---
+        # Replaces MonotonicQuantileHead with DAQH (q50 = tanh(s) × softplus(m)).
+        # Structurally decouples sign from magnitude → BCE on sign_logit
+        # supervises direction without conflicting with magnitude regression.
+        # Requires use_monotonic_quantile=True (DAQH IS a monotonic head).
+        # Mutually exclusive with use_sign_head (DAQH provides sign_logit natively).
+        use_direction_aware_head: bool = False,
+        # --- v5push Phase 3 Track REG_arch: FiLM Multi-Stage Gating --------
+        # When True, replace single-stage PPNetGate at output with 3-stage FiLM:
+        # (a) after Conformer block 1, (b) after block 2, (c) on pooled h_pred.
+        # FiLM = γ⊙h + β (γ init 1.0, β init 0.0 → identity at start).
+        # Strictly more expressive than PPNetGate (γ-only, no shift).
+        # Only effective when backbone_kind == "conformer".
+        use_film_multistage: bool = False,
+        # --- v5push Phase 3 Track REG_arch_v2: Time-Varying FiLM ------------
+        # When True, ADD per-timestep TV-conditioned FiLM gate after each
+        # Conformer block (in addition to per-sample regime FiLM).
+        # Uses TV channels (last K dims of x_feat = n_features - 64) as
+        # per-timestep gate input. Captures intra-window regime evolution.
+        # Requires use_film_multistage=True (stacks on top of regime gates).
+        use_tv_film: bool = False,
+        # Number of TV channels (= K, last K of x_feat is TV). If None, infer
+        # from n_features - 64 (Path A is fixed 64). Set explicitly if Path A
+        # dim differs.
+        n_tv_channels: int = 0,
+        # --- v5push Phase 3 Track REG_arch_v3: Cross-Attention regime gate --
+        # When True, replace FiLM gates with multi-head cross-attention regime
+        # gates (regime as K/V, h as Q). More expressive than per-channel FiLM.
+        # Requires use_film_multistage=True (replaces FiLM stages).
+        use_xattn_regime: bool = False,
+        # --- v5push Phase 3 Track REG_arch_v5: Sequence-level direction BCE --
+        # When True, add per-timestep direction head over the pre-pool sequence.
+        # Trainer samples at anchor positions and computes BCE against sign(y_600).
+        # Goal: deep supervision improves DA via auxiliary direction loss at
+        # multiple temporal positions (not just final pooled output).
+        # Requires use_film_multistage OR use_xattn_regime (needs sequence access).
+        use_seq_direction_head: bool = False,
+        # --- v5push Phase 3 Track REG_arch_v6a: Deeper FiLM trunk ----------
+        # When True, FiLMGate uses 2-layer trunk (Linear→GELU→Dropout→Linear→
+        # GELU→Dropout) instead of 1-layer. Lets regime info learn non-linear
+        # embedding before γ/β projection. +~3K params total (3 gates).
+        film_gate_deeper_trunk: bool = False,
+        # --- v5push Track A1 (2026-05-15): SE-block on X input ---------------
+        # Per-sample channel re-weighting on input X (B, T, n_features) BEFORE
+        # masknet/gdcn/input_proj. Does NOT add channels. Identity-friendly
+        # init (sigmoid(+5)≈1). Bottom-up architectural surgical change.
+        use_se_block_input: bool = False,
+        # --- v5push Phase 3 Track P: Decoupled Sign + Magnitude Head ------
+        # Refines DAQH by removing tanh × softplus coupling. Sign head trained
+        # purely by BCE, magnitude head trained on Huber(|y|) with focal weight.
+        # Exposes `magnitude_abs` output for separate Huber loss in trainer.
+        # Mutually exclusive with use_direction_aware_head / use_sign_head.
+        use_decoupled_sign_mag_head: bool = False,
+        # --- v5push Phase 3 Track E: Multi-Resolution Temporal Pool -------
+        # When True, conformer backbone returns full sequence (B, T, d_model)
+        # and a MultiResolutionPool aggregates over recent (60s) + mid (300s)
+        # + long (full) windows. Captures multi-timescale dependencies that
+        # the default last-timestep slice loses. Only effective when
+        # backbone_kind == "conformer". Off by default (V5 prod unchanged).
+        use_multi_res_pool: bool = False,
+        multi_res_recent: int = 60,
+        multi_res_mid: int = 300,
     ):
         super().__init__()
         self.d_model = d_model
@@ -293,6 +375,14 @@ class DualPathLOBModelV3(nn.Module):
             )
         if self.use_revin:
             self.revin = RevIN(n_features, affine=True)
+
+        # --- v5push Track A1 (2026-05-15): SE-block input-channel attention --
+        self.use_se_block_input = bool(use_se_block_input)
+        if self.use_se_block_input:
+            from src.model.se_block import SEBlock
+            self.se_block_input = SEBlock(n_features=n_features, reduction=4, init_open=True)
+        else:
+            self.se_block_input = None
 
         # --- Path A: hand-crafted features -----------------------------------
         # MaskNet + GDCN operate in full feature space (n_features-dim) BEFORE
@@ -432,6 +522,82 @@ class DualPathLOBModelV3(nn.Module):
                 kernel_size=int(self.backbone_kwargs.get('kernel_size', 15)),
                 dropout=dropout,
             )
+            # Track E: route through MRP when requested
+            self.use_multi_res_pool = bool(use_multi_res_pool)
+            if self.use_multi_res_pool:
+                self.backbone.return_sequence = True
+                from src.model.multi_resolution_pool import MultiResolutionPool
+                self.multi_res_pool = MultiResolutionPool(
+                    d_model=d_model, T=int(self.backbone_kwargs.get('T', 600)),
+                    recent_window=int(multi_res_recent),
+                    mid_window=int(multi_res_mid),
+                )
+            else:
+                self.multi_res_pool = None
+            # Track REG_arch: FiLM multi-stage gating
+            self.use_film_multistage = bool(use_film_multistage and d_prior > 0)
+            if self.use_film_multistage:
+                from src.model.film_gate import FiLMGate
+                # FiLM gates after each Conformer block + after final pool.
+                # block3 gate only instantiated when n_blocks >= 3 (Track REG_arch_v4).
+                # v6a: pass film_gate_deeper_trunk through to FiLMGate (extra hidden layer).
+                _deeper = bool(film_gate_deeper_trunk)
+                self.film_gate_block1 = FiLMGate(d_prior=d_prior, d_hidden=d_model, dropout=dropout, deeper_trunk=_deeper)
+                self.film_gate_block2 = FiLMGate(d_prior=d_prior, d_hidden=d_model, dropout=dropout, deeper_trunk=_deeper)
+                _n_blocks = int(self.backbone_kwargs.get('n_blocks', 2))
+                if _n_blocks >= 3:
+                    self.film_gate_block3 = FiLMGate(d_prior=d_prior, d_hidden=d_model, dropout=dropout, deeper_trunk=_deeper)
+                else:
+                    self.film_gate_block3 = None
+                self.film_gate_final = FiLMGate(d_prior=d_prior, d_hidden=d_model, dropout=dropout, deeper_trunk=_deeper)
+                # Force backbone to return sequence so we can gate intermediate blocks
+                self.backbone.return_sequence = True
+            else:
+                self.film_gate_block1 = None
+                self.film_gate_block2 = None
+                self.film_gate_block3 = None
+                self.film_gate_final = None
+            # Track REG_arch_v2: Time-varying FiLM (per-timestep, conditioned on TV channels)
+            self.use_tv_film = bool(use_tv_film and self.use_film_multistage and n_tv_channels > 0)
+            self.n_tv_channels = int(n_tv_channels) if n_tv_channels > 0 else 0
+            if self.use_tv_film:
+                from src.model.tv_film_gate import TVFiLMGate
+                # Two TV-conditioned FiLM gates: after block 1, after block 2
+                # (skip on pooled h_pred since it's no longer per-timestep)
+                self.tv_film_gate_block1 = TVFiLMGate(d_tv=self.n_tv_channels, d_hidden=d_model, dropout=dropout)
+                self.tv_film_gate_block2 = TVFiLMGate(d_tv=self.n_tv_channels, d_hidden=d_model, dropout=dropout)
+            else:
+                self.tv_film_gate_block1 = None
+                self.tv_film_gate_block2 = None
+            # Track REG_arch_v3: Cross-attention regime gate (multi-head attention
+            # where regime_prior is K/V, hidden h is Q). More expressive than FiLM's
+            # per-channel affine. Three independent gates at the same 3 stages.
+            self.use_xattn_regime = bool(use_xattn_regime and d_prior > 0)
+            if self.use_xattn_regime:
+                from src.model.cross_attn_regime_gate import CrossAttentionRegimeGate
+                self.xattn_gate_block1 = CrossAttentionRegimeGate(
+                    d_prior=d_prior, d_hidden=d_model, n_heads=2,
+                    n_regime_tokens=4, dropout=dropout)
+                self.xattn_gate_block2 = CrossAttentionRegimeGate(
+                    d_prior=d_prior, d_hidden=d_model, n_heads=2,
+                    n_regime_tokens=4, dropout=dropout)
+                self.xattn_gate_final = CrossAttentionRegimeGate(
+                    d_prior=d_prior, d_hidden=d_model, n_heads=2,
+                    n_regime_tokens=4, dropout=dropout)
+                # Force backbone to return sequence (same as FiLM multi-stage)
+                self.backbone.return_sequence = True
+            else:
+                self.xattn_gate_block1 = None
+                self.xattn_gate_block2 = None
+                self.xattn_gate_final = None
+            # Track REG_arch_v5: Sequence-level direction head (deep supervision)
+            self.use_seq_direction_head = bool(
+                use_seq_direction_head and (self.use_film_multistage or self.use_xattn_regime)
+            )
+            if self.use_seq_direction_head:
+                self.seq_direction_head = nn.Linear(d_model, 1)
+            else:
+                self.seq_direction_head = None
         elif self.backbone_kind == "tsmixer":
             from src.model.backbones.tsmixer_backbone import TSMixerBackbone
             self.backbone = TSMixerBackbone(
@@ -457,6 +623,152 @@ class DualPathLOBModelV3(nn.Module):
                 d_craft=d_model, d_raw=d_raw, d_out=d_model,
                 n_heads=int(self.backbone_kwargs.get('n_heads', 2)),
                 d_ff=int(self.backbone_kwargs.get('d_ff', 64)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "late_fusion_mamba_gated":
+            from src.model.backbones.late_fusion_mamba_gated_backbone import LateFusionMambaGatedBackbone
+            self.backbone = LateFusionMambaGatedBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                reduction=int(self.backbone_kwargs.get('reduction', 4)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "dcn_mamba_parallel":
+            from src.model.backbones.dcn_mamba_parallel_backbone import DcnMambaParallelBackbone
+            self.backbone = DcnMambaParallelBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                n_cross_layers=int(self.backbone_kwargs.get('n_cross_layers', 3)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "multi_extract_gated":
+            from src.model.backbones.multi_extract_gated_backbone import MultiExtractGatedBackbone
+            self.backbone = MultiExtractGatedBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "stack_tcn_gdcn":
+            from src.model.backbones.stack_tcn_gdcn_backbone import StackTcnGdcnBackbone
+            self.backbone = StackTcnGdcnBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                n_blocks=int(self.backbone_kwargs.get('n_blocks', 2)),
+                kernel_size=int(self.backbone_kwargs.get('kernel_size', 3)),
+                dilations=tuple(self.backbone_kwargs.get('dilations', (1, 4, 16))),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "mamba_gdcn_gated":
+            from src.model.backbones.mamba_gdcn_gated_backbone import MambaGdcnGatedBackbone
+            self.backbone = MambaGdcnGatedBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                gdcn_layers=int(self.backbone_kwargs.get('gdcn_layers', 2)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "jamba_per_path":
+            from src.model.backbones.jamba_per_path_backbone import JambaPerPathBackbone
+            self.backbone = JambaPerPathBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                n_blocks=int(self.backbone_kwargs.get('n_blocks', 2)),
+                n_heads=int(self.backbone_kwargs.get('n_heads', 2)),
+                d_ff=int(self.backbone_kwargs.get('d_ff', 64)),
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "fft_freq_block":
+            from src.model.backbones.fft_freq_block_backbone import FftFreqBlockBackbone
+            self.backbone = FftFreqBlockBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                n_blocks=int(self.backbone_kwargs.get('n_blocks', 2)),
+                d_hidden=int(self.backbone_kwargs.get('d_hidden', 64)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "fibinet_bilinear":
+            from src.model.backbones.fibinet_bilinear_backbone import FibiNetBilinearBackbone
+            self.backbone = FibiNetBilinearBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                d_bilinear=int(self.backbone_kwargs.get('d_bilinear', 16)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "late_fusion_attn_curriculum":
+            from src.model.backbones.late_fusion_attn_curriculum_backbone import LateFusionAttnCurriculumBackbone
+            self.backbone = LateFusionAttnCurriculumBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                n_heads=int(self.backbone_kwargs.get('n_heads', 2)),
+                d_ff=int(self.backbone_kwargs.get('d_ff', 64)),
+                n_blocks=int(self.backbone_kwargs.get('n_blocks', 1)),
+                warmup_steps=int(self.backbone_kwargs.get('warmup_steps', 2000)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "mmoe_4exp":
+            from src.model.backbones.mmoe_4exp_backbone import MMoE4ExpBackbone
+            self.backbone = MMoE4ExpBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                n_experts=int(self.backbone_kwargs.get('n_experts', 4)),
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "multi_rf_conformer":
+            from src.model.backbones.multi_rf_conformer_backbone import MultiRfConformerBackbone
+            self.backbone = MultiRfConformerBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                d_state=int(self.backbone_kwargs.get('d_state', 16)),
+                d_conv=int(self.backbone_kwargs.get('d_conv', 4)),
+                expand=int(self.backbone_kwargs.get('expand', 2)),
+                n_conformer=int(self.backbone_kwargs.get('n_conformer', 2)),
+                conv_kernel=int(self.backbone_kwargs.get('conv_kernel', 15)),
+                n_heads=int(self.backbone_kwargs.get('n_heads', 2)),
+                d_ff=int(self.backbone_kwargs.get('d_ff', 64)),
+                dropout=dropout,
+            )
+            self.fusion_kind = 'late'
+            self.fusion = None
+        elif self.backbone_kind == "tsmixer_lite":
+            from src.model.backbones.tsmixer_lite_backbone import TSMixerLiteBackbone
+            self.backbone = TSMixerLiteBackbone(
+                d_craft=d_model, d_raw=d_raw, d_out=d_model,
+                L=int(self.backbone_kwargs.get('L', 600)),
+                L_seg=int(self.backbone_kwargs.get('L_seg', 30)),
+                n_blocks=int(self.backbone_kwargs.get('n_blocks', 4)),
+                d_ff_t=int(self.backbone_kwargs.get('d_ff_t', 64)),
+                d_ff_c=int(self.backbone_kwargs.get('d_ff_c', 64)),
                 dropout=dropout,
             )
             self.fusion_kind = 'late'
@@ -553,8 +865,58 @@ class DualPathLOBModelV3(nn.Module):
         else:
             self.ppnet_gate = None
 
+        # --- Regime additive bias head (Phase B.1) ----------------------------
+        # Outputs a per-horizon scalar bias added to q10/q50/q90 uniformly.
+        # Preserves monotonicity (adding constant). Tiny: ~few hundred params.
+        # Initialized so MLP output ≈ 0 at start (final Linear weight near zero)
+        # to keep checkpoint compat for ablation runs (use_regime_bias=False).
+        self.use_regime_bias = bool(use_regime_bias and d_prior > 0)
+        if self.use_regime_bias:
+            self.regime_bias_head = nn.Sequential(
+                nn.Linear(d_prior, regime_bias_hidden),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(regime_bias_hidden, n_horizons),
+            )
+            # Initialize last Linear weights to zero so initial bias ≈ 0
+            # (model recovers identity behavior at training start)
+            nn.init.zeros_(self.regime_bias_head[-1].weight)
+            nn.init.zeros_(self.regime_bias_head[-1].bias)
+        else:
+            self.regime_bias_head = None
+
         # --- Quantile Heads (per-horizon) ------------------------------------
-        if use_monotonic_quantile:
+        self.use_decoupled_sign_mag_head = bool(use_decoupled_sign_mag_head)
+        self.use_direction_aware_head = bool(use_direction_aware_head)
+        if self.use_decoupled_sign_mag_head:
+            # Track P: decoupled sign + magnitude (no tanh × softplus coupling).
+            self.use_monotonic_quantile = True
+            from src.model.decoupled_sign_mag_head import DecoupledSignMagHead
+            self.quantile_heads = nn.ModuleList([
+                DecoupledSignMagHead(
+                    d_input=d_model, d_hidden=d_model, dropout=dropout,
+                )
+                for _ in range(n_horizons)
+            ])
+        elif self.use_direction_aware_head:
+            # v5push Phase 3: sign + magnitude decomposed monotonic head.
+            # Provides sign_logit output for explicit BCE supervision.
+            # DAQH IS monotonic (q10<q50<q90 via softplus offsets), so we
+            # force use_monotonic_quantile=True to route through the dict
+            # head path in forward().
+            self.use_monotonic_quantile = True
+            from src.model.direction_aware_quantile_head import (
+                DirectionAwareQuantileHead,
+            )
+            self.quantile_heads = nn.ModuleList([
+                DirectionAwareQuantileHead(
+                    d_input=d_model,
+                    d_hidden=d_model,
+                    dropout=dropout,
+                )
+                for _ in range(n_horizons)
+            ])
+        elif use_monotonic_quantile:
             self.quantile_heads = nn.ModuleList([
                 MonotonicQuantileHead(
                     d_input=d_model,
@@ -573,6 +935,28 @@ class DualPathLOBModelV3(nn.Module):
                 )
                 for _ in range(n_horizons)
             ])
+
+        # v5push (2026-05-12): optional binary classification head for DirAcc.
+        # Predicts sign(y) directly via BCE on shared encoder.
+        # Trainer reads `sign_logit` if present and adds λ_cls * BCE term.
+        # Risk: anti-pattern #10 multi-task gradient conflict — keep λ_cls small.
+        self.use_sign_head = bool(use_sign_head)
+        if self.use_sign_head:
+            self.sign_heads = nn.ModuleList([
+                nn.Sequential(
+                    nn.Linear(d_model, d_model),
+                    nn.GELU(),
+                    nn.Dropout(dropout),
+                    nn.Linear(d_model, 1),
+                )
+                for _ in range(n_horizons)
+            ])
+            # Zero-init final layer so model starts at neutral 0.5 probability
+            for head in self.sign_heads:
+                nn.init.zeros_(head[-1].weight)
+                nn.init.zeros_(head[-1].bias)
+        else:
+            self.sign_heads = None
 
     def encode(
         self,
@@ -622,6 +1006,12 @@ class DualPathLOBModelV3(nn.Module):
         if self.use_revin:
             x_feat = self.revin.normalize(x_feat)
 
+        # v5push Track A1: SE-block input-channel attention (per-sample
+        # channel re-weighting on existing X channels — NOT channel addition).
+        # Default off → baseline behavior preserved.
+        if self.se_block_input is not None:
+            x_feat = self.se_block_input(x_feat)
+
         # 1. Path A: features -> MaskNet -> GDCN -> proj
         # Ablation flags ``use_masknet`` / ``use_gdcn`` skip the corresponding
         # interaction layer while preserving the n_features -> d_model shape
@@ -668,8 +1058,63 @@ class DualPathLOBModelV3(nn.Module):
         if self.backbone is not None:
             if self.fusion_kind == "late":
                 h_pred = self.backbone(h_craft, h_raw)
+            elif (getattr(self, 'use_film_multistage', False) or getattr(self, 'use_xattn_regime', False)) and regime_prior is not None:
+                # Track REG_arch: manual iteration through conformer blocks
+                # with FiLM gating between blocks (regime info reaches intermediate
+                # representations, not only output).
+                # Track REG_arch_v2: also apply TV-conditioned per-timestep gate.
+                # Track REG_arch_v3: cross-attention gate (mutually exclusive with FiLM
+                # in typical use; both supported if user wants stacked).
+                tv_features = None
+                if getattr(self, 'use_tv_film', False) and self.n_tv_channels > 0:
+                    # Extract TV channels (last K of x_feat)
+                    K = self.n_tv_channels
+                    tv_features = x_feat[:, :, -K:]
+                for i, blk in enumerate(self.backbone.blocks):
+                    h = blk(h)
+                    if i == 0:
+                        if self.film_gate_block1 is not None:
+                            h = self.film_gate_block1(h, regime_prior)
+                            if self.tv_film_gate_block1 is not None and tv_features is not None:
+                                h = self.tv_film_gate_block1(h, tv_features)
+                        if getattr(self, 'xattn_gate_block1', None) is not None:
+                            h = self.xattn_gate_block1(h, regime_prior)
+                    elif i == 1:
+                        if self.film_gate_block2 is not None:
+                            h = self.film_gate_block2(h, regime_prior)
+                            if self.tv_film_gate_block2 is not None and tv_features is not None:
+                                h = self.tv_film_gate_block2(h, tv_features)
+                        if getattr(self, 'xattn_gate_block2', None) is not None:
+                            h = self.xattn_gate_block2(h, regime_prior)
+                    elif i == 2:
+                        # Track REG_arch_v4: 3rd FiLM gate when n_blocks >= 3
+                        if getattr(self, 'film_gate_block3', None) is not None:
+                            h = self.film_gate_block3(h, regime_prior)
+                # Track REG_arch_v5: capture sequence direction logits BEFORE pool
+                # h shape: (B, T, d_model). Stash on instance for forward() to read
+                # and add to outputs dict (encode signature unchanged for V5Model).
+                if getattr(self, 'seq_direction_head', None) is not None:
+                    self._last_seq_dir_logits = self.seq_direction_head(h).squeeze(-1)  # (B, T)
+                else:
+                    self._last_seq_dir_logits = None
+                # MRP or last-token slice
+                if getattr(self, 'multi_res_pool', None) is not None:
+                    h_pred = self.multi_res_pool(h)
+                else:
+                    h_pred = h[:, -1, :]
+                # Final FiLM gate (replaces PPNet at output) — per-sample only
+                if self.film_gate_final is not None:
+                    h_pred = self.film_gate_final(h_pred, regime_prior)
+                if getattr(self, 'xattn_gate_final', None) is not None:
+                    h_pred = self.xattn_gate_final(h_pred, regime_prior)
             else:
                 h_pred = self.backbone(h)
+                # Track E / FiLM: conformer in return_sequence mode → reduce
+                if h_pred.dim() == 3:
+                    if getattr(self, 'multi_res_pool', None) is not None:
+                        h_pred = self.multi_res_pool(h_pred)
+                    else:
+                        h_pred = h_pred[:, -1, :]  # fallback last-token
         elif self.use_attention:
             # Legacy attention path (use_attention=True is V4 ablation; off in
             # baseline_plus). Patching + causal self-attention.
@@ -706,7 +1151,9 @@ class DualPathLOBModelV3(nn.Module):
             h_pred = self.regime_film(h_pred, regime_feats)            # (B, d_model)
 
         # 8. PPNet regime-conditioned gating
-        if regime_prior is not None and self.ppnet_gate is not None:
+        # Skip when FiLM multistage active (avoids double gating — FiLM_final already applied)
+        if regime_prior is not None and self.ppnet_gate is not None \
+                and not getattr(self, 'use_film_multistage', False):
             h_pred = self.ppnet_gate(h_pred, regime_prior)
 
         return h_pred
@@ -814,4 +1261,23 @@ class DualPathLOBModelV3(nn.Module):
             alpha = self.output_scale
             outputs["quantiles"] = outputs["quantiles"] * alpha
             outputs["point_pred"] = outputs["point_pred"] * alpha
+
+        # Phase B.1: Regime additive bias (preserves monotonicity).
+        # Computed from regime_prior, added uniformly to q10/q50/q90.
+        # Applied AFTER output_scale so bias is in final output space.
+        if self.regime_bias_head is not None and regime_prior is not None:
+            bias_all_h = self.regime_bias_head(regime_prior)  # (B, n_horizons)
+            b = bias_all_h[:, horizon_idx:horizon_idx + 1]    # (B, 1)
+            outputs["quantiles"] = outputs["quantiles"] + b
+            outputs["point_pred"] = outputs["point_pred"] + b.squeeze(-1)
+
+        # v5push Phase 3: classification head for DirAcc (BCE on sign(y))
+        # If DAQH already provided sign_logit, do NOT overwrite — DAQH's
+        # logit is the head's native direction signal.
+        if self.sign_heads is not None and "sign_logit" not in outputs:
+            sign_head = self.sign_heads[horizon_idx]
+            outputs["sign_logit"] = sign_head(h_pred).squeeze(-1)  # (B,)
+        # Track REG_arch_v5: surface stashed sequence direction logits if set
+        if getattr(self, '_last_seq_dir_logits', None) is not None:
+            outputs["seq_dir_logits"] = self._last_seq_dir_logits  # (B, T)
         return outputs
