@@ -1119,11 +1119,15 @@ python scripts/fair_ridge_baseline_y600_fast.py  # fold 0 quick (200 train days)
 - `docs/PROJECT_PRINCIPLES.md` — 7 条 quant 行业 operating rules
 - `docs/METRIC_DISCIPLINE.md` — eval 标准
 
+### 单资产最终记录 (current authoritative)
+- `docs/SINGLE_ASSET_Y600_FINAL_MILESTONE_2026_05_20.md` — REG_arch winner + CSH 回测 + 复现路径 + multi-asset 传承 (单资产收尾权威文档)
+- `docs/V5_TO_PRODUCTION_ITERATION_2026_05_15.md` — 完整迭代路径
+- `docs/Y600_V5_SINGH_ALPHA0_HUBER_DESIGN.md` — 架构 + loss 设计文档
+
 ### V4 era reference
 - `docs/PROJECT_OVERVIEW.md` (4/18) — V4 era project overview (legacy)
 - `docs/V4_MODEL_AUDIT.md` — V4 模型组件审计
-- `docs/Y600_SUMMARY.md` (4/21) — y_600 phase 关键 findings
-- `docs/V5_DESIGN_v2.md`, `V5_BACKBONE_AUDIT.md` — V5 早期 design 决策依据
+- `docs/V5_BACKBONE_AUDIT.md` — V5 backbone screening 审计
 
 ### 实验产物 (training checkpoints + preds)
 - `experiments/v5_final/singleh_alpha0_huber/` — production
