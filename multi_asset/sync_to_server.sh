@@ -11,7 +11,7 @@ rsync -avz --delete \
   --exclude='__pycache__' \
   --exclude='*.pyc' \
   --exclude='.DS_Store' \
-  --exclude='data/' \
+  --exclude='/data/' \
   --exclude='crypto_data/' \
   --exclude='experiments/' \
   --exclude='exports/' \
