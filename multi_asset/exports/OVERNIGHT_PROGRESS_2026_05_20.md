@@ -21,6 +21,12 @@ This doc is the single place to read what happened overnight. Updated as phases 
 3. **BTC-on-bar (Spearman 0.033) ≪ single-asset 25-level (0.072)** — the 5-level bar data loses ~half the BTC signal. **Exactly your hypothesis.**
 4. **Approach C (frozen single-asset model) has a data-seam cost:** the 25-level-book pipeline and bar pipeline have different mids + 180s grid offsets → projecting the proven BTC model onto bar alts loses ~60% (BTC self-sanity 0.025 vs 0.065). **⇒ Approach B (bring 25-level BTC *into* the bar pipeline as a native-grid BTC tower) is cleaner and higher-value than frozen-model C.**
 
+### 🚀 LATE UPDATE — cross-sectional framing WORKS (the key positive result)
+
+**Pooled cross-sectional Ridge: OOS rank-IC = +0.0395, IR = 15.3** (walk-forward, clean non-overlap) — **3.5× the per-asset Ridge xsec rank-IC (0.0114)**. Recipe: cross-sectionally z-score features across the 14 assets per timestamp + predict the market-neutral residual + pool. This is a genuinely tradeable long-short cross-sectional signal at the LINEAR baseline (pre-DL/cross-asset/25-level/factors). 
+
+⇒ **Strongly favors pivoting the headline metric to cross-sectional rank-IC / portfolio IR** (the data structure — high common-factor β~0.70, weak per-asset, exploitable residual — is textbook market-neutral cross-sectional). Per-asset Pearson 0.10 remains hard; cross-sectional is where multi-asset breadth wins. DL + cross-asset attention + 25-level BTC should lift 0.0395 further.
+
 ### 🔑 Strategic decision for your input
 
 The goal (avg per-asset Pearson **0.10**) is **very ambitious** given bar-data signal strength (Ridge Spearman 0.017; single-asset best was 0.065/0.072 *with* 25-level + heavy DL work). Realistic ladder: DL + cross-asset + 25-level-BTC could plausibly lift per-asset Spearman 0.017 → ~0.03–0.05; **cross-sectional rank-IC (long-short portfolio) is the more natural tradeable target** than per-asset Pearson 0.10. **My recommended priority:** (1) **Approach B** — 25-level BTC tower native to the bar grid (best structural ROI, fixes the BTC-weakness at the source); (2) **Approach A** shared-backbone DL for residual alpha; (3) cross-sectional rank-IC as the headline metric alongside per-asset. **Question for you:** keep pushing the per-asset-Pearson-0.10 framing, or pivot the headline to cross-sectional rank-IC / portfolio IR (which the data structure favors)?
