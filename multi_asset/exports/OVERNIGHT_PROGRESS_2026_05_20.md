@@ -127,3 +127,34 @@ Subagents launching long jpline jobs (cache build ~1hr) **over-poll and burn tok
 - Subagents over-poll long jpline jobs (one burned 1.5M tokens). Going forward: controller owns long-job waits via background waiters; subagents only for quick compute.
 
 **State:** all committed to branch `multi-asset` (HEAD f4c00e8). Feature cache + scratch are server-local (not synced). Single-asset `reg-arch-final` untouched & intact.
+
+---
+
+## UPDATE 2026-06-09 — Shallow-panel spatial ablation NEG → Temporal-Spatial build (Approach A)
+
+> **创建:** 2026-06-09 UTC+8 | **Session:** multi-asset temporal-spatial build | **关键事件:** shallow-panel cross-asset ablation concluded (all NEG); seq_cache build + TemporalSpatialPanelModel + streaming trainer written & smoke-tested
+> **状态:** in-progress | **作废条件:** M0/M1 3-fold results land
+
+### Shallow CrossAssetPanelModel spatial ablation (3-fold, panel_cache last-token) — CONCLUSIVE NEG
+Every spatial refinement on the last-token MLP panel HURTS monotonically:
+
+| Config | xsec rank-IC | per-asset P | per-asset S | params |
+|---|---|---|---|---|
+| **Phase 0 baseline** | **0.0494** | **0.0328** | **0.0439** | 75,329 |
+| +market token (P1) | 0.0454 | 0.0320 | 0.0413 | 87,937 |
+| +factor split (P2) | 0.0449 | 0.0302 | 0.0370 | 92,162 |
+| +composite_val+soft_rank (P3) | 0.0421 | 0.0206 | 0.0258 | 92,162 |
+
+Conclusion: the shallow last-token panel is a **local optimum at per-asset P≈0.033**; spatial-mixing refinements (market token / factor split / composite val / soft rank) are EXHAUSTED. The market token is mechanistically redundant (cross-asset attention already constructs the common factor implicitly); composite_val triggers the anti-#24 init-epoch selection (fold-0 P went negative). **The lever is the TEMPORAL axis**, not spatial mixing of a last-token vector.
+
+### Root cause of the 0.033 ceiling (verified)
+- Single-asset full-temporal BTC on THIS bar data = **0.058 per-asset P** (proven, hand+raw DL).
+- Last-token LINEAR per-alt Pearson ≈ **0** (even negative: alt_with_btc avg P=-0.0074); raw-BTC-feat injection makes it worse.
+- The shallow panel threw away the 600-bar sequence + raw LOB that give single-asset its 0.058. → must restore temporal depth per asset, then add cross-asset on top.
+
+### Temporal-Spatial model (Approach A) — built today
+- **Data**: `build_seq_cache.py` → per-day all-asset contiguous arrays `F(S,T,44)+Xraw(S,T,5,4)+y+mask+ts` (487 days, ~150GB; one share pass). Avoids the 910GB windowed-NPZ explosion; windows sliced on the fly. RAW-aligned bit-identical to panel_cache at every pred bar (verified 0.0e+00).
+- **Dataset**: `seq_panel_dataset.py` — reuses panel_cache for the panel index + train stats (apples-to-apples), streams 600-bar windows day-chunked (vectorized gather).
+- **Model**: `temporal_spatial_panel.py` — shared Conformer temporal stem (d=32, 2 blocks, kernel=15) over (B·S,T,44) → per-asset embedding → toggleable cross-asset attention + market token + factor split → per-asset DAQH head. M0=56K / M1=73K / M2=77K params (healthy params:sample). Forward/grad verified.
+- **Trainer**: `train_temporal_spatial.py` — streaming, loss = 0.10·pinball + 0.50·Huber(q50) + 0.20·soft_xsec_rank; val metric = 0.5·per-asset-P + 0.5·per-asset-S (the USER target); σ-gate BEST.
+- **Milestones**: M0 pure temporal (GATE: per-asset P → ~0.058 single-asset), M1 +cross-asset attn (GATE ≥+0.003), M2 +market/factor (gate each). Spatial refinements re-gated on temporal embeddings (NOT assumed from shallow ablation).
