@@ -198,6 +198,20 @@ class SeqPanelData:
             arr, rows, bars = got
             yield arr["F"], arr["mask"], arr["y"], rows, bars
 
+    def iter_days_raw(self, split_rows, rng=None, shuffle=True):
+        """Like iter_days but ALSO yields the raw-LOB array Xraw (S,T,5,4) for the
+        full REG_arch panel (dual-path). Yields (F, Xraw, mask, y, rows, bars)."""
+        split_set = set(int(r) for r in split_rows)
+        days = np.unique(self.day[split_rows])
+        if shuffle and rng is not None:
+            rng.shuffle(days)
+        for d in days:
+            got = self._day_pred_rows(d, split_set, want_raw=True)
+            if got is None:
+                continue
+            arr, rows, bars = got
+            yield arr["F"], arr["Xraw"], arr["mask"], arr["y"], rows, bars
+
     def iter_day_batches(self, split_rows, batch_ts, rng=None, shuffle=True,
                          want_raw=False):
         """Yield standardized window batches, day-chunked.
