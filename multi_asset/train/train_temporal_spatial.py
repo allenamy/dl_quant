@@ -45,6 +45,11 @@ from multi_asset.model.temporal_spatial_panel import (  # noqa: E402
 from multi_asset.train.train_cross_asset import (  # noqa: E402  reuse exact recipe
     FOLDS, EMBARGO, VAL_DAYS, masked_huber, soft_xsec_rank_loss, load_cap_weights,
 )
+from multi_asset.losses.xsec_residual_loss import (  # noqa: E402
+    residual_loss, cross_sectional_residual,
+)
+
+RANK_KIND = "lambda"   # "lambda" (LambdaRankIC) or "pearson" (Pearson-IC fallback)
 
 EXPORT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
           "multi_asset/exports/train")
@@ -128,10 +133,11 @@ def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
         bb = bars_g[bidx]                                       # (B,)
         widx = bb[:, None] + offs_g[None, :]                   # (B,W)
         Xseq = F_g[:, widx, :].permute(1, 0, 2, 3).contiguous()  # (B,S,W,F)
-        ymat = y_g[:, bb].t()                                   # (B,S)
+        ymat = y_g[:, bb].t()                                   # (B,S) RAW y
         mmat = mask_g[:, bb].t() * torch.isfinite(ymat).float()  # (B,S)
-        yn = torch.nan_to_num(ymat / sigma_g[None, :], nan=0.0)
-        yield Xseq, yn, mmat, rows[order[b0:b0 + batch_ts]]
+        # yield RAW y (nan->0, masked) so the trainer can form the cross-sectional
+        # residual; sigma_g kept for back-compat but residual uses resid_sigma.
+        yield Xseq, torch.nan_to_num(ymat, nan=0.0), mmat, rows[order[b0:b0 + batch_ts]]
 
 
 # --------------------------------------------------------------------------- #
@@ -205,6 +211,8 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
         per_asset_P_list=[round(float(x), 4) for x in per_P],
         per_asset_S_list=[round(float(x), 4) for x in per_S],
         xsec_rank_ic=float(xsec.mean()) if xsec.size else float("nan"),
+        xsec_ic_ir=(float(xsec.mean() / xsec.std() * np.sqrt(xsec.size))
+                    if xsec.size > 1 and xsec.std() > 1e-9 else float("nan")),
         n_xsec_ts=int(xsec.size),
         sigma_ratio=float(sr_n / sr_d) if sr_d > 0 else float("nan"),
         avg_beta=round(float(np.mean(per_beta)), 3) if per_beta else float("nan"),
@@ -271,6 +279,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     mu_g = torch.from_numpy(data.mu).to(DEV)
     sd_g = torch.from_numpy(data.sd).to(DEV)
     sigma_g = torch.from_numpy(data.sigma).to(DEV)
+    resid_sigma_g = torch.from_numpy(data.resid_sigma).to(DEV)
     offs_g = torch.arange(-data.W + 1, 1, device=DEV)
 
     best_val, best_state, best_epoch, bad = -1e9, None, -1, 0
@@ -281,34 +290,34 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         nb = 0
         for F_all, mask_all, y_all, rows, bars in data.iter_days(
                 tr_rows, rng=rng, shuffle=True):
-            for xb, yb, mb, _ in gpu_day_batches(
+            for xb, yraw, mb, _ in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
                     offs_g, data.W, BATCH_TS, rng=rng, shuffle=True):
                 out = model(xb, mb, return_dict=True)
-                q50 = out["q50"]
-                lpin = pinball_loss(out["quantiles"], yb, mb)
-                lh = masked_huber(q50, yb, mb, delta=HUBER_DELTA)
-                lx = soft_xsec_rank_loss(q50, yb, mb)
-                loss = LAMBDA_PINBALL * lpin + LAMBDA_HUBER * lh + LAMBDA_XSEC * lx
+                # cross-sectional RESIDUAL target (demean over valid assets, per-asset
+                # MAD-norm, clip) -> both rank + magnitude losses see the SAME residual.
+                r, _ = cross_sectional_residual(yraw, mb)
+                r = (r / resid_sigma_g[None, :]).clamp(-5.0, 5.0)
+                loss, parts = residual_loss(out["quantiles"], r, mb, rank_kind=RANK_KIND,
+                                            w_huber=0.30, w_rank=0.70, w_pin=0.10)
                 opt.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 opt.step()
-                ep_loss += float(loss.item()); ep_pin += float(lpin.item())
-                ep_h += float(lh.item()); ep_x += float(lx.item()); nb += 1
+                ep_loss += float(loss.item()); ep_pin += parts["pin"]
+                ep_h += parts["huber"]; ep_x += parts["rank"]; nb += 1
         ep_loss /= max(nb, 1); ep_pin /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
 
         vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g)
-        vm = eval_metrics(vpred, data.Y, data.CL, data.sigma, clean=False)
-        vP, vS, vsig = vm["per_asset_P"], vm["per_asset_S"], vm["sigma_ratio"]
-        gated = np.isfinite(vsig) and vsig >= SIGMA_GATE
-        vscore = (0.5 * vP + 0.5 * vS) if (np.isfinite(vP) and np.isfinite(vS)) else float("nan")
+        vm = eval_metrics(vpred, data.Y, data.CL, data.resid_sigma, clean=False)
+        vIC, vP, vS = vm["xsec_rank_ic"], vm["per_asset_P"], vm["per_asset_S"]
+        # PRIMARY objective for the residual long-short = cross-sectional rank-IC.
+        vscore = vIC
+        gated = np.isfinite(vscore)
         if verbose:
-            tag = "" if gated else "  [sigma<gate -> not BEST]"
             print(f"  ep{ep:2d} ({time.time()-t_ep:.0f}s) loss={ep_loss:.4f} "
-                  f"(pin={ep_pin:.4f} huber={ep_h:.4f} xsec={ep_x:.4f})  "
-                  f"val_P={vP:+.4f} val_S={vS:+.4f} score={vscore:+.4f} "
-                  f"sigma={vsig:.3f}{tag}", flush=True)
+                  f"(huber={ep_h:.4f} rank={ep_x:.4f} pin={ep_pin:.4f})  "
+                  f"val_rankIC={vIC:+.4f} val_perP={vP:+.4f} val_perS={vS:+.4f}", flush=True)
         score = vscore if (np.isfinite(vscore) and gated) else -1e9
         if score > best_val:
             best_val, best_epoch, bad = score, ep, 0
@@ -323,7 +332,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     if best_state is not None:
         model.load_state_dict(best_state)
     tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g)
-    metrics = eval_metrics(tpred, data.Y, data.CL, data.sigma, clean=True)
+    metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=True)
     metrics["best_epoch"] = best_epoch
     metrics["best_val_score"] = round(best_val, 4) if best_val > -1e8 else None
     metrics["n_params"] = count_params(model)
@@ -375,9 +384,9 @@ def main():
                        cap_w=cap_w, verbose=True)
         if m is not None:
             all_m.append(m)
-            print(f"[fold {i}] per-asset P={m['per_asset_P']:+.4f} S={m['per_asset_S']:+.4f} "
-                  f"xsec_IC={m['xsec_rank_ic']:+.4f} sigma={m['sigma_ratio']:.3f} "
-                  f"beta={m['avg_beta']} bias={m['bias_bps']}bps mono={m['monotonicity']}", flush=True)
+            print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
+                  f"| per-asset P={m['per_asset_P']:+.4f} S={m['per_asset_S']:+.4f} "
+                  f"sigma={m['sigma_ratio']:.3f} mono={m['monotonicity']}", flush=True)
 
     if all_m:
         pooled = dict(
@@ -385,6 +394,8 @@ def main():
             mean_per_asset_P=round(float(np.mean([m["per_asset_P"] for m in all_m])), 4),
             mean_per_asset_S=round(float(np.mean([m["per_asset_S"] for m in all_m])), 4),
             mean_xsec_rank_ic=round(float(np.mean([m["xsec_rank_ic"] for m in all_m])), 4),
+            mean_xsec_ic_ir=round(float(np.nanmean([m["xsec_ic_ir"] for m in all_m])), 3),
+            linear_residual_rankic_ref=0.0254,
             mean_sigma_ratio=round(float(np.mean([m["sigma_ratio"] for m in all_m])), 4),
             mean_beta=round(float(np.nanmean([m["avg_beta"] for m in all_m])), 3),
             mean_bias_bps=round(float(np.nanmean([m["bias_bps"] for m in all_m])), 4),

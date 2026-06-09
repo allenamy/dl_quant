@@ -112,6 +112,21 @@ class SeqPanelData:
                 mad = np.median(np.abs(col - np.median(col))) * 1.4826
                 sig[si] = mad if mad > 1e-12 else 1.0
         self.sigma = sig
+        # per-asset RESIDUAL MAD-sigma: cross-sectional demean (equal-weight over valid
+        # assets per timestamp) then per-asset MAD on TRAIN rows. Used to normalise the
+        # residual target for the cross-sectional long-short loss.
+        Ytr = self.Y[trm]                                   # (n_tr, S)
+        valid = np.isfinite(Ytr)
+        rmean = np.nanmean(np.where(valid, Ytr, np.nan), axis=1, keepdims=True)
+        resid = Ytr - rmean
+        rsig = np.ones(self.S, np.float32)
+        for si in range(self.S):
+            col = resid[:, si]
+            col = col[np.isfinite(col)]
+            if col.size > 10:
+                mad = np.median(np.abs(col - np.median(col))) * 1.4826
+                rsig[si] = mad if mad > 1e-12 else 1.0
+        self.resid_sigma = rsig
         return self.mu, self.sd, self.sigma
 
     # ----------------------------------------------------------------- cache
