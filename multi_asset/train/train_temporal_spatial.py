@@ -225,7 +225,7 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
 # Train one fold.
 # --------------------------------------------------------------------------- #
 def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
-               cap_w=None, verbose=True, day_override=None):
+               cap_w=None, verbose=True, day_override=None, save_dir=None):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -333,6 +333,11 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         model.load_state_dict(best_state)
     tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g)
     metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=True)
+    if save_dir is not None:
+        os.makedirs(save_dir, exist_ok=True)
+        np.savez(p.join(save_dir, f"fold_{fold_i}_preds.npz"),
+                 pred=tpred, te_rows=te_rows, te_days=te_days)
+        torch.save(best_state, p.join(save_dir, f"fold_{fold_i}_model.pt"))
     metrics["best_epoch"] = best_epoch
     metrics["best_val_score"] = round(best_val, 4) if best_val > -1e8 else None
     metrics["n_params"] = count_params(model)
@@ -345,13 +350,20 @@ def main():
     ap.add_argument("--smoke", action="store_true",
                     help="fold 0 only, few epochs on whatever days are built")
     ap.add_argument("--tag", type=str, default=None)
+    ap.add_argument("--save_tag", type=str, default=None,
+                    help="if set, save per-fold test preds + model to EXPORT/<save_tag>/")
     args = ap.parse_args()
+    save_dir = p.join(EXPORT, args.save_tag) if args.save_tag else None
 
     print(f"[env] device={DEV} torch={torch.__version__}", flush=True)
     t0 = time.time()
     data = SeqPanelData()
     print(f"[panel] T={len(data.ts)} S={data.S} uniq_days={len(data.uniq_days)} "
           f"(index built {time.time()-t0:.1f}s)", flush=True)
+    if save_dir is not None:
+        os.makedirs(save_dir, exist_ok=True)
+        np.savez(p.join(save_dir, "panel_ref.npz"), ts=data.ts, day=data.day,
+                 Y=data.Y, CL=data.CL, symbols=np.array(SYMBOLS))
     cap_w = load_cap_weights() if args.milestone == 2 else None
     tag = args.tag or f"M{args.milestone}"
 
@@ -381,7 +393,7 @@ def main():
         print(f"\n----- fold {i} -----", flush=True)
         m = train_fold(i, fold, data, args.milestone,
                        max_epochs=MAX_EPOCHS, patience=PATIENCE,
-                       cap_w=cap_w, verbose=True)
+                       cap_w=cap_w, verbose=True, save_dir=save_dir)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
