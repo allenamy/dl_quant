@@ -109,25 +109,54 @@ def fold_day_lists(uniq, fold):
 
 
 # --------------------------------------------------------------------------- #
+# GPU-side windowing: keep each day's F on the GPU, slice/standardize windows
+# there (the CPU numpy gather was starving the GPU). Yields GPU tensors.
+# --------------------------------------------------------------------------- #
+def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
+                    offs_g, W, batch_ts, rng=None, shuffle=True):
+    F_g = torch.from_numpy(F_all).to(DEV)                       # (S,T,F)
+    F_g = torch.nan_to_num(F_g, nan=0.0)
+    F_g = ((F_g - mu_g) / sd_g).clamp_(-10.0, 10.0)             # standardize whole day once
+    y_g = torch.from_numpy(y_all).to(DEV)                       # (S,T)
+    mask_g = torch.from_numpy(mask_all.astype(np.float32)).to(DEV)
+    bars_g = torch.from_numpy(bars).to(DEV)                     # (n,)
+    order = np.arange(bars.shape[0])
+    if shuffle and rng is not None:
+        rng.shuffle(order)
+    for b0 in range(0, order.shape[0], batch_ts):
+        bidx = torch.from_numpy(order[b0:b0 + batch_ts]).to(DEV)
+        bb = bars_g[bidx]                                       # (B,)
+        widx = bb[:, None] + offs_g[None, :]                   # (B,W)
+        Xseq = F_g[:, widx, :].permute(1, 0, 2, 3).contiguous()  # (B,S,W,F)
+        ymat = y_g[:, bb].t()                                   # (B,S)
+        mmat = mask_g[:, bb].t() * torch.isfinite(ymat).float()  # (B,S)
+        yn = torch.nan_to_num(ymat / sigma_g[None, :], nan=0.0)
+        yield Xseq, yn, mmat, rows[order[b0:b0 + batch_ts]]
+
+
+# --------------------------------------------------------------------------- #
 # Streaming predict over a split -> pred (T,S) in NORM units (NaN where invalid).
 # --------------------------------------------------------------------------- #
-def predict_split(model, data, split_rows, batch_ts=64):
+def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts=96):
     model.eval()
     T, S = data.ts.shape[0], data.S
     pred = np.full((T, S), np.nan, np.float32)
     with torch.no_grad():
-        for b in data.iter_day_batches(split_rows, batch_ts, rng=None, shuffle=False):
-            xb = torch.from_numpy(b["Xseq"]).to(DEV)
-            mb = torch.from_numpy(b["mask"]).to(DEV)
-            q50 = model(xb, mb).detach().cpu().numpy()          # (B,S) norm
-            q50 = np.where(b["mask"] > 0.5, q50, np.nan)
-            pred[b["rows"]] = q50
+        for F_all, mask_all, y_all, rows, bars in data.iter_days(
+                split_rows, rng=None, shuffle=False):
+            for Xseq, yn, mmat, rr in gpu_day_batches(
+                    F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
+                    offs_g, data.W, batch_ts, rng=None, shuffle=False):
+                q50 = model(Xseq, mmat).detach().cpu().numpy()  # (B,S) norm
+                q50 = np.where(mmat.cpu().numpy() > 0.5, q50, np.nan)
+                pred[rr] = q50
     return pred
 
 
 def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
     S = Y.shape[1]
-    per_P, per_S, sr_n, sr_d = [], [], 0.0, 0.0
+    per_P, per_S, per_beta, sr_n, sr_d = [], [], [], 0.0, 0.0
+    pooled_pr, pooled_y = [], []          # de-normed pred + raw y, for bias/monotonicity
     for si in range(S):
         m = np.isfinite(pred[:, si]) & np.isfinite(Y[:, si])
         if clean:
@@ -140,8 +169,26 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
             per_P.append(P_)
         if np.isfinite(S_):
             per_S.append(S_)
-        sr_n += (ph * sigma[si]).std() * m.sum()
+        # beta = slope of raw y on de-normed pred (healthy ~1); pred is in NORM units
+        pr = ph * sigma[si]               # de-norm to raw y units
+        vp = np.var(pr)
+        if vp > 1e-18:
+            per_beta.append(float(np.cov(yr, pr)[0, 1] / vp))
+        pooled_pr.append(pr); pooled_y.append(yr)
+        sr_n += pr.std() * m.sum()
         sr_d += yr.std() * m.sum()
+    # pooled bias + monotonicity (E[y|pred-decile] should rise monotonically)
+    bias_bps = mono = float("nan")
+    if pooled_pr:
+        PR = np.concatenate(pooled_pr); YY = np.concatenate(pooled_y)
+        bias_bps = float(PR.mean() * 1e4)              # long-short bias (mean pred, bps)
+        if PR.size > 500 and PR.std() > 0:
+            q = np.quantile(PR, np.linspace(0, 1, 11))
+            q[-1] += 1e-12
+            binid = np.clip(np.digitize(PR, q[1:-1]), 0, 9)
+            ybin = [YY[binid == b].mean() for b in range(10) if (binid == b).sum() > 5]
+            if len(ybin) >= 5:
+                mono = float(spearmanr(np.arange(len(ybin)), ybin).correlation)
     xsec = []
     for t in range(pred.shape[0]):
         v = np.isfinite(pred[t]) & np.isfinite(Y[t])
@@ -160,6 +207,9 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
         xsec_rank_ic=float(xsec.mean()) if xsec.size else float("nan"),
         n_xsec_ts=int(xsec.size),
         sigma_ratio=float(sr_n / sr_d) if sr_d > 0 else float("nan"),
+        avg_beta=round(float(np.mean(per_beta)), 3) if per_beta else float("nan"),
+        bias_bps=round(bias_bps, 4),
+        monotonicity=round(mono, 3),
     )
 
 
@@ -217,6 +267,11 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
               f"flags={flags})", flush=True)
     opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WD)
     rng = np.random.default_rng(SEED)
+    # GPU-resident stat tensors + window offsets (broadcast over (S,T,F) / (B,W))
+    mu_g = torch.from_numpy(data.mu).to(DEV)
+    sd_g = torch.from_numpy(data.sd).to(DEV)
+    sigma_g = torch.from_numpy(data.sigma).to(DEV)
+    offs_g = torch.arange(-data.W + 1, 1, device=DEV)
 
     best_val, best_state, best_epoch, bad = -1e9, None, -1, 0
     for ep in range(max_epochs):
@@ -224,25 +279,26 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         t_ep = time.time()
         ep_loss = ep_pin = ep_h = ep_x = 0.0
         nb = 0
-        for b in data.iter_day_batches(tr_rows, BATCH_TS, rng=rng, shuffle=True):
-            xb = torch.from_numpy(b["Xseq"]).to(DEV)
-            yb = torch.from_numpy(b["y"]).to(DEV)
-            mb = torch.from_numpy(b["mask"]).to(DEV)
-            out = model(xb, mb, return_dict=True)
-            q50 = out["q50"]
-            lpin = pinball_loss(out["quantiles"], yb, mb)
-            lh = masked_huber(q50, yb, mb, delta=HUBER_DELTA)
-            lx = soft_xsec_rank_loss(q50, yb, mb)
-            loss = LAMBDA_PINBALL * lpin + LAMBDA_HUBER * lh + LAMBDA_XSEC * lx
-            opt.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            opt.step()
-            ep_loss += float(loss.item()); ep_pin += float(lpin.item())
-            ep_h += float(lh.item()); ep_x += float(lx.item()); nb += 1
+        for F_all, mask_all, y_all, rows, bars in data.iter_days(
+                tr_rows, rng=rng, shuffle=True):
+            for xb, yb, mb, _ in gpu_day_batches(
+                    F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
+                    offs_g, data.W, BATCH_TS, rng=rng, shuffle=True):
+                out = model(xb, mb, return_dict=True)
+                q50 = out["q50"]
+                lpin = pinball_loss(out["quantiles"], yb, mb)
+                lh = masked_huber(q50, yb, mb, delta=HUBER_DELTA)
+                lx = soft_xsec_rank_loss(q50, yb, mb)
+                loss = LAMBDA_PINBALL * lpin + LAMBDA_HUBER * lh + LAMBDA_XSEC * lx
+                opt.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                opt.step()
+                ep_loss += float(loss.item()); ep_pin += float(lpin.item())
+                ep_h += float(lh.item()); ep_x += float(lx.item()); nb += 1
         ep_loss /= max(nb, 1); ep_pin /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
 
-        vpred = predict_split(model, data, va_rows)
+        vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g)
         vm = eval_metrics(vpred, data.Y, data.CL, data.sigma, clean=False)
         vP, vS, vsig = vm["per_asset_P"], vm["per_asset_S"], vm["sigma_ratio"]
         gated = np.isfinite(vsig) and vsig >= SIGMA_GATE
@@ -266,7 +322,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
 
     if best_state is not None:
         model.load_state_dict(best_state)
-    tpred = predict_split(model, data, te_rows)
+    tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g)
     metrics = eval_metrics(tpred, data.Y, data.CL, data.sigma, clean=True)
     metrics["best_epoch"] = best_epoch
     metrics["best_val_score"] = round(best_val, 4) if best_val > -1e8 else None
@@ -320,7 +376,8 @@ def main():
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] per-asset P={m['per_asset_P']:+.4f} S={m['per_asset_S']:+.4f} "
-                  f"xsec_IC={m['xsec_rank_ic']:+.4f} sigma={m['sigma_ratio']:.3f}", flush=True)
+                  f"xsec_IC={m['xsec_rank_ic']:+.4f} sigma={m['sigma_ratio']:.3f} "
+                  f"beta={m['avg_beta']} bias={m['bias_bps']}bps mono={m['monotonicity']}", flush=True)
 
     if all_m:
         pooled = dict(
@@ -329,6 +386,9 @@ def main():
             mean_per_asset_S=round(float(np.mean([m["per_asset_S"] for m in all_m])), 4),
             mean_xsec_rank_ic=round(float(np.mean([m["xsec_rank_ic"] for m in all_m])), 4),
             mean_sigma_ratio=round(float(np.mean([m["sigma_ratio"] for m in all_m])), 4),
+            mean_beta=round(float(np.nanmean([m["avg_beta"] for m in all_m])), 3),
+            mean_bias_bps=round(float(np.nanmean([m["bias_bps"] for m in all_m])), 4),
+            mean_monotonicity=round(float(np.nanmean([m["monotonicity"] for m in all_m])), 3),
             per_fold_P=[round(m["per_asset_P"], 4) for m in all_m],
             per_fold_S=[round(m["per_asset_S"], 4) for m in all_m],
             per_fold_xsec_ic=[round(m["xsec_rank_ic"], 4) for m in all_m],

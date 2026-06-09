@@ -165,6 +165,24 @@ class SeqPanelData:
             return None
         return arr, np.array(keep_rows, np.int64), np.array(keep_bar, np.int64)
 
+    def iter_days(self, split_rows, rng=None, shuffle=True, want_raw=False):
+        """Yield per-day RAW arrays for GPU-side windowing (fast path).
+
+        Yields (F_all (S,T,F), mask_all (S,T), y_all (S,T), rows (n,), bars (n,))
+        where rows are common-ts indices and bars the in-day pred bar index. The
+        trainer moves F_all to the GPU ONCE per day and slices/standardizes
+        windows there (the CPU numpy gather was starving the GPU)."""
+        split_set = set(int(r) for r in split_rows)
+        days = np.unique(self.day[split_rows])
+        if shuffle and rng is not None:
+            rng.shuffle(days)
+        for d in days:
+            got = self._day_pred_rows(d, split_set, want_raw=want_raw)
+            if got is None:
+                continue
+            arr, rows, bars = got
+            yield arr["F"], arr["mask"], arr["y"], rows, bars
+
     def iter_day_batches(self, split_rows, batch_ts, rng=None, shuffle=True,
                          want_raw=False):
         """Yield standardized window batches, day-chunked.
