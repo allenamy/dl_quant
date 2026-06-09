@@ -8,6 +8,21 @@ This doc is the single place to read what happened overnight. Updated as phases 
 
 ---
 
+
+---
+
+## ⚠️ CORRECTION (2026-05-21, after user review) — the BTC "gap" comparison was UNFAIR
+
+The earlier "BTC-on-bar 0.033 << single-asset 0.072, 5-level loses half the signal" was **apples-to-oranges and the conclusion was premature** (user caught this):
+- bar number = **Ridge, 47 hand features ONLY, no raw path**
+- single-asset number = **DL (REG_arch), dual-path (hand + 20-level raw LOB)**
+- conflates Ridge-vs-DL (single-asset DL was **+97% over Ridge**: 0.033→0.065 P), hand-only-vs-dual-path, period, AND 5-vs-25-level. LOB depth is likely the SMALLEST factor.
+- **Current state honestly: only hand features + Ridge. No raw Path B, no DL, no architecture innovations yet.**
+
+**Decision (user): keep per-asset Pearson 0.1 + replicate single-asset architecture first.** Built the missing Path B (bar 5-level raw-LOB tensor, channels match single-asset). Fair experiment now running:
+- **Run 1:** bar dual-path DL (47 hand + 5-level raw, REG_arch) on BTC → fair vs single-asset DL 0.065. Is the gap architecture or depth?
+- **Run 2:** Run 1 + BTC 25-level raw tower (Approach B, user's proposal) → isolates depth's incremental lift.
+
 ## TL;DR (updated live)
 
 - **Phase 0 (infra):** ✅ DONE — branch `multi-asset`, bar_loader (bit-validated), CLAUDE.md, 47-feat builder (leak caught+fixed), feature cache (487d×14sym, 230k windows).
