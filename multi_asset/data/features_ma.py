@@ -5,13 +5,36 @@ Every feature at row t uses ONLY bars <= t (no centered/forward rolling, no
 reverse cumsum, no peeking at y). This feeds the per-asset Ridge SNR gate and,
 later, the DL panel.
 
-DISCIPLINE — mechanism over stacking. Each GROUP below carries a one-line
-mechanism: WHY it should carry y_600 signal in low-SNR crypto microstructure.
-We do not add a feature without a stated reason.
+DESIGN — STRONG signal first, no over-normalization (2026-06-09 rebuild).
+The previous cut shrank the order-flow / reversal signal by dividing flows by a
+causal *expanding-window RMS* (`_causal_expanding_scale`). Diagnostics on BTC
+y_600 (clean 20-day sample, `eda/_deep_flow_probe.py`) showed RAW rolling-sum
+flows / reversal carry ~0.055 univariate Spearman, but the expanding-RMS-scaled
+versions decayed to ~0.037 — a third of the signal lost to a normalizer that
+injects its own (noisy, drifting) denominator.
+
+ROOT-CAUSE FIX, applied here:
+  - Order-flow features are LEFT AS RAW ROLLING SUMS. We do NOT divide by any
+    causal expanding RMS / std / MAD. The downstream per-fold standardizer owns
+    final scaling — it z-scores each column on the train fold, which is the only
+    place a scale should be estimated (and the only leak-free place to do it).
+    A raw rolling sum is strictly causal and preserves the signal exactly.
+  - Ratio / imbalance features (OBI, depth ratios, spread bps) are naturally
+    bounded or already in interpretable units, so they pass through as-is.
+
+What the diagnostics said about WHICH signals matter (BTC y_600, clean):
+  ret_300s  (5-min mid reversal)        Spearman -0.058   <- strongest
+  midchg_300s (midChgUp-midChgDn 300s)            -0.055
+  dollarflow_300s (tdQtyPx buy-sell 300s)         -0.054
+  tradeflow_300s  (tdQty buy-sell 300s)           -0.053
+  dollarflow_30s / tradeflow_30s (short)  Pearson +0.04   (continuation)
+  OFI (level-by-level CKS)                          0.016  <- WEAK, deprioritized
+The dominant structure is REVERSAL at the 5-min scale + order flow. OFI is kept
+as a single low-priority summary, not a per-window block.
 
 Columns are consumed BY NAME via `panel.cols.index(name)` — never by position.
-QTY columns arrive already scaled by the loader. Values are clipped/winsorized
-to stay finite; the warmup region (rolling not yet filled) is nan_to_num'd to 0.
+QTY columns arrive already scaled by the loader. nan_to_num is applied AFTER a
+short warmup; all rows are kept finite.
 
 NOT included here (per task scope): cross-asset / BTC features. Those land in a
 later task. This module is strictly per-asset.
@@ -23,9 +46,9 @@ from typing import List, Tuple
 import numpy as np
 
 # Window lengths (seconds == bars on the 1s grid).
-RET_WINDOWS = (1, 5, 30, 60, 300)
-VOL_WINDOWS = (30, 60, 300)
-FLOW_WINDOWS = (30, 60, 300)
+RET_WINDOWS = (30, 60, 120, 300, 600)   # reversal lives at 300; 600 = horizon-scale
+FLOW_WINDOWS = (30, 60, 300)            # 30 = continuation, 300 = reversal-scale
+VOL_WINDOWS = (60, 300)                 # regime conditioner
 HORIZON = 600  # y_600 forward seconds
 
 # 5-level LOB column suffixes (level 0 has no suffix in the schema).
@@ -34,18 +57,20 @@ _ASK_PX = ["ask", "ask_1", "ask_2", "ask_3", "ask_4"]
 _BID_SZ = ["bidsz", "bidsz_1", "bidsz_2", "bidsz_3", "bidsz_4"]
 _ASK_SZ = ["asksz", "asksz_1", "asksz_2", "asksz_3", "asksz_4"]
 
-# Cumulative-depth buckets that exist in the schema (suffix == bps distance).
-_DEP_ALL = ["0.1", "0.3", "1.0", "3.0", "10.0", "30.0", "100.0", "300.0", "1000.0"]
-# Buckets used for the depth-ratio group (mid-book, where the snapshot is liquid).
+# Cumulative-depth buckets used for depth-ratio + book-slope (suffix == bps).
 _DEP_RATIO = ["1.0", "3.0", "10.0", "30.0", "100.0"]
+_DEP_SLOPE = ["0.1", "0.3", "1.0", "3.0", "10.0", "30.0", "100.0", "300.0", "1000.0"]
 
 _EPS = 1e-9
-# Winsorize most features to a generous band (units differ per group, so we
-# clip ratios in [-1,1] explicitly and clip the rest to a wide z-ish band after
-# scaling). Returns are in bps; rolling sums are robust-scaled per their group.
-_CLIP_RET_BPS = 500.0     # 1s..300s mid log-ret in bps; |500bps|=5% cap
-_CLIP_VOL_BPS = 1000.0
-_CLIP_GENERIC = 20.0      # for already-normalized (ratio / robust-scaled) feats
+# Generous finite clips per unit-group. These bound pathological outliers only;
+# they are NOT a scaler (the per-fold standardizer scales). Flows are clipped at
+# a wide band relative to their typical rolling-sum magnitude so the signal-
+# carrying body is untouched.
+_CLIP_RET_BPS = 1000.0   # multi-scale mid log-ret in bps; |1000bps|=10% cap
+_CLIP_VOL_BPS = 2000.0
+_CLIP_RATIO = 1.0        # bounded imbalances / ratios
+_CLIP_FLOW = 1e7         # raw rolling-sum flows: wide guard, signal body untouched
+_CLIP_SLOPE = 50.0       # OLS book-slope
 
 
 # ---------------------------------------------------------------------------
@@ -69,7 +94,9 @@ def _causal_roll_sum(x: np.ndarray, w: int) -> np.ndarray:
     """Trailing-window sum over [t-w+1, t] (inclusive of t). NaN-safe: NaNs count
     as 0 in the sum. Backward-only via cumulative sum.
 
-    out[t] = sum_{j=t-w+1..t} x[j]. For t < w-1 the window is partial (sum from 0).
+    out[t] = sum_{j=t-w+1..t} x[j]. For t < w the window is partial (sum from 0).
+    Matches the diagnostics probe's `roll_sum` exactly, so flow features are the
+    SAME construction the 0.053-0.055 Spearman was measured on.
     """
     xf = np.where(np.isfinite(x), x, 0.0)
     cs = np.cumsum(xf)
@@ -109,7 +136,9 @@ def _causal_roll_std(x: np.ndarray, w: int) -> np.ndarray:
 
 
 def _log_ret(mid: np.ndarray, k: int) -> np.ndarray:
-    """Causal k-step log return in bps: 1e4*(log mid[t] - log mid[t-k])."""
+    """Causal k-step log return in bps: 1e4*(log mid[t] - log mid[t-k]).
+    Sign-equivalent to the diagnostics probe's `logm[t]-logm[t-k]` (bps scaling
+    is monotone, so Spearman is identical)."""
     with np.errstate(divide="ignore", invalid="ignore"):
         lm = np.log(mid)
     out = lm - _causal_lag(lm, k)
@@ -138,103 +167,158 @@ def build_features(panel, sym: str) -> Tuple[np.ndarray, List[str]]:
     feats: List[np.ndarray] = []
     names: List[str] = []
 
-    def add(name: str, vals: np.ndarray, clip: float = _CLIP_GENERIC):
+    def add(name: str, vals: np.ndarray, clip: float):
         v = np.asarray(vals, dtype=np.float64)
         v = np.clip(v, -clip, clip)
         feats.append(v)
         names.append(name)
 
     # =====================================================================
-    # GROUP 1 — Multi-scale returns.
-    # Mechanism: momentum/reversal operate at different horizons; a multi-scale
-    # return basis lets the model pick the sign-coherent timescale for y_600.
-    # vwap/twap-vs-mid = execution-price pressure (where prints clustered vs the
-    # quote midpoint), a leading sign of order-flow direction.
+    # GROUP 1 — Multi-scale returns / reversal (THE strongest signal).
+    # Mechanism: at the 5-min scale crypto mid mean-REVERTS into the next 10 min
+    # (recent up-move -> next-10min down). ret_300s carried Spearman -0.058 in
+    # diagnostics — the single strongest univariate feature. The {30,60,120,600}
+    # scales give the model the timescale basis to pick the sign-coherent horizon
+    # (short scales can show continuation, long scales reversal).
+    # vwap/twap-vs-mid = execution-price pressure: where prints clustered vs the
+    # quote midpoint, a leading sign of order-flow direction.
     # =====================================================================
     for w in RET_WINDOWS:
-        add(f"ret_mid_{w}s", _log_ret(mid, w), clip=_CLIP_RET_BPS)
-    # execution-price pressure: (vwap-mid)/mid and (twap-mid)/mid in bps
+        add(f"ret_{w}s", _log_ret(mid, w), _CLIP_RET_BPS)
     with np.errstate(divide="ignore", invalid="ignore"):
         vwap_press = (vwap - mid) / mid * 1e4
         twap_press = (twap - mid) / mid * 1e4
-    add("vwap_press_bps", vwap_press, clip=_CLIP_RET_BPS)
-    add("twap_press_bps", twap_press, clip=_CLIP_RET_BPS)
-    # short rolling mean of the pressure (denoise the 1s print noise)
-    add("vwap_press_mean_30s", _causal_roll_mean(vwap_press, 30), clip=_CLIP_RET_BPS)
-    add("twap_press_mean_30s", _causal_roll_mean(twap_press, 30), clip=_CLIP_RET_BPS)
+    add("vwap_press_bps", vwap_press, _CLIP_RET_BPS)
+    add("twap_press_bps", twap_press, _CLIP_RET_BPS)
+    add("vwap_press_60s", _causal_roll_mean(vwap_press, 60), _CLIP_RET_BPS)
+    add("twap_press_60s", _causal_roll_mean(twap_press, 60), _CLIP_RET_BPS)
 
     # =====================================================================
-    # GROUP 2 — Realized volatility.
-    # Mechanism: vol regime conditions signal strength (alpha lives mostly in
-    # calm tape) and short-horizon RV is itself weakly predictive of |y_600|.
+    # GROUP 2 — Order flow, ROLLING SUMS (2nd strongest). NO expanding-RMS.
+    # Mechanism: aggressive (taker) and book-build flow = informed/directional
+    # pressure. At 300s these REVERSE with y_600 (-0.053/-0.054 Spearman); at 30s
+    # they CONTINUE (+0.04 Pearson). Five flow primitives, three windows each.
+    #   tradeflow = tdQtyBuy - tdQtySell          (signed taker quantity)
+    #   dollarflow= tdQtyPxBuy - tdQtyPxSell       (signed taker notional)
+    #   cntflow   = tdCntBuy - tdCntSell           (signed taker count, outlier-robust)
+    #   bookflow  = (bkAddBid-bkDelBid)-(bkAddAsk-bkDelAsk)  (net depth build)
+    #   midchg    = midChgUp - midChgDn            (uptick-downtick asymmetry)
+    # SCALING CHOICE: leave as raw rolling SUMS. The per-fold standardizer
+    # z-scores each column on the train fold (the only leak-free place to set a
+    # scale). This is exactly the construction the diagnostics measured the
+    # 0.053-0.055 Spearman on, so the signal is preserved bit-for-bit (vs the old
+    # expanding-RMS which shrank it to ~0.037).
+    # =====================================================================
+    tq_buy = _col(panel, sym, "tdQtyBuy")
+    tq_sell = _col(panel, sym, "tdQtySell")
+    tpx_buy = _col(panel, sym, "tdQtyPxBuy")
+    tpx_sell = _col(panel, sym, "tdQtyPxSell")
+    tc_buy = _col(panel, sym, "tdCntBuy")
+    tc_sell = _col(panel, sym, "tdCntSell")
+    add_bid = _col(panel, sym, "bkAddBid")
+    add_ask = _col(panel, sym, "bkAddAsk")
+    del_bid = _col(panel, sym, "bkDelBid")
+    del_ask = _col(panel, sym, "bkDelAsk")
+    chg_up = _col(panel, sym, "midChgUp")
+    chg_dn = _col(panel, sym, "midChgDn")
+
+    tradeflow = tq_buy - tq_sell
+    dollarflow = tpx_buy - tpx_sell
+    cntflow = tc_buy - tc_sell
+    bookflow = (add_bid - del_bid) - (add_ask - del_ask)
+    midchg = chg_up - chg_dn
+
+    flow_series = [
+        ("tradeflow", tradeflow),
+        ("dollarflow", dollarflow),
+        ("cntflow", cntflow),
+        ("bookflow", bookflow),
+        ("midchg", midchg),
+    ]
+    for nm, series in flow_series:
+        for w in FLOW_WINDOWS:
+            add(f"{nm}_{w}s", _causal_roll_sum(series, w), _CLIP_FLOW)
+
+    # =====================================================================
+    # GROUP 3 — Realized volatility (regime conditioner).
+    # Mechanism: vol regime conditions signal strength (alpha lives mostly in the
+    # calmer tape) and short-horizon RV is weakly predictive of |y_600|. Rolling
+    # std of 1s mid log-returns over {60,300}s.
     # =====================================================================
     r1 = _log_ret(mid, 1)  # 1s log-ret in bps
     for w in VOL_WINDOWS:
-        add(f"rv_{w}s", _causal_roll_std(r1, w), clip=_CLIP_VOL_BPS)
+        add(f"rv_{w}s", _causal_roll_std(r1, w), _CLIP_VOL_BPS)
 
     # =====================================================================
-    # GROUP 3 — Order-book imbalance / depth ratios (STATE).
+    # GROUP 4 — Book imbalance / depth ratios (STATE context).
     # Mechanism: queue imbalance = instantaneous pressure; size resting on each
-    # side biases the next mid tick. Multi-level OBI captures pressure deeper
-    # than L1; cumu-depth ratios capture it across price-distance buckets.
-    # NOTE: OFI (GROUP 5) is the FLOW counterpart and is the *primary* pressure
-    # signal (CKS-2014). These STATE ratios are retained as complementary
-    # context (level-of-book), not as the primary driver.
+    # side biases the next mid tick. L1 + multi-level OBI capture near-touch
+    # pressure; cumu-depth ratios capture it across price-distance buckets. These
+    # are STATE (snapshot) features — context, weaker than the FLOW group above.
     # =====================================================================
     bidsz = [_col(panel, sym, c) for c in _BID_SZ]
     asksz = [_col(panel, sym, c) for c in _ASK_SZ]
-    # L1 OBI
-    add("obi_L1", _imbalance(bidsz[0], asksz[0]), clip=1.0)
-    # multi-level OBI: cumulative depth over levels 0..n
+    add("obi_L1", _imbalance(bidsz[0], asksz[0]), _CLIP_RATIO)
     cum_b = np.zeros(T)
     cum_a = np.zeros(T)
     for lvl in range(5):
         cum_b = cum_b + bidsz[lvl]
         cum_a = cum_a + asksz[lvl]
         if lvl >= 1:  # L1 already added as obi_L1
-            add(f"obi_L{lvl + 1}", _imbalance(cum_b, cum_a), clip=1.0)
-    # cumu-depth ratio at bps buckets
+            add(f"obi_L{lvl + 1}", _imbalance(cum_b, cum_a), _CLIP_RATIO)
     for dx in _DEP_RATIO:
         cb = _col(panel, sym, f"cumu_bidsz_dep_{dx}")
         ca = _col(panel, sym, f"cumu_asksz_dep_{dx}")
-        add(f"depth_ratio_{dx}bps", _imbalance(cb, ca), clip=1.0)
+        add(f"depth_ratio_{dx}bps", _imbalance(cb, ca), _CLIP_RATIO)
 
-    # =====================================================================
-    # GROUP 4 — Cumulative-depth book SLOPE / shape.
-    # Mechanism: the liquidity curve's shape (how fast cumulative size grows
-    # with price distance) = resilience / price-impact. A steep curve = deep
-    # book = small impact; a flat curve = fragile. bps-normalized so the slope
-    # is cross-asset comparable (a property single-asset never used).
-    # We regress log(cumu_sz) on log(bps-distance) per side (causal: each row
-    # uses only that bar's snapshot).
-    # =====================================================================
-    log_bps = np.log(np.array([float(x) for x in _DEP_ALL]))   # (9,)
+    # Book SLOPE: OLS of log(cumu_sz) on log(bps-distance) per side, per row
+    # (causal — each row uses only that bar's snapshot). Steep curve = deep book
+    # = small impact; flat = fragile. Asymmetry = directional liquidity skew.
+    log_bps = np.log(np.array([float(x) for x in _DEP_SLOPE]))   # (9,)
     log_bps_c = log_bps - log_bps.mean()
     denom_slope = float(np.sum(log_bps_c ** 2))
-    bid_cumu = np.stack([_col(panel, sym, f"cumu_bidsz_dep_{dx}") for dx in _DEP_ALL], axis=1)
-    ask_cumu = np.stack([_col(panel, sym, f"cumu_asksz_dep_{dx}") for dx in _DEP_ALL], axis=1)
+    bid_cumu = np.stack([_col(panel, sym, f"cumu_bidsz_dep_{dx}") for dx in _DEP_SLOPE], axis=1)
+    ask_cumu = np.stack([_col(panel, sym, f"cumu_asksz_dep_{dx}") for dx in _DEP_SLOPE], axis=1)
     with np.errstate(divide="ignore", invalid="ignore"):
         lb = np.log(np.maximum(bid_cumu, _EPS))   # (T,9)
         la = np.log(np.maximum(ask_cumu, _EPS))
-    # OLS slope of log(size) ~ log(bps) per row = cov(x,y)/var(x)
     bid_slope = (lb - lb.mean(axis=1, keepdims=True)) @ log_bps_c / denom_slope
     ask_slope = (la - la.mean(axis=1, keepdims=True)) @ log_bps_c / denom_slope
-    add("book_slope_bid", bid_slope, clip=_CLIP_GENERIC)
-    add("book_slope_ask", ask_slope, clip=_CLIP_GENERIC)
-    add("book_slope_asym", bid_slope - ask_slope, clip=_CLIP_GENERIC)
+    add("book_slope_bid", bid_slope, _CLIP_SLOPE)
+    add("book_slope_ask", ask_slope, _CLIP_SLOPE)
+    add("book_slope_asym", bid_slope - ask_slope, _CLIP_SLOPE)
 
     # =====================================================================
-    # GROUP 5 — True multi-level OFI (FLOW) — PRIMARY pressure signal.
-    # Mechanism: Order-Flow Imbalance is a FLOW not a STATE. Cont-Kukanov-
-    # Stoikov (2014): per-level OFI explains the majority of short-horizon mid
-    # variance — the strongest known microstructure predictor. e_n compares the
-    # current snapshot to the previous (causal 1s diff):
-    #   bid side: +bidsz_n if bid_n rose, -bidsz_n_prev if bid_n fell, else
-    #             (bidsz_n - bidsz_n_prev) if price unchanged (queue replenish).
-    #   ask side: mirror (a rising ask = liquidity added against buyers).
-    # OFI_n = bid_term - ask_term; sum over 5 levels; rolling sums {30,60,300}.
-    # This REPLACES static OBI as the primary directional feature (OBI kept as
-    # complementary state context, see GROUP 3 note). Robust-scaled per asset.
+    # GROUP 5 — Spread (cost / adverse-selection / vol proxy).
+    # Mechanism: wide spread = uncertain / expensive regime where y_600 sign is
+    # noisier and trades are uneconomic. Level + short rolling mean (denoised).
+    # =====================================================================
+    bid0 = _col(panel, sym, "bid")
+    ask0 = _col(panel, sym, "ask")
+    with np.errstate(divide="ignore", invalid="ignore"):
+        spread_bps = np.where(mid > _EPS, (ask0 - bid0) / mid * 1e4, np.nan)
+    add("spread_bps", spread_bps, _CLIP_VOL_BPS)
+    add("spread_bps_60s", _causal_roll_mean(spread_bps, 60), _CLIP_VOL_BPS)
+
+    # =====================================================================
+    # GROUP 6 — VPIN-style toxicity (informed-flow / regime flag).
+    # Mechanism: |signed taker qty| / total taker qty over a window = fraction of
+    # one-sided (toxic/informed) flow. High VPIN flags adverse-selection regimes
+    # where the sign is sharper but also riskier. Bounded [0,1].
+    # =====================================================================
+    total_qty = tq_buy + tq_sell
+    for w in (60, 300):
+        absnum = _causal_roll_sum(np.abs(tradeflow), w)
+        sden = _causal_roll_sum(total_qty, w)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            add(f"vpin_{w}s", np.where(sden > _EPS, absnum / sden, 0.0), _CLIP_RATIO)
+
+    # =====================================================================
+    # GROUP 7 — OFI summary (DEPRIORITIZED — diagnostics: ~0.016 Spearman).
+    # Mechanism: Cont-Kukanov-Stoikov order-flow imbalance (signed per-level queue
+    # change) is the classic microstructure predictor, but on BTC y_600 it was
+    # WEAK (much weaker than trade/dollar/book flow). Kept as a SINGLE 60s summary
+    # for completeness / non-linear interactions, NOT as a per-window block.
     # =====================================================================
     bid_px = [_col(panel, sym, c) for c in _BID_PX]
     ask_px = [_col(panel, sym, c) for c in _ASK_PX]
@@ -244,104 +328,14 @@ def build_features(panel, sym: str) -> Tuple[np.ndarray, List[str]]:
         ap, apz = ask_px[lvl], asksz[lvl]
         bp_prev, bpz_prev = _causal_lag(bp, 1), _causal_lag(bpz, 1)
         ap_prev, apz_prev = _causal_lag(ap, 1), _causal_lag(apz, 1)
-        with np.errstate(invalid="ignore"):  # NaN price comparisons in warmup -> False
-            # bid contribution
+        with np.errstate(invalid="ignore"):  # NaN comparisons in warmup -> False
             bid_term = np.where(bp > bp_prev, bpz,
                        np.where(bp < bp_prev, -bpz_prev, bpz - bpz_prev))
-            # ask contribution (a rising ask price withdraws sell liquidity => +)
-            ask_term = np.where(ap > ap_prev, apz_prev,
-                       np.where(ap < ap_prev, -apz, apz - apz_prev))
+            ask_term = np.where(ap < ap_prev, apz,
+                       np.where(ap > ap_prev, -apz_prev, apz - apz_prev))
         ofi_per_bar = ofi_per_bar + np.where(np.isfinite(bid_term), bid_term, 0.0) \
                                   - np.where(np.isfinite(ask_term), ask_term, 0.0)
-    # CAUSAL scale: expanding-window RMS (uses only bars <= t). A whole-series
-    # MAD/std would leak the future into past rows (it changes when a future bar
-    # changes) — the downstream per-asset Ridge standardizes anyway, so we only
-    # need a stable, strictly-causal unit here.
-    ofi_scale = _causal_expanding_scale(ofi_per_bar)
-    add("ofi_1s", ofi_per_bar / ofi_scale, clip=_CLIP_GENERIC)
-    for w in FLOW_WINDOWS:
-        rs = _causal_roll_sum(ofi_per_bar, w)
-        add(f"ofi_{w}s", rs / (ofi_scale * np.sqrt(w)), clip=_CLIP_GENERIC)
-
-    # =====================================================================
-    # GROUP 6 — Deep-book OFI proxy (bkAdd/bkDel).
-    # Mechanism: bkAdd/bkDel ARE the order-flow primitives at depth that the
-    # 5-level snapshot misses — net liquidity added/pulled beyond L5. Net bid
-    # build vs net ask build = directional depth pressure.
-    # net = (bkAddBid - bkDelBid) - (bkAddAsk - bkDelAsk).
-    # =====================================================================
-    add_bid = _col(panel, sym, "bkAddBid")
-    add_ask = _col(panel, sym, "bkAddAsk")
-    del_bid = _col(panel, sym, "bkDelBid")
-    del_ask = _col(panel, sym, "bkDelAsk")
-    deep_ofi = (add_bid - del_bid) - (add_ask - del_ask)
-    deep_scale = _causal_expanding_scale(deep_ofi)
-    add("deep_ofi_1s", deep_ofi / deep_scale, clip=_CLIP_GENERIC)
-    for w in FLOW_WINDOWS:
-        rs = _causal_roll_sum(deep_ofi, w)
-        add(f"deep_ofi_{w}s", rs / (deep_scale * np.sqrt(w)), clip=_CLIP_GENERIC)
-
-    # =====================================================================
-    # GROUP 7 — Signed trade flow.
-    # Mechanism: aggressive (taker) trade imbalance = informed pressure; the
-    # side that lifts/hits pushes mid. Quantity, dollar, and count imbalances
-    # are three views (count robust to size outliers). VPIN-style toxicity
-    # (|signed| / total over a window) flags informed/adverse regimes where
-    # signal direction is sharper.
-    # =====================================================================
-    tq_buy = _col(panel, sym, "tdQtyBuy")
-    tq_sell = _col(panel, sym, "tdQtySell")
-    tpx_buy = _col(panel, sym, "tdQtyPxBuy")
-    tpx_sell = _col(panel, sym, "tdQtyPxSell")
-    tc_buy = _col(panel, sym, "tdCntBuy")
-    tc_sell = _col(panel, sym, "tdCntSell")
-    # instantaneous imbalances
-    add("tflow_qty_imb", _imbalance(tq_buy, tq_sell), clip=1.0)
-    add("tflow_dollar_imb", _imbalance(tpx_buy, tpx_sell), clip=1.0)
-    add("tflow_cnt_imb", _imbalance(tc_buy, tc_sell), clip=1.0)
-    # rolling signed-qty imbalance over windows (smoother informed-flow estimate)
-    signed_qty = tq_buy - tq_sell
-    total_qty = tq_buy + tq_sell
-    for w in FLOW_WINDOWS:
-        snum = _causal_roll_sum(signed_qty, w)
-        sden = _causal_roll_sum(total_qty, w)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            add(f"tflow_qty_imb_{w}s",
-                np.where(sden > _EPS, snum / sden, 0.0), clip=1.0)
-    # VPIN-style toxicity: |signed| / total over a window (bounded [0,1])
-    for w in (60, 300):
-        absnum = _causal_roll_sum(np.abs(signed_qty), w)
-        sden = _causal_roll_sum(total_qty, w)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            add(f"vpin_{w}s",
-                np.where(sden > _EPS, absnum / sden, 0.0), clip=1.0)
-
-    # =====================================================================
-    # GROUP 8 — Mid-change asymmetry.
-    # Mechanism: up-tick vs down-tick count asymmetry within a bar = directional
-    # microstructure drift (the tape "wants" to go one way) — a sign-only,
-    # size-agnostic momentum proxy that is robust to size outliers.
-    # =====================================================================
-    chg_up = _col(panel, sym, "midChgUp")
-    chg_dn = _col(panel, sym, "midChgDn")
-    add("midchg_asym", _imbalance(chg_up, chg_dn), clip=1.0)
-    for w in (30, 60, 300):
-        up_s = _causal_roll_sum(chg_up, w)
-        dn_s = _causal_roll_sum(chg_dn, w)
-        add(f"midchg_asym_{w}s", _imbalance(up_s, dn_s), clip=1.0)
-
-    # =====================================================================
-    # GROUP 9 — Spread.
-    # Mechanism: spread = adverse-selection / vol proxy AND a cost gate — wide
-    # spread = uncertain / expensive regime where y_600 sign is noisier and
-    # trades are uneconomic. Level + short rolling mean (denoised).
-    # =====================================================================
-    bid0 = bid_px[0]
-    ask0 = ask_px[0]
-    with np.errstate(divide="ignore", invalid="ignore"):
-        spread_bps = np.where(mid > _EPS, (ask0 - bid0) / mid * 1e4, np.nan)
-    add("spread_bps", spread_bps, clip=_CLIP_VOL_BPS)
-    add("spread_bps_mean_60s", _causal_roll_mean(spread_bps, 60), clip=_CLIP_VOL_BPS)
+    add("ofi_60s", _causal_roll_sum(ofi_per_bar, 60), _CLIP_FLOW)
 
     # ---------------------------------------------------------------------
     # Assemble, sanitize: nan_to_num after warmup so rows >= warmup are finite.
@@ -349,25 +343,6 @@ def build_features(panel, sym: str) -> Tuple[np.ndarray, List[str]]:
     F = np.stack(feats, axis=1).astype(np.float64)
     F = np.nan_to_num(F, nan=0.0, posinf=0.0, neginf=0.0)
     return F.astype(np.float32), names
-
-
-def _causal_expanding_scale(x: np.ndarray, floor: float = 1.0) -> np.ndarray:
-    """Strictly-causal per-row scale: sqrt of the EXPANDING mean of x^2 over
-    bars [0, t] (RMS). out[t] uses ONLY bars <= t, so a future perturbation can
-    never change a past row's scale — this is exactly what the causality test
-    enforces (no backward-in-time dependency either: we never index a future
-    row to fill an earlier one).
-
-    RMS (not expanding-MAD) is chosen because it's O(T) via cumsum and stable;
-    exact per-asset scaling is the downstream Ridge standardizer's job — here we
-    only need a finite, causal unit so OFI magnitudes don't saturate the clip.
-    `floor` (=1.0) guards the tiny-n early region and near-constant series from
-    dividing by ~0."""
-    xf = np.where(np.isfinite(x), x, 0.0)
-    n = np.arange(1, x.shape[0] + 1, dtype=np.float64)
-    ms = np.cumsum(xf ** 2) / n                      # expanding mean of squares
-    scale = np.sqrt(np.maximum(ms, 0.0))
-    return np.maximum(scale, floor)
 
 
 # ---------------------------------------------------------------------------

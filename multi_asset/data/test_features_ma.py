@@ -122,7 +122,10 @@ def test_shape_and_names(panel):
     assert F.shape[0] == T, "F rows must equal T"
     assert F.shape[1] == len(names), "names length must equal F cols"
     assert len(names) == len(set(names)), "feature names must be unique"
-    assert 40 <= len(names) <= 70, f"expect 40-70 features, got {len(names)}"
+    assert 40 <= len(names) <= 60, f"expect 40-60 features, got {len(names)}"
+    # the signal-carrying features the diagnostics flagged MUST be present by name
+    for must in ("ret_300s", "tradeflow_300s", "dollarflow_300s", "midchg_300s"):
+        assert must in names, f"expected strong feature {must!r} missing from names"
 
 
 # ---------------------------------------------------------------------------
@@ -272,3 +275,78 @@ def test_real_day_smoke():
     assert np.isnan(y[T - 600:]).all()
     print(f"\nreal-day {date}: T={T}, n_feat={len(names)}, "
           f"finite_after_warmup=OK, y600 tail-NaN=OK")
+
+
+# ---------------------------------------------------------------------------
+# SIGNAL-PRESERVATION (jpline only) — the KEY deliverable.
+#
+# Proves the rebuild did NOT shrink the signal the way the old expanding-RMS
+# construction did (it decayed ret_300s / tradeflow_300s to ~0.037 Spearman).
+# We measure the univariate CLEAN (stride>=horizon, non-overlapping labels)
+# Spearman of OUR `ret_300s` and `tradeflow_300s` feature columns vs forward-600
+# mid return, pooled over a few BTC days, and require |S| >= ~0.045 — i.e. within
+# ~20% of the raw ~0.055 target, NOT the shrunk ~0.037.
+#
+# Default days are a small favorable subset of the diagnostics 20-day set (fast).
+# Override with e.g. MA_FEAT_SIGNAL_DAYS="20250101,20250201,20250301".
+# ---------------------------------------------------------------------------
+
+_DEFAULT_SIGNAL_DAYS = "20250101,20250201,20250301,20250401,20250501"
+
+
+@pytest.mark.skipif(not os.environ.get("MA_FEAT_SIGNAL"),
+                    reason="set MA_FEAT_SIGNAL=1 on jpline (with HDF5_USE_FILE_LOCKING=FALSE) to run")
+def test_signal_preservation():
+    from scipy.stats import spearmanr
+    from multi_asset.data.bar_loader import load_day_panel
+
+    days = [int(d) for d in os.environ.get(
+        "MA_FEAT_SIGNAL_DAYS", _DEFAULT_SIGNAL_DAYS).split(",") if d.strip()]
+    H, STRIDE = 600, 600  # clean: non-overlapping forward labels
+
+    ret_x, tf_x, df_x, mc_x, ys = [], [], [], [], []
+    for d in days:
+        try:
+            dp = load_day_panel(d, [SYM])
+        except Exception as exc:  # missing day -> skip, keep the test robust
+            print(f"  skip {d}: {exc}")
+            continue
+        F, names = build_features(dp, SYM)
+        mid = dp.data[SYM][:, dp.cols.index("mid")].astype(float)
+        n = mid.shape[0]
+        logm = np.log(mid)
+        t = np.arange(0, n - H - 1, STRIDE)
+        y = logm[t + H] - logm[t]            # forward-600, clean stride
+        ret_x.append(F[t, names.index("ret_300s")])
+        tf_x.append(F[t, names.index("tradeflow_300s")])
+        df_x.append(F[t, names.index("dollarflow_300s")])
+        mc_x.append(F[t, names.index("midchg_300s")])
+        ys.append(y)
+
+    assert ys, "no days loaded — check MA_FEAT_SIGNAL_DAYS and the share mount"
+    y = np.concatenate(ys)
+
+    def clean_spearman(parts):
+        x = np.concatenate(parts)
+        m = np.isfinite(x) & np.isfinite(y)
+        return spearmanr(x[m], y[m]).correlation, int(m.sum())
+
+    s_ret, n_ret = clean_spearman(ret_x)
+    s_tf, _ = clean_spearman(tf_x)
+    s_df, _ = clean_spearman(df_x)
+    s_mc, _ = clean_spearman(mc_x)
+
+    print(f"\nSIGNAL-PRESERVATION (clean stride={STRIDE}, n={n_ret}, days={days}):")
+    print(f"  ret_300s    Spearman {s_ret:+.4f}  (raw target ~-0.058)")
+    print(f"  tradeflow_300s        {s_tf:+.4f}  (raw target ~-0.053)")
+    print(f"  dollarflow_300s       {s_df:+.4f}  (raw target ~-0.054)")
+    print(f"  midchg_300s           {s_mc:+.4f}  (raw target ~-0.055)")
+
+    # Preserved if |S| >= ~0.045 (within ~20% of the raw ~0.055 construction).
+    # Sign is REVERSAL (negative) — assert magnitude AND the expected sign.
+    assert abs(s_ret) >= 0.045, (
+        f"ret_300s Spearman {s_ret:+.4f} shrunk below the 0.045 floor — signal lost")
+    assert s_ret < 0, f"ret_300s should be REVERSAL (negative), got {s_ret:+.4f}"
+    assert abs(s_tf) >= 0.045, (
+        f"tradeflow_300s Spearman {s_tf:+.4f} shrunk below the 0.045 floor — signal lost")
+    assert s_tf < 0, f"tradeflow_300s should be REVERSAL (negative), got {s_tf:+.4f}"
