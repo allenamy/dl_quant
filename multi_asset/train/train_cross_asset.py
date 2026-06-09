@@ -58,6 +58,8 @@ EXPORT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
 SYMBOLS = ["bnfbtc", "bnfeth", "bnfsol", "bnfbnb", "bnfxrp", "bnfdog", "bnfada",
            "bnflink", "bnfbch", "bnftrx", "bnfltc", "bnfdot", "bnffil", "bnfetc"]
 
+DVOL_FILE = p.join(CACHE, "dollar_vol.npz")   # train-fixed cap weights (Phase 1)
+
 # SAME fold layout as the Ridge gate (a2_ridge_snr.json / xsec_ridge.py).
 FOLDS = [dict(tr=(0, 250), te=(272, 312)),
          dict(tr=(80, 330), te=(352, 392)),
@@ -91,6 +93,19 @@ DEV = "cuda" if torch.cuda.is_available() else "cpu"
 def load_sym(sym):
     d = np.load(p.join(CACHE, f"{sym}.npz"))
     return d["X"], d["y"], d["day"], d["ts"], d["clean600"]
+
+
+def load_cap_weights():
+    """Train-fixed per-asset dollar-volume cap weights for the Phase-1 market
+    token (built by build_dollar_vol.py). Order MUST match SYMBOLS. Returns None
+    if the file is absent (model then falls back to equal weights)."""
+    if not p.exists(DVOL_FILE):
+        print(f"[cap] {DVOL_FILE} missing -> market token uses equal cap weights", flush=True)
+        return None
+    d = np.load(DVOL_FILE, allow_pickle=True)
+    syms = [str(s) for s in d["sym"]]
+    assert syms == SYMBOLS, f"dollar_vol sym order {syms} != SYMBOLS {SYMBOLS}"
+    return d["dvol_med"].astype(np.float32)
 
 
 def build_panel():
@@ -162,6 +177,51 @@ def xsec_pearson_loss(pred, target, mask, eps=1e-6):
     pc = torch.where(valid, pred - mp, torch.zeros_like(pred))
     tc = torch.where(valid, target - mt, torch.zeros_like(target))
     num = (pc * tc).sum(dim=1)                        # (B,)
+    sp = torch.sqrt((pc * pc).sum(dim=1).clamp(min=eps))
+    st = torch.sqrt((tc * tc).sum(dim=1).clamp(min=eps))
+    ic = num / (sp * st)
+    losses = (1.0 - ic) * enough.to(pred.dtype)
+    n_ok = enough.to(pred.dtype).sum().clamp(min=1.0)
+    return losses.sum() / n_ok
+
+
+def soft_xsec_rank_loss(pred, target, mask, temp=0.1, eps=1e-6):
+    """Differentiable soft cross-sectional rank loss (Spearman surrogate).
+
+    Per timestep, over the valid assets: soft-rank each of pred/target via the
+    pairwise-sigmoid rank approximation r_i = sum_j sigmoid((x_i - x_j)/temp),
+    then return mean over timesteps of (1 - Pearson(soft_rank_pred,
+    soft_rank_target)). S<=14 so the O(S^2) pairwise op is cheap. ADD-only term
+    (weight <=0.1) — never replaces the Huber+Pearson primary.
+    """
+    valid = (mask > 0.5) & torch.isfinite(pred) & torch.isfinite(target)
+    v = valid.to(pred.dtype)                              # (B, S)
+    count = v.sum(dim=1)                                  # (B,)
+    enough = count >= 3.0
+    if not enough.any():
+        return torch.zeros((), device=pred.device, dtype=pred.dtype)
+
+    def soft_rank(x):
+        # pairwise difference (B, S, S); compare i vs j among VALID j only.
+        xi = x.unsqueeze(2)                               # (B, S, 1)
+        xj = x.unsqueeze(1)                               # (B, 1, S)
+        vj = v.unsqueeze(1)                               # (B, 1, S) valid of j
+        gt = torch.sigmoid((xi - xj) / temp) * vj         # (B, S, S)
+        return gt.sum(dim=2)                              # (B, S) soft rank
+
+    # mask invalid assets to a neutral value so they don't perturb the ranks of
+    # valid ones (they get zero weight via vj, and we drop them from the corr).
+    p0 = torch.where(valid, pred, torch.zeros_like(pred))
+    t0 = torch.where(valid, target, torch.zeros_like(target))
+    rp = soft_rank(p0)                                    # (B, S)
+    rt = soft_rank(t0)
+    # Pearson across valid assets per timestep on the soft ranks.
+    cnt = count.clamp(min=1.0).unsqueeze(1)
+    mp = (rp * v).sum(dim=1, keepdim=True) / cnt
+    mt = (rt * v).sum(dim=1, keepdim=True) / cnt
+    pc = (rp - mp) * v
+    tc = (rt - mt) * v
+    num = (pc * tc).sum(dim=1)
     sp = torch.sqrt((pc * pc).sum(dim=1).clamp(min=eps))
     st = torch.sqrt((tc * tc).sum(dim=1).clamp(min=eps))
     ic = num / (sp * st)
@@ -284,11 +344,12 @@ def eval_fold(model, Xn_te, Y_te, CL_te, sig, target="raw"):
 
 
 def val_xsec_ic(model, Xn_va, Y_va, sig):
-    """Cross-sectional rank-IC on ALL valid val rows (not just clean — val is for
-    early stop, denser is fine and faster to react). Uses feature-finite mask."""
+    """Val metrics for early-stop/BEST on ALL valid val rows (not just clean —
+    val is for early stop, denser is fine and faster to react). Uses feature-
+    finite mask. Returns (xsec_rank_ic, mean_per_asset_P, sigma_ratio)."""
     feat_valid = np.isfinite(Xn_va).all(axis=2)
     pred = predict_block(model, Xn_va, feat_valid)
-    ics, sr_n, sr_d = [], 0.0, 0.0
+    ics, per_P, sr_n, sr_d = [], [], 0.0, 0.0
     for t in range(pred.shape[0]):
         v = feat_valid[t] & np.isfinite(Y_va[t]) & np.isfinite(pred[t])
         if v.sum() >= 5:
@@ -298,10 +359,15 @@ def val_xsec_ic(model, Xn_va, Y_va, sig):
     for si in range(Y_va.shape[1]):
         m = feat_valid[:, si] & np.isfinite(Y_va[:, si]) & np.isfinite(pred[:, si])
         if m.sum() > 50:
+            P_ = pearsonr(pred[m, si], Y_va[m, si])[0]
+            if np.isfinite(P_):
+                per_P.append(P_)
             sr_n += (pred[m, si] * sig[si]).std() * m.sum()
             sr_d += Y_va[m, si].std() * m.sum()
     sig_ratio = (sr_n / sr_d) if sr_d > 0 else 0.0
-    return (float(np.mean(ics)) if ics else float("nan")), sig_ratio
+    return (float(np.mean(ics)) if ics else float("nan"),
+            float(np.mean(per_P)) if per_P else float("nan"),
+            sig_ratio)
 
 
 # --------------------------------------------------------------------------- #
@@ -314,7 +380,8 @@ def make_batches(ts_idx, batch, rng, shuffle=True):
     return [idx[i:i + batch] for i in range(0, len(idx), batch)]
 
 
-def train_fold(fold_i, fold, uniq, day, X, Y, CL, max_epochs, patience, verbose=True):
+def train_fold(fold_i, fold, uniq, day, X, Y, CL, max_epochs, patience,
+               cfg, cap_w=None, verbose=True):
     masks = fold_day_masks(uniq, day, fold)
     if masks is None:
         return None
@@ -339,13 +406,20 @@ def train_fold(fold_i, fold, uniq, day, X, Y, CL, max_epochs, patience, verbose=
               f"{np.array2string(sig, precision=4, max_line_width=200)}", flush=True)
 
     n_feat, n_assets = X.shape[2], X.shape[1]
+    cap_t = (torch.from_numpy(cap_w).to(DEV)
+             if (cfg["market_token"] and cap_w is not None) else None)
     torch.manual_seed(SEED)
     np.random.seed(SEED)
     model = CrossAssetPanelModel(n_feat, n_assets, d=D_MODEL, nhead=N_HEAD,
-                                 n_layers=N_LAYERS, n_out=N_OUT, dropout=DROPOUT).to(DEV)
+                                 n_layers=N_LAYERS, n_out=N_OUT, dropout=DROPOUT,
+                                 use_market_token=cfg["market_token"],
+                                 use_factor_split=cfg["factor_split"],
+                                 cap_weights=cap_t).to(DEV)
     if fold_i == 0 and verbose:
         print(f"[model] CrossAssetPanelModel params = {count_params(model):,} "
-              f"(d={D_MODEL}, layers={N_LAYERS}, nhead={N_HEAD})", flush=True)
+              f"(d={D_MODEL}, layers={N_LAYERS}, nhead={N_HEAD}) "
+              f"market_token={cfg['market_token']} factor_split={cfg['factor_split']} "
+              f"composite_val={cfg['composite_val']} soft_rank={cfg['soft_rank']})", flush=True)
     opt = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WD)
     rng = np.random.default_rng(SEED)
 
@@ -356,7 +430,7 @@ def train_fold(fold_i, fold, uniq, day, X, Y, CL, max_epochs, patience, verbose=
     for ep in range(max_epochs):
         model.train()
         batches = make_batches(tr_ts, BATCH_TS, rng, shuffle=True)
-        ep_loss = ep_h = ep_x = 0.0
+        ep_loss = ep_h = ep_x = ep_r = 0.0
         nb = 0
         for bts in batches:
             xb = torch.from_numpy(Xn[bts]).to(DEV)        # (B,S,F)
@@ -366,21 +440,33 @@ def train_fold(fold_i, fold, uniq, day, X, Y, CL, max_epochs, patience, verbose=
             lh = masked_huber(pred, yb, mb)
             lx = xsec_pearson_loss(pred, yb, mb)
             loss = LAMBDA_HUBER * lh + LAMBDA_XSEC * lx
+            # Phase 3: ADD soft cross-sectional rank term (never REPLACE).
+            if cfg["soft_rank"] > 0:
+                lr_ = soft_xsec_rank_loss(pred, yb, mb)
+                loss = loss + cfg["soft_rank"] * lr_
+                ep_r += float(lr_.item())
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
             ep_loss += float(loss.item()); ep_h += float(lh.item()); ep_x += float(lx.item())
             nb += 1
-        ep_loss /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
+        ep_loss /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1); ep_r /= max(nb, 1)
 
-        vic, vsig = val_xsec_ic(model, Xn[va_ts], Y[va_ts], sig)
+        vic, vp, vsig = val_xsec_ic(model, Xn[va_ts], Y[va_ts], sig)
         gated = (vsig >= SIGMA_GATE)
+        # composite val (Phase 3): 0.5*xsec_rank_IC + 0.5*mean per-asset P.
+        if cfg["composite_val"] and np.isfinite(vic) and np.isfinite(vp):
+            vscore = 0.5 * vic + 0.5 * vp
+        else:
+            vscore = vic
         tag = "" if gated else "  [sigma<gate -> not BEST]"
         if verbose:
-            print(f"  ep{ep:2d}  loss={ep_loss:.4f} (huber={ep_h:.4f} xsec={ep_x:.4f})  "
-                  f"val_xsec_IC={vic:+.4f}  val_sigma_ratio={vsig:.3f}{tag}", flush=True)
-        score = vic if (np.isfinite(vic) and gated) else -1e9
+            rstr = f" rank={ep_r:.4f}" if cfg["soft_rank"] > 0 else ""
+            print(f"  ep{ep:2d}  loss={ep_loss:.4f} (huber={ep_h:.4f} xsec={ep_x:.4f}{rstr})  "
+                  f"val_xsec_IC={vic:+.4f} val_P={vp:+.4f} val_score={vscore:+.4f}  "
+                  f"val_sigma_ratio={vsig:.3f}{tag}", flush=True)
+        score = vscore if (np.isfinite(vscore) and gated) else -1e9
         if score > best_val:
             best_val = score
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
@@ -390,26 +476,77 @@ def train_fold(fold_i, fold, uniq, day, X, Y, CL, max_epochs, patience, verbose=
             bad += 1
             if bad >= patience:
                 if verbose:
-                    print(f"  early stop at ep{ep} (best ep{best_epoch} val_xsec_IC={best_val:+.4f})", flush=True)
+                    print(f"  early stop at ep{ep} (best ep{best_epoch} val_score={best_val:+.4f})", flush=True)
                 break
 
     if best_state is not None:
         model.load_state_dict(best_state)
     metrics = eval_fold(model, Xn[te_ts], Y[te_ts], CL[te_ts], sig)
     metrics["best_epoch"] = best_epoch
-    metrics["best_val_xsec_ic"] = round(best_val, 4) if best_val > -1e8 else None
+    metrics["best_val_score"] = round(best_val, 4) if best_val > -1e8 else None
     metrics["n_params"] = count_params(model)
     return metrics
 
 
 # --------------------------------------------------------------------------- #
+# Phase config. Default = full Phase-3 (all modules on). Individual flags let
+# the baseline graph be recovered; --phase {0,1,2,3} is a convenience preset
+# for the gate sweep (each preset is the SAME as setting the flags by hand).
+# --------------------------------------------------------------------------- #
+PHASE_PRESETS = {
+    0: dict(market_token=False, factor_split=False, composite_val=False, soft_rank=0.0),
+    1: dict(market_token=True,  factor_split=False, composite_val=False, soft_rank=0.0),
+    2: dict(market_token=True,  factor_split=True,  composite_val=False, soft_rank=0.0),
+    3: dict(market_token=True,  factor_split=True,  composite_val=True,  soft_rank=0.1),
+}
+
+
+def build_cfg(args):
+    if args.phase is not None:
+        cfg = dict(PHASE_PRESETS[args.phase])
+    else:
+        # default = full Phase-3; individual flags override.
+        cfg = dict(PHASE_PRESETS[3])
+    # individual flags (if explicitly given) override the preset
+    if args.market_token is not None:
+        cfg["market_token"] = args.market_token
+    if args.factor_split is not None:
+        cfg["factor_split"] = args.factor_split
+    if args.composite_val is not None:
+        cfg["composite_val"] = args.composite_val
+    if args.soft_rank is not None:
+        cfg["soft_rank"] = args.soft_rank
+    if cfg["factor_split"] and not cfg["market_token"]:
+        raise SystemExit("factor_split requires market_token (factor reads the market token)")
+    return cfg
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true",
                     help="fold 0 only, 5 epochs (no early stop) — leakage/learning sanity")
+    ap.add_argument("--phase", type=int, choices=[0, 1, 2, 3], default=None,
+                    help="preset: 0=baseline 1=+market_token 2=+factor_split 3=full (default)")
+    # individual flags (override the preset). store as tri-state (None=use preset)
+    ap.add_argument("--market_token", dest="market_token", action="store_true", default=None)
+    ap.add_argument("--no_market_token", dest="market_token", action="store_false")
+    ap.add_argument("--factor_split", dest="factor_split", action="store_true", default=None)
+    ap.add_argument("--no_factor_split", dest="factor_split", action="store_false")
+    ap.add_argument("--composite_val", dest="composite_val", action="store_true", default=None)
+    ap.add_argument("--no_composite_val", dest="composite_val", action="store_false")
+    ap.add_argument("--soft_rank", type=float, default=None,
+                    help="weight of the ADD soft xsec rank term (<=0.1); 0 disables")
+    ap.add_argument("--tag", type=str, default=None,
+                    help="output JSON suffix (default = derived from cfg)")
     args = ap.parse_args()
 
+    cfg = build_cfg(args)
+    tag = args.tag or (f"mt{int(cfg['market_token'])}_fs{int(cfg['factor_split'])}"
+                       f"_cv{int(cfg['composite_val'])}_sr{cfg['soft_rank']:g}")
     print(f"[env] device={DEV} torch={torch.__version__}", flush=True)
+    print(f"[cfg] {cfg}  tag={tag}", flush=True)
+    cap_w = load_cap_weights() if cfg["market_token"] else None
+
     t0 = time.time()
     ts, day, X, Y, CL = build_panel()
     uniq = np.unique(day)
@@ -419,7 +556,7 @@ def main():
     if args.smoke:
         print("\n===== SMOKE: fold 0, 5 epochs =====", flush=True)
         m = train_fold(0, FOLDS[0], uniq, day, X, Y, CL,
-                       max_epochs=5, patience=999, verbose=True)
+                       max_epochs=5, patience=999, cfg=cfg, cap_w=cap_w, verbose=True)
         print("\n----- SMOKE RESULT (fold 0, 5 epochs) -----", flush=True)
         print(json.dumps(m, indent=2), flush=True)
         beat = (np.isfinite(m["xsec_rank_ic"]) and m["xsec_rank_ic"] > 0.0403)
@@ -435,7 +572,8 @@ def main():
     for i, fold in enumerate(FOLDS):
         print(f"\n----- fold {i} -----", flush=True)
         m = train_fold(i, fold, uniq, day, X, Y, CL,
-                       max_epochs=MAX_EPOCHS, patience=PATIENCE, verbose=True)
+                       max_epochs=MAX_EPOCHS, patience=PATIENCE,
+                       cfg=cfg, cap_w=cap_w, verbose=True)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rank_IC={m['xsec_rank_ic']:+.4f} "
@@ -444,16 +582,20 @@ def main():
 
     if all_m:
         pooled = dict(
+            cfg=cfg,
             mean_xsec_rank_ic=round(float(np.mean([m["xsec_rank_ic"] for m in all_m])), 4),
             mean_per_asset_P=round(float(np.mean([m["per_asset_P"] for m in all_m])), 4),
             mean_per_asset_S=round(float(np.mean([m["per_asset_S"] for m in all_m])), 4),
             mean_sigma_ratio=round(float(np.mean([m["sigma_ratio"] for m in all_m])), 4),
+            per_fold_P=[round(m["per_asset_P"], 4) for m in all_m],
+            per_fold_S=[round(m["per_asset_S"], 4) for m in all_m],
+            per_fold_xsec_ic=[round(m["xsec_rank_ic"], 4) for m in all_m],
             per_fold=all_m,
             ridge_xsec_baseline=0.0403,
             n_params=all_m[0]["n_params"],
         )
         os.makedirs(EXPORT, exist_ok=True)
-        out = p.join(EXPORT, "cross_asset_panel_3fold.json")
+        out = p.join(EXPORT, f"cross_asset_panel_3fold_{tag}.json")
         with open(out, "w") as f:
             json.dump(pooled, f, indent=2)
         print("\n===== POOLED 3-FOLD =====", flush=True)
