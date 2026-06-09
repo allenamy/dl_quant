@@ -23,6 +23,23 @@ The earlier "BTC-on-bar 0.033 << single-asset 0.072, 5-level loses half the sign
 - **Run 1:** bar dual-path DL (47 hand + 5-level raw, REG_arch) on BTC → fair vs single-asset DL 0.065. Is the gap architecture or depth?
 - **Run 2:** Run 1 + BTC 25-level raw tower (Approach B, user's proposal) → isolates depth's incremental lift.
 
+
+## ✅ RUN 1 RESULT (fair dual-path DL, BTC fold-0) — 2026-06-09
+
+Authoritative trainer test_preds (EMA-best), test 2025-02-09..05-09, clean:
+**P=+0.030, S=+0.039, sigma_ratio=0.029** (raw-best P=+0.026 S=+0.037).
+- vs bar Ridge: Pearson neg (fat-tail) -> DL +0.030; Spearman 0.033->0.039. **DL DID help.**
+- vs single-asset 25-level DL fold-0 (~0.058 P): bar DL = ~52% P / ~65% S.
+- => bar data is NOT weak/dead; DL extracts real signal. Gap to single-asset is
+  consistent with DATA RICHNESS (5-level bar vs 25-level LOB), supporting the
+  25-level hypothesis. NOT an architecture problem.
+- LESSON: my epoch-8 manual peek (P=0.0015) UNDERESTIMATED; trust the pipeline's
+  own test_preds eval (correct normalization/checkpoint). Don't conclude on partial peeks.
+
+**PIVOT -> Run 2:** add BTC 25-level LOB (book_snapshot_25, resampled to bar 1s grid)
+as a 2nd RawLOBEncoder(n_levels=25) tower. Test if depth closes 0.030->0.058.
+(Caveat: Run 1 = 1 fold; 3-fold confirmation deferred.)
+
 ## TL;DR (updated live)
 
 - **Phase 0 (infra):** ✅ DONE — branch `multi-asset`, bar_loader (bit-validated), CLAUDE.md, 47-feat builder (leak caught+fixed), feature cache (487d×14sym, 230k windows).
