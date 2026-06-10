@@ -117,13 +117,29 @@ def fold_day_lists(uniq, fold):
 # GPU-side windowing: keep each day's F on the GPU, slice/standardize windows
 # there (the CPU numpy gather was starving the GPU). Yields GPU tensors.
 # --------------------------------------------------------------------------- #
+COARSE_POOL = 15          # 15s pooling for the NX-M1 coarse branch
+COARSE_LEN = 240          # 240 pooled steps = 1h context
+COARSE_MIN_BAR = COARSE_POOL * COARSE_LEN + COARSE_POOL - 1   # 3614
+
+
 def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
-                    offs_g, W, batch_ts, rng=None, shuffle=True):
+                    offs_g, W, batch_ts, rng=None, shuffle=True, coarse=False):
     F_g = torch.from_numpy(F_all).to(DEV)                       # (S,T,F)
     F_g = torch.nan_to_num(F_g, nan=0.0)
     F_g = ((F_g - mu_g) / sd_g).clamp_(-10.0, 10.0)             # standardize whole day once
     y_g = torch.from_numpy(y_all).to(DEV)                       # (S,T)
     mask_g = torch.from_numpy(mask_all.astype(np.float32)).to(DEV)
+    if coarse:
+        # NX-M1: pool the standardized day once -> (S, T//15, F); causal bins
+        # (bin j covers bars [15j, 15j+14], usable for pred bar bi iff 15j+14<=bi)
+        F15 = torch.nn.functional.avg_pool1d(
+            F_g.permute(0, 2, 1), kernel_size=COARSE_POOL, stride=COARSE_POOL
+        ).permute(0, 2, 1).contiguous()                          # (S, T15, F)
+        keep = bars >= COARSE_MIN_BAR                            # drop first hour
+        rows, bars = rows[keep], bars[keep]
+        coffs = torch.arange(-COARSE_LEN, 0, device=DEV)
+    if bars.shape[0] == 0:
+        return
     bars_g = torch.from_numpy(bars).to(DEV)                     # (n,)
     order = np.arange(bars.shape[0])
     if shuffle and rng is not None:
@@ -133,27 +149,34 @@ def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
         bb = bars_g[bidx]                                       # (B,)
         widx = bb[:, None] + offs_g[None, :]                   # (B,W)
         Xseq = F_g[:, widx, :].permute(1, 0, 2, 3).contiguous()  # (B,S,W,F)
+        Xc = None
+        if coarse:
+            jend = torch.div(bb - (COARSE_POOL - 1), COARSE_POOL,
+                             rounding_mode="floor") + 1          # (B,) exclusive
+            cwidx = jend[:, None] + coffs[None, :]               # (B, 240)
+            Xc = F15[:, cwidx, :].permute(1, 0, 2, 3).contiguous()  # (B,S,240,F)
         ymat = y_g[:, bb].t()                                   # (B,S) RAW y
         mmat = mask_g[:, bb].t() * torch.isfinite(ymat).float()  # (B,S)
         # yield RAW y (nan->0, masked) so the trainer can form the cross-sectional
         # residual; sigma_g kept for back-compat but residual uses resid_sigma.
-        yield Xseq, torch.nan_to_num(ymat, nan=0.0), mmat, rows[order[b0:b0 + batch_ts]]
+        yield Xseq, torch.nan_to_num(ymat, nan=0.0), mmat, rows[order[b0:b0 + batch_ts]], Xc
 
 
 # --------------------------------------------------------------------------- #
 # Streaming predict over a split -> pred (T,S) in NORM units (NaN where invalid).
 # --------------------------------------------------------------------------- #
-def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts=96):
+def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts=96,
+                  coarse=False):
     model.eval()
     T, S = data.ts.shape[0], data.S
     pred = np.full((T, S), np.nan, np.float32)
     with torch.no_grad():
         for F_all, mask_all, y_all, rows, bars in data.iter_days(
                 split_rows, rng=None, shuffle=False):
-            for Xseq, yn, mmat, rr in gpu_day_batches(
+            for Xseq, yn, mmat, rr, Xc in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
-                    offs_g, data.W, batch_ts, rng=None, shuffle=False):
-                q50 = model(Xseq, mmat).detach().cpu().numpy()  # (B,S) norm
+                    offs_g, data.W, batch_ts, rng=None, shuffle=False, coarse=coarse):
+                q50 = model(Xseq, mmat, x_coarse=Xc).detach().cpu().numpy()
                 q50 = np.where(mmat.cpu().numpy() > 0.5, q50, np.nan)
                 pred[rr] = q50
     return pred
@@ -226,7 +249,7 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
 # --------------------------------------------------------------------------- #
 def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                cap_w=None, verbose=True, day_override=None, save_dir=None,
-               multipool=False, horizon=600):
+               multipool=False, horizon=600, coarse=False, init_ckpt=None):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -270,7 +293,12 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     model = TemporalSpatialPanelModel(
         data.F, data.S, d=D_MODEL, n_blocks=N_BLOCKS, kernel_size=KERNEL,
         nhead=NHEAD, dropout=DROPOUT, cap_weights=cap_t, multipool=multipool,
-        **flags).to(DEV)
+        coarse=coarse, **flags).to(DEV)
+    if init_ckpt:
+        st = torch.load(init_ckpt, map_location="cpu")
+        missing, unexpected = model.load_state_dict(st, strict=False)
+        if verbose:
+            print(f"[init] loaded {init_ckpt} (missing={len(missing)} unexpected={len(unexpected)})", flush=True)
     if fold_i == 0 and verbose:
         print(f"[model] TemporalSpatialPanelModel params={count_params(model):,} "
               f"(d={D_MODEL}, blocks={N_BLOCKS}, kernel={KERNEL}, milestone=M{milestone}, "
@@ -292,10 +320,10 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         nb = 0
         for F_all, mask_all, y_all, rows, bars in data.iter_days(
                 tr_rows, rng=rng, shuffle=True):
-            for xb, yraw, mb, _ in gpu_day_batches(
+            for xb, yraw, mb, _, xc in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
-                    offs_g, data.W, BATCH_TS, rng=rng, shuffle=True):
-                out = model(xb, mb, return_dict=True)
+                    offs_g, data.W, BATCH_TS, rng=rng, shuffle=True, coarse=coarse):
+                out = model(xb, mb, return_dict=True, x_coarse=xc)
                 # cross-sectional RESIDUAL target (demean over valid assets, per-asset
                 # MAD-norm, clip) -> both rank + magnitude losses see the SAME residual.
                 r, _ = cross_sectional_residual(yraw, mb)
@@ -310,7 +338,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                 ep_h += parts["huber"]; ep_x += parts["rank"]; nb += 1
         ep_loss /= max(nb, 1); ep_pin /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
 
-        vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g)
+        vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
         vm = eval_metrics(vpred, data.Y, data.CL, data.resid_sigma, clean=False)
         vIC, vP, vS = vm["xsec_rank_ic"], vm["per_asset_P"], vm["per_asset_S"]
         # PRIMARY objective for the residual long-short = cross-sectional rank-IC.
@@ -337,12 +365,12 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     # h=600 uses the clean600 flag; h>600 thins the grid to spacing>=h.
     if horizon > 600:
         te_eval_rows = te_rows[::horizon // 180]
-        tpred = predict_split(model, data, te_eval_rows, mu_g, sd_g, sigma_g, offs_g)
+        tpred = predict_split(model, data, te_eval_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
         metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=False)
     else:
         # clean600 spacing (>=600s) is valid non-overlap for any h<=600 and keeps
         # comparability with all published numbers (R1-y180 0.0668 used it).
-        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g)
+        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
         metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=True)
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -363,6 +391,14 @@ def main():
     ap.add_argument("--tag", type=str, default=None)
     ap.add_argument("--save_tag", type=str, default=None,
                     help="if set, save per-fold test preds + model to EXPORT/<save_tag>/")
+    ap.add_argument("--data_root", type=str, default=None,
+                    help="alternate cache root (e.g. exports/pretrain) with seq_cache/panel_cache/mh_* inside")
+    ap.add_argument("--init_ckpt", type=str, default=None,
+                    help="warm-start state_dict (NX-S2 pretrained stem; strict=False)")
+    ap.add_argument("--pretrain_mode", action="store_true",
+                    help="single split over ALL available days (last 20 = val); saves model for fine-tune init")
+    ap.add_argument("--coarse", action="store_true",
+                    help="NX-M1: 1h@15s coarse context branch (multi-scale)")
     ap.add_argument("--multipool", action="store_true",
                     help="A1a: multi-pool divided space-time (cross-asset attn reads 3 temporal pools)")
     ap.add_argument("--seed", type=int, default=None, help="override SEED (noise-floor measurement)")
@@ -377,7 +413,12 @@ def main():
 
     print(f"[env] device={DEV} torch={torch.__version__}", flush=True)
     t0 = time.time()
-    data = SeqPanelData(target_horizon=args.horizon)
+    if args.data_root:
+        data = SeqPanelData(seq_dir=p.join(args.data_root, "seq_cache"),
+                            panel_cache=p.join(args.data_root, "panel_cache"),
+                            target_horizon=args.horizon)
+    else:
+        data = SeqPanelData(target_horizon=args.horizon)
     print(f"[panel] T={len(data.ts)} S={data.S} uniq_days={len(data.uniq_days)} "
           f"horizon=y_{args.horizon} (index built {time.time()-t0:.1f}s)", flush=True)
     if save_dir is not None:
@@ -407,6 +448,17 @@ def main():
         print(json.dumps(m, indent=2), flush=True)
         return
 
+    if args.pretrain_mode:
+        days = data.uniq_days
+        tr, va = days[:-20], days[-20:]
+        print(f"\n===== PRETRAIN ({len(tr)} train / {len(va)} val days, h={args.horizon}) =====", flush=True)
+        m = train_fold(0, FOLDS[0], data, args.milestone, max_epochs=MAX_EPOCHS,
+                       patience=PATIENCE, cap_w=cap_w, verbose=True, save_dir=save_dir,
+                       multipool=args.multipool, horizon=args.horizon, coarse=args.coarse,
+                       day_override=(tr, va, va))
+        print(json.dumps({k: v for k, v in (m or {}).items() if not k.endswith("_list")}, indent=2), flush=True)
+        return
+
     print(f"\n===== FULL 3-FOLD (M{args.milestone}) =====", flush=True)
     all_m = []
     for i, fold in enumerate(FOLDS):
@@ -414,7 +466,8 @@ def main():
         m = train_fold(i, fold, data, args.milestone,
                        max_epochs=MAX_EPOCHS, patience=PATIENCE,
                        cap_w=cap_w, verbose=True, save_dir=save_dir,
-                       multipool=args.multipool, horizon=args.horizon)
+                       multipool=args.multipool, horizon=args.horizon, coarse=args.coarse,
+                       init_ckpt=args.init_ckpt)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "

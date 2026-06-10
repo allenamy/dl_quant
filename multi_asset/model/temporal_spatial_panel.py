@@ -122,6 +122,8 @@ class TemporalSpatialPanelModel(nn.Module):
         cap_weights=None,
         multipool: bool = False,
         pool_windows=(30, 120),
+        coarse: bool = False,
+        coarse_len: int = 240,
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -148,6 +150,16 @@ class TemporalSpatialPanelModel(nn.Module):
         if multipool:
             # softmax read-out over the K scale-tokens per asset (entropy-light)
             self.readout = nn.Linear(d, 1)
+        # NX-M1: coarse multi-scale context branch (1h of 15s-pooled features).
+        # Fixes the lookback:horizon mismatch at 30min horizons (fine window sees
+        # only 600s). Zero-init fusion gate -> coarse-off is bit-identical to R1.
+        self.coarse = coarse
+        self.coarse_len = coarse_len
+        if coarse:
+            self.coarse_encoder = SharedTemporalEncoder(
+                n_feat, d, n_blocks=1, n_heads=2, kernel_size=9, dropout=dropout)
+            self.coarse_proj = nn.Linear(d, d)
+            self.coarse_alpha = nn.Parameter(torch.zeros(1))
 
         self.layers = nn.ModuleList(
             [CrossAssetAttnLayer(d, nhead, dropout) for _ in range(n_xattn)]
@@ -171,9 +183,9 @@ class TemporalSpatialPanelModel(nn.Module):
         # per-asset quantile head (sign x magnitude decomp + monotone q10<=q50<=q90)
         self.head = DirectionAwareQuantileHead(d_input=d, dropout=dropout)
 
-    def forward(self, x, mask, return_dict: bool = False):
-        """x: (B, S, T, F); mask: (B, S) {0,1}. Returns (B, S) point q50, or a
-        dict with per-asset quantiles/sign_logit when return_dict."""
+    def forward(self, x, mask, return_dict: bool = False, x_coarse=None):
+        """x: (B, S, T, F); mask: (B, S) {0,1}; x_coarse: (B, S, Tc, F) or None.
+        Returns (B, S) point q50, or a dict with per-asset quantiles."""
         B, S, T, Fdim = x.shape
         x = torch.nan_to_num(x, nan=0.0)
         # zero padded assets at input so the shared encoder never sees junk
@@ -181,6 +193,11 @@ class TemporalSpatialPanelModel(nn.Module):
 
         # ---- TEMPORAL: shared encoder over each asset-window ----
         enc = self.encoder(x.reshape(B * S, T, Fdim))        # (B*S,d) or (B*S,K,d)
+        if self.coarse and x_coarse is not None:
+            xc = torch.nan_to_num(x_coarse, nan=0.0) * mask.view(B, S, 1, 1)
+            Tc = xc.shape[2]
+            hc = self.coarse_encoder(xc.reshape(B * S, Tc, Fdim))   # (B*S, d)
+            enc = enc + torch.tanh(self.coarse_alpha) * self.coarse_proj(hc)
         d = enc.shape[-1]
 
         # ---- SPATIAL: cross-asset attention (+ optional market token) ----
