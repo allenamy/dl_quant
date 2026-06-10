@@ -204,3 +204,10 @@ Found: single-asset REG_arch (25-level, P=0.0646) has saved 3-fold test preds 20
 2. **可迁移因子强度(3折, 对 bar label)**: P_bar≈0.070, S_bar≈0.092(own-label P 0.107)。因子腿仍强 ≫ bar-BTC 0.038。
 3. **y_180 相位差是重构杀手**: f̂ 在我们网格 ffill 有 61-180s staleness,y_180 窗口仅 180s → P_factor 塌到 0.01;滚动 OLS 堆叠在噪声中学配比 → avg -0.008(失败)。修复 = 在 SA 时间戳上重推 r̂(zero-staleness 双腿),进行中。
 4. 运维事故(已修复): r3 config 漏改 output_dir,y180 因子结果曾写入 singh_track_reg_arch(已抢救为 r3_factor_y180,原目录改名 *_OVERWRITTEN_BY_R3_20260610;原单资产存档可由 config 复现)。y600 因子运行已终止(label 价值打折,GPU 让位)。
+
+### R3 融合最终结果 (2026-06-10 晚) — 相位对齐后融合成功
+**方法**: 残差模型在 SA 时间戳上重推(零 staleness 双腿)→ z-score 50/50 堆叠 → bar 口径 raw y_180 评估(19.8k 对齐时点,3 折全覆盖)。
+**结果**: 因子腿 0.038 + 残差腿 0.028 → **融合 raw P=0.0468, S=0.0565 (+66% over 残差单腿)**。逐币全正: BTC 0.070, FIL 0.062, ETC 0.061, DOT 0.057, ETH 0.047, 平均 0.047。**FIL/ETC/DOT 在统一口径下超过 bar-特征 BTC 上限(~0.04)** — "多币超 BTC" 在 raw 口径兑现。
+**尾部经济性 (raw 方向策略)**: |z|>2 → 4.1% 时点, +1.46bps/笔, hit 53.6%; |z|>3 转负。**峰值边际 1.5bps < 零售 4bps RT; 在 ≤0.5bps/side 下高度可行**。
+**全局结论**: 系统 alpha 真实(残差 rank-IC 0.0668 + raw 融合 0.047 + 经济上 0.5bps 档 Sharpe 6+),但单笔边际 ~1.5-2bps 属于低费率执行者的 alpha。单资产历史 Sharpe 4.4 部分为 label-feed 红利,统一口径下需折扣。
+**交付物**: R1_y180 (残差模型+预测), r3_factor_y180 (25档因子+预测), sa_grid_preds.npz (对齐双腿), recon/backtest 脚本与全部 json。
