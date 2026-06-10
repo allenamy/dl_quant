@@ -50,6 +50,7 @@ from multi_asset.losses.xsec_residual_loss import (  # noqa: E402
 )
 
 RANK_KIND = "lambda"   # "lambda" (LambdaRankIC) or "pearson" (Pearson-IC fallback)
+W_HUBER, W_RANK, W_PIN = 0.30, 0.70, 0.10   # overridable via --w_* flags
 
 EXPORT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
           "multi_asset/exports/train")
@@ -329,7 +330,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                 r, _ = cross_sectional_residual(yraw, mb)
                 r = (r / resid_sigma_g[None, :]).clamp(-5.0, 5.0)
                 loss, parts = residual_loss(out["quantiles"], r, mb, rank_kind=RANK_KIND,
-                                            w_huber=0.30, w_rank=0.70, w_pin=0.10)
+                                            w_huber=W_HUBER, w_rank=W_RANK, w_pin=W_PIN)
                 opt.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -364,9 +365,18 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     # clean non-overlap eval: stride-180 grid is non-overlapping for h<=180;
     # h=600 uses the clean600 flag; h>600 thins the grid to spacing>=h.
     if horizon > 600:
-        te_eval_rows = te_rows[::horizon // 180]
-        tpred = predict_split(model, data, te_eval_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
-        metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=False)
+        # predict DENSE (saved preds must cover all te_rows so nx_battery can
+        # pair models on its canonical per-day thinned grid); the trainer's own
+        # logged metric uses a per-day thinned VIEW for non-overlap honesty.
+        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
+        step = horizon // 180
+        thin = np.zeros(tpred.shape[0], bool)
+        te_day = data.day[te_rows]
+        for d in np.unique(te_day):
+            dr = te_rows[te_day == d]
+            thin[dr[::step]] = True
+        tview = np.where(thin[:, None], tpred, np.nan)
+        metrics = eval_metrics(tview, data.Y, data.CL, data.resid_sigma, clean=False)
     else:
         # clean600 spacing (>=600s) is valid non-overlap for any h<=600 and keeps
         # comparability with all published numbers (R1-y180 0.0668 used it).
@@ -391,6 +401,9 @@ def main():
     ap.add_argument("--tag", type=str, default=None)
     ap.add_argument("--save_tag", type=str, default=None,
                     help="if set, save per-fold test preds + model to EXPORT/<save_tag>/")
+    ap.add_argument("--w_pin", type=float, default=None, help="pinball weight override (ablation)")
+    ap.add_argument("--w_huber", type=float, default=None)
+    ap.add_argument("--w_rank", type=float, default=None)
     ap.add_argument("--data_root", type=str, default=None,
                     help="alternate cache root (e.g. exports/pretrain) with seq_cache/panel_cache/mh_* inside")
     ap.add_argument("--init_ckpt", type=str, default=None,
@@ -407,6 +420,10 @@ def main():
                     help="target horizon (mh_targets for 60/180; mh_targets_long for 1800/3600)")
     args = ap.parse_args()
     save_dir = p.join(EXPORT, args.save_tag) if args.save_tag else None
+    global W_HUBER, W_RANK, W_PIN
+    if args.w_pin is not None: W_PIN = args.w_pin
+    if args.w_huber is not None: W_HUBER = args.w_huber
+    if args.w_rank is not None: W_RANK = args.w_rank
     if args.seed is not None:
         global SEED
         SEED = args.seed

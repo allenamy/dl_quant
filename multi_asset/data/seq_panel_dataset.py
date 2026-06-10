@@ -43,8 +43,8 @@ PANEL_CACHE = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
                "multi_asset/exports/panel_cache")
 
 
-def _load_panel_cache(sym):
-    d = np.load(p.join(PANEL_CACHE, f"{sym}.npz"))
+def _load_panel_cache(sym, cache_dir=PANEL_CACHE):
+    d = np.load(p.join(cache_dir, f"{sym}.npz"))
     return d["X"], d["y"], d["day"], d["ts"], d["clean600"]
 
 
@@ -73,7 +73,7 @@ class SeqPanelData:
         self.mh_dir = (seq_dir.rsplit("/", 1)[0] + "/" + sub)
 
         # ---- assemble the common-aligned panel index from panel_cache ----
-        per = {s: _load_panel_cache(s) for s in symbols}
+        per = {s: _load_panel_cache(s, panel_cache) for s in symbols}
         common = sorted(set.intersection(*[set(per[s][3].tolist()) for s in symbols]))
         cidx = {int(t): i for i, t in enumerate(common)}
         nT = len(common)
@@ -84,11 +84,14 @@ class SeqPanelData:
         self.CL = np.zeros((nT, self.S), bool)
         for si, s in enumerate(symbols):
             Xs, ys, days, tss, cl = per[s]
-            rows = np.fromiter((cidx[int(t)] for t in tss), np.int64, len(tss))
-            self.X_last[rows, si] = Xs
-            self.Y[rows, si] = ys
-            self.CL[rows, si] = cl
-            self.day[rows] = days
+            # symbols may have ts outside the common intersection (pre-2024 the
+            # valid windows differ per asset) — keep only common-ts rows.
+            keep = np.isin(tss, self.ts)
+            rows = np.searchsorted(self.ts, tss[keep])
+            self.X_last[rows, si] = Xs[keep]
+            self.Y[rows, si] = ys[keep]
+            self.CL[rows, si] = cl[keep]
+            self.day[rows] = days[keep]
         self.uniq_days = np.unique(self.day)
         # group common-ts row indices by day (for day-chunked streaming)
         self._rows_by_day = {int(d): np.where(self.day == d)[0] for d in self.uniq_days}
