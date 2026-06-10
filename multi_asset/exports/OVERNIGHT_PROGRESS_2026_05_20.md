@@ -198,3 +198,9 @@ R1-y180: pooled rank-IC=**0.0668** IC-IR=15.4 per-fold [0.0613,0.0734,0.0656] (e
 
 ### R3-v1 quick reconstruction test (2026-06-10, saved preds only, CPU)
 Found: single-asset REG_arch (25-level, P=0.0646) has saved 3-fold test preds 2025-02-09..09-09 stride-180 — partial overlap with our windows. Quick recon ŷ=β·f̂+r̂ on the 17% overlapping rows: avg raw P 0.0182(resid-only)→0.0217(recon), optimal-combo UB 0.0283. **Factor leg attenuated to 1/3 strength (P(f̂,y_btc)=0.021 vs true 0.058-0.065)** by 61s phase offset + ≤180s staleness + 17% coverage (weak-regime slice). Concept directionally validated; **full R3 = retrain SA factor model on OUR fold layout (dual-horizon y_180+y_600, npz_v4 has both), predictions on 100% of our windows** — next overnight GPU job. Expected: raw P avg ~0.04-0.06, strong alts higher; then directional tail strategy on raw ŷ (retail-fee path).
+
+### R3 因子融合:关键数据发现 (2026-06-10 下午)
+1. **LABEL-FEED 差异(重大)**: tardis-25档 mid 与 bar-data mid 的 y_180 label 相关性仅 **0.891**(bar 波动高 31%, diff std 5.7bps)。单资产模型预测力的一部分是 feed 专属(corr(pred, label-diff)=0.041)。**部分解释了 bar-BTC 0.038 vs 25档 0.065 的老谜团 —— label 口径差,非纯信息差。**
+2. **可迁移因子强度(3折, 对 bar label)**: P_bar≈0.070, S_bar≈0.092(own-label P 0.107)。因子腿仍强 ≫ bar-BTC 0.038。
+3. **y_180 相位差是重构杀手**: f̂ 在我们网格 ffill 有 61-180s staleness,y_180 窗口仅 180s → P_factor 塌到 0.01;滚动 OLS 堆叠在噪声中学配比 → avg -0.008(失败)。修复 = 在 SA 时间戳上重推 r̂(zero-staleness 双腿),进行中。
+4. 运维事故(已修复): r3 config 漏改 output_dir,y180 因子结果曾写入 singh_track_reg_arch(已抢救为 r3_factor_y180,原目录改名 *_OVERWRITTEN_BY_R3_20260610;原单资产存档可由 config 复现)。y600 因子运行已终止(label 价值打折,GPU 让位)。
