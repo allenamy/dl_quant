@@ -211,3 +211,7 @@ Found: single-asset REG_arch (25-level, P=0.0646) has saved 3-fold test preds 20
 **尾部经济性 (raw 方向策略)**: |z|>2 → 4.1% 时点, +1.46bps/笔, hit 53.6%; |z|>3 转负。**峰值边际 1.5bps < 零售 4bps RT; 在 ≤0.5bps/side 下高度可行**。
 **全局结论**: 系统 alpha 真实(残差 rank-IC 0.0668 + raw 融合 0.047 + 经济上 0.5bps 档 Sharpe 6+),但单笔边际 ~1.5-2bps 属于低费率执行者的 alpha。单资产历史 Sharpe 4.4 部分为 label-feed 红利,统一口径下需折扣。
 **交付物**: R1_y180 (残差模型+预测), r3_factor_y180 (25档因子+预测), sa_grid_preds.npz (对齐双腿), recon/backtest 脚本与全部 json。
+
+### NX CP0 判定 (2026-06-10 晚) — y_1800 主线确认
+linear xsec rank-IC: y600 0.0205(t9.8) / **y1800 0.0125(t3.2)** / y3600 0.0010(死)。σ_y: 36/61/86bps。尾部: |y1800|>25bps 占50%, >50bps 占25%。
+**判定**: linear@1800≥0.012 → y_1800 主 horizon ✓;y_3600 砍掉(MTL={180,600,1800});费率数学优于计划(σ=61bps → IC 0.03 零售保本 / 0.045 显著盈利)。R1-y1800 早期 val ~0.050(dense, fold0)— 若干净三折坐实,DL 倍率 ~4×,衰减律被打破。链条继续: R1-y1800 → M1 → P1 预训练。
