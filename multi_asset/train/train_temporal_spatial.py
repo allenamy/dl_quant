@@ -226,7 +226,7 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
 # --------------------------------------------------------------------------- #
 def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                cap_w=None, verbose=True, day_override=None, save_dir=None,
-               multipool=False):
+               multipool=False, horizon=600):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -333,8 +333,17 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
 
     if best_state is not None:
         model.load_state_dict(best_state)
-    tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g)
-    metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=True)
+    # clean non-overlap eval: stride-180 grid is non-overlapping for h<=180;
+    # h=600 uses the clean600 flag; h>600 thins the grid to spacing>=h.
+    if horizon > 600:
+        te_eval_rows = te_rows[::horizon // 180]
+        tpred = predict_split(model, data, te_eval_rows, mu_g, sd_g, sigma_g, offs_g)
+        metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=False)
+    else:
+        # clean600 spacing (>=600s) is valid non-overlap for any h<=600 and keeps
+        # comparability with all published numbers (R1-y180 0.0668 used it).
+        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g)
+        metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=True)
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
         np.savez(p.join(save_dir, f"fold_{fold_i}_preds.npz"),
@@ -357,8 +366,9 @@ def main():
     ap.add_argument("--multipool", action="store_true",
                     help="A1a: multi-pool divided space-time (cross-asset attn reads 3 temporal pools)")
     ap.add_argument("--seed", type=int, default=None, help="override SEED (noise-floor measurement)")
-    ap.add_argument("--horizon", type=int, default=600, choices=[60, 180, 600],
-                    help="target forward-return horizon (uses mh_targets for 60/180)")
+    ap.add_argument("--horizon", type=int, default=600,
+                    choices=[60, 180, 600, 1800, 3600],
+                    help="target horizon (mh_targets for 60/180; mh_targets_long for 1800/3600)")
     args = ap.parse_args()
     save_dir = p.join(EXPORT, args.save_tag) if args.save_tag else None
     if args.seed is not None:
@@ -404,7 +414,7 @@ def main():
         m = train_fold(i, fold, data, args.milestone,
                        max_epochs=MAX_EPOCHS, patience=PATIENCE,
                        cap_w=cap_w, verbose=True, save_dir=save_dir,
-                       multipool=args.multipool)
+                       multipool=args.multipool, horizon=args.horizon)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "

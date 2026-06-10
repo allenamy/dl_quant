@@ -65,10 +65,12 @@ class SeqPanelData:
         self.W = window
         self.F = n_feat
         # target_horizon=600 -> use the seq_cache y (y_600). Otherwise swap the
-        # TARGET (y + mask) to the mh_targets cache (y_60/y_180) — same features,
-        # same bar grid, only the forward-return horizon changes.
+        # TARGET (y + mask) to the mh_targets cache — same features, same bar
+        # grid, only the forward-return horizon changes. 60/180 live in
+        # mh_targets; 1800/3600 (NX long horizons) live in mh_targets_long.
         self.target_horizon = target_horizon
-        self.mh_dir = (seq_dir.rsplit("/", 1)[0] + "/mh_targets")
+        sub = "mh_targets_long" if target_horizon > 600 else "mh_targets"
+        self.mh_dir = (seq_dir.rsplit("/", 1)[0] + "/" + sub)
 
         # ---- assemble the common-aligned panel index from panel_cache ----
         per = {s: _load_panel_cache(s) for s in symbols}
