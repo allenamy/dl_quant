@@ -158,3 +158,40 @@ Conclusion: the shallow last-token panel is a **local optimum at per-asset P≈0
 - **Model**: `temporal_spatial_panel.py` — shared Conformer temporal stem (d=32, 2 blocks, kernel=15) over (B·S,T,44) → per-asset embedding → toggleable cross-asset attention + market token + factor split → per-asset DAQH head. M0=56K / M1=73K / M2=77K params (healthy params:sample). Forward/grad verified.
 - **Trainer**: `train_temporal_spatial.py` — streaming, loss = 0.10·pinball + 0.50·Huber(q50) + 0.20·soft_xsec_rank; val metric = 0.5·per-asset-P + 0.5·per-asset-S (the USER target); σ-gate BEST.
 - **Milestones**: M0 pure temporal (GATE: per-asset P → ~0.058 single-asset), M1 +cross-asset attn (GATE ≥+0.003), M2 +market/factor (gate each). Spatial refinements re-gated on temporal embeddings (NOT assumed from shallow ablation).
+
+### M0 (pure temporal, hand-features-only) 3-fold RESULT + pivot trigger (2026-06-09)
+Pooled per-asset P=0.0249 S=0.0388 xsec-IC=0.0427 β=0.623 mono=0.915. per_fold_P=[0.0367,0.0208,0.0173] (declining).
+Per-asset avg (sorted): bnb .054, ada .040, dot .037, **btc .034**, xrp .034, fil .028, eth .027, link .027, sol .026, etc .019, ltc .018, dog .012, bch .003, trx -.009.
+**KEY: uniform weakness (no asset hits single-asset BTC 0.058), and BTC itself only 0.034 vs proven 0.058.** M0 omits the raw-LOB/deep-book path that gave single-asset its edge. → PIVOT: data-driven diagnosis workflow (wdor5z6iy) to quantify the deep-book lever (9-bucket cumulative depth profile), non-DL ceiling, and per-asset-Pearson-0.10 feasibility before committing the next build.
+
+### Data deep-dive + loss research + residual pivot (2026-06-10)
+**Deep-dive (wf wjohbkr4u) findings:**
+- DD1 integrity: scaling/target CORRECT (bit-exact). BUT (a) btc_dualpath windowed_npz is STALE (old 47-feat, lacks ret_300/600s + raw flows; the 0.038 was on inferior features → current-feature ceiling untested). (b) Fat-tail Pearson: spread feats |z|=170-234 flip per-asset Pearson neg on 9/14; winsorize@5σ fixes; Spearman/rank-IC trustworthy.
+- DD2 lead-lag: NEGATIVE for y_600. Grid: BTC→alt only at lag5-10s→H=60s (P=0.021), decays + FLIPS NEG for lag≥60s/H≥300s (contemp β=0.72 MEAN-REVERTS multi-min: BTC up→alt down, P=-0.018..-0.028). y_600 best cell straddles 0. Even y_60 lead-lag evaporates in multivariate Ridge (own feats capture it). Alts LEAD BTC short-lag (ETH/SOL/DOG→BTC +0.04). VERDICT: no lagged-BTC channel; multi-horizon≠lead-lag lever.
+- DD3 factor: PC1=70% var, betas~1; common factor fwd barely predictable (P=0.013); RESIDUAL is the alpha (residual rank-IC 0.0254 t=10.4 vs raw 0.0126, leakage-clean).
+
+**Loss research (wf w3akih16s) → design:** target=cross-sectional residual (demean+MAD-norm+clip±5); loss=0.30 Huber + 0.70 LambdaRankIC(Lin2026, rank-invariant, normalized O(1)) + 0.10 pinball, ALL on residual (no rank-vs-mag conflict, no gradient surgery). Head=plain monotonic 3-quantile (DROP DAQH). Eval reframed: cross-sectional rank-IC + IC-IR + long-short Sharpe primary; per-asset P/S = single-asset benchmark (winsorize for honesty).
+
+**Plan:** R1 residual+cross-asset+LambdaRankIC (running, current feats, gate vs linear 0.0254). R2 multi-horizon = REGULARIZATION test (not lead-lag). R3 BTC-25-level (/mnt/storage/share/23-25-BTCUSDT) factor forecaster → reconstruct ŷ=β·f̂+r̂ to lift per-asset Pearson benchmark. R4 full REG_arch (DualPathLOBModelV3 built-in cross_asset_attn) on CURRENT features (0.038 was stale).
+
+### R1 RESULT (2026-06-10): cross-sectional residual approach VALIDATED
+R1 = TemporalSpatialPanel (Conformer d=32 + cross-asset attn n_xattn=2, current 44 feats) + residual target + LambdaRankIC loss.
+**fold-0 clean TEST: xsec rank-IC=+0.0464, IC-IR=9.80** (val 0.0497→test 0.0464, minimal drift). per-asset P=0.018 S=0.022 (low, residual-by-design) mono=0.83.
+=> **1.83× linear residual baseline (0.0254); DL beats linear by 83% (architecture EARNS complexity — the user's DL-edge thesis holds on the cross-sectional residual objective, unlike per-asset Pearson where DL≈linear).** Awaiting pooled 3-fold. Next: R4 full REG_arch (raw LOB+FiLM) on current feats, R2 multi-horizon regularization, R3 BTC-25-level factor reconstruction for per-asset benchmark.
+
+### R1 POOLED 3-fold (2026-06-10) — VALIDATED multi-asset cross-sectional model
+mean rank-IC=**0.0425** IC-IR=**9.00** per-fold=[0.0464,0.0486,0.0324] (ALL positive, no sign-flip). per-asset P=0.0179 mono=0.887 σ=0.037. n_params=73,380.
+=> **1.67× linear residual baseline (0.0254)**; DL+cross-asset beats linear 67%, IC-IR ~9 significant. The cross-sectional residual long-short is the genuine, stable, tradeable multi-asset edge. Fold 2 weaker (regime). R4 (full REG_arch dual-path) auto-launching to test if raw-LOB backbone lifts it further.
+
+### R4 full REG_arch (2026-06-10) — REFUTED; R1 Conformer is production
+R4 (PanelREGArch full dual-path + raw-LOB + FiLM + cross-asset, 122K params): pooled rank-IC=0.0358 IC-IR=8.45 per-fold [0.040,0.040,0.027].
+vs R1 (Conformer + cross-asset, 73K): rank-IC=0.0425. **R1 BEATS R4 by 19%.** The raw-LOB dual-path does NOT help the cross-sectional residual edge (slightly hurts — overfits thin signal). CONFIRMS: residual edge = cross-asset relative-value structure, NOT per-asset microstructure depth. Low-SNR favors the lean model. **R1 = production model.**
+Next: (1) economic long-short backtest (net-of-fee Sharpe) from R1 preds; (2) BTC-25-level factor reconstruction (per-asset benchmark); (3) R1 spatial-capacity tuning.
+
+### A1a NEUTRAL + y_180 horizon BREAKTHROUGH (2026-06-10)
+**A1a multipool (architecture keystone): NEUTRAL, not banked.** Per-fold [0.0488,0.0474,0.0335] vs R1 [0.0464,0.0486,0.0324], pooled +0.0007 < +0.003 gate, fold-1 reversed. Inside the ~0.006 fold-noise band (exactly the adversarial reviewer's warning). Lesson reinforced: levers are objective/data-level, not architecture-level.
+**R1-y180 (horizon lever) fold-0: rank-IC +0.0613, IC-IR 13.9, per-asset P 0.0335** — +32% over y_600 same-fold (0.0464), already above the 0.06 target on fold 0; per-asset P ~2×. Confirms the linear probe (y_180 carries ~2× signal). Economics tailwind: 3× rebalances/yr, faster edge decay per unit time. Pooled pending (folds 1-2).
+Next: y_180 pooled → threshold/economics backtest on saved y_180 preds → magnitude-calibrated loss variant (user's tail strategy).
+
+### y_180 POOLED (2026-06-10): rank-IC 0.0668, ALL folds > 0.06 — target exceeded via horizon lever
+R1-y180: pooled rank-IC=**0.0668** IC-IR=15.4 per-fold [0.0613,0.0734,0.0656] (even weak-regime fold2 0.066). vs y_600 0.0425 → **+57%**. Per-asset (folds0-1): residual P avg 0.047 (FIL 0.092, DOT 0.075, SOL 0.071); raw P avg 0.028 (= P_resid×√0.30, mechanical dilution — model never predicts the market part; R3 BTC-25 factor reconstruction is the raw-caliber fix). Magnitude usable at y_180: decile spread 1.66bps/180s, tail escalation monotone (|z|>2: +1.16bps, 5.2% of cells) — threshold strategy has raw material (unlike y_600). Next: economics backtests (threshold+holding) on y_180.

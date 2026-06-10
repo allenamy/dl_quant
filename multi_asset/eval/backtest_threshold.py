@@ -35,10 +35,17 @@ def main():
     ap.add_argument("--tag", required=True)
     ap.add_argument("--cost_bps", type=float, default=2.0)
     ap.add_argument("--neutral", action="store_true", help="demean positions (market-neutral)")
+    ap.add_argument("--horizon", type=int, default=600,
+                    help="target horizon (sec). 180 => trade EVERY stride-180 row "
+                         "(naturally non-overlapping) + annualize at 180s")
     args = ap.parse_args()
+    global HORIZON
+    HORIZON = args.horizon
     d = p.join(EXPORT, args.tag)
     ref = np.load(p.join(d, "panel_ref.npz"), allow_pickle=True)
     ts, Y, CL = ref["ts"], ref["Y"], ref["CL"]
+    if args.horizon < 600:
+        CL = np.isfinite(Y)          # stride-180 grid is non-overlap for y_180
     T, S = Y.shape
     pred = np.full((T, S), np.nan, np.float32)
     for f in sorted(glob.glob(p.join(d, "fold_*_preds.npz"))):
@@ -60,6 +67,7 @@ def main():
         state = np.zeros(S)                                  # current per-asset position
         prev_w = np.zeros(S)
         rets, turns, exposure, n_pos = [], [], [], []
+        n_entries = 0; active_periods = 0                     # persistence stats
         for t in rows:
             valid = CL[t] & np.isfinite(pred[t]) & np.isfinite(Y[t])
             pp = np.where(valid, pred[t], 0.0)
@@ -68,13 +76,15 @@ def main():
                     state[i] = 0.0; continue
                 pv = pp[i]
                 if state[i] == 0.0:
-                    if pv > tau_in: state[i] = 1.0
-                    elif pv < -tau_in: state[i] = -1.0
+                    if pv > tau_in: state[i] = 1.0; n_entries += 1
+                    elif pv < -tau_in: state[i] = -1.0; n_entries += 1
                 else:
                     if abs(pv) < tau_out or np.sign(pv) != np.sign(state[i]):
                         state[i] = 0.0
-                        if pv > tau_in: state[i] = 1.0
-                        elif pv < -tau_in: state[i] = -1.0
+                        if pv > tau_in: state[i] = 1.0; n_entries += 1
+                        elif pv < -tau_in: state[i] = -1.0; n_entries += 1
+                if state[i] != 0.0:
+                    active_periods += 1
             act = np.abs(state) > 0
             k = act.sum()
             if k == 0:
@@ -98,7 +108,7 @@ def main():
                     net_ann_bps=round(float(rets.mean()*per_yr*1e4), 1),
                     avg_turnover=round(float(np.mean(turns)), 3),
                     avg_n_positions=round(float(np.mean(n_pos)), 2),
-                    avg_gross_exposure=round(float(np.mean(np.abs(exposure))), 3),
+                    avg_hold_periods=round(active_periods / max(n_entries, 1), 2),
                     trade_rate=round(float(np.mean(np.array(turns) > 1e-6)), 3))
 
     sweep = {tau: run(tau) for tau in (0.5, 1.0, 1.5, 2.0, 2.5, 3.0)}
