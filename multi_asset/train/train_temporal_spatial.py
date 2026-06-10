@@ -225,7 +225,8 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
 # Train one fold.
 # --------------------------------------------------------------------------- #
 def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
-               cap_w=None, verbose=True, day_override=None, save_dir=None):
+               cap_w=None, verbose=True, day_override=None, save_dir=None,
+               multipool=False):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -268,7 +269,8 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     np.random.seed(SEED)
     model = TemporalSpatialPanelModel(
         data.F, data.S, d=D_MODEL, n_blocks=N_BLOCKS, kernel_size=KERNEL,
-        nhead=NHEAD, dropout=DROPOUT, cap_weights=cap_t, **flags).to(DEV)
+        nhead=NHEAD, dropout=DROPOUT, cap_weights=cap_t, multipool=multipool,
+        **flags).to(DEV)
     if fold_i == 0 and verbose:
         print(f"[model] TemporalSpatialPanelModel params={count_params(model):,} "
               f"(d={D_MODEL}, blocks={N_BLOCKS}, kernel={KERNEL}, milestone=M{milestone}, "
@@ -352,14 +354,22 @@ def main():
     ap.add_argument("--tag", type=str, default=None)
     ap.add_argument("--save_tag", type=str, default=None,
                     help="if set, save per-fold test preds + model to EXPORT/<save_tag>/")
+    ap.add_argument("--multipool", action="store_true",
+                    help="A1a: multi-pool divided space-time (cross-asset attn reads 3 temporal pools)")
+    ap.add_argument("--seed", type=int, default=None, help="override SEED (noise-floor measurement)")
+    ap.add_argument("--horizon", type=int, default=600, choices=[60, 180, 600],
+                    help="target forward-return horizon (uses mh_targets for 60/180)")
     args = ap.parse_args()
     save_dir = p.join(EXPORT, args.save_tag) if args.save_tag else None
+    if args.seed is not None:
+        global SEED
+        SEED = args.seed
 
     print(f"[env] device={DEV} torch={torch.__version__}", flush=True)
     t0 = time.time()
-    data = SeqPanelData()
+    data = SeqPanelData(target_horizon=args.horizon)
     print(f"[panel] T={len(data.ts)} S={data.S} uniq_days={len(data.uniq_days)} "
-          f"(index built {time.time()-t0:.1f}s)", flush=True)
+          f"horizon=y_{args.horizon} (index built {time.time()-t0:.1f}s)", flush=True)
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
         np.savez(p.join(save_dir, "panel_ref.npz"), ts=data.ts, day=data.day,
@@ -393,7 +403,8 @@ def main():
         print(f"\n----- fold {i} -----", flush=True)
         m = train_fold(i, fold, data, args.milestone,
                        max_epochs=MAX_EPOCHS, patience=PATIENCE,
-                       cap_w=cap_w, verbose=True, save_dir=save_dir)
+                       cap_w=cap_w, verbose=True, save_dir=save_dir,
+                       multipool=args.multipool)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "

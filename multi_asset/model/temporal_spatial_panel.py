@@ -61,7 +61,8 @@ class SharedTemporalEncoder(nn.Module):
     """
 
     def __init__(self, n_feat: int, d: int, n_blocks: int = 2,
-                 n_heads: int = 2, kernel_size: int = 15, dropout: float = 0.2):
+                 n_heads: int = 2, kernel_size: int = 15, dropout: float = 0.2,
+                 multipool: bool = False, pool_windows=(30, 120)):
         super().__init__()
         self.input_proj = nn.Linear(n_feat, d)
         self.in_norm = nn.LayerNorm(d)
@@ -69,10 +70,28 @@ class SharedTemporalEncoder(nn.Module):
             d_model=d, n_blocks=n_blocks, n_heads=n_heads,
             kernel_size=kernel_size, dropout=dropout,
         )  # returns last-token (B*, d) by default (return_sequence not set)
+        # A1a: multi-pool divided space-time — let cross-asset attention read K
+        # causal temporal pools {last, mean(-w) for w in pool_windows} instead of
+        # one collapsed last-token (fixes R1's structural blind spot: spatial
+        # attention could not see time-varying relative strength).
+        self.multipool = multipool
+        self.pool_windows = tuple(pool_windows)
+        self.K = 1 + len(self.pool_windows)
+        if multipool:
+            self.backbone.return_sequence = True
+            self.scale_emb = nn.Parameter(torch.zeros(self.K, d))
+            nn.init.normal_(self.scale_emb, std=0.02)
 
-    def forward(self, x):  # x: (N, T, F) -> (N, d)
+    def forward(self, x):  # x: (N, T, F) -> (N, d) or (N, K, d) if multipool
         h = self.in_norm(self.input_proj(x))
-        return self.backbone(h)
+        if not self.multipool:
+            return self.backbone(h)
+        H = self.backbone(h)                               # (N, T, d) seq
+        pools = [H[:, -1, :]]                               # last-token (current R1)
+        for w in self.pool_windows:
+            pools.append(H[:, -w:, :].mean(dim=1))          # causal mean over last w bars
+        P = torch.stack(pools, dim=1)                       # (N, K, d)
+        return P + self.scale_emb.unsqueeze(0)              # + scale-id embedding
 
 
 class TemporalSpatialPanelModel(nn.Module):
@@ -101,6 +120,8 @@ class TemporalSpatialPanelModel(nn.Module):
         use_market_token: bool = False,
         use_factor_split: bool = False,
         cap_weights=None,
+        multipool: bool = False,
+        pool_windows=(30, 120),
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -115,12 +136,18 @@ class TemporalSpatialPanelModel(nn.Module):
         self.use_factor_split = use_factor_split
         self.n_xattn = n_xattn
 
+        self.multipool = multipool
         self.encoder = SharedTemporalEncoder(
             n_feat, d, n_blocks=n_blocks, n_heads=2,
             kernel_size=kernel_size, dropout=dropout,
+            multipool=multipool, pool_windows=pool_windows,
         )
+        self.K = self.encoder.K
         self.asset_id = nn.Parameter(torch.zeros(n_assets, d))
         nn.init.normal_(self.asset_id, std=0.02)
+        if multipool:
+            # softmax read-out over the K scale-tokens per asset (entropy-light)
+            self.readout = nn.Linear(d, 1)
 
         self.layers = nn.ModuleList(
             [CrossAssetAttnLayer(d, nhead, dropout) for _ in range(n_xattn)]
@@ -153,10 +180,8 @@ class TemporalSpatialPanelModel(nn.Module):
         x = x * mask.view(B, S, 1, 1)
 
         # ---- TEMPORAL: shared encoder over each asset-window ----
-        h = self.encoder(x.reshape(B * S, T, Fdim))          # (B*S, d)
-        d = h.shape[-1]
-        h = h.view(B, S, d)                                   # (B, S, d)
-        h = h + self.asset_id.unsqueeze(0)                    # asset identity
+        enc = self.encoder(x.reshape(B * S, T, Fdim))        # (B*S,d) or (B*S,K,d)
+        d = enc.shape[-1]
 
         # ---- SPATIAL: cross-asset attention (+ optional market token) ----
         key_pad = mask < 0.5                                  # True = PAD
@@ -164,7 +189,22 @@ class TemporalSpatialPanelModel(nn.Module):
         key_pad = key_pad & ~all_pad                          # keep MHA finite
 
         m_ctx = None
-        if self.n_xattn > 0:
+        if self.multipool:
+            # A1a: S*K scale-tokens -> cross-asset attention over S*K -> softmax
+            # read-out over the K scale-tokens per asset. Lets spatial attention
+            # read the SHORT-horizon trajectory (where cross-sectional info lives),
+            # not just the collapsed last-token.
+            K = self.K
+            h = enc.view(B, S, K, d) + self.asset_id.view(1, S, 1, d)
+            h = h.reshape(B, S * K, d)                        # (B, S*K, d)
+            kp = key_pad.unsqueeze(2).expand(B, S, K).reshape(B, S * K)
+            for layer in self.layers:
+                h = layer(h, kp)
+            h = h.view(B, S, K, d)
+            w = torch.softmax(self.readout(h).squeeze(-1), dim=2)   # (B,S,K)
+            h_attn = (h * w.unsqueeze(-1)).sum(dim=2)               # (B,S,d)
+        elif self.n_xattn > 0:
+            h = enc.view(B, S, d) + self.asset_id.unsqueeze(0)
             if self.use_market_token:
                 m_mean = _masked_mean(h, mask)
                 m_cap = _masked_weighted_mean(h, mask, self.cap_weights)
@@ -182,7 +222,7 @@ class TemporalSpatialPanelModel(nn.Module):
                     h = layer(h, key_pad)
                 h_attn = h
         else:
-            h_attn = h
+            h_attn = enc.view(B, S, d) + self.asset_id.unsqueeze(0)
 
         # ---- HEAD: per-asset quantile head ----
         out = self.head(h_attn.reshape(B * S, d))             # dict, leaves (B*S,*)

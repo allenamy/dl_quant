@@ -57,13 +57,18 @@ class SeqPanelData:
     """
 
     def __init__(self, seq_dir=SEQ_DIR, panel_cache=PANEL_CACHE,
-                 symbols=SYMBOLS, window=WINDOW, n_feat=44):
+                 symbols=SYMBOLS, window=WINDOW, n_feat=44, target_horizon=600):
         self.seq_dir = seq_dir
         self.panel_cache = panel_cache
         self.symbols = symbols
         self.S = len(symbols)
         self.W = window
         self.F = n_feat
+        # target_horizon=600 -> use the seq_cache y (y_600). Otherwise swap the
+        # TARGET (y + mask) to the mh_targets cache (y_60/y_180) — same features,
+        # same bar grid, only the forward-return horizon changes.
+        self.target_horizon = target_horizon
+        self.mh_dir = (seq_dir.rsplit("/", 1)[0] + "/mh_targets")
 
         # ---- assemble the common-aligned panel index from panel_cache ----
         per = {s: _load_panel_cache(s) for s in symbols}
@@ -85,6 +90,20 @@ class SeqPanelData:
         self.uniq_days = np.unique(self.day)
         # group common-ts row indices by day (for day-chunked streaming)
         self._rows_by_day = {int(d): np.where(self.day == d)[0] for d in self.uniq_days}
+
+        # for a non-600 horizon, rebuild the panel target self.Y from mh_targets
+        # (aligned to the common pred-ts via each day's ts grid).
+        if self.target_horizon != 600:
+            Yh = np.full((nT, self.S), np.nan, np.float32)
+            for d in self.uniq_days:
+                z = np.load(p.join(self.mh_dir, f"{int(d)}.npz"))
+                pos = {int(t): i for i, t in enumerate(z["ts"])}
+                yh = z[f"y_{self.target_horizon}"]                # (S, T_day)
+                for r in self._rows_by_day[int(d)]:
+                    bi = pos.get(int(self.ts[r]))
+                    if bi is not None:
+                        Yh[r] = yh[:, bi]
+            self.Y = Yh
 
         # per-fold state (set by set_fold)
         self.mu = self.sd = None
@@ -154,6 +173,12 @@ class SeqPanelData:
             out["Xraw"] = z["Xraw"]
         if hasattr(z, "close"):
             z.close()
+        if self.target_horizon != 600:
+            zh = np.load(p.join(self.mh_dir, f"{d}.npz"))
+            out["y"] = zh[f"y_{self.target_horizon}"].astype(np.float32)   # (S,T) same grid
+            out["mask"] = zh[f"m_{self.target_horizon}"]                    # target validity
+            if hasattr(zh, "close"):
+                zh.close()
         if self._cache_enabled:
             self._day_cache[d] = out
         return out
