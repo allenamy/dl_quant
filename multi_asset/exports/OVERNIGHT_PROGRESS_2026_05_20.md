@@ -260,6 +260,14 @@ WiSE-FT battery FAIL (Δ=−0.0119); α 曲线向微调端单调,无插值甜点
 
 **B. Provenance 钉死(CRITICAL→已解决):canonical y_1800 记账数字以 battery-on-dense-preds 为准** —— M1 0.0405 [0.0359/0.0482/0.0374],R1 0.0334 [0.0341/0.0411/0.0251],配对 Δ=+0.0061 P=0.987 PASS(交集计分后依然成立,且配对剔除首小时行属保守方向)。此前 trainer 日志数字(M1 0.0418/R1 0.0376)由旧 global-thinning 评估产生,作废不再引用。标签/泄漏审计干净(bar "day" 边界=14:05 UTC,已确认不影响折隔离)。
 
+### y_600 费后经济性实测 (2026-06-11 15:00, P1ft_y600 真实预测, CPU 仿真)
+> 工件: jpline /tmp/econ_y600.py + /tmp/econ_y600.json | 口径: 720s 非重叠 grid, 13,680 ts/120 天, 线性费用无冲击/滑点/资金费
+- **信号侧**: eval-grid rank-IC 0.0475 (t=17.1), gross 1.16bps/期 ≈ 132bps/天, σ_xs=15.2bps — 与 1.55·IC·σ 公式吻合。**lag-1 (720s) pred rank-autocorr 仅 0.225**(y1800 是 0.436)→ y600 信号衰减快, 经济性完全取决于换手管理。
+- **全量调仓 (V0)**: breakeven 0.55bps/side — taker≥1bps 全灭 (2bps: −345bps/天)。
+- **滞回簿 (V2, EMA0.9 影子目标 + 0.15 不交易带, 换手 0.011/期)**: breakeven **10.9bps/side**; 2bps/side 下净 **+11.5bps/天, 年化 Sharpe 2.5, P(>0)=0.93**; 0.5bps 下 +13.4bps/天 Sharpe 2.9。
+- **致命警示: fold 2 (2025-08~09) 所有 variant 费后≈0** (V2 Sharpe −0.02~−0.43)。pooled 正收益由 fold 0/1 扛 (Sharpe 5.9/2.2)。IC 跨折 0.053→0.051→0.038 衰减与 regime drift 已知 pattern 一致。
+- 解读: ① "rank-IC 0.05 能否 beat 费率" = **能, 但只在持仓控制下** (滞回压换手 190×, IC 留存靠 rank 翻转的持续性); ② 距 single-asset 4.4 还差: 缺因子腿 (β·f̂ raw 重构)、缺尾部校准 (S6)、fold-2 regime 平。band 0.15 未调参 (无选择偏差, 也未优化)。
+
 ### S4 双线性 FAIL (2026-06-11 12:15, 两折早杀)
 BL_y1800(M1+低秩双线性,零初始化门): fold0 0.0355 vs M1 0.0359(持平)、fold1 0.0434 vs 0.0482(−0.0048)。两折后配对 Δ 达 +0.004 门槛需 fold2 +0.017,数学上不可能 → 按"前两折定输赢"纪律早杀。**机理结论: 跨资产乘法交互(相对价值)在 attention 已有的线性混合之上无增量**——与 R4 重型逐资产容量、v3 gate 扩展同向,空间轴表达力不是瓶颈。接棒: M3a EPNet 输入门(12:20 开跑,链含 battery)。
 
