@@ -125,6 +125,7 @@ class TemporalSpatialPanelModel(nn.Module):
         coarse: bool = False,
         coarse_len: int = 240,
         horizons=(600,),
+        bilinear: bool = False,
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -165,6 +166,16 @@ class TemporalSpatialPanelModel(nn.Module):
         self.layers = nn.ModuleList(
             [CrossAssetAttnLayer(d, nhead, dropout) for _ in range(n_xattn)]
         )
+        # NX-S4 (M4): low-rank bilinear relative-value interaction across assets.
+        # MHA mixes values LINEARLY; pairwise MULTIPLICATIVE terms (asset i state x
+        # asset j state) are inexpressible in one MHA layer. Factorized form:
+        # mean_{j!=i}[(U h_i) o (V h_j)] = (U h_i) o mean_{j!=i}(V h_j). Zero-init gate.
+        self.bilinear = bilinear
+        if bilinear:
+            self.bl_U = nn.Linear(d, 16, bias=False)
+            self.bl_V = nn.Linear(d, 16, bias=False)
+            self.bl_O = nn.Linear(16, d, bias=False)
+            self.bl_gate = nn.Parameter(torch.zeros(1))
 
         if use_market_token:
             self.market_mlp = MarketMLP(d, dropout)
@@ -247,6 +258,13 @@ class TemporalSpatialPanelModel(nn.Module):
                 h_attn = h
         else:
             h_attn = enc.view(B, S, d) + self.asset_id.unsqueeze(0)
+
+        if self.bilinear:
+            u = self.bl_U(h_attn)                              # (B,S,16)
+            v = self.bl_V(h_attn) * mask.unsqueeze(-1)         # zero padded assets
+            cnt = mask.sum(dim=1, keepdim=True).clamp(min=2.0) # (B,1)
+            vmean_exc = (v.sum(1, keepdim=True) - v) / (cnt.unsqueeze(-1) - 1.0)
+            h_attn = h_attn + torch.tanh(self.bl_gate) * self.bl_O(u * vmean_exc)
 
         # ---- HEAD(s): per-asset quantile head(s), shared trunk ----
         flat = h_attn.reshape(B * S, d)

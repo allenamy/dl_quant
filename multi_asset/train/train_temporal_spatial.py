@@ -254,7 +254,7 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
 def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                cap_w=None, verbose=True, day_override=None, save_dir=None,
                multipool=False, horizon=600, coarse=False, init_ckpt=None, stats_from=None,
-               aux_horizons=()):
+               aux_horizons=(), bilinear=False):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -305,7 +305,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         data.F, data.S, d=D_MODEL, n_blocks=N_BLOCKS, kernel_size=KERNEL,
         nhead=NHEAD, dropout=DROPOUT, cap_weights=cap_t, multipool=multipool,
         coarse=coarse, horizons=tuple([horizon] + sorted(aux_horizons)),
-        **flags).to(DEV)
+        bilinear=bilinear, **flags).to(DEV)
     if init_ckpt:
         st = torch.load(init_ckpt, map_location="cpu")
         missing, unexpected = model.load_state_dict(st, strict=False)
@@ -440,6 +440,7 @@ def main():
     ap.add_argument("--w_rank", type=float, default=None)
     ap.add_argument("--data_root", type=str, default=None,
                     help="alternate cache root (e.g. exports/pretrain) with seq_cache/panel_cache/mh_* inside")
+    ap.add_argument("--bilinear", action="store_true", help="NX-S4: bilinear cross-asset interaction")
     ap.add_argument("--aux_horizons", type=str, default="",
                     help="comma-sep MTL aux horizons, e.g. 180,600 (NX-S3)")
     ap.add_argument("--lr", type=float, default=None, help="override LR (ft: pretrain/10)")
@@ -531,7 +532,7 @@ def main():
                        cap_w=cap_w, verbose=True, save_dir=save_dir,
                        multipool=args.multipool, horizon=args.horizon, coarse=args.coarse,
                        init_ckpt=args.init_ckpt, stats_from=args.stats_from,
-                       aux_horizons=aux_h)
+                       aux_horizons=aux_h, bilinear=args.bilinear)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
