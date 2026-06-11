@@ -275,6 +275,12 @@ WiSE-FT battery FAIL (Δ=−0.0119); α 曲线向微调端单调,无插值甜点
 - **权重方案: rank 加权 pooled 最优; rank×|z| conviction 倾斜打平且唯一三折全正 @2bps** [1.7,3.6,1.7]; top-3 尾部簿低费档 Sharpe 最高 (5.9 @0.5bps) 但 2× 换手在 2bps 被侵蚀; **风险平价负贡献** (σ 离散度小, 打乱权重; 用的 proxy σ — P1ft tag 早于 resid_sigma 存盘改动, npz 里没有)。
 - 综合: 零售 2bps 下可行配置存在且不止一个; 下一档证据 = S6 校准后的真 conviction 加权 + 因子腿叠加。
 
+### Target 工程 NO-GO + 线性天花板基准修正 (2026-06-11 16:00, workflow + 对抗审计)
+> 工件: jpline /tmp/target_study{,2}.py + /tmp/target_study.json | 审计: β 因果性用合成 regime-switch 实证通过, eval 跨 variant 一致 PASS
+- **β 调整残差 target: NO-GO**。T1(因果 60d β)/T2(cap 加权)/T3(β+clip3) 全部低于 +0.002 门或折间反号。机理前提为真((β_i−1)·m_t 占 T0 残差方差 ~18%, BTC 57%/TRX 50%)但**线性无害**: 该噪声与横截面 z-scored 特征近正交, 只抬训练 loss 不偏 coefficient。Pattern: T1/T3 在 fold2 +0.002~0.004 而 fold0/1 为负 → β 稳定性是 regime 性质, 非稳健杠杆。
+- **重大副产物: 线性天花板基准修正**。CP0 引用的 0.0205/0.0125 无法复现来源; 正确口径(clip±5 + tuned α, 与训练 target 同构)的线性 ceiling = **y600 0.0445 / y1800 0.0313**(study X 与 committed phase3_xsec_ridge.json 逐位对账)。⇒ **DL 实际 uplift: y600 仅 +7% (0.0476/0.0445), y1800 +29% (0.0405/0.0313, 网格口径 caveat)**。此前"DL 倍率 3.2×, 衰减律被打破"的叙事作废。
+- **战略含义(根因①强化)**: 44 维手工特征的信号几乎全部线性可提取——当前特征集上架构迭代无 2× 空间, **信息集扩展(raw-path)是唯一数学上可能的大杠杆**; y1800 的 DL 边际(+29%)比 y600(+7%)更真实。
+
 ### M3a EPNet FAIL (2026-06-11 15:01, battery 正式判定)
 EP_y1800 (M1+逐资产输入门, 恒等初始化, +2.2K params): pooled 0.0385 vs M1 0.0405, 配对 Δ=−0.0020, P=0.245, CI[−0.0075,+0.0034] → FAIL。
 **根因**: 全部败在 fold2 (−0.0080; fold0 +0.0024 / fold1 −0.0003)。fold2 val 创新高 (+0.0409, ep13) 但 test 最差 (0.0294) — **逐资产门给了 regime-specific 特征相关性的自由度, 在漂移折上学到不可迁移结构**(与 EPNet 在稳定折小幅为正一致)。Retry recipe (不排队, 留档): gate 范围收窄 [0.5,1.5] / gate 参数 wd 加重 / 或仅在 fold-stable 资产子集上开门。**机制方向入账**: asset-conditioning 有内容但当前形态过不了漂移折——与"预训练旧先验在漂移折反而有价值"互为镜像, 提示 fold2 的解在 regularization/先验而非容量。接棒: attn-pool A/B (15:05 开跑, +66 params 零初始化 blend)。
