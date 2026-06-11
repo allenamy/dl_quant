@@ -190,6 +190,12 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
     S = Y.shape[1]
     per_P, per_S, per_beta, sr_n, sr_d = [], [], [], 0.0, 0.0
     pooled_pr, pooled_y = [], []          # de-normed pred + raw y, for bias/monotonicity
+    # sigma_ratio denominator = cross-sectional RESIDUAL y (the unit the model
+    # predicts), not raw y. Raw-y std is ~1.8x residual std at y1800, so the old
+    # raw denominator understated collapse risk. Audit fix 2026-06-11.
+    with np.errstate(all="ignore"):
+        rmean = np.nanmean(np.where(np.isfinite(Y), Y, np.nan), axis=1, keepdims=True)
+    Yres = Y - rmean
     for si in range(S):
         m = np.isfinite(pred[:, si]) & np.isfinite(Y[:, si])
         if clean:
@@ -209,7 +215,7 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
             per_beta.append(float(np.cov(yr, pr)[0, 1] / vp))
         pooled_pr.append(pr); pooled_y.append(yr)
         sr_n += pr.std() * m.sum()
-        sr_d += yr.std() * m.sum()
+        sr_d += Yres[m, si].std() * m.sum()
     # pooled bias + monotonicity (E[y|pred-decile] should rise monotonically)
     bias_bps = mono = float("nan")
     if pooled_pr:
@@ -375,8 +381,11 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         vm = eval_metrics(vpred, data.Y, data.CL, data.resid_sigma, clean=False)
         vIC, vP, vS = vm["xsec_rank_ic"], vm["per_asset_P"], vm["per_asset_S"]
         # PRIMARY objective for the residual long-short = cross-sectional rank-IC.
+        # sigma-gate (anti-pattern #24): reject near-collapse checkpoints.
+        # sigma_ratio is residual-denominated (audit fix 2026-06-11), so the
+        # methodology gate applies directly at 0.02.
         vscore = vIC
-        gated = np.isfinite(vscore)
+        gated = np.isfinite(vscore) and np.isfinite(vm["sigma_ratio"]) and vm["sigma_ratio"] >= 0.02
         if verbose:
             print(f"  ep{ep:2d} ({time.time()-t_ep:.0f}s) loss={ep_loss:.4f} "
                   f"(huber={ep_h:.4f} rank={ep_x:.4f} pin={ep_pin:.4f})  "

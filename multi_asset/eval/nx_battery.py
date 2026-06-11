@@ -137,6 +137,13 @@ def main():
     if args.tag_b:
         ref_b, pb, folds_b = load_tag(args.tag_b)
         assert ref_b["Y"].shape == ref["Y"].shape, "panel mismatch"
+        # coverage-confound fix (audit 2026-06-11): solo numbers for BOTH models
+        # are computed on the intersection of finite-pred rows so differing
+        # coverage (e.g. coarse first-hour drop) cannot flatter either model.
+        both = np.isfinite(pa).any(axis=1) & np.isfinite(pb).any(axis=1)
+        rows = rows[both[rows]]
+        rep_a, (ra, ica) = model_report(pa, ref, rows, CLm, folds)
+        out["A"] = rep_a
         rep_b, (rb, icb) = model_report(pb, ref, rows, CLm, folds_b)
         # paired on the intersection of scored ts
         common, ia, ib = np.intersect1d(ra, rb, return_indices=True)
