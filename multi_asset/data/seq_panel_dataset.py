@@ -57,7 +57,8 @@ class SeqPanelData:
     """
 
     def __init__(self, seq_dir=SEQ_DIR, panel_cache=PANEL_CACHE,
-                 symbols=SYMBOLS, window=WINDOW, n_feat=44, target_horizon=600):
+                 symbols=SYMBOLS, window=WINDOW, n_feat=44, target_horizon=600,
+                 extra_horizons=()):
         self.seq_dir = seq_dir
         self.panel_cache = panel_cache
         self.symbols = symbols
@@ -69,8 +70,11 @@ class SeqPanelData:
         # grid, only the forward-return horizon changes. 60/180 live in
         # mh_targets; 1800/3600 (NX long horizons) live in mh_targets_long.
         self.target_horizon = target_horizon
+        self.extra_horizons = tuple(extra_horizons)   # NX-S3 MTL aux targets
+        root = seq_dir.rsplit("/", 1)[0]
+        self._mh_dir_for = lambda h: root + ("/mh_targets_long" if h > 600 else "/mh_targets")
         sub = "mh_targets_long" if target_horizon > 600 else "mh_targets"
-        self.mh_dir = (seq_dir.rsplit("/", 1)[0] + "/" + sub)
+        self.mh_dir = root + "/" + sub
 
         # ---- assemble the common-aligned panel index from panel_cache ----
         per = {s: _load_panel_cache(s, panel_cache) for s in symbols}
@@ -184,6 +188,14 @@ class SeqPanelData:
             out["mask"] = zh[f"m_{self.target_horizon}"]                    # target validity
             if hasattr(zh, "close"):
                 zh.close()
+        if self.extra_horizons:
+            ex = {}
+            for h in self.extra_horizons:
+                zh = np.load(p.join(self._mh_dir_for(h), f"{d}.npz"))
+                ex[h] = zh[f"y_{h}"].astype(np.float32)
+                if hasattr(zh, "close"):
+                    zh.close()
+            out["y_extra"] = ex
         if self._cache_enabled:
             self._day_cache[d] = out
         return out
@@ -226,7 +238,7 @@ class SeqPanelData:
             if got is None:
                 continue
             arr, rows, bars = got
-            yield arr["F"], arr["mask"], arr["y"], rows, bars
+            yield arr["F"], arr["mask"], arr["y"], rows, bars, arr.get("y_extra")
 
     def iter_days_raw(self, split_rows, rng=None, shuffle=True):
         """Like iter_days but ALSO yields the raw-LOB array Xraw (S,T,5,4) for the

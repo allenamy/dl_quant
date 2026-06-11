@@ -124,6 +124,7 @@ class TemporalSpatialPanelModel(nn.Module):
         pool_windows=(30, 120),
         coarse: bool = False,
         coarse_len: int = 240,
+        horizons=(600,),
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -180,8 +181,14 @@ class TemporalSpatialPanelModel(nn.Module):
             # factor split only adds a shared broadcast market factor on top.
             self.beta_proj = nn.Linear(d, 1)
 
-        # per-asset quantile head (sign x magnitude decomp + monotone q10<=q50<=q90)
-        self.head = DirectionAwareQuantileHead(d_input=d, dropout=dropout)
+        # per-asset quantile head(s) (sign x magnitude decomp + monotone quantiles).
+        # NX-S3 MTL: one head per horizon (shared trunk); horizons[0] is PRIMARY
+        # (its q50 is the model's point output; aux heads shape the representation).
+        self.horizons = tuple(horizons)
+        self.heads = nn.ModuleList(
+            [DirectionAwareQuantileHead(d_input=d, dropout=dropout)
+             for _ in self.horizons])
+        self.head = self.heads[0]   # back-compat alias (primary head)
 
     def forward(self, x, mask, return_dict: bool = False, x_coarse=None):
         """x: (B, S, T, F); mask: (B, S) {0,1}; x_coarse: (B, S, Tc, F) or None.
@@ -241,9 +248,15 @@ class TemporalSpatialPanelModel(nn.Module):
         else:
             h_attn = enc.view(B, S, d) + self.asset_id.unsqueeze(0)
 
-        # ---- HEAD: per-asset quantile head ----
-        out = self.head(h_attn.reshape(B * S, d))             # dict, leaves (B*S,*)
+        # ---- HEAD(s): per-asset quantile head(s), shared trunk ----
+        flat = h_attn.reshape(B * S, d)
+        out = self.heads[0](flat)                             # primary head
         q50 = out["point_pred"].view(B, S)                    # (B, S)
+        if len(self.heads) > 1:
+            self._aux_quantiles = [hd(flat)["quantiles"].view(B, S, 3)
+                                   for hd in self.heads[1:]]
+        else:
+            self._aux_quantiles = []
 
         if self.use_factor_split:
             # alt = broadcast market factor + per-asset idiosyncratic residual.
@@ -255,6 +268,7 @@ class TemporalSpatialPanelModel(nn.Module):
             return {
                 "q50": q50,
                 "quantiles": out["quantiles"].view(B, S, 3),
+                "aux_quantiles": self._aux_quantiles,
                 "sign_logit": out["sign_logit"].view(B, S),
                 "magnitude_abs": out["magnitude_abs"].view(B, S),
             }

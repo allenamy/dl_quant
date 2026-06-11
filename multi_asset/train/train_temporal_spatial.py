@@ -124,11 +124,13 @@ COARSE_MIN_BAR = COARSE_POOL * COARSE_LEN + COARSE_POOL - 1   # 3614
 
 
 def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
-                    offs_g, W, batch_ts, rng=None, shuffle=True, coarse=False):
+                    offs_g, W, batch_ts, rng=None, shuffle=True, coarse=False,
+                    y_extra=None):
     F_g = torch.from_numpy(F_all).to(DEV)                       # (S,T,F)
     F_g = torch.nan_to_num(F_g, nan=0.0)
     F_g = ((F_g - mu_g) / sd_g).clamp_(-10.0, 10.0)             # standardize whole day once
     y_g = torch.from_numpy(y_all).to(DEV)                       # (S,T)
+    yx_g = {h: torch.from_numpy(a).to(DEV) for h, a in (y_extra or {}).items()}
     mask_g = torch.from_numpy(mask_all.astype(np.float32)).to(DEV)
     if coarse:
         # NX-M1: pool the standardized day once -> (S, T//15, F); causal bins
@@ -158,9 +160,10 @@ def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
             Xc = F15[:, cwidx, :].permute(1, 0, 2, 3).contiguous()  # (B,S,240,F)
         ymat = y_g[:, bb].t()                                   # (B,S) RAW y
         mmat = mask_g[:, bb].t() * torch.isfinite(ymat).float()  # (B,S)
+        yx = {h: torch.nan_to_num(g[:, bb].t(), nan=0.0) for h, g in yx_g.items()}
         # yield RAW y (nan->0, masked) so the trainer can form the cross-sectional
         # residual; sigma_g kept for back-compat but residual uses resid_sigma.
-        yield Xseq, torch.nan_to_num(ymat, nan=0.0), mmat, rows[order[b0:b0 + batch_ts]], Xc
+        yield Xseq, torch.nan_to_num(ymat, nan=0.0), mmat, rows[order[b0:b0 + batch_ts]], Xc, yx
 
 
 # --------------------------------------------------------------------------- #
@@ -172,7 +175,7 @@ def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts
     T, S = data.ts.shape[0], data.S
     pred = np.full((T, S), np.nan, np.float32)
     with torch.no_grad():
-        for F_all, mask_all, y_all, rows, bars in data.iter_days(
+        for F_all, mask_all, y_all, rows, bars, _ in data.iter_days(
                 split_rows, rng=None, shuffle=False):
             for Xseq, yn, mmat, rr, Xc in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
@@ -250,7 +253,8 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
 # --------------------------------------------------------------------------- #
 def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                cap_w=None, verbose=True, day_override=None, save_dir=None,
-               multipool=False, horizon=600, coarse=False, init_ckpt=None, stats_from=None):
+               multipool=False, horizon=600, coarse=False, init_ckpt=None, stats_from=None,
+               aux_horizons=()):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -300,7 +304,8 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     model = TemporalSpatialPanelModel(
         data.F, data.S, d=D_MODEL, n_blocks=N_BLOCKS, kernel_size=KERNEL,
         nhead=NHEAD, dropout=DROPOUT, cap_weights=cap_t, multipool=multipool,
-        coarse=coarse, **flags).to(DEV)
+        coarse=coarse, horizons=tuple([horizon] + sorted(aux_horizons)),
+        **flags).to(DEV)
     if init_ckpt:
         st = torch.load(init_ckpt, map_location="cpu")
         missing, unexpected = model.load_state_dict(st, strict=False)
@@ -325,11 +330,12 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         t_ep = time.time()
         ep_loss = ep_pin = ep_h = ep_x = 0.0
         nb = 0
-        for F_all, mask_all, y_all, rows, bars in data.iter_days(
+        for F_all, mask_all, y_all, rows, bars, y_extra in data.iter_days(
                 tr_rows, rng=rng, shuffle=True):
-            for xb, yraw, mb, _, xc in gpu_day_batches(
+            for xb, yraw, mb, _, xc, yx in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
-                    offs_g, data.W, BATCH_TS, rng=rng, shuffle=True, coarse=coarse):
+                    offs_g, data.W, BATCH_TS, rng=rng, shuffle=True, coarse=coarse,
+                    y_extra=y_extra):
                 out = model(xb, mb, return_dict=True, x_coarse=xc)
                 # cross-sectional RESIDUAL target (demean over valid assets, per-asset
                 # MAD-norm, clip) -> both rank + magnitude losses see the SAME residual.
@@ -337,6 +343,16 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                 r = (r / resid_sigma_g[None, :]).clamp(-5.0, 5.0)
                 loss, parts = residual_loss(out["quantiles"], r, mb, rank_kind=RANK_KIND,
                                             w_huber=W_HUBER, w_rank=W_RANK, w_pin=W_PIN)
+                # NX-S3 MTL: aux-horizon heads on the shared trunk (w=0.3 each).
+                # Aux residual sigma via diffusion scaling sqrt(h/h0) (measured-exact).
+                for ai, (h_aux, y_aux) in enumerate(sorted(yx.items())):
+                    r_a, _ = cross_sectional_residual(y_aux, mb)
+                    scale = resid_sigma_g[None, :] * float(np.sqrt(h_aux / horizon))
+                    r_a = (r_a / scale).clamp(-5.0, 5.0)
+                    l_a, _ = residual_loss(out["aux_quantiles"][ai], r_a, mb,
+                                           rank_kind=RANK_KIND, w_huber=W_HUBER,
+                                           w_rank=W_RANK, w_pin=W_PIN)
+                    loss = loss + 0.3 * l_a
                 opt.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -424,6 +440,8 @@ def main():
     ap.add_argument("--w_rank", type=float, default=None)
     ap.add_argument("--data_root", type=str, default=None,
                     help="alternate cache root (e.g. exports/pretrain) with seq_cache/panel_cache/mh_* inside")
+    ap.add_argument("--aux_horizons", type=str, default="",
+                    help="comma-sep MTL aux horizons, e.g. 180,600 (NX-S3)")
     ap.add_argument("--lr", type=float, default=None, help="override LR (ft: pretrain/10)")
     ap.add_argument("--patience", type=int, default=None)
     ap.add_argument("--stats_from", type=str, default=None,
@@ -454,12 +472,13 @@ def main():
 
     print(f"[env] device={DEV} torch={torch.__version__}", flush=True)
     t0 = time.time()
+    aux_h = tuple(int(x) for x in args.aux_horizons.split(",") if x.strip())
     if args.data_root:
         data = SeqPanelData(seq_dir=p.join(args.data_root, "seq_cache"),
                             panel_cache=p.join(args.data_root, "panel_cache"),
-                            target_horizon=args.horizon)
+                            target_horizon=args.horizon, extra_horizons=aux_h)
     else:
-        data = SeqPanelData(target_horizon=args.horizon)
+        data = SeqPanelData(target_horizon=args.horizon, extra_horizons=aux_h)
     print(f"[panel] T={len(data.ts)} S={data.S} uniq_days={len(data.uniq_days)} "
           f"horizon=y_{args.horizon} (index built {time.time()-t0:.1f}s)", flush=True)
     if save_dir is not None:
@@ -511,7 +530,8 @@ def main():
                        max_epochs=MAX_EPOCHS, patience=PATIENCE,
                        cap_w=cap_w, verbose=True, save_dir=save_dir,
                        multipool=args.multipool, horizon=args.horizon, coarse=args.coarse,
-                       init_ckpt=args.init_ckpt, stats_from=args.stats_from)
+                       init_ckpt=args.init_ckpt, stats_from=args.stats_from,
+                       aux_horizons=aux_h)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
