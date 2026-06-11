@@ -391,7 +391,9 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
         np.savez(p.join(save_dir, f"fold_{fold_i}_preds.npz"),
-                 pred=tpred, te_rows=te_rows, te_days=te_days)
+                 pred=tpred, te_rows=te_rows, te_days=te_days,
+                 resid_sigma=data.resid_sigma, horizon=horizon,
+                 x_mu=data.mu, x_sd=data.sd)
         torch.save(best_state, p.join(save_dir, f"fold_{fold_i}_model.pt"))
     metrics["best_epoch"] = best_epoch
     metrics["best_val_score"] = round(best_val, 4) if best_val > -1e8 else None

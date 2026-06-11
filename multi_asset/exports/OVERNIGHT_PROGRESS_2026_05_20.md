@@ -231,3 +231,13 @@ P1 预训练 fine-tune @y600: [0.0528, 0.0513, 0.0385] vs R1 [0.046, 0.049, 0.03
 - **M1 多尺度 vs R1 @y1800: Δ=+0.0061, P=0.987 → PASS** — NX 首个正式入账模块,M1 成为 incumbent。
 - 去 pinball vs M1: Δ=−0.0062, P=0.031 → FAIL — **pinball 保留**(97% 置信去除有害;肉眼"中性"被配对检验推翻)。
 - P1ft v1 vs M1 @y1800: Δ=−0.004 → FAIL(已知,根因=统计错配+LR;v2a 跑中)。
+
+### 可交易输出 schema 承诺 (2026-06-11, 用户硬要求)
+最终交付的预测工件(每时点×每币),保证策略层灵活使用:
+1. **expected_residual_bps** — q50 × resid_sigma_asset × 1e4(de-norm 后,跨币可比)→ 多空排序/加权;
+2. **calibrated_residual_bps** — isotonic m(ẑ) + 99.5% 支撑截断后(S6)→ 尾部/阈值开仓、conviction 加权;
+3. **conviction_width_bps** — (q90−q10)×σ → 仓位倒数加权 / 不确定性过滤;
+4. **tail_prob_up/dn** — TailBCE 校准概率(S6)→ P(tail)≥p* 开仓门;
+5. **resid_sigma / β / f̂(可选因子腿)** — 重构 raw 口径 ŷ=β·f̂+r̂(绝对策略);
+6. 健康元数据:σŷ/σy、折号、horizon。
+今日已补: fold_preds.npz 携带 resid_sigma/mu/sd(de-norm 因子),归一化预测可还原 bps。S6(isotonic+TailBCE 校准)在 raw-path 之后排期,为策略层的"幅度可信"把关。
