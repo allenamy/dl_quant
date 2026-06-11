@@ -62,14 +62,26 @@ class SharedTemporalEncoder(nn.Module):
 
     def __init__(self, n_feat: int, d: int, n_blocks: int = 2,
                  n_heads: int = 2, kernel_size: int = 15, dropout: float = 0.2,
-                 multipool: bool = False, pool_windows=(30, 120)):
+                 multipool: bool = False, pool_windows=(30, 120),
+                 attnpool: bool = False):
         super().__init__()
+        assert not (multipool and attnpool), "multipool and attnpool are exclusive"
         self.input_proj = nn.Linear(n_feat, d)
         self.in_norm = nn.LayerNorm(d)
         self.backbone = ConformerBackbone(
             d_model=d, n_blocks=n_blocks, n_heads=n_heads,
             kernel_size=kernel_size, dropout=dropout,
         )  # returns last-token (B*, d) by default (return_sequence not set)
+        # NX attn-pool A/B: last-token assumes the latest state summarizes the
+        # window; a learned-query pool can up-weight informative MID-window
+        # moments (bursts/level shifts) that decay from the last hidden state.
+        # Zero-init blend gate -> starts exactly last-token, must earn deviation.
+        self.attnpool = attnpool
+        if attnpool:
+            self.backbone.return_sequence = True
+            self.pool_q = nn.Parameter(torch.zeros(d))
+            nn.init.normal_(self.pool_q, std=0.02)
+            self.pool_alpha = nn.Parameter(torch.zeros(1))
         # A1a: multi-pool divided space-time — let cross-asset attention read K
         # causal temporal pools {last, mean(-w) for w in pool_windows} instead of
         # one collapsed last-token (fixes R1's structural blind spot: spatial
@@ -84,6 +96,12 @@ class SharedTemporalEncoder(nn.Module):
 
     def forward(self, x):  # x: (N, T, F) -> (N, d) or (N, K, d) if multipool
         h = self.in_norm(self.input_proj(x))
+        if self.attnpool:
+            H = self.backbone(h)                            # (N, T, d)
+            last = H[:, -1, :]
+            w = torch.softmax(H @ self.pool_q / (H.shape[-1] ** 0.5), dim=1)
+            pool = (H * w.unsqueeze(-1)).sum(dim=1)
+            return last + torch.tanh(self.pool_alpha) * (pool - last)
         if not self.multipool:
             return self.backbone(h)
         H = self.backbone(h)                               # (N, T, d) seq
@@ -127,6 +145,7 @@ class TemporalSpatialPanelModel(nn.Module):
         horizons=(600,),
         bilinear: bool = False,
         epnet: bool = False,
+        attnpool: bool = False,
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -146,6 +165,7 @@ class TemporalSpatialPanelModel(nn.Module):
             n_feat, d, n_blocks=n_blocks, n_heads=2,
             kernel_size=kernel_size, dropout=dropout,
             multipool=multipool, pool_windows=pool_windows,
+            attnpool=attnpool,
         )
         self.K = self.encoder.K
         self.asset_id = nn.Parameter(torch.zeros(n_assets, d))
@@ -160,7 +180,8 @@ class TemporalSpatialPanelModel(nn.Module):
         self.coarse_len = coarse_len
         if coarse:
             self.coarse_encoder = SharedTemporalEncoder(
-                n_feat, d, n_blocks=1, n_heads=2, kernel_size=9, dropout=dropout)
+                n_feat, d, n_blocks=1, n_heads=2, kernel_size=9, dropout=dropout,
+                attnpool=attnpool)
             self.coarse_proj = nn.Linear(d, d)
             self.coarse_alpha = nn.Parameter(torch.zeros(1))
 
