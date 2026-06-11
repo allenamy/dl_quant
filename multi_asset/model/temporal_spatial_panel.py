@@ -126,6 +126,7 @@ class TemporalSpatialPanelModel(nn.Module):
         coarse_len: int = 240,
         horizons=(600,),
         bilinear: bool = False,
+        epnet: bool = False,
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -166,6 +167,23 @@ class TemporalSpatialPanelModel(nn.Module):
         self.layers = nn.ModuleList(
             [CrossAssetAttnLayer(d, nhead, dropout) for _ in range(n_xattn)]
         )
+        # NX-M3a (EPNet, PEPNet KDD'23): asset-conditioned INPUT channel gate.
+        # Mechanism: the shared temporal encoder is asset-AGNOSTIC (identity only
+        # enters post-encoder via asset_id). But the same feature channel carries
+        # different meaning per asset (BTC flow != DOGE flow); this gate lets
+        # identity condition feature EXTRACTION without per-asset towers:
+        #   gamma_s = 2*sigmoid(MLP(gate_emb_s)) in [0,2]^F, multiplies x channels
+        # (fine AND coarse branches). Final layer zero-init -> gamma=1 identity at
+        # start, so the module must EARN its deviation from the incumbent. ~2K params.
+        self.epnet = epnet
+        if epnet:
+            self.gate_emb = nn.Parameter(torch.zeros(n_assets, 16))
+            nn.init.normal_(self.gate_emb, std=0.02)
+            self.gate_mlp = nn.Sequential(
+                nn.Linear(16, 32), nn.GELU(), nn.Linear(32, n_feat))
+            nn.init.zeros_(self.gate_mlp[2].weight)
+            nn.init.zeros_(self.gate_mlp[2].bias)
+
         # NX-S4 (M4): low-rank bilinear relative-value interaction across assets.
         # MHA mixes values LINEARLY; pairwise MULTIPLICATIVE terms (asset i state x
         # asset j state) are inexpressible in one MHA layer. Factorized form:
@@ -208,11 +226,17 @@ class TemporalSpatialPanelModel(nn.Module):
         x = torch.nan_to_num(x, nan=0.0)
         # zero padded assets at input so the shared encoder never sees junk
         x = x * mask.view(B, S, 1, 1)
+        gamma = None
+        if self.epnet:
+            gamma = 2.0 * torch.sigmoid(self.gate_mlp(self.gate_emb))  # (S, F)
+            x = x * gamma.view(1, S, 1, Fdim)
 
         # ---- TEMPORAL: shared encoder over each asset-window ----
         enc = self.encoder(x.reshape(B * S, T, Fdim))        # (B*S,d) or (B*S,K,d)
         if self.coarse and x_coarse is not None:
             xc = torch.nan_to_num(x_coarse, nan=0.0) * mask.view(B, S, 1, 1)
+            if gamma is not None:
+                xc = xc * gamma.view(1, S, 1, Fdim)
             Tc = xc.shape[2]
             hc = self.coarse_encoder(xc.reshape(B * S, Tc, Fdim))   # (B*S, d)
             enc = enc + torch.tanh(self.coarse_alpha) * self.coarse_proj(hc)
