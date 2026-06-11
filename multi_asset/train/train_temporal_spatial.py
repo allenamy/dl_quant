@@ -346,6 +346,16 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         ep_loss /= max(nb, 1); ep_pin /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
 
         vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
+        if horizon > 600:
+            # match the TEST statistic: thinned non-overlap view (dense val
+            # overweights smooth/persistent components -> misleads checkpointing)
+            vstep = horizon // 180
+            vthin = np.zeros(vpred.shape[0], bool)
+            va_day = data.day[va_rows]
+            for d in np.unique(va_day):
+                dr = va_rows[va_day == d]
+                vthin[dr[::vstep]] = True
+            vpred = np.where(vthin[:, None], vpred, np.nan)
         vm = eval_metrics(vpred, data.Y, data.CL, data.resid_sigma, clean=False)
         vIC, vP, vS = vm["xsec_rank_ic"], vm["per_asset_P"], vm["per_asset_S"]
         # PRIMARY objective for the residual long-short = cross-sectional rank-IC.
