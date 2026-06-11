@@ -250,7 +250,7 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
 # --------------------------------------------------------------------------- #
 def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                cap_w=None, verbose=True, day_override=None, save_dir=None,
-               multipool=False, horizon=600, coarse=False, init_ckpt=None):
+               multipool=False, horizon=600, coarse=False, init_ckpt=None, stats_from=None):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -272,6 +272,12 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         return None
 
     data.set_fold(tr_days)
+    if stats_from:
+        st = np.load(stats_from)
+        data.mu, data.sd = st["mu"], st["sd"]
+        data.resid_sigma = st["resid_sigma"]
+        if verbose:
+            print(f"[stats] overrode mu/sd/resid_sigma from {stats_from}", flush=True)
     data._day_cache.clear()          # free previous fold's cached days
     data.enable_cache(True)          # cache day arrays in RAM (no per-epoch disk IO)
     tr_rows = np.where(np.isin(data.day, tr_days))[0]
@@ -406,6 +412,10 @@ def main():
     ap.add_argument("--w_rank", type=float, default=None)
     ap.add_argument("--data_root", type=str, default=None,
                     help="alternate cache root (e.g. exports/pretrain) with seq_cache/panel_cache/mh_* inside")
+    ap.add_argument("--lr", type=float, default=None, help="override LR (ft: pretrain/10)")
+    ap.add_argument("--patience", type=int, default=None)
+    ap.add_argument("--stats_from", type=str, default=None,
+                    help="npz with mu/sd/resid_sigma to use instead of fold-fit stats (pretrain-period stats)")
     ap.add_argument("--init_ckpt", type=str, default=None,
                     help="warm-start state_dict (NX-S2 pretrained stem; strict=False)")
     ap.add_argument("--pretrain_mode", action="store_true",
@@ -420,7 +430,9 @@ def main():
                     help="target horizon (mh_targets for 60/180; mh_targets_long for 1800/3600)")
     args = ap.parse_args()
     save_dir = p.join(EXPORT, args.save_tag) if args.save_tag else None
-    global W_HUBER, W_RANK, W_PIN
+    global W_HUBER, W_RANK, W_PIN, LR, PATIENCE
+    if args.lr is not None: LR = args.lr
+    if args.patience is not None: PATIENCE = args.patience
     if args.w_pin is not None: W_PIN = args.w_pin
     if args.w_huber is not None: W_HUBER = args.w_huber
     if args.w_rank is not None: W_RANK = args.w_rank
@@ -473,6 +485,9 @@ def main():
                        patience=PATIENCE, cap_w=cap_w, verbose=True, save_dir=save_dir,
                        multipool=args.multipool, horizon=args.horizon, coarse=args.coarse,
                        day_override=(tr, va, va))
+        if save_dir is not None:
+            np.savez(p.join(save_dir, "pretrain_stats.npz"),
+                     mu=data.mu, sd=data.sd, resid_sigma=data.resid_sigma)
         print(json.dumps({k: v for k, v in (m or {}).items() if not k.endswith("_list")}, indent=2), flush=True)
         return
 
@@ -484,7 +499,7 @@ def main():
                        max_epochs=MAX_EPOCHS, patience=PATIENCE,
                        cap_w=cap_w, verbose=True, save_dir=save_dir,
                        multipool=args.multipool, horizon=args.horizon, coarse=args.coarse,
-                       init_ckpt=args.init_ckpt)
+                       init_ckpt=args.init_ckpt, stats_from=args.stats_from)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
