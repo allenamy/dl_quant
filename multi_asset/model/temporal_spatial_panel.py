@@ -145,7 +145,9 @@ class TemporalSpatialPanelModel(nn.Module):
         horizons=(600,),
         bilinear: bool = False,
         epnet: bool = False,
+        epnet_soft: bool = False,
         attnpool: bool = False,
+        btc25: bool = False,
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -196,7 +198,11 @@ class TemporalSpatialPanelModel(nn.Module):
         #   gamma_s = 2*sigmoid(MLP(gate_emb_s)) in [0,2]^F, multiplies x channels
         # (fine AND coarse branches). Final layer zero-init -> gamma=1 identity at
         # start, so the module must EARN its deviation from the incumbent. ~2K params.
+        # epnet_soft (v2 retry): gamma = 1 + 0.5*tanh(.) in [0.5,1.5] — narrower
+        # range centred at identity, targeting the v1 failure (fold-2 drift
+        # overfit via too-free per-asset relevance dof). Single-axis change.
         self.epnet = epnet
+        self.epnet_soft = epnet_soft
         if epnet:
             self.gate_emb = nn.Parameter(torch.zeros(n_assets, 16))
             nn.init.normal_(self.gate_emb, std=0.02)
@@ -215,6 +221,19 @@ class TemporalSpatialPanelModel(nn.Module):
             self.bl_V = nn.Linear(d, 16, bias=False)
             self.bl_O = nn.Linear(16, d, bias=False)
             self.bl_gate = nn.Parameter(torch.zeros(1))
+
+        # NX-S5 kill-test: BTC-25 deep-book scalar FiLM. Mechanism: the leader's
+        # DEEP book state (25-level imbalance/slope/microprice/vol) is a market
+        # microstructure REGIME signal unavailable in the 5-level alt features;
+        # FiLM lets it modulate the decision layer (scale+shift per channel)
+        # without entering the per-asset feature path. Both maps zero-init ->
+        # identity at init. z_btc standardized upstream. +512 params.
+        self.btc25 = btc25
+        if btc25:
+            self.film_g = nn.Linear(8, d, bias=False)
+            self.film_b = nn.Linear(8, d, bias=False)
+            nn.init.zeros_(self.film_g.weight)
+            nn.init.zeros_(self.film_b.weight)
 
         if use_market_token:
             self.market_mlp = MarketMLP(d, dropout)
@@ -240,8 +259,10 @@ class TemporalSpatialPanelModel(nn.Module):
              for _ in self.horizons])
         self.head = self.heads[0]   # back-compat alias (primary head)
 
-    def forward(self, x, mask, return_dict: bool = False, x_coarse=None):
-        """x: (B, S, T, F); mask: (B, S) {0,1}; x_coarse: (B, S, Tc, F) or None.
+    def forward(self, x, mask, return_dict: bool = False, x_coarse=None,
+                z_btc=None):
+        """x: (B, S, T, F); mask: (B, S) {0,1}; x_coarse: (B, S, Tc, F) or None;
+        z_btc: (B, 8) standardized BTC-25 state or None.
         Returns (B, S) point q50, or a dict with per-asset quantiles."""
         B, S, T, Fdim = x.shape
         x = torch.nan_to_num(x, nan=0.0)
@@ -249,7 +270,9 @@ class TemporalSpatialPanelModel(nn.Module):
         x = x * mask.view(B, S, 1, 1)
         gamma = None
         if self.epnet:
-            gamma = 2.0 * torch.sigmoid(self.gate_mlp(self.gate_emb))  # (S, F)
+            pre = self.gate_mlp(self.gate_emb)                         # (S, F)
+            gamma = (1.0 + 0.5 * torch.tanh(pre) if self.epnet_soft
+                     else 2.0 * torch.sigmoid(pre))
             x = x * gamma.view(1, S, 1, Fdim)
 
         # ---- TEMPORAL: shared encoder over each asset-window ----
@@ -310,6 +333,11 @@ class TemporalSpatialPanelModel(nn.Module):
             cnt = mask.sum(dim=1, keepdim=True).clamp(min=2.0) # (B,1)
             vmean_exc = (v.sum(1, keepdim=True) - v) / (cnt.unsqueeze(-1) - 1.0)
             h_attn = h_attn + torch.tanh(self.bl_gate) * self.bl_O(u * vmean_exc)
+
+        if self.btc25 and z_btc is not None:
+            g = torch.tanh(self.film_g(z_btc)).unsqueeze(1)       # (B,1,d)
+            b = self.film_b(z_btc).unsqueeze(1)                   # (B,1,d)
+            h_attn = h_attn * (1.0 + g) + b
 
         # ---- HEAD(s): per-asset quantile head(s), shared trunk ----
         flat = h_attn.reshape(B * S, d)

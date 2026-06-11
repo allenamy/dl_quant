@@ -170,7 +170,7 @@ def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
 # Streaming predict over a split -> pred (T,S) in NORM units (NaN where invalid).
 # --------------------------------------------------------------------------- #
 def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts=96,
-                  coarse=False):
+                  coarse=False, z_g=None):
     model.eval()
     T, S = data.ts.shape[0], data.S
     pred = np.full((T, S), np.nan, np.float32)
@@ -180,10 +180,34 @@ def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts
             for Xseq, yn, mmat, rr, Xc, _yx in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
                     offs_g, data.W, batch_ts, rng=None, shuffle=False, coarse=coarse):
-                q50 = model(Xseq, mmat, x_coarse=Xc).detach().cpu().numpy()
+                zb = z_g[rr] if z_g is not None else None
+                q50 = model(Xseq, mmat, x_coarse=Xc, z_btc=zb).detach().cpu().numpy()
                 q50 = np.where(mmat.cpu().numpy() > 0.5, q50, np.nan)
                 pred[rr] = q50
     return pred
+
+
+def load_btc25(data):
+    """(T,8) BTC-25 deep-book scalars aligned to the panel grid by exact ts
+    match (panel ts is a subset of the builder's candidate grid)."""
+    root = p.join(p.dirname(EXPORT), "btc25_state")
+    Z = np.full((len(data.ts), 8), np.nan, np.float32)
+    miss = []
+    for d in data.uniq_days:
+        f = p.join(root, f"{int(d)}.npz")
+        if not p.exists(f):
+            miss.append(int(d)); continue
+        z = np.load(f)
+        rows = np.where(data.day == d)[0]
+        idx = np.searchsorted(z["ts"], data.ts[rows])
+        idx_c = np.minimum(idx, len(z["ts"]) - 1)
+        ok = z["ts"][idx_c] == data.ts[rows]
+        Z[rows[ok]] = z["Z"][idx_c[ok]]
+    cov = float(np.isfinite(Z).all(axis=1).mean())
+    print(f"[btc25] aligned coverage={cov:.4f} missing_days={miss[:5]}"
+          f"{'...' if len(miss) > 5 else ''} (n={len(miss)})", flush=True)
+    assert cov > 0.95, "btc25 alignment coverage too low"
+    return np.nan_to_num(Z, nan=0.0)
 
 
 def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
@@ -260,7 +284,8 @@ def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
 def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                cap_w=None, verbose=True, day_override=None, save_dir=None,
                multipool=False, horizon=600, coarse=False, init_ckpt=None, stats_from=None,
-               aux_horizons=(), bilinear=False, epnet=False, attnpool=False):
+               aux_horizons=(), bilinear=False, epnet=False, epnet_soft=False,
+               attnpool=False, zall=None):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -294,6 +319,13 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     tr_rows = tr_rows[::TRAIN_STRIDE_SUB]    # thin train grid (less overlap, ~2x faster)
     va_rows = np.where(np.isin(data.day, va_days))[0]
     te_rows = np.where(np.isin(data.day, te_days))[0]
+    z_g = None
+    if zall is not None:
+        # standardize the BTC-25 state with TRAIN-row stats (causal per fold)
+        zmu = zall[tr_rows].mean(axis=0)
+        zsd = zall[tr_rows].std(axis=0) + 1e-9
+        z_g = torch.from_numpy(((zall - zmu) / zsd).astype(np.float32)).to(DEV)
+        z_g = torch.clamp(z_g, -8.0, 8.0)
     if verbose:
         print(f"[fold {fold_i}] days tr={len(tr_days)} va={len(va_days)} te={len(te_days)} | "
               f"rows tr={len(tr_rows)} va={len(va_rows)} te={len(te_rows)}", flush=True)
@@ -311,7 +343,8 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         data.F, data.S, d=D_MODEL, n_blocks=N_BLOCKS, kernel_size=KERNEL,
         nhead=NHEAD, dropout=DROPOUT, cap_weights=cap_t, multipool=multipool,
         coarse=coarse, horizons=tuple([horizon] + sorted(aux_horizons)),
-        bilinear=bilinear, epnet=epnet, attnpool=attnpool, **flags).to(DEV)
+        bilinear=bilinear, epnet=epnet, epnet_soft=epnet_soft,
+        attnpool=attnpool, btc25=(zall is not None), **flags).to(DEV)
     if init_ckpt:
         st = torch.load(init_ckpt, map_location="cpu")
         missing, unexpected = model.load_state_dict(st, strict=False)
@@ -338,11 +371,12 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         nb = 0
         for F_all, mask_all, y_all, rows, bars, y_extra in data.iter_days(
                 tr_rows, rng=rng, shuffle=True):
-            for xb, yraw, mb, _, xc, yx in gpu_day_batches(
+            for xb, yraw, mb, rr_b, xc, yx in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
                     offs_g, data.W, BATCH_TS, rng=rng, shuffle=True, coarse=coarse,
                     y_extra=y_extra):
-                out = model(xb, mb, return_dict=True, x_coarse=xc)
+                zb = z_g[rr_b] if z_g is not None else None
+                out = model(xb, mb, return_dict=True, x_coarse=xc, z_btc=zb)
                 # cross-sectional RESIDUAL target (demean over valid assets, per-asset
                 # MAD-norm, clip) -> both rank + magnitude losses see the SAME residual.
                 r, _ = cross_sectional_residual(yraw, mb)
@@ -367,7 +401,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                 ep_h += parts["huber"]; ep_x += parts["rank"]; nb += 1
         ep_loss /= max(nb, 1); ep_pin /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
 
-        vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
+        vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g)
         if horizon > 600:
             # match the TEST statistic: thinned non-overlap view (dense val
             # overweights smooth/persistent components -> misleads checkpointing)
@@ -409,7 +443,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         # predict DENSE (saved preds must cover all te_rows so nx_battery can
         # pair models on its canonical per-day thinned grid); the trainer's own
         # logged metric uses a per-day thinned VIEW for non-overlap honesty.
-        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
+        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g)
         step = horizon // 180
         thin = np.zeros(tpred.shape[0], bool)
         te_day = data.day[te_rows]
@@ -421,7 +455,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     else:
         # clean600 spacing (>=600s) is valid non-overlap for any h<=600 and keeps
         # comparability with all published numbers (R1-y180 0.0668 used it).
-        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse)
+        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g)
         metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=True)
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -454,6 +488,12 @@ def main():
                     help="NX-M3a: asset-conditioned input channel gate (PEPNet)")
     ap.add_argument("--attnpool", action="store_true",
                     help="NX A/B: learned-query attention pool blended with last-token")
+    ap.add_argument("--epnet_soft", action="store_true",
+                    help="EPNet v2: gamma in [0.5,1.5] (tanh) instead of [0,2]")
+    ap.add_argument("--coarse_pool", type=int, default=None,
+                    help="coarse branch pooling seconds (default 15; 60 -> 4h span)")
+    ap.add_argument("--btc25", action="store_true",
+                    help="NX-S5: BTC-25 deep-book scalar FiLM conditioning")
     ap.add_argument("--aux_horizons", type=str, default="",
                     help="comma-sep MTL aux horizons, e.g. 180,600 (NX-S3)")
     ap.add_argument("--lr", type=float, default=None, help="override LR (ft: pretrain/10)")
@@ -483,6 +523,13 @@ def main():
     if args.seed is not None:
         global SEED
         SEED = args.seed
+    if args.coarse_pool is not None:
+        global COARSE_POOL, COARSE_MIN_BAR
+        COARSE_POOL = args.coarse_pool
+        COARSE_MIN_BAR = COARSE_POOL * COARSE_LEN + COARSE_POOL - 1
+        print(f"[coarse] pool={COARSE_POOL}s x {COARSE_LEN} steps "
+              f"= {COARSE_POOL*COARSE_LEN/3600:.1f}h span (min_bar={COARSE_MIN_BAR})",
+              flush=True)
 
     print(f"[env] device={DEV} torch={torch.__version__}", flush=True)
     t0 = time.time()
@@ -500,6 +547,7 @@ def main():
         np.savez(p.join(save_dir, "panel_ref.npz"), ts=data.ts, day=data.day,
                  Y=data.Y, CL=data.CL, symbols=np.array(SYMBOLS))
     cap_w = load_cap_weights() if args.milestone == 2 else None
+    zall = load_btc25(data) if args.btc25 else None
     tag = args.tag or f"M{args.milestone}"
 
     if args.smoke:
@@ -546,7 +594,7 @@ def main():
                        multipool=args.multipool, horizon=args.horizon, coarse=args.coarse,
                        init_ckpt=args.init_ckpt, stats_from=args.stats_from,
                        aux_horizons=aux_h, bilinear=args.bilinear, epnet=args.epnet,
-                       attnpool=args.attnpool)
+                       epnet_soft=args.epnet_soft, attnpool=args.attnpool, zall=zall)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
