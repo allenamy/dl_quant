@@ -275,6 +275,10 @@ WiSE-FT battery FAIL (Δ=−0.0119); α 曲线向微调端单调,无插值甜点
 - **权重方案: rank 加权 pooled 最优; rank×|z| conviction 倾斜打平且唯一三折全正 @2bps** [1.7,3.6,1.7]; top-3 尾部簿低费档 Sharpe 最高 (5.9 @0.5bps) 但 2× 换手在 2bps 被侵蚀; **风险平价负贡献** (σ 离散度小, 打乱权重; 用的 proxy σ — P1ft tag 早于 resid_sigma 存盘改动, npz 里没有)。
 - 综合: 零售 2bps 下可行配置存在且不止一个; 下一档证据 = S6 校准后的真 conviction 加权 + 因子腿叠加。
 
+### AP attn-pool FAIL (2026-06-11 17:35) — 模块轮三连败定式确认
+AP_y1800 (learned-query pool 零初始化 blend, +66 params): pooled 0.0378 vs M1 0.0405, Δ=−0.0027, P=0.158 → FAIL。per-fold Δ: **fold0 +0.0061 / fold1 −0.0042 / fold2 −0.0101**。
+**三连 FAIL 元模式 (bilinear/EPNet/AP 完全一致)**: 每个新增自由度都在 fold0(稳定 regime)有内容、在 fold2(漂移 regime)反噬, 配对门被 fold2 一票否决。M1 能 PASS 是因为 coarse 分支是**机制**(更长上下文)而非**拟合自由度**。⇒ 结论: y1800 在当前特征集上, 容量/表达力轴已彻底探完 (7 个变体), 唯余信息集扩展 (M1L 4h 今晚 / S5 BTC25 / raw-path) 与 regime 稳健性两条路。AP 的 mono 0.33-0.47 (vs M1 ~0.2) 仍是有价值的副信号, raw-path 设计时可复用 attn-pool 作为读出层候选。
+
 ### Target 工程 NO-GO + 线性天花板基准修正 (2026-06-11 16:00, workflow + 对抗审计)
 > 工件: jpline /tmp/target_study{,2}.py + /tmp/target_study.json | 审计: β 因果性用合成 regime-switch 实证通过, eval 跨 variant 一致 PASS
 - **β 调整残差 target: NO-GO**。T1(因果 60d β)/T2(cap 加权)/T3(β+clip3) 全部低于 +0.002 门或折间反号。机理前提为真((β_i−1)·m_t 占 T0 残差方差 ~18%, BTC 57%/TRX 50%)但**线性无害**: 该噪声与横截面 z-scored 特征近正交, 只抬训练 loss 不偏 coefficient。Pattern: T1/T3 在 fold2 +0.002~0.004 而 fold0/1 为负 → β 稳定性是 regime 性质, 非稳健杠杆。
