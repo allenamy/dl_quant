@@ -177,7 +177,7 @@ def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts
     with torch.no_grad():
         for F_all, mask_all, y_all, rows, bars, _ in data.iter_days(
                 split_rows, rng=None, shuffle=False):
-            for Xseq, yn, mmat, rr, Xc in gpu_day_batches(
+            for Xseq, yn, mmat, rr, Xc, _yx in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
                     offs_g, data.W, batch_ts, rng=None, shuffle=False, coarse=coarse):
                 q50 = model(Xseq, mmat, x_coarse=Xc).detach().cpu().numpy()

@@ -40,8 +40,19 @@ ALPHAS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 CLAMP = (0.3, 0.7)
 
 
+def remap(sd):
+    """Old single-head ckpts use 'head.*'; MTL models expect 'heads.0.*'."""
+    out = dict(sd)
+    for k in list(sd.keys()):
+        if k.startswith("head.") and ("heads.0." + k[5:]) not in out:
+            out["heads.0." + k[5:]] = sd[k]
+    return out
+
+
 def interp(sd_a, sd_b, alpha):
-    return {k: (1 - alpha) * sd_a[k].float() + alpha * sd_b[k].float() for k in sd_a}
+    sd_a, sd_b = remap(sd_a), remap(sd_b)
+    keys = [k for k in sd_a if k in sd_b]
+    return {k: (1 - alpha) * sd_a[k].float() + alpha * sd_b[k].float() for k in keys}
 
 
 def main():
