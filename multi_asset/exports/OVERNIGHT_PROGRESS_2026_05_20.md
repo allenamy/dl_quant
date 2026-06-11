@@ -275,6 +275,9 @@ WiSE-FT battery FAIL (Δ=−0.0119); α 曲线向微调端单调,无插值甜点
 - **权重方案: rank 加权 pooled 最优; rank×|z| conviction 倾斜打平且唯一三折全正 @2bps** [1.7,3.6,1.7]; top-3 尾部簿低费档 Sharpe 最高 (5.9 @0.5bps) 但 2× 换手在 2bps 被侵蚀; **风险平价负贡献** (σ 离散度小, 打乱权重; 用的 proxy σ — P1ft tag 早于 resid_sigma 存盘改动, npz 里没有)。
 - 综合: 零售 2bps 下可行配置存在且不止一个; 下一档证据 = S6 校准后的真 conviction 加权 + 因子腿叠加。
 
+### S5 BTC-25 FiLM kill-test FAIL (2026-06-11 22:46) — 方向入账阴性
+B25_y1800 (8 深档标量 FiLM, 恒等初始化, +512 params, btc25_state 对齐 100%): pooled 0.0401 vs M1 0.0405, Δ=−0.0004, P=0.434 → **纯中性, 冻结 tower 升级线关闭**。per-fold +0.0039/−0.0042/−0.0009。副信号: mono 0.61/0.07/0.67 — 与 M1L 长上下文同向, **deep-book/长上下文一类信息改善幅度形状但不动排序**, S6 校准子系统可作为它们的正确挂载点 (calib-conditioning 候选, 两条独立证据)。夜间接棒: EPv2-soft @y600 (对 y600 incumbent P1ft 的单轴叠加, fold2 正则修复跨 horizon 迁移测试)。
+
 ### EPNet-v2 PARK (2026-06-11 20:53) — fold2 根因修复被证实, 但净增量不可判
 EPv2 (软门 [0.5,1.5]): pooled **0.0424** vs M1 0.0405, Δ=+0.0019, P=0.785 → 不达 promote/screen 门, **park 不入账** (y1800 铁律: 单 seed <+0.004 不可判)。per-fold Δ: +0.0010/−0.0002/**+0.0050** — **v1 的 fold2 −0.0080 被软门翻成 +0.0050 (摆动+0.013), "fold2 解在正则/先验"假设获得直接证据**。本轮唯一无负折模块。若未来组合配置需要 asset-conditioning, 用软门版本。S5 BTC25 FiLM 接棒 (20:57, btc25 对齐 100%)。
 
