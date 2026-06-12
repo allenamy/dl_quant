@@ -589,7 +589,10 @@ def main():
                  Y=data.Y, CL=data.CL, symbols=np.array(SYMBOLS))
     cap_w = load_cap_weights() if args.milestone == 2 else None
     if args.raw:
-        data.raw_dir = p.join(p.dirname(EXPORT), "raw_cache")
+        # pretrain mode reads the pretrain-period raw cache (built against the
+        # pretrain seq_cache ts); labeled runs read the labeled-window cache.
+        data.raw_dir = (p.join(args.data_root, "raw_cache") if args.data_root
+                        else p.join(p.dirname(EXPORT), "raw_cache"))
         print(f"[raw] enabled: {data.raw_dir}", flush=True)
     zall = load_btc25(data) if args.btc25 else None
     tag = args.tag or f"M{args.milestone}"
