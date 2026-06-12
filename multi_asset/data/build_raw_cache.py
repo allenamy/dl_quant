@@ -77,6 +77,19 @@ Usage:
     python multi_asset/data/build_raw_cache.py                 # full build
     python multi_asset/data/build_raw_cache.py --days 20250210 20250512
     python multi_asset/data/build_raw_cache.py --validate 20250210 ...
+
+PRETRAIN-period build (raw x pretraining compound lever): same channels, clips
+and file format over the 2022-01..2024-05 pretrain window, ts-aligned to the
+PRETRAIN seq_cache day files (those are fp16 F-only but carry the same `ts`
+array). `--days_from_seq` derives the exact day set from the seq_dir's
+<day>.npz listing — the pretrain seq_cache day set is the alignment contract,
+not the bar-dir listing (a bar day the seq build skipped must not get an
+unverifiable raw file):
+
+    python multi_asset/data/build_raw_cache.py \
+        --seq_dir .../exports/pretrain/seq_cache \
+        --out_dir .../exports/pretrain/raw_cache \
+        --start 20220101 --end 20240531 --days_from_seq
 """
 from __future__ import annotations
 
@@ -208,23 +221,36 @@ def build_raw_channels(panel, sym: str) -> np.ndarray:
     return R.astype(np.float32)
 
 
-def _seq_ts(day: int):
+def list_days_from_seq(seq_dir: str, start: int, end: int) -> list:
+    """Day set from the seq_cache's own <YYYYMMDD>.npz files within [start, end].
+    Used when the seq_cache day set (not the bar-dir listing) is the contract."""
+    days = []
+    for name in os.listdir(seq_dir):
+        stem = name[:-4]
+        if name.endswith(".npz") and stem.isdigit() and len(stem) == 8:
+            di = int(stem)
+            if start <= di <= end:
+                days.append(di)
+    return sorted(days)
+
+
+def _seq_ts(day: int, seq_dir: str = SEQ_DIR):
     """ts of the seq_cache day file (lazy per-key load), or None if absent."""
-    f = p.join(SEQ_DIR, f"{day}.npz")
+    f = p.join(seq_dir, f"{day}.npz")
     if not p.exists(f):
         return None
     with np.load(f) as z:
         return z["ts"].astype(np.int64)
 
 
-def build_one_day(day: int, out_path: str) -> float:
+def build_one_day(day: int, out_path: str, seq_dir: str = SEQ_DIR) -> float:
     """Build one day file. Returns build seconds. Raises on ts mismatch with
     the seq_cache day file (alignment is the contract — fail loud)."""
     t0 = time.time()
     dp = load_day_panel(day, SYMBOLS)
     ts_day = dp.ts.astype(np.int64)
 
-    sts = _seq_ts(day)
+    sts = _seq_ts(day, seq_dir)
     if sts is not None and not np.array_equal(ts_day, sts):
         raise RuntimeError(
             f"day {day}: ts mismatch vs seq_cache (T {ts_day.shape[0]} vs "
@@ -245,21 +271,35 @@ def build_one_day(day: int, out_path: str) -> float:
     return time.time() - t0
 
 
-def build(force: bool = False, days_subset: list | None = None):
-    os.makedirs(RAW_DIR, exist_ok=True)
-    days = days_subset or list_days(WIN_START, WIN_END)
-    print(f"[raw] window {WIN_START}..{WIN_END}: {len(days)} days, "
-          f"{len(SYMBOLS)} symbols, {N_CH} ch -> {RAW_DIR}", flush=True)
+def _list_window_days(start: int, end: int, seq_dir: str,
+                      days_from_seq: bool) -> list:
+    """Window day set: from the seq_dir's day files (--days_from_seq) or the
+    bar-dir listing (default, == build_seq_cache convention)."""
+    if days_from_seq:
+        return list_days_from_seq(seq_dir, start, end)
+    return list_days(start, end)
+
+
+def build(force: bool = False, days_subset: list | None = None,
+          seq_dir: str = SEQ_DIR, out_dir: str = RAW_DIR,
+          start: int = WIN_START, end: int = WIN_END,
+          days_from_seq: bool = False):
+    os.makedirs(out_dir, exist_ok=True)
+    days = days_subset or _list_window_days(start, end, seq_dir, days_from_seq)
+    print(f"[raw] window {start}..{end}"
+          f"{' (days from seq_dir)' if days_from_seq else ''}: "
+          f"{len(days)} days, {len(SYMBOLS)} symbols, {N_CH} ch -> {out_dir}",
+          flush=True)
 
     t0 = time.time()
     n_done = n_skip = n_fail = 0
     for di, d in enumerate(days):
-        out = p.join(RAW_DIR, f"{d}.npz")
+        out = p.join(out_dir, f"{d}.npz")
         if (not force) and p.exists(out):
             n_skip += 1
             continue
         try:
-            build_one_day(d, out)
+            build_one_day(d, out, seq_dir)
         except Exception as e:  # missing/corrupt day -> skip, keep going
             n_fail += 1
             print(f"  [warn] day {d} failed: {e}", flush=True)
@@ -274,7 +314,9 @@ def build(force: bool = False, days_subset: list | None = None):
                   f"~{rate*60:.1f} day/min, ETA {eta/60:.1f} min", flush=True)
 
     meta = {
-        "window": [WIN_START, WIN_END],
+        "window": [start, end],
+        "seq_dir": seq_dir,
+        "days_from_seq": days_from_seq,
         "n_days_listed": len(days),
         "n_days_built": n_done,
         "n_days_skipped": n_skip,
@@ -292,24 +334,26 @@ def build(force: bool = False, days_subset: list | None = None):
         "note": ("per-channel train-stat standardization is DOWNSTREAM; "
                  "only pathological clips applied here (fp16-safe)"),
     }
-    with open(p.join(RAW_DIR, "channel_names.json"), "w") as f:
+    with open(p.join(out_dir, "channel_names.json"), "w") as f:
         json.dump(raw_channel_names(), f, indent=2)
-    with open(p.join(RAW_DIR, "build_meta.json"), "w") as f:
+    with open(p.join(out_dir, "build_meta.json"), "w") as f:
         json.dump(meta, f, indent=2)
     print(f"[raw] done in {(time.time()-t0)/60:.1f} min: built={n_done} "
-          f"skip={n_skip} fail={n_fail} -> {RAW_DIR}", flush=True)
+          f"skip={n_skip} fail={n_fail} -> {out_dir}", flush=True)
 
 
-def validate(days: list):
+def validate(days: list, seq_dir: str = SEQ_DIR, out_dir: str = RAW_DIR,
+             start: int = WIN_START, end: int = WIN_END,
+             days_from_seq: bool = False):
     """Build (if needed) + report per-channel stats, ts alignment, size/time."""
-    os.makedirs(RAW_DIR, exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
     names = raw_channel_names()
     per_day_secs, per_day_mb = [], []
     agg = {nm: [] for nm in names}
 
     for d in days:
-        out = p.join(RAW_DIR, f"{d}.npz")
-        secs = build_one_day(d, out)  # rebuild every time -> honest timing
+        out = p.join(out_dir, f"{d}.npz")
+        secs = build_one_day(d, out, seq_dir)  # rebuild -> honest timing
         mb = os.path.getsize(out) / 1e6
         per_day_secs.append(secs)
         per_day_mb.append(mb)
@@ -317,7 +361,7 @@ def validate(days: list):
         with np.load(out) as z:
             R = z["R"]
             ts = z["ts"]
-        sts = _seq_ts(d)
+        sts = _seq_ts(d, seq_dir)
         ts_ok = sts is not None and np.array_equal(ts, sts)
         print(f"\n=== day {d}: T={ts.shape[0]} R{R.shape} {mb:.1f} MB "
               f"{secs:.1f}s  ts==seq_cache: {ts_ok} ===", flush=True)
@@ -334,7 +378,7 @@ def validate(days: list):
                   f"{x.min():>10.3f}{x.max():>10.3f}", flush=True)
             agg[nm].append(ff)
 
-    n_total = len(list_days(WIN_START, WIN_END))
+    n_total = len(_list_window_days(start, end, seq_dir, days_from_seq))
     s = float(np.mean(per_day_secs))
     print(f"\n[validate] avg {s:.1f} s/day, {np.mean(per_day_mb):.1f} MB/day; "
           f"full build est: {n_total} days -> {n_total*s/3600:.1f} h, "
@@ -352,8 +396,24 @@ if __name__ == "__main__":
                     help="build only these YYYYMMDD days")
     ap.add_argument("--validate", type=int, nargs="+", default=None,
                     help="build + per-channel stat report for these days")
+    ap.add_argument("--seq_dir", default=SEQ_DIR,
+                    help="seq_cache dir used as the ts-alignment reference")
+    ap.add_argument("--out_dir", default=RAW_DIR,
+                    help="output raw_cache dir")
+    ap.add_argument("--start", type=int, default=WIN_START,
+                    help="window start YYYYMMDD")
+    ap.add_argument("--end", type=int, default=WIN_END,
+                    help="window end YYYYMMDD")
+    ap.add_argument("--days_from_seq", action="store_true",
+                    help="derive the day set from seq_dir's <day>.npz files "
+                         "(instead of the bar-dir listing)")
     args = ap.parse_args()
     if args.validate:
-        validate(args.validate)
+        validate(args.validate, seq_dir=args.seq_dir, out_dir=args.out_dir,
+                 start=args.start, end=args.end,
+                 days_from_seq=args.days_from_seq)
     else:
-        build(force=args.force, days_subset=args.days)
+        build(force=args.force, days_subset=args.days,
+              seq_dir=args.seq_dir, out_dir=args.out_dir,
+              start=args.start, end=args.end,
+              days_from_seq=args.days_from_seq)
