@@ -541,6 +541,8 @@ def main():
                     help="NX-S5: BTC-25 deep-book scalar FiLM conditioning")
     ap.add_argument("--raw", action="store_true",
                     help="NX raw-path arm: 36-ch undigested microstructure branch")
+    ap.add_argument("--d_model", type=int, default=None,
+                    help="model width override (default 32; width sweep under hardening)")
     ap.add_argument("--aux_horizons", type=str, default="",
                     help="comma-sep MTL aux horizons, e.g. 180,600 (NX-S3)")
     ap.add_argument("--lr", type=float, default=None, help="override LR (ft: pretrain/10)")
@@ -570,6 +572,10 @@ def main():
     if args.seed is not None:
         global SEED
         SEED = args.seed
+    if args.d_model is not None:
+        global D_MODEL
+        D_MODEL = args.d_model
+        print(f"[width] d_model={D_MODEL}", flush=True)
     if args.coarse_pool is not None:
         global COARSE_POOL, COARSE_MIN_BAR
         COARSE_POOL = args.coarse_pool
