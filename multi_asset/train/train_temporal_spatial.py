@@ -609,7 +609,9 @@ def main():
               f"4 epochs, M{args.milestone} =====", flush=True)
         m = train_fold(0, FOLDS[0], data, args.milestone,
                        max_epochs=4, patience=999, cap_w=cap_w, verbose=True,
-                       day_override=(np.array(tr), np.array(va), np.array(te)))
+                       day_override=(np.array(tr), np.array(va), np.array(te)),
+                       multipool=args.multipool, horizon=args.horizon,
+                       coarse=args.coarse, zall=zall)
         print("\n----- SMOKE RESULT -----", flush=True)
         print(json.dumps(m, indent=2), flush=True)
         return
