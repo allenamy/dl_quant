@@ -148,6 +148,7 @@ class TemporalSpatialPanelModel(nn.Module):
         epnet_soft: bool = False,
         attnpool: bool = False,
         btc25: bool = False,
+        raw_channels: int = 0,
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -222,6 +223,21 @@ class TemporalSpatialPanelModel(nn.Module):
             self.bl_O = nn.Linear(16, d, bias=False)
             self.bl_gate = nn.Parameter(torch.zeros(1))
 
+        # NX raw-path arm: undigested microstructure branch. Mechanism: the 44
+        # hand features are nearly fully linear-extractable (corrected linear
+        # ceiling 0.0445 vs DL 0.0476 at y600); new NON-linear signal must come
+        # from structure the aggregation destroyed — ladder shape, liquidity
+        # placement, depth-pressure profile, per-bar flow. Own stem (1 Conformer
+        # block) so raw never dilutes the hand-feature path (anti-pattern #29);
+        # zero-init fusion gate -> raw-off is bit-identical to the incumbent.
+        self.raw_channels = raw_channels
+        if raw_channels > 0:
+            self.raw_encoder = SharedTemporalEncoder(
+                raw_channels, d, n_blocks=1, n_heads=2, kernel_size=15,
+                dropout=dropout)
+            self.raw_proj = nn.Linear(d, d)
+            self.raw_alpha = nn.Parameter(torch.zeros(1))
+
         # NX-S5 kill-test: BTC-25 deep-book scalar FiLM. Mechanism: the leader's
         # DEEP book state (25-level imbalance/slope/microprice/vol) is a market
         # microstructure REGIME signal unavailable in the 5-level alt features;
@@ -260,9 +276,10 @@ class TemporalSpatialPanelModel(nn.Module):
         self.head = self.heads[0]   # back-compat alias (primary head)
 
     def forward(self, x, mask, return_dict: bool = False, x_coarse=None,
-                z_btc=None):
+                z_btc=None, x_raw=None):
         """x: (B, S, T, F); mask: (B, S) {0,1}; x_coarse: (B, S, Tc, F) or None;
-        z_btc: (B, 8) standardized BTC-25 state or None.
+        z_btc: (B, 8) standardized BTC-25 state or None; x_raw: (B, S, T, Cr)
+        standardized raw microstructure channels or None.
         Returns (B, S) point q50, or a dict with per-asset quantiles."""
         B, S, T, Fdim = x.shape
         x = torch.nan_to_num(x, nan=0.0)
@@ -277,6 +294,11 @@ class TemporalSpatialPanelModel(nn.Module):
 
         # ---- TEMPORAL: shared encoder over each asset-window ----
         enc = self.encoder(x.reshape(B * S, T, Fdim))        # (B*S,d) or (B*S,K,d)
+        if self.raw_channels > 0 and x_raw is not None:
+            xr = torch.nan_to_num(x_raw, nan=0.0) * mask.view(B, S, 1, 1)
+            Cr = xr.shape[-1]
+            hr = self.raw_encoder(xr.reshape(B * S, T, Cr))   # (B*S, d)
+            enc = enc + torch.tanh(self.raw_alpha) * self.raw_proj(hr)
         if self.coarse and x_coarse is not None:
             xc = torch.nan_to_num(x_coarse, nan=0.0) * mask.view(B, S, 1, 1)
             if gamma is not None:

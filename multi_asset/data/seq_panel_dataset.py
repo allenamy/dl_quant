@@ -120,6 +120,10 @@ class SeqPanelData:
         # optional in-RAM day cache (removes per-epoch disk IO). Keyed by day int.
         self._day_cache = {}
         self._cache_enabled = False
+        # NX raw-path arm: when set (exports/raw_cache), _load_day also returns
+        # R (S,T,36) fp16 undigested microstructure channels (kept fp16 in RAM;
+        # standardized per-fold on GPU at window time).
+        self.raw_dir = None
 
     # ----------------------------------------------------------------- stats
     def set_fold(self, train_days):
@@ -180,6 +184,12 @@ class SeqPanelData:
         out = {"F": z["F"], "mask": z["mask"], "y": z["y"], "ts": z["ts"]}
         if want_raw:
             out["Xraw"] = z["Xraw"]
+        if self.raw_dir is not None:
+            zr = np.load(p.join(self.raw_dir, f"{d}.npz"))
+            assert zr["R"].shape[1] == out["F"].shape[1], f"raw/seq T mismatch day {d}"
+            out["R"] = zr["R"]                       # (S,T,Cr) float16
+            if hasattr(zr, "close"):
+                zr.close()
         if hasattr(z, "close"):
             z.close()
         if self.target_horizon != 600:
@@ -238,7 +248,8 @@ class SeqPanelData:
             if got is None:
                 continue
             arr, rows, bars = got
-            yield arr["F"], arr["mask"], arr["y"], rows, bars, arr.get("y_extra")
+            yield (arr["F"], arr["mask"], arr["y"], rows, bars,
+                   arr.get("y_extra"), arr.get("R"))
 
     def iter_days_raw(self, split_rows, rng=None, shuffle=True):
         """Like iter_days but ALSO yields the raw-LOB array Xraw (S,T,5,4) for the

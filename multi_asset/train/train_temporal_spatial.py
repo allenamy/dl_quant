@@ -125,13 +125,18 @@ COARSE_MIN_BAR = COARSE_POOL * COARSE_LEN + COARSE_POOL - 1   # 3614
 
 def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
                     offs_g, W, batch_ts, rng=None, shuffle=True, coarse=False,
-                    y_extra=None):
+                    y_extra=None, R_all=None, rmu_g=None, rsd_g=None):
     F_g = torch.from_numpy(F_all).to(DEV)                       # (S,T,F)
     F_g = torch.nan_to_num(F_g, nan=0.0)
     F_g = ((F_g - mu_g) / sd_g).clamp_(-10.0, 10.0)             # standardize whole day once
     y_g = torch.from_numpy(y_all).to(DEV)                       # (S,T)
     yx_g = {h: torch.from_numpy(a).to(DEV) for h, a in (y_extra or {}).items()}
     mask_g = torch.from_numpy(mask_all.astype(np.float32)).to(DEV)
+    R_g = None
+    if R_all is not None:
+        # raw-path day tensor kept fp16 on GPU (87MB/day); standardized per
+        # batch in fp32 with train-fold channel stats.
+        R_g = torch.from_numpy(R_all).to(DEV)                   # (S,T,Cr) fp16
     if coarse:
         # NX-M1: pool the standardized day once -> (S, T//15, F); causal bins
         # (bin j covers bars [15j, 15j+14], usable for pred bar bi iff 15j+14<=bi)
@@ -158,30 +163,39 @@ def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
                              rounding_mode="floor") + 1          # (B,) exclusive
             cwidx = jend[:, None] + coffs[None, :]               # (B, 240)
             Xc = F15[:, cwidx, :].permute(1, 0, 2, 3).contiguous()  # (B,S,240,F)
+        Xr = None
+        if R_g is not None:
+            Xr = R_g[:, widx, :].float()                         # (S,B,W,Cr)
+            Xr = torch.nan_to_num(Xr, nan=0.0)
+            Xr = ((Xr - rmu_g) / rsd_g).clamp_(-10.0, 10.0)
+            Xr = Xr.permute(1, 0, 2, 3).contiguous()             # (B,S,W,Cr)
         ymat = y_g[:, bb].t()                                   # (B,S) RAW y
         mmat = mask_g[:, bb].t() * torch.isfinite(ymat).float()  # (B,S)
         yx = {h: torch.nan_to_num(g[:, bb].t(), nan=0.0) for h, g in yx_g.items()}
         # yield RAW y (nan->0, masked) so the trainer can form the cross-sectional
         # residual; sigma_g kept for back-compat but residual uses resid_sigma.
-        yield Xseq, torch.nan_to_num(ymat, nan=0.0), mmat, rows[order[b0:b0 + batch_ts]], Xc, yx
+        yield (Xseq, torch.nan_to_num(ymat, nan=0.0), mmat,
+               rows[order[b0:b0 + batch_ts]], Xc, yx, Xr)
 
 
 # --------------------------------------------------------------------------- #
 # Streaming predict over a split -> pred (T,S) in NORM units (NaN where invalid).
 # --------------------------------------------------------------------------- #
 def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts=96,
-                  coarse=False, z_g=None):
+                  coarse=False, z_g=None, rmu_g=None, rsd_g=None):
     model.eval()
     T, S = data.ts.shape[0], data.S
     pred = np.full((T, S), np.nan, np.float32)
     with torch.no_grad():
-        for F_all, mask_all, y_all, rows, bars, _ in data.iter_days(
+        for F_all, mask_all, y_all, rows, bars, _, R_all in data.iter_days(
                 split_rows, rng=None, shuffle=False):
-            for Xseq, yn, mmat, rr, Xc, _yx in gpu_day_batches(
+            for Xseq, yn, mmat, rr, Xc, _yx, Xr in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
-                    offs_g, data.W, batch_ts, rng=None, shuffle=False, coarse=coarse):
+                    offs_g, data.W, batch_ts, rng=None, shuffle=False, coarse=coarse,
+                    R_all=R_all, rmu_g=rmu_g, rsd_g=rsd_g):
                 zb = z_g[rr] if z_g is not None else None
-                q50 = model(Xseq, mmat, x_coarse=Xc, z_btc=zb).detach().cpu().numpy()
+                q50 = model(Xseq, mmat, x_coarse=Xc, z_btc=zb,
+                            x_raw=Xr).detach().cpu().numpy()
                 q50 = np.where(mmat.cpu().numpy() > 0.5, q50, np.nan)
                 pred[rr] = q50
     return pred
@@ -326,6 +340,29 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         zsd = zall[tr_rows].std(axis=0) + 1e-9
         z_g = torch.from_numpy(((zall - zmu) / zsd).astype(np.float32)).to(DEV)
         z_g = torch.clamp(z_g, -8.0, 8.0)
+    rmu_g = rsd_g = None
+    raw_c = 0
+    if data.raw_dir is not None:
+        # per-channel raw stats from a SAMPLE of train days, masked rows only
+        samp = list(tr_days[:: max(1, len(tr_days) // 16)])[:16]
+        s1 = s2 = None
+        n = 0
+        for d in samp:
+            arr = data._load_day(int(d))
+            v = arr["R"].astype(np.float32)[arr["mask"].astype(bool)]
+            v = v[np.isfinite(v).all(axis=1)]
+            s1 = v.sum(0) if s1 is None else s1 + v.sum(0)
+            s2 = (v * v).sum(0) if s2 is None else s2 + (v * v).sum(0)
+            n += v.shape[0]
+        rmu = (s1 / n).astype(np.float32)
+        rsd = np.sqrt(np.maximum(s2 / n - rmu ** 2, 1e-12)).astype(np.float32)
+        rsd = np.where(rsd > 1e-6, rsd, 1.0).astype(np.float32)
+        raw_c = rmu.shape[0]
+        rmu_g = torch.from_numpy(rmu).to(DEV)
+        rsd_g = torch.from_numpy(rsd).to(DEV)
+        if verbose:
+            print(f"[raw] {raw_c}-channel stats from {len(samp)} train days "
+                  f"(n={n:,})", flush=True)
     if verbose:
         print(f"[fold {fold_i}] days tr={len(tr_days)} va={len(va_days)} te={len(te_days)} | "
               f"rows tr={len(tr_rows)} va={len(va_rows)} te={len(te_rows)}", flush=True)
@@ -344,7 +381,8 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         nhead=NHEAD, dropout=DROPOUT, cap_weights=cap_t, multipool=multipool,
         coarse=coarse, horizons=tuple([horizon] + sorted(aux_horizons)),
         bilinear=bilinear, epnet=epnet, epnet_soft=epnet_soft,
-        attnpool=attnpool, btc25=(zall is not None), **flags).to(DEV)
+        attnpool=attnpool, btc25=(zall is not None), raw_channels=raw_c,
+        **flags).to(DEV)
     if init_ckpt:
         st = torch.load(init_ckpt, map_location="cpu")
         missing, unexpected = model.load_state_dict(st, strict=False)
@@ -369,14 +407,15 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         t_ep = time.time()
         ep_loss = ep_pin = ep_h = ep_x = 0.0
         nb = 0
-        for F_all, mask_all, y_all, rows, bars, y_extra in data.iter_days(
+        for F_all, mask_all, y_all, rows, bars, y_extra, R_all in data.iter_days(
                 tr_rows, rng=rng, shuffle=True):
-            for xb, yraw, mb, rr_b, xc, yx in gpu_day_batches(
+            for xb, yraw, mb, rr_b, xc, yx, xr in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
                     offs_g, data.W, BATCH_TS, rng=rng, shuffle=True, coarse=coarse,
-                    y_extra=y_extra):
+                    y_extra=y_extra, R_all=R_all, rmu_g=rmu_g, rsd_g=rsd_g):
                 zb = z_g[rr_b] if z_g is not None else None
-                out = model(xb, mb, return_dict=True, x_coarse=xc, z_btc=zb)
+                out = model(xb, mb, return_dict=True, x_coarse=xc, z_btc=zb,
+                            x_raw=xr)
                 # cross-sectional RESIDUAL target (demean over valid assets, per-asset
                 # MAD-norm, clip) -> both rank + magnitude losses see the SAME residual.
                 r, _ = cross_sectional_residual(yraw, mb)
@@ -401,7 +440,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                 ep_h += parts["huber"]; ep_x += parts["rank"]; nb += 1
         ep_loss /= max(nb, 1); ep_pin /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
 
-        vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g)
+        vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g, rmu_g=rmu_g, rsd_g=rsd_g)
         if horizon > 600:
             # match the TEST statistic: thinned non-overlap view (dense val
             # overweights smooth/persistent components -> misleads checkpointing)
@@ -443,7 +482,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         # predict DENSE (saved preds must cover all te_rows so nx_battery can
         # pair models on its canonical per-day thinned grid); the trainer's own
         # logged metric uses a per-day thinned VIEW for non-overlap honesty.
-        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g)
+        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g, rmu_g=rmu_g, rsd_g=rsd_g)
         step = horizon // 180
         thin = np.zeros(tpred.shape[0], bool)
         te_day = data.day[te_rows]
@@ -455,7 +494,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     else:
         # clean600 spacing (>=600s) is valid non-overlap for any h<=600 and keeps
         # comparability with all published numbers (R1-y180 0.0668 used it).
-        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g)
+        tpred = predict_split(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g, rmu_g=rmu_g, rsd_g=rsd_g)
         metrics = eval_metrics(tpred, data.Y, data.CL, data.resid_sigma, clean=True)
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -494,6 +533,8 @@ def main():
                     help="coarse branch pooling seconds (default 15; 60 -> 4h span)")
     ap.add_argument("--btc25", action="store_true",
                     help="NX-S5: BTC-25 deep-book scalar FiLM conditioning")
+    ap.add_argument("--raw", action="store_true",
+                    help="NX raw-path arm: 36-ch undigested microstructure branch")
     ap.add_argument("--aux_horizons", type=str, default="",
                     help="comma-sep MTL aux horizons, e.g. 180,600 (NX-S3)")
     ap.add_argument("--lr", type=float, default=None, help="override LR (ft: pretrain/10)")
@@ -547,6 +588,9 @@ def main():
         np.savez(p.join(save_dir, "panel_ref.npz"), ts=data.ts, day=data.day,
                  Y=data.Y, CL=data.CL, symbols=np.array(SYMBOLS))
     cap_w = load_cap_weights() if args.milestone == 2 else None
+    if args.raw:
+        data.raw_dir = p.join(p.dirname(EXPORT), "raw_cache")
+        print(f"[raw] enabled: {data.raw_dir}", flush=True)
     zall = load_btc25(data) if args.btc25 else None
     tag = args.tag or f"M{args.milestone}"
 
