@@ -329,6 +329,12 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
             print(f"[stats] overrode mu/sd/resid_sigma from {stats_from}", flush=True)
     data._day_cache.clear()          # free previous fold's cached days
     data.enable_cache(True)          # cache day arrays in RAM (no per-epoch disk IO)
+    if data.raw_dir is not None and len(tr_days) > 400:
+        # 861-day pretrain with raw = ~165GB day-cache > RAM (196GB, ~150 free).
+        # Stream from disk instead (~3min/epoch extra IO; OOM otherwise).
+        data.enable_cache(False)
+        print("[cache] day-cache DISABLED (pretrain+raw footprint exceeds RAM)",
+              flush=True)
     tr_rows = np.where(np.isin(data.day, tr_days))[0]
     tr_rows = tr_rows[::TRAIN_STRIDE_SUB]    # thin train grid (less overlap, ~2x faster)
     va_rows = np.where(np.isin(data.day, va_days))[0]
