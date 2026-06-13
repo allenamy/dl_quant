@@ -596,6 +596,10 @@ def main():
                     help="CVaR worst-window upweight: hardest-quintile train days get (1+w)x loss")
     ap.add_argument("--btc25raw", action="store_true",
                     help="NX B-line: BTC-25 full-ladder leader-slot enrichment (104ch)")
+    ap.add_argument("--btc25_perp", action="store_true",
+                    help="use caliber-correct PERP btc25 cache (btc25_raw_perp) not spot")
+    ap.add_argument("--window", type=int, default=None,
+                    help="lookback bars (default 600; tune to horizon — y60 stale at 600)")
     ap.add_argument("--aux_horizons", type=str, default="",
                     help="comma-sep MTL aux horizons, e.g. 180,600 (NX-S3)")
     ap.add_argument("--lr", type=float, default=None, help="override LR (ft: pretrain/10)")
@@ -646,8 +650,11 @@ def main():
                             target_horizon=args.horizon, extra_horizons=aux_h)
     else:
         data = SeqPanelData(target_horizon=args.horizon, extra_horizons=aux_h)
+    if args.window is not None:
+        data.W = args.window
+        print(f"[window] lookback set to {data.W} bars ({data.W}s)", flush=True)
     print(f"[panel] T={len(data.ts)} S={data.S} uniq_days={len(data.uniq_days)} "
-          f"horizon=y_{args.horizon} (index built {time.time()-t0:.1f}s)", flush=True)
+          f"horizon=y_{args.horizon} W={data.W} (index built {time.time()-t0:.1f}s)", flush=True)
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
         np.savez(p.join(save_dir, "panel_ref.npz"), ts=data.ts, day=data.day,
@@ -660,7 +667,8 @@ def main():
                         else p.join(p.dirname(EXPORT), "raw_cache"))
         print(f"[raw] enabled: {data.raw_dir}", flush=True)
     if args.btc25raw:
-        data.b25_dir = p.join(p.dirname(EXPORT), "btc25_raw")
+        sub = "btc25_raw_perp" if args.btc25_perp else "btc25_raw"
+        data.b25_dir = p.join(p.dirname(EXPORT), sub)
         print(f"[b25] enabled: {data.b25_dir}", flush=True)
     zall = load_btc25(data) if args.btc25 else None
     tag = args.tag or f"M{args.milestone}"
