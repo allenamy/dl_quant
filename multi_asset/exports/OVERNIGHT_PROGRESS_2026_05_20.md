@@ -384,3 +384,12 @@ HF y60 (coarse+raw 全栈, 多资产 cross-sectional): 三折 **0.1134 / 0.1335 
 | y600 (IC 0.049) | conv-hyst | 40bps | +11.4(outlier) | 1.82 | 2/3 |
 **关键: breakeven 费率随 horizon 单调上升 = IC 排名的反向。** y60 0.121 IC 是研究 artifact 不可交易(60s 信号要 180s 重交易, 换手吞噬, BE 2.4bps<真实费)。**y180 是甜点**(IC 0.07 够 + 持仓够长清成本, BE 11bps)。**前述 +17bps/Sharpe 3.2 确认是 overlap 双计高估**(stride4 去重叠后 y600 Sharpe 掉到 1.8)。生产首选 = **y180 + EMA0.97/band0.10 滞回 rank 簿 @≤2bp**。诚实 caveat: y180 fold2 正收益靠单 outlier 日(实 2.3/3); 3 折非 8 折, dispersion 大。
 **战略含义: "更高数字"(y60 0.12)与"可交易"(y180)是两回事。用户的 y180≥0.10 直觉=生产正确目标。**
+
+### 校准定案: β-rescale (用户口径修正, 2026-06-13) — σ-match/CCC 是错目标
+用户洞察正确: 校准目标是 **β(realized on ŷ)→1**, 不是 σ_pred=σ_y。实测 (因果 forward-chain):
+| horizon | β before | β→linear | β→iso | IC | σ_ratio before→lin |
+|---|---|---|---|---|---|
+| y60 | 0.625 | **0.960** | 0.861 | 0.089 | 0.147→0.099(=IC) |
+| y180 | 0.520 | **1.078** | 0.696 | 0.050 | 0.098→0.052(=IC) |
+| y600 | 0.394 | **0.933** | 0.490 | 0.032 | 0.081→0.035(=IC) |
+**原始预测过散 (β 0.4-0.6 = ~2× 过自信); 线性 β-rescale (×β, 严格保 rank) → β≈1, σ_ratio 落到 IC (诚实水平)。** isotonic 欠校 (β 0.49-0.86), 不如线性。**CCC/σ-match 是错目标**: 强行 σ_pred=σ_y 隐含 β=IC = 过自信 1/IC 倍 (y60 11× / y600 32×), 下注过大 26-46×。**发布: pooled 跨资产线性 β-rescale** (per-asset 在 y600 不可估)。dual-caliber 输出: β-校准 bps (sizing 可用, +5bps 是真 +5bps 条件均值) + rank (多空) + conviction 带需 quantile 头 (待加)。σ-gate 0.02 仍作 collapse 下限, 但校准看 β 不看 σ→1。
