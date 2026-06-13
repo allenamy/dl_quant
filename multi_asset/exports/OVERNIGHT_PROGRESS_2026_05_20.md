@@ -337,3 +337,8 @@ P1raw_ft_y600: pooled 0.0470 [0.0528/0.0541/0.0340], vs RAW Δ=−0.0021 (P=0.12
 
 ### C1 组合配置 FAIL-park (2026-06-12 21:50) — 亚可加性坐实, y600 平台期确立
 C1 (P1raw 预训练干线+coarse+raw+软门全栈): pooled **0.0489** [0.0522/**0.0564**(单折纪录)/0.0380], vs P1ft Δ=+0.0013, P=0.736 → 不可判 park。组件单独增量 (+0.0015/+0.0013) 合训后未叠加; 软门守住 fold2 持平但未抬升。**四个独立配置 (P1ft/EPv2/RAW/C1) 收敛于 0.0476-0.0491 ± 0.002 — y600 平台期 ≈0.049 正式确立**。剩余未试: C2 宽度 (跑中) + CVaR worst-window 目标 (fold2 唯一未试的训练时方案)。
+
+### C3 CVaR worst-window FAIL (2026-06-13 03:00) — fold2 训练时鲁棒性无效
+C3 (按天难度 EMA 排序, 最难 20% 训练日 2× 损失): pooled 0.0470 [0.0532/0.0522/**0.0357**], vs P1ft Δ=−0.0005, P=0.326 FAIL。**fold2 不升反微降** (0.0357 vs P1ft 0.0385)。CVaR 没伤平稳折 (前提满足) 但漂移折无救 — 与他们 group-DRO/V-REx 弱正、recency 负的证据一致: **fold2 的解不在训练样本加权**。fold2 真正性质 = "alpha 存在但 map 漂移失效" (合作方诊断), 解在 online/TTA 而非 offline robust loss。CVaR park。
+### B25 BTC-25 全粒度 (104ch) — 一行 bug 修复后重跑 (2026-06-13 03:27)
+首发 ValueError: SYMBOLS.index("BTCUSDT") — 实际符号是 bnf* 代码 (bnfbtc=idx0)。修复 + 恒等自检通过 (+29473 params), 重跑中。

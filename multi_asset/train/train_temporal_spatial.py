@@ -416,7 +416,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         coarse=coarse, horizons=tuple([horizon] + sorted(aux_horizons)),
         bilinear=bilinear, epnet=epnet, epnet_soft=epnet_soft,
         attnpool=attnpool, btc25=(zall is not None), raw_channels=raw_c,
-        btc25raw_channels=b25_c, btc_idx=int(SYMBOLS.index("BTCUSDT")),
+        btc25raw_channels=b25_c, btc_idx=int(SYMBOLS.index("bnfbtc")),
         **flags).to(DEV)
     if init_ckpt:
         st = torch.load(init_ckpt, map_location="cpu")
