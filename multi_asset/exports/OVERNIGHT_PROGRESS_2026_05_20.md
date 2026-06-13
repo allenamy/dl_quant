@@ -342,3 +342,7 @@ C1 (P1raw 预训练干线+coarse+raw+软门全栈): pooled **0.0489** [0.0522/**
 C3 (按天难度 EMA 排序, 最难 20% 训练日 2× 损失): pooled 0.0470 [0.0532/0.0522/**0.0357**], vs P1ft Δ=−0.0005, P=0.326 FAIL。**fold2 不升反微降** (0.0357 vs P1ft 0.0385)。CVaR 没伤平稳折 (前提满足) 但漂移折无救 — 与他们 group-DRO/V-REx 弱正、recency 负的证据一致: **fold2 的解不在训练样本加权**。fold2 真正性质 = "alpha 存在但 map 漂移失效" (合作方诊断), 解在 online/TTA 而非 offline robust loss。CVaR park。
 ### B25 BTC-25 全粒度 (104ch) — 一行 bug 修复后重跑 (2026-06-13 03:27)
 首发 ValueError: SYMBOLS.index("BTCUSDT") — 实际符号是 bnf* 代码 (bnfbtc=idx0)。修复 + 恒等自检通过 (+29473 params), 重跑中。
+
+### 中盘宇宙重打分 — 假设证伪 (2026-06-13 04:00, 我们现成预测)
+辩证假设"0.05 是宇宙聚合 artifact"在**我们的数据上 FAIL**。限定可预测中盘{ETH,SOL,LINK,DOT,FIL,ETC}: cs-rank-IC U6=0.0522 vs U14=0.0491 (仅 +0.003); leave-one-fold-out 诚实 +0.005 (真实非 cherry-pick 但远不够 +0.02)。**我们 per-asset Spearman 顶到 FIL 0.04 / ETC 0.044,到不了合作方报的 0.082-0.091** — 后者是 inflated caliber (与我们 single_asset caliber 修正同源)。**关键交叉验证: 合作方诚实数 (1c 表) per-asset 中盘也只 ~0.037-0.056, 0.082-0.091 是 W1-selection+EMA-demean 虚高**。⇒ **y600 天花板 ~0.05 三重确认 (我们/合作方/宇宙重打分), 是真信息界不是口径**。中盘 −死锚 +0.005 真实, 入交易簿值得 (C1 在 U6 微胜 0.0524)。
+**剩余真逃逸口 = 高频**: y600 死, 但 y120 信号真有 0.084 (线性) / 0.09 (合作方 DL), 我们线性 y60=0.1116。高频臂是唯一通往更高数字的真路。
