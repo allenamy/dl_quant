@@ -404,3 +404,7 @@ MH180 (y180 主 + y60/y600 辅助头): fold0 0.0662 ≈ 普通 y180 0.069。多 
 ### DMF-Bridge (机制化 BTC 永续融合) @y180 — 真模型推翻 gate0 线性 null, 但 sub-gate (2026-06-13 20:20)
 DMF (book-aware RawLOBEncoder 沿level卷 + 12维工程trade特征独立塔 + 状态依赖 bilinear 广播到全14资产, +62K params): pooled **0.0726** vs HF180 0.0704, Δ=**+0.0021, P=0.98, 三折全正** (+0.0021/+0.0028/+0.0015) → FAIL (Δ<0.003 screen 门), park。
 **方法论胜利: 真模型推翻了 gate0 的线性 null。** gate0(book-only 线性 Ridge)= +0.0000 null; 但正确机制化 DMF(book 结构保留 + 工程 trade 特征 + 非线性状态依赖)= **+0.0021 一致 (P=0.98)**。**用户"不盲信失败、用真模型验证"判断正确——线性代理漏掉了真信号(虽小)。** ⇒ BTC 永续深档+trade 对多资产横截面确有小增量, 但 ~+0.002 < bank 门。增量来源: 工程 trade 特征(VPIN/OFI/Kyle, gate0 没测) + 状态依赖 β。y600 重测中。
+
+### 深度审计 (2026-06-13) — 找到 HIGH bug D1 + RevIN 遗漏; 用户 cross-time 提案否决
+4-agent workflow 审计数据/归一化/架构。**D1 (HIGH): BTC b25/btrade 流无 validity mask, 空秒/无book行 NaN→0→标准化成 −μ/σ 虚假多σ负读数, 经 DMF bridge 广播污染全14资产截面** — 可能是 DMF 只 +0.002 的部分原因。已修(无效行标准化后重置0, b25/btrade/raw 三流)。D4 (MED): RevIN 遗漏(单资产用了, 去非平稳 load-bearing), 影响整个模型。book reshape (T,25,4) 正确(头号嫌疑通过)。
+**用户 cross-asset×cross-time 提案裁决**: (a) BTC 塔沿用单资产 dual-path(RevIN+MaskNet)= 对且低估, REPLACE-class 值建; (b) cross-TIME target attn = 否决(lead-lag 实测 null corr−0.04; DMF 已有全感受野; F1 已测传导上限 +0.0005; 文献一致; FLOP 高4数量级); (c) regime FiLM = 精炼成 GRN-gated FiLM bridge(乘性 γ=状态依赖β, σ-preserving, 比 bilinear 强且参数更少)。**核心: BTC→alt 残差传导系数仅 ~0.14%(F1 NO-GO), 瓶颈是物理不是塔保真度, DMF +0.002 近物理上限。** 行动: D1 修后重跑 DMF; staged = 同期 BTC slot → 富塔+FiLM bridge。

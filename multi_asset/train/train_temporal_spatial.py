@@ -174,19 +174,24 @@ def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
         Xr = None
         if R_g is not None:
             Xr = R_g[:, widx, :].float()                         # (S,B,W,Cr)
+            # D1/D2 fix: invalid rows are all-zero (builder zero-fills empty/no-book).
+            # Standardize then RE-ZERO so they stay neutral (not -mu/sd spurious z).
+            rvalid = (Xr != 0).any(dim=-1, keepdim=True).float()
             Xr = torch.nan_to_num(Xr, nan=0.0)
-            Xr = ((Xr - rmu_g) / rsd_g).clamp_(-10.0, 10.0)
+            Xr = (((Xr - rmu_g) / rsd_g).clamp_(-10.0, 10.0)) * rvalid
             Xr = Xr.permute(1, 0, 2, 3).contiguous()             # (B,S,W,Cr)
         Xb = None
         if B25_g is not None:
             Xb = B25_g[widx, :].float()                          # (B,W,C104)
+            bvalid = (Xb != 0).any(dim=-1, keepdim=True).float()
             Xb = torch.nan_to_num(Xb, nan=0.0)
-            Xb = ((Xb - bmu_g) / bsd_g).clamp_(-10.0, 10.0)
+            Xb = (((Xb - bmu_g) / bsd_g).clamp_(-10.0, 10.0)) * bvalid
         Xbt = None
         if BT_g is not None:
             Xbt = BT_g[widx, :].float()                          # (B,W,Ctr)
+            btvalid = (Xbt != 0).any(dim=-1, keepdim=True).float()
             Xbt = torch.nan_to_num(Xbt, nan=0.0)
-            Xbt = ((Xbt - btmu_g) / btsd_g).clamp_(-10.0, 10.0)
+            Xbt = (((Xbt - btmu_g) / btsd_g).clamp_(-10.0, 10.0)) * btvalid
         ymat = y_g[:, bb].t()                                   # (B,S) RAW y
         mmat = mask_g[:, bb].t() * torch.isfinite(ymat).float()  # (B,S)
         yx = {h: torch.nan_to_num(g[:, bb].t(), nan=0.0) for h, g in yx_g.items()}
