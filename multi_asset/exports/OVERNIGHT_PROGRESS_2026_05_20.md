@@ -346,3 +346,13 @@ C3 (按天难度 EMA 排序, 最难 20% 训练日 2× 损失): pooled 0.0470 [0.
 ### 中盘宇宙重打分 — 假设证伪 (2026-06-13 04:00, 我们现成预测)
 辩证假设"0.05 是宇宙聚合 artifact"在**我们的数据上 FAIL**。限定可预测中盘{ETH,SOL,LINK,DOT,FIL,ETC}: cs-rank-IC U6=0.0522 vs U14=0.0491 (仅 +0.003); leave-one-fold-out 诚实 +0.005 (真实非 cherry-pick 但远不够 +0.02)。**我们 per-asset Spearman 顶到 FIL 0.04 / ETC 0.044,到不了合作方报的 0.082-0.091** — 后者是 inflated caliber (与我们 single_asset caliber 修正同源)。**关键交叉验证: 合作方诚实数 (1c 表) per-asset 中盘也只 ~0.037-0.056, 0.082-0.091 是 W1-selection+EMA-demean 虚高**。⇒ **y600 天花板 ~0.05 三重确认 (我们/合作方/宇宙重打分), 是真信息界不是口径**。中盘 −死锚 +0.005 真实, 入交易簿值得 (C1 在 U6 微胜 0.0524)。
 **剩余真逃逸口 = 高频**: y600 死, 但 y120 信号真有 0.084 (线性) / 0.09 (合作方 DL), 我们线性 y60=0.1116。高频臂是唯一通往更高数字的真路。
+
+### GBDT 信息界探针 — 锁定真瓶颈是特征不是模型 (2026-06-13 05:00)
+忠实移植合作方 gbdt_cs_alpha.py 到我们 44 特征 + 残差同口径 (LightGBM 4.5):
+| model | 88d (raw+csz) | 44 raw |
+|---|---|---|
+| ridge | 0.0436 | 0.0385 |
+| GBDT-reg | 0.0437 | 0.0370 |
+| GBDT-rank | **0.0475** | 0.0448 |
+我们 DL ~0.0490。**裁决: 模型类饱和**——GBDT-rank(快照,与我们 70% LambdaRank 损失同口径)0.0475 ≈ DL 0.0490(差 +0.0015 噪声内)。**我们的 temporal+cross-asset 架构相比快照树几乎不买东西**(humbling, 部分复活合作方"snapshot≈deep")。GBDT-reg≈ridge → 我们 44 特征**信号本质线性,无非线性 headroom**。
+**关键: 合作方 0.0587 vs 我们 0.044 是 FEATURE-SET 差(112 vs 44),不是模型类差。** 真瓶颈=特征。合作方 112 特征(tier-6 微结构: ofi_l1/depth_imbalance/spread_z/cumu_depth_grad/trade_aggression/book_event_intensity + tier-10 VPIN)从**同源 bar_1s 可算**,且其 NPZ 就在本服务器。**这是唯一被实测证明能抬天花板的杠杆 (0.044→0.0587)**,通往 y600 0.06-0.07 的真路。
