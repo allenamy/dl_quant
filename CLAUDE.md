@@ -8,6 +8,8 @@
 
 **Universe:** 14 USDT-perp: BTC ETH SOL BNB XRP DOGE ADA LINK BCH TRX LTC DOT FIL ETC (5 USDC dups 仅作 robustness check)。Data: `/mnt/storage/share/bar_data` (READ-ONLY), 1s bars, 85800/day, 2022-01→2025-11 (~3.9yr), 5-level LOB + 9-bucket cumu depth + trade flow + book add/del。
 
+**BTC 高精度数据 (2026-06-13 新增, 口径修正):** `/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/dl-tardis/` (READ-ONLY) — Tardis `book_snapshot_25` + `trades`, **现货(`binance`)与永续(`binance-futures`)都有**, 1247 天 2023-01-01→2026-05-31, 零缺失, 233GB, µs 时间戳, 真 25 档/侧。**关键: 永续 book mid 与我们 perp target 对齐 corr 1.000 (~0bps)** — 修复了旧 `/mnt/storage/share/23-25-BTCUSDT` 的 **现货-永续口径 bug**(旧 book=现货, 基差 +5~−7.5bps 变号, 是 B25-FAIL 的根因)。**旧 23-25-BTCUSDT 已弃用, 一律改用新永续 book。** 仍无 funding/OI/liquidations(需单独从 Tardis 拉)。仅 BTC(13 alt 仍 bar_1s)。永续 cache: `exports/btc25_raw_perp/` (104ch)。
+
 **Plan:** `docs/superpowers/plans/2026-05-20-multi-asset-y600.md` (10-phase, GO/NO-GO gated)。
 
 ### 核心 reframing (实测, 是整个方法论的支点)
@@ -25,7 +27,7 @@
 3. **预处理 > 架构** — 特征工程优先级永远高于模型创新。
 4. **机制 > 堆叠 (用户硬约束 2026-05-20)** — 每个 feature / module 必须有**清晰的作用机理 (为什么应该带来信号)** + 通过**定量 gate**。禁止生硬堆叠。
 5. **单资产代码只读** — 所有新代码在 `multi_asset/`。`src/` `configs/` 等只 import 不改。`reg-arch-final` branch 是冻结参考。
-6. **Share data 只读** — `/mnt/storage/share` 一律 mode="r"。本地开发，rsync 推送 server 训练 (`multi_asset/sync_to_server.sh` → `work_hsy/quant_research_multi_asset`，单 RTX 3090)。
+6. **Share data 只读** — `/mnt/storage/share` 与 `/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31` 一律 mode="r"，绝不改/删。本地开发，rsync 推送 server 训练 (`multi_asset/sync_to_server.sh` → `work_hsy/quant_research_multi_asset`，单 RTX 3090)。
 
 ### 决策检查清单 (每次架构/特征/loss 改动必答)
 
