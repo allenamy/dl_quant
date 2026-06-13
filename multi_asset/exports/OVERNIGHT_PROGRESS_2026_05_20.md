@@ -367,3 +367,6 @@ B25R_y600 (104ch 现货 25 档 leader 槽富化, +29.5K): pooled 0.0475 [0.0527/
 - ⇒ **我们的 cross-sectional 0.049 不是落后,是 at/near 真天花板,且优于合作方多资产 cs 数**。"0.0587 ceiling"是他们文档自己掉进的单资产/横截面口径混用(与我们 single_asset caliber 修正同源,用户"辩证审视"判断正确)。
 - **特征富化对 cs-rank-IC 不是真杠杆**:他们最丰富的微结构(rv_semivar/dva/qd_impulse/entropy)在多资产 cs 上单特征仅 0.005-0.022;~18 候选可从 bar_1s 算但预期 ΔP<+0.005(撞 channel-addition penalty #29),无 tick 依赖但非杠杆。
 - **真天花板四重确认**: 我们 DL 0.049 / GBDT 0.0475 / 宇宙重打分 / 合作方多资产 cs 0.014-0.031 ——**y600 cross-sectional 真界 ~0.05, 我们在界上**。0.0587/0.0646 是单资产 BTC TS, 不同问题。
+
+### 🚀 HF y180 高频臂 fold0 = 0.0686 — 高频杠杆真实, 修正前述悲观 (2026-06-13 07:30)
+HF y180 (coarse+raw, 全栈): **fold0 test xsec_rankIC=+0.0686** (IC-IR 14.9, per-asset P 0.0341 S 0.0381, mono 0.988), fold1 ep1 val 0.0668。**比 y600 0.052 高 +32%**。这是真 cross-sectional 口径 (非单资产 0.0587 陷阱) — 印证合作方 term structure (y120 0.090, y180~0.07)。**前述"高频暂未跃升"基于早期 val, test 强得多, 修正**。⇒ 高频是 y600 横截面天花板之外唯一真实的"更高数字"路: y180 已 0.069, y60 线性 0.11 → DL 或 0.08-0.10+。三折确认后排 y60 冲用户 0.12 目标。横截面 y600 仍 ~0.05 界 (四重确认), 但 horizon 轴是活的。
