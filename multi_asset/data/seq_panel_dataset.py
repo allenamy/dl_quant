@@ -127,6 +127,9 @@ class SeqPanelData:
         # NX B-line: when set (exports/btc25_raw), _load_day also returns
         # B25 (T,104) fp16 BTC full-ladder sequence (leader-slot enrichment).
         self.b25_dir = None
+        # NX-DMF: when set (exports/btc_trade_perp), _load_day also returns
+        # BT (T,12) fp16 BTC perp engineered trade-microstructure features.
+        self.bt_dir = None
 
     # ----------------------------------------------------------------- stats
     def set_fold(self, train_days):
@@ -199,6 +202,12 @@ class SeqPanelData:
             out["B25"] = zb["R25"]                   # (T,104) float16
             if hasattr(zb, "close"):
                 zb.close()
+        if self.bt_dir is not None:
+            zt = np.load(p.join(self.bt_dir, f"{d}.npz"))
+            assert zt["T"].shape[0] == out["F"].shape[1], f"btrade/seq T mismatch day {d}"
+            out["BT"] = zt["T"]                       # (T,12) float16
+            if hasattr(zt, "close"):
+                zt.close()
         if hasattr(z, "close"):
             z.close()
         if self.target_horizon != 600:
@@ -258,7 +267,7 @@ class SeqPanelData:
                 continue
             arr, rows, bars = got
             yield (arr["F"], arr["mask"], arr["y"], rows, bars,
-                   arr.get("y_extra"), arr.get("R"), arr.get("B25"))
+                   arr.get("y_extra"), arr.get("R"), arr.get("B25"), arr.get("BT"))
 
     def iter_days_raw(self, split_rows, rng=None, shuffle=True):
         """Like iter_days but ALSO yields the raw-LOB array Xraw (S,T,5,4) for the

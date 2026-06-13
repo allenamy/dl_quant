@@ -400,3 +400,7 @@ HF y60 (coarse+raw 全栈, 多资产 cross-sectional): 三折 **0.1134 / 0.1335 
 
 ### MH180 多horizon FAIL-park (2026-06-13) — 衰减律守住
 MH180 (y180 主 + y60/y600 辅助头): fold0 0.0662 ≈ 普通 y180 0.069。多 horizon co-train 没把 y180 拉向 0.10, 衰减律 (y180 自然 ~0.07) 守住。早杀解锁 y180 lookback 优化 + B25-perp。
+
+### DMF-Bridge (机制化 BTC 永续融合) @y180 — 真模型推翻 gate0 线性 null, 但 sub-gate (2026-06-13 20:20)
+DMF (book-aware RawLOBEncoder 沿level卷 + 12维工程trade特征独立塔 + 状态依赖 bilinear 广播到全14资产, +62K params): pooled **0.0726** vs HF180 0.0704, Δ=**+0.0021, P=0.98, 三折全正** (+0.0021/+0.0028/+0.0015) → FAIL (Δ<0.003 screen 门), park。
+**方法论胜利: 真模型推翻了 gate0 的线性 null。** gate0(book-only 线性 Ridge)= +0.0000 null; 但正确机制化 DMF(book 结构保留 + 工程 trade 特征 + 非线性状态依赖)= **+0.0021 一致 (P=0.98)**。**用户"不盲信失败、用真模型验证"判断正确——线性代理漏掉了真信号(虽小)。** ⇒ BTC 永续深档+trade 对多资产横截面确有小增量, 但 ~+0.002 < bank 门。增量来源: 工程 trade 特征(VPIN/OFI/Kyle, gate0 没测) + 状态依赖 β。y600 重测中。

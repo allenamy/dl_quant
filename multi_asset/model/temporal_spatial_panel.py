@@ -47,6 +47,7 @@ from src.model.backbones.conformer_backbone import ConformerBackbone  # noqa: E4
 from src.model.direction_aware_quantile_head import (  # noqa: E402
     DirectionAwareQuantileHead,
 )
+from src.model.raw_lob_encoder import RawLOBEncoder  # noqa: E402  book-aware (level conv + attn-pool)
 from multi_asset.model.cross_asset_panel import (  # noqa: E402
     CrossAssetAttnLayer, MarketMLP,
     _masked_mean, _masked_weighted_mean,
@@ -151,6 +152,8 @@ class TemporalSpatialPanelModel(nn.Module):
         raw_channels: int = 0,
         btc25raw_channels: int = 0,
         btc_idx: int = 0,
+        dmf: bool = False,
+        dmf_trade_ch: int = 0,
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -257,6 +260,39 @@ class TemporalSpatialPanelModel(nn.Module):
             self.b25_proj = nn.Linear(d, d)
             self.b25_alpha = nn.Parameter(torch.zeros(1))
 
+        # NX-DMF (Deep Market-state, gated bilinear broadcast) — the non-lazy BTC
+        # perp fusion. Replaces the flat-104ch leader-slot hack with: (1) a
+        # BOOK-AWARE encoder (RawLOBEncoder: conv over the 25 LEVEL axis +
+        # attention-pool, preserving ladder structure — NOT flatten); (2) a
+        # SEPARATE engineered-microstructure stem (perp VPIN/OFI/Kyle/microprice
+        # /trade-imbalance — the proven single-asset edge); (3) a STATE-DEPENDENT
+        # per-asset low-rank bilinear bridge that broadcasts the BTC market-state
+        # to ALL 14 assets (captures contemporaneous state-dependent beta, which
+        # has cross-asset spread -> can move xsec-rank-IC, unlike a scalar factor).
+        # Zero-init alpha -> identity at start (= proven baseline).
+        self.dmf = dmf
+        self.dmf_trade_ch = dmf_trade_ch
+        if dmf:
+            dbk = 24
+            self.dmf_book = RawLOBEncoder(n_levels=25, d_raw=dbk, dropout=dropout,
+                                          use_channel_mix_conv=True,
+                                          use_level_attention_pool=True)  # (B,T,25,4)->(B,T,24)
+            n_summary = 4                                  # btc25 channels 100:104
+            self.dmf_feat = nn.Sequential(                 # engineered stem (separate, anti-#29)
+                nn.Linear(dmf_trade_ch + n_summary, dbk), nn.GELU(),
+                nn.LayerNorm(dbk))
+            self.dmf_temporal = ConformerBackbone(d_model=2 * dbk, n_blocks=1,
+                                                  n_heads=2, kernel_size=15, dropout=dropout)
+            self.dmf_pool = nn.Linear(2 * dbk, 1)          # attn-pool over T
+            # state-dependent bilinear broadcast bridge (low-rank k)
+            k = 8
+            self.dmf_ctx = nn.Linear(2 * dbk, d)           # market-state -> d
+            self.dmf_U = nn.Linear(d, k, bias=False)
+            self.dmf_O = nn.Linear(k, d, bias=False)
+            self.dmf_gate = nn.Linear(2 * dbk, n_assets)   # per-asset state-dependent gate logit
+            self.dmf_scale = nn.Parameter(torch.zeros(n_assets, k))  # per-asset scale, zero-init -> s=1
+            self.dmf_alpha = nn.Parameter(torch.zeros(1))  # master zero-init gate
+
         # NX-S5 kill-test: BTC-25 deep-book scalar FiLM. Mechanism: the leader's
         # DEEP book state (25-level imbalance/slope/microprice/vol) is a market
         # microstructure REGIME signal unavailable in the 5-level alt features;
@@ -295,11 +331,12 @@ class TemporalSpatialPanelModel(nn.Module):
         self.head = self.heads[0]   # back-compat alias (primary head)
 
     def forward(self, x, mask, return_dict: bool = False, x_coarse=None,
-                z_btc=None, x_raw=None, x_b25=None):
+                z_btc=None, x_raw=None, x_b25=None, x_btrade=None):
         """x: (B, S, T, F); mask: (B, S) {0,1}; x_coarse: (B, S, Tc, F) or None;
         z_btc: (B, 8) standardized BTC-25 state or None; x_raw: (B, S, T, Cr)
         standardized raw microstructure channels or None; x_b25: (B, T, C104)
-        standardized BTC-25 full-ladder sequence or None.
+        standardized BTC-25 full-ladder sequence or None; x_btrade: (B, T, Ctr)
+        standardized BTC perp engineered trade features or None (DMF).
         Returns (B, S) point q50, or a dict with per-asset quantiles."""
         B, S, T, Fdim = x.shape
         x = torch.nan_to_num(x, nan=0.0)
@@ -325,6 +362,27 @@ class TemporalSpatialPanelModel(nn.Module):
             add = torch.zeros_like(e)
             add[:, self.btc_idx] = torch.tanh(self.b25_alpha) * self.b25_proj(hb)
             enc = (e + add).reshape(B * S, -1)
+        if self.dmf and x_b25 is not None:
+            # BTC perp deep market-state -> state-dependent bilinear broadcast to ALL assets.
+            xb = torch.nan_to_num(x_b25, nan=0.0)                 # (B,T,104)
+            Tb = xb.shape[1]
+            ladder = torch.stack([xb[..., 0:25], xb[..., 25:50],
+                                  xb[..., 50:75], xb[..., 75:100]], dim=-1)  # (B,T,25,4)
+            h_book = self.dmf_book(ladder)                         # (B,T,24) book-aware
+            feat_in = xb[..., 100:104]                             # 4 summaries
+            if self.dmf_trade_ch > 0 and x_btrade is not None:
+                feat_in = torch.cat([torch.nan_to_num(x_btrade, nan=0.0), feat_in], dim=-1)
+            else:                                                  # pad to expected width
+                feat_in = torch.cat([feat_in.new_zeros(B, Tb, self.dmf_trade_ch), feat_in], dim=-1)
+            h_feat = self.dmf_feat(feat_in)                        # (B,T,24) engineered stem
+            h_btc = torch.cat([h_book, h_feat], dim=-1)            # (B,T,48)
+            c_btc = self.dmf_temporal(h_btc)                       # (B,48) last-token (causal full RF)
+            ctx = self.dmf_U(self.dmf_ctx(c_btc))                  # (B,k)
+            s = 1.0 + torch.tanh(self.dmf_scale)                   # (S,k) per-asset scale, =1 at init
+            bridge = self.dmf_O(ctx.unsqueeze(1) * s.unsqueeze(0))  # (B,S,d) low-rank bilinear
+            g = torch.sigmoid(self.dmf_gate(c_btc)).unsqueeze(-1)  # (B,S,1) state-dependent per-asset gate
+            enc = (enc.view(B, S, -1)
+                   + torch.tanh(self.dmf_alpha) * g * bridge).reshape(B * S, -1)
         if self.coarse and x_coarse is not None:
             xc = torch.nan_to_num(x_coarse, nan=0.0) * mask.view(B, S, 1, 1)
             if gamma is not None:
