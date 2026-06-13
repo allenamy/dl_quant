@@ -356,3 +356,6 @@ C3 (按天难度 EMA 排序, 最难 20% 训练日 2× 损失): pooled 0.0470 [0.
 | GBDT-rank | **0.0475** | 0.0448 |
 我们 DL ~0.0490。**裁决: 模型类饱和**——GBDT-rank(快照,与我们 70% LambdaRank 损失同口径)0.0475 ≈ DL 0.0490(差 +0.0015 噪声内)。**我们的 temporal+cross-asset 架构相比快照树几乎不买东西**(humbling, 部分复活合作方"snapshot≈deep")。GBDT-reg≈ridge → 我们 44 特征**信号本质线性,无非线性 headroom**。
 **关键: 合作方 0.0587 vs 我们 0.044 是 FEATURE-SET 差(112 vs 44),不是模型类差。** 真瓶颈=特征。合作方 112 特征(tier-6 微结构: ofi_l1/depth_imbalance/spread_z/cumu_depth_grad/trade_aggression/book_event_intensity + tier-10 VPIN)从**同源 bar_1s 可算**,且其 NPZ 就在本服务器。**这是唯一被实测证明能抬天花板的杠杆 (0.044→0.0587)**,通往 y600 0.06-0.07 的真路。
+
+### B25 BTC-25 全粒度深槽 FAIL (2026-06-13 05:32)
+B25R_y600 (104ch 现货 25 档 leader 槽富化, +29.5K): pooled 0.0475 [0.0527/0.0504/0.0392], vs P1ft Δ=−0.0001, P=0.457 → FAIL 纯中性。**BTC 全粒度深档对多资产残差零增量**。叠加现货-永续口径错配 caveat (book=现货代理, target=永续) + GBDT 探针 (瓶颈是特征非数据形态) → **三条证据同向: 深档数据形态不是 y600 残差的杠杆**。与合作方 8 标量 FiLM FAIL 一致, 我们全粒度也 FAIL = 机制级关闭"BTC 深档→多资产残差"通路。接棒: HF y180 高频臂 (05:33)。
