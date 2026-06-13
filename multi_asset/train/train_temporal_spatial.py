@@ -299,7 +299,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                cap_w=None, verbose=True, day_override=None, save_dir=None,
                multipool=False, horizon=600, coarse=False, init_ckpt=None, stats_from=None,
                aux_horizons=(), bilinear=False, epnet=False, epnet_soft=False,
-               attnpool=False, zall=None):
+               attnpool=False, zall=None, cvar=0.0):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -408,13 +408,26 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     offs_g = torch.arange(-data.W + 1, 1, device=DEV)
 
     best_val, best_state, best_epoch, bad = -1e9, None, -1, 0
+    # CVaR worst-window objective (fold-2 lever): per-day EMA of the RANK loss
+    # (scale-comparable across vol regimes, unlike huber) ranks day difficulty;
+    # from epoch 1 the hardest quintile of train days gets (1+cvar)x loss so the
+    # model must fit minority regimes instead of averaging them away. Training-
+    # time robustness — distinct from the failed inference-time regime adaptation.
+    day_diff = {}
     for ep in range(max_epochs):
         model.train()
         t_ep = time.time()
         ep_loss = ep_pin = ep_h = ep_x = 0.0
         nb = 0
+        hard_set = set()
+        if cvar > 0 and ep >= 1 and len(day_diff) >= 10:
+            ranked = sorted(day_diff, key=day_diff.get, reverse=True)
+            hard_set = set(ranked[:max(1, len(ranked) // 5)])
         for F_all, mask_all, y_all, rows, bars, y_extra, R_all in data.iter_days(
                 tr_rows, rng=rng, shuffle=True):
+            d_id = int(data.day[rows[0]])
+            d_w = (1.0 + cvar) if d_id in hard_set else 1.0
+            d_rank_sum, d_rank_n = 0.0, 0
             for xb, yraw, mb, rr_b, xc, yx, xr in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
                     offs_g, data.W, BATCH_TS, rng=rng, shuffle=True, coarse=coarse,
@@ -438,12 +451,18 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                                            rank_kind=RANK_KIND, w_huber=W_HUBER,
                                            w_rank=W_RANK, w_pin=W_PIN)
                     loss = loss + 0.3 * l_a
+                if cvar > 0:
+                    d_rank_sum += parts["rank"]; d_rank_n += 1
+                    loss = loss * d_w
                 opt.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 opt.step()
                 ep_loss += float(loss.item()); ep_pin += parts["pin"]
                 ep_h += parts["huber"]; ep_x += parts["rank"]; nb += 1
+            if cvar > 0 and d_rank_n > 0:
+                m = d_rank_sum / d_rank_n
+                day_diff[d_id] = 0.7 * day_diff.get(d_id, m) + 0.3 * m
         ep_loss /= max(nb, 1); ep_pin /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
 
         vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g, rmu_g=rmu_g, rsd_g=rsd_g)
@@ -543,6 +562,8 @@ def main():
                     help="NX raw-path arm: 36-ch undigested microstructure branch")
     ap.add_argument("--d_model", type=int, default=None,
                     help="model width override (default 32; width sweep under hardening)")
+    ap.add_argument("--cvar", type=float, default=0.0,
+                    help="CVaR worst-window upweight: hardest-quintile train days get (1+w)x loss")
     ap.add_argument("--aux_horizons", type=str, default="",
                     help="comma-sep MTL aux horizons, e.g. 180,600 (NX-S3)")
     ap.add_argument("--lr", type=float, default=None, help="override LR (ft: pretrain/10)")
@@ -655,7 +676,8 @@ def main():
                        multipool=args.multipool, horizon=args.horizon, coarse=args.coarse,
                        init_ckpt=args.init_ckpt, stats_from=args.stats_from,
                        aux_horizons=aux_h, bilinear=args.bilinear, epnet=args.epnet,
-                       epnet_soft=args.epnet_soft, attnpool=args.attnpool, zall=zall)
+                       epnet_soft=args.epnet_soft, attnpool=args.attnpool, zall=zall,
+                       cvar=args.cvar)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
