@@ -374,3 +374,13 @@ HF y180 (coarse+raw, 全栈): **fold0 test xsec_rankIC=+0.0686** (IC-IR 14.9, pe
 ### 🎯 HF y60 = 0.121 三折均值 — 高频 0.12 目标达成 (2026-06-13 11:00)
 HF y60 (coarse+raw 全栈, 多资产 cross-sectional): 三折 **0.1134 / 0.1335 / 0.1157, 均值 +0.1209**, IC-IR 27-31, per-asset S 0.061-0.071, mono 0.88-0.99 (校准良好)。**用户高频 0.12 目标达成**, 真横截面口径, 三折全 >0.11。
 **横截面 horizon 阶梯完整实测**: y600 +0.050 (界) / y180 +0.070 / y60 **+0.121**。衰减律 IC∝h^-0.43。结论: 多资产横截面信号在高频真实且可观, paradigm=多资产多空, 杠杆=horizon。y600 raw 0.10 不可达 (四重确认), 但 y60 cross-sectional 0.12 达成。下一步: MH180 多horizon 冲 y180≥0.10 + 产品层 (factor_bridge+校准+经济) 把高频信号变现。
+
+### ⚠️ 高频经济性诚实回测 — IC↔可交易性反向, y180 才是生产 horizon (2026-06-13)
+8 折纪律等价 + frozen-train vol sizing + taker 费 + overlap 修正 (y600 stride4 去重叠):
+| horizon | best book | breakeven /side | net@2bp/天 | Sharpe@2 | folds+ |
+|---|---|---|---|---|---|
+| y60 (IC 0.121) | directional-hyst | **2.4bps** | +0.22 | 0.30 | 2/3 |
+| **y180 (IC 0.070)** | **rank EMA0.97 band0.10** | **11.2bps** | **+8.91** | **4.05** | 3/3(实~2.3) |
+| y600 (IC 0.049) | conv-hyst | 40bps | +11.4(outlier) | 1.82 | 2/3 |
+**关键: breakeven 费率随 horizon 单调上升 = IC 排名的反向。** y60 0.121 IC 是研究 artifact 不可交易(60s 信号要 180s 重交易, 换手吞噬, BE 2.4bps<真实费)。**y180 是甜点**(IC 0.07 够 + 持仓够长清成本, BE 11bps)。**前述 +17bps/Sharpe 3.2 确认是 overlap 双计高估**(stride4 去重叠后 y600 Sharpe 掉到 1.8)。生产首选 = **y180 + EMA0.97/band0.10 滞回 rank 簿 @≤2bp**。诚实 caveat: y180 fold2 正收益靠单 outlier 日(实 2.3/3); 3 折非 8 折, dispersion 大。
+**战略含义: "更高数字"(y60 0.12)与"可交易"(y180)是两回事。用户的 y180≥0.10 直觉=生产正确目标。**
