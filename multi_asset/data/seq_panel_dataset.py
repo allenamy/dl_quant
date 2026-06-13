@@ -124,6 +124,9 @@ class SeqPanelData:
         # R (S,T,36) fp16 undigested microstructure channels (kept fp16 in RAM;
         # standardized per-fold on GPU at window time).
         self.raw_dir = None
+        # NX B-line: when set (exports/btc25_raw), _load_day also returns
+        # B25 (T,104) fp16 BTC full-ladder sequence (leader-slot enrichment).
+        self.b25_dir = None
 
     # ----------------------------------------------------------------- stats
     def set_fold(self, train_days):
@@ -190,6 +193,12 @@ class SeqPanelData:
             out["R"] = zr["R"]                       # (S,T,Cr) float16
             if hasattr(zr, "close"):
                 zr.close()
+        if self.b25_dir is not None:
+            zb = np.load(p.join(self.b25_dir, f"{d}.npz"))
+            assert zb["R25"].shape[0] == out["F"].shape[1], f"b25/seq T mismatch day {d}"
+            out["B25"] = zb["R25"]                   # (T,104) float16
+            if hasattr(zb, "close"):
+                zb.close()
         if hasattr(z, "close"):
             z.close()
         if self.target_horizon != 600:
@@ -249,7 +258,7 @@ class SeqPanelData:
                 continue
             arr, rows, bars = got
             yield (arr["F"], arr["mask"], arr["y"], rows, bars,
-                   arr.get("y_extra"), arr.get("R"))
+                   arr.get("y_extra"), arr.get("R"), arr.get("B25"))
 
     def iter_days_raw(self, split_rows, rng=None, shuffle=True):
         """Like iter_days but ALSO yields the raw-LOB array Xraw (S,T,5,4) for the
