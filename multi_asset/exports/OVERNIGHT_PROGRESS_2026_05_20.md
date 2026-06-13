@@ -397,3 +397,6 @@ HF y60 (coarse+raw 全栈, 多资产 cross-sectional): 三折 **0.1134 / 0.1335 
 ### 新 BTC 数据详查 — 永续 book 口径修复确认 (2026-06-13)
 /mnt/storage/btcusdt_copy_2023-01-01_2026-05-31: book_snapshot_25 + trades, 现货+永续, 1247 天 (2023-01→2026-05), 零缺失, 233GB。**永续 book mid vs 我们 perp target 差 ~0bps corr 1.000**(旧现货 book 差 +5~−7.5bps 变号 = 之前 B25-FAIL 的根因, 喂了错标的)。**无 funding/OI/liq**(需单独拉)。真新增 = 口径正确永续 25档 book + 8 个月。caveat: 仅 BTC(alt 仍 bar_1s), panel 延伸受 alt 限。
 **操作: B25 之前是无效测试(错标的), 重建 btc25_raw(永续 book)→ 在 y180/y60 重测(winning horizon, 微结构在高频更相关)。** 这是把"BTC 深档"这条线在正确标的上重新打开。
+
+### MH180 多horizon FAIL-park (2026-06-13) — 衰减律守住
+MH180 (y180 主 + y60/y600 辅助头): fold0 0.0662 ≈ 普通 y180 0.069。多 horizon co-train 没把 y180 拉向 0.10, 衰减律 (y180 自然 ~0.07) 守住。早杀解锁 y180 lookback 优化 + B25-perp。
