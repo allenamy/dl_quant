@@ -1,0 +1,91 @@
+{
+  "_comment": "HONEST 3-WAY (arm 2 of 3): DUAL-SOURCE, run through multi_asset/train/train_dual_lob.py (UNIFORM trainer + FIXED sigma-gate fallback checkpoint) for apples-to-apples vs base + lob arms. Copy of perp_dualsrc_roll.json with three deltas: (1) fold_test_starts = [2026-01-01] ONLY; (2) model.use_perp_residual=false made EXPLICIT (train_dual_lob uses plain LOBDatasetV2 on data/npz_dualsrc — the perp deep book key is NOT required for this arm — and DualLOBREGArch is byte-identical to the REG_arch parent); (3) distinct output_dir. Inputs = data/npz_dualsrc (X = spot-64 ++ 5 DIFFERENCED perp-spot divergence/flow channels = 69; regime_prior = 6 spot ++ 4 UN-normalized LEVEL signals = 10; SPOT X_raw; LEAK-FREE re-anchored perp y_600), d_prior=10. SAME ema_decay=0.995 / epochs=16 / patience=6 / 400/60/31 as the other two arms.",
+  "data": {
+    "csv_path": "",
+    "npz_dir": "data/npz_dualsrc",
+    "tv_overlay_dir": "",
+    "n_levels": 25,
+    "horizon_sec": 600,
+    "input_len": 600,
+    "stride": 180,
+    "horizons_sec": [
+      600
+    ],
+    "include_ridge_features": true,
+    "include_regime_prior": true,
+    "quantize_features": true,
+    "preload": true
+  },
+  "model": {
+    "d_model": 32,
+    "d_raw": 16,
+    "n_mask_blocks": 1,
+    "n_cross_layers": 1,
+    "patch_size": 5,
+    "attn_nhead": 2,
+    "attn_d_ff": 64,
+    "d_prior": 10,
+    "dropout": 0.2,
+    "n_horizons": 1,
+    "n_symbols": 1,
+    "use_monotonic_quantile": true,
+    "use_revin": true,
+    "use_masknet": false,
+    "use_gdcn": true,
+    "use_raw_path": true,
+    "use_attention": false,
+    "use_conv": false,
+    "use_channel_mix_conv": true,
+    "use_level_attention_pool": true,
+    "use_patch_attention_pool": false,
+    "use_ppnet_gate": true,
+    "backbone_kind": "conformer",
+    "backbone_kwargs": {
+      "n_blocks": 2,
+      "n_heads": 2,
+      "kernel_size": 15
+    },
+    "use_direction_aware_head": true,
+    "use_film_multistage": true,
+    "use_perp_residual": false
+  },
+  "training": {
+    "epochs": 16,
+    "batch_size": 1024,
+    "lr": 0.0006,
+    "weight_decay": 0.001,
+    "patience": 6,
+    "grad_clip": 1.0,
+    "train_days": 400,
+    "val_days": 60,
+    "test_days": 31,
+    "fold_stride": 60,
+    "fold_test_starts": [
+      "2026-01-01"
+    ],
+    "num_workers": 0,
+    "prefetch_factor": 2,
+    "val_metric": "composite",
+    "use_ema": true,
+    "ema_decay": 0.995,
+    "dul_config": {
+      "lambda_quantile": 0.1,
+      "lambda_utility_rank": 0.5,
+      "lambda_calib": 0.0,
+      "lambda_dir_huber": 0.5,
+      "lambda_pearson": 0.0,
+      "lambda_beta_calib": 0.0,
+      "utility_alpha": 0.0,
+      "dir_huber_delta": 2.0,
+      "dir_huber_w_wrong": 0.0,
+      "dir_huber_w_extreme": 0.0,
+      "lambda_cls": 0.1,
+      "lambda_mag_focal_huber": 0.3,
+      "mag_focal_clip_min": 0.3,
+      "mag_focal_clip_max": 3.0,
+      "cls_weight_mode": "tail_focal_1p5"
+    },
+    "embargo_days": 1
+  },
+  "output_dir": "experiments/perp_consolidation/perp_dualsrc_tdl_roll"
+}
