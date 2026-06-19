@@ -116,6 +116,21 @@ class DualLOBDataset(LOBDatasetV2):
         ``X_raw_perp_deep`` into ``self._pre_X_raw_perp``. We walk the days with
         our overridden ``_load_day`` (so each ``data`` dict carries the perp
         key), collect every array, then clear the LRU like the parent does.
+
+        MEMORY FIX (Stage G OOM, rc=137 at 400d): the parent ``_load_day`` upcasts
+        the SPOT ``X_raw`` to float32 (src/training/dataset.py ~L560) and our
+        ``_load_day`` upcasts the PERP ``X_raw_perp_deep`` to float32 — so two
+        (N,600,20,4) f32 raw books (192 KB/row EACH) dominate the preload. With
+        N=477/day, a 400+60+31-day fold preloads all three datasets at once for a
+        MEASURED 128.7 GB (X 63.6 + spot-raw 36.6 + perp-raw 36.6 + ...), which
+        exceeds the ~102 GB free on the box → OOM kill. FIX: store BOTH raw books
+        as float16 in the resident preload arrays (they are float16 on disk
+        already — bps + log1p units — so this is lossless w.r.t. the cache, and
+        ``__getitem__`` already upcasts each fetched row to float32 via
+        ``np.ascontiguousarray(..., dtype=np.float32)`` so the model still sees
+        f32). This drops the 400d preload to a MEASURED 83.8 GB (fits). The
+        feature tensor ``X`` and ``y``/``mask``/``regime_prior`` stay float32
+        exactly as the parent stores them — only the two raw books are halved.
         """
         x_parts: List[np.ndarray] = []
         xraw_parts: List[np.ndarray] = []
@@ -127,14 +142,20 @@ class DualLOBDataset(LOBDatasetV2):
             data = self._load_day(day_idx)
             x_parts.append(data["X"])
             if self._has_raw:
-                xraw_parts.append(data["X_raw"])
-                xperp_parts.append(data[PERP_KEY])
+                # Downcast each day's raw books to f16 BEFORE collecting so the
+                # transient per-day f32 arrays are freed and the concatenated
+                # resident tensors are f16 (halved RAM). nan_to_num already ran
+                # in _load_day; f16 round-trip of bps/log1p values is lossless to
+                # the on-disk f16 caliber.
+                xraw_parts.append(data["X_raw"].astype(np.float16))
+                xperp_parts.append(data[PERP_KEY].astype(np.float16))
             if self._has_regime_prior:
                 rp_parts.append(data["regime_prior"])
             y_parts.append(data["y"])
             mask_parts.append(data["mask"])
         self._pre_X = np.concatenate(x_parts, axis=0)
         if self._has_raw:
+            # f16 resident storage; __getitem__ upcasts each row to f32 on fetch.
             self._pre_X_raw = np.concatenate(xraw_parts, axis=0)
             self._pre_X_raw_perp = np.concatenate(xperp_parts, axis=0)
         if self._has_regime_prior:
