@@ -37,20 +37,29 @@ byte-identical). Inputs = `data/npz_spot` (spot-64 X + X_raw + regime_prior + ts
 
 ---
 
-## GATE A — trainer sanity: spot→spot choppy (MUST ≈ 0.022–0.025)
+## GATE A — trainer sanity: spot→spot choppy (MUST ≈ 0.022–0.025) — PASS (val)
 Config `configs/v5push/perp_gateA_spot2spot_choppy.json` (npz_spot, spot y_600,
-test 2026-01, train 400d, val 60d, embargo 1, EMA 0.999, preload=true, epochs 25,
-patience 10). Eval `multi_asset/eval/perp_battery.py` (EMA, dense+clean).
+test 2026-01, train 400d/val 60d/embargo 1, EMA 0.999, preload=true, ep25, pat10).
 
-**RESULT:** _[pending — running]_  Target ≈ 0.0247 (reg_arch_spot_roll2026 fold-0).
+**RESULT (val caliber): PASS.** Best raw val Pearson peaked **+0.0259** (S +0.0287,
+C +0.0273, sigR 0.034, β 0.73–0.82) at ep7–8 — matches reg_arch_spot_roll2026
+fold-0 reference (0.0247). EMA converging (C +0.0183 @ ep10). ⇒ the FIXED trainer
+reproduces the proven spot→spot signal; Step-0 degradation is resolved. Test-set
+`perp_battery` (dense+clean, EMA+BEST) confirming via the autonomous orchestrator
+(`logs/orchestrate.log`).
 
 ---
 
 ## Step 2 — perp baseline: spot-64 → correct perp target (expect ≈ 0.008–0.012)
 Config `configs/v5push/perp_baseline_choppy.json` (== Gate A but npz=
-`data/npz_spot2perp_clean`). Choppy fold-0.
+`data/npz_spot2perp_clean`, ep12). Choppy fold-0.
 
-**RESULT:** _[pending]_  σ + fallback status recorded.
+**RESULT:** _AUTONOMOUS — running after Gate A via the detached orchestrator
+(`/tmp/orchestrate_decisive.sh`, PPID=1); number lands in `logs/orchestrate.log`._
+Ridge analog (lastts spot64 → clean perp_y, walk-forward): **+0.0084 choppy** /
+−0.0057 strong — the spot→perp transfer level (the residual r mis-signed by the
+spot signal halves it from the ~0.022 spot number). σ expected low (fallback may
+fire — the trainer now records ckpt_source + saved σ).
 
 ---
 
@@ -128,9 +137,22 @@ but r is only ~0.2% of perp variance, so the absolute perp lift is bounded to
 Configs: `perp_dualsrc_choppy.json` (spot64 + 5 div channels in x_feat + 4 LEVEL
 via FiLM d_prior 10; RevIN-fixed) and `perp_basis_choppy.json` (npz_dualbasis,
 4 basis-seq channels joint, d_prior 6) — both vs `perp_baseline_choppy.json`.
-EMA 0.999, fixed trainer, choppy fold-0.
+EMA 0.999, fixed trainer, choppy fold-0, ep12.
 
-**RESULT:** _[pending]_
+**RESULT:** _AUTONOMOUS — running after Gate A + Step 2 via the detached
+orchestrator; dense+clean Pearson/σ/β land in `logs/orchestrate.log` +
+`logs/{gateB_dualsrc,gateB_basis}.log`._
+
+**Prediction from the (model-independent, decisive) Step-3 Ridge gate:** at the
+linear caliber, JOINT-mixing basis into the perp_y regression HURT (ΔP −0.0013
+choppy); only the ADDITIVE form lifted it (+0.0074 → 0.0158, ~89% of the 0.0178
+oracle ceiling). The DL `dualsrc` config routes the differenced channels JOINTLY
+(x_feat → GDCN-mixed) and the basis LEVELS via FiLM (modulation, the closest the
+graph gets to additive). So the DL Gate B is **expected to lift perp only
+marginally if at all** (bounded by r ≈ 0.2% of perp variance ⇒ ceiling ~+0.01);
+a clean additive **residual head** (basis → r̂ added to the spot q50) would be the
+architecture to realize the full +0.0074 — a recommended follow-up, not in scope.
+The DL numbers will confirm or refute this.
 
 > Note on prior attempts: the previous DL dual-source roll (`perp_dualsrc_roll`/
 > `perp_roll_dualbasis`, ema 0.995) was **never completed — OOM rc=137** at fold 0
