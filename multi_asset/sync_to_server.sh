@@ -15,6 +15,7 @@ rsync -avz --delete \
   --exclude='crypto_data/' \
   --exclude='experiments/' \
   --exclude='exports/' \
+  --exclude='/logs/' \
   --exclude='midprice_per_day/' \
   --exclude='multi_asset/exports/' \
   /Users/haosiyu/Desktop/quant_research/ "$DEST/"

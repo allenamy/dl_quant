@@ -242,6 +242,16 @@ def train_one_fold_dual(
     steps_per_epoch = max(len(train_dataset) // batch_size, 1)
     warmup_epochs = min(5, epochs // 4)
     warmup_steps = warmup_epochs * steps_per_epoch
+    # EMA-fallback warmup: the EMA shadow is dominated by the random init for the
+    # first epoch(s) (decay 0.999 needs many updates to forget init). A flukey
+    # high val-composite at epoch 1 (when the EMA ~= init and σŷ/σy~0) must NOT be
+    # picked as the low-σ fallback checkpoint (the bug this fixes: my earlier run
+    # saved EMA epoch-1, flat). We therefore only let the EMA FALLBACK tracker
+    # accept epochs >= ema_warmup_epochs (>= LR-warmup, and at least epoch 2 so we
+    # never pick the init-dominated first epoch). If no warmed EMA epoch exists,
+    # the EMA fallback stays empty and we fall back to the RAW best (see the
+    # post-loop persistence block). The σ-gate PRIMARY path is unaffected.
+    ema_warmup_epochs = max(2, warmup_epochs)
     global_step = 0
 
     ema_model = None
@@ -464,8 +474,12 @@ def train_one_fold_dual(
 
         if ema_val is not None:
             ema_sel = ema_val["val_composite"] if val_metric == "composite" else ema_val["val_corr"]
-            # FALLBACK tracker for EMA (best composite over ALL epochs, σ ignored).
-            if ema_sel > fb_ema_sel:
+            # FALLBACK tracker for EMA: best composite over WARMED epochs only
+            # (epoch >= ema_warmup_epochs), σ ignored. The warmup guard prevents
+            # picking the init-dominated epoch-1 EMA (flat, σ~0) as the low-σ
+            # fallback ckpt. If NO warmed epoch is ever reached (very short run)
+            # this stays empty and the post-loop block falls back to the RAW best.
+            if epoch >= ema_warmup_epochs and ema_sel > fb_ema_sel:
                 fb_ema_sel = ema_sel
                 fb_ema_payload = {
                     "state": {k: v.detach().cpu().clone()
@@ -520,16 +534,31 @@ def train_one_fold_dual(
 
     ema_path = osp.join(out_dir, "ema_best.pt")
     if use_ema:
-        if not osp.exists(ema_path) and fb_ema_payload is not None:
+        if osp.exists(ema_path):
+            # σ-gate fired for the EMA on >=1 warmed epoch: keep that checkpoint.
+            ckpt_provenance["ema_source"] = "sigma_gate"
+        elif fb_ema_payload is not None:
+            # σ-gate never fired but a WARMED EMA epoch exists: persist the best
+            # warmed-EMA composite as the fallback (low-σ; flagged for the reader).
             torch.save(fb_ema_payload, ema_path)
             best_ema_metrics = dict(fb_ema_meta)
             ckpt_provenance["ema_source"] = "fallback_low_sigma"
-            print(f"[train_dual_lob] σ-gate never fired for EMA (best EMA σŷ/σy="
-                  f"{fb_ema_meta.get('val_sigma_ratio', float('nan')):.4f} < 0.02); "
+            print(f"[train_dual_lob] σ-gate never fired for EMA (best WARMED EMA "
+                  f"σŷ/σy={fb_ema_meta.get('val_sigma_ratio', float('nan')):.4f} < 0.02); "
                   f"saved FALLBACK ema_best.pt @ epoch {fb_ema_meta.get('best_epoch')}.",
                   flush=True)
-        elif osp.exists(ema_path):
-            ckpt_provenance["ema_source"] = "sigma_gate"
+        elif fb_raw_payload is not None:
+            # No warmed-EMA epoch AND σ-gate never fired (very short run): the EMA
+            # shadow is still init-dominated, so the SPEC fallback is the RAW best
+            # (NOT the flat early-EMA). Persist the raw-best state as ema_best.pt so
+            # the EMA eval still runs but reflects the trained weights, not init.
+            torch.save(fb_raw_payload, ema_path)
+            best_ema_metrics = dict(fb_raw_meta)
+            ckpt_provenance["ema_source"] = "fallback_raw_best_ema_cold"
+            print(f"[train_dual_lob] EMA never warmed (< ep {ema_warmup_epochs}) and "
+                  f"σ-gate never fired; saved RAW-best as ema_best.pt @ epoch "
+                  f"{fb_raw_meta.get('best_epoch')} (spec fallback to raw best).",
+                  flush=True)
         else:
             ckpt_provenance["ema_source"] = "none"
 
