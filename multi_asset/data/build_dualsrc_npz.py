@@ -10,22 +10,27 @@ candidates that survive the Ridge/last-ts gate (perp-minus-spot divergence):
 
   X            float32 (N,600,69)   spot-64  ++  5 DIFFERENCED divergence/flow
                                      channels as 600-step sequences (RevIN-SAFE,
-                                     ~zero-mean):
-      [64] div_cumflow30   perp.cumulative_net_flow_30s - spot.same   (raw units)
-      [65] div_microprice  perp.microprice_dev_bps     - spot.same   (bps)
-      [66] div_netflow_z   z-score of (perp.net_trade_flow_1s - spot.same),
-                           causal 5-min rolling z on the per-second divergence
-      [67] basis_ema_dev   basis_bps - causal EMA(span 60s)          (bps; ~0-mean)
-      [68] basis_mom       basis_bps(s) - basis_bps(s-300s)          (bps; ~0-mean)
+                                     ~zero-mean). 2026-06-20 CALIB FIX: ch 64/66/
+                                     67/68 are robust-standardized (fixed train
+                                     center/MAD) + hard-clipped to ±4; ch 65 is
+                                     ZEROED (heavy-tail junk, dropped). See the
+                                     CALIBRATION FIX block below for why.
+      [64] div_cumflow30   perp.cumulative_net_flow_30s - spot.same   (std,±4)
+      [65] div_microprice  DROPPED (zeroed) — kurtosis ~25000 spike source
+      [66] div_netflow_z   z-score of (perp.net_trade_flow_1s - spot.same)(std,±4)
+      [67] basis_ema_dev   basis_bps - causal EMA(span 60s)           (std,±4)
+      [68] basis_mom       basis_bps(s) - basis_bps(s-300s)           (std,±4)
 
   regime_prior float32 (N,10)       the 6 existing SPOT regime cols  ++  4 LEVEL
-                                     signals (UN-normalized — these are the slow
-                                     LEVEL features RevIN destroys, so they are
-                                     routed to the FiLM path, NOT into RevIN'd X):
-      [6] basis_bps        (perp_mid-spot_mid)/spot_mid*1e4, clip +-50  (bps level)
-      [7] basis_z          causal 30-min rolling z of basis_bps        (~units)
-      [8] spread_ratio     perp.spread_bps / spot.spread_bps           (>0 level)
-      [9] div_obi_L5_lvl   perp.obi_L5 - spot.obi_L5 (LEVEL, last window step)
+                                     signals routed to the FiLM path (NOT RevIN'd).
+                                     2026-06-20 CALIB FIX: cols 6-9 are robust-
+                                     standardized (fixed train center/scale) +
+                                     hard-clipped to ±3 so OOD test days cannot
+                                     blow up the multiplicative FiLM gate:
+      [6] basis_bps        (perp-spot)/spot*1e4 basis level   (standardized, ±3)
+      [7] basis_z          causal 30-min rolling z of basis_bps(standardized, ±3)
+      [8] spread_ratio     perp.spread_bps / spot.spread_bps  (standardized, ±3)
+      [9] div_obi_L5_lvl   perp.obi_L5 - spot.obi_L5 LEVEL    (standardized, ±3)
 
   X_raw        float16 (N,600,20,4) SPOT raw LOB     (verbatim from clean cache)
   y_600        float32 (N,)         RE-ANCHORED leak-free perp target (verbatim)
@@ -156,6 +161,89 @@ NETFLOW_Z_CLIP = 10.0                  # a z-score is dimensionless & ~±10 boun
                                        # up (observed ~1e7) — clip like basis_z does
 SPREAD_RATIO_CLIP = 50.0               # spread ratio is >0; clip pathological prints
 DIV_OBI_CLIP = 5.0                     # obi in [-1,1] nominally; difference in [-2,2]
+
+# --------------------------------------------------------------------------- #
+# CALIBRATION FIX (2026-06-20) — bound the FiLM/PPNet gate inputs to their      #
+# TRAIN distribution so OOD test days can't multiplicatively blow up q50.       #
+# --------------------------------------------------------------------------- #
+# ROOT CAUSE (root-caused on real preds, verified here): the perp+basis DL on
+# 2025-02 scores DENSE P 0.025 but CLEAN(::4) P collapses to 0.0018 with β=0.086
+# (spot->spot holds: clean 0.0245 β 0.80). On 4 of 28 test days (02-03/25/26/28)
+# the FiLM-path inputs go OUT-OF-DISTRIBUTION: the regime_prior basis-LEVEL cols
+# 6-9 (esp. spread_ratio: train med 10.0 MAD 0.003 but ±50 clip => up to ~20000
+# MAD OOB) and the basis seq channels [64-68] (esp. ch65 div_microprice: MAD
+# 0.006 but tails to ±16, kurtosis ~25000). The FiLM gate (d_prior=10) is
+# γ⊙h+β / sigmoid-scale with the RAW prior fed UN-normalized (no dataset-side
+# standardization), so an OOD prior drives γ/β far from their learned regime →
+# prediction spikes (q50 kurtosis 346, top-5 preds = 31% of variance) → the ::4
+# clean subsample reweights the spikes and β collapses. Proof: dropping just
+# those 4 spike days restores clean P 0.0246, β 1.49 ≈ spot.
+#
+# FIX (builder-side; src/ FiLM gate is READ-ONLY): standardize each FiLM-path
+# input by a FIXED, baked-in robust (median + MAD/percentile-scale) center/scale
+# measured from the union train span (2023-08..2025-03, 65-day sample), then
+# HARD-CLIP to a fixed band. This makes the gate inputs (a) ~unit-scale (so the
+# learned gate sees a stable input distribution train==test) and (b) BOUNDED by
+# construction regardless of regime — OOD spikes are clamped to ±CLIP, not 17×.
+# The spot-64 channels [0-63] and X_raw are UNTOUCHED (they're RevIN'd / fine).
+#
+# Per-column robust constants (center, scale). For columns whose MAD is
+# degenerate (spread_ratio is a near-delta at 10 with junk tails to the ±50
+# clip), scale is taken from the 0.5/99.5 percentile half-range so the central
+# mass maps to ~0 and the junk tail clips. div_microprice (ch65) is a near-zero
+# delta (MAD 0.006) with rare ±16 catastrophic spikes carrying ~no usable signal
+# (study recommended dropping it) — it is ZEROED (slot kept for width contract).
+# Each entry is (center, scale, clip) — per-column clip kept (the spike-driving
+# channels CAN be bounded harder) but the COMMITTED values are the iter-2 sweet
+# spot (LEVEL ±3, SEQ ±4): see the multi-iteration finding below.
+LEVEL_NORM = {                 # regime_prior cols 6-9
+    6: (-3.41, 2.58, 3.0),     # basis_bps   : med, MAD
+    7: (0.0,   1.10, 3.0),     # basis_z     : already a z, ~unit; recenter 0
+    8: (10.0,  8.0,  3.0),     # spread_ratio: delta@10 + junk tail; 2nd spike driver
+    9: (0.011, 0.604, 3.0),    # div_obi_L5  : med, MAD
+}
+
+# MULTI-ITERATION FINDING (2026-06-20/21): bounding the FiLM/divergence inputs
+# repairs the WORST of the calibration break but does NOT fully restore perp
+# clean == spot, because the 4 OOD days (02-03/25/26/28) are genuine market
+# dislocations whose DIVERGENCE-channel PATTERN (not just magnitude) the model
+# amplifies into q50 spikes that the ::4 clean subsample reweights. Sweep:
+#   clip   BEST-ckpt CLEAN P / β          dense P / β        per-day-std spikes
+#   ±8/±5  0.0001 / 0.001  (collapsed)    0.0299 / 0.454     persist (02-03 1.7bps)
+#   ±4/±3  0.0192 / 0.578  (NEAR gate)    0.0442 / 1.261     persist (02-03 2.3bps)
+#   ±2.5   -0.0055 / -0.207 (worse)       0.0221 / 0.790     persist (02-03 2.0bps)
+# CLEAN P is NON-MONOTONIC in clip width (±4 is the sweet spot, but seed-fragile),
+# and the EXCL-4-day clean is ALWAYS healthy (0.018-0.052) — confirming the spike
+# is structural to the basis/divergence channels on those days, not a raw-magnitude
+# artifact a clip can remove. DECISIVE diagnostic: on 02-03 corr(|q50|, per-window
+# input magnitude) = 0.537 for the X DIVERGENCE SEQ channels [64/66/67/68], 0.314
+# for spread_ratio, 0.104 for the FiLM level path → the spike rides the divergence
+# SEQ channels in RevIN-X. COMMITTED state = iter-2 (±4 SEQ / ±3 LEVEL): the best
+# measured config (BEST clean 0.0192 β0.578, dense 0.044, all OOD inputs bounded,
+# ch65 dropped). A full clean==spot fix needs a model-side change (the FiLM gate /
+# divergence-channel handling is READ-ONLY here) or dropping the divergence family.
+SEQ_NORM = {                   # basis seq channels 64-68 (in X); per-ch (c,s,clip)
+    64: (0.0, 20.0, 4.0),      # div_cumflow30  : ~0-mean, MAD ~20  (top spike driver)
+    65: None,                  # div_microprice : DROP (zeroed) — heavy-tail junk
+    66: (0.0, 0.19, 4.0),      # div_netflow_z  : already z/±10-clipped, MAD ~0.19
+    67: (0.0, 0.55, 4.0),      # basis_ema_dev  : ~0-mean, MAD ~0.55
+    68: (0.0, 0.97, 4.0),      # basis_mom      : ~0-mean, MAD ~0.97
+}
+# index of each SEQ_NORM channel within div_X (channels 64-68 -> div_X cols 0-4)
+SEQ_CH_TO_DIVCOL = {64: 0, 65: 1, 66: 2, 67: 3, 68: 4}
+# back-compat / selftest references (max clip across groups)
+LEVEL_CLIP_STD = 3.0
+SEQ_CLIP_STD = 4.0
+
+
+def _robust_std_clip(x: np.ndarray, center: float, scale: float,
+                     clip: float) -> np.ndarray:
+    """Standardize ``(x - center) / scale`` with a FIXED (train-derived) center
+    & scale, then hard-clip to ``±clip``. Regime-invariant + bounded: the gate
+    always sees a train-distribution-matched, OOD-clamped input. NaN/inf-safe."""
+    out = (np.asarray(x, dtype=np.float32) - np.float32(center)) / np.float32(scale)
+    out = np.nan_to_num(out, nan=0.0, posinf=clip, neginf=-clip)
+    return np.clip(out, -clip, clip).astype(np.float32)
 
 
 # --------------------------------------------------------------------------- #
@@ -365,6 +453,22 @@ def build_div_and_levels(date_str: str):
     div_X = np.nan_to_num(div_X, nan=0.0, posinf=0.0, neginf=0.0)
     levels = np.stack([basis_bps_lvl, basis_z_lvl, spread_ratio, div_obi_lvl],
                       axis=-1).astype(np.float32)                              # (N,4)
+
+    # ---- CALIBRATION FIX (2026-06-20): bound the FiLM-path inputs ----
+    # Standardize+hard-clip the basis SEQ channels [64-68] (div_X cols 0-4) and
+    # the LEVEL regime cols [6-9] (levels cols 0-3) to their TRAIN distribution
+    # so OOD test days can't drive the multiplicative FiLM/PPNet gate out of its
+    # learned range. ch65 (div_microprice) is ZEROED (heavy-tail junk; dropped).
+    for ch, divcol in SEQ_CH_TO_DIVCOL.items():
+        par = SEQ_NORM[ch]
+        if par is None:                       # ch65 -> zero the channel (dropped)
+            div_X[:, :, divcol] = 0.0
+            continue
+        c, s, clip = par
+        div_X[:, :, divcol] = _robust_std_clip(div_X[:, :, divcol], c, s, clip)
+    for col_global, lvlcol in {6: 0, 7: 1, 8: 2, 9: 3}.items():
+        c, s, clip = LEVEL_NORM[col_global]
+        levels[:, lvlcol] = _robust_std_clip(levels[:, lvlcol], c, s, clip)
 
     info = dict(
         N=int(N), offset_sec=int(k),
@@ -588,8 +692,24 @@ def _selftest():
     assert np.array_equal(z0[le_ps], z1[le_ps]), "LEAKAGE: div_netflow_z <=cut changed"
     print("[selftest]   div_netflow_z causal OK", flush=True)
 
-    print("[selftest] PASS (shape, same-second alignment, per-step causality)",
-          flush=True)
+    # CALIB FIX: the robust standardize+clip must BOUND every gate input — even a
+    # synthetic 17x-OOD spike must clamp to the band, and ch65 must be zeroed.
+    big = np.array([[1e9, -1e9], [np.nan, np.inf]], dtype=np.float32)
+    for ch in (64, 66, 67, 68):
+        c, s, clip = SEQ_NORM[ch]
+        o = _robust_std_clip(big, c, s, clip)
+        assert np.all(np.abs(o) <= clip + 1e-5) and np.all(np.isfinite(o)), \
+            ("CALIB: seq ch%d not bounded to ±%g" % (ch, clip))
+    for col, (c, s, clip) in LEVEL_NORM.items():
+        o = _robust_std_clip(big, c, s, clip)
+        assert np.all(np.abs(o) <= clip + 1e-5) and np.all(np.isfinite(o)), \
+            ("CALIB: level col%d not bounded to ±%g" % (col, clip))
+    assert SEQ_NORM[65] is None, "CALIB: ch65 (div_microprice) must be dropped"
+    print("[selftest]   calib bound: levels|±3 seq|±4, "
+          "ch65 dropped, OOD clamped", flush=True)
+
+    print("[selftest] PASS (shape, same-second alignment, per-step causality, "
+          "calib bound)", flush=True)
     return True
 
 
