@@ -71,6 +71,7 @@ from src.training.trainer_v2 import (  # noqa: E402
 )
 
 from multi_asset.data.dual_lob_dataset import DualLOBDataset  # noqa: E402
+from multi_asset.data.sliced_lob_dataset import SlicedLOBDataset  # noqa: E402
 from multi_asset.model.dual_lob_regarch import DualLOBREGArch  # noqa: E402
 
 
@@ -789,9 +790,27 @@ def main() -> None:
     # OFF => plain LOBDatasetV2 (the perp-deep key need NOT be present), so the
     # spot-64 BASE and dual-source DUALSRC arms run through this SAME loop without
     # a perp cache. The model is byte-identical to the REG_arch parent when OFF.
+    #
+    # SLICE (Phase-2 bisection, disk-safe): when data.slice is present and perp is
+    # OFF, use SlicedLOBDataset to keep only the leading x_channels of X and
+    # prior_cols of regime_prior IN MEMORY (no extra NPZ on the 100%-full disk),
+    # so a single npz_dualsrc cache serves the +SEQ-only (X=69,prior=6) and
+    # +LVL-only (X=64,prior=10) single-axis arms. Slicing happens AFTER the
+    # parent's per-channel normalize, which is exact (see SlicedLOBDataset docs).
     has_perp = bool(model_cfg.get("use_perp_residual", False))
-    DatasetCls = DualLOBDataset if has_perp else LOBDatasetV2
-    print(f"[train_dual_lob] use_perp_residual={has_perp} -> dataset={DatasetCls.__name__}")
+    slice_cfg = data_cfg.get("slice") or {}
+    slice_xc = slice_cfg.get("x_channels")
+    slice_pc = slice_cfg.get("prior_cols")
+    use_slice = (not has_perp) and (slice_xc is not None or slice_pc is not None)
+    if use_slice:
+        DatasetCls = SlicedLOBDataset
+    elif has_perp:
+        DatasetCls = DualLOBDataset
+    else:
+        DatasetCls = LOBDatasetV2
+    slice_kw = (dict(x_channels=slice_xc, prior_cols=slice_pc) if use_slice else {})
+    print(f"[train_dual_lob] use_perp_residual={has_perp} slice={slice_cfg or None} "
+          f"-> dataset={DatasetCls.__name__}")
 
     for fold_idx, fold in enumerate(folds):
         if fold_idx < args.start_fold:
@@ -812,6 +831,7 @@ def main() -> None:
         if horizons_list is not None:
             stats_kw["horizons"] = horizons_list
         stats_kw["y_rolling_sigma_path"] = data_cfg.get("y_rolling_sigma_path")
+        stats_kw.update(slice_kw)
         stats_ds = DatasetCls(npz_dir, fold["train"], **stats_kw)
         x_mean, x_std = stats_ds.compute_stats()
         y_median, y_sigma = stats_ds.compute_y_stats()
@@ -823,7 +843,8 @@ def main() -> None:
         y_norm = (y_median, y_sigma, 5.0)
         preload = bool(data_cfg.get("preload", False))
         common = dict(normalize=True, x_mean=x_mean, x_std=x_std, y_norm=y_norm,
-                      preload=preload, **_common_ds_kwargs(data_cfg, horizons_list))
+                      preload=preload, **slice_kw,
+                      **_common_ds_kwargs(data_cfg, horizons_list))
         train_ds = DatasetCls(npz_dir, fold["train"], **common)
         val_ds = DatasetCls(npz_dir, fold["val"], **common)
         test_ds = DatasetCls(npz_dir, fold["test"], **common)
