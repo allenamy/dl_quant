@@ -204,12 +204,44 @@ def train_one_fold_dual(
         raise ValueError(f"val_metric must be 'val_corr'|'composite', got {val_metric!r}")
 
     # --- loaders: DayChunkedSampler when preload is off, else plain order ----
+    # WORKER SAFETY (the FUSE-deadlock constraint, MEMORY.md::pod_fuse_deadlock)
+    # -------------------------------------------------------------------------
+    # The historical reason num_workers was pinned to 0 here was a MooseFS/FUSE
+    # mount deadlock: worker processes that lazily read .npz FROM the mount
+    # (preload=False path → ``_load_day`` → disk) could wedge on a degraded
+    # FUSE mount. With preload=True the fold is ALREADY fully resident in this
+    # process's RAM (self._pre_X / _pre_X_raw / ... numpy arrays); fork()ed
+    # workers inherit those pages COPY-ON-WRITE and ``__getitem__`` is a pure
+    # in-RAM slice (NO disk, NO mount access) — so workers cannot touch FUSE and
+    # the deadlock is structurally impossible. They also do NOT duplicate the
+    # ~95 GB resident arrays (COW: read-only slicing never writes the pages, so
+    # the OS shares one physical copy across all workers).
+    #
+    # Therefore the rule is INVERTED from the old code: workers are SAFE +
+    # beneficial exactly when preloaded (data-bound main thread → overlap batch
+    # assembly + pinned H2D copy with GPU compute), and UNSAFE when not (lazy
+    # disk/mount reads). We force the ``fork`` start method so COW sharing of the
+    # preloaded arrays actually happens (spawn would re-import + re-preload per
+    # worker → 95 GB × N OOM). ``num_workers``/``prefetch_factor`` come from the
+    # config; pin_memory + non_blocking (_to_dev) overlap the CPU→GPU copy.
     preloaded = getattr(train_dataset, "_preloaded", False)
-    _nw = 0 if preloaded else num_workers
+    if preloaded:
+        _nw = num_workers          # COW-safe: workers read in-RAM tensors only
+    else:
+        _nw = 0                    # lazy disk/mount reads → keep single-process
+    _mp_ctx = "fork" if _nw > 0 else None  # COW requires fork (not spawn)
     use_day_sampler = (
         not preloaded
         and hasattr(train_dataset, "_offsets")
         and hasattr(train_dataset, "_day_paths")
+    )
+    _loader_common = dict(
+        num_workers=_nw,
+        persistent_workers=_nw > 0,
+        prefetch_factor=prefetch_factor if _nw > 0 else None,
+        multiprocessing_context=_mp_ctx if _nw > 0 else None,
+        pin_memory=torch.cuda.is_available(),
+        drop_last=True,
     )
     if use_day_sampler:
         sampler = DayChunkedSampler(
@@ -218,17 +250,24 @@ def train_one_fold_dual(
         )
         train_loader = DataLoader(
             train_dataset, batch_size=batch_size, sampler=sampler,
-            num_workers=_nw, persistent_workers=_nw > 0,
-            prefetch_factor=prefetch_factor if _nw > 0 else None,
-            pin_memory=torch.cuda.is_available(), drop_last=True,
+            **_loader_common,
         )
     else:
+        # Explicit generator seeded from the fold seed pins the shuffle
+        # permutation so it is IDENTICAL whether num_workers is 0 or >0 (the
+        # permutation is drawn in THIS process by RandomSampler; workers only
+        # parallelise the __getitem__ fetch, not index generation). This makes
+        # the nw=0-vs-nw>0 correctness gate bit-for-bit on batch ORDER.
+        _shuffle_gen = torch.Generator()
+        _shuffle_gen.manual_seed(int(seed) if seed is not None else 42)
         train_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=True,
-            num_workers=_nw, persistent_workers=_nw > 0,
-            prefetch_factor=prefetch_factor if _nw > 0 else None,
-            pin_memory=torch.cuda.is_available(), drop_last=True,
+            generator=_shuffle_gen,
+            **_loader_common,
         )
+    print(f"[train_dual_lob] train_loader: preloaded={preloaded} num_workers={_nw} "
+          f"mp_ctx={_mp_ctx} persistent={_nw > 0} pin_memory={torch.cuda.is_available()}",
+          flush=True)
     val_loader = DataLoader(
         val_dataset, batch_size=batch_size, shuffle=False,
         num_workers=0, pin_memory=torch.cuda.is_available(),
