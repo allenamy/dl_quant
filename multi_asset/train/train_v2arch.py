@@ -80,6 +80,7 @@ from multi_asset.train.train_dual_lob import (  # noqa: E402
 _LONG_KEYS = {
     "use_long_context", "long_c_in", "long_steps", "long_d", "long_n_blocks",
     "long_kernel", "long_d_ctx", "long_film_alpha_init",
+    "long_film_mode", "long_gamma_clip",
 }
 
 
