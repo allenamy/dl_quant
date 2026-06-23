@@ -140,29 +140,25 @@ class LongContextFiLM(nn.Module):
     while the whole long branch gets real gradient from step 0. The optimizer can
     grow ``film_alpha`` if the long context helps (STRONG) or shrink it → 0 if it
     does not (CHOPPY) — the additive, non-regime-gated fusion the spec requires.
-    Broadcast over time (per-sample, per-channel FiLM)."""
+    Broadcast over time (per-sample, per-channel FiLM).
 
-    β0.66 ROOT-CAUSE FIX (``film_mode``)
-    ------------------------------------
-    On the 2024+ base the full FiLM raised Spearman (0.028 vs 0.016) but COLLAPSED
-    β to 0.66 — the long-context carries real RANK signal but the FiLM injected it
-    as UNCALIBRATED MAGNITUDE: the additive ``g·β`` term adds a per-sample offset
+    beta0.66 ROOT-CAUSE FIX (``film_mode``)
+    ---------------------------------------
+    On the 2024+ base the full FiLM raised Spearman but COLLAPSED beta to 0.66 —
+    the long-context carries real RANK signal but the FiLM injected it as
+    UNCALIBRATED MAGNITUDE: the additive ``g*beta`` term adds a per-sample offset
     (from the trend ctx) to the bus that, after the backbone+DAQH head, becomes a
     prediction component correlated with the trend but NOT proportionally aligned
-    with y → var(ŷ) inflates faster than cov(ŷ,y) → β = cov/var drops. (Diagnosis:
-    Spearman↑ + β↓ = added variance not magnitude-matched to the target.)
+    with y, so var(yhat) inflates faster than cov(yhat,y) and beta=cov/var drops.
+    (Diagnosis: Spearman up + beta down = added variance not magnitude-matched.)
 
     ``film_mode`` selects the modulation:
-      * "affine" (legacy): ``h·(1 + g·γ) + g·β``  — additive β is the β-collapse risk.
-      * "scale"  (FIX):    ``h·(1 + g·γ)``         — MULTIPLICATIVE-ONLY. The long
+      * "affine" (legacy): ``h*(1 + g*gamma) + g*beta`` — additive beta = collapse risk.
+      * "scale"  (FIX):    ``h*(1 + g*gamma)`` — MULTIPLICATIVE-ONLY. The long
         context can only REWEIGHT the existing bus signal (preserving its rank
         contribution) and cannot inject an unconditional additive offset, so it
-        cannot inflate var(ŷ) with uncalibrated magnitude. This keeps the Spearman
-        lift while protecting β. ``gamma_clip`` further bounds the per-channel scale
-        so a single noisy ctx draw can't blow up the bus.
-    The master gate ``film_alpha`` (init small non-zero) still lets the optimizer
-    grow/shrink the whole branch; γ/β heads keep the small-init gradient-starvation
-    fix.
+        cannot inflate var(yhat) with uncalibrated magnitude. Keeps the Spearman
+        lift while protecting beta. ``gamma_clip`` bounds the per-channel scale.
     """
 
     def __init__(self, d_ctx: int, d_model: int, alpha_init: float = 0.01,
