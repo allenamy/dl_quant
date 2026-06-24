@@ -1,8 +1,8 @@
 {
-  "_comment": "perp d_perp 32 + perp_alpha_init 0.02 (combine the deeper-tower win 0.0706 with the gentler-gate win that fixed beta). Best-of-both perp config.",
+  "_comment": "CHOPPY DL test 2026-05: dp32+regime-adaptive(film+bias). train300/preload/batch512 proven-complete. MUST reach test eval.",
   "data": {
     "csv_path": "",
-    "npz_dir": "data/npzv4_dual",
+    "npz_dir": "data/npz_v2arch",
     "tv_overlay_dir": "",
     "n_levels": 20,
     "horizon_sec": 600,
@@ -14,10 +14,7 @@
     "include_ridge_features": true,
     "include_regime_prior": true,
     "quantize_features": false,
-    "preload": true,
-    "slice": {
-      "x_channels": 64
-    }
+    "preload": true
   },
   "model": {
     "d_model": 32,
@@ -54,21 +51,24 @@
     "d_perp": 32,
     "perp_alpha_init": 0.02,
     "_comment": "LEVER 1: base spot-book-64 + PERP raw-book gated residual (Path C). slice x_channels=64 drops cross so this isolates the perp-residual delta vs base. +0.003 gate.",
-    "use_perp_residual": true
+    "use_perp_residual": true,
+    "use_regime_film": true,
+    "regime_film_hidden": 8,
+    "use_regime_bias": true
   },
   "training": {
     "epochs": 25,
-    "batch_size": 1024,
+    "batch_size": 256,
     "lr": 0.0006,
-    "weight_decay": 0.001,
+    "weight_decay": 0.01,
     "patience": 10,
     "grad_clip": 1.0,
-    "train_days": 700,
-    "val_days": 60,
+    "train_days": 300,
+    "val_days": 45,
     "test_days": 28,
     "fold_stride": 60,
     "fold_test_starts": [
-      "2025-04-10"
+      "2026-05-01"
     ],
     "num_workers": 0,
     "prefetch_factor": 2,
@@ -95,5 +95,5 @@
     "embargo_days": 1,
     "preload": true
   },
-  "output_dir": "experiments/npzv4_dual/perp_dp32_a02_2025_04"
+  "output_dir": "experiments/v2arch_dp32/dp32_adaptive_2026_05"
 }

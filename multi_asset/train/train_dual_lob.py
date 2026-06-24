@@ -95,7 +95,11 @@ _BASE_ALLOWED = {
     "use_se_block_input",
 }
 # Perp-residual extension kwargs (consumed by DualLOBREGArch only).
-_PERP_KEYS = {"use_perp_residual", "perp_n_levels", "d_perp", "perp_alpha_init"}
+# ``use_snapshot_skip`` (linear last-timestep snapshot readout) is also a
+# DualLOBREGArch __init__ kwarg, so it rides the same routing set: both
+# build_dual_lob_model and build_v2arch_model pass **perp to the constructor.
+_PERP_KEYS = {"use_perp_residual", "perp_n_levels", "d_perp", "perp_alpha_init",
+              "use_snapshot_skip"}
 
 
 def build_dual_lob_model(model_cfg: dict, n_features: int,

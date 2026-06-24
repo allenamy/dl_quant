@@ -60,6 +60,7 @@ from src.training.trainer_v2 import (  # noqa: E402
     _apply_warmup,
     _build_loss_fn_for_dul,
     _extract_model_config,
+    _multi_horizon_loss,
     _seed_everything,
 )
 
@@ -108,10 +109,18 @@ def _long_alpha(model: nn.Module) -> float:
 # --------------------------------------------------------------------------- #
 # forward + unpack (7-tuple: ..., x_perp, x_long)                              #
 # --------------------------------------------------------------------------- #
-def _forward_v2(model, x_feat, x_raw, regime_prior, x_perp, x_long):
+def _forward_v2(model, x_feat, x_raw, regime_prior, x_perp, x_long,
+                *, horizon_idx: int = 0, all_horizons: bool = False):
     kwargs: Dict[str, Any] = {"x_raw_perp_deep": x_perp, "x_long": x_long}
     if regime_prior is not None:
         kwargs["regime_prior"] = regime_prior
+    # Single-horizon callers pass neither kwarg -> model defaults (horizon_idx=0,
+    # all_horizons=False) so the legacy single-head path is bit-identical. Multi-
+    # horizon callers thread the primary index (eval) or all_horizons=True (loss).
+    if horizon_idx != 0:
+        kwargs["horizon_idx"] = horizon_idx
+    if all_horizons:
+        kwargs["all_horizons"] = True
     return model(x_feat, x_raw, **kwargs)
 
 
@@ -141,7 +150,13 @@ def train_one_fold_v2(
     grad_clip=1.0, dul_config=None, seed=None, val_metric="composite",
     use_ema=False, ema_decay=0.999, num_workers=0, prefetch_factor=2,
     max_steps_per_epoch=None, has_perp=True,
+    n_horizons=1, primary_horizon_idx=0, horizon_weights=None,
 ) -> Dict[str, Any]:
+    # Multi-horizon (n_horizons>1) trains every head in one forward via
+    # all_horizons=True and applies a per-horizon weighted loss; metrics/σ-gate/
+    # checkpoint track the PRIMARY horizon only. n_horizons==1 leaves every code
+    # path below byte-for-byte unchanged (multi_h=False short-circuits).
+    multi_h = int(n_horizons) > 1
     if seed is not None:
         _seed_everything(seed)
     os.makedirs(out_dir, exist_ok=True)
@@ -220,15 +235,32 @@ def train_one_fold_v2(
                 x_feat, x_raw, rp, y, mask, x_perp, x_long = _unpack_v2(batch, has_perp)
                 x_feat, x_raw, rp, x_perp, x_long, y, mask = _to_dev(
                     x_feat, x_raw, rp, x_perp, x_long, y, mask)
-                outputs = _forward_v2(eval_model, x_feat, x_raw, rp, x_perp, x_long)
-                idx = mask.nonzero(as_tuple=True)[0]
-                if len(idx) == 0:
-                    continue
-                m_out = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
-                loss = loss_fn(m_out, y[idx])
-                loss_sum += float(loss.item()); steps += 1
-                pred_np = outputs["point_pred"][idx].cpu().numpy()
-                tgt_np = y[idx].cpu().numpy()
+                outputs = _forward_v2(eval_model, x_feat, x_raw, rp, x_perp, x_long,
+                                      horizon_idx=primary_horizon_idx,
+                                      all_horizons=multi_h)
+                if multi_h:
+                    # y/mask are (B, n_h); loss is the weighted multi-horizon sum,
+                    # metrics track the PRIMARY column only (top-level point_pred is
+                    # already the primary horizon since forward got horizon_idx=p).
+                    loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
+                    if loss is None:
+                        continue
+                    mask_p = mask[:, primary_horizon_idx]
+                    idx = mask_p.nonzero(as_tuple=True)[0]
+                    if len(idx) == 0:
+                        continue
+                    loss_sum += float(loss.item()); steps += 1
+                    pred_np = outputs["point_pred"][idx].cpu().numpy()
+                    tgt_np = y[idx, primary_horizon_idx].cpu().numpy()
+                else:
+                    idx = mask.nonzero(as_tuple=True)[0]
+                    if len(idx) == 0:
+                        continue
+                    m_out = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
+                    loss = loss_fn(m_out, y[idx])
+                    loss_sum += float(loss.item()); steps += 1
+                    pred_np = outputs["point_pred"][idx].cpu().numpy()
+                    tgt_np = y[idx].cpu().numpy()
                 om.update(pred_np, tgt_np)
                 preds_all.append(pred_np); targets_all.append(tgt_np)
         pearson = om.corr(); r2 = om.r2()
@@ -261,12 +293,19 @@ def train_one_fold_v2(
             x_feat, x_raw, rp, y, mask, x_perp, x_long = _unpack_v2(batch, has_perp)
             x_feat, x_raw, rp, x_perp, x_long, y, mask = _to_dev(
                 x_feat, x_raw, rp, x_perp, x_long, y, mask)
-            outputs = _forward_v2(model, x_feat, x_raw, rp, x_perp, x_long)
-            idx = mask.nonzero(as_tuple=True)[0]
-            if len(idx) == 0:
-                global_step += 1; continue
-            m_out = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
-            loss = loss_fn(m_out, y[idx])
+            outputs = _forward_v2(model, x_feat, x_raw, rp, x_perp, x_long,
+                                  horizon_idx=primary_horizon_idx,
+                                  all_horizons=multi_h)
+            if multi_h:
+                loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
+                if loss is None:
+                    global_step += 1; continue
+            else:
+                idx = mask.nonzero(as_tuple=True)[0]
+                if len(idx) == 0:
+                    global_step += 1; continue
+                m_out = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
+                loss = loss_fn(m_out, y[idx])
             if not torch.isfinite(loss):
                 optimizer.zero_grad(); global_step += 1; continue
             optimizer.zero_grad(); loss.backward()
@@ -405,7 +444,8 @@ def train_one_fold_v2(
 # Test eval (7-tuple aware)                                                    #
 # --------------------------------------------------------------------------- #
 def _run_test_eval_v2(model, fold_dir, test_ds, batch_size, device, *, horizon_sec,
-                      stride, y_sigma, y_median, has_perp, ckpt_name="best_model.pt",
+                      stride, y_sigma, y_median, has_perp, primary_horizon_idx=0,
+                      ckpt_name="best_model.pt",
                       preds_name="test_preds.npz", results_name="test_results.json"):
     device_obj = torch.device(device)
     ckpt_path = osp.join(fold_dir, ckpt_name)
@@ -425,9 +465,20 @@ def _run_test_eval_v2(model, fold_dir, test_ds, batch_size, device, *, horizon_s
             x_perp = x_perp.to(device_obj) if x_perp is not None else None
             x_long = x_long.to(device_obj) if x_long is not None else None
             rp = rp.to(device_obj) if rp is not None else None
-            outputs = _forward_v2(model, x_feat, x_raw, rp, x_perp, x_long)
+            # horizon_idx selects the PRIMARY head; output_scale/regime_bias apply
+            # exactly as single-horizon (we do NOT request all_horizons). For
+            # n_horizons==1 primary=0 so this is the legacy default-arg path.
+            outputs = _forward_v2(model, x_feat, x_raw, rp, x_perp, x_long,
+                                  horizon_idx=primary_horizon_idx)
             qs.append(outputs["quantiles"].cpu().numpy())
-            tgts.append(y.numpy()); masks.append(m.numpy())
+            # y/m are (B, n_h) in multi-horizon -> keep the primary column so the
+            # saved targets/mask align with the primary-horizon predictions. 1-D
+            # (single-horizon) y/m pass through unchanged.
+            y_np = y.numpy(); m_np = m.numpy()
+            if y_np.ndim == 2:
+                y_np = y_np[:, primary_horizon_idx]
+                m_np = m_np[:, primary_horizon_idx]
+            tgts.append(y_np); masks.append(m_np)
     predictions = np.concatenate(qs); targets = np.concatenate(tgts)
     mask = np.concatenate(masks).astype(bool)
     preds_raw = predictions * y_sigma + y_median
@@ -498,6 +549,41 @@ def main() -> None:
         print(f"[train_v2arch] TARGET OVERRIDE: training on horizon_key={target_key!r} "
               f"(mask auto-derived). horizons_list={horizons_list}")
 
+    # Multi-horizon: y_600 (horizon_sec) is the PRIMARY; the dataset returns
+    # y/mask as (B, n_horizons) ordered like horizons_list. primary_horizon_idx
+    # locates y_{horizon_sec} so checkpoint/eval/metrics track y_600 while the
+    # other heads (e.g. y_180) supply auxiliary gradient. Single-horizon (None or
+    # len 1) => n_horizons=1, primary=0 => every multi-horizon branch no-ops and
+    # the legacy single-head path is byte-for-byte unchanged.
+    if horizons_list is not None and len(horizons_list) > 1:
+        n_horizons = len(horizons_list)
+        primary_key = f"y_{horizon_sec}"
+        try:
+            primary_horizon_idx = horizons_list.index(primary_key)
+        except ValueError:
+            raise ValueError(
+                f"horizon_sec={horizon_sec} (primary_key={primary_key!r}) not in "
+                f"horizons_sec-derived horizons_list={horizons_list}; the PRIMARY "
+                f"horizon must be present in data.horizons_sec.")
+    else:
+        n_horizons = 1
+        primary_horizon_idx = 0
+    horizon_weights = train_cfg.get("horizon_weights")  # None => equal weights
+    if n_horizons > 1:
+        # Guard against a model/config n_horizons mismatch before training burns time.
+        m_nh = int(model_cfg.get("n_horizons", 1))
+        if m_nh != n_horizons:
+            raise ValueError(
+                f"data.horizons_sec implies n_horizons={n_horizons} but "
+                f"model.n_horizons={m_nh}; set model.n_horizons={n_horizons}.")
+        if horizon_weights is not None and len(horizon_weights) != n_horizons:
+            raise ValueError(
+                f"training.horizon_weights has len {len(horizon_weights)} != "
+                f"n_horizons={n_horizons}.")
+        print(f"[train_v2arch] MULTI-HORIZON: horizons={horizons_list} "
+              f"primary_idx={primary_horizon_idx} (y_{horizon_sec}) "
+              f"horizon_weights={horizon_weights or 'equal'}")
+
     has_perp = bool(model_cfg.get("use_perp_residual", False))
     # x_channel slice (for the matched spot-64 BASE arm): keep leading 64 cols of X.
     slice_cfg = data_cfg.get("slice") or {}
@@ -561,6 +647,8 @@ def main() -> None:
             num_workers=int(train_cfg.get("num_workers", 0)),
             prefetch_factor=int(train_cfg.get("prefetch_factor", 2)),
             has_perp=has_perp,
+            n_horizons=n_horizons, primary_horizon_idx=primary_horizon_idx,
+            horizon_weights=horizon_weights,
             max_steps_per_epoch=(int(train_cfg["max_steps_per_epoch"])
                                  if train_cfg.get("max_steps_per_epoch") else None),
         )
@@ -572,11 +660,13 @@ def main() -> None:
 
         _run_test_eval_v2(model, fold_dir, test_ds, train_cfg["batch_size"], device,
                           horizon_sec=horizon_sec, stride=stride,
-                          y_sigma=y_sigma, y_median=y_median, has_perp=has_perp)
+                          y_sigma=y_sigma, y_median=y_median, has_perp=has_perp,
+                          primary_horizon_idx=primary_horizon_idx)
         if osp.exists(osp.join(fold_dir, "ema_best.pt")):
             _run_test_eval_v2(model, fold_dir, test_ds, train_cfg["batch_size"], device,
                               horizon_sec=horizon_sec, stride=stride,
                               y_sigma=y_sigma, y_median=y_median, has_perp=has_perp,
+                              primary_horizon_idx=primary_horizon_idx,
                               ckpt_name="ema_best.pt", preds_name="ema_test_preds.npz",
                               results_name="ema_test_results.json")
 

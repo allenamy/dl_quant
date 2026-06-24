@@ -89,6 +89,7 @@ class DualLOBREGArch(DualPathLOBModelV3):
         perp_n_levels: int = 20,
         d_perp: int = 16,
         perp_alpha_init: float = 0.05,
+        use_snapshot_skip: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -97,6 +98,29 @@ class DualLOBREGArch(DualPathLOBModelV3):
         self.d_perp = int(d_perp)
         # one-call stash for forward()->encode() threading of the perp tensor
         self._x_raw_perp_deep: Optional[torch.Tensor] = None
+
+        # --- linear snapshot skip-path (default OFF; zero-init = exact identity) ---
+        # Mechanism: the Conformer backbone TEMPORALLY AVERAGES the per-timestep
+        # features, which DESTROYS the instantaneous-OBI-snapshot signal that a
+        # Ridge on the LAST-TIMESTEP feature vector captures (the documented
+        # choppy-regime ceiling: on choppy months Ridge-on-snapshot beats the DL).
+        # This skip is a direct learned LINEAR readout of x_feat[:, -1, :] (the
+        # last-timestep hand-crafted feature vector) added to the quantile output,
+        # giving the model a parallel snapshot path the temporal pooling cannot
+        # wash out. Weight AND bias are ZERO-init so the term contributes EXACTLY
+        # 0 at step 0 (the model is byte-identical to the verified base at init,
+        # strong result unchanged); training grows it only where it helps (choppy).
+        # n_features = parent's stored feature dim (= x_feat last dim, e.g. 72/64);
+        # output dim 3 = the head's quantiles [q10, q50, q90]. Added to the FINAL
+        # returned quantiles (post output_scale / regime_bias, applied inside the
+        # parent forward) — a learned linear term in the model's output space.
+        self.use_snapshot_skip = bool(use_snapshot_skip)
+        if self.use_snapshot_skip:
+            self.snapshot_skip = nn.Linear(self.n_features, 3)
+            nn.init.zeros_(self.snapshot_skip.weight)
+            nn.init.zeros_(self.snapshot_skip.bias)
+        else:
+            self.snapshot_skip = None
 
         if self.use_perp_residual:
             # SAME encoder class + key kwargs as the parent's Path-B raw_encoder
@@ -330,7 +354,7 @@ class DualLOBREGArch(DualPathLOBModelV3):
         """
         self._x_raw_perp_deep = x_raw_perp_deep
         try:
-            return super().forward(
+            out = super().forward(
                 x_feat=x_feat,
                 x_raw=x_raw,
                 regime_prior=regime_prior,
@@ -340,3 +364,30 @@ class DualLOBREGArch(DualPathLOBModelV3):
             )
         finally:
             self._x_raw_perp_deep = None
+
+        # --- linear snapshot skip-path (zero-init => no-op at start) ----------
+        # Add the learned linear readout of the LAST-TIMESTEP feature vector to
+        # the head's quantiles, in the SAME output space the trainer/eval consume
+        # (out["quantiles"] / out["point_pred"], and the *_by_horizon tensors in
+        # multi-horizon mode). At init weight+bias are 0 so `snap` is exactly 0
+        # and `out` is byte-identical to the base model.
+        if self.use_snapshot_skip and self.snapshot_skip is not None:
+            snap = self.snapshot_skip(x_feat[:, -1, :])          # (B, 3) quantiles
+            if "quantiles_by_horizon" in out:
+                # Multi-horizon: the loss reads quantiles_by_horizon /
+                # point_pred_by_horizon, and top-level quantiles/point_pred are
+                # the horizon_idx slice. Add the SAME snapshot term to EVERY
+                # horizon (one snapshot readout shared across horizons), then
+                # re-derive the top-level slices so all consumers stay coherent.
+                q_by_h = out["quantiles_by_horizon"]             # (B, n_h, 3)
+                q_by_h = q_by_h + snap.unsqueeze(1)              # broadcast over n_h
+                out["quantiles_by_horizon"] = q_by_h
+                out["point_pred_by_horizon"] = q_by_h[:, :, 1]   # q50 column
+                out["quantiles"] = q_by_h[:, horizon_idx, :]
+                out["point_pred"] = q_by_h[:, horizon_idx, 1]
+            else:
+                # Single-horizon: quantiles is (B, 3), point_pred is q50 (col 1).
+                q = out["quantiles"] + snap                      # (B, 3)
+                out["quantiles"] = q
+                out["point_pred"] = q[:, 1]
+        return out

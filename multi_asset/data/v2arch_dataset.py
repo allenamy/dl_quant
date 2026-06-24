@@ -23,6 +23,7 @@ but we fail fast at construction if the key is missing on the first days.
 """
 from __future__ import annotations
 
+import os
 from typing import List, Optional
 
 import numpy as np
@@ -108,6 +109,13 @@ class V2ArchDataset(DualLOBDataset):
         upcasts on fetch) and add X_long in the SAME loop, so each day's NPZ is
         opened once and the per-day transient arrays are freed immediately. The
         f16 raw books halve their footprint (they are f16 on disk — lossless)."""
+        # train700 RAM fix: store resident X as float16 unless DUAL_PRELOAD_X_F32=1.
+        # super().__getitem__ (DualLOBDataset) upcasts each fetched X row to f32,
+        # so the model trains in f32; this halves the dominant resident tensor
+        # (X ~100.7 MB/day = 51% of resident) -> train700 all-splits 155.7G -> 115.9G,
+        # fits the ~125G cgroup. See dual_lob_dataset.py for the precision audit.
+        x_f16 = os.environ.get("DUAL_PRELOAD_X_F32", "0") != "1"
+        x_store_dtype = np.float16 if x_f16 else np.float32
         x_parts: List[np.ndarray] = []
         xraw_parts: List[np.ndarray] = []
         xperp_parts: List[np.ndarray] = []
@@ -117,7 +125,7 @@ class V2ArchDataset(DualLOBDataset):
         long_parts: List[np.ndarray] = []
         for day_idx in range(len(self._day_paths)):
             data = self._load_day(day_idx)          # X (sliced) + raw + perp + long + rp/y/mask
-            x_parts.append(np.ascontiguousarray(data["X"], dtype=np.float32))
+            x_parts.append(np.ascontiguousarray(data["X"], dtype=x_store_dtype))
             if self._has_raw:
                 xraw_parts.append(data["X_raw"].astype(np.float16))
                 xperp_parts.append(data[PERP_KEY].astype(np.float16))

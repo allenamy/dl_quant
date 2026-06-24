@@ -1,5 +1,5 @@
 {
-  "_comment": "perp d_perp 32 + perp_alpha_init 0.02 (combine the deeper-tower win 0.0706 with the gentler-gate win that fixed beta). Best-of-both perp config.",
+  "_comment": "perp d_perp 32 + perp_alpha_init 0.02 (combine the deeper-tower win 0.0706 with the gentler-gate win that fixed beta). Best-of-both perp config. | SNAPSHOT-SKIP variant: + linear last-timestep snapshot skip-path (zero-init; recovers instantaneous-OBI signal the Conformer temporal-averages away). Only delta vs base = model.use_snapshot_skip + output_dir.",
   "data": {
     "csv_path": "",
     "npz_dir": "data/npzv4_dual",
@@ -54,7 +54,8 @@
     "d_perp": 32,
     "perp_alpha_init": 0.02,
     "_comment": "LEVER 1: base spot-book-64 + PERP raw-book gated residual (Path C). slice x_channels=64 drops cross so this isolates the perp-residual delta vs base. +0.003 gate.",
-    "use_perp_residual": true
+    "use_perp_residual": true,
+    "use_snapshot_skip": true
   },
   "training": {
     "epochs": 25,
@@ -95,5 +96,5 @@
     "embargo_days": 1,
     "preload": true
   },
-  "output_dir": "experiments/npzv4_dual/perp_dp32_a02_2025_04"
+  "output_dir": "experiments/npzv4_dual/perp_dp32_a02_snap_2025_04"
 }

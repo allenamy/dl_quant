@@ -53,8 +53,11 @@
     "perp_n_levels": 20,
     "d_perp": 32,
     "perp_alpha_init": 0.02,
-    "_comment": "LEVER 1: base spot-book-64 + PERP raw-book gated residual (Path C). slice x_channels=64 drops cross so this isolates the perp-residual delta vs base. +0.003 gate.",
-    "use_perp_residual": true
+    "_comment": "ADAPTIVE-ON-STRONG: dp32_a02 baseline + regime FiLM + regime bias (the gate that gave choppy 0.040). Tests if the gate KEEPS strong ~0.080 (suppresses in high-vol strong) -> if yes, adaptive is best single both-regime model.",
+    "use_perp_residual": true,
+    "use_regime_film": true,
+    "regime_film_hidden": 8,
+    "use_regime_bias": true
   },
   "training": {
     "epochs": 25,
@@ -71,7 +74,6 @@
       "2025-04-10"
     ],
     "num_workers": 0,
-    "prefetch_factor": 2,
     "val_metric": "composite",
     "use_ema": true,
     "ema_decay": 0.999,
@@ -95,5 +97,5 @@
     "embargo_days": 1,
     "preload": true
   },
-  "output_dir": "experiments/npzv4_dual/perp_dp32_a02_2025_04"
+  "output_dir": "experiments/npzv4_dual/perp_dp32_a02_adaptive_2025_04"
 }

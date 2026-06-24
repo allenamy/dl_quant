@@ -1,5 +1,5 @@
 {
-  "_comment": "perp d_perp 32 + perp_alpha_init 0.02 (combine the deeper-tower win 0.0706 with the gentler-gate win that fixed beta). Best-of-both perp config.",
+  "_comment": "MULTI-HORIZON variant of perp_dp32_a02_2025_04: y_180 AUX + y_600 PRIMARY. Identical arch/training/loss; only data.horizons_sec=[180,600] and model.n_horizons=2 added. Primary horizon = horizon_sec=600 (checkpoint/eval/metrics on y_600); y_180 head supplies auxiliary gradient via shared backbone.",
   "data": {
     "csv_path": "",
     "npz_dir": "data/npzv4_dual",
@@ -9,6 +9,7 @@
     "input_len": 600,
     "stride": 180,
     "horizons_sec": [
+      180,
       600
     ],
     "include_ridge_features": true,
@@ -29,7 +30,7 @@
     "attn_d_ff": 64,
     "d_prior": 6,
     "dropout": 0.2,
-    "n_horizons": 1,
+    "n_horizons": 2,
     "n_symbols": 1,
     "use_monotonic_quantile": true,
     "use_revin": true,
@@ -71,7 +72,6 @@
       "2025-04-10"
     ],
     "num_workers": 0,
-    "prefetch_factor": 2,
     "val_metric": "composite",
     "use_ema": true,
     "ema_decay": 0.999,
@@ -95,5 +95,5 @@
     "embargo_days": 1,
     "preload": true
   },
-  "output_dir": "experiments/npzv4_dual/perp_dp32_a02_2025_04"
+  "output_dir": "experiments/npzv4_dual/perp_dp32_a02_mh180_2025_04"
 }

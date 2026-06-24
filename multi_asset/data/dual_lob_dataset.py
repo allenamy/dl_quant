@@ -128,10 +128,32 @@ class DualLOBDataset(LOBDatasetV2):
         already — bps + log1p units — so this is lossless w.r.t. the cache, and
         ``__getitem__`` already upcasts each fetched row to float32 via
         ``np.ascontiguousarray(..., dtype=np.float32)`` so the model still sees
-        f32). This drops the 400d preload to a MEASURED 83.8 GB (fits). The
+        f32). This drops the 400d preload to a MEASURED 83.8 GB (fits).
+
+        TRAIN700 FIX (2026-06-24): with the raw books already f16, the resident
+        preload is dominated by the float32 feature tensor ``X`` (MEASURED
+        100.7 MB/day = 51% of the 196.9 MB/day resident). At train700 the
+        all-splits preload is 155.7 GB > the ~125 GB cgroup cap -> OOM (the
+        whole-session train300/lazy bottleneck). FIX: also store ``_pre_X`` as
+        float16 in resident RAM (gated by ``PRELOAD_X_FLOAT16``, default True).
+        X is in clipped z-scored / bps / log1p units with |X|<=1000, so f16 is
+        a ~1.7e-4 median relative perturbation (well below the R^2<1% signal
+        floor; verified prediction-Pearson-equivalent before enabling). The
+        existing ``__getitem__`` ALREADY upcasts each fetched X row to f32 via
+        ``np.ascontiguousarray(self._pre_X[idx], dtype=np.float32)`` (line ~177),
+        so the model still trains in f32 -- a resident-storage-only change. New
+        resident/day = 146.5 MB -> train700 all-splits = 115.9 GB (fits). Set
+        env ``DUAL_PRELOAD_X_F32=1`` to disable (revert to f32 X) for the
+        equivalence A/B test or if a precision regression is ever observed.
+        OLD NOTE (raw books): The
         feature tensor ``X`` and ``y``/``mask``/``regime_prior`` stay float32
         exactly as the parent stores them — only the two raw books are halved.
         """
+        # train700 RAM fix: store resident X as float16 unless explicitly
+        # disabled. __getitem__ upcasts each fetched X row to f32, so the model
+        # is unaffected; this only halves the resident feature tensor.
+        x_f16 = os.environ.get("DUAL_PRELOAD_X_F32", "0") != "1"
+        x_store_dtype = np.float16 if x_f16 else np.float32
         x_parts: List[np.ndarray] = []
         xraw_parts: List[np.ndarray] = []
         xperp_parts: List[np.ndarray] = []
@@ -140,7 +162,10 @@ class DualLOBDataset(LOBDatasetV2):
         mask_parts: List[np.ndarray] = []
         for day_idx in range(len(self._day_paths)):
             data = self._load_day(day_idx)
-            x_parts.append(data["X"])
+            # Downcast each day's X to the resident dtype BEFORE collecting so
+            # the transient per-day f32 array is freed and the concatenated
+            # resident tensor is f16 (halved RAM).
+            x_parts.append(data["X"].astype(x_store_dtype, copy=False))
             if self._has_raw:
                 # Downcast each day's raw books to f16 BEFORE collecting so the
                 # transient per-day f32 arrays are freed and the concatenated

@@ -51,9 +51,9 @@
     "use_direction_aware_head": true,
     "use_film_multistage": true,
     "perp_n_levels": 20,
-    "d_perp": 32,
+    "d_perp": 48,
     "perp_alpha_init": 0.02,
-    "_comment": "LEVER 1: base spot-book-64 + PERP raw-book gated residual (Path C). slice x_channels=64 drops cross so this isolates the perp-residual delta vs base. +0.003 gate.",
+    "_comment": "LEVER dp48: wider Path-C perp tower (d_perp 32->48). dp16->32 gave 0.04->0.08; test if wider extracts more nonlinear perp-book signal. +0.003 gate vs dp32 0.0800/0.1134.",
     "use_perp_residual": true
   },
   "training": {
@@ -95,5 +95,5 @@
     "embargo_days": 1,
     "preload": true
   },
-  "output_dir": "experiments/npzv4_dual/perp_dp32_a02_2025_04"
+  "output_dir": "experiments/npzv4_dual/perp_dp48_a02_2025_04"
 }
