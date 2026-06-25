@@ -1265,3 +1265,704 @@ DELTA (BEST ckpt, apples-to-apples): DENSE +0.0015, CLEAN +0.0028 -> adaptive PR
   while it lifts choppy. PRODUCTION PICK = adaptive, BEST ckpt.
   CAVEAT: choppy gain still << 0.06 target (in-data ceiling); strong dense ~0.075 still < 0.10 target.
   Leak-safe shuffle-null on the adaptive gate recommended before production.
+
+## WORKFLOW RULE REINFORCED (2026-06-24)
+Standing CLAUDE.md rule: edit ALL files (code + configs + scripts) LOCALLY in /Users/haosiyu/Desktop/
+quant_research, then sync via multi_asset/sync_to_server.sh. Server (jpline) = RUN/TEST-ONLY; never create
+files server-only. DEVIATION this session: several configs (perp_dp32_a02_adaptive, dp48, mh180, realxl) +
+runner scripts were created directly on the server -> had to rsync back. CORRECTED: all configs now local;
+going forward local-first -> sync. Ephemeral /tmp runner scripts are orchestration scaffolding (not repo
+artifacts) but will also be created local-first.
+
+## FUNDING LEVER RESULT (2026-06-24) -- MARGINAL, below gate (leak-safe Ridge)
+6 leak-safe funding feats (level/mom/zscore/cum-carry/time-to-next/sign-persist), settled <=t, 8h grid->1s ffill.
+funding_cov=1.000 (join works). Per-feature corr all tiny (|corr|<=0.022).
+  STRONG (2025-04): Ridge base 0.0430 -> base+fund 0.0417 = dP -0.0013 (funding HURTS strong)
+  CHOPPY (2026-05): dP +0.0011 (right direction -- positioning adds where microstructure weak -- but << +0.003 gate)
+VERDICT: funding does NOT clear the gate (strong -0.0013, choppy +0.0011). 8h funding too SLOW for y_600 (10min).
+  Orthogonal but weak; not the choppy 0.06 breakthrough. NOT queued for DL (Ridge-before-DL gate fails).
+  Root-cause: 8h granularity + tiny per-feature corr -> richer funding combos unlikely to clear +0.003.
+  (OI / liquidations -- finer-grained -- remain the untested orthogonal candidates if pursued.)
+
+## MULTI-FOLD RIDGE ROBUSTNESS (2026-06-24) -- linear floor is fold-UNSTABLE
+Snapshot-Ridge, 6 folds, per-fold dual-caliber + beta/mono/DA:
+  2025-04 STRONG    D_P+0.0200 C_P-0.0218(!) b-0.25 DA.515
+  2024-10 2024Q4    D_P+0.0327 C_P+0.0106 b+0.12 DA.514
+  2025-08 rec-strong D_P+0.0230 C_P+0.0408 b+0.20 DA.494
+  2025-12 drift     D_P+0.0299 C_P+0.0326 b+0.58 DA.517
+  2026-02 choppy-wk D_P+0.0103 C_P+0.0169 b+0.30 DA.513
+  2026-05 CHOPPY    D_P-0.0002 C_P+0.0354 b+0.46 DA.508
+  POOLED clean mean +0.0191, min -0.0218, SIGN-CONSISTENT=NO (2025-04 clean reversed).
+FINDINGS: (1) linear snapshot Ridge is WEAK + fold-unstable (DA~0.50-0.52, beta erratic, 2025-04 clean NEG
+  while its DENSE is +0.020 -> dense/clean sign flip). (2) On 2025-04 the DL gets CLEAN +0.10 while Ridge gets
+  -0.022 -> strong-fold alpha is almost ENTIRELY non-linear/temporal (snapshot Ridge can't access it; confirms
+  linear-ceiling finding). (3) Ridge proxy is TOO WEAK to characterize the DL-accessible signal across folds.
+IMPLICATION: discipline #14 confirmed empirically (even linear floor flips sign by fold) -> the adaptive DL
+  MUST be validated PER-FOLD. Ridge can't pre-screen folds for DL (different signal class). Next: run adaptive
+  DL on the 4 added folds (2024-10, 2025-08, 2025-12, 2026-02) + existing 2025-04/2026-05 -> per-fold + pooled,
+  all metrics, sign-consistency. Queue after dp48/mh180/rich-regime (GPU-heavy: ~4 folds x 25ep).
+
+## PREMIUM-INDEX (5m fine-grained funding) RESULT (2026-06-24) -- settles finer-funding question
+Leak-safe 5m premium (pidx_close, bars fully closed <=t): level/mom/zscore/accel. prem_cov=1.000.
+  corr(premium, book-basis): STRONG -0.052, CHOPPY -0.015 -> NOT >0.8 => premium index is NOT our book basis
+    (official mark/basket index differs from our perp-spot book mid) -> genuinely distinct, not a basis re-test.
+  per-feature corr all tiny (|corr|<=0.024).
+  STRONG (2025-04): Ridge base 0.0430 -> base+prem 0.0384 = dP -0.0046 (HURTS strong)
+  CHOPPY (2026-05): Ridge base 0.0405 -> base+prem 0.0432 = dP +0.0027 (helps, just BELOW +0.003 gate)
+VERDICT: fine-grained premium > 8h funding on choppy (+0.0027 vs +0.0011 -> finer IS better, directionally
+  confirmed) BUT still below +0.003 gate, hurts strong, and is NOT the basis (corr~0). SETTLES user question:
+  fine-grained funding/premium = weak orthogonal lever (~+0.003 choppy ceiling), NOT the 0.06 breakthrough.
+  Funding family (8h + 5m premium) EXHAUSTED at the Ridge gate. OI/liquidations remain the only untested
+  orthogonal candidates. NOT queued for DL (both fail/marginal at the linear gate).
+
+## dp48 (wider perp tower d_perp 32->48) RESULT (2026-06-24) -- NEGATIVE
+test 2025-04 strong, vs baseline EMA DENSE 0.0747 / CLEAN 0.1033:
+  dp48 BEST: DENSE 0.0475 / CLEAN 0.0677 (b 0.84/1.23)
+  dp48 EMA : DENSE 0.0473 / CLEAN 0.0660 (b 0.92/1.30)
+  dP: DENSE -0.0274, CLEAN -0.0373 -> dp48 HURTS strong significantly.
+VERDICT: wider perp tower (32->48) is NEGATIVE. The deeper-perp win was 16->32; 32->48 over-parameterizes
+  + dilutes (anti-pattern #5 params:sample + capacity-addition penalty). beta slightly better but P collapses.
+  d_perp=32 is OPTIMAL. dp48 = dead lever. (Consistent: capacity is not the bottleneck on this low-SNR target.)
+
+## OI AVAILABILITY (2026-06-24) -- NOT on disk; needs separate Tardis pull
+Checked: /mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/dl-tardis/ has ONLY book_snapshot_25 + trades.
+  No derivative_ticker / open_interest anywhere under /mnt/storage. No OI cols in any npz cache. tardis_dev
+  NOT installed. -> OI CANNOT be Ridge-gated without a separate Tardis derivative_ticker download (out-of-band).
+  OI remains the UNTESTED highest-value orthogonal choppy candidate (faster than 8h funding) -- pending data pull.
+
+## CHOPPY-TRAIN700 caliber-fix QUEUED (2026-06-24)
+Choppy adaptive used train300 (2025-05..2026-03) while strong used train700 -> inconsistent. f16-fix enables
+  train700 on heavy v2arch cache (~116G < 125G cgroup). Config dp32_adaptive_train700_2026_05 (train_days=700,
+  batch256, nw0/preload, same adaptive recipe). Tests: is choppy ~0.03 a data-SIZE handicap or the true ceiling?
+  Queued last in GPU chain (after rich-regime). Eval vs choppy adaptive train300 (EMA CLEAN 0.0402).
+
+## mh180 (MULTI-HORIZON y_180 aux + y_600 primary) RESULT (2026-06-24) -- POSITIVE (best strong lever)
+test 2025-04 strong, vs baseline BEST DENSE 0.0732 / CLEAN 0.1026:
+  mh180 BEST: DENSE 0.0752 S0.0736 b1.04 | CLEAN 0.1165(off.0017) S0.0997 b1.67  <- highest CLEAN of any lever
+  mh180 EMA : DENSE 0.0732 b1.67 | CLEAN 0.0852 b2.01
+  dP (BEST): DENSE +0.0020 (just below +0.003), CLEAN +0.0139 (CLEARS gate). beta 1.04 dense (near-perfect).
+VERDICT: multi-horizon y_180-aux is the FIRST strong-dense lever that HELPS (realxl/dp48 both hurt). CLEAN
+  +0.014 clears gate; DENSE +0.002 marginal. Best CLEAN P=0.1165 (> baseline 0.1026, > adaptive 0.1054).
+  NEEDS multi-fold validation (single-fold +0.002 dense is not yet robust per discipline #14).
+  Candidate to STACK into adaptive (adaptive + y_180 multi-horizon) if it holds across folds.
+
+## 1m PREMIUM RESULT (2026-06-24) -- funding/premium family DEFINITIVELY EXHAUSTED
+1m premium (finest, leak-safe, bars closed <=t), corr(premium,basis): STRONG +0.034 CHOPPY -0.021 (NOT basis).
+  STRONG: Ridge base 0.0430 -> base+prem 0.0428 = dP -0.0002
+  CHOPPY: Ridge base 0.0405 -> base+prem 0.0362 = dP -0.0043 (NEGATIVE, WORSE than 5m!)
+TREND IS NOT MONOTONIC: 8h +0.0011 -> 5m +0.0027(peak) -> 1m -0.0043. Finer is NOT monotonically better;
+  1m premium adds NOISE relative to the 10-min target (over-fine -> dilution). 5m was the sweet spot, still
+  below +0.003 gate. SETTLES the finer-funding question DEFINITIVELY: funding/premium family EXHAUSTED at the
+  linear gate (best 5m +0.0027 < +0.003). None pass -> none queued for DL.
+  Only OI/liquidations (NOT on disk -- need Tardis derivative_ticker pull) remain as untested orthogonal candidates.
+
+## OI / LONG-SHORT RATIO RESULT (2026-06-24) -- marginal, below gate; ORTHOGONAL DATA EXHAUSTED
+Binance Data Vision metrics 5m (OI level/flow/zscore/value, toptrader/taker/retail L/S ratios), leak-safe <=t.
+oi_cov=1.000. Notable per-feat choppy: oi_flow -0.018, oi_val_flow -0.021, toptrader_ls_chg +0.012.
+  STRONG: OI-only CLEAN -0.0548; Ridge base 0.0430 -> base+OI 0.0263 = dP -0.0167 (OI HURTS strong)
+  CHOPPY: OI-only CLEAN +0.0326 (REAL standalone signal!); base 0.0405 -> base+OI 0.0421 = dP +0.0016 (below gate)
+KEY: OI has real STANDALONE choppy signal (+0.033) but is REDUNDANT with base microstructure X -> marginal
+  +0.0016 combined. Orthogonal-but-redundant (OI overlaps what book/trade features already capture).
+VERDICT: OI does NOT clear +0.003 (choppy +0.0016, strong -0.0167). Same marginal pattern as funding/premium.
+  ==> ORTHOGONAL-DATA LEVERS EXHAUSTED on disk: funding(8h/5m/1m) + premium + OI + L/S ratios ALL marginal/
+  below gate. The choppy ~0.03-0.04 ceiling is FUNDAMENTAL (confirmed by Ridge=DL parity + every orthogonal
+  source tested). No available orthogonal data breaks choppy 0.06. (liquidations = only remaining untested,
+  but the OI-redundancy pattern suggests it would also overlap.) Honest conclusion: choppy 0.06 not reachable
+  with on-disk data; the production lever is the adaptive regime gate (+0.011 choppy) + accepting the ceiling.
+
+## ADAPTIVE MULTI-FOLD ROBUSTNESS (2026-06-24) -- running, per-fold
+  2025-04 (anchor STRONG): BEST DENSE 0.0747 / CLEAN 0.1054  b0.98  [from earlier]
+  2024-10 (2024-Q4):       BEST DENSE 0.0562 / CLEAN 0.0547  b0.76-0.80  S0.087(dense)  -> POSITIVE, sign-consistent
+     (EMA 0.0337/0.0413; DENSE~=CLEAN no pooling artifact this fold)
+  2025-08, 2025-12, 2026-02: running.
+So far 2/2 folds POSITIVE + sign-consistent (no reversal). 2024-Q4 lower than anchor but solid + healthy beta.
+
+## RETRACTION (2026-06-24): "orthogonal data exhausted" was PREMATURE
+The funding/OI Ridge tests were CRUDE linear-ADD with BASIC features (level/mom/zscore/flow), NOT
+  mechanism-designed, NOT fused as REGIME representation, NOT DL-tested. "OI redundant +0.0016" is LINEAR
+  redundancy only -- the NONLINEAR / regime-conditional value (OI/funding as a regime descriptor feeding the
+  WORKING regime FiLM) is UNTESTED. OI standalone CLEAN +0.033 PROVES signal exists. Retracting the exhausted
+  claim. NEW: carefully-designed OI/funding features (OI-price 4-quadrant divergence, funding x OI crowding,
+  taker-vs-OI, L/S extremes) -> fed as REGIME DESCRIPTORS into RichRegimeFeatureExtractor (FiLM modulation,
+  not additive) + optional gated residual -> Ridge-gate THEN DL-via-FiLM (decisive). Building now.
+
+## DESIGNED OI/FUNDING RIDGE GATE (2026-06-24) -- below gate at LINEAR; DL-via-FiLM still pending (decisive)
+Mechanism features (4-quadrant OI-price divergence, funding x OI crowding, taker-vs-OI, L/S extremes, oi_accel),
+leak-safe, cov=1.000. Per-feat corr tiny (|corr|<=0.052).
+  STRONG: designed-only CLEAN -0.0221; base 0.0430 -> base+designed 0.0318 = dP -0.0112 (hurts)
+  CHOPPY: designed-only CLEAN +0.0039; base 0.0405 -> base+designed 0.0397 = dP -0.0008 (flat)
+NOTE: designed-only choppy (+0.0039) is WEAKER than crude raw-OI-only (+0.033) -> the 4-quadrant encoding lost
+  raw OI signal at the linear level. BUT per coordinator: the Ridge linear-add does NOT bind the FiLM
+  REGIME-CONDITIONAL use (these are regime DESCRIPTORS for gamma/beta modulation, not linear predictors).
+  DECISIVE test = DL-via-FiLM (extend RichRegimeFeatureExtractor with OI/funding descriptors). Building that;
+  queue after adaptive 4-fold robustness. Ridge marginal != FiLM marginal (different mechanism).
+
+## INFRA INCIDENT 3 (2026-06-24): OI overlay rewrote regime_prior IN-PLACE on SHARED caches (contained)
+The OI-FiLM build overlaid regime_prior 6->14 IN-PLACE in BOTH npzv4_dual + npz_v2arch -- but the adaptive
+  4-fold ROBUSTNESS run (d_prior=6) was actively reading these caches. Risk: future folds preload 14-wide
+  regime_prior into a d_prior=6 model -> shape-mismatch crash / silent corruption.
+  CONTAINMENT: (a) npzv4_dual robustness folds (2025-04/2024-10/2025-08) preloaded the OLD 6-wide BEFORE the
+  07:50 rewrite -> unaffected (2025-08 healthy at ep8). (b) STOPPED the npz_v2arch overlay (was mid-run, MIXED
+  6/14). (c) REVERTING npz_v2arch regime_prior back to 6-wide (128 contaminated files) so the remaining v2arch
+  folds (2025-12/2026-02) + choppy-train700 + rich-regime stay clean.
+  LESSON: new-feature overlays must write a SEPARATE cache (e.g. data/npzv4_dual_oi) NOT in-place on caches a
+  running job reads. The OI DL test will use the npzv4_dual (already 14-wide, fine for the OI configs with
+  d_prior=14) for STRONG; for CHOPPY, build a separate oi-overlaid v2arch cache rather than touch the shared one.
+
+## ADAPTIVE MULTI-FOLD ROBUSTNESS -- 3/4 folds (2026-06-24)
+  2025-04 anchor STRONG : BEST DENSE 0.0747 / CLEAN 0.1054 (b0.98)
+  2024-10 2024-Q4       : BEST DENSE 0.0562 / CLEAN 0.0547 (b0.76)
+  2025-08 recent-strong : EMA  DENSE 0.0307 / CLEAN 0.0556 (b0.91); BEST 0.0237/0.0450 (b0.62 low)
+  2025-12, 2026-02      : queued (clean npz_v2arch caches)
+3/3 POSITIVE + sign-consistent (no reversal) -> adaptive holds across folds (discipline #14 passing).
+  val->test gap visible (2025-08 val 0.075 -> test 0.031-0.056) but stays positive. beta varies 0.6-1.0.
+
+## INCIDENT 3 RESOLVED (2026-06-24): both caches restored to clean 6-wide regime_prior
+npzv4_dual: 0 14-wide; npz_v2arch: 0 14-wide (all reverted). adapt_2025_12 (npz_v2arch fold) launched + runs
+  OK (no shape/mismatch error) -> reverted cache confirmed compatible with d_prior=6 model. Robustness run
+  protected end-to-end (3/3 folds done positive + 4th running clean). Root cause: in-place overlay on shared
+  caches + concurrent-revert race (FileNotFoundError on .tmp collisions) -> fixed via single detached revert.
+  FORWARD: OI DL test will build a SEPARATE oi-overlaid cache (data/npzv4_dual_oi, data/npz_v2arch_oi), never
+  in-place; OI configs point at the separate cache with d_prior=14.
+
+## ADAPTIVE MULTI-FOLD -- 4/5 folds (2026-06-24)
+  2025-04 anchor STRONG : BEST DENSE 0.0747 / CLEAN 0.1054 (b0.98)
+  2024-10 2024-Q4       : BEST DENSE 0.0562 / CLEAN 0.0547 (b0.76)
+  2025-08 recent-strong : EMA  DENSE 0.0307 / CLEAN 0.0556; BEST 0.0237/0.0450 (b0.62)
+  2025-12 drift/transit : BEST DENSE 0.0203 / CLEAN 0.0184 (b0.71) -- weakest (drift month, hardest regime) but POSITIVE
+  2026-02 choppy-weak   : running
+4/4 POSITIVE + sign-consistent (NO reversal), beta healthy 0.7-1.0 throughout -> discipline #14 robustness PASSING.
+  Per-fold range 0.018-0.105 CLEAN reflects regime (strong>>drift), consistent w/ documented non-stationarity.
+
+## DRIFT ROOT-CAUSE DIAGNOSTIC (2026-06-24) -- concept drift CONFIRMED, but RECENCY HURTS (refutes online-retrain)
+2025-12 fold, Ridge snapshot proxy:
+  D1 CONCEPT DRIFT CONFIRMED: train-holdout CLEAN +0.0391 (in-dist) vs 2025-12 TEST +0.0252 (OOT) -> drop
+    +0.0139 (~1/3 lost out-of-time). It's DRIFT not low-signal. (DL drifts MORE: DL test 0.018 < Ridge 0.025.)
+  D2 distribution shift present: top feats mean-shift-z 0.4-0.7, KS 0.2-0.37 (feats 98-101,109 = ptrade block).
+  D3 *** RECENCY HURTS ***: recent-3mo->test 0.0105 vs full-10mo->test 0.0252. Training CLOSER is WORSE.
+VERDICT: drift is REAL (D1) but NOT fixable by recency/online-retraining (D3) -- the recent regime is NOT
+  more representative of 2025-12 than the full history. Drift is ERRATIC/non-autoregressive, not a smooth
+  trend. This REFUTES lever B (rolling fine-tune on recent data would DEGRADE, per D3 + documented memory
+  "recency hurts"). Online-retraining is NOT the agile fix here.
+  IMPLICATION: the agile lever must adapt WITHOUT assuming recent>old. Candidates: (A) drift-AWARE regime
+  descriptors (distribution-shift z as a FiLM input so the frozen mapping at least KNOWS it is drifted -- but
+  if the target relationship itself flipped, sensing drift may not recover it); or accept drift months as a
+  fundamental OOT-generalization limit (longer/more-diverse training = best defense, consistent w/ full>recent).
+  Will test lever A (drift-aware descriptor) cheaply; lever B (rolling retrain) is REFUTED by D3 -- do NOT build.
+
+## DRIFT LEVER-A (drift-aware descriptor) RESULT (2026-06-24) -- FAILS; drift investigation CONCLUDED
+base 2025-12 CLEAN +0.0326 -> base+drift-aware +0.0305 = dP -0.0021 (hurts, below gate).
+KEY NUANCE: corr(drift_z, |y|) = +0.32 -- the drift LEVEL strongly relates to outcome MAGNITUDE (the window
+  DOES "know" it is drifted), YET adding it does NOT improve SIGNED-return prediction. INTERPRETATION: what
+  drifts is the feature->target SIGN/direction relationship, not just vol/magnitude. Sensing drift (drift_z ~ |y|)
+  cannot un-flip the drifted directional mapping -> lever A refuted.
+DRIFT INVESTIGATION CONCLUSION (3 diagnostics + 2 levers, all rigorous):
+  - Drift is REAL (D1: in-dist 0.039 -> OOT 0.025).
+  - Online/rolling retrain REFUTED (D3: recency HURTS, recent-3mo 0.010 < full-10mo 0.025).
+  - Drift-aware FiLM descriptor REFUTED (sensing drift != recovering the drifted SIGN relationship).
+  => The drifted DIRECTIONAL relationship is not recoverable from available features by any tested agile lever.
+  Best defense = longer/more-diverse training (full>recent, empirically). Drift months (~0.018-0.025 DL) are a
+  fundamental OUT-OF-TIME generalization limit. This is the honest answer to "make the model time-agile":
+  the obvious fixes (online-retrain, drift-sensing) are empirically refuted; longer history is the only lever.
+
+## OI FiLM-DL TEST BUILT (disk-safe) + CHAIN REORDERED (2026-06-24)
+The decisive OI-as-regime DL test: OI/funding designed features (4-quadrant OI-price divergence, funding x OI
+  crowding, taker-vs-OI, L/S extremes -> 8 descriptors) fed as REGIME DESCRIPTORS into the regime FiLM (concat
+  onto extractor output -> gamma/beta modulation), NOT additive. Tests if OI-as-regime extracts the non-redundant
+  part the linear Ridge missed (Ridge designed-OI was -0.0008 choppy; OI standalone +0.033 proves signal exists).
+DISK-SAFE: SEPARATE caches npzv4_dual_oi / npz_v2arch_oi, built ONLY for fold date ranges, SEQUENTIAL
+  build->train->eval->DELETE (peak +74G < 105G free); NEVER in-place on shared caches (contamination lesson).
+  Leak-safe (metrics create_time+300s<=t, funding<=t); verified small-range dry-run (regime_prior N->14, y/ts
+  byte-identical, OI cols finite). Configs perp_dp32_a02_oiregime_2025_04 + dp32_oiregime_2026_05 (d_prior=14).
+REORDER: chain is now adapt_2026_02 -> rich-regime -> OI FiLM-DL -> choppy-train700 (caliber-fix last). Fixed
+  the collision (choppy700 + OI both waited on RICH-REGIME COMPLETE) by repointing choppy700 -> OI-FILMDL COMPLETE.
+  Runners: oi_filmdl (waits RICH-REGIME COMPLETE), choppy700 (waits OI-FILMDL COMPLETE). Both survive SSH-detach.
+
+## ADAPTIVE MULTI-FOLD ROBUSTNESS -- COMPLETE 5/5 (2026-06-24)
+  fold        regime         BEST_DENSE  BEST_CLEAN   beta(dense)
+  2025-04     strong         +0.0747     +0.1054      0.98
+  2024-10     2024-Q4        +0.0562     +0.0547      0.80
+  2025-08     recent-strong  +0.0237     +0.0450      0.62
+  2025-12     drift/transit  +0.0203     +0.0184      0.76
+  2026-02     choppy-weak    -0.0012(!)  +0.0172      -0.03   <- WEAKEST; dense ~0/slightly neg, CLEAN +0.017 pos
+VERDICT (honest): CLEAN is POSITIVE in 5/5 folds (range 0.017-0.105). DENSE positive in 4/5; 2026-02 dense
+  near-zero/slightly-neg (-0.0012, beta collapsed -0.03). So adaptive is ROBUST in 4 regimes (strong/2024Q4/
+  recent-strong/drift) but degrades to ~ZERO on the weakest choppy-weak month (2026-02) -- consistent with the
+  documented choppy ceiling + drift weakness. NOT a clean reversal (CLEAN stays +), but the 2026-02 dense ~0 is
+  the honest weak point. Per-fold range reflects regime (strong 0.10 >> choppy-weak 0.00-0.02), confirming the
+  signal is fundamentally regime-dependent (discipline #14: mostly-passing, with the choppy-weak caveat).
+
+## REGIME-MoE BUILT (NEW MAIN DIRECTION, 2026-06-24)
+REFRAME: regime variance (0.105->0.016) is NOT a ceiling -- affine FiLM (g*h+b) rescales but CANNOT change
+  the FUNCTIONAL FORM per regime (strong=momentum vs choppy=reversion are different functions a shared backbone
+  averages -> collapses off-average). FIX = regime-conditional COMPUTATION.
+ARCH: K=2 soft-MoE on the FINAL pooled-FFN only (share all backbone/attn/conv). 2 expert FFNs (d_model->d_model,
+  GELU) + router MLP(regime_prior->2 softmax). h_pred += w0*expert0+w1*expert1. ROUTER = regime_prior (price-regime
+  + the 8 designed positioning/OI descriptors in OI configs) -> POSITIONING STATE selects the functional form
+  (OI-as-ROUTER, not additive-FiLM which was redundant). +4,370 params only.
+GUARDS (regime-MoE overfit history): ZERO-INIT experts -> bit-identical to adaptive baseline at init (max|D|=0,
+  VERIFIED) so MoE can only help; K=2; near-uniform router init; load-balance aux loss (CV^2, weight 0.01,
+  wired to trainer); heavy WD. Import+zero-init+grad+router-softmax all verified on server.
+CONFIGS: perp_dp32_a02_moe_2025_04 (strong anchor) + _2025_08 + dp32_moe_2025_12 + dp32_moe_2026_02 (3 folds +
+  anchor, per the "3 folds only" directive). Routes on shared clean caches d_prior=6 (decoupled from OI-cache).
+CHAIN (full, self-driving): rich-regime -> OI FiLM-DL -> choppy-train700 -> regime-MoE (4 folds). GOAL: lift
+  weak/drift folds (0.016-0.04) toward strong WITHOUT regressing strong anchor, WITHOUT overfit (per-fold >= adaptive).
+
+## CHAIN REORDERED #2 (2026-06-24): regime-MoE is now the PRIORITY (user "directly enter next direction")
+New order: rich-regime (finishing, feeds MoE intuition) -> REGIME-MoE (priority main direction) -> OI-FiLM-DL
+  (secondary; MoE's OI-as-ROUTER supersedes OI-as-additive-FiLM) -> choppy-train700 (lowest, caliber-fix).
+  Gates repointed: moe<-RICH-REGIME COMPLETE, oi<-REGIME-MoE COMPLETE, choppy700<-OI-FILMDL COMPLETE. All 3
+  runners relaunched clean (killed the stale 41-min procs that had OLD gate logic loaded). Verified gates +
+  survival (pids 2709430/2709447/2709469).
+ROUTER DECOMPOSITION NOTE: the MoE first pass routes on PRICE regime (regime_prior=6, shared clean caches,
+  decoupled from OI-cache) -- this isolates the core hypothesis "regime-conditional COMPUTATION (K=2 experts)
+  beats shared backbone" cleanly. A SECOND MoE pass with OI-in-router (d_prior=14, OI-overlaid cache) tests the
+  positioning-router enhancement. Scientific decomposition: MoE-arch effect first, then OI-router effect.
+
+## MoE PREMISE DATA-GATE VERDICT (2026-06-24) -- MIXED but NET GO (premise holds; MoE design addresses the caveat)
+All 3 regimes in npz_v2arch (X=88, same feature space). Snapshot-Ridge, leak-safe within-regime day-CV.
+  T1 per-regime-CV vs shared-fit (in-regime): shared WINS all 3 (strong -0.129, choppy -0.027, drift -0.084)
+     -> per-regime fitting is DATA-STARVED (one month overfits); shared (3x diverse data) generalizes better.
+  T2 coef cosine-sim: strong/choppy/drift coefs NEAR-ORTHOGONAL (cos +0.06, -0.07, +0.02) -> relationships differ.
+  T3 cross-regime fit->test: in-regime str->str +0.254 / cho->cho +0.168 / dri->dri +0.118 BUT cross-regime ~0
+     (cho->str +0.005, str->cho -0.018, dri->str -0.007 ...). A model fit on one regime is USELESS on another.
+INTERPRETATION (decisive): T2+T3 STRONGLY support "different functions per regime" (cross-regime collapses to
+  ~0, coefs orthogonal). T1's shared>per-regime is a DATA-QUANTITY artifact (per-regime month-CV is starved).
+  => The functions ARE genuinely different (T2/T3) AND per-regime fitting is data-limited (T1). This is EXACTLY
+  what a soft-MoE solves: SHARE params/data (fixes T1 starvation) WHILE allowing regime-distinct functional
+  forms (exploits T2/T3). The MoE premise is VALIDATED; the MoE's parameter-sharing is the right cure for T1.
+  VERDICT = GO (run the regime-MoE). The router (price+positioning) selects the functional form; shared backbone
+  + zero-init K=2 experts avoids the T1 data-starvation that pure per-regime fitting suffers.
+
+## RICH-REGIME (6->14 descriptor FiLM) -- STRONG result (2026-06-24)
+test 2025-04 strong, vs adaptive baseline (BEST 0.0732/0.1026, EMA 0.0747/0.1033):
+  rich BEST: DENSE 0.0732 / CLEAN 0.1084 (b0.71/1.06)
+  rich EMA : DENSE 0.0775 / CLEAN 0.1158 (b1.69/2.58)
+  dP: BEST DENSE +0.0000 / CLEAN +0.0058 ; EMA DENSE +0.0028 / CLEAN +0.0125
+VERDICT: rich-regime (14 instantaneous descriptors) MILDLY POSITIVE on strong -- EMA CLEAN +0.0125 clears gate,
+  BEST flat-dense/+0.006-clean. Richer FiLM descriptors help strong modestly without hurting (beta high on EMA
+  2.58, but BEST beta 1.06 fine). Choppy rich-regime next. Mild win; not transformative.
+
+## MoE 2-FOLD QUICK-READ (speed-up, 2026-06-24): strong-anchor + weak-2025-08, patience 6
+Killed rich-regime-choppy (non-essential; rich strong was only +0.0125) + OI-FiLM-DL + choppy-train700
+  (deprioritized). MoE strong-anchor (2025-04) already running standalone (pat10); weak fold 2025-08 patched
+  to patience 6. Quick-read runner (2831097): eval strong -> run 2025-08 -> eval. ~1.5-2h vs ~4h full.
+DECISION GATE: MoE per-fold >= adaptive baseline (strong hold >=0.1054 clean + weak 2025-08 lift >=0.0450 clean)
+  -> run remaining folds (2025-12, 2026-02). If MoE < baseline (param-sharing didn't cure T1 data-starvation,
+  overfit won) -> KILL the MoE direction + report honest finding (premise validated T2/T3 but didn't translate).
+
+## MoE QUICK-READ -- STRONG-ANCHOR result (2026-06-25)
+MoE (price-router, K=2) strong 2025-04, vs adaptive (BEST 0.0732/0.1026, EMA 0.0747/0.1033):
+  MoE BEST: DENSE 0.0698 / CLEAN 0.0954 (b1.24/1.78)
+  MoE EMA : DENSE 0.0875 / CLEAN 0.1243 (b2.23/3.30) <- highest strong CLEAN yet, but beta inflated 3.3
+  dP: BEST DENSE -0.0034 / CLEAN -0.0072 ; EMA DENSE +0.0128 / CLEAN +0.0210
+VERDICT (strong-anchor): roughly HELD -- EMA up (+0.013/+0.021, but beta 3.3 over-dispersed = calibration concern),
+  BEST marginally down (-0.003/-0.007). Not a clean regress, not a clean win on strong. The DECISIVE test is the
+  WEAK fold (2025-08, training now): does MoE LIFT it 0.045->0.08+? That's where regime-distinct functions pay off.
+
+## *** MoE QUICK-READ DECISION: GO -- SUBSTANTIAL WEAK-FOLD LIFT (2026-06-25) ***
+MoE (price-router K=2) weak 2025-08, vs adaptive 2025-08 (BEST 0.0237/0.0450, EMA 0.0307/0.0556):
+  MoE BEST: DENSE 0.0414 / CLEAN 0.0845 (b0.52/1.06)
+  MoE EMA : DENSE 0.0425 / CLEAN 0.0771 (b0.60/1.10)
+  dP: BEST DENSE +0.0177 / CLEAN +0.0395 (0.045->0.085 NEARLY DOUBLED!) ; EMA DENSE +0.0118 / CLEAN +0.0215
+strong-anchor (held): EMA CLEAN 0.1243 (+0.021) / BEST 0.0954 (-0.007).
+DECISION = GO. The MoE SUBSTANTIALLY lifts the weak fold (BEST CLEAN +0.040, approaching mandate 0.08+ target)
+  WITHOUT regressing strong (EMA up, BEST ~held), beta healthy (1.06). VALIDATES regime-conditional computation:
+  different functions per regime (premise T2/T3) + MoE param-sharing cures data-starvation (premise T1).
+  EXPAND: remaining weak folds (2025-12, 2026-02) price-router + then OI-ROUTER MoE (user core idea). Launching expand.
+
+## MoE ITERATION CHAIN (2026-06-25): expand price-router + OI-router (user core idea)
+After the GO (2025-08 +0.040 CLEAN), launched:
+  1. MoE EXPAND (price-router): 2025-12 + 2026-02 weak folds, patience 6 -> confirm MoE lifts ALL weak folds.
+  2. OI-ROUTER-MoE (user core idea): 2025-08 with K=2 MoE routed by 14-wide price+positioning regime_prior
+     (8 designed OI/funding descriptors). Disk-safe: build OI cache for fold range -> run -> eval vs price-router
+     0.0845 -> DELETE cache. Tests if POSITIONING-routing beats PRICE-routing (the user's core thesis).
+  Gated chain: expand -> OI-router. All patience 6, dual-caliber, per-fold vs adaptive baseline.
+
+## MoE EXPAND -- 2025-12 (drift) result: sigma-COLLAPSE FAILURE (2026-06-25)
+MoE (price-router) 2025-12 drift, vs adaptive 2025-12 (0.0203/0.0184 sigma healthy):
+  BEST: DENSE -0.0099 CLEAN -0.0156 b=-4.1/-6.6 sigma=0.002 (COLLAPSED)
+  EMA : DENSE +0.0084 CLEAN -0.0059 b=+2.0/-1.5 sigma=0.004 (COLLAPSED)
+VERDICT: sigma-COLLAPSE (sigma 0.002-0.004 << 0.02 gate) -> near-constant predictions, P negative/noise, beta
+  garbage. MoE FAILS on the drift fold (regression vs adaptive 0.018). So MoE is NOT uniform: lifts 2025-08
+  (+0.040) but COLLAPSES on 2025-12 drift. ROOT-CAUSE hypothesis: on the drift fold (weakest signal + concept
+  drift) the K=2 experts cannot commit a stable function -> router/expert overfit -> sigma collapse (anti-pattern
+  #24 sigma-gate). Consistent with drift being fundamentally hard (online-retrain + drift-sensing already REFUTED).
+  Checking 2026-02 (other weak fold). If it also collapses -> MoE is fold-specific (2025-08 only), not the
+  uniform breakthrough; honest finding = MoE helps recent-strong-ish weak folds, fails genuine drift.
+
+## ================= MORNING SUMMARY (2026-06-25) =================
+HEADLINE: regime-MoE (regime-conditional computation) delivered a SUBSTANTIAL but FOLD-SPECIFIC weak-fold lift.
+PREMISE: data-validated (T2 per-regime coefs near-orthogonal; T3 cross-regime predictive power collapses to ~0
+  vs +0.12-0.25 in-regime -> different functions per regime; T1 shared>per-regime = data-starvation the MoE's
+  param-sharing addresses).
+MoE RESULTS (price-router, K=2, zero-init experts, dual-caliber, vs adaptive baseline):
+  2025-08 (recent-strong-weak): BEST CLEAN 0.0845 vs adaptive 0.0450 = +0.0395 (NEARLY DOUBLED), beta 1.06 healthy. WIN.
+  strong-anchor 2025-04:        EMA CLEAN 0.1243 (+0.021) / BEST 0.0954 (-0.007) = HELD.
+  2025-12 (drift):              sigma-COLLAPSE (0.002), P neg, beta garbage = FAIL (regression vs adaptive 0.018).
+  2026-02 (drift/choppy-weak):  in progress (collapse-watch).
+INTERPRETATION: regime-conditional computation is REAL + substantially lifts moderate-weak folds (2025-08), but
+  sigma-COLLAPSES on genuine-DRIFT folds (2025-12) -- the experts cannot commit a stable function where concept
+  drift dominates (consistent with drift being fundamentally hard; online-retrain + drift-sensing already REFUTED).
+  NET: the MoE is a real weak-fold lever where signal is committable, NOT a uniform drift cure.
+NEXT ITERATIONS (in flight / queued): OI-ROUTER MoE (positioning routes the function, user core idea) on 2025-08;
+  if drift folds keep collapsing -> sigma-stabilization (heavier load-balance / stronger expert regularization)
+  is the root-cause fix to try, OR accept drift as the documented fundamental limit.
+PRODUCTION PICK (current best, robust): adaptive (regime-FiLM + regime-bias) -- strong 0.0747/0.1054, choppy 0.0402,
+  5-fold robust (CLEAN +5/5). MoE is a promising ADD for moderate-weak folds pending sigma-stabilization on drift.
+
+## MoE EXPAND COMPLETE -- 2026-02 result + FULL MoE characterization (2026-06-25)
+MoE 2026-02 (drift/choppy-weak) vs adaptive (BEST -0.0012/+0.0172, EMA +0.0046/+0.0166):
+  BEST: DENSE -0.0049 CLEAN -0.0114 (b-0.13/-0.30) ; EMA DENSE +0.0023 CLEAN +0.0069 (b+0.06/+0.17)
+  dP: BEST CLEAN -0.0286, EMA CLEAN -0.0097 -> REGRESSION (P neg/~0, beta collapsed ~0; sigma 0.037 didnt fully
+  collapse but signal gone).
+FULL MoE CHARACTERIZATION (price-router, K=2, 3 weak folds + anchor):
+  2025-08 moderate-weak : +0.0395 CLEAN (0.045->0.085) *** SUBSTANTIAL WIN, beta 1.06 ***
+  2025-12 drift         : sigma-COLLAPSE (0.002) FAIL
+  2026-02 drift/choppy  : -0.0286 CLEAN REGRESSION FAIL
+  strong-anchor 2025-04 : HELD (EMA CLEAN 0.1243)
+HONEST CONCLUSION: regime-MoE substantially lifts ONE moderate-weak fold (2025-08) but FAILS on BOTH genuine-
+  drift folds (2025-12 collapse, 2026-02 regression). The premise (different functions per regime, T2/T3) is real
+  and pays off WHERE signal is committable (2025-08), but on genuine-DRIFT folds the experts cannot find a stable
+  function -> fail. Fully consistent with the drift investigation: drift is FUNDAMENTALLY HARD (online-retrain
+  REFUTED, drift-sensing REFUTED, now MoE-regime-computation REFUTED on drift). NOT the uniform breakthrough;
+  a 2025-08-specific win. Last iteration: OI-ROUTER MoE (does positioning-routing change the drift picture?).
+
+## OI-ROUTER-MoE (user core idea) -- IN FLIGHT (2026-06-25)
+Building disk-safe npzv4_dual_oi (2025-08 fold range) -> OI-router-MoE (K=2 routed by 14-wide price+positioning
+  regime_prior) -> eval vs price-router MoE 2025-08 (CLEAN 0.0845) -> delete cache. Tests if POSITIONING-routing
+  (OI-flow/divergence/crowding/funding) beats PRICE-routing. Last MoE iteration; result pending.
+## CURRENT BEST / DECISION STATE (2026-06-25)
+PRODUCTION PICK = adaptive (regime FiLM + bias): strong 0.0747/0.1054 (b0.98), choppy 0.0402, 5-fold CLEAN +5/5
+  -- the robust both-regime model. ADD: regime-MoE for the 2025-08-type moderate-weak regime (+0.040), gated by
+  regime so it only engages where it helps (drift folds keep adaptive). mh180 (multi-horizon) = strong-dense
+  add (CLEAN 0.1165). DRIFT folds (2025-12/2026-02) = documented fundamental limit (all agile levers refuted).
+
+## *** BASELINE-CALIBRATION CORRECTION (user caught, 2026-06-25) ***
+ERROR: the MoE "2025-08 +0.0395 nearly-doubled breakthrough" compared MoE BEST (CLEAN 0.0845, beta=1.06) vs
+  adaptive BEST (CLEAN 0.0450, beta=0.62 BROKEN/under-scaled). A beta=0.62 baseline = COMPRESSED predictions =
+  artificially LOW P. UNFAIR comparison -- the MoE may have mostly FIXED beta, not gained signal.
+CORRECTED (beta-healthy to beta-healthy, using data already in hand):
+  adaptive 2025-08 EMA: CLEAN 0.0556, beta=0.909 (this ckpt IS beta-healthy)
+  MoE 2025-08 BEST:     CLEAN 0.0845, beta=1.06
+  -> honest dP = 0.0845 - 0.0556 = +0.029 (NOT +0.0395). Real but SMALLER; partly a beta-fix.
+RIDGE multifold proxy: 2025-08 clean-P +0.0408 (MID-range, NOT a standout-strong fold; but Ridge is a weak
+  non-linear-blind proxy -- 2025-04 Ridge clean was even NEGATIVE while DL=0.10, so Ridge cannot classify DL
+  fold-strength). DECISIVE TEST QUEUED: plain dp32_a02 (NO regime gate, proven beta~1) on 2025-08, BEST+EMA
+  dual-caliber -> the TRUE beta-healthy non-MoE baseline. If ~0.08 -> 2025-08 intrinsically strong, MoE just
+  beta-fixed (NOT a breakthrough). If ~0.045-0.055 -> the ~+0.029 MoE gain holds. Running after OI-router.
+  HONEST INTERIM: the "+0.0395 nearly-doubled" claim is RETRACTED pending the beta-healthy baseline; true gain
+  is at most ~+0.029 and possibly ~0 if 2025-08 baseline is intrinsically ~0.08.
+
+## OI-ROUTER-MoE (user core idea) RESULT (2026-06-25) -- WORSE than price-router; NEGATIVE
+OI-router MoE 2025-08 (K=2 routed by 14-wide price+positioning regime_prior) vs price-router MoE (CLEAN 0.0845/b1.06):
+  BEST: DENSE 0.0141 / CLEAN 0.0482 (b0.13/0.44, off-std 0.0098 high)
+  EMA : DENSE 0.0220 / CLEAN 0.0304 (b0.29/0.40)
+VERDICT: OI-ROUTER is WORSE than price-router (CLEAN 0.0482 vs 0.0845) + beta COLLAPSED (0.43). Routing the MoE
+  by OI/funding POSITIONING does NOT help -- it ADDS NOISE to the router + destabilizes calibration vs the clean
+  price-regime (vol/trend) router. The user core idea (positioning-as-router) is NEGATIVE here. Consistent with
+  OI being marginal/redundant at every test (Ridge additive marginal, OI-FiLM redundant, now OI-router worse).
+  CONCLUSION on OI/funding: NOT a usable lever in any integration tried (additive, FiLM, or router).
+
+## DRIFT INVESTIGATION (user new focus, 2026-06-25): signal-floor FIRST
+2025-08 reclassified NORMAL fold (user confirm) -> MoE gain is REAL/modest (exact dP = MoE 0.0845 - corrected
+  beta-healthy baseline, running). FOCUS now = the DRIFT folds 2025-12 (0.018) + 2026-02 (~0) where MoE FAILS.
+DECISIVE diagnostic running: in-regime held-out Ridge (beta-healthy, 5 day-block CV) on 2025-12 + 2026-02.
+  Premise-test hint: drift per-regime-CV was NEGATIVE (-0.0258), choppy +0.0354 -> drift likely signal-wiped.
+  If Ridge ~0/neg -> drift FUNDAMENTAL (MoE sigma-collapse is CORRECT: nothing to fit). If Ridge >=0.03 ->
+  signal exists -> sigma-stabilize (K=1/heavier-reg/lower-expert-LR) to degrade gracefully (no regression).
+  Diagnose root FIRST, then build the fix only if signal exists.
+
+## DRIFT SIGNAL-FLOOR VERDICT (2026-06-25) -- the two "drift" folds are DIFFERENT
+In-regime held-out Ridge (beta-healthy, 5-block CV):
+  2025-12: DENSE +0.0117 / CLEAN -0.0120 / beta -0.16  -> NO in-regime signal (clean NEG) = drift WIPED it =
+           FUNDAMENTAL. MoE sigma-collapse here is CORRECT (nothing stable to fit). Only goal = degrade gracefully (no neg).
+  2026-02: DENSE +0.0232 / CLEAN +0.0456 / beta +0.17  -> signal EXISTS (clean 0.046 >= 0.03) BUT MoE regressed
+           = MODEL INSTABILITY (FIXABLE). sigma-stabilization warranted HERE.
+ACTION: (1) 2025-12 is fundamental (signal-wiped) -- accept, ensure graceful (the adaptive baseline 0.018 already
+  degrades gracefully; MoE should at least not go negative). (2) 2026-02 has signal -> sigma-stabilize the model
+  (K=1 / heavier reg / lower expert LR / stronger sigma-gate) to recover toward the ~0.046 linear floor + the
+  adaptive 0.017 baseline. Building sigma-stabilized variant for 2026-02.
+
+## DRIFT FOLDS SPLIT -- 2025-12 ACCEPTED fundamental; 2026-02 WITHIN-FOLD TTA (2026-06-25)
+2025-12: in-regime held-out Ridge CLEAN -0.012 = SIGNAL WIPED (even a model fit on 2025-12 can't predict it).
+  FUNDAMENTAL no-signal -> ACCEPT, no fix. Best achievable ~ adaptive 0.018 (graceful), MoE collapse is correct.
+2026-02: in-regime held-out Ridge CLEAN +0.0456 = SIGNAL EXISTS but past-trained model regresses (drift gap).
+  LEVER = WITHIN-FOLD TTA: leak-safe rolling adapt on REALIZED within-2026-02 history (window at t uses readout
+  fit only on windows whose target settled <=t, i.e. cutoff+600s<=t; warm-start from pre-fold ref; refit rolling).
+  DISTINCT from refuted online-retrain (that used pre-fold 3mo on the signal-DEAD 2025-12; here within-fold
+  signal EXISTS). Test: STATIC (stale prior) vs ADAPTIVE + shuffle-null. GOAL: lift 2026-02 ~0 -> toward +0.0456.
+
+## WITHIN-FOLD TTA on 2026-02 RESULT (2026-06-25) -- modest apparent lift but SHUFFLE-NULL flags it as mostly LEAK
+Leak-safe rolling within-fold Ridge readout (warm-start ref + realized within-2026-02 history, refit rolling):
+  STATIC (stale prior)   : DENSE 0.0251 / CLEAN 0.0182 (b0.21)
+  ADAPTIVE (within-fold) : DENSE 0.0289 / CLEAN 0.0244 (b0.29) -> apparent dP CLEAN +0.0062
+  SHUFFLE-NULL (adapt on PERMUTED y): CLEAN 0.0223  <-- nearly AS HIGH as adaptive (0.0244)!
+VERDICT: the shuffle-null (+0.0223) almost matches the adaptive (+0.0244) -> the apparent +0.0062 lift is
+  LARGELY a LEAK/artifact (rolling re-normalization on growing data shifts the prediction distribution in a way
+  that correlates with test even under shuffled labels). REAL signal-adaptation gain = adaptive - shuffle-null =
+  ~+0.002, BELOW gate. So within-fold LINEAR-readout TTA does NOT meaningfully recover 2026-02 toward +0.0456.
+  The +0.046 in-regime ceiling is from FULL within-fold FIT (sees all 2026-02), not achievable by causal rolling
+  readout on frozen features. HONEST: within-fold TTA (linear readout) is NOT the drift fix. A DL-feature-level
+  adapter MIGHT do better but the leak-risk is high; recommend caution. 2026-02 stays ~adaptive 0.017 (graceful).
+
+## *** CORRECTED BASELINE 2025-08 -> the REAL MoE GAIN (2026-06-25, DECISIVE) ***
+TRUE beta-healthy non-MoE baseline (plain dp32, NO regime gate), 2025-08:
+  BEST: DENSE 0.0040 (b0.045!) / CLEAN 0.0725 (b0.82)   EMA: DENSE 0.0160 / CLEAN 0.0612 (b0.79)
+  -> the proper baseline CLEAN ~0.072 (BEST), MUCH higher than the broken adaptive baseline (0.0450, b0.62) I used.
+REAL MoE 2025-08 GAIN (apples-to-apples, BEST CLEAN): MoE 0.0845 - corrected 0.0725 = +0.0120 (NOT +0.0395).
+  vs corrected EMA 0.0612: +0.0233. Honest = ~+0.012 CLEAN, modest (just above gate), with a beta caveat
+  (MoE b1.06 vs baseline b0.82 -> part of even this +0.012 is calibration, not pure signal).
+CONCLUSION: the user was RIGHT -- the "+0.0395 nearly-doubled breakthrough" was an ARTIFACT of the broken-beta
+  baseline. The real regime-MoE gain on 2025-08 is ~+0.012 CLEAN (modest, partly beta-fix). NOT a substantial
+  breakthrough. Combined w/ MoE FAILING on both drift folds (2025-12 fundamental, 2026-02 not causally recoverable)
+  -> the regime-MoE is a SMALL, fold-specific lever, NOT the regime-adaptability breakthrough. Honest negative-ish.
+  PRODUCTION PICK stays = adaptive (regime FiLM+bias): strong 0.075/0.105, choppy 0.040, 5-fold robust.
+
+## ================= FINAL HONEST SUMMARY (2026-06-25, post-correction) =================
+The regime-MoE investigation, after the user's critical beta-baseline catch, concludes HONESTLY:
+1. MoE PREMISE data-validated (T2 orthogonal per-regime coefs + T3 cross-regime predictive collapse -> different
+   functions per regime). The architecture concept is sound.
+2. MoE 2025-08 (normal fold) REAL GAIN = ~+0.012 CLEAN (vs the CORRECTED beta-healthy baseline 0.0725, NOT the
+   broken adaptive 0.0450). The "+0.0395 nearly-doubled breakthrough" was RETRACTED -- a broken-beta(0.62)
+   baseline artifact. The real gain is modest + partly a beta-fix.
+3. MoE DRIFT folds FAIL: 2025-12 fundamental no-signal (in-regime Ridge -0.012, MoE collapse correct);
+   2026-02 has in-regime signal (+0.046) but neither MoE (regressed) nor within-fold-TTA (shuffle-null=leak)
+   nor sigma-stab (pending) recovers it causally.
+4. OI/funding as ROUTER (user core idea): NEGATIVE (worse than price-router, beta-collapse). OI unusable in any
+   integration (additive/FiLM/router).
+NET: regime-MoE = a SMALL fold-specific lever (~+0.012 on normal folds), NOT the regime-adaptability breakthrough.
+PRODUCTION PICK (robust, the deliverable): ADAPTIVE (regime FiLM + zero-init regime-bias) -- strong 0.0747/0.1054
+  (b0.98), choppy 0.0402, 5-fold robust (CLEAN +5/5). Strong-dense ADD: mh180 (multi-horizon y_180 aux) CLEAN 0.1165.
+DRIFT (2025-12/2026-02) = documented FUNDAMENTAL limit: every agile lever refuted (online-retrain, drift-sensing,
+  MoE-regime-computation, within-fold-TTA). Only defense = longer/diverse training. 0.06 choppy needs orthogonal
+  data not on disk (funding/premium/OI all marginal at the linear gate).
+
+## NEW MAIN DIRECTION (user, 2026-06-25): challenge "drift fundamental" via MUTATION factors
+POINT 1: adaptive = MILESTONE not definitive best; COMPOSE winners (adaptive + mh180 strong-dense + MoE
+  normal-weak) for production -- compose later.
+POINTS 2+3: "drift no-signal" (in-regime Ridge -0.012) was measured with CURRENT features. Hypothesis: drift
+  months have MUTATION/non-stationarity/anomaly signals current factors MISS + funding/OI underused.
+DECISIVE TEST (running, CPU): 13 rigorous CAUSAL mutation factors (CUSUM structural-break, variance-ratio,
+  BNS bipower-jump, rolling Hurst, distribution-shift, spread-regime-break, depth-collapse, OFI-burst, vol-of-
+  vol + OI-surge-z, OI-price 4-quadrant, funding-spike-z, funding-acceleration) -> RE-RUN in-regime held-out
+  Ridge floor on 2025-12 + 2026-02. If base+MUTATION unlocks (2025-12 -0.012 -> positive) => MISSING-FEATURE
+  (user right, drift NOT fundamental) -> build DL with these. If ~base => mutation also misses it (honest neg).
+
+## *** MUTATION-FACTOR DRIFT TEST RESULT (2026-06-25, DECISIVE) -- user missing-feature hypothesis FALSIFIED for 2025-12 ***
+13 rigorous causal mutation factors (CUSUM/var-ratio/BNS-jump/Hurst/dist-shift/spread-break/depth-collapse/
+OFI-burst/vov + OI-surge-z/4quad/funding-spike/accel) -> in-regime held-out Ridge floor:
+  2025-12: base -0.0120 -> base+MUTATION -0.0200 (dP -0.0080) ; mut-only -0.0173 (NO standalone signal either)
+  2026-02: base +0.0456 -> base+MUTATION +0.0488 (dP +0.0031, ~at-gate) ; mut-only +0.0178
+VERDICT: the mutation factors do NOT unlock 2025-12 (it ADDS NOISE, -0.008; mut-only negative = no anomaly signal
+  there either). The user missing-feature hypothesis is FALSIFIED for 2025-12 -> it is GENUINELY signal-dead even
+  with sophisticated structural-break/jump/Hurst/dist-shift/OI-mutation factors. TRUE fundamental ceiling, NOT a
+  missing-feature artifact. For 2026-02 (signal already present), mutation adds a marginal +0.0031 (at gate, not
+  transformative). HONEST conclusion: drift "fundamental" verdict HOLDS under the rigorous mutation-factor test.
+  2025-12-type drift months are genuinely unpredictable from on-disk microstructure+OI+funding (with current OR
+  mutation factors). The only remaining unknowns = data NOT on disk (news/cross-asset/orderbook-beyond-5-level).
+
+## SIGMA-STAB MoE 2026-02 RESULT (2026-06-25) -- graceful-degradation ACHIEVED
+heavier wd 0.05 + load-balance 0.05, vs adaptive 0.0172 and plain-MoE (regressed -0.029):
+  BEST: DENSE 0.0104 / CLEAN 0.0184 (b1.15, sigma=0.016 NO collapse) ; EMA CLEAN 0.0045 (b0.59)
+VERDICT: sigma-stabilization WORKED for graceful degradation -- prevented the plain-MoE catastrophic collapse
+  (-0.029) and recovered to ~= adaptive baseline (0.0184 vs 0.0172, beta 1.15 healthy, sigma 0.016 no-collapse).
+  But does NOT exceed baseline (2026-02 signal not causally recoverable per within-fold-TTA + mutation tests).
+  => sigma-stab makes the MoE SAFE on drift (matches baseline, no regression) so it can be regime-gated safely.
+
+## ================= INVESTIGATION COMPLETE -- CLOSING SUMMARY (2026-06-25) =================
+THREE USER CHALLENGES, all rigorously resolved (falsifiable, leak-safe, dual-caliber):
+ 1. MoE beta-baseline catch -> real MoE 2025-08 gain ~+0.012 CLEAN (modest, partly beta-fix); "nearly-doubled" RETRACTED.
+ 2. drift missing-feature hypothesis -> FALSIFIED for 2025-12 (13 mutation factors add NOISE, -0.008; genuinely signal-dead).
+ 3. OI/funding-as-router -> NEGATIVE (worse than price-router). OI unusable (additive/FiLM/router/mutation all marginal-or-neg).
+PRODUCTION (compose-the-winners): adaptive (regime FiLM+bias) BASE [strong 0.0747/0.1054 b0.98, choppy 0.0402, 5-fold robust]
+  + mh180 multi-horizon [strong-dense CLEAN 0.1165] + regime-MoE (sigma-stab, regime-gated) [normal-weak +0.012, drift-safe].
+FUNDAMENTAL LIMITS (rigorously established): 2025-12-type drift = signal-dead even with mutation factors; choppy 0.06 =
+  needs orthogonal data not on disk; ALL agile drift levers refuted (online-retrain, drift-sensing, MoE, within-fold-TTA, mutation).
+  Remaining unknowns = OFF-DISK data only (news / cross-asset / deeper-than-5-level book / live funding-OI feeds).
+
+## UNIFIED SINGLE MODEL (user directive, 2026-06-25): ONE architecture, all verified levers
+NOT a composition/ensemble -- ONE DualLOBV2Arch with ALL levers ON, trained once, eval all folds:
+  REG_arch + deeper-perp(d_perp32, perp_alpha0.02) + regime FiLM + zero-init regime-bias + MULTI-HORIZON
+  (n_horizons=2, y180 aux + y600 primary) + sigma-stab regime-MoE(K2, zero-init experts, wd0.05, lb0.05).
+  All additions zero-init -> degrades to proven base if a lever doesn't help. Guard: per-fold >= best single-lever.
+BUILD VERIFIED (CPU smoke): forward with all_horizons=True -> quantiles_by_horizon (B,2,3) + point_pred_by_horizon
+  (B,2) + moe_lb_loss surfaced, all finite, regime_moe active, n_horizons=2. All levers compose in one forward.
+QUICK-READ running: unified strong 2025-04 (vs mh180 0.1165 / adaptive 0.1054) + weak 2025-08 (vs corrected
+  baseline 0.0725 / MoE 0.0845). Then full sweep all folds. WATCH: MoE+FiLM both regime-condition -> redundancy risk.
+
+## UNIFIED MODEL -- STRONG 2025-04 result (2026-06-25)
+unified (ALL levers, one model) vs per-lever (BEST CLEAN): adaptive 0.1026, mh180 0.1165, plain-base 0.1026:
+  unified BEST: DENSE 0.0699 / CLEAN 0.1105 (b1.41/2.29)
+  unified EMA : DENSE 0.0671 / CLEAN 0.0961 (b2.14/3.18)
+VERDICT (strong): HOLDS well -- CLEAN 0.1105 >= adaptive (0.1026), near mh180 (0.1165) -> captures most of the
+  multi-horizon strong-dense gain in the SINGLE model. Slight beta-inflation (2.3) + tiny dense dip (0.070 vs
+  0.073) = mild MoE/FiLM/multi-horizon interaction but NO regression. Strong preserved. Decisive: weak 2025-08 next.
+
+## *** UNIFIED MODEL -- WEAK 2025-08: REGRESSION (lever interaction, 2026-06-25) ***
+unified weak 2025-08 vs baselines (BEST CLEAN): corrected-base 0.0725, MoE-alone 0.0845, adaptive 0.0450:
+  unified BEST: DENSE 0.0147 / CLEAN 0.0347 (b0.21/0.49) ; EMA CLEAN 0.0488 (b1.02)
+  dP vs corrected-base: -0.0378 ; vs MoE-alone: -0.0498  -> MAJOR REGRESSION on the weak fold.
+VERDICT: the naive "ALL levers ON" unified model REGRESSES on 2025-08 (0.035 vs 0.073 base) -> the per-fold >=
+  best-single-lever GUARD FAILS. The levers do NOT coexist productively as combined. This is the interaction the
+  coordinator flagged. Strong HELD (0.1105) but weak BROKE.
+LIKELY CAUSE: (a) sigma-stab MoE heavy reg (wd0.05 + lb0.05) -- tuned for drift graceful-degradation -- is TOO
+  heavy for the normal-weak fold where the plain-MoE (wd0.01) got 0.0845; the heavy reg suppresses the MoE gain.
+  (b) MoE + multi-horizon split capacity; (c) MoE+FiLM regime-redundancy. DIAGNOSE: the unified used the DRIFT-
+  tuned sigma-stab (wd0.05) globally -- but 2025-08 needs the lighter MoE (wd0.01). A single global reg cannot
+  serve both normal-weak (needs light MoE) and drift (needs heavy sigma-stab) -> fundamental tension in ONE model.
+NEXT: try unified with LIGHTER reg (wd0.01, lb0.01 = the plain-MoE setting that won 2025-08) -> does weak recover
+  WITHOUT drift-collapsing? If light-reg unified holds strong + lifts weak + drift-safe -> the real unified. If
+  light-reg drift-collapses -> confirms the single-global-reg tension (no one setting serves all regimes).
+
+## UNIFIED-LIGHT diagnostic (2026-06-25): does lighter MoE reg recover the weak fold?
+The unified weak-regression root cause = drift-tuned sigma-stab MoE (wd0.05/lb0.05) suppresses the normal-weak
+  gain (plain-MoE wd0.01 got 0.0845). TEST: unified-LIGHT (wd0.01, lb0.01) on weak 2025-08 (recover?) + strong
+  2025-04 (still hold?). Running (weak first). 
+  - If light recovers weak (->~0.08) + holds strong -> the unified works with light reg (drift-safety via the
+    zero-init/regime-gating, not heavy global wd). Then verify drift-safe (needs y_180 in v2arch first).
+  - If light recovers weak but later drift-COLLAPSES -> CONFIRMS the single-global-reg tension: no ONE setting
+    serves both normal-weak (light) + drift (heavy). Honest finding: a truly-unified single model trades off
+    weak-gain vs drift-safety; the production choice = light reg (weak gain + accept drift~baseline via FiLM/gate).
+NOTE: drift-safety check on 2026-02 needs y_180 overlaid into npz_v2arch (only npzv4_dual has it) -- deferred.
+
+## *** UNIFIED-LIGHT WEAK 2025-08: lighter reg did NOT recover -> the LEVER COMBINATION breaks weak (2026-06-25) ***
+unified-LIGHT (wd0.01 lb0.01) weak 2025-08 BEST CLEAN 0.0386 (EMA 0.0449) vs heavy-unified 0.0347, corrected-base
+  0.0725, MoE-alone 0.0845. -> lighter reg ~= heavy (0.039 vs 0.035), STILL far below base/MoE.
+VERDICT: the weak regression is NOT the sigma-stab reg weight -- it's the LEVER COMBINATION (MoE + multi-horizon
+  + FiLM together) that DESTROYS the MoE standalone normal-weak gain (0.0845 -> 0.039), regardless of reg.
+  The levers are NOT independently additive; they INTERACT DESTRUCTIVELY on the weak fold. Likely culprit: the
+  MULTI-HORIZON y_180-aux head dilutes/competes with the MoE y_600 specialization on the weak fold (the MoE
+  needs full capacity on y_600; the aux split + MoE routing conflict), OR MoE+FiLM regime-redundancy.
+==> NAIVE all-levers unification FAILS the per-fold>=best-single-lever guard on weak. A single model with ALL
+  levers ON does NOT capture each lever's gain -- the levers conflict. HONEST: the verified gains (mh180 strong,
+  MoE weak) are NOT simultaneously realizable in one naive-combined model.
+NEXT (diagnose the pair): test unified MINUS multi-horizon (FiLM+bias+MoE only, no y180-aux) on weak 2025-08 ->
+  if weak recovers to ~0.0845 -> multi-horizon is the conflicting lever (drop it from the weak-regime path / make
+  it strong-only). If still broken -> MoE+FiLM redundancy is the cause.
+
+## UNIFIED-LIGHT STRONG 2025-04 result (2026-06-25) -- strong HOLDS at light reg too
+unifiedL strong BEST CLEAN 0.1122 (b2.30) / EMA 0.0931. vs adaptive 0.1026, mh180 0.1165, heavy-unified 0.1105.
+  -> both unified variants HOLD strong (~0.110-0.112, captures multi-horizon gain), reg-independent.
+CONSOLIDATED UNIFIED PICTURE: levers COEXIST on STRONG (CLEAN 0.112, captures mh180 gain, no regression) but
+  CONFLICT on WEAK (both variants 0.035-0.039 vs base 0.0725 -> MoE weak-gain destroyed). The conflict is
+  WEAK-fold-specific + reg-independent = the lever COMBINATION on weak. Ablation (no-MH / no-MoE) running to
+  isolate. Beta high on strong (2.3) for all unified variants = multi-horizon+MoE calibration inflation (minor).
+
+## ABLATION config-bug fix (2026-06-25): noMH needed horizons_sec=[600] (single-horizon spec), not removal
+noMH first run failed (ValueError: label key 'y' not found) -- removing horizons_sec entirely fell back to the
+  default 'y' key (absent). Fixed: horizons_sec=[600] (single y_600). Re-queued after noMoE. noMoE (multi-horizon
+  valid) running. Diagnosis: noMoE (FiLM+bias+MH) + noMH (FiLM+bias+MoE) on weak 2025-08 -> which lever conflicts.
+
+## ABLATION -- noMoE (FiLM+bias+multi-horizon) weak 2025-08 (2026-06-25)
+noMoE BEST CLEAN 0.0129 (b0.13, collapsed) / EMA CLEAN 0.0522 (b0.94). vs corrected-base 0.0725, MoE-alone 0.0845,
+  full-unified 0.0386.
+SURPRISE: removing MoE did NOT recover weak -- noMoE BEST 0.0129 is even WORSE than full-unified 0.0386. The high
+  val (0.074) didn't transfer to test (val->test gap + BEST beta-collapse 0.13). => FiLM+bias+MULTI-HORIZON is
+  ALSO weak on 2025-08. The plain baseline (0.0725) + MoE-alone (0.0845) BOTH had NO multi-horizon.
+HYPOTHESIS SHIFTING: MULTI-HORIZON (y_180 aux) is the lever that HURTS weak folds (the aux head competes with
+  y_600 on the low-signal fold) -- it helps strong (0.1165) but degrades weak. The noMH rerun (FiLM+bias+MoE,
+  NO multi-horizon) is decisive: if it recovers ~0.0845 -> multi-horizon is the weak-conflict (make it strong-only).
+
+## SERVER SSH OUTAGE (2026-06-25): host up (ping ok), sshd port 31999 REFUSED
+The jpline host responds to ping (70ms, 0% loss) but SSH port 31999 refuses connections -- sshd down/cycling
+  (documented pod-instability pattern). Cannot reach server to read results until it recovers.
+RESUME STATE (when SSH returns):
+  - DECISIVE pending result: noMH ablation (FiLM+bias+MoE, no multi-horizon) weak 2025-08 -> /tmp/noMH_rerun.log
+    (awk "/EVAL noMH/{p=1} p&&/DENSE:|CLEAN:/{print}" /tmp/noMH_rerun.log). If recovers ~0.0845 -> multi-horizon
+    is the weak-conflict lever (make it strong-only in the smarter unified model).
+  - jobs were detached (nohup/disown) -> should survive the SSH drop; check `pgrep -f train_v2arch.py` + the
+    /tmp/*_dl.log + /tmp/abl_*.log on reconnect.
+  - all configs/code/docs are LOCAL (synced) -> no work lost; only the pending eval read is blocked.
+
+## *** LEVER-CONFLICT DIAGNOSIS COMPLETE (2026-06-25) -- multi-horizon is the primary weak-conflict ***
+weak 2025-08 ablation ladder (BEST CLEAN unless noted):
+  MoE-alone (plain-MoE)          : 0.0845   <- the standalone weak winner
+  corrected baseline (plain dp32): 0.0725
+  noMH (FiLM+bias+MoE, no multi-h): 0.0553   <- dropping multi-horizon RECOVERS vs unified (0.039->0.055)
+  noMoE (FiLM+bias+multi-horizon) : 0.0129 BEST / 0.0522 EMA
+  full-unified (ALL levers)      : 0.0386
+DIAGNOSIS: MULTI-HORIZON is the PRIMARY weak-fold-conflicting lever (removing it: unified 0.039 -> noMH 0.055).
+  The y_180 aux head competes with y_600 on the low-signal weak fold (helps strong 0.1165, hurts weak). BUT
+  noMH (0.055) still < MoE-alone (0.085) -> a RESIDUAL interaction remains (FiLM+MoE together dilute the MoE
+  weak gain vs MoE-alone). The verified per-lever gains are NOT fully simultaneously realizable in ONE model;
+  there is genuine destructive interaction on weak folds (strong is fine -- all coexist at ~0.112).
+CONCLUSION on the UNIFIED single model: a naive all-levers model does NOT capture each gain. Best realizable
+  single-model trade-offs:
+   (a) STRONG-optimized: adaptive + multi-horizon (no MoE) -> strong ~0.112, weak ~baseline (multi-horizon
+       hurts weak but FiLM holds it ~0.05).
+   (b) WEAK-optimized: adaptive + MoE (no multi-horizon) -> weak best-single (toward 0.085, noMH got 0.055
+       combined), strong ~adaptive 0.105 (no multi-horizon dense gain).
+  No single static config maximizes BOTH. The HONEST production recommendation = adaptive base + REGIME-GATED
+  lever selection (multi-horizon active in strong regime, MoE active in weak regime) -- but that is effectively
+  regime-conditional architecture (which the MoE itself is) -> the clean answer: pick (a) or (b) by which regime
+  matters most for trading, OR accept the modest unified (strong 0.112 + weak 0.039) if one model is mandatory.
+
+## REGIME-GATED MODEL -- RIGOROUS 4-PART VALIDATION (user directive, 2026-06-25)
+Given this session's artifacts (beta-fix false-breakthrough + TTA leak), PROVE the rgated model is useful, not plausible:
+ 1. PERFORMANCE vs correct beta-healthy baselines: USEFUL iff strong ~0.112 (= adaptive+MH) AND weak ~0.085 (= MoE-alone),
+    BOTH beta-healthy. If weak ~0.039 (like naive-all-on) -> gating did NOT resolve conflict -> NOT useful.
+ 2. GATE MECHANISM (anti-cosmetic): inspect learned g_mh, g_moe per regime. g_mh HIGH-strong/LOW-weak + g_moe HIGH-weak/
+    LOW-strong = learned mapping. Both ~0.5 = COSMETIC (luck not mechanism). [inspector built: inspect_gates.py]
+ 3. REAL vs ARTIFACT: shuffle-null collapse + beta-healthy on the final model.
+ 4. WORTH-IT vs simpler: rgated must BEAT adaptive(0.105/0.040) / adaptive+MH(strong 0.1165) / adaptive+MoE(weak 0.0845).
+    If a simpler model ties -> gating complexity not justified.
+VERDICT = useful ONLY IF all 4 pass. Running: rgated quick-read (strong+weak). Then gates + shuffle-null + worth-it.
+
+## RGATED 4-PART VALIDATION -- PART 1 STRONG result (2026-06-25)
+regime-gated STRONG 2025-04: BEST DENSE 0.0659 / CLEAN 0.0910 (b1.03) ; EMA CLEAN 0.0696 (b2.35).
+  vs targets: strong ~0.112 (adaptive+MH/mh180 0.1165, unified 0.1105), plain adaptive 0.1026.
+PART 1 STRONG = FAIL: rgated CLEAN 0.0910 is BELOW target 0.112 AND below plain adaptive 0.1026. The regime-gating
+  HURT strong (0.091 vs 0.112). The g_mh gate is NOT capturing the multi-horizon strong gain -- it suppresses it
+  (or sits low even in strong). beta 1.03 healthy, but performance regressed. Strong target NOT met.
+  -> Already a validation failure on strong. Weak result + gate-inspection (part 2) will reveal WHY (likely g_mh
+  not learning high-in-strong). If weak also <0.085 -> rgated captures NEITHER gain -> NOT useful (worse than naive).
+
+## *** RGATED PART 2 (GATE MECHANISM) -- FAIL: gates are COSMETIC (2026-06-25) ***
+Learned gates per regime (from trained rgated_2025_04 checkpoint):
+  STRONG 2025-04: g_mh=0.512 g_moe=0.518 | weak 2025-08: g_mh=0.512 g_moe=0.517 | 2025-02: 0.510/0.513 | 2025-06: 0.510/0.512
+VERDICT: gates sit at ~0.51 across ALL regimes (= the 0.5 zero-init, barely moved). g_mh does NOT go high-strong/
+  low-weak; g_moe does NOT differentiate. The regime->lever MAPPING WAS NOT LEARNED -> the gating is COSMETIC.
+  The model is functionally a HALF-WEIGHTED all-levers model (both levers ~0.5 everywhere) -> dilutes the multi-
+  horizon strong gain (explains strong DROP to 0.091 < 0.112) without a regime-specific benefit.
+COMBINED VERDICT (parts 1+2 both FAIL): the regime-gated unified model is NOT USEFUL.
+  - Part 1 strong: 0.091 < target 0.112 (and < plain adaptive 0.105) = FAIL.
+  - Part 2 gates: cosmetic ~0.51, no learned mapping = FAIL.
+  Root cause: a single sigmoid(Linear(regime_prior)) gate, zero-init, gets near-zero useful gradient on this
+  low-SNR target within 700-train -- it cannot learn a sharp regime->lever switch (same low-SNR limit that
+  killed every other learned-conditional attempt). The gating doesn't resolve the conflict; it just half-mutes
+  both levers. (No need to finish weak/shuffle/worth-it -- 2 decisive FAILs settle it.)
+PRODUCTION CONCLUSION: regime-gated unification does NOT work. The honest production options remain the SIMPLER
+  models: adaptive (5-fold robust, both-regime 0.105/0.040) OR adaptive+multi-horizon (strong-optimized 0.1165,
+  weak~baseline) OR adaptive+MoE (weak-optimized 0.0845, strong~0.105) -- pick by which regime matters for trading.
+  No single static model captures BOTH the strong-dense AND weak gains; the verified levers are regime-specific
+  and conflict when combined. adaptive remains the robust single-model default.
+
+## CAUSAL FORWARD-REGIME PREDICTABILITY (user reframe, 2026-06-25)
+Reframe: the regime-gate failed COSMETIC (~0.51) -- maybe NOT low-SNR but an INADEQUATE descriptor (vol/trend 6ch).
+  Test if a RICH JOINT representation (spot+perp book + funding + OI + within-window dynamics, ~17 causal feats)
+  can CAUSALLY PREDICT the forward regime. Decisive + falsifiable, NO gate/GPU needed.
+LABELS (realized future, causal target): L_trend = forward AR1 of next-30-window y_600 (trending+/reverting-);
+  L_strong = forward |y_600| dispersion. FEATURES strictly <=t. Walk-forward (train 2025-02..09 -> predict later).
+RUNNING -> report FWD-TREND IC + dir-acc + FWD-STRONG IC on 2025-10/11/12 + 2026-02 (drift).
+  IC>>0 (>0.05) + dir-acc>0.55 -> regime CAUSALLY predictable -> gate learnable WITH regime-supervision (user right).
+  IC~0 + acc~0.5 -> regime NOT causally characterizable from this data even jointly (the real limit; gate can't learn).
+
+## *** CAUSAL REGIME-PREDICT result DEBUNKED (2026-06-25) -- apparent IC+0.5 is ARTIFACT, reframe NOT validated ***
+Raw result LOOKED like vindication: FWD-STRONG IC +0.41/+0.54/+0.56/+0.51, dir-acc 1.000. BUT rigorous diagnosis
+  (don't accept plausible numbers) shows BOTH signals are artifacts:
+ 1. dir-acc=1.000 = DEGENERATE LABEL: L_trend (forward AR1) frac>0 = 0.999-1.000 (mean +0.60) -- forward AR1 is
+    almost ALWAYS positive (y_600 windows overlap at stride<600 -> autocorrelated). "predict positive, always
+    right" = meaningless. The FWD-TREND IC itself ~0 (-0.029..+0.070 inconsistent) -> trending-vs-reverting NOT
+    causally predictable.
+ 2. FWD-STRONG IC +0.5 = TRIVIAL VOL-PERSISTENCE: spearman(PAST-|y|-disp, FWD-|y|-disp)=+0.57-0.62 -> forward |y|
+    dispersion is just predicted by CURRENT volatility (vol persistent). And FWD-STRONG = forward |y| DISPERSION =
+    VOLATILITY, not signal-favorability. Predicting forward vol from current vol is trivially true + USELESS for
+    gating (gate needs signal-favorability; documented: vol ~constant ~22bps, does NOT correlate w/ predictability).
+VERDICT: user reframe NOT validated. The joint representation does NOT causally predict the USEFUL regime
+  (trending-vs-reverting ~0; "strong" only via trivial vol-persistence). Regime is NOT causally characterizable
+  for GATING even with rich joint (spot+perp+funding+OI) features. The cosmetic-gate failure reflects a REAL limit,
+  not merely an inadequate descriptor. (The rigor caught a plausible +0.5-IC false positive -- 3rd artifact this
+  session debunked, alongside beta-baseline + TTA-leak.)
+CONCLUSION STANDS: no causal regime signal to gate on -> regime-conditional unification cannot work. Production =
+  the simpler robust models (adaptive default; or adaptive+MH strong / adaptive+MoE weak by trading regime).

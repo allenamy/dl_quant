@@ -256,7 +256,9 @@ def train_one_fold_v2(
                     idx = mask.nonzero(as_tuple=True)[0]
                     if len(idx) == 0:
                         continue
-                    m_out = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
+                    # SKIP batch-level scalars (0-dim, e.g. regime-MoE lb loss).
+                    m_out = {k: v[idx] for k, v in outputs.items()
+                             if torch.is_tensor(v) and v.dim() > 0}
                     loss = loss_fn(m_out, y[idx])
                     loss_sum += float(loss.item()); steps += 1
                     pred_np = outputs["point_pred"][idx].cpu().numpy()
@@ -304,8 +306,16 @@ def train_one_fold_v2(
                 idx = mask.nonzero(as_tuple=True)[0]
                 if len(idx) == 0:
                     global_step += 1; continue
-                m_out = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
+                # SKIP batch-level scalars (0-dim, e.g. regime-MoE lb loss).
+                m_out = {k: v[idx] for k, v in outputs.items()
+                         if torch.is_tensor(v) and v.dim() > 0}
                 loss = loss_fn(m_out, y[idx])
+            # regime-MoE load-balancing aux (guard #4): add moe_lb_weight·CV^2 of
+            # the batch-mean router weights. No-op unless use_regime_moe is on.
+            if "moe_lb_loss" in outputs:
+                lb_w = float(getattr(model, "moe_lb_weight", 0.0))
+                if lb_w > 0.0:
+                    loss = loss + lb_w * outputs["moe_lb_loss"]
             if not torch.isfinite(loss):
                 optimizer.zero_grad(); global_step += 1; continue
             optimizer.zero_grad(); loss.backward()

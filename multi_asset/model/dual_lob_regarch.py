@@ -61,6 +61,184 @@ import torch.nn as nn
 
 from src.model.dual_path_model_v3 import DualPathLOBModelV3
 from src.model.raw_lob_encoder import RawLOBEncoder  # same class the parent uses for Path B
+from src.model.regime_film import FiLM  # reuse parent FiLM (identity-init) verbatim
+from multi_asset.model.regime_film_rich import RichRegimeFeatureExtractor
+
+
+class RegimeMoE(nn.Module):
+    """K=2 soft mixture-of-experts on the FINAL pooled representation.
+
+    MECHANISM (why this, not affine FiLM)
+    -------------------------------------
+    The adaptive regime-FiLM (γ⊙h_pred+β) can RESCALE the pooled features per
+    regime but cannot change the FUNCTIONAL FORM the head applies — yet
+    strong-month MOMENTUM and choppy-month REVERSION are *different functions*
+    of the same features (opposite-signed maps). A shared backbone + affine
+    modulation averages those two functions, collapsing on off-average regimes
+    (the documented 0.105→0.016 strong→choppy collapse). A K=2 soft-MoE lets the
+    model learn TWO functional forms (two small FFNs) and SOFTMAX-ROUTE between
+    them by the per-window REGIME DESCRIPTOR (``regime_prior``: price-regime, and
+    in the OI configs the 8 positioning/OI descriptors). So POSITIONING STATE
+    selects WHICH function — momentum-expert vs reversion-expert — rather than
+    just rescaling one shared function.
+
+    DESIGN — share most params, branch ONLY this final FFN
+    ------------------------------------------------------
+    The entire backbone / attention / conv / FiLM stack is SHARED (one set of
+    weights). Only the final pooled-representation transform is branched into 2
+    experts. The MoE output is ADDED as a residual::
+
+        moe_out = w0 * expert0(h_pred) + w1 * expert1(h_pred)   # (B, d_model)
+        h_pred  = h_pred + moe_out
+
+    so the experts learn a regime-selected *correction* to the shared pooled
+    representation. On this weak signal (R²<1%) a full per-regime backbone would
+    overfit; branching only the final FFN keeps the added params tiny.
+
+    OVERFIT GUARDS (regime-MoE has overfit on this signal in project history)
+    ------------------------------------------------------------------------
+    1. ZERO-INIT expert specialization: BOTH experts' OUTPUT Linear is zero-init
+       (weight AND bias). => each expert outputs exactly 0 at init => moe_out==0
+       REGARDLESS of router weights => h_pred is UNCHANGED at init => the model
+       is BIT-IDENTICAL to the use_regime_moe=False adaptive baseline at step 0.
+       The MoE can therefore ONLY help; it can never break the verified baseline.
+    2. K=2 ONLY (two functional forms: momentum vs reversion — no more capacity).
+    3. Router init near-uniform: the router's OUTPUT Linear is zero-init too, so
+       logits==0 => softmax == exact [0.5, 0.5] at init (no premature expert
+       collapse; gradient flows to both experts from step 0).
+    4. LOAD-BALANCING aux loss = coefficient_of_variation^2 of the batch-mean
+       router weights (encourages BOTH experts to be used; penalises a degenerate
+       all-mass-on-one-expert router). Exposed (NOT applied here) so the trainer
+       can add it with a SMALL weight (~0.01); if the trainer cannot consume it,
+       the zero-init + heavy weight-decay still guard against overfit.
+    5. Heavy weight-decay on expert+router params (configs already carry wd; the
+       trainer applies one wd to all params — note: keep wd ≥ the config's).
+
+    GRADIENT NOTE
+    -------------
+    Unlike the perp/long-context gates (a scalar α multiplying the whole sub-net,
+    which would gradient-STARVE the sub-net if α==0), here the experts feed the
+    output via an ADDITIVE residual whose magnitude is the expert OUTPUT itself.
+    Zero-init makes the *value* 0 but NOT the gradient: ∂moe_out/∂W_out depends on
+    the (non-zero) GELU activations, so the OUTPUT Linear receives gradient from
+    step 0; the gradient to the expert INPUT Linear and to the router is scaled by
+    W_out (zero at init) so it ramps in as W_out grows — by design the experts
+    start as the identity (moe_out=0) and specialise only as training routes
+    regimes, never breaking the baseline. The router still receives gradient via
+    every step where W_out≠0; a tiny load-balance weight also keeps it live.
+    """
+
+    def __init__(self, d_model: int, d_prior: int, n_experts: int = 2,
+                 router_hidden: int = 16, dropout: float = 0.0,
+                 use_regime_gate: bool = False) -> None:
+        super().__init__()
+        assert n_experts == 2, "RegimeMoE is K=2 only (guard #2)"
+        self.n_experts = int(n_experts)
+        self.d_model = int(d_model)
+        self.d_prior = int(d_prior)
+
+        # --- REGIME-GATED ACTIVATION (default OFF; byte-identical when off) ---
+        # Mechanism (lever-conflict resolution): the MoE helps WEAK/choppy folds
+        # (standalone CLEAN ~0.085) but slightly DILUTES strong folds. Rather than
+        # a hard regime switch, we add a LEARNABLE scalar gate g_moe ∈ (0,1) on the
+        # MoE residual, conditioned on the per-window regime descriptor
+        # (regime_prior carries vol/trend/positioning). The model LEARNS to drive
+        # g_moe→~1 in weak regimes (MoE active) and g_moe→~0 in strong regimes
+        # (MoE suppressed) — the regime→lever mapping is learned end-to-end.
+        #
+        # ZERO-INIT (weight AND bias) => logit==0 => sigmoid==0.5 at init. This is
+        # the NEUTRAL half-weight start the spec asks for. CRITICAL: this does NOT
+        # affect zero-init NEUTRALITY of the whole model, because moe_out is
+        # ALREADY exactly 0 at init (the experts' output Linear is zero-init), so
+        # g_moe * moe_out == 0.5 * 0 == 0 for ANY g_moe. The gate only learns to
+        # scale the (learned) moe_out by regime as training proceeds.
+        self.use_regime_gate = bool(use_regime_gate)
+        if self.use_regime_gate:
+            self.moe_gate = nn.Linear(self.d_prior, 1)
+            nn.init.zeros_(self.moe_gate.weight)
+            nn.init.zeros_(self.moe_gate.bias)
+        else:
+            self.moe_gate = None
+
+        # --- K=2 expert FFNs: Linear(d->d) -> GELU -> Linear(d->d) ---
+        self.experts = nn.ModuleList()
+        for _ in range(self.n_experts):
+            lin_in = nn.Linear(self.d_model, self.d_model)
+            lin_out = nn.Linear(self.d_model, self.d_model)
+            # GUARD #1: zero-init the OUTPUT Linear (weight AND bias) so the
+            # expert outputs EXACTLY 0 at init -> moe_out == 0 -> bit-identical
+            # to the use_regime_moe=False baseline.
+            nn.init.zeros_(lin_out.weight)
+            nn.init.zeros_(lin_out.bias)
+            self.experts.append(nn.Sequential(
+                lin_in, nn.GELU(), nn.Dropout(float(dropout)), lin_out,
+            ))
+
+        # --- router: small MLP regime_prior -> n_experts logits -> softmax ---
+        # GUARD #3: router init NEAR-uniform. The output Linear gets TINY (std
+        # 1e-3) weights and ZERO bias so the logits are ~0 at init -> softmax ≈
+        # [0.5, 0.5] (both experts used; no premature collapse). We use a tiny
+        # NON-zero std rather than exact zero on purpose: with EXACT-zero logits
+        # the router sits at the precise symmetric minimum of the load-balance
+        # CV^2 AND the main-path router gradient is also 0 (because zero-init
+        # experts make ∂moe_out/∂w = expert(h) = 0 at init) -> the router would
+        # be momentarily FROZEN at step 0. A ~1e-3 perturbation keeps the router
+        # essentially uniform (|Δw| < 1e-3) while giving it live gradient from
+        # step 0. This does NOT affect zero-init NEUTRALITY: neutrality comes
+        # from the zero-init EXPERTS (moe_out = Σ w_k·0 = 0 for ANY router
+        # weights), so the forward is still bit-identical to the MoE-off baseline
+        # regardless of the router init. The hidden Linear keeps default init for
+        # real expressive capacity to depart from uniform as training proceeds.
+        router_out = nn.Linear(int(router_hidden), self.n_experts)
+        nn.init.normal_(router_out.weight, std=1e-3)
+        nn.init.zeros_(router_out.bias)
+        self.router = nn.Sequential(
+            nn.Linear(self.d_prior, int(router_hidden)),
+            nn.GELU(),
+            router_out,
+        )
+
+        # filled on every forward so the caller can read the load-balance aux loss
+        self._last_lb_loss: Optional[torch.Tensor] = None
+        self._last_router_w: Optional[torch.Tensor] = None
+        self._last_g_moe: Optional[torch.Tensor] = None
+
+    def forward(self, h_pred: torch.Tensor,
+                regime_prior: torch.Tensor) -> torch.Tensor:
+        """h_pred (B, d_model), regime_prior (B, d_prior) -> h_pred + moe_out.
+
+        Also stores the load-balancing aux loss (CV^2 of batch-mean router
+        weights) on ``self._last_lb_loss`` for the trainer to consume.
+        """
+        logits = self.router(regime_prior)                   # (B, n_experts)
+        w = torch.softmax(logits, dim=-1)                    # (B, n_experts)
+
+        # stack expert outputs -> (B, n_experts, d_model); weight + sum
+        expert_out = torch.stack(
+            [e(h_pred) for e in self.experts], dim=1)        # (B, K, d_model)
+        moe_out = (w.unsqueeze(-1) * expert_out).sum(dim=1)  # (B, d_model)
+
+        # GUARD #4: load-balancing = CV^2 of the BATCH-MEAN router weights.
+        # p_k = mean_b w_{b,k} (the fraction of mass expert k receives on this
+        # batch); a balanced router has p ≈ [1/K..], CV^2 ≈ 0; a collapsed router
+        # (all mass on one expert) has CV^2 large -> penalised.
+        p = w.mean(dim=0)                                    # (n_experts,)
+        cv2 = p.var(unbiased=False) / (p.mean() ** 2 + 1e-12)
+        self._last_lb_loss = cv2
+        self._last_router_w = w.detach()
+
+        # REGIME GATE: scale the MoE residual by g_moe = sigmoid(moe_gate(prior)).
+        # Zero-init => g_moe==0.5 at init; moe_out==0 at init => g_moe*moe_out==0
+        # => bit-identical to the gate-off / MoE-off baseline at step 0. The gate
+        # learns suppress-in-strong / active-in-weak from the regime descriptor.
+        if self.moe_gate is not None:
+            g_moe = torch.sigmoid(self.moe_gate(regime_prior))  # (B, 1) in (0,1)
+            self._last_g_moe = g_moe.detach()
+            moe_out = g_moe * moe_out
+        else:
+            self._last_g_moe = None
+
+        return h_pred + moe_out
 
 
 class DualLOBREGArch(DualPathLOBModelV3):
@@ -90,6 +268,12 @@ class DualLOBREGArch(DualPathLOBModelV3):
         d_perp: int = 16,
         perp_alpha_init: float = 0.05,
         use_snapshot_skip: bool = False,
+        use_rich_regime: bool = False,
+        use_oi_regime: bool = False,
+        use_regime_moe: bool = False,
+        moe_lb_weight: float = 0.01,
+        use_regime_gated_mh: bool = False,
+        use_regime_gated_moe: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -98,6 +282,63 @@ class DualLOBREGArch(DualPathLOBModelV3):
         self.d_perp = int(d_perp)
         # one-call stash for forward()->encode() threading of the perp tensor
         self._x_raw_perp_deep: Optional[torch.Tensor] = None
+        # last multi-horizon regime gate value (diagnostic; set in forward)
+        self._last_g_mh: Optional[torch.Tensor] = None
+
+        # --- LEVER 1: rich (14-feature) regime FiLM extractor (default OFF) ---
+        # Mechanism: the parent's RegimeFeatureExtractor feeds the identity-init
+        # FiLM only 6 vol-flavoured descriptors. We swap in
+        # RichRegimeFeatureExtractor (14 causal descriptors: the SAME 6 + signed
+        # multi-scale trend, vol-of-vol, micro-activity, multi-lag OBI
+        # persistence, all-column activity ratio) and REBUILD FiLM to accept the
+        # wider input. The FiLM is re-instantiated with the parent's identity-init
+        # (γ≈1, β≈0) so at step 0 the swap is identity-modulation — the model is
+        # NOT broken and trains to baseline if the extra axes carry no signal.
+        # Only fires when the parent actually built regime FiLM (use_regime_film).
+        # Flag default False => single-horizon & non-rich paths are byte-identical.
+        self.use_rich_regime = bool(use_rich_regime)
+
+        # --- LEVER (OI regime): make the regime FiLM ALSO consume regime_prior ---
+        # Mechanism: regime_prior now carries 8 DESIGNED OI/funding positioning
+        # descriptors appended to the 6 vol descriptors (overlaid into the caches
+        # by multi_asset/data/add_oi_regime_prior.py -> regime_prior is (N,14)).
+        # That vector is already threaded dataset->model and feeds the
+        # regime_bias_head / ppnet / multistage FiLM gates. Here we ALSO feed it
+        # to the regime FiLM (the per-sample γ⊙h+β modulation): we CONCAT
+        # regime_prior to the x_feat-derived extractor output, so positioning
+        # REGIME (open-interest flow, crowding, funding×OI squeeze) can modulate
+        # γ/β directly. This is the decisive DL test the linear Ridge gate cannot
+        # settle. Flag default False => byte-identical to the rich/base paths.
+        self.use_oi_regime = bool(use_oi_regime)
+
+        # Rebuild the regime FiLM if EITHER lever is on. Both reuse the parent's
+        # identity-init FiLM (γ≈1, β≈0) so the swap is identity-modulation at
+        # step 0 (the model trains to baseline if the extra axes carry no signal).
+        # Only fires when the parent actually built regime FiLM (use_regime_film).
+        if (self.use_rich_regime or self.use_oi_regime) \
+                and getattr(self, "use_regime_film", False) \
+                and self.regime_film is not None:
+            # Preserve the parent's FiLM hyper-params: hidden = the existing
+            # FiLM's first-Linear out_features; dropout = the model dropout
+            # (parent built FiLM with dropout=dropout). d_model from the model.
+            _hidden = int(self.regime_film.mlp[0].out_features)
+            if self.use_rich_regime:
+                # swap the 6-feat extractor for the 14-feat rich one
+                self.regime_extractor = RichRegimeFeatureExtractor(
+                    obi_feature_idx=self.regime_extractor.obi_feature_idx,
+                )
+            # n_regime_feats = extractor descriptors (+ regime_prior width when
+            # the OI lever concats the prior at FiLM time). d_prior is the
+            # regime_prior width the rest of the model is also built for.
+            n_regime_feats = self.regime_extractor.n_features_out
+            if self.use_oi_regime:
+                n_regime_feats += int(self.d_prior)
+            self.regime_film = FiLM(
+                d_model=self.d_model,
+                n_regime_feats=n_regime_feats,
+                hidden=_hidden,
+                dropout=self.dropout,
+            )
 
         # --- linear snapshot skip-path (default OFF; zero-init = exact identity) ---
         # Mechanism: the Conformer backbone TEMPORALLY AVERAGES the per-timestep
@@ -121,6 +362,79 @@ class DualLOBREGArch(DualPathLOBModelV3):
             nn.init.zeros_(self.snapshot_skip.bias)
         else:
             self.snapshot_skip = None
+
+        # --- LEVER (regime-MoE): K=2 soft-MoE on the FINAL pooled rep (default OFF) ---
+        # Mechanism: the adaptive regime-FiLM can only RESCALE the pooled features
+        # per regime (γ⊙h+β) — it cannot change the FUNCTIONAL FORM. Strong-month
+        # MOMENTUM and choppy-month REVERSION are different (opposite-signed)
+        # functions of the same features; a shared backbone averages them and
+        # collapses off-average (0.105→0.016 strong→choppy). A K=2 soft-MoE adds
+        # TWO small expert FFNs on the pooled representation h_pred, SOFTMAX-routed
+        # by the per-window regime descriptor (regime_prior), so POSITIONING STATE
+        # selects WHICH function. We branch ONLY this final FFN (share all
+        # backbone/attention/conv/FiLM params) — a full per-regime backbone would
+        # overfit this weak signal. ZERO-INIT experts => moe_out==0 at init =>
+        # bit-identical to the use_regime_moe=False adaptive baseline (proven in
+        # tests); the MoE can ONLY help. See RegimeMoE docstring for all 5 guards.
+        # Routes on the standard regime_prior (d_prior, =6 from the shared clean
+        # caches; =14 when the OI cache overlays the 8 positioning descriptors).
+        # moe_lb_weight (~0.01) is the load-balance aux-loss weight the trainer
+        # MAY add via out["moe_lb_loss"]; zero-init + heavy wd guard regardless.
+        # --- REGIME-GATED LEVER ACTIVATION (lever-conflict resolution) -------
+        # Diagnosed conflict in the naive all-levers model: MULTI-HORIZON (y_180
+        # aux) HELPS strong folds (CLEAN 0.112) but HURTS weak folds (the aux
+        # y_180 head competes with the primary y_600 for the shared backbone),
+        # while the regime-MoE HELPS weak folds (standalone CLEAN ~0.085) but
+        # slightly DILUTES strong. FIX = make BOTH levers regime-conditional in
+        # ONE model via learnable sigmoid gates the model learns to map regime->
+        # lever (no hard switch):
+        #   * g_moe (in RegimeMoE): MoE residual scaled up in weak / down in
+        #     strong (see RegimeMoE.use_regime_gate).
+        #   * g_mh (here): the AUX-horizon (non-primary, y_180) head contribution
+        #     scaled BEFORE it reaches the loss, so the y_180 aux gradient/loss
+        #     flows mainly in strong and is suppressed in weak — leaving the
+        #     primary y_600 to dominate weak folds. The PRIMARY y_600 head slice
+        #     is NEVER touched (non-negotiable guard, verified in tests).
+        # Both gates default OFF => existing behaviour byte-identical.
+        self.use_regime_gated_mh = bool(use_regime_gated_mh)
+        self.use_regime_gated_moe = bool(use_regime_gated_moe)
+
+        # primary horizon = the LAST horizon (codebase convention: horizons_sec=
+        # [180,600] => primary y_600 is index n_horizons-1; the aux y_180 is
+        # index 0). g_mh gates EVERY non-primary (aux) horizon slice; the primary
+        # slice is left bit-identical. Exposed as an attribute so a future trainer
+        # could override it, but the default matches train_v2arch's
+        # primary_horizon_idx = horizons_list.index(f"y_{horizon_sec}").
+        self.primary_horizon_idx = max(int(self.n_horizons) - 1, 0)
+
+        self.use_regime_moe = bool(use_regime_moe)
+        self.moe_lb_weight = float(moe_lb_weight)
+        if self.use_regime_moe:
+            self.regime_moe = RegimeMoE(
+                d_model=self.d_model,
+                d_prior=int(self.d_prior),
+                n_experts=2,
+                dropout=self.dropout,
+                use_regime_gate=self.use_regime_gated_moe,
+            )
+        else:
+            self.regime_moe = None
+
+        # --- MULTI-HORIZON regime gate head (default OFF; zero-init neutral) ---
+        # g_mh = sigmoid(mh_gate(regime_prior)) ∈ (0,1). Zero-init weight+bias =>
+        # logit 0 => g_mh==0.5 at init. Applied ONLY to the aux-horizon slice of
+        # quantiles_by_horizon / point_pred_by_horizon (NOT the primary y_600
+        # slice) in forward(). Only built when multi-horizon (n_horizons>1) AND
+        # the flag is on; single-horizon configs are byte-identical regardless.
+        if self.use_regime_gated_mh and int(self.n_horizons) > 1:
+            self.mh_gate = nn.Linear(int(self.d_prior), 1)
+            nn.init.zeros_(self.mh_gate.weight)
+            nn.init.zeros_(self.mh_gate.bias)
+        else:
+            self.mh_gate = None
+            # keep the flag truthful: gating only fires with >1 horizon + the gate
+            if self.use_regime_gated_mh and int(self.n_horizons) <= 1:
+                self.use_regime_gated_mh = False
 
         if self.use_perp_residual:
             # SAME encoder class + key kwargs as the parent's Path-B raw_encoder
@@ -321,12 +635,32 @@ class DualLOBREGArch(DualPathLOBModelV3):
         # 8a. Regime-aware FiLM modulation.
         if self.use_regime_film and self.regime_film is not None:
             regime_feats = self.regime_extractor(x_feat)
+            # OI lever: concat the per-window regime_prior (now carrying the 8
+            # OI/funding descriptors) onto the x_feat-derived descriptors so the
+            # FiLM γ/β are also conditioned on positioning REGIME. The FiLM was
+            # rebuilt in __init__ to accept extractor.n_features_out + d_prior.
+            if getattr(self, "use_oi_regime", False) and regime_prior is not None:
+                regime_feats = torch.cat(
+                    [regime_feats, regime_prior.to(regime_feats.dtype)], dim=-1)
             h_pred = self.regime_film(h_pred, regime_feats)
 
         # 8. PPNet regime-conditioned gating.
         if regime_prior is not None and self.ppnet_gate is not None \
                 and not getattr(self, 'use_film_multistage', False):
             h_pred = self.ppnet_gate(h_pred, regime_prior)
+
+        # 8b. Regime-MoE: K=2 soft-MoE on the FINAL pooled representation.
+        # The LAST transform of h_pred — a regime-routed residual correction:
+        # h_pred = h_pred + (w0·expert0(h_pred) + w1·expert1(h_pred)). Routed by
+        # regime_prior so POSITIONING/PRICE STATE selects the functional form
+        # (momentum-expert vs reversion-expert). ZERO-INIT experts => moe_out==0
+        # at init => h_pred UNCHANGED => bit-identical to the use_regime_moe=False
+        # baseline (the non-negotiable zero-init guard, proven in tests). The
+        # load-balance aux loss is stashed on regime_moe._last_lb_loss and surfaced
+        # to the trainer in forward() as out["moe_lb_loss"]. Requires regime_prior;
+        # if absent the MoE is skipped (no descriptor to route on).
+        if self.regime_moe is not None and regime_prior is not None:
+            h_pred = self.regime_moe(h_pred, regime_prior)
 
         return h_pred
 
@@ -365,6 +699,53 @@ class DualLOBREGArch(DualPathLOBModelV3):
         finally:
             self._x_raw_perp_deep = None
 
+        # --- MULTI-HORIZON regime gate on the AUX-horizon head slice ----------
+        # Resolve the diagnosed lever conflict (y_180 aux helps STRONG, hurts
+        # WEAK by competing with primary y_600) by scaling the AUX-horizon head
+        # contribution by a learnable regime gate g_mh ∈ (0,1) BEFORE the trainer
+        # reads quantiles_by_horizon / point_pred_by_horizon for the per-horizon
+        # loss (_multi_horizon_loss slices q_by_h[:, h_idx, :]). The model learns
+        # g_mh→~1 in strong (aux active) and g_mh→~0 in weak (aux suppressed).
+        #
+        # ONLY the NON-PRIMARY (aux) horizon slices are scaled. The PRIMARY y_600
+        # slice (index self.primary_horizon_idx = n_horizons-1) is left BYTE-
+        # IDENTICAL — the non-negotiable guard. The top-level out["quantiles"] /
+        # out["point_pred"] expose horizon_idx, which the trainer sets to the
+        # primary index (primary_horizon_idx), so the eval/checkpoint metrics are
+        # ALSO untouched. We re-derive the top-level slices from the (possibly
+        # gated) by-horizon tensors so every consumer stays coherent.
+        # Zero-init mh_gate => g_mh==0.5 at init: the aux slice is scaled by 0.5
+        # at init (acceptable — it is AUX), the primary slice is bit-identical.
+        if (
+            self.use_regime_gated_mh
+            and self.mh_gate is not None
+            and regime_prior is not None
+            and "quantiles_by_horizon" in out
+        ):
+            q_by_h = out["quantiles_by_horizon"]                 # (B, n_h, 3)
+            p_by_h = out["point_pred_by_horizon"]                # (B, n_h)
+            n_h = q_by_h.shape[1]
+            p_idx = int(self.primary_horizon_idx)
+            g_mh = torch.sigmoid(self.mh_gate(regime_prior))     # (B, 1) in (0,1)
+            self._last_g_mh = g_mh.detach()
+            # Build a per-horizon scale: 1.0 on the primary slice (untouched),
+            # g_mh on every aux slice. Vectorised, no in-place on the primary.
+            scale = torch.ones(
+                q_by_h.shape[0], n_h, device=q_by_h.device, dtype=q_by_h.dtype)
+            for h in range(n_h):
+                if h != p_idx:
+                    scale[:, h] = g_mh.squeeze(-1).to(q_by_h.dtype)
+            q_by_h = q_by_h * scale.unsqueeze(-1)                # (B, n_h, 3)
+            p_by_h = p_by_h * scale                              # (B, n_h)
+            out["quantiles_by_horizon"] = q_by_h
+            out["point_pred_by_horizon"] = p_by_h
+            # Re-derive top-level slices (horizon_idx == primary at train/eval =>
+            # the primary slice => these stay bit-identical to the ungated model).
+            out["quantiles"] = q_by_h[:, horizon_idx, :]
+            out["point_pred"] = p_by_h[:, horizon_idx]
+        else:
+            self._last_g_mh = None
+
         # --- linear snapshot skip-path (zero-init => no-op at start) ----------
         # Add the learned linear readout of the LAST-TIMESTEP feature vector to
         # the head's quantiles, in the SAME output space the trainer/eval consume
@@ -390,4 +771,17 @@ class DualLOBREGArch(DualPathLOBModelV3):
                 q = out["quantiles"] + snap                      # (B, 3)
                 out["quantiles"] = q
                 out["point_pred"] = q[:, 1]
+
+        # --- regime-MoE load-balancing aux loss (guard #4) -------------------
+        # Surface the CV^2-of-batch-mean-router-weights aux loss computed during
+        # this forward (stashed on regime_moe._last_lb_loss inside _encode_tail)
+        # so the trainer MAY add moe_lb_weight·moe_lb_loss to the objective
+        # (encourages both experts to be used). The trainer is free to ignore
+        # this key — the zero-init experts + heavy weight-decay guard against
+        # overfit regardless. moe_lb_weight is exposed as a model attribute so
+        # the trainer can read the recommended (~0.01) coefficient.
+        if self.regime_moe is not None and self.regime_moe._last_lb_loss is not None:
+            out["moe_lb_loss"] = self.regime_moe._last_lb_loss
+            out["moe_lb_weight"] = torch.as_tensor(
+                self.moe_lb_weight, device=out["point_pred"].device)
         return out

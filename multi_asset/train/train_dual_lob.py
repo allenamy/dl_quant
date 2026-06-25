@@ -95,11 +95,27 @@ _BASE_ALLOWED = {
     "use_se_block_input",
 }
 # Perp-residual extension kwargs (consumed by DualLOBREGArch only).
-# ``use_snapshot_skip`` (linear last-timestep snapshot readout) is also a
-# DualLOBREGArch __init__ kwarg, so it rides the same routing set: both
-# build_dual_lob_model and build_v2arch_model pass **perp to the constructor.
+# ``use_snapshot_skip`` (linear last-timestep snapshot readout),
+# ``use_rich_regime`` (14-feature regime FiLM extractor) and ``use_oi_regime``
+# (regime FiLM ALSO consumes regime_prior -> OI/funding positioning modulates
+# γ/β) are also DualLOBREGArch __init__ kwargs, so they ride the same routing
+# set: both build_dual_lob_model and build_v2arch_model pass **perp to the
+# constructor.
+# ``use_regime_moe`` (K=2 soft-MoE on the FINAL pooled representation, routed by
+# regime_prior so positioning/price STATE selects the functional form —
+# momentum-expert vs reversion-expert) + ``moe_lb_weight`` (the ~0.01
+# load-balance aux-loss coefficient surfaced as out["moe_lb_loss"]) are also
+# DualLOBREGArch __init__ kwargs and ride the same routing set.
+# ``use_regime_gated_mh`` / ``use_regime_gated_moe`` (REGIME-GATED lever
+# activation: learnable sigmoid gates that turn the y_180 multi-horizon aux ON in
+# strong / OFF in weak, and scale the regime-MoE residual up in weak / down in
+# strong — resolving the diagnosed strong-vs-weak lever conflict in ONE model;
+# both zero-init => byte-identical when off) are also DualLOBREGArch __init__
+# kwargs and ride the same routing set.
 _PERP_KEYS = {"use_perp_residual", "perp_n_levels", "d_perp", "perp_alpha_init",
-              "use_snapshot_skip"}
+              "use_snapshot_skip", "use_rich_regime", "use_oi_regime",
+              "use_regime_moe", "moe_lb_weight",
+              "use_regime_gated_mh", "use_regime_gated_moe"}
 
 
 def build_dual_lob_model(model_cfg: dict, n_features: int,
@@ -382,7 +398,10 @@ def train_one_fold_dual(
                 idx = mask.nonzero(as_tuple=True)[0]
                 if len(idx) == 0:
                     continue
-                m_out = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
+                # SKIP batch-level scalars (0-dim, e.g. regime-MoE lb loss) which
+                # have no per-sample axis to slice; the val loss ignores the aux.
+                m_out = {k: v[idx] for k, v in outputs.items()
+                         if torch.is_tensor(v) and v.dim() > 0}
                 m_tgt = y[idx]
                 loss = loss_fn(m_out, m_tgt)
                 loss_sum += float(loss.item())
@@ -435,8 +454,20 @@ def train_one_fold_dual(
             if len(idx) == 0:
                 global_step += 1
                 continue
-            m_out = {k: v[idx] for k, v in outputs.items() if torch.is_tensor(v)}
+            # Per-sample index every (B,...) tensor; SKIP batch-level scalars
+            # (0-dim, e.g. the regime-MoE load-balance aux loss) which have no
+            # sample axis to slice.
+            m_out = {k: v[idx] for k, v in outputs.items()
+                     if torch.is_tensor(v) and v.dim() > 0}
             loss = loss_fn(m_out, y[idx])
+            # regime-MoE load-balancing aux (guard #4): add moe_lb_weight·CV^2 of
+            # the batch-mean router weights so both experts stay used. Batch-level
+            # (uses the full-batch router weights, not the masked subset). No-op
+            # unless use_regime_moe is on (key absent otherwise).
+            if "moe_lb_loss" in outputs:
+                lb_w = float(getattr(model, "moe_lb_weight", 0.0))
+                if lb_w > 0.0:
+                    loss = loss + lb_w * outputs["moe_lb_loss"]
             if not torch.isfinite(loss):
                 optimizer.zero_grad()
                 global_step += 1
