@@ -115,7 +115,10 @@ _BASE_ALLOWED = {
 _PERP_KEYS = {"use_perp_residual", "perp_n_levels", "d_perp", "perp_alpha_init",
               "use_snapshot_skip", "use_rich_regime", "use_oi_regime",
               "use_regime_moe", "moe_lb_weight",
-              "use_regime_gated_mh", "use_regime_gated_moe"}
+              "use_regime_gated_mh", "use_regime_gated_moe",
+              # Stage-0B D1 fixed-regime-state substrate (forwarded to DualLOBREGArch):
+              "use_fixed_regime_state", "use_state_prior", "d_state_prior",
+              "use_output_gain", "regime_state_fit_samples"}
 
 
 def build_dual_lob_model(model_cfg: dict, n_features: int,
@@ -835,6 +838,11 @@ def _common_ds_kwargs(data_cfg: dict, horizons_list) -> dict:
     )
     if horizons_list is not None:
         kw["horizons"] = horizons_list
+    # Stage-0B D1 state_prior overlay (only DualLOBDataset accepts this kwarg;
+    # LOBDatasetV2/SlicedLOBDataset reject it) -> add ONLY when configured so the
+    # non-perp BASE/dualsrc arms stay byte-compatible.
+    if data_cfg.get("state_prior_dir"):
+        kw["state_prior_dir"] = data_cfg["state_prior_dir"]
     return kw
 
 
@@ -944,6 +952,12 @@ def main() -> None:
         raw_levels = int(sample0["X_raw"].shape[-2])
         model = build_dual_lob_model(model_cfg, n_features, raw_levels)
         print(f"[train_dual_lob] params={sum(p.numel() for p in model.parameters()):,}")
+
+        # Stage-0B D1: freeze the fixed-regime-state descriptor + prior stats on THIS
+        # fold's normalised train dataset (FLAG-2 fix; buffers persist in the ckpt).
+        # No-op unless use_fixed_regime_state is on.
+        if getattr(model, "use_fixed_regime_state", False):
+            model.fit_regime_state_stats(train_ds)
 
         best = train_one_fold_dual(
             model=model, train_dataset=train_ds, val_dataset=val_ds, out_dir=fold_dir,
