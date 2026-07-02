@@ -28,7 +28,8 @@ def metrics(q, y, ts):
                 if np.isfinite(r): rs.append(r)
     return dP, (np.mean(rs) if rs else float("nan")), b, sg
 run = sys.argv[1]; month = "_".join(run.split("_")[1:3])
-base = "experiments/d1gate/"+run+"/fold_0"
+outdir = sys.argv[2] if len(sys.argv) > 2 else "experiments/d1gate/"+run
+base = outdir.rstrip("/")+"/fold_0"
 mj = json.load(open(base+"/metrics.json")); sel = mj.get("selection", {})
 dP, cdP, b, sg = metrics(*load(base+"/ema_test_preds.npz"))
 bcd, bd = BASE.get(month, (float("nan"), float("nan")))

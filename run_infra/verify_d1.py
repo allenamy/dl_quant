@@ -1,7 +1,9 @@
 """Verify a d1gate run finished healthily: metrics.json parses + epochs_ran>=5 +
 ema_test_preds.npz exists. Exit 0 = OK. Usage: python verify_d1.py <run_name>."""
 import json, sys, os
-run = sys.argv[1]; base = "experiments/d1gate/"+run+"/fold_0"
+run = sys.argv[1]
+outdir = sys.argv[2] if len(sys.argv) > 2 else "experiments/d1gate/"+run
+base = outdir.rstrip("/")+"/fold_0"
 try:
     d = json.load(open(base+"/metrics.json"))
 except Exception:
