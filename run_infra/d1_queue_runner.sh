@@ -46,31 +46,46 @@ score_and_log(){ # run_name output_dir
 
 run_arm(){ # config_path seed
   local cfg="$1" seed="$2"
-  local rn od mo log ref pid rc aborted ec sr kill_it
+  local rn od mo log ref pid rc aborted ec sr kill_it existing
   rn=$(run_name_of "$cfg"); od=$(outdir_of "$cfg"); mo=$(month_of "$rn"); log="logs/${rn}.log"
   if [ -z "$rn" ] || [ -z "$od" ]; then say "SKIP unreadable config $cfg"; touch "$DONEDIR/badcfg_$(basename "$cfg")"; return; fi
+  # RESTART RECOVERY: if this exact config is ALREADY training (orphan from a
+  # killed runner), ADOPT it (wait + score, no relaunch, no early-abort).
+  existing=$(pgrep -f "$(basename "$cfg")" | head -1)
+  if [ -n "$existing" ]; then
+    say "ADOPT_RUNNING $rn pid=$existing (restart recovery; no relaunch/abort)"
+    while kill -0 "$existing" 2>/dev/null; do sleep 30; done
+    score_and_log "$rn" "$od"; touch "$DONEDIR/$rn"; return
+  fi
   say "START $rn seed=$seed cfg=$cfg out=$od"
   python multi_asset/train/train_dual_lob.py --config "$cfg" --seed "$seed" > "$log" 2>&1 &
   pid=$!
-  ref=""
-  [ -f "logs/d1_${mo}_run1.log" ] && ref=$(python "$RI/parse_ep5.py" "logs/d1_${mo}_run1.log" 5 | awk '{print $1}')
   aborted=0
-  while kill -0 "$pid" 2>/dev/null; do
-    read -r ec sr < <(python "$RI/parse_ep5.py" "$log" 5 2>/dev/null)
-    if [ "${ec:-NA}" != "NA" ] && [ "${sr:-NA}" != "NA" ]; then
-      kill_it=$(python -c "
+  # ARM A (choppy-specialist, spec_*): NO ep5 early-abort. It trains on ~153
+  # low-trend days so σŷ/σy warms slowly (crosses ~ep6-8); the ep5 gate would
+  # false-negative it. Selection/patience-10 + live σ-crossing watch cover it.
+  if [[ "$rn" == spec_* ]]; then
+    say "NO_EARLY_ABORT $rn (ARM A slow-sigma-warmup exemption)"
+  else
+    ref=""
+    [ -f "logs/d1_${mo}_run1.log" ] && ref=$(python "$RI/parse_ep5.py" "logs/d1_${mo}_run1.log" 5 | awk '{print $1}')
+    while kill -0 "$pid" 2>/dev/null; do
+      read -r ec sr < <(python "$RI/parse_ep5.py" "$log" 5 2>/dev/null)
+      if [ "${ec:-NA}" != "NA" ] && [ "${sr:-NA}" != "NA" ]; then
+        kill_it=$(python -c "
 ec=float('$ec'); sr=float('$sr'); ref='$ref'
 thr=($ABORT_FRAC*float(ref)) if ref not in ('','NA') else $ABORT_FLOOR
 print(1 if (sr<$ABORT_SIGR and ec<thr) else 0)" 2>/dev/null)
-      if [ "$kill_it" = "1" ]; then
-        kill "$pid" 2>/dev/null; sleep 3; kill -9 "$pid" 2>/dev/null
-        say "ABORTED_EARLY $rn ep5 ema_comp=$ec sigR=$sr ref=${ref:-none}"
-        aborted=1; break
+        if [ "$kill_it" = "1" ]; then
+          kill "$pid" 2>/dev/null; sleep 3; kill -9 "$pid" 2>/dev/null
+          say "ABORTED_EARLY $rn ep5 ema_comp=$ec sigR=$sr ref=${ref:-none}"
+          aborted=1; break
+        fi
+        break
       fi
-      break
-    fi
-    sleep 30
-  done
+      sleep 30
+    done
+  fi
   wait "$pid" 2>/dev/null; rc=$?
   if [ "$aborted" != "1" ]; then
     if grep -qiE "out of memory|CUDA out of memory|Killed|rc=137" "$log" 2>/dev/null || [ "$rc" -ne 0 ]; then
