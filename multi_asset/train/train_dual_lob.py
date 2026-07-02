@@ -604,6 +604,16 @@ def train_one_fold_dual(
             "raw": _vslim(raw_val), "ema": _vslim(ema_val),
             "sigma_ok": bool(raw_val["val_sigma_ratio"] >= 0.02),
         })
+        # Stage-0b fix: persist val_hist INCREMENTALLY each epoch to a tiny sidecar
+        # file so the queue-runner can read per-epoch P/S/C mid-run (for the epoch-5
+        # early-abort decision) instead of parsing logs. metrics.json is only
+        # written at fold completion; val_hist.json is live.
+        try:
+            with open(osp.join(out_dir, "val_hist.json"), "w") as _vf:
+                json.dump({"val_hist": val_hist, "epochs_ran": epoch,
+                           "patience": patience}, _vf)
+        except Exception:
+            pass
         if save_epoch_ckpts:
             ep_payload = {"state": model.state_dict(), "class": type(model).__name__,
                           "config": _extract_model_config(model)}
