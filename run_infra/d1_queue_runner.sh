@@ -55,7 +55,16 @@ run_arm(){ # config_path seed
   if [ -n "$existing" ]; then
     say "ADOPT_RUNNING $rn pid=$existing (restart recovery; no relaunch/abort)"
     while kill -0 "$existing" 2>/dev/null; do sleep 30; done
-    score_and_log "$rn" "$od"; touch "$DONEDIR/$rn"; return
+    # If the adopted run finished cleanly -> score + mark done. If it DIED without
+    # metrics (crash/OOM mid-run, e.g. GPU contention), do NOT mark done -> the
+    # queue scan re-runs it FRESH once (the fresh non-adopt path always marks done,
+    # so this is bounded). Never FAIL-loses a run that merely got preempted.
+    if python "$RI/verify_d1.py" "$rn" "$od" >/dev/null 2>&1; then
+      score_and_log "$rn" "$od"; touch "$DONEDIR/$rn"
+    else
+      say "ADOPT_INCOMPLETE $rn (adopted run died without metrics; leaving unmarked -> one fresh re-run)"
+    fi
+    return
   fi
   say "START $rn seed=$seed cfg=$cfg out=$od"
   python multi_asset/train/train_dual_lob.py --config "$cfg" --seed "$seed" > "$log" 2>&1 &
