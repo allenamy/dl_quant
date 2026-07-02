@@ -60,7 +60,34 @@ class DualLOBDataset(LOBDatasetV2):
         # which we override below to also gather the perp tensor. We set a flag
         # BEFORE super().__init__ so _do_preload (invoked inside it) sees it.
         self._pre_X_raw_perp: np.ndarray | None = None
+        # D1 state_prior OVERLAY (Stage-0B): dir of per-day npz carrying the 18-d
+        # causal state vector (funding/pidx/OI/L-S/rvol) keyed by timestamps. When
+        # set, _load_day concatenates it onto regime_prior -> d_prior=24. Popped
+        # BEFORE super().__init__ (LOBDatasetV2 does not accept it) and set BEFORE
+        # so _do_preload (invoked inside super().__init__) sees it.
+        self.state_prior_dir: str | None = kwargs.pop("state_prior_dir", None)
         super().__init__(*args, **kwargs)
+
+        # Fail fast if the state overlay is requested but missing/misaligned for
+        # any day — a silently-missing overlay would corrupt d_prior alignment.
+        if self.state_prior_dir:
+            if not self._has_regime_prior:
+                raise ValueError(
+                    "state_prior_dir set but the cache has no regime_prior; the "
+                    "18-d state overlay is appended onto regime_prior."
+                )
+            missing_state: List[str] = []
+            for day in self.days:
+                if not os.path.exists(os.path.join(self.state_prior_dir, f"{day}.npz")):
+                    missing_state.append(day)
+                if len(missing_state) >= 5:
+                    break
+            if missing_state:
+                raise ValueError(
+                    f"state_prior overlay npz missing for {len(missing_state)}+ "
+                    f"day(s) (e.g. {missing_state[:5]}) under {self.state_prior_dir!r}. "
+                    f"Build it via multi_asset/data/build_state_prior.py first."
+                )
 
         if not self._has_raw:
             raise ValueError(
@@ -104,6 +131,37 @@ class DualLOBDataset(LOBDatasetV2):
             # bps + log1p units → no feature-stat normalisation).
             xp = np.nan_to_num(xp, nan=0.0, posinf=0.0, neginf=0.0)
             data[PERP_KEY] = xp
+
+        # D1 state_prior overlay: append the 18-d causal state onto regime_prior.
+        # Values are RAW (funding/OI/etc); the MODEL frozen-normalises them
+        # (FLAG-11 fix). Order is guaranteed row-aligned by the builder (it walks
+        # the source npz timestamps in order); we ASSERT timestamp equality to
+        # catch a stale/misbuilt overlay. Idempotent: only appends if the width
+        # is still the base prior width (re-reads of a cached day skip it).
+        if (self.state_prior_dir and "regime_prior" in data
+                and int(data["regime_prior"].shape[1]) <= 6):
+            # base prior width for npz_v2arch is 6; the <=6 guard also makes this
+            # a no-op on LRU cache hits (the cached dict already carries 24-d).
+            day = self.days[day_idx]
+            sp_path = os.path.join(self.state_prior_dir, f"{day}.npz")
+            with _np_load_with_retry(sp_path, allow_pickle=True) as sp:
+                state = np.asarray(sp["state"], dtype=np.float32)   # (N, 18)
+                ov_ts = np.asarray(sp["timestamps"], dtype=np.int64)
+            if state.shape[0] != data["regime_prior"].shape[0]:
+                raise ValueError(
+                    f"state overlay row count {state.shape[0]} != regime_prior "
+                    f"{data['regime_prior'].shape[0]} for {day}"
+                )
+            with _np_load_with_retry(self._day_paths[day_idx], allow_pickle=True) as npz:
+                main_ts = np.asarray(npz["timestamps"], dtype=np.int64)
+            if not np.array_equal(ov_ts, main_ts):
+                raise ValueError(
+                    f"state overlay timestamps misaligned with cache for {day} "
+                    f"(builder must preserve row order)."
+                )
+            state = np.nan_to_num(state, nan=0.0, posinf=0.0, neginf=0.0)
+            data["regime_prior"] = np.concatenate(
+                [data["regime_prior"], state], axis=1).astype(np.float32)
         return data
 
     # ------------------------------------------------------------------ #

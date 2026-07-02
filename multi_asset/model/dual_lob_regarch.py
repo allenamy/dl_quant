@@ -63,6 +63,11 @@ from src.model.dual_path_model_v3 import DualPathLOBModelV3
 from src.model.raw_lob_encoder import RawLOBEncoder  # same class the parent uses for Path B
 from src.model.regime_film import FiLM  # reuse parent FiLM (identity-init) verbatim
 from multi_asset.model.regime_film_rich import RichRegimeFeatureExtractor
+from multi_asset.model.regime_state import (  # D1 fixed-conditioning substrate
+    PreRevINRegimeExtractor,
+    normalize_frozen,
+    compute_window_stats,
+)
 
 
 class RegimeMoE(nn.Module):
@@ -274,6 +279,11 @@ class DualLOBREGArch(DualPathLOBModelV3):
         moe_lb_weight: float = 0.01,
         use_regime_gated_mh: bool = False,
         use_regime_gated_moe: bool = False,
+        use_fixed_regime_state: bool = False,
+        use_state_prior: bool = False,
+        d_state_prior: int = 18,
+        use_output_gain: bool = False,
+        regime_state_fit_samples: int = 50000,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -339,6 +349,55 @@ class DualLOBREGArch(DualPathLOBModelV3):
                 hidden=_hidden,
                 dropout=self.dropout,
             )
+
+        # --- D1 FIXED-CONDITIONING SUBSTRATE (default OFF; bit-identical when off) --
+        # Fixes the two structural regime bugs (FLAGS 1/2) WITHOUT touching src/:
+        #   use_fixed_regime_state:
+        #     * swap RegimeFeatureExtractor (post-RevIN, batch-z) -> the pre-RevIN
+        #       RAW PreRevINRegimeExtractor (regime LEVEL preserved), consumed at
+        #       the FiLM site 8a on the stashed pre-RevIN x_feat;
+        #     * normalise the 6 descriptors AND the whole regime_prior with FROZEN
+        #       TRAIN-WINDOW stats (register_buffer, persisted in ckpt) instead of
+        #       batch-z / raw (FLAG 11) -> batch-invariant, regime-level-visible.
+        #   use_state_prior:  concat the (already-widened, config d_prior=24) prior
+        #     onto the fixed descriptors at 8a — same mechanism as use_oi_regime but
+        #     on the normalised, positioning-carrying prior.
+        # The buffers/extractor swap/FiLM rebuild are zero-init (exact identity) so
+        # the flag-on model is a NEUTRAL no-op at init (see fit_regime_state_stats +
+        # the bit-identity tests).
+        self.use_fixed_regime_state = bool(use_fixed_regime_state)
+        self.use_state_prior = bool(use_state_prior)
+        self.d_state_prior = int(d_state_prior)
+        self._regime_state_fit_samples = int(regime_state_fit_samples)
+        # one-call stash for the pre-RevIN x_feat (set in encode, read at 8a)
+        self._x_feat_pre_revin: Optional[torch.Tensor] = None
+        if self.use_fixed_regime_state:
+            _n_desc = 6  # PreRevINRegimeExtractor.n_features_out
+            self.register_buffer("rs_desc_mean", torch.zeros(_n_desc))
+            self.register_buffer("rs_desc_std", torch.ones(_n_desc))
+            self.register_buffer("rs_prior_mean", torch.zeros(int(self.d_prior)))
+            self.register_buffer("rs_prior_std", torch.ones(int(self.d_prior)))
+            # 0 => stats not yet fitted (normalisation is identity passthrough);
+            # 1 => fit_regime_state_stats has run and the buffers are live.
+            self.register_buffer("rs_fitted", torch.zeros(1))
+            # Rebuild the pooled-h regime FiLM around the fixed extractor iff the
+            # parent actually built one. EXACT zero-init (override FiLM's 0.01
+            # scaling) => γ==1, β==0 exactly => the pooled-h FiLM is an EXACT
+            # identity at init regardless of descriptor/prior values.
+            if getattr(self, "use_regime_film", False) and self.regime_film is not None:
+                _hidden_fs = int(self.regime_film.mlp[0].out_features)
+                self.regime_extractor = PreRevINRegimeExtractor(
+                    obi_feature_idx=getattr(self.regime_extractor, "obi_feature_idx", 0),
+                )
+                n_rf = self.regime_extractor.n_features_out
+                if self.use_state_prior:
+                    n_rf += int(self.d_prior)
+                self.regime_film = FiLM(
+                    d_model=self.d_model, n_regime_feats=n_rf,
+                    hidden=_hidden_fs, dropout=self.dropout,
+                )
+                nn.init.zeros_(self.regime_film.mlp[-1].weight)
+                nn.init.zeros_(self.regime_film.mlp[-1].bias)
 
         # --- linear snapshot skip-path (default OFF; zero-init = exact identity) ---
         # Mechanism: the Conformer backbone TEMPORALLY AVERAGES the per-timestep
@@ -464,6 +523,127 @@ class DualLOBREGArch(DualPathLOBModelV3):
             self.perp_gate = None
             self.perp_alpha = None
 
+        # --- CONDITIONED OUTPUT GAIN (default OFF; zero-init => EXACT no-op) ------
+        # The direct anti-overconfidence lever (H1: β 30.8->5.1 while σp RISES —
+        # the model gets LOUDER exactly when information dies). A state-conditioned
+        # multiplicative gain on the quantile outputs lets the model LEARN to shrink
+        # its scale in stale/drift regimes:
+        #     g(prior) = 1 + 0.5 * tanh(W · prior_norm + b)   ∈ (0.5, 1.5)
+        # W,b ZERO-init => tanh(0)=0 => g==1 EXACTLY at init => multiplying the
+        # quantiles by g is a bit-exact no-op. Built LAST in __init__ so toggling
+        # this flag does not shift any other module's RNG draws (the output-gain
+        # bit-identity test relies on this). ``prior`` is the (frozen-)normalised
+        # regime_prior of width d_prior (=6 Run1 / =24 Run2).
+        self.use_output_gain = bool(use_output_gain)
+        if self.use_output_gain and int(self.d_prior) > 0:
+            self.output_gain = nn.Linear(int(self.d_prior), 1)
+            nn.init.zeros_(self.output_gain.weight)
+            nn.init.zeros_(self.output_gain.bias)
+        else:
+            self.output_gain = None
+
+    # ------------------------------------------------------------------ #
+    # D1 fixed-conditioning helpers (frozen-stat normalisation + fitting) #
+    # ------------------------------------------------------------------ #
+    def _normalize_desc(self, feats: torch.Tensor) -> torch.Tensor:
+        """Frozen train-window normalisation of the 6 fixed descriptors.
+
+        Identity passthrough until :meth:`fit_regime_state_stats` has run
+        (``rs_fitted==0``), so an unfitted flag-on model stays a clean no-op at
+        init (the FiLM is zero-init anyway).
+        """
+        if float(self.rs_fitted.item()) < 0.5:
+            return feats
+        return normalize_frozen(feats, self.rs_desc_mean, self.rs_desc_std, clip=5.0)
+
+    def _normalize_prior(self, prior: torch.Tensor) -> torch.Tensor:
+        """Frozen train-window normalisation of the full regime_prior (FLAG 11).
+
+        Identity passthrough until fitted.
+        """
+        if float(self.rs_fitted.item()) < 0.5:
+            return prior
+        return normalize_frozen(prior, self.rs_prior_mean, self.rs_prior_std, clip=5.0)
+
+    @torch.no_grad()
+    def fit_regime_state_stats(self, dataset, n_sample: Optional[int] = None,
+                               batch: int = 1024, device: str = "cpu",
+                               verbose: bool = True) -> None:
+        """Compute TRAIN-WINDOW frozen stats for the fixed descriptors + prior.
+
+        MUST be called once at fold setup (after the normalised train dataset is
+        built, before training) when ``use_fixed_regime_state`` is on — the
+        descriptor extractor consumes the pre-RevIN (= post-static-450d-z) x_feat
+        the dataset yields, and the stats are the FLAG-2 fix that replaces batch-z.
+        Samples up to ``n_sample`` (default 50k) train windows deterministically,
+        runs the extractor, and writes ``rs_desc_mean/std`` + ``rs_prior_mean/std``
+        into the registered buffers (persisted in the checkpoint).
+        """
+        if not self.use_fixed_regime_state:
+            return
+        import numpy as np
+        n = len(dataset)
+        k = int(n_sample or self._regime_state_fit_samples)
+        k = min(k, n)
+        rng = np.random.default_rng(0)
+        idx = (np.arange(n) if k >= n
+               else np.sort(rng.choice(n, size=k, replace=False)))
+        extractor = self.regime_extractor
+        if not isinstance(extractor, PreRevINRegimeExtractor):
+            extractor = PreRevINRegimeExtractor()
+        extractor = extractor.to(device)
+        d_prior = int(self.d_prior)
+
+        def _split(item):
+            """Return (x_feat, regime_prior_or_None) from a dataset item tuple."""
+            x_feat = item[0]
+            rp = None
+            for t in item[1:]:
+                if torch.is_tensor(t) and t.dim() == 1 and t.shape[0] == d_prior:
+                    rp = t
+                    break
+            return x_feat, rp
+
+        n_seen = 0
+        desc_sum = torch.zeros(6, dtype=torch.float64)
+        desc_sq = torch.zeros(6, dtype=torch.float64)
+        prior_sum = torch.zeros(d_prior, dtype=torch.float64)
+        prior_sq = torch.zeros(d_prior, dtype=torch.float64)
+        prior_seen = 0
+        for start in range(0, len(idx), batch):
+            chunk = idx[start:start + batch]
+            xs, rps = [], []
+            for i in chunk:
+                x_feat, rp = _split(dataset[int(i)])
+                xs.append(x_feat)
+                if rp is not None:
+                    rps.append(rp)
+            X = torch.stack(xs).to(device).float()               # (b, L, F)
+            desc = extractor(X).double()                          # (b, 6) RAW
+            desc_sum += desc.sum(0).cpu()
+            desc_sq += (desc ** 2).sum(0).cpu()
+            n_seen += desc.shape[0]
+            if len(rps) == len(xs):
+                RP = torch.stack(rps).double()                   # (b, d_prior)
+                prior_sum += RP.sum(0)
+                prior_sq += (RP ** 2).sum(0)
+                prior_seen += RP.shape[0]
+
+        dmean = (desc_sum / max(n_seen, 1))
+        dvar = (desc_sq / max(n_seen, 1) - dmean ** 2).clamp_min(1e-12)
+        self.rs_desc_mean.copy_(dmean.float())
+        self.rs_desc_std.copy_(dvar.sqrt().clamp_min(1e-6).float())
+        if prior_seen > 0:
+            pmean = (prior_sum / prior_seen)
+            pvar = (prior_sq / prior_seen - pmean ** 2).clamp_min(1e-12)
+            self.rs_prior_mean.copy_(pmean.float())
+            self.rs_prior_std.copy_(pvar.sqrt().clamp_min(1e-6).float())
+        self.rs_fitted.fill_(1.0)
+        if verbose:
+            print(f"[regime_state] fit on {n_seen} windows (prior_seen={prior_seen}); "
+                  f"desc_mean={self.rs_desc_mean.tolist()} "
+                  f"desc_std={self.rs_desc_std.tolist()}", flush=True)
+
     # ------------------------------------------------------------------ #
     # encode: parent body verbatim up to the backbone + 4 perp lines     #
     # ------------------------------------------------------------------ #
@@ -487,6 +667,11 @@ class DualLOBREGArch(DualPathLOBModelV3):
             x_raw_perp_deep = self._x_raw_perp_deep
 
         # ===== BEGIN verbatim parent encode (preprocessing -> fusion) =====
+        # D1: stash the PRE-RevIN x_feat (= post-static-450d-z; regime LEVEL
+        # preserved) for the fixed regime extractor consumed at 8a. revin.normalize
+        # returns a NEW tensor so this reference stays pre-RevIN.
+        if self.use_fixed_regime_state:
+            self._x_feat_pre_revin = x_feat
         # 0. RevIN: per-instance normalization of input features.
         if self.use_revin:
             x_feat = self.revin.normalize(x_feat)
@@ -634,15 +819,29 @@ class DualLOBREGArch(DualPathLOBModelV3):
 
         # 8a. Regime-aware FiLM modulation.
         if self.use_regime_film and self.regime_film is not None:
-            regime_feats = self.regime_extractor(x_feat)
-            # OI lever: concat the per-window regime_prior (now carrying the 8
-            # OI/funding descriptors) onto the x_feat-derived descriptors so the
-            # FiLM γ/β are also conditioned on positioning REGIME. The FiLM was
-            # rebuilt in __init__ to accept extractor.n_features_out + d_prior.
-            if getattr(self, "use_oi_regime", False) and regime_prior is not None:
-                regime_feats = torch.cat(
-                    [regime_feats, regime_prior.to(regime_feats.dtype)], dim=-1)
-            h_pred = self.regime_film(h_pred, regime_feats)
+            if getattr(self, "use_fixed_regime_state", False):
+                # FLAG 1/2 fix: extract on the PRE-RevIN tensor (regime level
+                # preserved) and normalise the RAW descriptors with FROZEN
+                # train-window stats (not batch-z). regime_prior here is ALREADY
+                # frozen-normalised (done once at the top of forward).
+                pre = (self._x_feat_pre_revin
+                       if self._x_feat_pre_revin is not None else x_feat)
+                regime_feats = self.regime_extractor(pre)          # (B, 6) RAW
+                regime_feats = self._normalize_desc(regime_feats)  # frozen z, clip±5
+                if getattr(self, "use_state_prior", False) and regime_prior is not None:
+                    regime_feats = torch.cat(
+                        [regime_feats, regime_prior.to(regime_feats.dtype)], dim=-1)
+                h_pred = self.regime_film(h_pred, regime_feats)
+            else:
+                regime_feats = self.regime_extractor(x_feat)
+                # OI lever: concat the per-window regime_prior (now carrying the 8
+                # OI/funding descriptors) onto the x_feat-derived descriptors so the
+                # FiLM γ/β are also conditioned on positioning REGIME. The FiLM was
+                # rebuilt in __init__ to accept extractor.n_features_out + d_prior.
+                if getattr(self, "use_oi_regime", False) and regime_prior is not None:
+                    regime_feats = torch.cat(
+                        [regime_feats, regime_prior.to(regime_feats.dtype)], dim=-1)
+                h_pred = self.regime_film(h_pred, regime_feats)
 
         # 8. PPNet regime-conditioned gating.
         if regime_prior is not None and self.ppnet_gate is not None \
@@ -686,6 +885,14 @@ class DualLOBREGArch(DualPathLOBModelV3):
         sign-head logic). The stash is cleared in a ``finally`` so the instance
         never carries state across calls.
         """
+        # D1 FLAG-11 fix: frozen-normalise the WHOLE regime_prior ONCE, up front,
+        # so every downstream consumer (film_multistage gates, regime_bias, the
+        # fixed-state pooled-h FiLM concat, and the output gain below) sees the
+        # SAME train-window-normalised prior instead of the raw, drifting scale.
+        # Identity passthrough until fitted; zero-init gates make it a no-op at init.
+        if getattr(self, "use_fixed_regime_state", False) and regime_prior is not None:
+            regime_prior = self._normalize_prior(regime_prior)
+
         self._x_raw_perp_deep = x_raw_perp_deep
         try:
             out = super().forward(
@@ -698,6 +905,7 @@ class DualLOBREGArch(DualPathLOBModelV3):
             )
         finally:
             self._x_raw_perp_deep = None
+            self._x_feat_pre_revin = None
 
         # --- MULTI-HORIZON regime gate on the AUX-horizon head slice ----------
         # Resolve the diagnosed lever conflict (y_180 aux helps STRONG, hurts
@@ -771,6 +979,29 @@ class DualLOBREGArch(DualPathLOBModelV3):
                 q = out["quantiles"] + snap                      # (B, 3)
                 out["quantiles"] = q
                 out["point_pred"] = q[:, 1]
+
+        # --- conditioned output gain (zero-init => exact ×1 no-op at init) ----
+        # Multiply the FINAL quantile outputs by g(prior) = 1 + 0.5·tanh(zero-init
+        # linear(prior_norm)) ∈ (0.5, 1.5). Applied AFTER snapshot/mh so it scales
+        # the true head output. Uses the frozen-normalised regime_prior. At init
+        # g==1 exactly (W,b zero) so this is a bit-exact no-op; training learns to
+        # SHRINK scale in stale/drift regimes (the H1 overconfidence fix).
+        if (
+            self.use_output_gain
+            and self.output_gain is not None
+            and regime_prior is not None
+        ):
+            g = 1.0 + 0.5 * torch.tanh(self.output_gain(regime_prior))  # (B, 1)
+            if "quantiles_by_horizon" in out:
+                q_by_h = out["quantiles_by_horizon"]                   # (B, n_h, 3)
+                q_by_h = q_by_h * g.unsqueeze(1)
+                out["quantiles_by_horizon"] = q_by_h
+                out["point_pred_by_horizon"] = q_by_h[:, :, 1]
+                out["quantiles"] = q_by_h[:, horizon_idx, :]
+                out["point_pred"] = q_by_h[:, horizon_idx, 1]
+            else:
+                out["quantiles"] = out["quantiles"] * g
+                out["point_pred"] = out["point_pred"] * g.squeeze(-1)
 
         # --- regime-MoE load-balancing aux loss (guard #4) -------------------
         # Surface the CV^2-of-batch-mean-router-weights aux loss computed during
