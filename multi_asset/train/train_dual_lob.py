@@ -178,6 +178,7 @@ def train_one_fold_dual(
     prefetch_factor: int = 2,
     max_steps_per_epoch: Optional[int] = None,
     has_perp: bool = True,
+    save_epoch_ckpts: bool = False,
 ) -> Dict[str, Any]:
     """Replica of ``trainer_v2.train_one_fold_v2`` for the single-horizon,
     dual-path + regime-prior + (optional) perp-residual case.
@@ -328,6 +329,11 @@ def train_one_fold_dual(
     best_ema_metrics: Dict[str, Any] = {}
     epochs_no_improve = 0
     train_loss_hist: List[float] = []
+    # Stage-0b instrumentation: per-epoch val history (raw AND EMA) so drift-fold
+    # selection health is auditable offline (D5). Backward-compatible extra key.
+    val_hist: List[Dict[str, Any]] = []
+    if save_epoch_ckpts:
+        os.makedirs(osp.join(out_dir, "epoch_ckpts"), exist_ok=True)
     # FALLBACK trackers (best composite over ALL epochs, ignore σ-gate). Hold the
     # full state_dict + config in RAM so we can persist the fallback after the
     # loop IFF the σ-gate never fired (see docstring). Cheap for this model size.
@@ -510,6 +516,29 @@ def train_one_fold_dual(
                      f"S={ema_val['val_spearman']:+.4f} C={ema_val['val_composite']:+.4f}")
         print(line, flush=True)
 
+        # --- Stage-0b: record per-epoch val history (raw + EMA) + optional ckpt.
+        # sigma_ok flags whether this epoch is eligible for the σ-gated selector.
+        def _vslim(d):
+            return None if d is None else {
+                "P": d["val_corr"], "S": d["val_spearman"],
+                "composite": d["val_composite"], "sigma_ratio": d["val_sigma_ratio"],
+                "beta": d["val_beta"], "loss": d["val_loss"],
+            }
+        val_hist.append({
+            "epoch": epoch, "train_loss": avg_tl,
+            "raw": _vslim(raw_val), "ema": _vslim(ema_val),
+            "sigma_ok": bool(raw_val["val_sigma_ratio"] >= 0.02),
+        })
+        if save_epoch_ckpts:
+            ep_payload = {"state": model.state_dict(), "class": type(model).__name__,
+                          "config": _extract_model_config(model)}
+            torch.save(ep_payload, osp.join(out_dir, "epoch_ckpts", f"raw_ep{epoch:03d}.pt"))
+            if ema_model is not None and epoch >= ema_warmup_epochs:
+                torch.save({"state": ema_model.module.state_dict(),
+                            "class": type(ema_model.module).__name__,
+                            "config": _extract_model_config(ema_model.module)},
+                           osp.join(out_dir, "epoch_ckpts", f"ema_ep{epoch:03d}.pt"))
+
         # --- FALLBACK tracker: best composite over ALL epochs, σ-gate ignored.
         # Updated every epoch BEFORE the σ-gate so a run that never crosses σ=0.02
         # still has a checkpoint to persist. We keep the raw point-pred σ of the
@@ -648,6 +677,21 @@ def train_one_fold_dual(
     if best_ema_metrics:
         out["ema_ckpt_sigma_ratio"] = best_ema_metrics.get("val_sigma_ratio")
     out["train_loss_hist"] = train_loss_hist
+    # --- Stage-0b: explicit selection provenance + per-epoch val history ------
+    out["val_hist"] = val_hist                       # per-epoch raw+EMA P/S/comp/σ/β
+    out["best_is_sigma_fallback"] = (ckpt_provenance.get("best_source") == "fallback_low_sigma")
+    out["ema_is_sigma_fallback"] = (ckpt_provenance.get("ema_source") == "fallback_low_sigma")
+    out["epochs_ran"] = len(train_loss_hist)
+    out["patience"] = patience
+    out["stopped_at_patience"] = (epochs_no_improve >= patience)  # early-stop crawl flag
+    out["selection"] = {
+        "best_epoch": best_metrics.get("best_epoch"),
+        "ema_best_epoch": best_ema_metrics.get("best_epoch") if best_ema_metrics else None,
+        "best_source": ckpt_provenance.get("best_source"),
+        "ema_source": ckpt_provenance.get("ema_source"),
+        "val_metric": val_metric,
+        "epoch_ckpts_saved": bool(save_epoch_ckpts),
+    }
     with open(osp.join(out_dir, "metrics.json"), "w") as f:
         json.dump(out, f, indent=2)
     return out
@@ -757,8 +801,19 @@ def _build_folds(days: List[str], train_cfg: dict, embargo_days: int) -> List[di
             val_start = val_end - train_cfg["val_days"]
             val = days[val_start:val_end]
             tr_end = val_start - embargo_days
-            tr_start = max(0, tr_end - train_cfg["train_days"])
+            tr_start_req = tr_end - train_cfg["train_days"]
+            tr_start = max(0, tr_start_req)
             train = days[tr_start:tr_end]
+            # Stage-0b guard: silent-truncation trap. When the cache starts too late
+            # the train window is shorter than train_days WITHOUT any error, so a
+            # "700d" arm can secretly train on ~540d and fake a window verdict.
+            if len(train) < train_cfg["train_days"]:
+                msg = (f"[_build_folds] TRAIN-WINDOW TRUNCATED for test_start={ts_str}: "
+                       f"requested train_days={train_cfg['train_days']} but only {len(train)}d "
+                       f"available (cache starts too late; tr_start clipped {tr_start_req}->0).")
+                print("WARNING: " + msg, flush=True)
+                if train_cfg.get("assert_full_train_window", False):
+                    raise RuntimeError(msg + " (assert_full_train_window=True)")
             folds.append({"train": train, "val": val, "test": test})
         return folds
     return build_time_series_folds(
@@ -904,6 +959,7 @@ def main() -> None:
             has_perp=has_perp,
             max_steps_per_epoch=(int(train_cfg["max_steps_per_epoch"])
                                  if train_cfg.get("max_steps_per_epoch") else None),
+            save_epoch_ckpts=bool(train_cfg.get("save_epoch_ckpts", False)),
         )
         print(f"[train_dual_lob] Fold {fold_idx} best: {best}")
 
