@@ -1,5 +1,5 @@
 {
-  "_comment": "ARM B tail-weighted. KILL GATE (pre-registered): arm DIES if mean drift Delta cd-CLEAN over the two folds (2026-01,2026-04) < +0.004 vs 0A POST-FIX baseline (pooled cd-CLEAN 0.0380; pre-fix per-fold ref 2026-01~0.0121 / 2026-04~0.0307 \u2014 0A supplies exact post-fix per-fold), OR sigma_hat/sigma_y<0.02, OR DENSE delta sign disagrees with cd-CLEAN delta. always-EMA no-peek, per-day-CLEAN + DENSE both.",
+  "_comment": "ARM B tail-weighted. KILL GATE (pre-registered): arm DIES if mean drift Delta cd-CLEAN over the two folds (2026-01,2026-04) < +0.004 vs 0A POST-FIX baseline (pooled cd-CLEAN 0.0380; 0A supplies exact post-fix per-fold), OR sigma_hat/sigma_y<0.02, OR DENSE delta sign disagrees with cd-CLEAN delta. always-EMA no-peek, per-day-CLEAN + DENSE both.",
   "data": {
     "csv_path": "",
     "npz_dir": "data/npz_v2arch",
@@ -50,7 +50,7 @@
     "perp_n_levels": 20,
     "d_perp": 32,
     "perp_alpha_init": 0.02,
-    "_comment": "ARM B TAIL-WEIGHTED training (H1: signal lives in top-quintile |y|). Base = D1 Run1 bugfix (fixed regime state ON, state_prior OFF, output_gain OFF). batch 1024 + sqrt-LR (0.000849*sqrt(2)=0.001201) per 0B b1024/sqrt-LR equivalence (loop-refactor 3.5); revert to 512/0.000849 if 0B's final says non-equivalent. patience 10 (sigma-gate x patience trap, D6).",
+    "_comment": "ARM B TAIL-WEIGHTED training (H1: signal lives in top-quintile |y|). Base = D1 Run1 bugfix (fixed regime state ON, state_prior OFF, output_gain OFF). batch 512 / lr 0.000849 = IDENTICAL to the D1 Run1 base (clean lever isolation; matches 0A's verified-healthy sigma dynamics: d1_2026_01_run1 raw sigma crosses 0.02 at ep4). b1024/sqrt-LR (0.001201) is available for 2x throughput IF 0B confirms equivalence \u2014 flip batch_size+lr then. patience 5 (matches base).",
     "use_perp_residual": true,
     "use_regime_film": true,
     "regime_film_hidden": 8,
@@ -61,10 +61,10 @@
   },
   "training": {
     "epochs": 25,
-    "batch_size": 1024,
-    "lr": 0.001201,
+    "batch_size": 512,
+    "lr": 0.000849,
     "weight_decay": 0.01,
-    "patience": 10,
+    "patience": 5,
     "grad_clip": 1.0,
     "train_days": 450,
     "val_days": 45,
