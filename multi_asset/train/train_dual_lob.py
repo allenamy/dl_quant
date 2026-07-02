@@ -67,6 +67,7 @@ from src.training.trainer_v2 import (  # noqa: E402
     _apply_warmup,
     _build_loss_fn_for_dul,
     _extract_model_config,
+    _multi_horizon_loss,
     _seed_everything,
 )
 
@@ -146,14 +147,18 @@ def build_dual_lob_model(model_cfg: dict, n_features: int,
 # --------------------------------------------------------------------------- #
 # Minimal single-horizon training loop (perp-residual aware)                   #
 # --------------------------------------------------------------------------- #
-def _forward_dual(model: nn.Module, x_feat, x_raw, regime_prior, x_perp):
+def _forward_dual(model: nn.Module, x_feat, x_raw, regime_prior, x_perp,
+                  all_horizons: bool = False):
     """Single forward threading the perp deep book into the model.
 
     ``x_perp`` is ``None`` for the perp-OFF arms (use_perp_residual=false): the
     model (``DualLOBREGArch``) treats ``x_raw_perp_deep=None`` as an exact no-op
     (the residual term is identically 0), so the SAME forward serves all 3 arms.
+
+    ``all_horizons=True`` (mh180 multi-horizon) makes the model emit
+    ``quantiles_by_horizon`` / ``point_pred_by_horizon`` for ``_multi_horizon_loss``.
     """
-    kwargs: Dict[str, Any] = {"x_raw_perp_deep": x_perp}
+    kwargs: Dict[str, Any] = {"x_raw_perp_deep": x_perp, "all_horizons": all_horizons}
     if regime_prior is not None:
         kwargs["regime_prior"] = regime_prior
     return model(x_feat, x_raw, **kwargs)
@@ -182,6 +187,7 @@ def train_one_fold_dual(
     max_steps_per_epoch: Optional[int] = None,
     has_perp: bool = True,
     save_epoch_ckpts: bool = False,
+    tail_weight: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Replica of ``trainer_v2.train_one_fold_v2`` for the single-horizon,
     dual-path + regime-prior + (optional) perp-residual case.
@@ -228,6 +234,23 @@ def train_one_fold_dual(
     if val_metric not in ("val_corr", "composite"):
         raise ValueError(f"val_metric must be 'val_corr'|'composite', got {val_metric!r}")
 
+    # --- multi-horizon (mh180) wiring ---------------------------------------
+    # The model emits per-horizon outputs under all_horizons=True; the train loss
+    # is the weighted per-horizon sum (_multi_horizon_loss with horizon_weights),
+    # while VAL selection stays on the PRIMARY horizon (last = y_600) only (D6:
+    # "val selector unchanged, composite on y_600"). Single-horizon path (n=1) is
+    # byte-identical to before (all_horizons stays effectively off, primary=only).
+    n_horizons = int(getattr(model, "n_horizons", 1) or 1)
+    multi_horizon = n_horizons > 1
+    primary_idx = n_horizons - 1
+    horizon_weights = None
+    if multi_horizon and dul_config is not None:
+        hw = dul_config.get("horizon_weights")
+        horizon_weights = list(hw) if hw is not None else [1.0] * n_horizons
+    if multi_horizon:
+        print(f"[train_dual_lob] MULTI-HORIZON: n_horizons={n_horizons} "
+              f"primary_idx={primary_idx} horizon_weights={horizon_weights}")
+
     # --- loaders: DayChunkedSampler when preload is off, else plain order ----
     # WORKER SAFETY (the FUSE-deadlock constraint, MEMORY.md::pod_fuse_deadlock)
     # -------------------------------------------------------------------------
@@ -250,6 +273,23 @@ def train_one_fold_dual(
     # worker → 95 GB × N OOM). ``num_workers``/``prefetch_factor`` come from the
     # config; pin_memory + non_blocking (_to_dev) overlap the CPU→GPU copy.
     preloaded = getattr(train_dataset, "_preloaded", False)
+    # ARM B (0C tail-weight): WeightedRandomSampler over the preloaded train targets
+    # (w = 1 + k·1{|y|≥train top-quintile}); loss math UNCHANGED. Needs preload so the
+    # per-sample targets are resident (_pre_y / _pre_mask).
+    tail_sampler = None
+    if tail_weight:
+        if not preloaded:
+            raise ValueError("tail_weight arm requires preload=True (needs _pre_y).")
+        from multi_asset.train.arm_utils import tail_sample_weights
+        w, thr = tail_sample_weights(
+            train_dataset._pre_y, getattr(train_dataset, "_pre_mask", None),
+            k=tail_weight.get("k", 2.0), quantile=tail_weight.get("quantile", 0.8))
+        _g = torch.Generator(); _g.manual_seed(int(seed) if seed is not None else 42)
+        tail_sampler = torch.utils.data.WeightedRandomSampler(
+            torch.as_tensor(w, dtype=torch.double), num_samples=int((w > 0).sum()),
+            replacement=True, generator=_g)
+        print(f"[arm] tail_weight k={tail_weight.get('k', 2.0)} thr={thr:.4f} "
+              f"tailfrac={(w > 1).mean():.3f} n={int((w > 0).sum())}", flush=True)
     if preloaded:
         _nw = num_workers          # COW-safe: workers read in-RAM tensors only
     else:
@@ -275,6 +315,12 @@ def train_one_fold_dual(
         )
         train_loader = DataLoader(
             train_dataset, batch_size=batch_size, sampler=sampler,
+            **_loader_common,
+        )
+    elif tail_sampler is not None:
+        # ARM B: weighted sampling REPLACES shuffle (never both together).
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, sampler=tail_sampler,
             **_loader_common,
         )
     else:
@@ -403,7 +449,24 @@ def train_one_fold_dual(
                 x_feat, x_raw, regime_prior, y, mask, x_perp = _unpack(batch)
                 x_feat, x_raw, regime_prior, x_perp, y, mask = _to_dev(
                     x_feat, x_raw, regime_prior, x_perp, y, mask)
-                outputs = _forward_dual(eval_model, x_feat, x_raw, regime_prior, x_perp)
+                outputs = _forward_dual(eval_model, x_feat, x_raw, regime_prior, x_perp,
+                                        all_horizons=multi_horizon)
+                if multi_horizon:
+                    # val_loss = weighted per-horizon (consistent with train); but
+                    # SELECTION metrics (P/S/σ/β) use ONLY the PRIMARY horizon
+                    # (point_pred = y_600) — D6: aux never enters the selector.
+                    mh_loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
+                    if mh_loss is None:
+                        continue
+                    pidx = mask[:, primary_idx].nonzero(as_tuple=True)[0]
+                    if len(pidx) == 0:
+                        continue
+                    loss_sum += float(mh_loss.item()); steps += 1
+                    pred_np = outputs["point_pred"][pidx].cpu().numpy()
+                    tgt_np = y[pidx, primary_idx].cpu().numpy()
+                    om.update(pred_np, tgt_np)
+                    preds_all.append(pred_np); targets_all.append(tgt_np)
+                    continue
                 idx = mask.nonzero(as_tuple=True)[0]
                 if len(idx) == 0:
                     continue
@@ -458,17 +521,26 @@ def train_one_fold_dual(
             x_feat, x_raw, regime_prior, y, mask, x_perp = _unpack(batch)
             x_feat, x_raw, regime_prior, x_perp, y, mask = _to_dev(
                 x_feat, x_raw, regime_prior, x_perp, y, mask)
-            outputs = _forward_dual(model, x_feat, x_raw, regime_prior, x_perp)
-            idx = mask.nonzero(as_tuple=True)[0]
-            if len(idx) == 0:
-                global_step += 1
-                continue
-            # Per-sample index every (B,...) tensor; SKIP batch-level scalars
-            # (0-dim, e.g. the regime-MoE load-balance aux loss) which have no
-            # sample axis to slice.
-            m_out = {k: v[idx] for k, v in outputs.items()
-                     if torch.is_tensor(v) and v.dim() > 0}
-            loss = loss_fn(m_out, y[idx])
+            outputs = _forward_dual(model, x_feat, x_raw, regime_prior, x_perp,
+                                    all_horizons=multi_horizon)
+            if multi_horizon:
+                # y/mask are (B, n_h); weighted per-horizon quantile loss (aux y_180
+                # at horizon_weights[0], primary y_600 at horizon_weights[-1]).
+                loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
+                if loss is None:   # every horizon fully masked this batch
+                    global_step += 1
+                    continue
+            else:
+                idx = mask.nonzero(as_tuple=True)[0]
+                if len(idx) == 0:
+                    global_step += 1
+                    continue
+                # Per-sample index every (B,...) tensor; SKIP batch-level scalars
+                # (0-dim, e.g. the regime-MoE load-balance aux loss) which have no
+                # sample axis to slice.
+                m_out = {k: v[idx] for k, v in outputs.items()
+                         if torch.is_tensor(v) and v.dim() > 0}
+                loss = loss_fn(m_out, y[idx])
             # regime-MoE load-balancing aux (guard #4): add moe_lb_weight·CV^2 of
             # the batch-mean router weights so both experts stay used. Batch-level
             # (uses the full-batch router weights, not the masked subset). No-op
@@ -761,9 +833,14 @@ def _run_test_eval(model: nn.Module, fold_dir: str, test_ds,
             tgts.append(y.numpy())
             masks.append(m.numpy())
 
-    predictions = np.concatenate(qs)
+    predictions = np.concatenate(qs)   # top-level quantiles = PRIMARY (y_600) slice
     targets = np.concatenate(tgts)
     mask = np.concatenate(masks).astype(bool)
+    # mh180: y/mask come back (N, n_h); eval is strictly the primary (y_600) head.
+    if targets.ndim == 2:
+        pidx = int(getattr(model, "n_horizons", targets.shape[1])) - 1
+        targets = targets[:, pidx]
+        mask = mask[:, pidx] if mask.ndim == 2 else mask
     preds_raw = predictions * y_sigma + y_median
     targets_raw = targets * y_sigma + y_median
 
@@ -843,6 +920,9 @@ def _common_ds_kwargs(data_cfg: dict, horizons_list) -> dict:
     # non-perp BASE/dualsrc arms stay byte-compatible.
     if data_cfg.get("state_prior_dir"):
         kw["state_prior_dir"] = data_cfg["state_prior_dir"]
+    # mh180 y_180 sidecar (Stage-3): only DualLOBDataset accepts it; add when set.
+    if data_cfg.get("y180_sidecar_dir"):
+        kw["y180_sidecar_dir"] = data_cfg["y180_sidecar_dir"]
     return kw
 
 
@@ -929,6 +1009,10 @@ def main() -> None:
         if horizons_list is not None:
             stats_kw["horizons"] = horizons_list
         stats_kw["y_rolling_sigma_path"] = data_cfg.get("y_rolling_sigma_path")
+        # mh180: give stats_ds the sidecar too so it intercepts horizons -> the
+        # parent reads only y_600 (compute_y_stats uses y_600), never y_180.
+        if data_cfg.get("y180_sidecar_dir"):
+            stats_kw["y180_sidecar_dir"] = data_cfg["y180_sidecar_dir"]
         stats_kw.update(slice_kw)
         stats_ds = DatasetCls(npz_dir, fold["train"], **stats_kw)
         x_mean, x_std = stats_ds.compute_stats()
@@ -943,7 +1027,19 @@ def main() -> None:
         common = dict(normalize=True, x_mean=x_mean, x_std=x_std, y_norm=y_norm,
                       preload=preload, **slice_kw,
                       **_common_ds_kwargs(data_cfg, horizons_list))
-        train_ds = DatasetCls(npz_dir, fold["train"], **common)
+        # ARM A (0C choppy-specialist): filter the TRAIN days to the LOW-TREND
+        # (choppy) subset (ER ≤ train-quantile). VAL/TEST stay FULL (D6: checkpoint
+        # selection on all-day val). Normalization stats above are computed on the
+        # FULL train window (deploy-consistent); only the training SUBSET changes.
+        train_days = fold["train"]
+        df_cfg = train_cfg.get("day_filter")
+        if df_cfg:
+            from multi_asset.train.arm_utils import choppy_filter_days
+            train_days, _st = choppy_filter_days(
+                npz_dir, fold["train"], quantile=df_cfg.get("quantile", 0.34))
+            print(f"[arm] day_filter kept {_st['n_kept']}/{_st['n_in']} train days "
+                  f"(ER<={_st['threshold']:.3f})", flush=True)
+        train_ds = DatasetCls(npz_dir, train_days, **common)
         val_ds = DatasetCls(npz_dir, fold["val"], **common)
         test_ds = DatasetCls(npz_dir, fold["test"], **common)
 
@@ -974,6 +1070,7 @@ def main() -> None:
             max_steps_per_epoch=(int(train_cfg["max_steps_per_epoch"])
                                  if train_cfg.get("max_steps_per_epoch") else None),
             save_epoch_ckpts=bool(train_cfg.get("save_epoch_ckpts", False)),
+            tail_weight=train_cfg.get("tail_weight"),
         )
         print(f"[train_dual_lob] Fold {fold_idx} best: {best}")
 

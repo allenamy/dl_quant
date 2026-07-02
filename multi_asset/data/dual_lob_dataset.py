@@ -66,7 +66,42 @@ class DualLOBDataset(LOBDatasetV2):
         # BEFORE super().__init__ (LOBDatasetV2 does not accept it) and set BEFORE
         # so _do_preload (invoked inside super().__init__) sees it.
         self.state_prior_dir: str | None = kwargs.pop("state_prior_dir", None)
+        # mh180 y_180 SIDECAR (Stage-3): dir of per-day npz carrying the leak-free
+        # 180s perp target keyed by timestamps. The parent LOBDatasetV2 reads y_{H}
+        # DIRECTLY from the main npz (src/ is read-only), and npz_v2arch has only
+        # y_600 — so we let the PARENT read the npz-present horizons (drop y_180),
+        # then promote self._horizons back to the full list and inject y_180 from
+        # the sidecar in _load_day. Requires preload=False (preload runs inside
+        # super().__init__ BEFORE we can restore _horizons), so we force it off.
+        self.y180_sidecar_dir: str | None = kwargs.pop("y180_sidecar_dir", None)
+        self._y180_full_horizons: Optional[List[str]] = None
+        if self.y180_sidecar_dir is not None:
+            hz = kwargs.get("horizons")
+            if not hz or "y_180" not in hz:
+                raise ValueError(
+                    "y180_sidecar_dir requires horizons to include 'y_180' "
+                    f"(got {hz!r}); set data.horizons_sec=[180,600]."
+                )
+            self._y180_full_horizons = list(hz)
+            kwargs["horizons"] = [h for h in hz if h != "y_180"]   # parent reads npz only
+            if kwargs.get("preload"):
+                print("[DualLOBDataset] y180 sidecar: forcing preload=False "
+                      "(multi-horizon injection is lazy-path only).")
+            kwargs["preload"] = False
         super().__init__(*args, **kwargs)
+
+        if self._y180_full_horizons is not None:
+            # promote to the full multi-horizon view for __getitem__ / the model;
+            # the parent still reads only self._y_keys (y_600) from the npz.
+            self._horizons = list(self._y180_full_horizons)
+            missing_y180 = [d for d in self.days
+                            if not os.path.exists(os.path.join(self.y180_sidecar_dir, f"{d}.npz"))]
+            if missing_y180:
+                raise ValueError(
+                    f"y_180 sidecar npz missing for {len(missing_y180)}+ day(s) "
+                    f"(e.g. {missing_y180[:5]}) under {self.y180_sidecar_dir!r}. "
+                    f"Build via multi_asset/data/build_y180_sidecar.py first."
+                )
 
         # Fail fast if the state overlay is requested but missing/misaligned for
         # any day — a silently-missing overlay would corrupt d_prior alignment.
@@ -162,6 +197,52 @@ class DualLOBDataset(LOBDatasetV2):
             state = np.nan_to_num(state, nan=0.0, posinf=0.0, neginf=0.0)
             data["regime_prior"] = np.concatenate(
                 [data["regime_prior"], state], axis=1).astype(np.float32)
+
+        # mh180 y_180 sidecar: promote the parent's single-horizon y_600
+        # (data["y"]/["mask"] shape (N, len(_y_keys))) to the full multi-horizon
+        # view in self._horizons order, injecting y_180 from the sidecar
+        # (normalised by the SAME fold y_norm the parent applied to y_600).
+        # Idempotent: skips if the y column count already matches _horizons
+        # (LRU cache hit).
+        if (self.y180_sidecar_dir is not None and self._y180_full_horizons is not None
+                and np.atleast_2d(data["y"]).shape[1] < len(self._horizons)):
+            day = self.days[day_idx]
+            y_parent = np.atleast_2d(data["y"]).astype(np.float32)      # (N, k) over _y_keys
+            m_parent = np.atleast_2d(data["mask"]).astype(np.float32)
+            yp_path = os.path.join(self.y180_sidecar_dir, f"{day}.npz")
+            with _np_load_with_retry(yp_path, allow_pickle=True) as yp:
+                y180 = np.asarray(yp["y_180"], dtype=np.float32)
+                m180 = np.asarray(yp["y_mask_180"], dtype=np.float32)
+                ov_ts = np.asarray(yp["timestamps"], dtype=np.int64)
+            if y180.shape[0] != y_parent.shape[0]:
+                raise ValueError(f"y_180 sidecar row count {y180.shape[0]} != "
+                                 f"{y_parent.shape[0]} for {day}")
+            with _np_load_with_retry(self._day_paths[day_idx], allow_pickle=True) as npz:
+                main_ts = np.asarray(npz["timestamps"], dtype=np.int64)
+            if not np.array_equal(ov_ts, main_ts):
+                raise ValueError(f"y_180 sidecar timestamps misaligned for {day}.")
+            # normalise y_180 through the SAME pipeline the parent applied to y_600
+            y180 = np.nan_to_num(y180, nan=0.0, posinf=0.0, neginf=0.0)
+            y180 = np.where(m180 == 0, 0.0, y180).astype(np.float32)
+            if self._y_rolling_sigma is not None:
+                sd = self._y_rolling_sigma.get(day)
+                if sd:
+                    y180 = (y180 / sd).astype(np.float32)
+                    y180 = np.where(m180 == 0, 0.0, y180).astype(np.float32)
+            if self._y_norm is not None:
+                med, sig, clip = self._y_norm
+                y180 = np.clip((y180 - med) / sig, -clip, clip).astype(np.float32)
+                y180 = np.where(m180 == 0, 0.0, y180).astype(np.float32)
+            cols_y: List[np.ndarray] = []
+            cols_m: List[np.ndarray] = []
+            for h in self._horizons:
+                if h == "y_180":
+                    cols_y.append(y180[:, None]); cols_m.append(m180[:, None])
+                else:
+                    j = self._y_keys.index(h)
+                    cols_y.append(y_parent[:, j:j + 1]); cols_m.append(m_parent[:, j:j + 1])
+            data["y"] = np.concatenate(cols_y, axis=1).astype(np.float32)
+            data["mask"] = np.concatenate(cols_m, axis=1).astype(np.float32)
         return data
 
     # ------------------------------------------------------------------ #
