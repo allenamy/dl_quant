@@ -66,6 +66,15 @@ class DualLOBDataset(LOBDatasetV2):
         # BEFORE super().__init__ (LOBDatasetV2 does not accept it) and set BEFORE
         # so _do_preload (invoked inside super().__init__) sees it.
         self.state_prior_dir: str | None = kwargs.pop("state_prior_dir", None)
+        # ALIGN arm (V2, Stage-1+ 2026-07-03): dir of per-day npz with the causal
+        # trailing-1h-mean m(t) + demeaned target y_align = y_600 - m. When set,
+        # _load_day REPLACES the (normalised) y target with the (normalised)
+        # DEMEANED target, so the model trains on the tradeable 10-min residual
+        # instead of the slow >1h band where the artifacts/β-swings live. The
+        # per-fold y_median/y_sigma stay computed on RAW y_600 (stats_ds has no
+        # align_target_dir), so eval denorm is unchanged; eval reconstructs raw y
+        # (+m) and the deploy 1h-demean caliber from the sidecar.
+        self.align_target_dir: str | None = kwargs.pop("align_target_dir", None)
         # mh180 y_180 SIDECAR (Stage-3): dir of per-day npz carrying the leak-free
         # 180s perp target keyed by timestamps. The parent LOBDatasetV2 reads y_{H}
         # DIRECTLY from the main npz (src/ is read-only), and npz_v2arch has only
@@ -197,6 +206,30 @@ class DualLOBDataset(LOBDatasetV2):
             state = np.nan_to_num(state, nan=0.0, posinf=0.0, neginf=0.0)
             data["regime_prior"] = np.concatenate(
                 [data["regime_prior"], state], axis=1).astype(np.float32)
+
+        # ALIGN arm: replace the (normalised) y_600 target with the (normalised)
+        # DEMEANED target y_align = y_600 - m (m = causal trailing-1h-mean of
+        # realized past y_600, from the sidecar), using the SAME fold y_norm
+        # (median/sigma/clip) the parent applied to y_600 — so eval denorm is
+        # unchanged and the model just learns the tradeable 10-min residual.
+        # Single-horizon only. Idempotent via a per-day flag (LRU-cache safe).
+        if self.align_target_dir is not None and not bool(data.get("_align_done", False)):
+            if self._y_norm is None:
+                raise ValueError("align_target_dir requires normalize=True (y_norm set).")
+            day = self.days[day_idx]
+            ap = os.path.join(self.align_target_dir, f"{day}.npz")
+            with _np_load_with_retry(ap, allow_pickle=True) as az:
+                y_align = np.asarray(az["y_align"], dtype=np.float64)     # (N,) = y_600 - m
+                a_ts = np.asarray(az["timestamps"], dtype=np.int64)
+            with _np_load_with_retry(self._day_paths[day_idx], allow_pickle=True) as npz:
+                main_ts = np.asarray(npz["timestamps"], dtype=np.int64)
+            if not np.array_equal(a_ts, main_ts):
+                raise ValueError(f"align sidecar timestamps misaligned with cache for {day}")
+            median, sigma, clip = self._y_norm
+            yan = np.clip((y_align - median) / sigma, -clip, clip)
+            yan = yan.reshape(np.asarray(data["y"]).shape).astype(np.float32)
+            data["y"] = np.where(np.asarray(data["mask"]) == 0, 0.0, yan).astype(np.float32)
+            data["_align_done"] = True
 
         # mh180 y_180 sidecar: promote the parent's single-horizon y_600
         # (data["y"]/["mask"] shape (N, len(_y_keys))) to the full multi-horizon
