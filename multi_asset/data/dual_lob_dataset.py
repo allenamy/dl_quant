@@ -97,7 +97,41 @@ class DualLOBDataset(LOBDatasetV2):
                 print("[DualLOBDataset] y180 sidecar: forcing preload=False "
                       "(multi-horizon injection is lazy-path only).")
             kwargs["preload"] = False
+
+        # ALIGN-as-AUX (interference-free variant): raw y_600 stays the PRIMARY
+        # (VAL-selected) target; the demeaned y_align = y_600 - m rides as a
+        # low-weight AUX horizon-0 so the backbone allocates capacity to the
+        # short-term signal WITHOUT stripping the level from the primary objective
+        # (fixes the pure-ALIGN interference). Same plumbing as y180: promote
+        # _horizons post-init + inject in _load_day (lazy-only -> preload off).
+        self.align_aux_dir: str | None = kwargs.pop("align_aux_dir", None)
+        self._align_aux_full_horizons: Optional[List[str]] = None
+        if self.align_aux_dir is not None:
+            if self.y180_sidecar_dir is not None:
+                raise ValueError("align_aux_dir and y180_sidecar_dir are mutually exclusive.")
+            if self.align_target_dir is not None:
+                raise ValueError("align_aux_dir (aux head) and align_target_dir "
+                                 "(target substitution) are mutually exclusive.")
+            hz = kwargs.get("horizons")
+            if not hz or "y_600" not in hz:
+                raise ValueError(f"align_aux_dir requires horizons include 'y_600' (got {hz!r}).")
+            # aux target y_align FIRST (idx 0); primary y_600 LAST (primary_idx = n-1)
+            self._align_aux_full_horizons = ["y_align"] + list(hz)
+            kwargs["horizons"] = list(hz)           # parent reads npz-present y_600 only
+            if kwargs.get("preload"):
+                print("[DualLOBDataset] align_aux: forcing preload=False "
+                      "(multi-horizon injection is lazy-path only).")
+            kwargs["preload"] = False
         super().__init__(*args, **kwargs)
+
+        if self._align_aux_full_horizons is not None:
+            self._horizons = list(self._align_aux_full_horizons)
+            missing_aux = [d for d in self.days
+                           if not os.path.exists(os.path.join(self.align_aux_dir, f"{d}.npz"))]
+            if missing_aux:
+                raise ValueError(
+                    f"align_aux y_align sidecar npz missing for {len(missing_aux)}+ day(s) "
+                    f"(e.g. {missing_aux[:5]}) under {self.align_aux_dir!r}.")
 
         if self._y180_full_horizons is not None:
             # promote to the full multi-horizon view for __getitem__ / the model;
@@ -276,6 +310,44 @@ class DualLOBDataset(LOBDatasetV2):
                     cols_y.append(y_parent[:, j:j + 1]); cols_m.append(m_parent[:, j:j + 1])
             data["y"] = np.concatenate(cols_y, axis=1).astype(np.float32)
             data["mask"] = np.concatenate(cols_m, axis=1).astype(np.float32)
+
+        # ALIGN-as-AUX: promote parent's y_600 to [y_align (aux,0), y_600 (primary,1)],
+        # injecting demeaned y_align from the align sidecar, normalised by the SAME
+        # fold y_norm the parent applied to y_600 (identical to the pure-ALIGN arm).
+        # Aux mask = primary y_600 mask (same convention as align_target).
+        if (self.align_aux_dir is not None and self._align_aux_full_horizons is not None
+                and np.atleast_2d(data["y"]).shape[1] < len(self._horizons)):
+            if self._y_norm is None:
+                raise ValueError("align_aux_dir requires normalize=True (y_norm set).")
+            day = self.days[day_idx]
+            y_parent = np.atleast_2d(data["y"]).astype(np.float32)      # (N, k) over _y_keys (y_600)
+            m_parent = np.atleast_2d(data["mask"]).astype(np.float32)
+            ap = os.path.join(self.align_aux_dir, f"{day}.npz")
+            with _np_load_with_retry(ap, allow_pickle=True) as az:
+                y_align = np.asarray(az["y_align"], dtype=np.float64)    # (N,) = y_600 - m (raw units)
+                a_ts = np.asarray(az["timestamps"], dtype=np.int64)
+            if y_align.shape[0] != y_parent.shape[0]:
+                raise ValueError(f"align_aux y_align row count {y_align.shape[0]} != "
+                                 f"{y_parent.shape[0]} for {day}")
+            with _np_load_with_retry(self._day_paths[day_idx], allow_pickle=True) as npz:
+                main_ts = np.asarray(npz["timestamps"], dtype=np.int64)
+            if not np.array_equal(a_ts, main_ts):
+                raise ValueError(f"align_aux sidecar timestamps misaligned for {day}.")
+            median, sigma, clip = self._y_norm
+            yan = np.clip((y_align - median) / sigma, -clip, clip).reshape(-1).astype(np.float32)
+            j600 = self._y_keys.index("y_600")
+            m600 = m_parent[:, j600]
+            yan = np.where(m600 == 0, 0.0, yan).astype(np.float32)
+            cols_y2: List[np.ndarray] = []
+            cols_m2: List[np.ndarray] = []
+            for h in self._horizons:
+                if h == "y_align":
+                    cols_y2.append(yan[:, None]); cols_m2.append(m600[:, None])
+                else:
+                    j = self._y_keys.index(h)
+                    cols_y2.append(y_parent[:, j:j + 1]); cols_m2.append(m_parent[:, j:j + 1])
+            data["y"] = np.concatenate(cols_y2, axis=1).astype(np.float32)
+            data["mask"] = np.concatenate(cols_m2, axis=1).astype(np.float32)
         return data
 
     # ------------------------------------------------------------------ #

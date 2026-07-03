@@ -938,6 +938,11 @@ def _common_ds_kwargs(data_cfg: dict, horizons_list) -> dict:
     # ALIGN arm (0C/0B §3.6): demeaned-target training overlay (DualLOBDataset only).
     if data_cfg.get("align_target_dir"):
         kw["align_target_dir"] = data_cfg["align_target_dir"]
+    # ALIGN-as-AUX (0B, interference-free variant): demeaned y_align as a low-weight
+    # aux horizon-0 (raw y_600 stays primary). DualLOBDataset only; gated so all
+    # other arms stay byte-identical.
+    if data_cfg.get("align_aux_dir"):
+        kw["align_aux_dir"] = data_cfg["align_aux_dir"]
     return kw
 
 
