@@ -1,0 +1,117 @@
+"""ALIGN-arm scorer — mechanical-inflation-aware (team-lead 2026-07-03).
+
+The demeaned target y_align = y_600 - m has a BUILT-IN mechanical component: a model
+that merely outputs ~ -m scores corr(-m, y_600-m) ~ sigma_m/sigma_{y_align} > 0 for
+FREE, with ZERO raw-y value. So val metrics are inflated and val-selection may pick
+the most-artifact epoch. This scorer judges the ALIGN prediction against RAW y_600
+two ways (per-day-CLEAN), plus the output-vs-m scale check:
+
+  RAW-A  corr(sigma*q50 + m, y_600)   -- the add-back caliber (anti-#18)
+  RAW-B  corr(sigma*q50,     y_600)   -- prediction WITHOUT add-back; the -m artifact
+                                         is ~uncorrelated with future y_600, so this
+                                         ISOLATES the genuine 10-min residual alpha.
+  sigma(sigma*q50) vs sigma_m         -- if the output is dominated by reproducing -m,
+                                         the genuinely-predictive residual is tiny.
+
+DECISIVE judge stays the deploy caliber (arm_pred_diagnostic.py: 1h-demean the
+prediction) which is immune by construction. Baseline = the Run1 run for the month.
+
+Usage: python multi_asset/model/score_align.py --arm-preds <align/fold_0/ema_test_preds.npz> \
+         --norm <align/fold_0/norm_params.npz> --align-dir data/npz_v2arch_align \
+         [--base-preds <d1_20XX_run1/fold_0/ema_test_preds.npz>]
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import os
+import numpy as np
+
+HZ = 600_000_000
+DAY = 86_400_000_000
+
+
+def _pear(a, b):
+    a = a - a.mean(); b = b - b.mean(); d = np.sqrt((a * a).sum() * (b * b).sum())
+    return float((a * b).sum() / d) if d > 0 else 0.0
+
+
+def _nonoverlap(ts):
+    idx = np.argsort(ts, kind="stable"); keep = []; last = None
+    for i in idx:
+        if last is None or ts[i] - last >= HZ:
+            keep.append(i); last = ts[i]
+    return np.array(keep, dtype=int)
+
+
+def _cd(sig, y, ts):
+    day = ts // DAY; rs = []
+    for d in np.unique(day):
+        m = np.where(day == d)[0]; sub = m[_nonoverlap(ts[m])]
+        if len(sub) > 20 and sig[sub].std() > 1e-12:
+            rs.append(_pear(sig[sub], y[sub]))
+    return (float(np.mean(rs)) if rs else float("nan")), len(rs)
+
+
+def load_preds(p):
+    z = np.load(p, allow_pickle=True); pr = z["predictions"]
+    q = (pr[:, 1] if pr.ndim == 2 else pr).astype(np.float64)
+    ts = z["timestamps"].astype(np.int64)
+    mask = z["mask"].astype(bool) if "mask" in z.files else np.ones(len(q), bool)
+    return q, ts, mask
+
+
+def sidecar_map(align_dir, days):
+    """ts -> (m, y_raw) over the given day set."""
+    T, M, Y = [], [], []
+    for d in days:
+        f = os.path.join(align_dir, f"{d}.npz")
+        if not os.path.exists(f):
+            continue
+        z = np.load(f, allow_pickle=True)
+        T.append(z["timestamps"].astype(np.int64)); M.append(z["m"].astype(np.float64)); Y.append(z["y_raw"].astype(np.float64))
+    T = np.concatenate(T); M = np.concatenate(M); Y = np.concatenate(Y)
+    order = np.argsort(T); return T[order], M[order], Y[order]
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--arm-preds", required=True)
+    ap.add_argument("--norm", required=True)
+    ap.add_argument("--align-dir", default="data/npz_v2arch_align")
+    ap.add_argument("--base-preds")
+    a = ap.parse_args()
+
+    q, ts, mask = load_preds(a.arm_preds)
+    nz = np.load(a.norm); sigma = float(nz["y_sigma"])
+    # match sidecar m / y_raw by timestamp over the whole cache (test days subset)
+    all_days = [os.path.basename(f)[:-4] for f in sorted(glob.glob(f"{a.align_dir}/*.npz"))]
+    ST, SM, SY = sidecar_map(a.align_dir, all_days)
+    pos = np.searchsorted(ST, ts)
+    ok = (pos < len(ST)) & (ST[np.clip(pos, 0, len(ST) - 1)] == ts)
+    if not ok.all():
+        print(f"[score_align] WARN {int((~ok).sum())}/{len(ts)} ts unmatched in sidecar")
+    m = SM[np.clip(pos, 0, len(ST) - 1)]; y_raw = SY[np.clip(pos, 0, len(ST) - 1)]
+    keep = mask & ok
+    q, ts, m, y_raw = q[keep], ts[keep], m[keep], y_raw[keep]
+
+    pred = sigma * q                                    # denormalised prediction (up to global median)
+    cdA, nd = _cd(pred + m, y_raw, ts)                  # RAW-A: add-back caliber
+    cdB, _ = _cd(pred, y_raw, ts)                       # RAW-B: artifact-free residual alpha
+    sig_out = float(pred.std()); sig_m = float(m.std())
+    print(f"==== ALIGN {os.path.basename(os.path.dirname(os.path.dirname(a.arm_preds)))} vs RAW y_600 (days={nd}) ====")
+    print(f"  RAW-A corr(sigma*q50 + m, y)  cd-CLEAN = {cdA:+.4f}   (add-back / anti-#18)")
+    print(f"  RAW-B corr(sigma*q50,     y)  cd-CLEAN = {cdB:+.4f}   (artifact-free residual alpha)")
+    print(f"  sigma(sigma*q50) = {sig_out:.5f}   sigma_m = {sig_m:.5f}   ratio out/m = {sig_out/max(sig_m,1e-12):.2f}")
+    if a.base_preds and os.path.exists(a.base_preds):
+        qb, tb, mb = load_preds(a.base_preds)
+        posb = np.searchsorted(ST, tb); okb = (posb < len(ST)) & (ST[np.clip(posb, 0, len(ST)-1)] == tb)
+        yb = SY[np.clip(posb, 0, len(ST)-1)]; kb = mb & okb
+        cdbase, _ = _cd(sigma * qb[kb], yb[kb], tb[kb])   # Run1 raw caliber (no m; Run1 predicts raw y)
+        print(f"  BASELINE Run1 corr(sigma*q50, y) cd-CLEAN = {cdbase:+.4f}")
+        print(f"  -> RAW-B(align) - Run1 = {cdB - cdbase:+.4f}   RAW-A(align) - Run1 = {cdA - cdbase:+.4f}")
+    print("DONE_SCORE_ALIGN.")
+
+
+if __name__ == "__main__":
+    main()
