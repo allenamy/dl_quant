@@ -62,16 +62,19 @@ def _clean_idx(ts):
 
 
 def _health(sig, y, ts):
-    """Deploy-caliber health on the pooled CLEAN rows: β = cov(y,ŷ)/var(ŷ) and
-    σŷ/σy (STRICT_EVAL gates β∈[0.5,1.8], σ-ratio≥0.02)."""
+    """Deploy-caliber health on the pooled CLEAN rows: β = cov(y,ŷ)/var(ŷ),
+    σŷ/σy, and the POOLED (DENSE) Pearson. A per-day-cd positive but pooled/DENSE
+    negative = spec-artifact sign-divergence (per-day-concentrated, non-aggregating).
+    Gates: β∈[0.5,1.8], σ-ratio≥0.02, DENSE same-sign as per-day."""
     ci = _clean_idx(ts)
     if len(ci) < 20:
-        return float("nan"), float("nan")
+        return float("nan"), float("nan"), float("nan")
     q = sig[ci].astype(np.float64); yy = y[ci].astype(np.float64)
     qc = q - q.mean(); v = float((qc * qc).sum())
     beta = float((qc * (yy - yy.mean())).sum() / v) if v > 0 else float("nan")
     sr = float(q.std() / (yy.std() + 1e-12))
-    return beta, sr
+    dense = _pear(q, yy)
+    return beta, sr, dense
 
 
 def _demean_1h(pred, ts):
@@ -141,14 +144,16 @@ def main():
     cdB, _ = _cd(pred, y_raw, ts)                       # RAW-B: artifact-free residual alpha
     pred_dm = _demean_1h(pred, ts)
     cdD, _ = _cd(pred_dm, y_raw, ts)                     # DEPLOY: 1h-demean the pred, vs raw y (slow-band-immune)
-    betaD, srD = _health(pred_dm, y_raw, ts)            # deploy-caliber health (β band + σ-ratio gates)
+    betaD, srD, denseD = _health(pred_dm, y_raw, ts)    # deploy-caliber health (β band + σ-ratio + DENSE-sign gates)
     sig_out = float(pred.std()); sig_m = float(m.std())
     print(f"==== ALIGN {os.path.basename(os.path.dirname(os.path.dirname(a.arm_preds)))} vs RAW y_600 (days={nd}) ====")
     print(f"  RAW-A  corr(sigma*q50 + m,       y)  cd-CLEAN = {cdA:+.4f}   (add-back / anti-#18)")
     print(f"  RAW-B  corr(sigma*q50,           y)  cd-CLEAN = {cdB:+.4f}   (artifact-free residual alpha)")
-    print(f"  DEPLOY corr(1h-demean(sigma*q50),y)  cd-CLEAN = {cdD:+.4f}   (decisive; slow-band-immune)")
-    gate = "OK" if (0.5 <= betaD <= 1.8 and srD >= 0.02) else "HEALTH-FLAG"
-    print(f"  DEPLOY health: beta = {betaD:+.3f} (band [0.5,1.8])   sigma_hat/sigma_y = {srD:.3f} (>=0.02)   -> {gate}")
+    print(f"  DEPLOY corr(1h-demean(sigma*q50),y)  cd-CLEAN = {cdD:+.4f}   DENSE = {denseD:+.4f}   (decisive; slow-band-immune)")
+    signdiv = (cdD > 0) != (denseD > 0)
+    gate = "OK" if (0.5 <= betaD <= 1.8 and srD >= 0.02 and not signdiv) else "HEALTH-FLAG"
+    flag = "  <== per-day/DENSE SIGN-DIVERGENCE (spec-artifact pattern)" if signdiv else ""
+    print(f"  DEPLOY health: beta = {betaD:+.3f} (band [0.5,1.8])   sigma_hat/sigma_y = {srD:.3f} (>=0.02)   -> {gate}{flag}")
     print(f"  sigma(sigma*q50) = {sig_out:.5f}   sigma_m = {sig_m:.5f}   ratio out/m = {sig_out/max(sig_m,1e-12):.2f}")
     if a.base_preds and os.path.exists(a.base_preds):
         qb, tb, mb = load_preds(a.base_preds)
@@ -158,9 +163,9 @@ def main():
         pb_dm = _demean_1h(pb, tb[kb])
         cdbase, _ = _cd(pb, yb[kb], tb[kb])              # Run1 raw caliber (no m; Run1 predicts raw y)
         cdbD, _ = _cd(pb_dm, yb[kb], tb[kb])             # Run1 deploy (same 1h-demean operator)
-        betabD, srbD = _health(pb_dm, yb[kb], tb[kb])
-        print(f"  BASELINE Run1 RAW    corr(sigma*q50, y)          cd-CLEAN = {cdbase:+.4f}")
-        print(f"  BASELINE Run1 DEPLOY corr(1h-demean(sigma*q50),y) cd-CLEAN = {cdbD:+.4f}  beta={betabD:+.3f} sr={srbD:.3f}")
+        betabD, srbD, densebD = _health(pb_dm, yb[kb], tb[kb])
+        print(f"  BASELINE RAW    corr(sigma*q50, y)          cd-CLEAN = {cdbase:+.4f}")
+        print(f"  BASELINE DEPLOY corr(1h-demean(sigma*q50),y) cd-CLEAN = {cdbD:+.4f} DENSE={densebD:+.4f} beta={betabD:+.3f} sr={srbD:.3f}")
         print(f"  -> RAW-B(align)-Run1raw = {cdB - cdbase:+.4f}   DEPLOY(align)-Run1deploy = {cdD - cdbD:+.4f}")
     print("DONE_SCORE_ALIGN.")
 
