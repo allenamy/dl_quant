@@ -1,5 +1,5 @@
 {
-  "_comment": "Run1-2026-01 seed-7 replicate @ batch1024 (pairs with b1024-check seed42 for single-seed noise scale). No arm lever; plain bugfix Run1.",
+  "_comment": "Run1-2026-01 seed-7 replicate @ batch512/lr0.000849. No arm lever; plain bugfix Run1.",
   "data": {
     "csv_path": "",
     "npz_dir": "data/npz_v2arch",
@@ -61,8 +61,8 @@
   },
   "training": {
     "epochs": 25,
-    "batch_size": 1024,
-    "lr": 0.0012,
+    "batch_size": 512,
+    "lr": 0.000849,
     "weight_decay": 0.01,
     "patience": 5,
     "grad_clip": 1.0,
@@ -98,7 +98,7 @@
     "embargo_days": 1,
     "preload": true,
     "save_epoch_ckpts": true,
-    "_comment": "seed-7 replicate @ batch1024 (noise scale). Run via --seed 7."
+    "_comment": "Run1-2026-01 seed-7 replicate @ b512 (single-seed noise scale). Rebuilt from b1024 (OOM)."
   },
   "output_dir": "experiments/d1gate/d1_2026_01_run1_s7"
 }
