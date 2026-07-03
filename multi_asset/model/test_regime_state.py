@@ -210,6 +210,44 @@ def test_fit_stats():
     return ok
 
 
+RANK_SKIP = [3, 10, 11, 12, 13, 15, 16, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30, 31,
+             32, 33, 34, 35, 49, 50, 51, 52, 57, 70, 71, 72, 75, 81, 82, 83]
+
+
+def test_revin_skip():
+    """T4 (0C rank-norm arm): RevIN per-channel bypass.
+    (a) BIT-IDENTITY empty-mask: revin_skip_idx None == baseline exactly.
+    (b) feature works: a non-empty skip changes the output.
+    (c) BATCH-INVARIANCE with mask active: preds(bs=512)==preds(bs=32) (per-element combine)."""
+    x = make_inputs(48, d_prior=6)
+    m_base = build(seed=21)                                   # revin_skip_idx None (baseline)
+    m_skip = build(seed=21, revin_skip_idx=RANK_SKIP)          # same seed -> same weights
+    q_base = fwd(m_base, *x)
+    q_skip = fwd(m_skip, *x)
+    d_change = maxabs(q_base, q_skip)                          # mask must change output
+    m_skip._revin_skip_idx = None                             # disable -> must equal baseline
+    q_off = fwd(m_skip, *x)
+    d_ident = maxabs(q_base, q_off)
+    # batch-invariance with mask active — use the D1-fixed model so the ONLY
+    # possible batch-dependence source is the revin-skip combine (the old batch-z
+    # extractor is off under use_fixed_regime_state=True). Confirms the mask does
+    # not reintroduce the batch-dependence class already fixed.
+    m_bi = build(seed=23, use_fixed_regime_state=True, revin_skip_idx=RANK_SKIP)
+    xf, xr, xp, rp = make_inputs(64, d_prior=6, seed=9)
+
+    def preds_at(bs):
+        outs = []
+        for s in range(0, 64, bs):
+            outs.append(fwd(m_bi, xf[s:s+bs], xr[s:s+bs], xp[s:s+bs], rp[s:s+bs]))
+        return torch.cat(outs)
+    d_bi = maxabs(preds_at(64), preds_at(8))
+    ok = (d_ident == 0.0) and (d_change > 1e-6) and (d_bi < 1e-6)
+    print(f"[T4] revin-skip: bit-identity(None==base) max|Δ|={d_ident:.3e} (==0); "
+          f"mask-changes-output max|Δ|={d_change:.3e} (>0); "
+          f"batch-inv max|Δ|={d_bi:.3e} (<1e-6) -> {'PASS' if ok else 'FAIL'}")
+    return ok
+
+
 if __name__ == "__main__":
     results = {
         "T1a output_gain no-op": test_output_gain_noop(),
@@ -218,6 +256,7 @@ if __name__ == "__main__":
         "T1d Run1 non-regime==baseline": test_run1_vs_baseline_nonregime(),
         "T2 batch-invariance": test_batch_invariance(),
         "T3 fit stats": test_fit_stats(),
+        "T4 revin-skip (rank arm)": test_revin_skip(),
     }
     print("\n===== SUMMARY =====")
     for k, v in results.items():

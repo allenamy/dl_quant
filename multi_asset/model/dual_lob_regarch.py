@@ -284,9 +284,22 @@ class DualLOBREGArch(DualPathLOBModelV3):
         d_state_prior: int = 18,
         use_output_gain: bool = False,
         regime_state_fit_samples: int = 50000,
+        revin_skip_idx=None,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
+        # --- RANK-NORM arm (0C): per-channel RevIN BYPASS (default OFF) ----------
+        # RevIN per-window de-means ALL channels, which NEUTRALIZES the causal
+        # trailing-3d RANK channels (they are already stationary via static-z).
+        # Channels in revin_skip_idx SKIP RevIN (keep their static-z'd rank);
+        # the rest are RevIN'd as before. Wired at the revin.normalize site in
+        # encode() via an autograd-safe masked combine (no in-place). Empty/None
+        # => byte-identical to the current model.
+        if revin_skip_idx:
+            self.register_buffer("_revin_skip_idx", torch.tensor(
+                sorted(set(int(i) for i in revin_skip_idx)), dtype=torch.long))
+        else:
+            self._revin_skip_idx = None
         self.use_perp_residual = bool(use_perp_residual)
         self.perp_n_levels = int(perp_n_levels)
         self.d_perp = int(d_perp)
@@ -672,9 +685,19 @@ class DualLOBREGArch(DualPathLOBModelV3):
         # returns a NEW tensor so this reference stays pre-RevIN.
         if self.use_fixed_regime_state:
             self._x_feat_pre_revin = x_feat
-        # 0. RevIN: per-instance normalization of input features.
+        # 0. RevIN: per-instance normalization (+ optional per-channel RevIN BYPASS
+        # for the rank-norm arm). skip channels keep their pre-RevIN static-z'd
+        # (stationary rank) values; the rest are RevIN'd. Autograd-safe masked
+        # combine (no in-place on x_feat). Empty mask => x_feat == x_norm exactly.
         if self.use_revin:
-            x_feat = self.revin.normalize(x_feat)
+            x_pre = x_feat
+            x_norm = self.revin.normalize(x_feat)
+            if self._revin_skip_idx is not None:
+                keep = torch.ones(x_norm.shape[-1], device=x_norm.device, dtype=x_norm.dtype)
+                keep = keep.index_fill(0, self._revin_skip_idx.to(x_norm.device), 0.0)
+                x_feat = x_norm * keep + x_pre * (1.0 - keep)
+            else:
+                x_feat = x_norm
 
         # v5push Track A1: SE-block input-channel attention (default off).
         if self.se_block_input is not None:
