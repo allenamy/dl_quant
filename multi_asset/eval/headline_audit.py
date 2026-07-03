@@ -66,6 +66,25 @@ def beta(q, y): return float(np.cov(y, q)[0, 1] / q.var())
 def sigr(q, y): return float(q.std() / y.std())
 
 
+def strat_ic(q, y, ts):
+    """H1 tail/body split: pool the per-day-CLEAN rows, split by |q-demeaned| into top-20% (tail)
+    vs rest-80% (body), return (all, tail20, rest80) pooled IC. The rank-norm arm's pre-registered
+    claim is that stationary inputs move the drift rest-80% (body) IC off the H1 ~0 floor."""
+    dk = ts // DAY; qs = []; ys = []
+    for d in np.unique(dk):
+        idx = np.where(dk == d)[0]; k = _clean_idx(ts[idx])
+        if len(k) > 20:
+            qs.append(q[idx][k]); ys.append(y[idx][k])
+    if not qs:
+        return np.nan, np.nan, np.nan
+    Q = np.concatenate(qs); Y = np.concatenate(ys); Qd = Q - Q.mean()
+    thr = np.quantile(np.abs(Qd), 0.8); tail = np.abs(Qd) >= thr
+
+    def _ic(m):
+        return float(pearsonr(Q[m], Y[m])[0]) if (m.sum() > 10 and Q[m].std() > 1e-9 and Y[m].std() > 1e-9) else np.nan
+    return _ic(np.ones(len(Q), bool)), _ic(tail), _ic(~tail)
+
+
 def causal_demean(q, ts, win_s):
     win = win_s * SEC; o = np.argsort(ts); t = ts[o]; qs = q[o]
     out = np.empty_like(qs); dq = deque(); cs = 0.0
@@ -135,6 +154,11 @@ def audit(arm_path, base_path, wins=(3600, 43200, 86400)):
         print(f"   ARM  demean {w:>6}s cd={cd(causal_demean(qa,ta,w),ya,ta):+.4f}")
     print(f"   ARM 1h-retain={100*a_keep:.0f}%  BASE 1h-retain={100*b_keep:.0f}%  dDEPLOY(1h)={a_dm1-b_dm1:+.4f}")
     collapse = np.isfinite(a_keep) and np.isfinite(b_keep) and a_keep < 0.5 * b_keep
+
+    a_all, a_tail, a_rest = strat_ic(qa, ya, ta); b_all, b_tail, b_rest = strat_ic(qb, yb, tb)
+    print("\n3b) H1 TAIL/BODY STRATIFIED IC (top-20% |pred| vs rest-80%; rank-arm claim = move rest-80% up)")
+    print(f"   ARM  tail20={a_tail:+.4f} rest80={a_rest:+.4f}   BASE tail20={b_tail:+.4f} rest80={b_rest:+.4f}"
+          f"   Δrest80={a_rest-b_rest:+.4f}")
 
     print("\n4) β-RESCALE HEALTH REPAIR (causal trailing-30d; Pearson-invariant => cd preserved)")
     qr, bser = causal_beta_rescale(qa, ya, ta)
