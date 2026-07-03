@@ -53,6 +53,26 @@ def _cd(sig, y, ts):
     return (float(np.mean(rs)) if rs else float("nan")), len(rs)
 
 
+def _demean_1h(pred, ts):
+    """Causal 1h trailing demean of the PREDICTION: p_dm(t) = p(t) - mean(p, (t-3600s, t]).
+    Removes any residual slow band so the deploy caliber can't be slow-band-inflated.
+    Windowed within each UTC day (no cross-midnight leak)."""
+    W = 3600 * 1_000_000  # 3600s in microseconds
+    out = np.empty_like(pred, dtype=np.float64)
+    day = ts // DAY
+    for d in np.unique(day):
+        idx = np.where(day == d)[0]
+        order = idx[np.argsort(ts[idx], kind="stable")]
+        tso = ts[order].astype(np.int64); po = pred[order].astype(np.float64)
+        csum = np.concatenate([[0.0], np.cumsum(po)])
+        lo = np.searchsorted(tso, tso - W, side="left")   # first t' > t-3600s
+        hi = np.searchsorted(tso, tso, side="right")      # includes t itself
+        cnt = np.maximum(hi - lo, 1)
+        mean = (csum[hi] - csum[lo]) / cnt
+        out[order] = po - mean
+    return out
+
+
 def load_preds(p):
     z = np.load(p, allow_pickle=True); pr = z["predictions"]
     q = (pr[:, 1] if pr.ndim == 2 else pr).astype(np.float64)
@@ -98,18 +118,23 @@ def main():
     pred = sigma * q                                    # denormalised prediction (up to global median)
     cdA, nd = _cd(pred + m, y_raw, ts)                  # RAW-A: add-back caliber
     cdB, _ = _cd(pred, y_raw, ts)                       # RAW-B: artifact-free residual alpha
+    cdD, _ = _cd(_demean_1h(pred, ts), y_raw, ts)       # DEPLOY: 1h-demean the pred, vs raw y (slow-band-immune)
     sig_out = float(pred.std()); sig_m = float(m.std())
     print(f"==== ALIGN {os.path.basename(os.path.dirname(os.path.dirname(a.arm_preds)))} vs RAW y_600 (days={nd}) ====")
-    print(f"  RAW-A corr(sigma*q50 + m, y)  cd-CLEAN = {cdA:+.4f}   (add-back / anti-#18)")
-    print(f"  RAW-B corr(sigma*q50,     y)  cd-CLEAN = {cdB:+.4f}   (artifact-free residual alpha)")
+    print(f"  RAW-A  corr(sigma*q50 + m,       y)  cd-CLEAN = {cdA:+.4f}   (add-back / anti-#18)")
+    print(f"  RAW-B  corr(sigma*q50,           y)  cd-CLEAN = {cdB:+.4f}   (artifact-free residual alpha)")
+    print(f"  DEPLOY corr(1h-demean(sigma*q50),y)  cd-CLEAN = {cdD:+.4f}   (decisive; slow-band-immune)")
     print(f"  sigma(sigma*q50) = {sig_out:.5f}   sigma_m = {sig_m:.5f}   ratio out/m = {sig_out/max(sig_m,1e-12):.2f}")
     if a.base_preds and os.path.exists(a.base_preds):
         qb, tb, mb = load_preds(a.base_preds)
         posb = np.searchsorted(ST, tb); okb = (posb < len(ST)) & (ST[np.clip(posb, 0, len(ST)-1)] == tb)
         yb = SY[np.clip(posb, 0, len(ST)-1)]; kb = mb & okb
-        cdbase, _ = _cd(sigma * qb[kb], yb[kb], tb[kb])   # Run1 raw caliber (no m; Run1 predicts raw y)
-        print(f"  BASELINE Run1 corr(sigma*q50, y) cd-CLEAN = {cdbase:+.4f}")
-        print(f"  -> RAW-B(align) - Run1 = {cdB - cdbase:+.4f}   RAW-A(align) - Run1 = {cdA - cdbase:+.4f}")
+        pb = sigma * qb[kb]
+        cdbase, _ = _cd(pb, yb[kb], tb[kb])              # Run1 raw caliber (no m; Run1 predicts raw y)
+        cdbD, _ = _cd(_demean_1h(pb, tb[kb]), yb[kb], tb[kb])  # Run1 deploy (same 1h-demean operator)
+        print(f"  BASELINE Run1 RAW    corr(sigma*q50, y)          cd-CLEAN = {cdbase:+.4f}")
+        print(f"  BASELINE Run1 DEPLOY corr(1h-demean(sigma*q50),y) cd-CLEAN = {cdbD:+.4f}")
+        print(f"  -> RAW-B(align)-Run1raw = {cdB - cdbase:+.4f}   DEPLOY(align)-Run1deploy = {cdD - cdbD:+.4f}")
     print("DONE_SCORE_ALIGN.")
 
 
