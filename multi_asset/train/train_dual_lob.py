@@ -119,7 +119,9 @@ _PERP_KEYS = {"use_perp_residual", "perp_n_levels", "d_perp", "perp_alpha_init",
               "use_regime_gated_mh", "use_regime_gated_moe",
               # Stage-0B D1 fixed-regime-state substrate (forwarded to DualLOBREGArch):
               "use_fixed_regime_state", "use_state_prior", "d_state_prior",
-              "use_output_gain", "regime_state_fit_samples"}
+              "use_output_gain", "regime_state_fit_samples",
+              # §3.6 rank-norm arm: RevIN channel-bypass (0C/0B, dual_lob_regarch 4184761):
+              "revin_skip_idx"}
 
 
 def build_dual_lob_model(model_cfg: dict, n_features: int,
