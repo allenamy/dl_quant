@@ -933,6 +933,9 @@ def _common_ds_kwargs(data_cfg: dict, horizons_list) -> dict:
     # mh180 y_180 sidecar (Stage-3): only DualLOBDataset accepts it; add when set.
     if data_cfg.get("y180_sidecar_dir"):
         kw["y180_sidecar_dir"] = data_cfg["y180_sidecar_dir"]
+    # ALIGN arm (0C/0B §3.6): demeaned-target training overlay (DualLOBDataset only).
+    if data_cfg.get("align_target_dir"):
+        kw["align_target_dir"] = data_cfg["align_target_dir"]
     return kw
 
 
