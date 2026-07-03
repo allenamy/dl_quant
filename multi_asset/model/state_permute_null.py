@@ -129,8 +129,8 @@ def main():
 
     nz = np.load(a.norm); x_mean, x_std = nz["x_mean"], nz["x_std"]
     y_norm = (float(nz["y_median"]), float(nz["y_sigma"]), 5.0)
+    # _common_ds_kwargs already carries state_prior_dir / align_target_dir (0A wired).
     common = dict(normalize=True, x_mean=x_mean, x_std=x_std, y_norm=y_norm, preload=True,
-                  state_prior_dir=data_cfg.get("state_prior_dir"),
                   **_common_ds_kwargs(data_cfg, horizons))
     test_ds = DualLOBDataset(npz_dir, fold["test"], **common)
 

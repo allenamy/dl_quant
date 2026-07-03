@@ -109,18 +109,23 @@ print(1 if (sr<$ABORT_SIGR and ec<thr) else 0)" 2>/dev/null)
   touch "$DONEDIR/$rn"   # aborted/failed/ok all count -> no infinite retry
 }
 
-# ---- startup: adopt the orphaned in-flight d1_2026_04_run1 ----
-if pgrep -f "d1_2026_04_run1.json" >/dev/null 2>&1; then
-  say "ADOPT_WAIT d1_2026_04_run1 (orphan from old chain)"
-  while pgrep -f "d1_2026_04_run1.json" >/dev/null 2>&1; do sleep 60; done
-fi
-if [ ! -f "$DONEDIR/d1_2026_04_run1" ]; then
-  score_and_log d1_2026_04_run1 "experiments/d1gate/d1_2026_04_run1"; touch "$DONEDIR/d1_2026_04_run1"
-fi
+# (the original d1_2026_04_run1 orphan-adopt is retired — the generic restart-
+# recovery in run_arm handles any in-flight run, and re-running it on relaunch
+# wrongly FAIL-marked the requeued attribution run.)
 
 # ---- priority-scan loop (persistent) ----
 idle=0
 while true; do
+  # SELF-EXPIRING eval-window pause: `touch experiments/d1gate/PAUSE` to hold the
+  # queue for a manual eval window; it AUTO-RESUMES after 30min so a forgotten
+  # pause can never idle the GPU indefinitely. `rm PAUSE` to resume early.
+  if [ -f "$REPO/experiments/d1gate/PAUSE" ]; then
+    page=$(( $(date +%s) - $(stat -c %Y "$REPO/experiments/d1gate/PAUSE" 2>/dev/null || echo 0) ))
+    if [ "$page" -lt 1800 ]; then
+      idle=$((idle+1)); [ $((idle % 6)) -eq 1 ] && say "PAUSED eval-window ${page}s/1800s"; sleep 60; continue
+    fi
+    say "PAUSE expired (${page}s) -> auto-resume"; rm -f "$REPO/experiments/d1gate/PAUSE"
+  fi
   picked_cfg=""; picked_seed="42"
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in \#*|"") continue;; STOP) break;; esac
