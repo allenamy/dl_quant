@@ -3,7 +3,15 @@ post-fix baseline + selection provenance. Usage: python statusline_d1.py <run_na
 import numpy as np, json, os, sys
 from scipy.stats import pearsonr, spearmanr
 HZ = 600*1_000_000
-BASE = {"2025_10": (0.0815, 0.0786), "2026_01": (0.0123, 0.0150), "2026_04": (0.0308, 0.0183)}
+# Canonical 10-month post-fix production baseline (0A caliber), recomputed self-
+# consistently from the mask-fixed CSV exports/final_l01/y600_backtest_dataset.csv via
+# multi_asset/eval/baseline_table.py. Validated: 2025_10->0.0844 (~0.0815), 2026_04->
+# 0.0312 (~0.0308) reproduce the old entries; 2026_01 CORRECTED 0.0123->0.0304 (the old
+# value was a different/weaker reference, inconsistent with the canonical production CSV).
+BASE = {"2025_08": (0.0323, 0.0348), "2025_09": (0.0434, 0.0524), "2025_10": (0.0844, 0.0970),
+        "2025_11": (0.0671, 0.0536), "2025_12": (0.0482, 0.0213), "2026_01": (0.0304, 0.0432),
+        "2026_02": (0.0183, 0.0198), "2026_03": (0.0139, 0.0225), "2026_04": (0.0312, 0.0212),
+        "2026_05": (0.0162, 0.0187)}
 def clean_idx(ts):
     o = np.argsort(ts); keep = []; last = -1e18
     for i in range(len(o)):
