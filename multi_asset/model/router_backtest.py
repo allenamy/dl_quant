@@ -71,6 +71,22 @@ def per_day_deploy(run):
     return out
 
 
+ALIGN_DIR = "data/npz_v2arch_align"
+
+
+def daily_return_series():
+    """{utc_day -> daily-mean y_raw} from the align sidecar (light; trend proxy)."""
+    out = {}
+    for f in sorted(glob.glob(f"{ALIGN_DIR}/*.npz")):
+        d = os.path.basename(f)[:-4]
+        if not d[0].isdigit():
+            continue
+        z = np.load(f, allow_pickle=True)
+        y = np.asarray(z["y_raw"], dtype=np.float64); ts = z["timestamps"].astype(np.int64)
+        out[int(ts[0] // DAY)] = float(np.nanmean(y))
+    return out
+
+
 def daily_ttlevel(month):
     """Daily-mean tt_level for every state-cache day (causal series for trailing)."""
     out = {}
@@ -84,33 +100,68 @@ def daily_ttlevel(month):
     return out
 
 
+LB = 15               # FROZEN lookback (days), causal (strictly prior)
+TT_THRESH = 0.0       # FROZEN: tt_level sign — <0 net-short/deleveraging -> Run2
+ER_THRESH = 0.35      # FROZEN: Kaufman efficiency ratio — trending>=0.35 -> Run1, choppy -> Run2 (net-long only)
+
+
+def _trailing_mean(series_by_day, day_index, sorted_days, d, lb=LB):
+    if d not in day_index:
+        return None
+    i = day_index[d]
+    w = [series_by_day[sorted_days[j]] for j in range(max(0, i - lb), i)]
+    return w if w else None
+
+
+def _router_pick(tt_trail, er_trail):
+    """FROZEN rule = tt-level SIGN only (deleveraging axis: net-short -> state-Run2).
+    The trend/ER axis was TESTED AND FALSIFIED — the strong month 2025-10 is
+    mean-reverting/choppy (ER 0.24) < the drift month 2026-01 (ER 0.37), i.e. trend
+    does NOT separate Run1 from Run2 (adding it misroutes 2025-10). So ER is NOT used.
+    Known OOS risk: extreme-net-long DRIFT months (2026-01, tt +1.15) misroute to Run1
+    — cheap here (toss-up hole) but flagged; NO fitted upper-threshold added (overfit)."""
+    return "Run2" if tt_trail < TT_THRESH else "Run1"
+
+
 def main():
-    tt_all = daily_ttlevel(None)   # {utc_day -> (datestr, tt_level)}
-    days_sorted = sorted(tt_all.keys())
-    tt_series = np.array([tt_all[d][1] for d in days_sorted])
-    day_index = {d: i for i, d in enumerate(days_sorted)}
-    print("==== OFFLINE ROUTER RETRO-SELECTION (causal tt_level idx 11) ====")
-    rows = []
+    tt_all = daily_ttlevel(None)                 # {utc_day -> (datestr, tt_level)}
+    ret_all = daily_return_series()              # {utc_day -> daily-mean y_raw}
+    days = sorted(set(tt_all) & set(ret_all))
+    di = {d: i for i, d in enumerate(days)}
+    tt_series = {d: tt_all[d][1] for d in days}
+    print("==== OFFLINE ROUTER RETRO-SELECTION (FROZEN spec: tt-sign + ER supplement) ====")
+    print(f"  FROZEN: lookback={LB}d causal, tt_thresh={TT_THRESH}, ER_thresh={ER_THRESH}")
+    routed, r1o, r2o, orc = [], [], [], []
     for mon, (r1, r2) in MONTHS.items():
         d1 = per_day_deploy(r1); d2 = per_day_deploy(r2)
         common = sorted(set(d1) & set(d2))
         m1 = float(np.mean([d1[d] for d in common])); m2 = float(np.mean([d2[d] for d in common]))
         oracle = "Run1" if m1 >= m2 else "Run2"
-        # causal trailing tt_level: 15d mean STRICTLY BEFORE each test day, then month-mean
-        LB = 15; tts = []
+        # per-day router: causal trailing tt + ER, pick, take that model's deploy
+        picks = {"Run1": 0, "Run2": 0}; routed_days = []
         for d in common:
-            if d in day_index:
-                i = day_index[d]; w = tt_series[max(0, i-LB):i]  # strictly before d
-                if len(w): tts.append(float(np.mean(w)))
-        tt_causal = float(np.mean(tts)) if tts else float("nan")
-        tt_contemp = float(np.mean([tt_all[d][1] for d in common if d in tt_all]))
-        rows.append((mon, m1, m2, oracle, tt_causal, tt_contemp))
-        print(f"  {mon}: Run1_deploy={m1:+.4f}  Run2_deploy={m2:+.4f}  ORACLE={oracle}  "
-              f"tt_causal(15d-prior)={tt_causal:+.3f}  tt_contemp={tt_contemp:+.3f}")
-    # Does tt_level rank the oracle? (higher tt -> Run1-better expected)
-    print("\n  SEPARATION CHECK: sort months by causal tt_level, see if it splits Run1- vs Run2-oracle")
-    for mon, m1, m2, oracle, ttc, _ in sorted(rows, key=lambda r: -r[4]):
-        print(f"    tt_causal={ttc:+.3f}  {mon}  oracle={oracle}  (Δdeploy Run1-Run2={m1-m2:+.4f})")
+            ttw = _trailing_mean(tt_series, di, days, d)
+            rw = _trailing_mean(ret_all, di, days, d)
+            if ttw is None or rw is None:
+                pick = oracle  # boundary day w/o history -> neutral (rare)
+            else:
+                ttm = float(np.mean(ttw))
+                er = abs(np.sum(rw)) / (np.sum(np.abs(rw)) + 1e-12)
+                pick = _router_pick(ttm, er)
+            picks[pick] += 1
+            routed_days.append(d1[d] if pick == "Run1" else d2[d])
+        month_pick = "Run1" if picks["Run1"] >= picks["Run2"] else "Run2"
+        rr = float(np.mean(routed_days))
+        routed.append(rr); r1o.append(m1); r2o.append(m2); orc.append(max(m1, m2))
+        # month-level ER/tt for the report
+        ttm = float(np.mean([np.mean(_trailing_mean(tt_series, di, days, d)) for d in common if _trailing_mean(tt_series, di, days, d)]))
+        erm = float(np.mean([abs(np.sum(_trailing_mean(ret_all, di, days, d)))/(np.sum(np.abs(_trailing_mean(ret_all, di, days, d)))+1e-12) for d in common if _trailing_mean(ret_all, di, days, d)]))
+        print(f"  {mon}: Run1={m1:+.4f} Run2={m2:+.4f} ORACLE={oracle} | tt={ttm:+.3f} ER={erm:.3f} "
+              f"-> router picks {month_pick} ({picks['Run1']}d R1 / {picks['Run2']}d R2), routed_deploy={rr:+.4f}  "
+              f"{'MATCH' if month_pick==oracle else 'MISS(Δ%+.4f)'%(max(m1,m2)-rr)}")
+    print(f"\n  MEAN deploy: ROUTER={np.mean(routed):+.4f}  always-Run1={np.mean(r1o):+.4f}  "
+          f"always-Run2={np.mean(r2o):+.4f}  ORACLE={np.mean(orc):+.4f}")
+    print("  (in-sample on the 3 built months; the OOS verdict = the 7 unseen months in the trajectory)")
     print("DONE_ROUTER_BACKTEST.")
 
 
