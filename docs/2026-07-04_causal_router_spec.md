@@ -37,3 +37,21 @@ MEAN deploy: **ROUTER +0.0478** > always-Run1 +0.0385 (+24%) > always-Run2 +0.04
 Run 10-month Run1 + Run2 trajectories (2025-08..2026-05), apply THIS frozen router + the intraday self-assess deploy layer OFFLINE. Headline = router deploy on the **7 unseen months** vs always-Run1 / always-Run2 / oracle. If the router's OOS beats both single models (and closes a meaningful fraction of the oracle gap), the causally-routed specialist pair is the honest cross-regime deliverable. If it collapses to single-model parity OOS, the honest deliverable is "two specialists + the boundary is not causally routable — here is the oracle-vs-causal gap."
 
 **Fold inventory (GPU cost):** Run1+Run2 exist for 2025-10 / 2026-01 / 2026-04 (3 mo). MISSING both: 2025-08, 2025-09, 2025-11, 2025-12, 2026-02, 2026-03, 2026-05 (7 mo) = **14 folds to run**. npz_v2arch_state covers all (2023-08..2026-05). Scorer: multi_asset/model/router_backtest.py.
+
+## PRE-COMMITTED 10-month routing map (locked BEFORE the trajectory preds — no peek)
+Frozen tt-sign applied to every month's 15d-prior causal tt_level (multi_asset/model/routing_map.py), committed now:
+
+| month | tt15 | route | day-split | type |
+|---|---|---|---|---|
+| 2025-08 | +0.969 | Run1 | 28/0 | OOS |
+| 2025-09 | +0.916 | Run1 | 28/0 | OOS |
+| 2025-10 | +0.429 | Run1 | 28/0 | in-sample |
+| 2025-11 | +1.186 | Run1 | 28/0 | OOS |
+| 2025-12 | +1.240 | Run1 | 28/0 | OOS |
+| 2026-01 | +1.146 | Run1 | 28/0 | in-sample |
+| 2026-02 | +0.356 | Run1 | 28/0 | OOS |
+| 2026-03 | +0.051 | Run1 | 21/7 | OOS |
+| 2026-04 | −0.122 | Run2 | 0/28 | in-sample |
+| 2026-05 | −0.102 | Run2 | 6/16 | OOS |
+
+**Routing: 8 Run1 / 2 Run2.** Run2 (net-short/deleveraging) fires ONLY in 2026-04/05 — the positioning was net-long for the whole 2025-08..2026-03 stretch. **OOS routing diversity is THIN on the Run2 side: 6 of 7 unseen months route Run1, only 2026-05 (partial 22d) routes Run2.** So the OOS test mostly validates the net-long→Run1 rule (6 months); the net-short→Run2 rule gets 1 OOS month. The router's advantage over always-Run1 is therefore CONCENTRATED in the deleveraging tail (2026-04/05); over always-Run2 it's broad (8 net-long months). Honest caveat locked in advance: if the deleveraging window is the only place routing matters, the router = "always-Run1 with a deleveraging switch," and that switch's OOS evidence is 2026-05 alone.
