@@ -122,7 +122,11 @@ _PERP_KEYS = {"use_perp_residual", "perp_n_levels", "d_perp", "perp_alpha_init",
               "use_output_gain", "regime_state_fit_samples",
               # §3.6 rank-norm arm: RevIN channel-bypass (0C/0B, dual_lob_regarch 4184761):
               "revin_skip_idx",
-              # ARM L: state-conditioned low-rank FFN adaptation (0B, DualLOBREGArch):
+              # ARM L: state-conditioned low-rank FFN adaptation (0B, DualLOBREGArch).
+              # CROSS-FILE EXCEPTION: added by 0B (Stage-0B) with team-lead sign-off
+              # while 0A was rate-limited — identical gated-allowlist pattern as
+              # align_aux_dir/revin_skip_idx/state_prior_dir, zero effect when absent.
+              # For 0A to reconcile. (ARM P use_pcgrad hook below is the same case.)
               "use_state_lora", "lora_rank", "lora_which"}
 
 
