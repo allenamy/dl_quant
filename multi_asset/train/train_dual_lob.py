@@ -192,6 +192,7 @@ def train_one_fold_dual(
     has_perp: bool = True,
     save_epoch_ckpts: bool = False,
     tail_weight: Optional[Dict[str, Any]] = None,
+    use_pcgrad: bool = False,
 ) -> Dict[str, Any]:
     """Replica of ``trainer_v2.train_one_fold_v2`` for the single-horizon,
     dual-path + regime-prior + (optional) perp-residual case.
@@ -527,13 +528,27 @@ def train_one_fold_dual(
                 x_feat, x_raw, regime_prior, x_perp, y, mask)
             outputs = _forward_dual(model, x_feat, x_raw, regime_prior, x_perp,
                                     all_horizons=multi_horizon)
+            pcgrad_active = bool(use_pcgrad) and multi_horizon
             if multi_horizon:
-                # y/mask are (B, n_h); weighted per-horizon quantile loss (aux y_180
-                # at horizon_weights[0], primary y_600 at horizon_weights[-1]).
-                loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
-                if loss is None:   # every horizon fully masked this batch
-                    global_step += 1
-                    continue
+                if pcgrad_active:
+                    # ARM P: per-task backward with PCGrad projection (aux onto the
+                    # primary's null space on conflict). The helper writes .grad
+                    # directly and returns the same weighted-mean scalar for logging.
+                    from multi_asset.train.pcgrad import pcgrad_multi_horizon_backward
+                    _proxy = pcgrad_multi_horizon_backward(
+                        model, optimizer, outputs, y, mask, loss_fn,
+                        horizon_weights, primary_idx)
+                    if _proxy is None:
+                        global_step += 1
+                        continue
+                    loss = outputs["quantiles_by_horizon"].new_tensor(float(_proxy))
+                else:
+                    # y/mask are (B, n_h); weighted per-horizon quantile loss (aux y_180
+                    # at horizon_weights[0], primary y_600 at horizon_weights[-1]).
+                    loss = _multi_horizon_loss(outputs, y, mask, loss_fn, horizon_weights)
+                    if loss is None:   # every horizon fully masked this batch
+                        global_step += 1
+                        continue
             else:
                 idx = mask.nonzero(as_tuple=True)[0]
                 if len(idx) == 0:
@@ -549,7 +564,7 @@ def train_one_fold_dual(
             # the batch-mean router weights so both experts stay used. Batch-level
             # (uses the full-batch router weights, not the masked subset). No-op
             # unless use_regime_moe is on (key absent otherwise).
-            if "moe_lb_loss" in outputs:
+            if "moe_lb_loss" in outputs and not pcgrad_active:
                 lb_w = float(getattr(model, "moe_lb_weight", 0.0))
                 if lb_w > 0.0:
                     loss = loss + lb_w * outputs["moe_lb_loss"]
@@ -557,8 +572,10 @@ def train_one_fold_dual(
                 optimizer.zero_grad()
                 global_step += 1
                 continue
-            optimizer.zero_grad()
-            loss.backward()
+            if not pcgrad_active:
+                # PCGrad path already populated .grad via the per-task projection.
+                optimizer.zero_grad()
+                loss.backward()
             gnorm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             if not torch.isfinite(gnorm):
                 optimizer.zero_grad()
@@ -1093,6 +1110,7 @@ def main() -> None:
                                  if train_cfg.get("max_steps_per_epoch") else None),
             save_epoch_ckpts=bool(train_cfg.get("save_epoch_ckpts", False)),
             tail_weight=train_cfg.get("tail_weight"),
+            use_pcgrad=bool(train_cfg.get("use_pcgrad", False)),
         )
         print(f"[train_dual_lob] Fold {fold_idx} best: {best}")
 
