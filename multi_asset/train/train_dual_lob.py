@@ -121,7 +121,9 @@ _PERP_KEYS = {"use_perp_residual", "perp_n_levels", "d_perp", "perp_alpha_init",
               "use_fixed_regime_state", "use_state_prior", "d_state_prior",
               "use_output_gain", "regime_state_fit_samples",
               # §3.6 rank-norm arm: RevIN channel-bypass (0C/0B, dual_lob_regarch 4184761):
-              "revin_skip_idx"}
+              "revin_skip_idx",
+              # ARM L: state-conditioned low-rank FFN adaptation (0B, DualLOBREGArch):
+              "use_state_lora", "lora_rank", "lora_which"}
 
 
 def build_dual_lob_model(model_cfg: dict, n_features: int,

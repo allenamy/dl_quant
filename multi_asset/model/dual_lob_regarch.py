@@ -285,6 +285,9 @@ class DualLOBREGArch(DualPathLOBModelV3):
         use_output_gain: bool = False,
         regime_state_fit_samples: int = 50000,
         revin_skip_idx=None,
+        use_state_lora: bool = False,
+        lora_rank: int = 4,
+        lora_which: str = "ffn2",
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -555,6 +558,38 @@ class DualLOBREGArch(DualPathLOBModelV3):
         else:
             self.output_gain = None
 
+        # --- ARM L: state-conditioned low-rank FFN adaptation (default OFF) ------
+        # Wrap the conformer FFN linears with rank-r LoRA whose per-sample gate is
+        # produced by a small hypernet from the FROZEN-normalised regime_prior. B
+        # zero-init => flag-on == baseline output at init (bit-identical); the gate
+        # is per-sample => batch-invariant. Mechanism: FiLM rescales features; this
+        # lets the regime state shift the FFN FUNCTION (a low-rank weight delta).
+        self.use_state_lora = bool(use_state_lora) and int(self.d_prior) > 0 \
+            and getattr(self, "backbone", None) is not None \
+            and hasattr(self.backbone, "blocks")
+        self._lora_adapters = None
+        self.lora_hypernet = None
+        if self.use_state_lora:
+            from multi_asset.model.state_lora import wrap_ffn_with_lora, StateLoRAHypernet
+            self._lora_adapters = wrap_ffn_with_lora(
+                self.backbone, rank=int(lora_rank), which=str(lora_which))
+            self.lora_hypernet = StateLoRAHypernet(
+                state_dim=int(self.d_prior), n_adapters=len(self._lora_adapters),
+                rank=int(lora_rank))
+
+    def _set_lora_gates(self, regime_prior: torch.Tensor | None) -> None:
+        """Compute per-adapter rank-r gates from the frozen-normalised prior and
+        push them onto each StateLoRALinear. No-op unless ARM L is on + prior given."""
+        if not self.use_state_lora or self._lora_adapters is None:
+            return
+        if regime_prior is None:
+            for ad in self._lora_adapters:
+                ad.set_gate(None)
+            return
+        gates = self.lora_hypernet(self._normalize_prior(regime_prior))  # (B, n_ad, r)
+        for j, ad in enumerate(self._lora_adapters):
+            ad.set_gate(gates[:, j, :])
+
     # ------------------------------------------------------------------ #
     # D1 fixed-conditioning helpers (frozen-stat normalisation + fitting) #
     # ------------------------------------------------------------------ #
@@ -771,6 +806,10 @@ class DualLOBREGArch(DualPathLOBModelV3):
         :meth:`encode`) so the late-fusion backbone path is NOT re-run — keeping
         dropout draws bit-identical to the parent. No behavioural change.
         """
+        # ARM L: push per-sample state gates onto the FFN LoRA adapters before ANY
+        # backbone/block call (no-op unless use_state_lora). Every _encode_tail sets
+        # fresh gates, so there is no stale-gate carryover across forwards.
+        self._set_lora_gates(regime_prior)
         # 3. Temporal backbone.
         if self.backbone is not None:
             if self.fusion_kind == "late":
