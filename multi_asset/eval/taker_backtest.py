@@ -181,19 +181,28 @@ def battery(df, cfg):
     print(f"[3] ORACLE sign(y): net @0={prof[0.0]:.0f} @1.0={prof[1.0]:.0f} @1.7={prof[1.7]:.0f} bps"
           f"  -> {'PASS' if u3 else 'FAIL'}"); ok &= u3
 
-    # (2) SHUFFLE-NULL: shuffle p within-day => gross≈0, net≈−cost·sides (no residual alpha)
+    # (2) SHUFFLE-NULL: 50 within-day permutations. TWO reads, decoupled (0B's fix — 5-shuffle was
+    #     seed-fragile). (a) ENGINE-UNBIASED = null distribution centered near 0 (|mean| « std) i.e.
+    #     no PnL manufactured from noise — THIS is the battery gate. (b) SIGNAL z/percentile of real
+    #     gross vs the null (reported, not gated; 0B measured z≈2.0 = marginal, so report honestly).
     rng = np.random.default_rng(0); grosses = []
-    for _ in range(5):
+    NSH = 50
+    for _ in range(NSH):
         ps = p.copy()
         for dd in np.unique(day):
             idx = np.where(day == dd)[0]; ps[idx] = p[idx][rng.permutation(len(idx))]
         ds = ps - decision_center(ps, cfg["W"]); ehs = calibrate_offtest(ds, y, mon)
         pn, po, dp = run_strategy(ehs, y, cfg["cost"], cfg["buf_long"], cfg["buf_short"], cfg["exit_frac"], cfg["min_hold"])
         grosses.append(float(np.sum(po * y)))
+    grosses = np.asarray(grosses)
     real_gross = float(np.sum(a[1] * y))
-    u2 = abs(np.mean(grosses)) < abs(real_gross) * 0.5 + 1.0     # shuffled gross collapses vs real
-    print(f"[2] SHUFFLE-NULL: real gross={real_gross:.1f} vs shuffled mean gross={np.mean(grosses):.1f} bps"
-          f"  -> {'PASS' if u2 else 'FAIL'}"); ok &= u2
+    nmean, nstd = float(np.mean(grosses)), float(np.std(grosses) + 1e-12)
+    z = (real_gross - nmean) / nstd
+    pct = float(np.mean(grosses < real_gross)) * 100.0
+    u2 = abs(nmean) < 0.5 * nstd                                 # engine-unbiased gate (not the signal claim)
+    print(f"[2] SHUFFLE-NULL ({NSH}x): null mean={nmean:.1f} std={nstd:.1f} (engine unbiased |mean|<0.5std -> "
+          f"{'PASS' if u2 else 'FAIL'})  |  real gross={real_gross:.1f}  z={z:.2f}  pct={pct:.0f}%"
+          f"  [{'signal>2σ' if z > 2 else 'MARGINAL signal'}]"); ok &= u2
 
     print(f"\nBATTERY: {'ALL PASS' if ok else 'FAIL — do not trust alpha'}")
     return ok
@@ -239,20 +248,128 @@ def econ(df, cfg, label):
     return m0["breakeven"]
 
 
+# ------------------------------ tail-selectivity sweep ------------------------------
+def _dayblock_boot(day_arr, pnl_k, nboot, seed):
+    """Day-block bootstrap of total net PnL: resample UTC days w/ replacement (block = a day's trades)."""
+    ds = pd.Series(pnl_k).groupby(day_arr).sum().values      # per-day net-PnL sums
+    nd = len(ds)
+    if nd < 2:
+        return np.array([float(ds.sum())])
+    rng = np.random.default_rng(seed)
+    return np.array([ds[rng.integers(0, nd, nd)].sum() for _ in range(nboot)])
+
+
+def _tail_stats(sgn, yy, day_arr, mon_arr, taker, yrs, nboot, seed, label):
+    """Independent-round-trip stats for a set of tail trades: enter@t_k, exit@t_k+600 (2 sides).
+    CONSERVATIVE (never carries -> max cost); carrying same-sign neighbours would only help."""
+    n = len(yy); rt = 2 * taker
+    if n == 0:
+        return dict(n=0, per_side=np.nan, per_trade=np.nan, net=np.nan, sharpe=np.nan,
+                    hit=np.nan, clears=False, boot_frac_pos=np.nan, boot_lo=np.nan, boot_hi=np.nan)
+    gk = sgn * yy                                            # gross per round-trip (bps)
+    gross = float(gk.sum()); per_trade = gross / n; per_side = gross / (2 * n)
+    net = gross - rt * n
+    pnl_k = gk - rt
+    tpy = n / yrs
+    sh = float(np.mean(pnl_k) / (np.std(pnl_k) + 1e-12) * np.sqrt(tpy))
+    hit = float(np.mean(sgn == np.sign(yy)))
+    boots = _dayblock_boot(day_arr, pnl_k, nboot, seed)
+    return dict(n=n, per_side=per_side, per_trade=per_trade, net=net, sharpe=sh, hit=hit,
+                clears=per_side > taker, boot_frac_pos=float(np.mean(boots > 0)),
+                boot_lo=float(np.percentile(boots, 2.5)), boot_hi=float(np.percentile(boots, 97.5)))
+
+
+def tail_sweep(df, cfg, label, taker=1.7, nboot=3000):
+    """Trade ONLY the fat tail of |ê| (off-test calibrated signal-deviation). For each top-f cutoff,
+    each selected non-overlap period is an independent round-trip (2 taker sides = 3.4 rt @1.7).
+    Answers: is there a cutoff where per-trade edge ROBUSTLY exceeds taker cost, or does it evaporate?"""
+    G = nonoverlap_grid(df); ts = G.ts.values.astype(np.int64); y = G.y.values; p = G.p.values; mon = G.month.values
+    d = p - decision_center(p, cfg["W"]); eh = calibrate_offtest(d, y, mon)
+    cal = eh != 0.0                                          # only calibrated (post-warmup) periods tradeable
+    ae = np.abs(eh); day = ts // DAY
+    yrs = max((ts.max() - ts.min()) / (365.25 * DAY), 1e-9)
+    rt = 2 * taker
+    ncal = int(cal.sum())
+    print(f"\n=== TAIL-SELECTIVITY SWEEP [{label}]  taker={taker} (round-trip {rt})  ===")
+    print(f"grid {len(G)} periods, {ncal} calibrated (tradeable), {len(np.unique(day))} days, {yrs:.2f} yr span")
+    print(f"NOTE: threshold = pooled top-f quantile of |ê| among calibrated (mild in-sample peek on the CUTOFF"
+          f" LOCATION only; slope calibration stays strictly off-test). Causal expanding-prior sensitivity in last col.")
+    print(f"{'top-f':>7s} {'thr(bps)':>8s} {'#tr':>5s} {'per_side':>8s} {'clears1.7':>9s} {'per_trade':>9s} "
+          f"{'net_bps':>9s} {'Sharpe':>7s} {'hit':>5s} {'boot>0':>7s} {'boot95%CI':>18s} {'causal_ps':>9s}")
+    fracs = (0.10, 0.05, 0.02, 0.01, 0.005)
+    rows = {}
+    for f in fracs:
+        thr = float(np.quantile(ae[cal], 1.0 - f))
+        sel = cal & (ae >= thr)
+        st = _tail_stats(np.sign(eh[sel]), y[sel], day[sel], mon[sel], taker, yrs, nboot, 0, f)
+        # causal sensitivity: threshold from expanding-prior |ê| (prior months only)
+        cps_num = cps_den = 0.0
+        for i, mk in enumerate(MONTHS):
+            te = (mon == mk) & cal
+            if not te.any():
+                continue
+            prior = np.isin(mon, MONTHS[:i]) & cal
+            if prior.sum() < 200:
+                continue
+            tq = float(np.quantile(ae[prior], 1.0 - f))
+            s2 = te & (ae >= tq)
+            if s2.any():
+                cps_num += float((np.sign(eh[s2]) * y[s2]).sum()); cps_den += 2 * int(s2.sum())
+        cps = cps_num / cps_den if cps_den > 0 else np.nan
+        rows[f] = st
+        ci = f"[{st['boot_lo']:.0f},{st['boot_hi']:.0f}]"
+        print(f"{f*100:6.1f}% {thr:8.3f} {st['n']:5d} {st['per_side']:8.3f} {'YES' if st['clears'] else 'no':>9s} "
+              f"{st['per_trade']:9.3f} {st['net']:9.1f} {st['sharpe']:7.2f} {st['hit']:5.3f} "
+              f"{st['boot_frac_pos']:7.2f} {ci:>18s} {cps:9.3f}")
+
+    # long-tail vs short-tail split (H1: short alive in drift, long weaker)
+    print(f"\n  LONG vs SHORT tail split (independent round-trips @taker {taker}):")
+    print(f"  {'top-f':>7s} {'side':>5s} {'#tr':>5s} {'per_side':>8s} {'clears':>6s} {'net_bps':>9s} {'Sharpe':>7s} {'hit':>5s} {'boot>0':>7s}")
+    for f in fracs:
+        thr = float(np.quantile(ae[cal], 1.0 - f)); sel = cal & (ae >= thr)
+        for nm, m2 in (("long", sel & (eh > 0)), ("short", sel & (eh < 0))):
+            st = _tail_stats(np.sign(eh[m2]), y[m2], day[m2], mon[m2], taker, yrs, nboot, 0, nm)
+            print(f"  {f*100:6.1f}% {nm:>5s} {st['n']:5d} {st['per_side']:8.3f} {'YES' if st['clears'] else 'no':>6s} "
+                  f"{st['net']:9.1f} {st['sharpe']:7.2f} {st['hit']:5.3f} {st['boot_frac_pos']:7.2f}")
+
+    # operating point = most net-positive cutoff; per-month + leave-one-month-out concentration
+    op = max(fracs, key=lambda f: (rows[f]["net"] if np.isfinite(rows[f]["net"]) else -1e18))
+    thr = float(np.quantile(ae[cal], 1.0 - op)); sel = cal & (ae >= thr)
+    sgn = np.sign(eh[sel]); yy = y[sel]; msel = mon[sel]; gk = sgn * yy
+    print(f"\n  OPERATING POINT = top {op*100:.1f}% (most net-positive). Concentration check:")
+    print(f"  {'month':>8s} {'#tr':>5s} {'net_bps':>9s} {'gross':>8s} {'hit':>5s}  | LOMO net (drop this month):")
+    tot_net = float((gk - rt).sum())
+    for mk in MONTHS:
+        sm = msel == mk
+        if sm.sum() == 0:
+            continue
+        gm = float(gk[sm].sum()); nm_ = int(sm.sum()); netm = gm - rt * nm_
+        lomo = tot_net - netm
+        print(f"  {mk:>8s} {nm_:5d} {netm:9.1f} {gm:8.1f} {float(np.mean(sgn[sm]==np.sign(yy[sm]))):5.3f}  | drop-{mk}: {lomo:9.1f}")
+    lomo_min = min((tot_net - (float(gk[msel==mk].sum()) - rt*int((msel==mk).sum())))
+                   for mk in MONTHS if (msel==mk).sum() > 0)
+    print(f"  total net={tot_net:.1f}  worst LOMO (drop best month)={lomo_min:.1f}  "
+          f"-> {'SURVIVES' if lomo_min > 0 else 'DIES'} leave-one-month-out")
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preds", default="exports/final_l01/y600_backtest_dataset.csv")
     ap.add_argument("--battery", action="store_true"); ap.add_argument("--econ", action="store_true")
+    ap.add_argument("--tail", action="store_true")
     ap.add_argument("--label", default="preds")
     a = ap.parse_args()
     cfg = dict(W=12, cost=1.0, buf_long=1.0, buf_short=0.5, exit_frac=0.3, min_hold=1, maker=0.0, taker=1.7)
     df = load_preds(a.preds)
-    if a.battery or not a.econ:
+    if a.battery or not (a.econ or a.tail):
         passed = battery(df, cfg)
         if not passed:
             print("BATTERY FAILED — refusing to print alpha."); return
     if a.econ:
         econ(df, cfg, a.label)
+    if a.tail:
+        tail_sweep(df, cfg, a.label, taker=cfg["taker"])
     print("DONE_TAKER_BACKTEST.")
 
 
