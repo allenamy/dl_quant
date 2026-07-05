@@ -217,8 +217,25 @@ def econ(df, cfg, label):
     print(f"HYBRID maker={cfg['maker']}/taker={cfg['taker']}: net={mh['net']:.1f} Sharpe={mh['sharpe']:.2f} "
           f"turnover={mh['turnover']:.3f} hit={mh['hit']:.3f}")
     # break-even headline (gross / sides at the operating point)
-    m0 = metrics(*run_strategy(eh, y, 0.0, cfg["buf_long"], cfg["buf_short"], cfg["exit_frac"], cfg["min_hold"]), y=y, ts=ts)
+    pn0, po0, dp0 = run_strategy(eh, y, 0.0, cfg["buf_long"], cfg["buf_short"], cfg["exit_frac"], cfg["min_hold"])
+    m0 = metrics(pn0, po0, dp0, y, ts)
     print(f"★ BREAK-EVEN one-side cost = {m0['breakeven']:.3f} bps (gross {m0['gross']:.1f} / {m0['sides']:.0f} sides)")
+
+    # FIXED-threshold cost-sweep (tune once @0, apply grid to the SAME position path) -> monotone
+    print("  fixed-strategy(cost0-thresholds) cost-sweep net_bps (monotone):", end=" ")
+    for cst in (0.0, 0.5, 1.0, 1.7):
+        print(f"@{cst}={m0['gross'] - cst * m0['sides']:.0f}", end="  ")
+    print()
+
+    # per-month break-even (which months carry the alpha), cost-adaptive at cfg cost
+    print("  per-month break-even (bps) [gross/sides, hit, turnover]:")
+    for mk in MONTHS:
+        sel = mon == mk
+        if sel.sum() < 50:
+            continue
+        pn, po, dp = run_strategy(eh[sel], y[sel], 0.0, cfg["buf_long"], cfg["buf_short"], cfg["exit_frac"], cfg["min_hold"])
+        mm = metrics(pn, po, dp, y[sel], ts[sel])
+        print(f"    {mk}: BE={mm['breakeven']:.3f}  hit={mm['hit']:.3f}  turn={mm['turnover']:.3f}  gross={mm['gross']:.0f}")
     return m0["breakeven"]
 
 
