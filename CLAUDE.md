@@ -51,12 +51,24 @@
 1. **avg per-asset Pearson** — headline (目标 0.10)。每个 symbol 各算 P，再平均。
 2. **cross-sectional rank-IC** — 每个 timestamp 横截面 rank corr，mean + IR。交易侧首选 (long-short portfolio)。
 3. **per-asset Spearman** — 重尾稳健。
-4. **β (y on ŷ) + σŷ/σy** — 校准 + collapse 检查。
+4. **σŷ/σy (collapse guard) + β 的跨-regime *稳定性*** — 见下方 β 铁律。**σŷ/σy≥0.02 是真守卫；β 的绝对*水平*不是。**
 5. **long-short bias** — 预测 cross-sectional demean 后应 near-zero。
 6. **Clean vs Dense** — clean = stride≥600 非重叠；报告必须双给，clean 才 honest。
 7. **net-of-fee** — 回测必须扣 per-asset cost (A7 tiering)。
 
 **P/S 分歧** = 危险信号，记录 + 诊断。不可为单指标牺牲另一个。不可单指标 early-stop / checkpoint。
+
+### ★ 核心质量指标铁律 — IC 是 alpha，β 是量纲 (2026-07-05 定,辩证推导)
+
+**代数支点: β = r · (σy/σŷ)** —— β 是 IC(r) 乘一个**纯尺度比**。⇒ 把预测 ŷ×c: **IC 完全不变(尺度无关)，β→β/c**。所以:
+
+- **alpha 判定唯一以 IC / rank-IC 为准 (尺度不变的信息量)。** β 的绝对水平**可被任意 rescale 设定,几乎不由模型质量决定** —— β=3 与 β=1 常是同一模型差一个标量 (IC/排序/一切交易相关量全同)。
+- **禁止把 β *水平* 当质量门,禁止把 "β 改善" 当 alpha 奖励** (IC 不动的 β 变化 = 分布/尺度移动,非信息)。曾误因 β=3.13 折损 IC 最高的强月赢家 = 错。用损失项训 β→1 (lambda_beta_calib) 实测反向/NULL — 别做。
+- **β 的合法角色只有两个: (a) 塌缩/衰减监视 —— 但真守卫是 σŷ/σy→0,β 只是症状; (b) 跨-regime 稳定性 —— β 逐月乱摆(0.5↔3)= σŷ/σy 漂 = 真 regime-鲁棒性信号,一次全局 rescale 修不了。看 β 的*方差*,不看*均值*。**
+- **部署幅度 (Kelly/净成本门需要真实 bps): 事后接校准层 (val 窗 isotonic/线性 rescale,IC 不变),不把 β 训进模型。**
+- **主流系统化/HFT: 关注 IC·IC-IR·rank-IC·换手·衰减半衰期·容量·净成本 Sharpe·回撤;原始信号 β 非 headline (风险层/优化器会中性化尺度)。β-校准只对 magnitude-sizing 与净成本 taker-gate 相关,且靠事后校准。**
+
+**一句话: 信息(IC)难挣,量纲(β)是后处理一步。优化模型只追 IC/rank-IC + σ-不塌 + IC 跨月稳定;β 水平交给事后 rescale。**
 
 ---
 

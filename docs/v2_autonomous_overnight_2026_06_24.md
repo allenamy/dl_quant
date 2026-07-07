@@ -1966,3 +1966,1011 @@ VERDICT: user reframe NOT validated. The joint representation does NOT causally 
   session debunked, alongside beta-baseline + TTA-leak.)
 CONCLUSION STANDS: no causal regime signal to gate on -> regime-conditional unification cannot work. Production =
   the simpler robust models (adaptive default; or adaptive+MH strong / adaptive+MoE weak by trading regime).
+
+## FINAL PRODUCTION VALIDATION -- prepared (2026-06-25), gated on cache-cleanliness + SSH
+DELIVERABLE = adaptive (regime FiLM + zero-init regime-bias) -- the robust single model. (NOT +mh180: always-on
+  MH destroys weak [MH-only weak 0.013 vs base 0.073]; NOT +MoE: conflicts; regime not pickable/learnable [causal
+  test debunked].) PREPARED local-first (sync+launch when SSH stable + cache confirmed 6-wide):
+  - eval_caliber EXTENDED: now reports P/S/beta/sigma/decile-mono/DA, dual-caliber (DENSE+CLEAN).
+  - export_production_csv.py: all-fold raw-y predictions CSV for backtest.
+  - run_production_validation.sh: clean from-scratch re-train of adaptive on 6 folds (2024-10/2025-04/2025-08 via
+    train_v2arch; 2025-12/2026-02/2026-05 via train_dual_lob) + full metrics each + CSV.
+  - PREREQUISITE (non-negotiable per the contamination incident): confirm caches 6-wide regime_prior BEFORE
+    re-train (cache-check poller running). + shuffle-null sentinel (prior dp32_a02 PASS sigma 0.088->0.006; adaptive
+    adds only zero-init FiLM/bias so same architecture -- fresh adaptive shuffle-null if SSH permits).
+  EXPECTED reproduction: strong 2025-04 ~0.105 CLEAN, choppy 2026-05 ~0.040, 5/6 folds CLEAN-positive (drift folds
+  weakest ~0.018). Flag any contamination drift vs these recorded numbers.
+
+## PRODUCTION VALIDATION LAUNCHED (2026-06-25): cache CONFIRMED CLEAN (npzv4_dual 0/981, npz_v2arch 0/872 14-wide)
+6-fold clean from-scratch re-train of adaptive running (PV_2024_10 first). Full metrics (P/S/beta/sigma/mono/DA
+  dual-caliber) each + CSV. Shuffle-null: dp32_a02 PASS already on record (sigma 0.088->0.006); adaptive adds only
+  zero-init FiLM/bias (cannot manufacture signal) -- fresh adaptive shuffle-null queued AFTER the 6-fold sweep if SSH/GPU permit.
+
+## CONTINUOUS MONTHLY WALK-FORWARD launched (user directive, 2026-06-25) -- the gold-standard production sim
+SUPERSEDES the 6 sampled folds. 24 months 2024-06..2026-05; for each month M: rolling-train adaptive 700d before
+  M, test M, roll forward. Cache auto-selected (npzv4_dual <=2025-09 / npz_v2arch 2025-10+, both confirmed CLEAN
+  6-wide). Per-month dual-caliber P/S/beta/sigma/DA + mono. Idempotent/RESUMABLE (skips done months -> survives
+  SSH flaps). Streams per-month as completed. Aggregator: trajectory + pooled P/S + IC-IR + worst-month + %-CLEAN-
+  positive + annualized IC-IR proxy. ~16-24h (24 nw0 retrains). Honest expectation: strong ~0.10, normal ~0.05,
+  choppy ~0.04, drift ~0.02/neg -> the real production variability + drawdowns. Production CSV after.
+
+## FRESH DATA-DRIVEN ROOT-CAUSE DIG (2026-06-26) — sign-flip / per-month failure mechanism
+> **创建:** 2026-06-26 | **状态:** in-progress | **作废条件:** superseded by signfix-gate / DL-optimization result
+Directive: HARD targets (every month P>=0.025, no sign-flip; strong>0.10; pooled>0.06; window 2025-08..2026-05).
+Fresh dig, NO past-conclusion priors. Script: `multi_asset/data/signflip_rootcause.py` (R1-R4, leak-safe).
+
+KEY DATA FINDING — funding/OI/premium ARE on disk (`data/funding/*.csv`, 2023-02..2026-06): funding 8h+mark,
+premium 1m/5m OHLC, metrics 5m (OI, OI-value, toptrader/retail L/S, taker buy/sell). The old memory note
+"choppy 0.06 needs funding/OI (absent on disk)" is STALE — they were dumped + leak-safe-gated already
+(funding_ridge_gate/premium/oi_designed). Re-opened per directive.
+
+R1 PER-MONTH SELF-FIT (in-month 5-split CV CLEAN P) — signal EXISTS in-month nearly everywhere:
+  2025-08 +0.040(b+0.20) | 2025-09 +0.020(b-0.14 INVERTED) | 2025-10 -0.068(b-0.09, but R2 full-month +0.243)
+  2025-11 +0.062 | 2025-12 -0.010 (genuinely weak) | 2026-01 +0.020 | 2026-02 +0.065 | 2026-03 +0.033
+  2026-04 +0.042 | 2026-05 +0.032.  => "drift is dead signal" is FALSE for 2026-02/03/04 (strong in-month).
+  Only 2025-12 genuinely near-zero. 2025-09 the one true in-month inversion.
+
+R2 TRANSFER MATRIX (train row -> test col) — DIAGONAL DOMINATES (self +0.118..+0.243); OFF-DIAGONAL TRANSFER is
+  the failure. The walk-forward fails NOT because the test month lacks signal but because the PRIOR-window map
+  doesn't transfer to it. 2026-02 diag +0.195 but most rows transfer poorly to it. => TRANSFER/STALENESS problem,
+  not signal absence. This is the precise, located root cause.
+
+R3 POSITIONING REGIME (causal) — confirms the regime INVERSION timeline EXACTLY at the hard months:
+  funding flips NEGATIVE 2026-02(-0.075)->2026-04(-0.197); topLS collapses 2.24(2025-12)->0.88(2026-04 net-SHORT);
+  OI-value craters $10bn->$5.7bn (deleverage). The poor-transfer months ARE the negative-funding/short-lean regime.
+  The microstructure->return map learned in long-carry regime mismatches the deleveraged regime.
+
+R4 RECENCY — OVERTURNS "recency hurts" (month-dependent): 2026-02 recent-3mo +0.033 BEATS full +0.017 (recency
+  HELPS the strong-but-poor-transfer month). 2025-12(dead)/2026-03/04 full>=recent. => recency is a CONDITIONAL
+  lever (helps when recent window contains the regime), not uniformly bad.
+
+ROOT CAUSE (located, data-backed): the failing months are NOT signal-dead (except 2025-12). They fail because the
+  prior-window->test transfer breaks across a POSITIONING-REGIME inversion (funding/OI/L/S flip 2026-02+). FIX
+  HYPOTHESIS: causal regime-conditioning (let the model's directional map adapt by positioning state) + conditional
+  recency. Next: regime_signfix_gate.py (Ridge: does regime-interaction prevent the sign-flip?) -> if PASS, DL
+  use_oi_regime over target window -> rolling eval.
+
+## SIGNFIX RIDGE GATE COMPLETE (2026-06-26) — regime-conditioning at linear ceiling
+> **状态:** final | Script: `multi_asset/data/regime_signfix_gate.py`. Per-month walk-forward (prior 700d -> test),
+> 4 variants: A base / B +designed-positioning(11) / C regime-interaction(sep map per regime sign) / D full.
+PER-MONTH CLEAN P [beta]:
+  2025-08 A+0.0735 B+0.0746 C+0.0646 D+0.0606 | 2025-09 +0.0317/+0.0301/+0.0288/+0.0279
+  2025-10 +0.1686/+0.1688/+0.1265/+0.1106 | 2025-11 +0.1112/+0.1133/+0.1113/+0.1136
+  2025-12 +0.0203/+0.0197/+0.0231/+0.0224 | 2026-01 +0.0050/+0.0087/+0.0017/+0.0048
+  2026-02 +0.0062/+0.0087/[+0.0260]/[+0.0288] | 2026-03 +0.0285/+0.0295/-0.0178/-0.0229
+  2026-04 -0.0025/-0.0009/+0.0001/+0.0142 | 2026-05 +0.0350/+0.0364/+0.0422/+0.0370
+  MEANS: A=+0.0477 B=+0.0489 C=+0.0406 D=+0.0397 ; %>=.025 = 60% all ; neg-months=1 all.
+
+VERDICTS (data-decisive):
+ 1. BASE RIDGE pooled +0.0477 is STRONG and BEATS the DL walk-forward on most months (2025-10 +0.169!,
+    2025-11 +0.111). The DL arch was UNDER-capturing available linear signal. <- biggest opportunity.
+ 2. +DESIGNED POSITIONING (B): +0.0012 over base = BELOW +0.003 gate. Funding/OI additive lever NULL
+    (re-confirms 2026 memory). The orthogonal positioning data does NOT add average alpha linearly.
+ 3. REGIME-INTERACTION (C/D): RESCUES the inverted-regime month 2026-02 (+0.006->+0.029, crosses 0.025 target)
+    AND 2026-05/2026-04(D) -- exactly the R3-predicted positioning-inversion months. BUT DESTROYS 2026-03
+    (+0.029->-0.023) and dilutes easy months -> net mean LOWER. Hard regime-split too crude (helps when test
+    regime != bulk-train regime, hurts otherwise). MECHANISM REAL (2026-02 rescue) but execution wrong.
+ 4. EVEN THE RIDGE CEILING MISSES "every month >=0.025": 2026-01 (+0.005) and 2026-04 (-0.003) stay sub-target
+    under ALL variants -> these 2 months are genuinely near-zero at the LINEAR ceiling (not a lever problem).
+
+IMPLICATION for the HARD TARGETS:
+ - "strong>0.10" : ACHIEVED at Ridge (2025-10 +0.169, 2025-11 +0.111). DL must just stop under-capturing.
+ - "pooled>0.06" : Ridge is +0.048 pooled over THIS 10-month window (which includes 3 genuinely-dead months);
+   over the strong sub-window it's far higher. Borderline vs 0.06 depending on window mix.
+ - "EVERY month>=0.025, no neg" : NOT achievable even at linear ceiling for 2026-01/04 (the dead months).
+   This target appears infeasible for those 2 specific months with on-disk data. HONEST.
+ - NEXT (justified): (a) the DL should at least MATCH Ridge -> test whether DL under-capture is fixable;
+   (b) SOFT regime-conditioning (DL use_oi_regime FiLM interpolates, not hard-split) might get the 2026-02
+   rescue WITHOUT the 2026-03 breakage -> the one DL lever the gate justifies. Build + per-month eval.
+
+## OPTIMIZATION DECISION (2026-06-26) — what the gates justify, what they don't
+> **状态:** in-progress
+GATE DISCIPLINE (project rule: Ridge ΔP>=+0.003 before DL): 
+ - +DESIGNED POSITIONING additive: +0.0012 -> FAILS gate. OI/funding additive lever is dead (3rd confirmation).
+ - REGIME-INTERACTION: net mean LOWER (-0.007); one real rescue (2026-02 +0.022) bought by one breakage
+   (2026-03 -0.046). Hard-split FAILS as a net lever. The DL soft analog (use_oi_regime FiLM) is CLOSER to
+   the additive-B form (which is NULL) than to the hard-split -> LOW prior of capturing the 2026-02 rescue.
+   => Building the ~70GB OI cache for a gate-FAILING lever violates discipline. OI DL lever NOT pursued
+   unless the base-DL-vs-Ridge result specifically shows FiLM-shaped regime room.
+ACTUAL BIGGEST FINDING: the base Ridge (snapshot) pooled +0.0477 on the target window and HITS strong>0.10
+   (2025-10 +0.169, 2025-11 +0.111). The earlier (2024-grinding) DL walk-forward was under-capturing. So the
+   real optimization is: DOES THE DL MATCH/BEAT THE RIDGE CEILING on the target window? -> launched the
+   TARGET-WINDOW base-adaptive DL walk-forward (run_wf_target.sh, 2025-08..2026-05, rolling 700d) to measure
+   this honestly. If DL >= Ridge on the strong months and pooled, targets (strong>0.10, pooled borderline-0.06)
+   are within reach with the EXISTING arch; the per-month>=0.025 target is INFEASIBLE for 2026-01/04 (dead at
+   the linear ceiling) regardless of arch -- reported honestly.
+
+## STATUS (2026-06-26, interim) — production eval in flight
+TARGET-WINDOW base-adaptive DL walk-forward (run_wf_target.sh) launched + healthy (2025-08 preloading, RSS
+climbing, GPU idle during preload as expected; ~40min/month x10 = ~7h). Streams per-month CLEAN metrics; final
+aggregate via walkforward_aggregate.py (pooled/IC-IR/worst/%-pos) + production CSV via export_production_csv.py.
+Deliverable arch = base adaptive (REG_arch+perp-residual+regime-FiLM+regime-bias); OI/regime-conditioning levers
+FAILED the Ridge gate so not added (discipline). Pending: DL-vs-Ridge verdict on the target window.
+
+## DL-vs-RIDGE on target window (streaming, 2026-06-26)
+TARGET-WINDOW base-adaptive DL walk-forward results vs the Ridge ceiling (signfix gate A-base):
+  2025-08: DL CLEAN P=+0.0566 (beta0.81) / +0.0557 EMA (beta1.05), S=0.040, sig=0.07, mono~0.5, DA=0.51
+           Ridge ceiling = +0.0735.  => DL under-captures by ~0.017 (β-healthy, σ-clean, no collapse).
+  CONFIRMS: the conformer temporal-pooling washes out snapshot-linear signal the Ridge keeps (documented
+  choppy-ceiling mechanism). DL is honest (β~1, σ 0.07) but leaves linear edge on the table on this month.
+  [remaining months streaming...]
+LEVER IMPLICATION: the highest-value optimization is NOT more channels/regime-conditioning (gate-failed) but
+  RECOVERING the snapshot-linear signal the DL loses -> the use_snapshot_skip lever (zero-init linear readout of
+  x_feat[:,-1,:] added to the DL output; already implemented in dual_lob_regarch.py) is the mechanism-matched
+  fix. Queue snapshot-skip DL variant if base-DL confirms systematic under-capture vs Ridge across months.
+
+## DL-vs-Ridge update (2 months) — COMPLEMENTARY, not uniform under-capture
+  2025-08: DL +0.0566/+0.0557 (b0.81/1.05) vs Ridge +0.0735  => DL UNDER by 0.017 (loses snapshot-linear)
+  2025-09: DL +0.0602/+0.0480 (b1.10/1.22) vs Ridge +0.0317  => DL BEATS by +0.029 (captures nonlinear)
+  KEY: DL and Ridge are COMPLEMENTARY (DL wins nonlinear months, loses snapshot-linear months). This is the
+  textbook case for the SNAPSHOT-SKIP lever (DL + zero-init last-step linear readout = both signals in one
+  model) OR a DL+Ridge value-blend. Snapshot-skip is the single-model, leak-safe, mechanism-matched fix
+  (configs/runner prepared: run_wf_snap.sh). Launch after base-DL completes (single 3090). 2025-10 (Ridge
+  +0.169 strong month) is the decisive next datapoint -- if DL tracks it, strong>0.10 target holds for DL.
+
+## THROUGHPUT FIX + clean restart (2026-06-26)
+train_dual_lob (2025-10+ months) was ~3-5h/month at batch=256 (too slow for 10-month sweep). Bumped target-window
+configs (2025-10..2026-05) to batch=512, lr*sqrt2 (0.000849), patience=5 -> ~1.7x throughput (GPU headroom safe:
+8.5GB@b256 -> ~17GB@b512 < 24GB 3090). Heavy SSH-flap interference (jpline sshd cycling, multi-min outages)
+caused tangled multi-runner/orphan-train states; resolved with atomic server-side reset_wft.sh (one landing SSH =
+full kill+relaunch of ONE clean runner). Runner idempotent/resumable. Streaming aggregate via
+walkforward_aggregate.py on each completed month. NOTE: 2025-08/09 used train_v2arch (fast, b256 ok); only the
+train_dual_lob months got the b512 bump.
+
+## TIMING REALITY (2026-06-26) — DL production eval is ~1-day wall-clock
+train_dual_lob per-epoch on 600x88 seq is ~20min even at b512 (dual-path forward is heavy); ~3-4h/month x 8
+train_dual_lob months + 2 fast train_v2arch months = ~24-30h for the full 10-month clean DL production eval.
+Runner is detached + idempotent/resumable (survives SSH flaps). Harvesting per-month CLEAN metrics from the
+persisted runner log (/tmp/wf_target.log) since test_preds files are being cleaned post-eval (harmless: log keeps
+the numbers). Recorded so far (this new b512 run): 2025-08 BEST CLEAN, 2025-09 CLEAN +0.0602/+0.0480 (skipped as
+done); 2025-10 in progress. Letting it run unattended; will aggregate from log at completion + run snapshot-skip
+comparison. The honest deliverable is the full per-month DL trajectory vs the Ridge ceiling already measured.
+
+## ACCELERATED: snapshot-skip FAST 3-month test (2026-06-26)
+Killed the slow base-DL full run (under-capture already measured). Per "iterate FAST then full rolling-window":
+testing snapshot-skip on 3 REPRESENTATIVE months first:
+  2025-08 (snapshot-linear: Ridge 0.074 > DL 0.057) -- does snap-skip recover -> ~Ridge?
+  2025-09 (nonlinear: DL 0.060 > Ridge 0.032)        -- does it KEEP the nonlinear?
+  2025-10 (strong: Ridge 0.169)                       -- does it hit strong>0.10?
+VERDICT criterion: snap-skip works IFF >= max(DL,Ridge) on all 3, β-healthy, shuffle-null clean.
+Runners: run_wf_snap3.sh (GPU) + snapshot_skip_shufflenull.py (CPU sentinel: last-step Ridge proxy REAL vs
+PERMUTED y on the 3 months; permuted must collapse ~0). IF passes -> full rolling-window 2025-08..2026-05 on
+snap-skip = final production eval. IF not -> diagnose readout placement/init/features, iterate on 3 months.
+
+## RIDGE-CEILING PREMISE CHECK (2026-06-26) — skeptical audit of the +0.169/+0.111
+Coordinator flagged Ridge +0.169(2025-10)/+0.111(2025-11) as a RED FLAG (could be artifact). Audited:
+ - CALIBER: signfix Ridge IS CLEAN (4-offset non-overlap >=600s), not DENSE. OK.
+ - LEAK-SAFE (code audit): train=prior 12 months, standardize TRAIN-ONLY, features <=t (last-step+60s-mean
+   of cache built <=t), month-boundary embargo. No obvious future leak.
+ - FIRST verify run had a BUG (cross-cache train filter -> trained 2025-11 on ~1 month -> P collapsed to
+   +0.025 + noisy shuffle-null +0.024). NOT a real disconfirmation -- it was a train-set bug in the verifier.
+ - FIXED verify (12-month train from test's cache, matching signfix EXACTLY) re-running: will give the true
+   leak-safe per-alpha DENSE/CLEAN + shuffle-null(permute test-y AND train-y) for 2025-10/11/08.
+DECISIVE: if fixed-verify CLEAN ~matches signfix (0.11/0.17) AND shuffle-null collapses ~0 -> ceiling REAL,
+   snapshot-skip justified. If shuffle-null stays high -> leak, re-baseline. AWAITING fixed-verify.
+NOTE: snap3 (GPU) + shuffle-null sentinel still running in parallel; will gate snapshot-skip on this verify.
+
+## RIDGE CEILING = LIKELY ARTIFACT (2026-06-26) — premise check results
+Fixed verify (12-month train, matching signfix EXACTLY) reproduced the high CLEAN: 2025-10 +0.1686,
+2025-11 +0.1112, 2025-08 +0.0368. BUT the SHUFFLE-NULL exposes leakage:
+  2025-10: permute-TRAIN-y null = +0.0611 +- 0.115 (3-seed) -- Ridge on SHUFFLED labels still scores +0.06!
+  2025-11: permute-TRAIN-y null = +0.0376 +- 0.040
+  permute-TEST-y null collapses fine (~0) but permute-TRAIN-y does NOT.
+Snapshot-skip SENTINEL (last-step Ridge proxy): 2025-08 REAL +0.043 vs SHUF +0.022 = FAIL(leak); 2025-09 noisy.
+Snap3 DL 2025-08: snapshot-skip CLEAN +0.046/+0.047 (b0.58/1.15) -- NO improvement over base DL +0.057
+  -> snapshot-skip does NOT recover a (phantom) ceiling.
+INTERPRETATION: the permute-TRAIN-y null being non-zero (and snapshot sentinel failing) means the high Ridge
+  CLEAN is INFLATED by an artifact, NOT pure leak-safe signal. The 3-seed null is noisy (0.5-0.9 sigma) so
+  running 10-seed iid + block-perm null to settle (z-stat). IF 10-seed null is clearly >0 -> the +0.169 ceiling
+  is a PHANTOM, "DL under-captures" premise is WRONG, snapshot-skip chases nothing -> re-baseline on the DL
+  honest numbers (the DL P~0.05-0.06 with healthy beta IS the real signal). AWAITING 10-seed.
+
+## RIDGE CEILING = REAL (2026-06-26) — 10-seed shuffle-null DECISIVE
+The 3-seed null was UNDERPOWERED noise. 10-seed iid-perm-TRAIN-y null:
+  2025-10: REAL CLEAN +0.1686 | null +0.0073 +- 0.089 (z=+0.26) | real/null = 23x  -> REAL
+  2025-11: REAL CLEAN +0.1112 | null +0.0053 +- 0.039 (z=+0.42) | real/null = 21x  -> REAL
+  block-perm null also ~0 (z +0.69 / -1.48). CLEAN (not dense), leak-safe (train-only standardize, <=t feats,
+  prior-month train, month embargo), robust across alpha (0.16-0.17 flat over alpha 1..1000).
+VERDICT: the Ridge snapshot ceiling is GENUINE leak-safe signal (>20x null). The coordinator's skepticism was
+  healthy but the premise SURVIVES: the DL GENUINELY UNDER-CAPTURES (2025-10 Ridge +0.169 vs DL ~0.05; 2025-11
+  +0.111 vs DL ~0.06). Mechanism = Conformer temporal-pooling averages away the instantaneous snapshot-state
+  signal a last-step Ridge keeps (documented project precedent: OBI-snapshot Ridge > DL). SNAPSHOT-SKIP JUSTIFIED.
+EARLY snap3 read: 2025-08 snapshot-skip DL CLEAN +0.046/+0.047 (b0.58/1.15) -- did NOT beat base DL +0.057 yet.
+  BUT 2025-08 Ridge ceiling is only +0.037 (low snapshot-signal month), so 2025-08 isn't where snapshot-skip
+  should shine. The DECISIVE snapshot-skip months are 2025-10/11 (Ridge 0.11-0.17 >> DL) -- 2025-10 in snap3 now.
+
+## 0.169 DECOMPOSITION (2026-06-26) — explain or expose (user firmly doubts 0.169)
+Coordinator's 3 inflation suspects:
+ 1. ALPHA-cherry-pick: ALREADY RULED OUT by verify per-alpha: 2025-10 CLEAN = 0.1607/0.1635/0.1673/0.1686
+    over alpha 1/10/100/1000 -- FLAT (spread 0.008), worst alpha still +0.161. Decomp confirms + adds
+    alpha-by-TRAIN-SUB-validation (honest, no test peek).
+ 2. FEATURE/MOMENTUM decomposition: top-coef features + univariate CLEAN Pearson; concentration (diffuse vs
+    one feature); AR1 corr(y600[t],y600[t+600s]) + corr(y600, mid-ratio/vwap-return/cumflow) -> is 2025-10 a
+    strong-MOMENTUM month (would make a snapshot-momentum Ridge 0.169 REAL-but-regime-specific, consistent
+    with the transfer-break root cause)?
+ 3. CALIBER: clean_p = 4 NON-OVERLAPPING offsets averaged (not overlap-pooled); reporting per-offset spread,
+    N/offset, single-offset conservative IC, and 95% CI (±1.96/sqrt(N-3)).
+Running decompose_ridge_169.py. Cross-check = snap3 2025-10 independent DL. Both pending.
+
+## 0.169 EXPLAINED + VALIDATED (2026-06-26) — single-feature instantaneous mean-reversion
+DECOMPOSITION decisive (decompose_ridge_169.py):
+ 1. ALPHA: per-alpha CLEAN flat 0.1607-0.1686; per-offset 0.168/0.168/0.169/0.169 (spread 0.001). Train-sub-val
+    independently picks alpha=1000 -> +0.1686. NOT cherry-picked.
+ 3. CALIBER: N=3688/offset (not 1500), single-offset conservative +0.1682, 95% CI ±0.032 -> IC +0.169±0.032
+    CLEANLY separated from 0 AND from DL 0.05. 4 offsets agree to 3 decimals -> no offset-pooling inflation.
+ 2. FEATURE: ONE dominant explicable feature -- pt_vwap_return_1s.last univariate CLEAN P = -0.1725 (~= the
+    full Ridge!); pt_net_flow_x_vol.last = -0.168. AR1(y600,y600+600s) = -0.12 (MEAN-REVERTING, not trending).
+    => 0.169 = leak-safe INSTANTANEOUS MEAN-REVERSION: a 1s VWAP up-tick predicts next-10min DOWN. Strong in
+    2025-10. NOT diffuse overfit, NOT alpha-pick, NOT offset-pool, NOT leak (10-seed null ~0).
+RECONCILES the user's doubt: 0.169 is REAL but it's a SINGLE last-tick reversal feature the Conformer averages
+  away (temporal pooling kills the instantaneous signal -> DL captures ~0.05). This is EXACTLY the snapshot-skip
+  premise + project precedent (OBI-snapshot Ridge > DL). It is regime-dependent (reversion strength varies by
+  month) -> consistent with the transfer-break root cause. SNAPSHOT-SKIP (or even a direct vwap_return_1s skip
+  feature) is the mechanism-matched recovery. CONFIRMED by snap3 2025-10 (pending, independent DL cross-check).
+
+## 0.169 TRADEABILITY CHECK (2026-06-26) — bounce artifact or real alpha? (decisive economic test)
+The 0.169 is driven by pt_vwap_return_1s.last (TRADE-vwap) univ -0.17 vs y_600 (BOOK-mid). Coordinator: this
+SMELLS like bid-ask bounce (trade at ask -> next mid lower -> -corr you can't capture w/o crossing spread).
+tradeability_169.py tests:
+ A. mid-based 1s return (x_mid_ratio_log diff, book-based) reversion vs trade-vwap reversion. If mid collapses
+    -> BOUNCE (non-tradeable). If mid survives -> real.
+ B. net-of-cost: sigma(y600) in bps, IC*sigma, top-decile fade edge vs ~2bps taker / ~0.4bps maker round-trip.
+ C. verdict.
+IF bounce/inside-cost: 0.169 = non-tradeable artifact; the DL "under-capturing" it is CORRECT; snapshot-skip
+  would lift IC without P&L (a TRAP) -> do NOT chase. Honest tradeable ceiling ~= DL 0.05. IF mid survives +
+  net-positive: real, snapshot-skip worth it. AWAITING.  snap3 2025-10 DL cross-check also pending.
+
+## 0.169 = BID-ASK BOUNCE, NON-TRADEABLE (2026-06-26) — DECISIVE, snapshot-skip ABANDONED
+tradeability_169.py (2025-10, N_clean=3689):
+ [A] pt_vwap_return_1s.last (TRADE-vwap) vs y600 = -0.1725  |  x_mid_ratio_log 1s-diff (BOOK-mid) vs y600 = +0.0349
+     -> the reversion EXISTS ONLY in trade-vwap space (trades bounce bid<->ask); in BOOK-MID space it COLLAPSES
+     to ~0 (even flips sign). corr(trade-ret, mid-ret)=+0.02. = textbook BID-ASK BOUNCE.
+ [B] sigma(y600)=22.4bps; top-decile |vwap| FADE edge = +0.107 bps/window GROSS; net taker (2bps rt) = -1.89bps;
+     net maker (~0.4bps rt) = -0.29 bps. DEEP inside the cost floor. NON-tradeable.
+ [C] VERDICT: BID-ASK BOUNCE artifact, NON-tradeable.
+CROSS-CHECK (snap3 DL): snapshot-skip 2025-08 +0.046 < base DL +0.057; 2025-09 +0.072 but beta=2.73 sigma=0.026
+  (DEGENERATE collapsed-sigma fit chasing the bounce, NOT healthy). snapshot-skip does NOT help honestly.
+=== FINAL RESOLUTION OF THE RIDGE-CEILING THREAD ===
+ - Ridge 0.169 is statistically REAL + leak-safe (10-seed null ~0, CLEAN, alpha-flat, N=3688, CI±0.03) BUT it
+   is a MICROSTRUCTURE BID-ASK BOUNCE (trade-vwap reverts to mid), NOT alpha. Net-of-cost it LOSES money.
+ - The DL "under-capturing" the 0.169 is CORRECT: the Conformer rightly averages away a non-tradeable bounce.
+ - "DL under-captures Ridge" premise is REFUTED as a basis for optimization: the gap is non-tradeable bounce.
+   SNAPSHOT-SKIP = chasing IC without P&L (the trap the coordinator/user flagged) -> ABANDONED.
+ - HONEST TRADEABLE CEILING = the DL's own ~0.05-0.06 (book-mid, beta~1, sigma-healthy). The base adaptive DL
+   IS the honest deliverable; it is NOT leaving tradeable signal on the table.
+ - The user's "0.169 impossible for y600" intuition was CORRECT (impossible as tradeable alpha; real only as a
+   non-tradeable bounce). Three more artifacts would-have-been: alpha-pick (ruled out), leak (ruled out),
+   bounce (CONFIRMED). Caught before burning a day on snapshot-skip.
+
+## FINAL STATE (2026-06-26) — honest deliverable = base-adaptive DL, ~0.05-0.06 tradeable
+The deep-dig directive's rigor cascade CONCLUDED:
+ 1. ROOT CAUSE (data): per-month failures = TRANSFER BREAK across a positioning-regime inversion (funding/OI/LS
+    flip 2026-02+), NOT signal death. In-month signal exists (2026-02 +0.065). Recency conditionally helps.
+ 2. LEVER GATES: positioning-feature additive NULL (+0.0012); regime-interaction net-negative (rescues 2026-02
+    but breaks 2026-03); both FAIL the Ridge gate -> NOT pursued (discipline).
+ 3. RIDGE-CEILING premise (the snapshot-skip basis): the +0.169/+0.111 is REAL+leak-safe BUT a NON-TRADEABLE
+    BID-ASK BOUNCE (trade-vwap reverts to mid; collapses to +0.035 mid->mid; net -1.9bps taker). DL correctly
+    ignores it. snapshot-skip = IC-without-PnL trap -> ABANDONED.
+ 4. HONEST TRADEABLE CEILING = base adaptive DL ~0.05-0.06 (book-mid, beta~1, sigma-healthy). 2025-08 +0.057,
+    2025-09 +0.060 (measured). The base DL is the honest deliverable; it is NOT under-capturing tradeable signal.
+ 5. TARGETS (every-month>=0.025 / strong>0.10 / pooled>0.06) when measured TRADEABLY are NOT achievable: the
+    0.10+ months were bounce inflation; 2026-01/04 are genuinely ~0 at the linear ceiling. Honest tradeable
+    signal ~0.05-0.06 = consistent with the entire project history (single-asset 0.06, multi-asset y180 0.074
+    not-tradeable-net-of-cost). No on-disk lever changes this.
+DELIVERABLE: honest base-adaptive DL rolling-window (2025-08..2026-05, b512, idempotent) RUNNING -> per-month
+  CLEAN trajectory + pooled/IC-IR/worst/%-pos + production CSV. This is the production-realistic honest number.
+ARTIFACTS CAUGHT THIS DIG (the user's skepticism repeatedly vindicated): false Ridge train-set bug, underpowered
+  3-seed null scare, and the decisive bid-ask-bounce. All resolved before committing GPU-days to a phantom.
+
+## RE-VERIFY 0.08-0.10 STRONG-MONTH HISTORY (2026-06-26) — CALIBER (clean>dense cross-day pooling) inflation
+User Q: are the earlier MoE 2025-08 ~0.08 / adaptive 2025-04 ~0.10 credible post-bounce-rigor? Re-eval the
+EXISTING on-disk DL test_preds with eval_caliber (DENSE + CLEAN, BEST + EMA):
+  2025-04 adaptive (claimed 0.1054): BEST CLEAN +0.1054 (b1.42 mono.88) | DENSE +0.0747 | EMA CLEAN +0.0760 (b1.60)
+  2025-08 MoE     (claimed 0.0845): BEST CLEAN +0.0845 (b1.06)        | DENSE +0.0414 | EMA CLEAN +0.0771
+KEY: CLEAN >> DENSE in BOTH (2025-04 .105 vs .075; 2025-08 .0845 vs .041 = 2x). This is the CLAUDE.md
+  "clean>dense = cross-day POOLING artifact": the 4-offset CLEAN pools non-overlapping points ACROSS DAYS,
+  inflating the correlation vs within-window DENSE. The 0.1054/0.0845 are CLEAN-pooling + BEST-checkpoint
+  (b=1.4-1.6 = mis-calibrated, anti-pattern #24) numbers, NOT robust within-month tradeable IC.
+  The honest rolling-window (SAME clean_p) gave 2025-08 = +0.057 -- between the DENSE 0.041 and CLEAN 0.084.
+PRELIMINARY VERDICT: the strong-month 0.08-0.10 history is CALIBER+checkpoint inflated; honest within-month
+  DENSE is ~0.04-0.075. Awaiting v2504 Ridge/bounce + the running base-DL 2025-10/11 (honest strong-month DL).
+
+## CLEAN RIDGE vs DL — does DL beat a TRADEABLE Ridge? (2026-06-26)
+User Q: is it CERTAIN the DL significantly beats Ridge? (the earlier "Ridge beats DL" was the BOUNCE; history
+says DL edge over Ridge is modest ~+0.007). DECISIVE apples-to-apples (clean_ridge_vs_dl.py):
+ HONEST RIDGE = BOOK-mid features ONLY (drop the 16 perp-TRADE channels incl pt_vwap_return_1s bounce driver;
+ keep 64 spot-book + 8 cross = book-derived), rolling-700d, train-only standardize, alpha by train-sub-val,
+ PER-DAY CLEAN then averaged (removes the cross-day-POOLING inflation found in the 0.08-0.10 re-eval).
+ Compare per month to honest base-DL (same per-day-CLEAN caliber). dP(DL-Ridge) per month + pooled + vs +0.007.
+ VERDICT: dP>+0.007 consistently -> DL genuinely beats tradeable Ridge. dP~=0 -> DL's only "win" was over the
+ bounce-Ridge phantom (the honest-likely outcome given baseline_parity history). Ridge side computes all 10
+ months now; DL side fills in as base-DL completes (2025-08/09 available, 2025-10+ pending).
+
+## CLEAN RIDGE vs DL — RESULT (2026-06-26): DL DOES beat a clean tradeable Ridge
+HONEST book-mid Ridge (bounce-removed, PER-DAY CLEAN) vs DL, per-day CLEAN caliber:
+  2025-08: Ridge_pd +0.012  DL +0.057  dP +0.045   (bounce-pooled Ridge was -0.026 / +0.166-at-2025-10)
+  2025-09: Ridge_pd +0.055  DL +0.067  dP +0.012
+  pooled dP(DL-Ridge) = +0.029 +- 0.012 (2 DL months so far) -> ABOVE +0.007 hist bar -> DL BEATS clean Ridge.
+  clean book-mid Ridge per-day across all 10 months = +0.01..+0.055 (2026-01 -0.021) -- NOT 0.169.
+KEY RESULTS:
+ - The clean tradeable (book-mid, per-day) Ridge is ~0.01-0.05, NOT 0.169. The 0.169 was ENTIRELY
+   bounce(trade-vwap) + cross-day-POOLING. Confirmed from both sides.
+ - The DL genuinely beats the clean tradeable Ridge (+0.029 > +0.007 historical) -> the DL's edge is REAL,
+   not just-over-the-bounce-phantom. (More DL months fill in as base-DL completes; 2/2 so far DL>Ridge.)
+ - 2025-04 honest book-mid Ridge = -0.019 CLEAN (CI ±0.054) = NO linear signal. So the claimed 2025-04 DL
+   +0.1054 is NOT a Ridge-reproducible number; it's a DL BEST-checkpoint (b=1.42) + cross-day-CLEAN-pooled
+   figure. Honest DENSE for that run was +0.0747.
+RECONCILED FULL PICTURE (answers all the user's doubts):
+ - Strong-month "0.10" history = caliber (clean>dense cross-day pooling) + BEST-checkpoint (b 1.4-1.6). Honest
+   within-month DENSE ~0.04-0.075.
+ - Ridge "0.169" = non-tradeable bid-ask bounce + pooling. Clean tradeable Ridge ~0.02-0.05.
+ - HONEST DL (book-mid, per-day CLEAN, b~1) = ~0.05-0.067 on strong/normal months, genuinely > clean Ridge by
+   ~+0.029. This IS a real (modest) DL edge over a tradeable linear baseline.
+ - Net-of-cost remains the binding constraint (per-window edge small vs ~2bps; same as project history).
+
+## 2025-11 REPAIR + HONEST AGGREGATOR (2026-06-26)
+2025-11 build FAILED = OOM (anon-rss 203GB > 196GB RAM during 623d-preload of the dual-path DualLOBDataset).
+Repair: train_days 700->450 for 2025-11 (fits preload); standalone run_wf_repair11.sh waits for main-run GPU to
+clear then trains it. Main run continues 2025-12->2026-05.
+HONEST AGGREGATOR (honest_aggregate.py): reports DENSE + PER-DAY CLEAN (NOT cross-day-pooled CLEAN which we
+proved inflates), beta-flagging (MISCAL if beta outside 0.5-1.8 or sigR<0.02), BEST checkpoint, + production CSV
+(raw y). Run when all 10 months present.
+LIVE honest base-DL (BEST, per the coordinator's confirm): 2025-08 +0.057, 2025-09 +0.060, 2025-10 +0.049
+(b0.75). Strong months honestly ~0.05 -- CONFIRMS 0.10 was caliber+checkpoint inflation.
+
+## HONEST PER-MONTH DL (confirmed, 2026-06-26) — strong months ~0.05, NOT 0.10
+Live base-DL trajectory (BEST checkpoint, 4-offset CLEAN; beta + EMA noted):
+  2025-08: BEST +0.0566 (b0.81) | EMA +0.0557 (b1.05)
+  2025-09: BEST +0.0602 (b1.10) | EMA +0.0480 (b1.22)
+  2025-10: BEST +0.0491 (b0.75) | EMA +0.0884 (b1.93 MIS-CAL)   <- strong month, Ridge here was 0.169 BOUNCE
+  2025-11: OOM (repair queued, train_days=450)
+  2025-12..2026-05: in progress (2025-12 drift = expect weak/neg)
+NOTE on 2025-10 EMA +0.0884 b1.93: the EMA inflates P via beta-blowup (sigma-compressed) -- exactly the
+  BEST-checkpoint/EMA mis-calibration that produced the historical 0.08-0.10. The beta-HEALTHY BEST is +0.049.
+  This is why the honest aggregator uses beta-flagging + DENSE/per-day (not the mis-cal-inflated CLEAN).
+CONCLUSION CONFIRMED: honest strong-month DL ~0.05 (beta~0.75-1.1). The 0.10 history = the b1.9 EMA + cross-day
+  CLEAN pooling. Final honest aggregate (DENSE + per-day, beta-healthy) pending full trajectory + 2025-11 repair.
+
+## CRITICAL INFRA FIX (2026-06-26) — drift months were ALL OOM-failing (verify-before-advance bug)
+BUG: only 2025-08/09/10 completed; 2025-11..2026-05 ALL MISSING (test_preds=none). dmesg = 4x "Out of memory:
+Killed python" at anon-rss ~203GB > 196GB RAM. The dual-path DualLOBDataset preload at 650-700d OOMs. The runner
+ADVANCED on OOM-fail (checked test_preds AFTER, printed MISSING, moved on) -> drift months (the WHOLE POINT)
+had NO honest data, and the monitor was waiting for files that would never appear.
+FIX: (1) uniform RAM-safe train_days=450 for ALL 10 months (apples-to-apples); batch=512/lr0.000849/patience5
+normalized. (2) runner REWRITTEN with VERIFY-BEFORE-ADVANCE + OOM-RETRY-SMALLER (450->350->250d; never silently
+skip). (3) wiped all 10 stale experiment dirs -> uniform re-run at 450d (incl 08/09/10 for consistency).
+Relaunched via atomic reset. Then honest_aggregate.py (DENSE+per-day, beta-flagged) + production CSV when all 10
+WRITE test_preds. Will confirm dmesg shows no new OOM after the fix. The drift months (2025-12 etc) WILL get
+honest DL numbers now (expect weak/negative -- the actual data).
+
+## 450d CALIBRATION CAVEAT (2026-06-26) — RAM-safe but beta-blown; aggregator handles it
+OOM fix CONFIRMED: no new OOM since 450d reset (last OOM 06:27 pre-reset; preload now 5GB used / 191 free).
+The f16-resident fix ALREADY covers all 3 tensors (_pre_X, _pre_X_raw, _pre_X_raw_perp all float16); 700d still
+=203GB f16 (perp 25-level deep book is large) -> 700d genuinely doesn't fit 196GB. So RAM-safe forces <=~500d.
+NEW ISSUE: 450d trains WORSE-CALIBRATED models than 700d:
+  2025-08: 700d BEST +0.057 b0.81 s0.07  ->  450d BEST +0.043 b1.86 s0.023 (sigma-COLLAPSED, beta-blown)
+  2025-09: 700d +0.060 b1.10           ->  450d +0.076 b1.75 s0.043 (P inflated VIA beta-blowup)
+  => shorter window -> sigma-compressed predictions -> beta-blowup inflates CLEAN-P (same mechanism as the
+  EMA/checkpoint inflation behind the 0.10 history). 450d CLEAN-P is NOT comparable to 700d.
+RESOLUTION: the honest_aggregator reports DENSE (beta-robust) + per-day + beta-FLAG (MISCAL if beta>1.8 or
+  sigma<0.02). The honest number for beta-blown months = their DENSE-P (much lower than the beta-inflated CLEAN).
+  450d run COMPLETES ALL months (incl drift) = the priority; honest reporting via DENSE+flag handles the
+  calibration. (A 600d RAM-safe-and-better-calibrated rerun is the ideal but 450d-all-months-DENSE is the
+  honest deliverable now.) Net: honest tradeable level remains ~0.05 (beta-healthy DENSE), unchanged conclusion.
+
+## 450d run — MIXED calibration (refines the caveat), 0 OOM (2026-06-26)
+450d per-month BEST CLEAN (beta/sigma):
+  2025-08 +0.043 (b1.86 s0.023 sigma-COLLAPSED -> flag) | 2025-09 +0.076 (b1.75 s0.043 -> flag)
+  2025-10 +0.0955 (b1.07 s0.090 HEALTHY)  <- clean strong month, NOT bounce (DL target=book-mid), NOT EMA-blowup
+The beta-blowup is MONTH-DEPENDENT not uniform: 2025-10 at 450d is beta-HEALTHY (b1.07/s0.09) at +0.096, while
+2025-08/09 sigma-collapse (b1.8). The honest_aggregator beta-FLAG keeps the healthy months, flags the collapsed
+ones. 2025-10 +0.096 b-healthy is a genuine strong-month number (book-mid, sigma-healthy) -- consistent with
+"strong months CAN reach ~0.10 when well-calibrated" but month-to-month calibration varies. Still 0 new OOM at
+450d. Drift months (2025-11/12, 2026-01) training now = the key honest data. Final beta-flagged DENSE+per-day
+aggregate pending all 10.
+
+## DRIFT MONTHS LANDING (2026-06-26) — honest near-zero, as expected
+2025-12 (drift month, was OOM-failing, now completed at 450d): BEST CLEAN +0.0070 (b0.69 s0.010) | EMA -0.0140
+(b-5.33 s0.003 COLLAPSED). N=3331. = genuinely SIGNAL-DEAD in-month (the actual data the OOM was hiding). This
+is the expected weak/negative drift-month result and confirms the root-cause dig (2025-12 in-month ~0). 0 new
+OOM through 4/10 (08/09/10/11 done; 12 metrics printed). Run continuing 2026-01..2026-05. Honest beta-flagged
+DENSE+per-day aggregate + production CSV pending all 10.
+PER-MONTH 450d BEST CLEAN so far: 08 +0.043(b1.9 flag) | 09 +0.076(b1.8 flag) | 10 +0.096(b1.07 OK) |
+11 (pending eval) | 12 +0.007(b0.69, drift~0). Headline-honest (beta-healthy DENSE) tracking ~0.05 + the
+clean strong 2025-10 ~0.096; drift ~0. Final aggregate will give pooled + IC-IR + worst + %-positive.
+
+## BOTH DRIFT MONTHS CONFIRMED SIGNAL-DEAD (2026-06-26) — honest data recovered
+2025-12 BEST +0.0070 (b0.69 s0.010) | 2026-01 BEST +0.0040 (b0.61 s0.007), EMA neg. Both = near-zero/collapsed
+in-month -- the honest drift-month reality (was hidden by OOM). 5/10 done, 0 new OOM, run -> 2026-02..05.
+HONEST per-month BEST CLEAN (450d, b/sigma): 08 +0.043(b1.9) 09 +0.076(b1.8) 10 +0.096(b1.07 clean) 11 (interleaved)
+12 +0.007(drift) 01 +0.004(drift). Pattern = strong/normal 0.05-0.10 (beta-varying), drift ~0. The 2026-01/04
+"genuinely ~0 at the linear ceiling" prediction (from the Ridge gate) is now CONFIRMED at the DL level too.
+Final beta-flagged DENSE+per-day aggregate + production CSV when 2026-02..05 land (~3-4h).
+
+## 2025-11/12 ROOT-CAUSE DIG (2026-06-26) — sigma-collapse diagnosis
+SIGMA TRAJECTORY (train log), 2025-10 HEALTHY vs 2025-11 COLLAPSED:
+  2025-10: sigR warms 0.004->0.012->0.021->0.059(ep6)->0.085(ep13), crosses 0.02 gate ~ep4-6, beta 0.4-0.9
+    stable, val_loss 0.73. NORMAL training -> DL +0.096 b1.07.
+  2025-11: sigR STUCK 0.007-0.016 (NEVER warms past gate); beta CHAOS -4.5/+3.6/-4.7/+4.9/+2.3; val_loss 0.99
+    (much higher). Model never finds stable sigma>=0.02 OR a stable direction. patience=5 -> early-stops ~ep5-7
+    at a low-sigma epoch -> BEST saved sigma-collapsed (+0.022 b2.16 s0.010).
+DIAGNOSIS: sigma-gate x patience x warmup trap (documented anti-pattern) + weak-signal instability. 2025-11 has
+  a HARDER signal (val_loss 0.99 vs 0.73) where sigma warms slower; patience=5 + the 450d short window kill it
+  before sigma stabilizes; beta-chaos = no stable direction learned. This is a MODEL failure pattern IF the
+  signal exists (in-regime floor decides). config: epochs25 patience5 lr0.000849 td450, no explicit warmup.
+DISENTANGLE PENDING: in-regime oracle Ridge (inregime_floor_1112.py running) -> if 2025-11 in-regime >0.03 =>
+  FIXABLE sigma-collapse (test fix: longer patience/warmup + larger window + maybe sigma-floor). If ~0 => dead.
+
+## 2025-11/12 DISENTANGLE — BOTH FIXABLE sigma-collapse (signal exists, DL failed) (2026-06-26)
+The interleaved-CV in-regime oracle was INVALID (2025-10 sanity = -0.0006 but its true signal is +0.096/+0.169;
+a snapshot Ridge needs cross-day train structure that within-month CV + embargo strips -> not a valid floor).
+The VALID leak-safe signal floor = the clean book-mid Ridge walk-forward (train prior, per-day CLEAN) ALREADY
+computed in clean_ridge_vs_dl:
+  2025-11: Ridge_pd +0.0299  (signal EXISTS ~0.03)  vs DL +0.022 (b2.16 s0.010 sigma-COLLAPSED)
+  2025-12: Ridge_pd +0.0299  (signal EXISTS ~0.03)  vs DL +0.007 (b0.69 s0.010 sigma-COLLAPSED)
+  2025-10: Ridge_pd +0.0212  vs DL +0.096 (DL beats Ridge; healthy -- the DL CAN capture when sigma warms)
+VERDICT: BOTH 2025-11 AND 2025-12 are FIXABLE sigma-collapse, NOT signal-dead. Both have ~+0.030 leak-safe
+  linear signal that the DL FAILED to capture (sigma never warmed past 0.02; beta-chaos). This CORRECTS the
+  earlier "2025-12 signal-dead" -- the book-mid Ridge floor shows +0.030 there too. (CAVEAT: +0.030 is modest;
+  these are weak months; the fix needs to recover the DL to beta-healthy sigma>=0.02, may only reach ~0.03.)
+ROOT CAUSE (both): sigma-gate x patience x warmup trap + 450d-short-window instability on weak-signal months
+  (sigma warms slower on harder months; patience5 + 450d kill it before sigma stabilizes; beta-chaos).
+FIX prepared (wf_2025_11_fix.json): 550d (RAM-safe) + patience10 + epochs32. Queue after main trajectory (GPU).
+
+## FINAL HONEST AGGREGATE (2026-06-27) — 450d run, all 10 months, beta-flagged
+PER-MONTH (DENSE_P / per-day_P / beta / sigma / flag):
+  2025-08 +0.044/+0.036/b1.85/s0.02 MISCAL | 2025-09 +0.075/+0.058/b1.68/s0.04 | 2025-10 +0.084/+0.095/b0.91/s0.09 CLEAN
+  2025-11 +0.022/-0.003/b2.16/s0.01 MISCAL | 2025-12 +0.009/+0.019/b1.40/s0.01 MISCAL | 2026-01 +0.030/+0.000/b2.67 MISCAL
+  2026-02 -0.018/-0.011/b-3.36 MISCAL | 2026-03 +0.013/+0.012/b0.76/s0.02 MISCAL | 2026-04 -0.010/+0.013/b-2.03 MISCAL
+  2026-05 +0.033/+0.029/b3.62 MISCAL
+POOLED: DENSE +0.0282 | per-day +0.0248 | IC-IR +0.82 | worst -0.011(2026-02) | best +0.095(2025-10) | 80% pos | 4/10>=0.025
+  Production CSV: exports/honest_basedl/y600_basedl_walkforward.csv (112,003 rows).
+CRITICAL: only 2025-10 is beta-HEALTHY (b0.91 s0.09 +0.095). 8/10 months MISCAL (sigma-collapsed b-blown) at
+  450d -> the SHORT WINDOW broadly destabilizes calibration, not just on drift months. The pooled +0.025 is
+  DEPRESSED by widespread sigma-collapse, NOT the true ceiling. This makes the 550d fix11 test pivotal: if a
+  longer window restores calibration broadly, the honest per-day numbers rise toward the ~0.05 beta-healthy
+  level seen at 700d (2025-08 was +0.057 b0.81 at 700d, vs +0.036 b1.85 at 450d). The 450d production run
+  UNDER-states the honest signal due to calibration, not over-states it.
+
+## FIX11 (550d) EARLY SIGMA TRAJECTORY (2026-06-27) — partial recovery, crosses gate
+2025-11 sigma-collapse fix (550d + patience10 + epochs32). RAM-safe (89GB, 0 OOM -> 550d fits, OOM threshold
+is 550-700d). Early epochs vs 450d(stuck 0.007-0.016, never crosses 0.02):
+  ep1 sigR0.006 b+12.2 | ep2 0.013 b+5.5 | ep3 0.009 b+5.7 | ep4 sigR0.036 b+2.08 (CROSSES 0.02 gate!)
+=> 550d DOES let sigma cross the 0.02 gate by ep4 (450d never did) -- the longer window starts stabilizing sigma.
+But beta still high (+2.08 at ep4) + val_loss 0.975 (2025-11 genuinely hard month). patience10/ep32 gives room
+to keep warming -> watching if beta settles toward ~1. PRELIMINARY: sigma-collapse is at least PARTIALLY
+window-fixable (confirms the diagnosis: 450d short window was destabilizing sigma; longer RAM-safe window helps).
+Full result pending (ep32 ~ several hrs). If it lands beta-healthy with sigma>=0.02, the production run should be
+RE-DONE at 550d (where 8/10 months were sigma-collapsed at 450d) for the honest beta-healthy trajectory.
+
+## FIX11 (550d) CONFIRMS sigma-collapse is WINDOW-FIXABLE (2026-06-27) — DECISIVE
+2025-11 sigma trajectory at 550d/patience10: ep1 sigR0.006 b+12 -> ep4 0.036 b+2.08 -> ep6 0.032 b+1.76 ->
+ep7 sigR0.057 b+0.825 (BETA-HEALTHY, sigma well past 0.02 gate). At 450d 2025-11 was STUCK sigR0.007-0.016
+b+-4 forever. => the larger RAM-safe window (550d) FIXES the sigma-collapse: sigma warms + beta stabilizes ~1.
+DECISIVE: the 8/10 sigma-collapsed months at 450d are FIXABLE MODEL failures (short-window sigma destabilization),
+NOT signal-dead. Fix = train at 550d (RAM-safe, 89GB, 0 OOM; OOM threshold 550-700d). 2025-11 recovering to
+beta-healthy with its ~+0.030 in-regime signal now reachable (val P ep5-7 +0.047-0.069, sigma-healthy).
+IMPLICATION: the honest production trajectory should be RE-RUN at 550d (where calibration holds) for the true
+beta-healthy per-month numbers -- the 450d run's pooled +0.025 was DEPRESSED by sigma-collapse, not the ceiling.
+The honest beta-healthy level remains ~0.05-0.06 (2025-10 +0.095 at 450d already beta-healthy; 550d should make
+most months beta-healthy). Net-of-cost conclusion unchanged: robust 0.10+ tradeable not achievable on-disk.
+
+## 550d PRODUCTION RE-RUN LAUNCHED (2026-06-27) — calibration-healthy final deliverable
+fix11 confirmed 550d fixes the 450d sigma-collapse (2025-11 sigR 0.006->0.057 b12->0.825 by ep7). RE-RUNNING
+the full honest production trajectory at the calibration-healthy window: all 10 months (2025-08..2026-05),
+train_days=550 patience=10 epochs=32 (fix11 config), book-mid, verify-before-advance + OOM-retry(550->450->350),
+RAM-safe (89GB confirmed). Runner run_wf550.sh (waits for fix11 GPU, seeds 2025-11 from fix11 to avoid dup).
+Aggregator honest_aggregate_550.py: DENSE + per-day CLEAN, beta/sigma flags, %-beta-healthy, pooled P/S + IC-IR
++ worst + %-positive, per-month 450d->550d RECOVERY, production CSV. ETA ~10-12h.
+EXPECTATION (per coordinator + fix11): sigma-collapsed months (2025-11/12, 2026-01/02/04/05) recover from
+~0/neg toward ~0.03-0.05; pooled rises from 450d's +0.025 toward ~0.05; strong months hold ~0.08-0.10; distinguish
+recovered-vs-genuinely-weak. Rigor: confirm beta-healthy (sigma>=0.02, beta~1) per month before trusting; flag
+any still-collapsed at 550d. Core conclusion (~0.05-0.06 beta-healthy, 0.10+ not reachable) already settled;
+this is the clean per-month deliverable.
+
+## DECISIVE ABLATION (2026-06-27) — is PATIENCE or WINDOW the real sigma-collapse fix? (fix11 confounded both)
+User skeptical check (correct): fix11 changed 3 vars (td450->550 AND pat5->10 AND ep25->32). Attributing the
+recovery to the 100d window is confounded; mechanism points to PATIENCE (sigma-gate x patience trap; fix11 beta
+only healthy at ep7 -> pat5 would have killed it; memory: "patience~crossing+4 (perp=10)"). 2025-11 ablation:
+  A) 450d + patience10 + epochs32  (isolate PATIENCE)
+  B) 550d + patience5  + epochs25  (isolate WINDOW)
+  baselines: 450d/pat5 COLLAPSED (b2.16 s0.01); 550d/pat10 (fix11) HEALTHY (b0.83 s0.057 ep7).
+VERDICT logic: A healthy -> PATIENCE is root cause (window red-herring; GENERALIZES; could use SHORTER window
+for MORE RAM headroom; 700d/550d knife-edge never needed). A collapsed + B healthy -> window matters. Both
+partial -> both. Paused the 550d production re-run until the RIGHT fix is known (don't bake a knife-edge window).
+Runner run_abl11.sh (waits for fix11 GPU, runs A then B, captures sigma trajectory + final beta/sigma/P each).
+
+## fix11 (550d/pat10) STABLE BETA-HEALTHY (2026-06-27) — strong patience-hypothesis evidence
+fix11 ep7-10: sigR 0.054-0.079, beta 0.83-1.26, val C 0.050-0.068 (P up to +0.076 ep9). FULLY recovered +
+HOLDING (vs 450d/pat5 stuck b2.16 s0.01). The recovery materialized at ep7-10 -- past where the val plateau
++ pat5 would likely have stopped. Strongly supports PATIENCE as the fix. Ablation arm A (450d+pat10) is the
+clean isolation (queued after fix11). DATA-WHY note (preliminary, on 450d-contaminated numbers): 2025-10
+(the lone beta-healthy 450d month, +0.095) had the biggest OI swing (dOI -11.5%) = high-activity directional
+regime -- consistent with strong=directional. Full data-WHY deferred to the beta-healthy trajectory.
+
+## MASTER CHAIN launched (2026-06-27, overnight autonomous) — ablation -> right fix -> beta-healthy trajectory
+Single unattended chain (run_master_chain.sh): waits fix11 GPU -> ablation A(450d+pat10, isolate PATIENCE) +
+B(550d+pat5, isolate WINDOW) -> if A beta-healthy => WIN=450d (patience is the fix, RAM headroom, generalizes)
+else WIN=550d; patience10 always -> FULL 10-month trajectory at WINd/pat10/ep32 (verify-before-advance,
+OOM-retry) -> honest_aggregate_final (DENSE+per-day, beta/sigma flags, %-beta-healthy, 450d->final recovery,
+production CSV). Idempotent. ETA ~12-15h (ablation ~2h + 10 months ~1h each). This delivers the all-metrics-
+healthy baseline. THEN step3: recency-lever push + per-month data-WHY on the beta-healthy numbers.
+
+## ABLATION arm A (450d+pat10) EARLY — patience alone may NOT fix it (2026-06-27)
+fix11DONE (550d/pat10 = healthy reference). Arm A (450d+pat10, isolate PATIENCE) early epochs:
+  ep1 sigR0.010 b-0.38 | ep2 0.012 b+5.04 | ep3 0.012 b-4.04
+SAME collapse pattern as 450d+pat5 (sigR stuck 0.010-0.012, beta-chaos +-4) -- NOT the smooth warm fix11 showed
+at 550d (ep1-4: 0.006->0.036, crossed 0.02 by ep4). EARLY HINT: at 450d, sigma stays collapsed regardless of
+patience -> WINDOW may genuinely matter, patience alone insufficient. BUT only 3 epochs; patience10 runs to ~ep13
+-> must see if 450d EVER crosses 0.02 by ep7-10 (where 550d did). NOT concluding yet. Decisive comparison:
+550d crossed gate ep4; does 450d cross by ep10? Watching arm A later epochs.
+
+## fix11 FINAL (550d/pat10) — 2025-11 RECOVERED to beta-healthy +0.054 (2026-06-27)
+fix11 BEST: 2025-11 CLEAN P=+0.0544 (beta0.83 sigma0.065 mono0.72 DA0.51) | EMA +0.0502 (b1.48 s0.034).
+RECOVERED from the 450d collapse (+0.022 b2.16 s0.010) to +0.054 BETA-HEALTHY -- ABOVE its ~+0.030 leak-safe
+Ridge floor -> the DL captures 2025-11's signal once sigma is healthy. PROOF the sigma-collapsed months recover
+to beta-healthy ~0.05. (Whether the fix is patience or window: ablation arm A deciding -- early epochs hint 450d
+stays collapsed even with pat10, so WINDOW may matter; awaiting arm A full trajectory.)
+
+## ABLATION VERDICT (2026-06-27) — PATIENCE is the sigma-collapse fix, WINDOW is a RED HERRING
+Arm A (450d + patience10, isolate PATIENCE) FULL trajectory:
+  ep1-3 sigR0.010-0.012 b-chaos | ep6 sigR0.024 b0.79 (CROSSES 0.02 gate) | ep7 0.048 | ep9 0.058 b0.57 |
+  ep10 sigR0.069 b0.60 C+0.044 | ep11 0.054 b0.88. = BETA-HEALTHY, near-identical to fix11(550d).
+DECISIVE: 450d+pat10 recovers JUST like 550d+pat10. The ONLY thing that mattered was PATIENCE: sigma warms past
+0.02 at ep6-7 regardless of window; patience=5 killed the run at ~ep5 (ONE epoch before sigma crossed) -> the
+450d collapse was a PATIENCE artifact, NOT the window. The fix11 "550d fixes it" attribution was CONFOUNDED and
+WRONG -- the user's skeptical check was correct.
+=> ROOT CAUSE = sigma-gate x patience x warmup trap (documented). FIX = patience>=10 (crossing+4). GENERALIZES
+to ANY RAM-safe window. 550d/700d unnecessary; could use SHORTER window for MORE RAM headroom. The master chain
+auto-detects A beta-healthy -> WIN=450d -> runs the full trajectory at 450d+pat10 (faster, ~halves time).
+IMPLICATION: the 450d-pat5 production run's 8/10 sigma-collapsed months were ALL patience artifacts; at 450d+pat10
+they should ALL recover to beta-healthy (~0.05 strong/normal, ~0.03 weak, drift ~0). The honest level is
+confirmed ~0.05-0.06 beta-healthy; the patience fix is the clean, generalizable production setting.
+
+## ABLATION VERDICT REFINED (2026-06-27) — patience NECESSARY, but 550d gives cleaner BEST calibration
+Arm A (450d+pat10) FINAL: BEST CLEAN +0.0632 b2.33 s0.027 | EMA +0.0747 b1.47 s0.051.
+fix11 (550d+pat10) FINAL:  BEST CLEAN +0.0544 b0.83 s0.065 | EMA +0.0502 b1.48 s0.034.
+NUANCE: at 450d+pat10 the sigma TRAJECTORY warms (reached 0.069 ep10) BUT the BEST-checkpoint sigma-gate lands
+on a beta-BLOWN epoch (b2.33) -> NOT cleanly beta-healthy. At 550d+pat10 BEST is clean (b0.83). So:
+  - PATIENCE is NECESSARY (both warm past the gate; pat5 killed it pre-crossing) -- confirmed.
+  - WINDOW still matters for BEST-CHECKPOINT CALIBRATION: 550d gives clean b~0.83 BEST; 450d BEST is b2.33.
+  => the clean fix = 550d + patience10 (BOTH). The master chain healthy() reads A as NOT-healthy (b2.33>1.8)
+  -> auto-picks WIN=550 (the calibration-clean window). Correct choice.
+REFINES the earlier "window is red-herring": patience fixes the COLLAPSE (sigma crosses gate), but 550d is
+needed for a beta-HEALTHY BEST checkpoint. Both contribute (patience=necessary, window=calibration-quality).
+=> Full trajectory at 550d+pat10. (Throughput cost accepted for calibration quality.) The note that 450d
+"recovers just like 550d" was premature -- true for the sigma TRAJECTORY, false for the BEST checkpoint.
+
+## CLEAN 4-CELL VERDICT (2026-06-27) — fix = patience10 + EMA checkpoint; 450d sufficient (fast, by tomorrow)
+2025-11, BEST vs EMA x 450d vs 550d (CLEAN-P / beta / sigma):
+  450d+pat10 BEST: +0.0632 b2.33 s0.027  NO (b-blown, sigma-gate-trapped = anti-pattern #24)
+  450d+pat10 EMA : +0.0747 b1.47 s0.051  YES (beta-healthy! and highest P)
+  550d+pat10 BEST: +0.0544 b0.83 s0.065  YES (cleanest beta)
+  550d+pat10 EMA : +0.0502 b1.48 s0.034  YES
+DECISIVE (resolves the flip-flop): the 450d BEST is sigma-gate-trapped on a beta-blown epoch (#24), but the
+450d+pat10 EMA checkpoint is BETA-HEALTHY (b1.47 s0.051) -- and the HIGHEST P (+0.075). So the fix HIERARCHY:
+  (1) patience10 (sigma crosses the 0.02 gate ~ep6) + (2) EMA checkpoint (avoids the BEST sigma-gate trap).
+  450d window is SUFFICIENT with EMA -> NO slow 550d needed. Fix = 450d + pat10 + EMA.
+=> Running the FULL trajectory at 450d+pat10, aggregated on the EMA checkpoint (~12-15h, finishes by tomorrow,
+generalizes). Stopped the slow 550d master chain. (550d BEST b0.83 is marginally cleaner but not worth ~2x time;
+EMA at 450d is healthy.) honest_aggregate_finalEMA reads ema_test_preds + 450d-EMA recovery comparison + CSV.
+
+## REFINED FIX (2026-06-27) — patience10 + per-month BEST-or-EMA (whichever is beta-healthy)
+The healthy checkpoint FLIPS per month at 450d+pat10:
+  2025-08: BEST b0.64 s0.064 HEALTHY (+0.041) | EMA b1.86 s0.019 blown  -> use BEST
+  2025-11: BEST b2.33 blown | EMA b1.47 s0.051 HEALTHY (+0.075)         -> use EMA
+=> patience10 makes ONE of {BEST,EMA} beta-healthy in both (the fix works), but WHICH varies by month. So the
+honest aggregate must pick, PER MONTH, the beta-healthier checkpoint (and flag if NEITHER passes). This is the
+sigma-gate-trap (#24) being checkpoint-stochastic: on some months the gate saves BEST at a clean epoch, on
+others EMA is the clean one. patience10 is the necessary fix (sigma crosses); per-month checkpoint-pick is the
+clean read. Updating the aggregator to select beta-healthier-of-{BEST,EMA} per month. 450d window confirmed
+sufficient (both 2025-08 BEST and 2025-11 EMA healthy at 450d).
+
+## RIGOR FIX (2026-06-27) — checkpoint selection must be CAUSAL (avoid 9th artifact = test-peek)
+honest_aggregate_pick.py picked BEST-vs-EMA by TEST beta = TEST-PEEKING (uses test info to select model ->
+inflates aggregate). CORRECTED with honest_aggregate_causal.py reporting 4 rules:
+  1. FIXED always-EMA  = NO-PEEK HEADLINE (fixed rule, smoother checkpoint)
+  2. FIXED always-BEST = no-peek alt
+  3. VAL-causal pick   = per-month by VALIDATION sigma_ratio (from metrics.json, <=t) -- legitimate causal
+  4. TEST-beta ORACLE  = per-month by test beta = UPPER BOUND, test-peeking, NOT tradeable (labeled)
+metrics.json carries the causal val calibration per checkpoint (e.g. 2025-08: BEST val_sigma 0.067, EMA val_sigma
+0.021). So val-causal selection is leak-free. HEADLINE will be always-EMA (or val-causal if it's clearly better
+no-peek). The test-beta per-month-best is reported ONLY as an oracle ceiling. This keeps the deliverable honest;
+8 artifacts caught -> not adding a 9th. Runner updated to call the causal aggregator.
+
+## EFFICIENCY CHECK (2026-06-27) — no preload pathology; per-epoch dual-path compute is the cost
+Coordinator flagged 2025-10 "14x slower preload". Investigated: NOT a preload issue. Stats(preload) times are
+SIMILAR across months (08: 92s, 09: 37s, 10: 84s) -- npz caches exist and load fine (~40-90s, NO cache-build).
+The apparent slowness = train_dual_lob EPOCH-1 COMPUTE: 2025-08/09 use train_v2arch (npzv4_dual, single-path,
+fast); 2025-10+ use train_dual_lob (npz_v2arch, DUAL-path: spot + perp 20-level book + perp residual) which is
+~15-20min/epoch (heavier forward). At the "no epoch yet" probe the proc was in epoch-1 compute (GPU 97%), not
+preload. So nothing to parallelize/pre-build -- it's inherent dual-path cost. ETA: 7 remaining dual-path months
+x ~1h = ~7-8h -> FINISHES BY TOMORROW MORNING. On track; no fix needed.
+FIX CONFIRMED healthy across months: 2025-09 DENSE +0.059 b1.46 s0.041 (no collapse). 3/10 done (08/09/11).
+
+## 450d+pat10 TRAJECTORY — 3/10 beta-healthy confirmed, checkpoint pattern (2026-06-27)
+Streamed BEST vs EMA (CLEAN-P / beta / sigma), patience10 fix working — NO collapse:
+  2025-08: BEST +0.041 b0.64 s0.064 (HEALTHY) | EMA +0.035 b1.86 s0.019 (blown) -> BEST is the clean one
+  2025-09: BEST +0.073 b1.02 s0.071 (HEALTHY, b~1!) | EMA +0.070 b1.75 s0.040 -> BEST clean
+  2025-11: BEST +0.063 b2.33 (blown) | EMA +0.075 b1.47 s0.051 (HEALTHY) -> EMA clean
+PATTERN: patience10 makes >=1 checkpoint beta-healthy each month (fix robust). For 2025-08/09 the cleaner one is
+BEST (b0.64, b1.02); for 2025-11 it's EMA. So FIXED always-BEST is beta-healthier on 2/3 so far -> the no-peek
+headline may be FIXED-BEST (not EMA) -- the causal aggregator reports BOTH fixed rules + val-causal so the
+honest best fixed rule is data-chosen, not assumed. Throughput: ~47min/month (08 done 23:08, 09 done 23:55) ->
+~7 months left ~5-6h -> finishes tomorrow morning. 2025-10 dual-path on epoch1 (slow), healthy.
+
+## ETA UPDATE (2026-06-27) — dual-path ~9min/epoch -> trajectory ~20h, not stuck
+2025-10 at ep18/32, etime 2h41m, ~9min/epoch, beta-HEALTHY (sigR0.09-0.10 b0.13-0.31 C0.028-0.042), no collapse,
+early-stopping soon (patience10). NOT stuck -- dual-path months are ~3h each (9min/ep x ~20ep). 7 remaining
+-> ~18-20h total -> completes ~2026-06-28. The scientific conclusions are ALL settled; the 3 done months already
+prove the fix (beta-healthy ~0.04-0.075). The full trajectory is a confirmation deliverable; letting it complete
+correctly (no mid-run disruption) over the ETA slip. NOT reducing epochs mid-run (would orphan running months).
+The honest headline (~0.05-0.06 beta-healthy, patience10+causal-checkpoint fix, all artifacts explained) stands
+independent of the remaining months completing.
+
+## 450d+pat10 — 4/10 done, BETA-HEALTHY strong-month level = ~0.06-0.075 (2026-06-27)
+Per-month beta-healthy checkpoint pick (causal: pick the b~1 / s>=0.02 one):
+  2025-08 BEST +0.041 b0.64 s0.064 | 2025-09 BEST +0.073 b1.02 s0.071 | 2025-10 BEST +0.062 b1.09 s0.056
+  2025-11 EMA  +0.075 b1.47 s0.051
+KEY HONEST CORRECTION: 2025-10 beta-HEALTHY = +0.062 (BEST b1.09), NOT the +0.095 EMA (b2.04 BLOWN) I cited
+earlier. The +0.095 was the beta-blown EMA -> another checkpoint-beta-inflation. The HONEST beta-healthy
+strong/normal-month level is ~0.06-0.075 (09 +0.073, 11 +0.075, 10 +0.062) -- slightly ABOVE the ~0.05-0.06
+estimate but BELOW 0.095. fix robust: ALL 4 months have a beta-healthy checkpoint (no collapse), no test-peek
+(BEST is fixed-rule healthy for 08/09/10; only 11 needs EMA). 4/10, training 2025-12 (drift, expect weak),
+~3h/month -> completes ~2026-06-28. Honest level FIRMS to ~0.06-0.07 beta-healthy strong/normal, drift ~0.
+
+## 2025-12 (drift) — sigma-RECOVERED but GENUINELY WEAK (2026-06-27) — the key distinction
+2025-12 at 450d+pat10 ep19-20: sigR 0.06-0.07 b0.21-0.26 (sigma-HEALTHY, patience fix works, NO collapse) BUT
+val_loss 1.15 (vs healthy months ~0.73) and C only +0.019-0.021 (EMA +0.025). => 2025-12's weakness is a REAL
+signal-floor (genuinely-weak drift month), NOT a sigma-collapse artifact. The patience fix RECOVERS calibration
+but cannot create signal that isn't there. This is the directive's requested distinction: drift months (2025-12,
+likely 2026-01/04) are GENUINELY ~0.02-0.03 even when beta-healthy -- consistent with the earlier root-cause dig
+(2025-12 in-month signal ~0). So the per-month picture: strong/normal beta-healthy ~0.06-0.075; drift beta-healthy
+~0.02-0.03 (real floor, not fixable by calibration -- needs orthogonal data). Honest + clean.
+
+## CALIBER CORRECTION (2026-06-27) — HEADLINE = DENSE; cross-day-pooled CLEAN is INFLATED (do NOT headline)
+I re-slipped into quoting the cross-day-pooled CLEAN [4 offsets] (it pools non-overlap points ACROSS DAYS ->
+inflates, the artifact I found earlier). HONEST caliber = DENSE (within-window) or per-day-CLEAN (corr-per-day
+then average). DENSE (BEST checkpoint) for the 4 done months:
+  2025-08 DENSE +0.039 b0.60 | 2025-09 DENSE +0.050 b0.69 | 2025-10 DENSE +0.045 b0.81 | 2025-11 DENSE +0.045 b1.69
+  (vs the INFLATED cross-day CLEAN +0.041/+0.073/+0.062/+0.063 -- CLEAN over-states by ~+0.015-0.025, up to 1.5x)
+=> HONEST beta-healthy strong/normal level = DENSE ~0.04-0.05, NOT cross-day-CLEAN 0.06-0.075. DENSE beta is also
+HEALTHIER (0.60-0.81) than CLEAN's compressed-sigma beta. The final headline aggregate (honest_aggregate_causal.py)
+ALREADY reports DENSE + per-day-CLEAN (NOT cross-day-pooled) -- correct. Restating the honest level on DENSE:
+  STRONG/NORMAL months: DENSE ~0.04-0.05 beta-healthy.
+  DRIFT months (2025-12): DENSE ~0.02, beta 0.21 = LOW (preds ~5x too large) = beta-IMPERFECT + genuinely weak,
+    DISTINCT from the beta-healthy strong months. Flagged.
+CORRECTED HONEST HEADLINE: tradeable BTC y_600 ~ 0.04-0.05 (DENSE, beta-healthy) strong/normal; drift ~0.02 (beta-
+imperfect). This is BELOW the ~0.05-0.06 I'd been saying -- the cross-day CLEAN was re-inflating it. Net-of-cost
+still binding; robust 0.10+ not achievable. The DL-beats-clean-Ridge +0.029 was per-day caliber (valid).
+
+## 2c/2d CLEARED + 2b LEVER A/B LAUNCHED (2026-06-27)
+2c/2d: ALL checkpoints best_source=sigma_gate (NOT fallback_low_sigma); EMA epochs 7-13 (warm, past ema-warmup).
+  -> headline checkpoints are legit, no low-sigma-fallback artifact. CLEARED.
+2025-12 drift DENSE +0.027 b0.75 s0.036 (BEST) -- beta-healthier than the mid-epoch b0.21 I flagged; still
+  genuinely weak (~0.027) = real drift floor.
+2b TOP LEVER (auditor): loss is RANK-DOMINATED (lambda_quantile 0.1 vs utility_rank0.5+dir_huber0.5 = 1.0 rank/dir
+  + mag_focal0.3 + cls0.1). q50 trained as ranker -> sigma small -> PEARSON (amplitude) structurally suppressed
+  while Spearman/DA ok. A/B: raise lambda_quantile 0.1->0.5 (Q05) and ->1.0 (Q10) = pinball L1 amplitude anchor
+  (anti-#20-safe, NOT MSE). On 2025-09 (fast) + 2025-10 (beta-healthy). Measure DENSE Pearson + sigma + beta vs
+  baseline (2025-09 +0.050 b0.69 s0.072; 2025-10 +0.045 b0.81 s0.056). WIN = Pearson lifts + sigma stays >=0.02 +
+  beta~1; REVERT if sigma collapses (#20). run_lossab.sh waits for GPU (no main-run disruption).
+
+## REORDER (2026-06-27) — 2b A/B ahead of remaining drift months
+~10min SSH outage; the reorder-to-pause-trajectory flapped out (60 attempts). On recovery: trajectory's 2026-02
+is now 58min in (substantial progress -- don't waste). Plan: let 2026-02 FINISH (7/10), then kill the trajectory
+runner so the waiting 2b A/B (run_lossab.sh) grabs GPU BEFORE 2026-03/04/05 (drift/weak confirmation). 2b =
+auditor's top Pearson-lift lever (raise lambda_quantile 0.1->0.5/1.0; measure DENSE Pearson+sigma+beta vs
+baseline). Resume trajectory (idempotent) after 2b. (No unknown external job -- the 'per_asset_viability' was a
+stale ps-grep artifact; GPU app is the 2026-02 train.)
+
+## SESSION STATE SNAPSHOT (2026-06-27) — SSH outage; deliverables settled, 2b pending connectivity
+SEVERE jpline SSH instability (multiple 10-20min outages) is blocking active GPU reorder. Server jobs SURVIVE:
+the base-DL trajectory runner (6/10 wfEMA months done: 08/09/10/11/12/01) + 2b A/B runner (run_lossab.sh,
+waiting via wait_clear). Persistent self-healing reorder (Monitor bn2i36lsw) will kill the trajectory so 2b runs,
+the moment SSH recovers. THEN: 2b A/B verdict -> resume trajectory (idempotent: 2026-02/03/04/05) -> causal
+aggregate.
+
+=== FINAL HONEST DELIVERABLE (settled, independent of remaining runs) ===
+HONEST tradeable BTC y_600 (DENSE caliber, beta-healthy, NO-PEEK): strong/normal ~0.04-0.05
+  (2025-08 +0.039 b0.60 | 2025-09 +0.050 b0.69 | 2025-10 +0.045 b0.81 | 2025-11 +0.045 b1.69), drift ~0.02-0.027
+  (genuine floor: 2025-12 +0.027 b0.75; 2026-01 ~0). DL beats clean book-mid Ridge by +0.029 (per-day).
+ROOT CAUSE of per-month sigma-collapse (resolved, all rigor checks): sigma-gate x patience x checkpoint trap (#24).
+  FIX = patience10 + causal checkpoint (no-peek; always-EMA or val-causal; 450d window sufficient, 550d unneeded).
+ARTIFACTS CAUGHT (9 total): bid-ask bounce (0.169), cross-day-pooled CLEAN (0.08-0.10 + the 0.06-0.075 I re-slipped
+  on), checkpoint beta-blowup EMA (2025-10 +0.095), OOM-silent-skip (drift months), sigma-collapse (patience),
+  fix11 3-var confound, BEST-vs-EMA flip, test-peek checkpoint selection (9th, averted), caliber re-inflation.
+NOT achievable on-disk: robust 0.10+ tradeable / every-month>=0.025; net-of-cost binding.
+IMPROVEMENT TEST PENDING (2b): raise pinball lambda_quantile 0.1->0.5/1.0 -> does it lift DENSE Pearson w/o
+  sigma-collapse (loss is rank-dominated)? = the "is 0.045 partly loss-suppressed + recoverable" answer. Queued.
+
+## NEW LEVER PREPARED (2026-06-27) — funding/OI as RAW DL INPUT CHANNELS (non-linear, untested form)
+User's core hypothesis (correct that the data IS on disk; I'd wrongly said absent). Every TESTED form failed:
+additive-Ridge +0.0012 (LINEAR only), FiLM negative, router/MoE negative, mutation refuted. GENUINELY UNTESTED:
+feed funding/OI as RAW X INPUT CHANNELS -> Conformer + cross-features learn the NON-LINEAR book interaction.
+Built add_funding_channels.py: appends 8 DESIGNED leak-safe funding/OI feats (dOI_n, oi_z, oi_accel, quad_sign,
+divergence, fund_x_oi, toptrader_ext, taker_ls; <=t, fwd-filled, VERIFIED designed() math) as extra X channels
+(broadcast across the 600-window). X (N,600,88)->(N,600,96); n_features auto-widens (train reads X.shape[-1]).
+Disk-safe separate cache npz_v2arch_fundch. MECHANISM: drift-month failure = positioning-regime inversion (in
+funding/OI) -> DL channels could help it ADAPT, most on drift (2025-12, 2026-02).
+GATE (after 2b): train fund-channel DL vs no-funding baseline on STRONG (2025-10) + DRIFT (2025-12, 2026-02).
+Measure dP (DENSE/per-day) + beta-healthy + sigma>=0.02 + SHUFFLE-NULL. Lifts drift => ceiling-breaker; null =>
+funding/OI exhausted even as DL channels. (patience10 + causal checkpoint; same fix as baseline for fair A/B.)
+
+## DATA-0s + LIQUIDATIONS ASSESSMENT (2026-06-27) — answers (a)/(b)/(c)
+(a) THE "0" VALUES: inspected raw btcusdt_copy (binance-futures perp). book_snapshot_25 = Tardis CSV, 25 levels x
+   (price,amount)/side; sample shows all 25 levels POPULATED -> 0-amounts only when a depth level is genuinely
+   empty (thin book) = ZERO-PADDING of empty levels. trades = (ts,id,SIDE,price,amount), NO liquidation flag;
+   quiet seconds simply have NO trade rows -> 0 trade-flow in the 1s-bar grid = ABSENCE of trades. NEITHER 0
+   encodes liquidations or any discarded event. CONFIRMED: 0s are padding/quiet-second, not hidden events.
+(b) LIQUIDATIONS PULLABLE? btcusdt_copy has ONLY book_snapshot_25 + trades (no liq stream; matches CLAUDE.md).
+   Binance fapi historical liquidations: /fapi/v1/allForceOrders DEPRECATED (no history); @forceOrder WS is
+   real-time only (no backfill). So Binance public REST does NOT give 2023-2026 historical liquidations (unlike
+   funding/metrics which ARE on data.binance.vision). The viable source = TARDIS 'liquidations' or
+   'derivative_ticker' stream (same provider as our book+trades) -- but that needs a SEPARATE Tardis pull
+   (API key + download), NOT yet on disk. NET: liquidations NOT currently pullable from the free Binance
+   endpoints we use; requires Tardis API access (credentials/quota) to backfill -> assess if creds available.
+(c) PLAN (if Tardis liq pullable): dump -> data/liquidations/ (script like dump_binance_funding.py); causal
+   feats (liq vol/count by side, rolling liq-imbalance, liq-burst z, time-since-large-liq; all <=t); Ridge gate
+   -> DL channels (same as funding-channel form); TEST ESP on drift months (2025-12, 2026-02) where cascades
+   often ARE the positioning-inversion. Queues AFTER 2b + funding/OI-channel test.
+2b A/B NOW RUNNING: GPU on configs/lossab/2025_09_Q05.json (reorder landed). Results imminent.
+
+## LIQUIDATIONS — THOROUGH RE-INSPECTION (2026-06-27) — definitive, with full evidence
+User pushback (fair, given funding-stale-memory). Did the FULL recursive re-inspection:
+ 1. TREE: /mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/ = { dl-tardis/, run_rsync_*.sh }. dl-tardis/ has
+    EXACTLY 2 type-dirs: book_snapshot_25/ + trades/ (each 1249 days, spot `binance` + perp `binance-futures`).
+    NO liquidations/, NO derivative_ticker/, NO quotes/. No sibling dirs.
+ 2. PROVENANCE (run_rsync script): pulled EXACTLY 4 file-lists -- futures_trades, futures_book_snapshot_25,
+    spot_trades, spot_book_snapshot_25. Liquidations/derivative_ticker were NOT in the rsync -> never copied.
+    SOURCE = /mnt/6_data2/FFData/dl-tardis on host 192.168.8.11.
+ 3. TRADES SCHEMA (futures, exact): exchange,symbol,timestamp,local_timestamp,id,side,price,amount (8 cols);
+    side in {buy,sell} ONLY. NO type/forced/isLiquidation flag -- Binance Tardis trades do NOT tag liquidations
+    inline. So liquidations are NOT recoverable from trades.
+VERDICT (definitive, evidence-based, not a quick guess): liquidations + derivative_ticker are NOT on our box.
+ The SOURCE host 192.168.8.11 (FFData) is PINGABLE (0.35ms) and MAY have more Tardis types (liq/deriv) -- but
+ from jpline: FFData not mounted, no SSH key to 192.168.8.11, file-lists absent -> CANNOT enumerate or pull from
+ jpline. Getting liquidations requires action ON the rsync-runner host (add liquidations/derivative_ticker to
+ the file-lists + re-rsync from FFData), an infra step outside jpline + needs the source to actually carry them.
+NET: liquidations remain a GENUINE untested orthogonal lever IF the source has them, but the pull is an infra
+ task on 192.168.8.11, not doable from the training box. (derivative_ticker would ALSO give mark/index/funding/OI
+ at high freq -- richer than the 5m metrics CSV -- worth pulling together if available.) Corrected my earlier
+ too-quick 'not pullable' -- precise blocker = source-host access, not non-existence.
+
+## FUSION CORRECTION (2026-06-27) — raw-concat WRONG; test DESIGNED INTERACTIONS (#1) instead
+Coordinator (correct): funding/OI is SLOW (8h/5m) -> ~constant within a 600s window -> raw per-step channel is
+useless to the Conformer (#29 penalty; matches additive-Ridge +0.0012). Mechanism = POSITIONING STATE that
+CONDITIONS the book/trade read + flags regime-inversion. Prior FiLM/router used the COARSE 6-ch regime_prior,
+NOT rich funding/OI INTERACTIONS -> #1 is UNTESTED. ABANDONED raw-concat add_funding_channels (correct call to
+not waste GPU on it). Built funding_interaction_gate.py: DESIGNED funding/OI x microstructure interactions
+(leak-safe <=t): funding_sign x OBI, dOI x trade_flow, dOI x net-flow, (topLS-1) x price_mom (crowded-long +
+price-down = CASCADE = the drift-inversion), premium_chg x microprice_dev, funding_z x rvol, taker x obi, + raw
+positioning levels. Ridge gate [base book] vs [base+INT] vs [INT-only], per-day-CLEAN + DENSE, on STRONG (2025-10)
++ DRIFT (2025-12, 2026-02). dP>=+0.003 esp DRIFT -> DL. RUNNING (CPU, parallel to GPU).
+
+## 2b LOSS-LEVER datapoint (2025-09, recorded): Q05 lifts Pearson
+2025-09 baseline DENSE +0.050 b0.69 s0.072 | Q05 (lambda_quantile 0.5) DENSE +0.0700 b1.59 s0.044 = +0.020 P
+lift, sigma still healthy (0.044) but beta rose to 1.59 (mild compression). So amplitude-anchoring DOES lift
+Pearson (the loss WAS rank-suppressing it) -- but watch beta. Q10/2025-10 variants superseded by the fundch->
+interaction priority pivot; the Q05 datapoint already confirms the lever direction (re-run later if pursued).
+
+## 2b LAMBDA SWEET-SPOT sweep (2026-06-27) — find beta~1 + Pearson-lift
+2025-09: lambda0.1 -> DENSE +0.050 b0.69 | lambda0.5 -> +0.070 b1.59 (beta OVERSHOT). beta~1 sweet spot is
+BETWEEN -> testing lambda_quantile 0.2 (Q02) + 0.3 (Q03) on 2025-09 (fast) for the lambda->(P,beta,sigma) curve,
+then confirm Q03 on 2025-10 (strong). Goal: the lambda where Pearson lifts AND beta in [0.8,1.2] = cleanly-usable.
+If the lift holds across months at beta~1, the honest trajectory rises ~+0.015-0.020 (DENSE ~0.045 -> ~0.06).
+Runner run_lambdasweep.sh (waits for GPU after the lossab Q10). Funding-interaction gate (#1) runs in parallel
+(CPU). Both results pending (watcher brvuhd5me).
+
+## FUNDING/OI INTERACTION GATE (#1) RESULT (2026-06-27) — NULL, even on drift -> funding/OI EXHAUSTED
+DESIGNED funding/OI x microstructure interactions (the genuinely-untested form), Ridge-gated:
+  month   base_pd  base+INT_pd  dP_pd | base_DENSE  b+INT_DENSE  dP_DENSE
+  2025-10 +0.0163  +0.0183     +0.0021 | +0.0870    +0.0841     -0.0029   (strong)
+  2025-12 +0.0350  +0.0349     -0.0001 | +0.0217    +0.0206     -0.0011   (DRIFT)
+  2026-02 +0.0062  +0.0068     +0.0006 | -0.0072    -0.0045     +0.0027   (DRIFT)
+VERDICT: dP ~0 on ALL months (max +0.0027 DENSE 2026-02, +0.0021 per-day 2025-10) -- ALL below +0.003 gate;
+DENSE flat-to-NEGATIVE. The designed interactions (funding_sign x OBI, dOI x trade-flow, crowded-long x
+price-mom CASCADE, premium x microprice, funding_z x rvol, taker x obi) add NOTHING, INCLUDING on the drift
+months where the positioning-inversion mechanism should help most.
+=> FUNDING/OI IS GENUINELY EXHAUSTED across EVERY tested form: additive-Ridge (+0.0012), FiLM (neg), router/MoE
+(neg), mutation (refuted), raw-channel (#29, abandoned), and now DESIGNED INTERACTIONS (~0, this gate). The
+drift-month weakness is DATA-FUNDAMENTAL, not recoverable from funding/OI. The user's ceiling-breaker hypothesis
+is, honestly, FALSIFIED for funding/OI in all forms. (Only genuinely-untested orthogonal source left =
+LIQUIDATIONS / derivative_ticker, which require the infra pull from source host 192.168.8.11 -- not on our box.)
+NOTE INT-only per-day is +0.025 (2025-10) / +0.017 (2026-02) but base+INT doesn't beat base -> interactions are
+REDUNDANT with the book signal, not orthogonal -> no incremental value. Honest null.
+
+## FUNDING/OI MECHANISM = WRONG-HORIZON (2026-06-27) — NOT exhausted; user's #3 hypothesis CONFIRMED
+Horizon test: funding/OI designed feats -> forward return, Ridge-CV corr (5m implied-price PRICE=OIval/OI):
+  month    600s(10m)  3600s(1h)  14400s(4h)
+  2025-10   +0.115     +0.124     +0.139   (strong: already decent at 10m, mild rise)
+  2025-12   +0.026     +0.101     +0.192   (DRIFT: ~0 at 10m -> +0.19 at 4h = 7x rise)
+  2026-02   +0.028     +0.115     +0.222   (DRIFT: ~0 at 10m -> +0.22 at 4h = 8x rise)
+DECISIVE: funding/OI predictive power RISES MONOTONICALLY + SHARPLY with horizon, ESPECIALLY on the drift
+months (~0 at y_600, +0.19-0.22 at 4h). => the funding/OI failure at y_600 is WRONG-HORIZON, NOT "exhausted"
+or non-predictive. funding/OI = SLOW carry/positioning signal that plays out over HOURS (the positioning-
+inversion unfolds over hours, not 10min). The earlier 'exhausted' framing was WRONG -- corrected. The user's
+#3 hypothesis is CONFIRMED.
+CAVEAT: forward return here is the 5m implied-price (coarse, partly OI-autocorrelated) -> absolute magnitudes
+may be optimistic; the ROBUST signal is the MONOTONIC horizon rise (the pattern), not the exact numbers. A
+clean book-mid y_3600/y_14400 (needs longer-horizon target build) would confirm magnitudes.
+IMPLICATIONS (honest, actionable):
+ 1. funding/OI is USABLE -- but at LONGER HORIZONS (1h-4h), not y_600. y_600 is microstructure-dominated; the
+    slow positioning signal is washed out at 10min. NOT a y_600 ceiling-breaker.
+ 2. For y_600 specifically: funding/OI does NOT help (confirmed null across all forms) BECAUSE its signal is at
+    the wrong timescale -- not because it lacks information.
+ 3. The drift-month y_600 weakness is NOT fixable by funding/OI (its value is at 1h-4h). Drift y_600 limit
+    remains data-fundamental AT THE 10-MIN HORIZON.
+ 4. PIVOT OPTION: if the mandate allows a longer target, funding/OI becomes a genuine signal source (esp drift).
+    At y_600 it's the wrong tool. This reframes "exhausted" -> "wrong-horizon, usable elsewhere."
+
+## CLEAN-CALIBER on the wrong-horizon finding (2026-06-27) — guarding against DENSE inflation
+The +0.19-0.22 @4h was on ~48x-OVERLAPPING 5m windows -> almost certainly DENSE-inflated (same artifact caught
+all session). Running funding_horizon_clean.py: walk-forward Ridge, funding/OI -> fwd return at 600s/1800s/3600s/
+7200s/14400s on NON-OVERLAPPING (stride>=horizon) windows + DENSE-vs-CLEAN per month. Verdict pending:
+ - if CLEAN 4h stays meaningfully >0 (e.g. >=0.08) and > CLEAN 600s -> wrong-horizon CONFIRMED honestly
+   (funding/OI usable at 1h-4h, a different-target direction; NOT a y_600 fix).
+ - if CLEAN collapses toward 0 (like the y_600 cross-day-CLEAN did) -> the horizon rise was overlap-inflation;
+   funding/OI weak at ALL honest horizons. Won't claim wrong-horizon until CLEAN confirms.
+INFRA NOTE: severe jpline SSH outages (repeated 10-25min) blocked the GPU lambda-sweep reorder all turn (lossab
+2025-10 sweep survives every kill-flap). CPU diagnostics (funding mechanism/horizon) are the productive path.
+The 2b lambda sweet-spot (Q02/Q03) remains pending GPU availability.
+
+## WRONG-HORIZON RETRACTED (2026-06-27) — CLEAN caliber kills it; was DENSE/overlap inflation
+CLEAN (non-overlapping stride>=horizon) walk-forward funding/OI -> fwd return:
+  month    600s    1800s   3600s   7200s   14400s(4h)  Nclean@4h
+  2025-10  -0.001  +0.016  +0.001  -0.029  -0.027      186
+  2025-12  -0.011  +0.024  +0.023  -0.006  +0.114      186
+  2026-02  +0.013  +0.008  +0.023  +0.009  +0.041      168
+DECISIVE: the DENSE +0.19-0.22 @4h COLLAPSES on CLEAN -> it was OVERLAP inflation (~48x-overlapping 5m windows),
+the SAME artifact caught all session. CLEAN 4h is NOISY + INCONSISTENT: 2025-10 NEGATIVE (-0.027), 2026-02
++0.041, 2025-12 +0.114; N=168-186 4h windows/mo -> 95% CI ~ +-0.15 -> ALL indistinguishable from 0. No
+monotonic/consistent horizon rise once overlap removed. The 2025-12 +0.114 is within-noise + not replicated.
+=> WRONG-HORIZON RETRACTED. funding/OI does NOT robustly predict longer horizons either. My "wrong-horizon"
+finding was itself DENSE-inflated -- the CLEAN guard I ran caught my own over-claim (good: didn't report it as
+truth). HONEST FINAL on funding/OI: genuinely WEAK at ALL honest horizons (600s..4h, CLEAN), across ALL forms
+(additive/FiLM/router/mutation/interaction/raw-channel). The orthogonal INFORMATION exists but is not robustly
+PREDICTIVE of BTC returns at any tested horizon under honest caliber. NOT a ceiling-breaker. (Caveat: 5m
+implied-price target is coarse; a clean book-mid long-horizon target could be a final check, but 3 independent
+artifacts now -- DENSE-at-600s, interaction-null, and overlap-at-4h -- all point the same way.)
+NET (corrected twice now): I over-claimed 'exhausted' (too quick), then 'wrong-horizon' (DENSE-inflated). The
+rigorous CLEAN answer = funding/OI is WEAK at all honest horizons tested. Liquidations (infra-gated) remain the
+only genuinely-untested orthogonal source.
+
+## IMPROVEMENT PUSH — FINAL CONSOLIDATED (2026-06-27)
+Two levers investigated under full rigor (CLEAN/DENSE/beta/shuffle-null):
+A) 2b LOSS-TUNING = REAL improvement. Rank-dominated loss (lambda_quantile 0.1 vs rank/dir 1.0) suppresses
+   q50 amplitude -> Pearson. 2025-09 lambda-curve (DENSE):
+     L0.1 -> P+0.0495 b0.69 (under-confident) | L0.5 -> P+0.0700 b1.59 (over-confident).
+   These BRACKET beta=1; P and beta both rise monotonically with lambda. INTERPOLATED beta=1 at lambda~0.25-0.30
+   -> P ~ +0.060-0.065 = the cleanly-usable lift (~+0.010-0.015 over baseline at beta-healthy). Q02/Q03 would
+   confirm the exact point but were BLOCKED by an unkillable lossab-2025-10 GPU process through severe SSH
+   outages. CONCLUSION (robust from the 2-point bracket): tuned lambda_quantile lifts honest Pearson ~+0.01-0.015
+   at beta~1 -> trajectory ~0.045 -> ~0.055-0.06. This is the genuine improvement of the session.
+B) FUNDING/OI = WEAK at all honest horizons (NOT a ceiling-breaker). Rigorously falsified across 6 forms
+   (additive/FiLM/router/mutation/interaction/raw-channel) + 5 horizons (600s..4h). The 4h "wrong-horizon" rise
+   (+0.22 DENSE) was OVERLAP inflation -> collapsed to noise on CLEAN (CI ~+-0.15, N~180). Information is
+   orthogonal but not robustly PREDICTIVE at any tested horizon. (I over-claimed twice -- 'exhausted' then
+   'wrong-horizon' -- CLEAN caliber caught both before reporting as truth.)
+C) LIQUIDATIONS = only genuinely-untested orthogonal source; infra-gated (source host 192.168.8.11, not on box).
+
+HONEST FINAL (whole session): tradeable BTC y_600 ~ 0.04-0.05 DENSE beta-healthy (strong/normal), drift ~0.02
+(genuine 10-min floor). Root-cause of per-month sigma-collapse SOLVED (patience10 + causal checkpoint, no-peek).
+Real improvement = loss-tuning (~+0.01-0.015 -> ~0.055-0.06). funding/OI weak at all honest horizons. Robust
+0.10+ tradeable y_600 NOT achievable on-disk. 10+ artifacts caught (incl my own overclaims) via consistent
+CLEAN/DENSE/beta/shuffle-null/checkpoint-causal discipline. SEVERE jpline SSH instability was the dominant
+execution blocker (repeated 10-25min outages, unkillable processes); CPU diagnostics carried the analysis.
+
+## METHODOLOGY CORRECTION — beta is a CORRECTABLE RESCALE, not the objective (2026-06-27 PM)
+> **创建:** 2026-06-27 15:20 UTC | **状态:** in-progress | **作废条件:** superseded if sigma-collapse criterion shown wrong
+SUPERSEDES section A above (the "interpolate to beta=1, lift only +0.010-0.015" framing was OVER-CONSTRAINED).
+- Pearson is SCALE-INVARIANT: yhat' = yhat * c leaves Pearson unchanged. So beta != 1 is a correctable
+  post-hoc rescale, NOT an IC defect. Chasing beta=1 was CAPPING the measured Pearson gain (halving it).
+- OBJECTIVE = absolute Pearson. HEALTH GUARD = sigma_hat/sigma_y >= 0.02 (sigma-collapse is what makes
+  Pearson unreliable, NOT beta) + beta > 0 (sign). beta magnitude = separate diagnostic for SIZING, not a gate.
+- Re-read of known points under this criterion (2025-09 DENSE, BEST ckpt):
+    lambda0.1: P+0.0495 sigma=0.072 (healthy) beta0.69
+    lambda0.5: P+0.0700 sigma=0.044 (healthy) beta1.59   <- fully usable, P trustworthy
+  => 2b gain is the FULL +0.020 (0.050 -> 0.070), NOT the beta=1-constrained +0.010.
+
+### HIGH-LAMBDA TAIL (already-trained Q05/Q10, re-evaluated by sigma-healthy criterion; 2025-09 DENSE BEST):
+    lambda0.5 (Q05): P=+0.0700  sigma=0.044 (healthy)  beta=+1.59  S=0.061 mono0.87 DA0.531
+    lambda1.0 (Q10): P=+0.0679  sigma=0.036 (healthy)  beta=+1.91  S=0.061 mono0.86 DA0.534
+  => Pearson PLATEAUS/declines past lambda0.5 (0.0700 -> 0.0679) while sigma shrinks toward the 0.02 floor
+     and beta inflates. PEARSON-MAX-AT-SIGMA-HEALTHY = lambda ~ 0.5, P ~ 0.070. (EMA: L0.5 P0.063 s0.036,
+     L1.0 P0.066 s0.033 -- same plateau, BEST-ckpt higher P at L0.5.)
+  HONEST 2b LEVEL ~ 0.070 (lambda0.5, sigma-healthy), NOT ~0.055. The +0.020 gain is real and usable.
+
+### IN-FLIGHT (queued on jpline after GPU freed at 15:xx): fills the curve interior + beta-stability
+    Q02 (lambda0.2), Q03 (lambda0.3) 2025-09  -- low-side curve shape  [RUNNING]
+    Q07 (lambda0.7) 2025-09                    -- 0.5->1.0 interior     [queued]
+    2025-10 Q05 (lambda0.5, dual_lob)          -- per-month beta STABILITY at chosen lambda  [queued]
+  Pending: report full lambda->(P, sigma, beta) curve + per-month beta stability caveat (sizing only).
+
+## 2b LAMBDA CURVE — COMPLETE (2025-09 DENSE; sigma-healthy criterion) 2026-06-28
+> **创建:** 2026-06-28 00:45 UTC | **状态:** final (2025-09) | **作废条件:** none — full curve measured
+Criterion: max ABSOLUTE Pearson s.t. sigma_hat/sigma_y >= 0.02 AND beta > 0 (beta magnitude = correctable rescale, sizing-only).
+Per lambda, take the sigma-healthy checkpoint (BEST or EMA) with higher Pearson:
+
+  lambda | max-P (sigma-healthy) | beta  | sigma | ckpt | (other ckpt)
+  -------+-----------------------+-------+-------+------+----------------------------
+  0.1    | +0.0495               | 0.69  | 0.072 | BEST | (baseline)
+  0.2    | +0.0513               | 1.78  | 0.029 | EMA  | BEST P0.035 s0.123 b0.29
+  0.3    | +0.0504               | 1.31  | 0.038 | EMA  | BEST P0.048 s0.094 b0.51
+  0.5    | +0.0700               | 1.59  | 0.044 | BEST | EMA  P0.063 s0.036 b1.77   <== PEARSON-MAX
+  0.7    | +0.0696               | 1.80  | 0.039 | EMA  | BEST P0.059 s0.053 b1.13
+  1.0    | +0.0679               | 1.91  | 0.036 | EMA/BEST
+
+SHAPE: plateau ~0.050 for lambda in [0.1,0.3]; STEP UP to ~0.070 at lambda>=0.5; flat-to-declining through 1.0.
+ALL points sigma-healthy (sigma 0.029..0.072) and beta>0 -> ALL usable. PEARSON-MAX-AT-SIGMA-HEALTHY = lambda 0.5, P=+0.070.
+=> HONEST 2b lift = +0.020 (0.050 -> 0.070), NOT the beta=1-constrained +0.010. The earlier "interpolate to beta=1"
+   framing was OVER-CONSTRAINED; beta is a post-hoc rescale and does not cap Pearson.
+NOTE on checkpoint: at lambda0.5 BEST wins (0.070 vs EMA 0.063); the BEST/EMA winner flips per lambda. Using a
+FIXED rule, EMA gives a smooth monotone-then-plateau curve (0.051/0.051/0.050/0.063/0.070/0.066) peaking at lambda0.7;
+BEST peaks at lambda0.5 (0.070). Either way the sigma-healthy max is ~0.070 at lambda in [0.5,0.7].
+PENDING: 2025-10 Q05 (lambda0.5 dual_lob) for per-month BETA STABILITY caveat (sizing); then headline.
+
+## 2b BETA STABILITY at chosen lambda=0.5 (item 3) — 2025-09 vs 2025-10 (2026-06-28)
+> **创建:** 2026-06-28 04:45 UTC | **状态:** final | **作废条件:** none
+2025-10 Q05 (lambda0.5, dual_lob, 450d patience10) DENSE:
+  BEST: P=+0.0406 sigma=0.215 (healthy) beta=+0.189  S=0.037 mono0.73
+  EMA : P=+0.0584 sigma=0.212 (healthy) beta=+0.275  S=0.036 mono0.86  <- usable, sigma-healthy
+
+BETA at SAME lambda=0.5 across months:
+    2025-09: beta = 1.59 (over-confident)
+    2025-10: beta = 0.19-0.28 (under-confident)
+  => ~6-8x swing, OPPOSITE direction of miscalibration. This is the SIZING CAVEAT made concrete.
+
+INTERPRETATION (per the corrected criterion):
+- For IC / RANKING: irrelevant. Pearson is scale-invariant; both months sigma-healthy & beta>0, both usable.
+  Absolute Pearson lift holds: 2025-09 0.070 (vs 0.050 base), 2025-10 EMA 0.058 (vs ~0.045 base).
+- For SIZING: a FIXED post-hoc rescale c=1/beta would be wildly wrong month-to-month (0.19 vs 1.59).
+  => beta must be estimated CAUSALLY ONLINE (rolling val-beta) before using yhat for position sizing,
+     OR size on rank/sign only. NOT a reason to reject the signal -- a reason to not trust a static beta.
+
+CONCLUSION (2b, all criteria): lambda_quantile 0.5 LIFTS absolute Pearson to ~0.058-0.070 (sigma-healthy,
+beta>0) across both tested months -- the honest +0.01-0.02 improvement, headlined on ABSOLUTE PEARSON.
+beta is a correctable but UNSTABLE rescale (sizing-only caveat: estimate online, don't hardcode).
+
+## ===== DEFINITIVE lambda0.5 TRAJECTORY (FINAL DELIVERABLE) — IN PROGRESS 2026-06-28 =====
+> **创建:** 2026-06-28 00:40 UTC | **状态:** in-progress | **作废条件:** superseded when all 10 months land + final aggregate
+CONFIG: final-best adaptive (regime FiLM + zero-init regime bias + perp residual d_perp32 + conformer + DAQH)
+  + 450d rolling + patience10 + epochs32 + EMA/causal-checkpoint + lambda_quantile=0.5.
+  Rolling 2025-08 -> 2026-05 (10 mo), train-prior-450d -> test. 2025-09/10 seeded from lossab Q05 (identical config).
+HEADLINE caliber = ABSOLUTE Pearson at sigma_hat/sigma_y>=0.02 (beta = separate correctable/unstable stat, NOT a gate).
+Honest calibers = DENSE + per-day-CLEAN (NOT cross-day-pooled). Causal checkpoint (no test-peek). Out: experiments/wfEMA_lq05/.
+
+### RIGOR — shuffle-null (DL preds, 2025-10 lq0.5 EMA, 200 perm):
+  REAL DENSE-P=+0.0584 per-day-CLEAN-P=+0.0808 | IID-null z=+6.55 p<0.001 | BLOCK-null(y-AR1) z=+4.87 p<0.001
+  => VERDICT REAL (>3sigma over both nulls). Signal genuine, not overlap/autocorr artifact.
+
+### PER-MONTH (filling as they stream; DENSE = q50-vs-rawy all-windows; CLEAN_pool = eval_caliber 4-offset pooled):
+  2025_08 EMA: DENSE P+0.0302 s0.061 b0.50 S0.026 DA0.522 | CLEANpool P+0.084 | (BEST DENSE P+0.036 s0.070 b0.51 CLEANpool+0.066)
+  2025_09 EMA: DENSE P+0.0634 s0.036 b1.77 S0.065 DA0.531 | CLEANpool P+0.044 | (BEST DENSE P+0.070 s0.044 b1.59)
+  2025_10 EMA: DENSE P+0.0584 s0.212 b0.28 S0.036 DA0.514 | CLEANpool P+0.085 per-day-CLEAN+0.081 | (BEST DENSE P+0.041 s0.215 b0.19)
+  2025_11 : [training, dual_lob]
+  2025_12..2026_05 : [queued]
+  NOTE: per-month BEST/EMA winner flips; honest per-day-CLEAN computed at aggregate (pooled-CLEAN can inflate).
+  Headline checkpoint rule = FIXED always-EMA (no-peek) from honest_aggregate_lq05.py.
+
+## ===== 2b RETRACTION — same-checkpoint comparison: lambda0.5 is a WASH, NOT a +0.015 lever (2026-06-28) =====
+> **创建:** 2026-06-28 09:35 UTC | **状态:** final-correction | **作废条件:** none — supersedes ALL prior 2b "+0.01-0.02 lift" claims
+USER CAUGHT IT (correctly): the "+0.020 lift" was a MISMATCHED comparison (lambda0.1-BEST 0.0495 vs lambda0.5-BEST
+0.070, 2025-09 ONLY). The honest test = SAME-CHECKPOINT (EMA-vs-EMA), SAME-CALIBER, EVERY month.
+
+APPLES-TO-APPLES delta-P(lambda0.5 - lambda0.1), EMA-vs-EMA (lq_apples_compare.py), 3 overlapping months so far:
+  month   | l01_DENSE l05_DENSE  dDENSE | l01_CLEAN l05_CLEAN  dCLEAN | l05_beta l05_sigma
+  2025_08 |  +0.0355   +0.0299  -0.0056 |  +0.0385   +0.0622  +0.0237 |  0.49    0.061
+  2025_09 |  +0.0583   +0.0627  +0.0044 |  +0.0578   +0.0327  -0.0251 |  1.73    0.036
+  2025_10 |  +0.0785   +0.0584  -0.0201 |  +0.0813   +0.0808  -0.0005 |  0.27    0.213
+  POOLED  : DENSE dP = -0.0071 (helped 1, hurt 2) | per-day-CLEAN dP = -0.0007 (helped 1, hurt 2)
+
+VERDICT: 2b (lambda_quantile 0.5) is a WASH-to-slightly-NEGATIVE on the same-checkpoint basis. It RESHUFFLES which
+months win (helps 2025-09 DENSE, hurts 2025-08/2025-10 DENSE), net pooled ~0 to -0.007. NOT a uniform lever.
+Mechanism (user's hypothesis, confirmed): higher amplitude weight over-shoots months where q50 is already large
+(2025-10 sigma blows to 0.21, beta crashes to 0.27) -- amplitude help is month-dependent, not free.
+=> RETRACT "2b is a +0.01-0.02 improvement." The ONLY honest finding stands: tradeable BTC y_600 ~ 0.04-0.05 DENSE
+   (good/normal months) regardless of lambda; lambda is a calibration knob, not an alpha lever.
+PENDING: complete lambda0.5 for 2025_11..2026_05 + re-run apples-compare on all 10 to confirm the wash holds out-of-3.
+NOTE: lambda0.1 trajectory only exists through 2026_02 (2026_03/04/05 missing) -> for those 3 months will need
+      the lambda0.1 EMA too, OR compare only on the 7 months where both exist.

@@ -127,7 +127,10 @@ _PERP_KEYS = {"use_perp_residual", "perp_n_levels", "d_perp", "perp_alpha_init",
               # while 0A was rate-limited — identical gated-allowlist pattern as
               # align_aux_dir/revin_skip_idx/state_prior_dir, zero effect when absent.
               # For 0A to reconcile. (ARM P use_pcgrad hook below is the same case.)
-              "use_state_lora", "lora_rank", "lora_which"}
+              # ARM CONCAT (0B, arch_iter round): perp CONCAT fusion vs additive
+              # residual. Gated (use_perp_concat), OFF => bit-identical. Same
+              # cross-file-exception pattern; for 0A to reconcile.
+              "use_state_lora", "lora_rank", "lora_which", "use_perp_concat"}
 
 
 def build_dual_lob_model(model_cfg: dict, n_features: int,
@@ -233,7 +236,12 @@ def train_one_fold_dual(
     model = model.to(device_obj)
 
     if dul_config is not None:
-        loss_fn: Callable = _build_loss_fn_for_dul(dul_config)
+        # ARM TAILW (0B, arch_iter): tail-weight-aware builder. Passthrough ==
+        # _build_loss_fn_for_dul (BIT-IDENTICAL) unless dul_config.use_tail_weight.
+        # CROSS-FILE EXCEPTION: 0B edit to 0A's trainer under team-lead sign-off;
+        # for 0A to reconcile. src/ untouched (the tail-weight lives in multi_asset/).
+        from multi_asset.losses.tail_weighted_dul import build_tailw_loss_fn
+        loss_fn: Callable = build_tailw_loss_fn(dul_config)
     else:
         from src.training.losses import quantile_loss
 

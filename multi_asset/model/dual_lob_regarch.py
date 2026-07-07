@@ -288,6 +288,7 @@ class DualLOBREGArch(DualPathLOBModelV3):
         use_state_lora: bool = False,
         lora_rank: int = 4,
         lora_which: str = "ffn2",
+        use_perp_concat: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -304,6 +305,10 @@ class DualLOBREGArch(DualPathLOBModelV3):
         else:
             self._revin_skip_idx = None
         self.use_perp_residual = bool(use_perp_residual)
+        # ARM CONCAT (gated, default OFF => additive path => bit-identical to Run1):
+        # fuse the perp embedding by CONCAT + fusion-Linear instead of the additive
+        # gated residual. Only meaningful with use_perp_residual (needs the perp stream).
+        self.use_perp_concat = bool(use_perp_concat)
         self.perp_n_levels = int(perp_n_levels)
         self.d_perp = int(d_perp)
         # one-call stash for forward()->encode() threading of the perp tensor
@@ -533,11 +538,28 @@ class DualLOBREGArch(DualPathLOBModelV3):
             self.perp_alpha = nn.Parameter(
                 torch.tensor(float(perp_alpha_init), dtype=torch.float32)
             )
+            # ARM CONCAT: concat[h | perp_proj(h_perp)] -> fusion Linear -> d_model.
+            # Warm init: h-half = identity, perp-half = small (std 0.02) so at step 0
+            # the fused bus ≈ h passthrough + small perp — the proven spot backbone is
+            # NOT destroyed. Only built when use_perp_concat (OFF => layer absent =>
+            # state_dict identical to Run1). perp_gate/perp_alpha remain built but are
+            # UNUSED on the concat path (harmless dead params).
+            if self.use_perp_concat:
+                self.perp_fusion = nn.Linear(2 * self.d_model, self.d_model)
+                with torch.no_grad():
+                    W = torch.zeros(self.d_model, 2 * self.d_model)
+                    W[:, : self.d_model] = torch.eye(self.d_model)
+                    nn.init.normal_(W[:, self.d_model:], std=0.02)
+                    self.perp_fusion.weight.copy_(W)
+                    nn.init.zeros_(self.perp_fusion.bias)
+            else:
+                self.perp_fusion = None
         else:
             self.raw_encoder_perp = None
             self.perp_proj = None
             self.perp_gate = None
             self.perp_alpha = None
+            self.perp_fusion = None
 
         # --- CONDITIONED OUTPUT GAIN (default OFF; zero-init => EXACT no-op) ------
         # The direct anti-overconfidence lever (H1: β 30.8->5.1 while σp RISES —
@@ -782,8 +804,13 @@ class DualLOBREGArch(DualPathLOBModelV3):
             and h is not None
         ):
             h_perp = self.raw_encoder_perp(x_raw_perp_deep)        # (B,T,d_perp)
-            g = torch.sigmoid(self.perp_gate(h))                    # (B,T,d_model)
-            h = h + torch.tanh(self.perp_alpha) * g * self.perp_proj(h_perp)
+            if self.use_perp_concat:
+                # CONCAT fusion (symmetric to spot Path-B): learn the spot⊕perp
+                # combination with a fusion Linear instead of overwriting h additively.
+                h = self.perp_fusion(torch.cat([h, self.perp_proj(h_perp)], dim=-1))
+            else:
+                g = torch.sigmoid(self.perp_gate(h))                    # (B,T,d_model)
+                h = h + torch.tanh(self.perp_alpha) * g * self.perp_proj(h_perp)
 
         # ---- Delegate the UNCHANGED remainder (backbone -> gates -> pool) ----
         return self._encode_tail(h, h_craft, h_raw, x_feat, regime_prior,

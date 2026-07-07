@@ -74,7 +74,7 @@ def rank_day(X, ts_us, sel, buf_ts, buf_vals, win_us):
 
 def process_range(src, dst, sel, start, end, mode, win_days):
     win_us = win_days * DAY_US
-    os.makedirs(dst, exist_ok=True)
+    os.makedirs(f"data/{dst}", exist_ok=True)
     days = [d for d in _daterange(start, end) if os.path.exists(f"data/{src}/{d}.npz")]
     print(f"build_rank_overlay: {len(days)} days {start}..{end} mode={mode} win={win_days}d "
           f"sel={len(sel)}ch -> data/{dst}", flush=True)

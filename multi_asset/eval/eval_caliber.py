@@ -22,7 +22,7 @@ import numpy as np
 def _score(q, y):
     q = np.asarray(q, np.float64); y = np.asarray(y, np.float64)
     if q.size < 5 or q.std() < 1e-15 or y.std() < 1e-15:
-        return dict(N=int(q.size), P=0.0, S=0.0, beta=0.0, sigma=0.0)
+        return dict(N=int(q.size), P=0.0, S=0.0, beta=0.0, sigma=0.0, mono=0.0, DA=0.0)
     from scipy.stats import spearmanr
     P = float(np.corrcoef(q, y)[0, 1])
     S = float(spearmanr(q, y).statistic)
@@ -30,7 +30,16 @@ def _score(q, y):
         S = 0.0
     beta = float(np.cov(q, y)[0, 1] / np.var(q))
     sigma = float(q.std() / y.std())
-    return dict(N=int(q.size), P=P, S=S, beta=beta, sigma=sigma)
+    # decile-monotonicity: corr(decile rank, mean-y-per-decile); +1 = perfectly monotone
+    order = np.argsort(q); dec = np.array_split(order, 10)
+    mu = np.array([y[d].mean() for d in dec if len(d) > 0])
+    mono = float(np.corrcoef(np.arange(len(mu)), mu)[0, 1]) if len(mu) >= 3 else 0.0
+    if not np.isfinite(mono):
+        mono = 0.0
+    # directional accuracy (sign match), excluding ~0 preds
+    nz = np.abs(q) > 1e-12
+    DA = float(np.mean(np.sign(q[nz]) == np.sign(y[nz]))) if nz.sum() > 0 else 0.0
+    return dict(N=int(q.size), P=P, S=S, beta=beta, sigma=sigma, mono=mono, DA=DA)
 
 
 def _clean_indices(ts_sorted, horizon_us, offset):
@@ -65,12 +74,12 @@ def eval_file(preds_path, horizon_sec=600, n_offsets=4):
         if idx.size >= 5:
             cleans.append(_score(q[idx], t[idx]))
     if cleans:
-        clean = {k: float(np.mean([c[k] for c in cleans])) for k in ("P", "S", "beta", "sigma")}
+        clean = {k: float(np.mean([c[k] for c in cleans])) for k in ("P", "S", "beta", "sigma", "mono", "DA")}
         clean["N"] = int(np.mean([c["N"] for c in cleans]))
         clean["n_off"] = len(cleans)
         clean["P_std"] = float(np.std([c["P"] for c in cleans]))
     else:
-        clean = dict(N=0, P=0.0, S=0.0, beta=0.0, sigma=0.0, n_off=0, P_std=0.0)
+        clean = dict(N=0, P=0.0, S=0.0, beta=0.0, sigma=0.0, mono=0.0, DA=0.0, n_off=0, P_std=0.0)
     return dense, clean
 
 
@@ -92,10 +101,10 @@ def main():
         tag = "EMA " if "ema" in p.basename(tp) else "BEST"
         print(f"{tag} {p.dirname(tp).split('/')[-2]}")
         print(f"  DENSE: N={dense['N']:5d} P={dense['P']:+.4f} S={dense['S']:+.4f} "
-              f"beta={dense['beta']:+.3f} sigma={dense['sigma']:.3f}")
+              f"beta={dense['beta']:+.3f} sigma={dense['sigma']:.3f} mono={dense.get('mono',0):+.2f} DA={dense.get('DA',0):.3f}")
         print(f"  CLEAN: N={clean['N']:5d} P={clean['P']:+.4f} (off-std {clean.get('P_std',0):.4f}) "
               f"S={clean['S']:+.4f} beta={clean['beta']:+.3f} sigma={clean['sigma']:.3f} "
-              f"[{clean.get('n_off',0)} offsets]")
+              f"mono={clean.get('mono',0):+.2f} DA={clean.get('DA',0):.3f} [{clean.get('n_off',0)} offsets]")
 
 
 if __name__ == "__main__":

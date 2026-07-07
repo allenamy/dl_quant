@@ -1,5 +1,5 @@
 {
-  "_comment": "CHOPPY DL test 2026-05: dp32+regime-adaptive(film+bias). train300/preload/batch512 proven-complete. MUST reach test eval.",
+  "_comment": "D1 GATE Run2 bugfix+state+gain \u2014 2026_04 fold. Cloned from configs/walkforward/wf_2026_04.json (450d/ep25/pat5/EMA no-peek), identical caliber; only the D1 fixed-regime-state flags differ. Stage-1 GPU gate.",
   "data": {
     "csv_path": "",
     "npz_dir": "data/npz_v2arch",
@@ -98,7 +98,8 @@
       "cls_weight_mode": "tail_focal_1p5"
     },
     "embargo_days": 1,
-    "preload": true
+    "preload": true,
+    "save_epoch_ckpts": true
   },
   "output_dir": "experiments/d1gate/d1_2026_04_run2"
 }

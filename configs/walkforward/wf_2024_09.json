@@ -1,0 +1,101 @@
+{
+  "_comment": "perp d_perp 32 + perp_alpha_init 0.02 (combine the deeper-tower win 0.0706 with the gentler-gate win that fixed beta). Best-of-both perp config.",
+  "data": {
+    "csv_path": "",
+    "npz_dir": "data/npzv4_dual",
+    "tv_overlay_dir": "",
+    "n_levels": 20,
+    "horizon_sec": 600,
+    "input_len": 600,
+    "stride": 180,
+    "horizons_sec": [
+      600
+    ],
+    "include_ridge_features": true,
+    "include_regime_prior": true,
+    "quantize_features": false,
+    "preload": true,
+    "slice": {
+      "x_channels": 64
+    }
+  },
+  "model": {
+    "d_model": 32,
+    "d_raw": 16,
+    "n_mask_blocks": 1,
+    "n_cross_layers": 1,
+    "patch_size": 5,
+    "attn_nhead": 2,
+    "attn_d_ff": 64,
+    "d_prior": 6,
+    "dropout": 0.2,
+    "n_horizons": 1,
+    "n_symbols": 1,
+    "use_monotonic_quantile": true,
+    "use_revin": true,
+    "use_masknet": false,
+    "use_gdcn": true,
+    "use_raw_path": true,
+    "use_attention": false,
+    "use_conv": false,
+    "use_channel_mix_conv": true,
+    "use_level_attention_pool": true,
+    "use_patch_attention_pool": false,
+    "use_ppnet_gate": true,
+    "backbone_kind": "conformer",
+    "backbone_kwargs": {
+      "n_blocks": 2,
+      "n_heads": 2,
+      "kernel_size": 15
+    },
+    "use_direction_aware_head": true,
+    "use_film_multistage": true,
+    "perp_n_levels": 20,
+    "d_perp": 32,
+    "perp_alpha_init": 0.02,
+    "_comment": "WALK-FORWARD adaptive: rolling-train 700d before 2024-09, test 2024-09. cache=data/npzv4_dual.",
+    "use_perp_residual": true,
+    "use_regime_film": true,
+    "regime_film_hidden": 8,
+    "use_regime_bias": true
+  },
+  "training": {
+    "epochs": 25,
+    "batch_size": 1024,
+    "lr": 0.0006,
+    "weight_decay": 0.001,
+    "patience": 6,
+    "grad_clip": 1.0,
+    "train_days": 700,
+    "val_days": 45,
+    "test_days": 28,
+    "fold_stride": 60,
+    "fold_test_starts": [
+      "2024-09-10"
+    ],
+    "num_workers": 0,
+    "val_metric": "composite",
+    "use_ema": true,
+    "ema_decay": 0.999,
+    "dul_config": {
+      "lambda_quantile": 0.1,
+      "lambda_utility_rank": 0.5,
+      "lambda_calib": 0.0,
+      "lambda_dir_huber": 0.5,
+      "lambda_pearson": 0.0,
+      "lambda_beta_calib": 0.0,
+      "utility_alpha": 0.0,
+      "dir_huber_delta": 2.0,
+      "dir_huber_w_wrong": 0.0,
+      "dir_huber_w_extreme": 0.0,
+      "lambda_cls": 0.1,
+      "lambda_mag_focal_huber": 0.3,
+      "mag_focal_clip_min": 0.3,
+      "mag_focal_clip_max": 3.0,
+      "cls_weight_mode": "tail_focal_1p5"
+    },
+    "embargo_days": 1,
+    "preload": true
+  },
+  "output_dir": "experiments/walkforward/wf_2024_09"
+}

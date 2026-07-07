@@ -1,0 +1,92 @@
+loaded 111872 rows (mask/y==0 dropped), months ['2025_08', '2025_09', '2025_10', '2025_11', '2025_12', '2026_01', '2026_02', '2026_03', '2026_04', '2026_05']
+
+================================================================================================
+RIDGE GATE  (per-day-CLEAN P; base=y~ypred, aug=y~[ypred,feats]; expanding-prior walk-forward)
+================================================================================================
+
+### FAMILY A  (9 feats: a_sweep_count, a_run_len_max, a_run_notional_signed, a_impact_per_notional, a_burst_flow_signed, a_size_p99_med, a_size_asym_side, a_casc_net_1h, a_casc_intensity_6h)
+  month       baseP     augP    Delta  Delta|volctrl
+  2025_09   +0.0210  -0.0313  -0.0523        -0.0668
+  2025_10   +0.0856  +0.0614  -0.0242        -0.0197  <STRONG
+  2025_11   +0.0660  +0.0654  -0.0006        -0.0010
+  2025_12   +0.0550  +0.0531  -0.0018        +0.0017
+  2026_01   +0.0274  +0.0235  -0.0039        -0.0040  <drift
+  2026_02   +0.0194  +0.0170  -0.0024        -0.0003  <drift
+  2026_03   +0.0202  +0.0266  +0.0064        +0.0076  <drift
+  2026_04   +0.0304  +0.0391  +0.0088        +0.0092  <drift
+  2026_05   +0.0214  +0.0229  +0.0015        +0.0020  <drift
+  POOLED DRIFT  baseP=+0.0238 augP=+0.0258  Delta=+0.0021  (vol-ctrl Delta=+0.0029)
+  STRONG 2025_10 Delta=-0.0242 (guard: must not drop >0.003)  | worst drift month Delta=-0.0039
+  shuffle-future null pooled-drift Delta: mean=-0.0010 max|Delta|=0.0026 (must be <0.002)
+  >>> FAMILY A VERDICT: DEAD  [pooled Delta +0.0021 < 0.005; drift month -0.0039 < -0.003; shuffle |Delta| 0.0026 >= 0.002]
+  short x cascade conditional (drift, per-day bottom-decile pred shorts, n=6430):
+    cascade-net tercile spread on shorts: -2.83bps  day-clustered t=-2.80
+    funding tercile spread on shorts     : -6.54bps  day-clustered t=-2.26 (H5: ~-3.59, t=-2.43)
+    cascade | mid-funding tercile        : -3.93bps  day-clustered t=-1.63
+    family-A conditional: has structure
+
+### FAMILY C  (5 feats: c_flow_ac1_1h, c_vpin_1h, c_netflow_z_6h, c_aggr_ratio_drift, c_flow_price_div_1h)
+  month       baseP     augP    Delta  Delta|volctrl
+  2025_09   +0.0210  -0.0490  -0.0700        -0.0428
+  2025_10   +0.0856  +0.0646  -0.0210        -0.0136  <STRONG
+  2025_11   +0.0660  +0.0596  -0.0064        -0.0053
+  2025_12   +0.0550  +0.0255  -0.0295        -0.0298
+  2026_01   +0.0274  +0.0207  -0.0067        -0.0055  <drift
+  2026_02   +0.0194  +0.0117  -0.0078        -0.0033  <drift
+  2026_03   +0.0202  +0.0035  -0.0167        -0.0230  <drift
+  2026_04   +0.0304  +0.0257  -0.0047        -0.0049  <drift
+  2026_05   +0.0214  +0.0091  -0.0123        -0.0145  <drift
+  POOLED DRIFT  baseP=+0.0238 augP=+0.0141  Delta=-0.0096  (vol-ctrl Delta=-0.0103)
+  STRONG 2025_10 Delta=-0.0210 (guard: must not drop >0.003)  | worst drift month Delta=-0.0167
+  shuffle-future null pooled-drift Delta: mean=+0.0005 max|Delta|=0.0017 (must be <0.002)
+  >>> FAMILY C VERDICT: DEAD  [pooled Delta -0.0096 < 0.003; drift month -0.0167 < -0.003]
+
+### FAMILY B  (6 feats: b_ecm_residual, b_ecm_resid_z, b_breadth, b_dispersion, b_beta_compression, b_basket_ret_1h)
+  month       baseP     augP    Delta  Delta|volctrl
+  2025_09   +0.0210  +0.0005  -0.0205        -0.0141
+  2025_10   +0.0856  +0.0880  +0.0024        +0.0020  <STRONG
+  2025_11   +0.0660  +0.0682  +0.0022        +0.0019
+  2025_12   +0.0550  +0.0602  +0.0052        -0.0029
+  2026_01   +0.0274  +0.0305  +0.0031        +0.0016  <drift
+  2026_02   +0.0194  +0.0110  -0.0084        -0.0045  <drift
+  2026_03   +0.0202  +0.0207  +0.0004        +0.0008  <drift
+  2026_04   +0.0304  +0.0278  -0.0026        -0.0024  <drift
+  2026_05   +0.0214  +0.0181  -0.0033        -0.0039  <drift
+  POOLED DRIFT  baseP=+0.0238 augP=+0.0216  Delta=-0.0022  (vol-ctrl Delta=-0.0017)
+  STRONG 2025_10 Delta=+0.0024 (guard: must not drop >0.003)  | worst drift month Delta=-0.0084
+  shuffle-future null pooled-drift Delta: mean=-0.0003 max|Delta|=0.0038 (must be <0.002)
+  >>> FAMILY B VERDICT: DEAD  [pooled Delta -0.0022 < 0.005; drift month -0.0084 < -0.003; shuffle |Delta| 0.0038 >= 0.002]
+
+### FAMILY D  (4 feats: d_mins_to_next_funding, d_mins_since_funding, d_is_weekend, d_is_us_session)
+  month       baseP     augP    Delta  Delta|volctrl
+  2025_09   +0.0210  +0.0102  -0.0108        +0.0023
+  2025_10   +0.0856  +0.0893  +0.0037        -0.0026  <STRONG
+  2025_11   +0.0660  +0.0714  +0.0054        +0.0084
+  2025_12   +0.0550  +0.0588  +0.0038        -0.0028
+  2026_01   +0.0274  +0.0324  +0.0050        +0.0063  <drift
+  2026_02   +0.0194  +0.0085  -0.0109        -0.0075  <drift
+  2026_03   +0.0202  +0.0170  -0.0032        -0.0033  <drift
+  2026_04   +0.0304  +0.0324  +0.0020        +0.0019  <drift
+  2026_05   +0.0214  +0.0099  -0.0116        -0.0097  <drift
+  POOLED DRIFT  baseP=+0.0238 augP=+0.0200  Delta=-0.0037  (vol-ctrl Delta=-0.0025)
+  STRONG 2025_10 Delta=+0.0037 (guard: must not drop >0.003)  | worst drift month Delta=-0.0116
+  shuffle-future null pooled-drift Delta: mean=-0.0037 max|Delta|=0.0037 (must be <0.002)
+  >>> FAMILY D VERDICT: DEAD  [pooled Delta -0.0037 < 0.003; drift month -0.0116 < -0.003; shuffle |Delta| 0.0037 >= 0.002]
+
+================================================================================================
+TRANSFER DIAGNOSTIC  (features = [cascade a_casc_net_1h, basket b_ecm_resid_z])
+================================================================================================
+  oracle in-sample (test-fitted, CEILING):        baseP=+0.0238 augP=+0.0349 Delta=+0.0112
+  expanding-prior (PRE-REGISTERED GATE):          baseP=+0.0238 augP=+0.0242 Delta=+0.0005
+  leave-one-drift-month-out (drift-only train):   baseP=+0.0238 augP=+0.0303 Delta=+0.0066
+  LOO drop-2026_03 (concentration test):          Delta=-0.0005  (LOO lift is single-month if this ~0)
+  LOO shuffle-future null: mean=-0.0041 max|Delta|=0.0091  (LOO estimator noise floor)
+  READ: oracle>0 but expanding~0 AND LOO-lift single-month-driven AND < shuffle floor => in-sample-only, NON-TRANSFERABLE.
+
+================================================================================================
+SUMMARY
+  A: DEAD      pooled-drift Delta=+0.0021  (pooled Delta +0.0021 < 0.005; drift month -0.0039 < -0.003; shuffle |Delta| 0.0026 >= 0.002)
+  C: DEAD      pooled-drift Delta=-0.0096  (pooled Delta -0.0096 < 0.003; drift month -0.0167 < -0.003)
+  B: DEAD      pooled-drift Delta=-0.0022  (pooled Delta -0.0022 < 0.005; drift month -0.0084 < -0.003; shuffle |Delta| 0.0038 >= 0.002)
+  D: DEAD      pooled-drift Delta=-0.0037  (pooled Delta -0.0037 < 0.003; drift month -0.0116 < -0.003; shuffle |Delta| 0.0037 >= 0.002)
+DONE_RIDGE_GATE_D3.
