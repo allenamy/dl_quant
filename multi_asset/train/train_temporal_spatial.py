@@ -58,6 +58,7 @@ _FUND_G = None   # (T,S) funding_ema on DEV when --resid_on_funding (incremental
 _KILL = False    # pre-registered KILL gates when --kill_gates: fold0 val-rankIC<0.005@ep8; sigma_ratio<0.01
 _N_FHEADS = 0    # STAGE-2B: K orthogonal factor heads (0 = off, bit-identical)
 _LAM_ORTH = 1.0  # STAGE-2B orthogonality-penalty weight
+_FUND_DIR = "funding_factor_cache"  # funding_ema source dir (rel to dirname(EXPORT)); --funding_dir overrides
 
 EXPORT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
           "multi_asset/exports/train")
@@ -302,7 +303,7 @@ def load_funding(data):
     input. Per-timestamp cross-sectional projection of the residual onto this removes the funding-
     explained component so the DL earns only INCREMENTAL-over-funding credit (0C-GBDT-probe was
     null on tabular features; this is the raw-sequence bet)."""
-    root = p.join(p.dirname(EXPORT), "funding_factor_cache")
+    root = _FUND_DIR if p.isabs(_FUND_DIR) else p.join(p.dirname(EXPORT), _FUND_DIR)
     F = np.full((len(data.ts), data.S), np.nan, np.float32)
     for si, s in enumerate(SYMBOLS):
         z = np.load(p.join(root, f"{s}.npz"), allow_pickle=True)
@@ -314,9 +315,27 @@ def load_funding(data):
         ok = idx >= 0
         F[ok, si] = fv[idx[ok]]
     cov = float(np.isfinite(F).mean())
-    print(f"[funding] resid-target aligned coverage={cov:.4f}", flush=True)
+    print(f"[funding] resid-target aligned coverage={cov:.4f} (dir={root.split('/')[-1]})", flush=True)
     assert cov > 0.90, "funding alignment coverage too low"
     return np.nan_to_num(F, nan=0.0)
+
+
+def build_fh_folds(uniq):
+    """M0 full-history WALK-FORWARD RETRAINING folds (expanding train from 2022-01, test next 6mo).
+    Each fold trains ONLY on prior data -> no weight-level look-ahead. uniq = sorted YYYYMMDD ints."""
+    def ix(d):
+        return int(np.searchsorted(uniq, d))
+    cuts = [(20220101, 20230101, 20230701),   # tr 2022 -> te 2023H1
+            (20220101, 20230701, 20240101),   # tr ..2023H1 -> te 2023H2
+            (20220101, 20240101, 20240701),   # tr ..2023 -> te 2024H1
+            (20220101, 20240701, 20250101),   # tr ..2024H1 -> te 2024H2
+            (20220101, 20250101, 20250701),   # tr ..2024 -> te 2025H1
+            (20220101, 20250701, 20251001)]   # tr ..2025H1 -> te 2025H2 (partial, data->2025-09)
+    folds = []
+    for a, b, c in cuts:
+        if ix(c) > ix(b) and ix(b) > ix(a):
+            folds.append({"tr": (ix(a), ix(b)), "te": (ix(b), ix(c))})
+    return folds
 
 
 def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
@@ -781,6 +800,8 @@ def main():
     ap.add_argument("--n_factor_heads", type=int, default=0,
                     help="STAGE-2B: K orthogonal factor heads (0=off). Kill gate uses max-over-heads val rank-IC.")
     ap.add_argument("--lam_orth", type=float, default=1.0, help="STAGE-2B orthogonality-penalty weight")
+    ap.add_argument("--funding_dir", default="funding_factor_cache", help="funding_ema source dir (rel to exports/) for resid target")
+    ap.add_argument("--fh_folds", action="store_true", help="M0 full-history walk-forward RETRAINING folds (2023H1..2025H2)")
     ap.add_argument("--w_huber", type=float, default=None)
     ap.add_argument("--w_rank", type=float, default=None)
     ap.add_argument("--data_root", type=str, default=None,
@@ -885,10 +906,11 @@ def main():
         data.bt_dir = p.join(p.dirname(EXPORT), "btc_trade_perp")    # engineered trades
         print(f"[dmf] enabled: ladder={data.b25_dir} trades={data.bt_dir}", flush=True)
     zall = load_btc25(data) if args.btc25 else None
-    global _FUND_G, _KILL, _N_FHEADS, _LAM_ORTH
+    global _FUND_G, _KILL, _N_FHEADS, _LAM_ORTH, _FUND_DIR
     _KILL = args.kill_gates
     _N_FHEADS = args.n_factor_heads
     _LAM_ORTH = args.lam_orth
+    _FUND_DIR = args.funding_dir
     _FUND_G = torch.from_numpy(load_funding(data)).to(DEV) if args.resid_on_funding else None
     tag = args.tag or f"M{args.milestone}"
 
@@ -930,9 +952,11 @@ def main():
         print(json.dumps({k: v for k, v in (m or {}).items() if not k.endswith("_list")}, indent=2), flush=True)
         return
 
-    print(f"\n===== FULL 3-FOLD (M{args.milestone}) =====", flush=True)
+    folds = build_fh_folds(data.uniq_days) if args.fh_folds else FOLDS
+    print(f"\n===== {'FULL-HISTORY WALK-FWD RETRAIN' if args.fh_folds else 'FULL 3-FOLD'} "
+          f"({len(folds)} folds, M{args.milestone}) =====", flush=True)
     all_m = []
-    for i, fold in enumerate(FOLDS):
+    for i, fold in enumerate(folds):
         print(f"\n----- fold {i} -----", flush=True)
         m = train_fold(i, fold, data, args.milestone,
                        max_epochs=MAX_EPOCHS, patience=PATIENCE,

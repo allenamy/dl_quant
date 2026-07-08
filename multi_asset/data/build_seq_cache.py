@@ -51,7 +51,7 @@ SYMBOLS = [
 ]
 
 # Same all-14-liquid window as the panel_cache (487 trading days).
-WIN_START = 20240601
+WIN_START = 20220101   # extended (2026-07-09) for the M0 full-history walk-forward RETRAINING replay
 WIN_END = 20250930
 
 SEQ_DIR = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
