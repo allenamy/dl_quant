@@ -983,9 +983,15 @@ def main():
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
                   f"| per-asset P={m['per_asset_P']:+.4f} S={m['per_asset_S']:+.4f} "
                   f"sigma={m['sigma_ratio']:.3f} mono={m['monotonicity']}", flush=True)
-        elif i == 0:
+        elif i == 0 and not args.fh_folds:
             print("fold 0 KILLED by a pre-registered gate — STOPPING (skip folds 1-2 per protocol).", flush=True)
             break
+        elif args.fh_folds:
+            # M0 full-history replay: a fold KILL is a logged FINDING but must NOT stop the run —
+            # R1 maturity-soft-pass + R2 (the decisive 2024 diversification test) need 2024/2025
+            # evaluated even if 2023 (fold A, 1-yr-immature train) is weak/killed. Log + continue.
+            print(f"[fold {i}] KILLED by a pre-registered gate — LOGGED as a finding, CONTINUING "
+                  f"(fh replay needs later years per R1/R2).", flush=True)
 
     if all_m:
         pooled = dict(
