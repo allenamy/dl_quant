@@ -12,21 +12,21 @@ Same schema/folds/CL/panel as tag fund_h3600 so 0C's ls_gate consumes it identic
 Usage: PYTHONPATH=. python multi_asset/data/build_funding_ema_preds.py
 """
 from __future__ import annotations
-import os.path as p
+import argparse, os.path as p
 import numpy as np
 
 from multi_asset.baselines.xsec_ridge_h import build_panel_h, OUT
 from multi_asset.baselines.xsec_ridge import SYMBOLS, FOLDS, EMBARGO
 
 CACHE = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/funding_factor_cache"
-HORIZON = 3600
-FACTOR = "funding_ema"
-TAG = "fund_ema_h3600"
+# short aliases for the tag so files stay tidy
+_ALIAS = {"funding_ema": "fund_ema", "funding_carry": "fund_carry", "toptrader_pos": "toptrader_pos"}
 
 
-def main():
-    ts, day, X, Y, CL, fnames = build_panel_h(HORIZON, CACHE)
-    fi = fnames.index(FACTOR)
+def main(factor="funding_ema", horizon=3600, tag=None, cache=CACHE, sign=-1.0):
+    tag = tag or f"{_ALIAS.get(factor, factor)}_h{horizon}"
+    ts, day, X, Y, CL, fnames = build_panel_h(horizon, cache)
+    fi = fnames.index(factor)
     uniq = np.unique(day); nS = len(SYMBOLS)
 
     def xsdemean_row(row):
@@ -49,17 +49,24 @@ def main():
             v = CL[i] & np.isfinite(f) & np.isfinite(Yr)
             if v.sum() >= 5:
                 z = (f[v] - f[v].mean()) / (f[v].std() + 1e-12)
-                pred_TS[i, v] = -z            # negative IC → long low funding
+                pred_TS[i, v] = sign * z      # sign = −1 for negative-IC crowding factors (long the low-crowding side); set +1 if the factor's standalone IC is positive
                 te_rows.append(i)
         if te_rows:
-            np.savez(p.join(OUT, f"fold_{fk}_preds_{TAG}.npz"),
+            np.savez(p.join(OUT, f"fold_{fk}_preds_{tag}.npz"),
                      te_rows=np.array(te_rows, np.int64), pred=pred_TS)
-            print(f"fold {fk}: {len(te_rows)} clean test ts -> fold_{fk}_preds_{TAG}.npz", flush=True)
+            print(f"fold {fk}: {len(te_rows)} clean test ts -> fold_{fk}_preds_{tag}.npz", flush=True)
 
-    np.savez(p.join(OUT, f"panel_ref_{TAG}.npz"),
+    np.savez(p.join(OUT, f"panel_ref_{tag}.npz"),
              symbols=np.array(SYMBOLS, dtype=object), ts=ts, day=day, Y=Y, CL=CL)
-    print(f"TAG={TAG}  panel_ref -> {OUT}/panel_ref_{TAG}.npz  (score = -xsec-z({FACTOR}))", flush=True)
+    print(f"TAG={tag}  panel_ref -> {OUT}/panel_ref_{tag}.npz  (score = {sign:+g}·xsec-z({factor}))", flush=True)
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--factor", default="funding_ema")
+    ap.add_argument("--horizon", type=int, default=3600)
+    ap.add_argument("--tag", default=None)
+    ap.add_argument("--cache", default=CACHE)
+    ap.add_argument("--sign", type=float, default=-1.0)
+    a = ap.parse_args()
+    main(a.factor, a.horizon, a.tag, a.cache, a.sign)

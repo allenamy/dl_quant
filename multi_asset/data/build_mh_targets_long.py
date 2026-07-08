@@ -18,7 +18,7 @@ sys.path.insert(0, p.dirname(p.dirname(p.dirname(p.abspath(__file__)))))
 from multi_asset.data.bar_loader import load_day_panel, _BAR_PATH  # noqa: E402
 from multi_asset.data.build_multihorizon_targets import SYMBOLS, list_days, WIN_START, WIN_END  # noqa: E402
 
-HORIZONS = [3600]   # 1h (add 1800 later if GO)
+HORIZONS = [3600, 7200]   # 1h primary + 2h robustness (funding GO → confirm not a 1h artifact)
 OUT_DIR = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
            "multi_asset/exports/mh_targets_long")
 

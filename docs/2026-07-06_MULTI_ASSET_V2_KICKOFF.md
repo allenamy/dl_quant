@@ -58,7 +58,29 @@
 - toptrader_pos: −0.0156, z=−1.97(边缘), 符号一致。
 - **NULL: global_account(z=−0.74 bias 调后 null); pos_divergence(−0.0043, z=−0.27, 符号翻→NULL, 大币上失败-catalog 已预警自验); oi_mom/taker_ratio NULL。** 组合 7 因子 ridge +0.005/IR 0.87。
 **诚实 caveat: ① shuffle-null 均值非零(14 资产持续因子小样本横截面 bias)→ z vs 经验 null 才是诚实显著性(funding_ema/carry 过, global/pos_div 不过); ② regime 依赖(fold1-heavy −0.04 vs fold0≈0)。**
-**关键洞察: |IC|~0.017 幅度温和(似 fast-micro 0.0066, ~4× 干净于 B 的符号不稳噪声), 但 funding 的差异化在 净成本-via-低换手(8h stamp+24h EMA→延迟容忍)。★真 GO/NO-GO = funding_ema-only L/S 净成本 gate(纯低换手杠杆, 排除 null 因子的快换手污染): 能否清成本(fast-micro BE 0.408/慢价格 null 都不过)。0C gate-e 待定。**
+**关键洞察: |IC|~0.017 幅度温和(似 fast-micro 0.0066, ~4× 干净于 B 的符号不稳噪声), 但 funding 的差异化在 净成本-via-低换手(8h stamp+24h EMA→延迟容忍)。**
+
+## ★★ GO (2026-07-08): funding_ema 净成本可交易 —— 第一个真信号, 五关全过
+
+**funding_ema L/S 净成本 gate(纯低换手, honest raw-y): ★ BREAK-EVEN = 18.83 bps/side(α=0.02, turnover 0.027)—— 每档 GO(maker~1/2, taker~2.5/5), 清 taker~5 约 4×。** EMA 帮(break-even 随换手降而升 α0.5→10.2/α0.02→18.8, gross 正=真持续性, 反 fast-micro)。**LATENCY-FLAT: decay 1.00→1.05(180s)→1.05(360s) 不衰减(vs fast-micro 0.49/0.21)。** rank-IC +0.0186 IC-IR 3.16 gross Sharpe 2.33 mono +0.60(信号在极值: 多最低-funding/空最高-funding=crowding-reversion 经济自洽)。
+**★ 五关工厂全 ACCEPT(基线 B=slow null): (a) xsec IC +0.0186 z=3.7; (b) 增量正交 IC over B +0.014 z=3.28(BEYOND 商品化基线=edge); (c) 正交 corr −0.029; (d) walk-forward Ridge ΔIC +0.0171 3-fold 符号一致; (e) 净成本贡献 加 funding 使 book BE −0.76→+3.87, net-Sharpe@2bps −12.2→+0.82。**
+**诚实 caveat: ① regime-依赖幅度(fold1-heavy dIC 0.030 vs 0.008/0.013)但符号每 fold 一致(方向稳强度变); ② 信号集中 funding 极值(中间噪,交易尾部); ③ 7 因子组合也名义 GO(BE 34)但噪(null 因子快换手污染)——纯 funding_ema 是干净杠杆+推荐。**
+**★★ 里程碑: 单资产 y600 non-taker + fast-micro 1h NO-GO + 慢价格 NULL → 但 funding_ema 差异化杠杆 IS 净成本可交易(BE 18.8, latency-flat, 持续性友好)。因子工厂 work, 第一个真因子清关。GO on funding 方向 → 建因子书(funding 为 base 叠正交因子)。**
+**★ 全-fold 稳健(加固 GO, 解 regime caveat): 逐 fold 净成本@2bps BE = 9.04/46.74/8.07 bps/side, net-Sharpe +0.75/+7.74/+0.72 —— 三 fold 全净成本正、全清 taker~5。fold1 最强(dislocation 大)但非单-regime 海市蜃楼: funding_ema 每个 regime 都可交易, 只是强度变。诚实解: regime-依赖幅度但全-fold 净成本正。**
+
+## 因子书增长 (2026-07-08): funding-family REJECT, signed-flow NULL, funding 2h 更强
+
+**funding-family(vs funding_ema base): 全 REJECT。** fund_carry(corr 0.81 near-dup, 无增量, 伤 OOS, 降净成本); toptrader_pos(corr 0.36 正交但 gate-b 增量 z=0.92<2.5 + gate-d ΔIC −0.0056 伤 OOS = 正交但非增量)。工厂抓两种失败模式(重复 + 正交非增量); net-cost 单独不可靠(toptrader d_be +50.6 是噪声, b/d 正确否决)。**positioning 轴穷尽于单个干净杠杆。book 暂单因子。**
+**★ 累积签名订单流(微结构轴) = NULL(leak-clean, coverage 1.00)。** 窗扫: ofi_cum_8h best raw IC +0.0068 但 z=+0.41(在持续因子 null 带 null_mu +0.0047 内, NOT 显著); 2h/4h/24h 全 flip。**null-mean-bias landmine: IC-vs-0 会误看真, 经验-null z 正确 kill。** 对比 funding_ema z=−2.50(真) vs signed-flow z=+0.41(null)。印证 catalog"累积签名流=边际, 成本敏感"。微结构在 1h 不加正交 alpha(印证快微结构衰减主题)。
+**★ 2h 稳健确认 funding_ema(good): 2h standalone IC −0.0249(强于 1h −0.0186), 组合 ridge +0.0099/IR 1.15(vs 1h +0.005/0.87)。8h-stamp 慢 funding 预测 2h 更好 —— funding_ema 非 1h artifact, 是真慢信号, 且 2h 可能是更好 horizon。**
+**★ 2h 净成本 gate(双人): fund_ema_h7200 BE = 33.82 bps/side(vs 1h 18.83), 清 taker~5 约 7×, net-Sharpe 每档正(含 c=10), mono +0.70(净于 1h 0.60), latency-flat。→ funding book 在 2h 明显更强, 2h 可能是首选 horizon。** order-flow 五关双人 REJECT(gate-a z1.1/gate-b 增量 z0.62/gate-c corr −0.034 正交但 gate-d ΔIC −0.0104 伤/gate-e d_be −18): **正交但无信号(正交必要非充分, gate-b/d 抓 null)。微结构-flow 轴 14 大币 1h 死。**
+**★ 已 REJECT 全表: slow-price(null)/fund_carry(冗余 0.81)/toptrader(非增量)/order-flow(正交但 null)/combined(污染)。工厂 work: 一个真因子, 其余全正确 kill。BOOK = 单因子 funding_ema, horizon-robust(1h BE 18.8/2h BE 33.8, 全-fold 正)。**
+**诚实读: funding_ema 可能是此 universe 唯一干净净成本杠杆 —— 强单因子 book(BE 18-34, 2h 更优)而非多因子栈。**
+**semivar/signed-jump 判决(2026-07-08): 基本 NULL**(skew_4h/8h flip z<1.4; rv_24h null)。唯一边缘 skew_24h(z=−2.30 <2.5 门槛, 反转味大概率叠 B 反转轴, 0C 增量确认中)。**微结构轴接近穷尽确认。**
+**semivar_skew24 终判 REJECT(2026-07-08): 过 a/b/c(真正交, 非反转重复)但 gate-d walk-forward FAIL(−0.008)+gate-e FAIL —— pooled 增量 IC 不迁移 OOS。方法论: gate-b pooled 乐观, gate-d 才是真门。**
+**★ GBDT 交互探针(DL 轨道 stage-1) = NULL(2026-07-08): LightGBM 吃全部 94 特征(44快+20F2+15慢+7funding+4oflow+4semivar), funding-残差目标, 双跑(含/不含 funding 交互)全 null(z −0.37/−0.55, fold 不一致), 泄漏守卫干净。→ 表格特征无非线性增量; DL stage-2 只剩原始序列赌注(待用户 sign-off)。**
+**★ Alpha-101+GTJA-191 库扫完成(2026-07-08): 96 公式, 预注册门(|z|≥3+fold一致)→ 3 边缘幸存者: a101_044(价量背离, z4.70, 全fold正, 唯一有戏), gtja_046(MA反转, z4.43, fold0≈0 watch-d), a101_045(价量corr, z3.63, fold0 弱)。044/045 likely 同簇(~2 个信号非 3)。★主导 pattern: 多个价格公式 pooled-z≥3 但 fold 翻号(价格-量轴在大币上的签名: pooled 显著 fold 不稳)。工厂终审(gate-d+换手陷阱)进行中; 全拒→价格-量轴权威关闭。**
+**待用户拍板: ① stage-2 DL 原始序列(GPU) ② 扩 universe 60+ 币 funding book(推荐, √N 放大, 全 CPU)。**
 
 ## 5. 约束（继承）
 src/ 单资产代码只读;新代码 multi_asset/;share data + btcusdt_copy 只读(mode="r");本地改码 rsync server 训练;无泄漏;单 GPU 串行 GPU exclusivity;kill-gate 不放松;推理零 regime 后验切换。

@@ -8,13 +8,15 @@ a real bet only if its standalone IC keeps the SAME sign in every fold.
 Usage: PYTHONPATH=. python multi_asset/data/perfold_standalone.py
 """
 from __future__ import annotations
+import argparse
 import numpy as np
 from scipy.stats import spearmanr
 
 from multi_asset.baselines.xsec_ridge_h import build_panel_h
 from multi_asset.baselines.xsec_ridge import FOLDS
 
-CACHE = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/funding_factor_cache"
+ROOT = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports"
+CACHE = ROOT + "/funding_factor_cache"
 HORIZON = 3600
 
 
@@ -39,8 +41,8 @@ def fold_standalone(X, Y, CL, day, uniq, fnames, te0, te1):
     return out
 
 
-def main():
-    ts, day, X, Y, CL, fnames = build_panel_h(HORIZON, CACHE)
+def main(cache=CACHE, horizon=HORIZON):
+    ts, day, X, Y, CL, fnames = build_panel_h(horizon, cache)
     uniq = np.unique(day)
     print(f"{'factor':18s} " + " ".join(f"fold{k}" for k in range(len(FOLDS))) + "   sign-consistent?")
     rows = {fn: [] for fn in fnames}
@@ -60,4 +62,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--cache", default=CACHE)
+    ap.add_argument("--horizon", type=int, default=HORIZON)
+    a = ap.parse_args()
+    main(a.cache, a.horizon)

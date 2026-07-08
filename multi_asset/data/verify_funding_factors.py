@@ -14,14 +14,15 @@ Three gates, in order:
 Usage: PYTHONPATH=. python multi_asset/data/verify_funding_factors.py [nperm]
 """
 from __future__ import annotations
-import os.path as p, sys
+import argparse, os.path as p
 import numpy as np
 
 from multi_asset.data.build_funding_factors import _ffill_to_panel
 from multi_asset.baselines.xsec_ridge_h import build_panel_h, _standalone_ic
 from multi_asset.baselines.xsec_ridge import SYMBOLS
 
-CACHE = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/funding_factor_cache"
+ROOT = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports"
+CACHE = ROOT + "/funding_factor_cache"
 HORIZON = 3600
 
 
@@ -43,11 +44,11 @@ def sentinel():
     print("[1/3 SENTINEL] ffill≤t causal: PASS — future source corruption never leaks to t'≤t", flush=True)
 
 
-def coverage():
+def coverage(cache=CACHE):
     print("[2/3 COVERAGE] per-asset per-factor finite fraction on the 180s panel grid:", flush=True)
     fn = None
     for s in SYMBOLS:
-        z = np.load(p.join(CACHE, f"{s}.npz"), allow_pickle=True)
+        z = np.load(p.join(cache, f"{s}.npz"), allow_pickle=True)
         X = z["X"]
         if fn is None:
             fn = [str(x) for x in z["factor_names"]]
@@ -56,8 +57,8 @@ def coverage():
         print(f"  {s:8s} " + " ".join(f"{fn[i]}={cov[i]:.3f}" for i in range(len(fn))), flush=True)
 
 
-def shuffle_null(nperm=15):
-    ts, day, X, Y, CL, fnames = build_panel_h(HORIZON, CACHE)
+def shuffle_null(nperm=15, cache=CACHE):
+    ts, day, X, Y, CL, fnames = build_panel_h(HORIZON, cache)
     uniq = np.unique(day)
     real = _standalone_ic(X, Y, CL, day, uniq, fnames)
     rng = np.random.default_rng(0)
@@ -81,10 +82,16 @@ def shuffle_null(nperm=15):
 
 
 def main():
-    nperm = int(sys.argv[1]) if len(sys.argv) > 1 else 15
-    sentinel()
-    coverage()
-    shuffle_null(nperm)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--nperm", type=int, default=15)
+    ap.add_argument("--cache", default=CACHE)
+    ap.add_argument("--no-sentinel", action="store_true",
+                    help="skip the ffill≤t sentinel (only meaningful for the funding cache)")
+    a = ap.parse_args()
+    if not a.no_sentinel:
+        sentinel()   # tests the funding ffill≤t primitive; order-flow causality is bucket-assignment (tested separately)
+    coverage(a.cache)
+    shuffle_null(a.nperm, a.cache)
 
 
 if __name__ == "__main__":
