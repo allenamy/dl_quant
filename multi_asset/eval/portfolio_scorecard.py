@@ -60,8 +60,13 @@ def book_stats(sig, Y, CL, ts, day, horizon, cost_bps=2.0):
         if be > best["be"]:
             best = dict(be=float(be), alpha=al)
     g, tn = held_series(best["alpha"]); c = cost_bps * 1e-4
-    net = g - tn * c                                            # per-period net PnL (return units)
+    net = g - tn * c                                            # per-period net PnL at the headline cost
     netsh = float(net.mean() / net.std() * ann) if net.std() > 0 else np.nan
+    # stressed-cost grid: net-Sharpe at 2 / 5 / 10 bps/side (operating alpha is cost-independent)
+    net_sh_grid = {}
+    for cb in (2.0, 5.0, 10.0):
+        nn = g - tn * (cb * 1e-4)
+        net_sh_grid[cb] = round(float(nn.mean() / nn.std() * ann), 2) if nn.std() > 0 else None
     grosssh = float(g.mean() / g.std() * ann) if g.std() > 0 else np.nan
     # per-fold (3 blocks by day)
     ud = np.unique(rday); ed = [ud[len(ud) * i // 3] for i in range(3)] + [ud[-1] + 1]
@@ -81,7 +86,7 @@ def book_stats(sig, Y, CL, ts, day, horizon, cost_bps=2.0):
     # max drawdown on cumulative net (bps)
     cum = np.cumsum(net) * 1e4; peak = np.maximum.accumulate(cum); dd = cum - peak
     return dict(n=n, be=round(best["be"], 2), alpha=best["alpha"], turnover=round(float(tn.mean()), 4),
-                gross_sh=round(grosssh, 2), net_sh_c2=round(netsh, 2),
+                gross_sh=round(grosssh, 2), net_sh_c2=round(netsh, 2), net_sh_grid=net_sh_grid,
                 net_ann_bps_c2=round(float(net.mean() * per_yr * 1e4), 0),
                 per_fold_net_sh=pf, months_pos=f"{pos_months}/{len(mo)}", max_dd_bps=round(float(dd.min()), 1),
                 monthly=mo, ret_series=(rts, net))
@@ -117,13 +122,21 @@ def main():
     F = load_panel("fund_ema_h3600", a.export)
     Y, CL, ts, day = F["Y"], F["CL"], F["ts"].astype(np.int64), F["day"].astype(np.int64)
     funding = F["pred"]; M0 = load_panel("fund_resid_h3600", a.export)["pred"]
-    comb = blend([funding, M0], Y, CL)
     from multi_asset.eval.factor_scorer import factor_corr, _perts_ic
-    print(f"funding↔M0 cross-factor corr = {factor_corr(funding, M0, CL)}")
-    for nm, sig in [("funding_ema", funding), ("M0_dl", M0), ("BLEND(funding+M0)", comb)]:
+    icf = float(_perts_ic(funding, Y, CL)[0].mean()); icm = float(_perts_ic(M0, Y, CL)[0].mean())
+    comb = blend([funding, M0], Y, CL)                          # equal-risk (headline)
+    comb_icw = blend([icf * funding, icm * M0], Y, CL)          # IC-weighted (sensitivity; z-of-scaled = same as z, so weight the z's)
+    comb_icw = np.full_like(comb, np.nan)
+    for t in range(Y.shape[0]):                                 # IC-weighted z-blend: icf·z(f)+icm·z(m)
+        v = CL[t] & np.isfinite(funding[t]) & np.isfinite(M0[t]) & np.isfinite(Y[t])
+        if v.sum() >= MIN_ASSETS:
+            idx = np.where(v)[0]; comb_icw[t, idx] = icf * _zc(funding[t, idx]) + icm * _zc(M0[t, idx])
+    print(f"funding↔M0 cross-factor corr = {factor_corr(funding, M0, CL)} | IC_funding {icf:+.4f} IC_M0 {icm:+.4f}")
+    for nm, sig in [("funding_ema", funding), ("M0_dl", M0),
+                    ("BLEND equal-risk (HEADLINE)", comb), ("BLEND IC-weighted (sensitivity)", comb_icw)]:
         ic, _ = _perts_ic(sig, Y, CL); st = book_stats(sig, Y, CL, ts, day, a.horizon); lat = latency(sig, Y, CL, ts, a.horizon)
         print(f"\n=== {nm} ===  rank-IC {ic.mean():+.4f}")
-        print(f"  BE/side {st['be']} bps | net-Sh@2bps {st['net_sh_c2']} | gross-Sh {st['gross_sh']} | "
+        print(f"  BE/side {st['be']} bps | net-Sh @2/5/10bps {st['net_sh_grid']} | gross-Sh {st['gross_sh']} | "
               f"turnover {st['turnover']} | net@2 ann {st['net_ann_bps_c2']:.0f} bps")
         print(f"  per-fold net-Sh {st['per_fold_net_sh']} | months net-positive {st['months_pos']} | max-DD {st['max_dd_bps']} bps")
         print(f"  latency decay (0/180/360s) {lat}")

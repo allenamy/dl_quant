@@ -17,6 +17,8 @@ Walk-forward OOS ~2025-02..2025-09 (3 disjoint folds). Operating turnover = best
 | rank-IC (per-ts) | +0.0186 | +0.0355 | **+0.0393** |
 | break-even /side | 18.8 bps | 33.6 bps | **41.4 bps** |
 | net-Sharpe @2bps | 2.08 | 4.15 | **4.56** |
+| net-Sharpe @5bps (stressed) | 1.71 | 3.75 | **4.21** |
+| net-Sharpe @10bps (stressed) | 1.09 | 3.10 | **3.63** |
 | gross-Sharpe (0-cost) | 2.33 | 4.41 | 4.79 |
 | operating turnover | 0.027 | 0.031 | 0.029 |
 | net ann @2bps | +4,021 bps | +8,622 bps | **+9,965 bps** |
@@ -26,6 +28,8 @@ Walk-forward OOS ~2025-02..2025-09 (3 disjoint folds). Operating turnover = best
 | latency decay (0/180/360s) | 1.0 / 1.0 / 1.0 | 1.0 / 0.67 / 0.67 | **1.0 / 1.0 / 1.0** |
 
 - **The blend is the best line** — net-Sharpe 4.56 > either factor, all-fold positive (funding's weak fold-2 −0.22 is rescued by M0), latency-flat (funding's flatness stabilizes M0's mild 0.67 decay). Break-even 41 bps/side clears any realistic mega-cap taker cost (~2-5 bps) by ~8-20×.
+- **Stressed-cost robustness:** the blend holds net-Sharpe 4.21 @5 bps/side and 3.63 @10 bps/side — even at a punitive 10 bps it's strongly net-positive. Funding alone weakens (2.08→1.09) but stays positive; M0 and the blend are cost-robust.
+- **Weighting sensitivity (headline = equal-risk):** an IC-weighted blend gives net-Sharpe 4.61 @2bps (BE 41.8) — only marginally above equal-risk's 4.56. Since the IC weights would be fitted on the ~7-month OOS (overfit risk) for a trivial gain, **equal-risk is the headline**; IC-weighting is reported only as this sensitivity check (the result is robust to the weighting choice).
 - **funding_ema** — the crowding-reversion core: 2h is even stronger (BE 33.8, net-Sh higher — see the 2h reference below); latency-flat; regime-dependent magnitude (fold-2 weak) but all-fold-positive in the blend.
 - **M0 DL factor** — the raw-sequence Conformer factor (funding-residual target): highest single-factor net-Sharpe (4.15), all-fold positive, quantile-mono +1.0; slightly faster (latency 0.67 at 3-6min) but still tradeable. Leak-audit PASSED (6 checks, IC independently reproduced).
 - **funding at 2h (primary-horizon reference):** BE 33.8 bps/side, net-Sharpe positive at every cost tier incl. 10 bps, mono +0.70, latency-flat. Funding predicts better at 2h (8h-stamped). NOTE: M0 is 1h-trained, so the 2-factor BLEND is reported at 1h; a 2h blend needs M0 retrained at 2h.
@@ -54,11 +58,11 @@ Both **near-zero** → the diversification claim holds. Combining the two books 
 M0's z-7 result was belt-and-suspanders leak-audited (the standard for a strong DL result after a uniformly-null tabular space): (1) input windows end at the decision bar t, no future bars; (2) causal residualization (y forward [t,t+3600]; funding ffill≤t); (3) per-fold normalization fit on TRAIN rows only; (4) test disjoint with a 22-day train→test boundary gap ≫ horizon + embargo. Plus caliber-parity: M0's IC independently recomputed on a fresh ≥3600 non-overlap grid = **+0.0355, matching gate-a exactly** (not overlap-inflated). A dense-CL export landmine was caught + fixed (scored on the canonical ≥3600 CL, so the ACCEPT stands). **z7 is real, not a leak artifact. M0 is FINAL.**
 
 ## Honest limits
-1. **Short OOS window** (~7 months, 2025-02..2025-09). All stability numbers are on a small sample; not multi-year.
-2. **Correlated drawdown month:** 2025-09 is net-negative for BOTH funding (−365 bps) and M0 (−182) → blend −371. The two book-1 factors are only mildly diversifying (corr 0.107) and can draw down together in an adverse month.
+1. **★ CORRELATED DRAWDOWN — the single most important sizing fact.** 2025-09 is net-NEGATIVE for BOTH Book-1 factors simultaneously (funding −365 bps AND M0 −182 → blend −371). The intra-book diversification is PARTIAL (funding↔M0 corr 0.107) — the two factors CAN and DID draw down together in an adverse month. Size the book for a joint-drawdown regime, not for the average-month Sharpe; the 4.56 headline Sharpe does not imply the factors hedge each other.
+2. **Short OOS window** (~7 months, 2025-02..2025-09). All stability numbers are on a small sample; not multi-year — the strongest caveat on every Sharpe here.
 3. **funding regime-dependence:** magnitude is fold/regime-dependent (strong 2025-06 +740, weak/negative fold-2); direction is stable, strength varies.
-4. **M0 monthly stability:** strong but one negative month (2025-09); mildly faster-decaying than funding (0.67 at 3-6min).
-5. **Book-2 capacity:** single-digit-% of $2.5M illiq ADV — a small sleeve.
+4. **M0 monthly stability:** strong but the one negative month is 2025-09 (the correlated one); mildly faster-decaying than funding (0.67 at 3-6min).
+5. **Book-2 capacity:** single-digit-% of $2.5M illiq ADV — a small sleeve; and Book-2's diversification of Book-1 is a same-timestamp ~0 correlation, not a hedge in a joint crypto-wide risk-off.
 6. **M0 is a single trained model** (single seed, single architecture); production would want seed-robustness + periodic retrain.
 
 ## Deployment read
