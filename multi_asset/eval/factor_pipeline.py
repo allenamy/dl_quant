@@ -51,10 +51,42 @@ def _ridge_fit(X, y, l2):
     return np.linalg.solve(X.T @ X + l2 * np.eye(k), X.T @ y)
 
 
+def _as_list(B):
+    """Normalize a baseline (single [T,S] array OR list of them) to a list — supports a MULTI-factor book."""
+    return list(B) if isinstance(B, (list, tuple)) else [B]
+
+
+def incremental_ic_ml(F, BASES, Y, CL, min_assets=MIN_ASSETS):
+    """rank-IC of F vs the residual of Y after projecting out ALL baselines jointly (per-ts multi-OLS +intercept).
+    The EDGE metric when the book has >1 factor — F must add BEYOND every baseline together."""
+    T = F.shape[0]; ics = []; brd = []
+    for t in range(T):
+        v = CL[t] & np.isfinite(F[t]) & np.isfinite(Y[t])
+        for B in BASES:
+            v = v & np.isfinite(B[t])
+        nv = int(v.sum())
+        if nv < min_assets + len(BASES):
+            continue
+        f = F[t, v]; y = Y[t, v]
+        Xb = np.column_stack([np.ones(nv)] + [B[t, v] for B in BASES])
+        try:
+            coef = np.linalg.lstsq(Xb, y, rcond=None)[0]; yres = y - Xb @ coef
+        except np.linalg.LinAlgError:
+            continue
+        if np.std(f) < 1e-12 or np.std(yres) < 1e-12:
+            continue
+        ic = _ric(f, yres)
+        if np.isfinite(ic):
+            ics.append(ic); brd.append(nv)
+    return np.array(ics), np.array(brd)
+
+
 # ------------- gate (d): walk-forward Ridge ΔIC -------------
 def gate_d_ridge_dic(F, B, Y, CL, day, n_folds=4, l2=1.0):
-    """Expanding-window cross-sectional Ridge; compare model [B] vs [B,F]; ΔmeanIC over OOS test ts."""
-    rB = _panel_rows([B], Y, CL); rBF = _panel_rows([B, F], Y, CL)
+    """Expanding-window cross-sectional Ridge; compare model [BASES] vs [BASES,F]; ΔmeanIC over OOS test ts.
+    BASES may be a single baseline or a list (multi-factor book)."""
+    BASES = _as_list(B); nb = len(BASES)
+    rB = _panel_rows(BASES, Y, CL); rBF = _panel_rows(BASES + [F], Y, CL)
     # align: use rows present in BOTH (same usable ts set — F & B finiteness may differ)
     tsB = {r["t"]: r for r in rB}; tsBF = {r["t"]: r for r in rBF}
     common = sorted(set(tsB) & set(tsBF))
@@ -82,7 +114,7 @@ def gate_d_ridge_dic(F, B, Y, CL, day, n_folds=4, l2=1.0):
             if ics: icf.append(float(np.mean(ics)))
         return icf
 
-    icB_folds = run(tsB, 1); icBF_folds = run(tsBF, 2)
+    icB_folds = run(tsB, nb); icBF_folds = run(tsBF, nb + 1)
     n = min(len(icB_folds), len(icBF_folds))
     if n == 0:
         return dict(dIC=np.nan, ic_B=np.nan, ic_BF=np.nan, per_fold=[], note="no usable folds")
@@ -127,9 +159,10 @@ def book_breakeven(signal, Y, CL, ts, horizon, min_assets=MIN_ASSETS):
 
 # ------------- gate (e): net-cost L/S contribution -------------
 def gate_e_netcost(F, B, Y, CL, ts, day, horizon, l2=1.0):
-    """Build the [B,F] Ridge-combined OOS signal, run the L/S book vs B-alone; Δ break-even + Δ net-Sharpe."""
-    # OOS combined signal from an expanding Ridge (reuse gate-d rows), fall back to z(B)+z(F) if sparse
-    rBF = _panel_rows([B, F], Y, CL); tsBF = {r["t"]: r for r in rBF}
+    """Build the [BASES,F] Ridge-combined OOS signal, run the L/S book vs the [BASES] book alone;
+    Δ break-even + Δ net-Sharpe. BASES may be single or a list (multi-factor book)."""
+    BASES = _as_list(B); nb = len(BASES)
+    rBF = _panel_rows(BASES + [F], Y, CL); tsBF = {r["t"]: r for r in rBF}
     common = sorted(tsBF); T, S = Y.shape
     comb = np.full((T, S), np.nan); bsig = np.full((T, S), np.nan)
     days = np.array([day[t] for t in common]); uniq = np.unique(days); n_folds = 4
@@ -140,9 +173,12 @@ def gate_e_netcost(F, B, Y, CL, ts, day, horizon, l2=1.0):
         if len(tr) < 30 or not te:
             continue
         Xtr = np.vstack([tsBF[t]["X"] for t in tr]); ytr = np.concatenate([tsBF[t]["y"] for t in tr])
-        coef = _ridge_fit(Xtr, ytr, l2)
+        coefC = _ridge_fit(Xtr, ytr, l2)                       # combined book [BASES, F]
+        coefB = _ridge_fit(Xtr[:, :nb], ytr, l2)               # baseline book [BASES] alone
         for t in te:
-            r = tsBF[t]; comb[t, r["idx"]] = r["X"] @ coef; bsig[t, r["idx"]] = r["X"][:, 0]   # col0 = z(B)
+            r = tsBF[t]
+            comb[t, r["idx"]] = r["X"] @ coefC
+            bsig[t, r["idx"]] = r["X"][:, :nb] @ coefB
     be_B = book_breakeven(bsig, Y, CL, ts, horizon)
     be_C = book_breakeven(comb, Y, CL, ts, horizon)
     return dict(be_baseline=round(be_B["be"], 3), be_combined=round(be_C["be"], 3),
@@ -171,30 +207,33 @@ def _null_z(score_fn, real, F, Y, CL, n=25, seed=0, min_assets=MIN_ASSETS):
 
 
 # ------------- full factory -------------
-def run_factory(F, B, Y, CL, ts, day, horizon, label="factor", existing=None, z_gate=2.5):
+def run_factory(F, B, Y, CL, ts, day, horizon, label="factor", existing=None, z_gate=2.5, base_names=None):
+    BASES = _as_list(B); nb = len(BASES)
     ics, brd = _perts_ic(F, Y, CL)
-    out = {"label": label, "gate_a": ic_summary(ics, brd, label), "ic_decay": ic_decay(F, Y, CL)}
-    bics, bbrd = incremental_ic(F, B, Y, CL)
-    out["gate_b_incremental"] = ic_summary(bics, bbrd, "incr_vs_B")
-    out["gate_c_corr_vs_B"] = factor_corr(F, B, CL)
+    out = {"label": label, "n_baselines": nb, "gate_a": ic_summary(ics, brd, label), "ic_decay": ic_decay(F, Y, CL)}
+    bics, bbrd = incremental_ic_ml(F, BASES, Y, CL)
+    out["gate_b_incremental"] = ic_summary(bics, bbrd, "incr_vs_book")
+    corr_each = [round(factor_corr(F, Bi, CL), 3) for Bi in BASES]
+    out["gate_c_corr_each"] = dict(zip(base_names, corr_each)) if base_names else corr_each
+    out["gate_c_corr_vs_B"] = round(float(max(abs(c) for c in corr_each)), 3) if corr_each else np.nan  # MAX |corr| over the book
     if existing:
         out["gate_c_corr_vs_existing"] = {k: factor_corr(F, EF, CL) for k, EF in existing.items()}
-    # empirical-null z for a (standalone IC) AND b (incremental IC) — the HONEST significance (not IR-vs-0)
+    # empirical-null z for a (standalone IC) AND b (incremental-over-book IC) — the HONEST significance (not IR-vs-0)
     def _score_a(Fs):
         arr = _perts_ic(Fs, Y, CL)[0]; return float(np.mean(arr)) if len(arr) else np.nan
     def _score_b(Fs):
-        arr = incremental_ic(Fs, B, Y, CL)[0]; return float(np.mean(arr)) if len(arr) else np.nan
+        arr = incremental_ic_ml(Fs, BASES, Y, CL)[0]; return float(np.mean(arr)) if len(arr) else np.nan
     za = _null_z(_score_a, out["gate_a"]["mean_ic"], F, Y, CL)
     zb = _null_z(_score_b, out["gate_b_incremental"]["mean_ic"], F, Y, CL)
     out["gate_a_nullz"] = za; out["gate_b_nullz"] = zb
-    out["gate_d_ridge"] = gate_d_ridge_dic(F, B, Y, CL, day)
-    out["gate_e_netcost"] = gate_e_netcost(F, B, Y, CL, ts, day, horizon)
+    out["gate_d_ridge"] = gate_d_ridge_dic(F, BASES, Y, CL, day)
+    out["gate_e_netcost"] = gate_e_netcost(F, BASES, Y, CL, ts, day, horizon)
     # verdict — gate a/b on |empirical-null z| (sign pre-registered separately), NOT the biased IR-vs-0
     gd = out["gate_d_ridge"]; ge = out["gate_e_netcost"]
     passes = dict(
         a=bool(np.isfinite(za["z"]) and abs(za["z"]) >= z_gate),
         b=bool(np.isfinite(zb["z"]) and abs(zb["z"]) >= z_gate),
-        c=bool(np.isfinite(out["gate_c_corr_vs_B"]) and abs(out["gate_c_corr_vs_B"]) < 0.7),
+        c=bool(np.isfinite(out["gate_c_corr_vs_B"]) and out["gate_c_corr_vs_B"] < 0.7),
         d=bool(np.isfinite(gd.get("dIC", np.nan)) and abs(gd["dIC"]) >= 0.003 and gd.get("sign_consistent")),
         e=bool(np.isfinite(ge.get("d_be", np.nan)) and ge["d_be"] > 0),
     )
