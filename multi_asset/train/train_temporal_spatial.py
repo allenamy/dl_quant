@@ -321,16 +321,15 @@ def load_funding(data):
 
 
 def build_fh_folds(uniq):
-    """M0 full-history WALK-FORWARD RETRAINING folds (expanding train from 2022-01, test next 6mo).
-    Each fold trains ONLY on prior data -> no weight-level look-ahead. uniq = sorted YYYYMMDD ints."""
+    """M0 full-history WALK-FORWARD RETRAINING folds — 0C pre-reg: 3 YEAR folds, expanding train
+    from 2022-01, each trains ONLY on prior data (1-day embargo via fold_day_lists), test the next
+    full year. Fold A tr2022→te2023; B tr2022-23→te2024 (funding's loss year — diversification test);
+    C tr2022-24→te2025(Jan-Nov, DL ceiling). 2022 = train-only. uniq = sorted YYYYMMDD ints."""
     def ix(d):
         return int(np.searchsorted(uniq, d))
-    cuts = [(20220101, 20230101, 20230701),   # tr 2022 -> te 2023H1
-            (20220101, 20230701, 20240101),   # tr ..2023H1 -> te 2023H2
-            (20220101, 20240101, 20240701),   # tr ..2023 -> te 2024H1
-            (20220101, 20240701, 20250101),   # tr ..2024H1 -> te 2024H2
-            (20220101, 20250101, 20250701),   # tr ..2024 -> te 2025H1
-            (20220101, 20250701, 20251001)]   # tr ..2025H1 -> te 2025H2 (partial, data->2025-09)
+    cuts = [(20220101, 20230101, 20240101),   # A: tr 2022 -> te 2023
+            (20220101, 20240101, 20250101),   # B: tr 2022-23 -> te 2024
+            (20220101, 20250101, 20251201)]   # C: tr 2022-24 -> te 2025 (Jan-Nov)
     folds = []
     for a, b, c in cuts:
         if ix(c) > ix(b) and ix(b) > ix(a):
@@ -888,8 +887,21 @@ def main():
           f"horizon=y_{args.horizon} W={data.W} (index built {time.time()-t0:.1f}s)", flush=True)
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
+        CL_save = data.CL
+        if args.fh_folds:
+            # 0C pre-reg: ship the >=horizon non-overlap CL (NOT the dense ~720s seq CL landmine).
+            NS = 1_000_000_000; CL_save = np.zeros_like(data.CL)
+            for dd in np.unique(data.day):
+                rr = np.where(data.day == dd)[0]; last = -(1 << 62); keep = []
+                for i in rr:
+                    if int(data.ts[i]) - last >= args.horizon * NS:
+                        keep.append(i); last = int(data.ts[i])
+                if keep:
+                    CL_save[np.array(keep)] = True
+            print(f"[fh] panel_ref CL = >=%ds non-overlap (frac %.3f), NOT dense seq CL"
+                  % (args.horizon, CL_save.any(1).mean()), flush=True)
         np.savez(p.join(save_dir, "panel_ref.npz"), ts=data.ts, day=data.day,
-                 Y=data.Y, CL=data.CL, symbols=np.array(SYMBOLS))
+                 Y=data.Y, CL=CL_save, symbols=np.array(SYMBOLS))
     cap_w = load_cap_weights() if args.milestone == 2 else None
     if args.raw:
         # pretrain mode reads the pretrain-period raw cache (built against the
