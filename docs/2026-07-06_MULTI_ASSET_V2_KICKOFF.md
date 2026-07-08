@@ -80,7 +80,9 @@
 **semivar_skew24 终判 REJECT(2026-07-08): 过 a/b/c(真正交, 非反转重复)但 gate-d walk-forward FAIL(−0.008)+gate-e FAIL —— pooled 增量 IC 不迁移 OOS。方法论: gate-b pooled 乐观, gate-d 才是真门。**
 **★ GBDT 交互探针(DL 轨道 stage-1) = NULL(2026-07-08): LightGBM 吃全部 94 特征(44快+20F2+15慢+7funding+4oflow+4semivar), funding-残差目标, 双跑(含/不含 funding 交互)全 null(z −0.37/−0.55, fold 不一致), 泄漏守卫干净。→ 表格特征无非线性增量; DL stage-2 只剩原始序列赌注(待用户 sign-off)。**
 **★ Alpha-101+GTJA-191 库扫完成(2026-07-08): 96 公式, 预注册门(|z|≥3+fold一致)→ 3 边缘幸存者: a101_044(价量背离, z4.70, 全fold正, 唯一有戏), gtja_046(MA反转, z4.43, fold0≈0 watch-d), a101_045(价量corr, z3.63, fold0 弱)。044/045 likely 同簇(~2 个信号非 3)。★主导 pattern: 多个价格公式 pooled-z≥3 但 fold 翻号(价格-量轴在大币上的签名: pooled 显著 fold 不稳)。工厂终审(gate-d+换手陷阱)进行中; 全拒→价格-量轴权威关闭。**
-**待用户拍板: ① stage-2 DL 原始序列(GPU) ② 扩 universe 60+ 币 funding book(推荐, √N 放大, 全 CPU)。**
+**★★ 价格-量轴权威关闭(2026-07-08): 库扫 3 幸存者工厂全 REJECT。** 全部过 a/b/c(standalone 显著+pooled 增量显著 z2.8-3.7+对 funding 正交)但**全部 fail gate-d walk-forward(ΔIC≤+0.001 多为负)+gate-e(d_be 全负)** —— pooled 增量不迁移 OOS, semivar 教训 4× 确认。96-way 选择虚推 standalone z(4.7>funding 2.5), gate-d 每次抓住。3 个两两 corr 0.22-0.28(非马甲, 独立地各自失败)。
+**★★ 最终图景: funding_ema = 此 universe 唯一净成本杠杆(1h BE 18.8/2h BE 33.8, 全fold正, latency-flat)。表格/库因子空间穷尽**(positioning/order-flow/semivar/慢价格/GBDT-非线性/96库扫 全 null-或-不泛化)。**强单因子 book, 真实/差异化/horizon-稳健。**
+**剩余两赌注(自主 mandate 推进): ① 扩 universe 60+ 币(No-regret, √N 放大唯一真因子, 全 CPU, 数据可得 —— 最高 EV) ② DL stage-2 原始序列(用户 edge 主张, 单次纪律实验, 预注册 kill 门, GPU 闲置)。funding book(2h primary)收口交付无论如何做。**
 
 ## 5. 约束（继承）
 src/ 单资产代码只读;新代码 multi_asset/;share data + btcusdt_copy 只读(mode="r");本地改码 rsync server 训练;无泄漏;单 GPU 串行 GPU exclusivity;kill-gate 不放松;推理零 regime 后验切换。

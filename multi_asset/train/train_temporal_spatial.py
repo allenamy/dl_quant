@@ -52,6 +52,11 @@ from multi_asset.losses.xsec_residual_loss import (  # noqa: E402
 RANK_KIND = "lambda"   # "lambda" (LambdaRankIC) or "pearson" (Pearson-IC fallback)
 W_HUBER, W_RANK, W_PIN = 0.30, 0.70, 0.10   # overridable via --w_* flags
 
+# DL stage-2 (2026-07-08): residual-on-funding target + pre-registered kill gates.
+# Both OFF by default -> the default code path is bit-identical to the pre-injection trainer.
+_FUND_G = None   # (T,S) funding_ema on DEV when --resid_on_funding (incremental-over-funding target)
+_KILL = False    # pre-registered KILL gates when --kill_gates: fold0 val-rankIC<0.005@ep8; sigma_ratio<0.01
+
 EXPORT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
           "multi_asset/exports/train")
 
@@ -248,6 +253,28 @@ def load_btc25(data):
           f"{'...' if len(miss) > 5 else ''} (n={len(miss)})", flush=True)
     assert cov > 0.95, "btc25 alignment coverage too low"
     return np.nan_to_num(Z, nan=0.0)
+
+
+def load_funding(data):
+    """(T,S) funding_ema aligned to the panel grid by exact ts — the residual-on-funding target
+    input. Per-timestamp cross-sectional projection of the residual onto this removes the funding-
+    explained component so the DL earns only INCREMENTAL-over-funding credit (0C-GBDT-probe was
+    null on tabular features; this is the raw-sequence bet)."""
+    root = p.join(p.dirname(EXPORT), "funding_factor_cache")
+    F = np.full((len(data.ts), data.S), np.nan, np.float32)
+    for si, s in enumerate(SYMBOLS):
+        z = np.load(p.join(root, f"{s}.npz"), allow_pickle=True)
+        names = [str(x) for x in z["factor_names"]]; fi = names.index("funding_ema")
+        fts = z["ts"].astype(np.int64); fv = z["X"][:, fi].astype(np.float32)
+        # funding_ema is a SLOW ffill-<=t factor on the 180s grid; the seq panel is the 1s grid,
+        # so CAUSAL ffill (last funding ts <= panel ts), NOT exact match.
+        idx = np.searchsorted(fts, data.ts, side="right") - 1
+        ok = idx >= 0
+        F[ok, si] = fv[idx[ok]]
+    cov = float(np.isfinite(F).mean())
+    print(f"[funding] resid-target aligned coverage={cov:.4f}", flush=True)
+    assert cov > 0.90, "funding alignment coverage too low"
+    return np.nan_to_num(F, nan=0.0)
 
 
 def eval_metrics(pred, Y, CL, sigma, clean=True, min_n=50):
@@ -502,6 +529,15 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                 # cross-sectional RESIDUAL target (demean over valid assets, per-asset
                 # MAD-norm, clip) -> both rank + magnitude losses see the SAME residual.
                 r, _ = cross_sectional_residual(yraw, mb)
+                if _FUND_G is not None:
+                    # per-timestamp cross-sectional orthogonalization of the residual target
+                    # against funding_ema -> the model earns only incremental-over-funding alpha.
+                    mf = mb.float()
+                    f = _FUND_G[rr_b]
+                    fbar = (f * mf).sum(1, keepdim=True) / mf.sum(1, keepdim=True).clamp_min(1.0)
+                    fm = (f - fbar) * mf
+                    beta = (r * fm).sum(1, keepdim=True) / (fm * fm).sum(1, keepdim=True).clamp_min(1e-9)
+                    r = r - beta * fm
                 r = (r / resid_sigma_g[None, :]).clamp(-5.0, 5.0)
                 loss, parts = residual_loss(out["quantiles"], r, mb, rank_kind=RANK_KIND,
                                             w_huber=W_HUBER, w_rank=W_RANK, w_pin=W_PIN)
@@ -542,6 +578,18 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
             vpred = np.where(vthin[:, None], vpred, np.nan)
         vm = eval_metrics(vpred, data.Y, data.CL, data.resid_sigma, clean=False)
         vIC, vP, vS = vm["xsec_rank_ic"], vm["per_asset_P"], vm["per_asset_S"]
+        if _KILL and ep >= 8:
+            # pre-registered KILL gates (locked before the run) — evaluated after an 8-epoch
+            # warmup grace (sigma warms from low: smoke showed sigma_ratio 0.017 by ep3, a healthy
+            # run clears 0.01 well before ep8; a genuine collapse stays below). Return None so main
+            # skips this fold; a fold-0 kill stops the whole run (don't burn folds 1-2 on a dead config).
+            sr = vm["sigma_ratio"]
+            if np.isfinite(sr) and sr < 0.01:
+                print(f"  KILL(sigma): sigma_ratio={sr:.4f} < 0.01 (persistent near-collapse) @ep{ep}", flush=True)
+                return None
+            if fold_i == 0 and (not np.isfinite(vIC) or vIC < 0.005):
+                print(f"  KILL(fold0-floor): val_rankIC={vIC:+.4f} < 0.005 @ep{ep}", flush=True)
+                return None
         # PRIMARY objective for the residual long-short = cross-sectional rank-IC.
         # sigma-gate (anti-pattern #24): reject near-collapse checkpoints.
         # sigma_ratio is residual-denominated (audit fix 2026-06-11), so the
@@ -607,6 +655,10 @@ def main():
     ap.add_argument("--save_tag", type=str, default=None,
                     help="if set, save per-fold test preds + model to EXPORT/<save_tag>/")
     ap.add_argument("--w_pin", type=float, default=None, help="pinball weight override (ablation)")
+    ap.add_argument("--resid_on_funding", action="store_true",
+                    help="DL stage-2: orthogonalize the residual target on funding_ema per ts (incremental-over-funding)")
+    ap.add_argument("--kill_gates", action="store_true",
+                    help="DL stage-2: pre-registered KILL gates (fold0 val-rankIC<0.005@ep8; sigma_ratio<0.01)")
     ap.add_argument("--w_huber", type=float, default=None)
     ap.add_argument("--w_rank", type=float, default=None)
     ap.add_argument("--data_root", type=str, default=None,
@@ -711,6 +763,9 @@ def main():
         data.bt_dir = p.join(p.dirname(EXPORT), "btc_trade_perp")    # engineered trades
         print(f"[dmf] enabled: ladder={data.b25_dir} trades={data.bt_dir}", flush=True)
     zall = load_btc25(data) if args.btc25 else None
+    global _FUND_G, _KILL
+    _KILL = args.kill_gates
+    _FUND_G = torch.from_numpy(load_funding(data)).to(DEV) if args.resid_on_funding else None
     tag = args.tag or f"M{args.milestone}"
 
     if args.smoke:
@@ -768,6 +823,9 @@ def main():
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "
                   f"| per-asset P={m['per_asset_P']:+.4f} S={m['per_asset_S']:+.4f} "
                   f"sigma={m['sigma_ratio']:.3f} mono={m['monotonicity']}", flush=True)
+        elif i == 0:
+            print("fold 0 KILLED by a pre-registered gate — STOPPING (skip folds 1-2 per protocol).", flush=True)
+            break
 
     if all_m:
         pooled = dict(
