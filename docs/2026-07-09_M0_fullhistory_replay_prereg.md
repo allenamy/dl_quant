@@ -36,11 +36,13 @@ Yearly, expanding-window, 1-day embargo at each year boundary. Because bar_1s st
 - **Launch mechanic:** add a `--yearly_walkforward` mode that constructs the 3 year-fold `(tr_days, va_days, te_days)` lists from the extended cache and calls the existing `train_fold(..., day_override=...)` per fold (the same path `--pretrain_mode` already uses). No touch to model/loss/gate code. Save per-fold `fold_{A,B,C}_preds.npz` (pred, te_rows, te_days) + `panel_ref.npz` with **≥3600 CL** (NOT the ~720s dense seq-cache CL — see §5 landmine). Save under a new tag, e.g. `train/m0_fullhist_wf/`.
 - **Seeds:** primary run = seed 42 (single locked run, ~1 GPU day, per lead's budget). IF the per-year read is ambiguous at the margin, a 3-seed ensemble replay is the pre-agreed follow-up (matches the production config), NOT a re-tune — but only if greenlit after seeing seed-42.
 
-## 3. KILL gates (same as locked M0, per fold; no mid-run iteration)
+## 3. KILL gates (same locked M0 thresholds, per fold; no mid-run iteration)
 
-- fold-0 (here = fold A / test-2023) val-rankIC < 0.005 @ ep8 → KILL, stop run.
-- σ_ratio (σŷ/σy) < 0.01 any fold → KILL that fold.
-- **A KILL is itself a finding** (M0 cannot learn from 2022-only data → immaturity, report it) — do NOT re-tune to rescue. Log it as the read.
+- Per-fold gate: val-rankIC < 0.005 @ ep8 → KILL that fold; σ_ratio (σŷ/σy) < 0.01 → KILL that fold.
+- **★ The KILL is per-fold and does NOT stop the run** (amended pre-results — see note). All 3 folds A/B/C train + export regardless of an earlier fold's kill. A killed fold exports no preds → that test-year reads as a kill in the scorer (no-usable-rows, exactly as 2024 did on the single-window validation).
+- **A KILL is itself a finding** (e.g. fold-A killed = M0 cannot learn from 2022-only data → immaturity) — do NOT re-tune to rescue. Log it as the read; R1's soft-pass then judges whether B+C carry.
+
+> **Amendment (2026-07-09, before any result, at 0B's catch — resolves an internal §3-vs-R1/R2 tension, not a post-hoc goalpost move):** the original §3 inherited the locked config's "fold-0 kill → STOP run" (which exists to save GPU when a config is *globally* dead in a same-window 3-fold run). In this cross-regime replay that directly contradicts R1's maturity-soft-pass and R2's decisive 2024 test, both of which require 2024/2025 to be evaluated even if 2023 (1-yr-immature) is weak. Since each fold here is an independent regime observation, the "stop to save GPU" rationale doesn't apply. Resolution: per-fold kills are logged as findings but never stop the run, so R1/R2/R3/R4 always have the later years. No leakage introduced (walk-forward train-only-on-prior preserved; the gate still fires and is recorded). Implemented in the `--fh_folds` runner (0B build 911409d + fix).
 
 ## 4. ★ PRE-REGISTERED READ (thresholds locked HERE, before results)
 
