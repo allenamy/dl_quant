@@ -139,25 +139,38 @@ def run_probe(panel, label="gbdt_probe", n_folds=3, params=None):
                 leak_ic=float(np.mean(icS)), leak_ok=leak_ok)
 
 
-def load_assembled(path):
+def load_assembled(path, drop_feat=None):
     z = np.load(path, allow_pickle=True)
     syms = [str(s) for s in z["symbols"]] if "symbols" in z.files else sorted(set(k.split("__")[0] for k in z.files if "__X" in k))
+    names = [str(n) for n in z["names"]] if "names" in z.files else None
+    keep = np.ones(z[f"{syms[0]}__X"].shape[1], bool)
+    if drop_feat and names:                              # drop columns whose name contains any drop substring
+        for i, nm in enumerate(names):
+            if any(d in nm for d in drop_feat):
+                keep[i] = False
+        print(f"[load] dropped {int((~keep).sum())} feat(s): {[names[i] for i in range(len(names)) if not keep[i]]}")
     Xs, ys, fs, tss, ds = [], [], [], [], []
     for s in syms:
         m = z[f"{s}__cl"].astype(bool)
-        Xs.append(z[f"{s}__X"][m]); ys.append(z[f"{s}__y"][m]); fs.append(z[f"{s}__funding"][m])
+        Xs.append(z[f"{s}__X"][m][:, keep]); ys.append(z[f"{s}__y"][m]); fs.append(z[f"{s}__funding"][m])
         tss.append(z[f"{s}__ts"][m].astype(np.int64)); ds.append(z[f"{s}__day"][m].astype(np.int64))
-    return dict(X=np.vstack(Xs).astype(np.float64), y=np.concatenate(ys).astype(np.float64),
-                fund=np.concatenate(fs).astype(np.float64), ts=np.concatenate(tss), day=np.concatenate(ds),
-                names=[str(n) for n in z["names"]] if "names" in z.files else None)
+    X = np.vstack(Xs).astype(np.float64); y = np.concatenate(ys).astype(np.float64)
+    fund = np.concatenate(fs).astype(np.float64); ts = np.concatenate(tss); day = np.concatenate(ds)
+    ok = np.isfinite(y) & np.isfinite(fund)              # target & funding must be finite (LightGBM handles NaN in X)
+    if (~ok).any():
+        print(f"[load] dropped {int((~ok).sum())}/{len(y)} rows with NaN y/funding")
+    return dict(X=X[ok], y=y[ok], fund=fund[ok], ts=ts[ok], day=day[ok],
+                names=[names[i] for i in range(len(names)) if keep[i]] if names else None)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--panel", required=True, help="assembled feature panel npz (per-asset X/y/ts/day/cl/funding)")
     ap.add_argument("--label", default="gbdt_probe")
+    ap.add_argument("--drop_feat", default="", help="comma-sep name substrings to drop from X (e.g. funding_ema)")
     a = ap.parse_args()
-    run_probe(load_assembled(a.panel), a.label)
+    drop = [d for d in a.drop_feat.split(",") if d]
+    run_probe(load_assembled(a.panel, drop_feat=drop), a.label)
     print("DONE_GBDT_PROBE")
 
 
