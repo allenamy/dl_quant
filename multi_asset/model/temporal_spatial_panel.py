@@ -154,6 +154,7 @@ class TemporalSpatialPanelModel(nn.Module):
         btc_idx: int = 0,
         dmf: bool = False,
         dmf_trade_ch: int = 0,
+        n_factor_heads: int = 0,
     ):
         super().__init__()
         if use_factor_split and not use_market_token:
@@ -329,6 +330,13 @@ class TemporalSpatialPanelModel(nn.Module):
             [DirectionAwareQuantileHead(d_input=d, dropout=dropout)
              for _ in self.horizons])
         self.head = self.heads[0]   # back-compat alias (primary head)
+        # STAGE-2B: K orthogonal factor-score heads on the shared trunk (each outputs one
+        # cross-sectional score f_k(t,asset)). Off (=0) by default -> bit-identical.
+        self.n_factor_heads = n_factor_heads
+        if n_factor_heads > 0:
+            self.factor_heads = nn.ModuleList(
+                [nn.Sequential(nn.Linear(d, d), nn.GELU(), nn.Dropout(dropout), nn.Linear(d, 1))
+                 for _ in range(n_factor_heads)])
 
     def forward(self, x, mask, return_dict: bool = False, x_coarse=None,
                 z_btc=None, x_raw=None, x_b25=None, x_btrade=None):
@@ -447,6 +455,10 @@ class TemporalSpatialPanelModel(nn.Module):
 
         # ---- HEAD(s): per-asset quantile head(s), shared trunk ----
         flat = h_attn.reshape(B * S, d)
+        if self.n_factor_heads > 0:
+            # STAGE-2B: K factor scores per (B,S); returned for the orthogonal-miner loss.
+            self._factor_scores = torch.stack(
+                [fh(flat).view(B, S) for fh in self.factor_heads], dim=-1)  # (B, S, K)
         out = self.heads[0](flat)                             # primary head
         q50 = out["point_pred"].view(B, S)                    # (B, S)
         if len(self.heads) > 1:
@@ -462,13 +474,16 @@ class TemporalSpatialPanelModel(nn.Module):
             q50 = q50 + factor                                # (B, S)
 
         if return_dict:
-            return {
+            d_out = {
                 "q50": q50,
                 "quantiles": out["quantiles"].view(B, S, 3),
                 "aux_quantiles": self._aux_quantiles,
                 "sign_logit": out["sign_logit"].view(B, S),
                 "magnitude_abs": out["magnitude_abs"].view(B, S),
             }
+            if self.n_factor_heads > 0:
+                d_out["factor_scores"] = self._factor_scores      # (B, S, K)
+            return d_out
         return q50
 
 

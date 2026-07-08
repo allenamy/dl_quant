@@ -151,3 +151,37 @@ def residual_loss(quantiles, target_resid, mask, q50_idx=1, sigma=1.0,
     total = w_huber * lh + w_rank * lr + w_pin * lp
     return total, {"huber": float(lh.detach()), "rank": float(lr.detach()),
                    "pin": float(lp.detach())}
+
+
+def orthogonality_penalty(scores, funding, valid):
+    """STAGE-2B: penalize (a) pairwise cross-sectional corr among the K factor heads and
+    (b) each head's corr vs funding_ema — so the heads mine mutually-different structure that
+    funding doesn't already have. scores (B,S,K), funding (B,S), valid (B,S) {0,1}. Per-timestamp
+    cross-sectional correlations, meaned over valid timesteps."""
+    B, S, K = scores.shape
+    m = valid.float().unsqueeze(-1)                                   # (B,S,1)
+    cnt = m.sum(1, keepdim=True).clamp_min(1.0)                       # (B,1,1)
+    scz = (scores - (scores * m).sum(1, keepdim=True) / cnt) * m      # demeaned, masked (B,S,K)
+    u = scz / torch.sqrt((scz ** 2).sum(1, keepdim=True).clamp_min(1e-8))   # unit per head (B,S,K)
+    gram = torch.einsum("bsk,bsl->bkl", u, u)                         # (B,K,K) xsec corr among heads
+    eye = torch.eye(K, device=scores.device).unsqueeze(0)
+    pair = (gram - eye).abs().sum((1, 2)) / max(K * (K - 1), 1)       # mean |off-diag| per B
+    fz = (funding - (funding * valid.float()).sum(1, keepdim=True) /
+          valid.float().sum(1, keepdim=True).clamp_min(1.0)) * valid.float()
+    uf = (fz / torch.sqrt((fz ** 2).sum(1, keepdim=True).clamp_min(1e-8))).unsqueeze(-1)  # (B,S,1)
+    fund = (u * uf).sum(1).abs().mean(1)                              # (B,) mean_k |corr(head_k, funding)|
+    ok = (cnt.squeeze(-1).squeeze(-1) >= 5).float()
+    pen = (pair + fund) * ok
+    return pen.sum() / ok.sum().clamp_min(1.0)
+
+
+def stage2b_loss(scores, target_resid, funding, valid, w_mag=0.3, lam_orth=1.0):
+    """K orthogonal factor heads: LambdaRankIC (primary, per head, on the funding-residual target)
+    + magnitude Huber (sizing/anti-collapse) + orthogonality penalty (pairwise + vs funding)."""
+    valid = valid > 0.5                        # lambda_rank_ic needs a boolean mask (~valid)
+    K = scores.shape[-1]
+    lr = torch.stack([lambda_rank_ic(scores[..., k], target_resid, valid) for k in range(K)]).mean()
+    lm = torch.stack([masked_huber(scores[..., k], target_resid, valid) for k in range(K)]).mean()
+    lo = orthogonality_penalty(scores, funding, valid)
+    total = lr + w_mag * lm + lam_orth * lo
+    return total, {"rank": float(lr.detach()), "mag": float(lm.detach()), "orth": float(lo.detach())}

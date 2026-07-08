@@ -46,7 +46,7 @@ from multi_asset.train.train_cross_asset import (  # noqa: E402  reuse exact rec
     FOLDS, EMBARGO, VAL_DAYS, masked_huber, soft_xsec_rank_loss, load_cap_weights,
 )
 from multi_asset.losses.xsec_residual_loss import (  # noqa: E402
-    residual_loss, cross_sectional_residual,
+    residual_loss, cross_sectional_residual, stage2b_loss,
 )
 
 RANK_KIND = "lambda"   # "lambda" (LambdaRankIC) or "pearson" (Pearson-IC fallback)
@@ -56,6 +56,8 @@ W_HUBER, W_RANK, W_PIN = 0.30, 0.70, 0.10   # overridable via --w_* flags
 # Both OFF by default -> the default code path is bit-identical to the pre-injection trainer.
 _FUND_G = None   # (T,S) funding_ema on DEV when --resid_on_funding (incremental-over-funding target)
 _KILL = False    # pre-registered KILL gates when --kill_gates: fold0 val-rankIC<0.005@ep8; sigma_ratio<0.01
+_N_FHEADS = 0    # STAGE-2B: K orthogonal factor heads (0 = off, bit-identical)
+_LAM_ORTH = 1.0  # STAGE-2B orthogonality-penalty weight
 
 EXPORT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
           "multi_asset/exports/train")
@@ -230,6 +232,46 @@ def predict_split(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, batch_ts
                 q50 = np.where(mmat.cpu().numpy() > 0.5, q50, np.nan)
                 pred[rr] = q50
     return pred
+
+
+def predict_scores(model, data, split_rows, mu_g, sd_g, sigma_g, offs_g, K, batch_ts=96,
+                   coarse=False, z_g=None, rmu_g=None, rsd_g=None,
+                   bmu_g=None, bsd_g=None, btmu_g=None, btsd_g=None):
+    """STAGE-2B: streaming predict of the K factor-head scores -> (T, S, K), NaN where invalid."""
+    model.eval()
+    T, S = data.ts.shape[0], data.S
+    out = np.full((T, S, K), np.nan, np.float32)
+    with torch.no_grad():
+        for F_all, mask_all, y_all, rows, bars, _, R_all, B25_all, BT_all in data.iter_days(
+                split_rows, rng=None, shuffle=False):
+            for Xseq, yn, mmat, rr, Xc, _yx, Xr, Xb, Xbt in gpu_day_batches(
+                    F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
+                    offs_g, data.W, batch_ts, rng=None, shuffle=False, coarse=coarse,
+                    R_all=R_all, rmu_g=rmu_g, rsd_g=rsd_g,
+                    B25_all=B25_all, bmu_g=bmu_g, bsd_g=bsd_g,
+                    BT_all=BT_all, btmu_g=btmu_g, btsd_g=btsd_g):
+                zb = z_g[rr] if z_g is not None else None
+                sc = model(Xseq, mmat, return_dict=True, x_coarse=Xc, z_btc=zb,
+                           x_raw=Xr, x_b25=Xb, x_btrade=Xbt)["factor_scores"].detach().cpu().numpy()
+                mm = (mmat.cpu().numpy() > 0.5)
+                sc = np.where(mm[:, :, None], sc, np.nan)
+                out[rr] = sc
+    return out
+
+
+def _perhead_xsec_ic(scores_TSK, Yres, rows):
+    """Per-head mean xsec rank-IC over the given rows (scores (T,S,K), Yres (T,S) residual)."""
+    from scipy.stats import rankdata
+    K = scores_TSK.shape[2]; ics = [[] for _ in range(K)]
+    for i in rows:
+        yv = np.isfinite(Yres[i])
+        for k in range(K):
+            v = yv & np.isfinite(scores_TSK[i, :, k])
+            if v.sum() >= 5:
+                ic = np.corrcoef(rankdata(scores_TSK[i, v, k]), rankdata(Yres[i, v]))[0, 1]
+                if np.isfinite(ic):
+                    ics[k].append(ic)
+    return [float(np.mean(x)) if x else np.nan for x in ics]
 
 
 def load_btc25(data):
@@ -477,6 +519,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         attnpool=attnpool, btc25=(zall is not None), raw_channels=raw_c,
         btc25raw_channels=(0 if dmf else b25_c), btc_idx=int(SYMBOLS.index("bnfbtc")),
         dmf=dmf, dmf_trade_ch=(bt_c if dmf else 0),
+        n_factor_heads=_N_FHEADS,
         **flags).to(DEV)
     if init_ckpt:
         st = torch.load(init_ckpt, map_location="cpu")
@@ -539,8 +582,15 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                     beta = (r * fm).sum(1, keepdim=True) / (fm * fm).sum(1, keepdim=True).clamp_min(1e-9)
                     r = r - beta * fm
                 r = (r / resid_sigma_g[None, :]).clamp(-5.0, 5.0)
-                loss, parts = residual_loss(out["quantiles"], r, mb, rank_kind=RANK_KIND,
-                                            w_huber=W_HUBER, w_rank=W_RANK, w_pin=W_PIN)
+                if _N_FHEADS > 0:
+                    # STAGE-2B: K orthogonal factor heads on the funding-residual target.
+                    fund_b = _FUND_G[rr_b] if _FUND_G is not None else torch.zeros_like(r)
+                    loss, parts = stage2b_loss(out["factor_scores"], r, fund_b, mb,
+                                               w_mag=W_PIN, lam_orth=_LAM_ORTH)
+                    parts = {"huber": parts["mag"], "rank": parts["rank"], "pin": parts["orth"]}
+                else:
+                    loss, parts = residual_loss(out["quantiles"], r, mb, rank_kind=RANK_KIND,
+                                                w_huber=W_HUBER, w_rank=W_RANK, w_pin=W_PIN)
                 # NX-S3 MTL: aux-horizon heads on the shared trunk (w=0.3 each).
                 # Aux residual sigma via diffusion scaling sqrt(h/h0) (measured-exact).
                 for ai, (h_aux, y_aux) in enumerate(sorted(yx.items())):
@@ -565,19 +615,45 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                 day_diff[d_id] = 0.7 * day_diff.get(d_id, m) + 0.3 * m
         ep_loss /= max(nb, 1); ep_pin /= max(nb, 1); ep_h /= max(nb, 1); ep_x /= max(nb, 1)
 
-        vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g, rmu_g=rmu_g, rsd_g=rsd_g, bmu_g=bmu_g, bsd_g=bsd_g, btmu_g=btmu_g, btsd_g=btsd_g)
-        if horizon > 600:
-            # match the TEST statistic: thinned non-overlap view (dense val
-            # overweights smooth/persistent components -> misleads checkpointing)
-            vstep = horizon // 180
-            vthin = np.zeros(vpred.shape[0], bool)
-            va_day = data.day[va_rows]
-            for d in np.unique(va_day):
-                dr = va_rows[va_day == d]
-                vthin[dr[::vstep]] = True
-            vpred = np.where(vthin[:, None], vpred, np.nan)
-        vm = eval_metrics(vpred, data.Y, data.CL, data.resid_sigma, clean=False)
-        vIC, vP, vS = vm["xsec_rank_ic"], vm["per_asset_P"], vm["per_asset_S"]
+        if _N_FHEADS > 0:
+            # STAGE-2B: checkpoint / kill on MAX-over-heads val rank-IC on the >=3600 non-overlap
+            # grid (the pre-registered gate). sigma_ratio is meaningless on arbitrary-scale factor
+            # scores, so we bypass the sigma gate (a collapsed head has undefined/NaN rank-IC -> the
+            # rank-IC gate IS the collapse guard).
+            vsc = predict_scores(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, _N_FHEADS,
+                                 coarse=coarse, z_g=z_g, rmu_g=rmu_g, rsd_g=rsd_g,
+                                 bmu_g=bmu_g, bsd_g=bsd_g, btmu_g=btmu_g, btsd_g=btsd_g)
+            vstep = max(1, horizon // 180); va_day = data.day[va_rows]; vrows = []
+            for dd in np.unique(va_day):
+                dr = va_rows[va_day == dd]; vrows.extend(dr[::vstep].tolist())
+            vrows = np.array(vrows, dtype=np.int64)
+            Yres = np.full_like(data.Y, np.nan)
+            for i in vrows:
+                vv = np.isfinite(data.Y[i])
+                if vv.sum() >= 5:
+                    Yres[i, vv] = data.Y[i, vv] - data.Y[i, vv].mean()
+            head_ics = _perhead_xsec_ic(vsc, Yres, vrows)
+            vIC = float(np.nanmax(head_ics)) if np.any(np.isfinite(head_ics)) else float("nan")
+            vm = {"sigma_ratio": 1.0, "xsec_rank_ic": vIC,
+                  "per_asset_P": float("nan"), "per_asset_S": float("nan")}
+            vP = vS = float("nan")
+            if verbose:
+                print(f"  ep{ep:2d} ({time.time()-t_ep:.0f}s) loss={ep_loss:.4f} stage2b "
+                      f"head-ICs={[round(x, 4) if np.isfinite(x) else None for x in head_ics]} maxIC={vIC:+.4f}", flush=True)
+        else:
+            vpred = predict_split(model, data, va_rows, mu_g, sd_g, sigma_g, offs_g, coarse=coarse, z_g=z_g, rmu_g=rmu_g, rsd_g=rsd_g, bmu_g=bmu_g, bsd_g=bsd_g, btmu_g=btmu_g, btsd_g=btsd_g)
+            if horizon > 600:
+                # match the TEST statistic: thinned non-overlap view (dense val
+                # overweights smooth/persistent components -> misleads checkpointing)
+                vstep = horizon // 180
+                vthin = np.zeros(vpred.shape[0], bool)
+                va_day = data.day[va_rows]
+                for d in np.unique(va_day):
+                    dr = va_rows[va_day == d]
+                    vthin[dr[::vstep]] = True
+                vpred = np.where(vthin[:, None], vpred, np.nan)
+            vm = eval_metrics(vpred, data.Y, data.CL, data.resid_sigma, clean=False)
+            vIC, vP, vS = vm["xsec_rank_ic"], vm["per_asset_P"], vm["per_asset_S"]
         if _KILL and ep >= 8:
             # pre-registered KILL gates (locked before the run) — evaluated after an 8-epoch
             # warmup grace (sigma warms from low: smoke showed sigma_ratio 0.017 by ep3, a healthy
@@ -613,6 +689,49 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
 
     if best_state is not None:
         model.load_state_dict(best_state)
+
+    if _N_FHEADS > 0:
+        # STAGE-2B export: per-head test scores + a FRESH >=horizon non-overlap CL (the audit
+        # landmine fix — do NOT ship the dense seq-cache CL). 0C scores each head as a candidate
+        # factor on this >=3600 grid vs funding's caliber.
+        tsc = predict_scores(model, data, te_rows, mu_g, sd_g, sigma_g, offs_g, _N_FHEADS,
+                             coarse=coarse, z_g=z_g, rmu_g=rmu_g, rsd_g=rsd_g,
+                             bmu_g=bmu_g, bsd_g=bsd_g, btmu_g=btmu_g, btsd_g=btsd_g)   # (T,S,K)
+        NS = 1_000_000_000; CL36 = np.zeros((data.ts.shape[0], data.S), bool)
+        for dd in np.unique(data.day):
+            rr = np.where(data.day == dd)[0]; last = -(1 << 62); keep = []
+            for i in rr:
+                if int(data.ts[i]) - last >= horizon * NS:
+                    keep.append(i); last = int(data.ts[i])
+            if keep:
+                CL36[np.array(keep)] = True
+        Yres = np.full_like(data.Y, np.nan)
+        for i in te_rows:
+            vv = np.isfinite(data.Y[i])
+            if vv.sum() >= 5:
+                Yres[i, vv] = data.Y[i, vv] - data.Y[i, vv].mean()
+        clrows = te_rows[CL36[te_rows].any(1)]
+        head_ics = _perhead_xsec_ic(tsc, Yres, clrows)
+        if save_dir is not None:
+            os.makedirs(save_dir, exist_ok=True)
+            np.savez(p.join(save_dir, f"fold_{fold_i}_head_scores.npz"),
+                     scores=tsc.astype(np.float32), te_rows=te_rows, te_days=te_days,
+                     CL3600=CL36, x_mu=data.mu, x_sd=data.sd, horizon=horizon)
+            torch.save(best_state if best_state is not None else model.state_dict(),
+                       p.join(save_dir, f"fold_{fold_i}_model.pt"))
+            if fold_i == 0:
+                np.savez(p.join(save_dir, "panel_ref.npz"), ts=data.ts, day=data.day,
+                         Y=data.Y, CL=CL36, symbols=np.array(SYMBOLS, dtype=object))
+        best_h = int(np.nanargmax(head_ics)) if np.any(np.isfinite(head_ics)) else 0
+        print(f"[fold {fold_i}] STAGE-2B per-head test rank-IC (>=3600 CL) = "
+              f"{[round(x, 4) if np.isfinite(x) else None for x in head_ics]} | best head {best_h}", flush=True)
+        return {"xsec_rank_ic": round(float(head_ics[best_h]), 4) if np.isfinite(head_ics[best_h]) else 0.0,
+                "per_head_ic": [round(x, 4) if np.isfinite(x) else None for x in head_ics],
+                "best_head": best_h, "xsec_ic_ir": 0.0, "per_asset_P": 0.0, "per_asset_S": 0.0,
+                "sigma_ratio": 1.0, "monotonicity": 0.0, "best_epoch": best_epoch,
+                "best_val_score": round(best_val, 4) if best_val > -1e8 else None,
+                "n_params": count_params(model)}
+
     # clean non-overlap eval: stride-180 grid is non-overlapping for h<=180;
     # h=600 uses the clean600 flag; h>600 thins the grid to spacing>=h.
     if horizon > 600:
@@ -659,6 +778,9 @@ def main():
                     help="DL stage-2: orthogonalize the residual target on funding_ema per ts (incremental-over-funding)")
     ap.add_argument("--kill_gates", action="store_true",
                     help="DL stage-2: pre-registered KILL gates (fold0 val-rankIC<0.005@ep8; sigma_ratio<0.01)")
+    ap.add_argument("--n_factor_heads", type=int, default=0,
+                    help="STAGE-2B: K orthogonal factor heads (0=off). Kill gate uses max-over-heads val rank-IC.")
+    ap.add_argument("--lam_orth", type=float, default=1.0, help="STAGE-2B orthogonality-penalty weight")
     ap.add_argument("--w_huber", type=float, default=None)
     ap.add_argument("--w_rank", type=float, default=None)
     ap.add_argument("--data_root", type=str, default=None,
@@ -763,8 +885,10 @@ def main():
         data.bt_dir = p.join(p.dirname(EXPORT), "btc_trade_perp")    # engineered trades
         print(f"[dmf] enabled: ladder={data.b25_dir} trades={data.bt_dir}", flush=True)
     zall = load_btc25(data) if args.btc25 else None
-    global _FUND_G, _KILL
+    global _FUND_G, _KILL, _N_FHEADS, _LAM_ORTH
     _KILL = args.kill_gates
+    _N_FHEADS = args.n_factor_heads
+    _LAM_ORTH = args.lam_orth
     _FUND_G = torch.from_numpy(load_funding(data)).to(DEV) if args.resid_on_funding else None
     tag = args.tag or f"M{args.milestone}"
 
