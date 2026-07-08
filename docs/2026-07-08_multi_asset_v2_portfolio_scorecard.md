@@ -8,6 +8,7 @@
 - **Book-1 = funding_ema + M0 DL factor**, equal-risk z-blend: **net-Sharpe@2bps seed-median 3.83 (range 3.43–4.56 across 3 M0 seeds; orig-seed 4.56), break-even 34–41 bps/side, all-fold positive across all seeds, latency-flat, 5/7 months net-positive.** Two orthogonal (corr 0.107) net-cost-additive factors; the blend beats either alone. M0's IC is seed-robust (0.036, std 0.0012); its net-Sh has a seed band → headline the median 3.83, ensemble the seeds in production. **This is the deliverable's core.**
 - **Book-2 = wide SIZE-premium sleeve**: cost-immune (net-Sharpe 2.11, turnover 0.0018) but capacity-capped (~$2.5M illiq ADV → single-digit-% deployable). A real diversifier, not scalable.
 - Both are net-cost-tradeable; the whole tabular/library/DL-multi-head factor space beyond these was exhaustively tested and correctly rejected by the 5-gate factory.
+- **★ WINDOW CAVEAT (from the full-history replay):** the scorecard's ~7-month OOS (2025) is funding_ema's BEST year. Over 2020→2026 funding is NOT all-weather — long-run net-Sh ≈ +0.6-0.9 with genuine losing years (2024 net-Sh −1.52, IC-strong but gross-negative). The headline blend Sharpe (3.9) is a favorable-window figure; the all-history Book-1 expectation is materially lower. M0's own multi-year robustness is not yet measured (7-mo OOS only). Size to the long-run, not the window.
 
 ## Book-1 scorecard (mega-cap, 14 USDT-perp, 1h; funding also validated at 2h)
 Walk-forward OOS ~2025-02..2025-09 (3 disjoint folds). Operating turnover = best-break-even EMA alpha. Cost = 2 bps/side (mega-cap taker-realistic).
@@ -62,9 +63,27 @@ Closes the single-seed limit. (1) **Standalone rank-IC is seed-robust:** +0.0355
 
 Verdict: **IC seed-robust + same-signal; net-cost tradeable every seed. The DEPLOYABLE config is the 3-seed ENSEMBLE: net-Sh 3.92, BE 41, 6/7 months positive, all-fold positive** — strictly better and more stable than any single seed. Headline the ensemble 3.92 (or the median 3.83 for single-model); NOT the lucky orig-seed 4.56.
 
+## ★ funding_ema full-history regime-robustness (2020→2026, 0B replay, 0C cross-checked) — NOT all-weather
+The scorecard's ~7-month window (2025-02..09) turns out to be a FAVORABLE one. Full-history per-year (1h; 2h mirrors it):
+
+| year | rank-IC | z | gross-Sh | net-Sh | note |
+|---|---|---|---|---|---|
+| 2020 | ~0 | −0.03 | — | −0.33 | null (early perp market) |
+| 2021 | +0.018 | 2.26 | +0.99 | +0.83 | positive |
+| 2022 | +0.007 | 1.38 | −0.21 | −0.45 | weak/negative (bear) |
+| 2023 | +0.006 | 1.61 | +1.26 | +0.91 | positive |
+| **2024** | **+0.014** | **5.64** | **−1.11** | **−1.52** | **★ IC-strong but NET-NEGATIVE** |
+| 2025 | +0.015 | 3.31 | +3.30 | +2.87 | best year (our window) |
+| 2026 | +0.014 | 3.19 | +2.26 | +1.62 | positive (partial) |
+
+- **Long-run net-Sharpe ≈ +0.56 (all years) / +0.71 (excl. 2020), median +0.83, range [−1.52, +2.87].** Funding_ema is **NOT all-weather** — it has genuine LOSING years (2020, 2022, 2024) and strong years (2021/23/25/26). The 4.56/3.92 scorecard headline sits on 2025, the single best year.
+- **★ 2024 is the rank-right/magnitude-wrong signature, and it's REAL (not a harness artifact):** strongest IC (z 5.64) yet gross-Sh −1.11 (negative even at ZERO cost, so not a cost/turnover effect). The crowding-reversion ranked correctly on typical moves but LOST on the big moves — in a persistent-crowding/trending year the extreme moves run with the crowd before reverting. This is the factor's core risk: correct ordering ≠ profitable when the tails go the wrong way. Audited: arithmetic internally consistent (BE/gross/net signs, cost drag), and the pattern is HORIZON-ROBUST (2h: 2024 −1.61, 2025 +2.69). [Open sub-check: whether 2024's loss is a few extreme days vs broad — requested 0B's per-period series; the gross-negative verdict holds either way.]
+- Cross-check vs the scorecard: my 2025-02..09 funding net-Sh 2.08 is consistent with (and slightly below) the replay's full-2025 +2.87 — my window included the weak 2025-09. Turnover note: the replay runs higher turnover (0.044–0.068) than the scorecard's operating alpha (0.027), so the replay net-Sh is a conservative (higher-cost) estimate; the regime pattern holds regardless.
+- **Implication for the deliverable:** report funding's long-run expectation as **net-Sh ~+0.6-0.9 with strong regime-dependence**, NOT the 2025-window 2.08. The blend still helps (M0 is the stronger, more-consistent factor), but the honest all-history Book-1 expectation is well below the favorable-window headline.
+
 ## Honest limits
 1. **★ CORRELATED DRAWDOWN — the single most important sizing fact.** 2025-09 is net-NEGATIVE for BOTH Book-1 factors simultaneously (funding −365 bps AND M0 −182 → blend −371). The intra-book diversification is PARTIAL (funding↔M0 corr 0.107) — the two factors CAN and DID draw down together in an adverse month. Size the book for a joint-drawdown regime, not for the average-month Sharpe; the 4.56 headline Sharpe does not imply the factors hedge each other.
-2. **Short OOS window** (~7 months, 2025-02..2025-09). All stability numbers are on a small sample; not multi-year — the strongest caveat on every Sharpe here.
+2. **Short OOS window = a FAVORABLE window (now quantified).** The ~7-month scorecard (2025) is funding_ema's best year; the full-history replay shows funding is regime-dependent (long-run net-Sh ~+0.6, losing years 2020/22/24). So every scorecard Sharpe here is optimistic vs the all-history expectation. M0's multi-year robustness is still unmeasured (7-mo OOS) — the top open item (a full-history M0 replay would be the analogue of the funding one).
 3. **funding regime-dependence:** magnitude is fold/regime-dependent (strong 2025-06 +740, weak/negative fold-2); direction is stable, strength varies.
 4. **M0 monthly stability:** strong but the one negative month is 2025-09 (the correlated one); mildly faster-decaying than funding (0.67 at 3-6min).
 5. **Book-2 capacity:** single-digit-% of $2.5M illiq ADV — a small sleeve; and Book-2's diversification of Book-1 is a same-timestamp ~0 correlation, not a hedge in a joint crypto-wide risk-off.
