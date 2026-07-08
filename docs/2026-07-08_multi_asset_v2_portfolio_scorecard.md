@@ -1,4 +1,4 @@
-> **创建:** 2026-07-08 · **Session:** fable-regime-breakthrough (agent stage0C-d3-factors) · **状态:** in-progress (cross-book corr pending 0B's Book-2 return series) · **作废条件:** book factors retrained / universe or horizon change / a new factory-ACCEPT factor added.
+> **创建:** 2026-07-08 · **Session:** fable-regime-breakthrough (agent stage0C-d3-factors) · **状态:** final · **作废条件:** book factors retrained / universe or horizon change / a new factory-ACCEPT factor added.
 
 # Multi-asset v2 — FINAL portfolio scorecard (consolidation deliverable)
 
@@ -43,8 +43,15 @@ Per-coin cost by DVOL tercile (2/5/10 bps base) + stress to 50 bps illiq; causal
 - **SIZE is the robust deployable Book-2 factor** (turnover 0.0018 → barely trades → cost-immune). Fast reversal / price-vol clusters die to the cost trap (consistent with their mega-cap factory gate-d rejects).
 - **Capacity caveat (load-bearing):** the SIZE/low-vol signal lives in the illiquid tercile (median daily ~$2.5M ADV); a 5-10% ADV cap bounds the sleeve to single-digit-% of that → **small-capacity**. Real diversifier, not scalable.
 
-## Cross-book correlation (the diversification claim)
-Book-1 (mega-cap funding+M0) and Book-2 (wide SIZE) are on DISJOINT universes with orthogonal mechanisms (crowding-reversion ⊥ size-premium). Expected corr ≈ 0. **PENDING** 0B's Book-2 per-rebalance return series to verify by timestamp — will update this section (the diversification benefit hinges on it being ~0).
+## Cross-book correlation (the diversification claim) — CONFIRMED ~0
+Book-1 (mega-cap funding+M0) and Book-2 (wide SIZE) are on DISJOINT universes with orthogonal mechanisms (crowding-reversion ⊥ size-premium). Empirical hourly-aligned return correlation (n=2,640 common hours, 0B's Book-2 return series):
+- **Book-1(blend) ↔ Book-2(SIZE): +0.088**
+- **Book-1(blend) ↔ Book-2(COMBINED-slow): +0.075**
+
+Both **near-zero** → the diversification claim holds. Combining the two books is genuinely diversifying (a ~0-correlation return stream added to the core), so the portfolio Sharpe exceeds either book alone at the same gross exposure. This is the payoff of the two-disjoint-universe design.
+
+## M0 leak-audit — PASSED (6/6, 0B, independently cross-checked)
+M0's z-7 result was belt-and-suspanders leak-audited (the standard for a strong DL result after a uniformly-null tabular space): (1) input windows end at the decision bar t, no future bars; (2) causal residualization (y forward [t,t+3600]; funding ffill≤t); (3) per-fold normalization fit on TRAIN rows only; (4) test disjoint with a 22-day train→test boundary gap ≫ horizon + embargo. Plus caliber-parity: M0's IC independently recomputed on a fresh ≥3600 non-overlap grid = **+0.0355, matching gate-a exactly** (not overlap-inflated). A dense-CL export landmine was caught + fixed (scored on the canonical ≥3600 CL, so the ACCEPT stands). **z7 is real, not a leak artifact. M0 is FINAL.**
 
 ## Honest limits
 1. **Short OOS window** (~7 months, 2025-02..2025-09). All stability numbers are on a small sample; not multi-year.
@@ -55,4 +62,4 @@ Book-1 (mega-cap funding+M0) and Book-2 (wide SIZE) are on DISJOINT universes wi
 6. **M0 is a single trained model** (single seed, single architecture); production would want seed-robustness + periodic retrain.
 
 ## Deployment read
-Deploy **Book-1 (funding+M0 blend) as the scalable core** (net-Sharpe 4.56, break-even 41 bps/side, all-fold positive) — 2h primary for funding, 1h for the blend. Add **Book-2 SIZE** as a small capacity-capped diversifying sleeve pending the cross-book-corr confirmation. Everything else in the factor space was tested and is exhausted.
+Deploy **Book-1 (funding+M0 blend) as the scalable core** (net-Sharpe 4.56, break-even 41 bps/side, all-fold positive, latency-flat) — 2h primary for funding, 1h for the blend. Add **Book-2 SIZE** as a small, capacity-capped diversifying sleeve — the cross-book correlation is confirmed ~0 (+0.08), so it genuinely diversifies the core. Everything else in the factor space (positioning, order-flow, semivar, price-vol on mega-caps, GBDT over all tabular features, 5 stage-2b DL heads) was exhaustively tested by the 5-gate factory and correctly rejected — these two books are what survived. Production caveats to carry: short OOS window, the 2025-09 correlated-drawdown month, funding regime-dependence, M0 single-seed (add seed-robustness + periodic retrain), Book-2 small capacity.
