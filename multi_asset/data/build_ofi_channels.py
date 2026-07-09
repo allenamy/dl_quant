@@ -134,6 +134,26 @@ def build_channels(panel, sym):
         add("depth_conc_bid", np.where(far_b > _EPS, near_b / far_b, np.nan), 50.0)
         add("depth_conc_ask", np.where(far_a > _EPS, near_a / far_a, np.nan), 50.0)
 
+    # D. ADD/DEL CHURN stats — the biggest data gap (§1). The 44-feat baseline nets the
+    # 4 add/del channels into ONE scalar (bookflow), so a high-churn spoof book (huge adds
+    # AND cancels, net~0) is indistinguishable from a quiet book. Here: gross intensity,
+    # cancel/add ratio, and the SIDE/ACTION asymmetries (one-sided cancellation = pulling
+    # bids/asks = the adversarial signal never captured).
+    ab = _col(panel, sym, "bkAddBid"); aa = _col(panel, sym, "bkAddAsk")
+    db = _col(panel, sym, "bkDelBid"); da = _col(panel, sym, "bkDelAsk")
+    gross = ab + aa + db + da
+    for w in (300, 600):
+        add(f"churn_gross_{w}s", _causal_roll_sum(gross, w), CLIP_FLOW)
+        addsum = _causal_roll_sum(ab + aa, w)
+        delsum = _causal_roll_sum(db + da, w)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            add(f"cancel_add_ratio_{w}s",
+                np.where(addsum > _EPS, delsum / addsum, np.nan), 20.0)
+        add(f"add_asym_{w}s", _causal_roll_sum(ab - aa, w), CLIP_FLOW)   # passive add pressure
+        add(f"del_asym_{w}s", _causal_roll_sum(db - da, w), CLIP_FLOW)   # cancellation asymmetry
+    for hl in (300, 600):
+        add(f"churn_gross_ema{hl}", _ema_causal(gross, hl), CLIP_FLOW)
+
     F = np.stack(feats, axis=1).astype(np.float64)
     F = np.nan_to_num(F, nan=0.0, posinf=0.0, neginf=0.0)
     return F.astype(np.float32), names

@@ -65,7 +65,7 @@ def load_all():
 
 def _fam_cols(names):
     """Column indices per channel family."""
-    fam = {"ladder": [], "decomp": [], "depth": []}
+    fam = {"ladder": [], "decomp": [], "depth": [], "churn": []}
     for i, n in enumerate(names):
         if n.startswith("ofiL"):
             fam["ladder"].append(i)
@@ -73,6 +73,8 @@ def _fam_cols(names):
             fam["decomp"].append(i)
         elif n.startswith(("depth_ratio", "depth_conc")):
             fam["depth"].append(i)
+        elif n.startswith(("churn_", "cancel_add", "add_asym", "del_asym")):
+            fam["churn"].append(i)
     return {k: np.array(v) for k, v in fam.items()}
 
 
@@ -134,15 +136,16 @@ def main():
     fam = _fam_cols(names)
     folds = build_folds(data)
     print(f"[gate] {len(folds)} folds; families: "
-          f"ladder={len(fam['ladder'])} decomp={len(fam['decomp'])} depth={len(fam['depth'])}",
-          flush=True)
+          f"ladder={len(fam['ladder'])} decomp={len(fam['decomp'])} depth={len(fam['depth'])} "
+          f"churn={len(fam['churn'])}", flush=True)
 
     base = eval_family(data, names, None, "baseline", folds)
     print(f"\nBASELINE (44 feat) per-fold cleanP: {np.round(base,4)}  mean={np.nanmean(base):+.4f}")
 
     rows = []
     combos = {"ladder": fam["ladder"], "decomp": fam["decomp"], "depth": fam["depth"],
-              "all_new": np.concatenate([fam["ladder"], fam["decomp"], fam["depth"]])}
+              "churn": fam["churn"],
+              "all_new": np.concatenate([fam["ladder"], fam["decomp"], fam["depth"], fam["churn"]])}
     for label, cols in combos.items():
         pf = eval_family(data, names, cols, label, folds)
         dP = pf - base
