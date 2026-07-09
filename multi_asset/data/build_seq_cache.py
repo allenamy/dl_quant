@@ -68,11 +68,12 @@ def list_days(start: int, end: int) -> list:
     return sorted(days)
 
 
-def build(force: bool = False):
+def build(force: bool = False, no_xraw: bool = False):
     os.makedirs(SEQ_DIR, exist_ok=True)
     days = list_days(WIN_START, WIN_END)
     print(f"[seq] window {WIN_START}..{WIN_END}: {len(days)} days, "
-          f"{len(SYMBOLS)} symbols -> {SEQ_DIR}", flush=True)
+          f"{len(SYMBOLS)} symbols -> {SEQ_DIR}"
+          f"{'  [F-ONLY: no Xraw]' if no_xraw else ''}", flush=True)
 
     feat_names = None
     t0 = time.time()
@@ -100,7 +101,8 @@ def build(force: bool = False):
         ts_day = dp.ts.astype(np.int64)
 
         F_all = np.zeros((len(SYMBOLS), T, 44), dtype=np.float32)
-        Xraw_all = np.zeros((len(SYMBOLS), T, 5, 4), dtype=np.float32)
+        Xraw_all = (None if no_xraw
+                    else np.zeros((len(SYMBOLS), T, 5, 4), dtype=np.float32))
         y_all = np.full((len(SYMBOLS), T), np.nan, dtype=np.float32)
         mask_all = np.zeros((len(SYMBOLS), T), dtype=bool)
 
@@ -112,14 +114,22 @@ def build(force: bool = False):
                 raise ValueError(f"{s} day {d}: expected 44 feats, got {F.shape[1]}")
             y = compute_y600(dp, s)                     # (T,)
             vm = valid_mask(dp, s)                      # (T,) bool
-            xr = build_raw_lob_tensor(dp, s)            # (T, 5, 4)
             F_all[si] = F.astype(np.float32)
-            Xraw_all[si] = xr
             y_all[si] = y.astype(np.float32)
             mask_all[si] = vm.astype(bool)
+            if not no_xraw:
+                Xraw_all[si] = build_raw_lob_tensor(dp, s)   # (T, 5, 4)
 
-        np.savez(out, F=F_all, Xraw=Xraw_all, y=y_all, mask=mask_all,
-                 ts=ts_day, feat_names=np.array(feat_names))
+        # F-ONLY mode omits the (S,T,5,4) raw-LOB tensor (96 MB/day). The M0
+        # milestone-0 replay reads only F/y/mask/ts (want_raw=False), and np.load
+        # is lazy per-key, so a missing Xraw key is a no-op for it. Used to rebuild
+        # the ENOSPC-recovery extension days without the raw path (2026-07-09).
+        if no_xraw:
+            np.savez(out, F=F_all, y=y_all, mask=mask_all,
+                     ts=ts_day, feat_names=np.array(feat_names))
+        else:
+            np.savez(out, F=F_all, Xraw=Xraw_all, y=y_all, mask=mask_all,
+                     ts=ts_day, feat_names=np.array(feat_names))
         n_done += 1
 
         if n_done % 10 == 0 or di == len(days) - 1:
@@ -159,5 +169,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true",
                     help="rebuild day files that already exist")
+    ap.add_argument("--no_xraw", action="store_true",
+                    help="F-ONLY build: omit the (S,T,5,4) raw-LOB tensor "
+                         "(96 MB/day). M0 replay never reads Xraw; saves disk.")
     args = ap.parse_args()
-    build(force=args.force)
+    build(force=args.force, no_xraw=args.no_xraw)
