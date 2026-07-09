@@ -15,12 +15,15 @@ This is a **replay, not a re-tune.** No architecture / loss / gate changes. Only
 |---|---|---|---|
 | `seq_cache/` | 2024-06-01 → 2025-09-30 (487 d) | back to 2022-01-01 | `bar_data/bar_1s/` |
 | `mh_targets_long/` (y_3600) | 2024-06-01 → 2025-09-30 (487 d) | back to 2022-01-01 | same |
+| **`panel_cache/`** (★ the day-grid + last-token stats source — `SeqPanelData` L79-101) | 2024-06-01 → 2025-09-30 (487 d) | **back to 2022-01-01** | `build_feature_cache.py` |
 | `bar_1s` (build source, all 14 syms) | **2022-01-01 → 2025-11-30** (full) | — | READ-ONLY share |
 | funding_ema full-history | already dumped (`megacap_funding_replay`) | — | `data/megacap_hist` |
 
-- **Coverage ceiling: bar_1s ends 2025-11-30**, so the DL replay covers **2022-01 → 2025-11**. 2026 is NOT coverable by DL (no bar_1s); the funding-2026 row stays funding-only. This is fine — the decisive comparison years (2023 chop / 2024 funding's-loss / 2025) are all in range.
-- Extension cost: ~880 extra day-files (2022-01→2024-05) × (seq window build + y_3600 targets). CPU. 0B owns the estimate (lead's ~2h; flag if materially longer).
-- Build must be **bit-identical in feature construction** to the current seq_cache (same channels, same causal windows, same `feature_names.json`) — verify the new 2022-2024 files match the existing 2024-06+ schema before launch.
+- **★ panel_cache is the THIRD dependency (0B's catch, 2026-07-09 — first replay run degenerated because of this).** `SeqPanelData` builds `uniq_days` + the per-fold standardization inputs from `panel_cache`, NOT from seq_cache. Extending only seq_cache + mh_targets_long left panel_cache pinned to the 487-day window → `uniq_days`=487 → `build_fh_folds` saw only 2024-2025 → a single degenerate fold. **All THREE (seq_cache + mh_targets_long + panel_cache) must extend to 2022-01.** The re-run must print `uniq_days ≈ 1430` before it is valid.
+- **Leak-safety of the panel_cache extension = CLEAR (0C verified `set_fold` L135-168).** All per-fold stats (`mu`/`sd`/`sigma`/`resid_sigma`) are fit on the `trm` TRAIN-days mask only; panel_cache supplies only the raw grid + last-token features, so extending it to 2022-2025 does NOT leak future normalization into the 2023/2024 test folds. The bit-identity verify of the rebuilt 2024-2025 slice (0B) confirms production caliber is intact.
+- **★ Common-ts intersection caveat (L81):** the panel index = `set.intersection` of all 14 symbols' ts. If any mega-cap lacks full 2022 coverage in panel_cache (later Binance-perp listing), the strict intersection silently drops those days → shrinks fold-A/B's (already-immature) train window. After the rebuild, verify **per-YEAR** day counts (2022 ~365, 2023 ~365), not just the ~1430 total, and note any symbol missing full 2022 — this changes how a weak fold-A reads (R5 immaturity vs universe-thinning).
+- **Coverage ceiling: bar_1s ends 2025-11-30**, so the DL replay covers **2022-01 → 2025-11**. 2026 is NOT coverable by DL (no bar_1s); the funding-2026 row stays funding-only. Decisive years (2023 chop / 2024 funding's-loss / 2025) all in range.
+- Build must be **bit-identical in feature construction** to the current caches (same channels, causal windows, `feature_names.json`) — verify the new 2022-2024 files match the existing 2024-06+ schema before launch.
 
 ## 2. WALK-FORWARD folds (train ONLY on prior; expanding)
 
