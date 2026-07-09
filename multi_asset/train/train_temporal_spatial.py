@@ -442,12 +442,14 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
             print(f"[stats] overrode mu/sd/resid_sigma from {stats_from}", flush=True)
     data._day_cache.clear()          # free previous fold's cached days
     data.enable_cache(True)          # cache day arrays in RAM (no per-epoch disk IO)
-    if data.raw_dir is not None and len(tr_days) > 400:
-        # 861-day pretrain with raw = ~165GB day-cache > RAM (196GB, ~150 free).
-        # Stream from disk instead (~3min/epoch extra IO; OOM otherwise).
+    if len(tr_days) > 400:
+        # Day-cache holds ~0.21 GB/day (F-only). A large walk-forward fold (fullhist
+        # tr 709/1095 + te ~365 days) exceeds RAM (~200GB) and OOM-kills at test eval
+        # — the 203GB anon-rss kill on fold 1 (dmesg 2026-07-09). Stream from disk
+        # instead (~3-5min/epoch extra IO). raw-path folds (861-day pretrain) hit this
+        # even sooner, so the guard is footprint-based, not raw-only.
         data.enable_cache(False)
-        print("[cache] day-cache DISABLED (pretrain+raw footprint exceeds RAM)",
-              flush=True)
+        print("[cache] day-cache DISABLED (fold footprint > RAM budget)", flush=True)
     tr_rows = np.where(np.isin(data.day, tr_days))[0]
     tr_rows = tr_rows[::TRAIN_STRIDE_SUB]    # thin train grid (less overlap, ~2x faster)
     va_rows = np.where(np.isin(data.day, va_days))[0]
@@ -791,6 +793,9 @@ def main():
     ap.add_argument("--tag", type=str, default=None)
     ap.add_argument("--save_tag", type=str, default=None,
                     help="if set, save per-fold test preds + model to EXPORT/<save_tag>/")
+    ap.add_argument("--fold_start", type=int, default=0,
+                    help="skip folds with index < this (resume a partially-done "
+                         "walk-forward; global fold index preserved for exports)")
     ap.add_argument("--w_pin", type=float, default=None, help="pinball weight override (ablation)")
     ap.add_argument("--resid_on_funding", action="store_true",
                     help="DL stage-2: orthogonalize the residual target on funding_ema per ts (incremental-over-funding)")
@@ -969,6 +974,10 @@ def main():
           f"({len(folds)} folds, M{args.milestone}) =====", flush=True)
     all_m = []
     for i, fold in enumerate(folds):
+        if i < args.fold_start:
+            print(f"----- fold {i} SKIPPED (--fold_start {args.fold_start}; "
+                  f"preds already saved from a prior run) -----", flush=True)
+            continue
         print(f"\n----- fold {i} -----", flush=True)
         m = train_fold(i, fold, data, args.milestone,
                        max_epochs=MAX_EPOCHS, patience=PATIENCE,
