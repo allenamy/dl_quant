@@ -146,18 +146,18 @@ def main():
         sg = np.sign(dP[np.isfinite(dP)])
         rows.append((lab, np.nanmean(pf), np.nanmean(dP),
                      bool(np.all(sg == sg[0])) if len(sg) else False, np.round(dP, 4)))
-    # shuffle-future null on b0b (lead-lag surface): permute leader series in time
+    # shuffle-future null on b0b (lead-lag surface): permute leader series in time.
+    # The baseline is INVARIANT to the leader permutation (baseline uses only Xb, not
+    # aggr), so reuse `base` instead of refitting it 20x — the big speedup.
     rng = np.random.default_rng(0); null = []
     for _ in range(20):
         dN = {s: dict(data[s]) for s in SYMBOLS}
         perm = rng.permutation(len(common))
         for s in SYMBOLS:
             dN[s] = dict(data[s]); dN[s]["aggr"] = data[s]["aggr"][perm]
-            dN[s]["Xb"] = data[s]["Xb"]  # keep
         nm2 = build_xasset_channels(dN)
         pf = eval_family(dN, nm2, _fam(nm2)["b0b"], "null", folds)
-        b = eval_family(dN, nm2, None, "nb", folds)
-        null.append(np.nanmean(pf - b))
+        null.append(np.nanmean(pf - base))
     null = np.array(null)
     print("=== ΔP over baseline (cross-sectional clean Pearson) ===")
     print(f"{'family':8s} {'meanP':>8s} {'ΔP':>8s} {'sign':>6s}  per-fold ΔP")

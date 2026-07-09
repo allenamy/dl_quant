@@ -95,6 +95,9 @@ def eval_family(data, names, cols_o, label, folds):
                 parts.append(d["Xo"][tr][:, cols_o])
             Xtr.append(np.concatenate(parts, 1)); ytr.append(d["y"][tr])
         Xtr = np.nan_to_num(np.concatenate(Xtr)); ytr = np.concatenate(ytr)
+        if len(ytr) > 400_000:                    # cap Ridge train rows (coefs stable;
+            sel = np.linspace(0, len(ytr) - 1, 400_000).astype(int)   # ~10x faster fits,
+            Xtr = Xtr[sel]; ytr = ytr[sel]        # essential for the 20x shuffle-null)
         mu, sd = Xtr.mean(0), Xtr.std(0) + 1e-9
         r = Ridge(alpha=ALPHA).fit((Xtr - mu) / sd, ytr)
         Ps = []
