@@ -82,10 +82,10 @@ def _clean600_flags(pred_idx: np.ndarray, ts: np.ndarray) -> np.ndarray:
     return flags
 
 
-def build():
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    days = list_days(WIN_START, WIN_END)
-    print(f"[cache] window {WIN_START}..{WIN_END}: {len(days)} trading days, "
+def build(win_start=WIN_START, win_end=WIN_END, cache_dir=CACHE_DIR):
+    os.makedirs(cache_dir, exist_ok=True)
+    days = list_days(win_start, win_end)
+    print(f"[cache] window {win_start}..{win_end}: {len(days)} trading days, "
           f"{len(SYMBOLS)} symbols, pred_stride={PRED_STRIDE}s, clean_gap={CLEAN_GAP}s")
 
     # per-symbol accumulators
@@ -132,7 +132,7 @@ def build():
 
     # write per-symbol npz
     meta = {
-        "window": [WIN_START, WIN_END],
+        "window": [win_start, win_end],
         "n_days_listed": len(days),
         "n_days_failed": n_fail,
         "pred_stride_s": PRED_STRIDE,
@@ -152,18 +152,27 @@ def build():
         day = np.concatenate(acc[s]["day"]).astype(np.int32)
         clean600 = np.concatenate(acc[s]["clean600"]).astype(bool)
         # rows are appended in day order; ts already sorted within and across days
-        np.savez(p.join(CACHE_DIR, f"{s}.npz"),
+        np.savez(p.join(cache_dir, f"{s}.npz"),
                  X=X, y=y, ts=ts, day=day, clean600=clean600)
         meta["per_symbol_counts"][s] = {"n": int(X.shape[0]),
                                         "n_clean": int(clean600.sum())}
         print(f"  saved {s}: n={X.shape[0]:7d} n_clean={int(clean600.sum()):6d}")
 
-    with open(p.join(CACHE_DIR, "feature_names.json"), "w") as f:
+    with open(p.join(cache_dir, "feature_names.json"), "w") as f:
         json.dump(feat_names, f, indent=2)
-    with open(p.join(CACHE_DIR, "build_meta.json"), "w") as f:
+    with open(p.join(cache_dir, "build_meta.json"), "w") as f:
         json.dump(meta, f, indent=2)
-    print(f"[cache] done in {(time.time()-t0)/60:.1f} min -> {CACHE_DIR}")
+    print(f"[cache] done in {(time.time()-t0)/60:.1f} min -> {cache_dir}")
 
 
 if __name__ == "__main__":
-    build()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--win_start", type=int, default=WIN_START,
+                    help="first day YYYYMMDD (default 20240601 = production window)")
+    ap.add_argument("--win_end", type=int, default=WIN_END,
+                    help="last day YYYYMMDD (default 20250930)")
+    ap.add_argument("--out_dir", default=CACHE_DIR,
+                    help="output cache dir (default the production panel_cache)")
+    args = ap.parse_args()
+    build(win_start=args.win_start, win_end=args.win_end, cache_dir=args.out_dir)
