@@ -785,6 +785,20 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
     return metrics
 
 
+def _time_ema_Y(Y, hl):
+    """P1: causal time-EMA of the (T,S) target over the pred-grid row axis, per asset.
+    NaN-aware (ignore_na carries the EMA over invalid rows); re-masks to the original
+    valid pattern so the loss's valid mask is unchanged. Continuous across day
+    boundaries (minor over-smoothing at the ~overnight gap — acceptable for a first
+    persistence pass). Eval is unaffected (panel_ref keeps raw Y)."""
+    import pandas as pd
+    orig_nan = ~np.isfinite(Y)
+    sm = (pd.DataFrame(Y).ewm(halflife=hl, adjust=False, ignore_na=True)
+          .mean().to_numpy().astype(np.float32))
+    sm[orig_nan] = np.nan
+    return sm
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--milestone", type=int, choices=[0, 1, 2], default=0)
@@ -796,6 +810,10 @@ def main():
     ap.add_argument("--fold_start", type=int, default=0,
                     help="skip folds with index < this (resume a partially-done "
                          "walk-forward; global fold index preserved for exports)")
+    ap.add_argument("--smooth_target_hl", type=int, default=0,
+                    help="P1 persistence arm: causal time-EMA the TRAINING target "
+                         "(halflife in pred-steps=180s) so predictions gain temporal "
+                         "persistence. panel_ref keeps RAW Y for honest eval. 0=off.")
     ap.add_argument("--w_pin", type=float, default=None, help="pinball weight override (ablation)")
     ap.add_argument("--resid_on_funding", action="store_true",
                     help="DL stage-2: orthogonalize the residual target on funding_ema per ts (incremental-over-funding)")
@@ -907,6 +925,16 @@ def main():
                   % (args.horizon, CL_save.any(1).mean()), flush=True)
         np.savez(p.join(save_dir, "panel_ref.npz"), ts=data.ts, day=data.day,
                  Y=data.Y, CL=CL_save, symbols=np.array(SYMBOLS))
+    # P1 persistence arm: smooth the TRAINING target AFTER panel_ref is saved with the
+    # RAW Y, so eval (0C scorer + net-cost harness, which score preds vs panel_ref.Y)
+    # stays honest on raw forward returns while the model learns a slower, more
+    # temporally-persistent target -> higher prediction weight-autocorr (the confirmed
+    # M0 defect). Trainer-internal fold metric/checkpoint is then on the smoothed target
+    # (a proxy); the deployment KPI is raw rank-IC + net-cost, scored downstream.
+    if args.smooth_target_hl > 0:
+        data.Y = _time_ema_Y(data.Y, args.smooth_target_hl)
+        print(f"[P1] TRAINING target time-EMA smoothed hl={args.smooth_target_hl} "
+              f"pred-steps (panel_ref keeps RAW Y for eval)", flush=True)
     cap_w = load_cap_weights() if args.milestone == 2 else None
     if args.raw:
         # pretrain mode reads the pretrain-period raw cache (built against the
