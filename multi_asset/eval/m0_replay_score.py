@@ -80,25 +80,33 @@ def main():
                     help="smoke: also print whole-window numbers to reconcile vs the scorecard")
     a = ap.parse_args()
 
-    # CANONICAL grid = the FUNDING panel (built with the >=3600 CL). M0's own panel_ref carries the
-    # ~720s dense-CL landmine unless 0B re-exports it >=3600 — so we align M0's pred onto funding's grid,
-    # exactly as portfolio_scorecard.py does. (--grid_from m0 to override once M0 exports >=3600 CL.)
-    Fp = load_panel(a.funding_tag, a.export)
+    # CANONICAL grid = the panel that carries the >=3600 CL. Default = the funding panel (as
+    # portfolio_scorecard.py does); --grid_from m0 once the M0 panel_ref exports >=3600 CL.
+    # If the funding panel is absent, score M0 STANDALONE (no blend) — requires --grid_from m0.
     Mp = load_panel(a.m0_tag, a.export)
-    if a.grid_from == "m0":
-        G, other = Mp, Fp
-    else:
-        G, other = Fp, Mp
+    try:
+        Fp = load_panel(a.funding_tag, a.export)
+        have_funding = True
+    except (FileNotFoundError, OSError, ValueError) as e:
+        if a.grid_from != "m0":
+            raise SystemExit(f"funding panel '{a.funding_tag}' missing ({e}); rerun with --grid_from m0 to score M0 standalone")
+        print(f"[warn] funding panel '{a.funding_tag}' MISSING -> scoring M0 STANDALONE (no funding / no R4 blend)", flush=True)
+        Fp = None; have_funding = False
+    G, other = (Mp, Fp) if a.grid_from == "m0" else (Fp, Mp)
     Y, CL, ts, day = G["Y"], G["CL"], G["ts"].astype(np.int64), G["day"].astype(np.int64)
-    grid_pred = G["pred"]; other_ts = other["ts"].astype(np.int64)
-    if other["pred"].shape == grid_pred.shape and np.array_equal(other_ts, ts):
-        other_pred = other["pred"]
+    grid_pred = G["pred"]
+    if have_funding:
+        other_ts = other["ts"].astype(np.int64)
+        if other["pred"].shape == grid_pred.shape and np.array_equal(other_ts, ts):
+            other_pred = other["pred"]
+        else:
+            common, i_g, i_o = np.intersect1d(ts, other_ts, return_indices=True)
+            print(f"[align] grid ts {len(ts)} vs other ts {len(other_ts)} -> {len(common)} common", flush=True)
+            Y, CL, ts, day, grid_pred = Y[i_g], CL[i_g], ts[i_g], day[i_g], grid_pred[i_g]
+            other_pred = other["pred"][i_o]
+        funding, M0 = (grid_pred, other_pred) if a.grid_from != "m0" else (other_pred, grid_pred)
     else:
-        common, i_g, i_o = np.intersect1d(ts, other_ts, return_indices=True)
-        print(f"[align] grid ts {len(ts)} vs other ts {len(other_ts)} -> {len(common)} common", flush=True)
-        Y, CL, ts, day, grid_pred = Y[i_g], CL[i_g], ts[i_g], day[i_g], grid_pred[i_g]
-        other_pred = other["pred"][i_o]
-    funding, M0 = (grid_pred, other_pred) if a.grid_from != "m0" else (other_pred, grid_pred)
+        M0 = grid_pred; funding = None
 
     dense = float(CL.mean())
     print(f"grid={a.grid_from} (funding_tag={a.funding_tag}, m0_tag={a.m0_tag}): T={len(ts)} S={Y.shape[1]} | "
@@ -107,7 +115,7 @@ def main():
           f"-> {dt.datetime.utcfromtimestamp(int(ts[-1])/(1e9 if ts[0]>1e17 else 1e3)):%Y-%m-%d}", flush=True)
 
     yr = _years(ts)
-    comb = blend([funding, M0], Y, CL)
+    comb = blend([funding, M0], Y, CL) if have_funding else None
     per_year_m0 = {}; per_year_blend = {}; per_year_fund = {}
     for y in sorted(np.unique(yr)):
         rows = np.where(yr == y)[0]
@@ -116,11 +124,12 @@ def main():
         Yr, CLr, tsr, dayr = _row_subset(Y, rows), _row_subset(CL, rows), _row_subset(ts, rows), _row_subset(day, rows)
         print(f"\n===== YEAR {y}  (n_rows={len(rows)}) =====", flush=True)
         rm0 = _score_one("M0_dl", _row_subset(M0, rows), Yr, CLr, tsr, dayr, a.horizon)
-        rfd = _score_one("funding_ema", _row_subset(funding, rows), Yr, CLr, tsr, dayr, a.horizon)
-        rbl = _score_one("BLEND (funding+M0)", _row_subset(comb, rows), Yr, CLr, tsr, dayr, a.horizon)
-        for r in (rm0, rfd, rbl):
-            print(_fmt(r), flush=True)
-        per_year_m0[y] = rm0; per_year_fund[y] = rfd; per_year_blend[y] = rbl
+        print(_fmt(rm0), flush=True); per_year_m0[y] = rm0
+        if have_funding:
+            rfd = _score_one("funding_ema", _row_subset(funding, rows), Yr, CLr, tsr, dayr, a.horizon)
+            rbl = _score_one("BLEND (funding+M0)", _row_subset(comb, rows), Yr, CLr, tsr, dayr, a.horizon)
+            print(_fmt(rfd), flush=True); print(_fmt(rbl), flush=True)
+            per_year_fund[y] = rfd; per_year_blend[y] = rbl
 
     # ---- pre-registered read summary (R1-R4) ----
     def _collect(d, key):
@@ -130,24 +139,30 @@ def main():
     print("\n" + "=" * 70)
     print("PRE-REGISTERED READ (R1-R5) — see docs/2026-07-09_M0_fullhistory_replay_prereg.md")
     m0_ic = _collect(per_year_m0, "ic"); m0_z = _collect(per_year_m0, "z"); m0_n5 = _nsh5(per_year_m0)
-    bl_n5 = _nsh5(per_year_blend)
     print(f"  M0 per-year IC   : {[round(x,4) for x in m0_ic]}  (mean {np.mean(m0_ic):+.4f} median {np.median(m0_ic):+.4f})")
     print(f"  M0 per-year z    : {m0_z}")
     print(f"  M0 net-Sh@5bps   : {m0_n5}  (mean {np.mean(m0_n5):+.2f} median {np.median(m0_n5):+.2f})")
-    print(f"  BLEND net-Sh@5bps: {bl_n5}  (mean {np.mean(bl_n5):+.2f} median {np.median(bl_n5):+.2f})")
+    if have_funding:
+        bl_n5 = _nsh5(per_year_blend)
+        print(f"  BLEND net-Sh@5bps: {bl_n5}  (mean {np.mean(bl_n5):+.2f} median {np.median(bl_n5):+.2f})")
+    else:
+        print(f"  BLEND net-Sh@5bps: (funding panel absent — R4 pending fund_ema_fullhist)")
     print(f"  R1 regime-robust : IC z>=2.5 all years? {all(z>=2.5 for z in m0_z)} | sign-consistent+? {all(x>0 for x in m0_ic)}")
     if 2024 in per_year_m0 and per_year_m0[2024]:
-        m24 = per_year_m0[2024]["net_sh"].get(5.0); f24 = per_year_fund.get(2024, {}) and per_year_fund[2024]["net_sh"].get(5.0)
-        print(f"  R2 DIVERSIFY 2024: M0 net-Sh@5={m24}  funding net-Sh@5={f24}  "
-              f"-> {'M0 DIVERSIFIES funding loss-year' if (m24 or -9)>0 and (f24 or 9)<0 else 'see values'}")
+        m24 = per_year_m0[2024]["net_sh"].get(5.0)
+        f24 = per_year_fund.get(2024, {}).get("net_sh", {}).get(5.0) if per_year_fund.get(2024) else None
+        b24 = per_year_blend.get(2024, {}).get("net_sh", {}).get(5.0) if per_year_blend.get(2024) else None
+        print(f"  R2 DIVERSIFY 2024: M0 net-Sh@5={m24}  funding net-Sh@5={f24}  BLEND net-Sh@5={b24}  "
+              f"-> {'M0 net-POSITIVE in 2024 (decisive diversification test)' if (m24 or -9)>0 else 'M0 net-negative 2024'}")
     print("=" * 70)
 
     if a.validate:
         print("\n[VALIDATE] whole-window (reconcile vs scorecard: M0 IC~0.0355, blend net-Sh@2~4.56):")
-        for nm, sig in [("funding_ema", funding), ("M0_dl", M0), ("BLEND", comb)]:
+        sigs = [("M0_dl", M0)] + ([("funding_ema", funding), ("BLEND", comb)] if have_funding else [])
+        for nm, sig in sigs:
             r = _score_one(nm, sig, Y, CL, ts, day, a.horizon)
             print(_fmt(r))
-        print("  latency M0:", latency(M0, Y, CL, ts, a.horizon), "| funding:", latency(funding, Y, CL, ts, a.horizon))
+        print("  latency M0:", latency(M0, Y, CL, ts, a.horizon))
     print("DONE_M0_REPLAY_SCORE")
 
 
