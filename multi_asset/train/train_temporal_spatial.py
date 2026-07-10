@@ -59,6 +59,9 @@ _KILL = False    # pre-registered KILL gates when --kill_gates: fold0 val-rankIC
 _N_FHEADS = 0    # STAGE-2B: K orthogonal factor heads (0 = off, bit-identical)
 _LAM_ORTH = 1.0  # STAGE-2B orthogonality-penalty weight
 _FUND_DIR = "funding_factor_cache"  # funding_ema source dir (rel to dirname(EXPORT)); --funding_dir overrides
+_PRED_SMOOTH = 0.0  # P1b: prediction-smoothness penalty weight (0=off, bit-identical). Penalizes
+                    # |q50_t - q50_{t-1}| over CONTIGUOUS-ts training batches -> temporally-persistent
+                    # predictions WITHOUT changing the (raw) target. Attacks M0's weight-autocorr defect.
 
 EXPORT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
           "multi_asset/exports/train")
@@ -168,6 +171,11 @@ def gpu_day_batches(F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
     order = np.arange(bars.shape[0])
     if shuffle and rng is not None:
         rng.shuffle(order)
+    elif _PRED_SMOOTH > 0:
+        # P1b: contiguous-ts batches (sort by bar) so q50_t - q50_{t-1} within a batch is a
+        # valid temporal diff for the smoothness penalty. Per-row windows are unchanged (still
+        # <=t), so no leak; only the batch ORDER changes.
+        order = np.argsort(bars, kind="stable")
     for b0 in range(0, order.shape[0], batch_ts):
         bidx = torch.from_numpy(order[b0:b0 + batch_ts]).to(DEV)
         bb = bars_g[bidx]                                       # (B,)
@@ -582,7 +590,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
             d_rank_sum, d_rank_n = 0.0, 0
             for xb, yraw, mb, rr_b, xc, yx, xr, xb25, xbt in gpu_day_batches(
                     F_all, mask_all, y_all, rows, bars, mu_g, sd_g, sigma_g,
-                    offs_g, data.W, BATCH_TS, rng=rng, shuffle=True, coarse=coarse,
+                    offs_g, data.W, BATCH_TS, rng=rng, shuffle=(_PRED_SMOOTH <= 0), coarse=coarse,
                     y_extra=y_extra, R_all=R_all, rmu_g=rmu_g, rsd_g=rsd_g,
                     B25_all=B25_all, bmu_g=bmu_g, bsd_g=bsd_g,
                     BT_all=BT_all, btmu_g=btmu_g, btsd_g=btsd_g):
@@ -611,6 +619,15 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                 else:
                     loss, parts = residual_loss(out["quantiles"], r, mb, rank_kind=RANK_KIND,
                                                 w_huber=W_HUBER, w_rank=W_RANK, w_pin=W_PIN)
+                # P1b: prediction-smoothness penalty over the CONTIGUOUS-ts batch (raw target
+                # unchanged) -> temporally-persistent q50 (attacks the M0 weight-autocorr defect).
+                if _PRED_SMOOTH > 0 and out["quantiles"].shape[0] > 1:
+                    q50s = out["quantiles"][:, :, 1]             # (B,S) point pred, ts-ordered
+                    dq = q50s[1:] - q50s[:-1]                    # consecutive-ts diff
+                    vp = mb[1:].float() * mb[:-1].float()        # valid at both t and t-1
+                    sm = (dq * dq * vp).sum() / vp.sum().clamp_min(1.0)
+                    loss = loss + _PRED_SMOOTH * sm
+                    parts["smooth"] = float(sm.detach())
                 # NX-S3 MTL: aux-horizon heads on the shared trunk (w=0.3 each).
                 # Aux residual sigma via diffusion scaling sqrt(h/h0) (measured-exact).
                 for ai, (h_aux, y_aux) in enumerate(sorted(yx.items())):
@@ -811,9 +828,11 @@ def main():
                     help="skip folds with index < this (resume a partially-done "
                          "walk-forward; global fold index preserved for exports)")
     ap.add_argument("--smooth_target_hl", type=int, default=0,
-                    help="P1 persistence arm: causal time-EMA the TRAINING target "
-                         "(halflife in pred-steps=180s) so predictions gain temporal "
-                         "persistence. panel_ref keeps RAW Y for honest eval. 0=off.")
+                    help="P1a (DEPRECATED — over-smooths to a lagged proxy): causal time-EMA "
+                         "the TRAINING target. Use --pred_smooth_lambda instead. 0=off.")
+    ap.add_argument("--pred_smooth_lambda", type=float, default=0.0,
+                    help="P1b persistence arm: weight of the |q50_t - q50_{t-1}| penalty over "
+                         "CONTIGUOUS-ts batches (raw target unchanged). 0=off (bit-identical).")
     ap.add_argument("--w_pin", type=float, default=None, help="pinball weight override (ablation)")
     ap.add_argument("--resid_on_funding", action="store_true",
                     help="DL stage-2: orthogonalize the residual target on funding_ema per ts (incremental-over-funding)")
@@ -951,11 +970,12 @@ def main():
         data.bt_dir = p.join(p.dirname(EXPORT), "btc_trade_perp")    # engineered trades
         print(f"[dmf] enabled: ladder={data.b25_dir} trades={data.bt_dir}", flush=True)
     zall = load_btc25(data) if args.btc25 else None
-    global _FUND_G, _KILL, _N_FHEADS, _LAM_ORTH, _FUND_DIR
+    global _FUND_G, _KILL, _N_FHEADS, _LAM_ORTH, _FUND_DIR, _PRED_SMOOTH
     _KILL = args.kill_gates
     _N_FHEADS = args.n_factor_heads
     _LAM_ORTH = args.lam_orth
     _FUND_DIR = args.funding_dir
+    _PRED_SMOOTH = args.pred_smooth_lambda
     _FUND_G = torch.from_numpy(load_funding(data)).to(DEV) if args.resid_on_funding else None
     tag = args.tag or f"M{args.milestone}"
 
