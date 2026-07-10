@@ -53,16 +53,25 @@ def book_stats(sig, Y, CL, ts, day, horizon, cost_bps=2.0):
             new = alpha * tw[k] + (1 - alpha) * held
             tn[k] = np.abs(new - held).sum(); g[k] = float((new * Yr[k]).sum()); held = new
         return g, tn
-    # operating alpha = best break-even
-    best = dict(be=-1e18)
+    # operating alpha = best NET-SHARPE at the headline cost (the deployable operating point).
+    # NOT max-break-even: for an UNPROFITABLE fast/one-period signal, max-BE wrongly selects the
+    # full-turnover point (least-negative gross/turnover) whose net-Sh is catastrophic; a rational
+    # deployer instead EMA-holds to minimise turnover cost. Net-Sh-optimal gives that honest point.
+    # For profitable/persistent signals both criteria pick the same low-turnover alpha (no change to
+    # the validated 2025/funding numbers); the fix only affects unprofitable fast signals (M0 2023/24:
+    # −22 full-turnover -> −2 EMA-hold). Cross-checked vs 0B backtest_longshort (2026-07-10).
+    c = cost_bps * 1e-4
+    best = dict(nsh=-1e18, alpha=ALPHA_GRID[0])
     for al in ALPHA_GRID:
-        g, tn = held_series(al); be = g.mean() / tn.mean() * 1e4 if tn.mean() > 1e-12 else -1e18
-        if be > best["be"]:
-            best = dict(be=float(be), alpha=al)
-    g, tn = held_series(best["alpha"]); c = cost_bps * 1e-4
+        g, tn = held_series(al); net = g - tn * c
+        nsh = net.mean() / net.std() * ann if net.std() > 0 else -1e18
+        if nsh > best["nsh"]:
+            best = dict(nsh=float(nsh), alpha=al)
+    g, tn = held_series(best["alpha"])
+    be = float(g.mean() / tn.mean() * 1e4) if tn.mean() > 1e-12 else np.nan  # break-even AT the operating alpha
     net = g - tn * c                                            # per-period net PnL at the headline cost
     netsh = float(net.mean() / net.std() * ann) if net.std() > 0 else np.nan
-    # stressed-cost grid: net-Sharpe at 2 / 5 / 10 bps/side (operating alpha is cost-independent)
+    # stressed-cost grid: net-Sharpe at 2 / 5 / 10 bps/side (at the operating alpha chosen above)
     net_sh_grid = {}
     for cb in (2.0, 5.0, 10.0):
         nn = g - tn * (cb * 1e-4)
@@ -85,7 +94,7 @@ def book_stats(sig, Y, CL, ts, day, horizon, cost_bps=2.0):
     pos_months = sum(1 for v in mo.values() if v["net_bps"] > 0)
     # max drawdown on cumulative net (bps)
     cum = np.cumsum(net) * 1e4; peak = np.maximum.accumulate(cum); dd = cum - peak
-    return dict(n=n, be=round(best["be"], 2), alpha=best["alpha"], turnover=round(float(tn.mean()), 4),
+    return dict(n=n, be=round(be, 2), alpha=best["alpha"], turnover=round(float(tn.mean()), 4),
                 gross_sh=round(grosssh, 2), net_sh_c2=round(netsh, 2), net_sh_grid=net_sh_grid,
                 net_ann_bps_c2=round(float(net.mean() * per_yr * 1e4), 0),
                 per_fold_net_sh=pf, months_pos=f"{pos_months}/{len(mo)}", max_dd_bps=round(float(dd.min()), 1),
