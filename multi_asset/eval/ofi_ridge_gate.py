@@ -79,9 +79,15 @@ def _fam_cols(names):
 
 
 def eval_family(data, names, cols_o, label, folds):
-    """Expanding-window Ridge walk-forward; return (meanΔP-vs-baseline placeholder handled
-    by caller) — here returns per-fold clean per-asset mean Pearson for the given feature
-    set (baseline + cols_o)."""
+    """Expanding-window Ridge walk-forward; returns per-fold clean per-asset mean Pearson.
+
+    ⚠ METRIC CAVEAT (2026-07-10, B0d audit): per-asset Pearson REWARDS MARKET-TIMING — a
+    common directional signal (e.g. market_ret x asset_ret) inflates it via beta, but a
+    dollar-neutral cross-sectional L/S book neutralizes that to zero. For a market-neutral
+    GO/NO-GO, score CROSS-SECTIONAL rank-IC instead (per-ts demean + rank corr across
+    assets); see b0d_xsec_check.py. B0d's per-asset ΔP +0.036 was +0.005 on xsec-rankIC.
+    B0a/B0b/B0c FAILs stand (failed on this metric, worse on the correct one). Refactor
+    this to xsec-rankIC when the next gate needs it (verify against b0d_xsec_check)."""
     per_fold = []
     for (train_mons, test_mons) in folds:
         # fit cross-sectional Ridge pooled over train rows (all assets), eval per-asset clean
