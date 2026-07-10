@@ -12,7 +12,7 @@ The original Book-1 headline (funding+M0 equal-risk blend, net-Sh 3.9–4.56) wa
 - **The equal-risk blend is dominated by funding-alone in all three years** — M0's 2023/24 turnover drag pulls the blend below funding.
 - **funding_ema is the robust net-cost core** — deployable (EMA-hold) net-Sh@5bps positive every year. Its megacap-replay "2024 loss (−1.52)" was a **fixed-turnover caliber artifact**: funding's 0.98 persistence means EMA-hold rescues 2024 to +0.82 (full-rebalance −0.99).
 
-**Deliverable conclusion (revised): Book-1's deployable core is funding_ema ALONE.** M0 is a real signal (IC-robust) but a **2025-window-conditional booster**, not a multi-year-additive leg. **New tradability KPI: prediction persistence (weight-autocorr) alongside IC** — a factor can be IC-robust yet net-cost-fragile if its signal is fast. Net-cost + persistence, not IC, is the gate. M0's highest-value fix = a **turnover-regularized loss** (DL v2 batch-1) that trains for persistence (its flaw is intrinsic signal speed, a training-target problem — distinct from a cost-accounting problem).
+**Deliverable conclusion (revised): Book-1's deployable core is funding_ema ALONE.** M0 is a real signal (IC-robust) but a **2025-window-conditional booster**, not a multi-year-additive leg. **New tradability KPI: prediction persistence (weight-autocorr) alongside IC** — a factor can be IC-robust yet net-cost-fragile if its signal is fast. Net-cost + persistence, not IC, is the gate. M0's highest-value fix = a **turnover-regularized loss** that trains for persistence (its flaw is intrinsic signal speed, a training-target problem — distinct from a cost-accounting problem). **[That fix was subsequently built and tested — see the CLOSING WORD subsection below: mechanism confirmed trainable, but insufficient to make M0 a standalone multi-year leg.]**
 
 ### Book-1 honest multi-year table (walk-forward, EMA-hold deployable, net-Sh@5bps; two-harness confirmed)
 | test year | train | M0 rank-IC (z) | M0 persistence | M0 net-Sh@5 | funding net-Sh@5 | blend net-Sh@5 |
@@ -23,9 +23,22 @@ The original Book-1 headline (funding+M0 equal-risk blend, net-Sh 3.9–4.56) wa
 
 (EMA-hold α0.02 = the deployable operating point; a full-turnover convention reads M0 2023/24 at −22/−23, but you cannot profitably hold a persistence-0.18 signal at any α — both operating points are net-negative. funding weight-autocorr 0.97–0.99 all years. Single-seed-42; 3-seed ensemble confirm recommended, but the persistence mechanism is structural.)
 
+### ★ CLOSING WORD on the DL-leg (M0 rescue arc, 2026-07-11) — both rescue paths tested
+Two independent rescue paths were run against M0's fast-signal defect. **Usage-layer** (tail-gate / funding-filter / rebalance-timing, `m0_usage_sweep.py`): ALL 14 variants REJECT — no way to *trade* a one-period signal net-cost-positive (`m0_usage_sweep`). **Training-side** (Δpred-penalty persistence loss, P1b, λ-ladder 0.1→0.3, `p1b_verdict.py`): the terminal three-way read —
+
+| | M0 | P1b λ0.1 | P1b λ0.3 |
+|---|---|---|---|
+| persistence 2023 / 2024 / 2025 | 0.26 / 0.18 / 0.51 | 0.47 / 0.37 / 0.38 | 0.46 / **0.65** / **0.77** |
+| net-Sh@5 2023 / 2024 / 2025 | −2.1 / −1.8 / +1.4 | −1.5 / −0.0 / +0.9 | −1.6 / −0.2 / **+1.8** |
+
+1. **M0-standalone-multi-year = CLOSED NEGATIVE.** 2023-type immature/chop regimes are untradeable at *any* dose — 2023 persistence stalls at 0.46 (<0.5) and net-cost at −1.6; the dosing window is capped by the 2023 IC boundary (already −20% at λ0.3) + σ compression (0.012–0.019). Net-cost never reaches ≥2/3 positive.
+2. **The persistence mechanism = CONFIRMED TRAINABLE** — the arc's lasting methodological win. The Δpred penalty makes the DL signal holdable (2024 0.18→0.65, 2025 0.51→0.77 clear 0.5) *without* cratering the good year (2025 net-Sh 1.4→1.8, IC preserved) — validating "regularize away unholdable fast noise." Persistence is now a trainable objective, not just a diagnostic KPI.
+3. **★ The conditional-booster of record is now P1b_lambda03, not original M0** — it strictly improves the 2025-regime booster (net-Sh 1.37→1.84, persistence 0.77). If the DL booster is ever deployed in a 2025-like (holdable) regime, use `P1b_lambda03`.
+4. **★ UNSOLVED — the activation condition.** How to know *ex-ante* that we're in a "holdable" regime is not solved. A causal persistence-regime detector would be required before any conditional deployment of the booster; without it, the DL leg stays **PARKED**. Deployable core is unchanged and complete without it: funding_ema + EMA-hold + vol-target.
+
 ## Executive summary (of the detailed sections below)
 - **Book-1 deployable core = funding_ema alone** (see §0): crowding-reversion, EMA-persistent (latency-flat), net-cost-positive every test year 2023-25. The §"Book-1 scorecard" table below is the **2025-window (fold-C) detail** — real, but the favorable window; read it with §0.
-- **M0 DL factor** — real, IC-robust, leak-audit-clean, but 2025-window-tradeable only; parked as a booster pending the turnover-reg-loss fix + 3-seed confirm.
+- **M0 DL factor** — real, IC-robust, leak-audit-clean, but 2025-window-tradeable only. Rescue arc CLOSED (see §0 closing word): both usage-layer and training-side fixes tested; standalone multi-year = negative; PARKED as a conditional booster (λ0.3-trained version of record) pending an unsolved causal persistence-regime detector.
 - **Book-2 = wide SIZE-premium sleeve**: cost-immune (net-Sharpe 2.11, turnover 0.0018) but capacity-capped (~$2.5M illiq ADV). A real diversifier, not scalable.
 - The whole tabular/library/DL-multi-head factor space beyond these was exhaustively tested and correctly rejected by the 5-gate factory.
 
