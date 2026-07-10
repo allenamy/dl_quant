@@ -59,23 +59,26 @@ def _mono(sig, Y, CL, nb=10):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(); ap.add_argument("--tag", default="L1_wrank03"); ap.add_argument("--label", default=None)
+    a = ap.parse_args(); lab = a.label or a.tag
     G = load_panel("fund_ema_h3600", E)
     Y, CL, ts, day = G["Y"], G["CL"].astype(bool), G["ts"].astype(np.int64), G["day"].astype(np.int64)
     funding = G["pred"]
     M0 = _align(ts, load_panel("fund_resid_h3600", E))
-    L1 = _align(ts, load_panel("L1_wrank03", E))
-    print(f"grid fund_ema_h3600: T={len(ts)} CL-frac={CL.mean():.3f}")
+    CAND = _align(ts, load_panel(a.tag, E))
+    print(f"grid fund_ema_h3600: T={len(ts)} CL-frac={CL.mean():.3f} | candidate tag={a.tag}")
 
-    print("\n=== HEAD-TO-HEAD (replacement: is L1 a better DL leg than M0?) ===")
-    print(f"{'factor':6s} | rank-IC  IC-tstat | mono(10bin) | persist(wt-ac) | net-Sh@5 BE turn")
-    for nm, sig in [("M0", M0), ("L1", L1)]:
+    print(f"\n=== HEAD-TO-HEAD (replacement: is {lab} a better DL leg than M0?) ===")
+    print(f"{'factor':8s} | rank-IC  IC-tstat | mono(10bin) | persist(wt-ac) | net-Sh@5 BE turn")
+    for nm, sig in [("M0", M0), (lab, CAND)]:
         ic, _ = _perts_ic(sig, Y, CL); tstat = ic.mean() / (ic.std() / np.sqrt(len(ic)) + 1e-12)
         st = book_stats(sig, Y, CL, ts, day, 3600)
-        print(f"{nm:6s} | {ic.mean():+.4f}  {tstat:6.1f}   | {_mono(sig, Y, CL):+.3f}      | "
+        print(f"{nm:8s} | {ic.mean():+.4f}  {tstat:6.1f}   | {_mono(sig, Y, CL):+.3f}      | "
               f"{_persist(sig, Y, CL):+.3f}         | {st['net_sh_grid'][5.0]}  {st['be']:.1f}  {st['turnover']:.3f}")
 
-    print("\n=== FACTORY additive check: L1 vs book [funding, M0] ===")
-    r = run_factory(L1, [funding, M0], Y, CL, ts, day, 3600, label="L1_wrank03",
+    print(f"\n=== FACTORY additive check: {lab} vs book [funding, M0] ===")
+    r = run_factory(CAND, [funding, M0], Y, CL, ts, day, 3600, label=lab,
                     z_gate=2.5, base_names=["funding", "M0"])
     p = r["passes"]
     print(f"  gate_a standalone null-z = {r['gate_a_nullz']['z']} (>=2.5? {p['a']})")
