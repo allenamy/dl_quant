@@ -420,7 +420,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
                cap_w=None, verbose=True, day_override=None, save_dir=None,
                multipool=False, horizon=600, coarse=False, init_ckpt=None, stats_from=None,
                aux_horizons=(), bilinear=False, epnet=False, epnet_soft=False,
-               attnpool=False, zall=None, cvar=0.0, b25=False, dmf=False):
+               attnpool=False, zall=None, cvar=0.0, b25=False, dmf=False, se_gate=False):
     uniq = data.uniq_days
     if day_override is not None:
         tr_days, va_days, te_days = day_override
@@ -544,7 +544,7 @@ def train_fold(fold_i, fold, data, milestone, max_epochs, patience,
         nhead=NHEAD, dropout=DROPOUT, cap_weights=cap_t, multipool=multipool,
         coarse=coarse, horizons=tuple([horizon] + sorted(aux_horizons)),
         bilinear=bilinear, epnet=epnet, epnet_soft=epnet_soft,
-        attnpool=attnpool, btc25=(zall is not None), raw_channels=raw_c,
+        attnpool=attnpool, se_gate=se_gate, btc25=(zall is not None), raw_channels=raw_c,
         btc25raw_channels=(0 if dmf else b25_c), btc_idx=int(SYMBOLS.index("bnfbtc")),
         dmf=dmf, dmf_trade_ch=(bt_c if dmf else 0),
         n_factor_heads=_N_FHEADS,
@@ -852,6 +852,9 @@ def main():
                     help="NX-M3a: asset-conditioned input channel gate (PEPNet)")
     ap.add_argument("--attnpool", action="store_true",
                     help="NX A/B: learned-query attention pool blended with last-token")
+    ap.add_argument("--se_gate", action="store_true",
+                    help="A1: SE squeeze-excitation (r=4) reweight of the 44 input channels "
+                         "per-window (REPLACE, zero-init gate=1). off=bit-identical.")
     ap.add_argument("--epnet_soft", action="store_true",
                     help="EPNet v2: gamma in [0.5,1.5] (tanh) instead of [0,2]")
     ap.add_argument("--coarse_pool", type=int, default=None,
@@ -998,7 +1001,7 @@ def main():
                        multipool=args.multipool, horizon=args.horizon,
                        coarse=args.coarse, zall=zall, bilinear=args.bilinear,
                        epnet=args.epnet, epnet_soft=args.epnet_soft,
-                       attnpool=args.attnpool, b25=args.btc25raw, dmf=args.dmf)
+                       attnpool=args.attnpool, b25=args.btc25raw, dmf=args.dmf, se_gate=args.se_gate)
         print("\n----- SMOKE RESULT -----", flush=True)
         print(json.dumps(m, indent=2), flush=True)
         return
@@ -1034,7 +1037,7 @@ def main():
                        init_ckpt=args.init_ckpt, stats_from=args.stats_from,
                        aux_horizons=aux_h, bilinear=args.bilinear, epnet=args.epnet,
                        epnet_soft=args.epnet_soft, attnpool=args.attnpool, zall=zall,
-                       cvar=args.cvar, b25=args.btc25raw, dmf=args.dmf)
+                       cvar=args.cvar, b25=args.btc25raw, dmf=args.dmf, se_gate=args.se_gate)
         if m is not None:
             all_m.append(m)
             print(f"[fold {i}] xsec_rankIC={m['xsec_rank_ic']:+.4f} IC-IR={m['xsec_ic_ir']:.2f} "

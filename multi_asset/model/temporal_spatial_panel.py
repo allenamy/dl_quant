@@ -64,9 +64,21 @@ class SharedTemporalEncoder(nn.Module):
     def __init__(self, n_feat: int, d: int, n_blocks: int = 2,
                  n_heads: int = 2, kernel_size: int = 15, dropout: float = 0.2,
                  multipool: bool = False, pool_windows=(30, 120),
-                 attnpool: bool = False):
+                 attnpool: bool = False, se_gate: bool = False, se_reduction: int = 4):
         super().__init__()
         assert not (multipool and attnpool), "multipool and attnpool are exclusive"
+        # A1 SE-gate: content-conditional squeeze-excitation over the 44 INPUT channels
+        # (squeeze = window-mean descriptor -> excite -> per-window channel weights). REPLACE-
+        # style (reweights the same channels, no new channel = avoids #29). Zero-init 2nd FC ->
+        # gate=1 at init (bit-identical start). Mechanism GBDT static crosses can't do:
+        # per-window state-conditional channel reweighting.
+        self.se_gate = se_gate
+        if se_gate:
+            hid = max(1, n_feat // se_reduction)
+            self.se_fc1 = nn.Linear(n_feat, hid)
+            self.se_fc2 = nn.Linear(hid, n_feat)
+            nn.init.zeros_(self.se_fc2.weight)
+            nn.init.zeros_(self.se_fc2.bias)
         self.input_proj = nn.Linear(n_feat, d)
         self.in_norm = nn.LayerNorm(d)
         self.backbone = ConformerBackbone(
@@ -96,6 +108,10 @@ class SharedTemporalEncoder(nn.Module):
             nn.init.normal_(self.scale_emb, std=0.02)
 
     def forward(self, x):  # x: (N, T, F) -> (N, d) or (N, K, d) if multipool
+        if self.se_gate:
+            s = x.mean(dim=1)                                   # (N,F) squeeze over the window
+            g = 2.0 * torch.sigmoid(self.se_fc2(torch.relu(self.se_fc1(s))))  # (N,F) gate, init 1
+            x = x * g.unsqueeze(1)                              # per-window channel reweight
         h = self.in_norm(self.input_proj(x))
         if self.attnpool:
             H = self.backbone(h)                            # (N, T, d)
@@ -148,6 +164,7 @@ class TemporalSpatialPanelModel(nn.Module):
         epnet: bool = False,
         epnet_soft: bool = False,
         attnpool: bool = False,
+        se_gate: bool = False,
         btc25: bool = False,
         raw_channels: int = 0,
         btc25raw_channels: int = 0,
@@ -174,7 +191,7 @@ class TemporalSpatialPanelModel(nn.Module):
             n_feat, d, n_blocks=n_blocks, n_heads=2,
             kernel_size=kernel_size, dropout=dropout,
             multipool=multipool, pool_windows=pool_windows,
-            attnpool=attnpool,
+            attnpool=attnpool, se_gate=se_gate,
         )
         self.K = self.encoder.K
         self.asset_id = nn.Parameter(torch.zeros(n_assets, d))
