@@ -22,7 +22,7 @@ Each backbone arm: same WidePanelData (168h windows, variable-membership mask), 
 | (a) INCREMENTAL IC | pooled rank-IC(pred, YR4) on CL4 × MEMBER110 + empirical-null **z** (re-derived N≈110, §3) | `factor_pipeline` |
 | (b) PERSISTENCE | weight-autocorr (the tradability KPI) | `m0_persistence_diag` |
 | (c) ★ FILL-WINDOW | entry-lag IC decay 30/60/120s → % surviving = alpha-horizon (the STANDING GATE, §4) | `y180_filldecay` |
-| (d) NET-COST | L/S net-Sh at prop cost {0.2,0.5,1.0} bps + break-even (4h rebalance = low turnover, cost-tolerant) | `execution_economics` |
+| (d) NET-COST | L/S net-Sh at ★ REALISTIC WIDE-BOOK cost {2.3 mega / 5.0 mega+mid-capped / 9.5 full} bps + break-even, EMA-hold operating point (the wide book is mid+small-cap, NOT mega — 0B fill census; prop sub-1bps over-credits it) | `wideA_score` / `wide_fillcost` |
 | (e) ★ WALK-FORWARD gate-d | expanding-fold ΔIC over baseline + **per-fold sign-consistency** — THE decisive gate | `factor_pipeline.gate_d` |
 
 **Leaderboard = one table, rows = arms, ranked by (e) gate-d ΔIC among the arms that PASS (a) null-z AND (c) fill-window AND (d) net-cost.** Most-incremental-wins. The Conformer (M0 paradigm) is the **reference row** — a new paradigm must beat it *incrementally* to justify its complexity (channel/complexity-addition penalty still applies).
