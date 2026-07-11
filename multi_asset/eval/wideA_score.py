@@ -23,7 +23,10 @@ from multi_asset.eval.backtest_longshort import rank_weights
 
 E = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/train"
 NULL_MEAN, NULL_STD = 0.00010, 0.00184   # re-derived N≈110 (wide_null_calib.py)
-COSTS = [0.2, 0.5, 1.0]
+# ★ REALISTIC wide-book effective cost (0B wide_fillcost.py tier model): the wide book is mid+small-cap
+# (49% notional small at ~13.5bps), NOT mega-cap — prop {0.2,0.5,1.0} bps over-credits it. Tiers:
+# 2.3=mega / 5.0=mega+mid-capped (the deployable, small-cap tail capped) / 9.5=full-book blended.
+COSTS = [2.3, 5.0, 9.5]
 H4 = 4 * 3600
 MIN = 8
 
@@ -70,7 +73,7 @@ def main():
     ens = np.nanmean(np.stack(heads), axis=0)                     # 6-head equal-risk ensemble
 
     print(f"arm={a.tag} | T={T} N={N} | usable-grid frac={M.mean():.3f} | folds={len(fold_rows)} (te sizes {[len(r) for r in fold_rows]})")
-    print(f"\n{'factor':>10} | {'IC(YR)':>8} {'null-z':>7} | {'per-fold IC (gate-d)':>26} {'sign-cons':>9} | {'persist':>7} | {'net-Sh@0.2/0.5/1.0':>20} | {'IC(raw)':>8}")
+    print(f"\n{'factor':>10} | {'IC(YR)':>8} {'null-z':>7} | {'per-fold IC (gate-d)':>26} {'sign-cons':>9} | {'persist':>7} | {'net-Sh@2.3/5.0/9.5bps(wide)':>27} | {'IC(raw)':>8}")
     cand = [(f"head_{k}", heads[k]) for k in range(K)] + [("ENSEMBLE", ens)]
     best = None
     for nm, F in cand:
