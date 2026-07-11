@@ -162,6 +162,31 @@ def _perhead_ic(scores, Ytgt, rows, member, CL, want_ir=False):
     return ic_mean, ic_ir
 
 
+def _ensemble_ic(scores, Ytgt, rows, member, CL):
+    """Honest ENSEMBLE rank-IC (0C's selection-bias-free metric): per-ts composite = mean of the
+    z-scored head columns, then xsec rank-IC vs Ytgt. The per-fold BEST-head IC is selection-biased
+    UPWARD (max over K noisy heads); the deployable signal is the head combination, so this is the
+    number that matches 0C's leaderboard scoring."""
+    ics = []
+    K = scores.shape[2]
+    for i in rows:
+        base = np.where(member[i] & CL[i] & np.isfinite(Ytgt[i]))[0]
+        if base.size < 5:
+            continue
+        comp = np.zeros(base.size); nk = 0
+        for k in range(K):
+            col = scores[i, base, k]
+            if np.isfinite(col).all() and col.std() > 1e-12:
+                comp += (col - col.mean()) / col.std(); nk += 1
+        if nk == 0:
+            continue
+        comp /= nk
+        ic = np.corrcoef(rankdata(comp), rankdata(Ytgt[i, base]))[0, 1]
+        if np.isfinite(ic):
+            ics.append(ic)
+    return float(np.mean(ics)) if ics else float("nan")
+
+
 def _head_persistence(scores, rows, member, CL, k):
     """Lag-1 persistence of head k: mean over assets of corr(score_t, score_{t+1}) on the sorted
     clean prediction hours (a proxy for weight-autocorr / turnover; higher = more tradeable)."""
@@ -289,6 +314,8 @@ def train_fold(fold_i, fold, data, args, fund_idx, save_dir=None, verbose=True):
     ic_r, ir_r = _perhead_ic(tsc, data.Y, te_rows, data.member, data.CL, want_ir=True)      # vs residual
     ic_raw = _perhead_ic(tsc, data.Yraw, te_rows, data.member, data.CL)                     # vs raw fwd ret
     best_h = int(np.nanargmax(ic_r)) if np.any(np.isfinite(ic_r)) else 0
+    ens_ic = _ensemble_ic(tsc, data.Y, te_rows, data.member, data.CL)       # honest (selection-bias-free)
+    ens_raw = _ensemble_ic(tsc, data.Yraw, te_rows, data.member, data.CL)
     persist = _head_persistence(tsc, te_rows, data.member, data.CL, best_h)
     if save_dir is not None:
         os.makedirs(save_dir, exist_ok=True)
@@ -297,10 +324,12 @@ def train_fold(fold_i, fold, data, args, fund_idx, save_dir=None, verbose=True):
                  te_days=np.asarray(te_days), horizon=data.H)
         torch.save(best_state if best_state is not None else model.state_dict(),
                    p.join(save_dir, f"fold_{fold_i}_model.pt"))
-    print(f"[fold {fold_i}] per-head test rank-IC (>=H CL) resid={[round(x, 4) if np.isfinite(x) else None for x in ic_r]} "
-          f"| best head {best_h} IC={ic_r[best_h]:+.4f} IR={ir_r[best_h]:.2f} "
-          f"raw={ic_raw[best_h]:+.4f} persist={persist:+.3f}", flush=True)
-    return {"resid_rank_ic": round(float(ic_r[best_h]), 4) if np.isfinite(ic_r[best_h]) else 0.0,
+    print(f"[fold {fold_i}] ENSEMBLE resid IC={ens_ic:+.4f} raw={ens_raw:+.4f} (honest) | "
+          f"best-head resid={ic_r[best_h]:+.4f} (selection-biased) IR={ir_r[best_h]:.2f} persist={persist:+.3f} | "
+          f"per-head={[round(x, 4) if np.isfinite(x) else None for x in ic_r]}", flush=True)
+    return {"ensemble_resid_ic": round(float(ens_ic), 4) if np.isfinite(ens_ic) else 0.0,
+            "ensemble_raw_ic": round(float(ens_raw), 4) if np.isfinite(ens_raw) else 0.0,
+            "resid_rank_ic": round(float(ic_r[best_h]), 4) if np.isfinite(ic_r[best_h]) else 0.0,
             "resid_ic_ir": round(float(ir_r[best_h]), 3) if np.isfinite(ir_r[best_h]) else 0.0,
             "raw_rank_ic": round(float(ic_raw[best_h]), 4) if np.isfinite(ic_raw[best_h]) else 0.0,
             "best_head": best_h, "persistence": round(persist, 4) if np.isfinite(persist) else None,
@@ -426,6 +455,8 @@ def main():
             encoder=args.encoder, n_factor_heads=args.n_factor_heads,
             target_horizon=args.target_horizon, xattn=args.xattn,
             pred_smooth_lambda=args.pred_smooth_lambda,
+            mean_ensemble_resid_ic=round(float(np.mean([m["ensemble_resid_ic"] for m in all_m])), 4),
+            per_fold_ensemble_ic=[m["ensemble_resid_ic"] for m in all_m],
             mean_resid_rank_ic=round(float(np.mean([m["resid_rank_ic"] for m in all_m])), 4),
             mean_resid_ic_ir=round(float(np.nanmean([m["resid_ic_ir"] for m in all_m])), 3),
             mean_raw_rank_ic=round(float(np.mean([m["raw_rank_ic"] for m in all_m])), 4),
