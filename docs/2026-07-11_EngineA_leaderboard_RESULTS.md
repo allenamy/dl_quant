@@ -11,7 +11,7 @@
 | 1 | **xattn** (cross-asset attn) | +0.0408 | **+0.0313** (13.6) | +0.0094 | [.035/.040/.048] ✓ | +2.04 / +1.81 / +1.42 | 0.77 | ★ **LEADER** (+0.0068 dyn over ref) |
 | 2 | **Conformer** (M0 paradigm) | +0.0312 | +0.0245 (11.1) | +0.0068 | [.033/.031/.030] ✓ | +1.66 / +1.39 / +0.95 | 0.66 | REFERENCE BAR |
 | — | pred-smooth λ0.3 | +0.0151 | +0.0130 (4.9) | +0.0021 | [.005/.006/.034] ✓ | +0.46 / −0.36 / −0.99 | 0.75 | REJECT (below bar + net-negative) |
-| pending | IPCA (factor list) | — | — | — | — | — | — | scoring on arrival (residual mom/rev candidates) |
+| — | IPCA resmom_24h (K=3 best) | +0.0059 | n/a (factor) z3.0 | — | [.008/.009/**.001**] | (tiny IC) | — | REJECT — DECAYING (fold-2→~0) + raw-IC ~0 (residual-only, fragile) + 4-5× below bar |
 | pending | QIM, aux-MTL | — | — | — | — | — | — | GPU race ~1-2h |
 
 ## Read
