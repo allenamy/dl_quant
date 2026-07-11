@@ -15,7 +15,10 @@ Data is small (~13k h x 140 coins x ~24 ch). Verify causal <=t + shuffle-future 
 Run: PYTHONPATH=. python multi_asset/data/build_wide_dl.py
 """
 from __future__ import annotations
+import os.path as _p
+import sys as _sys
 import numpy as np
+_sys.path.insert(0, _p.dirname(_p.dirname(_p.dirname(_p.abspath(__file__)))))  # runnable w/o PYTHONPATH
 from multi_asset.data.wide_factory import build_factors, _shift, _roll
 
 PANEL = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
