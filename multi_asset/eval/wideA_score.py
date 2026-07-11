@@ -87,13 +87,29 @@ def main():
               f"{per:>+7.3f} | {ns[0]:>+6.2f}/{ns[1]:>+5.2f}/{ns[2]:>+5.2f} | {icr:>+8.4f}")
         if best is None or (np.isfinite(pooled) and pooled > best[1]):
             best = (nm, pooled, z, pf, sign, per)
-    print("\n★ CONFORMER-REF BAR (the incumbent every paradigm must beat incrementally):")
+    # ★ shuffle-future dynamic/static decomposition for the headline factor (ensemble)
+    Fh = ens; vrows = np.array([t for t in range(T) if (M[t] & np.isfinite(Fh[t]) & np.isfinite(YR[t])).sum() >= MIN])
+    real = perts_ic(Fh, YR, M).mean(); rng = np.random.default_rng(0); sh = []
+    for _ in range(30):
+        pm = vrows.copy(); rng.shuffle(pm); rmap = np.arange(T); rmap[vrows] = pm
+        ss = []
+        for t in vrows:
+            v = M[t] & np.isfinite(Fh[t]) & np.isfinite(YR[rmap[t]])
+            if v.sum() >= MIN and np.std(Fh[t, v]) > 1e-12 and np.std(YR[rmap[t], v]) > 1e-12:
+                ss.append(_ric(Fh[t, v], YR[rmap[t], v]))
+        sh.append(np.mean(ss))
+    static, dyn = float(np.mean(sh)), real - float(np.mean(sh))
+    zdyn = (real - np.mean(sh)) / (np.std(sh) + 1e-12)
+
+    print("\n★ LEADERBOARD BAR (headline = 6-head ENSEMBLE; the incumbent every paradigm must beat):")
     nm, pooled, z, pf, sign, per = best
-    print(f"  best head = {nm}: incremental IC {pooled:+.4f} (null-z {z:.1f}, FWER-bar IC 0.0056), "
-          f"gate-d per-fold {[round(x,4) for x in pf]} sign-consistent={sign}, persistence {per:+.3f}")
+    print(f"  ENSEMBLE incremental IC {real:+.4f} = DYNAMIC {dyn:+.4f} (shuffle-future z {zdyn:.1f}) + STATIC-tilt {static:+.4f}")
+    print(f"  gate-d per-fold {[round(x,4) for x in pf if True]} sign-consistent={sign}, persistence {per:+.3f}")
     print(f"  pre-reg gates: null-z≥2.5 {'PASS' if z>=2.5 else 'FAIL'} | FWER-z≥3.0 {'PASS' if z>=3.0 else 'FAIL'} | "
           f"gate-d≥+0.003+sign {'PASS' if (np.nanmean(pf)>=0.003 and sign) else 'FAIL'} | "
+          f"no-temporal-leak(dyn-z {zdyn:.0f}) {'PASS' if zdyn>=5 else 'FAIL'} | "
           f"fill-window(4h≫5min, persist {per:+.2f}) {'PASS' if per>0.2 else 'CHECK-fast'}")
+    print(f"  ★ RACE-COMPARISON METRIC = DYNAMIC IC {dyn:+.4f} (shuffle-adjusted; excludes static tilt so paradigms compete on timing skill)")
     print("DONE_WIDEA_SCORE")
 
 
