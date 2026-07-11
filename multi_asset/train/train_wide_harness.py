@@ -48,10 +48,12 @@ from scipy.stats import rankdata
 sys.path.insert(0, p.dirname(p.dirname(p.dirname(p.abspath(__file__)))))
 from multi_asset.data.wide_panel_dataset import WidePanelData  # noqa: E402
 from multi_asset.model.wide_harness import (  # noqa: E402
-    ConformerPanelEncoder, WideFactorModel,
+    ConformerPanelEncoder, WideFactorModel, WideQIMModel,
 )
 from multi_asset.model.temporal_spatial_panel import count_params  # noqa: E402
-from multi_asset.losses.xsec_residual_loss import stage2b_loss  # noqa: E402
+from multi_asset.losses.xsec_residual_loss import (  # noqa: E402
+    stage2b_loss, masked_pinball, lambda_rank_ic,
+)
 
 EXPORT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
           "multi_asset/exports/train")
@@ -164,7 +166,8 @@ def _head_persistence(scores, rows, member, CL, k):
 # --------------------------------------------------------------------------- #
 def train_fold(fold_i, fold, data, args, fund_idx, save_dir=None, verbose=True):
     tr_days, va_days, te_days = fold["tr"], fold["va"], fold["te"]
-    K = args.n_factor_heads
+    # K_score = number of scored candidate columns (QIM -> [implied_mean, q50]).
+    K = 2 if args.qim else args.n_factor_heads
     data.set_fold(tr_days)
     if verbose:
         print(f"[fold {fold_i}] days tr={len(tr_days)} va={len(va_days)} te={len(te_days)} | "
@@ -173,11 +176,18 @@ def train_fold(fold_i, fold, data, args, fund_idx, save_dir=None, verbose=True):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     enc = build_encoder(args.encoder, data.C, args.d_model, args.n_blocks, KERNEL, DROPOUT)
-    model = WideFactorModel(enc, n_factor_heads=K, xattn=args.xattn,
-                            n_xattn=args.n_xattn, dropout=DROPOUT).to(DEV)
+    if args.qim:
+        model = WideQIMModel(enc, n_quantiles=args.n_quantiles, xattn=args.xattn,
+                             n_xattn=args.n_xattn, dropout=DROPOUT).to(DEV)
+        taus = model.head.taus.detach().cpu().tolist()
+    else:
+        aux_h = tuple(int(x) for x in args.aux_horizons.split(",") if x.strip()) if args.aux_mtl else ()
+        model = WideFactorModel(enc, n_factor_heads=K, xattn=args.xattn,
+                                n_xattn=args.n_xattn, dropout=DROPOUT, aux_horizons=aux_h).to(DEV)
     if fold_i == 0 and verbose:
+        head = f"QIM(Q={args.n_quantiles}, cols=[imean,q50])" if args.qim else f"K={K}"
         print(f"[model] arm={args.encoder} params={count_params(model):,} "
-              f"(d={args.d_model}, blocks={args.n_blocks}, K={K}, xattn={args.xattn})", flush=True)
+              f"(d={args.d_model}, blocks={args.n_blocks}, {head}, xattn={args.xattn})", flush=True)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=WD)
     rng = np.random.default_rng(args.seed)
 
@@ -189,22 +199,32 @@ def train_fold(fold_i, fold, data, args, fund_idx, save_dir=None, verbose=True):
         nb = 0
         # pred-smooth needs contiguous-hour batches (shuffle off); else shuffle for SGD.
         for b in data.iter_batches(tr_days, batch_hours=args.batch_hours, rng=rng,
-                                   shuffle=(args.pred_smooth_lambda <= 0)):
+                                   shuffle=(args.pred_smooth_lambda <= 0), want_aux=args.aux_mtl):
             x = torch.from_numpy(b["Xseq"]).to(DEV)        # (B,N,W,C) standardized
             y = torch.from_numpy(b["y"]).to(DEV)           # (B,N) normalized YR residual
             m = torch.from_numpy(b["mask"]).to(DEV)        # (B,N)
             fund = x[:, :, -1, fund_idx]                   # (B,N) funding at pred hour (affine ok)
             out = model(x, m)
-            scores = out["factor_scores"]                  # (B,N,K)
-            loss, parts = stage2b_loss(scores, y, fund, m,
-                                       w_mag=args.w_mag, lam_orth=args.lam_orth)
+            scores = out["factor_scores"]                  # (B,N,K) or (B,N,2) for QIM
+            if args.qim:
+                valid = (m > 0.5) & torch.isfinite(y)
+                loss = masked_pinball(out["quantiles"], y, valid, taus=taus)
+                parts = {"rank": 0.0, "mag": float(loss.detach()), "orth": 0.0}
+            else:
+                loss, parts = stage2b_loss(scores, y, fund, m,
+                                           w_mag=args.w_mag, lam_orth=args.lam_orth)
             sm_val = 0.0
-            if args.pred_smooth_lambda > 0 and scores.shape[0] > 1:
+            if args.pred_smooth_lambda > 0 and not args.qim and scores.shape[0] > 1:
                 dq = scores[1:] - scores[:-1]              # (B-1,N,K) consecutive-hour diff
                 vp = (m[1:] * m[:-1]).unsqueeze(-1)        # (B-1,N,1) valid both hours
                 sm = (dq * dq * vp).sum() / vp.sum().clamp_min(1.0)
                 loss = loss + args.pred_smooth_lambda * sm
                 sm_val = float(sm.detach())
+            if args.aux_mtl and "aux" in b and "aux_scores" in out:
+                for h, (ayn, amask) in b["aux"].items():
+                    ay = torch.from_numpy(ayn).to(DEV)
+                    av = torch.from_numpy(amask).to(DEV) > 0.5
+                    loss = loss + 0.3 * lambda_rank_ic(out["aux_scores"][h], ay, av)
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -275,6 +295,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--encoder", default="conformer", help="pluggable arm (conformer=#1 reference)")
     ap.add_argument("--n_factor_heads", type=int, default=6, help="K orthogonal factor heads (<=6 iron rule)")
+    ap.add_argument("--qim", action="store_true",
+                    help="ARM-QIM: quantile-implied-mean head (trade implied mean vs q50) instead "
+                         "of K factor heads. Loss = multi-quantile pinball. scores=[imean,q50].")
+    ap.add_argument("--n_quantiles", type=int, default=25, help="ARM-QIM quantile grid size (odd)")
+    ap.add_argument("--aux_mtl", action="store_true",
+                    help="aux-MTL lever: 1h/24h aux heads on the shared trunk (w=0.3 rank loss) to "
+                         "regularise the encoder; primary YR4 heads unchanged, aux not shipped.")
     ap.add_argument("--target_horizon", type=int, default=4, help="primary YR horizon (1/4/24)")
     ap.add_argument("--aux_horizons", type=str, default="1,24",
                     help="aux horizons available in the dataset (loaded but MTL heads are a later arm)")

@@ -58,9 +58,17 @@ class WidePanelData:
         yy = yy[np.isfinite(yy)]
         mad = np.median(np.abs(yy - np.median(yy))) * 1.4826 if yy.size > 100 else 1.0
         self.resid_sigma = np.float32(max(mad, 1e-6))
+        # aux-MTL: per-fold residual-target MAD sigma for each aux horizon (train clean rows)
+        self.aux_sigma = {}
+        for h, (YRh, CLh) in self.aux.items():
+            ya = YRh[rows][CLh[rows]]
+            ya = ya[np.isfinite(ya)]
+            madh = np.median(np.abs(ya - np.median(ya))) * 1.4826 if ya.size > 100 else 1.0
+            self.aux_sigma[h] = np.float32(max(madh, 1e-6))
         return self.mu, self.sd
 
-    def iter_batches(self, split_hours, batch_hours=256, rng=None, shuffle=True, want_raw=False):
+    def iter_batches(self, split_hours, batch_hours=256, rng=None, shuffle=True, want_raw=False,
+                     want_aux=False):
         """Yield standardized window batches over the prediction hours in split_hours (day list)."""
         sel = np.isin(self.day, split_hours) & self.valid_hour
         hrs = np.where(sel)[0]
@@ -78,6 +86,14 @@ class WidePanelData:
             out = dict(Xseq=Xn, y=yn, mask=mask, rows=bh)
             if want_raw:
                 out["y_raw"] = self.Yraw[bh]
+            if want_aux:
+                aux = {}
+                for h, (YRh, CLh) in self.aux.items():
+                    yam = YRh[bh]
+                    amask = (self.member[bh] & CLh[bh] & np.isfinite(yam)).astype(np.float32)
+                    ayn = np.nan_to_num(yam / self.aux_sigma[h]).astype(np.float32)
+                    aux[h] = (ayn, amask)
+                out["aux"] = aux
             yield out
 
 
