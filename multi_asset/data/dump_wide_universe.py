@@ -80,13 +80,29 @@ def _months(start, end):
     return out
 
 
+def _load_existing(out, ncol, keytype=int):
+    """Read an existing CSV into {key: tuple} keyed by first column (openTime/fundingTime), so a
+    re-run MERGES (backfill/extend) instead of skipping. Idempotent: same range -> same file."""
+    d = {}
+    if os.path.exists(out) and os.path.getsize(out) > 200:
+        try:
+            with open(out) as f:
+                next(f, None)                       # header
+                for ln in f:
+                    pp = ln.rstrip("\n").split(",")
+                    if len(pp) >= ncol and pp[0].strip().lstrip("-").isdigit():
+                        d[int(pp[0])] = tuple([keytype(pp[0])] + pp[1:ncol])
+        except Exception:
+            return {}
+    return d
+
+
 def dump_klines(SYM, months, pool):
     out = os.path.join(OUTDIR, f"{SYM}_klines_1h.csv")
-    if os.path.exists(out) and os.path.getsize(out) > 200:
-        return "skip"
+    existing = _load_existing(out, 7)               # {openTime: (t,o,h,l,c,v,qv)}
     urls = [f"{KLINE}/{SYM}/1h/{SYM}-1h-{m.strftime('%Y-%m')}.zip" for m in months]
     blobs = list(pool.map(_get, urls))
-    rows, miss = [], 0
+    new, miss = {}, 0
     for data in blobs:
         if data is None:
             miss += 1; continue
@@ -96,25 +112,25 @@ def dump_klines(SYM, months, pool):
                 pp = ln.split(",")
                 if len(pp) >= 8 and pp[0].strip().lstrip("-").isdigit():
                     # openTime, open, high, low, close, volume, closeTime, quote_asset_volume
-                    rows.append((int(pp[0]), pp[1], pp[2], pp[3], pp[4], pp[5], pp[7]))
+                    new[int(pp[0])] = (int(pp[0]), pp[1], pp[2], pp[3], pp[4], pp[5], pp[7])
         except Exception:
             miss += 1
-    if not rows:
+    if not new and not existing:
         return f"NODATA ({miss} m miss)"
-    rows.sort()
+    merged = existing.copy(); merged.update(new)    # fetched overrides on the shared months
+    rows = [merged[k] for k in sorted(merged)]
     with open(out, "w", newline="") as f:
         w = csv.writer(f); w.writerow(["openTime_ms", "open", "high", "low", "close", "volume", "quote_volume"])
         w.writerows(rows)
-    return f"{len(rows)} rows ({miss} m miss)"
+    return f"{len(rows)} rows (+{len(new)} fetch/{len(existing)} kept, {miss} m miss)"
 
 
 def dump_funding(SYM, months, pool):
     out = os.path.join(OUTDIR, f"{SYM}_funding.csv")
-    if os.path.exists(out) and os.path.getsize(out) > 200:
-        return "skip"
+    existing = _load_existing(out, 3)               # {fundingTime: (t,interval,rate)}
     urls = [f"{FUND}/{SYM}/{SYM}-fundingRate-{m.strftime('%Y-%m')}.zip" for m in months]
     blobs = list(pool.map(_get, urls))
-    rows, miss = [], 0
+    new, miss = {}, 0
     for data in blobs:
         if data is None:
             miss += 1; continue
@@ -123,16 +139,17 @@ def dump_funding(SYM, months, pool):
             for ln in lines[1:]:
                 pp = ln.split(",")
                 if len(pp) >= 3 and pp[0].strip().isdigit():
-                    rows.append((int(pp[0]), int(pp[1]), pp[2]))
+                    new[int(pp[0])] = (int(pp[0]), int(pp[1]), pp[2])
         except Exception:
             miss += 1
-    if not rows:
+    if not new and not existing:
         return f"NODATA ({miss} m miss)"
-    rows.sort()
+    merged = existing.copy(); merged.update(new)
+    rows = [merged[k] for k in sorted(merged)]
     with open(out, "w", newline="") as f:
         w = csv.writer(f); w.writerow(["fundingTime_ms", "funding_interval_h", "fundingRate"])
         w.writerows(rows)
-    return f"{len(rows)} rows"
+    return f"{len(rows)} rows (+{len(new)}/{len(existing)})"
 
 
 def main():
