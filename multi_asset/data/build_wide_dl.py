@@ -64,6 +64,28 @@ def build():
         chans.append(logc - _shift(logc, n)); ch_names.append(f"ret_{n}h")
     chans.append(_roll(ret1, 6, "std")); ch_names.append("rvol_6h")
     chans.append(np.log(np.where(QV > 0, QV, np.nan))); ch_names.append("logqvol")
+    # ---- F2: CROSS-SECTIONAL INPUT features (per-ts rank over the FULL panel, causal — the
+    # model SEES the cross-section, not just scored on it). Centered pct-rank of key channels +
+    # beta-adjusted return. Membership-agnostic here (ranked over all finite coins at t). ----
+    def _xsr(A):
+        R = np.full_like(A, np.nan, np.float32)
+        for t in range(A.shape[0]):
+            v = np.isfinite(A[t])
+            if v.sum() >= 8:
+                r = np.argsort(np.argsort(A[t, v])).astype(np.float32)
+                R[t, v] = r / (v.sum() - 1) - 0.5                 # centered pct-rank in [-0.5,0.5]
+        return R
+    market = np.nanmean(np.where(np.isfinite(ret1), ret1, np.nan), axis=1)   # eq-wt market ret
+    base_for_rank = {"xsr_rvol": F["rvol_24h"][0], "xsr_ret24": logc - _shift(logc, 24),
+                     "xsr_fund": F["funding_ema"][0], "xsr_turn": F["lturnover_24h"][0],
+                     "xsr_mom72": F["mom_72h"][0]}
+    for nm, A in base_for_rank.items():
+        chans.append(_xsr(A)); ch_names.append(nm)
+    # beta-adjusted return: ret_24h - beta_24h * market_ret_24h (idiosyncratic move)
+    mkt24 = np.convolve(np.nan_to_num(market), np.ones(24), "same")
+    chans.append((logc - _shift(logc, 24)) - F["beta_24h"][0] * mkt24[:, None])
+    ch_names.append("betaadj_ret24")
+
     CH = np.stack(chans, axis=2).astype(np.float32)          # (T,N,C)
     CH = np.nan_to_num(CH, nan=0.0, posinf=0.0, neginf=0.0)
 
