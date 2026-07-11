@@ -87,6 +87,25 @@ def build_encoder(name, n_feat, d, n_blocks, kernel, dropout):
 # train, val carved from the train tail, embargo (>= lookback-days + horizon) between
 # train/val end and test start so no forward label overlaps the test window.
 # --------------------------------------------------------------------------- #
+def year_folds(data, embargo_days=8, val_days=30, min_train_days=120, min_test_days=60):
+    """Calendar-year expanding walk-forward (M0-style multi-year replay). Test each year in turn;
+    train = all PRIOR-year days (minus embargo + val tail). Uses data.ts to assign each uniq day a
+    calendar year. Returns dicts {tr,va,te} of day indices (same format as wf_folds)."""
+    import pandas as pd
+    yr_of_hour = pd.to_datetime(data.ts, unit="ms", utc=True).year.to_numpy()
+    day_year = np.array([int(yr_of_hour[data.day == d][0]) for d in data.uniq_days])
+    folds = []
+    for Y in sorted(set(day_year.tolist())):
+        te = data.uniq_days[day_year == Y]
+        tr_all = data.uniq_days[day_year < Y]
+        if len(te) < min_test_days or len(tr_all) < min_train_days + val_days + embargo_days:
+            continue
+        tr_all = tr_all[:-embargo_days]                    # embargo before the year boundary
+        tr, va = tr_all[:-val_days], tr_all[-val_days:]
+        folds.append(dict(tr=tr, va=va, te=te, year=Y))
+    return folds
+
+
 def wf_folds(uniq, n_folds=3, test_frac=0.45, embargo_days=8, val_days=30):
     D = len(uniq)
     test_total = int(D * test_frac)
@@ -331,12 +350,18 @@ def main():
     ap.add_argument("--save_tag", type=str, default=None)
     ap.add_argument("--tag", type=str, default=None)
     ap.add_argument("--smoke", action="store_true", help="1 fold, few epochs, reduced day span")
+    ap.add_argument("--wide_dl_path", type=str, default=None,
+                    help="alternate wide_dl.npz (e.g. wide_dl_full.npz for the multi-year replay)")
+    ap.add_argument("--year_folds", action="store_true",
+                    help="calendar-year expanding walk-forward (M0-style multi-year replay): train "
+                         "on all prior years, test each of 2022/2023/2024/2025/2026 in turn.")
     args = ap.parse_args()
 
     print(f"[env] device={DEV} torch={torch.__version__}", flush=True)
     aux_h = tuple(int(x) for x in args.aux_horizons.split(",") if x.strip())
     t0 = time.time()
-    data = WidePanelData(target_horizon=args.target_horizon, aux_horizons=aux_h)
+    dl_kwargs = {"path": args.wide_dl_path} if args.wide_dl_path else {}
+    data = WidePanelData(target_horizon=args.target_horizon, aux_horizons=aux_h, **dl_kwargs)
     fund_idx = data.ch_names.index("funding_ema") if "funding_ema" in data.ch_names else -1
     print(f"[wide] T={data.T} N={data.N} C={data.C} W={data.W} H={data.H} "
           f"uniq_days={len(data.uniq_days)} valid_hours={int(data.valid_hour.sum())} "
@@ -371,18 +396,26 @@ def main():
         print(json.dumps(m, indent=2), flush=True)
         return
 
-    folds = wf_folds(data.uniq_days, n_folds=args.n_folds, test_frac=args.test_frac,
-                     embargo_days=args.embargo_days, val_days=args.val_days)
+    if args.year_folds:
+        folds = year_folds(data, embargo_days=args.embargo_days, val_days=args.val_days)
+    else:
+        folds = wf_folds(data.uniq_days, n_folds=args.n_folds, test_frac=args.test_frac,
+                         embargo_days=args.embargo_days, val_days=args.val_days)
+    mode = ", YEAR-FOLDS" if args.year_folds else ""
     print(f"\n===== WIDE HARNESS WALK-FWD ({len(folds)} folds, arm={args.encoder}, K={args.n_factor_heads}, "
-          f"YR{args.target_horizon} primary) =====", flush=True)
+          f"YR{args.target_horizon} primary{mode}) =====", flush=True)
     for i, f in enumerate(folds):
-        print(f"  fold {i}: tr {f['tr'][0]}..{f['tr'][-1]} va {f['va'][0]}..{f['va'][-1]} "
-              f"te {f['te'][0]}..{f['te'][-1]}", flush=True)
+        ytag = " [te=%d]" % f["year"] if "year" in f else ""
+        print("  fold %d%s: tr %d..%d va %d..%d te %d..%d" % (
+            i, ytag, f["tr"][0], f["tr"][-1], f["va"][0], f["va"][-1],
+            f["te"][0], f["te"][-1]), flush=True)
     all_m = []
     for i, fold in enumerate(folds):
         print(f"\n----- fold {i} -----", flush=True)
         m = train_fold(i, fold, data, args, fund_idx, save_dir=save_dir, verbose=True)
         if m is not None:
+            if "year" in fold:
+                m["year"] = fold["year"]
             all_m.append(m)
         elif i == 0 and args.kill_gates:
             print("fold 0 KILLED by a pre-registered gate — STOPPING.", flush=True)

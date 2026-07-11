@@ -48,8 +48,8 @@ def _xsec_residualize(Y, X, mem):
     return R
 
 
-def build():
-    z = np.load(PANEL, allow_pickle=True)
+def build(panel=PANEL, outpath=OUT):
+    z = np.load(panel, allow_pickle=True)
     C = z["CLOSE"].astype(np.float64); QV = z["QVOL"].astype(np.float64)
     DV = z["DVOL30"].astype(np.float64)
     T, N = C.shape
@@ -119,11 +119,13 @@ def build():
         out[f"Y{H}"] = Y; out[f"YR{H}"] = YR; out[f"CL{H}"] = CL
         print(f"  H={H}h: Y finite {np.isfinite(Y).mean():.3f} | YR finite {np.isfinite(YR).mean():.3f}"
               f" | CL rows {int(CL.any(1).sum())} member/hr~{int(np.median(MEM.sum(1)))}", flush=True)
-    with open(OUT, "wb") as f:
+    with open(outpath, "wb") as f:
         np.savez(f, **out)
-    print(f"[wide_dl] T={T} N={N} C={CH.shape[2]} chans -> {OUT}", flush=True)
+    print(f"[wide_dl] T={T} N={N} C={CH.shape[2]} chans -> {outpath}", flush=True)
     print(f"  channels: {ch_names}", flush=True)
 
 
 if __name__ == "__main__":
-    build()
+    import sys
+    build(panel=sys.argv[1] if len(sys.argv) > 1 else PANEL,
+          outpath=sys.argv[2] if len(sys.argv) > 2 else OUT)

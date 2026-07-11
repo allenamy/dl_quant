@@ -24,7 +24,7 @@ OUT = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/expo
 HOUR_MS = 3_600_000
 
 
-def build(topN=60):
+def build(topN=60, out=OUT):
     kfiles = sorted(glob.glob(p.join(WIDE, "*_klines_1h.csv")))
     syms = [p.basename(f)[:-len("_klines_1h.csv")] for f in kfiles]
     # load klines
@@ -98,7 +98,7 @@ def build(topN=60):
             MEMBER[np.ix_(rr, top)] = True
     MEMBER &= np.isfinite(CLOSE)                                  # only when actually listed
 
-    with open(OUT, "wb") as f:
+    with open(out, "wb") as f:
         np.savez(f, ts=grid, symbols=np.array(syms, dtype=object),
                  OPEN=OPEN.astype(np.float32), HIGH=HIGH.astype(np.float32), LOW=LOW.astype(np.float32),
                  CLOSE=CLOSE.astype(np.float32), VOL=VOL.astype(np.float32), QVOL=QVOL.astype(np.float32),
@@ -108,8 +108,9 @@ def build(topN=60):
     print(f"[wide] T={T} hours ({covd:.0f}d) N={N} symbols with klines", flush=True)
     print(f"  funding coverage={np.isfinite(FUND).mean():.3f}  Y coverage={np.isfinite(Y).mean():.3f}", flush=True)
     print(f"  member/ts avg={MEMBER.sum(1).mean():.1f} (target {topN})  active symbols total={ (MEMBER.any(0)).sum()}", flush=True)
-    print(f"  -> {OUT}", flush=True)
+    print(f"  -> {out}", flush=True)
 
 
 if __name__ == "__main__":
-    build(int(sys.argv[1]) if len(sys.argv) > 1 else 60)
+    build(int(sys.argv[1]) if len(sys.argv) > 1 else 60,
+          out=sys.argv[2] if len(sys.argv) > 2 else OUT)
