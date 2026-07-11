@@ -34,11 +34,31 @@ Two independent rescue paths were run against M0's fast-signal defect. **Usage-l
 1. **M0-standalone-multi-year = CLOSED NEGATIVE.** 2023-type immature/chop regimes are untradeable at *any* dose — 2023 persistence stalls at 0.46 (<0.5) and net-cost at −1.6; the dosing window is capped by the 2023 IC boundary (already −20% at λ0.3) + σ compression (0.012–0.019). Net-cost never reaches ≥2/3 positive.
 2. **The persistence mechanism = CONFIRMED TRAINABLE** — the arc's lasting methodological win. The Δpred penalty makes the DL signal holdable (2024 0.18→0.65, 2025 0.51→0.77 clear 0.5) *without* cratering the good year (2025 net-Sh 1.4→1.8, IC preserved) — validating "regularize away unholdable fast noise." Persistence is now a trainable objective, not just a diagnostic KPI.
 3. **★ The conditional-booster of record is now P1b_lambda03, not original M0** — it strictly improves the 2025-regime booster (net-Sh 1.37→1.84, persistence 0.77). If the DL booster is ever deployed in a 2025-like (holdable) regime, use `P1b_lambda03`.
-4. **★ UNSOLVED — the activation condition.** How to know *ex-ante* that we're in a "holdable" regime is not solved. A causal persistence-regime detector would be required before any conditional deployment of the booster; without it, the DL leg stays **PARKED**. Deployable core is unchanged and complete without it: funding_ema + EMA-hold + vol-target.
+4. **★ UNSOLVED — the activation condition.** How to know *ex-ante* that we're in a "holdable" regime is not solved. A causal persistence-regime detector would be required before any conditional deployment of the booster; without it, the DL leg stays **PARKED** *at taker economics*. Deployable core is unchanged and complete without it: funding_ema + EMA-hold + vol-target. **(This "parked" is revised by the execution-economics addendum below — the DL leg is execution-gated, not unconditionally dead.)**
+
+### ★★ EXECUTION-ECONOMICS ADDENDUM (2026-07-11) — the verdicts were TAKER-conditional; the DL leg is EXECUTION-GATED, not dead
+The "not tradeable" calls above assumed taker economics (1.7–5 bps/side). Top props execute maker/rebate (~0.2–1 bps effective). Re-scored on a prop-grade cost grid (`execution_economics.py`) with the **cost-optimal operating point** (at cheap cost it flips from EMA-hold to full-turnover — you rebalance fully to capture the fast signal when churn is cheap):
+
+| candidate | net-Sh @ 0.2 / 0.5 / 1.0 / 1.7 bps (2023) | (2024) | (2025) | tradeable below |
+|---|---|---|---|---|
+| **M0** | +2.87 / +1.26 / −0.93 / −1.42 | +0.37 / −0.99 / −1.08 / −1.20 | +1.79 / +1.76 / +1.72 / +1.66 | 2023 ≤0.5, 2024 ≤0.2, 2025 ≤1.7+ |
+| **λ0.3-M0** | +0.67 / −0.59 / … | +0.26 / +0.08 / +0.05 / +0.01 | +2.34 / … / +1.99 | 2023 ≤0.2, 2024 ≤1.7, 2025 ≤1.7+ |
+| **funding** | +1.50 / +1.43 / +1.32 / +1.16 | +1.16 / … / +1.06 | +3.57 / … / +3.16 | ALL ≤1.7+ (robust) |
+| 3-seed ensemble (2025) | +5.24 / +4.09 / +3.41 / +3.33 | — | — | ≤1.7+ (de-noised) |
+| fast-micro baseline (2025) | +1.30 / −0.58 / −1.97 / −2.33 | — | — | ≤~0.4 (sub-BE) |
+| **0B fill-sim (data-supported effective cost @ M0 churn)** | *[placeholder — pending]* | | | *[the operative cell]* |
+
+- **★ Reframe (official record): the M0/DL-leg is EXECUTION-GATED — dead at taker (1.7–5 bps), tradeable at maker/rebate (≤0.5 bps) IF fills hold at high turnover.** At ≤0.2 bps M0 is net-positive all three years (the fast 2023 signal taker-cost killed is its *strongest*, +2.87); funding is fatter and positive at every tier.
+- **Execution capability picks the variant:** at ULTRA-low cost (0.2 bps, full-churn) **original M0** wins (2023 +2.87 fast-capture); at moderate cost (0.5–1.7) **λ0.3-M0** wins (2024 holds positive to 1.7 via persistence — the penalty is the "cost-tolerance" version). The persistence penalty and cheap execution are substitute levers for the same defect.
+- **Netting is NOT a lever here:** funding + λ0.3-M0 as one book nets out only **3–5%** of turnover (funding trades too rarely — turnover 0.08–0.13 vs M0's 1.1–1.8 — to offset M0's flips). Netting becomes a lever only with *many uncorrelated fast alphas*, not a 2-signal book.
+- **Execution-feasibility context (research memo):** top-tier maker fee ≈ **0.0%** (effective cost is adverse selection, not fees); adverse selection lives at **5s–5min** vs our **~60min** alpha horizon (our edge outlives the microstructure window — favorable); a proper execution scheduler retains **~75–90%** of the alpha; and **N=14 breadth is the binding constraint** — even execution-gated-alive, the book is Sharpe ~1–1.5 without a breadth cushion. So the "IF fills hold" is *plausible for a top desk* (alpha outlives adverse selection, high retention), and the real ceiling becomes breadth, not cost.
+- **Open cell:** 0B's fill-sim (data-supported effective cost at M0's *actual* churn) is the one number that closes this — the placeholder row above.
+
+**★ Phase conclusion, corrected final record:** not "factor space exhausted" but **"a signal portfolio priced by execution capability."** funding_ema + EMA-hold + vol-target is the taker-robust deployable core (any execution); the DL leg (M0 / λ0.3-M0) is an execution-gated add-on that a maker/rebate desk can trade on the shelved years; breadth (N=14) is the remaining binding constraint on total Sharpe.
 
 ## Executive summary (of the detailed sections below)
 - **Book-1 deployable core = funding_ema alone** (see §0): crowding-reversion, EMA-persistent (latency-flat), net-cost-positive every test year 2023-25. The §"Book-1 scorecard" table below is the **2025-window (fold-C) detail** — real, but the favorable window; read it with §0.
-- **M0 DL factor** — real, IC-robust, leak-audit-clean, but 2025-window-tradeable only. Rescue arc CLOSED (see §0 closing word): both usage-layer and training-side fixes tested; standalone multi-year = negative; PARKED as a conditional booster (λ0.3-trained version of record) pending an unsolved causal persistence-regime detector.
+- **M0 DL factor** — real, IC-robust, leak-audit-clean; taker-tradeable only in 2025, but **EXECUTION-GATED not dead** (see §0 execution-economics addendum): at maker/rebate ≤0.5 bps it flips net-positive on the shelved years (2023/24). Rescue arc CLOSED at taker economics (both usage-layer + training-side fixes tested); an execution-gated add-on for a maker/rebate desk; λ0.3-trained version of record; conditional-deploy still needs a causal persistence-regime detector.
 - **Book-2 = wide SIZE-premium sleeve**: cost-immune (net-Sharpe 2.11, turnover 0.0018) but capacity-capped (~$2.5M illiq ADV). A real diversifier, not scalable.
 - The whole tabular/library/DL-multi-head factor space beyond these was exhaustively tested and correctly rejected by the 5-gate factory.
 
