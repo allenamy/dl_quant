@@ -8,11 +8,14 @@
 
 | rank | arm | naive IC | **DYNAMIC IC** (z) | static tilt | gate-d per-fold (sign) | net-Sh @2.3/5.0/9.5 | persist | verdict |
 |---|---|---|---|---|---|---|---|---|
-| 1 | **xattn** (cross-asset attn) | +0.0408 | **+0.0313** (13.6) | +0.0094 | [.035/.040/.048] ✓ | +2.04 / +1.81 / +1.42 | 0.77 | ★ **LEADER** (+0.0068 dyn over ref) |
-| 2 | **Conformer** (M0 paradigm) | +0.0312 | +0.0245 (11.1) | +0.0068 | [.033/.031/.030] ✓ | +1.66 / +1.39 / +0.95 | 0.66 | REFERENCE BAR |
+| **1** | **★ QIM q50** (single pinball head) | +0.0704 | **+0.0601** (24.4) | +0.0103 | [.054/.069/**.088**]↑ ✓ | **+8.32 / +5.08 / +2.60** | 0.66 | ★★ **PARADIGM-SHIFT LEADER** — 2× the field, leak-free, folds *increasing*; pending lam_orth=0 confirm + 3-seed |
+| 2 | xattn (cross-asset attn) | +0.0408 | +0.0313 (13.6) | +0.0094 | [.035/.040/.048] ✓ | +2.04 / +1.81 / +1.42 | 0.77 | strong (best K-head arm) |
+| 3 | aux-MTL (1h/24h aux) | +0.0348 | +0.0271 (12.1) | +0.0077 | [.027/.037/.041] ✓ | +2.36 / +2.15 / +1.81 | 0.73 | above bar (aux supervision helps) |
+| 4 | Conformer (M0 paradigm) | +0.0312 | +0.0245 (11.1) | +0.0068 | [.033/.031/.030] ✓ | +1.66 / +1.39 / +0.95 | 0.66 | REFERENCE BAR |
 | — | pred-smooth λ0.3 | +0.0151 | +0.0130 (4.9) | +0.0021 | [.005/.006/.034] ✓ | +0.46 / −0.36 / −0.99 | 0.75 | REJECT (below bar + net-negative) |
-| — | IPCA resmom_24h (K=3 best) | +0.0059 | n/a (factor) z3.0 | — | [.008/.009/**.001**] | (tiny IC) | — | REJECT — DECAYING (fold-2→~0) + raw-IC ~0 (residual-only, fragile) + 4-5× below bar |
-| pending | QIM, aux-MTL | — | — | — | — | — | — | GPU race ~1-2h |
+| — | IPCA resmom_24h (K=3 best) | +0.0059 | n/a (factor) z3.0 | — | [.008/.009/**.001**] | (tiny IC) | — | REJECT — DECAYING (fold-2→~0) + residual-only fragile |
+
+★★ **QIM = the finding of the race.** A single unconstrained 25-quantile pinball head (q50) scores DYNAMIC +0.0601 — **~2× the best K-head orthogonality arm (xattn +0.0313)** — leak-free (shuffle-future z24.4), net-cost ~3× the field (+5.08 @5bps), and per-fold *increasing* (not decaying). Both QIM heads beat the field (imean +0.0573 dyn), so it's the **single-distributional-head-on-residual approach** that's the lever, not q50 specifically. **Mechanism (0B's hypothesis): the K-head `lam_orth=1.0` orthogonality penalty dilutes the signal ~2×** — forcing 6 heads apart costs alpha; an unconstrained head captures it. ★ DECISIVE CONFIRM PENDING: a K-head run with `lam_orth=0` — if it recovers ~+0.06, the orthogonality-dilution mechanism is proven and the paradigm is "drop K-head orthogonality, use a distributional point head"; if it stays ~+0.03, QIM's edge is the pinball loss itself. Plus 3-seed robustness before crowning.
 
 ## Read
 
