@@ -41,6 +41,13 @@ def _xsec_residualize(Y, X, mem):
             continue
         y = Y[t, v] - Y[t, v].mean()
         Xt = X[t, v] - X[t, v].mean(0)
+        # STANDARDIZE columns before the ridge-OLS so the (tiny) ridge shrinks all baselines
+        # UNIFORMLY — otherwise a large-scale/heavy-tailed col (funding_ema) is under-shrunk and
+        # leaves a residual loading (0C leak-audit found 0.042 on funding_ema). Scaling is a
+        # per-col invertible transform, so residual-orthogonality to the standardized cols ==
+        # orthogonality to the raw cols -> airtight incremental-over-[funding+zoo].
+        sd = Xt.std(0); sd = np.where(sd > 1e-12, sd, 1.0)
+        Xt = Xt / sd
         # ridge-stabilised OLS (k small vs n~110): beta = (X'X + lam I)^-1 X'y
         XtX = Xt.T @ Xt + 1e-6 * np.eye(Xt.shape[1])
         beta = np.linalg.solve(XtX, Xt.T @ y)
