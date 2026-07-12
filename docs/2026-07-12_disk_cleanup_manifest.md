@@ -24,3 +24,4 @@
 
 ## 执行记录
 删除顺序: bak487 → mh_targets_long → seq_cache。执行时间与释放量见下方追加行。
+**执行完成 2026-07-12 22:55 JST**: 三项全部删除成功（DEL ok ×3），/mnt/storage 100%→95%（~195G 可用，全队写入恢复）。manifest 副本已存 server `$M/docs_cleanup_manifest_2026-07-12.md`。
