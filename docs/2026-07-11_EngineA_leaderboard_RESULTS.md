@@ -2,7 +2,11 @@
 
 > **创建:** 2026-07-11 · **Session:** fable-regime-breakthrough (agent stage0C-d3-factors) · **状态:** final (0C 终判 2026-07-12 落地, 见 §终判) · **交叉引用:** pre-registration `docs/2026-07-11_EngineA_leaderboard_prereg.md` · 终判 `exports/eda/qim_final_verdict.{json,md}` (server) · tools `wideA_score.py` (5-col + dynamic split), `wideA_leakaudit.py`, `wide_null_calib.py`, `wide_fillcost.py`.
 
-## ★★ 终判 (0C, 2026-07-12): CONDITIONAL GO — 王冠重贴标签
+## ★★★ 终判升级 (0C, 2026-07-12 二审): **GO (部署条件版)** — 机制五年闭环
+
+**lamorth0_5yr 确认跑全表 + 逐年配对判 (per-ts 配对 + day-block bootstrap 3000×, 同 panel md5):** lamorth0 五年 +0.0423/+0.0637/+0.0737/+0.0639/+0.0775 (mean 0.0642) vs QIM 0.0672 — 4/5 年 seed 噪声内咬合; 两个 per-ts 显著年**方向相反** (2024 lamorth0 赢 / 2025 QIM 赢) = 年级拟合波动非系统架构边际。**★预测相似度仅 0.63: 两架构做实质不同的横截面下注却都到 ~0.065 ⇒ 水平由"去惩罚"解锁, 不系于头类型 — 机制 CLOSED。** 部署注: QIM 头 mean 微领先+已全审计=合理默认, 但机制等价, 勿包装"pinball 赢强 regime"叙事 (2024 反证)。**剩余条件 (部署级非研究阻断): (a) $2-5M live maker-fill pilot 实测参与率/slippage/逆选择; (b) ≥100 成员 regime 偏好。研究侧全闭环: GO。** 下一臂: lam_orth=0 + xattn 叠加 (已上 GPU, save_tag wideA_lamorth0_xattn)。
+
+## 终判一审存档 (0C, 2026-07-12): CONDITIONAL GO — 王冠重贴标签
 
 **信号真实、审计六查全清、可净成本交易；但 headline 归因修正: ~2× 边际来自去掉正交惩罚 (lam_orth 1.0→0)，pinball 头本身中性。** 机制配对 (3-fold, 同 panel md5): conformer_ref(K6, lam_orth=1.0)=0.0327 → **lamorth0(K6, lam_orth=0)=0.0672 (+105%, 每 fold 翻倍)** → qim(pinball)=0.0689 (vs lamorth0 +0.0017 = seed 噪声内)。⇒ stage2b 的 `lam_orth=1.0` 自 Engine A 启动以来把每个 K-head 臂的 IC 砍半；本表 xattn/aux-MTL/Conformer 行全部被系统性低估 ~2×。
 
