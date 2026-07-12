@@ -1,6 +1,19 @@
 # Engine A — paradigm-race LEADERBOARD (live results)
 
-> **创建:** 2026-07-11 · **Session:** fable-regime-breakthrough (agent stage0C-d3-factors) · **状态:** live (updated as arms land) · **交叉引用:** pre-registration `docs/2026-07-11_EngineA_leaderboard_prereg.md` · tools `wideA_score.py` (5-col + dynamic split), `wideA_leakaudit.py`, `wide_null_calib.py`, `wide_fillcost.py`.
+> **创建:** 2026-07-11 · **Session:** fable-regime-breakthrough (agent stage0C-d3-factors) · **状态:** final (0C 终判 2026-07-12 落地, 见 §终判) · **交叉引用:** pre-registration `docs/2026-07-11_EngineA_leaderboard_prereg.md` · 终判 `exports/eda/qim_final_verdict.{json,md}` (server) · tools `wideA_score.py` (5-col + dynamic split), `wideA_leakaudit.py`, `wide_null_calib.py`, `wide_fillcost.py`.
+
+## ★★ 终判 (0C, 2026-07-12): CONDITIONAL GO — 王冠重贴标签
+
+**信号真实、审计六查全清、可净成本交易；但 headline 归因修正: ~2× 边际来自去掉正交惩罚 (lam_orth 1.0→0)，pinball 头本身中性。** 机制配对 (3-fold, 同 panel md5): conformer_ref(K6, lam_orth=1.0)=0.0327 → **lamorth0(K6, lam_orth=0)=0.0672 (+105%, 每 fold 翻倍)** → qim(pinball)=0.0689 (vs lamorth0 +0.0017 = seed 噪声内)。⇒ stage2b 的 `lam_orth=1.0` 自 Engine A 启动以来把每个 K-head 臂的 IC 砍半；本表 xattn/aux-MTL/Conformer 行全部被系统性低估 ~2×。
+
+**QIM 5 年扩张 walk-forward (airtight wide_dl_full):** 2022 +0.0443 / 2023 +0.0640 / 2024 +0.0697 / 2025 +0.0807 / 2026H1 +0.0774 — **五年全正, mean +0.0672, 动态占比 0.86-0.95 (mean 0.92, 无持久 tilt 灌水)**。IC-IR 16-29 = 每横截面 t-stat (~2000 ts/年), 不是 Sharpe。
+
+**逐年净成本 (4h 再平衡 dollar-neutral rank-L/S, raw 收益, full-turnover):** break-even 4.9-16 bps/side; **maker/2.3bps 五年全 GO**; 5bps 4/5 (2026H1 打平); 9.5bps 仅 2024/25 存活。账面 Sharpe 8-19 是频率×breadth 无摩擦产物 — 诚实门是 BE per-side。重 EMA 抬 BE 至 15-27 但 Sharpe 塌到 2-3 (快信号不耐持有)。
+
+**Seeds (同 3-fold 协议) {0.0689, 0.0652, 0.0781} CoV 7.5% — G2 PASS。** 六查: fold embargo 9d 零重叠 / member point-in-time 无幸存者 / YR⊥funding / honest ensemble / panel 字节一致 / "好得惊人"由扩张窗+breadth+口径解释。
+
+**全 GO 条件:** (1) 5 年协议 lamorth0 确认跑 (已发, `--year_folds`); (2) 真实执行验证 (maker-fill/冲击/容量) 后再 sizing; (3) 偏好 ≥100 成员 regime (2024+), 薄宇宙年 (2022/2026) 是弱尾。
+**Tasking 教训 (0C flag):** battery 的 lamorth0/seed 步骤是 3-fold 非 5 年协议 — 3-fold mean 0.0672 与 5 年 mean 0.0672 相等纯属巧合; 严禁跨协议对标。
 
 **Race metric = shuffle-future-adjusted DYNAMIC IC** (excludes static cross-sectional tilt so paradigms compete on genuine timing skill). Headline = the 6-head equal-risk ENSEMBLE (no per-fold-best selection bias). Net-cost at REALISTIC wide-book cost {2.3 mega / 5.0 mega+mid-capped / 9.5 full-book} bps, EMA-hold operating point (the wide book is mid+small-cap, not mega). All on ≥4h-CL × MEMBER110, target YR4 (=incremental-over-[funding+zoo] by construction).
 
