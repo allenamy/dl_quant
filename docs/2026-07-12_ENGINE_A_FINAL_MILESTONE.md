@@ -20,6 +20,8 @@
 
 **★ 轨 1 保守回放校准 (0C 2026-07-12 PM, `exports/eda/makerfill_calibration.{json,md}`) — PILOT 值得开:** 14 mega-cap bar_1s 保守成交模拟 (join-at-back 全 L1 队列 + 仅 trade-driven 消耗 + 不记 spread-capture = 成本 floor)。发现: **fill 曲线在 f=订单/小时成交额 空间流动性无关** (f≤0.5% fill>0.95, f~2% 崩); adverse markout 极小 (−0.03~−0.38bps 全谱)。**保守下界: 全书逐年净正含弱年, 有效成本 ~1.5-1.9bps (vs 加冕用的 5bps taker, 砍到 1/3); calib-grounded 书 (≥$4M/h 31 币, 零外推) 独立净正 → 外推尾非承重**。109/140 宽币在校准底之下 (外推段显式 haircut)。**Pilot 建议书: $2-5M, 交 calib-grounded/mega+mid 核心, k=300-900s 被动+残余 taker; 成功判据 fill≥0.40@k300/成本≤2bps/markout≤2×; 止损 成本>3.5bps 持续。**
 
+**★ 轨 1 深化 — tick 级验证 (0C, `exports/eda/makerfill_deepdive.{json,md}`, BTC Tardis µs 真 FIFO 队列 vs 1s-bar 同天同单):** **1s-bar 近似两轴皆乐观、不互相抵消** — fill 高估 ~1.5× (1s 把全部对手量算队列消耗; tick 只有价≤挂单价的成交才消耗)、markout 基本漏掉逆选择 (1s 抹平 µs 逆向移动; tick 实测 calm −0.97 / normal −1.71 / stress −3.24 / 崩盘日 −5.3 尾 −20bps = **强 regime 依赖, 压力降级 3-5×**)。fill 流动性无关性崩盘日仍成立。**tick 修正后书级影响温和: 有效成本 1.5→1.9 (normal) / 2.7-2.9 (stress) bps, 全场景逐年净正含弱年 — PILOT 判词存活**, 修订: k=900 被动 (fill 0.51)、**新增 vol-gate (BTC rvol>~18bps/min 时减参与/趋中性)**、成功判据实测 markout≤tick 值。**最大残余 (只能 pilot 实测): alt-leg 逆选择未测, 大概率差于 BTC。方法论教训: 1s-bar 不是 maker-fill 的保守代理 — 它乐观; 执行建模的 markout 必须用 tick。**
+
 ## 二、机制档案（本阶段的科学产出）
 
 **信号 = 110 币残差空间的短期横截面反转**（买近期残差输家；forward-decay 因果签名: lag0 峰值平滑衰减 + 负 lag 反号 −0.15 = 反泄漏铁证；fill-window 安全: +1h 保留 90%）。
