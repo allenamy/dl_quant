@@ -17,6 +17,8 @@
 **执行可行性 (0C, 2026-07-12, 真实 QVOL: BTC $435M/h, 中位币 $1.5M/h, 底档 $0.63M/h):** 换手 1.66/4h (~41% gross/次), 平均持仓 6.4h。**容量是硬约束但只稀释不翻负** (小币欠配丢其 alpha, 大/中盘腿撑 Sharpe): maker 参与 x=1% 下 **起步 $5-10M gross** (保留 85-90% 无摩擦边际, net-Sh 7.8-8.8 @5bps), $25M 保留 ~63%, **$50-100M 软天花板**。容量杀手 = 小盘档拿 ~25% gross 但底档仅 $0.63M/h。小盘腿 fill 砍半几乎不动 Sharpe (执行鲁棒); maker 假设失败翻负阈值: 5bps 下需 ~100% 失败 (仅 2026 边缘), 9.5bps 下薄年容忍 52-69%。**硬 caveat: 未建模市场冲击/挂单逆选择/队列位置, 所有 AUM 按上界读 — 建议 $2-5M live maker-fill pilot 实测 fill-rate+slippage 再放大。**
 **Tasking 教训 (0C flag):** battery 的 lamorth0/seed 步骤是 3-fold 非 5 年协议 — 3-fold mean 0.0672 与 5 年 mean 0.0672 相等纯属巧合; 严禁跨协议对标。
 
+**三腿组合装配 (0C, 2026-07-12, `exports/eda/book_assembly.{json,md}`):** 统一日净收益对齐后, 两两 corr 全 <0.3 (funding↔DL 0.099 / funding↔SIZE 0.039 / DL↔SIZE 0.262@489d) — 机制正交在收益层验证; **组合把单腿负最差月变正最差月 (等权 +0.61%) = 白送下行保护**。绑定 caveat: 3-way 联合窗仅 123d (funding OOS 限制) 且落在 DL 强年 → 本窗偏爱 DL 权重 0.6 是过拟合, **稳健建议 inverse-vol (DL~0.22/SIZE~0.54/funding~0.24) 或 DL 0.25-0.35**; funding 日收益扩窗重算中。**xattn 叠加预检: xattn↔QIM 逐年 xsec rank corr 均值 ~0.42 (0.28-0.51) — 非冗余, attention 做实质不同的横截面下注 ⇒ "lam_orth=0 + xattn" 臂值一个 GPU 槽, 确认跑后排。**
+
 **Race metric = shuffle-future-adjusted DYNAMIC IC** (excludes static cross-sectional tilt so paradigms compete on genuine timing skill). Headline = the 6-head equal-risk ENSEMBLE (no per-fold-best selection bias). Net-cost at REALISTIC wide-book cost {2.3 mega / 5.0 mega+mid-capped / 9.5 full-book} bps, EMA-hold operating point (the wide book is mid+small-cap, not mega). All on ≥4h-CL × MEMBER110, target YR4 (=incremental-over-[funding+zoo] by construction).
 
 ## Standings
