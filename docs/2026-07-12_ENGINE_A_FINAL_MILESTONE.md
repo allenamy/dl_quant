@@ -56,4 +56,9 @@
 - **$2-5M live pilot**（部署侧头号事项，待批）；
 - ARM-MIX / FinPFN 余臂（需重开 builder；EV 递减 —— FinPFN 主打 regime 漂移，而 5yr 全正说明漂移非当前绑定约束）；
 - funding 主书刷新 + 组合月度再平衡工程化；
-- 宽宇宙数据面扩展（funding/OI 逐币，wide 面板当前只有价量+carry 基线）。
+- ~~宽宇宙数据面扩展（funding/OI 逐币）~~ → **已测并关闭 (2026-07-13 轨 2)**。
+
+## 六、双轨离线验证收官（2026-07-12/13 追加）
+
+**轨 1 (maker-fill)**: 保守回放 → tick 级验证（1s-bar 双轴乐观不抵消, fill 高估 1.5×/漏逆选择; 崩盘日 markout −5.3 尾 −20bps）→ **tick 修正后 pilot 判词存活** (成本 1.9/2.7-2.9bps normal/stress, 全场景逐年净正), 修订建议书 = k900 被动 + vol-gate; alt-leg 逆选择 = 唯一离线不可测残余。**等用户批 pilot。**
+**轨 2 (OI/持仓数据面)**: 188K 日档 140 币全绿覆盖 (双下载地雷: S3 限流假 NO DATA + 分页静默截断, CDN 枚举修复) → 7 通道 t−5min 泄漏口径 → **双门 FAIL: Ridge 线性 +0.0007 / LightGBM 非线性 −0.0004 (z 0.34, leak-clean) → OI/持仓在 1h 尺度对残差目标无增量, 干净关闭**; "非线性交互救活" 假设 (funding 式先验) 被实测否定。数据资产保留 (`wide_metrics_raw` + `wide_metrics_ch.npz`), 未测用法 = 其他 horizon/8h 刷新/regime-gate。
