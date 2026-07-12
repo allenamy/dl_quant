@@ -18,6 +18,8 @@
 | 组合位置 | 三腿书: funding 0.30-0.325 / **DL 0.35-0.40** / SIZE 0.30-0.325（腿 corr 近零到负，领导权轮动，2026 弱 DL 年组合 +2.07）|
 | **剩余部署条件** | **(a) $2-5M live maker-fill pilot**（高换手书,实测 fill/slippage/逆选择）**(b)** ≥100 成员 regime 偏好（2024+）|
 
+**★ 轨 1 保守回放校准 (0C 2026-07-12 PM, `exports/eda/makerfill_calibration.{json,md}`) — PILOT 值得开:** 14 mega-cap bar_1s 保守成交模拟 (join-at-back 全 L1 队列 + 仅 trade-driven 消耗 + 不记 spread-capture = 成本 floor)。发现: **fill 曲线在 f=订单/小时成交额 空间流动性无关** (f≤0.5% fill>0.95, f~2% 崩); adverse markout 极小 (−0.03~−0.38bps 全谱)。**保守下界: 全书逐年净正含弱年, 有效成本 ~1.5-1.9bps (vs 加冕用的 5bps taker, 砍到 1/3); calib-grounded 书 (≥$4M/h 31 币, 零外推) 独立净正 → 外推尾非承重**。109/140 宽币在校准底之下 (外推段显式 haircut)。**Pilot 建议书: $2-5M, 交 calib-grounded/mega+mid 核心, k=300-900s 被动+残余 taker; 成功判据 fill≥0.40@k300/成本≤2bps/markout≤2×; 止损 成本>3.5bps 持续。**
+
 ## 二、机制档案（本阶段的科学产出）
 
 **信号 = 110 币残差空间的短期横截面反转**（买近期残差输家；forward-decay 因果签名: lag0 峰值平滑衰减 + 负 lag 反号 −0.15 = 反泄漏铁证；fill-window 安全: +1h 保留 90%）。
