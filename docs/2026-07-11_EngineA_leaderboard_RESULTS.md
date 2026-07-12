@@ -6,6 +6,8 @@
 
 **lamorth0_5yr 确认跑全表 + 逐年配对判 (per-ts 配对 + day-block bootstrap 3000×, 同 panel md5):** lamorth0 五年 +0.0423/+0.0637/+0.0737/+0.0639/+0.0775 (mean 0.0642) vs QIM 0.0672 — 4/5 年 seed 噪声内咬合; 两个 per-ts 显著年**方向相反** (2024 lamorth0 赢 / 2025 QIM 赢) = 年级拟合波动非系统架构边际。**★预测相似度仅 0.63: 两架构做实质不同的横截面下注却都到 ~0.065 ⇒ 水平由"去惩罚"解锁, 不系于头类型 — 机制 CLOSED。** 部署注: QIM 头 mean 微领先+已全审计=合理默认, 但机制等价, 勿包装"pinball 赢强 regime"叙事 (2024 反证)。**剩余条件 (部署级非研究阻断): (a) $2-5M live maker-fill pilot 实测参与率/slippage/逆选择; (b) ≥100 成员 regime 偏好。研究侧全闭环: GO。** 下一臂: lam_orth=0 + xattn 叠加 (已上 GPU, save_tag wideA_lamorth0_xattn)。
 
+**双实现 blend 评分卡 (0C, `exports/eda/qim_blend_score.{json,md}`, 预注册判据 PASS — 供用户部署决策, 非自动进部署):** QIM+lamorth0 各 per-ts z-score 后 50/50 value-blend (#16: value 非 rank): 逐年 .0458/.0693/.0787/.0793/.0810, **mean .0708 vs QIM .0672 (+.0036)**, 3/5 年配对显著优、无年显著变差, 动态占比 ~0.92。blend 在劈叉年吃两者之 best (经典 diversity-pair, 相关 0.63)。换手不升 (1.35-1.91 vs 1.5-1.83); **2026 (DL 最弱年) net@5bps 从 −0.13 救到 +1.65 = 薄年净成本转正**。政策定位: 理论有据 (diversity-pair) + 非 val-fit (固定 50/50) = 符合"生产期可考虑"; 代价 = 2× 推理。不采纳则单 QIM 已 GO, blend 存档备用。
+
 ## 终判一审存档 (0C, 2026-07-12): CONDITIONAL GO — 王冠重贴标签
 
 **信号真实、审计六查全清、可净成本交易；但 headline 归因修正: ~2× 边际来自去掉正交惩罚 (lam_orth 1.0→0)，pinball 头本身中性。** 机制配对 (3-fold, 同 panel md5): conformer_ref(K6, lam_orth=1.0)=0.0327 → **lamorth0(K6, lam_orth=0)=0.0672 (+105%, 每 fold 翻倍)** → qim(pinball)=0.0689 (vs lamorth0 +0.0017 = seed 噪声内)。⇒ stage2b 的 `lam_orth=1.0` 自 Engine A 启动以来把每个 K-head 臂的 IC 砍半；本表 xattn/aux-MTL/Conformer 行全部被系统性低估 ~2×。
