@@ -58,6 +58,14 @@
 - funding 主书刷新 + 组合月度再平衡工程化；
 - ~~宽宇宙数据面扩展（funding/OI 逐币）~~ → **已测并关闭 (2026-07-13 轨 2)**。
 
+## 五b、补充因子阶段（2026-07-13 追加, 用户定向）
+
+**方法论支点 (0C 预注册五门 + ARM-S2 实测确立): 王座太强 (paper-Sh 12-20), 任何补充因子按 signal-blend 判都是稀释 — 正确形态 = 独立慢 sleeve, 按 Markowitz improve-rule (Ss > ρ·Sk, 比值判据, 对 Sharpe 缩放不变 ⇒ 不受 paper 膨胀影响) + 可部署口径判。**
+
+**ARM-S2 (24h-horizon, lam_orth=0+xattn, dense_train+embargo10): CONDITIONAL SLEEVE CANDIDATE (0C 二审, `arm_s2_verdict` v2).** 32ch 正身 3-fold [.0524/.0696/.0639] mean .0620; **king-正交增量 +0.0285** (CI[.021,.036] 逐 fold 全正) = raw 的 ~46% 在王座外存活; pred-corr 0.335; dyn 0.895; 净成本 PASS (换手 ~king 1/6, netSh 5.56/4.93/3.91 by tier)。**(c) 书级门翻案: improve-rule 全 cost-tier 成立 (ρ 仅 0.19; 可部署口径下 king 快换手被真实成本压得更狠 → S2 改善更大), blend 边际正但 3-fold 未 bootstrap 显著 → 5yr+seeds 确认中 (wideA_s2_y24_5yr)。过→部署小权重 (~0.1) 慢 sleeve; 褪→存档。**
+
+**Metrics (OI/持仓) 输入轴正式关闭 — 三连 null**: 1h 线性 (+0.0007) / 1h 非线性 (−0.0004) / **24h DL 输入 (−0.010 净拖累, #29 应验)**; 39ch 版泄漏审计 LEAKAGE-CLEAN (构建 10/10 + restatement 逐字节对齐实时 API) — 干净但无预测价值。数据资产保留 (`wide_metrics_raw`/`wide_metrics_ch.npz`), 无新机制勿再挖 metrics-as-input。dense_train opt-in flag 落地 (24h params:samples 1:0.4→1:9.6, bit-identical off 验证)。
+
 ## 六、双轨离线验证收官（2026-07-12/13 追加）
 
 **轨 1 (maker-fill)**: 保守回放 → tick 级验证（1s-bar 双轴乐观不抵消, fill 高估 1.5×/漏逆选择; 崩盘日 markout −5.3 尾 −20bps）→ **tick 修正后 pilot 判词存活** (成本 1.9/2.7-2.9bps normal/stress, 全场景逐年净正), 修订建议书 = k900 被动 + vol-gate; alt-leg 逆选择 = 唯一离线不可测残余。**等用户批 pilot。**
