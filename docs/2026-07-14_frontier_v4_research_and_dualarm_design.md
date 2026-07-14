@@ -18,3 +18,9 @@
 **ARM-N1 (长线, 4-6 天): 未来共动 soft-contrastive 预训练跨资产编码器。** 用未来窗已实现相关做对比目标预训练 encoder 结构, fine-tune 到 YR4B。走**预训练**路线不走 aux 头 (aux-MTL 轴已关)。泄漏纪律: 逐 fold 预训练, 共动标签未来窗完全落在训练窗内; 0C forward-decay 因果测强制。设计文档先行再动手。
 
 **基建:** YR4B/YR24B = 全书残差目标 (YR 对 king+S2 OOS pred 面板残差化) — "基于当前的残差"的严格实现; 稀疏约束 (pred 面板只在锚点, 交集 ~220k cells) 待 checkpoints 勘察定加密与否; mixer/新架构参数硬顶 ≤50k。验收 = 0C v2 门 (四腿书基准 + 归纳偏置差异实证 pred-corr≤0.36 + in-context 泄漏专项 + horizon 限 4-24h + "0 进书合法"诚实先验)。
+
+## 结果段 (2026-07-15 滚动)
+
+**N1b (多关系注意力) = ARCHIVE, 死因=换皮 (0C `arm_n1b_verdict`):** book-正交增量 +0.0162 真实 (CI[.0139,.0186], 4/4 年正), 零初始化门自白=结构确实被用 (alpha 训到 −0.099, λ 非零), forward-decay 因果签名教科书级 — **但 pred-corr vs king 0.378 越 0.36 资格线 (gate-v2 (i) 首次生效判死), book-corr 0.547 比 S1 更冗余, 进书逐权重显著负 (w0.05 −0.24)。★教条二次证明 (S1 同-arch + N1b 异-arch, 同死于 4h): 饱和 horizon 上换架构不换 basin — 横向 (horizon+执行) 多样性才是进书门槛, 架构新颖度不是。**
+
+**N1a 先验下调后条件执行:** horizon 改 **12h** (king-4h 与 S2-24h 之间无人区) + **fold0 pred-corr≤0.36 早筛** (过线才跑全 battery)。这是本阶段最后一臂。
