@@ -64,7 +64,11 @@
 
 **★★ ARM-S2 = 补充因子阶段首个 ACCEPT — 正式进书 (2026-07-14, 0C 终链 `s2_g2_seeds` + `book_assembly_4leg`):** 5yr [+.0235/+.0655/+.0583/+.0531/**+.0898**] 五年全正 (2026 最强 = 王座弱年); **逐年 king-正交增量全正** [+.018/+.037/+.034/+.020/+.042] pooled +0.0289; G2 seeds {.0620/.0731/.0650} 增量三 seed 全正 min +.0285; **四腿装配: S2↔SIZE corr 0.002 / S2↔king 0.224 = 真第四分散腿; 等风险四腿 vs 三腿: Sharpe 6.60→7.10, 最差月 −2.84→−2.42, ★2026H1 王座弱年 5.91→6.61 保护兑现; Sharpe/最差月随 S2 权重单调改善**。终版四腿权重: **DL-king 0.35-0.40 / funding ~0.28 / SIZE ~0.28 / S2-24h ~0.10** (敏感性 0.05-0.15 全改善)。诚实定位: 分散/最差年保护 sleeve (成对 blend 不显著, 分散价值在多腿书语境才兑现 — sleeve 判据的教科书案例)。
 
-历史 (一审/二审记录): ARM-S2 首判 CONDITIONAL SLEEVE CANDIDATE (0C 二审, `arm_s2_verdict` v2). 32ch 正身 3-fold [.0524/.0696/.0639] mean .0620; **king-正交增量 +0.0285** (CI[.021,.036] 逐 fold 全正) = raw 的 ~46% 在王座外存活; pred-corr 0.335; dyn 0.895; 净成本 PASS (换手 ~king 1/6, netSh 5.56/4.93/3.91 by tier)。**(c) 书级门翻案: improve-rule 全 cost-tier 成立 (ρ 仅 0.19; 可部署口径下 king 快换手被真实成本压得更狠 → S2 改善更大), blend 边际正但 3-fold 未 bootstrap 显著 → 5yr+seeds 确认中 (wideA_s2_y24_5yr)。过→部署小权重 (~0.1) 慢 sleeve; 褪→存档。**
+历史 (一审/二审记录): ARM-S2 首判 CONDITIONAL SLEEVE CANDIDATE (0C 二审, `arm_s2_verdict` v2).
+
+**ARM-S1 (4h 王座残差再挖, YR4K 目标 = YR4 对 OOS king-pred 逐 ts 残差化): CLOSE + ARCHIVE (0C `arm_s1_verdict`).** 统计-真实增量 +0.0181 (四年全正, 近全量纲) **但大部分冗余**: pred-corr vs king 0.36 (同架构部分再学回 king), book-corr 0.477 (同 4h horizon 同执行); **作第五腿伤书 (4-leg Sh 8.06→7.63)**; king-merge 仅 +0.0006 IC (不值第二个 4h 模型)。**机制结论: xattn 王已饱和 4h horizon; 同-horizon 同-执行再挖 = 递减回报。4h-再挖轴关闭。**
+
+**★ 阶段核心教训 (S2 vs S1 对照, 0C):** S2 (24h, corr 0.22) ACCEPT vs S1 (4h, corr 0.48) ARCHIVE, 且两者的"统计增量"都真实 —— **HORIZON 多样性 (+不同执行画像) 才让补充因子进书; 对饱和 king 的同-horizon 再挖即便统计真实也不加书值。剩余 EV 只在真正不同-horizon (7d/更慢 premia) 或不同-机制/数据轴。** 32ch 正身 3-fold [.0524/.0696/.0639] mean .0620; **king-正交增量 +0.0285** (CI[.021,.036] 逐 fold 全正) = raw 的 ~46% 在王座外存活; pred-corr 0.335; dyn 0.895; 净成本 PASS (换手 ~king 1/6, netSh 5.56/4.93/3.91 by tier)。**(c) 书级门翻案: improve-rule 全 cost-tier 成立 (ρ 仅 0.19; 可部署口径下 king 快换手被真实成本压得更狠 → S2 改善更大), blend 边际正但 3-fold 未 bootstrap 显著 → 5yr+seeds 确认中 (wideA_s2_y24_5yr)。过→部署小权重 (~0.1) 慢 sleeve; 褪→存档。**
 
 **Metrics (OI/持仓) 输入轴正式关闭 — 三连 null**: 1h 线性 (+0.0007) / 1h 非线性 (−0.0004) / **24h DL 输入 (−0.010 净拖累, #29 应验)**; 39ch 版泄漏审计 LEAKAGE-CLEAN (构建 10/10 + restatement 逐字节对齐实时 API) — 干净但无预测价值。数据资产保留 (`wide_metrics_raw`/`wide_metrics_ch.npz`), 无新机制勿再挖 metrics-as-input。dense_train opt-in flag 落地 (24h params:samples 1:0.4→1:9.6, bit-identical off 验证)。
 
