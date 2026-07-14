@@ -11,7 +11,9 @@
 
 ## 双臂定稿
 
-**ARM-N2 (先跑, 1-2 天): 位移加权 listwise LambdaRankIC 损失臂。** 闭式 lambda 梯度直接优化截面 Spearman (arXiv 2605.00501), 低 SNR 下 train-test gap 显著小于 MSE = 对 anti-pattern #15 的针对性反证据 (旧失败是朴素 pairwise 式)。前置核查: 现 stage2b lambda_rank_ic 若已是位移加权 → 塌缩为已测存档。AUX w≤0.1 起 (#15 纪律), YR4B 目标。
+**ARM-N2 (LambdaRankIC): 前置核查塌缩 → ARCHIVE 不跑 (2026-07-14 深夜)。** 0B 读现实现: `losses/xsec_residual_loss.py::lambda_rank_ic` **逐字就是 arXiv 2605.00501 的位移加权闭式** (w_ij = 12·|r̂ⱼ−r̂ᵢ|·|ỹᵢ−ỹⱼ|/n(n²−1), docstring 引同篇 Lin 2026), **且已是王座 primary loss (权重 1.0)**; aux 加权版 (w 0.1-0.3) = DLv2 L1 臂已测 REJECT。**N2 无处可加。侧记: 王座 loss 独立收敛于 2026 前沿 — 验证性发现。前置核查纪律拦下冗余臂, 省 1-2 天。**
+
+**顶替第二臂 = ARM-N1b 多关系跨资产注意力** (调研 #1 的另一实现, A 级 crypto OOS 佐证): 单头 xattn → K 条关系边 (独立注意力通道 + 门控混合), 增量参数 ≤50k 硬顶。与 N1a 共享"结构信号变密"主题、归纳偏置不同 (表征预训练 vs 关系通道展宽), 互为对照。关系边诱导方案 (无显式图) 待设计文档: 滚动相关分桶 / 特征子空间 / 可学习分组。
 
 **ARM-N1 (长线, 4-6 天): 未来共动 soft-contrastive 预训练跨资产编码器。** 用未来窗已实现相关做对比目标预训练 encoder 结构, fine-tune 到 YR4B。走**预训练**路线不走 aux 头 (aux-MTL 轴已关)。泄漏纪律: 逐 fold 预训练, 共动标签未来窗完全落在训练窗内; 0C forward-decay 因果测强制。设计文档先行再动手。
 
