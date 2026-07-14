@@ -62,7 +62,9 @@
 
 **方法论支点 (0C 预注册五门 + ARM-S2 实测确立): 王座太强 (paper-Sh 12-20), 任何补充因子按 signal-blend 判都是稀释 — 正确形态 = 独立慢 sleeve, 按 Markowitz improve-rule (Ss > ρ·Sk, 比值判据, 对 Sharpe 缩放不变 ⇒ 不受 paper 膨胀影响) + 可部署口径判。**
 
-**ARM-S2 (24h-horizon, lam_orth=0+xattn, dense_train+embargo10): CONDITIONAL SLEEVE CANDIDATE (0C 二审, `arm_s2_verdict` v2).** 32ch 正身 3-fold [.0524/.0696/.0639] mean .0620; **king-正交增量 +0.0285** (CI[.021,.036] 逐 fold 全正) = raw 的 ~46% 在王座外存活; pred-corr 0.335; dyn 0.895; 净成本 PASS (换手 ~king 1/6, netSh 5.56/4.93/3.91 by tier)。**(c) 书级门翻案: improve-rule 全 cost-tier 成立 (ρ 仅 0.19; 可部署口径下 king 快换手被真实成本压得更狠 → S2 改善更大), blend 边际正但 3-fold 未 bootstrap 显著 → 5yr+seeds 确认中 (wideA_s2_y24_5yr)。过→部署小权重 (~0.1) 慢 sleeve; 褪→存档。**
+**★★ ARM-S2 = 补充因子阶段首个 ACCEPT — 正式进书 (2026-07-14, 0C 终链 `s2_g2_seeds` + `book_assembly_4leg`):** 5yr [+.0235/+.0655/+.0583/+.0531/**+.0898**] 五年全正 (2026 最强 = 王座弱年); **逐年 king-正交增量全正** [+.018/+.037/+.034/+.020/+.042] pooled +0.0289; G2 seeds {.0620/.0731/.0650} 增量三 seed 全正 min +.0285; **四腿装配: S2↔SIZE corr 0.002 / S2↔king 0.224 = 真第四分散腿; 等风险四腿 vs 三腿: Sharpe 6.60→7.10, 最差月 −2.84→−2.42, ★2026H1 王座弱年 5.91→6.61 保护兑现; Sharpe/最差月随 S2 权重单调改善**。终版四腿权重: **DL-king 0.35-0.40 / funding ~0.28 / SIZE ~0.28 / S2-24h ~0.10** (敏感性 0.05-0.15 全改善)。诚实定位: 分散/最差年保护 sleeve (成对 blend 不显著, 分散价值在多腿书语境才兑现 — sleeve 判据的教科书案例)。
+
+历史 (一审/二审记录): ARM-S2 首判 CONDITIONAL SLEEVE CANDIDATE (0C 二审, `arm_s2_verdict` v2). 32ch 正身 3-fold [.0524/.0696/.0639] mean .0620; **king-正交增量 +0.0285** (CI[.021,.036] 逐 fold 全正) = raw 的 ~46% 在王座外存活; pred-corr 0.335; dyn 0.895; 净成本 PASS (换手 ~king 1/6, netSh 5.56/4.93/3.91 by tier)。**(c) 书级门翻案: improve-rule 全 cost-tier 成立 (ρ 仅 0.19; 可部署口径下 king 快换手被真实成本压得更狠 → S2 改善更大), blend 边际正但 3-fold 未 bootstrap 显著 → 5yr+seeds 确认中 (wideA_s2_y24_5yr)。过→部署小权重 (~0.1) 慢 sleeve; 褪→存档。**
 
 **Metrics (OI/持仓) 输入轴正式关闭 — 三连 null**: 1h 线性 (+0.0007) / 1h 非线性 (−0.0004) / **24h DL 输入 (−0.010 净拖累, #29 应验)**; 39ch 版泄漏审计 LEAKAGE-CLEAN (构建 10/10 + restatement 逐字节对齐实时 API) — 干净但无预测价值。数据资产保留 (`wide_metrics_raw`/`wide_metrics_ch.npz`), 无新机制勿再挖 metrics-as-input。dense_train opt-in flag 落地 (24h params:samples 1:0.4→1:9.6, bit-identical off 验证)。
 
