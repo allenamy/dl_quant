@@ -80,3 +80,7 @@
 
 **轨 1 (maker-fill)**: 保守回放 → tick 级验证（1s-bar 双轴乐观不抵消, fill 高估 1.5×/漏逆选择; 崩盘日 markout −5.3 尾 −20bps）→ **tick 修正后 pilot 判词存活** (成本 1.9/2.7-2.9bps normal/stress, 全场景逐年净正), 修订建议书 = k900 被动 + vol-gate; alt-leg 逆选择 = 唯一离线不可测残余。**等用户批 pilot。**
 **轨 2 (OI/持仓数据面)**: 188K 日档 140 币全绿覆盖 (双下载地雷: S3 限流假 NO DATA + 分页静默截断, CDN 枚举修复) → 7 通道 t−5min 泄漏口径 → **双门 FAIL: Ridge 线性 +0.0007 / LightGBM 非线性 −0.0004 (z 0.34, leak-clean) → OI/持仓在 1h 尺度对残差目标无增量, 干净关闭**; "非线性交互救活" 假设 (funding 式先验) 被实测否定。数据资产保留 (`wide_metrics_raw` + `wide_metrics_ch.npz`), 未测用法 = 其他 horizon/8h 刷新/regime-gate。
+
+## 七、交易引擎阶段 v0（2026-07-15 追加）
+
+**六件套 shadow 引擎建成并全历史回放**（`engine/`: 信号链/执行 vol-gate/isotonic/IC 监控/funding 风控/跨腿净额，全部回放测试过）。**引擎结构口径逐年 net Sharpe [2022 6.9 / 2023 7.3 / 2024 9.2 / 2025 11.8 / 2026H1 4.0]**（0C 独立复现逐格吻合）。组件归因: **C5 funding 风控 = 主导杠杆 (+2.56/yr, 方差控制非 alpha — 无 winsor 时 funding 腿单名 L1 集中到 0.49; 必需卫生件)**; C6 净额 +0.23 (198bps/yr, 部署规格 = king 4h 网格重净额); 执行 vol-gate 只调战术不动敞口 (书是危机受益者)。**定位判词 (0C, 引用必带): 7-12 是结构口径 = 信号质量上界, 非部署净值; 部署叠 maker-fill 现实后实质折损; 对标业界信号级研究非基金净值。** v1 待办: isotonic/pos-cap 接入 P&L 路径、funding 腿改 rank 加权减 C5 依赖、C6 与 0C 口径统一规格。
