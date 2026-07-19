@@ -80,15 +80,49 @@ def derive_funding_ema(premium_1h: pd.DataFrame, grid_ms: np.ndarray, interval_h
     return funding_ema_on_grid(settle, rate, grid_ms, interval_h)
 
 
-def real_funding_ema(funding_df: pd.DataFrame, grid_ms: np.ndarray) -> np.ndarray:
-    """The panel's real funding_ema from a fundingRate archive frame (same recipe)."""
+def real_funding_ema(funding_df: pd.DataFrame, grid_ms: np.ndarray, interval_h=None) -> np.ndarray:
+    """The panel's real funding_ema from a fundingRate archive frame (same recipe).
+    interval_h: override the EMA-span interval (from a full-history span cache). The frozen panel
+    computed span from the median interval over the coin's FULL history; a short window sees only the
+    RECENT interval, which differs for coins whose funding interval changed (8h<->4h). Pass the cached
+    full-history interval to reproduce the frozen span exactly."""
     if funding_df.empty or len(funding_df) < 3:
         return np.full(len(grid_ms), np.nan)
     fd = funding_df.sort_values("fundingTime_ms")
-    ih = float(np.median(fd["funding_interval_h"].to_numpy())) if "funding_interval_h" in fd else 8.0
+    if interval_h is None:
+        interval_h = float(np.median(fd["funding_interval_h"].to_numpy())) if "funding_interval_h" in fd else 8.0
     settle = fd["fundingTime_ms"].to_numpy(np.int64)
     rate = pd.to_numeric(fd["fundingRate"], errors="coerce").to_numpy(np.float64)
-    return funding_ema_on_grid(settle, rate, grid_ms, int(round(ih)))
+    return funding_ema_on_grid(settle, rate, grid_ms, int(round(interval_h)))
+
+
+def full_history_interval(source, sym, floor="2021-01-01") -> int | None:
+    """Median funding interval over the coin's full available history — the frozen panel's span basis.
+    Stable (interval changes are rare), so cache it and reuse."""
+    d0 = dt.datetime.strptime(floor, "%Y-%m-%d").date()
+    d1 = dt.datetime.utcnow().date()
+    f = source.funding(sym, d0, d1)
+    if f.empty or "funding_interval_h" not in f:
+        return None
+    iv = f["funding_interval_h"].dropna().to_numpy()
+    return int(round(float(np.median(iv)))) if iv.size else None
+
+
+def build_interval_cache(source, syms, floor="2021-01-01", out=None) -> dict:
+    """{sym: full-history median funding interval_h}. One-time; reused by build_window."""
+    import json, os
+    cache = {}
+    if out and os.path.exists(out):
+        cache = json.load(open(out))
+    for s in syms:
+        if s in cache:
+            continue
+        iv = full_history_interval(source, s, floor)
+        if iv is not None:
+            cache[s] = iv
+        if out:
+            json.dump(cache, open(out, "w"))
+    return cache
 
 
 def _hourly_grid(ym: str) -> np.ndarray:

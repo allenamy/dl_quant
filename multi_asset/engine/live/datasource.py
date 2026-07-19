@@ -3,11 +3,10 @@
 > **创建:** 2026-07-19 JST | **Session:** fable multi-asset-v2 (0B live shadow) | **状态:** v1 | **作废条件:** 数据源端点/口径变更
 
 The engine live loop reads market data through the `DataSource` interface so the ingest is
-**pluggable**: on `jpline` the live REST endpoints (`fapi.binance.com`) are firewall-blocked, so
-we use `CDNDataSource` (the `data.binance.vision` static archive, T+1 daily — the only reachable
-egress). A partner deploying on infra WITHOUT that firewall should swap in `RESTDataSource`
-(same interface, real-time) — see RUNBOOK. Nothing downstream (inference / signal loop / P&L)
-depends on which implementation is bound.
+**pluggable**. Where the environment can reach the live REST API (`fapi.binance.com`), bind
+`RESTDataSource` (real-time). Where it cannot, bind `CDNDataSource` — the `data.binance.vision`
+static archive (public, no key, T+1 daily). Both satisfy the same interface; nothing downstream
+(inference / signal loop / P&L) depends on which implementation is bound.
 
 CDN archive layout (`https://data.binance.vision/data/futures/um/`):
   monthly|daily / klines / <SYM>/1h/<SYM>-1h-<PERIOD>.zip           OHLCV+quote_volume
@@ -211,13 +210,13 @@ class CDNDataSource(DataSource):
 
 
 class RESTDataSource(DataSource):
-    """Real-time fapi.binance.com implementation — STUB for partner deployment (jpline firewalls it).
-    Same interface as CDNDataSource; a partner fills these in with /fapi/v1/{klines,fundingRate,
-    premiumIndex} + /futures/data/openInterestHist etc. and the live loop is unchanged."""
+    """Real-time fapi.binance.com implementation — provided as a stub. Same interface as
+    CDNDataSource; implement these four methods against /fapi/v1/{klines,fundingRate,premiumIndex}
+    + /futures/data/openInterestHist and the live loop is unchanged (real-time instead of T+1)."""
 
-    _MSG = ("RESTDataSource is a deployment stub. On jpline the fapi.binance.com REST endpoints are "
-            "firewall-blocked, so the shadow uses CDNDataSource (T+1). A partner on unfirewalled infra "
-            "implements these four methods against the live REST API (real-time) and binds this instead.")
+    _MSG = ("RESTDataSource is a stub. Where the environment can reach the live REST API, implement "
+            "these four methods against fapi.binance.com (real-time) and bind this instead of "
+            "CDNDataSource; where it cannot, CDNDataSource serves the same data from the T+1 archive.")
 
     def klines_1h(self, sym, d0, d1): raise NotImplementedError(self._MSG)
     def funding(self, sym, d0, d1): raise NotImplementedError(self._MSG)
