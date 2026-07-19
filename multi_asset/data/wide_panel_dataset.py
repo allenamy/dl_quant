@@ -16,7 +16,8 @@ WINDOW = 168
 
 
 class WidePanelData:
-    def __init__(self, path=WIDE_DL, target_horizon=4, aux_horizons=(1, 24), window=WINDOW):
+    def __init__(self, path=WIDE_DL, target_horizon=4, aux_horizons=(1, 24), window=WINDOW,
+                 dense_train=False, target_npz=None):
         z = np.load(path, allow_pickle=True)
         self.CH = z["CH"].astype(np.float32)                # (T,N,C)
         self.ts = z["ts"]; self.symbols = z["symbols"]
@@ -31,6 +32,13 @@ class WidePanelData:
         self.Yraw = z[f"Y{target_horizon}"].astype(np.float32)   # raw forward return (eval)
         self.CL = z[f"CL{target_horizon}"]                       # >=H non-overlap clean
         self.aux = {int(h): (z[f"YR{h}"].astype(np.float32), z[f"CL{h}"]) for h in aux_horizons}
+        # ARM-S1 (opt-in): override primary target with a king-residual sidecar (YR4K) and restrict
+        # the clean/eval mask to king-available cells (2022+). Yraw (raw fwd ret) stays as-is.
+        if target_npz is not None:
+            tn = np.load(target_npz, allow_pickle=True)
+            assert np.array_equal(tn["ts"], self.ts), "target_npz ts mismatch"
+            self.Y = tn["YR4K"].astype(np.float32)
+            self.CL = self.CL & tn["KMASK"]
         # hourly grid -> day index for walk-forward folds
         self.day = np.arange(self.T) // 24
         self.uniq_days = np.unique(self.day)
@@ -38,6 +46,11 @@ class WidePanelData:
         self.valid_hour = np.zeros(self.T, bool)
         ok = np.arange(self.T) >= (self.W - 1)
         self.valid_hour[ok] = (self.CL[ok].any(1))
+        # dense-train (opt-in): predict-hours where >=1 member has a finite target (ALL
+        # overlapping 1h-grid labels, not just CL{H} stride-H anchors). EVAL/scoring stays clean.
+        self.dense_train = dense_train
+        self.valid_hour_dense = np.zeros(self.T, bool)
+        self.valid_hour_dense[ok] = ((self.member[ok] & np.isfinite(self.Y[ok])).any(1))
         self.mu = self.sd = self.sigma = None
 
     # ---- per-fold stats (train-only) ----
@@ -68,9 +81,11 @@ class WidePanelData:
         return self.mu, self.sd
 
     def iter_batches(self, split_hours, batch_hours=256, rng=None, shuffle=True, want_raw=False,
-                     want_aux=False):
-        """Yield standardized window batches over the prediction hours in split_hours (day list)."""
-        sel = np.isin(self.day, split_hours) & self.valid_hour
+                     want_aux=False, train=False):
+        """Yield standardized window batches over the prediction hours in split_hours (day list).
+        train=True + self.dense_train -> dense grid (all overlapping labels); else CL{H} clean."""
+        dense = train and self.dense_train
+        sel = np.isin(self.day, split_hours) & (self.valid_hour_dense if dense else self.valid_hour)
         hrs = np.where(sel)[0]
         if shuffle and rng is not None:
             rng.shuffle(hrs)
@@ -81,7 +96,10 @@ class WidePanelData:
             Xseq = self.CH[widx].transpose(0, 2, 1, 3)      # (B,N,W,C)
             Xn = np.clip((np.nan_to_num(Xseq) - self.mu) / self.sd, -10, 10).astype(np.float32)
             ymat = self.Y[bh]                               # (B,N)
-            mask = (self.member[bh] & self.CL[bh] & np.isfinite(ymat)).astype(np.float32)
+            if dense:
+                mask = (self.member[bh] & np.isfinite(ymat)).astype(np.float32)
+            else:
+                mask = (self.member[bh] & self.CL[bh] & np.isfinite(ymat)).astype(np.float32)
             yn = np.nan_to_num(ymat / self.resid_sigma).astype(np.float32)
             out = dict(Xseq=Xn, y=yn, mask=mask, rows=bh)
             if want_raw:

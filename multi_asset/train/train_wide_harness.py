@@ -48,7 +48,7 @@ from scipy.stats import rankdata
 sys.path.insert(0, p.dirname(p.dirname(p.dirname(p.abspath(__file__)))))
 from multi_asset.data.wide_panel_dataset import WidePanelData  # noqa: E402
 from multi_asset.model.wide_harness import (  # noqa: E402
-    ConformerPanelEncoder, WideFactorModel, WideQIMModel,
+    ConformerPanelEncoder, WideFactorModel, WideQIMModel, WideMultiRelModel,
 )
 from multi_asset.model.temporal_spatial_panel import count_params  # noqa: E402
 from multi_asset.losses.xsec_residual_loss import (  # noqa: E402
@@ -87,7 +87,7 @@ def build_encoder(name, n_feat, d, n_blocks, kernel, dropout):
 # train, val carved from the train tail, embargo (>= lookback-days + horizon) between
 # train/val end and test start so no forward label overlaps the test window.
 # --------------------------------------------------------------------------- #
-def year_folds(data, embargo_days=8, val_days=30, min_train_days=120, min_test_days=60):
+def year_folds(data, embargo_days=8, val_days=30, min_train_days=120, min_test_days=60, year_from=None):
     """Calendar-year expanding walk-forward (M0-style multi-year replay). Test each year in turn;
     train = all PRIOR-year days (minus embargo + val tail). Uses data.ts to assign each uniq day a
     calendar year. Returns dicts {tr,va,te} of day indices (same format as wf_folds)."""
@@ -96,6 +96,8 @@ def year_folds(data, embargo_days=8, val_days=30, min_train_days=120, min_test_d
     day_year = np.array([int(yr_of_hour[data.day == d][0]) for d in data.uniq_days])
     folds = []
     for Y in sorted(set(day_year.tolist())):
+        if year_from is not None and Y < year_from:
+            continue                                        # opt-in: skip degenerate early test years
         te = data.uniq_days[day_year == Y]
         tr_all = data.uniq_days[day_year < Y]
         if len(te) < min_test_days or len(tr_all) < min_train_days + val_days + embargo_days:
@@ -220,19 +222,36 @@ def train_fold(fold_i, fold, data, args, fund_idx, save_dir=None, verbose=True):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     enc = build_encoder(args.encoder, data.C, args.d_model, args.n_blocks, KERNEL, DROPOUT)
+    if args.pretrained_encoder:
+        enc.load_state_dict(torch.load(args.pretrained_encoder, map_location=DEV))
+        if fold_i == 0 and verbose:
+            print(f"[n1a] loaded pretrained encoder <- {args.pretrained_encoder}", flush=True)
     if args.qim:
         model = WideQIMModel(enc, n_quantiles=args.n_quantiles, xattn=args.xattn,
                              n_xattn=args.n_xattn, dropout=DROPOUT).to(DEV)
         taus = model.head.taus.detach().cpu().tolist()
     else:
         aux_h = tuple(int(x) for x in args.aux_horizons.split(",") if x.strip()) if args.aux_mtl else ()
-        model = WideFactorModel(enc, n_factor_heads=K, xattn=args.xattn,
-                                n_xattn=args.n_xattn, dropout=DROPOUT, aux_horizons=aux_h).to(DEV)
+        if args.multirel:
+            lbs = tuple(int(x) for x in args.n1b_lookbacks.split(",") if x.strip())
+            ridx = data.ch_names.index("ret_1h") if "ret_1h" in data.ch_names else 20
+            model = WideMultiRelModel(enc, n_factor_heads=K, lookbacks=lbs, ret_idx=ridx,
+                                      dropout=DROPOUT).to(DEV)
+        else:
+            model = WideFactorModel(enc, n_factor_heads=K, xattn=args.xattn,
+                                    n_xattn=args.n_xattn, dropout=DROPOUT, aux_horizons=aux_h).to(DEV)
     if fold_i == 0 and verbose:
         head = f"QIM(Q={args.n_quantiles}, cols=[imean,q50])" if args.qim else f"K={K}"
         print(f"[model] arm={args.encoder} params={count_params(model):,} "
               f"(d={args.d_model}, blocks={args.n_blocks}, {head}, xattn={args.xattn})", flush=True)
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=WD)
+    if args.enc_lr_mult != 1.0:
+        _eid = {id(p) for p in model.encoder.parameters()}
+        _encp = [p for p in model.parameters() if id(p) in _eid]
+        _othp = [p for p in model.parameters() if id(p) not in _eid]
+        opt = torch.optim.AdamW([{"params": _encp, "lr": args.lr * args.enc_lr_mult},
+                                 {"params": _othp, "lr": args.lr}], weight_decay=WD)
+    else:
+        opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=WD)
     rng = np.random.default_rng(args.seed)
 
     best_val, best_state, best_epoch, bad = -1e9, None, -1, 0
@@ -243,7 +262,8 @@ def train_fold(fold_i, fold, data, args, fund_idx, save_dir=None, verbose=True):
         nb = 0
         # pred-smooth needs contiguous-hour batches (shuffle off); else shuffle for SGD.
         for b in data.iter_batches(tr_days, batch_hours=args.batch_hours, rng=rng,
-                                   shuffle=(args.pred_smooth_lambda <= 0), want_aux=args.aux_mtl):
+                                   shuffle=(args.pred_smooth_lambda <= 0), want_aux=args.aux_mtl,
+                                   train=True):
             x = torch.from_numpy(b["Xseq"]).to(DEV)        # (B,N,W,C) standardized
             y = torch.from_numpy(b["y"]).to(DEV)           # (B,N) normalized YR residual
             m = torch.from_numpy(b["mask"]).to(DEV)        # (B,N)
@@ -357,6 +377,11 @@ def main():
     ap.add_argument("--n_blocks", type=int, default=N_BLOCKS)
     ap.add_argument("--xattn", action="store_true", help="M3: cross-asset attention over members")
     ap.add_argument("--n_xattn", type=int, default=1)
+    ap.add_argument("--multirel", action="store_true",
+                    help="ARM-N1b: replace single xattn with king-base + zero-init gated "
+                         "multi-relation delta (rolling-corr buckets @ --n1b_lookbacks).")
+    ap.add_argument("--n1b_lookbacks", type=str, default="24,72,168",
+                    help="N1b relation-edge correlation lookbacks in hours (K edges).")
     ap.add_argument("--w_mag", type=float, default=0.3, help="stage2b magnitude-Huber weight")
     ap.add_argument("--lam_orth", type=float, default=1.0, help="stage2b orthogonality-penalty weight")
     ap.add_argument("--pred_smooth_lambda", type=float, default=0.0,
@@ -372,6 +397,22 @@ def main():
     ap.add_argument("--n_folds", type=int, default=3)
     ap.add_argument("--test_frac", type=float, default=0.45)
     ap.add_argument("--embargo_days", type=int, default=8)
+    ap.add_argument("--dense_train", action="store_true",
+                    help="opt-in: train on ALL overlapping 1h-grid labels (member&finite); "
+                         "eval/score/checkpoint stay CL{H} clean. For long horizons where "
+                         "CL stride-H starves training (H=24: 1:0.8 -> ~1:20 params:samples).")
+    ap.add_argument("--target_npz", type=str, default=None,
+                    help="opt-in sidecar replacement primary target (e.g. YR4K king-residual for "
+                         "ARM-S1): keys ts, YR4K, KMASK. Input CH still from --wide_dl_path.")
+    ap.add_argument("--year_folds_from", type=int, default=None,
+                    help="opt-in: with --year_folds, skip test years < this (drop degenerate early "
+                         "folds, e.g. ARM-S1 te=2022 whose 2021 train has no king-residual target).")
+    ap.add_argument("--pretrained_encoder", type=str, default=None,
+                    help="ARM-N1a: init encoder from comovement-pretrained weights (per-fold).")
+    ap.add_argument("--enc_lr_mult", type=float, default=1.0,
+                    help="ARM-N1a: discriminative LR multiplier for encoder params (e.g. 0.3).")
+    ap.add_argument("--max_folds", type=int, default=0,
+                    help="cap #folds (0=all); fold0 early-screen uses 1.")
     ap.add_argument("--val_days", type=int, default=30)
     ap.add_argument("--kill_gates", action="store_true", help="opt-in pre-registered fold-0 kill")
     ap.add_argument("--kill_epoch", type=int, default=8)
@@ -390,6 +431,8 @@ def main():
     aux_h = tuple(int(x) for x in args.aux_horizons.split(",") if x.strip())
     t0 = time.time()
     dl_kwargs = {"path": args.wide_dl_path} if args.wide_dl_path else {}
+    dl_kwargs["dense_train"] = args.dense_train
+    dl_kwargs["target_npz"] = args.target_npz
     data = WidePanelData(target_horizon=args.target_horizon, aux_horizons=aux_h, **dl_kwargs)
     fund_idx = data.ch_names.index("funding_ema") if "funding_ema" in data.ch_names else -1
     print(f"[wide] T={data.T} N={data.N} C={data.C} W={data.W} H={data.H} "
@@ -426,7 +469,8 @@ def main():
         return
 
     if args.year_folds:
-        folds = year_folds(data, embargo_days=args.embargo_days, val_days=args.val_days)
+        folds = year_folds(data, embargo_days=args.embargo_days, val_days=args.val_days,
+                            year_from=args.year_folds_from)
     else:
         folds = wf_folds(data.uniq_days, n_folds=args.n_folds, test_frac=args.test_frac,
                          embargo_days=args.embargo_days, val_days=args.val_days)
@@ -440,6 +484,9 @@ def main():
             f["te"][0], f["te"][-1]), flush=True)
     all_m = []
     for i, fold in enumerate(folds):
+        if args.max_folds and i >= args.max_folds:
+            print(f"[n1a] max_folds={args.max_folds} reached -- stopping (early-screen).", flush=True)
+            break
         print(f"\n----- fold {i} -----", flush=True)
         m = train_fold(i, fold, data, args, fund_idx, save_dir=save_dir, verbose=True)
         if m is not None:
