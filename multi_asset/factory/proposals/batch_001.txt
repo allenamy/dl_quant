@@ -1,0 +1,113 @@
+# FACTORY BATCH 001 — proposer: main-agent (LLM firewall: no holdout/eval access)
+# Target: YR4B (all-book residual, 4h). Rationale per family; each formula counts into cumulative M.
+# Families: A crowding-dynamics / B liquidity-micro / C conditional-rev-mom / D leg-composition / E vol-structure
+
+## Family A — 拥挤动力学 (funding LEVEL is in baseline; its DYNAMICS/interactions are not)
+A01: xsec_z(ts_delta(funding_ema, 8))                                        # funding momentum, one settlement
+A02: xsec_z(ts_delta(funding_ema, 24))                                       # funding momentum, daily
+A03: xsec_z(ts_zscore(funding_ema, 72))                                      # crowding vs OWN history (ts, not xsec)
+A04: mul(xsec_z(ts_delta(funding_ema, 8)), xsec_z(rvol_24h))                 # funding impulse amplified by vol
+A05: mul(xsec_z(funding_ema), xsec_z(mom_24h))                               # crowded AND rising = blowoff setup
+A06: mul(xsec_z(funding_ema), neg(xsec_z(rev_1h)))                           # crowding × anti-reversal state
+A07: where(gt(xsec_z(funding_ema), xsec_z(ts_zscore(funding_ema, 168))), neg(xsec_z(mom_72h)), xsec_z(mom_72h))  # crowding-stretch flips momentum sign
+A08: mul(xsec_z(ts_zscore(funding_ema, 168)), xsec_z(ts_zscore(rvol_24h, 168)))  # both stretched vs week = unstable
+A09: sub(xsec_rank(funding_ema), ts_rank(funding_ema, 72))                   # xsec vs own-history crowding divergence
+A10: mul(sign(funding_ema), xsec_z(rvol_6h))                                 # vol spike in crowding direction = squeeze precursor
+A11: xsec_z(ts_corr(funding_ema, ret_4h, 42))                                # reflexive coupling: funding chasing returns
+A12: neg(mul(xsec_z(funding_ema), xsec_z(max_ret_24h)))                      # crowded lottery = fade
+A13: mul(xsec_z(ts_delta(funding_ema, 4)), xsec_z(lturnover_24h))            # funding impulse with turnover confirmation
+A14: neg(mul(xsec_z(funding_ema), xsec_z(ts_delta(rvol_6h, 6))))             # crowding into accelerating vol
+A15: xsec_z(ts_std(funding_ema, 72))                                         # positioning instability premium
+A16: mul(neg(xsec_z(funding_ema)), xsec_z(illiq_72h))                        # crowding fade stronger in illiquids
+A17: xsec_z(ts_delta(funding_ema, 168))                                      # weekly funding drift
+A18: sub(xsec_z(ts_zscore(funding_ema, 24)), xsec_z(ts_zscore(funding_ema, 168)))  # short-vs-long crowding stretch kink
+A19: mul(xsec_z(funding_ema), xsec_z(beta_24h))                              # crowded high-beta = squeeze candidates
+A20: neg(mul(xsec_z(ts_delta(funding_ema, 8)), xsec_z(mom_4h)))              # funding chasing short momo = late crowd
+
+## Family B — 流动性/微结构溢价 (turnover/volume/impact dynamics beyond static size)
+B01: xsec_z(ts_delta(lturnover_24h, 24))                                     # turnover shock
+B02: neg(xsec_z(ts_zscore(dvol_24h, 168)))                                   # volume drought vs own week
+B03: mul(xsec_z(ts_delta(dvol_24h, 24)), neg(xsec_z(abs(ret_24h))))          # volume up + price flat = accumulation
+B04: mul(xsec_z(illiq_72h), xsec_z(rev_3h))                                  # impact-bounce: reversal in illiquids
+B05: xsec_z(ts_corr(logqvol, abs(ret_1h), 72))                               # volume-|ret| coupling (toxicity proxy)
+B06: neg(mul(xsec_z(lturnover_24h), xsec_z(max_ret_24h)))                    # churned lottery fade
+B07: xsec_z(ts_zscore(illiq_72h, 336))                                       # illiquidity stretch vs 2 weeks
+B08: mul(xsec_z(ts_delta(logqvol, 4)), sign(ret_4h))                         # signed volume impulse (flow direction)
+B09: neg(xsec_z(ts_std(lturnover_24h, 72)))                                  # turnover instability penalty
+B10: mul(neg(xsec_z(ts_delta(dvol_72h, 72))), xsec_z(mom_72h))               # momentum on fading volume = exhaustion
+B11: xsec_z(div(dvol_24h, dvol_72h))                                         # volume term structure
+B12: mul(xsec_z(div(dvol_24h, dvol_72h)), xsec_z(rev_1h))                    # reversal conditioned on volume surge
+B13: neg(mul(xsec_z(illiq_72h), xsec_z(rvol_24h)))                           # illiquid+volatile risk discount
+B14: xsec_z(ts_corr(ret_1h, logqvol, 168))                                   # persistent signed pressure signature
+B15: sub(xsec_rank(dvol_24h), xsec_rank(size_dvol))                          # unusually active for its size
+B16: mul(sub(xsec_rank(dvol_24h), xsec_rank(size_dvol)), neg(xsec_z(mom_24h)))  # unusual activity + momentum fade
+B17: neg(xsec_z(mul(illiq_72h, abs(ret_24h))))                               # impact-heavy moves revert
+B18: xsec_z(ema(ts_delta(lturnover_24h, 4), 24))                             # smoothed turnover impulse
+B19: where(gt(xsec_z(dvol_24h), xsec_z(dvol_72h)), xsec_z(rev_3h), neg(xsec_z(rev_3h)))  # volume regime flips reversal sign
+B20: neg(xsec_z(ts_max(abs(ret_1h), 24)))                                    # intraday max-move fade
+
+## Family C — 条件反转/条件动量 (state-conditioned sign structure; discrete switches NN won't express)
+C01: mul(xsec_z(rev_3h), xsec_z(rvol_6h))                                    # short reversal amplified by instant vol
+C02: where(gt(xsec_z(rvol_24h), xsec_z(rvol_72h)), neg(xsec_z(ret_12h)), xsec_z(mom_24h))  # vol expanding: fade; else ride
+C03: mul(neg(xsec_z(ret_4h)), xsec_z(ts_zscore(rvol_6h, 72)))                # 4h fade on vol spike (king-adjacent probe)
+C04: mul(xsec_z(mom_168h), neg(xsec_z(rvol_72h)))                            # low-vol weekly momentum (quality momo)
+C05: mul(xsec_z(mom_72h), neg(xsec_z(ts_std(ret_24h, 168))))                 # smooth-path momentum
+C06: neg(mul(xsec_z(max_ret_24h), xsec_z(rvol_24h)))                         # lottery fade in high vol
+C07: sub(xsec_z(mom_24h), xsec_z(mom_168h))                                  # momentum term-structure kink
+C08: mul(sub(xsec_z(mom_24h), xsec_z(mom_168h)), neg(xsec_z(funding_ema)))   # kink faded under crowding
+C09: where(gt(xsec_z(mom_168h), xsec_z(mom_24h)), xsec_z(mom_72h), neg(xsec_z(rev_3h)))  # trend intact: ride mid; else reverse
+C10: neg(xsec_z(power(ret_24h, 3)))                                          # tail-emphasized daily reversal
+C11: neg(xsec_z(ts_zscore(ret_24h, 336)))                                    # price stretched vs 2 weeks
+C12: mul(neg(xsec_z(ret_12h)), xsec_z(illiq_72h))                            # 12h fade in illiquids
+C13: mul(xsec_z(mom_8h), xsec_z(ts_corr(ret_4h, logqvol, 72)))               # short momo with flow confirmation
+C14: neg(mul(xsec_z(ret_24h), xsec_z(beta_72h)))                             # beta-amplified daily noise reverts
+C15: neg(xsec_z(ts_zscore(betaadj_ret24, 168)))                              # idio move stretched vs week
+C16: where(lt(xsec_z(rvol_72h), xsec_z(rvol_24h)), neg(xsec_z(mom_4h)), xsec_z(mom_4h))  # vol regime flips 4h momo
+C17: xsec_z(ts_min(ret_4h, 42))                                              # worst 4h over week (bounce structure)
+C18: neg(xsec_z(ts_rank(ret_24h, 168)))                                      # daily ret rank in own week: fade top
+C19: mul(xsec_z(rev_1h), xsec_z(ts_delta(logqvol, 1)))                       # instant reversal × volume impulse
+C20: sub(xsec_z(ts_max(ret_4h, 42)), xsec_z(neg(ts_min(ret_4h, 42))))        # up-tail vs down-tail asymmetry (skew)
+
+## Family D — 腿组合 (factory-unique: conditional switching/interaction ON the book's own legs)
+D01: where(gt(xsec_z(rvol_24h), xsec_z(rvol_72h)), s2, king)                 # vol expanding: trust slow leg
+D02: mul(king, xsec_rank(dvol_24h))                                          # king sized by liquidity rank
+D03: mul(king, s2)                                                           # leg agreement interaction
+D04: add(king, s2)                                                           # plain consensus (cheap redundancy probe)
+D05: where(gt(xsec_z(illiq_72h), xsec_z(lturnover_24h)), s2, king)           # illiquid: slow leg; liquid: fast
+D06: mul(king, neg(xsec_z(funding_ema)))                                     # king stronger where shorts crowded
+D07: where(gt(abs(king), abs(s2)), king, s2)                                 # conviction-max blend
+D08: mul(s2, xsec_z(ts_zscore(rvol_72h, 336)))                               # slow leg in stretched-vol regimes
+D09: sub(king, s2)                                                           # fast-slow disagreement as signal
+D10: mul(sub(king, s2), neg(xsec_z(rvol_24h)))                               # disagreement faded in high vol
+D11: where(gt(xsec_z(mom_72h), xsec_z(mom_24h)), s2, king)                   # trend intact: slow; else fast
+D12: mul(king, xsec_z(ts_corr(ret_4h, logqvol, 168)))                        # king confirmed by flow coupling
+D13: mul(s2, neg(xsec_z(rvol_6h)))                                           # slow leg in calm tape
+D14: mul(funding_leg, xsec_z(ts_delta(funding_ema, 8)))                      # funding leg × accelerating crowding
+D15: mul(size_leg, neg(xsec_z(illiq_72h)))                                   # size leg liquidity-filtered
+D16: where(gt(xsec_z(dvol_24h), xsec_z(dvol_72h)), king, s2)                 # active regime: fast leg
+D17: mul(king, abs(s2))                                                      # king sized by slow-leg conviction
+D18: add(king, mul(funding_leg, xsec_z(rvol_24h)))                           # king + vol-scaled funding kicker
+D19: mul(add(king, s2), xsec_rank(dvol_24h))                                 # consensus × liquidity
+D20: where(lt(abs(sub(king, s2)), abs(add(king, s2))), add(king, s2), king)  # agree: consensus; disagree: king
+
+## Family E — 波动结构 (vol term structure / beta dynamics / jump-diffusion decomposition)
+E01: neg(xsec_z(div(rvol_6h, rvol_72h)))                                     # vol term inversion = stress discount
+E02: xsec_z(ts_delta(rvol_24h, 24))                                          # vol momentum
+E03: neg(xsec_z(ts_zscore(rvol_6h, 168)))                                    # vol stretch fade
+E04: xsec_z(ts_std(rvol_24h, 72))                                            # vol-of-vol (uncertainty premium)
+E05: neg(mul(xsec_z(div(rvol_6h, rvol_72h)), xsec_z(mom_4h)))                # vol-spike momentum fade
+E06: xsec_z(sub(beta_24h, beta_72h))                                         # beta drift
+E07: neg(xsec_z(ts_zscore(beta_24h, 168)))                                   # beta stretch fade
+E08: mul(neg(xsec_z(beta_24h)), xsec_z(rvol_72h))                            # low-beta high-idio (BAB-flavored)
+E09: neg(xsec_z(div(max_ret_24h, rvol_24h)))                                 # jump ratio fade (jumpiness beyond diffusion)
+E10: xsec_z(ts_corr(rvol_24h, ret_24h, 168))                                 # per-coin leverage-effect asymmetry
+E11: mul(xsec_z(ts_corr(rvol_24h, ret_24h, 168)), neg(xsec_z(rvol_24h)))     # asymmetry conditioned on vol level
+E12: neg(xsec_z(ts_max(rvol_6h, 42)))                                        # recent vol burst fade
+E13: xsec_z(ema(div(rvol_6h, rvol_24h), 24))                                 # smoothed intraday vol ratio
+E14: sub(xsec_rank(rvol_24h), ts_rank(rvol_24h, 168))                        # xsec vs own-history vol rank divergence
+E15: mul(sub(xsec_rank(rvol_24h), ts_rank(rvol_24h, 168)), neg(xsec_z(mom_24h)))  # divergence × momentum fade
+E16: neg(mul(xsec_z(rvol_6h), xsec_z(illiq_72h)))                            # vol in illiquids danger discount
+E17: xsec_z(ts_delta(beta_24h, 24))                                          # beta impulse
+E18: mul(neg(xsec_z(ts_delta(rvol_6h, 6))), xsec_z(mom_8h))                  # momentum into calming vol
+E19: neg(xsec_z(mul(rvol_24h, funding_ema)))                                 # vol-weighted crowding fade
+E20: xsec_z(ts_corr(ret_4h, ret_24h, 168))                                   # cross-scale trend coherence
