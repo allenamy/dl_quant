@@ -25,15 +25,14 @@ from scipy.stats import norm, rankdata
 sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
 sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/factory")
 import dsl
-from ledger import Ledger, BONFERRONI_Z, RNG_BASE_SEED
+from ledger import Ledger, BONFERRONI_Z
 
 MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
 BH_Q = 0.10
 PREDCORR_MAX = 0.70
 HOLDOUT_YEAR = 2026            # sealed — hardcoded-excluded from the evaluation window
 NULL_R = 200                   # null-batch repeats for the max-null
-BOOT = 3000                    # day-block bootstrap draws (>=3000 per factory_rng_signoff.md: SE << z-gate margin)
-STAGE1_NULL_TAG = 990001       # fixed sub-stream tag for the stage-1 shared max-null rng (distinct from stage-0)
+BOOT = 2000                    # day-block bootstrap draws
 
 
 def _ric(a, b):
@@ -112,41 +111,40 @@ def stats(ics, days, yrs, rng):
 
 
 # ---------------- Stage-0: BH triage ----------------
-# Parallelizable per-formula scoring. Each formula gets a DETERMINISTIC per-formula rng keyed on its
-# CONTENT (np.random.default_rng([RNG_BASE_SEED, int(ast_md5,16)])), so its day-block bootstrap is
-# independent of scoring order AND of batch position — this makes n_jobs>1 byte-identical to n_jobs=1
-# and batch-reorder byte-identical (factory_rng_signoff.md). The forked workers inherit the read-only
-# context (panel/target ranks) copy-on-write via the module global below, so no large array is pickled.
+# Parallelizable per-formula scoring. Each formula gets a DETERMINISTIC per-formula rng
+# (np.random.default_rng([base_seed, idx])) so its day-block bootstrap is independent of the
+# scoring order — this makes n_jobs>1 (fork pool) byte-identical to n_jobs=1. The forked workers
+# inherit the read-only context (panel/target ranks) copy-on-write via the module global below,
+# so no large array is pickled across the process boundary.
 _SCORE_CTX = {}
 
 
 def _score_one(item):
-    """Score one formula -> (idx, formula, meta, stats|None, p, ok, death_cause, factor_ranks|None).
-    The factor's cross-sectional ranks (already computed here for scoring, float32 ~5MB) are returned
-    for scored formulas, so a survivor needs neither a re-evaluation nor a second _xsec_ranks in stage1
-    (its null-precompute and pred-corr both consume these same ranks). Cheap IPC vs the compute saved."""
+    """Score one formula -> (idx, formula, meta, stats|None, p, ok, death_cause). No factor array
+    is returned (survivors are re-evaluated in the parent) to keep worker IPC cheap."""
     idx, f = item
     C = _SCORE_CTX["C"]; tr = _SCORE_CTX["tr"]; day_w = _SCORE_CTX["day_w"]; year_w = _SCORE_CTX["year_w"]
+    rng = np.random.default_rng([_SCORE_CTX["base_seed"], idx])
     try:
         root = dsl.parse(f)
     except dsl.DSLError as e:
-        return (idx, f, None, None, 1.0, False, f"parse:{e}", None)
-    # per-formula bootstrap rng keyed on the formula's CONTENT (ast_md5), NOT its batch position:
-    # reordering the batch cannot change any formula's CI/z, and there is no seed to hack
-    # (factory_rng_signoff.md Q2.2). RNG_BASE_SEED is the frozen pre-registered constant.
-    rng = np.random.default_rng([RNG_BASE_SEED, int(root.value["md5"], 16)])
+        return (idx, f, None, None, 1.0, False, f"parse:{e}")
     try:
         factor = dsl.evaluate(root, C["ctx"])
         if not (isinstance(factor, np.ndarray) and factor.shape == C["target"].shape):
             raise ValueError(f"factor shape {getattr(factor, 'shape', None)} != panel")
     except Exception as e:
-        return (idx, f, root.value, None, 1.0, False, f"eval_error:{type(e).__name__}", None)
-    fr = _xsec_ranks(factor, C)                           # float32 (nr, N); reused by stage1
-    ic = _rowwise_rankcorr(fr, tr)
+        return (idx, f, root.value, None, 1.0, False, f"eval_error:{type(e).__name__}")
+    ic = _rowwise_rankcorr(_xsec_ranks(factor, C), tr)
     ok = np.isfinite(ic)
     st = stats(ic[ok], day_w[ok], year_w[ok], rng)
     p = 2 * (1 - norm.cdf(abs(st["z"]))) if st["z"] is not None else 1.0
-    return (idx, f, root.value, st, p, True, None, fr)
+    return (idx, f, root.value, st, p, True, None)
+
+
+def _eval_factor(f):
+    """Re-evaluate a survivor's factor in the parent/pool (survivors only, already known-good)."""
+    return dsl.evaluate(dsl.parse(f), _SCORE_CTX["C"]["ctx"])
 
 
 def _map(fn, items, n_jobs):
@@ -157,36 +155,38 @@ def _map(fn, items, n_jobs):
     return [fn(it) for it in items]
 
 
-def stage0(formulas, C, ledger: Ledger, n_jobs=1):
+def stage0(formulas, C, ledger: Ledger, base_seed=0, n_jobs=1):
     """Batch-score formulas (parallel over n_jobs), then BH q=0.10 over the successfully-scored set.
     Parse/eval failures are logged (not counted in m); scored formulas are logged in p-sorted order,
-    so the ledger append sequence — hence the hash chain — is identical for any n_jobs. The bootstrap
-    rng is keyed per formula on ast_md5 (content), so the result is also identical under batch reorder."""
+    so the ledger append sequence — hence the hash chain — is identical for any n_jobs."""
     global _SCORE_CTX
-    _SCORE_CTX = dict(C=C, tr=_xsec_ranks(C["target"], C),
+    _SCORE_CTX = dict(C=C, tr=_xsec_ranks(C["target"], C), base_seed=base_seed,
                       day_w=C["day"][C["rows"]], year_w=C["year"][C["rows"]])
     results = _map(_score_one, list(enumerate(formulas)), n_jobs)
     results.sort(key=lambda r: r[0])                       # deterministic idx order
 
     scored = []
-    for (idx, f, meta, st, p, ok, cause, fr) in results:
+    for (idx, f, meta, st, p, ok, cause) in results:
         if not ok:                                        # parse/eval failure -> log, exclude from BH
             md5 = "PARSE_FAIL" if meta is None else meta.get("md5", "EVAL_FAIL")
             ledger.append_stage0(f, md5, (meta or {}).get("depth", 0), (meta or {}).get("n_ops", 0),
                                  inc_ic=None, fdr_q=None, survived=False, death_cause=cause)
         else:
-            scored.append((f, meta, st, p, fr))
+            scored.append((f, meta, st, p))
     # Benjamini-Hochberg q=0.10 over the scored set
     scored.sort(key=lambda r: r[3])
-    m = len(scored); survivors = []
-    for i, (f, meta, st, p, fr) in enumerate(scored):
+    m = len(scored); surv_meta = []
+    for i, (f, meta, st, p) in enumerate(scored):
         surv = p <= (i + 1) / max(m, 1) * BH_Q and st["sign_consistent"]
         ledger.append_stage0(f, meta["md5"], meta["depth"], meta["n_ops"], inc_ic=st["inc_ic"],
                              fdr_q=round(p * m / (i + 1), 4) if m else None, survived=surv,
                              death_cause=None if surv else ("sign_flip" if not st["sign_consistent"] else "stage0_bh"))
         if surv:
-            survivors.append((f, meta, st, fr))           # fr = factor's xsec-ranks (reused by stage1)
-    return survivors
+            surv_meta.append((f, meta, st))
+    if not surv_meta:
+        return []
+    facs = _map(_eval_factor, [f for (f, _, _) in surv_meta], n_jobs)   # survivor factors for stage1
+    return [(f, meta, st, fac) for (f, meta, st), fac in zip(surv_meta, facs)]
 
 
 # ---------------- Stage-1: discovery gate ----------------
@@ -241,23 +241,22 @@ def _rowwise_rankcorr(A, B):
     return np.where((den > 1e-12) & (cnt >= 8), num / den, np.nan)
 
 
-def _maxnull_fast(fr_list, C, rng, null_r):
-    """Reality-Check / Romano-Wolf max-null (SERIAL, single SHARED rng — factory_rng_signoff.md Q1-scope).
-    fr_list = the survivors' xsec-ranks (reused from stage0, not recomputed). Each of null_r repeats draws
-    ONE day-block permutation from the shared rng and applies it to ALL survivors, then takes the max over
-    survivors — this joint (shared-permutation) structure is what accounts for multiplicity + factor
-    correlation, so the permutation rng MUST be shared, never per-formula, and this stays serial."""
+def _maxnull_fast(facs, C, rng, null_r):
+    """Vectorized shuffle-eval max-null: precompute factor+target xsec ranks ONCE, then per day-block
+    permutation do a vectorized row-wise rank-corr for every survivor. ~100-1000x the per-anchor loop."""
     rows = C["rows"]
-    tr = _xsec_ranks(C["target"], C)
+    tr = _xsec_ranks(C["target"], C)                          # (n_anchors, N) target ranks
+    fr = [_xsec_ranks(fac, C) for fac in facs]                # per-formula ranks (precomputed once)
     day_of = C["day"][rows]; udays = np.unique(day_of)
     rep_i = {int(d): int(np.where(day_of == d)[0][0]) for d in udays}
+    di = np.array([rep_i[int(d)] for d in day_of])            # anchor -> representative index of its day
     max_null = []
     for _ in range(null_r):
         pm = dict(zip(udays.tolist(), rng.permutation(udays).tolist()))
         perm_i = np.array([rep_i[int(pm[int(d)])] for d in day_of])
-        tp = tr[perm_i]                                      # one shared permuted-day target-rank panel
+        tp = tr[perm_i]                                       # permuted-day target ranks (n_anchors, N)
         best = -np.inf
-        for frk in fr_list:                                  # max over survivors under the SAME permutation
+        for frk in fr:
             mic = np.nanmean(_rowwise_rankcorr(frk, tp))
             if np.isfinite(mic):
                 best = max(best, float(mic))
@@ -265,23 +264,21 @@ def _maxnull_fast(fr_list, C, rng, null_r):
     return max_null
 
 
-def stage1(survivors, C, ledger: Ledger, alpha=0.05, null_r=NULL_R):
+def stage1(survivors, C, ledger: Ledger, rng, alpha=0.05, null_r=NULL_R):
     if not survivors:
         return []
-    fr_list = [s[3] for s in survivors]                   # survivors carry their xsec-ranks from stage0
+    facs = [s[3] for s in survivors]
     # ---- Reality-Check / Romano-Wolf max-null via shuffle-eval (day-block target permutation) ----
-    # SERIAL with a single SHARED rng derived from the frozen pre-registered seed (factory_rng_signoff.md
-    # Q1-scope): the max-null permutation must be shared across all survivors within each repeat.
-    null_rng = np.random.default_rng([RNG_BASE_SEED, STAGE1_NULL_TAG])
-    max_null = _maxnull_fast(fr_list, C, null_rng, null_r)
+    # vectorized: precompute factor+target xsec ranks once, row-wise rank-corr per permutation.
+    max_null = _maxnull_fast(facs, C, rng, null_r)
     rc_thresh = float(np.nanpercentile(max_null, 100 * (1 - alpha)))
 
     out = []
     legs = ("king", "s2", "funding_leg", "size_leg")
     leg_ranks = {leg: _xsec_ranks(C["ctx"][leg], C) for leg in legs}   # precompute leg ranks once
-    for (f, meta, st, fr) in survivors:
+    for (f, meta, st, factor) in survivors:
         # pred-corr vs the 4 legs (vectorized row-wise rank-corr) [+ accepted factory factors: batch-2 stub]
-        # fr is the factor's xsec-ranks already computed in stage0 (no recompute)
+        fr = _xsec_ranks(factor, C)
         pc = {}
         for leg in legs:
             ic = _rowwise_rankcorr(fr, leg_ranks[leg])
@@ -304,15 +301,14 @@ def stage1(survivors, C, ledger: Ledger, alpha=0.05, null_r=NULL_R):
     return out
 
 
-def run_batch(formulas, horizon=4, ledger_path=None, subsample=1, null_r=NULL_R, C=None, n_jobs=1):
+def run_batch(formulas, horizon=4, seed=0, ledger_path=None, subsample=1, null_r=NULL_R, C=None, n_jobs=1):
     if C is None:
         C = load_context(horizon, subsample=subsample)
     lg = Ledger(ledger_path) if ledger_path else Ledger()
-    # rng is NOT a run parameter: stage0 keys its per-formula bootstrap rng on (RNG_BASE_SEED, ast_md5)
-    # and stage1's shared max-null rng derives from RNG_BASE_SEED — both from the frozen pre-registered
-    # constant, so there is no tunable seed to hack (factory_rng_signoff.md Q2).
-    survivors = stage0(formulas, C, lg, n_jobs=n_jobs)
-    results = stage1(survivors, C, lg, null_r=null_r)
+    # stage0 uses a deterministic per-formula rng (seed=[seed, idx]); stage1 gets its OWN independent
+    # deterministic stream so it is unaffected by stage0's parallelism / rng consumption.
+    survivors = stage0(formulas, C, lg, base_seed=seed, n_jobs=n_jobs)
+    results = stage1(survivors, C, lg, np.random.default_rng([seed, 1]), null_r=null_r)
     return dict(n_formulas=len(formulas), n_stage0_survivors=len(survivors),
                 candidates=[f for f, v, s in results if v == "CANDIDATE"],
                 stage1=[{"formula": f, "verdict": v, "inc_ic": s["inc_ic"], "z": s["z"],

@@ -55,7 +55,7 @@ check("10 random formulas generated & valid", len(rand) == 10 and all(dsl.valida
 batch = hand + rand + ["ts_mean(yr4b, 4)", "ts_delta(king, 24)"]   # include the 2 adversarial in the batch
 tmp = tempfile.mktemp(suffix=".jsonl")
 print("=== run two-stage pipeline ===", flush=True)
-res = P.run_batch(batch, horizon=4, seed=0, ledger_path=tmp, subsample=8, null_r=40, C=C)
+res = P.run_batch(batch, horizon=4, ledger_path=tmp, subsample=8, null_r=40, C=C, n_jobs=4)
 print(f"    {res['n_formulas']} formulas | stage0 survivors {res['n_stage0_survivors']} | "
       f"candidates {res['candidates']} | ledger M {res['ledger_M']}", flush=True)
 
@@ -81,7 +81,8 @@ else:
     f0 = hand[1]                                       # sub(king, s2)
     fac = dsl.evaluate(dsl.parse(f0), C2["ctx"])
     ics, days, yrs = P.score_series(fac, C2)
-    st = P.stage1([(f0, dsl.parse(f0).value, P.stats(ics, days, yrs, rng), fac)], C2, lg, rng, null_r=40)
+    fr = P._xsec_ranks(fac, C2)                            # stage1 now consumes ranks, not the raw factor
+    st = P.stage1([(f0, dsl.parse(f0).value, P.stats(ics, days, yrs, rng), fr)], C2, lg, null_r=40)
     check("forced Stage-1 exercise wrote a discovery-path verdict", len(st) == 1 and st[0][1] in ("CANDIDATE", "REJECT"))
     check("Stage-1 denominator = ledger M", lg._rows[-1]["stage1_stats"]["bonferroni_M"] == lg.M())
 

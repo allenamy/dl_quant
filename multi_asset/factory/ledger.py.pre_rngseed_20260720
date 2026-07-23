@@ -20,11 +20,6 @@ LEDGER = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/e
 M_MAX = 10000
 BONFERRONI_Z = 4.42
 GENESIS = "0" * 16
-# Pre-registered, FROZEN bootstrap/null rng seed (factory_rng_signoff.md, 2026-07-20). NOT a run
-# parameter — no code path may override it (a tunable seed = seed-hacking backdoor). Per-formula
-# stage-0 rng is keyed on (RNG_BASE_SEED, ast_md5) — formula CONTENT, not batch position; the stage-1
-# max-null uses a single shared rng derived from RNG_BASE_SEED. Arbitrary fixed value, committed here.
-RNG_BASE_SEED = 20260720
 
 STAGE0_VERDICTS = {"REJECT", "TRIAGE_SURVIVOR"}       # Stage-0 may only write these
 STAGE1_VERDICTS = {"REJECT", "CANDIDATE", "ACCEPT"}   # discovery verdicts live here only

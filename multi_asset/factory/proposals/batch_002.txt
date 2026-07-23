@@ -1,0 +1,117 @@
+# FACTORY BATCH 002 — proposer: main-agent (LLM firewall: no 2026 holdout access)
+# Target: YR4B all-book residual. M continues from 140 (batch_001).
+# ★ batch_001 death-cause targeting: AVOID (a) illiquid-tail mechanisms [A-group lottery net-cost/capacity dead],
+#   (b) funding-dynamics [family-A 0 candidates, sign_flip cross-year], (c) leg-switches [reskin].
+# NEED: king-orthogonal + CAPACITY-FRIENDLY (strong in large/mid-cap too, not just illiquid tail) + cross-year stable.
+# Families: F liquidity-WEIGHTED (capacity-native) / G cross-asset relative structure / H conditional QUALITY momentum
+#          / I signed-flow persistence (Hurst) / J term-structure/carry-adjacent (slow, capacity-friendly)
+
+## Family F — 容量友好: 用流动性做WEIGHT不做SIGNAL (avoid illiquid-tail concentration by construction)
+F01: mul(xsec_z(mom_24h), xsec_rank(dvol_24h))                              # momentum tilted TOWARD liquid names (capacity-native)
+F02: mul(neg(xsec_z(ret_24h)), xsec_rank(size_dvol))                        # reversal concentrated in large-caps only
+F03: mul(xsec_z(mom_72h), xsec_rank(dvol_72h))                              # weekly momo, liquidity-weighted
+F04: where(gt(xsec_rank(dvol_24h), xsec_z(demean(dvol_24h))), neg(xsec_z(ret_12h)), xsec_z(mom_24h))  # liquid: reversal; illiquid: skip-momo
+F05: mul(neg(xsec_z(rev_3h)), xsec_rank(dvol_24h))                          # short reversal in liquid names (tradeable version of A-group)
+F06: mul(xsec_z(betaadj_ret24), xsec_rank(size_dvol))                       # idio move, large-cap weighted
+F07: mul(neg(xsec_z(ret_4h)), xsec_rank(dvol_24h))                          # 4h reversal, liquidity-native (king-adjacent but capacity-scoped)
+F08: mul(xsec_z(sub(mom_24h, mom_168h)), xsec_rank(dvol_72h))               # momo term-structure, liquid
+F09: mul(neg(xsec_z(max_ret_24h)), xsec_rank(size_dvol))                    # lottery fade LARGE-CAP ONLY (capacity-fixed A-group)
+F10: mul(xsec_z(mom_8h), xsec_rank(logqvol))                                # short momo, volume-weighted
+F11: mul(neg(xsec_z(ts_zscore(ret_24h, 168))), xsec_rank(dvol_24h))         # price-stretch fade, liquid
+F12: mul(xsec_z(betaadj_ret24), xsec_rank(dvol_72h))                        # idio, liquidity-weighted
+F13: mul(neg(xsec_z(rvol_24h)), xsec_rank(size_dvol))                       # low-vol premium, large-cap (BAB capacity-native)
+F14: where(gt(xsec_rank(size_dvol), xsec_z(mom_24h)), xsec_z(mom_72h), neg(xsec_z(rev_3h)))  # large: trend; small: skip
+F15: mul(xsec_z(mom_24h), sign(sub(xsec_rank(dvol_24h), xsec_rank(dvol_72h))))  # momo, volume-expansion gated
+F16: mul(neg(xsec_z(ret_12h)), xsec_rank(dvol_24h))                         # 12h reversal, liquid
+F17: mul(xsec_z(ts_delta(mom_24h, 24)), xsec_rank(size_dvol))               # momo acceleration, large-cap
+F18: mul(xsec_z(sub(mom_8h, mom_24h)), xsec_rank(dvol_24h))                 # short-vs-mid momo kink, liquid
+F19: mul(neg(xsec_z(abs(ret_24h))), xsec_rank(size_dvol))                   # magnitude fade, large-cap
+F20: mul(xsec_z(betaadj_ret24), sign(mom_72h))                              # idio aligned with weekly trend
+
+## Family G — 跨资产相对结构 (beta/co-movement; orthogonal to king's own-residual reversal, capacity-neutral)
+G01: neg(xsec_z(mul(beta_24h, ret_24h)))                                    # beta-scaled daily move reverts (market-relative)
+G02: mul(xsec_z(sub(beta_24h, beta_72h)), neg(xsec_z(ret_24h)))             # beta drift × reversal
+G03: xsec_z(sub(betaadj_ret24, ret_24h))                                    # systematic component isolated
+G04: neg(xsec_z(mul(beta_72h, mom_24h)))                                    # high-beta momentum fade (crowded beta)
+G05: mul(neg(xsec_z(beta_24h)), xsec_z(mom_168h))                           # low-beta weekly momentum (quality)
+G06: xsec_z(ts_corr(betaadj_ret24, ret_24h, 168))                          # idio-total coupling (dispersion regime)
+G07: mul(xsec_z(betaadj_ret24), neg(xsec_z(mom_24h)))                       # idio reversal vs total momentum
+G08: neg(xsec_z(ts_zscore(beta_24h, 336)))                                  # beta stretched vs 2wk = mean-revert
+G09: mul(xsec_z(sub(beta_24h, beta_72h)), xsec_rank(dvol_24h))              # beta drift, liquidity-weighted
+G10: xsec_z(sub(ts_rank(betaadj_ret24, 72), ts_rank(ret_24h, 72)))         # idio vs total rank divergence
+G11: neg(mul(xsec_z(beta_24h), xsec_z(rvol_24h)))                           # high-beta high-vol risk discount
+G12: mul(xsec_z(betaadj_ret24), xsec_z(ts_zscore(rvol_24h, 168)))          # idio in stretched-vol regime
+G13: neg(xsec_z(mul(beta_72h, funding_ema)))                                # beta-scaled crowding
+G14: xsec_z(ema(betaadj_ret24, 24))                                         # smoothed idio (persistent alpha component)
+G15: mul(neg(xsec_z(betaadj_ret24)), xsec_rank(size_dvol))                  # idio reversal, large-cap
+G16: xsec_z(ts_delta(beta_24h, 72))                                         # beta momentum (regime shift)
+G17: mul(xsec_z(sub(betaadj_ret24, ema(betaadj_ret24, 72))), neg(xsec_z(rvol_6h)))  # idio surprise in calm
+G18: neg(xsec_z(mul(betaadj_ret24, max_ret_24h)))                           # idio lottery fade
+G19: mul(xsec_z(mom_72h), neg(xsec_z(beta_24h)))                            # betting-against-beta momentum
+G20: xsec_z(sub(mom_24h, mul(beta_24h, mom_72h)))                           # beta-neutralized momentum
+
+## Family H — 条件质量动量 (momentum gated by path-quality; cross-year stable by construction, large-cap)
+H01: mul(xsec_z(mom_168h), neg(xsec_z(ts_std(ret_24h, 168))))              # smooth-path weekly momentum
+H02: mul(xsec_z(mom_72h), neg(xsec_z(rvol_72h)))                            # low-vol momentum (quality)
+H03: mul(xsec_z(mom_168h), neg(xsec_z(illiq_72h)))                          # momentum in liquid names
+H04: div(xsec_z(mom_72h), add(xsec_z(rvol_72h), abs(xsec_z(rvol_72h))))     # momentum/vol (Sharpe-like), guarded
+H05: mul(xsec_z(mom_24h), sign(mom_168h))                                   # short momo aligned with weekly trend
+H06: mul(xsec_z(mom_72h), neg(xsec_z(ts_max(abs(ret_4h), 42))))            # momentum without jumps
+H07: where(gt(xsec_z(mom_168h), neg(xsec_z(mom_168h))), xsec_z(mom_24h), neg(xsec_z(mom_24h)))  # trend-sign gates short momo
+H08: mul(xsec_z(sub(mom_72h, mom_168h)), neg(xsec_z(rvol_24h)))            # momo acceleration in calm
+H09: mul(xsec_z(mom_168h), xsec_z(ts_corr(ret_4h, ret_24h, 168)))         # momentum with cross-scale coherence
+H10: mul(xsec_z(ema(mom_24h, 24)), neg(xsec_z(rvol_72h)))                  # smoothed momentum, quality
+H11: mul(xsec_z(mom_72h), neg(xsec_z(ts_std(ret_4h, 72))))                # smooth 4h path momentum
+H12: mul(xsec_z(decay_linear(ret_4h, 42)), neg(xsec_z(rvol_24h)))         # recency-weighted return in calm
+H13: mul(xsec_z(mom_24h), neg(xsec_z(ts_delta(rvol_24h, 24))))            # momentum on falling vol
+H14: mul(xsec_z(mom_168h), xsec_rank(dvol_72h))                            # weekly momentum, liquid
+H15: div(xsec_z(betaadj_ret24), add(rvol_24h, abs(rvol_24h)))             # idio Sharpe, guarded
+H16: mul(xsec_z(sub(ema(ret_4h, 24), ema(ret_4h, 72))), neg(xsec_z(rvol_6h)))  # ema-crossover momentum in calm
+H17: mul(xsec_z(mom_72h), neg(xsec_z(max_ret_24h)))                        # momentum ex-lottery
+H18: mul(xsec_z(mom_168h), sign(sub(mom_24h, mom_72h)))                    # weekly trend, short-confirm gated
+H19: mul(xsec_z(ts_rank(mom_24h, 72)), neg(xsec_z(rvol_72h)))             # momentum persistence, low-vol
+H20: mul(xsec_z(decay_linear(betaadj_ret24, 24)), xsec_rank(size_dvol))   # recency idio, large-cap
+
+## Family I — 签名流持久性 (Hurst/long-memory of signed flow; the "cumulative OFI" mechanism, capacity via dvol)
+I01: xsec_z(ts_corr(sign(ret_1h), sign(ret_4h), 168))                      # sign persistence (trend memory)
+I02: xsec_z(ema(mul(sign(ret_1h), logqvol), 72))                           # persistent signed volume pressure
+I03: xsec_z(ts_corr(ret_1h, ret_4h, 336))                                  # cross-scale autocorr (Hurst proxy)
+I04: mul(xsec_z(ema(sign(ret_4h), 42)), xsec_rank(dvol_24h))               # signed-flow persistence, liquid
+I05: xsec_z(sub(ema(ret_1h, 24), ema(ret_1h, 168)))                        # flow acceleration
+I06: neg(xsec_z(ts_std(sign(ret_1h), 72)))                                 # directional consistency (low flip = trend)
+I07: xsec_z(mul(ema(ret_4h, 42), sign(mom_72h)))                           # persistent flow aligned with trend
+I08: xsec_z(ts_corr(logqvol, abs(ret_4h), 336))                            # long-run volume-move coupling
+I09: mul(xsec_z(ts_rank(ret_24h, 168)), neg(xsec_z(rvol_24h)))            # return persistence rank, calm
+I10: xsec_z(decay_linear(sign(ret_4h), 72))                                # recency-weighted sign
+I11: mul(xsec_z(ema(betaadj_ret24, 72)), xsec_rank(dvol_72h))              # persistent idio, liquid
+I12: xsec_z(sub(ts_rank(ret_4h, 42), ts_rank(ret_24h, 42)))               # short-vs-daily persistence gap
+I13: neg(xsec_z(ts_corr(ret_1h, ret_4h, 42)))                              # short-horizon anti-persistence (reversal memory)
+I14: mul(xsec_z(ema(sign(ret_1h), 168)), neg(xsec_z(rvol_72h)))            # weekly sign persistence, low-vol
+I15: xsec_z(mul(ema(ret_4h, 24), neg(rvol_6h)))                            # persistent flow discounted by instant vol
+I16: xsec_z(ts_delta(ema(ret_4h, 42), 24))                                 # flow-persistence momentum
+I17: mul(xsec_z(ts_corr(sign(ret_1h), sign(ret_4h), 72)), xsec_rank(size_dvol))  # sign coherence, large-cap
+I18: neg(xsec_z(ts_std(ret_4h, 168)))                                      # low realized dispersion = stable trend
+I19: xsec_z(ema(mul(ret_4h, sign(mom_24h)), 42))                           # trend-aligned persistent return
+I20: mul(xsec_z(decay_linear(ret_24h, 42)), xsec_rank(dvol_24h))          # recency-weighted daily return, liquid
+
+## Family J — 期限结构/慢carry邻接 (slow, capacity-friendly, cross-year stable by low turnover)
+J01: xsec_z(sub(rvol_24h, rvol_72h))                                       # vol term-structure slope (slow)
+J02: neg(xsec_z(div(rvol_72h, add(rvol_24h, abs(rvol_24h)))))              # inverted vol-term premium, guarded
+J03: xsec_z(sub(mom_72h, mom_168h))                                        # momo term-structure (slow)
+J04: xsec_z(ema(sub(rvol_24h, rvol_72h), 72))                              # smoothed vol-term slope
+J05: mul(xsec_z(sub(dvol_24h, dvol_72h)), neg(xsec_z(ret_24h)))           # volume-term × reversal
+J06: xsec_z(div(dvol_72h, add(dvol_24h, abs(dvol_24h))))                   # volume-term structure, guarded
+J07: neg(xsec_z(ts_zscore(illiq_72h, 336)))                                # illiquidity mean-reversion (slow, but as tilt not signal)
+J08: xsec_z(sub(beta_72h, beta_24h))                                       # beta term-structure
+J09: mul(xsec_z(sub(rvol_24h, rvol_72h)), xsec_rank(size_dvol))           # vol-term, large-cap
+J10: xsec_z(ema(sub(mom_72h, mom_168h), 72))                               # smoothed momo-term
+J11: neg(xsec_z(ema(rvol_72h, 168)))                                       # slow low-vol premium
+J12: xsec_z(sub(lturnover_24h, ema(lturnover_24h, 168)))                   # turnover vs its slow trend
+J13: mul(xsec_z(sub(beta_72h, beta_24h)), neg(xsec_z(rvol_24h)))          # beta-term in calm
+J14: xsec_z(decay_linear(sub(mom_72h, mom_168h), 42))                     # recency momo-term
+J15: neg(xsec_z(ts_zscore(rvol_72h, 336)))                                 # vol stretch vs 2wk (slow reversion)
+J16: xsec_z(ema(betaadj_ret24, 168))                                       # very slow persistent idio
+J17: mul(xsec_z(sub(rvol_24h, rvol_72h)), sign(mom_72h))                  # vol-term aligned with trend
+J18: xsec_z(sub(ema(dvol_24h, 72), ema(dvol_72h, 72)))                    # smoothed volume-term
+J19: neg(xsec_z(ema(abs(ret_24h), 168)))                                   # slow magnitude mean-reversion
+J20: mul(xsec_z(sub(mom_72h, mom_168h)), xsec_rank(dvol_72h))             # momo-term, liquid

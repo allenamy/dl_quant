@@ -25,7 +25,7 @@ def parse_batch(path):
             continue
         idp, formula = s.split(":", 1)
         idp = idp.strip()
-        if re.match(r"^[A-E]\d+$", idp):
+        if re.match(r"^[A-Z]\d+$", idp):                  # any family letter (A-E batch_001, F-J batch_002, ...)
             items.append((idp, idp[0], formula.strip()))
     return items
 
@@ -38,15 +38,19 @@ def main():
     global LEDGER_PATH
     if len(sys.argv) > 5:
         LEDGER_PATH = sys.argv[5]
+    n_jobs = int(sys.argv[6]) if len(sys.argv) > 6 else 24    # stage0 fork parallelism (byte-identical to n_jobs=1)
     items = parse_batch(batch)
+    if not items:                                        # fail loud, don't silently run 0 formulas (regex/format mismatch)
+        raise SystemExit(f"[campaign] ABORT: parsed 0 formulas from {batch} — check ID format '<Letter><digits>:' ")
     id_by_formula = {f: (i, fam) for (i, fam, f) in items}
     formulas = [f for _, _, f in items]
-    print(f"[campaign] {len(items)} formulas from {batch} | horizon {horizon} | subsample {subsample} | null_r {null_r}", flush=True)
+    print(f"[campaign] {len(items)} formulas from {batch} | horizon {horizon} | subsample {subsample} "
+          f"| null_r {null_r} | n_jobs {n_jobs}", flush=True)
 
     C = P.load_context(horizon=horizon, subsample=subsample)
     print(f"[campaign] eval anchors (2022-2025, holdout {P.HOLDOUT_YEAR} excluded): {len(C['rows'])}", flush=True)
-    res = P.run_batch(formulas, horizon=horizon, seed=0, ledger_path=LEDGER_PATH, subsample=subsample,
-                      null_r=null_r, C=C)
+    res = P.run_batch(formulas, horizon=horizon, ledger_path=LEDGER_PATH, subsample=subsample,
+                      null_r=null_r, C=C, n_jobs=n_jobs)
 
     # ---- ledger-level report ----
     lg = Ledger(LEDGER_PATH)
