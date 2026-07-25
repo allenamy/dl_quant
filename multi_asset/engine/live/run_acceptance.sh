@@ -16,8 +16,12 @@
 # Usage: bash engine/live/run_acceptance.sh [--json <path>]
 set -uo pipefail          # pipefail so a piped stage cannot mask a failure either
 
-MA=/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset
-PY=/root/miniconda3/envs/hsy_v5push/bin/python3
+# ★ Paths derive from THIS script's own location, never hardcoded to one machine.
+# Development happens locally, execution happens on the server (CLAUDE.md #6) — a runner that
+# only works on one of them cannot be the single source of the "green" claim on the other.
+_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"      # .../multi_asset/engine/live
+MA="$(cd "$_SELF/../.." && pwd)"                            # .../multi_asset
+PY="${ACCEPT_PY:-python3}"                                  # server overrides via ACCEPT_PY
 LOGDIR=$MA/exports/live/acceptance
 mkdir -p "$LOGDIR"
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
@@ -30,6 +34,7 @@ SUITES=(
   "tests_watchdog:$MA/engine/live/tests_watchdog.py"
   "tests_production_signature:$MA/engine/live/tests_production_signature.py"
   "inject_failures:$MA/engine/live/inject_failures.py"
+  "tests_binance_broker:$MA/engine/live/tests_binance_broker.py"
 )
 
 overall=0
