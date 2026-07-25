@@ -18,6 +18,8 @@ _ORPHANS=$(rsync -ain --delete \
   --exclude='multi_asset/exports/' \
   --exclude='*.md' --exclude='/docs/' --exclude='multi_asset/handoff/' \
   --exclude='*.ipynb' --exclude='*.tar.gz' --exclude='*.zip' \
+  --exclude='.claude/' --exclude='.cctmp/' --exclude='.pytest_cache/' \
+  --exclude='AGENTS.md' --exclude='.mcp.json' \
   /Users/haosiyu/Desktop/quant_research/ "$DEST/" \
   | grep '^\*deleting' || true)
 
@@ -59,6 +61,11 @@ rsync -avz --delete \
   --exclude='*.ipynb' \
   --exclude='*.tar.gz' \
   --exclude='*.zip' \
+  --exclude='.claude/' \
+  --exclude='.cctmp/' \
+  --exclude='.pytest_cache/' \
+  --exclude='AGENTS.md' \
+  --exclude='.mcp.json' \
   /Users/haosiyu/Desktop/quant_research/ "$DEST/"
 
 echo "✓ synced → $DEST"
