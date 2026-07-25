@@ -31,13 +31,45 @@ share. Engine `DEFAULT_WEIGHTS` (0C canonical) and the deployment-tilt band:
 | leg | signal (source) | sign | rebalance cadence | canonical w | deploy band |
 |---|---|---|---|---|---|
 | **king** | DL 4h residual-reversal (`king_pred`, conformer+xattn, lam_orth=0) | **+1** | 4h | 0.30 | **0.35–0.40** |
-| **funding** | `rank(funding_ema)` crowding-reversion | **−1** | 8h | 0.30 | 0.28 |
+| **funding** | `rank(funding_ema)` crowding-reversion | **−1** | 8h ⚠ | 0.30 | 0.28 |
 | **SIZE** | `z(size_dvol)` (small-cap tilt) | **+1** | 24h | 0.30 | 0.28 |
 | **S2** | DL 24h slow factor (`s2_pred`) | **+1** | 24h | 0.10 | 0.10 |
 
 - Canonical `DEFAULT_WEIGHTS = {king .30, s2 .10, funding .30, size .30}`, `DEFAULT_SIGNS =
   {king +1, s2 +1, funding −1, size +1}`. The deploy band shifts capital toward king (highest
   IC, most dynamic); keep S2 light (0.10) — it is a diversifier, not a driver.
+> ### ⚠ KNOWN DEFECT in this package's funding factor (found 2026-07-25, after this package was built)
+>
+> The "8h" cadence above encodes the assumption that **every** coin settles funding every 8 hours.
+> **It does not: 55 of 140 coins settle every 4h, and ~29 changed interval mid-history.**
+> `FUND_EMA` as built here stores the **per-settlement-period** rate, and the engine rank-centres it.
+> **Rank-centring removes *individual* scale but leaves *group* scale intact** — so a 4h coin with the
+> same annualized carry as an 8h coin shows half the per-period rate and is systematically pushed to
+> the "low funding" side, for a reason unrelated to its actual crowding.
+>
+> **Effect (independently reproduced by two reviewers, control group agreeing to 3.3e-12):** a spurious
+> **−0.006 rank-IC** on the funding leg; paired difference t = +7.79. Corrected, the leg goes from
+> net +0.72%/yr (solo Sharpe 0.07) to **+8.48%/yr (solo Sharpe 0.83)** — *weakly positive, not a winner*.
+> Book-level net Sharpe 12.21 → 12.37.
+>
+> **Fix:** scale each settlement's rate by `8 / interval_hours`, **per settlement point, before the EMA**
+> (scaling after the EMA is wrong across the ~29 coins whose interval changed). A resident guard
+> (`assert_funding_dim.py`) asserts the corrected state and breaks the panel build on regression.
+>
+> **Two channels carry this artifact at *identical* strength**: `funding_ema` and `xsr_fund`
+> (its cross-sectional percentile rank — ranking passes a group offset through unchanged, neither
+> amplifying nor diluting it). Fixing the source fixes both, but assert it, don't assume it.
+>
+> **What this means for you:** figures reproduced from this package will match the **uncorrected**
+> caliber. That is internally consistent and the reproduction is still valid — but do not compare those
+> numbers against any corrected-caliber figure without saying which is which. **Also note the two
+> calibers disagree in sign language: on pure price rank-IC the corrected leg is still ≈0; only the
+> carry-inclusive economic caliber turns weakly positive. Always name the caliber.**
+>
+> The DL heads (`king`, `S2`) were **trained** on the uncorrected channels, so their frozen checkpoints
+> must keep consuming the uncorrected panel — a frozen model must be fed the panel it was trained on.
+> The correction belongs to the model-free legs now, and to the next retrain.
+
 - **funding MUST stay rank-weighted.** rank is naturally bounded (single-name ≤ 0.049, FTX-tail
   |max| 1.0). **Do NOT revert to z-weighting** — unbounded z concentrates a single name to 0.49
   and *requires* the C5 funding-risk hygiene (winsor/name-cap) to be tradeable. Under rank, C5 is

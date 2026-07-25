@@ -104,6 +104,11 @@ build_wide_metrics_channels.py   folds the metrics/OI channels into the 32-ch CH
   on the carry baseline → a head earns credit only for content **incremental over carry**. This is
   the whole methodology in one line.
   `baseline_cols = [funding_ema, mom_24h, mom_72h, rev_1h, rvol_24h, size_dvol, max_ret_24h, beta_24h]`.
+  **⚠ `funding_ema` here is the uncorrected build — see the KNOWN DEFECT box in `RUNBOOK.md` §1.
+  Residualizing on a mis-scaled column introduces no lookahead or leakage; it only removes a slightly
+  biased linear component. The consequence is narrower than it sounds: the heads' "incremental over
+  carry" claim is, strictly, incremental over a mis-scaled carry baseline. Reproduction from this
+  package stays internally consistent; the caveat matters only when comparing across calibers.**
 - `CL{1,4,24}` **(T,N)** ≥horizon **non-overlapping** clean masks (member & finite & greedy H-spacing)
   — the honest eval grid (`#2` stride<horizon is forbidden).
 - `MEMBER110` **(T,N)** bool — point-in-time top-110 by **trailing-30d dollar-volume**, monthly
