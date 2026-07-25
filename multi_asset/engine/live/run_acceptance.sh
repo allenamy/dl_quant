@@ -36,6 +36,7 @@ SUITES=(
   "inject_failures:$MA/engine/live/inject_failures.py"
   "tests_binance_broker:$MA/engine/live/tests_binance_broker.py"
   "tests_binance_executor:$MA/engine/live/tests_binance_executor.py"
+  "tests_binance_funding:$MA/engine/live/tests_binance_funding.py"
 )
 
 overall=0
