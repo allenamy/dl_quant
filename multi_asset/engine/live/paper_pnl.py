@@ -18,10 +18,12 @@ import sys
 import numpy as np
 import pandas as pd
 
+# ★ MA MUST precede its first use (ef2ddbb left the sys.path line above it -> NameError at import).
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+
 sys.path.insert(0, MA)
 from engine.signal_chain import _l1  # noqa (unused but keeps engine import path warm)
 
-MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 POS_DIR = MA + "/exports/live/positions"
 OUT = MA + "/exports/live/pnl"
 FILL = 0.51            # conservative maker fill-rate at k=900
@@ -98,6 +100,13 @@ def run(verbose=True):
     if verbose:
         print(f"[pnl] A(3-leg): {summ['A']}  |  B(4-leg): {summ['B']}", flush=True)
         print(f"[pnl] -> {OUT}/pnl_daily.csv + pnl_summary.json", flush=True)
+        # ★ S3: `n_anchors 132` is a TOTAL. The delta is what says the system is alive.
+        try:
+            sys.path.insert(0, os.path.join(MA, "engine", "live"))
+            import frontier as FR
+            FR.report("pnl.positions", FR.anchors_from_json_dir(POS_DIR))
+        except Exception as e:
+            print(f"[pnl] frontier check unavailable: {type(e).__name__}: {e}", flush=True)
     return summ
 
 

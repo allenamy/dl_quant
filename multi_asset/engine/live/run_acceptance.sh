@@ -29,6 +29,14 @@ JSON_OUT=""
 [ "${1:-}" = "--json" ] && JSON_OUT="${2:-}"
 
 SUITES=(
+  # ★ FIRST, deliberately. Every other suite below asks "is this component correct?" — a question
+  # that presumes the component can be LOADED. On 2026-07-25 three daily-chain modules raised
+  # NameError at import (a refactor moved `MA = ...` below its first use) and all eight suites
+  # stayed green, because not one of them executes those modules' top level. The next scheduled
+  # run would have advanced zero anchors while the last log on disk said `done`. This suite needs
+  # no domain knowledge; it only tries to load each module the runner actually invokes, and then
+  # scans the whole tree for the same defect class.
+  "tests_import_smoke:$MA/engine/live/tests_import_smoke.py"
   "log_schema_falsify_v2:$MA/exports/eda/log_schema_falsify_v2.py"
   "tests_pilot_log:$MA/engine/live/tests_pilot_log.py"
   "tests_watchdog:$MA/engine/live/tests_watchdog.py"

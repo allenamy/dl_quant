@@ -46,6 +46,29 @@ OUT_DIR = MA + "/exports/live/positions"
 W = 168
 
 
+# ── provenance stamps (S5) ───────────────────────────────────────────────────────────────────────
+# Cheap enough to run per emit; the point is that the artefact answers "what produced me" without
+# anyone consulting git. Failures degrade to a recorded error string, never to a silent omission —
+# a missing provenance field and a wrong one are not the same thing, and only one of them is
+# detectable later.
+def _factor_version(track: str):
+    try:
+        sys.path.insert(0, os.path.join(MA, "engine", "live"))
+        import factor_version_registry as FVR
+        return FVR.expected_for(track)
+    except Exception as e:
+        return f"UNKNOWN ({type(e).__name__})"
+
+
+def _panel_identity():
+    try:
+        st = os.stat(WIDE_DL_LIVE)
+        return {"path": os.path.relpath(WIDE_DL_LIVE, MA), "bytes": st.st_size,
+                "mtime_utc": pd.Timestamp(st.st_mtime, unit="s", tz="UTC").isoformat()}
+    except Exception as e:
+        return {"path": os.path.relpath(WIDE_DL_LIVE, MA), "error": f"{type(e).__name__}: {e}"}
+
+
 def _model(d):
     m = WideFactorModel(ConformerPanelEncoder(32, d=64, n_blocks=2, kernel_size=15, dropout=0.2),
                         n_factor_heads=6, xattn=True, n_xattn=1, dropout=0.2)
@@ -162,6 +185,13 @@ def emit_live(verbose=True):
         mA, pA = posA[ti]; mB, pB = posB[ti]
         rec = {"anchor_ts_ms": int(src.ts[ti]), "anchor_utc": d.isoformat(), "horizon_h": 4,
                "schema": "target_weight (unit-gross, market-neutral); positive=long negative=short; multiply by gross notional G",
+               # ★ S5 (2026-07-25): the champion artefacts recorded their UNITS but not their
+               # PROVENANCE, so "which factor version / which panel produced the 07-15 positions?"
+               # could only be answered by inferring from git. The fixfunding track already stamped
+               # both. We are about to accumulate ~16 days of these files as the evidence base for a
+               # go/no-go, so the files must answer that question themselves.
+               "track": "champion", "factor_version": _factor_version("champion"),
+               "panel": _panel_identity(),
                "curve": {"A_provisional_3leg": {"note": "funding leg dropped for the open month (this feed cannot source it live)",
                                                 "positions": {syms[j]: round(float(w), 8) for j, w in zip(mA, pA)}},
                          "B_backfilled_4leg": {"note": "includes funding (open-month funding is a premium-derived proxy; reconcile with the monthly archive at month-end)",
@@ -171,6 +201,14 @@ def emit_live(verbose=True):
         written += 1
     if verbose:
         print(f"[emit] wrote {written} positions_*.json to {OUT_DIR} (open_month={open_month}, Curve A 3-leg + Curve B 4-leg)", flush=True)
+        # ★ S3: `wrote 132` is a TOTAL and is fully compatible with "not one new anchor" — which is
+        # exactly what three silent days looked like. The frontier is read back from the files.
+        try:
+            sys.path.insert(0, os.path.join(MA, "engine", "live"))
+            import frontier as FR
+            FR.report("emit.positions", FR.anchors_from_json_dir(OUT_DIR))
+        except Exception as e:
+            print(f"[emit] frontier check unavailable: {type(e).__name__}: {e}", flush=True)
     return written
 
 

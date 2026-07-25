@@ -22,16 +22,23 @@ reconcile lives in the signal loop (see RUNBOOK / lead ruling c1|c2).
 from __future__ import annotations
 
 import datetime as dt
+import os
 import sys
 
 import numpy as np
 import pandas as pd
 
+# ★ MA MUST be defined before the first line that uses it. The portability refactor (ef2ddbb) left
+# `sys.path.insert(0, os.path.join(MA, ...))` ABOVE this assignment, so this module raised NameError
+# at import — and `os` was not imported at all. Both were invisible to the acceptance suites because
+# nothing in them executes this module's top level. See run_daily.sh: this is the FIRST step, so the
+# whole daily chain died here.
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+
 sys.path.insert(0, os.path.join(MA, "engine", "live"))
 from datasource import get_source          # noqa: E402
 import funding_derive as fd                # noqa: E402
 
-MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 PANEL_FULL = MA + "/exports/wide_panel_full.npz"       # frozen raw-input panel (has OHLCV/FUND_EMA/DVOL30)
 DL_FULL = MA + "/exports/wide_dl_full.npz"
 HOUR_MS = 3_600_000
