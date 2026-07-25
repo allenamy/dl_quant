@@ -32,4 +32,29 @@ run "ingest (pull + splice tail -> wide_dl_live)"   "$PY" "$MA/engine/live/build
 run "signal loop (inference -> positions_*.json)"    "$PY" "$MA/engine/live/signal_loop.py" --emit
 run "paper P&L (dual-curve A/B)"                       "$PY" "$MA/engine/live/paper_pnl.py"
 run "C4 monitor (rolling rank-IC daily report)"       "$PY" "$MA/engine/live/monitor.py"
+# challenger dual-track (leg weights) — ADDITIVE and NON-FATAL: a failure here must never
+# break the champion pipeline, so it is deliberately not routed through run()/fail().
+step "challenger dual-track (king .50 weights; non-fatal)"
+"$PY" "$MA/engine/live/challenger.py" >> "$RUNLOG" 2>&1 || echo "$(date -u +%FT%TZ) [warn] challenger step failed (non-fatal)" | tee -a "$RUNLOG"
+
+# champion_fixfunding third track (funding settlement-interval fix) — ADDITIVE, NON-FATAL.
+# Orthogonal to the challenger track: that one tests WEIGHTS, this one tests the FACTOR FIX.
+step "fixfunding third track (corrected funding factor; non-fatal)"
+"$PY" "$MA/engine/live/fixfunding_track.py" >> "$RUNLOG" 2>&1 || echo "$(date -u +%FT%TZ) [warn] fixfunding step failed (non-fatal)" | tee -a "$RUNLOG"
+
+# pilot-prep daily chain (§9.5): regime -> guards -> v2 shadow log -> metrics -> watchdog ->
+# mirrored report. ADDITIVE, NON-FATAL. MOCK ONLY: no account, no credentials, no venue contact.
+step "pilot-prep daily (schema v2 log + metrics + watchdog + mirror; non-fatal, MOCK)"
+"$PY" "$MA/engine/live/pilot_daily.py" --days_back 1 >> "$RUNLOG" 2>&1 || echo "$(date -u +%FT%TZ) [warn] pilot_daily step failed (non-fatal)" | tee -a "$RUNLOG"
+
+# four-track shadow matrix (2 weight configs x 2 factor versions) — ADDITIVE, NON-FATAL.
+# Three frozen comparisons + a pre-registered generalisation test; see exports/live/track_matrix/README.md
+step "four-track matrix (weights x factor version; non-fatal)"
+"$PY" "$MA/engine/live/track_matrix.py" >> "$RUNLOG" 2>&1 || echo "$(date -u +%FT%TZ) [warn] track_matrix step failed (non-fatal)" | tee -a "$RUNLOG"
+
+# acceptance runner — the SINGLE machine-checkable "all green" statement. Non-fatal here (the
+# shadow must keep running even if a suite regresses) but its JSON is the only citable source.
+step "acceptance runner (single all-green statement)"
+bash "$MA/engine/live/run_acceptance.sh" --json "$MA/exports/live/acceptance/latest.json" >> "$RUNLOG" 2>&1 || echo "$(date -u +%FT%TZ) [warn] acceptance NOT green — see exports/live/acceptance/latest.json" | tee -a "$RUNLOG" "$ALARM"
+
 step "=== run_daily done $TODAY ==="
