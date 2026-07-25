@@ -16,6 +16,8 @@ _ORPHANS=$(rsync -ain --delete \
   --exclude='/data/' --exclude='crypto_data/' --exclude='experiments/' \
   --exclude='exports/' --exclude='/logs/' --exclude='midprice_per_day/' \
   --exclude='multi_asset/exports/' \
+  --exclude='*.md' --exclude='/docs/' --exclude='multi_asset/handoff/' \
+  --exclude='*.ipynb' --exclude='*.tar.gz' --exclude='*.zip' \
   /Users/haosiyu/Desktop/quant_research/ "$DEST/" \
   | grep '^\*deleting' || true)
 
@@ -29,6 +31,16 @@ if [ -n "$_ORPHANS" ]; then
 fi
 echo "✓ 预检通过：服务器上无本地缺失的文件"
 
+# --check-only: 只跑预检就退出，不执行任何同步。
+# 存在理由：守卫本身必须可被安全测试。用"实跑真同步"来测守卫，等于用真实爆炸
+# 测试防爆门 —— 守卫若失效，测试动作本身就是破坏。有了这个出口，测守卫时
+# 守卫失效的最坏后果只是退出码不对，不会删任何东西。
+if [ "${1:-}" = "--check-only" ]; then
+  echo "(--check-only：不执行同步)"
+  exit 0
+fi
+
+
 rsync -avz --delete \
   --exclude='.git' \
   --exclude='__pycache__' \
@@ -41,6 +53,12 @@ rsync -avz --delete \
   --exclude='/logs/' \
   --exclude='midprice_per_day/' \
   --exclude='multi_asset/exports/' \
+  --exclude='*.md' \
+  --exclude='/docs/' \
+  --exclude='multi_asset/handoff/' \
+  --exclude='*.ipynb' \
+  --exclude='*.tar.gz' \
+  --exclude='*.zip' \
   /Users/haosiyu/Desktop/quant_research/ "$DEST/"
 
 echo "✓ synced → $DEST"
