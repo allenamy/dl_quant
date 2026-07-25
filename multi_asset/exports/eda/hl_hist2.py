@@ -8,11 +8,12 @@ Short timeout + retries so a stalled call is abandoned fast rather than blocking
 
 READ-ONLY public /info. Out: exports/eda/hl_hist.npz
 """
+import os
 import json, time, sys
 import urllib.request
 import numpy as np
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 URL = "https://api.hyperliquid.xyz/info"
 UA = "Mozilla/5.0 (research-data-probe; read-only public market data)"
 PAUSE = 0.6

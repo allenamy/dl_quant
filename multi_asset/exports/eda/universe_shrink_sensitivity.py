@@ -23,11 +23,12 @@ degrades as the universe is truncated to top-N = 110/80/60/50/40/30/20.
 Outputs: exports/eda/universe_shrink_sensitivity.{json,md}
 Run: python multi_asset/exports/eda/universe_shrink_sensitivity.py
 """
+import os
 import sys, json, time
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 from engine.panel_source import PanelSource
 from engine.funding_risk import FundingLegRiskControl

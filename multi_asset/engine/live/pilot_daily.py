@@ -23,19 +23,25 @@ Out: exports/live/pilot_daily/<YYYYMMDD>/{report.md, report.json}
 from __future__ import annotations
 import argparse, hashlib, json, os, shutil, subprocess, sys, time
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 PY = sys.executable
 sys.path.insert(0, MA + "/engine/live")
 sys.path.insert(0, MA)
 
-OUT = MA + "/exports/live/pilot_daily"
-MIRROR = OUT + "/mirror"
-LOG_ROOT = MA + "/exports/live/pilot_log"
+def _env(name, default):
+    """Env override -> works across process boundaries (inject_failures drives this as a
+    subprocess, where setting a module attribute in the parent has no effect)."""
+    return os.environ.get(name, default)
+
+
+OUT = _env("PILOT_DAILY_OUT", MA + "/exports/live/pilot_daily")
+MIRROR = _env("PILOT_DAILY_MIRROR", OUT + "/mirror")
+LOG_ROOT = _env("PILOT_LOG_ROOT", MA + "/exports/live/pilot_log")
 # ★ Production watchdog state lives at an EXPLICIT path. Relying on watchdog.py's default let a
 # test that called PD.main() write a trip into PRODUCTION state (it did: a -8%/-48% fixture from
 # tests_production_signature showed up as a standing HALT). Tests must override this.
-WATCHDOG_STATE_DIR = MA + "/exports/live/watchdog"
-LIVE_PANEL = MA + "/exports/live/wide_dl_live.npz"
+WATCHDOG_STATE_DIR = _env("PILOT_WATCHDOG_DIR", MA + "/exports/live/watchdog")
+LIVE_PANEL = _env("PILOT_LIVE_PANEL", MA + "/exports/live/wide_dl_live.npz")
 # The factor version the engine is DECLARED to run (protocol §9.5). champion/challenger run the
 # pre-fix factor; only the fixfunding third track runs the corrected one.
 TRACK = "champion"          # which track this daily run represents
@@ -54,7 +60,7 @@ DECLARED_FACTOR_VERSION = "funding_ema_broken_v1"
 # source switch that forgets to retune the bound BLOCKS instead of silently carrying an
 # archive-calibrated gate into a live-feed pilot. (Otherwise this is the next constant to escape
 # its single source of truth.)
-DATA_SOURCE_TYPE = "t_plus_1_public_archive"     # the shadow's feed
+DATA_SOURCE_TYPE = _env("PILOT_DATA_SOURCE_TYPE", "t_plus_1_public_archive")     # the shadow's feed
 DATA_SOURCE_MAX_DATA_AGE_H = {
     "t_plus_1_public_archive": 96.0,   # T+1 archive + weekend margin; healthy observed = 57.8h
     "live_venue_feed": 6.0,            # pilot: a live feed lagging >6h is a fault, not a cadence
@@ -63,6 +69,11 @@ MAX_PANEL_FILE_AGE_H = 30.0
 
 
 def panel_hash(path):
+    # A missing panel is a legitimate operational state (build failed, wrong path) and its correct
+    # handling is to BLOCK, not to raise: an exception aborts the whole daily chain including the
+    # report that would have told the operator why.
+    if not os.path.exists(path):
+        return None
     h = hashlib.sha256()
     with open(path, "rb") as f:
         while chunk := f.read(1 << 22):
@@ -84,7 +95,12 @@ def run_guards(verbose=True):
                  "EXPECTED until the corrected factor is promoted. What is enforced is that the "
                  "observed state matches DECLARED_FACTOR_VERSION.")}
     ph = panel_hash(LIVE_PANEL)
-    g["checks"]["panel_hash"] = {"panel": os.path.basename(LIVE_PANEL), "sha256_16": ph}
+    g["checks"]["panel_hash"] = {"panel": os.path.basename(LIVE_PANEL), "sha256_16": ph,
+                                 "exists": ph is not None}
+    if ph is None:
+        g["ok"] = False
+        g["blocking_reason"] = (f"live panel not found at {LIVE_PANEL} — refusing to emit readings "
+                                "without the panel they would be derived from")
     # ★ close the last human link: protocol -> declaration -> observation, all machine.
     # PER-TRACK, because champion/challenger deliberately run the pre-fix factor and a global
     # assertion would turn the whole shadow red for no reason.
@@ -171,7 +187,9 @@ def main(days_back=1, skip_log=False, verbose=True):
                        "pipeline evidence only; NOT execution evidence.")}
 
     import regime_classifier as RC
-    rep["regime"] = {"days_written": RC.run(days_back=max(days_back, 2), verbose=verbose)[-3:]}
+    rep["regime"] = {"days_written": RC.run(panel=LIVE_PANEL,
+                                        days_back=max(days_back, 2),
+                                        verbose=verbose)[-3:]}
 
     rep["guards"] = run_guards(verbose=verbose)
 

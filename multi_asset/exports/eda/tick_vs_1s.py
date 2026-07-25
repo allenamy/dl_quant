@@ -4,12 +4,14 @@ BTC-perp days/anchors/order-grid. Isolates the 1s-aggregation bias + measures ca
 conservatism + characterizes markout regime dependence (crash days). CPU-only READ-ONLY.
 Writes exports/eda/tick_vs_1s_raw.json.
 """
+import os
 import sys, time, json, numpy as np, pandas as pd
 sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset")
 from multi_asset.data.bar_loader import load_day_panel
 
 TARDIS = "/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/dl-tardis"
-EDA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+EDA = MA + "/exports/eda/"
 DAYS = ["2023-06-15", "2023-08-17", "2023-10-10", "2024-03-15", "2024-04-13", "2024-05-20",
         "2024-08-05", "2025-02-03", "2025-03-17", "2025-07-14", "2025-09-15", "2025-11-15"]
 KS = [60, 300, 900]

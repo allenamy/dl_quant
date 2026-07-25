@@ -4,9 +4,11 @@ on PRIOR year, 99% cap, renorm-to-gross) + isotonic lookahead/oracle bound + IC 
 (daily vol) + rank-funding vs book_assembly-funding corr + tail-corisk on rank engine legs.
 Writes exports/eda/engine_v1_review_raw.json.
 """
+import os
 import sys, json, numpy as np, pandas as pd
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA)
+sys.path.insert(0, MA + "/exports/eda")
 from engine.panel_source import PanelSource
 from scipy.stats import rankdata
 from sklearn.isotonic import IsotonicRegression
@@ -175,5 +177,5 @@ if __name__ == "__main__":
                daily_vol_noshape=round(rk_none["daily_gross_vol"], 4), daily_vol_caponly=round(rk_cap["daily_gross_vol"], 4),
                daily_vol_iso=round(rk["daily_gross_vol"], 4),
                engine_rankfund_vs_book_megacap_corr=fcorr, tail_corisk_rank=dict(full_avg_pair_corr=full_corr, crisis=tail))
-    json.dump(out, open("/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/engine_v1_review_raw.json", "w"), indent=1, default=str)
+    json.dump(out, open(MA + "/exports/eda/engine_v1_review_raw.json", "w"), indent=1, default=str)
     print("\nSAVED engine_v1_review_raw.json", flush=True)

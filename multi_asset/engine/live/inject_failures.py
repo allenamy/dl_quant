@@ -16,13 +16,34 @@ Evidence -> exports/live/pilot_daily/injection_evidence/<case>/{before,after,ver
 from __future__ import annotations
 import json, os, shutil, subprocess, sys, time
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 PY = sys.executable
 sys.path.insert(0, MA + "/engine/live")
 import pilot_log as PL
 
 EV = MA + "/exports/live/pilot_daily/injection_evidence"
-LOG_ROOT = MA + "/exports/live/pilot_log"
+
+# ★ HERMETIC SANDBOX. These injections drive pilot_daily as a SUBPROCESS, so module attributes in
+# this process cannot redirect it -- the paths must travel as environment variables. Running them
+# against the real production paths would (a) require the server's panel, which does not exist
+# where the code is written, and (b) mutate production state, which is exactly the failure form #4
+# the production_state_guard exists to prevent.
+import tempfile as _tf
+import tests_fixture as FIX
+_SANDBOX = _tf.mkdtemp(prefix="inject_sandbox_")
+_FX = FIX.build(os.path.join(_SANDBOX, "fixture"))
+LOG_ROOT = os.path.join(_SANDBOX, "pilot_log")
+os.environ.update({
+    "PILOT_LIVE_PANEL": _FX["panel"],
+    "PILOT_KING_PANEL": _FX["king"],
+    "PILOT_S2_PANEL": _FX["s2"],
+    "PILOT_LOG_ROOT": LOG_ROOT,
+    "PILOT_DAILY_OUT": os.path.join(_SANDBOX, "pilot_daily"),
+    "PILOT_DAILY_MIRROR": os.path.join(_SANDBOX, "pilot_daily", "mirror"),
+    "PILOT_WATCHDOG_DIR": os.path.join(_SANDBOX, "watchdog"),
+    "PILOT_REGIME_OUT": os.path.join(_SANDBOX, "regime"),
+})
+EV = os.path.join(_SANDBOX, "injection_evidence")
 fails = []
 
 
@@ -104,9 +125,9 @@ rep = PD.main(days_back=1, skip_log=False, verbose=True)
 print("STATUS:", rep["status"])
 '''], capture_output=True, text=True)
 day = time.strftime("%Y%m%d", time.gmtime())
-rp = f"{MA}/exports/live/pilot_daily/{day}/report.md"
+rp = os.path.join(os.environ["PILOT_DAILY_OUT"], day, "report.md")
 report_txt = open(rp).read() if os.path.exists(rp) else ""
-mirror = f"{MA}/exports/live/pilot_daily/mirror/{day}_report.md"
+mirror = os.path.join(os.environ["PILOT_DAILY_MIRROR"], f"{day}_report.md")
 mirror_txt = open(mirror).read() if os.path.exists(mirror) else ""
 open(os.path.join(EV, case, "log.txt"), "w").write(r.stdout[-3000:] + "\n=== REPORT ===\n" + report_txt)
 ok2a = check("report.md contains BLOCKED", "BLOCKED" in report_txt)

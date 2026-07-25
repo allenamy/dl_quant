@@ -11,10 +11,11 @@ If the two panels agree, either can be used downstream and no re-run is needed.
 
 Writes exports/eda/fundnorm_reconcile.json.
 """
+import os
 import sys, json
 import numpy as np
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 EDA = MA + "/exports/eda/"
 sys.path.insert(0, MA); sys.path.insert(0, EDA)
 from engine.panel_source import PanelSource

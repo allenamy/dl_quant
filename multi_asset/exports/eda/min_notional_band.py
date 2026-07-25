@@ -27,11 +27,12 @@ CALIBER -- deployment-space normalisation:
 
 Out: exports/eda/min_notional_band.{json,md}
 """
+import os
 import json, sys, time
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 from engine.panel_source import PanelSource
 from engine.signal_chain import SignalChain, DEFAULT_WEIGHTS

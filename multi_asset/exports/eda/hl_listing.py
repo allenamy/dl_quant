@@ -7,10 +7,11 @@ coins we can see it lists in 2026).
 READ-ONLY public /info endpoint, 1 req/1.05s (HL budget: 1200 weight/min, these calls weigh 20).
 Out: exports/eda/hl_listing_dates.json
 """
+import os
 import json, time
 import urllib.request
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 URL = "https://api.hyperliquid.xyz/info"
 UA = "Mozilla/5.0 (research-data-probe; read-only public market data)"
 PAUSE = 1.05

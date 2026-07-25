@@ -15,11 +15,12 @@ its own realistic costs -- band value scales with cost, so it must be measured w
 
 Out: exports/eda/hl_fee_economics.json
 """
+import os
 import json, sys, time
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 sys.path.insert(0, MA + "/exports/eda")
 import min_notional_band as MB

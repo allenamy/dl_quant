@@ -3,8 +3,10 @@ raw panels (driving the engine's own leg_signals incl C5), with my own turnover/
 ablations to attribute C5 (funding-risk) and C6 (netting) per year. Also FTX-day P&L with/without C5,
 netting-caliber reconciliation, and isotonic-in-path confirmation. Writes exports/eda/engine_replay_review_raw.json.
 """
+import os
 import sys, json, numpy as np, pandas as pd
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA)
 from engine.panel_source import PanelSource
 from engine.funding_risk import FundingLegRiskControl
 from engine.signal_chain import SignalChain, DEFAULT_WEIGHTS
@@ -113,5 +115,5 @@ if __name__ == "__main__":
                c5_pure_signal=c5sig, ftx_day=ftx,
                isotonic_in_pnl_path=False, poscap_in_pnl_path=False,
                note="replay P&L uses leg_signals->_l1->weighted->demean (z-weighted); isotonic/pos_cap only in target_position (unused by netting.run); vol_gate exposure_mult pinned 1.0")
-    json.dump(out, open("/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/engine_replay_review_raw.json", "w"), indent=1, default=str)
+    json.dump(out, open(MA + "/exports/eda/engine_replay_review_raw.json", "w"), indent=1, default=str)
     print("\nSAVED engine_replay_review_raw.json", flush=True)

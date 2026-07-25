@@ -13,9 +13,11 @@ mechanical, not remembered. Same move as assert_funding_dim.py: replace belief w
 
 Usage: python multi_asset/exports/eda/check_day_budget.py   (exit 0 = consistent)
 """
+import os
 import json, sys
 
-EDA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+EDA = MA + "/exports/eda/"
 
 # ------------------------------------------------------------------ THE SINGLE SOURCE OF TRUTH
 BUDGET = {

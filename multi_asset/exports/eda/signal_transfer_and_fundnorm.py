@@ -17,8 +17,9 @@ import json, glob, os, sys
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
-REPO = "/mnt/storage/private/work_hsy/quant_research_multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+REPO = os.path.dirname(MA)
 sys.path.insert(0, MA)
 from engine.panel_source import PanelSource
 from engine.signal_chain import SignalChain, DEFAULT_WEIGHTS, _rank_centered

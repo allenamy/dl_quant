@@ -4,11 +4,13 @@ LUNA/FTX + 2024-08-05 crash). Per-day per-coin fill-rate(f,k) + spread + hourly-
 widen? (markout comes from TICK, not this — 1s markout proven unreliable). CPU-only READ-ONLY.
 Writes exports/eda/bar_regime_raw.json.
 """
+import os
 import sys, time, json, numpy as np
 sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset")
 from multi_asset.data.bar_loader import load_day_panel
 
-EDA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+EDA = MA + "/exports/eda/"
 SYM = ["bnfbtc", "bnfeth", "bnfsol", "bnfbnb", "bnfxrp", "bnfdog", "bnfada",
        "bnflink", "bnfbch", "bnftrx", "bnfltc", "bnfdot", "bnffil", "bnfetc"]
 # regime-spanning days across 2022-2025; STRESS = LUNA 2022-05-12, FTX 2022-11-09, others

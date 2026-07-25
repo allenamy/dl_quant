@@ -6,11 +6,12 @@ capacity). Re-runs the canonical book loop and buckets each settlement cash-flow
 liquidity tier (median hourly notional, same tiers as makerfill: calib >= $4M/h, mega+mid >= 33pct,
 small), (b) |funding rate| decile, (c) coin. Merges into funding_pnl_backfill_raw.json.
 """
+import os
 import sys, json, os.path as p
 import numpy as np, pandas as pd
 from scipy.stats import rankdata
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 WIDE = "/mnt/storage/private/work_hsy/quant_research_multi_asset/data/wide"
 sys.path.insert(0, MA)
 from engine.panel_source import PanelSource

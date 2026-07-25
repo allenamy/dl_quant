@@ -32,7 +32,7 @@ from __future__ import annotations
 import hashlib, os
 from typing import Dict, Tuple
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 
 # EVERY production state path. Adding a new one that writes state? Add it here too.
 PRODUCTION_STATE_PATHS = {

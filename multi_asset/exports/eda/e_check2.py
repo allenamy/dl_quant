@@ -1,9 +1,11 @@
 """Prove v2 gate_e is SOUND; the self-test T3c BROKEN is a mis-scaled corruption (pred std ~1.0,
 Yraw std ~0.023 => additive alpha=3 injects only ~7% => negligible). Build corruptions inline."""
+import os
 import sys, json, numpy as np
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/handoff")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA + "/handoff")
 import acceptance_battery as ab
-M = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/train"
+M = MA + "/exports/train"
 THR = ab.THRESHOLDS
 champ3 = ab.load_any(f"{M}/wideA_lamorth0_xattn", THR)
 H, T = champ3.horizon, champ3.pred.shape[0]

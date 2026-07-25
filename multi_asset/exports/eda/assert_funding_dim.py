@@ -33,13 +33,14 @@ threshold is set well above it and well below the broken value.
 Usage:  python multi_asset/exports/eda/assert_funding_dim.py [--panel <wide_dl_full.npz>]
 Exit code 0 = pass, 1 = fail (wire into the panel-rebuild pipeline so a regression breaks the build).
 """
+import os
 import sys, json, argparse
 import numpy as np, pandas as pd
 from scipy.stats import rankdata
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 EDA = MA + "/exports/eda/"
-WIDE = "/mnt/storage/private/work_hsy/quant_research_multi_asset/data/wide"
+WIDE = os.path.join(os.path.dirname(MA), "data", "wide")
 FAIL_ABS = 0.20            # broken = 0.3745, corrected = 0.1463, legitimate return-driven gap = 0.033
 CHANNELS = ["funding_ema", "xsr_fund"]
 

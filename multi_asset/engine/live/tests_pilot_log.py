@@ -8,9 +8,10 @@ Two behaviours cannot be verified by the happy-path acceptance run:
 
 Exit 0 = all pass.
 """
+import os
 import shutil, sys, tempfile
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA + "/engine/live")
 import pilot_log as PL
 import pilot_metrics as PM

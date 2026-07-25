@@ -23,9 +23,13 @@ import argparse, json, os, sys
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
-OUT = MA + "/exports/live/regime"
+OUT = os.environ.get("PILOT_REGIME_OUT", MA + "/exports/live/regime")
+# overridable so tests can point the chain at a synthetic fixture (see tests_fixture.py)
+PANEL = os.environ.get("PILOT_LIVE_PANEL", MA + "/exports/live/wide_dl_live.npz")
+KING = os.environ.get("PILOT_KING_PANEL", MA + "/exports/live/king_pred_live.npz")
+S2 = os.environ.get("PILOT_S2_PANEL", MA + "/exports/live/s2_pred_live.npz")
 CALM_MAX, STRESS_MIN = 7.0, 18.0
 
 
@@ -54,9 +58,7 @@ def classify(src, anchors):
 
 def run(panel=None, days_back=None, verbose=True):
     from engine.panel_source import PanelSource
-    src = PanelSource(panel=panel or (MA + "/exports/live/wide_dl_live.npz"),
-                      king=MA + "/exports/live/king_pred_live.npz",
-                      s2=MA + "/exports/live/s2_pred_live.npz")
+    src = PanelSource(panel=panel or PANEL, king=KING, s2=S2)
     os.makedirs(OUT, exist_ok=True)
     anchors = np.sort(np.where((src.member & src.CL4).any(1))[0])
     if days_back:

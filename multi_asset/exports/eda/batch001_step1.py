@@ -2,12 +2,13 @@
 reference, per-anchor rank-order agreement (benign scale vs rank bug); (B) inc-IC ref-vs-ledger align;
 (C) A-group mutual corr (cluster?); (D) B-group pred-corr vs the 4-leg book. Writes /tmp/0c_b1_step1.json.
 """
+import os
 import json, sys, numpy as np, pandas as pd
 from scipy.stats import rankdata
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/factory")
+sys.path.insert(0, MA)
+sys.path.insert(0, MA + "/factory")
 import dsl, pipeline as P
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 LEDGER = MA + "/exports/eda/factory_ledger.jsonl"
 A = {101: "neg(mul(xsec_z(lturnover_24h), xsec_z(max_ret_24h)))", 104: "neg(xsec_z(ts_max(abs(ret_1h), 24)))",
      107: "neg(xsec_z(power(ret_24h, 3)))", 120: "neg(xsec_z(ts_max(rvol_6h, 42)))"}

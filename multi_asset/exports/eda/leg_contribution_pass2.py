@@ -10,11 +10,12 @@
 
 Caliber identical to leg_contribution_review.py. Merges into leg_contribution_review_raw.json.
 """
+import os
 import sys, json, os.path as p
 import numpy as np, pandas as pd
 from scipy.stats import rankdata
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 EDA = MA + "/exports/eda/"
 WIDE = "/mnt/storage/private/work_hsy/quant_research_multi_asset/data/wide"
 sys.path.insert(0, MA)

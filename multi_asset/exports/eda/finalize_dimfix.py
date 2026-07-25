@@ -1,5 +1,7 @@
+import os
 import json, os
-os.chdir("/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+os.chdir(MA + "/exports/eda")
 j = json.load(open("funding_dimfix_rerun_raw.json"))
 j["verdict"] = {
  "bug_confirmed_independently": {

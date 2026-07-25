@@ -2,8 +2,9 @@
 ledger (never the real campaign ledger). Tests: Lock(i) verdict-path, Lock(ii) tamper-detect + M-denom,
 holdout exclusion, null calibration, closure (ii) NaN-not-0 + (iii) sparse-leg ban. Writes /tmp/0c_factory_adv.json."""
 import sys, json, numpy as np
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/factory")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA)
+sys.path.insert(0, MA + "/factory")
 import dsl
 from ledger import Ledger, STAGE0_VERDICTS
 import pipeline as P

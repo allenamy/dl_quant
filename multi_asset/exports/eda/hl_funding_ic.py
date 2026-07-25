@@ -9,11 +9,12 @@ Also reports the blend, since two 0.47-correlated versions of the same economic 
 
 Out: exports/eda/hl_funding_ic.json
 """
+import os
 import json, sys
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 from engine.panel_source import PanelSource
 from engine.signal_chain import _rank_centered

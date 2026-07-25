@@ -4,12 +4,14 @@ FROZEN thresholds (handoff/acceptance_thresholds_0C_frozen.json). Verifies the b
 verdicts reproduce 0C's human judgments (S1/N1b archived; broken products rejected).
 Writes /tmp/0c_repro.json. Imports the battery as a module (no re-implementation).
 """
+import os
 import json, sys, numpy as np
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/handoff")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA + "/handoff")
 import acceptance_battery as ab
 
-M = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/train"
-THR = json.load(open("/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/handoff/acceptance_thresholds_0C_frozen.json"))
+M = MA + "/exports/train"
+THR = json.load(open(MA + "/handoff/acceptance_thresholds_0C_frozen.json"))
 THR = {k: v for k, v in THR.items() if not k.startswith("_")}
 
 

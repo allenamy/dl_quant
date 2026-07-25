@@ -13,10 +13,12 @@ placement; no geo-restriction circumvention; sequential, 1 req/host.
 Endpoint paths for venues beyond the two named candidates are best-effort: a 403/404 still
 proves NETWORK reachability (TLS completed), which is the point of the matrix.
 """
+import os
 import json, socket, ssl, time
 import urllib.request, urllib.error
 
-OUT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+OUT = (MA + "/exports/eda/"
        "venue_matrix.json")
 UA = "Mozilla/5.0 (research-data-probe; read-only public market data)"
 T = 12

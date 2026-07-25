@@ -19,10 +19,12 @@ METHOD (deliberately adversarial):
 
 Writes exports/eda/log_schema_falsify.json.
 """
+import os
 import json, hashlib
 import numpy as np
 
-EDA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+EDA = MA + "/exports/eda/"
 RNG = np.random.default_rng(20260725)
 
 SCHEMA_V1_ORDER = ["anchor_ts", "symbol", "side", "target_w", "prev_w", "intended_notional",

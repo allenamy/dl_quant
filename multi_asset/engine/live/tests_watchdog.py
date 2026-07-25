@@ -9,9 +9,10 @@ that must NOT trip (a watchdog that always fires is equally useless).
 
 Exit 0 = all pass.
 """
+import os
 import shutil, sys, tempfile
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA + "/engine/live")
 import pilot_log as PL
 import watchdog as WD

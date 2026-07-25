@@ -2,12 +2,13 @@
 FULL history; xsec_z over member&CL — matching the fixed dsl) vs ledger inc-IC + fast-vs-ref rank agreement;
 low-vol cluster {248,250,251} mutual corr (1 leg or 3?); capacity probe (large vs small DVOL half) for all 4.
 Writes /tmp/0c_b2_step1.json."""
+import os
 import json, sys, numpy as np, pandas as pd
 from scipy.stats import rankdata
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/factory")
+sys.path.insert(0, MA)
+sys.path.insert(0, MA + "/factory")
 import dsl, pipeline as P
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 LEDGER = MA + "/exports/eda/factory_ledger.jsonl"
 CAND = {247: "xsec_z(mul(ema(ret_4h, 24), neg(rvol_6h)))", 248: "neg(xsec_z(ts_std(ret_4h, 168)))",
         250: "neg(xsec_z(ema(rvol_72h, 168)))", 251: "neg(xsec_z(ema(abs(ret_24h), 168)))"}

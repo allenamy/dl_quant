@@ -11,11 +11,12 @@ expressed in the book's RAW drifting-gross units. Deployed at constant gross the
 
 Out: exports/eda/band_optimum.json
 """
+import os
 import json, sys, time
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 sys.path.insert(0, MA + "/exports/eda")
 import min_notional_band as MB

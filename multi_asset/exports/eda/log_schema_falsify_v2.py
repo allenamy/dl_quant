@@ -15,9 +15,10 @@ computable and UNIQUE (no defensible-alternative spread).
 Exit 0 = 7/7 OK. Non-zero = the schema is not fit to sign.
 Writes exports/eda/log_schema_falsify_v2.json.
 """
+import os
 import importlib.util, json, os, shutil, sys, tempfile
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 EDA = MA + "/exports/eda/"
 sys.path.insert(0, MA + "/engine/live")
 import pilot_log as PL                                    # noqa: E402
@@ -28,7 +29,9 @@ def load_generator():
     """Import 0C's generator without executing its v1 verdict section."""
     src = open(EDA + "log_schema_falsify.py").read()
     cut = src.index("ORDERS, ANCHOR_ROWS, FILLS, FUNDING, NAVS = gen_day()")
-    mod = {}
+    # the generator derives its own paths from __file__, which exec() does not provide unless we
+    # seed it -- otherwise MA is never bound and the exec'd module raises NameError.
+    mod = {"__file__": EDA + "log_schema_falsify.py", "__name__": "log_schema_falsify_gen"}
     exec(compile(src[:cut], "log_schema_falsify_gen", "exec"), mod)
     return mod["gen_day"], mod["SYMS"]
 

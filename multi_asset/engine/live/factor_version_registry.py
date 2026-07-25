@@ -23,7 +23,7 @@ goal is not to remove the human but to give them exactly one place to type the d
 from __future__ import annotations
 import json, os
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 REGISTRY_PATH = MA + "/exports/eda/factor_version_registry.json"
 
 FACTOR_VERSIONS = {

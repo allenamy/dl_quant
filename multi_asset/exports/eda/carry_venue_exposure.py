@@ -15,11 +15,12 @@ book's own realised volatility, then set it against the execution gain (maker X=
 
 Out: exports/eda/carry_venue_exposure.json
 """
+import os
 import json, sys
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 sys.path.insert(0, MA + "/exports/eda")
 import universe_shrink_sensitivity as U

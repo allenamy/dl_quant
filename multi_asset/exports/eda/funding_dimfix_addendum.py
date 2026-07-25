@@ -19,11 +19,12 @@ gap(Y4) is the control: if the 4h group genuinely out/under-performs, a model SH
 
 Merges into funding_dimfix_rerun_raw.json.
 """
+import os
 import sys, json
 import numpy as np, pandas as pd
 from scipy.stats import rankdata
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 EDA = MA + "/exports/eda/"
 sys.path.insert(0, MA)
 sys.path.insert(0, EDA)

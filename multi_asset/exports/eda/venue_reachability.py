@@ -9,11 +9,13 @@ itself (fapi is known-blocked from jpline; data.binance.vision is known-reachabl
 
 Out: exports/eda/venue_reachability.json
 """
+import os
 import json, socket, ssl, time, sys
 import urllib.request
 import urllib.error
 
-OUT = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+OUT = (MA + "/exports/eda/"
        "venue_reachability.json")
 UA = "Mozilla/5.0 (research-data-probe; read-only public market data)"
 TIMEOUT = 20

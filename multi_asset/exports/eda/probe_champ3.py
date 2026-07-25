@@ -1,10 +1,12 @@
 """Nail the true 3-fold champion IC + re-run T2a with the correct champion, and characterize
 the available xattn seed triple honestly. Writes /tmp/0c_probe.json."""
+import os
 import json, sys, numpy as np
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/handoff")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA + "/handoff")
 import acceptance_battery as ab
-M = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/train"
-THR = {k: v for k, v in json.load(open("/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/handoff/acceptance_thresholds_0C_frozen.json")).items() if not k.startswith("_")}
+M = MA + "/exports/train"
+THR = {k: v for k, v in json.load(open(MA + "/handoff/acceptance_thresholds_0C_frozen.json")).items() if not k.startswith("_")}
 
 
 def poolic(prod):

@@ -9,10 +9,11 @@ book whose median name is fine but whose tail is at 40% participation is not dep
 
 Out: exports/eda/hl_construction_profile.json
 """
+import os
 import json, sys
 import numpy as np
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 sys.path.insert(0, MA + "/exports/eda")
 import hl_capacity as HC

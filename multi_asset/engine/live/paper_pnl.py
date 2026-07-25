@@ -18,10 +18,10 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
+sys.path.insert(0, MA)
 from engine.signal_chain import _l1  # noqa (unused but keeps engine import path warm)
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 POS_DIR = MA + "/exports/live/positions"
 OUT = MA + "/exports/live/pnl"
 FILL = 0.51            # conservative maker fill-rate at k=900

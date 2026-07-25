@@ -1,11 +1,13 @@
 """Diagnose self-test T3c BROKEN: is v2 gate_e sound, or is the corruption mis-scaled?
 Compare 0B's additive corruption (alpha*Yraw, Yraw~0.01 << pred~0.18) vs a rank-replacement
 corruption (forward window genuinely dominates). Only calls gate_e (fast)."""
+import os
 import sys, json, numpy as np
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/handoff")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA + "/handoff")
 import acceptance_battery as ab
 from scipy.stats import rankdata
-M = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/train"
+M = MA + "/exports/train"
 THR = ab.THRESHOLDS
 champ3 = ab.load_any(f"{M}/wideA_lamorth0_xattn", THR)
 

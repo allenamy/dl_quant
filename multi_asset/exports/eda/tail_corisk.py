@@ -3,9 +3,11 @@
 (b) combined worst-day / worst-week. (c) named windows LUNA 2022-05 / FTX 2022-11 / yen 2024-08-05 per-day 4-leg table.
 (d) verdict: does equal-risk hold in the tail; crisis-overlay (BTC rvol gate)?  Writes exports/eda/tail_corisk_raw.json.
 """
+import os
 import sys, numpy as np, pandas as pd, json
 sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset")
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA + "/exports/eda")
 import build_4leg as b4
 TR = "multi_asset/exports/train/"; EDA = "multi_asset/exports/eda/"; WPF = "multi_asset/exports/wide_panel_full.npz"
 ANN = np.sqrt(365.0)

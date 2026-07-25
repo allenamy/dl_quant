@@ -4,11 +4,13 @@ of (order/hourly-notional f, working-window k). CONSERVATIVE choices: join-at-ba
 L1 notional), trade-driven depletion ONLY (exclude cancels bkDel -> only raises real fills), our full
 order O must clear on top of the L1 queue. Writes exports/eda/makerfill_calib_raw.json.
 """
+import os
 import sys, json, time, numpy as np
 sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset")
 from multi_asset.data.bar_loader import load_day_panel
 
-EDA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+EDA = MA + "/exports/eda/"
 SYM = ["bnfbtc", "bnfeth", "bnfsol", "bnfbnb", "bnfxrp", "bnfdog", "bnfada",
        "bnflink", "bnfbch", "bnftrx", "bnfltc", "bnfdot", "bnffil", "bnfetc"]
 DAYS = [20220315, 20220615, 20221017, 20230315, 20230615, 20231016, 20240315, 20240617,

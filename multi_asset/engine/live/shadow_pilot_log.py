@@ -25,13 +25,16 @@ import argparse, hashlib, os, sys
 import numpy as np
 import pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 sys.path.insert(0, MA + "/engine/live")
 import pilot_log as PL
 import regime_classifier as RC
 
-ROOT = MA + "/exports/live/pilot_log"
+ROOT = os.environ.get("PILOT_LOG_ROOT", MA + "/exports/live/pilot_log")
+PANEL = os.environ.get("PILOT_LIVE_PANEL", MA + "/exports/live/wide_dl_live.npz")
+KING = os.environ.get("PILOT_KING_PANEL", MA + "/exports/live/king_pred_live.npz")
+S2 = os.environ.get("PILOT_S2_PANEL", MA + "/exports/live/s2_pred_live.npz")
 GROSS_USD = 50_000.0            # P0 rung
 FILL_RATE = 0.51                # conservative maker fill-rate at k=900 (same as paper_pnl)
 MAKER_FEE_BPS, TAKER_FEE_BPS = 1.5, 4.5      # HL base tier
@@ -51,9 +54,8 @@ def panel_hash(path):
 def run(days_back=7, verbose=True):
     from engine.panel_source import PanelSource
     from challenger import _positions_w
-    panel = MA + "/exports/live/wide_dl_live.npz"
-    src = PanelSource(panel=panel, king=MA + "/exports/live/king_pred_live.npz",
-                      s2=MA + "/exports/live/s2_pred_live.npz")
+    panel = PANEL
+    src = PanelSource(panel=panel, king=KING, s2=S2)
     ph = panel_hash(panel)
     anchors = np.sort(np.where((src.member & src.CL4 & np.isfinite(src.king)
                                 & np.isfinite(src.s2)).any(1))[0])

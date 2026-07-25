@@ -25,7 +25,7 @@ from __future__ import annotations
 import json, os, smtplib, ssl, time
 from email.message import EmailMessage
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 CONFIG = MA + "/exports/live/pilot_daily/smtp_config.json"
 RECIPIENT = "info@nanofika.com"
 STATUS_PATH = MA + "/exports/live/pilot_daily/delivery_status.json"

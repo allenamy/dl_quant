@@ -6,10 +6,11 @@ venue fees) at $50k-$500k gross. P&L is linear in cost, so we can price each ass
 
 Out: exports/eda/hl_cost_sensitivity.json
 """
+import os
 import json, sys
 import numpy as np
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 sys.path.insert(0, MA + "/exports/eda")
 import universe_shrink_sensitivity as U

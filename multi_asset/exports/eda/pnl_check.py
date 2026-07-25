@@ -1,8 +1,9 @@
 """0C independent recompute of shadow paper P&L (verify arithmetic + cost/fill/regime application vs
 pnl_summary.json). Reuses the live panel but re-implements the formula independently. Hand-prints 2-3
 anchors. Writes /tmp/0c_pnl_check.json."""
+import os
 import glob, json, sys, numpy as np, pandas as pd
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 from engine.panel_source import PanelSource
 src = PanelSource(panel=MA + "/exports/live/wide_dl_live.npz", king=MA + "/exports/live/king_pred_live.npz",

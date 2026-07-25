@@ -35,7 +35,7 @@ Exit 0 = all pass.
 from __future__ import annotations
 import json, os, shutil, sys, tempfile
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA + "/engine/live")
 import pilot_log as PL
 import pilot_daily as PD
@@ -46,6 +46,8 @@ import factor_version_registry as FVR
 import regime_classifier as RC
 import deliver_report as DR
 from production_state_guard import ProductionStateGuard, override_all, PRODUCTION_STATE_PATHS
+import shadow_pilot_log as SPL
+import tests_fixture as FIX
 
 fails = []
 
@@ -186,11 +188,14 @@ _out = _tf.mkdtemp(prefix="rep_")
 # that one is how the next one breaks). override_all covers pilot_log / pilot_daily / mirror /
 # watchdog / regime / delivery status / smtp config in a single call.
 _restore = override_all(PD, RC, DR, tmp=_out)
+# the panel is a build artifact that exists only on the server; a synthetic fixture keeps this
+# suite hermetic so a change can be verified where it is written (see tests_fixture.py).
+_fx, _fxrestore = FIX.install(PD, RC, SPL, dirpath=_out + "/fixture")
 PD.LOG_ROOT = r
 try:
     rep = PD.main(days_back=1, skip_log=True, verbose=False)
 finally:
-    _restore()
+    _fxrestore(); _restore()
 check("watchdog actually tripped in this run", rep["watchdog"]["tripped"])
 check("status is NOT 'OK' when the watchdog tripped", rep["status"] != "OK", rep["status"][:60])
 check("status names the trip", "TRIPPED" in rep["status"])
@@ -205,6 +210,8 @@ if check("report file written", bool(_rep)):
 shutil.rmtree(r, ignore_errors=True); shutil.rmtree(_out, ignore_errors=True)
 
 print("[D3] data-age bound is bound to the data-source type")
+_out3 = _tf.mkdtemp(prefix="ds_")
+_fx3, _fx3restore = FIX.install(PD, RC, SPL, dirpath=_out3 + "/fixture")
 old_src = PD.DATA_SOURCE_TYPE
 try:
     PD.DATA_SOURCE_TYPE = "some_new_feed_nobody_calibrated"
@@ -214,6 +221,7 @@ try:
           (g.get("blocking_reason") or "")[:60])
 finally:
     PD.DATA_SOURCE_TYPE = old_src
+    _fx3restore(); shutil.rmtree(_out3, ignore_errors=True)
 check("live_venue_feed has a much tighter bound than the archive feed",
       PD.DATA_SOURCE_MAX_DATA_AGE_H["live_venue_feed"] < PD.DATA_SOURCE_MAX_DATA_AGE_H["t_plus_1_public_archive"],
       f'{PD.DATA_SOURCE_MAX_DATA_AGE_H["live_venue_feed"]}h vs {PD.DATA_SOURCE_MAX_DATA_AGE_H["t_plus_1_public_archive"]}h')
@@ -224,11 +232,12 @@ _before = open(_prod).read() if os.path.exists(_prod) else None
 r = build(pnl_pct=-8.0)
 _out2 = _tf.mkdtemp(prefix="iso_")
 _restore = override_all(PD, RC, DR, tmp=_out2)
+_fx, _fxrestore = FIX.install(PD, RC, SPL, dirpath=_out2 + "/fixture")
 PD.LOG_ROOT = r
 try:
     PD.main(days_back=1, skip_log=True, verbose=False)
 finally:
-    _restore()
+    _fxrestore(); _restore()
 _after = open(_prod).read() if os.path.exists(_prod) else None
 check("production watchdog state unchanged by a tripping test", _before == _after,
       "a test writing a trip into production state is how an invisible HALT was manufactured")

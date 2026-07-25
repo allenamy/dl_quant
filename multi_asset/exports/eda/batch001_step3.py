@@ -2,12 +2,13 @@
 (book 4-leg vs book+120 vs book+120+107), rank-weighted unit-gross, 4h rebalance; turnover + net-Sharpe
 @cost{1.9,5.0} per year. + capacity probe: is the candidate's IC concentrated in small-DVOL coins?
 Writes /tmp/0c_b1_step3.json."""
+import os
 import json, sys, numpy as np, pandas as pd
 from scipy.stats import rankdata
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/factory")
+sys.path.insert(0, MA)
+sys.path.insert(0, MA + "/factory")
 import dsl, pipeline as P
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 W = np.load(MA + "/exports/wide_dl_full.npz", allow_pickle=True)
 Y4 = W["Y4"].astype(np.float64); ch = [str(c) for c in W["ch_names"]]
 size_dvol = W["CH"][:, :, ch.index("size_dvol")].astype(np.float64)

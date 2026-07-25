@@ -32,7 +32,8 @@ import numpy as np
 import pandas as pd
 
 CDN = "https://data.binance.vision/data/futures/um"
-CACHE = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/live/cache"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+CACHE = MA + "/exports/live/cache"
 UA = {"User-Agent": "Mozilla/5.0 (multi-asset-v2 live shadow; research)"}
 
 KLINE_COLS = ["open_time", "open", "high", "low", "close", "volume", "close_time",

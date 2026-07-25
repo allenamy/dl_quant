@@ -4,8 +4,10 @@ per-year (a) ann net return-on-gross (mean daily x365), (b) ann daily vol (std x
 check, (d) $5-10M gross dollar P&L + 3-5x-leverage return-on-capital. STRUCTURAL caliber (1.9bps only).
 Writes exports/eda/engine_return_table_raw.json.
 """
+import os
 import sys, json, numpy as np, pandas as pd
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA)
 from engine.panel_source import PanelSource
 from scipy.stats import rankdata
 
@@ -85,6 +87,6 @@ out = dict(title="Canonical (rank+cap) return-on-gross table", created="2026-07-
            per_year=table, overall=overall,
            dollar_pnl=usd, return_on_capital_by_leverage=roc,
            WARNING="STRUCTURAL-caliber upper bound; deployment maker-fill stack (markout -1/-3.2/-5.3bps, fill<1, queue, impact, capacity) materially haircuts these; not a deployable return")
-json.dump(out, open("/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/engine_return_table_raw.json", "w"), indent=1, default=str)
+json.dump(out, open(MA + "/exports/eda/engine_return_table_raw.json", "w"), indent=1, default=str)
 print(f"\n(d) roG={roG*100:.1f}%/yr | $5M gross -> ${5*roG:.2f}M/yr, $10M -> ${10*roG:.2f}M/yr | 3x lev RoC {3*roG*100:.0f}%, 5x {5*roG*100:.0f}%", flush=True)
 print("SAVED engine_return_table_raw.json", flush=True)

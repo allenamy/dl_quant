@@ -28,8 +28,8 @@ import torch
 from scipy.stats import rankdata
 
 torch.backends.mkldnn.enabled = False
-REPO = "/mnt/storage/private/work_hsy/quant_research_multi_asset"
-MA = REPO + "/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+REPO = os.path.dirname(MA)
 sys.path.insert(0, REPO)
 sys.path.insert(0, MA)
 import multi_asset.train.train_wide_harness as th  # noqa: E402

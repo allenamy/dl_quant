@@ -34,9 +34,11 @@ Usage:
     python engine/live/pilot_metrics.py --self-hash
 """
 from __future__ import annotations
+import os
 import argparse, hashlib, json, os, sys
 from collections import defaultdict
 
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pilot_log as PL
 
@@ -313,8 +315,7 @@ def compute(root, days=None, verbose=True):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default="/mnt/storage/private/work_hsy/quant_research_multi_asset/"
-                                      "multi_asset/exports/live/pilot_log")
+    ap.add_argument("--root", default=os.path.join(MA, "exports", "live", "pilot_log"))
     ap.add_argument("--days", type=int, default=None)
     ap.add_argument("--out", default=None)
     ap.add_argument("--self-hash", action="store_true")

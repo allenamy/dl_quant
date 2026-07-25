@@ -21,10 +21,11 @@ to ~1e-6, the rebuild pipeline is wrong and no conclusion follows.
 Writes exports/eda/funding_ema_normfix.npz {ts, symbols, FN (normalised), FS (shipped rebuild),
 IH (interval in force, hourly grid)} + funding_dim_fix_control.json.
 """
+import os
 import sys, json, os.path as p
 import numpy as np, pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 EDA = MA + "/exports/eda/"
 WIDE = "/mnt/storage/private/work_hsy/quant_research_multi_asset/data/wide"
 sys.path.insert(0, MA)

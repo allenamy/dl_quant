@@ -13,12 +13,13 @@
 
 Out: exports/eda/hl_transfer.json
 """
+import os
 import json, sys
 import numpy as np
 import pandas as pd
 from scipy.stats import rankdata
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 from engine.panel_source import PanelSource
 from engine.signal_chain import _rank_centered, _l1

@@ -3,10 +3,12 @@ T2b archived rejects (N1b/S1) + T2a degraded retrain (conformer lam_orth=1) vs t
 3-fold champion (wideA_lamorth0_xattn). Confirms the v2 verdict taxonomy reproduces 0C's
 human ARCHIVE judgments. Writes /tmp/0c_repro_v2.json.
 """
+import os
 import json, sys, numpy as np
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/handoff")
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
+sys.path.insert(0, MA + "/handoff")
 import acceptance_battery as ab
-M = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/train"
+M = MA + "/exports/train"
 THR = ab.THRESHOLDS
 
 

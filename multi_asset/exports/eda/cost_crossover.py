@@ -1,9 +1,10 @@
 """0C — cost-crossover: the king-tilt buys Sharpe but costs +50% turnover. At what effective cost
 does the current book overtake it? Flat-cost sweep, funding P&L on, canonical chain."""
+import os
 import sys, json
 import numpy as np, pandas as pd
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 sys.path.insert(0, MA)
 sys.path.insert(0, MA + "/exports/eda")
 import leg_contribution_pass2 as P     # reuses HELD / RET / FRZ / day / anchors / run / sh

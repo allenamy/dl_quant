@@ -5,9 +5,10 @@ ledger. Guards the 3 vectorizations: (a) score_series rank/mask, (b) ts_max temp
 exercise a temporal op), (c) shuffle-eval null. inc-IC~0.012 -> one off-by-one could fabricate it.
 Also computes A-group mutual |rank-corr| (are they one collinear lottery/extreme-value cluster?).
 """
+import os
 import json, numpy as np, pandas as pd
 from scipy.stats import rankdata
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 LEDGER = MA + "/exports/eda/factory_ledger.jsonl"; HOLDOUT = 2026
 A_GROUP = {101: "neg(mul(xsec_z(lturnover_24h), xsec_z(max_ret_24h)))",
            104: "neg(xsec_z(ts_max(abs(ret_1h), 24)))",

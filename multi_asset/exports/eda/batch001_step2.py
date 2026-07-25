@@ -2,12 +2,13 @@
 member&CL scoring, but xsec_z normalizes over all-finite>member -> product-rank artifact); (B) book-level
 improve-rule (suppl-v2 c) for A-group survivors {104,107,120} vs the 4-leg book, on RAW Y4, per-year +
 day-block paired bootstrap; (C) forward-decay causal test on the best survivor. Writes /tmp/0c_b1_step2.json."""
+import os
 import json, sys, numpy as np, pandas as pd
 from scipy.stats import rankdata
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset")
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/factory")
+sys.path.insert(0, MA)
+sys.path.insert(0, MA + "/factory")
 import dsl, pipeline as P
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 W = np.load(MA + "/exports/wide_dl_full.npz", allow_pickle=True)
 Y4 = W["Y4"].astype(np.float64)
 C = P.load_context(horizon=4, subsample=1)

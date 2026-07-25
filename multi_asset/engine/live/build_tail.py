@@ -27,11 +27,11 @@ import sys
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/engine/live")
+sys.path.insert(0, os.path.join(MA, "engine", "live"))
 from datasource import get_source          # noqa: E402
 import funding_derive as fd                # noqa: E402
 
-MA = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset"
+MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 PANEL_FULL = MA + "/exports/wide_panel_full.npz"       # frozen raw-input panel (has OHLCV/FUND_EMA/DVOL30)
 DL_FULL = MA + "/exports/wide_dl_full.npz"
 HOUR_MS = 3_600_000
