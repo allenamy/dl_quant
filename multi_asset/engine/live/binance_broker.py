@@ -276,13 +276,29 @@ class BinanceBroker:
 
     # ── readback & classification ────────────────────────────────────────────────────────────
     def positions(self) -> Dict[str, float]:
-        """Venue-side truth. M5 drift detection compares this against what our own fills imply;
-        without it, M5 only tests our own bookkeeping assumptions (see shadow's `shadow_sim`)."""
+        """Venue-side truth in CONTRACTS (positionAmt). Use for venue-facing orders only —
+        flatten, universe exits, proportional de-risk. NEVER mix into notional bookkeeping."""
         if self.mode == "DRY_RUN":
             return {}
         acct = self._request("GET", "/fapi/v3/account", signed=True)
         return {p["symbol"]: float(p["positionAmt"])
                 for p in acct.get("positions", []) if abs(float(p["positionAmt"])) > 0}
+
+    def positions_notional(self) -> Dict[str, float]:
+        """Venue-side truth in USDT NOTIONAL (signed). Use for bookkeeping/planning — the loop's
+        `state["positions"]` is notional throughout.
+
+        ★ WHY TWO METHODS EXIST: a units bug was found where venue CONTRACTS were written into
+        the notional bookkeeping dict on reconcile — plans then computed deltas as
+        (target_notional − contracts) and a de-risk once submitted a notional difference as a
+        contract quantity. DRY_RUN never exposed it (readback is empty by construction). The fix
+        is not a conversion sprinkled at call sites but two explicitly-named calibers; anything
+        venue-facing speaks contracts, anything book-facing speaks notional."""
+        if self.mode == "DRY_RUN":
+            return {}
+        acct = self._request("GET", "/fapi/v3/account", signed=True)
+        return {p["symbol"]: float(p.get("notional", 0.0))
+                for p in acct.get("positions", []) if abs(float(p.get("notional", 0.0))) > 0}
 
     def classify(self, err: "VenueError") -> str:
         if err.code in ERR_REDUCE_ONLY_ALLOWED:
