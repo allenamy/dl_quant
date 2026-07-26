@@ -274,3 +274,23 @@ cond5b 例: APEUSDT expected 272.57 / observed 0.00 / unexplained_frac 1.0
 **1-6 第一次判读报 FAIL**, 理由 `硬编码 DRY_RUN 路径=True`。**实为我的判据假阳性: 那个旧路径只出现在 `resume_from_trip.sh:30` 的一条注释里 —— 而那条注释正是修复自己写下的、解释旧 bug 的说明。**
 
 > **⇒ 一个记录了 bug 的注释, 让一个朴素的检测器认为 bug 仍在。判据必须先剥注释再匹配。已修 (`raw.splitlines()` 过滤 `#` 开头行), 自检仍全绿。**
+
+
+## ① 结案 (0C, 08:00Z 前): 5b 与 4-7 **共用同一个 `_rec`, 但只共用两个状态中的两个**
+
+**共用的部分对**: 两者都调 `live/reconcile.py::reconcile()`; 5b 算 `_latest = [a for a in anomalies if a["anchor_ts"] == last_reconciled_ats]`, 而 `reconcile()` 返回的 `latest` 是**逐字相同的表达式** ⇒ **异常集合完全一致, ANOMALOUS / CLEAN 两态无分叉。** 那条"一个比较、两个守卫、两个答案"的残留**已消除**。
+
+**★ 但第三态没有共用 —— 5b 有 UNKNOWN, 4-7 没有:**
+
+| 场景: 窗内 readback < 2 份 ⇒ `n_reconciled_anchors = 0`, `last_reconciled_ats = None`, `latest = []` (我构造实测) |
+|---|
+| **§4-5b** `blind = (last_reconciled_ats is None) = True` ⇒ 状态 **UNKNOWN** ✓ 实现了裁定 ② |
+| **§4-7** `drift = bool(_rec["latest"]) = bool([]) = False` ⇒ **CLEAN** ✗ |
+
+**且 cond7 的 `blind` 是 `not ops`** —— 它只在**一天都没有**时喊盲, 不在**比较根本没发生**时喊盲。⇒ 于是"有日子、有订单、但 readback 不足 2 份"这一格, cond7 报 **`blind: False` + `unrecovered_drift: False`** —— **一次根本没发生过的比较, 给出了一个自信的"无漂移"。**
+
+> **⇒ 这正是它上方三行注释警告的那件事 ("NO INPUT IS NOT A PASS"), 只是那条守卫盯错了输入: 它防住了 `ops == []`, 没防住 `n_reconciled_anchors == 0`。⇒ 方向是危险的那一侧 —— 止损条件在看不见时读作"没事"。**
+
+**可达性**: 需要窗内 readback < 2 份 ⇒ **任何一棵新 state 树的第一个锚点**。⇒ **正式窗口起算时就在这一格上**, 而那时正是它最该说实话的时候。
+
+**⇒ 不阻塞今晚的清除** (08:00Z 时 testnet 树已有 ≥2 份 readback, 两个守卫看到的是同一件事)。**⇒ 但它是"修复类别错误时要找它的孪生"这条规则的又一次失手 —— 这次失手的不是符号, 是盲态。**
