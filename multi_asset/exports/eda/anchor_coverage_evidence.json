@@ -39,11 +39,15 @@
     "proves": "refresh_preds 的 ok:true 分支**只能**由 compute(...) 正常返回后到达 (signal/compute_preds.py: payload = compute(...) -> _save_atomic -> return ok:true) ⇒ 该行是 compute 在真实 fapi 数据上跑完的机械证明; 远端产物 state/preds_latest.json 的 mtime 与最新一行逐秒吻合 (did-N/landed-M 成立)",
     "residual": {
      "gap": "★这是**执行**证据, 不含**正确性** —— 全仓无任何套件调用 CP.compute。正确性证据仍停在 shadow 期 (07-22) 且函数已于 a232839 改过。",
-     "owner": "未经裁定 —— 0C 记录, 分派由 team-lead",
+     "owner": "0B / 窗口内 (B 组) —— team-lead 裁定 2026-07-26",
      "closes_when": "run_acceptance.sh 覆盖的某个套件里出现对 compute_preds.compute 的直接调用, 且该套件最近一次运行 ALL PASS",
      "closes_when_probe": {
       "glob": "live/tests_*.py",
       "pattern": "(CP|compute_preds)\\.compute\\s*\\("
+     },
+     "tracked_in": {
+      "file": "docs/OPEN_ITEMS.md",
+      "pattern": "compute_preds[.:]compute"
      }
     }
    }
@@ -56,11 +60,15 @@
     "pins": "★仅三条拒写路径 (warmup BLOCK / caliber BLOCK / producer crash): 断言写入前的 sentinel 原样保留。成功路径未被覆盖 ⇒ 这是部分 re-pin",
     "residual": {
      "gap": "套件只覆盖三条拒写路径; 成功路径由生产日志覆盖 —— 两半合起来才完整, 但**没有任何一处同时验两侧**。",
-     "owner": "未经裁定 —— 0C 记录, 分派由 team-lead",
+     "owner": "0B / 窗口内 (B 组) —— team-lead 裁定 2026-07-26",
      "closes_when": "tests_signal_and_loop 里出现一条对 refresh_preds 成功路径的断言 (ok=True 且 preds_written=True 且文件内容被检查)",
      "closes_when_probe": {
       "glob": "live/tests_*.py",
       "pattern": "preds_written.*True|\\\"ok\\\".*True.*refresh_preds"
+     },
+     "tracked_in": {
+      "file": "docs/OPEN_ITEMS.md",
+      "pattern": "refresh_preds"
      }
     }
    },
@@ -103,11 +111,15 @@
     "proves": "anchor_loop._trade 每锚点执行 want = compute_preds.columns_fingerprint(live_panel.panel_symbols()); phase_A 落盘的 columns_verified 指纹是该调用的产物 ⇒ panel_symbols 返回了可哈希的名单",
     "residual": {
      "gap": "钉住的是『它返回了一个可哈希的名单』, 不是『名单正确』。另: 我未确认该 columns_verified 指纹不可能由缓存路径产出。",
-     "owner": "未经裁定 —— 0C 记录, 分派由 team-lead",
+     "owner": "0B / 窗口内 (B 组) —— team-lead 裁定 2026-07-26",
      "closes_when": "某套件对 panel_symbols() 的返回值本身做断言 (成员数/成员身份/与冻结列集一致), 而非仅把它喂给 columns_fingerprint",
      "closes_when_probe": {
       "glob": "live/tests_*.py",
       "pattern": "panel_symbols\\(\\)\\s*(==|!=|\\)|\\s*\\n?\\s*)\\s*.*(len|set|sorted|assert|check)"
+     },
+     "tracked_in": {
+      "file": "docs/OPEN_ITEMS.md",
+      "pattern": "panel_symbols"
      }
     }
    }
@@ -193,8 +205,12 @@
     "pins": "断言层套件整体 ALL PASS; 注意它只证 8 条断言里的 1 条 selftest (我早先审出的缺口), 故这是部分 re-pin",
     "residual": {
      "gap": "套件整体 ALL PASS, 但断言层的 selftest 只证 8 条断言里的 1 条 (我早先审出的缺口)。",
-     "owner": "未经裁定 —— 0C 记录, 分派由 team-lead",
-     "closes_when": "断言层 selftest 对 8 条断言逐条注入并各自转红一次 (红能力逐条成立), 而非只对 1 条"
+     "owner": "0B / 窗口内 (B 组) —— team-lead 裁定 2026-07-26",
+     "closes_when": "断言层 selftest 对 8 条断言逐条注入并各自转红一次 (红能力逐条成立), 而非只对 1 条",
+     "tracked_in": {
+      "file": "docs/OPEN_ITEMS.md",
+      "pattern": "run_and_report|断言层 selftest"
+     }
     }
    },
    "note": "同上"

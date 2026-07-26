@@ -337,16 +337,32 @@ def last_green_suite_run(repo: str, suite: str) -> Dict[str, Any]:
     logs = sorted(f for f in os.listdir(d) if f.endswith(f"_{suite}.log"))
     if not logs:
         return {"unknown": True, "why": f"no acceptance log for {suite}"}
-    newest = logs[-1]
-    stamp = newest.split("_")[0]
-    ts = _parse_utc(f"{stamp[0:4]}-{stamp[4:6]}-{stamp[6:8]}T{stamp[9:11]}:{stamp[11:13]}:"
-                    f"{stamp[13:15]}Z")
-    try:
-        tail = open(os.path.join(d, newest), errors="replace").read()[-4000:]
-    except Exception as e:
-        return {"unknown": True, "why": f"could not read {newest}: {e}"}
-    return {"unknown": False, "suite": suite, "log": newest, "ts": ts,
-            "utc": _utc(ts) if ts else None, "green": "ALL PASS" in tail}
+    # ★ AN IN-FLIGHT LOG IS NOT A FAILED RUN. Reading the newest file unconditionally caught a
+    # suite mid-write (the tail stopped at an assertion, no terminal marker) and reported
+    # "NOT ALL PASS" — a definite negative for a run that had not finished. These logs carry no
+    # distinct failure marker, so "incomplete" and "failed" are indistinguishable by content;
+    # the only honest move is to scan back to the newest COMPLETED run and report how many
+    # newer, unfinished ones were skipped. Silently preferring an older green would hide a suite
+    # that dies halfway every time, so the count travels with the answer.
+    incomplete = []
+    for name in reversed(logs):
+        try:
+            tail = open(os.path.join(d, name), errors="replace").read()[-4000:]
+        except Exception as e:
+            return {"unknown": True, "why": f"could not read {name}: {e}"}
+        if "ALL PASS" not in tail:
+            incomplete.append(name)
+            continue
+        stamp = name.split("_")[0]
+        ts = _parse_utc(f"{stamp[0:4]}-{stamp[4:6]}-{stamp[6:8]}T{stamp[9:11]}:{stamp[11:13]}:"
+                        f"{stamp[13:15]}Z")
+        return {"unknown": False, "suite": suite, "log": name, "ts": ts,
+                "utc": _utc(ts) if ts else None, "green": True,
+                "n_newer_without_terminal_marker": len(incomplete),
+                "newer_incomplete": incomplete[:3]}
+    return {"unknown": True, "why": f"{suite}: no completed run found among {len(logs)} log(s) — "
+                                    f"every one lacks a terminal marker (in flight, or dying "
+                                    f"before the end)"}
 
 
 def latest_log_hit(repo: str, logpath: str, match: str) -> Dict[str, Any]:
@@ -404,8 +420,17 @@ def _probe(repo: str, probe: Dict[str, Any]) -> Dict[str, Any]:
     pat, g = probe.get("pattern"), probe.get("glob")
     if not pat or not g:
         return {"unknown": True, "why": "probe needs both `glob` and `pattern`"}
+    files = sorted(_glob.glob(os.path.join(os.path.expanduser(repo), g)))
+    if not files:
+        # ★ ZERO FILES IS NOT ZERO MATCHES. glob returns [] for "the path does not exist" and the
+        # scan returns [] for "it exists and nothing matched" — folding them gave a definite
+        # `satisfied: False` for a file that may have been renamed or never existed. Conservative
+        # in DIRECTION (the item stays open), wrong in STATE, and this tool exists to refuse
+        # exactly that trade. Caught by probing a deliberately absent path.
+        return {"unknown": True, "why": f"glob {g!r} matched no file under the repo — "
+                                        f"cannot distinguish 'absent' from 'present and unmatched'"}
     hits = []
-    for f in sorted(_glob.glob(os.path.join(os.path.expanduser(repo), g))):
+    for f in files:
         try:
             for i, ln in enumerate(open(f, errors="replace"), 1):
                 if _re.search(pat, ln):
@@ -471,15 +496,18 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
                 elif run.get("unknown"):
                     out, why = "STALE", why + f" | pinning suite unusable: {run.get('why')}"
                 elif not run.get("green"):
-                    out, why = "STALE", why + f" | {s} last run {run['utc']} was NOT ALL PASS"
+                    out, why = "STALE", why + f" | {s} last completed run {run['utc']} not green"
                 elif run["ts"] < touch["ts"]:
                     out, why = "STALE", (why + f" | {s} last green {run['utc']} PREDATES the "
                                                f"change — the suite is behind the code")
                 else:
                     out = "RE-PINNED"
                     channels.append("suite")
+                    _inc = run.get("n_newer_without_terminal_marker") or 0
                     why = (f"changed at {touch['utc']} ({touch['sha']}), but {s} went green at "
-                           f"{run['utc']} after it — pins: {what}")
+                           f"{run['utc']} after it — pins: {what}"
+                           + (f" | ⚠ {_inc} 次更新的运行没有终止标记 (在途或中途死亡), "
+                              f"本判定用的是它们之前那次完成的运行" if _inc else ""))
             # ★ THIRD CHANNEL, AND IT IS ADDITIVE, NOT A FALLBACK. `refresh_preds` is the case
             # that forced this: the suite pins its three REFUSAL paths and production pins its
             # SUCCESS path — complementary halves of one function. Stopping at the first channel
@@ -542,6 +570,17 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
             pr = res.get("closes_when_probe")
             if pr:
                 item["probe"] = _probe(repo or cur.get("repo", ""), pr)
+            # ★ TWO SUPERVISORS, AND THEIR DISAGREEMENT IS THE SIGNAL (team-lead, 2026-07-26).
+            # The same item is watched from both ends: the owning repo's OPEN_ITEMS.md reports how
+            # long it has been open; this probe reports when it may be closed. Neither can see the
+            # other's failure — so the ledger also checks that the item ACTUALLY LANDED over
+            # there. An item that lives only here means the routing was lost in transit, which is
+            # invisible from both supervisors individually and is exactly what a hand-off drops.
+            tr = res.get("tracked_in")
+            if tr:
+                item["tracked"] = _probe(repo or cur.get("repo", ""),
+                                         {"glob": tr.get("file", ""), "pattern": tr.get("pattern")})
+                item["tracked_in"] = tr.get("file")
             open_items.append(item)
 
     covered = {r["function"] for r in rows} | {o["function"] for o in orphan}
@@ -559,6 +598,9 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
             "n_residual_without_closure": n_unclosable,
             "n_residual_now_satisfied": sum(1 for i in open_items
                                             if (i.get("probe") or {}).get("satisfied")),
+            "n_residual_not_tracked_elsewhere": sum(
+                1 for i in open_items
+                if "satisfied" in (i.get("tracked") or {}) and not i["tracked"]["satisfied"]),
             "rule": "evidence_utc < func_last_commit.ts => UNKNOWN, UNLESS a covering suite went "
                     "green after the change (RE-PINNED). The suite never advances evidence_utc: a "
                     "chain is as stale as its stalest link, and the frozen middle link is audited "
@@ -660,6 +702,9 @@ if __name__ == "__main__":
                 pr = i.get("probe") or {}
                 mark = ("★闭合条件现已满足, 请复核后移除" if pr.get("satisfied") else
                         ("探针未匹配 — 仍开着" if "satisfied" in pr else ""))
+                tk = i.get("tracked") or {}
+                if "satisfied" in tk and not tk["satisfied"]:
+                    mark += "  ⚠**尚未出现在 " + str(i.get("tracked_in")) + " —— 派工可能在途中丢失**"
                 print(f"   [{i['owner']}] {i['function']} ({i['verdict_kept']} 保留) {mark}")
                 print(f"       缺口: {i['gap'][:150]}")
                 print(f"       闭合: {i['closes_when'] or '★未写 —— 不可跟踪, 只能被重读'}")
