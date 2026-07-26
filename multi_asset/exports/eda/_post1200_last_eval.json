@@ -1,0 +1,210 @@
+{
+ "evaluated_utc": "2026-07-26T12:17:31Z",
+ "n_days": 2,
+ "days": [
+  "20260725",
+  "20260726"
+ ],
+ "triggers": [
+  "\u00a74-5b liquidation/position anomaly on 77 name(s) at the latest reconciled anchor (178 in this window's history)",
+  "\u00a74-7 un-recovered position drift"
+ ],
+ "metric_errors": [],
+ "conditions_unevaluated": [],
+ "conditions_blind": [],
+ "conditions_partial": [
+  "cond1_c_persist",
+  "cond2_day_loss",
+  "cond4_drawdown"
+ ],
+ "tripped": true,
+ "conditions": {
+  "cond1_c_persist": {
+   "limit_bps": 9.0,
+   "persist_days": 5,
+   "limit_caliber": "per-DAY aggregate: (sum fee + sum |slippage|) / sum filled_notional, in bps, over every filled order of the day; NOT a per-fill figure",
+   "per_day_c": [
+    null,
+    11.6681
+   ],
+   "triggered": false,
+   "n_priced_days": 1,
+   "n_days": 2,
+   "n_unpriced_days_in_window": 1,
+   "streak_caliber": "consecutive PRICED days (days with no filled notional carry no cost evidence and are neither breaks nor extensions)",
+   "blind": false,
+   "partial": true
+  },
+  "cond2_day_loss": {
+   "limit_pct_of_target_gross": -6.7,
+   "worst_day_pct": -0.09142047380000004,
+   "triggered": false,
+   "n_priced_days": 1,
+   "n_days": 2,
+   "blind": false,
+   "partial": true
+  },
+  "cond3_crash_markout": {
+   "limit_bps": -25.0,
+   "worst_stress_markout_bps": null,
+   "triggered": false,
+   "n_fill_rows": 1382,
+   "n_stress_anchors": 0,
+   "note": "no stress anchors among 1382 fill(s) \u2014 guard had input, found no stress"
+  },
+  "cond4_drawdown": {
+   "limit_pct": -6.0,
+   "max_drawdown_pct": -0.0914,
+   "triggered": false,
+   "blind": false,
+   "n_priced_days": 1,
+   "partial": true,
+   "unpriced_days": [
+    {
+     "day": "20260725",
+     "missing": [
+      "realised_pnl"
+     ]
+    }
+   ]
+  },
+  "cond5_venue_event": {
+   "5a_outage": {
+    "events": [],
+    "triggered": false
+   },
+   "5b_liquidation_anomaly": {
+    "n": 77,
+    "examples": [
+     {
+      "anchor_ts": 1785067248.198903,
+      "symbol": "1000BONKUSDT",
+      "expected": -1032.37,
+      "observed": -515.98,
+      "unexplained_frac": 0.5002
+     },
+     {
+      "anchor_ts": 1785067248.198903,
+      "symbol": "1000FLOKIUSDT",
+      "expected": -602.8,
+      "observed": -302.65,
+      "unexplained_frac": 0.4979
+     },
+     {
+      "anchor_ts": 1785067248.198903,
+      "symbol": "1000LUNCUSDT",
+      "expected": 462.13,
+      "observed": 231.45,
+      "unexplained_frac": 0.4992
+     }
+    ],
+    "triggered": true,
+    "state": "ANOMALOUS",
+    "last_reconciled_anchor_ts": 1785067248.198903,
+    "n_historical_anomalies": 178,
+    "blind": false,
+    "caliber": "STATE GATE: the MOST RECENT reconciled anchor only (M=1). History is reported (n_historical_anomalies) and does not trigger.",
+    "source": "position_readback (same path as drift detection)"
+   },
+   "5c_account_restriction": {
+    "error_code_fast_path_hits": [],
+    "behavioural_anchor_hit": false,
+    "account_side_anomaly_events": [],
+    "n_submitted_orders": 238,
+    "denominator_note": "reject fraction is computed over orders we ACTUALLY SENT (submit_ts non-null). 0 submitted => UNDEFINED, not 0%.",
+    "behavioural_attempt_hit": false,
+    "consecutive_failed_attempts": 0,
+    "thresholds": {
+     "N_attempts": 3,
+     "M_anchors": 2,
+     "reject_frac": 0.5
+    },
+    "triggered": false,
+    "note": "behaviour is the guard; the code table is a fast path only and CANNOT be complete (no account => nothing observed). Restriction and outage are NOT distinguishable from outside, so both route to the same conservative path."
+   },
+   "5d_withdrawal_halt": {
+    "in_realtime_layer": false,
+    "note": "deliberately excluded \u2014 an emergency flatten does not help when the cash cannot leave; handled at the phase boundary where a human is present"
+   },
+   "triggered": true
+  },
+  "cond6_weight_fidelity": {
+   "limit": 0.85,
+   "persist_days": 3,
+   "per_day": [
+    0.0909,
+    0.3204
+   ],
+   "n_comparisons_per_day": [
+    110,
+    437
+   ],
+   "n_days_unknown": 0,
+   "triggered": false
+  },
+  "cond7_ops": {
+   "fail_rate_limit": 0.05,
+   "per_day_fail_rate": [
+    0.0,
+    0.0
+   ],
+   "unrecovered_drift": true,
+   "blind": false,
+   "drift_state": "DRIFT",
+   "n_days": 2,
+   "triggered": true
+  }
+ },
+ "degradation": {
+  "order": [
+   "halt_opening",
+   "flatten",
+   "alert"
+  ],
+  "stage3_open_halted": true,
+  "stage1_flatten_attempts": 3,
+  "stage1_ok": false,
+  "stage2_alerted": true,
+  "stage2_local_write_ok": true,
+  "stage2_delivered_offbox": "NOT_ATTEMPTED_BY_THIS_RUNG (local write only; the anchor sends off-box and records trip_receipt.json)",
+  "errors": [
+   "flatten attempt 1: BrokerUnavailable: order submission failed for 103/103",
+   "flatten attempt 2: BrokerUnavailable: order submission failed for 2/103",
+   "flatten attempt 3: BrokerUnavailable: order submission failed for 2/2"
+  ],
+  "stage1_orders": [
+   {
+    "symbol": "MEMEUSDT",
+    "side": "buy",
+    "quantity": 271229.0,
+    "reduce_only": true,
+    "tif": "IOC",
+    "_exec": {
+     "filled_notional": null,
+     "avg_fill_px": null,
+     "fill_ts": null,
+     "submitted": false,
+     "error": "VenueError: [-4005] Quantity greater than max quantity."
+    }
+   },
+   {
+    "symbol": "1000BONKUSDT",
+    "side": "buy",
+    "quantity": 165709.0,
+    "reduce_only": true,
+    "tif": "IOC",
+    "_exec": {
+     "filled_notional": null,
+     "avg_fill_px": null,
+     "fill_ts": null,
+     "submitted": false,
+     "error": "VenueError: [-4005] Quantity greater than max quantity."
+    }
+   }
+  ],
+  "stage1_reread_before_retry": 2,
+  "stage2_severity": "CRITICAL",
+  "stage1_rows_written": 2
+ },
+ "_mode": "TESTNET"
+}
