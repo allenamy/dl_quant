@@ -60,9 +60,15 @@
 | 1-2 | **符号修复的处置已明确** | `live/watchdog.py:471-474` | **二选一, 必须写明走哪个**: (i) 已修复 ⇒ commit id 记入; (ii) **未修复 ⇒ 必须预注册"恢复后 5b 会在每个成交卖单名字上再次触发, 且那不是 2× 未修好的证据"** —— 否则下一次触发会被误读 |
 | 1-3 | 该版本对真实数据的重放证据 | maker-leg 重放 85.9% + `oracle_5b_sign.py` 对账 | 重放报告存在且署明所用 commit; oracle `n=47` 对账一致 |
 | 1-4 | **重放证据由修复后的版本产出** | 重放报告的时间戳 vs `12fe914`/`e8039d9` 的 commit 时刻 | **报告时刻晚于两个 commit** —— 否则是"用旧版本的证据为新版本背书"(第十形态) |
-| 1-5 | 04:00Z halt 四项证据齐全 | `state/anchor_runs.log` 04:00Z 那个锚点 | `action` 字段存在 · **开仓单数 = 0** · 出现 `order_blocked_by_halt` · reduce-only 路径可达(有 reduce-only 单或明确记录无仓可减) |
+| 1-5 | 04:00Z halt 四项证据齐全 | **主要读 `state/testnet/pilot_log/<day>/orders.jsonl`, 不是 run log** (见下方 ★) | `action` 字段存在(phase_A) · **开仓单数 = 0** (全部开仓行 `terminal_reason == "blocked_by_halt"` 且 `submit_ts is None`) · phase_A 出现 `watchdog_halt` 块 · reduce-only 路径可达(有 reduce-only 单, 或明确记录无仓可减) |
+| **1-5b** | **halt 重新施加**没有走失败分支 | `state/anchor_runs.log` 04:00Z 锚点 | **不出现** `could not re-apply the persisted watchdog halt` 这条 CRITICAL。**若出现 ⇒ 系统处于"已 trip 但未 halt"** —— 比 trip 本身更糟, 且它会让 1-5 的四项证据同时消失, 两者不可混为一谈 |
 | 1-6 | §0-1 已处置 | `ops/resume_from_trip.sh` | 脚本指向 testnet 树 (或改用 `state_root` 绑定), **且改动本身有 commit** |
 | 1-7 | §0-2 已裁定 | team-lead 明确选择 A/B/C | 裁定落在文字里, 含"它把恢复证明成了什么"这一句 |
+
+> **★ 1-5 的读数口径修正 (0C 03:3xZ 实测, 写在使用之前):** `watchdog_halt` / `order_blocked_by_halt` / `halt_source` 三个词在 `anchor_runs.log` 的 **183 个锚点里出现 0 次**。原因不是日志缺陷 —— 而是**trip 之后一个 TESTNET 锚点都还没跑过** (两个 testnet 锚点在 21:51Z 与 00:00Z, trip 在 00:17Z; 其后全是手动 DRY_RUN 调用, 而 DRY_RUN 树未触发)。
+> **⇒ 于是 04:00Z 将是 `anchor_loop.py:202-245`「从文件重新施加持久化 halt」这条路径的**史上第一次执行**。** launchd plist 里 `LIVE_MODE=TESTNET`, 所以计划内锚点会绑 testnet 树、读到已 trip 的 state。
+> **⇒ 第一次执行的安全路径, 正是今晚所有缺陷的产地。所以 1-5b 是独立一条, 不并进 1-5。**
+> **⇒ 并且这一条反过来加强 §0-1**: 计划内锚点在**各种意义上**都以 testnet 树为准, 而 `resume_from_trip.sh` 硬编码的是 DRY_RUN 树。
 
 ## §2 清除**过程**必须成立
 
@@ -93,7 +99,8 @@
 
 ## 未经单独检验的步骤清单 (本单)
 
+0. **(已消解) 原第 2 条"我没有预先确认 04:00Z 锚点会写出那四个 halt 字段"** —— 已于 03:3xZ 查清: 三个字段在 run log 里 0 次, 因为 trip 后无 TESTNET 锚点; 判据已改为主要读 orders 表, 并新增 1-5b。**结论: 1-5 可判, 但读的不是原先写的那个产物。**
 1. **§1-3 的"maker-leg 重放 85.9%"我没有独立复算** —— 该数字来自 team-lead 转述, 我只把"它必须晚于两个 commit"写成了判据;
-2. **§1-5 的四项 halt 证据我没有预先确认 04:00Z 锚点会写出这四个字段** —— 若某项本就不落盘, 该条会因"字段不存在"而不可判, 那时应记 UNKNOWN 而非通过;
+2. **我未实测 `LIVE_MODE=TESTNET` 一定会被 04:00Z 那次 launchd 调用继承** —— 我只读到 plist 里有该键; 若该次调用因故走了手动路径(DRY_RUN), 1-5/1-5b 全部不可判, 应记 UNKNOWN 而非通过;
 3. **§0-2 的三个选项我没有逐一验证可行性** —— B (resume epoch) 需要改 `watchdog.evaluate` 的取数窗, 我没有评估它对其余六条判据的连带影响;
 4. **§3-3 的"两个开关"是我读代码推断的** (`state.json` 与 `open_orders_halted` 可能由不同路径设置), **未实测**。
