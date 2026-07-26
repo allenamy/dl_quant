@@ -1,0 +1,55 @@
+{
+ "_doc": "机器可读的覆盖表判定。anchor_timeline.py 读它, 把每格的 evidence_utc 与该函数最后改动的 commit 时刻比对; 后者晚 ⇒ 自动降 UNKNOWN (第十形态)。这份文件是 anchor_coverage_table.md 的判定部分的唯一真相源 —— 表里的散文可以更详细, 但不得与此不一致。",
+ "_caliber": {
+  "evidence_utc 的含义": "E 格 = 我能指到的那次实测输出的时刻; C 格 = 我检索日志的截止时刻 (C 的主张是'截至 T 从未发生', 所以它的证据时刻就是 T)。",
+  "为什么用最保守的时刻": "同一格若有多条证据 (如生产执行 + 我事后复算), 记较早的那条 —— 晚记会让陈旧性检测放水。",
+  "检索基底": "state/anchor_runs.log 3872 行, 2026-07-25T15:06:56Z -> 2026-07-26T02:43:11Z, 183 锚点 = 181 DRY_RUN + 2 TESTNET",
+  "shadow 窗": "2026-07-15 -> 2026-07-22, 132 锚点 (evidence_utc 记为窗口末 2026-07-22T00:00:00Z)"
+ },
+ "verdicts": {
+  "compute_preds:compute":                  {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "note": "shadow 8 天真信号真面板; 我独立复算三条 IC 序列一致"},
+  "compute_preds:refresh_preds":            {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "note": "每日 cron 日志 [preds] king: 529 anchors inferred"},
+  "legs:compose_book":                      {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "note": "132 锚点 positions_*.json; 目标权重 sum|w|=1.0000"},
+  "live_panel:build_live_panel":            {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "note": "overlap_validation.json 697 公共小时 median_rel 2e-08"},
+  "live_panel:panel_symbols":               {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "note": "我实测 140 symbol, 据此查出 12 个已失效名字"},
+  "inference:load":                         {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "note": "tests_inference_parity 对 server 参考逐值比对"},
+  "funding_panel:build_funding_grid":       {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "note": "8 天 funding 通道; 但台账只写 00/08/16Z ⇒ 部分覆盖"},
+
+  "fapi_source:_get":                       {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "testnet 锚点取回 110 个 mid"},
+  "fapi_source:book_mids":                  {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "同上"},
+  "anchor_loop:_universe_gate":             {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "★第十形态的首个真实用例: 2 个 TESTNET 锚点有完整输出, 但第 9 步 (maxNotionalValue) 随 bcfa1b5 落地于 00:56:39Z, 晚 55 分钟 ⇒ 这格证明的是一个已不存在的函数。9 步里另有 6 步无证据。"},
+  "anchor_loop:_trade":                     {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "testnet 锚点实跑"},
+  "anchor_loop:complete_anchor":            {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "phase_B rows_emitted 165 / persisted 165"},
+  "pilot_log:order":                        {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "testnet 165 行 rows_persisted == rows_emitted"},
+  "pilot_log:_w":                           {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "同上"},
+
+  "watchdog:evaluate":                      {"verdict": "E", "evidence_utc": "2026-07-26T00:17:11Z", "note": "真实触发, 判定为真阳性"},
+  "watchdog:run":                           {"verdict": "E", "evidence_utc": "2026-07-26T00:17:11Z", "note": "梯子实跑 halt_opening -> flatten(重试2) -> alert"},
+  "pilot_metrics:m1_effective_cost":        {"verdict": "E", "evidence_utc": "2026-07-26T00:17:11Z", "note": "per_day_c=[null,20.1633], 38 行真实成交。★但 38/38 行 fee_paid=None 且 16 笔卖单被 f<=0 丢弃 ⇒ 门从未在*完整*数据上求值过"},
+  "assert_anchor_artifacts:check_artifacts":{"verdict": "E", "evidence_utc": "2026-07-26T00:17:33Z", "note": "trip 锚点发出 REGRESSION 告警; 缺口: 断言6三处 fail-open"},
+  "assert_anchor_artifacts:run_and_report": {"verdict": "E", "evidence_utc": "2026-07-26T00:17:33Z", "note": "同上"},
+
+  "watchdog_inputs:collect":                {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "每锚点执行"},
+  "watchdog_inputs:derive_ops_stats":       {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "per_day_fail_rate 实测有值; 缺口: 未跟上 4-5c 的 submit_ts 分母修正"},
+  "watchdog_inputs:derive_venue_events":    {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "每锚点执行"},
+  "pilot_log:read_day":                     {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "被 watchdog/断言层每锚点调用"},
+  "check_factor_health:run":                {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "137 次 factor_health 日志行; 缺口: MAX_STALE_H=8 vs 每日 cron"},
+  "state_root:bind":                        {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "我一度读错树, 正是它把两棵树分开"},
+  "state_root:paths_for":                   {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "tests_state_root 9 断言"},
+  "state_root:assert_single_delta":         {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "同上"},
+  "run_anchor:main":                        {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "每锚点执行; 14 步在异常分支内, 多为 C"},
+  "anchor_loop:run_anchor":                 {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "同上"},
+  "anchor_loop:stage_alarm":                {"verdict": "E", "evidence_utc": "2026-07-25T15:06:56Z", "note": "2/183 锚点 action=FLATTEN, 两分支各一次。★证据是'CRITICAL + 时间戳吻合 77us', 不是正文 —— 告警正文全仓不落盘"},
+  "check_funding_span:run":                 {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "19/19 执行"},
+  "check_funding_span:compare":             {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "19/19 STALE stale=15 —— 复现了我独立实测的 15 个过期名字; 本表证据最强的一格。残余 C: 一致分支无证据"},
+
+  "pilot_metrics:m2_markout":               {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "18/18 fill_rows_built=0; 全仓 0 个 fills 文件; cond3.n_fill_rows=0"},
+  "pilot_log:fill":                         {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "每锚点执行但 0 次迭代; 接线 6594b77@02:15Z 晚于唯一 TESTNET 锚点@00:00Z"},
+  "dryrun_ledger:reconcile":                {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "183 行全部 0/0 day 0 ⇒ 期望集恒空 ⇒ OK/STARTED_NOT_FINISHED/MISSED 三态全无证据"},
+  "binance_funding:write_funding_rows":     {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "16/16 rows=0; 全在 DRY_RUN ⇒ 从未对有持仓的账户跑过"},
+  "binance_funding:positions_at":           {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "3 个 _ts() 步无证据"},
+
+  "book_config:load":                       {"verdict": "N", "evidence_utc": "2026-07-26T02:43:11Z", "note": "我未检视 (不是确认无人碰过)"},
+  "check_nosleep:collect":                  {"verdict": "N", "evidence_utc": "2026-07-26T02:43:11Z", "note": "我未检视 (不是确认无人碰过)"}
+ }
+}

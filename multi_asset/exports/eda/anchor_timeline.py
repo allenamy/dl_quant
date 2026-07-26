@@ -26,9 +26,36 @@ the anchor's own control flow.
      into the same appearance — and a coverage table's most dangerous reading is
      "what isn't listed doesn't exist".
 
+  4. ★ STALENESS IS A PROPERTY THAT RINGS ON ITS OWN (team-lead, 2026-07-26; tenth failure form).
+     See the block below.
+
+★ THE TENTH FAILURE FORM, AND WHY IT NEEDED A MECHANISM RATHER THAN A HABIT
+The coverage table recorded: "`anchor_loop:_universe_gate` executed on real venue data at
+2026-07-26T00:01:22Z" — observation correct, condition true, timing fine, attribution fine. Then a
+ninth step (the `maxNotionalValue == 0` withholding) landed INSIDE that function at 00:56:39Z
+(`bcfa1b5`), 55 minutes after its last and only execution. **The verdict now certified a function
+that no longer existed**, and nothing in the table could notice: the step IDs are stable by design,
+the count still read "9 steps", and only a diff would have shown it.
+
+  Mirror of failure form 3: there the VERIFICATION ENVIRONMENT changed between observation and
+  check; here the VERIFIED OBJECT did. The positive tell, when there is one, is an ABSENCE: the
+  00:01Z log line has no `n_zero_cap_withheld` key, while the current return dict always emits one.
+
+So: every function carries `func_last_commit` (per FUNCTION, via `git log -L <lines>:<file>` — a
+file-level timestamp would invalidate every verdict on every commit, and a check that cries wolf
+daily is a check nobody reads). A verdict whose `evidence_utc` predates that commit is
+AUTO-DOWNGRADED to UNKNOWN. Nobody has to remember to ask.
+
+Two directions this refuses to fold into the benign value, per this project's standing rule:
+  - `git log -L` fails / file untracked / not a repo  ⇒ UNKNOWN, never "fresh".
+  - the file has UNCOMMITTED changes                  ⇒ UNKNOWN for every function in it. Git
+    history cannot see the working tree, so a clean-looking `func_last_commit` would otherwise
+    certify code that is not the code on disk.
+
 Usage:
     python anchor_timeline.py --repo ~/dl_quant_live            # generate + diff vs stored
     python anchor_timeline.py --repo ~/dl_quant_live --json out.json
+    python anchor_timeline.py --evidence anchor_coverage_evidence.json   # staleness audit
 """
 from __future__ import annotations
 
@@ -36,6 +63,7 @@ import argparse
 import ast
 import json
 import os
+import subprocess
 from typing import Any, Dict, List, Optional, Tuple
 
 # entry points of one anchor, in the order the process runs them
@@ -58,12 +86,28 @@ INJECTED = {
 }
 
 
+def _utc(ts: int) -> str:
+    import datetime as _dt
+    return _dt.datetime.fromtimestamp(ts, _dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_utc(s: str) -> Optional[int]:
+    import datetime as _dt
+    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%MZ", "%Y-%m-%d"):
+        try:
+            return int(_dt.datetime.strptime(s, fmt).replace(tzinfo=_dt.timezone.utc).timestamp())
+        except ValueError:
+            continue
+    return None
+
+
 class Deriver:
     def __init__(self, repo: str):
         self.repo = os.path.abspath(os.path.expanduser(repo))
         self.dirs = [os.path.join(self.repo, d) for d in ("scheduler", "live", "signal", "ops")]
         self.mods: Dict[str, ast.Module] = {}
         self.src: Dict[str, List[str]] = {}
+        self.relpath: Dict[str, str] = {}
         for d in self.dirs:
             if not os.path.isdir(d):
                 continue
@@ -74,12 +118,63 @@ class Deriver:
                         text = open(p, encoding="utf-8").read()
                         self.mods[f[:-3]] = ast.parse(text, p)
                         self.src[f[:-3]] = text.splitlines()
+                        self.relpath[f[:-3]] = os.path.relpath(p, self.repo)
                     except SyntaxError:
                         pass
         self.steps: List[Dict[str, Any]] = []
         self.gaveup: List[Dict[str, Any]] = []
         self._seen: set = set()
         self._reached: Dict[Tuple[str, str], str] = {}
+        self._touch: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        self._dirty = self._dirty_files()
+
+    # ── git: when was THIS FUNCTION last changed ─────────────────────────────────────────────
+    def _git(self, *args) -> Optional[str]:
+        try:
+            r = subprocess.run(("git", "-C", self.repo) + args, capture_output=True, text=True,
+                               timeout=30)
+            return r.stdout if r.returncode == 0 else None
+        except Exception:
+            return None
+
+    def _dirty_files(self) -> Optional[set]:
+        """Uncommitted paths. None = we could not find out, which is NOT the same as 'clean'."""
+        out = self._git("status", "--porcelain")
+        if out is None:
+            return None
+        return {ln[3:].strip() for ln in out.splitlines() if ln.strip()}
+
+    def func_last_commit(self, mod: str, fn: str) -> Dict[str, Any]:
+        """Newest commit touching this function's OWN line range. Any failure -> unknown=True."""
+        key = (mod, fn)
+        if key in self._touch:
+            return self._touch[key]
+        rel, node = self.relpath.get(mod), self._func(mod, fn)
+        if rel is None or node is None:
+            res = {"unknown": True, "why": "module or function not resolved"}
+            self._touch[key] = res
+            return res
+        # decorators belong to the function: a changed decorator changes what the function does
+        lo = min([node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])])
+        hi = getattr(node, "end_lineno", None) or lo
+        if self._dirty is None:
+            res = {"unknown": True, "why": "git status unavailable — cannot rule out uncommitted "
+                                           "edits, and history alone would look clean"}
+        elif rel in self._dirty:
+            res = {"unknown": True, "why": f"{rel} has UNCOMMITTED changes — git history cannot "
+                                           f"see the working tree"}
+        else:
+            out = self._git("log", "-L", f"{lo},{hi}:{rel}", "--format=%H%x09%ct%x09%s", "-s",
+                            "-n", "1")
+            if not out or "\t" not in out:
+                res = {"unknown": True, "why": "git log -L returned nothing (untracked / no "
+                                               "history / range not followable)"}
+            else:
+                sha, ts, subj = out.splitlines()[0].split("\t", 2)
+                res = {"unknown": False, "sha": sha[:7], "ts": int(ts), "subject": subj[:80],
+                       "utc": _utc(int(ts)), "lines": f"{lo}-{hi}"}
+        self._touch[key] = res
+        return res
 
     # ── helpers ─────────────────────────────────────────────────────────────────────────────
     def _func(self, mod: str, fn: str) -> Optional[ast.AST]:
@@ -211,12 +306,69 @@ class Deriver:
             if k not in seen:
                 seen.add(k)
                 gu.append(g)
+        # per-FUNCTION last-touch, attached to every one of its steps
+        funcs: Dict[str, Dict[str, Any]] = {}
+        for s in self.steps:
+            f = f"{s['module']}:{s['function']}"
+            if f not in funcs:
+                funcs[f] = self.func_last_commit(s["module"], s["function"])
+            s["func_last_commit"] = funcs[f]
         return {"repo": self.repo, "entries": [f"{m}:{f}" for m, f in ENTRIES],
                 "n_steps": len(self.steps), "steps": self.steps,
                 "n_exception_steps": sum(1 for s in self.steps if s["exception_branch"]),
+                "functions": funcs, "n_functions": len(funcs),
+                "n_functions_unknown_age": sum(1 for v in funcs.values() if v.get("unknown")),
+                "working_tree_dirty": (None if self._dirty is None else sorted(self._dirty)),
                 "unresolved_call_sites": gu, "n_unresolved": len(gu),
                 "n_unresolved_local": sum(1 for g in gu if g.get("kind") == "LOCAL_UNFOLLOWED"),
                 "n_unresolved_external": sum(1 for g in gu if g.get("kind") == "external_or_builtin")}
+
+
+# ── staleness audit: the tenth failure form, mechanised ─────────────────────────────────────────
+def staleness(cur: Dict[str, Any], evidence: Dict[str, Any]) -> Dict[str, Any]:
+    """Compare each recorded verdict's `evidence_utc` against its function's last-touch commit.
+
+    ★ The default when anything is missing is UNKNOWN, never OK. Three separate outcomes, because
+    they call for three different actions and collapsing them would hide the third:
+      FRESH        evidence postdates the last change to that function.
+      STALE        the function changed AFTER the evidence was taken -> verdict auto-downgraded.
+      UNDETERMINED the function's age could not be established (uncommitted / untracked / no git).
+    Plus two bookkeeping outcomes that are about the EVIDENCE FILE rather than the code:
+      NO_EVIDENCE  a function in the timeline that no verdict covers  (= an unfilled cell).
+      ORPHAN       a verdict for a function no longer in the timeline (= a row about dead code).
+    """
+    funcs = cur.get("functions", {})
+    rows, orphan = [], []
+    for fid, rec in sorted(evidence.get("verdicts", {}).items()):
+        ev = _parse_utc(str(rec.get("evidence_utc", "")))
+        touch = funcs.get(fid)
+        if touch is None:
+            orphan.append({"function": fid, "verdict": rec.get("verdict"),
+                           "why": "no longer appears in the derived timeline — deleted, renamed, "
+                                  "or moved behind an unresolved call site"})
+            continue
+        if ev is None:
+            out, why = "UNDETERMINED", "evidence_utc missing or unparseable"
+        elif touch.get("unknown"):
+            out, why = "UNDETERMINED", touch.get("why", "function age unknown")
+        elif touch["ts"] > ev:
+            out, why = "STALE", (f"function changed at {touch['utc']} ({touch['sha']}) — "
+                                 f"{(touch['ts'] - ev) / 60:.0f} min AFTER the evidence")
+        else:
+            out, why = "FRESH", f"unchanged since {touch['utc']} ({touch['sha']})"
+        rows.append({"function": fid, "recorded_verdict": rec.get("verdict"),
+                     "evidence_utc": rec.get("evidence_utc"), "outcome": out, "why": why,
+                     # ★ the downgrade is APPLIED here, not left as advice
+                     "effective_verdict": (rec.get("verdict") if out == "FRESH" else "UNKNOWN"),
+                     "note": rec.get("note", "")})
+    covered = {r["function"] for r in rows} | {o["function"] for o in orphan}
+    no_ev = sorted(set(funcs) - covered)
+    return {"rows": rows, "orphan_verdicts": orphan, "functions_without_verdict": no_ev,
+            "n_stale": sum(1 for r in rows if r["outcome"] == "STALE"),
+            "n_undetermined": sum(1 for r in rows if r["outcome"] == "UNDETERMINED"),
+            "n_fresh": sum(1 for r in rows if r["outcome"] == "FRESH"),
+            "n_orphan": len(orphan), "n_without_verdict": len(no_ev),
+            "rule": "evidence_utc < func_last_commit.ts  =>  verdict auto-downgraded to UNKNOWN"}
 
 
 def diff(prev: Dict[str, Any], cur: Dict[str, Any]) -> Dict[str, Any]:
@@ -235,6 +387,8 @@ if __name__ == "__main__":
     ap.add_argument("--repo", default="~/dl_quant_live")
     ap.add_argument("--json", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                    "anchor_timeline.json"))
+    ap.add_argument("--evidence", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                       "anchor_coverage_evidence.json"))
     a = ap.parse_args()
     cur = Deriver(a.repo).run()
 
@@ -276,6 +430,37 @@ if __name__ == "__main__":
         cur["diff_vs_previous"] = d
     else:
         print("\n(无上一版, 本次为首次生成 —— 不是'零变化')")
+
+    # ── 陈旧性审计 (第十形态) ────────────────────────────────────────────────────────────────
+    print(f"\n{'='*78}\n陈旧性审计 —— 规则: 证据时刻 < 该函数最后改动时刻 ⇒ 该格自动降为 UNKNOWN")
+    if cur["working_tree_dirty"]:
+        print(f"  ⚠ 工作区有未提交改动 {len(cur['working_tree_dirty'])} 处 ⇒ 其中的函数一律 "
+              f"UNDETERMINED (git 历史看不见工作区)")
+    if cur["n_functions_unknown_age"]:
+        print(f"  ⚠ {cur['n_functions_unknown_age']}/{cur['n_functions']} 个函数的年龄无法确定")
+    if os.path.exists(a.evidence):
+        ev = json.load(open(a.evidence))
+        st = staleness(cur, ev)
+        cur["staleness_audit"] = st
+        print(f"  证据格 {len(st['rows'])}: FRESH {st['n_fresh']} / **STALE {st['n_stale']}** / "
+              f"UNDETERMINED {st['n_undetermined']}; 孤儿格 {st['n_orphan']}; "
+              f"无证据的函数 {st['n_without_verdict']}")
+        for r in st["rows"]:
+            if r["outcome"] != "FRESH":
+                print(f"  {'★' if r['outcome']=='STALE' else ' '} {r['outcome']:13s} "
+                      f"{r['function']:44s} {r['recorded_verdict']} -> {r['effective_verdict']}")
+                print(f"      {r['why']}")
+        for o in st["orphan_verdicts"]:
+            print(f"    ORPHAN        {o['function']:44s} {o['why']}")
+        if st["n_without_verdict"]:
+            print(f"    (另有 {st['n_without_verdict']} 个函数在时序表里但没有任何证据格 —— "
+                  f"那是**未填的格**, 不是'已确认无人碰过')")
+    else:
+        # ★ 没有证据文件时不能静默通过 —— 那正是这条检查要防的形状
+        print(f"  ⚠ 未找到证据文件 {a.evidence} ⇒ 全部 {cur['n_functions']} 个函数 UNKNOWN。"
+              f"缺席不产生绿灯。")
+        cur["staleness_audit"] = {"error": "evidence file absent — all verdicts UNKNOWN",
+                                  "path": a.evidence}
 
     json.dump(cur, open(a.json, "w"), indent=1, ensure_ascii=False)
     print(f"\n-> {a.json}")
