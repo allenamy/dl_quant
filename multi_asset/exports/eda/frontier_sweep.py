@@ -138,11 +138,12 @@ class BandedNetting(CrossLegNetting):
 _CAPTURE = {}
 
 
-def run_point(band=0.0, inertia=0.0, cost_exp=0.0, cost_bps=None):
+def run_point(band=0.0, inertia=0.0, cost_exp=0.0, cost_bps=None, cost_by_name=None):
     """跑一个工作点。返回 run_replay 的输出 + 我自己按年拆的 turnover。"""
     def _factory(chain, weights, cadence=None, cost_bps=RF.COST_BPS):
         inst = BandedNetting(chain, weights, cadence=cadence, cost_bps=cost_bps,
-                             band=band, inertia=inertia, cost_exp=cost_exp)
+                             band=band, inertia=inertia, cost_exp=cost_exp,
+                             cost_by_name=cost_by_name)
         _CAPTURE["inst"] = inst
         return inst
     old_cls, old_cost = RF.CrossLegNetting, RF.COST_BPS
@@ -196,7 +197,7 @@ def ka_check(out, canon):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--axis", default="", choices=["", "b", "lam", "cost"])
+    ap.add_argument("--axis", default="", choices=["", "b", "lam", "cost", "c"])
     ap.add_argument("--ka", action="store_true")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
@@ -214,6 +215,26 @@ if __name__ == "__main__":
         if not (chk["KA1_matches_pinned_canonical"] and chk["KA2_per_year_turnover_sums_to_engine"]):
             raise SystemExit("★ 已知答案控制未过 —— 停, 不烧网格预算")
         print("★ 两个已知答案控制都过", flush=True)
+
+    if a.axis == "c":
+        # ★ 轴 c 用的是**代理**, 不是真实逐名成本 —— 这一点必须随结果一起走。
+        #  (1) `a7_cost_tiers.json` 只覆盖**原始 14 个 symbol**, 引擎面板是 ~110 名的宽面板
+        #      ⇒ 宽面板上**没有**逐名实测成本。
+        #  (2) 唯一可用的面板级流动性量是 `size_dvol` —— 而它**同时是四条腿之一(size)的信号**。
+        #      ⇒ 用它设 band, 等于让执行过滤器与一条腿的信号**耦合**。这是设计风险, 不只是数据缺口。
+        #  ⇒ 所以本轴的读法只有一个: "**若**逐名成本与流动性同序, 重新分配 band 宽度能否救回 b 轴"。
+        src = RF.get_src()
+        mid = src.T // 2
+        liq = np.nanmedian(src.CH[max(0, mid - 500):mid + 500, :, src.size_idx], axis=0)
+        r = pd.Series(liq).rank(pct=True).to_numpy()      # 1 = 最流动
+        cost_rel = np.where(np.isfinite(r), 2.0 - 1.5 * r, 1.0)   # 最不流动 2.0 -> 最流动 0.5
+        for cexp in (0.5, 1.0, 2.0):
+            out = run_point(band=0.20, cost_exp=cexp, cost_by_name=cost_rel)
+            tag = f"c{cexp}_b0.20"
+            json.dump(out, open(os.path.join(a.out, f"pt_{tag}.json"), "w"), indent=1, default=str)
+            print(f"[{tag}] turn={out['netting']['net_turn_ann']:.1f} "
+                  f"avg_net={out['avg_net_of_cost_sharpe']}", flush=True)
+        raise SystemExit(0)
 
     if a.axis == "cost":
         # ★ 决定性的一轴: 真实有效成本下, λ>0 是否反超 λ=0。
