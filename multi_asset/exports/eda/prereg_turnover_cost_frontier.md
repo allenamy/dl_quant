@@ -93,3 +93,45 @@
 2. **`a7_cost_tiers.json` 的档位定义 (`2× one-way 100k cost`) 与用户真实档位的对应关系我未核** —— 两者口径可能不同;
 3. **`mean|w_target|` 作为 band 的尺度基准是我的选择**, 未与任何既有口径对齐; 换成 per-name 自身权重会得到不同的前沿形状;
 4. **族 2 的"不能测"是我读 `CrossLegNetting.run()` 与 `apply_makerfill.py` 得出的**, 未与 0B 或 lead 确认是否另有我不知道的 harness。
+
+
+---
+
+# ★★ §2 已知答案硬门 —— **通过 (逐字节)**, 0C 2026-07-26 13:3xZ
+
+## 第一步: 先问"我读的代码是不是产出 canonical 的那份代码"
+
+**canonical 产物 `engine_fullhist_replay.json` 只存在于服务器, 不在 git 里** (本仓无该文件, 无 git 历史)。⇒ 所以"engine 有没有漂"不能只看 git 历史 —— **git 只能证明它自己那份没变, 不能证明服务器那份与它相同。**
+
+**⇒ 逐文件哈希对比 (本地 git vs jpline), 8/8 全同:**
+```
+replay_fullhist e426dfe5d834fcca   signal_chain 3c3f414aa4218ce2   netting     1744d1f719a26b9f
+panel_source    583b48cf156852ab   funding_risk 4ad4be1ee543b903   vol_gate    77c9170b4e3eb261
+isotonic_calib  4e3d1559b0d90197   ic_monitor   43fab7da6717d6b9
+```
+**⇒ 产出 canonical 的代码 = 我能读到的代码。前提成立。**
+
+## 第二步: 复现
+
+```
+命令   python engine/replay_fullhist.py --funding_mode rank --shaping cap --out <scratch>
+       (canonical 配置即 CLI 默认值; --out 指向 scratch, canonical 文件全程未被写)
+结果   sha256(复现) = sha256(canonical) = 5f61188ba89ec4bb463eb22d9d5b89fd793de890437b973f8f71ce951835401a
+       JSON 规范化后 diff 无差异
+```
+
+**⇒ 硬门 PASS —— 且是**逐字节相同**, 不只是数值相等。⇒ 网格预算可以开花。**
+
+## canonical 参考值 (已 pin 进本仓: `engine_fullhist_replay_CANONICAL_pinned.json`)
+
+| | 2022 | 2023 | 2024 | 2025 | 2026 | avg |
+|---|---|---|---|---|---|---|
+| gross Sharpe | 11.82 | 14.18 | 14.44 | 18.70 | 13.74 | — |
+| **net Sharpe** | 9.64 | 11.77 | 12.55 | 16.04 | 11.05 | **12.21** |
+| rank-IC | .0616 | .0859 | .0805 | .0764 | .0622 | — |
+
+`netting`: hedge 12.4% · gross_turn_ann **857.25** · net_turn_ann **750.775** · savings 202.3 bps/yr · years 4.492 · anchors 9821 · `cost_bps 1.9`
+
+**⇒ 绝对口径 (×1.94): gross ≈ 1663 · net ≈ 1457。前沿表按绝对值报, 换算在表头写明。**
+
+> **★ 顺带一条该单独说的: 整个研究校准所依据的那份 canonical 产物, 此前**不在版本控制里** —— 它只是服务器上一个 Jul 15 的文件。⇒ 我已把它 pin 进本仓并附哈希。**否则"前沿相对 canonical 改善了多少"这句话, 其基准随时可能被一次重跑悄悄换掉, 而没有任何东西会响。**(未经裁定: 服务器侧是否也该锁定/只读, 交 team-lead。)**
