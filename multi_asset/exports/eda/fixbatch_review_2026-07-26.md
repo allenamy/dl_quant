@@ -94,3 +94,49 @@ tests_scoped_writes    tests_topup_leg_fill  tests_trip_page
 ## 顺带观察 (非阻塞)
 
 `state/testnet/pilot_log/20260726/fills.jsonl` **首次出现** ⇒ M2 的输入第一次存在。我未审其内容。
+
+---
+
+# ② 抽验 (补做, 无 deadline 之后)
+
+## 九个新套件: **全绿** (逐个单跑)
+
+```
+tests_flatten_ladder ✓  tests_flatten_rows ✓  tests_ghost_rows ✓  tests_m4_rowtype ✓
+tests_market_maxqty ✓   tests_readback_universe ✓  tests_scoped_writes ✓
+tests_topup_leg_fill ✓  tests_trip_page ✓
+```
+**⇒ 套件本身是好的。阻塞 B 说的是它们**不在权威判据里**, 不是它们不通过。**
+
+## ★ g 红能力: **确认存在, 但失效形态与 0B 所述不同**
+
+**摘掉 `m4_turnover` 的行型守卫 ⇒ `tests_ghost_rows` exit=1** ✓ 红能力成立。**但它是这样红的:**
+
+```
+TypeError: float() argument must be a string or a number, not 'NoneType'
+  pilot_metrics.py:330  tgt += sum(abs(float(r["target_w"]) - float(r["prev_w"])) ...)
+```
+
+**⇒ 它**崩**在 `prev_w=None` 上, 根本走不到比较那一步。⇒ 0B 引的 `328.5→219.0, n_anchors 2→3` **不会出现**。**
+
+**⇒ 而那组数字正是本批注释里自己写下的**反事实**: "(b) would, **once the None was made 'safe'**, have opened one extra anchor bucket per trip"。⇒ 即它描述的是**另一个(把 None 变安全的)修法**下的稀释, 不是摘掉守卫所观测到的红。**
+
+> **⇒ 判定: 红能力**成立**; 但把"崩溃红"与"稀释红"当成同一件事引用是不准确的 —— **两者都是真问题, 只有一个是这个测试所演示的**。**
+
+**顺带查出**: `m1_effective_cost` **也**有同一条行型守卫 (行 93), 且它**在 HEAD 就存在** (HEAD 出现 1 次 / 工作树 2 次 ⇒ 本批加的是 m4 那条)。摘掉 m1 那条会让 ghost 行把 `measurement_complete` 从 True 翻成 False —— **它同样是承重的**。
+
+## b / f: 已知答案编在 fixture 里, 与真实序列一致
+
+- **b** `tests_flatten_rows` 回放 12:17:31Z 真实序列: **"103 refused / 101 filled + 2 refused / 2 refused"**, 并明写 "101 real protective flattens left NO order row" —— **与我 12:1xZ 独立实测的 208 行 / 只记失败 完全一致**;
+- **f** `tests_topup_leg_fill` 的已知答案: **"77 top-up rows reported filled_notional BIT-IDENTICAL to their maker sibling"** + **"all 77 had submit_ts = None"** —— **与我预注册并实测的 77 / 双腿 / 继承值 逐项吻合**。
+
+---
+
+# ★★ 我自己在这次复核里犯的两个错 (记录在案)
+
+| # | 错 | 怎么抓到的 |
+|---|---|---|
+| 1 | 把 [g] 当成 `tests_m4_rowtype` 去跑红能力 (它其实是 `tests_ghost_rows`) | 摘掉守卫后 `tests_m4_rowtype` 仍 ALL PASS —— 与"必须 FAIL"矛盾 |
+| 2 | **`replace(old, '', 1)` 删掉的是 m1 的守卫, 不是 m4 的** (该行在文件里出现**两次**) | 结果显示"删 m4 的一行改变了 m1 的输出" —— **因果上不可能**, 由此回查才发现删错了行 |
+
+> **★ 第 2 个尤其值得记: 它**产出了一个红**, 而红正是我要找的东西 ⇒ **它会以错误的理由确认这条主张**。抓到它的不是结果好看不好看, 是"这个因果链根本不成立"。⇒ 与今晚多次出现的同一条: **一个可信的结果, 其可信恰恰来自它符合预期。**
