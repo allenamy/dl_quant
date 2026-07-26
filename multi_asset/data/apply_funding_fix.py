@@ -48,16 +48,34 @@ def recompute(ts, symbols, verbose=False):
     """
     ts = np.asarray(ts, np.int64)
     F = np.full((len(ts), len(symbols)), np.nan)
+    # ★ TWO NUMBERS, NOT AN ALARM (0C 2026-07-26). The 8h default below is a SILENT substitution on
+    # the normalisation divisor: a row whose interval column is missing gets normalised as if it
+    # settled 8-hourly, and for a 4h coin that is a factor-of-two error in the funding channel.
+    # It is harmless today (measured: the tail rows carry the column), which is exactly why it needs
+    # a standing count rather than a trigger-only alarm —
+    #   "0 defaults fired" and "this check never ran" must be distinguishable,
+    # so we publish COVERAGE (the denominator) alongside the trigger count. Reporting only on
+    # trigger would make the silent case indistinguishable from the healthy one.
+    diag = {"rows_total": 0, "rows_interval_present": 0, "default_8h_applied": 0,
+            "symbols_missing_interval_col": [], "symbols_with_defaults": {}}
     for j, s in enumerate(symbols):
         p = f"{WIDE}/{s}_funding.csv"
         if not os.path.exists(p):
             continue
         d = pd.read_csv(p)
         if "funding_interval_h" not in d or len(d) < 3:
+            if "funding_interval_h" not in d:
+                diag["symbols_missing_interval_col"].append(s)
             continue
         d = d.sort_values("fundingTime_ms")
         iv = pd.to_numeric(d["funding_interval_h"], errors="coerce").to_numpy()
         rate = pd.to_numeric(d["fundingRate"], errors="coerce").to_numpy()
+        bad = ~(np.isfinite(iv) & (iv > 0))
+        diag["rows_total"] += int(iv.size)
+        diag["rows_interval_present"] += int(iv.size - bad.sum())
+        if bad.any():
+            diag["default_8h_applied"] += int(bad.sum())
+            diag["symbols_with_defaults"][s] = int(bad.sum())
         iv = np.where(np.isfinite(iv) & (iv > 0), iv, 8.0)
         span = max(2, int(round(24.0 / max(float(np.median(iv)), 1.0))))
         ema = pd.Series(rate * (8.0 / iv)).ewm(span=span, adjust=False).mean().to_numpy()
@@ -65,6 +83,18 @@ def recompute(ts, symbols, verbose=False):
         idx = np.searchsorted(fts, ts, side="right") - 1
         ok = idx >= 0
         F[ok, j] = ema[idx[ok]]
+    cov = (diag["rows_interval_present"] / diag["rows_total"]) if diag["rows_total"] else None
+    diag["interval_coverage"] = None if cov is None else round(cov, 6)
+    # Published every run, green or not — the count is only interpretable next to its denominator.
+    print(f"[fundfix] interval column: coverage "
+          f"{'n/a' if cov is None else f'{cov:.6f}'} "
+          f"({diag['rows_interval_present']}/{diag['rows_total']} rows) | "
+          f"8h-default applied {diag['default_8h_applied']} times"
+          + (f" on {len(diag['symbols_with_defaults'])} symbols" if diag["symbols_with_defaults"] else "")
+          + (f" | MISSING interval column entirely: {len(diag['symbols_missing_interval_col'])} symbols "
+             f"{diag['symbols_missing_interval_col'][:5]}" if diag["symbols_missing_interval_col"] else ""),
+          flush=True)
+    recompute.last_diag = diag          # readable by callers that want to persist it
     return F
 
 

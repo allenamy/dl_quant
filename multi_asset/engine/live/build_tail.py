@@ -88,7 +88,7 @@ def build_window(source, symbols, d0: dt.date, d1: dt.date, open_month=None, fun
         # the frozen full-history EMA span for coins whose funding interval changed (8h<->4h).
         fdf = source.funding(sym, d0f, d1)
         if not fdf.empty and len(fdf) >= 3:
-            FUND[:, si] = fd.real_funding_ema(fdf, grid, interval_h=(interval_cache or {}).get(sym))
+            FUND[:, si] = fd.real_funding_ema(fdf, grid, ema_span_source_h=(interval_cache or {}).get(sym))
         # open-month proxy: fill open-month hours with the premium-index derivation (funding archive
         # is absent for the current month).
         if open_month is not None:

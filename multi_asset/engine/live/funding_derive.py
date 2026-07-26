@@ -54,15 +54,31 @@ def derive_funding_rate(premium_1h: pd.DataFrame, settle_ms: np.ndarray, interva
 
 
 def funding_ema_on_grid(settle_ms: np.ndarray, rate: np.ndarray, grid_ms: np.ndarray,
-                        interval_h: int = 8) -> np.ndarray:
-    """EMA(span=round(24/interval_h), adjust=False) of the rate series, causal-ffilled to grid_ms
-    — byte-for-byte the build_wide_panel.py FUND_EMA recipe."""
+                        ema_span_source_h: int = 8) -> np.ndarray:
+    """EMA(span=round(24/ema_span_source_h), adjust=False) of the rate series, causal-ffilled to
+    grid_ms — byte-for-byte the build_wide_panel.py FUND_EMA recipe.
+
+    ★ NAMED FOR ITS ROLE, NOT FOR THE QUANTITY (renamed 2026-07-26 from `interval_h`).
+    This argument's ONLY effect is the EMA span. It is NOT a normalisation divisor: the EMA below
+    runs on the RAW rate — there is no `rate * 8/interval` anywhere on this path, deliberately,
+    because build_tail writes the AS-TRAINED caliber (the un-normalised one the frozen DL heads
+    were trained on, bug included).
+
+    The old name caused the same wrong inference three times in one night by three separate
+    derivations: a reader seeing `interval_h=` at the call site concludes "this normalises by the
+    interval", because *the settlement interval is also the name of the normalisation divisor*.
+    Note that `interval_h` is CORRECT in `funding_settlement_times` and `derive_funding_rate` —
+    there it really is the cadence — which is exactly what made it misleading here: the reader
+    carries a correct reading into the one place it does not hold.
+    ⇒ A parameter named for the quantity lets every call site read an unproven purpose out of it.
+      On a path where the difference is a factor of two, name it for the role.
+    """
     ok = np.isfinite(rate)
     st, rt = settle_ms[ok], rate[ok]
     if len(rt) < 3:
         return np.full(len(grid_ms), np.nan)
-    span = max(2, int(round(24.0 / max(interval_h, 1.0))))
-    ema = pd.Series(rt).ewm(span=span, adjust=False).mean().to_numpy()
+    span = max(2, int(round(24.0 / max(ema_span_source_h, 1.0))))
+    ema = pd.Series(rt).ewm(span=span, adjust=False).mean().to_numpy()   # ← RAW rate, no divisor
     idx = np.searchsorted(st, grid_ms, side="right") - 1
     out = np.full(len(grid_ms), np.nan)
     good = idx >= 0
@@ -71,7 +87,12 @@ def funding_ema_on_grid(settle_ms: np.ndarray, rate: np.ndarray, grid_ms: np.nda
 
 
 def derive_funding_ema(premium_1h: pd.DataFrame, grid_ms: np.ndarray, interval_h: int = 8) -> np.ndarray:
-    """Full derivation: premium index -> settlement-time rates -> funding_ema on grid_ms."""
+    """Full derivation: premium index -> settlement-time rates -> funding_ema on grid_ms.
+
+    ★ HERE `interval_h` KEEPS ITS NAME because it genuinely serves BOTH roles: the settlement
+    cadence (funding_settlement_times / derive_funding_rate — a real interval) AND the EMA-span
+    source. It is not renamed precisely so the two-role case stays visible; if you ever need them
+    to differ, split the argument rather than picking one meaning silently."""
     if premium_1h.empty:
         return np.full(len(grid_ms), np.nan)
     t = premium_1h["open_time_ms"].to_numpy(np.int64)
@@ -80,20 +101,25 @@ def derive_funding_ema(premium_1h: pd.DataFrame, grid_ms: np.ndarray, interval_h
     return funding_ema_on_grid(settle, rate, grid_ms, interval_h)
 
 
-def real_funding_ema(funding_df: pd.DataFrame, grid_ms: np.ndarray, interval_h=None) -> np.ndarray:
+def real_funding_ema(funding_df: pd.DataFrame, grid_ms: np.ndarray,
+                     ema_span_source_h=None) -> np.ndarray:
     """The panel's real funding_ema from a fundingRate archive frame (same recipe).
-    interval_h: override the EMA-span interval (from a full-history span cache). The frozen panel
-    computed span from the median interval over the coin's FULL history; a short window sees only the
-    RECENT interval, which differs for coins whose funding interval changed (8h<->4h). Pass the cached
-    full-history interval to reproduce the frozen span exactly."""
+
+    ema_span_source_h: override the interval used to DERIVE THE EMA SPAN (from a full-history span
+    cache) — renamed 2026-07-26 from `interval_h` for the reason in `funding_ema_on_grid`. It does
+    NOT normalise the rate; this path emits the AS-TRAINED (un-normalised) caliber on purpose.
+    The frozen panel computed span from the median interval over the coin's FULL history; a short
+    window sees only the RECENT interval, which differs for coins whose funding interval changed
+    (8h<->4h). Pass the cached full-history interval to reproduce the frozen span exactly."""
     if funding_df.empty or len(funding_df) < 3:
         return np.full(len(grid_ms), np.nan)
     fd = funding_df.sort_values("fundingTime_ms")
-    if interval_h is None:
-        interval_h = float(np.median(fd["funding_interval_h"].to_numpy())) if "funding_interval_h" in fd else 8.0
+    if ema_span_source_h is None:
+        ema_span_source_h = (float(np.median(fd["funding_interval_h"].to_numpy()))
+                             if "funding_interval_h" in fd else 8.0)
     settle = fd["fundingTime_ms"].to_numpy(np.int64)
     rate = pd.to_numeric(fd["fundingRate"], errors="coerce").to_numpy(np.float64)
-    return funding_ema_on_grid(settle, rate, grid_ms, int(round(interval_h)))
+    return funding_ema_on_grid(settle, rate, grid_ms, int(round(ema_span_source_h)))
 
 
 def full_history_interval(source, sym, floor="2021-01-01") -> int | None:
