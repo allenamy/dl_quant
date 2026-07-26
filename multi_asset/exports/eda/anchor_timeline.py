@@ -386,6 +386,35 @@ def latest_log_hit(repo: str, logpath: str, match: str) -> Dict[str, Any]:
     return {"unknown": False, "ts": ts, "utc": _utc(ts), "n_hits": n, "log": logpath}
 
 
+def _gap(res) -> str:
+    """residual may be a bare string (legacy) or the full object; only the gap text belongs in
+    a one-line `why`. Printing the whole dict there buried the sentence inside its own metadata."""
+    return (res or {}).get("gap", "") if isinstance(res, dict) else str(res or "")
+
+
+def _probe(repo: str, probe: Dict[str, Any]) -> Dict[str, Any]:
+    """Is this residual's closure condition satisfied RIGHT NOW?
+
+    ★ team-lead, 2026-07-26: a residual that is only displayed is one more list nobody returns
+    to. So each one carries a DECIDABLE closure condition, and where the condition is mechanical
+    the tool checks it every run — the item then closes itself and says so, instead of waiting
+    for someone to remember it exists."""
+    import glob as _glob
+    import re as _re
+    pat, g = probe.get("pattern"), probe.get("glob")
+    if not pat or not g:
+        return {"unknown": True, "why": "probe needs both `glob` and `pattern`"}
+    hits = []
+    for f in sorted(_glob.glob(os.path.join(os.path.expanduser(repo), g))):
+        try:
+            for i, ln in enumerate(open(f, errors="replace"), 1):
+                if _re.search(pat, ln):
+                    hits.append(f"{os.path.relpath(f, os.path.expanduser(repo))}:{i}")
+        except Exception:
+            continue
+    return {"unknown": False, "satisfied": bool(hits), "hits": hits[:5], "n_hits": len(hits)}
+
+
 def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> Dict[str, Any]:
     """Compare each recorded verdict's `evidence_utc` against its function's last-touch commit.
 
@@ -472,7 +501,7 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
                     channels.append("production_log")
                     _w = (f"production emitted {hit['n_hits']} line(s), newest {hit['utc']}, "
                           f"after the change — proves: {obs['proves']}"
-                          + (f" | 残余: {obs['residual']}" if obs.get("residual") else ""))
+                          + (f" | 残余: {_gap(obs.get('residual'))}" if obs.get("residual") else ""))
                     why = (f"{why} || {_w}") if out == "RE-PINNED" else (
                         f"changed at {touch['utc']} ({touch['sha']}), but {_w}")
                     out = "RE-PINNED"
@@ -488,6 +517,33 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
                      "effective_verdict": (rec.get("verdict")
                                            if out in ("FRESH", "RE-PINNED") else "UNKNOWN"),
                      "note": rec.get("note", "")})
+    # ── residual -> OPEN ITEMS ──────────────────────────────────────────────────────────────
+    # ★ A residual does NOT downgrade the verdict: staleness and incompleteness are two
+    # dimensions, and folding them into one state is the exact merge this project spent a night
+    # pulling apart. They get their OWN counter and their OWN list instead.
+    open_items, n_resid, n_unclosable = [], 0, 0
+    for r in rows:
+        for src_key in ("pinned_by", "observed_in_production"):
+            src = r.get(src_key) or {}
+            res = src.get("residual")
+            if not res or res in ("无", "none", "None"):
+                continue
+            n_resid += 1
+            if isinstance(res, str):
+                res = {"gap": res}
+            item = {"function": r["function"], "from": src_key, "gap": res.get("gap"),
+                    "owner": res.get("owner") or "UNASSIGNED",
+                    "closes_when": res.get("closes_when"),
+                    "verdict_kept": r["effective_verdict"]}
+            if not res.get("closes_when"):
+                n_unclosable += 1
+                item["★"] = ("residual with no decidable closure condition — it cannot be "
+                             "tracked, only re-read")
+            pr = res.get("closes_when_probe")
+            if pr:
+                item["probe"] = _probe(repo or cur.get("repo", ""), pr)
+            open_items.append(item)
+
     covered = {r["function"] for r in rows} | {o["function"] for o in orphan}
     no_ev = sorted(set(funcs) - covered)
     return {"rows": rows, "orphan_verdicts": orphan, "functions_without_verdict": no_ev,
@@ -499,6 +555,10 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
             "n_undetermined": sum(1 for r in rows if r["outcome"] == "UNDETERMINED"),
             "n_fresh": sum(1 for r in rows if r["outcome"] == "FRESH"),
             "n_orphan": len(orphan), "n_without_verdict": len(no_ev),
+            "open_items": open_items, "n_residual": n_resid,
+            "n_residual_without_closure": n_unclosable,
+            "n_residual_now_satisfied": sum(1 for i in open_items
+                                            if (i.get("probe") or {}).get("satisfied")),
             "rule": "evidence_utc < func_last_commit.ts => UNKNOWN, UNLESS a covering suite went "
                     "green after the change (RE-PINNED). The suite never advances evidence_utc: a "
                     "chain is as stale as its stalest link, and the frozen middle link is audited "
@@ -576,7 +636,9 @@ if __name__ == "__main__":
         ev = json.load(open(a.evidence))
         st = staleness(cur, ev, repo=a.repo)
         cur["staleness_audit"] = st
-        print(f"  证据格 {len(st['rows'])}: FRESH {st['n_fresh']} / RE-PINNED {st['n_repinned']} / "
+        # ★ 汇总行是这张表的嘴。缺口在格子里可见、在头条里不可见 = 正门挂牌侧门没挂。
+        print(f"  证据格 {len(st['rows'])}: FRESH {st['n_fresh']} / "
+              f"RE-PINNED {st['n_repinned']} (**{st['n_residual']} 带 residual**) / "
               f"**STALE {st['n_stale']}** / UNDETERMINED {st['n_undetermined']}; "
               f"孤儿格 {st['n_orphan']}; 无证据的函数 {st['n_without_verdict']}")
         for r in st["rows"]:
@@ -591,6 +653,20 @@ if __name__ == "__main__":
                 print(f"      {r['why']}")
         for o in st["orphan_verdicts"]:
             print(f"    ORPHAN        {o['function']:44s} {o['why']}")
+        if st["open_items"]:
+            print(f"\n  ── OPEN ITEMS ({st['n_residual']}) —— residual 不降级判定, 但必须有归属"
+                  f"与可判定的闭合条件")
+            for i in st["open_items"]:
+                pr = i.get("probe") or {}
+                mark = ("★闭合条件现已满足, 请复核后移除" if pr.get("satisfied") else
+                        ("探针未匹配 — 仍开着" if "satisfied" in pr else ""))
+                print(f"   [{i['owner']}] {i['function']} ({i['verdict_kept']} 保留) {mark}")
+                print(f"       缺口: {i['gap'][:150]}")
+                print(f"       闭合: {i['closes_when'] or '★未写 —— 不可跟踪, 只能被重读'}")
+                if pr.get("hits"):
+                    print(f"       探针命中: {', '.join(pr['hits'])}")
+            if st["n_residual_without_closure"]:
+                print(f"   ⚠ {st['n_residual_without_closure']} 条 residual 没有可判定的闭合条件")
         if st["n_without_verdict"]:
             print(f"    (另有 {st['n_without_verdict']} 个函数在时序表里但没有任何证据格 —— "
                   f"那是**未填的格**, 不是'已确认无人碰过')")

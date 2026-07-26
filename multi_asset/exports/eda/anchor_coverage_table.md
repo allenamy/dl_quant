@@ -220,6 +220,24 @@ pilot 实现 ──[parity 套件, 每次验收在 HEAD 重跑]──▶ fixture
 
 **⇒ 而它不是万能通行证 (已实测): 给 `m1_effective_cost` 挂一条真实存在的生产证据 (`per_day_c`, 00:17:32Z), 机制照样判 STALE —— 因为那行早于该函数 02:59:13Z 的改动。**
 
+### residual 的两条出路 (team-lead 裁定 2026-07-26)
+
+**"residual 不降级判定"批准 —— 理由是陈旧与不完整是两个维度, 折进一个状态正是我们拆了一晚上的那类合并。但 display-only 不够:**
+
+1. **汇总行带 residual 计数** —— 现在是 `RE-PINNED 8 (4 带 residual)`。**汇总行是这张表的嘴; 缺口在格子里可见、在头条里不可见 = 正门挂牌侧门没挂。**
+2. **每条 residual 落成 OPEN ITEM, 带 owner + 可判定的闭合条件**, 且**闭合条件凡机械可判的都由工具每次现场探一次** ⇒ **条目会自己宣布"我可以关了"**, 不必靠谁记得它存在。缺 `closes_when` 的 residual 单独计数并标 `★不可跟踪, 只能被重读`。
+
+**当前 4 条 OPEN ITEM (owner 一律"未经裁定 —— 0C 记录, 分派由 team-lead", 按 §83 边界):**
+
+| 函数 | 缺口 | 闭合条件 | 探针 |
+|---|---|---|---|
+| `compute_preds:compute` | 执行证据不含正确性; 全仓无套件调用 `CP.compute` | 某受验收覆盖的套件直接调用 `compute_preds.compute` 且 ALL PASS | 未匹配 |
+| `compute_preds:refresh_preds` | 两半分属两个通道, **没有任何一处同时验两侧** | `tests_signal_and_loop` 出现对成功路径的断言 | 未匹配 |
+| `live_panel:panel_symbols` | 钉住的是"返回了可哈希名单"不是"名单正确"; 且我未排除指纹由缓存路径产出 | 某套件对 `panel_symbols()` 返回值本身做断言 | 未匹配 |
+| `assert_anchor_artifacts:run_and_report` | selftest 只证 8 条断言里的 1 条 | 8 条逐条注入各转红一次 | (非机械判据, 无探针) |
+
+**探针两侧都验过**: 拿 `INF\.load\(` 探 ⇒ `satisfied: True` (命中 `tests_inference_parity.py:76`); 拿 `CP\.compute\(` 探 ⇒ `False`; 探针缺字段 ⇒ `unknown`, 不是 `satisfied: False`。
+
 **结果 (上一版口径): 7 个 shadow 轴格里 6 个 RE-PINNED, 精确剩下一格是真陈旧。**
 
 | 格 | 结局 | 钉住它的套件 / 缺口 |
