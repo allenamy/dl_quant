@@ -183,7 +183,7 @@ expected = prev_rb.get(sym, 0.0) + filled_by_anchor[ats].get(sym, 0.0)
 | 源 | 读数 | 性质 |
 |---|---|---|
 | **源 1** team-lead 场所直读 @03:45:24Z | 持仓 0 个 · gross 0.00 · 挂单 0 · 未实现 +0.0000 | **旁证** —— 走的是与生产不同的调用 |
-| **源 2** 04:00Z 锚点写出的 `position_readback` | **待填** | **生产路径**写出的那一份 |
+| **源 2** 04:00Z 锚点写出的 `position_readback` | **109 行, 非零 0, Σ\|notional\| = 0.00** | **生产路径**写出的那一份 |
 
 **通过条件: 两源一致 (源 2 的 `Σ|venue_position_notional| < 1 USD`)。**
 **⇒ 不一致的处置 (预注册, 免得当场议): 这是最高优先事件, 且方向不对称 ——**
@@ -215,3 +215,62 @@ expected = prev_rb.get(sym, 0.0) + filled_by_anchor[ats].get(sym, 0.0)
 2. **我未实测 `LIVE_MODE=TESTNET` 一定会被 04:00Z 那次 launchd 调用继承** —— 我只读到 plist 里有该键; 若该次调用因故走了手动路径(DRY_RUN), 1-5/1-5b 全部不可判, 应记 UNKNOWN 而非通过;
 3. **§0-2 的三个选项我没有逐一验证可行性** —— B (resume epoch) 需要改 `watchdog.evaluate` 的取数窗, 我没有评估它对其余六条判据的连带影响;
 4. **§3-3 的"两个开关"是我读代码推断的** (`state.json` 与 `open_orders_halted` 可能由不同路径设置), **未实测**。
+
+
+---
+
+# ★ 实际观测 (0C 判读于 2026-07-26 06:29Z — 判据已冻结, 本节只填结果)
+
+## §1 机械判读: **6 / 6 PASS**
+
+```
+PASS  1-1  12fe914 + e8039d9 均为 HEAD 祖先
+PASS  1-5  109 行 / blocked_by_halt 108 / 已提交 0 / 开仓已提交 0
+PASS  1-5b 04:00Z 之后未出现 "could not re-apply the persisted watchdog halt"
+PASS  1-6  恢复脚本已用 state_root, 非注释行无硬编码 DRY_RUN 路径
+PASS  1-8  5b 已非 bool(anomalies) 全史
+PASS  1-2  §4-5b 的 `if f > 0` + 重复施加符号 形态已不在 watchdog.py
+```
+
+**1-5b 是本轮最重的一条: `anchor_loop.py`「从文件重新施加持久化 halt」这条 fail-closed 路径的史上第一次执行, 成功。** phase_A 落下 `watchdog_halt: {"source": "tripped", "tripped_at": "2026-07-26T00:17:11Z", ...}` —— 该字段在此前 183 个锚点里出现 0 次。
+
+**1-9 / 1-10 我按代码核 (判读器未覆盖):**
+- 1-9 `watchdog_inputs.py:107` `out[-1]["unrecovered_position_drift"] = bool(_rec["latest"])` ⇒ 4-7 同样只认最新一次对账, 逐日行保留记录 ✓
+- 1-10 `resume_from_trip.sh:124-125` `ops, ve, _ = WI.collect(tree)` → `WD.run(tree, ..., venue_events=ve, ops_stats=ops, ...)` ✓
+
+## §3.2 两源对账: **一致**
+
+| 源 | 读数 |
+|---|---|
+| 源 1 (team-lead 场所直读 @03:45:24Z) | 持仓 0 · gross 0.00 · 挂单 0 |
+| **源 2 (04:00Z 生产 readback)** | **109 行, 非零 0, Σ\|notional\| = 0.00** |
+
+**⇒ 通过条件 (Σ < 1 USD) 满足, 两源一致 ⇒ 生产读回路径能正确看见场所状态 —— 这正是清除真正要确认的那件事, 现在有证据了。**
+
+## 恢复门此刻: 仍然 `tripped = True` —— 且原因**正是预注册过的那一条**
+
+```
+§4-5b liquidation/position anomaly on 54 name(s) at the latest reconciled anchor
+       (101 in this window's history)
+§4-7 un-recovered position drift
+cond5b 例: APEUSDT expected 272.57 / observed 0.00 / unexplained_frac 1.0
+```
+
+**⇒ 54 = 00:00Z readback 里那 54 个非零仓位。比较是 prev(2× 的书) vs observed(平书), 期间 fills = 0 —— 因为梯子的平仓单没有台账行。⇒ 门把我们自己的保护动作读成异常, 与 team-lead 04:0xZ 的推演逐字吻合。**
+
+**⇒ M=1 在正确工作**: 触发串明写 "at the latest reconciled anchor", 而把 101 条历史留在括号里作记录 —— **判定用最新, 记录留全史**, 正是裁定的形状。
+
+## 08:00Z 会不会自然转绿 —— 算术
+
+08:00Z 的比较: `prev` = 04:00Z readback (全 0) · `observed` = 08:00Z readback (halt 下无成交 ⇒ 仍全 0) · 期间 `fills` = 0
+⇒ `expected = 0 + 0 = 0`, `observed = 0`, `unexplained = 0`, `scale = max(0, 0, 1) = 1` ⇒ `0/1 = 0 < 0.10` ⇒ **无异常 ⇒ 5b 干净; 4-7 同源同理 ⇒ 干净。**
+
+**⇒ 门应在 08:00Z 锚点落盘后自然转绿。没有任何人选择任何参数 —— 由第二份事实驱动, 与裁定一致。**
+
+**⇒ 但 §3.2 仍然成立: 门转绿证明的是"无无法解释的变化"。清除时刻仍需读一次 08:00Z readback 的绝对值 (预期 0.00)。**
+
+## 我自己的一处判读错误 (已修, 记录在案)
+
+**1-6 第一次判读报 FAIL**, 理由 `硬编码 DRY_RUN 路径=True`。**实为我的判据假阳性: 那个旧路径只出现在 `resume_from_trip.sh:30` 的一条注释里 —— 而那条注释正是修复自己写下的、解释旧 bug 的说明。**
+
+> **⇒ 一个记录了 bug 的注释, 让一个朴素的检测器认为 bug 仍在。判据必须先剥注释再匹配。已修 (`raw.splitlines()` 过滤 `#` 开头行), 自检仍全绿。**

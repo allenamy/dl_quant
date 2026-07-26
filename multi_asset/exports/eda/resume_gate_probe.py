@@ -118,7 +118,10 @@ def check_code_fixes(repo):
     if not os.path.exists(p):
         out.append(_r("1-6 恢复脚本用 state_root", UNK, "脚本不存在"))
     else:
-        s = open(p, errors="replace").read()
+        # ★ 注释不是代码。第一版把**修复自己的解释性注释**里引用的旧路径当成了未修复 ——
+        # 一个记录了 bug 的注释, 让一个朴素的检测器认为 bug 仍在。判据必须先剥注释。
+        raw = open(p, errors="replace").read()
+        s = "\n".join(ln for ln in raw.splitlines() if not ln.lstrip().startswith("#"))
         hard = 'state/watchdog/state.json' in s or '"state", "pilot_log"' in s
         uses_root = "state_root" in s
         out.append(_r("1-6 恢复脚本用 state_root", PASS if (uses_root and not hard) else FAIL,
