@@ -116,6 +116,17 @@ def main():
 
     if a.eval and os.path.exists(a.eval):
         ev = json.load(open(a.eval))
+        # ★ 对账只在**同一批锚点**上才有意义。last_eval.json 会随每次看门狗求值前移; 一旦它讲的是
+        # 别的日子, "n 一致"就是拿两组不同的东西比, 而它照样会打印一个看起来像结论的数。
+        # 本脚本自己也带着一份生产代码的**手抄件** —— 即第十形态的暴露面, 而这条对账正是检测手抄
+        # 件漂移的唯一手段。所以口径不匹配时必须**拒绝对账**, 而不是给一个弱一点的结论。
+        ev_days = ev.get("days") or []
+        if sorted(ev_days) != sorted(days):
+            print(f"\n[对账已拒绝] last_eval 讲的是 {ev_days}, 本次复算的是 {days} —— 不同的锚点批次,"
+                  f" 不可比。\n  ⇒ 请用 --days {','.join(ev_days)} 重跑, 或换一份同期的 eval。"
+                  f"\n  ⇒ (这条守卫的存在理由: 本脚本内含生产代码的手抄件, 对账是检测手抄件过期的"
+                  f"唯一手段; 让它在错误口径上'通过'等于关掉这个检测。)")
+            return
         prod = (ev.get("conditions", {}).get("cond5_venue_event", {})
                   .get("5b_liquidation_anomaly", {}))
         n_prod = prod.get("n")

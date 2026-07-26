@@ -186,22 +186,38 @@ if f > 0:                                     # ← 已成交的卖单在这里�
 
 **判定部分已从本表**散文**移进机器可读的 `anchor_coverage_evidence.json`** (本文件仍是叙述与缺口的所在, 但**判定以那份 JSON 为准**)。`anchor_timeline.py` 每次生成时自动比对**每格的 `evidence_utc`** 与**该函数最后改动的 commit 时刻** (`git log -L <该函数行域>:<文件>`, 逐**函数**而非逐文件 —— 文件级时刻会让每次提交作废全表, 而每天喊狼的检查等于没有检查)。**后者晚 ⇒ 该格自动降 UNKNOWN。**
 
-**五种结局都已实测走通 (红/绿俱全):** `FRESH` 20 · **`STALE` 8** · `UNDETERMINED` 11 · `ORPHAN` 1 · `NO_EVIDENCE` 30。缺席不产生绿灯: 证据文件不存在 ⇒ 全部 UNKNOWN; `git log -L` 失败 ⇒ UNKNOWN; **文件有未提交改动 ⇒ 该文件所有函数 UNKNOWN** (git 历史看不见工作区, 否则会给一份"和磁盘上的代码不是同一份代码"的绿灯)。
+**六种结局都已实测走通 (红/绿俱全):** `FRESH` 25 · `RE-PINNED` 7 · **`STALE` 7** · `UNDETERMINED` (实测过 11, 现为 0) · `ORPHAN` 1 · `NO_EVIDENCE` 30。缺席不产生绿灯: 证据文件不存在 ⇒ 全部 UNKNOWN; `git log -L` 失败 ⇒ UNKNOWN; **文件有未提交改动 ⇒ 该文件所有函数 UNKNOWN** (git 历史看不见工作区, 否则会给一份"和磁盘上的代码不是同一份代码"的绿灯)。
 
-**首跑结果不好看, 而这正是它的价值 —— 8 个 STALE 里 7 个是整条 shadow 数据轴:**
+### ★ 证据链是三环, 不是两环 (team-lead 精化 + 我补上中间那环)
 
-| 格 | 证据 | 该函数最后改动 | 差 |
-|---|---|---|---|
-| `compute_preds:compute` | shadow 窗末 07-22 | `a232839` 07-25T22:18Z | +3.9 天 |
-| `compute_preds:refresh_preds` · `live_panel:build_live_panel` | 同上 | `32018c5` 07-25T18:12Z | +3.8 天 |
-| `legs:compose_book` · `live_panel:panel_symbols` · `funding_panel:build_funding_grid` · `inference:load` | 同上 | 07-25T14:46〜15:48Z | +3.6 天 |
-| `assert_anchor_artifacts:run_and_report` | trip 00:17:33Z | `bb997e6` 02:34:25Z | **+137 分钟** |
+lead 指出数据轴的证据不是 shadow 直接背书, 而是经 parity 套件传递 —— **对**。但链是三环, 中间那环**冻结**:
 
-> **★ 口径必须说死, 否则会被读成一句更强的话: 这**不**表示 shadow 那 8 天的 IC 结论作废 —— shadow 跑的是**当时**的代码, 结论对**当时**的代码成立。作废的是**覆盖率主张**: "这个函数已在真实数据上跑过"这句话, 说的已经不是**这个**函数了。alpha 证据与覆盖证据是两件事。
+```
+pilot 实现 ──[parity 套件, 每次验收在 HEAD 重跑]──▶ fixture (冻结: 2026-07-25T14:52〜15:15Z 采集)
+           ──[fixture 由 engine 某版本产出]──▶ engine ──[shadow 07-15→07-22]──▶ 真实数据
+```
 
-⇒ 我上一版自标的"E 格仍是第 2 层记忆"现在是一张**硬名单**, 且比我当时说的更糟。**08:00Z 通盘那一轮**按 lead 裁定一并做 (重生成基线 + 填执行轴 + E 格拉第 3 层)。
+**我核了中间那环 (它才是链的年龄上限)**: engine 的 `signal_chain`/`panel_source`/`ic_monitor`/`netting` 最后改动 = `f6740f9` @ **2026-07-19T12:04Z**, 早于 fixture 采集、也在 shadow 窗内 ⇒ **V_fixture == V_shadow, 本环成立**。
+> **一个差点踩上的陷阱**: `f6740f9` 是这些文件**首次入 git** (全栈收仓, +101 行 0 删除), **不是**一次行为改动 —— 代码此前已在 server 上运行。若当成"引擎在 shadow 窗中途变过", 会把 shadow 证据从 8 天错砍到 3 天。**"文件在 git 里出现" ≠ "代码变过"。**
 
-**当前 `UNDETERMINED` 11 格全部因为 `anchor_loop.py` / `binance_executor.py` / `pilot_log.py` / `pilot_metrics.py` 有未提交改动** —— 即 0B 正在改的那四个文件。检测器拒绝为工作区里的代码背书, 是对的。
+**⇒ 由此定的规则 (已写进工具): 合取链的陈旧度 = 最*陈旧*那一环, 不是最*新鲜*那一环。所以 `pinned_by` 只中和 head 环的改动, **绝不把 `evidence_utc` 往前推** —— 否则 fixture 这种冻结环会从视野里消失。** 且 `pinned_by` 必须同时写 `pins`(它到底钉住了什么), 缺 `pins` 一律判 STALE: "有套件覆盖"在写清覆盖了什么之前不是一个事实。
+
+**结果: 7 个 shadow 轴格里 6 个 RE-PINNED, 精确剩下一格是真陈旧。**
+
+| 格 | 结局 | 钉住它的套件 / 缺口 |
+|---|---|---|
+| `inference:load` | RE-PINNED | `tests_inference_parity`: `INF.load()` 实调 + 与 server 逐值比对 |
+| `live_panel:build_live_panel` · `funding_panel:build_funding_grid` | RE-PINNED | `tests_panel_build`: LIVE 路径 max\|Δ\| 3.31e-05; funding 两种口径都走到 |
+| `legs:compose_book` | RE-PINNED | `tests_signal_and_loop`: 三处调用 |
+| `compute_preds:refresh_preds` | RE-PINNED **(部分)** | **仅三条拒写路径**; 成功路径未覆盖 |
+| `live_panel:panel_symbols` | RE-PINNED **(部分)** | 仅作 `columns_fingerprint` 的输入; 钉住的不是名单正确性 |
+| **`compute_preds:compute`** | **STALE** | **全仓无任何套件调用 `CP.compute`** ⇒ lead 说的"换不到指针的才是真陈旧", 精确剩这一格 |
+
+> **★ 口径必须说死: 这**不**表示 shadow 那 8 天的 IC 结论作废 —— shadow 跑的是**当时**的代码, 结论对**当时**的代码成立。作废的是**覆盖率主张**。alpha 证据与覆盖证据是两件事。
+
+### 检测器已在做实事
+
+**02:59Z / 03:05Z 0B 两次提交 (`9e5480f` R19 schema / `004f0f7` 断言层), 当场把 4 格自动降为 UNKNOWN** —— `anchor_loop:_trade` · `complete_anchor` · `pilot_metrics:m1_effective_cost` · `m2_markout` · `assert_anchor_artifacts:check_artifacts`。**没有人需要记得去问。** 其中 `m2_markout` 是一个 **C** 格被降级 —— 正确: 代码变了, "从未触发"这句话的主语也变了。
 
 ---
 

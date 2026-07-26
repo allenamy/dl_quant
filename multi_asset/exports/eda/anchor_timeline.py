@@ -325,7 +325,31 @@ class Deriver:
 
 
 # ── staleness audit: the tenth failure form, mechanised ─────────────────────────────────────────
-def staleness(cur: Dict[str, Any], evidence: Dict[str, Any]) -> Dict[str, Any]:
+def last_green_suite_run(repo: str, suite: str) -> Dict[str, Any]:
+    """Latest acceptance log for `suite`, and whether it ended ALL PASS.
+
+    ★ A suite that RAN is not a suite that PASSED, and a red run pins nothing. The filename
+    carries the UTC stamp (`<YYYYMMDDTHHMMSSZ>_<suite>.log`); the verdict has to come from the
+    file's contents, because a run that crashed halfway still leaves a log."""
+    d = os.path.join(os.path.expanduser(repo), "state", "acceptance")
+    if not os.path.isdir(d):
+        return {"unknown": True, "why": "no state/acceptance directory"}
+    logs = sorted(f for f in os.listdir(d) if f.endswith(f"_{suite}.log"))
+    if not logs:
+        return {"unknown": True, "why": f"no acceptance log for {suite}"}
+    newest = logs[-1]
+    stamp = newest.split("_")[0]
+    ts = _parse_utc(f"{stamp[0:4]}-{stamp[4:6]}-{stamp[6:8]}T{stamp[9:11]}:{stamp[11:13]}:"
+                    f"{stamp[13:15]}Z")
+    try:
+        tail = open(os.path.join(d, newest), errors="replace").read()[-4000:]
+    except Exception as e:
+        return {"unknown": True, "why": f"could not read {newest}: {e}"}
+    return {"unknown": False, "suite": suite, "log": newest, "ts": ts,
+            "utc": _utc(ts) if ts else None, "green": "ALL PASS" in tail}
+
+
+def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> Dict[str, Any]:
     """Compare each recorded verdict's `evidence_utc` against its function's last-touch commit.
 
     ★ The default when anything is missing is UNKNOWN, never OK. Three separate outcomes, because
@@ -354,21 +378,61 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any]) -> Dict[str, Any]:
         elif touch["ts"] > ev:
             out, why = "STALE", (f"function changed at {touch['utc']} ({touch['sha']}) — "
                                  f"{(touch['ts'] - ev) / 60:.0f} min AFTER the evidence")
+            # ★ RE-PINNING (team-lead, 2026-07-26). When the evidence is the TAIL of a chain
+            # whose HEAD link is re-run continuously, a change to the pilot-side function does
+            # not invalidate the tail — provided a suite that actually covers it went green
+            # AFTER the change. Then the code is re-pinned to the same reference the tail was
+            # taken against, and the correct outcome is RE-PINNED, not STALE.
+            #
+            # ★ TWO THINGS THIS DELIBERATELY REFUSES TO DO:
+            #  - It does NOT move `evidence_utc` forward to the suite run. A conjunctive chain is
+            #    as stale as its STALEST link; dating it by its freshest one is how a frozen
+            #    middle link (here: the fixture, and the upstream that produced it) disappears
+            #    from view. The tail keeps its own date; the suite only neutralises head-side
+            #    churn. See `chain` in the evidence file for the middle link's own audit.
+            #  - It does NOT accept `pinned_by` without `pins`. "A suite covers it" is not a
+            #    fact until someone says WHAT it pins: `refresh_preds` is exercised only on its
+            #    three refusal paths, so its success path is not re-pinned by that green run.
+            pin = rec.get("pinned_by")
+            if pin:
+                s, what = pin.get("suite"), pin.get("pins")
+                run = last_green_suite_run(repo or cur.get("repo", ""), s) if s else {"unknown": True,
+                        "why": "pinned_by has no `suite`"}
+                if not what:
+                    out, why = "STALE", (why + " | pinned_by present but `pins` missing — a suite "
+                                                "name alone does not say what it pins")
+                elif run.get("unknown"):
+                    out, why = "STALE", why + f" | pinning suite unusable: {run.get('why')}"
+                elif not run.get("green"):
+                    out, why = "STALE", why + f" | {s} last run {run['utc']} was NOT ALL PASS"
+                elif run["ts"] < touch["ts"]:
+                    out, why = "STALE", (why + f" | {s} last green {run['utc']} PREDATES the "
+                                               f"change — the suite is behind the code")
+                else:
+                    out = "RE-PINNED"
+                    why = (f"changed at {touch['utc']} ({touch['sha']}), but {s} went green at "
+                           f"{run['utc']} after it — pins: {what}")
         else:
             out, why = "FRESH", f"unchanged since {touch['utc']} ({touch['sha']})"
         rows.append({"function": fid, "recorded_verdict": rec.get("verdict"),
                      "evidence_utc": rec.get("evidence_utc"), "outcome": out, "why": why,
+                     "pinned_by": rec.get("pinned_by"),
                      # ★ the downgrade is APPLIED here, not left as advice
-                     "effective_verdict": (rec.get("verdict") if out == "FRESH" else "UNKNOWN"),
+                     "effective_verdict": (rec.get("verdict")
+                                           if out in ("FRESH", "RE-PINNED") else "UNKNOWN"),
                      "note": rec.get("note", "")})
     covered = {r["function"] for r in rows} | {o["function"] for o in orphan}
     no_ev = sorted(set(funcs) - covered)
     return {"rows": rows, "orphan_verdicts": orphan, "functions_without_verdict": no_ev,
             "n_stale": sum(1 for r in rows if r["outcome"] == "STALE"),
+            "n_repinned": sum(1 for r in rows if r["outcome"] == "RE-PINNED"),
             "n_undetermined": sum(1 for r in rows if r["outcome"] == "UNDETERMINED"),
             "n_fresh": sum(1 for r in rows if r["outcome"] == "FRESH"),
             "n_orphan": len(orphan), "n_without_verdict": len(no_ev),
-            "rule": "evidence_utc < func_last_commit.ts  =>  verdict auto-downgraded to UNKNOWN"}
+            "rule": "evidence_utc < func_last_commit.ts => UNKNOWN, UNLESS a covering suite went "
+                    "green after the change (RE-PINNED). The suite never advances evidence_utc: a "
+                    "chain is as stale as its stalest link, and the frozen middle link is audited "
+                    "separately (see `chain` in the evidence file)."}
 
 
 def diff(prev: Dict[str, Any], cur: Dict[str, Any]) -> Dict[str, Any]:
@@ -440,13 +504,17 @@ if __name__ == "__main__":
         print(f"  ⚠ {cur['n_functions_unknown_age']}/{cur['n_functions']} 个函数的年龄无法确定")
     if os.path.exists(a.evidence):
         ev = json.load(open(a.evidence))
-        st = staleness(cur, ev)
+        st = staleness(cur, ev, repo=a.repo)
         cur["staleness_audit"] = st
-        print(f"  证据格 {len(st['rows'])}: FRESH {st['n_fresh']} / **STALE {st['n_stale']}** / "
-              f"UNDETERMINED {st['n_undetermined']}; 孤儿格 {st['n_orphan']}; "
-              f"无证据的函数 {st['n_without_verdict']}")
+        print(f"  证据格 {len(st['rows'])}: FRESH {st['n_fresh']} / RE-PINNED {st['n_repinned']} / "
+              f"**STALE {st['n_stale']}** / UNDETERMINED {st['n_undetermined']}; "
+              f"孤儿格 {st['n_orphan']}; 无证据的函数 {st['n_without_verdict']}")
         for r in st["rows"]:
-            if r["outcome"] != "FRESH":
+            if r["outcome"] == "RE-PINNED":
+                print(f"    RE-PINNED     {r['function']:44s} {r['recorded_verdict']} (保留)")
+                print(f"      {r['why']}")
+        for r in st["rows"]:
+            if r["outcome"] not in ("FRESH", "RE-PINNED"):
                 print(f"  {'★' if r['outcome']=='STALE' else ' '} {r['outcome']:13s} "
                       f"{r['function']:44s} {r['recorded_verdict']} -> {r['effective_verdict']}")
                 print(f"      {r['why']}")
