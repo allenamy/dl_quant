@@ -285,6 +285,26 @@
 
 **⇒ 结论: 六项里四项原则上有部分替代量, 两项没有; 而按第三列, 当前**真正在被测量**的只有 `orders` 的四个基础时间/价格字段 —— 其余全部待落地。**
 
+#### ★ 窗口认证的是**执行轴**, 不是整套 (2026-07-25 增补)
+
+**证据档位不是一条线, 是两根正交的轴 —— 而 shadow 与 DRY_RUN 在两根轴上的强弱顺序相反:**
+
+| | 数据真实度 | 执行真实度 |
+|---|---|---|
+| **DRY_RUN** | 低 (合成 / 公开行情) | **中** —— 真的调用 `submit()`, 走完定价→取整→计划→下单调用 |
+| **shadow** | **高** (真信号、真面板、真日志, 已 8 天) | **零** —— 从不构造 broker, 一张单都没下过 |
+
+**⇒ 用单条阶梯排序会把执行类步骤标成"shadow 已覆盖", 而 shadow 从未执行过它一行。⇒ 故: `data_tier` 与 `exec_tier` 分列, 归轴按目标模块判定 (`binance_broker`/`binance_executor` ⇒ 执行轴; `panel_build`/`inference`/`legs`/`compute_preds` ⇒ 数据轴; `watchdog`/`pilot_log`/`assert_anchor_artifacts` ⇒ 两轴皆需)。**
+
+> **⇒ 现状: 数据轴已在 shadow 档 (8 天真信号真日志); 执行轴除 DRY_RUN 那一小段外几乎全空。**
+> **⇒ 所以 §2.5 窗口买到的几乎全部是**执行轴**。数据轴的档位不因窗口而改变。**
+> **⇒ 不得把"窗口通过"读成"整套都升级了" —— 这也解释了为什么所有"只有真实执行才暴露"的缺陷都集中在下单 / 回读 / 成交那一段: 那是唯一一根我们从未爬过的轴。**
+
+**★ 窗口的"预期收益"(起算前写下, 事后核对; 产物 `anchor_timeline.json` + `testnet_upgrade_ceiling.json`):**
+从代码派生的锚点时序共 **265 步**。静态判定出 **14 个在 DRY_RUN 下提前 `return` 的函数** (`binance_broker` 的 `submit`/`positions`/`positions_notional`/`arm`/`cancel_order`/`account_snapshot`/`income_since`/`__init__` · `venue_fills.fills_for`/`fill_details_for` · `binance_funding.fetch_rates`/`fetch_income` · `anchor_loop._universe_gate`/`_scale_to`)。
+**⇒ 直接调用它们的 13 步 + 位于它们内部的 17 步, 去重后 = **25 步 (占 9.4%)** —— 这就是这 5 天在执行轴上*理论可升级*的上限。**
+**⇒ 窗口跑完重新生成一次, 数实际升级了多少; **两个数的差 = 窗口没买到的东西**, 且该差会指出哪些路径连 testnet 都到不了。⇒ 预期收益必须在开始前写下来, 否则事后会用实际收益去解释预期。**
+
 **★ 切到 TESTNET 之后仍然证不了的 (= 我们带进实盘的东西):** 真实成交率 / 排队位置 / 逆选择 (testnet 无真实订单流, maker 非秒成即永不成) · `c` 与 markout 的**绝对值** · funding 结算 · 退市 / exit-only 路径 · **LIVE 专属分岔 (`BINANCE_LIVE_CONFIRM` 门、LIVE 的 `arm()` 探针、真实风控限制) 按定义只有实盘第一天才第一次执行** · **★ 实盘限流 (2026-07-25 补: testnet 的限流阈值与实盘不同, 所以窗口跑绿不构成"我们不会被限流"的证据)**。**§2.5 买到的是"机制", 买不到"经济学"。**
 
 **★ 限流这一条为什么单独点名 (它不是"经济学", 是机制, 却仍然证不了):** 读路径有节流 (`fapi_source._throttle`: 每分钟权重预算 + 主动 sleep), **下单路径没有** —— `binance_executor.submit_maker` 是裸循环, 一个锚点连打最多 110 个签名 POST, 补单腿再一轮, 撤单再一轮; broker 只在**事后**分类 (`-1003`/`418`/`429` → `rate_limited`)。两条路径**不共享权重预算**, 而同一分钟内 preds 刷新已经消耗过。
