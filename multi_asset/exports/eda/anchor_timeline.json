@@ -5,7 +5,7 @@
   "anchor_loop:run_anchor",
   "anchor_loop:complete_anchor"
  ],
- "n_steps": 265,
+ "n_steps": 308,
  "steps": [
   {
    "id": "run_anchor:main:except:BlockingIOError::log()",
@@ -548,6 +548,176 @@
    "fn_reached_via": "entry"
   },
   {
+   "id": "run_anchor:main:try::binance_funding.write_funding_rows()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "try",
+   "calls": "binance_funding.write_funding_rows()",
+   "target": "binance_funding:write_funding_rows",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "binance_funding:write_funding_rows:try/loop::pilot_log.read_day()",
+   "module": "binance_funding",
+   "function": "write_funding_rows",
+   "branch": "try/loop",
+   "calls": "pilot_log.read_day()",
+   "target": "pilot_log:read_day",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
+   "id": "pilot_log:read_day:loop::_read_jsonl()",
+   "module": "pilot_log",
+   "function": "read_day",
+   "branch": "loop",
+   "calls": "_read_jsonl()",
+   "target": "pilot_log:_read_jsonl",
+   "exception_branch": false,
+   "fn_reached_via": "try/loop"
+  },
+  {
+   "id": "binance_funding:write_funding_rows:if:not income::_stamp_pull()",
+   "module": "binance_funding",
+   "function": "write_funding_rows",
+   "branch": "if:not income",
+   "calls": "_stamp_pull()",
+   "target": "binance_funding:_stamp_pull",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
+   "id": "binance_funding:write_funding_rows:-::venue_funding_intervals()",
+   "module": "binance_funding",
+   "function": "write_funding_rows",
+   "branch": "-",
+   "calls": "venue_funding_intervals()",
+   "target": "binance_funding:venue_funding_intervals",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
+   "id": "binance_funding:write_funding_rows:loop/if:t not in pos_cache::positions_at()",
+   "module": "binance_funding",
+   "function": "write_funding_rows",
+   "branch": "loop/if:t not in pos_cache",
+   "calls": "positions_at()",
+   "target": "binance_funding:positions_at",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
+   "id": "binance_funding:positions_at:loop/try::pilot_log.read_day()",
+   "module": "binance_funding",
+   "function": "positions_at",
+   "branch": "loop/try",
+   "calls": "pilot_log.read_day()",
+   "target": "pilot_log:read_day",
+   "exception_branch": false,
+   "fn_reached_via": "loop/if:t not in pos_cache"
+  },
+  {
+   "id": "binance_funding:positions_at:-::_ts()",
+   "module": "binance_funding",
+   "function": "positions_at",
+   "branch": "-",
+   "calls": "_ts()",
+   "target": "binance_funding:_ts",
+   "exception_branch": false,
+   "fn_reached_via": "loop/if:t not in pos_cache"
+  },
+  {
+   "id": "binance_funding:positions_at:-::_ts()",
+   "module": "binance_funding",
+   "function": "positions_at",
+   "branch": "-",
+   "calls": "_ts()",
+   "target": "binance_funding:_ts",
+   "exception_branch": false,
+   "fn_reached_via": "loop/if:t not in pos_cache"
+  },
+  {
+   "id": "binance_funding:positions_at:-::_ts()",
+   "module": "binance_funding",
+   "function": "positions_at",
+   "branch": "-",
+   "calls": "_ts()",
+   "target": "binance_funding:_ts",
+   "exception_branch": false,
+   "fn_reached_via": "loop/if:t not in pos_cache"
+  },
+  {
+   "id": "binance_funding:write_funding_rows:-::_stamp_pull()",
+   "module": "binance_funding",
+   "function": "write_funding_rows",
+   "branch": "-",
+   "calls": "_stamp_pull()",
+   "target": "binance_funding:_stamp_pull",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
+   "id": "run_anchor:main:try::book_config.anchor_interval_s()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "try",
+   "calls": "book_config.anchor_interval_s()",
+   "target": "book_config:anchor_interval_s",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "book_config:anchor_interval_s:-::anchor_hours()",
+   "module": "book_config",
+   "function": "anchor_interval_s",
+   "branch": "-",
+   "calls": "anchor_hours()",
+   "target": "book_config:anchor_hours",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
+   "id": "book_config:anchor_hours:-::load()",
+   "module": "book_config",
+   "function": "anchor_hours",
+   "branch": "-",
+   "calls": "load()",
+   "target": "book_config:load",
+   "exception_branch": false,
+   "fn_reached_via": "-"
+  },
+  {
+   "id": "book_config:load:-::path()",
+   "module": "book_config",
+   "function": "load",
+   "branch": "-",
+   "calls": "path()",
+   "target": "book_config:path",
+   "exception_branch": false,
+   "fn_reached_via": "-"
+  },
+  {
+   "id": "run_anchor:main:try::log()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "try",
+   "calls": "log()",
+   "target": "run_anchor:log",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "run_anchor:main:except:Exception::log()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "except:Exception",
+   "calls": "log()",
+   "target": "run_anchor:log",
+   "exception_branch": true,
+   "fn_reached_via": "entry"
+  },
+  {
    "id": "run_anchor:main:try::watchdog_inputs.collect()",
    "module": "run_anchor",
    "function": "main",
@@ -586,16 +756,6 @@
    "target": "pilot_log:read_day",
    "exception_branch": false,
    "fn_reached_via": "-"
-  },
-  {
-   "id": "pilot_log:read_day:loop::_read_jsonl()",
-   "module": "pilot_log",
-   "function": "read_day",
-   "branch": "loop",
-   "calls": "_read_jsonl()",
-   "target": "pilot_log:_read_jsonl",
-   "exception_branch": false,
-   "fn_reached_via": "loop"
   },
   {
    "id": "watchdog_inputs:collect:-::derive_venue_events()",
@@ -878,6 +1038,26 @@
    "fn_reached_via": "try"
   },
   {
+   "id": "run_anchor:main:try/try::state_root.stamp_mode()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "try/try",
+   "calls": "state_root.stamp_mode()",
+   "target": "state_root:stamp_mode",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "run_anchor:main:try/try::state_root.stamp_mode()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "try/try",
+   "calls": "state_root.stamp_mode()",
+   "target": "state_root:stamp_mode",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
    "id": "run_anchor:main:try::log()",
    "module": "run_anchor",
    "function": "main",
@@ -905,6 +1085,26 @@
    "calls": "log()",
    "target": "run_anchor:log",
    "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "run_anchor:main:try/if:tripped/try::log()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "try/if:tripped/try",
+   "calls": "log()",
+   "target": "run_anchor:log",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "run_anchor:main:try/if:tripped/except:Exception::log()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "try/if:tripped/except:Exception",
+   "calls": "log()",
+   "target": "run_anchor:log",
+   "exception_branch": true,
    "fn_reached_via": "entry"
   },
   {
@@ -944,16 +1144,6 @@
    "branch": "-",
    "calls": "load()",
    "target": "book_config:load",
-   "exception_branch": false,
-   "fn_reached_via": "-"
-  },
-  {
-   "id": "book_config:load:-::path()",
-   "module": "book_config",
-   "function": "load",
-   "branch": "-",
-   "calls": "path()",
-   "target": "book_config:path",
    "exception_branch": false,
    "fn_reached_via": "-"
   },
@@ -1278,6 +1468,26 @@
    "fn_reached_via": "-"
   },
   {
+   "id": "assert_anchor_artifacts:run_and_report:-::_regression_line()",
+   "module": "assert_anchor_artifacts",
+   "function": "run_and_report",
+   "branch": "-",
+   "calls": "_regression_line()",
+   "target": "assert_anchor_artifacts:_regression_line",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
+   "id": "assert_anchor_artifacts:run_and_report:try::open_items()",
+   "module": "assert_anchor_artifacts",
+   "function": "run_and_report",
+   "branch": "try",
+   "calls": "open_items()",
+   "target": "assert_anchor_artifacts:open_items",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
    "id": "run_anchor:main:except:Exception::log()",
    "module": "run_anchor",
    "function": "main",
@@ -1316,6 +1526,46 @@
    "target": "check_factor_health:fetch",
    "exception_branch": false,
    "fn_reached_via": "try"
+  },
+  {
+   "id": "run_anchor:main:except:Exception::log()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "except:Exception",
+   "calls": "log()",
+   "target": "run_anchor:log",
+   "exception_branch": true,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "run_anchor:main:try::check_funding_span.run()",
+   "module": "run_anchor",
+   "function": "main",
+   "branch": "try",
+   "calls": "check_funding_span.run()",
+   "target": "check_funding_span:run",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "check_funding_span:run:-::compare()",
+   "module": "check_funding_span",
+   "function": "run",
+   "branch": "-",
+   "calls": "compare()",
+   "target": "check_funding_span:compare",
+   "exception_branch": false,
+   "fn_reached_via": "try"
+  },
+  {
+   "id": "check_funding_span:compare:-::venue_intervals()",
+   "module": "check_funding_span",
+   "function": "compare",
+   "branch": "-",
+   "calls": "venue_intervals()",
+   "target": "check_funding_span:venue_intervals",
+   "exception_branch": false,
+   "fn_reached_via": "-"
   },
   {
    "id": "run_anchor:main:except:Exception::log()",
@@ -1578,6 +1828,26 @@
    "fn_reached_via": "entry"
   },
   {
+   "id": "anchor_loop:run_anchor:if:os.path.exists(wd_path)/try::state_root.read_stamped()",
+   "module": "anchor_loop",
+   "function": "run_anchor",
+   "branch": "if:os.path.exists(wd_path)/try",
+   "calls": "state_root.read_stamped()",
+   "target": "state_root:read_stamped",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:run_anchor:if:os.path.exists(wd_path)/try/if:_note and 'was written by mode' in _note::self.alarm()",
+   "module": "anchor_loop",
+   "function": "run_anchor",
+   "branch": "if:os.path.exists(wd_path)/try/if:_note and 'was written by mode' in _note",
+   "calls": "self.alarm()",
+   "target": "anchor_loop:alarm",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
    "id": "anchor_loop:run_anchor:if:wd_unreadable or wd.get('tripped_at') or wd.get(/try::self.broker.halt_opening_orders()",
    "module": "anchor_loop",
    "function": "run_anchor",
@@ -1634,16 +1904,6 @@
    "branch": "-",
    "calls": "anchor_hours()",
    "target": "book_config:anchor_hours",
-   "exception_branch": false,
-   "fn_reached_via": "-"
-  },
-  {
-   "id": "book_config:anchor_hours:-::load()",
-   "module": "book_config",
-   "function": "anchor_hours",
-   "branch": "-",
-   "calls": "load()",
-   "target": "book_config:load",
    "exception_branch": false,
    "fn_reached_via": "-"
   },
@@ -1958,6 +2218,16 @@
    "fn_reached_via": "-"
   },
   {
+   "id": "anchor_loop:_universe_gate:if:cfgmap/if:blocked/if:len(shrunk) != len(cls['tradable'])::self.alarm()",
+   "module": "anchor_loop",
+   "function": "_universe_gate",
+   "branch": "if:cfgmap/if:blocked/if:len(shrunk) != len(cls['tradable'])",
+   "calls": "self.alarm()",
+   "target": "anchor_loop:alarm",
+   "exception_branch": false,
+   "fn_reached_via": "-"
+  },
+  {
    "id": "anchor_loop:_trade:-::legs.compose_book()",
    "module": "anchor_loop",
    "function": "_trade",
@@ -2108,6 +2378,16 @@
    "fn_reached_via": "loop"
   },
   {
+   "id": "binance_executor:round_qty:-::self._decimals()",
+   "module": "binance_executor",
+   "function": "round_qty",
+   "branch": "-",
+   "calls": "self._decimals()",
+   "target": "binance_executor:_decimals",
+   "exception_branch": false,
+   "fn_reached_via": "loop"
+  },
+  {
    "id": "anchor_loop:_trade:-::self.executor.submit_maker()",
    "module": "anchor_loop",
    "function": "_trade",
@@ -2138,12 +2418,12 @@
    "fn_reached_via": "-"
   },
   {
-   "id": "binance_executor:round_px:-::self._floor_to()",
+   "id": "binance_executor:round_px:-::self._decimals()",
    "module": "binance_executor",
    "function": "round_px",
    "branch": "-",
-   "calls": "self._floor_to()",
-   "target": "binance_executor:_floor_to",
+   "calls": "self._decimals()",
+   "target": "binance_executor:_decimals",
    "exception_branch": false,
    "fn_reached_via": "loop"
   },
@@ -2378,22 +2658,22 @@
    "fn_reached_via": "entry"
   },
   {
-   "id": "anchor_loop:complete_anchor:-::self.fills()",
-   "module": "anchor_loop",
-   "function": "complete_anchor",
-   "branch": "-",
-   "calls": "self.fills()",
-   "target": "anchor_loop:fills",
-   "exception_branch": false,
-   "fn_reached_via": "entry"
-  },
-  {
    "id": "anchor_loop:complete_anchor:try::venue_fills.fill_details_for()",
    "module": "anchor_loop",
    "function": "complete_anchor",
    "branch": "try",
    "calls": "venue_fills.fill_details_for()",
    "target": "venue_fills:fill_details_for",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:try::venue_fills.last_coverage()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try",
+   "calls": "venue_fills.last_coverage()",
+   "target": "venue_fills:last_coverage",
    "exception_branch": false,
    "fn_reached_via": "entry"
   },
@@ -2415,6 +2695,26 @@
    "calls": "self.alarm()",
    "target": "anchor_loop:alarm",
    "exception_branch": true,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:-::self.fills()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "-",
+   "calls": "self.fills()",
+   "target": "anchor_loop:fills",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:if:unknown::self.alarm()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "if:unknown",
+   "calls": "self.alarm()",
+   "target": "anchor_loop:alarm",
+   "exception_branch": false,
    "fn_reached_via": "entry"
   },
   {
@@ -2466,6 +2766,16 @@
    "target": "binance_executor:topup",
    "exception_branch": false,
    "fn_reached_via": "entry"
+  },
+  {
+   "id": "binance_executor:topup:loop/if:p['symbol'] in unknown_fills::self._order_row()",
+   "module": "binance_executor",
+   "function": "topup",
+   "branch": "loop/if:p['symbol'] in unknown_fills",
+   "calls": "self._order_row()",
+   "target": "binance_executor:_order_row",
+   "exception_branch": false,
+   "fn_reached_via": "-"
   },
   {
    "id": "binance_executor:topup:loop/if:abs(residual) < 1e-09::self._order_row()",
@@ -2598,6 +2908,96 @@
    "fn_reached_via": "-"
   },
   {
+   "id": "anchor_loop:complete_anchor:try::venue_fills.user_trades_for()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try",
+   "calls": "venue_fills.user_trades_for()",
+   "target": "venue_fills:user_trades_for",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:try::venue_fills.last_trade_coverage()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try",
+   "calls": "venue_fills.last_trade_coverage()",
+   "target": "venue_fills:last_trade_coverage",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:try::venue_fills.submitted_order_legs()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try",
+   "calls": "venue_fills.submitted_order_legs()",
+   "target": "venue_fills:submitted_order_legs",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:try::venue_fills.attribute_trades()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try",
+   "calls": "venue_fills.attribute_trades()",
+   "target": "venue_fills:attribute_trades",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:try::self.executor.apply_commission_to_rows()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try",
+   "calls": "self.executor.apply_commission_to_rows()",
+   "target": "binance_executor:apply_commission_to_rows",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:try/if:_fee['unknown']::self.alarm()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try/if:_fee['unknown']",
+   "calls": "self.alarm()",
+   "target": "anchor_loop:alarm",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:try::venue_fills.fill_rows_from_trades()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try",
+   "calls": "venue_fills.fill_rows_from_trades()",
+   "target": "venue_fills:fill_rows_from_trades",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:try/if:_mixed::self.alarm()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "try/if:_mixed",
+   "calls": "self.alarm()",
+   "target": "anchor_loop:alarm",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:except:Exception::self.alarm()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "except:Exception",
+   "calls": "self.alarm()",
+   "target": "anchor_loop:alarm",
+   "exception_branch": true,
+   "fn_reached_via": "entry"
+  },
+  {
    "id": "anchor_loop:complete_anchor:-::_load()",
    "module": "anchor_loop",
    "function": "complete_anchor",
@@ -2656,9 +3056,39 @@
    "target": "anchor_loop:alarm",
    "exception_branch": false,
    "fn_reached_via": "entry"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:if:self.log is not None/loop/try::self.log.fill()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "if:self.log is not None/loop/try",
+   "calls": "self.log.fill()",
+   "target": "pilot_log:fill",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
+  },
+  {
+   "id": "pilot_log:fill:-::self._w()",
+   "module": "pilot_log",
+   "function": "fill",
+   "branch": "-",
+   "calls": "self._w()",
+   "target": "pilot_log:_w",
+   "exception_branch": false,
+   "fn_reached_via": "if:self.log is not None/loop/try"
+  },
+  {
+   "id": "anchor_loop:complete_anchor:if:n_fill_persisted != n_fill_rows::self.alarm()",
+   "module": "anchor_loop",
+   "function": "complete_anchor",
+   "branch": "if:n_fill_persisted != n_fill_rows",
+   "calls": "self.alarm()",
+   "target": "anchor_loop:alarm",
+   "exception_branch": false,
+   "fn_reached_via": "entry"
   }
  ],
- "n_exception_steps": 29,
+ "n_exception_steps": 33,
  "unresolved_call_sites": [
   {
    "where": "run_anchor:main",
@@ -3567,6 +3997,466 @@
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
   },
   {
+   "where": "binance_funding:write_funding_rows",
+   "call": "int()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "time.time()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "FundingLedger()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "_PL.read_day(root, d).get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "pilot_log:read_day",
+   "call": "os.path.join",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "pilot_log:read_day",
+   "call": "os.path.exists",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "pilot_log:_read_jsonl",
+   "call": "open()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "pilot_log:_read_jsonl",
+   "call": "f.readlines()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "pilot_log:_read_jsonl",
+   "call": "line.strip()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "pilot_log:_read_jsonl",
+   "call": "rows.append()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "pilot_log:_read_jsonl",
+   "call": "json.loads()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "max()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "type()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "str()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "lg.gap_report()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "alarm()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "lg.retention_floor_ms()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "lg.fetch_income()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "i.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "len()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "os.path.join",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "os.path.dirname",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "os.path.abspath",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "os.makedirs()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "json.dump()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "open()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "time.strftime()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "(report.get('sign_check') or {}).get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "time.gmtime()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "report.items()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:_stamp_pull",
+   "call": "report.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:venue_funding_intervals",
+   "call": "broker._request()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:venue_funding_intervals",
+   "call": "int()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:venue_funding_intervals",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:venue_funding_intervals",
+   "call": "str()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "sorted()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "min()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "lg.fetch_rates()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:positions_at",
+   "call": "sorted()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:positions_at",
+   "call": "time.strftime()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:positions_at",
+   "call": "time.gmtime()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:positions_at",
+   "call": "rows.extend()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:positions_at",
+   "call": "_PL.read_day(root, d).get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:_ts",
+   "call": "r.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:_ts",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:positions_at",
+   "call": "max()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:positions_at",
+   "call": "round()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:positions_at",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "pos_cache[t].get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "lg.build_rows()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "round()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "out['skipped_symbols'].append",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "(pos_cache.get(t, {}) or {}).get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "pos_cache.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "intervals.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "log.funding()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "out.setdefault('rejects', []).append",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "out.setdefault()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_funding:write_funding_rows",
+   "call": "lg.sign_consistency()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "run_anchor:main",
+   "call": "os.path.dirname",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:anchor_interval_s",
+   "call": "sorted()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:anchor_interval_s",
+   "call": "set()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:anchor_hours",
+   "call": "load().get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "book_config:load",
+   "call": "open()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:load",
+   "call": "json.load()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:path",
+   "reason": "depth > 3"
+  },
+  {
+   "where": "book_config:anchor_hours",
+   "call": "KeyError()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "book_config:anchor_hours",
+   "call": "tuple()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "book_config:anchor_hours",
+   "call": "int()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:anchor_interval_s",
+   "call": "range()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:anchor_interval_s",
+   "call": "len()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:anchor_interval_s",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "book_config:anchor_interval_s",
+   "call": "max()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "run_anchor:main",
+   "call": "_fw.get('gap', {}).get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "run_anchor:main",
+   "call": "(_fw.get('sign_check') or {}).get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "run_anchor:main",
+   "call": "_fw.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
    "where": "pilot_log:available_days",
    "call": "sorted()",
    "kind": "external_or_builtin",
@@ -3601,22 +4491,6 @@
    "call": "os.path.join",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
-  },
-  {
-   "where": "pilot_log:read_day",
-   "call": "os.path.join",
-   "kind": "external_or_builtin",
-   "reason": "stdlib/3rd-party — not our coverage surface"
-  },
-  {
-   "where": "pilot_log:read_day",
-   "call": "os.path.exists",
-   "kind": "external_or_builtin",
-   "reason": "stdlib/3rd-party — not our coverage surface"
-  },
-  {
-   "where": "pilot_log:_read_jsonl",
-   "reason": "depth > 3"
   },
   {
    "where": "watchdog_inputs:derive_ops_stats",
@@ -4050,9 +4924,21 @@
   },
   {
    "where": "pilot_metrics:m2_markout",
+   "call": "f.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "pilot_metrics:m2_markout",
    "call": "pairs.append()",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "pilot_metrics:m2_markout",
+   "call": "len()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
    "where": "pilot_metrics:m2_markout",
@@ -4062,7 +4948,7 @@
   },
   {
    "where": "pilot_metrics:m2_markout",
-   "call": "len()",
+   "call": "sum()",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
@@ -4072,7 +4958,7 @@
   },
   {
    "where": "pilot_metrics:m2_markout",
-   "call": "sum()",
+   "call": "bool()",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
@@ -4491,6 +5377,24 @@
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
+   "where": "state_root:stamp_mode",
+   "call": "json.load()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "state_root:stamp_mode",
+   "call": "open()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "state_root:stamp_mode",
+   "call": "json.dump()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
    "where": "run_anchor:main",
    "call": "ev.get()",
    "kind": "LOCAL_UNFOLLOWED",
@@ -4516,6 +5420,24 @@
   },
   {
    "where": "run_anchor:main",
+   "call": "json.dump()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "run_anchor:main",
+   "call": "time.strftime()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "run_anchor:main",
+   "call": "time.gmtime()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "run_anchor:main",
    "call": "sys.path.insert",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
@@ -4531,22 +5453,6 @@
    "call": "load().get",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
-  },
-  {
-   "where": "book_config:load",
-   "call": "open()",
-   "kind": "external_or_builtin",
-   "reason": "stdlib/3rd-party — not our coverage surface"
-  },
-  {
-   "where": "book_config:load",
-   "call": "json.load()",
-   "kind": "external_or_builtin",
-   "reason": "stdlib/3rd-party — not our coverage surface"
-  },
-  {
-   "where": "book_config:path",
-   "reason": "depth > 3"
   },
   {
    "where": "book_config:late_tolerance_min",
@@ -5060,13 +5966,169 @@
   },
   {
    "where": "assert_anchor_artifacts:run_and_report",
+   "call": "'; '.join",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:_regression_line",
+   "call": "str(a.get('detail') or '').strip",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:_regression_line",
+   "call": "str()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:_regression_line",
    "call": "a.get()",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
   },
   {
    "where": "assert_anchor_artifacts:run_and_report",
-   "call": "'; '.join",
+   "call": "a.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "os.path.exists",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "re.match()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "m.group()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "out.setdefault('unparsed', []).append",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "out.setdefault()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "line.strip()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "x.strip()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "row.groups()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "out['refused'].append",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "round()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "time.time()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "calendar.timegm()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "time.strptime()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "out['items'].append",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "out['by_group'].setdefault(it['group'], []).append",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "out['by_group'].setdefault",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "len()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "out.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:open_items",
+   "call": "max()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:run_and_report",
+   "call": "oi.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "assert_anchor_artifacts:run_and_report",
+   "call": "sorted()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:run_and_report",
+   "call": "len()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "assert_anchor_artifacts:run_and_report",
+   "call": "oi['by_group'].items",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
   },
@@ -5225,6 +6287,114 @@
    "call": "json.dumps()",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "json.load()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "open()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "tbl['table'].items",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "check_funding_span:venue_intervals",
+   "call": "json.load()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:venue_intervals",
+   "call": "urllib.request.urlopen",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:venue_intervals",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:venue_intervals",
+   "call": "r.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "tbl.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "len()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "sorted()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "dict()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "collections.Counter(venue.values()).items",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "collections.Counter()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "check_funding_span:compare",
+   "call": "venue.values()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "check_funding_span:run",
+   "call": "log()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "check_funding_span:run",
+   "call": "', '.join",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "check_funding_span:run",
+   "call": "notifier.alarm()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
   },
   {
    "where": "check_nosleep:verdict",
@@ -5619,16 +6789,38 @@
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
-   "where": "anchor_loop:run_anchor",
+   "where": "state_root:read_stamped",
    "call": "json.load()",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
-   "where": "anchor_loop:run_anchor",
+   "where": "state_root:read_stamped",
    "call": "open()",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "state_root:read_stamped",
+   "call": "isinstance()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "state_root:read_stamped",
+   "call": "d.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "state_root:read_stamped",
+   "call": "StateRootError()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:alarm",
+   "reason": "function not found in parsed modules"
   },
   {
    "where": "anchor_loop:run_anchor",
@@ -5647,10 +6839,6 @@
    "call": "time.time()",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
-  },
-  {
-   "where": "anchor_loop:alarm",
-   "reason": "function not found in parsed modules"
   },
   {
    "where": "book_config:schedule_check",
@@ -5681,30 +6869,6 @@
    "call": "timedelta()",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
-  },
-  {
-   "where": "book_config:anchor_hours",
-   "call": "load().get",
-   "kind": "LOCAL_UNFOLLOWED",
-   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
-  },
-  {
-   "where": "book_config:anchor_hours",
-   "call": "KeyError()",
-   "kind": "LOCAL_UNFOLLOWED",
-   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
-  },
-  {
-   "where": "book_config:anchor_hours",
-   "call": "tuple()",
-   "kind": "LOCAL_UNFOLLOWED",
-   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
-  },
-  {
-   "where": "book_config:anchor_hours",
-   "call": "int()",
-   "kind": "external_or_builtin",
-   "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
    "where": "book_config:nominal_anchor_utc",
@@ -6201,6 +7365,42 @@
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
+   "where": "anchor_loop:_universe_gate",
+   "call": "set()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "anchor_loop:_universe_gate",
+   "call": "getattr()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "anchor_loop:_universe_gate",
+   "call": "cfgmap.items()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:_universe_gate",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "anchor_loop:_universe_gate",
+   "call": "c.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:_universe_gate",
+   "call": "sorted()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
    "where": "anchor_loop:_trade",
    "call": "set()",
    "kind": "external_or_builtin",
@@ -6483,7 +7683,17 @@
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
   },
   {
+   "where": "binance_executor:round_qty",
+   "call": "round()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
    "where": "binance_executor:_floor_to",
+   "reason": "depth > 3"
+  },
+  {
+   "where": "binance_executor:_decimals",
    "reason": "depth > 3"
   },
   {
@@ -6515,6 +7725,36 @@
    "call": "self.f.get()",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_executor:round_px",
+   "call": "math.ceil()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:round_px",
+   "call": "math.floor()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:round_px",
+   "call": "str(side).lower",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:round_px",
+   "call": "str()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:round_px",
+   "call": "round()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
    "where": "binance_executor:submit_maker",
@@ -6799,8 +8039,28 @@
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
-   "where": "anchor_loop:fills",
-   "reason": "function not found in parsed modules"
+   "where": "anchor_loop:complete_anchor",
+   "call": "set()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:fill_details_for",
+   "call": "set()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:fill_details_for",
+   "call": "_LAST_COVERAGE.clear()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:fill_details_for",
+   "call": "_LAST_COVERAGE.update()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
   },
   {
    "where": "venue_fills:fill_details_for",
@@ -6817,6 +8077,12 @@
   {
    "where": "venue_fills:fill_details_for",
    "call": "broker._request()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:fill_details_for",
+   "call": "queried_ok.add()",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
   },
@@ -6857,10 +8123,38 @@
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
+   "where": "venue_fills:last_coverage",
+   "call": "set()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
    "where": "binance_executor:apply_fill_details",
    "call": "details.get()",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:complete_anchor",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "anchor_loop:complete_anchor",
+   "call": "_details.items()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:complete_anchor",
+   "call": "d.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:fills",
+   "reason": "function not found in parsed modules"
   },
   {
    "where": "anchor_loop:complete_anchor",
@@ -6996,6 +8290,12 @@
   },
   {
    "where": "binance_executor:topup",
+   "call": "set()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:topup",
    "call": "filled.get()",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
@@ -7015,6 +8315,12 @@
   {
    "where": "binance_executor:topup",
    "call": "abs()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:topup",
+   "call": "time.time()",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
   },
@@ -7103,6 +8409,336 @@
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
   },
   {
+   "where": "venue_fills:user_trades_for",
+   "call": "set()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "_LAST_TRADE_COVERAGE.clear()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "int()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "time.time()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "broker._request()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "queried.add()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "r.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "str(r.get('side', '')).upper",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "str()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "abs()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "(r.get('commissionAsset') or 'USDT').upper",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "other.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "trades.append()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "bool()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:user_trades_for",
+   "call": "_LAST_TRADE_COVERAGE.update()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:complete_anchor",
+   "call": "int()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:last_trade_coverage",
+   "call": "set()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:submitted_order_legs",
+   "call": "a.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:submitted_order_legs",
+   "call": "str()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:submitted_order_legs",
+   "call": "resp.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:submitted_order_legs",
+   "call": "order.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:submitted_order_legs",
+   "call": "str(order.get('tif') or '').upper",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:submitted_order_legs",
+   "call": "cid.endswith()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:submitted_order_legs",
+   "call": "int()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "anchor_loop:complete_anchor",
+   "call": "_legs.values()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "t.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "legs.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "int()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "abs()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "dict()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "mine.append()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "bucket['trades'].append",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "str(t.get('commission_asset') or 'USDT').upper",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "str()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "bucket['other'].get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:attribute_trades",
+   "call": "round()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:apply_commission_to_rows",
+   "call": "getattr()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:apply_commission_to_rows",
+   "call": "r.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_executor:apply_commission_to_rows",
+   "call": "(by_symbol.get(sym) or {}).get",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_executor:apply_commission_to_rows",
+   "call": "by_symbol.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_executor:apply_commission_to_rows",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:apply_commission_to_rows",
+   "call": "bool()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "binance_executor:apply_commission_to_rows",
+   "call": "b.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "binance_executor:apply_commission_to_rows",
+   "call": "len()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:fill_rows_from_trades",
+   "call": "int()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:fill_rows_from_trades",
+   "call": "t.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:fill_rows_from_trades",
+   "call": "marks.get()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "venue_fills:fill_rows_from_trades",
+   "call": "bool()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:fill_rows_from_trades",
+   "call": "str(t.get('side', '')).lower",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:fill_rows_from_trades",
+   "call": "float()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:fill_rows_from_trades",
+   "call": "str()",
+   "kind": "external_or_builtin",
+   "reason": "stdlib/3rd-party — not our coverage surface"
+  },
+  {
+   "where": "venue_fills:fill_rows_from_trades",
+   "call": "out.append()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:complete_anchor",
+   "call": "_trades.items()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
    "where": "anchor_loop:complete_anchor",
    "call": "state['positions'].get",
    "kind": "LOCAL_UNFOLLOWED",
@@ -7113,12 +8749,6 @@
    "call": "target.get()",
    "kind": "LOCAL_UNFOLLOWED",
    "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
-  },
-  {
-   "where": "anchor_loop:complete_anchor",
-   "call": "float()",
-   "kind": "external_or_builtin",
-   "reason": "stdlib/3rd-party — not our coverage surface"
   },
   {
    "where": "pilot_log:validate",
@@ -7194,12 +8824,65 @@
   },
   {
    "where": "anchor_loop:complete_anchor",
+   "call": "fill_rejects.append()",
+   "kind": "LOCAL_UNFOLLOWED",
+   "reason": "attribute call on a value this parser cannot resolve (self.<obj>.m() / injected dependency)"
+  },
+  {
+   "where": "anchor_loop:complete_anchor",
    "call": "sum()",
    "kind": "external_or_builtin",
    "reason": "stdlib/3rd-party — not our coverage surface"
   }
  ],
- "n_unresolved": 765,
- "n_unresolved_local": 333,
- "n_unresolved_external": 406
+ "n_unresolved": 966,
+ "n_unresolved_local": 422,
+ "n_unresolved_external": 518,
+ "diff_vs_previous": {
+  "appeared": [
+   "anchor_loop:_universe_gate:if:cfgmap/if:blocked/if:len(shrunk) != len(cls['tradable'])::self.alarm()",
+   "anchor_loop:complete_anchor:if:n_fill_persisted != n_fill_rows::self.alarm()",
+   "anchor_loop:complete_anchor:if:self.log is not None/loop/try::self.log.fill()",
+   "anchor_loop:complete_anchor:if:unknown::self.alarm()",
+   "anchor_loop:complete_anchor:try/if:_fee['unknown']::self.alarm()",
+   "anchor_loop:complete_anchor:try/if:_mixed::self.alarm()",
+   "anchor_loop:complete_anchor:try::self.executor.apply_commission_to_rows()",
+   "anchor_loop:complete_anchor:try::venue_fills.attribute_trades()",
+   "anchor_loop:complete_anchor:try::venue_fills.fill_rows_from_trades()",
+   "anchor_loop:complete_anchor:try::venue_fills.last_coverage()",
+   "anchor_loop:complete_anchor:try::venue_fills.last_trade_coverage()",
+   "anchor_loop:complete_anchor:try::venue_fills.submitted_order_legs()",
+   "anchor_loop:complete_anchor:try::venue_fills.user_trades_for()",
+   "anchor_loop:run_anchor:if:os.path.exists(wd_path)/try/if:_note and 'was written by mode' in _note::self.alarm()",
+   "anchor_loop:run_anchor:if:os.path.exists(wd_path)/try::state_root.read_stamped()",
+   "assert_anchor_artifacts:run_and_report:-::_regression_line()",
+   "assert_anchor_artifacts:run_and_report:try::open_items()",
+   "binance_executor:round_px:-::self._decimals()",
+   "binance_executor:round_qty:-::self._decimals()",
+   "binance_executor:topup:loop/if:p['symbol'] in unknown_fills::self._order_row()",
+   "binance_funding:positions_at:-::_ts()",
+   "binance_funding:positions_at:loop/try::pilot_log.read_day()",
+   "binance_funding:write_funding_rows:-::_stamp_pull()",
+   "binance_funding:write_funding_rows:-::venue_funding_intervals()",
+   "binance_funding:write_funding_rows:if:not income::_stamp_pull()",
+   "binance_funding:write_funding_rows:loop/if:t not in pos_cache::positions_at()",
+   "binance_funding:write_funding_rows:try/loop::pilot_log.read_day()",
+   "book_config:anchor_interval_s:-::anchor_hours()",
+   "check_funding_span:compare:-::venue_intervals()",
+   "check_funding_span:run:-::compare()",
+   "pilot_log:fill:-::self._w()",
+   "run_anchor:main:try/if:tripped/except:Exception::log()",
+   "run_anchor:main:try/if:tripped/try::log()",
+   "run_anchor:main:try/try::state_root.stamp_mode()",
+   "run_anchor:main:try::binance_funding.write_funding_rows()",
+   "run_anchor:main:try::book_config.anchor_interval_s()",
+   "run_anchor:main:try::check_funding_span.run()"
+  ],
+  "disappeared": [
+   "binance_executor:round_px:-::self._floor_to()"
+  ],
+  "n_appeared": 37,
+  "n_disappeared": 1,
+  "note": "a disappeared step is EITHER deleted OR moved into a construct the parser cannot follow — check `unresolved_call_sites` before concluding it is gone"
+ }
 }
