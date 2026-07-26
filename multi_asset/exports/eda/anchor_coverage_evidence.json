@@ -8,7 +8,11 @@
  },
  "_chain": {
   "_why": "数据轴的证据不是 shadow 直接给 pilot 仓背书, 而是一条三环链。团队起初写作两环 (pilot --parity--> engine --shadow--> 真实数据), 漏掉了中间那环: parity 套件比对的是**冻结的 fixture**, 不是 engine 的当前代码。",
-  "link_1_head": {"what": "pilot 仓实现 == fixture 参考", "by": "parity 套件, 每次验收在 HEAD 重跑", "freshness": "持续刷新 ⇒ pilot 侧改动可被 re-pin"},
+  "link_1_head": {
+   "what": "pilot 仓实现 == fixture 参考",
+   "by": "parity 套件, 每次验收在 HEAD 重跑",
+   "freshness": "持续刷新 ⇒ pilot 侧改动可被 re-pin"
+  },
   "link_2_middle_FROZEN": {
    "what": "fixture 参考由 engine 某个版本产出",
    "fixture_captured_utc": "2026-07-25T14:52Z ~ 15:15Z (state/fixtures/*.npz 的 mtime)",
@@ -16,53 +20,255 @@
    "★不要误读的陷阱": "f6740f9 是这些文件**首次入 git**(全栈收仓, +101 行 0 删除), 不是一次行为改动 —— 代码在此前已在 server 上跑。若把它当成'引擎在 shadow 窗中途变过', 会错误地把 shadow 证据从 8 天砍到 3 天。'文件在 git 里出现'不等于'代码变过'。",
    "freshness": "冻结 —— 这一环不随验收刷新, 必须单独复核, 且**它才是这条链的年龄上限**"
   },
-  "link_3_tail": {"what": "engine 在真实数据上跑过", "by": "shadow 2026-07-15 -> 07-22, 132 锚点", "freshness": "冻结于 shadow 窗末"},
+  "link_3_tail": {
+   "what": "engine 在真实数据上跑过",
+   "by": "shadow 2026-07-15 -> 07-22, 132 锚点",
+   "freshness": "冻结于 shadow 窗末"
+  },
   "★规则": "合取链的陈旧度 = **最陈旧那一环**, 不是最新鲜那一环。所以 pinned_by 只中和 head 环的改动, **绝不把 evidence_utc 往前推** —— 否则 link_2 这种冻结环会从视野里消失。"
  },
  "verdicts": {
-  "compute_preds:compute":                  {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "note": "★真 STALE: 全仓无任何套件调用 CP.compute —— 这是 lead 说的『换不到指针的才是真陈旧』那一类, 交 08:00Z 之后处理", "note_shadow": "shadow 8 天真信号真面板; 我独立复算三条 IC 序列一致"},
-  "compute_preds:refresh_preds":            {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "pinned_by": {"suite": "tests_signal_and_loop", "pins": "★仅三条拒写路径 (warmup BLOCK / caliber BLOCK / producer crash): 断言写入前的 sentinel 原样保留。成功路径未被覆盖 ⇒ 这是部分 re-pin"}, "note": "每日 cron 日志 [preds] king: 529 anchors inferred"},
-  "legs:compose_book":                      {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "pinned_by": {"suite": "tests_signal_and_loop", "pins": "compose_book 被三处调用 (L91/L99/L316), 断言单位 gross 与腿权重性质"}, "note": "132 锚点 positions_*.json; 目标权重 sum|w|=1.0000"},
-  "live_panel:build_live_panel":            {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "pinned_by": {"suite": "tests_panel_build", "pins": "『panel built through the LIVE path matches the server panel — max|Δ| 3.31e-05』+ 冻结 140 列集"}, "note": "overlap_validation.json 697 公共小时 median_rel 2e-08"},
-  "live_panel:panel_symbols":               {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "pinned_by": {"suite": "tests_signal_and_loop", "pins": "★仅作为 columns_fingerprint 的输入被调用 (L211/L371) —— 钉住的是『它喂给指纹』, 不是『它返回的名单正确』。部分 re-pin"}, "note": "我实测 140 symbol, 据此查出 12 个已失效名字"},
-  "inference:load":                         {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "pinned_by": {"suite": "tests_inference_parity", "pins": "INF.load() 实调 + 与 server 参考逐值比对 (max|Δ|=1.4e-06), fixture 缺失即硬失败"}, "note": "v2 fixture 跨 2021-2026 每个年份, 含最稀疏成员掩码"},
-  "funding_panel:build_funding_grid":       {"verdict": "E", "evidence_utc": "2026-07-22T00:00:00Z", "pinned_by": {"suite": "tests_panel_build", "pins": "build_funding_grid 被四处调用, 两种口径 (AS_TRAINED / NORMFIX) 都走到"}, "note": "8 天 funding 通道; 但台账只写 00/08/16Z ⇒ 部分覆盖"},
-
-  "fapi_source:_get":                       {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "testnet 锚点取回 110 个 mid"},
-  "fapi_source:book_mids":                  {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "同上"},
-  "anchor_loop:_universe_gate":             {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "★第十形态的首个真实用例: 2 个 TESTNET 锚点有完整输出, 但第 9 步 (maxNotionalValue) 随 bcfa1b5 落地于 00:56:39Z, 晚 55 分钟 ⇒ 这格证明的是一个已不存在的函数。9 步里另有 6 步无证据。"},
-  "anchor_loop:_trade":                     {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "testnet 锚点实跑"},
-  "anchor_loop:complete_anchor":            {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "phase_B rows_emitted 165 / persisted 165"},
-  "pilot_log:order":                        {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "testnet 165 行 rows_persisted == rows_emitted"},
-  "pilot_log:_w":                           {"verdict": "E", "evidence_utc": "2026-07-26T00:01:22Z", "note": "同上"},
-
-  "watchdog:evaluate":                      {"verdict": "E", "evidence_utc": "2026-07-26T00:17:11Z", "note": "真实触发, 判定为真阳性"},
-  "watchdog:run":                           {"verdict": "E", "evidence_utc": "2026-07-26T00:17:11Z", "note": "梯子实跑 halt_opening -> flatten(重试2) -> alert"},
-  "pilot_metrics:m1_effective_cost":        {"verdict": "E", "evidence_utc": "2026-07-26T00:17:11Z", "note": "per_day_c=[null,20.1633], 38 行真实成交。★但 38/38 行 fee_paid=None 且 16 笔卖单被 f<=0 丢弃 ⇒ 门从未在*完整*数据上求值过"},
-  "assert_anchor_artifacts:check_artifacts":{"verdict": "E", "evidence_utc": "2026-07-26T00:17:33Z", "note": "trip 锚点发出 REGRESSION 告警; 缺口: 断言6三处 fail-open"},
-  "assert_anchor_artifacts:run_and_report": {"verdict": "E", "evidence_utc": "2026-07-26T00:17:33Z", "pinned_by": {"suite": "tests_artifact_assertions", "pins": "断言层套件整体 ALL PASS; 注意它只证 8 条断言里的 1 条 selftest (我早先审出的缺口), 故这是部分 re-pin"}, "note": "同上"},
-
-  "watchdog_inputs:collect":                {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "每锚点执行"},
-  "watchdog_inputs:derive_ops_stats":       {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "per_day_fail_rate 实测有值; 缺口: 未跟上 4-5c 的 submit_ts 分母修正"},
-  "watchdog_inputs:derive_venue_events":    {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "每锚点执行"},
-  "pilot_log:read_day":                     {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "被 watchdog/断言层每锚点调用"},
-  "check_factor_health:run":                {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "137 次 factor_health 日志行; 缺口: MAX_STALE_H=8 vs 每日 cron"},
-  "state_root:bind":                        {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "我一度读错树, 正是它把两棵树分开"},
-  "state_root:paths_for":                   {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "tests_state_root 9 断言"},
-  "state_root:assert_single_delta":         {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "同上"},
-  "run_anchor:main":                        {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "每锚点执行; 14 步在异常分支内, 多为 C"},
-  "anchor_loop:run_anchor":                 {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "同上"},
-  "anchor_loop:stage_alarm":                {"verdict": "E", "evidence_utc": "2026-07-25T15:06:56Z", "note": "2/183 锚点 action=FLATTEN, 两分支各一次。★证据是'CRITICAL + 时间戳吻合 77us', 不是正文 —— 告警正文全仓不落盘"},
-  "check_funding_span:run":                 {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "19/19 执行"},
-  "check_funding_span:compare":             {"verdict": "E", "evidence_utc": "2026-07-26T02:43:11Z", "note": "19/19 STALE stale=15 —— 复现了我独立实测的 15 个过期名字; 本表证据最强的一格。残余 C: 一致分支无证据"},
-
-  "pilot_metrics:m2_markout":               {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "18/18 fill_rows_built=0; 全仓 0 个 fills 文件; cond3.n_fill_rows=0"},
-  "pilot_log:fill":                         {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "每锚点执行但 0 次迭代; 接线 6594b77@02:15Z 晚于唯一 TESTNET 锚点@00:00Z"},
-  "dryrun_ledger:reconcile":                {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "183 行全部 0/0 day 0 ⇒ 期望集恒空 ⇒ OK/STARTED_NOT_FINISHED/MISSED 三态全无证据"},
-  "binance_funding:write_funding_rows":     {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "16/16 rows=0; 全在 DRY_RUN ⇒ 从未对有持仓的账户跑过"},
-  "binance_funding:positions_at":           {"verdict": "C", "evidence_utc": "2026-07-26T02:43:11Z", "note": "3 个 _ts() 步无证据"},
-
-  "book_config:load":                       {"verdict": "N", "evidence_utc": "2026-07-26T02:43:11Z", "note": "我未检视 (不是确认无人碰过)"},
-  "check_nosleep:collect":                  {"verdict": "N", "evidence_utc": "2026-07-26T02:43:11Z", "note": "我未检视 (不是确认无人碰过)"}
+  "compute_preds:compute": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-22T00:00:00Z",
+   "note": "★真 STALE: 全仓无任何套件调用 CP.compute —— 这是 lead 说的『换不到指针的才是真陈旧』那一类, 交 08:00Z 之后处理",
+   "note_shadow": "shadow 8 天真信号真面板; 我独立复算三条 IC 序列一致",
+   "observed_in_production": {
+    "log": "state/anchor_runs.log",
+    "match": "\"preds_written\": true",
+    "proves": "refresh_preds 的 ok:true 分支**只能**由 compute(...) 正常返回后到达 (signal/compute_preds.py: payload = compute(...) -> _save_atomic -> return ok:true) ⇒ 该行是 compute 在真实 fapi 数据上跑完的机械证明; 远端产物 state/preds_latest.json 的 mtime 与最新一行逐秒吻合 (did-N/landed-M 成立)",
+    "residual": "★这是**执行**证据, 不含**正确性** —— 全仓仍无任何套件调用 CP.compute。正确性证据仍停留在 shadow 期, 且已陈旧。"
+   }
+  },
+  "compute_preds:refresh_preds": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-22T00:00:00Z",
+   "pinned_by": {
+    "suite": "tests_signal_and_loop",
+    "pins": "★仅三条拒写路径 (warmup BLOCK / caliber BLOCK / producer crash): 断言写入前的 sentinel 原样保留。成功路径未被覆盖 ⇒ 这是部分 re-pin"
+   },
+   "note": "每日 cron 日志 [preds] king: 529 anchors inferred",
+   "observed_in_production": {
+    "log": "state/anchor_runs.log",
+    "match": "\"preds_written\": true",
+    "proves": "★正是它的**成功路径** —— 与套件钉住的三条拒写路径互补, 两者合起来才覆盖这个函数的两侧",
+    "residual": "无"
+   }
+  },
+  "legs:compose_book": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-22T00:00:00Z",
+   "pinned_by": {
+    "suite": "tests_signal_and_loop",
+    "pins": "compose_book 被三处调用 (L91/L99/L316), 断言单位 gross 与腿权重性质"
+   },
+   "note": "132 锚点 positions_*.json; 目标权重 sum|w|=1.0000"
+  },
+  "live_panel:build_live_panel": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-22T00:00:00Z",
+   "pinned_by": {
+    "suite": "tests_panel_build",
+    "pins": "『panel built through the LIVE path matches the server panel — max|Δ| 3.31e-05』+ 冻结 140 列集"
+   },
+   "note": "overlap_validation.json 697 公共小时 median_rel 2e-08"
+  },
+  "live_panel:panel_symbols": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-22T00:00:00Z",
+   "pinned_by": {
+    "suite": "tests_signal_and_loop",
+    "pins": "★仅作为 columns_fingerprint 的输入被调用 (L211/L371) —— 钉住的是『它喂给指纹』, 不是『它返回的名单正确』。部分 re-pin"
+   },
+   "note": "我实测 140 symbol, 据此查出 12 个已失效名字",
+   "observed_in_production": {
+    "log": "state/anchor_runs.log",
+    "match": "\"columns_verified\":",
+    "proves": "anchor_loop._trade 每锚点执行 want = compute_preds.columns_fingerprint(live_panel.panel_symbols()); phase_A 落盘的 columns_verified 指纹是该调用的产物 ⇒ panel_symbols 返回了可哈希的名单",
+    "residual": "钉住的是'它返回了一个名单', 不是'名单正确'。名单正确性无套件覆盖。"
+   }
+  },
+  "inference:load": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-22T00:00:00Z",
+   "pinned_by": {
+    "suite": "tests_inference_parity",
+    "pins": "INF.load() 实调 + 与 server 参考逐值比对 (max|Δ|=1.4e-06), fixture 缺失即硬失败"
+   },
+   "note": "v2 fixture 跨 2021-2026 每个年份, 含最稀疏成员掩码"
+  },
+  "funding_panel:build_funding_grid": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-22T00:00:00Z",
+   "pinned_by": {
+    "suite": "tests_panel_build",
+    "pins": "build_funding_grid 被四处调用, 两种口径 (AS_TRAINED / NORMFIX) 都走到"
+   },
+   "note": "8 天 funding 通道; 但台账只写 00/08/16Z ⇒ 部分覆盖"
+  },
+  "fapi_source:_get": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:01:22Z",
+   "note": "testnet 锚点取回 110 个 mid"
+  },
+  "fapi_source:book_mids": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:01:22Z",
+   "note": "同上"
+  },
+  "anchor_loop:_universe_gate": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:01:22Z",
+   "note": "★第十形态的首个真实用例: 2 个 TESTNET 锚点有完整输出, 但第 9 步 (maxNotionalValue) 随 bcfa1b5 落地于 00:56:39Z, 晚 55 分钟 ⇒ 这格证明的是一个已不存在的函数。9 步里另有 6 步无证据。"
+  },
+  "anchor_loop:_trade": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:01:22Z",
+   "note": "testnet 锚点实跑"
+  },
+  "anchor_loop:complete_anchor": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:01:22Z",
+   "note": "phase_B rows_emitted 165 / persisted 165"
+  },
+  "pilot_log:order": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:01:22Z",
+   "note": "testnet 165 行 rows_persisted == rows_emitted"
+  },
+  "pilot_log:_w": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:01:22Z",
+   "note": "同上"
+  },
+  "watchdog:evaluate": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:17:11Z",
+   "note": "真实触发, 判定为真阳性"
+  },
+  "watchdog:run": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:17:11Z",
+   "note": "梯子实跑 halt_opening -> flatten(重试2) -> alert"
+  },
+  "pilot_metrics:m1_effective_cost": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:17:11Z",
+   "note": "per_day_c=[null,20.1633], 38 行真实成交。★但 38/38 行 fee_paid=None 且 16 笔卖单被 f<=0 丢弃 ⇒ 门从未在*完整*数据上求值过"
+  },
+  "assert_anchor_artifacts:check_artifacts": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:17:33Z",
+   "note": "trip 锚点发出 REGRESSION 告警; 缺口: 断言6三处 fail-open"
+  },
+  "assert_anchor_artifacts:run_and_report": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T00:17:33Z",
+   "pinned_by": {
+    "suite": "tests_artifact_assertions",
+    "pins": "断言层套件整体 ALL PASS; 注意它只证 8 条断言里的 1 条 selftest (我早先审出的缺口), 故这是部分 re-pin"
+   },
+   "note": "同上"
+  },
+  "watchdog_inputs:collect": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "每锚点执行"
+  },
+  "watchdog_inputs:derive_ops_stats": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "per_day_fail_rate 实测有值; 缺口: 未跟上 4-5c 的 submit_ts 分母修正"
+  },
+  "watchdog_inputs:derive_venue_events": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "每锚点执行"
+  },
+  "pilot_log:read_day": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "被 watchdog/断言层每锚点调用"
+  },
+  "check_factor_health:run": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "137 次 factor_health 日志行; 缺口: MAX_STALE_H=8 vs 每日 cron"
+  },
+  "state_root:bind": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "我一度读错树, 正是它把两棵树分开"
+  },
+  "state_root:paths_for": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "tests_state_root 9 断言"
+  },
+  "state_root:assert_single_delta": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "同上"
+  },
+  "run_anchor:main": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "每锚点执行; 14 步在异常分支内, 多为 C"
+  },
+  "anchor_loop:run_anchor": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "同上"
+  },
+  "anchor_loop:stage_alarm": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-25T15:06:56Z",
+   "note": "2/183 锚点 action=FLATTEN, 两分支各一次。★证据是'CRITICAL + 时间戳吻合 77us', 不是正文 —— 告警正文全仓不落盘"
+  },
+  "check_funding_span:run": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "19/19 执行"
+  },
+  "check_funding_span:compare": {
+   "verdict": "E",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "19/19 STALE stale=15 —— 复现了我独立实测的 15 个过期名字; 本表证据最强的一格。残余 C: 一致分支无证据"
+  },
+  "pilot_metrics:m2_markout": {
+   "verdict": "C",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "18/18 fill_rows_built=0; 全仓 0 个 fills 文件; cond3.n_fill_rows=0"
+  },
+  "pilot_log:fill": {
+   "verdict": "C",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "每锚点执行但 0 次迭代; 接线 6594b77@02:15Z 晚于唯一 TESTNET 锚点@00:00Z"
+  },
+  "dryrun_ledger:reconcile": {
+   "verdict": "C",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "183 行全部 0/0 day 0 ⇒ 期望集恒空 ⇒ OK/STARTED_NOT_FINISHED/MISSED 三态全无证据"
+  },
+  "binance_funding:write_funding_rows": {
+   "verdict": "C",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "16/16 rows=0; 全在 DRY_RUN ⇒ 从未对有持仓的账户跑过"
+  },
+  "binance_funding:positions_at": {
+   "verdict": "C",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "3 个 _ts() 步无证据"
+  },
+  "book_config:load": {
+   "verdict": "N",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "我未检视 (不是确认无人碰过)"
+  },
+  "check_nosleep:collect": {
+   "verdict": "N",
+   "evidence_utc": "2026-07-26T02:43:11Z",
+   "note": "我未检视 (不是确认无人碰过)"
+  }
  }
 }

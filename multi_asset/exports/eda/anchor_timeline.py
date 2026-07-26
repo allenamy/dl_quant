@@ -349,6 +349,43 @@ def last_green_suite_run(repo: str, suite: str) -> Dict[str, Any]:
             "utc": _utc(ts) if ts else None, "green": "ALL PASS" in tail}
 
 
+def latest_log_hit(repo: str, logpath: str, match: str) -> Dict[str, Any]:
+    """Newest line of `logpath` containing `match`, with its leading ISO timestamp.
+
+    ★ THE THIRD EVIDENCE CLASS (team-lead, 2026-07-26): suites are not the only thing that runs
+    at HEAD — so does production. A function with no suite can still be pinned by a log line its
+    own execution produced, PROVIDED the line postdates the function's last change.
+
+    ★ AND THE LIMIT THAT TRAVELS WITH IT: a production log line is EXECUTION evidence. It says
+    the code ran and returned; it says nothing about whether what it returned is CORRECT. Suites
+    and parity fixtures speak to correctness; log lines do not. Folding the two together would
+    silently upgrade "it ran" into "it works" — so `proves` is mandatory and `residual` exists to
+    keep the correctness gap visible after the cell turns green.
+
+    Re-derived from the log on every run rather than hand-entered: a timestamp typed into the
+    ledger is stale the moment it is typed, which is the exact failure this whole mechanism
+    exists to catch."""
+    p = os.path.join(os.path.expanduser(repo), logpath)
+    if not os.path.exists(p):
+        return {"unknown": True, "why": f"log not found: {logpath}"}
+    newest, n = None, 0
+    try:
+        with open(p, errors="replace") as fh:
+            for ln in fh:
+                if match in ln:
+                    n += 1
+                    newest = ln
+    except Exception as e:
+        return {"unknown": True, "why": f"could not read {logpath}: {e}"}
+    if newest is None:
+        return {"unknown": True, "why": f"no line matching {match!r} in {logpath}"}
+    ts = _parse_utc(newest[:20].strip())
+    if ts is None:
+        return {"unknown": True, "why": f"matched line has no parseable leading timestamp: "
+                                        f"{newest[:40]!r}"}
+    return {"unknown": False, "ts": ts, "utc": _utc(ts), "n_hits": n, "log": logpath}
+
+
 def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> Dict[str, Any]:
     """Compare each recorded verdict's `evidence_utc` against its function's last-touch commit.
 
@@ -365,6 +402,7 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
     rows, orphan = [], []
     for fid, rec in sorted(evidence.get("verdicts", {}).items()):
         ev = _parse_utc(str(rec.get("evidence_utc", "")))
+        channels: List[str] = []
         touch = funcs.get(fid)
         if touch is None:
             orphan.append({"function": fid, "verdict": rec.get("verdict"),
@@ -410,13 +448,42 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
                                                f"change — the suite is behind the code")
                 else:
                     out = "RE-PINNED"
+                    channels.append("suite")
                     why = (f"changed at {touch['utc']} ({touch['sha']}), but {s} went green at "
                            f"{run['utc']} after it — pins: {what}")
+            # ★ THIRD CHANNEL, AND IT IS ADDITIVE, NOT A FALLBACK. `refresh_preds` is the case
+            # that forced this: the suite pins its three REFUSAL paths and production pins its
+            # SUCCESS path — complementary halves of one function. Stopping at the first channel
+            # that clears the cell would report "re-pinned by suite" and silently drop the fact
+            # that the other half is now covered too. A cell can be pinned by both; the ledger
+            # has to be able to say so, because "which half" is the whole content of `pins`.
+            obs = rec.get("observed_in_production")
+            if obs:
+                hit = latest_log_hit(repo or cur.get("repo", ""), obs.get("log", ""),
+                                     obs.get("match", ""))
+                if not obs.get("proves"):
+                    _p = "observed_in_production present but `proves` missing"
+                elif hit.get("unknown"):
+                    _p = f"production evidence unusable: {hit.get('why')}"
+                elif hit["ts"] < touch["ts"]:
+                    _p = f"newest matching log line {hit['utc']} PREDATES the change"
+                else:
+                    _p = None
+                    channels.append("production_log")
+                    _w = (f"production emitted {hit['n_hits']} line(s), newest {hit['utc']}, "
+                          f"after the change — proves: {obs['proves']}"
+                          + (f" | 残余: {obs['residual']}" if obs.get("residual") else ""))
+                    why = (f"{why} || {_w}") if out == "RE-PINNED" else (
+                        f"changed at {touch['utc']} ({touch['sha']}), but {_w}")
+                    out = "RE-PINNED"
+                if _p and out != "RE-PINNED":
+                    out, why = "STALE", why + " | " + _p
         else:
             out, why = "FRESH", f"unchanged since {touch['utc']} ({touch['sha']})"
         rows.append({"function": fid, "recorded_verdict": rec.get("verdict"),
                      "evidence_utc": rec.get("evidence_utc"), "outcome": out, "why": why,
-                     "pinned_by": rec.get("pinned_by"),
+                     "repin_channels": channels or None, "pinned_by": rec.get("pinned_by"),
+                     "observed_in_production": rec.get("observed_in_production"),
                      # ★ the downgrade is APPLIED here, not left as advice
                      "effective_verdict": (rec.get("verdict")
                                            if out in ("FRESH", "RE-PINNED") else "UNKNOWN"),
@@ -426,6 +493,9 @@ def staleness(cur: Dict[str, Any], evidence: Dict[str, Any], repo: str = "") -> 
     return {"rows": rows, "orphan_verdicts": orphan, "functions_without_verdict": no_ev,
             "n_stale": sum(1 for r in rows if r["outcome"] == "STALE"),
             "n_repinned": sum(1 for r in rows if r["outcome"] == "RE-PINNED"),
+            "n_repinned_by_suite": sum(1 for r in rows if "suite" in (r.get("repin_channels") or [])),
+            "n_repinned_by_production": sum(1 for r in rows
+                                            if "production_log" in (r.get("repin_channels") or [])),
             "n_undetermined": sum(1 for r in rows if r["outcome"] == "UNDETERMINED"),
             "n_fresh": sum(1 for r in rows if r["outcome"] == "FRESH"),
             "n_orphan": len(orphan), "n_without_verdict": len(no_ev),
@@ -511,7 +581,8 @@ if __name__ == "__main__":
               f"孤儿格 {st['n_orphan']}; 无证据的函数 {st['n_without_verdict']}")
         for r in st["rows"]:
             if r["outcome"] == "RE-PINNED":
-                print(f"    RE-PINNED     {r['function']:44s} {r['recorded_verdict']} (保留)")
+                print(f"    RE-PINNED[{'+'.join(c[:4] for c in (r.get('repin_channels') or ['?']))}] "
+                      f"{r['function']:44s} {r['recorded_verdict']} (保留)")
                 print(f"      {r['why']}")
         for r in st["rows"]:
             if r["outcome"] not in ("FRESH", "RE-PINNED"):
