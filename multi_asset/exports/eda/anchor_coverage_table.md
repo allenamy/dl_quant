@@ -1,4 +1,4 @@
-> **创建:** 2026-07-26 | **Session:** ma-v2 0C 独立审计 | **状态:** in-progress (执行轴待 08:00Z 首考后填) | **作废条件:** `anchor_timeline.py` 重新生成后步骤清单变化 ⇒ 本表须随之重生成并 diff
+> **创建:** 2026-07-26 | **更新:** 2026-07-26 02:45Z (C 行全部对 run log 重核) | **Session:** ma-v2 0C 独立审计 | **状态:** in-progress (执行轴待 08:00Z 首考后填) | **作废条件:** `anchor_timeline.py` 重新生成后步骤清单变化 ⇒ 本表须随之重生成并 diff
 
 # 锚点时序覆盖表 — 逐函数三态 + 两轴档位
 
@@ -51,9 +51,9 @@ exec_tier :  单测 < shadow(=零) < DRY_RUN < testnet < 实盘
 | `funding_panel:build_funding_grid` | 4 | **E** | **shadow** | 8 天 funding 通道; **但见下方缺口** |
 | `fapi_source:_get` / `book_mids` | 2 | **E** | **testnet** | 公开端点, 本次 testnet 锚点实际取回 110 个 mid (`mid_at_anchor` 基数 1577) |
 
-**★ 数据轴的两处缺口 (已知, 已入队列):**
-1. **`funding` 台账写入器在 shadow 的 8 天里只写 00/08/16Z** ⇒ 41 个 4h symbol 的结算一行未写 ⇒ **8 天覆盖了写入器, 未覆盖结算区间归一化那条路径**。新 `binance_funding:write_funding_rows` 尚未产出可验证据 ⇒ 该能力当前 **C**。
-2. **`check_funding_span:compare`** (span 表 vs `fundingInfo` 一致性) —— 新落地, **C**: 断言存在, 未见其在真实数据上执行过。**它当场应报出我实测的 15 个不一致名字 (11 个是成员)。**
+**★ 数据轴的两处缺口 (已按 run log 重核):**
+1. **`binance_funding:write_funding_rows` — 维持 C**, 但换成日志证据: 16 次执行 (02:22:08Z→02:43Z), **16/16 `income=0 rows=0 skipped_no_position=0`**, 15 次 `gap=COLD_START` + 1 次 `gap=None`。⇒ 外壳每锚点跑, **写行循环 0 次迭代**; 且 16 次全在 DRY_RUN ⇒ 从未对一个有持仓的账户跑过。`positions_at` 的 3 个 `_ts()` 步同样无证据。(shadow 8 天只写 00/08/16Z 那条旧缺口不变。)
+2. **`check_funding_span:compare` — 降为 E** (我自查出的第四行, 上一版的 C 已过时): 19 次执行 (01:39:30Z→02:43Z), **19/19 `funding_span: STALE ours=140 venue=736 stale=15 absent_from_venue=12`** —— 断言不仅执行了, **还当场复现了我独立实测的那 15 个过期名字**。这是本表证据最强的一格。残余 C: 19/19 全 STALE ⇒ 它的"一致"分支无证据。
 
 ---
 
@@ -65,14 +65,14 @@ exec_tier :  单测 < shadow(=零) < DRY_RUN < testnet < 实盘
 | `watchdog:run` | 4 | **E** | shadow | **testnet** | 同上; 梯子实跑 `halt_opening` → `flatten`(重试 2 次, 重读持仓) → `alert`(msg 14) |
 | `watchdog` 跨锚点持久化 | (在 `anchor_loop:run_anchor` 内) | **E** | — | **DRY_RUN** | 我本次实测 5 用例: 无文件/tripped/reduce_only/**文件损坏 fail-closed**/已清除 —— 四条性质全成立 |
 | `watchdog_inputs:collect` / `derive_ops_stats` / `derive_venue_events` | 5 | **E** | shadow | **DRY_RUN** | 每锚点执行; `per_day_fail_rate` 实测有值。**缺口: `derive_ops_stats` 未跟上 4-5c 的 `submit_ts` 分母修正** |
-| `pilot_metrics:m1_effective_cost` | 2 | **C** | 单测 | **单测** | **★ 循环体从未执行过** (所有行 `filled_notional=0`); 且一旦有成交将 `TypeError` (我实测复现) ⇒ **§4-1 的 `c` 门至今未在有成交数据上求值过** |
-| `pilot_metrics:m2_markout` | 1 | **C** | 单测 | **单测** | `fills` 表刚有生产者, 尚无成交行 |
+| `pilot_metrics:m1_effective_cost` | 2 | **E**→见重核 | 单测 | **testnet** | **上一版的 C 已过时** (lead 指出): 00:17:11Z eval `per_day_c=[null, 20.1633]`, 我在 HEAD 上复算逐位复现。`TypeError` 已于 `4eb55b9` 修。**但门仍未在*可测*数据上求值过** —— 见重核 ① |
+| `pilot_metrics:m2_markout` | 1 | **C** | 单测 | **单测** | 18 个锚点 `fill_rows_built: 0`; 全仓 0 个 fills 文件; `cond3.n_fill_rows=0` |
 | `pilot_log:order` / `_w` | 2 | **E** | — | **testnet** | 4,935 行 orders 落盘 (DRY_RUN) + testnet 锚点 165 行 `rows_persisted == rows_emitted` |
-| `pilot_log:fill` | 1 | **C** | — | 单测 | 生产者刚接线 (`anchor_loop:700`, 此前零调用者); 尚未见成交行 |
+| `pilot_log:fill` | 1 | **C** | — | 单测 | 生产者已接线 (`anchor_loop:700`) 且**每锚点执行**, 但 18/18 次 `fill_rows_built: 0` (DRY_RUN 无成交可归属); 接线时刻 (`6594b77` 02:15Z) **晚于唯一一次 TESTNET 锚点** (00:00Z) ⇒ 从未在能产出成交的模式下跑过 |
 | `pilot_log:read_day` | 1 | **E** | — | **testnet** | 被 watchdog/断言层每锚点调用; 我多次直接读取 |
 | `assert_anchor_artifacts:check_artifacts` | 25 | **E** | — | **testnet** | 生产路径执行, 并在 trip 锚点发出 REGRESSION 告警 (msg 15)。**缺口 (我审出): 断言 6 三处 fail-open; 断言 7 会凭空消失; selftest 只证 8 条里的 1 条** |
 | `assert_anchor_artifacts:run_and_report` | 1 | **E** | — | **testnet** | 同上 |
-| `dryrun_ledger:reconcile` | 4 | **C** | — | DRY_RUN | 每锚点执行并打印, **但从未在一次真实 MISSED 锚点上被检验** ⇒ 它的 `MISSED` 分支无证据 |
+| `dryrun_ledger:reconcile` | 4 | **C** | — | DRY_RUN | 比上一版更弱: 183/183 锚点 `expected = 0` ⇒ **逐锚点 `for e in exp` 循环体一次都没进过**, `OK`/`STARTED_NOT_FINISHED`/`MISSED` **三个状态全部无证据** (不止 MISSED)。129 次走 `NOT_STARTED` 早退, 54 次走真 reconcile 但期望集为空 |
 | `check_factor_health:run` | 2 | **E** | shadow | — | 我本次端到端跑过: `{"ok": true, "rolling_rank_ic": 0.0487, "caliber": "champion_fixfunding", "decay_judged": true}`。**缺口: `MAX_STALE_H=8` vs 每日 cron ⇒ 每天 16/24 小时会误报 STALE** |
 | `state_root:bind` / `paths_for` / `assert_single_delta` | 5 | **E** | — | **testnet** | `tests_state_root` 9 断言; **且我本次实证了它的价值 —— 我一度读错树 (DRY_RUN vs testnet), 而正是它把两棵树分开的** |
 
@@ -86,10 +86,99 @@ exec_tier :  单测 < shadow(=零) < DRY_RUN < testnet < 实盘
 | `anchor_loop:run_anchor` | 25 | **E** | 同上 |
 | `anchor_loop:_trade` | 13 | **E** | testnet 锚点实跑 |
 | `anchor_loop:complete_anchor` | 13 | **E** | testnet phase_B 实跑 (`rows_emitted 165 / persisted 165 / n_topped_up 55 / k_cancel 9`) |
-| `anchor_loop:_universe_gate` | 8 | **C** | DRY_RUN 下整体短路; testnet 下应执行, **本次未见其输出** |
-| `anchor_loop:stage_alarm` | 1 | **C** | staleness 阶梯未触发过 |
+| `anchor_loop:_universe_gate` | **9** (上一版误记 8) | **E** (函数) / **C** (9 步中 6 步) | **上一版的 C 已过时** (lead 指出): 两个 TESTNET 锚点 (log:1433 / log:2970) 都带完整 `universe{...}` 输出; 其余 176 次是 `{"skipped":"DRY_RUN"}` 短路。**但 6/9 步仍无证据, 且最新那步是构造性 C** —— 见重核 ② |
+| `anchor_loop:stage_alarm` | 1 | **E** | **上一版的 C 是错的** (我自查出的第三行): 2/183 锚点 `action=FLATTEN`, 两条不同分支各走一次 —— 见重核 ③ |
 | `book_config:*` | 6 | **N** | **我未检视** (新模块) |
 | `check_nosleep:*` | 13 | **N** | **我未检视** (新模块; 其 docstring 称以*观测*而非 `pmset` 设置回答) |
+
+---
+
+---
+
+## ★★ C 行 run-log 重核 (2026-07-26T02:44:54Z 冻结)
+
+**为什么必须重核 (team-lead 裁定):** 每个 C 行断言的都是"它要判定的情形**从未发生**" —— 那是三层阶梯第 3 层("这段代码**做过** X 吗")的主张, **只有日志能答, 代码读不出来**。上一版有几行是从代码状态的记忆里填的, 不是从 run log 里查的。⇒ 每行现附 **检索范围 + 检索式 + 命中数**; "会崩"类断言另附**现行 HEAD 的代码指针**。
+
+**检索基底 (冻结, 供复核)**
+
+| 项 | 值 |
+|---|---|
+| run log | `~/dl_quant_live/state/anchor_runs.log`, 3872 行, **2026-07-25T15:06:56Z → 2026-07-26T02:43:11Z** |
+| 锚点 | **183** 次 `anchor start` = 181 DRY_RUN + **2 TESTNET** (21:51:45Z, 00:00:00Z) |
+| 其他证据源 | `state/testnet/watchdog/last_eval.json` · `state/testnet/pilot_log/2026072{5,6}/orders.jsonl` · `state/notify_audit.jsonl` · `state/{,testnet/}watchdog/ALARM.log` · `config/book.json` |
+| 代码指针基线 | HEAD **`eb918fa`** (重核这半小时里 HEAD 从 `2a16818` 走到 `eb918fa` —— 代码仍在动) |
+
+**八格结果 (不是七格 —— 表里 `**C**` 计 8 处): 4 格降为 E, 4 格维持 C 但证据从"记忆"换成"日志"。**
+
+| # | C 格 | 判定 | 检索式 → 命中 | 层级 |
+|---|---|---|---|---|
+| ① | `pilot_metrics:m1_effective_cost` | **C → E** (lead 对) | `last_eval.json` `per_day_c=[null,20.1633]`; 我在 HEAD 上对 `20260726/orders.jsonl` 复算 → `c_bps_overall 20.1633 / n_filled_orders 38 / filled_notional_total 8757.41` **逐位复现** | 3 |
+| ② | `anchor_loop:_universe_gate` | **C → E** (lead 对) | `grep -c n_gone` → **2** (= 两个 TESTNET 锚点); `grep -c 'universe": {"skipped"'` → **176** | 3 |
+| ③ | `anchor_loop:stage_alarm` | **C → E** (我自查) | `grep -o '"action": "[A-Z]*"'` → FLATTEN **2** / TRADE 181 | 3 |
+| ④ | `check_funding_span:compare` | **C → E** (我自查) | `grep -c funding_span:` → **19**, 其中非 `stale=15` 者 **0** | 3 |
+| ⑤ | `pilot_metrics:m2_markout` | **C 维持** | `grep -o '"fill_rows_built": [0-9]*' \| grep -vc '": 0'` → **0** (18 次全 0); `find state -name '*fills*.jsonl'` → **0 个文件**; `cond3.n_fill_rows` → 0 | 3 |
+| ⑥ | `pilot_log:fill` | **C 维持** | 同上 + 接线 commit `6594b77` @02:15Z **晚于**唯一 TESTNET 锚点 @00:00Z | 3 |
+| ⑦ | `dryrun_ledger:reconcile` | **C 维持 (且更弱)** | `grep -c MISSED` → **0**; 但 `ledger:` 183 行**全部 `0/0 completed, day 0`** ⇒ 期望集恒空 | 3 |
+| ⑧ | `binance_funding:write_funding_rows` | **C 维持** | `grep 'funding: income=... rows=' \| grep -vc 'rows=0'` → **0** (16 次全 0) | 3 |
+
+### ① m1 —— 门确实求值过了, 但**从未在可测数据上**求值过
+
+`TypeError` 那句**我撤回**: 现行代码 `live/pilot_metrics.py:78-80` 是 `if o.get("avg_fill_px") is None: n_unmeasured_slippage += 1; continue` (`4eb55b9` 修的), 描述的是已不存在的代码。**但把 C 换成 E 之后, 那 38 行本身暴露了三件新的事:**
+
+- **(a) 38/38 行 `fee_paid = None`** ⇒ `n_unmeasured_fee = 38`, `measurement_complete: false`。**20.1633 是纯滑点数**, 分子的手续费一半结构性缺席。⇒ §4-1 的 `c` 门**已在有成交的数据上求值过, 但一次也没在*完整*数据上求值过** —— 这两句不是同一句。
+- **(b) ★ 16 笔已成交的 SELL 带负 `filled_notional` (合计 −4596.09), 被 `if f <= 0: continue` 整体丢弃。** 当日成交名义 13353.50, m1 只看见 8757.41 = **65.6%, 且全是买单**。`filled_notional` 是**签名量** —— `live/binance_broker.py:414` `out["filled_notional"] = sign * cq if cq > 0 else None` —— 而 m1 那道守卫把"已成交的卖单"和"没成交的单"判成同一件事。docstring 里的 "ONE-SIDED" 指每边只计一次, 不是"只计买边"。
+- **(c) 同一签名量在同一文件里被三种读法消费**: `m4_turnover:192` 取 `abs()` ✅ · `m1:68` 丢负数 ❌ · `m3_fill_rate:162` **直接求和 ⇒ 买卖相消** ❌ (而它下一行的分母写的是 `abs(intended_notional)` —— 作者在相邻两行里对符号的态度不一致, 与 m1 自己注释里记的 `fee_paid`/`avg_fill_px` "孪生漏检"是同一形态)。
+
+### ② universe_gate —— 函数 E, 但**它的身份在唯一一次执行之后变了**
+
+9 步里: `venue_status` / `broker.positions` / `classify` **执行过** (2 次); `venue_status_unknown` 告警、`exit_orders` 提交循环、循环内 except 告警、`exit_only_held` 告警、`gone_from_venue_held` 告警 **均无证据** (输出里 `n_exit_only=0 / n_gone=0`)。
+
+**第 9 步 (`if:cfgmap/if:blocked/...::self.alarm()`, maxNotionalValue=0 扣除) 是构造性 C**: 它随 `bcfa1b5` 落地于 **2026-07-26T00:56Z**, 比 `_universe_gate` 最后一次执行 (00:01:22Z) **晚 55 分钟**。**正面佐证: 00:00Z 那行日志的 `universe{...}` 里没有 `n_zero_cap_withheld` 键, 而现行 return 字典恒含该键。** ⇒ 这一格记录的是一个**已经不存在的函数**的执行证据。
+
+### ③ stage_alarm —— 上一版是错的, 两条分支各走过一次
+
+- 15:06:56Z: `note: "book flattened by staleness ladder"` ⇒ `has_positions` 真 ⇒ `stage_alarm("FLATTEN","CRITICAL")`;
+- 另一次: `note: "cold start: no signal, empty book, nothing to do"` ⇒ `stage_alarm("FLATTEN_COLD","INFO")`。
+- 佐证: `state/notify_audit.jsonl` 首行 `ts 1784992016.485644 severity CRITICAL` vs 该锚点 `anchor_wall_ts 1784992016.485567` —— **相差 77 µs**。
+- **HOLD / DERISK 两级仍无证据** (`grep -c 'action": "HOLD\|DERISK'` → 0)。
+- **★ 顺带查出的量测缺口: 告警的正文全仓无落盘处。** `notify_audit.jsonl` 只记投递回执 (severity/status/message_id, **无 message 字段**), `grep -rl 'flattening book\|de-risking\|signal stale' state/` → **0 个文件**。⇒ 上面那条只能靠"严重度 + 时间戳吻合"坐实, 不能靠正文。**一条正文只存在于 Telegram 会话里的告警, 在本机上是不可审计的** —— 而本表恰恰是靠日志判 C 的。
+
+### ⑦ ledger —— 比上一版说的更弱
+
+183 行 `ledger:` **全部 `0/0 completed (0.0%), day 0`**: 129 次 `gate=NOT_STARTED` (走 `if not clock_start` 早退), 54 次 `gate=NOT_YET` (17:10:13Z→20:15:43Z 那段, 配置里一度有 clock date, 现已回到 `config/book.json: "dryrun_clock_start": null`)。**两种情形下 `expected` 都是 0** ⇒ `for e in exp:` 循环体一次未进 ⇒ **`OK` / `STARTED_NOT_FINISHED` / `MISSED` 三个状态全部无证据**, 不止 MISSED。**⇒ §2.5 的时钟至今未起算, 这张对账器从未有过一个非空的期望集去对。**
+
+---
+
+## ★★ 重核过程中查出的新问题 (不属于本表原设计, 但 08:00Z 之前必须知道)
+
+**同一个符号混淆的第四个现场, 而且它就是 trip 那份证据的来源。**
+
+`live/watchdog.py:471-474` (§4-5b, 判"仓位动了但没有我们的单能解释"):
+```python
+f = float(o["filled_notional"] or 0.0)
+if f > 0:                                     # ← 已成交的卖单在这里被丢掉
+    filled_by_anchor[ats][sym] += (1 if o["side"] == "buy" else -1) * f
+```
+`filled_notional` 已经带符号, 这里**既丢负数、又再乘一次符号** —— 双重错。
+
+**我用 trip 当天的真实台账把 5b 原样跑了一遍, 又把符号改对跑了一遍 (`n=47` 两边完全一致, 即我复现了看门狗那 47 条):**
+
+| | `unexplained_frac` 分布 |
+|---|---|
+| **现行代码** | 31 条 ≈ 0.5 + **16 条 = 1.0** |
+| **符号改对** | **47 条全部 ≈ 0.5** |
+
+那 16 条 `1.0` **恰好就是那 16 笔卖单**。例: `AVAXUSDT` 现行报 `expected 0.0 / observed −770.98 / frac 1.0`; 符号改对后是 `expected −385.66 / observed −770.98 / frac 0.4998`。
+
+**⇒ 三条结论, 分开写:**
+
+1. **trip 仍是真阳性** —— 改对之后 47 条**全部**落在 0.5, 即"仓位是我们下单量的 2 倍"这**一个**原因, 干净利落。
+2. **但证据的形状被这个 bug 改了**: 现行输出看上去是**两个族群** (31 条"一半没解释" + 16 条"全部没解释"), 会诱导读者去找第二个失效原因; 实际只有一个。
+3. **★ 这是一个被另一个缺陷掩盖着的缺陷**: 只要 `filled_notional < 0` 的卖单一直被丢, **任何一笔正常成交的卖单都会让 5b 报 `frac ≈ 1.0`** —— 即 5b 在空头方向上是个**常驻假阳性发生器**。现在看不出来, 是因为 2× 敞口那个真缺陷让它们**恰好也是真阳性**。**⇒ 0B 修完 2× 之后, 5b 会继续在每个卖单名字上触发, 而现场会读作"2× 没修好"。**
+
+**同族的第四处**: `pilot_metrics.py:212` (`m5_weight_fidelity`) 同样是 `if f > 0:` + 显式乘符号 ⇒ `venue_vs_inferred_drift` 的推算持仓里**没有任何卖单**。而 §4-7 `unrecovered_position_drift` 正是这次 trip 的第二个触发条件。
+
+> **未经裁定 (按边界, 我不派任务): 这四处 (`m1:68` · `m3:162` · `watchdog:471` · `m5:212`) 是否为同一处修复, 由 team-lead 裁定后交 0B。我只读、只报。**
 
 ---
 
@@ -107,3 +196,10 @@ exec_tier :  单测 < shadow(=零) < DRY_RUN < testnet < 实盘
 2. **`book_config` / `check_nosleep` 标 N 是因为我未检视, 不是因为我确认无人碰过** —— 0B 可能有证据, 我没问;
 3. **"异常分支多为 C"是按类推断**, 未逐条核对 33 个异常分支步骤各自是否被触发过;
 4. **数据轴 tier 标 `shadow` 依据的是 8 天 shadow 运行**, 而我已查明其 funding 台账为 8h-only ⇒ **funding 相关的 shadow 档位应视为部分覆盖**, 我未进一步细分。
+
+**重核这一轮新增的未检验项:**
+
+5. **E 行未做同等重核** —— 本轮只把 8 个 C 格对了日志。**E 格的证据我没有逐条重放**, 其中至少 `watchdog_inputs` / `assert_anchor_artifacts` 两行的证据是几小时前记的, 而这期间 HEAD 走了 6 个 commit。⇒ **本表现在是"C 格已达第 3 层, E 格仍是第 2 层记忆"的混合体。**
+6. **`stage_alarm` 的 E 建立在"严重度+时间戳吻合"上**, 不是正文 —— 因为正文全仓不落盘 (见重核 ③)。这是一条**用推断补上的证据**, 与其他 E 格不同级。
+7. **5b 那份复算用的是 trip 当天的台账**, 我**没有**验证 `position_readback` 本身是否也受同一符号问题影响 (它来自 `/fapi/v3/positionRisk`, 与订单表不同源, 但我没查其写入路径)。
+8. **`m3_fill_rate` 的买卖相消是我读代码判的, 不是实测** —— 当日 0 笔 maker 成交, 该路径无法在现有数据上验证。⇒ 它是一条**预测**, 不是一次观测。
