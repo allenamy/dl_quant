@@ -30,6 +30,8 @@ sys.path.insert(0, MA)
 sys.path.insert(0, MA + "/engine/live")
 import pilot_log as PL
 import regime_classifier as RC
+sys.path.insert(0, MA + "/exports/eda")
+import assert_fill_sign_convention as SIGN     # THE per-row rule; never restated here
 
 ROOT = os.environ.get("PILOT_LOG_ROOT", MA + "/exports/live/pilot_log")
 PANEL = os.environ.get("PILOT_LIVE_PANEL", MA + "/exports/live/wide_dl_live.npz")
@@ -176,10 +178,25 @@ def run(days_back=7, verbose=True):
                 fee = filled * (MAKER_FEE_BPS if not is_topup else TAKER_FEE_BPS) * 1e-4
                 term = ("filled" if frac > 0.999 else
                         ("abandoned_max_attempts" if is_topup else "partial_expired"))
+                # ★ SIGNED, from 2026-07-27 (team-lead ruling; 0B cross-reviewed).
+                # This wrote `float(filled)` — an unsigned MAGNITUDE — three lines below
+                # `intended_notional = sgn * remaining`, which is signed. Two sibling fields on one
+                # row, opposite conventions, one writer, no assertion between them. The venue-real
+                # log signs it (buy +, sell −) and `reconcile.signed_fills_by_anchor` documents
+                # that convention, so every consumer written for the real stack was 16-33x wrong
+                # when pointed here: M5's venue-vs-inferred drift read 44486.44 instead of 1363.65
+                # under an otherwise schema-clean drop-in.
+                # ⇒ The three lines below are one statement: sign it, then ASSERT it. Without the
+                #   assertion the convention is carried only by whoever happened to write the
+                #   column, and the next vendoring rediscovers it the same way — by two
+                #   implementations disagreeing about a number.
+                _filled_signed = sgn * float(filled)
+                SIGN.assert_row({"side": side, "filled_notional": _filled_signed,
+                                 "symbol": s, "terminal_reason": term})
                 lg.order(anchor_ts=ats, symbol=s, side=side, target_w=tw, prev_w=pw,
                          intended_notional=sgn * remaining, order_type=otype, submit_ts=sub_ts,
                          price_submit=mid_a, mid_at_submit=mid_a, mid_at_anchor=mid_a,
-                         filled_notional=float(filled), avg_fill_px=avg_px,
+                         filled_notional=_filled_signed, avg_fill_px=avg_px,
                          first_fill_ts=fts[0], last_fill_ts=fts[-1],
                          cancel_ts=(sub_ts + K_WINDOW_MS) if frac < 1 else None,
                          fee_paid=float(fee), rebalance_id=f"r{ats}", attempt_idx=att,
