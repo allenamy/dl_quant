@@ -10,16 +10,28 @@ DEST="jpline:/mnt/storage/private/work_hsy/quant_research_multi_asset"
 # --delete 只有在"服务器上没有本地缺失的文件"时才安全。若服务器上有本地没有的东西，
 # 说明有人直接在服务器上改了 —— 违反原则，且同步会销毁它。预检发现即中止。
 # 注意：必须用 -i (itemize)，删除行才会以 "*deleting" 开头；--out-format='%n' 不带该前缀。
+# ★ ONE LIST, READ TWICE — NEVER TWO LISTS THAT AGREE TODAY (0C audit, 2026-07-27).
+# The pre-check and the real sync used to carry SEPARATE hand-maintained copies of these 22
+# excludes. They were byte-identical when measured, which is exactly what makes the arrangement
+# dangerous: nothing enforced it, and the two failure directions are not symmetric —
+#   * an exclude present only in the PRE-CHECK makes the guard blind to files the sync would
+#     delete, i.e. the guard clears a destructive sync. This is the direction that loses data.
+#   * an exclude present only in the REAL SYNC merely causes a false abort.
+# A guard and the action it guards must read the SAME list, not two copies of it. (Same rule as
+# `factor_version_registry`: reference the symbol, never restate it.)
+EXCLUDES=(
+  --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' --exclude='.DS_Store'
+  --exclude='/data/' --exclude='crypto_data/' --exclude='experiments/'
+  --exclude='exports/' --exclude='/logs/' --exclude='midprice_per_day/'
+  --exclude='multi_asset/exports/'
+  --exclude='*.md' --exclude='/docs/' --exclude='multi_asset/handoff/'
+  --exclude='*.ipynb' --exclude='*.tar.gz' --exclude='*.zip'
+  --exclude='.claude/' --exclude='.cctmp/' --exclude='.pytest_cache/'
+  --exclude='AGENTS.md' --exclude='.mcp.json'
+)
+
 echo "→ 预检：服务器上是否存在本地缺失的文件…"
-_ORPHANS=$(rsync -ain --delete \
-  --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' --exclude='.DS_Store' \
-  --exclude='/data/' --exclude='crypto_data/' --exclude='experiments/' \
-  --exclude='exports/' --exclude='/logs/' --exclude='midprice_per_day/' \
-  --exclude='multi_asset/exports/' \
-  --exclude='*.md' --exclude='/docs/' --exclude='multi_asset/handoff/' \
-  --exclude='*.ipynb' --exclude='*.tar.gz' --exclude='*.zip' \
-  --exclude='.claude/' --exclude='.cctmp/' --exclude='.pytest_cache/' \
-  --exclude='AGENTS.md' --exclude='.mcp.json' \
+_ORPHANS=$(rsync -ain --delete "${EXCLUDES[@]}" \
   /Users/haosiyu/Desktop/quant_research/ "$DEST/" \
   | grep '^\*deleting' || true)
 
@@ -43,29 +55,7 @@ if [ "${1:-}" = "--check-only" ]; then
 fi
 
 
-rsync -avz --delete \
-  --exclude='.git' \
-  --exclude='__pycache__' \
-  --exclude='*.pyc' \
-  --exclude='.DS_Store' \
-  --exclude='/data/' \
-  --exclude='crypto_data/' \
-  --exclude='experiments/' \
-  --exclude='exports/' \
-  --exclude='/logs/' \
-  --exclude='midprice_per_day/' \
-  --exclude='multi_asset/exports/' \
-  --exclude='*.md' \
-  --exclude='/docs/' \
-  --exclude='multi_asset/handoff/' \
-  --exclude='*.ipynb' \
-  --exclude='*.tar.gz' \
-  --exclude='*.zip' \
-  --exclude='.claude/' \
-  --exclude='.cctmp/' \
-  --exclude='.pytest_cache/' \
-  --exclude='AGENTS.md' \
-  --exclude='.mcp.json' \
+rsync -avz --delete "${EXCLUDES[@]}" \
   /Users/haosiyu/Desktop/quant_research/ "$DEST/"
 
 echo "✓ synced → $DEST"

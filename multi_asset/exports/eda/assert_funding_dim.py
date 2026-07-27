@@ -126,24 +126,60 @@ def expected_caliber(panel_path, override=None):
       which is the state that changes on the day the heads are retrained. See the FORWARD NOTE in
       the header: that flip and the model version are ONE decision.
 
-    ★ AND THE `_fundfix` SUFFIX IS A DECLARATION, NOT A GUESS (0C 2026-07-27, second correction).
-      The blanket `as_trained` default above was itself wrong for one family of artifacts. Measured:
-          exports/wide_dl_full_fundfix.npz        +0.1418 / +0.1429
-          exports/live/wide_dl_live_fundfix.npz   +0.1461 / +0.1471   (reference corrected +0.1463)
-      Those panels exist precisely to carry the CORRECTED caliber — they are the `fixfunding` track's
-      inputs — so the blanket default would have failed both. Nothing points the gate at them today,
-      which is the only reason this was latent rather than a second outage: the SAME defect as the
-      07-25 one (a gate asserting a caliber the artifact was never supposed to have), caught before
-      it had a caller instead of after.
-      ⇒ The suffix is routed because the project USES it as a declaration and MEASUREMENT AGREES, not
-        because a name was read as a fact. That distinction is the whole difference between this rule
-        and the `full -> corrected` rule I had to withdraw.
+    ★★ AND IT COMES FROM THE DECLARATION, NOT FROM THE FILENAME (0C 2026-07-27, THIRD correction —
+      team-lead ruling: "routing the caliber expectation by filename is today's accident repeated
+      with a different file; the expectation must come from the DECLARED state — which generation
+      holds this artifact — never from a naming convention").
+      My second version routed `*_fundfix.npz -> corrected`. Measurement agreed with it
+      (`wide_dl_full_fundfix` +0.1418/+0.1429, `wide_dl_live_fundfix` +0.1461/+0.1471, against the
+      corrected reference +0.1463), so it was not wrong TODAY — it was wrong in KIND. A convention
+      holds until someone writes a file that does not follow it, and then the gate asserts a caliber
+      the artifact was never supposed to have. That is precisely the 07-25 defect.
+      ⇒ The declaration already exists: `engine/live/factor_version_registry.py` names, per factor
+        version, both panels and the caliber they carry. This function now READS it.
+      ⇒ An artifact that is not declared there yields **None**, and the caller must report CANNOT
+        JUDGE (exit 2) — never a default. "I do not know what this is supposed to be" is not a pass
+        and not a violation, and inventing an answer for it is how a filename rule gets born.
+      ⇒ The authoritative caliber map, per the same ruling:
+        **the corrected caliber currently belongs to the FACTOR LEG and to NO DL input panel.**
+        Every live `wide_dl_*` panel the frozen heads consume is `as_trained`.
     """
     if override and override != "auto":
         return override
-    if os.path.basename(panel_path).endswith("_fundfix.npz"):
-        return "corrected"
-    return "as_trained"          # every other wide_dl_* panel, until a retrain says otherwise
+    return declared_caliber(panel_path)
+
+
+def _registry():
+    """factor_version_registry, or None if unreachable. Never faked: an unreachable registry means
+    the declaration cannot be read, which is a CANNOT-JUDGE, not a default."""
+    live = os.path.join(MA, "engine", "live")
+    if live not in sys.path:
+        sys.path.insert(0, live)
+    try:
+        import factor_version_registry as FVR
+        return FVR
+    except Exception:
+        return None
+
+
+def declared_caliber(panel_path):
+    """The caliber THIS artifact is DECLARED to carry, from the factor-version registry.
+
+    Returns "as_trained" / "corrected", or None when the artifact is not declared anywhere.
+    """
+    FVR = _registry()
+    if FVR is None:
+        return None
+    want = os.path.abspath(panel_path)
+    for ver in FVR.FACTOR_VERSIONS.values():
+        cal = ver.get("expected_caliber")
+        if not cal:
+            continue
+        for key in ("panel_frozen", "panel_live"):
+            rel = ver.get(key)
+            if rel and os.path.abspath(os.path.join(MA, rel)) == want:
+                return cal
+    return None
 
 
 def rank_centred(x):
@@ -218,8 +254,17 @@ def measure_gaps(panel, stride=4):
 
 def main(panel, caliber="auto"):
     WANT = expected_caliber(panel, caliber)
+    if WANT is None:
+        print(f"CANNOT JUDGE: {panel} is not DECLARED in engine/live/factor_version_registry.py, so "
+              f"there is no statement of which caliber it is supposed to carry (exit 2).\n"
+              f"  ⇒ Declare it there (panel_frozen / panel_live + expected_caliber) rather than "
+              f"teaching this gate a filename rule. A convention holds until someone writes a file "
+              f"that does not follow it — and then the gate asserts a caliber the artifact was never "
+              f"supposed to have, which is the 2026-07-25 defect exactly.\n"
+              f"  ⇒ Or pass --caliber explicitly for a one-off inspection.", flush=True)
+        return 2
     print(f"[caliber] this artifact must be **{WANT}**  "
-          f"(basis: {'--caliber override' if caliber not in (None,'auto') else 'artifact path'})",
+          f"(basis: {'--caliber override' if caliber not in (None,'auto') else 'factor_version_registry declaration'})",
           flush=True)
     # ★ EXIT 2 = "CANNOT JUDGE", DISTINCT FROM EXIT 1 = "JUDGED, WRONG CALIBER" (0C 2026-07-27).
     # Both used to be 1. They are different states and callers need to tell them apart: a panel

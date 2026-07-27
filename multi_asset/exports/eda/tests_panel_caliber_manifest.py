@@ -13,6 +13,28 @@ frozen heads were trained on. It must FAIL. That is the whole thesis of this gua
 CONSISTENCY WITH TRAINING, not correctness. A guard that welcomed the more-correct panel would wave
 through exactly the drift it exists to catch.
 
+★★ GATE COVERAGE — WHAT THESE REDS PROVE, AND WHAT THEY DO NOT
+--------------------------------------------------------------
+A battery that lists only what it checks invites the reader to assume it checks everything adjacent.
+So, explicitly (team-lead ruling 2026-07-27, registered as a declared blind spot rather than left to
+be discovered):
+
+  PROVEN by R1 — the gate catches a panel whose `funding_ema` AND `xsr_fund` were rebuilt through the
+    real corrected pipeline (`wide_dl_full_fundfix.npz` is a genuine `apply_funding_fix` output, not a
+    synthetic perturbation), while the manifest expects `as_trained`.
+  NOT PROVEN — that the gate catches a change that reaches `xsr_fund` by a path OTHER than "rebuild
+    funding_ema, re-derive its cross-sectional rank". `xsr_fund` is derived from `funding_ema` in
+    `build_wide_dl.py`, so R1 exercises them together and cannot separate them. An edit that touched
+    only the rank derivation would be caught by the same measurement in principle, but that has not
+    been demonstrated here.
+  NOT PROVEN — behaviour on a panel whose two funding channels DISAGREE about their caliber. The
+    assertion loops per channel and any disagreeing channel fails, so it should ring; untested.
+
+  ⇒ OPEN ITEM C (0C, registered 2026-07-27): a faithful red test that normalises at the RATE level,
+    BEFORE the EMA, and RE-DERIVES `xsr_fund` from the result — i.e. the real transformation, not a
+    post-hoc scaling of the stored channel. Until that exists, the `xsr_fund` limb of this gate is
+    argued, not demonstrated.
+
 Run:  python multi_asset/exports/eda/tests_panel_caliber_manifest.py
 Exit 0 = all cases behaved as specified.
 """
