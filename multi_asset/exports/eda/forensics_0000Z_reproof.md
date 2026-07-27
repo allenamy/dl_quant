@@ -80,3 +80,47 @@ binance_executor.py:421  if p["symbol"] in unknown_fills:  → 行标 skipped_un
 2. **8 个成功的名字在字母序上偏后** (`ICP/NOT/ONE/OP/RENDER/SOL/ZIL/ZK`), 而失败的从 `1000BONK` 开始 ⇒ 形态像"前段失败、后段成功"。**我没有确认迭代顺序就是字母序** —— 若是, 这个"后缀"形态本身是线索 (例如某种在循环中途恢复的限制); 若不是, 该观察无效;
 3. **项 3 的科目依赖是我读 `pilot_metrics` 得出的**, 未与 E 考卷的正式定义逐条对照;
 4. **我没有查 92 之外那 17 个 live 名字** (109 − 92) 的去向。
+
+---
+
+# 派工补做 (0C, 00:4xZ)
+
+## ③ `factor_health STALE 28.2h` 归因: **不是 cron 死了 —— 是闸门正确地拒绝了**
+
+**服务器实测 (jpline, 只读):**
+
+```
+cron:  0 9 * * *  run_daily.sh            ← 按时触发, 未漏
+日志:  run_20260721..25.log  各 ~500-600 KB, 尾部 "run_daily done"
+       run_20260726.log      **仅 3141 B**, 死在 ingest
+       run_20260727.log      不存在 (服务器 00:35Z, 今日 09:00Z 尚未到)
+```
+
+**`run_20260726.log` 的死因 (逐字):**
+```
+funding_ema   mean gap -0.3767   FAIL (|gap| <= 0.2; broken -0.3745 / corrected +0.1463)
+xsr_fund      mean gap -0.3767   FAIL
+VERDICT: FAIL: ['funding_ema', 'xsr_fund']
+[wide_dl] FUNDING DIMENSION GATE FAILED (exit 1) — panel NOT fit for use.
+2026-07-26T09:02:29Z [ALARM] step FAILED (exit 1)
+```
+
+**⇒ 这是 `assert_funding_dim` —— 我 07-25 查出 funding 4h/8h 单位 bug 后**亲手接成硬构建闸门**的那一道。⇒ 它在 live 面板构建上**触发了**: `funding_ema` / `xsr_fund` 呈现的是**未修**签名 (gap −0.3745), 不是已修签名 (+0.1463)。**
+
+> **★ 结论: shadow 日报之所以 28.2h 不动, 是因为**闸门拒绝产出一份带着已知单位 bug 的面板**。⇒ 报告缺席不是故障, 是**拒绝发布坏数据**。⇒ 告警说"报告旧了"是**真阳性**, 但它的**近因是好的** —— 真正该报的是"live 构建路径仍在用未修的 funding 归一化"。**
+
+**⇒ 且这一条**不独立于我早先的工作**: 同一个 funding 单位 bug, 出现在**当时未被覆盖的另一条路径**上 (`data/build_wide_panel.py` 的 live 分支) —— 我当时修的是源, 闸门是我接的, 而闸门今天抓住了漏网的那条路径。**
+
+**⇒ 与交易缺陷的关系: 确认**独立** (成交路径不会让 funding 归一化出错), 但**不是** "cron 没跑" —— cron 按时跑了, 是流水线自己停的。⇒ 下一次 09:00Z 会**以同样方式失败**, 除非 live 构建路径按 `rate * (8 / interval_h_of_that_row)` **在 EMA 之前**归一。**
+
+## ④ 17 个无仓 live 名字: **三类, 不是一类**
+
+| 分组 | 数 | 判读 |
+|---|---|---|
+| `maker` / `venue_reject` | 7 | 挂单被场所拒 ⇒ 从未成交 ⇒ 无仓 ✓ |
+| `maker` / `skipped_no_mid` | 1 | 无 mid 无法定价 ⇒ 从未下 ⇒ 无仓 ✓ |
+| **`topup_taker` / `skipped_unknown_fill`** | **9** | **★ 第三类** |
+
+**⇒ lead 的预期 ("maker 未成交无仓位") 对**前 8 个**成立; 但那 9 个是**另一件事**: 它们的 maker 腿**确实没成交**, 而补单**因为读不到这个事实而被跳过** ⇒ **本该补的仓没补上**。**
+
+> **★ 这是防御性跳过的**另一侧代价**, 今天第一次有了实测数字: 跳过保护了 92 个名字不被翻倍, 同时让 9 个名字**欠配**。⇒ 92 : 9 —— 这个比例本身就是"宁可欠配也不超配"这条取舍的经验值, 而它正是前沿研究里族 2 (中性优先补单) 要处理的那个量。⇒ 建议记入族 2 的输入 (未经裁定)。**
