@@ -259,6 +259,39 @@ def main(days_back=1, skip_log=False, verbose=True):
         import watchdog as WD
         import watchdog_inputs as WI
         rep["metrics"] = PM.compute(LOG_ROOT, verbose=verbose)
+        # ★★ THE METRIC MUST CARRY ITS OWN DOMAIN OF VALIDITY (0C 2026-07-27).
+        # `pilot_metrics` is now the vendored implementation, which reads `orders.filled_notional`
+        # as SIGNED. Days written before the 2026-07-27 cutover carry the old UNSIGNED convention
+        # and are deliberately not rewritten — so while the log spans the boundary, M5's
+        # venue-vs-inferred drift is computed by pairing an implementation with a convention it was
+        # not written for, and the number is wrong under BOTH pairings, not merely under one.
+        # ⇒ NON-BLOCKING, and that is the considered choice: making it fatal would stop the shadow
+        #   for a condition that invalidates ONE metric, which is how the report froze for 28 hours
+        #   on 07-26. But the number must not travel without the warning — an unmarked M5 here is
+        #   read as "the book reconciles badly" when the truth is "this reading has no meaning yet".
+        try:
+            import assert_fill_sign_convention as SIGN
+            _rc, _sig = SIGN.run(LOG_ROOT, expect="signed", verbose=False)
+            rep["fill_sign_convention"] = {
+                "convention": _sig["convention"], "expected": "signed",
+                "matches_vendored_implementation": _rc == 0,
+                "table": _sig["table"], "n_row_violations": _sig["n_row_violations"],
+                "cutover_day": SIGN.SHADOW_SIGN_CUTOVER_DAY}
+            if _rc != 0:
+                _w = (f"M5 IS NOT INTERPRETABLE IN THIS RUN. The log's convention is "
+                      f"{_sig['convention']} while the vendored pilot_metrics ({PM.self_hash()[:16]}"
+                      f"…) reads filled_notional as SIGNED. venue_vs_inferred_drift is therefore "
+                      f"paired with a convention it was not written for and is wrong under BOTH "
+                      f"conventions — do not read it as a reconciliation quality. The boundary is "
+                      f"in WRITE time and the log's day labels are DATA time (the shadow frontier "
+                      f"lags), so it cannot be scoped by day: see SHADOW_SIGN_CUTOVER_DAY.")
+                rep["metrics"]["M5_weight_fidelity"]["CONVENTION_WARNING"] = _w
+                rep.setdefault("warnings", []).append(_w)
+                if verbose:
+                    print(f"  ⚠ {_w}", flush=True)
+        except Exception as _e:                     # never let a warning break the chain
+            rep["fill_sign_convention"] = {"error": f"{type(_e).__name__}: {_e}",
+                                           "note": "convention UNCHECKED — not the same as clean"}
         # ★ PRODUCTION MUST SUPPLY THESE. Calling WD.run(LOG_ROOT) bare left §4-5 and §4-7 with no
         # inputs at all, so both were structurally unable to fire in production while their
         # component tests passed — the tests supplied what production never did.

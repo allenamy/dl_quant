@@ -60,13 +60,22 @@ import sys
 MIN_FILLED_ROWS = 20          # below this, a convention reading is noise; report UNDETERMINED
 MIN_PER_SIDE = 3
 
-# ★ THE CUTOVER IS DATA, NOT PROSE. `shadow_pilot_log.py` wrote UNSIGNED magnitudes until this day
-# and SIGNED notionals from it onward; `run()` skips anchors already logged, so the older days stay
-# as they were written (team-lead ruling: do not recompute, do not rewrite). A tree spanning the
-# boundary is therefore legitimately MIXED, and a probe that reported MIXED for it would be raising
-# an alarm on correct data — the failure mode 0B named, and the one that gets assertions switched
-# off. Hence `--since`, and hence this constant lives here rather than in a comment.
-SHADOW_SIGN_CUTOVER_DAY = "20260728"   # first day written under the signed convention
+# ★★ THE CUTOVER CANNOT BE EXPRESSED AS A DAY LABEL — MEASURED, AND IT KILLED MY FIRST DESIGN.
+# I first wrote `SHADOW_SIGN_CUTOVER_DAY = "20260728"` and gave `--since` as the way to scope past
+# the boundary. Then I measured the log's day labels:
+#
+#     20260714 … 20260724   all UNSIGNED     (shadow frontier lags; the newest day is 07-24)
+#
+# The writer changed on 2026-07-27, and the NEXT run will write day **20260725** — signed, and
+# EARLIER than any cutover label I could have chosen. The boundary is in WRITE TIME; the day label
+# is DATA TIME; the two run in the same direction but at different speeds, so no threshold on one
+# can express a boundary in the other. A `--since` cutover here would have silently mis-scoped in
+# whichever direction the lag happened to fall.
+# ⇒ CONSEQUENCE FOR THE OPEN DECISION: "scope every consumer by day" is not merely expensive, it is
+#   NOT AVAILABLE. Either the log is regenerated under one convention, or the convention must be
+#   recorded per day at write time (a sidecar), because it cannot be inferred from the label.
+# ⇒ `--since` stays as a general-purpose window, and must not be used for THIS boundary.
+SHADOW_SIGN_CUTOVER_DAY = None   # deliberately None: see above — there is no such day
 
 
 # ── the row-level rule, in ONE place: writer, tree probe and acceptance suite all call this ──────
