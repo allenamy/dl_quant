@@ -101,5 +101,45 @@ def main(trades_cache=None):
               f"   {(tv-to)/tv*100:6.1f}%")
 
 
+
+
+def collector_signature(runlog="/Users/haosiyu/dl_quant_live/state/anchor_runs.log"):
+    """★ THE SIGNATURE, and the one-line assertion nobody has pointed at it.
+
+    `phase_B` reports `already_terminal` (orders that reached a terminal state at the venue) and
+    `fill_rows_built`. Orders reaching terminal state with ZERO fill rows built means the
+    collector saw nothing — while the sibling field `n_trades_unattributed: 0` reads as success,
+    because "no trade went unattributed" is true when no trade was collected at all.
+
+    ⇒ `already_terminal > 0 and fill_rows_built == 0` would have fired at the moment of each
+      incident, before §4-5b tripped and before the ladder flattened.
+    """
+    import re
+    txt = open(runlog).read()
+    lives = {}
+    for m in re.finditer(r"^\S+ phase_A: (\{.*)$", txt, re.M):
+        try:
+            d = json.loads(m.group(1))
+            lives[d.get("rebalance_id")] = d.get("n_live")
+        except Exception:
+            pass
+    print("\n=== fill-collector signature per live anchor ===")
+    print(" anchor        n_live  already_terminal  fill_rows_built  n_trades_unattributed")
+    for m in re.finditer(r"^\S+ phase_B: (\{.*)$", txt, re.M):
+        try:
+            d = json.loads(m.group(1))
+        except Exception:
+            continue
+        rid = d.get("rebalance_id", "")
+        if not rid.startswith("A") or not lives.get(rid):
+            continue
+        term = d.get("k_cancel", {}).get("already_terminal", 0)
+        built = d.get("fill_rows_built", 0)
+        flag = "  <<< terminal orders, ZERO fill rows" if (term > 0 and built == 0) else ""
+        print(f"  {time.strftime('%m-%dT%H:%MZ', time.gmtime(int(rid[1:])))}  {lives[rid]:5d}"
+              f"   {term:9d}      {built:10d}   {d.get('n_trades_unattributed', 0):9d}{flag}")
+
+
 if __name__ == "__main__":
     main(sys.argv[1] if len(sys.argv) > 1 else None)
+    collector_signature()
