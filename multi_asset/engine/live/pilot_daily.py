@@ -42,6 +42,9 @@ LOG_ROOT = _env("PILOT_LOG_ROOT", MA + "/exports/live/pilot_log")
 # tests_production_signature showed up as a standing HALT). Tests must override this.
 WATCHDOG_STATE_DIR = _env("PILOT_WATCHDOG_DIR", MA + "/exports/live/watchdog")
 LIVE_PANEL = _env("PILOT_LIVE_PANEL", MA + "/exports/live/wide_dl_live.npz")
+# The production panel path, kept separately from the (overridable) LIVE_PANEL so the synthetic
+# declaration in run_guards can be checked against something a test cannot move.
+_PROD_LIVE_PANEL = MA + "/exports/live/wide_dl_live.npz"
 # The factor version the engine is DECLARED to run (protocol §9.5). champion/challenger run the
 # pre-fix factor; only the fixfunding third track runs the corrected one.
 TRACK = "champion"          # which track this daily run represents
@@ -81,21 +84,51 @@ def panel_hash(path):
     return h.hexdigest()[:16]
 
 
+# ★ A HERMETIC FIXTURE MAY DECLARE ITS PANEL SYNTHETIC — AND THE REPORT THEN SAYS "NOT VERIFIED",
+# NOT "PASS". The suites run against a tiny generated panel (tests_fixture.py) that carries no
+# `xsr_fund` channel and no settlement-interval archive, so the funding-caliber question is not
+# merely unanswered on it, it is UNDEFINED. Until 2026-07-27 the criterion happened to accommodate
+# this by accident (it expected the gate to FAIL on the declared pre-fix version, and the gate did
+# fail — for the unrelated reason that a channel was missing). That accident held a suite green and
+# hid the fact that nothing was being checked. Now the exemption is EXPLICIT, and:
+#   * it is honoured only for a panel that is NOT the production one (asserted below), so the
+#     escape hatch cannot be opened on the live panel;
+#   * it records NOT_VERIFIED rather than a pass — an unanswerable question must never resolve to
+#     the benign answer.
+SYNTHETIC_PANEL = False
+
+
 def run_guards(verbose=True):
     """§9.5 ⑥ — factor-dimension assertion + panel hash. Failure BLOCKS readings."""
     g = {"ok": True, "checks": {}}
-    rc = subprocess.call([PY, MA + "/exports/eda/assert_funding_dim.py", "--panel", LIVE_PANEL],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    # ★ REWRITTEN 2026-07-27 (0C). This block used to say a non-zero exit was the EXPECTED state,
-    # because the guard then asserted ONE caliber on every panel. The guard now asserts the caliber
-    # each artifact is SUPPOSED to have, so the live panel — which correctly carries the as-trained
-    # caliber the frozen heads were fitted on — exits 0. Both this note and the criterion below were
-    # written against the old semantics and had to move with them.
-    g["checks"]["assert_funding_dim"] = {
-        "exit_code": rc, "pass": rc == 0,
-        "note": ("the guard asserts the caliber THIS artifact is supposed to have, so exit 0 is the "
-                 "healthy state for every declared version. A non-zero exit means the panel is not "
-                 "what it declares — there is no longer any version for which a red is 'expected'.")}
+    if SYNTHETIC_PANEL:
+        if os.path.abspath(LIVE_PANEL) == os.path.abspath(_PROD_LIVE_PANEL):
+            raise RuntimeError(
+                "SYNTHETIC_PANEL was declared while LIVE_PANEL still points at the production "
+                f"panel ({LIVE_PANEL}). That combination can only be a mistake, and honouring it "
+                "would disable the caliber guard on the real book.")
+        rc = 0
+        g["checks"]["assert_funding_dim"] = {
+            "exit_code": None, "pass": None, "state": "NOT_VERIFIED",
+            "note": ("panel declared SYNTHETIC by the test fixture: it has no xsr_fund channel and "
+                     "no settlement-interval archive, so the caliber signature is undefined on it. "
+                     "Recorded as NOT VERIFIED — never as a pass.")}
+    else:
+        rc = subprocess.call([PY, MA + "/exports/eda/assert_funding_dim.py", "--panel", LIVE_PANEL],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # ★ REWRITTEN 2026-07-27 (0C). This block used to say a non-zero exit was the EXPECTED
+        # state, because the guard then asserted ONE caliber on every panel. The guard now asserts
+        # the caliber each artifact is SUPPOSED to have, so the live panel — which correctly carries
+        # the as-trained caliber the frozen heads were fitted on — exits 0. Both this note and the
+        # criterion below were written against the old semantics and had to move with them.
+        g["checks"]["assert_funding_dim"] = {
+            "exit_code": rc, "pass": rc == 0,
+            "state": {0: "VERIFIED", 1: "CALIBER_VIOLATION"}.get(rc, "CANNOT_JUDGE"),
+            "note": ("the guard asserts the caliber THIS artifact is supposed to have, so exit 0 is "
+                     "the healthy state for every declared version. 1 = it carries the other "
+                     "caliber; 2 = there was nothing to measure (a malformed panel), which blocks "
+                     "for a different reason than a caliber violation and must not be reported as "
+                     "one. There is no longer any version for which a red is 'expected'.")}
     ph = panel_hash(LIVE_PANEL)
     g["checks"]["panel_hash"] = {"panel": os.path.basename(LIVE_PANEL), "sha256_16": ph,
                                  "exists": ph is not None}

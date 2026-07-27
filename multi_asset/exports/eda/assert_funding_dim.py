@@ -70,7 +70,13 @@ The pipeline carries two funding calibers **deliberately**:
   needs to catch, and a single two-sided threshold cannot express it.
 
 Usage:  python multi_asset/exports/eda/assert_funding_dim.py [--panel <panel.npz>] [--caliber auto|corrected|as_trained]
-Exit code 0 = pass, 1 = fail (wire into the panel-rebuild pipeline so a regression breaks the build).
+Exit codes (wire into the panel-rebuild pipeline so a regression breaks the build):
+    0  the artifact carries the caliber it is supposed to have
+    1  it carries the OTHER caliber, or lands in the forbidden middle — a judged verdict
+    2  CANNOT JUDGE: the channels or the 4h/8h cohorts needed to measure anything are absent.
+       Kept distinct from 1 because "I measured it and it is wrong" and "there was nothing to
+       measure" are different facts, and a caller that cannot tell them apart will eventually
+       report the first when the second is true.
 """
 import os
 import sys, json, argparse
@@ -215,12 +221,23 @@ def main(panel, caliber="auto"):
     print(f"[caliber] this artifact must be **{WANT}**  "
           f"(basis: {'--caliber override' if caliber not in (None,'auto') else 'artifact path'})",
           flush=True)
+    # ★ EXIT 2 = "CANNOT JUDGE", DISTINCT FROM EXIT 1 = "JUDGED, WRONG CALIBER" (0C 2026-07-27).
+    # Both used to be 1. They are different states and callers need to tell them apart: a panel
+    # missing the funding channels, or with no anchor where both settlement cohorts are populated,
+    # gives this gate NOTHING TO MEASURE — reporting that as a caliber violation names a defect that
+    # was never observed. Production still refuses either way (a malformed panel is not fit for use);
+    # what changes is that a caller can say WHICH.
     res, missing = measure_gaps(panel)
     if missing:
-        print(f"FAIL: channels not present in panel: {missing}", flush=True)
-        return 1
+        print(f"CANNOT JUDGE: channels not present in panel: {missing} (exit 2, not a caliber "
+              f"verdict — nothing was measured)", flush=True)
+        return 2
 
     print(f"panel: {panel}\nanchors sampled: {res.get('Y4', {}).get('n', 0)}\n", flush=True)
+    if not any(c in res for c in CHANNELS):
+        print("CANNOT JUDGE: no anchor had both a 4h and an 8h cohort populated — nothing was "
+              "measured (exit 2, not a caliber verdict)", flush=True)
+        return 2
     failed = []
     for c in CHANNELS + ["Y4"]:
         if c not in res:

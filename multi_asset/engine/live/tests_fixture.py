@@ -82,6 +82,15 @@ def install(PD, RC=None, SPL=None, dirpath: str = "", **_):
             setattr(mod, attr, val)
 
     _set(PD, "LIVE_PANEL", paths["panel"])
+    # ★ DECLARE THE PANEL SYNTHETIC (0C 2026-07-27). This fixture writes no `xsr_fund` channel and
+    # no settlement-interval archive, so `assert_funding_dim` has nothing to measure on it — the
+    # funding-caliber question is UNDEFINED here, not merely unanswered. Until today the guard chain
+    # accommodated that BY ACCIDENT: its criterion expected the gate to fail on the declared pre-fix
+    # factor version, and the gate did fail — for the unrelated reason that a channel was missing.
+    # A suite stayed green on a coincidence between two unrelated states. The declaration is now
+    # explicit, `run_guards` refuses it if LIVE_PANEL is still the production path, and the report
+    # records NOT_VERIFIED rather than a pass.
+    _set(PD, "SYNTHETIC_PANEL", True)
     for mod in (RC, SPL):
         _set(mod, "PANEL", paths["panel"])
         _set(mod, "KING", paths["king"])
