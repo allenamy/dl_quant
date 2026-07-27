@@ -22,18 +22,27 @@ be discovered):
   PROVEN by R1 — the gate catches a panel whose `funding_ema` AND `xsr_fund` were rebuilt through the
     real corrected pipeline (`wide_dl_full_fundfix.npz` is a genuine `apply_funding_fix` output, not a
     synthetic perturbation), while the manifest expects `as_trained`.
-  NOT PROVEN — that the gate catches a change that reaches `xsr_fund` by a path OTHER than "rebuild
-    funding_ema, re-derive its cross-sectional rank". `xsr_fund` is derived from `funding_ema` in
-    `build_wide_dl.py`, so R1 exercises them together and cannot separate them. An edit that touched
-    only the rank derivation would be caught by the same measurement in principle, but that has not
-    been demonstrated here.
-  NOT PROVEN — behaviour on a panel whose two funding channels DISAGREE about their caliber. The
-    assertion loops per channel and any disagreeing channel fails, so it should ring; untested.
+  ★ PROVEN 2026-07-27 (OPEN ITEM C — CLOSED) by `xsr_fund_faithful_redtest.py`: the gate catches a
+    caliber change reaching `xsr_fund` INDEPENDENTLY of `funding_ema`, and it names the channel that
+    actually moved rather than both. Both channels are taken from REAL pipeline outputs — a mixed
+    panel is built by splicing one channel from `wide_dl_live_fundfix.npz` into `wide_dl_live.npz`,
+    never by scaling a stored column, because multiplying by a constant would test arithmetic rather
+    than the derivation path. Measured, stride-4 across the full history (12187 anchors):
 
-  ⇒ OPEN ITEM C (0C, registered 2026-07-27): a faithful red test that normalises at the RATE level,
-    BEFORE the EMA, and RE-DERIVES `xsr_fund` from the result — i.e. the real transformation, not a
-    post-hoc scaling of the stored channel. Until that exists, the `xsr_fund` limb of this gate is
-    argued, not demonstrated.
+        xsr_fund corrected / funding_ema as-trained, declared as_trained
+            -> funding_ema -0.3803 PASS | xsr_fund +0.1454 FAIL   VERDICT FAIL: ['xsr_fund']
+        funding_ema corrected / xsr_fund as-trained, declared as_trained
+            -> VERDICT FAIL: ['funding_ema']
+        the same mixed panel declared corrected     -> VERDICT FAIL: ['funding_ema']
+
+    So the "two channels DISAGREE" case is covered too: a mixed panel is wrong under BOTH
+    declarations and belongs to neither caliber. Side result, measured not assumed: the two real
+    panels differ in EXACTLY `['funding_ema', 'xsr_fund']`, which independently confirms the
+    settlement-interval fix is confined to the funding pair.
+
+  ⇒ The fixture is validated by a known-answer gate before it is trusted to test anything (the pure
+    subsamples must still reproduce BOTH references), because this gate's bands are calibrated on
+    history-spanning sampling and a tail window reads −0.0485 on a perfectly good as-trained panel.
 
 Run:  python multi_asset/exports/eda/tests_panel_caliber_manifest.py
 Exit 0 = all cases behaved as specified.
