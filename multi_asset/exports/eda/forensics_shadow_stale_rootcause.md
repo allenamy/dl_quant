@@ -61,3 +61,30 @@ wide_dl_live.npz  (日跑, as-trained) ⇒ 断言"as-trained 签名" (gap 应在
 2. **我没有实测 `wide_dl_live.npz` 的 gap 是否恰等于 as-trained 的 −0.3745 带** (读数 −0.3767, 接近但我未做统计判定);
 3. **"冻结 DL 头训练于未归一口径"我引的是代码注释**, 未去核对训练时的面板文件本身;
 4. **建议的双口径闸门我未实现** —— 待裁定。
+
+---
+
+# ★★ 补证 (00:5xZ): 不再依赖代码注释 —— **文件时间戳定案**
+
+**我上一节把"冻结 DL 头训练于未归一口径"标为"引自注释, 未核"。现在核了:**
+
+```
+engine/panel_source.py:11   PANEL = exports/wide_dl_full.npz      ← 引擎/冻结头读的就是它
+服务器 mtime:
+  exports/wide_dl_full.npz        2026-07-11 12:55:33 UTC   ← 修复(07-25T10:59Z)之前**两周**
+  exports/live/wide_dl_live.npz   2026-07-26 09:02:17 UTC
+```
+
+**⇒ 冻结 DL 头消费的那份面板建于 07-11, 即**未归一 (as-trained)**, 且**从未**用修复后的 builder 重建过。⇒ `build_tail` 的 live splice 刻意复现同一未归一口径 —— **它是对的, 它在对齐训练面板**。⇒ 闸门要求"已修正"签名, 却被装在这条**正确地保持未归一**的路径上。**
+
+**⇒ 结论不变, 但证据从注释升级为文件事实: 给 splice 补归一 = 让 live 面板与 07-11 训练面板口径不一致 = 不重训换输入分布。**
+
+## ★ 而由此掉出一个**更大的、尚无人指出**的隐患
+
+**`build_wide_panel.py` 已于 07-25 被修好 ⇒ **下一次任何人重建 `wide_dl_full.npz`, 训练面板的口径就会静默改变** ⇒ 冻结的 king/s2 头将在一个它们没被训练过的分布上推理, 而**闸门反而会转绿**(因为新面板"已修正")。**
+
+> **⇒ 这与派工想对 splice 做的事是**同一个错误的镜像**: 一边是把 live 改成 corrected, 一边是把 full 重建成 corrected —— **两者都会在不重训的情况下换掉冻结模型的输入口径**, 且都会让闸门更绿。**
+
+> **★ 而这套系统自己已经写下了正确的原则, 就在 `checkpoints/MANIFEST.json` 的 `why` 里:**
+> **"norm stats are hashed alongside the weights because **feeding a frozen model different normalisation is the same failure as loading different weights**."**
+> **⇒ 他们为**模型的归一化统计**做了哈希守卫; 而**面板的 funding 口径**是同一类东西, **没有任何守卫**。⇒ 建议 (未经裁定): 把训练面板的 funding 口径签名 (gap 落在 −0.374 带) 纳入 MANIFEST 的哈希/断言体系, 与 norm_stats 同级。**
