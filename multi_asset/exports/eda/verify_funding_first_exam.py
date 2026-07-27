@@ -65,7 +65,22 @@ for s in syms:
 print(f"    names held through the settlement: {len(held)}   gross ${sum(abs(v) for v in held.values()):,.0f}")
 
 # ── 3. THE PRE-DECIDED VERDICT ────────────────────────────────────────────────────────────────
+# ★★ THE GUARD THIS SCRIPT NEEDED AND DID NOT HAVE (0C, found by smoke-testing it 26 min early).
+# Run before the settlement, every input is already in its "final" shape and nothing says so:
+# `held` counts trades with `time <= SETTLE_MS`, which before the settlement is simply "every
+# trade so far" = 108; and FUNDING_FEE is 0 because the charge has not happened yet. The script
+# therefore printed "THE FIRST INFORMATIVE ZERO" — a verdict about an event that had not occurred.
+# ⇒ The refusal has to live HERE, not in the caller's sleep: a guard that exists only in the
+#   scheduler is a guard that anyone running the script by hand does not have. Same family as
+#   every "it was green because nothing had happened yet" in this project.
 print("\n[3] VERDICT (branch chosen before the data)")
+if now < SETTLE_MS + 60_000:
+    print(f"    => TOO EARLY. The settlement is at 16:00:00Z and it is now "
+          f"{time.strftime('%H:%M:%SZ', time.gmtime(now/1000))} "
+          f"({(SETTLE_MS-now)/60000:+.0f} min). NO VERDICT.")
+    print("       Every reading above is pre-event: `held` is just 'all trades so far' and")
+    print("       FUNDING_FEE=0 only means the charge has not happened. Re-run after the event.")
+    raise SystemExit(0)
 if not held:
     print("    => NO EXAM. Book was flat at the settlement — the registered-expected branch.")
     print("       This says NOTHING about whether the venue credits funding.")
