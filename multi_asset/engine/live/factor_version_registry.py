@@ -26,17 +26,33 @@ import json, os
 MA = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # .../multi_asset
 REGISTRY_PATH = MA + "/exports/eda/factor_version_registry.json"
 
+# ★ `assert_funding_dim_expected_exit` IS 0 FOR BOTH VERSIONS SINCE 2026-07-27, AND THAT IS A
+#   SEMANTIC CHANGE, NOT A THRESHOLD TWEAK (0C).
+#   Until 07-27 the guard asserted ONE caliber (`corrected`) on whatever panel it was pointed at, so
+#   the pre-fix panels were expected to FAIL it and this table recorded `1` with the comment "the
+#   guard is EXPECTED to fail on this panel". That design put the gate on the wrong artifact and
+#   stopped the shadow for 28 hours on its first armed run. The guard now asserts THE CALIBER EACH
+#   ARTIFACT IS SUPPOSED TO HAVE — so every panel below passes its own expectation and a non-zero
+#   exit means what a gate's non-zero exit should always mean: this artifact is not what it declares.
+#   ⇒ A row that says "this is expected to fail" is a standing instruction to ignore a red. There is
+#     now no such row, deliberately.
+#   ⇒ AND IT IS CONSUMED. It sat here as prose for two days and went stale the moment the guard's
+#     semantics changed; an unread declaration cannot notice that it has become false. pilot_daily's
+#     guard chain now asserts the observed exit against it.
 FACTOR_VERSIONS = {
     "funding_ema_broken_v1": {
-        "description": "pre-fix funding_ema — per-settlement rate, NOT normalised across 4h/8h",
+        "description": "pre-fix funding_ema — per-settlement rate, NOT normalised across 4h/8h. "
+                       "This is the AS-TRAINED caliber: the frozen king/s2 heads were fitted on it.",
         "panel_frozen": "exports/wide_dl_full.npz",
         "panel_live": "exports/live/wide_dl_live.npz",
-        "assert_funding_dim_expected_exit": 1,      # the guard is EXPECTED to fail on this panel
+        "expected_caliber": "as_trained",
+        "assert_funding_dim_expected_exit": 0,
     },
     "funding_ema_normfix": {
         "description": "settlement-interval corrected (rate * 8/interval_h, per row, before EMA)",
         "panel_frozen": "exports/wide_dl_full_fundfix.npz",
         "panel_live": "exports/live/wide_dl_live_fundfix.npz",
+        "expected_caliber": "corrected",
         "assert_funding_dim_expected_exit": 0,
     },
 }
@@ -66,6 +82,19 @@ def expected_for(track: str) -> str:
     if track not in TRACK_EXPECTED_VERSION:
         raise KeyError(f"unknown track {track!r}; known: {sorted(TRACK_EXPECTED_VERSION)}")
     return TRACK_EXPECTED_VERSION[track]
+
+
+def expected_gate_exit(version: str) -> int:
+    """The exit code `assert_funding_dim.py` must return on THIS version's panels.
+
+    Exists so the number is READ rather than merely written. The previous value (1, for the pre-fix
+    version) survived a change in the guard's semantics untouched precisely because nothing consumed
+    it — the same shape as `norm_stats`' hash, which is recorded in MANIFEST.json and compared by
+    nobody. A declaration that is never checked is a comment with a colon in it.
+    """
+    if version not in FACTOR_VERSIONS:
+        raise KeyError(f"unknown factor version {version!r}; known: {sorted(FACTOR_VERSIONS)}")
+    return FACTOR_VERSIONS[version]["assert_funding_dim_expected_exit"]
 
 
 def assert_track_version(track: str, declared: str):

@@ -28,6 +28,30 @@ STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 JSON_OUT=""
 [ "${1:-}" = "--json" ] && JSON_OUT="${2:-}"
 
+# ★ INTERPRETER PREFLIGHT (0C 2026-07-27) — "the suites are red" and "I ran them with the wrong
+# python" are DIFFERENT STATEMENTS, and this runner used to emit the first when the second was true.
+# Observed on the shadow's first automated acceptance run (20260727T010124Z): four suites exit 1,
+# `fail_lines: 0` on every one, every log ending in `ModuleNotFoundError: No module named 'numpy'`.
+# The ACCEPT_PY override this file documents was simply never set by the caller, so the runner used
+# the system interpreter. Nothing was regressing; nothing was being tested either.
+# ⇒ A red for the wrong reason is the mirror of a green for the wrong reason, and it is the more
+#   corrosive of the two: it trains the reader to expect red and to stop reading the logs.
+# ⇒ So: refuse to run at all, exit 3, and say which interpreter and what is missing. The suites'
+#   verdict stays UNKNOWN rather than being manufactured out of an environment fault.
+if ! "$PY" -c "import numpy" >/dev/null 2>&1; then
+  echo "ACCEPTANCE: NOT RUN — interpreter unusable"
+  echo "  interpreter: $PY   ($("$PY" -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo 'does not run'))"
+  echo "  cannot import numpy, which every suite below needs transitively."
+  echo "  ⇒ This is an ENVIRONMENT fault, not a suite failure. The suites' verdict is UNKNOWN."
+  echo "  ⇒ Set ACCEPT_PY to the environment the pipeline itself runs under, e.g."
+  echo "       ACCEPT_PY=/root/miniconda3/envs/hsy_v5push/bin/python3 bash $0"
+  if [ -n "$JSON_OUT" ]; then
+    printf '{"stamp":"%s","overall_exit":3,"all_green":false,"interpreter_unusable":true,"interpreter":"%s","suites":[],"note":"suites NOT RUN — the verdict is UNKNOWN, not red"}\n' \
+      "$STAMP" "$PY" > "$JSON_OUT"
+  fi
+  exit 3
+fi
+
 SUITES=(
   # ★ FIRST, deliberately. Every other suite below asks "is this component correct?" — a question
   # that presumes the component can be LOADED. On 2026-07-25 three daily-chain modules raised

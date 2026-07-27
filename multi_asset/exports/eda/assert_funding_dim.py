@@ -119,10 +119,25 @@ def expected_caliber(panel_path, override=None):
     ⇒ So the default for a DL panel is `as_trained`, and `corrected` must be asked for explicitly —
       which is the state that changes on the day the heads are retrained. See the FORWARD NOTE in
       the header: that flip and the model version are ONE decision.
+
+    ★ AND THE `_fundfix` SUFFIX IS A DECLARATION, NOT A GUESS (0C 2026-07-27, second correction).
+      The blanket `as_trained` default above was itself wrong for one family of artifacts. Measured:
+          exports/wide_dl_full_fundfix.npz        +0.1418 / +0.1429
+          exports/live/wide_dl_live_fundfix.npz   +0.1461 / +0.1471   (reference corrected +0.1463)
+      Those panels exist precisely to carry the CORRECTED caliber — they are the `fixfunding` track's
+      inputs — so the blanket default would have failed both. Nothing points the gate at them today,
+      which is the only reason this was latent rather than a second outage: the SAME defect as the
+      07-25 one (a gate asserting a caliber the artifact was never supposed to have), caught before
+      it had a caller instead of after.
+      ⇒ The suffix is routed because the project USES it as a declaration and MEASUREMENT AGREES, not
+        because a name was read as a fact. That distinction is the whole difference between this rule
+        and the `full -> corrected` rule I had to withdraw.
     """
     if override and override != "auto":
         return override
-    return "as_trained"          # every wide_dl_* panel, until a retrain says otherwise
+    if os.path.basename(panel_path).endswith("_fundfix.npz"):
+        return "corrected"
+    return "as_trained"          # every other wide_dl_* panel, until a retrain says otherwise
 
 
 def rank_centred(x):
@@ -130,11 +145,17 @@ def rank_centred(x):
     return 2.0 * (r - 1) / (k - 1) - 1.0 if k > 1 else np.zeros_like(x)
 
 
-def main(panel, caliber="auto"):
-    WANT = expected_caliber(panel, caliber)
-    print(f"[caliber] this artifact must be **{WANT}**  "
-          f"(basis: {'--caliber override' if caliber not in (None,'auto') else 'artifact path'})",
-          flush=True)
+def measure_gaps(panel, stride=4):
+    """THE measurement, extracted so there is exactly ONE implementation of it.
+
+    Returns (gaps, missing) where gaps = {channel: {"mean_gap": float, "n": int}} over CHANNELS+["Y4"],
+    and missing = channels absent from the panel. `assert_panel_caliber_manifest.py` calls this rather
+    than re-deriving the same quantity: three implementations of one rule is how a rule comes to mean
+    three slightly different things (same reasoning as the merged episode logic in the live stack).
+
+    ⇒ `stride` samples every k-th member anchor ACROSS THE WHOLE PANEL. Do not replace it with a tail
+      window — see the history-spanning note in the header; the 4h/8h cohort mix is not stationary.
+    """
     W = np.load(panel, allow_pickle=True)
     ts = W["ts"].astype(np.int64); symbols = [str(s) for s in W["symbols"]]
     ch = [str(c) for c in W["ch_names"]]; CH = W["CH"]; mem = W["MEMBER110"]
@@ -159,12 +180,11 @@ def main(panel, caliber="auto"):
 
     missing = [c for c in CHANNELS if c not in ch]
     if missing:
-        print(f"FAIL: channels not present in panel: {missing}", flush=True)
-        return 1
+        return {}, missing
 
     acc = {c: [] for c in CHANNELS}; acc["Y4"] = []
     rows = np.where(mem.any(1))[0]
-    for t in rows[::4]:
+    for t in rows[::stride]:
         v = np.where(mem[t] & np.isfinite(IH[t]))[0]
         if v.size < 20:
             continue
@@ -179,14 +199,33 @@ def main(panel, caliber="auto"):
             z = np.full(len(x), np.nan); z[f] = rank_centred(x[f])
             acc[c].append(float(np.nanmean(z[is4]) - np.nanmean(z[~is4])))
 
-    print(f"panel: {panel}\nanchors sampled: {len(acc['Y4'])}\n", flush=True)
-    res = {}; failed = []
+    gaps = {}
     for c in CHANNELS + ["Y4"]:
         a = np.array(acc[c], float); a = a[np.isfinite(a)]
-        if a.size == 0:
+        # NO DATA stays absent from the dict rather than becoming 0.0 — a gap of zero is the
+        # signature of a PERFECTLY dimensioned factor, i.e. exactly the benign value. Callers must
+        # see the absence.
+        if a.size:
+            gaps[c] = dict(mean_gap=round(float(a.mean()), 4), n=int(a.size))
+    return gaps, []
+
+
+def main(panel, caliber="auto"):
+    WANT = expected_caliber(panel, caliber)
+    print(f"[caliber] this artifact must be **{WANT}**  "
+          f"(basis: {'--caliber override' if caliber not in (None,'auto') else 'artifact path'})",
+          flush=True)
+    res, missing = measure_gaps(panel)
+    if missing:
+        print(f"FAIL: channels not present in panel: {missing}", flush=True)
+        return 1
+
+    print(f"panel: {panel}\nanchors sampled: {res.get('Y4', {}).get('n', 0)}\n", flush=True)
+    failed = []
+    for c in CHANNELS + ["Y4"]:
+        if c not in res:
             print(f"  {c:14s}  NO DATA -> FAIL"); failed.append(c); continue
-        mg = float(a.mean())
-        res[c] = dict(mean_gap=round(mg, 4), n=int(a.size))
+        mg = res[c]["mean_gap"]
         if c == "Y4":
             print(f"  {c:14s}  mean gap {mg:+.4f}   (CONTROL: real 4h-cohort return gap, "
                   f"a small factor gap of this order is legitimate)", flush=True)

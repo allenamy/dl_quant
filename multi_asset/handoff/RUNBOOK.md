@@ -54,7 +54,18 @@ share. Engine `DEFAULT_WEIGHTS` (0C canonical) and the deployment-tilt band:
 >
 > **Fix:** scale each settlement's rate by `8 / interval_hours`, **per settlement point, before the EMA**
 > (scaling after the EMA is wrong across the ~29 coins whose interval changed). A resident guard
-> (`assert_funding_dim.py`) asserts the corrected state and breaks the panel build on regression.
+> (`assert_funding_dim.py`) breaks the panel build on regression — but note **what** it asserts:
+>
+> > ★ **Corrected 2026-07-27.** This line used to read "asserts the corrected state". It did, and that
+> > was the defect: **two calibers exist on purpose.** The frozen king/s2 heads were trained on the
+> > **un-normalised (as-trained)** panel and were *not* retrained when the factor was fixed, so both DL
+> > input panels (`wide_dl_full.npz`, `exports/live/wide_dl_live.npz`) must **stay** un-normalised,
+> > while the **factor leg** and the `*_fundfix.npz` panels carry the corrected caliber. A guard
+> > demanding "corrected" everywhere stopped the shadow pipeline for 28 hours on its first armed run
+> > (2026-07-26 09:02Z). It now asserts **the caliber each artifact is supposed to have**, so a red
+> > means "this artifact is not what it declares" — never "this artifact is not the better version".
+> > Companion guard `assert_panel_caliber_manifest.py` binds those expectations to the **frozen model
+> > generation's checkpoint hashes**, so a retrain cannot silently inherit the old expectation.
 >
 > **Two channels carry this artifact at *identical* strength**: `funding_ema` and `xsr_fund`
 > (its cross-sectional percentile rank — ranking passes a group offset through unchanged, neither

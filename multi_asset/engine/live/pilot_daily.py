@@ -86,14 +86,16 @@ def run_guards(verbose=True):
     g = {"ok": True, "checks": {}}
     rc = subprocess.call([PY, MA + "/exports/eda/assert_funding_dim.py", "--panel", LIVE_PANEL],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    # The live panel legitimately runs the PRE-FIX factor today (declared), so a FAIL here is the
-    # expected state and is recorded as such rather than silently swallowed. What must never happen
-    # is a panel whose factor version does not match the declaration.
+    # ★ REWRITTEN 2026-07-27 (0C). This block used to say a non-zero exit was the EXPECTED state,
+    # because the guard then asserted ONE caliber on every panel. The guard now asserts the caliber
+    # each artifact is SUPPOSED to have, so the live panel — which correctly carries the as-trained
+    # caliber the frozen heads were fitted on — exits 0. Both this note and the criterion below were
+    # written against the old semantics and had to move with them.
     g["checks"]["assert_funding_dim"] = {
         "exit_code": rc, "pass": rc == 0,
-        "note": ("live panel currently runs the declared pre-fix factor, so a non-zero exit is "
-                 "EXPECTED until the corrected factor is promoted. What is enforced is that the "
-                 "observed state matches DECLARED_FACTOR_VERSION.")}
+        "note": ("the guard asserts the caliber THIS artifact is supposed to have, so exit 0 is the "
+                 "healthy state for every declared version. A non-zero exit means the panel is not "
+                 "what it declares — there is no longer any version for which a red is 'expected'.")}
     ph = panel_hash(LIVE_PANEL)
     g["checks"]["panel_hash"] = {"panel": os.path.basename(LIVE_PANEL), "sha256_16": ph,
                                  "exists": ph is not None}
@@ -110,14 +112,26 @@ def run_guards(verbose=True):
     if not ok_v:
         g["ok"] = False
         g["blocking_reason"] = vdetail["meaning"]
-    expect_pass = (DECLARED_FACTOR_VERSION != "funding_ema_broken_v1")
-    consistent = (rc == 0) == expect_pass
+    # ★ THE EXPECTED EXIT COMES FROM THE REGISTRY, NOT FROM A VERSION STRING SPELLED OUT HERE.
+    # It used to read `expect_pass = (DECLARED_FACTOR_VERSION != "funding_ema_broken_v1")`, i.e. the
+    # criterion restated the registry's content in a different form — and when the guard's semantics
+    # changed on 2026-07-27 the two forms disagreed. Measured consequence on that morning's run:
+    # `assert_funding_dim exit=0` (healthy) yet `consistent_with_declaration: false` and
+    # `blocking_reason: panel factor state does not match DECLARED_FACTOR_VERSION`, blocking §9.5
+    # readings for a panel that was exactly what it declared. A gate that goes red for the wrong
+    # reason is the same defect as one that goes green for the wrong reason, and it costs the same
+    # thing: the next reader stops believing the colour.
+    # ⇒ Same rule the registry's own docstring states: REFERENCE THE SYMBOL, NEVER RESTATE IT.
+    want_rc = FVR.expected_gate_exit(DECLARED_FACTOR_VERSION)
+    consistent = (rc == want_rc)
     g["checks"]["factor_version_declaration"] = {
         "declared": DECLARED_FACTOR_VERSION, "guard_pass": rc == 0,
+        "expected_gate_exit": want_rc, "observed_gate_exit": rc,
         "consistent_with_declaration": consistent,
-        "meaning": ("declaration says corrected -> guard must PASS; declaration says pre-fix -> "
-                    "guard is expected to FAIL. A mismatch means the engine is not running what "
-                    "the protocol says it runs.")}
+        "meaning": ("the guard's exit for this declared version must equal the registry's "
+                    "`assert_funding_dim_expected_exit` (0 for every version since 2026-07-27, "
+                    "because each panel is asserted against the caliber it is supposed to have). "
+                    "A mismatch means the engine is not running what the protocol says it runs.")}
     if not consistent:
         g["ok"] = False
         g["blocking_reason"] = ("panel factor state does not match DECLARED_FACTOR_VERSION — "
