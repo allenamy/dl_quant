@@ -39,6 +39,35 @@ here as an **unsigned magnitude** while the venue-real log writes it **signed** 
 assumed (`exports/eda/assert_fill_sign_convention.py`). Each implementation was correct on its own
 log and 16–33× wrong on the other, and the drop-in ran clean and schema-compatible while doing it.
 
+### The existing log was MIGRATED, not regenerated (2026-07-27 02:39Z)
+
+`exports/` is excluded from version control, so the operational record lives at
+`exports/live/monitor/README.md` on the server; this is its git-tracked summary.
+
+The 11 existing days were converted in place by `exports/eda/migrate_fill_sign.py`, which edits the
+single numeric token per line — every other byte unchanged **by construction**. Verified against the
+archive kept at `exports/live/pilot_log_pre_signed_20260727/`:
+
+```
+rows byte-identical                                     6160
+rows differing ONLY by the negation of filled_notional  5905   (= the count of filled sells)
+non-orders streams compared BYTE-for-BYTE            all identical
+VERDICT: only the sign of orders.filled_notional changed              exit 0
+probe --expect signed over the whole tree: SIGNED, no MIXED           exit 0
+```
+
+**Regeneration was rejected after measurement.** It was justified by "two runs today produce 17/17
+byte-identical files" — which holds the *panel* fixed, and the panel is an input that has moved. A
+real regeneration differs from the live tree in eleven further fields (`anchors.panel_hash`
+`41c0cf7a…` → `bd1b55b2…` first among them) plus row counts, because the tree contains partial days
+a clean run does not reproduce. ⇒ **The "pure function cache" argument fails on the closure, not the
+function**: `panel@t` is unrecoverable, so in the dimension that matters this log is a *record*.
+Records get migrated; caches get re-evaluated. The partial day (20260723, 217 orders) is untouched.
+
+Post-migration, from the frozen implementation on the real tree: **M5 drift 1363.65**,
+`fill_sign_convention: SIGNED / n_row_violations 0`, M1 `c` 3.6117 bps over 11845 filled orders,
+`measurement_complete: True`. M1 and `mean_abs_weight_error` were never affected — they take `abs()`.
+
 Measured on a freshly-written **signed** tree:
 
 | implementation | M5 `venue_vs_inferred_drift` | M1 `n_filled_orders` |
