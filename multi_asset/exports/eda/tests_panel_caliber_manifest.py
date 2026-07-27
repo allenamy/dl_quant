@@ -157,6 +157,20 @@ def u2():
         os.unlink(p)
 
 
+@case("U3 half the generation unreadable -> UNKNOWN (a partial identity is not an identity)",
+      2, "would be wrong at 0 (an unread checkpoint could have been swapped invisibly) and wrong at "
+         "1 (an unreadable file is not a detected drift)")
+def u3():
+    saved = M.GENERATION_MEMBERS["s2"]
+    M.GENERATION_MEMBERS["s2"] = ["/nonexistent/s2.pt"]
+    try:
+        rc, rep = M.assert_manifest(verbose=False)
+        assert any("GENERATION UNIDENTIFIABLE" in f for f in rep["findings"]), rep["findings"]
+        return rc, rep
+    finally:
+        M.GENERATION_MEMBERS["s2"] = saved
+
+
 # ── pure-function boundaries ─────────────────────────────────────────────────────────────────────
 @case("B1 classify_gap boundaries: both references, both edges, and the middle",
       0, "would go red if the bands overlapped or the middle were reachable from either side")
