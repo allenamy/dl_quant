@@ -18,29 +18,32 @@ production is re-run, nothing is written to the live tree.
 
 Read-only w.r.t. the production tree: the backfill is injected into an IN-MEMORY copy.
 
-★★ STATUS 2026-07-27T15:5xZ — THE REVERSE CONTROL IN THIS FILE IS NOT YET VALID. DO NOT READ ITS
-   "NOT DEMONSTRATED" AS A VERDICT ON THE HYPOTHESIS. Diagnosis, from reconcile's own code:
+★★ 2026-07-27T15:5xZ — THE INSTRUMENT WAS THE DEFECT (first version). Kept in full, because the
+   shape of the error is the reusable part:
 
      reconcile windows fills by EXECUTION TIME, not by anchor:
          _win = _between(prev_read_ts, cur_read_ts)      # readback-to-readback
          _between: `for t, sym, f in _exec: if t_lo < t <= t_hi`     # t = the FILL's own time
 
-     this file instead aggregates every trade since the newest anchor onto ONE order row and
-     stamps it `anchor_ts + 60`. For the 07-26 flatten (trades 12:17:54-12:18:40Z) that puts
-     ~$23k into the window ENDING at the 12:17:30Z readback — the window before the one it
-     belongs to. So the backfill manufactures disagreement in window N while still leaving it
-     absent from window N+1, and the anomaly count RISES (371 -> 400).
+     v1 instead aggregated every trade since the newest anchor onto ONE order row and stamped it
+     `anchor_ts + 60`. For the 07-26 flatten (trades 12:17:54-12:18:40Z) that put ~$23k into the
+     window ENDING at the 12:17:30Z readback — the window before the one it belongs to. So the
+     backfill manufactured disagreement in window N while still leaving it absent from window
+     N+1, and the anomaly count ROSE (371 -> 400). Reported as "NOT DEMONSTRATED" it would have
+     refuted a true hypothesis with a broken instrument.
 
-   ⇒ THE FIX: attribute each venue trade individually, carrying ITS OWN timestamp, so it lands in
-     the readback window that actually contains it. Not attempted under time pressure — a second
-     rushed instrument is how the first wrong answer gets confirmed.
-   ⇒ Until then the self-harm chain keeps EXACTLY the status it had: forward evidence only
-     (1:1 anchor correspondence + the ladder's cited 77 matching reconcile's 77), causation
-     inferred, not demonstrated.
+★★ 2026-07-28T00:3xZ — FIXED, and the fix carries a second guard the first version needed and
+   did not have:
 
-   ★ This is the SECOND time today my own instrument was the defect (the first: this session's
-     first-exam checker would have rendered a verdict 26 minutes before the settlement). Both
-     were caught before a conclusion was reported, which is the only part that went right.
+   (1) EVERY VENUE TRADE BECOMES ITS OWN ROW, CARRYING ITS OWN TIMESTAMP (`last_fill_ts = t`).
+       No aggregation, so nothing can land in a neighbouring window.
+   (2) ★ A COVERAGE GATE, because the counterfactual is only defined where the venue record
+       reaches. The cache spans [t_lo, t_hi]; outside it, zeroing our rows removes fills that
+       have NO replacement, which manufactures exactly the disagreement this control exists to
+       measure. So a readback window is scored ONLY if the whole window lies inside coverage,
+       and every other window is printed as OUT-OF-COVERAGE — never as a verdict.
+       Without (2), fixing (1) would have produced a cleaner-looking table with the same class of
+       artefact hiding in the boundary windows.
 """
 import json
 import glob
@@ -67,52 +70,82 @@ def anomalies_by_anchor(days):
     return out, rec
 
 
-def backfill(days, trades_cache):
-    """Replace our `filled_notional` with the VENUE's own SIGNED total per (symbol, anchor).
+def _fill_time(r):
+    """The time reconcile will window this row by — its own rule, not a second copy of it."""
+    return r.get("last_fill_ts") or r.get("first_fill_ts") or r.get("anchor_ts")
 
-    ★ SIGNED, AND THAT IS THE WHOLE POINT — my first version summed |qty x px| and guessed the
+
+def readback_windows(days):
+    """[(anchor_ts, t_prev, t_cur)] — the intervals reconcile actually compares over."""
+    stamps = []
+    for d in sorted(days):
+        seen = {}
+        for r in days[d].get("position_readback", []):
+            seen[float(r["anchor_ts"])] = float(r.get("read_ts") or r["anchor_ts"])
+        stamps += sorted(seen.items())
+    out, prev = [], None
+    for ats, t in stamps:
+        if prev is not None:
+            out.append((ats, prev, t))
+        prev = t
+    return out
+
+
+def backfill(days, trades_cache):
+    """Rebuild the fills ledger from the VENUE's own trade record, one row per trade.
+
+    ★ SIGNED, AND THAT IS THE WHOLE POINT — v1's first draft summed |qty x px| and guessed the
       sign from `target_w`. `reconcile.signed_fills_by_anchor` documents the convention: buy
       positive, sell negative, and nothing re-applies a sign. An unsigned backfill makes a sold
-      position look bought, which manufactures MORE disagreement than it removes — my first run
-      showed 371 -> 402 anomalies and I nearly reported the hypothesis refuted by my own
-      instrument. The weak point had been flagged in this docstring before the run; flagging it
-      is not the same as getting it right.
+      position look bought, which manufactures MORE disagreement than it removes.
 
-    ★ REPLACE, not add: the counterfactual being constructed is "what if the ledger recorded
-      exactly what the venue did", so the venue's total IS the value. Adding to what is already
-      there double-counts the windows that were recorded correctly.
+    ★ REPLACE, not add: the counterfactual is "what if the ledger recorded exactly what the venue
+      did", so the venue's trades ARE the ledger inside the covered span. Our own rows in that
+      span are zeroed first; rows outside it are left exactly as they are, and the windows that
+      touch them are excluded from scoring by `main`.
     """
     tr = json.load(open(trades_cache))
-    out = {d: {k: [dict(r) for r in v] for k, v in one.items()} for d, one in days.items()}
-    rows = [r for d in out for r in out[d].get("orders", [])]
-    ats_all = sorted({float(r["anchor_ts"]) for r in rows})
-    by_key = {}
-    for r in rows:
-        by_key.setdefault((r["symbol"], float(r["anchor_ts"])), []).append(r)
+    t_lo = min(t for v in tr.values() for t, _q, _p in v) / 1000.0
+    t_hi = max(t for v in tr.values() for t, _q, _p in v) / 1000.0
 
-    venue_signed = defaultdict(float)
+    out = {d: {k: [dict(r) for r in v] for k, v in one.items()} for d, one in days.items()}
+    ats_all = sorted({float(r["anchor_ts"]) for d in out for r in out[d].get("orders", [])})
+
+    n_zeroed = 0
+    for d in out:
+        for r in out[d].get("orders", []):
+            t = _fill_time(r)
+            if t is None or r.get("filled_notional") in (None,):
+                continue
+            if t_lo <= float(t) <= t_hi and float(r["filled_notional"]):
+                r["filled_notional"] = 0.0
+                n_zeroed += 1
+
+    n_inj = 0
+    newest_day = max(out)
     for sym, v in tr.items():
-        for t_ms, qty_signed, px in v:          # qty_signed: + for BUY, - for SELL
+        for t_ms, qty_signed, px in v:
             t = t_ms / 1000.0
             cand = [a for a in ats_all if a <= t]
-            if cand:
-                venue_signed[(sym, max(cand))] += qty_signed * px
-
-    n_set = 0
-    for (sym, ats), signed_notional in venue_signed.items():
-        rs = by_key.get((sym, ats))
-        if not rs:
-            continue
-        for r in rs[1:]:
-            r["filled_notional"] = 0.0
-        rs[0]["filled_notional"] = signed_notional
-        rs[0]["last_fill_ts"] = rs[0].get("last_fill_ts") or ats + 60
-        n_set += 1
-    return out, n_set
+            out[newest_day].setdefault("orders", []).append({
+                "anchor_ts": (max(cand) if cand else t),
+                "symbol": sym,
+                "side": "buy" if qty_signed > 0 else "sell",
+                "filled_notional": qty_signed * px,   # SIGNED, from the venue's own qty
+                "last_fill_ts": t,                    # ★ ITS OWN TIME — the whole fix
+                "first_fill_ts": t,
+                "terminal_reason": "filled",
+                "order_type": "venue_backfill",
+                "rebalance_id": "REVERSE-CONTROL",
+                "intended_notional": None,
+            })
+            n_inj += 1
+    return out, n_zeroed, n_inj, (t_lo, t_hi)
 
 
 def main(trades_cache):
     days = load_days()
+    print(f"# run {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}")
     print("=== FORWARD: anomalies on the tree as it stands ===")
     before, rec_b = anomalies_by_anchor(days)
     for a in sorted(before):
@@ -122,23 +155,37 @@ def main(trades_cache):
     if not trades_cache:
         print("\n(no trades cache given — reverse control skipped)")
         return
-    print("\n=== REVERSE CONTROL: backfill the venue's own fills, replay ===")
-    patched, n_inj = backfill(days, trades_cache)
-    print(f"  order rows given a backfilled filled_notional: {n_inj}")
+    print("\n=== REVERSE CONTROL: rebuild the ledger from the venue's own trades, replay ===")
+    patched, n_zero, n_inj, (t_lo, t_hi) = backfill(days, trades_cache)
+    print(f"  venue trade record spans {time.strftime('%m-%dT%H:%M:%SZ', time.gmtime(t_lo))}"
+          f" .. {time.strftime('%m-%dT%H:%M:%SZ', time.gmtime(t_hi))}")
+    print(f"  our own fill rows zeroed inside that span: {n_zero}")
+    print(f"  venue trades injected as their own rows  : {n_inj}")
+
+    cov = {round(ats): (lo >= t_lo and hi <= t_hi) for ats, lo, hi in readback_windows(days)}
     after, rec_a = anomalies_by_anchor(patched)
-    print(f"  {'anchor':16s} {'before':>8s} {'after':>8s}   verdict")
-    for a in sorted(set(before) | set(after)):
+    print(f"\n  {'anchor':16s} {'before':>7s} {'after':>7s}   verdict")
+    scored_b = scored_a = 0
+    for a in sorted(set(before) | set(after) | set(cov)):
         b, af = len(before.get(a, ())), len(after.get(a, ()))
-        v = "GONE" if af == 0 and b else ("reduced" if af < b else ("unchanged" if af == b else "WORSE"))
-        print(f"  {time.strftime('%m-%dT%H:%MZ', time.gmtime(a)):16s} {b:8d} {af:8d}   {v}")
-    tb, ta = len(rec_b["anomalies"]), len(rec_a["anomalies"])
-    print(f"  TOTAL            {tb:8d} {ta:8d}")
+        if not cov.get(a, False):
+            print(f"  {time.strftime('%m-%dT%H:%MZ', time.gmtime(a)):16s} {b:7d} {af:7d}   "
+                  f"OUT-OF-COVERAGE (not evidence either way)")
+            continue
+        scored_b += b
+        scored_a += af
+        v = ("GONE" if af == 0 and b else "reduced" if af < b
+             else "unchanged" if af == b else "WORSE")
+        print(f"  {time.strftime('%m-%dT%H:%MZ', time.gmtime(a)):16s} {b:7d} {af:7d}   {v}")
+    print(f"  {'SCORED TOTAL':16s} {scored_b:7d} {scored_a:7d}")
     print()
-    if ta <= 0.25 * tb:
+    if scored_b == 0:
+        print("  ⇒ NO SCORABLE WINDOW. The control did not run; it is not a null result.")
+    elif scored_a <= 0.25 * scored_b:
         print("  ⇒ SELF-HARM CHAIN DEMONSTRATED: removing the proposed cause removes the effect.")
-    elif ta < tb:
-        print(f"  ⇒ PARTIAL ({100*(tb-ta)/tb:.0f}% removed). Some anomalies have another cause — "
-              f"name them, do not fold them in.")
+    elif scored_a < scored_b:
+        print(f"  ⇒ PARTIAL ({100*(scored_b-scored_a)/scored_b:.0f}% removed). Some anomalies have "
+              f"another cause — name them, do not fold them in.")
     else:
         print("  ⇒ NOT DEMONSTRATED. The forward match was coincidence or the attribution rule "
               "above is wrong. The hypothesis does NOT get to keep its status.")
