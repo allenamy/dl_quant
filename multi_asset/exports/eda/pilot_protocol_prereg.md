@@ -1769,3 +1769,25 @@ N ≥ 10 个 A 类锚点
 > | `+1s` 容差 | ALL PASS ✗ | **11 FAIL** ✓ |
 > | `+60s` 容差 | ALL PASS ✗ | **11 FAIL** ✓ |
 > ⇒ 0–1s 那一档的盲区**全部关闭**, 且原有 `+600s` 那行保留。
+
+> **★★★ §2.5.10 (十三续) —— 0B 交付批复审 (0C, 2026-07-28T01:5xZ)。三份即插即用件全跑, D1/D2/D3 与 `[4i]` 逐条实测。**
+> **树**: `8aae5af`(D1/D2/D3 + 缺陷 A 并批) / `21c6a8a`([4i] v4 + 人口走整仓) / `2fda27b`(B27)。
+>
+> | 项 | 判据 | 实测 |
+> |---|---|---|
+> | **D2 方向(lead 裁定核心)** | `filled` 而无金额**必须触发**, 且**不得比"缺一行"保护更少** | **PASS** —— 行存在无金额: `residual_qty=−1186.0`, `$53.44` **触发**; 行不存在: `−1186.0`, `$53.44` **同样触发**。**两形状逐位相同, 倒挂消失。** |
+> | **D1 零 mark** | 凭空 100 张合约不得静默 | **PASS** —— 由 NOTHING 变为 `unreconcilable{kind:'no_usable_mark'}`, why 里逐项列出 `n2/q2/n1/q1` |
+> | **D3 写入端** | 漏写 qty 须变写失败而非静默降级 | **PASS** —— `venue_position_qty` 已进 `required` **与** `not_null` |
+> | **D3 消费者** | `unreconcilable` 须有读者 | **仍无** —— `n_unreconcilable_latest` / `drift_n_unreconcilable_latest` 依旧一处写零处读; `_5b_state` 无闸读。**但危险的那一半已由 schema 关掉**: 前向每行必带 qty, 故新数据的 `unreconcilable` 只剩 D1 的 `no_usable_mark` 一种, 面收窄 |
+> | **`[4i]` E/F** | E1/E2 必须转红, F 人口走整仓 | **全部 PASS** —— 且 E1/E2 是被 **v4 行为断言**按名字抓住的(`v4 [ops/score_post_fix.py] — the rehearsal does not reach this site's count`), 不是被 AST 抓住的。我的红测由 FAILURES 转 **ALL PASS** |
+> | B30 四条判据 | 回归 | **ALL PASS**(无退化) |
+> | B22 边界两行 | 是否带上 | **在**(2 处), funding 套件 ALL PASS |
+> | 判读卡 | 应仍拒判 | `exit 2` —— 书仍平, 考试未发生 |
+>
+> **★★ 但有一条新的, 且它就在本批 D3 的修复里 —— 注释与 docstring 都断言了一个代码没有实现的保护。**
+> `live/watchdog.py:1152-1158` 的注释写着「**when the caller could not source it, this raises at `validate` and NO ROW IS WRITTEN**」; `:1362-1365` 的 docstring 写着「**a notional-only readback cannot be written at all** … 我们就没有 readback, 诚实的记录是不写行 + 这个理由」。
+> **代码是** `_row["venue_position_qty"] = float((venue_qty or {}).get(sym, 0.0))` —— 永远是一个合法 float, `validate` 永不抛, 行照写。
+> **直测(非阅读)**: `write_flatten_readback(..., venue_qty=None)` ⇒ **写了 2 行**, `AAAUSDT notional=5000.0 qty=0.0` / `BBBUSDT notional=−3000.0 qty=0.0` —— **真仓位被记成零张合约**, 正是那段注释自己点名的「the one lie that would look most plausible」。
+> **下游后果也已实测(不是推断)**: 平仓失败(仓位仍在)而账户读不到 ⇒ 该行把卡住的仓位记成平 ⇒ `residual_qty=−1000.0 / $5,000` **假异常**; 下一个锚点读回真相 ⇒ `+1000.0 / $5,000` **再来一次**。⇒ **不是静默漏报, 是在梯子已经触发的时刻再造一台假阳性发生器** —— 与 07-27 那次($24.5k 书, −$137.75)同一类后果。
+> **修法(一行)**: `venue_qty is None`(调用方拿不到数量)⇒ **一行都不写**, 返回 0 与理由; 只有 `venue_qty` 是一个**已填充的 dict** 时, `.get(sym, 0.0)` 的 0.0 才是"场所说这个名字是平的"。**"字典是 None"与"字典里没有这个键"必须分开** —— 这正是本仓 `positions_notional` 用缺席编码平仓所依赖的那条区分, 在这里被折掉了。
+> ⇒ **建议: 这一条在清 trip 之前修**, 因为它只在**梯子触发时**才生效 —— 也就是只在出事的时候才生效。
