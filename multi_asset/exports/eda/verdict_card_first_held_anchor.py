@@ -205,16 +205,67 @@ if not fresh:
 else:
     check("★★ the resume returned rows (this is the sample criterion 4 never had)",
           len(fresh) > 0, f"{len(fresh)} new rows")
-    check("★★ NO ROW LOST at the boundary: every new row is strictly newer than the watermark",
-          all(float(r["settlement_ts"]) * 1000 >= (pull.get("gap", {}).get("resume_from_ms", 0)) - 1
-              for r in fresh), "a row at or before the watermark means the cursor moved wrongly")
+    # ════════════════════════════════════════════════════════════════════════════════════════
+    # ★★ TWO CRITERIA REPLACED 2026-07-28T04:3xZ — BEFORE THE 08:00Z DATA (team-lead ruling).
+    # The ruling that authorises this, recorded so a later audit can check it rather than trust
+    # it: CHANGING A THRESHOLD IS CHANGING THE RULE (forbidden after freezing); CHANGING WHAT A
+    # CRITERION MEASURES SO THAT IT CAN MEASURE AT ALL IS REPAIRING THE INSTRUMENT (allowed,
+    # under three obligations: prove the new one can go RED, keep the old text with its reason,
+    # land before the data). Neither of the two below was "too strict" or "too lax" — each failed
+    # to test anything, which is an EXISTENCE failure, not a strength one.
+    #
+    # WITHDRAWN #1, and its reason:
+    #     check("NO ROW LOST … every new row is strictly newer than the watermark",
+    #           all(ts*1000 >= resume_from_ms - 1 for r in FRESH))
+    #   `fresh` is DEFINED as the rows newer than the watermark, so the assertion iterated a set
+    #   filtered by the assertion's own condition — it tested its own filter. Proven inert: a
+    #   planted row at (watermark − 5s) still printed OK.
+    #   ⇒ And the deeper reason a repair was needed rather than a fix: the real failure mode is
+    #     B23's same-millisecond truncation, which makes the missing rows ABSENT FROM THE LEDGER.
+    #     No assertion that inspects rows which EXIST can ever see it. The replacement must
+    #     compute what SHOULD be there, independently, and compare.
+    #
+    # WITHDRAWN #2, and its reason:
+    #     check("… settlement lag (B28) …", True, …)   ← the literal `True`
+    #   A placeholder whose title stated a checkable claim. It printed OK identically to a guard
+    #   confirming safety.
+    # ════════════════════════════════════════════════════════════════════════════════════════
     keys = [(r["settlement_ts"], r["symbol"]) for r in fund]
     check("★★ NO ROW DUPLICATED across the two pulls",
           len(keys) == len(set(keys)), f"{len(keys) - len(set(keys))} duplicate (ts, symbol) pairs")
-    check("★ the pull is not distorted by settlement lag (B28): it ran ≥600s after the "
-          "settlement, or it is marked possibly_incomplete",
-          True, "read `possibly_incomplete` on the pull record; a partial settlement must not "
-                "be counted as covered")
+
+    # REPLACEMENT #1 — the expected count comes from OUR OWN BOOK, not from the surviving rows.
+    # Caliber is deliberately the SAME one the funding first exam was re-stated to on 07-27:
+    # rows == |{name : |position| > 0 and |rate| > 0}|. One caliber across both places.
+    for _set in sorted({float(r["settlement_ts"]) for r in fresh}):
+        _prior = [t for t in sorted(by_read) if t <= _set]
+        _held = ({x["symbol"] for x in by_read[_prior[-1]]
+                  if abs(float(x.get("venue_position_notional") or 0)) > 0} if _prior else set())
+        _written = {r["symbol"] for r in fresh if float(r["settlement_ts"]) == _set}
+        _missing = sorted(_held - _written)
+        check(f"★★ NO ROW LOST at {utc(_set)}: every name we HELD has a settlement row "
+              f"(held={len(_held)}, rows={len(_written)})",
+              not _missing,
+              f"missing: {_missing[:8]}"
+              + ("  — a name may legitimately have no row when its funding rate is exactly 0 "
+                 "(measured 07-27: GMTUSDT). Each missing name must be adjudicated by name; "
+                 "a shortfall is NEVER folded in silently." if _missing else ""))
+
+    # REPLACEMENT #2 — read the field, and refuse when the field is not there.
+    # ★ `possibly_incomplete` lives under `freshness`, which the pull only computes once income
+    #   is non-empty (the `if not income: stamp and return` path skips it). So its ABSENCE has two
+    #   causes — "nothing was flagged" and "freshness was never computed" — and folding those
+    #   together is the exact error this whole card exists to avoid.
+    _fresh_map = pull.get("freshness")
+    if not isinstance(_fresh_map, dict) or not _fresh_map:
+        notyet("★ B28: the pull is not distorted by settlement lag",
+               "the pull record carries no `freshness` map — the pull returned early (no income) "
+               "or the field was not persisted. NOT a pass: absence here is unmeasured, not clean")
+    else:
+        _bad = {t: f for t, f in _fresh_map.items() if f.get("possibly_incomplete")}
+        check("★★ B28: no settlement in this pull is marked `possibly_incomplete` "
+              "(a partial settlement is PRESENT in the ledger and would score 100% covered)",
+              not _bad, f"flagged: {list(_bad)[:4]}")
     print("""
   ⇒ WHAT ② BUYS: the incremental path end to end — watermark, resume, no loss, no duplication.
   ⇒ WHAT ② DOES NOT BUY: the PERMANENT_GAP branch, which stays unwalked and can only be reached
