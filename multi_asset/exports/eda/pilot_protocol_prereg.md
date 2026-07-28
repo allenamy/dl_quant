@@ -1646,3 +1646,25 @@ N ≥ 10 个 A 类锚点
 > 2. **场所读失败的回退路径** (`:467-470` 「proceeding on cached book」) 与 `:1009` 的 `realized_gross` 回退 —— **此时消费的就是意图账面**。**未走到过, 未验。**
 > 3. **`stale_ref_positions` 快照 —— 我查了, 这条是干净的**: 快照在 `:498-499` 取, 而它排在 `:465` 采信场所之后 ⇒ DERISK 阶梯的基准是场所真相, 不是意图。**(把它从怀疑名单里划掉, 而不是留着不查。)**
 > **⇒ 建议归档等级: 独立立案(产物 `loop_state.json`, 消费者与台账不同), 不并入 B25; 严重度 LOW-MEDIUM 而非我昨夜暗示的"第二条自伤链"; 不阻塞认证钟。** 昨夜已自证否的部分(§4-7 走台账不走 loop 缓存)照旧成立。
+
+> **★★ §2.5.10 (八续) —— 五个复审缺口开工: `[4i]` 闭世界普查仍有两个出口; `零消费者` 与 `错误码类行` 已核 (0C, 2026-07-28T00:4xZ)。**
+> **方法**: 全部在 `~/dl_quant_live` 的**副本**上做变异(§83, 0B 的树一字未改; 已用 `grep -c` 双向确认 —— 生产树仍有那行, 副本没有)。基线: `tests_rehearsal_anchor.py` 50 检全绿。
+>
+> **`[4i]` 闭世界普查 —— 0B 的修复是真的, 但只关上了我上次那扇门**
+> | 变异 | 内容 | 结果 |
+> |---|---|---|
+> | **G**(= 我上次的 C, 对照) | `ops/` 下新增第四个计数处 | **红** `UNDECLARED` ⇒ **0B 的修复有效, 已复现** |
+> | D | `ops/dryrun_ledger.py` 保留 import、删掉排除 | 红 —— **但红的是套件里的行为断言, 不是普查** |
+> | **E ★** | `ops/score_post_fix.py` **保留 import、删掉排除** (`not RID.is_rehearsal(r)`) | **两套件全绿** (`tests_rehearsal_anchor` 50 检 + `tests_score_anchor_selection` 16 检) |
+> | **F ★** | 计数处放在 `tools/`(四个目录之外) | **全绿** |
+>
+> **E 的形态**: 普查断言的字面是「计数处 **import** 了共享谓词」。**import 不是 use。** 一个计数处可以被声明、被列表、被 AST 验证过 import, 同时**仍然把排练锚点计进去**。D 之所以红, 是因为 `dryrun_ledger` 恰好另有行为断言覆盖; `score_post_fix` 没有 ⇒ **覆盖是逐文件的、且不完整, 而普查那张表让它看起来是五个计数处一律覆盖**。这正是本仓记过的「为一个实例设的守卫, 不是为那一类」+「证了容易的那条性质, 却当成要紧的那条报出来」。
+> **F 的形态**: 人口是 `grep -rl rebalance_id --include=*.py **live ops scheduler signal**`。**文件清单是算出来的, 搜索范围是手打的** —— PRE-ASSERT 那句「the population was COMPUTED, not typed」只对了一半。当前树里 `vendor/` 有 **14 个 .py**(活代码)就在范围之外; 我实测 `vendor/` 目前**零命中** `rebalance_id`, 所以**今天不可利用**, 但它是**失效方向朝绿**的: 任何一个新目录出现的那一刻就静默失守。
+> **建议修法(归 0B/lead 裁)**: E ⇒ 断言 AST 里存在对该谓词的**调用**(`Call`), 而不只是 import; 更硬的是每个计数处各配一条"排练行不进计数"的行为断言, 并把"哪些计数处有行为断言"也纳入闭世界。F ⇒ 人口改为走**整个仓**(排除项各自带理由并入表), 而不是四个手打目录。
+>
+> **`零消费者`(B20′ `dust_floor`) —— 关闭, 且我是在生产产物上验的, 不是在测试里**
+> `state/testnet/watchdog/last_eval.json` (`evaluated_utc 2026-07-28T00:16:19Z`) → `cond5_venue_event.5b_liquidation_anomaly.dust_floor` = `{source: "SymbolFilters parsed cache", n_symbols_with_own_minimum: 634, examples: {BTC 50.0, ETH 20.0}}`, `dust_floor_degraded=false`。⇒ **"接上了"与"查了个空"在产物上现在确实是两个可观测量**, 且 testnet 只有两币异于 5.0 与 0B 的实测一致。
+>
+> **`错误码类行`(5c) —— 不是缺陷, 是一条自报的死路; 但认证不得把它算成一道武装的闸**
+> 同一份产物: `error_code_fast_path_hits=[]`, **`fast_path_producer="NONE — no producer: watchdog_inputs.derive_venue_events emits no event carrying error_code"`** ⇒ **该快路在生产中不可能触发**, 且 0B 把这句话写进了产物本身(留名不留白, 形式正确)。行为侧那一半是活的(`n_submitted_orders=765`, `consecutive_failed_attempts=0`)。⇒ **登记**: 5c 的**码表分支零命中且零生产者**, 其"能红"从未在生产上被证明; 认证读数只能算行为侧那一半。
+> **仍未动**: `NAV 键` / `B22 两处`。
