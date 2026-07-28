@@ -1685,3 +1685,33 @@ N ≥ 10 个 A 类锚点
 > ⇒ **红在缺陷不太可能出现的地方, 盲在缺陷最可能出现的地方。** 与本仓已记的"证了容易的那条性质、却当成要紧的那条报出来"同族。
 > **修法(一行夹具, 归 0B)**: 再加两行违规 readback —— 一行 `read_ts == 结算时刻`(咬 `<=`)、一行 `read_ts == 结算 + 1s`(咬任何正容差)。**加行不改断言**, 现有 `+600s` 那行保留。
 > **未验留名**: 我只变异了 `positions_at` 的选择规则与 `build_rows` 的定价来源; `[J]` 侧与符号约定这次没动(它们上次已各有红测)。
+
+> **★★★ §2.5.10 (十续) —— B30 复审 (0C, 2026-07-28T00:4x–00:5xZ)。实现于 `6b47839` 落于 00:28:44Z, 在我写判据的过程中到货 —— 判据落于实现之前, 这一条可查。**
+> **套件**: `multi_asset/exports/eda/redtest_b30_qty_basis.py`(0C 写判据, 0B 写实现)。它**先探测契约, 缺失即 `exit 2` 报 NOT IMPLEMENTED** —— 我写它时 B30 还不存在, 而"对着不存在的实现全绿"正是本仓记过的那一族。夹具内容**全部实测**(窗口 = readback 12:17:13Z→16:18:02Z; `dq` 由 `orders.filled_notional/avg_fill_px` 与 `fills` 两源各自重算, 4 位小数一致):
+> `ADA N1=310.27 Q1=1885.00 Σdq=−1256.00 N2=99.31 Q2=629.00 | FIL 437.56/589.30/−706.50/−84.22/−117.20 | STG 195.36/1480.00/−1160.00/40.83/320.00`; `Q1 = Q2 − Σdq` 三名逐个恒等, `M2/M1−1` 复现 −4.080/−3.220/−3.338%。
+>
+> **lead 指定的三条 + 我加的第四条**
+> | # | 判据 | 结果 |
+> |---|---|---|
+> | ① | ADA/FIL/STG 必须归零 | **PASS**(残差恒等于 0, 不出异常) |
+> | ② | 合成真数量不符必须仍触发 | **PASS(一般形)**: 删掉 ADA 的成交行 ⇒ `residual_qty=−1256.00`, `residual_usdt=198.30`, 且 FIL/STG 同批保持静默 —— 这同时是 ① 的红能力对照。**但见下 D2: 缺陷 A 的那个具体形状 FAIL。** |
+> | ③ | 数量一致 + 价格大幅移动必须静默 | **PASS**, 且我把真实位移**放大 5×**(≈−16~−20%)仍静默 ⇒ 静默不是因为数小 |
+> | ④ | §4-5b 与 §4-7 同源自动受益 | **PASS**(同一份 `reconcile`; `watchdog_inputs:125` 一并带出 `drift_n_unreconcilable_latest`) |
+>
+> **实现本身质量高, 且它自己解决了我在写判据时先登记的两个设计缺口**: (a) 旧行无数量 ⇒ 判 `unreconcilable` 而**不是**空异常表(空表与"检查过且干净"同形); (b) `Q2=0` 时 mark 从 T2→T1→区间内成交价逐级回退, 且**逐行报 `mark_source`**。`_exec_qty` 用 `filled_notional/avg_fill_px` 的论证也成立(场所自身 `avgPrice=cumQuote/executedQty`, 除法是在还原它自己的定义), 与我两源重算一致。
+>
+> **★ D1 (B30 自带的新缺陷, 我实测): 零 mark 是"戴着值的缺失 mark", 它绕开了这份实现自己立的"不能比就拒绝"原则。**
+> `mark = |n2/q2|` 只要 `q2` 为真就采用。若 `n2 == 0` 而 `q2 != 0` ⇒ `mark = 0` ⇒ `residual_usdt = 0` ⇒ 低于任何地板 ⇒ **静默, 且不计入 `unreconcilable`**。实测夹具: 凭空出现 100 张合约, 守卫返回 **NOTHING**(既非异常, 亦非不可对账)。`if q2:` 为真 ⇒ T1 回退链根本不走。
+> **修法**: `mark == 0` 或非有限 ⇒ 走与 `mark is None` 同一条回退/拒绝路径。**未验边界**: 场所能否真产生 `n2==0 且 q2!=0`(需 `notional` 缺键或为 0 而 `positionAmt` 非零), **我没有证明其可达**; 我报的是代码路径, 不是已发生的事件。
+>
+> **★ D2: 缺陷 A 在生产端**未**被修, 而它的检出能力反而下降了 —— 且方向是倒的。**
+> `git show 6b47839 -- live/binance_broker.py live/binance_executor.py` 里没有任何一处触及 `filled_notional is None` 的产出端(那两个文件的改动全是 B20 的 min_notional 查表与错误码)。B30 改的是 `reconcile` 对它的**反应**:
+> - **成交行存在但 `filled_notional=None`**(= SEIUSDT 那一行的真实形状) ⇒ **`unreconcilable`, `triggered=False`, state `PARTIAL`** —— 旧口径下它是会跳闸的($53.44)。
+> - **成交行干脆不存在** ⇒ **正常触发**(实测 `residual_qty=−1186.0`, `$53.44`, `mark_source="readback(T1)"`)。
+> ⇒ **一行自称 `terminal_reason=filled` 却读不出金额, 比"什么行都没有"是更强的信号, 而现在它得到的保护更少。** lead 把缺陷 A 并入本批, 是为了避免"清了 trip 再跳一次"; 而实际落地的效果是**那一形状此后永不跳闸**。这需要一次明确裁定, 不能作为副作用继承。
+>
+> **★ D3: `unreconcilable` 是一个零消费者的性质 —— 与 6 小时前刚关掉的 B20′ 同族。**
+> `drift_n_unreconcilable_latest` 全仓**一处写、零处读**; `_5b_state`(CLEAN/PARTIAL/ANOMALOUS/UNKNOWN)只进 detail 字典, 无任何闸读它。⇒ "检查过且干净"与"109 个名字一个都没能比"在 `triggered` 上是同一个值。实测全窗: `anomalies 375 → 0`, `unreconcilable 928`。
+> ⇒ **建议**: 给 `n_unreconcilable_latest` 一个阈值/告警, 或至少让验收电池读 `_5b_state`; 否则写入端一旦漏写 `venue_position_qty`, §4-5b 会永久 PARTIAL 而看起来全绿。
+>
+> **★ 时序留名(与清 trip 直接相关)**: 写入端 (`anchor_loop:984-998`) 确实把 `venue_position_qty` 与 notional 从**同一次** `account_snapshot()` 取出(这一点对: 两次调用会让 N 与 Q 描述两本不同的书)。但**该路径至今一次也没在生产上跑过** —— 00:16:18Z 那批 readback 早于 00:28:44Z 的实现, 磁盘上现存每一行都没有 qty 列, `_schema.json` 也仍是四列。**当前全窗"0 异常"里, 最新锚干净是因为书是平的(零名义恒等给出零数量), 不是因为新口径被验过。** ⇒ **B30 的前向路径的第一次真实运行, 是清 trip、书重建之后的那个锚点**; 在那之前, 任何"§4-5b 已验证"的说法都只成立于夹具口径。(顺带: `pilot_log.validate` 只校验必填/非空, 不拒绝多余列, 所以 04:00Z 不会因为多一列而写失败 —— 我查过; 但 `venue_position_qty` **不在 required/not_null 里**, 所以漏写它是一个合法的行, 这正是 D3 要防的那件事。)
