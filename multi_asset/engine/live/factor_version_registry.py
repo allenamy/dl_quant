@@ -39,6 +39,12 @@ REGISTRY_PATH = MA + "/exports/eda/factor_version_registry.json"
 #   ⇒ AND IT IS CONSUMED. It sat here as prose for two days and went stale the moment the guard's
 #     semantics changed; an unread declaration cannot notice that it has become false. pilot_daily's
 #     guard chain now asserts the observed exit against it.
+# ★ `panel_frozen` / `panel_live` ARE DOCUMENTATION. THEY ARE NOT THE CALIBER ROUTING KEY (0C
+#   2026-07-29, team-lead ruling). They say which artifact each version is ABOUT; they no longer
+#   decide what `assert_funding_dim` expects of a file. A path key is inherited by whatever file is
+#   written to that path next, and is lost by the artifact that moves — silently, in both
+#   directions. The expectation now travels INSIDE the artifact (`panel_caliber_stamp`), or is keyed
+#   to its SHA-256 for artifacts that must not be rewritten (below).
 FACTOR_VERSIONS = {
     "funding_ema_broken_v1": {
         "description": "pre-fix funding_ema — per-settlement rate, NOT normalised across 4h/8h. "
@@ -54,6 +60,40 @@ FACTOR_VERSIONS = {
         "panel_live": "exports/live/wide_dl_live_fundfix.npz",
         "expected_caliber": "corrected",
         "assert_funding_dim_expected_exit": 0,
+    },
+}
+
+# ---- artifacts that predate stamping and MUST NOT be rewritten to add one ----------------------
+# ★ KEYED BY CONTENT, NOT BY NAME. sha256_16 of the file's bytes: a property the artifact carries
+#   with it, immune to `mv`, and impossible for a different file to inherit.
+# ⇒ Why not just stamp them? `exports/wide_dl_full.npz` is the panel the frozen heads were TRAINED
+#   on. Appending a stamp member changes the file's sha256, and `panel_caliber_manifest.json`
+#   blesses that exact hash as this generation's bit-identity. Adding a guard's own mark to the
+#   artifact it guards would invalidate the stronger check to install the weaker one.
+# ⇒ An entry here is a standing statement that a specific sequence of bytes holds a specific
+#   caliber. A rebuild produces different bytes, does not match, and therefore reads as UNDECLARED
+#   (exit 2, CANNOT JUDGE) rather than inheriting this expectation — which is the correct answer
+#   for a rebuilt training panel: nobody has yet said what the new one is supposed to be.
+UNSTAMPED_ARTIFACT_CALIBER = {
+    "2e36dda1d2498c0f": {
+        "caliber": "as_trained",
+        "artifact": "exports/wide_dl_full.npz (built 2026-07-11)",
+        "why": "the panel the frozen king/s2 fold-4 heads were fitted on; never rebuilt since, and "
+               "deliberately not rebuilt after the 2026-07-25 settlement-interval fix — retraining "
+               "and re-calibering are one decision, not two",
+        "size_bytes": 1052380498,
+        "recorded_utc": "2026-07-29T09:4xZ",
+        "cross_check": "same hash blessed in exports/eda/panel_caliber_manifest.json",
+    },
+    "5b1b68cc1e4bb974": {
+        "caliber": "corrected",
+        "artifact": "exports/wide_dl_full_fundfix.npz (built 2026-07-25 by apply_funding_fix)",
+        "why": "the corrected rebuild of the training panel, kept as the red-test substrate and the "
+               "factor-leg reference; NO frozen head consumes it, which is exactly why it is the "
+               "artifact that must FAIL if it ever appears in the training panel's role",
+        "size_bytes": 1052380498,
+        "recorded_utc": "2026-07-29T09:4xZ",
+        "cross_check": "measured +0.1418/+0.1429 against the corrected reference +0.1463 (0C 07-27)",
     },
 }
 
@@ -119,6 +159,12 @@ def dump():
         "track_expected_version": TRACK_EXPECTED_VERSION,
         "track_rationale": TRACK_RATIONALE,
         "factor_versions": FACTOR_VERSIONS,
+        "unstamped_artifact_caliber": UNSTAMPED_ARTIFACT_CALIBER,
+        "caliber_routing_rule": ("assert_funding_dim resolves an artifact's expected caliber from "
+                                 "(1) the stamp inside the file, (2) this sha256 table, (3) nothing "
+                                 "-> CANNOT JUDGE. `panel_frozen`/`panel_live` above are "
+                                 "documentation and are NOT consulted for routing: a path key is "
+                                 "inherited by whatever file is written there next."),
         "protocol_usage_rule": ("protocol §5 must REFERENCE the symbol "
                                 "`PROTOCOL_S5_EFFECTIVE` / this JSON, never restate the version "
                                 "string in prose — otherwise the manual step is merely relocated "

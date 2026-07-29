@@ -240,7 +240,19 @@ def build_live_panel(source, out_panel=None, out_dl=None, verbose=True):
     sys.path.insert(0, MA.rsplit("/multi_asset", 1)[0])
     import multi_asset.data.build_wide_dl as bwd
     out_dl = out_dl or (MA + "/exports/live/wide_dl_live.npz")
-    bwd.build(panel=out_panel, outpath=out_dl)
+    # ★ THE CALIBER IS DECLARED HERE BECAUSE THIS IS WHERE IT IS DECIDED (0C 2026-07-29).
+    # `funding_derive.real_funding_ema` does NOT normalise the settlement rate — deliberately, so
+    # the live splice reproduces the caliber of the panel the frozen king/s2 heads were fitted on
+    # (`exports/wide_dl_full.npz`, built 2026-07-11, never rebuilt after the 07-25 fix). The stamp
+    # states that intent inside the artifact; assert_funding_dim then measures the channels and must
+    # agree. If someone ever normalises this path without retraining, intent and measurement part
+    # company and the build goes red — instead of the model quietly being fed a distribution it was
+    # never fitted on.
+    bwd.build(panel=out_panel, outpath=out_dl, caliber="as_trained",
+              caliber_why=("live splice must match the training panel: funding_derive."
+                           "real_funding_ema emits the un-normalised per-settlement rate on "
+                           "purpose, because the frozen king/s2 fold-4 heads were fitted on it and "
+                           "were NOT retrained after the 2026-07-25 settlement-interval fix"))
     return dict(new_rows=int(ng.size), extended_T=len(ext["ts"]), open_month=open_month, dl_out=out_dl,
                 new_span=[str(pd.to_datetime(ng.min(), unit="ms")), str(pd.to_datetime(ng.max(), unit="ms"))])
 

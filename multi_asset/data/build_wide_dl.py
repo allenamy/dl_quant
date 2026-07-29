@@ -19,6 +19,7 @@ import os.path as _p
 import sys as _sys
 import numpy as np
 _sys.path.insert(0, _p.dirname(_p.dirname(_p.dirname(_p.abspath(__file__)))))  # runnable w/o PYTHONPATH
+_sys.path.insert(0, _p.join(_p.dirname(_p.dirname(_p.abspath(__file__))), "exports", "eda"))
 from multi_asset.data.wide_factory import build_factors, _shift, _roll
 
 PANEL = ("/mnt/storage/private/work_hsy/quant_research_multi_asset/"
@@ -58,7 +59,35 @@ def _xsec_residualize(Y, X, mem):
     return R
 
 
-def build(panel=PANEL, outpath=OUT):
+def build(panel=PANEL, outpath=OUT, caliber=None, caliber_why=None):
+    """`caliber` is the CALLER'S DECLARATION of which funding caliber this build is meant to produce
+    ("as_trained" / "corrected"), written into the output as a stamp the artifact carries.
+
+    ★ IT IS DECLARED, NOT DETECTED, AND THAT IS THE POINT (0C 2026-07-29). This function cannot
+      determine the caliber from its own inputs — the funding dimension comes from the raw panel's
+      `FUND_EMA` upstream. If it stamped what it MEASURED, the gate below would compare a
+      measurement against itself and pass forever: a tautology wearing a guard's clothes. The stamp
+      says what the caller INTENDED; `assert_funding_dim` measures what came out; the two must
+      agree. That disagreement is the entire detector — it is how a silent upstream re-calibering
+      (e.g. a rebuilt `wide_panel_full.npz` carrying the 2026-07-25 fix into a live splice that is
+      supposed to stay as-trained) becomes visible instead of invisible.
+    """
+    import panel_caliber_stamp as _PCS                      # noqa: E402 (path set at import below)
+    if caliber not in _PCS.CALIBERS:
+        raise SystemExit(
+            f"[wide_dl] REFUSING TO BUILD: caliber must be declared as one of {_PCS.CALIBERS}, got "
+            f"{caliber!r}.\n"
+            f"  The panel this writes is a FROZEN MODEL'S INPUT. Which funding caliber it carries "
+            f"decides whether the heads are fed the distribution they were fitted on, and this "
+            f"build cannot infer that from its own arguments — the caller is the only party that "
+            f"knows what it is producing.\n"
+            f"  Pass caliber='as_trained' (matching the frozen heads) or 'corrected' (the "
+            f"settlement-interval-normalised factor leg), plus caliber_why explaining which and "
+            f"why. See exports/eda/panel_caliber_stamp.py.")
+    if not caliber_why:
+        raise SystemExit("[wide_dl] REFUSING TO BUILD: caliber_why is required — a stamp without a "
+                         "reason is a label, and the reason is what lets a later reader tell a "
+                         "deliberate state from a leftover.")
     z = np.load(panel, allow_pickle=True)
     C = z["CLOSE"].astype(np.float64); QV = z["QVOL"].astype(np.float64)
     DV = z["DVOL30"].astype(np.float64)
@@ -129,9 +158,13 @@ def build(panel=PANEL, outpath=OUT):
         out[f"Y{H}"] = Y; out[f"YR{H}"] = YR; out[f"CL{H}"] = CL
         print(f"  H={H}h: Y finite {np.isfinite(Y).mean():.3f} | YR finite {np.isfinite(YR).mean():.3f}"
               f" | CL rows {int(CL.any(1).sum())} member/hr~{int(np.median(MEM.sum(1)))}", flush=True)
+    # the caliber stamp travels INSIDE the artifact — see the docstring: declared here, measured by
+    # the gate below, and the two are required to agree.
+    out.update(_PCS.make(caliber, f"{_p.basename(__file__)}::build", caliber_why))
     with open(outpath, "wb") as f:
         np.savez(f, **out)
     print(f"[wide_dl] T={T} N={N} C={CH.shape[2]} chans -> {outpath}", flush=True)
+    print(f"[wide_dl] caliber stamp: DECLARED {caliber} ({caliber_why})", flush=True)
     print(f"  channels: {ch_names}", flush=True)
 
     # ---- HARD GATE: funding settlement-interval dimension regression check ----
@@ -155,6 +188,17 @@ def build(panel=PANEL, outpath=OUT):
 
 
 if __name__ == "__main__":
-    import sys
-    build(panel=sys.argv[1] if len(sys.argv) > 1 else PANEL,
-          outpath=sys.argv[2] if len(sys.argv) > 2 else OUT)
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("panel", nargs="?", default=PANEL)
+    ap.add_argument("outpath", nargs="?", default=OUT)
+    # ★ REQUIRED, no default. A default here would be a path rule wearing a flag: whoever runs this
+    # from a shell is exactly the caller who might be rebuilding the training panel, and that is the
+    # rebuild that must never inherit an expectation it was not asked to satisfy.
+    ap.add_argument("--caliber", required=True, choices=["as_trained", "corrected"],
+                    help="which funding caliber THIS build is meant to produce (stamped into the "
+                         "output; the gate then measures whether it did)")
+    ap.add_argument("--caliber-why", required=True,
+                    help="why this build carries that caliber (recorded in the stamp)")
+    a = ap.parse_args()
+    build(panel=a.panel, outpath=a.outpath, caliber=a.caliber, caliber_why=a.caliber_why)

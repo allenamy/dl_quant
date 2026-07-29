@@ -67,6 +67,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import assert_funding_dim as AFD          # THE measurement lives there; never re-derived here
+import panel_caliber_stamp as PCS         # the artifact's own declaration; cross-checked below
 
 MA = AFD.MA                                # .../multi_asset
 MANIFEST_PATH = os.path.join(AFD.EDA, "panel_caliber_manifest.json")
@@ -251,6 +252,29 @@ def assert_manifest(path=MANIFEST_PATH, substitutes=None, verbose=True, force_me
             if verbose:
                 print(f"  {slot:34s} ABSENT on this machine — not verified", flush=True)
             continue
+        # ★ THE ARTIFACT'S OWN STAMP VS THIS MANIFEST'S BLESSING (0C 2026-07-29). Two declarations
+        # about the same artifact now exist: the stamp its builder wrote into it, and the caliber
+        # this generation was blessed with. They must agree. If they do not, someone changed one
+        # declaration and not the other — and a mislabelled artifact is how a panel ends up in a
+        # role it was never built for while every individual check still reads green.
+        # ⇒ Checked BEFORE the hash shortcut so a disagreement is not skipped by bit-identity.
+        try:
+            _st = PCS.read(p)
+        except PCS.StampError as e:
+            _st = None
+            entry["stamp"] = f"BROKEN: {e}"
+            rep["findings"].append(f"★ {slot} carries a BROKEN caliber stamp: {e}. A declaration "
+                                   f"that cannot be read is not an absent one — find the writer.")
+        if _st is not None:
+            entry["stamp"] = {"caliber": _st["funding_caliber"], "by": _st.get("declared_by")}
+            if _st["funding_caliber"] != want["caliber"]:
+                rep["findings"].append(
+                    f"★ {slot} STAMP/BLESSING DISAGREE: the artifact declares "
+                    f"`{_st['funding_caliber']}` (written by {_st.get('declared_by')}), this "
+                    f"generation was blessed with `{want['caliber']}`. One of the two was changed "
+                    f"without the other. Do not reconcile by editing whichever is easier to edit — "
+                    f"decide which caliber this generation is supposed to hold, and make the "
+                    f"builder and the blessing say it together.")
         # ★ HASH FIRST, MEASURE ONLY IF IT MOVED. Bit-identity to the blessed file is a STRONGER
         # statement than a re-measurement (no sampling, no threshold) and costs seconds instead of
         # minutes on a 1 GB panel. This is also literally what `norm_stats` gets — the measurement

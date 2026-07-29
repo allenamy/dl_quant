@@ -166,6 +166,20 @@ def apply_to_panel(in_path, out_path, verbose=True):
 
     out = {k: W[k] for k in W.files}
     out["CH"] = CH
+    # ★ THIS FUNCTION'S OUTPUT IS CORRECTED BY CONSTRUCTION — it exists to apply
+    # rate*(8/interval_h) before the EMA — so it stamps that, inside the artifact. Note it does NOT
+    # inherit the input's stamp: an as-trained panel goes in and a corrected panel comes out, and
+    # carrying the input's declaration forward is how a fixed artifact ends up claiming to be the
+    # thing it was built to stop being. (0C 2026-07-29)
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                     "exports", "eda"))     # from __file__: MA above is a server path
+    import panel_caliber_stamp as _PCS
+    out.pop(_PCS.STAMP_KEY, None)
+    out.update(_PCS.make("corrected", f"{os.path.basename(__file__)}::apply_to_panel",
+                         f"settlement-interval normalised (rate*8/interval_h before the EMA) from "
+                         f"{os.path.basename(in_path)}; this is the FACTOR-LEG caliber, not the "
+                         f"caliber any frozen DL head was trained on"))
     with open(out_path, "wb") as f:
         np.savez(f, **out)
     if verbose:

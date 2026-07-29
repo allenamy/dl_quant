@@ -69,6 +69,11 @@ The pipeline carries two funding calibers **deliberately**:
   funding dimension without declaring which caliber they intended. That is the case this gate most
   needs to catch, and a single two-sided threshold cannot express it.
 
+⇒ WHICH CALIBER AN ARTIFACT IS SUPPOSED TO HAVE COMES FROM THE ARTIFACT (0C 2026-07-29). A stamp
+  written into the npz by its builder (`exports/eda/panel_caliber_stamp.py`), or — for the frozen
+  training panel, which must not be rewritten — a declaration keyed to its SHA-256. Never from the
+  filename, never from the path: a path key is inherited by whatever file is written there next.
+
 Usage:  python multi_asset/exports/eda/assert_funding_dim.py [--panel <panel.npz>] [--caliber auto|corrected|as_trained]
 Exit codes (wire into the panel-rebuild pipeline so a regression breaks the build):
     0  the artifact carries the caliber it is supposed to have
@@ -143,6 +148,19 @@ def expected_caliber(panel_path, override=None):
       ⇒ The authoritative caliber map, per the same ruling:
         **the corrected caliber currently belongs to the FACTOR LEG and to NO DL input panel.**
         Every live `wide_dl_*` panel the frozen heads consume is `as_trained`.
+
+    ★★★ AND NOW FROM THE ARTIFACT ITSELF, NOT FROM ITS PATH (0C 2026-07-29, FOURTH correction —
+      team-lead ruling: "闸门的选择依据必须是产物自己携带的口径戳(caliber stamp), 不是文件名或路径 ——
+      后者会在下一次重命名时静默失效").
+      The registry declaration above was keyed by the panel's PATH. That is a declaration, so it was
+      not the filename-convention defect — but it fails under `cp`/`mv`/a changed `--out` flag, and
+      it fails SILENTLY in the worse direction: the file that inherits the path inherits an
+      expectation it was never built to satisfy. Same shape as 07-25, different mechanism.
+      ⇒ The caliber now comes from a stamp the builder writes INSIDE the artifact
+        (`exports/eda/panel_caliber_stamp.py`), falling back — for artifacts that cannot be
+        rewritten, i.e. the frozen training panel — to a declaration keyed by the file's SHA-256.
+        Both keys are properties of the CONTENTS. A path is used only to open the file.
+      ⇒ See `declared_caliber` below for the resolution order and what each step guarantees.
     """
     if override and override != "auto":
         return override
@@ -162,24 +180,56 @@ def _registry():
         return None
 
 
-def declared_caliber(panel_path):
-    """The caliber THIS artifact is DECLARED to carry, from the factor-version registry.
+def declared_caliber(panel_path, with_basis=False):
+    """The caliber THIS artifact is DECLARED to carry — read from the artifact, never from its name.
 
-    Returns "as_trained" / "corrected", or None when the artifact is not declared anywhere.
+    Resolution order (each step keyed to CONTENTS; the path only opens the file):
+      1. the STAMP the builder wrote inside the npz  — rebuilt artifacts. Survives any rename, and
+         cannot be inherited by a different file written to the same path.
+      2. a SHA-256 declaration in `factor_version_registry.UNSTAMPED_ARTIFACT_CALIBER` — for
+         artifacts that predate stamping and must not be rewritten (the frozen training panel:
+         rewriting it to add a stamp would break the bit-identity another guard asserts).
+      3. nothing -> None. The caller reports CANNOT JUDGE (exit 2). Never a default.
+
+    A malformed stamp raises through as `StampError` and the caller reports CANNOT JUDGE with the
+    reason: "somebody declared something and it is broken" is not the same fact as "nobody declared
+    anything", and a resolver that flattens the two loses the only one that names a defect.
+
+    Returns the caliber string (or None); with_basis=True returns (caliber, basis-sentence).
     """
-    FVR = _registry()
-    if FVR is None:
+    basis = "no declaration found"
+    cal = None
+    stamp = _stamp_mod()
+    if stamp is not None and os.path.exists(panel_path):
+        d = stamp.read(panel_path)                    # raises StampError on a broken stamp
+        if d is not None:
+            cal = d["funding_caliber"]
+            basis = (f"stamp carried by the artifact (declared by {d.get('declared_by')} at "
+                     f"{d.get('written_utc')})")
+    if cal is None:
+        FVR = _registry()
+        if FVR is not None and os.path.exists(panel_path):
+            declared = getattr(FVR, "UNSTAMPED_ARTIFACT_CALIBER", {})
+            if declared:
+                h = stamp.sha256_16(panel_path) if stamp is not None else None
+                if h in declared:
+                    cal = declared[h]["caliber"]
+                    basis = (f"content sha256_16 {h} declared in factor_version_registry "
+                            f"({declared[h].get('artifact')})")
+    return (cal, basis) if with_basis else cal
+
+
+def _stamp_mod():
+    """panel_caliber_stamp, or None if unreachable (same rule as the registry: unreachable means
+    the declaration cannot be read, which is a CANNOT-JUDGE, not a default)."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    try:
+        import panel_caliber_stamp as PCS
+        return PCS
+    except Exception:
         return None
-    want = os.path.abspath(panel_path)
-    for ver in FVR.FACTOR_VERSIONS.values():
-        cal = ver.get("expected_caliber")
-        if not cal:
-            continue
-        for key in ("panel_frozen", "panel_live"):
-            rel = ver.get(key)
-            if rel and os.path.abspath(os.path.join(MA, rel)) == want:
-                return cal
-    return None
 
 
 def rank_centred(x):
@@ -253,19 +303,31 @@ def measure_gaps(panel, stride=4):
 
 
 def main(panel, caliber="auto"):
-    WANT = expected_caliber(panel, caliber)
+    if caliber and caliber != "auto":
+        WANT, BASIS = caliber, "--caliber override (one-off inspection / red test)"
+    else:
+        stamp = _stamp_mod()
+        try:
+            WANT, BASIS = declared_caliber(panel, with_basis=True)
+        except (stamp.StampError if stamp else Exception) as e:
+            print(f"CANNOT JUDGE: {panel} carries a BROKEN caliber stamp — {e} (exit 2).\n"
+                  f"  ⇒ A broken declaration is not an absent one. Something wrote a stamp and it "
+                  f"cannot be read; find that writer rather than removing the stamp.", flush=True)
+            return 2
     if WANT is None:
-        print(f"CANNOT JUDGE: {panel} is not DECLARED in engine/live/factor_version_registry.py, so "
-              f"there is no statement of which caliber it is supposed to carry (exit 2).\n"
-              f"  ⇒ Declare it there (panel_frozen / panel_live + expected_caliber) rather than "
-              f"teaching this gate a filename rule. A convention holds until someone writes a file "
-              f"that does not follow it — and then the gate asserts a caliber the artifact was never "
-              f"supposed to have, which is the 2026-07-25 defect exactly.\n"
+        print(f"CANNOT JUDGE: {panel} carries no caliber stamp, and its contents "
+              f"(sha256_16) are not declared in engine/live/factor_version_registry.py — so there "
+              f"is no statement of which caliber it is supposed to carry (exit 2).\n"
+              f"  ⇒ Stamp it AT THE BUILDER (exports/eda/panel_caliber_stamp.py::make, splatted "
+              f"into np.savez), so the declaration travels inside the artifact and survives a "
+              f"rename. Do NOT teach this gate a path or filename rule: a path key is inherited by "
+              f"whatever file is written there next, which is the 2026-07-25 defect with a "
+              f"different mechanism.\n"
+              f"  ⇒ For an artifact that must not be rewritten (the frozen training panel), declare "
+              f"its sha256_16 in factor_version_registry.UNSTAMPED_ARTIFACT_CALIBER.\n"
               f"  ⇒ Or pass --caliber explicitly for a one-off inspection.", flush=True)
         return 2
-    print(f"[caliber] this artifact must be **{WANT}**  "
-          f"(basis: {'--caliber override' if caliber not in (None,'auto') else 'factor_version_registry declaration'})",
-          flush=True)
+    print(f"[caliber] this artifact must be **{WANT}**  (basis: {BASIS})", flush=True)
     # ★ EXIT 2 = "CANNOT JUDGE", DISTINCT FROM EXIT 1 = "JUDGED, WRONG CALIBER" (0C 2026-07-27).
     # Both used to be 1. They are different states and callers need to tell them apart: a panel
     # missing the funding channels, or with no anchor where both settlement cohorts are populated,
@@ -323,7 +385,7 @@ def main(panel, caliber="auto"):
                   "  neither the as-trained nor the corrected recipe produces this. Do not adjust the\n"
                   "  threshold; find the change.", flush=True)
     json.dump(dict(panel=panel, created="2026-07-25", auditor="0C", fail_threshold=FAIL_ABS,
-                   expected_caliber=WANT, ref_as_trained=REF_AS_TRAINED,
+                   expected_caliber=WANT, expectation_basis=BASIS, ref_as_trained=REF_AS_TRAINED,
                    ref_corrected=REF_CORRECTED, channels=res, verdict=verdict),
               open(EDA + "assert_funding_dim_result.json", "w"), indent=1, default=str)
     return 0 if not failed else 1
@@ -333,6 +395,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--panel", default=MA + "/exports/wide_dl_full.npz")
     ap.add_argument("--caliber", default="auto", choices=["auto", "corrected", "as_trained"],
-                    help="override the per-artifact expectation (auto = decide from the path)")
+                    help="override the per-artifact expectation (auto = read the artifact's own "
+                         "caliber stamp, then its sha256 declaration; never its path)")
     _a = ap.parse_args()
     sys.exit(main(_a.panel, _a.caliber))
