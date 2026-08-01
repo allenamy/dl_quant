@@ -289,8 +289,30 @@ def run(verbose=True):
     except Exception as e:
         fr = {"error": f"{type(e).__name__}: {e}"}
 
+    # ★★★ THE MIXTURE THE DECISION SERIES WAS BUILT AT (2026-08-01).
+    # `caliber` names the CURVE (which legs, which universe) and says nothing about the WEIGHTS.
+    # The pilot's deployed book moved to the challenger mixture today while this series stays at
+    # champion .30/.10/.30/.30 by design — so from now on the consumer must be able to see that a
+    # decay verdict here is about the FACTORS at the old mixture, not about the traded book. It
+    # could not: nothing in this report named a weight. Second occurrence of the shape whose first
+    # was a decay alarm reading `A_provisional_3leg`, a curve with no funding leg.
+    # ★ READ BACK FROM THE ARTEFACT, not from a constant in this file: the positions we scored are
+    #   the thing that has a mixture, and a local copy could disagree with them. Absent or
+    #   unreadable stays UNKNOWN — never "the same".
+    _decision_weights = None
+    try:
+        _pf = sorted(glob.glob(os.path.join(FIX_POS_DIR, "positions_*.json")))
+        if _pf:
+            _decision_weights = (json.load(open(_pf[-1])) or {}).get("weights")
+    except Exception as _e:
+        _decision_weights = f"UNREAD ({type(_e).__name__}: {str(_e)[:60]})"
+
     report = {
         "as_of": pd.Timestamp.utcnow().isoformat(),
+        "decision_weights": _decision_weights,
+        "decision_weights_source": (f"read back from the newest artefact in {FIX_POS_DIR}; "
+                                    f"null means the artefact names no mixture, which is UNKNOWN "
+                                    f"and not 'the same as deployed'"),
         # ---- top-level = THE DECISION SERIES (consumers that read these get the deployable book) --
         "caliber": DECISION_CALIBER,
         "decision_series": DECISION_KEY,

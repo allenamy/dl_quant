@@ -164,7 +164,7 @@ def _positions(src, anchors, drop_funding_open_month=None):
     for (t, m, p) in res["net_positions"]:
         g = float(np.abs(p).sum())
         out[int(t)] = (m, (p / g if g > 1e-12 else p))              # unit gross
-    return out
+    return out, dict(weights)
 
 
 def emit_live(verbose=True):
@@ -176,8 +176,8 @@ def emit_live(verbose=True):
     all_anchors = np.sort(np.where((src.member & src.CL4 & np.isfinite(src.king) & np.isfinite(src.s2)).any(1))[0])
     new_anchors = all_anchors[src.ts[all_anchors] > frozen_end]
     open_month = pd.to_datetime(src.ts[new_anchors].max(), unit="ms", utc=True).strftime("%Y-%m")
-    posA = _positions(src, all_anchors, drop_funding_open_month=open_month)   # Curve A (3-leg live)
-    posB = _positions(src, all_anchors, drop_funding_open_month=None)         # Curve B (4-leg backfill-ready)
+    posA, wA = _positions(src, all_anchors, drop_funding_open_month=open_month)   # Curve A (3-leg)
+    posB, wB = _positions(src, all_anchors, drop_funding_open_month=None)         # Curve B (4-leg)
     syms = np.array(src.symbols)
     written = 0
     for t in new_anchors:
@@ -190,11 +190,26 @@ def emit_live(verbose=True):
                # could only be answered by inferring from git. The fixfunding track already stamped
                # both. We are about to accumulate ~16 days of these files as the evidence base for a
                # go/no-go, so the files must answer that question themselves.
+               # ★★★ AND NOW THE MIXTURE ITSELF (2026-08-01). `track: "champion"` names a LABEL,
+               # not a book: the deployed weights are about to move to the challenger set, and
+               # from that moment two files with the same name and the same `track` describe two
+               # different books with nothing in either to tell them apart. Same family as the S5
+               # note above — the artefact must answer the question rather than leave it to git.
+               # ★ PER CURVE, NOT ONE STAMP AT THE TOP: A and B are built from DIFFERENT weight
+               #   dicts (A zeroes the funding leg for the open month), so a single top-level
+               #   `weights` would be correct for one curve and quietly wrong for the other. The
+               #   last time these two curves were confused, a decay alarm read A_provisional_3leg
+               #   — a curve with no funding leg — as if it were the traded book.
                "track": "champion", "factor_version": _factor_version("champion"),
+               "track_caliber": ("`track` is the LABEL of this shadow curve, not a claim about "
+                                 "which book the pilot is trading. Compare the per-curve "
+                                 "`weights` below against config/book.json to answer that."),
                "panel": _panel_identity(),
                "curve": {"A_provisional_3leg": {"note": "funding leg dropped for the open month (this feed cannot source it live)",
+                                                "weights": {k: round(float(v), 6) for k, v in wA.items()},
                                                 "positions": {syms[j]: round(float(w), 8) for j, w in zip(mA, pA)}},
                          "B_backfilled_4leg": {"note": "includes funding (open-month funding is a premium-derived proxy; reconcile with the monthly archive at month-end)",
+                                               "weights": {k: round(float(v), 6) for k, v in wB.items()},
                                                "positions": {syms[j]: round(float(w), 8) for j, w in zip(mB, pB)}}}}
         fn = f"{OUT_DIR}/positions_{d.strftime('%Y%m%d_%H')}.json"
         json.dump(rec, open(fn, "w"), indent=1)
@@ -224,8 +239,8 @@ def dry_run(n=100, verbose=True):
     frozen_anchors = anchors[src.ts[anchors] <= frozen_end]
     warm = frozen_anchors[-(n + 40):]                               # 40-anchor netting warmup (the slow
     anchors = frozen_anchors[-n:]                                   # 24h legs need ~6 anchors to populate)
-    live_pos = _positions(src, warm)                                # loop (fresh inference), warm netting
-    eng_pos = _positions(eng, np.sort(np.where((eng.member & eng.CL4 & np.isfinite(eng.king) & np.isfinite(eng.s2)).any(1))[0]))
+    live_pos, _ = _positions(src, warm)                             # loop (fresh inference), warm netting
+    eng_pos, _ = _positions(eng, np.sort(np.where((eng.member & eng.CL4 & np.isfinite(eng.king) & np.isfinite(eng.s2)).any(1))[0]))
     corrs, l1 = [], []
     for t in anchors:
         ti = int(t)
