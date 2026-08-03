@@ -45,6 +45,7 @@ import numpy as np
 _ROOT = _p.dirname(_p.dirname(_p.dirname(_p.dirname(_p.abspath(__file__)))))
 sys.path.insert(0, _ROOT)
 from multi_asset.data import build_wide_dl_causal as BC  # noqa: E402
+from multi_asset.data import build_wide_dl_serve as BS   # noqa: E402
 
 _n_pass = 0
 _fail = []
@@ -75,11 +76,12 @@ def first_diff_row(a, b):
     return int(w[:, 0].min()) if len(w) else -1
 
 
-class PoisonNumpy(BC.CausalNumpy):
-    """CausalNumpy plus one more interception: `np.load` hands back the poisoned payload.
+class _PoisonLoad:
+    """One more interception on top of whichever builder proxy: `np.load` returns the poisoned payload.
 
-    Subclassing is what keeps the tested wiring identical to the shipping wiring — the causal
-    convolve substitution is inherited, not re-implemented here.
+    A MIXIN, not a copy per caliber. Both panel generations must be poisoned identically or the two
+    suites are not measuring the same thing; writing the override twice is how two tests come to
+    differ by an edit someone made to only one of them.
     """
 
     def __init__(self, payload):
@@ -88,6 +90,17 @@ class PoisonNumpy(BC.CausalNumpy):
 
     def load(self, *a, **k):
         return self._payload
+
+
+class PoisonNumpy(_PoisonLoad, BC.CausalNumpy):      # trailing-24 (causal_v1)
+    pass
+
+
+class PoisonServeNumpy(_PoisonLoad, BS.ServeNumpy):  # trailing-13 (serve_v1)
+    pass
+
+
+PROXY = {"causal": PoisonNumpy, "serve": PoisonServeNumpy}
 
 
 def poison(source, cut, seed=20260803):
@@ -119,20 +132,23 @@ def main():
     ap.add_argument("--clean", required=True, help="the causal panel built from --source")
     ap.add_argument("--scratch", required=True, help="dir for the poisoned build (new files only)")
     ap.add_argument("--cut", type=int, default=30000)
+    ap.add_argument("--caliber", default="causal", choices=list(PROXY),
+                    help="which panel generation is under test — picks the base builder proxy so the "
+                         "poisoned twin is built the SAME way the clean panel was")
     ap.add_argument("--reuse", action="store_true",
                     help="reuse an existing poisoned build instead of rebuilding (same cut only)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     CUT = a.cut
 
-    poisoned_out = _p.join(a.scratch, "wide_dl_POISONED_probe.npz")
+    poisoned_out = _p.join(a.scratch, f"wide_dl_POISONED_probe_{a.caliber}.npz")
     if a.reuse and _p.exists(poisoned_out):
         print(f"[poison] reusing existing poisoned build {poisoned_out} (--reuse)", flush=True)
         calls, gate = "reused", "reused"
     else:
         print(f"[poison] building poisoned twin -> {poisoned_out}  (cut row {CUT})", flush=True)
         payload = poison(a.source, CUT)
-        calls, gate = BC.build_causal(a.source, poisoned_out, proxy=PoisonNumpy(payload))
+        calls, gate = BC.build_causal(a.source, poisoned_out, proxy=PROXY[a.caliber](payload))
         print(f"[poison] build done; convolve calls={calls}", flush=True)
 
     C = np.load(a.clean, allow_pickle=True)
@@ -200,7 +216,7 @@ def main():
     total = _n_pass + len(_fail)
     print(f"PASS {_n_pass}/{total}" + ("" if not _fail else f"   FAILED: {_fail}"))
     if a.out:
-        json.dump(dict(source=a.source, clean=a.clean, cut=CUT, n_pass=_n_pass, n_total=total,
+        json.dump(dict(source=a.source, clean=a.clean, cut=CUT, caliber=a.caliber, n_pass=_n_pass, n_total=total,
                        failed=_fail, leaky_channels=bad, poison_reached=bool(post_moved),
                        convolve_calls=calls, wrapped_builder_gate=gate),
                   open(a.out, "w"), indent=1)
