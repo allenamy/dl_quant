@@ -2,6 +2,12 @@
 
 > **Phase:** Multi-asset cross-sectional y_600 (launched 2026-05-20). Single-asset BTCUSDT concluded — see `docs/SINGLE_ASSET_Y600_FINAL_MILESTONE_2026_05_20.md` (REG_arch P=0.0646, retail-maker Sharpe 4.4). This file governs the MULTI-ASSET work.
 
+## ★ 会话起步必读 (2026-08-03 立)
+
+1. **`STATE.md`(仓库根)** —— 当前状态唯一真相源(线上配置 / 在飞任务及其 owner / 冻结项 / 已登记缺陷 / 每个数字的口径)。**在做任何判断之前先读它**, 包括不要相信自己更早轮次的状态摘要。
+2. **`docs/TEAM_PROTOCOL.md`** —— 协作规则(完成必须声明 / 任务必须有具名 owner / 消息交错处置 / 引用前打开看 / 落盘即上线)。**每次派工必须引用它。**
+3. 历史脉络在 `multi_asset/exports/live/pilot_journal/`(只追加), STATE.md 是快照。
+
 ## Project Identity
 
 **Goal:** Binance USDT-perp 多资产中频预测。给定 14 个 symbol 的同步 1s bar 序列，预测每个 symbol 未来 10 min 收益率 y_600。目标 **avg per-asset Pearson 0.10** (单资产 BTC 0.065)，β≈1，单调校准，near-zero long-short bias。
