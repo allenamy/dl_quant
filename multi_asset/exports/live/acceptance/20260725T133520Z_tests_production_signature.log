@@ -1,0 +1,41 @@
+[guard] snapshotted 7 production state paths
+[A] production supplies the watchdog's inputs (the wiring gap)
+  OK   ops_stats is non-empty on the production path — n=6
+  OK   §4-7 has a real input (not []) — [0.0, 0.0, 0.0]
+  OK   §4-5 input derived, not injected
+  OK   clean baseline does not trip on production path — []
+[B] every one of the seven conditions is REACHABLE through the production path
+  OK   cond1_c_persist reachable via production
+  OK   cond2_day_loss reachable via production
+  OK   cond3_crash_markout reachable via production
+  OK   cond4_drawdown reachable via production
+  OK   cond6_weight_fidelity reachable via production
+  OK   cond7_ops reachable via production
+  OK   cond5_venue_event reachable via production
+[C] anti-vacuous: assert X EXISTS before testing 'remove X, Y still works'
+  OK   PRE-ASSERT: the error-code table is non-empty — 9 rows
+  OK   PRE-ASSERT: it contains restricted codes — 5 rows
+  OK   with the table EMPTIED, behaviour alone still trips §4-5c/§4-7 — an incomplete table must never fail open
+[D] three-stage degradation on the conditions whose trigger implies broken submission
+  OK   §4-7: stage1 retried the flatten — attempts=3
+  OK   §4-7: stage2 escalated to a human
+  OK   §4-7: stage3 halted OPENING orders — the only stage that needs no venue cooperation
+  OK   §4-7: ALARM.log written
+  OK   §4-5: stage1 retried the flatten — attempts=3
+  OK   §4-5: stage2 escalated to a human
+  OK   §4-5: stage3 halted OPENING orders — the only stage that needs no venue cooperation
+  OK   §4-5: ALARM.log written
+  OK   §4-6: stage1 retried the flatten — attempts=3
+  OK   §4-6: stage2 escalated to a human
+  OK   §4-6: stage3 halted OPENING orders — the only stage that needs no venue cooperation
+  OK   §4-6: ALARM.log written
+[D2] headline must reflect a watchdog trip, not just the guards
+Traceback (most recent call last):
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/live/tests_production_signature.py", line 191, in <module>
+    rep = PD.main(days_back=1, skip_log=True, verbose=False)
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/live/pilot_daily.py", line 174, in main
+    rep["regime"] = {"days_written": RC.run(days_back=max(days_back, 2), verbose=verbose)[-3:]}
+                                     ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/live/regime_classifier.py", line 56, in run
+    from engine.panel_source import PanelSource
+ModuleNotFoundError: No module named 'engine'

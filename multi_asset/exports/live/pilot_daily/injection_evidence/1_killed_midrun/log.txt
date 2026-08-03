@@ -1,0 +1,16 @@
+=== killed run (tail) ===
+Traceback (most recent call last):
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/live/pilot_daily.py", line 370, in <module>
+    main(days_back=a.days_back, skip_log=a.skip_log)
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/live/pilot_daily.py", line 184, in main
+    rep["regime"] = {"days_written": RC.run(panel=LIVE_PANEL,
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/live/regime_classifier.py", line 61, in run
+    src = PanelSource(panel=panel or PANEL, king=KING, s2=S2)
+  File "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/panel_source.py", line 18, in __init__
+    W = np.load(panel, allow_pickle=True)
+  File "/Users/haosiyu/Library/Python/3.9/lib/python/site-packages/numpy/lib/npyio.py", line 427, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/wide_dl_live.npz'
+
+
+=== restart run ===

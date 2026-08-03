@@ -1,0 +1,41 @@
+[A] retention is treated as a hard wall, not a soft preference
+  OK    floor is exactly 90 days back
+  OK    cold start is labelled COLD_START, not silently 'fine'
+  OK    a 3-day-old ledger resumes continuously
+  OK    a 200-day-old ledger reports a PERMANENT gap
+  OK    the permanent gap states its size in days  — 110.0
+  OK    it says explicitly that the data cannot be recovered
+
+[B] rows are schema-shaped
+  OK    every required funding field present  — complete
+  OK    position came from OUR record, not from paid/rate
+
+[C] ★ the sign check PASSES on a correctly wired ledger
+  OK    verdict OK  — {'checked': 1, 'unverifiable': 0, 'mismatched': 0, 'mismatch_frac': 0.0, 'threshold': 0.05, 'verdict': 'OK', 'examples': []}
+  OK    one settlement was actually checked (not vacuously zero)  — 1
+
+[D] ★★ the sign check FAILS on a wired-wrong ledger — it must be able to fail
+  OK    verdict WIRING_ERROR  — WIRING_ERROR
+  OK    mismatch fraction is 100%  — 1.0
+  OK    an offending example is surfaced for diagnosis
+
+[E] a settlement it cannot verify is counted as UNVERIFIABLE, never as a pass
+  OK    checked counts only the verifiable one  — 1
+  OK    the other is reported as unverifiable, not silently OK
+
+[F] with no data at all the verdict is NO_DATA, not OK
+  OK    empty ledger => NO_DATA (an empty check must never read as a pass)  — NO_DATA
+
+[G] short-side sign convention is right (this is where sign bugs actually hide)
+  OK    short + positive rate + received money => OK
+  OK    short + positive rate + PAID money => WIRING_ERROR
+
+[H] rate matching is time-bounded (a far-away rate must not be silently attached)
+  OK    no rate attached when none is within tolerance
+  OK    and that settlement then counts as unverifiable, not as a pass
+
+[I] DRY_RUN performs no network call
+  OK    fetch_income returns empty without contacting the venue
+  OK    fetch_rates returns empty without contacting the venue
+
+ALL PASS
