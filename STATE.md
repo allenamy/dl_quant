@@ -34,6 +34,7 @@
 | champion vs **lamorth0_5yr**(真对手, 受控A/B 唯一变量=attention) SERVE 对照 | C3-volcheck | 在跑, ETA 16:42Z | — |
 | S1 干净面板 | B4-retrain | **已建成+161断言绿**(SHA e947df63) | — |
 | S1 两架构重训 | B4-retrain | **训练中** PID 1121881, ETA run1≈18:50Z run2≈20:40Z | — |
+| **0.079′(G1 及格线重测)** | B4-retrain | SERVE 面板 CPU 构建中; 推理排 S1 后(GPU 串行) | S1 完成 |
 | 重训预注册 v5 收口 | C2-prereg | 押住待 C3 SHA | C3 对照落盘 |
 | 追价实验(no_chase 臂) | 系统自跑 | 第 6 锚 | N\* ≈ 129 锚 ≈ 22 天 |
 | 加金 10,000 | 用户 | **建议暂缓** | 干净口径盈亏平衡 2.504bps vs 实测成本区间跨它两侧 |
