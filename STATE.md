@@ -31,7 +31,7 @@
 | 停机门接线(§4-5e/§4-6 拆分) | B3-wire | **已完成并入库 `d997767`**, 电池 108 全绿, team-lead 已逐行审 | — (16:00Z 锚生效) |
 | 波动缩放 λ=1.0 | team-lead | **收益侧否决**(G2 在实盘口径失败); 实现完成待重批 | 只含风险判据的新预注册 |
 | ΔNet 三口径污染检验 | C3-volcheck | **已全部交付**(主表/归因/红测/成本敏感性, SHA 5dddd205) | — |
-| champion vs **lamorth0_5yr**(真对手, 受控A/B 唯一变量=attention) SERVE 对照 | C3-volcheck | 在跑, ETA 16:42Z | — |
+| champion SERVE 对照 | C3-volcheck | **已交付** SHA ac5b5101; margin_dirty 坐实(+29.2% 与 B4 +29.3% 双仪器吻合) | — |
 | S1 干净面板 | B4-retrain | **已建成+161断言绿**(SHA e947df63) | — |
 | S1 两架构重训 | B4-retrain | **训练中** PID 1121881, ETA run1≈18:50Z run2≈20:40Z | — |
 | **0.079′(G1 及格线重测)** | B4-retrain | SERVE 面板 CPU 构建中; 推理排 S1 后(GPU 串行) | S1 完成 |
@@ -52,7 +52,7 @@
 | 面板前视 `betaadj_ret24` | **高** | 回测高估 ~1.7×; 实盘不受影响; 污染面判据见 journal §10 |
 | `MANIFEST.json` 无 provenance 字段 | **中, 且随时间恶化** | 两个训练 run 目录一旦清理, 部署模型永久失去可追溯来源 |
 | 名义额缓存无标记价 | 低 | 高波动名每锚一条 reconcile 误告警; 改存数量即可 |
-| champion 选型可能被前视污染 | **待测** | 部署模型利用度 +0.25; SERVE 对照在跑(C3) |
+| champion 选型被前视污染 | **rank-IC 维度已证实** | SERVE 口径 champ 0.0441 **劣于** lam0 0.0503/qim 0.0545(CI 不含0); 换模型并入 S1/S2 决策树, **不立即动线上** |
 | **5yr 训练配置无记录** | 中 | 架构可由 state_dict 形状精确复原, 折结构可由 te_rows 复原, 过程参数只能取默认+UNRECORDED 声明 |
 
 ## 6. 数字的口径纪律(引用时必须带)
