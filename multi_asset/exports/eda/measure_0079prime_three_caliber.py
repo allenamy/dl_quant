@@ -24,6 +24,16 @@ each panel would move a second thing and the comparison would stop being about t
    **Without this gate a wrong norm would still produce three plausible, ordered, entirely fictional
    numbers** — and they would look exactly like a result. `0.079′` is only defined if this passes.
 
+   PRIOR EVIDENCE, AND EXACTLY HOW FAR IT REACHES (team-lead, 2026-08-03): C3 previously compared a
+   reconstructed norm against the deployed `norm_stats.npz` bit-for-bit — `max|d| = 0` for king,
+   7.5e-4 for s2. That is real support for the METHOD, but it covers **fold 4 only**, because fold 4
+   is the one with a saved reference on disk. For folds 0–3 "the reconstruction equals what was used
+   at the time" has no artifact to check against and remains an INFERENCE.
+   ⇒ Which is why this gate is per-fold and behavioural rather than a norm comparison: it runs the
+     whole chain (norm → model → scores) on all five folds and checks the END PRODUCT against what
+     the frozen run itself wrote. A matching norm on one fold and matching scores on five are
+     different claims, and only the second is the one `0.079′` actually rests on.
+
 Usage (after S1 training frees the GPU — never concurrently, see [[feedback_no_side_gpu_jobs]]):
   python measure_0079prime_three_caliber.py --run <frozen_run_dir> --as-trained <p> --serve <p> \
       --causal <p> --out <json>
