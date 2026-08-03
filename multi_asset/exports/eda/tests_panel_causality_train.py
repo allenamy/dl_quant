@@ -119,15 +119,21 @@ def main():
     ap.add_argument("--clean", required=True, help="the causal panel built from --source")
     ap.add_argument("--scratch", required=True, help="dir for the poisoned build (new files only)")
     ap.add_argument("--cut", type=int, default=30000)
+    ap.add_argument("--reuse", action="store_true",
+                    help="reuse an existing poisoned build instead of rebuilding (same cut only)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     CUT = a.cut
 
     poisoned_out = _p.join(a.scratch, "wide_dl_POISONED_probe.npz")
-    print(f"[poison] building poisoned twin -> {poisoned_out}  (cut row {CUT})", flush=True)
-    payload = poison(a.source, CUT)
-    calls, gate = BC.build_causal(a.source, poisoned_out, proxy=PoisonNumpy(payload))
-    print(f"[poison] build done; convolve calls={calls}", flush=True)
+    if a.reuse and _p.exists(poisoned_out):
+        print(f"[poison] reusing existing poisoned build {poisoned_out} (--reuse)", flush=True)
+        calls, gate = "reused", "reused"
+    else:
+        print(f"[poison] building poisoned twin -> {poisoned_out}  (cut row {CUT})", flush=True)
+        payload = poison(a.source, CUT)
+        calls, gate = BC.build_causal(a.source, poisoned_out, proxy=PoisonNumpy(payload))
+        print(f"[poison] build done; convolve calls={calls}", flush=True)
 
     C = np.load(a.clean, allow_pickle=True)
     Pz = np.load(poisoned_out, allow_pickle=True)
@@ -155,6 +161,23 @@ def main():
            "" if s else f"first moved row {bad[-1][2]} = cut-{bad[-1][3]}")
     ok(not bad, f"★★★ {len(names)}/{len(names)} channels unchanged at rows <= cut "
                 f"(ch31's 11-hour reach is GONE — the whole point of S1)", bad[:4])
+
+    print(f"\n[1b] ...and every channel is ALIVE — it reacts once the poison becomes its past")
+    # Without this, a channel that is constant, all-zero, or otherwise dead passes [1] vacuously:
+    # "did not change when the future changed" and "never changes" are the same reading there.
+    dead = []
+    for j, nm in enumerate(names):
+        if np.array_equal(C["CH"][CUT + 1:, :, j], Pz["CH"][CUT + 1:, :, j], equal_nan=True):
+            dead.append(nm)
+    ok(not dead, f"all {len(names)} channels differ somewhere AFTER the cut — none passed [1] by "
+                 f"being inert", dead[:6])
+    j31 = names.index("betaadj_ret24")
+    d31 = np.where((C["CH"][:, :, j31] != Pz["CH"][:, :, j31]).any(1))[0]
+    ok(len(d31) and int(d31.min()) == CUT + 1,
+       "★★ ch31 reacts at EXACTLY row cut+1 — the first row where the poison is its past. It is "
+       "causal AND still reading the market series; a fix that merely broke the channel would show "
+       "up here as a later reaction or none at all",
+       f"first reaction row {int(d31.min()) if len(d31) else None} = cut+{int(d31.min()) - CUT if len(d31) else None}")
 
     print("\n[2] membership is causal too")
     ok(same(C["MEMBER110"][: CUT + 1], Pz["MEMBER110"][: CUT + 1]),

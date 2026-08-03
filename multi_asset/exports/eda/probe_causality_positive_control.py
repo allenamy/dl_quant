@@ -51,7 +51,13 @@ _spec = importlib.util.spec_from_file_location(
 TT = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(TT)
 
-LEAK_REACH = 11          # audited support of convolve('same', ones(24)): out[t] <- input[t-12 … t+11]
+# Audited support of convolve('same', ones(24)) is out[t] <- input[t-12 … t+11] — ELEVEN future taps.
+# ★ THAT MAKES THE FIRST CONTAMINATED ROW cut-10, NOT cut-11, AND THE COUNT 11 (rows cut-10 … cut).
+#   out[t] sees the poison iff t+11 >= cut+1, i.e. t >= cut-10. My first version asserted
+#   `cut - first == 11` and went red against a panel that was behaving exactly as audited. The taps
+#   and the row-offset differ by one because the row AT the cut is itself contaminated and counts.
+#   The invariant worth pinning is the COUNT (= number of future taps), not the offset.
+LEAK_ROWS = 11           # rows <= cut that the centered window contaminates: cut-10 … cut
 
 _n_pass, _fail = 0, []
 
@@ -86,23 +92,28 @@ def main():
     ap.add_argument("--as-trained", required=True, dest="as_trained")
     ap.add_argument("--scratch", required=True)
     ap.add_argument("--cut", type=int, default=30000)
+    ap.add_argument("--reuse", action="store_true",
+                    help="reuse an existing poisoned build instead of rebuilding (same cut only)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     CUT = a.cut
 
     outp = _p.join(a.scratch, "wide_dl_POISONED_unpatched_control.npz")
-    print(f"[control] poisoning the UNPATCHED builder -> {outp}  (cut {CUT})", flush=True)
-    payload = TT.poison(a.source, CUT)                 # identical poison to the main suite
-    saved = _ORIG.np
-    try:
-        _ORIG.np = LoadOnlyNumpy(payload)
+    if a.reuse and _p.exists(outp):
+        print(f"[control] reusing existing poisoned build {outp} (--reuse)", flush=True)
+    else:
+        print(f"[control] poisoning the UNPATCHED builder -> {outp}  (cut {CUT})", flush=True)
+        payload = TT.poison(a.source, CUT)             # identical poison to the main suite
+        saved = _ORIG.np
         try:
-            _ORIG.build(panel=a.source, outpath=outp)
-        except SystemExit as e:
-            print(f"[control] post-write funding gate raised (expected, undeclared panel): {e}",
-                  flush=True)
-    finally:
-        _ORIG.np = saved
+            _ORIG.np = LoadOnlyNumpy(payload)
+            try:
+                _ORIG.build(panel=a.source, outpath=outp)
+            except SystemExit as e:
+                print(f"[control] post-write funding gate raised (expected, undeclared panel): {e}",
+                      flush=True)
+        finally:
+            _ORIG.np = saved
 
     O = np.load(a.as_trained, allow_pickle=True)
     P = np.load(outp, allow_pickle=True)
@@ -116,9 +127,13 @@ def main():
     ok(moved, "★★★ ch31 MOVES under poison in the unpatched builder — this is what the main suite "
               "would have caught had the fix not taken; its green is therefore meaningful",
        f"first moved row {first} = cut-{CUT - first}")
-    ok(moved and (CUT - first) == LEAK_REACH,
-       f"★★ ...and the reach is exactly the audited {LEAK_REACH} rows",
-       f"measured reach = cut-{CUT - first}")
+    dirty = np.where((c0 != c1).any(1))[0]
+    expect = np.arange(CUT - LEAK_ROWS + 1, CUT + 1)
+    ok(np.array_equal(dirty, expect),
+       f"★★ ...and the contaminated window is EXACTLY the audited {LEAK_ROWS} rows "
+       f"(cut-{LEAK_ROWS - 1} … cut), contiguous, with cut-{LEAK_ROWS} clean",
+       f"measured rows {dirty.min() if len(dirty) else None}…{dirty.max() if len(dirty) else None}"
+       f" count={len(dirty)}")
 
     print("\n[C2] the poison is not indiscriminate — the other 31 stay clean even unpatched")
     bad = [nm for j, nm in enumerate(names)
@@ -128,16 +143,19 @@ def main():
                 "(so the main suite's 32/32 is a real change in ch31, not a change in the poison)",
        bad[:4])
 
-    print("\n[C3] unpatched clean-build fidelity: the control's own baseline is the real artifact")
-    ok(np.array_equal(O["CH"][CUT + 1:, :, J], P["CH"][CUT + 1:, :, J], equal_nan=True) is False,
-       "post-cut ch31 differs (poison landed)")
+    print("\n[C3] the control's baseline is the real shipped artifact, not a re-derivation")
+    ok(not np.array_equal(O["CH"][CUT + 1:, :, J], P["CH"][CUT + 1:, :, J], equal_nan=True),
+       "post-cut ch31 differs — the unpatched build reproduces the SHIPPED as-trained panel closely "
+       "enough that its only disagreement with it is the poison itself")
 
     print("\n" + "=" * 78)
     total = _n_pass + len(_fail)
     print(f"PASS {_n_pass}/{total}" + ("" if not _fail else f"   FAILED: {_fail}"))
     if a.out:
         json.dump(dict(source=a.source, as_trained=a.as_trained, cut=CUT, ch31_index=J,
-                       measured_reach=int(CUT - first), audited_reach=LEAK_REACH,
+                       first_contaminated_row=int(first),
+                       contaminated_rows_le_cut=[int(x) for x in dirty],
+                       audited_leak_rows=LEAK_ROWS,
                        n_pass=_n_pass, n_total=total, failed=_fail, dirty_others=bad),
                   open(a.out, "w"), indent=1)
         print(f"record -> {a.out}")
