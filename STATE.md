@@ -45,7 +45,7 @@
 
 ## 4. 已冻结 / 不得改动
 
-- **`signal/panel_build.py:187` 的 `np.convolve(..., "same")`** —— 含 11h 未来但**实盘因末行截断收不到**; 改成因果版会使冻结模型 IC **0.079 → 0.041**(实测)。**唯一安全修复是重训。** 详见记忆 [[panel-lookahead-betaadj-ret24]]。
+- **`signal/panel_build.py:187` 的 `np.convolve(..., "same")`** —— 含 11h 未来但**实盘因末行截断收不到**; 改成因果版会使冻结模型 IC 变差(walk-forward **0.0294→0.0216 即 −26.7%**; 窄窗口径 0.079→0.041 同一事实)。**唯一安全修复是重训。** 详见记忆 [[panel-lookahead-betaadj-ret24]]。
 - 单资产代码 `src/` `configs/` —— 只 import 不改。
 - share data 与 `/mnt/storage/btcusdt_copy_*` —— 一律只读。
 
@@ -53,7 +53,7 @@
 
 | 缺陷 | 严重度 | 备注 |
 |---|---|---|
-| 面板前视 `betaadj_ret24` | **高** | 回测高估 ~1.7×; 实盘不受影响; 污染面判据见 journal §10 |
+| 面板前视 `betaadj_ret24` | **高** | 回测高估 **2.85×**(walk-forward 口径; 窄窗读数曾报 1.7×); 实盘不受影响; 污染面判据见 journal §10 |
 | `MANIFEST.json` 无 provenance 字段 | **中, 且随时间恶化** | 两个训练 run 目录一旦清理, 部署模型永久失去可追溯来源 |
 | 名义额缓存无标记价 | 低 | 高波动名每锚一条 reconcile 误告警; 改存数量即可 |
 | champion 选型被前视污染 | **rank-IC 维度已证实** | SERVE 口径 champ 0.0441 **劣于** lam0 0.0503/qim 0.0545(CI 不含0); 换模型并入 S1/S2 决策树, **不立即动线上** |
