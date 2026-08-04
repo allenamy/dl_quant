@@ -204,6 +204,55 @@ for i in range(len(names)):
             old, new = lab[k], lab[i]
             lab = [new if x == old else x for x in lab]
 nclust = len(set(lab))
+# ---- 关三-b tie-break, per team-lead's written rule: keep the highest standalone NET SHARPE
+#      per cluster (net, not IC — the thing breadth is meant to buy is net-of-cost).
+def dsh(series):
+    day = (src.ts[A] // (1000 * 3600 * 24)).astype(np.int64)
+    dd = pd.DataFrame({"d": day, "p": series}).groupby("d")["p"].sum().values
+    return float(np.mean(dd) / (np.std(dd) + 1e-12) * np.sqrt(365.0)) if len(dd) > 2 else np.nan
+
+
+nets = {}
+for c, inb, ic, rho, rho_g in surv:
+    j = chn.index(c)
+    wb = {}
+    for t in A:
+        ti = int(t)
+        m = np.where(src.member[ti] & src.CL4[ti] & np.isfinite(CH[ti, :, j]))[0]
+        if m.size < 5:
+            continue
+        r = rankdata(CH[ti, m, j].astype(np.float64)); r = r - r.mean()
+        sc_ = float(np.abs(r).sum())
+        if sc_ < 1e-12:
+            continue
+        w = np.zeros(src.N); w[m] = r / sc_; wb[ti] = w
+    nets[c] = dsh(net_series(wb))
+print("\n  standalone net Sharpe (the tie-break metric, cost %.2f):" % COST)
+for c in names:
+    print("    %-15s %+7.2f" % (c, nets[c]))
+clusters = {}
+for i, c in enumerate(names):
+    clusters.setdefault(lab[i], []).append(c)
+print("\n  ⇒ cluster representatives (highest standalone net Sharpe per cluster):")
+reps = []
+for cid, mem in clusters.items():
+    rep = max(mem, key=lambda c: nets[c])
+    reps.append(rep)
+    print("    cluster %d: REP = %-15s (net Sh %+.2f)   represents: %s"
+          % (cid, rep, nets[rep], [m for m in mem if m != rep] or "(alone)"))
+print("""
+  ★★ READ THE TIE-BREAK HONESTLY — and note this text was CORRECTED after seeing the numbers.
+     The first version asserted "every standalone net Sharpe is negative"; that is FALSE.
+     SEVEN of eight are negative; size_dvol is +0.67 and was also the only candidate with a
+     positive standalone net/yr (+774.6). Writing the conclusion into the script before the data
+     arrived is the same "declaration before observation" shape this project keeps finding, so the
+     correction is left visible rather than silently patched.
+     ⇒ For cluster 0 the tie-break really is "least negative" (best member −1.53) and that is weak
+       discrimination — it picks a spokesperson, not a finding.
+     ⇒ For cluster 1 it is not: size_dvol stands alone as the only candidate that pays for its own
+       turnover at 3.63.
+     ⇒ Either way gates 1/2 test the INCREMENTAL contribution to the book, which is a different
+       quantity from standalone performance — a strong standalone is a prior, not a pass.""")
 print("\n  ⇒ %d survivors collapse to %d independent cluster(s) at |rho| >= 0.3." % (len(names), nclust))
 print("  ⇒ gates 1/2 should be run per CLUSTER REPRESENTATIVE, and at most one admission per cluster")
 print("    — otherwise 'at most 3 admitted' would let one factor in three times.")
