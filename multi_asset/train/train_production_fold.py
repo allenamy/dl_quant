@@ -77,6 +77,18 @@ def main():
     ap.add_argument("--save-tag", required=True, dest="save_tag")
     ap.add_argument("--xattn", action="store_true")
     ap.add_argument("--val-days", type=int, default=30, dest="val_days")
+    # ★ THE FLOOR IS WAIVABLE ONLY WITH A WRITTEN REASON, AND THE REASON GOES INTO THE PROVENANCE.
+    #   Ruling 2026-08-04 (team-lead, protocol §8-g-ii): a REPLICATION layer's guard may not be
+    #   stricter than the recipe it replicates. The certified 5-fold s2 selected its checkpoint on
+    #   ~29 val anchors; this floor of 50 was therefore never met by the very thing it protects, and
+    #   widening the window to satisfy it produces a configuration no certified run has. The noise it
+    #   fears is real but it is a property of the RECIPE — fixing it belongs at the recipe layer,
+    #   re-certified, not to a production fold acting unilaterally.
+    ap.add_argument("--waive-val-anchor-floor", default=None, dest="waive",
+                    metavar="REASON",
+                    help="waive the >=50 scorable-val-anchor floor; REQUIRES a written reason, which "
+                         "is recorded in PRODUCTION_FOLD_PROVENANCE.json. A waiver without a reason "
+                         "is a silent bypass and is not offered.")
     ap.add_argument("--dry-run", action="store_true", dest="dry_run",
                     help="build the fold and print the captured hyperparameters, then stop before "
                          "training — so the risky part (parser capture, fold edges, val coverage) "
@@ -112,7 +124,11 @@ def main():
 
     # Sanity: val must contain scorable anchors or checkpoint selection is silently arbitrary.
     va_rows = np.where(np.isin(data.day, va) & data.valid_hour)[0]
-    assert len(va_rows) >= 50, (f"val has only {len(va_rows)} scorable anchors — checkpointing would "
+    if a.waive and len(va_rows) < 50:
+        print(f"[prod] ★ VAL-ANCHOR FLOOR WAIVED — {len(va_rows)} scorable anchors (< 50)\n"
+              f"[prod]   reason: {a.waive}", flush=True)
+    else:
+        assert len(va_rows) >= 50, (f"val has only {len(va_rows)} scorable anchors — checkpointing would "
                                 f"be noise. Widen --val-days or check the panel tail's labels.")
     print(f"[prod] val scorable anchors: {len(va_rows)}", flush=True)
 
@@ -134,6 +150,7 @@ def main():
     prov = dict(kind="PRODUCTION_FOLD", panel=a.panel, xattn=bool(a.xattn),
                 train_days=[int(tr[0]), int(tr[-1])], n_train_days=int(len(tr)),
                 val_days=[int(va[0]), int(va[-1])], n_val_scorable_anchors=int(len(va_rows)),
+                val_anchor_floor_waived=(a.waive if a.waive and len(va_rows) < 50 else None),
                 test_segment="EMPTY BY CONSTRUCTION",
                 oos_score="NONE — this artifact has no out-of-sample score. Warrant = recipe "
                           "certification (S1's 5 walk-forward folds) + live shadow as its OOS.",
