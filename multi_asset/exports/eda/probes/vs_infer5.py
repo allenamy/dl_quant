@@ -145,7 +145,16 @@ for k in range(len(folds)):
     saved = np.load(cfg["dir"] + "/fold_%d_head_scores.npz" % k)
     d.CH = CH_ARM                                # only ch31 moves
     if cfg["densify"]:
-        d.valid_hour = wide_vh                   # coverage deviation, gate does not cover it
+        # ★ THE DENSIFY IS `d.CL = member`, NOT a valid_hour widening. `predict_scores_wide` masks
+        #   with `member & CL & isfinite(Y)` inside `iter_batches`; setting CL to member collapses
+        #   that to `member & isfinite(Y)` — the dense branch, and the mask production actually uses
+        #   (live drops the isfinite(Y) term too, which is the residual 0.6% priced separately).
+        #   Widening `valid_hour` alone does NOT densify: the rows get visited and then masked out,
+        #   which is why the first attempt produced 1636 anchors instead of 9821.
+        #   `set_fold` does not read `d.CL` (verified: removing this mutation left scores bitwise
+        #   unchanged), so the fold normalisation is unaffected by doing it here.
+        d.CL = member.copy()
+        d.valid_hour = wide_vh
     m = model_for(k)
     sc = TH.predict_scores_wide(m, d, saved["te_days"], a.ebh, K)
     del m
