@@ -65,14 +65,30 @@ FIX_POS_DIR = MA + "/exports/live/fixfunding/positions"
 OUT = MA + "/exports/live/monitor"
 PANEL = MA + "/exports/live/wide_dl_live.npz"
 FROZEN_PANEL = MA + "/exports/wide_dl_full.npz"          # the panel the baseline is measured on
-REPLAY_ARTIFACT = MA + "/exports/eda/engine_fullhist_replay.json"   # where BASELINE_BY_YEAR comes from
+# ★ 2026-08-04 GENERATION SWAP (ledger #31). The old artifact is KEPT, not overwritten: six
+# documents cite it, so replacing it in place would break a freeze (protocol §4-c). The pointer
+# moves instead, and the old file remains readable as the previous generation's record.
+REPLAY_ARTIFACT = MA + "/exports/eda/engine_fullhist_replay_newgen_2026-08-04.json"
+PREV_REPLAY_ARTIFACT = MA + "/exports/eda/engine_fullhist_replay.json"   # old generation, retained
+# The generation this baseline is BLESSED FOR. SPEC 0f8be1fe §1: bind to a hash rather than
+# enumerate which dimensions must match — a retrain changes the hash, the assertion fails, and a
+# deliberate re-bless is forced. Enumerated checks always fall behind the number of variable dims.
+EXPECTED_GENERATION = "e3adabd8948b766f"
 # REGIME-AWARE baseline: use the CURRENT-regime engine rank-IC, not the full-history average (0.076).
 # 2026 is a weaker regime (~0.062), so a live rolling IC near 0.059 is 2026-NORMAL, not degraded —
 # comparing it to the 0.076 full-history level would read a healthy signal as decaying. Keyed by year;
 # update as new regimes are entered (values = engine canonical per-year rank-IC, computed by
 # engine/replay_fullhist.py over the TRADEABLE set — which is why this module must score the same
 # universe; see correction (1) above).
-BASELINE_BY_YEAR = {2022: 0.062, 2023: 0.086, 2024: 0.081, 2025: 0.076, 2026: 0.062}
+# ★★ 2026-08-04: remeasured on the NEW generation (S1F king + clean s2 @embargo 10), scored
+# OUT-OF-SAMPLE (5-fold walk-forward), SERVE ch31 arm, same engine/config/cost/anchors as before.
+# The old values came from the leak-contaminated generation and were 14-56% higher; keeping them
+# after the model swap would have made this guard fire immediately on a healthy model.
+#   old: {2022: 0.062, 2023: 0.086, 2024: 0.081, 2025: 0.076, 2026: 0.062}
+# ★ NOT out-of-sample-blind: a PRODUCTION-FOLD arm is the SAME generation yet sits 1.18x higher
+#   because it is in-sample. The generation hash cannot see that, so it is declared separately in
+#   the artifact and checked as question (d) below.
+BASELINE_BY_YEAR = {2022: 0.053, 2023: 0.038, 2024: 0.039, 2025: 0.034, 2026: 0.034}
 WINDOW = 60                # rolling anchors (NOTE: 60 *scored* anchors, not 60 calendar anchors —
                            # skipped anchors silently lengthen the wall-clock span of the window)
 DECAY_FRAC = 0.5           # alarm if rolling IC < DECAY_FRAC * baseline
@@ -131,6 +147,24 @@ def _baseline_provenance(year: int, declared: float):
             if not prov["matches_declared"]:
                 prov["WARNING"] = (f"declared {declared} != round(measured {measured}, 3) — the "
                                    f"constant no longer matches the artifact it came from")
+            # (c) IS IT MEASURING THE THING WE ARE ABOUT TO RUN? A retrain changes the generation
+            # hash; enumerating "which dimensions must match" always falls behind the dimensions.
+            gen = (rep.get("generation") or {}).get("id")
+            prov["generation"] = gen
+            prov["generation_matches"] = bool(gen == EXPECTED_GENERATION)
+            if not prov["generation_matches"]:
+                prov["WARNING"] = (f"artifact generation {gen} != blessed {EXPECTED_GENERATION} — "
+                                   f"the baseline was measured on a different model generation; "
+                                   f"re-bless deliberately, do not edit the constant")
+            # (d) WERE THOSE PREDICTIONS OUT-OF-SAMPLE? The generation hash CANNOT answer this: a
+            # production fold is the same generation and differs only by being in-sample (measured
+            # 1.18x higher, which would raise DECAY_FRAC*baseline and fire on a healthy model).
+            prov["out_of_sample"] = bool(rep.get("predictions_out_of_sample"))
+            if not prov["out_of_sample"]:
+                prov["WARNING"] = ("the replay artifact does not declare its predictions "
+                                   "out-of-sample — an in-sample baseline is a real measurement "
+                                   "and time-disjoint, so (a) and (b) both pass while it is too "
+                                   "high; verdict is UNKNOWN")
         else:
             prov["is_measurement"] = False
             prov["WARNING"] = f"no per_year entry for {year} in the replay artifact"
@@ -144,8 +178,17 @@ def _baseline_window_disjoint(first_scored_ts_ms):
     """The baseline is computed on the FROZEN panel; scoring runs on anchors after it. Verify."""
     out = {"frozen_panel": os.path.relpath(FROZEN_PANEL, MA)}
     try:
-        ts = np.load(FROZEN_PANEL, allow_pickle=True)["ts"].astype(np.int64)
-        end = int(ts.max())
+        # ★ SPEC 0f8be1fe §2-3: read the DECLARED window. The previous version derived it from the
+        # frozen panel's last timestamp, and this function's own docstring called that "an accident
+        # of a file's end date". A declared value cannot drift when an unrelated file is rebuilt.
+        declared = (json.load(open(REPLAY_ARTIFACT)).get("baseline_window") or {})
+        if declared.get("last_anchor_ts_ms") is not None:
+            end = int(declared["last_anchor_ts_ms"])
+            out["window_source"] = "declared in the replay artifact"
+        else:
+            ts = np.load(FROZEN_PANEL, allow_pickle=True)["ts"].astype(np.int64)
+            end = int(ts.max())
+            out["window_source"] = "fallback: frozen panel end (artifact declares no window)"
         out["baseline_window_end_utc"] = pd.to_datetime(end, unit="ms", utc=True).isoformat()
         if first_scored_ts_ms is None:
             out["disjoint"] = None
@@ -278,7 +321,12 @@ def run(verbose=True):
     disjoint = _baseline_window_disjoint(dec.get("first_scored_anchor_ts_ms"))
     # A verdict is only publishable when the benchmark is a real measurement AND it does not
     # overlap the anchors it judges. Either failure yields UNKNOWN — never a softer verdict.
+    # Four questions now, and a verdict is publishable only if all four hold:
+    #   (a) is it a measurement  (b) does it match the artifact  (c) same generation
+    #   (d) were the predictions out-of-sample.  Any failure -> UNKNOWN, never a softer verdict.
     verdict_usable = bool(base_prov.get("is_measurement") and base_prov.get("matches_declared")
+                          and base_prov.get("generation_matches")
+                          and base_prov.get("out_of_sample")
                           and disjoint.get("disjoint") is True)
 
     # ── S3: did the thing we score actually advance since the previous run? ───────────────────
