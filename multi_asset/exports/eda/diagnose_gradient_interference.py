@@ -46,8 +46,15 @@ THE DESIGN THAT EARNS ITS KEEP: the same diagnostic on BOTH panels.
         |s-y|: median 0.648, p90 2.158 ; fraction with |s-y| > delta(=2.0) = 0.116
 
     ⇒ the Huber is ~88% in its QUADRATIC regime, NOT saturated. My mechanism was backwards.
-    ⇒ but the corrected direction MATCHES the A2 symptom: scores sit at 6.3% of target scale, i.e.
-      severe shrinkage toward the centre — exactly what `mag` ("magnitude calib + anti-collapse +
+    ⇒ AND THEN THE CORRECTED NUMBER WAS ALSO READ WRONG, by me, against an implicit baseline of 1.
+      MSE-optimal calibration is sigma_yhat = r * sigma_y, so the reference is **r**, not 1. Measured
+      on the same cells (cross-sectional, the caliber a cross-sectional book trades in):
+          sd(s)/sd(y) 0.068-0.149   Pearson r 0.010-0.018   =>  OVER-dispersed 6.0-10.7x
+      ⇒ the predictions are NOT shrunk; they are over-spread for the information they carry, which
+        is the OPPOSITE of "mag is starved" — and it means raising `w_mag` (which pulls scores
+        toward y itself, sd~1.5) would make calibration WORSE, not better.
+      ⇒ superseded reading, kept only as the record of two successive baseline errors: scores sit
+        at 6.3% of target scale — exactly what `mag` ("magnitude calib + anti-collapse +
       pins score scale") exists to prevent. Being quadratic, `mag`'s gradient points OUTWARD and
       scales with the gap; it is not saturating, it is being OUTVOTED. That makes this squarely an
       ENERGY question, which is what the weighted-share reading below measures.
@@ -165,10 +172,21 @@ def main():
                         sv = sc[..., 0][vb]; yv = y[vb]
                         dv = (sv - yv).abs()
                         scale_ratio = float(sv.std() / yv.std().clamp_min(1e-12))
+                        # ★ THE BASELINE, without which the ratio above cannot be read at all.
+                        #   MSE-optimal calibration is sigma_yhat = r * sigma_y, so the reference
+                        #   for `scale_ratio` is **r**, NOT 1. r here must be the PEARSON
+                        #   correlation on the same cells the sigmas are taken over — substituting
+                        #   the rank-IC (a different quantity, ~4x larger) mis-sets the baseline.
+                        svc = sv - sv.mean(); yvc = yv - yv.mean()
+                        r_pearson = float((svc * yvc).mean() /
+                                          (svc.std() * yvc.std()).clamp_min(1e-12))
+                        overdisp = scale_ratio / max(abs(r_pearson), 1e-12)
                         lin_frac = float((dv > 2.0).float().mean())
                         med_absdiff = float(dv.median())
                     rec[label][f"epoch{ep}"] = dict(
                         sd_scores_over_sd_target=round(scale_ratio, 5),
+                        pearson_r_same_cells=round(r_pearson, 5),
+                        overdispersion_vs_MSE_optimal=round(overdisp, 3),
                         huber_linear_regime_frac=round(lin_frac, 5),
                         median_abs_diff=round(med_absdiff, 5),
                         grad_norms=norms,
@@ -179,6 +197,9 @@ def main():
                         cosines=cos, combined_norm=tot)
                     print(f"  [ep{ep}] |g| rank={norms['rank']:.4e} mag={norms['mag']:.4e} "
                           f"orth*={norms['orth_COUNTERFACTUAL']:.4e}", flush=True)
+                    print(f"         scale sd(s)/sd(y)={scale_ratio:.5f}  r={r_pearson:.5f}  "
+                          f"over-dispersion vs MSE-optimal = {overdisp:.2f}x  "
+                          f"huber_linear_frac={lin_frac:.3f}", flush=True)
                     print(f"         RULERS  dup(+1)={cos.get('rank | RULER_dup(+1)'):+.4f}   "
                           f"neg(-1)={cos.get('rank | RULER_neg(-1)'):+.4f}", flush=True)
                     print(f"         rank|mag={cos.get('rank | mag'):+.4f}   "
