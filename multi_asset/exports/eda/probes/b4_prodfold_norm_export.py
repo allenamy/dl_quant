@@ -41,7 +41,8 @@ RUNS = {
     # tag                                         horizon, embargo, val_days used by the prod fold
     "wideA_lamorth0_xattn_5yr_PRODFOLD_corrfund_v1": (4, 8, 30, "king"),
     "wideA_lamorth0_5yr_PRODFOLD_corrfund_v1": (4, 8, 30, "king"),
-    "wideA_s2_y24_PRODFOLD_corrfund_v1": (24, 10, 90, "s2"),
+    "wideA_s2_y24_PRODFOLD_corrfund_v1": (24, 10, 90, "s2"),          # val=90 variant, NOT the candidate
+    "wideA_s2_y24_PRODFOLD_corrfund_v1_val30": (24, 10, 30, "s2"),    # the deployment candidate
 }
 
 for tag, (H, EMB, VAL, leg) in RUNS.items():
