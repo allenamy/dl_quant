@@ -35,29 +35,38 @@ THE DESIGN THAT EARNS ITS KEEP: the same diagnostic on BOTH panels.
        −1 end : the rank loss on the NEGATED target                  -> cosine must be ~ −1
    If the rulers do not land near ±1, the instrument is wrong and no reading below means anything.
 
-★★★ A UNIT ERROR I MADE AND CAUGHT BEFORE REPORTING — kept because the corrected number is the
-    finding. I first measured `sd(scores_raw)/sd(YR_raw)` across runs, read 8–18, and concluded the
-    scores were an order of magnitude TOO LARGE and the Huber was saturated in its linear regime.
-    **Wrong units.** The Huber compares scores to the **normalised** target `y = YR/resid_sigma`:
+★★★ HOW ONE RATIO WAS MISREAD FOUR TIMES, EVERY ARITHMETIC STEP CORRECT. Kept verbatim because
+    the ladder is the lesson, not the final number.
 
-        sd(scores_raw)        0.0978
-        sd(y_NORMALISED)      1.5485      <- what the loss actually sees
-        ratio                 0.0631      <- scores are ~16x TOO SMALL, not too large
-        |s-y|: median 0.648, p90 2.158 ; fraction with |s-y| > delta(=2.0) = 0.116
+      1. WRONG UNITS      sd(scores_raw)/sd(YR_raw) = 8.18  -> "scores far too LARGE, Huber
+                          saturated in its linear regime". The loss compares scores to the
+                          NORMALISED target y = YR/resid_sigma, not the raw one.
+      2. WRONG BASELINE   corrected units gave 0.063, read against an implicit baseline of 1
+                          -> "shrunk 16x". A baseline of 1 is what a PERFECT predictor would give.
+      3. RIGHT BASELINE,  the reference is r (MSE-optimal calibration is sigma_yhat = r*sigma_y),
+         WRONG STATISTIC  but r was taken as the resid RANK-IC 0.046 -> "slightly over-dispersed
+                          1.37x". The formula needs the PEARSON correlation on the very cells the
+                          sigmas are taken over; rank-IC is a different quantity, ~4x larger.
+      4. MEASURED         same-cell Pearson r = 0.010-0.018 (cross-sectional) => the predictions
+                          are OVER-DISPERSED 6.0-10.7x. Direction is the opposite of step 2.
 
-    ⇒ the Huber is ~88% in its QUADRATIC regime, NOT saturated. My mechanism was backwards.
-    ⇒ AND THEN THE CORRECTED NUMBER WAS ALSO READ WRONG, by me, against an implicit baseline of 1.
-      MSE-optimal calibration is sigma_yhat = r * sigma_y, so the reference is **r**, not 1. Measured
-      on the same cells (cross-sectional, the caliber a cross-sectional book trades in):
-          sd(s)/sd(y) 0.068-0.149   Pearson r 0.010-0.018   =>  OVER-dispersed 6.0-10.7x
-      ⇒ the predictions are NOT shrunk; they are over-spread for the information they carry, which
-        is the OPPOSITE of "mag is starved" — and it means raising `w_mag` (which pulls scores
-        toward y itself, sd~1.5) would make calibration WORSE, not better.
-      ⇒ superseded reading, kept only as the record of two successive baseline errors: scores sit
-        at 6.3% of target scale — exactly what `mag` ("magnitude calib + anti-collapse +
-      pins score scale") exists to prevent. Being quadratic, `mag`'s gradient points OUTWARD and
-      scales with the gap; it is not saturating, it is being OUTVOTED. That makes this squarely an
-      ENERGY question, which is what the weighted-share reading below measures.
+    ⇒ Reading a ratio needs FOUR things right: numerator definition / denominator definition /
+      the baseline / WHICH STATISTIC the baseline is. Across the four steps above, each was wrong
+      exactly once, and no arithmetic was ever wrong. (TEAM_PROTOCOL §8-c.)
+
+★★ WHAT THIS DIAGNOSTIC IS NOW FOR — PRE-REGISTERED AFTER THE REVERSAL, BEFORE THE RUN.
+    It is NO LONGER a test of "is `mag` starved". The scale evidence already points the other way:
+    predictions are over-dispersed 6-11x, and `mag` pulls scores toward y itself (sd~1.5) while
+    MSE-optimal sits near r*sd(y) ~ 0.015 — so raising `w_mag` would worsen calibration, not fix it.
+
+      IF mag's weighted energy share is NOT low
+         => consistent with the over-dispersion: `mag` is being heard, and pulling the wrong way.
+            Two independent readings agree, the "the losses are fighting" premise weakens further,
+            and section 6.3 of the motivating document can be CLOSED.
+      IF mag's weighted share IS low despite 6-11x over-dispersion
+         => a genuine tension: a term with little energy could not have caused the over-spread, so
+            something else sets the scale. That is a NEW question, not a rescue of the old one.
+      EITHER WAY the rulers gate everything: if +1/-1 do not land, no reading counts.
 
 Measurement point: the SHARED TRUNK output `h` (B,N,d) — encoder, plus attention when enabled —
 i.e. the last representation every head sees, captured by a forward hook so the model is untouched.
