@@ -35,6 +35,23 @@ THE DESIGN THAT EARNS ITS KEEP: the same diagnostic on BOTH panels.
        −1 end : the rank loss on the NEGATED target                  -> cosine must be ~ −1
    If the rulers do not land near ±1, the instrument is wrong and no reading below means anything.
 
+★★★ A UNIT ERROR I MADE AND CAUGHT BEFORE REPORTING — kept because the corrected number is the
+    finding. I first measured `sd(scores_raw)/sd(YR_raw)` across runs, read 8–18, and concluded the
+    scores were an order of magnitude TOO LARGE and the Huber was saturated in its linear regime.
+    **Wrong units.** The Huber compares scores to the **normalised** target `y = YR/resid_sigma`:
+
+        sd(scores_raw)        0.0978
+        sd(y_NORMALISED)      1.5485      <- what the loss actually sees
+        ratio                 0.0631      <- scores are ~16x TOO SMALL, not too large
+        |s-y|: median 0.648, p90 2.158 ; fraction with |s-y| > delta(=2.0) = 0.116
+
+    ⇒ the Huber is ~88% in its QUADRATIC regime, NOT saturated. My mechanism was backwards.
+    ⇒ but the corrected direction MATCHES the A2 symptom: scores sit at 6.3% of target scale, i.e.
+      severe shrinkage toward the centre — exactly what `mag` ("magnitude calib + anti-collapse +
+      pins score scale") exists to prevent. Being quadratic, `mag`'s gradient points OUTWARD and
+      scales with the gap; it is not saturating, it is being OUTVOTED. That makes this squarely an
+      ENERGY question, which is what the weighted-share reading below measures.
+
 Measurement point: the SHARED TRUNK output `h` (B,N,d) — encoder, plus attention when enabled —
 i.e. the last representation every head sees, captured by a forward hook so the model is untouched.
 """
@@ -143,7 +160,17 @@ def main():
                             du, dv = np.linalg.norm(u), np.linalg.norm(v)
                             cos[f"{names[i]} | {names[j]}"] = (float(u @ v / (du * dv))
                                                                if du > 0 and dv > 0 else float("nan"))
+                    # ★ SCALE / REGIME, measured in the LOSS'S OWN UNITS (see header note)
+                    with torch.no_grad():
+                        sv = sc[..., 0][vb]; yv = y[vb]
+                        dv = (sv - yv).abs()
+                        scale_ratio = float(sv.std() / yv.std().clamp_min(1e-12))
+                        lin_frac = float((dv > 2.0).float().mean())
+                        med_absdiff = float(dv.median())
                     rec[label][f"epoch{ep}"] = dict(
+                        sd_scores_over_sd_target=round(scale_ratio, 5),
+                        huber_linear_regime_frac=round(lin_frac, 5),
+                        median_abs_diff=round(med_absdiff, 5),
                         grad_norms=norms,
                         weighted_norms={"rank": norms["rank"], "mag": W_MAG * norms["mag"],
                                         "orth_COUNTERFACTUAL": 0.0},
