@@ -60,6 +60,10 @@ REG = {
                 densify=False, panel=CORRFUND),
     "s2c": dict(dir=MA + "/exports/train/wideA_s2_y24_5yr_corrfund_v1", H=24,
                 densify=True, panel=CORRFUND),
+    # emb=10 retrain of the clean s2 (ledger #14). Kept ALONGSIDE s2c (emb=8) rather than replacing
+    # it: the pair is the embargo-sensitivity measurement (IC within 3%, but persistence −10.7%).
+    "s2c10": dict(dir=MA + "/exports/train/wideA_s2_y24_5yr_corrfund_emb10", H=24,
+                  densify=True, panel=CORRFUND),
     # C3's clean king — the model behind tonight's BE 4.692 / net +682. Re-derived here through the
     # CERTIFIED inference so the headline can be checked against its own uncertified version.
     "s1x": dict(dir=MA + "/exports/train/wideA_lamorth0_xattn_5yr_causal_v1", H=4,
