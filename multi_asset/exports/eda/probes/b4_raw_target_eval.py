@@ -100,11 +100,25 @@ print("\n=== PRE-REGISTERED JUDGEMENT ===")
 print("  paired diff (A − B): mean %+.5f  SE_paired %.5f  per-fold %s"
       % (d.mean(), se_paired, np.round(d, 5).tolist()))
 # ruler FIRST: if it fails, the main comparison is not defined
-ruler_ok = (B.mean() - R.mean()) > 2 * se_paired
-print("  RULER: raw-without-resid %+.5f vs raw-with-resid %+.5f  -> %s"
+# ★ TWO DIFFERENT QUESTIONS, AND THE FIRST VERSION OF THIS BLOCK CONFLATED THEM.
+#   The prereg's ruler is "raw WITHOUT post-hoc residualisation should be clearly LOWER than raw
+#   WITH it" — i.e. R < A — which would show the residualisation step is doing useful work.
+#   The code computed `B - R` instead and printed it as though it had shown `R < A`. It had not.
+#   Both are reported now, separately, because they answer different things:
+#     ruler_as_written : R < A ?      does post-hoc residualisation HELP the raw arm?
+#     robustness       : R < B ?      does the raw arm lose EVEN AT ITS BEST variant?
+ruler_as_written = (A.mean() - R.mean()) > 2 * se_paired
+robustness = (B.mean() - R.mean()) > 2 * se_paired
+print("  RULER as written (R < A ?): raw-without-resid %+.5f vs raw-with-resid %+.5f  -> %s"
       % (R.mean(), A.mean(),
-         "clearly lower, ruler SIGHTED" if ruler_ok else
-         "*** NOT clearly lower — the residualisation step does nothing ⇒ EXPERIMENT INVALID ***"))
+         "holds" if ruler_as_written else
+         "*** FAILS — post-hoc residualisation makes the raw arm WORSE (%+.1f%%), not better ***"
+         % (100 * (A.mean() / R.mean() - 1))))
+print("  ROBUSTNESS (R < B ?): the raw arm at its BEST variant vs B: %+.5f vs %+.5f  -> %s"
+      % (R.mean(), B.mean(),
+         "still below B by %.1f SE" % ((B.mean() - R.mean()) / se_paired) if robustness
+         else "NOT below B — verdict would not be robust"))
+ruler_ok = robustness   # the verdict below is robust iff the raw arm loses at its best variant too
 if not ruler_ok:
     print("\n  ⇒ VERDICT: INVALID (prereg §4). Not a raw win. Redesign before reading anything else.")
     sys.exit(0)
