@@ -50,11 +50,21 @@ from multi_asset.data.wide_panel_dataset import WidePanelData          # noqa: E
 from multi_asset.model.wide_harness import WideFactorModel             # noqa: E402
 import multi_asset.train.train_wide_harness as TH                      # noqa: E402
 
+# ★ EACH RUN CARRIES ITS OWN PANEL. The as-trained panel is a property of the RUN, not of this
+#   script — `wideA_*_causal_v1` trained on as_trained funding, `wideA_*_corrfund_v1` on corrected.
+#   Reading a run against the wrong generation turns nothing red (PANELS_MANIFEST section 2).
+CORRFUND = MA + "/exports/wide_dl_full_corrfund_causal_v1.npz"
+CAUSALV1 = MA + "/exports/wide_dl_full_causal_v1.npz"
 REG = {
-    "s1f": dict(dir=MA + "/exports/train/wideA_lamorth0_xattn_5yr_corrfund_v1", H=4, densify=False),
-    "s2c": dict(dir=MA + "/exports/train/wideA_s2_y24_5yr_corrfund_v1", H=24, densify=True),
+    "s1f": dict(dir=MA + "/exports/train/wideA_lamorth0_xattn_5yr_corrfund_v1", H=4,
+                densify=False, panel=CORRFUND),
+    "s2c": dict(dir=MA + "/exports/train/wideA_s2_y24_5yr_corrfund_v1", H=24,
+                densify=True, panel=CORRFUND),
+    # C3's clean king — the model behind tonight's BE 4.692 / net +682. Re-derived here through the
+    # CERTIFIED inference so the headline can be checked against its own uncertified version.
+    "s1x": dict(dir=MA + "/exports/train/wideA_lamorth0_xattn_5yr_causal_v1", H=4,
+                densify=False, panel=CAUSALV1),
 }
-FULL = MA + "/exports/wide_dl_full_corrfund_causal_v1.npz"
 K = 6
 
 ap = argparse.ArgumentParser()
@@ -66,6 +76,7 @@ ap.add_argument("--gate-cap", type=int, default=600)
 ap.add_argument("--out", default=None)
 a = ap.parse_args()
 cfg = REG[a.run]
+FULL = cfg["panel"]
 
 AUX = tuple(x for x in (1, 24) if x != cfg["H"])
 d = WidePanelData(path=FULL, target_horizon=cfg["H"], aux_horizons=AUX)
