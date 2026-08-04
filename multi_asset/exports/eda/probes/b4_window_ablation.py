@@ -21,6 +21,27 @@
   dataset's `iter_batches` blanks the head of each batch's `Xseq`. Four scripts hand-rolled that
   forward loop tonight and one of them was wrong by 3.5e-2 — this one does not join them.
 
+★★★ RESULT (2026-08-04, clean king S1F, folds 2/3/4, GPU):
+
+      keep  frac   resid rank-IC   vs full    per-fold
+        1   0.01     +0.02973      -37.1%   [0.02666, 0.03429, 0.02823]
+       42   0.25     +0.04281       -9.4%   [0.04359, 0.04128, 0.04356]
+       84   0.50     +0.04565       -3.4%   [0.04599, 0.04345, 0.04751]
+      126   0.75     +0.04773       +1.0%   [0.04780, 0.04521, 0.05018]
+      168   1.00     +0.04727        0.0%   [0.04754, 0.04613, 0.04815]
+
+   Controls: NO-OP max|d| = 0.000e+00 on all three folds (bitwise); keep=1 is -37.1%.
+
+   ⇒ The curve SATURATES at ~0.75 of the window (126h ~ 5.25 days) and then goes FLAT. keep=126
+     reads +1.0% above full, but the per-fold signs disagree (+0.5 / -2.0 / +4.2) — that is noise,
+     not "shorter is better", and it is written here so nobody quotes the +1.0%.
+   ⇒ **#30's unlock condition was "still climbing at full window". It is not. #30 stays locked.**
+   ⇒ But this is NOT "the signal is shallow": 42h -> 126h buys +11.5%. There is real temporal
+     structure between a quarter and three quarters of the window.
+   ⇒ The accurate phrasing for the temporal-depth axis is **not "closed" but "already saturated"**:
+     the existing 168h window already covers everything the model can use (~126h), so lengthening
+     it has nothing left to eat — while halving it costs -3.4%.
+
 ★ TWO BUILT-IN CONTROLS (§8-e — a criterion with no partner can be satisfied by doing nothing):
     W' = 168 (full)  -> a NO-OP. Must reproduce the frozen scores BITWISE. If it does not, the
                         wrapper is perturbing something it should not and no other row is readable.
