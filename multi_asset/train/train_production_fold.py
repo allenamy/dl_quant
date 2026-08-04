@@ -81,10 +81,15 @@ def main():
                     help="build the fold and print the captured hyperparameters, then stop before "
                          "training — so the risky part (parser capture, fold edges, val coverage) "
                          "is verified without taking the GPU")
-    a = ap.parse_args()
+    # ★ Unrecognised flags are FORWARDED to the harness parser rather than rejected. Without this
+    #   the wrapper silently pins every harness hyperparameter at its default — which for s2 would
+    #   mean target_horizon=4 and embargo_days=8 on a run that must be 24 and 10. An argparse error
+    #   is the friendly failure; the dangerous one is a wrapper that accepts only what it knows and
+    #   quietly trains the wrong thing.
+    a, passthrough = ap.parse_known_args()
 
     flags = ["--lam_orth", "0.0", "--year_folds", "--wide_dl_path", a.panel,
-             "--save_tag", a.save_tag, "--tag", a.save_tag]
+             "--save_tag", a.save_tag, "--tag", a.save_tag] + list(passthrough)
     if a.xattn:
         flags.insert(0, "--xattn")
     args = harness_parser().parse_args(flags)
