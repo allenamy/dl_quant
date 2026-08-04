@@ -57,6 +57,15 @@ import multi_asset.train.train_wide_harness as TH                      # noqa: E
 K_HEADS = 6
 CALIBERS = ("TRAIN", "SERVE", "CAUSAL")
 
+# ★ PARAMETERISED FOR s2 (2026-08-04). Defaults reproduce the king invocation EXACTLY, and the
+#   fidelity gate re-earns that number on every run, so one implementation serves both legs rather
+#   than a second copy that can drift from it.
+# ★★ AND THE GATE IS THE EMBARGO DISCRIMINATOR. s2's recorded `te_rows` are bitwise identical under
+#   embargo 8 AND 10 — embargo moves the train/val boundary, not the calendar-year test set, so
+#   te_rows CANNOT tell which was used. But embargo changes `fold["tr"]` -> `set_fold` -> mu/sd, so a
+#   wrong embargo yields a wrong norm and the rebuilt scores stop matching the frozen run's saved
+#   ones. The gate therefore does not merely check the recipe, it IDENTIFIES it.
+
 _n_pass, _fail = 0, []
 
 
@@ -89,11 +98,16 @@ def main():
     ap.add_argument("--causal", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--eval-batch-hours", type=int, default=32)
+    ap.add_argument("--target-horizon", type=int, default=4, dest="horizon")
+    ap.add_argument("--embargo-days", type=int, default=8, dest="embargo")
+    ap.add_argument("--aux-horizons", default="1,24", dest="aux")
     a = ap.parse_args()
 
     print(f"[dev] {TH.DEV}", flush=True)
-    data = WidePanelData(path=a.as_trained, target_horizon=4, aux_horizons=(1, 24))
-    folds = TH.year_folds(data, embargo_days=8, val_days=30, year_from=None)
+    aux = tuple(int(x) for x in a.aux.split(",") if x.strip() and int(x) != a.horizon)
+    data = WidePanelData(path=a.as_trained, target_horizon=a.horizon, aux_horizons=aux)
+    folds = TH.year_folds(data, embargo_days=a.embargo, val_days=30, year_from=None)
+    print(f"[cfg] target_horizon={a.horizon} embargo_days={a.embargo} aux={aux}", flush=True)
     ok(len(folds) == 5, "5 year-folds recomputed", f"{[f['year'] for f in folds]}")
 
     CH = {"TRAIN": data.CH}
