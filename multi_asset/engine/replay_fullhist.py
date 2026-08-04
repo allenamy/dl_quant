@@ -28,12 +28,30 @@ from engine.ic_monitor import xsec_rank_ic
 COST_BPS = 1.9
 OUT = "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/eda/engine_fullhist_replay.json"
 _SRC = None
+_SRC_KEY = None
 
 
-def get_src():
-    global _SRC
+def get_src(panel=None, king=None, s2=None):
+    """Cached PanelSource. Passing None for a path keeps `panel_source`'s own default.
+
+    ★ THE CACHE IS KEYED ON THE PATHS, AND A MISMATCH RAISES. Before these arguments existed the
+      singleton was harmless — there was only ever one possible source. The moment paths can vary,
+      an unkeyed cache silently hands back a source built from DIFFERENT files than the caller
+      asked for, and every number downstream would be attributed to the wrong panel with nothing
+      going red. The no-argument path is unchanged: key is (None, None, None) both times, so the
+      guard cannot fire in the existing usage.
+    """
+    global _SRC, _SRC_KEY
+    key = (panel, king, s2)
     if _SRC is None:
-        _SRC = PanelSource()
+        kw = {k: v for k, v in zip(("panel", "king", "s2"), key) if v is not None}
+        _SRC = PanelSource(**kw)
+        _SRC_KEY = key
+    elif key != _SRC_KEY:
+        raise RuntimeError(
+            f"get_src() called with {key} but the cached source was built with {_SRC_KEY}. "
+            f"Returning the cached one would attribute results to the wrong panel. Run one "
+            f"configuration per process.")
     return _SRC
 
 
@@ -50,14 +68,15 @@ def _dsharpe(x):
     return float(np.mean(x) / (np.std(x) + 1e-12) * np.sqrt(365.0)) if len(x) > 2 else np.nan
 
 
-def run_replay(funding_mode="z", use_c5=True, shaping="cap", weights=None, verbose=True):
+def run_replay(funding_mode="z", use_c5=True, shaping="cap", weights=None, verbose=True,
+               panel=None, king=None, s2=None):
     """shaping: 'none' = demean only (baseline caliber); 'cap' = 99pct pos-cap + demean (CANONICAL --
     trims outliers, near-free once funding is rank-bounded); 'calibrated' = cap + walk-forward isotonic
     C3 (the DEPLOYABLE-CALIBRATED variant: real E[bps] for Kelly/net-cost gating, at an explicit cost --
     0C: isotonic reshaping is net-negative in this sparse-tail signal, cuts mean not vol)."""
     assert shaping in ("none", "cap", "calibrated")
     cap_on = shaping in ("cap", "calibrated"); calibrate = (shaping == "calibrated")
-    src = get_src(); weights = dict(weights or DEFAULT_WEIGHTS)
+    src = get_src(panel, king, s2); weights = dict(weights or DEFAULT_WEIGHTS)
     anchors, yr = _all_anchors(src)
     disp_ref = FundingLegRiskControl.calibrate_dispersion(src, anchors)
     frc = (FundingLegRiskControl(winsor_z=4.0, name_cap=0.15, disp_gate_z=4.0, disp_shrink=0.3,
@@ -154,8 +173,13 @@ if __name__ == "__main__":
     ap.add_argument("--no_c5", action="store_true")
     ap.add_argument("--shaping", default="cap", choices=["none", "cap", "calibrated"])
     ap.add_argument("--out", default=OUT)
+    # pass-through only: omitted => panel_source's own module defaults, i.e. today's behaviour
+    ap.add_argument("--panel", default=None, help="override wide_dl panel (default: as-trained)")
+    ap.add_argument("--king", default=None, help="override king pred panel")
+    ap.add_argument("--s2", default=None, help="override s2 pred panel")
     a = ap.parse_args()
-    out = run_replay(funding_mode=a.funding_mode, use_c5=not a.no_c5, shaping=a.shaping)
+    out = run_replay(funding_mode=a.funding_mode, use_c5=not a.no_c5, shaping=a.shaping,
+                     panel=a.panel, king=a.king, s2=a.s2)
     if a.out and a.out != "-":
         json.dump(out, open(a.out, "w"), indent=1)
     print(json.dumps(out, indent=1))
