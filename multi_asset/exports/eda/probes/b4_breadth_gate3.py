@@ -155,6 +155,59 @@ for c, inb, ic, net, rho, rho_g in rows:
     print("  %-15s %-10.3f %-10.3f %-10s %s"
           % (c, abs(rd[wk]), abs(rg[wkg]), "PASS" if ok_n else "KILLED",
              "yes" if ok_n == ok_g else "*** NET AND GROSS DISAGREE — net verdict is suspect ***"))
+# ---------------------------------------------------------------- survivor dedup
+# ★ THE HOLE IN GATE 3 AS WRITTEN: it tests candidate-vs-SLEEVE, never candidate-vs-candidate.
+#   Six of the eight survivors are the mom/rev family, and the revival scorecard already recorded
+#   "~5 independent clusters, not 14" — they are one reversal cluster. Admitting three correlated
+#   survivors would be the same "echo, not breadth" error one level up, and the "at most 3" rule
+#   permits exactly that. So the survivors are deduped against each other BEFORE gates 1/2.
+surv = [(c, inb, ic, rho, rho_g) for (c, inb, ic, net, rho, rho_g) in rows
+        if abs(max({k: v for k, v in rho.items() if not (inb and k == "king")}.values(),
+                   key=abs)) < 0.3]
+print("\n=== SURVIVOR MUTUAL CORRELATION (gross series — the dedup gate 3 does not do) ===")
+gm = {}
+for c, inb, ic, rho, rho_g in surv:
+    j = chn.index(c)
+    wb = {}
+    for t in A:
+        ti = int(t)
+        m = np.where(src.member[ti] & src.CL4[ti] & np.isfinite(CH[ti, :, j]))[0]
+        if m.size < 5:
+            continue
+        r = rankdata(CH[ti, m, j].astype(np.float64)); r = r - r.mean()
+        sc_ = float(np.abs(r).sum())
+        if sc_ < 1e-12:
+            continue
+        w = np.zeros(src.N); w[m] = r / sc_; wb[ti] = w
+    gm[c] = net_series(wb, with_cost=False)
+names = [c for c, *_ in surv]
+print("      " + " ".join("%9s" % n[:9] for n in names))
+M = np.zeros((len(names), len(names)))
+for i, a_ in enumerate(names):
+    for k, b_ in enumerate(names):
+        M[i, k] = np.corrcoef(gm[a_], gm[b_])[0, 1]
+    print("%-13s" % a_[:13] + " ".join("%9.3f" % M[i, k] for k in range(len(names))))
+print("\n  pairs with |rho| >= 0.3 (same cluster -> at most ONE may be admitted):")
+seen = []
+for i in range(len(names)):
+    for k in range(i + 1, len(names)):
+        if abs(M[i, k]) >= 0.3:
+            seen.append((names[i], names[k], M[i, k]))
+            print("    %-14s ~ %-14s  rho = %+.3f" % (names[i], names[k], M[i, k]))
+if not seen:
+    print("    (none — the survivors are mutually independent)")
+# greedy cluster count at |rho| >= 0.3
+lab = list(range(len(names)))
+for i in range(len(names)):
+    for k in range(i + 1, len(names)):
+        if abs(M[i, k]) >= 0.3:
+            old, new = lab[k], lab[i]
+            lab = [new if x == old else x for x in lab]
+nclust = len(set(lab))
+print("\n  ⇒ %d survivors collapse to %d independent cluster(s) at |rho| >= 0.3." % (len(names), nclust))
+print("  ⇒ gates 1/2 should be run per CLUSTER REPRESENTATIVE, and at most one admission per cluster")
+print("    — otherwise 'at most 3 admitted' would let one factor in three times.")
+
 print("\n★ For the six baseline-column candidates the king comparison is EXCLUDED, not passed —")
 print("  their target was projected out of the king's, so a low value there is guaranteed.")
 print("★ Sign recorded above as standalone IC; it is NOT chosen later (that would be post-hoc).")
