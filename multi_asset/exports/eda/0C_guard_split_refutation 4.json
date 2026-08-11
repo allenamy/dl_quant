@@ -1,0 +1,129 @@
+{
+ "produced_utc": "2026-07-28",
+ "by": "0C audit — refutation attempt on the §4-5b split premises",
+ "scripts": {
+  "P1_qty_replay": "scratchpad/p1_qty_replay.py -> 0C_p1_qty_replay.json",
+  "P1_classification": "scratchpad/p1_classify.py -> 0C_p1_residual_classification.json",
+  "P1_doubling": "scratchpad/p1_doubling.py",
+  "P3_direct_sim": "scratchpad/p3_direct.py -> 0C_p3_direct_measure_sim.json",
+  "P3_distribution": "scratchpad/p3_dist.py -> 0C_p3_ledger_vs_position_dist.json",
+  "P3_overshoot": "scratchpad/p3_overshoot_dedup.py -> 0C_p3_overshoot_dedup.json"
+ },
+ "P1": {
+  "verdict": "REFUTED",
+  "trip_count": "8 in state/testnet/watchdog/ALARM.log; a 9th exists in state/watchdog/ALARM.log (2026-07-25T18:46:36Z, §4-5c) — the '8' is testnet-scoped",
+  "not_100pct_5b_47": "2026-07-27T04:15:49Z also carried §4-6 (a third trigger)",
+  "not_two_guards": "watchdog_inputs.derive_ops_stats: unrecovered_position_drift = bool(_rec['latest']) — §4-7's drift half is an ALIAS of §4-5b's trigger, not corroboration",
+  "false_positive_claim_broken_at": "2026-07-26T00:17:32Z",
+  "evidence_00_17": {
+   "anchor": "2026-07-26T00:01:03Z",
+   "venue_gross": 25059.7,
+   "target_gross": 25000.0,
+   "names_venue_~2x_intent": 47,
+   "excess_notional_usdt": 11711,
+   "names_venue_flat_intent_nonzero": 56,
+   "names_correct": 7,
+   "recorded_filled_notional": 13354,
+   "venue_position_notional": 25060,
+   "examples": {
+    "ZROUSDT": {
+     "intent": -593.21,
+     "venue": -1199.71
+    },
+    "AVAXUSDT": {
+     "intent": -385.53,
+     "venue": -770.98
+    },
+    "ARBUSDT": {
+     "intent": 356.66,
+     "venue": 712.41
+    }
+   }
+  },
+  "also_real": {
+   "anchor": "2026-07-27T00:01:07Z",
+   "recorded_filled_notional": 0.0,
+   "venue_position_notional": 21424.0,
+   "note": "total collapse of fill recording; §4-5b's 92 names were that"
+  }
+ },
+ "P2": {
+  "verdict": "HOLDS, WEAKENED",
+  "never_fired": true,
+  "guard_own_reading": {
+   "cond2_worst_day_pct": -0.1512,
+   "cond2_limit": -6.7,
+   "cond4_max_dd_pct": -0.2426,
+   "cond4_limit": -6.0,
+   "n_priced_days": 2,
+   "n_days": 4,
+   "unpriced": [
+    "20260725",
+    "20260727"
+   ]
+  },
+  "independent_check_guard_does_not_read": {
+   "nav_series": [
+    4997.44,
+    4974.58,
+    4884.51,
+    4692.12
+   ],
+   "worst_day_equity_delta_usdt": -192.39,
+   "worst_day_pct_of_gross": -0.77,
+   "cumulative_pct_of_gross": -1.22,
+   "wallet_only_realised_3d_usdt": -270.04
+  },
+  "weakenings": [
+   "limits are % of TARGET GROSS (25000) while equity is ~4700-5000, so -6.7% of gross = -33.5% of equity",
+   "the guard's own realised_pnl is COMMISSION-only and 'realised_truncated: true' on 07-28: it read -2.52 USDT while wallet fell 153.69 USDT that day",
+   "NAV snapshots are point-in-time (1 row/day before 07-28); intraday path unobserved — UNKNOWN, but a >6.7%-of-gross round trip is implausible given unrealised readings of -15.05/+3.42/-35.29"
+  ]
+ },
+ "P3": {
+  "verdict": "REFUTED for the venue-vs-INTENT form",
+  "counterexample": "a total ledger failure is indistinguishable from a healthy anchor under position-vs-intent",
+  "measured": {
+   "2026-07-27T00:01 (0 of 21424 USDT of fills recorded)": {
+    "pct_gross": 13.9,
+    "p50": 0.7,
+    "max": 599.1,
+    "n_gt50": 16
+   },
+   "2026-07-27T08:01 (ledger healthy, 22590 vs 22575)": {
+    "pct_gross": 9.8,
+    "p50": 0.5,
+    "max": 583.4,
+    "n_gt50": 8
+   },
+   "2026-07-28T04:00 (ledger healthy)": {
+    "pct_gross": 5.6,
+    "p50": 0.4,
+    "max": 538.4,
+    "n_gt50": 6
+   }
+  },
+  "silent_on_the_flagged_names": {
+   "anchor": "2026-07-28T08:01:24Z",
+   "SAGAUSDT": {
+    "intent": -311.61,
+    "venue": -310.6,
+    "dev": 1.01
+   },
+   "SKLUSDT": {
+    "intent": -124.78,
+    "venue": -126.9,
+    "dev": 2.12
+   },
+   "note": "both below every actionable floor; the direct check is not slower here, it is silent"
+  },
+  "halted_anchor_landmine": "using target_w*target_gross as 'intent' reads 100% of gross on all 6 halted anchors of 16",
+  "overshoot_candidate": "NO EVIDENCE — two measurement attempts were both my own artifacts (append+backfill fill rows, then seeding the peak with the starting position); after dedupe venue traded == our ledger at 5 of 6 anchors"
+ },
+ "P4": {
+  "verdict": "WEAKENED — the argument is wrong in form",
+  "same_anchor": "execution_of_unknown_size is already an M=1 state gate; the new check is also per-anchor, so no speed gain",
+  "real_change": "population, not latency: the downgraded class is one the direct check does not see at all",
+  "structural_argument_that_does_work": "expected_qty is re-anchored on the venue's q1 at every anchor, so one unquantifiable leg blinds exactly one (anchor, symbol) cell and never propagates"
+ }
+}

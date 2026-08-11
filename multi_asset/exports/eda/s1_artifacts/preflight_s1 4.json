@@ -1,0 +1,922 @@
+{
+ "intended_args": {
+  "encoder": "conformer",
+  "n_factor_heads": 6,
+  "target_horizon": 4,
+  "xattn": null,
+  "lam_orth": 0.0,
+  "pred_smooth_lambda": 0.0,
+  "year_folds": true,
+  "year_folds_from": null,
+  "embargo_days": 8,
+  "val_days": 30
+ },
+ "unrecorded": [
+  "lr",
+  "max_epochs",
+  "patience",
+  "seed",
+  "batch_hours",
+  "eval_batch_hours",
+  "d_model",
+  "n_blocks",
+  "n_xattn",
+  "w_mag",
+  "dense_train",
+  "aux_mtl",
+  "aux_horizons",
+  "qim",
+  "n_quantiles",
+  "multirel",
+  "kill_gates",
+  "enc_lr_mult",
+  "pretrained_encoder"
+ ],
+ "tests": {
+  "A_old": {
+   "panel": "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/wide_dl_full.npz",
+   "folds": [
+    {
+     "year": 2022,
+     "n_tr": 327,
+     "n_va": 30,
+     "n_te": 365,
+     "tr": [
+      0,
+      326
+     ],
+     "va": [
+      327,
+      356
+     ],
+     "te": [
+      365,
+      729
+     ]
+    },
+    {
+     "year": 2023,
+     "n_tr": 692,
+     "n_va": 30,
+     "n_te": 365,
+     "tr": [
+      0,
+      691
+     ],
+     "va": [
+      692,
+      721
+     ],
+     "te": [
+      730,
+      1094
+     ]
+    },
+    {
+     "year": 2024,
+     "n_tr": 1057,
+     "n_va": 30,
+     "n_te": 366,
+     "tr": [
+      0,
+      1056
+     ],
+     "va": [
+      1057,
+      1086
+     ],
+     "te": [
+      1095,
+      1460
+     ]
+    },
+    {
+     "year": 2025,
+     "n_tr": 1423,
+     "n_va": 30,
+     "n_te": 365,
+     "tr": [
+      0,
+      1422
+     ],
+     "va": [
+      1423,
+      1452
+     ],
+     "te": [
+      1461,
+      1825
+     ]
+    },
+    {
+     "year": 2026,
+     "n_tr": 1788,
+     "n_va": 30,
+     "n_te": 181,
+     "tr": [
+      0,
+      1787
+     ],
+     "va": [
+      1788,
+      1817
+     ],
+     "te": [
+      1826,
+      2006
+     ]
+    }
+   ],
+   "te_rows_n": [
+    2190,
+    2190,
+    2196,
+    2190,
+    1085
+   ],
+   "all_match": true
+  },
+  "B_causal": {
+   "panel": "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/wide_dl_full_causal_v1.npz",
+   "folds": [
+    {
+     "year": 2022,
+     "n_tr": 327,
+     "n_va": 30,
+     "n_te": 365,
+     "tr": [
+      0,
+      326
+     ],
+     "va": [
+      327,
+      356
+     ],
+     "te": [
+      365,
+      729
+     ]
+    },
+    {
+     "year": 2023,
+     "n_tr": 692,
+     "n_va": 30,
+     "n_te": 365,
+     "tr": [
+      0,
+      691
+     ],
+     "va": [
+      692,
+      721
+     ],
+     "te": [
+      730,
+      1094
+     ]
+    },
+    {
+     "year": 2024,
+     "n_tr": 1057,
+     "n_va": 30,
+     "n_te": 366,
+     "tr": [
+      0,
+      1056
+     ],
+     "va": [
+      1057,
+      1086
+     ],
+     "te": [
+      1095,
+      1460
+     ]
+    },
+    {
+     "year": 2025,
+     "n_tr": 1423,
+     "n_va": 30,
+     "n_te": 365,
+     "tr": [
+      0,
+      1422
+     ],
+     "va": [
+      1423,
+      1452
+     ],
+     "te": [
+      1461,
+      1825
+     ]
+    },
+    {
+     "year": 2026,
+     "n_tr": 1788,
+     "n_va": 30,
+     "n_te": 181,
+     "tr": [
+      0,
+      1787
+     ],
+     "va": [
+      1788,
+      1817
+     ],
+     "te": [
+      1826,
+      2006
+     ]
+    }
+   ],
+   "te_rows_n": [
+    2190,
+    2190,
+    2196,
+    2190,
+    1085
+   ],
+   "all_match": true
+  }
+ },
+ "frozen_arch_shapes": {
+  "wideA_lamorth0_xattn_5yr": {
+   "encoder.enc.input_proj.weight": [
+    64,
+    32
+   ],
+   "encoder.enc.input_proj.bias": [
+    64
+   ],
+   "encoder.enc.in_norm.weight": [
+    64
+   ],
+   "encoder.enc.in_norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.fc1.weight": [
+    256,
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.fc1.bias": [
+    256
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.fc2.weight": [
+    64,
+    256
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.fc2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.norm_attn.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.norm_attn.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.attn.in_proj_weight": [
+    192,
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.attn.in_proj_bias": [
+    192
+   ],
+   "encoder.enc.backbone.blocks.0.attn.out_proj.weight": [
+    64,
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.attn.out_proj.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.conv1.weight": [
+    128,
+    64,
+    1
+   ],
+   "encoder.enc.backbone.blocks.0.conv.conv1.bias": [
+    128
+   ],
+   "encoder.enc.backbone.blocks.0.conv.dw_conv.weight": [
+    64,
+    1,
+    15
+   ],
+   "encoder.enc.backbone.blocks.0.conv.dw_conv.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.running_mean": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.running_var": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.num_batches_tracked": [],
+   "encoder.enc.backbone.blocks.0.conv.conv2.weight": [
+    64,
+    64,
+    1
+   ],
+   "encoder.enc.backbone.blocks.0.conv.conv2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.fc1.weight": [
+    256,
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.fc1.bias": [
+    256
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.fc2.weight": [
+    64,
+    256
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.fc2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.fc1.weight": [
+    256,
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.fc1.bias": [
+    256
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.fc2.weight": [
+    64,
+    256
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.fc2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.norm_attn.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.norm_attn.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.attn.in_proj_weight": [
+    192,
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.attn.in_proj_bias": [
+    192
+   ],
+   "encoder.enc.backbone.blocks.1.attn.out_proj.weight": [
+    64,
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.attn.out_proj.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.conv1.weight": [
+    128,
+    64,
+    1
+   ],
+   "encoder.enc.backbone.blocks.1.conv.conv1.bias": [
+    128
+   ],
+   "encoder.enc.backbone.blocks.1.conv.dw_conv.weight": [
+    64,
+    1,
+    15
+   ],
+   "encoder.enc.backbone.blocks.1.conv.dw_conv.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.running_mean": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.running_var": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.num_batches_tracked": [],
+   "encoder.enc.backbone.blocks.1.conv.conv2.weight": [
+    64,
+    64,
+    1
+   ],
+   "encoder.enc.backbone.blocks.1.conv.conv2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.fc1.weight": [
+    256,
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.fc1.bias": [
+    256
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.fc2.weight": [
+    64,
+    256
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.fc2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.norm.bias": [
+    64
+   ],
+   "attn.0.norm1.weight": [
+    64
+   ],
+   "attn.0.norm1.bias": [
+    64
+   ],
+   "attn.0.attn.in_proj_weight": [
+    192,
+    64
+   ],
+   "attn.0.attn.in_proj_bias": [
+    192
+   ],
+   "attn.0.attn.out_proj.weight": [
+    64,
+    64
+   ],
+   "attn.0.attn.out_proj.bias": [
+    64
+   ],
+   "attn.0.norm2.weight": [
+    64
+   ],
+   "attn.0.norm2.bias": [
+    64
+   ],
+   "attn.0.ffn.0.weight": [
+    128,
+    64
+   ],
+   "attn.0.ffn.0.bias": [
+    128
+   ],
+   "attn.0.ffn.3.weight": [
+    64,
+    128
+   ],
+   "attn.0.ffn.3.bias": [
+    64
+   ],
+   "factor_heads.0.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.0.0.bias": [
+    64
+   ],
+   "factor_heads.0.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.0.3.bias": [
+    1
+   ],
+   "factor_heads.1.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.1.0.bias": [
+    64
+   ],
+   "factor_heads.1.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.1.3.bias": [
+    1
+   ],
+   "factor_heads.2.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.2.0.bias": [
+    64
+   ],
+   "factor_heads.2.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.2.3.bias": [
+    1
+   ],
+   "factor_heads.3.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.3.0.bias": [
+    64
+   ],
+   "factor_heads.3.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.3.3.bias": [
+    1
+   ],
+   "factor_heads.4.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.4.0.bias": [
+    64
+   ],
+   "factor_heads.4.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.4.3.bias": [
+    1
+   ],
+   "factor_heads.5.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.5.0.bias": [
+    64
+   ],
+   "factor_heads.5.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.5.3.bias": [
+    1
+   ]
+  },
+  "wideA_lamorth0_5yr": {
+   "encoder.enc.input_proj.weight": [
+    64,
+    32
+   ],
+   "encoder.enc.input_proj.bias": [
+    64
+   ],
+   "encoder.enc.in_norm.weight": [
+    64
+   ],
+   "encoder.enc.in_norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.fc1.weight": [
+    256,
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.fc1.bias": [
+    256
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.fc2.weight": [
+    64,
+    256
+   ],
+   "encoder.enc.backbone.blocks.0.ffn1.fc2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.norm_attn.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.norm_attn.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.attn.in_proj_weight": [
+    192,
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.attn.in_proj_bias": [
+    192
+   ],
+   "encoder.enc.backbone.blocks.0.attn.out_proj.weight": [
+    64,
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.attn.out_proj.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.conv1.weight": [
+    128,
+    64,
+    1
+   ],
+   "encoder.enc.backbone.blocks.0.conv.conv1.bias": [
+    128
+   ],
+   "encoder.enc.backbone.blocks.0.conv.dw_conv.weight": [
+    64,
+    1,
+    15
+   ],
+   "encoder.enc.backbone.blocks.0.conv.dw_conv.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.running_mean": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.running_var": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.conv.bn.num_batches_tracked": [],
+   "encoder.enc.backbone.blocks.0.conv.conv2.weight": [
+    64,
+    64,
+    1
+   ],
+   "encoder.enc.backbone.blocks.0.conv.conv2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.fc1.weight": [
+    256,
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.fc1.bias": [
+    256
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.fc2.weight": [
+    64,
+    256
+   ],
+   "encoder.enc.backbone.blocks.0.ffn2.fc2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.0.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.fc1.weight": [
+    256,
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.fc1.bias": [
+    256
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.fc2.weight": [
+    64,
+    256
+   ],
+   "encoder.enc.backbone.blocks.1.ffn1.fc2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.norm_attn.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.norm_attn.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.attn.in_proj_weight": [
+    192,
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.attn.in_proj_bias": [
+    192
+   ],
+   "encoder.enc.backbone.blocks.1.attn.out_proj.weight": [
+    64,
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.attn.out_proj.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.conv1.weight": [
+    128,
+    64,
+    1
+   ],
+   "encoder.enc.backbone.blocks.1.conv.conv1.bias": [
+    128
+   ],
+   "encoder.enc.backbone.blocks.1.conv.dw_conv.weight": [
+    64,
+    1,
+    15
+   ],
+   "encoder.enc.backbone.blocks.1.conv.dw_conv.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.running_mean": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.running_var": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.conv.bn.num_batches_tracked": [],
+   "encoder.enc.backbone.blocks.1.conv.conv2.weight": [
+    64,
+    64,
+    1
+   ],
+   "encoder.enc.backbone.blocks.1.conv.conv2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.norm.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.fc1.weight": [
+    256,
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.fc1.bias": [
+    256
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.fc2.weight": [
+    64,
+    256
+   ],
+   "encoder.enc.backbone.blocks.1.ffn2.fc2.bias": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.norm.weight": [
+    64
+   ],
+   "encoder.enc.backbone.blocks.1.norm.bias": [
+    64
+   ],
+   "factor_heads.0.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.0.0.bias": [
+    64
+   ],
+   "factor_heads.0.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.0.3.bias": [
+    1
+   ],
+   "factor_heads.1.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.1.0.bias": [
+    64
+   ],
+   "factor_heads.1.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.1.3.bias": [
+    1
+   ],
+   "factor_heads.2.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.2.0.bias": [
+    64
+   ],
+   "factor_heads.2.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.2.3.bias": [
+    1
+   ],
+   "factor_heads.3.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.3.0.bias": [
+    64
+   ],
+   "factor_heads.3.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.3.3.bias": [
+    1
+   ],
+   "factor_heads.4.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.4.0.bias": [
+    64
+   ],
+   "factor_heads.4.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.4.3.bias": [
+    1
+   ],
+   "factor_heads.5.0.weight": [
+    64,
+    64
+   ],
+   "factor_heads.5.0.bias": [
+    64
+   ],
+   "factor_heads.5.3.weight": [
+    1,
+    64
+   ],
+   "factor_heads.5.3.bias": [
+    1
+   ]
+  }
+ },
+ "n_pass": 14,
+ "n_total": 14,
+ "failed": []
+}

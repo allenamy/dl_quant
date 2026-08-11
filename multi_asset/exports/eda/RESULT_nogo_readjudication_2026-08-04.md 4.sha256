@@ -1,0 +1,73 @@
+c0f69497119b3d639729f71aead94dfd10ce13a6d05ce0b04b002ed69707ade0  RESULT_nogo_readjudication_2026-08-04.md
+version: v4 — track-2 判别已执行 ⇒ 移出 '?' 类归 S (实测支撑 + 对侧尺子)
+content_frozen_at: 2026-08-04T06:5xZ
+task: team-lead [SEQ 1]; 只产清单, 零重测 (遵守)
+headline:
+  1. 因子侧【不干净】: LLM-DSL 工厂读脏 DL 面板, 且把 betaadj_ret24 作一等 DSL 操作数
+  2. 宽宇宙 N=110 记分卡【干净】(只读 wide_panel.npz, 零 betaadj/零 convolve) — 逐行确证
+  3. ★ 污染是【三条通道】不是一条, 方向不同 ⇒ 现三分类会判错一整类 ⇒ 建议增设 "?" 类
+  4. ★ 工厂的【目标】被污染: yr4b = YR4 对 king/s2 预测残差化, 而两模型在脏面板上训;
+     其构建脚本自述理由 "strictly OOS -> causal" 是【假的】: OOS 不等于因果
+  5. ★ team-lead 的"容量竞争"机制: 我的第一个零成本检验【不支持】(best_epoch 干净更早不更晚)
+  6. ★ v2 自我更正: 通道①与③在工厂内【互相抵消】 — 目标已对 king_pred 残差化, 而 king_pred
+     自己含泄漏方向 ⇒ 公式里的泄漏分量与目标的相关性被构造性压掉 ⇒ v1 写的"17 条拿着泄漏
+     仍失败 ⇒ 加固"是错的, 已撤回
+  7. ★ 泄漏通道被【错名征用】17 次: 200 条候选里 17 条建在 betaadj_ret24 上, 注释无一例外
+     称其 "idio"; 它实际是"减掉了一个含未来的市场估计" ⇒ 注入未来而非移除市场.
+     处置建议 = 作废重跑, 不是重新分类
+classification_counts: S=5组 · N=4组 · ?=3组(新类) · R=1条已定 + 1条待B4
+R_class_discipline: 刻意从严; 明列【被拒绝进 R】的候选与拒绝理由(净成本/容量类不因面板改变)
+verified_by_reading_code (不是模式匹配, 逐条打开读过):
+  factory/pipeline.py:46-49,55        载脏面板+两脏预测面板+脏目标; 全 DENSE_CHANNELS 摊成操作数
+  factory/dsl.py:34                   betaadj_ret24 在 DENSE_CHANNELS 内
+  data/build_yr4b_yr24b.py:1-9,20-40  目标 = YR4 对 [king_pred,s2_pred] 横截面 OLS 残差
+  data/ridge_gate_wide_metrics.py:41,53   基线臂 = 完整 32 通道 CH
+  data/gbdt_probe_wide_metrics.py:75,84,92 同上, 注释自写 [T,N,32]
+  data/wide_factory.py:23,94 + wide_lsgate.py:19,72  只读 wide_panel.npz ⇒ 干净
+  data/build_wide_dl.py:33            BASELINE 8 通道不含 betaadj_ret24 ⇒ 泄漏不经 YR4 目标进入
+evidence_from_existing_artifacts (未跑新计算):
+  best_epoch 脏/干净 = xattn 6.4/5.8 · plain 4.6/1.4 (干净 plain 3/5 折在第 0 轮取最好)
+v4_addition:
+  ★ track-2 判别 (逐锚横截面 Spearman(OI 通道, beta_24h), 11,861 锚, 只读无重训):
+    七通道 mean|r| 0.093-0.170, 符号均值 -0.036~+0.087
+    对侧尺子(§8-b): rvol_24h vs beta = 0.7335 <- "与 beta 对齐"长这样; beta vs 自己 = 1.0000
+    ⇒ 离正交远比离对齐近 ⇒ 增量未被掩盖 ⇒ 原 FAIL 独立成立 ⇒ 归 S
+    限定: (a) 线性正交不完全保证非线性无掩盖, 但 GBDT 那次是 z=0.34 完全无信号;
+          (b) 射程窄 — 只说那次测量没被偏, 不说这条轴以后没东西
+    ★ 没有 rvol_24h 那一行, 0.15 只是读数不是判定 — §8-b 的一次实证
+    复算: 服务器 /tmp/c2_track2.py
+open:
+  - lam_orth 定类【待 B4 干净模型逐头 |corr|】 —— 刻意不自拍 (假设"太顺", 判别只要一个数)
+  - track-2 定 R 还是 S: 只需 corr(OI 通道, beta_i×未来市场项), 无需重训
+  - 工厂两批共【200】条(非 ~250, v2 实数)已按"是否用 betaadj_ret24"完成枚举;
+    尚未按【机制口味】(beta-择时 vs 纯 idio vs 流动性/成本)逐条打标 — 那是 R 类第 3 项的前置
+not_verified:
+  - npz 产物未逐个字节校验 (判定基于构建与读取代码)
+  - 通道③的【幅度】未测 — 方向由代数定, 占比未知, 不可读成"工厂结论都错了"
+  - wide_metrics_ch.npz 自身 7 通道的因果性未审
+cites (chains, per TEAM_PROTOCOL §4-b):
+  RESULT_S1_verdict_2026-08-03.md                chain head 79376661 (v2)
+  PREREG_retrain_causal_panel_2026-08-03.md      chain head 60d2d91b (v9)
+formula_level_enumeration (v2 新增, 逐行号已入正文 §2-2):
+  batch_002.txt betaadj_ret24 用例 16 行: 15,21,29,34,37,38,41,43,45,46,48,49,68,73,86,113
+  batch_001.txt betaadj_ret24 用例  1 行: 64
+  两批各 100 条候选 ⇒ 17/200
+v3_additions:
+  ★ §1-bis 实盘来源链: 工厂 0 进书 / track-2 双门 FAIL ⇒ 对在跑的书【零暴露】(逐腿核过);
+     BUT size 腿摘除(现生效)主判据 MC̄=-0.00031, t_eff -0.17, 测在 wide_dl 家族 fundfix 面板上,
+     对一个被泄漏抬高 ~2.7x 的书取边际 ⇒ 偏向恰好指向摘除. 方向保守 ⇒ 机会成本非风险敞口.
+     其"强确认" ΔNet 同面板同书 ⇒ 第二个受同一污染的量, 不是第二台仪器
+     (先例: vol-scaling ΔNet +1.814 -> SERVE -0.083, 同量同面板家族已翻车一次)
+  ★ §6-1 lam_orth 关闭归 S: B4 干预判别 CLEAN 0.9963-0.9984 比 DIRTY 0.9957-0.9970 更塌;
+     REF lam_orth=1.0 = 0.2149 (对侧尺子, 无灰区) ⇒ 泄漏不是吸引子 ⇒ 原否定独立成立
+     方法论: 两条【真正独立】的相关性证据被一次干预判别整条推翻
+     ⇒ §4 排序依据加否决式第一分量"是否存在便宜的【干预性】判别"
+  ★ §5-1 开放项: 干净 plain 3/5 折 best_epoch=0 而 resid IC 仍 0.0458 —— (a) 信号浅到近线性
+     还是 (b) 训练/检查点侧有问题? 两种读法行动含义相反 ⇒ "信号浅"只能按候选解释记 (B4 的盘)
+chain:
+  v1 73f1bcb18ed7e7138730f039e53eb032668e51c486113e3fc181ee5a76092fd3  (preserved as _v1_001xZ.md)
+  v2 bfea8f869a09969e4e489499e749f6363a13a961e17a41516c3024130c53999f  (preserved as _v2_004xZ.md)
+  v3 501925b537984a35ee35a67b99df1b334b4a4c1f2e88d3a19dc4488c9dd762ec  (preserved as _v3_041xZ.md)
+  v4 c0f69497119b3d639729f71aead94dfd10ce13a6d05ce0b04b002ed69707ade0  <- current
+session: 0C (C2-prereg)
+verify: shasum -a 256 RESULT_nogo_readjudication_2026-08-04.md
