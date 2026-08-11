@@ -71,10 +71,18 @@ M1_COMPLETENESS_COMPONENTS = ("n_unmeasured_slippage", "n_unmeasured_fee")
 
 
 def m1_effective_cost(orders, regime_by_anchor):
-    """bps/side. numerator = fees + |avg_fill_px - mid_at_anchor| slippage; denominator = filled
-    notional, one-sided. Returned overall AND stratified by regime."""
-    per_regime = defaultdict(lambda: {"fee": 0.0, "slip": 0.0, "den": 0.0, "n": 0})
-    tot = {"fee": 0.0, "slip": 0.0, "den": 0.0, "n": 0}
+    """bps/side. TWO calibers, side by side (protocol v2 2026-08-05, sha 853a3c8a41755cb2):
+
+    NET (judged by §4-1 since v2): fees + SIGNED slippage — BUY filled above anchor mid = cost,
+    below = credit; SELL mirrored. This is money.
+    DISPERSION (reported, alert-only): fees excluded, Σ|slippage| — v1's numerator half. This is
+    execution scatter; it prices time-to-fill and counts favorable fills as cost, which is why it
+    was the WRONG quantity for a money gate (measured: trip-window days read 12-19 on |slip| while
+    signed net was 0-5.8; maker edge made one day's net slip NEGATIVE).
+    `c_bps_overall` keeps its v1 meaning (fee + |slip|) for existing readers; the v2 keys are
+    `c_bps_net_overall` / `dispersion_bps_overall` / `caliber_net`."""
+    per_regime = defaultdict(lambda: {"fee": 0.0, "slip": 0.0, "slip_net": 0.0, "den": 0.0, "n": 0})
+    tot = {"fee": 0.0, "slip": 0.0, "slip_net": 0.0, "den": 0.0, "n": 0}
     n_unmeasured_slippage = 0
     n_unmeasured_fee = 0
     n_unknown_fill = 0
@@ -90,6 +98,7 @@ def m1_effective_cost(orders, regime_by_anchor):
     #   `mid_at_anchor`, so with them in the universe every day containing a flatten had
     #   `measurement_complete: False`. The fix is a caliber definition, not a scheduling trick.
     _flat = [o for o in orders if o.get("order_type") == "protective_flatten"]
+    _flat_fee_known = sum(1 for o in _flat if o.get("fee_paid") is not None)
     orders = [o for o in orders if o.get("order_type") in ("maker", "topup_taker")]
     for o in orders:
         # ★ `or 0.0` REMOVED: `filled_notional` is now None when we could not read it, and `or 0.0`
@@ -125,7 +134,17 @@ def m1_effective_cost(orders, regime_by_anchor):
         if o.get("avg_fill_px") is None:
             n_unmeasured_slippage += 1
             continue
-        slip = abs(float(o["avg_fill_px"]) - mid) / mid * f
+        # ★ v2: the SIGN needs the side. A row whose side we cannot read has an unmeasurable net
+        # slip — absence produces UNKNOWN (this file's own rule), never a guessed sign. `side` is
+        # a schema field written by the executor on every row, so this branch is theoretical; it
+        # exists so that if the schema ever breaks, the gate goes blind instead of wrong.
+        _side = str(o.get("side") or "").upper()
+        if _side not in ("BUY", "SELL", "LONG", "SHORT"):
+            n_unmeasured_slippage += 1
+            continue
+        _dev = (float(o["avg_fill_px"]) - mid) / mid
+        slip = abs(_dev) * f
+        slip_net = (_dev if _side in ("BUY", "LONG") else -_dev) * f
         # ★ THE TWIN OF THE LINE ABOVE, AND I MISSED IT ON THE FIRST PASS.
         # `fee_paid` has no producer either (commission is only in userTrades), so `or 0.0` was
         # still fabricating — one line below a check that refuses to fabricate. A row would enter
@@ -136,13 +155,31 @@ def m1_effective_cost(orders, regime_by_anchor):
         if _fee is None:
             n_unmeasured_fee += 1
             fee = 0.0                 # contributes nothing; the row is flagged as fee-unmeasured
+        elif o.get("fee_all_usdt") is False and not o.get("fee_conversion"):
+            # ★ 2026-08-05: a KNOWN-INCOMPLETE fee is UNKNOWN, never spent. `fee_all_usdt: False`
+            # says some commission was charged in another asset; without conversion evidence on
+            # the row, `fee_paid` is only the USDT slice — spending it as "the fee" is the
+            # measured-zero defect one consumer down (measured live 16:00Z: 100/100 filled orders
+            # fee_paid=0.0 beside fee_all_usdt=False while 0.00223 BNB of real commission sat in
+            # the fills ledger). The producer chain now converts (venue_fills per-leg + price_fn
+            # threaded on the production path); this branch is the consumer refusing to be lied
+            # to by any past or future producer that does not.
+            n_unmeasured_fee += 1
+            fee = 0.0
         else:
             fee = float(_fee)
         r = regime_by_anchor.get(o["anchor_ts"], "unknown")
         for acc in (per_regime[r], tot):
-            acc["fee"] += fee; acc["slip"] += slip; acc["den"] += f; acc["n"] += 1
+            acc["fee"] += fee; acc["slip"] += slip; acc["slip_net"] += slip_net
+            acc["den"] += f; acc["n"] += 1
     def _c(a):
         return round((a["fee"] + a["slip"]) / a["den"] * BPS, 4) if a["den"] > 0 else None
+
+    def _c_net(a):
+        return round((a["fee"] + a["slip_net"]) / a["den"] * BPS, 4) if a["den"] > 0 else None
+
+    def _disp(a):
+        return round(a["slip"] / a["den"] * BPS, 4) if a["den"] > 0 else None
     return {
         # a cost computed from only the measurable rows must say how many it could not see —
         # and BOTH components must be measurable before the measurement is complete
@@ -156,17 +193,37 @@ def m1_effective_cost(orders, regime_by_anchor):
         # ★ the crisis leg, reported beside `c` and never inside it. `n` is the count of flatten
         # rows and `filled_notional` their total — a real cost kept visible without being averaged
         # into a metric whose threshold was set for a different quantity.
+        # ★★ [F2] THE COUNTER THE SIBLING BLOCK ABOVE ALREADY HAS, 20 LINES LOWER, MISSING.
+        # `sum(... if is not None)` over a column that is None on EVERY row is 0.0, and 0.0 is a
+        # number a reader spends: measured on TESTNET, 209/209, 204/204 and 110/110 flatten rows
+        # carried `fee_paid: None` while the block reported `fee_paid: 0` beside 45,965 and 23,786
+        # USDT of exits — i.e. THE EMERGENCY EXIT LOOKED FREE. The comment 20 lines up says of
+        # exactly this shape that `or 0.0` was "still fabricating"; the filter form fabricates the
+        # same way, it just does it silently instead of per row.
+        # ⇒ The sum keeps only what was measured, it SAYS how many rows it could not see, and when
+        #   it could see none it is None — "we measured nothing" and "the fee was zero" must not
+        #   print the same. Same three-state discipline as fee_paid on the row itself.
         "protective_flatten_cost": {
             "n_rows": len(_flat),
             "filled_notional": round(sum(abs(float(o["filled_notional"]))
                                          for o in _flat
                                          if o.get("filled_notional") is not None), 2),
             "n_unknown_fill": sum(1 for o in _flat if o.get("filled_notional") is None),
-            "fee_paid": round(sum(float(o["fee_paid"]) for o in _flat
-                                  if o.get("fee_paid") is not None), 6),
+            "fee_paid": (round(sum(float(o["fee_paid"]) for o in _flat
+                                   if o.get("fee_paid") is not None), 6)
+                         if _flat_fee_known else None),
+            "n_measured_fee": _flat_fee_known,
+            "n_unmeasured_fee": len(_flat) - _flat_fee_known,
+            # None = no flatten happened (nothing to measure); False = it happened and we cannot
+            # state its cost; True = every row's fee is known.
+            "measurement_complete": (None if not _flat else
+                                     (_flat_fee_known == len(_flat)
+                                      and not any(o.get("filled_notional") is None
+                                                  for o in _flat))),
             "caliber": ("event-driven exit cost, EXCLUDED from c (which measures rebalance "
                         "execution quality, the quantity §4-1's limit was set for). Reported, "
-                        "not discarded."),
+                        "not discarded. `fee_paid` is the sum over the rows whose fee we ACTUALLY "
+                        "read — never a zero standing in for rows we did not."),
         },
         # ★ THREE STATES. With ZERO fills, `n_unmeasured_* == 0` is true and the old two-state
         # flag said `measurement_complete: True` beside `c_bps_overall: None` — "the measurement
@@ -187,9 +244,19 @@ def m1_effective_cost(orders, regime_by_anchor):
         "caliber": "per-DAY aggregate: (sum fee + sum |slippage|) / sum filled_notional, in bps, "
                    "over every filled order of the day; NOT a per-fill figure",
         "c_bps_overall": _c(tot),
+        # ★ v2 (853a3c8a41755cb2): the judged quantity and the reported scatter, each under its
+        # own name and its own caliber string. `caliber_net` is what watchdog.C_LIMIT_CALIBER must
+        # match verbatim — two independent literals, compared at the point of use, so drift in
+        # either refuses to judge instead of judging the wrong quantity.
+        "caliber_net": "per-DAY aggregate: (sum fee + sum SIGNED slippage) / sum filled_notional, "
+                       "in bps, over every filled order of the day; BUY above / SELL below anchor "
+                       "mid = cost, favorable = credit; NOT a per-fill figure (protocol v2)",
+        "c_bps_net_overall": _c_net(tot),
+        "dispersion_bps_overall": _disp(tot),
         "filled_notional_total": round(tot["den"], 2),
         "n_filled_orders": tot["n"],
-        "by_regime": {r: {"c_bps": _c(a), "filled_notional": round(a["den"], 2),
+        "by_regime": {r: {"c_bps": _c(a), "c_bps_net": _c_net(a),
+                          "dispersion_bps": _disp(a), "filled_notional": round(a["den"], 2),
                           "n_filled_orders": a["n"]}
                       for r, a in sorted(per_regime.items())},
     }
@@ -477,7 +544,15 @@ def m6_sign_consistency(funding):
 def stoploss_inputs(navs):
     if not navs:
         return {"available": False, "note": "no daily_nav rows -- stop-losses NOT auditable"}
-    navs = sorted(navs, key=lambda r: r["day"])
+    # ★★ [B31] ONE ROW PER DAY, AND IT IS THE DAY'S LAST. Since 2026-07-28 every anchor appends a
+    # NAV snapshot (a once-per-day row is captured before the day happens — on 07-28 it was
+    # written at 00:16Z with the book flat, and §4-2 then read 0.00% all day). Here the effect of
+    # NOT collapsing would be worse than staleness: the loop below accumulates `daily_ret` into a
+    # drawdown, so six snapshots of one day would be counted as six days of return.
+    _by_day = {}
+    for _r in sorted(navs, key=lambda r: str(r["day"])):
+        _by_day[str(_r["day"])] = _r          # later rows overwrite: the day's last wins
+    navs = [_by_day[k] for k in sorted(_by_day)]
     # ★★ TWO FABRICATIONS ON ONE LINE, AND BOTH FED THE STOP-LOSSES.
     # It was: float(r["realised_pnl"]) + float(r.get("unrealised_pnl") or 0.0)
     #   - realised_pnl was not_null, so every row carried a defaulted 0.0 and this "P&L" was

@@ -12,9 +12,21 @@ PANEL = MA + "/exports/wide_dl_full.npz"
 KING = MA + "/exports/eda/king_pred_panel.npz"
 S2 = MA + "/exports/eda/s2_pred_panel_cl4.npz"
 
+# ★★★ 默认 PANEL = as-trained【脏】面板 (betaadj_ret24 通道含 ~11h 前视, 见
+#     panel_lookahead 判决与 RESULT_s1_leak_attribution)。它被【故意保留】: 泄漏归因 /
+#     H-ATT / champion 对照的复现都需要脏净两代并排。合法用法 = 分数级重放(只取
+#     rvol/funding/Y4/tradeable, king/s2 预测是干净世代重生成的 npz)。
+#     【禁止】把 CH 通道整体当特征喂给任何模型 —— 2026-08-11 LGBM 探针在默认面板上
+#     喂全通道, 30 分钟"打穿"三重验证的天花板 (0.083 vs 0.047), 全部是那 11h 未来。
+#     特征类实验必须显式传因果面板路径。默认命中时下方横幅必打, 不许静默。
+
 
 class PanelSource:
     def __init__(self, panel=PANEL, king=KING, s2=S2, btc="BTCUSDT"):
+        if panel == PANEL:
+            print("★ PANEL=as-trained 脏面板(betaadj_ret24 含 11h 前视) — 仅限分数级重放; "
+                  "禁止把 CH 通道作特征喂模型; 特征实验必须显式传因果面板 (2026-08-11 规则)",
+                  flush=True)
         W = np.load(panel, allow_pickle=True)
         self.ts = W["ts"].astype(np.int64)
         self.symbols = [str(s) for s in W["symbols"]]

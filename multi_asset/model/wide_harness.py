@@ -224,3 +224,42 @@ class WideMultiRelModel(nn.Module):
         h = self.multirel(h, x, key_pad)
         scores = torch.cat([head(h) for head in self.factor_heads], dim=-1)   # (B,N,K)
         return {"factor_scores": scores}
+
+
+class FusionTwoTowerEncoder(PanelEncoder):
+    """ARM-F2T: gated two-tower family fusion (DESIGN_metrics_v2 附录 2026-08-07; E10 治疗①).
+    Flat concat of heterogeneous families measured to HURT (53ch vs 32ch: −0.0135, 3 seeds,
+    every fold) — the slow positioning descriptors dilute the shared input_proj geometry.
+    Split by family: cols [:split] = price/volume zoo -> tower A (the audited conformer stem,
+    capacity-identical to the 32ch control arm); cols [split:] = slow metrics (AR1≈1, no deep
+    temporal capacity needed) -> tower B (causal depthwise conv, last token). Fusion is a
+    per-coin scalar gate on an additive delta with ZERO-INIT alpha: at init h == tower A alone
+    (structural twin of the control = built-in ablation); the gate must EARN the metrics
+    contribution, and can learn to shut tower B off where the family is absent (pre-2023-06)."""
+    def __init__(self, n_feat, split=32, d=64, n_blocks=2, kernel_size=15, dropout=0.2,
+                 b_kernel=24, b_width=32):
+        super().__init__()
+        assert 0 < split < n_feat, f"fusion split {split} outside (0, {n_feat})"
+        self.split = int(split)
+        self.tower_a = SharedTemporalEncoder(self.split, d, n_blocks=n_blocks, n_heads=2,
+                                             kernel_size=kernel_size, dropout=dropout)
+        self.b_proj = nn.Linear(n_feat - self.split, b_width)
+        self.b_conv = nn.Conv1d(b_width, b_width, b_kernel, groups=b_width)  # depthwise
+        self.b_out = nn.Linear(b_width, d)
+        self.b_kernel = int(b_kernel)
+        self.gate = nn.Sequential(nn.Linear(2 * d, 32), nn.GELU(), nn.Linear(32, 1))
+        self.alpha = nn.Parameter(torch.zeros(1))               # ZERO-INIT: earn the delta
+        self.drop = nn.Dropout(dropout)
+        self.d_out = d
+
+    def forward(self, x, mask):
+        B, N, W, C = x.shape
+        ha = self.tower_a(x[..., :self.split].reshape(B * N, W, self.split))  # (B*N, d)
+        xb = self.b_proj(x[..., self.split:])                   # (B,N,W,bw)
+        xb = xb.reshape(B * N, W, -1).transpose(1, 2)           # (B*N,bw,W)
+        xb = torch.nn.functional.pad(xb, (self.b_kernel - 1, 0))  # causal left-pad
+        hb = torch.nn.functional.gelu(self.b_conv(xb))[..., -1]  # last token (B*N,bw)
+        hb = self.b_out(self.drop(hb))                          # (B*N,d)
+        g = torch.sigmoid(self.gate(torch.cat([ha, hb], dim=-1)))  # (B*N,1)
+        h = ha + self.alpha * g * hb
+        return h.reshape(B, N, self.d_out)

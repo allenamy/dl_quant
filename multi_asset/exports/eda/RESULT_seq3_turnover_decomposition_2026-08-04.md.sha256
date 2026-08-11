@@ -1,0 +1,43 @@
+d45f2b0538969698c71a2d780ab2f32d0cb100dddf38d0d44c9f2464b54bc9ae  RESULT_seq3_turnover_decomposition_2026-08-04.md
+version: v1 — SEQ 3 逐腿换手分解
+content_frozen_at: 2026-08-04T10:1xZ
+task: team-lead [SEQ 3] — 查两个 −32% 是否"吻合得太好"; C3 留话"做完前不得引用 −32% 作互证"
+verdict:
+  1. −32% 【成立】 — 不是拼接, 未被 s2 面板切换污染. s2 单独切换只值 −0.1%
+     ⇒ team-lead 的假设("post-batch (a) 里 s2 也换了输入面板")【被证伪】
+  2. 但 "单腿降 32% 在书上应只反映 ~19%" 这个前提【是错的】:
+     换手份额 ∝ 权重 × 更新频率, 不 ∝ 权重
+     LEG_CADENCE_H = {king:4, s2:24, funding:8, size:24}  (engine/netting.py:25)
+     ⇒ 实测 king 占毛换手 91.0% (权重仅 0.595); s2 4.7%; funding 4.3%
+     ⇒ 算术闭合 0.910 × (−32.4%) = −29.5% vs 实测净书 −31.4% (余 ~2pp = 净额化+整形非线性, 未拆)
+  3. ★ 真正的结论: 这两个 −32% 【不是两台独立仪器】 —— 书的换手 91% 就是 king 的换手
+     ⇒ 同一对象在两个聚合层级上的两次报告 ⇒ 【永远不能互证】, 不只是"分解前不能"
+four_arm_decomposition (逐腿加权换手, 年化):
+  arm                                  king      s2  funding  size | gross   net_book
+  BASE  dirty king SERVE + dirty s2   1398.5    71.5    66.1   0.0 | 1536.1   1416.0
+  (b)   KING ONLY                      946.1    71.5    66.1   0.0 | 1083.6    971.8   king −32.4% / book −31.4%
+  (c)   S2 ONLY                       1398.5    76.3    66.1   0.0 | 1540.9   1414.8   king  +0.0% / book  −0.1%
+  (a)   BOTH                           957.4    76.3    66.1   0.0 | 1099.8    984.8   king −31.5% / book −30.5%
+mirror_of_the_morning_error:
+  上午 Frankenstein 比值: 一个数由两把尺子拼成 ⇒ 吻合是【制造】的 ⇒ 高估数的可靠性
+  今天两个 −32%:        两个数测的几乎是同一对象 ⇒ 吻合是【必然】的 ⇒ 高估证据的独立性
+  ⇒ 通用判据: 看到两个数吻合, 先问的不是"它们准不准", 而是"它们是不是同一个东西"
+three_turnover_definitions (数值差最多 45%, 不得混引):
+  2059.2  重归一后的净书换手  vs_a7.py::book() — 每锚重归一到单位毛额再差分
+  1416.0  净书换手(未重归一)  CrossLegNetting.net_turn_ann
+  1536.1  毛换手(逐腿加总)    CrossLegNetting.gross_turn_ann
+  ★ 我把 vs_a7 的定义逐位复现 = 2059.2, 与它报的相同 ⇒ 三者之差是【定义差不是 bug】, 已确证
+duplication_guard (依 duplication-with-equality-assertion):
+  逐腿拆分用公开 API 重实现累加, engine/netting.py 一行未改
+  ⇒ 两份实现在【同一次运行内】逐臂比对: 四臂 _gross_sum == gross_turn_ann 全部相等 (|Δ|<1e-6)
+not_done:
+  - 净额化/整形非线性未拆(~2pp 残差)
+  - B4 的单腿 2412→1650 我【没有复现】 — 那是未加权原始单腿换手, 与本文 w·|Δ| 不同量纲
+  - 只测了 wide_dl_full_fundfix 一张面板(沿用 vs_a7 的选择)
+scripts (只读, 未入库): jpline /tmp/c2_seq3.py · /tmp/c2_seq3b.py · 结果 /tmp/c2_seq3_result.json
+cites (chains, per TEAM_PROTOCOL §4-b):
+  RESULT_nogo_readjudication_2026-08-04.md   chain head c0f69497 (v4)
+chain:
+  v1 d45f2b0538969698c71a2d780ab2f32d0cb100dddf38d0d44c9f2464b54bc9ae  <- current
+session: 0C (C2-prereg)
+verify: shasum -a 256 RESULT_seq3_turnover_decomposition_2026-08-04.md
