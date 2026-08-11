@@ -1,104 +1,60 @@
 # DL Quant — Multi-Asset Track — Project Guidance
 
-> **Phase:** Multi-asset cross-sectional y_600 (launched 2026-05-20). Single-asset BTCUSDT concluded — see `docs/SINGLE_ASSET_Y600_FINAL_MILESTONE_2026_05_20.md` (REG_arch P=0.0646, retail-maker Sharpe 4.4). This file governs the MULTI-ASSET work.
+> **Phase:** 多资产实盘阶段(2026-08 起, 真钱 pilot 运行中)。单资产 BTCUSDT 已结(P=0.0646, 见 `docs/SINGLE_ASSET_Y600_FINAL_MILESTONE_2026_05_20.md`)。**阶段总账: `docs/MILESTONE_2026-08-11.md`** —— 重启任何任务先读它的对应小节。
 
-## ★ 会话起步必读 (2026-08-03 立)
+## ★ 会话起步必读(顺序固定)
 
-1. **`STATE.md`(仓库根)** —— 当前状态唯一真相源(线上配置 / 在飞任务及其 owner / 冻结项 / 已登记缺陷 / 每个数字的口径)。**在做任何判断之前先读它**, 包括不要相信自己更早轮次的状态摘要。
-2. **`docs/TEAM_PROTOCOL.md`** —— 协作规则(完成必须声明 / 任务必须有具名 owner / 消息交错处置 / 引用前打开看 / 落盘即上线)。**每次派工必须引用它。**
-3. 历史脉络在 `multi_asset/exports/live/pilot_journal/`(只追加), STATE.md 是快照。
+1. **`STATE.md`(仓库根)** —— 当前状态唯一真相源(线上配置/在飞任务/冻结项/口径纪律)。**先读它, 不信任何更早轮次的摘要, 包括自己的。**
+2. **`docs/TEAM_PROTOCOL.md`** —— 协作规则(完成必须声明+收据/具名 owner/引用前打开看/落盘即上线)。
+3. **`docs/MILESTONE_2026-08-11.md`** —— 已关闭轴总索引 + 活口 + 地雷路由 + 基建地图。**引用任何"已关闭/DO-NOT-RETRY"必须带它指向的受据文档。**
+4. 历史脉络: `multi_asset/exports/live/pilot_journal/`(只追加)。
 
-## Project Identity
+## 项目身份
 
-**Goal:** Binance USDT-perp 多资产中频预测。给定 14 个 symbol 的同步 1s bar 序列，预测每个 symbol 未来 10 min 收益率 y_600。目标 **avg per-asset Pearson 0.10** (单资产 BTC 0.065)，β≈1，单调校准，near-zero long-short bias。
+**Binance USDT-perp 多资产中频市场中性**: ~110 币, 4h 锚(00/04/08/12/16/20Z), 三腿书(king DL 8h + s2 慢反转 24h + funding 8h), maker-only 执行。**实盘仓 `~/dl_quant_live`**(落盘即上线; 改动只经 `ops/safe_commit.sh`; 电池 `run_acceptance.sh` 必须全绿; mode 判别式唯一写法见 `live/tests_deadman_ping.py`)。
 
-**Universe:** 14 USDT-perp: BTC ETH SOL BNB XRP DOGE ADA LINK BCH TRX LTC DOT FIL ETC (5 USDC dups 仅作 robustness check)。Data: `/mnt/storage/share/bar_data` (READ-ONLY), 1s bars, 85800/day, 2022-01→2025-11 (~3.9yr), 5-level LOB + 9-bucket cumu depth + trade flow + book add/del。
-
-**BTC 高精度数据 (2026-06-13 新增, 口径修正):** `/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/dl-tardis/` (READ-ONLY) — Tardis `book_snapshot_25` + `trades`, **现货(`binance`)与永续(`binance-futures`)都有**, 1247 天 2023-01-01→2026-05-31, 零缺失, 233GB, µs 时间戳, 真 25 档/侧。**关键: 永续 book mid 与我们 perp target 对齐 corr 1.000 (~0bps)** — 修复了旧 `/mnt/storage/share/23-25-BTCUSDT` 的 **现货-永续口径 bug**(旧 book=现货, 基差 +5~−7.5bps 变号, 是 B25-FAIL 的根因)。**旧 23-25-BTCUSDT 已弃用, 一律改用新永续 book。** 仍无 funding/OI/liquidations(需单独从 Tardis 拉)。仅 BTC(13 alt 仍 bar_1s)。永续 cache: `exports/btc25_raw_perp/` (104ch)。
-
-**Plan:** `docs/superpowers/plans/2026-05-20-multi-asset-y600.md` (10-phase, GO/NO-GO gated)。
-
-### 核心 reframing (实测, 是整个方法论的支点)
-
-- 同期 BTC→alt beta **巨大** (ETH corr 0.84, avg alt ~0.70)。Lagged BTC→alt 在 600s **很弱** (~0.02)。
-- ⇒ **beta-projection** (β·ŷ_BTC) 白送 **~0.045 Pearson/alt**。模型真正要做的是 **residual alpha** (0.045 → 0.10)。
-- Risk ladder: **C** (beta-projection floor) → **A** (shared-backbone universal REG_arch + cross-asset attention，主力) → **B** (BTC 25-level LOB enrich leader，conditional)。
-
----
+**数据**: `/mnt/storage/share/bar_data`(READ-ONLY, mode="r"); BTC Tardis 高精度 `/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/`(READ-ONLY); 宽宇宙面板与判官在 jpline `/mnt/storage/private/work_hsy/`(路径详表: MILESTONE §5)。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板(betaadj_ret24 含 11h 前视, 故意保留供归因复现)—— 特征类实验必须显式传因果面板。**
 
 ## 不可违反约束 (Core Constraints)
 
-1. **信号极弱 (R² < 1%)** — 容量必须匹配信号，不能用复杂度强行拟合噪声。Multi-asset 的优势是 **parameter pooling** 把 params:sample 从 18:1 翻到 ~1:1000，这是核心杠杆，不是堆容量的借口。
-2. **非平稳性** — 分布/lead-lag/corr 持续漂移。任何结论必须多日时序 walk-forward CV 验证，跨 regime 检查 (A5)。
-3. **预处理 > 架构** — 特征工程优先级永远高于模型创新。
-4. **机制 > 堆叠 (用户硬约束 2026-05-20)** — 每个 feature / module 必须有**清晰的作用机理 (为什么应该带来信号)** + 通过**定量 gate**。禁止生硬堆叠。
-5. **单资产代码只读** — 所有新代码在 `multi_asset/`。`src/` `configs/` 等只 import 不改。`reg-arch-final` branch 是冻结参考。
-6. **Share data 只读** — `/mnt/storage/share` 与 `/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31` 一律 mode="r"，绝不改/删。本地开发，rsync 推送 server 训练 (`multi_asset/sync_to_server.sh` → `work_hsy/quant_research_multi_asset`，单 RTX 3090)。
+1. **信号极弱 (R² < 1%)** — 容量必须匹配信号; 有效样本是一切, 任何"聚焦/加权/复杂化"先过样本算术。
+2. **非平稳性** — 任何结论必须多日时序 walk-forward + 跨 regime 检查; 判据必须带最坏五分位(Q4)。
+3. **预处理 > 架构; 机制 > 堆叠(用户硬约束)** — 每个组件必须有清晰作用机理 + 定量 gate; 禁止生硬堆叠。
+4. **单资产代码只读** — 新代码在 `multi_asset/`; `src/` `configs/` 只 import 不改; `reg-arch-final` 冻结参考。
+5. **Share data 只读** — 一律 mode="r", 绝不改/删。
+6. **书行为改动 = 预注册 + 用户裁定**; 判据冻结先于看数字; 完成体动词必须有收据; 判决装置与结论同寿命(判官脚本当日入库)。
 
-### 决策检查清单 (每次架构/特征/loss 改动必答)
+**决策检查清单**(每次架构/特征/loss 改动必答): 机制? Ridge/LGBM 前置门(ΔP≥+0.005 特征/+0.003 腿)? 复杂度预算? 泄漏(shuffle-future null + 偏移谱对齐)? OOS 逐折同号? σŷ/σy≥0.02?
 
-- [ ] **机制**：这个组件的作用机理是什么？为什么在 low-SNR 多资产上应该带来信号？(不是"试试看")
-- [ ] **信号验证**：用 cross-sectional Ridge/XGBoost walk-forward 对比了吗？ΔP ≥ +0.005 (feature) / +0.003 (model channel)？
-- [ ] **复杂度预算**：新增多少参数？pooling 后 params:sample 是否健康？
-- [ ] **泄漏**：cross-asset / lead-lag feature 是否严格 ≤t？shuffle-future null test 过了吗？
-- [ ] **OOS**：多日 walk-forward 严格时序隔离？per-fold sign-consistent (无 fold 反号)？
-- [ ] **σ 检查**：σŷ/σy ≥ 0.02？(低于直接 reject)
+**禁止**: 单日/单折结论; stride<horizon; 不过 Ridge 就上 DL; 多种子集成/训后技巧; 动单资产代码; 动 share data; 把 β 水平当质量门。
 
-### 禁止事项
+## Metric Discipline(全文见 MILESTONE §2 与旧版存档)
 
-- 禁止单日/单 fold 声称有效；禁止 `stride < horizon`；禁止不经 Ridge baseline 就上 DL；禁止盲目堆 channel/module；禁止改单资产代码；禁止动 share data。
+- **双口径必报**: avg per-asset Pearson + xsec rank-IC(+ Spearman); clean(stride≥600)与 dense 双给; **net-of-fee**。P/S 分歧=危险信号。
+- **★ IC 是 alpha, β 是量纲**(β=r·σy/σŷ): alpha 判定唯一以 IC/rank-IC; β 水平可任意 rescale, 禁作质量门; β 合法角色仅 (a) 塌缩监视(真守卫是 σŷ/σy≥0.02) (b) 跨-regime 稳定性(看方差不看均值); 幅度靠事后校准, 不训进模型。
+- **★ 口径三层**(2026-08-11 实测): 模型分数 IC / 复合新鲜目标 IC / 持仓书 IC 逐层差 20-25%, 引用必须声明层; 实盘 ic_monitor 测的是持仓书层。
+- **★ 排序≠净额**(四例在案): 腿录取 S1 +0.003 是必要非充分, 必须过 S2 净额 G 族(Δ净@4.137 CI>0 且 @6.23≥0 且逐年≥4/5 且夏普不降)。
 
----
+## Anti-Patterns
 
-## Metric Discipline (dual-caliber)
-
-**所有实验同时报告 Pearson + Spearman。** 多资产额外要求 **dual-caliber**:
-
-1. **avg per-asset Pearson** — headline (目标 0.10)。每个 symbol 各算 P，再平均。
-2. **cross-sectional rank-IC** — 每个 timestamp 横截面 rank corr，mean + IR。交易侧首选 (long-short portfolio)。
-3. **per-asset Spearman** — 重尾稳健。
-4. **σŷ/σy (collapse guard) + β 的跨-regime *稳定性*** — 见下方 β 铁律。**σŷ/σy≥0.02 是真守卫；β 的绝对*水平*不是。**
-5. **long-short bias** — 预测 cross-sectional demean 后应 near-zero。
-6. **Clean vs Dense** — clean = stride≥600 非重叠；报告必须双给，clean 才 honest。
-7. **net-of-fee** — 回测必须扣 per-asset cost (A7 tiering)。
-
-**P/S 分歧** = 危险信号，记录 + 诊断。不可为单指标牺牲另一个。不可单指标 early-stop / checkpoint。
-
-### ★ 核心质量指标铁律 — IC 是 alpha，β 是量纲 (2026-07-05 定,辩证推导)
-
-**代数支点: β = r · (σy/σŷ)** —— β 是 IC(r) 乘一个**纯尺度比**。⇒ 把预测 ŷ×c: **IC 完全不变(尺度无关)，β→β/c**。所以:
-
-- **alpha 判定唯一以 IC / rank-IC 为准 (尺度不变的信息量)。** β 的绝对水平**可被任意 rescale 设定,几乎不由模型质量决定** —— β=3 与 β=1 常是同一模型差一个标量 (IC/排序/一切交易相关量全同)。
-- **禁止把 β *水平* 当质量门,禁止把 "β 改善" 当 alpha 奖励** (IC 不动的 β 变化 = 分布/尺度移动,非信息)。曾误因 β=3.13 折损 IC 最高的强月赢家 = 错。用损失项训 β→1 (lambda_beta_calib) 实测反向/NULL — 别做。
-- **β 的合法角色只有两个: (a) 塌缩/衰减监视 —— 但真守卫是 σŷ/σy→0,β 只是症状; (b) 跨-regime 稳定性 —— β 逐月乱摆(0.5↔3)= σŷ/σy 漂 = 真 regime-鲁棒性信号,一次全局 rescale 修不了。看 β 的*方差*,不看*均值*。**
-- **部署幅度 (Kelly/净成本门需要真实 bps): 事后接校准层 (val 窗 isotonic/线性 rescale,IC 不变),不把 β 训进模型。**
-- **主流系统化/HFT: 关注 IC·IC-IR·rank-IC·换手·衰减半衰期·容量·净成本 Sharpe·回撤;原始信号 β 非 headline (风险层/优化器会中性化尺度)。β-校准只对 magnitude-sizing 与净成本 taker-gate 相关,且靠事后校准。**
-
-**一句话: 信息(IC)难挣,量纲(β)是后处理一步。优化模型只追 IC/rank-IC + σ-不塌 + IC 跨月稳定;β 水平交给事后 rescale。**
-
----
-
-## Anti-Patterns (单资产血泪，全部 inherit；详见 milestone doc)
-
-**Loss/target:** #10 multi-horizon UNIT 机制错配；#12 tail-focal REPLACE → P/S 分歧 (AUX 安全)；#15 direct rank-loss REPLACE → val→test drift (AUX w≤0.1 安全)；#20 dir_huber w_wrong>0 / L2 primary → σ collapse (用 plain Huber + pinball L1 primary)；#21 utility_rank α=1 + softplus head → q50 偏负 (α=0 修复)；#25 mag/tail-focal 作 AUX≤0.30 安全。
-
-**架构:** #2 stride<horizon 标签重叠；#5 params:sample >1:2 过拟合 (pooling 反转此项)；#22 MRP replace last-token NULL；#23 decoupled (2σ−1)×softplus head σ collapse (保留 tanh×softplus DAQH)；#24 σ-gate BEST checkpoint (TV channel init-noise → illusory high-P broken ckpt，必须 σŷ/σy≥0.02 gate)；**#29 channel-addition penalty (每加 channel −0.013 P，除非 ≥+0.003 alpha)** — multi-asset 最相关。
-
-**评估:** #1 单日验证 (regime 差异)；#14 单 fold/seed 不可靠；#16 rank-blend β crash (用 value-blend)；#18 label engineering 必须 raw y eval；#19 eval methodology 一致 (raw + dense + per-fold-aware for production；raw + stride10 + block-bootstrap for stats)；#26 regime-aware 必须 causal indicator (future-|y| stratification 不可交易)。
-
-**新增 multi-asset 候选:** lead-lag feature 必须 leakage-safe (shuffle-future null)；cross-sectional 必须 per-asset MAD-σ 归一才可比；beta 必须 causal rolling (非 stationary)。
-
----
+全谱见 `docs/SINGLE_ASSET_Y600_FINAL_MILESTONE_2026_05_20.md`(单资产 #1-#29)+ MILESTONE_2026-08-11 §2/§4(多资产)。**多资产日常最咬人的**: #29 通道税(每加 channel −0.013P, 除非 ≥+0.003 alpha); #24 σ-gate BEST checkpoint; 单日/单折验证; 泄漏安全(lead-lag ≤t + shuffle-future null + **锚→面板行偏移谱峰@0**); 单资产先验不整体迁移(引用失败必须带范围)。
 
 ## Documentation Discipline
 
-所有 Claude 生成的 docs/notes 首行附元信息: `> **创建:** YYYY-MM-DD HH:MM TZ | **Session:** ... | **状态:** draft|in-progress|final|superseded | **作废条件:** ...`。禁止无元信息的 status/interim 文档；禁止 `_v2`/`_final` 后缀替代日期；同主题多份必须 cross-reference。
+所有 docs/notes 首行元信息: `> **创建:** … | **Session:** … | **状态:** … | **作废条件:** …`; 禁止 `_v2`/`_final` 后缀替代日期; 同主题多份必须 cross-reference; 预注册 SHA 先于数字入库。
 
----
+## 路由表(重启任务 → 先读什么)
 
-## 当前进度 (滚动更新)
+| 任务类型 | 参考 |
+|---|---|
+| 实盘状态/配置/在飞 | `STATE.md` §2/§3 |
+| 恢复研究某条轴 | `docs/MILESTONE_2026-08-11.md` §2(关闭)§3(活口)§4(地雷) |
+| 部署/回滚/电池 | `~/dl_quant_live/ops/safe_commit.sh` + `run_acceptance.sh` + `docs/RUNBOOK_deploy_batch1_2026-08-04.md` |
+| 训练复现 | memory `champion_baseline_repro` + `eda/PREREG_retrain_causal_panel_2026-08-03.md` |
+| 因子挖掘规范 | `docs/FACTOR_MINING_COMPLETE_SPEC.md` + 腿录取门 v2(#71) |
+| 路线/日历 | `docs/ROADMAP_2026-08-06.md` |
+| 长期记忆索引 | `~/.claude/projects/...quant-research/memory/MEMORY.md` |
 
-**Phase 0 (infra) — done:** branch `multi-asset`, `multi_asset/` skeleton, server sync, bar_loader (cross-validated bit-for-bit vs share loader), this CLAUDE.md。
-**下一步:** Phase 1 EDA GO/NO-GO funnel (A1 universe / **A2 per-asset Ridge SNR ← 项目定生死的 gate** / A4 lead-lag / A6 target dist / A7 cost tiering) → Phase 2 panel pipeline → Phase 3 baselines (beta-projection floor ~0.045 + xsec Ridge ceiling)。
+## 当前进度
 
-**关键工具 (单资产可复用):** `src/model/dual_path_model_v3.py::DualPathLOBModelV3` (= REG_arch backbone, 见 `multi_asset/NAMING.md`)；`src/model/cross_asset.py::CrossAssetAttention` (已 scaffold，待 wire)；`src/losses/cross_sectional_ic_loss.py`；`src/training/trainer_v2.py` (σ-gate BEST + EMA)。
+**本节不再滚动更新**(历史上它总是过期)。当前状态 = `STATE.md`; 阶段总账 = `docs/MILESTONE_2026-08-11.md`; 里程碑 tag: `milestone-2026-08-11`(双仓)。
