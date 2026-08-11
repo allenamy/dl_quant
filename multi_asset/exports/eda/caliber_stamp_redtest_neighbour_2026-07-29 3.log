@@ -1,0 +1,24 @@
+panel-caliber manifest battery — 10 cases
+
+  ok    G1 real state passes   rc=0 (expected 0)
+        red-when: would go red if any held panel's funding caliber left the blessed band, or if the frozen checkpoints changed
+  ok    G2 forced re-measurement still passes (the hash shortcut is not hiding a failure)   rc=0 (expected 0)
+        red-when: would go red if the bit-identity shortcut were masking a panel whose MEASURED caliber disagrees with its blessed one
+  ok    R1 ★ a REAL corrected rebuild of the training panel must FAIL   rc=1 (expected 1)
+        red-when: would go green if the guard rewarded 'more correct' instead of asserting 'consistent with what the frozen weights were fitted on'
+  ok    R2 a changed frozen generation must FAIL (stale blessing)   rc=1 (expected 1)
+        red-when: would go green if the caliber expectation were free-floating instead of keyed to the model version — the accident the FORWARD NOTE warns about
+  ok    R3 flipping the blessed expectation to `corrected` must FAIL on the real panels   rc=1 (expected 1)
+        red-when: this is the DISCRIMINATION CONTROL for G1: if G1's green survived this flip, G1 would be green for a reason unrelated to the panels
+  ok    R4 a reading in the FORBIDDEN MIDDLE must FAIL and say so   rc=1 (expected 1)
+        red-when: would go green if a mid-band reading were absorbed by a single two-sided tolerance instead of being called out as an undeclared change
+  ok    U1 no manifest at all is UNKNOWN, not clean   rc=2 (expected 2)
+        red-when: would be wrong at either 0 (never-blessed reads as healthy) or 1 (an unarmed guard is not a detected defect)
+  ok    U2 ★ generation matches but NO panel is present -> UNKNOWN, never PASS   rc=2 (expected 2)
+        red-when: would go green on an empty denominator — the exact shape of the drift gate's 'no drift across 0 vendored modules'
+  ok    U3 half the generation unreadable -> UNKNOWN (a partial identity is not an identity)   rc=2 (expected 2)
+        red-when: would be wrong at 0 (an unread checkpoint could have been swapped invisibly) and wrong at 1 (an unreadable file is not a detected drift)
+  ok    B1 classify_gap boundaries: both references, both edges, and the middle   rc=0 (expected 0)
+        red-when: would go red if the bands overlapped or the middle were reachable from either side
+
+10 passed, 0 failed, 0 skipped

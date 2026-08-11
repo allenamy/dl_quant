@@ -1,0 +1,82 @@
+{
+ "panel": {
+  "hours": 1080,
+  "n_symbols": 140,
+  "anchor_ts_ms": 1785294000000,
+  "n_members_at_anchor": 110
+ },
+ "as_shipped": {
+  "n_rows_used": 105710,
+  "frac_4h": 0.4151,
+  "n_coins_all8": 0,
+  "n_coins_all4": 0,
+  "max_abs_diff_on_8h_coins": 0.0,
+  "max_abs_dev_from_2x_on_4h_coins": NaN,
+  "verdict": "PASS",
+  "failed": []
+ },
+ "why_vacuous": {
+  "coins_all8_memberwise(shipped)": 0,
+  "coins_all4_memberwise(shipped)": 0,
+  "coins_all8_if_member_restriction_dropped": 84,
+  "coins_all4_if_member_restriction_dropped": 56,
+  "n_coins_member_on_100pct_of_rows": 0,
+  "max_member_row_fraction_over_coins": 0.8898148148148148,
+  "note": "a coin needs member==True on ALL T rows to qualify; membership is top-110 of 140 by a churning DVOL30 rank, so the set is empty and BOTH algebraic tests evaluate over zero coins."
+ },
+ "attacks": {
+  "A_dl_panel_silently_gets_normfix": {
+   "shipped_gate_verdict": "PASS",
+   "shipped_gate_failed": [],
+   "shipped_n_coins_all8": 0,
+   "shipped_n_coins_all4": 0,
+   "same_gate_without_member_restriction_verdict": "FAIL",
+   "same_gate_without_member_restriction_failed": [
+    "4h-only coins deviate from the exact 2x relation by 2.433e-02"
+   ],
+   "without_member_n_coins_all8": 84,
+   "without_member_n_coins_all4": 56
+  },
+  "B_funding_leg_silently_gets_as_trained": {
+   "shipped_gate_verdict": "PASS",
+   "shipped_gate_failed": [],
+   "shipped_n_coins_all8": 0,
+   "shipped_n_coins_all4": 0,
+   "same_gate_without_member_restriction_verdict": "FAIL",
+   "same_gate_without_member_restriction_failed": [
+    "4h-only coins deviate from the exact 2x relation by 1.214e-02"
+   ],
+   "without_member_n_coins_all8": 84,
+   "without_member_n_coins_all4": 56
+  },
+  "C_calibers_swapped": {
+   "shipped_gate_verdict": "PASS",
+   "shipped_gate_failed": [],
+   "shipped_n_coins_all8": 0,
+   "shipped_n_coins_all4": 0,
+   "same_gate_without_member_restriction_verdict": "FAIL",
+   "same_gate_without_member_restriction_failed": [
+    "4h-only coins deviate from the exact 2x relation by 4.562e-02"
+   ],
+   "without_member_n_coins_all8": 84,
+   "without_member_n_coins_all4": 56
+  }
+ },
+ "control_correct_panel_without_member_restriction": {
+  "verdict": "FAIL",
+  "failed": [
+   "4h-only coins deviate from the exact 2x relation by 1.825e-02"
+  ],
+  "n_coins_all8": 84,
+  "n_coins_all4": 56,
+  "max_abs_diff_on_8h_coins": 0.0,
+  "max_abs_dev_from_2x_on_4h_coins": 0.018247203022208322
+ },
+ "consequence_at_anchor": {
+  "n_members_scored": 110,
+  "spearman_between_calibers": 0.9428172125419833,
+  "mean_abs_rank_shift_frac_of_universe": 0.07355371900826448,
+  "max_abs_rank_shift_frac_of_universe": 0.209090909090909,
+  "note": "the funding leg is rank-based, so this is the leg-weight error a crossed caliber would ship on THIS anchor (funding carries w=0.30)."
+ }
+}

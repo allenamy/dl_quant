@@ -1,0 +1,13 @@
+[v2] same pathological day: 240 orders / 502 child fills / 6 anchors / 60 funding settlements
+  OK       M1_effective_cost_bps: unique: benchmarked against mid_at_anchor (pinned); no alternative reading admissible because arrival mid is no longer the only available baseline
+  OK       M2_markout_bps: unique: maker-only, per CHILD fill (247 fills), notional-weighted
+  OK       M3_fill_rate: unique: denominator pinned to attempt_idx==1 intended, so re-posting can never double-count
+  OK       M4_turnover: unique: gate uses TARGET-weight turnover; realized reported alongside (2734.3)
+  OK       M5_weight_fidelity: reconciled against venue position_readback; shortfall split by terminal_reason so 'did not fill' and 'abandoned under F16' are distinguishable
+  OK       M6_funding: computable from the funding ledger (60 settlements) — was IMPOSSIBLE under v1 because funding does not flow through orders
+  OK       STOPLOSS_inputs: daily NAV series persisted -> single-day loss and cumulative drawdown are computable AND auditable after the fact
+
+  regime coverage: present=['calm', 'normal', 'stress'] missing=[]
+
+  VERDICT (schema v2): 7/7 OK
+SAVED /Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/log_schema_falsify_v2.json

@@ -1,0 +1,46 @@
+0f8be1fe19092c3380889c31c6635b8b0abd01c5ca59f7a7a8eea633f4915c44  SPEC_baseline_by_year_remeasure_2026-08-04.md
+version: v1 — BASELINE_BY_YEAR 重测规格 + _baseline_provenance() 第三问的形状
+content_frozen_at: 2026-08-04T09:1xZ
+task: team-lead 队列第 2 件 (规格非测量, 不阻塞于干净 s2); 部署批第一批第 ④ 件
+zero_measurement: 本文不含任何新数字; 新基线数值须由跑重测的人给, 按 §2-5 验收
+headline:
+  ★★ 不要给自检加第三个具名检查项 —— 盘上【已有】为这一族设计好的机制:
+     panel_caliber_manifest.json 的 generation 哈希 + flip_rule
+     ("the caliber expectation and the model version flip together or not at all")
+     它不枚举"哪些维度要一致", 而把口径期望绑在模型代次哈希上 => 变了就红, 变的是什么无所谓
+  ★★★ 而该 manifest 自己的 why 已点名这一族, 只是漏了第三个成员:
+     norm_stats(冻结归一化)      -> 有哈希 (why 明说 "norm_stats got a hash")
+     面板 funding 口径            -> 有哈希 (该 manifest 就是为它建的)
+     BASELINE_BY_YEAR(衰减基线)   -> 【没有】 —— 这一族里唯一裸着的
+     ⇒ 换模型会让前两者红, 让第三者【静默继续用旧数】; 而第三者恰是判决新模型死活的门限
+third_question_shape:
+  (c) 不是"用的哪张面板", 而是"产生这个基线的那次测量, 其 generation 哈希 == 当前部署模型的?"
+      换面板       : 查面板 ✔ / 查 generation ✔
+      换模型面板不变: 查面板 ✘ (正是这次部署的情形) / 查 generation ✔
+      刷币集/改目标 : 查面板 ✘ / 查 generation ✔
+  ⇒ (a)问"这是不是测量" (b)问"它有没有偷看" (c)问"它测的还是不是现在这个东西"
+    (c) 用哈希而非枚举 ⇒ 不随可变维度增长
+spec_key_points:
+  - 基线必须测在【SERVE 口径】面板上, 不是训练用的 causal 面板 —— 极易搞反:
+    基线回答的是"上线后能拿到多少"不是"训得多好"; 用训练口径会把基线定高 => 告警永不触发
+    (注: 部署批已被 C3 砍小, panel_build.py:187 不改 ⇒ 线上仍是 SERVE 尾部-13)
+  - DECAY_FRAC 保持 0.5 且【禁止】本次同时调 —— "调阈值让它别响"与"修基线"结果不可区分
+  - 验收要求【红测】非只绿跑: 旧模型哈希须红 / 人造相交窗口须红 (静态门那次的教训: 红绿成对)
+prerequisite_found (查过, 非推断):
+  engine/panel_source.py:17  PanelSource(panel=, king=, s2=) 类【可参数化】
+  engine/replay_fullhist.py:36  PanelSource() 不传参; :153-156 argparse 无 --panel/--king/--s2
+  ⇒ 底层类已对, 缺脚本 CLI 透传. 与 factory/pipeline.py(四个 np.load 全硬编码)不同族、小一档
+  ⇒ 前置: 先加 --panel/--king/--s2 透传; 纯参数化零行为, 不传参时输出须与现状逐位相同
+known_limit (§4-1, 必须随告警一起引用):
+  实盘滚动 IC 打【持仓 x 实际收益】(经整形/cap/成本/成交), 基线打【模型分数 x 面板收益】
+  ⇒ 二者永远不是同一个量; 换基线只消掉面板与代次的不一致, 消不掉"信号层 vs 执行后"的层级差
+  ⇒ 即使本规格全部落地, 该告警仍是【近似】的: 能抓"信号塌了", 抓不到"信号没塌但执行吃光了"
+not_done:
+  - DECAY_FRAC = 0.5 自身出处未追 (本次不动, 应进下一轮枚举)
+  - generation 哈希当前只含 king/s2 两成员; 腿集若变化是否该进 generation, 本文不裁
+cites (chains, per TEAM_PROTOCOL §4-b):
+  RESULT_live_constants_provenance_2026-08-04.md  chain head 61b5fcbe (v2)
+chain:
+  v1 0f8be1fe19092c3380889c31c6635b8b0abd01c5ca59f7a7a8eea633f4915c44  <- current
+session: 0C (C2-prereg)
+verify: shasum -a 256 SPEC_baseline_by_year_remeasure_2026-08-04.md

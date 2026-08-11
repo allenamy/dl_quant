@@ -1,0 +1,508 @@
+"""Temporal-Spatial cross-asset panel model for crypto y_600 prediction.
+
+The shallow `CrossAssetPanelModel` encodes each asset from a single LAST-TOKEN
+feature vector — it discards the temporal sequence that gave single-asset BTC its
+0.058 per-asset Pearson (last-token linear per-alt Pearson is ~0). This model
+restores the temporal axis and fuses it with the cross-asset (spatial) axis:
+
+    TEMPORAL  (per asset, shared weights):
+        Xseq (B, S, T, F)  -> reshape (B*S, T, F)
+        -> input_proj F->d -> Conformer(2 blocks, kernel=15) -> last-token (B*S, d)
+        -> (B, S, d)   per-asset embedding h_i   [recovers the single-asset signal]
+
+    SPATIAL  (across the S assets at the SAME prediction time):
+        + learnable asset-id embedding (S, d)
+        + [optional] symmetric market/common-factor token  (slot S+1)
+        + [optional] n_xattn cross-asset MultiheadAttention layers (masked)
+        + [optional] in-graph factor/residual split (alt = beta*market + idio)
+
+    HEAD  (per asset, shared):
+        DirectionAwareQuantileHead on (B*S, d) -> q10/q50/q90 + sign_logit
+        -> (B, S, 3) quantiles, (B, S) point q50
+
+Milestones (all flag-gated so each addition is isolable):
+    M0  n_xattn=0, market_token=False, factor_split=False
+        -> pure per-asset temporal model. GATE: per-asset P must approach the
+           single-asset 0.058 (sanity that the temporal stem + dataset are right).
+    M1  + cross-asset attention (n_xattn=2)   GATE: +per-asset P over M0.
+    M2  + market token / factor split          GATE each.
+
+Capacity matched to single-asset (d=32, 2 Conformer blocks) so the shared encoder
+sees B*S asset-windows -> healthy params:sample. The temporal encoder is
+asset-AGNOSTIC (identity is injected downstream via the asset-id embedding), which
+is what makes weight-sharing across 14 assets a regulariser rather than a
+limitation.
+"""
+from __future__ import annotations
+
+import sys
+import os.path as _p
+
+import torch
+import torch.nn as nn
+
+# reuse the PROVEN single-asset temporal stem + head (src/ is in the synced repo)
+sys.path.insert(0, _p.dirname(_p.dirname(_p.dirname(_p.abspath(__file__)))))
+from src.model.backbones.conformer_backbone import ConformerBackbone  # noqa: E402
+from src.model.direction_aware_quantile_head import (  # noqa: E402
+    DirectionAwareQuantileHead,
+)
+from src.model.raw_lob_encoder import RawLOBEncoder  # noqa: E402  book-aware (level conv + attn-pool)
+from multi_asset.model.cross_asset_panel import (  # noqa: E402
+    CrossAssetAttnLayer, MarketMLP,
+    _masked_mean, _masked_weighted_mean,
+)
+
+
+class SharedTemporalEncoder(nn.Module):
+    """F-channel per-asset sequence -> d-dim embedding. Shared across all assets.
+
+    input_proj (F->d) -> Conformer(n_blocks, kernel) -> last-token pool (B*, d).
+    Causal throughout (Conformer conv is causally trimmed, self-attn is masked).
+    """
+
+    def __init__(self, n_feat: int, d: int, n_blocks: int = 2,
+                 n_heads: int = 2, kernel_size: int = 15, dropout: float = 0.2,
+                 multipool: bool = False, pool_windows=(30, 120),
+                 attnpool: bool = False, se_gate: bool = False, se_reduction: int = 4):
+        super().__init__()
+        assert not (multipool and attnpool), "multipool and attnpool are exclusive"
+        # A1 SE-gate: content-conditional squeeze-excitation over the 44 INPUT channels
+        # (squeeze = window-mean descriptor -> excite -> per-window channel weights). REPLACE-
+        # style (reweights the same channels, no new channel = avoids #29). Zero-init 2nd FC ->
+        # gate=1 at init (bit-identical start). Mechanism GBDT static crosses can't do:
+        # per-window state-conditional channel reweighting.
+        self.se_gate = se_gate
+        if se_gate:
+            hid = max(1, n_feat // se_reduction)
+            self.se_fc1 = nn.Linear(n_feat, hid)
+            self.se_fc2 = nn.Linear(hid, n_feat)
+            nn.init.zeros_(self.se_fc2.weight)
+            nn.init.zeros_(self.se_fc2.bias)
+        self.input_proj = nn.Linear(n_feat, d)
+        self.in_norm = nn.LayerNorm(d)
+        self.backbone = ConformerBackbone(
+            d_model=d, n_blocks=n_blocks, n_heads=n_heads,
+            kernel_size=kernel_size, dropout=dropout,
+        )  # returns last-token (B*, d) by default (return_sequence not set)
+        # NX attn-pool A/B: last-token assumes the latest state summarizes the
+        # window; a learned-query pool can up-weight informative MID-window
+        # moments (bursts/level shifts) that decay from the last hidden state.
+        # Zero-init blend gate -> starts exactly last-token, must earn deviation.
+        self.attnpool = attnpool
+        if attnpool:
+            self.backbone.return_sequence = True
+            self.pool_q = nn.Parameter(torch.zeros(d))
+            nn.init.normal_(self.pool_q, std=0.02)
+            self.pool_alpha = nn.Parameter(torch.zeros(1))
+        # A1a: multi-pool divided space-time — let cross-asset attention read K
+        # causal temporal pools {last, mean(-w) for w in pool_windows} instead of
+        # one collapsed last-token (fixes R1's structural blind spot: spatial
+        # attention could not see time-varying relative strength).
+        self.multipool = multipool
+        self.pool_windows = tuple(pool_windows)
+        self.K = 1 + len(self.pool_windows)
+        if multipool:
+            self.backbone.return_sequence = True
+            self.scale_emb = nn.Parameter(torch.zeros(self.K, d))
+            nn.init.normal_(self.scale_emb, std=0.02)
+
+    def forward(self, x):  # x: (N, T, F) -> (N, d) or (N, K, d) if multipool
+        if self.se_gate:
+            s = x.mean(dim=1)                                   # (N,F) squeeze over the window
+            g = 2.0 * torch.sigmoid(self.se_fc2(torch.relu(self.se_fc1(s))))  # (N,F) gate, init 1
+            x = x * g.unsqueeze(1)                              # per-window channel reweight
+        h = self.in_norm(self.input_proj(x))
+        if self.attnpool:
+            H = self.backbone(h)                            # (N, T, d)
+            last = H[:, -1, :]
+            w = torch.softmax(H @ self.pool_q / (H.shape[-1] ** 0.5), dim=1)
+            pool = (H * w.unsqueeze(-1)).sum(dim=1)
+            return last + torch.tanh(self.pool_alpha) * (pool - last)
+        if not self.multipool:
+            return self.backbone(h)
+        H = self.backbone(h)                               # (N, T, d) seq
+        pools = [H[:, -1, :]]                               # last-token (current R1)
+        for w in self.pool_windows:
+            pools.append(H[:, -w:, :].mean(dim=1))          # causal mean over last w bars
+        P = torch.stack(pools, dim=1)                       # (N, K, d)
+        return P + self.scale_emb.unsqueeze(0)              # + scale-id embedding
+
+
+class TemporalSpatialPanelModel(nn.Module):
+    """Shared temporal encoder + cross-asset attention + per-asset DAQH head.
+
+    Parameters
+    ----------
+    n_feat, n_assets : data dims (F=44, S=14).
+    d : model width (default 32, matches single-asset capacity).
+    n_blocks, kernel_size : temporal Conformer config.
+    n_xattn : number of cross-asset attention layers (0 = M0, pure per-asset).
+    use_market_token, use_factor_split : spatial Phase-1/2 toggles.
+    cap_weights : (S,) train-fixed dollar-vol weights for the market token.
+    """
+
+    def __init__(
+        self,
+        n_feat: int,
+        n_assets: int,
+        d: int = 32,
+        n_blocks: int = 2,
+        kernel_size: int = 15,
+        nhead: int = 4,
+        n_xattn: int = 2,
+        dropout: float = 0.2,
+        use_market_token: bool = False,
+        use_factor_split: bool = False,
+        cap_weights=None,
+        multipool: bool = False,
+        pool_windows=(30, 120),
+        coarse: bool = False,
+        coarse_len: int = 240,
+        horizons=(600,),
+        bilinear: bool = False,
+        epnet: bool = False,
+        epnet_soft: bool = False,
+        attnpool: bool = False,
+        se_gate: bool = False,
+        btc25: bool = False,
+        raw_channels: int = 0,
+        btc25raw_channels: int = 0,
+        btc_idx: int = 0,
+        dmf: bool = False,
+        dmf_trade_ch: int = 0,
+        n_factor_heads: int = 0,
+    ):
+        super().__init__()
+        if use_factor_split and not use_market_token:
+            raise ValueError("use_factor_split requires use_market_token=True")
+        if use_factor_split and n_xattn == 0:
+            raise ValueError("use_factor_split needs cross-asset attention "
+                             "(the factor is read off the attended market token)")
+        if use_market_token and n_xattn == 0:
+            raise ValueError("market_token only matters with cross-asset attention")
+        self.n_assets = n_assets
+        self.use_market_token = use_market_token
+        self.use_factor_split = use_factor_split
+        self.n_xattn = n_xattn
+
+        self.multipool = multipool
+        self.encoder = SharedTemporalEncoder(
+            n_feat, d, n_blocks=n_blocks, n_heads=2,
+            kernel_size=kernel_size, dropout=dropout,
+            multipool=multipool, pool_windows=pool_windows,
+            attnpool=attnpool, se_gate=se_gate,
+        )
+        self.K = self.encoder.K
+        self.asset_id = nn.Parameter(torch.zeros(n_assets, d))
+        nn.init.normal_(self.asset_id, std=0.02)
+        if multipool:
+            # softmax read-out over the K scale-tokens per asset (entropy-light)
+            self.readout = nn.Linear(d, 1)
+        # NX-M1: coarse multi-scale context branch (1h of 15s-pooled features).
+        # Fixes the lookback:horizon mismatch at 30min horizons (fine window sees
+        # only 600s). Zero-init fusion gate -> coarse-off is bit-identical to R1.
+        self.coarse = coarse
+        self.coarse_len = coarse_len
+        if coarse:
+            self.coarse_encoder = SharedTemporalEncoder(
+                n_feat, d, n_blocks=1, n_heads=2, kernel_size=9, dropout=dropout,
+                attnpool=attnpool)
+            self.coarse_proj = nn.Linear(d, d)
+            self.coarse_alpha = nn.Parameter(torch.zeros(1))
+
+        self.layers = nn.ModuleList(
+            [CrossAssetAttnLayer(d, nhead, dropout) for _ in range(n_xattn)]
+        )
+        # NX-M3a (EPNet, PEPNet KDD'23): asset-conditioned INPUT channel gate.
+        # Mechanism: the shared temporal encoder is asset-AGNOSTIC (identity only
+        # enters post-encoder via asset_id). But the same feature channel carries
+        # different meaning per asset (BTC flow != DOGE flow); this gate lets
+        # identity condition feature EXTRACTION without per-asset towers:
+        #   gamma_s = 2*sigmoid(MLP(gate_emb_s)) in [0,2]^F, multiplies x channels
+        # (fine AND coarse branches). Final layer zero-init -> gamma=1 identity at
+        # start, so the module must EARN its deviation from the incumbent. ~2K params.
+        # epnet_soft (v2 retry): gamma = 1 + 0.5*tanh(.) in [0.5,1.5] — narrower
+        # range centred at identity, targeting the v1 failure (fold-2 drift
+        # overfit via too-free per-asset relevance dof). Single-axis change.
+        self.epnet = epnet
+        self.epnet_soft = epnet_soft
+        if epnet:
+            self.gate_emb = nn.Parameter(torch.zeros(n_assets, 16))
+            nn.init.normal_(self.gate_emb, std=0.02)
+            self.gate_mlp = nn.Sequential(
+                nn.Linear(16, 32), nn.GELU(), nn.Linear(32, n_feat))
+            nn.init.zeros_(self.gate_mlp[2].weight)
+            nn.init.zeros_(self.gate_mlp[2].bias)
+
+        # NX-S4 (M4): low-rank bilinear relative-value interaction across assets.
+        # MHA mixes values LINEARLY; pairwise MULTIPLICATIVE terms (asset i state x
+        # asset j state) are inexpressible in one MHA layer. Factorized form:
+        # mean_{j!=i}[(U h_i) o (V h_j)] = (U h_i) o mean_{j!=i}(V h_j). Zero-init gate.
+        self.bilinear = bilinear
+        if bilinear:
+            self.bl_U = nn.Linear(d, 16, bias=False)
+            self.bl_V = nn.Linear(d, 16, bias=False)
+            self.bl_O = nn.Linear(16, d, bias=False)
+            self.bl_gate = nn.Parameter(torch.zeros(1))
+
+        # NX raw-path arm: undigested microstructure branch. Mechanism: the 44
+        # hand features are nearly fully linear-extractable (corrected linear
+        # ceiling 0.0445 vs DL 0.0476 at y600); new NON-linear signal must come
+        # from structure the aggregation destroyed — ladder shape, liquidity
+        # placement, depth-pressure profile, per-bar flow. Own stem (1 Conformer
+        # block) so raw never dilutes the hand-feature path (anti-pattern #29);
+        # zero-init fusion gate -> raw-off is bit-identical to the incumbent.
+        self.raw_channels = raw_channels
+        if raw_channels > 0:
+            self.raw_encoder = SharedTemporalEncoder(
+                raw_channels, d, n_blocks=1, n_heads=2, kernel_size=15,
+                dropout=dropout)
+            self.raw_proj = nn.Linear(d, d)
+            self.raw_alpha = nn.Parameter(torch.zeros(1))
+
+        # NX B-line: BTC-25 full-ladder leader-slot enrichment. Mechanism: the
+        # leader's DEEP book (104ch: 25-level offsets+notionals+summaries) is
+        # information no alt has; encode it with its own small stem and add it
+        # ONLY to the BTC token (zero-init gate) — cross-asset attention then
+        # distributes whatever the alts find useful. Full-granularity input
+        # (no banding); distinct from the FAILED 8-scalar FiLM (information
+        # content) and from f_hat injection (raw state, not a prediction).
+        self.btc25raw_channels = btc25raw_channels
+        self.btc_idx = btc_idx
+        if btc25raw_channels > 0:
+            assert not multipool, "b25 slot-enrichment incompatible with multipool"
+            self.b25_encoder = SharedTemporalEncoder(
+                btc25raw_channels, d, n_blocks=1, n_heads=2, kernel_size=15,
+                dropout=dropout)
+            self.b25_proj = nn.Linear(d, d)
+            self.b25_alpha = nn.Parameter(torch.zeros(1))
+
+        # NX-DMF (Deep Market-state, gated bilinear broadcast) — the non-lazy BTC
+        # perp fusion. Replaces the flat-104ch leader-slot hack with: (1) a
+        # BOOK-AWARE encoder (RawLOBEncoder: conv over the 25 LEVEL axis +
+        # attention-pool, preserving ladder structure — NOT flatten); (2) a
+        # SEPARATE engineered-microstructure stem (perp VPIN/OFI/Kyle/microprice
+        # /trade-imbalance — the proven single-asset edge); (3) a STATE-DEPENDENT
+        # per-asset low-rank bilinear bridge that broadcasts the BTC market-state
+        # to ALL 14 assets (captures contemporaneous state-dependent beta, which
+        # has cross-asset spread -> can move xsec-rank-IC, unlike a scalar factor).
+        # Zero-init alpha -> identity at start (= proven baseline).
+        self.dmf = dmf
+        self.dmf_trade_ch = dmf_trade_ch
+        if dmf:
+            dbk = 24
+            self.dmf_book = RawLOBEncoder(n_levels=25, d_raw=dbk, dropout=dropout,
+                                          use_channel_mix_conv=True,
+                                          use_level_attention_pool=True)  # (B,T,25,4)->(B,T,24)
+            n_summary = 4                                  # btc25 channels 100:104
+            self.dmf_feat = nn.Sequential(                 # engineered stem (separate, anti-#29)
+                nn.Linear(dmf_trade_ch + n_summary, dbk), nn.GELU(),
+                nn.LayerNorm(dbk))
+            self.dmf_temporal = ConformerBackbone(d_model=2 * dbk, n_blocks=1,
+                                                  n_heads=2, kernel_size=15, dropout=dropout)
+            self.dmf_pool = nn.Linear(2 * dbk, 1)          # attn-pool over T
+            # state-dependent bilinear broadcast bridge (low-rank k)
+            k = 8
+            self.dmf_ctx = nn.Linear(2 * dbk, d)           # market-state -> d
+            self.dmf_U = nn.Linear(d, k, bias=False)
+            self.dmf_O = nn.Linear(k, d, bias=False)
+            self.dmf_gate = nn.Linear(2 * dbk, n_assets)   # per-asset state-dependent gate logit
+            self.dmf_scale = nn.Parameter(torch.zeros(n_assets, k))  # per-asset scale, zero-init -> s=1
+            self.dmf_alpha = nn.Parameter(torch.zeros(1))  # master zero-init gate
+
+        # NX-S5 kill-test: BTC-25 deep-book scalar FiLM. Mechanism: the leader's
+        # DEEP book state (25-level imbalance/slope/microprice/vol) is a market
+        # microstructure REGIME signal unavailable in the 5-level alt features;
+        # FiLM lets it modulate the decision layer (scale+shift per channel)
+        # without entering the per-asset feature path. Both maps zero-init ->
+        # identity at init. z_btc standardized upstream. +512 params.
+        self.btc25 = btc25
+        if btc25:
+            self.film_g = nn.Linear(8, d, bias=False)
+            self.film_b = nn.Linear(8, d, bias=False)
+            nn.init.zeros_(self.film_g.weight)
+            nn.init.zeros_(self.film_b.weight)
+
+        if use_market_token:
+            self.market_mlp = MarketMLP(d, dropout)
+            self.market_id = nn.Parameter(torch.zeros(d))
+            nn.init.normal_(self.market_id, std=0.02)
+            if cap_weights is None:
+                cap_weights = torch.ones(n_assets)
+            cap_weights = torch.as_tensor(cap_weights, dtype=torch.float32)
+            cap_weights = cap_weights / cap_weights.sum().clamp(min=1e-6) * n_assets
+            self.register_buffer("cap_weights", cap_weights)
+
+        if use_factor_split:
+            # The DAQH below IS the per-asset idiosyncratic (residual) head; the
+            # factor split only adds a shared broadcast market factor on top.
+            self.beta_proj = nn.Linear(d, 1)
+
+        # per-asset quantile head(s) (sign x magnitude decomp + monotone quantiles).
+        # NX-S3 MTL: one head per horizon (shared trunk); horizons[0] is PRIMARY
+        # (its q50 is the model's point output; aux heads shape the representation).
+        self.horizons = tuple(horizons)
+        self.heads = nn.ModuleList(
+            [DirectionAwareQuantileHead(d_input=d, dropout=dropout)
+             for _ in self.horizons])
+        self.head = self.heads[0]   # back-compat alias (primary head)
+        # STAGE-2B: K orthogonal factor-score heads on the shared trunk (each outputs one
+        # cross-sectional score f_k(t,asset)). Off (=0) by default -> bit-identical.
+        self.n_factor_heads = n_factor_heads
+        if n_factor_heads > 0:
+            self.factor_heads = nn.ModuleList(
+                [nn.Sequential(nn.Linear(d, d), nn.GELU(), nn.Dropout(dropout), nn.Linear(d, 1))
+                 for _ in range(n_factor_heads)])
+
+    def forward(self, x, mask, return_dict: bool = False, x_coarse=None,
+                z_btc=None, x_raw=None, x_b25=None, x_btrade=None):
+        """x: (B, S, T, F); mask: (B, S) {0,1}; x_coarse: (B, S, Tc, F) or None;
+        z_btc: (B, 8) standardized BTC-25 state or None; x_raw: (B, S, T, Cr)
+        standardized raw microstructure channels or None; x_b25: (B, T, C104)
+        standardized BTC-25 full-ladder sequence or None; x_btrade: (B, T, Ctr)
+        standardized BTC perp engineered trade features or None (DMF).
+        Returns (B, S) point q50, or a dict with per-asset quantiles."""
+        B, S, T, Fdim = x.shape
+        x = torch.nan_to_num(x, nan=0.0)
+        # zero padded assets at input so the shared encoder never sees junk
+        x = x * mask.view(B, S, 1, 1)
+        gamma = None
+        if self.epnet:
+            pre = self.gate_mlp(self.gate_emb)                         # (S, F)
+            gamma = (1.0 + 0.5 * torch.tanh(pre) if self.epnet_soft
+                     else 2.0 * torch.sigmoid(pre))
+            x = x * gamma.view(1, S, 1, Fdim)
+
+        # ---- TEMPORAL: shared encoder over each asset-window ----
+        enc = self.encoder(x.reshape(B * S, T, Fdim))        # (B*S,d) or (B*S,K,d)
+        if self.raw_channels > 0 and x_raw is not None:
+            xr = torch.nan_to_num(x_raw, nan=0.0) * mask.view(B, S, 1, 1)
+            Cr = xr.shape[-1]
+            hr = self.raw_encoder(xr.reshape(B * S, T, Cr))   # (B*S, d)
+            enc = enc + torch.tanh(self.raw_alpha) * self.raw_proj(hr)
+        if self.btc25raw_channels > 0 and x_b25 is not None:
+            hb = self.b25_encoder(torch.nan_to_num(x_b25, nan=0.0))   # (B, d)
+            e = enc.view(B, S, -1)
+            add = torch.zeros_like(e)
+            add[:, self.btc_idx] = torch.tanh(self.b25_alpha) * self.b25_proj(hb)
+            enc = (e + add).reshape(B * S, -1)
+        if self.dmf and x_b25 is not None:
+            # BTC perp deep market-state -> state-dependent bilinear broadcast to ALL assets.
+            xb = torch.nan_to_num(x_b25, nan=0.0)                 # (B,T,104)
+            Tb = xb.shape[1]
+            ladder = torch.stack([xb[..., 0:25], xb[..., 25:50],
+                                  xb[..., 50:75], xb[..., 75:100]], dim=-1)  # (B,T,25,4)
+            h_book = self.dmf_book(ladder)                         # (B,T,24) book-aware
+            feat_in = xb[..., 100:104]                             # 4 summaries
+            if self.dmf_trade_ch > 0 and x_btrade is not None:
+                feat_in = torch.cat([torch.nan_to_num(x_btrade, nan=0.0), feat_in], dim=-1)
+            else:                                                  # pad to expected width
+                feat_in = torch.cat([feat_in.new_zeros(B, Tb, self.dmf_trade_ch), feat_in], dim=-1)
+            h_feat = self.dmf_feat(feat_in)                        # (B,T,24) engineered stem
+            h_btc = torch.cat([h_book, h_feat], dim=-1)            # (B,T,48)
+            c_btc = self.dmf_temporal(h_btc)                       # (B,48) last-token (causal full RF)
+            ctx = self.dmf_U(self.dmf_ctx(c_btc))                  # (B,k)
+            s = 1.0 + torch.tanh(self.dmf_scale)                   # (S,k) per-asset scale, =1 at init
+            bridge = self.dmf_O(ctx.unsqueeze(1) * s.unsqueeze(0))  # (B,S,d) low-rank bilinear
+            g = torch.sigmoid(self.dmf_gate(c_btc)).unsqueeze(-1)  # (B,S,1) state-dependent per-asset gate
+            enc = (enc.view(B, S, -1)
+                   + torch.tanh(self.dmf_alpha) * g * bridge).reshape(B * S, -1)
+        if self.coarse and x_coarse is not None:
+            xc = torch.nan_to_num(x_coarse, nan=0.0) * mask.view(B, S, 1, 1)
+            if gamma is not None:
+                xc = xc * gamma.view(1, S, 1, Fdim)
+            Tc = xc.shape[2]
+            hc = self.coarse_encoder(xc.reshape(B * S, Tc, Fdim))   # (B*S, d)
+            enc = enc + torch.tanh(self.coarse_alpha) * self.coarse_proj(hc)
+        d = enc.shape[-1]
+
+        # ---- SPATIAL: cross-asset attention (+ optional market token) ----
+        key_pad = mask < 0.5                                  # True = PAD
+        all_pad = key_pad.all(dim=1, keepdim=True)
+        key_pad = key_pad & ~all_pad                          # keep MHA finite
+
+        m_ctx = None
+        if self.multipool:
+            # A1a: S*K scale-tokens -> cross-asset attention over S*K -> softmax
+            # read-out over the K scale-tokens per asset. Lets spatial attention
+            # read the SHORT-horizon trajectory (where cross-sectional info lives),
+            # not just the collapsed last-token.
+            K = self.K
+            h = enc.view(B, S, K, d) + self.asset_id.view(1, S, 1, d)
+            h = h.reshape(B, S * K, d)                        # (B, S*K, d)
+            kp = key_pad.unsqueeze(2).expand(B, S, K).reshape(B, S * K)
+            for layer in self.layers:
+                h = layer(h, kp)
+            h = h.view(B, S, K, d)
+            w = torch.softmax(self.readout(h).squeeze(-1), dim=2)   # (B,S,K)
+            h_attn = (h * w.unsqueeze(-1)).sum(dim=2)               # (B,S,d)
+        elif self.n_xattn > 0:
+            h = enc.view(B, S, d) + self.asset_id.unsqueeze(0)
+            if self.use_market_token:
+                m_mean = _masked_mean(h, mask)
+                m_cap = _masked_weighted_mean(h, mask, self.cap_weights)
+                m = self.market_mlp(m_mean, m_cap) + self.market_id.unsqueeze(0)
+                h_aug = torch.cat([h, m.unsqueeze(1)], dim=1)         # (B, S+1, d)
+                mkt_pad = torch.zeros((B, 1), dtype=key_pad.dtype,
+                                      device=key_pad.device)
+                key_pad_aug = torch.cat([key_pad, mkt_pad], dim=1)
+                for layer in self.layers:
+                    h_aug = layer(h_aug, key_pad_aug)
+                h_attn = h_aug[:, :S]
+                m_ctx = h_aug[:, S]
+            else:
+                for layer in self.layers:
+                    h = layer(h, key_pad)
+                h_attn = h
+        else:
+            h_attn = enc.view(B, S, d) + self.asset_id.unsqueeze(0)
+
+        if self.bilinear:
+            u = self.bl_U(h_attn)                              # (B,S,16)
+            v = self.bl_V(h_attn) * mask.unsqueeze(-1)         # zero padded assets
+            cnt = mask.sum(dim=1, keepdim=True).clamp(min=2.0) # (B,1)
+            vmean_exc = (v.sum(1, keepdim=True) - v) / (cnt.unsqueeze(-1) - 1.0)
+            h_attn = h_attn + torch.tanh(self.bl_gate) * self.bl_O(u * vmean_exc)
+
+        if self.btc25 and z_btc is not None:
+            g = torch.tanh(self.film_g(z_btc)).unsqueeze(1)       # (B,1,d)
+            b = self.film_b(z_btc).unsqueeze(1)                   # (B,1,d)
+            h_attn = h_attn * (1.0 + g) + b
+
+        # ---- HEAD(s): per-asset quantile head(s), shared trunk ----
+        flat = h_attn.reshape(B * S, d)
+        if self.n_factor_heads > 0:
+            # STAGE-2B: K factor scores per (B,S); returned for the orthogonal-miner loss.
+            self._factor_scores = torch.stack(
+                [fh(flat).view(B, S) for fh in self.factor_heads], dim=-1)  # (B, S, K)
+        out = self.heads[0](flat)                             # primary head
+        q50 = out["point_pred"].view(B, S)                    # (B, S)
+        if len(self.heads) > 1:
+            self._aux_quantiles = [hd(flat)["quantiles"].view(B, S, 3)
+                                   for hd in self.heads[1:]]
+        else:
+            self._aux_quantiles = []
+
+        if self.use_factor_split:
+            # alt = broadcast market factor + per-asset idiosyncratic residual.
+            # The DAQH q50 IS the residual head's job here, so factor adds to it.
+            factor = self.beta_proj(m_ctx)                    # (B, 1)
+            q50 = q50 + factor                                # (B, S)
+
+        if return_dict:
+            d_out = {
+                "q50": q50,
+                "quantiles": out["quantiles"].view(B, S, 3),
+                "aux_quantiles": self._aux_quantiles,
+                "sign_logit": out["sign_logit"].view(B, S),
+                "magnitude_abs": out["magnitude_abs"].view(B, S),
+            }
+            if self.n_factor_heads > 0:
+                d_out["factor_scores"] = self._factor_scores      # (B, S, K)
+            return d_out
+        return q50
+
+
+def count_params(model: nn.Module) -> int:
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

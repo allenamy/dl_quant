@@ -1,0 +1,62 @@
+[guard] snapshotted 7 production state paths
+[A] production supplies the watchdog's inputs (the wiring gap)
+  OK   ops_stats is non-empty on the production path — n=6
+  OK   §4-7 has a real input (not []) — [0.0, 0.0, 0.0]
+  OK   §4-5 input derived, not injected
+  OK   clean baseline does not trip on production path — []
+[B] every one of the seven conditions is REACHABLE through the production path
+  OK   cond1_c_persist reachable via production
+  OK   cond2_day_loss reachable via production
+  OK   cond3_crash_markout reachable via production
+  OK   cond4_drawdown reachable via production
+  OK   cond6_weight_fidelity reachable via production
+  OK   cond7_ops reachable via production
+  OK   cond5_venue_event reachable via production
+[C] anti-vacuous: assert X EXISTS before testing 'remove X, Y still works'
+  OK   PRE-ASSERT: the error-code table is non-empty — 9 rows
+  OK   PRE-ASSERT: it contains restricted codes — 5 rows
+  OK   with the table EMPTIED, behaviour alone still trips §4-5c/§4-7 — an incomplete table must never fail open
+[D] three-stage degradation on the conditions whose trigger implies broken submission
+  OK   §4-7: stage1 retried the flatten — attempts=3
+  OK   §4-7: stage2 escalated to a human
+  OK   §4-7: stage3 halted OPENING orders — the only stage that needs no venue cooperation
+  OK   §4-7: ALARM.log written
+  OK   §4-5: stage1 retried the flatten — attempts=3
+  OK   §4-5: stage2 escalated to a human
+  OK   §4-5: stage3 halted OPENING orders — the only stage that needs no venue cooperation
+  OK   §4-5: ALARM.log written
+  OK   §4-6: stage1 retried the flatten — attempts=3
+  OK   §4-6: stage2 escalated to a human
+  OK   §4-6: stage3 halted OPENING orders — the only stage that needs no venue cooperation
+  OK   §4-6: ALARM.log written
+[D2] headline must reflect a watchdog trip, not just the guards
+  OK   watchdog actually tripped in this run
+  OK   status is NOT 'OK' when the watchdog tripped — TRIPPED — book flattened, reduce-only engaged — §4-2 single-
+  OK   status names the trip
+  OK   report file written
+  OK   REPORT HEADLINE says TRIPPED (not OK) — **Status: TRIPPED — book flattened, reduce-only engaged — §4-2 single-
+  OK   headline mentions the protective action — **Status: TRIPPED — book flattened, reduce-only engaged — §4-2 single-
+[D3] data-age bound is bound to the data-source type
+  OK   unknown data source BLOCKS rather than reusing another source's gate — DATA_SOURCE_TYPE 'some_new_feed_nobody_calibrated' has no ca
+  OK   live_venue_feed has a much tighter bound than the archive feed — 6.0h vs 96.0h
+[D4] tests must not be able to write into PRODUCTION state (ANY path)
+  OK   production watchdog state unchanged by a tripping test — a test writing a trip into production state is how an invisible HALT was manufactured
+[D5] ★ opening-halt must NOT block the reduce-only flatten
+  OK   halt is engaged
+  OK   reduce-only flatten still submits while halted — 2 orders
+  OK   every flatten order is reduce_only
+  OK   OPENING order is refused while halted
+[D6] ladder order: halt runs FIRST and survives failures of the other rungs
+  OK   halt ran despite flatten AND reduce-only both failing — the zero-dependency rung must not be gated by the fragile ones
+  OK   ladder records the declared order — ['halt_opening', 'flatten', 'alert']
+  OK   flatten failure recorded, not swallowed
+  OK   alert still written despite the other failures
+[E] per-track factor-version registry (protocol -> declaration -> observation)
+  OK   champion declaring pre-fix is CORRECT (control arm) — declaration matches what the protocol/registry says this tra
+  OK   fixfunding declaring corrected is CORRECT
+  OK   pilot_book declaring pre-fix is a VIOLATION (§5 says corrected) — track 'pilot_book' declares 'funding_ema_broken_v1' but the registry r
+  OK   registry is per-track, not a scalar — a global assertion would turn the shadow red for no reason
+[D4-ALL] ★ production state must be byte-identical after the whole test run
+  OK   no production state path was modified by this test run — clean
+
+  ALL PASS

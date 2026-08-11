@@ -1,0 +1,37 @@
+793766610777e415048d581e0151a051d44b36ef2e8677c05b67acf2db21494a  RESULT_S1_verdict_2026-08-03.md
+version: v2 — 收录两条裁定 + §5-4 托管风险闭合 + §6 权威路径改仓库内
+content_frozen_at: 2026-08-03T21:2xZ
+verdicts_unchanged: ★ §0–§4 (保真门 + 四节判决 + 全部数字) 与 v1 【逐字节相同】
+                    sed -n '/^## 0\. 资格前提/,/^## 5\. 未核实/p' | shasum -a 256
+                    = 9cb2e1b6a49b8ac83fe437ac91ee4ea0ae696d02cf84d1dbe6c511f689ae5e0b  (v1 == v2)
+                    v2 只动 header / §5 / §6
+verdicts:
+  H-ATT           成立 — margin +0.01898(+29.28%, t+3.43, 5/5) -> -0.00156(-3.36%, t-0.83, 1/5)
+                  判入 <0.5x 区 (阈值 +0.009475); 量尺条款清过 3.26x (量尺 0.00630)
+  PREREG-8-5      字面触发(plain 0.04644 > xattn 0.04488); 裁定: 平局 ⇒ 简约性 ⇒ S2 默认 plain
+  G1              双过 — +52.53% / +57.83% vs 0.079'=0.02942, 配对 t +4.141/+4.040, 5/5 折
+  CALIBER         0.079 -> 0.02942 (2.685x 高估); 三口径 0.08379/0.02942/0.02157
+rulings_recorded (team-lead 21:2xZ, 均标为【裁定非预注册】):
+  1. 前视利用度 corr(tilt,LEAK) ≈0 = 【部署硬前置】 — 五件套在它 CI 含 0 之前不得发生; 明日 B4 首件
+  2. G2 推迟至 S2 验收 (援引 §5-2 辅证条款) — 收口 §5 与 §5-2 的字面冲突
+open_items:
+  - 前视利用度【仍未测】 — 部署硬前置, 非本判定前置 (owner B4, 明日首件)
+  - 单种子; _5yr 训练过程参数 UNRECORDED (19 项)
+  - CLOSED(v2): 产物托管 — 9 份 JSON 入仓 commit 1e2c8f1; 独立复验 git HEAD == 工作树 ==
+                服务器原件, 三处逐位相同. 服务器 10 份入仓 9 份, 未入仓者 =
+                已被 v2 取代的 funding_caliber.json (声明为事实, 非缺口)
+cites (chains, per TEAM_PROTOCOL §4-b):
+  PREREG_retrain_causal_panel_2026-08-03.md      chain head 906103f5 (v8, sealed)
+  RESULT_champion_serve_caliber_2026-08-03.md    chain head 3d0bc6f5 (v2)
+  RESULT_channel_cutoff_audit_2026-08-03.md      eedab22a (frozen, single point)
+data_sha256 (权威路径 = multi_asset/exports/eda/s1_artifacts/, in git @ 1e2c8f1):
+  measure_0079prime.json  1a92abc5e822d398c28eab49fbedf75bc7f543b0149b2da6214900dd2f1916cf
+  s1_parity.json          8de2531b06d5c49092e61425c99e7846445da2c55d7dfc5b7ccc8a6b6c81644a
+  preflight_s1.json       31275b34906d988596bf185e23fa1e9b27eb3aae917e125ed58c3e6225b4c4ed
+  causality_train.json    af8c8aa7771e8e5d8b5152f3acdb526e932f5b0d0040a5cd13af9ba87313b41d
+  assert_serve.json       e6d0f3000900321fb039fe3f8647a6fe998bfc1f901fc510219762eb174ab775
+chain:
+  v1 4d5912b06de2e12114eff9b3e032874cb1bf7e5f59182647a8df194604877e46  (preserved as _v1_2103Z.md)
+  v2 793766610777e415048d581e0151a051d44b36ef2e8677c05b67acf2db21494a  <- current
+session: 0C (C2-prereg)
+verify: shasum -a 256 RESULT_S1_verdict_2026-08-03.md

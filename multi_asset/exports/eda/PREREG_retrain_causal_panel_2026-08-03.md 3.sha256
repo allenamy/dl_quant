@@ -1,0 +1,36 @@
+60d2d91b89f26dc02fb771300103509e8c678520cdb2413cd65384b03c6a629e  PREREG_retrain_causal_panel_2026-08-03.md
+version: v9 — §7-4 修订版 (S2 数据侧两条). ★ 不是破 v8 封笔: 封笔管 S1 判据, v9 只动 S2 数据侧,
+         而 §7-4 本就规定"确需改动 ⇒ 另出修订版并说明理由与时点, 不得静默调整"。
+content_frozen_at: 2026-08-03T22:5xZ
+changes:
+  (b) 140 列币集刷新 -> 移出本轮, 移至下一代 (S3 或 S2b); S2 用冻结 140 列
+      ⇒ 新上市 (420) 与已退市 (PIXEL/CELO) 的限制【随 S2 部署一并存在】, 登记为限制非待办
+  (a) 数据终点 "延至最新" -> 写死 2026-07-31 23:00 UTC (最后一个完整归档月末小时)
+      ⇒ 放弃 ~3 天 (5.5y 的 ~0.15%), 换训练集内 funding_ema 单一构造法
+  (c) funding 结算口径修正版 -> 未改动
+  新增 §7-1bis 动机隔离 + §7-1bis-A 我的独立核验 · §7-1ter 命名裁定待决 · §11-1 时点披露
+  §7-2 (b) 行改为反向断言(列集与 S1 逐位相同) · §7-3 三项排查改两项
+  §8 新增第 7 条 (代理锚出现即面板作废) · §9 新增第 9/10 条 · 首行作废条件 (d) 更正
+S1_criterion_unchanged: ★ §1–§6 (S1 全部判据/阈值/H-ATT/G1-G4) 与 v8 【逐字节相同】
+                        sed -n '/^## 1\. ★ 冻结披露/,/^## 7\. S2 · 生产候选/p' | shasum -a 256
+                        = 4f8146d578a57bdec5aa577ce36c28a56d54549953ba99e555cfac4ea583fdc9  (v8 == v9)
+                        四阈值 +0.009475/+0.015160/+0.007350/+0.011760 逐位仍在
+timing_disclosure (§11-1):
+  S1 结果全部可见: 19:02Z / 20:29Z / 20:46Z    team-lead 两条裁定: 22:4xZ
+  v9 定稿: 22:5xZ                              S2 任何产物: 【不存在】(22:46Z 与 22:51Z 两次复验)
+  ⇒ 时点证明"不可能追逐 S2 结果"; "S1 零影响"由 §7-1bis 的理由审查主张 —— 两者强度不同, 已写明
+verified_by_0C (不是转述):
+  - "盘上无当前 top-110 快照" 为真且更强: n_new_listings_ignored 在全仓只出现在本预注册正文,
+    无任何脚本/产物产生过它 ⇒ (b) 若留在本轮, 连起点都需先重建
+  - premium 代理原文核到 multi_asset/engine/live/build_tail.py:17-19 (本地与服务器两份都在):
+    "~0.8 corr — good enough as 1/32 model INPUT channels, NOT good enough to TRADE"
+    ★ 脚本祝福的是"推理期输入"; "不要拿它训练"是 team-lead 的推论, 非脚本结论 —— 已在 §7-1bis 分开写
+ruling_received (23:0xZ, 文档正文【故意】仍写"待裁定" —— 判据节记判据, 状态记在此处):
+  §7-1ter run 名后缀 = 【_ac】. team-lead 裁定: 原写 _ab 语义反了.
+  ★ 两线独立同判: 0C 由"保留项是 (a)(c)"推出, B4 在自己那条线上各自发现 —— 非一处转述
+chain:
+  v1 6336c555  v2 eea5ba73  v3 bcce2f97  v4 3d4f4b0f  v5 1a74c185  v6 ef378527
+  v7 62519cab  v8 906103f5
+  v9 60d2d91b89f26dc02fb771300103509e8c678520cdb2413cd65384b03c6a629e  <- current
+session: 0C (C2-prereg)
+verify: shasum -a 256 PREREG_retrain_causal_panel_2026-08-03.md

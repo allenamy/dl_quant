@@ -1,0 +1,15 @@
+[inject-1] cron killed mid-run -> restart must not duplicate or half-write
+  OK   kill+restart introduced NO new duplicate rows — delta={} (pre-existing: 0)
+  FAIL restart completed cleanly
+[inject-2] guards fail -> BLOCKED must appear in the DAILY REPORT, not just the exit code
+  FAIL report.md contains BLOCKED
+  FAIL report states readings were withheld
+  FAIL mirror copy also shows BLOCKED
+  FAIL shadow log did NOT write under failed guards
+[inject-3] upstream late/stale -> must refuse, never write records from stale data
+  OK   no new log rows written under stale upstream — {}
+  FAIL status is BLOCKED under stale upstream
+  FAIL blocking reason names staleness
+
+  FAILURES: ['restart completed cleanly', 'report.md contains BLOCKED', 'report states readings were withheld', 'mirror copy also shows BLOCKED', 'shadow log did NOT write under failed guards', 'status is BLOCKED under stale upstream', 'blocking reason names staleness']
+  evidence -> /Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/pilot_daily/injection_evidence
