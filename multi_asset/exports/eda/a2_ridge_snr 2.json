@@ -1,0 +1,317 @@
+{
+  "analysis": "A2_per_asset_ridge_snr",
+  "cache_dir": "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/panel_cache",
+  "folds": [
+    {
+      "tr": [
+        0,
+        250
+      ],
+      "va": [
+        251,
+        271
+      ],
+      "te": [
+        272,
+        312
+      ]
+    },
+    {
+      "tr": [
+        80,
+        330
+      ],
+      "va": [
+        331,
+        351
+      ],
+      "te": [
+        352,
+        392
+      ]
+    },
+    {
+      "tr": [
+        160,
+        410
+      ],
+      "va": [
+        411,
+        431
+      ],
+      "te": [
+        432,
+        472
+      ]
+    }
+  ],
+  "embargo_days": 1,
+  "alphas": "logspace(-2,4,13)",
+  "eval": "CLEAN test (clean600 non-overlap stride>=600), pooled across folds",
+  "y_norm": "per-train-fold MAD-sigma (MAD*1.4826)",
+  "gate_def": "pooled clean P>=+0.02 AND no fold sign-flip (no per-fold P<=-0.01, signs agree)",
+  "n_pass_gate": 0,
+  "pass_gate_syms": [],
+  "tiers": {
+    "strong": [],
+    "moderate": [],
+    "weak": [
+      "bnfbtc",
+      "bnfeth",
+      "bnfsol",
+      "bnfbnb",
+      "bnfxrp",
+      "bnfdog",
+      "bnfada",
+      "bnflink",
+      "bnfbch",
+      "bnftrx",
+      "bnfltc",
+      "bnfdot",
+      "bnffil",
+      "bnfetc"
+    ]
+  },
+  "btc_P": -0.0317,
+  "btc_vs_0.065_single_asset_25level": -0.0967,
+  "per_symbol": {
+    "bnfbtc": {
+      "sym": "bnfbtc",
+      "P": -0.0317,
+      "S": 0.0332,
+      "beta": -0.631,
+      "sigma_ratio": 0.0503,
+      "bias_bps": 0.072,
+      "perfold_P": [
+        -0.061,
+        0.0065,
+        0.0352
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnfeth": {
+      "sym": "bnfeth",
+      "P": -0.0242,
+      "S": 0.0166,
+      "beta": -0.109,
+      "sigma_ratio": 0.2211,
+      "bias_bps": -0.178,
+      "perfold_P": [
+        -0.0524,
+        0.0646,
+        -0.0459
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnfsol": {
+      "sym": "bnfsol",
+      "P": -0.0067,
+      "S": 0.0001,
+      "beta": -0.094,
+      "sigma_ratio": 0.0719,
+      "bias_bps": 0.572,
+      "perfold_P": [
+        -0.0251,
+        0.0725,
+        -0.0154
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnfbnb": {
+      "sym": "bnfbnb",
+      "P": 0.0086,
+      "S": 0.0219,
+      "beta": 0.117,
+      "sigma_ratio": 0.0728,
+      "bias_bps": -0.059,
+      "perfold_P": [
+        0.0084,
+        0.0315,
+        0.003
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": false,
+      "n_days": 487
+    },
+    "bnfxrp": {
+      "sym": "bnfxrp",
+      "P": 0.0057,
+      "S": 0.0105,
+      "beta": 0.065,
+      "sigma_ratio": 0.0867,
+      "bias_bps": -0.533,
+      "perfold_P": [
+        0.0093,
+        0.0917,
+        -0.0387
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnfdog": {
+      "sym": "bnfdog",
+      "P": -0.0306,
+      "S": 0.0122,
+      "beta": -0.238,
+      "sigma_ratio": 0.1285,
+      "bias_bps": -0.444,
+      "perfold_P": [
+        -0.0152,
+        0.028,
+        -0.0616
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnfada": {
+      "sym": "bnfada",
+      "P": -0.0194,
+      "S": 0.0041,
+      "beta": -0.106,
+      "sigma_ratio": 0.1827,
+      "bias_bps": -1.219,
+      "perfold_P": [
+        0.0617,
+        0.023,
+        -0.0739
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnflink": {
+      "sym": "bnflink",
+      "P": -0.0262,
+      "S": 0.0149,
+      "beta": -0.135,
+      "sigma_ratio": 0.1944,
+      "bias_bps": -0.787,
+      "perfold_P": [
+        -0.0086,
+        0.0468,
+        -0.0537
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnfbch": {
+      "sym": "bnfbch",
+      "P": -0.0163,
+      "S": 0.0309,
+      "beta": -0.209,
+      "sigma_ratio": 0.0782,
+      "bias_bps": -0.311,
+      "perfold_P": [
+        -0.0195,
+        -0.0603,
+        0.0363
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnftrx": {
+      "sym": "bnftrx",
+      "P": 0.009,
+      "S": 0.0182,
+      "beta": 0.097,
+      "sigma_ratio": 0.0923,
+      "bias_bps": -1.397,
+      "perfold_P": [
+        0.0478,
+        -0.0056,
+        -0.0279
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnfltc": {
+      "sym": "bnfltc",
+      "P": -0.0178,
+      "S": 0.0127,
+      "beta": -0.113,
+      "sigma_ratio": 0.1572,
+      "bias_bps": -1.038,
+      "perfold_P": [
+        0.0054,
+        0.0482,
+        -0.0548
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnfdot": {
+      "sym": "bnfdot",
+      "P": 0.0134,
+      "S": 0.0221,
+      "beta": 0.202,
+      "sigma_ratio": 0.0662,
+      "bias_bps": 0.609,
+      "perfold_P": [
+        0.0188,
+        0.0319,
+        -0.007
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    },
+    "bnffil": {
+      "sym": "bnffil",
+      "P": 0.0123,
+      "S": 0.0365,
+      "beta": 0.195,
+      "sigma_ratio": 0.0629,
+      "bias_bps": 1.166,
+      "perfold_P": [
+        0.011,
+        0.0298,
+        0.0123
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": false,
+      "n_days": 487
+    },
+    "bnfetc": {
+      "sym": "bnfetc",
+      "P": -0.0036,
+      "S": 0.0321,
+      "beta": -0.04,
+      "sigma_ratio": 0.0911,
+      "bias_bps": 0.406,
+      "perfold_P": [
+        0.0089,
+        0.0594,
+        -0.032
+      ],
+      "n_test_clean": 14280,
+      "n_folds": 3,
+      "sign_flip": true,
+      "n_days": 487
+    }
+  }
+}

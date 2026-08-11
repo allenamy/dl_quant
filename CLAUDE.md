@@ -1,6 +1,7 @@
 # DL Quant — Multi-Asset Track — Project Guidance
 
-> **Phase:** 多资产实盘阶段(2026-08 起, 真钱 pilot 运行中)。单资产 BTCUSDT 已结(P=0.0646, 见 `docs/SINGLE_ASSET_Y600_FINAL_MILESTONE_2026_05_20.md`)。**阶段总账: `docs/MILESTONE_2026-08-11.md`** —— 重启任何任务先读它的对应小节。
+> **Phase:** 多资产实盘阶段(2026-08 起, 真钱 pilot 运行中)。**阶段总账: `docs/MILESTONE_2026-08-11.md`** —— 重启任何任务先读它的对应小节。
+> **单资产 BTCUSDT 已收口, 权威终版 = `docs/2026-07-06_SINGLE_ASSET_PERP_Y600_CLOSEOUT.md`**(Run1 双盘口 REG_arch @修正后 spot+perp 数据, 诚实口径 P≈0.049, maker-only ≤0.76bps/side, 非 taker)。05-20 milestone 为其历史基线(anti-patterns #1-#29 出处; 其 0.0646/Sharpe 4.4 系 clip+demean+强月口径构造, 更正见 07-06 文档 §2.3 与 memory `single_asset_record_caliber_correction`)。
 
 ## ★ 会话起步必读(顺序固定)
 
@@ -13,7 +14,7 @@
 
 **Binance USDT-perp 多资产中频市场中性**: ~110 币, 4h 锚(00/04/08/12/16/20Z), 三腿书(king DL 8h + s2 慢反转 24h + funding 8h), maker-only 执行。**实盘仓 `~/dl_quant_live`**(落盘即上线; 改动只经 `ops/safe_commit.sh`; 电池 `run_acceptance.sh` 必须全绿; mode 判别式唯一写法见 `live/tests_deadman_ping.py`)。
 
-**数据**: `/mnt/storage/share/bar_data`(READ-ONLY, mode="r"); BTC Tardis 高精度 `/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/`(READ-ONLY); 宽宇宙面板与判官在 jpline `/mnt/storage/private/work_hsy/`(路径详表: MILESTONE §5)。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板(betaadj_ret24 含 11h 前视, 故意保留供归因复现)—— 特征类实验必须显式传因果面板。**
+**数据**: `/mnt/storage/share/bar_data`(READ-ONLY, mode="r"); BTC Tardis 高精度 `/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/`(READ-ONLY; **旧 `23-25-BTCUSDT` 已弃用** —— 其 book 是现货, 现货-永续口径 bug 是 B25-FAIL 根因); 宽宇宙面板与判官在 jpline `/mnt/storage/private/work_hsy/`(路径详表: MILESTONE §5)。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板(betaadj_ret24 含 11h 前视, 故意保留供归因复现)—— 特征类实验必须显式传因果面板。**
 
 ## 不可违反约束 (Core Constraints)
 

@@ -1,0 +1,36 @@
+b312a77d5e612f375e36476d2a76db0ebe826a448f1c6899572031023f1e3d48  RESULT_contamination_surface_2026-08-03.md
+version: v2 — Q3 的 "idio" 判据更正为可核的计算路径判据 (Q3-bis)
+content_frozen_at: 2026-08-04T07:2xZ
+★★ CITATION BREAKAGE — 必读:
+  本文件【曾被多份已冻结文档按点哈希 8d3bef7a 引用】, 而 v2 改变了文件内容。
+  被引的那一版【原样保留】为:
+      RESULT_contamination_surface_2026-08-03_v1_1242Z.md
+      sha256 = 8d3bef7a01de7648cfbecab4f1edb90201f7f014e48933a15940d061fbca01f1  (已复验相符)
+  ⇒ 引用 8d3bef7a 的文档【仍然有效】, 但其指向的对象现在是上面那个文件名, 不是本文件名。
+  已知引用方(10 处): PREREG_retrain_causal_panel 全链 v1-v9 · RESULT_volscaling_leak_check ·
+                     HANDOFF_lookahead_audit
+  ⇒ 这些是【已冻结】产物, 不应为此改动; 由本侧车承担指向关系, 这是正确的承担位置。
+  ★ 教训: 我改了一份【被点哈希引用过的已冻结产物】。按 TEAM_PROTOCOL §4-b, 点哈希只对
+    冻结产物有效 —— 而"冻结"是我自己打破的。正确做法本应是: 改动前先确认无人按点哈希引用,
+    有则要么另开文件, 要么像现在这样把指向关系写进侧车并主动上报。我选了后者并已上报。
+what_changed:
+  Q3 分流规则原文: "否, 且纯横截面 idio 或非 DL 腿 -> C 类: 影响小"
+  错在: 唯一的泄漏通道 betaadj_ret24 其自述就是 "idiosyncratic move" —— 该描述写在
+        build_wide_dl.py:123, 就在那行居中卷积(:124, 即 bug)的【正上方】
+  ⇒ 在本项目里 "idio" 不是"干净"的同义词, 恰恰相反
+  ⇒ 判据改为可核对象: 计算路径里是否出现 betaadj_ret24 / CH[:,:,31] / 任何以 mkt24 为输入的构造
+  普遍形式: 分类判据的输入应当是【可枚举可 grep 的对象】, 不是形容词 ——
+            标签读起来像已经有人核过了, 而它正是最容易错且最不会被复核的东西
+affected_entries_rechecked (逐条):
+  funding_* / min_notional_band / makerfill_* / venue_feasibility -> C 类维持
+     (它们进 C 的理由本来就是"非 DL 腿/实盘或成交数据", 不是"idio")
+  wide_metrics_*(track-2 双门) -> 【当初不该进 C 类】(基线臂是完整 32 通道, 含 ch31)
+     但最终归类不受影响: 独立判别 Spearman(OI, beta_24h)=0.09-0.17 vs 对侧尺子 rvol_24h=0.73
+     ⇒ 近正交 ⇒ 增量未被掩盖 ⇒ 原 FAIL 独立成立 ⇒ 归 S
+     ★ 结论对而当初的理由错 —— 两件事分开记, 否则换个场景同一条理由会给出错误结论
+supersedes_hash: b43c24358653c6a034d164e67347d882120a7d1fd1c44729c8ecf74054c36d47 (v0)
+chain:
+  v1 8d3bef7a01de7648cfbecab4f1edb90201f7f014e48933a15940d061fbca01f1  (= 被引的那版, 保留为 _v1_1242Z.md)
+  v2 b312a77d5e612f375e36476d2a76db0ebe826a448f1c6899572031023f1e3d48  <- current
+session: 0C (C2-prereg)
+verify: shasum -a 256 RESULT_contamination_surface_2026-08-03.md

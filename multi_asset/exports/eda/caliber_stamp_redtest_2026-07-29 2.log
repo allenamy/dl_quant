@@ -1,0 +1,75 @@
+fixtures -> /tmp/caliber_stamp_fixtures  (stride 4, 12199 anchors each)
+
+  ok    KA1 known answer: real as-trained bytes, stamped as_trained
+        rc=0 (want 0)
+        [caliber] this artifact must be **as_trained**  (basis: stamp carried by the artifact (declared by tests_caliber_stamp_routing.py at 2026-07-29T09:21:30Z))
+        VERDICT: PASS
+        red-when: the subsample must still reproduce the as-trained reference, or nothing below is evidence
+
+  ok    KA2 known answer: real corrected bytes, stamped corrected
+        rc=0 (want 0)
+        [caliber] this artifact must be **corrected**  (basis: stamp carried by the artifact (declared by tests_caliber_stamp_routing.py at 2026-07-29T09:21:31Z))
+        VERDICT: PASS
+        red-when: and the corrected reference too — otherwise the stride window, not the routing, is what the reds below would be measuring
+
+  ok    ★ D1 the DAILY panel accidentally CORRECTED (contents corrected, stamp as_trained)
+        rc=1 (want 1)
+        [caliber] this artifact must be **as_trained**  (basis: stamp carried by the artifact (declared by tests_caliber_stamp_routing.py at 2026-07-29T09:21:31Z))
+        VERDICT: FAIL: ['funding_ema', 'xsr_fund']
+        red-when: RULING CASE 1. Green here = an unintended normalisation of the live splice passes, and the frozen heads silently get a distribution they were never fitted on
+
+  ok    ★ D2 an artifact that MUST be corrected but is NOT (contents as-trained, stamp corrected)
+        rc=1 (want 1)
+        [caliber] this artifact must be **corrected**  (basis: stamp carried by the artifact (declared by tests_caliber_stamp_routing.py at 2026-07-29T09:21:32Z))
+        VERDICT: FAIL: ['funding_ema', 'xsr_fund']
+        red-when: RULING CASE 2 (pointed at the caliber that actually holds the `corrected` expectation — the factor leg). Green here = 'the one that should have been fixed was not' passes unnoticed
+
+  ok    ★ D3 status quo: real live-panel bytes carrying the stamp its builder writes
+        rc=0 (want 0)
+        [caliber] this artifact must be **as_trained**  (basis: stamp carried by the artifact (declared by tests_caliber_stamp_routing.py at 2026-07-29T09:21:30Z))
+        VERDICT: PASS
+        red-when: RULING CASE 3. Red here would stop the shadow for a panel that is exactly what it should be — the 2026-07-26 failure itself. (Same bytes as the live panel; the stamp is what the deployed builder writes, so this is the post-deploy daily state.)
+
+  ok    S1 rename-proofness: the green fixture under a name no rule knows
+        rc=0 (want 0)
+        [caliber] this artifact must be **as_trained**  (basis: stamp carried by the artifact (declared by tests_caliber_stamp_routing.py at 2026-07-29T09:21:30Z))
+        VERDICT: PASS
+        red-when: the whole point of the ruling. A path-keyed router gives CANNOT JUDGE (or worse, the expectation belonging to whatever used to live at that path); a stamp travels with the bytes
+
+  ok    S2 no stamp and no declared sha256 -> CANNOT JUDGE, never PASS
+        rc=2 (want 2)
+        
+        CANNOT JUDGE: /tmp/caliber_stamp_fixtures/unstamped.npz carries no caliber stamp, and its contents (sha256_16) are not declared in engine/live/factor_version_re
+        red-when: wrong at 0 (an undeclared artifact reading as healthy is how a default becomes a filename rule) and wrong at 1 (nothing was measured against anything — that is not a violation)
+
+  ok    S3 a BROKEN stamp is CANNOT JUDGE, and is not reported as absent
+        rc=2 (want 2)
+        
+        CANNOT JUDGE: /tmp/caliber_stamp_fixtures/broken_stamp.npz carries a BROKEN caliber stamp — /tmp/caliber_stamp_fixtures/broken_stamp.npz: stamp schema 'not/mine
+        red-when: 'somebody declared something and it is unreadable' is a defect; flattening it into 'nobody declared anything' loses the only fact that names one
+
+  --- the live panel as it exists on disk on THIS machine ---
+  ok    ★ D3-live wide_dl_live.npz (UNSTAMPED — builder change not deployed here)
+        rc=2 (want 2)
+        
+        red-when: rc=0 on an UNSTAMPED panel would mean the router invented an expectation for an artifact nobody declared — the defect this ruling removes; rc!=0 on a stamped one would be the 07-26 stall again
+
+  --- the FROZEN TRAINING panel (declared by content sha256, not by name) ---
+  ok    R_FULL-a wide_dl_full.npz as it is (as-trained, correct for this generation)
+        rc=0 (want 0)
+        [caliber] this artifact must be **as_trained**  (basis: content sha256_16 2e36dda1d2498c0f declared in factor_version_registry (exports/wide_dl_full.npz (built 2026-07-11)))
+        VERDICT: PASS
+        red-when: red here = the panel the frozen heads were fitted on is being called wrong
+
+  ok    ★ R_FULL-b wide_dl_full_fundfix.npz — the REAL corrected rebuild of that same panel
+        rc=0 (want 0)
+        [caliber] this artifact must be **corrected**  (basis: content sha256_16 5b1b68cc1e4bb974 declared in factor_version_registry (exports/wide_dl_full_fundfix.npz (built 2026-07-25 by apply_funding_fix)))
+        VERDICT: PASS
+        red-when: it is DECLARED corrected by its own sha256, so it passes AS ITSELF; the accident the ruling names is this artifact taking the TRAINING panel's ROLE, which is case R_ROLE
+
+  ok    ★ R_ROLE corrected rebuild asked to be the TRAINING caliber
+        rc=1 (want 1)
+        VERDICT: FAIL: ['funding_ema', 'xsr_fund']
+        red-when: green here would mean a 'more correct' panel is welcome in a frozen model's input slot — the exact drift this chain exists to catch
+
+ALL CASES BEHAVED AS SPECIFIED

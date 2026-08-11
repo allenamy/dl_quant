@@ -1,3 +1,7 @@
+> **★★★ 已归档为历史基线 (2026-08-12, 本文件自带的作废条件已触发: multi-asset production 于 2026-08-05 上线)。**
+> **单资产权威终版 = `docs/2026-07-06_SINGLE_ASSET_PERP_Y600_CLOSEOUT.md`**(Run1 双盘口 REG_arch @2026-06-13 修正后 spot+perp 数据, 诚实口径 P≈0.049, maker-only ≤0.76bps/side)。
+> **本文头条数字已被后续更正**: P=0.0646 系 ±5σ-clip + EMA-demean 口径(诚实 raw-y 0.037 pooled/0.043 folds, memory `single_asset_record_caliber_correction`); retail-maker Sharpe 4.4 / taker 2.8 系强月+clip+低费构造(07-05 taker 审计判非 taker 可交易, 见 07-06 收官 §2.3)。**本文仍是 anti-patterns #1-#29 与 V5 时代记录的权威出处。**
+
 > **创建:** 2026-05-20 UTC+8 | **Session:** single-asset y_600 conclude + backtest + pre-multi-asset cleanup
 > **目的:** 单资产 BTCUSDT y_600 工作的**最终里程碑记录** — REG_arch winner 完整规格 + CSH 回测结果 + 可复现路径 + multi-asset 传承。本文件是单资产阶段的权威收尾文档。
 > **上一版本:** docs/V5_TO_PRODUCTION_ITERATION_2026_05_15.md (2026-05-15) — 迭代路径; 本文件补充 REG_arch standalone 确认 + 回测 (回测内容首次记录)

@@ -25,8 +25,8 @@
 | 跨领域范式 14 筛 | 顶部加权损失/段位混合/R5双形态/元标注/基础模型/GNN/保形 全关; 三线合流"上限=信息集" | SURVEY_crossdomain_paradigms_2026-08-11 |
 | 新源第一轮 | W4清算代理 0/7(方向性发现: 瀑布4h延续非反转); RM1过S1死S2; OI/taker流/解锁 前判 | RESULT_w4_gate1 / RESULT_rm_channels |
 | 执行微干预 | chase(n=39)/requote两代/重挂 全被自身装置否决; maker滑点为负−2.23bps | RESULT_live_forensics §6 / chase_closed |
-| 树 vs DL | DL优势=时序深度+池化≈+45-50%(浅面板0.033→冠军0.047); "树在DL上加成"实验因默认脏面板作废待重跑 | 本文 §4 地雷#1 + SURVEY |
-| RL 执行 | 分层否定: 锚级(无感知状态+解析最优已知)/微级(奖池几毛每天+模拟器鸿沟)/离线RL(动作空间退化); 梯子低层=R1 | 会话记录 2026-08-11(树/RL评估) |
+| 树 vs DL | DL优势=时序深度+池化≈+45-50%(浅面板0.033→冠军0.047); "树在DL上加成"实验因默认脏面板作废待重跑 | ASSESS_tree_rl_2026-08-11 §1+附录A |
+| RL 执行 | 分层否定: 锚级(无感知状态+解析最优已知)/微级(奖池几毛每天+模拟器鸿沟)/离线RL(动作空间退化); 梯子低层=R1 | ASSESS_tree_rl_2026-08-11 §2 |
 
 ## 3. 活口(按期望值排序)
 
@@ -52,3 +52,4 @@
 - **jpline**(ssh jpline, env hsy_v5push): 面板/预测npz/判官在 `/mnt/storage/private/work_hsy/probe_artifacts/`(joint_opt/adaptive_turn/vol_target/tail_pregate/segblend/w4_gate1/rm_build_gate/r5_pregate/lgbm_vs_dl + logs); 数据 `…/quant_research_multi_asset/multi_asset/exports/`(wide_metrics_raw 143币至08-09 / w4_klines5m 2.0GB / w4_liq_proxy_v1.npz / rm_channels_v1.npz)。
 - **本机常驻**(launchd): com.dlquant.live.{anchor,nosleep,icmonitor} + com.hsy.{c2shadow,w4liqcapture}; FileVault 开(无人重启不可自愈=设计使然, 死人开关补探测)。
 - **正典复现**: docs/…champion_baseline_repro(记忆) + `eda/PREREG_retrain_causal_panel_2026-08-03.md`; 训练显式 `--xattn --lam_orth 0 --wide_dl_path <因果面板>`。
+- **单资产血统链**(2026-08-12 核准): 05-20 milestone(P=0.0646 headline, 后判口径构造)→ 06-13 spot/perp 数据修正(Tardis)→ dual-source-perp v2 战役 → **07-06 CLOSEOUT = 权威终版**(Run1 双盘口 REG_arch, 诚实 P≈0.049, maker-only ≤0.76bps/side, 非 taker)。引用单资产结论一律以 07-06 文档为准; 05-20 文档已挂历史基线横幅, 仅作 anti-patterns #1-#29 出处。

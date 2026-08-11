@@ -1,0 +1,23 @@
+{
+ "source": "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/wide_panel_full.npz",
+ "clean": "/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/exports/wide_dl_full_serve_v1.npz",
+ "cut": 30000,
+ "caliber": "serve",
+ "n_pass": 51,
+ "n_total": 51,
+ "failed": [],
+ "leaky_channels": [],
+ "poison_reached": true,
+ "convolve_calls": [
+  {
+   "mode": "same",
+   "klen": 24,
+   "kernel_all_ones": true,
+   "alen": 48168
+  }
+ ],
+ "wrapped_builder_gate": {
+  "ran": true,
+  "raised": "[wide_dl] FUNDING DIMENSION GATE FAILED (exit 2) on /mnt/storage/private/work_hsy/b4_causal_scratch/wide_dl_POISONED_probe_serve.npz \u2014 panel NOT fit for use. See exports/eda/assert_funding_dim_result.json; fix is rate*(8/interval_h_of_that_row) BEFORE the EMA in data/build_wide_panel.py."
+ }
+}

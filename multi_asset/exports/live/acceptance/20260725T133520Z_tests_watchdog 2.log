@@ -1,0 +1,40 @@
+[0] clean baseline must NOT trip
+  OK   baseline does not trip — []
+  OK   baseline leaves reduce_only off
+[1] §4-1 c > 9bps for 5 consecutive days
+  OK   cond1 fires
+  OK   cond1 auto reduce-only
+  OK   cond1 generated flatten orders
+[2] §4-2 single-day loss worse than -6.7% of target gross
+  OK   cond2 fires
+[3] §4-3 crash-day markout tail worse than -25bps (stress anchors only)
+  OK   cond3 fires — worst=40.0
+[4] §4-4 cumulative drawdown > 6%
+  OK   cond4 fires — dd=-9.0
+[5] §4-5 venue event
+  OK   cond5 fires
+  OK   cond5 auto reduce-only
+[6] §4-6 weight fidelity < 0.85 for 3 days
+  OK   cond6 fires — per_day=[-29.0, -59.0, -89.0]
+[7] §4-7 ops: failure rate and un-recovered drift
+  OK   cond7 fires on failure rate
+  OK   cond7 fires on un-recovered drift
+[8] default-state semantics
+  OK   state persists reduce_only=True
+  OK   state records resume friction
+  OK   flatten precedes reduce-only switch
+  OK   flatten orders are reduce_only
+[5b] §4-5b liquidation/position anomaly via position_readback
+  OK   5b fires on unexplained position change — n=1
+  OK   5b reuses position_readback path
+[5c] §4-5c account restriction — behaviour is the guard, codes are a fast path
+  OK   5c fires on BEHAVIOUR alone (no error code supplied)
+  OK   5c fired without any code hit
+  OK   5c error-code fast path fires immediately
+  OK   unknown code still trips via behavioural fallback — an incomplete table must never fail open
+[5d] withdrawal halt is NOT in the realtime layer
+  OK   5d documented as out of realtime layer
+[9] stale state must NOT suppress action on a new trip (regression)
+  OK   acts again despite stale reduce_only state — a leftover True must never silence a genuine trigger
+
+  ALL PASS

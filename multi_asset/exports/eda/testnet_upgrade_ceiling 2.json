@@ -1,0 +1,53 @@
+{
+ "n_ceiling": 23,
+ "n_total": 265,
+ "pct_of_total": 8.7,
+ "criterion": "DRY_RUN 条件的 if-body 里【直接】含 return ⇒ 该函数在 DRY_RUN 下整体短路",
+ "short_circuit_functions": [
+  "anchor_loop:_universe_gate",
+  "binance_broker:__init__",
+  "binance_broker:account_snapshot",
+  "binance_broker:arm",
+  "binance_broker:cancel_order",
+  "binance_broker:income_since",
+  "binance_broker:positions",
+  "binance_broker:positions_notional",
+  "binance_broker:submit",
+  "binance_funding:fetch_income",
+  "binance_funding:fetch_rates",
+  "venue_fills:fill_details_for",
+  "venue_fills:fills_for"
+ ],
+ "rejected_candidates": {
+  "anchor_loop:_scale_to": "DRY_RUN 下只是分支, 非整体短路 (else 支仍执行)"
+ },
+ "n_direct_callers": 12,
+ "n_inside": 13,
+ "ceiling_steps": [
+  "anchor_loop:_scale_to:if:self.broker.mode != 'DRY_RUN'/loop/try::self.broker.submit()",
+  "anchor_loop:_scale_to:if:self.broker.mode != 'DRY_RUN'/try::self.broker.positions()",
+  "anchor_loop:_scale_to:loop/try::self.broker.submit()",
+  "anchor_loop:_trade:-::self._universe_gate()",
+  "anchor_loop:_universe_gate:-::universe.classify()",
+  "anchor_loop:_universe_gate:-::universe.venue_status()",
+  "anchor_loop:_universe_gate:if:cls.get('venue_status_unknown')::self.alarm()",
+  "anchor_loop:_universe_gate:if:cls['exit_only_held']::self.alarm()",
+  "anchor_loop:_universe_gate:if:cls['gone_from_venue_held']::self.alarm()",
+  "anchor_loop:_universe_gate:loop/except:Exception::self.alarm()",
+  "anchor_loop:_universe_gate:loop/try::self.broker.submit()",
+  "anchor_loop:_universe_gate:try::self.broker.positions()",
+  "anchor_loop:complete_anchor:try::venue_fills.fill_details_for()",
+  "anchor_loop:run_anchor:if:self.broker.mode != 'DRY_RUN'/try::self.broker.positions_notional()",
+  "binance_broker:cancel_order:try::self._request()",
+  "binance_broker:flatten_all:loop/try::self.submit()",
+  "binance_broker:positions:-::self._request()",
+  "binance_broker:positions_notional:-::self._request()",
+  "binance_broker:submit:except:VenueError::self.classify()",
+  "binance_broker:submit:try::self._request()",
+  "binance_executor:cancel_resting:loop/try::self.broker.cancel_order()",
+  "binance_executor:submit_maker:loop/try::self.broker.submit()",
+  "binance_executor:topup:loop/try::self.broker.submit()"
+ ],
+ "revision": "2026-07-26 下修 25→23 (9.4%→8.7%): 原判据 'DRY_RUN 条件子树里有 return' 太松 —— ast.walk 会下钻, 嵌套 return 也会命中。收紧为 if-body 直接 return 后 anchor_loop._scale_to 掉出 (它在 DRY_RUN 下照跑, 走名义记账支)。",
+ "unverified_steps": "无 —— 13 个函数已逐个人工核对短路条件与 return 位置"
+}
