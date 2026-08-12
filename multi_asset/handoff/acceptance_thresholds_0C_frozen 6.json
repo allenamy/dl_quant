@@ -1,0 +1,26 @@
+{
+  "_meta": "0C frozen pre-registration thresholds for acceptance_battery.py — see handoff/acceptance_battery_SPEC.md. Locked 2026-07-19 (rev2: +head_corr_max ruling, +gate-e/caliber knobs). Auto-loaded by the battery; --config overrides.",
+  "ic_tolerance": 0.005,
+  "sigma_floor_ratio": 0.02,
+  "sigma_dead_frac_max": 0.05,
+  "sigma_degenerate_ts_max": 0.01,
+  "dyn_share_min": 0.50,
+  "fwd_sub_ratio_min": 0.60,
+  "fwd_flat_ratio_max": 0.90,
+  "fwd_neg_leak_ratio": 0.50,
+  "cov_max": 0.10,
+  "head_corr_max": 0.9999,
+  "require_panel_match": true,
+  "nshuf": 8,
+  "nboot": 3000,
+  "min_base": 5,
+  "seed": 0,
+  "_derivations": {
+    "ic_tolerance": "2*sigma_seed of champion 3-seed band (mean 0.0944, sigma 0.0026, CoV 2.7%) = 0.0052 -> 0.005. Covers worst observed champion seed (0.0910 = mean-0.0034); 0.003 placeholder would FALSE-REJECT champion's own seed-43. Degraded retrain (lam_orth re-enabled ~0.033, xattn dropped ~0.067) fails by >0.03.",
+    "head_corr_max": "0.9999 (rev2), NOT 0.999. lam_orth=0 makes the champion's 6 heads near-redundant BY DESIGN (measured pairwise 0.9957) — that redundancy IS the +IC lever (lam_orth=1 orthogonality was DILUTIVE, halved IC). Gate (g) must catch DUPLICATION (fraud, corr->1.0 machine precision), not design-intended REDUNDANCY. 0.999 left only 0.0033 margin above the legal champion -> would false-trip a legit retrain drifting to 0.999. 0.9999 fires only on numerical duplication. Co-equal load-bearing discriminator = ensemble != any single head (catches best-head substitution + duplicate-padding).",
+    "cov_max": "champion 2.7%, QIM 7.5% (both deployable); 0.10 = generous ceiling.",
+    "require_panel_match": "TRUE for automated acceptance: candidate MUST score on the frozen canonical panel (ts+member+CL byte-identical). Off-grid candidate (e.g. sparser CL like archived N1b/S1: 987K/990K clean cells vs champion 1.13M) => REJECT-untrustworthy (correct: eval grid differs). Extended-span retrain = explicit human-gated exception.",
+    "caliber_note": "When a champion is present, the target-independent RAW forward return Yraw (byte-identical across products on the same grid: md5 02c03849) is the apples-to-apples comparison basis. Residual-YR is TRAINING-TARGET-dependent (N1b=YR4B, S1=YR4K, champion=YR4) and NOT comparable across arms. On Yraw: champion 0.1212, N1b 0.068, S1 0.0669 => REJECT. Battery reports ic_pooled_raw; gate (b) champion-comparison should key on the raw caliber for cross-target candidates.",
+    "gate_e": "fwd_sub_ratio_min 0.60 (razor-spike: sub-H +1 lag >= 0.6*peak), fwd_flat_ratio_max 0.90 (flat-leak: full-H +1 lag < 0.9*peak), fwd_neg_leak_ratio 0.50 (neg-lag leak only if same-sign+large+symmetric; reversed-sign neg lag = healthy reversal, exempt)."
+  }
+}

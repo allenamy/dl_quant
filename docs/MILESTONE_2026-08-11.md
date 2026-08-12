@@ -25,7 +25,7 @@
 | 跨领域范式 14 筛 | 顶部加权损失/段位混合/R5双形态/元标注/基础模型/GNN/保形 全关; 三线合流"上限=信息集" | SURVEY_crossdomain_paradigms_2026-08-11 |
 | 新源第一轮 | W4清算代理 0/7(方向性发现: 瀑布4h延续非反转); RM1过S1死S2; OI/taker流/解锁 前判 | RESULT_w4_gate1 / RESULT_rm_channels |
 | 执行微干预 | chase(n=39)/requote两代/重挂 全被自身装置否决; maker滑点为负−2.23bps | RESULT_live_forensics §6 / chase_closed |
-| 树 vs DL | DL优势=时序深度+池化≈+45-50%(浅面板0.033→冠军0.047); "树在DL上加成"实验因默认脏面板作废待重跑 | ASSESS_tree_rl_2026-08-11 §1+附录A |
+| 树 vs DL | **⚠2026-08-12 更正: 同口径 DL 优势 ≈+10-15%**(树+滞后栈+rank-z ≈0.06 vs king raw 0.067; 原+45-50%系拿浅面板当树上限的口径错误); 臂B(树在DL上加成)FAIL 维持; 新候选=LGBM-fresh 第四腿(走腿门v2) | RESULT_lgbm_vs_dl_saga_2026-08-12 |
 | RL 执行 | 分层否定: 锚级(无感知状态+解析最优已知)/微级(奖池几毛每天+模拟器鸿沟)/离线RL(动作空间退化); 梯子低层=R1 | ASSESS_tree_rl_2026-08-11 §2 |
 
 ## 3. 活口(按期望值排序)
