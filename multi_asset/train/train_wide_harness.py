@@ -705,6 +705,20 @@ def main():
         os.makedirs(EXPORT, exist_ok=True)
         tag = args.tag or f"wide_{args.encoder}"
         out = p.join(EXPORT, f"wide_harness_{tag}.json")
+        # #69 配置血统(2026-08-12): 每份产物自带完整 argv + 面板 SHA256。
+        # 出处: benchmark_0466 默认值陷阱(xattn/lam_orth/面板歧义) + panel_ref 对 ch31 轴失明
+        # (按路径记面板 = 假绿) —— 判决必须能从产物本身逐位重建它的配置与数据身份。
+        try:
+            import hashlib as _hl
+            _h = _hl.sha256()
+            with open(getattr(args, "wide_dl_path", None) or "", "rb") as _pf:
+                for _blk in iter(lambda: _pf.read(1 << 22), b""):
+                    _h.update(_blk)
+            _psha = _h.hexdigest()
+        except Exception:
+            _psha = "UNRESOLVED(记录失败本身也是信息, 勿静默补默认)"
+        pooled["provenance"] = {"argv": sys.argv, "panel_path": getattr(args, "wide_dl_path", None),
+                                "panel_sha256": _psha, "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
         with open(out, "w") as fh:
             json.dump(pooled, fh, indent=2)
         print("\n===== POOLED =====", flush=True)
