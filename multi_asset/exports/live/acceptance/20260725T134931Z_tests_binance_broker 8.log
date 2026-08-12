@@ -1,0 +1,31 @@
+[A] contract surface matches MockBroker
+  OK    every MockBroker method exists on BinanceBroker  — complete
+
+[B] ★ MC-1: the opening-halt must never block a reduce-only order
+  OK    halt is set
+  OK    reduce-only order PASSES while halted
+  OK    opening order REFUSED while halted
+
+[C] flatten survives the halt (the ladder puts halt FIRST — this is why that is safe)
+  OK    flatten produced orders while halted  — 2
+  OK    every flatten order is reduce_only
+  OK    flatten uses IOC not post-only (exit must not sit passive)
+
+[D] LIVE cannot be reached by accident
+  OK    LIVE refused without confirmation token  — LIVE requires BINANCE_LIVE_CONFIRM=I_UNDERSTAND
+  OK    LIVE refused without credentials  — LIVE requires credentials in env; none found
+
+[E] error table: doc-derived, and the fallback does not depend on it
+  OK    table is non-empty (anti-vacuous precondition)  — 8 codes
+  OK    ZERO codes are marked observed — none has been seen on a real account  — all doc-derived, UNVERIFIED
+  OK    an UNKNOWN code classifies as 'unknown' (fallback territory, never fail-open)
+  OK    -4189 is NOT lumped into account_restricted (reduce-only still works there)
+  OK    with the table EMPTIED, a restriction still classifies as unknown (=> fallback trips)
+
+[F] DRY_RUN really is inert
+  OK    no key loaded
+  OK    no secret loaded
+  OK    submit recorded, not sent
+  OK    positions() returns empty without contacting venue
+
+ALL PASS
