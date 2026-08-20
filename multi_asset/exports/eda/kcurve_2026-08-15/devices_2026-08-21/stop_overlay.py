@@ -15,6 +15,7 @@ LOG = f"{WS}/stop_overlay.log"
 CFG = json.load(open(f"{WS}/shadow_bundle/config.json"))
 SYMS = CFG["symbols_panel"]
 DEPTH, NEED, COOL = -0.30, 2, 42
+MIN_W = 0.0005   # 尘埃地板: 低于 0.05% gross 的 EMA 残量不记账(宽书实选≈216名, 其余为尾巴)
 
 
 def log(m):
@@ -41,7 +42,7 @@ def main():
         anc = os.path.basename(f)[:-4]
         d = np.load(f)
         idx, val = d["idx"], d["val"]
-        held = {SYMS[int(j)]: float(v) for j, v in zip(idx, val) if abs(float(v)) > 1e-9}
+        held = {SYMS[int(j)]: float(v) for j, v in zip(idx, val) if abs(float(v)) >= MIN_W}
         # 反事实: 上一锚已停名在本锚的贡献(= 若止损可省下/损失的)
         gain = 0.0
         for s, w in held.items():
