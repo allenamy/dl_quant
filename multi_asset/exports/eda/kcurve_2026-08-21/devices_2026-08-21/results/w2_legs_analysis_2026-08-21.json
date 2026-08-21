@@ -1,0 +1,1668 @@
+{
+ "meta": {
+  "created": "2026-08-21T16:53:50Z",
+  "session": "6737834a-W2",
+  "n_common": 9821,
+  "inputs_sha256": {
+   "w2_live_legattrib.npz": "da8cbfa6de169b6208e988dc38fae17c987ccb66e348f560117cdc90b6f6c73a",
+   "w2_wide_legattrib.npz": "1a61b324a1b369180ac64af603249516316d290169e0bb49eeafc9eb2a56f70e"
+  },
+  "caliber": "leg net_k = (pnl_k − carry_k − cost_k)/target gross(S0 arm); carry positive = PAID; ×G=2 for bps@G",
+  "live_summary": {
+   "share_stats": {
+    "signed": 870398,
+    "abs": 116840,
+    "zero": 1
+   },
+   "S0": {
+    "n": 9821,
+    "maxabs_net_vs_probe_artifacts": 1.1368683772161603e-13,
+    "max_component_sum_err_weights": 8.326672684688674e-17,
+    "maxabs_sum_pnl_vs_book": 1.1368683772161603e-13,
+    "maxabs_sum_carry_vs_book": 4.884981308350689e-15,
+    "maxabs_sum_cost_vs_book": 8.881784197001252e-16,
+    "leg_means_bps": {
+     "king": {
+      "pnl": 0.905,
+      "carry_paid": 0.0122,
+      "cost": 0.0601,
+      "gross": 0.6925
+     },
+     "s2": {
+      "pnl": 0.346,
+      "carry_paid": 0.0069,
+      "cost": 0.0213,
+      "gross": 0.3023
+     },
+     "funding": {
+      "pnl": 0.0091,
+      "carry_paid": -0.1,
+      "cost": 0.025,
+      "gross": 0.2865
+     }
+    },
+    "book_means_bps": {
+     "pnl": 1.2602,
+     "carry_paid": -0.0808,
+     "cost": 0.1064,
+     "net_nocarry": 1.1538,
+     "net_with_carry": 1.2346
+    },
+    "carry_sign_convention": "carry = Σ w·fund_now·4/iv ×1e4 (宽 v2 面板映射); 正 = 书/腿【付出】funding, 负 = 收到; net_with_carry = pnl − cost − carry"
+   },
+   "S1": {
+    "n": 9821,
+    "maxabs_net_vs_probe_artifacts": 8.526512829121202e-14,
+    "max_component_sum_err_weights": 6.938893903907228e-17,
+    "maxabs_sum_pnl_vs_book": 1.4210854715202004e-13,
+    "maxabs_sum_carry_vs_book": 2.4424906541753444e-15,
+    "maxabs_sum_cost_vs_book": 4.440892098500626e-16,
+    "leg_means_bps": {
+     "king": {
+      "pnl": 0.8708,
+      "carry_paid": 0.0091,
+      "cost": 0.0644,
+      "gross": 0.6741
+     },
+     "s2": {
+      "pnl": 0.3561,
+      "carry_paid": 0.0043,
+      "cost": 0.023,
+      "gross": 0.2936
+     },
+     "funding": {
+      "pnl": 0.0077,
+      "carry_paid": -0.0947,
+      "cost": 0.0255,
+      "gross": 0.2786
+     }
+    },
+    "book_means_bps": {
+     "pnl": 1.2346,
+     "carry_paid": -0.0813,
+     "cost": 0.1129,
+     "net_nocarry": 1.1218,
+     "net_with_carry": 1.2031
+    },
+    "carry_sign_convention": "carry = Σ w·fund_now·4/iv ×1e4 (宽 v2 面板映射); 正 = 书/腿【付出】funding, 负 = 收到; net_with_carry = pnl − cost − carry"
+   }
+  },
+  "wide_summary": {
+   "S0": {
+    "n": 12279,
+    "maxabs_net_vs_pod_backup": 7.105427357601002e-15,
+    "max_component_sum_err_weights": 1.0408340855860843e-17,
+    "maxabs_sum_pnl_vs_book": 1.1368683772161603e-13,
+    "maxabs_sum_carry_vs_book": 3.552713678800501e-15,
+    "maxabs_sum_cost_vs_book": 5.551115123125783e-17,
+    "leg_means_bps": {
+     "king": {
+      "pnl": 0.511,
+      "carry_paid": 0.0864,
+      "cost": 0.049,
+      "gross": 0.4538
+     },
+     "rev24": {
+      "pnl": -0.0501,
+      "carry_paid": 0.0402,
+      "cost": 0.029,
+      "gross": 0.1705
+     },
+     "fund": {
+      "pnl": 0.5605,
+      "carry_paid": 0.3963,
+      "cost": 0.0066,
+      "gross": 0.2966
+     }
+    },
+    "book_means_bps": {
+     "pnl": 1.0214,
+     "carry_paid": 0.5229,
+     "cost": 0.0846,
+     "net": 0.4139
+    },
+    "carry_sign_convention": "carry = Σ w·fund_now·4/iv ×1e4; 正 = 书/腿【付出】funding; net = pnl − carry − cost"
+   },
+   "d30_n2_c42": {
+    "n": 12279,
+    "maxabs_net_vs_pod_backup": 3.552713678800501e-15,
+    "max_component_sum_err_weights": 1.0408340855860843e-17,
+    "maxabs_sum_pnl_vs_book": 8.526512829121202e-14,
+    "maxabs_sum_carry_vs_book": 2.6645352591003757e-15,
+    "maxabs_sum_cost_vs_book": 5.551115123125783e-17,
+    "leg_means_bps": {
+     "king": {
+      "pnl": 0.5547,
+      "carry_paid": 0.0774,
+      "cost": 0.0484,
+      "gross": 0.4458
+     },
+     "rev24": {
+      "pnl": -0.0309,
+      "carry_paid": 0.0352,
+      "cost": 0.0285,
+      "gross": 0.1679
+     },
+     "fund": {
+      "pnl": 0.5666,
+      "carry_paid": 0.3616,
+      "cost": 0.0067,
+      "gross": 0.2862
+     }
+    },
+    "book_means_bps": {
+     "pnl": 1.0904,
+     "carry_paid": 0.4741,
+     "cost": 0.0835,
+     "net": 0.5328
+    },
+    "carry_sign_convention": "carry = Σ w·fund_now·4/iv ×1e4; 正 = 书/腿【付出】funding; net = pnl − carry − cost"
+   }
+  }
+ },
+ "A_live_legs_S1": {
+  "king": {
+   "mean_pnl_at_G": 1.759,
+   "mean_carry_paid_at_G": 0.018,
+   "mean_cost_at_G": 0.13,
+   "mean_net_at_G": 1.61,
+   "sharpe_net": 1.487,
+   "sharpe_price_only": 1.624,
+   "sharpe_net_nocarry": 1.504,
+   "gross_share_of_book": 0.702,
+   "by_year_net_at_G": {
+    "2022": 2.89,
+    "2023": 0.77,
+    "2024": 1.434,
+    "2025": 2.0,
+    "2026": 0.297
+   },
+   "by_year_sharpe_net": {
+    "2022": 2.694,
+    "2023": 0.932,
+    "2024": 1.059,
+    "2025": 1.841,
+    "2026": 0.319
+   },
+   "by_year_carry_paid_at_G": {
+    "2022": 0.069,
+    "2023": -0.047,
+    "2024": -0.055,
+    "2025": -0.094,
+    "2026": 0.427
+   },
+   "by_year_pnl_at_G": {
+    "2022": 3.092,
+    "2023": 0.854,
+    "2024": 1.517,
+    "2025": 2.02,
+    "2026": 0.863
+   }
+  },
+  "s2": {
+   "mean_pnl_at_G": 0.719,
+   "mean_carry_paid_at_G": 0.009,
+   "mean_cost_at_G": 0.047,
+   "mean_net_at_G": 0.664,
+   "sharpe_net": 1.396,
+   "sharpe_price_only": 1.512,
+   "sharpe_net_nocarry": 1.414,
+   "gross_share_of_book": 0.306,
+   "by_year_net_at_G": {
+    "2022": 1.134,
+    "2023": 0.133,
+    "2024": 0.564,
+    "2025": 1.021,
+    "2026": 0.273
+   },
+   "by_year_sharpe_net": {
+    "2022": 2.641,
+    "2023": 0.276,
+    "2024": 1.101,
+    "2025": 1.989,
+    "2026": 0.699
+   },
+   "by_year_carry_paid_at_G": {
+    "2022": 0.04,
+    "2023": -0.014,
+    "2024": -0.031,
+    "2025": 0.028,
+    "2026": 0.034
+   },
+   "by_year_pnl_at_G": {
+    "2022": 1.222,
+    "2023": 0.167,
+    "2024": 0.581,
+    "2025": 1.088,
+    "2026": 0.36
+   }
+  },
+  "funding": {
+   "mean_pnl_at_G": 0.015,
+   "mean_carry_paid_at_G": -0.192,
+   "mean_cost_at_G": 0.052,
+   "mean_net_at_G": 0.155,
+   "sharpe_net": 0.608,
+   "sharpe_price_only": 0.057,
+   "sharpe_net_nocarry": -0.146,
+   "gross_share_of_book": 0.29,
+   "by_year_net_at_G": {
+    "2022": 0.228,
+    "2023": -0.006,
+    "2024": -0.139,
+    "2025": 0.368,
+    "2026": 0.497
+   },
+   "by_year_sharpe_net": {
+    "2022": 0.862,
+    "2023": -0.026,
+    "2024": -0.491,
+    "2025": 1.456,
+    "2026": 2.543
+   },
+   "by_year_carry_paid_at_G": {
+    "2022": -0.219,
+    "2023": -0.149,
+    "2024": -0.139,
+    "2025": -0.198,
+    "2026": -0.319
+   },
+   "by_year_pnl_at_G": {
+    "2022": 0.06,
+    "2023": -0.1,
+    "2024": -0.226,
+    "2025": 0.217,
+    "2026": 0.235
+   }
+  }
+ },
+ "A_wide_legs_d30": {
+  "king": {
+   "mean_pnl_at_G": 1.801,
+   "mean_carry_paid_at_G": 0.199,
+   "mean_cost_at_G": 0.163,
+   "mean_net_at_G": 1.439,
+   "sharpe_net": 1.783,
+   "sharpe_price_only": 2.231,
+   "sharpe_net_nocarry": 2.029,
+   "gross_share_of_book": 0.709,
+   "by_year_net_at_G": {
+    "2022": 2.847,
+    "2023": 0.889,
+    "2024": 0.989,
+    "2025": 1.781,
+    "2026": -0.066
+   },
+   "by_year_sharpe_net": {
+    "2022": 2.745,
+    "2023": 1.12,
+    "2024": 1.337,
+    "2025": 2.209,
+    "2026": -0.292
+   },
+   "by_year_carry_paid_at_G": {
+    "2022": 0.089,
+    "2023": 0.194,
+    "2024": 0.013,
+    "2025": 0.46,
+    "2026": 0.277
+   },
+   "by_year_pnl_at_G": {
+    "2022": 3.154,
+    "2023": 1.27,
+    "2024": 1.168,
+    "2025": 2.389,
+    "2026": 0.24
+   }
+  },
+  "rev24": {
+   "mean_pnl_at_G": 0.083,
+   "mean_carry_paid_at_G": 0.069,
+   "mean_cost_at_G": 0.054,
+   "mean_net_at_G": -0.04,
+   "sharpe_net": -0.133,
+   "sharpe_price_only": 0.276,
+   "sharpe_net_nocarry": 0.097,
+   "gross_share_of_book": 0.157,
+   "by_year_net_at_G": {
+    "2022": -0.584,
+    "2023": 0.079,
+    "2024": -0.114,
+    "2025": 0.294,
+    "2026": 0.288
+   },
+   "by_year_sharpe_net": {
+    "2022": -1.537,
+    "2023": 0.181,
+    "2024": -0.786,
+    "2025": 1.813,
+    "2026": 1.27
+   },
+   "by_year_carry_paid_at_G": {
+    "2022": 0.001,
+    "2023": 0.064,
+    "2024": 0.005,
+    "2025": 0.062,
+    "2026": 0.362
+   },
+   "by_year_pnl_at_G": {
+    "2022": -0.505,
+    "2023": 0.254,
+    "2024": -0.096,
+    "2025": 0.374,
+    "2026": 0.698
+   }
+  },
+  "fund": {
+   "mean_pnl_at_G": 1.376,
+   "mean_carry_paid_at_G": 0.622,
+   "mean_cost_at_G": 0.014,
+   "mean_net_at_G": 0.74,
+   "sharpe_net": 1.455,
+   "sharpe_price_only": 2.698,
+   "sharpe_net_nocarry": 2.67,
+   "gross_share_of_book": 0.286,
+   "by_year_net_at_G": {
+    "2022": 0.005,
+    "2023": 0.074,
+    "2024": 0.178,
+    "2025": 0.826,
+    "2026": 4.539
+   },
+   "by_year_sharpe_net": {
+    "2022": 0.052,
+    "2023": 0.237,
+    "2024": 0.276,
+    "2025": 1.398,
+    "2026": 5.969
+   },
+   "by_year_carry_paid_at_G": {
+    "2022": 0.08,
+    "2023": 0.171,
+    "2024": 0.394,
+    "2025": 0.971,
+    "2026": 2.382
+   },
+   "by_year_pnl_at_G": {
+    "2022": 0.089,
+    "2023": 0.257,
+    "2024": 0.592,
+    "2025": 1.809,
+    "2026": 6.954
+   }
+  }
+ },
+ "A_books": {
+  "live_S1_with_carry": {
+   "mean_at_G": 2.429,
+   "sharpe": 1.586,
+   "by_year_sharpe": {
+    "2022": 2.885,
+    "2023": 0.638,
+    "2024": 1.044,
+    "2025": 2.189,
+    "2026": 0.825
+   }
+  },
+  "wide_d30": {
+   "mean_at_G": 2.14,
+   "sharpe": 2.107,
+   "by_year_sharpe": {
+    "2022": 1.825,
+    "2023": 1.078,
+    "2024": 1.138,
+    "2025": 2.893,
+    "2026": 6.202
+   }
+  },
+  "check_vs_two_book_allocation_primary": "live 1.586 / wide 2.107 expected"
+ },
+ "A_carry_reconciliation": {
+  "live_S1_carry_raw_mean_bps_per_anchor(at realized gross~0.96)": -0.0813,
+  "live_S1_carry_per_unit_target_gross_x2": -0.1648,
+  "wide_d30_carry_raw_mean": 0.4687,
+  "wide_d30_carry_per_unit_target_gross_x2": 0.8895,
+  "convention": "carry 列 = 付出金额(正=付); 在役为负 ⇒ 书【收到】; team-lead 读到的 −0.17 = 每单位 gross ×2 的付出 = 收到 0.17 bps/锚 @gross2 = 我说的 +0.08/锚 @gross≈1 —— 同一事实"
+ },
+ "B1_rho": {
+  "book_live_vs_wide": 0.169,
+  "leg3x3(live_leg | wide_leg)": {
+   "king|king": 0.215,
+   "king|rev24": 0.027,
+   "king|fund": -0.004,
+   "s2|king": 0.203,
+   "s2|rev24": -0.008,
+   "s2|fund": -0.005,
+   "funding|king": 0.044,
+   "funding|rev24": -0.018,
+   "funding|fund": -0.115
+  },
+  "live_book_vs_wide_legs": {
+   "king": 0.222,
+   "rev24": 0.013,
+   "fund": -0.024
+  },
+  "wide_book_vs_live_legs": {
+   "king": 0.177,
+   "s2": 0.157,
+   "funding": -0.029
+  },
+  "within_live_legs": {
+   "king|s2": 0.911,
+   "funding|king": -0.07,
+   "funding|s2": -0.081
+  },
+  "within_wide_legs": {
+   "king|rev24": 0.261,
+   "fund|king": -0.111,
+   "fund|rev24": -0.022
+  },
+  "price_only_leg3x3": {
+   "king|king": 0.215,
+   "king|rev24": 0.026,
+   "king|fund": -0.005,
+   "s2|king": 0.203,
+   "s2|rev24": -0.008,
+   "s2|fund": -0.005,
+   "funding|king": 0.044,
+   "funding|rev24": -0.018,
+   "funding|fund": -0.115
+  }
+ },
+ "B2_blend_decomposition": {
+  "w=0.7": {
+   "sharpe_total": 2.449,
+   "mean_total_at_G": 2.226,
+   "live_book(1-w)": {
+    "mean_share": 0.327,
+    "euler_var_share": 0.322,
+    "sharpe_without": 2.107,
+    "marginal_sharpe": 0.342,
+    "own_sharpe": 1.586
+   },
+   "wide_fund(w)": {
+    "mean_share": 0.233,
+    "euler_var_share": 0.12,
+    "sharpe_without": 1.965,
+    "marginal_sharpe": 0.484,
+    "own_sharpe": 1.455
+   },
+   "wide_exfund(w)": {
+    "mean_share": 0.44,
+    "euler_var_share": 0.558,
+    "sharpe_without": 2.17,
+    "marginal_sharpe": 0.279,
+    "own_sharpe": 1.5
+   }
+  },
+  "w=0.5": {
+   "sharpe_total": 2.313,
+   "mean_total_at_G": 2.284,
+   "live_book(1-w)": {
+    "mean_share": 0.532,
+    "euler_var_share": 0.668,
+    "sharpe_without": 2.107,
+    "marginal_sharpe": 0.206,
+    "own_sharpe": 1.586
+   },
+   "wide_fund(w)": {
+    "mean_share": 0.162,
+    "euler_var_share": 0.049,
+    "sharpe_without": 1.97,
+    "marginal_sharpe": 0.343,
+    "own_sharpe": 1.455
+   },
+   "wide_exfund(w)": {
+    "mean_share": 0.306,
+    "euler_var_share": 0.283,
+    "sharpe_without": 1.978,
+    "marginal_sharpe": 0.335,
+    "own_sharpe": 1.5
+   }
+  },
+  "w=0.6": {
+   "sharpe_total": 2.414,
+   "mean_total_at_G": 2.255,
+   "live_book(1-w)": {
+    "mean_share": 0.431,
+    "euler_var_share": 0.502,
+    "sharpe_without": 2.107,
+    "marginal_sharpe": 0.307,
+    "own_sharpe": 1.586
+   },
+   "wide_fund(w)": {
+    "mean_share": 0.197,
+    "euler_var_share": 0.081,
+    "sharpe_without": 1.996,
+    "marginal_sharpe": 0.419,
+    "own_sharpe": 1.455
+   },
+   "wide_exfund(w)": {
+    "mean_share": 0.372,
+    "euler_var_share": 0.416,
+    "sharpe_without": 2.088,
+    "marginal_sharpe": 0.326,
+    "own_sharpe": 1.5
+   }
+  }
+ },
+ "B3_variants": {
+  "ref_live+wide_whole": {
+   "label": "在役 + 宽整书(主口径参照)",
+   "single_L": 1.586,
+   "single_W": 2.107,
+   "rho": 0.169,
+   "best_w": 0.7,
+   "best_sharpe": 2.449,
+   "sharpe_w0.5": 2.313,
+   "sharpe_w0.7": 2.449,
+   "delta_best_vs_maxsingle": 0.342,
+   "years_best_ge_maxsingle": 3,
+   "grid": {
+    "0.0": {
+     "sharpe": 1.586,
+     "mean_at_G": 2.429,
+     "by_year_sharpe": {
+      "2022": 2.885,
+      "2023": 0.638,
+      "2024": 1.044,
+      "2025": 2.189,
+      "2026": 0.825
+     }
+    },
+    "0.1": {
+     "sharpe": 1.715,
+     "mean_at_G": 2.4,
+     "by_year_sharpe": {
+      "2022": 2.997,
+      "2023": 0.701,
+      "2024": 1.105,
+      "2025": 2.361,
+      "2026": 1.217
+     }
+    },
+    "0.2": {
+     "sharpe": 1.859,
+     "mean_at_G": 2.371,
+     "by_year_sharpe": {
+      "2022": 3.098,
+      "2023": 0.771,
+      "2024": 1.175,
+      "2025": 2.553,
+      "2026": 1.682
+     }
+    },
+    "0.3": {
+     "sharpe": 2.014,
+     "mean_at_G": 2.342,
+     "by_year_sharpe": {
+      "2022": 3.171,
+      "2023": 0.847,
+      "2024": 1.253,
+      "2025": 2.76,
+      "2026": 2.231
+     }
+    },
+    "0.4": {
+     "sharpe": 2.171,
+     "mean_at_G": 2.313,
+     "by_year_sharpe": {
+      "2022": 3.193,
+      "2023": 0.925,
+      "2024": 1.338,
+      "2025": 2.971,
+      "2026": 2.871
+     }
+    },
+    "0.5": {
+     "sharpe": 2.313,
+     "mean_at_G": 2.284,
+     "by_year_sharpe": {
+      "2022": 3.138,
+      "2023": 0.999,
+      "2024": 1.422,
+      "2025": 3.165,
+      "2026": 3.59
+     }
+    },
+    "0.6": {
+     "sharpe": 2.414,
+     "mean_at_G": 2.255,
+     "by_year_sharpe": {
+      "2022": 2.991,
+      "2023": 1.062,
+      "2024": 1.487,
+      "2025": 3.306,
+      "2026": 4.351
+     }
+    },
+    "0.7": {
+     "sharpe": 2.449,
+     "mean_at_G": 2.226,
+     "by_year_sharpe": {
+      "2022": 2.757,
+      "2023": 1.106,
+      "2024": 1.505,
+      "2025": 3.358,
+      "2026": 5.076
+     }
+    },
+    "0.8": {
+     "sharpe": 2.401,
+     "mean_at_G": 2.197,
+     "by_year_sharpe": {
+      "2022": 2.462,
+      "2023": 1.123,
+      "2024": 1.449,
+      "2025": 3.298,
+      "2026": 5.665
+     }
+    },
+    "0.9": {
+     "sharpe": 2.278,
+     "mean_at_G": 2.168,
+     "by_year_sharpe": {
+      "2022": 2.141,
+      "2023": 1.112,
+      "2024": 1.317,
+      "2025": 3.131,
+      "2026": 6.045
+     }
+    },
+    "1.0": {
+     "sharpe": 2.107,
+     "mean_at_G": 2.14,
+     "by_year_sharpe": {
+      "2022": 1.825,
+      "2023": 1.078,
+      "2024": 1.138,
+      "2025": 2.893,
+      "2026": 6.202
+     }
+    }
+   }
+  },
+  "v1a_live+wide_fund_as_in_book": {
+   "label": "① 在役 + 仅宽 fund 腿(按宽书内份额, 每单位宽目标 gross)",
+   "single_L": 1.586,
+   "single_W": 1.455,
+   "rho": -0.024,
+   "best_w": 0.7,
+   "best_sharpe": 2.17,
+   "sharpe_w0.5": 1.978,
+   "sharpe_w0.7": 2.17,
+   "delta_best_vs_maxsingle": 0.584,
+   "years_best_ge_maxsingle": 3,
+   "grid": {
+    "0.0": {
+     "sharpe": 1.586,
+     "mean_at_G": 2.429,
+     "by_year_sharpe": {
+      "2022": 2.885,
+      "2023": 0.638,
+      "2024": 1.044,
+      "2025": 2.189,
+      "2026": 0.825
+     }
+    },
+    "0.1": {
+     "sharpe": 1.64,
+     "mean_at_G": 2.26,
+     "by_year_sharpe": {
+      "2022": 2.884,
+      "2023": 0.647,
+      "2024": 1.064,
+      "2025": 2.23,
+      "2026": 1.195
+     }
+    },
+    "0.2": {
+     "sharpe": 1.704,
+     "mean_at_G": 2.091,
+     "by_year_sharpe": {
+      "2022": 2.883,
+      "2023": 0.658,
+      "2024": 1.088,
+      "2025": 2.276,
+      "2026": 1.63
+     }
+    },
+    "0.3": {
+     "sharpe": 1.781,
+     "mean_at_G": 1.922,
+     "by_year_sharpe": {
+      "2022": 2.882,
+      "2023": 0.671,
+      "2024": 1.114,
+      "2025": 2.325,
+      "2026": 2.141
+     }
+    },
+    "0.4": {
+     "sharpe": 1.872,
+     "mean_at_G": 1.753,
+     "by_year_sharpe": {
+      "2022": 2.88,
+      "2023": 0.687,
+      "2024": 1.141,
+      "2025": 2.373,
+      "2026": 2.733
+     }
+    },
+    "0.5": {
+     "sharpe": 1.978,
+     "mean_at_G": 1.585,
+     "by_year_sharpe": {
+      "2022": 2.875,
+      "2023": 0.707,
+      "2024": 1.164,
+      "2025": 2.412,
+      "2026": 3.398
+     }
+    },
+    "0.6": {
+     "sharpe": 2.088,
+     "mean_at_G": 1.416,
+     "by_year_sharpe": {
+      "2022": 2.865,
+      "2023": 0.729,
+      "2024": 1.167,
+      "2025": 2.425,
+      "2026": 4.105
+     }
+    },
+    "0.7": {
+     "sharpe": 2.17,
+     "mean_at_G": 1.247,
+     "by_year_sharpe": {
+      "2022": 2.842,
+      "2023": 0.744,
+      "2024": 1.107,
+      "2025": 2.375,
+      "2026": 4.79
+     }
+    },
+    "0.8": {
+     "sharpe": 2.141,
+     "mean_at_G": 1.078,
+     "by_year_sharpe": {
+      "2022": 2.774,
+      "2023": 0.716,
+      "2024": 0.924,
+      "2025": 2.206,
+      "2026": 5.37
+     }
+    },
+    "0.9": {
+     "sharpe": 1.896,
+     "mean_at_G": 0.909,
+     "by_year_sharpe": {
+      "2022": 2.453,
+      "2023": 0.547,
+      "2024": 0.609,
+      "2025": 1.872,
+      "2026": 5.77
+     }
+    },
+    "1.0": {
+     "sharpe": 1.455,
+     "mean_at_G": 0.74,
+     "by_year_sharpe": {
+      "2022": 0.052,
+      "2023": 0.237,
+      "2024": 0.276,
+      "2025": 1.398,
+      "2026": 5.969
+     }
+    }
+   }
+  },
+  "v1b_live+wide_fund_standalone": {
+   "label": "① 在役 + 仅宽 fund 腿(独立单位 gross 腿书)",
+   "single_L": 1.586,
+   "single_W": 0.803,
+   "rho": -0.003,
+   "best_w": 0.5,
+   "best_sharpe": 1.776,
+   "sharpe_w0.5": 1.776,
+   "sharpe_w0.7": 1.587,
+   "delta_best_vs_maxsingle": 0.19,
+   "years_best_ge_maxsingle": 2,
+   "grid": {
+    "0.0": {
+     "sharpe": 1.586,
+     "mean_at_G": 2.429,
+     "by_year_sharpe": {
+      "2022": 2.885,
+      "2023": 0.638,
+      "2024": 1.044,
+      "2025": 2.189,
+      "2026": 0.825
+     }
+    },
+    "0.1": {
+     "sharpe": 1.635,
+     "mean_at_G": 2.258,
+     "by_year_sharpe": {
+      "2022": 2.903,
+      "2023": 0.544,
+      "2024": 1.028,
+      "2025": 2.254,
+      "2026": 1.353
+     }
+    },
+    "0.2": {
+     "sharpe": 1.686,
+     "mean_at_G": 2.087,
+     "by_year_sharpe": {
+      "2022": 2.923,
+      "2023": 0.422,
+      "2024": 1.0,
+      "2025": 2.319,
+      "2026": 1.954
+     }
+    },
+    "0.3": {
+     "sharpe": 1.735,
+     "mean_at_G": 1.916,
+     "by_year_sharpe": {
+      "2022": 2.944,
+      "2023": 0.26,
+      "2024": 0.952,
+      "2025": 2.379,
+      "2026": 2.623
+     }
+    },
+    "0.4": {
+     "sharpe": 1.771,
+     "mean_at_G": 1.745,
+     "by_year_sharpe": {
+      "2022": 2.963,
+      "2023": 0.047,
+      "2024": 0.872,
+      "2025": 2.421,
+      "2026": 3.336
+     }
+    },
+    "0.5": {
+     "sharpe": 1.776,
+     "mean_at_G": 1.575,
+     "by_year_sharpe": {
+      "2022": 2.975,
+      "2023": -0.232,
+      "2024": 0.746,
+      "2025": 2.426,
+      "2026": 4.047
+     }
+    },
+    "0.6": {
+     "sharpe": 1.724,
+     "mean_at_G": 1.404,
+     "by_year_sharpe": {
+      "2022": 2.962,
+      "2023": -0.571,
+      "2024": 0.562,
+      "2025": 2.371,
+      "2026": 4.7
+     }
+    },
+    "0.7": {
+     "sharpe": 1.587,
+     "mean_at_G": 1.233,
+     "by_year_sharpe": {
+      "2022": 2.88,
+      "2023": -0.93,
+      "2024": 0.329,
+      "2025": 2.231,
+      "2026": 5.238
+     }
+    },
+    "0.8": {
+     "sharpe": 1.363,
+     "mean_at_G": 1.062,
+     "by_year_sharpe": {
+      "2022": 2.614,
+      "2023": -1.236,
+      "2024": 0.083,
+      "2025": 2.002,
+      "2026": 5.632
+     }
+    },
+    "0.9": {
+     "sharpe": 1.085,
+     "mean_at_G": 0.891,
+     "by_year_sharpe": {
+      "2022": 1.953,
+      "2023": -1.438,
+      "2024": -0.139,
+      "2025": 1.706,
+      "2026": 5.879
+     }
+    },
+    "1.0": {
+     "sharpe": 0.803,
+     "mean_at_G": 0.72,
+     "by_year_sharpe": {
+      "2022": 0.854,
+      "2023": -1.543,
+      "2024": -0.317,
+      "2025": 1.384,
+      "2026": 6.004
+     }
+    }
+   }
+  },
+  "v2a_live+wide_exfund_as_in_book": {
+   "label": "② 在役 + 宽 ex-fund(king+rev24, 按宽书内份额)",
+   "single_L": 1.586,
+   "single_W": 1.5,
+   "rho": 0.197,
+   "best_w": 0.6,
+   "best_sharpe": 1.996,
+   "sharpe_w0.5": 1.97,
+   "sharpe_w0.7": 1.965,
+   "delta_best_vs_maxsingle": 0.41,
+   "years_best_ge_maxsingle": 4,
+   "grid": {
+    "0.0": {
+     "sharpe": 1.586,
+     "mean_at_G": 2.429,
+     "by_year_sharpe": {
+      "2022": 2.885,
+      "2023": 0.638,
+      "2024": 1.044,
+      "2025": 2.189,
+      "2026": 0.825
+     }
+    },
+    "0.1": {
+     "sharpe": 1.662,
+     "mean_at_G": 2.326,
+     "by_year_sharpe": {
+      "2022": 2.997,
+      "2023": 0.692,
+      "2024": 1.085,
+      "2025": 2.32,
+      "2026": 0.847
+     }
+    },
+    "0.2": {
+     "sharpe": 1.743,
+     "mean_at_G": 2.223,
+     "by_year_sharpe": {
+      "2022": 3.098,
+      "2023": 0.752,
+      "2024": 1.13,
+      "2025": 2.469,
+      "2026": 0.872
+     }
+    },
+    "0.3": {
+     "sharpe": 1.828,
+     "mean_at_G": 2.12,
+     "by_year_sharpe": {
+      "2022": 3.171,
+      "2023": 0.815,
+      "2024": 1.18,
+      "2025": 2.634,
+      "2026": 0.903
+     }
+    },
+    "0.4": {
+     "sharpe": 1.907,
+     "mean_at_G": 2.017,
+     "by_year_sharpe": {
+      "2022": 3.191,
+      "2023": 0.88,
+      "2024": 1.234,
+      "2025": 2.807,
+      "2026": 0.94
+     }
+    },
+    "0.5": {
+     "sharpe": 1.97,
+     "mean_at_G": 1.914,
+     "by_year_sharpe": {
+      "2022": 3.134,
+      "2023": 0.943,
+      "2024": 1.288,
+      "2025": 2.969,
+      "2026": 0.984
+     }
+    },
+    "0.6": {
+     "sharpe": 1.996,
+     "mean_at_G": 1.811,
+     "by_year_sharpe": {
+      "2022": 2.984,
+      "2023": 0.998,
+      "2024": 1.333,
+      "2025": 3.085,
+      "2026": 1.029
+     }
+    },
+    "0.7": {
+     "sharpe": 1.965,
+     "mean_at_G": 1.708,
+     "by_year_sharpe": {
+      "2022": 2.747,
+      "2023": 1.037,
+      "2024": 1.354,
+      "2025": 3.104,
+      "2026": 1.062
+     }
+    },
+    "0.8": {
+     "sharpe": 1.865,
+     "mean_at_G": 1.605,
+     "by_year_sharpe": {
+      "2022": 2.45,
+      "2023": 1.057,
+      "2024": 1.328,
+      "2025": 2.986,
+      "2026": 1.031
+     }
+    },
+    "0.9": {
+     "sharpe": 1.702,
+     "mean_at_G": 1.502,
+     "by_year_sharpe": {
+      "2022": 2.129,
+      "2023": 1.053,
+      "2024": 1.239,
+      "2025": 2.734,
+      "2026": 0.867
+     }
+    },
+    "1.0": {
+     "sharpe": 1.5,
+     "mean_at_G": 1.399,
+     "by_year_sharpe": {
+      "2022": 1.812,
+      "2023": 1.027,
+      "2024": 1.089,
+      "2025": 2.4,
+      "2026": 0.583
+     }
+    }
+   }
+  },
+  "v2b_live+wide_exfund_standalone": {
+   "label": "② 在役 + 宽 ex-fund(独立单位 gross)",
+   "single_L": 1.586,
+   "single_W": 1.272,
+   "rho": 0.195,
+   "best_w": 0.5,
+   "best_sharpe": 1.864,
+   "sharpe_w0.5": 1.864,
+   "sharpe_w0.7": 1.778,
+   "delta_best_vs_maxsingle": 0.278,
+   "years_best_ge_maxsingle": 5,
+   "grid": {
+    "0.0": {
+     "sharpe": 1.586,
+     "mean_at_G": 2.429,
+     "by_year_sharpe": {
+      "2022": 2.885,
+      "2023": 0.638,
+      "2024": 1.044,
+      "2025": 2.189,
+      "2026": 0.825
+     }
+    },
+    "0.1": {
+     "sharpe": 1.652,
+     "mean_at_G": 2.315,
+     "by_year_sharpe": {
+      "2022": 3.01,
+      "2023": 0.67,
+      "2024": 1.062,
+      "2025": 2.31,
+      "2026": 0.869
+     }
+    },
+    "0.2": {
+     "sharpe": 1.719,
+     "mean_at_G": 2.201,
+     "by_year_sharpe": {
+      "2022": 3.128,
+      "2023": 0.705,
+      "2024": 1.077,
+      "2025": 2.443,
+      "2026": 0.918
+     }
+    },
+    "0.3": {
+     "sharpe": 1.784,
+     "mean_at_G": 2.087,
+     "by_year_sharpe": {
+      "2022": 3.222,
+      "2023": 0.74,
+      "2024": 1.087,
+      "2025": 2.584,
+      "2026": 0.975
+     }
+    },
+    "0.4": {
+     "sharpe": 1.837,
+     "mean_at_G": 1.972,
+     "by_year_sharpe": {
+      "2022": 3.266,
+      "2023": 0.773,
+      "2024": 1.088,
+      "2025": 2.72,
+      "2026": 1.034
+     }
+    },
+    "0.5": {
+     "sharpe": 1.864,
+     "mean_at_G": 1.858,
+     "by_year_sharpe": {
+      "2022": 3.235,
+      "2023": 0.802,
+      "2024": 1.074,
+      "2025": 2.827,
+      "2026": 1.088
+     }
+    },
+    "0.6": {
+     "sharpe": 1.849,
+     "mean_at_G": 1.744,
+     "by_year_sharpe": {
+      "2022": 3.107,
+      "2023": 0.822,
+      "2024": 1.035,
+      "2025": 2.866,
+      "2026": 1.114
+     }
+    },
+    "0.7": {
+     "sharpe": 1.778,
+     "mean_at_G": 1.63,
+     "by_year_sharpe": {
+      "2022": 2.883,
+      "2023": 0.829,
+      "2024": 0.965,
+      "2025": 2.798,
+      "2026": 1.081
+     }
+    },
+    "0.8": {
+     "sharpe": 1.647,
+     "mean_at_G": 1.516,
+     "by_year_sharpe": {
+      "2022": 2.59,
+      "2023": 0.819,
+      "2024": 0.86,
+      "2025": 2.606,
+      "2026": 0.972
+     }
+    },
+    "0.9": {
+     "sharpe": 1.471,
+     "mean_at_G": 1.402,
+     "by_year_sharpe": {
+      "2022": 2.266,
+      "2023": 0.791,
+      "2024": 0.727,
+      "2025": 2.319,
+      "2026": 0.808
+     }
+    },
+    "1.0": {
+     "sharpe": 1.272,
+     "mean_at_G": 1.288,
+     "by_year_sharpe": {
+      "2022": 1.942,
+      "2023": 0.748,
+      "2024": 0.579,
+      "2025": 1.989,
+      "2026": 0.632
+     }
+    }
+   }
+  },
+  "v3a_live_exfunding+wide_whole": {
+   "label": "③ 在役去 funding 腿(king+s2 份额)+ 宽整书",
+   "single_L": 1.487,
+   "single_W": 2.107,
+   "rho": 0.174,
+   "best_w": 0.7,
+   "best_sharpe": 2.394,
+   "sharpe_w0.5": 2.232,
+   "sharpe_w0.7": 2.394,
+   "delta_best_vs_maxsingle": 0.287,
+   "years_best_ge_maxsingle": 3,
+   "grid": {
+    "0.0": {
+     "sharpe": 1.487,
+     "mean_at_G": 2.274,
+     "by_year_sharpe": {
+      "2022": 2.736,
+      "2023": 0.698,
+      "2024": 1.092,
+      "2025": 1.908,
+      "2026": 0.441
+     }
+    },
+    "0.1": {
+     "sharpe": 1.618,
+     "mean_at_G": 2.261,
+     "by_year_sharpe": {
+      "2022": 2.854,
+      "2023": 0.765,
+      "2024": 1.15,
+      "2025": 2.08,
+      "2026": 0.837
+     }
+    },
+    "0.2": {
+     "sharpe": 1.763,
+     "mean_at_G": 2.247,
+     "by_year_sharpe": {
+      "2022": 2.962,
+      "2023": 0.836,
+      "2024": 1.215,
+      "2025": 2.275,
+      "2026": 1.309
+     }
+    },
+    "0.3": {
+     "sharpe": 1.921,
+     "mean_at_G": 2.234,
+     "by_year_sharpe": {
+      "2022": 3.046,
+      "2023": 0.91,
+      "2024": 1.289,
+      "2025": 2.489,
+      "2026": 1.868
+     }
+    },
+    "0.4": {
+     "sharpe": 2.083,
+     "mean_at_G": 2.22,
+     "by_year_sharpe": {
+      "2022": 3.081,
+      "2023": 0.983,
+      "2024": 1.368,
+      "2025": 2.714,
+      "2026": 2.521
+     }
+    },
+    "0.5": {
+     "sharpe": 2.232,
+     "mean_at_G": 2.207,
+     "by_year_sharpe": {
+      "2022": 3.043,
+      "2023": 1.049,
+      "2024": 1.445,
+      "2025": 2.931,
+      "2026": 3.263
+     }
+    },
+    "0.6": {
+     "sharpe": 2.345,
+     "mean_at_G": 2.193,
+     "by_year_sharpe": {
+      "2022": 2.915,
+      "2023": 1.101,
+      "2024": 1.505,
+      "2025": 3.109,
+      "2026": 4.057
+     }
+    },
+    "0.7": {
+     "sharpe": 2.394,
+     "mean_at_G": 2.18,
+     "by_year_sharpe": {
+      "2022": 2.701,
+      "2023": 1.131,
+      "2024": 1.519,
+      "2025": 3.209,
+      "2026": 4.833
+     }
+    },
+    "0.8": {
+     "sharpe": 2.364,
+     "mean_at_G": 2.166,
+     "by_year_sharpe": {
+      "2022": 2.426,
+      "2023": 1.136,
+      "2024": 1.461,
+      "2025": 3.201,
+      "2026": 5.494
+     }
+    },
+    "0.9": {
+     "sharpe": 2.26,
+     "mean_at_G": 2.153,
+     "by_year_sharpe": {
+      "2022": 2.124,
+      "2023": 1.116,
+      "2024": 1.325,
+      "2025": 3.087,
+      "2026": 5.958
+     }
+    },
+    "1.0": {
+     "sharpe": 2.107,
+     "mean_at_G": 2.14,
+     "by_year_sharpe": {
+      "2022": 1.825,
+      "2023": 1.078,
+      "2024": 1.138,
+      "2025": 2.893,
+      "2026": 6.202
+     }
+    }
+   }
+  },
+  "v3b_live_exfunding_standalone+wide_whole": {
+   "label": "③ 在役去 funding 腿(独立单位 gross)+ 宽整书",
+   "single_L": 1.45,
+   "single_W": 2.107,
+   "rho": 0.165,
+   "best_w": 0.7,
+   "best_sharpe": 2.383,
+   "sharpe_w0.5": 2.201,
+   "sharpe_w0.7": 2.383,
+   "delta_best_vs_maxsingle": 0.276,
+   "years_best_ge_maxsingle": 4,
+   "grid": {
+    "0.0": {
+     "sharpe": 1.45,
+     "mean_at_G": 2.285,
+     "by_year_sharpe": {
+      "2022": 2.67,
+      "2023": 0.694,
+      "2024": 1.063,
+      "2025": 1.847,
+      "2026": 0.351
+     }
+    },
+    "0.1": {
+     "sharpe": 1.579,
+     "mean_at_G": 2.27,
+     "by_year_sharpe": {
+      "2022": 2.792,
+      "2023": 0.756,
+      "2024": 1.121,
+      "2025": 2.016,
+      "2026": 0.74
+     }
+    },
+    "0.2": {
+     "sharpe": 1.723,
+     "mean_at_G": 2.256,
+     "by_year_sharpe": {
+      "2022": 2.91,
+      "2023": 0.824,
+      "2024": 1.188,
+      "2025": 2.208,
+      "2026": 1.203
+     }
+    },
+    "0.3": {
+     "sharpe": 1.881,
+     "mean_at_G": 2.241,
+     "by_year_sharpe": {
+      "2022": 3.009,
+      "2023": 0.896,
+      "2024": 1.263,
+      "2025": 2.42,
+      "2026": 1.754
+     }
+    },
+    "0.4": {
+     "sharpe": 2.045,
+     "mean_at_G": 2.227,
+     "by_year_sharpe": {
+      "2022": 3.065,
+      "2023": 0.969,
+      "2024": 1.344,
+      "2025": 2.646,
+      "2026": 2.402
+     }
+    },
+    "0.5": {
+     "sharpe": 2.201,
+     "mean_at_G": 2.212,
+     "by_year_sharpe": {
+      "2022": 3.051,
+      "2023": 1.038,
+      "2024": 1.424,
+      "2025": 2.869,
+      "2026": 3.143
+     }
+    },
+    "0.6": {
+     "sharpe": 2.323,
+     "mean_at_G": 2.198,
+     "by_year_sharpe": {
+      "2022": 2.943,
+      "2023": 1.093,
+      "2024": 1.486,
+      "2025": 3.057,
+      "2026": 3.948
+     }
+    },
+    "0.7": {
+     "sharpe": 2.383,
+     "mean_at_G": 2.183,
+     "by_year_sharpe": {
+      "2022": 2.737,
+      "2023": 1.128,
+      "2024": 1.504,
+      "2025": 3.171,
+      "2026": 4.746
+     }
+    },
+    "0.8": {
+     "sharpe": 2.361,
+     "mean_at_G": 2.169,
+     "by_year_sharpe": {
+      "2022": 2.456,
+      "2023": 1.137,
+      "2024": 1.45,
+      "2025": 3.18,
+      "2026": 5.437
+     }
+    },
+    "0.9": {
+     "sharpe": 2.261,
+     "mean_at_G": 2.154,
+     "by_year_sharpe": {
+      "2022": 2.141,
+      "2023": 1.119,
+      "2024": 1.319,
+      "2025": 3.078,
+      "2026": 5.933
+     }
+    },
+    "1.0": {
+     "sharpe": 2.107,
+     "mean_at_G": 2.14,
+     "by_year_sharpe": {
+      "2022": 1.825,
+      "2023": 1.078,
+      "2024": 1.138,
+      "2025": 2.893,
+      "2026": 6.202
+     }
+    }
+   }
+  },
+  "v4_live_fundingleg_vs_wide_fundleg": {
+   "rho": -0.115,
+   "live_funding_leg_sharpe": 0.608,
+   "wide_fund_leg_sharpe": 1.455,
+   "sum_sharpe": 1.651,
+   "note": "两 funding 腿按各自书内份额直接相加(反向持仓部分抵消)"
+  }
+ },
+ "B4_wide_fund_carry_sensitivity": {
+  "precise_own_carry": 1.455,
+  "all_book_carry_to_fund": 0.928,
+  "no_carry": 2.67,
+  "wide_exfund_precise": 1.5,
+  "wide_exfund_if_fund_takes_all_carry": 1.787,
+  "fund_share_of_book_carry": 0.699,
+  "king_share_of_book_carry": 0.223,
+  "rev24_share": 0.078
+ },
+ "C_regime_by_year": {
+  "2022": {
+   "wide_fund_net_at_G": 0.005,
+   "wide_fund_sharpe": 0.052,
+   "wide_fund_price_at_G": 0.089,
+   "wide_fund_carry_paid_at_G": 0.08,
+   "wide_exfund_sharpe": 1.812,
+   "wide_exfund_net_at_G": 2.263,
+   "live_funding_net_at_G": 0.228,
+   "live_funding_sharpe": 0.862,
+   "live_exfunding_sharpe": 2.736,
+   "live_sharpe": 2.885,
+   "wide_sharpe": 1.825,
+   "blend0.7_sharpe": 2.757,
+   "blend0.7_gain_vs_live": -0.128,
+   "blend0.5_gain_vs_live": 0.253,
+   "blend0.6_gain_vs_live": 0.106,
+   "blend0.7_mean_at_G": 2.863,
+   "live_mean_at_G": 4.251,
+   "wide_mean_at_G": 2.268,
+   "wide_fund_negative_year": false,
+   "wide_w3_fund_mean": 0.035
+  },
+  "2023": {
+   "wide_fund_net_at_G": 0.074,
+   "wide_fund_sharpe": 0.237,
+   "wide_fund_price_at_G": 0.257,
+   "wide_fund_carry_paid_at_G": 0.171,
+   "wide_exfund_sharpe": 1.027,
+   "wide_exfund_net_at_G": 0.968,
+   "live_funding_net_at_G": -0.006,
+   "live_funding_sharpe": -0.026,
+   "live_exfunding_sharpe": 0.698,
+   "live_sharpe": 0.638,
+   "wide_sharpe": 1.078,
+   "blend0.7_sharpe": 1.106,
+   "blend0.7_gain_vs_live": 0.468,
+   "blend0.5_gain_vs_live": 0.361,
+   "blend0.6_gain_vs_live": 0.425,
+   "blend0.7_mean_at_G": 0.998,
+   "live_mean_at_G": 0.896,
+   "wide_mean_at_G": 1.042,
+   "wide_fund_negative_year": false,
+   "wide_w3_fund_mean": 0.185
+  },
+  "2024": {
+   "wide_fund_net_at_G": 0.178,
+   "wide_fund_sharpe": 0.276,
+   "wide_fund_price_at_G": 0.592,
+   "wide_fund_carry_paid_at_G": 0.394,
+   "wide_exfund_sharpe": 1.089,
+   "wide_exfund_net_at_G": 0.876,
+   "live_funding_net_at_G": -0.139,
+   "live_funding_sharpe": -0.491,
+   "live_exfunding_sharpe": 1.092,
+   "live_sharpe": 1.044,
+   "wide_sharpe": 1.138,
+   "blend0.7_sharpe": 1.505,
+   "blend0.7_gain_vs_live": 0.46,
+   "blend0.5_gain_vs_live": 0.378,
+   "blend0.6_gain_vs_live": 0.442,
+   "blend0.7_mean_at_G": 1.295,
+   "live_mean_at_G": 1.859,
+   "wide_mean_at_G": 1.054,
+   "wide_fund_negative_year": false,
+   "wide_w3_fund_mean": 0.352
+  },
+  "2025": {
+   "wide_fund_net_at_G": 0.826,
+   "wide_fund_sharpe": 1.398,
+   "wide_fund_price_at_G": 1.809,
+   "wide_fund_carry_paid_at_G": 0.971,
+   "wide_exfund_sharpe": 2.4,
+   "wide_exfund_net_at_G": 2.075,
+   "live_funding_net_at_G": 0.368,
+   "live_funding_sharpe": 1.456,
+   "live_exfunding_sharpe": 1.908,
+   "live_sharpe": 2.189,
+   "wide_sharpe": 2.893,
+   "blend0.7_sharpe": 3.358,
+   "blend0.7_gain_vs_live": 1.17,
+   "blend0.5_gain_vs_live": 0.976,
+   "blend0.6_gain_vs_live": 1.118,
+   "blend0.7_mean_at_G": 3.048,
+   "live_mean_at_G": 3.39,
+   "wide_mean_at_G": 2.901,
+   "wide_fund_negative_year": false,
+   "wide_w3_fund_mean": 0.329
+  },
+  "2026": {
+   "wide_fund_net_at_G": 4.539,
+   "wide_fund_sharpe": 5.969,
+   "wide_fund_price_at_G": 6.954,
+   "wide_fund_carry_paid_at_G": 2.382,
+   "wide_exfund_sharpe": 0.583,
+   "wide_exfund_net_at_G": 0.222,
+   "live_funding_net_at_G": 0.497,
+   "live_funding_sharpe": 2.543,
+   "live_exfunding_sharpe": 0.441,
+   "live_sharpe": 0.825,
+   "wide_sharpe": 6.202,
+   "blend0.7_sharpe": 5.076,
+   "blend0.7_gain_vs_live": 4.25,
+   "blend0.5_gain_vs_live": 2.765,
+   "blend0.6_gain_vs_live": 3.525,
+   "blend0.7_mean_at_G": 3.653,
+   "live_mean_at_G": 1.067,
+   "wide_mean_at_G": 4.761,
+   "wide_fund_negative_year": false,
+   "wide_w3_fund_mean": 0.585
+  }
+ },
+ "C_summary": {
+  "years_wide_fund_negative": [],
+  "blend0.7_gain_vs_live_in_those_years": {},
+  "blend_exfund_only(live+wide_exfund, w=0.7)_by_year_sharpe": {
+   "2022": 2.747,
+   "2023": 1.037,
+   "2024": 1.354,
+   "2025": 3.104,
+   "2026": 1.062
+  },
+  "wide_fund_sharpe_2022_24": 0.205,
+  "wide_fund_sharpe_2025_26": 3.147,
+  "wide_exfund_sharpe_2022_24": 1.347,
+  "wide_exfund_sharpe_2025_26": 1.974
+ },
+ "D_sign_evidence": {
+  "wide_fund_leg": {
+   "construction": "sc['fund'] = +f_fund_ema_v1(多高 funding EMA); shadow_loop.py L344 legz['fund']=xz(fe_v) 同号; PREREG_wide_book_assembly §1 三腿 slow+rev24+fund_ema",
+   "carry_paid_per_unit_target_gross_x2": 0.622,
+   "price_pnl_x2": 1.376,
+   "=> direction": "付 carry 且价格 P&L 为正 ⇒ 多高 funding(动量/拥挤)"
+  },
+  "live_funding_leg": {
+   "construction": "legs.py SIGNS funding=-1 × rank_centered(funding_ema) ⇒ 空高 funding",
+   "carry_paid_per_unit_target_gross_x2": -0.192,
+   "price_pnl_x2": 0.015,
+   "=> direction": "收 carry, 价格 P&L≈0 ⇒ 该腿的收益 = 纯 carry 收取"
+  },
+  "zoo_ic_f_fund_ema(kcurve_2026-08-15/zoo_scan.json)": {
+   "ic": 0.0132,
+   "t": 8.08,
+   "liq110": 0.0175,
+   "wide400": 0.0237,
+   "by_year": {
+    "2023": 0.0018,
+    "2024": 0.0122,
+    "2025": 0.0192,
+    "2026": 0.024
+   },
+   "reading": "正 IC = 高 funding → 下 4h 更高收益 ⇒ 宽书 +FE 是 zoo 认证方向(2024-26 走强, 2023≈0)"
+  },
+  "live_certification(memory ma_v2_funding_ema_GO 2026-07-08)": "high funding → low future return(crowding-reversion), long lowest / short highest; 1h L/S BE 18.8bps ⇒ 在役 −1 号亦是认证方向(不同窗口/视界/口径)"
+ }
+}
