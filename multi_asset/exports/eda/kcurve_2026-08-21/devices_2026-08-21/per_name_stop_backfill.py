@@ -49,7 +49,8 @@ def main():
         def _t(r):
             t = float(r.get("read_ts") or r.get("anchor_ts") or 0); return t / 1000 if t > 1e11 else t
         # last readback BEFORE the cooldown start where the name still carried a real position (≥ 5 USDT; dust stays after the exit)
-        pos_rows = [r for r in rb if r.get("symbol") == sym and _t(r) <= cd_ts and abs(float(r.get("venue_position_notional") or 0.0)) >= 5.0]
+        # "real position" = above the dust an exit leaves behind (BOME left −5.8 USDT after its 258 USDT exit) ⇒ ≥ 25 USDT
+        pos_rows = [r for r in rb if r.get("symbol") == sym and _t(r) <= cd_ts and abs(float(r.get("venue_position_notional") or 0.0)) >= 25.0]
         if not pos_rows:
             res[sym] = {"error": "no readback rows with a real position before stop"}; print(sym, "no readback rows"); continue
         last = max(pos_rows, key=_t)
