@@ -73,3 +73,11 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 
 **B2-bis · 2026-08-21 "绿电池直到功能首次触发"第 N 例(per_name_stop × off-schedule 守门断言)**: 止损条款上线时电池全绿; **首个真 stopped 名(ENA)出现后**, `tests_entrypoint_wiring` 的"off-schedule ⇒ 零 live 单"断言在 DRY 排练里读到 live 停牌状态 → 产生 BOME/ENA 两张 reduce-only flatten 单 → 红(n_live=2)。守门设计本就放行 reduce-only 路径(note 写明), 断言对象写得太粗。修: 锚记录新增 `n_live_opening`/`live_reduce_only_syms`, 断言改为 opening==0 且键缺失即红。教训: **断言的对象要和守门的对象同一粒度**; 且排练读 live 状态树 ⇒ 断言随功能状态漂移, 这是昨天"fixture 写 live 树"的镜像(读侧)。顺带: eps 0.10→0.35 的 safe_commit 被这条红拦下 → 先修后抬, 磁盘已回退到 0.10 保持 disk==git。
 **A9 · 2026-08-21 12:16Z §4-2 日亏停机误触发(口径缺陷, 书全平)**: cond2 用 realised+unrealised(当前)/nav, 往日未实现(日初 −329)被重复计入 ⇒ 报 −4.52% 触发, 真实权益日变化 −2.96%(线 −4%, 告警线 −2.68%)。平仓执行干净(~−15U), reduce-only 开启。详见 docs/INCIDENT_daily_loss_trip_2026-08-21.md。**家族: B1 读语义**(守门量与字面不一致)+ "正确的动作类型, 错的测量"。补丁草案未落实盘树, 待裁定。
+
+## ★★★ E-0821-A 停机线读错量: §4-2 双计前日未实现 ⇒ 误平整书(2026-08-21 12:16Z)
+- **现象**: 看门狗报 "单日亏损 −4.52% of EQUITY" 并平掉 108 名; 权益口径真值 −2.96%, 未越 −4.0%。cond4(−25% 线)同族缺陷(累加未实现水平再取高水位, 读 −7.56% vs 真 +0.49%)。
+- **根因**: `(realised_today + unrealised_now)/nav` —— 昨日未实现已在今日权益里, 被再算一次; **5 个测试套件用同一个脑子写夹具**(亏损只写在盈亏列, nav 不动), 于是全绿地错了三周。cond4 还把"从起点"写成了"从高水位"。
+- **代价**: 执行成本 ≈ 26 USDT(0.17% NAV; 其中补单漂移 16), 反事实盈亏 -34.6(空仓 4h 躲过), 本次净 -8.7 USDT ≈ 打平 **= 运气**; 反事实方差 ±0.5–1% NAV。当日 −3.07% 是挤压行情。
+- **修复**: 实盘 `0aa6586`(cond2 权益日变化; 转账/截断日 UNKNOWN)+ `57cb180`(cond4 自起点 TWR, 入金不重标定, 转账日按盈亏; 用户裁定"按照起始权益金"); 五个套件夹具对齐并保留各自不变量; 预注册 `PREREG_cond4_start_equity_caliber_2026-08-21.md`。
+- **制度**: 双账守卫影子版上线(`~/guard_twin`, 16:24Z), 7 天零分歧后预注册接线(触发需双表同意); 口径性质测试 08-23 进电池; 守卫改动先影子一周; 本日还把"state.json 存在"当触发误判过一次 —— **读内容不读存在**。
+- **模式归档**: 同族 = `ledger_not_book_defect_family` / `green_battery_means_old_defects` / `mode_tree_read_contaminates_criteria`; 触发器 = 任何守卫读数先手推一遍(daily_nav: 日内行是累计快照, 不可相加; equity_delta_since_prev = nav − 前日末)。
