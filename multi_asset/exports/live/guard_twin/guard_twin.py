@@ -225,18 +225,24 @@ def main(once=False):
         g = (equity - float(nav_latest)) / float(nav_latest) * 100.0
         cmp["input_gap_pp"] = g
         if abs(g) > TOL["input_pct"]: dis.append(f"INPUT equity {equity:.2f} vs daily_nav {float(nav_latest):.2f} ({g:+.3f}pp, age {nav_age_min:.0f}m)")
-    if day_pct_twin is not None and arith_today is not None and abs(day_pct_twin - arith_today) > TOL["day_pct"]:
+    # ★ DAY/CUM/LEV are compared ONLY when the watchdog's nav row is fresh (≤30 min): between anchors the twin
+    #   reads live equity while daily_nav/last_eval still hold the last anchor's numbers, so a real market move
+    #   shows up as a "disagreement" (measured 2026-08-21 19:04Z: +0.94pp recovery 2h45m after the 16:19Z row).
+    #   A stale row is NOT comparable; the twin's own readings are still recorded as the independent series.
+    _fresh = (nav_age_min is not None and nav_age_min <= 30.0)
+    cmp["comparable"] = bool(_fresh)
+    if _fresh and day_pct_twin is not None and arith_today is not None and abs(day_pct_twin - arith_today) > TOL["day_pct"]:
         dis.append(f"DAY twin {day_pct_twin:+.3f}% vs daily_nav-arith {arith_today:+.3f}%")
-    if c4.get("cum_return_from_start_pct") is not None and abs(cum_twin_pct - float(c4["cum_return_from_start_pct"])) > TOL["cum_pct"]:
+    if _fresh and c4.get("cum_return_from_start_pct") is not None and abs(cum_twin_pct - float(c4["cum_return_from_start_pct"])) > TOL["cum_pct"]:
         dis.append(f"CUM twin {cum_twin_pct:+.3f}% vs wd {float(c4['cum_return_from_start_pct']):+.3f}%")
     if abs(closed_account_gap) > max(2.0, 0.0005 * equity):
         dis.append(f"LEDGER USDT wallet {ident['USDT']['wallet']:.2f} vs Σ USDT income {ident['USDT']['sum_income']:.2f} (gap {closed_account_gap:+.2f})")
     _bnb = ident.get("BNB", {})
     if _bnb.get("gap") is not None and abs(_bnb["gap"]) > 0.002:
         dis.append(f"LEDGER BNB wallet {_bnb['wallet']:.4f} vs Σ BNB income {_bnb['sum_income']:.4f} (gap {_bnb['gap']:+.4f})")
-    if lev_twin is not None and c4b.get("actual_leverage") is not None and abs(lev_twin - float(c4b["actual_leverage"])) > TOL["lev"]:
+    if _fresh and lev_twin is not None and c4b.get("actual_leverage") is not None and abs(lev_twin - float(c4b["actual_leverage"])) > TOL["lev"]:
         dis.append(f"LEV twin {lev_twin:.3f} vs wd {float(c4b['actual_leverage']):.3f}")
-    cmp["disagreements"] = dis; cmp["status"] = "DISAGREE" if dis else "AGREE"
+    cmp["disagreements"] = dis; cmp["status"] = "DISAGREE" if dis else ("AGREE" if _fresh else "AGREE(ledger-only; nav row stale)")
     jl_append("compare.jsonl", cmp)
     json.dump(cmp, open(os.path.join(ST, "latest.json"), "w"), indent=1, ensure_ascii=False, default=str)
     if dis:
