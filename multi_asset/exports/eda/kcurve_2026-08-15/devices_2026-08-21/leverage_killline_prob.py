@@ -15,8 +15,8 @@ net = net[np.isfinite(net)]
 SHR = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
 net = net - net.mean() * (1.0 - SHR)   # 均值折让(方差不变): 回放乐观度校正
 rng = np.random.RandomState(11)
-L_ = 42; nb = len(net) // L_; NY = 2190; nblocks = NY // L_ + 1
-res = {"mean_shrink": SHR, "min_year": MINY, "n_anchor": int(len(net)), "mean_bps": round(float(net.mean()), 3), "sd_bps": round(float(net.std()), 2)}
+L_ = int(sys.argv[7]) if len(sys.argv) > 7 else 42; nb = len(net) // L_; NY = 2190; nblocks = NY // L_ + 1
+res = {"block": L_, "mean_shrink": SHR, "min_year": MINY, "n_anchor": int(len(net)), "mean_bps": round(float(net.mean()), 3), "sd_bps": round(float(net.std()), 2)}
 for lev in LEVS:
     hit25 = 0; hit15 = 0; ann = []
     for _ in range(2000):
