@@ -58,7 +58,9 @@ def main():
         # exit fills: orders on this symbol after that readback (up to the cooldown start) that reduce the position
         def _ot(o):
             t = float(o.get("submit_ts") or 0); return t / 1000 if t > 1e11 else t
-        ex = [o for o in ords if o.get("symbol") == sym and _t(last) - 60 <= _ot(o) <= cd_ts + 3600 and float(o.get("filled_notional") or 0) != 0]
+        # the cooldown stamp is the TRIGGER readback + 7d (measured: BOME 08-20 12:16Z trigger, exit at the 16:00Z anchor);
+        # the exit happens at the next anchor (≤4h) + k window ⇒ look up to 6h after the trigger
+        ex = [o for o in ords if o.get("symbol") == sym and _t(last) - 60 <= _ot(o) <= cd_ts + 6 * 3600 and float(o.get("filled_notional") or 0) != 0]
         ex = [o for o in ex if (sign > 0 and o.get("side") == "sell") or (sign < 0 and o.get("side") == "buy")]
         if not ex:
             res[sym] = {"error": "no exit fills found", "notional": notional}; print(sym, "no exit fills"); continue
