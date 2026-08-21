@@ -1,0 +1,5 @@
+# 草案(未应用): live/watchdog.py cond2 单日亏损口径 → 权益日变化
+# 现: pnl = real + unreal; per_day_loss = pnl / nav                         (往日未实现被重复计入)
+# 拟: per_day_loss = (nav − prev_nav) / prev_nav * 100  (= equity_delta_since_prev/prev_nav), 缺 prev_nav ⇒ None(不伪造绿)
+# 伴随: tests_watchdog 加断言 —— 日初未实现为负的日子, cond2 读数必须等于权益日变化(两口径一致性), 并用 2026-08-21 12:16Z 真实行做回归样例(−2.96% 不得报 −4.52%)。
+# 部署: 预注册 + 电池 + 用户一字; 生效下一锚。
