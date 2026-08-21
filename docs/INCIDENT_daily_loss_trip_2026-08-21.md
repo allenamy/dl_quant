@@ -18,3 +18,13 @@
 2. **口径修复**: 改为 `equity_delta_since_prev / prev_nav`(daily_nav 已有字段, 与"单日权益变化"字面一致), 或 realised + Δunreal。属守门行为改动 ⇒ 预注册 + 电池 + 你一字; 补丁草案见 `docs/PATCH_cond2_caliber_2026-08-21.diff`(未落实盘树, 落盘即上线故未动)。
 ## 我的失职
 值守报告里我只提"距 −25% 累计线 >20pp", **没有把 −4% 单日线及其口径列为观察点**; 口径缺陷本可在事前由 FIELD_CALIBERS 式核对发现(它正是"读路径语义"家族)。
+
+
+## §R 恢复记录(落盘 2026-08-21T15:27:42Z)
+
+- **口径修复已提交**: `~/dl_quant_live` commit **0aa6586**(电池全绿, 第三次运行; 前两次红 = 五个套件把旧口径钉在夹具里: `tests_watchdog [2]`, `tests_unseal_rehearsal_halt`, `tests_position_break_blindspot`, `tests_nav_staleness`, `tests_numerator_honesty` —— 全部按"亏损必须体现在 nav; nav 缺失才 UNKNOWN"对齐, 各自原不变量保留)。
+- **新 cond2 语义**: 单日亏损 = 当日末 nav vs 前日末 nav; 窗口首日无前日 ⇒ 日内 nav 变化; 转账日(`external_flow_usdt`≠0)与截断日 ⇒ UNKNOWN 并点名; 旧 `(realised+unrealised)/nav` 退役(它把前日已计入权益的未实现再算一次 ⇒ 12:16Z 读 −4.52%, 权益真值 −2.96% 未越线)。
+- **恢复执行**: `LIVE_MODE=LIVE bash ops/resume_from_trip.sh "<reason>"` @ 2026-08-21T15:27:42Z; 硬门 1/4 通过(无条件仍触发、无盲区); 证据隔离 `state/live/watchdog/quarantine/state_20260821T152742Z_resumed.json` + `harvest_20260821T152742Z_resumed.json`; `state.json` 与 `harvest_ema.json` 已移除; 4/4 无 halt/reduce-only 残留。
+- **后果**: 16:00Z 锚按原目标**整书重建**(EMA 记忆复位 ⇒ `apply_harvest_ema(prev_state=None)` 直接给原始目标, 无平滑折让); 预期换手≈整书; `trip_receipt.json` 留存为证据(只写不读, `scheduler/run_anchor.py:648` 唯一写点, 无消费者 ⇒ 不会阻塞交易)。
+- **探针停机守卫**(A3, `3ec1402`): 进程 50650 于 15:15Z 以守卫版重启; 停机窗内仅 12:20Z 一轮(守卫前)实际下单; 16:20Z 下一轮已在恢复后 ⇒ 本次停机**没有**产生 `skip_round_live_halted` 证据; 守卫的首个行为证据要等下一次停机。
+- **仍开口**: A2 cond4(−25% 线)口径(累加日收益而非路径; 当前读 −7.56% vs 真 −4.3~−4.8%)待用户裁定起点语义后修; 恢复后若 16:00Z 再触发则本次修复无效, 不得再跑 resume。
