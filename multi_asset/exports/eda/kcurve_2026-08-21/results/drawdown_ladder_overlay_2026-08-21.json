@@ -1,0 +1,67 @@
+{
+ "device": "paper overlay on in-role replay S1 (w2_live_series_slim.npz), gross multiplier m(DD from WINDOW start), 255 rolling 1y windows (2190 anchors, step 30), kill-line −25% from window start ⇒ flat for rest of window; delever cost 4 bps × |Δm|×2; recover at half the step",
+ "rows": {
+  "static": {
+   "ret_mean": 48.1,
+   "ret_med": 47.1,
+   "ret_p10": 1.4,
+   "sharpe_mean": 1.14,
+   "p_trip": 7.1,
+   "minfs_p10": -23.8,
+   "time_delev": 4.0,
+   "cost_bps": 0.0
+  },
+  "L2 -8/.75 -12/.5 -16/.25": {
+   "ret_mean": 42.9,
+   "ret_med": 40.2,
+   "ret_p10": -11.2,
+   "sharpe_mean": 1.05,
+   "p_trip": 0.0,
+   "minfs_p10": -17.6,
+   "time_delev": 18.1,
+   "cost_bps": 11.6
+  },
+  "L3 -5/.75 -10/.5 -15/.25": {
+   "ret_mean": 42.0,
+   "ret_med": 40.0,
+   "ret_p10": -9.0,
+   "sharpe_mean": 1.04,
+   "p_trip": 0.0,
+   "minfs_p10": -16.4,
+   "time_delev": 21.6,
+   "cost_bps": 14.8
+  },
+  "L4 -12/.5 -18/.25": {
+   "ret_mean": 44.0,
+   "ret_med": 41.6,
+   "ret_p10": -8.0,
+   "sharpe_mean": 1.09,
+   "p_trip": 0.0,
+   "minfs_p10": -18.5,
+   "time_delev": 14.9,
+   "cost_bps": 5.6
+  },
+  "L5 -6/.5": {
+   "ret_mean": 42.9,
+   "ret_med": 40.0,
+   "ret_p10": -2.7,
+   "sharpe_mean": 1.11,
+   "p_trip": 0.0,
+   "minfs_p10": -15.7,
+   "time_delev": 19.4,
+   "cost_bps": 12.2
+  },
+  "L6 -10/.5": {
+   "ret_mean": 44.4,
+   "ret_med": 41.4,
+   "ret_p10": -1.6,
+   "sharpe_mean": 1.13,
+   "p_trip": 0.0,
+   "minfs_p10": -17.8,
+   "time_delev": 15.4,
+   "cost_bps": 6.5
+  }
+ },
+ "reading": "one-step ladder −10%→half gross (recover at −5%) removes the −25% kill-line in all 255 windows at ≈−4pp/yr return and ≈−0.01 Sharpe; multi-step ladders cost more return for no extra protection at this line. Caliber caveats: paper overlay (linear gross scaling), constant-gross replay 2022-26, window-start drawdown (live line is from pilot start), no EMA/band interaction modelled.",
+ "status": "传闻级(单装置, 主线同作者); 进 08-25 回撤阶梯预注册的数字基础, 第二装置 = 实盘函数回放(compose_book)叠加阶梯"
+}
