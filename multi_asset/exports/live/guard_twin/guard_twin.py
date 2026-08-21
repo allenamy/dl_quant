@@ -240,7 +240,15 @@ def main(once=False):
     _bnb = ident.get("BNB", {})
     if _bnb.get("gap") is not None and abs(_bnb["gap"]) > 0.002:
         dis.append(f"LEDGER BNB wallet {_bnb['wallet']:.4f} vs Σ BNB income {_bnb['sum_income']:.4f} (gap {_bnb['gap']:+.4f})")
-    if _fresh and lev_twin is not None and c4b.get("actual_leverage") is not None and abs(lev_twin - float(c4b["actual_leverage"])) > TOL["lev"]:
+    # during a trip (reduce-only / flattened) the anchor row's leverage predates the flatten ⇒ not comparable
+    _halted = False
+    try:
+        _st = json.load(open(os.path.join(LIVE, "state", "live", "watchdog", "state.json")))
+        _halted = bool(_st.get("reduce_only") or _st.get("tripped_at"))
+    except Exception:
+        _halted = False
+    cmp["live_halted"] = _halted
+    if _fresh and (not _halted) and lev_twin is not None and c4b.get("actual_leverage") is not None and abs(lev_twin - float(c4b["actual_leverage"])) > TOL["lev"]:
         dis.append(f"LEV twin {lev_twin:.3f} vs wd {float(c4b['actual_leverage']):.3f}")
     cmp["disagreements"] = dis; cmp["status"] = "DISAGREE" if dis else ("AGREE" if _fresh else "AGREE(ledger-only; nav row stale)")
     jl_append("compare.jsonl", cmp)
