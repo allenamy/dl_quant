@@ -30,5 +30,9 @@
 3. 新增断言: 转账日读数来自盈亏不来自 nav 跳变(入金 +3810 的日子读 ≈ +1.45% 不是 +178%); 空洞含转账 ⇒ blind 并命名。
 4. 电池全绿 → `safe_commit`; 提交后 `last_eval.json` cond4 读数应 ≈ +0.6%(起点)/−4.3%(高水位, info)。
 
-## 5. 结果(提交后回填)
-(待填: commit、电池批次、首锚读数)
+## 5. 结果(提交后回填, 2026-08-21 15:53Z)
+- 实盘仓 commit **`57cb180`**(电池全绿, 一次通过); 变更: `live/watchdog.py` cond4 块 + `live/tests_watchdog.py` [4](夹具亏损入 nav 6%/日 ⇒ −26.6% 触发; −22.6% 不触发; 入金日按盈亏 +1.77% 非 nav 跳变 +200%; 截断空洞含转账 ⇒ blind 并命名)。
+- `tests_numerator_honesty` 变异体 `cond4_ignores_truncation` 仍有牙: "扣留"在代码里只定义一次(`_nav_use` 成员资格), 链条与覆盖率共用之。
+- 新增 detail 键: `cum_return_from_start_pct`(判读数)/`max_drawdown_from_peak_pct_INFO`/`chain_broken`/`unpriced_flow_days`; 触发文案改为 "cumulative return from STARTING equity"。
+- 首锚读数(16:00Z 看门狗)见 INCIDENT 文档 §R 追记。
+- 注: `tests_production_signature` 依赖未移植的 `pilot_daily`, 是电池明文排除的既有红(run_acceptance.sh 头注 L12), 与本修复无关。
