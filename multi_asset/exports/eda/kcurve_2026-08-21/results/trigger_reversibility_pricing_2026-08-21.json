@@ -1,0 +1,64 @@
+{
+ "device": "in-role replay S1 (w2_live_series_slim.npz, 9821 anchors 2022-01→2026-06, bps of NAV at gross 2)",
+ "n_days": 1641,
+ "day_pnl_bps": {
+  "mean": 13.8,
+  "sd": 183.4,
+  "p1": -444.8,
+  "p5": -274.3,
+  "min": -678.7
+ },
+ "after_first_intraday_crossing": {
+  "-150": {
+   "n": 408,
+   "next_anchor_mean": 4.3,
+   "next_anchor_sd": 83,
+   "p10": -92,
+   "next2": 4.9,
+   "rest_of_day": -3.4,
+   "next6": 12.6
+  },
+  "-200": {
+   "n": 245,
+   "next_anchor_mean": 9.0,
+   "next_anchor_sd": 82,
+   "p10": -82,
+   "next2": 6.4,
+   "rest_of_day": -0.3,
+   "next6": 18.0
+  },
+  "-268": {
+   "n": 125,
+   "next_anchor_mean": 7.3,
+   "next_anchor_sd": 93,
+   "p10": -94,
+   "next2": -9.9,
+   "rest_of_day": -8.6,
+   "next6": 23.8
+  },
+  "-300": {
+   "n": 91,
+   "next_anchor_mean": 4.4,
+   "next_anchor_sd": 98,
+   "p10": -89,
+   "next2": -17.3,
+   "rest_of_day": -8.2,
+   "next6": 39.1
+  },
+  "-400": {
+   "n": 35,
+   "next_anchor_mean": 14.4,
+   "next_anchor_sd": 102,
+   "p10": -76,
+   "next2": 13.1,
+   "rest_of_day": 11.8,
+   "next6": 44.6
+  }
+ },
+ "unconditional_next_anchor": {
+  "mean": 2.3,
+  "sd": 74.7
+ },
+ "false_flatten_certain_cost_pct_nav": 0.17,
+ "caliber": "cum = running sum of per-anchor net within the UTC day; event = first anchor where cum ≤ −X bps; replay at constant gross 2, not the live book; no stop overlays"
+}
