@@ -1,0 +1,287 @@
+##### PROBE_V2_MUTANT=legacy_flatten
+### MUTANT ACTIVE: legacy_flatten (expect RED below)
+FAIL (a1) only own BANK net 2362 flattened (reduceOnly SELL)  -- [{'symbol': 'ATOMUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': '237.72', 'reduceOnly': 'true'}, {'symbol': 'BANKUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': '2362', 'reduceOnly': 'true'}, {'symbol': 'SNXUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': '806.5', 'reduceOnly': 'true'}
+FAIL (a1) book's ATOM/SNX positions untouched  -- {'ATOMUSDT': 0.0, 'SNXUSDT': 0.0}
+FAIL (a1) foreign_position_detected for ATOM & SNX (recorded only)
+FAIL (a1) two foreign events in events.jsonl
+PASS (a2) incident replay: flatten set == {BANK} (own net), not ATOM/SNX
+PASS (a2) incident replay: ATOM/SNX positions unchanged after round
+PASS (a2) held ATOM/SNX excluded at pick time (never become round symbols)
+PASS (a2) receipt ok: flatten-only-own, no foreign on round symbols
+PASS (a2) zero probe orders on ATOM/SNX
+FAIL (a3) mid-round foreign BANK +237.72: flatten own 2362 only, 237.72 left on the book  -- ({'symbol': 'BANKUSDT', 'side': 'SELL', 'qty': 2599.72, 'own_net': 2362.0, 'acct_pos': 2599.72, 'resp_id': 1019, 'err': None, 'body': None, 'avgPrice': None}, 0.0)
+FAIL (a3) foreign_position_detected BANK diff=+237.72 in receipt
+FAIL (a3) flatten-only-own ok, round ok=False because foreign present  -- ({'n_flattens': 5, 'violations': [{'symbol': 'BANKUSDT', 'side': 'SELL', 'qty': 2599.72, 'own_net': 2362.0, 'acct_pos': 2599.72, 'resp_id': 1019, 'err': None, 'body': None, 'avgPrice': None}], 'ok': False}, False)
+PASS (b) picked T2x3+T3x2 skipping universe names
+PASS (b) picked ∩ universe = ∅
+PASS (b) ATOM/SNX/U130/U133 excluded as universe hits
+PASS (b) receipt assertion round_syms ∩ universe = ∅ ok
+PASS (b) static exclusions still applied
+PASS (b) data-driven exclusion: USAR (EQUITY, not in static list) and OLDCOIN (SETTLING) excluded via exchangeInfo
+PASS (b) universe 140 from authoritative span table (+preds +MANIFEST union)
+PASS (b) PROBE_SYMS pinned names in universe are dropped
+PASS (b) name only in preds_latest is excluded too (union) and inconsistency recorded
+PASS (c) live_halted [state.json reduce_only] -> True
+PASS (c) round skipped, zero writes [state.json reduce_only]
+PASS (c) live_halted [state.json tripped_at] -> True
+PASS (c) round skipped, zero writes [state.json tripped_at]
+PASS (c) live_halted [state.json open_orders_halted] -> True
+PASS (c) round skipped, zero writes [state.json open_orders_halted]
+PASS (c) live_halted [no state.json, last_eval tripped] -> True
+PASS (c) round skipped, zero writes [no state.json, last_eval tripped]
+PASS (c) live_halted [no state.json, last_eval stale 7h] -> True
+PASS (c) round skipped, zero writes [no state.json, last_eval stale 7h]
+PASS (c) live_halted [last_eval missing] -> True
+PASS (c) round skipped, zero writes [last_eval missing]
+PASS (c) live_halted [healthy: no state.json, last_eval fresh not tripped] -> False
+PASS (c) round ran when not halted [healthy: no state.json, last_eval fresh not tripped]
+PASS (c) live_halted [healthy: state.json present but cleared] -> False
+PASS (c) round ran when not halted [healthy: state.json present but cleared]
+PASS (d) receipt has all required keys
+PASS (d) receipt file written at state/receipt_<round>.json
+PASS (d) receipt assertion touched ∩ universe = ∅
+PASS (d) touched == placed symbols
+PASS (d) 5 names x 2 arms x 2 sides = 20 orders, 20 final states
+PASS (d) own_net == sum of own fills (qb-qa residual per arm, v1 sizing)
+PASS (d) each flatten qty == own residual (floored to step)
+PASS (d) ok=True, no foreign
+PASS (d) universe provenance (path/n/sha256) in receipt
+PASS (d) held symbols at start recorded (names only)
+PASS (d) end positions on round names all 0
+PASS (d) pending ledger cleared after clean round
+PASS (e) BANK own net = 393+1969 (sells -5022 rejected)
+PASS (e) BANK flattened by own net 2362
+PASS (e) BERA flattened by own net 0.4 (= 0.2 sizing residual + 0.2 short-fill), step 0.1
+PASS (e) DODOX flattened by own net 6 (= 3 residual + 3 short-fill)
+PASS (e) positions 0 after flatten
+PASS (e) receipt ok, no foreign
+PASS (e) flatten symbols ⊆ round symbols
+PASS (e) pnl estimate computed (negative: taker flatten+fees)
+FAIL (f) same-name own 10 + foreign 237: flatten 10, leave 237  -- ({'BANKUSDT': 247.0, 'SNXUSDT': 796.0, 'XXXUSDT': 40.0}, {'BANKUSDT': 0.0, 'SNXUSDT': 0.0, 'XXXUSDT': 0.0})
+FAIL (f) sign mismatch (own +10 on a -796 book short): no order  -- ({'BANKUSDT': 247.0, 'SNXUSDT': 796.0, 'XXXUSDT': 40.0}, {'BANKUSDT': 0.0, 'SNXUSDT': 0.0, 'XXXUSDT': 0.0})
+PASS (f) own 100 but account 40: capped at 40 (never more than position)
+FAIL (f) all three recorded as foreign (acct != own)
+FAIL (f) flatten_skipped sign_mismatch logged for SNX
+PASS (g) span table missing => round skipped, zero writes
+PASS (g) span table too small => round skipped, zero writes
+PASS (h) recovery flattens own BANK 393 only
+PASS (h) recovery cancels the still-open own SELL
+PASS (h) recovery never touches ATOM (not in ledger)
+PASS (h) ledger cleared + recovery receipt written
+PASS (i) empty candidates => skip_round_no_candidates, zero writes
+PASS (i) event logged
+PASS (i) exclusions itemised: 10 universe + 140 static
+PASS (j) 25 min late => skip_round_off_slot, zero writes
+PASS (j) 5 min late => runs
+PASS (k) daily approx loss -12.5 < -10 => skip rounds, zero writes
+PASS (k) yesterday's loss does not stop today
+PASS (l) name with someone else's open order is skipped
+PASS (l) own orphan probe* order swept, name still traded
+PASS (l) both events logged
+usage: python3 exec_probe.py run | --dry      (no default: an explicit verb is required)
+PASS (m) no verb => usage, rc=2 (no API touched)
+usage: python3 exec_probe.py run | --dry      (no default: an explicit verb is required)
+PASS (m) unknown verb => usage
+PASS (m) no KILL => not killed
+PASS (m) KILL present => killed()
+PASS (m) run_forever exits immediately on KILL, zero writes
+PASS (n) --dry issues zero POST/DELETE
+PASS (n) dry receipt: symbols picked, no orders
+PASS (n) dry logs would_sweep_orphan, does not cancel
+PASS (n) 5 quotes logged
+PASS (o) next_slot arithmetic
+PASS (o) slot id format
+
+MUTANT[legacy_flatten]: 78/89 checks passed  FAILED=11
+rc=1 for legacy_flatten
+##### PROBE_V2_MUTANT=no_universe
+### MUTANT ACTIVE: no_universe (expect RED below)
+PASS (a1) only own BANK net 2362 flattened (reduceOnly SELL)
+PASS (a1) book's ATOM/SNX positions untouched
+PASS (a1) foreign_position_detected for ATOM & SNX (recorded only)
+PASS (a1) two foreign events in events.jsonl
+PASS (a2) incident replay: flatten set == {BANK} (own net), not ATOM/SNX
+PASS (a2) incident replay: ATOM/SNX positions unchanged after round
+PASS (a2) held ATOM/SNX excluded at pick time (never become round symbols)
+PASS (a2) receipt ok: flatten-only-own, no foreign on round symbols
+PASS (a2) zero probe orders on ATOM/SNX
+FAIL (a3) mid-round foreign BANK +237.72: flatten own 2362 only, 237.72 left on the book  -- (None, None)
+FAIL (a3) foreign_position_detected BANK diff=+237.72 in receipt
+FAIL (a3) flatten-only-own ok, round ok=False because foreign present  -- ({'n_flattens': 0, 'violations': [], 'ok': True}, True)
+FAIL (b) picked T2x3+T3x2 skipping universe names
+PASS (b) picked ∩ universe = ∅
+FAIL (b) ATOM/SNX/U130/U133 excluded as universe hits
+PASS (b) receipt assertion round_syms ∩ universe = ∅ ok
+PASS (b) static exclusions still applied
+PASS (b) data-driven exclusion: USAR (EQUITY, not in static list) and OLDCOIN (SETTLING) excluded via exchangeInfo
+PASS (b) universe 140 from authoritative span table (+preds +MANIFEST union)
+FAIL (b) PROBE_SYMS pinned names in universe are dropped  -- ([], [])
+PASS (b) name only in preds_latest is excluded too (union) and inconsistency recorded
+PASS (c) live_halted [state.json reduce_only] -> True
+PASS (c) round skipped, zero writes [state.json reduce_only]
+PASS (c) live_halted [state.json tripped_at] -> True
+PASS (c) round skipped, zero writes [state.json tripped_at]
+PASS (c) live_halted [state.json open_orders_halted] -> True
+PASS (c) round skipped, zero writes [state.json open_orders_halted]
+PASS (c) live_halted [no state.json, last_eval tripped] -> True
+PASS (c) round skipped, zero writes [no state.json, last_eval tripped]
+PASS (c) live_halted [no state.json, last_eval stale 7h] -> True
+PASS (c) round skipped, zero writes [no state.json, last_eval stale 7h]
+PASS (c) live_halted [last_eval missing] -> True
+PASS (c) round skipped, zero writes [last_eval missing]
+PASS (c) live_halted [healthy: no state.json, last_eval fresh not tripped] -> False
+FAIL (c) round ran when not halted [healthy: no state.json, last_eval fresh not tripped]  -- universe_overlap
+PASS (c) live_halted [healthy: state.json present but cleared] -> False
+FAIL (c) round ran when not halted [healthy: state.json present but cleared]  -- universe_overlap
+FAIL (d) receipt has all required keys  -- ['orders_placed', 'positions_round_syms_pre_flatten', 'pnl_estimate', 'daily_pnl_after']
+PASS (d) receipt file written at state/receipt_<round>.json
+PASS (d) receipt assertion touched ∩ universe = ∅
+PASS (d) touched == placed symbols
+FAIL test_d_receipt raised  -- Traceback (most recent call last):
+  File "tests_exec_probe_v2.py", line 561, in main
+    t()
+  File "tests_exec_probe_v2.py", line 359, in test_d_receipt
+    check(len(disk["orders_placed"]) == 20 and len(disk["fills"]) == 20, "(d) 5 names x 2 arms x 2 sides = 20 orders, 20 final states",
+KeyError:
+FAIL test_e_incident_shape_accounting raised  -- Traceback (most recent call last):
+  File "tests_exec_probe_v2.py", line 561, in main
+    t()
+  File "tests_exec_probe_v2.py", line 383, in test_e_incident_shape_accounting
+    check(abs(rec["own_net"]["BANKUSDT"] - 2362.0) < 1e-9, "(e) BANK own net = 393+1969 (sells -5022 rejected)", rec["own_net"]
+PASS (f) same-name own 10 + foreign 237: flatten 10, leave 237
+PASS (f) sign mismatch (own +10 on a -796 book short): no order
+PASS (f) own 100 but account 40: capped at 40 (never more than position)
+PASS (f) all three recorded as foreign (acct != own)
+PASS (f) flatten_skipped sign_mismatch logged for SNX
+PASS (g) span table missing => round skipped, zero writes
+PASS (g) span table too small => round skipped, zero writes
+PASS (h) recovery flattens own BANK 393 only
+PASS (h) recovery cancels the still-open own SELL
+PASS (h) recovery never touches ATOM (not in ledger)
+PASS (h) ledger cleared + recovery receipt written
+FAIL (i) empty candidates => skip_round_no_candidates, zero writes  -- ('universe_overlap', [])
+FAIL (i) event logged
+FAIL (i) exclusions itemised: 10 universe + 140 static  -- (0, 140)
+PASS (j) 25 min late => skip_round_off_slot, zero writes
+FAIL (j) 5 min late => runs  -- universe_overlap
+PASS (k) daily approx loss -12.5 < -10 => skip rounds, zero writes
+FAIL (k) yesterday's loss does not stop today  -- universe_overlap
+FAIL test_l_open_orders raised  -- Traceback (most recent call last):
+  File "tests_exec_probe_v2.py", line 561, in main
+    t()
+  File "tests_exec_probe_v2.py", line 505, in test_l_open_orders
+    placed_syms = {o["symbol"] for o in rec["orders_placed"]}
+KeyError: 'orders_placed'
+
+usage: python3 exec_probe.py run | --dry      (no default: an explicit verb is required)
+PASS (m) no verb => usage, rc=2 (no API touched)
+usage: python3 exec_probe.py run | --dry      (no default: an explicit verb is required)
+PASS (m) unknown verb => usage
+PASS (m) no KILL => not killed
+PASS (m) KILL present => killed()
+PASS (m) run_forever exits immediately on KILL, zero writes
+PASS (n) --dry issues zero POST/DELETE
+FAIL (n) dry receipt: symbols picked, no orders
+FAIL (n) dry logs would_sweep_orphan, does not cancel
+FAIL (n) 5 quotes logged
+PASS (o) next_slot arithmetic
+PASS (o) slot id format
+
+MUTANT[no_universe]: 53/73 checks passed  FAILED=20
+rc=1 for no_universe
+##### PROBE_V2_MUTANT=no_halt
+### MUTANT ACTIVE: no_halt (expect RED below)
+PASS (a1) only own BANK net 2362 flattened (reduceOnly SELL)
+PASS (a1) book's ATOM/SNX positions untouched
+PASS (a1) foreign_position_detected for ATOM & SNX (recorded only)
+PASS (a1) two foreign events in events.jsonl
+PASS (a2) incident replay: flatten set == {BANK} (own net), not ATOM/SNX
+PASS (a2) incident replay: ATOM/SNX positions unchanged after round
+PASS (a2) held ATOM/SNX excluded at pick time (never become round symbols)
+PASS (a2) receipt ok: flatten-only-own, no foreign on round symbols
+PASS (a2) zero probe orders on ATOM/SNX
+PASS (a3) mid-round foreign BANK +237.72: flatten own 2362 only, 237.72 left on the book
+PASS (a3) foreign_position_detected BANK diff=+237.72 in receipt
+PASS (a3) flatten-only-own ok, round ok=False because foreign present
+PASS (b) picked T2x3+T3x2 skipping universe names
+PASS (b) picked ∩ universe = ∅
+PASS (b) ATOM/SNX/U130/U133 excluded as universe hits
+PASS (b) receipt assertion round_syms ∩ universe = ∅ ok
+PASS (b) static exclusions still applied
+PASS (b) data-driven exclusion: USAR (EQUITY, not in static list) and OLDCOIN (SETTLING) excluded via exchangeInfo
+PASS (b) universe 140 from authoritative span table (+preds +MANIFEST union)
+PASS (b) PROBE_SYMS pinned names in universe are dropped
+PASS (b) name only in preds_latest is excluded too (union) and inconsistency recorded
+FAIL (c) live_halted [state.json reduce_only] -> True  -- mutant: guard removed
+FAIL (c) round skipped, zero writes [state.json reduce_only]  -- (None, 25)
+FAIL (c) live_halted [state.json tripped_at] -> True  -- mutant: guard removed
+FAIL (c) round skipped, zero writes [state.json tripped_at]  -- (None, 25)
+FAIL (c) live_halted [state.json open_orders_halted] -> True  -- mutant: guard removed
+FAIL (c) round skipped, zero writes [state.json open_orders_halted]  -- (None, 25)
+FAIL (c) live_halted [no state.json, last_eval tripped] -> True  -- mutant: guard removed
+FAIL (c) round skipped, zero writes [no state.json, last_eval tripped]  -- (None, 25)
+FAIL (c) live_halted [no state.json, last_eval stale 7h] -> True  -- mutant: guard removed
+FAIL (c) round skipped, zero writes [no state.json, last_eval stale 7h]  -- (None, 25)
+FAIL (c) live_halted [last_eval missing] -> True  -- mutant: guard removed
+FAIL (c) round skipped, zero writes [last_eval missing]  -- (None, 25)
+PASS (c) live_halted [healthy: no state.json, last_eval fresh not tripped] -> False
+PASS (c) round ran when not halted [healthy: no state.json, last_eval fresh not tripped]
+PASS (c) live_halted [healthy: state.json present but cleared] -> False
+PASS (c) round ran when not halted [healthy: state.json present but cleared]
+PASS (d) receipt has all required keys
+PASS (d) receipt file written at state/receipt_<round>.json
+PASS (d) receipt assertion touched ∩ universe = ∅
+PASS (d) touched == placed symbols
+PASS (d) 5 names x 2 arms x 2 sides = 20 orders, 20 final states
+PASS (d) own_net == sum of own fills (qb-qa residual per arm, v1 sizing)
+PASS (d) each flatten qty == own residual (floored to step)
+PASS (d) ok=True, no foreign
+PASS (d) universe provenance (path/n/sha256) in receipt
+PASS (d) held symbols at start recorded (names only)
+PASS (d) end positions on round names all 0
+PASS (d) pending ledger cleared after clean round
+PASS (e) BANK own net = 393+1969 (sells -5022 rejected)
+PASS (e) BANK flattened by own net 2362
+PASS (e) BERA flattened by own net 0.4 (= 0.2 sizing residual + 0.2 short-fill), step 0.1
+PASS (e) DODOX flattened by own net 6 (= 3 residual + 3 short-fill)
+PASS (e) positions 0 after flatten
+PASS (e) receipt ok, no foreign
+PASS (e) flatten symbols ⊆ round symbols
+PASS (e) pnl estimate computed (negative: taker flatten+fees)
+PASS (f) same-name own 10 + foreign 237: flatten 10, leave 237
+PASS (f) sign mismatch (own +10 on a -796 book short): no order
+PASS (f) own 100 but account 40: capped at 40 (never more than position)
+PASS (f) all three recorded as foreign (acct != own)
+PASS (f) flatten_skipped sign_mismatch logged for SNX
+PASS (g) span table missing => round skipped, zero writes
+PASS (g) span table too small => round skipped, zero writes
+PASS (h) recovery flattens own BANK 393 only
+PASS (h) recovery cancels the still-open own SELL
+PASS (h) recovery never touches ATOM (not in ledger)
+PASS (h) ledger cleared + recovery receipt written
+PASS (i) empty candidates => skip_round_no_candidates, zero writes
+PASS (i) event logged
+PASS (i) exclusions itemised: 10 universe + 140 static
+PASS (j) 25 min late => skip_round_off_slot, zero writes
+PASS (j) 5 min late => runs
+PASS (k) daily approx loss -12.5 < -10 => skip rounds, zero writes
+PASS (k) yesterday's loss does not stop today
+PASS (l) name with someone else's open order is skipped
+PASS (l) own orphan probe* order swept, name still traded
+PASS (l) both events logged
+usage: python3 exec_probe.py run | --dry      (no default: an explicit verb is required)
+PASS (m) no verb => usage, rc=2 (no API touched)
+usage: python3 exec_probe.py run | --dry      (no default: an explicit verb is required)
+PASS (m) unknown verb => usage
+PASS (m) no KILL => not killed
+PASS (m) KILL present => killed()
+PASS (m) run_forever exits immediately on KILL, zero writes
+PASS (n) --dry issues zero POST/DELETE
+PASS (n) dry receipt: symbols picked, no orders
+PASS (n) dry logs would_sweep_orphan, does not cancel
+PASS (n) 5 quotes logged
+PASS (o) next_slot arithmetic
+PASS (o) slot id format
+
+MUTANT[no_halt]: 77/89 checks passed  FAILED=12
+rc=1 for no_halt

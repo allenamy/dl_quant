@@ -1,0 +1,50 @@
+# exec_probe v2 dry run — 2026-08-22T00:37:58Z — cmd: python3 exec_probe.py --dry (read-only GETs, zero orders/cancels)
+=== exec_probe v2 DRY RUN (no orders; read-only API) ===
+utc now      : 2026-08-22T00:37:58.183276+00:00
+halt guard   : halted=False  (state.json absent; last_eval 2026-08-22T00:16:10Z tripped=False age 0.36h)
+universe src : /Users/haosiyu/dl_quant_live/config/funding_span_table.json [table(keys)] n=140 role=authoritative sha256=b4d23440772c
+universe src : /Users/haosiyu/dl_quant_live/state/live/preds_latest.json [symbols] n=110 role=union sha256=24f28918a0cd
+universe src : /Users/haosiyu/dl_quant_live/checkpoints/MANIFEST.json [training_member_union.symbols] n=140 role=union sha256=c3c44a02604e
+universe     : n_total=140 inconsistencies=[]
+held (acct)  : 0 names (all excluded)
+pick         : mode=ranked ranked=696  excluded_universe=29  excluded_held=0  excluded_static=7  pinned_dropped=[]
+excluded_universe hits in bands: ['STXUSDT', 'ATOMUSDT', 'PENDLEUSDT', 'RENDERUSDT', 'JUPUSDT', 'CAKEUSDT', 'SEIUSDT', 'ALGOUSDT', 'CHZUSDT', 'SANDUSDT', 'ARUSDT', 'KASUSDT', 'SNXUSDT', 'REZUSDT', 'XTZUSDT', 'SUSHIUSDT', 'ALTUSDT', 'ZILUSDT', 'RVNUSDT', 'ARKMUSDT', 'GMXUSDT', 'WUSDT', 'GMTUSDT', 'STORJUSDT', 'ENJUSDT', 'ROSEUSDT', 'EGLDUSDT', 'NOTUSDT', 'AKTUSDT']
+symbols      : ['AKEUSDT', 'PIEVERSEUSDT', 'USELESSUSDT', '4USDT', 'USARUSDT']
+   AKEUSDT        rank=130 vol24=30313361
+   PIEVERSEUSDT   rank=131 vol24=30159238
+   USELESSUSDT    rank=134 vol24=28216316
+   4USDT          rank=300 vol24=5935272
+   USARUSDT       rank=301 vol24=5903953
+assert picked ∩ universe = ∅ : True (intersection=[])
+skipped      : None
+foreign open orders on picked: []
+receipt      : /Users/haosiyu/exec_probe/v2/state/receipt_dry_20260822T003758Z.json
+ok           : True
+DRY_DONE
+exit=0
+
+# exec_probe v2 dry run #2 — 2026-08-22T00:39:47Z — after adding exchangeInfo-driven exclusion (run #1 above let USARUSDT=EQUITY through the v1 static list)
+=== exec_probe v2 DRY RUN (no orders; read-only API) ===
+utc now      : 2026-08-22T00:39:47.913841+00:00
+halt guard   : halted=False  (state.json absent; last_eval 2026-08-22T00:16:10Z tripped=False age 0.39h)
+universe src : /Users/haosiyu/dl_quant_live/config/funding_span_table.json [table(keys)] n=140 role=authoritative sha256=b4d23440772c
+universe src : /Users/haosiyu/dl_quant_live/state/live/preds_latest.json [symbols] n=110 role=union sha256=24f28918a0cd
+universe src : /Users/haosiyu/dl_quant_live/checkpoints/MANIFEST.json [training_member_union.symbols] n=140 role=union sha256=c3c44a02604e
+universe     : n_total=140 inconsistencies=[]
+held (acct)  : 0 names (all excluded)
+pick         : mode=ranked ranked=696  excluded_universe=29  excluded_held=0  excluded_static=7  pinned_dropped=[]
+excluded_universe hits in bands: ['STXUSDT', 'ATOMUSDT', 'PENDLEUSDT', 'RENDERUSDT', 'JUPUSDT', 'CAKEUSDT', 'SEIUSDT', 'ALGOUSDT', 'CHZUSDT', 'SANDUSDT', 'ARUSDT', 'KASUSDT', 'SNXUSDT', 'REZUSDT', 'XTZUSDT', 'SUSHIUSDT', 'ALTUSDT', 'RVNUSDT', 'ZILUSDT', 'ARKMUSDT', 'GMXUSDT', 'WUSDT', 'GMTUSDT', 'STORJUSDT', 'ENJUSDT', 'ROSEUSDT', 'EGLDUSDT', 'NOTUSDT', 'AKTUSDT']
+excluded_meta (non-COIN/non-perp/non-trading): {'MINIMAXUSDT': 'underlyingType=HK_EQUITY', 'COPPERUSDT': 'underlyingType=COMMODITY', 'BEUSDT': 'underlyingType=EQUITY', 'XPTUSDT': 'underlyingType=COMMODITY', 'WDCUSDT': 'underlyingType=EQUITY', 'RKLBUSDT': 'underlyingType=EQUITY', 'COHRUSDT': 'underlyingType=EQUITY', 'TSMUSDT': 'underlyingType=EQUITY', 'NATGASUSDT': 'underlyingType=COMMODITY', 'CRWVUSDT': 'underlyingType=EQUITY', 'USARUSDT': 'underlyingType=EQUITY', 'XPDUSDT': 'underlyingType=COMMODITY', 'INTWUSDT': 'underlyingType=EQUITY', 'QCOMUSDT': 'underlyingType=EQUITY', 'ASTSUSDT': 'underlyingType=EQUITY', 'POPMARTUSDT': 'underlyingType=HK_EQUITY', 'ZHONGJIUSDT': 'underlyingType=HK_EQUITY', 'NOKUSDT': 'underlyingType=EQUITY', 'SMCIUSDT': 'underlyingType=EQUITY', 'OPENAIUSDT': 'underlyingType=PREMARKET'}
+symbols      : ['AKEUSDT', 'PIEVERSEUSDT', 'USELESSUSDT', '4USDT', 'ARXUSDT']
+   AKEUSDT        rank=130 vol24=30302015
+   PIEVERSEUSDT   rank=131 vol24=30158036
+   USELESSUSDT    rank=134 vol24=28266310
+   4USDT          rank=300 vol24=5915323
+   ARXUSDT        rank=304 vol24=5792129
+assert picked ∩ universe = ∅ : True (intersection=[])
+skipped      : None
+foreign open orders on picked: []
+receipt      : /Users/haosiyu/exec_probe/v2/state/receipt_dry_20260822T003947Z.json
+ok           : True
+DRY_DONE
+exit=0
