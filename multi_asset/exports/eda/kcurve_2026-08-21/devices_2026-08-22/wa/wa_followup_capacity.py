@@ -5,7 +5,7 @@ import json, time, numpy as np, datetime as dt
 WA = "/mnt/storage/private/work_hsy/probe_artifacts/wa"
 fmt = lambda t: time.strftime("%Y-%m-%d", time.gmtime(int(t)))
 Z = np.load(f"{WA}/wa_weights_Wb_d30.npz", allow_pickle=True); ts = Z["ts"].astype(np.int64); W = Z["W"].astype(np.float64); syms = [str(s) for s in Z["symbols"]]
-C = np.load(f"{WA}/close1h_829.npz", allow_pickle=True); hts = C["ts"].astype(np.int64); QV = C["qv"].astype(np.float64); hpos = {int(t): i for i, t in enumerate(hts)}
+C = np.load(f"{WA}/close1h_829.npz", allow_pickle=True); hts = C["ts"].astype(np.int64); QV = C["qv"].astype(np.float64); CL = C["close"]; hpos = {int(t): i for i, t in enumerate(hts)}
 i0 = np.array([hpos[int(t)] for t in ts])
 cq = np.concatenate([np.zeros((1, QV.shape[1])), np.cumsum(np.nan_to_num(QV), 0)]); cf = np.concatenate([np.zeros((1, QV.shape[1])), np.cumsum(np.isfinite(QV), 0)])
 a0 = np.maximum(i0 - 168, 0)
@@ -25,7 +25,7 @@ for nav in (15400.0, 50000.0, 250000.0):
           "by_year_floor20_share": {int(y): float((aw[yr == y] * (notion[yr == y] < 20.0) * (aw[yr == y] > 1e-9)).sum(1).mean() / gross[yr == y].mean()) for y in sorted(set(yr.tolist()))}}
     out["scenarios"][f"nav{int(nav)}_gross2"] = sc
 # 宇宙覆盖: 退市名权重份额(以 1h 数据在 2026-07-31 后仍有数为"现存")
-last_fin = np.array([hts[np.where(np.isfinite(C["close"][:, j]))[0][-1]] if np.isfinite(C["close"][:, j]).any() else 0 for j in range(len(syms))])
+finC = np.isfinite(CL); last_fin = np.array([hts[np.where(finC[:, j])[0][-1]] if finC[:, j].any() else 0 for j in range(len(syms))])
 delisted = last_fin < int(dt.datetime(2026, 7, 31, tzinfo=dt.timezone.utc).timestamp())
 out["delisted_names_in_panel"] = int(delisted.sum())
 out["gross_share_on_delisted_by_year"] = {int(y): float((aw[yr == y][:, delisted]).sum(1).mean() / gross[yr == y].mean()) for y in sorted(set(yr.tolist()))}
