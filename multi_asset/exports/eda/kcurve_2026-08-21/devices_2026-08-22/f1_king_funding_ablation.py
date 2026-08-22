@@ -415,7 +415,7 @@ def stage_book():
     MF = np.load(INPUTS["meta_f1"], allow_pickle=True); assert np.array_equal(MF["E_ts"].astype(np.int64), E_ts)
     K1 = np.load(INPUTS["pred_K1"]); K2 = np.load(INPUTS["pred_K2"]); assert K1.shape == K0.shape == K2.shape
     # K3 = K2 逐锚对 funding 族截面 OLS 残差(成员内, ≤T)
-    FN = PW["f_fund_now"]; IV = PW["f_fund_iv"]; FE = PW["f_fund_ema_v1"]
+    FN = PW["f_fund_now"]; IV = PW["f_fund_iv"]; FE = PW["f_fund_ema_v1"]; R24 = D["R24"]        # 预载一次(NpzFile 每次 __getitem__ 都重新解压 ⇒ 不得在循环里取 PW[...])
     K3 = np.full_like(K2, np.nan); k3_r2 = []
     for j, T in enumerate(E_ts):
         jp = pw_row.get(int(T)); m = members[j]
@@ -439,7 +439,7 @@ def stage_book():
             if ok.sum() < 30: continue
             vals.append(np.corrcoef(np.argsort(np.argsort(a[ok])), np.argsort(np.argsort(b_[ok])))[0, 1])
         return round(float(np.nanmean(vals)), 4)
-    R["king_vs_leg_spearman"] = {k: {"vs_fund_ema_v1": leg_corr(P, lambda jp, m: FE[jp, m]), "vs_rev24(-f_rev_24h)": leg_corr(P, lambda jp, m: -PW["f_rev_24h"][jp, m])} for k, P in KINGS.items()}
+    R["king_vs_leg_spearman"] = {k: {"vs_fund_ema_v1": leg_corr(P, lambda jp, m: FE[jp, m]), "vs_rev24(-f_rev_24h)": leg_corr(P, lambda jp, m: -R24[jp, m])} for k, P in KINGS.items()}
     log("king vs legs", R["king_vs_leg_spearman"])
     rec_from = int(np.searchsorted(E_ts, A_T0))
     _G.update({"D": D, "RET": RET, "LRET": LRET, "KINGS": KINGS, "rec_from": rec_from, "apos": apos, "F": F, "mkt": mkt})
