@@ -51,3 +51,9 @@
 - **00:22:07Z 自动恢复执行**(launchd one-shot `com.hsy.autoresume20260822`, 会话无关; 执行前核: 探针 KILL 在 + 进程不在): 门清(00:00Z 锚 reduce-only 重对账后 §4-5e 残差归 0)→ 证据隔离 `quarantine/state_20260822T002207Z_resumed.json` → `state.json`/`harvest_ema.json` 移除 → 无 halt 残留 ⇒ **04:00Z 锚整书重建**(EMA 复位, 重建换手≈整书)。
 
 - **探针 v2 已启动(用户 00:4xZ "启动"; 00:52Z launchd `com.hsy.execprobe2`, 会话无关)**: 三修复(只平自己成交 / 排除集 467 = 在役 140 ∪ 宽书 450 ∪ 持仓名 / 对账收据 + 停机守卫加固), 测试 102/102 绿、四类突变体红, 空跑 ok=True(候选 CAP/GRVT/ARX/GOAT 全在宇宙外; 候选稀少是设计后果); 首轮 04:20Z(04:00Z 重建后); 停 = `touch ~/exec_probe/v2/KILL`(≤30s)。v1 不再启动。
+
+
+## §T 03:15Z 操作员停开仓(在役书退役待换装; 非阶梯触发)
+- **依据**: 用户 03:0xZ–03:1xZ: "现役书确认夏普只有 0.6 的话可以确认被宽书实盘替换了。最高质量立即推动宽书的实盘化, 可以实盘直接测试"; 在役简单口径 S1 夏普 0.37(SR `57038bd`, 与实盘 08-05→08-21 对账无偏)低于其阈值 ⇒ 在役不再以 2× 重建。
+- **动作**: 03:15:35Z 写入 `state/live/watchdog/state.json`(reduce_only=true, tripped_at=03:15:35Z, halt_source=OPERATOR, 注明"book already flat, no orders sent")—— 书已空仓, 无任何下单/平仓; 锚、对账、看门狗、daily_nav 照常以 reduce-only 运行; 探针 v2 的停机守卫会因此跳轮(设计如此)。恢复 = `ops/resume_from_trip.sh "<理由>"`(硬门: 无条件触发 ⇒ 可清)。
+- **后续**: 宽书实盘化工程(换装)按最高质量推进(见 DESIGN_wide_live_deployment_2026-08-22.md, 待写); 在役书退役记录见 STATE 横幅。
