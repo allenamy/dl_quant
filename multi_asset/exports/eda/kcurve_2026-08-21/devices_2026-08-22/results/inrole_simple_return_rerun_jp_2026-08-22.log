@@ -1,0 +1,172 @@
+[   13.7s] input shas done
+[   15.0s] cube loaded (9821, 140)
+[   16.1s]   [newgen_p0_LOG] precompute 0/9821
+[   18.5s]   [newgen_p0_LOG] precompute 3000/9821
+[   20.9s]   [newgen_p0_LOG] precompute 6000/9821
+[   23.2s]   [newgen_p0_LOG] precompute 9000/9821
+[   56.9s]   [newgen_p0_LOG] done n=9821 S1 net mean=1.1218 sharpe=1.485 | S0 1.1538/1.460
+[   56.9s] R1 {'maxabs_S0': 0.0, 'maxabs_S1': 0.0, 'n': 9821, 'pass': True}
+[   57.0s]   [newgen_p0_SIM] precompute 0/9821
+[   59.3s]   [newgen_p0_SIM] precompute 3000/9821
+[   61.6s]   [newgen_p0_SIM] precompute 6000/9821
+[   64.0s]   [newgen_p0_SIM] precompute 9000/9821
+[   99.2s]   [newgen_p0_SIM] done n=9821 S1 net mean=0.2812 sharpe=0.374 | S0 0.2163/0.274
+[   99.4s]   [mine_p3_LOG] precompute 0/9846
+[  108.4s]   [mine_p3_LOG] precompute 3000/9846
+[  117.3s]   [mine_p3_LOG] precompute 6000/9846
+[  126.4s]   [mine_p3_LOG] precompute 9000/9846
+[  215.3s]   [mine_p3_LOG] done n=9846 S1 net mean=1.0631 sharpe=1.424 | S0 1.1112/1.424
+[  215.3s] R2 {'n_mine': 9846, 'n_ph': 9846, 'maxabs_S0': 0.0, 'maxabs_S1': 0.0, 'ats_equal': True, 'pass': True}
+[  215.5s]   [mine_p3_SIM] precompute 0/9846
+[  223.9s]   [mine_p3_SIM] precompute 3000/9846
+[  233.0s]   [mine_p3_SIM] precompute 6000/9846
+[  242.2s]   [mine_p3_SIM] precompute 9000/9846
+[  328.5s]   [mine_p3_SIM] done n=9846 S1 net mean=0.2717 sharpe=0.367 | S0 0.1877/0.241
+[  328.7s]   [mine_p0_LOG] precompute 0/9846
+[  331.0s]   [mine_p0_LOG] precompute 3000/9846
+[  333.3s]   [mine_p0_LOG] precompute 6000/9846
+[  335.6s]   [mine_p0_LOG] precompute 9000/9846
+[  370.5s]   [mine_p0_LOG] done n=9846 S1 net mean=1.1274 sharpe=1.509 | S0 1.1428/1.462
+[  370.7s]   [mine_p0_SIM] precompute 0/9846
+[  373.0s]   [mine_p0_SIM] precompute 3000/9846
+[  375.2s]   [mine_p0_SIM] precompute 6000/9846
+[  377.5s]   [mine_p0_SIM] precompute 9000/9846
+[  412.4s]   [mine_p0_SIM] done n=9846 S1 net mean=0.2794 sharpe=0.376 | S0 0.2080/0.267
+[  412.6s] R3 {'anchors_in_cube': 9820, 'anchors_total': 9846, 'cells_both_finite': 987061, 'cells_panel_only': 0, 'maxabs_diff': 1.1734664440155029e-07, 'median_abs_diff_bps': 0.00024214386940002441, 'mean_abs_diff_bps': 0.00028471665208297243, 'frac_abs_lt_1e-6': 1.0, 'frac_abs_lt_1bps': 1.0, 'per_anchor_corr_median': 0.9999999999955096, 'per_anchor_corr_p5': 0.9999999999854317, 'definition': 'panel Y4[row N-1h] = log CLOSE[N+3h bar]/CLOSE[N-1h bar] (1h klines, training panel) vs cube R_wide[ts=N] = log(close_1h[N+3h bar]/close_1h[N-1h bar]) (data.binance.vision 1h zips); same window N->N+4h', 'pass': True}
+[  412.8s]   [mine_p3_SIM_cube1h] precompute 0/9846
+[  415.1s]   [mine_p3_SIM_cube1h] precompute 3000/9846
+[  417.4s]   [mine_p3_SIM_cube1h] precompute 6000/9846
+[  419.8s]   [mine_p3_SIM_cube1h] precompute 9000/9846
+[  454.6s]   [mine_p3_SIM_cube1h] done n=9846 S1 net mean=0.2717 sharpe=0.367 | S0 0.1877/0.241
+[  454.8s]   [mine_p3_LOG_cube1h] precompute 0/9846
+[  457.1s]   [mine_p3_LOG_cube1h] precompute 3000/9846
+[  459.5s]   [mine_p3_LOG_cube1h] precompute 6000/9846
+[  461.8s]   [mine_p3_LOG_cube1h] precompute 9000/9846
+[  497.1s]   [mine_p3_LOG_cube1h] done n=9846 S1 net mean=1.0631 sharpe=1.424 | S0 1.1112/1.424
+[  511.3s] deltas {"delta_net_mean_bps": -0.7914, "delta_net_sd": 3.5285, "delta_net_t": -22.26, "delta_pnl_mean_bps": -0.7916, "delta_sharpe_anchor": -1.058, "delta_sharpe_daily": -1.063, "by_year_delta_net": {"2022": -0.7898, "2023": -0.5756, "2024": -1.0512, "2025": -0.7698, "2026": -0.7482}, "by_year_same_sign_neg": 5, "boot_daily": {"n_days": 1642, "delta_mean_bps_per_anchor": -0.791, "delta_mean_ci95": [-0.8621, -0.7218], "delta_daily_sharpe": -1.063, "delta_daily_sharpe_ci95": [-1.15, -0.975], "daily_sharpe_A": 0.367, "daily_sharpe_B": 1.43, "frac_days_A_ge_B": 0.2028}, "boot_anchor_block42_delta_sharpe"
+[  512.3s] conv {"conv_mean_bps": -0.8249, "conv_sd": 1.911, "conv_t": -42.84, "conv_share_of_log_pnl": -0.7006, "by_year": {"2022": -0.8247, "2023": -0.6446, "2024": -1.0233, "2025": -0.8502, "2026": -0.7367}, "long_side": 0.6056, "short_side": -1.4305, "by_group": {"BTC": 0.0238, "ETH": 0.0262, "alt": -0.8749}, "by_side_x_group": {"long_BTC": 0.0238, "long_ETH": 0.0262, "long_alt": 0.5556, "short_BTC": 0.0, "short_ETH": 0.0, "short_alt": -1.4305}, "gross_by_side_x_group": {"long_BTC": 0.0447, "long_ETH": 0.0296, "long_alt": 0.4056, "short_BTC": 0.0, "short_ETH": 0.0, "short_alt": 0.4799}, "avg_|w|-weighted L^2/2 by side (bps)": {"long": 1.2618, "short": 2.9807}, "top10_names_negative": [["1000RATSUSDT", -0.0319, -0.00451], ["DYDXUSDT", -0.0305, -0.01014], ["GALAUSDT", -0.0291, -0.00838], ["ARUSDT", -0.0
+[  512.3s] VERDICT {'S1_p3_delta_net_bps': -0.7914, 'ci95_daily_block': [-0.8621, -0.7218], 'receipts_pass': True, 'reading': '(b) 有系统偏差: CI 排除 0'}
+[  513.5s] DONE -> /mnt/storage/private/work_hsy/probe_artifacts/inrole_sr/inrole_simple_return_rerun_jp_2026-08-22.json
+{
+ "R1": {
+  "maxabs_S0": 0.0,
+  "maxabs_S1": 0.0,
+  "n": 9821,
+  "pass": true
+ },
+ "R2": {
+  "n_mine": 9846,
+  "n_ph": 9846,
+  "maxabs_S0": 0.0,
+  "maxabs_S1": 0.0,
+  "ats_equal": true,
+  "pass": true
+ },
+ "R3": {
+  "pass": true,
+  "per_anchor_corr_median": 0.9999999999955096,
+  "median_abs_diff_bps": 0.00024214386940002441,
+  "maxabs_diff": 1.1734664440155029e-07
+ },
+ "S1_p3": {
+  "LOG": {
+   "mean_bps": 1.0631,
+   "sd": 34.932,
+   "sharpe_anchor": 1.424,
+   "sharpe_daily": 1.43,
+   "by_year_mean": {
+    "2022": 1.923,
+    "2023": 0.298,
+    "2024": 0.796,
+    "2025": 1.422,
+    "2026": 0.686
+   },
+   "by_year_sharpe_anchor": {
+    "2022": 2.711,
+    "2023": 0.438,
+    "2024": 0.922,
+    "2025": 1.845,
+    "2026": 1.093
+   },
+   "by_year_sharpe_daily": {
+    "2022": 2.77,
+    "2023": 0.446,
+    "2024": 0.945,
+    "2025": 1.769,
+    "2026": 1.075
+   }
+  },
+  "SIM": {
+   "mean_bps": 0.2717,
+   "sd": 34.676,
+   "sharpe_anchor": 0.367,
+   "sharpe_daily": 0.367,
+   "by_year_mean": {
+    "2022": 1.133,
+    "2023": -0.277,
+    "2024": -0.255,
+    "2025": 0.652,
+    "2026": -0.062
+   },
+   "by_year_sharpe_anchor": {
+    "2022": 1.595,
+    "2023": -0.407,
+    "2024": -0.296,
+    "2025": 0.871,
+    "2026": -0.099
+   },
+   "by_year_sharpe_daily": {
+    "2022": 1.619,
+    "2023": -0.414,
+    "2024": -0.302,
+    "2025": 0.833,
+    "2026": -0.097
+   }
+  }
+ },
+ "delta_S1_p3": {
+  "delta_net_mean_bps": -0.7914,
+  "delta_net_sd": 3.5285,
+  "delta_net_t": -22.26,
+  "delta_pnl_mean_bps": -0.7916,
+  "delta_sharpe_anchor": -1.058,
+  "delta_sharpe_daily": -1.063,
+  "by_year_delta_net": {
+   "2022": -0.7898,
+   "2023": -0.5756,
+   "2024": -1.0512,
+   "2025": -0.7698,
+   "2026": -0.7482
+  },
+  "by_year_same_sign_neg": 5,
+  "boot_daily": {
+   "n_days": 1642,
+   "delta_mean_bps_per_anchor": -0.791,
+   "delta_mean_ci95": [
+    -0.8621,
+    -0.7218
+   ],
+   "delta_daily_sharpe": -1.063,
+   "delta_daily_sharpe_ci95": [
+    -1.15,
+    -0.975
+   ],
+   "daily_sharpe_A": 0.367,
+   "daily_sharpe_B": 1.43,
+   "frac_days_A_ge_B": 0.2028
+  },
+  "delta_turnover": -3e-05,
+  "delta_fires": 40,
+  "positions_identical_maxabs": 0.042132772505283356,
+  "stop_path_effect_bps(rerun_delta − fixed_conv)": 0.0335
+ },
+ "verdict": {
+  "S1_p3_delta_net_bps": -0.7914,
+  "ci95_daily_block": [
+   -0.8621,
+   -0.7218
+  ],
+  "receipts_pass": true,
+  "reading": "(b) 有系统偏差: CI 排除 0"
+ }
+}
