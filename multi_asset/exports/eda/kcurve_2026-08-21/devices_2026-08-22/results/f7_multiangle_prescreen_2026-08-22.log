@@ -1,0 +1,37 @@
+[    0.0s] sha256 inputs ...
+[    8.5s] anchors 9821 U400 mean 251.4
+[   12.7s] R2 maxabs 1.10e-07 median 2.37e-08 pass True; perp1h coverage on U400 1.0000
+[   20.8s] R6 spot overlap symbols 474 corr median 0.9912880415296523 excluded 51: ['1000BTTCUSDT', 'A2ZUSDT', 'AIUSDT', 'ALPACAUSDT', 'ATAUSDT', 'BTSUSDT', 'CHESSUSDT', 'COSUSDT', 'CTKUSDT', 'CVCUSDT', 'CVXUSDT', 'DEGOUSDT', 'DFUSDT', 'DGBUSDT', 'DUSDT', 'FISUSDT', 'FORTHUSDT', 'FTTUSDT', 'FUNUSDT', 'GHSTUSDT']
+[   22.6s] R4 settlement inference hit 959441/959476 = 1.0000
+[   27.1s] --- P1_d_oi_24h
+[  237.4s] P1_d_oi_24h: ΔIC -0.0082 by_year {2022:-0.0117, 2023:-0.0091, 2024:-0.0081, 2025:-0.0062, 2026:-0.0060} | cand IC -0.0160 (t -11.4) | resid IC -0.0129 (t -9.5) | king(same subset) +0.0586 | cov 0.44 | flip -0.0004 | placebo -0.0046 | ρfund max 0.041 | FAIL(子集预读)
+[  237.4s] --- P2_doi_x_ret
+/root/miniconda3/envs/hsy_v5push/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py:3045: RuntimeWarning: invalid value encountered in divide
+  c /= stddev[:, None]
+/root/miniconda3/envs/hsy_v5push/lib/python3.13/site-packages/numpy/lib/_function_base_impl.py:3046: RuntimeWarning: invalid value encountered in divide
+  c /= stddev[None, :]
+[  428.4s] P2_doi_x_ret: ΔIC -0.0047 by_year {2022:-0.0056, 2023:-0.0054, 2024:-0.0036, 2025:-0.0044, 2026:-0.0048} | cand IC +0.0005 (t +0.4) | resid IC -0.0004 (t -0.3) | king(same subset) +0.0585 | cov 0.44 | flip -0.0044 | placebo -0.0049 | ρfund max 0.002 | FAIL(子集预读)
+[  428.4s] --- P3_top_vs_global_div
+[  585.0s] P3_top_vs_global_div: ΔIC -0.0080 by_year {2022:-0.0045, 2023:-0.0088, 2024:-0.0082, 2025:-0.0078, 2026:-0.0111} | cand IC -0.0117 (t -8.1) | resid IC -0.0077 (t -5.4) | king(same subset) +0.0581 | cov 0.32 | flip -0.0026 | placebo -0.0050 | ρfund max 0.195 | FAIL(子集预读)
+[  585.0s] --- P4_oi_level_norm
+[  780.5s] P4_oi_level_norm: ΔIC -0.0001 by_year {2022:+0.0039, 2023:+0.0027, 2024:-0.0015, 2025:-0.0033, 2026:-0.0021} | cand IC +0.0260 (t +17.4) | resid IC +0.0151 (t +10.7) | king(same subset) +0.0585 | cov 0.44 | flip -0.0092 | placebo -0.0056 | ρfund max 0.037 | FAIL(子集预读)
+[  780.5s] --- P5_r_settle
+[  991.2s] P5_r_settle: ΔIC -0.0026 by_year {2022:-0.0021, 2023:-0.0006, 2024:-0.0043, 2025:-0.0033, 2026:-0.0027} | cand IC +0.0078 (t +5.7) | resid IC +0.0058 (t +4.4) | king(same subset) +0.0617 | cov 0.71 | flip -0.0064 | placebo -0.0053 | ρfund max 0.011 | FAIL(子集预读)
+[  991.2s] --- S1_sshare24
+[ 1203.7s] S1_sshare24: ΔIC -0.0069 by_year {2022:-0.0042, 2023:-0.0068, 2024:-0.0067, 2025:-0.0082, 2026:-0.0087} | cand IC +0.0015 (t +1.5) | resid IC -0.0003 (t -0.4) | king(same subset) +0.0659 | cov 0.83 | flip -0.0050 | placebo -0.0061 | ρfund max 0.183 | FAIL
+[ 1203.7s] --- S2_stbi24
+[ 1417.9s] S2_stbi24: ΔIC -0.0086 by_year {2022:-0.0081, 2023:-0.0077, 2024:-0.0085, 2025:-0.0101, 2026:-0.0082} | cand IC -0.0120 (t -13.8) | resid IC -0.0092 (t -10.7) | king(same subset) +0.0659 | cov 0.83 | flip -0.0036 | placebo -0.0062 | ρfund max 0.096 | FAIL
+[ 1417.9s] --- S3_dsshare
+[ 1627.2s] S3_dsshare: ΔIC -0.0070 by_year {2022:-0.0054, 2023:-0.0068, 2024:-0.0065, 2025:-0.0079, 2026:-0.0081} | cand IC -0.0040 (t -4.8) | resid IC -0.0033 (t -3.9) | king(same subset) +0.0659 | cov 0.83 | flip -0.0044 | placebo -0.0059 | ρfund max 0.042 | FAIL
+
+| 候选 | 角度 | 符号 | ΔIC 逐年均值 | 逐年 | 单独 IC (t) | 对 king 残差 IC (t) | king IC(同子集) | 覆盖 | 反号 ΔIC | 安慰剂 ΔIC | max|ρ| funding | 判 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| P1_d_oi_24h | 合约/持仓(metrics 140 子集) | +1 | **-0.0082** | 2022:-0.0117 / 2023:-0.0091 / 2024:-0.0081 / 2025:-0.0062 / 2026:-0.0060 | -0.0160 (-11.4) | -0.0129 (-9.5) | +0.0586 | 0.44 | -0.0004 | -0.0046 | 0.041 | FAIL(子集预读) |
+| P2_doi_x_ret | 合约/持仓(metrics 140 子集) | +1 | **-0.0047** | 2022:-0.0056 / 2023:-0.0054 / 2024:-0.0036 / 2025:-0.0044 / 2026:-0.0048 | +0.0005 (+0.4) | -0.0004 (-0.3) | +0.0585 | 0.44 | -0.0044 | -0.0049 | 0.002 | FAIL(子集预读) |
+| P3_top_vs_global_div | 合约/持仓(metrics 140 子集) | +1 | **-0.0080** | 2022:-0.0045 / 2023:-0.0088 / 2024:-0.0082 / 2025:-0.0078 / 2026:-0.0111 | -0.0117 (-8.1) | -0.0077 (-5.4) | +0.0581 | 0.32 | -0.0026 | -0.0050 | 0.195 | FAIL(子集预读) |
+| P4_oi_level_norm | 合约/持仓(metrics 140 子集) | -1 | **-0.0001** | 2022:+0.0039 / 2023:+0.0027 / 2024:-0.0015 / 2025:-0.0033 / 2026:-0.0021 | +0.0260 (+17.4) | +0.0151 (+10.7) | +0.0585 | 0.44 | -0.0092 | -0.0056 | 0.037 | FAIL(子集预读) |
+| P5_r_settle | 合约/结构(829 名 1h) | -1 | **-0.0026** | 2022:-0.0021 / 2023:-0.0006 / 2024:-0.0043 / 2025:-0.0033 / 2026:-0.0027 | +0.0078 (+5.7) | +0.0058 (+4.4) | +0.0617 | 0.71 | -0.0064 | -0.0053 | 0.011 | FAIL(子集预读) |
+| S1_sshare24 | 现货(映射名) | +1 | **-0.0069** | 2022:-0.0042 / 2023:-0.0068 / 2024:-0.0067 / 2025:-0.0082 / 2026:-0.0087 | +0.0015 (+1.5) | -0.0003 (-0.4) | +0.0659 | 0.83 | -0.0050 | -0.0061 | 0.183 | FAIL |
+| S2_stbi24 | 现货(映射名) | +1 | **-0.0086** | 2022:-0.0081 / 2023:-0.0077 / 2024:-0.0085 / 2025:-0.0101 / 2026:-0.0082 | -0.0120 (-13.8) | -0.0092 (-10.7) | +0.0659 | 0.83 | -0.0036 | -0.0062 | 0.096 | FAIL |
+| S3_dsshare | 现货(映射名) | +1 | **-0.0070** | 2022:-0.0054 / 2023:-0.0068 / 2024:-0.0065 / 2025:-0.0079 / 2026:-0.0081 | -0.0040 (-4.8) | -0.0033 (-3.9) | +0.0659 | 0.83 | -0.0044 | -0.0059 | 0.042 | FAIL |
+[ 1631.5s] DONE -> /mnt/storage/private/work_hsy/probe_artifacts/f7/f7_multiangle_prescreen_2026-08-22.json sha 761a94d3cfe16834
