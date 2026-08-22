@@ -1,0 +1,46 @@
+[1] v2 is the original + additions only
+  OK   1a no original line is removed or changed (pure superset)
+  OK   1b the additions are the two blocks (helpers + call site), nothing else — 50
+
+[2] the file contract
+  OK   2a json + sidecar exist where the reader expects them; no tmp residue — ['1787356800.json', '1787356800.json.sha256']
+  OK   2b schema / anchor_ts / producer / written_utc
+  OK   2c weights = non-zero names of the carried-forward vector, float64 values — {'S00USDT': 0.3, 'S02USDT': -0.2, 'S05USDT': 0.1, 'S07USDT': -0.2}
+  OK   2d gross_norm = sum|w| (to 1e-12), n_names
+  OK   2e weights_sha = sha256 of the npz bytes on disk
+  OK   2f booster_sha from the bundle MANIFEST value
+  OK   2g universe_sha = the SHARED recipe over symbols_live (n_universe carried)
+  OK   2h sidecar = sha256(json bytes) + basename
+  OK   2i `shasum -a 256 -c` accepts the sidecar — 1787356800.json: OK
+
+  OK   2j the return carries the receipt (path, n, gross_norm, shas)
+  OK   2k anchor_offset_min recorded from env/params
+
+[3] ★ the PAIR: the live reader accepts the producer's output
+  OK   3a the external config validates
+  OK   ★ 3b read_target ACCEPTS the file as written — (None, '')
+  OK   3c ...and decodes the same weights / gross_norm / shas
+  OK   3d pins computed by the reader's recipe match the producer's stamps
+  OK   3e target_vector unit-gross from gross_norm
+
+[4] atomicity + overwrite
+  OK   4a a failed rename raises and leaves NO final json/sidecar (tmp + rename) — ['1787356800.json.tmp']
+  OK   4b a second write for the same anchor replaces both files; the reader sees the NEW content — {'S00USDT': 0.4, 'S02USDT': -0.2, 'S05USDT': 0.1, 'S07USDT': -0.2}
+  OK   4c deterministic apart from written_utc (same inputs ⇒ same payload)
+
+[5] the call site in run_anchor
+  OK   5a called right after the npz write and before the signal log line — (20256, 20536, 20813)
+  OK   5b wrapped in try/except; failure logged as target_live_error, success as target_live
+  OK   5c out dir defaults to STATE_DIR/target_live (beside weights/)
+
+[6] keyless property intact
+  OK   6a main() still calls assert_no_keys() first
+  OK   6b assert_no_keys refuses with a credential in env (rc 2) — REFUSE_TO_START: credentials in env ['BINANCE_KEY'] — shadow must run keyless
+
+
+[7] reader-side mutants through the producer's files
+  OK   7a one flipped byte ⇒ reader refuses (sha_mismatch)
+  OK   7b missing sidecar ⇒ reader refuses (sidecar_missing)
+  OK   7c restored ⇒ accepted again (the refusals above were the mutations)
+
+ALL PASS   (29 checks)

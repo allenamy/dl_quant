@@ -1,0 +1,20 @@
+PASS T1a 第 1 锚只计数不触发
+PASS T1b 第 2 连续锚触发进 stopped
+PASS T2 回浅复位, 三锚不触发
+PASS T3 缺读回打断连续性
+PASS T4 dust 名不计数
+PASS T5a 平仓名转入冷却
+PASS T5b 冷却期内 active_sets 含禁入名
+PASS T5c 期满自动恢复
+PASS T6 停中未平保持原状
+PASS T7 enabled=false 恒等
+PASS T8 快照缺失恒等
+PASS T9 盈利名不计数
+PASS W1 broker 快照携带逐名 unrealized
+PASS W2 终锚钩子在位(update_from_snapshot)
+PASS W3 plan 钩子在位(active_sets 并入 untradable)
+PASS W4 stop 名 target 置零在 apply_withhold 之前
+PASS W6 终锚写入被正典 LIVE 判别式看门(fixture 快照防线, 02:23Z 洞)
+PASS W5 config 参数与条款冻结值一致
+
+ALL PASS

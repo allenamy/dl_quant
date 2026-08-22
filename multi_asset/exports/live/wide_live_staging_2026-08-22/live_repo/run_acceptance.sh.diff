@@ -1,0 +1,12 @@
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -219,6 +219,9 @@
+   #   从账户真值手推 + 三性质(日切分/入金/未实现跨日)各带会红变异体 — 2026-08-21 12:16Z 误触发的结构性修复:
+   #   五个套件曾用"盈亏列动 nav 不动"的夹具全绿地钉住错口径; 本套件的夹具全部由账户恒等式生成。
+   "tests_guard_calibers:$_SELF/live/tests_guard_calibers.py"
++  # ★ 外部书适配器 (DESIGN_wide_live_deployment_2026-08-22 §1/§3.2): 宽书签名目标文件 → 目标向量;
++  #   读取/校验/换算/过滤/告警 + internal 逐位不变 + per_name_stop profile 切换; 每条有会红变异体。
++  "tests_external_book:$_SELF/live/tests_external_book.py"
+ )
+ 
+ # ★ registration guard: every live/tests_*.py must appear above. Catches the omission that this

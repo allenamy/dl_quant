@@ -1,0 +1,756 @@
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -50,6 +50,7 @@
+ 
+ import book_config as BC      # noqa: E402
+ import per_name_stop as PNS   # noqa: E402  逐名止损条款 cf40ea21(2026-08-20 用户裁定全面启用)
++import external_book as EXT   # noqa: E402  外部书适配器(DESIGN_wide_live_deployment_2026-08-22 §1)
+ 
+ # ★ THE BAND IS A POLICY NUMBER AND SAYS SO. 3% of gross is the lead's figure; no measurement
+ #   produced it and it must not be quoted as if one had. The two live anchors so far read +0.99%
+@@ -394,6 +395,11 @@
+ #   roughly two popped names at typical tail weight; more than that means the universe gate is
+ #   removing a slice of the book big enough that "we corrected it" stops being the whole story.
+ RESHAPE_RESIDUAL_ALARM_FRAC = 0.02
++# share of an EXTERNAL book's gross withheld by the 2x-min-notional eligibility filter above which
++# the breadth loss is a finding. ★ A POLICY NUMBER, same reasoning as min_gross_usdt's '排除 ≤10%':
++# measured on the 2026-08-22 00:00Z shadow weights at NAV 15.4k x 1.0 the filter withholds 6.2% of
++# gross (195 tail names); at 2.0x 1.7%. Recorded every anchor either way; paged only above this.
++EXT_DUST_ALARM_FRAC = 0.10
+ 
+ KILL_PATH = os.environ.get("LIVE_KILL_SWITCH",
+                            os.path.join(_REPO, "state", "KILL_SWITCH.json"))
+@@ -613,6 +619,36 @@
+         state.setdefault("stale_ref_positions", None)
+         state.setdefault("alarmed_stages", [])
+         out: Dict[str, Any] = {"anchor_wall_ts": now}
++        # ── BOOK SOURCE (DESIGN_wide_live_deployment_2026-08-22 §1): internal (today) | external ─
++        # ★ Resolved ONCE, here, before any state is read. INVALID (a typo, a malformed block, a
++        #   gross_mult above the §4-4b leverage policy) BLOCKS the anchor outright: a book source
++        #   that cannot be named must not pick a book — not the retired one, not the new one.
++        # ★ `now_sched` keeps the ENTRY time for the off-schedule gate: in external mode this
++        #   process deliberately idles until the producer's slot (N+anchor_offset_min) before it
++        #   reads state or acts; it is still the scheduled run, and the ledger keys on process
++        #   START for the same fact. Internal mode: now_sched == now, byte for byte.
++        try:
++            _book_cfg = BC.load()
++        except Exception:                        # noqa: BLE001 — unreadable config = unknown source
++            _book_cfg = None
++        _ext_cfg = EXT.config(_book_cfg)
++        out["book_source"] = _ext_cfg["source"]
++        if _ext_cfg["source"] == "INVALID":
++            out["action"] = "BLOCKED_CONFIG"
++            out["note"] = f"book_source config invalid: {_ext_cfg['error']} — no orders of any kind"
++            self.alarm("CRITICAL", f"book_source 配置无效: {_ext_cfg['error']} — 本锚不交易(既不读外部书, "
++                                   f"也不回退在役引擎)。修 config/book.json 后下锚生效。")
++            return out
++        now_sched = now
++        if _ext_cfg["source"] == "external":
++            _pc = EXT.pns_profile_consistent(_book_cfg)
++            if not _pc["ok"]:
++                out["pns_profile_inconsistent"] = _pc["why"]
++                self.alarm("HIGH", f"外部书与逐名止损 profile 不一致: {_pc['why']} — 条款仍按当前 profile 运行")
++            if getattr(self.broker, "mode", "DRY_RUN") != "DRY_RUN":
++                out["external_wait"] = EXT.wait_for_slot(_ext_cfg, now)
++                if out["external_wait"].get("slept_s"):
++                    now = time.time()
+         # ── §2.5.9 rehearsal gate, evaluated ONCE and EARLY ──────────────────────────────────
+         # Early, because two later blocks ask "is this a rehearsal?" (the off-schedule halt, and
+         # the id mint) and a question answered twice is a question with two answers. It raises
+@@ -740,7 +776,7 @@
+         # ★ FAIL-CLOSED: if we cannot establish whether we are on schedule, we are not. "We do
+         # not know what time it is" resolves to halted, same as the unreadable watchdog file.
+         try:
+-            sched = BC.schedule_check(now)
++            sched = BC.schedule_check(now_sched)
+         except Exception as e:
+             sched = {"on_schedule": False, "error": str(e),
+                      "note": "schedule could not be established — treated as off-schedule"}
+@@ -881,8 +917,31 @@
+ 
+         # 0/3 — freshness decides the shape of this anchor before anything is priced
+         preds = _load(PREDS_PATH, None)
+-        age = signal_age_anchors(preds, now)
++        ext = None
++        if _ext_cfg["source"] == "external":
++            # ★ THE EXTERNAL FILE IS THE SIGNAL. The preds file is not consulted for freshness;
++            #   the ladder's AGE comes from the newest USABLE external target — this file if it
++            #   verified, else the last good one — so the pre-registered rungs apply unchanged
++            #   (HOLD first, DERISK ≥24h, FLATTEN ≥48h; `on_unavailable: "hold"` pins HOLD).
++            #   A failed read NEVER trades and NEVER falls back to the internal composer.
++            ext = EXT.read_target(_ext_cfg, now=now,
++                                  poll=(getattr(self.broker, "mode", "DRY_RUN") != "DRY_RUN"
++                                        and os.environ.get("LIVE_EXTERNAL_WAIT", "1") != "0"))
++            _agei = EXT.age_anchors(ext, _ext_cfg, state, now, ANCHOR_S)
++            age = _agei["age_anchors"]
++            out["external_book"] = EXT.record(ext, {"age_ref": _agei})
++            if ext["ok"]:
++                state["external_last_good_anchor_ts"] = int(ext["anchor_ts"])
++        else:
++            age = signal_age_anchors(preds, now)
+         action = staleness_action(age)
++        if ext is not None and not ext["ok"]:
++            # a failed read can never TRADE; `on_unavailable: hold` (config) or an UNKNOWN age (no
++            # verified target ever seen — cold start / state reset) can never ESCALATE either: an
++            # irreversible cut on missing information is the one thing worse than holding.
++            if action == "TRADE" or _ext_cfg["on_unavailable"] == "hold" or age == float("inf"):
++                action = "HOLD"
++            self.alarm("HIGH", EXT.unavailable_text(ext, action))
+         out["signal_age_anchors"] = round(age, 2) if age != float("inf") else "inf"
+         out["action"] = action
+ 
+@@ -902,7 +961,8 @@
+             # would give the id's prefix a second chance to disagree with the halt exemption that
+             # was granted from the same question 200 lines earlier.
+             out.update(self._trade(preds, state, now,
+-                                   rehearsal=bool((out.get("_rehearsal") or {}).get("enabled"))))
++                                   rehearsal=bool((out.get("_rehearsal") or {}).get("enabled")),
++                                   external=ext))
+         else:
+             # snapshot the pre-stale book ONCE, at episode start — the ladder's reference
+             if state.get("stale_ref_positions") is None:
+@@ -942,7 +1002,7 @@
+ 
+     # ── normal trading path ──────────────────────────────────────────────────────────────────
+     # ── universe reality check: what the venue will actually let us trade ────────────────────
+-    def _size_book(self) -> Dict[str, Any]:
++    def _size_book(self, target_leverage=None, leverage_source=None) -> Dict[str, Any]:
+         """gross = nav x target_leverage, with a dead zone and a floor. Returns the decision.
+ 
+         ★★ WHY CONSTANT LEVERAGE AT ALL (user's ruling 2026-07-29). Under a constant gross the
+@@ -970,7 +1030,12 @@
+           for a drawdown halt that failed, or for capital being withdrawn — not a routine limit.
+         """
+         cfg = _load(os.path.join(_REPO, "config", "book.json"), {}) or {}
+-        tgt_lev = float(cfg.get("target_leverage") or 2.0)
++        # ★ external book: the leverage IS `external_book.gross_mult` (design §1 target_gross =
++        #   NAV x gross_mult). Same arithmetic, same dead zone, same floor — only the number's
++        #   origin differs, and it is stamped so a row can say which policy sized it.
++        tgt_lev = (float(cfg.get("target_leverage") or 2.0) if target_leverage is None
++                   else float(target_leverage))
++        lev_src = leverage_source or "config/book.json target_leverage"
+         dead = float(cfg.get("leverage_deadzone_frac") or 0.10)
+         floor = float(cfg.get("min_gross_usdt") or 0.0)
+         nav = getattr(self, "_equity", None)
+@@ -981,7 +1046,8 @@
+             # ★ THE SAME KEY SET AS THE NORMAL RETURN. A dict whose shape depends on which
+             # branch produced it makes every consumer carry a `.get` or a KeyError — my own
+             # first probe of this method hit exactly that. One shape, `blind` distinguishes it.
+-            return {"nav": None, "target_leverage": tgt_lev, "actual_leverage": None,
++            return {"nav": None, "target_leverage": tgt_lev, "leverage_source": lev_src,
++                    "actual_leverage": None,
+                     "leverage_drift_frac": None, "deadzone_frac": dead, "resized": False,
+                     "gross_previous": prev, "gross_wanted": None, "gross": prev,
+                     "min_gross_usdt": floor, "halt": False, "blind": True, "halt_on": None,
+@@ -995,7 +1061,8 @@
+         drift = None if actual is None else abs(actual / tgt_lev - 1.0)
+         resize = (actual is None) or (drift is not None and drift > dead)
+         gross = want if resize else prev
+-        out = {"nav": nav, "target_leverage": tgt_lev, "actual_leverage": actual,
++        out = {"nav": nav, "target_leverage": tgt_lev, "leverage_source": lev_src,
++               "actual_leverage": actual,
+                "leverage_drift_frac": None if drift is None else round(drift, 4),
+                "deadzone_frac": dead, "resized": bool(resize),
+                "gross_previous": prev, "gross_wanted": round(want, 2),
+@@ -1098,7 +1165,8 @@
+                 "n_new_listings_ignored": len(cls["new_listings"])}
+ 
+     def _trade(self, preds: Dict[str, Any], state: Dict[str, Any], now: float,
+-               rehearsal: bool = False) -> Dict[str, Any]:
++               rehearsal: bool = False,
++               external: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+         # ★★★ THE ID IS MINTED HERE, BEFORE THE UNIVERSE GATE (2026-08-01 incident).
+         # It used to be minted after `capture_anchor`, ~100 lines below — but the universe gate
+         # SENDS ORDERS (the exits for names that left TRADING), and at that moment there was no id
+@@ -1110,123 +1178,139 @@
+         #   `tests_exit_ledger` pins that equality — "it is pure" is a claim about the code.
+         import rebalance_id as _RID
+         rid = _RID.mint(now, rehearsal)
+-        # ── caliber stamp assertion (audit ②): the split-path guarantee must be a MECHANISM,
+-        # not a convention. preds declare their calibers; we assert against config; mismatch
+-        # BLOCKS the anchor. Closes the chain config -> stamp -> consumption, the same shape
+-        # as the protocol's registry -> declaration -> observation chain.
+-        expected = _load(os.path.join(_REPO, "config", "book.json"), {}).get("factor_versions")
+-        stamped = preds.get("factor_versions")
+-        if expected and stamped != expected:
+-            self.alarm("CRITICAL", f"caliber stamp mismatch: preds={stamped} config={expected} "
+-                                   f"— anchor BLOCKED, no orders")
+-            return {"blocked": "caliber_stamp_mismatch", "preds_stamp": stamped,
+-                    "expected": expected}
+-
+-        # ── [B27] THE FROZEN-INPUT CENSUS: is every artifact that decides a prediction the one
+-        # we signed? ────────────────────────────────────────────────────────────────────────
+-        # ★★ NOTHING COMPARED THESE. `checkpoints/MANIFEST.json` carries the signed fingerprints,
+-        # `signal/inference.load()` RE-COMPUTES them at every load and stamps them into
+-        # preds_latest.json under `models` — and no code anywhere reads one against the other.
+-        # Two independent recordings of the same quantity, compared never; a swapped checkpoint
+-        # would have travelled all the way to an order. (Fifth member of this repo's
+-        # writer-with-no-reader family, after pilot_log.fill, FundingLedger, the 5c error-code
+-        # fast path and `state_root.read_stamped`.)
+-        # ★ IT BLOCKS ON MISMATCH, matching the precedent one block up: when we cannot establish
+-        # WHICH model is speaking, the anchor does not trade. A missing pin or an unpinnable
+-        # artifact ALARMS but does not block — "we have not fingerprinted it yet" is a different
+-        # statement from "it is not what we signed", and collapsing them would make the strong
+-        # signal unreadable.
+-        try:
+-            import frozen_inputs as _FI
+-            _cen = _FI.census()
+-            _undecl = _FI.undeclared()
+-            out_census = {k: v for k, v in _cen.items() if k != "rows"}
+-            out_census["undeclared_artifacts"] = _undecl
+-            _bad = [r for r in _cen["rows"] if r["state"] in ("MISMATCH", "ABSENT")]
+-            if _bad:
+-                self.alarm("CRITICAL",
+-                           f"frozen-input census FAILED for {[r['artifact'] for r in _bad]} — the "
+-                           f"model's inputs are not the ones we signed; anchor BLOCKED, no orders")
+-                return {"blocked": "frozen_input_mismatch", "census": out_census,
+-                        "failed": [{k: r[k] for k in ("artifact", "state", "expected", "observed")}
+-                                   for r in _bad]}
+-            # ★ ONE FACT, ONE VOICE: an unpinnable artifact that already has its own guard
+-            # (`alarmed_by`) is recorded and not re-alarmed here — `training_member_union` is
+-            # named by universe_guard at this same anchor, and two HIGH alarms for one missing
+-            # file is how an alarm stream stops being read. One WITHOUT its own guard still
+-            # alarms, so quiet is never the default.
+-            _unvoiced = _cen.get("unvoiced_unpinnable") or []
+-            if _cen["n_missing_pin"] or _undecl or _unvoiced:
+-                self.alarm("HIGH",
+-                           f"frozen-input census: {_cen['n_missing_pin']} artifact(s) not "
+-                           f"fingerprinted, {len(_unvoiced)} unpinnable with no guard of their "
+-                           f"own {_unvoiced}, {len(_undecl)} undeclared {_undecl} — a change in "
+-                           f"any of them changes every prediction and nothing would notice")
+-        except Exception as e:
+-            out_census = {"error": f"{type(e).__name__}: {str(e)[:120]}"}
+-            self.alarm("HIGH", f"frozen-input census could not run ({type(e).__name__}) — "
+-                               f"the model's inputs are unverified this anchor")
+-
+-        # ── column-set assertion: the CROSS-SECTION is part of the model ──────────────────────
+-        # The panel encoder attends ACROSS columns, so a changed column set changes every
+-        # prediction, not just the new column's. The producer stamps the ordered column list; we
+-        # refuse preds we cannot recognise. Absent stamp also BLOCKS -- "the producer forgot" and
+-        # "the column set changed" are indistinguishable from here, and both are unsafe.
+-        try:
+-            import sys as _sys
+-            _sig = os.path.join(_REPO, "signal")
+-            if _sig not in _sys.path:
+-                _sys.path.insert(0, _sig)
+-            import compute_preds as _CP
+-            import live_panel as _LP
+-            want = _CP.columns_fingerprint(_LP.panel_symbols())
+-        except Exception as e:                       # cannot establish the expected set
++        # ── EXTERNAL BOOK (DESIGN_wide_live_deployment_2026-08-22 §1) ──────────────────────
++        # ★ The four DL-preds gates below (caliber stamp / frozen-input census / column set /
++        #   universe OOD) judge the PREDS FILE, which does not decide an external anchor's book.
++        #   They are SKIPPED — and the skip is written into the record rather than faked as a
++        #   pass. Everything that is a VENUE fact (universe gate, per_name_stop, withhold ->
++        #   reshape, clamp/flatten_only, executor) runs unchanged below.
++        _is_ext = external is not None
++        if _is_ext:
++            preds = preds or {}
++            symbols = list(external["symbols"])
++            out_census = {"skipped": "external_book — the DL artifact census does not decide this book"}
+             want = None
+-            self.alarm("HIGH", f"could not compute the expected column fingerprint ({e}); "
+-                               f"column-set assertion SKIPPED this anchor")
+-        if want is not None:
+-            got = {k: (preds.get("panel") or {}).get(k) for k in ("n_columns", "columns_sha256")}
+-            if got != want:
+-                self.alarm("CRITICAL",
+-                           f"prediction column set does not match the frozen universe: "
+-                           f"preds={got} expected={want} — anchor BLOCKED, no orders")
+-                return {"blocked": "column_set_mismatch", "preds_columns": got, "expected": want}
+-        symbols = preds["symbols"]
+-        # ★ [B27] IS THE FROZEN MODEL BEING ASKED ABOUT A COIN IT NEVER SAW?
+-        # Membership is reselected monthly while the model is frozen. The encoder has no per-coin
+-        # parameters, so an unseen coin is scored perfectly normally — the failure is silent BY
+-        # CONSTRUCTION, which is exactly why it needs a voice. Blind (no pinned training set) also
+-        # alarms: "we did not check" must not read like "we checked and it was fine".
+-        # ★ THE VERDICT IS RETURNED, NOT ASSIGNED INTO SOME OTHER SCOPE'S DICT. The first version
+-        # wrote `out[...]` — `run_anchor`'s name, not one that exists here — so every anchor raised
+-        # NameError, the except below relabelled it "check failed", and the guard's only observable
+-        # in production was its own error handler. `_trade`'s return is merged into `run_anchor`'s
+-        # record (`out.update(self._trade(...))`), so returning it is what makes it visible.
+-        _ood_report: Optional[Dict[str, Any]] = None
+-        try:
+-            import universe_guard as _UG
+-            _ood = _UG.check_members(symbols)
+-            # ★★ THE PROJECTION MUST CARRY THE VERDICT'S OWN LIMITS, NOT JUST ITS ANSWER.
+-            # This was a hand-picked five-key subset, so when `check_members` gained `guards` /
+-            # `does_not_establish` / `evidence_ceiling` (2026-07-29, when the training union was
+-            # pinned) the anchor's record kept reporting a bare `state: OK` — the wording existed
+-            # in the guard and reached no reader, which is the "produced a property nobody
+-            # consumes" shape this repo keeps paying for. The limits travel WITH the answer or the
+-            # answer is read as unqualified.
+-            # ⇒ `.get` because the three are absent on an OOD result by design (the
+-            #   subset-by-construction excuse is false there and must not be printed).
+-            _ood_report = {k: _ood.get(k) for k in
+-                           ("state", "n_members", "n_ood", "ood_symbols", "blind",
+-                            "guards", "does_not_establish", "evidence_ceiling")}
+-            _txt = _UG.ood_alarm_text(_ood)
+-            if _txt:
+-                self.alarm("HIGH", _txt)
+-        except Exception as e:
+-            _ood_report = {"state": "CHECK_FAILED", "error": f"{type(e).__name__}: {str(e)[:120]}",
+-                           "n_members": len(symbols), "n_ood": None, "ood_symbols": [],
+-                           "blind": True}
+-            self.alarm("HIGH", f"universe OOD check failed ({type(e).__name__}: {str(e)[:70]}) — "
+-                               f"a frozen model is scoring {len(symbols)} coins unverified")
++            _ood_report = {"state": "SKIPPED_EXTERNAL", "n_members": len(symbols), "n_ood": None,
++                           "ood_symbols": [], "blind": True,
++                           "does_not_establish": "anything — the frozen DL model is not scoring this book"}
++        else:
++            # ── caliber stamp assertion (audit ②): the split-path guarantee must be a MECHANISM,
++            # not a convention. preds declare their calibers; we assert against config; mismatch
++            # BLOCKS the anchor. Closes the chain config -> stamp -> consumption, the same shape
++            # as the protocol's registry -> declaration -> observation chain.
++            expected = _load(os.path.join(_REPO, "config", "book.json"), {}).get("factor_versions")
++            stamped = preds.get("factor_versions")
++            if expected and stamped != expected:
++                self.alarm("CRITICAL", f"caliber stamp mismatch: preds={stamped} config={expected} "
++                                       f"— anchor BLOCKED, no orders")
++                return {"blocked": "caliber_stamp_mismatch", "preds_stamp": stamped,
++                        "expected": expected}
++
++            # ── [B27] THE FROZEN-INPUT CENSUS: is every artifact that decides a prediction the one
++            # we signed? ────────────────────────────────────────────────────────────────────────
++            # ★★ NOTHING COMPARED THESE. `checkpoints/MANIFEST.json` carries the signed fingerprints,
++            # `signal/inference.load()` RE-COMPUTES them at every load and stamps them into
++            # preds_latest.json under `models` — and no code anywhere reads one against the other.
++            # Two independent recordings of the same quantity, compared never; a swapped checkpoint
++            # would have travelled all the way to an order. (Fifth member of this repo's
++            # writer-with-no-reader family, after pilot_log.fill, FundingLedger, the 5c error-code
++            # fast path and `state_root.read_stamped`.)
++            # ★ IT BLOCKS ON MISMATCH, matching the precedent one block up: when we cannot establish
++            # WHICH model is speaking, the anchor does not trade. A missing pin or an unpinnable
++            # artifact ALARMS but does not block — "we have not fingerprinted it yet" is a different
++            # statement from "it is not what we signed", and collapsing them would make the strong
++            # signal unreadable.
++            try:
++                import frozen_inputs as _FI
++                _cen = _FI.census()
++                _undecl = _FI.undeclared()
++                out_census = {k: v for k, v in _cen.items() if k != "rows"}
++                out_census["undeclared_artifacts"] = _undecl
++                _bad = [r for r in _cen["rows"] if r["state"] in ("MISMATCH", "ABSENT")]
++                if _bad:
++                    self.alarm("CRITICAL",
++                               f"frozen-input census FAILED for {[r['artifact'] for r in _bad]} — the "
++                               f"model's inputs are not the ones we signed; anchor BLOCKED, no orders")
++                    return {"blocked": "frozen_input_mismatch", "census": out_census,
++                            "failed": [{k: r[k] for k in ("artifact", "state", "expected", "observed")}
++                                       for r in _bad]}
++                # ★ ONE FACT, ONE VOICE: an unpinnable artifact that already has its own guard
++                # (`alarmed_by`) is recorded and not re-alarmed here — `training_member_union` is
++                # named by universe_guard at this same anchor, and two HIGH alarms for one missing
++                # file is how an alarm stream stops being read. One WITHOUT its own guard still
++                # alarms, so quiet is never the default.
++                _unvoiced = _cen.get("unvoiced_unpinnable") or []
++                if _cen["n_missing_pin"] or _undecl or _unvoiced:
++                    self.alarm("HIGH",
++                               f"frozen-input census: {_cen['n_missing_pin']} artifact(s) not "
++                               f"fingerprinted, {len(_unvoiced)} unpinnable with no guard of their "
++                               f"own {_unvoiced}, {len(_undecl)} undeclared {_undecl} — a change in "
++                               f"any of them changes every prediction and nothing would notice")
++            except Exception as e:
++                out_census = {"error": f"{type(e).__name__}: {str(e)[:120]}"}
++                self.alarm("HIGH", f"frozen-input census could not run ({type(e).__name__}) — "
++                                   f"the model's inputs are unverified this anchor")
++
++            # ── column-set assertion: the CROSS-SECTION is part of the model ──────────────────────
++            # The panel encoder attends ACROSS columns, so a changed column set changes every
++            # prediction, not just the new column's. The producer stamps the ordered column list; we
++            # refuse preds we cannot recognise. Absent stamp also BLOCKS -- "the producer forgot" and
++            # "the column set changed" are indistinguishable from here, and both are unsafe.
++            try:
++                import sys as _sys
++                _sig = os.path.join(_REPO, "signal")
++                if _sig not in _sys.path:
++                    _sys.path.insert(0, _sig)
++                import compute_preds as _CP
++                import live_panel as _LP
++                want = _CP.columns_fingerprint(_LP.panel_symbols())
++            except Exception as e:                       # cannot establish the expected set
++                want = None
++                self.alarm("HIGH", f"could not compute the expected column fingerprint ({e}); "
++                                   f"column-set assertion SKIPPED this anchor")
++            if want is not None:
++                got = {k: (preds.get("panel") or {}).get(k) for k in ("n_columns", "columns_sha256")}
++                if got != want:
++                    self.alarm("CRITICAL",
++                               f"prediction column set does not match the frozen universe: "
++                               f"preds={got} expected={want} — anchor BLOCKED, no orders")
++                    return {"blocked": "column_set_mismatch", "preds_columns": got, "expected": want}
++            symbols = preds["symbols"]
++            # ★ [B27] IS THE FROZEN MODEL BEING ASKED ABOUT A COIN IT NEVER SAW?
++            # Membership is reselected monthly while the model is frozen. The encoder has no per-coin
++            # parameters, so an unseen coin is scored perfectly normally — the failure is silent BY
++            # CONSTRUCTION, which is exactly why it needs a voice. Blind (no pinned training set) also
++            # alarms: "we did not check" must not read like "we checked and it was fine".
++            # ★ THE VERDICT IS RETURNED, NOT ASSIGNED INTO SOME OTHER SCOPE'S DICT. The first version
++            # wrote `out[...]` — `run_anchor`'s name, not one that exists here — so every anchor raised
++            # NameError, the except below relabelled it "check failed", and the guard's only observable
++            # in production was its own error handler. `_trade`'s return is merged into `run_anchor`'s
++            # record (`out.update(self._trade(...))`), so returning it is what makes it visible.
++            _ood_report: Optional[Dict[str, Any]] = None
++            try:
++                import universe_guard as _UG
++                _ood = _UG.check_members(symbols)
++                # ★★ THE PROJECTION MUST CARRY THE VERDICT'S OWN LIMITS, NOT JUST ITS ANSWER.
++                # This was a hand-picked five-key subset, so when `check_members` gained `guards` /
++                # `does_not_establish` / `evidence_ceiling` (2026-07-29, when the training union was
++                # pinned) the anchor's record kept reporting a bare `state: OK` — the wording existed
++                # in the guard and reached no reader, which is the "produced a property nobody
++                # consumes" shape this repo keeps paying for. The limits travel WITH the answer or the
++                # answer is read as unqualified.
++                # ⇒ `.get` because the three are absent on an OOD result by design (the
++                #   subset-by-construction excuse is false there and must not be printed).
++                _ood_report = {k: _ood.get(k) for k in
++                               ("state", "n_members", "n_ood", "ood_symbols", "blind",
++                                "guards", "does_not_establish", "evidence_ceiling")}
++                _txt = _UG.ood_alarm_text(_ood)
++                if _txt:
++                    self.alarm("HIGH", _txt)
++            except Exception as e:
++                _ood_report = {"state": "CHECK_FAILED", "error": f"{type(e).__name__}: {str(e)[:120]}",
++                               "n_members": len(symbols), "n_ood": None, "ood_symbols": [],
++                               "blind": True}
++                self.alarm("HIGH", f"universe OOD check failed ({type(e).__name__}: {str(e)[:70]}) — "
++                                   f"a frozen model is scoring {len(symbols)} coins unverified")
+         gate = self._universe_gate(symbols, state, rebalance_id=rid)
+         if gate.get("tradable") is not None and not gate.get("venue_status_unknown"):
+             # compose on the FULL predicted cross-section (ranks/z-scores are cross-sectional —
+@@ -1250,97 +1334,122 @@
+             except Exception as _e:
+                 self.alarm("HIGH", f"per_name_stop 状态读取失败({type(_e).__name__}) — 条款本锚未生效, "
+                                    f"计数状态未损失(只读路径)")
+-
+-        # signal: split-path caliber is enforced by construction — funding comes from the
+-        # corrected fapi series HERE; king/s2 arrive precomputed from the as-trained panel.
+-        import numpy as np
+-        fund = np.array([preds["funding_ema"].get(s, np.nan) for s in symbols], float)
+-        dvol = np.array([preds["dvol30"].get(s, np.nan) for s in symbols], float)
+-        king = np.array([preds["king"].get(s, np.nan) for s in symbols], float)
+-        s2 = np.array([preds["s2"].get(s, np.nan) for s in symbols], float)
+-        # ★★★ THE WEIGHTS COME FROM config/book.json, NOT FROM legs.py's LITERAL (2026-08-01).
+-        # This line read `LG.compose_book(king, s2, fund, dvol)` — no weights — so the function
+-        # fell back to its own module constant and `book.json["weights"]` had ZERO readers in the
+-        # whole repo. Switching the book by editing that file would have changed the config, every
+-        # record citing it, and nothing about the orders; no guard could have seen the gap,
+-        # because both halves were internally consistent.
+-        # ⇒ `tests_book_weights_effective` mutates the file and requires the ORDERING weights to
+-        #   move with it — the caliber is the book we send, never the file agreeing with itself.
+-        _bw = BC.weights()
+-        # risk budget: config-driven (single source config/book.json), rvol from the SAME preds
+-        # file as every other input. Old preds without `rvol24` -> all-NaN -> compose_book no-op.
+-        _rb = _load(os.path.join(_REPO, "config", "book.json"), {}).get("risk_budget")
+-        rv = np.array([(preds.get("rvol24") or {}).get(s, np.nan) for s in symbols], float)
+-        book = LG.compose_book(king, s2, fund, dvol, weights=_bw, rvol=rv, risk_budget=_rb)
+-        # ── 收割速度 EMA (PREREG_harvest_speed_acceptance, sha 53ab6f5a74bd8ef8) ──────────────
+-        # ★ 默认 alpha=1.0 ⇒ 逐位无操作。状态按【名字】存在 state/live/harvest_ema.json。
+-        # ★★ halt/flatten 之后必须重置: 平仓后我们持有的是零, 而 EMA 会把清仓前的权重拖过断点,
+-        #    让书以为自己还持有那些仓位。`reduce_only` 或 watchdog 已触发 ⇒ 丢弃状态。
+-        # ★★★ 2026-08-06 10:1xZ 修复一个【已经打在实盘上】的缺陷。上一版这里是:
+-        #       _wd_path = ...os.path.join(_REPO, "state", "watchdog", "state.json")
+-        #       _tripped = os.path.exists(_wd_path)
+-        #   两处都错: (a) 路径写死成 DRY_RUN 树 —— 与它上面那行自己写的"用与开仓门同一个路径来源,
+-        #   不另造一份"正好相反(注释给出了规则, 代码没有兑现它); (b) 谓词是【文件在不在】, 而三个
+-        #   mode 的 watchdog 状态文件长期都在、内容都是 tripped_at:null(未触发) ⇒ 恒判"已触发"
+-        #   ⇒ prev 恒为 None ⇒ **a=0.3 静默退化成逐位无操作**, 而 `applied:true` 照写。
+-        #   实盘回执: state/live/harvest_ema.json 写于 08:39:55Z(08:00Z 锚), n_carried=0。
+-        #   ★ 首锚 n_carried=0 本来就正常 ⇒ 该读数【不具判别力】, 判定来自对表达式的直接求值。
+-        import state_root as _SRh
+-        _mode_h = os.environ.get("LIVE_MODE", "DRY_RUN")
+-        _ph = _SRh.paths_for(_mode_h)
+-        # ★ env 可重定向, 与 LIVE_WATCHDOG_STATE 同族。实测缺它的代价: 09:51:54Z 验收电池里
+-        #   tests_signal_and_loop 进程内跑 _trade, 把 EMA 状态写进了【真实】DRY_RUN 树
+-        #   (state/harvest_ema.json) —— 测试写生产树, 与今天堵掉的 anchor_runs.log 污染同形。
+-        _hp = os.environ.get("LIVE_HARVEST_STATE",
+-                             os.path.join(_ph["root"], "harvest_ema.json"))
+-        _ha = float((_load(os.path.join(_REPO, "config", "book.json"), {})
+-                     .get("harvest_ema") or {}).get("alpha", 1.0))
+-        _wd_path = os.environ.get("LIVE_WATCHDOG_STATE", _ph["watchdog_state"])
+-        # ★★★ read_stamped 是裸的 `json.load(open(path))` —— `strict` 只管【跨模式】那一支,
+-        #   文件缺失或 JSON 损坏一律抛。而"文件缺失"恰恰是我上一行推理过的那个场景
+-        #   (resume_from_trip.sh:263 会 remove 它)。第一版直接调用 ⇒ **一次正常恢复之后,
+-        #   这里会抛 FileNotFoundError 并杀掉整个锚点** —— 比它要修的"EMA 空转"严重得多。
+-        #   电池的 tests_signal_and_loop 当场逮住(它构造的临时树里没有 state.json)。
+-        #   ⇒ 又一次"守卫就差你停下的下一行": 我把语义推对了, 然后调用了一个处理不了该语义的函数。
+-        _present = os.path.exists(_wd_path)
+-        _wdh, _noteh = None, None
+-        if _present:
++        # ── external book: venue ELIGIBILITY beyond `status` (design §1 '450 候选 ∩ 交易所
++        #    TRADING COIN perp', 非 ASCII/股票类名排除) — probe v2's rule, pure fn over exchangeInfo.
++        #    Excluded names join `_untradable` ⇒ pop if unheld / clamp if held (reduce-only).
++        #    DRY_RUN skips the fetch exactly as _universe_gate does.
++        self._ext_meta = None
++        if _is_ext and self.broker.mode != "DRY_RUN":
+             try:
+-                _wdh, _noteh = _SRh.read_stamped(_wd_path, _mode_h, strict=False)
+-            except Exception as _e:                       # noqa: BLE001 — 读不出 ⇒ fail-closed
+-                _wdh, _noteh = None, f"unreadable: {type(_e).__name__}"
+-        _rst = LG.harvest_reset_required(_wdh, _noteh, _present)
+-        _tripped = bool(_rst["reset"])
+-        _prev = None if _tripped else (_load(_hp, {}) or {}).get("state")
+-        _hz = LG.apply_harvest_ema(book["target_w"], symbols, _prev, _ha)
+-        book["target_w"] = _hz["target_w"]
+-        try:
+-            _save(_hp, {"state": _hz["state"], "alpha": _hz["alpha"],
+-                                # ★ anchor_ts 此处尚未赋值(它在 capture_anchor 之后才出现) ——
+-                                # 用【已经存在】的 rebalance_id 与本次调用的 now, 不引用未来的名字。
+-                                "rebalance_id": rid, "written_at": now, "applied": _hz["applied"],
+-                                "n_carried": _hz["n_carried"],
+-                                # ★ 记真实理由, 不记一个笼统的 "watchdog tripped" —— 上一版
+-                                #   无论何种原因都写同一句, 于是"文件恒在"这个错因在记录里
+-                                #   看起来与真正的触发一模一样。
+-                                "reset_reason": _rst["reason"], "mode": _mode_h,
+-                                "watchdog_state_path": _wd_path})
+-        except Exception as _e:
+-            # 同上: 本类里没有 `log`。写失败必须留痕, 否则下一锚从 raw 重来 = 静默退化成 alpha=1.0
+-            self._last_harvest_ema_error = f"{type(_e).__name__}: {str(_e)[:80]}"
+-            self.alarm("HIGH", f"harvest_ema 状态写入失败({type(_e).__name__}) — 下一个锚会从 raw "
+-                               f"重新起步, 等于静默退化成 alpha=1.0(不平滑), 而没有任何读数会变红")
+-        # ★ 报告走【返回的 phase_A dict】, 不另造日志通道 —— `log` 是 run_anchor 的模块级名字,
+-        #   本类里不存在; `self.log` 是 PilotLogger 不是记录函数(调用它是 TypeError, 该缺陷已在
+-        #   本文件 855 行登记过)。我按邻行 `self._last_sizing` 的写法挂在实例上, 由 phase_A 取。
+-        self._last_harvest_ema = {"alpha": _hz["alpha"], "applied": _hz["applied"],
+-                                  "n_carried": _hz["n_carried"], "n_symbols": len(symbols),
+-                                  "reset_by_trip": bool(_tripped)}
++                _exi = self.src._get("/fapi/v1/exchangeInfo").get("symbols", [])
++                self._ext_meta = EXT.venue_meta_exclusions(_exi, symbols)
++                if self._ext_meta:
++                    self._untradable = set(self._untradable) | set(self._ext_meta)
++            except Exception as _e:                  # noqa: BLE001
++                self.alarm("HIGH", f"external book: exchangeInfo 元数据过滤不可用({type(_e).__name__}) — "
++                                   f"本锚只按 status 门过滤(非 COIN/非 ASCII 名未排除)")
++
++        if _is_ext:
++            # ★ THE PRODUCER'S WEIGHTS ARE THE TARGET (design §1): no compose_book, no risk budget,
++            #   no harvest EMA, no neutral band. target_w = w / gross_norm (unit gross), so the
++            #   book below is exactly w/gross_norm x NAV x gross_mult before venue withholds.
++            book = {"target_w": EXT.target_vector(external, symbols)}
++            _bw = {"book_source": "external", "gross_mult": external["gross_mult"]}
++            self._last_harvest_ema = {"alpha": None, "applied": False, "n_carried": 0,
++                                      "n_symbols": len(symbols), "reset_by_trip": False,
++                                      "skipped": "external_book"}
++        else:
++            # signal: split-path caliber is enforced by construction — funding comes from the
++            # corrected fapi series HERE; king/s2 arrive precomputed from the as-trained panel.
++            import numpy as np
++            fund = np.array([preds["funding_ema"].get(s, np.nan) for s in symbols], float)
++            dvol = np.array([preds["dvol30"].get(s, np.nan) for s in symbols], float)
++            king = np.array([preds["king"].get(s, np.nan) for s in symbols], float)
++            s2 = np.array([preds["s2"].get(s, np.nan) for s in symbols], float)
++            # ★★★ THE WEIGHTS COME FROM config/book.json, NOT FROM legs.py's LITERAL (2026-08-01).
++            # This line read `LG.compose_book(king, s2, fund, dvol)` — no weights — so the function
++            # fell back to its own module constant and `book.json["weights"]` had ZERO readers in the
++            # whole repo. Switching the book by editing that file would have changed the config, every
++            # record citing it, and nothing about the orders; no guard could have seen the gap,
++            # because both halves were internally consistent.
++            # ⇒ `tests_book_weights_effective` mutates the file and requires the ORDERING weights to
++            #   move with it — the caliber is the book we send, never the file agreeing with itself.
++            _bw = BC.weights()
++            # risk budget: config-driven (single source config/book.json), rvol from the SAME preds
++            # file as every other input. Old preds without `rvol24` -> all-NaN -> compose_book no-op.
++            _rb = _load(os.path.join(_REPO, "config", "book.json"), {}).get("risk_budget")
++            rv = np.array([(preds.get("rvol24") or {}).get(s, np.nan) for s in symbols], float)
++            book = LG.compose_book(king, s2, fund, dvol, weights=_bw, rvol=rv, risk_budget=_rb)
++            # ── 收割速度 EMA (PREREG_harvest_speed_acceptance, sha 53ab6f5a74bd8ef8) ──────────────
++            # ★ 默认 alpha=1.0 ⇒ 逐位无操作。状态按【名字】存在 state/live/harvest_ema.json。
++            # ★★ halt/flatten 之后必须重置: 平仓后我们持有的是零, 而 EMA 会把清仓前的权重拖过断点,
++            #    让书以为自己还持有那些仓位。`reduce_only` 或 watchdog 已触发 ⇒ 丢弃状态。
++            # ★★★ 2026-08-06 10:1xZ 修复一个【已经打在实盘上】的缺陷。上一版这里是:
++            #       _wd_path = ...os.path.join(_REPO, "state", "watchdog", "state.json")
++            #       _tripped = os.path.exists(_wd_path)
++            #   两处都错: (a) 路径写死成 DRY_RUN 树 —— 与它上面那行自己写的"用与开仓门同一个路径来源,
++            #   不另造一份"正好相反(注释给出了规则, 代码没有兑现它); (b) 谓词是【文件在不在】, 而三个
++            #   mode 的 watchdog 状态文件长期都在、内容都是 tripped_at:null(未触发) ⇒ 恒判"已触发"
++            #   ⇒ prev 恒为 None ⇒ **a=0.3 静默退化成逐位无操作**, 而 `applied:true` 照写。
++            #   实盘回执: state/live/harvest_ema.json 写于 08:39:55Z(08:00Z 锚), n_carried=0。
++            #   ★ 首锚 n_carried=0 本来就正常 ⇒ 该读数【不具判别力】, 判定来自对表达式的直接求值。
++            import state_root as _SRh
++            _mode_h = os.environ.get("LIVE_MODE", "DRY_RUN")
++            _ph = _SRh.paths_for(_mode_h)
++            # ★ env 可重定向, 与 LIVE_WATCHDOG_STATE 同族。实测缺它的代价: 09:51:54Z 验收电池里
++            #   tests_signal_and_loop 进程内跑 _trade, 把 EMA 状态写进了【真实】DRY_RUN 树
++            #   (state/harvest_ema.json) —— 测试写生产树, 与今天堵掉的 anchor_runs.log 污染同形。
++            _hp = os.environ.get("LIVE_HARVEST_STATE",
++                                 os.path.join(_ph["root"], "harvest_ema.json"))
++            _ha = float((_load(os.path.join(_REPO, "config", "book.json"), {})
++                         .get("harvest_ema") or {}).get("alpha", 1.0))
++            _wd_path = os.environ.get("LIVE_WATCHDOG_STATE", _ph["watchdog_state"])
++            # ★★★ read_stamped 是裸的 `json.load(open(path))` —— `strict` 只管【跨模式】那一支,
++            #   文件缺失或 JSON 损坏一律抛。而"文件缺失"恰恰是我上一行推理过的那个场景
++            #   (resume_from_trip.sh:263 会 remove 它)。第一版直接调用 ⇒ **一次正常恢复之后,
++            #   这里会抛 FileNotFoundError 并杀掉整个锚点** —— 比它要修的"EMA 空转"严重得多。
++            #   电池的 tests_signal_and_loop 当场逮住(它构造的临时树里没有 state.json)。
++            #   ⇒ 又一次"守卫就差你停下的下一行": 我把语义推对了, 然后调用了一个处理不了该语义的函数。
++            _present = os.path.exists(_wd_path)
++            _wdh, _noteh = None, None
++            if _present:
++                try:
++                    _wdh, _noteh = _SRh.read_stamped(_wd_path, _mode_h, strict=False)
++                except Exception as _e:                       # noqa: BLE001 — 读不出 ⇒ fail-closed
++                    _wdh, _noteh = None, f"unreadable: {type(_e).__name__}"
++            _rst = LG.harvest_reset_required(_wdh, _noteh, _present)
++            _tripped = bool(_rst["reset"])
++            _prev = None if _tripped else (_load(_hp, {}) or {}).get("state")
++            _hz = LG.apply_harvest_ema(book["target_w"], symbols, _prev, _ha)
++            book["target_w"] = _hz["target_w"]
++            try:
++                _save(_hp, {"state": _hz["state"], "alpha": _hz["alpha"],
++                                    # ★ anchor_ts 此处尚未赋值(它在 capture_anchor 之后才出现) ——
++                                    # 用【已经存在】的 rebalance_id 与本次调用的 now, 不引用未来的名字。
++                                    "rebalance_id": rid, "written_at": now, "applied": _hz["applied"],
++                                    "n_carried": _hz["n_carried"],
++                                    # ★ 记真实理由, 不记一个笼统的 "watchdog tripped" —— 上一版
++                                    #   无论何种原因都写同一句, 于是"文件恒在"这个错因在记录里
++                                    #   看起来与真正的触发一模一样。
++                                    "reset_reason": _rst["reason"], "mode": _mode_h,
++                                    "watchdog_state_path": _wd_path})
++            except Exception as _e:
++                # 同上: 本类里没有 `log`。写失败必须留痕, 否则下一锚从 raw 重来 = 静默退化成 alpha=1.0
++                self._last_harvest_ema_error = f"{type(_e).__name__}: {str(_e)[:80]}"
++                self.alarm("HIGH", f"harvest_ema 状态写入失败({type(_e).__name__}) — 下一个锚会从 raw "
++                                   f"重新起步, 等于静默退化成 alpha=1.0(不平滑), 而没有任何读数会变红")
++            # ★ 报告走【返回的 phase_A dict】, 不另造日志通道 —— `log` 是 run_anchor 的模块级名字,
++            #   本类里不存在; `self.log` 是 PilotLogger 不是记录函数(调用它是 TypeError, 该缺陷已在
++            #   本文件 855 行登记过)。我按邻行 `self._last_sizing` 的写法挂在实例上, 由 phase_A 取。
++            self._last_harvest_ema = {"alpha": _hz["alpha"], "applied": _hz["applied"],
++                                      "n_carried": _hz["n_carried"], "n_symbols": len(symbols),
++                                      "reset_by_trip": bool(_tripped)}
+         # ★★★ CONSTANT LEVERAGE REPLACES CONSTANT EXPOSURE (user's ruling 2026-07-29).
+         # `gross` was a config constant, so as equity fell the effective leverage rose and nobody
+         # decided that — the risk budget was being enlarged by arithmetic. It is now
+         # `nav x target_leverage`, recomputed here, every anchor.
+-        _sz = self._size_book()
++        _sz = self._size_book(target_leverage=(external["gross_mult"] if _is_ext else None),
++                              leverage_source=("external_book.gross_mult" if _is_ext else None))
+         out_sizing = _sz
+         self._last_sizing = _sz
+         if _sz.get("halt"):
+@@ -1383,6 +1492,20 @@
+             _fl_src = "executor.filters.f[*].min_notional"
+         except Exception as _e:
+             _fl, _fl_src = None, f"UNAVAILABLE ({type(_e).__name__}) — floor crossings NOT checked"
++        # ── external book: 2x min-notional ELIGIBILITY (design §1 '最小名义额可达 NAV×gross/名 ≥
++        #    2×minNotional'): a name that cannot clear twice its floor cannot be ADJUSTED later, so
++        #    it is withheld here — unheld ⇒ popped (then the reshape re-demeans/rescales the rest),
++        #    held ⇒ clamped reduce-only. Recorded every anchor; paged only above EXT_DUST_ALARM_FRAC.
++        self._ext_dust = None
++        if _is_ext:
++            self._ext_dust = EXT.below_min_notional(target, _fl, external["min_notional_mult"])
++            if self._ext_dust["names"]:
++                self._untradable = set(getattr(self, "_untradable", ())) | set(self._ext_dust["names"])
++            if (self._ext_dust.get("mass_frac") or 0.0) > EXT_DUST_ALARM_FRAC:
++                self.alarm("HIGH", f"external book: {self._ext_dust['n']} 个名字的目标名义额低于 "
++                                   f"{external['min_notional_mult']:g}×minNotional, 合计 gross 的 "
++                                   f"{self._ext_dust['mass_frac']:.1%} (>{EXT_DUST_ALARM_FRAC:.0%}) 被撤下 — "
++                                   f"NAV×gross_mult 对 450 名宇宙太小, 广度损失是个发现, 不是噪声。")
+         # _pns_zero_targets: stop 名 target 强制置零(条款动作=flatten, 非 reduce) — 置零后
+         # clamp pass-2 的 tgt*cur>0 恒假 ⇒ 该名必落 flatten_only 桶(reduce-only, 不越过 flat)。
+         for _s in getattr(self, "_pns_sets", {}).get("stop", ()):
+@@ -1420,27 +1543,34 @@
+                        f"flatten_only={_clamp['flatten_only'][:4]}")
+         out_clamp = _clamp
+ 
+-        # ★ 中性保持型免交易带(PROPOSAL_neutral_band 8e499dac, 用户裁定 2026-08-10)。
+-        #   必须在 withhold+reshape 之后 —— reshape 的 re-demean 会移动所有名字, 放在其前带就白带了;
+-        #   场所约束名(reduced/add_blocked/flatten_only)豁免于摊派 —— 对它们加常数会把 clamp
+-        #   刚刚禁止的方向重新打开。带宽是【权重】口径(no_trade_band_w × gross = 名义), 与
+-        #   executor 里休眠的 band_bps(bps 口径, 恒 0)是两个机制 —— tests_neutral_band T7 钉死
+-        #   只有本条活着。缺 key ⇒ 0.0 ⇒ 恒等直通(失败向 = 带关闭 = 部署前行为, 非危险向)。
+-        _bw = float((_load(os.path.join(_REPO, "config", "book.json"), {}) or {})
+-                    .get("no_trade_band_w") or 0.0)
+-        _nb_exempt = (set(_clamp.get("reduced") or ()) | set(_clamp.get("add_blocked") or ())
+-                      | set(_clamp.get("flatten_only") or ()))
+-        target, _nb = LG.apply_no_trade_band(
+-            target, _held_book, band_notional=_bw * float(self.gross or 0.0),
+-            exempt=_nb_exempt)
+-        self._last_no_trade_band = _nb
+-        try:
+-            _save(os.path.join(os.path.dirname(_hp), "no_trade_band.json"),
+-                  {"rebalance_id": rid, "written_at": now, "band_w": _bw,
+-                   "gross": float(self.gross or 0.0), **_nb})
+-        except Exception as _e:
+-            # 带是无状态的(不像 EMA 有状态链), 写失败只损失观测 —— 记在返回件上, 不告警刷屏
+-            self._last_no_trade_band = {**_nb, "state_write_error": type(_e).__name__}
++        if _is_ext:
++            # ★ design §1: the external book is NOT passed through the neutral band (the producer's
++            #   weights already carry its own turnover rule; W2b measured the mixed pipeline loses).
++            _nb = {"applied": False, "skipped": "external_book", "n_in": len(target),
++                   "n_held": 0, "n_traded": len(target), "n_exempt": 0}
++            self._last_no_trade_band = _nb
++        else:
++            # ★ 中性保持型免交易带(PROPOSAL_neutral_band 8e499dac, 用户裁定 2026-08-10)。
++            #   必须在 withhold+reshape 之后 —— reshape 的 re-demean 会移动所有名字, 放在其前带就白带了;
++            #   场所约束名(reduced/add_blocked/flatten_only)豁免于摊派 —— 对它们加常数会把 clamp
++            #   刚刚禁止的方向重新打开。带宽是【权重】口径(no_trade_band_w × gross = 名义), 与
++            #   executor 里休眠的 band_bps(bps 口径, 恒 0)是两个机制 —— tests_neutral_band T7 钉死
++            #   只有本条活着。缺 key ⇒ 0.0 ⇒ 恒等直通(失败向 = 带关闭 = 部署前行为, 非危险向)。
++            _bw = float((_load(os.path.join(_REPO, "config", "book.json"), {}) or {})
++                        .get("no_trade_band_w") or 0.0)
++            _nb_exempt = (set(_clamp.get("reduced") or ()) | set(_clamp.get("add_blocked") or ())
++                          | set(_clamp.get("flatten_only") or ()))
++            target, _nb = LG.apply_no_trade_band(
++                target, _held_book, band_notional=_bw * float(self.gross or 0.0),
++                exempt=_nb_exempt)
++            self._last_no_trade_band = _nb
++            try:
++                _save(os.path.join(os.path.dirname(_hp), "no_trade_band.json"),
++                      {"rebalance_id": rid, "written_at": now, "band_w": _bw,
++                       "gross": float(self.gross or 0.0), **_nb})
++            except Exception as _e:
++                # 带是无状态的(不像 EMA 有状态链), 写失败只损失观测 —— 记在返回件上, 不告警刷屏
++                self._last_no_trade_band = {**_nb, "state_write_error": type(_e).__name__}
+ 
+         # anchor capture -> plan -> maker -> (k window handled by caller/cron cadence) -> topup
+         anchor_ts, mids = self.executor.capture_anchor(symbols)
+@@ -1529,10 +1659,26 @@
+             # ★ an EXPLICIT sentinel, matching `panel_hash` on the next line. `json.dumps(None)`
+             # is the four-character string "null", which satisfies not_null while telling the
+             # reader nothing — and reads, in a JSONL file, exactly like a JSON null that was meant.
+-            "factor_version": (json.dumps(preds["factor_versions"], sort_keys=True)
++            "factor_version": (EXT.factor_version_stamp(external) if _is_ext else
++                               json.dumps(preds["factor_versions"], sort_keys=True)
+                                if preds.get("factor_versions") is not None else
+                                "UNKNOWN — the preds file carried no factor_versions"),
+-            "panel_hash": (preds.get("panel") or {}).get("columns_sha256", "UNKNOWN"),
++            "panel_hash": (external["universe_sha"] if _is_ext else
++                           (preds.get("panel") or {}).get("columns_sha256", "UNKNOWN")),
++            # ★ WHICH BOOK: 'internal' is today's composer; 'external' names the producer's file
++            #   (booster/weights/universe shas travel in factor_version + panel_hash above) and
++            #   the two KEPT per-name filters' verdicts — the ledger can then explain every name
++            #   the wide book asked for that was not sent.
++            "book_source": "external" if _is_ext else "internal",
++            "external_book": (EXT.record(external, {
++                "meta_excluded": (dict(sorted((getattr(self, "_ext_meta", None) or {}).items())[:40])
++                                  if getattr(self, "_ext_meta", None) is not None else "NOT CHECKED (DRY_RUN or fetch failed)"),
++                "n_meta_excluded": (len(getattr(self, "_ext_meta", None) or {})
++                                    if getattr(self, "_ext_meta", None) is not None else None),
++                "below_min_notional": ({k: (sorted(v)[:40] if isinstance(v, set) else v)
++                                        for k, v in (getattr(self, "_ext_dust", None) or {}).items()}
++                                       if getattr(self, "_ext_dust", None) else None)})
++                              if _is_ext else None),
+             # ★★★ WHICH BOOK THIS ANCHOR TRADED, IN THE LEDGER (2026-08-01). The shadow products
+             # got a weights stamp when the mixture moved to challenger; the pilot's OWN ledger did
+             # not, so "which weights produced this anchor?" was answerable only from the run log's
+@@ -1576,6 +1722,8 @@
+                                       "zero_max_notional / n_zero_cap_withheld)"),
+                 "untradable_held": {k: v[:6] for k, v in out_clamp.items() if k != "popped"},
+                 "rebalance_id": rid, "anchor_ts": anchor_ts,
++                "book_source": "external" if _is_ext else "internal",
++                **({"external_filters": (self._anchor_ctx.get("external_book") or {})} if _is_ext else {}),
+                 # ★ `live` and `benign_rejected` are handed over SEPARATELY on purpose. `live`
+                 # means "may be resting" and drives the k-cancel and the venue fills query;
+                 # `benign_rejected` has nothing resting and no fills, and joins only the TOP-UP.
+@@ -2006,6 +2154,11 @@
+                 # says the book we ACHIEVED was. Both are needed — 16:01Z had intent +40.76 and
+                 # realised -6.92% of gross, and only having both separates planning from execution.
+                 row["reshape"] = ctx.get("reshape")
++                # ★ WHICH BOOK, as a column (2026-08-22): downstream readers (watchdog/IC monitor/
++                #   guard_twin) must not parse factor_version to learn it.
++                row["book_source"] = ctx.get("book_source", "internal")
++                if ctx.get("external_book"):
++                    row["external_book"] = ctx["external_book"]
+                 # ★ realised neutrality, measured from venue truth and recorded every anchor
+                 if snap is not None:
+                     row.update(neutrality_from_snapshot(snap))

@@ -1,0 +1,31 @@
+[A] the entry point references every protection layer
+  OK    watchdog is CALLED, not merely mentioned  — WD.run(
+  OK    watchdog inputs is CALLED, not merely mentioned  — WI.collect(
+  OK    kill switch (via loop) is CALLED, not merely mentioned  — run_anchor
+  OK    telegram is CALLED, not merely mentioned  — TelegramNotifier
+  OK    phase B top-up is CALLED, not merely mentioned  — complete_anchor(
+
+[B] a watchdog that cannot evaluate must alarm, never be swallowed
+  OK    evaluation is wrapped and failure raises a CRITICAL alarm
+
+[C] real run: the entry point executes end to end and the watchdog leaves state
+  OK    entry point exits 0
+  OK    the watchdog line is present in the run log  — ["2026-08-22T03:56:37Z watchdog: tripped=False n_days=21 public_path={'alive': True, 'ms': 191, 'n_markets': 232} blind=['cond1_c_persist', 'cond2_day_loss', 'cond4_drawdown', 'cond4b_leverage', 'cond5_venue_event', 'cond7_ops'] partial=[]"]
+  OK    it did NOT fail to evaluate
+  OK    watchdog persisted its evaluation (not in-memory only)
+  OK    the persisted evaluation names its conditions
+  OK    ★★ the watchdog EVALUATED during this run — evidence produced by the watchdog itself, not by a string in the source or a line in a log  — evaluated_utc is 127.6s after this run started (must be >= 0)
+
+[D] the clock gate and the anti-sleep guard are reached by the REAL entry point
+  OK    the anti-sleep guard was checked this run  — ['2026-08-22T03:56:45Z nosleep: ok=True agent_pid=844 guard_age_h=386.953 power=AC | interval=11.9h log_verified=True slept_since_guard=0 slept_before_guard=0']
+  OK    ★ the sleep LOG was read this run, over a stated interval (not just 'the guard is held')  — ['2026-08-22T03:56:45Z nosleep: ok=True agent_pid=844 guard_age_h=386.953 power=AC | interval=11.9h log_verified=True slept_since_guard=0 slept_before_guard=0']
+  OK    ...and the sleeps are attributed to both sides of the guard, so a failure is diagnosable  — ['2026-08-22T03:56:45Z nosleep: ok=True agent_pid=844 guard_age_h=386.953 power=AC | interval=11.9h log_verified=True slept_since_guard=0 slept_before_guard=0']
+  OK    phase A records the schedule decision  — 2026-08-22T03:54:53Z phase_A: {"anchor_wall_ts": 1787370892.873215, "book_source": "internal", "schedule": {"now_utc": "
+  OK    on-schedule => the gate did not halt  — {'now_utc': '2026-08-22T03:54:52Z', 'nominal_utc': '2026-08-22T04:00Z', 'offset_min': -5.12, 'tolerance_min': 20, 'on_schedule': True}
+
+[E] ★★ the funding ledger RAN — and the evidence comes from the ledger, not the log
+  OK    ★★ the ledger pulled during THIS run (its own stamp, newer than the run start)  — evaluated_utc is 119.6s after this run started; file=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state/funding_last_pull.json
+  OK    ...and the stamp says what it found, so 'ran and found nothing' is distinguishable from 'never ran'  — {'n_income': 0, 'rows_written': 0, 'skipped_no_position': 0}
+  OK    the run log carries the line too (weak on its own, useful beside the stamp)  — ['2026-08-22T03:56:28Z funding: income=0 rows=0 skipped_no_position=0 gap=COLD_START sign=None']
+
+ALL PASS

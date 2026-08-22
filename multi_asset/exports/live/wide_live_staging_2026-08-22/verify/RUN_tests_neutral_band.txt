@@ -1,0 +1,21 @@
+  PASS T1a no_trade_band_w == 0.002 — got 0.002
+  PASS T1b provenance key present — basis must cite the frozen proposal SHA
+  PASS T2a in-band names hold current — C=1.0 D=-1.5
+  PASS T2b zero-position small target stays flat (no dust open) — E=0.0
+  PASS T2c neutrality exact over traded set — net=0.00e+00
+  PASS T2d traded names moved by common constant only — spread must be a single constant, not proportional
+  PASS T2e stats coherent — held=3 traded=2
+  PASS T3a exempt name untouched — A=100.0
+  PASS T3b exempt excluded from spread set — exempt=1 traded=1
+  PASS T3c neutrality still exact with exemptions — net=0.00e+00
+  PASS T4 band<=0 is identity
+  PASS T5a band wired
+  PASS T5b order reshape -> band -> plan — idx reshape=15722 band=103612 plan=105677
+  PASS T6 exempt includes _clamp[reduced] — venue-constrained names must not receive the spread constant
+  PASS T6 exempt includes _clamp[add_blocked] — venue-constrained names must not receive the spread constant
+  PASS T6 exempt includes _clamp[flatten_only] — venue-constrained names must not receive the spread constant
+  PASS T7a executor band stays dormant (DEFAULT_BAND_BPS = 0.0) — exactly ONE band mechanism may be live; activating band_bps = double-banding
+  PASS T7b config does not set band_bps as a KEY — no_trade_band_w is the ONLY band key; a band_bps key would arm the dormant bps mechanism
+  PASS T7c wiring multiplies by gross (notional caliber) — no_trade_band_w is WEIGHT units; must scale by gross before comparing to notional delta
+
+tests_neutral_band: ALL PASS

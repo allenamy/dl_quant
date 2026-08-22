@@ -1,0 +1,22 @@
+--- a/live/tests_entrypoint_wiring.py
++++ b/live/tests_entrypoint_wiring.py
+@@ -132,7 +132,18 @@
+     # ★ CONDITIONAL ON PURPOSE: this suite runs whenever someone runs it, so whether it is on
+     # schedule is not ours to choose. The IMPLICATION is what must hold either way — and it is
+     # the property the gate exists for, not a restatement of the clock.
+-    if _j.get("off_schedule_halt"):
++    if _j.get("book_source") == "external" and _j.get("action") != "TRADE":
++        # ★ 2026-08-22 external book: a DRY battery run at an arbitrary wall-clock minute will
++        #   usually find no verified target for the nearest slot (the producer lands ~N+22) ⇒ the
++        #   loop HOLDS by design: no target vector, no plan, no orders, reason named. That is the
++        #   property to assert here — `n_planned > 0` cannot hold on a HOLD anchor and must not
++        #   be demanded of it (the TRADE branch below still demands it when the file IS there).
++        check("★ external book unavailable ⇒ HOLD with a NAMED reason and no plan",
++              _j.get("action") in ("HOLD", "DERISK", "FLATTEN")
++              and bool((_j.get("external_book") or {}).get("reason"))
++              and "n_planned" not in _j,
++              f"action={_j.get('action')} external_book={_j.get('external_book')}")
++    elif _j.get("off_schedule_halt"):
+         # ★ 2026-08-21: 守门对象精确化为【开仓】单(n_live_opening); reduce-only/flatten 路径按设计
+         #   在 off-schedule 仍放行(off_schedule_halt.note), 且自 per_name_stop 上线后 live 状态里可合法
+         #   存在 stopped 名 ⇒ 排练会产生 flatten 单。断言键缺失 = 旧代码 = 红(不回退到 n_live)。

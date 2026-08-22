@@ -1,0 +1,66 @@
+--- a/shadow_loop.py
++++ b/shadow_loop.py
+@@ -43,6 +43,50 @@
+ 
+ def atomic_json(path, obj):
+     atomic_write(path, json.dumps(obj).encode())
++
++# ── v2 (2026-08-22, DESIGN_wide_live_deployment §1/§3.1): signed target file for the live adapter ──
++# ★ ADDITIVE ONLY. Nothing above or below this block changes; the call site in run_anchor is wrapped
++#   in try/except so a failure here can never alter the shadow's own behaviour or its 84-anchor
++#   PASS/FAIL caliber. Schema `wide_target_v1`; the reader is dl_quant_live/live/external_book.py and
++#   tests_target_live_output.py asserts the pair (this writer's output is accepted by that reader).
++def universe_sha(symbols):
++    """sha256 of symbols_live, ORDER-PRESERVING compact JSON — the SAME recipe as
++    dl_quant_live/live/external_book.universe_sha (pinned by the pair test)."""
++    return hashlib.sha256(json.dumps(list(symbols), separators=(",", ":")).encode()).hexdigest()
++
++
++def write_target_live(cfg, anchor, sm, wnz, npz_path, out_dir=None):
++    """Write <out_dir>/<anchor>.json (+ .sha256 sidecar), both via atomic_write (tmp + os.replace).
++    weights = the SAME vector the shadow carries forward as H (float64; the npz archives float32),
++    non-zero names only; gross_norm = sum|w|; weights_sha = sha256 of the npz bytes on disk;
++    universe_sha = symbols_live (450) recipe above; booster_sha = MANIFEST sha of slow2026.txt."""
++    out_dir = out_dir or f"{STATE_DIR}/target_live"
++    os.makedirs(out_dir, exist_ok=True)
++    syms = cfg["symbols_panel"]
++    weights = {}
++    for j in wnz:
++        v = float(sm[int(j)])
++        if v != 0.0:
++            weights[syms[int(j)]] = v
++    gross_norm = float(sum(abs(v) for v in weights.values()))
++    with open(npz_path, "rb") as f:
++        wsha = hashlib.sha256(f.read()).hexdigest()
++    live = list(cfg["symbols_live"])
++    doc = {"schema": "wide_target_v1", "anchor_ts": int(anchor), "weights": weights,
++           "gross_norm": gross_norm, "n_names": len(weights),
++           "universe_sha": universe_sha(live), "n_universe": len(live),
++           "booster_sha": str(cfg.get("_booster_sha", "")), "weights_sha": wsha,
++           "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
++           "producer": "shadow_loop_v2",
++           "anchor_offset_min": int(os.environ.get("SHADOW_OFFSET_MIN", cfg["params"].get("anchor_offset_min", 6)))}
++    raw = json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
++    path = f"{out_dir}/{int(anchor)}.json"
++    jsha = hashlib.sha256(raw).hexdigest()
++    atomic_write(path, raw)
++    atomic_write(path + ".sha256", f"{jsha}  {os.path.basename(path)}\n".encode())
++    return {"path": path, "n_names": len(weights), "gross_norm": round(gross_norm, 6),
++            "json_sha": jsha[:12], "weights_sha": wsha[:12]}
++
+ 
+ def append_log(row):
+     row["logged_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+@@ -379,6 +423,12 @@
+     wnz = np.where(np.abs(sm) > 1e-9)[0]
+     np.savez_compressed(f"{STATE_DIR}/weights/{anchor}.npz", idx=wnz.astype(np.int32),
+                         val=sm[wnz].astype(np.float32), members=m.astype(np.int32))
++    # v2: the signed target for the live adapter — additive; never allowed to break the anchor.
++    try:
++        _tl = write_target_live(cfg, anchor, sm, wnz, f"{STATE_DIR}/weights/{anchor}.npz")
++        append_log({"e": "target_live", "anchor_ts": anchor, **_tl})
++    except Exception as _ex:
++        append_log({"e": "target_live_error", "anchor_ts": anchor, "err": repr(_ex)[:200]})
+     wsha = hashlib.sha256(json.dumps(st.prev_rec["sm"]).encode()).hexdigest()[:12]
+     top = sorted(zip(np.abs(sm[m]), [cfg["symbols_panel"][j] for j in m]), reverse=True)[:5]
+     append_log({"e": "signal", "anchor_ts": anchor, "status": status, "coverage": round(coverage, 4),

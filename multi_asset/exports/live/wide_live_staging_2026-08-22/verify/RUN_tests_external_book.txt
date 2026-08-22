@@ -1,0 +1,122 @@
+[C] config resolution
+  OK   C1 key absent ⇒ internal — {'source': 'internal', 'error': None, 'path': None, 'max_age_min': 10.0, 'anchor_offset_min': 8.0, 'poll_grace_min': 0.0, 'gross_mult': 1.0, 'require_anchor_match': True, 'universe_sha_pin': None, 'booster_sha_pin': None, 'min_notional_mult': 2.0, 'on_unavailable': 'ladder', 'schema': 'wide_target_v1'}
+  OK   C2 'internal' ⇒ internal
+  OK   C3 'external' + valid block ⇒ external with validated fields — {'source': 'external', 'error': None, 'path': '/tmp/x', 'max_age_min': 10.0, 'anchor_offset_min': 23.0, 'poll_grace_min': 0.0, 'gross_mult': 1.0, 'require_anchor_match': True, 'universe_sha_pin': None, 'booster_sha_pin': None, 'min_notional_mult': 2.0, 'on_unavailable': 'ladder', 'schema': 'wide_target_v1'}
+  OK   C4 a typo'd value is INVALID (must not pick a book)
+  OK   C5 external without a block is INVALID
+  OK   C6 unreadable config is INVALID
+  OK   C7 gross_mult=0.0 is INVALID — gross_mult=0.0 outside [1e-09, 2.5]
+  OK   C7 gross_mult=3.0 is INVALID — gross_mult=3.0 outside [1e-09, 2.5]; gross_mult=3.0 exceeds config target_leverage=2.0; raise target_leverage deliberately (it is the §4-4b leverage policy) or lower gross_mult
+  OK   C7 gross_mult='two' is INVALID — gross_mult not a number: 'two'
+  OK   C7 path='relative/dir' is INVALID — path must be an absolute directory path, got 'relative/dir'
+  OK   C7 require_anchor_match='yes' is INVALID — require_anchor_match must be a bool, got 'yes'
+  OK   C7 on_unavailable='retry' is INVALID — on_unavailable='retry' not in ('ladder', 'hold')
+  OK   C7 universe_sha_pin='abc' is INVALID — universe_sha_pin must be null or a 64-hex sha256
+  OK   C7 max_age_min=0.0 is INVALID — max_age_min=0.0 outside [0.5, 240.0]
+  OK   C8 gross_mult above the §4-4b leverage policy (target_leverage) is INVALID
+  OK   C8b ...and equal to it is fine (L2 at 2.0 under target_leverage 2.0)
+  OK   C9 coupling: external ⇔ active_profile 'wide'
+
+[W] wait plan (pure)
+  OK   W1 30s into the slot ⇒ wait until N+offset — {'nominal_anchor_ts': 1787371200, 'wake_at': 1787372580.0, 'wait_s': 1350.0, 'reason': "inside the slot's pre-window: wait for the producer"}
+  OK   W2 past the offset ⇒ no wait — {'nominal_anchor_ts': 1787371200, 'wake_at': 1787372580.0, 'wait_s': 0.0, 'reason': "already past the producer's offset"}
+  OK   W3 nowhere near a slot (manual/test run) ⇒ no wait, never hours — {'nominal_anchor_ts': 1787385600, 'wake_at': 1787386980.0, 'wait_s': 0.0, 'reason': 'not inside a slot pre-window (manual/test run) — no wait'}
+  OK   W4 LIVE_EXTERNAL_WAIT=0 disables the sleep (this process) — {'nominal_anchor_ts': 1787371200, 'wake_at': 1787372580.0, 'wait_s': 1350.0, 'reason': "inside the slot's pre-window: wait for the producer", 'slept_s': 0.0, 'disabled_by_env': True}
+  OK   W5 enabled ⇒ sleeps in slices to the wake time — {'nominal_anchor_ts': 1787371200, 'wake_at': 1787372580.0, 'wait_s': 1350.0, 'reason': "inside the slot's pre-window: wait for the producer", 'slept_s': 1350.0, 'disabled_by_env': False}
+
+[R] the reader
+  OK   R1 a well-formed, fresh, matching file is ACCEPTED
+  OK   R1b ...and carries the stamps the ledger needs
+  OK   R1c target_vector = w/gross_norm aligned to symbols, unit gross
+  OK   R2 missing file ⇒ refused as missing — got ok=False reason=missing detail=no target file at /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/extbook_brn06otz/target_live/1787371200.json
+  OK   R2 missing sidecar ⇒ refused as sidecar_missing — got ok=False reason=sidecar_missing detail=no 1787371200.json.sha256 beside the target
+  OK   R2 one flipped byte in the json ⇒ refused as sha_mismatch — got ok=False reason=sha_mismatch detail=sha256(json)=6a1f1fdabf6a… sidecar=b5ab3850aefb…
+  OK   R2 sidecar carries another hash ⇒ refused as sha_mismatch — got ok=False reason=sha_mismatch detail=sha256(json)=b5ab3850aefb… sidecar=000000000000…
+  OK   R2 sha-valid but not JSON ⇒ refused as bad_json — got ok=False reason=bad_json detail=JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+  OK   R2 wrong schema name ⇒ refused as schema — got ok=False reason=schema detail=schema='wide_target_v0', expected 'wide_target_v1'
+  OK   R2 anchor_ts of another slot ⇒ refused as anchor_mismatch — got ok=False reason=anchor_mismatch detail=file anchor_ts=1787356800 != this anchor 1787371200
+  OK   R2 written 11 min ago (max_age 10) ⇒ refused as stale — got ok=False reason=stale detail=written 11.0 min ago > max_age_min=10.0
+  OK   R2 written 5 min in the FUTURE ⇒ refused as stale — got ok=False reason=stale detail=written_utc is 5.0 min in the FUTURE — clock skew
+  OK   R2 a NaN weight ⇒ refused as bad_weights — got ok=False reason=bad_weights detail=AAAUSDT: weight nan not finite
+  OK   R2 gross_norm disagrees with sum|w| ⇒ refused as gross_norm_mismatch — got ok=False reason=gross_norm_mismatch detail=sum|w|=1.000000000 != gross_norm=0.900000000
+  OK   R2 all-zero weights (gross_norm lying 1.0) ⇒ refused as bad_weights — got ok=False reason=bad_weights detail=all weights are zero
+  OK   R2 gross_norm 0 (declared) ⇒ refused as schema — got ok=False reason=schema detail=gross_norm=0.0 must be > 0 and finite
+  OK   R2 n_names lies ⇒ refused as schema — got ok=False reason=schema detail=n_names=3 but weights has 8 entries
+  OK   R2 universe_sha pin mismatch ⇒ universe_pin — universe_pin
+  OK   R2 booster_sha pin mismatch ⇒ booster_pin — booster_pin
+  OK   R2b matching pins ⇒ accepted (the pin is a check, not a block)
+  OK   R3 require_anchor_match=false: an old file is READ but its age is the file's anchor (≥7) — {'age_anchors': 7.097916666666666, 'ref_anchor_ts': 1787270400, 'ref_source': 'this_file'}
+  OK   R4 poll retries a MISSING file until the grace deadline, then reports missing — attempts=5 slept=60s
+  OK   R4b a file that lands during the poll is ACCEPTED on the next attempt — ok=True attempts=3
+  OK   R4c non-retryable defects are NOT retried (schema ⇒ one attempt) — 1
+
+[L] the loop, external, DRY_RUN — target == file x NAV x gross_mult, bitwise; no EMA / band
+  OK   L1 action TRADE, book_source external, record ok — {'ok': True, 'reason': None, 'detail': '', 'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/extbook_brn06otz/target_live/1787371200.json', 'nominal_ts': 1787371200, 'anchor_ts': 1787371200, 'attempts': 1, 'n_names': 8, 'gross_norm': 1.0, 'gross_mult': 1.0, 'universe_sha': '39373285f7e35fedca54eb981da1e8bbbfe5958c98291e459e58a388055330db', 'booster_sha': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'weights_sha': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'json_sha': '269141a720d472d87580bcc09d9665b46f6cdeed68cbbe6c5a23c3c07aabeeda', 'written_utc': '2026-08-22T03:52:41Z', 'age_s': 60.7, 'sha_ok': True, 'producer': 'test_fixture', 'n_universe': 11, 'age_ref': {'age_anchors': 0.0, 'ref_anchor_ts': 1787371200, 'ref_source': 'this_file'}}
+  OK   L2 sizing = NAV x gross_mult with the source stamped — {'nav': 10000.0, 'target_leverage': 1.0, 'leverage_source': 'external_book.gross_mult', 'actual_leverage': None, 'leverage_drift_frac': None, 'deadzone_frac': 0.1, 'resized': True, 'gross_previous': 0.0, 'gross_wanted': 10000.0, 'gross': 10000.0, 'min_gross_usdt': 4000.0, 'halt': False, 'blind': False, 'halt_on': None, 'reason': '', 'caliber': 'gross = nav x target_leverage, recomputed only when the ACTUAL leverage has drifted more than the dead zone. target_leverage and min_gross_usdt are POLICY numbers (config/book.json); the arithmetic floors are elsewhere — liquidation from maintMarginRatio (arm A7) and structural death at gross/bracket.'}
+  OK   ★ L3 target == w/gross_norm x gross BITWISE for every name (neutral unit-gross fixture) — {'AAAUSDT': (2500.0, 2500.0), 'BBBUSDT': (-2500.0, -2500.0), 'CCCUSDT': (1250.0, 1250.0)}
+  OK   L4 non-zero name set == the file's
+  OK   ★ L5 the within-band held name is NOT held (no neutral band on an external book) — 2500.0
+  OK   L6 harvest EMA skipped: record says so and NO state file was written
+  OK   L7 band record says skipped
+  OK   L8 anchors ctx stamps WHICH book: factor_version names external/booster/weights/universe, panel_hash = universe_sha — {'book_source': 'external', 'booster_sha': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'gross_mult': 1.0, 'schema': 'wide_target_v1', 'universe_sha': '39373285f7e35fedca54eb981da1e8bbbfe5958c98291e459e58a388055330db', 'weights_sha': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}
+  OK   L9 loop state records the last good external anchor — 1787371200
+  OK   L10 orders were planned for every name and went to the (DRY) broker — planned=8 live=8
+  OK   L11 the DL census / column-set / OOD gates are SKIPPED and say so (not faked as pass) — ({'skipped': 'external_book — the DL artifact census does not decide this book'}, 'SKIPPED_EXTERNAL', 'SKIPPED')
+  OK   L12 no HIGH/CRITICAL alarm on a clean external anchor
+  OK   L13 gross_mult=2.0 ⇒ target == w x 2 x NAV bitwise
+
+[F] the two KEPT per-name filters
+  OK   F1 names below 2x min-notional are WITHHELD (popped) and the rest re-scaled to gross — n=8 gross=10000.0000
+  OK   F2 ...and the record names them with the withheld mass — {'checked': True, 'names': ['IIIUSDT', 'JJJUSDT'], 'n': 2, 'mass_frac': 0.000999, 'mult': 2.0}
+  OK   F3 the popped dust shows in the untradable disposition (existing channel) — {'popped': ['BOMEUSDT', 'ENAUSDT', 'IIIUSDT', 'JJJUSDT']}
+  OK   F4 no dust alarm under the 10% breadth-loss line (0.1% here)
+  OK   F5 (control) min_notional_mult=0 ⇒ the dust names stay in the target
+  OK   F6 venue meta: COIN perp TRADING kept; equity/index/leveraged/settling/non-USDT/non-ASCII/unknown excluded — {'USARUSDT': 'underlyingType=EQUITY', 'ETH3LUSDT': 'leveraged_token', 'OLDUSDT': 'status=SETTLING', 'QQQUSDT': 'underlyingType=INDEX', 'BTCUSD_PERP': 'not_usdt', 'GHOSTUSDT': 'not_in_exchangeInfo', '币安人生USDT': 'non_ascii'}
+  OK   F7 wired: an EQUITY-underlying name in the file is WITHHELD (popped) by the meta rule on a non-DRY loop — ('TRADE', {'AAAUSDT': 'underlyingType=EQUITY'})
+
+[H] unavailable ⇒ HOLD (never internal); the ladder from the last good; INVALID blocks
+  OK   ★ H1 missing file ⇒ HOLD: no plan, no orders, positions untouched — HOLD
+  OK   ★ H2 HIGH alarm names external_book_unavailable + the reason + 'never internal' — ['external_book_unavailable: missing — no target file at /var/folders/st/mzrzjsw17', 'signal stale inf anchors — HOLDING, no new orders']
+  OK   H3 the record carries ok=False and the reason — {'ok': False, 'reason': 'missing', 'detail': 'no target file at /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/extbook_brn06otz/target_live/1787371200.json', 'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/extbook_brn06otz/target_live/1787371200.json', 'nominal_ts': 1787371200, 'attempts': 1, 'gross_mult': 1.0, 'sha_ok': True, 'age_ref': {'age_anchors': inf, 'ref_anchor_ts': None, 'ref_source': 'none'}}
+  OK   H4 the internal composer was NOT consulted (no harvest state, no preds read needed)
+  OK   ★ H5 last good 7 anchors old ⇒ the pre-registered ladder DERISKs (reduce-only, bookkeeping halves) — ('DERISK', {'AAAUSDT': 500.0, 'BBBUSDT': -500.0})
+  OK   H6 on_unavailable=hold ⇒ HOLD even 20 anchors stale (never DERISK/FLATTEN) — HOLD
+  OK   H7 a stale file ⇒ HOLD with reason 'stale' — {'ok': False, 'reason': 'stale', 'detail': 'written 11.0 min ago > max_age_min=10.0', 'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/extbook_brn06otz/target_live/1787371200.json', 'nominal_ts': 1787371200, 'attempts': 1, 'gross_mult': 1.0, 'json_sha': '202fc231022b8b24b8e523b8cc5077c1666f2d2421de6660103d8483aa0caa98', 'sha_ok': True, 'age_ref': {'age_anchors': 0.0, 'ref_anchor_ts': 1787371200, 'ref_source': 'newest_verified_file'}}
+  OK   ★ H8 INVALID book_source ⇒ BLOCKED_CONFIG, CRITICAL, no orders, positions untouched — ('BLOCKED_CONFIG', [('CRITICAL', "book_source 配置无效: book_source='externa1' is not one of ('internal', 'external') — 本锚不交易(既不读外部书, 也不回退在役引擎)。修 config/book.json 后下锚生效。")])
+  OK   H9 gross_mult above target_leverage ⇒ BLOCKED_CONFIG (settled in config, not by a §4-4b trip)
+  OK   H10 external without the wide stop profile ⇒ trades, but a HIGH names the inconsistency — book_source=external but per_name_stop.active_profile=None (expected 'wide': depth -0.30 x 2 anchors x 7d)
+
+[I] internal mode is UNCHANGED — the reader is never invoked; the composer runs
+  OK   ★ I1 internal: TRADE through the composer — harvest state written, book_source internal, reader NEVER called — ('TRADE', 'internal', 0)
+  OK   I2 internal anchors ctx stamps internal and carries the mixture in factor_version (preds stamp)
+  OK   I3 sizing source is the config policy in internal mode — config/book.json target_leverage
+
+[P] per_name_stop profiles
+  OK   P1 active_profile absent ⇒ base bitwise
+  OK   P2 active_profile null ⇒ base bitwise
+  OK   P3 'wide' overlays d30_n2_c42 and names the profile — {'enabled': True, 'depth_pct': -0.3, 'consecutive_anchors': 2, 'cooloff_days': 7, 'min_notional_usdt': 20.0, '_profile': 'wide'}
+  OK   P4 unknown profile ⇒ base values stay in force + _profile_error (the clause does not go blind) — {'enabled': True, 'depth_pct': -0.25, 'consecutive_anchors': 2, 'cooloff_days': 7, 'min_notional_usdt': 20.0, '_profile_error': "unknown per_name_stop profile 'narrow'; base parameters stay in force"}
+  OK   P5 end-of-anchor hook surfaces the profile error as an alarm line — ["★ per_name_stop profile 配置错误: unknown per_name_stop profile 'narrow'; base parameters stay in force"]
+  OK   P6 cfg() through the file resolves the profile
+  OK   P7 cfg() with wide ⇒ depth -0.30, enabled unchanged
+  OK   P8 wide profile: -28% x2 does not fire (base -25% would have); -31% x2 fires
+
+[S] statics: wiring order, battery registration, coverage, config consistency
+  OK   S1 anchor_loop imports external_book
+  OK   S2 source resolved and the file read in run_anchor BEFORE _trade — (37168, 58101, 74601)
+  OK   S3 external target vector is set where compose_book would run, and the band call is guarded by `if _is_ext` — (88372, 89441, 103612)
+  OK   S4 size_book is called with the external leverage in external mode
+  OK   S5 the schedule gate is judged at ENTRY (now_sched) so the deliberate wait cannot self-halt
+  OK   S6 registered in the battery
+  OK   S7 gate_coverage carries the suite's boundary statement
+  OK   S8 tests_imports lists external_book as a production module
+  OK   S9 the REAL config is internally consistent (book_source ⇔ stop profile) — {'ok': True, 'why': ''}
+  OK   S10 the REAL config's external block validates when switched on (so the switch is one key, not a debugging session)
+  OK   S11 anchor_max_seconds covers wait + poll + k + ~6 min of phases (else the cap kills phase B) — cap=3000.0 need>=2940.0
+
+[M] mutants on a COPY of anchor_loop.py (the suite must be able to go RED)
+  OK   ★ M1 RED-CAPABLE: a mutant that re-applies the band HOLDS the within-band name (2490 ≠ 2500) — L5 would fail — 2490.0
+  OK   ★ M2 RED-CAPABLE: forcing the external branch under an internal config invokes the reader — I1 would fail — 1
+  OK   ★ M3 RED-CAPABLE: a mutant that falls back to the internal composer TRADES on a missing file — H1 would fail — TRADE
+
+ALL PASS   (101 checks)

@@ -1,0 +1,248 @@
+[A] vendored primitives reproduce the validated formulas
+  OK    rank_centered maps to [-1,1] with NaN->0  — [1.0, -1.0, 0.0, 0.0]
+  OK    ★ 25-way tie: every tied name gets the SAME rank
+  OK    ★ tie value matches scipy-rankdata average-rank formula  — -0.03703703703703709
+  OK    ★ rank of tied block is INVARIANT under array permutation (no position->weight leak)
+  OK    z is zero-mean unit-sd
+  OK    l1 normalizes to unit gross
+
+[B] ★ funding EMA: corrected caliber, correct order (normalize BEFORE smoothing)
+  OK    constant per-8h carry => EMA equals that constant across the migration  — 0.0001
+  OK    the un-normalized caliber produces a DIFFERENT (wrong) value — fix is not a no-op  — bad=5.03023e-05 vs 0.0001
+  OK    ★ span_override (frozen-panel parity mode) changes the smoothing horizon
+
+[C] composition: unit-gross, market-neutral, four legs live
+  OK    unit gross  — 1.0
+  OK    market-neutral (net ~ 0)  — -4.163336342344337e-17
+  OK    all four legs present and unit-gross each
+  OK    weights actually steer the book (king-only != four-leg)
+
+[D] ★ the staleness ladder is mechanical and pre-registered
+  OK    fresh -> TRADE
+  OK    1 anchor stale -> HOLD (one miss is a hiccup, not an outage)
+  OK    6 anchors (24h) -> DERISK
+  OK    12 anchors (48h) -> FLATTEN
+  OK    ★ target-fraction table: 6-8 anchors -> 50%
+  OK    ★ target-fraction table: 9-11 anchors -> 25%
+  OK    absent preds -> inf age -> FLATTEN path
+  OK    boundary: just under 6 stays HOLD
+
+[E] ★ the ladder acts through the loop, and DERISK is reduce-only throughout
+  OK    action is DERISK  — DERISK
+  OK    an alarm was raised at CRITICAL
+  OK    every de-risk order is reduce_only (composes with the watchdog halt)
+  OK    positions scaled to half of PRE-STALE snapshot
+  OK    ★ idempotent: re-running the same DERISK stage emits ZERO new orders
+  OK    ★ stage 2 targets 25% of the PRE-STALE ref (2500), not 25% of current (1250)  — 2500.0
+  OK    action is FLATTEN at >=12 anchors  — FLATTEN
+  OK    book emptied after flatten
+
+[E4] ★ severity follows consequence: flattening an EMPTY book is INFO, not CRITICAL
+  OK    cold start with empty book -> INFO alarm, nobody woken at midnight for a no-op  — [('INFO', 'no signal yet and book is empty — idle (cold start, expected until the preds producer is wired)')]
+  OK    note says cold start  — cold start: no signal, empty book, nothing to do
+
+[F] HOLD alarms once per episode, not once per anchor
+  OK    two stale anchors, exactly one alarm (a repeating alarm trains people to ignore it)  — 1
+
+[F2] ★ DERISK/FLATTEN alarm once per STAGE, not once per anchor (audit 3b)
+  OK    two DERISK anchors at the same stage -> exactly one CRITICAL  — 1
+
+[E2] ★ caliber stamp mismatch BLOCKS the anchor (audit ②)
+  OK    mismatched stamp -> anchor BLOCKED  — caliber_stamp_mismatch
+  OK    blocked anchor raised CRITICAL
+  OK    blocked anchor emitted no orders (count NEW actions, not a stale window)
+
+[E3] ★ two-phase anchor: phase B tops up the residual and emits rows
+  OK    phase A traded (fresh signal, matching stamp)  — TRADE
+  OK    phase A left a pending handle
+  OK    phase B emitted rows  — 6
+  OK    ★ the mandatory top-up was exercised for every live name  — 3 vs 3
+  OK    top-up rows carry the SAME rebalance_id as phase A
+  OK    every row still carries mid_at_anchor through phase B
+
+[K] ★ KILL SWITCH: an engaged stop refuses everything, even with a fresh signal
+  OK    tests use an ISOLATED kill path (a real emergency stop must not skew the suite, and the suite must not touch a real one)
+  OK    ★ action is KILLED even though the signal is FRESH  — KILLED
+  OK    ★ zero orders submitted while killed
+  OK    the broker was also told to halt (belt and braces)
+  OK    the reason names the file to remove (recovery must be deliberate)
+  OK    removing the flag restores normal operation  — TRADE
+
+[G] fapi hygiene properties (no network needed)
+  OK    interval inferred PER ROW across a migration (8h then 4h)  — [8.0, 8.0, 4.0, 4.0]
+  OK    absurd gap falls back to 8h, never propagates
+  OK    every dataset leaves wearing its own age (fetch_ts present)
+
+[H] state writes are atomic (a crash never leaves a half-written state)
+  OK    state readable after save
+  OK    no tmp residue
+
+[U] ★ delisting: the book's width is dynamic, and an exit must not need a price
+  OK    tradable = only the names the venue says TRADING  — ['BTCUSDT', 'ETHUSDT']
+  OK    ★ a held SETTLING name is exit-only (not merely skipped)
+  OK    ★ a held name that VANISHED from exchangeInfo is flagged separately (may be unclosable)  — ['DEADUSDT', 'ORPHANUSDT']
+  OK    a held name no longer predicted is still handled, not orphaned
+  OK    a new listing is IGNORED (it has no panel warmup history yet)  — ['NEWUSDT']
+  OK    ★ exit orders are sized in CONTRACTS — no mid, no book, no price needed  — [{'symbol': 'SETTLEUSDT', 'side': 'buy', 'quantity': 300.0, 'reduce_only': True, '_reason': 'symbol no longer TRADING — price-free full exit'}]
+  OK    ★ every exit order is reduce_only (passes the halt, composes with the kill switch)
+  OK    short position exits with a BUY
+  OK    ★ unreachable exchangeInfo yields UNKNOWN, never 'nothing trades'
+
+[U2] width is not hardcoded: composition follows whatever the panel provides
+  OK    N=110: unit-gross and market-neutral hold
+  OK    N=87: unit-gross and market-neutral hold
+  OK    N=40: unit-gross and market-neutral hold
+  OK    N=12: unit-gross and market-neutral hold
+
+[P] compute_preds — the producer must fail by writing NOTHING, never by writing garbage
+  OK    ★ warmup BLOCK: nothing written, previous computed_ts preserved  — reason=warmup_block
+  OK    ★ caliber BLOCK: nothing written, previous computed_ts preserved  — reason=caliber_block
+  OK    ★ producer crash: nothing written, previous computed_ts preserved  — reason=RuntimeError
+  OK    a blocked producer never invents a fresh computed_ts (the ladder stays in control)
+  OK    column fingerprint is order-sensitive (the encoder attends ACROSS columns)
+  OK    column fingerprint counts columns
+
+[P2] the consumer BLOCKS on a column set it does not recognise
+  OK    ★ no column stamp at all -> anchor BLOCKED, no orders  — {'blocked': 'column_set_mismatch', 'preds_columns': {'n_columns': None, 'columns_sha256': None}, 'expected': {'n_columns
+  OK    ★ column COUNT changed -> anchor BLOCKED, no orders  — {'blocked': 'column_set_mismatch', 'preds_columns': {'n_columns': 139, 'columns_sha256': '6e9dcfc24672343149c8174ca8473e
+  OK    ★ column SET changed -> anchor BLOCKED, no orders  — {'blocked': 'column_set_mismatch', 'preds_columns': {'n_columns': 140, 'columns_sha256': 'deadbeef'}, 'expected': {'n_co
+  OK    each block raised a CRITICAL alarm  — 3 alarms
+
+[K] phase B cancels the resting maker before reading fills
+  OK    the fixture actually placed makers (else the next check passes 0/0 and proves nothing)  — n_live=3
+  OK    ★ every resting maker is cancelled at k  — 3/3
+  OK    ★ the cancel happens BEFORE fills are read (a fill in between would be lost otherwise)  — first broker call=('cancel', 'BTCUSDT')
+  OK    phase B reports the cancel outcome for the operator  — {'cancelled': 3, 'already_terminal': 0, 'errors': [], 'unresolved': [], 'rate_limited': 0, 'ban_waits': 0, 'ban_wait_s': 0.0, 'retried': 0, 'pinned': None, 'ban': None}
+  OK    cancel_ts is populated on the plans (the column existed and was never written)  — [('BTCUSDT', 1787370855.110181), ('ETHUSDT', 1787370856.0137322), ('BNBUSDT', 1787370856.919132)]
+  OK    ★ an unknown filled notional is left UNSET, never written as 0.0
+
+[L] order rows are persisted, and emitted-vs-persisted is reported
+  OK    ★ the report carries BOTH numbers (emitted is the numerator, persisted the denominator)  — {'rows_emitted': 6, 'rows_persisted': 6}
+  OK    ★ every emitted row actually reached DISK  — emitted=6 persisted=6 on_disk=6
+  OK    the rows survive a re-read through the schema reader
+  OK    no HIGH alarm about persistence when everything persisted  — []
+  OK    ★★ the anchor record CARRIES the OOD verdict (not just an alarm about it)  — {'state': 'OK', 'n_members': 3, 'n_ood': 0, 'ood_symbols': [], 'blind': False, 'guards': 'THE COLUMN SET. This fires if config/funding_span_table.json gains a symbol without a retrain.', 'does_not_establish': "that this month's ROTATION was checked against training. members are derived WITHIN the pinned column set (live_panel.panel_symbols() is sorted(funding_span_table.keys())), so they are a subset of the union BY CONSTRUCTION and this reading is OK for every possible rotation of the top-110.", 'evidence_ceiling': 'one-directional: the pinned union may be WIDER than the panel the training runs consumed (see MANIFEST training_member_union.does_not_establish (1)). An over-wide union makes this guard LESS likely to fire, never more, so OK is bounded above by an error only the training host can rule out.'}
+  OK    ★★ with the union pinned, the anchor's verdict is no longer blind  — {'state': 'OK', 'n_members': 3, 'n_ood': 0, 'ood_symbols': [], 'blind': False, 'guards': 'THE COLUMN SET. This fires if config/funding_span_table.json gains a symbol without a retrain.', 'does_not_establish': "that this month's ROTATION was checked against training. members are derived WITHIN the pinned column set (live_panel.panel_symbols() is sorted(funding_span_table.keys())), so they are a subset of the union BY CONSTRUCTION and this reading is OK for every possible rotation of the top-110.", 'evidence_ceiling': 'one-directional: the pinned union may be WIDER than the panel the training runs consumed (see MANIFEST training_member_union.does_not_establish (1)). An over-wide union makes this guard LESS likely to fire, never more, so OK is bounded above by an error only the training host can rule out.'}
+  OK    ★★ ...and the OK carries what it does NOT establish — rotation, by construction  — that this month's ROTATION was checked against training. members are derived WIT
+  OK    ★ ...and the one-directional evidence ceiling travels with it
+  OK    ★★ blind must still SPEAK when there is no pin at all  — member universe NOT CHECKED against the training set: MANIFEST carries
+
+[B29] ★★ the cached book records what FILLED, never what we intended
+  OK    ★★ a 5%-filled maker leg moves the book by the FILL, not by the target  — 350.0 (want 350.0; 1100.0 = the target was booked)
+  OK    ★ a partial_expired leg still counts — what moved the book is the fill, not the ending  — 350.0
+  OK    ★ the signed column is summed, not re-signed  — -500.0
+  OK    ★★ an unreadable fill leaves the previous value and is NAMED (0.0 would be a claim)  — (300.0, ['CCCUSDT/maker'])
+  OK    ★ another batch's rows are not consumed by this batch's book  — 350.0
+  OK    ★ the update is a function of (book, rows) — no hidden accumulation across calls  — 600.0
+  OK    ★ RED-CAPABLE: no sink -> persisted 0 while emitted > 0, and it ALARMS  — emitted=6 persisted=0
+
+[W] a persisted watchdog trip halts OPENING only, in a new process
+  OK    a new broker starts unhalted (which is why only FILE state survives)
+  OK    with no trip on disk the anchor trades normally  — TRADE
+  OK    ★★ the persisted trip is re-applied to a BRAND-NEW broker  — halted=True reduce_only=True
+  OK    ★★ opening orders are refused PER-ORDER by direction (order_blocked_by_halt)  — 3 blocked
+  OK    ★★ and not one opening order leaked through  — 0 leaked
+  OK    ★ the anchor does NOT hard-return: reduce-only paths stay reachable (merging the two halts would seal the ladder's own exit)  — action=TRADE watchdog_halt=True
+  OK    a reduce-only order still passes the halt while it is engaged
+  OK    ★ an UNREADABLE watchdog state file fails CLOSED (halted), never open  — {'source': 'unreadable_state_file', 'tripped_at': None, 'reason': None, 'resume': 'bash ops/resume_from_trip.sh (refuses while the condition holds)', 'resume_kind': 'trip', 'resume_claimed_by_state': None, 'resume_claim_stale': False}
+  OK    ★ removing the trip file restores normal trading (the lock has a key)  — TRADE
+  OK    KILL_SWITCH still refuses EVERYTHING (distinct from the directional halt)
+
+[R] rate-limit skips raise a finding
+  OK    a clean anchor raises no rate-limit finding  — []
+  OK    ★ throttled submits are labelled skipped_rate_limit  — 3 rows
+  OK    ★ RED-CAPABLE: a throttled anchor raises a HIGH finding (no stop-loss would)  — [('HIGH', 'position readback failed ([-1003] too many requests); proceeding on cached book'), ('HIGH', '开场扫单: 0 张上锚遗留单已撤
+  OK    and the count is reported for the operator  — n_rate_limited=3
+
+[S] ★ ONE constant decides both 'does this run count' and 'may this run open'
+  OK    on-schedule run: no clock halt  — {'now_utc': '2026-08-22T04:00:00Z', 'nominal_utc': '2026-08-22T04:00Z', 'offset_min': 0.0, 'tolerance_min': 20, 'on_schedule': True}
+  OK    on-schedule run: broker NOT halted
+  OK    on-schedule run: opening orders really were submitted  — TRADE
+  OK    ★ RED-CAPABLE: a run past the tolerance is flagged off-schedule  — {'now_utc': '2026-08-22T04:21:00Z', 'nominal_utc': '2026-08-22T04:00Z', 'offset_min': 21.0, 'tolerance_min': 20, 'on_schedule': False}
+  OK    ★ and the broker is halted in the OPENING direction
+  OK    ★ zero opening orders left the process  — blocked=3
+  OK    the halt reports the offset and the tolerance it was judged against  — {'offset_min': 21.0, 'nominal': '2026-08-22T04:00Z', 'tolerance_min': 20, 'error': None, 'note': 'not the scheduled anchor: opening orders refused, reduce-only paths still run. This run is excluded from the §2.5 count too — the ledger and this gate share one constant.'}
+  OK    ★ reduce-only still passes while off-schedule (the exit is never sealed)
+  OK    ledger reads the tolerance from config, not from its own signature  — 20
+  OK    ★ the run at +19min COUNTS as the scheduled anchor  — completed=1/2
+  OK    ★ the run at +21min is EXCLUDED as a manual invocation  — ['2026-08-22T04:21:00Z']
+  OK    ★ SAME BOUNDARY at both offsets: 'the gate lets it open' == 'the ledger counts it'  — gate(+19)=True gate(+21)=False ledger counted=1 excluded=1
+  OK    ★ a halted anchor COMPLETES (it honoured the schedule) but did not TRADE  — completed=2 traded=1
+  OK    and the report names which anchors were halted, and by what  — [{'anchor': '2026-08-21T04:00Z', 'halted': ['watchdog_halt']}]
+  OK    the note says the two are different questions  — d does not trade — so a 30/30 completion is not a statement that the book traded 30 times.
+  OK    ★ clause 7: the span is reported as scheduled-vs-traded DAYS, not just anchors  — 2 天调度 / 1 天交易 (其中 0 天全程交易)
+  OK    without window_mode the run counts, and the report SAYS the mode was not enforced
+  OK    ★ with window_mode=TESTNET, a DRY_RUN run at the right time does NOT count  — [{'ran_at': '2026-08-22T04:01:00Z', 'mode': 'DRY_RUN', 'anchor': '2026-08-22T04:00Z'}]
+  OK    ★ both consumers FOLLOW the config when it moves (accessor-level proof)  — probe=7 gate=7 ledger=7
+  OK    and the probe is restored afterwards
+  OK    ★ tolerance moved to 0 -> a run 61s late now halts (the GATE reads config too, not only the accessor)  — {'offset_min': 1.02, 'nominal': '2026-08-22T04:00Z', 'tolerance_min': 0, 'error': None, 'note': 'not the scheduled anchor: opening orders refused, reduce-only paths still run. This run is excluded from the §2.5 count too — the ledger and this gate share one constant.'}
+  OK    ★ the override is PROCESS-wide, not MODULE-wide (a second copy of book_config in the same process follows it)
+  OK    ★ FAIL-CLOSED: schedule unestablishable -> off-schedule, opening halted  — 'config/book.json has no `anchors_utc` — refusing to guess the schedule'
+
+[T] ★ the three account-state tables: written from ONE account read, or not at all
+  OK    ★ ONE account read serves all three tables  — 1
+  OK    anchors row written (executor.anchor_row finally has a caller)  — {'anchors_row': True, 'position_readback_rows': 3, 'daily_nav_row': True, 'per_name_stop': 'SKIPPED_NON_LIVE', 'venue_net_over_gross': 1.0, 'daily_nav_rows_today_before': 0}
+  OK    position_readback covers held ∪ targeted (a targeted name we do NOT hold is a row)  — {'SOLUSDT', 'ETHUSDT', 'BTCUSDT'}
+  OK    ★ a targeted-but-absent name reads 0.0 with held=False — 'not held' and 'never targeted' stay different facts  — {'anchor_ts': 1785000000.0, 'symbol': 'ETHUSDT', 'venue_position_notional': 0.0, 'venue_position_qty': 0.0, 'source': 'fapi/v3/account@post_anchor', 'held': False, 'targeted': True, 'read_ts': 1785000000.0}
+  OK    readback says WHERE the number came from
+  OK    realized_gross comes from the VENUE, not from our book  — 12300.0
+  OK    the anchors row carries the regime stamped at SIGNAL time
+  OK    nav = wallet + unrealised (equity), and says so
+  OK    ★ realised_pnl is measured-with-a-source or None — never a bare number  — /fapi/v1/income since 00:00Z, sum of REALIZED_PNL+COMMISSION+FUNDING_F
+  OK    ★ realised P&L comes from the venue LEDGER and is the signed sum of trade result, commission and funding — not one field  — -125.0
+  OK    ★ external flow is MEASURED, not assumed zero — an equity delta is P&L only if nothing was deposited or withdrawn, and on testnet day one a 5000 USDT transfer landed
+  OK    truncation of the income page is carried, so a capped sum is not read as a total
+  OK    no previous day => equity_delta_since_prev is None, not 0.0
+  OK    ★ an unreadable income ledger leaves realised_pnl None (NOT 0.0) and alarms — a zero would un-blind the stop-loss with a fabricated number, worse than being blind  — UNAVAILABLE (RuntimeError: income endpoint said no) — the daily loss stop-loss i
+  OK    ...and the NAV row is still written (equity IS known; only the realised half is not)
+
+[T] a nav row per ANCHOR, and the guard reads the FILE (every anchor is a new process)
+  OK    ★★ a second anchor the same day appends its OWN nav snapshot (B31)  — {'daily_nav_row': True, 'daily_nav_rows_today_before': 1}
+  OK    ★ ...and the file, not an in-memory flag, is what the next process counts from  — each anchor is a new process; an in-memory 'already written' would be False every time
+  OK    but it DOES write its own anchors row
+  OK    ★ the next day links back to the previous day's LAST snapshot, and records the delta  — {'prev_day': '20260726', 'prev_nav': 101000.0, 'equity_delta_since_prev': 500.0}
+  OK    and the delta is never called 'pnl' anywhere in the row
+
+[T] ★ no account => NO ROW. Not an empty one, not a zero.
+  OK    DRY_RUN writes no nav row and no readback rows  — {'anchors_row': True, 'position_readback_rows': 0, 'daily_nav_row': False, 'per_name_stop': 'SKIPPED_NON_LIVE'}
+  OK    but the anchors row still exists (it needs no account)
+  OK    ★ with no account AND no cached book, realized_gross is None — not 0.0. A zero gross is the claim 'we hold nothing', which we have not established  — unavailable
+  OK    with a cached book it falls back to it AND names the weaker caliber  — cached book (no venue read; DRY_RUN or read failed)
+  OK    ★ a FAILED account read alarms and writes no nav row (silence would look like 'flat')  — ([('HIGH', 'end-of-anchor account read failed (venue said no) — position_readback and daily_nav have no input this anchor')], {'anchors_row': True, 'position_readback_rows': 0, 'daily_nav_row': False, 'account_read_error': 'venue said no', 'per_name_stop': 'SKIPPED_NON_LIVE'})
+
+[T] a HOLD anchor has no target vector, so it writes no anchors row
+  OK    ★ no anchors row without a rebalance (four not_null columns would have to be invented)  — {'anchors_row': False, 'position_readback_rows': 0, 'daily_nav_row': True, 'per_name_stop': 'SKIPPED_NON_LIVE', 'daily_nav_rows_today_before': 0}
+  OK    ...but the venue tables are still written — the book exists whether we traded or not
+
+[X] ★★ the top-up must SUBTRACT what the maker already filled
+  OK    ★★ a name the maker FILLED IN FULL is not bought again (this is the 2x defect)  — btc top-up rows=0 (any => 2x position); maker terminal_reason=filled
+  OK    an UNfilled name still gets its full top-up (the mandatory leg still runs)  — eth top-up intended=1000.0
+
+[X] ★ 'could not read the fills' must NOT be read as 'nothing filled'
+  OK    ★ a name whose fills could not be read is SKIPPED, not topped up blind  — skipped_unknown_fill
+
+[Y] ★★ the anchor must COLLECT commission, or fee_paid stays None forever
+  OK    ★★ fee_paid is populated from userTrades (None => M1 can never be complete)  — fee_paid=0.4
+  OK    and it carries the venue's actual commission  — 0.4
+
+[Z] ★★ commission belongs to a LEG, and every child fill must reach the fills table
+  OK    ★★ the maker row carries the MAKER's commission  — maker fee_paid=0.08 (want 0.08)
+  OK    ★★ the top-up row carries the TAKER's commission, not the maker's  — topup fee_paid=0.3 (want 0.30; 0.08 = inherited from the maker, the defect)
+  OK    ★ and the row total equals what the venue charged US — 0.38, not 0.16 and not 0.76  — sum(fee_paid)=0.38
+  OK    ★ a trade that is not ours is excluded (orderId join, not a time window)  — unattributed=1
+  OK    ★★ every child fill reaches the fills table (M2 has no other input)  — 2 fills rows (want 2: one maker, one taker)
+  OK    ...one per LEG, labelled by the order we sent  — ['maker', 'topup_taker']
+  OK    ...each carrying its own commission and the venue's trade id  — [(1, 0.08), (2, 0.3)]
+  OK    ★ the +60s mark is PENDING with a reason, never 0.0 (M2 counts it as unmeasured)  — [(None, True), (None, True)]
+  OK    and the count that lands is reported, not the count that was built  — 2
+
+[Z] ★ an unattributable LEG is UNKNOWN — per leg, not per anchor
+  OK    ★ a leg we cannot attribute is None — not 0.0, and not someone else's total  — maker fee_paid=None
+  OK    ...while the leg we CAN attribute keeps its measurement (a good number is not discarded)  — topup fee_paid=0.3
+  OK    ...and the unknown is ALARMED rather than left to look like a zero-fee leg  — ["1 order row(s) have an UNKNOWN fee: either userTrades was unreadable for the symbol, or we hold no submit response to attribute that leg's fills to. M1 must report those rows as fee-unmeasured, never as zero-fee.", "order rows: emitted 2, persisted 0 (no logger attached).  — the pilot's entire output is reconstructed from these rows.", 'fill rows: built 1, persisted 0 (no logger attached).  — M2 (markout) has no other input than this table.']
+
+[Z] ★ a leg that was never SENT is zero by construction, not by measurement
+  OK    every row carries WHY its fee reads the way it does  — ['/fapi/v1/userTrades, 1 child fill(s), maker', '/fapi/v1/userTrades, 1 child fill(s), topup_taker']
+  OK    ★ the top-up row's submit_ts is the TOP-UP's, not the maker's (inherited timestamp)  — maker=1787370866.2194638 topup=1787370867.130187
+
+ALL PASS

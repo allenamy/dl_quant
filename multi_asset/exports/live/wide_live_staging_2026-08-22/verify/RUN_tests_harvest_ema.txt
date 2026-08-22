@@ -1,0 +1,39 @@
+[0] 有效性 — 探针能分辨(否则下面每条相等都是空的)
+  OK   a=0.3 的输出与 raw 不同
+[1] a=1.0 逐位无操作 —— 关掉它与它坏掉必须可区分
+  OK   alpha=1.0 逐位回落到 raw
+  OK   alpha=1.5 逐位回落到 raw
+  OK   alpha=0.0 逐位回落到 raw
+  OK   alpha=-0.2 逐位回落到 raw
+  OK   alpha=nan 逐位回落到 raw
+[2] 不变量: 市场中性 + 单位毛敞口
+  OK   中性 sum(w)≈0 — 2.08e-17
+  OK   单位毛 L1=1
+[3] ★ 状态按【名字】存 —— 成员表移位不得把 A 的历史接到 B 头上
+  OK   ★★ 打乱 symbol 顺序后, 逐名权重不变(位置无关) — max|d|=3.47e-18
+  OK   ...且返回的状态也按名字键控
+[4] ★ 平仓/停机后重置, 且新名字不从 0 起步
+  OK   ★★ prev=None(平仓后) ⇒ 从 raw 起步, 逐位等于 raw — carried=0
+  OK   ★★ 无历史的新名字用【自己的 raw】起步, 不用 0 (用 0 会把新上市的名字压低整整一个半衰期) — 新名字状态样本 0.017478 vs raw 0.017478
+  OK   ...而有历史的名字确实被混合了
+[5] ★ 它真的降换手 —— 否则整个干预没有意义
+  OK   ★★ 60 步累计换手显著下降 — raw=85.1 → ema=47.7 (-44.0%)
+
+[W] ★★★ WIRING —— 这一组存在的唯一理由是: 变换全绿而接线是坏的, 已经发生过一次
+  OK   ★★★ 回归: 状态文件存在但【未触发】 ⇒ 不得重置(这正是那个缺陷)
+  OK   tripped_at 有值 ⇒ 重置
+  OK   reduce_only ⇒ 重置
+  OK   跨 mode ⇒ fail-closed 重置
+  OK   ★ 文件不存在 ⇒ 不重置(resume_from_trip.sh:263 会 remove 它, 不存在=已解除)
+  OK   存在却读不出 ⇒ fail-closed 重置
+  OK   ★★★ 红测: 调用点必须先判存在再 read_stamped(缺失=正常恢复态, 不得抛) — 第一版无条件调用 ⇒ resume 之后锚点必死
+  OK   ★★★ 红测: read_stamped 的异常必须被吞成 fail-closed, 不得逃逸杀锚点
+  OK   ★★ 调用点不得再用 os.path.exists 当触发谓词(只看代码行, 不看注释) — 注释里保留原文是档案; 代码里出现才是缺陷
+  OK   ★★ 调用点必须走 harvest_reset_required + 模式根路径 + env 可重定向 — 写死 state/live 会让 DRY_RUN 锚点写进 LIVE 的 EMA 记忆; 缺 env 覆盖则测试写生产树(实测 09:51:54Z 电池把状态写进了真实 DRY_RUN 树)
+  OK   ★★ resume 脚本清除 EMA 记忆 —— 触发期间锚点若没跑, 状态停在触发前, 恢复后会拖过断点 — 锚内 reset 只在触发期间锚点还在跑时生效; 停机检修的 trip 只有 resume 这一道闸
+  OK   ★ tests_signal_and_loop 重定向 LIVE_HARVEST_STATE(否则它把 EMA 状态写进真实树)
+  OK   [P1] config harvest_ema.alpha == 0.05 (用户裁定 A 2026-08-10, #53-C 深平滑; 改动它需新裁定) — 0.05
+  OK   [P2] anchor_loop 从 config 读 alpha 并调用 apply_harvest_ema(布线, 非意图)
+  OK   [P3] T1 v1 已废止的记录在 config 里(防止下一个读到旧规则的人照章再关)
+
+  ALL PASS

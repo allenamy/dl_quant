@@ -1,0 +1,166 @@
+{
+ "_comment": "DEPLOYED BOOK = THREE LEGS (king/s2/funding); the size leg is REMOVED (weight 0.0, key retained) as of 2026-08-01. Weights are the approved challenger set with size dropped and the remaining 0.84 renormalised: 50/84, 17/84, 17/84.",
+ "weights": {
+  "king": 0.5952380952380952,
+  "s2": 0.20238095238095238,
+  "funding": 0.20238095238095238,
+  "size": 0.0
+ },
+ "signs": {
+  "king": 1,
+  "s2": 1,
+  "funding": -1,
+  "size": 1
+ },
+ "pos_cap_pct": 99.0,
+ "funding_mode": "rank",
+ "factor_versions": {
+  "funding_leg": "normfix",
+  "dl_panel": "corrfund_causal_ac"
+ },
+ "panel": {
+  "_comment": "cross-module coupling constants. The panel builder READS these; it must not carry its own copy (a bare number in code drifts from the number that was measured).",
+  "warmup_hours_hard_floor": 887,
+  "warmup_hours_recommended": 1080,
+  "_warmup_derivation": "DVOL30's 720h rolling lookback + the model's 168h input window - 1 = 887h (36.96d). Every row of the window needs a converged DVOL30. The empirical knee lands on the derived hour: 886h -> pred max|Δ| 1.1e-04, 887h -> 7.9e-07, flat to 45d. NOTE: an earlier estimate of 14d was measured with the SERVER's DVOL30 supplied, which hides the one lookback that binds — superseded 2026-07-26.",
+  "warmup_recommended_reason": "1080h/45d is the span validated end-to-end against the server panel; it also leaves headroom above the floor for a missed hour.",
+  "funding_fetch_mode": "last_n_settlements",
+  "_funding_fetch_reason": "NEVER a time window: 9 panel symbols stopped settling months ago, the server panel ffills their last value forever, and xsr_fund ranks over EVERY coin — dropping them shifts all 131 others' ranks by up to 0.5 (composite 2.2e-02).",
+  "funding_settlements_limit": 1000
+ },
+ "anchors_utc": [
+  0,
+  4,
+  8,
+  12,
+  16,
+  20
+ ],
+ "anchor_late_tolerance_min": 20,
+ "_anchor_late_tolerance_reason": "ONE constant, TWO consumers, read through live/book_config.py. (a) ops/dryrun_ledger matches a run to a calendar slot -> decides whether it COUNTS toward the 30; (b) scheduler/anchor_loop decides whether the run may OPEN positions. If they can disagree, the certification means something other than it appears to: 'not counted but traded' (real orders on a run nobody counts) or 'counted but untraded' (100% completion with an untraded anchor). The two measurement points differ — the ledger sees process START, the gate sees the moment we act, always later — so the gate is strictly stricter and the dangerous direction is unreachable by construction. 20min: launchd fires on the minute; the budget that can legitimately delay a start is lock contention behind a ~16min predecessor plus preds ~1min, and anything beyond that is not this anchor's scheduled run.",
+ "nosleep_min_evidence_h": 6.0,
+ "_nosleep_min_evidence_reason": "guarded, sleep-free hours required before the window may start. Two halves, both needed: 'no sleep since the guard started' is trivially true one second after installing it, and blocking on sleeps from BEFORE the guard would keep the gate red for a condition already fixed. 6h > one 4h anchor gap, so the evidence window has necessarily contained a scheduled anchor and at least one idle stretch long enough for the old failure to have recurred. Measured cause: 106 'Maintenance Sleep' entries on 2026-07-25 while pmset reported AC sleep=0 — the settings check would have passed.",
+ "k_seconds": 900,
+ "gross_usdt_pilot_p0": 25000,
+ "dryrun_clock_start": null,
+ "_dryrun_clock_note": "干跑时钟以第一个成功的*计划内*锚点为准, 不以协议记录日期为准。07-25 的 00/04/08/12 调度器尚未安装, 16:00 死于 TCC ⇒ 那天零次计划内完成。对账器首跑即揭示此事(0/5), 并推翻了我基于协议日期给出的'还剩3天'估计。手动/kickstart 调用一律排除, 不得充数。",
+ "anchor_max_seconds": 3000,
+ "_anchor_max_seconds_external_note": "★ 1500→3000 (2026-08-22, wide-live staging). In external mode the anchor process deliberately idles until the producer's slot (external_book.anchor_offset_min, measured shadow landing ≈N+21.5 under SHADOW_OFFSET_MIN=16 + ~5.5 min runtime) BEFORE phase A; budget = offset 23 + poll 5 + phase A 1 + k 15 + phase B/C 3 + reports ≈ 47 min. 1500 would SIGALRM-kill the process mid-phase-B. Internal mode never reaches the old 25 min; the only other consumer is book_config.collision_window (a WARNING half-width for manual runs, now ±50 min).",
+ "_anchor_max_seconds_reason": "hard cap on one anchor process. Budget: preds ~10s + phase A + k=900s wait + phase B ~= 16min, so 25min is headroom, not a target. It exists because fcntl.flock is NON-BLOCKING: a hung run does not merely fail itself, it makes the NEXT anchor SKIP -- and §2.5 (30 calls, >=98%) tolerates zero skips. A stuck process must die rather than take its successors down with it.",
+ "artifact_known_gaps": [],
+ "_artifact_known_gaps_note": "Producers that do not exist YET, each with an owner and the date it was registered. Reported every anchor so they stay visible; they do not alarm, because a repeating alarm for a known gap trains the operator to ignore alarms. Anything failing that is NOT on this list is a REGRESSION and does alarm. A gap that starts PASSING is itself reported ('gap closed, remove it'), so nobody has to remember to come back. The list is expected to shrink to []; it doubles as the progress bar.",
+ "_dryrun_clock_start_note": "null = NOT STARTED. Starting the window is an ACTION with a hard gate (ops/start_dryrun_clock.sh), never a date that arrives on its own. A date here would have started the window at 2026-07-26T00:00Z while the system was still DRY_RUN, the pre-clock batch unfinished and write paths being edited — producing a compliant-looking certification of the wrong configuration. The gate checks: acceptance all green, LIVE_MODE==TESTNET, and zero outstanding known_gaps.",
+ "dryrun_fast_k": false,
+ "_dryrun_fast_k_note": "FALSE by default. true collapses the k window to 1s for interactive smoke tests only. With it true a dry-run process lives ~1 minute against ~16 minutes live, so every conclusion about process lifetime — lock contention, the anchor_max_seconds self-kill, overlapping anchors, how long a watchdog halt survives — is measured 16x off. The certification window must run with this false.",
+ "_artifact_known_gaps_closed": [
+  "anchors row written for this anchor -> closed 2026-07-26 (loop.finalize_anchor calls executor.anchor_row; conditioned on rebalanced)",
+  "position_readback rows written -> closed 2026-07-26 (finalize_anchor, fapi/v3/account@post_anchor; N/A in DRY_RUN)",
+  "daily_nav has exactly one row today -> closed 2026-07-26 (finalize_anchor, equity=wallet+unrealized; N/A in DRY_RUN)",
+  "decay monitored on the deployable caliber -> reported CLOSED by the artefact layer 2026-07-26 (0C)"
+ ],
+ "window_trip_disposition": "§4-1(c>9bps 连续5天)在窗口内触发, 与 §2.5(30次调度, 完成率≥98%)是两个判定, 预先分开如下。\n起草: 0B 2026-07-26。**需 team-lead 确认/修改后方为最终**; 措辞可改, 但必须在时钟起算前定稿。\n1. 触发是**预期内**结果, 不是窗口失败。0C 早先预测 c 会越过 9.0; 我们决定不加豁免、让它真触发,\n   所以它触发正是那个预注册决定的第一份实证, 而不是意外。\n2. 触发**不**扣减完成率。开仓被拒的锚点照常跑完并写 rc=0, 它诚实地完成了调度。\n   对账器同时报 completed 与 traded 两个数, 就是为了让'30/30 完成'不能被读成'交易了 30 次'。\n3. 反向也成立: §2.5 通过**不**解除止损。恢复条件只由 ops/resume_from_trip.sh 判定,\n   条件仍成立时它拒绝 —— 窗口跑完了不构成恢复的理由。\n4. 触发之后窗口**继续跑到第5天**: 后续锚点在 reduce-only 下完成, 这本身就是待认证的行为之一\n   (无人值守下止损持续生效、跨进程存活)。不因触发而提前结束窗口。\n5. 交付时**两个结论分开写**: (a) §2.5 完成率 x/30; (b) §4-1 在第几天第几个锚点触发、\n   触发时 c 的日序列、以及触发后还剩几个锚点未交易。禁止把 (a) 当作 (b) 的证据, 反之亦然。\n6. 若触发发生在窗口第4天或更早, 说明尾部streak被**窗口前**的日子接上了 —— 报告必须点明\n   哪几天是窗口前的, 因为那几天不属于认证期。窗口前的日子**不得**为了推迟触发而移出树。\n7. **若触发吃掉了交易日, 证书对'交易路径'的认证相应变短, 且必须报成数字** —— 例如\n   '5 天调度 / 4 天交易'。既然完成≠交易, 那么'5 天窗口通过'这张证书也必须说清它认证的是\n   哪一个的 5 天; 否则会拿一张'5 天'的证书去覆盖一个只交易了 4 天的系统。\n   与第 4 条配合: 跑满是对的, 但跑满的那部分认证的是'止损跨进程持续生效', **不是**'交易路径'——\n   两段时间认证两件不同的事, 证书上分开写。对账器已产出该数字(certificate_span/by_day)。\n   裁定: team-lead 2026-07-26(第 7 条); 前六条同日确认, 一字未改。",
+ "_window_leverage_note": "窗口在 5.0× 有效杠杆下运行, 等于 P0 的杠杆上限。★★ 更正 2026-07-29: **5.0× 是政策数, 不是推导数**。本条此前写着「0C 强平算术: $25k gross 对应权益 ≥$5,000, 即 ≤5.0×」—— **那句话把一个风险容忍的选择署名成了算术结论**。实测(arm() A7, /fapi/v1/leverageBracket, TESTNET 876 symbol): 我们 110 名字宇宙的 tier-1 维持保证金率 0.40%~3.00%, 中位 1.50%, 等权混合 1.2386% ⇒ **强平算术给出的是权益 296 USDT(84.56×)**, 不是 5,000。5,000 是那个要求的 16.9 倍。★ 与它性质不同的两个量, 分句记, 不与它并列: **结构性死亡 = 权益 1,250(20×)** —— 初始保证金地板, 跌破后书平掉就再也建不回来, 不可逆, 且**先到**; 一切熔断必须落在它之前。**强平墙 = 权益 296** —— 场所算术, 在当前权益的 −93.7% 处, 实践上够不着, 不作任何门。 | 以下为原裁定, 未改: **不加钱、不改 gross**: 改 gross 是口径改动且会让窗口测的不是 pilot 要跑的那本书; 加钱会让窗口跑在比实盘更宽松的姿态上, 方向错。⇒ 若实盘权益更高, 窗口的保证金行为比生产**更紧**, 方向保守。裁定: team-lead 2026-07-26; 登记人 0B。★ 2026-07-26 00:55Z 的旧更正保留: 每 symbol 杠杆档位**可以**事先读到(/fapi/v1/symbolConfig, 730 行 0.19s) —— 「我没找到」不等于「它不存在」。已落成 A5/A6。",
+ "_verification_changed_the_verified_note": "'验证行为改变了被验证对象' —— 2026-07-26 第三次。这次的形态在**调度层**: tests_entrypoint_wiring 真跑生产入口点, 因而拿走生产 anchor.lock; 在 :59 起跑会把锁持到 :00, 计划内锚点走 SKIP 分支 ⇒ §2.5 因为一次**测试**掉一次完成率。前两次: (a) 测试写进生产状态, 新增的'常驻停机'展示随后如实报出一个由测试自己制造的停机; (b) 干跑 mid=0.0 让 submit() 从未被调用, 而'干跑覆盖除交易所外的一切'被当成真。⇒ 通则: 会执行生产入口点的测试, 必须隔离每一个**互斥**机制(锁/PID 文件/端口), 不只是显眼的状态路径; 并写明隔离之后不再覆盖什么。",
+ "expected_leverage_bracket": 20,
+ "_expected_leverage_reason": "arm() 的 A6 对账基准。★★ 更正 2026-07-29: 本条此前写「0C 的强平算术、$5k 权益建议、5.0x 有效杠杆上限, **全部**建立在默认 20x 档位上」—— 那句话有**两层错**, 各自独立: **(一) 署名错**: 顿号把一个算术量与两个政策量串成一串, 政策数因此继承了算术的权威。**(二) 事实错**: 三者对档位并不同等成立。**20x 档位决定的只是初始保证金地板**(gross/20 = 1,250 USDT = 结构性死亡线)。**维持保证金地板是另一个量**, 由 leverageBracket 的 maintMarginRatio 决定(实测混合 1.2386% ⇒ 权益 296), 档位不参与。**5.0x 与档位完全无关**, 它是政策数。⇒ 即使把署名改对, 那个句子仍然是错的。 | 操作者在 app 里改档位, 移动的是**第一个**地板, 而 A6 的对账是唯一会发现它的地方 —— 在此之前 arm() 只是**记录**档位而不比较。**记录不是对账。** 实测 2026-07-26: 730/730 皆 20x。",
+ "target_leverage": 2.0,
+ "_target_leverage_note": "★ 政策数, 不是任何算术的输出。用户裁定 2026-07-29, 与'保证金全仓'和'回撤停机 −25% 自起始本金'同一批。**恒定杠杆取代常数敞口**: gross = nav × 2.0, 每锚点重算。★ 与三个真算术量分开记, 不与它们并列: 强平墙 = 权益 296(场所算术, 由 maintMarginRatio 决定, 见 arm() A7); 结构性死亡 = 权益 gross/20(初始保证金地板, 不可逆, 先到); 本条 = 政策。★ 2× 下的实测后果(已由 lead 判定可接受): gross 9,217 · 单名中位 $74.74(此前 $202.73) · 低于各自 min-notional 的名字 7/109(此前 1/109), 即广度损失 6 个名字。",
+ "leverage_deadzone_frac": 0.1,
+ "_leverage_deadzone_note": "实际杠杆偏离目标超过 ±10% 才重算 gross, 否则沿用上一次。**为了不给几十美元的权益波动付换手** —— 每锚点无条件重算会把权益的日内噪声变成真实的成交成本。",
+ "min_gross_usdt": 4000.0,
+ "_min_gross_note": "★ 敞口下限: 低于它**停机**, 而不是继续缩成一本失去广度的残书。依据是实测的 min-notional 排除曲线(2026-07-29 锚点权重, N=109, testnet 逐币地板 BTC 50 / ETH 20 / 其余 5): gross 9,217→排除 7 (6.4%) · 6,000→8 (7.3%) · 4,000→10 (9.2%) · 3,000→13 (11.9%) · 2,000→21 (19.3%)。4,000 是'排除 ≤10%'的最低 gross —— 再往下曲线开始变陡。★ 它与回撤门的关系(重要, 免得被读成竞争的两道门): −25% 停机在权益 0.75×起始 ⇒ gross ≈ 6,912 ⇒ 只排除 8 个 (7.3%)。**回撤门远在敞口下限之前就会响**, 所以下限是**回撤门失灵或本金被增减时**的兜底, 不是日常会碰到的东西。",
+ "_gross_usdt_pilot_p0_deprecated": "★ 作废为**下单输入** 2026-07-29(值曾为 25000)。gross 现由 nav × target_leverage 决定。**刻意不把它保留成敞口下限** —— 让一个键在不同时期表示两个不同的量, 正是本仓反复处理的口径分裂发生器(读旧日志的人会把两者混为一谈)。下限是独立命名的 `min_gross_usdt`。键本身保留以便旧记录可读, 但**任何代码都不再以它定量**。",
+ "_weights_switch": {
+  "utc": "2026-08-01",
+  "from": {
+   "king": 0.5,
+   "s2": 0.17,
+   "funding": 0.17,
+   "size": 0.16
+  },
+  "to": {
+   "king": 0.5952380952380952,
+   "s2": 0.20238095238095238,
+   "funding": 0.20238095238095238,
+   "size": 0.0
+  },
+  "why": "0C pre-registered GO/NO-GO, RESULT_size_leg_2026-08-01.md, criterion C: 54 months of MC-bar <= 0 and Delta-Net t = -3.20. Confirmed by the user. The leg was originally kept on its STANDALONE IC — and standalone-alpha is not marginal-alpha; measured against the other three legs it subtracts.",
+  "size_key_retained": "weight 0.0 rather than deleting the key: the reader refuses a weights dict that does not name exactly the four legs, so a missing key is a REFUSAL to trade rather than a silent three-leg book. Zero is the explicit statement 'this leg is off'; absence would be 'this file is malformed'.",
+  "derivation": "challenger .50/.17/.17/.16 -> drop size -> renormalise over 0.84",
+  "wired_by": "scheduler/anchor_loop.py -> book_config.weights() -> legs.compose_book(weights=...)",
+  "guarded_by": "live/tests_book_weights_effective.py"
+ },
+ "risk_budget": {
+  "alpha": 0.5,
+  "lambda": 1.0,
+  "_basis": "PREREG_risk_budget_2026-08-05 (69dba0ad) + amendments v1-A/v1-B; criteria by USER (IC down <=10% on FULL-AVERAGE caliber; kappa dropped for Sharpe by user ruling). Replay: dIC -6.7%, HHI 2.075->1.274, Sh -0.370->-0.080 @3.63."
+ },
+ "harvest_ema": {
+  "alpha": 0.05,
+  "_basis": "★ 用户裁定 2026-08-10(#53-C 复现后, 令『A』): α 0.3→0.05, 与带 b=.002 同批部署于 84 锚窗口首锚(12:00Z)之前 ⇒ 窗口单一配置。判决 RESULT_deepsmooth_53C(commit 70bd52a, 9821 锚×实盘函数, 判据冻结先于数字): α∈{.2,.15,.1,.05,.03}×带 11 臂单调改善至 0.05 平台 — 净 +0.857→+1.154(Δ+0.297 CI[+0.077,+0.518]), 换手 0.138→0.026(5.4×), 夏普 1.20→1.46, 5/5 年, 2022 崩盘年 +0.34(预写红旗未亮), 2026 弱 regime 受益最大 +0.78。内点=0.05(0.03 边缘平台且逐年 4/5)。有效记忆 ≈3.3 天 ⇒ 失效发现不依赖书: #55 ic_monitor 同批上线(阈值按 α=0.05 书离线分布盖章)。研究分支 +1.7 夏普候选(#53)的生产折答案。—— 前一裁定(同日, α=0.3 恢复)的完整档案保留于 _basis_history_0810。",
+  "_t1_disposition": "★ T1 v1 已被本裁定【取代】: 在 #61 尺子审计交付重标定的守卫之前, 任何自动/半自动把 α 改回 1.0 的动作都无授权 —— IC 类告警照发, 但改 α 一律需用户裁定。恢复规则 v1(连续8锚IC>0.05)同时废止(不可达 = 假门)。",
+  "_state_note": "α=1.0 期间状态仍每锚写盘(legs.apply_harvest_ema 的 a>=1 分支设计如此), state/live/harvest_ema.json 是新鲜的 ⇒ 启用即从上一锚目标起步, 无陈旧记忆; halt/flatten 重置由 harvest_reset_required + resume 隔离清除双守卫(gate_coverage 的 [W] 组钉住)。",
+  "_basis_history_0810": "α=0.3 恢复裁定(2026-08-10 早): T1 v1 无瑕疵执行但前提被反驳(IC AR(1) −0.058~−0.13), 恢复规则实质不可达=事实永久关闭; ema_exact 复验 净+0.378→+0.756 夏普+1.05 CI[+0.206,+0.554] 5/5年; prereg 76137fa4 + RESULT 49385c50。同日 #53-C 深平滑网格把平台推到 0.05, 本条被上方新裁定取代。"
+ },
+ "no_trade_band_w": 0.002,
+ "_no_trade_band_basis": "★ 用户裁定 2026-08-10『b 0.002确认有用的话可以立即部署』。中性保持型免交易带, 权重口径: |Δw|≤0.002 保持现仓, 残差只均摊到已交易集(未交易零扰动), 场所约束名豁免。判决 PROPOSAL_neutral_band_2026-08-10 SHA 8e499dac(9821锚, 实盘函数原样 import): Δ净 vs 实盘现状 +0.0583 CI[+0.029,+0.087] / vs 入金后(隐带失效) +0.0972 CI[+0.070,+0.124], 5/5年, 夏普→1.20, 中性精确 1e-16, 顺带修复场所隐带 2.1% 净敞口漂移。部署于 T0(08:00Z resize 锚)之后、84锚窗口首锚(12:00Z)之前 ⇒ 窗口全程单一配置不重起。★单位警示: 与 executor 休眠 band_bps(bps 口径)是两个机制, 0.002 若填错口径=10,000× 静默无操作 — tests_neutral_band T7 三断言钉死。",
+ "leg_cadence": {
+  "king_h": 8,
+  "king_phase_h": 0,
+  "_basis": "PROPOSAL_king_cadence_8h_2026-08-09 (c80a454c6e2add96834bf71f7c1479f9db848df3f60b224176cf9d539107ef1d), 用户裁定 2026-08-09 = 方案A 直接上线。离线 9821 锚 x 5 年, 实盘 compose_book 原样 import: 换手 0.4707->0.3120 (-33.7%), 净@3.115 -1.100->-0.274 (Delta +0.825, 日块CI95 [+0.667,+0.986]), 逐年 Delta>=0 5/5, 净夏普 -1.68->-0.42 / -5.52->-3.00。代价: 书 rank-IC -10% (0.0548->0.0493)。",
+  "_phase_reason": "★ 相位不可漂移。00/08/16Z 比 04/12/20Z 好 +0.553 bps/锚 (净@3.115 -0.274 vs -0.827) —— 同一改动因相位不同差一倍, 这是本改动的第一风险项。机制猜测(未验证): 00/08/16Z 是 Binance funding 结算时刻, 也是 funding 腿的刷新时刻, king 与之同步 => 书在这三个锚集中变动、其余锚几乎不动。",
+  "_key_semantics": "★★★ 相位键是【名义交易锚】(4h 网格取整), 绝不是 preds 的 anchor_ts_ms。后者是面板最后一根完整小时 bar = 名义-1h (实测: 16:00Z 锚携带 15:00Z)。若按它取 hour%8, 每个刷新锚都得 7 => cadence 永不触发, 且不报任何错, 而记录仍写着 8h。守卫: live/tests_king_cadence.py T2。",
+  "_failsafe": "一切异常回退 refresh (= 今天的 4h 行为): 缺配置 / 无保持文件 / 保持文件损坏 / 保持过期(>8h+1h) / 保持来自未来 / 进程时钟偏离网格槽 >1h。危险方向是拿过旧的观点交易, 按构造不可达。",
+  "_state": "保持状态写在 preds 文件旁边 (state/live/king_hold.json), 因而自动继承 LIVE_PREDS_PATH 的 per-mode 隔离 —— DRY_RUN 的运行不可能移动实盘书的已保持观点。"
+ },
+ "_k_seconds_basis": "PROPOSAL_k_window_shorten_2026-08-10 (1d92e20f51b8e1417f5d48ee81409a6b48187bfc336c5365f3a4772a986bd2ac), 用户授权 2026-08-10。900→180。取证 RESULT_execution_forensics_2026-08-10 (5f0ab93b): 首次成交耗时中位 35s / p95 516s ⇒ 900s 的后 2/3 几乎不产成交; 而挂单落空后由 taker 补上的滑点 (相对锚点中价, 金额加权) = +12.22 bps ⇒ 等得越久漂移越大。逆向选择已确证: 按方向调号的价格变动 成交单 +3.66 vs 未成交 +5.48 bps —— 挂不到的恰是模型更对的那一半, 多等不改善筛选只加大漂移。模拟(实测费率 maker 2.000 / taker 5.000, maker markout +0.591, 保守扣部分成交 11.5%, 真实驻留=k+46s): k=180 成交率 42.6%, 单位成交额成本改善 +1.81~+2.21 bps (吃单 markout 0~5.858 四档全正), 折算每锚 +0.56~+0.69 bps (8h 换手 0.312)。三种漂移模型: sqrt/linear 下 180 优于 900; flat(最保守, 假设缩短完全不减漂移)下改善为 0 ⇒ 下界是不伤。",
+ "_k_seconds_why_180": "模拟最优是 60s, 但那要把漂移曲线从 946s 外推 16 倍。180s 只外推 4 倍, 却已拿到最优改善的 79%~87%。外推倍数就是那个唯一假设承担的分量。若 180 兑现再议是否续缩。",
+ "_k_seconds_wiring": "★ 生效路径唯一: scheduler/run_anchor.py:298 `cfg.get('k_seconds',900)` → time.sleep。live/binance_executor.py 的同名常量 K_SECONDS=900 是【死常量】—— 它进 self.k 后全仓无人读取, 已由 tests_k_window T3 钉死: 哪天有人开始读 self.k, 电池变红而不是两个 k 静默分叉。",
+ "_k_seconds_latency": "本机延迟实测(49 锚): 名义锚→首单提交 中位 61s(preds 计算); 110 单提交耗时 中位 23s (max 35s); 真实驻留 = k + 46s ⇒ k=180 实际驻留 226s; 驻留离散度 p90−p10 = 43s(绝对值不随 k 变); 进程总时长 993s → 预计 273s, 硬上限 anchor_max_seconds=1500 余量充足。",
+ "_k_seconds_rollback": "改回 900 即可, 无代码改动。",
+ "_k_seconds_rollback_2026_08_10": "★★ 回滚 180→900, 2026-08-10 02:5xZ, 在任何锚点于 180 下运行【之前】。回滚理由: 授权所依据的『三种漂移模型下全为正, 最保守模型下改善为 0(不伤)』这一性质【不成立】。病因: 模拟把 maker 的滑点设为 0, 而实测(fills 按 trade_id 合并去重, 相对锚点中价, 金额加权)是 **−2.232 bps** —— round_px 的 buy 向下/sell 向上取整系统性偏向我们(1 tick 中位 2.48 bps)。加上手续费后 maker 的合计成本是 **−0.254 bps**, 即挂单近乎免费甚至倒赚。⇒ 丢掉 maker 成交的代价被我低估了。用实测重算: sqrt 漂移下 k=180 仅 +0.195(且最优 k 是 420 而非 180); linear 下 +1.187; **flat(最保守)下 −1.836 —— 由不伤变成伤**。且实测『晚成交的 maker 滑点更好』(−2.55 vs 早成交 −2.17), 缩短 k 连最好价的成交一起丢。尝试直接测漂移的时间指数以取代假设: 失败 —— 各时间档的样本总体不同(前档是 maker 成交, 末档是 topup 吃单, 按构造被逆向选择), 得到 −1.95/−3.45/−1.21/+21.01 非单调, 无法拟合。⇒ 漂移模型仍是假设, 而结论对它敏感 ⇒ 不改书。",
+ "_k_seconds_reopen_condition": "重开条件(三选一, 任一满足即可重议): (a) 能独立测出漂移的时间指数(需要与成交无关的中价时间序列, 例如前向采集 bookTicker 快照); (b) 前向 A/B: 按币或按锚随机分配 k∈{180,900}, 用实测代替模拟; (c) 若 maker 滑点优势因 tick 或定价规则改变而消失, 原分析自动恢复有效。",
+ "placement_bandit": {
+  "eps": 0.35,
+  "_basis": "PREREG_placement_bandit_2026-08-12 (SHA f657efde), 用户批准 2026-08-12。确定性 sha1(rebalance_id:symbol) 逐单深度随机化 {join, behind-1-tick}; 仅 attempt-1 主 maker; reduce_only exempt; fail-closed eps=0=逐位现行为; 读数点 behind n>=600 恰一次; 回滚=本键 eps 置 0, 下一锚生效。 | 2026-08-21 用户批准 eps 0.10→0.35 加速采样(behind 9天仅76单/208成交, 0.10下 n≥600 需至~09-15; 0.35 预计 ~09-01); 读数点(behind n≥600 恰一次)/判据/安全线(behind 绝对成交率<15%⇒eps 0)不变; 上限守卫 0.5 不变。"
+ },
+ "per_name_stop": {
+  "enabled": true,
+  "depth_pct": -0.25,
+  "consecutive_anchors": 2,
+  "cooloff_days": 7,
+  "min_notional_usdt": 20.0,
+  "_basis": "PREREG_per_name_stop_standby_2026-08-12 (cf40ea21); 用户裁定全面启用 2026-08-20",
+  "_semantics": "深度=unrealizedProfit/|notional| 终锚读回; ≤-25%连续2锚 ⇒ 该名flatten_only(maker出场不追); 平仓后7天禁入; 其余名字全程正常",
+  "active_profile": null,
+  "_active_profile_note": "null ⇒ 上面的基础值逐位生效(今天的行为)。'wide' ⇒ profiles.wide 覆盖其列出的键。与 book_source 成对切换(book_source=external ⇔ active_profile=wide), 由 external_book.pns_profile_consistent 守卫(不一致 ⇒ HIGH 告警, 条款仍按当前 profile 运行)。未知名 ⇒ 基础值继续生效 + 终锚告警(条款不失明)。读取经 per_name_stop.resolve_profile。",
+  "profiles": {
+   "wide": {
+    "depth_pct": -0.3,
+    "consecutive_anchors": 2,
+    "cooloff_days": 7,
+    "min_notional_usdt": 20.0,
+    "_basis": "宽书止损层 d30_n2_c42 (DESIGN_wide_live_deployment_2026-08-22 §1; wide_stop_grid.json: maxDD −33.4%, 净额代价 2.6%, 全网格性价比最优; ~/wide_shadow/stop_overlay.py 同参数自 08-21 影子跟踪)。min_notional_usdt 沿用 20(★ 待裁: L1 1×NAV/~300 名中位 ≈40 USDT, 20 以下的小仓条款看不见)。"
+   }
+  }
+ },
+ "book_source": "internal",
+ "_book_source_note": "★ DESIGN_wide_live_deployment_2026-08-22 §1. 'internal' = 今天的书(king/s2/funding → compose_book → EMA → 带), 逐位不变。'external' = 目标向量从 external_book.path/<anchor_ts>.json(签名, 宽书生产方 shadow_loop_v2 写)读取; 不经 compose_book/风险预算/EMA/中性带; 保留 universe 门/per_name_stop/撤名重整/clamp/flatten_only/执行层/§4 看门狗全条。任何校验失败 ⇒ 保持现仓不交易 + HIGH 告警 external_book_unavailable, **绝不回退 internal**。非此二值 ⇒ 锚被 BLOCKED_CONFIG(CRITICAL)。切换 = 本键 + per_name_stop.active_profile 成对改(见 _active_profile_note), 守卫 live/tests_external_book.py。回滚 = 停开仓(resume_from_trip 的反向 / KILL), 不回 internal(在役已 08-22 03:15Z 退役)。",
+ "external_book": {
+  "path": "/Users/haosiyu/wide_shadow/state/target_live",
+  "max_age_min": 10,
+  "anchor_offset_min": 23,
+  "poll_grace_min": 5,
+  "gross_mult": 1.0,
+  "require_anchor_match": true,
+  "universe_sha_pin": null,
+  "booster_sha_pin": null,
+  "min_notional_mult": 2.0,
+  "on_unavailable": "ladder",
+  "schema": "wide_target_v1",
+  "_basis": "DESIGN_wide_live_deployment_2026-08-22 §1-§2; 用户预授权 §3-bis(L1 1× 需五条收据)。gross_mult: L0 镜像 0(停开仓下跑, 不是 0 值 — 见 RUNBOOK)、L1 1.0、L2 2.0、L3 2.5(上限, 另需用户一字; 且不得超过 target_leverage — §4-4b 以 target_leverage 为杠杆政策, external_book.config 在配置层拒绝)。",
+  "_timing": "★★ 设计写 N+6 产出/N+8 读取; 实测(2026-08-20..22 八锚 shadow_log signal 行)影子以 SHADOW_OFFSET_MIN=16 起跑(进程 85661 环境变量)+ 运行 311-351s ⇒ 权重落盘 N+21:12..N+21:51。故 anchor_offset_min=23 + poll_grace_min=5(N+23 起每 15s 重试至 N+28); 若影子 v2 改回 offset 6 ⇒ 落盘 ≈N+12 ⇒ 改 13/5。max_age_min=10 以 written_utc 计(读取时刻 − 写入时刻), 与 anchor_ts 必须等于本锚并列; 两者都要过。",
+  "_on_unavailable": "ladder = 读不到/校验失败 ⇒ 本锚 HOLD(保持现仓, 零下单, HIGH 告警), 且年龄按【最近一个校验通过的目标】计入既有预注册阶梯(1-5 锚 HOLD / ≥6 锚 DERISK 50%→25% reduce-only / ≥12 锚 FLATTEN) — 与 preds 阶梯同一机制同一文档(anchor_loop 顶部 docstring)。hold = 永远只 HOLD+告警, 不升级。两者都绝不回退 internal。",
+  "_rollback": "停开仓: bash ops/KILL.sh(全停)或写 watchdog reduce-only 状态; 不改回 internal。改回 internal 需用户一字 + 先核在役书数据/模型链路仍完整(08-22 后无人维护)。"
+ }
+}

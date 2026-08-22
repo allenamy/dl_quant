@@ -1,0 +1,54 @@
+[A] the defect, and that the seam removes it
+  OK    ★★★ the withheld name is gone and the remainder is NEUTRAL again  — net=-2.842e-14
+  OK    ★★★ ...and DEPLOYED at the gross sizing decided, not at the shortfall the pop left  — gross=1000.000000
+  OK    ★★★ `net_before` is THE DEFECT'S SIZE (+120 = the popped weight x gross), so the record answers 'how much was wrong', not only 'it is fine now'  — 120.0
+  OK    ★★ the report names WHICH names were popped — a count is enough to notice, never enough to explain, and this is the sole cause of the tilt  — ['Z']
+  OK    ★★ and it states the gross it started from, so both halves of the defect are legible  — 879.9999999999999
+
+[B] the ORDER of the three steps — this is the design, not an implementation detail
+  OK    ★★★ a HELD untradable that would ADD is pinned at its CURRENT position, exactly  — P=200.0 clamp={'reduced': [], 'add_blocked': ['P'], 'flatten_only': [], 'popped': ['Z']}
+  OK    ★★★ the pin survives the rescale — i.e. the reshape ran BEFORE the clamp. Had it run after, this number would have been scaled to something the venue forbids
+  OK    ★★ and the venue-forced residue is REPORTED rather than absorbed into the other names (absorbing it would be a hedging decision nobody has made)  — {'names': ['P'], 'pinned_net_usdt': 200.0, 'net_shift_usdt': -21.153846153846104, 'book_net_usdt': -21.153846153846132, 'caliber': "`net_shift_usdt` is how far the venue's clamps moved the book's net away from the zero the reshape had just established; `book_net_usdt` is where it ended up. The residue is deliberately NOT absorbed into the other names — that would be an unmade hedging decision."}
+  OK    ★★★ `book_net_usdt` states where the net actually ended up, and it MATCHES the book — a reader who has to re-derive it will eventually re-derive it differently  — reported=-21.1538 actual=-21.1538
+  OK    ★★★ ...and it equals the SHIFT the clamp caused, i.e. the residue is fully attributed to the venue's pin and not to the reshape  — shift=-21.1538
+
+[C] two switches, two justifications, separately revertible
+  OK    ★★★ redemean alone fixes the NET
+  OK    ★★★ ...and leaves the gross NOT at the sizing gross — so the second switch is doing real work and is not a decoration on the first  — 856.0
+  OK    ★★ both off is a genuine no-op — the withheld name is still popped, nothing is reshaped  — net=+120.0000
+  OK    ★★ ...and it STILL reports the residual it declined to fix. A correction that did not happen must not be silent either
+  OK    ★★★ rescale WITHOUT redemean is REFUSED — scaling a still-tilted book UP grows the net in proportion, which is strictly worse than leaving the defect alone  — ValueError
+
+[D] it costs no alpha
+  OK    ★★★ cross-sectional ORDER is unchanged — a uniform shift and an L1 rescale are both order-preserving, which is the whole reason this is free  — ['D', 'E', 'C', 'B', 'A'] vs ['D', 'E', 'C', 'B', 'A']
+  OK    ★★ max_name_delta_pp is the actual largest weight move, in percentage POINTS — checked against the book rather than against a number I chose  — reported=6.1682 observed=6.1682
+
+[E] the floor interaction — REPORT and STOP, never a silent demean/pop/demean loop
+  OK    ★★★ a name that crosses its min-notional because of the reshape is REPORTED, and named  — ['D']
+  OK    ★★★ and the function STOPS at one pass rather than popping it and re-demeaning again — a silent loop converges on a book nobody specified  — 1
+  OK    ★★★ with NO floors supplied it says the check did not run, rather than reporting the empty list that a clean run also produces — 'nothing crossed' and 'nothing was checked' are the same output unless one of them is labelled  — NOT SUPPLIED — floor crossings were not checked, not 'none found'
+
+[F] the production path actually uses it, and the record carries it
+  OK    ★★ the trading path calls the seam (ONE call site, so the order cannot differ between paths — and `_trade` is what `run_anchor` delegates to)  — _trade call sites=1
+  OK    ★★ it passes the SIZING gross — reshaping to the post-withhold sum would restore nothing  — target, _held_book, getattr(self, "_untradable", ()), self.gross,
+            floors_usdt=_fl, floors_sourc
+  OK    ★★ and it hands the min-notional floors in, so the crossing check is live in production
+  OK    ★★ the report is copied onto the anchors row (SOURCE-level: this checks the assignment exists, not that a row was written — the round-trip below is the behavioural half)
+  OK    ★★★ an anchors row CARRYING the reshape report validates — the evidence the switch worked must survive the schema, or the acceptance is unverifiable from the artefact
+  OK    ★★ the report is JSON-serialisable (it goes to a JSONL ledger, and a numpy scalar in there fails at WRITE time, i.e. after the orders are already out)
+  OK    ★★ and the weight VECTOR is not in it — the vector is the book, the row keeps the report  — ['caliber', 'clamped_after_reshape', 'floor_set_changed', 'floors_source', 'gross_after', 'gross_before', 'iterations', 'max_name_delta_pp', 'n_popped', 'names_crossed_floor', 'net_after', 'net_before', 'popped_names', 'redemean_applied', 'rescale_applied', 'sizing_gross']
+
+[G] the REAL ledger, before AND after the wiring — selected STRUCTURALLY, not by recency
+  OK    ★★★ BEFORE the wiring, the defect's exact signature is in production data: sum|w| self-healed to 1.000000 while sum(w) did not  — A1785600096: sum(w)=+0.009600 sum|w|=1.000000 net=+40.76 USDT on 4246.04
+  OK    ★★★ ...and the seam drives that same real vector to ~0  — +40.76 -> -3.68e-14 USDT
+  OK    ★★★ ...at well under 0.03pp on any single name — which is what makes it cheap  — 0.009905300967023162
+  OK    ★★★ AFTER the wiring, the SAME measurement on a real anchor shows the defect GONE — this is the assertion the old 'newest anchor' version could not express, because success is what broke it  — A1785614443: sum(w)=+0.00000000 sum|w|=1.000000
+  OK    ★★★ ...and the row states what it corrected: a non-zero residual driven to ~0  — net_before +46.3751 -> +2.982e-14
+  OK    ★★★ ...and the deployed gross equals the gross sizing decided  — 4297.7700 vs 4297.7700
+
+[H] red capability — the mutants
+  OK    ★★★ mutant 'never_reshape' (today's live behaviour) leaves the book NET LONG by the popped name's weight and UNDER-DEPLOYED — both halves of the measured defect return  — net=+120.00 gross=880.00
+  OK    ★★★ mutant 'clamp_before_reshape' RESCALES THE VENUE'S PIN — P is no longer the 200 the venue permits, so we would send an order the venue forbids while every aggregate still reads neutral and fully deployed. This is why the order is the design.  — P=150.68 (venue pin was 200.00)
+  OK    ★★ mutant 'lose_the_cause' still corrects the book but reports 0 popped names — the correction would be right and unattributable, which is how a growing withhold goes unseen
+
+ALL PASS  (36 checks)

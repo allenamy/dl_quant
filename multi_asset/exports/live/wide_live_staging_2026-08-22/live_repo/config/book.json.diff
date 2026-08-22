@@ -1,0 +1,50 @@
+--- a/config/book.json
++++ b/config/book.json
+@@ -44,7 +44,8 @@
+  "gross_usdt_pilot_p0": 25000,
+  "dryrun_clock_start": null,
+  "_dryrun_clock_note": "干跑时钟以第一个成功的*计划内*锚点为准, 不以协议记录日期为准。07-25 的 00/04/08/12 调度器尚未安装, 16:00 死于 TCC ⇒ 那天零次计划内完成。对账器首跑即揭示此事(0/5), 并推翻了我基于协议日期给出的'还剩3天'估计。手动/kickstart 调用一律排除, 不得充数。",
+- "anchor_max_seconds": 1500,
++ "anchor_max_seconds": 3000,
++ "_anchor_max_seconds_external_note": "★ 1500→3000 (2026-08-22, wide-live staging). In external mode the anchor process deliberately idles until the producer's slot (external_book.anchor_offset_min, measured shadow landing ≈N+21.5 under SHADOW_OFFSET_MIN=16 + ~5.5 min runtime) BEFORE phase A; budget = offset 23 + poll 5 + phase A 1 + k 15 + phase B/C 3 + reports ≈ 47 min. 1500 would SIGALRM-kill the process mid-phase-B. Internal mode never reaches the old 25 min; the only other consumer is book_config.collision_window (a WARNING half-width for manual runs, now ±50 min).",
+  "_anchor_max_seconds_reason": "hard cap on one anchor process. Budget: preds ~10s + phase A + k=900s wait + phase B ~= 16min, so 25min is headroom, not a target. It exists because fcntl.flock is NON-BLOCKING: a hung run does not merely fail itself, it makes the NEXT anchor SKIP -- and §2.5 (30 calls, >=98%) tolerates zero skips. A stuck process must die rather than take its successors down with it.",
+  "artifact_known_gaps": [],
+  "_artifact_known_gaps_note": "Producers that do not exist YET, each with an owner and the date it was registered. Reported every anchor so they stay visible; they do not alarm, because a repeating alarm for a known gap trains the operator to ignore alarms. Anything failing that is NOT on this list is a REGRESSION and does alarm. A gap that starts PASSING is itself reported ('gap closed, remove it'), so nobody has to remember to come back. The list is expected to shrink to []; it doubles as the progress bar.",
+@@ -130,6 +131,36 @@
+   "cooloff_days": 7,
+   "min_notional_usdt": 20.0,
+   "_basis": "PREREG_per_name_stop_standby_2026-08-12 (cf40ea21); 用户裁定全面启用 2026-08-20",
+-  "_semantics": "深度=unrealizedProfit/|notional| 终锚读回; ≤-25%连续2锚 ⇒ 该名flatten_only(maker出场不追); 平仓后7天禁入; 其余名字全程正常"
++  "_semantics": "深度=unrealizedProfit/|notional| 终锚读回; ≤-25%连续2锚 ⇒ 该名flatten_only(maker出场不追); 平仓后7天禁入; 其余名字全程正常",
++  "active_profile": null,
++  "_active_profile_note": "null ⇒ 上面的基础值逐位生效(今天的行为)。'wide' ⇒ profiles.wide 覆盖其列出的键。与 book_source 成对切换(book_source=external ⇔ active_profile=wide), 由 external_book.pns_profile_consistent 守卫(不一致 ⇒ HIGH 告警, 条款仍按当前 profile 运行)。未知名 ⇒ 基础值继续生效 + 终锚告警(条款不失明)。读取经 per_name_stop.resolve_profile。",
++  "profiles": {
++   "wide": {
++    "depth_pct": -0.3,
++    "consecutive_anchors": 2,
++    "cooloff_days": 7,
++    "min_notional_usdt": 20.0,
++    "_basis": "宽书止损层 d30_n2_c42 (DESIGN_wide_live_deployment_2026-08-22 §1; wide_stop_grid.json: maxDD −33.4%, 净额代价 2.6%, 全网格性价比最优; ~/wide_shadow/stop_overlay.py 同参数自 08-21 影子跟踪)。min_notional_usdt 沿用 20(★ 待裁: L1 1×NAV/~300 名中位 ≈40 USDT, 20 以下的小仓条款看不见)。"
++   }
++  }
++ },
++ "book_source": "internal",
++ "_book_source_note": "★ DESIGN_wide_live_deployment_2026-08-22 §1. 'internal' = 今天的书(king/s2/funding → compose_book → EMA → 带), 逐位不变。'external' = 目标向量从 external_book.path/<anchor_ts>.json(签名, 宽书生产方 shadow_loop_v2 写)读取; 不经 compose_book/风险预算/EMA/中性带; 保留 universe 门/per_name_stop/撤名重整/clamp/flatten_only/执行层/§4 看门狗全条。任何校验失败 ⇒ 保持现仓不交易 + HIGH 告警 external_book_unavailable, **绝不回退 internal**。非此二值 ⇒ 锚被 BLOCKED_CONFIG(CRITICAL)。切换 = 本键 + per_name_stop.active_profile 成对改(见 _active_profile_note), 守卫 live/tests_external_book.py。回滚 = 停开仓(resume_from_trip 的反向 / KILL), 不回 internal(在役已 08-22 03:15Z 退役)。",
++ "external_book": {
++  "path": "/Users/haosiyu/wide_shadow/state/target_live",
++  "max_age_min": 10,
++  "anchor_offset_min": 23,
++  "poll_grace_min": 5,
++  "gross_mult": 1.0,
++  "require_anchor_match": true,
++  "universe_sha_pin": null,
++  "booster_sha_pin": null,
++  "min_notional_mult": 2.0,
++  "on_unavailable": "ladder",
++  "schema": "wide_target_v1",
++  "_basis": "DESIGN_wide_live_deployment_2026-08-22 §1-§2; 用户预授权 §3-bis(L1 1× 需五条收据)。gross_mult: L0 镜像 0(停开仓下跑, 不是 0 值 — 见 RUNBOOK)、L1 1.0、L2 2.0、L3 2.5(上限, 另需用户一字; 且不得超过 target_leverage — §4-4b 以 target_leverage 为杠杆政策, external_book.config 在配置层拒绝)。",
++  "_timing": "★★ 设计写 N+6 产出/N+8 读取; 实测(2026-08-20..22 八锚 shadow_log signal 行)影子以 SHADOW_OFFSET_MIN=16 起跑(进程 85661 环境变量)+ 运行 311-351s ⇒ 权重落盘 N+21:12..N+21:51。故 anchor_offset_min=23 + poll_grace_min=5(N+23 起每 15s 重试至 N+28); 若影子 v2 改回 offset 6 ⇒ 落盘 ≈N+12 ⇒ 改 13/5。max_age_min=10 以 written_utc 计(读取时刻 − 写入时刻), 与 anchor_ts 必须等于本锚并列; 两者都要过。",
++  "_on_unavailable": "ladder = 读不到/校验失败 ⇒ 本锚 HOLD(保持现仓, 零下单, HIGH 告警), 且年龄按【最近一个校验通过的目标】计入既有预注册阶梯(1-5 锚 HOLD / ≥6 锚 DERISK 50%→25% reduce-only / ≥12 锚 FLATTEN) — 与 preds 阶梯同一机制同一文档(anchor_loop 顶部 docstring)。hold = 永远只 HOLD+告警, 不升级。两者都绝不回退 internal。",
++  "_rollback": "停开仓: bash ops/KILL.sh(全停)或写 watchdog reduce-only 状态; 不改回 internal。改回 internal 需用户一字 + 先核在役书数据/模型链路仍完整(08-22 后无人维护)。"
+  }
+ }

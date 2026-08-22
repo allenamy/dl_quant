@@ -1,0 +1,40 @@
+[A] the three policy numbers are in config, and named as policy
+  OK    ★ target_leverage / dead zone / floor are all present  — 2.0 / 0.1 / 4000.0
+  OK    ★★ each is labelled POLICY, not derived
+  OK    ★★ the old sizing key is deprecated as an INPUT and not reused as the floor  — one key meaning two quantities across time is the caliber-split generator
+
+[B] sizing: gross = nav x leverage, with a dead zone
+  OK    ★★ first anchor (no previous gross) sizes from equity  — 9216.0
+  OK    ★★ a 2% equity wobble does NOT re-size (that is the dead zone's whole job)  — drift 0.0196 <= 0.1
+  OK    ★★ a 20% equity fall DOES re-size, down  — drift 0.2501 -> gross 7372.0
+  OK       and it re-sizes to exactly nav x target
+  OK    ★ the dead zone is judged on LEVERAGE, not on gross  — 2.2
+
+[C] the floor HALTS, it does not shrink
+  OK    ★★ below the floor the anchor halts
+  OK    ★★ ...and the reason says WHY shrinking is not the alternative  — ed residue, not a smaller book — so this halts rather than shrinks. No orders this anchor.
+  OK    ★ just above the floor it still trades  — 4002.0
+  OK    ★★ every branch returns the SAME key set (a shape that varies is a KeyError waiting)  — including the equity-unreadable branch
+  OK    ★ equity unreadable -> carries the previous gross and says it is UNVERIFIED
+
+[D] the limits moved to EQUITY, by a frequency-preserving restatement
+  OK    ★★ the day-loss backstop is -4.0% of equity (was -10% at 5x)
+  OK    ★★ the investigation level is -2.68% of equity (was -6.7% at 5x)
+  OK    ★★ both are exactly 2/5 of their 5x originals — the restatement, checked arithmetically
+  OK    ★★ the drawdown limit is -25% and is NOT scaled — the user gave it at 2x  — scaling it would invent a 5x original that never existed
+  OK    ★ the deprecated constants are kept, carrying their OLD values  — a renamed key holding a NEW number is how a caliber change becomes invisible
+  OK    ★★ RULING H is marked invalid, not deleted
+
+[E] the leverage backstop, and the trap it walked into first
+  OK    ★ alert at 1.5x target, halt at 2.5x target  — at 2.0x: alert 3.0x, halt 5.0x
+  OK    ★★ the gate is scoped to rows STAMPED with the constant-leverage policy
+  OK    ★★ and the producer writes that stamp
+  OK    ★★ WITHOUT the stamp the gate would have halted on four-day-old history (5.425x vs a 5.0x line) — the 'old caliber's rows judged by the new rule' trap, recorded in the source
+
+[F] the INTERACTION the lead asked for: dead zone x floor x clamp
+  OK    ★★ nav 1,950 -> want 3,900 (below floor) while prev gross 4,200 and drift 7.7% (inside the dead zone): the floor STILL halts  — resized=False gross=4200.0 halt_on=policy-implied size (the dead zone was suppressing the resize)
+  OK       and it names WHICH size tripped it  — policy-implied vs current — different facts
+  OK    ★ just above, the same stale gross does NOT halt (the band is closed, not widened)  — nav 2,050 -> want 4,100
+  OK    ★★ and the THIRD member is recorded as NOT interacting, with the reason  — the S1 clamp acts per NAME, so it can shrink a leg but never the gross
+
+ALL PASS  (27 checks)

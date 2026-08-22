@@ -1,0 +1,43 @@
+[A] a contended lock: what the operator is left with
+  OK   ★★ the process exits 0 — UNCHANGED on purpose; changing what launchd believes happened is a ruling, not a side effect of adding a page — 0
+  OK   ★★★ the log line names the MODE it skipped — the lock is opened before `SR.bind(mode)`, so this branch used to know nothing about which book it was abandoning, and 'an anchor was skipped' is a different sentence from 'the LIVE anchor was skipped' — ['2026-08-22T04:02:38Z SKIP: previous anchor still holds the lock (mode=LIVE) — this anchor did NOT run; the process holding the lock is a concurrent anchor or a manual run']
+  OK   ★★ and it says plainly that the anchor did NOT run, rather than only that a lock was held
+  OK   ★★★ a DURABLE record exists outside the run log — the exit code is 0, so this file is the artefact that says the run was not a success — {'utc': '2026-08-22T04:02:38Z', 'mode': 'LIVE', 'lock': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/skip_rjf7cj_3/anchor.lock', 'meaning': 'this scheduled anchor did not run. The exit code is 0, so launchd recorded a successful run — this file is the record that it was not one.'}
+  OK   ★★★ 生产 anchor_runs.log 未被本套件写入(重定向生效, 不是只是设了变量) — before=5429345 now=5429345 — 若增长, 说明 run_anchor 的 RUNLOG 没有读 LIVE_ANCHOR_LOG, 本套件又在生产日志里制造假事故
+  OK   ★★ 而重定向到的那份【确实】收到了 SKIP 行(否则上一条会因为'哪都没写'而假绿) — 这是上一条的配对: 一个把日志写进 /dev/null 的实现会让上一条通过
+  OK   ★★★ AND A PAGE IS ATTEMPTED — a ledger is read on purpose, a page finds you. Suppressed here because a test must not reach a human, but the attempt is audited either way — [('HIGH', 'SUPPRESSED')]
+  OK   ★★ the page states the exit code is still 0, so the reader is not left to discover that the indicators disagree with reality on their own
+
+[B] a standing condition pages once
+  OK   ★★ the second identical skip does not page again (episode de-dup) — an alarm that repeats on a timer is how a channel gets muted, which is the one channel a stop-loss needs — []
+  OK   ★★ but the durable record still grows — suppression removes the PAGE, never the finding
+
+[C] the consumer that already existed is not disturbed
+  OK   ★★ dryrun_ledger still counts a SKIP as a non-completion — the line's prefix is unchanged, so widening the message did not silently drop its existing reader
+
+[D] two scheduled anchors cannot coexist — which is why no preflight guards that
+  OK   ★★★ there is exactly ONE label and ONE plist path, and installing unloads then loads THAT path — so installing LIVE REPLACES the TESTNET job rather than joining it. The 'two schedules fight over the lock' scenario is structurally impossible, and a preflight refusing to install while the other is present would match nothing — indistinguishable from a guard confirming safety
+  OK   ★★★ what IS reachable is checked instead: after install, EXACTLY ONE anchor job must be loaded — a hand-added plist or a stale label from a rename is the way a second one can appear, and nothing checked the count
+  OK   ★★ and the installer says out loud that this ENDS the other schedule — the operator should watch the parallel control stop, not believe it is still running
+
+[E2] a manual run started next to a scheduled anchor is WARNED
+  OK   ★★ the slot the window is measured against is the SCHEDULE's own, not a second copy — 2026-08-01T12:00Z
+  OK   ★★★ 5 min BEFORE the slot contends — a manual run started then may still hold the lock when the scheduled anchor fires, and the SCHEDULED one takes the silent SKIP — the SCHEDULED anchor (we would still hold the lock when it fires)
+  OK   ★★ 51 min after it does not — the band is one anchor lifetime (config anchor_max_seconds), so it closes when the contender can no longer be holding the lock
+  OK   ★★★ the half-width is DERIVED from config/book.json's anchor_max_seconds, not a second number invented about the same physics — the ask was ±15, the honest figure is one anchor lifetime (±25 at 1500s; ±50 since the external-book wait raised the cap to 3000s), and being wrong in the NARROW direction is what costs an anchor — config/book.json anchor_max_seconds — one anchor lifetime
+  OK   ★★ outside the band there is no warning at all — a warning that always fires is furniture
+  OK   ★★ and the warning names which side is expected to lose and why it is not a refusal
+  OK   ★★★ the anchor warns only when a HUMAN started it (isatty) — launchd has no terminal and the battery runs it through a pipe, so neither is warned; a warning nobody can act on is noise that teaches the reader to skip the block
+  OK   ★★ the rehearsal — the commonest contender, because it runs a full anchor — warns too
+
+[E3] a blocked stdout must not hold the lock
+  OK   ★★★ the lock is released BEFORE the reporting tail — a rehearsal piped into a reader that stopped draining blocked on a `print` with the anchor already finished, holding the lock for five minutes. Everything after the release touches no venue and writes no ledger row
+  OK   ★★ the release is ANNOUNCED, so 'the lock is free' is readable rather than inferred from the absence of contention
+  OK   ★★ and a failure to release says so rather than passing silently — the process still exits eventually, but the operator should know which of the two freed it
+  OK   ★★ LOCK_UN really frees an flock in this environment — the mechanism the fix rests on, measured rather than assumed
+
+[E] red capability — put the silence back
+  OK   M1 markers each appear exactly once — (1, 1)
+  OK   ★★★ M1 restore the one-line silent skip => no durable record, no page, exit 0. That is the state the repo was in this morning, and [A] goes red — rows 2->2, alarms 0
+
+28/28 passed

@@ -1,0 +1,29 @@
+--- a/live/tests_anchor_skip_visible.py
++++ b/live/tests_anchor_skip_visible.py
+@@ -208,17 +208,21 @@
+ check("★★ the slot the window is measured against is the SCHEDULE's own, not a second copy",
+       BC.collision_window(_SLOT)["nominal_utc"].endswith("12:00Z"),
+       BC.collision_window(_SLOT)["nominal_utc"])
++# ★ 2026-08-22: the half-width is one anchor lifetime = config anchor_max_seconds (1500s -> 25 min until the
++#   external-book wait raised it to 3000s -> 50 min). DERIVED here too — pinning 25 was a second copy.
++_HALF = float(json.load(open(os.path.join(REPO, "config", "book.json"))).get("anchor_max_seconds", 1500)) / 60.0
+ _in = BC.collision_window(_SLOT - 300)
+-_out = BC.collision_window(_SLOT + 26 * 60)
++_out = BC.collision_window(_SLOT + (_HALF + 1) * 60)
+ check("★★★ 5 min BEFORE the slot contends — a manual run started then may still hold the lock "
+       "when the scheduled anchor fires, and the SCHEDULED one takes the silent SKIP",
+       _in["would_contend"] is True and "SCHEDULED anchor" in _in["who_loses"], _in["who_loses"])
+-check("★★ 26 min after it does not — the band is one anchor lifetime, so it closes when the "
+-      "contender can no longer be holding the lock", _out["would_contend"] is False)
++check(f"★★ {_HALF + 1:.0f} min after it does not — the band is one anchor lifetime (config anchor_max_seconds), "
++      "so it closes when the contender can no longer be holding the lock", _out["would_contend"] is False)
+ check("★★★ the half-width is DERIVED from config/book.json's anchor_max_seconds, not a second "
+-      "number invented about the same physics — the ask was ±15, the honest figure is ±25, and "
++      "number invented about the same physics — the ask was ±15, the honest figure is one anchor "
++      "lifetime (±25 at 1500s; ±50 since the external-book wait raised the cap to 3000s), and "
+       "being wrong in the NARROW direction is what costs an anchor",
+-      abs(_in["half_width_min"] - 25.0) < 1e-9
++      abs(_in["half_width_min"] - _HALF) < 1e-9
+       and "anchor_max_seconds" in _in["half_width_source"], _in["half_width_source"])
+ check("★★ outside the band there is no warning at all — a warning that always fires is furniture",
+       BC.collision_warning(_SLOT + 60 * 60) is None)

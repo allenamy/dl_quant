@@ -1,0 +1,49 @@
+--- a/live/per_name_stop.py
++++ b/live/per_name_stop.py
+@@ -22,12 +22,33 @@
+ CFG_PATH = os.path.join(REPO, "config", "book.json")
+ 
+ 
++def resolve_profile(base):
++    """profiles / active_profile 覆盖(2026-08-22 宽书换装, DESIGN_wide_live_deployment §1):
++    active_profile=None ⇒ 基础键逐位不变(今天的行为); 'wide' ⇒ profiles.wide 覆盖其列出的键
++    (d30_n2_c42: depth −0.30 × 连续 2 锚 × 冷却 7 天); 未知名 ⇒ 基础值继续生效 + `_profile_error`
++    (终锚告警; 条款不因配置错而失明 — 失明方向是止损关闭, 比参数回落更危险)。纯函数。"""
++    out = {k: v for k, v in (base or {}).items() if k not in ("profiles", "active_profile")}
++    prof = (base or {}).get("active_profile")
++    if prof is None:
++        return out
++    p = ((base or {}).get("profiles") or {}).get(prof)
++    if not isinstance(p, dict):
++        out["_profile_error"] = f"unknown per_name_stop profile {prof!r}; base parameters stay in force"
++        return out
++    for k, v in p.items():
++        if not str(k).startswith("_"):
++            out[k] = v
++    out["_profile"] = prof
++    return out
++
++
+ def cfg(path=CFG_PATH):
+     try:
+         with open(path) as f:
+-            return json.load(f).get("per_name_stop") or {}
++            base = json.load(f).get("per_name_stop") or {}
+     except Exception:
+         return {}
++    return resolve_profile(base)
+ 
+ 
+ def cfg_enabled(path=CFG_PATH):
+@@ -135,6 +156,10 @@
+     """
+     if snapshot is None:
+         return {"state": load_state(state_path), "alarms": []}
+-    st, ev = evaluate(snapshot, load_state(state_path), cfg(cfg_path), now_ts)
++    conf = cfg(cfg_path)
++    st, ev = evaluate(snapshot, load_state(state_path), conf, now_ts)
+     _save(st, state_path)
++    if conf.get("_profile_error"):
++        # 配置错不让条款失明: 基础参数已生效(见 resolve_profile), 但必须有人听见
++        ev = list(ev) + [f"★ per_name_stop profile 配置错误: {conf['_profile_error']}"]
+     return {"state": st, "alarms": ev}

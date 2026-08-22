@@ -1,0 +1,13 @@
+[①] exactly one file holds a suite list
+  OK    the authoritative runner holds the list  — 122
+  OK    ★★ the delegating runner holds NO suite entries
+  OK    ★ ...and it delegates by EXEC, not by copying a list  — exec present
+  OK    ★ the interpreter is pinned in the authoritative runner  — ACCEPT_PY pinned
+
+[①] both entry points byte-identical: NOT RUN — nested inside a battery run.
+     (running it here would re-enter the battery; asserted when this file is run directly, and declared as this suite's blind spot)
+  OK    ★ the nesting guard is ACTIVE and was detected  — ACCEPTANCE_INNER=1
+
+  5 checks run
+
+ALL PASS

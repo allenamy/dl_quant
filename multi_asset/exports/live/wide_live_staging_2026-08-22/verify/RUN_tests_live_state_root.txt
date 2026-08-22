@@ -1,0 +1,32 @@
+[A] three modes, three roots
+  OK   ★★★ LIVE resolves to its own subtree — /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state/live
+  OK   ★★★ and it is NOT the DRY_RUN root any more — the whole point — /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state/live vs /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state
+  OK   ★★ all three are distinct — {'LIVE': '/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state/live', 'DRY_RUN': '/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state', 'TESTNET': '/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state/testnet'}
+
+[B] regression: the two modes that were already right did not move
+  OK   ★★★ DRY_RUN still resolves to `state/` — the acceptance battery runs run_anchor for real in DRY_RUN, so moving this root would relocate the battery's own tree mid-window — /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state
+  OK   ★★★ TESTNET still resolves to `state/testnet` — the certification window is running on it RIGHT NOW; a path change here would orphan every row the window has produced — /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/state/testnet
+  OK   ★★ and the mapping says so literally, so a future edit has to pass through this line
+
+[C] every derived path follows the root — no key was left behind
+  OK   ★★ the two path sets have the same KEYS (a mode is not allowed to have fewer facilities) — identical
+  OK   ★★★ and every LIVE path lies UNDER the LIVE root — a single hardcoded `state/…` left in the dict would put one live artefact back in the DRY_RUN tree, which is the whole defect in miniature — all under state/live
+
+[D] the marker groups match the roots one-for-one
+  OK   ★★ LIVE has its own group — the old 'main' shared group existed ONLY because LIVE and DRY_RUN shared a root, and leaving it would let a DRY_RUN tree still claim a LIVE run
+  OK   ★★ the mapping is injective: one group per root, so a marker identifies its tree
+
+[E] a DRY_RUN process cannot bind the LIVE tree
+  OK   ★★★ the collision is not merely refused, it is INEXPRESSIBLE: DRY_RUN's root and LIVE's root are different paths, so no DRY_RUN process can reach the live tree by using its own mode. A guard that refuses is a guard that can be argued with; a path that does not exist cannot be — dry=/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/sr_iua_itka/state live=/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/sr_iua_itka/state/live
+  OK   ★★ and the marker still refuses a mode whose group does not own the tree it found — a tree stamped `testnet` will not accept a `main` process
+
+[E2] what stays SHARED across modes, deliberately — pinned so it cannot drift
+  OK   ★★ the two shared artefacts are still built from the SHARED path, not from the mode root — if one of them silently followed the mode, two modes could run at once
+  OK   ★★ RUNLOG 的覆盖只能来自环境变量, 不得由 mode 根推导(放宽上一条时补回的强度) — RUNLOG = os.environ.get("LIVE_ANCHOR_LOG", os.path.join(STATE, "anchor_runs.log"))
+  OK   ★★ and nothing ELSE in run_anchor builds a state path by hand — every other path comes from state_root, so the LIVE subtree is complete except where sharing is intended — 1
+
+[F] the installer's delta now tells the truth
+  OK   ★★ the delta prints the LIVE root, and it is computed, not written down
+  OK   ★★★ its sentence 'a DIFFERENT TREE … every N-consecutive-days condition starts at zero' was ASPIRATIONAL before this change — the tree was neither different nor empty. It is now a description
+
+ALL PASS  (17 checks)
