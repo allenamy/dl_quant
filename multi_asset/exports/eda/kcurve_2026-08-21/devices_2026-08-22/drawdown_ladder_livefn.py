@@ -1,13 +1,15 @@
 """回撤阶梯 · 第二装置 = 实盘函数同构回放叠加 (DESIGN_optimization_path_2026-08-21 §4.2; Session 6737834a-L1; 2026-08-22)
 
 ★ 冻结判据(供 08-25 预注册; 先于数字写入, 本文件 SHA256 入 RESULT 文档首段):
-    主臂 L6(−10%→m=0.5, 回到 −5% 恢复 m=1), 主口径 = 回撤基准【窗口起点】+ 成本 3.52 bps/单位换手 + 恒定杠杆 L=2 + 阶梯置于 EMA 之后(gross 层):
+    主臂 L6(−10%→m=0.5, 回到 −5% 恢复 m=1), 主口径 = 回撤基准【窗口起点】+ 成本 3.52 bps/单位换手 + 恒定杠杆 L=2 + 阶梯置于 EMA 之后(gross 层)
+    + 带相对【目标 gross】(post_bandrel; v2 2026-08-22 01:xxZ: 主线在实盘仓核实 scheduler/anchor_loop.py:1433 band_notional = no_trade_band_w(0.002) × self.gross,
+      target/positions 皆名义额 ⇒ 带随阶梯乘后 gross 缩放; v1 主口径 post=NAV 绝对单位带(回放装置写法)降为敏感, 判据文本与档位未动, 全部臂保留并列):
       G1  触线概率 P(−25% 自窗口起点) ≤ 静态 × 1/3
       G2  年均收益(255 窗均值) ≥ 静态 − 5pp
       G3  夏普(255 窗逐窗夏普均值) ≥ 静态 − 0.05
       G4  逐年(日历年块 2022/2023/2024/2025/2026H1, 回撤自年初起算) 中 ≥ 4/5 年 (L6 − 静态) ≥ −5pp
     四条全过 ⇒ 阶梯(L6)可进预注册; 任一不过 ⇒ 判负或改档(改档只许在 L5/L4 敏感臂中读, 不得新造档位)。
-    只报主臂为判决; L5/L4/高水位基准/成本 4.137 与 0.32/EMA 前置 均为敏感与诊断, 不参与判决。
+    只报主臂为判决; L5/L4/高水位基准/成本 4.137 与 0.32/EMA 前置/绝对带 均为敏感与诊断, 不参与判决(四关逐条对 L5/L4 与绝对带也算出并列, 供改档/敏感阅读)。
 
 书构造 = w2_live_replay.py(devices_2026-08-21, SHA 9105e5fa…)逐字同构: 实盘 legs.compose_book 原样 import, W/RB/EMA α0.05/带 b0.002/
 逐名止损(成本均价深度 −25%, 连续 2 锚, 冷却 42 锚) / 成本 C×换手。复现收据: 全史静态(C=4.137) net 必须与 probe_artifacts/net_S1.npy 逐元素相等。
@@ -47,7 +49,8 @@ NY = 2190; STEP = 30; L_LEV = 2.0; KILL = -0.25
 C_MAIN = 3.52; C_PAPER = 4.137; C_LOW = 0.32
 LADDERS = {"static": [], "L6": [(-0.10, 0.5)], "L5": [(-0.06, 0.5)], "L4": [(-0.12, 0.5), (-0.18, 0.25)]}
 FROZEN = {"G1_trip_ratio_max": 1 / 3, "G2_ret_pp_min": -5.0, "G3_sharpe_min": -0.05, "G4_years_min": 4, "G4_year_pp_min": -5.0,
-          "main": {"arm": "L6", "basis": "ws", "C": C_MAIN, "L": L_LEV, "placement": "post"}}
+          "main": {"arm": "L6", "basis": "ws", "C": C_MAIN, "L": L_LEV, "placement": "post_bandrel"},
+          "caliber_history": "v1 (00:35Z) main placement=post (absolute NAV-unit band, replay convention); v2 (01:xxZ) main=post_bandrel after team-lead verified the live band is relative to target gross (anchor_loop.py:1433). Thresholds/arms/rule unchanged; both placements reported."}
 
 ap = argparse.ArgumentParser(); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--workers", type=int, default=24)
 ap.add_argument("--out", default=f"{PD}/drawdown_ladder_livefn_2026-08-22.json")
@@ -229,23 +232,25 @@ def summarise(rows):
     return out
 
 # ---------------- task grid ----------------
+# v2: main placement = post_bandrel (live band ∝ target gross, verified); post (absolute NAV-unit band) = sensitivity; pre = diagnostic no-op.
+# static is placement-independent (m≡1) ⇒ run once per (C, basis) as "post".
 CONFIGS = []
 for C in (C_MAIN, C_PAPER, C_LOW):
     for basis in ("ws", "hwm"):
-        for arm in ("static", "L6", "L5", "L4"):
-            if C == C_LOW and arm in ("L5", "L4"): continue
-            CONFIGS.append(dict(arm=arm, basis=basis, C=C, placement="post"))
+        CONFIGS.append(dict(arm="static", basis=basis, C=C, placement="post"))
+        for plc in ("post_bandrel", "post"):
+            for arm in ("L6", "L5", "L4"):
+                CONFIGS.append(dict(arm=arm, basis=basis, C=C, placement=plc))
 CONFIGS.append(dict(arm="L6", basis="ws", C=C_MAIN, placement="pre"))
-for C in (C_MAIN, C_PAPER):
-    for arm in ("L6", "L5", "L4"):
-        CONFIGS.append(dict(arm=arm, basis="ws", C=C, placement="post_bandrel"))
 WINS = STARTS if not ARGS.smoke else STARTS[::64]
-TASKS = [(ci, i0) for ci, cfg in enumerate(CONFIGS) for i0 in WINS]
+TASKS = [(ci, i0, NY, "win") for ci, cfg in enumerate(CONFIGS) for i0 in WINS]
+YB_CFG = [ci for ci, cfg in enumerate(CONFIGS) if cfg["basis"] == "ws" and cfg["placement"] != "pre"]
+TASKS += [(ci, b0, b1 - b0, "yb") for ci in YB_CFG for y_, (b0, b1) in YBLK.items()]
 log("configs", len(CONFIGS), "windows", len(WINS), "tasks", len(TASKS))
 
 def work(task):
-    ci, i0 = task; cfg = CONFIGS[ci]
-    return ci, i0, run_window(i0, NY, LADDERS[cfg["arm"]], cfg["basis"], cfg["C"], cfg["placement"])
+    ci, i0, nlen, kind = task; cfg = CONFIGS[ci]
+    return ci, i0, kind, run_window(i0, nlen, LADDERS[cfg["arm"]], cfg["basis"], cfg["C"], cfg["placement"])
 
 # receipt: static warm-start window == full-history slice (C=4.137)
 r0 = run_window(STARTS[0], NY, [], "ws", C_PAPER); r1 = run_window(STARTS[100], NY, [], "ws", C_PAPER)
@@ -258,25 +263,26 @@ for key in ("w0", "w100"):
     v = RECEIPT["warmstart_static_vs_slice"][key]
     if not v[2]: assert abs(v[0] - v[1]) < 1e-9, f"warm-start static window {key} != full-history slice"
 
-# run grid
-t1 = time.time(); RES = {ci: {} for ci in range(len(CONFIGS))}
+# run grid (windows + calendar-year blocks) in one pool
+t1 = time.time(); RES = {ci: {} for ci in range(len(CONFIGS))}; YBR = {ci: {} for ci in range(len(CONFIGS))}
 with mp.get_context("fork").Pool(ARGS.workers) as pool:
-    for k, (ci, i0, r) in enumerate(pool.imap_unordered(work, TASKS, chunksize=4)):
-        RES[ci][i0] = r
-        if k % 500 == 0: log("grid", k, "/", len(TASKS), round(time.time() - t1, 1), "s")
+    for k, (ci, i0, kind, r) in enumerate(pool.imap_unordered(work, TASKS, chunksize=4)):
+        (RES if kind == "win" else YBR)[ci][i0] = r
+        if k % 1000 == 0: log("grid", k, "/", len(TASKS), round(time.time() - t1, 1), "s")
 log("grid done", round(time.time() - t1, 1), "s")
 
-# calendar-year blocks (main caliber + paper C), all arms, ws basis (dd from year start) — for G4 and regime trigger counts
+def ckey(cfg): return f"{cfg['arm']}|{cfg['basis']}|C{cfg['C']}|{cfg['placement']}"
+# calendar-year blocks (dd from year start) — for G4 and regime trigger counts; key = arm|C|year|placement
 YB = {}
-for C in (C_MAIN, C_PAPER):
-    for arm, plc in (("static", "post"), ("L6", "post"), ("L5", "post"), ("L4", "post"), ("L6", "post_bandrel"), ("L5", "post_bandrel"), ("L4", "post_bandrel")):
-        for y_, (b0, b1) in YBLK.items():
-            r = run_window(b0, b1 - b0, LADDERS[arm], "ws", C, plc)
-            YB[f"{arm}|C{C}|{y_}" + ("|bandrel" if plc == "post_bandrel" else "")] = dict(ret_pct=round(100 * r["ret"], 2), sharpe=round(r["sharpe"], 3), trip=bool(r["trip"]), minfs_pct=round(100 * r["minfs"], 2),
+for ci in YB_CFG:
+    cfg = CONFIGS[ci]
+    for y_, (b0, b1) in YBLK.items():
+        r = YBR[ci][b0]
+        YB[f"{cfg['arm']}|C{cfg['C']}|{y_}|{cfg['placement']}"] = dict(ret_pct=round(100 * r["ret"], 2), sharpe=round(r["sharpe"], 3), trip=bool(r["trip"]), minfs_pct=round(100 * r["minfs"], 2),
                                            time_delev=round(100 * r["time_delev"], 2), n_delev=r["n_delev"], n_recov=r["n_recov"],
                                            extra_turnover=round(r["trn"] - r["trn_base"], 4), n_anchors=b1 - b0,
                                            events=[(time.strftime("%Y-%m-%d %H:%M", time.gmtime(int(ats[e[0]]))), e[1], e[2]) for e in r["events"]])
-log("year blocks done", round(time.time() - t0, 1), "s")
+log("year blocks assembled", round(time.time() - t0, 1), "s")
 
 # paper overlay on the same windows (A: L×net 1×-weight caliber; B: L×net/gross constant-gross caliber = published JSON)
 PAPER = {}
@@ -286,23 +292,26 @@ for nm, x in (("A_Lxnet_C4137", xA), ("B_Lxnet_over_gross_C4137", xB), ("A_Lxnet
     for basis in ("ws", "hwm"):
         for arm in ("static", "L6", "L5", "L4"):
             PAPER[f"{nm}|{basis}|{arm}"] = summarise([paper_window(x, i0, NY, LADDERS[arm], basis) for i0 in WINS])
+# paper A (C=3.52) calendar-year blocks — shows G4 failure exists without any pipeline
+PAPER_YB = {}
+for arm in ("static", "L6", "L5", "L4"):
+    for y_, (b0, b1) in YBLK.items():
+        r = paper_window(xA352, b0, b1 - b0, LADDERS[arm], "ws")
+        PAPER_YB[f"{arm}|C3.52|{y_}"] = dict(ret_pct=round(100 * r["ret"], 2), time_delev=round(100 * r["time_delev"], 2), trip=bool(r["trip"]))
 log("paper overlay done", round(time.time() - t0, 1), "s")
 
 # ---------------- assemble ----------------
 OUT = {"device": __doc__.split("\n")[0], "frozen_criteria": FROZEN, "inputs_sha256": INPUTS, "receipts": RECEIPT,
        "windows": {"n": len(WINS), "len": NY, "step": STEP, "first_start": time.strftime("%Y-%m-%d", time.gmtime(int(ats[WINS[0]]))),
                    "last_start": time.strftime("%Y-%m-%d", time.gmtime(int(ats[WINS[-1]])))},
-       "livefn": {}, "livefn_by_start_year": {}, "events_by_year": {}, "paper": PAPER, "year_blocks": YB}
+       "livefn": {}, "livefn_by_start_year": {}, "events_by_year": {}, "paper": PAPER, "paper_year_blocks_A_C352": PAPER_YB, "year_blocks": YB}
 for ci, cfg in enumerate(CONFIGS):
-    key = f"{cfg['arm']}|{cfg['basis']}|C{cfg['C']}|{cfg['placement']}"
-    rows = [RES[ci][i0] for i0 in WINS]
+    key = ckey(cfg); rows = [RES[ci][i0] for i0 in WINS]
     OUT["livefn"][key] = summarise(rows)
-    # by start year
     by = {}
     for i0, r in zip(WINS, rows):
         y_ = int(yr[i0]); by.setdefault(y_, []).append(r)
     OUT["livefn_by_start_year"][key] = {y_: summarise(v) for y_, v in by.items()}
-    # events by calendar year of the event (delever = m down to >0; kill = m->0; recover = m up)
     ev = {}
     for r in rows:
         for (ia, mf, mt) in r["events"]:
@@ -311,10 +320,10 @@ for ci, cfg in enumerate(CONFIGS):
             elif mt < mf: d["delever"] += 1
             else: d["recover"] += 1
     OUT["events_by_year"][key] = ev
-# per-window rows (for paired Δ, by-start-year replication, plots) — livefn all configs + paper A_C352/ws
+# per-window rows — livefn all configs + paper A_C352
 PW = {}
 for ci, cfg in enumerate(CONFIGS):
-    key = f"{cfg['arm']}|{cfg['basis']}|C{cfg['C']}|{cfg['placement']}"; rows = [RES[ci][i0] for i0 in WINS]
+    key = ckey(cfg); rows = [RES[ci][i0] for i0 in WINS]
     PW[key] = {"start_idx": [int(i) for i in WINS], "start_date": [time.strftime("%Y-%m-%d", time.gmtime(int(ats[i]))) for i in WINS],
                "ret_pct": [round(100 * r["ret"], 4) for r in rows], "sharpe": [round(r["sharpe"], 4) for r in rows], "trip": [bool(r["trip"]) for r in rows],
                "minfs_pct": [round(100 * r["minfs"], 3) for r in rows], "time_delev": [round(r["time_delev"], 4) for r in rows],
@@ -327,23 +336,25 @@ for arm in ("static", "L6", "L5", "L4"):
         PW[f"paperA_C352|{arm}|{basis}"] = {"ret_pct": [round(100 * r["ret"], 4) for r in rows], "sharpe": [round(r["sharpe"], 4) for r in rows], "trip": [bool(r["trip"]) for r in rows],
                                            "time_delev": [round(r["time_delev"], 4) for r in rows], "cost_bps": [round(r["cost"], 3) for r in rows]}
 OUT["per_window"] = PW
-# gate evaluation (main caliber)
-st = OUT["livefn"][f"static|ws|C{C_MAIN}|post"]; l6 = OUT["livefn"][f"L6|ws|C{C_MAIN}|post"]
-yrs = [y_ for y_ in YEARS]
-g4 = {int(y_): round(YB[f"L6|C{C_MAIN}|{y_}"]["ret_pct"] - YB[f"static|C{C_MAIN}|{y_}"]["ret_pct"], 2) for y_ in yrs}
-GATES = {"G1": {"value": [l6["p_trip"], st["p_trip"]], "pass": bool(l6["p_trip"] <= st["p_trip"] * FROZEN["G1_trip_ratio_max"] + 1e-12)},
-         "G2": {"value": [l6["ret_mean"], st["ret_mean"], round(l6["ret_mean"] - st["ret_mean"], 2)], "pass": bool(l6["ret_mean"] - st["ret_mean"] >= FROZEN["G2_ret_pp_min"])},
-         "G3": {"value": [l6["sharpe_mean"], st["sharpe_mean"], round(l6["sharpe_mean"] - st["sharpe_mean"], 3)], "pass": bool(l6["sharpe_mean"] - st["sharpe_mean"] >= FROZEN["G3_sharpe_min"])},
-         "G4": {"value": g4, "n_ok": int(sum(v >= FROZEN["G4_year_pp_min"] for v in g4.values())), "pass": bool(sum(v >= FROZEN["G4_year_pp_min"] for v in g4.values()) >= FROZEN["G4_years_min"])}}
-GATES["ALL"] = all(GATES[g]["pass"] for g in ("G1", "G2", "G3", "G4"))
-OUT["gates_main_arm_L6"] = GATES
-l6b = OUT["livefn"][f"L6|ws|C{C_MAIN}|post_bandrel"]
-g4b = {int(y_): round(YB[f"L6|C{C_MAIN}|{y_}|bandrel"]["ret_pct"] - YB[f"static|C{C_MAIN}|{y_}"]["ret_pct"], 2) for y_ in yrs}
-OUT["gates_L6_bandrel_sensitivity"] = {"G1": [l6b["p_trip"], st["p_trip"]], "G2": round(l6b["ret_mean"] - st["ret_mean"], 2), "G3": round(l6b["sharpe_mean"] - st["sharpe_mean"], 3),
-                                      "G4": g4b, "G4_n_ok": int(sum(v >= FROZEN["G4_year_pp_min"] for v in g4b.values()))}
+# gate evaluation: every (arm, C, placement) at ws basis; main = L6|C3.52|post_bandrel
+yrs = [int(y_) for y_ in YEARS]
+def gates_for(arm, C, plc):
+    st = OUT["livefn"][f"static|ws|C{C}|post"]; a = OUT["livefn"][f"{arm}|ws|C{C}|{plc}"]
+    g4 = {y_: round(YB[f"{arm}|C{C}|{y_}|{plc}"]["ret_pct"] - YB[f"static|C{C}|{y_}|post"]["ret_pct"], 2) for y_ in yrs}
+    n_ok = int(sum(v >= FROZEN["G4_year_pp_min"] for v in g4.values()))
+    G = {"G1": {"value": [a["p_trip"], st["p_trip"]], "pass": bool(a["p_trip"] <= st["p_trip"] * FROZEN["G1_trip_ratio_max"] + 1e-12)},
+         "G2": {"value": [a["ret_mean"], st["ret_mean"], round(a["ret_mean"] - st["ret_mean"], 2)], "pass": bool(a["ret_mean"] - st["ret_mean"] >= FROZEN["G2_ret_pp_min"])},
+         "G3": {"value": [a["sharpe_mean"], st["sharpe_mean"], round(a["sharpe_mean"] - st["sharpe_mean"], 3)], "pass": bool(a["sharpe_mean"] - st["sharpe_mean"] >= FROZEN["G3_sharpe_min"])},
+         "G4": {"value": g4, "n_ok": n_ok, "pass": bool(n_ok >= FROZEN["G4_years_min"])}}
+    G["ALL"] = all(G[g]["pass"] for g in ("G1", "G2", "G3", "G4")); return G
+OUT["gates"] = {f"{arm}|C{C}|{plc}": gates_for(arm, C, plc) for arm in ("L6", "L5", "L4") for C in (C_MAIN, C_PAPER, C_LOW) for plc in ("post_bandrel", "post")}
+OUT["gates_main_arm_L6"] = OUT["gates"][f"L6|C{C_MAIN}|post_bandrel"]
+OUT["gates_sensitivity_absband_L6"] = OUT["gates"][f"L6|C{C_MAIN}|post"]
 OUT["runtime_s"] = round(time.time() - t0, 1)
 json.dump(OUT, open(ARGS.out, "w"), indent=1, ensure_ascii=False, default=float)
-log("GATES", json.dumps(GATES, ensure_ascii=False))
+log("GATES main L6 bandrel", json.dumps(OUT["gates_main_arm_L6"], ensure_ascii=False))
+log("GATES sens L6 absband", json.dumps(OUT["gates_sensitivity_absband_L6"], ensure_ascii=False))
+for k, v in OUT["gates"].items(): log("GATE", k, "ALL" if v["ALL"] else "fail:" + ",".join(g for g in ("G1", "G2", "G3", "G4") if not v[g]["pass"]), json.dumps({g: v[g]["value"] for g in ("G1", "G2", "G3", "G4")}))
 for k, v in OUT["livefn"].items(): log("LIVEFN", k, json.dumps(v))
 for k, v in PAPER.items(): log("PAPER", k, json.dumps(v))
 log("DONE", round(time.time() - t0, 1), "s ->", ARGS.out)
