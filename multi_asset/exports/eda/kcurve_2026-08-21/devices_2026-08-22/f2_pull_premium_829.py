@@ -1,6 +1,6 @@
 """F2 · 宽 829 名 premiumIndexKlines 1h 月度 zip 下载器 + 小时网格构建(data.binance.vision 公共端点, 只读行情; Session 6737834a-F2).
 落盘: /mnt/storage/private/work_hsy/probe_artifacts/f2/premium_csv/<sym>/<ym>.zip ; 404 ⇒ <ym>.zip.404 标记; 可续跑.
-  pull  : python f2_pull_premium_829.py pull  2021-01 2026-07 [nproc]   — 每名只拉 [首个有收盘月, 末个有收盘月] ∩ [y0m, y1m](来自 wa/syms829_span.json)
+  pull  : python f2_pull_premium_829.py pull  2021-01 2026-07 [nproc] [rev]   — 每名只拉 [首个有收盘月, 末个有收盘月] ∩ [y0m, y1m](来自 wa/syms829_span.json)
   daily : python f2_pull_premium_829.py daily 2026-08-01 2026-08-21 [nproc] — 8 月逐日 zip(只拉末收盘 ≥ 2026-08-01 的名)
   build : python f2_pull_premium_829.py build                          — 汇成 premium_1h_829.npz(ts_hour = bar open time ms, 与 basis_premium_1h.npz 同约定; PREM float32 (nH, 829))
 语义: premiumIndexKlines close = 该小时 bar 收盘时的溢价指数 (mark − index)/index; bar open=t 的 close 在 t+1h 已知 ⇒ 锚 N 用 open=N−1h 的行(FF/RC 同约定 "PREM 行 N−1h").
@@ -89,6 +89,7 @@ if __name__ == "__main__":
             a = max(ym_of(f), y0m); b = min(ym_of(l), y1m)
             if a > b: continue
             tasks.append((s, months(a, b)))
+        if len(sys.argv) > 5 and sys.argv[5] == "rev": tasks = tasks[::-1]      # 第二实例反向扫, 与正向实例在中间相遇(已存在文件即跳过)
         print("symbols", len(SYMS), "tasks", len(tasks), "symbol-months", sum(len(m) for _, m in tasks), flush=True)
         res = {}
         with Pool(NP) as pool:
