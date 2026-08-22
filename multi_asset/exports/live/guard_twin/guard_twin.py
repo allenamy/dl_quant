@@ -23,7 +23,19 @@ PILOT_START_MS = 1785542400000          # 2026-08-01 00:00Z — first LIVE day (
 #   acting tolerance is 0.5pp; the raw gap is logged every run so the tolerance can be tightened from
 #   measured drift once the series is long enough (prereg §2.1 names 0.10pp as the time-matched target).
 TOL = {"day_pct": 0.50, "cum_pct": 0.50, "input_pct": 0.50, "name_pct": 1.0, "lev": 0.10}   # lev: gross/equity drifts 2-4% intra-anchor on a live book; defects hunted are ≥0.3×
-DEPTH_LIMIT = -0.25
+DEPTH_LIMIT = -0.25   # default; overridden per run from the live config's active per_name_stop profile (see _depth_limit)
+
+def _depth_limit():
+    """Per-name stop depth from the LIVE config (base depth_pct or the active profile's), so the twin judges the
+    same line the book uses (wide profile −0.30 vs base −0.25; RUNBOOK_wide_live §3 L2 gate)."""
+    try:
+        cfg = json.load(open(os.path.join(LIVE, "config", "book.json"))).get("per_name_stop") or {}
+        prof = cfg.get("active_profile")
+        if prof and prof in (cfg.get("profiles") or {}):
+            return float((cfg["profiles"][prof]).get("depth_pct", cfg.get("depth_pct", DEPTH_LIMIT)))
+        return float(cfg.get("depth_pct", DEPTH_LIMIT))
+    except Exception:
+        return DEPTH_LIMIT
 
 def log(msg):
     line = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + " " + msg
@@ -185,7 +197,8 @@ def main(once=False):
     if closed_account_gap is None: closed_account_gap = 0.0
     lev_twin = gross / equity if equity else None
     deep = {p["symbol"]: p["upnl"] / abs(p["notional"]) for p in acct["positions"] if abs(p["notional"]) > 5.0}
-    deep_names = sorted([s for s, dpt in deep.items() if dpt <= DEPTH_LIMIT])
+    _dl = _depth_limit()
+    deep_names = sorted([s for s, dpt in deep.items() if dpt <= _dl])
     # ── watchdog readings ─────────────────────────────────────────────────────────────────
     wd = {}; pns = {}
     try: wd = json.load(open(os.path.join(LIVE, "state", "live", "watchdog", "last_eval.json")))
@@ -216,7 +229,7 @@ def main(once=False):
            "cum_pct_twin": cum_twin_pct, "wd_cum_from_start_pct": c4.get("cum_return_from_start_pct"),
            "closed_account_gap_usdt": closed_account_gap, "ledger_identity_by_asset": ident, "pnl_ledger_usdt": pnl_ledger, "transfers_all": transfers_all,
            "lev_twin": lev_twin, "wd_actual_leverage": c4b.get("actual_leverage"),
-           "deep_names_now": deep_names, "pns_counters": sorted((pns.get("counters") or {}).keys()),
+           "deep_names_now": deep_names, "depth_limit_used": _dl, "pns_counters": sorted((pns.get("counters") or {}).keys()),
            "pns_stopped": sorted((pns.get("stopped") or {}).keys()), "pns_cooldown": sorted((pns.get("cooldown") or {}).keys()),
            "n_chain_twin_days": sum(1 for x in chain if x[2] == "twin"), "n_chain_dn_days": sum(1 for x in chain if x[2] == "daily_nav")}
     # ── disagreements ─────────────────────────────────────────────────────────────────────
