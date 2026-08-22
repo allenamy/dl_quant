@@ -53,6 +53,16 @@ ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.j
 ### 2.2-quater ★ 落地记录(08-22 04:58Z)
 - 适配器 `cf3fd9f` → 批次 2+3 `2652f95`(解耦 + 宇宙内书)→ **切换 `37186e6`**(external + wide profile + 23/5), 三次电池 122/122。影子 v3 04:46Z 起(PID 34330, SHADOW_OFFSET_MIN=16)。操作员停开仓(03:15Z)仍在 ⇒ 08:00Z/12:00Z 锚 = L0-b 镜像; 08:33Z 自动核对脚本已挂(l0_mirror_check + phase_A 字段 + 无告警 + 无订单)。L1 须用户一字。
 
+### 2.2-quinquies ★ 红队上线前审阅(`docs/REDTEAM_wide_live_prelaunch_2026-08-22.md`, e31a61d)与处置(05:5xZ)
+- **R1 (P0) 锚超时 3000s 对 N+23 相位只剩 2–5 min 余量**(影子晚 2–3 min ⇒ 锚在下单中途 os._exit 不撤挂单 ⇒ 下锚 §4-5b 整书平)⇒ `anchor_max_seconds` 3000→**3600**(config, safe_commit 在跑); 首个 L1 锚人盯 done < N+48。
+- **R2 (P0) 探针 v2 仍在跑**(我的 00:52Z 重启使 RUNBOOK "已 KILL" 与事实不符)⇒ 05:52Z `KILL` 文件 + 进程 `killed` 事件 + launchd `com.hsy.execprobe2` 卸载 ✓(L1 期间保持停止; 重启须用户另裁)。
+- **R3 (P1) 不可用阶梯**(24h DERISK/48h FLATTEN 是 staging 自选, 设计与预授权只写"保持现仓+告警")⇒ `on_unavailable` ladder→**hold**(config); 阶梯作为选项呈用户裁。
+- **R4 (P1) 1× 粒度**: NAV 15.4k × 1× 摊到 ~300 名 ⇒ 60–87% 的调仓量 < minNotional(带宽 3.9U < 5U)⇒ L1 在 1× 下大部分名字调不动, ρ/净额判据失真 —— **需用户裁**: (a) L1 直接 2×(每名义额翻倍, 仍低于在役在役 2× 的风险因夏普更高)/ (b) 1× 但只作"管道+成交"验证, 不读 ρ / (c) 减名(top-K 200)/ (d) 加 NAV。
+- **R5 (P1) 止损 20U 门槛对 175 名/14% gross 失明** ⇒ wide profile `min_notional_usdt` 20→**5**(config)。
+- **R6 (P1) 一次性 autoresume launchd 仍挂载 RunAtLoad 且 --check 已 RESUMABLE**(重启机器会自动恢复书!)⇒ 05:52Z 已卸载并移走 plist ✓。
+- **R14 (P1) L0 停开仓锚证明不了 L1 时序** ⇒ L1 首锚人盯(external_wait/age_s/done 时刻)。
+- 红队结论: 修 R1/R2 + 裁 R3/R4/R5 + 卸 R6 + 首锚人盯后**可上**; L1 当执行探针读。
+
 ### 2.3 ★ 时序(必须实测后打勾, 不按设计文字)
 - 设计: 影子 N+6 产出 / 执行 N+8 读。**实测(08-20..22 八锚 shadow_log `signal` 行): 影子以 SHADOW_OFFSET_MIN=16 起跑 + 运行 311–351 s ⇒ 权重落盘 N+21:12..N+21:51。** ⇒ N+8 读必然读到上一锚文件(anchor 不符 ⇒ HOLD)。
 - 规则: `anchor_offset_min ≥ 影子落盘分钟 + 1`, `poll_grace_min ≥ 3`(N+offset 起每 15 s 重试), `max_age_min=10` 同时要求 written_utc 距读取 ≤10 min ⇒ offset 不得比落盘晚 >9 min。
