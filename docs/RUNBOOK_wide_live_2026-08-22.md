@@ -50,6 +50,9 @@ ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.j
 - 影子 v2 首文件(anchor 1787371200): 746 个非零名 vs 宇宙 450 ⇒ 296 个尾巴(gross 18%)。**目标文件 = 宇宙内的书**: 生产方改 v3(影子 `b_exit_on_leave` EXIT_NON_MEMBERS=on + 记分 `a_tail_scoring` + 目标文件附 `universe` 列表), 适配器 pop ∉ universe 的名并按宇宙内 Σ|w| 归一(双保险); 一次重启影子(08:16Z 前)。WA 提案 d013c87; 合并交付由 wide-live-staging。
 - L0 镜像核对对象 = 宇宙内归一权重; 被撤名单 = 尾巴 ∪ 交易所过滤 ∪ 最小名义额。
 
+### 2.2-quater ★ 落地记录(08-22 04:58Z)
+- 适配器 `cf3fd9f` → 批次 2+3 `2652f95`(解耦 + 宇宙内书)→ **切换 `37186e6`**(external + wide profile + 23/5), 三次电池 122/122。影子 v3 04:46Z 起(PID 34330, SHADOW_OFFSET_MIN=16)。操作员停开仓(03:15Z)仍在 ⇒ 08:00Z/12:00Z 锚 = L0-b 镜像; 08:33Z 自动核对脚本已挂(l0_mirror_check + phase_A 字段 + 无告警 + 无订单)。L1 须用户一字。
+
 ### 2.3 ★ 时序(必须实测后打勾, 不按设计文字)
 - 设计: 影子 N+6 产出 / 执行 N+8 读。**实测(08-20..22 八锚 shadow_log `signal` 行): 影子以 SHADOW_OFFSET_MIN=16 起跑 + 运行 311–351 s ⇒ 权重落盘 N+21:12..N+21:51。** ⇒ N+8 读必然读到上一锚文件(anchor 不符 ⇒ HOLD)。
 - 规则: `anchor_offset_min ≥ 影子落盘分钟 + 1`, `poll_grace_min ≥ 3`(N+offset 起每 15 s 重试), `max_age_min=10` 同时要求 written_utc 距读取 ≤10 min ⇒ offset 不得比落盘晚 >9 min。
