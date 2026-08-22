@@ -1,0 +1,62 @@
+--- a/live/tests_signal_and_loop.py
++++ b/live/tests_signal_and_loop.py
+@@ -33,7 +33,20 @@
+ # (`with BC._using(BC.BOOK_PATH)`) and tests the gate itself, in both states.
+ # Pinning it open here is the deliberate opposite of hiding it: the gate is exercised in exactly
+ # one place, on purpose, rather than incidentally everywhere.
+-_open_clock = json.load(open(BC.BOOK_PATH))
++# ★ 2026-08-22 DECOUPLED FROM THE DISK BOOK SOURCE. `book_source` / `per_name_stop.active_profile`
++#   are PRODUCTION switches (external = the wide book). A suite that copies the disk config as its
++#   fixture baseline flips its own subject when the operator flips the book — and a battery that
++#   goes red on the switch then locks the switch out. Every disk-derived fixture below is the REAL
++#   config (clock, legs, weights, stamps…) with the book source pinned to the INTERNAL baseline,
++#   which is what these cases test. tests_external_book owns the external branch, both ways.
++def _internal_baseline(d):
++    d = dict(d)
++    d["book_source"] = "internal"
++    d["per_name_stop"] = dict(d.get("per_name_stop") or {}, active_profile=None)
++    return d
++
++
++_open_clock = _internal_baseline(json.load(open(BC.BOOK_PATH)))
+ _open_clock["anchor_late_tolerance_min"] = 10 ** 6
+ _OPEN_BOOK = os.path.join(tempfile.mkdtemp(), "book_open_clock.json")
+ json.dump(_open_clock, open(_OPEN_BOOK, "w"))
+@@ -793,7 +806,9 @@
+                   "panel": _PANEL_STAMP})
+ 
+ 
+-with BC._using(BC.BOOK_PATH):                     # ← the REAL config, for this block only
++_REAL_INTERNAL = os.path.join(tmp, "book_real_internal.json")   # the REAL clock/tolerance; book source pinned internal
++json.dump(_internal_baseline(json.load(open(BC.BOOK_PATH))), open(_REAL_INTERNAL, "w"))
++with BC._using(_REAL_INTERNAL):                  # ← the REAL clock config (tolerance/anchors), for this block only
+     TOL = BC.late_tolerance_min()
+     slot = BC.nominal_anchor_utc(time.time())
+ 
+@@ -915,7 +930,7 @@
+     with open(_logm, "w") as fh:
+         fh.write(_ln(slot + 60, "anchor start mode=DRY_RUN"))
+         fh.write(_ln(slot + 65, "anchor done rc=0"))
+-    _mode_book = json.load(open(BC.BOOK_PATH))
++    _mode_book = _internal_baseline(json.load(open(BC.BOOK_PATH)))
+     _mode_book["window_mode"] = "TESTNET"
+     _pm = os.path.join(tmp, "book_window_mode.json")
+     json.dump(_mode_book, open(_pm, "w"))
+@@ -952,7 +967,7 @@
+     # comparison: equal values are not evidence of a shared source.
+ 
+ # ── behavioural proof: run_anchor itself follows the config, not just the accessor ───────────
+-_probe_book = json.load(open(BC.BOOK_PATH))
++_probe_book = _internal_baseline(json.load(open(BC.BOOK_PATH)))
+ _probe_book["anchor_late_tolerance_min"] = 0
+ _p0 = os.path.join(tmp, "book_tol0.json")
+ json.dump(_probe_book, open(_p0, "w"))
+@@ -977,7 +992,7 @@
+           "same process follows it)", _bc2.late_tolerance_min() == 0, _bc2.late_tolerance_min())
+ 
+ # ── fail-closed: an unusable schedule is not a pass ──────────────────────────────────────────
+-_bad = json.load(open(BC.BOOK_PATH))
++_bad = _internal_baseline(json.load(open(BC.BOOK_PATH)))
+ _bad.pop("anchors_utc")
+ _pb = os.path.join(tmp, "book_no_schedule.json")
+ json.dump(_bad, open(_pb, "w"))

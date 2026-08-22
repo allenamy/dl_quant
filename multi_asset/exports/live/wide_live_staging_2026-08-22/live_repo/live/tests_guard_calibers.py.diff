@@ -1,0 +1,16 @@
+--- a/live/tests_guard_calibers.py
++++ b/live/tests_guard_calibers.py
+@@ -684,7 +684,12 @@
+ # [F] per_name_stop — hand-derived + properties
+ # ══════════════════════════════════════════════════════════════════════════════════════════════
+ print("\n[F] per_name_stop — depth = unrealised/|notional|, -25% on 2 consecutive final-anchor readbacks")
+-CFG = PNS.cfg(BOOK_CFG)
++# ★ 2026-08-22: the hand derivations below are for the BASE clause (−25% × 2 × 7d). per_name_stop now
++#   carries profiles (active_profile=wide ⇒ −30% for the wide book — a PRODUCTION switch). The base
++#   profile is INJECTED here instead of reading whatever profile the disk happens to activate: a
++#   suite whose subject flips with the operator's switch would lock the switch out. The wide profile
++#   itself is asserted in tests_external_book [P] (−28%×2 does not fire, −31%×2 does).
++CFG = PNS.resolve_profile(dict(json.load(open(BOOK_CFG))["per_name_stop"], active_profile=None))
+ S0 = {"counters": {}, "stopped": {}, "cooldown": {}}
+ 
+ 

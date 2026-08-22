@@ -21,7 +21,8 @@ LIVE = os.environ.get("LIVE_REPO", os.path.expanduser("~/dl_quant_live"))
 SHADOW = os.path.expanduser("~/wide_shadow")
 STG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(STG, "live_repo")
-BASE_COMMIT_EXPECTED = "ab569b8babf49217f090260c376609750dbc6239"
+BASE_COMMIT_EXPECTED = "cf3fd9fa03ee78239f0893e2441eb56c9e7a6245"   # batch-2 base (batch-1 hunks applied there as cf3fd9f); batch-1 base was ab569b8
+BASE_BATCH1 = "ab569b8babf49217f090260c376609750dbc6239"
 
 
 def sha(p):
@@ -39,11 +40,28 @@ def write(rel, text, root=OUT):
     return p
 
 
-def replace_once(text, old, new, label):
+ALREADY = []
+
+
+def apply_hunk(text, old, new, label, sentinel=None):
+    """Exact-match apply. Returns (text, applied_now). A hunk whose NEW text (or its `sentinel`, for
+    hunks whose new text is re-indented by a later step) is already present and whose OLD text is
+    gone is 'already applied on this base' (the live repo moved past batch 1) and is skipped — so one
+    generator serves every base; anything else is a refusal, never a guess."""
+    # ★ NEW first: an INSERTION hunk keeps its old anchor line inside the new text, so on an
+    #   already-applied base `old` still matches once — checking `old` first would apply it twice.
+    if text.count(new) == 1 or (sentinel and text.count(sentinel) == 1):
+        ALREADY.append(label)
+        return text, False
     n = text.count(old)
-    if n != 1:
-        raise SystemExit(f"✗ hunk {label}: anchor text matched {n} times (need exactly 1)")
-    return text.replace(old, new, 1)
+    if n == 1:
+        return text.replace(old, new, 1), True
+    raise SystemExit(f"✗ hunk {label}: anchor text matched {n} times (need exactly 1; new-text count "
+                     f"{text.count(new)})")
+
+
+def replace_once(text, old, new, label):
+    return apply_hunk(text, old, new, label)[0]
 
 
 def indent_block(text, start_marker, end_marker, label, spaces=4):
@@ -67,6 +85,21 @@ def indent_block(text, start_marker, end_marker, label, spaces=4):
 def udiff(a_text, b_text, rel):
     return "".join(difflib.unified_diff(a_text.splitlines(True), b_text.splitlines(True),
                                         fromfile=f"a/{rel}", tofile=f"b/{rel}", n=3))
+
+
+UNCHANGED = []
+
+
+def write_diff(rel, a_text, b_text, name=None):
+    """Write <name>.diff vs the CURRENT live base; if the staged file equals the base (the hunks were
+    applied there already), keep the batch-1 diff file in place and record it — an empty diff would
+    overwrite the review artefact with nothing."""
+    name = name or (rel + ".diff")
+    d = udiff(a_text, b_text, rel)
+    if not d:
+        UNCHANGED.append(rel)
+        return
+    write(name, d)
 
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -225,7 +258,7 @@ al = replace_once(al,
     "               rehearsal: bool = False,\n"
     "               external: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:\n",
     "H7a _trade signature")
-al = replace_once(al,
+al, _did7 = apply_hunk(al,
     "        # ── caliber stamp assertion (audit ②): the split-path guarantee must be a MECHANISM,\n"
     "        # not a convention. preds declare their calibers; we assert against config; mismatch\n"
     "        # BLOCKS the anchor. Closes the chain config -> stamp -> consumption, the same shape\n"
@@ -252,18 +285,19 @@ al = replace_once(al,
     "          # BLOCKS the anchor. Closes the chain config -> stamp -> consumption, the same shape\n"
     "          # as the protocol's registry -> declaration -> observation chain.\n"
     '          expected = _load(os.path.join(_REPO, "config", "book.json"), {}).get("factor_versions")\n',
-    "H7b preamble")
+    "H7b preamble", sentinel="        _is_ext = external is not None\n")
 # ...the rest of that block (up to the end of the OOD try/except) is re-indented by 2? No — by 4
 # for the code; the comment lines above were written at +2 by hand only to make the hunk visible.
 # Fix: normalise the whole block to +4. We do it in two steps: first indent the code lines after
 # the `expected = ...` line, then re-indent the five lines we wrote at +2.
-al, (i0, i1) = indent_block(
+if _did7:
+  al, (i0, i1) = indent_block(
     al,
     '        stamped = preds.get("factor_versions")\n'.strip("\n"),
     '                               f"a frozen model is scoring {len(symbols)} coins unverified")',
     "H7c DL gates block")
-# the five +2 lines -> +4
-al = al.replace(
+  # the five +2 lines -> +4
+  al = al.replace(
     "        else:\n"
     "          # ── caliber stamp assertion (audit ②): the split-path guarantee must be a MECHANISM,\n"
     "          # not a convention. preds declare their calibers; we assert against config; mismatch\n"
@@ -278,7 +312,7 @@ al = al.replace(
     '            expected = _load(os.path.join(_REPO, "config", "book.json"), {}).get("factor_versions")\n', 1)
 
 # H8 — after the per_name_stop sets: the venue-eligibility filter the design KEEPS (external only).
-al = replace_once(al,
+al, _did8 = apply_hunk(al,
     '            except Exception as _e:\n'
     '                self.alarm("HIGH", f"per_name_stop 状态读取失败({type(_e).__name__}) — 条款本锚未生效, "\n'
     '                                   f"计数状态未损失(只读路径)")\n'
@@ -313,13 +347,15 @@ al = replace_once(al,
     '                                      "skipped": "external_book"}\n'
     "        else:\n"
     "          # signal: split-path caliber is enforced by construction — funding comes from the\n",
-    "H8a meta filter + external target")
-al, _ = indent_block(
+    "H8a meta filter + external target",
+    sentinel='            book = {"target_w": EXT.target_vector(external, symbols)}\n')
+if _did8:
+  al, _ = indent_block(
     al,
     "        # corrected fapi series HERE; king/s2 arrive precomputed from the as-trained panel.",
     '                                  "reset_by_trip": bool(_tripped)}',
     "H8b compose/EMA block")
-al = al.replace(
+  al = al.replace(
     "        else:\n"
     "          # signal: split-path caliber is enforced by construction — funding comes from the\n",
     "        else:\n"
@@ -355,7 +391,7 @@ al = replace_once(al,
     "H10 dust filter")
 
 # H11 — the neutral band is NOT applied to an external book (design §1); internal unchanged.
-al = replace_once(al,
+al, _did11 = apply_hunk(al,
     "        # ★ 中性保持型免交易带(PROPOSAL_neutral_band 8e499dac, 用户裁定 2026-08-10)。\n",
     "        if _is_ext:\n"
     "            # ★ design §1: the external book is NOT passed through the neutral band (the producer's\n"
@@ -365,13 +401,15 @@ al = replace_once(al,
     "            self._last_no_trade_band = _nb\n"
     "        else:\n"
     "          # ★ 中性保持型免交易带(PROPOSAL_neutral_band 8e499dac, 用户裁定 2026-08-10)。\n",
-    "H11a band guard")
-al, _ = indent_block(
+    "H11a band guard",
+    sentinel='            _nb = {"applied": False, "skipped": "external_book", "n_in": len(target),\n')
+if _did11:
+  al, _ = indent_block(
     al,
     "        #   必须在 withhold+reshape 之后 —— reshape 的 re-demean 会移动所有名字, 放在其前带就白带了;",
     '            self._last_no_trade_band = {**_nb, "state_write_error": type(_e).__name__}',
     "H11b band block")
-al = al.replace(
+  al = al.replace(
     "        else:\n"
     "          # ★ 中性保持型免交易带(PROPOSAL_neutral_band 8e499dac, 用户裁定 2026-08-10)。\n",
     "        else:\n"
@@ -431,7 +469,7 @@ al = replace_once(al,
 # (no code: self._last_harvest_ema / self._last_no_trade_band are set in H8/H11.)
 
 write(AL_REL, al)
-write(AL_REL.replace("anchor_loop.py", "anchor_loop.external.diff"), udiff(al0, al, AL_REL))
+write_diff(AL_REL, al0, al, AL_REL.replace("anchor_loop.py", "anchor_loop.external.diff"))
 print(f"anchor_loop.py: {len(al0.splitlines())} -> {len(al.splitlines())} lines")
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
@@ -488,7 +526,7 @@ pn = replace_once(pn,
     '    return {"state": st, "alarms": ev}\n',
     "PNS alarm on profile error")
 write(PNS_REL, pn)
-write(PNS_REL + ".diff", udiff(pn0, pn, PNS_REL))
+write_diff(PNS_REL, pn0, pn)
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # 3. config/book.json — text insertion (keeps the file's own formatting; JSON validity asserted)
@@ -541,7 +579,7 @@ bk = replace_once(bk,
     "BK external block")
 json.loads(bk)                           # must still parse
 write(BK_REL, bk)
-write(BK_REL + ".diff", udiff(bk0, bk, BK_REL))
+write_diff(BK_REL, bk0, bk)
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # 4. ops/gate_coverage.py — the new suite's boundary statement (the battery REFUSES without it)
@@ -555,7 +593,7 @@ gc = replace_once(gc,
     '    "tests_guard_calibers": "that the guard reads the ACCOUNT — it proves the §4-2/§4-4/§4-4b/per-name/§4-1/3/5/6/7 "\n',
     "GC scope entry")
 write(GC_REL, gc)
-write(GC_REL + ".diff", udiff(gc0, gc, GC_REL))
+write_diff(GC_REL, gc0, gc)
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # 5. run_acceptance.sh — explicit registration (the runner REFUSES an unregistered tests_*.py)
@@ -573,7 +611,7 @@ ra = replace_once(ra,
     ")\n",
     "RA register")
 write(RA_REL, ra)
-write(RA_REL + ".diff", udiff(ra0, ra, RA_REL))
+write_diff(RA_REL, ra0, ra)
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # 6. live/tests_imports.py — the derived production-module set must name the new module
@@ -587,7 +625,7 @@ ti = replace_once(ti,
     '    "external_book",  # 外部书适配器 (DESIGN_wide_live_deployment_2026-08-22 §1): anchor_loop imports it\n',
     "TI module")
 write(TI_REL, ti)
-write(TI_REL + ".diff", udiff(ti0, ti, TI_REL))
+write_diff(TI_REL, ti0, ti)
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # 7. live/tests_entrypoint_wiring.py — [D] learns the external-HOLD state (no n_planned there)
@@ -613,7 +651,7 @@ te = replace_once(te,
     "        # ★ 2026-08-21: 守门对象精确化为【开仓】单(n_live_opening); reduce-only/flatten 路径按设计\n",
     "TE external hold branch")
 write(TE_REL, te)
-write(TE_REL + ".diff", udiff(te0, te, TE_REL))
+write_diff(TE_REL, te0, te)
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # 7b. live/tests_anchor_skip_visible.py — [E2] pinned the collision half-width to the NUMBER 25 min
@@ -648,7 +686,88 @@ ta = replace_once(ta,
     '      abs(_in["half_width_min"] - _HALF) < 1e-9\n',
     "TA half-width value")
 write(TA_REL, ta)
-write(TA_REL + ".diff", udiff(ta0, ta, TA_REL))
+write_diff(TA_REL, ta0, ta)
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# 7c. live/tests_signal_and_loop.py — DECOUPLE the fixtures from the disk book source (2026-08-22,
+#     lead's batch 20260822T041458Z: with disk book_source=external the suite copied the disk config
+#     as its baseline and every internal-path case went red — a battery that reddens on the
+#     production switch would lock the switch out). Every disk-derived fixture is pinned to the
+#     INTERNAL baseline; the clock/tolerance/anchors it actually tests stay the REAL ones.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+TS_REL = "live/tests_signal_and_loop.py"
+ts = read(TS_REL)
+ts0 = ts
+ts = replace_once(ts,
+    "_open_clock = json.load(open(BC.BOOK_PATH))\n"
+    '_open_clock["anchor_late_tolerance_min"] = 10 ** 6\n',
+    "# ★ 2026-08-22 DECOUPLED FROM THE DISK BOOK SOURCE. `book_source` / `per_name_stop.active_profile`\n"
+    "#   are PRODUCTION switches (external = the wide book). A suite that copies the disk config as its\n"
+    "#   fixture baseline flips its own subject when the operator flips the book — and a battery that\n"
+    "#   goes red on the switch then locks the switch out. Every disk-derived fixture below is the REAL\n"
+    "#   config (clock, legs, weights, stamps…) with the book source pinned to the INTERNAL baseline,\n"
+    "#   which is what these cases test. tests_external_book owns the external branch, both ways.\n"
+    "def _internal_baseline(d):\n"
+    "    d = dict(d)\n"
+    '    d["book_source"] = "internal"\n'
+    '    d["per_name_stop"] = dict(d.get("per_name_stop") or {}, active_profile=None)\n'
+    "    return d\n"
+    "\n"
+    "\n"
+    "_open_clock = _internal_baseline(json.load(open(BC.BOOK_PATH)))\n"
+    '_open_clock["anchor_late_tolerance_min"] = 10 ** 6\n',
+    "TS open clock baseline")
+ts = replace_once(ts,
+    "with BC._using(BC.BOOK_PATH):                     # ← the REAL config, for this block only\n",
+    '_REAL_INTERNAL = os.path.join(tmp, "book_real_internal.json")   # the REAL clock/tolerance; book source pinned internal\n'
+    'json.dump(_internal_baseline(json.load(open(BC.BOOK_PATH))), open(_REAL_INTERNAL, "w"))\n'
+    "with BC._using(_REAL_INTERNAL):                  # ← the REAL clock config (tolerance/anchors), for this block only\n",
+    "TS clock block")
+ts = replace_once(ts,
+    "    _mode_book = json.load(open(BC.BOOK_PATH))\n",
+    "    _mode_book = _internal_baseline(json.load(open(BC.BOOK_PATH)))\n",
+    "TS mode book")
+ts = replace_once(ts,
+    "_probe_book = json.load(open(BC.BOOK_PATH))\n",
+    "_probe_book = _internal_baseline(json.load(open(BC.BOOK_PATH)))\n",
+    "TS probe book")
+ts = replace_once(ts,
+    "_bad = json.load(open(BC.BOOK_PATH))\n",
+    "_bad = _internal_baseline(json.load(open(BC.BOOK_PATH)))\n",
+    "TS bad book")
+write(TS_REL, ts)
+write_diff(TS_REL, ts0, ts)
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# 7d. live/tests_guard_calibers.py — [F] hand-derives the BASE clause (−25% × 2); inject that profile
+#     explicitly instead of reading whatever profile the disk activates.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+TG_REL = "live/tests_guard_calibers.py"
+tg = read(TG_REL)
+tg0 = tg
+tg = replace_once(tg,
+    "CFG = PNS.cfg(BOOK_CFG)\n"
+    'S0 = {"counters": {}, "stopped": {}, "cooldown": {}}\n',
+    "# ★ 2026-08-22: the hand derivations below are for the BASE clause (−25% × 2 × 7d). per_name_stop now\n"
+    "#   carries profiles (active_profile=wide ⇒ −30% for the wide book — a PRODUCTION switch). The base\n"
+    "#   profile is INJECTED here instead of reading whatever profile the disk happens to activate: a\n"
+    "#   suite whose subject flips with the operator's switch would lock the switch out. The wide profile\n"
+    "#   itself is asserted in tests_external_book [P] (−28%×2 does not fire, −31%×2 does).\n"
+    'CFG = PNS.resolve_profile(dict(json.load(open(BOOK_CFG))["per_name_stop"], active_profile=None))\n'
+    'S0 = {"counters": {}, "stopped": {}, "cooldown": {}}\n',
+    "TG base profile")
+write(TG_REL, tg)
+write_diff(TG_REL, tg0, tg)
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+# 7e. live/tests_external_book.py — our own suite (full file in staging). Once batch 1 is applied it
+#     also exists in the live repo, so a diff vs that copy is written for review.
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+TX_REL = "live/tests_external_book.py"
+if os.path.exists(os.path.join(LIVE, TX_REL)):
+    write_diff(TX_REL, read(TX_REL), read(TX_REL, root=OUT))
+else:
+    print(f"{TX_REL}: not in the live repo (base before batch 1) — full file only")
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # 8. shadow_loop_v2.py = ~/wide_shadow/shadow_loop.py + ONE addition (the signed target output)
@@ -729,10 +848,12 @@ except Exception:
     head = "?"
 rec = {"live_repo": LIVE, "live_head": head, "base_commit_expected": BASE_COMMIT_EXPECTED,
        "base_matches": head == BASE_COMMIT_EXPECTED,
-       "originals_sha256": {r: sha(os.path.join(LIVE, r)) for r in (AL_REL, PNS_REL, BK_REL, GC_REL, RA_REL, TI_REL, TE_REL, TA_REL)},
+       "originals_sha256": {r: sha(os.path.join(LIVE, r)) for r in (AL_REL, PNS_REL, BK_REL, GC_REL, RA_REL, TI_REL, TE_REL, TA_REL, TS_REL, TG_REL)},
        "shadow_loop_sha256": sha(os.path.join(SHADOW, "shadow_loop.py")),
-       "staged_sha256": {r: sha(os.path.join(OUT, r)) for r in (AL_REL, PNS_REL, BK_REL, GC_REL, RA_REL, TI_REL, TE_REL, TA_REL)},
+       "staged_sha256": {r: sha(os.path.join(OUT, r)) for r in (AL_REL, PNS_REL, BK_REL, GC_REL, RA_REL, TI_REL, TE_REL, TA_REL, TS_REL, TG_REL)},
        "shadow_loop_v2_sha256": sha(os.path.join(STG, "shadow", "shadow_loop_v2.py"))}
+rec["hunks_already_applied_on_base"] = ALREADY
+rec["files_unchanged_vs_base"] = UNCHANGED
 open(os.path.join(STG, "verify", "PATCH_RECEIPT.json"), "w").write(json.dumps(rec, indent=1))
 print(json.dumps(rec, indent=1))
 if not rec["base_matches"]:

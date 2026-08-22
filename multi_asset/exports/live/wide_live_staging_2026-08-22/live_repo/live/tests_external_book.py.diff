@@ -1,0 +1,81 @@
+--- a/live/tests_external_book.py
++++ b/live/tests_external_book.py
+@@ -30,6 +30,10 @@
+   [M] mutants on a COPY of anchor_loop.py: band re-applied in external ⇒ [L] red; external
+       branch forced in internal ⇒ [I] red.
+ 
++★ DISK-INDEPENDENT: every fixture starts from the REAL config pinned to the INTERNAL baseline and
++  states its own overrides (see BASE_BOOK) — the suite is green whether the operator has switched the
++  disk to external or not; only the [S] checks look AT the disk, and they hold in both states.
++
+ Exit 0 = all pass. Nothing here places an order or reads the venue.
+ """
+ import hashlib
+@@ -77,6 +81,22 @@
+ 
+ REAL_BOOK = json.load(open(BC.BOOK_PATH))
+ UTC = "%Y-%m-%dT%H:%M:%SZ"
++
++
++# ★ DECOUPLED FROM THE DISK BOOK SOURCE (2026-08-22, lead's batch 20260822T041458Z: with the disk at
++#   book_source=external + active_profile=wide, H10/I1 went red because `book_with` started from the
++#   disk config). `book_source` / `active_profile` are PRODUCTION switches; every fixture here starts
++#   from BASE_BOOK = the REAL config pinned to the INTERNAL baseline and states its own overrides, so
++#   the suite is green with the disk in EITHER state — a battery that reddens on the switch would lock
++#   the switch out. REAL_BOOK is kept only for the [S] assertions ABOUT the disk config.
++def _internal_baseline(d):
++    d = json.loads(json.dumps(d))
++    d["book_source"] = "internal"
++    d["per_name_stop"] = dict(d.get("per_name_stop") or {}, active_profile=None)
++    return d
++
++
++BASE_BOOK = _internal_baseline(REAL_BOOK)
+ 
+ 
+ def _utc(ts):
+@@ -113,8 +133,8 @@
+ 
+ 
+ def book_with(**over):
+-    """A book.json = the REAL one + overrides, written to TMP; returns the path."""
+-    d = json.loads(json.dumps(REAL_BOOK))
++    """A book.json = BASE_BOOK (real config, internal baseline) + overrides, written to TMP; returns the path."""
++    d = json.loads(json.dumps(BASE_BOOK))
+     for k, v in over.items():
+         d[k] = v
+     p = os.path.join(TMP, f"book_{len(os.listdir(TMP))}.json")
+@@ -132,7 +152,7 @@
+ 
+ 
+ def pns_wide():
+-    p = json.loads(json.dumps(REAL_BOOK["per_name_stop"]))
++    p = json.loads(json.dumps(BASE_BOOK["per_name_stop"]))
+     p["active_profile"] = "wide"
+     p.setdefault("profiles", {})["wide"] = {"depth_pct": -0.3, "consecutive_anchors": 2,
+                                             "cooloff_days": 7, "min_notional_usdt": 20.0}
+@@ -552,9 +572,11 @@
+               outI["action"] == "TRADE" and outI.get("book_source") == "internal" and not _calls
+               and os.path.exists(os.environ["LIVE_HARVEST_STATE"]) and outI["n_live"] >= 1
+               and "external_book" not in outI, (outI.get("action"), outI.get("book_source"), len(_calls)))
++        _ctxI = loop._anchor_ctx or {}          # a HOLD leaves no ctx: report, never TypeError
+         check("I2 internal anchors ctx stamps internal and carries the mixture in factor_version (preds stamp)",
+-              loop._anchor_ctx["book_source"] == "internal" and loop._anchor_ctx["external_book"] is None
+-              and json.loads(loop._anchor_ctx["factor_version"]) == _LIVE_FV)
++              _ctxI.get("book_source") == "internal" and _ctxI.get("external_book") is None
++              and json.loads(_ctxI.get("factor_version") or "{}") == _LIVE_FV,
++              (_ctxI.get("book_source"), outI.get("action")))
+         check("I3 sizing source is the config policy in internal mode",
+               outI["sizing"]["leverage_source"] == "config/book.json target_leverage", outI["sizing"].get("leverage_source"))
+ finally:
+@@ -610,7 +632,9 @@
+ ti = open(os.path.join(REPO, "live", "tests_imports.py")).read()
+ check("S8 tests_imports lists external_book as a production module", '"external_book"' in ti)
+ pc = EXT.pns_profile_consistent(REAL_BOOK)
+-check("S9 the REAL config is internally consistent (book_source ⇔ stop profile)", pc["ok"], pc)
++check("S9 the REAL (disk) config is internally consistent (book_source ⇔ stop profile) — holds in BOTH states", pc["ok"], pc)
++check("S9b the disk book_source is one of the two names (typo guard on the file the operator edits)",
++      REAL_BOOK.get("book_source", "internal") in ("internal", "external"), REAL_BOOK.get("book_source"))
+ check("S10 the REAL config's external block validates when switched on (so the switch is one key, not a debugging session)",
+       EXT.config(dict(REAL_BOOK, book_source="external"))["source"] == "external",
+       EXT.config(dict(REAL_BOOK, book_source="external")).get("error"))

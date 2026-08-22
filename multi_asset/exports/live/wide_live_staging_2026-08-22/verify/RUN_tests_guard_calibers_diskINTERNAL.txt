@@ -1,0 +1,178 @@
+[0] sources under test
+  watchdog=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/live/watchdog.py
+  reconcile=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/live/reconcile.py
+  watchdog_inputs=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/live/watchdog_inputs.py
+  per_name_stop=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f/scratchpad/live_scratch/live/per_name_stop.py
+  OK    target_leverage and per_name_stop are read from the live config (read-only) — the hand derivations below use THESE numbers  — target_leverage=2.0 per_name_stop={'enabled': True, 'depth_pct': -0.25, 'consecutive_anchors': 2, 'cooloff_days': 7, 'min_notional_usdt': 20.0, '_basis': 'PREREG_per_name_stop_standby_2026-08-12 (cf40ea21); 用户裁定全面启用 2026-08-20', '_semantics': '深度=unrealizedProfit/|notional| 终锚读回; ≤-25%连续2锚 ⇒ 该名flatten_only(maker出场不追); 平仓后7天禁入; 其余名字全程正常', 'active_profile': None, '_active_profile_note': "null ⇒ 上面的基础值逐位生效(今天的行为)。'wide' ⇒ profiles.wide 覆盖其列出的键。与 book_source 成对切换(book_source=external ⇔ active_profile=wide), 由 external_book.pns_profile_consistent 守卫(不一致 ⇒ HIGH 告警, 条款仍按当前 profile 运行)。未知名 ⇒ 基础值继续生效 + 终锚告警(条款不失明)。读取经 per_name_stop.resolve_profile。", 'profiles': {'wide': {'depth_pct': -0.3, 'consecutive_anchors': 2, 'cooloff_days': 7, 'min_notional_usdt': 20.0, '_basis': '宽书止损层 d30_n2_c42 (DESIGN_wide_live_deployment_2026-08-22 §1; wide_stop_grid.json: maxDD −33.4%, 净额代价 2.6%, 全网格性价比最优; ~/wide_shadow/stop_overlay.py 同参数自 08-21 影子跟踪)。min_notional_usdt 沿用 20(★ 待裁: L1 1×NAV/~300 名中位 ≈40 USDT, 20 以下的小仓条款看不见)。'}}}
+
+[A] §4-2 cond2 — the 5-day account path, hand-derived
+  OK    PRE-ASSERT the fixture IS the path described (closes 10000 / 9800 / 14898 / 14600 / 14454)  — [10000.0, 9800.0, 14898.0, 14600.0, 14454.0]
+  OK    ★★ worst_day_pct = -2.00% (D2), NOT the day with the biggest realised loss and NOT -3.42% ((-46-448)/14454, the retired caliber on D5)  — worst=-2.0 expected=-2.0
+  OK       2 priced days of 5; transfer days NAMED [D1, D3]; truncated day NAMED [D4]  — {'n_priced_days': 2, 'flow_days': ['20260801', '20260803'], 'truncated_days': ['20260804']}
+  OK       no trip (-2.00 > -4.0), no investigate (-2.00 > -2.68), degraded (a truncated day exists)  — {'triggered': False, 'investigate': False, 'degraded': True, 'blind': False, 'partial': True}
+  OK       probe [20260801,20260802]: worst = -2.0000% by hand  — worst=-2.0
+  OK       probe [20260802,20260803]: worst = +0.0000% by hand  — worst=0.0
+  OK       probe [20260803,20260804]: transfer then truncated => nothing priced (blind), both named  — {'worst_day_pct': None, 'flow_days': ['20260803'], 'truncated_days': ['20260804']}
+  OK       probe [20260804,20260805]: worst = -1.0000% by hand  — worst=-1.0
+
+[A] §4-2 — the 2026-08-21 12:16Z incident, replayed on the account's numbers
+  OK    ★★★ the incident day reads -2.9636% (equity day change), not -4.5185%  — worst=-2.9635923093866996 expected=-2.9636
+  OK    ★★★ => ALERT (investigate, < -2.68) and NO TRIP (> -4.0) — the book stays  — {'investigate': True, 'triggered': False}
+
+[B] §4-2 cond2 — P1 day-split invariance (1 / 3 / 6 rows per day, same end-of-day state)
+  OK    ★★ P1 holds: 1 / 3 / 6 rows per day read the same worst (-1.35%) and the same 4 priced days  — 1/3/6 rows -> [-1.35, -1.35, -1.35] priced=[4, 4, 4] hand=-1.350000
+  OK    ★ mutant "cond2_first_row_B31 (the day's FIRST snapshot: the 2026-07-28 staleness defect)" goes RED  — 1/3/6 rows -> [-1.35, -1.565657, -1.457286] priced=[4, 4, 4] hand=-1.350000
+  OK    ★ mutant "cond2_sum_rows (adds the day's progress snapshots: the 08-20 misread in FIELD_CALIBERS)" goes RED  — 1/3/6 rows -> [-1.35, -3.25, -5.825] priced=[4, 4, 4] hand=-1.350000
+
+[B] §4-2 cond2 — P2 transfer invariance (deposit, withdrawal, and an unreliable flow amount)
+  OK    ★★ P2 deposit +5,000 on D3: D3 UNKNOWN and named, worst unchanged (-2.2% = D5), 5 -> 4 priced  — no-transfer worst=-2.2000 priced=5 | transfer +5000 worst=-2.2000000000000104 priced=4 flow_days=['20260803'] trig=False
+  OK    ★★ P2 withdrawal -2,955 (-30%) on D3: same — the day after reads from the post-withdrawal nav  — no-transfer worst=-2.2000 priced=5 | transfer -2955 worst=-2.1999999999999886 priced=4 flow_days=['20260803'] trig=False
+  OK    ★ P2b the recorded flow amount is HALF the truth: reading unchanged (the amount never enters)  — no-transfer worst=-2.2000 priced=5 | transfer +5000 worst=-2.2000000000000104 priced=4 flow_days=['20260803'] trig=False
+  OK    ★ mutant 'cond2_transfers_ignored on a DEPOSIT (the day is priced at +51% and not named)' goes RED  — no-transfer worst=-2.2000 priced=5 | transfer +5000 worst=-2.2000000000000104 priced=5 flow_days=[] trig=False
+  OK    ★ mutant 'cond2_transfers_ignored on a WITHDRAWAL (reads -29% and TRIPS — the dangerous direction)' goes RED  — no-transfer worst=-2.2000 priced=5 | transfer -2955 worst=-29.20000000000001 priced=5 flow_days=[] trig=True
+  OK    ★ mutant 'cond2_prev_not_advanced_on_transfer (the day AFTER a withdrawal reads -29.5% against the old base)' goes RED  — no-transfer worst=-2.2000 priced=5 | transfer -2955 worst=-29.48320000000001 priced=4 flow_days=['20260803'] trig=True
+
+[B] §4-2 cond2 — P3 carry invariance (yesterday's unrealised is not today's loss)
+  OK    ★★★ P3 holds: carried -300 unrealised reads 0.0% today; closing it out reads 0.0% too  — carried: worst=0.0 | closed-out: worst=0.0
+  OK    ★ mutant 'cond2_retired_caliber_E0821A ((realised+unrealised)/nav: reads -3.09% on a day nothing moved)' goes RED  — carried: worst=-3.0927835051546393 | closed-out: worst=-3.0927835051546393
+  OK    ★ mutant 'cond2_retired_caliber_E0821A also breaks the hand-derived 5-day path (D2 -2.04 / D5 -3.42)' goes RED  — -3.4177390341773903
+  OK    ★ mutant 'cond2_retired_caliber_E0821A trips the incident replay (-4.52% < -4.0)' goes RED  — -4.518568482222769
+
+[C] §4-4 cond4 — the same 5-day account path, hand-derived (B33: TWR from STARTING equity)
+  OK    ★★ cum_return_from_start_pct = -3.9699% by hand  — cum=-3.9699 judged=-3.9699
+  OK       4 of 5 days priced (coverage 0.8, not thin), truncated D4 withheld and NAMED, chain intact  — {'priced_coverage': 0.8, 'coverage_thin': False, 'chain_broken': False, 'truncated_days_withheld': ['20260804']}
+  OK       no trip, not blind; peak-DD info equals cum here (the path never rose above start)  — {'triggered': False, 'blind': False, 'max_drawdown_from_peak_pct_INFO': -3.9699}
+  OK       the trigger text names the caliber nowhere (nothing fired) and the detail names it  — []
+
+[D] §4-4 cond4 — P1 cut invariance (the same path cut into different days; start day pinned)
+  OK    ★★ P1 holds: five different day cuts of one path give one cumulative (-1.95%)  — cuts [9]/[3,3,3]/[1]*9/[4,5]/[2,2,2,2,1] -> [-1.95, -1.95, -1.95, -1.95, -1.95] hand=-1.9500
+  OK    ★★ P1 holds: 1 / 3 / 6 rows per day give one cumulative (-1.95%)  — 1/3/6 rows per day -> [-1.95, -1.95, -1.95] hand=-1.9500
+  OK    ★ mutant 'cond4_level_sum_accumulator (the retired cond4: (realised_d + unrealised LEVEL_d)/nav_d — counts the carried unrealised once per cut day)' goes RED  — cuts [9]/[3,3,3]/[1]*9/[4,5]/[2,2,2,2,1] -> [-1.9888, -4.2149, -12.6916, -3.8582, -8.1799] hand=-1.9500
+  OK    ★ mutant "cond4_first_row_per_day (the day's FIRST snapshot is not its close)" goes RED  — 1/3/6 rows per day -> [-1.95, -3.15, -2.55] hand=-1.9500
+
+[D] §4-4 cond4 — P2 transfer invariance
+  OK    ★★ P2 deposit +5,000 on D3: cum unchanged (-3.28%); D3's own +0.8% priced from P&L  — no-transfer cum=-3.2848 | transfer +5000 cum=-3.2848 hand=-3.2848 broken=False
+  OK    ★★ P2 withdrawal -2,955 on D3: cum unchanged  — no-transfer cum=-3.2848 | transfer -2955 cum=-3.2848 hand=-3.2848 broken=False
+  OK    ★ P2b the recorded flow amount is HALF the truth: cum unchanged (the amount never enters)  — no-transfer cum=-3.2848 | transfer +5000 cum=-3.2848 hand=-3.2848 broken=False
+  OK    ★ mutant 'cond4_nav_ratio_on_transfer_day (prices the +5,000 jump as +51.6% return)' goes RED  — no-transfer cum=-3.2848 | transfer +5000 cum=45.4196 hand=-3.2848 broken=False
+  OK    ★ mutant "cond4_flow_amount_enters (correct only while the ledger's amount is exact; wrong on P2b)" goes RED  — no-transfer cum=-3.2848 | transfer +5000 cum=21.0674 hand=-3.2848 broken=False
+  OK    ★ mutant 'cond4_transfer_day_skipped (treats the deposit day like a hole: its +0.8% P&L vanishes)' goes RED  — no-transfer cum=-3.2848 | transfer +5000 cum=-4.0523 hand=-3.2848 broken=False
+
+[D] §4-4 cond4 — P3 carry invariance
+  OK    ★★★ P3 holds: -300 carried over four flat days is -3.0%, not -3.0% x 5  — 2-day cum=-3.0 | +4 flat days cum=-3.0 (hand: -3.0 both; level-sum would read -15.37)
+  OK    ★ mutant 'cond4_level_sum_accumulator (re-counts the carried -300 every day: -15.4%)' goes RED  — 2-day cum=-3.0928 | +4 flat days cum=-14.5365 (hand: -3.0 both; level-sum would read -15.37)
+  OK    ★ mutant 'cond4_level_sum_accumulator breaks the hand-derived 5-day path too' goes RED  — -4.4427
+  OK    ★ mutant 'cond4_nav_ratio_on_transfer_day breaks the hand-derived 5-day path (D3 +52%)' goes RED  — 44.54
+  OK    ★ mutant "cond4_truncation_ignored (D4 silently priced: priced_coverage 0.8 -> 1.0; the cum itself is unchanged here because the nav chain spans the hole exactly — tests_numerator_honesty's claim, re-asserted)" goes RED  — 1.0
+
+[E] §4-4b cond4b — effective leverage, hand-derived (target 2.0x => alert 3.0x / halt 5.0x)
+  OK    ★★ actual_leverage = 44800/14000 = 3.2 (the newest in-scope row), target read as 2.0  — {'actual_leverage': 3.2, 'target_leverage': 2.0}
+  OK       alert_above = 2.0 x 1.5 = 3.0 and halt_above = 2.0 x 2.5 = 5.0 => investigate, NOT triggered  — {'alert_above': 3.0, 'halt_above': 5.0, 'investigate': True, 'triggered': False}
+  OK       per_day = [(D2, 2.069 = 30000/14500 — the LAST row, not 2.0), (D3, 3.2)]; legacy D1 out of scope, named  — {'per_day': [('20260802', 2.069), ('20260803', 3.2)], 'out_of_scope_days': ['20260801']}
+  OK       71400/14000 = 5.1 > 5.0 => TRIGGERED and the trigger names §4-4b (and nothing else fires on this tree)  — ['§4-4b effective leverage 5.10x exceeds 5.0x — the sizing step is not holding the book at 2.0x']
+  OK    ★★ UNIT INVARIANCE holds: the account in milli-units or kilo-units reads the same leverage  — x1 3.2 | x1e-3 3.2 | x1e3 3.2
+  OK    ★ mutant "cond4b_gross_from_retired_P0_constant (gross_usdt_pilot_p0 instead of the row's gross: a unit-bearing constant — reads 1786x in milli-units)" goes RED  — x1 1.786 | x1e-3 1785.714 | x1e3 0.002
+  OK    ★ mutant 'cond4b_scope_dropped (the 5.43x constant-gross row enters per_day and is no longer named out of scope)' goes RED  — [('20260801', 5.435), ('20260802', 2.069), ('20260803', 3.2)]
+  OK    ★ mutant 'cond4_first_row_per_day also breaks cond4b (D2 would read 2.000, the opening row)' goes RED  — [('20260802', 2.0), ('20260803', 3.2)]
+
+[F] per_name_stop — depth = unrealised/|notional|, -25% on 2 consecutive final-anchor readbacks
+  OK    ★★ anchor 1: counters {AAA:1, DDD:1} — the short at -20% does not count, dust does not count, -25.0% exactly counts (<=)  — {'counters': {'AAAUSDT': 1, 'DDDUSDT': 1}, 'stopped': {}, 'cooldown': {}}
+  OK    ★★ anchor 2: AAA STOPPED (2 consecutive), DDD reset to nothing (recovered), BBB counter 1  — {'counters': {'BBBUSDT': 1}, 'stopped': {'AAAUSDT': 15400.0}, 'cooldown': {}}
+  OK    ★★ anchor 3: the SHORT BBB stops at -52/|-200| = -26% (depth uses |notional|); AAA stays stopped, no second event for it  — {'counters': {}, 'stopped': {'AAAUSDT': 15400.0, 'BBBUSDT': 29800.0}, 'cooldown': {}}
+  OK       anchor 4: AAA exited => cool-off until now + 7 x 86400 exactly; BBB still stopped  — {'counters': {}, 'stopped': {'BBBUSDT': 29800.0}, 'cooldown': {'AAAUSDT': 649000.0}}
+  OK       active_sets: stop={BBB}, cooldown={AAA} (for the planner)  — {'stop': {'BBBUSDT'}, 'cooldown': {'AAAUSDT'}}
+  OK    ★★ single needle never triggers; recovery resets to zero  — stopped={} counters={'X': 1}
+  OK    ★★ only consecutive anchors trigger (exactly at the 2nd)  — after1={} after2={'X': 15400.0}
+  OK    ★ a missing readback breaks continuity  — stopped={} counters={'X': 1}
+  OK    ★ the short side stops too  — stopped={'X': 15400.0} counters={}
+  OK    ★ mutant 'pns_sticky_counter (recovery does not reset: two needles a day apart would stop the name)' goes RED  — stopped={'X': 29800.0} counters={}
+  OK    ★ mutant 'pns_unseen_not_reset (a missing readback keeps the count alive)' goes RED  — stopped={'X': 29800.0} counters={}
+  OK    ★ mutant 'pns_signed_notional (depth = -30/-100 = +30%: the short side can never stop)' goes RED  — stopped={} counters={}
+  OK    ★ mutant 'pns_single_anchor_trigger (stops on the first needle)' goes RED  — after1={'X': 1000.0} after2={'X': 1000.0}
+
+[G] §4-1 cond1 — per-day net c = (sum fee + sum SIGNED slip)/sum |filled| in bps, hand-derived
+  OK    PRE-ASSERT hand formulas: 10.0 / 4.0 / 9.0
+  OK    ★★ five days at 10.0 bps: per_day_c == [10.0]*5 and it TRIPS  — [10.0, 10.0, 10.0, 10.0, 10.0]
+  OK    ★★ a day whose SELL above mid is a credit reads 4.0 (fee 0.8 / 2000) and breaks the streak; its dispersion reads 6.0 (|0.6|+|0.6| / 2000)  — {'per_day_c': [10.0, 10.0, 4.0, 10.0, 10.0], 'per_day_dispersion_bps': [6.0, 6.0, 6.0, 6.0, 6.0]}
+  OK    ★ a day at exactly 9.0 is NOT a breach (the rule is >)  — per_day_c=[10.0, 10.0, 9.0, 10.0, 10.0] trig=False
+  OK    ★ an unpriced trailing day neither breaks nor extends the streak (5 priced days at 10 still trip)  — per_day_c=[10.0, 10.0, 10.0, 10.0, 10.0, None] trig=True
+  OK    ★ mutant 'cond1_ge_at_limit (9.0 counts as a breach)' goes RED  — per_day_c=[10.0, 10.0, 9.0, 10.0, 10.0] trig=True
+  OK    ★ mutant "cond1_calendar_streak (an unpriced day reads as 'cost was fine' and clears the streak)" goes RED  — per_day_c=[10.0, 10.0, 10.0, 10.0, 10.0, None] trig=False
+
+[H] §4-3 cond3 — notional-weighted adverse markout over MAKER fills inside STRESS anchors
+  OK    PRE-ASSERT hand values: D1 15.0, D3 17.5, D3-trip 27.5
+  OK    ★★ worst_adverse_bps = 17.5 = max(15.0, 17.5) over the two stress days; the calm day's 100 bps is ignored  — {'worst_adverse_bps': 17.5, 'triggered': False, 'n_stress_anchors': 2}
+  OK       coverage = marked/(marked+unmarked) over stress fills = 4/5 = 0.8; window coverage 5/6; state OK  — {'coverage': 0.8, 'n_marked_stress_fills': 4, 'n_unmarked_stress_fills': 1, 'coverage_all_fills': 0.8333, 'state': 'OK'}
+  OK    ★★ D3 at 27.5 bps adverse (> 25) TRIPS and the worst is the WORST day, not the best  — worst=27.5 trig=True
+  OK    ★ mutant 'cond3_min_selector (the 2026-07-29 defect: the benign 15.0 day disarms the stop)' goes RED  — worst=15.0 trig=False
+
+[I] §4-5 cond5
+  OK    5a: an outage event trips §4-5a; a public_path_unreachable WARN does not (deliberately unconsumed)  — []
+  5b — quantity residual: expected_qty = qty(T1) + sum dq_fills vs qty(T2), priced at T2's mark
+  OK    ★★ sold 600 (dq -6): expected 10-6 = 4 = observed => residual 0 => CLEAN, nothing at the latest anchor  — {'latest': [], 'state': 'CLEAN'}
+  OK    ★ sold 590 (dq -5.9): residual 0.1 contract = 10 USDT <= max(10% x 410, 5) = 41 => within tolerance, CLEAN  — {'AAAUSDT': {'residual_qty': -0.09999999999999964, 'residual_usdt_signed': -10.0, 'expected_qty': 4.1, 'observed_qty': 4.0, 'mark_used': 100.0, 'mark_source': 'readback(T2) notional / qty'}}
+  OK    ★★ sold 300 (dq -3): expected 7, observed 4, residual -3 x mark 100 = 300 USDT > max(70, 5) => ANOMALY; expected 700 / observed 400 / unexplained_frac 300/700 = 0.4286  — {'anchor_ts': 1785614400.0, 'symbol': 'AAAUSDT', 'kind': 'quantity_residual', 'expected': 700.0, 'observed': 400.0, 'expected_qty': 7.0, 'observed_qty': 4.0, 'residual_qty': -3.0, 'residual_usdt': 300.0, 'mark_used': 100.0, 'mark_source': 'readback(T2) notional / qty', 'dust_floor_usdt': 5.0, 'unexplained_frac': 0.4286}
+  OK    ★ mutant 'reconcile_sign_on_expected (the fill sign re-applied: the clean sale reads 16 expected vs 4 observed)' goes RED  — [{'anchor_ts': 1785614400.0, 'symbol': 'AAAUSDT', 'kind': 'quantity_residual', 'expected': 1600.0, 'observed': 400.0, 'expected_qty': 16.0, 'observed_qty': 4.0, 'residual_qty': -12.0, 'residual_usdt': 1200.0, 'mark_used': 100.0, 'mark_source': 'readback(T2) notional / qty', 'dust_floor_usdt': 5.0, 'unexplained_frac': 0.75}]
+  5c — venue_reject fraction over orders we actually SENT, >= 0.5 on 2 consecutive anchors
+  OK    ★★ 6/10 then 5/10 rejected => hit (>= 0.5 on 2 anchors); 6/10 then 4/10 => no; the 20 never-sent venue_reject rows are not in the denominator (20 = 2 x 10 sent)  — [6,5] n=20 hit=True | [6,4] hit=False | [6,3,6] n=30 hit=False
+  OK    ★ mutant 'cond5c_never_sent_in_denominator (n_submitted 40 and the never-sent anchor reads 26/30 rejected)' goes RED  — [6,5] n=40 hit=True | [6,4] hit=False | [6,3,6] n=50 hit=False
+  OK    ★ mutant 'cond5c_gt_at_half (exactly half rejected no longer flags the anchor)' goes RED  — [6,5] n=20 hit=False | [6,4] hit=False | [6,3,6] n=30 hit=False
+  5e — position break: venue vs INTENDED, in money, with the split (unauth / underfill)
+  OK    ★★ dev = |250-250|+|-250+250|+|150-250|+|-250+250| = 100 USDT = 10.0% of 1,000; 4/4 compared; CLEAN  — {'portfolio_dev_usdt': 100.0, 'portfolio_dev_frac': 0.1, 'n_compared': 4, 'state': 'CLEAN', 'worst_symbol': 'CCCUSDT'}
+  OK    ★★ the split speaks (coverage 1.0): unauth 0 (every fill explains the book), underfill 100 = 10% of gross (< 40% alarm); gate = split_unauth  — {'can_speak': True, 'unauth_frac': 0.0, 'underfill_frac': 0.1, 'action': 'none'}
+  OK    ★★ GHOST: C holds 330 on a 150 fill => unauth 180 = 18% of gross > 5% (and >= C's floor) => FLATTEN via split_unauth; the legacy rule (dev 80 = 8% < 25%, per-name 80 < 100) would NOT have fired  — {'unauth_frac': 0.18, 'unauth_names': ['CCCUSDT'], 'action': 'flatten'}
+  OK       ...and the trip text names §4-5e [split_unauth] AND §4-5b sees the same 180 (the two gates agree)  — ['§4-5b liquidation/position anomaly on 1 name(s) at the lates', '§4-5e position break [split_unauth]: 80 USDT of raw deviatio']
+
+[J] §4-6 cond6 — corr = 1 - mawe x 100 over ELIGIBLE anchors (submitted > 0), per day
+  OK    PRE-ASSERT hand values: corr(under) 0.8, pooled(mixed) -0.35
+  OK    ★★ per_day [1.0, 0.8, 0.8, 0.8] (the halted anchor excluded), pooled -0.35 on the mixed day, 3-day underfill breach = ALARM not halt (firing-order premise 0.06 > 0.05 holds at N=40)  — {'per_day': [1.0, 0.8, 0.8, 0.8], 'per_day_pooled_all_anchors': [1.0, -0.35, 0.8, 0.8], 'n_anchors_excluded_not_traded': 1, 'underfill_persistent_breach': True, 'triggered': False, 'split_line_order_ok': True, 'implied_break_frac_limit': 0.06}
+  OK    ★ mutant "cond6_every_anchor_eligible (the halted anchor's 1/N is pooled in: day 2 reads -0.35)" goes RED  — {'per_day': [1.0, -0.35, 0.8, 0.8], 'per_day_pooled_all_anchors': [1.0, -0.35, 0.8, 0.8], 'n_anchors_excluded_not_traded': 0, 'underfill_persistent_breach': True, 'triggered': False, 'split_line_order_ok': True, 'implied_break_frac_limit': 0.06}
+
+[K] §4-7 cond7 — rebalance fail rate > 0.05 for 3 days; un-recovered drift is a STATE
+  OK    ★★ [.06,.051,.05] no trip (0.05 is not > 0.05); [.06,.051,.0501] trips; drift True trips; drift None = UNKNOWN/blind  — {'boundary': False, 'streak': True, 'drift': 'DRIFT', 'unknown': 'UNKNOWN'}
+  OK    ★ mutant 'cond7_ge_at_limit (0.05 counts: the boundary series trips)' goes RED  — {'boundary': True, 'streak': True, 'drift': 'DRIFT', 'unknown': 'UNKNOWN'}
+  OK    ★★ derive_ops_stats: 2 venue_reject of 20 SENT = 0.10; never-sent and skipped_min_notional rows excluded  — {'n_orders': 20, 'n_venue_side_failures': 2, 'rebalance_fail_rate': 0.1}
+  OK    ★ mutant 'ops_stats_never_sent_in_denominator (7/25 = 0.28: our own halted rows become venue failures)' goes RED  — {'n_orders': 25, 'n_venue_side_failures': 7, 'rebalance_fail_rate': 0.28}
+
+[Z] the on-disk sources are byte-identical after all mutants
+  OK    watchdog.py / reconcile.py / watchdog_inputs.py / per_name_stop.py unchanged on disk  — {'watchdog.py': '9889381bcdce', 'reconcile.py': '0c4b55f26a21', 'watchdog_inputs.py': 'a6a421a1fb0c', 'per_name_stop.py': '8fb79dd84fca'}
+  OK    no bytecode was written beside the sources by this run (live/__pycache__ listing unchanged)  — before=2 after=2 dont_write_bytecode=True
+
+  mutant ledger (every mutant must be RED):
+    RED    cond2_first_row_B31 (the day's FIRST snapshot: the 2026-07-28 staleness defect)
+    RED    cond2_sum_rows (adds the day's progress snapshots: the 08-20 misread in FIELD_CALIBERS)
+    RED    cond2_transfers_ignored on a DEPOSIT (the day is priced at +51% and not named)
+    RED    cond2_transfers_ignored on a WITHDRAWAL (reads -29% and TRIPS — the dangerous direction)
+    RED    cond2_prev_not_advanced_on_transfer (the day AFTER a withdrawal reads -29.5% against the old base)
+    RED    cond2_retired_caliber_E0821A ((realised+unrealised)/nav: reads -3.09% on a day nothing moved)
+    RED    cond2_retired_caliber_E0821A also breaks the hand-derived 5-day path (D2 -2.04 / D5 -3.42)
+    RED    cond2_retired_caliber_E0821A trips the incident replay (-4.52% < -4.0)
+    RED    cond4_level_sum_accumulator (the retired cond4: (realised_d + unrealised LEVEL_d)/nav_d — counts the carried unrealised once per cut day)
+    RED    cond4_first_row_per_day (the day's FIRST snapshot is not its close)
+    RED    cond4_nav_ratio_on_transfer_day (prices the +5,000 jump as +51.6% return)
+    RED    cond4_flow_amount_enters (correct only while the ledger's amount is exact; wrong on P2b)
+    RED    cond4_transfer_day_skipped (treats the deposit day like a hole: its +0.8% P&L vanishes)
+    RED    cond4_level_sum_accumulator (re-counts the carried -300 every day: -15.4%)
+    RED    cond4_level_sum_accumulator breaks the hand-derived 5-day path too
+    RED    cond4_nav_ratio_on_transfer_day breaks the hand-derived 5-day path (D3 +52%)
+    RED    cond4_truncation_ignored (D4 silently priced: priced_coverage 0.8 -> 1.0; the cum itself is unchanged here because the nav chain spans the hole exactly — tests_numerator_honesty's claim, re-asserted)
+    RED    cond4b_gross_from_retired_P0_constant (gross_usdt_pilot_p0 instead of the row's gross: a unit-bearing constant — reads 1786x in milli-units)
+    RED    cond4b_scope_dropped (the 5.43x constant-gross row enters per_day and is no longer named out of scope)
+    RED    cond4_first_row_per_day also breaks cond4b (D2 would read 2.000, the opening row)
+    RED    pns_sticky_counter (recovery does not reset: two needles a day apart would stop the name)
+    RED    pns_unseen_not_reset (a missing readback keeps the count alive)
+    RED    pns_signed_notional (depth = -30/-100 = +30%: the short side can never stop)
+    RED    pns_single_anchor_trigger (stops on the first needle)
+    RED    cond1_ge_at_limit (9.0 counts as a breach)
+    RED    cond1_calendar_streak (an unpriced day reads as 'cost was fine' and clears the streak)
+    RED    cond3_min_selector (the 2026-07-29 defect: the benign 15.0 day disarms the stop)
+    RED    reconcile_sign_on_expected (the fill sign re-applied: the clean sale reads 16 expected vs 4 observed)
+    RED    cond5c_never_sent_in_denominator (n_submitted 40 and the never-sent anchor reads 26/30 rejected)
+    RED    cond5c_gt_at_half (exactly half rejected no longer flags the anchor)
+    RED    cond6_every_anchor_eligible (the halted anchor's 1/N is pooled in: day 2 reads -0.35)
+    RED    cond7_ge_at_limit (0.05 counts: the boundary series trips)
+    RED    ops_stats_never_sent_in_denominator (7/25 = 0.28: our own halted rows become venue failures)
+
+  97 checks run; 33 mutants, 33 red, 0 alive
+
+ALL PASS
