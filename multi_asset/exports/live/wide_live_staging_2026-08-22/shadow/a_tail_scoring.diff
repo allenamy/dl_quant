@@ -1,0 +1,53 @@
+--- a/shadow_loop.py
++++ b/shadow_loop.py
+@@ -88,6 +88,29 @@
+     return cfg, booster, man
+ 
+ CHN_CLIPS = [(-0.3, 0.3), (0.0, 0.5), (0.0, 1.0), (0.0, 25.0), (0.0, 20.0), (-5.0, 15.0), (0.0, 1.0)]
++TAIL_SCORE = True          # (a) 对数据宇宙外的持仓名按真实价格/资金费补记分(只加字段, 不改书)
++TAIL_SCORE_MIN_W = 0.0     # 只对 |w| ≥ 此阈值的尾巴名拉数(0 = 全部)
++
++def score_tail_positions(fx, syms, idx_w, T, fetch=None):
++    """对宇宙外持仓 {panel_idx: w} 在窗 (T, T+4h] 按 1h 收盘-收盘简单收益与窗内实际结算资金费记分.
++    返回 dict(tail_gross_bps, tail_carry_bps, tail_n, tail_unknown_gross, tail_weight_used); fetch(path, params, weight) 可注入(测试用)."""
++    get = fetch or fx.get
++    gross = 0.0; carry = 0.0; n = 0; unknown = 0.0; wt = 0
++    for j, w in idx_w.items():
++        if abs(w) < TAIL_SCORE_MIN_W: continue
++        s = syms[int(j)]
++        r = get("/fapi/v1/klines", {"symbol": s, "interval": "1h", "startTime": (T - 3600) * 1000, "endTime": (T + 4 * 3600) * 1000 - 1, "limit": 5}, 1); wt += 1
++        if not isinstance(r, list) or len(r) < 5 or int(r[0][0]) // 1000 != T - 3600 or int(r[-1][0]) // 1000 != T + 3 * 3600:
++            unknown += abs(w); continue           # 退市/缺 bar: 未知, 不记 0 也不猜
++        c0 = float(r[0][4]); c1 = float(r[-1][4])
++        if c0 <= 0: unknown += abs(w); continue
++        gross += w * (c1 / c0 - 1.0) * 1e4; n += 1
++        f = get("/fapi/v1/fundingRate", {"symbol": s, "startTime": T * 1000 + 1, "endTime": (T + 4 * 3600) * 1000, "limit": 10}, 1); wt += 1
++        if isinstance(f, list):
++            for row in f:
++                ft = int(row["fundingTime"]) // 1000
++                if T < ft <= T + 4 * 3600: carry += w * float(row["fundingRate"]) * 1e4
++    return {"tail_gross_bps": round(gross, 3), "tail_carry_bps": round(carry, 3), "tail_n": n, "tail_unknown_gross": round(unknown, 4), "tail_weight_used": wt}
+ WINS = (48, 288, 864, 2016, 8640)
+ CACHE_ROWS = 11520  # 40d
+ 
+@@ -324,8 +347,18 @@
+             smp = np.array(prev["sm"]); pmi = np.array(prev["sm_idx"])
+             gross = float((smp * np.nan_to_num(y4v[pmi], nan=0.0)).sum() * 1e4)
+             net = gross - prev["carry_bps"] - prev["cost_bps"]
+-            append_log({"e": "score", "anchor_ts": st.last_anchor, "gross_bps": round(gross, 3),
+-                        "net_bps": round(net, 3), "carry_bps": prev["carry_bps"], "cost_bps": prev["cost_bps"]})
++            row = {"e": "score", "anchor_ts": st.last_anchor, "gross_bps": round(gross, 3),
++                   "net_bps": round(net, 3), "carry_bps": prev["carry_bps"], "cost_bps": prev["cost_bps"]}
++            if TAIL_SCORE:
++                # 数据宇宙外的持仓名(缓存无数据 ⇒ 上面 y4v 为 NaN ⇒ 记 0): 按真实价格/资金费补记, 只加字段
++                live_set = set(st.live)
++                tail = {int(j): float(w) for j, w in zip(pmi, smp) if st.syms[int(j)] not in live_set}
++                ts_ = score_tail_positions(fx, st.syms, tail, int(st.last_anchor))
++                row.update(ts_)
++                row["tail_gross_pos"] = round(float(sum(abs(v) for v in tail.values())), 4)
++                row["gross_bps_total"] = round(gross + ts_["tail_gross_bps"], 3)
++                row["net_bps_total"] = round(net + ts_["tail_gross_bps"] - ts_["tail_carry_bps"], 3)
++            append_log(row)
+     # ── 7. msharpe 权重(纯价格毛额腿, 900 锚) ──
+     look = P["msharpe_look"]
+     if len(st.LR["king"]) >= look:

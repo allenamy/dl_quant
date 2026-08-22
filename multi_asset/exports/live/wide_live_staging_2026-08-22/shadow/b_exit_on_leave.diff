@@ -1,0 +1,66 @@
+--- a/shadow_loop.py
++++ b/shadow_loop.py
+@@ -88,6 +88,15 @@
+     return cfg, booster, man
+ 
+ CHN_CLIPS = [(-0.3, 0.3), (0.0, 0.5), (0.0, 1.0), (0.0, 25.0), (0.0, 20.0), (-5.0, 15.0), (0.0, 1.0)]
++EXIT_ON_LEAVE = True       # (b) 出宇宙即平: 数据宇宙(symbols_live)之外的名权重归零, 强制交易不受带约束, 计入换手/成本
++EXIT_NON_MEMBERS = False   # 可选: 离开 K400 成员集的名也即平(与在役 forced-exit 同义; 换手上升, 见提案 §4)
++FORCED_EXIT_COST_BPS = 4.7 # 强制平仓按最差档(tier2)成本计: 0.55×2.0 + 0.45×8.0
++
++def exit_out_of_universe(sm, H, keep_mask):
++    """把 keep_mask 为 False 的名的目标持仓置 0(强制, 不受带约束). 返回 (sm_new, forced_trade_abs_sum, n_forced)."""
++    leave = (~keep_mask) & (np.abs(sm) > 1e-12)
++    forced = float(np.abs(sm[leave]).sum()); sm2 = np.where(leave, 0.0, sm)
++    return sm2, forced, int(leave.sum())
+ WINS = (48, 288, 864, 2016, 8640)
+ CACHE_ROWS = 11520  # 40d
+ 
+@@ -97,6 +106,7 @@
+         self.syms = cfg["symbols_panel"]; self.live = cfg["symbols_live"]
+         self.NW = len(self.syms)
+         self.sym_idx = {s: j for j, s in enumerate(self.syms)}
++        self.live_mask = np.zeros(self.NW, bool); self.live_mask[[self.sym_idx[s] for s in self.live if s in self.sym_idx]] = True
+         p = f"{STATE_DIR}/rolling.npz"
+         if os.path.exists(p):
+             z = np.load(p, allow_pickle=True)
+@@ -114,7 +124,8 @@
+             try:
+                 sig = json.load(open(f"{BUNDLE}/parity_signals_aug.json"))
+                 last_t = max(sig, key=lambda k: int(k))
+-                aux["H"] = {k: v for k, v in sig[last_t]["w"].items()}
++                live_set = set(cfg["symbols_live"])
++                aux["H"] = {k: v for k, v in sig[last_t]["w"].items() if (not EXIT_ON_LEAVE) or cfg["symbols_panel"][int(k)] in live_set}   # (b) 引导时即清掉数据宇宙外的名
+                 aux["last_anchor"] = int(last_t)
+             except Exception as e:
+                 print(f"WARN H bootstrap failed: {e}", flush=True)
+@@ -360,12 +371,21 @@
+     sm = st.H + P["alpha"] * (tgt - st.H)
+     trade = sm - st.H
+     sm = np.where(np.abs(trade) < P["band"], st.H, sm)
++    forced_abs = 0.0; forced_n = 0
++    if EXIT_ON_LEAVE:
++        keep = st.live_mask.copy()
++        if EXIT_NON_MEMBERS:
++            keep[:] = False; keep[m] = True
++        sm, forced_abs, forced_n = exit_out_of_universe(sm, st.H, keep)   # 强制平仓, 不受带约束
+     trade = sm - st.H
+     # 成本(情景b) + carry(修正口径)
+     tiers = np.full(len(m), 2, np.int8); tiers[qv4h >= 1e6] = 1; tiers[qv4h >= 5e6] = 0
+     tabs = np.abs(trade[m])
+     COST_B = [(-0.25, 5.0, 0.85), (0.5, 6.0, 0.75), (2.0, 8.0, 0.55)]
+     cost = float(sum(tabs[tiers == tt].sum() * (fr * mk + (1 - fr) * tk) for tt, (mk, tk, fr) in enumerate(COST_B)))
++    if EXIT_ON_LEAVE:
++        nm_mask = np.ones(st.NW, bool); nm_mask[m] = False
++        cost += float(np.abs(trade[nm_mask]).sum()) * FORCED_EXIT_COST_BPS   # 成员集外的强制交易按最差档计成本
+     ivv = np.where(np.isfinite(iv_v[m]) & (iv_v[m] > 0), iv_v[m], 8.0)
+     carry = float((sm[m] * np.nan_to_num(fn_v[m], nan=0.0) * (4.0 / ivv)).sum() * 1e4)
+     st.H = sm
+@@ -384,6 +404,7 @@
+     append_log({"e": "signal", "anchor_ts": anchor, "status": status, "coverage": round(coverage, 4),
+                 "members": len(m), "sel": int(sel.sum()), "w3": [round(float(x), 4) for x in w3],
+                 "turnover": round(float(np.abs(trade).sum()), 5), "gross_pos": round(float(np.abs(sm).sum()), 4),
++                "forced_exit_n": forced_n, "forced_exit_gross": round(forced_abs, 4),
+                 "carry_bps": round(carry, 3), "cost_bps": round(cost, 3), "weights_sha": wsha,
+                 "top5": [(s_, round(float(a), 4)) for a, s_ in top],
+                 "fetched": fetched, "missing": missing, "future_dropped": future_dropped,
