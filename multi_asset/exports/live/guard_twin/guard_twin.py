@@ -248,9 +248,28 @@ def main(once=False):
     except Exception:
         _halted = False
     cmp["live_halted"] = _halted
-    if _fresh and (not _halted) and lev_twin is not None and c4b.get("actual_leverage") is not None and abs(lev_twin - float(c4b["actual_leverage"])) > TOL["lev"]:
+    _flat = (gross < 1.0)   # freshly resumed / flat book: the anchor row's leverage predates the state ⇒ not comparable
+    cmp["book_flat"] = bool(_flat)
+    if _fresh and (not _halted) and (not _flat) and lev_twin is not None and c4b.get("actual_leverage") is not None and abs(lev_twin - float(c4b["actual_leverage"])) > TOL["lev"]:
         dis.append(f"LEV twin {lev_twin:.3f} vs wd {float(c4b['actual_leverage']):.3f}")
     cmp["disagreements"] = dis; cmp["status"] = "DISAGREE" if dis else ("AGREE" if _fresh else "AGREE(ledger-only; nav row stale)")
+    # ── SHADOW of the proposed §4-2 response (PREREG_stop_response_reversible_2026-08-21, log-only) ──
+    # rule: cross −4.0% ⇒ pending_confirm (halt opening, no flatten); next reading: flatten only if BOTH ledgers
+    # read ≤ −4.0% (|gap| ≤ 0.5pp) AND the loss persists; else release. Here: what the rule would say NOW.
+    try:
+        _wd_day = c2.get("worst_day_pct")   # watchdog's day reading (worst over window; today if today is worst)
+        _tw = day_pct_twin
+        _both_below = (_tw is not None and _tw <= -4.0) and (arith_today is not None and arith_today <= -4.0)
+        _any_below = (_tw is not None and _tw <= -4.0) or (arith_today is not None and arith_today <= -4.0)
+        _agree = (_tw is not None and arith_today is not None and abs(_tw - arith_today) <= 0.5)
+        if _both_below and _agree: _shadow = "FLATTEN_CONFIRMED(both ledgers ≤ −4%)"
+        elif _any_below: _shadow = "PENDING_CONFIRM(halt opening; one ledger ≤ −4% or ledgers disagree)"
+        else: _shadow = "NO_ACTION"
+        cmp["shadow_response_4_2"] = {"rule": "halt→confirm-next-anchor→flatten", "would": _shadow,
+                                      "twin_day_pct": _tw, "wd_arith_day_pct": arith_today, "ledgers_agree": _agree,
+                                      "current_live_rule": "flatten immediately at ≤ −4.0%"}
+    except Exception as _e:
+        cmp["shadow_response_4_2"] = {"error": repr(_e)[:120]}
     jl_append("compare.jsonl", cmp)
     json.dump(cmp, open(os.path.join(ST, "latest.json"), "w"), indent=1, ensure_ascii=False, default=str)
     if dis:

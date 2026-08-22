@@ -47,3 +47,5 @@
 - **代价**: 第二次平仓执行 ≈ 14 USDT + 隔夜空仓反事实(待 00:00Z/用户裁定后计); 叠加第一次, 今日两次整书往返。
 
 - **用户裁定(21:3xZ): "恢复"。** 执行方式: 21:38Z `resume --check` 仍拒(§4-5e 读的是 20:00Z 锚的未授权残差); 已挂自动执行: 00:00Z 锚 reduce-only 重新对账 → ~00:22Z 门清即运行 `resume_from_trip.sh`(先核探针 KILL 文件在且进程不在; 任一不满足则拒绝), 证据隔离, EMA 复位 ⇒ **04:00Z 锚整书重建**; 结果追记于此。
+
+- **00:22:07Z 自动恢复执行**(launchd one-shot `com.hsy.autoresume20260822`, 会话无关; 执行前核: 探针 KILL 在 + 进程不在): 门清(00:00Z 锚 reduce-only 重对账后 §4-5e 残差归 0)→ 证据隔离 `quarantine/state_20260822T002207Z_resumed.json` → `state.json`/`harvest_ema.json` 移除 → 无 halt 残留 ⇒ **04:00Z 锚整书重建**(EMA 复位, 重建换手≈整书)。
