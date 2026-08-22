@@ -932,6 +932,11 @@ class AnchorLoop:
             out["external_book"] = EXT.record(ext, {"age_ref": _agei})
             if ext["ok"]:
                 state["external_last_good_anchor_ts"] = int(ext["anchor_ts"])
+                if float(ext.get("gross_outside_frac") or 0.0) > EXT.OUTSIDE_UNIVERSE_ALARM_FRAC:
+                    self.alarm("HIGH", f"external book: {ext.get('n_outside_universe')} 个名字 = 生产方 gross 的 "
+                                       f"{float(ext.get('gross_outside_frac') or 0.0):.1%} 在其自己的宇宙之外(冻结尾巴) — "
+                                       f"已从目标剔除并按宇宙内 Σ|w| 归一; 信息级(>{EXT.OUTSIDE_UNIVERSE_ALARM_FRAC:.0%} 才报), "
+                                       f"生产方纸面书仍含尾巴。")
         else:
             age = signal_age_anchors(preds, now)
         action = staleness_action(age)
@@ -1187,7 +1192,14 @@ class AnchorLoop:
         _is_ext = external is not None
         if _is_ext:
             preds = preds or {}
-            symbols = list(external["symbols"])
+            # ★ symbols = the producer's IN-UNIVERSE non-zero names ∪ every name we HOLD. A held name the
+            #   producer no longer targets (left its universe / member set, or weight 0) is EXITED through
+            #   the existing clamp -> flatten_only channel (maker reduce-only, mandatory top-up after) —
+            #   NOT market-exited by the universe gate, which stays reserved for names whose venue status
+            #   is no longer TRADING. Out-of-universe names we do NOT hold are simply absent (popped at
+            #   the reader: `external["w"]` is the in-universe book, normalised by its own sum|w|).
+            self._ext_held_exit = EXT.held_not_in_target(state.get("positions"), external["symbols"])
+            symbols = sorted(set(external["symbols"]) | set(self._ext_held_exit))
             out_census = {"skipped": "external_book — the DL artifact census does not decide this book"}
             want = None
             _ood_report = {"state": "SKIPPED_EXTERNAL", "n_members": len(symbols), "n_ood": None,
@@ -1349,6 +1361,9 @@ class AnchorLoop:
                 self.alarm("HIGH", f"external book: exchangeInfo 元数据过滤不可用({type(_e).__name__}) — "
                                    f"本锚只按 status 门过滤(非 COIN/非 ASCII 名未排除)")
 
+        if _is_ext and getattr(self, "_ext_held_exit", None):
+            # held names the producer no longer targets ⇒ reduce-only exit via clamp/flatten_only
+            self._untradable = set(self._untradable) | set(self._ext_held_exit)
         if _is_ext:
             # ★ THE PRODUCER'S WEIGHTS ARE THE TARGET (design §1): no compose_book, no risk budget,
             #   no harvest EMA, no neutral band. target_w = w / gross_norm (unit gross), so the
@@ -1671,6 +1686,8 @@ class AnchorLoop:
             #   the wide book asked for that was not sent.
             "book_source": "external" if _is_ext else "internal",
             "external_book": (EXT.record(external, {
+                "held_exit": list(getattr(self, "_ext_held_exit", None) or [])[:40],
+                "n_held_exit": len(getattr(self, "_ext_held_exit", None) or []),
                 "meta_excluded": (dict(sorted((getattr(self, "_ext_meta", None) or {}).items())[:40])
                                   if getattr(self, "_ext_meta", None) is not None else "NOT CHECKED (DRY_RUN or fetch failed)"),
                 "n_meta_excluded": (len(getattr(self, "_ext_meta", None) or {})

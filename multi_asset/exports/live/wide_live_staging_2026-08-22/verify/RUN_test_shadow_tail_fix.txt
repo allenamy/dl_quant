@@ -1,0 +1,16 @@
+PASS T1 exit_out_of_universe zeroes only non-kept names
+PASS T1 forced abs sum 0.0035 / n 2 (got 0.0035, 2)
+PASS T1 defaults: EXIT_ON_LEAVE on, EXIT_NON_MEMBERS off, forced cost 4.7
+PASS T2 tail gross = w*(110/100-1)*1e4 = 2.0 bps (got 2.0)
+PASS T2 tail carry = w*rate*1e4 = 0.002 bps, 窗外结算不计 (got 0.002)
+PASS T2 bad symbol counted unknown not zero (n=1, unknown=0.001)
+PASS T3 latest weights 1787371200.npz: out-of-universe names 296 gross 0.2502 (expected ~296 / 0.2502)
+PASS T3 max |w| of frozen tails 0.002499 ≤ band-freeze bound 2.5e-3 (mechanism: |0.1·H|<2.5e-4 ⇒ frozen)
+PASS T3 applying (b) to archived weights zeroes exactly the out-of-universe names and leaves in-universe weights bitwise unchanged
+PASS T4 running shadow_loop.py sha 445a9870e555 == proposal target 445a9870
+PASS T4 a_tail_scoring.diff applies cleanly (dry-run) -> patching file '/Users/haosiyu/wide_shadow/shadow_loop.py'
+PASS T4 b_exit_on_leave.diff applies cleanly (dry-run) -> patching file '/Users/haosiyu/wide_shadow/shadow_loop.py'
+PASS T4 shadow_loop_a_tail_scoring.py compiles
+PASS T4 shadow_loop_b_exit_on_leave.py compiles
+
+RESULT: ALL PASS

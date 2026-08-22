@@ -20,21 +20,23 @@
 
 ## 2. 启动(顺序固定)
 
-### 2.1 影子侧: 起 v2(签名输出), 停 v1 —— 只动 ~/wide_shadow, 不动实盘仓
+### 2.1 影子侧: 起 v3(签名输出 + universe 列表 + WA a/b 尾巴修法), 停 v2 —— 只动 ~/wide_shadow, 不动实盘仓
+(历史: v2 = v1 + 签名输出, 主线 08-22 04:1xZ 已启动 PID 27185; **v3 = v2 + WA (b) 出宇宙即平[EXIT_NON_MEMBERS=True, keep = 宇宙∧成员] + WA (a) 记分尾巴字段 + 目标文件 `universe` 列表**; staging README §9。)
 ```
-# (a) 把 v2 与其测试放进影子目录(v2 = v1 + 两段新增, 其余逐行相同; tests_target_live_output [1] 断言这一点)
-cp multi_asset/exports/live/wide_live_staging_2026-08-22/shadow/shadow_loop_v2.py ~/wide_shadow/
+# (a) 把 v3 与其测试放进影子目录(v3 = v2 + 三块, 只有五行被替换; tests_target_live_output [1] 断言这一点)
+cp multi_asset/exports/live/wide_live_staging_2026-08-22/shadow/shadow_loop_v3.py ~/wide_shadow/
 cp multi_asset/exports/live/wide_live_staging_2026-08-22/shadow/tests_target_live_output.py ~/wide_shadow/
-cd ~/wide_shadow && DL_QUANT_LIVE_LIVE=~/dl_quant_live/live ./venv/bin/python tests_target_live_output.py   # 29/29(实盘补丁应用后跑; 应用前用 staging 的副本树路径)
-# (b) 在锚间静默窗(避开 :16-:23)停 v1: 按 PID, 不用 pkill -f(协议 §9)
-pgrep -f "shadow_loop.py" ; kill <PID 85661>            # 现 PID 85661, 启动于 08-19 00:20Z, env SHADOW_OFFSET_MIN=16
-# (c) 起 v2 — ★ 决定 offset(见 §2.3 时序): 维持 16 ⇒ 落盘 ≈N+21.5, 实盘 anchor_offset_min=23/poll 5; 改 6 ⇒ 落盘 ≈N+12, 实盘改 13/5
-cd ~/wide_shadow && SHADOW_OFFSET_MIN=16 nohup ./venv/bin/python shadow_loop_v2.py run > loop.out 2>&1 &
-# (d) 首锚核: 文件 + 旁证 + 日志行
-ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.json.sha256) ; grep '"e": "target_live' shadow_log.jsonl | tail -2
+cd ~/wide_shadow && DL_QUANT_LIVE_LIVE=~/dl_quant_live/live ./venv/bin/python tests_target_live_output.py   # 45/45(实盘批次 3 补丁应用后跑; 应用前用 staging 的副本树路径)
+# (b) 在锚间静默窗(避开 :16-:23)停 v2: 按 PID, 不用 pkill -f(协议 §9)
+pgrep -f "shadow_loop_v2.py" ; kill <PID>                # 现 PID 27185(04:1xZ 起), env SHADOW_OFFSET_MIN=16
+# (c) 起 v3 — ★ offset 决定(见 §2.3): 维持 16 ⇒ 落盘 ≈N+21.5, 实盘 anchor_offset_min=23/poll 5; 改 6 ⇒ 落盘 ≈N+12, 实盘改 13/5
+cd ~/wide_shadow && SHADOW_OFFSET_MIN=16 nohup ./venv/bin/python shadow_loop_v3.py run > loop.out 2>&1 &
+# (d) 首锚核: 文件含 universe(450) + 旁证 + 日志行(激活锚 forced_exit_n ≈296 / forced_exit_gross ≈0.25; score 行有 tail_*)
+ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.json.sha256) ; python3 -c "import json,sys; d=json.load(open('state/target_live/<anchor>.json')); print(d['producer'], len(d['universe']), d['n_names'])" ; grep '"e": "target_live\|forced_exit' shadow_log.jsonl | tail -3
 ```
-- ★ v2 仍无钥匙(`assert_no_keys` 未动); 权重/心跳/score 行为与 v1 逐行相同; 新增只有 `target_live` 文件与 `target_live`/`target_live_error` 日志行。
-- ★ 不改 v1 文件本身(只读); v2 是副本; 回退 = 杀 v2 起 v1。
+- ★ v3 仍无钥匙(`assert_no_keys` 未动); **书行为变更一次**: 激活锚强制平掉宇宙外/非成员尾巴(一次性成本 ≈1.2 bps, 纸面 gross 1.38→1.13), 84 锚 PASS 计时按"一锚一变更"登记(RESULT 分段报), (a) 字段只采证, PASS 仍读 `net_bps`。
+- ★ 顺序约束: **新适配器会把 v2 式文件(无 universe 列表)以 `schema` 拒 ⇒ HOLD**, 所以 (i) 应用实盘批次 3 补丁 → (ii) 重启 v3 → (iii) 切 external; 反过来会让首锚 HOLD(无害但浪费一锚)。
+- ★ 回退 = 杀 v3 起 v2(v2 文件仍在; 但那时实盘适配器必须也回退到批次 2 的 external_book, 否则 HOLD)。
 
 ### 2.2 实盘仓: 应用补丁 + safe_commit(见 staging README §4 精确步骤)
 - 应用后默认 **`book_source: "internal"`** —— 行为逐位不变(`tests_external_book [I]`), 电池必须全绿。
@@ -57,7 +59,7 @@ ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.j
 ### 2.4 L0 镜像(零下单, ≥2 锚)— 两种形态, 建议都做
 - **L0-a DRY(电池级)**: 在任一 N+offset 之后手动 `LIVE_MODE=DRY_RUN LIVE_EXTERNAL_WAIT=0 /usr/bin/python3 scheduler/run_anchor.py`(off-schedule ⇒ 不开仓; DRY 无权益 ⇒ sizing blind gross=0 ⇒ 行全为 skipped_min_notional) —— 证明**读取/校验/过滤/规划链路在真树上走通**: phase_A 行 `book_source=external`, `external_book.ok=true`, `n_names`, `external_filters`。
 - **L0-b LIVE-under-halt(真 NAV, 零下单)**: 在役已 08-22 03:15Z reduce-only 停开仓(watchdog 状态持久), 此时切 `book_source: external` 让 2 个**计划内**锚以 LIVE 跑: 开仓单全部 `blocked_by_halt`, 但 sizing 用真 NAV、filters 真、orders.jsonl 有全部 plan 行(target_w) ⇒ 可做镜像比对:
-  `python3 multi_asset/exports/live/wide_live_staging_2026-08-22/verify/l0_mirror_check.py --anchor <nominal_ts> --mode LIVE` ⇒ `L0 MIRROR: PASS`(max|Δw−shift| < 1e-6; 被撤名单列出并可归因: universe 门/meta/2×minNotional/止损冷却)。
+  `python3 multi_asset/exports/live/wide_live_staging_2026-08-22/verify/l0_mirror_check.py --anchor <nominal_ts> --mode LIVE` ⇒ `L0 MIRROR: PASS`(比对对象 = 文件**宇宙内**权重按宇宙内 Σ|w| 归一 vs plan 行 target_w; max|Δw−shift| < 1e-6; 被撤名单按因归类: 宇宙外尾巴 ∪ 交易所 meta ∪ 2×minNotional ∪ 止损/场所; plan-only 名必须 = `held_exit`(持有但生产方不再给目标 ⇒ reduce-only 退出)或 flatten 行)。
 - L0 通过判据(设计 §2): 两锚文件逐锚读到、`|Δw|<1e-6`、电池全绿、**无 external_book_unavailable / 配置不一致 告警**。任一不符 ⇒ 不进 L1。
 
 ### 2.5 L1(真钱 1× NAV, 需用户一字 + §1 五收据)
@@ -81,7 +83,7 @@ ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.j
 - **配置写错**(book_source 拼错/块缺/gross 超杠杆政策): 锚 `BLOCKED_CONFIG` + CRITICAL, 零下单; 修 config 下锚生效。
 
 ## 5. 每锚核查清单(L0/L1 首周每锚; 之后每日)
-1. `state/anchor_runs.log` phase_A: `book_source=external`, `action=TRADE`, `external_book.ok=true reason=null age_s<600 json_sha=...`, `external_wait.slept_s≈(offset−0.5)×60`, `sizing.leverage_source=external_book.gross_mult gross≈NAV×mult`, `external_filters.n_meta_excluded`/`below_min_notional.n` 与昨锚同量级(骤变=宇宙/NAV 事件)。
+1. `state/anchor_runs.log` phase_A: `book_source=external`, `action=TRADE`, `external_book.ok=true reason=null age_s<600 json_sha=...`, `external_wait.slept_s≈(offset−0.5)×60`, `sizing.leverage_source=external_book.gross_mult gross≈NAV×mult`, `external_book.n_outside_universe/gross_outside_frac`(v3 激活后应 ≈0; >25% 会 HIGH), `external_filters.n_held_exit`(持有但生产方不再给目标的名 ⇒ reduce-only 退出; 首锚 = 在役残仓 DEXE/JASMY/TAG 等)、`n_meta_excluded`/`below_min_notional.n` 与昨锚同量级(骤变=宇宙/NAV 事件)。
 2. 影子侧: `shadow_log.jsonl` 本锚 `target_live` 行存在且 `json_sha` 与 phase_A 一致; `shasum -c` 过。
 3. `anchors.jsonl` 新行: `book_source=external`, `factor_version` 含 booster/weights/universe sha, `panel_hash=universe_sha`, `realized_gross/target_gross` 比 ≥0.9(成交率), `net_over_gross` 在 ±3%。
 4. 告警面: 无 `external_book_unavailable` / `profile 不一致` / `BLOCKED_CONFIG`; 看门狗 `tripped=false`; per_name_stop 状态 `stopped/cooldown` 名单合理(宽 profile −30%×2 锚)。

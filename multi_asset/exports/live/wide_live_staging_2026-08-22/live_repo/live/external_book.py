@@ -30,14 +30,23 @@ WHAT IT DOES NOT DO (stated so nobody infers it from the module's existence)
       `staleness_action` decides, exactly as for preds (anchor_loop docstring, "THE STALE-SIGNAL
       LADDER"); with `on_unavailable: "hold"` the first rung is pinned and nothing escalates.
 
-FILE CONTRACT (schema `wide_target_v1`, produced by shadow_loop_v2.write_target_live)
+FILE CONTRACT (schema `wide_target_v1`, amended 2026-08-22: `universe` list REQUIRED; produced by
+shadow_loop_v3.write_target_live)
     {"schema": "wide_target_v1", "anchor_ts": <int epoch s, the NOMINAL 4h anchor>,
      "weights": {SYM: w, ...}  (non-zero only; signed; sum|w| == gross_norm),
-     "gross_norm": float, "n_names": int, "universe_sha": sha256 hex of the producer's
-     symbols_live list (see `universe_sha` for the exact recipe — both sides use this function's
-     definition), "booster_sha": str, "weights_sha": sha256 hex of the producer's weights npz,
+     "gross_norm": float, "n_names": int,
+     "universe": [SYM, ...]  (the producer's tradable universe, symbols_live, ORDER-PRESERVING),
+     "universe_sha": sha256 hex of that list (see `universe_sha` for the exact recipe — both sides
+     use this function's definition; the reader RECOMPUTES it over the list and refuses a mismatch),
+     "booster_sha": str, "weights_sha": sha256 hex of the producer's weights npz,
      "written_utc": "%Y-%m-%dT%H:%M:%SZ", "producer": str}
     sidecar: "<sha256 hex of the json bytes>  <basename>\n"  (shasum -c compatible).
+    ★ NAMES OUTSIDE `universe` ARE NEVER TARGETS: the reader splits weights into in-universe (the
+      book) and outside (reported as n_outside_universe / gross_outside_frac; alarmed above
+      OUTSIDE_UNIVERSE_ALARM_FRAC) and normalises the book by the IN-UNIVERSE sum|w| so the live
+      gross is NAV x gross_mult undiluted by tails. A held name outside the target is exited by
+      anchor_loop through the clamp/flatten_only reduce-only channel (never market-exited unless
+      its venue status is not TRADING).
 """
 from __future__ import annotations
 
@@ -61,6 +70,10 @@ GROSS_MULT_MAX = 2.5
 RETRYABLE = ("missing", "sidecar_missing", "sha_mismatch", "bad_json")
 _LEVERAGED_TOKEN = re.compile(r"\d+[LS]USDT$")          # e.g. ETH3LUSDT — probe v2's static rule
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
+# share of the producer's declared gross that sits OUTSIDE its own universe list (the frozen tails the
+# WA audit found: 296 names / 18% on 2026-08-22) above which the anchor pages HIGH (information — the
+# names are popped and the book re-normalised either way). A POLICY NUMBER (lead, 2026-08-22).
+OUTSIDE_UNIVERSE_ALARM_FRAC = 0.25
 
 DEFAULTS = {
     "max_age_min": 10.0,
@@ -294,6 +307,16 @@ def parse_target(raw: bytes, cfg: Dict[str, Any], nominal_ts: int, now: float) -
             return _err("schema", f"{k} missing or not a string")
     if not _HEX64.match(doc["universe_sha"]) or not _HEX64.match(doc["weights_sha"]):
         return _err("schema", "universe_sha / weights_sha must be 64-hex sha256")
+    # the producer's universe LIST (2026-08-22 amendment): required, and its sha must be the declared
+    # universe_sha — so the pop below acts on the list the producer signed, not on a name we guessed.
+    uni = doc.get("universe")
+    if not isinstance(uni, list) or not uni or not all(isinstance(x, str) and x for x in uni):
+        return _err("schema", "universe list missing or malformed (producer older than v3?) — the "
+                              "adapter cannot pop out-of-universe names without the producer's list")
+    if universe_sha(uni) != doc["universe_sha"]:
+        return _err("universe_list_sha", f"sha256(universe list)={universe_sha(uni)[:12]}… != "
+                                         f"declared universe_sha={doc['universe_sha'][:12]}…")
+    uset = set(uni)
     try:
         gn = float(doc.get("gross_norm"))
     except (TypeError, ValueError):
@@ -320,6 +343,13 @@ def parse_target(raw: bytes, cfg: Dict[str, Any], nominal_ts: int, now: float) -
     s_abs = float(sum(abs(v) for v in clean.values()))
     if abs(s_abs - gn) > 1e-6 * max(gn, 1.0):
         return _err("gross_norm_mismatch", f"sum|w|={s_abs:.9f} != gross_norm={gn:.9f}")
+    # split: the BOOK is the in-universe part; the rest is reported, never targeted
+    w_in = {k: v for k, v in clean.items() if k in uset}
+    w_out = {k: v for k, v in clean.items() if k not in uset}
+    gross_in = float(sum(abs(v) for v in w_in.values()))
+    gross_out = float(sum(abs(v) for v in w_out.values()))
+    if gross_in <= 0.0:
+        return _err("bad_weights", "no non-zero weight inside the producer's universe")
     # anchor identity
     if cfg["require_anchor_match"] and ats != int(nominal_ts):
         return _err("anchor_mismatch", f"file anchor_ts={ats} != this anchor {int(nominal_ts)}")
@@ -340,7 +370,14 @@ def parse_target(raw: bytes, cfg: Dict[str, Any], nominal_ts: int, now: float) -
         return _err("booster_pin", f"booster_sha {doc['booster_sha'][:12]}… != pin "
                                    f"{str(cfg['booster_sha_pin'])[:12]}…")
     return {"ok": True, "reason": None, "detail": "", "retryable": False, "schema": doc["schema"],
-            "anchor_ts": ats, "w": clean, "symbols": sorted(clean), "n_names": len(clean),
+            "anchor_ts": ats,
+            # ★ `w` / `symbols` are the IN-UNIVERSE book; `gross_in` is the normaliser (design:
+            #   target = w / gross_in x NAV x gross_mult, so tails never dilute the live gross)
+            "w": w_in, "symbols": sorted(w_in), "gross_in": gross_in,
+            "n_names": len(clean), "n_in_universe": len(w_in), "n_outside_universe": len(w_out),
+            "w_outside": w_out, "outside_names": sorted(w_out),
+            "gross_outside": gross_out, "gross_outside_frac": (gross_out / gn if gn > 0 else 0.0),
+            "universe": uset, "universe_n": len(uset),
             "gross_norm": gn, "universe_sha": doc["universe_sha"], "booster_sha": doc["booster_sha"],
             "weights_sha": doc["weights_sha"], "written_utc": doc["written_utc"],
             "age_s": round(age_s, 1), "producer": doc.get("producer"),
@@ -419,11 +456,20 @@ def age_anchors(ext: Dict[str, Any], cfg: Dict[str, Any], state: Dict[str, Any],
 
 # ── the vector and the two KEPT per-name filters ────────────────────────────────────────────────
 def target_vector(ext: Dict[str, Any], symbols: List[str]):
-    """w / gross_norm aligned to `symbols` — sum|.| == 1 so `to_notional(. , gross)` gives a book
-    whose gross is exactly the sizing gross (design: target = w/gross_norm x NAV x gross_mult)."""
+    """w_in / gross_in aligned to `symbols` — sum|.| == 1 over the IN-UNIVERSE book, so
+    `to_notional(. , gross)` gives a live gross of exactly NAV x gross_mult, undiluted by any
+    out-of-universe tail (2026-08-22: the denominator moved from the file's gross_norm to the
+    in-universe sum). A symbol the producer does not target (held name being exited) maps to 0."""
     import numpy as np
-    gn = float(ext["gross_norm"])
+    gn = float(ext.get("gross_in") or ext["gross_norm"])
     return np.array([float(ext["w"].get(s, 0.0)) / gn for s in symbols], dtype=float)
+
+
+def held_not_in_target(positions: Optional[Dict[str, float]], target_symbols) -> List[str]:
+    """Names we HOLD (non-zero) that are not in the producer's in-universe target — these must be
+    exited reduce-only through the existing clamp/flatten_only channel (pure; used by anchor_loop)."""
+    tgt = set(target_symbols or ())
+    return sorted(s for s, v in (positions or {}).items() if abs(float(v or 0.0)) > 1e-9 and s not in tgt)
 
 
 def below_min_notional(target: Dict[str, float], floors: Optional[Dict[str, float]],
@@ -474,9 +520,12 @@ def venue_meta_exclusions(exinfo_symbols: List[Dict[str, Any]], names: List[str]
 def record(ext: Dict[str, Any], extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """The compact per-anchor record (no weights): what was read, whether it verified, why not."""
     keys = ("ok", "reason", "detail", "path", "nominal_ts", "anchor_ts", "attempts", "n_names",
-            "gross_norm", "gross_mult", "universe_sha", "booster_sha", "weights_sha", "json_sha",
-            "written_utc", "age_s", "sha_ok", "producer", "n_universe")
+            "n_in_universe", "n_outside_universe", "gross_in", "gross_outside", "gross_outside_frac",
+            "universe_n", "gross_norm", "gross_mult", "universe_sha", "booster_sha", "weights_sha",
+            "json_sha", "written_utc", "age_s", "sha_ok", "producer", "n_universe")
     r = {k: ext.get(k) for k in keys if k in ext}
+    if ext.get("outside_names"):
+        r["outside_names_head"] = list(ext["outside_names"])[:20]
     if extra:
         r.update(extra)
     return r

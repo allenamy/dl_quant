@@ -1,0 +1,134 @@
+--- a/shadow_loop_v2.py
++++ b/shadow_loop_v3.py
+@@ -45,6 +45,9 @@
+     atomic_write(path, json.dumps(obj).encode())
+ 
+ # ── v2 (2026-08-22, DESIGN_wide_live_deployment §1/§3.1): signed target file for the live adapter ──
++# ── v3 (2026-08-22 lead): + WA (b) exit-on-leave [EXIT_NON_MEMBERS=True, keep = universe ∧ members] + WA (a) tail
++#    scoring + `universe` LIST in the target file (same recipe as universe_sha; the reader recomputes it and refuses
++#    a mismatch; names outside it are never live targets) ⇒ the target file IS the in-universe member book.
+ # ★ ADDITIVE ONLY. Nothing above or below this block changes; the call site in run_anchor is wrapped
+ #   in try/except so a failure here can never alter the shadow's own behaviour or its 84-anchor
+ #   PASS/FAIL caliber. Schema `wide_target_v1`; the reader is dl_quant_live/live/external_book.py and
+@@ -74,10 +77,10 @@
+     live = list(cfg["symbols_live"])
+     doc = {"schema": "wide_target_v1", "anchor_ts": int(anchor), "weights": weights,
+            "gross_norm": gross_norm, "n_names": len(weights),
+-           "universe_sha": universe_sha(live), "n_universe": len(live),
++           "universe": live, "universe_sha": universe_sha(live), "n_universe": len(live),
+            "booster_sha": str(cfg.get("_booster_sha", "")), "weights_sha": wsha,
+            "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+-           "producer": "shadow_loop_v2",
++           "producer": "shadow_loop_v3",
+            "anchor_offset_min": int(os.environ.get("SHADOW_OFFSET_MIN", cfg["params"].get("anchor_offset_min", 6)))}
+     raw = json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
+     path = f"{out_dir}/{int(anchor)}.json"
+@@ -132,6 +135,38 @@
+     return cfg, booster, man
+ 
+ CHN_CLIPS = [(-0.3, 0.3), (0.0, 0.5), (0.0, 1.0), (0.0, 25.0), (0.0, 20.0), (-5.0, 15.0), (0.0, 1.0)]
++TAIL_SCORE = True          # (a) 对数据宇宙外的持仓名按真实价格/资金费补记分(只加字段, 不改书)
++TAIL_SCORE_MIN_W = 0.0     # 只对 |w| ≥ 此阈值的尾巴名拉数(0 = 全部)
++
++def score_tail_positions(fx, syms, idx_w, T, fetch=None):
++    """对宇宙外持仓 {panel_idx: w} 在窗 (T, T+4h] 按 1h 收盘-收盘简单收益与窗内实际结算资金费记分.
++    返回 dict(tail_gross_bps, tail_carry_bps, tail_n, tail_unknown_gross, tail_weight_used); fetch(path, params, weight) 可注入(测试用)."""
++    get = fetch or fx.get
++    gross = 0.0; carry = 0.0; n = 0; unknown = 0.0; wt = 0
++    for j, w in idx_w.items():
++        if abs(w) < TAIL_SCORE_MIN_W: continue
++        s = syms[int(j)]
++        r = get("/fapi/v1/klines", {"symbol": s, "interval": "1h", "startTime": (T - 3600) * 1000, "endTime": (T + 4 * 3600) * 1000 - 1, "limit": 5}, 1); wt += 1
++        if not isinstance(r, list) or len(r) < 5 or int(r[0][0]) // 1000 != T - 3600 or int(r[-1][0]) // 1000 != T + 3 * 3600:
++            unknown += abs(w); continue           # 退市/缺 bar: 未知, 不记 0 也不猜
++        c0 = float(r[0][4]); c1 = float(r[-1][4])
++        if c0 <= 0: unknown += abs(w); continue
++        gross += w * (c1 / c0 - 1.0) * 1e4; n += 1
++        f = get("/fapi/v1/fundingRate", {"symbol": s, "startTime": T * 1000 + 1, "endTime": (T + 4 * 3600) * 1000, "limit": 10}, 1); wt += 1
++        if isinstance(f, list):
++            for row in f:
++                ft = int(row["fundingTime"]) // 1000
++                if T < ft <= T + 4 * 3600: carry += w * float(row["fundingRate"]) * 1e4
++    return {"tail_gross_bps": round(gross, 3), "tail_carry_bps": round(carry, 3), "tail_n": n, "tail_unknown_gross": round(unknown, 4), "tail_weight_used": wt}
++EXIT_ON_LEAVE = True       # (b) 出宇宙即平: 数据宇宙(symbols_live)之外的名权重归零, 强制交易不受带约束, 计入换手/成本
++EXIT_NON_MEMBERS = True    # v3 (lead 2026-08-22): 离开 K400 成员集的名也即平 ⇒ 纸面书 ≡ 可执行书(目标文件只含宇宙内成员); WA 提案默认 False
++FORCED_EXIT_COST_BPS = 4.7 # 强制平仓按最差档(tier2)成本计: 0.55×2.0 + 0.45×8.0
++
++def exit_out_of_universe(sm, H, keep_mask):
++    """把 keep_mask 为 False 的名的目标持仓置 0(强制, 不受带约束). 返回 (sm_new, forced_trade_abs_sum, n_forced)."""
++    leave = (~keep_mask) & (np.abs(sm) > 1e-12)
++    forced = float(np.abs(sm[leave]).sum()); sm2 = np.where(leave, 0.0, sm)
++    return sm2, forced, int(leave.sum())
+ WINS = (48, 288, 864, 2016, 8640)
+ CACHE_ROWS = 11520  # 40d
+ 
+@@ -141,6 +176,7 @@
+         self.syms = cfg["symbols_panel"]; self.live = cfg["symbols_live"]
+         self.NW = len(self.syms)
+         self.sym_idx = {s: j for j, s in enumerate(self.syms)}
++        self.live_mask = np.zeros(self.NW, bool); self.live_mask[[self.sym_idx[s] for s in self.live if s in self.sym_idx]] = True
+         p = f"{STATE_DIR}/rolling.npz"
+         if os.path.exists(p):
+             z = np.load(p, allow_pickle=True)
+@@ -158,7 +194,8 @@
+             try:
+                 sig = json.load(open(f"{BUNDLE}/parity_signals_aug.json"))
+                 last_t = max(sig, key=lambda k: int(k))
+-                aux["H"] = {k: v for k, v in sig[last_t]["w"].items()}
++                live_set = set(cfg["symbols_live"])
++                aux["H"] = {k: v for k, v in sig[last_t]["w"].items() if (not EXIT_ON_LEAVE) or cfg["symbols_panel"][int(k)] in live_set}   # (b) 引导时即清掉数据宇宙外的名
+                 aux["last_anchor"] = int(last_t)
+             except Exception as e:
+                 print(f"WARN H bootstrap failed: {e}", flush=True)
+@@ -368,8 +405,18 @@
+             smp = np.array(prev["sm"]); pmi = np.array(prev["sm_idx"])
+             gross = float((smp * np.nan_to_num(y4v[pmi], nan=0.0)).sum() * 1e4)
+             net = gross - prev["carry_bps"] - prev["cost_bps"]
+-            append_log({"e": "score", "anchor_ts": st.last_anchor, "gross_bps": round(gross, 3),
+-                        "net_bps": round(net, 3), "carry_bps": prev["carry_bps"], "cost_bps": prev["cost_bps"]})
++            row = {"e": "score", "anchor_ts": st.last_anchor, "gross_bps": round(gross, 3),
++                   "net_bps": round(net, 3), "carry_bps": prev["carry_bps"], "cost_bps": prev["cost_bps"]}
++            if TAIL_SCORE:
++                # 数据宇宙外的持仓名(缓存无数据 ⇒ 上面 y4v 为 NaN ⇒ 记 0): 按真实价格/资金费补记, 只加字段
++                live_set = set(st.live)
++                tail = {int(j): float(w) for j, w in zip(pmi, smp) if st.syms[int(j)] not in live_set}
++                ts_ = score_tail_positions(fx, st.syms, tail, int(st.last_anchor))
++                row.update(ts_)
++                row["tail_gross_pos"] = round(float(sum(abs(v) for v in tail.values())), 4)
++                row["gross_bps_total"] = round(gross + ts_["tail_gross_bps"], 3)
++                row["net_bps_total"] = round(net + ts_["tail_gross_bps"] - ts_["tail_carry_bps"], 3)
++            append_log(row)
+     # ── 7. msharpe 权重(纯价格毛额腿, 900 锚) ──
+     look = P["msharpe_look"]
+     if len(st.LR["king"]) >= look:
+@@ -404,12 +451,22 @@
+     sm = st.H + P["alpha"] * (tgt - st.H)
+     trade = sm - st.H
+     sm = np.where(np.abs(trade) < P["band"], st.H, sm)
++    forced_abs = 0.0; forced_n = 0
++    if EXIT_ON_LEAVE:
++        keep = st.live_mask.copy()
++        if EXIT_NON_MEMBERS:
++            _mm = np.zeros(st.NW, bool); _mm[m] = True
++            keep &= _mm          # v3: 宇宙内 ∧ 成员 (WA 原 hunk 用成员集替换宇宙掩码, 会保留宇宙外成员; 改为相交 — 见 make_v3.py NOTE)
++        sm, forced_abs, forced_n = exit_out_of_universe(sm, st.H, keep)   # 强制平仓, 不受带约束
+     trade = sm - st.H
+     # 成本(情景b) + carry(修正口径)
+     tiers = np.full(len(m), 2, np.int8); tiers[qv4h >= 1e6] = 1; tiers[qv4h >= 5e6] = 0
+     tabs = np.abs(trade[m])
+     COST_B = [(-0.25, 5.0, 0.85), (0.5, 6.0, 0.75), (2.0, 8.0, 0.55)]
+     cost = float(sum(tabs[tiers == tt].sum() * (fr * mk + (1 - fr) * tk) for tt, (mk, tk, fr) in enumerate(COST_B)))
++    if EXIT_ON_LEAVE:
++        nm_mask = np.ones(st.NW, bool); nm_mask[m] = False
++        cost += float(np.abs(trade[nm_mask]).sum()) * FORCED_EXIT_COST_BPS   # 成员集外的强制交易按最差档计成本
+     ivv = np.where(np.isfinite(iv_v[m]) & (iv_v[m] > 0), iv_v[m], 8.0)
+     carry = float((sm[m] * np.nan_to_num(fn_v[m], nan=0.0) * (4.0 / ivv)).sum() * 1e4)
+     st.H = sm
+@@ -434,6 +491,7 @@
+     append_log({"e": "signal", "anchor_ts": anchor, "status": status, "coverage": round(coverage, 4),
+                 "members": len(m), "sel": int(sel.sum()), "w3": [round(float(x), 4) for x in w3],
+                 "turnover": round(float(np.abs(trade).sum()), 5), "gross_pos": round(float(np.abs(sm).sum()), 4),
++                "forced_exit_n": forced_n, "forced_exit_gross": round(forced_abs, 4),
+                 "carry_bps": round(carry, 3), "cost_bps": round(cost, 3), "weights_sha": wsha,
+                 "top5": [(s_, round(float(a), 4)) for a, s_ in top],
+                 "fetched": fetched, "missing": missing, "future_dropped": future_dropped,

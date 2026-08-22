@@ -468,6 +468,54 @@ al = replace_once(al,
 # H15 — phase_A's harvest/band reports in external mode: the two records already say skipped.
 # (no code: self._last_harvest_ema / self._last_no_trade_band are set in H8/H11.)
 
+# H15 — (batch 3) tails outside the producer's universe: pop is done by the reader (w = in-universe
+#       book); the anchor PAGES when the popped share is large (information, never a halt).
+al = replace_once(al,
+    '            if ext["ok"]:\n'
+    '                state["external_last_good_anchor_ts"] = int(ext["anchor_ts"])\n',
+    '            if ext["ok"]:\n'
+    '                state["external_last_good_anchor_ts"] = int(ext["anchor_ts"])\n'
+    '                if float(ext.get("gross_outside_frac") or 0.0) > EXT.OUTSIDE_UNIVERSE_ALARM_FRAC:\n'
+    '                    self.alarm("HIGH", f"external book: {ext.get(\'n_outside_universe\')} 个名字 = 生产方 gross 的 "\n'
+    '                                       f"{float(ext.get(\'gross_outside_frac\') or 0.0):.1%} 在其自己的宇宙之外(冻结尾巴) — "\n'
+    '                                       f"已从目标剔除并按宇宙内 Σ|w| 归一; 信息级(>{EXT.OUTSIDE_UNIVERSE_ALARM_FRAC:.0%} 才报), "\n'
+    '                                       f"生产方纸面书仍含尾巴。")\n',
+    "H15 outside-universe alarm")
+# H16 — (batch 3) symbols = producer's IN-UNIVERSE names ∪ held names; held names the producer no
+#       longer targets are exited reduce-only through clamp/flatten_only, never market-exited.
+al = replace_once(al,
+    '            symbols = list(external["symbols"])\n'
+    '            out_census = {"skipped": "external_book — the DL artifact census does not decide this book"}\n',
+    "            # ★ symbols = the producer's IN-UNIVERSE non-zero names ∪ every name we HOLD. A held name the\n"
+    "            #   producer no longer targets (left its universe / member set, or weight 0) is EXITED through\n"
+    "            #   the existing clamp -> flatten_only channel (maker reduce-only, mandatory top-up after) —\n"
+    "            #   NOT market-exited by the universe gate, which stays reserved for names whose venue status\n"
+    "            #   is no longer TRADING. Out-of-universe names we do NOT hold are simply absent (popped at\n"
+    "            #   the reader: `external[\"w\"]` is the in-universe book, normalised by its own sum|w|).\n"
+    '            self._ext_held_exit = EXT.held_not_in_target(state.get("positions"), external["symbols"])\n'
+    '            symbols = sorted(set(external["symbols"]) | set(self._ext_held_exit))\n'
+    '            out_census = {"skipped": "external_book — the DL artifact census does not decide this book"}\n',
+    "H16 symbols ∪ held")
+# H17 — held names not targeted join the untradable set ⇒ clamp pass-2 ⇒ flatten_only (reduce-only)
+al = replace_once(al,
+    "        if _is_ext:\n"
+    "            # ★ THE PRODUCER'S WEIGHTS ARE THE TARGET (design §1): no compose_book, no risk budget,\n",
+    '        if _is_ext and getattr(self, "_ext_held_exit", None):\n'
+    "            # held names the producer no longer targets ⇒ reduce-only exit via clamp/flatten_only\n"
+    "            self._untradable = set(self._untradable) | set(self._ext_held_exit)\n"
+    "        if _is_ext:\n"
+    "            # ★ THE PRODUCER'S WEIGHTS ARE THE TARGET (design §1): no compose_book, no risk budget,\n",
+    "H17 held exit -> untradable")
+# H18 — the ctx/anchors record names the exited-held set beside the two filters
+al = replace_once(al,
+    '            "external_book": (EXT.record(external, {\n'
+    '                "meta_excluded": (dict(sorted((getattr(self, "_ext_meta", None) or {}).items())[:40])\n',
+    '            "external_book": (EXT.record(external, {\n'
+    '                "held_exit": list(getattr(self, "_ext_held_exit", None) or [])[:40],\n'
+    '                "n_held_exit": len(getattr(self, "_ext_held_exit", None) or []),\n'
+    '                "meta_excluded": (dict(sorted((getattr(self, "_ext_meta", None) or {}).items())[:40])\n',
+    "H18 ctx held_exit")
+
 write(AL_REL, al)
 write_diff(AL_REL, al0, al, AL_REL.replace("anchor_loop.py", "anchor_loop.external.diff"))
 print(f"anchor_loop.py: {len(al0.splitlines())} -> {len(al.splitlines())} lines")
@@ -589,7 +637,7 @@ gc = read(GC_REL)
 gc0 = gc
 gc = replace_once(gc,
     '    "tests_guard_calibers": "that the guard reads the ACCOUNT — it proves the §4-2/§4-4/§4-4b/per-name/§4-1/3/5/6/7 "\n',
-    '    "tests_external_book": "that the WIDE BOOK IS WORTH TRADING — it proves the adapter reads the producer\'s signed target exactly (w/gross_norm x NAV x gross_mult, bitwise on a neutral unit-gross fixture; no EMA, no band, no risk budget), that every named defect of the file (missing / sidecar missing / sha mismatch / bad json / schema / anchor mismatch / stale / future-dated / pin mismatch / bad weights / gross_norm mismatch) HOLDS the anchor with zero orders and a HIGH `external_book_unavailable`, that the hold never falls back to the internal composer, that the age feeds the pre-registered ladder (and `on_unavailable: hold` pins it), that internal mode is byte-identical (the external reader is never invoked; a mutant that forces the external branch goes red), that INVALID config blocks, that the two KEPT per-name filters (venue meta: non-COIN/non-ASCII/non-USDT/leveraged/non-TRADING; 2x min-notional) withhold exactly the named names, and that the per_name_stop profile switch resolves (null = base bitwise, wide = d30_n2_c42, unknown = base + alarm) and is coupled to book_source. Six blind spots: (a) every loop test runs DRY_RUN with a stub bookTicker and hand-set filters — no venue, no fills, no real NAV; the first LIVE external anchor is the first; (b) the wait-for-slot is tested as a pure plan (wake time, 0/positive) — whether the real process actually idles to N+offset and the 3000s cap suffices is a wall-clock fact only a scheduled anchor shows; (c) it proves the file is READ FAITHFULLY, never that the producer\'s weights are RIGHT — the wide book\'s alpha, turnover and the N+8/N+23 phase question live in the shadow/audit, not here; (d) the producer side (shadow_loop_v2.write_target_live) is tested in the research repo (tests_target_live_output), and the pair agreement (its output is accepted by this reader) is asserted THERE, not in this battery; (e) venue eligibility is a pure function over a synthetic exchangeInfo — the real payload\'s field names drifting (underlyingType) would exclude nothing and this stays green; (f) the 2x min-notional rule is a policy number (design §1) and the 10% breadth-loss alarm line is a policy number (EXT_DUST_ALARM_FRAC) — neither is calibrated here",\n'
+    '    "tests_external_book": "that the WIDE BOOK IS WORTH TRADING — it proves the adapter reads the producer\'s signed target exactly (in-universe w / in-universe sum|w| x NAV x gross_mult, bitwise on a neutral unit-gross fixture; no EMA, no band, no risk budget), that every named defect of the file (missing / sidecar missing / sha mismatch / bad json / schema incl. a missing universe list / universe-list sha / anchor mismatch / stale / future-dated / pin mismatch / bad weights / gross_norm mismatch) HOLDS the anchor with zero orders and a HIGH `external_book_unavailable`, that the hold never falls back to the internal composer, that the age feeds the pre-registered ladder (and `on_unavailable: hold` pins it), that internal mode is byte-identical (the external reader is never invoked; a mutant that forces the external branch goes red), that INVALID config blocks, that names outside the producer\'s universe list are never targets (popped; the book normalised by the in-universe sum so the live gross is undiluted; a >25% tail pages HIGH; a reader that does not split is a red mutant), that a HELD name the file no longer targets is exited reduce-only through clamp/flatten_only (never market-exited), that the two KEPT per-name filters (venue meta: non-COIN/non-ASCII/non-USDT/leveraged/non-TRADING; 2x min-notional) withhold exactly the named names, and that the per_name_stop profile switch resolves (null = base bitwise, wide = d30_n2_c42, unknown = base + alarm) and is coupled to book_source; every fixture is the REAL config pinned to the internal baseline, so the suite is green with the disk in either state. Seven blind spots: (a) every loop test runs DRY_RUN with a stub bookTicker and hand-set filters — no venue, no fills, no real NAV; the first LIVE external anchor is the first; (b) the wait-for-slot is tested as a pure plan (wake time, 0/positive) — whether the real process actually idles to N+offset and the 3000s cap suffices is a wall-clock fact only a scheduled anchor shows; (c) it proves the file is READ FAITHFULLY, never that the producer\'s weights are RIGHT — the wide book\'s alpha, turnover and the N+8/N+23 phase question live in the shadow/audit, not here; (d) the producer side (shadow_loop_v3.write_target_live) is tested in the research repo (tests_target_live_output), and the pair agreement (its output is accepted by this reader; a v2-style file is refused) is asserted THERE, not in this battery; (e) venue eligibility is a pure function over a synthetic exchangeInfo — the real payload\'s field names drifting (underlyingType) would exclude nothing and this stays green; (f) the 2x min-notional rule, the 10% breadth-loss line (EXT_DUST_ALARM_FRAC) and the 25% tail line (OUTSIDE_UNIVERSE_ALARM_FRAC) are policy numbers — none is calibrated here; (g) the universe LIST is trusted once its sha matches the declared universe_sha — whether it is the RIGHT universe (450 = symbols_live) is the producer\'s claim, pinned only if `universe_sha_pin` is set",\n'
     '    "tests_guard_calibers": "that the guard reads the ACCOUNT — it proves the §4-2/§4-4/§4-4b/per-name/§4-1/3/5/6/7 "\n',
     "GC scope entry")
 write(GC_REL, gc)

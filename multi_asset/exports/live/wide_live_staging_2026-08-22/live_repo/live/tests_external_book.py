@@ -18,6 +18,12 @@ WHAT IT PROVES (each group carries a mutant that must go RED)
       stamp; loop state records the last good anchor.
   [F] the two KEPT per-name filters: below 2x min-notional ⇒ withheld (popped) and recorded; the
       venue-meta rule (pure) excludes non-COIN / non-ASCII / non-USDT / leveraged / non-TRADING.
+  [U] the producer's UNIVERSE list (2026-08-22 amendment): names outside it are never targets (popped),
+      the book is normalised by the IN-universe sum|w| (live gross undiluted by frozen tails), a HELD
+      outside name / a held name the file no longer targets is exited reduce-only through
+      clamp/flatten_only (never market-exited), the record carries n_outside/gross_outside/held_exit,
+      a >25% tail pages HIGH (information), a tampered universe list ⇒ HOLD; mutant: a reader that
+      does not split ⇒ red.
   [H] unavailable ⇒ HOLD: no plan, no orders, positions untouched, HIGH `external_book_unavailable`
       naming the reason; the ladder escalates from the last good anchor (DERISK at ≥6) and
       `on_unavailable: hold` pins it; an INVALID config BLOCKS with a CRITICAL.
@@ -120,7 +126,7 @@ def write_target(dir_, anchor_ts, weights, written_ts=None, **override):
     os.makedirs(dir_, exist_ok=True)
     doc = {"schema": "wide_target_v1", "anchor_ts": int(anchor_ts), "weights": dict(weights),
            "gross_norm": float(sum(abs(v) for v in weights.values())), "n_names": len(weights),
-           "universe_sha": EXT.universe_sha(UNIVERSE), "n_universe": len(UNIVERSE),
+           "universe": list(UNIVERSE), "universe_sha": EXT.universe_sha(UNIVERSE), "n_universe": len(UNIVERSE),
            "booster_sha": BOOSTER, "weights_sha": "a" * 64,
            "written_utc": _utc(written_ts if written_ts is not None else time.time()),
            "producer": "test_fixture", "anchor_offset_min": 23}
@@ -292,6 +298,11 @@ refused("gross_norm disagrees with sum|w|", "gross_norm_mismatch", lambda p: _re
 refused("all-zero weights (gross_norm lying 1.0)", "bad_weights", lambda p: _rewrite(p, weights={k: 0.0 for k in W8}, gross_norm=1.0))
 refused("gross_norm 0 (declared)", "schema", lambda p: _rewrite(p, weights={k: 0.0 for k in W8}, gross_norm=0.0))
 refused("n_names lies", "schema", lambda p: _rewrite(p, n_names=3))
+refused("universe list missing (a producer older than v3)", "schema", lambda p: _rewrite(p, universe=None))
+refused("universe list tampered (one name dropped) — sha(list) != universe_sha", "universe_list_sha",
+        lambda p: _rewrite(p, universe=UNIVERSE[:-1]))
+refused("every weight outside the universe", "bad_weights",
+        lambda p: _rewrite(p, weights={"OUT1USDT": 0.5, "OUT2USDT": -0.5}, gross_norm=1.0, n_names=2))
 cfg_pin = EXT.config({"book_source": "external", "target_leverage": 2.0,
                       "external_book": ext_block(TDIR, universe_sha_pin="c" * 64)})
 shutil.rmtree(TDIR, ignore_errors=True); write_target(TDIR, NOMINAL, W8, written_ts=NOW - 90)
@@ -469,6 +480,80 @@ with BC._using(_ext_book):
           outm["action"] == "TRADE" and "AAAUSDT" not in loop._anchor_ctx["target"]
           and loop._anchor_ctx["external_book"]["meta_excluded"].get("AAAUSDT", "").startswith("underlyingType=EQUITY"),
           (outm.get("action"), loop._anchor_ctx["external_book"].get("meta_excluded")))
+
+# ════════════════════════════════════════════════════════════════════════════════════════════════
+print("\n[U] the producer's universe: outside names POPPED, book normalised by the in-universe sum|w|, held strays exited reduce-only")
+W_OUT = dict(W8, OUT1USDT=0.02, OUT2USDT=-0.01)                   # a 3% tail OUTSIDE the universe
+shutil.rmtree(TDIR, ignore_errors=True); write_target(TDIR, NOMINAL, W_OUT, written_ts=time.time() - 60)
+eu = EXT.read_target(cfgr, now=time.time(), nominal_ts=NOMINAL)
+check("U1 reader splits: w/symbols = the IN-universe book, outside names reported with their gross share",
+      eu["ok"] is True and set(eu["w"]) == set(W8) and eu["outside_names"] == ["OUT1USDT", "OUT2USDT"]
+      and eu["n_outside_universe"] == 2 and eu["n_in_universe"] == 8 and eu["gross_in"] == 1.0
+      and abs(eu["gross_outside_frac"] - 0.03 / 1.03) < 1e-12 and eu["universe_n"] == len(UNIVERSE),
+      (eu.get("reason"), eu.get("outside_names"), eu.get("gross_outside_frac")))
+with BC._using(_ext_book):
+    # a HELD outside name (OUT1) and a HELD in-universe name the file does not target (ZZZ): both must
+    # leave through clamp/flatten_only (reduce-only), and OUT2 (not held) must simply be absent
+    seed_state(positions={"OUT1USDT": 300.0, "ZZZUSDT": -200.0})
+    b, ex, loop, al = make_loop(sorted(W_OUT) + ["ZZZUSDT"])
+    outu = loop.run_anchor()
+    tgtu = loop._anchor_ctx["target"]
+    _ro = {a["order"]["symbol"] for a in b.actions if a["action"] == "submit_dry_run" and a["order"].get("reduce_only")}
+    check("★ U2 outside names are NOT targets; the in-universe book == w/gross_in x NAV BITWISE (gross undiluted by the tail)",
+          all(tgtu.get(s) == W8[s] * 10_000.0 for s in W8) and "OUT2USDT" not in tgtu
+          and abs(sum(abs(v) for v in tgtu.values()) - 10_000.0) < 1e-9, {s: tgtu.get(s) for s in list(W8)[:2]})
+    check("★ U3 a HELD outside name is exited reduce-only through flatten_only (target 0, reduce-only DRY order)",
+          tgtu.get("OUT1USDT") == 0.0 and "OUT1USDT" in outu["untradable_names"].get("flatten_only", [])
+          and "OUT1USDT" in _ro, (tgtu.get("OUT1USDT"), outu.get("untradable_names"), sorted(_ro)))
+    check("U4 a HELD in-universe name the file no longer targets is exited the same way (never market-exited)",
+          tgtu.get("ZZZUSDT") == 0.0 and "ZZZUSDT" in outu["untradable_names"].get("flatten_only", []) and "ZZZUSDT" in _ro
+          and not [a for a in b.actions if a["action"].startswith("submit") and a["order"].get("tif") == "IOC"],
+          sorted(_ro))
+    ebk = loop._anchor_ctx["external_book"]
+    check("U5 the record names them: held_exit / n_outside_universe / gross_outside_frac (phase_A + anchors row)",
+          ebk["held_exit"] == ["OUT1USDT", "ZZZUSDT"] and ebk["n_held_exit"] == 2 and ebk["n_outside_universe"] == 2
+          and outu["external_book"]["n_outside_universe"] == 2 and abs(outu["external_book"]["gross_outside_frac"] - 0.03 / 1.03) < 1e-12
+          and outu["external_filters"]["outside_names_head"] == ["OUT1USDT", "OUT2USDT"], ebk)
+    check("U6 no HIGH for a 3% tail (information line is 25%)", not [m for s_, m in al if "宇宙之外" in m])
+# a >25% tail: still trades the in-universe book, and PAGES (information)
+W_BIG = dict(W8, OUT1USDT=0.30, OUT2USDT=-0.20)                   # 0.5 / 1.5 = 33% outside
+shutil.rmtree(TDIR, ignore_errors=True); write_target(TDIR, NOMINAL, W_BIG, written_ts=time.time() - 60)
+with BC._using(_ext_book):
+    seed_state()
+    b, ex, loop, al = make_loop(sorted(W_BIG))
+    outb = loop.run_anchor()
+    check("U7 a 33% tail ⇒ HIGH (information) and the in-universe book still trades at full gross",
+          outb["action"] == "TRADE" and any(s_ == "HIGH" and "宇宙之外" in m for s_, m in al)
+          and all(loop._anchor_ctx["target"].get(s) == W8[s] * 10_000.0 for s in W8), [m[:60] for s_, m in al][:2])
+# a tampered universe list ⇒ HOLD (the pop acts on the list the producer SIGNED, or not at all)
+shutil.rmtree(TDIR, ignore_errors=True); write_target(TDIR, NOMINAL, W8, written_ts=time.time() - 60, universe=UNIVERSE[:-1])
+with BC._using(_ext_book):
+    seed_state(positions={"AAAUSDT": 100.0})
+    b, ex, loop, al = make_loop(sorted(W8))
+    outt = loop.run_anchor()
+    check("★ U8 universe list sha mismatch ⇒ HOLD, no orders, HIGH names universe_list_sha",
+          outt["action"] == "HOLD" and outt["external_book"]["reason"] == "universe_list_sha" and not b.actions
+          and any("universe_list_sha" in m for s_, m in al), outt.get("external_book"))
+# mutant M4: a reader that does NOT split (treats every name as in-universe) ⇒ U2 red
+shutil.rmtree(TDIR, ignore_errors=True); write_target(TDIR, NOMINAL, W_OUT, written_ts=time.time() - 60)
+_orig_parse = EXT.parse_target
+def _no_split(raw, cfg_, nominal_, now_):
+    e = _orig_parse(raw, cfg_, nominal_, now_)
+    if e.get("ok"):
+        e["w"] = dict(e["w"], **e["w_outside"]); e["symbols"] = sorted(e["w"]); e["gross_in"] = e["gross_norm"]
+        e["w_outside"] = {}; e["outside_names"] = []; e["n_outside_universe"] = 0; e["gross_outside_frac"] = 0.0
+    return e
+EXT.parse_target = _no_split
+try:
+    with BC._using(_ext_book):
+        seed_state()
+        b, ex, loop, al = make_loop(sorted(W_OUT))
+        loop.run_anchor()
+        check("★ M4 RED-CAPABLE: a reader that does not split puts the outside names INTO the target (U2 would fail)",
+              "OUT2USDT" in loop._anchor_ctx["target"] and loop._anchor_ctx["target"].get("AAAUSDT") != 2500.0,
+              (loop._anchor_ctx["target"].get("OUT2USDT"), loop._anchor_ctx["target"].get("AAAUSDT")))
+finally:
+    EXT.parse_target = _orig_parse
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 print("\n[H] unavailable ⇒ HOLD (never internal); the ladder from the last good; INVALID blocks")

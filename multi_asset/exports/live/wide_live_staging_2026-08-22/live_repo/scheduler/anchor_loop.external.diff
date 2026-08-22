@@ -1,110 +1,49 @@
 --- a/scheduler/anchor_loop.py
 +++ b/scheduler/anchor_loop.py
-@@ -50,6 +50,7 @@
- 
- import book_config as BC      # noqa: E402
- import per_name_stop as PNS   # noqa: E402  逐名止损条款 cf40ea21(2026-08-20 用户裁定全面启用)
-+import external_book as EXT   # noqa: E402  外部书适配器(DESIGN_wide_live_deployment_2026-08-22 §1)
- import external_book as EXT   # noqa: E402  外部书适配器(DESIGN_wide_live_deployment_2026-08-22 §1)
- 
- # ★ THE BAND IS A POLICY NUMBER AND SAYS SO. 3% of gross is the lead's figure; no measurement
-@@ -395,6 +396,11 @@
- #   roughly two popped names at typical tail weight; more than that means the universe gate is
- #   removing a slice of the book big enough that "we corrected it" stops being the whole story.
- RESHAPE_RESIDUAL_ALARM_FRAC = 0.02
-+# share of an EXTERNAL book's gross withheld by the 2x-min-notional eligibility filter above which
-+# the breadth loss is a finding. ★ A POLICY NUMBER, same reasoning as min_gross_usdt's '排除 ≤10%':
-+# measured on the 2026-08-22 00:00Z shadow weights at NAV 15.4k x 1.0 the filter withholds 6.2% of
-+# gross (195 tail names); at 2.0x 1.7%. Recorded every anchor either way; paged only above this.
-+EXT_DUST_ALARM_FRAC = 0.10
- # share of an EXTERNAL book's gross withheld by the 2x-min-notional eligibility filter above which
- # the breadth loss is a finding. ★ A POLICY NUMBER, same reasoning as min_gross_usdt's '排除 ≤10%':
- # measured on the 2026-08-22 00:00Z shadow weights at NAV 15.4k x 1.0 the filter withholds 6.2% of
-@@ -1506,6 +1512,20 @@
-                                    f"{external['min_notional_mult']:g}×minNotional, 合计 gross 的 "
-                                    f"{self._ext_dust['mass_frac']:.1%} (>{EXT_DUST_ALARM_FRAC:.0%}) 被撤下 — "
-                                    f"NAV×gross_mult 对 450 名宇宙太小, 广度损失是个发现, 不是噪声。")
-+        # ── external book: 2x min-notional ELIGIBILITY (design §1 '最小名义额可达 NAV×gross/名 ≥
-+        #    2×minNotional'): a name that cannot clear twice its floor cannot be ADJUSTED later, so
-+        #    it is withheld here — unheld ⇒ popped (then the reshape re-demeans/rescales the rest),
-+        #    held ⇒ clamped reduce-only. Recorded every anchor; paged only above EXT_DUST_ALARM_FRAC.
-+        self._ext_dust = None
-+        if _is_ext:
-+            self._ext_dust = EXT.below_min_notional(target, _fl, external["min_notional_mult"])
-+            if self._ext_dust["names"]:
-+                self._untradable = set(getattr(self, "_untradable", ())) | set(self._ext_dust["names"])
-+            if (self._ext_dust.get("mass_frac") or 0.0) > EXT_DUST_ALARM_FRAC:
-+                self.alarm("HIGH", f"external book: {self._ext_dust['n']} 个名字的目标名义额低于 "
-+                                   f"{external['min_notional_mult']:g}×minNotional, 合计 gross 的 "
-+                                   f"{self._ext_dust['mass_frac']:.1%} (>{EXT_DUST_ALARM_FRAC:.0%}) 被撤下 — "
-+                                   f"NAV×gross_mult 对 450 名宇宙太小, 广度损失是个发现, 不是噪声。")
-         # _pns_zero_targets: stop 名 target 强制置零(条款动作=flatten, 非 reduce) — 置零后
-         # clamp pass-2 的 tgt*cur>0 恒假 ⇒ 该名必落 flatten_only 桶(reduce-only, 不越过 flat)。
-         for _s in getattr(self, "_pns_sets", {}).get("stop", ()):
-@@ -1550,27 +1570,34 @@
-                    "n_held": 0, "n_traded": len(target), "n_exempt": 0}
-             self._last_no_trade_band = _nb
+@@ -932,6 +932,11 @@
+             out["external_book"] = EXT.record(ext, {"age_ref": _agei})
+             if ext["ok"]:
+                 state["external_last_good_anchor_ts"] = int(ext["anchor_ts"])
++                if float(ext.get("gross_outside_frac") or 0.0) > EXT.OUTSIDE_UNIVERSE_ALARM_FRAC:
++                    self.alarm("HIGH", f"external book: {ext.get('n_outside_universe')} 个名字 = 生产方 gross 的 "
++                                       f"{float(ext.get('gross_outside_frac') or 0.0):.1%} 在其自己的宇宙之外(冻结尾巴) — "
++                                       f"已从目标剔除并按宇宙内 Σ|w| 归一; 信息级(>{EXT.OUTSIDE_UNIVERSE_ALARM_FRAC:.0%} 才报), "
++                                       f"生产方纸面书仍含尾巴。")
          else:
-+            if _is_ext:
-+            # ★ design §1: the external book is NOT passed through the neutral band (the producer's
-+            #   weights already carry its own turnover rule; W2b measured the mixed pipeline loses).
-+            _nb = {"applied": False, "skipped": "external_book", "n_in": len(target),
-+                   "n_held": 0, "n_traded": len(target), "n_exempt": 0}
-+            self._last_no_trade_band = _nb
-+        else:
-             # ★ 中性保持型免交易带(PROPOSAL_neutral_band 8e499dac, 用户裁定 2026-08-10)。
--            #   必须在 withhold+reshape 之后 —— reshape 的 re-demean 会移动所有名字, 放在其前带就白带了;
--            #   场所约束名(reduced/add_blocked/flatten_only)豁免于摊派 —— 对它们加常数会把 clamp
--            #   刚刚禁止的方向重新打开。带宽是【权重】口径(no_trade_band_w × gross = 名义), 与
--            #   executor 里休眠的 band_bps(bps 口径, 恒 0)是两个机制 —— tests_neutral_band T7 钉死
--            #   只有本条活着。缺 key ⇒ 0.0 ⇒ 恒等直通(失败向 = 带关闭 = 部署前行为, 非危险向)。
--            _bw = float((_load(os.path.join(_REPO, "config", "book.json"), {}) or {})
--                        .get("no_trade_band_w") or 0.0)
--            _nb_exempt = (set(_clamp.get("reduced") or ()) | set(_clamp.get("add_blocked") or ())
--                          | set(_clamp.get("flatten_only") or ()))
--            target, _nb = LG.apply_no_trade_band(
--                target, _held_book, band_notional=_bw * float(self.gross or 0.0),
--                exempt=_nb_exempt)
--            self._last_no_trade_band = _nb
--            try:
--                _save(os.path.join(os.path.dirname(_hp), "no_trade_band.json"),
--                      {"rebalance_id": rid, "written_at": now, "band_w": _bw,
--                       "gross": float(self.gross or 0.0), **_nb})
--            except Exception as _e:
--                # 带是无状态的(不像 EMA 有状态链), 写失败只损失观测 —— 记在返回件上, 不告警刷屏
--                self._last_no_trade_band = {**_nb, "state_write_error": type(_e).__name__}
-+                #   必须在 withhold+reshape 之后 —— reshape 的 re-demean 会移动所有名字, 放在其前带就白带了;
-+                #   场所约束名(reduced/add_blocked/flatten_only)豁免于摊派 —— 对它们加常数会把 clamp
-+                #   刚刚禁止的方向重新打开。带宽是【权重】口径(no_trade_band_w × gross = 名义), 与
-+                #   executor 里休眠的 band_bps(bps 口径, 恒 0)是两个机制 —— tests_neutral_band T7 钉死
-+                #   只有本条活着。缺 key ⇒ 0.0 ⇒ 恒等直通(失败向 = 带关闭 = 部署前行为, 非危险向)。
-+                _bw = float((_load(os.path.join(_REPO, "config", "book.json"), {}) or {})
-+                            .get("no_trade_band_w") or 0.0)
-+                _nb_exempt = (set(_clamp.get("reduced") or ()) | set(_clamp.get("add_blocked") or ())
-+                              | set(_clamp.get("flatten_only") or ()))
-+                target, _nb = LG.apply_no_trade_band(
-+                    target, _held_book, band_notional=_bw * float(self.gross or 0.0),
-+                    exempt=_nb_exempt)
-+                self._last_no_trade_band = _nb
-+                try:
-+                    _save(os.path.join(os.path.dirname(_hp), "no_trade_band.json"),
-+                          {"rebalance_id": rid, "written_at": now, "band_w": _bw,
-+                           "gross": float(self.gross or 0.0), **_nb})
-+                except Exception as _e:
-+                    # 带是无状态的(不像 EMA 有状态链), 写失败只损失观测 —— 记在返回件上, 不告警刷屏
-+                    self._last_no_trade_band = {**_nb, "state_write_error": type(_e).__name__}
+             age = signal_age_anchors(preds, now)
+         action = staleness_action(age)
+@@ -1187,7 +1192,14 @@
+         _is_ext = external is not None
+         if _is_ext:
+             preds = preds or {}
+-            symbols = list(external["symbols"])
++            # ★ symbols = the producer's IN-UNIVERSE non-zero names ∪ every name we HOLD. A held name the
++            #   producer no longer targets (left its universe / member set, or weight 0) is EXITED through
++            #   the existing clamp -> flatten_only channel (maker reduce-only, mandatory top-up after) —
++            #   NOT market-exited by the universe gate, which stays reserved for names whose venue status
++            #   is no longer TRADING. Out-of-universe names we do NOT hold are simply absent (popped at
++            #   the reader: `external["w"]` is the in-universe book, normalised by its own sum|w|).
++            self._ext_held_exit = EXT.held_not_in_target(state.get("positions"), external["symbols"])
++            symbols = sorted(set(external["symbols"]) | set(self._ext_held_exit))
+             out_census = {"skipped": "external_book — the DL artifact census does not decide this book"}
+             want = None
+             _ood_report = {"state": "SKIPPED_EXTERNAL", "n_members": len(symbols), "n_ood": None,
+@@ -1349,6 +1361,9 @@
+                 self.alarm("HIGH", f"external book: exchangeInfo 元数据过滤不可用({type(_e).__name__}) — "
+                                    f"本锚只按 status 门过滤(非 COIN/非 ASCII 名未排除)")
  
-         # anchor capture -> plan -> maker -> (k window handled by caller/cron cadence) -> topup
-         anchor_ts, mids = self.executor.capture_anchor(symbols)
-@@ -2159,6 +2186,11 @@
-                 row["book_source"] = ctx.get("book_source", "internal")
-                 if ctx.get("external_book"):
-                     row["external_book"] = ctx["external_book"]
-+                # ★ WHICH BOOK, as a column (2026-08-22): downstream readers (watchdog/IC monitor/
-+                #   guard_twin) must not parse factor_version to learn it.
-+                row["book_source"] = ctx.get("book_source", "internal")
-+                if ctx.get("external_book"):
-+                    row["external_book"] = ctx["external_book"]
-                 # ★ realised neutrality, measured from venue truth and recorded every anchor
-                 if snap is not None:
-                     row.update(neutrality_from_snapshot(snap))
++        if _is_ext and getattr(self, "_ext_held_exit", None):
++            # held names the producer no longer targets ⇒ reduce-only exit via clamp/flatten_only
++            self._untradable = set(self._untradable) | set(self._ext_held_exit)
+         if _is_ext:
+             # ★ THE PRODUCER'S WEIGHTS ARE THE TARGET (design §1): no compose_book, no risk budget,
+             #   no harvest EMA, no neutral band. target_w = w / gross_norm (unit gross), so the
+@@ -1671,6 +1686,8 @@
+             #   the wide book asked for that was not sent.
+             "book_source": "external" if _is_ext else "internal",
+             "external_book": (EXT.record(external, {
++                "held_exit": list(getattr(self, "_ext_held_exit", None) or [])[:40],
++                "n_held_exit": len(getattr(self, "_ext_held_exit", None) or []),
+                 "meta_excluded": (dict(sorted((getattr(self, "_ext_meta", None) or {}).items())[:40])
+                                   if getattr(self, "_ext_meta", None) is not None else "NOT CHECKED (DRY_RUN or fetch failed)"),
+                 "n_meta_excluded": (len(getattr(self, "_ext_meta", None) or {})

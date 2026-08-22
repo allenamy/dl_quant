@@ -1,6 +1,16 @@
-[1] v2 is the original + additions only
-  OK   1a no original line is removed or changed (pure superset)
-  OK   1b the additions are the two blocks (helpers + call site), nothing else — 50
+[1] v3 == v2 + the three declared blocks; only the five replaced lines are removed
+  OK   1a the ONLY removed lines are the five the declared hunks replace
+  OK   1b v3 carries 'EXIT_ON_LEAVE = True'
+  OK   1b v3 carries 'EXIT_NON_MEMBERS = True'
+  OK   1b v3 carries 'def exit_out_of_universe('
+  OK   1b v3 carries 'keep &= _mm'
+  OK   1b v3 carries 'def score_tail_positions('
+  OK   1b v3 carries 'TAIL_SCORE = True'
+  OK   1b v3 carries '"universe": live,'
+  OK   1b v3 carries '"producer": "shadow_loop_v3"'
+  OK   1b v3 carries 'forced_exit_n'
+  OK   1b v3 carries 'net_bps_total'
+  OK   1c the write_target_live helper and its call site survive from v2
 
 [2] the file contract
   OK   2a json + sidecar exist where the reader expects them; no tmp residue — ['1787356800.json', '1787356800.json.sha256']
@@ -10,6 +20,7 @@
   OK   2e weights_sha = sha256 of the npz bytes on disk
   OK   2f booster_sha from the bundle MANIFEST value
   OK   2g universe_sha = the SHARED recipe over symbols_live (n_universe carried)
+  OK   ★ 2g2 the universe LIST travels in the file, order-preserving, and its sha IS universe_sha
   OK   2h sidecar = sha256(json bytes) + basename
   OK   2i `shasum -a 256 -c` accepts the sidecar — 1787356800.json: OK
 
@@ -19,17 +30,18 @@
 [3] ★ the PAIR: the live reader accepts the producer's output
   OK   3a the external config validates
   OK   ★ 3b read_target ACCEPTS the file as written — (None, '')
-  OK   3c ...and decodes the same weights / gross_norm / shas
+  OK   3c ...and SPLITS: w = in-universe book (S07 ∉ symbols_live is the reported tail), gross_norm / shas decoded — (['S07USDT'], 0.6)
+  OK   ★ 3c2 a v2-style file (no universe list) is refused as schema — both sides enforce the amendment — ('schema', "universe list missing or malformed (producer older than v3?) — the adapter cannot pop out-of-universe names without the producer's list")
   OK   3d pins computed by the reader's recipe match the producer's stamps
-  OK   3e target_vector unit-gross from gross_norm
+  OK   3e target_vector is unit-gross over the IN-universe book (S07 maps to 0)
 
 [4] atomicity + overwrite
   OK   4a a failed rename raises and leaves NO final json/sidecar (tmp + rename) — ['1787356800.json.tmp']
-  OK   4b a second write for the same anchor replaces both files; the reader sees the NEW content — {'S00USDT': 0.4, 'S02USDT': -0.2, 'S05USDT': 0.1, 'S07USDT': -0.2}
+  OK   4b a second write for the same anchor replaces both files; the reader sees the NEW content — {'S00USDT': 0.4, 'S02USDT': -0.2, 'S05USDT': 0.1}
   OK   4c deterministic apart from written_utc (same inputs ⇒ same payload)
 
 [5] the call site in run_anchor
-  OK   5a called right after the npz write and before the signal log line — (20256, 20536, 20813)
+  OK   5a called right after the npz write and before the signal log line — (24243, 24523, 24800)
   OK   5b wrapped in try/except; failure logged as target_live_error, success as target_live
   OK   5c out dir defaults to STATE_DIR/target_live (beside weights/)
 
@@ -43,4 +55,10 @@
   OK   7b missing sidecar ⇒ reader refuses (sidecar_missing)
   OK   7c restored ⇒ accepted again (the refusals above were the mutations)
 
-ALL PASS   (29 checks)
+[8] v3 switches and pure functions (WA test_shadow_tail_fix T1/T2 re-run against the v3 module)
+  OK   8a switches: EXIT_ON_LEAVE / EXIT_NON_MEMBERS / TAIL_SCORE on, forced cost 4.7
+  OK   8b keep-mask = universe ∧ members in the source (WA's replacement fixed to an intersection)
+  OK   8c exit_out_of_universe zeroes only non-kept names; forced = 0.0035, n = 2
+  OK   8d score_tail_positions: gross 2.0 bps, carry 0.002 bps (window-edge settlement excluded), bad name = unknown not 0 — {'tail_gross_bps': 2.0, 'tail_carry_bps': 0.002, 'tail_n': 1, 'tail_unknown_gross': 0.001, 'tail_weight_used': 3}
+
+ALL PASS   (45 checks)
