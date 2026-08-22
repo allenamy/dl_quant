@@ -1,0 +1,46 @@
+{
+ "created": "2026-08-22T00:55:40Z",
+ "session": "6737834a-W2b",
+ "n_anchors": 9821,
+ "n_symbols": 829,
+ "symbols_with_data": 826,
+ "zip_manifest_sha256": "f29efa63c63c97283944131d01aa4522e8016ac8c6382f793068808bb73d3540",
+ "definition": {
+  "R_live": "log(close_1h[T+4h]/close_1h[T]) = price T+1h -> T+5h (在役时钟, 行标 T 的决策点 T+1h)",
+  "R_wide": "log(close_1h[T+3h]/close_1h[T-1h]) = price T -> T+4h (宽时钟)"
+ },
+ "valid_R_live_vs_live_Y4_140": {
+  "corr_median": 0.9999999999958745,
+  "corr_p5": 0.9999999999858977,
+  "mean_abs_diff_bps": 0.0002788648673213461,
+  "live_names_covered_frac": 1.0
+ },
+ "valid_R_wide_vs_meta_y4_829": {
+  "corr_median": 0.9816283803065748,
+  "corr_p5": 0.9526083790333852,
+  "mean_abs_diff_bps": 27.54144859313965,
+  "wide_members_covered_frac": 0.9994910941475827
+ },
+ "coverage_wide_gross_by_year": {
+  "2022": {
+   "mean": 0.9667,
+   "min": 0.6204
+  },
+  "2023": {
+   "mean": 0.9639,
+   "min": 0.9392
+  },
+  "2024": {
+   "mean": 0.9508,
+   "min": 0.9182
+  },
+  "2025": {
+   "mean": 0.9424,
+   "min": 0.9234
+  },
+  "2026": {
+   "mean": 0.9614,
+   "min": 0.9592
+  }
+ }
+}
