@@ -61,7 +61,7 @@ ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.j
 - **R5 (P1) 止损 20U 门槛对 175 名/14% gross 失明** ⇒ wide profile `min_notional_usdt` 20→**5**(config)。
 - **R6 (P1) 一次性 autoresume launchd 仍挂载 RunAtLoad 且 --check 已 RESUMABLE**(重启机器会自动恢复书!)⇒ 05:52Z 已卸载并移走 plist ✓。
 - **R14 (P1) L0 停开仓锚证明不了 L1 时序** ⇒ L1 首锚人盯(external_wait/age_s/done 时刻)。
-- 红队结论: 修 R1/R2 + 裁 R3/R4/R5 + 卸 R6 + 首锚人盯后**可上**; L1 当执行探针读。
+- 红队结论: 修 R1/R2 + 裁 R3/R4/R5 + 卸 R6 + 首锚人盯后**可上**; L1 当执行探针读。**处置收据(05:58Z)**: R1/R3/R5 配置 `82476ad`(122/122); R2 探针 KILL+卸载(05:52Z, events `killed`); R6 autoresume 卸载+plist 移走; 待: R4 用户裁、L0 核对、R14 首锚人盯。
 
 ### 2.3 ★ 时序(必须实测后打勾, 不按设计文字)
 - 设计: 影子 N+6 产出 / 执行 N+8 读。**实测(08-20..22 八锚 shadow_log `signal` 行): 影子以 SHADOW_OFFSET_MIN=16 起跑 + 运行 311–351 s ⇒ 权重落盘 N+21:12..N+21:51。** ⇒ N+8 读必然读到上一锚文件(anchor 不符 ⇒ HOLD)。
