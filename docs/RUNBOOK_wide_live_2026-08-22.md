@@ -44,6 +44,10 @@ ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.j
 - 适配器提交 `cf3fd9f` 122/122 绿(internal 默认)。随后按 §2.2 切 `external + wide profile + 23/5` 的 safe_commit 电池 **红 3 套**: `tests_signal_and_loop`(把磁盘 config 当夹具基线, 内部路径用例在 external 下红)、`tests_guard_calibers`(per_name_stop 用例写死基础 −25%, wide −30% 下不触发)、`tests_external_book`(H10/I1 依赖磁盘默认 internal; I1 处 `_anchor_ctx["external_book"]` None 的 TypeError)。**磁盘 config 已回退 internal**(实盘仓干净, 禁止未经电池的配置留在盘上)。
 - 规则(新增): **测试必须与磁盘配置解耦**(显式注入夹具基线/profile); 切换是生产动作, 不能被测试反向锁死。修复在 staging(wide-live-staging 代理), 两种磁盘状态下全电池都要绿后再切。L0 顺延至修复落地后的下一计划内锚。
 
+### 2.2-ter ★ 尾巴(宇宙外冻结名)处理 — 08-22 04:2xZ 决定
+- 影子 v2 首文件(anchor 1787371200): 746 个非零名 vs 宇宙 450 ⇒ 296 个尾巴(gross 18%)。**目标文件 = 宇宙内的书**: 生产方改 v3(影子 `b_exit_on_leave` EXIT_NON_MEMBERS=on + 记分 `a_tail_scoring` + 目标文件附 `universe` 列表), 适配器 pop ∉ universe 的名并按宇宙内 Σ|w| 归一(双保险); 一次重启影子(08:16Z 前)。WA 提案 d013c87; 合并交付由 wide-live-staging。
+- L0 镜像核对对象 = 宇宙内归一权重; 被撤名单 = 尾巴 ∪ 交易所过滤 ∪ 最小名义额。
+
 ### 2.3 ★ 时序(必须实测后打勾, 不按设计文字)
 - 设计: 影子 N+6 产出 / 执行 N+8 读。**实测(08-20..22 八锚 shadow_log `signal` 行): 影子以 SHADOW_OFFSET_MIN=16 起跑 + 运行 311–351 s ⇒ 权重落盘 N+21:12..N+21:51。** ⇒ N+8 读必然读到上一锚文件(anchor 不符 ⇒ HOLD)。
 - 规则: `anchor_offset_min ≥ 影子落盘分钟 + 1`, `poll_grace_min ≥ 3`(N+offset 起每 15 s 重试), `max_age_min=10` 同时要求 written_utc 距读取 ≤10 min ⇒ offset 不得比落盘晚 >9 min。
