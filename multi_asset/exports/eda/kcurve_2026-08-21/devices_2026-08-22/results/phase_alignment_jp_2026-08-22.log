@@ -1,0 +1,157 @@
+[    3.3s] predict/year_folds source: verbatim-copy (harness import failed: cannot import name 'FusionTwoTowerEncoder' from 'multi_asset.model.wide_harness' (/mnt/storage/private/work_hsy/quant_research_multi_asset/multi_asset/model/wide_harness.py))
+[    3.5s] sha256 of training panel (1 GB) ...
+[    9.1s] == leg king: H=4 run=wideA_lamorth0_xattn_5yr_corrfund_v1 embargo=8
+[  118.0s]   fold 0 te=2022: G1 max|d|=0.000e+00 pass=True | p0 rows 2190 | p3 rows 2190
+[  215.4s]   fold 1 te=2023: G1 max|d|=0.000e+00 pass=True | p0 rows 2190 | p3 rows 2190
+[  314.3s]   fold 2 te=2024: G1 max|d|=0.000e+00 pass=True | p0 rows 2196 | p3 rows 2196
+[  411.1s]   fold 3 te=2025: G1 max|d|=0.000e+00 pass=True | p0 rows 2190 | p3 rows 2190
+[  460.2s]   fold 4 te=2026: G1 max|d|=0.000e+00 pass=True | p0 rows 1085 | p3 rows 1085
+[  460.3s]   king vs newgen (phase 0): {'cells_both': 990224, 'cells_newgen_only': 0, 'cells_mine_only': 0, 'maxabs': 3.9592013359069824, 'corr': 0.9783838880086715}
+[  460.3s] == leg s2: H=24 run=wideA_s2_y24_5yr_corrfund_emb10 embargo=10
+[  536.3s]   fold 0 te=2022: G1 max|d|=0.000e+00 pass=True | p0 rows 2190 | p3 rows 2190
+[  606.7s]   fold 1 te=2023: G1 max|d|=0.000e+00 pass=True | p0 rows 2190 | p3 rows 2190
+[  678.4s]   fold 2 te=2024: G1 max|d|=0.000e+00 pass=True | p0 rows 2196 | p3 rows 2196
+[  748.8s]   fold 3 te=2025: G1 max|d|=0.000e+00 pass=True | p0 rows 2190 | p3 rows 2190
+[  784.0s]   fold 4 te=2026: G1 max|d|=0.000e+00 pass=True | p0 rows 1080 | p3 rows 1080
+[  784.1s]   s2 vs newgen (phase 0): {'cells_both': 987239, 'cells_newgen_only': 0, 'cells_mine_only': 2095, 'maxabs': 1.3581273555755615, 'corr': 0.9967794744643154}
+[  785.7s] saved /mnt/storage/private/work_hsy/probe_artifacts/ph_preds_2026-08-22.npz
+[  786.9s] Y4 receipt {'max_abs_Y4_minus_sum_Y1_4': 4.190951585769653e-08, 'cells': 5149962, 'meaning': 'Y4[row T] = Σ_{k=0..3} Y1[T+k] = log CLOSE[T+4]/CLOSE[T] = price (T+1h) -> (T+5h); CLOSE[T] closes at T+1h'}
+[  788.0s]   [newgen_p0] precompute 0/9821
+[  796.0s]   [newgen_p0] precompute 2000/9821
+[  803.9s]   [newgen_p0] precompute 4000/9821
+[  811.9s]   [newgen_p0] precompute 6000/9821
+[  819.8s]   [newgen_p0] precompute 8000/9821
+[  909.0s]   [newgen_p0] done n=9821 S1 mean=1.1218 sharpe=1.485
+[  909.0s] G2 {'maxabs_S0': 0.0, 'maxabs_S1': 0.0, 'n': 9821, 'pass': True}
+[  909.2s]   [mine_p0] precompute 0/9846
+[  916.8s]   [mine_p0] precompute 2000/9846
+[  924.1s]   [mine_p0] precompute 4000/9846
+[  931.9s]   [mine_p0] precompute 6000/9846
+[  939.6s]   [mine_p0] precompute 8000/9846
+[ 1027.0s]   [mine_p0] done n=9846 S1 mean=1.1274 sharpe=1.509
+[ 1027.2s]   [mine_p3] precompute 0/9846
+[ 1034.9s]   [mine_p3] precompute 2000/9846
+[ 1042.8s]   [mine_p3] precompute 4000/9846
+[ 1051.2s]   [mine_p3] precompute 6000/9846
+[ 1059.5s]   [mine_p3] precompute 8000/9846
+[ 1149.1s]   [mine_p3] done n=9846 S1 mean=1.0631 sharpe=1.424
+[ 1151.3s] DONE -> /mnt/storage/private/work_hsy/probe_artifacts/phase_alignment_jp_2026-08-22.json
+{
+ "G1": {
+  "king": true,
+  "s2": true
+ },
+ "G2": {
+  "maxabs_S0": 0.0,
+  "maxabs_S1": 0.0,
+  "n": 9821,
+  "pass": true
+ },
+ "S1": {
+  "newgen_p0": {
+   "mean_bps": 1.1218,
+   "sd": 35.362,
+   "sharpe": 1.485,
+   "by_year_mean": {
+    "2022": 2.059,
+    "2023": 0.347,
+    "2024": 0.807,
+    "2025": 1.537,
+    "2026": 0.599
+   },
+   "by_year_sharpe": {
+    "2022": 2.826,
+    "2023": 0.499,
+    "2024": 0.92,
+    "2025": 2.016,
+    "2026": 0.936
+   }
+  },
+  "mine_p0": {
+   "mean_bps": 1.1274,
+   "sd": 34.959,
+   "sharpe": 1.509,
+   "by_year_mean": {
+    "2022": 1.964,
+    "2023": 0.341,
+    "2024": 0.883,
+    "2025": 1.532,
+    "2026": 0.701
+   },
+   "by_year_sharpe": {
+    "2022": 2.687,
+    "2023": 0.496,
+    "2024": 1.032,
+    "2025": 2.027,
+    "2026": 1.112
+   }
+  },
+  "mine_p3": {
+   "mean_bps": 1.0631,
+   "sd": 34.932,
+   "sharpe": 1.424,
+   "by_year_mean": {
+    "2022": 1.923,
+    "2023": 0.298,
+    "2024": 0.796,
+    "2025": 1.422,
+    "2026": 0.686
+   },
+   "by_year_sharpe": {
+    "2022": 2.711,
+    "2023": 0.438,
+    "2024": 0.922,
+    "2025": 1.845,
+    "2026": 1.093
+   }
+  }
+ },
+ "delta_S1": {
+  "n_days": 1641,
+  "delta_mean_bps_per_anchor": -0.0639,
+  "delta_mean_ci95": [
+   -0.3038,
+   0.1979
+  ],
+  "delta_daily_sharpe": -0.063,
+  "delta_daily_sharpe_ci95": [
+   -0.378,
+   0.281
+  ],
+  "daily_sharpe_A": 1.43,
+  "daily_sharpe_B": 1.493,
+  "frac_days_A_ge_B": 0.4966
+ },
+ "rho": {
+  "newgen_p0": {
+   "wide_E_eq_row_ts (W2 一审对齐: 宽 E=T, 在役决策 T+1h, 错 1h)": {
+    "n": 9821,
+    "rho": 0.1691
+   },
+   "wide_E_eq_nominal (同钟: 宽 E=N 与在役决策 N)": {
+    "n": 0,
+    "rho": null
+   }
+  },
+  "mine_p0": {
+   "wide_E_eq_row_ts (W2 一审对齐: 宽 E=T, 在役决策 T+1h, 错 1h)": {
+    "n": 9846,
+    "rho": 0.1729
+   },
+   "wide_E_eq_nominal (同钟: 宽 E=N 与在役决策 N)": {
+    "n": 0,
+    "rho": null
+   }
+  },
+  "mine_p3": {
+   "wide_E_eq_row_ts (W2 一审对齐: 宽 E=T, 在役决策 T+1h, 错 1h)": {
+    "n": 0,
+    "rho": null
+   },
+   "wide_E_eq_nominal (同钟: 宽 E=N 与在役决策 N)": {
+    "n": 9846,
+    "rho": 0.2364
+   }
+  }
+ }
+}
