@@ -1,0 +1,40 @@
+[   23.7s] cache (484705, 829, 7) anchors 10086 pairs 2697557
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:176: RuntimeWarning: invalid value encountered in divide
+  put("B:vr_48_288", np.log(V[48] / V[288]), chunk); put("B:vr_288_2016", np.log(V[288] / V[2016]), chunk); put("B:vr_2016_8640", np.log(V[2016] / V[8640]), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:176: RuntimeWarning: divide by zero encountered in log
+  put("B:vr_48_288", np.log(V[48] / V[288]), chunk); put("B:vr_288_2016", np.log(V[288] / V[2016]), chunk); put("B:vr_2016_8640", np.log(V[2016] / V[8640]), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:180: RuntimeWarning: divide by zero encountered in divide
+  put("B:dvol_1d", np.log(V[288] / vol_at(288, np.maximum(hi - 288, 0))), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:180: RuntimeWarning: invalid value encountered in divide
+  put("B:dvol_1d", np.log(V[288] / vol_at(288, np.maximum(hi - 288, 0))), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:180: RuntimeWarning: divide by zero encountered in log
+  put("B:dvol_1d", np.log(V[288] / vol_at(288, np.maximum(hi - 288, 0))), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:181: RuntimeWarning: divide by zero encountered in divide
+  put("B:dvol_4h", np.log(V[48] / vol_at(48, np.maximum(hi - 48, 0))), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:181: RuntimeWarning: invalid value encountered in divide
+  put("B:dvol_4h", np.log(V[48] / vol_at(48, np.maximum(hi - 48, 0))), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:181: RuntimeWarning: divide by zero encountered in log
+  put("B:dvol_4h", np.log(V[48] / vol_at(48, np.maximum(hi - 48, 0))), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:245: RuntimeWarning: Mean of empty slice
+  spq7 = np.nanmean(Q[:7], 0); spq7[np.isfinite(Q[:7]).sum(0) < 5] = np.nan; put("E:spq_7", spq7 - win_mean(CSlq, CSfq, 2016), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:246: RuntimeWarning: Mean of empty slice
+  spq30 = np.nanmean(Q, 0); spq30[np.isfinite(Q).sum(0) < 15] = np.nan; put("E:spq_30", spq30 - win_mean(CSlq, CSfq, 8640), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:247: RuntimeWarning: Mean of empty slice
+  G = sp_mean(CSrg, CSfg, 7); sprg7 = np.nanmean(G, 0); sprg7[np.isfinite(G).sum(0) < 5] = np.nan; put("E:sprg_7", sprg7 - win_mean(CSrg, CSfg, 2016), chunk)
+/mnt/storage/private/work_hsy/f8_2026-08-22/f8_higher_order_features.py:248: RuntimeWarning: Mean of empty slice
+  Tb = sp_mean(CStb, CSft, 7); spt7 = np.nanmean(Tb, 0); spt7[np.isfinite(Tb).sum(0) < 5] = np.nan; put("E:spt_7", spt7 - win_mean(CStb, CSft, 2016), chunk)
+[  107.5s] chunk 0-63 done (66 features so far)
+[  191.5s] chunk 64-127 done (66 features so far)
+[  271.9s] chunk 128-191 done (66 features so far)
+[  351.8s] chunk 192-255 done (66 features so far)
+[  430.7s] chunk 256-319 done (66 features so far)
+[  508.6s] chunk 320-383 done (66 features so far)
+[  590.9s] chunk 384-447 done (66 features so far)
+[  697.0s] chunk 448-511 done (66 features so far)
+[  808.4s] chunk 512-575 done (66 features so far)
+[  928.8s] chunk 576-639 done (66 features so far)
+[ 1030.3s] chunk 640-703 done (66 features so far)
+[ 1135.9s] chunk 704-767 done (66 features so far)
+[ 1238.8s] chunk 768-828 done (66 features so far)
+[ 1288.7s] BUILD_DONE (2697557, 89) max_off {'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'F': 0, 'G': 0, 'H': 0, 'I': 0, 'J': 0}
+[ 1288.7s] finite share (raw, min 5): [('C:vr48_8640', 0.9806102336299103), ('E:spq_30', 0.9852785316491922), ('J:drank_m7_1d', 0.9923401062516937), ('J:drank_v7_1d', 0.9923401062516937), ('J:drank_r24_1d', 0.9923401062516937)]
