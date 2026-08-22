@@ -13,6 +13,7 @@ SHA256: 脚本自身 SHA 与全部输入 SHA 运行时写入结果 JSON(`self_sh
       C1 全书 vol-target 对照(A0 恒定 gross2 权重 × clip(σ*/σ̂42, .5, 1.5), 权重原样记账) | C2 纯方差倾斜书 xz(c)(无止损) | 情景 no_fund(A0, A1 k=1) | 次对象 在役 S1 A2(p80) 持仓级 overlay.
 - 判据(主臂 A1 k=1.0 vs A0, 净@2, 2022-01..2026-06): G1 Δ夏普 ≥ +0.10 · G2 逐年 Δ≥0 ≥4/5 · G3 市场五分位最差档 ≥ 基线 且 |市场| 最高档 ≥ 基线 · G4 换手 ≤ 1.2× · G5 no_fund Δ夏普 ≥ +0.05;
   五门全过 PASS / G1 不过 判负 / 其余 敏感. 次要臂同五门并报, 不授予晋升.
+v2(05:5xZ, 看到 v1 读数后): 加 POST-HOC 臂 A1n(A1 + 帽后恢复中性), 非预注册, 仅诊断; 预注册臂逐位不变(v1 JSON 留存 `_v1_prereg_only.json`).
 用法 @jpline: python convexity_aware_construction.py run [n_workers]
 """
 import os, sys, json, time, math, hashlib, datetime as dt
@@ -147,6 +148,11 @@ def run_chain_cx(D, RET, LRET, SIG2, arm, stop=STOP, w3_mode="base", tag="", rec
                     f = np.where(np.abs(w) > 1e-15, wc / w, 1.0)
                 rows = rows * f[None, :]; g2 = np.abs(wc).sum()
                 if g2 > 1e-9: rows = rows / g2
+                if arm.get("neutral"):          # POST-HOC(非预注册) 2026-08-22 05:5xZ: 帽后恢复中性 Σ_short = Σ_long, L1 再归一 — 诊断 A1 的"帽只咬多头侧 ⇒ 净空"伪影
+                    tg = rows.sum(0); lng = tg > 0; shrt = tg < 0; Lg = tg[lng].sum(); Sg = np.abs(tg[shrt]).sum()
+                    if Lg > 1e-12 and Sg > 1e-12:
+                        fs = np.ones(len(m)); fs[shrt] = Lg / Sg; rows = rows * fs[None, :]; gg = np.abs(rows.sum(0)).sum()
+                        if gg > 1e-12: rows = rows / gg
                 if kind == "scap":
                     tg = rows.sum(0); shrt = tg < 0; lng = tg > 0
                     if shrt.sum() >= 5 and lng.any():
@@ -289,7 +295,12 @@ JOBS = {
     "C2_tilt":         dict(kind="tilt", L=30, w3="base", stop=None),
     "A0_nofund":       dict(kind="base", L=30, w3="no_fund", stop=STOP),
     "A1_k1.0_nofund":  dict(kind="adj", k=1.0, L=30, w3="no_fund", stop=STOP),
+    # ---- POST-HOC arms (added after v1 readings; NOT pre-registered; reported as diagnostics only)
+    "A1n_k1.0":        dict(kind="adj", k=1.0, L=30, w3="base", stop=STOP, neutral=True, posthoc=True),
+    "A1n_k0.5":        dict(kind="adj", k=0.5, L=30, w3="base", stop=STOP, neutral=True, posthoc=True),
+    "A1n_k1.0_nofund": dict(kind="adj", k=1.0, L=30, w3="no_fund", stop=STOP, neutral=True, posthoc=True),
 }
+POSTHOC = [k for k, v in JOBS.items() if v.get("posthoc")]
 _G = {}
 def _job(name):
     a = JOBS[name]; SIG2 = _G["SIG2_30"] if a["L"] == 30 else _G["SIG2_90"]
@@ -382,10 +393,12 @@ def stage_run(nw=12):
                       "delta_CI95": boot_delta_sharpe(ACC["A1_k1.0_nofund"]["net_g2"][mask_main], ACC["A0_nofund"]["net_g2"][mask_main]),
                       "FULL_delta": round(sharpe_a(ACC["A1_k1.0_nofund"]["net_g2"]) - sharpe_a(ACC["A0_nofund"]["net_g2"]), 4)}
     R["gates"] = {}
-    for nm in ("A1_k1.0", "A1_k0.5", "A1g", "A1_k1.0_L90", "A4_k1.0", "A2_p80", "A2_p90", "A3_asym", "C2_tilt"):
-        R["gates"][nm] = {"main_2022_06": gates(ACC[nm], ACC["A0"], ts0, mkt0, mask_main, nofund_delta=(nf_delta if nm == "A1_k1.0" else None)),
+    nfn_delta = sharpe_a(ACC["A1n_k1.0_nofund"]["net_g2"][mask_main]) - sharpe_a(ACC["A0_nofund"]["net_g2"][mask_main])
+    R["posthoc_arms"] = POSTHOC; R["G5_nofund_posthoc_A1n"] = {"delta": round(float(nfn_delta), 4), "A1n_k1.0_nofund_sharpe": round(sharpe_a(ACC["A1n_k1.0_nofund"]["net_g2"][mask_main]), 4)}
+    for nm in ("A1_k1.0", "A1_k0.5", "A1g", "A1_k1.0_L90", "A4_k1.0", "A2_p80", "A2_p90", "A3_asym", "C2_tilt", "A1n_k1.0", "A1n_k0.5"):
+        R["gates"][nm] = {"main_2022_06": gates(ACC[nm], ACC["A0"], ts0, mkt0, mask_main, nofund_delta=(nf_delta if nm == "A1_k1.0" else (nfn_delta if nm == "A1n_k1.0" else None))),
                           "FULL": gates(ACC[nm], ACC["A0"], ts0, mkt0, mask_full), "2022-23": gates(ACC[nm], ACC["A0"], ts0, mkt0, mask_2223), "2024-26": gates(ACC[nm], ACC["A0"], ts0, mkt0, mask_2426),
-                          "role": "MAIN" if nm == "A1_k1.0" else "secondary"}
+                          "role": "MAIN" if nm == "A1_k1.0" else ("POSTHOC(非预注册)" if nm in POSTHOC else "secondary")}
         # cost sensitivity & actual-gross
         for ck in ("c4.137", "c6.64"):
             xa = 2 * np.nan_to_num((ACC[nm]["pnl"] - ACC[nm]["carry"] - ACC[nm][f"cost_{ck}"]) / np.where(ACC[nm]["gross"] > 1e-9, ACC[nm]["gross"], np.nan))[mask_main]
@@ -458,7 +471,7 @@ def stage_run(nw=12):
     except Exception as e:
         import traceback; R["inrole_overlay_error"] = traceback.format_exc()[-1200:]; log("inrole overlay error", repr(e))
     # ---- main-arm attribution: tilt component own net; per-leg table
-    for nm in ("A1_k1.0", "A1_k0.5", "A1g", "A4_k1.0", "A2_p80", "A0"):
+    for nm in ("A1_k1.0", "A1_k0.5", "A1g", "A4_k1.0", "A2_p80", "A0", "A1n_k1.0", "A1n_k0.5"):
         R.setdefault("legs_main_span", {})[nm] = SUMM[nm]["2022-01..2026-06"].get("legs")
     # ---- save
     np.savez_compressed(f"{CX}/cx_series.npz", **{f"{nm}__{k}": v for nm, acc in ACC.items() for k, v in acc.items() if not isinstance(v, dict)},
