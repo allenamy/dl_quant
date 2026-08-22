@@ -49,3 +49,5 @@
 - **用户裁定(21:3xZ): "恢复"。** 执行方式: 21:38Z `resume --check` 仍拒(§4-5e 读的是 20:00Z 锚的未授权残差); 已挂自动执行: 00:00Z 锚 reduce-only 重新对账 → ~00:22Z 门清即运行 `resume_from_trip.sh`(先核探针 KILL 文件在且进程不在; 任一不满足则拒绝), 证据隔离, EMA 复位 ⇒ **04:00Z 锚整书重建**; 结果追记于此。
 
 - **00:22:07Z 自动恢复执行**(launchd one-shot `com.hsy.autoresume20260822`, 会话无关; 执行前核: 探针 KILL 在 + 进程不在): 门清(00:00Z 锚 reduce-only 重对账后 §4-5e 残差归 0)→ 证据隔离 `quarantine/state_20260822T002207Z_resumed.json` → `state.json`/`harvest_ema.json` 移除 → 无 halt 残留 ⇒ **04:00Z 锚整书重建**(EMA 复位, 重建换手≈整书)。
+
+- **探针 v2 已启动(用户 00:4xZ "启动"; 00:52Z launchd `com.hsy.execprobe2`, 会话无关)**: 三修复(只平自己成交 / 排除集 467 = 在役 140 ∪ 宽书 450 ∪ 持仓名 / 对账收据 + 停机守卫加固), 测试 102/102 绿、四类突变体红, 空跑 ok=True(候选 CAP/GRVT/ARX/GOAT 全在宇宙外; 候选稀少是设计后果); 首轮 04:20Z(04:00Z 重建后); 停 = `touch ~/exec_probe/v2/KILL`(≤30s)。v1 不再启动。
