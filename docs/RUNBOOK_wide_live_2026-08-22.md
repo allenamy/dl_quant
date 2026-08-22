@@ -40,6 +40,10 @@ ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.j
 - 应用后默认 **`book_source: "internal"`** —— 行为逐位不变(`tests_external_book [I]`), 电池必须全绿。
 - **切换 external = 同一次编辑 config/book.json 三键**: `book_source: "external"` + `per_name_stop.active_profile: "wide"` + 确认 `anchor_max_seconds ≥ 3000`(staging 已设 3000); `external_book.gross_mult` 按级别(L0 见 §2.4, L1 1.0)。切换也走 safe_commit(电池全绿), 在锚间静默窗落盘(落盘即上线)。
 
+### 2.2-bis ★ 实测(08-22 04:14Z): 切换提交的电池红 3 套 —— 套件耦合磁盘 config
+- 适配器提交 `cf3fd9f` 122/122 绿(internal 默认)。随后按 §2.2 切 `external + wide profile + 23/5` 的 safe_commit 电池 **红 3 套**: `tests_signal_and_loop`(把磁盘 config 当夹具基线, 内部路径用例在 external 下红)、`tests_guard_calibers`(per_name_stop 用例写死基础 −25%, wide −30% 下不触发)、`tests_external_book`(H10/I1 依赖磁盘默认 internal; I1 处 `_anchor_ctx["external_book"]` None 的 TypeError)。**磁盘 config 已回退 internal**(实盘仓干净, 禁止未经电池的配置留在盘上)。
+- 规则(新增): **测试必须与磁盘配置解耦**(显式注入夹具基线/profile); 切换是生产动作, 不能被测试反向锁死。修复在 staging(wide-live-staging 代理), 两种磁盘状态下全电池都要绿后再切。L0 顺延至修复落地后的下一计划内锚。
+
 ### 2.3 ★ 时序(必须实测后打勾, 不按设计文字)
 - 设计: 影子 N+6 产出 / 执行 N+8 读。**实测(08-20..22 八锚 shadow_log `signal` 行): 影子以 SHADOW_OFFSET_MIN=16 起跑 + 运行 311–351 s ⇒ 权重落盘 N+21:12..N+21:51。** ⇒ N+8 读必然读到上一锚文件(anchor 不符 ⇒ HOLD)。
 - 规则: `anchor_offset_min ≥ 影子落盘分钟 + 1`, `poll_grace_min ≥ 3`(N+offset 起每 15 s 重试), `max_age_min=10` 同时要求 written_utc 距读取 ≤10 min ⇒ offset 不得比落盘晚 >9 min。
