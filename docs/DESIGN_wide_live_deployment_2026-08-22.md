@@ -48,6 +48,11 @@ L1(真钱 1× NAV)**预授权**, 生效条件(缺一不可, 主线逐条贴收�
 ## 3-quater. 用户裁定(08-22 06:1xZ 原话: "直接")
 - 一个 L0 镜像(08:00Z)通过即上: 08:33Z 核对 → gross_mult 2.0 safe_commit → ~11:30Z 解除停开仓(resume 前核: 探针死、autoresume 卸载、guard_twin 在、电池绿、L0 收据)→ **12:00Z 首个真钱宽书锚 @2×**(决策 12:23Z), 主线全程盯; 12:33Z 首锚核对(原 L0-2 检查器改作首个真钱锚收据)。
 
+## 3-quinquies. L0-1 收据(08:00Z 锚, 停开仓下; 08:33Z 核对)与 L1 执行安排
+- **收据**: phase_A 08:25:47Z `book_source=external`, `external_wait` 等到 N+23(slept 1285s), `external_book.ok=true`(12 次轮询读到 08:21Z v3 文件; sidecar/universe 列表 sha 过; n_names 400 / 宇宙内 400 / 尾巴 0; gross_in 1.0498), sizing nav 15,456 × gross_mult(1.0), **n_targets 291**(109 名被交易所过滤/2×minNotional 撤下并重整, 1× 下预期; alarm "撤名残差 −3.95%" 即此), action TRADE 被停开仓拦 ⇒ **零订单**; 看门狗无触发。**未能核的**: 计划行↔目标权重逐位相等(停开仓锚不写 plan 行)—— 改在 12:00Z 首个真钱锚用真订单 `l0_mirror_check --mode LIVE` 校验, 不符即写停开仓。
+- **L1 执行(用户 "直接")**: `gross_mult` 2.0 提交(电池中); launchd one-shot `com.hsy.resumel120260822`(~/ops_oneshot/resume_l1_20260822.sh)11:28Z 硬前检(book_source external / gross_mult ∈{1.5,2.0} / 无未提交改动 / 探针死且 KILL 在 / execprobe2 与 autoresume 未挂载 / guard_twin 挂载 / 影子 v3 单进程 / 上次电池全绿 / resume --check RESUMABLE)⇒ `resume_from_trip.sh` 解除停开仓 ⇒ **12:00Z 首个真钱宽书锚 @2×**(决策 12:23Z, 主线人盯; 12:27Z 自动贴收据: 计划 vs 目标、订单/成交、场所状态、看门狗)。用户 11:15Z 前可改 1.5×。
+- 前向警示: 影子 04:00Z 锚 −172 bps(−4σ), 上线 6 天累计 −337 bps(≈−3.4% NAV 当量, ≈−1.3σ of 1.67 夏普预期)。
+
 ## 4. 时间表
 08-22: 设计稿(本文)+ 适配器补丁(代理起草, 主线审)+ 影子签名输出; 08-23: 实盘仓 safe_commit(电池)+ L0 镜像 2 锚; 08-23/24: L1 1× 真钱(需用户一字); L1 12 锚后 L2。
 
