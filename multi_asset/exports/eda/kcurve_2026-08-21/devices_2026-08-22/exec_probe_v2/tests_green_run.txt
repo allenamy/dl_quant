@@ -15,9 +15,16 @@ PASS (b) picked ∩ universe = ∅
 PASS (b) ATOM/SNX/U130/U133 excluded as universe hits
 PASS (b) receipt assertion round_syms ∩ universe = ∅ ok
 PASS (b) static exclusions still applied
+PASS (b) non-ASCII symbol name excluded (static)
 PASS (b) data-driven exclusion: USAR (EQUITY, not in static list) and OLDCOIN (SETTLING) excluded via exchangeInfo
-PASS (b) universe 140 from authoritative span table (+preds +MANIFEST union)
-PASS (b) PROBE_SYMS pinned names in universe are dropped
+PASS (b) live universe 140 from authoritative span table (+preds +MANIFEST union)
+PASS (b) wide universe 450 (members 400 ∪ symbols_live 450); live∩wide 110; union 480
+PASS (b) wide members source = latest weights npz (400, not stale)
+PASS (b) candidates inside wide 400 (W001/W002) and wide-450-only (W300) are excluded as 'wide'
+PASS (b) attribution: ATOM live+wide, U130 live-only
+PASS (b) picked ∩ (live ∪ wide) = ∅
+PASS (b) exclusion_set in receipt = live ∪ wide ∪ held = 480
+PASS (b) PROBE_SYMS pinned names in live or wide universe are dropped
 PASS (b) name only in preds_latest is excluded too (union) and inconsistency recorded
 PASS (c) live_halted [state.json reduce_only] -> True
 PASS (c) round skipped, zero writes [state.json reduce_only]
@@ -46,6 +53,7 @@ PASS (d) ok=True, no foreign
 PASS (d) universe provenance (path/n/sha256) in receipt
 PASS (d) held symbols at start recorded (names only)
 PASS (d) end positions on round names all 0
+PASS (d) exclusion_set: 2 held names already inside universe -> 480
 PASS (d) pending ledger cleared after clean round
 PASS (e) BANK own net = 393+1969 (sells -5022 rejected)
 PASS (e) BANK flattened by own net 2362
@@ -69,6 +77,11 @@ PASS (h) ledger cleared + recovery receipt written
 PASS (i) empty candidates => skip_round_no_candidates, zero writes
 PASS (i) event logged
 PASS (i) exclusions itemised: 10 universe + 140 static
+PASS (p) wide no weights npz => round skipped, zero writes
+PASS (p) wide no config.json => round skipped, zero writes
+PASS (p) wide members idx out of range => round skipped, zero writes
+PASS (p) stale wide file: round runs, stale flagged, wide names still excluded
+PASS (p) held name outside both universes is excluded and counted (481)
 PASS (j) 25 min late => skip_round_off_slot, zero writes
 PASS (j) 5 min late => runs
 PASS (k) daily approx loss -12.5 < -10 => skip rounds, zero writes
@@ -90,4 +103,4 @@ PASS (n) 5 quotes logged
 PASS (o) next_slot arithmetic
 PASS (o) slot id format
 
-exec_probe v2 tests: 89/89 checks passed
+exec_probe v2 tests: 102/102 checks passed

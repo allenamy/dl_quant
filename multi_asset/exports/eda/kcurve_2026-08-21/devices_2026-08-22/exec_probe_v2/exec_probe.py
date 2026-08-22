@@ -4,9 +4,12 @@ v1 事故(docs/INCIDENT_daily_loss_trip_2026-08-21.md §S, ERROR_LEDGER E-0821-C
 不分仓位归属, 把实盘书的 ATOM/SNX 平掉 ⇒ 看门狗 5b/5e 真触发 ⇒ 整书平仓。v2 三条硬规则:
   1. 只平自己建的仓: 轮末只按本轮自己 orderId 的 executedQty 累计净量平(reduceOnly, 数量=min(|自己净量|,|账户持仓|), 同号才平);
      名字上"账户持仓 ≠ 自己净量"一律记 `foreign_position_detected`, 只记不动。
-  2. 排除整个实盘宇宙(每轮重选): 权威清单 = ~/dl_quant_live/config/funding_span_table.json["table"] 键(140 = 面板列集 =
-     live_panel.panel_symbols(), 月度成员 110 在其内选; 2026-08-22 核: 与 checkpoints/MANIFEST.json training_member_union 逐位相同,
-     state/live/preds_latest.json symbols 110 ⊂ 它) ∪ preds_latest.json["symbols"] ∪ MANIFEST union ∪ 账户当前持仓名。候选为空 ⇒ 跳轮。
+  2. 排除集合 = 在役书数据宇宙 ∪ 宽书成员宇宙 ∪ 账户当前任何持仓名(每轮重选; team-lead 2026-08-22 更正版):
+     在役 = ~/dl_quant_live/config/funding_span_table.json["table"] 键(140 = 面板列集, 月度成员 110 在其内选; = MANIFEST training_member_union)
+            ∪ state/live/preds_latest.json["symbols"] ∪ checkpoints/MANIFEST.json union;
+     宽书 = ~/wide_shadow/state/weights/<最新 anchor>.npz["members"](400 下标 → shadow_bundle/config.json["symbols_panel"] 829 符号轴)
+            ∪ config.json["symbols_live"](450 抓取全集, 成员在其内轮换);
+     任一组读不到 ⇒ 跳轮; 候选不足 5 取能取到的, 为空 ⇒ 跳轮记事件。
   3. 对账收据: 每轮 state/receipt_<round>.json(下单集/成交/平仓/轮末持仓/"触碰名 ∩ 宇宙 = ∅"断言/"平仓 ≤ 自己净量"断言); 停机守卫沿用且加固
      (state.json reduce_only/tripped_at/open_orders_halted 或 last_eval.json tripped 或 last_eval 过期 >6h 或读不到 ⇒ 跳轮)。
   防御: (i) 轮必须在名义槽 [锚+20min, 锚+40min] 内开始, 否则跳(机器睡醒不越锚); (ii) 下单前落盘 pending_round.json, 被杀后下次启动只对
@@ -19,6 +22,7 @@ import os, sys, time, json, hmac, hashlib, urllib.parse, urllib.request, math, d
 BASE = "https://fapi.binance.com"
 HOME = os.path.expanduser(os.environ.get("PROBE_HOME", "~/exec_probe/v2"))
 LIVE_DIR = os.path.expanduser(os.environ.get("PROBE_LIVE_DIR", "~/dl_quant_live"))
+WIDE_DIR = os.path.expanduser(os.environ.get("PROBE_WIDE_DIR", "~/wide_shadow"))
 KILL_PATHS = [os.path.expanduser("~/exec_probe/KILL"), os.path.join(HOME, "KILL")]
 
 OFFENDERS = {"1000RATSUSDT", "ETHFIUSDT", "CRVUSDT", "AKTUSDT", "RATSUSDT"}
@@ -126,8 +130,11 @@ class Probe:
     UNIVERSE_MIN_SIZE = 100
     FEE_MAKER, FEE_TAKER = 0.0002, 0.0005   # 估算用
 
-    def __init__(self, api, home=HOME, live_dir=LIVE_DIR, sleep=time.sleep, now=now_utc, kill_paths=None):
+    WIDE_MAX_AGE_H = 30.0       # 宽书权重文件比这更旧只记 wide_universe_stale(仍用于排除), 不跳轮
+
+    def __init__(self, api, home=HOME, live_dir=LIVE_DIR, sleep=time.sleep, now=now_utc, kill_paths=None, wide_dir=WIDE_DIR):
         self.api, self.home, self.live_dir, self.sleep, self.now = api, home, live_dir, sleep, now
+        self.wide_dir = wide_dir
         self.kill_paths = list(kill_paths) if kill_paths is not None else KILL_PATHS
         self.state_dir = os.path.join(home, "state")
         os.makedirs(self.state_dir, exist_ok=True)
@@ -154,20 +161,20 @@ class Probe:
         return r
 
     # ───────────────────────── 规则 2: 宇宙 ─────────────────────────
-    def load_universe(self):
-        """返回 (set, meta)。权威 = config/funding_span_table.json["table"] 键; 并集 preds_latest.json symbols + MANIFEST union。
-        权威读不到/太小/非 USDT 名 ⇒ UniverseUnreadable(调用方跳轮)。"""
-        meta = {"sources": [], "inconsistencies": []}
+    def load_live_universe(self):
+        """在役书数据宇宙。权威 = config/funding_span_table.json["table"] 键(140); 并集 preds_latest.json symbols(110) + MANIFEST union(140)。
+        权威读不到/太小/非 USDT 名 ⇒ UniverseUnreadable。返回 (set, sources, inconsistencies)。"""
+        sources, incons = [], []
         p1 = os.path.join(self.live_dir, "config", "funding_span_table.json")
         try:
             tab = json.load(open(p1))["table"]
             cols = set(tab.keys())
         except Exception as e:
-            raise UniverseUnreadable(f"{p1}: {e!r}")
-        if len(cols) < self.UNIVERSE_MIN_SIZE or not all(isinstance(s, str) and s.endswith("USDT") for s in cols):
-            raise UniverseUnreadable(f"{p1}: table has {len(cols)} keys / non-USDT keys present — refusing")
+            raise UniverseUnreadable("%s: %r" % (p1, e))
+        if len(cols) < self.UNIVERSE_MIN_SIZE or not all(isinstance(x, str) and x.endswith("USDT") for x in cols):
+            raise UniverseUnreadable("%s: table has %d keys / non-USDT keys present — refusing" % (p1, len(cols)))
         uni = set(cols)
-        meta["sources"].append({"path": p1, "key": "table(keys)", "n": len(cols), "sha256": sha256_file(p1), "role": "authoritative"})
+        sources.append({"path": p1, "key": "table(keys)", "n": len(cols), "sha256": sha256_file(p1), "role": "live_authoritative"})
         extras = [
             (os.path.join(self.live_dir, "state", "live", "preds_latest.json"), "symbols", lambda d: d["symbols"]),
             (os.path.join(self.live_dir, "checkpoints", "MANIFEST.json"), "training_member_union.symbols",
@@ -175,15 +182,61 @@ class Probe:
         ]
         for p, key, getter in extras:
             try:
-                s = set(getter(json.load(open(p))))
-                meta["sources"].append({"path": p, "key": key, "n": len(s), "sha256": sha256_file(p), "role": "union"})
-                if not s <= cols:
-                    meta["inconsistencies"].append({"path": p, "not_in_authoritative": sorted(s - cols)})
-                uni |= s
+                x = set(getter(json.load(open(p))))
+                sources.append({"path": p, "key": key, "n": len(x), "sha256": sha256_file(p), "role": "live_union"})
+                if not x <= cols:
+                    incons.append({"path": p, "not_in_authoritative": sorted(x - cols)})
+                uni |= x
             except Exception as e:
-                meta["sources"].append({"path": p, "key": key, "error": repr(e), "role": "union"})
-        meta["n_total"] = len(uni)
-        return uni, meta
+                sources.append({"path": p, "key": key, "error": repr(e), "role": "live_union"})
+        return uni, sources, incons
+
+    def load_wide_universe(self):
+        """宽书成员宇宙(team-lead 2026-08-22 更正)。权威 = ~/wide_shadow/state/weights/<最新 anchor>.npz["members"](400 个 int32 下标)
+        → ~/wide_shadow/shadow_bundle/config.json["symbols_panel"](829, 符号轴)映射成符号; 并上 config.json["symbols_live"](450 = 宽书每锚
+        抓取/选员的候选全集, 成员在其内轮换 — 2026-08-22 核: 400 ⊂ 450 ⊂ 829, 29 个权重文件成员并集 421)。
+        任一读不到/numpy 缺/下标越界/成员 <50 ⇒ UniverseUnreadable(调用方跳轮)。权重文件过旧只记 stale。返回 (set, sources, stale)。"""
+        sources = []
+        cfgp = os.path.join(self.wide_dir, "shadow_bundle", "config.json")
+        try:
+            cfg = json.load(open(cfgp))
+            panel = list(cfg["symbols_panel"]); live450 = set(cfg["symbols_live"])
+        except Exception as e:
+            raise UniverseUnreadable("%s: %r" % (cfgp, e))
+        wdir = os.path.join(self.wide_dir, "state", "weights")
+        try:
+            files = sorted(f for f in os.listdir(wdir) if f.endswith(".npz"))
+            latest = os.path.join(wdir, files[-1])
+            import numpy as np
+            z = np.load(latest)
+            m = [int(i) for i in z["members"].tolist()]
+        except Exception as e:
+            raise UniverseUnreadable("%s: %r" % (wdir, e))
+        if len(m) < 50 or min(m) < 0 or max(m) >= len(panel):
+            raise UniverseUnreadable("%s: members invalid n=%d range=[%d,%d] panel=%d" % (latest, len(m), min(m) if m else -1, max(m) if m else -1, len(panel)))
+        members = {panel[i] for i in m}
+        try:
+            anchor_ts = int(os.path.splitext(os.path.basename(latest))[0])
+            age_h = (self.now().timestamp() - anchor_ts) / 3600.0
+        except Exception:
+            anchor_ts = None; age_h = (time.time() - os.path.getmtime(latest)) / 3600.0
+        stale = age_h > self.WIDE_MAX_AGE_H
+        sources.append({"path": latest, "key": "members(idx->symbols_panel)", "n": len(members), "sha256": sha256_file(latest),
+                        "role": "wide_members", "anchor_ts": anchor_ts, "age_h": round(age_h, 2), "stale": stale})
+        sources.append({"path": cfgp, "key": "symbols_live", "n": len(live450), "sha256": sha256_file(cfgp), "role": "wide_fetch_universe"})
+        sources.append({"path": cfgp, "key": "symbols_panel", "n": len(panel), "role": "wide_symbol_axis"})
+        if not members <= live450:
+            sources.append({"note": "members not subset of symbols_live", "n_outside": len(members - live450)})
+        return members | live450, sources, stale
+
+    def load_universe(self):
+        """排除集合的宇宙部分 = 在役 140 ∪ 宽书 400/450(持仓名由调用方并上)。返回 (set, meta, groups); 任一组读不到 ⇒ UniverseUnreadable。"""
+        live, lsrc, incons = self.load_live_universe()
+        wide, wsrc, stale = self.load_wide_universe()
+        uni = live | wide
+        meta = {"sources": lsrc + wsrc, "inconsistencies": incons, "n_live": len(live), "n_wide": len(wide),
+                "n_live_and_wide": len(live & wide), "n_total": len(uni), "wide_stale": stale}
+        return uni, meta, {"live": live, "wide": wide}
 
     # ───────────────────────── 规则 3b: 停机守卫 ─────────────────────────
     def live_halted(self):
@@ -251,20 +304,23 @@ class Probe:
         return None
 
     # ───────────────────────── 规则 2: 选币 ─────────────────────────
-    def pick_symbols(self, universe, held, pinned=None):
-        """T2 段[130,200) 取 3 + T3 段[300,380) 取 2, 排除: 宇宙(全部 140+)/账户持仓名/惯犯/股票代币/杠杆代币/CSOP。
-        pinned(PROBE_SYMS) 同样过滤。返回 (syms, info); info 记每类排除的命中名(收据证据)。"""
-        info = {"excluded_universe": [], "excluded_held": [], "excluded_static": [], "excluded_meta": {}, "pinned_dropped": [],
-                "ranks": {}, "vol24": {}}
+    def pick_symbols(self, universe, held, pinned=None, groups=None):
+        """T2 段[130,200) 取 3 + T3 段[300,380) 取 2(不足取能取到的, 为空由调用方跳轮), 排除: 宇宙(在役 140 ∪ 宽书 400/450)/账户持仓名/
+        惯犯/股票代币/杠杆代币/CSOP/exchangeInfo 非 COIN。pinned(PROBE_SYMS) 同样过滤。返回 (syms, info); info 记每类排除的命中名(收据证据)。"""
+        info = {"excluded_universe": [], "excluded_universe_by": {}, "excluded_held": [], "excluded_static": [], "excluded_meta": {},
+                "pinned_dropped": [], "ranks": {}, "vol24": {}}
+        groups = groups or {}
         self.ensure_filters(None, force=True)                  # 每轮刷新 exchangeInfo(权重 1): 新上市/状态变更/标的类型
 
         def ok(s):
             if s in universe:
-                info["excluded_universe"].append(s); return False
+                info["excluded_universe"].append(s)
+                info["excluded_universe_by"][s] = "+".join(g for g in ("live", "wide") if s in groups.get(g, ())) or "universe"
+                return False
             if s in held:
                 info["excluded_held"].append(s); return False
             if (s in OFFENDERS or s in EQUITY_TOKENS or re.search(r"\d+[LS]USDT$", s) or s.startswith("CSOP")
-                    or not s.endswith("USDT")):
+                    or not s.endswith("USDT") or not all(ord(ch) < 128 for ch in s)):     # 非 ASCII 名(如 币安人生USDT): 未测的编码路径, 保守排除
                 info["excluded_static"].append(s); return False
             why = self.symbol_meta_reason(s)
             if why:
@@ -494,7 +550,8 @@ class Probe:
             s = fl["symbol"]
             if fl["qty"] > abs(own_net.get(s, 0.0)) + 1e-9 or fl["qty"] > abs(positions_pre_flatten.get(s, 0.0)) + 1e-9:
                 over.append(fl)
-        return {"assert_touched_disjoint_universe": {"touched": sorted(touched), "intersection": inter, "ok": not inter},
+        return {"assert_touched_disjoint_universe": {"touched": sorted(touched), "intersection": inter, "ok": not inter,
+                                                    "set": "live140 ∪ wide400/450 ∪ held", "n_set": len(universe)},
                 "assert_flatten_only_own": {"n_flattens": len(flattens), "violations": over, "ok": not over},
                 "assert_round_syms_disjoint_universe": {"intersection": sorted(set(round_syms) & set(universe)),
                                                         "ok": not (set(round_syms) & set(universe))}}
@@ -525,19 +582,26 @@ class Probe:
                 self.log({"e": "skip_round_daily_loss_stop", "daily": d}); rec["skipped"] = "daily_loss_stop"
                 return self._finish(rec, round_id, syms, universe, touched, fills, flattens, own_net, positions, foreign, positions_end)
             try:
-                universe, umeta = self.load_universe()
+                universe, umeta, groups = self.load_universe()
             except UniverseUnreadable as e:
                 self.log({"e": "universe_unreadable", "err": str(e)}); rec["skipped"] = "universe_unreadable:" + str(e)
                 return self._finish(rec, round_id, syms, universe, touched, fills, flattens, own_net, positions, foreign, positions_end)
             rec["universe"] = umeta
-            self.log({"e": "universe_loaded", "n": len(universe), "sources": [(x.get("path"), x.get("n")) for x in umeta["sources"]],
-                      "inconsistencies": umeta["inconsistencies"]})
+            self.log({"e": "universe_loaded", "n_live": umeta["n_live"], "n_wide": umeta["n_wide"], "n_total": umeta["n_total"],
+                      "sources": [(x.get("path"), x.get("key"), x.get("n")) for x in umeta["sources"]],
+                      "inconsistencies": umeta["inconsistencies"], "wide_stale": umeta["wide_stale"]})
+            if umeta["wide_stale"]:
+                self.log({"e": "wide_universe_stale", "sources": [x for x in umeta["sources"] if x.get("role") == "wide_members"]})
             if not dry:
                 self.recover_pending()
             positions = self.account_positions()
             rec["held_symbols_start"] = sorted(positions)
             held = set(positions)
-            syms, pick_info = self.pick_symbols(universe, held, pinned=pinned)
+            uni_lw = universe                                  # 在役 140 ∪ 宽书 400/450(选币归因用)
+            universe = uni_lw | held                           # 排除集合 = 在役 ∪ 宽书 ∪ 账户当前任何持仓名(断言/收据用)
+            rec["exclusion_set"] = {"n_live": umeta["n_live"], "n_wide": umeta["n_wide"], "n_held": len(held),
+                                    "n_held_outside_universe": len(held - uni_lw), "n_total": len(universe)}
+            syms, pick_info = self.pick_symbols(uni_lw, held, pinned=pinned, groups=groups)
             rec["pick_info"] = pick_info
             if pick_info.get("pinned_dropped"):
                 self.log({"e": "pinned_dropped", "dropped": pick_info["pinned_dropped"]})
@@ -655,13 +719,19 @@ def _dry_report(rec, out=print):
     for s in u.get("sources", []):
         out("universe src : %s [%s] n=%s role=%s %s" % (s.get("path"), s.get("key"), s.get("n"), s.get("role"),
                                                          ("ERROR " + s["error"]) if s.get("error") else ("sha256=" + s.get("sha256", "")[:12])))
-    out("universe     : n_total=%s inconsistencies=%s" % (u.get("n_total"), u.get("inconsistencies")))
+    out("universe     : n_live=%s n_wide=%s overlap=%s n_total=%s wide_stale=%s inconsistencies=%s" % (
+        u.get("n_live"), u.get("n_wide"), u.get("n_live_and_wide"), u.get("n_total"), u.get("wide_stale"), u.get("inconsistencies")))
+    es = rec.get("exclusion_set", {})
+    out("exclusion set: live %s ∪ wide %s ∪ held %s (held outside both: %s) = %s names" % (
+        es.get("n_live"), es.get("n_wide"), es.get("n_held"), es.get("n_held_outside_universe"), es.get("n_total")))
     out("held (acct)  : %d names (all excluded)" % len(rec.get("held_symbols_start", [])))
     pi = rec.get("pick_info", {})
     out("pick         : mode=%s ranked=%s  excluded_universe=%d  excluded_held=%d  excluded_static=%d  pinned_dropped=%s" % (
         pi.get("mode"), pi.get("n_ranked"), len(pi.get("excluded_universe", [])), len(pi.get("excluded_held", [])),
         len(pi.get("excluded_static", [])), pi.get("pinned_dropped")))
-    out("excluded_universe hits in bands: %s" % (pi.get("excluded_universe"),))
+    out("excluded_universe hits in bands: %d  by-group: %s" % (len(pi.get("excluded_universe", [])),
+        dict((g, sum(1 for v in pi.get("excluded_universe_by", {}).values() if v == g)) for g in ("live", "wide", "live+wide", "universe"))))
+    out("excluded_universe names: %s" % (pi.get("excluded_universe"),))
     out("excluded_meta (non-COIN/non-perp/non-trading): %s" % (pi.get("excluded_meta"),))
     out("symbols      : %s" % (rec.get("symbols"),))
     for s in rec.get("symbols", []):
@@ -698,8 +768,8 @@ def main(argv=None):
         return 3
     halted, why = probe.live_halted()
     try:
-        uni, umeta = probe.load_universe()
-        ulog = "%d names from %d sources" % (len(uni), len(umeta["sources"]))
+        uni, umeta, _g = probe.load_universe()
+        ulog = "%d names (live %d ∪ wide %d) from %d sources" % (len(uni), umeta["n_live"], umeta["n_wide"], len(umeta["sources"]))
     except UniverseUnreadable as e:
         ulog = "UNREADABLE: %s" % e
     probe.log({"e": "start", "mode": "run", "pinned": pinned, "halt_guard": why, "universe": ulog})

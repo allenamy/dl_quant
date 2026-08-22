@@ -1,5 +1,5 @@
 """exec_probe v2 tests — mock 账户/mock 下单接口, 不联网. 运行: python3 tests_exec_probe_v2.py
-"会红"证据(把旧逻辑装回去): PROBE_V2_MUTANT=legacy_flatten|no_universe|no_halt python3 tests_exec_probe_v2.py  ⇒ 对应测试必须 FAIL.
+"会红"证据(把旧逻辑装回去): PROBE_V2_MUTANT=legacy_flatten|no_universe|no_wide|no_halt python3 tests_exec_probe_v2.py  ⇒ 对应测试必须 FAIL.
 场景 (a) 账户里有非本轮仓位(书的 ATOM/SNX) ⇒ 不平、记 foreign 事件  (b) 候选名 ∩ 书宇宙 ⇒ 排除  (c) 停机状态 ⇒ 跳轮
      (d) 收据字段齐全 + 断言  (e) 08-21 形态的自家净量记账(买成卖拒 ⇒ 平自己净量)  (f) 同名自家+他人混合: 只平自己、封顶、反号不动
      (g) 宇宙读不到 ⇒ 跳轮  (h) 被杀后账本恢复只平自己  (i) 候选为空 ⇒ 跳轮  (j) 越槽跳  (k) 日亏停  (l) 他人挂单名跳/自家孤儿单撤
@@ -16,6 +16,11 @@ FIXED_NOW = datetime.datetime(2026, 8, 22, 4, 20, 30, tzinfo=datetime.timezone.u
 SLOT = FIXED_NOW.replace(minute=20, second=0, microsecond=0)
 UNIVERSE = ["ATOMUSDT", "SNXUSDT"] + ["U%03dUSDT" % i for i in range(138)]      # 140, 形如在役面板列集
 MEMBERS = UNIVERSE[:110]                                                         # 当月 110 在役(含 ATOM/SNX)
+WIDE_ONLY = ["W%03dUSDT" % i for i in range(340)]                                # 宽书独有名
+WIDE450 = UNIVERSE[:110] + WIDE_ONLY                                             # 宽书抓取全集 450(与在役重叠 110)
+WIDE400 = UNIVERSE[:110] + WIDE_ONLY[:290]                                       # 宽书当前成员 400 ⊂ 450
+PANEL = UNIVERSE + WIDE_ONLY + ["P%03dUSDT" % i for i in range(100)]             # 宽书符号轴 580(下标来源)
+WIDE_ANCHOR = int(FIXED_NOW.timestamp()) // 14400 * 14400 - 14400               # 上一锚(探针轮读到的最新权重文件)
 
 RESULTS = []
 
@@ -27,7 +32,28 @@ def check(cond, label, detail=""):
 
 
 # ───────────────────────── fixtures ─────────────────────────
-def make_live_dir(root, tripped=False, eval_age_min=10, state_json=None, no_span=False, small_span=False, no_last_eval=False):
+def write_wide(root, panel=None, live450=None, members=None, anchor_ts=WIDE_ANCHOR, no_npz=False, no_config=False, bad_members=False):
+    """~/wide_shadow 形态: shadow_bundle/config.json(symbols_panel/symbols_live) + state/weights/<anchor>.npz(members=int32 下标)."""
+    import numpy as np
+    w = os.path.join(root, "wide_shadow")
+    for d in ("shadow_bundle", "state/weights"):
+        os.makedirs(os.path.join(w, d), exist_ok=True)
+    panel = list(panel if panel is not None else PANEL); live450 = list(live450 if live450 is not None else WIDE450)
+    members = list(members if members is not None else WIDE400)
+    if not no_config:
+        json.dump({"symbols_panel": panel, "symbols_live": live450, "params": {"NTOP": 400}}, open(os.path.join(w, "shadow_bundle", "config.json"), "w"))
+    for f in os.listdir(os.path.join(w, "state", "weights")):
+        os.remove(os.path.join(w, "state", "weights", f))
+    if not no_npz:
+        pos = {sym: i for i, sym in enumerate(panel)}
+        m = np.array([pos[x] for x in members], dtype=np.int32) if not bad_members else np.array([0, 5, len(panel) + 7], dtype=np.int32)
+        np.savez_compressed(os.path.join(w, "state", "weights", "%d.npz" % anchor_ts), idx=m[:10], val=np.zeros(10, np.float32), members=m)
+    return w
+
+
+def make_live_dir(root, tripped=False, eval_age_min=10, state_json=None, no_span=False, small_span=False, no_last_eval=False, wide=True):
+    if wide:
+        write_wide(root)
     live = os.path.join(root, "dl_quant_live")
     for d in ("config", "state/live/watchdog", "checkpoints"):
         os.makedirs(os.path.join(live, d), exist_ok=True)
@@ -49,11 +75,11 @@ def make_ticker():
     """400 名按量能降序. 0-129: 宇宙名; T2 段[130,200): BANK/ATOM/BERA/SNX/DODOX + 宇宙名 + 惯犯/股票/杠杆/CSOP + 填充;
     T3 段[300,380): PARTI/JASMY + 惯犯 + 填充."""
     top = [s for s in UNIVERSE if s not in ("ATOMUSDT", "SNXUSDT")][:130]
-    t2 = ["BANKUSDT", "ATOMUSDT", "USARUSDT", "BERAUSDT", "SNXUSDT", "OLDCOINUSDT", "DODOXUSDT", "U130USDT", "U131USDT", "CRVUSDT",
-          "TSLAUSDT", "BTC3LUSDT", "CSOPSAMSUNG2LUSDT", "U132USDT", "ZROUSDT"]
+    t2 = ["BANKUSDT", "ATOMUSDT", "USARUSDT", "BERAUSDT", "W001USDT", "SNXUSDT", "W300USDT", "OLDCOINUSDT", "\u5e01\u5b89\u4eba\u751fUSDT", "DODOXUSDT", "U130USDT",
+          "U131USDT", "CRVUSDT", "TSLAUSDT", "BTC3LUSDT", "CSOPSAMSUNG2LUSDT", "U132USDT", "ZROUSDT"]
     t2 += ["T2F%02dUSDT" % i for i in range(70 - len(t2))]
     mid = ["M%03dUSDT" % i for i in range(100)]
-    t3 = ["PARTIUSDT", "1000RATSUSDT", "JASMYUSDT", "U133USDT"] + ["T3F%02dUSDT" % i for i in range(76)]
+    t3 = ["PARTIUSDT", "1000RATSUSDT", "W002USDT", "JASMYUSDT", "U133USDT"] + ["T3F%02dUSDT" % i for i in range(75)]
     tail = ["Z%02dUSDT" % i for i in range(20)]
     ranked = top + t2 + mid + t3 + tail
     assert len(ranked) == 400 and len(set(ranked)) == 400, (len(ranked), len(set(ranked)))
@@ -180,7 +206,7 @@ class MockAPI:
 def mk_probe(api, live, root, now=None):
     home = os.path.join(root, "probe_home")
     return EP.Probe(api, home=home, live_dir=live, sleep=lambda s: None, now=(now or (lambda: FIXED_NOW)),
-                    kill_paths=[os.path.join(home, "KILL")])
+                    kill_paths=[os.path.join(home, "KILL")], wide_dir=os.path.join(root, "wide_shadow"))
 
 
 def events(probe, kind=None):
@@ -220,6 +246,8 @@ def apply_mutant():
         def pick(self, universe, held, pinned=None):
             return orig(self, set(), held, pinned=pinned)            # v1 语义: 只排除当前持仓名
         EP.Probe.pick_symbols = pick
+    elif MUTANT == "no_wide":
+        EP.Probe.load_wide_universe = lambda self: (set(), [], False)       # 旧定义: 排除集合不含宽书宇宙
     elif MUTANT == "no_halt":
         EP.Probe.live_halted = lambda self: (False, "mutant: guard removed")
     elif MUTANT:
@@ -248,6 +276,8 @@ def test_a_foreign_position_untouched():
     json.dump({"table": tab}, open(os.path.join(live2, "config", "funding_span_table.json"), "w"))
     json.dump({"symbols": [s for s in MEMBERS if s not in ("ATOMUSDT", "SNXUSDT")]}, open(os.path.join(live2, "state", "live", "preds_latest.json"), "w"))
     json.dump({"training_member_union": {"symbols": list(tab.keys())}}, open(os.path.join(live2, "checkpoints", "MANIFEST.json"), "w"))
+    write_wide(root2, live450=[x for x in WIDE450 if x not in ("ATOMUSDT", "SNXUSDT")] + ["WX0USDT", "WX1USDT"],
+               members=[x for x in WIDE400 if x not in ("ATOMUSDT", "SNXUSDT")] + ["WX0USDT", "WX1USDT"], panel=PANEL + ["WX0USDT", "WX1USDT"])
     api2 = MockAPI(positions={"ATOMUSDT": 237.72, "SNXUSDT": -806.5}, fill_plan=plan_incident_shape)
     p2 = mk_probe(api2, live2, root2)
     rec = p2.one_round("T0821", dry=False, pinned=["BANKUSDT", "ATOMUSDT", "SNXUSDT"], slot=SLOT)
@@ -267,7 +297,8 @@ def test_a_foreign_position_untouched():
         if sec == EP.Probe.K_SECONDS:
             api3.positions["BANKUSDT"] = api3.positions.get("BANKUSDT", 0.0) + 237.72    # 他人仓位在窗口内出现
     home3 = os.path.join(root3, "probe_home")
-    p3 = EP.Probe(api3, home=home3, live_dir=live3, sleep=sleep_inject, now=lambda: FIXED_NOW, kill_paths=[os.path.join(home3, "KILL")])
+    p3 = EP.Probe(api3, home=home3, live_dir=live3, sleep=sleep_inject, now=lambda: FIXED_NOW, kill_paths=[os.path.join(home3, "KILL")],
+                  wide_dir=os.path.join(root3, "wide_shadow"))
     rec3 = p3.one_round("TA3", dry=False, slot=SLOT)
     fl3 = {f["symbol"]: f for f in rec3["flattens"]}
     check("BANKUSDT" in fl3 and fl3["BANKUSDT"]["qty"] == 2362.0 and abs(api3.positions["BANKUSDT"] - 237.72) < 1e-9,
@@ -292,15 +323,28 @@ def test_b_universe_exclusion():
     check(rec["assert_round_syms_disjoint_universe"]["ok"], "(b) receipt assertion round_syms ∩ universe = ∅ ok")
     check(set(rec["pick_info"]["excluded_static"]) >= {"CRVUSDT", "TSLAUSDT", "BTC3LUSDT", "CSOPSAMSUNG2LUSDT", "1000RATSUSDT"},
           "(b) static exclusions still applied", rec["pick_info"]["excluded_static"])
+    check("\u5e01\u5b89\u4eba\u751fUSDT" in rec["pick_info"]["excluded_static"], "(b) non-ASCII symbol name excluded (static)", rec["pick_info"]["excluded_static"])
     em = rec["pick_info"]["excluded_meta"]
     check(em.get("USARUSDT") == "underlyingType=EQUITY" and em.get("OLDCOINUSDT") == "status=SETTLING" and "USARUSDT" not in EP.EQUITY_TOKENS,
           "(b) data-driven exclusion: USAR (EQUITY, not in static list) and OLDCOIN (SETTLING) excluded via exchangeInfo", em)
-    check(rec["universe"]["n_total"] == 140 and rec["universe"]["sources"][0]["path"].endswith("config/funding_span_table.json"),
-          "(b) universe 140 from authoritative span table (+preds +MANIFEST union)", rec["universe"])
+    check(rec["universe"]["n_live"] == 140 and rec["universe"]["sources"][0]["path"].endswith("config/funding_span_table.json"),
+          "(b) live universe 140 from authoritative span table (+preds +MANIFEST union)", rec["universe"])
+    check(rec["universe"]["n_wide"] == 450 and rec["universe"]["n_live_and_wide"] == 110 and rec["universe"]["n_total"] == 480,
+          "(b) wide universe 450 (members 400 ∪ symbols_live 450); live∩wide 110; union 480", rec["universe"])
+    wsrc = [x for x in rec["universe"]["sources"] if x.get("role") == "wide_members"]
+    check(wsrc and wsrc[0]["n"] == 400 and wsrc[0]["path"].endswith("state/weights/%d.npz" % WIDE_ANCHOR) and wsrc[0]["stale"] is False,
+          "(b) wide members source = latest weights npz (400, not stale)", wsrc)
+    by = rec["pick_info"]["excluded_universe_by"]
+    check(by.get("W001USDT") == "wide" and by.get("W300USDT") == "wide" and by.get("W002USDT") == "wide",
+          "(b) candidates inside wide 400 (W001/W002) and wide-450-only (W300) are excluded as 'wide'", by)
+    check(by.get("ATOMUSDT") == "live+wide" and by.get("U130USDT") == "live", "(b) attribution: ATOM live+wide, U130 live-only", by)
+    check(not (set(syms) & (set(UNIVERSE) | set(WIDE450))), "(b) picked ∩ (live ∪ wide) = ∅", set(syms) & (set(UNIVERSE) | set(WIDE450)))
+    check(rec["exclusion_set"]["n_total"] == 480 and rec["exclusion_set"]["n_held"] == 0 and
+          rec["assert_touched_disjoint_universe"]["n_set"] == 480, "(b) exclusion_set in receipt = live ∪ wide ∪ held = 480", rec["exclusion_set"])
     # pinned names also filtered
-    rec2 = p.one_round("TB2", dry=True, pinned=["ATOMUSDT", "BANKUSDT", "U005USDT"])
-    check(rec2["symbols"] == ["BANKUSDT"] and sorted(rec2["pick_info"]["pinned_dropped"]) == ["ATOMUSDT", "U005USDT"],
-          "(b) PROBE_SYMS pinned names in universe are dropped", (rec2["symbols"], rec2["pick_info"]["pinned_dropped"]))
+    rec2 = p.one_round("TB2", dry=True, pinned=["ATOMUSDT", "BANKUSDT", "U005USDT", "W123USDT"])
+    check(rec2["symbols"] == ["BANKUSDT"] and sorted(rec2["pick_info"]["pinned_dropped"]) == ["ATOMUSDT", "U005USDT", "W123USDT"],
+          "(b) PROBE_SYMS pinned names in live or wide universe are dropped", (rec2["symbols"], rec2["pick_info"]["pinned_dropped"]))
     # preds-only name (not in span table) still excluded via union + inconsistency recorded
     json.dump({"symbols": MEMBERS + ["BANKUSDT"]}, open(os.path.join(live, "state", "live", "preds_latest.json"), "w"))
     rec3 = p.one_round("TB3", dry=True)
@@ -339,7 +383,7 @@ def test_c_halt_guard():
 REQUIRED_RECEIPT_KEYS = ["version", "kind", "round_id", "started_utc", "finished_utc", "dry", "skipped", "halt_guard", "universe",
                          "held_symbols_start", "pick_info", "symbols", "orders_placed", "fills", "own_net", "flattens", "foreign_positions",
                          "positions_round_syms_pre_flatten", "positions_round_syms_end", "assert_touched_disjoint_universe",
-                         "assert_flatten_only_own", "assert_round_syms_disjoint_universe", "pnl_estimate", "daily_pnl_after", "ok"]
+                         "assert_flatten_only_own", "assert_round_syms_disjoint_universe", "pnl_estimate", "daily_pnl_after", "ok", "exclusion_set"]
 
 
 def test_d_receipt():
@@ -370,6 +414,7 @@ def test_d_receipt():
     check(set(disk["universe"]["sources"][0].keys()) >= {"path", "n", "sha256", "role"}, "(d) universe provenance (path/n/sha256) in receipt")
     check(disk["held_symbols_start"] == ["U001USDT", "U002USDT"], "(d) held symbols at start recorded (names only)", disk["held_symbols_start"])
     check(all(v == 0.0 for v in disk["positions_round_syms_end"].values()), "(d) end positions on round names all 0", disk["positions_round_syms_end"])
+    check(disk["exclusion_set"]["n_held"] == 2 and disk["exclusion_set"]["n_total"] == 480, "(d) exclusion_set: 2 held names already inside universe -> 480", disk["exclusion_set"])
     check(not os.path.exists(p.pending_path), "(d) pending ledger cleared after clean round")
     shutil.rmtree(root)
 
@@ -469,6 +514,30 @@ def test_i_no_candidates():
     shutil.rmtree(root)
 
 
+def test_p_wide_universe_edges():
+    for label, kw in (("no weights npz", dict(no_npz=True)), ("no config.json", dict(no_config=True)), ("members idx out of range", dict(bad_members=True))):
+        root = tempfile.mkdtemp(); live = make_live_dir(root, wide=False); write_wide(root, **kw)
+        api = MockAPI(positions={}); p = mk_probe(api, live, root)
+        rec = p.one_round("TP", dry=False, slot=SLOT)
+        check(rec["skipped"] and rec["skipped"].startswith("universe_unreadable") and not api.posts and not api.deletes,
+              "(p) wide %s => round skipped, zero writes" % label, (rec["skipped"], len(api.posts)))
+        shutil.rmtree(root)
+    # stale weights file (40h): still excludes, logs wide_universe_stale, round runs
+    root = tempfile.mkdtemp(); live = make_live_dir(root, wide=False); write_wide(root, anchor_ts=int(FIXED_NOW.timestamp()) - 40 * 3600)
+    api = MockAPI(positions={}); p = mk_probe(api, live, root)
+    rec = p.one_round("TP2", dry=False, slot=SLOT)
+    check(rec["skipped"] is None and rec["universe"]["wide_stale"] is True and bool(events(p, "wide_universe_stale")) and
+          rec["pick_info"]["excluded_universe_by"].get("W001USDT") == "wide", "(p) stale wide file: round runs, stale flagged, wide names still excluded",
+          (rec["skipped"], rec["universe"].get("wide_stale")))
+    # held name outside both universes (e.g. a leftover probe position) is counted and excluded
+    root2 = tempfile.mkdtemp(); live2 = make_live_dir(root2)
+    api2 = MockAPI(positions={"BANKUSDT": 393.0}); p2 = mk_probe(api2, live2, root2)
+    rec2 = p2.one_round("TP3", dry=True)
+    check("BANKUSDT" not in rec2["symbols"] and rec2["exclusion_set"]["n_held_outside_universe"] == 1 and rec2["exclusion_set"]["n_total"] == 481,
+          "(p) held name outside both universes is excluded and counted (481)", (rec2["symbols"], rec2["exclusion_set"]))
+    shutil.rmtree(root); shutil.rmtree(root2)
+
+
 def test_j_off_slot():
     root = tempfile.mkdtemp(); live = make_live_dir(root)
     api = MockAPI(positions={})
@@ -555,7 +624,7 @@ def main():
     if MUTANT:
         print("### MUTANT ACTIVE: %s (expect RED below)" % MUTANT)
     for t in (test_a_foreign_position_untouched, test_b_universe_exclusion, test_c_halt_guard, test_d_receipt, test_e_incident_shape_accounting,
-              test_f_mixed_own_and_foreign, test_g_universe_unreadable, test_h_recovery, test_i_no_candidates, test_j_off_slot,
+              test_f_mixed_own_and_foreign, test_g_universe_unreadable, test_h_recovery, test_i_no_candidates, test_p_wide_universe_edges, test_j_off_slot,
               test_k_daily_loss_stop, test_l_open_orders, test_m_verbs_and_kill, test_n_dry_zero_writes, test_o_slots):
         try:
             t()
