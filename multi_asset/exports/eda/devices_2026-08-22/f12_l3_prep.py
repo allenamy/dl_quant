@@ -16,6 +16,7 @@ log("5m cache", CD.shape)
 parts = sorted(glob.glob(f"{OUT}/data/f11_parts/*.npz"))
 syms60 = [str(np.load(p, allow_pickle=True)["sym"]) for p in parts]
 scol60 = [csyms.index(s) for s in syms60]
+NS = len(syms60)
 lob_files = {s: f"{ROOT}/lob_bookdepth/npz/{s}.npz" for s in syms60}
 # 网格: 取 LOB 时代 5m bars(2023-01 起)
 i0 = int(np.searchsorted(CTS, 1672531200))
@@ -25,15 +26,15 @@ R5 = np.nan_to_num(KL[:, :, 0], nan=0.0)
 FIN = np.isfinite(CD[i0:, scol60, 0])
 # 前瞻 Y: ret5 和 (t+1..t+k)
 def fwd(k):
-    c = np.cumsum(np.vstack([np.zeros((1, 60), np.float32), R5]), 0)
-    o = np.full((T, 60), np.nan, np.float32)
+    c = np.cumsum(np.vstack([np.zeros((1, NS), np.float32), R5]), 0)
+    o = np.full((T, NS), np.nan, np.float32)
     o[:T - k] = c[1 + k:] - c[1:T - k + 1 + 0]
     o[:T - k][~FIN[:T - k]] = np.nan
     return o
 Y = np.stack([fwd(1), fwd(6), fwd(12), fwd(48)], -1)
 log("targets done")
 # LOB → 5m 流: 每 5m bar 取窗内 30s 行
-XL = np.full((T, 60, 21), np.nan, np.float32)
+XL = np.full((T, NS, 21), np.nan, np.float32)
 for j, s in enumerate(syms60):
     z = np.load(lob_files[s]); lts = z["ts"].astype(np.int64); L = z["lnot"].astype(np.float32)
     NOT = np.expm1(L); bidN = NOT[:, :6]; askN = NOT[:, 11:5:-1]
