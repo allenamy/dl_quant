@@ -54,23 +54,26 @@ for fi, f in enumerate(files):
     bidN = NOT[:, [0, 1, 2, 3, 4, 5]]                                  # -5..-0.2
     askN = NOT[:, [11, 10, 9, 8, 7, 6]]                                # +5..+0.2 (同距序)
     with np.errstate(all="ignore"):
-        # S 族
+        # §1-bis: 主近带 = ±1%(idx 4, 全史); ±0.2%(idx 5)只出 4 根 2026-后增补列
         I = (bidN - askN) / (bidN + askN + 1e-9)                       # (T,6) 距序 5,4,3,2,1,0.2
-        Inear = I[:, 5]; I1 = I[:, 4]; I3 = I[:, 2]; I5 = I[:, 0]
-        x = np.array([5, 4, 3, 2, 1, 0.2]); xc = x - x.mean(); den = (xc ** 2).sum()
-        s_bid = (np.log1p(bidN) * xc).sum(1) / den
-        s_ask = (np.log1p(askN) * xc).sum(1) / den
+        Inear = I[:, 4]; I2 = I[:, 3]; I3 = I[:, 2]; I5 = I[:, 0]; I02 = I[:, 5]
+        x5 = np.array([5, 4, 3, 2, 1.0]); xc = x5 - x5.mean(); den = (xc ** 2).sum()
+        s_bid = (np.log1p(bidN[:, :5]) * xc).sum(1) / den
+        s_ask = (np.log1p(askN[:, :5]) * xc).sum(1) / den
         s_asym = s_bid - s_ask
-        # F 族: 30s 差
         dB = np.vstack([np.zeros((1, 6)), np.diff(bidN, axis=0)])
         dA = np.vstack([np.zeros((1, 6)), np.diff(askN, axis=0)])
-        tot = bidN.sum(1) + askN.sum(1) + 1e-9
-        ofi_near = (dB[:, 5] - dA[:, 5]) / tot
-        ofi_int = (dB - dA).sum(1) / tot
-        wd = np.minimum(dB[:, 5] + dA[:, 5], 0) / tot                  # 近带撤退(负)
-        wd_asym = (np.minimum(dB[:, 5], 0) - np.minimum(dA[:, 5], 0)) / tot
-    core = {"Inear": Inear, "I1": I1, "I3": I3, "I5": I5, "s_asym": s_asym,
+        tot = bidN[:, :5].sum(1) + askN[:, :5].sum(1) + 1e-9
+        ofi_near = (dB[:, 4] - dA[:, 4]) / tot
+        ofi_int = (dB[:, :5] - dA[:, :5]).sum(1) / tot
+        wd = np.minimum(dB[:, 4] + dA[:, 4], 0) / tot
+        wd_asym = (np.minimum(dB[:, 4], 0) - np.minimum(dA[:, 4], 0)) / tot
+        ofi_02 = (dB[:, 5] - dA[:, 5]) / tot
+        wd_02 = np.minimum(dB[:, 5] + dA[:, 5], 0) / tot
+    core = {"Inear": Inear, "I2": I2, "I3": I3, "I5": I5, "s_asym": s_asym,
             "ofi_near": ofi_near, "ofi_int": ofi_int, "wd": wd, "wd_asym": wd_asym}
+    extra02 = {"I02": I02, "ofi_02": ofi_02, "wd_02": wd_02,
+               "wd_asym_02": (np.minimum(dB[:, 5], 0) - np.minimum(dA[:, 5], 0)) / tot}
     E = {}
     for k in ("Inear", "s_asym", "ofi_near", "ofi_int", "wd", "wd_asym"):
         for hl, tag in ((3600, "1h"), (14400, "4h"), (86400, "24h")):
@@ -82,8 +85,10 @@ for fi, f in enumerate(files):
     FE = np.full((nA, NF), np.nan, np.float32)
     names = []
     ci = 0
-    for k in ("Inear", "I1", "I3", "I5", "s_asym", "ofi_near", "ofi_int", "wd", "wd_asym"):
+    for k in ("Inear", "I2", "I3", "I5", "s_asym", "ofi_near", "ofi_int", "wd", "wd_asym"):
         FE[ok, ci] = core[k][pos[ok]]; names.append(f"{k}_last"); ci += 1
+    for k, v in extra02.items():
+        FE[ok, ci] = v[pos[ok]]; names.append(f"{k}_last"); ci += 1
     for k, v in E.items():
         FE[ok, ci] = v[pos[ok]]; names.append(k); ci += 1
     # 24h 趋势(6 核心量: e4h − e24h)与 1h 稳定度
