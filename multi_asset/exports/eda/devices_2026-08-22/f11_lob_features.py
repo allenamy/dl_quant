@@ -17,20 +17,23 @@ shard, nsh = int(sys.argv[1]), int(sys.argv[2])
 T0 = time.time()
 
 
+from scipy.signal import lfilter
+
+
 def ema_irr(vals, ts, hl):
-    """不规则间隔 EMA(半衰期 hl 秒), 返回同长数组。"""
-    o = np.empty(len(vals)); prev = np.nan; pt = None
-    lam = np.log(2) / hl
-    for i, (v, t) in enumerate(zip(vals, ts)):
-        if not np.isfinite(v):
-            o[i] = prev if prev is not None and np.isfinite(prev) else np.nan
-            continue
-        if pt is None or not np.isfinite(prev):
-            prev = v
-        else:
-            a = 1 - np.exp(-lam * max(t - pt, 1))
-            prev = (1 - a) * prev + a * v
-        pt = t; o[i] = prev
+    """规则 30s 网格近似 EMA(半衰期 hl 秒), lfilter 向量化; NaN 前向填充(缺口稀少, 偏差可忽略, 如实标注)。"""
+    v = np.asarray(vals, np.float64)
+    ok = np.isfinite(v)
+    if ok.sum() < 10:
+        return np.full(len(v), np.nan)
+    idx = np.where(ok, np.arange(len(v)), 0)
+    np.maximum.accumulate(idx, out=idx)
+    vf = v[idx]
+    first = np.argmax(ok)
+    vf[:first] = v[ok][0]
+    al = 1 - np.exp(-np.log(2) * 30.0 / hl)
+    o = lfilter([al], [1, -(1 - al)], vf, zi=[vf[0] * (1 - al)])[0]
+    o[:first] = np.nan
     return o
 
 
