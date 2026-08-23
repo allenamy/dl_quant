@@ -70,12 +70,10 @@ for YV in (2024, 2025, 2026):
     torch.manual_seed(SEED + YV)
     # 标定
     sl = tr_idx[:: max(1, len(tr_idx) // 3000)]
-    def zs(M, mu=None, sd=None):
-        if mu is None:
-            flat = M[sl].reshape(-1, M.shape[-1])
-            mu = np.nanmean(flat, 0); sd = np.nanstd(flat, 0) + 1e-6
-        return mu, sd
-    muL, sdL = zs(XL); muC, sdC = zs(C[np.clip(amap[sl], 0, nA - 1)][:, :, :])
+    def zs(Ms):
+        flat = Ms.reshape(-1, Ms.shape[-1])
+        return np.nanmean(flat, 0), np.nanstd(flat, 0) + 1e-6
+    muL, sdL = zs(XL[sl]); muC, sdC = zs(C[np.clip(amap[sl], 0, nA - 1)])
     ysd = np.nanstd(Y[sl], (0, 1)) + 1e-9
     D = 21 + 8 + 171
     mdl = L3(D).to(DEV)
