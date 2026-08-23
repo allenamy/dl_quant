@@ -12,7 +12,7 @@ SM = {s: i for i, s in enumerate(syms)}
 nA = len(E_ts)
 # 带序: [-5,-4,-3,-2,-1,-0.2, +0.2,+1,+2,+3,+4,+5]; bid=负带, ask=正带
 BI = {5.0: 0, 4.0: 1, 3.0: 2, 2.0: 3, 1.0: 4, 0.2: 5}   # 距离→(bid idx, ask 对称 11-idx)
-NF = 36
+NF = 40
 shard, nsh = int(sys.argv[1]), int(sys.argv[2])
 T0 = time.time()
 
