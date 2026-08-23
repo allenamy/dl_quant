@@ -455,3 +455,9 @@ non-event sitting where an operator looks"* —— **操作员会看的地方有
 | 每日历史(只追加) | `multi_asset/exports/live/pilot_journal/JOURNAL_<date>_*.md` |
 | 前视审计交接 | `multi_asset/exports/eda/HANDOFF_lookahead_audit_2026-08-03.md` (`95f804b1…`) |
 | 追价实验预注册 | `multi_asset/exports/eda/PREREG_chase_opportunity_cost_2026-08-03.md` (`3a0f3d4f…`) |
+
+### ⚠️ 运维待裁定 2026-08-23: jpline 磁盘 98%(4.0T 用 3.7T, 余 81G)
+- **占用**: `work_hsy/quant_research_multi_asset/data` **924G**, 其中 7 个派生缓存合计 **865G**: npz_v2arch 185G / npz_spot 139G / npz_perp 139G / npz_v2arch_rank 130G / npz_v2arch_augms 127G / npz_spot2perp_clean 75G / npzv4_dual 70G。
+- **证据**: 全部 mtime 2026-06-15..07-05(7-9 周未动); **当前活跃脚本(w3lane / f8 / dlw)零引用**(grep 全空); 均为**可从 share data 重建的派生缓存**(源只读且完好)。
+- **风险**: 余量 81G, 任何 LOB/微结构数据下载或大训练产物都会写满 ⇒ 训练任务会在半途死。
+- **待用户一字**: 删除这 7 个缓存(释放 ≈865G, 不可逆但可重建) / 或先打包压缩 / 或不动另找空间。**未经裁定不删。**
