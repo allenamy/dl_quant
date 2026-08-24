@@ -14,16 +14,20 @@ TG = np.load(f"{DLW}/data/dlw_targets.npz", allow_pickle=True)
 dts = TG["E_ts"].astype(np.int64); dsyms = [str(s) for s in TG["symbols"]]
 # 训练标签口径断言: y4s 与 f3 简单 RET 在共同 (锚,名) 上一致
 y4s = TG["y4s"]; smap = np.array([wa_syms.index(s) if s in wa_syms else -1 for s in dsyms]); rmap = {int(t): j for j, t in enumerate(wa_ts)}
-diffs = []
+# 判别式断言: y4s 距"简单收益"必须远小于距"对数收益"(f16 舍入 ~2e-6 属噪声; 对数差应 ~r²/2 ≈ 4e-5)
+d_sim, d_log = [], []
 for i in range(0, len(dts), 977):
     j = rmap.get(int(dts[i]))
     if j is None: continue
     ok = smap >= 0
     a = y4s[i][ok]; b = f3.G["RET"][f3.G["ai_E"][j]][smap[ok]]
-    m = np.isfinite(a) & np.isfinite(b)
-    if m.sum() > 50: diffs.append(float(np.nanmedian(np.abs(a[m] - b[m]))))
-assert diffs and np.median(diffs) < 1e-6, f"y4s≠简单RET: {np.median(diffs)}"
-log("CALIBER_ASSERT_PASS y4s==simple RET, med|Δ|", np.median(diffs))
+    m = np.isfinite(a) & np.isfinite(b) & (np.abs(b) < 0.5)
+    if m.sum() > 50:
+        d_sim.append(float(np.nanmedian(np.abs(a[m] - b[m]))))
+        d_log.append(float(np.nanmedian(np.abs(a[m] - np.log1p(b[m])))))
+ms, ml = np.median(d_sim), np.median(d_log)
+assert ms < ml / 5 and ms < 1e-4, f"口径判别失败: 距简单 {ms:.2e} vs 距对数 {ml:.2e}"
+log(f"CALIBER_ASSERT_PASS y4s=简单(距简单 {ms:.2e} ≪ 距对数 {ml:.2e})")
 def align(p):
     P = np.load(p); M = np.full((nE, NW), np.nan, np.float32); ok = smap >= 0
     for i, t in enumerate(dts):
