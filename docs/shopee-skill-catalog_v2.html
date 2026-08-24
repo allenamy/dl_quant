@@ -1,0 +1,295 @@
+<title>候选新增 Skill —— 名称与内容</title>
+<style>
+  :root {
+    --paper: #F1F2EC;
+    --paper-raised: #FFFFFF;
+    --ink: #1B1D18;
+    --ink-soft: #55584E;
+    --ink-faint: #8A8D80;
+    --line: #DBDDD1;
+    --line-strong: #C5C8B9;
+    --accent: #1F5C52;
+    --accent-soft: #E4ECE7;
+    --accent-2: #B8722E;
+    --accent-2-soft: #F3E6D5;
+    --gap: #A8432B;
+    --gap-soft: #F3E1DA;
+    --muted: #8B8D82;
+    --muted-soft: #E9E9E2;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --paper: #14160F; --paper-raised: #1C1F17;
+    --ink: #EDEEE6; --ink-soft: #ACAFA0; --ink-faint: #74766A;
+    --line: #33362B; --line-strong: #454838;
+    --accent: #5FCBB8; --accent-soft: #1D302B;
+    --accent-2: #E0A057; --accent-2-soft: #33291A;
+    --gap: #E2836B; --gap-soft: #33221C;
+    --muted: #8C8F80; --muted-soft: #24261E;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14160F; --paper-raised: #1C1F17;
+      --ink: #EDEEE6; --ink-soft: #ACAFA0; --ink-faint: #74766A;
+      --line: #33362B; --line-strong: #454838;
+      --accent: #5FCBB8; --accent-soft: #1D302B;
+      --accent-2: #E0A057; --accent-2-soft: #33291A;
+      --gap: #E2836B; --gap-soft: #33221C;
+      --muted: #8C8F80; --muted-soft: #24261E;
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+  h1, h2 {
+    font-family: Georgia, "Iowan Old Style", "Sitka Text", "Noto Serif", serif;
+    font-weight: 600; text-wrap: balance; color: var(--ink); margin: 0;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 1.5rem;
+    padding: 0.7rem 1.5rem;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .mark { font-family: Georgia, serif; font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+  .topbar nav { display: flex; gap: 1.1rem; overflow-x: auto; font-size: 0.82rem; }
+  .topbar nav a { color: var(--ink-soft); text-decoration: none; white-space: nowrap; padding: 0.2rem 0; border-bottom: 1px solid transparent; }
+  .topbar nav a:hover { color: var(--ink); border-bottom-color: var(--accent); }
+
+  .shell { max-width: 860px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+  header.hero { padding: 3rem 0 2.2rem; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-2); margin-bottom: 0.9rem; display: block;
+  }
+  header.hero h1 { font-size: 2rem; line-height: 1.2; max-width: 30ch; }
+  header.hero p.dek { margin-top: 0.9rem; max-width: 60ch; color: var(--ink-soft); }
+  .meta-row { margin-top: 1.6rem; display: flex; flex-wrap: wrap; gap: 0.5rem 0.7rem; }
+  .meta-chip { font-size: 0.76rem; color: var(--ink-soft); background: var(--paper-raised); border: 1px solid var(--line); padding: 0.28rem 0.6rem; border-radius: 3px; }
+  .meta-chip b { color: var(--ink); font-weight: 600; }
+
+  section { padding: 2.8rem 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+  .section-head { margin-bottom: 1.6rem; }
+  .section-head .eyebrow { margin-bottom: 0.5rem; }
+  .section-head h2 { font-size: 1.45rem; }
+  .section-head p { color: var(--ink-soft); margin: 0.6rem 0 0; max-width: 62ch; }
+
+  .cand-list { display: flex; flex-direction: column; gap: 0.8rem; }
+  .cand {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--gap);
+    padding: 1.05rem 1.2rem 1.15rem;
+  }
+  .cand-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 0.7rem; margin-bottom: 0.5rem; }
+  .cand-name { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-weight: 700; font-size: 0.98rem; color: var(--ink); }
+  .cand-name::before { content: "+ "; color: var(--gap); }
+
+  .strength { display: inline-flex; gap: 2px; align-items: center; margin-left: auto; }
+  .strength .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
+  .strength.s3 .dot { background: var(--gap); }
+  .strength.s2 .dot:nth-child(-n+2) { background: var(--gap); }
+  .strength.s1 .dot:first-child { background: var(--gap); }
+  .strength-label { font-size: 0.68rem; color: var(--ink-faint); margin-left: 0.35rem; }
+
+  .cand p.desc { margin: 0 0 0.55rem; font-size: 0.89rem; color: var(--ink-soft); }
+  .cand .trigger { font-size: 0.78rem; color: var(--ink-faint); margin: 0 0 0.5rem; font-style: italic; }
+  .cand .trigger b { font-style: normal; color: var(--ink-soft); font-weight: 600; }
+  .cand .src { font-size: 0.78rem; color: var(--ink-faint); margin: 0; border-top: 1px dashed var(--line); padding-top: 0.5rem; }
+  .cand .src b { color: var(--ink-soft); font-weight: 600; }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--paper-raised); }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 0.86rem; }
+  thead th {
+    text-align: left; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 600; padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--line-strong); white-space: nowrap;
+  }
+  tbody td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-soft); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td.name { color: var(--ink); font-weight: 600; font-family: ui-monospace, monospace; font-size: 0.82rem; }
+
+  footer { padding: 2.2rem 0 1rem; font-size: 0.78rem; color: var(--ink-faint); }
+  footer p { max-width: 62ch; }
+
+  @media (max-width: 640px) {
+    header.hero h1 { font-size: 1.55rem; }
+    .topbar nav { display: none; }
+  }
+</style>
+
+<div class="topbar">
+  <span class="mark">候选新增 Skill</span>
+  <nav>
+    <a href="#new">10 个候选</a>
+    <a href="#fixes">4 项维护改动</a>
+  </nav>
+</div>
+
+<div class="shell">
+
+  <header class="hero">
+    <span class="eyebrow">New Skill Candidates</span>
+    <h1>候选新增 Skill:名称与内容</h1>
+    <p class="dek">Seller Center 实勘发现的 10 个新 skill 候选,按功能体量排序,每个附名称、内容范围、示例触发问题和来源页面。</p>
+    <div class="meta-row">
+      <span class="meta-chip">候选新增 <b>10</b></span>
+      <span class="meta-chip">维护类改动 <b>4</b></span>
+      <span class="meta-chip">日期 <b>2026-08-05</b></span>
+    </div>
+  </header>
+
+  <section id="new">
+    <div class="section-head">
+      <span class="eyebrow">10 个候选新增</span>
+      <h2>名称 · 内容 · 触发问题 · 来源</h2>
+      <p>圆点代表功能体量/独立程度(●●● 大 / ●●○ 中 / ●○○ 小),不是覆盖率。</p>
+    </div>
+
+    <div class="cand-list">
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">payout-payee-account-guidance</span>
+          <span class="strength s3"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">大</span></span>
+        </div>
+        <p class="desc">引导卖家绑定/激活收款账号(payee account),诊断提现(penarikan saldo)异常、延迟或到账失败。</p>
+        <p class="trigger"><b>示例触发问题:</b>"Penarikan saldo ke rek bank eror"、"kenapa penarikan saldo prosesnya lama?"、"mendaftarkan akun penjual perlu rekening bank kan?"</p>
+        <p class="src"><b>来源:</b>首页 Dashboard 收款账号横幅 + Finance &gt; My Income / Payment Services</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">affiliate-marketing-guidance</span>
+          <span class="strength s3"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">大</span></span>
+        </div>
+        <p class="desc">达人/联盟营销全流程引导:XTRA Commission 分层定价、达人招募与排行榜、MCN 对接、免费寄样、Affiliate/Campaign/Content 各类分析报表。</p>
+        <p class="trigger"><b>示例触发问题:</b>"apa itu affiliate marketing di Shopee"、"cara merekrut affiliate/KOL"、"gimana kirim sample gratis ke affiliate"</p>
+        <p class="src"><b>来源:</b>Marketing Centre &gt; Affiliate Marketing Solution</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">livestream-performance-guidance</span>
+          <span class="strength s3"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">大</span></span>
+        </div>
+        <p class="desc">直播经营与任务体系引导:Shopee Live Studio、开播工具、Livestream Missions(直播时长/成交单换奖励)、观看-互动-转化-促销四大类直播漏斗指标。</p>
+        <p class="trigger"><b>示例触发问题:</b>"kenapa penonton live saya sedikit"、"cara meningkatkan conversion rate live"、"apa itu misi livestream"</p>
+        <p class="src"><b>来源:</b>Marketing Centre &gt; Live & Video(创作者中心)</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">inventory-replenishment-guidance</span>
+          <span class="strength s3"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">大</span></span>
+        </div>
+        <p class="desc">补货预测与库存节奏引导:Restock Urgency、L7D/L30D 日均销量、Days of Supply、Supplier Lead Time、最低库存阈值。</p>
+        <p class="trigger"><b>示例触发问题:</b>"kapan saya harus restock produk ini"、"apa itu days of supply"、"stok saya hampir habis gimana"</p>
+        <p class="src"><b>来源:</b>Product &gt; My Inventory</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">ai-tool-adoption-guidance</span>
+          <span class="strength s2"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">中</span></span>
+        </div>
+        <p class="desc">AI 工具科普,帮卖家判断要不要开、怎么用:Product Detail Enrichment、Image Poster Polish、AI-Powered Product Showcasing 等自动生成图文工具。</p>
+        <p class="trigger"><b>示例触发问题:</b>"apa itu AI Optimiser"、"perlu gak aktifkan optimasi AI"、"cara kerja foto produk AI"</p>
+        <p class="src"><b>来源:</b>Product &gt; AI Optimiser</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">marketing-tools-directory</span>
+          <span class="strength s2"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">中</span></span>
+        </div>
+        <p class="desc">长尾营销工具打包科普:Brand Membership、Koin Penjual(卖家币)、Hadiah Penilaian(评价奖励)、Game Toko(店铺游戏)、Promo Ongkir Toko(卖家承担运费折扣)、Iklan Eksternal Shopee(外部广告)。</p>
+        <p class="trigger"><b>示例触发问题:</b>"apa itu koin penjual"、"cara aktifkan game toko"、"ongkir ditanggung penjual itu gimana"</p>
+        <p class="src"><b>来源:</b>Marketing Centre 总览页"更多功能"</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">promotion-performance-diagnosis</span>
+          <span class="strength s2"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">中</span></span>
+        </div>
+        <p class="desc">促销活动效果分析:折扣/满减/加价购/秒杀的趋势图与效果列表,回答"活动已经上线,效果好不好",区别于创建失败诊断。</p>
+        <p class="trigger"><b>示例触发问题:</b>"kenapa voucher saya sepi peminat"、"performa flash sale saya gimana"、"campaign diskon saya berhasil gak"</p>
+        <p class="src"><b>来源:</b>Business Insights &gt; Marketing tab</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">seller-financing-guidance</span>
+          <span class="strength s2"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">中</span></span>
+        </div>
+        <p class="desc">卖家金融增值产品引导:SPinjam 贷款(利率/额度/模拟器)、运费险、店铺收入保障、QRIS 收款。</p>
+        <p class="trigger"><b>示例触发问题:</b>"syarat SPinjam apa aja"、"bunga pinjaman modal usaha berapa"、"asuransi pengiriman itu apa"</p>
+        <p class="src"><b>来源:</b>Finance &gt; SPinjam Untuk Penjual + Financial Products</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">shop-decoration-guidance</span>
+          <span class="strength s1"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">小</span></span>
+        </div>
+        <p class="desc">店铺装修配额与配置引导:草稿名额上限、Shopee App 与网页版分开配置的页面装修。</p>
+        <p class="trigger"><b>示例触发问题:</b>"kenapa gak bisa buat halaman toko baru"、"cara mengatur tampilan toko"</p>
+        <p class="src"><b>来源:</b>Shop &gt; Shop Decoration</p>
+      </div>
+
+      <div class="cand">
+        <div class="cand-top">
+          <span class="cand-name">competitive-benchmarking</span>
+          <span class="strength s1"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="strength-label">小</span></span>
+        </div>
+        <p class="desc">同款商品竞品对标:按图片、价格找 Shopee 上的相似商品做对比。量级较小,建议先并入 product-diagnosis 观察需求。</p>
+        <p class="trigger"><b>示例触发问题:</b>"harga produk saya dibanding kompetitor gimana"、"cara cek produk sejenis di Shopee"</p>
+        <p class="src"><b>来源:</b>Business Insights &gt; Selling Coach &gt; Similar Products</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="fixes">
+    <div class="section-head">
+      <span class="eyebrow">维护类改动</span>
+      <h2>不新增名字,改现有 skill 内容(4 项)</h2>
+      <p>这几项不是新 skill,是对现有 skill description/参考资料的补充。</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>动作</th><th>涉及 skill</th><th>缺什么</th></tr></thead>
+        <tbody>
+          <tr><td class="name">补充触发词</td><td>program-access-diagnosis</td><td>Promo XTRA+、Shopee Live XTRA、MDV、Cheap on Shopee 都是正在运营的项目,但 description 里一个没提</td></tr>
+          <tr><td class="name">核实改名</td><td>account-status-diagnosis</td><td>网站现在叫 "Preferred Seller",skill 里写的是 "Star Seller",需业务方确认是否为同一项目</td></tr>
+          <tr><td class="name">扩展范围</td><td>ads-performance-diagnosis</td><td>缺"怎么选广告类型 / GMV Max / 怎么创建"的引导</td></tr>
+          <tr><td class="name">补充参考</td><td>product-diagnosis</td><td>Brand Management 的注册失败排查流程可以收进参考资料</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>内容基于 Playwright 实勘 Shopee Indonesia Seller Center(测试账号 yiqiangliveid,2026-08-05)推断,示例触发问题为按功能推测的印尼语表达,尚未经真实数据验证。</p>
+  </footer>
+
+</div>
