@@ -38,6 +38,11 @@ qvm = np.where(finq, qseg, 0).sum(0) / np.maximum(finq.sum(0), 1)
 qv4h = np.expm1(np.clip(qvm[pm], 0, 30)) * 48
 sel = qv4h >= P["qv4h_min"]
 
+_tl = f"{WS}/state/target_live/{A}.json"
+KEEP_NAMES = set((json.load(open(_tl)).get("universe") or [])) if os.path.exists(_tl) else set()
+LIVE_MASK = np.array([str(x) in KEEP_NAMES for x in np.load(f"{HERE}/xfer_ref.npz", allow_pickle=True)["symbols"]]) if KEEP_NAMES else None
+
+
 def chain(zc):
     w = np.where(sel, zc, 0.0)
     w = w - (w[sel].mean() if sel.any() else 0)
@@ -52,6 +57,12 @@ def chain(zc):
     smv = H + P["alpha"] * (tgt - H)
     trade = smv - H
     smv = np.where(np.abs(trade) < P["band"], H, smv)
+    if LIVE_MASK is not None:
+        keep = LIVE_MASK.copy()
+        _mm = np.zeros(NW, bool); _mm[pm] = True
+        keep &= _mm
+        leave = (~keep) & (np.abs(smv) > 1e-12)
+        smv = np.where(leave, 0.0, smv)
     return smv
 
 # ① 自平价
@@ -59,10 +70,8 @@ z_king = w3[0]*np.nan_to_num(legz["king"]) + w3[1]*np.nan_to_num(legz["rev24"]) 
 sm_rep = chain(z_king)
 ref = np.zeros(NW); ref[smi_ref] = sm_ref
 d = np.abs(sm_rep - ref)
-exit_names = np.setdiff1d(np.where(np.abs(ref) + np.abs(sm_rep) > 0)[0], pm)  # 成员外(强平逻辑域)
-mask_cmp = np.ones(NW, bool); mask_cmp[exit_names] = False
-self_par = float(np.max(d[mask_cmp]))
-log(f"① king 书自平价 max|Δw|={self_par:.2e} (成员外豁免 {len(exit_names)} 名, 其最大差 {float(d[~mask_cmp].max()) if len(exit_names) else 0:.2e})")
+self_par = float(np.max(d))
+log(f"① king 书自平价 max|Δw|={self_par:.2e} (EXIT 已复算, 零豁免)")
 # ② 171 + F-10 分(全尾管线复用 mac_parity 的 mini 产物: 若最新锚未算则重跑管线)
 MINI = f"{HERE}/mini"
 f89p = f"{MINI}/data/f8_fea89.npz"
@@ -88,6 +97,16 @@ if need:
                 "F171_FEA82": f"{MINI}/data/dlw_fea82.npz", "F171_PANEL": f"{HERE}/xfer_panel_live.npz"})
     # fund 面板: 用影子 fund ema 状态构造当前值, 历史锚回填 0(fund_ema/now 两列只在 82 列口径, F-10 mu/sd 会 z 化; dry-run 近似, 入档)
     fe = np.zeros((len(e_rows), NW), np.float32); fn = np.zeros((len(e_rows), NW), np.float32)
+    syms_all = [str(x) for x in np.load(f"{HERE}/xfer_ref.npz", allow_pickle=True)["symbols"]]
+    scol_of = {s_: j for j, s_ in enumerate(syms_all)}
+    for s_, est in aux["ema"].items():
+        j = scol_of.get(s_)
+        if j is not None and isinstance(est, dict) and "acc" in est:
+            fe[-1, j] = float(est["acc"])
+    for s_, rows_ in aux["ledger_tail"].items():
+        j = scol_of.get(s_)
+        if j is not None and rows_:
+            fn[-1, j] = float(rows_[-1][1])
     np.savez(f"{HERE}/xfer_panel_live.npz", ts=rts[e_rows], f_fund_ema=fe, f_fund_now=fn)
     PY = f"{WS}/venv/bin/python"
     r1 = subprocess.run([PY, f"{HERE}/dlw_features.py"], env=env, capture_output=True, text=True, cwd=HERE)
