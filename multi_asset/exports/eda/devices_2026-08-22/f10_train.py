@@ -13,6 +13,9 @@ ROOT = "/mnt/storage/private/work_hsy"; DLW = f"{ROOT}/dlw_2026-08-22"; OUT = f"
 SEED = int(os.environ.get("SEED", "42")); ARM = os.environ.get("ARM", "MAIN")
 COST = float(os.environ.get("COST", "3.52")); LDD = float(os.environ.get("LDD", "0.25"))
 AFIX = int(os.environ.get("AFIX", "0"))
+LDC = float(os.environ.get("LDC", "0.0"))     # R1: 条件尾部权重(因果代理最低五分位)
+CTXA = int(os.environ.get("CTXA", "0"))       # 架构A: 因果 regime 上下文 4 维
+REC = int(os.environ.get("REC", "0"))         # 架构B: 逐名递归分数态(HRT 学习衰减门)
 EPOCHS = int(os.environ.get("EPOCHS", "15")); LR = float(os.environ.get("LR", "3e-4"))
 WIN, BURN, STRIDE, EMB = 96, 24, 48, 60
 CAPM = 2.5
@@ -42,13 +45,80 @@ F9 = np.load(f"{OUT}/data/f8_fea89.npz", allow_pickle=True)
 assert np.array_equal(F9["pair_a"].astype(np.int64), pa)
 assert np.all(np.diff(pa) >= 0), "pairs must be anchor-sorted"
 XL = np.concatenate([X82, F9["X"]], 1).astype(np.float32)   # (nrows, 167)
+NCOL = int(os.environ.get("NCOL", "167"))
+EXTRA = os.environ.get("EXTRA", "")            # ""|"e4"(L3四头+旗标5列)|"lob38"|"cc3"(在役三腿z)
+LPP = float(os.environ.get("LPP", "0.0"))      # L2 持久罚: 惩罚 |u_t − u_{t−1}|
+if NCOL == 78:
+    # 归因臂: 去掉 89 新列 + 4 根 king 剔除的快列 = 忠实 king 弹药(唯一变量 vs MAIN = 弹药)
+    KEEP = [i for i in range(82) if i not in (0, 1, 2, 3)]
+    XL = XL[:, KEEP]
 del X82, FE, F9
+if EXTRA == "e4":
+    _AP = np.load(f"{OUT}/preds/f12_heads_s42.npz", allow_pickle=True)
+    _sc = _AP["scol60"].astype(np.int64); _m = {int(c): j for j, c in enumerate(_sc)}
+    _A4 = _AP["AP"].astype(np.float32)
+    E4 = np.zeros((len(pa), 5), np.float32)
+    for r in range(len(pa)):
+        j = _m.get(int(ps[r]))
+        if j is not None:
+            v = _A4[pa[r], j]
+            if np.isfinite(v).all():
+                E4[r, :4] = v; E4[r, 4] = 1.0
+    XL = np.concatenate([XL, E4], 1); del _AP, _A4, E4
+elif EXTRA == "lob38":
+    import glob as _g
+    _parts = sorted(_g.glob(f"{OUT}/data/f11_parts/*.npz"))
+    _z0 = np.load(_parts[0], allow_pickle=True); _K = _z0["fe"].shape[1]
+    _L38 = np.full((nA, NW, _K), np.nan, np.float32)
+    for _pp in _parts:
+        _z = np.load(_pp, allow_pickle=True)
+        _L38[:, int(_z["scol"]), :] = _z["fe"][:, :_K]
+    R38 = np.nan_to_num(_L38[pa, ps], nan=0.0).astype(np.float32)
+    XL = np.concatenate([XL, R38], 1); del _L38, R38
+elif EXTRA == "cc3":
+    _LG = np.load(f"{OUT}/data/f10v2_legs2.npz", allow_pickle=True)
+    C3 = np.stack([np.nan_to_num(_LG[k], nan=0.0)[pa, ps] for k in ("KZ", "Z24", "ZFD")], 1).astype(np.float32)
+    XL = np.concatenate([XL, C3], 1); del _LG, C3
 ST = np.searchsorted(pa, np.arange(nA + 1))
+V2 = int(os.environ.get("V2", "0"))
+if V2:
+    _L = np.load(f"{OUT}/data/f10v2_legs.npz", allow_pickle=True)
+    LZ24 = torch.from_numpy(np.nan_to_num(_L["Z24"], nan=0.0)).to("cuda" if torch.cuda.is_available() else "cpu")
+    LZFD = torch.from_numpy(np.nan_to_num(_L["ZFD"], nan=0.0)).to(LZ24.device)
+    LWL = torch.from_numpy(np.nan_to_num(_L["WL"], nan=1.0 / 3)).to(LZ24.device)
+    HASL = torch.from_numpy(np.isfinite(_L["WL"][:, 0])).to(LZ24.device)
+# ── R1/A: 因果代理与上下文(全部只用 ≤ t−1 信息)──
+MKT = np.array([np.nanmean(y4s[i]) if np.isfinite(y4s[i]).sum() >= 30 else np.nan for i in range(nA)])
+MKT_PREV = np.concatenate([[np.nan], MKT[:-1]])
+FLAG = np.zeros(nA, bool)
+for i in range(nA):
+    lo = max(0, i - 500)
+    w = MKT_PREV[lo:i + 1]
+    w = w[np.isfinite(w)]
+    if len(w) >= 100 and np.isfinite(MKT_PREV[i]):
+        FLAG[i] = MKT_PREV[i] <= np.quantile(w, 0.2)
+def _trail(v, w_):
+    o = np.full(nA, np.nan)
+    for i in range(nA):
+        x = v[max(0, i - w_):i]
+        x = x[np.isfinite(x)]
+        if len(x) >= 10:
+            o[i] = x.std() if w_ > 1 else x[-1]
+    return o
+VOL42 = _trail(MKT_PREV, 42)
+BRD = np.concatenate([[np.nan], [float(np.nanmean(y4s[i] > 0)) if np.isfinite(y4s[i]).sum() >= 30 else np.nan for i in range(nA - 1)]])
+DISP = np.concatenate([[np.nan], [float(np.nanstd(y4s[i])) if np.isfinite(y4s[i]).sum() >= 30 else np.nan for i in range(nA - 1)]])
+CTXM = np.stack([np.nan_to_num(MKT_PREV, nan=0.0), np.nan_to_num(VOL42, nan=0.0),
+                 np.nan_to_num(BRD, nan=0.5) - 0.5, np.nan_to_num(DISP, nan=0.0)], 1).astype(np.float32)
+CTXM = (CTXM - np.nanmean(CTXM, 0)) / (np.nanstd(CTXM, 0) + 1e-9)
+FLAGT = torch.from_numpy(FLAG)
+CTXT = torch.from_numpy(CTXM)
 medy = float(np.nanmedian(np.abs(y4s[np.isfinite(y4s)])))
 assert 1e-4 <= medy <= 0.05, f"y4s 疑似非小数收益 med|y|={medy}"    # 小数收益口径守卫
 log(f"rows {len(pa)} cols {XL.shape[1]} anchors {nA} med|y| {medy:.5f}")
 
 XT = torch.from_numpy(XL).to(DEV); del XL
+CTXT = CTXT.to(DEV); FLAGT = FLAGT.to(DEV)
 YT = torch.from_numpy(np.nan_to_num(y4s, nan=0.0)).to(DEV)
 PST = torch.from_numpy(ps).to(DEV)
 rep = {"arm": ARM, "seed": SEED, "cost": COST, "ldd": LDD, "afix": AFIX, "epochs": EPOCHS,
@@ -60,12 +130,24 @@ rep = {"arm": ARM, "seed": SEED, "cost": COST, "ldd": LDD, "afix": AFIX, "epochs
 
 
 class Net(nn.Module):
-    def __init__(s, d=167, h=256, p=0.1):
+    def __init__(s, d=167, h=256, p=0.1, hs=32):
         super().__init__()
         s.f = nn.Sequential(nn.Linear(d, h), nn.GELU(), nn.Dropout(p),
                             nn.Linear(h, h), nn.GELU(), nn.Dropout(p), nn.Linear(h, 1))
         s.a = nn.Parameter(torch.tensor(-2.303))          # sigmoid→0.0909 ⇒ α≈0.10
         nn.init.normal_(s.f[-1].weight, 0.0, 1e-3); nn.init.zeros_(s.f[-1].bias)
+        if REC:
+            s.emb = nn.Sequential(nn.Linear(d, h), nn.GELU(), nn.Dropout(p), nn.Linear(h, h), nn.GELU())
+            s.push = nn.Linear(h, hs); s.gate = nn.Linear(h, hs)
+            nn.init.constant_(s.gate.bias, -1.5)          # HRT: 慢记忆先验
+            s.head2 = nn.Linear(h + hs, 1)
+            nn.init.normal_(s.head2.weight, 0.0, 1e-3); nn.init.zeros_(s.head2.bias)
+
+    def score_rec(s, x, hp):
+        e = s.emb(x)
+        g = torch.sigmoid(s.gate(e)) ** 3                 # cubic-sigmoid 衰减门(HRT)
+        hn = hp * (1 - g) + s.push(e) * g
+        return s.head2(torch.cat([e, hn], -1)).squeeze(-1), hn
 
     def alpha(s):
         if AFIX:
@@ -85,36 +167,55 @@ def hardrank(z):
     return r / max(n - 1, 1) - 0.5
 
 
-def u_of(mdl, i, mu, sd, tau, hard):
+def u_of(mdl, i, mu, sd, tau, hard, H=None):
+    # V2: cols_t = 本锚成员在 829 维中的列号(用于取固定腿)
     a, b = int(ST[i]), int(ST[i + 1])
     if b - a < 50:
         return None, None
+    cols_t = PST[a:b].long()
     x = torch.clamp((XT[a:b] - mu) / sd, -5, 5)
-    s = mdl.f(torch.nan_to_num(x)).squeeze(-1)
+    if CTXA:
+        x = torch.cat([x, CTXT[i].expand(b - a, 4)], 1)
+    if REC and H is not None:
+        s, hn = mdl.score_rec(torch.nan_to_num(x), H[cols_t])
+    else:
+        s = mdl.f(torch.nan_to_num(x)).squeeze(-1); hn = None
     z = (s - s.mean()) / (s.std() + 1e-8)
     r = hardrank(z) if hard else softrank(z, tau)
+    if V2 and bool(HASL[i]):
+        # 合成链: msharpe 腿权 × [model, rev24, fund] 的 rank-z, 与 f3 同序(先合成后 去均值/L1/cap)
+        wl = LWL[i]
+        r = wl[0] * r + wl[1] * LZ24[i].index_select(0, cols_t) + wl[2] * LZFD[i].index_select(0, cols_t)
     r = r - r.mean()
     u = r / (r.abs().sum() + 1e-8)
     c = CAPM / (b - a)
     u = c * torch.tanh(u / c)
     u = u - u.mean()
-    return u, PST[a:b]
+    return u, PST[a:b], (cols_t, hn)
 
 
 def run_span(mdl, idx, mu, sd, tau, hard, w0=None, loss_span=None):
     """按时序推进 idx 内的链; 返回 (net序列(loss_span部分), w_end)。"""
     w = torch.zeros(NW, device=DEV) if w0 is None else w0
+    H = torch.zeros(NW, 32, device=DEV) if REC else None
     al = mdl.alpha()
     nets = []
     for k, i in enumerate(idx):
-        u, midx = u_of(mdl, i, mu, sd, tau, hard)
+        u, midx, hst = u_of(mdl, i, mu, sd, tau, hard, H)
         if u is not None:
+            if REC and hst[1] is not None:
+                H = H.index_put((hst[0],), hst[1])
             uf = torch.zeros(NW, device=DEV).scatter(0, midx.long(), u)
             wn = (1 - al) * w + al * uf
         else:
             wn = w
         dn = torch.sqrt((wn - w) ** 2 + 1e-12).sum()
         net = 1e4 * (wn * YT[i]).sum() - COST * dn
+        if LPP > 0 and u is not None:
+            uf = torch.zeros(NW, device=DEV).scatter(0, midx.long(), u) if not REC else torch.zeros(NW, device=DEV).scatter(0, hst[0].long(), u)
+            if "up" in locals() and up is not None:
+                net = net - LPP * 1e4 * torch.sqrt((uf - up) ** 2 + 1e-12).sum() * 0.0  # 罚进 loss 不进 net
+            up = uf
         if loss_span is None or k >= loss_span:
             nets.append(net)
         w = wn
@@ -143,7 +244,7 @@ for YV in (2023, 2024, 2025, 2026):
     mu = torch.nan_to_num(XS).mean(0); sd = torch.nan_to_num(XS).std(0) + 1e-6
     del XS
     torch.manual_seed(SEED + YV)
-    mdl = Net(XT.shape[1]).to(DEV)
+    mdl = Net(XT.shape[1] + (4 if CTXA else 0)).to(DEV)
     opt = torch.optim.AdamW(mdl.parameters(), lr=LR, weight_decay=1e-4)
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=EPOCHS)
     starts = list(range(int(tr1[0]) + BURN, int(tr1[-1]) - WIN, STRIDE))
@@ -157,6 +258,20 @@ for YV in (2023, 2024, 2025, 2026):
                 continue
             nets, _ = run_span(mdl, span, mu, sd, tau, hard=False, loss_span=BURN)
             loss = -nets.mean() + LDD * es5(nets)
+            if LPP > 0:
+                us = []
+                for i2 in span[BURN::4]:
+                    u2, m2, _h = u_of(mdl, i2, mu, sd, tau, False)
+                    if u2 is not None:
+                        us.append(torch.zeros(NW, device=DEV).scatter(0, m2.long(), u2))
+                if len(us) > 1:
+                    loss = loss + LPP * torch.stack([torch.abs(us[k + 1] - us[k]).sum() for k in range(len(us) - 1)]).mean() * 1e2
+            if LDC > 0:
+                fl = FLAGT[torch.tensor(span[BURN:], device=DEV)]
+                if int(fl.sum()) >= 3:
+                    nf = nets[fl]
+                    k = max(1, min(int(fl.sum()), int(math.ceil(0.05 * nets.shape[0]))))
+                    loss = loss + LDC * torch.topk(-nf, k).values.mean()
             opt.zero_grad(); loss.backward()
             nn.utils.clip_grad_norm_(mdl.parameters(), 1.0); opt.step()
         sch.step()
@@ -165,6 +280,11 @@ for YV in (2023, 2024, 2025, 2026):
             span = [int(i) for i in np.concatenate([tr1[-BURN:], va1])]
             nets, _ = run_span(mdl, span, mu, sd, 0.1, hard=True, loss_span=BURN)
             va = float(nets.mean() - LDD * es5(nets))
+            if LDC > 0:
+                flv = FLAGT[torch.tensor(span[BURN:], device=DEV)]
+                if int(flv.sum()) >= 3:
+                    kv = max(1, min(int(flv.sum()), int(math.ceil(0.05 * nets.shape[0]))))
+                    va -= float(LDC * torch.topk(-nets[flv], kv).values.mean())
         al = float(mdl.alpha()); va_curve.append(round(va, 4)); alist.append(round(al, 4))
         if va > best_va:
             best_va, best_state = va, {k: v.detach().clone() for k, v in mdl.state_dict().items()}
@@ -176,16 +296,25 @@ for YV in (2023, 2024, 2025, 2026):
         nets, _ = run_span(mdl, span, mu, sd, 0.1, hard=True, loss_span=first_te - span[0])
         trn_series = []
         w = torch.zeros(NW, device=DEV); al = mdl.alpha()
+        HT = torch.zeros(NW, 32, device=DEV) if REC else None
         PRED_f = np.full((len(te), NW), np.nan, np.float32)
         for k, i in enumerate(span):
-            u, midx = u_of(mdl, i, mu, sd, 0.1, hard=True)
+            u, midx, hst = u_of(mdl, i, mu, sd, 0.1, hard=True, H=HT)
+            if REC and hst[1] is not None:
+                HT = HT.index_put((hst[0],), hst[1].detach())
             if u is not None:
                 uf = torch.zeros(NW, device=DEV).scatter(0, midx.long(), u)
                 wn = (1 - al) * w + al * uf
                 if i >= first_te:
                     a0, b0 = int(ST[i]), int(ST[i + 1])
                     x = torch.clamp((XT[a0:b0] - mu) / sd, -5, 5)
-                    PRED_f[i - first_te, midx.cpu().numpy()] = mdl.f(torch.nan_to_num(x)).squeeze(-1).cpu().numpy()
+                    if CTXA:
+                        x = torch.cat([x, CTXT[i].expand(b0 - a0, 4)], 1)
+                    if REC:
+                        sc, _ = mdl.score_rec(torch.nan_to_num(x), HT[PST[a0:b0].long()])
+                        PRED_f[i - first_te, midx.cpu().numpy()] = sc.cpu().numpy()
+                    else:
+                        PRED_f[i - first_te, midx.cpu().numpy()] = mdl.f(torch.nan_to_num(x)).squeeze(-1).cpu().numpy()
             else:
                 wn = w
             if i >= first_te:
