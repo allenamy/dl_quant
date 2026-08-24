@@ -75,7 +75,7 @@ for YV in (2024, 2025, 2026):
         return np.nanmean(flat, 0), np.nanstd(flat, 0) + 1e-6
     muL, sdL = zs(XL[sl]); muC, sdC = zs(C[np.clip(amap[sl], 0, nA - 1)])
     ysd = np.nanstd(Y[sl], (0, 1)) + 1e-9
-    D = 21 + 8 + 171
+    D = XL.shape[-1] + XK.shape[-1] + C.shape[-1]
     mdl = L3(D).to(DEV)
     opt = torch.optim.AdamW(mdl.parameters(), lr=1e-3, weight_decay=1e-4)
     starts = list(range(0, tr_end - CHUNK, CHUNK))
