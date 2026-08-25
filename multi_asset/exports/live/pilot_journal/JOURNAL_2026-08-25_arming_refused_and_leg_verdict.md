@@ -37,3 +37,25 @@
 
 ## §4 装置缺陷 E-0826-A
 跑批循环用分号而非 `&&` 连接"跑"与"拷贝产物", 失败臂被上一臂产物冒名顶替(md5 逐位相同), 差点让一个虚构的 "仅 king 夏普 −2.49" 进报告。抓到它的是**"两个不同配置给出逐位相同数字"**这个异常, 不是断言。已修 + 判官加断言。
+
+## §5 20:00Z 锚: arm 恢复 + 冻结期两个越线名被止损(收尾核对)
+
+| 项 | 读数 | 判定 |
+|---|---|---|
+| `launchctl` 退出码 | **0**(此前 1) | ✅ arm 恢复 |
+| `arm` 记录 | `armed: true, fully_verified: true, n_leverage_off_expected: 0` | ✅ 账户修复在生产中生效 |
+| phase_A / k窗 / phase_B / phase_C / 收尾 | 20:24:37 / 900s / 20:46:53 / 20:46:59 / 20:52:50Z | ✅ 与 08:00Z 干净锚同节奏 |
+| `per_name_stop.stopped` | **["PROMUSDT","SKYAIUSDT"]**, cooldown_n=6 | ✅ 冻结期越线的两个名本锚被止损, 补上 |
+| `position_readback_rows` | 371(我预测 ~290 **错**) | 见下 |
+| 仓位分布(guard_twin 独立读账户) | 331 个 / gross 21,949 / 中位名义 56.8U; **54 个 <5U 合计 26.9U = 0.12% gross** | ✅ 目标 298 名 + 平不掉的 dust(5U 最小名义额)≈ 331 |
+| `external_book` | path=`~/wide_shadow/state/target_live/1787688000.json`, producer=`shadow_loop_v3`, universe 450, n_names 298, **n_held_exit 91**, gross_mult 1.5, sha_ok, age 107s | ✅ |
+| reshape | net_before −306.2 → net_after −6.3e-13; gross 22,020→22,559; 3 名穿地板已报不迭代 | ✅ |
+| funding | income=665 rows=369 gap=CONTINUOUS sign=OK | ✅ |
+| watchdog | tripped=False blind=[] partial=['cond2_day_loss'] | ✅ |
+
+**我预测错的那一项**: 我把影子日志里的 `forced_exit_n=81` 当成实盘仓位会掉 81 个, 但实盘的仓位数由"目标名数 + 平不掉的 dust"决定, 且 maker 单在 k 窗内未成交的残差按"chase 全不追"裁定**故意不追**(本锚残差 833U = gross 3.8%)。⇒ 仓位数不是强制出场的读数, `n_held_exit` 才是。
+
+**口径更正(严重性上调)**: `~/wide_shadow` 目录名是历史遗留 —— 按 STATE.md 第 1 行它自 08-22 起就是**实盘书的生产者**。故今日两处修复(E-0825-G 资金费率窗口、E-0825-A demean/强制出场)**都是实盘修复而非影子修复**; E-0825-G 意味着 77% 宇宙带 4h 旧费率**进了正在下单的书**, 而 fund 腿权重 0.653。
+
+## §6 F10 换装候选关闭(详见 PREREG FINAL §J-M)
+训练逐位确定 ⇒ 装置分歧全来自脚本变更; 当前装置上 φ 六臂全负 ⇒ **V2MAIN 不上线**。产出"+0.187"的那台脚本有三个异常签名(2026 独好 / 验证损失独好 / 混合后换手异常低), 已丢失, 记强怀疑未证实。
