@@ -185,3 +185,11 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
   ② **新装置的结论若与既有受据结论方向相反, 一律先对账再报告** —— 对账不通过就不报。
   ③ **每台新装置必须有至少两个平价点**: 一个复现已知基线(φ=0), 一个复现已知的**非基线**结果(φ=1 对 r0 的 F10a)。只有基线平价 = 只验了"没改坏", 没验"改对了"。
 - **受据**: f10_train.py:337(PRED 存 mdl.f(x)) · sidecar_blend.py:171(三腿构造) · w8_blend_replay.py 修正 diff · 修正前后两套数字均在 PREREG_blend_recompute_2026-08-25.md。
+
+## E-0825-I | 场所改杠杆档 ⇒ arm() 拒绝启动 ⇒ 书冻结且止损层同时停摆, **而且没有任何告警送出**
+- **事实(2026-08-25 16:23Z 实盘)**: `binance_broker.ArmingRefused: 1 symbol(s) are not on the expected 20x leverage bracket (['HUSDT'])` —— HUSDT 在账户上是 **4x**(877 个已配置符号中唯一越界)。`run_anchor.py:242` 在 `b.arm()` 处抛出未捕获异常, 进程 rc=1 退出。
+- **后果**: ① **16:00Z 锚完全未交易**(81 个不合格名的强制出场未执行, 书冻结在 12:00Z 的 367 名仓位); ② **逐名止损层也不执行** —— 它跑在同一个锚任务里 ⇒ 冻结期间无止损保护; ③ **零告警**: 崩溃发生在告警路径之前, `notify_audit.jsonl` 最后一条 DELIVERED 仍是 12:39:18Z 的 USUSDT 止损。launchctl 只记 `- 1 com.dlquant.live.anchor`, 没有人被通知。
+- **与既有受据的关系**: 属 E-0822-B 家族(可交易性是**账户属性**, 会被场所单方面改变)+ pipe-exec 审计当日预警的"死人开关在书冻结形态下保持绿色"。A6 的 per-symbol 上限修复(06cbcbf)工作正常(176 个符号按各自上限配置), 本次是**单个符号被降到 4x**。
+- **修复(已执行 16:5xZ)**: `ops/setup_live_account.py --mode LIVE --apply`(该工具默认只读, `--apply` 是例外) ⇒ `re-read: clean=True isolated=0 off_bracket=0 mode=ONE_WAY`。属**恢复账户到既定配置**, 非书行为改动。下一锚 20:23Z 应可正常 arm。
+- **未修缺陷(需预注册)**: ① `run_anchor.py` 对 `ArmingRefused` 无 try/except ⇒ 崩溃即静默; 应捕获并走 HIGH 告警路径后再退出; ② 该失败模式没有独立监视器 —— 建议 guard_twin(已有 20min 轮)加一条"launchctl 上 anchor job 上次退出码 ≠ 0 ⇒ HIGH"; ③ 止损层与调仓层耦合在同一进程, 一方失败两者同停 —— 结构性, 需单独设计。
+- **规则**: 任何**在告警之前**执行的启动检查, 其失败必须自带告警路径 —— "拒绝启动"和"没人知道我拒绝了"是两件事。
