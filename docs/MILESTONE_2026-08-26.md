@@ -42,7 +42,7 @@
 生产者(shadow_loop_v3, 未动)先写 king 文件=**自动回滚缺省** → combo_live_daemon 等 aux/rolling 落定 → combo_stage 重写 target_live(五层安全: 硬截止 N+22:40 / king 备份 / 飞前断言 / **写后用执行器自己的 parse_target 验收失败即回滚** / 全路径 HIGH 页报, 均彩排实测)。执行器与实盘仓**零代码改动**。切换代价实测 2.4% gross。侧车(sidecar_blend)保留为独立第二实现交叉核对器。
 
 ## §5 活口(在飞/待裁定)
-- **V2L38**(LOB 价带弹药 811 币, f11 全宇宙特征已建)双种子训练在 pod; 判据冻结 `PREREG_v2l38_2026-08-26.md`。
+- ~~V2L38~~ **已判负 DNR**(2026-08-26 04:0xZ, 双种子同座替换门 FAIL, 泄漏仪器 PASS; 只封"价带38列进V2弹药"形态, LOB 执行侧/短视界轨道不受约束)⇒ 弹药结论强化: **新信息源的第一形态也未过书层**。受据 PREREG_v2l38 RESULT。
 - combo 前向首周判据(CANDIDATE §6); 09-01 月度重训(RUNBOOK_monthly_retrain_2026-09)。
 - 待裁定: 宇宙冻结(450 vs 场所 527)刷新机制; fund 集中 77% 的结构性风险回应; 杠杆升级(2.0× 历史不触线, 归用户); 备用逐名停机条款 STANDBY; FOMC pre-shrink 候选。
 - 已知未修(非本次引入): 告警去重吞同级复发; daily_summary/redeliver 无调度器; markout 回填积压(预算限速)。
