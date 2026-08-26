@@ -57,5 +57,11 @@
 | pod2(RTX PRO 4500) | GPU 训练 + LOB | `/workspace/{f10, f8_2026-08-22, lob_npz(811), dlw_2026-08-22}`; 重启自愈=BOOTSTRAP.sh |
 | 磁盘档 | 旧 pod 撤离 | `multi_asset/exports/pod_archive_2026-08-15/`(151MB, 不入 git, 有 SHA256SUMS) |
 
-## §7 首锚验证(04:00Z)
-(锚后回填: 见 git 本文件的后续提交)
+## §7 首锚验证(04:00Z)— 五项全绿, 换装确认生效
+| 项 | 收据 |
+|---|---|
+| combo 写者 | 04:21:56Z ⑤完成, rc=0, 36.3s(截止04:22:40), reader_ok, n=301, gross 0.8671, **kc/fc 状态=own(无断链)**, w3m=[0.238,0,0.762] |
+| 执行器读取 | 04:23:30Z `producer="combo_stage_v1(kingLGBM 0.55 + V2MAIN 0.45, rev24 leg removed)"`, sha_ok, age 64s, 301 名, 锚匹配 |
+| phase_C | anchors_row ✓, position_readback 329 行, per_name_stop 正常(stopped 空/cooldown 8) |
+| reshape | net_after −5.9e-13 ≈ 0, gross_after 22,601 ≈ NAV×1.5 |
+| 收尾 | watchdog tripped=False, **anchor done rc=0**(04:46:37Z) |
