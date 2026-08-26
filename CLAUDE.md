@@ -1,61 +1,51 @@
 # DL Quant — Multi-Asset Track — Project Guidance
 
-> **Phase:** 多资产实盘阶段(2026-08 起, 真钱 pilot 运行中)。**阶段总账: `docs/MILESTONE_2026-08-11.md`** —— 重启任何任务先读它的对应小节。
-> **单资产 BTCUSDT 已收口, 权威终版 = `docs/2026-07-06_SINGLE_ASSET_PERP_Y600_CLOSEOUT.md`**(Run1 双盘口 REG_arch @修正后 spot+perp 数据, 诚实口径 P≈0.049, maker-only ≤0.76bps/side, 非 taker)。05-20 milestone 为其历史基线(anti-patterns #1-#29 出处; 其 0.0646/Sharpe 4.4 系 clip+demean+强月口径构造, 更正见 07-06 文档 §2.3 与 memory `single_asset_record_caliber_correction`)。
+> **Phase:** 宽宇宙实盘阶段(真钱, 2026-08-26 起在役书 = **combo**: 去rev24 ∧ king 55/45 混 V2MAIN)。**阶段总账: `docs/MILESTONE_2026-08-26.md`**(上期 `docs/MILESTONE_2026-08-11.md`; 单资产终版 `docs/2026-07-06_SINGLE_ASSET_PERP_Y600_CLOSEOUT.md`)。
+> **重启任何任务先读它对应小节; 引用"已关闭/DO-NOT-RETRY"必须带受据文档。**
 
 ## ★ 会话起步必读(顺序固定)
-
-1. **`STATE.md`(仓库根)** —— 当前状态唯一真相源(线上配置/在飞任务/冻结项/口径纪律)。**先读它, 不信任何更早轮次的摘要, 包括自己的。**
-2. **`docs/TEAM_PROTOCOL.md`** —— 协作规则(完成必须声明+收据/具名 owner/引用前打开看/落盘即上线)。
-3. **`docs/MILESTONE_2026-08-11.md`** —— 已关闭轴总索引 + 活口 + 地雷路由 + 基建地图。**引用任何"已关闭/DO-NOT-RETRY"必须带它指向的受据文档。**
-4. 历史脉络: `multi_asset/exports/live/pilot_journal/`(只追加)。
+1. **`STATE.md`(仓库根)** — 当前状态唯一真相源(在役链路/在飞/待裁定/口径纪律)。**先读它, 不信任何更早轮次的摘要, 包括自己的。**
+2. **`docs/TEAM_PROTOCOL.md`** — 协作规则(完成必须声明+收据/具名 owner/引用前打开看/落盘即上线)。
+3. **`docs/MILESTONE_2026-08-26.md`** — 关闭轴/翻转对账/活口/基建地图。
+4. 历史脉络: `multi_asset/exports/live/pilot_journal/`(只追加)+ `docs/ERROR_LEDGER_2026-08-20.md`。
 
 ## 项目身份
-
-**Binance USDT-perp 多资产中频市场中性**: ~110 币, 4h 锚(00/04/08/12/16/20Z), 三腿书(king DL 8h + s2 慢反转 24h + funding 8h), maker-only 执行。**实盘仓 `~/dl_quant_live`**(落盘即上线; 改动只经 `ops/safe_commit.sh`; 电池 `run_acceptance.sh` 必须全绿; mode 判别式唯一写法见 `live/tests_deadman_ping.py`)。
-
-**数据**: `/mnt/storage/share/bar_data`(READ-ONLY, mode="r"); BTC Tardis 高精度 `/mnt/storage/btcusdt_copy_2023-01-01_2026-05-31/`(READ-ONLY; **旧 `23-25-BTCUSDT` 已弃用** —— 其 book 是现货, 现货-永续口径 bug 是 B25-FAIL 根因); 宽宇宙面板与判官在 jpline `/mnt/storage/private/work_hsy/`(路径详表: MILESTONE §5)。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板(betaadj_ret24 含 11h 前视, 故意保留供归因复现)—— 特征类实验必须显式传因果面板。**
+**Binance USDT-perp 宽宇宙中频市场中性**: 宇宙 450 币, 4h 锚(00/04/08/12/16/20Z), maker-only, gross 1.5×NAV。
+**在役书 = combo**(构成 ≈77% funding 动量 + 13% king LGBM + 10% V2MAIN 书损失 DL): 生产者 `~/wide_shadow`(非 git, 快照入研究仓)写 king 文件 → combo_stage 重写 target_live(五层安全, 失败自动回滚 king 形态)→ 执行器 `~/dl_quant_live`(git, **改动只经 `ops/safe_commit.sh` + 电池全绿**)N+23 读取交易。
+**数据**: share 面板 READ-ONLY(mode="r"); 宽面板/判官在 jpline `/mnt/storage/private/work_hsy/`; GPU/LOB 在 pod2 `/workspace/`。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板 — 特征类实验必须显式传因果面板。**
 
 ## 不可违反约束 (Core Constraints)
+1. **信号极弱 (R²<1%)** — 容量匹配信号; 有效样本是一切; 任何聚焦/加权/复杂化先过样本算术。
+2. **非平稳性** — 结论必须多年 walk-forward + 跨 regime + 最坏五分位(Q4)。
+3. **预处理 > 架构; 机制 > 堆叠(用户硬约束)** — 组件必有机理 + 定量 gate。
+4. **单资产代码只读**(`src/` `configs/` 只 import); **share data 只读**。
+5. **书行为改动 = 预注册 + 用户裁定**; 判据冻结先于看数字; 完成体动词必须有收据; 判决装置与结论同寿命(判官脚本当日入库, 训练脚本随产物存档)。
+6. **复现纪律**(E-0826 族): 枚举 env 白名单断言; 装置自报 config 且写进产物; **复跑命令逐字抄转录**; 多种子先断言 self_sha256 同; 服务端与训练逐算子同序; 工件当输入前开产它的代码。
 
-1. **信号极弱 (R² < 1%)** — 容量必须匹配信号; 有效样本是一切, 任何"聚焦/加权/复杂化"先过样本算术。
-2. **非平稳性** — 任何结论必须多日时序 walk-forward + 跨 regime 检查; 判据必须带最坏五分位(Q4)。
-3. **预处理 > 架构; 机制 > 堆叠(用户硬约束)** — 每个组件必须有清晰作用机理 + 定量 gate; 禁止生硬堆叠。
-4. **单资产代码只读** — 新代码在 `multi_asset/`; `src/` `configs/` 只 import 不改; `reg-arch-final` 冻结参考。
-5. **Share data 只读** — 一律 mode="r", 绝不改/删。
-6. **书行为改动 = 预注册 + 用户裁定**; 判据冻结先于看数字; 完成体动词必须有收据; 判决装置与结论同寿命(判官脚本当日入库)。
+**决策检查清单**(架构/特征/loss 改动必答): 机制? 前置门(Ridge/LGBM)? 复杂度预算? 泄漏(shuffle-future + 偏移谱峰@0 + 折外泄出=0)? OOS 逐折同号? σŷ/σy≥0.02?
 
-**决策检查清单**(每次架构/特征/loss 改动必答): 机制? Ridge/LGBM 前置门(ΔP≥+0.005 特征/+0.003 腿)? 复杂度预算? 泄漏(shuffle-future null + 偏移谱对齐)? OOS 逐折同号? σŷ/σy≥0.02?
+## Metric Discipline(全文 MILESTONE_2026-08-11 §2)
+- **一律简单收益口径**(expm1); 对数口径只作诊断并显式标注。双口径必报(per-asset P + xsec rank-IC), net-of-fee, clean+dense。
+- **IC 是 alpha, β 是量纲**: β 禁作质量门; 塌缩守卫=σŷ/σy。**口径三层**(模型分数/复合目标/持仓书, 逐层差 20-25%)引用必须声明层。
+- **排序≠净额**(五例在案): 分数层录取必要非充分, 必须过书层净额 CI。
 
-**禁止**: 单日/单折结论; stride<horizon; 不过 Ridge 就上 DL; 多种子集成/训后技巧; 动单资产代码; 动 share data; 把 β 水平当质量门。
-
-## Metric Discipline(全文见 MILESTONE §2 与旧版存档)
-
-- **双口径必报**: avg per-asset Pearson + xsec rank-IC(+ Spearman); clean(stride≥600)与 dense 双给; **net-of-fee**。P/S 分歧=危险信号。
-- **★ IC 是 alpha, β 是量纲**(β=r·σy/σŷ): alpha 判定唯一以 IC/rank-IC; β 水平可任意 rescale, 禁作质量门; β 合法角色仅 (a) 塌缩监视(真守卫是 σŷ/σy≥0.02) (b) 跨-regime 稳定性(看方差不看均值); 幅度靠事后校准, 不训进模型。
-- **★ 口径三层**(2026-08-11 实测): 模型分数 IC / 复合新鲜目标 IC / 持仓书 IC 逐层差 20-25%, 引用必须声明层; 实盘 ic_monitor 测的是持仓书层。
-- **★ 排序≠净额**(四例在案): 腿录取 S1 +0.003 是必要非充分, 必须过 S2 净额 G 族(Δ净@4.137 CI>0 且 @6.23≥0 且逐年≥4/5 且夏普不降)。
-
-## Anti-Patterns
-
-全谱见 `docs/SINGLE_ASSET_Y600_FINAL_MILESTONE_2026_05_20.md`(单资产 #1-#29)+ MILESTONE_2026-08-11 §2/§4(多资产)。**多资产日常最咬人的**: #29 通道税(每加 channel −0.013P, 除非 ≥+0.003 alpha); #24 σ-gate BEST checkpoint; 单日/单折验证; 泄漏安全(lead-lag ≤t + shuffle-future null + **锚→面板行偏移谱峰@0**); 单资产先验不整体迁移(引用失败必须带范围)。
+## Anti-Patterns(最咬人的; 全谱见两期 milestone + ERROR_LEDGER)
+#29 通道税(每加 channel −0.013P 除非 ≥+0.003 alpha); 单日/单折结论; stride<horizon; 多种子集成/训后技巧(用户禁); **CAL/口径旗标凭记忆**(E-0826-C); **复跑漏 env**(E-0826-D); **sha 推断代替复跑实测**(E-0826-B); 按文件名/目录名推断语义(E-0825-H/G); 声明"上线"须验运行中进程(E-0825-F); 新结论与既有受据反向先对账。
 
 ## Documentation Discipline
-
-所有 docs/notes 首行元信息: `> **创建:** … | **Session:** … | **状态:** … | **作废条件:** …`; 禁止 `_v2`/`_final` 后缀替代日期; 同主题多份必须 cross-reference; 预注册 SHA 先于数字入库。
+docs 首行元信息 `> **创建:** … | **Session:** … | **状态:** … | **作废条件:** …`; 禁 `_v2/_final` 后缀替代日期; 同主题 cross-reference; 预注册 SHA 先于数字。
 
 ## 路由表(重启任务 → 先读什么)
-
-| 任务类型 | 参考 |
+| 任务 | 参考 |
 |---|---|
-| 实盘状态/配置/在飞 | `STATE.md` §2/§3 |
-| 恢复研究某条轴 | `docs/MILESTONE_2026-08-11.md` §2(关闭)§3(活口)§4(地雷) |
-| 部署/回滚/电池 | `~/dl_quant_live/ops/safe_commit.sh` + `run_acceptance.sh` + `docs/RUNBOOK_deploy_batch1_2026-08-04.md` |
-| 训练复现 | memory `champion_baseline_repro` + `eda/PREREG_retrain_causal_panel_2026-08-03.md` |
-| 因子挖掘规范 | `docs/FACTOR_MINING_COMPLETE_SPEC.md` + 腿录取门 v2(#71) |
-| 路线/日历 | `docs/ROADMAP_2026-08-06.md` |
+| 实盘状态/链路/回滚/在飞 | `STATE.md` |
+| 在役书证据/杠杆/局限 | `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md` |
+| 换装工程/组件/校验 | `docs/CHECKLIST_combo_switch_2026-08-26.md` |
+| 恢复研究某条轴 / DNR | `docs/MILESTONE_2026-08-26.md` §2/§5(08-11 前的查上期) |
+| 判决翻转案例/装置纪律 | `docs/PREREG_leg_ablation_2026-08-26.md` RECONCILIATION + `docs/ERROR_LEDGER_2026-08-20.md` |
+| 部署/回滚/电池 | `~/dl_quant_live/ops/safe_commit.sh` + `run_acceptance.sh` |
+| 月度重训 | `docs/RUNBOOK_monthly_retrain_2026-09.md` |
 | 长期记忆索引 | `~/.claude/projects/...quant-research/memory/MEMORY.md` |
 
 ## 当前进度
-
-**本节不再滚动更新**(历史上它总是过期)。当前状态 = `STATE.md`; 阶段总账 = `docs/MILESTONE_2026-08-11.md`; 里程碑 tag: `milestone-2026-08-11`(双仓)。
+本节不滚动。当前状态=`STATE.md`; 总账=`docs/MILESTONE_2026-08-26.md`; tag: `milestone-2026-08-26`(双仓)。

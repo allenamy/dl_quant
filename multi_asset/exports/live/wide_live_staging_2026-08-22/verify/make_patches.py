@@ -811,11 +811,11 @@ write_diff(TG_REL, tg0, tg)
 # 7e. live/tests_external_book.py — our own suite (full file in staging). Once batch 1 is applied it
 #     also exists in the live repo, so a diff vs that copy is written for review.
 # ════════════════════════════════════════════════════════════════════════════════════════════════
-TX_REL = "live/tests_external_book.py"
-if os.path.exists(os.path.join(LIVE, TX_REL)):
-    write_diff(TX_REL, read(TX_REL), read(TX_REL, root=OUT))
-else:
-    print(f"{TX_REL}: not in the live repo (base before batch 1) — full file only")
+for TX_REL in ("live/tests_external_book.py", "live/external_book.py"):
+    if os.path.exists(os.path.join(LIVE, TX_REL)):
+        write_diff(TX_REL, read(TX_REL), read(TX_REL, root=OUT))
+    else:
+        print(f"{TX_REL}: not in the live repo (base before batch 1) — full file only")
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
 # 8. shadow_loop_v2.py = ~/wide_shadow/shadow_loop.py + ONE addition (the signed target output)
