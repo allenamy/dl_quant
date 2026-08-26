@@ -46,7 +46,7 @@
 - combo 前向首周判据(CANDIDATE §6); 09-01 月度重训(RUNBOOK_monthly_retrain_2026-09)。
 - 待裁定: 宇宙冻结(450 vs 场所 527)刷新机制; fund 集中 77% 的结构性风险回应; 杠杆升级(2.0× 历史不触线, 归用户); 备用逐名停机条款 STANDBY; FOMC pre-shrink 候选。
 - 已知未修(非本次引入): 告警去重吞同级复发; daily_summary/redeliver 无调度器; markout 回填积压(预算限速)。
-- Q3 活口: 树分数作输入列进 V2 训练。
+- ~~Q3 活口: 树分数作输入列~~ **已关**(V2TREE 双种子 Δ≈0 判 DNR, PREREG_v2tree RESULT)⇒ 树 raw 层优势四路全部不可变现, 该框架封卷。
 - 混合书 φ 升级(0.45→0.6+)与 rev24 恢复条件: 均 DNR-无新证据不动。
 
 ## §6 基建地图(2026-08-26)
