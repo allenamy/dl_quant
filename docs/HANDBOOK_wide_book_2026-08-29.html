@@ -1,0 +1,296 @@
+<title>宽书手册</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#FAFAF7; --ink:#1C2128; --muted:#5B6470; --accent:#0E6E6B; --accent-soft:#EEF3F1;
+  --rule:#D9DCD6; --card:#F2F3EE; --pass:#2E7D32; --warn:#B26A00; --fail:#B3372F;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:'Noto Serif SC',Georgia,serif; --sans:'Noto Sans SC',-apple-system,'PingFang SC',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12161A; --ink:#E7E9E4; --muted:#9AA3AB; --accent:#4FB3AE; --accent-soft:#1B2A29;
+    --rule:#2A3138; --card:#1A2026; --pass:#66BB6A; --warn:#E0A458; --fail:#E57368;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161A; --ink:#E7E9E4; --muted:#9AA3AB; --accent:#4FB3AE; --accent-soft:#1B2A29;
+  --rule:#2A3138; --card:#1A2026; --pass:#66BB6A; --warn:#E0A458; --fail:#E57368;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.75;margin:0;font-size:16px}
+main{max-width:78ch;margin:0 auto;padding:48px 20px 96px}
+h1,h2,h3{font-family:var(--serif);line-height:1.3;text-wrap:balance}
+h1{font-size:2.1rem;margin:0 0 6px}
+h2{font-size:1.45rem;margin:56px 0 12px;padding-top:18px;border-top:2px solid var(--accent)}
+h3{font-size:1.12rem;margin:28px 0 8px;color:var(--accent)}
+p{margin:10px 0}
+.eyebrow{font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+.sub{color:var(--muted);margin:2px 0 26px}
+.toc{background:var(--card);border:1px solid var(--rule);padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:4px 24px}
+.toc a{color:var(--ink);text-decoration:none;font-size:.92rem;padding:2px 0;display:block}
+.toc a:hover{color:var(--accent)}
+.toc a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.toc .n{font-family:var(--mono);color:var(--accent);margin-right:8px}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto;margin:14px 0;border:1px solid var(--rule)}
+th{font-family:var(--sans);font-weight:700;text-align:left;background:var(--card);border-bottom:2px solid var(--rule);padding:8px 12px;white-space:nowrap}
+td{border-bottom:1px solid var(--rule);padding:8px 12px;vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.num,th.num{font-family:var(--mono);text-align:right;white-space:nowrap}
+dt{font-weight:700;margin-top:16px}
+dt .en{font-family:var(--mono);font-weight:400;font-size:.82rem;color:var(--muted);margin-left:6px}
+dd{margin:2px 0 0 0;color:var(--ink)}
+dl{margin:0}
+.card{background:var(--card);border:1px solid var(--rule);padding:16px 20px;margin:16px 0}
+.formula{background:var(--accent-soft);border-left:4px solid var(--accent);padding:14px 18px;margin:16px 0;font-family:var(--mono);font-size:.95rem;overflow-x:auto}
+.pill{display:inline-block;font-family:var(--mono);font-size:.75rem;padding:1px 9px;border-radius:2px;border:1px solid;vertical-align:middle}
+.p-pass{color:var(--pass);border-color:var(--pass)}
+.p-warn{color:var(--warn);border-color:var(--warn)}
+.p-fail{color:var(--fail);border-color:var(--fail)}
+.timeline{list-style:none;padding:0;margin:14px 0;border-left:2px solid var(--rule)}
+.timeline li{padding:6px 0 6px 18px;position:relative}
+.timeline li::before{content:'';position:absolute;left:-6px;top:14px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.timeline .t{font-family:var(--mono);font-size:.85rem;color:var(--accent);display:block}
+code{font-family:var(--mono);font-size:.88em;background:var(--card);padding:1px 5px;border:1px solid var(--rule)}
+.note{font-size:.88rem;color:var(--muted)}
+.big{font-family:var(--mono);font-size:1.5rem;color:var(--accent)}
+strong{font-weight:700}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 18px;font-size:.93rem}
+.kv .k{color:var(--muted);white-space:nowrap}
+.kv .v{font-family:var(--mono)}
+</style>
+<main>
+<div class="eyebrow">LIVE STRATEGY HANDBOOK · 2026-08-29</div>
+<h1>宽书手册</h1>
+<p class="sub">combo 宽宇宙市场中性策略的完整说明书 —— 原理、三条腿、执行链、风控,以及实盘三日全面体检。不用黑话,每个概念从零讲起。</p>
+
+<nav class="toc">
+<a href="#s1"><span class="n">Ⅰ</span>这是一个什么策略</a>
+<a href="#s2"><span class="n">Ⅱ</span>基础概念词典</a>
+<a href="#s3"><span class="n">Ⅲ</span>数学地基:弱信号×大数定律</a>
+<a href="#s4"><span class="n">Ⅳ</span>三条腿:信号从哪来</a>
+<a href="#s5"><span class="n">Ⅴ</span>从信号到仓位:加工流水线</a>
+<a href="#s6"><span class="n">Ⅵ</span>一个真实锚点的完整流转</a>
+<a href="#s7"><span class="n">Ⅶ</span>执行侧:怎么下单才不吃亏</a>
+<a href="#s8"><span class="n">Ⅷ</span>成本全表</a>
+<a href="#s9"><span class="n">Ⅸ</span>风控:哪些保护在值班</a>
+<a href="#s10"><span class="n">Ⅹ</span>三日实盘体检报告</a>
+<a href="#s11"><span class="n">Ⅺ</span>行情依赖与可持续性</a>
+<a href="#s12"><span class="n">Ⅻ</span>大事记与前路</a>
+</nav>
+
+<h2 id="s1">Ⅰ · 这是一个什么策略</h2>
+<p>一句话:在币安的 USDT 永续合约市场上,同时<strong>做多约 125 个币、做空约 125 个币</strong>,多空金额相等,靠"排序做得比别人略准一点"赚钱,而不靠猜大盘涨跌。</p>
+<p>它的几个身份标签,逐个解释:</p>
+<div class="tw"><table>
+<tr><th>标签</th><th>含义</th></tr>
+<tr><td><strong>宽宇宙</strong></td><td>候选池是 450 个币(冻结快照),实际持有其中约 250 个流动性达标的。持有的币越多,"每一注赢一点点"的大数定律越有效 —— 这是本策略的命根子(见第Ⅲ章)。</td></tr>
+<tr><td><strong>市场中性</strong></td><td>多头总金额 ≈ 空头总金额,大盘整体涨跌对账户的直接影响被抵消掉大半。赚的是"哪些币相对更强/更弱"的钱。(残余的间接影响见第Ⅺ章。)</td></tr>
+<tr><td><strong>中频 / 4 小时锚</strong></td><td>每 4 小时(UTC 0/4/8/12/16/20 点)重新计算一次目标仓位并调整,这个时点叫一个<strong>锚点</strong>。一年约 2190 个锚。</td></tr>
+<tr><td><strong>maker-only</strong></td><td>只挂单等别人来成交,不主动吃单 —— 手续费便宜一半以上,还常能"赚到点差"(见第Ⅶ章)。</td></tr>
+<tr><td><strong>combo 书</strong></td><td>当前在役版本的代号:三个信号源按 77% / 13% / 10% 混合(见第Ⅳ章),2026-08-26 上线。"书"= 一整套持仓组合,英文 book 的直译,下文通用。</td></tr>
+</table></div>
+<div class="card"><div class="kv">
+<div class="k">当前本金(NAV)</div><div class="v">≈ 20,600 USDT(8-27 入金 5,449 后)</div>
+<div class="k">杠杆</div><div class="v">2.0×(总持仓 ≈ 41,200 USDT)</div>
+<div class="k">回放全史成绩(2023 起)</div><div class="v">净 +1.68 bps/锚 · 年化 Sharpe 2.7–3.0 · 最大回撤 −20~26%(2.0×)</div>
+<div class="k">实盘 3.4 天</div><div class="v">净赚 +454 USDT(费用、资金费全付讫;体检见第Ⅹ章)</div>
+</div></div>
+
+<h2 id="s2">Ⅱ · 基础概念词典</h2>
+<p>后文所有术语都在这里给出定义。建议先通读一遍。</p>
+<dl>
+<dt>永续合约<span class="en">perpetual futures</span></dt>
+<dd>一种没有到期日的期货。你可以用保证金做多或做空一个币,不必真的持有币。它是加密市场流动性最好的工具,也是做空的唯一方便渠道。</dd>
+<dt>资金费<span class="en">funding</span></dt>
+<dd>永续合约维持价格贴近现货的机制:每隔几小时(多数币 8 小时,部分 4 小时),多头和空头之间互相转账一笔小钱。费率为正时多头付给空头,为负时反过来。<strong>本书是净付方</strong>:平均每锚付出约 1.1–1.9 bps(即总持仓的万分之一点几),这是成本不是收入 —— 但资金费的<em>变化规律</em>本身是我们最重要的信号原料(见 fund 腿)。</dd>
+<dt>bps(基点)<span class="en">basis point</span></dt>
+<dd>万分之一。+1.68 bps/锚 = 每个锚点赚总持仓的 0.0168%。小数字 × 高频次 = 本策略的记账单位。</dd>
+<dt>NAV / gross / 杠杆</dt>
+<dd>NAV = 账户净值(你的本金)。gross = 多头金额 + 空头金额的总和(总敞口)。杠杆 = gross ÷ NAV。当前 2.0× 意味着 2 万本金支撑 4.1 万总持仓。</dd>
+<dt>横截面<span class="en">cross-sectional</span></dt>
+<dd>"同一时刻把所有币排成一排比高低"的视角。我们预测的从来不是"BTC 明天涨多少"(时间序列问题),而是"这 250 个币接下来 4 小时谁比谁强"(横截面排序问题)。后者噪声互相抵消,更可做。</dd>
+<dt>IC(信息系数)<span class="en">information coefficient</span></dt>
+<dd>预测排序与实际排序的相关系数,衡量"排得准不准"。0 = 瞎猜,1 = 完美。本领域 0.05 已是好信号,0.10 罕见。<strong>引用 IC 必须带三个标签:哪个时代 / 哪一层 / 对什么目标</strong> —— 同一套系统在不同口径下 IC 从 0.01 到 0.09 都对(详见第Ⅲ、Ⅳ章)。</dd>
+<dt>Sharpe(夏普比率)</dt>
+<dd>收益 ÷ 波动,衡量"赚得稳不稳"。年化 Sharpe 2.9 意味着按历史波动,一年下来亏钱的概率极小。它可以由很小的 IC 支撑 —— 这正是第Ⅲ章要算给你看的。</dd>
+<dt>回撤的两种口径<span class="en">drawdown</span></dt>
+<dd><strong>距峰口径</strong>:从历史最高点回落了多少 —— 衡量"心理痛感"。<strong>起点口径</strong>:比本金起点低了多少 —— 实盘停机线用的是这个。两者差异巨大:2.5× 杠杆下约 1/3 的年份会经历"距峰 −25%"的时刻,但"跌破起点 −25%"(真停机)的概率只有 2–7%。引用回撤数字必须声明口径。</dd>
+<dt>换手<span class="en">turnover</span></dt>
+<dd>一个锚点想要买卖的总金额 ÷ gross。稳态约 2–5.5%;建仓、入金、币退市时会临时冲高到 8–18%,须逐锚给出构成归因。换手直接乘以成本,所以整条流水线里有多道"少动"的闸门。</dd>
+<dt>maker / taker</dt>
+<dd>挂单等成交 = maker(做市方),费率约 1.8 bps(含 BNB 折扣);主动吃掉别人的挂单 = taker,费率约 4.5 bps 还要跨过点差。本书 3 天实盘 taker 占比 ≈ 0%。</dd>
+<dt>滑点与选择效应<span class="en">slippage</span></dt>
+<dd>成交价与决策时中间价的差。本书的 maker 挂单实测滑点是<strong>负的</strong>(平均每笔"赚"1–3 bps)—— 但这不是免费午餐,而是<em>选择效应</em>:价格走过来才成交,走开就不成交。真正的裁判是下一个概念。</dd>
+<dt>markout(事后盯市)</dt>
+<dd>成交后 60 秒,价格相对成交价又走了多少。若总是成交后价格继续对你不利(买完就跌),说明你在被更快的人"逆选择"。本书基线约 −1.5 bps/笔 —— 挂单赚的点差扣掉这个仍然是净赚。</dd>
+<dt>逆选择<span class="en">adverse selection</span></dt>
+<dd>"愿意跟你成交的人,往往正因为他知道些什么"。maker 的固有代价,用 markout 度量、用挂单深度与撤单节奏管理。</dd>
+<dt>回放<span class="en">replay / backtest</span></dt>
+<dd>把策略逻辑在历史数据上逐锚重演。本书全部结论来自 2023 年起、扣除全部成本(净口径)、三个随机种子一致的回放,并有逐位复现的存档装置。回放的天敌是<strong>口径错误</strong>(用错收益定义、混入未来信息等)—— 项目错题集里一半的案子都是它,这也是第Ⅹ章体检存在的原因。</dd>
+<dt>预注册<span class="en">pre-registration</span></dt>
+<dd>先把判定标准白纸黑字写死,再看实验结果 —— 防止"看完数字再挑标准"的自欺。本项目所有书级改动都走这个流程。</dd>
+</dl>
+
+<h2 id="s3">Ⅲ · 数学地基:0.01 的优势如何变成 2.9 的 Sharpe</h2>
+<p>这是全书最重要的一章。很多人第一反应:"整书对下一个 4 小时收益的排序 IC 才 0.01–0.04,这么弱怎么赚钱?"答案是一道乘法,每个数字都是实测:</p>
+<div class="formula">年化 Sharpe = 每注优势 × √(每年总注数)<br><br>
+书每锚净收益均值   = +1.681 bps(回放全史)<br>
+书每锚净收益波动   =  27.2 bps<br>
+⇒ 单锚 Sharpe      = 0.0618  → × √2190 锚/年 = <strong>年化 2.89</strong> ✓<br><br>
+单个币 4 小时波动  ≈ 172 bps(横截面中位)<br>
+书波动只有单币的 1/6.3 ⇒ 250 个持仓折合 <strong>≈ 40 注相互独立的赌注/锚</strong><br>
+⇒ 每注所需优势     = 0.0618 ÷ √40 ≈ <strong>IC 0.0098</strong><br><br>
+一年总注数 = 40 × 2190 ≈ 87,600 注<br>
+0.0098 × √87,600 = <strong>2.90</strong> ✓ 闭环</div>
+<p><strong>白话:每注只有 51:49 的胜率,但一年掷 8.8 万次硬币。</strong>赌场单把优势也只有 1–2%,没人怀疑赌场的年报。这就是为什么项目第一铁律是"信号极弱,有效样本是一切" —— 广度(持仓个数 × 锚点频次)不是锦上添花,是分母本身。</p>
+<p class="note">推论一:任何砍广度的操作(集中持仓、提高流动性门槛、减少锚频)都在动分母,必须先过样本算术。推论二:高 IC(0.1+)策略是另一种生意 —— 低频集中、每注下重注;两种模式不可用对方的尺子互相评判。</p>
+
+<h2 id="s4">Ⅳ · 三条腿:信号从哪来</h2>
+<p>书的目标仓位由三个独立信号源混合而成。"腿"= 一路信号。</p>
+
+<h3>fund 腿 —— 资金费动量(有效占比 ≈ 77%,主引擎)</h3>
+<p><strong>原料</strong>:每个币的资金费率历史(每次结算一个读数)。<strong>加工</strong>:对费率序列做指数移动平均(EMA:一种平滑方法,今天的读数占一小份权重,昨天的平滑值占大头,越久远的数据权重按指数衰减 —— 好处是"既看趋势又不被单次读数带偏")得到 <code>f_fund_ema</code>,即"这个币的资金费处在什么趋势水平上",再做横截面排名。<strong>机理</strong>:资金费是杠杆资金拥挤度的体温计 —— 费率结构持续走高的币,往往有真实的买方压力在后面,价格动量随后兑现;反之亦然。做多费率动量强的、做空弱的。</p>
+<p><strong>不是套息</strong>:容易误会成"收资金费"。实际上这本书整体是资金费的<em>净付方</em>(每天付 30–40 USDT)—— 我们赚的是费率动量<em>预测价格</em>的钱,付的资金费是这门生意的原料成本。</p>
+<p><strong>效果</strong>:消融实验(把这条腿单独拿掉再回放)显示书四年全部转亏 —— <strong>fund 腿就是书的本体</strong>。它的新鲜分数对裸 4 小时收益的 IC 只有 0.01–0.016,是"极弱但极宽"的典型。</p>
+
+<h3>king 腿 —— 梯度提升树(有效占比 ≈ 13%,降波动器)</h3>
+<p><strong>模型</strong>:LGBM(梯度提升决策树):几百棵浅决策树接力工作 —— 第一棵树粗略拟合,第二棵专门拟合第一棵的残差,依此类推,最后把所有树的输出相加。它是表格数据上最能打的经典模型,优点是自动发现非线性和特征交互、不易过拟合。</p>
+<p><strong>输入(78 列,从模型文件逐字核出)</strong>:约 39 个原始量,<strong>每个都配一份横截面排名版本</strong>(原始值 + "它在全场排第几"两种形态,让树既能用绝对量级也能用相对位置)。原始量的家族:多周期动量(7/30 天)、多周期反转(4小时/24小时/3天)、已实现波动率(7 天)、成交量与流动性(多窗口对数量额)、资金费族(现值/EMA/隐含)、量价比值类。</p>
+<p><strong>目标</strong>:"慢复合目标" —— 未来约 24 小时的<strong>平滑</strong>收益(多锚平均,滤掉单锚噪声)。对平滑目标的排序 IC 天然比对裸 4 小时收益高:逐年样本外(OOS,每年留出、只用该年之前的数据训练)0.056–0.062。<strong>作用机理</strong>:king 的净收益贡献接近零,但显著<strong>压低整书方差</strong>(消融实验:单去 king,Sharpe 下降)。它像方向盘的阻尼:不提供动力,让车更稳。</p>
+
+<h3>V2MAIN 腿 —— "书损失"深度网络(有效占比 ≈ 10%,本次换装的新成员)</h3>
+<p><strong>模型结构</strong>(输入 171 列特征,参数全共享 —— 每个币用同一套权重打分,币间关系通过"特征先做横截面排名/标准化"进入,不靠注意力机制,因此新上市的币无需任何适配即可打分):</p>
+<ul>
+<li><strong>分段线性特征嵌入(PLEmb)</strong>:把每个特征的标准化取值范围(±2.5σ)切成 <strong>8 个固定桶</strong>;特征值落进哪个桶,就取出那个〔特征,桶〕对应的一条<strong>可学习的 256 维向量</strong>;171 列的向量相加作为网络输入。白话:让网络对每个特征学出"折线式"的非线性响应曲线(比如"动量太极端反而要打折"),而不是一条僵硬的直线 —— 这是从早期单资产时代认证保留下来的机制。</li>
+<li><strong>两层 MLP</strong>:两层全连接网络(GELU 激活 + dropout 防过拟合),把嵌入揉成一个分数。</li>
+<li><strong>慢记忆分支</strong>:一条带门控的旁路,维护每个币的慢变状态(初始化偏向"少更新"),对应"有些信息应该慢慢累积而非每锚重来"。</li>
+</ul>
+<p><strong>训练方式(关键创新:可微书损失)</strong>。普通模型的训练目标是"预测得准"(拟合 IC);V2MAIN 的目标是把打分<strong>直接塞进一条完全可微的书流水线</strong>,优化最终书的表现。训练时每一步都是流水线的软化版(冻结存档原文):</p>
+<div class="formula">分数 → 锚内标准化 → <strong>软秩</strong>(可导的排名近似, 温度逐轮退火趋近硬排名)<br>→ 去均值 → 归一 → 软帽 2.5/n → 再去均值 → EMA(<strong>α 可学习</strong>)<br>→ 每锚净额 = 权重·收益 − <strong>3.52 bps × 换手</strong>(成本在训练内!)<br>损失 = −净额均值 + 0.25 × ES5(最差 5% 窗口的平均亏损, 即尾部惩罚)</div>
+<p>三个值得咀嚼的细节:①<strong>成本写进损失</strong> —— 模型在学习时就为每一次换手付 3.52 bps,天然学会"少动";②<strong>ES5 尾部惩罚</strong> —— 不只追求平均赚,还惩罚最差 5% 时段的亏法,直接优化回撤形态;③<strong>V2=1 模式</strong>:训练时的"收益"不是裸收益,而是按三腿座位权重混合后的收益 —— 即模型从第一天就在学"<em>当我是三腿书里的 king 席成员时</em>整本书怎么表现",而不是单打独斗。训练按 96 锚窗 + 24 锚燃烧期做截断反传,可学习的 EMA α 最终收敛到 ≈0.10 —— 与部署流水线的 α=0.1 相互印证。</p>
+<p><strong>本项目最反直觉的实测受据</strong>:满特征树模型的 IC 是 V2MAIN 的约 4 倍(0.082 vs 0.021),但把树换进书里净额 <span style="color:var(--fail)">−0.184 bps/锚</span>,而 IC 低 4 倍的 V2MAIN 是 <span style="color:var(--pass)">+0.187 bps/锚</span>。<strong>"IC 更高就该进书"被两次实测证伪</strong> —— 高 IC 常来自押注拥挤、高换手的地方,进书后被成本和相关性吃光。书要的不是最准的排序,是净成本、分散化、尾部可控之后仍然值钱的排序。</p>
+
+<h3>权重怎么定</h3>
+<p>两层。<strong>第一层(自适应座位权重,msharpe 法)</strong>:每个锚点,取三条腿各自<strong>最近 900 个锚的单腿模拟收益序列</strong>,算 <code>均值 ÷ 标准差</code>(即滚动 Sharpe 的分子分母),负者直接归零,再归一化 —— 表现越稳的腿票数越多,持续亏的腿自动失去座位。一条历史上曾在编的 rev24 腿(24 小时反转信号)已被消融实验判负,座位<strong>强制置零</strong>(不等它自己衰减)。当前座位权重 ≈ [king 0.22, rev24 0, fund 0.78],逐锚微动。<strong>第二层(固定混合)</strong>:按同一座位权重造两本子书 —— A 书的 king 席由 king 打分,B 书的 king 席由 V2MAIN 打分,<strong>各自走完整八道闸、各自维护自己的 EMA 状态</strong>(两本书的记忆独立演化),最后 <code>0.55 × A + 0.45 × B</code> 相加成为交易书。0.55/0.45 来自换装前的三种子回放判定,冻结不调。展开后的有效构成即 77 / 13 / 10。</p>
+
+<h2 id="s5">Ⅴ · 从信号到仓位:加工流水线</h2>
+<p>三条腿给出的只是"每个币的分数"。分数到真实仓位要过八道闸,每道都有存在理由:</p>
+<div class="tw"><table>
+<tr><th>#</th><th>工序</th><th>做什么</th><th>为什么</th></tr>
+<tr><td>1</td><td>排名归一</td><td>把分数换成横截面排名再标准化</td><td>只信"相对强弱",不信分数绝对大小(绝对值层面模型不可靠,有专门受据)</td></tr>
+<tr><td>2</td><td>流动性门</td><td>剔除近 7 日 4 小时成交额 &lt; 25 万 USDT 的币</td><td>买得进、卖得出;这道门把 450 候选砍到约 300</td></tr>
+<tr><td>3</td><td>去均值</td><td>所有权重减去横截面平均值:<code>w′ᵢ = wᵢ − mean(w)</code></td><td>减完后权重之和恰为 0 ⇒ 多头总额 = 空头总额(市场中性的来源)。三币玩具例:原始 [+3, +1, −1] → 均值 +1 → 去均值 [+2, 0, −2],多空各 2,自动配平</td></tr>
+<tr><td>4</td><td>归一化</td><td>除以权重绝对值之和,使 Σ|w| = 1</td><td>之后"权重 × gross"就是精确的目标金额,总敞口可控</td></tr>
+<tr><td>5</td><td>逐名帽</td><td>单币权重截断到 ±2.5/n(n=入选币数)再重新归一。当前 n≈300 ⇒ 帽 ≈0.83% gross ≈ <strong>单币最多 ~340 USDT</strong></td><td>任何单币爆雷伤害有界 —— 这也是"币在锚间突然退市被强制结算"只伤几个 U 的原因。分子 2.5 的含义:允许头部币拿到平均仓位(1/n)的至多 2.5 倍</td></tr>
+<tr><td>6</td><td>EMA 平滑</td><td><code>今日仓位 = 0.1 × 新信号 + 0.9 × 昨锚仓位</code>(半衰期 ≈6.6 锚 ≈26 小时)</td><td>换手的最大闸门。代价:书里 ~90% 是旧信号,书层 IC 因此从分数层稀释(第Ⅱ章 IC 三标签的由来)。经回放验证,这个代价买来的换手节约远超损失;V2MAIN 训练中"可学习的 α"也自己收敛到 ≈0.1,双重印证</td></tr>
+<tr><td>7</td><td>带通</td><td>目标与现仓的权重差 &lt; 万分之 2.5 就不动。按当前 gross 41,200 折算:<strong>调整金额 &lt; 约 10 USDT 的单子直接不发</strong></td><td>一张 $8 的单,手续费+摩擦占比太高;攒到超过带宽再一起动</td></tr>
+<tr><td>8</td><td>强制退出</td><td>退市 / 失格 / 逐名止损的币无条件清仓</td><td>安全垫;本周 40+ 个币退市全靠它自动消化</td></tr>
+</table></div>
+
+<h2 id="s6">Ⅵ · 一个真实锚点的完整流转(2026-08-29 00:00 UTC,原始记录)</h2>
+<ul class="timeline">
+<li><span class="t">00:00</span>锚点时刻。所有特征数据截止此刻收盘 —— 之后的一切计算都只是"算得晚",用的信息不新于此刻(因果性的根)。</li>
+<li><span class="t">00:16</span>生产者进程起跑:拉取 450 币面板,资金费更新 454 条(结算锚稳态),计算三腿分数,写出 king 形态的备份书。</li>
+<li><span class="t">00:21:58</span>combo 加工完成:171 列特征重建 → V2MAIN 打分 400 币 → 两本子书各走八道闸 → 0.55/0.45 混合 → 写出目标书(252 币有仓位),文件带校验码,写后用执行器自己的解析器回读验收(失败自动回滚到 king 备份并报警)。距硬截止 00:22:40 余 42 秒。</li>
+<li><span class="t">00:24:00</span>执行器整点唤醒,读目标书(文件年龄 106 秒,校验通过),对照场上实际持仓算出差额:需调整 139 个币,合计 2,050 USDT(换手 5.5%,构成:常规 ~4% + 上锚退市余量补齐)。</li>
+<li><span class="t">00:24–00:27</span>一波挂出 130+ 张 maker 单,单张中位仅 12 USDT。之后 20 分钟是"摆摊等客":挂单驻场等别人来成交。16 张被交易所瞬时拒单 → 自动重试全部恢复。</li>
+<li><span class="t">00:29:44</span>本锚恰逢资金费结算:273 个持仓合计<strong>付出</strong> 5.77 USDT。</li>
+<li><span class="t">~00:47</span>清扫:未成交余量撤单。够金额的用 taker 补(本锚 0 张);随机对照组故意不补(见第Ⅶ章 chase 实验)—— 本锚 PIXEL 一笔 145 USDT 余量连续第二次抽中"不追"组,合法滚动到下锚。</li>
+<li><span class="t">00:51</span>收官:目标达成率 ~99%,净敞口 −0.64%(带内),看门狗全查通过,写入不可篡改的锚点台账。独立核账进程(guard_twin)确认账实相符。</li>
+<li><span class="t">00:55</span>常驻排查器自动全项检查并推送 Telegram 报告:全绿。</li>
+</ul>
+<div class="card">
+<strong>放大镜:一个币在这条流水线里的完整旅程(数字为该锚真实量级)</strong>
+<div class="kv" style="margin-top:10px">
+<div class="k">① 三腿打分混合后</div><div class="v">某币综合分 z = +1.4(全场排名前 12%)</div>
+<div class="k">② 流动性门</div><div class="v">近 7 日 4h 成交额 180 万 USDT ≥ 25 万 ✓ 入选</div>
+<div class="k">③④ 去均值 + 归一</div><div class="v">原始权重 +0.58% gross</div>
+<div class="k">⑤ 逐名帽 0.83%</div><div class="v">未触帽,保持 +0.58%</div>
+<div class="k">⑥ EMA(上锚仓位 +0.24%)</div><div class="v">0.1×0.58 + 0.9×0.24 = <strong>+0.274%</strong></div>
+<div class="k">折算目标金额</div><div class="v">0.274% × 41,200 = <strong>$113 多头</strong>;现持 $96 → 差额 +$17</div>
+<div class="k">⑦ 带通(阈 ≈$10)</div><div class="v">$17 &gt; $10 ✓ 需要交易</div>
+<div class="k">下单</div><div class="v">挂 $17 买入 maker 单,驻场 20 分钟 → 成交价比决策价还低 2 bps(选择效应)</div>
+<div class="k">若逢结算</div><div class="v">该币费率 +0.005%/8h、持仓 $113 多头 ⇒ 付资金费 $0.006</div>
+</div>
+<p class="note" style="margin-top:8px">同一时刻有 250 个这样的旅程并行;每个都小到不起眼,加总就是那 +1.68 bps/锚。</p>
+</div>
+
+<h2 id="s7">Ⅶ · 执行侧:怎么下单才不吃亏</h2>
+<p>执行的全部难题浓缩成一个三难:<strong>挂得浅容易被逆选择,挂得深成交率低,立刻追单要付 taker 费加点差。</strong>本书的解法不是拍一个"最优参数",而是把每个权衡做成<strong>在线随机实验</strong>,让实盘数据自己回答:</p>
+<div class="tw"><table>
+<tr><th>机制</th><th>做法</th><th>三天实测</th></tr>
+<tr><td>挂单驻场</td><td>maker 单挂出后驻场 ~20 分钟等成交,不追价</td><td>taker 占比 0%;成交价平均<strong>优于</strong>决策价 +1.5~2.8 bps</td></tr>
+<tr><td>深度实验(placement bandit)</td><td>每单按确定性随机数分到"贴价排队"或"挂深一档"两组</td><td>贴价:成交率 90%、价差收益 +1.25 bps;挂深:88%、<strong>+3.56 bps</strong>。谁真的更好,等 markout 裁决(挂深的高收益可能是逆选择假象)</td></tr>
+<tr><td>追单实验(chase)</td><td>未成余量随机分"补 / 不补"两组,持续为"放弃的收益"定价</td><td>三日随机化 1,000+ 笔;放弃部分单独记账,不混入执行失败</td></tr>
+<tr><td colspan="3"><strong>为什么小额余量不追(算给你看)</strong>:以真实案例 PIXEL 的 $145 未成余量为例 —— 追单成本 = taker 费 4.5 bps + 跨过半个点差 ~3 bps ≈ <strong>$0.11</strong>;追到手的收益 = 这 $145 上 4 小时的期望优势 ≈ 145 × 1.68 bps ≈ <strong>$0.024</strong>。<strong>成本是收益的 4~5 倍</strong>,而"不追"的代价只是把这点仓位差滚到下一锚,由几乎免费的 maker 单重试。历史上整个"追单家族"的专项测量也是同一结论(追单方相对不追方无显著优势,置信区间擦零)。当前保留的随机对照组是为了<strong>持续</strong>监测这个结论 —— 若哪天市况变得"不追真的亏大钱",数据会第一时间报告。</td></tr>
+<tr><td>尺寸监控</td><td>按单张大小分桶看成交质量</td><td>入金后单张放大 ~2.5 倍,三桶价差收益全为正,无恶化</td></tr>
+</table></div>
+<p class="note">已测出的因果关系:单张每放大 e 倍(2.7×),markout 恶化 0.16–0.42 bps —— 真实但温和,是未来加仓到 30–50 万美金时的主要跟踪对象。</p>
+
+<h2 id="s8">Ⅷ · 成本全表(三天实测 vs 预算)</h2>
+<div class="tw"><table>
+<tr><th>项目</th><th class="num">实测</th><th class="num">预算/预期</th><th>判定</th></tr>
+<tr><td>手续费率(全 maker + BNB 折扣)</td><td class="num">1.83–2.21 bps/成交额</td><td class="num">1.80 标准</td><td><span class="pill p-pass">符合</span></td></tr>
+<tr><td>手续费总额(3.4 天)</td><td class="num">≈ 15 USDT</td><td class="num">—</td><td><span class="pill p-pass">微小</span></td></tr>
+<tr><td>资金费净付(3.4 天)</td><td class="num">−122 USDT(≈1.4 bps/锚)</td><td class="num">−1.6~−1.9 bps/锚</td><td><span class="pill p-pass">优于预期</span></td></tr>
+<tr><td>滑点(成交价 vs 决策价)</td><td class="num">+1.5~+2.8 bps(有利)</td><td class="num">回放假设 −1.5</td><td><span class="pill p-pass">优于假设</span></td></tr>
+<tr><td>回放的一揽子成本假设</td><td class="num">—</td><td class="num">3.52 bps/换手额</td><td><span class="pill p-pass">实测为其上界,保守成立</span></td></tr>
+</table></div>
+
+<h2 id="s9">Ⅸ · 风控:哪些保护在值班,哪些方案被数据枪毙了</h2>
+<h3>在值班的</h3>
+<div class="tw"><table>
+<tr><th>层</th><th>规则</th></tr>
+<tr><td>单日亏损线</td><td>当日 −4% 触发当日平仓规则(cond2)</td></tr>
+<tr><td>总回撤停机线</td><td>较起始本金 −25% 全书停机(cond4;起点口径,入金自动重标定)</td></tr>
+<tr><td>逐名止损</td><td>单币持仓路径止损(d30 规则,回放同款)</td></tr>
+<tr><td>看门狗</td><td>每锚核查"仓位变化是否都有订单解释、净敞口是否带内、杠杆是否越界"等十余条款;异常 = 保护性平书 + 手机报警。8-26 曾因两个币被交易所强制结算而正确触发,权益零损失,当日恢复</td></tr>
+<tr><td>独立核账(guard_twin)</td><td>每 20 分钟用交易所账本独立重算权益,与看门狗互相对账;入金当天实弹验证了"转账不入盈亏"路径</td></tr>
+<tr><td>常驻排查器</td><td>每锚 +55 分钟自动全项体检,Telegram 推送,与人工排查双仪器互证</td></tr>
+</table></div>
+<h3>被数据枪毙的(每一个都省了真金白银)</h3>
+<p class="note">波动率目标化(预测得准但行动亏)· 渐进止损(样本外判负)· 回撤触发式阶梯减仓(快崖刹不住 + 年化代价 13–26 个点)· β 对冲(毁掉 1/3 利润)· 盘口脆弱度分档减仓(覆盖期零收益、代价 34+ 个点)· 锚间逐名微调(四种信号全部只测出波动、测不出方向,期望值 −15 bps/次)。<strong>共同教训:预测得准 ≠ 行动划算;每个"聪明的自动驾驶"都要先过行动定价这一关。</strong></p>
+
+<h2 id="s10">Ⅹ · 三日实盘体检报告(2026-08-29)</h2>
+<p>体检要回答的唯一问题:<strong>赚的钱是真的吗?与离线评估一致吗?</strong>历史上项目吃过"实盘几天后发现重大口径错误,其实不赚钱只是运气好"的亏,所以用三把互相独立的尺子交叉对账:</p>
+<div class="tw"><table>
+<tr><th>尺子</th><th>原理</th><th class="num">读数</th><th>判定</th></tr>
+<tr><td>A · 场所权益</td><td>交易所自己报的账户净值,剔除入金转账</td><td class="num">+454 USDT / 3.4 天</td><td><span class="pill p-pass">真金白银</span></td></tr>
+<tr><td>B · 账本自洽</td><td>guard_twin 每 20 分钟验证"权益 − 转账 ≡ 已实现盈亏 + 手续费 + 资金费 + 未实现变动"</td><td class="num">全程 AGREE</td><td><span class="pill p-pass">无记账幻觉</span></td></tr>
+<tr><td>C · 模型重构</td><td>用目标仓位 × 独立行情数据重算理论盈亏,再扣费用与资金费</td><td class="num">与 A 差 −21±21 USDT/锚(n=14,统计上与零无异)</td><td><span class="pill p-pass">吻合;残差为换仓时点噪声</span></td></tr>
+</table></div>
+<h3>与离线评估的一致性</h3>
+<div class="tw"><table>
+<tr><th>检查</th><th class="num">实盘</th><th class="num">离线基准</th><th>判定</th></tr>
+<tr><td>净收益/锚(价格层)</td><td class="num">+13.5 bps</td><td class="num">全史均 +1.68,锚σ 27.2</td><td><span class="pill p-warn">回放分布第 97 百分位 —— 热,但在分布内(z=1.94);属行情顺风,不是口径不可能值</span></td></tr>
+<tr><td>选币 IC(书层 vs 裸 4h)</td><td class="num">+0.036,75% 锚为正</td><td class="num">离线书层 ~0.013–0.04</td><td><span class="pill p-pass">同量级,方向逐锚兑现</span></td></tr>
+<tr><td>新组件增量(combo−king 每锚对照)</td><td class="num">+1.61 bps/锚,60% 锚为正</td><td class="num">回放判决同向(+0.3~0.4)</td><td><span class="pill p-pass">换装组件在实盘为正</span></td></tr>
+<tr><td>正锚率</td><td class="num">13/20</td><td class="num">回放 ~55–60%</td><td><span class="pill p-pass">一致</span></td></tr>
+<tr><td>收益口径</td><td colspan="2">全链简单收益(装置有白名单断言,传错直接报错)</td><td><span class="pill p-pass">E-0826-C 焊死</span></td></tr>
+<tr><td>资金费方向</td><td colspan="2">按"净付"入账,逐日 −15/−35/−42/−29 USDT 与结算行数吻合</td><td><span class="pill p-pass">无符号/重复错误</span></td></tr>
+<tr><td>执行侧</td><td colspan="2">taker 0% · 费率带内 · 滑点有利 · 拒单全恢复 · 尺寸梯度三桶全正</td><td><span class="pill p-pass">全绿</span></td></tr>
+</table></div>
+<div class="card"><strong>体检结论:</strong>盈亏为真(三尺闭环),口径与离线一致,机器逐环节健康。<strong>诚实的保留项:</strong>当前赚钱<em>速度</em>处在回放分布第 97 百分位 —— 行情顺风(见下章),不可外推;正式的"离线↔实盘一致性终审"是预注册的 42 锚前向门,2026-09-02 首读。</div>
+
+<h2 id="s11">Ⅺ · 行情依赖与可持续性:哪部分是本事,哪部分是天气</h2>
+<h3>空头保费结构</h3>
+<p>市场中性 ≠ 完全免疫大盘。本书结构性地空着一篮子高波动小币 —— 实测每 +1% 的全场普涨,账户浮亏约 68 USDT;反过来,下跌和震荡的锚平均赚 +86/+27 USDT。<strong>这是有偿的保费结构</strong>:普涨时付保费,其余时候收保费。回放证明对冲掉它反而毁书(空头 β 贡献约 1/3 利润)。所以"连涨几天浮亏一点"是设计内现象,不是故障。</p>
+<h3>行情(regime)是年化的第一决定因素</h3>
+<p>逐月分析 68 个月发现:书的丰年荒年由<strong>可交易宇宙的广度</strong>主导(可交易币数 2023 年才 187 个,现在 646 个;窄档月份均 −2.0 bps/锚,宽档 +2.97),而与资金费水平高低反相关(2025–26 恰是费率历史低位)。当前双指标均处有利区。荒年(2023 型)2.5× 杠杆也只有 ~10% 年化;丰年(2026 型)2.0× 就有 ~265%。<strong>杠杆放大年景,不制造年景</strong> —— 因此月度监控三件套(可交易币数 / 费率分位 / 书滚动净额)比任何自动调仓装置都重要。</p>
+
+<h2 id="s12">Ⅻ · 大事记与前路</h2>
+<ul class="timeline">
+<li><span class="t">08-26 04:00</span>combo 换装上线(五层安全,首锚五项全绿)</li>
+<li><span class="t">08-26 08:24</span>两个币被交易所强制退市结算 → 看门狗保护性平书(正确触发,权益零损)→ 当日门控恢复,分级爬坡</li>
+<li><span class="t">08-27 08:00</span>杠杆爬至 2.0×;执行器读取时点 23→24 分(写读余量 14s→111s)</li>
+<li><span class="t">08-27 12:00</span>入金 5,449 USDT,单锚自动吸收建满(零人工干预,保护线自动重标定)</li>
+<li><span class="t">08-28~29</span>交易所退市潮 40+ 币,全部由强退机器自动消化;权益创新高</li>
+<li><span class="t">09-01</span>月度重训(只刷模型权重)+ 行情监控三件套首读</li>
+<li><span class="t">09-02</span>42 锚前向门首读 —— 换装的预注册终审</li>
+<li><span class="t">09-10</span>入金 15 万美金(分锚爬坡协议,逐档实测执行质量)</li>
+<li><span class="t">9 月下旬</span>观察期满后,2.5× 杠杆裁定(纯风险偏好题:接受约 1/3 年份"距峰 −25%"的痛感,换 +33~38 个点年化)</li>
+</ul>
+<p class="note">本手册数字截至 2026-08-29,均出自带存档的原始装置;引用任何数字前请注意其口径标签。文档随重大变更增补,不追日常波动。</p>
+</main>
