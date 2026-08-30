@@ -4,3 +4,6 @@
 
 ## 2026-08-29 23:3xZ E-0829-B 重启断链与恢复
 18:06Z 重启灭三守护(nohup 非 launchd); 20:00Z 锚 fail-open 不交易, 权益无损。23:30Z 恢复: producer 8144(SHADOW_OFFSET_MIN=16 逐字, 首次裸env重启被纪律拦下), sidecar 8038, combo 8039(pid句柄修正)。00:00Z 锚起全链恢复, 验证记录随锚补。
+
+## 2026-08-30 05:1xZ E-0829-B 修复完成 + 04:00Z 恢复锚收口
+04:00Z 全链拆解十二项绿: combo 形态回归(producer=combo_stage_v1, 04:21:51, age 129s), 零记忆再同步实际温和(换手10.0%, 预估20-40%), kc/fc=warmstart如设计标注, 04Z状态已写→08Z own; 反事实改写 28% 跳变=零记忆签名, 再收敛窗(~09-01)内 7% 阈挂起; net −0.24%, rc=0, twin 锚后即 AGREE。**三守护 launchd 化完成**(shadowloop/sidecar/combolive, RunAtLoad+KeepAlive, env固化, combo wrapper 写 pid 句柄), 切换+kill 自愈演练受据(30942→30977, 12秒)。重启断链类事故根治。

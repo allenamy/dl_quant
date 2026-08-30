@@ -31,6 +31,10 @@ cd ~/wide_shadow && DL_QUANT_LIVE_LIVE=~/dl_quant_live/live ./venv/bin/python te
 pgrep -f "shadow_loop_v2.py" ; kill <PID>                # 现 PID 27185(04:1xZ 起), env SHADOW_OFFSET_MIN=16
 # (c) 起 v3 — ★ offset 决定(见 §2.3): 维持 16 ⇒ 落盘 ≈N+21.5, 实盘 anchor_offset_min=23/poll 5; 改 6 ⇒ 落盘 ≈N+12, 实盘改 13/5
 cd ~/wide_shadow && SHADOW_OFFSET_MIN=16 nohup ./venv/bin/python shadow_loop_v3.py run > loop.out 2>&1 &
+# ★ 2026-08-30 起三守护已 launchd 化(E-0829-B 修复, 重启+崩溃双自愈; 上行 nohup 命令仅作应急后备):
+#   com.hsy.shadowloop(env SHADOW_OFFSET_MIN=16 固化) / com.hsy.sidecar / com.hsy.combolive(wrapper 写 pid 句柄)
+#   管理: launchctl {list|kickstart|unload} gui/$(id -u)/com.hsy.shadowloop 等; KeepAlive=异常退出自动拉起(演练受据 30942→30977)
+#   注意: 手动再起 nohup 实例会与 launchd 实例争锁(producer 自解, shell 守护无锁) —— 一律用 launchctl
 # (d) 首锚核: 文件含 universe(450) + 旁证 + 日志行(激活锚 forced_exit_n ≈296 / forced_exit_gross ≈0.25; score 行有 tail_*)
 ls -la state/target_live/ ; (cd state/target_live && shasum -a 256 -c <anchor>.json.sha256) ; python3 -c "import json,sys; d=json.load(open('state/target_live/<anchor>.json')); print(d['producer'], len(d['universe']), d['n_names'])" ; grep '"e": "target_live\|forced_exit' shadow_log.jsonl | tail -3
 ```
