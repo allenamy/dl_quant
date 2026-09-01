@@ -81,7 +81,7 @@ journal 追记(门表全数+换版锚+sha)→ STATE 横幅+§1 事实行 → MAN
 DL refit 7.5min ×2 / walk-forward 4折 20min ×4(并发=25min)/ king+bundle 21min / w10 回放 5min / 数据层 40min ⇒ **关键路径 ~2.5h**。09-01 耗 12h 的三类一次性成本已治: 环境熵(→pod_env_bootstrap.sh)/ 脚本散落(→git 单源)/ 基线缺位(→splice+state 滚动留卷)。剩余人窗: 静默窗对齐(换装只能锚间)。
 
 ## §7 全损重建(pod/jpline 任一或双双被收走时; 2026-09-01 立)
-**本机持久档** `~/quant_archive/pod_2026-09/`: v1 正典面板(sha 校验)/ v3splice 面板 + fund_state_canoncont / ext 缓存 / 六份 preds(V2MAIN 新旧网格 + V2L38)/ jpline probe_artifacts 收据 json。**git**: 全部装置脚本(retrain_2026-09/)+ models_2026-09(双种子 .pt+np)+ pod_env_bootstrap + jpline_hsy_v5push_freeze.txt + 各判据/RESULT 文档。
+**本机持久档** `~/quant_archive/pod_2026-09/`(2026-09-01 实际落袋): **v1 真正典面板**(247,363,525B, sha f14bc33d78b2, 14,329锚×21键含 fundfix 三键 — ★jpline w3lane 那份是 9,913锚×18键的 fundfix 前旧代, 非正典!)+ **107 份 jpline 判决收据 json**。splice/ext缓存/preds 因 pod 中途停机未落袋 — 在网络卷上(下次挂卷先验 sha)或按路径 B 重建。**git**: 全部装置脚本(retrain_2026-09/)+ models_2026-09(双种子 .pt+np)+ pod_env_bootstrap + jpline_hsy_v5push_freeze.txt + 各判据/RESULT 文档。
 **重建路径 A(有档)**: 新 pod 挂空卷 → git clone → scp 档案回卷 → bootstrap → 直接进 §2 步骤5。
 **重建路径 B(零档全重)**: vision 全量重拉(klines/premidx/funding zips, 脚本在 git, ~1h)→ 缓存/面板/特征链(§2)→ 与 git 记录的门数对表(exact_eq/corr 序列均在 MANIFEST)。jpline 替代: 任何 64 核 CPU 机 + pip install -r jpline_freeze。
 **唯一不可再生物** = 实盘账本(mac pilot_log, 已有 notary 链)与在役 bundle(mac)— 均在本机, 与训练机无关。
