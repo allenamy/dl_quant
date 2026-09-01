@@ -48,3 +48,8 @@
 ## f10 输入链收据(09-01 下午)
 - targets_ext(splice 面板): y4s/qvk corr 1.000000 exact 1.0; YRZ 0.9923→**0.999910**(D5 修复生效); 内建对齐自检 @0 +0.972 ≫ 邻锚。
 - **member 单锚豁免(取证型)**: 2026-01-15 08Z 第400席 ACXUSDT↔PROMPTUSDT, 两名 qvk **逐位相等 8.171753**(NTOP 精确平位, numpy 非稳定 argsort 机器差, 零信息)。门加原则性豁免: 仅当交换双方 qvk 逐位相等判 TIE_EXEMPT; 其余仍 REAL_DIFF 红。
+
+## f10 重训运行记(09-01 晚)
+- legs_ext: Z24/ZFD 公式自验证 exact 1.0000(逐位复现八月原件); WL max|Δ| 4.8pp(PRED 代际允差记录); copy 10,086 + new 120。
+- **torch 2.4.1+cu124 → 2.11.0+cu128(硬件强制: RTX PRO 4500 Blackwell sm_120, 旧轮只到 sm_90)**; 数值代差由门 V2(回放 CI)终审, 版本入 config。
+- 双种子 SEED=42/2027 并发 @pod GPU(5.4GB/85%), 输入=targets/fea82/fea89/legs 全 splice 口径(门收据前节)。
