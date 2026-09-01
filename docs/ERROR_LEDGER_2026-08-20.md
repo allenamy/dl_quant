@@ -252,3 +252,8 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 **现象**: 机器 18:06Z(北京02:06)重启 → shadow_loop/sidecar/combo 三个 nohup 守护全灭(非 launchd 管理); 执行器与常驻器(launchd)自愈存活。20:00Z 锚无目标书 → 执行器按 fail-open 设计**干净不交易**(持仓原样, rc=0, factor_health STALE 已页报), 权益无损, twin 全程 AGREE。23:25Z 会话恢复后发现(常驻器 20:55 报告六警)。
 **恢复**: 23:30-33Z 按 PID 杀+逐字重启。**近失**: 首次重启裸环境, offset 回落 6(E-0825 家族: 会致每锚 stale HOLD 书冻结)—— 被"复跑命令逐字抄"纪律拦下, 按 RUNBOOK_wide_live L33 原文带 `SHADOW_OFFSET_MIN=16` 重启(producer 8144, next 00:16 ✓); combo pid 回滚句柄同步修正(8039)。20:00Z 一锚缺席, 00:00Z 起恢复。
 **规则**: ①守护重启必须抄 RUNBOOK 逐字命令(env 白名单), 禁凭记忆; ②重启后三验: lock=新PID / loop.out next=N+16 / pid 句柄有效; ③**修复项(待用户字)**: 生产者栈 launchd 化(RunAtLoad, shadow.lock 防双跑), 消灭"重启即断链"类。
+
+## E-0901-A 重训战役的脚本涣散与点火事故(用户抓获, 基本功失守)
+**现象**: ①脚本零散(老pod镜像/本机scratchpad/卷上残件), 缺件(zload/fund_aug producer)逐个撞出; ②ssh 超时包装反复重发 → 同作业多实例; ③pgrep 宽模式被自身 ssh 命令行污染 → 假实例计数 → 几轮 pkill 把真作业杀净而"计数仍为1"。
+**规则(立即生效)**: ①**git 研究仓 = 唯一真相源**(战役目录+MANIFEST), 机器上只放运行副本, 新装置先入库再分发 — 用户原话"脚本都清晰在git和本机, jpline/pod是训练的地方"即宪法; ②远程点火 = `ssh -f` + 单条短命令, 禁长包装(超时即重发炸弹); ③作业状态以**产物/日志增长**验证, 禁宽模式 pgrep(pgrep陷阱家族新变体: 检查者自我匹配); ④链式/拉取作业自带锁文件。
+**修复**: retrain_2026-09/ 目录+MANIFEST 已入库(含 BOOTSTRAP.sh 归位); 作业以输出为证重启。
