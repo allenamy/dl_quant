@@ -29,33 +29,36 @@ for arm in ("U0", "U1", "U2", "Uinf"):
         name = f"w10_v2gate_{S}_NEW9" if arm == "Uinf" else f"w10_uni_{arm}_{S}"
         runs[S] = load(name)
     stats[arm] = runs
-ts0 = stats["U0"]["s42"][0]
-yrs = np.array([time.gmtime(int(t)).tm_year for t in ts0]); sel = yrs >= 2023
+def y23(ts):
+    import time as _t
+    return np.array([_t.gmtime(int(t)).tm_year for t in ts]) >= 2023
 for arm in ("U0", "U1", "U2", "Uinf"):
-    for S in ("s42",):
-        ts, ne, W = stats[arm][S]
-        r = ne[sel]
-        es5 = np.sort(r)[: max(1, int(len(r) * 0.05))].mean()
-        wq = np.sort(r)[: max(1, int(len(r) * 0.20))].mean()
-        ex = np.nanmean(expo(ts[sel][::6], W[sel][::6]))
-        print(f"[{arm}][{S}] 净 {r.mean():+.3f} ES5 {es5:+.1f} 最坏五分位 {wq:+.2f} 负档空头暴露 {ex*100:.1f}%", flush=True)
+    ts, ne, W = stats[arm]["s42"]
+    sel = y23(ts); r = ne[sel]
+    es5 = np.sort(r)[: max(1, int(len(r) * 0.05))].mean()
+    wq = np.sort(r)[: max(1, int(len(r) * 0.20))].mean()
+    ex = np.nanmean(expo(ts[sel][::6], W[sel][::6]))
+    print(f"[{arm}][s42] n {len(r)} 净 {r.mean():+.3f} ES5 {es5:+.1f} 最坏五分位 {wq:+.2f} 负档空头暴露 {ex*100:.1f}%", flush=True)
 for arm in ("U1", "U2"):
     verd = []
     for S in ("s42", "s2027"):
-        _, n0, _ = stats["U0"][S]; _, na, _ = stats[arm][S]
-        d = (na - n0)[sel]
+        t0, n0, W0 = stats["U0"][S]; ta, na, Wa = stats[arm][S]
+        m0 = {int(t): i for i, t in enumerate(t0)}
+        pairs = [(m0[int(t)], i) for i, t in enumerate(ta) if int(t) in m0]
+        i0 = np.array([p[0] for p in pairs]); ia = np.array([p[1] for p in pairs])
+        selc = y23(ta[ia])
+        d = (na[ia] - n0[i0])[selc]
         nb6 = len(d) // 6; blocks = d[:nb6 * 6].reshape(nb6, 6).sum(1)
         boots = np.array([blocks[rng.integers(0, nb6, nb6)].mean() for _ in range(4000)]) / 6
         lo, hi = np.quantile(boots, [0.025, 0.975])
-        r0 = n0[sel]; ra = na[sel]
+        r0 = n0[i0][selc]; ra = na[ia][selc]
         es0 = np.sort(r0)[: max(1, int(len(r0) * 0.05))].mean(); esa = np.sort(ra)[: max(1, int(len(ra) * 0.05))].mean()
         es_ok = esa >= es0 * 1.10 if es0 < 0 else esa >= es0 * 0.90
-        _, _, W0 = stats["U0"][S]; _, _, Wa = stats[arm][S]
-        e0 = np.nanmean(expo(stats["U0"][S][0][sel][::6], W0[sel][::6]))
-        ea = np.nanmean(expo(stats[arm][S][0][sel][::6], Wa[sel][::6]))
+        e0 = np.nanmean(expo(t0[i0][selc][::6], W0[i0][selc][::6]))
+        ea = np.nanmean(expo(ta[ia][selc][::6], Wa[ia][selc][::6]))
         ex_ok = ea <= e0 * 1.5
         ok = lo > 0 and es_ok and ex_ok
         verd.append(ok)
-        print(f"[{arm} vs U0][{S}] ΔNet {d.mean():+.4f} CI[{lo:+.4f},{hi:+.4f}] ES5 {es0:+.1f}->{esa:+.1f}({'OK' if es_ok else 'FAIL'}) 暴露 {e0*100:.1f}%->{ea*100:.1f}%({'OK' if ex_ok else 'FAIL'}) -> {'过' if ok else '不过'}", flush=True)
+        print(f"[{arm} vs U0][{S}] 共锚 {selc.sum()} ΔNet {d.mean():+.4f} CI[{lo:+.4f},{hi:+.4f}] ES5 {es0:+.1f}->{esa:+.1f}({'OK' if es_ok else 'FAIL'}) 暴露 {e0*100:.1f}%->{ea*100:.1f}%({'OK' if ex_ok else 'FAIL'}) -> {'过' if ok else '不过'}", flush=True)
     print(f"== {arm}: {'ADMIT' if all(verd) else 'REJECT'}", flush=True)
 print("UNIVERSE_JUDGE_DONE", flush=True)
