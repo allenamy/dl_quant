@@ -34,18 +34,20 @@ yrs = np.array([time.gmtime(int(t)).tm_year for t in E_ts]); nA = len(E_ts); NW 
 PW = np.load(f"{B}/wide_panel_4h_hist_v2.npz", allow_pickle=True)
 pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}
 FN = PW["f_fund_now"]; IV = PW["f_fund_iv"] if "f_fund_iv" in PW else np.full_like(PW["f_fund_now"], 8.0); R24 = PW["f_rev_24h"]; FE = PW["f_fund_ema_v1"]
-_fm = os.environ.get("FEMAT")
-if _fm:  # PREREG_fundleg e888007fd6ae: 腿分矩阵注入(唯一变量), ts×symbols 对齐断言
-    _z = np.load(_fm, allow_pickle=True)
-    assert [str(x) for x in _z["symbols"]] == [str(x) for x in PW["symbols"]], "femat symbols mismatch"
-    _map = {int(t): k for k, t in enumerate(_z["ts"].astype(np.int64))}
-    _fe = np.asarray(_z["fe"])  # 一次性物化(npz 懒加载 O(n²) 陷阱)
-    _FE2 = np.full(np.asarray(FE).shape, np.nan, np.float32)
-    for _j, _t in enumerate(PW["ts"].astype(np.int64)):
-        _k = _map.get(int(_t))
-        if _k is not None: _FE2[_j] = _fe[_k]
-    FE = _FE2
-    print(f"FEMAT injected: {_fm} finite {np.isfinite(FE).mean():.3f}", flush=True) if "f_fund_ema_v1" in PW else PW["f_fund_ema"]
+_um = os.environ.get("UMASK_NPZ")
+if _um:  # PREREG addendum §B: 宇宙臂 — 成员集按掩码收缩(只缩不扩, meta top-400 为天花板)
+    _uz = np.load(_um, allow_pickle=True)
+    assert [str(x) for x in _uz["symbols"]] == [str(x) for x in PW["symbols"]], "umask symbols mismatch"
+    _umap = {int(t): k for k, t in enumerate(_uz["ts"].astype(np.int64))}
+    _UM = np.asarray(_uz["mask"])
+    _pwts_u = PW["ts"].astype(np.int64)
+    UMASK_ROW = {}
+    for _j, _t in enumerate(_pwts_u):
+        _k = _umap.get(int(_t))
+        if _k is not None: UMASK_ROW[_j] = _UM[_k]
+    print(f"UMASK injected: {_um}", flush=True)
+else:
+    UMASK_ROW = None if "f_fund_ema_v1" in PW else PW["f_fund_ema"]
 WSYM = [str(s) for s in PW["symbols"]]
 SLOW = np.load(f"{B}/slow_pred_hist_oos.npy")
 # ★★ 严格因果: 只用 walk-forward OOS 预测(四折 + 60 锚 embargo, 只写测试折)。
@@ -85,6 +87,9 @@ def legs(SLOW):
         j = pw_row.get(int(E_ts[i]))
         if j is None: continue
         m = members[i]
+        if UMASK_ROW is not None:
+            _mk = UMASK_ROW.get(j)
+            if _mk is not None: m = m[_mk[m]]
         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m]}
         ok = np.isfinite(y4[i, m])
         for leg in LR:
@@ -123,6 +128,9 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         j = pw_row.get(int(E_ts[i]))
         if j is None: continue
         m = members[i]
+        if UMASK_ROW is not None:
+            _mk = UMASK_ROW.get(j)
+            if _mk is not None: m = m[_mk[m]]
         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m]}
         w3 = w3_at(i)
         z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*np.nan_to_num(xz(sc["fund"]))
