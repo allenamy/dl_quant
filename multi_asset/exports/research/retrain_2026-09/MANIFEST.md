@@ -35,3 +35,12 @@
 - **D4 RUNBOOK step1 替代**: jp_fund_aug.py(funding 尾巴)被 fund_pull_pod.py(全史)替代 — 同产物形态, 验证更强(V-A 0.00e+00 + 与 zip 通路 216万格 corr 1.000000 双向对源)。
 
 **运行副本位置**: pod:/workspace/(scp 自本目录); jpline:/mnt/storage/private/work_hsy/。机器上文件 = 副本, 修改必须回写本目录并重新分发。
+
+## 守卫红归因(09-01 下午, 干预实验闭环)
+
+- **现象**: 门②③ IC 全绿, 守卫 replay 夏普 1.92 ∉ [2.27,2.57] → 装置拒绝换版(正确行为)。
+- **对账**(pod_guard_reconcile.py): v3 腿收益 vs 八月 bundle leg_returns 原件 — rev24 corr 1.000000 精确, king 0.89-0.92(LGBM 非确定性, 折 IC 门绿), **fund 0.86-0.94 全史散开** → 分歧全在 funding 口径。
+- **干预实验**(RECON_PANEL=v1 正典): 正典面板跑同代码 — fund 腿 vs 八月 **corr 1.000000 逐位** + 守卫 2.49 带内 ⇒ **八月装置=正典忠实; 我的 v2ext ema_v1(对正典 0.9997)才是偏离仪器**。0.03% 格差经秩变换放大 ≈ 0.4 夏普。根因: iv 换档窗 0.04% 格差(zip 逐事件真值 vs 正典口径)经 normfix EMA 递归扩散。
+- **教训(D5)**: **corr≥0.999 列门可以放行载荷性偏差; 秩/递归下游必须有行为级守卫**(守卫层这次按设计工作)。
+- **修复**(pod_panel_splice.py): ≤正典末锚全列逐字=正典; 尾 96 锚 EMA 族以正典末行为状态种子续算(唯一正典连续构造); kline/fund_now/iv 尾部用 ext(parity 1.0 zip 真值)。断言: cut 行逐位==正典, 尾部 kline==ext。产物 wide_panel_4h_v3splice.npz + fund_state_canoncont.json(bundle §3 EMA 种子覆盖, EMA_STATE_JSON env)。
+- **波及面**: f10 轨 targets/fea82 只吃 v0(parity 1.000000 精确)不受影响; legs_ext 新锚 ZFD 改吃 splice 面板(旧行=八月原件本就正典逐位)。

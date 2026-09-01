@@ -82,7 +82,7 @@ if abs(ic26 - orig26) > 0.006:
 np.save(f"{OUT}/slow_pred_pinned.npy", PRED)
 
 # ── ② v1iv 基线重跑(钉死预测) + 逐锚信号导出(08-01 起, 供 A2 平价) ──
-PW = np.load("/workspace/data/wide_panel_4h_v2ext.npz", allow_pickle=True)
+PW = np.load(os.environ.get("EXPORT_PANEL", "/workspace/data/wide_panel_4h_v2ext.npz"), allow_pickle=True)
 pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}
 FN = PW["f_fund_now"]; IV = PW["f_fund_iv"]; R24 = PW["f_rev_24h"]; FE = PW["f_fund_ema_v1"]
 def xz(v):
@@ -222,6 +222,12 @@ for s in live450:
     ema_state[s] = {"acc": float(acc), "last_ts": int(prev_t)}
 with open(f"{OUT}/funding_ledger_seed.json", "w") as f:
     json.dump(ledger, f)
+_ov = os.environ.get("EMA_STATE_JSON")
+if _ov:  # 正典续算状态覆盖(splice 修复): 有正典史的名用续算值, 新名保留本地推算
+    _cc = json.load(open(_ov)); n_ov = 0
+    for _s, _v in _cc.items():
+        if _s in ema_state: ema_state[_s] = _v; n_ov += 1
+    print(f"ema_state canon-cont override {n_ov}/{len(ema_state)}", flush=True)
 json.dump(ema_state, open(f"{OUT}/fund_ema_v1_state.json", "w"), indent=0)
 json.dump({"symbols_panel": syms, "symbols_live": live450,
            "keep_idx": keep, "keep_names": [names[k] for k in keep],
