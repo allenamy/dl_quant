@@ -1,14 +1,37 @@
 # 重训战役 2026-09 · 脚本清单(单一真相源 = 本目录; 机器上只放运行副本)
 > PREREG: docs/PREREG_retrain_addendum_v2main_2026-09-01.md(sha c24b8d2f8567) + RUNBOOK_monthly_retrain_2026-09
 
+## king/bundle 轨(RUNBOOK 步骤1-4)
+
 | 脚本 | 跑在 | 输入 | 输出 | 门 |
 |---|---|---|---|---|
 | pod_extend_vision.py(镜像原件) | pod | Vision daily zips 08-22..31 | wide_multisrc/{klines5m,premidx}_daily | 404=新币缺日正常 |
 | pod_merge_cache_ext.py(派生 de7a0661) | pod | fresh缓存 + 新zips | dlnative..._ext.npz | **重叠窗逐位 exact_eq≥0.999 → 实测 1.000000 PASS** |
-| fund_pull_pod.py(新作) | pod(独立IP, ≤3.5req/s) | /fapi/v1/fundingRate 全史 | fund_aug.json.gz(AUG全量形态) | 行数/名覆盖抽查 |
-| pod_panel_ext.py(镜像原件) | pod | ext缓存 + fund_aug + zload | wide_panel_4h_v2ext.npz | 回传 jpline 与基线重叠 corr≥0.999(门①) |
-| pod_fea_ext.py(镜像原件) | pod | ext缓存/面板 | 特征 ext | 同构校验 |
-| king 重训(jpline+pod 双机) | 双机 | 合并面板 | slow booster v3 | 门② \|ΔIC\|≤0.004 + 门V4 双机一致 |
-| f10_refit_pod.py(卷上原件) | pod GPU | 171特征ext + 冻结配方 | f10 s42/s2027 .pt + np导出 | 门V1 np≡torch / V2 回放不退化 / V3 泄漏仪器 |
+| fund_pull_pod.py(新作) | pod(独立IP, ≤3.5req/s) | /fapi/v1/fundingRate 全史 | fund_aug.json.gz(AUG全量形态) | V-A 对实盘账本 23,146/23,147 偏差 0.00e+00 PASS |
+| **pod_fund_zips.py(新作 09-01)** | pod | Vision monthly fundingRate zips 2019-09..2026-08(真 interval 列) | wide_multisrc/funding/SYM/YYYY-MM.zip | 修 ema_v1/v2 normfix 污染(见偏差D3) |
+| pod_panel_ext.py(镜像原件) | pod | ext缓存 + funding zips + fund_aug + zload | wide_panel_4h_v2ext.npz | 内建自检 7列 + **pod_gate1_full.py 全列版** |
+| **pod_gate1_full.py(新作 09-01)** | pod | v1面板 + v2ext面板 | gate1_full.log | **门① RUNBOOK 冻结口径: 全部 f_* 列重叠锚 corr≥0.999** |
+| pod_fea_ext.py(镜像原件) | pod | ext缓存/面板 | wide_fea_v2ext.npy + meta | 同构校验(king 82列特征族) |
+| **pod_export_bundle_v3.py(派生装置 09-01)** | pod | wide_fea_v2ext + v2ext面板 + funding zips + live_pins + slow_scorer_v3base | shadow_bundle_v3.tar.gz | 门②(2024/25折IC \|Δ\|≤0.004, Δ3新增) + 门③(ic26 vs 0.0571 ±0.006) + 守卫带 2.27..2.57 |
+| live_pins.json(自在役bundle config 抄录) | pod | — | symbols_live 450 + keep_names 78 钉死 | Δ4/Δ5 断言输入 |
+| slow_scorer_v3base.json(基线记录) | pod | mirror slow_scorer.json(git) + 在役 provenance | 门②③基线 | 口径已验: scorer 折构造与导出装置逐字同 |
+
+## V2MAIN/f10 轨(PREREG addendum §A)
+
+| 脚本 | 跑在 | 输入 | 输出 | 门 |
+|---|---|---|---|---|
+| **pod_dlw_targets_ext.py(sed移植, diff=3路径行)** | pod | ext缓存 + v2ext面板 | /workspace/dlw_ext/data/dlw_targets.npz | 内建对齐自检 + **pod_gate_dlw_ext.py** |
+| **pod_gate_dlw_ext.py(新作 09-01)** | pod | 旧/新 targets | — | 重叠锚 members 全等 + y4s/YRZ/qvk corr≥0.999 |
+| **pod_dlw_features_ext.py(sed移植, diff=1路径行)** | pod | targets_ext + ext缓存 + v2ext面板 | dlw_ext/data/dlw_fea82.npz | 结构断言 max_feature_row==E |
+| **pod_f8_build_ext.py(sed移植, diff=3路径行)** | pod | targets_ext + fea82_ext + ext缓存 | f8_ext/data/f8_fea89.npz | build 阶段结构断言 |
+| legs_ext(待作, bundle v3 后) | pod | v3 slow_pred_pinned + v2ext面板 + targets_ext | f10v2_legs_ext.npz | 旧行逐字保留+新锚拼接; 重叠公式重建 corr≈1 验证 |
+| f10_refit_pod.py(卷上原件) | pod GPU | 171特征ext + legs_ext + 冻结配方 | f10 s42/s2027 .pt + np导出 | 门V1 np≡torch / V2 回放不退化 / V3 泄漏仪器 |
+
+## 偏差记录(09-01, 全部已中和)
+
+- **D1 覆盖偏差**: 首轮链用默认 env ⇒ `wide_fea_v2ext.npy`/`wide_panel_4h_v2ext.npz` 在 pod 上就地覆盖八月代(违 RUNBOOK "_v3 不覆盖")。在役零影响(八月正典=本机在役 bundle+MANIFEST 完好, pod 旧件可由 v1面板+旧缓存重造)。门②③基线改从在役 bundle/git 记录取(slow_scorer_v3base.json)。
+- **D2 宇宙旁路**: 原导出脚本 `symbols_live = glob(funding 目录)`, 目录已播 829 ⇒ 原样跑=宇宙刷新静默搭车(违 PREREG §B 分离部署)。v3 装置 Δ4 钉死 450。
+- **D3 interval 推断污染**: funding zip 缺失时 interval 全靠时间差推断(首行默认8; Binance 2023+ 多币 8h→4h→1h 切换期必错), f_fund_iv exact 99.96% → EMA 递归放大 → f_fund_ema_v1 corr 0.9796 红(门①全列版捕获; 内建 7 列门看不见)。修复=pod_fund_zips.py 拉真 interval 列, AUG 只补尾。**教训: 门必须按 RUNBOOK 冻结口径全列跑, 装置内建自检≠门。**
+- **D4 RUNBOOK step1 替代**: jp_fund_aug.py(funding 尾巴)被 fund_pull_pod.py(全史)替代 — 同产物形态, 验证更强(V-A 0.00e+00 + 与 zip 通路 216万格 corr 1.000000 双向对源)。
 
 **运行副本位置**: pod:/workspace/(scp 自本目录); jpline:/mnt/storage/private/work_hsy/。机器上文件 = 副本, 修改必须回写本目录并重新分发。
