@@ -10,7 +10,7 @@ for RUN in s42_OLD9 s42_NEW9 s2027_OLD9 s2027_NEW9; do
   echo "== w10 $RUN $(date -u +%H:%M)"
   LOOK=900 WRULE=msharpe CAL=simple LEGS=101 PHI=0.45 FSEED=${S#s} \
     FPRED=f10_V2MAIN_${S}_${TAG}.npy \
-    python3 w10_ablation_replay_hardened.py > $PD/w10_v2gate_${RUN}.log 2>&1 \
+    /root/miniconda3/envs/hsy_v5push/bin/python w10_ablation_replay_hardened.py > $PD/w10_v2gate_${RUN}.log 2>&1 \
     || { echo "W10_FAIL $RUN"; exit 1; }
   mv $PD/w10_ablation_series.npz $PD/w10_v2gate_${RUN}.npz
   mv $PD/w10_ablation_summary.json $PD/w10_v2gate_${RUN}.json
