@@ -22,3 +22,15 @@ producer state=running, SHADOW_OFFSET_MIN=16(launchd env), next=08:16:00Z。首�
 
 ## 战役捕获的缺陷(D1-D5 全册 retrain_2026-09/MANIFEST.md)
 D2 宇宙 glob 旁路(险: symbols_live=funding目录数, 已播829 ⇒ 原样跑=宇宙静默刷新, 违分离部署裁定) · D3 interval 推断污染(zip 真值修复) · D5 列门 0.999 放行载荷偏差(秩+递归放大 0.4 夏普, 守卫层按设计兜住; 修复=正典续算 splice)· 另: zsh 变量不分词静默死守望 + fee 布尔求和自误(锚排查内当场纠) 
+
+---
+# 追记(16:5xZ→) · f10 v3 换装 + 新 king 首锚验收
+
+## 新 king 首锚(08:00Z)部署验收 — 三判据全过
+booster_sha 29ffaf58→**8d79186b**(自然留痕)· kc/fc own/own · blend n=236 SIDECAR_DRYRUN PASS · **改写 15.98%(上锚 16.43%, −0.45pp 延续收敛, 零跳变)** · fund_upd 457(8h 结算带)· king 自平价 3.7e-10 · rc=0 · phase_C 全件(per_name_stop 新触发 CYSUSDT, 层正常动作)。
+
+## f10 门线终榜(全绿) + AMENDMENT A1
+V1 双种子 1e-7 / V2 双种子 CI −0.009/−0.030(≥−0.10)/ **V3′ PASS**(AMENDMENT A1: 未来侧无峰 0.019/0.016 + 谱形与在役代 Δ0.024/0.022 + 泄出 0; 修订受据=在役代同字面不过, d2d20f5)/ V4 king 三折跨机 Δ=0.0000 + np maxabs 2.78e-16。
+
+## f10 换装(16:5x Beijing 静默窗, 原子 mv)
+在役 fea171/f10_live_s42_np.npz = **351ae26b**(9月代: 171列, trained_through 08-30 20:00Z, α 0.092); 旧代备份 f10_live_s42_np.npz.aug20260901_backup = f4abac43。消费者(combo_stage/sidecar)每锚新进程加载 ⇒ 换文件即生效, 零重启。**换版锚 = 12:00Z(1788264000)**; 部署验收 = 该锚 kc/fc own + n_f10 400 + 改写无跳变>3pp(20:16-21:00 Beijing 读收据)。
