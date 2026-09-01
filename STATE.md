@@ -10,9 +10,9 @@
 > 重启任务: 先读本文件 → `docs/TEAM_PROTOCOL.md` → 按 CLAUDE.md 路由表取正典文档。**不信任何更早轮次的摘要, 包括自己的。**
 
 ## §1 在役实盘(live, 真钱)
-- **书**: 宽宇宙 combo(**去 rev24 腿 ∧ king 腿 55/45 混 V2MAIN** φ0.45), 2026-08-26 04:00Z 锚起。构成 ≈ 77% fund + 13% king(LGBM) + 10% V2MAIN(可微书损失 DL, 171 列)。宇宙 450, 4h 锚, maker-only, **gross = 1.5 × NAV**(NAV ≈ 15k)。
+- **书**: 宽宇宙 combo(**去 rev24 腿 ∧ king 腿 55/45 混 V2MAIN** φ0.45), 2026-08-26 04:00Z 锚起。构成 ≈ 77% fund + 13% king(LGBM) + 10% V2MAIN(可微书损失 DL, 171 列)。宇宙 450, 4h 锚, maker-only, **gross = 2.0 × NAV**(08-26 用户令升档; NAV ≈ 20.4k, 08-27 入金后)。
 - **链路**(每锚): `~/wide_shadow/shadow_loop_v3.py`(N+16 起跑, 写 king 三腿文件 = **自动回滚缺省**)→ `combo_live_daemon`(fea171/, PID 见 `combo_live_daemon.pid`)等 aux/rolling 落定 → `combo_stage.py` 重写 `state/target_live/{anchor}.json`(五层安全: 硬截止 N+22:40 / king 备份 target_live_king/ / 飞前断言 / **写后用执行器 parse_target 自验收, 失败自动回滚** / 全路径 HIGH 页报)→ 执行器(`~/dl_quant_live`, external 模式)N+23 读并交易。
-- **模型**: `fea171/f10_live_s42_np.npz`(V2 配方全史重训至 2026-08-06/07; np≡torch 3.6e-8)。king booster = slow2026。
+- **模型**: `fea171/f10_live_s42_np.npz`(**v3 2026-09-01 换装**: V2 配方全史重训至 08-30, sha 351ae26b, np≡torch 1e-7; 旧代 f4abac43 备份)。king booster = slow2026(**bundle v3 同日换装**, booster_sha 8d79186b)。
 - **止损/风控**: 逐名 wide 档 d30_n2_c42(depth −0.30×2锚×7d)⟺ book_source=external 耦合; 看门狗 cond2 日亏 −4% flatten(口径 0aa6586)/ cond4 −25% 起始权益口径(57cb180); ArmingRefused 自带 CRITICAL(10063a6)。
 - **守护/采集**: guard_twin(20min, 账本孪生+**锚任务存活哨**·坏态 HIGH 恢复 INFO 均实测)· sidecar_blend(独立第二实现交叉核对, 每锚 king 自平价 2e-10)· depth_watch · stop_overlay · ic_monitor · nosleep · chase 随机实验 · pilot_log 全套。执行探针已 KILL(勿复活)。
 - **回滚**: `kill $(cat ~/wide_shadow/fea171/combo_live_daemon.pid)` ⇒ 下一锚起 king 三腿形态; 全停 = `~/dl_quant_live/ops/KILL.sh`。
