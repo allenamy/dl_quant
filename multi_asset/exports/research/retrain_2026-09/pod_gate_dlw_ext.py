@@ -18,7 +18,12 @@ for x, y in zip(ia, ib):
     if np.array_equal(A["members"][x], B["members"][y]): mem_eq += 1
     else:
         ma, mb = set(A["members"][x].tolist()), set(B["members"][y].tolist())
-        print(f"  member_diff anchor_ts {int(A['E_ts'][x])} old_n {len(ma)} ext_n {len(mb)} only_old {sorted(ma-mb)[:5]} only_ext {sorted(mb-ma)[:5]}", flush=True)
+        da, db = sorted(ma - mb), sorted(mb - ma)
+        qa = A["qvk"][x]
+        # 原则性豁免: 纯 NTOP 平位翻转(交换双方 qvk 逐位相等 ⇒ 非稳定 argsort 机器差, 零信息)
+        tie = len(da) == len(db) and all(qa[i] == qa[j] for i, j in zip(da, db))
+        print(f"  member_diff anchor_ts {int(A['E_ts'][x])} only_old {da[:5]} only_ext {db[:5]} {'TIE_EXEMPT' if tie else 'REAL_DIFF'}", flush=True)
+        if tie: mem_eq += 1
 print(f"members equal {mem_eq}/{len(ia)}", flush=True)
 bad = [] if mem_eq == len(ia) else [("members", f"{mem_eq}/{len(ia)}")]
 for k in ("y4s", "YRZ", "qvk"):

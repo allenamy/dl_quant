@@ -44,3 +44,7 @@
 - **教训(D5)**: **corr≥0.999 列门可以放行载荷性偏差; 秩/递归下游必须有行为级守卫**(守卫层这次按设计工作)。
 - **修复**(pod_panel_splice.py): ≤正典末锚全列逐字=正典; 尾 96 锚 EMA 族以正典末行为状态种子续算(唯一正典连续构造); kline/fund_now/iv 尾部用 ext(parity 1.0 zip 真值)。断言: cut 行逐位==正典, 尾部 kline==ext。产物 wide_panel_4h_v3splice.npz + fund_state_canoncont.json(bundle §3 EMA 种子覆盖, EMA_STATE_JSON env)。
 - **波及面**: f10 轨 targets/fea82 只吃 v0(parity 1.000000 精确)不受影响; legs_ext 新锚 ZFD 改吃 splice 面板(旧行=八月原件本就正典逐位)。
+
+## f10 输入链收据(09-01 下午)
+- targets_ext(splice 面板): y4s/qvk corr 1.000000 exact 1.0; YRZ 0.9923→**0.999910**(D5 修复生效); 内建对齐自检 @0 +0.972 ≫ 邻锚。
+- **member 单锚豁免(取证型)**: 2026-01-15 08Z 第400席 ACXUSDT↔PROMPTUSDT, 两名 qvk **逐位相等 8.171753**(NTOP 精确平位, numpy 非稳定 argsort 机器差, 零信息)。门加原则性豁免: 仅当交换双方 qvk 逐位相等判 TIE_EXEMPT; 其余仍 REAL_DIFF 红。
