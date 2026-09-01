@@ -13,7 +13,12 @@ ta = {int(t): i for i, t in enumerate(A["E_ts"].astype(np.int64))}
 pairs = [(ta[int(t)], j) for j, t in enumerate(B["E_ts"].astype(np.int64)) if int(t) in ta]
 ia = np.array([p[0] for p in pairs]); ib = np.array([p[1] for p in pairs])
 print(f"overlap anchors {len(ia)} / old {len(ta)} / ext {len(B['E_ts'])}", flush=True)
-mem_eq = sum(1 for x, y in zip(ia, ib) if np.array_equal(A["members"][x], B["members"][y]))
+mem_eq = 0
+for x, y in zip(ia, ib):
+    if np.array_equal(A["members"][x], B["members"][y]): mem_eq += 1
+    else:
+        ma, mb = set(A["members"][x].tolist()), set(B["members"][y].tolist())
+        print(f"  member_diff anchor_ts {int(A['E_ts'][x])} old_n {len(ma)} ext_n {len(mb)} only_old {sorted(ma-mb)[:5]} only_ext {sorted(mb-ma)[:5]}", flush=True)
 print(f"members equal {mem_eq}/{len(ia)}", flush=True)
 bad = [] if mem_eq == len(ia) else [("members", f"{mem_eq}/{len(ia)}")]
 for k in ("y4s", "YRZ", "qvk"):

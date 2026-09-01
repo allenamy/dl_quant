@@ -13,7 +13,7 @@ from scipy.stats import rankdata
 
 OLD = np.load("/workspace/data/f10v2_legs.npz", allow_pickle=True)
 TG = np.load("/workspace/dlw_ext/data/dlw_targets.npz", allow_pickle=True)
-PW = np.load("/workspace/data/wide_panel_4h_v2ext.npz", allow_pickle=True)
+PW = np.load("/workspace/data/wide_panel_4h_v3splice.npz", allow_pickle=True)  # splice: 正典续算口径(D5)
 MT = np.load("/workspace/data/wide_fea_v2ext_meta.npz", allow_pickle=True)
 PRED = np.load("/workspace/shadow_bundle_v3/slow_pred_pinned.npy")
 
