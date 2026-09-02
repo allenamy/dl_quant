@@ -3,6 +3,8 @@ import numpy as np, time, sys, glob, os
 PD="/mnt/storage/private/work_hsy/probe_artifacts"; B="/mnt/storage/private/work_hsy/pod_backup_2026-08-21"
 rng=np.random.default_rng(0)
 MT=np.load(f"{B}/wide_fea_hist_meta.npz",allow_pickle=True); mts=MT["E_ts"].astype(np.int64); y4=MT["y4"]; mrow={int(t):i for i,t in enumerate(mts)}
+def cfg(run):
+    z=np.load(f"{PD}/{run}.npz",allow_pickle=True); return str(z["config_json"]) if "config_json" in z.files else ""
 def load(run):
     z=np.load(f"{PD}/{run}.npz",allow_pickle=True); cols=[str(c) for c in z["cols"]]; rec=z["d30_n2_c42_rec"]
     g=lambda k: rec[:,cols.index(k)].astype(np.float64)
@@ -24,8 +26,11 @@ for y in (2023,2024,2025,2026):
     s=yrs==y; print(f"   {y}: 净 {nb[s].mean():+.3f} 夏普 {nb[s].mean()/(nb[s].std()+1e-12)*np.sqrt(2190):.2f}")
 runs=sorted(os.path.basename(p)[:-4] for p in glob.glob(f"{PD}/w10_seat_*.npz")+glob.glob(f"{PD}/w10_band_*.npz"))
 runs=[r for r in runs if r.endswith("_s2027")==(SEEDTAG=="s2027")]  # 种子配对: s2027 臂只与 s2027 基线比
+STRICT_CFG=os.environ.get("STRICT_CFG","0")=="1"   # E-0902-B: 臂自报 config 与基线相同 ⇒ 严格模式直接不过; 默认只警告(旧装置产物用 runner 受据)
 for run in runs:
     ta,na,toa,wka,wfa=load(run)
+    cfg_same = (cfg(run)==cfg(BASE))
+    if cfg_same: print(f"  ({run}: CFG_SAME 自报配置与基线相同, E-0902-B{' → 不过' if STRICT_CFG else ' 警告'})")
     if not np.array_equal(ta,tb):   # 锚集对齐(臂内 sel<80 跳锚等): ts 交集成对
         mb={int(t):i for i,t in enumerate(tb)}; pr=[(mb[int(t)],k) for k,t in enumerate(ta) if int(t) in mb]
         ib=np.array([x[0] for x in pr]); ia=np.array([x[1] for x in pr])
@@ -40,5 +45,6 @@ for run in runs:
     es_ok = aes >= bes*1.10 if bes<0 else aes>=bes*0.9
     to=toa[sel].mean()/max(tob[sel].mean(),1e-9)-1
     ok = lo>0 and all(v>=-0.3 for v in yl.values()) and es_ok and to<=0.25
+    ok = ok and not (STRICT_CFG and cfg_same)   # E-0902-B
     print(f"[{run}] Δ {d.mean():+.3f} CI[{lo:+.3f},{hi:+.3f}] 夏普 {as_:.2f}(基{bs:.2f}) ES5 {aes:+.1f}({'OK' if es_ok else 'FAIL'}) 最坏五分位 {awq:+.2f} 急跌净 {na[drop].mean():+.2f} 换手{to*100:+.1f}% w3_king {wka[sel].mean():.2f} 逐年Δ {yl} -> {'ADMIT候选' if ok else '不过'}")
 print("JUDGE_DONE")
