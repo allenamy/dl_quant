@@ -52,6 +52,9 @@ def mids():
             try: d=json.loads(l)
             except: continue
             a=d.get('anchor_ts'); mv=d.get('mid_at_anchor_vector')
+            if isinstance(mv,str):
+                try: mv=json.loads(mv)
+                except Exception: mv=None
             if a is None or not mv: continue
             a=int(round(float(a)/14400)*14400) if float(a)%14400>600 else int(float(a))   # 锚墙钟→名义锚
             M[int(round(float(a)/14400)*14400)]=mv

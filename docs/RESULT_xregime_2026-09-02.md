@@ -78,7 +78,7 @@ IC×σ×√n 的比值 ≈12× 与净额比 ≈15× 同量级; 年内 net~nsel �
 ### 3.4 不做清单(本战役后确认)
 席位规则/回看窗/fund 复杂特征(HL3d 充分统计量)/宇宙加宽(当前口径中性)/V2L38/多种子集成/训后技巧/regime 上下文输入(R1CTX)/多塔路由/止损阶梯。
 
-## 4. 仪表盘(只读监控, 不改书; 建议加进 ic_monitor 同级的独立脚本, 读账本与 B 面板同源特征)
+## 4. 仪表盘(只读监控, 不改书)— **已建 v2(09-02 用户令)**: `multi_asset/exports/live/regime_dash/regime_dash.py`, launchd `com.hsy.regime_dash` 锚后 50 分, 输出 REGIME_DASH.md + regime_dash.jsonl; 历史基准 2023+ 百分位(jpline B 面板)
 | 量 | 定义(8h 归一化) | 历史锚定 | 预警读法(信息, 不触发动作) |
 |---|---|---|---|
 | σ_fund | 当锚截面 std(fund×8/iv), 30 锚均 | 2024 3.3 / 2025 6.1 / 2026 10.2bp | <5bp 持续 2 周 = 引擎 A regime 退潮 |
