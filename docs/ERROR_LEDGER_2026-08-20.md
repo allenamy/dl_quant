@@ -311,3 +311,10 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 ### E-0902-G · launchd 后台进程被 macOS TCC 拦在 ~/Desktop(regime_dash 12:50Z 首次定时运行失败 "Operation not permitted")
 - **现象**: 手动运行正常, launchd 运行 `/usr/bin/python3 ~/Desktop/quant_research/.../regime_dash.py` 报 Errno 1。原因: 桌面目录受 TCC 保护, 后台 agent 无授权。生产者/执行器 agent 都在 ~/wide_shadow、~/dl_quant_live(非 Desktop)故从未遇到。
 - **处置**: 运行时迁到 `~/regime_dash/`(代码+基准+状态), 两个 plist 改路径重载, kickstart 实测通过; 研究仓目录保留代码单源与快照。**规则**: 任何 launchd/cron 后台脚本不得放在 ~/Desktop/~/Documents 等 TCC 目录; 部署后必须用 `launchctl kickstart` 在 launchd 上下文里实跑一次(手动跑通≠后台跑通, 同 E-0825-F"声明上线须验运行中进程")。
+
+### E-0902-A-2 结案更正(09-02 17:0xZ)· **不是场所扣名, 是告警文案误标** —— 撤回"系统性 arm 时刻瞬态"与"执行器重读"提案
+- **证据链**: 16Z arm(16:01:23Z)自报 `n_zero_max_notional=0`; 我在 16:00:46/16:01:32/16:03:00Z 同刻读 symbolConfig 亦 0 名; 而 16:24Z 仍报 "42 held name(s) are withheld by the venue (maxNotionalValue=0)"。读生成代码 `scheduler/anchor_loop.py` L1549-1557: 该文案对 `_clamp` 的 reduced/add_blocked/flatten_only 三类**一律**写成 "withheld by the venue (maxNotionalValue=0)", 而 `_clamp` 来自 `clamp_held_untradable(target, held, untradable)`, untradable 通道 = **持仓但不在目标里的名(正常退出, 42 名中 ~34 名 target=0)+ 目标低于 2×min_notional 的名(8 名)+ 止损层 flatten/冷却名(如 BTR)**。真正的 maxNotionalValue=0 集合由 L1158 另算, 当日为空。
+- **结论**: 每锚 35~45 名 = 书的正常名单轮换(229 目标 vs 249 持仓)+ 尘单地板, **不是场所限制, 也没有 2.5% gross 的"阻断加仓税"**(此前算的 5 名/1014U 为止损冷却名, 按设计不加仓)。alarm_policy 早已将其归 EXPECTED, 是文案把操作者(我)引到了错误假说, 花了 3 次探针才回到"先开产它的代码"。
+- **处置**: (a) 撤回"arm 后 N+22 重读 symbolConfig"提案; (b) 低优先级电池项: 把 L1554 文案改为 "held name(s) in reduce-only channel: exits {n}/below-floor {n}/stop {n}", 与 L1163 的真 maxNotional=0 告警区分(需 safe_commit, 非紧急); (c) 本条与 E-0902-F 一并在 16Z 深查报出。
+### E-0902-H · 告警文案≠告警来源: 按文案建立假说并连做 3 次探针后才读生成代码
+- **教训**: E-0825-H"工件当输入前开产它的代码"同样适用于**告警文本** —— 告警是工件。规则: 任何告警进入排查前, 第一步 grep 生成它的代码行, 确认它测的量是什么; 探针只在代码读完后设计。家族: [measuring_a_misunderstood_quantity] [inferred_mechanism_became_the_harm]。
