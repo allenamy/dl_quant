@@ -134,3 +134,28 @@ h1,h2,h3{{font-family:'IBM Plex Sans Condensed','IBM Plex Sans',sans-serif;text-
 <p class="muted" style="margin-top:14px">采集器 regime_dash.py · 基准 2023+ jpline B 面板 · 生成 {time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}</p>
 """
     open(out,'w').write(page)
+
+def _creds():
+    tok=cid=None
+    for ln in open('/Users/haosiyu/dl_quant_live/.env'):
+        ln=ln.strip()
+        if ln.startswith('TELEGRAM_BOT_TOKEN='): tok=ln.split('=',1)[1].strip().strip('"')
+        elif ln.startswith('TELEGRAM_CHAT_ID='): cid=ln.split('=',1)[1].strip().strip('"')
+    return tok,cid
+def send_document(path, caption, silent=True):
+    """脚本触发的网页投递: 每锚把 REGIME_DASH.html 作为文件发到 Telegram(静默, 不响铃); 手机/电脑点开即最新仪表盘。不依赖 Claude 会话。"""
+    import urllib.request, uuid
+    try:
+        tok,cid=_creds()
+        if not tok or not cid: return False
+        b=uuid.uuid4().hex; data=open(path,'rb').read(); fn=os.path.basename(path)
+        parts=[]
+        for k,v in (("chat_id",cid),("caption",caption[:1000]),("disable_notification","true" if silent else "false"),("parse_mode","")):
+            parts.append(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+        parts.append(f'--{b}\r\nContent-Disposition: form-data; name="document"; filename="{fn}"\r\nContent-Type: text/html\r\n\r\n'.encode()+data+b'\r\n')
+        body=b''.join(parts)+f'--{b}--\r\n'.encode()
+        req=urllib.request.Request(f"https://api.telegram.org/bot{tok}/sendDocument", data=body, headers={"Content-Type":f"multipart/form-data; boundary={b}"})
+        with urllib.request.urlopen(req, timeout=30) as r: ok=json.loads(r.read().decode()).get("ok",False)
+        return bool(ok)
+    except Exception as e:
+        open(f'{HERE}/notify.err','a').write(f"{time.time()} sendDocument {e}\n"); return False

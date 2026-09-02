@@ -171,6 +171,10 @@ try:
     with open(OUT_J,'w') as fh:
         for r in rows: fh.write(json.dumps(r,ensure_ascii=False)+"\n")
     _rde.render_html(rows, row, pct, f'{HERE}/REGIME_DASH.html')
+    _cap=f"REGIME_DASH {row['anchor_utc']} | σ_fund {row.get('sig_fund_bp')}bp {(row.get('pct') or {}).get('sig_fund')} | 深负空头gross {row.get('book_S_deepneg')} | fund席位 {row.get('w3_masked_fund')} | FTRIM {row.get('ftrim_n_kc','—')} 名 | 旗标 {len(row.get('flags') or [])} 建议 {len(row.get('recommendations') or [])}"
+    row['doc_sent']=_rde.send_document(f'{HERE}/REGIME_DASH.html', _cap)
+    with open(OUT_J,'w') as fh:
+        for r in rows: fh.write(json.dumps(r,ensure_ascii=False)+"\n")
 except Exception as e:
     lines += ["", f"(ext error: {e})"]
 open(OUT_M,'w').write("\n".join(lines)+"\n")
