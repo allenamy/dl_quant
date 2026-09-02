@@ -17,3 +17,6 @@ arm 正常(A1/A5/A6 全过)· 换手 **16.4%**(≈两锚份额: 00Z 冻结未做
 
 ## 与 00:00Z 冻结锚对账
 00Z 目标 4 个强制出场名(1000RATS/NOM/PTB/SAGA)在 04Z 全部出清(readback 持仓 0, 04Z 目标 0)✓ · 冻结 8h NAV 20,317→20,548 = **+230.6U**(mark 有利, 冻结零伤害)· 09-02 至今 realised −21.9(funding −16.5)。
+
+### 2026-09-02 09:4xZ · 部署 FTRIM 负费率空头 z 层排除(书行为改动, 用户字)
+combo_stage.py 原子替换(kc/fc z 合成后、chain 前注入: rn8 ≤ −10bp/8h ∧ z<0 ⇒ z=0; 记录 ftrim 块), 备份 .pre_ftrim_20260902_backup, 首锚 12:00Z, 验收器 check_ftrim_anchor.py。受据 PREREG_deploy_ftrim §7-9(双口径双种子四门/因果链/分 regime 分杠杆/实盘反事实 −74U/预演 9 名 6.67% gross)。执行器零改动。
