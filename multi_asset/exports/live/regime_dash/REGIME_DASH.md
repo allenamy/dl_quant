@@ -1,6 +1,6 @@
 # REGIME DASH(只读)— 最新锚 2026-09-02T08:00Z
 
-> 生成 2026-09-02T09:03:18Z · 采集器 regime_dash.py · 历史基准 regime_hist_pct.json(2023+, jpline B 面板)· 旗标只作信息
+> 生成 2026-09-02T09:04:37Z · 采集器 regime_dash.py · 历史基准 regime_hist_pct.json(2023+, jpline B 面板)· 旗标只作信息
 
 ## 最新快照
 | 量 | 值 | 历史位 | 2024 均 / 2026 均(基准) |
@@ -16,6 +16,9 @@
 - 席位(掩码后) king 0.208 / fund 0.792
 - FTRIM: kc — / fc — 名 
 - 实现 IC(上锚分数→本锚 4h): fund — · 瞬时 — ; FTRIM 反事实(上锚排除名若持有的价差, bps of gross) None
+
+## 上锚→本锚 sleeve 归因(USDT; 价差 / carry / 合计 / 名数)
+- (需连续两锚数据)
 
 ## 旗标
 - 无

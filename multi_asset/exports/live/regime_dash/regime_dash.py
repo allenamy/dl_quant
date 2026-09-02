@@ -86,6 +86,40 @@ def cz(v):
     return r
 trz=cz(rn8[pm])-cz(ema[pm]); ts_={syms[int(pm[k])]:float(trz[k]) for k in range(len(pm)) if np.isfinite(trz[k])}
 row["fund_score"]=fs; row["tr_score"]=ts_
+# sleeve 归因(上锚→本锚区间): 价差 = 上锚持仓名义 × (本锚mid/上锚mid − 1); carry = 区间内 funding_paid 合计(执行器账本); 桶 = 上锚 rn8 方向×深度
+def sleeve_attr():
+    try:
+        pos={}; fund={}
+        for fpath in sorted(glob.glob(f'{PL}/2026*/position_readback.jsonl')):
+            for l in open(fpath):
+                try: d=json.loads(l)
+                except: continue
+                a=int(round(float(d['anchor_ts'])/14400)*14400); pos.setdefault(a,{})[d['symbol']]=float(d.get('venue_position_notional') or 0)
+        for fpath in sorted(glob.glob(f'{PL}/2026*/funding.jsonl')):
+            for l in open(fpath):
+                try: d=json.loads(l)
+                except: continue
+                st=float(d['settlement_ts']); a=int(np.ceil(st/14400)*14400)   # 结算归入其后的第一个锚区间
+                fund.setdefault(a,{}); fund[a][d['symbol']]=fund[a].get(d['symbol'],0.0)+float(d.get('funding_paid') or 0)
+        if A not in M or prevA not in M or prevA not in pos: return None
+        m1=M[A]; m0=M[prevA]; P0=pos[prevA]; F1=fund.get(A,{})
+        prev_rows=[json.loads(l) for l in open(OUT_J)] if os.path.exists(OUT_J) else []
+        pz=next((r for r in reversed(prev_rows) if r.get('anchor_ts')==prevA and 'rn8_bp' in r), None)
+        rn_prev=pz['rn8_bp'] if pz else None
+        out={}
+        for s_,n0 in P0.items():
+            if abs(n0)<1e-9 or s_ not in m0 or s_ not in m1 or not m0[s_]: continue
+            r=float(m1[s_])/float(m0[s_])-1; price=n0*r; car=-F1.get(s_,0.0)   # funding_paid 正=我们付 ⇒ carry 收益取负
+            rb=rn_prev.get(s_) if rn_prev else (rn8[col[s_]]*1e4 if s_ in col and np.isfinite(rn8[col[s_]]) else None)
+            if rb is None: b='unk'
+            elif n0>0: b='L|pos' if rb>=0 else 'L|neg'
+            else: b='S|pos' if rb>=0 else ('S|shallowneg' if rb>-10 else 'S|deepneg')
+            o=out.setdefault(b,{"price":0.0,"carry":0.0,"n":0,"notional":0.0}); o["price"]+=price; o["carry"]+=car; o["n"]+=1; o["notional"]+=abs(n0)
+        return {k:{kk:(round(vv,2) if isinstance(vv,float) else vv) for kk,vv in v.items()} for k,v in out.items()}
+    except Exception as e:
+        return {"error":str(e)[:120]}
+row["sleeve_prev_interval_usdt"]=sleeve_attr()
+row["rn8_bp"]={syms[j]:round(float(rn8[j])*1e4,2) for j in live if np.isfinite(rn8[j])}
 # 历史百分位
 pct=json.load(open(f'{HERE}/regime_hist_pct.json')) if os.path.exists(f'{HERE}/regime_hist_pct.json') else {}
 def pctile(k,v):
@@ -115,8 +149,18 @@ for k,lab in (("sig_fund_bp","σ_fund 8h(bp)"),("short_iv_share","短周期名�
     lines.append(f"| {lab} | {fmt(row.get(k))} | {row['pct'].get(hk) or '—'} | {fmt(by.get('2024'))} / {fmt(by.get('2026'))} |")
 lines += ["", "## 书构成(gross 占比)", f"- 空头: 深负 {fmt(row['book_S_deepneg'])} · 浅负 {fmt(row['book_S_shallowneg'])} · 正费率 {fmt(row['book_S_pos'])} ; 多头: 正费率 {fmt(row['book_L_pos'])} · 负费率 {fmt(row['book_L_neg'])} ; 持仓名 {row['book_gross_names']}",
  f"- 席位(掩码后) king {fmt(row.get('w3_masked_king'))} / fund {fmt(row.get('w3_masked_fund'))}", f"- FTRIM: kc {row.get('ftrim_n_kc','—')} / fc {row.get('ftrim_n_fc','—')} 名 {row.get('ftrim_names','')}", f"- 实现 IC(上锚分数→本锚 4h): fund {fmt(row['ic_fund_realized'],4)} · 瞬时 {fmt(row['ic_transient_realized'],4)} ; FTRIM 反事实(上锚排除名若持有的价差, bps of gross) {row['ftrim_counterfactual_prev']}",
+ "", "## 上锚→本锚 sleeve 归因(USDT; 价差 / carry / 合计 / 名数)", *([f"- {k}: {v['price']:+.1f} / {v['carry']:+.1f} / {v['price']+v['carry']:+.1f} / {v['n']}" for k,v in sorted((row.get('sleeve_prev_interval_usdt') or {}).items()) if isinstance(v,dict) and 'price' in v] or ["- (需连续两锚数据)"]),
  "", "## 旗标", *( [f"- {x}" for x in flags] or ["- 无"]), "", "## 近 12 锚", "| 锚 | σ_fund | 短周期 | 深负占比 | 书深负空头 | fund 席位 | IC_fund | IC_瞬时 | FTRIM n | 反事实 |", "|---|---|---|---|---|---|---|---|---|---|"]
 for r in rows[-12:]:
     cf=r.get('ftrim_counterfactual_prev'); lines.append(f"| {r['anchor_utc'][5:]} | {fmt(r.get('sig_fund_bp'),1)} | {fmt(r.get('short_iv_share'),2)} | {fmt(r.get('deepneg_share'),3)} | {fmt(r.get('book_S_deepneg'),3)} | {fmt(r.get('w3_masked_fund'),2)} | {fmt(r.get('ic_fund_realized'),3)} | {fmt(r.get('ic_transient_realized'),3)} | {r.get('ftrim_n_kc','—')} | {cf['avoided_price_bps_of_gross'] if cf else '—'} |")
+cum={}
+for r in rows[-30:]:
+    for k,v in (r.get('sleeve_prev_interval_usdt') or {}).items():
+        if isinstance(v,dict) and 'price' in v:
+            c=cum.setdefault(k,[0.0,0.0,0]); c[0]+=v['price']; c[1]+=v['carry']; c[2]+=1
+if cum:
+    lines += ["", "## 近 30 锚累计 sleeve(USDT: 价差 / carry / 合计 / 锚数)"] + [f"- {k}: {c[0]:+.1f} / {c[1]:+.1f} / {c[0]+c[1]:+.1f} / {c[2]}" for k,c in sorted(cum.items())]
+    lp=cum.get('L|pos',[0,0,0]); spp=cum.get('S|pos',[0,0,0])
+    if lp[2]>=20 and spp[2]>=20 and lp[0]+lp[1]<0 and spp[0]+spp[1]<0: lines.append("- ⚠ 双引擎(L|pos 与 S|pos)近 30 锚同为负: 唯一值得讨论降杠杆的形态(归用户)")
 open(OUT_M,'w').write("\n".join(lines)+"\n")
 print(json.dumps({k:v for k,v in row.items() if k not in ('fund_score','tr_score')},ensure_ascii=False)[:900])
