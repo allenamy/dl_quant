@@ -289,3 +289,9 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 ### E-0902-E · 训练产物逐折渐进写出: preds 文件"存在"≠"完整"(抓于误读前)
 - **现象**: `pod_f10_train_ext.py` 每折结束即 `np.save(preds)`; 固定席位后处理脚本以 `[ -f pred ]` 为放行条件, 在 τ0.5/2.0 仍在训练时就读到了只含前两折的 preds ⇒ 未完成折全 NaN → f10 腿归零 → 伪负 Δ(−0.051/−0.055)。因同批 τ1.0 已完成且训练 done 行可查, 在入档前识别为伪影, 未入任何结论。
 - **规则**: 训练产物的"完整"以**训练日志终态行**(done/DONE 标记)为唯一凭证, 文件存在/大小/mtime 都不算; 后处理脚本一律 grep 终态行放行(已补两脚本)。家族: E-0825-H(工件当输入前开产它的代码)/ latest-copy。
+
+### E-0902-A-2 · 场所瞬态 maxNotionalValue=0(08:00Z 锚 42 名被 clamp 为减仓-only)— 自愈, 无需 apply
+- **事实**: 08:01Z arm 时 symbolConfig 对 42 个持仓名回报 maxNotionalValue=0 ⇒ 执行器按设计 clamp(reduce-only/add_blocked/flatten_only 分类), 重整回中性: realized gross 40,555 vs target 40,602(99.9%), 净/gross 0.2%, rc=0。另 7 名(BTC/ETH/GPS/LINK/LTC/PENGU/ZORA)被 min_notional 地板弹出(BTC/ETH 地板 100 USDT, 当前 NAV 下小权重名常态), 弹出造成净倾斜 −3810U 由 redemean 吸收。
+- **诊断(只读, 08:46Z 与 08:5xZ)**: setup_live_account --mode LIVE ⇒ clean(全部名在 min(20x, 场所上限)); 直接读 symbolConfig/leverageBracket ⇒ 886 名中 maxNotionalValue=0 为 **0 名**, 42 名全部恢复 >0(如 1000LUNC 50000 / AIA 5000), 持仓 249 名无一被扣 ⇒ **场所瞬态**(风险参数迁移中间态, 与 E-0902-A 同源不同签名: 非杠杆分层错位)。exchangeInfo: 18 名全 TRADING(非 SETTLING; 全场所 130 SETTLING 为其他合约)。
+- **处置**: 无(apply 无对象); 12:00Z 锚自愈验证。**规则追加**: "withheld (maxNotionalValue=0)" 告警后先只读复读 symbolConfig 再决定是否 apply — 瞬态与分层错位签名不同, apply 只治后者。
+- **同锚其他**: −5022 拒单 26/182(14%)全部由 taker 补单接住(已知路径, 04Z 那次占 §4-5e 缺口 93% 的老问题已修); per_name_stop 触发 RIVERUSDT(深度 −30.6% 连续两锚)flatten_only + BTRUSDT 出场 7 天冷却 = 止损层正常工作; 因子健康监视 STALE(影子报告 647h 未更新)= 监视器读的是旧报告路径, 属已知未修类, 登 STATE §3。
