@@ -51,3 +51,6 @@
 ## 8. 验收口径修正(部署前落墨): §3 第 3 条"排除名目标权重 == 0"不成立 —— z 置 0 后目标经 EMA(α0.1)衰减、带(2.5e-4)冻结, 首锚只降 ≈10%, 尾部残量 <0.25% gross/名会冻结(装置同逻辑, 回放数字已含此效应)。改为: 未持仓排除名不新开空头(w=0/缺席); 已持仓排除名 |w_new| ≤ |w_prev|; 排除名记录 rn8 全 ≤ −10bp; gross_norm 变化 ≤10%。验收器 `fea171/check_ftrim_anchor.py`(部署前对 08Z 锚运行 = FAIL "no ftrim block", 证其有牙)。
 ## 9. 部署收据(2026-09-02 ~09:4xZ, 静默窗)
 `~/wide_shadow/fea171/combo_stage.py` 原子替换(备份 `combo_stage.py.pre_ftrim_20260902_backup`), 生产者 venv py_compile 过; 守护每锚新起进程 ⇒ **首锚 = 12:00Z(1788350400)**。快照: `multi_asset/exports/live/wide_shadow_snapshot/combo_stage_2026-09-02_ftrim.py` / `_2026-09-01_pre_ftrim.py` / `check_ftrim_anchor_2026-09-02.py` / `rehearsal_ftrim_2026-09-02.py`。回滚 = 拷回备份(一行), 或 kill 守护 PID ⇒ king 形态。执行器零改动。
+
+## 10. 首锚验收 · 12:00Z(1788350400)· 生产者侧 PASS(12:22Z)
+`check_ftrim_anchor.py 1788350400` → **PASS**: ftrim 块在, 规则串对, rn8 覆盖 1.000, n_kc = n_fc = **11**(TUSDT −400bp / LA −178 / ACE −89 / TLM −70 / ONG −58 / BTR −51 / MIRA −47 / HOME −29 / BICO −14 / SKR −13 / COTI −12 bp/8h, 全 ≤ −10bp); 排除名 |w| 合计 0.0548 → 0.0483(−12%, = EMA α0.1 衰减 + 带冻结的预期形态, 无新开空头, 无加仓); gross_norm 0.7532 → 0.7573(+0.5%, 门 ±10%); kc/fc own; w3m 0.206/0/0.794; 日志行 "FTRIM 负费率空头排除: kc 11 名 / fc 11 名" 在位; COMBO 落盘 n=229。预演(08Z 状态 9 名 6.67% gross)与实测(11 名 5.5% gross)同带。执行器侧(parse_target/rc/gross)待 12:47Z。
