@@ -112,7 +112,7 @@ def sleeve_attr():
         out={}
         for s_,n0 in P0.items():
             if abs(n0)<1e-9 or s_ not in m0 or s_ not in m1 or not m0[s_]: continue
-            r=float(m1[s_])/float(m0[s_])-1; price=n0*r; car=-F1.get(s_,0.0)   # funding_paid 正=我们付 ⇒ carry 收益取负
+            r=float(m1[s_])/float(m0[s_])-1; price=n0*r; car=F1.get(s_,0.0)   # funding_paid = 对我们的带符号现金流(账本实测: 空头×负费率 为负 = 我们付) ⇒ 直接作 carry 收益
             rb=rn_prev.get(s_) if rn_prev else (rn8[col[s_]]*1e4 if s_ in col and np.isfinite(rn8[col[s_]]) else None)
             if rb is None: b='unk'
             elif n0>0: b='L|pos' if rb>=0 else 'L|neg'
