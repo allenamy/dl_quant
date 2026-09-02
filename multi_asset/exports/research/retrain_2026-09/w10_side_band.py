@@ -18,14 +18,21 @@ CAL = os.environ.get("CAL", "simple")                 # simple = 交易所记账
 assert CAL in ("simple", "log"), (
     f"CAL 必须是 simple|log(收到 {CAL!r})。simple=交易所简单收益(expm1), log=对数收益(仅诊断用)。"
     "'exec' 不是有效值 —— E-0826-C: 曾被当作'执行器口径'传入, 实际落进对数分支, 污染 8 个臂并驱动一次错误撤回。")
+FTRIM_MODE = os.environ.get("FTRIM_MODE", "off")
+assert FTRIM_MODE in ("off", "zero", "half"), f"FTRIM_MODE 白名单外: {FTRIM_MODE}"
+# BAND 变体(2026-09-02 跨regime战役): 对归一化(8h当量)费率落在 (FTRIM_LO, FTRIM_HI] 的空头处理; 白名单三档
+FTRIM_LO = float(os.environ.get("FTRIM_LO", "-0.0030")); FTRIM_HI = float(os.environ.get("FTRIM_HI", "-0.0010"))
+FTRIM_STAGE = os.environ.get("FTRIM_STAGE", "post"); assert FTRIM_STAGE in ("post", "pre"), FTRIM_STAGE  # pre = 在 z 层排除频带空头(EMA/带吸收换手), post = 落盘后覆盖(原装置)
+assert (FTRIM_LO, FTRIM_HI) in ((-0.0030, -0.0010), (-0.0010, 0.0), (-0.0060, -0.0010), (-1.0, -0.0060), (-0.0060, -0.0030), (-1.0, -0.0010)), f"FTRIM band 白名单外: {(FTRIM_LO, FTRIM_HI)}"  # 第四批(09-02): 深负 (−∞,−60] 与 (−60,−30]
 LEGS = os.environ.get("LEGS", "111")                  # 腿掩码 king/rev24/fund; 关掉的腿权重置零后在剩余腿上重归一
 PHI = float(os.environ.get("PHI", "0.45"))            # 混合权重: blend = (1-PHI)*king + PHI*F10
 FSEED = os.environ.get("FSEED", "42")                 # F10 种子(walk-forward OOS 预测)
 import numpy as np
 from scipy.stats import rankdata
 B = "/mnt/storage/private/work_hsy/pod_backup_2026-08-21"; PD = "/mnt/storage/private/work_hsy/probe_artifacts"
-SIDE_KAPPA = float(os.environ.get("SIDE_KAPPA", "1.0")); assert SIDE_KAPPA in (1.0, 0.5, 1.5, 2.0, 3.0), f"SIDE_KAPPA 白名单外: {SIDE_KAPPA}"  # 第五批(09-02): 空侧 king 席位倍数
-_CFG = {"SIDE_KAPPA": SIDE_KAPPA, "WCAP": os.environ.get("WCAP"), "WFLOOR": os.environ.get("WFLOOR"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+SIDE_KAPPA = float(os.environ.get("SIDE_KAPPA", "1.0")); assert SIDE_KAPPA in (1.0, 0.5, 1.5, 2.0, 3.0), f"SIDE_KAPPA 白名单外: {SIDE_KAPPA}"
+_CFG = {"SIDE_KAPPA": SIDE_KAPPA, "FTRIM_MODE": FTRIM_MODE, "FTRIM_LO": FTRIM_LO, "FTRIM_HI": FTRIM_HI, "FTRIM_STAGE": FTRIM_STAGE,  # E-0902-B: 频带键此前缺席自报, 臂产物与基线 config 不可区分
+        "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
 t0 = time.time()
@@ -99,16 +106,6 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             return iv / iv.sum()
         shp = np.maximum(r.mean(1) / (r.std(1) + 1e-9), 0.0)
         w_ = shp / shp.sum() if shp.sum() > 0 else np.array([1/3] * 3)
-        _cap = os.environ.get("WCAP"); _flr = os.environ.get("WFLOOR")   # 席位规则臂(PREREG_seat_2026-09-02): fund 上限 / king 下限, 其余席位比例重归一
-        if _cap or _flr:
-            w_ = w_.copy()
-            if _cap and w_[2] > float(_cap):
-                ex = w_[2] - float(_cap); w_[2] = float(_cap)
-                oth = np.array([w_[0], w_[1]]); oth = oth / oth.sum() if oth.sum() > 0 else np.array([0.5, 0.5]); w_[0] += ex * oth[0]; w_[1] += ex * oth[1]
-            if _flr and w_[0] < float(_flr):
-                need_ = float(_flr) - w_[0]; w_[0] = float(_flr)
-                oth = np.array([w_[1], w_[2]]); oth = oth / oth.sum() if oth.sum() > 0 else np.array([0.5, 0.5]); w_[1] -= need_ * oth[0]; w_[2] -= need_ * oth[1]
-            w_ = np.maximum(w_, 0.0); w_ = w_ / w_.sum()
         if LEGS != "111":
             msk = np.array([1.0 if c == "1" else 0.0 for c in LEGS])
             w_ = w_ * msk
@@ -125,13 +122,18 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m]}
         w3 = w3_at(i)
         z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*np.nan_to_num(xz(sc["fund"]))
-        if SIDE_KAPPA != 1.0:   # 侧向不对称席位: 基线 z<0(空侧)的名改用 king 席位×κ 的重归一混合; 多侧不动
+        if SIDE_KAPPA != 1.0:   # 侧向不对称席位(第五批): 基线 z<0 的名改用 king 席位×κ 重归一混合; 频带排除在其后
             _zk = np.nan_to_num(xz(sc["king"])); _zr = np.nan_to_num(xz(sc["rev24"])); _zd = np.nan_to_num(xz(sc["fund"]))
             _wk = w3[0] * SIDE_KAPPA; _den = _wk + w3[1] + w3[2]
             z = np.where(z < 0, (_wk * _zk + w3[1] * _zr + w3[2] * _zd) / _den, z)
         ok = np.isfinite(y4[i, m]); qv4h = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48
         sel = ok & (qv4h >= 2.5e5)
         if sel.sum() < 80: continue
+        if FTRIM_MODE != "off" and FTRIM_STAGE == "pre":
+            _ivp = IV[j, m]; _ivp = np.where(np.isfinite(_ivp) & (_ivp > 0), _ivp, 8.0)
+            _fnp = np.nan_to_num(FN[j, m], nan=0.0) * (8.0 / _ivp)
+            _band = (z < 0) & (_fnp > FTRIM_LO) & (_fnp <= FTRIM_HI)
+            z = np.where(_band, 0.0 if FTRIM_MODE == "zero" else z * 0.5, z)
         w = np.where(sel, z, 0.0)
         w[sel] -= w[sel].mean()   # DEMEAN-FIX: 只在 sel 子集内去均值, 非 sel 保持 0(原代码把标量减到全部成员上, 使不合格名各得 -mu 形成等权多头篮)
         g = np.abs(w).sum()
@@ -163,6 +165,9 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
                 _zk2 = np.nan_to_num(xz(F10P[i, m])); _zr2 = np.nan_to_num(xz(sc["rev24"])); _zd2 = np.nan_to_num(xz(sc["fund"]))
                 _wk2 = w3[0] * SIDE_KAPPA; _den2 = _wk2 + w3[1] + w3[2]
                 _zf = np.where(_zf < 0, (_wk2 * _zk2 + w3[1] * _zr2 + w3[2] * _zd2) / _den2, _zf)
+            if FTRIM_MODE != "off" and FTRIM_STAGE == "pre":
+                _bandf = (_zf < 0) & (_fnp > FTRIM_LO) & (_fnp <= FTRIM_HI)
+                _zf = np.where(_bandf, 0.0 if FTRIM_MODE == "zero" else _zf * 0.5, _zf)
             _wf = np.where(sel, _zf, 0.0)
             if sel.any():
                 _wf[sel] -= _wf[sel].mean()
@@ -189,6 +194,18 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             smb = sm
         _smk = sm                     # ★ king 书自己的 sm 必须留住: 它的 EMA 态独立推进
         sm = smb                      # 此后一切记账(盈亏/成本/carry/深度)都在混合书上
+        # ★ FTRIM 注入(PREREG d580eb2042ef): 部署等价 overlay — 极端负funding空头处理后重归满gross
+        if FTRIM_MODE != "off" and FTRIM_STAGE == "post":
+            _ivm = IV[j, m]; _ivm = np.where(np.isfinite(_ivm) & (_ivm > 0), _ivm, 8.0)
+            _fnf = np.zeros(NW); _fnf[m] = np.nan_to_num(FN[j, m], nan=0.0) * (8.0 / _ivm)   # 8h 当量归一
+            _hit = (sm < 0) & (_fnf > FTRIM_LO) & (_fnf <= FTRIM_HI)
+            if _hit.any():
+                _g_orig = np.abs(sm).sum()
+                sm = sm.copy()
+                sm[_hit] = 0.0 if FTRIM_MODE == "zero" else sm[_hit] * 0.5
+                _g_new = np.abs(sm).sum()
+                if _g_new > 1e-9:
+                    sm = sm * (_g_orig / _g_new)
         trade = sm - HB
         nz = np.abs(sm) > 1e-12
         smr = sm.copy()
