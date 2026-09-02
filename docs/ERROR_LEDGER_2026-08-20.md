@@ -307,3 +307,7 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 - **待办(非紧急)**: 用 fills.jsonl 逐名核对 12Z 的 10 名 数量差 vs 价格差; 若全为价格重估 ⇒ 调整 reconcile 的重估口径为 HIGH 门(电池项); 若有数量差 ⇒ 记账链缺口, 升级。
 - **追记 13:1xZ**: (i) 非一次性: notify_audit 中 "withheld by the venue" 共 73 次, 08-31 起**每锚 35~45 名**(alarm_policy 已将其归为 EXPECTED 类"known uncapped name withheld"); (ii) 整点探针 13:00:20/13:01:00/13:02:00/13:05Z 均 0 名 ⇒ **不是整点瞬态**; (iii) 12Z 被扣 41 名中 7 名为 8h 结算名(12Z 不结算)⇒ **不是结算瞬态**; 只剩"arm 时刻(N+0:47)读到的状态"与"其他任何时刻读到的状态"不同 —— 假说转向: 场所在每 4h 锚整点对全部名做参数刷新(与我们锚同步), 或 symbolConfig 在 arm 时刻的返回带缓存态。下一步探针: 16:00:45Z / 16:01:30Z / 16:03:00Z 三次只读(与执行器 arm 同刻)。(iv) **代价量化**: 12Z 被扣名中 5 名需加仓, 阻断加仓名义 ≈1,014U = **2.5% of target gross/锚**(顺延到下锚, 构成偏离目标); 08Z realized gross 99.9%/12Z 100.7% 说明 gross 层被重分吸收, 偏离在名级。
 - **候选处置升级为提案(需用户字 + safe_commit + 电池)**: 执行器 arm() 若 symbolConfig 零名数 >20, 在 N+22(读外部目标前)重读一次并以重读结果判 withheld; 读不到仍保守 clamp。预期收益: 每锚 ~2.5% gross 的目标追踪恢复。
+
+### E-0902-G · launchd 后台进程被 macOS TCC 拦在 ~/Desktop(regime_dash 12:50Z 首次定时运行失败 "Operation not permitted")
+- **现象**: 手动运行正常, launchd 运行 `/usr/bin/python3 ~/Desktop/quant_research/.../regime_dash.py` 报 Errno 1。原因: 桌面目录受 TCC 保护, 后台 agent 无授权。生产者/执行器 agent 都在 ~/wide_shadow、~/dl_quant_live(非 Desktop)故从未遇到。
+- **处置**: 运行时迁到 `~/regime_dash/`(代码+基准+状态), 两个 plist 改路径重载, kickstart 实测通过; 研究仓目录保留代码单源与快照。**规则**: 任何 launchd/cron 后台脚本不得放在 ~/Desktop/~/Documents 等 TCC 目录; 部署后必须用 `launchctl kickstart` 在 launchd 上下文里实跑一次(手动跑通≠后台跑通, 同 E-0825-F"声明上线须验运行中进程")。
