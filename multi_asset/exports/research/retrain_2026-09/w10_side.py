@@ -24,8 +24,10 @@ FSEED = os.environ.get("FSEED", "42")                 # F10 种子(walk-forward 
 import numpy as np
 from scipy.stats import rankdata
 B = "/mnt/storage/private/work_hsy/pod_backup_2026-08-21"; PD = "/mnt/storage/private/work_hsy/probe_artifacts"
+W3FIX = os.environ.get("W3FIX")   # 第十批: 固定席位(实盘 2026-09 掩码后 king/rev24/fund), 白名单单值
+if W3FIX is not None: assert W3FIX == "0.21,0,0.79", f"W3FIX 白名单外: {W3FIX}"
 SIDE_KAPPA = float(os.environ.get("SIDE_KAPPA", "1.0")); assert SIDE_KAPPA in (1.0, 0.5, 1.5, 2.0, 3.0, 5.0, 8.0), f"SIDE_KAPPA 白名单外: {SIDE_KAPPA}"  # 第五批(09-02): 空侧 king 席位倍数
-_CFG = {"SIDE_KAPPA": SIDE_KAPPA, "WCAP": os.environ.get("WCAP"), "WFLOOR": os.environ.get("WFLOOR"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+_CFG = {"W3FIX": W3FIX, "SIDE_KAPPA": SIDE_KAPPA, "WCAP": os.environ.get("WCAP"), "WFLOOR": os.environ.get("WFLOOR"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
 t0 = time.time()
@@ -87,6 +89,8 @@ def legs(SLOW):
     return {k: np.array(v) for k, v in LR.items()}, {int(i): p for p, i in enumerate(idx)}
 def run(SLOW, LRa, pos, depth, need, cool, look=900):
     def w3_at(i):
+        if W3FIX is not None:
+            return np.array([float(x) for x in W3FIX.split(",")])
         if WRULE == "eq":
             _e = np.array([1.0 if c == "1" else 0.0 for c in LEGS])
             return _e / max(_e.sum(), 1.0)
