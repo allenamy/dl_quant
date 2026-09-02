@@ -24,7 +24,7 @@ FSEED = os.environ.get("FSEED", "42")                 # F10 种子(walk-forward 
 import numpy as np
 from scipy.stats import rankdata
 B = "/mnt/storage/private/work_hsy/pod_backup_2026-08-21"; PD = "/mnt/storage/private/work_hsy/probe_artifacts"
-SIDE_KAPPA = float(os.environ.get("SIDE_KAPPA", "1.0")); assert SIDE_KAPPA in (1.0, 0.5, 1.5, 2.0, 3.0), f"SIDE_KAPPA 白名单外: {SIDE_KAPPA}"  # 第五批(09-02): 空侧 king 席位倍数
+SIDE_KAPPA = float(os.environ.get("SIDE_KAPPA", "1.0")); assert SIDE_KAPPA in (1.0, 0.5, 1.5, 2.0, 3.0, 5.0, 8.0), f"SIDE_KAPPA 白名单外: {SIDE_KAPPA}"  # 第五批(09-02): 空侧 king 席位倍数
 _CFG = {"SIDE_KAPPA": SIDE_KAPPA, "WCAP": os.environ.get("WCAP"), "WFLOOR": os.environ.get("WFLOOR"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
