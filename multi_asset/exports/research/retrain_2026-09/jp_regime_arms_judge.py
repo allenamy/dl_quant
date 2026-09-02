@@ -23,7 +23,13 @@ for y in (2023,2024,2025,2026):
     s=yrs==y; print(f"   {y}: 净 {nb[s].mean():+.3f} 夏普 {nb[s].mean()/(nb[s].std()+1e-12)*np.sqrt(2190):.2f}")
 runs=sorted(os.path.basename(p)[:-4] for p in glob.glob(f"{PD}/w10_seat_*.npz")+glob.glob(f"{PD}/w10_band_*.npz"))
 for run in runs:
-    ta,na,toa,wka,wfa=load(run); assert np.array_equal(ta,tb)
+    ta,na,toa,wka,wfa=load(run)
+    if not np.array_equal(ta,tb):   # 锚集对齐(臂内 sel<80 跳锚等): ts 交集成对
+        mb={int(t):i for i,t in enumerate(tb)}; pr=[(mb[int(t)],k) for k,t in enumerate(ta) if int(t) in mb]
+        ib=np.array([x[0] for x in pr]); ia=np.array([x[1] for x in pr])
+        na_=np.full(len(tb),np.nan); toa_=np.full(len(tb),np.nan); wka_=np.full(len(tb),np.nan)
+        na_[ib]=na[ia]; toa_[ib]=toa[ia]; wka_[ib]=wka[ia]; na,toa,wka=na_,toa_,wka_
+        print(f"  ({run}: 锚集不同, 交集 {len(ib)}/{len(tb)}, 缺锚按基线值填)"); na=np.where(np.isnan(na),nb,na); toa=np.where(np.isnan(toa),tob,toa); wka=np.where(np.isnan(wka),wkb,wka)
     d=(na-nb)[sel]; nb6=len(d)//6; blocks=d[:nb6*6].reshape(nb6,6).sum(1)
     boots=np.array([blocks[rng.integers(0,nb6,nb6)].mean() for _ in range(4000)])/6
     lo,hi=np.quantile(boots,[0.025,0.975])

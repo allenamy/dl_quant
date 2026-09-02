@@ -22,6 +22,7 @@ FTRIM_MODE = os.environ.get("FTRIM_MODE", "off")
 assert FTRIM_MODE in ("off", "zero", "half"), f"FTRIM_MODE 白名单外: {FTRIM_MODE}"
 # BAND 变体(2026-09-02 跨regime战役): 对归一化(8h当量)费率落在 (FTRIM_LO, FTRIM_HI] 的空头处理; 白名单三档
 FTRIM_LO = float(os.environ.get("FTRIM_LO", "-0.0030")); FTRIM_HI = float(os.environ.get("FTRIM_HI", "-0.0010"))
+FTRIM_STAGE = os.environ.get("FTRIM_STAGE", "post"); assert FTRIM_STAGE in ("post", "pre"), FTRIM_STAGE  # pre = 在 z 层排除频带空头(EMA/带吸收换手), post = 落盘后覆盖(原装置)
 assert (FTRIM_LO, FTRIM_HI) in ((-0.0030, -0.0010), (-0.0010, 0.0), (-0.0060, -0.0010)), f"FTRIM band 白名单外: {(FTRIM_LO, FTRIM_HI)}"
 LEGS = os.environ.get("LEGS", "111")                  # 腿掩码 king/rev24/fund; 关掉的腿权重置零后在剩余腿上重归一
 PHI = float(os.environ.get("PHI", "0.45"))            # 混合权重: blend = (1-PHI)*king + PHI*F10
@@ -122,6 +123,11 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         ok = np.isfinite(y4[i, m]); qv4h = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48
         sel = ok & (qv4h >= 2.5e5)
         if sel.sum() < 80: continue
+        if FTRIM_MODE != "off" and FTRIM_STAGE == "pre":
+            _ivp = IV[j, m]; _ivp = np.where(np.isfinite(_ivp) & (_ivp > 0), _ivp, 8.0)
+            _fnp = np.nan_to_num(FN[j, m], nan=0.0) * (8.0 / _ivp)
+            _band = (z < 0) & (_fnp > FTRIM_LO) & (_fnp <= FTRIM_HI)
+            z = np.where(_band, 0.0 if FTRIM_MODE == "zero" else z * 0.5, z)
         w = np.where(sel, z, 0.0)
         w[sel] -= w[sel].mean()   # DEMEAN-FIX: 只在 sel 子集内去均值, 非 sel 保持 0(原代码把标量减到全部成员上, 使不合格名各得 -mu 形成等权多头篮)
         g = np.abs(w).sum()
@@ -149,6 +155,9 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             _zf = (w3[0] * np.nan_to_num(xz(F10P[i, m]))
                    + w3[1] * np.nan_to_num(xz(sc["rev24"]))
                    + w3[2] * np.nan_to_num(xz(sc["fund"])))
+            if FTRIM_MODE != "off" and FTRIM_STAGE == "pre":
+                _bandf = (_zf < 0) & (_fnp > FTRIM_LO) & (_fnp <= FTRIM_HI)
+                _zf = np.where(_bandf, 0.0 if FTRIM_MODE == "zero" else _zf * 0.5, _zf)
             _wf = np.where(sel, _zf, 0.0)
             if sel.any():
                 _wf[sel] -= _wf[sel].mean()
@@ -176,7 +185,7 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         _smk = sm                     # ★ king 书自己的 sm 必须留住: 它的 EMA 态独立推进
         sm = smb                      # 此后一切记账(盈亏/成本/carry/深度)都在混合书上
         # ★ FTRIM 注入(PREREG d580eb2042ef): 部署等价 overlay — 极端负funding空头处理后重归满gross
-        if FTRIM_MODE != "off":
+        if FTRIM_MODE != "off" and FTRIM_STAGE == "post":
             _ivm = IV[j, m]; _ivm = np.where(np.isfinite(_ivm) & (_ivm > 0), _ivm, 8.0)
             _fnf = np.zeros(NW); _fnf[m] = np.nan_to_num(FN[j, m], nan=0.0) * (8.0 / _ivm)   # 8h 当量归一
             _hit = (sm < 0) & (_fnf > FTRIM_LO) & (_fnf <= FTRIM_HI)
