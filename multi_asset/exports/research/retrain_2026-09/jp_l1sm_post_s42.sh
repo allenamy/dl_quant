@@ -3,6 +3,7 @@
 set -u
 W=/mnt/storage/private/work_hsy; PD=$W/probe_artifacts; cd $W; PY=/root/miniconda3/envs/hsy_v5push/bin/python
 rp(){ OUTN=$1; SEED=$2; PRED=$3
+  ARMN=$(echo $PRED | sed -E "s/^f10_(.*)_s([0-9]+)\.npy$/\1 s\2/"); grep -q "done $ARMN" $PD/l1sm_lane?.log 2>/dev/null || { echo "FAIL $OUTN (训练未完成)" >> $PD/l1sm_post_s42.log; exit 1; }   # E-0902-E
   env LOOK=900 WRULE=msharpe CAL=simple LEGS=101 PHI=0.45 FSEED=$SEED FPRED=$PRED FTRIM_MODE=off $PY w10_ftrim_band.py > $PD/$OUTN.log 2>&1 || { echo "FAIL $OUTN" >> $PD/l1sm_post_s42.log; exit 1; }
   mv $PD/w10_ablation_series.npz $PD/$OUTN.npz; mv $PD/w10_ablation_summary.json $PD/$OUTN.json; echo "done $OUTN" >> $PD/l1sm_post_s42.log; }
 rp w10_canonpred_jp_s42 42 f10_V2MAINJP_s42.npy

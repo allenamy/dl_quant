@@ -3,7 +3,8 @@
 set -u
 W=/mnt/storage/private/work_hsy; PD=$W/probe_artifacts; cd $W; PY=/root/miniconda3/envs/hsy_v5push/bin/python
 rp(){ OUTN=$1; SEED=$2; PRED=$3
-  [ -f f8_2026-08-22/preds/$PRED ] || { echo "skip $OUTN (no pred)"; return; }
+  ARMN=$(echo $PRED | sed -E "s/^f10_(.*)_s([0-9]+)\.npy$/\1 s\2/")   # E-0902-E: preds 文件逐折渐进写出, 存在≠完整; 只认 lane 日志 done 行
+  grep -q "done $ARMN" $PD/l1sm_lane?.log 2>/dev/null || { echo "skip $OUTN (训练未完成: 无 done 行)"; return; }
   env W3FIX="0.21,0,0.79" SIDE_KAPPA=1.0 FTRIM_MODE=off LOOK=900 WRULE=msharpe CAL=simple LEGS=101 PHI=0.45 FSEED=$SEED FPRED=$PRED $PY w10_side_band.py > $PD/$OUTN.log 2>&1 || { echo "FAIL $OUTN"; return; }
   mv $PD/w10_ablation_series.npz $PD/$OUTN.npz; mv $PD/w10_ablation_summary.json $PD/$OUTN.json; echo "done $OUTN"; }
 for T in t05 t10 t20; do rp w10_seat_fix_l1sm_$T 42 f10_L1SM_${T}_s42.npy; done
