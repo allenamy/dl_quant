@@ -7,7 +7,8 @@ def load(run):
     z=np.load(f"{PD}/{run}.npz",allow_pickle=True); cols=[str(c) for c in z["cols"]]; rec=z["d30_n2_c42_rec"]
     g=lambda k: rec[:,cols.index(k)].astype(np.float64)
     return rec[:,cols.index("ts")].astype(np.int64), g("net_ex"), g("turnover"), g("w3_king"), g("w3_fund")
-tb,nb,tob,wkb,wfb=load("w10_canonpred_s42"); yrs=np.array([time.gmtime(int(t)).tm_year for t in tb]); sel=yrs>=2023
+BASE=os.environ.get("BASE","w10_canonpred_s42"); SEEDTAG=os.environ.get("SEEDTAG","s42"); print(f"[judge] BASE={BASE} SEEDTAG={SEEDTAG}")
+tb,nb,tob,wkb,wfb=load(BASE); yrs=np.array([time.gmtime(int(t)).tm_year for t in tb]); sel=yrs>=2023
 mk=np.full(len(tb),np.nan)
 for p,t in enumerate(tb):
     i=mrow.get(int(t))
@@ -22,6 +23,7 @@ print(f"基线 msharpe: 净 {bm:+.3f} 夏普 {bs:.2f} ES5 {bes:+.1f} 最坏五�
 for y in (2023,2024,2025,2026):
     s=yrs==y; print(f"   {y}: 净 {nb[s].mean():+.3f} 夏普 {nb[s].mean()/(nb[s].std()+1e-12)*np.sqrt(2190):.2f}")
 runs=sorted(os.path.basename(p)[:-4] for p in glob.glob(f"{PD}/w10_seat_*.npz")+glob.glob(f"{PD}/w10_band_*.npz"))
+runs=[r for r in runs if r.endswith("_s2027")==(SEEDTAG=="s2027")]  # 种子配对: s2027 臂只与 s2027 基线比
 for run in runs:
     ta,na,toa,wka,wfa=load(run)
     if not np.array_equal(ta,tb):   # 锚集对齐(臂内 sel<80 跳锚等): ts 交集成对

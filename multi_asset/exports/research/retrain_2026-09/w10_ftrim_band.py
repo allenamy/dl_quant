@@ -23,7 +23,7 @@ assert FTRIM_MODE in ("off", "zero", "half"), f"FTRIM_MODE 白名单外: {FTRIM_
 # BAND 变体(2026-09-02 跨regime战役): 对归一化(8h当量)费率落在 (FTRIM_LO, FTRIM_HI] 的空头处理; 白名单三档
 FTRIM_LO = float(os.environ.get("FTRIM_LO", "-0.0030")); FTRIM_HI = float(os.environ.get("FTRIM_HI", "-0.0010"))
 FTRIM_STAGE = os.environ.get("FTRIM_STAGE", "post"); assert FTRIM_STAGE in ("post", "pre"), FTRIM_STAGE  # pre = 在 z 层排除频带空头(EMA/带吸收换手), post = 落盘后覆盖(原装置)
-assert (FTRIM_LO, FTRIM_HI) in ((-0.0030, -0.0010), (-0.0010, 0.0), (-0.0060, -0.0010)), f"FTRIM band 白名单外: {(FTRIM_LO, FTRIM_HI)}"
+assert (FTRIM_LO, FTRIM_HI) in ((-0.0030, -0.0010), (-0.0010, 0.0), (-0.0060, -0.0010), (-1.0, -0.0060), (-0.0060, -0.0030)), f"FTRIM band 白名单外: {(FTRIM_LO, FTRIM_HI)}"  # 第四批(09-02): 深负 (−∞,−60] 与 (−60,−30]
 LEGS = os.environ.get("LEGS", "111")                  # 腿掩码 king/rev24/fund; 关掉的腿权重置零后在剩余腿上重归一
 PHI = float(os.environ.get("PHI", "0.45"))            # 混合权重: blend = (1-PHI)*king + PHI*F10
 FSEED = os.environ.get("FSEED", "42")                 # F10 种子(walk-forward OOS 预测)
