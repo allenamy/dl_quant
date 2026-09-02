@@ -1,6 +1,6 @@
 # REGIME DASH(只读)— 最新锚 2026-09-02T08:00Z
 
-> 生成 2026-09-02T09:23:01Z · 采集器 regime_dash.py · 历史基准 regime_hist_pct.json(2023+, jpline B 面板)· 旗标只作信息
+> 生成 2026-09-02T09:23:21Z · 采集器 regime_dash.py · 历史基准 regime_hist_pct.json(2023+, jpline B 面板)· 旗标只作信息
 
 ## 最新快照
 | 量 | 值 | 历史位 | 2024 均 / 2026 均(基准) |

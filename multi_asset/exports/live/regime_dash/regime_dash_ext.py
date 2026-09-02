@@ -77,7 +77,7 @@ def render_html(rows, row, pct, out):
         lx,ly=pts.split()[-1].split(",")
         return f"<svg viewBox='0 0 {w} {h}' width='{w}' height='{h}' class='spark'><polyline points='{pts}' fill='none' stroke='var(--acc)' stroke-width='1.6'/><circle cx='{lx}' cy='{ly}' r='2.6' fill='var(--acc)'/><text x='{w-4}' y='10' text-anchor='end' class='sv'>{vs[-1]:.2f}</text><text x='4' y='10' class='sv'>{lo:.2f}–{hi:.2f}</text></svg>"
     def pctchip(k):
-        lab=(row.get('pct') or {}).get(k) or '—'; cls={'>=p95':'hi','<p95':'hi','<p75':'mid','<p50':'mid','<p25':'lo','<p5':'lo'}.get(lab,'mid'); return f"<span class='chip {cls}'>{lab}</span>"
+        lab=(row.get('pct') or {}).get(k) or '—'; cls={'>=p95':'hi','<p95':'hi','<p75':'mid','<p50':'mid','<p25':'lo','<p5':'lo'}.get(lab,'mid'); return f"<span class='chip {cls}'>{html.escape(lab)}</span>"
     sl=row.get('sleeve_prev_interval_usdt') or {}; cum=_cum_sleeve(rows,30)
     order=['L|pos','S|pos','S|shallowneg','S|deepneg','L|neg']
     def bars(d, getter, title):
