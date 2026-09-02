@@ -41,6 +41,7 @@ def sha(p):
 torch.manual_seed(SEED); np.random.seed(SEED)
 TG = np.load(f"{DLW}/data/dlw_targets.npz", allow_pickle=True)
 E_ts = TG["E_ts"].astype(np.int64); yrs = TG["yrs"].astype(int); y4s = TG["y4s"]
+HB = (yrs * 2 + (np.array([time.gmtime(int(t)).tm_mon for t in E_ts]) > 6).astype(int)).astype(int)   # L1SM 半年块 id
 nA, NW = y4s.shape
 FE = np.load(f"{DLW}/data/dlw_fea82.npz", allow_pickle=True)
 X82 = FE["X"]; pa = FE["pair_a"].astype(np.int64); ps = FE["pair_s"].astype(np.int64)
@@ -50,7 +51,10 @@ assert np.all(np.diff(pa) >= 0), "pairs must be anchor-sorted"
 XL = np.concatenate([X82, F9["X"]], 1).astype(np.float32)   # (nrows, 167)
 NCOL = int(os.environ.get("NCOL", "167"))
 EXTRA = os.environ.get("EXTRA", "")            # ""|"e4"(L3四头+旗标5列)|"lob38"|"cc3"(在役三腿z)
-LPP = float(os.environ.get("LPP", "0.0"))      # L2 持久罚: 惩罚 |u_t − u_{t−1}|
+LPP = float(os.environ.get("LPP", "0.0"))
+SM_TAU = float(os.environ.get("SM_TAU", "0.0"))   # L1SM(PREREG_l1_softmin_2026-09-02): 半年块 SoftMin 书目标温度(bps/锚); 0=关(=原损失, 逐位同)
+assert SM_TAU in (0.0, 0.5, 1.0, 2.0), f"SM_TAU 白名单外: {SM_TAU}"
+if SM_TAU > 0: assert LPP == 0 and LDC == 0, "L1SM 单变量: 不与 LPP/LDC 并用"      # L2 持久罚: 惩罚 |u_t − u_{t−1}|
 if NCOL == 78:
     # 归因臂: 去掉 89 新列 + 4 根 king 剔除的快列 = 忠实 king 弹药(唯一变量 vs MAIN = 弹药)
     KEEP = [i for i in range(82) if i not in (0, 1, 2, 3)]
@@ -132,6 +136,7 @@ YT = torch.from_numpy(np.nan_to_num(y4s, nan=0.0)).to(DEV)
 PST = torch.from_numpy(ps).to(DEV)
 rep = {"arm": ARM, "seed": SEED, "cost": COST, "ldd": LDD, "afix": AFIX, "epochs": EPOCHS,
        "lr": LR, "win": WIN, "burn": BURN, "stride": STRIDE, "embargo": EMB,
+       "sm_tau": SM_TAU,
        "self_sha256": sha(os.path.abspath(__file__)),
        "targets_sha256": sha(f"{DLW}/data/dlw_targets.npz"),
        "fea82_sha256": sha(f"{DLW}/data/dlw_fea82.npz"), "fea89_sha256": sha(f"{OUT}/data/f8_fea89.npz"),
@@ -279,13 +284,31 @@ for YV in (2023, 2024, 2025, 2026):
     best_va, best_state, va_curve, alist = -1e9, None, [], []
     for ep in range(EPOCHS):
         tau = 0.5 - (0.5 - 0.1) * ep / max(EPOCHS - 1, 1)
-        mdl.train(); order = np.random.permutation(starts); t0 = time.time()
-        for s0 in order:
-            span = [i for i in range(s0 - BURN, s0 + WIN) if i < first_te - EMB and yrs[i] < YV]
-            if len(span) < BURN + 32:
+        mdl.train(); t0 = time.time()
+        if SM_TAU > 0:   # L1SM: 每步 = 每个半年块各抽一窗, 块均值净额取 SoftMin_τ(τ→0 为最差块, τ→∞ 为均值); 总窗数/epoch 与基线同
+            _blocks = {}
+            for s0 in starts: _blocks.setdefault(int(HB[s0]), []).append(s0)
+            _per = {b: list(np.random.permutation(v)) for b, v in _blocks.items()}
+            _nsteps = max(1, len(starts) // max(len(_per), 1))
+            step_list = [[_per[b][st % len(_per[b])] for b in sorted(_per)] for st in range(_nsteps)]
+        else:
+            step_list = [[s0] for s0 in np.random.permutation(starts)]
+        for grp in step_list:
+            nets_l = []
+            for s0 in grp:
+                span = [i for i in range(s0 - BURN, s0 + WIN) if i < first_te - EMB and yrs[i] < YV]
+                if len(span) < BURN + 32:
+                    continue
+                n_, _ = run_span(mdl, span, mu, sd, tau, hard=False, loss_span=BURN); nets_l.append(n_)
+            if not nets_l:
                 continue
-            nets, _ = run_span(mdl, span, mu, sd, tau, hard=False, loss_span=BURN)
-            loss = -nets.mean() + LDD * es5(nets)
+            nets = torch.cat(nets_l)
+            if SM_TAU > 0 and len(nets_l) > 1:
+                mb = torch.stack([n_.mean() for n_ in nets_l])
+                softmin = -SM_TAU * (torch.logsumexp(-mb / SM_TAU, 0) - math.log(len(nets_l)))
+                loss = -softmin + LDD * es5(nets)
+            else:
+                loss = -nets.mean() + LDD * es5(nets)
             if LPP > 0:
                 us = []
                 for i2 in span[BURN::4]:
