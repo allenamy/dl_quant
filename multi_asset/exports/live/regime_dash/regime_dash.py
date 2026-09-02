@@ -165,5 +165,13 @@ if cum:
     lines += ["", "## 近 30 锚累计 sleeve(USDT: 价差 / carry / 合计 / 锚数)"] + [f"- {k}: {c[0]:+.1f} / {c[1]:+.1f} / {c[0]+c[1]:+.1f} / {c[2]}" for k,c in sorted(cum.items())]
     lp=cum.get('L|pos',[0,0,0]); spp=cum.get('S|pos',[0,0,0])
     if lp[2]>=20 and spp[2]>=20 and lp[0]+lp[1]<0 and spp[0]+spp[1]<0: lines.append("- ⚠ 双引擎(L|pos 与 S|pos)近 30 锚同为负: 唯一值得讨论降杠杆的形态(归用户)")
+try:
+    import importlib.util as _iu; _sp=_iu.spec_from_file_location('rde', f'{HERE}/regime_dash_ext.py'); _rde=_iu.module_from_spec(_sp); _sp.loader.exec_module(_rde)
+    _rde.run(rows, row, pct, lines)
+    with open(OUT_J,'w') as fh:
+        for r in rows: fh.write(json.dumps(r,ensure_ascii=False)+"\n")
+    _rde.render_html(rows, row, pct, f'{HERE}/REGIME_DASH.html')
+except Exception as e:
+    lines += ["", f"(ext error: {e})"]
 open(OUT_M,'w').write("\n".join(lines)+"\n")
 print(json.dumps({k:v for k,v in row.items() if k not in ('fund_score','tr_score')},ensure_ascii=False)[:900])
