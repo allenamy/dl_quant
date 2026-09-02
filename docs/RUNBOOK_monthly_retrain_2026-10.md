@@ -85,3 +85,6 @@ DL refit 7.5min ×2 / walk-forward 4折 20min ×4(并发=25min)/ king+bundle 21m
 **重建路径 A(有档)**: 新 pod 挂空卷 → git clone → scp 档案回卷 → bootstrap → 直接进 §2 步骤5。
 **重建路径 B(零档全重)**: vision 全量重拉(klines/premidx/funding zips, 脚本在 git, ~1h)→ 缓存/面板/特征链(§2)→ 与 git 记录的门数对表(exact_eq/corr 序列均在 MANIFEST)。jpline 替代: 任何 64 核 CPU 机 + pip install -r jpline_freeze。
 **唯一不可再生物** = 实盘账本(mac pilot_log, 已有 notary 链)与在役 bundle(mac)— 均在本机, 与训练机无关。
+
+## §8 待办(2026-09-02 立, E-0902-D): 回放 king 腿口径对齐实盘
+w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025 模型给)⇒ 2026 msharpe 席位 king≈0.01, 实盘 0.21。月度重训链的自然副产品 = 每月 bundle 对次月的真 OOS 预测; 从 2026-10 起把每月 booster 对"下月锚"的预测拼成 `slow_pred_rolling_oos.npy`(严格因果: 训练截止 < 预测锚), 作为回放 king 腿的第二口径, 与 hist_oos 并报; 席位敏感臂以 rolling 口径为主判。
