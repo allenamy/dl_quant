@@ -30,7 +30,8 @@ FSEED = os.environ.get("FSEED", "42")                 # F10 种子(walk-forward 
 import numpy as np
 from scipy.stats import rankdata
 B = "/mnt/storage/private/work_hsy/pod_backup_2026-08-21"; PD = "/mnt/storage/private/work_hsy/probe_artifacts"
-_CFG = {"LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+_CFG = {"FTRIM_MODE": FTRIM_MODE, "FTRIM_LO": FTRIM_LO, "FTRIM_HI": FTRIM_HI, "FTRIM_STAGE": FTRIM_STAGE,  # E-0902-B: 频带键此前缺席自报, 臂产物与基线 config 不可区分
+        "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
 t0 = time.time()
