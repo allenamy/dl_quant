@@ -20,7 +20,13 @@ for s_,rows_ in aux['ledger_tail'].items():
 for s_,est in aux['ema'].items():
     j=col.get(s_)
     if j is not None and isinstance(est,dict) and 'acc' in est: ema[j]=float(est['acc'])
-sm=np.zeros(NW); sm[np.array(pr['sm_idx'],np.int64)]=np.array(pr['sm'],np.float64); g=np.abs(sm).sum()
+sm=np.zeros(NW); sm[np.array(pr['sm_idx'],np.int64)]=np.array(pr['sm'],np.float64)
+_tl=f'{WS}/state/target_live/{A}.json'   # 书构成用实际执行的 target_live(combo+FTRIM 后), 不用 king 形态 sm
+if os.path.exists(_tl):
+    _w=json.load(open(_tl)).get('weights',{}); sm=np.zeros(NW)
+    for _s,_v in _w.items():
+        if _s in col: sm[col[_s]]=float(_v)
+g=np.abs(sm).sum()
 live=np.array(sorted(set(int(x) for x in pm)))   # 当锚成员
 f=rn8[live]; fin=np.isfinite(f)
 row={"anchor_ts":A,"anchor_utc":time.strftime('%Y-%m-%dT%H:%MZ',time.gmtime(A)),"n_members":int(len(live)),"rn8_coverage":round(float(fin.mean()),4)}
