@@ -21,7 +21,7 @@
 - **止损/风控**: 逐名 wide 档 d30_n2_c42(depth −0.30×2锚×7d)⟺ book_source=external 耦合; 看门狗 cond2 日亏 −4% flatten(口径 0aa6586)/ cond4 −25% 起始权益口径(57cb180); ArmingRefused 自带 CRITICAL(10063a6)。
 - **守护/采集**: guard_twin(20min, 账本孪生+**锚任务存活哨**·坏态 HIGH 恢复 INFO 均实测)· sidecar_blend(独立第二实现交叉核对, 每锚 king 自平价 2e-10)· depth_watch · stop_overlay · ic_monitor · nosleep · chase 随机实验 · pilot_log 全套。 **· regime_dash(09-02 起, 只读 launchd `com.hsy.regime_dash` 锚后 50 分: σ_fund/短周期占比/深负占比/书构成/席位/实现 IC/瞬时 IC/sleeve 归因/FTRIM 反事实/旗标 → `~/regime_dash/REGIME_DASH.md`(运行时; 代码单源在研究仓 regime_dash/); **T1/T2**: 旗标转移 INFO 页 + 预注册规则建议(R1-R4, 冷却 24 锚)→ PENDING_RULINGS.md; 周报 `com.hsy.regime_weekly`; 网页 artifact f8379cee)**执行探针已 KILL(勿复活)。
 - **回滚**: `kill $(cat ~/wide_shadow/fea171/combo_live_daemon.pid)` ⇒ 下一锚起 king 三腿形态; 全停 = `~/dl_quant_live/ops/KILL.sh`。
-- **改实盘代码唯一通道**: `~/dl_quant_live/ops/safe_commit.sh` + 电池 122/122; mac 生产者栈改动须同步快照入研究仓。
+- **改实盘代码唯一通道**: `~/dl_quant_live/ops/safe_commit.sh` + 电池 123/123(09-03 起含 tests_markout_pacing; 新套件须在 ops/gate_coverage.py 写盲区自述, 否则 gate_coverage 红); mac 生产者栈改动须同步快照入研究仓。
 
 ## §2 在飞
 - **combo 首周前向判据(CANDIDATE §6): 09-02 首读 PASS(按冻结窗)但需说透** — 40 配对锚候选净 +51.5bps, 候选−在役 +0.654±1.224 同向; **正裕量全在 live 未交易的前 4 锚(E-0826-F 停机期 +51.1); 实跑 36 锚 combo +0.4 持平 vs king −3.8**; 权益路径 +35U(+0.2%)吻合"持平"。kc/fc 链 40 own + 1 warmstart(E-0829-B 已结案)。**84 锚窗二读(≈09-09)= 首个有效读数**。journal_2026-09-02_forward_gate_42。
@@ -30,7 +30,7 @@
 - 月度重训: **09-01 首跑收官(双 v3 已换装)**; 下月流程正典 = `docs/RUNBOOK_monthly_retrain_2026-10.md`(逐字命令+基线+splice 滚动规则)。
 
 ## §3 待裁定(书行为改动, 归用户)
-- **[09-03] E-0903-A 执行器提案(非书行为, 但需 safe_commit+电池+用户字)**: 锚末 markout 回填 240 次 aggTrades/3 分钟把场所 1 分钟权重打到 1960~1980/2400(自限 1000 未生效), 封禁隐患 ⇒ 建议 A) 回填限速 ≤30 次/分; 或 B) 移出锚内只留锚间 launchd。**未获字前不动。**
+- ~~E-0903-A 执行器提案~~ **已处置(09-03 用户字"按最佳方式"): 节拍器 PACE_S=2.0 入 `ops/backfill_markout.py`, safe_commit 123/123 绿 ⇒ 实盘仓 45e1b58, 12:00Z 生效; 验收 = 12Z 起场所分钟峰值 ≤~1200(此前 1940~1980)+ 锚间 launchd 回填消化 pending。**
 - ~~候选① 负费率空头排除~~ **已部署(09-02 用户字, 首锚 12:00Z)**。仍待: κ 换手线 AMENDMENT(默认不动); L1SS 是否排 GPU(建议暂不)。仪表盘: 用户令建设中。
 - ~~宇宙冻结刷新~~ **已关闭(09-01 §B A/B + double-check 修正)**: 全窗负系 U0 回套生存者偏差; 无后见 2026 年加宽=alpha 中性(+0.03±0.17)未达录取线(CI>0); 维持 450。重开=入金后 2026-同步口径重测。fund 集中 77% 的回应; 杠杆升级(候选 2.0× 历史不触 −25% 线); 备用逐名停机条款 STANDBY(cf40ea21); FOMC 16Z 预缩候选; rev24 恢复与 φ 升档 = DNR 无新证据不动。
 - 已知未修(非 08-26 引入): 告警去重吞同级复发; daily_summary/redeliver 无调度; markout 回填积压(预算限速)。
