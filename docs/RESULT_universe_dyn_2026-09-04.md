@@ -1,6 +1,6 @@
 # RESULT · 宇宙更新机制战役(2026-09-03/04)
 > **创建:** 2026-09-03T17:50Z(本地 09-04 01:50) | **Session:** 主线 | **状态:** 数字入档, 待用户裁定部署形态 | **作废条件:** 部署 PREREG 的首锚验收入档
-> **预注册:** `docs/PREREG_universe_dyn_2026-09-04.md`(19ba2b1, 先于全部数字) | **装置:** `retrain_2026-09/w10_universe.py`(终版 sha 51952096f60d: +W3FIX/MEMBERS_TOPN/TRADE_TOPN/FTRIM/OUT_TAG, 默认路径与旧装置逐位同)· 掩码 `jp_umask_rules_v2.py` · 判官 `jp_regime_arms_judge.py`(+RUN_FILTER, +uni2 glob)· 收据 `multi_asset/exports/eda/universe_2026-09-04/`(58 臂 json + runner log)
+> **预注册:** `docs/PREREG_universe_dyn_2026-09-04.md`(19ba2b1, 先于全部数字) | **装置:** `retrain_2026-09/w10_universe.py`(终版 sha 51952096f60d: +W3FIX/MEMBERS_TOPN/TRADE_TOPN/FTRIM/OUT_TAG, 默认路径与旧装置逐位同)· 掩码 `jp_umask_rules_v2.py` · 判官 `jp_regime_arms_judge.py`(+RUN_FILTER, +uni2 glob)· 收据 `multi_asset/exports/eda/universe_2026-09-04/`(58 唯一臂 json(70 次运行; A/F 族 12 臂的 v1 空掩码版本被 v2 同名覆盖)+ runner log)
 
 ## 0. 结论(先读)
 1. **实盘宇宙比回放更静态, 这是有量的结构性差距.** 回放正典 = 逐锚动态 top-400(按当锚流动性)∧ 逐锚 25 万门; 实盘 = 08-16 冻结 450 名单 → 数据源/费率台账/成员集/可交易集全部被它框住(生产者 members 400/400 ⊂ 450)。回放里把名单按"月/季/年首锚刷新"冻结的代价: **月 −0.06~−0.09, 季 −0.29~−0.34, 年 −0.47~−0.56 Sharpe**(季/年 CI 不含 0, 双口径同向)。现役名单已 19 天, 处于"月→季"段。
