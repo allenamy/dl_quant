@@ -334,5 +334,5 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 
 ### E-0903-B · 研究文档误提交进实盘仓(同一 Bash 调用内 cwd 持续为 ~/dl_quant_live), 修复时又犯两次
 - **事实**: 09-02 16:5xZ 一条 Bash 先 `cd ~/dl_quant_live` 只读读数, 同一调用内随后 `cat >> docs/PREREG_deploy_ftrim_2026-09-02.md` + `git commit` ⇒ 在**实盘仓**新建 docs 并直接提交(446e2fa, 绕过 safe_commit; 纯 docs 无代码), 研究仓正本缺该段。09-03 修复时在同一调用内两次重复(ledger 误建于实盘仓 docs/, 未提交, 已删)。
-- **处置**: 实盘仓 `git reset --soft HEAD~1` + 移除文件(未推远端, 无痕, HEAD=38e896d, docs/ 为空); 段落补回研究仓正本。
+- **处置**: 实盘仓 `git reset --soft HEAD~1` + 移除文件(未推远端, 无痕, HEAD=38e896d, 实盘仓 docs/ 工作树干净——其自有 14 个文件不受影响); 段落补回研究仓正本。
 - **规则(硬)**: 写文件/git 一律用**绝对路径 + `git -C <repo>`**, 不依赖 cwd; 一条 Bash 只操作一个仓; 每次 commit 打印 `git rev-parse --show-toplevel` 收据; 实盘仓只接受 `ops/safe_commit.sh`。
