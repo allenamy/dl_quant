@@ -24,12 +24,26 @@ FSEED = os.environ.get("FSEED", "42")                 # F10 种子(walk-forward 
 import numpy as np
 from scipy.stats import rankdata
 B = "/mnt/storage/private/work_hsy/pod_backup_2026-08-21"; PD = "/mnt/storage/private/work_hsy/probe_artifacts"
-_CFG = {"LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+W3FIX = os.environ.get("W3FIX")   # 固定席位口径(PREREG_universe_dyn §2), 白名单单值
+if W3FIX is not None: assert W3FIX == "0.21,0,0.79", f"W3FIX 白名单外: {W3FIX}"
+MEMBERS_TOPN = int(os.environ.get("MEMBERS_TOPN", "0"))   # >0: 按 qvk 逐锚重建 top-N 候选集(扩展臂); 0 = 用 meta members(正典, 逐位同)
+assert MEMBERS_TOPN in (0, 300, 400, 500, 600, 829), f"MEMBERS_TOPN 白名单外: {MEMBERS_TOPN}"
+FTRIM = os.environ.get("FTRIM", "off"); assert FTRIM in ("off", "zero"), FTRIM   # 部署态 FTRIM(pre-z 排除 rn8<=-10bp 空头, 两链), 与 w10_ftrim_band pre/zero/(-1.0,-0.0010] 同构
+TRADE_TOPN = int(os.environ.get("TRADE_TOPN", "0"))   # >0: 成交集限于当锚 qvk 排名前 N(z 归一基仍为 members): 分离"归一基变宽"与"可交易名增加"两条通道
+assert TRADE_TOPN in (0, 400), f"TRADE_TOPN 白名单外: {TRADE_TOPN}"
+_CFG = {"W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
 t0 = time.time()
 MT = np.load(f"{B}/wide_fea_hist_meta.npz", allow_pickle=True)
 E_ts = MT["E_ts"].astype(np.int64); members = MT["members"]; y4 = MT["y4"]; qvk = MT["qvk"]
+if MEMBERS_TOPN > 0:   # 扩展臂: 逐锚按当锚 qvk 排名取前 N(era-synchronous: 只用当锚已知的报价额), 与 meta 排序口径同源
+    _mem2 = np.empty(len(E_ts), dtype=object)
+    for _i in range(len(E_ts)):
+        _q = np.nan_to_num(qvk[_i], nan=-1.0); _ord = np.argsort(-_q); _ord = _ord[_q[_ord] > -0.5]
+        _mem2[_i] = np.sort(_ord[:MEMBERS_TOPN]).astype(np.int64)
+    members = _mem2
+    print(f"MEMBERS_TOPN={MEMBERS_TOPN}: members rebuilt from qvk ranking", flush=True)
 yrs = np.array([time.gmtime(int(t)).tm_year for t in E_ts]); nA = len(E_ts); NW = 829
 PW = np.load(f"{B}/wide_panel_4h_hist_v2.npz", allow_pickle=True)
 pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}
@@ -103,6 +117,8 @@ def legs(SLOW):
     return {k: np.array(v) for k, v in LR.items()}, {int(i): p for p, i in enumerate(idx)}
 def run(SLOW, LRa, pos, depth, need, cool, look=900):
     def w3_at(i):
+        if W3FIX is not None:
+            return np.array([float(x) for x in W3FIX.split(",")])
         if WRULE == "eq":
             _e = np.array([1.0 if c == "1" else 0.0 for c in LEGS])
             return _e / max(_e.sum(), 1.0)
@@ -134,8 +150,13 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m]}
         w3 = w3_at(i)
         z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*np.nan_to_num(xz(sc["fund"]))
+        if FTRIM == "zero":
+            _fnp = FN[j, m] * (8.0 / np.where(IV[j, m] > 0, IV[j, m], 8.0)); _fnp = np.where(np.isfinite(_fnp), _fnp, 0.0)
+            z = np.where((z < 0) & (_fnp <= -0.0010), 0.0, z)
         ok = np.isfinite(y4[i, m]); qv4h = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48
         sel = ok & (qv4h >= 2.5e5)
+        if TRADE_TOPN > 0:
+            _qi = np.nan_to_num(qvk[i], nan=-1.0); _rk = np.empty(NW, int); _rk[np.argsort(-_qi)] = np.arange(NW); sel = sel & (_rk[m] < TRADE_TOPN)
         if sel.sum() < 80: continue
         w = np.where(sel, z, 0.0)
         w[sel] -= w[sel].mean()   # DEMEAN-FIX: 只在 sel 子集内去均值, 非 sel 保持 0(原代码把标量减到全部成员上, 使不合格名各得 -mu 形成等权多头篮)
@@ -164,6 +185,8 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             _zf = (w3[0] * np.nan_to_num(xz(F10P[i, m]))
                    + w3[1] * np.nan_to_num(xz(sc["rev24"]))
                    + w3[2] * np.nan_to_num(xz(sc["fund"])))
+            if FTRIM == "zero":
+                _zf = np.where((_zf < 0) & (_fnp <= -0.0010), 0.0, _zf)
             _wf = np.where(sel, _zf, 0.0)
             if sel.any():
                 _wf[sel] -= _wf[sel].mean()
@@ -282,6 +305,8 @@ for nm, d, n_, c, reff in ARMS:
     print("RECEIPT_EX", nm, json.dumps(outx), flush=True)
     save[f"{nm}_rec"] = R
     save[f"{nm}_W"] = WS
-json.dump(out, open(f"{PD}/w10_ablation_summary.json", "w"), indent=1, ensure_ascii=False)
-np.savez_compressed(f"{PD}/w10_ablation_series.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), **save)
+_OT = os.environ.get("OUT_TAG", "")   # 并行道输出隔离(PREREG_universe_dyn): 未设时文件名与旧装置同
+_OT = f"_{_OT}" if _OT else ""
+json.dump(out, open(f"{PD}/w10_ablation_summary{_OT}.json", "w"), indent=1, ensure_ascii=False)
+np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), **save)
 print("DONE", round(time.time() - t0, 1), "s", flush=True)

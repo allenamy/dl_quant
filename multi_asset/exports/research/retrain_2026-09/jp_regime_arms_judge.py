@@ -24,7 +24,9 @@ bm,bs,bes,bwq=stats(nb)
 print(f"基线 msharpe: 净 {bm:+.3f} 夏普 {bs:.2f} ES5 {bes:+.1f} 最坏五分位 {bwq:+.2f} 急跌锚净 {nb[drop].mean():+.2f}(n{drop.sum()}) 换手 {tob[sel].mean():.4f} w3_king均 {wkb[sel].mean():.2f} w3_fund均 {wfb[sel].mean():.2f}")
 for y in (2023,2024,2025,2026):
     s=yrs==y; print(f"   {y}: 净 {nb[s].mean():+.3f} 夏普 {nb[s].mean()/(nb[s].std()+1e-12)*np.sqrt(2190):.2f}")
-runs=sorted(os.path.basename(p)[:-4] for p in glob.glob(f"{PD}/w10_seat_*.npz")+glob.glob(f"{PD}/w10_band_*.npz"))
+runs=sorted(os.path.basename(p)[:-4] for p in glob.glob(f"{PD}/w10_seat_*.npz")+glob.glob(f"{PD}/w10_band_*.npz")+glob.glob(f"{PD}/w10_uni2_*.npz"))
+_RF=os.environ.get("RUN_FILTER")   # 只判含此子串的臂(双口径分判: 臂口径必须与 BASE 口径同)
+if _RF: runs=[r for r in runs if _RF in r]; print(f"[judge] RUN_FILTER={_RF} -> {len(runs)} runs")
 runs=[r for r in runs if r.endswith("_s2027")==(SEEDTAG=="s2027")]  # 种子配对: s2027 臂只与 s2027 基线比
 STRICT_CFG=os.environ.get("STRICT_CFG","0")=="1"   # E-0902-B: 臂自报 config 与基线相同 ⇒ 严格模式直接不过; 默认只警告(旧装置产物用 runner 受据)
 for run in runs:
