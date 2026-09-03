@@ -34,3 +34,8 @@
 
 ## 6. 长期影子三书(用户问 5, 采纳)
 每锚由离线 sidecar(研究仓代码, 运行目录 ~/regime_dash 同款, 只读生产者 prev_rec/target/mid/funding)重建: **Shadow A** = 旧秩基 ∧ 冻结 450 成员(prev_rec.fund_z_old + 同链平滑, 自有 H_A); **Shadow B** = 新秩基 ∧ 冻结 450(Phase A 期间 = production); **Production C** = 新秩基 ∧ 动态成员(Phase B 起)。逐日 ΔPnL = C−A = (B−A)[M1] + (C−B)[M2/M3], 用执行器 mid 向量与 funding 台账定价(纸面, 不含执行), 入仪表盘 R5 旗标: 20 交易日累计 (B−A) ≤ −15 bps of gross 或 (C−B) ≤ −20 bps ⇒ 复议。
+
+## 7. AMENDMENT(2026-09-03T23:59Z, 换装前, 机制事实而非结果拟合)
+- **冷启动自愈时序:** 新入基的 ~210 名走生产者既有 40 天回拉(`fundingRate` limit=100, 场所按时间升序返回)⇒ 首锚只拿到最早 100 行(8h 名末行距锚 ~7 天, 4h 名 ~27 天), 不满足 ≤12h 新鲜度 ⇒ **首锚 fund_base_n ≈ live 新鲜名数(~450), 基在第 2~3 锚自愈到 ≥600**。§2 ① 改为: 首锚 base_n ≥600 ∧ fund_base_n ≥ 430 ∧ exinfo_ok; **第 3 锚起 fund_base_n ≥550**。其余判据不变。
+- **测试套件同步:** 生产者套件 `tests_target_live_output.py` 检查 1a 自 E-0825-G/B 修复后一直为红(允许集未同步), 本次补登两行并新增 [9] M1 九项(基==成员时逐位等于 xz; 缺失名 NaN; <10 退化; 秩基变宽序不变; king/F10 输入行不变; universe/EXIT 路径不变), 候选全绿 62/62 → 登 E-0903-F。
+- **候选 sha:** shadow_loop_v3_m1_candidate.py e9c9837412131b36e(现役 db326162c7ac54df1); 换装时同名覆盖并保留 `.pre_m1_20260904_backup`, aux.json 换装前快照 `aux_pre_m1_20260904.json`(影子 A 引导用)。
