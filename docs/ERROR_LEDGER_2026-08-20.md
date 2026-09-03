@@ -318,3 +318,9 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 - **处置**: (a) 撤回"arm 后 N+22 重读 symbolConfig"提案; (b) 低优先级电池项: 把 L1554 文案改为 "held name(s) in reduce-only channel: exits {n}/below-floor {n}/stop {n}", 与 L1163 的真 maxNotional=0 告警区分(需 safe_commit, 非紧急); (c) 本条与 E-0902-F 一并在 16Z 深查报出。
 ### E-0902-H · 告警文案≠告警来源: 按文案建立假说并连做 3 次探针后才读生成代码
 - **教训**: E-0825-H"工件当输入前开产它的代码"同样适用于**告警文本** —— 告警是工件。规则: 任何告警进入排查前, 第一步 grep 生成它的代码行, 确认它测的量是什么; 探针只在代码读完后设计。家族: [measuring_a_misunderstood_quantity] [inferred_mechanism_became_the_harm]。
+
+### E-0902-I · 执行奖池口径错误: 把未提交尘单与已由 taker 完成的拒单残量算作"未成交"
+- **首版**: 成交率 61%、未成交 737U/锚、错过 alpha +4.5U/锚(+1.1 bps of gross)—— 写进 REVIEW_next_edge 并向用户报过。
+- **错在**: (a) `intended_notional` 对 skipped_min_notional 行也有值, 未提交的尘单被算进分母; (b) venue_reject(−5022)残量按政策走 taker 补单并成交, 却被算作未成交并赋予 4h 漂移。
+- **重算**: 已提交 maker 单名义成交率 90%(各尺寸 81~95%); 真正未成交(partial_expired)182U/锚, 漂移 +0.76U/锚 CI ±1.28 = +0.19 bps of gross。**结论从"执行智能是最大奖池"降为"当前规模含 0 的小钱, 价值在 AUM 放大"**, 已更正文档。
+- **规则**: 成交率/未成交类统计只对**已提交**订单(有 mid_at_submit/price_submit)计; 终态为 venue_reject 的残量若有 taker 补单路径, 归"已完成", 不归"缺口"(known_gaps 口径早已如此: "-5022 is EXCLUDED")。家族: [measuring_a_misunderstood_quantity]。
