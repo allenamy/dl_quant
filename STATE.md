@@ -39,7 +39,7 @@
 - **combo 首周前向判据(CANDIDATE §6): 09-02 首读 PASS(按冻结窗)但需说透** — 40 配对锚候选净 +51.5bps, 候选−在役 +0.654±1.224 同向; **正裕量全在 live 未交易的前 4 锚(E-0826-F 停机期 +51.1); 实跑 36 锚 combo +0.4 持平 vs king −3.8**; 权益路径 +35U(+0.2%)吻合"持平"。kc/fc 链 40 own + 1 warmstart(E-0829-B 已结案)。**84 锚窗二读(≈09-09)= 首个有效读数**。journal_2026-09-02_forward_gate_42。
 - ~~V2L38~~ **已判负关闭(09-01)**: 同座替换门双种子 FAIL(+0.012含0 / −0.087显著负), LOB 列改变构成不产净额; RESULT 入 PREREG_v2l38。4h 锚级 DNR。
 - V2K78 s2027 预测已出待书层判(2×2 第二种子)。
-- **重训节奏×截止 与 席位规则 两轴评估(09-05 07:2xZ 起, pod, 只读研究)**: 预注册 `docs/PREREG_retrain_cadence_and_seat_rule_2026-09-05.md`(sha 7a83a7566c9670d3, 判据冻结先于数字)。轴 A = IC–模型年龄曲线(D1) + K0 pinned/K1 月-60/K2 月-1/K3 周-1 固定席位配对判; 轴 B = 席位规则 R1 窗300/R2 净换手/R3 收缩/R4 均值-协方差/R5 σ_fund 分档条件化, 动态席位两种子两口径配对判(主判 2025→26)。产物 pod `/workspace/review_scratch/cadence_seats/axis{A,B}/`; 结果文件待写 `docs/RESULT_retrain_cadence_and_seat_rule_2026-09-05.md`。**书零接触; 任何采纳=RUNBOOK+生产者改动+预注册+用户字。**
+- **重训节奏×截止 与 席位规则 两轴评估(2026-09-04 23:25Z 起, 本地 09-05 07:25 +08, pod, 只读研究)**: 预注册 `docs/PREREG_retrain_cadence_and_seat_rule_2026-09-05.md`(sha 7a83a7566c9670d3, 判据冻结先于数字)。轴 A = IC–模型年龄曲线(D1) + K0 pinned/K1 月-60/K2 月-1/K3 周-1 固定席位配对判; 轴 B = 席位规则 R1 窗300/R2 净换手/R3 收缩/R4 均值-协方差/R5 σ_fund 分档条件化, 动态席位两种子两口径配对判(主判 2025→26)。产物 pod `/workspace/review_scratch/cadence_seats/axis{A,B}/`; 结果文件待写 `docs/RESULT_retrain_cadence_and_seat_rule_2026-09-05.md`。**书零接触; 任何采纳=RUNBOOK+生产者改动+预注册+用户字。**
 - 月度重训: **09-01 首跑收官(双 v3 已换装)**; 下月流程正典 = `docs/RUNBOOK_monthly_retrain_2026-10.md`(逐字命令+基线+splice 滚动规则)。
 
 ## §3 待裁定(书行为改动, 归用户)
