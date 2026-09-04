@@ -77,7 +77,7 @@ def run():
     if H_B_prev is None: H_B_prev = Hp
     smB, trB = chain(Hp, pr["members"], pr["legz"]["king"], pr["legz"]["rev24"], pr["legz"]["fund"], pr["sel_idx"], w3)
     prod = np.zeros(NW); prod[np.array(pr["sm_idx"], int)] = np.array(pr["sm"], float)
-    mism = float(np.abs(smB - prod).max()); chain_ok = mism < 1e-9
+    mism = float(np.abs(smB - prod).max()); chain_ok = mism < 1e-6   # weights/prev_rec 为 float32 量化(实测 3e-8~8e-8), 1e-6 内 = 链逐位同
     H_A_prev = vec(st["H_A"]) if st["H_A"] else Hp
     smA, trA = chain(H_A_prev, pr["members"], pr["legz"]["king"], pr["legz"]["rev24"], pr["fund_z_old"], pr["sel_idx"], w3)
     st["H_A"] = dct(smA); st["H_B"] = dct(prod); st["done"].append(A)

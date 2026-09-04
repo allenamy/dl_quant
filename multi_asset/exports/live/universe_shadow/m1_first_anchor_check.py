@@ -13,7 +13,13 @@ if not sig: print("  FAIL 无 signal 行"); sys.exit(1)
 chk("① status OK / coverage≥0.95", sig["status"] == "OK" and sig["coverage"] >= 0.95, f"{sig['status']} cov {sig['coverage']}")
 band = (430, 480) if (A // 3600) % 8 else (430, 520)
 chk("① fund_updates 稳态带(live 名)", 300 <= sig["fund_updates"] <= 520, f"{sig['fund_updates']} (+base {sig.get('fund_updates_base')})")
-chk("① base_n ≥600 ∧ exinfo_ok", sig.get("base_n", 0) >= 600 and sig.get("exinfo_ok"), f"base_n {sig.get('base_n')} exinfo_ok {sig.get('exinfo_ok')}")
+# §9 AMENDMENT(09-04 04:3xZ): ≥600 的前提来自含 SETTLING 的缓存计数(658); 场所实际 TRADING USDT 永续 526, ∪ live450 = 528 ⇒ 判据改为 base_n == 场所实测(±3) 且 ≥500
+try:
+    import urllib.request
+    _xi = json.loads(urllib.request.urlopen(urllib.request.Request("https://fapi.binance.com/fapi/v1/exchangeInfo", headers={"User-Agent": "Mozilla/5.0"}), timeout=20).read())
+    _cfg = json.load(open(f"{WS}/shadow_bundle/config.json")); _venue = len({x["symbol"] for x in _xi["symbols"] if x.get("contractType") == "PERPETUAL" and x.get("quoteAsset") == "USDT" and x.get("status") == "TRADING"} | set(_cfg["symbols_live"]))
+except Exception as _e: _venue = None
+chk("① base_n == 场所 TRADING USDT 永续 ∪ live(±3) ∧ ≥500 ∧ exinfo_ok", sig.get("exinfo_ok") and sig.get("base_n", 0) >= 500 and (_venue is None or abs(sig.get("base_n", 0) - _venue) <= 3), f"base_n {sig.get('base_n')} venue∪live {_venue} exinfo_ok {sig.get('exinfo_ok')}")
 chk("① fund_base_n ≥430(首锚; 第 3 锚起 ≥550)", sig.get("fund_base_n", 0) >= 430, f"fund_base_n {sig.get('fund_base_n')}")
 chk("① runtime_s ≤ 300 (自限 240 ⇒ 落盘 ≤N+21)", sig["runtime_s"] <= 300, f"runtime {sig['runtime_s']}s weight {sig['weight_used']}")
 tl = json.load(open(f"{WS}/state/target_live/{A}.json")); w = tl["written_utc"]; wt = time.mktime(time.strptime(w[:19], "%Y-%m-%dT%H:%M:%S")) - time.timezone

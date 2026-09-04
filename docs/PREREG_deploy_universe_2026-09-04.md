@@ -46,3 +46,8 @@
 - 停旧: kill 12918(shadow.lock PID)→ 退出。**重启事实(E-0904-A):** 生产者由 launchd 代理 `com.hsy.shadowloop`(KeepAlive SuccessfulExit=false, env SHADOW_OFFSET_MIN=16, stdout→loop.out)管理, kill 后 launchd 立即以新文件重生 **PID 4833**(XPC_SERVICE_NAME=com.hsy.shadowloop, SHADOW_OFFSET_MIN=16 已核); RUNBOOK L33 的 nohup 手工启动随后被锁拒绝(REFUSE_TO_START 行进 loop.out, rc 2, 无副作用)。运行中进程唯一(ps 核), `next 2026-09-04T04:16:00Z`。
 - 守护未动: combo_live_daemon 30944 / sidecar 30943 在跑。**首 M1 锚 = 04Z; 验收器 `~/universe_shadow/m1_first_anchor_check.py 1788494400` 于 04:5xZ 跑。**
 - RUNBOOK 更正项: 生产者重启的正确动词 = `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`(或 kill PID 由 KeepAlive 重生); L33 nohup 行仅适用于代理未加载时。
+
+## 9. AMENDMENT(2026-09-04 04:3xZ, 首 M1 锚生产者行已出、执行结果未出; 前提更正, 非结果拟合)
+- **前提错误:** §2 ① "base_n ≥600" 的估计来自执行器 exchange_info_cache(658 名, 含 SETTLING/已下市)。独立公共 exchangeInfo 实测: USDT 永续 656, **TRADING 526**, SETTLING 129, PENDING 1; TRADING ∪ live450 = **528**。生产者首锚 base_n = 528 与之逐一相符。判据改为 **base_n == 场所 TRADING ∪ live(±3) 且 ≥500 且 exinfo_ok**; 验收器同步。
+- **量级预期更正:** 实盘秩基 400 成员 → ~526 名(+31%), 更接近回放 **N500T400** 臂(vs N400r: msharpe +0.058 CI[+0.003,+0.112], W3FIX +0.057 CI[+0.008,+0.108])而非 N829T400(+0.08); 30 锚判据不变(累计 ≥ −20 bps of gross), 影子 (B−A) 的期望值下修为 ≈ +0.06 bps/锚。
+- **首锚生产者读数(04Z):** status OK, coverage 1.0, fund_updates 357(live 带内), fund_updates_base 7,317(78 个新名 40 天冷启动回拉 ≤100 行/名), base_n 528, fund_base_n 449(≥430 ✓, 新名待 2~3 锚自愈), weight 875, **runtime 229s, 落盘 04:20:26Z = N+20.4**(≤N+21:30 ✓), 读者 04:24:26Z 取书 ✓; 影子 sidecar: 链复制 max|diff| 7.8e-8(float32 量化, 阈值由 1e-9 更正为 1e-6), **Σ|A−B|/gross = 0.18%**(基尚未变宽, 符合 §7)。
