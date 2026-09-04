@@ -361,3 +361,9 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 - **现象:** `tests_target_live_output.py` 1a("只允许五行被替换")对现役 shadow_loop_v3.py 报两行未声明删除: E-0825-G 的 `endTime+999` 与 E-0825-B 的 sel 内去均值 —— 两处 08-25 生产修复后允许集未同步。
 - **含义:** 套件在 08-25 之后从未全绿过, 却无人运行/无人读 ⇒ "绿电池"前提失效(family: 绿电池=只防旧缺陷 / 声明的盲区≠关闭)。
 - **修复:** 允许集补登两行(注明来源), 新增 [9] M1 九项; 规则: **每次生产者补丁必须同步跑该套件并把新允许行登入**, 换装收据附 "ALL PASS (N checks)" 行。
+
+### E-0904-A · 生产者实为 launchd 代理管理, RUNBOOK 重启命令与之冲突(2026-09-04, Phase A 换装)
+- **现象:** 换装脚本 kill 旧 PID 后按 RUNBOOK L33 nohup 重启, loop.out 出现 `REFUSE_TO_START: live lock pid 4833` —— 4833 是 launchd `com.hsy.shadowloop`(KeepAlive)在 kill 后 ~1s 内重生的新进程, 手工启动被锁拒绝(无副作用)。
+- **根因:** 08-29 后生产者已交 launchd 托管(E-0829-B "PID 会变"的真正来源), RUNBOOK L33 与记忆仍写 nohup 手工启动; 我在换装前未核 `launchctl list`。
+- **后果:** 无(重生进程用的是已安装的新文件、正确 env); 但若代理 env 与 RUNBOOK 不一致(如 offset), 手工命令会给出错误的"已重启"认知。
+- **规则:** 任何"重启守护"前先 `launchctl list | grep <名>`; 托管进程的重启动词 = `launchctl kickstart -k`; RUNBOOK/记忆同步更正(本次已写入 PREREG §8 与 memory)。

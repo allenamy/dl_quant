@@ -39,3 +39,10 @@
 - **冷启动自愈时序:** 新入基的 ~210 名走生产者既有 40 天回拉(`fundingRate` limit=100, 场所按时间升序返回)⇒ 首锚只拿到最早 100 行(8h 名末行距锚 ~7 天, 4h 名 ~27 天), 不满足 ≤12h 新鲜度 ⇒ **首锚 fund_base_n ≈ live 新鲜名数(~450), 基在第 2~3 锚自愈到 ≥600**。§2 ① 改为: 首锚 base_n ≥600 ∧ fund_base_n ≥ 430 ∧ exinfo_ok; **第 3 锚起 fund_base_n ≥550**。其余判据不变。
 - **测试套件同步:** 生产者套件 `tests_target_live_output.py` 检查 1a 自 E-0825-G/B 修复后一直为红(允许集未同步), 本次补登两行并新增 [9] M1 九项(基==成员时逐位等于 xz; 缺失名 NaN; <10 退化; 秩基变宽序不变; king/F10 输入行不变; universe/EXIT 路径不变), 候选全绿 62/62 → 登 E-0903-F。
 - **候选 sha:** shadow_loop_v3_m1_candidate.py e9c9837412131b36e(现役 db326162c7ac54df1); 换装时同名覆盖并保留 `.pre_m1_20260904_backup`, aux.json 换装前快照 `aux_pre_m1_20260904.json`(影子 A 引导用)。
+
+## 8. Phase A 换装收据(2026-09-04 00:53:41Z–00:54:0xZ, 静默窗: 00Z 锚 rc=0 于 00:52:49Z, 生产者空闲至 04:16Z)
+- 备份: `shadow_loop_v3.py.pre_m1_20260904_backup`(db326162c7ac…)· `tests_target_live_output.py.pre_m1_20260904_backup` · `state/aux_pre_m1_20260904.json`(4e9a461bcb79…, 影子 A 已由此引导, boot_anchor = 1788480000)。
+- 安装: shadow_loop_v3.py = 候选 e9c9837412130884(610 行); 套件同步; **在位套件 ALL PASS (62 checks)**(`m1_suite_20260904.log` 入库)。
+- 停旧: kill 12918(shadow.lock PID)→ 退出。**重启事实(E-0904-A):** 生产者由 launchd 代理 `com.hsy.shadowloop`(KeepAlive SuccessfulExit=false, env SHADOW_OFFSET_MIN=16, stdout→loop.out)管理, kill 后 launchd 立即以新文件重生 **PID 4833**(XPC_SERVICE_NAME=com.hsy.shadowloop, SHADOW_OFFSET_MIN=16 已核); RUNBOOK L33 的 nohup 手工启动随后被锁拒绝(REFUSE_TO_START 行进 loop.out, rc 2, 无副作用)。运行中进程唯一(ps 核), `next 2026-09-04T04:16:00Z`。
+- 守护未动: combo_live_daemon 30944 / sidecar 30943 在跑。**首 M1 锚 = 04Z; 验收器 `~/universe_shadow/m1_first_anchor_check.py 1788494400` 于 04:5xZ 跑。**
+- RUNBOOK 更正项: 生产者重启的正确动词 = `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`(或 kill PID 由 KeepAlive 重生); L33 nohup 行仅适用于代理未加载时。

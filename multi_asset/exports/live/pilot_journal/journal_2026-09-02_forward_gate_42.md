@@ -24,3 +24,6 @@ combo_stage.py 原子替换(kc/fc z 合成后、chain 前注入: rn8 ≤ −10bp
 ### 2026-09-03 12:44Z · 入金 +62,998 USDT(用户), 16:00Z 一步到位 2.0×(用户字"一步到位, 全面严谨确认")
 锚前核对见 STATE 横幅; 84 锚前向读数登记: 09-03 16:00Z 起书规模 ×4(与 FTRIM 09-02 12Z 同为窗内单变量事件, 读数时分段)。
 16:00Z 入金后首锚: rc=0, gross 163.4k/166.6k(98.1%), net/gross 0.64%, 无平仓/保真触发, 权益 83.7k; −5022 拒单 76%(急跌 80-100bp × 单量, E-0903-D 观察), taker 补单 28.9k 实付中位 +41.6bps, 一次性建仓成本 ≈100U。FTRIM 第八锚 PASS。
+
+### 2026-09-04 00:54Z · 宇宙 Phase A(M1)换装
+00Z 锚 rc=0(00:52:49Z)后静默窗换装: 备份三件(代码/套件/aux 快照)→ 安装候选 e9c9837412130884 → 在位套件 ALL PASS 62 → kill 12918 → launchd com.hsy.shadowloop 重生 PID 4833(M1 代码, SHADOW_OFFSET_MIN=16)→ 手工 nohup 被锁拒绝(E-0904-A, 无副作用)。首 M1 锚 04Z; 影子 A 由 aux_pre_m1 引导; 验收器 m1_first_anchor_check.py。受据: PREREG_deploy_universe §8。
