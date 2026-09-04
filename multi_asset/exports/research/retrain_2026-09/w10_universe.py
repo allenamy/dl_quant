@@ -29,12 +29,16 @@ if W3FIX is not None: assert W3FIX == "0.21,0,0.79", f"W3FIX 白名单外: {W3FI
 MEMBERS_TOPN = int(os.environ.get("MEMBERS_TOPN", "0"))   # >0: 按 qvk 逐锚重建 top-N 候选集(扩展臂); 0 = 用 meta members(正典, 逐位同)
 assert MEMBERS_TOPN in (0, 300, 400, 500, 600, 829), f"MEMBERS_TOPN 白名单外: {MEMBERS_TOPN}"
 FTRIM = os.environ.get("FTRIM", "off"); assert FTRIM in ("off", "zero"), FTRIM   # 部署态 FTRIM(pre-z 排除 rn8<=-10bp 空头, 两链), 与 w10_ftrim_band pre/zero/(-1.0,-0.0010] 同构
-SEATNET = int(os.environ.get("SEATNET", "0")); assert SEATNET in (0, 1)   # X1(PREREG_legs_factors): 席位用净腿收益(纯价格 − 腿书 carry)
+SEATNET = int(os.environ.get("SEATNET", "0")); assert SEATNET in (0, 1)
+SEATF10 = int(os.environ.get("SEATF10", "0")); assert SEATF10 in (0, 1)   # T1: F10 链用 F10 自己的 msharpe 席位(四腿腿收益)
+KTAIL = int(os.environ.get("KTAIL", "0")); assert KTAIL in (0, 1)         # T2: king 作尾部否决(fund 多尾中 king 秩底 20% / 空尾中 king 秩顶 20% 置零)
+KMOD = float(os.environ.get("KMOD", "0")); assert KMOD in (0.0, 0.5)       # T3: z ×= (1 + KMOD·xz(king))
+KMOD_AGREE = float(os.environ.get("KMOD_AGREE", "0")); assert KMOD_AGREE in (0.0, 0.5)   # T3b(一致性形): z += KMOD_AGREE·|z|·xz(king) —— king 同向放大、反向缩小   # X1(PREREG_legs_factors): 席位用净腿收益(纯价格 − 腿书 carry)
 FUNDSCALE = int(os.environ.get("FUNDSCALE", "0")); assert FUNDSCALE in (0, 1)   # X3: fund z × clip(σ_fund/σ_ref, 0.5, 1)(信息臂)
 FEMAT_NPZ = os.environ.get("FEMAT_NPZ")   # X2: fund 腿分矩阵注入(ts×symbols 对齐断言), 替代 f_fund_ema_v1
 TRADE_TOPN = int(os.environ.get("TRADE_TOPN", "0"))   # >0: 成交集限于当锚 qvk 排名前 N(z 归一基仍为 members): 分离"归一基变宽"与"可交易名增加"两条通道
 assert TRADE_TOPN in (0, 400), f"TRADE_TOPN 白名单外: {TRADE_TOPN}"
-_CFG = {"SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+_CFG = {"KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
 t0 = time.time()
@@ -112,7 +116,7 @@ def tier_of(q):
     t = np.full(len(q), 2, np.int8); t[q >= 1e6] = 1; t[q >= 5e6] = 0
     return t
 def legs(SLOW):
-    LR = {l: [] for l in ("king", "rev24", "fund")}; idx = []
+    LR = {l: [] for l in ("king", "rev24", "fund", "f10")}; idx = []
     for i in range(nA):
         j = pw_row.get(int(E_ts[i]))
         if j is None: continue
@@ -120,7 +124,7 @@ def legs(SLOW):
         if UMASK_ROW is not None:
             _mk = UMASK_ROW.get(j)
             if _mk is not None: m = m[_mk[m]]
-        sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m]}
+        sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m], "f10": (F10P[i, m] if SEATF10 else np.full(len(m), np.nan))}
         ok = np.isfinite(y4[i, m])
         for leg in LR:
             z = np.nan_to_num(xz(sc[leg])); z = np.where(ok, z, 0.0); z -= z[ok].mean() if ok.sum() else 0
@@ -134,6 +138,7 @@ def legs(SLOW):
             LR[leg].append(_lr)
         idx.append(i)
     return {k: np.array(v) for k, v in LR.items()}, {int(i): p for p, i in enumerate(idx)}
+W3FC = None
 def run(SLOW, LRa, pos, depth, need, cool, look=900):
     def w3_at(i):
         if W3FIX is not None:
@@ -144,6 +149,15 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         p = pos.get(int(i), 0)
         if p < LOOK: return np.array([1/3]*3)
         sl = slice(p - LOOK, p)              # ★ 严格因果: 只用锚 i 之前的腿收益
+        if SEATF10:   # T1: f10 腿的席位由它自己的腿收益决定; 返回 kc 三腿席位, fc 席位放入 W3FC 全局
+            global W3FC
+            r4 = np.stack([LRa["king"][sl], LRa["rev24"][sl], LRa["fund"][sl], LRa["f10"][sl]])
+            shp4 = r4.mean(1) / (r4.std(1) + 1e-9); shp4 = np.maximum(shp4, 0.0)
+            mk = np.array([1.0 if c == "1" else 0.0 for c in LEGS])
+            wk = np.array([shp4[0], shp4[1], shp4[2]]) * mk; wk = wk / wk.sum() if wk.sum() > 0 else np.array([1/3]*3)
+            wf = np.array([shp4[3], shp4[1], shp4[2]]) * mk; wf = wf / wf.sum() if wf.sum() > 0 else np.array([1/3]*3)
+            W3FC = wf
+            return wk
         r = np.stack([LRa["king"][sl], LRa["rev24"][sl], LRa["fund"][sl]])
         if WRULE == "iv":
             iv = 1.0 / (r.std(1) + 1e-9)
@@ -170,6 +184,11 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         w3 = w3_at(i)
         _fs = (FUNDSCALE_ROW[j] if FUNDSCALE else 1.0)
         z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*_fs*np.nan_to_num(xz(sc["fund"]))
+        if KMOD > 0: z = z * (1.0 + KMOD * np.nan_to_num(xz(sc["king"])))   # T3 乘性调制
+        if KMOD_AGREE > 0: z = z + KMOD_AGREE * np.abs(z) * np.nan_to_num(xz(sc["king"]))   # T3b 一致性调制
+        if KTAIL:   # T2 king 尾部否决: 多尾(z 顶 20%)中 king 秩底 20% 与 空尾(z 底 20%)中 king 秩顶 20% 置零
+            _zk = np.nan_to_num(xz(sc["king"])); _lo, _hi = np.quantile(z, [0.2, 0.8]); _klo, _khi = np.quantile(_zk, [0.2, 0.8])
+            z = np.where(((z >= _hi) & (_zk <= _klo)) | ((z <= _lo) & (_zk >= _khi)), 0.0, z)
         if FTRIM == "zero":
             _fnp = FN[j, m] * (8.0 / np.where(IV[j, m] > 0, IV[j, m], 8.0)); _fnp = np.where(np.isfinite(_fnp), _fnp, 0.0)
             z = np.where((z < 0) & (_fnp <= -0.0010), 0.0, z)
@@ -202,9 +221,15 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             #    此前用纯 DL 分数单独建书 = 剥掉了它的 funding 与 rev24 腿 ⇒ carry 归零、换手翻倍,
             #    是装置错误不是模型缺陷。preds 存的是 mdl.f(x) 原始分数(f10_train.py:337), 必须
             #    自己补上另外两条腿。
-            _zf = (w3[0] * np.nan_to_num(xz(F10P[i, m]))
-                   + w3[1] * np.nan_to_num(xz(sc["rev24"]))
-                   + w3[2] * np.nan_to_num(xz(sc["fund"])))
+            _w3f = (W3FC if (SEATF10 and W3FC is not None) else w3)
+            _zf = (_w3f[0] * np.nan_to_num(xz(F10P[i, m]))
+                   + _w3f[1] * np.nan_to_num(xz(sc["rev24"]))
+                   + _w3f[2] * np.nan_to_num(xz(sc["fund"])))
+            if KMOD > 0: _zf = _zf * (1.0 + KMOD * np.nan_to_num(xz(sc["king"])))
+            if KMOD_AGREE > 0: _zf = _zf + KMOD_AGREE * np.abs(_zf) * np.nan_to_num(xz(sc["king"]))
+            if KTAIL:
+                _zk = np.nan_to_num(xz(sc["king"])); _lo, _hi = np.quantile(_zf[np.isfinite(_zf)], [0.2, 0.8]); _klo, _khi = np.quantile(_zk, [0.2, 0.8])
+                _zf = np.where(((_zf >= _hi) & (_zk <= _klo)) | ((_zf <= _lo) & (_zk >= _khi)), 0.0, _zf)
             if FTRIM == "zero":
                 _zf = np.where((_zf < 0) & (_fnp <= -0.0010), 0.0, _zf)
             _wf = np.where(sel, _zf, 0.0)
