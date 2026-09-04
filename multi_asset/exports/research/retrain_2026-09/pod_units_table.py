@@ -10,6 +10,7 @@ for tag,lab in runs:
         g=gt[s].mean(); m=net[s].mean(); sd=net[s].std(ddof=1); n=s.sum()
         per_g=m/g; ann_g=per_g*2190/100; sharpe=m/sd*np.sqrt(2190)
         cum=np.cumsum(net[s]); dd=(np.maximum.accumulate(cum)-cum).max()/g/100
-        wm=min(sum(v for t,v in zip(ts[s],net[s]) if time.strftime('%Y-%m',time.gmtime(int(t)))==mo) for mo in sorted(set(time.strftime('%Y-%m',time.gmtime(int(t))) for t in ts[s])))/g/100
-        print(f"  {label:9s} n={n:4d} gross={g:.3f} | net {m:+.3f} bps/锚(每NAV) = {per_g:+.3f} bps/锚(每gross) | 年化 {ann_g:+.1f}%/gross ⇒ 2×gross {2*ann_g:+.1f}% NAV | Sharpe {sharpe:+.2f} | maxDD {dd:.1f}% gross ⇒ 2× {2*dd:.1f}% NAV | 最坏月 {wm:+.1f}% gross")
+        _mos={mo:sum(v for t,v in zip(ts[s],net[s]) if time.strftime('%Y-%m',time.gmtime(int(t)))==mo) for mo in sorted(set(time.strftime('%Y-%m',time.gmtime(int(t))) for t in ts[s]))}
+        wm_id=min(_mos,key=_mos.get); wm_bps=_mos[wm_id]; wm=wm_bps/g/100  # GAP#3 2026-09-04: worst month id + bps NAV + %/gross + 2x NAV
+        print(f"  {label:9s} n={n:4d} gross={g:.3f} | net {m:+.3f} bps/锚(每NAV) = {per_g:+.3f} bps/锚(每gross) | 年化 {ann_g:+.1f}%/gross ⇒ 2×gross {2*ann_g:+.1f}% NAV | Sharpe {sharpe:+.2f} | maxDD {dd:.1f}% gross ⇒ 2× {2*dd:.1f}% NAV | 最坏月 {wm_id} {wm_bps:+.1f} bps NAV = {wm:+.1f}% gross ⇒ 2× {2*wm:+.1f}% NAV")
 print("UNITS_DONE")
