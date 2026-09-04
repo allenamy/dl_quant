@@ -27,3 +27,6 @@ combo_stage.py 原子替换(kc/fc z 合成后、chain 前注入: rn8 ≤ −10bp
 
 ### 2026-09-04 00:54Z · 宇宙 Phase A(M1)换装
 00Z 锚 rc=0(00:52:49Z)后静默窗换装: 备份三件(代码/套件/aux 快照)→ 安装候选 e9c9837412130884 → 在位套件 ALL PASS 62 → kill 12918 → launchd com.hsy.shadowloop 重生 PID 4833(M1 代码, SHADOW_OFFSET_MIN=16)→ 手工 nohup 被锁拒绝(E-0904-A, 无副作用)。首 M1 锚 04Z; 影子 A 由 aux_pre_m1 引导; 验收器 m1_first_anchor_check.py。受据: PREREG_deploy_universe §8。
+
+### 2026-09-04 08:53Z · E-0904-C 修复换装: 席位种子改 OOS
+08Z 锚 rc=0 后静默窗: 备份旧 LR(172715ce)→ 写入 OOS 三腿原始腿收益 950 行(de0aa38b)→ kickstart 生产者(4833→39548)→ 席位复算 king 0.000/fund 1.000(换装前 0.211/0.789)。首锚 12Z 验收; 全周期换手代价已登记(PREREG §5 iv)。同窗: σ_fund 阶梯执行器侧 safe_commit 启动(全电池)。

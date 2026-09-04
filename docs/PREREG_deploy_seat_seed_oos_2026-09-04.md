@@ -22,3 +22,10 @@
 - (vi) 生产者 msharpe 复算: 现役文件 → 掩码 king/fund **0.21/0.79**(复现实盘值 ✓); 新文件 → **0.000/1.000**。
 - (vii) 已知缺口: 种子止于 08-15, 08-16→09-04 的 live 行不可精确重建(legz 未留档), 弃用; 窗口时间跨度略长, 席位为慢变量, 影响可忽略; 下月重训 bundle 若仍导出样本内 king, `extra` 文件仍主导窗口(950 行), 但 RUNBOOK 必须改为 OOS 源。
 - **裁定(用户 09-04 "投入最严格最全面的校验, 确定是更优的方式, 进行修改"):** 核验通过 ⇒ 换装, 静默窗(08Z 锚收尾后), 只改 `state/leg_returns_live.json`(备份保留)+ kickstart 生产者; bundle 文件不动(MANIFEST 校验)。首锚验收 §2; 30 锚看换手应下降。
+
+## 6. 换装收据(2026-09-04 08:53:21Z–08:53:30Z, 静默窗: 08Z 锚 rc=0 于 08:52:47Z)
+- 备份 `state/leg_returns_live.json.pre_seatfix_20260904`(sha 172715cea9f5…); 新文件 sha **de0aa38b10b6…**(950 行, 窗口 2026-03-09→08-15, 三腿 OOS 原始腿收益; 快照入研究仓 `leg_returns_live_seatfix_20260904.json`)。
+- 生产者 `launchctl kickstart -k com.hsy.shadowloop`: PID 4833 → **39548**, env SHADOW_OFFSET_MIN=16 核, `next 12:16Z`; 文件 sha 重启后不变。
+- 席位复算(与 combo_stage 同式, 900 窗): 原始 w3 [0, 0, 1] ⇒ 掩码 **king 0.000 / fund 1.000**(换装前 0.211/0.789)。
+- 首锚 = 12Z(1788523200): 验收 §2(w3_masked king ≤0.05, Σ|Δw|/gross ≤25%, rc=0, 拒单分散, net/gross ±1.5%); 同锚为 M1 第 3 锚(fund_base_n ≥550 复核)。
+- bundle `leg_returns.npz` 未动(MANIFEST 校验); RUNBOOK 月度重训 §3 待改: leg_returns 导出改 OOS 源(2026-10 前)。
