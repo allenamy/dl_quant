@@ -13,3 +13,4 @@
 - 21:2xZ 会话调度器提醒: 定时任务是会话内存态, `/model` 切换或终端退出即清空(今日已发生一次, jpline 重连与 bandit 复读两条到点未触发)。已重建 4 条(每锚深查 9e253683 / jpline 重连 a493188b / bandit 复读 c7a333f5 / 84 锚二读 291b2f81), 并在每锚深查模板里修正两处: 执行漏斗按 anchor_ts 归属(rebalance_id 会因 UTC 日切漏), anchor_runs.log 在 `~/dl_quant_live/state/` 而非 `state/live/`。
 - 13:41Z jpline 第 9 次超时(自 11:47Z 不可达, 约 2 小时); 用户 21:3x 本地令"不要等 jpline", 故不再排重连 cron; 第二仪器复核改由 pod 独立移植装置 + 多代理对抗证伪(工作流 wf_80bb7b7c)承担, jpline 恢复后再做第三读。
 - 18:53Z jpline 第 12 次超时(自 09-04 11:47Z 不可达, ≈7 h); 2 小时重连继续(cron bbd0562c)。
+- 20:53Z jpline 第 13 次超时(自 09-04 11:47Z 不可达, ≈9 h); 2 小时重连继续(cron bbd0562c)。
