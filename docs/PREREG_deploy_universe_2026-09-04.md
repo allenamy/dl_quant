@@ -51,3 +51,8 @@
 - **前提错误:** §2 ① "base_n ≥600" 的估计来自执行器 exchange_info_cache(658 名, 含 SETTLING/已下市)。独立公共 exchangeInfo 实测: USDT 永续 656, **TRADING 526**, SETTLING 129, PENDING 1; TRADING ∪ live450 = **528**。生产者首锚 base_n = 528 与之逐一相符。判据改为 **base_n == 场所 TRADING ∪ live(±3) 且 ≥500 且 exinfo_ok**; 验收器同步。
 - **量级预期更正:** 实盘秩基 400 成员 → ~526 名(+31%), 更接近回放 **N500T400** 臂(vs N400r: msharpe +0.058 CI[+0.003,+0.112], W3FIX +0.057 CI[+0.008,+0.108])而非 N829T400(+0.08); 30 锚判据不变(累计 ≥ −20 bps of gross), 影子 (B−A) 的期望值下修为 ≈ +0.06 bps/锚。
 - **首锚生产者读数(04Z):** status OK, coverage 1.0, fund_updates 357(live 带内), fund_updates_base 7,317(78 个新名 40 天冷启动回拉 ≤100 行/名), base_n 528, fund_base_n 449(≥430 ✓, 新名待 2~3 锚自愈), weight 875, **runtime 229s, 落盘 04:20:26Z = N+20.4**(≤N+21:30 ✓), 读者 04:24:26Z 取书 ✓; 影子 sidecar: 链复制 max|diff| 7.8e-8(float32 量化, 阈值由 1e-9 更正为 1e-6), **Σ|A−B|/gross = 0.18%**(基尚未变宽, 符合 §7)。
+
+## 10. Phase A 首锚验收(04Z, 1788494400)— **PASS 9/9**(04:58Z 验收器 + 执行侧)
+生产者: OK/cov 1.0 · fund_updates 357(+base 7,317)· base_n 528 = 场所 TRADING∪live · fund_base_n 449 · runtime 229s · 落盘 N+20.4 · 读者 ok(n_in_universe 232)· Σ|A−B|/gross 0.18%(chain_ok)· 多头占比 0.486→0.487。
+执行: rc=0 04:51:56Z · 拒 30/163(18%, 27 名, 单名 ≤2)· maker 95% · 费 1.93 bps · 换手 3.0% · gross 164,402/166,349(98.8%)· gaps 5 名 244U · 限流峰 969 · launchd_err 0 · twin AGREE。
+**观察项(非 M1 判据):** net/gross +1.10%(0.54→0.92→1.10, 三锚上行, 带上沿; 净/权益 +2.2%); NAV 04:42Z 83,213(00:43Z 83,867, −654U/锚 ≈ −2σ; 入金后累计 −742U = −0.88% NAV); 未实现 +49.6U。归因见仪表盘 04Z sleeve 行; 与 M1 无关(首锚权重差 0.18%)。第 3 锚(12Z)复核 fund_base_n ≥550。
