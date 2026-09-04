@@ -29,9 +29,12 @@ if W3FIX is not None: assert W3FIX == "0.21,0,0.79", f"W3FIX 白名单外: {W3FI
 MEMBERS_TOPN = int(os.environ.get("MEMBERS_TOPN", "0"))   # >0: 按 qvk 逐锚重建 top-N 候选集(扩展臂); 0 = 用 meta members(正典, 逐位同)
 assert MEMBERS_TOPN in (0, 300, 400, 500, 600, 829), f"MEMBERS_TOPN 白名单外: {MEMBERS_TOPN}"
 FTRIM = os.environ.get("FTRIM", "off"); assert FTRIM in ("off", "zero"), FTRIM   # 部署态 FTRIM(pre-z 排除 rn8<=-10bp 空头, 两链), 与 w10_ftrim_band pre/zero/(-1.0,-0.0010] 同构
+SEATNET = int(os.environ.get("SEATNET", "0")); assert SEATNET in (0, 1)   # X1(PREREG_legs_factors): 席位用净腿收益(纯价格 − 腿书 carry)
+FUNDSCALE = int(os.environ.get("FUNDSCALE", "0")); assert FUNDSCALE in (0, 1)   # X3: fund z × clip(σ_fund/σ_ref, 0.5, 1)(信息臂)
+FEMAT_NPZ = os.environ.get("FEMAT_NPZ")   # X2: fund 腿分矩阵注入(ts×symbols 对齐断言), 替代 f_fund_ema_v1
 TRADE_TOPN = int(os.environ.get("TRADE_TOPN", "0"))   # >0: 成交集限于当锚 qvk 排名前 N(z 归一基仍为 members): 分离"归一基变宽"与"可交易名增加"两条通道
 assert TRADE_TOPN in (0, 400), f"TRADE_TOPN 白名单外: {TRADE_TOPN}"
-_CFG = {"SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+_CFG = {"SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
 t0 = time.time()
@@ -48,6 +51,16 @@ yrs = np.array([time.gmtime(int(t)).tm_year for t in E_ts]); nA = len(E_ts); NW 
 PW = np.load(f"{B}/wide_panel_4h_hist_v2.npz", allow_pickle=True)
 pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}
 FN = PW["f_fund_now"]; IV = PW["f_fund_iv"] if "f_fund_iv" in PW else np.full_like(PW["f_fund_now"], 8.0); R24 = PW["f_rev_24h"]; FE = PW["f_fund_ema_v1"]
+if FEMAT_NPZ:
+    _fz = np.load(FEMAT_NPZ, allow_pickle=True)
+    assert [str(x) for x in _fz["symbols"]] == [str(x) for x in PW["symbols"]], "FEMAT symbols mismatch"
+    assert np.array_equal(_fz["ts"].astype(np.int64), PW["ts"].astype(np.int64)), "FEMAT ts mismatch"
+    FE = np.asarray(_fz["mat"], dtype=float); print(f"FEMAT injected: {FEMAT_NPZ} finite {np.isfinite(FE).mean():.3f}", flush=True)
+_IVf = np.where(np.isfinite(IV) & (IV > 0), IV, 8.0); _RN8 = np.nan_to_num(FN, nan=0.0) * (8.0 / _IVf)   # 8h 当量费率(全宽)
+if FUNDSCALE:
+    _sig = np.array([np.std(_RN8[j][np.isfinite(FN[j])]) if np.isfinite(FN[j]).sum() > 50 else np.nan for j in range(len(PW["ts"]))]) * 1e4
+    _sref = np.array([np.nanmedian(_sig[max(0, j - 4380):j + 1]) if j >= 1000 else np.nan for j in range(len(_sig))])
+    FUNDSCALE_ROW = np.clip(_sig / _sref, 0.5, 1.0); FUNDSCALE_ROW = np.where(np.isfinite(FUNDSCALE_ROW), FUNDSCALE_ROW, 1.0); print(f"FUNDSCALE: 均 {np.nanmean(FUNDSCALE_ROW):.3f}", flush=True)
 _um = os.environ.get("UMASK_NPZ")
 if _um:  # PREREG addendum §B: 宇宙臂 — 成员集按掩码收缩(只缩不扩, meta top-400 为天花板)
     _uz = np.load(_um, allow_pickle=True)
@@ -115,7 +128,10 @@ def legs(SLOW):
             _yy = np.nan_to_num(y4[i, m], nan=0.0)
             if CAL == "simple":
                 _yy = np.expm1(_yy)
-            LR[leg].append(float((z / g * _yy).sum() * 1e4) if g > 1e-9 else 0.0)
+            _lr = float((z / g * _yy).sum() * 1e4) if g > 1e-9 else 0.0
+            if SEATNET and g > 1e-9:   # X1: 减去该腿单位 gross 书的 4h carry(多头付正费率), bps
+                _lr -= float((z / g * np.nan_to_num(FN[j, m], nan=0.0) * (4.0 / _IVf[j, m])).sum() * 1e4)
+            LR[leg].append(_lr)
         idx.append(i)
     return {k: np.array(v) for k, v in LR.items()}, {int(i): p for p, i in enumerate(idx)}
 def run(SLOW, LRa, pos, depth, need, cool, look=900):
@@ -152,7 +168,8 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             if _mk is not None: m = m[_mk[m]]
         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m]}
         w3 = w3_at(i)
-        z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*np.nan_to_num(xz(sc["fund"]))
+        _fs = (FUNDSCALE_ROW[j] if FUNDSCALE else 1.0)
+        z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*_fs*np.nan_to_num(xz(sc["fund"]))
         if FTRIM == "zero":
             _fnp = FN[j, m] * (8.0 / np.where(IV[j, m] > 0, IV[j, m], 8.0)); _fnp = np.where(np.isfinite(_fnp), _fnp, 0.0)
             z = np.where((z < 0) & (_fnp <= -0.0010), 0.0, z)
