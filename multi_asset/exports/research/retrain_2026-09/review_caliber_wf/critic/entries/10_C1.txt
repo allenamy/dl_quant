@@ -1,0 +1,113 @@
+
+#### claim_id
+C1
+#### refuted
+False
+#### confidence
+0.93
+#### verified_parts
+[
+ "Channel 0 of the pod 5-min cache is a SIMPLE return: executed line pod_merge_cache_ext.py L27 `A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)` (ext tail) and pod_build_wide_ext.py L29 (same line; base + hist caches; retrain_2026-09 copy sha 39ed11f3… byte-identical to the 08-21 workspace_mirror copy). Rows are stamped at bar CLOSE: L24/L26 `k['ts'] = ... open_time ... + pd.Timedelta('5min')`. EMPIRICAL (c1_rawprice.log, my run): 7 symbol-days from raw Binance daily zips (SOLUSDT 2022-01-05, ETHUSDT 2022-05-12, BTCUSDT 2023-06-15, 1000PEPEUSDT 2024-11-12, DOGEUSDT 2025-03-03, BTCUSDT 2026-08-23, ETHUSDT 2026-08-28): cache ch0 == float16(clip(close/prev_close-1)) bitwise 287/287 bars in every case at ts=open_time+5min; log alternative only 7-53% (coincidence at tiny returns, max|Δ| up to 8.7e-4); ts=open_time alignment 0%.",
+ "Y4 executed definition = float32(cumsum_f64[E+48] - cumsum_f64[E]) over rows E..E+47 of float32(ch0), NaN->0, NaN'd when <46 finite bars: pod_panel_ext.py L21 `r5 = CD[:, :, 0].astype(np.float32)`, L18-20 `cs()` (np.where(isfinite,x,0).astype(float64), cumsum with leading zero row), L57-58 `y4n = CS_f[E + 48] - CS_f[E]; Y4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan`. Identical math in pod_fea_ext.py L13-17/L21/L33-34 for wide_fea_v2ext_meta y4. pod_panel_splice.py L22-25 builds v3splice Y4 as concat(v1 rows ≤cut, v2ext rows >cut).",
+ "wide_panel_4h_v2ext.npz (10039 anchors 2022-01-31..2026-08-31, symbols identical in order to cache): Y4 bitwise-equal to the code-path replica on 8,322,331/8,322,331 cells (0 mismatches, NaN pattern included); also 0 mismatches vs a direct sequential float64 sum of the 48 float32 values. (refc12_y4bits.log)",
+ "wide_fea_v2ext_meta.npz y4 (10176 anchors): 8,435,904/8,435,904 cells bitwise-equal (0 mismatches); y4 == v2ext Y4 on all 10038 common anchors bitwise 1.000000. Bonus: dlw_targets.npz y4old also 0 mismatches over 8,361,294 cells.",
+ "wide_panel_4h_v1.npz (14329 anchors 2020-01-31..2026-08-15) and wide_panel_4h_v3splice.npz (14425): on the 10123 anchors mappable to the pod cache, 136 mismatched cells, ALL on the single anchor 2022-01-01 00:00 = cache row 0 where the 2022-start cache has rows 0 and 1 all-NaN (0 finite names) so my replica sums 46 bars (nA=46) while the panel (built from a 2020-start cache) summed 48; excluding that one anchor: 0 mismatches over 10122 anchors (refc12_v1_mismatch_rows.py output). v3splice Y4 == concat(v1.Y4, v2ext.Y4[ts>cut=1786752000]) bitwise 1.0 with ts equal; v1 Y4 == v2ext Y4 on all 9943 common anchors bitwise (0 mismatches) — two independently built caches (2020-start hist, 2022-start fresh/ext) give bit-identical Y4.",
+ "Pre-2022 segment of v1 (no 5-min data on pod): reconstructed from raw Binance MONTHLY zips using the builder's exact ops (ts=open+5min, float16(clip(pct_change)), float64 cumsum diff -> float32) for BTCUSDT 2021-06, ETHUSDT 2020-04, DOGEUSDT 2021-05, SOLUSDT 2021-09, LINKUSDT 2020-09, XRPUSDT 2021-12: 1092/1092 anchors bitwise-equal to v1.Y4; Σlog1p 0/1092; Π(1+r)-1 0/1092 (refc12_pre2022_raw.py output).",
+ "Alternative definitions excluded on every panel (finite-Y cells): Σlog1p(r) over [E,E+47] bitwise only 8.8-8.9% (coincidental tiny sums), median|Δ| 1.4e-4, max|Δ| 0.687; compounded Π(1+r)-1: 8.9%, max|Δ| 2.587; window [E+1,E+48]: 10.4-10.5%, max|Δ| 0.30; window [E-1,E+46]: 10.3%. NaN rule discriminated: requiring 48 finite gives 506 mismatches (v2ext), requiring ≥1 gives 1925 -> executed rule is ≥46.",
+ "Provenance of the pod's current v1 (not the 08-15 v1 with 9913 anchors/SHA 0d3b3a56): transcript 2026-08-21T02:01Z `CACHE_IN=/workspace/data/dlnative_5m_wide829_f16_hist.npz PANEL_OUT=/workspace/data/wide_panel_4h_hist_v2.npz nohup python3 pod_panel_ext.py`; hist cache built by pod_build_wide_ext.py with EXT_START=2020-01-01 EXT_END=2026-08-16 (pod_cpu3_chain.sh L26-27); transcript 2026-09-01T03:13Z scp jpline->mac->pod as /workspace/data/wide_panel_4h_v1.npz (size 247363525 = current pod file; mtime 09-01 03:14:34Z). File content consistent: 23 keys incl. f_fund_ema_v1/v2, anchors 2020-01-31 (grid>=8640) .. 2026-08-15 00:00 (E+288<=TT). Mirror pod_panel_ext.py (commit 236a702, 08-21) is byte-identical to the pod's current copy — Y4 lines unchanged in git history."
+]
+#### refuted_or_unverified_parts
+[
+ "NOT EXHAUSTIVELY VERIFIABLE: the 4206 pre-2022 anchors of v1 (29.4%) and v3splice (29.2%), ts 2020-01-31..2021-12-31 — the hist cache is deleted from the pod, /workspace/klines5m/ holds 0 files, jpline is down. Only a 1092-anchor x 6-symbol raw-price sample was checked (100% bitwise); the remaining ~3.5M pre-2022 cells are INFERRED from identical builder/panel code + the sample + bit-identity of v1 and v2ext on all 9943 overlapping anchors.",
+ "The v1 build command is transcript evidence (INFERRED), not an on-pod execution log (no cpu3_*.log / panel_hist_v2.log survive on the pod).",
+ "OVERSTATEMENT nuances (do not refute the claim): (a) 'bitwise SUM' holds for float64 summation then float32 cast (both the cumsum-difference code path and a direct sequential float64 sum: 0 mismatches); a float32-accumulated sum differs by 1 ulp in 2 cells per panel, so 'bitwise' is precision-order specific. (b) Missing bars count as 0 and Y4 stays finite with 46-47 of 48 bars: 0.009-0.019% of finite cells (v1 ~300, v2ext ~500 cells) are sums over fewer than 48 bars. (c) Inputs are float16-quantised simple returns clipped to ±0.3 (0 cells actually at the clip in the ext cache). (d) Because rows are close-stamped, rows [E,E+47] span price time [E-5min, E+3h55m], not [E, E+4h] (the dlw_targets meta_json calls [E+1,E+48] the target window).",
+ "Prior in-repo receipts for 'bitwise' were tolerance-based, not bitwise: pod_panel_lineage.py L25 reports `share<1e-6` on 40 anchors; ERROR_LEDGER E-0904-F ② reports '100% <1e-5' on 19 anchors of the Mac rolling.npz. My checks are true uint32-bitwise over all anchors on the pod cache."
+]
+#### evidence
+[
+ {
+  "file_or_command": "/workspace/pod_panel_ext.py (pod; byte-identical to /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_panel_ext.py and runpod_scripts/workspace_mirror/pod_panel_ext.py)",
+  "line": 58,
+  "quote_or_output": "Y4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan   (L57: y4n = CS_f[E + 48] - CS_f[E]; L21: r5 = CD[:, :, 0].astype(np.float32); L18-20: def cs(x): xz = np.where(np.isfinite(x), x, 0).astype(np.float64); return np.concatenate([np.zeros((1, NW)), np.cumsum(xz, 0)]))"
+ },
+ {
+  "file_or_command": "/workspace/pod_fea_ext.py",
+  "line": 34,
+  "quote_or_output": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   (L33: y4n = CS[\"ret5\"][1][E + 48] - CS[\"ret5\"][1][E]; L21: CS[nm] = cs_pair(CD[:, :, c].astype(np.float32)); L84 savez y4=y4)"
+ },
+ {
+  "file_or_command": "/workspace/pod_panel_splice.py",
+  "line": 25,
+  "quote_or_output": "out[k] = np.concatenate([a, b[tail_idx]])   (L11-12 CAN=v1, EXT=v2ext; L16 cut = int(ct[-1]); L17 tail_idx = np.where(et > cut)[0]; L18 keys = sorted(set(CAN.files) & set(EXT.files) - {\"ts\",\"symbols\"}))"
+ },
+ {
+  "file_or_command": "/workspace/pod_merge_cache_ext.py",
+  "line": 27,
+  "quote_or_output": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   (L24: k['ts'] = pd.to_datetime(k.open_time.astype(np.int64), unit='ms') + pd.Timedelta('5min'); L26 float16; L57-58 base rows copied verbatim from dlnative_5m_wide829_f16_fresh.npz)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_build_wide_ext.py (sha256 39ed11f3…; identical to workspace_mirror copy)",
+  "line": 29,
+  "quote_or_output": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   (L26: k['ts'] = ... + pd.Timedelta('5min'); L10: IDX = pd.date_range(os.environ.get('EXT_START', '2022-01-01'), os.environ.get('EXT_END', '2026-08-16'), freq='5min'))"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_cpu3_chain.sh",
+  "line": 26,
+  "quote_or_output": "EXT_START=2020-01-01 EXT_END=2026-08-16 EXT_OUT=/workspace/data/dlnative_5m_wide829_f16_hist.npz \\  python3 pod_build_wide_ext.py   (L29-30: CACHE_IN=..._hist.npz PANEL_OUT=/workspace/data/wide_panel_4h_hist.npz python3 pod_panel_ext.py)"
+ },
+ {
+  "file_or_command": "python3 scan_transcript2.py / scan_transcript3.py over 6737834a-f0b4-40e0-82a0-c0e83c0ccf5f.jsonl",
+  "quote_or_output": "[2026-08-21T02:01] ssh runpod \"cd /workspace && CACHE_IN=/workspace/data/dlnative_5m_wide829_f16_hist.npz PANEL_OUT=/workspace/data/wide_panel_4h_hist_v2.npz nohup python3 pod_panel_ext.py > panel_hist_v2.log\"  ...  [2026-09-01T03:13] scp -q jpline:/mnt/storage/private/work_hsy/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz $SP/ && ... scp -q ... $SP/wide_panel_4h_hist_v2.npz root@157.157.221.29:/workspace/data/wide_panel_4h_v1.npz  (\"jpline→mac ✓ 247363525\")"
+ },
+ {
+  "file_or_command": "ssh pod2 'ls -la --time-style=full-iso /workspace/data/; sha256sum /workspace/data/wide_panel_4h_v1.npz'",
+  "quote_or_output": "-rw-rw-rw- 1 root root 247363525 2026-09-01 03:14:34 wide_panel_4h_v1.npz ; sha256 f14bc33d78b24929 (v2ext 5e67c0559daa904d = PANEL_EXT_DONE SHA in /workspace/panel_ext.log; v3splice c5d10f6ae31fa3f9; fea meta 4b1b6047107d2557)"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C1_2/refc12_y4bits.log (copy: …/scratchpad/review_caliber/refute_C1_2/refc12_y4bits.log, sha 6e53f48db7c1db4e)",
+  "quote_or_output": "wide_panel_4h_v2ext.npz: symbols == cache symbols (same order): True; mappable 10039/10039; A_codepath_cumsum_f64_rows[E,E+47]_nan<46 bitwise-eq all cells 1.000000 | n_mismatch 0; B_direct_seq_sum_f64_then_f32 1.000000 n_mismatch 0; B_direct_seq_sum_f32acc n_mismatch 2; C_logsum finite-Y 0.089046 n_mismatch 3,122,345 max|Δ| 6.867e-01; D_compounded finite-Y 0.089055 max|Δ| 2.587e+00; F_sum_rows[E+1,E+48] finite-Y 0.105300; A_same_but_nan_thr48 n_mismatch 506; thr1 n_mismatch 1,925"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C1_2/refc12_y4bits.log",
+  "quote_or_output": "wide_fea_v2ext_meta.npz::y4 (10176, 829): A bitwise-eq all cells 1.000000 n_mismatch 0; fea meta y4 vs v2ext Y4 on 10038 common anchors: bitwise-eq 1.000000 || dlw_targets.npz::y4old: A 1.000000 n_mismatch 0"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C1_2/refc12_y4bits.log",
+  "quote_or_output": "wide_panel_4h_v1.npz: anchors 14329 ts[0]=1580428800 (2020-01-31) ts[-1]=1786752000 (2026-08-15); mappable 10123/14329; unmappable 4206 (2020-01-31..2021-12-31); A bitwise-eq all cells 0.999984 n_mismatch 136; A-mismatch example: anchor 0 ts 1640995200 sym 1000SHIBUSDT Y=0.007822275 A=0.0071308613 nfin=46 || v3splice: concat(v1.Y4, v2ext.Y4[ts>cut]) bitwise-eq 1.0; ts eq True || v1 vs v2ext on 9943 common anchors: Y4 bitwise-eq share 1.000000; n_mismatch 0"
+ },
+ {
+  "file_or_command": "ssh pod2 '/workspace/venv/bin/python -u refc12_v1_mismatch_rows.py'",
+  "quote_or_output": "v1 mappable anchors 10123 mismatch cells 136 distinct anchor rows with mismatch 1 their ts [1640995200] cache row E for them [0] | ext-cache rows 0,1 finite counts across names: 0 0 | row 2: 137 | nA at mismatch cells: unique [46] | excluding those anchor rows: mismatch cells = 0 over 10122 anchors"
+ },
+ {
+  "file_or_command": "ssh pod2 '/workspace/venv/bin/python -u refc12_pre2022_raw.py' (raw Binance monthly zips, no pod cache)",
+  "quote_or_output": "BTCUSDT 2021-06: anchors 180 | Σsimple[E,E+47] bitwise==v1.Y4: 1.0000 (n_mismatch 0) | Σlog bitwise: 0.0000 (max|Δ| 1.64e-03) | Π(1+r)-1 bitwise: 0.0000 ... DOGEUSDT 2021-05: 186 anchors 1.0000 (Σlog max|Δ| 1.42e-01) ... TOTAL pre-2022 sample: anchors 1092; Σsimple bitwise-eq 1092/1092; Σlog bitwise-eq 0/1092; compounded bitwise-eq 0/1092"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C1_2/c1_rawprice.log (sha cd729717f5b8cdb0)",
+  "quote_or_output": "SOLUSDT 2022-01-05 [ts=open_time+5min] rows_in_cache 288/288 both_finite 287 | bitwise f16 == simple: 1.0000 ; == log: 0.2787 | max|cache-simple| 1.40e-05 max|cache-log| 6.54e-04 ; [ts=open_time] bitwise == simple: 0.0035 ; == log: 0.0000 || same 1.0000 vs simple for ETHUSDT 2022-05-12, BTCUSDT 2023-06-15, 1000PEPEUSDT 2024-11-12, DOGEUSDT 2025-03-03, BTCUSDT 2026-08-23, ETHUSDT 2026-08-28"
+ },
+ {
+  "file_or_command": "ssh pod2 'cat /sys/fs/cgroup/memory.max; cat /sys/fs/cgroup/memory.events'",
+  "quote_or_output": "60999999488 ; oom 7 oom_kill 6   (explains two silent deaths of my first job while 8 reviewer jobs each held the 5.7 GB cache; `free -g` showed the host's 247 GB, not the container cap; rerun memory-light: peak rss 13.2 GB, completed)"
+ },
+ {
+  "file_or_command": "/workspace/pod_panel_lineage.py (prior in-repo evidence, tolerance-based)",
+  "line": 25,
+  "quote_or_output": "print(f\"   {nm:10s}: median|Δ| {np.median(d):.2e}  share<1e-6 {np.mean(d<1e-6):.3f}  n={len(d)}\")   (40 anchors; not a bitwise test)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/docs/ERROR_LEDGER_2026-08-20.md (what was BELIEVED)",
+  "line": 396,
+  "quote_or_output": "② 实证: 用生产者缓存(rolling.npz 通道 0)按旧窗重算 Σ 简单收益, 与面板 y4 **逐位相等**(19 锚 × 829 名, median|Δ| 0.00, 100% <1e-5 ...)   — a <1e-5 tolerance test on 19 anchors of the Mac cache, cited here only as belief"
+ },
+ {
+  "file_or_command": "/workspace/pod_dlw_targets_ext.py (what was BELIEVED earlier, comment only)",
+  "line": 138,
+  "quote_or_output": "# ---- 对齐自检: 本装置 y4s(窗 (N,N+4h]) vs 面板 Y4(旧窗 [N−5m,N+3h55m] 对数和) ...   — comment calls the panel Y4 a log-sum; refuted by the bitwise data above"
+ }
+]
+#### corrected_statement
+Y4 in wide_panel_4h_v1.npz, wide_panel_4h_v2ext.npz, wide_panel_4h_v3splice.npz and y4 in wide_fea_v2ext_meta.npz are all produced by pod_panel_ext.py L57-58 / pod_fea_ext.py L33-34: Y4[E,j] = float32( Σ_{k=E}^{E+47} float64(r5[k,j]) ) where r5 = float32(cache channel 0) = float16(clip(close_k/close_{k-1} − 1, −0.3, 0.3)) with rows stamped at bar close (open_time+5 min), missing bars counted as 0, and Y4 = NaN when fewer than 46 of the 48 bars are finite. Bitwise verification against the pod cache: v2ext 0/8,322,331 mismatched cells; fea-meta y4 0/8,435,904; v1 and v3splice 0 mismatches over 10,122 of the 10,123 anchors that exist in the 2022-start cache (the 136 mismatched cells all sit on anchor 2022-01-01 00:00, an artifact of the checking cache missing the two boundary bars); v3splice Y4 is bitwise concat(v1.Y4 ≤ 2026-08-15 00:00, v2ext.Y4 after). The 4,206 pre-2022 anchors of v1/v3splice cannot be checked exhaustively on the pod; a raw-price reconstruction from Binance monthly klines matched 1,092/1,092 anchors (6 symbols) bitwise. Σlog1p (log return) and Π(1+r)−1 (compounded) match only ~8.9% of finite cells (coincidental tiny sums; max|Δ| 0.69 and 2.59) and are excluded. Caveats: 'bitwise' holds for float64 accumulation then float32 cast (a float32-accumulated sum differs in 2 cells per panel by 1 ulp); ~0.01–0.02% of finite cells are sums over 46–47 bars; rows [E,E+47] cover price time [E−5min, E+3h55m], not [E, E+4h].
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C1_2 (pod: /workspace/review_scratch/refute_C1_2)

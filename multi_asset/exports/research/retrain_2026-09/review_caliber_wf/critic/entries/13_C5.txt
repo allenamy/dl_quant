@@ -1,0 +1,118 @@
+
+#### claim_id
+C5
+#### refuted
+True
+#### confidence
+0.85
+#### verified_parts
+[
+ "(1) The 08-22 device ran on the 140-name HOURLY log panel: inrole_simple_return_rerun.py L133 `src = PanelSource(king=..., s2=...)` with panel_source.py L11 default PANEL = exports/wide_dl_full.npz; results JSON inputs_sha256.panel = 2e36dda1d2498c0f... == panel_caliber_manifest.json 'exports/wide_dl_full.npz' file_sha256_16 (role: 'the model-input panel the frozen heads were TRAINED on (built 2026-07-11)'). NB: the file is wide_dl_full.npz, not wide_dl.npz as the claim names it.",
+ "(2) That panel's target is a true forward log return of hourly close — VERIFIED BY MY OWN RECOMPUTATION, not only by code: build_wide_dl.py:95 `logc = np.log(...)`, :151 `Y[:T - H] = (logc[H:] - logc[:-H])` (blame 03e4c8b6 2026-07-11, unchanged since); and the device's saved return matrix mine_p3_RETL (9,846 anchors x 140 names, 989,329 cells) equals log(CLOSE[N+3h]/CLOSE[N-1h]) computed from /Users/haosiyu/lob_raw/wide_panel_full_0731.npz CLOSE at max|delta| = 0.0, 100% float32-exact.",
+ "(3) The expm1 rule was exact for that panel: device L177 `y = ylog if ret == \"log\" else np.expm1(ylog)`; my recomputation expm1(RETL) vs CLOSE[N+3h]/CLOSE[N-1h]-1: max|delta| 2.2e-8, median 1.6e-6 bps.",
+ "(4) Pod-built panels are sum-of-simple-5m returns, bitwise: code pod_build_wide.py:28 / pod_merge_cache_ext.py:27 `A[:,0] = np.clip(k.c.pct_change(...), -0.3, 0.3)`; pod_panel_wide_hist.py:57 and pod_panel_ext.py `Y4 = (CS_r[E + 48] - CS_r[E])`; pod_fea_wide_hist.py:38 and pod_fea_ext.py `y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E])`. My recomputation from dlnative_5m_wide829_f16_ext.npz ch0: wide_panel_4h_v1/v2ext/v3splice Y4, wide_fea_v2ext_meta y4, dlw_targets y4old all max|delta| = 0.0 vs sum-simple over rows [E,E+47] (28k-40k cells each), whereas vs log-sum max|delta| 0.09-0.26 and median 1.4-1.7 bps. dlw_targets y4s = prod(1+r)-1 over (N,N+4h] at max|delta| 1.9e-9.",
+ "(5) The w10 replay device applies expm1 to that sum-simple y4: w10_universe.py L17 `CAL = os.environ.get(\"CAL\", \"simple\")`, L47-48 y4 from wide_fea_hist_meta.npz, L135-136 and L277-278 `if CAL == \"simple\": ... = np.expm1(...)`; pod port inputs are symlinks wide_fea_hist_meta.npz -> /workspace/data/wide_fea_v2ext_meta.npz and wide_panel_4h_hist_v2.npz -> wide_panel_4h_v2ext.npz; first commit of the device 466192d 2026-09-01. Size of the resulting pseudo-convexity per name-cell: mean(expm1(sum-simple) - (prod(1+r)-1)) = +3.9 to +4.4 bps, median 1.7 bps.",
+ "(6) R3's frozen thresholds are as the claim states: device L283 `R3[\"pass\"] = bool(R3[\"per_anchor_corr_median\"] >= 0.99 and R3[\"median_abs_diff_bps\"] < 1.0)`; the cube it compared against is a log return by code: w2b_build_return_cube.py:56 `rl = np.log(c4 / c0); rw = np.log(c3 / cm1)`."
+]
+#### refuted_or_unverified_parts
+[
+ "REFUTED: 'R3 could not discriminate log-sum from sum-simple'. (a) As achieved, R3 was max|delta| 1.17e-7, median 0.00024 bps, 100% of 987,061 cells < 1e-6, corr 0.99999999999 against a cube whose executed line is np.log(c3/cm1) — a sum-simple panel cannot produce that (it gives median ~1.4 bps, max ~0.1). R3 therefore positively established the panel as a 1h log return; it was not blind. (b) As frozen thresholds, tested by me on EXACTLY the 140 in-role names x the 9,846 SR anchors from 5m data (1,133,859 cells): sum-simple vs sum-log per-anchor corr median 0.99989 (the corr leg cannot discriminate) but median |delta| = 1.387 bps > 1.0 (the median leg fails, i.e. would have flagged a pod panel); by year 1.70/0.95/1.65/1.47/1.15 — thin margin (2023 alone passes; a 1h-bar sum-simple on the same names gives 0.967 bps and would pass).",
+ "INFERRED, not verified: the 'carried by name' mechanism (that the rule migrated because of the shared name Y4). What is verified is only that w10_universe.py applies expm1 to a sum-simple y4, and that the 08-22 WS device docstring (wide_return_source_audit.py L9, belief-record only) already stated the pod y4 = sum of simple ret5 — so the sum-simple nature was documented on 08-22 itself; the 08-22 devices apply expm1 to log cubes and qvk, never to pod y4.",
+ "MINOR IMPRECISION: the claim names 'wide_dl.npz'; the device loaded 'wide_dl_full.npz' (sha 2e36dda1...). Attribution of that file to build_wide_dl.py rests on REPRODUCTION.md:94 (belief) plus formula match from my recomputation; the script identity is inferred, the formula is verified.",
+ "NOT DIRECTLY RE-READ: the jpline wide_dl_full.npz file itself (jpline down; one ssh attempt with ConnectTimeout=8 timed out). Substituted by the device's own saved RETL matrix in results/inrole_simple_return_rerun_jp_2026-08-22.npz plus the local raw hourly CLOSE panel."
+]
+#### corrected_statement
+The 2026-08-22 SR device (inrole_simple_return_rerun.py) ran on jpline exports/wide_dl_full.npz (sha 2e36dda1..., the 140-name hourly panel), whose target is Y4 = log CLOSE[N+3h]/CLOSE[N-1h]: recomputed from the raw hourly CLOSE panel, the device's return matrix matches at max|delta| = 0.0 on 989,329 cells, and expm1(Y4) equals the plain simple holding return at max|delta| 2.2e-8 — the expm1 rule was exact there. The pod-built panels (wide_panel_4h_v1/v2ext/v3splice Y4, wide_fea_v2ext_meta y4 = the w10 input, dlw y4old) are instead sums of simple 5-minute returns over [N-5m, N+3h55m] (max|delta| 0.0 vs recomputation), so w10_universe.py's CAL=simple expm1 (L135-136, L277-278; device first committed 2026-09-01) adds a spurious +3.9 to +4.4 bps mean (median 1.7 bps) per name per 4h relative to the true prod(1+r)-1. R3 did discriminate: as achieved it was max|delta| 1.17e-7 / median 0.00024 bps against a log cube (a sum-simple panel would give median ~1.4 bps, max ~0.1); as frozen, the corr>=0.99 leg is blind (0.99989 either way) but the median<1 bps leg fails for sum-simple(5m) on the same 140 names and 9,846 anchors (1.387 bps; by year 1.70/0.95/1.65/1.47/1.15), a thin margin — a 1h-bar sum-simple (0.967 bps) would have passed. The actual gap is that no R3-type source cross-check was ever run on the pod panels: w10_universe.py contains none.
+#### evidence
+[
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/data/build_wide_dl.py",
+  "line": 151,
+  "quote_or_output": "Y[:T - H] = (logc[H:] - logc[:-H]).astype(np.float32)  # forward H-hour logret   (L95: logc = np.log(np.where(C > 0, C, np.nan)); git blame 03e4c8b6 2026-07-11)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/panel_source.py",
+  "line": 11,
+  "quote_or_output": "PANEL = MA + \"/exports/wide_dl_full.npz\""
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/inrole_simple_return_rerun.py",
+  "line": 133,
+  "quote_or_output": "src = PanelSource(king=NEWGEN[\"king\"][0], s2=NEWGEN[\"s2\"][0])"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/inrole_simple_return_rerun.py",
+  "line": 177,
+  "quote_or_output": "y = ylog if ret == \"log\" else np.expm1(ylog)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/inrole_simple_return_rerun.py",
+  "line": 283,
+  "quote_or_output": "R3[\"pass\"] = bool(R3[\"per_anchor_corr_median\"] >= 0.99 and R3[\"median_abs_diff_bps\"] < 1.0)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/results/inrole_simple_return_rerun_jp_2026-08-22.json",
+  "quote_or_output": "R3_Y4_vs_1h_cube_same_window: cells_both_finite 987061, maxabs_diff 1.1734664440155029e-07, median_abs_diff_bps 0.00024214386940002441, frac_abs_lt_1e-6 1.0, per_anchor_corr_median 0.9999999999955096; inputs_sha256.panel 2e36dda1d2498c0f6a687182cb1fe45660ca20d9ddd5c98bd213adc217c40742"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/panel_caliber_manifest.json",
+  "quote_or_output": "panels['exports/wide_dl_full.npz']: role 'the model-input panel the frozen heads were TRAINED on (built 2026-07-11)', file_sha256_16 '2e36dda1d2498c0f', file_size 1052380498"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-21/w2b_build_return_cube.py",
+  "line": 56,
+  "quote_or_output": "rl = np.log(c4 / c0); rw = np.log(c3 / cm1)"
+ },
+ {
+  "file_or_command": "python3 /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C5_1/mac_recompute_retl.py",
+  "quote_or_output": "anchors_aligned 9846, cells 989329; RETL_vs_log_close: max_abs 0.0, frac_exact_float32 1.0; RETL_vs_sum_simple_1h: median_abs_bps 0.967, per_anchor_corr_median 0.99989, R3_threshold_pass true; expm1(RETL)_vs_simple_close: max_abs 2.197e-08"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_build_wide.py",
+  "line": 28,
+  "quote_or_output": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   (identical at /workspace/pod_merge_cache_ext.py:27)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-21/pod_panel_wide_hist.py",
+  "line": 57,
+  "quote_or_output": "Y4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan   (CS_r = cs(r5), r5 = CD[:, :, 0]; same line in /workspace/pod_panel_ext.py:58)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-21/pod_fea_wide_hist.py",
+  "line": 38,
+  "quote_or_output": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   (writes wide_fea_hist_meta.npz L89-90; same line in /workspace/pod_fea_ext.py:34)"
+ },
+ {
+  "file_or_command": "ssh pod2 /workspace/venv/bin/python /workspace/review_scratch/refute_C5_1/pod_recompute_y4.py",
+  "quote_or_output": "wide_panel_4h_v1.npz win[0,48): vs_S max_abs 0.0 frac_lt_1e-7 1.0 (28366 cells) | vs_L max_abs 0.1067 median_abs_bps 1.645; wide_panel_4h_v2ext.npz: vs_S 0.0 (40196 cells); wide_panel_4h_v3splice.npz: vs_S 0.0 (28315); meta.y4: vs_S 0.0 (32288); dlw.y4old: vs_S 0.0 (32109); dlw.y4s win[1,49) vs_C max_abs 1.86e-09 frac_lt_1e-7 1.0; expm1S_minus_C mean_bps +3.88..+4.43, median_abs 1.64-1.73; symlinks: wide_fea_hist_meta.npz -> /workspace/data/wide_fea_v2ext_meta.npz, wide_panel_4h_hist_v2.npz -> /workspace/data/wide_panel_4h_v2ext.npz"
+ },
+ {
+  "file_or_command": "ssh pod2 /workspace/venv/bin/python /workspace/review_scratch/refute_C5_1/pod_discrim_exact140.py",
+  "quote_or_output": "names found 140/140; old_win[N-5m,N+3h55m]: anchors 9846, cells 1133859, per_anchor_corr_median 0.99989, median_abs_bps 1.3868, mean_bps 2.917, frac_lt_1bps 0.374, R3_threshold_pass false, by_year {2022: 1.696, 2023: 0.947, 2024: 1.653, 2025: 1.469, 2026: 1.148}"
+ },
+ {
+  "file_or_command": "ssh pod2 /workspace/venv/bin/python /workspace/review_scratch/refute_C5_1/pod_discrim140.py",
+  "quote_or_output": "top140-by-qvk: anchors 2036 cells 283637 per_anchor_corr_median 0.99980 median_abs_bps 1.799 R3_threshold_pass false; BTC median_abs_bps 0.297; ETH 0.547"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 17,
+  "quote_or_output": "CAL = os.environ.get(\"CAL\", \"simple\")                 # simple = 交易所记账(y -> expm1)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 135,
+  "quote_or_output": "if CAL == \"simple\":\n                _yy = np.expm1(_yy)      (y4 loaded L47-48 from wide_fea_hist_meta.npz; same at L277-278; first commit 466192d 2026-09-01; grep for cube|R3|klines_1h: no source cross-check present)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/wide_return_source_audit.py",
+  "line": 9,
+  "quote_or_output": "(docstring, belief-record only) ret5 = clip(c/c_prev−1, ±0.3)(简单收益), E = 缓存行 ts%4h==0, y4 = Σ ret5[E..E+47]"
+ },
+ {
+  "file_or_command": "ssh -o ConnectTimeout=8 -o BatchMode=yes jpline",
+  "quote_or_output": "ssh: connect to host 212.50.244.62 port 31999: Operation timed out (single attempt; jpline not relied on)"
+ }
+]
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C5_1

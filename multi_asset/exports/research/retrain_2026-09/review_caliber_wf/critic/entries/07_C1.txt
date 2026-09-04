@@ -1,0 +1,121 @@
+
+#### claim_id
+C1
+#### refuted
+False
+#### confidence
+0.86
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C1_0 (pod mirror: /workspace/review_scratch/refute_C1_0)
+#### verified_parts
+[
+ "[VERIFIED, code] Y4 recipe in the executing pod script /workspace/pod_panel_ext.py (sha256 db7f0474... == repo mirror + retrain copies): L18-20 cs() = NaN->0, float64 cumsum with a leading zero row; L21 r5 = CD[:,:,0].astype(float32); L24 CS_r = cs(r5); L57-58 Y4 = (CS_r[E+48]-CS_r[E]).astype(float32), Y4[y4n<46]=NaN. CS has a leading zero row, so CS_r[E+48]-CS_r[E] = sum over rows E..E+47 (old window). No log1p/expm1/prod anywhere on the Y4 path. Same recipe in /workspace/pod_fea_ext.py L13-17, L33-34 for y4 (saved L83-84 to wide_fea_v2ext_meta.npz).",
+ "[VERIFIED, code+data] Cache channel 0 is a SIMPLE return: /workspace/pod_merge_cache_ext.py (sha de7a0661...) L26-27 A=float16; A[:,0]=np.clip(k.c.pct_change(fill_method=None),-0.3,0.3); L24 ts=open_time+5min. Empirical recompute from raw daily kline zips (30 symbols, 2026-08-21..31): cache ch0 == float16(clip(pct_change)) bitwise in 11,214/11,214 base rows (<=2026-08-24 04:00, inherited from _fresh) and 59,040/59,040 ext rows; log-diff matches only 22.1% / 43.7% (c1_ch0.log).",
+ "[VERIFIED, data] wide_panel_4h_v2ext.npz Y4 (10,039 anchors, 2022-01-31..2026-08-31): old window [E,E+47] float64 direct sum (NaN->0, NaN if <46 finite) cast to float32 == stored Y4 bitwise in 3,427,554/3,427,554 finite cells, nan_mismatch 0; cumsum-diff recipe identical. Log-sum matches only 8.90% (median|d| 1.40e-4, max 0.687); compounded expm1(sum log1p) and prod(1+r)-1 match only 8.91% (median|d| 9.1e-5, max 2.587); new window [E+1,E+48] matches only 10.5% (median|d| 1.57e-3). (c1_bitwise.log)",
+ "[VERIFIED, data] wide_fea_v2ext_meta.npz y4 (10,176 anchors): identical result — 3,446,599/3,446,599 cells bitwise equal to the old-window float64 sum; log/compound ~8.9%; new window 10.5%.",
+ "[VERIFIED, code+data] wide_panel_4h_v3splice.npz: /workspace/pod_panel_splice.py L21-25 concatenates v1 rows and v2ext rows with ts>cut (Y4 copied, not recomputed). Empirically splice[:len(v1)] == v1.Y4 bitwise (incl. NaN pattern) and splice tail == v2ext[ts>cut] bitwise: both True. Splice tail cells therefore inherit the verified v2ext result (probe on 10,219 mapped anchors: 3,452,222/3,452,358 bitwise; the 136 exceptions are the v1 edge case below).",
+ "[VERIFIED, data] wide_panel_4h_v1.npz on 2022+ anchors: v1 vs v2ext on 9,943 common anchors: 3,370,536 finite cells 100.000% bitwise, nan_mismatch 0, max|d| 0. Against the _ext cache directly: 10,123 mapped anchors, 3,395,204/3,395,340 bitwise; ALL 136 mismatches sit at the single anchor 2022-01-01 00:00 = _ext cache row 0, where _ext ch0 rows 0-1 are NaN (pct_change left edge, nfinite 46 vs 48 in v1's own 2020-start cache) — a comparison-cache artifact, not a definitional difference (c1_v1_mismatch.log).",
+ "[VERIFIED, provenance] The pod's wide_panel_4h_v1.npz (sha256 f14bc33d78b24929...) is byte-identical to the Mac copy pod_backup/wide_panel_4h_hist_v2.npz (Aug 21 11:32). Transcript 2026-08-21T02:01:44Z: built on the (old) pod with `CACHE_IN=/workspace/data/dlnative_5m_wide829_f16_hist.npz PANEL_OUT=/workspace/data/wide_panel_4h_hist_v2.npz nohup python3 pod_panel_ext.py`; relayed jpline->Mac->pod on 2026-09-01 ~03:13Z after pod_panel_ext.py L172 FileNotFoundError, renamed to wide_panel_4h_v1.npz. Across the whole 768 MB transcript only ONE variant of the Y4 line and ONE variant of the A[:,0] (pct_change) line ever appear; no Edit record touched either; the Aug-19 Mac copy of pod_panel_ext.py (sha 6a911d89...) has the identical Y4 line at L58 and pod_build_wide_ext.py (mirror sha 39ed11f3..., L29) has pct_change."
+]
+#### refuted_or_unverified_parts
+[
+ "[UNVERIFIED — coverage gap, not a contradiction] 4,206 of v1's 14,329 anchors (2020-01-31..2021-12-31; also the head of v3splice) cannot be checked against any 5-minute cache present on the pod (dlnative_5m_wide829_f16_hist.npz is gone from /workspace, no copy on the Mac, jpline unreachable: one ssh attempt with ConnectTimeout=8 timed out). Their definition is INFERRED from the script copies + transcript only. Consistency cross-check only: hist_v2 Y4 == wide_fea_hist_meta.npz y4 (Aug 21, pod_fea_wide_hist.py, same recipe) bitwise on 296,701 pre-2022 cells and 3,692,041 total cells — same-recipe agreement, not an independent definition.",
+ "[OVERSTATED wording — 'ALL pod-built'] v1 is not produced by the current pod chain nor from the current _ext cache: it is the Aug-21 hist_v2 build (different pod instance, 2020-start hist cache) relayed jpline->Mac->pod on Sep 1 and renamed. The executing copy of pod_panel_ext.py from Aug 21 no longer exists on the pod.",
+ "[PRECISION on 'simple 5-minute return' and 'bitwise'] The summed quantities are float16-quantized returns clipped to ±0.3 (495 cells at -0.3, 458 at +0.3 of 165.7M finite); missing bars are zero-filled and Y4 is NaN only when <46 of 48 bars are finite — 506 v2ext cells (295 in v1) are sums over 46-47 bars. 'Bitwise' holds for the float64-accumulated sum cast to float32 (== cumsum-difference, 100%); a float32-accumulated np.sum differs in 2 cells by 5.96e-8."
+]
+#### evidence
+[
+ {
+  "file_or_command": "/workspace/pod_panel_ext.py",
+  "line": 58,
+  "quote_or_output": "Y4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan"
+ },
+ {
+  "file_or_command": "/workspace/pod_panel_ext.py",
+  "line": 19,
+  "quote_or_output": "xz = np.where(np.isfinite(x), x, 0).astype(np.float64)  /  L20: return np.concatenate([np.zeros((1, NW)), np.cumsum(xz, 0)])  /  L21: r5 = CD[:, :, 0].astype(np.float32)  /  L24: CS_r = cs(r5)"
+ },
+ {
+  "file_or_command": "/workspace/pod_fea_ext.py",
+  "line": 34,
+  "quote_or_output": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan"
+ },
+ {
+  "file_or_command": "/workspace/pod_merge_cache_ext.py",
+  "line": 27,
+  "quote_or_output": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   (L26: A = np.full((len(IDX), 7), np.nan, np.float16); L24: k['ts'] = ... + pd.Timedelta('5min'))"
+ },
+ {
+  "file_or_command": "/workspace/pod_panel_splice.py",
+  "line": 25,
+  "quote_or_output": "out[k] = np.concatenate([a, b[tail_idx]])   (L11-12 CAN=v1, EXT=v2ext; L17 tail_idx = np.where(et > cut)[0])"
+ },
+ {
+  "file_or_command": "ssh pod2 sha256sum /workspace/pod_panel_ext.py /workspace/pod_fea_ext.py /workspace/pod_merge_cache_ext.py",
+  "quote_or_output": "db7f0474b64fb3098a8d1a6af29f61423d7b99c74c6834eb6424b77d1642b5ac pod_panel_ext.py; 02157bda4fe0f6cd6f42215a0a5551b819b817249de4d3ffda26a2963e6a0378 pod_fea_ext.py; de7a0661521d2bc2db9b2f645cf192096ab381174e7496f681b3a2a308d7a8d1 pod_merge_cache_ext.py — identical hashes for the repo copies under multi_asset/exports/research/runpod_scripts/workspace_mirror/ and retrain_2026-09/"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C1_0/c1_bitwise.log (copy in Mac scratch) — v2ext",
+  "quote_or_output": "window old [E+0,E+47]: cs: finite_both 3,427,554 nan_mismatch 0 bitwise_eq_share 1.000000 n_neq 0 | dsum: bitwise_eq_share 1.000000 n_neq 0 | fsum: 0.999999 n_neq 2 max|d| 5.960e-08 | lsum: 0.089046 median|d| 1.401e-04 max 6.867e-01 | comp: 0.089055 median|d| 9.129e-05 max 2.587e+00 ; window new [E+1,E+48]: cs 0.105300 median|d| 1.565e-03"
+ },
+ {
+  "file_or_command": "c1_bitwise.log — wide_fea_v2ext_meta.y4",
+  "quote_or_output": "anchors mapped 10176/10176; old window cs: finite_both 3,446,599 nan_mismatch 0 bitwise_eq_share 1.000000 n_neq 0; dsum 1.000000; lsum 0.088615; comp 0.088624; new window cs 0.104790"
+ },
+ {
+  "file_or_command": "c1_bitwise.log — wide_panel_4h_v1.npz",
+  "quote_or_output": "anchors mapped 10123/14329 (unmapped 4206, tail-short 0); old window cs: finite_both 3,395,340 nan_mismatch 0 bitwise_eq_share 0.999960 n_neq 136 max|d| 1.563e-02; lsum 0.088420; comp 0.088429"
+ },
+ {
+  "file_or_command": "c1_bitwise.log — ch0 sanity",
+  "quote_or_output": "ch0 finite 165,729,335 min -0.3000 max 0.3000 n(==-0.3) 495 n(==+0.3) 458"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C1_0/c1_v1_mismatch.log",
+  "quote_or_output": "n mismatched cells 136; anchors with mismatch: 1 2022-01-01 00:00 -> 2022-01-01 00:00; all mismatch anchors < 2022-01-31 (v2ext first anchor)? True; first bad: rows 0..47 ext ch0 first 5: [nan nan 0.00161457 -0.00035834 -0.00140381] ext cache row index of anchor 0; e.g. BTCUSDT-era rows nfinite 46"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C1_0/c1_ch0.log",
+  "quote_or_output": "SEG base: cells 11,214 bitwise_eq(simple pct_change,f16) 1.000000 bitwise_eq(log diff,f16) 0.221152 ; SEG ext: cells 59,040 bitwise_eq(simple pct_change,f16) 1.000000 bitwise_eq(log diff,f16) 0.436721"
+ },
+ {
+  "file_or_command": "ssh pod2 python (panel structure probe)",
+  "quote_or_output": "v1 14329 2020-01-31 00:00 -> 2026-08-15 00:00; v2ext 10039 2022-01-31 -> 2026-08-31; v3splice 14425 2020-01-31 -> 2026-08-31; splice head == v1 (bitwise incl NaN): True ; splice tail == v2ext[ts>cut]: True ; v1 vs v2ext overlap anchors 9943: finite_both 3,370,536 bitwise_eq 1.000000 nan_mismatch 0 max|d| 0.000e+00; n anchors v1 before 2022-01-01: 4206"
+ },
+ {
+  "file_or_command": "sha256sum /workspace/data/wide_panel_4h_v1.npz ; shasum -a 256 <Mac>/6737834a.../scratchpad/pod_backup/wide_panel_4h_hist_v2.npz",
+  "quote_or_output": "f14bc33d78b24929 (pod v1) == f14bc33d78b24929a... (Mac pod_backup/wide_panel_4h_hist_v2.npz, 247,363,525 bytes, Aug 21 11:32)"
+ },
+ {
+  "file_or_command": "transcript 6737834a-...jsonl record 2026-08-21T02:01:44.589Z (tool_use Bash)",
+  "quote_or_output": "ssh -o BatchMode=yes runpod \"cd /workspace && CACHE_IN=/workspace/data/dlnative_5m_wide829_f16_hist.npz PANEL_OUT=/workspace/data/wide_panel_4h_hist_v2.npz nohup python3 pod_panel_ext.py > panel_hist_v2.log 2>&1 &\""
+ },
+ {
+  "file_or_command": "transcript records 2026-09-01T03:13Z (tool_result + scp)",
+  "quote_or_output": "FileNotFoundError: [Errno 2] No such file or directory: '/workspace/data/wide_panel_4h_v1.npz' (pod_panel_ext.py line 172) ... scp -q -P 55451 ... $SP/wide_panel_4h_hist_v2.npz root@...:/workspace/data/wide_panel_4h_v1.npz && echo \"mac→pod ✓\""
+ },
+ {
+  "file_or_command": "transcript variant scan (python over all records naming pod_panel_ext/pod_panel_wide/pod_build_wide*)",
+  "quote_or_output": "Y4 = ( variants: exactly 1 -> 'Y4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan' (10 records); A[:,0] variants: exactly 1 -> 'A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)' (10 records); no Edit record touched Y4/CS_r/A[:,0]"
+ },
+ {
+  "file_or_command": "multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_build_wide_ext.py (sha 39ed11f3...) + pod_cpu3_chain.sh L26-27",
+  "line": 29,
+  "quote_or_output": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)  /  chain: EXT_START=2020-01-01 EXT_END=2026-08-16 EXT_OUT=/workspace/data/dlnative_5m_wide829_f16_hist.npz python3 pod_build_wide_ext.py  (hist cache builder; INFERRED for pre-2022 rows — the executing copy is gone from the pod)"
+ },
+ {
+  "file_or_command": "Mac python: pod_backup/wide_panel_4h_hist_v2.npz vs pod_backup/wide_fea_hist_meta.npz",
+  "quote_or_output": "common anchors 12980: finite_both 3,692,041 bitwise_eq 1.000000 nan_mismatch 0; pre-2022 subset: cells 296,701 bitwise_eq 1.000000"
+ },
+ {
+  "file_or_command": "ssh -o ConnectTimeout=8 jpline",
+  "quote_or_output": "ssh: connect to host 212.50.244.62 port 31999: Operation timed out (single attempt; not relied on)"
+ },
+ {
+  "file_or_command": "/workspace/pod_dlw_targets_ext.py (belief only, not evidence of definition)",
+  "line": 138,
+  "quote_or_output": "# ---- 对齐自检: 本装置 y4s(窗 (N,N+4h]) vs 面板 Y4(旧窗 [N−5m,N+3h55m] 对数和) — shows the author BELIEVED panel Y4 was a log-sum; data shows it is a simple-return sum"
+ }
+]
+#### corrected_statement
+Y4 in wide_panel_4h_v2ext.npz, y4 in wide_fea_v2ext_meta.npz, and the post-cut tail of wide_panel_4h_v3splice.npz equal float32( Σ_{rows E..E+47} r5 ) where r5 = cache channel 0 = float16(clip(close.pct_change(), −0.3, +0.3)) with NaN bars counted as 0 and the result set to NaN when fewer than 46 of the 48 bars are finite; this is bitwise-exact against a float64-accumulated sum (3,427,554/3,427,554 and 3,446,599/3,446,599 cells; float32 accumulation differs in 2 cells by 6e-8). It is NOT a log-return sum (matches only 8.9% of cells, median |Δ| 1.4e-4, max 0.69) and NOT a compounded simple return (8.9%, median |Δ| 9e-5, max 2.59). wide_panel_4h_v1.npz (= v3splice head) is the 2026-08-21 hist_v2 build from the 2020-start hist cache (built on an earlier pod instance by pod_panel_ext.py with the same Y4 line, relayed jpline→Mac→pod on 2026-09-01 and renamed), not a product of the current pod chain; its 10,123 anchors from 2022-01-01 on are bitwise-identical to the same recipe on the current cache (the only 136 differing cells are the 2022-01-01 00:00 anchor, where the current cache's left-edge rows are NaN), while its 4,206 pre-2022 anchors (29%) cannot be recomputed from any cache available today and rest on the script copies + transcript only.

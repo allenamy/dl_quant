@@ -1,0 +1,267 @@
+
+#### component
+multi_asset/exports/research/retrain_2026-09/w10_universe.py (wide-book replay device, jpline copy) and its ancestor/sibling replay devices; commit-anchored history of the return transform
+#### definition
+In w10_universe.py the 4h return used for leg returns (legs(), L134-136) and book pnl (run(), L276-278) is y = np.expm1(y4) when CAL=="simple" (the default), else y = y4. y4 = MT["y4"] loaded at L47-48 from /mnt/storage/private/work_hsy/pod_backup_2026-08-21/wide_fea_hist_meta.npz. That meta y4 is built by pod_fea_wide_hist.py L38 as CS["ret5"][E+48] - CS["ret5"][E], i.e. the plain SUM of channel-0 of the 5m cache over rows [E, E+48) (48 bars = 5m bars E..E+47), with NaN if <46 finite bars; channel 0 = np.clip(close.pct_change(), -0.3, 0.3) (pod_build_wide.py L28 / pod_build_wide_ext.py L29 / pod_merge_cache_ext.py L27), stored float16. So the device quantity under default CAL=simple is expm1( Σ_{k=0..47} r5_simple[E+k] ) — expm1 applied to a sum of simple 5-minute returns (a hybrid that is neither the exchange's Π(1+r)−1 nor the log return; it adds ≈(Σr)²/2 per name). Under CAL=log the quantity is the raw Σ-simple sum. Bitwise on the pod (same builder line, v2ext meta): meta y4 == Σ ch0 over [E,E+48) exactly (maxabs 0.0, 60 anchors), and != expm1(Σlog1p) and != Π(1+r)−1 (median maxabs 0.0089).
+
+TIMELINE (date | commit | device | panel consumed | y definition in that panel | transform applied | correct?):
+1) 2026-07-11 | 03e4c8b | multi_asset/data/build_wide_dl.py (builder) | writes wide_dl.npz | Y4 = logc[H:]-logc[:-H] (log 4h close/close) | n/a | builder.
+2) 2026-07-19 | f6740f9 | multi_asset/engine/panel_source.py + replay_fullhist.py (in-role 9821-anchor family) | MA/exports/wide_dl_full.npz | log | none (pnl = Σ p·Y4 log) | NO for exchange accounting (log caliber; quantified 08-22 SR: −0.79 bps/anchor) — acceptable only as diagnostic.
+3) 2026-08-15..21 (mirror 236a702, path copy 508ed95) | pod_kcurve.py / pod_kcurve_liq.py | /workspace/data/dlnative_5m_wide829_f16.npz ch0 (+wide_dl_pm32_hz.npz Y4 for Spearman alignment only) | y4full = CS_r[E+48]-CS_r[E] = Σ-simple | none | YES (rank-IC device).
+4) 2026-08-20 (git f37f660 08-21; transcript 2026-08-20T16:15Z) | kcurve_2026-08-15/devices_2026-08-20/wide_faithful_stage1.py | 5m cache + wide_panel_4h_v1.npz | Σ-simple | L38 Y4_own = expm1(Σ simple) computed (WRONG hybrid) but used only for the corr>0.99 alignment gate; L57 replaces Y4 with the panel's raw Y4 for the book | book: YES (raw Σ-simple); gate quantity: NO — earliest expm1-on-Σ-simple in the lineage.
+5) 2026-08-21 | f30df5c (pod_stop_arms.py, pod_legweight_arms.py), e45a85d (pod_stop_arms_v2.py), 348e720 (pod_stop_arms_v3.py, pod_fea_wide_hist.py, pod_panel_wide_hist.py) | /workspace/data/wide_fea_v2ext_meta.npz + wide_panel_4h_v2ext.npz (v3: wide_fea_hist_meta.npz + wide_panel_4h_hist.npz) | y4 = Σ-simple over [E,E+48) | none (yv = nan_to_num(y4)); expm1 only on qvk (quote volume) | YES.
+6) 2026-08-22 | 26b63d6 w2_wide_replay.py, f1cb681 w2_wide_legattrib.py, c0bd075 w2b_common.py (jpline W2 devices) | pod_backup_2026-08-21/wide_fea_hist_meta.npz + wide_panel_4h_hist_v2.npz | Σ-simple | none | YES.
+7) 2026-08-22 | be2455c wide_return_source_audit.py (WS) | meta y4 (Σ-simple) vs 5m Σlog1p/Σsimple vs 1h log/expm1(1h) | Σ-simple | diagnostic decomposition; treats meta as Σ-simple | YES (correct understanding, in the device header).
+8) 2026-08-22 | 57038bd inrole_simple_return_rerun.py (SR) | MA/exports/wide_dl_full.npz via engine.panel_source (L122-127) | log | L175-177: y = ylog if ret=="log" else np.expm1(ylog) | YES (expm1 on a true log return).
+9) 2026-08-22 | 70ef4db conclusion_reaudit.py (RC) | wide_dl_full.npz | log | L322 YS.append(np.expm1(yl)) | YES.
+10) 2026-08-25 04:53Z | 1150427 (08-25) eda/w3_execcal_replay_2026-08-25.py | pod_backup wide_fea_hist_meta.npz | Σ-simple | none (L92 yv = nan_to_num(y4)) | YES.
+11) 2026-08-25 13:35:07Z (jpline only, transcript; not in git) | w7_legweight_replay.py = copy of w6_selexit_replay.py + patch inserting `CAL = os.environ.get("CAL","simple")` and `if CAL == "simple": yv = np.expm1(yv)` (comment "simple 口径: y4 与价格路径统一走 expm1") | same meta | Σ-simple | expm1(Σ-simple) | NO — this is the moment the wrong transform entered the wide-book replay chain.
+12) 2026-08-25 14:47Z (transcript) | w8_blend_replay.py copied from w7 (jpline only) | same | Σ-simple | expm1 | NO.
+13) 2026-08-25 18:27Z (transcript) / git ea84425 2026-08-26 | eda/w10_ablation_replay_2026-08-25.py (CAL L17; expm1 L77 legs, L180 run; loads L25-28) | same | Σ-simple | expm1 default | NO. (18:47Z `CAL=exec` runs, E-0826-C, fell into the log branch = raw Σ-simple = the actually-correct caliber.)
+14) 2026-08-26 | 0790296 eda/w10_ablation_replay_hardened_9f15dea0131f_2026-08-26.py (adds assert CAL in simple|log) | same | Σ-simple | expm1 default | NO.
+15) 2026-08-30 | 84bfe73 eda/w10_ftrim_63feb2f7193f_2026-08-30.py | same | Σ-simple | expm1 default | NO.
+16) 2026-09-01 | 466192d w10_universe.py (later edits 40485c4/50d2164/adf6d72/c072500/35520d3 leave the CAL/expm1 lines identical to the 08-25 archive), 954c970 w10_fundleg.py, 59a4c1a w10_seat.py, 3deeb4b w10_ftrim_band.py, 92bfd91 w10_side.py, 6bf6299 w10_side_band.py | same | Σ-simple | expm1 default | NO.
+17) 2026-09-01 | be24a02 pod_dlw_targets_ext.py | dlnative_5m_wide829_f16_ext.npz | y4s = expm1(Σ log1p(r5)) = Π(1+r)−1 over (E_row+1..E_row+48]; y4old = Σ-simple over [E,E+48) | expm1 on Σlog1p | YES (bitwise: y4s == Π(1+r)−1 within 2.8e-8; y4old == meta y4 exactly).
+18) 2026-09-01 | be24a02 pod_export_bundle_v3.py (L109/L149 raw y4) and live producer ~/wide_shadow/shadow_loop_v3.py (L292 ret5 = c/pc−1; L428-431 y4v = Σ seg over 48 rows; L439 leg returns on raw y4v) | wide_fea_v2ext_meta.npz / rolling.npz ch0 | Σ-simple | none | YES.
+19) 2026-09-04 | c4a37d9 E-0904-C 'log caliber' correction (RUNBOOK §9 proposed expm1 in exporter+producer; jp_caliber_decomp.py, jp_king_convexity_arms.py) | — | belief that meta y4 was log | proposed expm1 | NO (retracted same day).
+20) 2026-09-04 | c763361 E-0904-F (pod_caliber_truth.py: y4old/y4s/expm1(y4old)/log1p(y4s); seed revert) and c15a9a2 E-0904-G (pod_panel_lineage.py) | pod meta + dlw_targets | Σ-simple | diagnosis only | YES.
+
+DOCS: CLAUDE.md L28 '一律简单收益口径(expm1); 对数口径只作诊断' was written in a99bfc3 2026-08-26 (only commit ever touching that line); it generalized the 08-22 SR finding (valid for the wide_dl log panel) into a blanket 'expm1' rule that was then applied to the Σ-simple pod panel. ERROR_LEDGER E-0826-C (0790296, 2026-08-26, L213-219) states 'CAL 语义是 simple(交易所简单收益, expm1)' — a belief, now shown wrong for that panel; E-0904-F (c763361, 2026-09-04, L395-401) states the corrected definition (y4 = Σ ret5, expm1 = 伪凸性) and E-0904-G (c15a9a2) records the lineage.
+#### caliber
+other
+#### confidence
+0.93
+#### evidence
+[
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 17,
+  "quote": "CAL = os.environ.get(\"CAL\", \"simple\")                 # simple = 交易所记账(y -> expm1)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 18,
+  "quote": "assert CAL in (\"simple\", \"log\"), (",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 47,
+  "quote": "MT = np.load(f\"{B}/wide_fea_hist_meta.npz\", allow_pickle=True)  [B = \"/mnt/storage/private/work_hsy/pod_backup_2026-08-21\" at L26]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 48,
+  "quote": "E_ts = MT[\"E_ts\"].astype(np.int64); members = MT[\"members\"]; y4 = MT[\"y4\"]; qvk = MT[\"qvk\"]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 134,
+  "quote": "_yy = np.nan_to_num(y4[i, m], nan=0.0)\n            if CAL == \"simple\":\n                _yy = np.expm1(_yy)   [legs(), L134-136]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 276,
+  "quote": "yv = np.nan_to_num(y4[i, m], nan=0.0)\n        if CAL == \"simple\":\n            yv = np.expm1(yv)   [run(), L276-278]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 198,
+  "quote": "ok = np.isfinite(y4[i, m]); qv4h = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48   [expm1 on log quote-volume only, not a return]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-21/pod_fea_wide_hist.py",
+  "line": 38,
+  "quote": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   [meta builder; CS = cumsum of CD[:,:,0] 'ret5' at L19-24; input CACHE_IN dlnative_5m_wide829_f16_hist.npz L11; META_OUT wide_fea_hist_meta.npz L89]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_fea_ext.py",
+  "line": 34,
+  "quote": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   [same line on pod: /workspace/pod_fea_ext.py:34; writes wide_fea_v2ext_meta.npz L83]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_build_wide.py",
+  "line": 28,
+  "quote": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   [5m cache channel 0 = simple return; same at pod_build_wide_ext.py:29 and pod /workspace/pod_merge_cache_ext.py:27]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-21/pod_panel_wide_hist.py",
+  "line": 57,
+  "quote": "Y4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan   [panel Y4 also Σ-simple; pod_panel_ext.py:58 identical]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/data/build_wide_dl.py",
+  "line": 151,
+  "quote": "Y[:T - H] = (logc[H:] - logc[:-H]).astype(np.float32)  # forward H-hour logret   [L95: logc = np.log(np.where(C > 0, C, np.nan)); OUT = .../multi_asset/exports/wide_dl.npz L27-28]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/panel_source.py",
+  "line": 34,
+  "quote": "self.Y4 = W[\"Y4\"].astype(np.float64)          # raw 4h fwd logret (realized target)   [L11: PANEL = MA + \"/exports/wide_dl_full.npz\"]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/replay_fullhist.py",
+  "line": 120,
+  "quote": "ret = src.Y4[int(t), m]  ...  L122: pnl[i] = float(np.nansum(p[ok] * ret[ok]))   [in-role family pnl on log Y4, no transform]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/inrole_simple_return_rerun.py",
+  "line": 177,
+  "quote": "y = ylog if ret == \"log\" else np.expm1(ylog)   [L175: ylog = src.Y4[ti, m]; panel L127 \"panel\": MA + \"/exports/wide_dl_full.npz\"; commit 57038bd 2026-08-22]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/conclusion_reaudit.py",
+  "line": 322,
+  "quote": "yl = src.Y4[ti, m].astype(float); YL.append(yl); YS.append(np.expm1(yl))   [panel L287 wide_dl_full.npz; commit 70ef4db 2026-08-22]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/eda/w3_execcal_replay_2026-08-25.py",
+  "line": 92,
+  "quote": "yv = np.nan_to_num(y4[i, m], nan=0.0)   [no CAL, no expm1 on y4; loads pod_backup wide_fea_hist_meta.npz L19-20; commit 1150427 2026-08-25]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/eda/w10_ablation_replay_2026-08-25.py",
+  "line": 77,
+  "quote": "_yy = np.expm1(_yy)   [L76 if CAL == \"simple\"; L179-180 same in run(); L17 CAL default \"simple\"; L25-26 loads pod_backup wide_fea_hist_meta.npz y4; commit ea84425 2026-08-26]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/6737834a-f0b4-40e0-82a0-c0e83c0ccf5f.jsonl",
+  "line": 0,
+  "quote": "timestamp 2026-08-25T13:35:07.511Z: S = probe_artifacts/w6_selexit_replay.py; F = probe_artifacts/w7_legweight_replay.py; shutil.copy(S, F); ... 'CAL = os.environ.get(\"CAL\", \"simple\")  # simple = 交易所记账(y -> expm1)'; # 2. simple 口径: y4 与价格路径统一走 expm1; rep('yv = np.nan_to_num(y4[i, m], nan=0.0)', '... if CAL == \"simple\": yv = np.expm1(yv)')   [first entry of expm1-on-pod-y4 in the wide-book chain; w8_blend_replay copied from w7 at 14:47:16Z; first CAL=exec run 18:47:23Z]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-21/pod_stop_arms_v3.py",
+  "line": 76,
+  "quote": "yv = np.nan_to_num(y4[i, m], nan=0.0)   [raw y4; L12 META_IN /workspace/data/wide_fea_hist_meta.npz; L15 PANEL_IN wide_panel_4h_hist.npz; commit 348e720 2026-08-21; pod_stop_arms.py:76 and pod_legweight_arms.py:85 same with wide_fea_v2ext_meta.npz]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-21/w2_wide_replay.py",
+  "line": 80,
+  "quote": "yv = np.nan_to_num(y4[i, m], nan=0.0)   [raw; L15 wide_fea_hist_meta.npz from pod_backup_2026-08-21; commit 26b63d6 2026-08-22; w2_wide_legattrib.py:102, w2b_common.py:131/241 same]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-20/wide_faithful_stage1.py",
+  "line": 38,
+  "quote": "Y4_own = np.expm1(cr[np.minimum(A+48, n5-1)] - cr[A]).astype(np.float32)   [L37 cr = np.cumsum(r5) with r5 = 'ret5' channel; L57 Y4 = Yp replaces it with wide_panel_4h_v1.npz Y4 after corr>0.99 gate; commit f37f660 2026-08-21]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/pod_kcurve.py",
+  "line": 54,
+  "quote": "y4full = (CS_r[E + FWD] - CS_r[E]).astype(np.float32)   [L34 r5 = CD[:, :, 0]; L40 CS_r = cumsum(r5z); L29 cache /workspace/data/dlnative_5m_wide829_f16.npz]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_dlw_targets_ext.py",
+  "line": 93,
+  "quote": "y4s = np.expm1(CS_L[hi_t] - CS_L[lo_t]).astype(np.float32)   [L75 CS_L = cumsum(np.log1p(r5z)); L96 y4old = (CS_r[E + FWD] - CS_r[E]); commit be24a02 2026-09-01]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote": "ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan   [L428 seg = CDf[pi + 1:ai + 1, :, 0]; L430 y4v = np.where(fin, seg, 0).sum(0); L439 leg return uses y4v raw — producer applies no expm1]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_export_bundle_v3.py",
+  "line": 109,
+  "quote": "LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)   [raw meta y4; L27 wide_fea_v2ext_meta.npz; L149 yv = np.nan_to_num(y4[i, m]) raw]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/CLAUDE.md",
+  "line": 28,
+  "quote": "- **一律简单收益口径**(expm1); 对数口径只作诊断并显式标注。   [git log -S: only commit a99bfc3 2026-08-26 'MILESTONE 2026-08-26 ... CLAUDE.md 路由化']",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/docs/ERROR_LEDGER_2026-08-20.md",
+  "line": 214,
+  "quote": "- **事实**: w8/w10 回放的 `CAL` 语义是 `simple`(交易所简单收益, expm1)/其它任意值=对数收益。   [E-0826-C, added in 0790296 2026-08-26 — a BELIEF about the panel, later contradicted by E-0904-F]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/docs/ERROR_LEDGER_2026-08-20.md",
+  "line": 395,
+  "quote": "### E-0904-F · 回放装置 CAL=simple 对\"Σ 5 分钟简单收益\"再做 expm1 ⇒ 伪凸性 ... 面板 y4 的定义 = pod_dlw_targets_ext.py L95–96 的 y4old = CS_r[E+48] − CS_r[E] = 行 [E, E+47] 简单收益之和   [added in c763361 2026-09-04; E-0904-G in c15a9a2 2026-09-04]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/RESULT_inrole_simple_return_2026-08-22.md",
+  "line": 1,
+  "quote": "建议今后离线族一律用简单收益(`expm1(Y4)`; 与 1h 简单 close→close 逐格相同)   [57038bd 2026-08-22 — stated for the wide_dl LOG panel; this is the belief that was later generalized into CLAUDE.md L28]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/mnt/storage/private/work_hsy/pod_backup_2026-08-21/wide_fea_hist_meta.npz",
+  "line": 0,
+  "quote": "jpline copy actually consumed by w10_universe.py could not be opened (jpline down, 1 probe timed out). Its builder line (pod_fea_wide_hist.py:38, cache dlnative_5m_wide829_f16_hist.npz) is identical to pod_fea_ext.py:34 whose output (wide_fea_v2ext_meta.npz) was checked bitwise on the pod.",
+  "status": "INFERRED"
+ }
+]
+#### empirical_checks
+[
+ {
+  "method": "Pod bitwise check (read-only): for 60 anchors of /workspace/data/wide_fea_v2ext_meta.npz compare meta y4 against three candidate definitions built from /workspace/data/dlnative_5m_wide829_f16_ext.npz channel 0 over rows [E,E+48): Σ r (sum of simple), expm1(Σ log1p r), Π(1+r)−1; also alt window (E+1..E+48]; panel wide_panel_4h_v2ext.npz Y4 vs meta; dlw_targets y4old vs meta; dlw y4s vs Π(1+r)−1 over (E_row+1..E_row+48]",
+  "command_or_script": "scp .../scratchpad/review_caliber/hist_transform/pod_bitwise_check.py pod2:/workspace/review_scratch/hist_transform/ ; ssh pod2 'cd /workspace/review_scratch/hist_transform && /workspace/venv/bin/python pod_bitwise_check.py' (output pod_bitwise_check.json, copied to scratch)",
+  "result": "n_anchor 60: sum_simple maxabs median 0.0 / max 0.0, frac<1e-6 = 1.0 on every anchor; expm1(Σlog1p) maxabs median 0.0089 max 0.110; Π(1+r)−1 maxabs median 0.0089 max 0.110; alt window (E+1..E+48] maxabs median 0.021 (so window is rows E..E+47); panel Y4 vs meta maxabs 0.0 (59 anchors); dlw y4old vs meta 0.0 (39 anchors); dlw y4s vs Π(1+r)−1 max 2.8e-8; cache float16, ts 2022-01-01 00:00 → 2026-09-01 00:00, ch=['ret5','range','cpos','log_qv','log_cnt','log_avgsz','tbf']",
+  "passed": true
+ },
+ {
+  "method": "Mac check (read-only): is /Users/haosiyu/wide_shadow/state/rolling.npz channel 0 a simple or log 5m return? Offset-scan 12-bar windows against /Users/haosiyu/dl_quant_live/state/panel_cache/klines_1h.npz close ratios (140 common symbols, 20604 pairs), then compare Σx vs log(P1/P0), Σx vs P1/P0−1, Π(1+x)−1 vs P1/P0−1 at the best-aligned offset",
+  "command_or_script": "python3 .../scratchpad/review_caliber/hist_transform/mac_rolling_vs_1h_scan.py",
+  "result": "best offset 13 (5m ts = bar close, 1h ts = bar open); median |Π(1+x)−1 − simple| 7.5e-7 (99.4% within 1e-5, p90 2.6e-6, i.e. float16 quantization); median |Σx − log| 1.6e-5 (only 34% within 1e-5, p90 7.9e-5) ⇒ channel 0 is a simple 5m return (producer L292 ret5 = c/pc − 1 confirmed on data)",
+  "passed": true
+ },
+ {
+  "method": "git archaeology: when expm1 entered the wide-book devices",
+  "command_or_script": "git -C /Users/haosiyu/Desktop/quant_research log -S'expm1' --format='%h %ad %s' --date=short -- multi_asset/exports/eda multi_asset/exports/research ; per-hit: git show <h> --format= -- <dirs> | awk '/^diff --git/{f=$3} /^\\+.*expm1/{print f\": \"$0}' (saved to scratch expm1_added_lines.txt); git log -S'environ.get(\"CAL\"' (whole repo); git log --diff-filter=A per file",
+  "result": "expm1-on-return first appears 57038bd 2026-08-22 (inrole_simple_return_rerun.py, on the LOG wide_dl panel — correct); pod-panel devices of 08-21 (f30df5c/e45a85d/348e720) and jpline W2/W3 devices (26b63d6/f1cb681/c0bd075/1150427) apply expm1 only to qvk; the expm1-on-Σ-simple chain is archived at ea84425 2026-08-26 (eda/w10_ablation_replay_2026-08-25.py), 0790296 08-26 (hardened), 84bfe73 08-30 (ftrim), 466192d 2026-09-01 (w10_universe.py) and siblings 954c970/59a4c1a/3deeb4b/92bfd91/6bf6299; earliest expm1(Σsimple) anywhere = wide_faithful_stage1.py L38 (f37f660 08-21, dir devices_2026-08-20) but its book used the panel's raw Y4",
+  "passed": true
+ },
+ {
+  "method": "Transcript timestamp extraction (768MB JSONL, streamed line-by-line) for the first occurrence of the CAL env parse, w8_, CAL=exec, CAL=simple, w3_execcal, w10_ablation_replay, wide_faithful_stage1",
+  "command_or_script": "python3 .../scratchpad/review_caliber/hist_transform/tx_ctx.py ; tx_ctx2.py",
+  "result": "environ.get(\"CAL\") first at 2026-08-25T13:35:07.511Z inside a patch script copying w6_selexit_replay.py → w7_legweight_replay.py on jpline and inserting `if CAL == \"simple\": yv = np.expm1(yv)`; w3_execcal 04:53:19Z (no CAL); CAL=simple run 13:35:28Z; w8_ 14:47:16Z; w10_ablation_replay 18:27:17Z; CAL=exec 18:47:23Z; wide_faithful_stage1 2026-08-20T16:15:59Z",
+  "passed": true
+ },
+ {
+  "method": "Diff of CAL/expm1 lines between the 08-25 archive and the current w10_universe.py",
+  "command_or_script": "diff <(grep -E 'CAL|expm1\\(_yy|expm1\\(yv' eda/w10_ablation_replay_2026-08-25.py) <(grep -E ... multi_asset/exports/research/retrain_2026-09/w10_universe.py)",
+  "result": "only additions (assert whitelist, FUNDSCALE, _CFG self-report); the CAL default and both expm1 branches are unchanged since 2026-08-25",
+  "passed": true
+ },
+ {
+  "method": "jpline reachability (single attempt as instructed)",
+  "command_or_script": "ssh -o ConnectTimeout=8 -o BatchMode=yes jpline 'ls probe_artifacts/w7_legweight_replay.py ...'",
+  "result": "ssh: connect to host 212.50.244.62 port 31999: Operation timed out — jpline-side w6/w7/w8 files and the hist meta could not be opened; not relied upon",
+  "passed": false
+ }
+]
+#### transforms_applied_downstream
+Inside w10_universe.py nothing further is applied to the return after the CAL branch: pnl_raw = Σ sm·yv·1e4 (L282), leg contributions Σ zz/gl·yv (L285-286), carry uses f_fund_now (L280-281), stop-loss price path uses yfull = yv (L288); summary uses plain means/std (L335-347) — no exp/log/cumprod. Other expm1 calls (L69 sigma ratio, L198 qv4h = expm1(clip(qvk,0,30))*48) act on log-quote-volume, not returns. Downstream consumers of the device's series (judges jp_umask_rules*.py 40485c4, jp_t3c_verify.py 35520d3, jp_leg_anatomy.py c072500, jp_king_convexity_arms.py/jp_caliber_decomp.py c4a37d9) inherit the expm1(Σsimple) quantity when run with CAL=simple; CAL=log yields the raw Σ-simple sum (E-0904-F designates CAL=log as the unbiased branch).
+#### caveats
+(1) jpline is down, so the exact file w10_universe.py consumes (/mnt/storage/private/work_hsy/pod_backup_2026-08-21/wide_fea_hist_meta.npz, built by pod_fea_wide_hist.py from dlnative_5m_wide829_f16_hist.npz) was not opened; the bitwise proof is on the pod's wide_fea_v2ext_meta.npz produced by the identical builder line (pod_fea_ext.py:34 ≡ pod_fea_wide_hist.py:38) and the same cache-builder line (pct_change). The Σ-simple definition of the hist meta is therefore INFERRED from identical code, not bitwise-verified. (2) w6/w7/w8 jpline-only devices are documented from the transcript patch text (which asserts anchor count==1 on the raw yv line, showing w6 had no expm1); they were never committed. (3) Whether Σ-simple 'is correct' vs exchange accounting Π(1+r)−1 is a separate question: my pod check shows |Σr − Π(1+r)+1| per name up to 0.11 on extreme anchors (median maxabs 0.0089 across the sampled anchors' worst names); E-0904-F's claim of −0.04 bps/anchor book-level bias is a belief from RESULT_caliber_truth that I did not re-run at book level. (4) Marking devices 'correct' means transform-matches-panel; for the log-panel in-role family (replay_fullhist.py, no transform) the untransformed log pnl was itself the mismatch measured on 08-22. (5) Transcript timestamps are UTC from the JSONL 'timestamp' field; git dates are author dates (--date=short). (6) wide_faithful_stage1.py's expm1(Σsimple) is used only in an alignment correlation gate; its book uses the panel Y4 — so it is an early instance of the wrong formula but not of a wrong book number.
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/hist_transform

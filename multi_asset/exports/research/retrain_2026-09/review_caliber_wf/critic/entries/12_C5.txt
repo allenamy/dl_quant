@@ -1,0 +1,126 @@
+
+#### claim_id
+C5
+#### refuted
+True
+#### confidence
+0.85
+#### verified_parts
+[
+ "(P1, documentary) The 08-22 re-audit did establish the expm1 rule: RESULT_inrole_simple_return_2026-08-22.md line 5 recommends '今后离线族一律简单收益(expm1(Y4); 与 1h 简单 close→close 逐格相同)'; committed as 57038bd (2026-08-22 10:55 +0800, adds the device + RESULT + JSONs); STATE.md:53 codifies '收益一律简单口径(expm1; ... SR 57038bd)'.",
+ "(P2, code + recorded receipt) The 08-22 device analysed the build_wide_dl.py panel family whose Y is a true forward log return: build_wide_dl.py:95 `logc = np.log(np.where(C > 0, C, np.nan))`, :151 `Y[:T - H] = (logc[H:] - logc[:-H]).astype(np.float32)`. The device reads Y4 via PanelSource (inrole_simple_return_rerun.py:133, :175 `ylog = src.Y4[ti, m]`, :177 `y = ylog if ret == 'log' else np.expm1(ylog)`), and PanelSource loads panel_source.py:11 `PANEL = MA + '/exports/wide_dl_full.npz'` (:34 `self.Y4 = W['Y4']`). The jp JSON records inputs_sha256.panel = 2e36dda1d2498c0f… which equals the PANELS_MANIFEST.md:30 row for wide_dl_full.npz (as_trained TRAIN panel). Empirically the recorded R3 (JSON) shows Y4 vs an independent LOG 1h cube (w2b_build_return_cube.py:56 `rw = np.log(c3 / cm1)`): maxabs 1.17e-7, median|Δ| 0.00024 bps, frac<1e-6 = 1.0 over 987,061 cells — float32-exact log(close1h[N+3h]/close1h[N-1h]); a Σ-simple panel would have given median ≈1.3 bps and maxabs ≈0.1–0.7 (my pod/Mac computations below). NOTE: the claim names 'wide_dl.npz' (build_wide_dl.py:27-28 OUT); the device actually used 'wide_dl_full.npz' — same builder formula, different file name. Artifact itself not re-opened (jpline down: 'ssh: connect to host ... Operation timed out').",
+ "(P3a, code + bitwise) The pod-built panels' y4 is a Σ of 5-minute SIMPLE returns, not a log return: pod_merge_cache_ext.py:27 `A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)` (ts = open_time + 5min, :24, i.e. bar-close-indexed); pod_fea_ext.py:24-26 `grid = np.where(CTS % 14400 == 0)[0] ... E = grid`, :33-34 `y4 = (CS['ret5'][0][E + 48] - CS['ret5'][0][E]).astype(np.float32); y4[y4n < 46] = np.nan`; identical formula in the archived hist builders used by w10 (pod_fea_wide.py:35-36, pod_panel_wide_hist.py:57, pod_build_wide.py:25,28). My pod check (/workspace/review_scratch/refute_C5_0/check_pod_y4.py, full history 10,176 anchors × 829 names): meta y4 vs Σ ret5 rows [E,E+47] bitwise_equal_frac 1.0, maxabs 0.0 over 3,446,599 cells; vs Σ log1p: bitwise 8.9% (zeros only), median|Δ| 1.41 bps; vs Π(1+r)−1: median|Δ| 0.92 bps. Independent Mac cross-check against the live producer cache (rolling.npz, producer's own ret5 = shadow_loop_v3.py:292 `ret5 = (c / pc - 1)`): 212 anchors × 829 names, 131,409 cells bitwise equal, maxabs 0.0.",
+ "(P3b, code + lineage) The w10 replay devices apply expm1 to that Σ-simple y4 by default: w10_universe.py:17 `CAL = os.environ.get('CAL', 'simple')  # simple = 交易所记账(y -> expm1)`, :47-48 loads MT['y4'] from wide_fea_hist_meta.npz, :135-136 `if CAL == 'simple': _yy = np.expm1(_yy)`, :277-278 `yv = np.expm1(yv)`. 'Carried by name': pre-SR pod devices used raw y4 with no expm1 (pod_stop_arms_v3.py:13,59, committed 2026-08-21 09:33); the expm1 switch was patched into the pod-backup device on 2026-08-25T13:35:07Z (old transcript line 194382, patch text '# 2. simple 口径: y4 与价格路径统一走 expm1' + `CAL = os.environ.get(\"CAL\", \"simple\")  # simple = 交易所记账(y -> expm1)`), archived as eda/w10_ablation_replay_2026-08-25.py:17,76-77,179-180 (git add 2026-08-26 05:05:36). Magnitude of the resulting error (my pod computation): expm1(Σsimple) − (Π(1+r)−1) mean +2.89 bps per name-anchor on the 140 live names (+3.93 bps on pod members), median |.| 1.25 bps — a positive ½·RV_4h pseudo-convexity (longs gain, shorts lose)."
+]
+#### refuted_or_unverified_parts
+[
+ "(P4, REFUTED/OVERSTATED) 'R3 could not discriminate log-sum from Σ-simple': the receipt as RECORDED did discriminate decisively. Recorded R3 (jp JSON, and RESULT doc line 26): maxabs 1.17e-7, median|Δ| 0.00024 bps, frac_abs_lt_1e-6 = 1.0, per-anchor corr 0.99999999999551 over 987,061 cells. What a Σ-simple panel in the SAME window/source would produce (my pod check, 140 live names, 2022-01→2026-08, 10,176 anchors, Σsimple vs Σlog1p over rows [E,E+47]): pooled median|Δ| 1.35 bps (per-anchor median: median 1.24, p10 0.49, p90 3.73 bps), pooled frac<1e-3 bps only 2.3%, corr median 0.99989. Mac 5m cross-check on Jul-Aug 2026 (212 anchors): Σsimple vs 1h-log cube in window [N,N+4h]: pooled median 0.72 bps, maxabs 9.4e-2, frac<1e-6 = 3.4%. So the recorded values (1.2e-7 / 100% < 1e-6) are 4–6 orders of magnitude away from any Σ-simple panel; R3 proves the 08-22 panel Y4 was log close-to-close. What IS true: the FROZEN THRESHOLDS are weak — corr ≥ 0.99 cannot discriminate (Σ-simple gives 0.9999), and the pooled 'median |Δ| < 1 bps' threshold is only marginal: it would have failed a Σ-simple panel over the full history (1.35 bps > 1.0) but passed it in low-vol sub-periods (2023: 0.89 bps, 2026: 0.91 bps; Jul-Aug 2026 sample 0.72 bps; only 38.6% of anchors pass both thresholds individually). Caveat: my Σ-simple counterfactual sums 5m simple returns; a 1h-simple sum has the same expected ½RV but a slightly different sample distribution.",
+ "(P2 naming) The claim says 'wide_dl.npz'; the executing default was 'wide_dl_full.npz' (panel_source.py:11; JSON sha 2e36dda1… = PANELS_MANIFEST.md:30). Same builder formula per build_wide_dl.py:151 and handoff docs (belief-level), but the file named in the claim is not the file the device read.",
+ "(P2 artifact-level, UNVERIFIED by re-execution) wide_dl_full.npz and w2b_ret_cube.npz live on jpline, which is down (single attempt, ConnectTimeout=8: 'Operation timed out'); I could not re-run R3. The verification rests on the committed JSON/log receipts (57038bd) plus my reproduction of the same statistics on pod/Mac data.",
+ "(Side finding, not in claim) The pod meta y4 window is [N−5m, N+3h55m] (rows [E,E+47], bar-close-indexed), whereas the live producer's appended leg returns use rows (E, E+48] = (N, N+4h] (shadow_loop_v3.py:428 `seg = CDf[pi + 1:ai + 1, :, 0]`). Pod check: meta y4 vs Σ ret5 rows [E+1,E+48]: bitwise equal only 10.5% (zeros), median|Δ| 15.7 bps; Mac check same: 12.0%, 13.1 bps. Same caliber (Σ-simple), different 5-min window — E-0904-F's '两处口径本来正确' holds for caliber but not for window. Also the VALID2 line in w2b_cube.log (R_wide log cube vs pod meta y4: corr 0.9816, mean|Δ| 27.5 bps) is dominated by this 5-min window shift, not by log-vs-simple (Σlog1p in the shifted window fails identically: corr 0.983, 10.6 bps median)."
+]
+#### evidence
+[
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/data/build_wide_dl.py",
+  "line": 151,
+  "quote_or_output": "Y[:T - H] = (logc[H:] - logc[:-H]).astype(np.float32)  # forward H-hour logret   (line 95: logc = np.log(np.where(C > 0, C, np.nan)); lines 27-28: OUT = .../exports/wide_dl.npz)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/engine/panel_source.py",
+  "line": 11,
+  "quote_or_output": "PANEL = MA + \"/exports/wide_dl_full.npz\"   (line 25: def __init__(self, panel=PANEL, ...); line 34: self.Y4 = W[\"Y4\"].astype(np.float64))"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/inrole_simple_return_rerun.py",
+  "line": 177,
+  "quote_or_output": "y = ylog if ret == \"log\" else np.expm1(ylog)   (line 133: src = PanelSource(king=..., s2=...); line 175: ylog = (src.Y4[ti, m] if ret_override is None else ret_override[i, m]).astype(float))"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/inrole_simple_return_rerun.py",
+  "line": 283,
+  "quote_or_output": "R3[\"pass\"] = bool(R3[\"per_anchor_corr_median\"] >= 0.99 and R3[\"median_abs_diff_bps\"] < 1.0)   (line 279: \"median_abs_diff_bps\": float(np.median(np.abs(d)) * 1e4) pooled over all both-finite cells; line 274: corr on every 5th anchor)"
+ },
+ {
+  "file_or_command": "python3 -c json.load(.../results/inrole_simple_return_rerun_jp_2026-08-22.json)",
+  "quote_or_output": "R3 {anchors_in_cube 9820, cells_both_finite 987061, maxabs_diff 1.1734664440155029e-07, median_abs_diff_bps 0.00024214386940002441, frac_abs_lt_1e-6 1.0, per_anchor_corr_median 0.9999999999955096, pass true}; inputs_sha256.panel = 2e36dda1d2498c0f6a687182cb1fe45660ca20d9ddd5c98bd213adc217c40742; delta_cube_minus_panel_SIM_p3 S1 delta_net_mean_bps -0.0, positions_identical_maxabs 0.0"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/PANELS_MANIFEST.md",
+  "line": 30,
+  "quote_or_output": "| `wide_dl_full.npz` | **TRAIN** | **as_trained** | `2e36dda1d2498c0f…` | 冻结模型的 as-trained 训练输入 ..."
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-21/w2b_build_return_cube.py",
+  "line": 56,
+  "quote_or_output": "rl = np.log(c4 / c0); rw = np.log(c3 / cm1)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-21/results/w2b_cube.log",
+  "line": 12,
+  "quote_or_output": "VALID1 R_live vs live Y4: {'corr_median': 0.9999999999958745, ..., 'mean_abs_diff_bps': 0.0002788648673213461}  /  line 13: VALID2 R_wide vs meta y4: {'corr_median': 0.9816283803065748, 'corr_p5': 0.9526083790333852, 'mean_abs_diff_bps': 27.54144859313965}"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/RESULT_inrole_simple_return_2026-08-22.md",
+  "line": 5,
+  "quote_or_output": "建议今后离线族一律简单收益(`expm1(Y4)`; 与 1h 简单 close→close 逐格相同), 判官脚本一处改动即完成。   (line 26: R3 ... maxabs **1.2e-7**, |Δ| 中位 0.0002 bps, 100% <1e-6, 逐锚相关中位 0.99999999999)"
+ },
+ {
+  "file_or_command": "git -C /Users/haosiyu/Desktop/quant_research show --stat 57038bd",
+  "quote_or_output": "57038bd 2026-08-22 10:55:51 +0800 #SR 在役离线族简单收益重跑终判 ... 收据 ... R3 Y4 vs 独立1h立方体逐格1.2e-7 ...; 6 files changed (RESULT + device + SHA256SUMS_SR + JSONs + log)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/STATE.md",
+  "line": 53,
+  "quote_or_output": "- **收益一律简单口径**(expm1; 对数口径系统性乐观, SR 57038bd); 判官 `CAL` 只认 simple|log(白名单断言, E-0826-C)。"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 17,
+  "quote_or_output": "CAL = os.environ.get(\"CAL\", \"simple\")                 # simple = 交易所记账(y -> expm1)   (line 48: y4 = MT[\"y4\"] from wide_fea_hist_meta.npz; lines 135-136: if CAL == \"simple\": _yy = np.expm1(_yy); lines 277-278: if CAL == \"simple\": yv = np.expm1(yv))"
+ },
+ {
+  "file_or_command": "ssh pod2 sed -n 24,34p /workspace/pod_fea_ext.py",
+  "line": 34,
+  "quote_or_output": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   (line 24: grid = np.where(CTS % 14400 == 0)[0]; line 26: E = grid)"
+ },
+ {
+  "file_or_command": "ssh pod2 sed -n 24,27p /workspace/pod_merge_cache_ext.py",
+  "line": 27,
+  "quote_or_output": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   (line 24: k['ts'] = pd.to_datetime(k.open_time...) + pd.Timedelta('5min'))"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_fea_wide.py",
+  "line": 36,
+  "quote_or_output": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   (hist meta builder used by w10; pod_panel_wide_hist.py:57 identical; pod_build_wide.py:25,28 ts=open_time+5min, ret5=pct_change clipped)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote_or_output": "ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan   (line 428: seg = CDf[pi + 1:ai + 1, :, 0]; line 430: y4v = np.where(fin, seg, 0).sum(0))"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C5_0/check_pod_y4.log (ran on pod2 as /workspace/review_scratch/refute_C5_0/check_pod_y4.py)",
+  "quote_or_output": "meta y4 vs Σ ret5 rows [E,E+47]: cells_both 3446599, bitwise_equal_frac 1.0, maxabs 0.0 | vs Σ log1p: bitwise 0.0886, median_abs_bps 1.406 | vs Π(1+r)-1: median_abs_bps 0.916 | vs Σ ret5 rows [E+1,E+48]: bitwise 0.1048, median_abs_bps 15.70 | dlw y4old == meta y4 bitwise; dlw y4s == Π(1+r)-1 rows [E+1,E+48] bitwise | disc_live140: n 10176, per_anchor_median_absdiff median 1.243 bps (p10 0.488, p90 3.732), pooled_median 1.349 bps, pooled_frac_lt_1e-3bps 0.023, corr_median 0.99989, frac_anchors_pass_corr099_and_median_lt_1bps 0.386, pseudo_convexity mean +2.889 bps/name, by_year median 2022 1.61 / 2023 0.89 / 2024 1.48 / 2025 1.39 / 2026 0.91 | disc_members: pooled_median 1.669 bps, pseudo_convexity mean +3.929 bps"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C5_0/check_mac_rolling.out (python3 check_mac_rolling.py)",
+  "quote_or_output": "pod meta y4 vs rolling Σ ret5 rows [E,E+47]: cells 131409 bitwise_eq 1.0000 maxabs 0.000e+00 | rows [E+1,E+48]: bitwise_eq 0.1203 median_bps 13.07 | Σ log1p: bitwise 0.0976 median 0.925 bps | R3-style [pod meta y4] vs 1h log [N,N+4h]: corr_median 0.982331 median|Δ| 10.61 bps PASS False | [Σsimple rows E+1..E+48, window [N,N+4h]]: corr 0.999832, pooled median 0.7226 bps, maxabs 9.364e-02, frac<1e-6 0.0338, PASS True | [Σlog1p rows E+1..E+48]: corr 1.000000 median 0.0152 bps (alignment proof) | PURE Σsimple vs Σlog same window, 140 names: corr_median 0.999830 per-anchor median 0.576 bps pooled 0.716 bps frac<1bps 0.614"
+ },
+ {
+  "file_or_command": "grep transcript 6737834a-f0b4-40e0-82a0-c0e83c0ccf5f.jsonl line 194382",
+  "quote_or_output": "\"timestamp\":\"2026-08-25T13:35:07.511Z\" Write patch_legw.py: '# 1. 环境开关 ... simple 口径贯穿' ... 'CAL = os.environ.get(\"CAL\", \"simple\")  # simple = 交易所记账(y -> expm1)' ... '# 2. simple 口径: y4 与价格路径统一走 expm1' ... 'if CAL == \"simple\": yv = np.expm1(yv)'  (target: probe_artifacts/w7_legweight_replay.py, a pod_backup meta-y4 device)"
+ },
+ {
+  "file_or_command": "git -C /Users/haosiyu/Desktop/quant_research log --diff-filter=A -- eda/w10_ablation_replay_2026-08-25.py",
+  "quote_or_output": "ea84425 2026-08-26 05:05:36 +0800 落实 E-0826-B ... (file line 17: CAL = os.environ.get(\"CAL\", \"simple\")  # simple = 交易所记账(y -> expm1); lines 76-77/179-180 expm1); earliest pod device with CAL. Pre-SR pod device pod_stop_arms_v3.py (commit 348e720 2026-08-21 09:33) lines 13,59: raw y4, no expm1."
+ },
+ {
+  "file_or_command": "ssh -o ConnectTimeout=8 jpline",
+  "quote_or_output": "ssh: connect to host 212.50.244.62 port 31999: Operation timed out  (single attempt; wide_dl_full.npz / w2b_ret_cube.npz not re-opened)"
+ }
+]
+#### corrected_statement
+The 2026-08-22 re-audit (inrole_simple_return_rerun.py, commit 57038bd) analysed the build_wide_dl.py panel family — specifically wide_dl_full.npz (PanelSource default, sha 2e36dda1…), not wide_dl.npz — whose Y4 is a true forward log return (build_wide_dl.py:95,151 logc[H:]−logc[:-H]); expm1(Y4) was therefore the correct simple-return transform for that panel. The rule was carried by name ('simple 口径 = expm1') onto the pod-built panels on 2026-08-25T13:35Z (w7/w10 replay devices, CAL=simple default; w10_universe.py:17,135-136,277-278), where y4 is bitwise a Σ of 5-minute simple returns over rows [E,E+47] (3,446,599 cells equal, maxabs 0.0; pod_fea_ext.py:33-34, ret5 = pct_change), so expm1 there adds a +½·RV_4h pseudo-convexity of mean +2.9 bps per name-anchor (140 live names; +3.9 bps on pod members). However, the 08-22 receipt R3 DID discriminate log from Σ-simple: it recorded maxabs 1.17e-7, median |Δ| 0.00024 bps and 100% of 987,061 cells < 1e-6 against a log 1h cube, whereas a Σ-simple panel in the same window would show median |Δ| ≈ 1.35 bps (full history, 140 names; 0.72 bps in Jul-Aug 2026), maxabs ≈ 0.1–0.7 and only ~2–3% of cells < 1e-6. Only the FROZEN THRESHOLDS were weak: corr ≥ 0.99 cannot separate the two (Σ-simple gives 0.9999), and the pooled 'median |Δ| < 1 bps' gate is marginal (fails Σ-simple over 2022-26 at 1.35 bps, passes it in low-vol years: 2023 0.89 / 2026 0.91 bps). Side finding: pod meta y4 uses window [N−5m, N+3h55m] while the live producer's appended leg returns use (N, N+4h] (shadow_loop_v3.py:428) — same caliber, 5-min window mismatch (median |Δ| 15.7 bps, only 10.5% of cells equal).
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C5_0

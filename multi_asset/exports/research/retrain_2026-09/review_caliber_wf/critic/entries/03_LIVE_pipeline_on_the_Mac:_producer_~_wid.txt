@@ -1,0 +1,393 @@
+
+#### component
+LIVE pipeline on the Mac: producer ~/wide_shadow/shadow_loop_v3.py (PID 58281, sha e9c98374…; file mtime 08:53:42 < process start 19:46:01 local, so the file read is the executing code) -> fea171/combo_stage.py -> executor ~/dl_quant_live (HEAD 4b8ca20, book_source=external, producer 'combo_stage_v1' per anchors.jsonl)
+#### definition
+PRODUCER (seat history / book score): channel 0 of state/rolling.npz is the venue 5m kline close-to-close SIMPLE return, ret5 = c/prev_c − 1, clipped to [−0.3, 0.3], stored float16, row-stamped by bar CLOSE time (close_s = open_ms/1000 + 300). The per-anchor 4h return is y4v[name] = plain float32 SUM of the 48 channel-0 values whose close times lie in (E, E+4h] (rows pi+1..ai), NaN→0 inside the sum, set to NaN if fewer than 46 finite bars. Leg return appended to state/leg_returns_live.json at anchor E+4h = 1e4 × Σ_members (z̃/‖z̃‖₁) · y4v, where z̃ = stored legz (rank scores) masked to finite-y4 members and demeaned. Seats w3 = max(mean/(std+1e-9), 0) over the last 900 leg rows, normalised to sum 1 (equal thirds if <900 rows). Book score gross_bps = 1e4 × Σ sm·y4v; net = gross − carry − cost. No expm1/log1p/log is applied to any return quantity on this path (the only expm1 is on log-volume for qv4h; log1p/log only on quote volume / trade count). BUNDLE SEED (840 of the 950 rows in leg_returns_live.json, i.e. 790 of the 900 rows the seat formula uses today): same Σ-of-simple-5m caliber and same leg formula, but the pod's window is rows E..E+47 = closes in [E, E+4h−5m] (one bar EARLIER than live). EXECUTOR: NAV = totalWalletBalance + totalUnrealizedProfit from /fapi/v3/account; realised P&L = Σ income of REALIZED_PNL + COMMISSION + FUNDING_FEE from /fapi/v1/income since 00:00Z; per-name stop depth = unrealizedProfit/|notional| per position from the same account call (wide profile d30_n2_c42: ≤ −0.30 on 2 consecutive end-of-anchor readbacks, 7-day cooloff, min notional 5 USDT); day-loss = (nav − prev_day_nav)/prev_day_nav; cumulative drawdown = Π(1 + nav_d/nav_prev − 1) − 1 from starting equity; gross = NAV × gross_mult(2.0); target notional = w/gross_in × gross. All executor accounting is venue-side USDT simple arithmetic; no panel returns and no log/expm1 enter it.
+#### caliber
+sum_of_simple_5m
+#### evidence
+[
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote": "ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 296,
+  "quote": "st.cd[i, j] = np.array(clipch(ch), np.float16)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 150,
+  "quote": "CHN_CLIPS = [(-0.3, 0.3), (0.0, 0.5), (0.0, 1.0), (0.0, 25.0), (0.0, 20.0), (-5.0, 15.0), (0.0, 1.0)]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 285,
+  "quote": "close_s = (int(k[0]) + 300000) // 1000",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 428,
+  "quote": "seg = CDf[pi + 1:ai + 1, :, 0]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 430,
+  "quote": "y4v = np.where(fin, seg, 0).sum(0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 431,
+  "quote": "y4v[fin.sum(0) < 46] = np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 437,
+  "quote": "zz -= zz[okl].mean() if okl.sum() else 0",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 439,
+  "quote": "st.LR[leg].append(float((zz / g * np.nan_to_num(y4v[pm], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 441,
+  "quote": "gross = float((smp * np.nan_to_num(y4v[pmi], nan=0.0)).sum() * 1e4)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 226,
+  "quote": "self.LR = {leg: list(lr[leg]) + list(extra[leg]) for leg in (\"king\", \"rev24\", \"fund\")}",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 239,
+  "quote": "{leg: list(map(float, self.LR[leg][-n_keep:])) for leg in self.LR})",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 459,
+  "quote": "shp = r.mean(1) / (r.std(1) + 1e-9); shp = np.maximum(shp, 0.0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 460,
+  "quote": "w3 = shp / shp.sum() if shp.sum() > 0 else np.array([1/3] * 3)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 473,
+  "quote": "qv4h = np.expm1(np.clip(qvm[m], 0, 30)) * 48",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 247,
+  "quote": "lqv = math.log1p(qv)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 358,
+  "quote": "seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 167,
+  "quote": "gross += w * (c1 / c0 - 1.0) * 1e4; n += 1",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/fea171/combo_stage.py",
+  "line": 33,
+  "quote": "shp = r.mean(1) / (r.std(1) + 1e-9); shp = np.maximum(shp, 0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/fea171/combo_stage.py",
+  "line": 59,
+  "quote": "_v[i] = np.nanstd(_r5[i - W:i])          # 只用满窗(短窗值与配方不符, 自检会拦)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/fea171/combo_stage.py",
+  "line": 128,
+  "quote": "y4s=zz, YR4s=zz, YRZ=zz, yrs=np.array([time.gmtime(int(t)).tm_year for t in rts[e_rows]]),",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/fea171/combo_stage.py",
+  "line": 41,
+  "quote": "qv4h = np.expm1(np.clip(qvm[pm], 0, 30)) * 48",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/fea171/f8_higher_order_features.py",
+  "line": 206,
+  "quote": "p = np.cumsum(np.log1p(rz), 0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/binance_broker.py",
+  "line": 1325,
+  "quote": "\"equity\": (float(acct.get(\"totalWalletBalance\", \"nan\"))",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/binance_broker.py",
+  "line": 1326,
+  "quote": "+ float(acct.get(\"totalUnrealizedProfit\", \"nan\"))),",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/binance_broker.py",
+  "line": 1333,
+  "quote": "\"positions_unrealized\": {p[\"symbol\"]: float(p.get(\"unrealizedProfit\", 0.0))",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/binance_broker.py",
+  "line": 1402,
+  "quote": "for k in (\"REALIZED_PNL\", \"COMMISSION\", \"FUNDING_FEE\"))",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 850,
+  "quote": "self._equity = (_snap0 or {}).get(\"equity\")",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 1063,
+  "quote": "want = nav * tgt_lev",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 1371,
+  "quote": "book = {\"target_w\": EXT.target_vector(external, symbols)}",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 2164,
+  "quote": "realized = sum(abs(v) for v in snap[\"positions_notional\"].values())",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 2362,
+  "quote": "nav_source=\"equity = totalWalletBalance + totalUnrealizedProfit \"",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 2106,
+  "quote": "_pns = PNS.update_from_snapshot(snap, time.time())",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/per_name_stop.py",
+  "line": 122,
+  "quote": "depth = float(u) / n",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/per_name_stop.py",
+  "line": 124,
+  "quote": "if depth <= depth_pct:",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/config/book.json",
+  "line": 0,
+  "quote": "per_name_stop.active_profile = \"wide\"; profiles.wide = {\"depth_pct\": -0.3, \"consecutive_anchors\": 2, \"cooloff_days\": 7, \"min_notional_usdt\": 5.0}",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/watchdog.py",
+  "line": 1106,
+  "quote": "per_day_loss.append((float(_navv) - float(_prev_day_nav)) / float(_prev_day_nav) * 100.0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/watchdog.py",
+  "line": 1569,
+  "quote": "_rd = float(_navv) / _pn - 1.0",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/watchdog.py",
+  "line": 1570,
+  "quote": "_cum *= (1.0 + _rd)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/external_book.py",
+  "line": 465,
+  "quote": "return np.array([float(ext[\"w\"].get(s, 0.0)) / gn for s in symbols], dtype=float)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/state/live/pilot_log/20260904/daily_nav.jsonl",
+  "line": 0,
+  "quote": "'nav': 82963.20464624, 'realised_pnl': -26.914367309999996, 'realised_pnl_source': '/fapi/v1/income since 00:00Z, sum of REALIZED_PNL+COMMISSION+FUNDING_FEE', 'unrealised_pnl': -169.58497154, 'nav_source': 'equity = totalWalletBalance + totalUnrealizedProfit (/fapi/v3/account)', 'mode': 'LIVE'",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/state/live/per_name_stop.json",
+  "line": 0,
+  "quote": "\"stopped\": {... \"USELESSUSDT\": 1788525812.989089} (same read_ts as daily_nav nav_ts 1788525812.989 => stop evaluated from the live account snapshot today)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py (pod2)",
+  "line": 16,
+  "quote": "return (np.concatenate([np.zeros((1, NW)), np.cumsum(xz, 0)]),",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py (pod2)",
+  "line": 34,
+  "quote": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py (pod2)",
+  "line": 50,
+  "quote": "VAL.append(((s_[E] - s_[E - w])).astype(np.float32)); val_names.append(f\"{nm}_sum_{w}\")",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py (pod2)",
+  "line": 65,
+  "quote": "FEA = np.full((len(E), NW, NF), np.nan, np.float16)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 109,
+  "quote": "LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py (pod2)",
+  "line": 24,
+  "quote": "k['ts'] = pd.to_datetime(k.open_time.astype(np.int64), unit='ms') + pd.Timedelta('5min')",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py (pod2)",
+  "line": 27,
+  "quote": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/signal/panel_build.py",
+  "line": 185,
+  "quote": "logc = np.log(np.where(CLOSE > 0, CLOSE, np.nan))",
+  "status": "INFERRED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/stop_overlay.py",
+  "line": 75,
+  "quote": "dep = np.sign(nsh) * (1.0 - avg / p)",
+  "status": "VERIFIED"
+ }
+]
+#### empirical_checks
+[
+ {
+  "method": "Recompute the leg-return row scored at the 04:00Z anchor (prev_rec 1788480000 = 09-04 00:00Z, from state/aux_pre_m1_20260904.json) from rolling.npz channel 0 (rows pi+1..ai, float32 sum) and the stored legz/members, compare to leg_returns_live.json[-3]; also gross_bps vs shadow_log score row",
+  "command_or_script": "/Users/haosiyu/wide_shadow/venv/bin/python <scratch>/recompute_legrow.py",
+  "result": "king 15.377265684306625 / rev24 21.472903437912468 / fund -16.861735276877877 all bitwise_equal=True; gross -11.229 == shadow_log gross_bps -11.229 (round3)",
+  "passed": true
+ },
+ {
+  "method": "Last appended row (prev_rec 08:00Z, aux.json already overwritten): rebuild rev24 legz from cache (xz(-Σ288 ch0)) + state/weights/1788508800.npz members, score over (08:00Z,12:00Z], compare to leg_returns_live.json[-1]",
+  "command_or_script": "recompute_legrow.py section (b)",
+  "result": "rev24 -37.28685882687569 bitwise_equal=True; king/fund legz for 08:00Z NOT recoverable (prev_rec overwritten each anchor) — only the shared y4v is verified for those two legs",
+  "passed": true
+ },
+ {
+  "method": "Rev24 leg recomputed for every live-appended row whose anchor has a weights file and a full cache window (110 score rows in shadow_log.jsonl), aligned by score-row sequence to the json tail",
+  "command_or_script": "<scratch>/rev24_align.py",
+  "result": "bitwise_equal=106/106 recomputable, mismatch=0, 4 early anchors not recomputable (no weights file)",
+  "passed": true
+ },
+ {
+  "method": "msharpe w3 recomputed from leg_returns_live.json (and from the pre_seatfix backup) vs w3 logged in shadow_log signal rows",
+  "command_or_script": "recompute_legrow.py section (c)",
+  "result": "[0.1929,0.1184,0.6887] == logged @12:00Z; [0.1972,0.1218,0.6809] == logged @08:00Z; current LR[:-1] == pre_seatfix LR[1:] bitwise (the 09-04 seed swap was rolled back; current history = organic history + 1 new row)",
+  "passed": true
+ },
+ {
+  "method": "Seed provenance: first 840 rows of leg_returns_live.json vs shadow_bundle.aug20260816_backup/leg_returns.npz tail; re-derive those 840 rows from v2 slow_pred_pinned.npy (king), pod panel f_rev_24h (rev24), pod panel f_fund_ema_v1 (fund) and pod meta y4/members",
+  "command_or_script": "python inline + <scratch>/seed_king_check.py",
+  "result": "840/840 bitwise for all three legs vs v2 bundle (window 03-28 04:00Z -> 08-15 00:00Z); re-derived king 840/840, rev24 840/840, fund 840/840 (with v1 or v3splice fund column; v2ext column 0/840)",
+  "passed": true
+ },
+ {
+  "method": "Channel 0 vs venue: public GET /fapi/v1/klines 5m for BTCUSDT/ETHUSDT/DOGEUSDT/STARUSDT over (09-04 00:00Z, 04:00Z]; compute float16(clip(c/prev_c-1,-0.3,0.3)) and compare to rolling.npz ch0 at close-stamped rows",
+  "command_or_script": "<scratch>/venue_ch0_check.py",
+  "result": "48/48 bars bitwise equal for each of 4 symbols, max|diff|=0",
+  "passed": true
+ },
+ {
+  "method": "Pod 5m ext cache (dlnative_5m_wide829_f16_ext.npz) vs Mac rolling.npz channel 0, shifts -1/0/+1 row; also v2 and v3 bundle cache_tail_40d.npz vs Mac",
+  "command_or_script": "<scratch>/shift_test.py (pod slice via /workspace/review_scratch/live_trace/dump2.py)",
+  "result": "shift 0: 1,296,000/1,296,000 bitwise (08-20..08-30); shifts ±300s: 1.1%; v2 cache_tail vs Mac 4,401,824/4,401,824; v3 cache_tail vs Mac 100% both before and after the 08-16 bootstrap boundary; v2 vs v3 cache_tail 100%",
+  "passed": true
+ },
+ {
+  "method": "Bundle y4 (wide_fea_v2ext_meta.npz['y4']) vs Mac Σ ch0 for 206-210 overlap anchors (07-27..08-30): live window rows ai+1..ai+48 vs pod window rows ai..ai+47 (direct f32 and f64-cumsum replica)",
+  "command_or_script": "<scratch>/y4_cells.py, <scratch>/window_test.py",
+  "result": "live window: 11.8% cells bitwise, max|d|=0.3025 (one clipped bar); pod window rows ai..ai+47: 126,663/126,663 bitwise (100%) — bundle y4 = Σ simple 5m over [E, E+4h-5m], live y4v = Σ simple 5m over (E, E+4h]",
+  "passed": true
+ },
+ {
+  "method": "Bundle leg_returns.npz king/rev24/fund recomputed for the 210 overlap anchors from slow_pred_pinned.npy / f_rev_24h / f_fund_ema_v1 + meta y4",
+  "command_or_script": "<scratch>/overlap_check.py + fund test inline",
+  "result": "king 210/210, rev24 210/210 bitwise; fund 210/210 with f_fund_ema_v1 from wide_panel_4h_v3splice.npz (0/210 with v2ext column => exporter ran with EXPORT_PANEL=v3splice, INFERRED); v2 vs v3 bundles: rev24 9943/9943 bitwise 2022-2026, fund 9923/9943",
+  "passed": true
+ },
+ {
+  "method": "Training feature ret5_sum_48_v / ret5_sum_288_v (wide_fea_v2ext.npy, float16) vs Mac cache windows for member cells",
+  "command_or_script": "python inline with <scratch>/fea_cols.npz",
+  "result": "FEA == f16(rows ai-w..ai-1) 99.90% (83,919/84,000; 82,319/82,400); FEA == f16(live wstat rows ai-w+1..ai) 2.0% — training features stop one bar before the anchor bar, live features include it",
+  "passed": true
+ },
+ {
+  "method": "Executor accounting receipts from data rows (no code run): daily_nav row 20260904 and per_name_stop.json state",
+  "command_or_script": "tail -1 .../pilot_log/20260904/daily_nav.jsonl; cat state/live/per_name_stop.json",
+  "result": "nav 82963.20 = wallet 83132.79 + unrealised -169.58 (matches nav_source string); realised -26.91 = FUNDING_FEE -79.15 + REALIZED_PNL 52.24 + COMMISSION -0.003; per_name_stop stopped USELESSUSDT at 1788525812 (same snapshot ts as nav_ts); grep of scheduler/live/signal shows no expm1/log on the NAV/P&L path and no reader of wide_shadow/stop_overlay.json",
+  "passed": true
+ }
+]
+#### transforms_applied_downstream
+Producer (shadow_loop_v3.py): none on returns. expm1 only at L473 (qv4h from the log-quote-volume channel), log1p at L247-248 (quote volume, trade count), log at L249 (avg trade size) — all volume channels, never channel 0/y4v/leg returns/gross. combo_stage.py: no return quantity is transformed; expm1 at L41 is again log-volume -> qv4h; msharpe L29-34 consumes leg_returns_live.json raw. Its feature scripts: fea171/f8_higher_order_features.py L206 `p = np.cumsum(np.log1p(rz), 0)` builds a log-price path for a trend R² feature (feature only, not P&L/seats); L176-181/262 take log of vol/amihud ratios. Executor (dl_quant_live): none on NAV, realised P&L, per-name depth, day-loss, drawdown or sizing; the only log() in the executor (signal/panel_build.py:185 log(CLOSE), signal/compute_preds.py:74 diff(log)) belongs to the internal DL-book panel, which is not the decision path when book_source=external (anchor_loop.py L1203 'external_book — the DL artifact census does not decide this book'; L1371 target_w = EXT.target_vector) — INFERRED for the branch condition, VERIFIED for the target line.
+#### caveats
+(1) Same caliber, different window: the seat history's 840 bundle-seeded rows (790 of the 900 rows msharpe uses today) score y4 over [E, E+4h−5m] (pod_fea_ext.py L16/L34: zero-row cumsum ⇒ rows E..E+47), while the 110 live-appended rows score (E, E+4h] (shadow_loop_v3.py L428). Both are Σ of clipped 5m simple returns on bitwise-identical 5m data; per-cell y4 differs in 88% of cells (max 0.30 = one clipped bar). Not a log/simple caliber defect, but a one-bar alignment inconsistency inside the 900-row seat window. (2) Training/live feature alignment for the king LGBM: pod features use rows E−w..E−1 (99.90% bitwise vs FEA) whereas live wstat uses rows E−w+1..E (L358) — live features include the bar closing at E, which training assigned to the target; consequence (5-min feature/target shift between training and serving) is INFERRED, the executing lines are VERIFIED. FEA is float16 (L65) while live X is float32 (minor quantisation difference). (3) The last appended row's king and fund legs cannot be re-derived exactly because aux.json prev_rec is overwritten each anchor; only the 00:00Z prev_rec backup allowed a full bitwise recompute (all three legs), plus rev24 on 106 further anchors. (4) The bundle exporter's fund column came from wide_panel_4h_v3splice.npz (bitwise 210/210) not v2ext (0/210) — INFERRED from data, no env receipt in export_v3.log. (5) Executor P&L/NAV/stops are venue-side USDT simple accounting (equity, income ledger, per-position unrealizedProfit/notional, nav ratios); they never touch panel returns, so the 'caliber' field above describes the producer/seat path only. (6) Read-only discipline held: no writes under ~/wide_shadow, ~/dl_quant_live or /workspace/data; scratch only under the two review_scratch dirs; jpline not needed/attempted; 4 public kline GETs were the only network calls. Pod y4 comparisons use the v2ext meta (rebuilt 09-01) — the v2-era meta no longer exists on the pod, but the 840 seed rows re-derive bitwise from it, so it is the same y4.
+#### confidence
+0.95
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/live_trace (Mac: recompute_legrow.py, venue_ch0_check.py, rev24_align.py, seed_king_check.py, overlap_check.py, y4_cells.py, shift_test.py, window_test.py, overlap_slice.npz, seed_slice.npz, slice2.npz, fea_cols.npz); /workspace/review_scratch/live_trace on pod2 (dump_overlap.py, dump_seed.py, dump2.py + the three npz slices)

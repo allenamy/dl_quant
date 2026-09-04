@@ -1,0 +1,140 @@
+
+#### claim_id
+C6
+#### refuted
+False
+#### confidence
+0.8
+#### verified_parts
+[
+ "Pod port /workspace/port_w10/w10_universe.py differs from the research copy (sha 43578158…) only at lines 26 and 93 (path constants); diff output shows exactly those two hunks. VERIFIED.",
+ "Device semantics from executing lines: CAL default 'simple' (L17); expm1 applied only under CAL=='simple' (L135-136, L277-278), CAL=='log' uses raw y4=MT['y4'] (L48/L276); net_ex = pnl_r - car_r - cbps_r on the reshaped vector smr rescaled to |sm| gross (L272, L304-312); gross_total = |sm|.sum() (L309); so net_ex is bps/anchor per unit NAV of a book with gross gross_total. VERIFIED.",
+ "Embedded config_json in each probe_artifacts npz confirms the arms: live form = MEMBERS_TOPN 829 / TRADE_TOPN 400 / FTRIM zero, CAL log vs simple, W3FIX '0.21,0,0.79' for fixed seats, KMOD_F10 0.5 for T3c, FSEED 42/2027, SLOW_NPY=/workspace/shadow_bundle_v3/slow_pred_pinned.npy, LEGS=101. VERIFIED.",
+ "Recomputed from raw d30_n2_c42_rec series (my script, not the device receipts): fixed seats CAL=log 2024 -0.6421, 2025 +0.2844, 2026 +2.3780, 2024on +0.4566, Sharpe 1.017, maxDD 2614 bps; dynamic msharpe 2024 +0.1489, 2025 +0.3590, 2026 +2.0132, 2024on +0.6914, Sharpe 1.884; old caliber (CAL=simple) 2024on +1.4731 (S 3.139) fixed and +1.5975 (S 3.998) dynamic. All match the claim to 3 decimals. VERIFIED.",
+ "T3c (KMOD_F10=0.5) minus base, 2024on mean: s42 -0.0328 (S -0.082), s2027 -0.0216 (S -0.046); 2024/2025 negative for both seeds. VERIFIED.",
+ "Isolated arms vs canon, 2024on mean delta: M1+T400 -0.009, FTRIM -0.018, T400 -0.036 — all within ±0.04. VERIFIED.",
+ "Caliber premise: meta.y4 == panel.Y4 bitwise (3,427,554 both-finite cells, identical finite pattern); panel.Y4 == float32(Σ of cache channel-0 rows [E,E+47]) bitwise; panel.Y4 != Σ log1p (median gap 1.4 bps, mean +3.8 bps); channel 0 is k.c.pct_change() (pod_build_wide_ext.py:29, pod_merge_cache_ext.py:27) i.e. simple return. So 'raw Y4 = Σ-simple' holds. VERIFIED.",
+ "Cache ts is bar CLOSE time: pod_build_wide_ext.py:26 ts = open_time + 5min; empirically Binance BTCUSDT-5m-2026-06-15.zip pct_change vs cache row at open_time+5min corr 1.000000 maxabs 1.78e-6 (vs -0.02 at open_time). VERIFIED.",
+ "King input slow_pred_pinned.npy is all-NaN for 2022-23, finite frac 0.33/0.47/0.48 in 2024/25/26; 2024/2025 folds trained on yrs<YV (pod_export_bundle_v3.py:56-58), 2026 booster trained on yrs<2026 (L49). F10 preds f10_V2MAIN_s42/s2027 last finite anchor 2026-08-10 20:00, folds with EMB=60 (pod_f10_train_ext.py:266-271). VERIFIED.",
+ "Conversion arithmetic: bps/anchor × 2190 / 100 = %/yr (2024 has 2196 anchors, 2025 2190); per-gross via yearly-mean gross reproduces the doc table (fixed 2024on 0.4566/0.791×21.9 = 12.65%/gross; dynamic 0.6914/0.620×21.9 = 24.44%; maxDD 2614/0.791/100 = 33.1%). Live executor config gross_mult = 2.0 and target_leverage = 2.0 (dl_quant_live/config/book.json), so '2× gross' is the live setting. VERIFIED.",
+ "Sharpe definition = mean/std(ddof=1)×√2190 on net_ex, 2024on (w10_universe.py:346); recompute identical. VERIFIED."
+]
+#### refuted_or_unverified_parts
+[
+ "'Correct caliber' is overstated: the device's y4 is Σ-simple over cache rows [E,E+47], and since cache ts = bar close time this is the window (N−5m, N+3h55m], not the holding window (N, N+4h], and it is un-compounded. Rerunning the identical device with the true holding-window compounded target (dlw y4s = Π(1+r)−1 over rows [E+1,E+48], bitwise-verified against my own recompute) on common anchors (≤2026-08-10) gives: fixed seats 2024 −0.709 (vs −0.642), 2025 +0.254 (vs +0.284), 2026≤08-10 +2.833 (vs +2.911), 2024on +0.485 S 1.08 (vs +0.540 S 1.21 same anchors); dynamic 2024 +0.116 (vs +0.149), 2025 +0.339 (vs +0.359), 2026≤08-10 +2.543 (vs +2.512), 2024on +0.767 S 2.13 (vs +0.780 S 2.16). Window-shift alone (Σ-simple over [E+1,E+48], full history) moves results +0.01..+0.05. Deltas of −0.08..+0.03 bps/anchor are the same order as the T3c / isolated-arm deltas the claim treats as decisive.",
+ "2026(→08-30) mixes forms: F10 OOS preds end 2026-08-10, and by code path (xz all-NaN → nan_to_num → 0, L112-115/L228-230) the F10 sub-book degenerates to a pure fund book for the 120 anchors 08-11→08-30; those anchors average −3.54 (fixed) / −3.52 (dynamic) bps/anchor, while 2026≤08-10 is +2.911 / +2.512. The 2026 figure is therefore not the live form for its last 20 days.",
+ "gross_total '≈0.6–0.85' understates the range: yearly means of gross_total across the CAL=log runs are 0.531–0.876 (dynamic 2025 = 0.531; fixed 2024 = 0.847; canon 2026 = 0.865), per-anchor 0.29–1.05.",
+ "Conversion ambiguity: as implemented (pod_units_table.py:10-11) per-gross = (yearly mean net_ex)/(yearly mean gross_total). The executor rescales every anchor to NAV×gross_mult (external_book.py:375, gross_mult 2.0), so the live-relevant constant-gross number is the mean of per-anchor net_ex/gross_total: fixed 2024on +14.4%/gross, S 1.14, maxDD 31.6%/gross (vs claim-implied 12.6%, S 1.02, 33.1%); dynamic 2024 +13.9%/gross S 1.41 (vs 5.4%, S 0.53); dynamic 2024on +25.1% S 2.08 (vs 24.4%, S 1.88). The Sharpe 1.02 / 1.88 are variable-gross NAV-caliber Sharpes, not constant-gross Sharpes.",
+ "'Within ±0.04 of canon' holds only for 2024→26 means; per-year deltas reach −0.095 (T400 2025), −0.086 (M1+T400 2025), +0.181 (M1+T400 2026), −0.070 (FTRIM 2026). 'T3c negative for both seeds' holds for 2024→26 and 2024/2025; s2027 2026 is +0.013.",
+ "INFERRED (not part of the numbers, affects 'live form' framing): the live producer's feature windows include the bar closing at N (shadow_loop_v3.py:356-358 seg = CDf[ai+1−w : ai+1]) whereas the panel's exclude it (pod_panel_ext.py:43-45 CS[E]−CS[E−w] = rows E−w..E−1), so replay features are 5 min staler than live and the replay pnl window starts 5 min before the anchor; live positions are set at N+23m."
+]
+#### corrected_statement
+Under raw Y4 (= Σ of 5-minute simple returns over cache rows [E,E+47], i.e. the window (N−5m, N+3h55m], un-compounded — the right return type but not the true holding window), the pod port of w10_universe.py (identical to the research copy except path constants), arm d30_n2_c42, column net_ex (bps/anchor per unit NAV; yearly-mean gross_total 0.53–0.88), gives for MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero: fixed seats 0.21/0/0.79 → 2024 −0.642, 2025 +0.284, 2026→08-30 +2.378 (of which 08-11→08-30 averages −3.54 with the F10 leg absent; ≤08-10 is +2.911), 2024→26 +0.457, NAV-caliber Sharpe 1.02, maxDD 2614 bps; dynamic msharpe seats → +0.149 / +0.359 / +2.013 (≤08-10 +2.512) / +0.691, Sharpe 1.88. With the true holding-window compounded target (rows [E+1,E+48], Π(1+r)−1) on common anchors ≤08-10: fixed −0.709 / +0.254 / +2.833 / +0.485 (S 1.08); dynamic +0.116 / +0.339 / +2.543 / +0.767 (S 2.13). Old expm1 caliber: +1.473 (3.14) fixed and +1.597 (4.00) dynamic. T3c KMOD_F10=0.5: 2024→26 Δ −0.033 (s42) and −0.022 (s2027), both 2024/2025 negative, s2027 2026 +0.013. Isolated M1+T400 / FTRIM / T400 vs canon: 2024→26 Δ −0.009 / −0.018 / −0.036 (per-year up to −0.095 and +0.181). Conversion: annual % = bps/anchor × 2190/100; per-gross via yearly-mean gross gives fixed 12.6%/gross (dynamic 24.4%), but the executor rescales each anchor to NAV×2.0, for which the mean of per-anchor net_ex/gross_total is the right quantity: fixed 2024→26 +14.4%/gross (S 1.14, maxDD 31.6%/gross → 63% NAV at 2×), dynamic +25.1%/gross (S 2.08, maxDD 10.5%/gross); at 2× gross multiply per-gross % by 2.
+#### evidence
+[
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 17,
+  "quote_or_output": "CAL = os.environ.get(\"CAL\", \"simple\")                 # simple = 交易所记账(y -> expm1)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 276,
+  "quote_or_output": "yv = np.nan_to_num(y4[i, m], nan=0.0)\n        if CAL == \"simple\":\n            yv = np.expm1(yv)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 312,
+  "quote_or_output": "float(pnl_r - car_r - cbps_r), pnl_r, car_r, float(cbps_r), netlong))   # net_ex = col 18; smr rescaled by _g0/_g1 at L272; gt=|sm|.sum() L309"
+ },
+ {
+  "file_or_command": "diff research w10_universe.py vs scp pod2:/workspace/port_w10/w10_universe.py",
+  "quote_or_output": "26c26 B = \"/mnt/storage/...\" -> B = \"pod_backup_2026-08-21\"; PD = \"probe_artifacts\" | 93c93 _R2 = \"/mnt/storage/private/work_hsy\" -> _R2 = \".\"  (only hunks)"
+ },
+ {
+  "file_or_command": "ssh pod2 readlink -f /workspace/port_w10/pod_backup_2026-08-21/* f8_2026-08-22/preds/* dlw_2026-08-22/data/*",
+  "quote_or_output": "wide_fea_hist_meta.npz -> /workspace/data/wide_fea_v2ext_meta.npz; wide_panel_4h_hist_v2.npz -> /workspace/data/wide_panel_4h_v2ext.npz; slow_pred_hist_oos.npy -> /workspace/shadow_bundle_v3/slow_pred_pinned.npy; f10_V2MAIN_s42.npy -> /workspace/f8_2026-08-22/preds/f10_V2MAIN_s42.npy; dlw_targets.npz -> /workspace/data/dlw_targets.npz"
+ },
+ {
+  "file_or_command": "ssh pod2 /workspace/venv/bin/python /workspace/review_scratch/refute_C6_0/recompute.py (from probe_artifacts/*_rec raw series)",
+  "quote_or_output": "pod_live_w3fix_callog_s42 {CAL log, W3FIX 0.21,0,0.79, MEMBERS_TOPN 829, TRADE_TOPN 400, FTRIM zero}: 2024 mean -0.6421 S -1.682 maxDD 1815 gross 0.847 | 2025 +0.2844 S +0.673 | 2026 +2.3780 S +4.209 | 2024on +0.4566 S +1.017 maxDD 2614 gross 0.791 [0.61,0.97] ann%/gross +12.65"
+ },
+ {
+  "file_or_command": "ssh pod2 recompute.py",
+  "quote_or_output": "pod_live_callog_s42: 2024 +0.1489 S +0.533 gross 0.602 | 2025 +0.3590 S +1.146 gross 0.531 | 2026 +2.0132 S +3.842 | 2024on +0.6914 S +1.884 maxDD 795 gross 0.620 [0.29,0.90] ann%/gross +24.44 ; pod_live_w3fix_calsimple_s42 2024on +1.4731 S +3.139 ; pod_live_calsimple_s42 2024on +1.5975 S +3.998"
+ },
+ {
+  "file_or_command": "ssh pod2 recompute.py DELTA lines",
+  "quote_or_output": "DELTA t3c_s42 - live_s42 {'2024': (-0.0398, -0.151), '2025': (-0.0314, -0.101), '2026': (-0.0243, 0.021), '2024on': (-0.0328, -0.082)} ; t3c_s2027 - live_s2027 {'2024': (-0.0391,-0.148), '2025': (-0.0266,-0.074), '2026': (0.0126, 0.078), '2024on': (-0.0216,-0.046)} ; m1t400-canon 2024on (-0.009, 0.087) ; ftrim-canon (-0.018,-0.079) ; t400-canon (-0.0356, 0.012); TS_IDENTICAL_ALL_RUNS True"
+ },
+ {
+  "file_or_command": "ssh pod2 /workspace/venv/bin/python /workspace/review_scratch/refute_C6_0/caliber_check.py",
+  "quote_or_output": "CHECK1 meta.y4 vs panel.Y4: common 10038 finite-pattern equal True both-finite 3427554 maxabs 0.0 bitwise True | CHECK2a panel.Y4 vs SUM_simple rows[E,E+47]: maxabs 0.0 bitwise True n 3427554 | CHECK2c panel.Y4 vs SUM_log1p rows[E,E+47]: median|d| bps 1.40 mean(Y4-logsum) bps 3.84 | CHECK4b dlw.y4s - meta.y4 (bps): median|d| 15.8 p95|d| 83.1"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_build_wide_ext.py",
+  "line": 26,
+  "quote_or_output": "k['ts'] = pd.to_datetime(k.open_time.astype(np.int64), unit='ms') + pd.Timedelta('5min')   # L29: A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_panel_ext.py",
+  "line": 58,
+  "quote_or_output": "Y4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan   # CS_r = cs(r5) cumsum of channel 0 (L19-24)"
+ },
+ {
+  "file_or_command": "python3 compare Binance BTCUSDT-5m-2026-06-15.zip vs pod cache rows (scratch btc_20260615.txt)",
+  "quote_or_output": "bar k pct_change vs cache@open_time_k: corr -0.023037 | vs cache@open_time_k+5min: corr 1.000000 maxabs 1.78e-06"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_dlw_targets_ext.py",
+  "line": 93,
+  "quote_or_output": "y4s = np.expm1(CS_L[hi_t] - CS_L[lo_t]).astype(np.float32)   # lo_t=E+1, hi_t=E+49 (L90); L96: y4old = (CS_r[E + FWD] - CS_r[E])"
+ },
+ {
+  "file_or_command": "ssh pod2 make_patch.py + 4 override runs of w10_universe_y4ovr.py (diff vs port: only PD/B/_R2 paths + Y4_NPZ override after L48); compare_ovr.py",
+  "quote_or_output": "fixed vs y4s common 9918 anchors (≤2026-08-10): 2024 base -0.6421 ovr -0.7089 Δ-0.0668 | 2025 +0.2844 → +0.2538 | 2026 +2.9107 → +2.8329 | 2024on +0.5404 S 1.211 → +0.4849 S 1.079 ; dynamic vs y4s: 2024 +0.1489 → +0.1155 | 2025 +0.3590 → +0.3391 | 2026 +2.5118 → +2.5427 | 2024on +0.7798 S 2.155 → +0.7665 S 2.134 ; y4sum1 (window only, 10038 anchors): fixed 2024on +0.4566 → +0.4665, dynamic +0.6914 → +0.7263"
+ },
+ {
+  "file_or_command": "ssh pod2 caliber_check.py (king/F10 coverage)",
+  "quote_or_output": "king finite frac 2022 0.0 / 2023 0.0 / 2024 0.3304 / 2025 0.4681 / 2026 0.4825 ; F10 s42 last finite anchor 2026-08-10 20:00 ; F10 s2027 last finite anchor 2026-08-10 20:00 ; port log: F10 OOS preds aligned: rows 10056/10176"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_port_2026-09-04/pod_port_followup_tables.md §9.3/9.4",
+  "quote_or_output": "fixed 2026<=08-10 +2.911 (n 1332) vs 2026 +2.378 (n 1452); dynamic 2026<=08-10 +2.512 vs 2026 +2.013 ⇒ Aug11-30 tail mean = -3.535 (fixed) / -3.521 (dynamic)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_units_table.py",
+  "line": 10,
+  "quote_or_output": "g=gt[s].mean(); m=net[s].mean(); sd=net[s].std(ddof=1); n=s.sum()\n        per_g=m/g; ann_g=per_g*2190/100; sharpe=m/sd*np.sqrt(2190)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/dl_quant_live/live/external_book.py",
+  "line": 375,
+  "quote_or_output": "#   target = w / gross_in x NAV x gross_mult, so tails never dilute the live gross)"
+ },
+ {
+  "file_or_command": "python3 walk /Users/haosiyu/dl_quant_live/config/book.json",
+  "quote_or_output": "/target_leverage = 2.0 ; /external_book/gross_mult = 2.0 ; /external_book/path = /Users/haosiyu/wide_shadow/state/target_live"
+ },
+ {
+  "file_or_command": "ssh pod2 /workspace/venv/bin/python /workspace/review_scratch/refute_C6_0/constgross.py",
+  "quote_or_output": "fixed CAL=log 2024on: ratio-of-means +0.5774 bps/gross → +12.6%/gross | const-gross mean-of-ratios +0.6576 → +14.4%/gross S +1.14 maxDD 31.6%/gross (2x 63.1% NAV) | NAV-caliber S +1.02 ; dynamic CAL=log 2024: ratio-of-means +5.4%/gross | const-gross +13.9%/gross S +1.41 (NAV-caliber S +0.53); 2024on const-gross +25.1% S +2.08 (NAV S +1.88)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_export_bundle_v3.py",
+  "line": 56,
+  "quote_or_output": "for YV in (2024, 2025):\n    tr_ = YRA < YV; te_ = YRA == YV   # L49: tr = YRA < 2026; te = YRA == 2026"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 356,
+  "quote_or_output": "ai = row_of[anchor]\n    def wstat(ch, w, kind):\n        seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch]   # inclusive of row ai (bar closing at N); panel uses CS[E]-CS[E-w] = rows E-w..E-1 (pod_panel_ext.py:43-45)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 112,
+  "quote_or_output": "def xz(v):\n    ok = np.isfinite(v); out = np.full(len(v), np.nan)\n    if ok.sum() >= 10: out[ok] = rankdata(v[ok]) / max(ok.sum() - 1, 1) - 0.5   # all-NaN F10P after 08-10 → NaN → nan_to_num → 0 at L228"
+ }
+]
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C6_0

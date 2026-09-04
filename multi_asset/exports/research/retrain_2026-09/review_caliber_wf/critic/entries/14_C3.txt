@@ -1,0 +1,150 @@
+
+#### claim_id
+C3
+#### refuted
+False
+#### confidence
+0.9
+#### verified_parts
+[
+ "Bundle exporter computes leg returns from raw y4 and that y4 is Σ of simple 5-minute returns: /workspace/pod_export_bundle_v3.py uses y4 = MT['y4'] from wide_fea_v2ext_meta.npz and appends float((z/g * nan_to_num(y4[i,m])).sum()*1e4); y4 is built in /workspace/pod_fea_ext.py L33-34 as CS['ret5'][0][E+48]-CS['ret5'][0][E] (Σ rows E..E+47, <46 finite → NaN) over cache channel 0 = k.c.pct_change (pod_merge_cache_ext.py). EMPIRICAL: y4 == Σ ch0 rows E..E+47 exact-equal fraction 1.0, max|diff| 0.0 over all 10176×829 cells; Π(1+r)−1 differs by up to 0.534, expm1(Σ) by up to 1.122, Σ rows E+1..E+48 by up to 0.30. leg_returns.npz recomputes bitwise for king/rev24/fund on all 10176 anchors (0 mismatches) with wide_panel_4h_v3splice.npz.",
+ "Live producer appends Σ of simple 5-minute returns: /Users/haosiyu/wide_shadow/shadow_loop_v3.py L292 ret5 = (c / pc - 1); L428-431 seg = CDf[pi+1:ai+1,:,0]; y4v = Σ; y4v[fin.sum(0)<46]=NaN; L439 LR[leg].append(Σ(zz/g·y4v)·1e4). EMPIRICAL: recomputing the 08Z→12Z record from state/rolling.npz + the prev_rec snapshot gives king −27.041218 / rev24 −37.286859 / fund −18.158154, bitwise equal to the last values in state/leg_returns_live.json (Π(1+r)−1 caliber would give −25.29, expm1(Σ) −29.03).",
+ "Same caliber and the seat is a legitimate msharpe output: msharpe over leg_returns_live.json[-900:] reproduces the logged w3 exactly — 08Z [0.1972,0.1218,0.6809], 12Z [0.1929,0.1184,0.6887]. The '≈0.21' is the combo_stage masked seat king/(king+fund) (combo_stage.py L228-229): 0.2107 (04Z), 0.2246 (08Z), 0.2188 (12Z), median 0.2146 over 56 target_combo files; raw 3-leg w3 king ranged 0.171–0.214 (median 0.194). Every row in the live 900-window is Σ-simple: 790 rows are 08-16 bundle rows (rev24/fund bitwise equal to the v3 bundle's rows, which recompute as Σ-simple) + 110 live appends.",
+ "The 08:53Z seed replacement and 11:46Z restore, as facts: the seed file (sha de0aa38b, == repo snapshot leg_returns_live_seatfix_20260904.json == state/leg_returns_live.json.oos_expm1_seed_withdrawn_20260904) was built by retrain_2026-09/jp_build_oos_seed.py with yy = np.expm1(np.nan_to_num(y4[i,m], nan=0.0)) (expm1 caliber, mismatching the producer's Σ-simple appends); its window is 2026-03-09T20..2026-08-15T00 (lag-scan vs bundle: rev24/fund corr 0.985 at that offset) so it also dropped all 110 live rows; it would have set w3 = [0,0,1]. loop.out arithmetic gives restarts at 08:53:24Z ('next 12:16 in 12156s') and 11:46:04Z ('in 1796s'); the 08Z anchor ran 08:20Z and the 12Z anchor 12:19Z, so no target file was ever produced from the seed. Current file == pre_seatfix file[1:] + the 12Z append (sha 172715ce → 2d36d11d). Pod quantification of expm1-on-Σsimple: pinned king 2026 +3.13 → −0.105 bps/anchor, last-900 Sharpe/anchor +0.0954 → −0.0242, seat → [0,0,1]; true compounding Π(1+r)−1 only moves king 2026 to +3.04.",
+ "2026 rows of the production king predictions are out-of-sample: pod_export_bundle_v3.py 'tr = YRA < 2026; te = YRA == 2026' → fit(X[tr],Y[tr]) → save slow2026.txt → pv = gbm.predict(X[te]) fills PRED 2026 rows. EMPIRICAL: reloading /workspace/shadow_bundle_v3/slow2026.txt (400 trees, 78 features, sha 8d79186b6380 == Mac bundle) reproduces slow_pred_pinned.npy 2026 rows to max|diff| 7.4e-9 with mean per-anchor IC +0.0584 (== export_v3.log), versus +0.134 / +0.168 on its training years 2024/2025 (where PRED rows are fold-booster rows differing by up to 0.43). The old 08-16 booster (29ffaf58, which supplies 790 of the 900 window rows) shows the same signature: IC 2024/2025 = +0.130/+0.166 vs 2026 = +0.053 (old pinned rows +0.052). Live appends since 08-16 are real-time predictions (OOS by construction)."
+]
+#### refuted_or_unverified_parts
+[
+ "INFERRED, not bitwise-verified: that the 08-16 bundle's 2026 king rows came from a booster trained on years < 2026. The executing 08-16 exporter is no longer on the pod; the git mirror multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_export_shadow_bundle.py L39 has 'tr = YRA < 2026; te = YRA == 2026' but is a snapshot, not the executed file. The empirical in-sample/OOS signature (0.130/0.166 vs 0.053) supports it; predictions differ from the old pinned rows by up to 0.12 because the old booster ran on the pre-ext feature panel.",
+ "COULD NOT REPRODUCE the withdrawn seed's values: its inputs (jpline pod_backup_2026-08-21 wide_fea_hist_meta.npz / wide_panel_4h_hist_v2.npz / slow_pred_hist_oos.npy) are on jpline, which timed out (one attempt, ConnectTimeout=8). The pod's /workspace/port_w10/pod_backup_2026-08-21 copies are bitwise the v2ext y4 and the pinned king (per-year means identical to the pinned booster), so the pod replica (0/950 exact matches) is not the seed. The 'expm1-caliber' label therefore rests on the builder's code line plus the lag-scan ratio (median wd/bundle 1.013 rev24, 1.019 fund), not on a value-level reproduction; the seed also differs by window end (08-15) and king source.",
+ "PRECISION: 'live king seat ≈0.21' is the combo masked seat (king/(king+fund)); the raw msharpe w3 king at the swap window was 0.184–0.197 (0.1972 at 08Z, 0.1929 at 12Z); raw 3-leg king reached ≥0.205 only on 13 of 113 anchors (08-20..08-22, 08-26).",
+ "OMISSION in the claim: the v3 bundle's leg_returns.npz does not feed the live seat at all — ShadowState loads LR = bundle + leg_returns_live.json (950 rows) and msharpe uses LR[-900:], so the window is 790 old-bundle (08-16 generation, booster 29ffaf58) rows + 110 live appends. King rows differ between generations (2026 corr 0.82, mean 2.405 vs 3.404 on the common window). Same caliber, but the '2026 rows of the production king predictions' actually in the seat are the old bundle's, not v3's.",
+ "NUANCE: bundle y4 spans bars E..E+47 with pod features ending at E−1 (pod_fea_ext.py CS[E]−CS[E−w]); live y4v spans E+1..E+48 with producer features ending at E (wstat seg = CDf[ai+1−w:ai+1]). Same Σ-simple caliber, one-bar (5-minute) different anchor convention between bundle rows and live rows (and between training and serving feature windows)."
+]
+#### evidence
+[
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote_or_output": "ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 428,
+  "quote_or_output": "seg = CDf[pi + 1:ai + 1, :, 0] ... y4v = np.where(fin, seg, 0).sum(0) ... y4v[fin.sum(0) < 46] = np.nan"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 439,
+  "quote_or_output": "st.LR[leg].append(float((zz / g * np.nan_to_num(y4v[pm], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 226,
+  "quote_or_output": "self.LR = {leg: list(lr[leg]) + list(extra[leg]) for leg in (\"king\", \"rev24\", \"fund\")}  (and L237-239: n_keep = 900 + 50; saves LR[leg][-n_keep:])"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 358,
+  "quote_or_output": "seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch]  (producer feature window includes the anchor bar)"
+ },
+ {
+  "file_or_command": "python3 scratch/refute_C3_1 recompute of 08Z record from state/rolling.npz + aux_prev_rec_before_12Z_20260904.json",
+  "quote_or_output": "king: recomputed Σsimple=-27.041218  live file last=-27.041218  equal=True | Π(1+r)-1 caliber=-25.2913 | expm1(Σsimple)=-29.0288; rev24 -37.286859 equal=True; fund -18.158154 equal=True"
+ },
+ {
+  "file_or_command": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 41,
+  "quote_or_output": "tr = YRA < 2026; te = YRA == 2026 ... .fit(X[tr], Y[tr]) ; gbm.booster_.save_model(f\"{OUT}/slow2026.txt\") ; pv = gbm.predict(X[te])"
+ },
+ {
+  "file_or_command": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 95,
+  "quote_or_output": "LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)"
+ },
+ {
+  "file_or_command": "/workspace/pod_fea_ext.py (pod2)",
+  "line": 34,
+  "quote_or_output": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan"
+ },
+ {
+  "file_or_command": "/workspace/pod_merge_cache_ext.py (pod2)",
+  "line": 27,
+  "quote_or_output": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)"
+ },
+ {
+  "file_or_command": "pod2: /workspace/review_scratch/refute_C3_1/c_run.log",
+  "quote_or_output": "(a) y4 recompute rows E..E+47 (cumsum method): finite-mask equal: True | exact-equal frac among finite: 1.0 | max|diff|: 0.0 ; (a2) max|Σsimple rows E..E+47 − y4| = 5.960e-08 | max|Π(1+r)−1 − y4| = 5.343e-01 | max|expm1(Σ) − y4| = 1.122e+00 | max|Σsimple rows E+1..E+48 − y4| = 3.025e-01"
+ },
+ {
+  "file_or_command": "pod2: /workspace/review_scratch/refute_C3_1/d_run.log",
+  "quote_or_output": "wide_panel_4h_v3splice.npz anchors 10176 mismatch>1e-9 {'king': 0, 'rev24': 0, 'fund': 0} max|diff| {'king': 0.0, 'rev24': 0.0, 'fund': 0.0}; king: Σsimple {2024: 1.533, 2025: 2.381, 2026: 3.13} | expm1(Σsimple) {2024: 0.577, 2025: -0.048, 2026: -0.105} | last900 S/anchor Σsimple 0.0954 expm1 -0.0242"
+ },
+ {
+  "file_or_command": "pod2: /workspace/review_scratch/refute_C3_1/c_run.log",
+  "quote_or_output": "(c) booster trees 400 features 78 sha256[:12] 8d79186b6380; year 2024: pinned-booster IC +0.1343 | max|pred − slow_pred_pinned| 3.710e-01; year 2025: IC +0.1680 | 4.305e-01; year 2026: IC +0.0584 | max|pred − slow_pred_pinned| 7.446e-09 over 1452 anchors"
+ },
+ {
+  "file_or_command": "pod2: /workspace/review_scratch/refute_C3_1/g_run2.log",
+  "quote_or_output": "old_29ffaf58 year 2024: booster IC +0.1297 | old slow_pred_pinned IC +0.0556; year 2025: +0.1655 | +0.0596; year 2026: +0.0529 | old slow_pred_pinned IC +0.0522 | max|booster − old pinned| 1.214e-01"
+ },
+ {
+  "file_or_command": "shasum -a 256 /Users/haosiyu/wide_shadow/shadow_bundle/* vs pod /workspace/shadow_bundle_v3/MANIFEST.json",
+  "quote_or_output": "all 8 files identical, e.g. leg_returns.npz 6061af10…, slow2026.txt 8d79186b…, slow_pred_pinned.npy 158cd4ac…"
+ },
+ {
+  "file_or_command": "python3 scratch/refute_C3_1/b_seat.py",
+  "quote_or_output": "w3 recomputed from cur[-900:]: [0.1929 0.1184 0.6887] logged 12Z: [0.1929, 0.1184, 0.6887]; from pre[-900:]: [0.1972 0.1218 0.6809] logged 08Z same; from withdrawn seed: [0. 0. 1.]; cur == pre[1:]+[new]? True; sha cur 2d36d11d pre 172715ce wd de0aa38b; rev24 best lag corr 0.985 window 2026-03-09T20 .. 2026-08-15T00 (fund 0.9853, king 0.7954); signal rows 113 w3_king min/median/max 0.1714 0.1942 0.2144"
+ },
+ {
+  "file_or_command": "python3 scratch target_combo w3_masked scan",
+  "quote_or_output": "n combo files 56; w3_masked king min/median/max 0.19539 0.214623 0.239277; 09-04T04Z [0.210706,0,0.789294] 08Z [0.224602,0,0.775398] 12Z [0.218805,0,0.781195]"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/fea171/combo_stage.py",
+  "line": 228,
+  "quote_or_output": "w3m = np.array([w3[0], 0.0, w3[2]]); w3m = w3m / w3m.sum() if w3m.sum() > 1e-12 else np.array([0.5, 0.0, 0.5])"
+ },
+ {
+  "file_or_command": "python3 scratch/refute_C3_1/e_oldbundle.py",
+  "quote_or_output": "old bundle built_utc 2026-08-16T13:03:59Z, slow2026 sha 29ffaf58bcb7, leg_returns 9943 rows ..2026-08-15T00; rev24/fund 2025+2026 old-vs-new exact-equal frac 1.0000; king 2026 exact 0.0000 corr 0.8161 mean old 2.405 new 3.404; cur json head matches old bundle at offset 9103 (2026-03-28T04) consecutive exact rows 840 -> 110 live appends; king head matches OLD bundle"
+ },
+ {
+  "file_or_command": "cat /Users/haosiyu/wide_shadow/loop.out",
+  "quote_or_output": "next 2026-09-04T12:16:00+00:00 in 14126s / in 12156s (=restart 08:53:24Z) / in 1796s (=restart 11:46:04Z) / next 16:16 in 14161s"
+ },
+ {
+  "file_or_command": "shadow_log.jsonl target_live rows",
+  "quote_or_output": "anchor 1788508800 logged_utc 2026-09-04T08:20:29Z; anchor 1788523200 logged_utc 2026-09-04T12:19:54Z (no anchor between 08:53Z and 11:46Z)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/jp_build_oos_seed.py",
+  "line": 20,
+  "quote_or_output": "yy=np.expm1(np.nan_to_num(y4[i,m],nan=0.0)); row={}  (SLOW=np.load(f\"{B}/slow_pred_hist_oos.npy\"), B=\"pod_backup_2026-08-21\")"
+ },
+ {
+  "file_or_command": "shasum -a 256 multi_asset/exports/live/wide_shadow_snapshot/leg_returns_live_seatfix_20260904.json vs state/leg_returns_live.json.oos_expm1_seed_withdrawn_20260904",
+  "quote_or_output": "de0aa38b == de0aa38b"
+ },
+ {
+  "file_or_command": "pod2: /workspace/review_scratch/refute_C3_1/f_run.log",
+  "quote_or_output": "king: withdrawn(950) == expm1-replica tail? exact 0/950 max|diff| 1.498e+02; hist meta y4 vs v2ext y4 last 500 common anchors exact-equal frac 1.0 (pod port copy is not the jpline seed input); seed device last-900 msharpe expm1 caliber: [0,0,1]; Σsimple caliber: raw [0.2825,0.1196,0.5978] masked king 0.3209"
+ },
+ {
+  "file_or_command": "ssh -o ConnectTimeout=8 jpline",
+  "quote_or_output": "ssh: connect to host 212.50.244.62 port 31999: Operation timed out (single attempt)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_export_shadow_bundle.py",
+  "line": 39,
+  "quote_or_output": "tr = YRA < 2026; te = YRA == 2026  (git mirror snapshot of the 08-16 exporter; not the executed file)"
+ },
+ {
+  "file_or_command": "pod2: cat /workspace/export_v3.log",
+  "quote_or_output": "fold 2024 IC +0.0548; fold 2025 IC +0.0630; pinned booster 2026 IC +0.0584 (orig +0.0571); pinned v1iv full b: 净1.024 夏普2.28; ema_state canon-cont override 450/450; BUNDLE_DONE files 8"
+ }
+]
+#### corrected_statement
+Claim C3 stands, with these precisions: (1) Both the bundle exporter and the live producer are on the Σ-of-simple-5m-return caliber — verified bitwise (y4 == Σ ch0 exact fraction 1.0 over 10176×829; leg_returns.npz 0 mismatches on 10176 anchors with the v3splice panel; producer's last append −27.041218 recomputed bitwise). (2) The seat that was ≈0.21 is the combo masked king/(king+fund) seat (0.2107 at 04Z, 0.2246 at 08Z, 0.2188 at 12Z; median 0.2146 over 56 anchors); the raw 3-leg msharpe w3 king was 0.184–0.197 at the swap window (0.171–0.214 over 113 anchors) and reproduces exactly from the file. (3) The live 900-window is not the v3 leg_returns.npz: it is 790 rows of the 08-16 bundle (booster 29ffaf58) + 110 live appends, all Σ-simple; rev24/fund rows are bitwise equal across bundle generations, king rows differ (2026 corr 0.82). (4) The withdrawn seed (sha de0aa38b) was expm1-caliber by its builder's code line, but it was also 20 days stale (window ended 2026-08-15, dropping the 110 live rows) and used a different king source; expm1-on-Σsimple flips the pinned king leg (2026 +3.13 → −0.105 bps/anchor; last-900 Sharpe/anchor +0.095 → −0.024) and drives the seat to [0,0,1]. The seed never produced a target (restarts 08:53:24Z / 11:46:04Z; anchors ran 08:20Z and 12:19Z); the restore reinstated the pre-swap file (current == pre[1:] + 12Z append). (5) 2026 rows are OOS for the v3 booster (bitwise reproduction 7.4e-9; IC 2026 +0.058 vs +0.134/+0.168 on training years) and, by empirical signature only (executed 08-16 code no longer on the pod), for the old booster (+0.053 vs +0.130/+0.166). Minor: bundle rows use bars E..E+47 with features ending at E−1, live rows use E+1..E+48 with features ending at E — same caliber, one-bar convention shift.
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C3_1 (Mac) and /workspace/review_scratch/refute_C3_1 (pod2: c_run.log, d_run.log, f_run.log, g_run2.log, lr_recompute*.npz, summary.json)

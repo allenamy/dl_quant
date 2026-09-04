@@ -1,0 +1,231 @@
+
+#### component
+Pod 4h panels Y4 (/workspace/data/wide_panel_4h_v1.npz, wide_panel_4h_v2ext.npz, wide_panel_4h_v3splice.npz) and y4 in /workspace/data/wide_fea_v2ext_meta.npz; plus channel 0 of /workspace/data/dlnative_5m_wide829_f16_ext.npz (their input). dlw_targets.npz y4old/y4s checked for contrast only.
+#### definition
+Let r5[t,j] = channel 0 ('ret5') of dlnative_5m_wide829_f16_ext.npz = float16( clip( c_t / c_{t-1} − 1 , −0.3, 0.3 ) ) — a SIMPLE (pct_change) 5-minute close-to-close return, where row t carries ts = bar open_time + 5 min (i.e. the bar's close time), so the row whose ts equals anchor N (N % 14400 == 0) is the bar (N−5m, N]. For anchor N with 5-minute row E (ts[E] == N):
+
+  Y4[N, j] = float32( CS_r[E+48, j] − CS_r[E, j] ),  CS_r = leading-zero float64 cumsum of (isfinite(r5) ? float64(float32(r5)) : 0)
+           = float32( Σ_{k=E}^{E+47} r5[k, j] )  with NaN bars counted as 0,
+  Y4[N, j] = NaN  if  #finite r5 in rows [E, E+47] < 46.
+
+I.e. Y4 is the ARITHMETIC SUM of 48 simple 5-minute returns over the 'old' window rows [E, E+47] (price interval (N−5min, N+3h55min]). It is not a log return (no log1p anywhere in its construction) and not a compounded simple return (no product / expm1). y4 in wide_fea_v2ext_meta.npz is the identical quantity computed by the identical line in pod_fea_ext.py (same cache, rows [E,E+47], same <46 rule), restricted to anchors with E ≥ 576 and ≥ 50 eligible members. wide_panel_4h_v3splice.npz Y4 = v1 rows for ts ≤ 2026-08-15 00:00 (cut) concatenated with v2ext rows for ts > cut, bitwise. wide_panel_4h_v1.npz (2020-01-31 → 2026-08-15) carries the same formula computed from a 2020-start cache built with the same channel-0 code; on all 10,122 of its anchors from 2022-01-01 04:00 onward it is bitwise equal to the recomputation from the ext cache (the lone 2022-01-01 00:00 anchor differs in 136 cells only because the 2022-start ext cache has no returns in its rows 0–1).
+#### caliber
+sum_of_simple_5m
+#### evidence
+[
+ {
+  "file": "/workspace/pod_panel_ext.py",
+  "line": 21,
+  "quote": "r5 = CD[:, :, 0].astype(np.float32)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_panel_ext.py",
+  "line": 18,
+  "quote": "def cs(x):\n    xz = np.where(np.isfinite(x), x, 0).astype(np.float64)\n    return np.concatenate([np.zeros((1, NW)), np.cumsum(xz, 0)])   (L18-20)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_panel_ext.py",
+  "line": 23,
+  "quote": "CS_f = np.concatenate([np.zeros((1, NW), np.int32), np.cumsum(fin, 0, dtype=np.int32)])  /  L24: CS_r = cs(r5); CS_r2 = cs(r5.astype(np.float64) ** 2)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_panel_ext.py",
+  "line": 57,
+  "quote": "y4n = CS_f[E + 48] - CS_f[E]\nY4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan   (L57-58)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_panel_ext.py",
+  "line": 32,
+  "quote": "grid = np.where(CTS % 14400 == 0)[0]  /  L34: grid = grid[(grid >= 8640) & (grid + 288 <= TT)]  (E = grid: the 5m row whose ts == anchor)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_panel_ext.py",
+  "line": 169,
+  "quote": "np.savez_compressed(out, ts=CTS[E], symbols=np.array(syms), elig=elig,\n                    Y4=Y4, Y24=Y24, **{f\"f_{k}\": v for k, v in F.items()})   (out default /workspace/data/wide_panel_4h_v2ext.npz)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/panel_ext.log",
+  "line": 10,
+  "quote": "PANEL_EXT_DONE anchors 10039 SHA 5e67c0559daa904d  — equals sha256sum of /workspace/data/wide_panel_4h_v2ext.npz = 5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116 (file on disk is this script's product)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py",
+  "line": 13,
+  "quote": "def cs_pair(x):\n    fin = np.isfinite(x)\n    xz = np.where(fin, x, 0).astype(np.float64)   (L13-15; CS['ret5'] = cs_pair(CD[:, :, 0].astype(np.float32)))",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py",
+  "line": 33,
+  "quote": "y4n = CS[\"ret5\"][1][E + 48] - CS[\"ret5\"][1][E]\ny4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   (L33-34; L25: grid = grid[(grid >= 576) & (grid + 48 <= TT)])",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py",
+  "line": 83,
+  "quote": "np.savez_compressed(_os.environ.get(\"META_OUT\", \"/workspace/data/wide_fea_v2ext_meta.npz\"), E_ts=CTS[E], members=np.array(MS, dtype=object),\n                    y4=y4, qvk=qvk.astype(np.float32), names=...)   (L83-84; fea_ext.log: FEA_EXT_DONE (10176, 829, 82) = meta anchor count)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_panel_splice.py",
+  "line": 11,
+  "quote": "CAN = np.load(\"/workspace/data/wide_panel_4h_v1.npz\", allow_pickle=True)  / L12: EXT = np.load(\"/workspace/data/wide_panel_4h_v2ext.npz\", ...)  / L16: cut = int(ct[-1])  / L17: tail_idx = np.where(et > cut)[0]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_panel_splice.py",
+  "line": 25,
+  "quote": "out[k] = np.concatenate([a, b[tail_idx]])   (applies to Y4; L116: np.savez_compressed(\"/workspace/data/wide_panel_4h_v3splice.npz\", **out))",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py",
+  "line": 27,
+  "quote": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   (channel 0 of the ext tail = simple return; L24: k['ts'] = pd.to_datetime(k.open_time.astype(np.int64), unit='ms') + pd.Timedelta('5min'); A is np.float16)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py",
+  "line": 42,
+  "quote": "base = np.load('/workspace/data/dlnative_5m_wide829_f16_fresh.npz', allow_pickle=True)  / L54: assert eq >= 0.999  / L56-58: keep = ets > int(bts[-1]); mts = np.concatenate([bts, ets[keep]]); mdat = np.concatenate([bdat, ext[keep]], axis=0)   (merge_ext.log: PARITY overlap cells=1,666,343 exact_eq=1.000000; MERGED (490753, 829, 7) end: 2026-09-01 00:00)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_build_wide_ext.py",
+  "line": 29,
+  "quote": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   (base-cache builder; L26: k['ts'] = ... open_time ... + pd.Timedelta('5min'); sha256 39ed11f3… identical to runpod_scripts/workspace_mirror/pod_build_wide_ext.py; the _fresh/_hist caches were built on the pod by this script — INFERRED, the base raw monthly zips are no longer on the pod)",
+  "status": "INFERRED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_cpu3_chain.sh",
+  "line": 26,
+  "quote": "EXT_START=2020-01-01 EXT_END=2026-08-16 EXT_OUT=/workspace/data/dlnative_5m_wide829_f16_hist.npz \\ python3 pod_build_wide_ext.py  / L29-30: CACHE_IN=/workspace/data/dlnative_5m_wide829_f16_hist.npz PANEL_OUT=/workspace/data/wide_panel_4h_hist.npz \\ python3 pod_panel_ext.py   (v1 provenance chain: v1 ts range 2020-01-31 = 2020-01-01 + 8640 rows, 2026-08-15 = 2026-08-16 − 288 rows; v1 has f_fund_iv/f_fund_ema_v1/v2 columns emitted only by pod_panel_ext.py; mirror pod_panel_ext.py sha db7f0474… == /workspace/pod_panel_ext.py)",
+  "status": "INFERRED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-22/results/wide_full_caliber_audit_run_2026-08-22.json",
+  "line": 11,
+  "quote": "\"panel_v2\": \"f14bc33d78b2492994e793b494c2ff330958351abf5e6acbb1fe0364f032bc4a\"  — identical to sha256sum /workspace/data/wide_panel_4h_v1.npz; the device names it convexity_aware_construction.py L39/L314: B = \"/mnt/storage/private/work_hsy/pod_backup_2026-08-21\"; \"panel_v2\": f\"{B}/wide_panel_4h_hist_v2.npz\"",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-21/pod_panel_wide_hist.py",
+  "line": 57,
+  "quote": "Y4 = (CS_r[E + 48] - CS_r[E]).astype(np.float32); Y4[y4n < 46] = np.nan   (alternative candidate builder of v1; identical line; workspace_mirror/pod_panel_wide.py L55 identical too — definition is the same whichever built v1)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 93,
+  "quote": "y4s = np.expm1(CS_L[hi_t] - CS_L[lo_t]).astype(np.float32)   (a DIFFERENT quantity, Π(1+r)−1 over rows [E+1,E+48]; L96: y4old = (CS_r[E + FWD] - CS_r[E]).astype(np.float32) = Σ simple rows [E,E+47], bitwise equal to panel Y4 — checked)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 109,
+  "quote": "LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)   (bundle leg_returns use meta y4 raw — no expm1/log1p; L149 yv = np.nan_to_num(y4[i, m], nan=0.0) likewise)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/port_w10/w10_universe.py",
+  "line": 135,
+  "quote": "if CAL == \"simple\":\n    _yy = np.expm1(_yy)   (L135-136, and L277-278 yv = np.expm1(yv); L17 CAL default \"simple\") — replay device applies expm1 to the Σ-simple y4",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote": "ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan   (live producer's channel 0 — same simple-return formula; cross-reference only, other component)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/docs/ERROR_LEDGER_2026-08-20.md",
+  "line": 396,
+  "quote": "BELIEF ONLY: E-0904-F states 面板 y4 = Σ 5m 简单收益 (rows [E,E+47]) and that CAL=simple expm1 is a pseudo-convexity — consistent with, but not evidence for, the measurements above",
+  "status": "INFERRED"
+ }
+]
+#### empirical_checks
+[
+ {
+  "method": "All-anchor exact replication of builder arithmetic (f16→f32→f64 leading-zero cumsum, symbol-chunked), both windows × {Σ r5, Σ log1p(r5), Π(1+r5)−1}, float32-cast, compared bitwise (NaN-equal) to stored Y4: wide_panel_4h_v2ext.npz, 10,039 anchors × 829 (2022-01-31→2026-08-31)",
+  "command_or_script": "ssh pod2; /workspace/venv/bin/python /workspace/review_scratch/y4def/y4_bitwise_check_v2.py (own device, sha256 in log dir); log /workspace/review_scratch/y4def/y4_bitwise_check_v2.log",
+  "result": "old_rows[E,E+47]/sum_simple: bitwise(incl NaN) 1.000000, finite-bitwise 1.000000, nan-pattern 1.000000, med|Δ| 0, max|Δ| 0. Alternatives: old/sum_log1p finite-bitwise 0.089 med|Δ| 1.40e-4 max 0.687; old/compound 0.089 med 9.13e-5 max 2.587; new[E+1,E+48]/sum_simple 0.105 med 1.57e-3; new/sum_log1p 0.089 med 1.57e-3; new/compound 0.089 med 1.57e-3",
+  "passed": true
+ },
+ {
+  "method": "Same all-anchor replication for wide_fea_v2ext_meta.npz y4, 10,176 anchors × 829 (2022-01-08→2026-08-30)",
+  "command_or_script": "same script; JSON /workspace/review_scratch/y4def/y4_bitwise_results_v2.json (copied to Mac scratch)",
+  "result": "old/sum_simple bitwise 1.000000 (finite-bitwise 1.000000, max|Δ| 0). old/sum_log1p 0.0886 (med 1.41e-4); old/compound 0.0886 (med 9.16e-5); new-window candidates 0.089–0.105 (med ~1.57e-3)",
+  "passed": true
+ },
+ {
+  "method": "Same all-anchor replication for wide_panel_4h_v1.npz (10,123 anchors inside the ext cache, 2022-01-01→2026-08-15) and wide_panel_4h_v3splice.npz (10,219 anchors, 2022-01-01→2026-08-31)",
+  "command_or_script": "same script",
+  "result": "old/sum_simple finite-bitwise 0.999960 (v1) / 0.999961 (v3splice), med|Δ| 0, max|Δ| 1.563e-2; all other five candidates 0.088–0.105 bitwise with med|Δ| ≥ 9e-5",
+  "passed": true
+ },
+ {
+  "method": "Localise the v1 residual: per-anchor count of finite cells where Σ r5 rows[E,E+47] (float32) != stored Y4; inspect ext cache rows 0/1/48 finite counts",
+  "command_or_script": "ssh pod2 inline python (heredoc, printed in session): loops all v1 anchors in ext range",
+  "result": "3,395,340 finite cells, 136 mismatches, ALL in one anchor 2022-01-01 00:00 (= row 0 of the ext cache; max|Δ| 0.01563); ext cache row0 finite count 0, row1 finite 0, row48 finite 137 — the 2022-start cache has no previous close for its first bars whereas v1 was built from a 2020-start cache. All other 10,122 anchors 100% bitwise. So the residual is a test-cache boundary artifact, not a definitional difference",
+  "passed": true
+ },
+ {
+  "method": "48 anchors per file spread uniformly over each file's in-cache span (2022→2026 for all four pod files; e.g. v2ext picks 2022-01-31 … 2026-08-31), direct per-window float64 sums/products (no cumsum), 6 candidates, median|Δ| / share<1e-6 / float32-bitwise share vs stored value",
+  "command_or_script": "same script, section (B); anchor list in JSON key picked_anchor_direct_sums.anchor_ts_all",
+  "result": "v2ext Y4 (n=15,825 cells): old/Σsimple med 0, max 0, <1e-6 1.0000, bitwise 1.0000 | old/Σlog1p med 1.40e-4 <1e-6 0.091 | old/compound med 9.5e-5 <1e-6 0.097 | new/Σsimple med 1.53e-3 <1e-6 0.111 | new/Σlog1p med 1.53e-3 <1e-6 0.089 | new/compound med 1.54e-3 <1e-6 0.089. fea_meta y4 (n=16,508): old/Σsimple med 0 max 0 <1e-6 1.0000 bitwise 1.0000; others 0.093–0.112. v1 (n=15,910): old/Σsimple med 0, <1e-6 0.9915, bitwise 0.9915 (shortfall = the 2022-01-01 00:00 pick, see above); others 0.085–0.103. v3splice (n=15,665): old/Σsimple 0.9913 (same cause); others 0.088–0.108",
+  "passed": true
+ },
+ {
+  "method": "Structural check: v3splice.Y4 == concat(v1.Y4, v2ext.Y4[ts>cut]) and v1 vs v2ext Y4 on their 9,943 overlap anchors",
+  "command_or_script": "ssh pod2 inline python (heredoc, printed in session)",
+  "result": "v3.ts == concat(v1.ts, v2.ts[tail]) True; v3.Y4[:14329] == v1.Y4 (NaN-equal) True; v3.Y4[14329:] == v2.Y4[tail] True (96 tail rows, cut = 1786752000 = 2026-08-15 00:00Z); v1 vs v2ext overlap 9,943 anchors: Y4 bitwise-equal share 1.0, finite-both bitwise 1.0, NaN pattern 1.0",
+  "passed": true
+ },
+ {
+  "method": "Channel 0 identity and ts convention from raw kline zips (2026-08-22..25 daily zips, the only raw klines left on the pod): compute c/c_prev−1 and log(c/c_prev), clip ±0.3, cast float16, compare bitwise to cache channel 0 under ts=open_time+5min and ts=open_time, split into base segment (ts ≤ 2026-08-24 04:00, rows from _fresh base) and tail; 45 symbols (5 named + 40 random)",
+  "command_or_script": "ssh pod2; /workspace/venv/bin/python /workspace/review_scratch/y4def/ch0_base_overlap_check.py; log ch0_base_overlap.log; JSON ch0_base_overlap.json",
+  "result": "ts=open_time+5min: base 15,575 cells bitwise_f16_simple 1.0 vs log 0.263; tail 22,704 cells simple 1.0 vs log 0.440 (e.g. BTCUSDT base n=623 simple 1.0 / log 0.467, 332 cells where the two candidates differ in f16). ts=open_time convention: 0.0 match. ⇒ channel 0 = float16(clip(simple pct_change)) with row ts = bar close time",
+  "passed": true
+ },
+ {
+  "method": "Contrast on dlw_targets.npz (10,086 anchors): y4old and y4s against the same six candidates (all-anchor replication)",
+  "command_or_script": "same v2 script",
+  "result": "y4old == old[E,E+47]/Σsimple bitwise 1.000000 (max 0); y4s == new[E+1,E+48]/compound bitwise 1.000000 (max 0) via cumsum replication, 0.9998 bitwise / 100% <1e-6 via direct np.prod — confirms dlw y4s is Π(1+r)−1 over the shifted window and is NOT what the panels store",
+  "passed": true
+ },
+ {
+  "method": "Receipt that the on-disk v2ext file is the product of /workspace/pod_panel_ext.py",
+  "command_or_script": "cat /workspace/panel_ext.log; sha256sum /workspace/data/wide_panel_4h_v2ext.npz",
+  "result": "log: PANEL_EXT_DONE anchors 10039 SHA 5e67c0559daa904d; sha256sum: 5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116 (prefix match); anchors 10039 = file ts length",
+  "passed": true
+ },
+ {
+  "method": "Receipt for v1 provenance: sha256 of pod v1 file vs recorded input SHAs in 2026-08-22 device results",
+  "command_or_script": "sha256sum /workspace/data/wide_panel_4h_v1.npz; grep -rn f14bc33d78b2492 /Users/haosiyu/Desktop/quant_research",
+  "result": "f14bc33d78b2492994e793b494c2ff330958351abf5e6acbb1fe0364f032bc4a == 'panel_v2'/'panel_wide_v2' in wide_full_caliber_audit_run_2026-08-22.json, funding_factor_deepdive_2026-08-22.json, f7_multiangle_prescreen_2026-08-22.json → file /mnt/storage/private/work_hsy/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz. No pod log with this SHA exists (08-21 chain logs not on pod), so the exact producing invocation remains INFERRED",
+  "passed": true
+ },
+ {
+  "method": "jpline reachability (single attempt, ConnectTimeout=8) to obtain the 2020-2021 5m data / v1 build logs",
+  "command_or_script": "ssh -o ConnectTimeout=8 -o BatchMode=yes jpline 'ls /mnt/storage/private/work_hsy/pod_backup_2026-08-21/'",
+  "result": "ssh: connect to host 212.50.244.62 port 31999: Operation timed out — not retried; 2020-01-31→2021-12-31 anchors of v1/v3splice (4,206 anchors) therefore unverified empirically",
+  "passed": false
+ }
+]
+#### transforms_applied_downstream
+Within the panel/meta producers: none — Y4/y4 are written raw (float32) with no expm1/log1p/exp/log (pod_panel_ext.py L57-58, L169-170; pod_fea_ext.py L33-34, L83-84; pod_panel_splice.py L25 just concatenates). Consumers on the pod: (a) /workspace/pod_export_bundle_v3.py L109 and L149 use meta y4 raw (Σ z/g·y4 ×1e4; no transform) → bundle leg_returns.npz / live seat seed are in Σ-simple caliber; (b) /workspace/pod_guard_reconcile.py L40 and /workspace/pod_legs_ext.py L56 likewise raw; (c) /workspace/port_w10/w10_universe.py L135-136 and L277-278 apply np.expm1() to y4 when CAL == "simple" (default, L17) — i.e. the replay device treats the Σ-simple quantity as if it were a log return; CAL=log leaves it raw; (d) /workspace/pod_dlw_targets_ext.py L93 builds a separate target y4s = np.expm1(CS_L[hi]-CS_L[lo]) (Σ log1p then expm1 = Π(1+r)−1 over rows [E+1,E+48]) from the 5m cache — not derived from Y4; L96 y4old = Σ simple [E,E+47] (bitwise equal to panel Y4); (e) /workspace/pod_alpha_decay.py L12-16 and pod_caliber_truth.py/pod_caliber_alllegs.py compute expm1(Σlog1p) and expm1(y4old) themselves for diagnostics. The live producer (other component) computes channel 0 as c/pc−1 (shadow_loop_v3.py L292) and sums it — same caliber, no expm1.
+#### confidence
+0.98
+#### caveats
+(1) Empirical coverage is 2022-01-01 → 2026-08-31 (every anchor of v2ext, fea_meta, and the in-cache anchors of v1/v3splice; the '≥30 anchors spread 2022–2026' requirement is met with 48 uniformly spaced picks per file plus the all-anchor sweep). The 4,206 anchors of v1/v3splice dated 2020-01-31 → 2021-12-31 could not be checked: the pod's 5m cache starts 2022-01-01, the base monthly raw zips are gone from the pod, and jpline timed out on the single permitted attempt. For those rows the definition is code-INFERRED (identical Y4 line in every candidate builder; hist cache built by the same pod_build_wide_ext.py L29 with EXT_START=2020-01-01 per pod_cpu3_chain.sh L26). (2) Which script invocation produced v1 is INFERRED (sha identity to jpline's wide_panel_4h_hist_v2.npz is VERIFIED; ts-range arithmetic and the fund columns point to pod_panel_ext.py via pod_cpu3_chain.sh; no pod log carries v1's SHA). The definition does not depend on this: pod_panel_wide.py L55, pod_panel_wide_hist.py L57 and pod_panel_ext.py L58 are the same line. (3) v1's single differing anchor (2022-01-01 00:00, 136 cells, max|Δ| 0.0156) is explained by the ext cache having no returns in rows 0–1 (no previous close at the cache start); it is not evidence of a different formula — on every later anchor v1 is bitwise equal to the ext-cache recomputation and to v2ext. (4) The summands are float16-rounded simple returns (channel 0 stored as float16 after clip ±0.3); the raw-zip check shows float16(simple) matches 100% while float16(log) matches only 26–44%, so channel 0 is definitively simple, but the 4h quantity is Σ of f16-rounded r5, not Σ of exact c/c_prev−1. (5) 'sum_of_simple_5m' is neither a log return nor exchange-accounting P&L (Π(1+r)−1); applying expm1 to it (w10_universe.py CAL=simple) adds a spurious (Σr)²/2-type term — this agrees with the belief recorded in ERROR_LEDGER E-0904-F, cited here only as belief. (6) Operational note: my first pod job (y4_bitwise_check.py, full-column cumsums) was killed externally at ~13:49Z with no traceback (not by me; dmesg unavailable); the chunked v2 script reproduced all results in 63 s. No live system, launchd job, GPU, or /workspace/data file was touched; all scratch lives in the two review dirs. (7) Definitions were taken only from executing lines and bitwise tests; docstrings in pod_dlw_targets_ext.py (L9-10, L138) and memory/docs were used only as belief context.
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/y4def (Mac: y4_bitwise_check.py, y4_bitwise_check_v2.py, ch0_base_overlap_check.py, y4_bitwise_results_v2.json, y4_bitwise_check_v2.log, ch0_base_overlap.json, ch0_base_overlap.log); pod mirror /workspace/review_scratch/y4def/

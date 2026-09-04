@@ -1,0 +1,16 @@
+(a) panel f_fund_now vs ledger last-settled<=N on 31 anchors 08-26 00Z->08-31 00Z: compared 16132, |diff|>1e-9: 0 (max 4.47e-10; float32 rounding ~1e-9), iv unequal 0, panel-NaN-but-ledger-has 0, ledger-None-but-panel-has 4842
+
+pod_live_w3fix_callog_s42: 28 common anchors 08-26 04Z->08-30 20Z
+(b) stored carry_ex vs recompute W x panel: max|diff| 1.68e-08; W x ledger vs W x panel: mean diff -0.0031 max|diff| 5.97e-02
+(c) 2x2 per-NAV bps/anchor (+ = book pays):  replayW x panel +0.777 | replayW x ledger +0.774 | liveW x panel +1.766 | liveW x ledger +1.766
+    per-gross (mean of ratio):               replayW x panel +1.021 (gross 0.761) | liveW x ledger +2.233 (gross 0.797); sd replay per-gross 0.285, sd live per-gross 1.150
+    weights effect (liveW - replayW, same ledger rates, per gross): mean +1.212 sd 0.884 se 0.167  -> x21.9 = +26.5 %/gross/yr
+
+pod_live_callog_s42: 28 common anchors 08-26 04Z->08-30 20Z
+(b) stored carry_ex vs recompute W x panel: max|diff| 4.05e-08; W x ledger vs W x panel: mean diff -0.0031 max|diff| 5.63e-02
+(c) 2x2 per-NAV bps/anchor (+ = book pays):  replayW x panel +0.774 | replayW x ledger +0.771 | liveW x panel +1.766 | liveW x ledger +1.766
+    per-gross (mean of ratio):               replayW x panel +1.035 (gross 0.747) | liveW x ledger +2.233 (gross 0.797); sd replay per-gross 0.304, sd live per-gross 1.150
+    weights effect (liveW - replayW, same ledger rates, per gross): mean +1.198 sd 0.862 se 0.163  -> x21.9 = +26.2 %/gross/yr
+52 windows: live_pays - dev_real: mean -0.124 sd 0.671 se 0.093 -> -2.7 %/gross/yr
+52 windows: live_pays - settle_real: mean -0.066 sd 0.483 se 0.067 -> -1.4 %/gross/yr
+52 windows: live_pays - dev_target: mean -0.435 sd 0.842 se 0.117 -> -9.5 %/gross/yr

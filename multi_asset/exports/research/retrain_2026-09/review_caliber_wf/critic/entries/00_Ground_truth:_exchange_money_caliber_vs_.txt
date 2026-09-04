@@ -1,0 +1,239 @@
+
+#### component
+Ground truth: exchange money caliber vs pod targets (dlw_targets y4s/y4old, meta y4, slow_pred_pinned king leg, f_fund_ema_v1 fund leg) vs live seat (shadow_loop_v3) — independent of any replay device
+#### definition
+MONEY (what Binance USDT-perp pays per name over a 4h hold): pnl_usd = qty × (P_{N+4h} − P_N) = notional_N × (P_{N+4h}/P_N − 1), i.e. the COMPOUNDED SIMPLE return of the close/mid ratio; plus funding cash (`income` rows) settled inside the window. Book-level money = Σ_names notional·(P1/P0−1) + Σ funding_paid (arithmetic across names, compounded within a name).
+
+POD `dlw_targets.npz` y4s (executed lines /workspace/pod_dlw_targets_ext.py L75/L90/L93): y4s[E,s] = expm1( Σ_{k=E+1..E+48} log1p(ret5[k,s]) ) = Π(1+ret5)−1 over cache rows (N, N+4h], NaN bars counted as 0, NaN if <46 finite bars; ret5 = close_t/close_{t−5m} − 1 clipped ±0.3 (pod_merge_cache_ext.py L27), row ts = bar close (L24). Empirically bit-identical to a direct recomputation from /workspace/data/dlnative_5m_wide829_f16_ext.npz (99.989% exact, max |Δ| 1.9e-9, 0 NaN mismatches over 3,374,240 cells) and — via raw klines — equal to c_{N+4h}/c_N − 1 to f16 precision (max |Δ| 1.15e-5 over 140 symbol-anchors), so y4s IS the money caliber for the close-to-close leg.
+POD `y4old` (L96) and `wide_fea_v2ext_meta.npz` y4 (pod_fea_ext.py L34, consumed by pod_export_bundle_v3.py L29/L109 for bundle leg_returns and for the king rank target L42-45): Σ_{k=E..E+47} ret5[k,s] = Σ-simple over rows [N−5m, N+3h55m] (window shifted one bar EARLIER than y4s, includes the pre-anchor bar). Bit-exact vs cache recompute (100%, max |Δ| 0). NOT money caliber (max |Σret5 − price ratio| = 1.19e-3 = 12 bps on the raw-kline sample).
+LIVE seat (shadow_loop_v3.py L428-431/L439): Σ-simple over rows (N, N+4h] of rolling.npz ch0 (ret5 = c/pc − 1, L292) — Σ-simple, same window as y4s but not compounded.
+
+FOUR-CALIBER KING LEG (slow_pred_pinned.npy, production leg def pod_export_bundle_v3.py L88-109 with y swapped; meta members; bps/anchor; y from dlw_targets on the 10,056 common anchors, 2024 n=2196 / 2025 n=2190 / 2026 n=1332 (2026 ends 2026-08-10 20Z); last-900 window 2026-03-14 00Z → 2026-08-10 20Z):
+  y4old Σ-simple : 2024 +1.533 | 2025 +2.381 | 2026 +3.198 | last900 mean +2.925 sd 29.38 S/anchor +0.0996
+  y4s compounded : 2024 +1.618 | 2025 +2.280 | 2026 +3.071 | last900 mean +2.912 sd 29.79 S/anchor +0.0978
+  expm1(y4old)   : 2024 +0.577 | 2025 −0.048 | 2026 −0.093 | last900 mean −0.598 sd 30.46 S/anchor −0.0196
+  log1p(y4s)     : 2024 +2.552 | 2025 +4.634 | 2026 +6.246 | last900 mean +6.298 sd 29.57 S/anchor +0.2130
+FOUR-CALIBER FUND LEG (f_fund_ema_v1 from wide_panel_4h_v2ext.npz aligned by ts, positive sign as in L102):
+  y4old Σ-simple : 2024 −0.361 | 2025 +1.712 | 2026 +6.344 | last900 mean +7.411 sd 29.46 S/anchor +0.2516
+  y4s compounded : 2024 −0.448 | 2025 +1.600 | 2026 +6.027 | last900 mean +6.949 sd 30.26 S/anchor +0.2296
+  expm1(y4old)   : 2024 −0.157 | 2025 +2.339 | 2026 +6.925 | last900 mean +8.141 sd 31.19 S/anchor +0.2610
+  log1p(y4s)     : 2024 −0.652 | 2025 +0.990 | 2026 +5.503 | last900 mean +6.295 sd 29.50 S/anchor +0.2134
+Cache-extended series (all 10,176 meta anchors through 2026-08-30 20Z, last900 = 2026-04-03→08-30): king compounded 2026 +2.985, last900 +2.757 (S +0.0922); Σ-simple same window +3.066 / +2.729 (S +0.0924); fund compounded 2026 +5.224, last900 +5.662 (S +0.1823); Σ-simple same window +5.487 / +6.084 (S +0.2011).
+
+DISTANCE OF Σ-SIMPLE FROM MONEY (Σ-simple − compounded): name level (2,741,477 member-anchors, same window (N,N+4h]) mean +0.43 bps, std 36.3 bps, p99|Δ| 39.6 bps; with the production window shift (y4old − y4s) mean +0.43, std 59.9 bps. Leg level per anchor (2024-26): king same-window −0.012 ± 3.32 bps (corr 0.993), production-window +0.036 ± 5.46 (corr 0.982); fund same-window +0.140 ± 3.54, production-window +0.150 ± 5.44. Live combo book (52 anchors 2026-08-26→09-04 08Z): −1.14 ± 6.42 bps/anchor over (N,N+4h], −0.57 ± 4.96 over the venue-aligned window. Log caliber vs money: name −3.80 ± 41.1 bps; king leg +2.00 ± 3.79 (yearly +0.93/+2.35/+3.17 — log INFLATES the king leg); fund −0.45 ± 4.01; live book −3.71 ± 6.67. expm1(Σ-simple) vs money: king −2.03 ± 5.63 (yearly −1.04/−2.33/−3.16 — the pseudo-convexity), fund +0.60 ± 5.12.
+
+LIVE RECONCILIATION 2026-08-26 00Z → 2026-09-04 08Z (52 anchor windows with target_live + next anchor; 08-26 16Z skipped, realized_gross=0): paper (target_live w, cache compounded (N,N+4h], Σw·R/Σ|w|) mean +1.96 bps/anchor (sd 33.4); Σ-simple +0.82; log −1.75; venue-aligned window (N+20m, N+4h+20m] compounded +0.67 / Σ-simple +0.10; venue twin Σqty·(mid_{N+4h}−mid_N)/realized_gross mean +0.03 bps (sd 32.7), coverage 99.96% of gross; funding −1.91 ± 0.69 bps/anchor; corr(paper_comp, twin) 0.769, corr(paper_comp_shift, twin) 0.776, corr(paper_sum, twin) 0.781 (bootstrap CI of sum−comp corr difference [−0.036, +0.077] → indistinguishable), slope twin on paper_comp_shift 0.85. Daily (nav_ts(D−1) → nav_ts(D), equity = totalWalletBalance+totalUnrealizedProfit, net of TRANSFER income): 10 days corr(ΔequityNet, twin+funding) 0.94, corr with paper+funding 0.88; Σ ΔequityNet −$541 vs Σ twin+funding −$1,308 (gap driven by days with missing windows: 08-26 4 win, 08-29/08-30 5, 09-02 4, 09-04 partial, and 09-03's gross ×4 rebuild after the $62,998 deposit); the four clean 6-window days (08-27, 08-28, 08-31, 09-01) reconcile to +41.1 / +3.3 / −25.7 / +25.7 USD (Σ +$44, mean |resid| 6.4 bps of gross per day, venue COMMISSION ≈ $0.001-0.008/day).
+#### caliber
+compound_simple
+#### evidence
+[
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 75,
+  "quote": "CS_L = np.concatenate([z1, np.cumsum(np.log1p(r5z.astype(np.float64)), 0)])",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 90,
+  "quote": "lo_t = E + 1; hi_t = E + FWD + 1          # CS 半开区间 [lo_t, hi_t) = rows E+1..E+48",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 93,
+  "quote": "y4s = np.expm1(CS_L[hi_t] - CS_L[lo_t]).astype(np.float32)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 96,
+  "quote": "y4old = (CS_r[E + FWD] - CS_r[E]).astype(np.float32); y4old[(CS_f[E + FWD] - CS_f[E]) < MIN_FIN] = np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 69,
+  "quote": "r5z = np.where(fin, r5, 0).astype(np.float32)   (NaN bars enter both cumsums as 0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py",
+  "line": 27,
+  "quote": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py",
+  "line": 24,
+  "quote": "k['ts'] = pd.to_datetime(k.open_time.astype(np.int64), unit='ms') + pd.Timedelta('5min')   (row ts = bar close)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py",
+  "line": 34,
+  "quote": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   (meta y4 = Σ-simple rows [E, E+47]; cs_pair L16 has a leading zero row)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 29,
+  "quote": "E_ts = MT[\"E_ts\"].astype(np.int64); members = MT[\"members\"]; y4 = MT[\"y4\"]; qvk = MT[\"qvk\"]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 82,
+  "quote": "np.save(f\"{OUT}/slow_pred_pinned.npy\", PRED)   (PRED shape (nA=10176, 829), rows = meta E_ts; finite only 2024/2025/2026)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 102,
+  "quote": "sc = {\"king\": PRED[i, members[i]], \"rev24\": -R24[j, members[i]], \"fund\": FE[j, members[i]]}   (FE = PW[\"f_fund_ema_v1\"], L87)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 109,
+  "quote": "LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)   (with L106-108: z = nan_to_num(xz(score)); z[~ok]=0; z -= z[ok].mean(); g = Σ|z|)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote": "ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 428,
+  "quote": "seg = CDf[pi + 1:ai + 1, :, 0]  …L430: y4v = np.where(fin, seg, 0).sum(0)  …L439: st.LR[leg].append(float((zz / g * np.nan_to_num(y4v[pm], nan=0.0)).sum() * 1e4) …)   (live seat = Σ-simple over (N, N+4h])",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 230,
+  "quote": "np.savez_compressed(tmp, ts=self.cts, data=self.cd)   (rolling.npz keys ts/data; observed shape (11520,829,7) f16, ts 2026-07-26 12:05Z→2026-09-04 12:00Z step 300)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/fea171/combo_stage.py",
+  "line": 352,
+  "quote": "_doc = {\"schema\": \"wide_target_v1\", \"anchor_ts\": int(A), \"weights\": _weights,  L353: \"gross_norm\": float(sum(abs(v) for v in _weights.values())), …",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/binance_executor.py",
+  "line": 493,
+  "quote": "mids[s] = (bid + ask) / 2   (from one /fapi/v1/ticker/bookTicker call at the rebalance pricing moment, L479; anchors.jsonl anchor_ts observed = nominal + 1381..1473 s)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/binance_executor.py",
+  "line": 1721,
+  "quote": "\"mid_at_anchor_vector\": vec,   (L1711: vec = json.dumps(mids, sort_keys=True))",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 2146,
+  "quote": "venue_position_qty=float((snap.get(\"positions_contracts\") or {}).get(sym, 0.0)),  L2148: source=\"fapi/v3/account@post_anchor\"   (broker L1329-1330: positions_contracts = positionAmt)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/binance_broker.py",
+  "line": 1325,
+  "quote": "\"equity\": (float(acct.get(\"totalWalletBalance\", \"nan\")) + float(acct.get(\"totalUnrealizedProfit\", \"nan\"))),",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 2366,
+  "quote": "equity_delta_since_prev=(None if not prev or prev.get(\"nav\") is None else eq - float(prev[\"nav\"])),  L2371: external_flow_usdt=(None if inc is None else inc[\"external_flow\"])  (_prev_nav L2386: most recent daily_nav row STRICTLY BEFORE day)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/dl_quant_live/live/binance_funding.py",
+  "line": 188,
+  "quote": "paid = float(it[\"income\"])   …L198: \"funding_paid\": paid,   (venue income sign: + = received)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/data/build_wide_dl.py",
+  "line": 151,
+  "quote": "Y[:T - H] = (logc[H:] - logc[:-H]).astype(np.float32)  # forward H-hour logret   (L95: logc = np.log(close)) — the wide_dl lineage is a TRUE log return; a different family from the pod 5m cache",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/data/dlw_targets.npz",
+  "line": 0,
+  "quote": "meta_json: \"cache\": \"/mnt/storage/private/work_hsy/w3lane/kcurve/data/dlnative_5m_wide829_f16.npz\", \"panel\": \".../wide_panel_4h_v1.npz\", n_anchors 10086, E_ts 2022-01-03 00:00Z→2026-08-10 20:00Z — built on jpline (jpline not contacted); its equivalence to the pod ext cache is established only by the bitwise recompute below",
+  "status": "INFERRED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 9,
+  "quote": "目标 y4s = Π_{k=1..48}(1 + ret5[E+k]) − 1  (docstring — BELIEF only; the executing lines are L75/L90/L93 above)",
+  "status": "INFERRED"
+ }
+]
+#### empirical_checks
+[
+ {
+  "method": "Recompute y4s from /workspace/data/dlnative_5m_wide829_f16_ext.npz as expm1(Σ log1p ret5[E+1..E+48]) (NaN→0, <46 finite→NaN) for the 10,056 anchors common to dlw_targets and meta; compare cell-wise to stored dlw_targets y4s",
+  "result": "n_both_finite 3,374,240; n_nan_mismatch 0; frac_exact_equal 0.99989; max_abs_diff 1.86e-9; frac_within_1e-6 1.0 (cumsum-difference vs direct sum float32 rounding only)",
+  "passed": true,
+  "command_or_script": "ssh pod2 /workspace/venv/bin/python /workspace/review_scratch/gt/pod_caliber_gt.py (self_sha256 11d271e700aa245876c18b0d82a4a831e6f36840e91ec2de7f14d47a3127999c; log /workspace/review_scratch/gt/run.log; copy at Mac scratch pod_run.log / pod_report.json); input sha256: targets dd4ed2df…, meta 4b1b6047…, pred 158cd4ac… (= MANIFEST), panel 5e67c055…, cache 72eb7849…"
+ },
+ {
+  "method": "Recompute y4old as Σ ret5[E..E+47] and meta y4 likewise from the ext cache; compare to stored arrays",
+  "result": "dlw y4old: 3,374,239 cells, frac_exact_equal 1.0, max_abs_diff 0.0; meta y4 (all 10,176 anchors): 3,446,599 cells, frac_exact_equal 1.0, max_abs_diff 0.0 → both are Σ-simple over the window that includes the pre-anchor bar",
+  "passed": true,
+  "command_or_script": "same script, keys check_y4old_vs_cache_sum / check_meta_y4_vs_cache_sum in pod_report.json"
+ },
+ {
+  "method": "Raw-kline identity: from /workspace/wide_multisrc/klines5m_daily/{BTC,ETH,DOGE,SOL,1000PEPE}USDT 2026-08-25..29 zips compute c_{N+4h}/c_N − 1 and compare to Π(1+ret5)−1, Σret5, Σlog1p(ret5) from the f16 cache over rows (N, N+4h]",
+  "result": "n=140 symbol-anchors: max|Π(1+ret5)−1 − (c1/c0−1)| = 1.15e-5 (f16 storage limit); max|Σret5 − (c1/c0−1)| = 1.19e-3; max|Σlog1p − (c1/c0−1)| = 1.46e-3; mean(Σret5 − ratio) +0.31 bps. Example BTCUSDT N=1787630400: ratio−1 −0.0098947, Π−1 −0.0098890, Σ −0.0098820, Σlog −0.0099382",
+  "passed": true,
+  "command_or_script": "same script, key raw_kline_identity"
+ },
+ {
+  "method": "King leg (slow_pred_pinned.npy) and fund leg (f_fund_ema_v1) with the production leg definition under y4old / y4s / expm1(y4old) / log1p(y4s) (+ cache-extended and same-window Σ-simple variants); yearly means and last-900-anchor Sharpe/anchor",
+  "result": "king: Σsimple +1.533/+2.381/+3.198, comp +1.618/+2.280/+3.071, expm1(Σ) +0.577/−0.048/−0.093, log +2.552/+4.634/+6.246 (2024/25/26 bps/anchor); last900 S/anchor +0.0996 / +0.0978 / −0.0196 / +0.2130. fund: Σsimple −0.361/+1.712/+6.344, comp −0.448/+1.600/+6.027, expm1(Σ) −0.157/+2.339/+6.925, log −0.652/+0.990/+5.503; last900 S/anchor +0.2516 / +0.2296 / +0.2610 / +0.2134. Σ-simple and compounded agree within noise (leg corr 0.98-0.99); expm1(Σ-simple) and log1p are each ~2 bps/anchor off in opposite directions for the king leg",
+  "passed": true,
+  "command_or_script": "same script; arrays in /workspace/review_scratch/gt/leg_returns_calibers.npz, stats in pod_report.json['legs'] and ['leg_gap']"
+ },
+ {
+  "method": "Σ-simple − compounded gap, name level and leg level (2024-26), pod",
+  "result": "name level same window: n 2,741,477, mean +0.430 bps, std 36.29 bps, median +0.62, p99|Δ| 39.6 bps; production-window (y4old−y4s): mean +0.432, std 59.92, p99|Δ| 174 bps. Leg level: king same-window −0.012 ± 3.318 bps/anchor (corr 0.9932), y4old−y4s +0.036 ± 5.464 (corr 0.9817); fund same-window +0.140 ± 3.544, y4old−y4s +0.150 ± 5.444. log−comp: name −3.80 ± 41.1; king +2.000 ± 3.792; fund −0.434 ± 4.013. expm1(y4old)−y4s: king −2.029 ± 5.626 (by year −1.04/−2.33/−3.16); fund +0.604 ± 5.117",
+  "passed": true,
+  "command_or_script": "same script, keys name_gap_bps / leg_gap"
+ },
+ {
+  "method": "Live book 2026-08-26 00Z→2026-09-04 08Z: paper = Σw·R/Σ|w| (w from ~/wide_shadow/state/target_live/<N>.json, R = Π(1+ret5)−1 over rolling.npz ch0 rows ts∈(N, N+4h]; also Σ-simple, log, and venue-aligned window (N+20m, N+4h+20m]); twin = Σ qty_N·(mid_{N+4h}−mid_N)/realized_gross_N from position_readback + anchors.jsonl mid_at_anchor_vector; funding = Σ funding_paid with settlement_ts∈(N, N+4h]",
+  "result": "52 windows (08-26 16Z skipped: realized_gross 0). Means bps/anchor: paper_comp +1.957 (sd 33.40), paper_sum +0.818, paper_log −1.751, paper_comp_shift +0.669, paper_sum_shift +0.101, twin +0.029 (sd 32.72), funding −1.909 ± 0.689, twin+funding −1.880. corr(paper_comp,twin) 0.769; corr(paper_comp_shift,twin) 0.776; corr(paper_sum,twin) 0.781 (bootstrap 4000× of corr_sum−corr_comp: mean +0.014, 95% CI [−0.036, +0.077]); slope twin~paper_comp 0.754, ~paper_comp_shift 0.848. Gaps: sum−comp −1.140 ± 6.419; log−comp −3.708 ± 6.673; sumshift−compshift −0.567 ± 4.963; twin−paper_comp −1.929 ± 22.47; twin−paper_comp_shift −0.497 ± 21.34. Coverage: paper 1.000, twin 0.9996 of gross. Name level (13,324 held name-windows): cache_comp_shift vs venue mid ratio mean −0.39 bps, std 69.5, corr 0.977",
+  "passed": true,
+  "command_or_script": "python3 /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/gt/mac_live_reconcile.py → live_reconcile_report.json, mac_run.log (rolling.npz sha in report)"
+ },
+ {
+  "method": "Daily: equity (last daily_nav row of day D) − last row of D−1 − external_flow_usdt(D) vs Σ over anchor windows whose end-pricing time falls in (nav_ts(D−1), nav_ts(D)] of twin_usd + funding_paid (all settlements in the nav span)",
+  "result": "10 days: corr 0.942 (twin+fund), 0.876 (paper+fund); Σ ΔequityNet −$540.9 vs Σ twin+fund −$1,307.8 vs Σ paper+fund −$1,559.4; per-day residual (equity − twin−fund) USD: 08-26 +155.7 (4 win), 08-27 +41.1, 08-28 +3.3, 08-29 +63.7 (5 win), 08-30 +141.5 (5 win), 08-31 −25.7, 09-01 +25.7, 09-02 +383.7 (4 win), 09-03 −219.8 (6 win but gross 41k→165k rebuild after $62,997.81 TRANSFER), 09-04 +197.7 (4 win, partial day). Four clean 6-window days Σ residual +$44.4, mean |resid| 6.43 bps of gross/day; venue COMMISSION since 00Z on those days −$0.001…−0.008",
+  "passed": true,
+  "command_or_script": "same Mac script (key daily / daily_summary) + follow-up python in the transcript (residual table, commission from daily_nav realised_by_type)"
+ },
+ {
+  "method": "Alignment sanity: dlw_targets E_row rows map to the same ts in the ext cache; slow_pred_pinned rows = meta E_ts; panel symbols = targets symbols; pred finite rows by year",
+  "result": "E_row ts == E_ts True; pred shape (10176, 829) with finite rows 2022:0 2023:0 2024:2196 2025:2190 2026:1452; meta E_ts (10176, 2022-01-08→2026-08-30 20Z) vs dlw E_ts (10086, 2022-01-03→2026-08-10 20Z) common 10056; panel ts step 14400, 2022-01-31→2026-08-31 00Z; symbols equal True",
+  "passed": true,
+  "command_or_script": "ssh pod2 python inline (transcript) — printed shapes"
+ }
+]
+#### confidence
+0.93
+#### caveats
+(1) Money caliber statement is algebraic (qty × ΔP ≡ notional × (P1/P0 − 1)) and empirically supported by: raw-kline identity (compounded reproduces close ratio to f16 precision; Σ-simple does not), the twin (positions × Δmid) vs paper correlations, and the daily equity reconciliation (four clean days within ±$41 ≈ ±10 bps of gross; corr 0.94). The daily test cannot distinguish Σ-simple from compounded at the book level — their book-level difference (≈ −1.1 ± 6.4 bps/anchor live, ≈ 0 ± 3-5 bps/anchor on 2024-26 legs) is far below the twin/paper noise (sd ≈ 21-33 bps/anchor); the discriminating evidence is the name-level identity, not the book. (2) The pod's y4old (and the bundle/meta y4 that trained the king rank target and feeds bundle leg_returns) uses the window [N−5m, N+3h55m] (one bar earlier than y4s); the live seat uses (N, N+4h]. Both are Σ-simple; window shift adds noise (std 5.4 vs 3.3 bps/anchor at leg level) but ~zero mean. (3) dlw_targets.npz was built on jpline from a different cache file (meta_json); jpline was not contacted (down per brief); equivalence rests on the bitwise recompute against the pod ext cache (99.989% exact). (4) Live twin timing: positions from the post-anchor read (~N+44 min) valued from mids at the pricing moment (~N+24 min) to the next pricing moment; the paper window is (N, N+4h] on 5m closes — hence corr ≈ 0.77 and slope 0.85 rather than 1; the venue-aligned paper window narrows the mean gap to −0.5 bps. (5) Daily reconciliation is exact only for days with all six windows; 08-26, 08-29, 08-30, 09-02, 09-04 miss windows (absent anchors 08-29 20Z and 09-02 00Z; flat book 08-26 16Z; period edges) and 09-03 is the gross ×4 rebuild day. Transfers between the last nav row (~20:44Z) and 24:00Z would be missed by external_flow (none observed). (6) Fund leg computed with the positive sign of f_fund_ema_v1 exactly as pod_export_bundle_v3.py L102 (no M1 base-rank; that is the live-only variant, shadow_loop_v3 L471). (7) scipy.stats.rankdata (scipy 1.17.1 already in /workspace/venv) used for ranks to match the production definition; numpy 2.4.6. (8) Cache ret5 is float16 and clipped ±0.3 (pod_merge_cache_ext.py L27; shadow_loop_v3 clipch L253) — the compounded cache return deviates from the exchange price ratio by ≤1.2e-5 for that reason. (9) The "last 900" windows differ by source: dlw-based ends 2026-08-10 20Z (starts 2026-03-14), cache-extended ends 2026-08-30 20Z (starts 2026-04-03). (10) No live system was modified; scratch only under the two review dirs; jpline not attempted.
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/gt (pod_caliber_gt.py, pod_report.json, pod_run.log, mac_live_reconcile.py, live_reconcile_report.json, mac_run.log); pod: /workspace/review_scratch/gt (pod_caliber_gt.py, report.json, run.log, leg_returns_calibers.npz)
+#### transforms_applied_downstream
+None in the production chain: pod_export_bundle_v3.py L109 multiplies the raw Σ-simple y4 (meta) by the unit-gross weight vector and ×1e4 — no expm1/log1p on the target; the king rank target (L42-45) is rankdata(y4) — rank-invariant to any monotone transform, so Σ-simple vs compounded matters for the label only through the one-bar window shift and tie structure. shadow_loop_v3.py L430-441 sums raw ret5 (Σ-simple) and ×1e4 — no transform; L473 uses np.expm1 only on log-quote-volume (qvk), not on returns. In this review's own scripts the four calibers are formed explicitly: pod_caliber_gt.py `np.expm1(d_y4old[k, m])` and `np.log1p(d_y4s[k, m])` (CAL_DLW dict), and cache variants `np.expm1(L1)` (compounded, = pod_dlw_targets_ext.py L93 form) and `L1` (Σ log1p); mac_live_reconcile.py win_ret(): comp = np.expm1(Σ log1p), sum = Σ, log = Σ log1p — all labeled per column in the outputs.

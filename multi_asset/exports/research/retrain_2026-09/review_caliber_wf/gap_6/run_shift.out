@@ -1,0 +1,55 @@
+64c70a44ee88b79547a444ccb969c58d17d3a25f2f02af9cc77055b767bfe430  /workspace/review_scratch/gap_6/altrun/w10_universe.py
+64c70a44ee88b79547a444ccb969c58d17d3a25f2f02af9cc77055b767bfe430  /workspace/port_w10/w10_universe.py
+64c70a44ee88b79547a444ccb969c58d17d3a25f2f02af9cc77055b767bfe430  /workspace/review_scratch/refute_C6_2/altrun/w10_universe.py
+cumsums 32.1 s
+meta keys ['E_ts', 'members', 'y4', 'qvk', 'names']
+window check: first row E+6, last row E+53  (5m grid, 48 rows)
+PARITY newsum vs refute_C6_2 meta_newsum: cells 3446600 exact_eq 1.000000 max|Δ| 0.00e+00 nan-mismatch 0
+PARITY newprod vs refute_C6_2 meta_newprod: cells 3446600 exact_eq 1.000000 max|Δ| 0.00e+00 nan-mismatch 0
+PARITY newprod vs dlw y4s: common 10056 cells 3374240 exact_eq 1.000000 nan-mismatch 0
+PARITY shiftprod vs pod_alpha_decay y4s_shift(E_row,5): common 10056 cells 3374223 exact_eq 1.000000 nan-mismatch 0
+2022: cells 310686 mean(shiftsum-newsum)=-0.023 bps mean|Δ|=82.69  mean(shiftprod-newprod)=+0.190 bps mean|Δ|=82.58  nan-mismatch(new vs shift) 102
+2023: cells 434964 mean(shiftsum-newsum)=+0.031 bps mean|Δ|=64.26  mean(shiftprod-newprod)=+0.086 bps mean|Δ|=64.34  nan-mismatch(new vs shift) 18
+2024: cells 645818 mean(shiftsum-newsum)=+0.010 bps mean|Δ|=80.61  mean(shiftprod-newprod)=+0.024 bps mean|Δ|=80.82  nan-mismatch(new vs shift) 34
+2025: cells 1069442 mean(shiftsum-newsum)=+0.009 bps mean|Δ|=79.96  mean(shiftprod-newprod)=+0.072 bps mean|Δ|=80.15  nan-mismatch(new vs shift) 46
+2026: cells 984428 mean(shiftsum-newsum)=-0.029 bps mean|Δ|=67.95  mean(shiftprod-newprod)=-0.051 bps mean|Δ|=68.09  nan-mismatch(new vs shift) 1161
+sha256 meta_shiftsum.npz 55b3bfad6cbbed05d1846fce20ba5a392dbc4b5aa959591faa1b1e319f90211b
+sha256 meta_shiftprod.npz 12621eff8a442ebd47e36961e311d7766427db520cec761e258d891eb18f3b3c
+saved 34.7 s
+CMD: cd /workspace/review_scratch/gap_6/altrun/base && env LEGS=101 LOOK=900 WRULE=msharpe SLOW_NPY=/workspace/shadow_bundle_v3/slow_pred_pinned.npy FSEED=42 CAL=log MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero W3FIX=0.21,0,0.79 OUT_TAG=alt_base_w3fix /workspace/venv/bin/python w10_universe.py
+CMD: cd /workspace/review_scratch/gap_6/altrun/base && env LEGS=101 LOOK=900 WRULE=msharpe SLOW_NPY=/workspace/shadow_bundle_v3/slow_pred_pinned.npy FSEED=42 CAL=log MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero OUT_TAG=alt_base_dyn /workspace/venv/bin/python w10_universe.py
+CMD: cd /workspace/review_scratch/gap_6/altrun/shiftsum && env LEGS=101 LOOK=900 WRULE=msharpe SLOW_NPY=/workspace/shadow_bundle_v3/slow_pred_pinned.npy FSEED=42 CAL=log MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero W3FIX=0.21,0,0.79 OUT_TAG=alt_shiftsum_w3fix /workspace/venv/bin/python w10_universe.py
+CMD: cd /workspace/review_scratch/gap_6/altrun/shiftsum && env LEGS=101 LOOK=900 WRULE=msharpe SLOW_NPY=/workspace/shadow_bundle_v3/slow_pred_pinned.npy FSEED=42 CAL=log MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero OUT_TAG=alt_shiftsum_dyn /workspace/venv/bin/python w10_universe.py
+CMD: cd /workspace/review_scratch/gap_6/altrun/shiftprod && env LEGS=101 LOOK=900 WRULE=msharpe SLOW_NPY=/workspace/shadow_bundle_v3/slow_pred_pinned.npy FSEED=42 CAL=log MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero W3FIX=0.21,0,0.79 OUT_TAG=alt_shiftprod_w3fix /workspace/venv/bin/python w10_universe.py
+CMD: cd /workspace/review_scratch/gap_6/altrun/shiftprod && env LEGS=101 LOOK=900 WRULE=msharpe SLOW_NPY=/workspace/shadow_bundle_v3/slow_pred_pinned.npy FSEED=42 CAL=log MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero OUT_TAG=alt_shiftprod_dyn /workspace/venv/bin/python w10_universe.py
+ALT_RUNS_DONE 2026-09-04T15:49:37Z
+/workspace/review_scratch/gap_6/altrun/alt_base_dyn.log:CONFIG {"KMOD_F10": 0.0, "KMOD_L": 0.5, "KMOD_AGREE": 0.0, "SEATF10": 0, "KTAIL": 0, "KMOD": 0.0, "SEATNET": 0, "FUNDSCALE": 0, "FEMAT_NPZ": null, "SLOW_NPY": "/workspace/shadow_bundle_v3/slow_pred_pinned.npy", "W3FIX": null, "MEMBERS_TOPN": 829, "TRADE_TOPN": 400, "FTRIM": "zero", "UMASK_NPZ": null, "LOOK": 900, "WRULE": "msharpe", "CAL": "l
+/workspace/review_scratch/gap_6/altrun/alt_base_dyn.log:SLOW override: /workspace/shadow_bundle_v3/slow_pred_pinned.npy finite 0.241
+/workspace/review_scratch/gap_6/altrun/alt_base_dyn.log:F10 OOS preds aligned: rows 10056/10176, cols 829/829, finite 0.2838
+/workspace/review_scratch/gap_6/altrun/alt_base_dyn.log:RECEIPT_EX d30_n2_c42 {"net_ex_all": 0.3833, "net_ex_2024on": 0.6914, "sharpe_ex_2024on": 1.884, "by_year_ex": {"2022": 0.313, "2023": -0.373, "2024": 0.149, "2025": 0.359, "2026": 2.013}, "carry_ex_mean": 0.4082, "cost_ex_mean": 0.0713, "turnover_ex_mean": 0.07127, "netlong_mean": -0.0267, "netlong_by_year": {"2022": -0.0223, "2023": -0.0182
+/workspace/review_scratch/gap_6/altrun/alt_base_dyn.log:DONE 29.8 s
+/workspace/review_scratch/gap_6/altrun/alt_base_w3fix.log:CONFIG {"KMOD_F10": 0.0, "KMOD_L": 0.5, "KMOD_AGREE": 0.0, "SEATF10": 0, "KTAIL": 0, "KMOD": 0.0, "SEATNET": 0, "FUNDSCALE": 0, "FEMAT_NPZ": null, "SLOW_NPY": "/workspace/shadow_bundle_v3/slow_pred_pinned.npy", "W3FIX": "0.21,0,0.79", "MEMBERS_TOPN": 829, "TRADE_TOPN": 400, "FTRIM": "zero", "UMASK_NPZ": null, "LOOK": 900, "WRULE": "msharpe"
+/workspace/review_scratch/gap_6/altrun/alt_base_w3fix.log:SLOW override: /workspace/shadow_bundle_v3/slow_pred_pinned.npy finite 0.241
+/workspace/review_scratch/gap_6/altrun/alt_base_w3fix.log:F10 OOS preds aligned: rows 10056/10176, cols 829/829, finite 0.2838
+/workspace/review_scratch/gap_6/altrun/alt_base_w3fix.log:RECEIPT_EX d30_n2_c42 {"net_ex_all": 0.1584, "net_ex_2024on": 0.4566, "sharpe_ex_2024on": 1.017, "by_year_ex": {"2022": -0.12, "2023": -0.381, "2024": -0.642, "2025": 0.284, "2026": 2.378}, "carry_ex_mean": 0.5053, "cost_ex_mean": 0.0401, "turnover_ex_mean": 0.0401, "netlong_mean": -0.0466, "netlong_by_year": {"2022": -0.0382, "2023": -0.01
+/workspace/review_scratch/gap_6/altrun/alt_base_w3fix.log:DONE 28.0 s
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_dyn.log:CONFIG {"KMOD_F10": 0.0, "KMOD_L": 0.5, "KMOD_AGREE": 0.0, "SEATF10": 0, "KTAIL": 0, "KMOD": 0.0, "SEATNET": 0, "FUNDSCALE": 0, "FEMAT_NPZ": null, "SLOW_NPY": "/workspace/shadow_bundle_v3/slow_pred_pinned.npy", "W3FIX": null, "MEMBERS_TOPN": 829, "TRADE_TOPN": 400, "FTRIM": "zero", "UMASK_NPZ": null, "LOOK": 900, "WRULE": "msharpe", "CAL
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_dyn.log:SLOW override: /workspace/shadow_bundle_v3/slow_pred_pinned.npy finite 0.241
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_dyn.log:F10 OOS preds aligned: rows 10056/10176, cols 829/829, finite 0.2838
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_dyn.log:RECEIPT_EX d30_n2_c42 {"net_ex_all": 0.3478, "net_ex_2024on": 0.6711, "sharpe_ex_2024on": 1.794, "by_year_ex": {"2022": 0.205, "2023": -0.382, "2024": 0.121, "2025": 0.274, "2026": 2.103}, "carry_ex_mean": 0.4025, "cost_ex_mean": 0.0692, "turnover_ex_mean": 0.06924, "netlong_mean": -0.0298, "netlong_by_year": {"2022": -0.0231, "2023": -0
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_dyn.log:DONE 29.7 s
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_w3fix.log:CONFIG {"KMOD_F10": 0.0, "KMOD_L": 0.5, "KMOD_AGREE": 0.0, "SEATF10": 0, "KTAIL": 0, "KMOD": 0.0, "SEATNET": 0, "FUNDSCALE": 0, "FEMAT_NPZ": null, "SLOW_NPY": "/workspace/shadow_bundle_v3/slow_pred_pinned.npy", "W3FIX": "0.21,0,0.79", "MEMBERS_TOPN": 829, "TRADE_TOPN": 400, "FTRIM": "zero", "UMASK_NPZ": null, "LOOK": 900, "WRULE": "msh
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_w3fix.log:SLOW override: /workspace/shadow_bundle_v3/slow_pred_pinned.npy finite 0.241
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_w3fix.log:F10 OOS preds aligned: rows 10056/10176, cols 829/829, finite 0.2838
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_w3fix.log:RECEIPT_EX d30_n2_c42 {"net_ex_all": 0.1177, "net_ex_2024on": 0.3888, "sharpe_ex_2024on": 0.864, "by_year_ex": {"2022": -0.129, "2023": -0.378, "2024": -0.709, "2025": 0.252, "2026": 2.258}, "carry_ex_mean": 0.5001, "cost_ex_mean": 0.0402, "turnover_ex_mean": 0.04024, "netlong_mean": -0.0492, "netlong_by_year": {"2022": -0.038, "2023":
+/workspace/review_scratch/gap_6/altrun/alt_shiftprod_w3fix.log:DONE 27.9 s
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_dyn.log:CONFIG {"KMOD_F10": 0.0, "KMOD_L": 0.5, "KMOD_AGREE": 0.0, "SEATF10": 0, "KTAIL": 0, "KMOD": 0.0, "SEATNET": 0, "FUNDSCALE": 0, "FEMAT_NPZ": null, "SLOW_NPY": "/workspace/shadow_bundle_v3/slow_pred_pinned.npy", "W3FIX": null, "MEMBERS_TOPN": 829, "TRADE_TOPN": 400, "FTRIM": "zero", "UMASK_NPZ": null, "LOOK": 900, "WRULE": "msharpe", "CAL"
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_dyn.log:SLOW override: /workspace/shadow_bundle_v3/slow_pred_pinned.npy finite 0.241
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_dyn.log:F10 OOS preds aligned: rows 10056/10176, cols 829/829, finite 0.2838
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_dyn.log:RECEIPT_EX d30_n2_c42 {"net_ex_all": 0.4139, "net_ex_2024on": 0.7434, "sharpe_ex_2024on": 1.989, "by_year_ex": {"2022": 0.275, "2023": -0.337, "2024": 0.182, "2025": 0.362, "2026": 2.17}, "carry_ex_mean": 0.4076, "cost_ex_mean": 0.067, "turnover_ex_mean": 0.06704, "netlong_mean": -0.0301, "netlong_by_year": {"2022": -0.0224, "2023": -0.02
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_dyn.log:DONE 30.1 s
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_w3fix.log:CONFIG {"KMOD_F10": 0.0, "KMOD_L": 0.5, "KMOD_AGREE": 0.0, "SEATF10": 0, "KTAIL": 0, "KMOD": 0.0, "SEATNET": 0, "FUNDSCALE": 0, "FEMAT_NPZ": null, "SLOW_NPY": "/workspace/shadow_bundle_v3/slow_pred_pinned.npy", "W3FIX": "0.21,0,0.79", "MEMBERS_TOPN": 829, "TRADE_TOPN": 400, "FTRIM": "zero", "UMASK_NPZ": null, "LOOK": 900, "WRULE": "msha
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_w3fix.log:SLOW override: /workspace/shadow_bundle_v3/slow_pred_pinned.npy finite 0.241
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_w3fix.log:F10 OOS preds aligned: rows 10056/10176, cols 829/829, finite 0.2838
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_w3fix.log:RECEIPT_EX d30_n2_c42 {"net_ex_all": 0.1725, "net_ex_2024on": 0.4563, "sharpe_ex_2024on": 1.022, "by_year_ex": {"2022": -0.082, "2023": -0.351, "2024": -0.661, "2025": 0.308, "2026": 2.372}, "carry_ex_mean": 0.5025, "cost_ex_mean": 0.0402, "turnover_ex_mean": 0.04016, "netlong_mean": -0.0481, "netlong_by_year": {"2022": -0.039, "2023": 
+/workspace/review_scratch/gap_6/altrun/alt_shiftsum_w3fix.log:DONE 28.2 s

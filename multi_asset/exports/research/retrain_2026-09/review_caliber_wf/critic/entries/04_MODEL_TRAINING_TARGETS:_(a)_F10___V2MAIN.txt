@@ -1,0 +1,331 @@
+
+#### component
+MODEL TRAINING TARGETS: (a) F10 / V2MAIN DL (pod_f10_train_ext.py walk-forward + pod_f10_refit_ext.py live refit -> fea171/f10_live_s42_np.npz sha 351ae26b) and (b) king LGBM (pod_export_bundle_v3.py -> shadow_bundle/slow2026.txt sha 8d79186b)
+#### definition
+Let r5[t,s] = cache channel 0 = float16(clip(c_t/c_{t-5m} - 1, -0.3, 0.3)) (simple 5-minute return; VERIFIED bitwise vs raw kline zips, log-return rejected). Let E = cache row whose bar CLOSES at anchor N (ts%14400==0). Missing bars count as 0.
+
+(a) F10 / V2MAIN DL target = y4s[E,s] = expm1( sum_{k=1..48} log1p(r5[E+k,s]) ) = PROD_{k=1..48}(1 + r5[E+k,s]) - 1, over rows E+1..E+48 = holding window (N, N+4h]; NaN if fewer than 46 finite bars. Stored float32 in /workspace/dlw_ext/data/dlw_targets.npz key y4s (sha 31d043e8...). It enters the loss LINEARLY as a book P&L: net_i = 1e4 * sum_s(w_i,s * y4s[i,s]) - COST*|dw|, loss = -mean(net) + LDD*ES5(net). No rank/label transform of y4s; YRZ/YR4s/y4old in the same npz are NOT read by any F10 training script. Caliber: compound simple ("true" simple 4h return), NOT sum-of-5m and NOT log.
+
+(b) King LGBM label = within-anchor cross-sectional rank of y4: rr = rankdata(y4[i,m][ok]) / max(n-1,1) - 0.5, with y4[E,s] = sum_{k=0..47} r5[E+k,s] (rows E..E+47 = (N-5m, N+3h55m], i.e. includes the already-closed bar at N and excludes the 48th future bar), NaN if <46 finite bars, from /workspace/data/wide_fea_v2ext_meta.npz key y4; LGBMRegressor.fit(X, rr). Caliber of the underlying quantity: sum of simple 5m returns (bitwise identical to dlw y4old on all 10176 common anchors). The label is a rank, so it is invariant to any strictly increasing elementwise transform g(y4) (expm1, log1p, scaling) - the sum-vs-log-vs-expm1 question is IRRELEVANT for the king label at that level. It is NOT exactly invariant to replacing sum r5 by prod(1+r5)-1 (path-dependent cross terms): same-window Spearman(SUM, PROD) median 0.99978 (min 0.9929 over 40 anchors), median |SUM-PROD| 1.1 bps, ~49% of members shift rank by adjacent swaps (max |delta label| 0.045 on a [-0.5,0.5] scale) - practically negligible. The one-bar WINDOW shift ([E,E+47] vs [E+1,E+48]) is the dominant difference vs the F10 target (Spearman 0.968, median |y4s - y4old| 18.8 bps).
+#### caliber
+other
+#### evidence
+[
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 67,
+  "quote": "r5 = CD[:, :, 0].astype(np.float32)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 69,
+  "quote": "r5z = np.where(fin, r5, 0).astype(np.float32)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 73,
+  "quote": "CS_r = np.concatenate([z1, np.cumsum(r5z, 0, dtype=np.float64)])",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 75,
+  "quote": "CS_L = np.concatenate([z1, np.cumsum(np.log1p(r5z.astype(np.float64)), 0)])",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 90,
+  "quote": "lo_t = E + 1; hi_t = E + FWD + 1          # CS 半开区间 [lo_t, hi_t) = rows E+1..E+48",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 93,
+  "quote": "y4s = np.expm1(CS_L[hi_t] - CS_L[lo_t]).astype(np.float32)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 94,
+  "quote": "y4s[y4n < MIN_FIN] = np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 96,
+  "quote": "y4old = (CS_r[E + FWD] - CS_r[E]).astype(np.float32); y4old[(CS_f[E + FWD] - CS_f[E]) < MIN_FIN] = np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 156,
+  "quote": "np.savez(f\"{OUT}/data/dlw_targets.npz\", E_ts=E_ts, E_row=E, members=np.array(MS, dtype=object), y4s=y4s, YR4s=YR4s, YRZ=YRZ,",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_dlw_targets_ext.py",
+  "line": 157,
+  "quote": "yrs=yrs, qvk=qvk, btcv=btcv, has_panel=has_panel, symbols=np.array(syms), y4old=y4old, meta_json=json.dumps(meta))",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_train_ext.py",
+  "line": 43,
+  "quote": "E_ts = TG[\"E_ts\"].astype(np.int64); yrs = TG[\"yrs\"].astype(int); y4s = TG[\"y4s\"]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_train_ext.py",
+  "line": 126,
+  "quote": "assert 1e-4 <= medy <= 0.05, f\"y4s 疑似非小数收益 med|y|={medy}\"    # 小数收益口径守卫",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_train_ext.py",
+  "line": 131,
+  "quote": "YT = torch.from_numpy(np.nan_to_num(y4s, nan=0.0)).to(DEV)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_train_ext.py",
+  "line": 241,
+  "quote": "net = 1e4 * (wn * YT[i]).sum() - COST * dn",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_train_ext.py",
+  "line": 288,
+  "quote": "loss = -nets.mean() + LDD * es5(nets)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_refit_ext.py",
+  "line": 16,
+  "quote": "E_ts = TG[\"E_ts\"].astype(np.int64); y4s = TG[\"y4s\"]; nA, NW = y4s.shape",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_refit_ext.py",
+  "line": 27,
+  "quote": "YT = torch.from_numpy(np.nan_to_num(y4s, nan=0.0)).to(DEV)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_refit_ext.py",
+  "line": 77,
+  "quote": "net = 1e4 * (wn * YT[i]).sum() - COST * dn",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_refit_ext.py",
+  "line": 105,
+  "quote": "loss = -nets.mean() + LDD * es5(nets)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_refit_ext.py",
+  "line": 123,
+  "quote": "f\"{OUT}/models/f10_live_s{SEED}.pt\")",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_f10_np_export.py",
+  "line": 56,
+  "quote": "np.savez(f\"{OUT}/models/f10_live_s{SEED}_np.npz\", **W, mu=mu.astype(np.float32), sd_=sdv.astype(np.float32),",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 28,
+  "quote": "E_ts = MT[\"E_ts\"].astype(np.int64); members = MT[\"members\"]; y4 = MT[\"y4\"]; qvk = MT[\"qvk\"]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 41,
+  "quote": "yv = y4[i, m]; ok = np.isfinite(yv)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 43,
+  "quote": "rr = rankdata(yv[ok]) / max(ok.sum() - 1, 1) - 0.5",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 45,
+  "quote": "rows_y.append(rr.astype(np.float32)); rows_a.append(np.full(ok.sum(), i, np.int32))",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 51,
+  "quote": "subsample=0.8, colsample_bytree=0.8, n_jobs=100, verbose=-1).fit(X[tr], Y[tr])",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 52,
+  "quote": "gbm.booster_.save_model(f\"{OUT}/slow2026.txt\")",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 109,
+  "quote": "LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py",
+  "line": 153,
+  "quote": "net = float((sm[m] * yv).sum() * 1e4 - car - cb)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py",
+  "line": 33,
+  "quote": "y4n = CS[\"ret5\"][1][E + 48] - CS[\"ret5\"][1][E]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py",
+  "line": 34,
+  "quote": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py",
+  "line": 83,
+  "quote": "np.savez_compressed(_os.environ.get(\"META_OUT\", \"/workspace/data/wide_fea_v2ext_meta.npz\"), E_ts=CTS[E], members=np.array(MS, dtype=object),",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py",
+  "line": 27,
+  "quote": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py",
+  "line": 24,
+  "quote": "k['ts'] = pd.to_datetime(k.open_time.astype(np.int64), unit='ms') + pd.Timedelta('5min')",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/pod_build_wide_ext.py",
+  "line": 29,
+  "quote": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)",
+  "status": "INFERRED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote": "ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 428,
+  "quote": "seg = CDf[pi + 1:ai + 1, :, 0]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 430,
+  "quote": "y4v = np.where(fin, seg, 0).sum(0)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/dlw_ext/results/dlw_targets_report.json",
+  "line": 2,
+  "quote": "\"self_sha256\": \"c21683ee23b775b46d927b9b606418d3039379f9fc279c027119fd36d73bce89\" (== sha256sum /workspace/pod_dlw_targets_ext.py); \"targets_sha256\": \"31d043e8f160a1d4...\" (== sha256sum /workspace/dlw_ext/data/dlw_targets.npz); \"panel\": \"/workspace/data/wide_panel_4h_v3splice.npz\"",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/f8_ext/results/f10_V2MAIN_s42.json",
+  "line": 1,
+  "quote": "targets_sha256 31d043e8f160a1d4475d5992a069c4b602419d78c7916f710d1e56ae8915caf9 self_sha256 93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598 (== sha256sum /workspace/pod_f10_train_ext.py)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/f8_ext/models/f10_live_s42_np.npz",
+  "line": 1,
+  "quote": "sha256 351ae26bd6b4a203... == /Users/haosiyu/wide_shadow/fea171/f10_live_s42_np.npz 351ae26b... == STATE.md L31 'sha 351ae26b'; trained_through 1788120000 (2026-08-30 20:00Z) == dlw_ext E_ts[-1]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/shadow_bundle_v3/slow2026.txt",
+  "line": 1,
+  "quote": "sha256 8d79186b6380132c... == /Users/haosiyu/wide_shadow/shadow_bundle/slow2026.txt 8d79186b... == MANIFEST.json == STATE.md L31 'booster_sha 8d79186b'",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/docs/ERROR_LEDGER_2026-08-20.md",
+  "line": 396,
+  "quote": "(belief only) 面板 y4 的定义 = pod_dlw_targets_ext.py L95–96 的 y4old = CS_r[E+48] − CS_r[E] = 行 [E, E+47] 简单收益之和 ... y4s = Π(1+r)−1",
+  "status": "INFERRED"
+ }
+]
+#### empirical_checks
+[
+ {
+  "method": "Cache channel 0 vs raw 5m kline zips (5 symbols x 4 days; 08-22/23 = BASE region of merged cache, 08-28/30 = EXT region) using bundle cache_tail_40d.npz (= CD[-11520:] of ext cache per pod_export_bundle_v3.py L171-172). Compare ch0 with float16(clip(c/c_prev-1)) and with float16(log(c/c_prev)).",
+  "command_or_script": "ssh pod2 '/workspace/venv/bin/python /workspace/review_scratch/model_targets/check_ch0_raw.py' (copy: scratchpad/review_caliber/model_targets/check_ch0_raw.py, log check_ch0_raw.log)",
+  "result": "All 20 symbol-days: exact_eq(simple f16)=1.0000, maxabs=0.00e+00 (n=287 each); exact_eq(log f16) only 0.10-0.68 with maxabs up to 7.5e-3. Channel 0 is the simple 5-minute return in both cache regions.",
+  "passed": true
+ },
+ {
+  "method": "Full-array replication of pod_dlw_targets_ext.py L67-75/L90-96 cumsum path from the ext cache (490753x829 float16) and bitwise comparison with stored y4s / y4old (10206x829).",
+  "command_or_script": "ssh pod2 'nohup setsid /workspace/venv/bin/python /workspace/review_scratch/model_targets/check_targets.py' (log: check_targets.log, json: check_targets_result.json; copies in Mac scratch dir)",
+  "result": "y4s vs expm1(sum log1p r5[E+1..E+48]): 3,450,715 finite cells, nan_pattern_equal=true, bitwise_equal_all=true, max_abs_diff=0.0. y4old vs sum r5[E..E+47]: 3,450,714 cells bitwise_equal_all=true, max_abs_diff=0.0. CTS[E_row]==E_ts for all anchors; all E_ts%14400==0.",
+  "passed": true
+ },
+ {
+  "method": "Independent direct-window path (no cumsum): on 40 anchors spread 2022-01-03..2026-08-30, compute PROD(1+r)-1 and SUM(r) in float64 over rows [E+1,E+48] and [E,E+47], compare to y4s and y4old (|d|<=2e-8 in float32).",
+  "command_or_script": "same check_targets.py run",
+  "result": "y4s==PI_[E+1,E+48]: min frac 1.000000, max_abs_diff 3.6e-15. y4s==SUM_[E+1,E+48]: mean frac 0.070 (max diff 3.6e-2). y4s==PI_[E,E+47]: 0.082 (max diff 1.1e-1). y4old==SUM_[E,E+47]: min frac 1.000000, max_abs_diff 0.0. y4old==SUM_[E+1,E+48]: 0.082. y4old==PI_[E,E+47]: 0.070. Only one candidate matches each array.",
+  "passed": true
+ },
+ {
+  "method": "King label source: wide_fea_v2ext_meta.npz y4 vs dlw y4old on all common anchors (10176 of 10176), vs direct SUM_[E,E+47] on 39 anchors, vs expm1 path; members identity.",
+  "command_or_script": "same check_targets.py run",
+  "result": "meta y4 vs dlw y4old: 3,446,599 cells bitwise_equal_all=true max_abs_diff=0.0; vs replication sum r5[E..E+47]: bitwise equal; vs direct SUM on 39 anchors: 100% cells, max diff 0.0; vs expm1(sum log1p)[E+1..E+48]: exact_frac 0.089, nan pattern differs. members equal on 100% anchors. King y4 = sum of simple 5m returns over rows E..E+47.",
+  "passed": true
+ },
+ {
+  "method": "Rank-label sensitivity (king): per-anchor Spearman and rank-change fraction between SUM and PROD in the same window, and between windows, on 40 anchors (median n=261 members).",
+  "command_or_script": "same check_targets.py run (rank_stats in check_targets_result.json)",
+  "result": "sp_SUM_vs_PI_same_window median 0.99978 (min 0.9929); frac_rank_changed median 0.489 (max 0.845) but max |delta label| 0.045; med |SUM-PI| 1.12 bps. Window shift: sp_window_shift_SUM 0.968; sp_y4old_vs_y4s 0.968; med |y4s-y4old| 18.8 bps. Compounding is a second-order perturbation of the king label; the one-bar window shift dominates.",
+  "passed": true
+ },
+ {
+  "method": "Generation consistency: 08-22 jpline product /workspace/data/dlw_targets.npz (sha dd4ed2df, cache path /mnt/storage/.../dlnative_5m_wide829_f16.npz) y4s vs the same expm1 path evaluated on the ext cache rows.",
+  "command_or_script": "same check_targets.py run",
+  "result": "3,378,355 cells bitwise_equal_all=true, max_abs_diff 0.0; CTS[E_row]==E_ts true. Same y4s definition in both generations; diff of the two scripts shows only path/env lines 21-23 changed.",
+  "passed": true
+ },
+ {
+  "method": "Provenance SHA chain (script on disk == script that produced the artifact == artifact consumed by training == live file).",
+  "command_or_script": "ssh pod2 'sha256sum /workspace/pod_dlw_targets_ext.py /workspace/pod_f10_train_ext.py /workspace/dlw_ext/data/dlw_targets.npz /workspace/f8_ext/models/f10_live_s42_np.npz /workspace/shadow_bundle_v3/slow2026.txt'; shasum -a 256 /Users/haosiyu/wide_shadow/fea171/f10_live_s42_np.npz /Users/haosiyu/wide_shadow/shadow_bundle/slow2026.txt; grep -n 351ae26b STATE.md",
+  "result": "pod_dlw_targets_ext.py c21683ee == dlw_targets_report.self_sha256; dlw_ext targets 31d043e8 == report.targets_sha256 == f10_V2MAIN_s42.json targets_sha256; pod_f10_train_ext.py 93cc2cdf == f10 json self_sha256; f10_live_s42_np.npz 351ae26b identical pod<->Mac<->STATE.md L31 (trained_through 1788120000 == ext E_ts[-1]); slow2026.txt 8d79186b identical pod<->Mac<->MANIFEST<->STATE.md L31.",
+  "passed": true
+ },
+ {
+  "method": "Grep all /workspace/*.py for consumers of y4old / YRZ / YR4s to confirm no training script uses them for F10 or king.",
+  "command_or_script": "ssh pod2 'grep -n -E \"dlw_targets|y4s|YR4s|YRZ|y4old|expm1|log1p|rankdata\" /workspace/*.py'",
+  "result": "y4old is read only by diagnostics (pod_caliber_truth.py, pod_caliber_alllegs.py). YRZ/YR4s are read only by pod_f8_build_ext.py (feature admission) and not by pod_f10_train_ext.py / pod_f10_refit_ext.py. F10 scripts read y4s only. expm1 in bundle exporter (L130/L146), combo_stage.py L41, shadow_loop_v3.py L473 acts on qvk (log quote volume), not on returns.",
+  "passed": true
+ }
+]
+#### transforms_applied_downstream
+F10: none. y4s is used raw: pod_f10_train_ext.py L131 (nan_to_num only) -> L241 net = 1e4*(w*y4s).sum() - COST*|dw| -> L288 loss; pod_f10_refit_ext.py L27 -> L77 -> L105 identical. pod_legs_ext.py L50/L56 builds f10v2_legs leg returns from raw y4s (z/g * y4s * 1e4). No expm1/log1p/exp/log on y4s anywhere in the training chain (the log1p->cumsum->expm1 at pod_dlw_targets_ext.py L75/L93 is the construction of the product itself, not a downstream transform). King: label = rankdata(y4) (pod_export_bundle_v3.py L43); y4 used raw in leg returns L109 and net L153; IC via spearmanr L65/L76. expm1 at pod_export_bundle_v3.py L130/L146 and shadow_loop_v3.py L473 / combo_stage.py L41 is applied to qvk (log quote volume), not to returns. Producer accounting shadow_loop_v3.py L428-431 uses y4v = sum of simple r5 over rows [E+1,E+48] (new window, no expm1) - note this window differs by one bar from the king training label window [E,E+47].
+#### caveats
+1) Single-enum caliber cannot encode both models: F10/V2MAIN DL = compound_simple (y4s = PROD(1+r5)-1 over (N,N+4h], enters loss linearly in bps); king LGBM = cross-sectional rank of sum_of_simple_5m (y4 = SUM r5 over rows [E,E+47]). 'other' is chosen only because the component spans two calibers; neither model is trained on a log return. 2) The base region of the 5m cache (before 2026-08-24 04:00) was built by pod_build_wide_ext.py which is no longer on the pod; its formula (pct_change, archived copy commit 204dd14 in retrain_2026-09/) is INFERRED for the base region, but the empirical channel-0 check on 2026-08-22/23 (base region) and the merge parity gate (pod_merge_cache_ext.py L50-54, exact_eq>=0.999 on the overlap) both support simple returns; the check covers 2 base days, not the full history. 3) y4s equals PROD(1+r)-1 mathematically and numerically (max 3.6e-15) via the log1p/expm1 cumsum path; the float16 storage of r5 and the +-0.3 clip are inherited into both targets. 4) King label window [E,E+47] includes the bar that closes AT the anchor (already known at decision time) and omits the 48th future bar; the F10 target window is [E+1,E+48]; the live producer's leg-return accounting (shadow_loop_v3.py L428) uses [E+1,E+48]. This one-bar shift, not compounding, explains the 15.8-18.8 bps median |y4s-y4old| and Spearman 0.968-0.972. 5) Rank invariance: the king label is exactly invariant to strictly increasing elementwise transforms of y4 (expm1/log1p/scale), so those transforms cannot change the booster; it is not exactly invariant to SUM->PROD (Spearman 0.99978 median, |delta label| <= 0.045), which is immaterial in practice. 6) The archived research-repo copy of pod_f10_train_ext.py (sha f3c1e3cf) differs from the pod copy (93cc2cdf, the one recorded in f10 results) by the L1SM/SM_TAU arm additions; target/loss lines are semantically identical in both. 7) jpline was not contacted (task said down); all data checks used pod copies of the artifacts. 8) Docs/ledger/memory statements (E-0904-F, RESULT_caliber_truth) were cited only as beliefs; they agree with the executed-code findings here.
+#### confidence
+0.97
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/model_targets (Mac: check_targets.py, check_ch0_raw.py, logs, check_targets_result.json, pod script copies) and /workspace/review_scratch/model_targets (pod: same scripts + logs + result json)

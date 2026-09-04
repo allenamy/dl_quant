@@ -1,0 +1,147 @@
+
+#### claim_id
+C2
+#### refuted
+True
+#### confidence
+0.85
+#### verified_parts
+[
+ "[VERIFIED] Device code: w10_universe.py L17 CAL defaults to 'simple'; L135-136 (legs) and L277-278 (run) apply np.expm1 to y4 when CAL=='simple'; L315 price path Pi uses the same transformed yv; y4 is read from {B}/wide_fea_hist_meta.npz (L47-48).",
+ "[VERIFIED] Y4 definition (data, bitwise): meta y4 == float32(sum of channel-0 over rows E..E+47) on 3,446,599 finite cells, exact-eq 1.000000, maxabs 0 (my pod_c2_check.py). The alternative window rows E+1..E+48 matches only 10.5% of cells -> rejected. Builder lines: pod_fea_ext.py L34 and pod_fea_wide_hist.py L38 `y4 = (CS['ret5'][0][E + 48] - CS['ret5'][0][E])`.",
+ "[VERIFIED] channel 0 is a clipped SIMPLE return, not log: pod_merge_cache_ext.py L27 `A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)` (executed on pod, 2026-09-01); /workspace/merge_ext.log `PARITY overlap cells=1,666,343 exact_eq=1.000000` vs base cache; producer shadow_loop_v3.py L292 `ret5 = (c / pc - 1)`; producer rolling.npz sum over rows E..E+47 == pod meta y4 on 131,409/131,409 cells (maxabs 0). Mirror copies of base/hist builders pod_build_wide.py L28 and pod_build_wide_ext.py L29 also use pct_change (pre-2026-07 history: code-verified via mirror, data-inferred since /workspace/wide_multisrc/klines5m has 0 files).",
+ "[VERIFIED] Spurious term ~ sigma^2/2 per name: mean over members of expm1(y4)-compounded(same window) vs sum(r^2)/2 in bps: 2024 3.54 vs 3.52; 2025 5.31 vs 5.16; 2026 5.09 vs 5.02.",
+ "[VERIFIED] King leg (production king slow_pred_pinned, unit-gross device legs() formula, truth = prod(1+r)-1 over the SAME rows E..E+47): CAL=simple minus truth = 2024 -1.03+/-0.03, 2025 -2.44+/-0.10, 2026 -3.14+/-0.07, pooled 2025-26 -2.72+/-0.07 bps/anchor -> 'king understated 2-3 bps in 2025-26' holds.",
+ "[VERIFIED] Fund leg: CAL=simple minus truth = 2024 +0.30+/-0.04, 2025 +0.74+/-0.08, 2026 +0.88+/-0.07 -> 'fund overstated ~0.3-0.9' holds.",
+ "[VERIFIED] King leg under CAL=log (raw y4) vs same-window truth: 2024on -0.010+/-0.043, 2025 -0.01+/-0.08, 2026 +0.09+/-0.12 bps/anchor -> 'within ~0.05' holds for king only.",
+ "[VERIFIED] Provenance/timing: first expm1(_yy)/CAL flag in a wide-book device appears in transcript at 2026-08-25T13:35:07Z; archived eda/w10_ablation_replay_2026-08-25.py (commit ea84425, 2026-08-26) has identical lines L17/L76-77/L179-180; the W2 predecessor pod_stop_arms_v3.py (2026-08-21) L38/L76 used raw y4. The 2026-08-22 expm1 rerun (inrole_simple_return_rerun.py) acted on the 110-name log-family Y4 (build_wide_dl.py L151 `logc[H:] - logc[:-H]`), which is legitimate and unaffected.",
+ "[VERIFIED, device output] Port of the unchanged device (only 3 path constants differ) with LEGS=101: book net 2024on CAL=simple 1.49 vs CAL=log 0.79 bps/anchor; Sharpe 3.23 vs 1.85; by year 2025 0.99 vs 0.50, 2026 3.85 vs 2.14 (w10_ablation_summary_pod_live_{calsimple,callog}_s42.json, config_json CAL confirmed)."
+]
+#### refuted_or_unverified_parts
+[
+ "[REFUTED - overstated] 'F10 understated by 2-3 bps/anchor': same-window expm1 bias of the F10 score leg is only -0.34 (2024), -0.41+/-0.09 (2025), -1.54+/-0.07 (2026); pooled 2025-26 -0.86+/-0.06 bps/anchor. The -2.25/-3.29 figures in docs/RESULT_caliber_truth_2026-09-04.md L24 compare against y4s built over rows E+1..E+48 (pod_dlw_targets_ext.py L90-96), i.e. a one-5m-bar SHIFTED window. The F10 leg's return on the single pre-anchor bar (row E, [E-5m,E], inside the meta window but known at anchor time) is -1.07/-1.85/-1.29 bps (2024/25/26), which alone explains compA-compB = -1.20/-1.83/-1.48. That is a window/lookahead artifact of the meta y4, not convexity.",
+ "[REFUTED - overstated] 'CAL=log leaves Y4 raw, an unbiased proxy of exchange accounting to within ~0.05 bps/anchor at the leg level': true for king only. Fund leg raw-minus-truth (same window) = 2024 +0.10+/-0.03, 2025 +0.11+/-0.08, 2026 +0.27+/-0.13, pooled 2024on +0.146+/-0.047 (~3 sigma), 2025on +0.174+/-0.073; rev24 2024on -0.064+/-0.051; per-name raw-minus-compounded is systematically positive (+0.23..+0.73 bps: negative intra-window autocorrelation), so the sum is unbiased only where weights are uncorrelated with the cross-term. Against the tradeable window (rows E+1..E+48) the F10 raw leg is off by -1.52+/-0.06 (2024on).",
+ "[OVERSTATED - direction at book level omitted] The claim's leg framing implies replay books were understated; the device's own book output (fund-dominated, msharpe seats) is OVERSTATED under CAL=simple: +0.49 (2025) and +1.71 (2026) bps/anchor vs CAL=log; Sharpe 2024on 3.23 vs 1.85.",
+ "[MINOR] 'since mid-August 2026' -> the defect exists from 2026-08-25 (W3/w10 family, E-0825-A device), archived 08-26; wide-book devices before that (W2, 08-21/22) used raw y4.",
+ "[UNVERIFIED] jpline inputs (pod_backup_2026-08-21/wide_fea_hist_meta.npz from the 2020-start hist cache; slow_pred_hist_oos.npy yearly-OOS king): jpline unreachable (one attempt, timed out). The hist cache builder is pod_build_wide_ext.py (mirror L29 pct_change; chain pod_cpu3_chain.sh L26-27) -> same definition inferred, not data-checked. King numbers above use the production king (slow_pred_pinned, finite 2024+); the jpline device's yearly-OOS king would differ in magnitude (same mechanism).",
+ "[CAVEAT] 'exchange accounting' truth here = prod(1+r_5m)-1 from +/-0.3-clipped float16 5m returns over rows E..E+47; live P&L is NAV = totalWalletBalance + totalUnrealizedProfit (anchor_loop.py L2362) on positions traded at N+23 min, so neither replay window is the live window; the producer's own leg returns use rows pi+1..ai (shadow_loop_v3.py L428-431), i.e. the shifted window, unlike the meta y4."
+]
+#### evidence
+[
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 17,
+  "quote_or_output": "CAL = os.environ.get(\"CAL\", \"simple\")                 # simple = 交易所记账(y -> expm1)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 136,
+  "quote_or_output": "            if CAL == \"simple\":\n                _yy = np.expm1(_yy)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/w10_universe.py",
+  "line": 278,
+  "quote_or_output": "        if CAL == \"simple\":\n            yv = np.expm1(yv)"
+ },
+ {
+  "file_or_command": "ssh pod2 cat /workspace/pod_fea_ext.py",
+  "line": 34,
+  "quote_or_output": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan"
+ },
+ {
+  "file_or_command": "ssh pod2 cat /workspace/pod_merge_cache_ext.py",
+  "line": 27,
+  "quote_or_output": "    A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)"
+ },
+ {
+  "file_or_command": "ssh pod2 grep PARITY /workspace/merge_ext.log",
+  "quote_or_output": "PARITY overlap cells=1,666,343 exact_eq=1.000000 nan_mismatch=0.340556"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote_or_output": "            ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan"
+ },
+ {
+  "file_or_command": "python3 (Mac) rolling.npz vs pod y4_recent.npz",
+  "quote_or_output": "producer rolling.npz sum A[E..E+47] vs pod meta y4: exact-eq 131409/131409 = 1.000000  maxabs 0.000e+00 ; sum B[E+1..E+48]: exact-eq 15807/131409 = 0.120289"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C2_2/c2_check.log (pod_c2_check.py)",
+  "quote_or_output": "meta y4 vs sumA[E..E+47]: nan-pattern-equal 1.000000  exact-eq(finite) 1.000000  maxabs 0.000e+00  n_finite 3,446,599 | meta y4 vs sumB[E+1..E+48]: exact-eq(finite) 0.104790  maxabs 3.025e-01"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C2_2/c2_check.log",
+  "quote_or_output": "2025 {'e_minus_raw': 4.575, 'e_minus_cA': 5.308, 'raw_minus_cA': 0.732, 'raw_minus_cB': 0.7, 'rv2': 5.162, 'cA_minus_cB': -0.033} ; 2026 {'e_minus_raw': 4.859, 'e_minus_cA': 5.089, 'raw_minus_cA': 0.23, ... 'rv2': 5.022}"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C2_2/c2_check.log (king)",
+  "quote_or_output": "king 2025 {\"sim-compA\": -2.4392, \"sim-compA_se\": 0.0979, \"raw-compA\": -0.0095, \"raw-compA_se\": 0.0803} ; king 2026 {\"sim-compA\": -3.1436, \"se\": 0.0739, \"raw-compA\": 0.0915, \"raw-compA_se\": 0.1189} ; king 2025on sim-compA -2.7201 se 0.0661"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C2_2/c2_check.log (fund)",
+  "quote_or_output": "fund 2024 sim-compA 0.3022 (se 0.0357) raw-compA 0.0985 (se 0.025) ; fund 2025 sim-compA 0.7412 (se 0.0837) raw-compA 0.1141 (se 0.0832) ; fund 2026 sim-compA 0.8833 (se 0.0749) raw-compA 0.265 (se 0.1339) ; fund 2024on raw-compA 0.1458 se 0.0466"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C2_2/c2_check.log (f10)",
+  "quote_or_output": "f10 2025 sim-compA -0.413 (se 0.091) raw-compA -0.0858 raw-compB -1.9196 compA-compB -1.8338 ; f10 2026 sim-compA -1.541 (se 0.0726) raw-compA 0.0781 compA-compB -1.4775 ; f10 2025on sim-compA -0.8627 se 0.0626"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C2_2/c2_bars.log (pod_c2_bars.py)",
+  "quote_or_output": "f10 2024 {\"barE\": [-1.0671, 0.0506], \"barE48\": [0.1243, 0.0433]} ; f10 2025 {\"barE\": [-1.8463, 0.0624], \"barE48\": [-0.0136, 0.0537]} ; f10 2026 {\"barE\": [-1.2911, 0.0807], \"barE48\": [0.1869, 0.0732]} ; king 2025 barE 0.037 barE48 -0.0768"
+ },
+ {
+  "file_or_command": "ssh pod2 grep -n ... /workspace/pod_dlw_targets_ext.py",
+  "line": 90,
+  "quote_or_output": "lo_t = E + 1; hi_t = E + FWD + 1          # CS 半开区间 [lo_t, hi_t) = rows E+1..E+48 ... L93 y4s = np.expm1(CS_L[hi_t] - CS_L[lo_t]) ... L96 y4old = (CS_r[E + FWD] - CS_r[E])"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/docs/RESULT_caliber_truth_2026-09-04.md",
+  "line": 24,
+  "quote_or_output": "装置偏差(expm1 − 真简单, bps/锚): king −1.04/−2.33/−3.16 · fund +0.29/+0.74/+0.90 · rev24 −0.82/−1.51/−1.99 · F10 −1.54/−2.25/−3.29(2024/2025/2026)  [belief source of the claim; its '真简单' = y4s on the shifted window]"
+ },
+ {
+  "file_or_command": "/workspace/review_scratch/refute_C2_2/c2_bars.log (port device summaries)",
+  "quote_or_output": "pod_live_calsimple_s42 S0 CAL=simple LEGS=101 by_year {'2025': 0.987, '2026': 3.851} sharpe24 3.225 net24 1.4936 | pod_live_callog_s42 S0 CAL=log by_year {'2025': 0.5, '2026': 2.142} sharpe24 1.845 net24 0.7865"
+ },
+ {
+  "file_or_command": "grep transcript 6737834a-...jsonl for expm1(_yy) / os.environ.get(\"CAL\"",
+  "quote_or_output": "\"timestamp\":\"2026-08-25T13:35:07.511Z\" (first occurrence of both)"
+ },
+ {
+  "file_or_command": "git -C /Users/haosiyu/Desktop/quant_research log -S'os.environ.get(\"CAL\"'",
+  "quote_or_output": "ea84425 2026-08-26 05:05:36 +0800 落实 E-0826-B ... (adds eda/w10_ablation_replay_2026-08-25.py with L17 CAL, L76-77 expm1(_yy), L179-180 expm1(yv))"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/eda/kcurve_2026-08-15/devices_2026-08-21/pod_stop_arms_v3.py",
+  "line": 38,
+  "quote_or_output": "LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)   [raw y4, no expm1; L76 same]"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/data/build_wide_dl.py",
+  "line": 151,
+  "quote_or_output": "Y[:T - H] = (logc[H:] - logc[:-H]).astype(np.float32)  # forward H-hour logret   [log-family Y4 used by the 08-22 expm1 rerun: legitimate]"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_build_wide_ext.py",
+  "line": 29,
+  "quote_or_output": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   [hist/base cache builder, mirror copy; chain pod_cpu3_chain.sh L26-27 EXT_START=2020-01-01 ... pod_build_wide_ext.py]"
+ },
+ {
+  "file_or_command": "ssh -o ConnectTimeout=8 jpline",
+  "quote_or_output": "ssh: connect to host 212.50.244.62 port 31999: Operation timed out (single attempt; jpline inputs not re-checked)"
+ },
+ {
+  "file_or_command": "ssh pod2 find /workspace/wide_multisrc/klines5m -type f | wc -l",
+  "quote_or_output": "0  (no monthly raw klines on pod; historical channel-0 definition rests on builder code + parity log + producer bitwise identity)"
+ },
+ {
+  "file_or_command": "/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py",
+  "line": 2362,
+  "quote_or_output": "nav_source=\"equity = totalWalletBalance + totalUnrealizedProfit \""
+ }
+]
+#### corrected_statement
+w10_universe.py (research copy; identical lines in the archived 2026-08-25 device) applies np.expm1 under CAL=simple (default) in legs() L135-136 and run() L277-278 to y4 = float32 sum of 48 clipped simple 5-minute returns over cache rows E..E+47 (bitwise: 3,446,599 cells exact; producer cache identical on 131,409 cells; ch0 = c/pc-1 per pod_merge_cache_ext.py L27 and shadow_loop_v3.py L292). The spurious term equals sum(r^2)/2 per name (2024/25/26 member means 3.5/5.3/5.1 bps vs RV/2 3.5/5.2/5.0). At the leg level (unit gross, truth = prod(1+r)-1 on the same rows), CAL=simple biases: king -1.03 (2024), -2.44+/-0.10 (2025), -3.14+/-0.07 (2026) bps/anchor [understated 2-3 in 2025-26: correct]; fund +0.30/+0.74/+0.88 [correct]; rev24 -0.75/-1.53/-1.98; F10 score leg only -0.34/-0.41/-1.54 (pooled 2025-26 -0.86+/-0.06) -- NOT 2-3 bps; the published F10 -2.25/-3.29 mixes in a one-5m-bar window shift (meta y4 rows E..E+47 vs y4s rows E+1..E+48) on which F10 alone loses -1.07/-1.85/-1.29 bps on the pre-anchor bar. CAL=log (raw y4) is within ~0.05 bps of same-window compounded truth for king (2024on -0.01+/-0.04) and F10 (-0.01+/-0.04) but NOT for fund (+0.10/+0.11/+0.27 by year; 2024on +0.146+/-0.047) or rev24 (-0.06+/-0.05), because per-name sum-minus-compounded is systematically +0.23..+0.73 bps (negative intra-window autocorrelation); versus the tradeable window it is also off by -1.5 bps for F10. Book-level consequence (device's own port output, LEGS=101, msharpe seats): CAL=simple OVERSTATES the book, net 2024on 1.49 vs 0.79 bps/anchor (2025 0.99 vs 0.50; 2026 3.85 vs 2.14), Sharpe 3.23 vs 1.85. The defect dates from 2026-08-25 (first expm1(_yy) at 2026-08-25T13:35Z; archived 08-26), not mid-August; the W2 device of 08-21/22 used raw y4 and the 08-22 expm1 rerun acted on the true-log 110-name Y4 (build_wide_dl.py L151) and is unaffected. jpline-resident inputs (hist meta, yearly-OOS king) could not be rechecked (host down); their channel-0 definition is inferred from the mirrored builder code (pod_build_wide_ext.py L29).
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/refute_C2_2

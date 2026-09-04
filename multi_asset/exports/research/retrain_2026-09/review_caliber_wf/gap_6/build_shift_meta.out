@@ -1,0 +1,15 @@
+cumsums 32.1 s
+meta keys ['E_ts', 'members', 'y4', 'qvk', 'names']
+window check: first row E+6, last row E+53  (5m grid, 48 rows)
+PARITY newsum vs refute_C6_2 meta_newsum: cells 3446600 exact_eq 1.000000 max|Δ| 0.00e+00 nan-mismatch 0
+PARITY newprod vs refute_C6_2 meta_newprod: cells 3446600 exact_eq 1.000000 max|Δ| 0.00e+00 nan-mismatch 0
+PARITY newprod vs dlw y4s: common 10056 cells 3374240 exact_eq 1.000000 nan-mismatch 0
+PARITY shiftprod vs pod_alpha_decay y4s_shift(E_row,5): common 10056 cells 3374223 exact_eq 1.000000 nan-mismatch 0
+2022: cells 310686 mean(shiftsum-newsum)=-0.023 bps mean|Δ|=82.69  mean(shiftprod-newprod)=+0.190 bps mean|Δ|=82.58  nan-mismatch(new vs shift) 102
+2023: cells 434964 mean(shiftsum-newsum)=+0.031 bps mean|Δ|=64.26  mean(shiftprod-newprod)=+0.086 bps mean|Δ|=64.34  nan-mismatch(new vs shift) 18
+2024: cells 645818 mean(shiftsum-newsum)=+0.010 bps mean|Δ|=80.61  mean(shiftprod-newprod)=+0.024 bps mean|Δ|=80.82  nan-mismatch(new vs shift) 34
+2025: cells 1069442 mean(shiftsum-newsum)=+0.009 bps mean|Δ|=79.96  mean(shiftprod-newprod)=+0.072 bps mean|Δ|=80.15  nan-mismatch(new vs shift) 46
+2026: cells 984428 mean(shiftsum-newsum)=-0.029 bps mean|Δ|=67.95  mean(shiftprod-newprod)=-0.051 bps mean|Δ|=68.09  nan-mismatch(new vs shift) 1161
+sha256 meta_shiftsum.npz 55b3bfad6cbbed05d1846fce20ba5a392dbc4b5aa959591faa1b1e319f90211b
+sha256 meta_shiftprod.npz 12621eff8a442ebd47e36961e311d7766427db520cec761e258d891eb18f3b3c
+saved 34.7 s

@@ -1,0 +1,285 @@
+
+#### component
+Seat-history series feeding the live msharpe seats: bundle /Users/haosiyu/wide_shadow/shadow_bundle/leg_returns.npz (pod export) + producer-appended rows in /Users/haosiyu/wide_shadow/state/leg_returns_live.json (shadow_loop_v3.py step 6) → w3 in shadow_loop_v3.py L456-460 and fea171/combo_stage.py L29-34
+#### definition
+Per name and 5-min bar closing at t: r5[t] = float16(clip(close[t]/close[t-5m] - 1, -0.3, 0.3)) (simple close-to-close return; NaN if bar missing). For a 4h anchor E and a leg L in {king, rev24, fund}: score s over members m (king = slow_pred_pinned[i, m]; rev24 = -f_rev_24h; fund = f_fund_ema_v1), z = nan_to_num(rankdata(s)/(n-1) - 0.5), z set to 0 where y4 is non-finite, z -= mean(z[finite y4]), z /= sum|z|; LR_L[E] = 1e4 * sum(z * nan_to_num(y4)) — i.e. bps per 4h of a unit-gross rank book. The y4 vector is a plain SUM of 48 float16 simple 5-min returns (float64 accumulation, cast float32, NaN if <46 finite bars) — no expm1/log1p/compounding anywhere. Two window conventions coexist in the series: (a) POD-BUILT rows (v3 bundle and the old 08-16 bundle, which supplies 790 of the current 900-row window): y4_pod[E] = sum_{k=0..47} r5[E + 5m*k] = bars closing in [E, E+3h55m] (includes the bar closing AT the anchor, excludes the bar closing at E+4h); rev24 score uses f_rev_24h = sum_{k=1..288} r5[E - 5m*k] (bars closing in [E-24h+5m... E-5m], excludes the anchor bar). (b) PRODUCER-APPENDED rows: y4_prod[E] = sum_{k=1..48} r5[E + 5m*k] = bars closing in (E, E+4h] from state/rolling.npz (NaN for names outside the 450-name data universe), rev24 score = sum_{k=0..287} r5[E - 5m*k] (includes the anchor bar), fund rank over the M1 base (xz_in_base). Same caliber (sum of simple 5m), one-bar (5-minute) window offset between (a) and (b).
+#### caliber
+sum_of_simple_5m
+#### evidence
+[
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 28,
+  "quote": "E_ts = MT[\"E_ts\"].astype(np.int64); members = MT[\"members\"]; y4 = MT[\"y4\"]; qvk = MT[\"qvk\"]   (MT = /workspace/data/wide_fea_v2ext_meta.npz, L27)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 49,
+  "quote": "tr = YRA < 2026; te = YRA == 2026",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 50,
+  "quote": "gbm = lgb.LGBMRegressor(n_estimators=400, learning_rate=0.05, num_leaves=63, subsample=0.8, colsample_bytree=0.8, n_jobs=100, verbose=-1).fit(X[tr], Y[tr])  → L52 gbm.booster_.save_model(f\"{OUT}/slow2026.txt\")",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 54,
+  "quote": "PRED = np.full((nA, NW), np.nan, np.float32)   (2022–23 rows are never filled → king leg = 0.0 exactly for those years)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 56,
+  "quote": "for YV in (2024, 2025): / tr_ = YRA < YV; te_ = YRA == YV / g2 = lgb.LGBMRegressor(...).fit(X[tr_], Y[tr_]) / pv = g2.predict(X[te_]) ... PRED[a, m[okm]] = pv[sel]   (L56-64: 2024/2025 rows = walk-forward out-of-sample folds)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 71,
+  "quote": "pv = gbm.predict(X[te]); a_te = A[te] ... L75 PRED[a, m[okm]] = pv[sel]   (2026 rows = predictions of the <2026-trained production booster → out-of-sample w.r.t. training years)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 80,
+  "quote": "if abs(ic26 - orig26) > 0.006: print(\"BUNDLE_FAIL ic_gate\"); sys.exit(3)   and L162 if not (2.27 <= sh <= 2.57): BUNDLE_FAIL baseline_guard   (acceptance gates that read 2026 outcomes; fail-stop, not a fit)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 82,
+  "quote": "np.save(f\"{OUT}/slow_pred_pinned.npy\", PRED)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 85,
+  "quote": "PW = np.load(os.environ.get(\"EXPORT_PANEL\", \"/workspace/data/wide_panel_4h_v2ext.npz\"), allow_pickle=True)  / L87 FN = PW[\"f_fund_now\"]; IV = PW[\"f_fund_iv\"]; R24 = PW[\"f_rev_24h\"]; FE = PW[\"f_fund_ema_v1\"]",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 97,
+  "quote": "LR = {leg: [] for leg in (\"king\", \"rev24\", \"fund\")}",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 102,
+  "quote": "sc = {\"king\": PRED[i, members[i]], \"rev24\": -R24[j, members[i]], \"fund\": FE[j, members[i]]}",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 104,
+  "quote": "ok = np.isfinite(y4[i, m])",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 106,
+  "quote": "z = np.nan_to_num(xz(sc[leg])) / z = np.where(ok, z, 0.0); z -= z[ok].mean() if ok.sum() else 0 / g = np.abs(z).sum() / LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)   (L106-109; xz at L88-92 = rankdata(v[ok]) / max(n - 1, 1) - 0.5)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_export_bundle_v3.py (pod2)",
+  "line": 165,
+  "quote": "np.savez_compressed(f\"{OUT}/leg_returns.npz\", ts=E_ts[np.array(idx)], **LRa)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py (pod2)",
+  "line": 33,
+  "quote": "y4n = CS[\"ret5\"][1][E + 48] - CS[\"ret5\"][1][E] / y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]).astype(np.float32); y4[y4n < 46] = np.nan   (CS from cs_pair L13-17: np.concatenate([np.zeros((1, NW)), np.cumsum(xz, 0)]) with NaN→0, float64; CD channel 0 cast float32 at L21 → y4 = sum of cache rows E..E+47)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_fea_ext.py (pod2)",
+  "line": 83,
+  "quote": "np.savez_compressed(_os.environ.get(\"META_OUT\", \"/workspace/data/wide_fea_v2ext_meta.npz\"), E_ts=CTS[E], members=np.array(MS, dtype=object), y4=y4, ...",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py (pod2)",
+  "line": 27,
+  "quote": "A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3)   (channel 0 = simple close/close-1, float16 array L26; row ts = open_time + 5min at L24)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_merge_cache_ext.py (pod2)",
+  "line": 54,
+  "quote": "assert eq >= 0.999, f\"平价门红: exact_eq={eq}\"   (base 'fresh' cache vs pct_change rebuild on overlap window 08-22 08:00..08-24 04:00; L56-58 merged into dlnative_5m_wide829_f16_ext.npz)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/workspace/pod_panel_ext.py (pod2)",
+  "line": 47,
+  "quote": "F[\"rev_4h\"] = wsum(CS_r, 48); F[\"rev_24h\"] = wsum(CS_r, 288); ...   (wsum L41-42 = (CSx[E] - CSx[E - w]) → rows E-288..E-1)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 292,
+  "quote": "ret5 = (c / pc - 1) if (pc and pc > 0) else np.nan   → L296 st.cd[i, j] = np.array(clipch(ch), np.float16); CHN_CLIPS[0] = (-0.3, 0.3) at L150; row index from L285 close_s = (int(k[0]) + 300000) // 1000",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 428,
+  "quote": "seg = CDf[pi + 1:ai + 1, :, 0] / fin = np.isfinite(seg) / y4v = np.where(fin, seg, 0).sum(0) / y4v[fin.sum(0) < 46] = np.nan   (L428-431; CDf = st.cd.astype(np.float32) at L355; pi = row of last_anchor, ai = row of anchor → rows E+1..E+48)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 433,
+  "quote": "for leg in (\"king\", \"rev24\", \"fund\"): / z = np.array(prev[\"legz\"][leg]) / okl = np.isfinite(y4v[pm]) / zz = np.where(okl, z, 0.0) / zz -= zz[okl].mean() if okl.sum() else 0 / g = np.abs(zz).sum() / st.LR[leg].append(float((zz / g * np.nan_to_num(y4v[pm], nan=0.0)).sum() * 1e4) if g > 1e-9 else 0.0)   (L433-439; same y4v for all three legs)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 471,
+  "quote": "legz = {\"king\": xz(pred), \"rev24\": xz(-rev24), \"fund\": xz_in_base(fe_v[m], [st.syms[int(j)] for j in m], base_vals)}   # M1   (rev24 = wstat(0, 288, \"sum\")[m] at L469; wstat L357-363 seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch] → rows E-287..E; legz stored nan_to_num at L531)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 226,
+  "quote": "self.LR = {leg: list(lr[leg]) + list(extra[leg]) for leg in (\"king\", \"rev24\", \"fund\")}   (lr = bundle leg_returns.npz L223; extra = state/leg_returns_live.json L224-225)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 237,
+  "quote": "n_keep = 900 + 50 / atomic_json(f\"{STATE_DIR}/leg_returns_live.json\", {leg: list(map(float, self.LR[leg][-n_keep:])) for leg in self.LR})   (L237-239: file = last 950 of bundle+extra → rolling window carried across bundle swaps)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 425,
+  "quote": "if prev and prev.get(\"anchor_ts\") == st.last_anchor and anchor - st.last_anchor == 14400:   (rows are appended only for consecutive scored anchors; 2 gaps in shadow_log score rows: 08-18 08Z→20Z, 08-29 12Z→08-30 00Z)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/shadow_loop_v3.py",
+  "line": 456,
+  "quote": "look = P[\"msharpe_look\"] / if len(st.LR[\"king\"]) >= look: / r = np.stack([np.array(st.LR[leg][-look:]) for leg in (\"king\", \"rev24\", \"fund\")]) / shp = r.mean(1) / (r.std(1) + 1e-9); shp = np.maximum(shp, 0.0) / w3 = shp / shp.sum() ...   (L456-460; raw LR, no transform)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/wide_shadow/fea171/combo_stage.py",
+  "line": 29,
+  "quote": "LR = json.load(open(f\"{WS}/state/leg_returns_live.json\")) / look = P[\"msharpe_look\"] / if len(LR[\"king\"]) >= look: / r = np.stack([np.array(LR[k][-look:], np.float64) for k in (\"king\", \"rev24\", \"fund\")]) / shp = r.mean(1) / (r.std(1) + 1e-9); shp = np.maximum(shp, 0) / w3 = shp / shp.sum() if shp.sum() > 0 else np.array([1/3]*3)   (L29-34: combo book seats come from the state file alone)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_export_shadow_bundle.py",
+  "line": 39,
+  "quote": "tr = YRA < 2026; te = YRA == 2026   (L46 tr_ = YRA < YV; te_ = YRA == YV; L91 LR[leg].append(float((z / g * np.nan_to_num(y4[i, m], nan=0.0)).sum() * 1e4) ...). This is the git mirror (commit 236a702) of the 08-16 generation script; whether this exact text ran on 08-16 is not provable — its LR block diffs from v3 only by a variable rename (g2→g2_), and the old bundle's rows were reproduced bitwise (check A2).",
+  "status": "INFERRED"
+ },
+ {
+  "file": "/workspace/export_v3.log (pod2)",
+  "line": 1,
+  "quote": "fold 2024 IC +0.0548 (base +0.0574 Δ-0.0026) / fold 2025 IC +0.0630 / pinned booster 2026 IC +0.0584 (orig +0.0571) / pinned v1iv full b: 净1.024 夏普2.28 / ema_state canon-cont override 450/450 / BUNDLE_DONE files 8 size 93MB   (no EXPORT_PANEL recorded anywhere; panel identity established empirically = v3splice, check 1)",
+  "status": "VERIFIED"
+ },
+ {
+  "file": "/Users/haosiyu/Desktop/quant_research/docs/RUNBOOK_monthly_retrain_2026-10.md",
+  "line": 95,
+  "quote": "(belief, not evidence) \"…避免 2022–23 段生产 booster 样本内值在 extra 不足时进窗…\" — contradicted by data: 2022–23 king rows are exactly 0.0 in both bundles because PRED rows for those years are all-NaN (L54; check 11).",
+  "status": "INFERRED"
+ }
+]
+#### empirical_checks
+[
+ {
+  "method": "Recompute v3 bundle leg_returns.npz (1098 anchors 2026-03-01..2026-08-30 20Z) from bundle slow_pred_pinned.npy + shipped meta y4/members + shipped panel f_rev_24h/f_fund_ema_v1, using the L88-109 formula (scipy rankdata)",
+  "result": "king eq=1.0000, rev24 eq=1.0000 with either panel; fund eq=1.0000 (max|d|=0) ONLY with wide_panel_4h_v3splice (with v2ext: eq=0.0000, max|d|=51.4) → the export ran with EXPORT_PANEL=v3splice",
+  "passed": true,
+  "command_or_script": "python3 <scratch>/recompute.py  section (A); slices from pod: <scratch>/export_slices.py (copied to /workspace/review_scratch/seat_caliber/)"
+ },
+ {
+  "method": "Same recomputation for the OLD 08-16 bundle (shadow_bundle.aug20260816_backup, 1003 anchors 2026-03-01..08-15 00Z) with its own slow_pred_pinned.npy",
+  "result": "king/rev24/fund eq=1.0000, max|d|=0 (v3splice panel) — the rows that fill 790/900 of the live window use the same formula and same y4 as the v3 export",
+  "passed": true,
+  "command_or_script": "recompute.py section (A2)"
+ },
+ {
+  "method": "Caliber discriminator on v3 bundle rev24/fund legs: y4 → identity vs expm1(y4) vs log1p(y4)",
+  "result": "identity: rev24 bitwise 1.0000; expm1: max|d| 94.4 (rev24) / 136.1 (fund), mean shift -2.11/+0.39 bps; log1p: max|d| 178.6/151.4 → bundle is the plain sum",
+  "passed": true,
+  "command_or_script": "recompute.py section (A3)"
+ },
+ {
+  "method": "meta y4 (wide_fea_v2ext_meta.npz) vs Σ48 of channel 0 from the pod cache tail (bundle cache_tail_40d.npz, sha 68b64045… = pod MANIFEST) and from the producer's state/rolling.npz, both window conventions",
+  "result": "rows [E..E+47]: bitwise 1.000000 (233 anchors 07-23..08-30, 162,288 cells; 212 anchors / 131,409 cells for rolling.npz), max|d|=0; rows [E+1..E+48] (producer form): 15.2% / 12.0%, max|d|=0.303 → pod y4 includes the bar closing AT the anchor and excludes the bar closing at E+4h. Alternative calibers vs meta y4: expm1(Σlog1p) max|d| 0.364, Σlog1p 0.485, log1p(Σ) 2.56 — none match",
+  "passed": true,
+  "command_or_script": "python3 <scratch>/offset_check.py section (B2); recompute.py (B)"
+ },
+ {
+  "method": "panel f_rev_24h vs Σ288 of channel 0: rows [E-288..E-1] (pod wsum) vs [E-287..E] (producer wstat)",
+  "result": "[E-288..E-1] bitwise 1.000000 (227 anchors, both caches); [E-287..E] 15.2% / 12.1% → producer's rev24 score window is shifted one bar later than the pod panel's",
+  "passed": true,
+  "command_or_script": "offset_check.py section (F)"
+ },
+ {
+  "method": "Producer-appended rows: recompute the rev24 leg for each shadow_log 'score' anchor from rolling.npz (producer windows) + members from state/weights/<anchor>.npz, compare to leg_returns_live.json rows 840..949 in score-row order; also with y4→expm1, log1p, compounded Π(1+r)-1",
+  "result": "plain sum: bitwise 1.0000 for 106/110 rows (anchors 2026-08-17 04Z..2026-09-04 08Z; the 4 earliest rows 08-16 12Z..08-17 00Z have no weights file, not checkable); expm1 0% (max|d| 20.5, mean -2.09), log1p 0% (46.1), compound 0% (16.3). The same y4v vector is used for king and fund at L433-439 → all appended rows are Σ-simple with the producer window",
+  "passed": true,
+  "command_or_script": "recompute.py section (C)"
+ },
+ {
+  "method": "Raw Binance 5m klines (6 symbols, 2026-08-23..08-29 daily zips on pod, spanning base region ≤08-24 04Z and ext region) → float16(clip(close/prev_close-1)) vs float16(clip(log(close/prev_close))) against channel 0 of pod cache_tail_40d and producer rolling.npz at row ts = open_time+5m",
+  "result": "12,054 bars: eq_simple = 1.00000 in both caches, eq_log = 0.31525; on the 98 bars with |r|>1%: simple 98/98, log 0/98 (e.g. 1000PEPEUSDT 08-23 04:50Z cache -0.01789856 = simple16, log16 -0.01805115) → channel 0 is the simple return, row ts = bar close time",
+  "passed": true,
+  "command_or_script": "recompute.py section (D)"
+ },
+ {
+  "method": "Composition of state/leg_returns_live.json (950 rows) by bitwise alignment against v3 bundle tail and old 08-16 bundle tail; composition of the 900-row msharpe window; reproduce logged w3",
+  "result": "0 leading rows match the v3 bundle; 840 leading rows == old bundle tail bitwise (anchors 2026-03-28 04Z..2026-08-15 00Z); rows 840..949 = 110 producer score rows (08-16 12Z..09-04 08Z, 2 gaps). Producer window = combined[10226:11126] = extra[50:950] = old-bundle rows 2026-04-05 12Z..08-15 00Z (790) + 110 producer rows; v3 bundle contributes 0 rows. w3 from the file = [0.1929, 0.1184, 0.6887] == shadow_log 12Z signal w3; window ending one row earlier = [0.1972, 0.1218, 0.6809] == 08Z signal w3",
+  "passed": true,
+  "command_or_script": "offset_check.py section (H); earlier inline python (alignment search)"
+ },
+ {
+  "method": "State-file identity: sha256 of leg_returns_live.json and both 09-04 backups; element-wise relation",
+  "result": "current 2d36d11d929cf89d… ; .pre_seatfix_20260904 172715cea9f53852… ; .oos_expm1_seed_withdrawn_20260904 de0aa38b10b69bd3… (== research snapshot leg_returns_live_seatfix_20260904.json). NOT byte-equal to pre_seatfix, but cur[:-1] == pre[1:] bitwise for king/rev24/fund (950-row cap): the same rolling series advanced by exactly one appended row (09-04 08Z anchor, written by the 12Z run at 12:19Z). The withdrawn expm1 seed differs in all 950 rows from both.",
+  "passed": true,
+  "command_or_script": "shasum -a 256 /Users/haosiyu/wide_shadow/state/leg_returns_live.json*  ; inline python shift check"
+ },
+ {
+  "method": "Bundle provenance: Mac shadow_bundle MANIFEST.json vs pod /workspace/shadow_bundle_v3/MANIFEST.json vs recomputed sha of Mac files",
+  "result": "all 8 entries identical (leg_returns.npz 6061af10…, slow_pred_pinned.npy 158cd4ac…, cache_tail_40d.npz 68b64045…, slow2026.txt 8d79186b… = booster_sha in shadow_log signal rows since 09-01 08Z)",
+  "passed": true,
+  "command_or_script": "cat MANIFEST.json (both hosts); shasum -a 256 in /Users/haosiyu/wide_shadow/shadow_bundle"
+ },
+ {
+  "method": "slow_pred_pinned.npy finite rows per year (v3) and king leg by year (v3 and old bundle)",
+  "result": "2022: 0/2148 rows finite, 2023: 0/2190 → king leg exactly 0.0 for all 2022–23 anchors in both bundles; 2024: 2196 rows (fold booster <2024), 2025: 2190 (fold <2025), 2026: 1452 rows (production booster <2026, mean 400 finite names/row). 2026 rows are out-of-sample w.r.t. the booster's training rows; two acceptance gates (L80, L162) read 2026 outcomes (fail-stop, not selection)",
+  "passed": true,
+  "command_or_script": "inline python section (I) and recompute.py (E)"
+ },
+ {
+  "method": "Magnitude of the one-bar window offset on 2026 leg values: bundle rows (pod window) vs same scores with producer-window y4 from cache_tail (227 anchors 2026-07-23..08-30)",
+  "result": "corr 0.982 (king) / 0.986 (rev24) / 0.984 (fund); mean diff +0.11 / -0.06 / +0.02 bps per anchor (rev24 -0.51 if the producer feature window is also applied); sd of diff 5.1–5.7 bps vs series sd 29–34 bps → same caliber, small but non-zero definitional drift between the two row sources",
+  "passed": true,
+  "command_or_script": "inline python section (J)"
+ },
+ {
+  "method": "Old 08-16 bundle vs v3 bundle on 9943 common anchors",
+  "result": "rev24 bitwise identical (all years); fund 99.8% bitwise (max|d| 0.216, 2022 only); king identical (all 0.0) 2022–23, differs 2024/25/26 (different boosters; corr 0.911/0.919/0.816)",
+  "passed": true,
+  "command_or_script": "inline python (old vs new bundle comparison)"
+ }
+]
+#### confidence
+0.95
+#### scratch_dir
+/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/seat_caliber (recompute.py, offset_check.py, meta_slice.npz, panel_v2ext_slice.npz, panel_v3splice_slice.npz, raw_klines.npz); pod: /workspace/review_scratch/seat_caliber/ (export_slices.py + the same npz)
+#### transforms_applied_downstream
+None. Leg-return rows are consumed raw: shadow_loop_v3.py L456-460 (msharpe on st.LR[-900:]) and fea171/combo_stage.py L29-34 (msharpe on leg_returns_live.json[-900:]). The only expm1/log calls in the producer are on volume channels: shadow_loop_v3.py L247-248 (log1p qv/cnt), L249 (log qv/cnt), L473 (expm1 on qvm for qv4h); in the pod export only L130/L146 (expm1 on qvk). combo_stage.py L41 expm1 on qvm only. No expm1/log1p/exp/log touches y4, legz or LR anywhere (grep receipts in session).
+#### caveats
+(1) Consistency verdict: bundle rows and producer rows are the SAME caliber (Σ of float16-clipped simple 5m close-to-close returns, bps of unit-gross rank book) but NOT the same definition: pod-built rows use y4 over bars closing in [E, E+3h55m] and rev24 over bars closing ≤ E-5m; producer rows use (E, E+4h] and ≤ E (bitwise-established both ways). The pod window includes a 5-min bar already realized at decision time (anchor+6 min) — internally consistent on the pod (features end at row E-1) but a one-bar train/serve skew vs the producer, which feeds features through row E. Effect on leg values is small (corr ≈0.98, mean shift ≈0.1 bps/anchor). (2) Producer y4v is NaN for names outside the 450-name data universe (≈14,268 NaN-mismatch cells over 212 anchors vs the pod cache) and fund ranks use the M1 base since 09-04 — further definitional differences of the appended rows vs bundle rows. (3) The v3 bundle's leg_returns.npz is never inside the live 900-row window: the window is old-08-16-bundle rows (790) + producer rows (110); the state file was not reset at the 09-01 swap (it is the rolling last-950 of bundle+extra, L237-239). (4) Old 08-16 export script text: only the git mirror is available (commit 236a702, workspace_mirror/pod_export_shadow_bundle.py); its LR block and training split match v3 verbatim (except g2→g2_), and its rows reproduce bitwise from its own PRED, but that the mirrored text is what executed on 08-16 is INFERRED. (5) 4 of the 110 producer rows (08-16 12Z..08-17 00Z) lack weights files and were not bitwise-checked; king/fund appended rows are verified via the shared y4v vector and code path, not by independent recomputation of their scores. (6) Base-region (2022→2026-08-24) cache convention is verified directly only for 08-23/08-24 rows via raw klines and for 08-22..08-24 via the merge parity gate (executed assert L54); earlier rows share the same array/builder (INFERRED). (7) jpline was not needed and was not contacted. No live files were modified; pod scratch only under /workspace/review_scratch/seat_caliber/.
