@@ -1,0 +1,37 @@
+commit 4b8ca20af8983101885ca4f88b1464619d71ac70
+Author: haosiyu <haosiyu@haosiyudeMacBook-Pro.local>
+Date:   Fri Sep 4 17:34:30 2026 +0800
+
+    σ_fund gross 阶梯(PREREG_deploy_sigma_ladder_2026-09-04): live/sigma_ladder 故障安全读取 + anchor_loop 低档分支(默认路径逐字不变, S4 合约)+ tests_sigma_ladder 13 项 + SUITES/gate_coverage/PRODUCTION_MODULES 登记; 今日行为零变化(g=1.0)
+
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index 4dd94f4..977302d 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -1463,8 +1463,24 @@ class AnchorLoop:
+         # `gross` was a config constant, so as equity fell the effective leverage rose and nobody
+         # decided that — the risk budget was being enlarged by arithmetic. It is now
+         # `nav x target_leverage`, recomputed here, every anchor.
+-        _sz = self._size_book(target_leverage=(external["gross_mult"] if _is_ext else None),
+-                              leverage_source=("external_book.gross_mult" if _is_ext else None))
++        # ★ σ_fund gross ladder (PREREG_deploy_sigma_ladder_2026-09-04): target_leverage = gross_mult x g,
++        #   g in {0.5, 1.0} read from a dashboard-written state file; FAIL-SAFE g=1.0 (missing/stale/tampered
++        #   never reduces exposure). Logged on the anchors row; INFO when g<1 or when a present file is rejected.
++        _g, _ginfo = (1.0, {"src": "sigma_ladder", "g": 1.0, "accepted": False, "reason": "not_external"})
++        if _is_ext:
++            import sigma_ladder as _SLAD   # live/ 已在 sys.path(与 external_book/per_name_stop 同式)
++            _g, _ginfo = _SLAD.load()
++            if _ginfo.get("accepted") and _g < 1.0:
++                self.alarm("INFO", f"σ_fund 阶梯低档: g={_g} p={_ginfo.get('p')} streak_low={_ginfo.get('streak_low')} — 目标 gross = NAV×{external['gross_mult']}×{_g}")
++            elif (not _ginfo.get("accepted")) and _ginfo.get("reason") not in ("missing", "not_external"):
++                self.alarm("INFO", f"σ_fund 阶梯状态文件被拒({_ginfo.get('reason')}) — 按 g=1.0 运行")
++            _bw["gross_ladder"] = _ginfo
++        if _is_ext and _g < 1.0:   # ladder low mode (rare): exposure = NAV x gross_mult x g, stamped so the anchors row shows it
++            _sz = self._size_book(target_leverage=external["gross_mult"] * _g,
++                                  leverage_source=f"external_book.gross_mult×ladder({_g})")
++        else:                       # default path — byte-identical to the pre-ladder call (S4 contract)
++            _sz = self._size_book(target_leverage=(external["gross_mult"] if _is_ext else None),
++                                  leverage_source=("external_book.gross_mult" if _is_ext else None))
+         out_sizing = _sz
+         self._last_sizing = _sz
+         if _sz.get("halt"):

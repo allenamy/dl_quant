@@ -18,3 +18,8 @@
 - 首次真实换档(若发生): INFO 推送 ≤1 锚延迟; 目标 gross 变为 NAV×2.0×0.5 ±3%; 30 锚后按 RESULT_allweather 口径复核(低档期间书净额 vs 反事实全仓)。
 ## 4. 回滚
 删除/置 g=1.0 状态文件即刻恢复; 执行器代码回滚经 safe_commit。
+
+## 5. 执行器侧换装收据(2026-09-04 09:34Z)
+- live 仓 **4b8ca20**(safe_commit, 电池 **ALL GREEN 124/124**, 含新套件 tests_sigma_ladder 13 项; 已推送)。三次红后修正: ① 印记文案破 L2 → g=1.0 时印记不变; ② `from live import` 破 tests_external_book(live/ 走 sys.path 直导入)→ `import sigma_ladder`; ③ S4 合约(size_book 调用字面量)与 tests_imports 生产模块名册 → 默认路径逐字不变 + 低档单独分支 + PRODUCTION_MODULES 登记。
+- 改动面: `live/sigma_ladder.py`(evaluate/load, 故障安全 g=1.0), `scheduler/anchor_loop.py`(g<1 时 target_leverage=gross_mult×g 并印记; anchors 行 weights.gross_ladder), `run_acceptance.sh` SUITES, `ops/gate_coverage.py` 盲区条目, `live/tests_imports.py` 名册。快照入研究仓 `dl_quant_live_snapshot_2026-09-04/`。
+- 仪表盘侧: launchd `com.hsy.sigma_ladder`(N+52)已装; 首次写入 `state/live/sigma_ladder.json`(g=1.0, p≈0.65); 执行器读取端复核见下条。
