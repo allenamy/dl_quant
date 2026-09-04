@@ -33,12 +33,14 @@ SEATNET = int(os.environ.get("SEATNET", "0")); assert SEATNET in (0, 1)
 SEATF10 = int(os.environ.get("SEATF10", "0")); assert SEATF10 in (0, 1)   # T1: F10 链用 F10 自己的 msharpe 席位(四腿腿收益)
 KTAIL = int(os.environ.get("KTAIL", "0")); assert KTAIL in (0, 1)         # T2: king 作尾部否决(fund 多尾中 king 秩底 20% / 空尾中 king 秩顶 20% 置零)
 KMOD = float(os.environ.get("KMOD", "0")); assert KMOD in (0.0, 0.5)       # T3: z ×= (1 + KMOD·xz(king))
-KMOD_AGREE = float(os.environ.get("KMOD_AGREE", "0")); assert KMOD_AGREE in (0.0, 0.5)   # T3b(一致性形): z += KMOD_AGREE·|z|·xz(king) —— king 同向放大、反向缩小   # X1(PREREG_legs_factors): 席位用净腿收益(纯价格 − 腿书 carry)
+KMOD_AGREE = float(os.environ.get("KMOD_AGREE", "0")); assert KMOD_AGREE in (0.0, 0.5)
+KMOD_F10 = float(os.environ.get("KMOD_F10", "0")); assert KMOD_F10 in (0.0, 0.5)   # T3c: z ×= (1 + KMOD_F10·xz(F10)) —— DL 作调节器(两链)
+KMOD_L = float(os.environ.get("KMOD_L", "0.5")); assert KMOD_L in (0.25, 0.5, 1.0)   # T3 形状核: KMOD 的实际系数(预注册取 0.5; 0.25/1.0 只作形状检查, 不用于选型)   # T3b(一致性形): z += KMOD_AGREE·|z|·xz(king) —— king 同向放大、反向缩小   # X1(PREREG_legs_factors): 席位用净腿收益(纯价格 − 腿书 carry)
 FUNDSCALE = int(os.environ.get("FUNDSCALE", "0")); assert FUNDSCALE in (0, 1)   # X3: fund z × clip(σ_fund/σ_ref, 0.5, 1)(信息臂)
 FEMAT_NPZ = os.environ.get("FEMAT_NPZ")   # X2: fund 腿分矩阵注入(ts×symbols 对齐断言), 替代 f_fund_ema_v1
 TRADE_TOPN = int(os.environ.get("TRADE_TOPN", "0"))   # >0: 成交集限于当锚 qvk 排名前 N(z 归一基仍为 members): 分离"归一基变宽"与"可交易名增加"两条通道
 assert TRADE_TOPN in (0, 400), f"TRADE_TOPN 白名单外: {TRADE_TOPN}"
-_CFG = {"KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+_CFG = {"KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
 t0 = time.time()
@@ -184,7 +186,8 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
         w3 = w3_at(i)
         _fs = (FUNDSCALE_ROW[j] if FUNDSCALE else 1.0)
         z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*_fs*np.nan_to_num(xz(sc["fund"]))
-        if KMOD > 0: z = z * (1.0 + KMOD * np.nan_to_num(xz(sc["king"])))   # T3 乘性调制
+        if KMOD > 0: z = z * (1.0 + KMOD_L * np.nan_to_num(xz(sc["king"])))   # T3 乘性调制(系数 KMOD_L, 默认 0.5)
+        if KMOD_F10 > 0: z = z * (1.0 + KMOD_F10 * np.nan_to_num(xz(F10P[i, m])))   # T3c DL 调节
         if KMOD_AGREE > 0: z = z + KMOD_AGREE * np.abs(z) * np.nan_to_num(xz(sc["king"]))   # T3b 一致性调制
         if KTAIL:   # T2 king 尾部否决: 多尾(z 顶 20%)中 king 秩底 20% 与 空尾(z 底 20%)中 king 秩顶 20% 置零
             _zk = np.nan_to_num(xz(sc["king"])); _lo, _hi = np.quantile(z, [0.2, 0.8]); _klo, _khi = np.quantile(_zk, [0.2, 0.8])
@@ -225,7 +228,8 @@ def run(SLOW, LRa, pos, depth, need, cool, look=900):
             _zf = (_w3f[0] * np.nan_to_num(xz(F10P[i, m]))
                    + _w3f[1] * np.nan_to_num(xz(sc["rev24"]))
                    + _w3f[2] * np.nan_to_num(xz(sc["fund"])))
-            if KMOD > 0: _zf = _zf * (1.0 + KMOD * np.nan_to_num(xz(sc["king"])))
+            if KMOD > 0: _zf = _zf * (1.0 + KMOD_L * np.nan_to_num(xz(sc["king"])))
+            if KMOD_F10 > 0: _zf = _zf * (1.0 + KMOD_F10 * np.nan_to_num(xz(F10P[i, m])))
             if KMOD_AGREE > 0: _zf = _zf + KMOD_AGREE * np.abs(_zf) * np.nan_to_num(xz(sc["king"]))
             if KTAIL:
                 _zk = np.nan_to_num(xz(sc["king"])); _lo, _hi = np.quantile(_zf[np.isfinite(_zf)], [0.2, 0.8]); _klo, _khi = np.quantile(_zk, [0.2, 0.8])
