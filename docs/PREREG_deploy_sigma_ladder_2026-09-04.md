@@ -23,3 +23,8 @@
 - live 仓 **4b8ca20**(safe_commit, 电池 **ALL GREEN 124/124**, 含新套件 tests_sigma_ladder 13 项; 已推送)。三次红后修正: ① 印记文案破 L2 → g=1.0 时印记不变; ② `from live import` 破 tests_external_book(live/ 走 sys.path 直导入)→ `import sigma_ladder`; ③ S4 合约(size_book 调用字面量)与 tests_imports 生产模块名册 → 默认路径逐字不变 + 低档单独分支 + PRODUCTION_MODULES 登记。
 - 改动面: `live/sigma_ladder.py`(evaluate/load, 故障安全 g=1.0), `scheduler/anchor_loop.py`(g<1 时 target_leverage=gross_mult×g 并印记; anchors 行 weights.gross_ladder), `run_acceptance.sh` SUITES, `ops/gate_coverage.py` 盲区条目, `live/tests_imports.py` 名册。快照入研究仓 `dl_quant_live_snapshot_2026-09-04/`。
 - 仪表盘侧: launchd `com.hsy.sigma_ladder`(N+52)已装; 首次写入 `state/live/sigma_ladder.json`(g=1.0, p≈0.65); 执行器读取端复核见下条。
+
+## 6. 撤回激活(2026-09-04 09:5xZ)— 阶梯转为备用, 执行器代码保留(惰性)
+- **原因:** H1 的受据(RESULT_allweather)建立在**固定席位口径**(臂 C/E, king 0.21)上, 该口径下 2023–24 为负年份, 阶梯降 gross 有利。09-04 08:53Z 席位种子修复后实盘为**诚实动态席位(msharpe)**, 该口径下 2023–24 由 king 席位撑正(+12/+19%), 阶梯在低离散期减仓 ⇒ 伤收益: 2023+ Δ **−0.068 CI[−0.135,−0.001]**(canonpred)/ **−0.069 CI[−0.134,−0.001]**(FTRIM+M1 ms s42)/ −0.074 CI[−0.139,−0.006](s2027); 2023 +12%→+2%; 回撤仅 −13%→−10%。按 PREREG_allweather 冻结判据(全周期夏普↑ ∧ 2023+ CI 不显著为负)**不过**。
+- **处置:** launchd `com.hsy.sigma_ladder` 卸载; 状态文件移为 `sigma_ladder.json.reserve_20260904`; 执行器读取端返回 missing ⇒ g=1.0(默认路径逐字同旧代码); 代码与套件保留(电池 124/124), 以备"席位规则在低离散 regime 失效"的场景重新预注册。
+- **教训(登记 E-0904-D):** 部署前受据的口径必须与部署时的实盘口径同一; 同日两项改动(席位修复 → 阶梯)存在口径依赖, 应先做席位修复再复测阶梯。
