@@ -1,4 +1,4 @@
-> **创建:** 2026-09-04 14:0xZ | **状态:** 会话中断恢复用 | **用途:** 会话内定时任务是内存态(会话退出/模型切换即清空), 新会话按此逐字重建
+> **创建:** 2026-09-04 14:0xZ | **状态:** 在用 | **用途:** 会话内定时任务是内存态, /model 切换或退出会清空(09-04 实测), 需要时按此逐字重建
 
 # 会话定时任务模板(重建时逐字复制 prompt)
 
@@ -15,8 +15,8 @@
 ## combo 84 锚前向门二读 prompt(逐字)
 combo 84 锚前向门二读(CANDIDATE_wide_v2main_norev24_2026-08-26 §6 同判据, 判据冻结不改; 首读 09-02 的正裕量全在 E-0826-F 停机期未交易的前 4 锚, 故本次为首个有效读数): 取 08-26 04Z 起满 84 个配对锚的 combo vs 反事实 king 形态净额(实盘 target_live vs target_live_king, 逐锚 Σ|Δw| 与 sleeve 归因), 按 §6 冻结判据判 PASS/FAIL, 写 docs/RESULT_combo_forward_gate_84_2026-09-09.md 并 git -C 提交研究仓。口径纪律 E-0904-B: 逐年/逐段表, 负段显式, 单位链由脚本打印(每 gross → 年化 → 2×NAV)。同时复核 E-0904-F 口径结论是否已由第二仪器确认。实盘书零接触。
 
-# 口径复核工作流(wf_80bb7b7c-ef0)中断恢复
+# 口径复核工作流(wf_80bb7b7c-ef0)续跑(额度用尽切模型后)
 - 脚本: `multi_asset/exports/research/retrain_2026-09/review_caliber_wf/caliber-final-review.js`(原件 `~/.claude/projects/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/workflows/scripts/caliber-final-review-wf_80bb7b7c-ef0.js`)。
 - 代理转录: `~/.claude/projects/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/subagents/workflows/wf_80bb7b7c-ef0/agent-*.jsonl`(每个代理的最终返回在其 jsonl 末尾); 代理暂存产物: `~/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/review_caliber/<label>/` 与 pod `/workspace/review_scratch/`。
-- **resumeFromRunId 只在同一会话有效**。新会话恢复法: 先读各 agent-*.jsonl 末尾的结构化返回(tracer: caliber/evidence; refuter: refuted/evidence), 若 ≥ 15 个已返回则直接手工做"综合→缺口审查"两步(可只起 2 个代理), 不要重跑全部 21 个; 若返回不足, 用脚本重跑缺的那几路(改 TRACERS/CLAIMS 列表)。
+- 同一会话内切模型后: `Workflow({scriptPath, resumeFromRunId: "wf_80bb7b7c-ef0"})` 续跑, 已返回的代理直接用缓存, 只重跑被额度中断的那几个。若换了会话(resumeFromRunId 失效): 读各 agent-*.jsonl 末尾的结构化返回, ≥15 个已返回则只起综合+缺口审查两代理, 不重跑 21 个。
 - 设计: 6 路追溯(pod 面板/DL 与 king 目标/实盘链路/装置史/导出器与 bundle/真钱)+ 6 论断 × 2–3 证伪者(代码/实证/史料三镜)+ 综合 + 缺口审查 + 补证 + 终稿; 判据: 证伪票过半 ⇒ 论断不成立。
