@@ -474,3 +474,11 @@ critic(`critic/CRITIC_NOTES.md`)对草稿做完整性审查后派发 6 个缺口
 3. > Replay form ≠ live book: F10 fold models instead of the live refit, 120 anchors of 2026 with no F10 leg (averaging −3.5 bps/anchor), dynamic-seat 2024 artefact from the zero king window, unquantified one-bar train/serve feature skew (features through E live vs E−1 in training), holding window (N,N+4h] vs live (N+23m,…] with 5–10% alpha decay, and a cost model (COST_B) far below the re-audited 3.52 bps line — any of these can move the fixed-seat 2024→26 mean (+0.46) by more than its own magnitude.
 
    **补证后状态**: 部分收窄。(i) 持仓窗/alpha 衰减: G6 实测书层平移 25 分钟折 2–4%, 配对 t −0.14, 与 0 不可分——"5–10%"在书层不成立(VERIFIED); 执行器实为 N+24(§7 #29); 剩余系统性折扣是 −0.3 保真(引用值, #30)。(ii) 120 锚无 F10: 已分段报 ≤08-10 / →08-30(§5.1/§5.2)。(iii) 动态 2024 伪影: 仍 INFERRED 未量化(#7)。(iv) 一根 bar train/serve 偏差: 仍未量化(#14)。(v) F10 折模型 vs 在役 refit: 未派发, 开口。(vi) COST_B vs 3.52 bps 成本线: 未派发, 本轮未核(#38)。(vii) 新增: 书构成 carry 差(#25)是又一条同量级的未定项。结论: "任一项都可能移动 +0.46 超过其自身量级"在 (iii)(iv)(v)(vi)(vii) 上仍成立。
+
+
+## 11. 收口补记(2026-09-05 01:1xZ, 终稿之后的三项并行核查)
+
+1. **§7 #25 / §9 G1 / §10 残余风险 1 — carry 差已收口(`retrain_2026-09/review_caliber_wf/carry_composition/REPORT.md`, sha 2e5e3a1c…):** +1.21 ± 0.17 bps/锚 per gross 逐位复现, 成分 = 回放"实盘形态"带 FTRIM 而实盘 09-02 12Z 才上线 FTRIM(+0.73 ± 0.06)+ 回放止损层 08-21 已停 ONGUSDT 而实盘一直持有(+0.44 ± 0.16; 执行器逐名止损**真实启用**, 窗内对 SKR/MAGMA/ZORA/BTR/CYS/TRIA/RIVER 触发过, 对 ONG 从未触发: 执行器用场所未实现盈亏深度, 回放用成本均价路径深度, 两种记账不同, 原因 INFERRED)。无 FTRIM 无止损的回放付 2.200 vs 实盘 2.228; 同名去 ONG 后实盘反而少付 0.09。冻结 450 宇宙让回放少付 0.13–0.19(结构性, 方向对实盘有利)。**结论: 非结构性; 固定席位表头 +0.457 不因 carry 修正; 残余风险 1 关闭。** 新开口 U7: 执行器止损(场所未实现深度)与回放止损(成本均价路径)的记账差异未量化。
+2. **combo 选型复测(`combo_recheck/REPORT.md`):** 见 §4 C6 之外的补充——16 臂三口径; 排序保住, 显著性不保, 归因反转(去 rev24 CI>0, V2MAIN≈0), 2025 反转。
+3. **单位/列归属(`gap_units/`)与实盘三仪器对账(`gap_live_pnl/`):** 已并入 STATE 横幅 09-05 00:5xZ; 实盘 51 窗 孪生+资金费 −0.6 ± 4.5 bps/锚。
+4. **两仪器对账(`combo_recheck/pod_armA_vs_0821.out`):** 08-21 装置(hist king)vs pod(生产 king)同口径同形态同锚: 2026 +2.32 vs +2.35; 2024→ Sharpe 2.83 vs 2.01; 差在 king 来源(E-0905-A)。§5 全表仍 [单仪器 pod], 且相对 08-21 仪器偏低。
