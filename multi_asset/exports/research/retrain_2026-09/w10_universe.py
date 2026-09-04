@@ -31,7 +31,7 @@ assert MEMBERS_TOPN in (0, 300, 400, 500, 600, 829), f"MEMBERS_TOPN 白名单外
 FTRIM = os.environ.get("FTRIM", "off"); assert FTRIM in ("off", "zero"), FTRIM   # 部署态 FTRIM(pre-z 排除 rn8<=-10bp 空头, 两链), 与 w10_ftrim_band pre/zero/(-1.0,-0.0010] 同构
 TRADE_TOPN = int(os.environ.get("TRADE_TOPN", "0"))   # >0: 成交集限于当锚 qvk 排名前 N(z 归一基仍为 members): 分离"归一基变宽"与"可交易名增加"两条通道
 assert TRADE_TOPN in (0, 400), f"TRADE_TOPN 白名单外: {TRADE_TOPN}"
-_CFG = {"W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+_CFG = {"SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
 print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
 t0 = time.time()
@@ -63,7 +63,10 @@ if _um:  # PREREG addendum §B: 宇宙臂 — 成员集按掩码收缩(只缩不
 else:
     UMASK_ROW = None if "f_fund_ema_v1" in PW else PW["f_fund_ema"]
 WSYM = [str(s) for s in PW["symbols"]]
-SLOW = np.load(f"{B}/slow_pred_hist_oos.npy")
+SLOW_NPY = os.environ.get("SLOW_NPY")   # 滚动月度 OOS king 预测覆盖(RUNBOOK §8; PREREG_allweather 后续): 形状必须与 slow_pred_hist_oos 同, 否则拒绝
+SLOW = np.load(f"{B}/slow_pred_hist_oos.npy") if not SLOW_NPY else np.load(SLOW_NPY)
+if SLOW_NPY:
+    _ref = np.load(f"{B}/slow_pred_hist_oos.npy", mmap_mode="r"); assert SLOW.shape == _ref.shape, f"SLOW_NPY 形状 {SLOW.shape} != 正典 {_ref.shape}"; print(f"SLOW override: {SLOW_NPY} finite {np.isfinite(SLOW).mean():.3f}", flush=True)
 # ★★ 严格因果: 只用 walk-forward OOS 预测(四折 + 60 锚 embargo, 只写测试折)。
 #    全史重训件 models/f10_live_s*.pt **不参与任何历史评估** —— 它见过全部历史。
 F10P = np.full((nA, NW), np.nan, np.float32)
