@@ -1,14 +1,18 @@
 #!/bin/bash
-# PREREG_king_convexity §2: 五臂(实盘形态, 动态席位) + 判官; 全部后台一次跑完
+# PREREG_king_convexity §1-§2: 等价校验(LEGS=101 逐字同正典 env) → 五臂(实盘形态 = T3c 臂自报 config: MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero LEGS=101, 动态席位) → 判官
+# 教训(E-0826-D 型, 09-04 11:2xZ): 首次漏 LEGS=101(装置默认 111) ⇒ 三臂被 S0 复现断言拦下; 本版全部显式给 env。
 cd /mnt/storage/private/work_hsy
 PY=/root/miniconda3/envs/hsy_v5push/bin/python
-run(){ tag=$1; shift; env "$@" MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero OUT_TAG=$tag $PY w10_universe.py > probe_artifacts/$tag.log 2>&1; echo "done $tag $(date -u +%H:%MZ)"; }
-run w10_fu_kc_ksvol20_ms_s42 KSVOL=20 &
-run w10_fu_kc_ksvol20_f10mod_ms_s42 KSVOL=20 KMOD_F10=0.5 &
-run w10_fu_kc_ksvol20_f10mod_ms_s2027 KSVOL=20 KMOD_F10=0.5 FSEED=2027 &
+run(){ tag=$1; shift; env "$@" LEGS=101 OUT_TAG=$tag $PY w10_universe.py > probe_artifacts/$tag.log 2>&1 && cp probe_artifacts/w10_ablation_series_$tag.npz probe_artifacts/$tag.npz; echo "done $tag rc=$? $(date -u +%H:%MZ)"; }
+run w10_kc_eq_s42 FSEED=42
+$PY jp_eq_compare.py > probe_artifacts/kc_eq_compare.out 2>&1
+LF="MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero"
+run w10_fu_kc_ksvol20_ms_s42 $LF KSVOL=20 FSEED=42 &
+run w10_fu_kc_ksvol20_f10mod_ms_s42 $LF KSVOL=20 KMOD_F10=0.5 FSEED=42 &
+run w10_fu_kc_ksvol20_f10mod_ms_s2027 $LF KSVOL=20 KMOD_F10=0.5 FSEED=2027 &
 wait
-run w10_fu_kc_ksinv_ms_s42 KSVOL_INV=1 &
-run w10_fu_kc_ksvol30_ms_s42 KSVOL=30 &
+run w10_fu_kc_ksinv_ms_s42 $LF KSVOL_INV=1 FSEED=42 &
+run w10_fu_kc_ksvol30_ms_s42 $LF KSVOL=30 FSEED=42 &
 wait
 echo KC_RUNS_DONE
 {
