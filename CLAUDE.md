@@ -10,7 +10,7 @@
 4. 历史脉络: `multi_asset/exports/live/pilot_journal/`(只追加)+ `docs/ERROR_LEDGER_2026-08-20.md`。
 
 ## 项目身份
-**Binance USDT-perp 宽宇宙中频市场中性**: 宇宙 450 币, 4h 锚(00/04/08/12/16/20Z), maker-only, gross 1.5×NAV。
+**Binance USDT-perp 宽宇宙中频市场中性**: 宇宙 450 币, 4h 锚(00/04/08/12/16/20Z), maker-only, gross 2.0×NAV(2026-09-03 入金后 constant_leverage_2.00; 此前 1.5×)。
 **在役书 = combo**(构成 ≈77% funding 动量 + 13% king LGBM + 10% V2MAIN 书损失 DL): 生产者 `~/wide_shadow`(非 git, 快照入研究仓)写 king 文件 → combo_stage 重写 target_live(五层安全, 失败自动回滚 king 形态)→ 执行器 `~/dl_quant_live`(git, **改动只经 `ops/safe_commit.sh` + 电池全绿**)N+23 读取交易。
 **数据**: share 面板 READ-ONLY(mode="r"); 宽面板/判官在 jpline `/mnt/storage/private/work_hsy/`; GPU/LOB 在 pod2 `/workspace/`。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板 — 特征类实验必须显式传因果面板。**
 
@@ -25,7 +25,7 @@
 **决策检查清单**(架构/特征/loss 改动必答): 机制? 前置门(Ridge/LGBM)? 复杂度预算? 泄漏(shuffle-future + 偏移谱峰@0 + 折外泄出=0)? OOS 逐折同号? σŷ/σy≥0.02?
 
 ## Metric Discipline(全文 MILESTONE_2026-08-11 §2)
-- **一律简单收益口径**(expm1); 对数口径只作诊断并显式标注。双口径必报(per-asset P + xsec rank-IC), net-of-fee, clean+dense。
+- **收益口径绑定面板文件, 不绑定变量名(E-0904-F)**: pod 5m 缓存谱系(`pod_panel_ext.py` L58 / `pod_fea_ext.py` L34 / `pod_dlw_targets_ext.py` L96)的 y4/Y4 = Σ 5 分钟简单收益, **禁 expm1**; 记账口径 = `pod_dlw_targets_ext.py` L93 的 y4s = Π(1+r)−1; expm1 只施于 `multi_asset/data/build_wide_dl.py` L151 谱系(对数面板 wide_dl*.npz)。换面板先逐位重验定义。双口径必报(per-asset P + xsec rank-IC), net-of-fee, clean+dense。
 - **IC 是 alpha, β 是量纲**: β 禁作质量门; 塌缩守卫=σŷ/σy。**口径三层**(模型分数/复合目标/持仓书, 逐层差 20-25%)引用必须声明层。
 - **排序≠净额**(五例在案): 分数层录取必要非充分, 必须过书层净额 CI。
 
