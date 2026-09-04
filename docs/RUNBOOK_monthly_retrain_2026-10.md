@@ -89,8 +89,9 @@ DL refit 7.5min ×2 / walk-forward 4折 20min ×4(并发=25min)/ king+bundle 21m
 ## §8 待办(2026-09-02 立, E-0902-D): 回放 king 腿口径对齐实盘
 w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025 模型给)⇒ 2026 msharpe 席位 king≈0.01, 实盘 0.21。月度重训链的自然副产品 = 每月 bundle 对次月的真 OOS 预测; 从 2026-10 起把每月 booster 对"下月锚"的预测拼成 `slow_pred_rolling_oos.npy`(严格因果: 训练截止 < 预测锚), 作为回放 king 腿的第二口径, 与 hist_oos 并报; 席位敏感臂以 rolling 口径为主判。
 
-## §9 修订(2026-09-04, E-0904-C/E; 11:2xZ 根因更正版): 席位历史必须是**简单收益口径**(且样本外)
-- **问题(更正后):** `pod_export_bundle_v3.py` L100–111 与生产者 `shadow_loop_v3.py` L439 都用**对数收益**(`y4` / `y4v`=Σ5 分钟对数收益)算腿收益 ⇒ king 腿被空头凸性项抬高(末 900 窗对数 +2.95 bps/锚 S/锚 +0.100 vs 简单 −0.59 / −0.019)⇒ msharpe king 席位 0.21~0.30(简单口径下 ≈0)。**2026 预测本身是样本外**(`tr = YRA < 2026`); 2022–23 的 pinned 预测为生产 booster 样本内, 不进 900 窗但违反"进席位的历史须 OOS"规则。取证: `retrain_2026-09/jp_bundle_leg_forensics.py`(逐字公式复算 corr 1.000)+ `jp_caliber_decomp.py`(同预测换口径)。
-- **09-04 处置(已落地):** `state/leg_returns_live.json` 换为装置口径(简单收益, OOS)三腿原始腿收益 950 行(sha de0aa38b); 生产者 `LR = bundle + extra` 取末 900 ⇒ bundle 种子不进窗口。
-- **重训链改动(需预注册; 10-01 前落地):** ① 导出器 L108 `np.nan_to_num(y4[i, m])` → `np.expm1(np.nan_to_num(y4[i, m]))`; 2022–23 段改用年折 OOS 预测(或直接不导出 2026 之前的 king 腿, 生产者只吃 extra); ② 导出后断言: bundle king 末 900 窗 Sharpe/锚 与 `jp_caliber_decomp.py` 简单口径值 ±0.01, 且对数口径值不得出现(防回退); ③ 换装步骤**禁止删除/重置** `state/leg_returns_live.json`; ④ 生产者 L439 追加行改 `np.expm1(y4v[pm])`(书行为: 席位输入口径; 候选文件 `shadow_loop_v3_calfix_candidate.py`, 需用户字); ⑤ 生产者加载改为 extra ≥900 行时忽略 bundle 序列。
-- **验收:** 换装后首锚 signal 行 w3 与 `jp_seat_seed_gap.py`(简单口径)同规则复算一致(±0.02); 测试 10a 文案改为"口径检查(对数 vs 简单)"。
+## §9 修订(2026-09-04, 第三版 11:5xZ, E-0904-F): 席位历史口径 = Σ 5 分钟简单收益(面板 y4 原样), **导出器与生产者都不改**
+- **真相(代码+实证, 见 ERROR_LEDGER E-0904-F):** 面板 y4 = 行 [E, E+47] 的 Σ ret5(ret5 = c/pc − 1), 是交易所记账 Π(1+r)−1 的无偏代理(差 −0.04 bps/锚); 导出器 L108 用原始 y4、生产者 L439 用 Σ ret5 ⇒ **两处口径本来正确**。错的是回放装置 `w10_universe.py` 的 CAL=simple(expm1), 它给 king 腿加了 −2~−3 bps/锚伪拖累。
+- **本日经过:** 08:53Z 我按错口径把 `state/leg_returns_live.json` 换成 expm1 版 OOS 种子(king 席位 0.21→0.000); 11:46Z 已恢复原文件(sha 172715ce, 生产者 kickstart PID 58281), 12Z 运行前完成。撤回本节前两版的全部改动要求(① 导出器 expm1 ② 生产者 expm1 ③ "样本内"断言)。
+- **保留的改动(需预注册):** ③ 换装步骤禁止删除/重置 `state/leg_returns_live.json`; ⑤ 生产者 extra ≥900 行时忽略 bundle 序列(避免 2022–23 段生产 booster 样本内值在 extra 不足时进窗); 导出器 leg_returns 的 2022–23 段改用年折 OOS 预测(不入 900 窗, 只为"进席位的历史须 OOS"规则的完整性)。
+- **测试 [10] 改为口径一致性:** 实盘 state king 900 窗 Sharpe/锚 须在 bundle 同窗 ±0.05 内(bundle 与生产者同口径; 若有人再引入 expm1/log 会跳到 −0.02/+0.21 被抓住)。
+- **研究侧待办(另立预注册):** 装置 CAL 语义修正(默认不再 expm1)+ 重立复现收据; 所有 CAL=simple 结论用 CAL=log 复验(T3c/M1/阶梯/滚动 king/腿解剖)。
