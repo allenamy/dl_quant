@@ -10,3 +10,4 @@
 - ⑤ 执行质量: 本锚 fills 尚无 +60s 标记(markout 回填 pending 17,158, 本锚写 5, request_budget 停; 累计 3,045/20,195 = 15%)⇒ 尺寸梯度本锚待回填; attempt_idx>1 的名 172(maker→taker 补单常规), 单名最多 3 单; venue_rate 峰值 938/2400, 限流计数差值告警(+798/分, CloudFront 边缘 IP)为已知信息项。
 - ⑥ 告警核对: "撤名残差 −9,777 = −5.87% 由 BTCUSDT/ZORAUSDT" 每锚复发(48h 12 次), 文案与算术不符已在账本 L351 记录(实为 untradable 通道整体); position reconcile 6 名(前两锚 20/9)采用场所真相; 34 名 maxNotionalValue=0 reduce-only(退出通道, alarm_text≠source)。**无需处置; 回滚缺省 king 形态未触发。**
 - ⑦ regime 仪表盘 00Z: 旗标无; σ_fund 7.3, fund 席位 0.80, IC_fund 0.007, FTRIM 反事实 +0.207 bps; 30 锚 sleeve: L|pos +1,951 / S|pos −1,037 / S|deepneg −658 USDT; 规则 R1–R4 无触发。
+- 勘误(05:0xZ, 成本标定): 09-03 16Z 日记行的"−5022 拒单 76%"定义不明, 按单腿 36.2%(79/218)/按额 36.6%(health_check/calib/REPORT.md); 该行不作为引用来源。

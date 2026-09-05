@@ -430,3 +430,8 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 ### E-0905-E · 预注册阈值写得比数据精度还细: G3(b2) "记账目标 vs 原始收盘价比值 max|Δ| ≤ 2e-5" 未计入 5 分钟收益 float16 存储的量化误差(2026-09-05 03:5xZ)
 - **事实:** 1,090 抽样格中 9 格超 2e-5(max 8.36e-5, 均为 |4h 收益| > 5% 的极端格), 全部在一阶 f16 量化界 (1+|y|)·Σ|r_i|·2^-11 的 0.44 倍以内; 定义相同(RESULT_second_instrument_rebuild §1)。门按字面 FAIL, 不改门, 结果文档标"字面 FAIL / 实质 PASS"。
 - **规则:** 写数值阈值前先算该量在存储精度下的最小可分辨差(f16 = 2^-11 相对), 阈值 ≥ 3× 该界; 阈值来源写进预注册。
+
+### E-0905-F · 执行器 daily_nav 的 realised_by_type.COMMISSION 只含开仓成交的手续费(2026-09-05 05:0xZ, 成本标定发现; 候选, 未修)
+- **事实(VERIFIED `health_check/calib/commission_collision_test.out`):** daily_nav.realised_by_type.COMMISSION 与日志中"开仓成交"的手续费之比在 10/11 天为 1.000; 原因 = `live/binance_broker.py` 的 income 分页按 tranId 去重, 而减仓成交的 COMMISSION 行与同一笔的 REALIZED_PNL 行共用 tranId, COMMISSION 行被丢弃。量级小(0.002–0.011 BNB/天 ≈ 1.5–8 USDT), NAV 本身取自 margin_balance 不受影响; realised_pnl 分项还把 BNB 计价的手续费与 USDT 行直接相加。费用表改用 userTrades 的 fee_paid, 不受影响。
+- **处置:** 执行器仓改动只经 `ops/safe_commit.sh` + 电池(去重键改为 (tranId, incomeType); 新增测试); 非书行为, 但属实盘仓改动, 待用户字后做。
+- **附带:** 日记 09-03 16Z 行"−5022 拒单 76%"定义不明; 标定按单腿计 36.2%(79/218)、按额 36.6%; 引用前须从生成行重推(alarm_text≠source 家族)。
