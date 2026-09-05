@@ -1,0 +1,56 @@
+orders rows 55574, fills rows 54550, days 20260802..20260905
+plans 14548; refused 3742
+
+=== Q1 requote DiD · full: pre 20260802..20260805 (no requote) vs post 20260806..20260905 (requote) ===
+  refused plans ITT cost (bps/unit intended): pre +2.90 (n=463, notional 16821) | post +1.45 (n=3279, notional 158500)
+  non-refused plans:                           pre +3.90 (n=1447) | post +3.44 (n=9359)
+  refused fill share: pre 0.930 post 0.950; maker-leg fill share of refused: pre 0.000 post 0.634
+  ★ DiD effect (post−pre, refused−nonrefused) = -0.98 [-15.21,+11.94] bps per unit intended notional (negative = requote cheaper)
+  units: refused intended notional 5113 USDT/day (post) ⇒ effect ≈ -0.50 USDT/day [-7.78,+6.10]
+
+=== Q1 requote DiD · pre-swap: pre 20260802..20260805 (no requote) vs post 20260806..20260821 (requote) ===
+  refused plans ITT cost (bps/unit intended): pre +2.90 (n=463, notional 16821) | post -2.84 (n=619, notional 35727)
+  non-refused plans:                           pre +3.90 (n=1447) | post +3.27 (n=2463)
+  refused fill share: pre 0.930 post 0.952; maker-leg fill share of refused: pre 0.000 post 0.758
+  ★ DiD effect (post−pre, refused−nonrefused) = -5.11 [-16.13,+4.61] bps per unit intended notional (negative = requote cheaper)
+  units: refused intended notional 2233 USDT/day (post) ⇒ effect ≈ -1.14 USDT/day [-3.60,+1.03]
+
+=== Q1 requote DiD · combo era: pre 20260802..20260805 (no requote) vs post 20260826..20260905 (requote) ===
+  refused plans ITT cost (bps/unit intended): pre +2.90 (n=463, notional 16821) | post +2.90 (n=2149, notional 105926)
+  non-refused plans:                           pre +3.90 (n=1447) | post +3.46 (n=5668)
+  refused fill share: pre 0.930 post 0.949; maker-leg fill share of refused: pre 0.000 post 0.593
+  ★ DiD effect (post−pre, refused−nonrefused) = +0.44 [-18.17,+19.42] bps per unit intended notional (negative = requote cheaper)
+  units: refused intended notional 9630 USDT/day (post) ⇒ effect ≈ +0.42 USDT/day [-17.50,+18.71]
+
+=== Q1b post-period refused plans by branch (ITT cost bps/unit intended; parts = cost contribution per unit intended) ===
+    requote_filled: n=2172 share of refused notional  61.2%  ITT cost -9.59  fill 0.996  parts {'requote': -9.58, 'topup_from_partial': -0.01}
+   requote_partial: n=   9 share of refused notional   0.2%  ITT cost +3.42  fill 0.525  parts {'requote': -1.72, 'topup_from_partial': 5.14}
+  requote_unfilled: n= 156 share of refused notional   3.3%  ITT cost +16.63  fill 0.198  parts {'requote': 0.0, 'topup_from_partial': 16.63}
+     twice_refused: n= 942 share of refused notional  35.3%  ITT cost +19.15  fill 0.945  parts {'topup_from_reject': 18.7, 'maker': 0.04, 'topup_from_partial': 0.41}
+  08-05 formula on real branches: C_reject(pre, no requote) +2.90 | C_requote_filled -9.59 | C_requote_unfilled/partial +15.74 ⇒ p* = 0.507 vs realised maker-leg fill share of rested requotes p = 0.942
+
+=== Q2 behind vs join · bandit period (20260812..20260905): plans join 6399 behind 3758 ===
+  ITT cost (bps/unit intended): join +4.15 | behind +0.93 | ★ paired-within-anchor Δ(behind−join) = -4.84 [-20.68,+1.88]
+  realised fill share: join 0.937 behind 0.935
+  maker-leg fill share: join 0.820 behind 0.777
+  first-attempt -5022 refusal rate: join 29.9% behind 21.5%
+  part              maker: notional share join 0.626 behind 0.614 | cost contribution join +0.34 behind -1.52
+  part            requote: notional share join 0.194 behind 0.164 | cost contribution join -1.53 behind -2.47
+  part topup_from_partial: notional share join 0.031 behind 0.044 | cost contribution join +3.10 behind +2.84
+  part  topup_from_reject: notional share join 0.086 behind 0.114 | cost contribution join +2.25 behind +2.07
+  maker fill price vs anchor mid (conditional on fill, bps): join -3.25 behind -6.93
+  ★ markout60 (positive = favourable): join -2.40 (cov 0.96) behind -7.69 (cov 0.95) | Δ(behind−join) = -5.28 [-14.19,-0.33]
+
+=== Q2 behind vs join · combo era (20260826..20260905): plans join 4547 behind 3070 ===
+  ITT cost (bps/unit intended): join +5.41 | behind +0.73 | ★ paired-within-anchor Δ(behind−join) = -5.37 [-30.48,+2.59]
+  realised fill share: join 0.940 behind 0.930
+  maker-leg fill share: join 0.807 behind 0.764
+  first-attempt -5022 refusal rate: join 31.6% behind 21.7%
+  part              maker: notional share join 0.621 behind 0.603 | cost contribution join +0.37 behind -1.39
+  part            requote: notional share join 0.186 behind 0.161 | cost contribution join -1.87 behind -2.78
+  part topup_from_partial: notional share join 0.037 behind 0.039 | cost contribution join +3.66 behind +2.18
+  part  topup_from_reject: notional share join 0.096 behind 0.127 | cost contribution join +3.24 behind +2.71
+  maker fill price vs anchor mid (conditional on fill, bps): join -3.65 behind -7.26
+  ★ markout60 (positive = favourable): join -2.72 (cov 0.94) behind -9.26 (cov 0.93) | Δ(behind−join) = -6.54 [-24.08,+0.13]
+
+DONE
