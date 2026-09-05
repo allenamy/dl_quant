@@ -1,0 +1,398 @@
+{
+ "source": {
+  "weights": "/workspace/review_scratch/allweather_trackC/carry_layers/dev_alt/probe_artifacts/w10_ablation_series_B0_prod_s42.npz",
+  "weights_sha16": "cb2e2b08a7c0f4ff",
+  "tables": "data/sett_tables.npz",
+  "window": "2023-01-01 \u2192 2026-08-10 20:00Z",
+  "n_anchors": 7907,
+  "n_events_all": 1572105
+ },
+ "definitions": {
+  "funding_paid_bps": "sign(w)\u00b7r_S\u00b71e4, + = position pays",
+  "move_with_bps": "sign(w)\u00b7(price move over [S\u221210m,S+25m))\u00b71e4, + = position gains",
+  "intensify_ev_bps": "move_with \u2212 funding_paid \u2212 7.84",
+  "notional_share": "mean over anchors of \u03a3|w| of bucket names with a settlement in the window / gross_total",
+  "ci": "UTC-day-block bootstrap of the event mean, 2000, seed 20260905",
+  "diagnostic_only": true
+ },
+ "rows": [
+  {
+   "bucket": "< \u221230",
+   "side": "long",
+   "role": "receives",
+   "n": 2355,
+   "events_per_anchor": 0.298,
+   "funding_paid_mean_bps": -75.07,
+   "funding_paid_median_bps": -54.61,
+   "move_with_mean_bps": -76.24,
+   "move_with_ci95": [
+    -100.31,
+    -53.3
+   ],
+   "move_with_median_bps": -59.0,
+   "intensify_ev_mean_bps": -9.01,
+   "intensify_ev_ci95": [
+    -32.77,
+    14.17
+   ],
+   "notional_share_of_gross_per_anchor": 0.00081
+  },
+  {
+   "bucket": "< \u221230",
+   "side": "short",
+   "role": "pays",
+   "n": 6164,
+   "events_per_anchor": 0.78,
+   "funding_paid_mean_bps": 70.52,
+   "funding_paid_median_bps": 52.91,
+   "move_with_mean_bps": 71.51,
+   "move_with_ci95": [
+    60.36,
+    82.56
+   ],
+   "move_with_median_bps": 64.9,
+   "intensify_ev_mean_bps": -6.85,
+   "intensify_ev_ci95": [
+    -18.23,
+    4.36
+   ],
+   "notional_share_of_gross_per_anchor": 0.00203
+  },
+  {
+   "bucket": "\u221230..\u221215",
+   "side": "long",
+   "role": "receives",
+   "n": 2368,
+   "events_per_anchor": 0.299,
+   "funding_paid_mean_bps": -20.99,
+   "funding_paid_median_bps": -20.41,
+   "move_with_mean_bps": -15.08,
+   "move_with_ci95": [
+    -26.33,
+    -3.85
+   ],
+   "move_with_median_bps": -17.44,
+   "intensify_ev_mean_bps": -1.93,
+   "intensify_ev_ci95": [
+    -13.11,
+    9.38
+   ],
+   "notional_share_of_gross_per_anchor": 0.00075
+  },
+  {
+   "bucket": "\u221230..\u221215",
+   "side": "short",
+   "role": "pays",
+   "n": 7164,
+   "events_per_anchor": 0.906,
+   "funding_paid_mean_bps": 20.83,
+   "funding_paid_median_bps": 20.04,
+   "move_with_mean_bps": 25.43,
+   "move_with_ci95": [
+    18.14,
+    32.94
+   ],
+   "move_with_median_bps": 26.67,
+   "intensify_ev_mean_bps": -3.24,
+   "intensify_ev_ci95": [
+    -10.51,
+    4.22
+   ],
+   "notional_share_of_gross_per_anchor": 0.00252
+  },
+  {
+   "bucket": "\u221215..\u221210",
+   "side": "long",
+   "role": "receives",
+   "n": 1861,
+   "events_per_anchor": 0.235,
+   "funding_paid_mean_bps": -12.24,
+   "funding_paid_median_bps": -12.1,
+   "move_with_mean_bps": -0.27,
+   "move_with_ci95": [
+    -13.33,
+    12.55
+   ],
+   "move_with_median_bps": -6.21,
+   "intensify_ev_mean_bps": 4.13,
+   "intensify_ev_ci95": [
+    -8.95,
+    16.97
+   ],
+   "notional_share_of_gross_per_anchor": 0.00059
+  },
+  {
+   "bucket": "\u221215..\u221210",
+   "side": "short",
+   "role": "pays",
+   "n": 7202,
+   "events_per_anchor": 0.911,
+   "funding_paid_mean_bps": 12.16,
+   "funding_paid_median_bps": 11.99,
+   "move_with_mean_bps": 11.93,
+   "move_with_ci95": [
+    6.36,
+    17.26
+   ],
+   "move_with_median_bps": 14.91,
+   "intensify_ev_mean_bps": -8.07,
+   "intensify_ev_ci95": [
+    -13.65,
+    -2.77
+   ],
+   "notional_share_of_gross_per_anchor": 0.00277
+  },
+  {
+   "bucket": "\u221210..\u22126",
+   "side": "long",
+   "role": "receives",
+   "n": 3158,
+   "events_per_anchor": 0.399,
+   "funding_paid_mean_bps": -7.71,
+   "funding_paid_median_bps": -7.56,
+   "move_with_mean_bps": -4.16,
+   "move_with_ci95": [
+    -12.12,
+    4.31
+   ],
+   "move_with_median_bps": -7.76,
+   "intensify_ev_mean_bps": -4.29,
+   "intensify_ev_ci95": [
+    -12.25,
+    4.18
+   ],
+   "notional_share_of_gross_per_anchor": 0.00104
+  },
+  {
+   "bucket": "\u221210..\u22126",
+   "side": "short",
+   "role": "pays",
+   "n": 14288,
+   "events_per_anchor": 1.807,
+   "funding_paid_mean_bps": 7.67,
+   "funding_paid_median_bps": 7.5,
+   "move_with_mean_bps": 9.88,
+   "move_with_ci95": [
+    6.41,
+    13.24
+   ],
+   "move_with_median_bps": 11.31,
+   "intensify_ev_mean_bps": -5.63,
+   "intensify_ev_ci95": [
+    -9.09,
+    -2.27
+   ],
+   "notional_share_of_gross_per_anchor": 0.00623
+  },
+  {
+   "bucket": "\u22126..+6 (ref)",
+   "side": "long",
+   "role": "mixed",
+   "n": 739146,
+   "events_per_anchor": 93.48,
+   "funding_paid_mean_bps": 0.69,
+   "funding_paid_median_bps": 0.5,
+   "move_with_mean_bps": 0.31,
+   "move_with_ci95": [
+    -1.45,
+    1.99
+   ],
+   "move_with_median_bps": 0.0,
+   "intensify_ev_mean_bps": -8.22,
+   "intensify_ev_ci95": [
+    -9.97,
+    -6.55
+   ],
+   "notional_share_of_gross_per_anchor": 0.33866
+  },
+  {
+   "bucket": "\u22126..+6 (ref)",
+   "side": "short",
+   "role": "mixed",
+   "n": 770443,
+   "events_per_anchor": 97.438,
+   "funding_paid_mean_bps": -0.13,
+   "funding_paid_median_bps": -0.5,
+   "move_with_mean_bps": 0.37,
+   "move_with_ci95": [
+    -1.38,
+    2.12
+   ],
+   "move_with_median_bps": 0.01,
+   "intensify_ev_mean_bps": -7.34,
+   "intensify_ev_ci95": [
+    -9.08,
+    -5.6
+   ],
+   "notional_share_of_gross_per_anchor": 0.35549
+  },
+  {
+   "bucket": "+6..+10",
+   "side": "long",
+   "role": "pays",
+   "n": 9018,
+   "events_per_anchor": 1.141,
+   "funding_paid_mean_bps": 7.43,
+   "funding_paid_median_bps": 7.21,
+   "move_with_mean_bps": 9.06,
+   "move_with_ci95": [
+    2.2,
+    15.87
+   ],
+   "move_with_median_bps": 5.51,
+   "intensify_ev_mean_bps": -6.21,
+   "intensify_ev_ci95": [
+    -13.07,
+    0.61
+   ],
+   "notional_share_of_gross_per_anchor": 0.00529
+  },
+  {
+   "bucket": "+6..+10",
+   "side": "short",
+   "role": "receives",
+   "n": 4880,
+   "events_per_anchor": 0.617,
+   "funding_paid_mean_bps": -7.43,
+   "funding_paid_median_bps": -7.19,
+   "move_with_mean_bps": -4.84,
+   "move_with_ci95": [
+    -15.8,
+    7.69
+   ],
+   "move_with_median_bps": -1.37,
+   "intensify_ev_mean_bps": -5.24,
+   "intensify_ev_ci95": [
+    -16.19,
+    7.32
+   ],
+   "notional_share_of_gross_per_anchor": 0.00222
+  },
+  {
+   "bucket": "+10..+15",
+   "side": "long",
+   "role": "pays",
+   "n": 1930,
+   "events_per_anchor": 0.244,
+   "funding_paid_mean_bps": 11.81,
+   "funding_paid_median_bps": 11.54,
+   "move_with_mean_bps": 24.67,
+   "move_with_ci95": [
+    11.36,
+    39.66
+   ],
+   "move_with_median_bps": 13.65,
+   "intensify_ev_mean_bps": 5.02,
+   "intensify_ev_ci95": [
+    -8.25,
+    19.96
+   ],
+   "notional_share_of_gross_per_anchor": 0.00111
+  },
+  {
+   "bucket": "+10..+15",
+   "side": "short",
+   "role": "receives",
+   "n": 907,
+   "events_per_anchor": 0.115,
+   "funding_paid_mean_bps": -11.74,
+   "funding_paid_median_bps": -11.46,
+   "move_with_mean_bps": -5.43,
+   "move_with_ci95": [
+    -37.76,
+    26.9
+   ],
+   "move_with_median_bps": -6.68,
+   "intensify_ev_mean_bps": -1.53,
+   "intensify_ev_ci95": [
+    -33.82,
+    31.02
+   ],
+   "notional_share_of_gross_per_anchor": 0.0004
+  },
+  {
+   "bucket": "+15..+30",
+   "side": "long",
+   "role": "pays",
+   "n": 735,
+   "events_per_anchor": 0.093,
+   "funding_paid_mean_bps": 19.25,
+   "funding_paid_median_bps": 18.16,
+   "move_with_mean_bps": -7.38,
+   "move_with_ci95": [
+    -42.53,
+    27.69
+   ],
+   "move_with_median_bps": 7.36,
+   "intensify_ev_mean_bps": -34.46,
+   "intensify_ev_ci95": [
+    -69.62,
+    0.55
+   ],
+   "notional_share_of_gross_per_anchor": 0.00042
+  },
+  {
+   "bucket": "+15..+30",
+   "side": "short",
+   "role": "receives",
+   "n": 226,
+   "events_per_anchor": 0.029,
+   "funding_paid_mean_bps": -19.02,
+   "funding_paid_median_bps": -18.1,
+   "move_with_mean_bps": -25.55,
+   "move_with_ci95": [
+    -117.47,
+    48.97
+   ],
+   "move_with_median_bps": -13.54,
+   "intensify_ev_mean_bps": -14.38,
+   "intensify_ev_ci95": [
+    -106.15,
+    59.97
+   ],
+   "notional_share_of_gross_per_anchor": 8e-05
+  },
+  {
+   "bucket": "> +30",
+   "side": "long",
+   "role": "pays",
+   "n": 199,
+   "events_per_anchor": 0.025,
+   "funding_paid_mean_bps": 57.73,
+   "funding_paid_median_bps": 41.48,
+   "move_with_mean_bps": 126.83,
+   "move_with_ci95": [
+    19.31,
+    236.2
+   ],
+   "move_with_median_bps": 39.68,
+   "intensify_ev_mean_bps": 61.27,
+   "intensify_ev_ci95": [
+    -44.01,
+    170.51
+   ],
+   "notional_share_of_gross_per_anchor": 0.0001
+  },
+  {
+   "bucket": "> +30",
+   "side": "short",
+   "role": "receives",
+   "n": 61,
+   "events_per_anchor": 0.008,
+   "funding_paid_mean_bps": -75.65,
+   "funding_paid_median_bps": -47.99,
+   "move_with_mean_bps": -269.27,
+   "move_with_ci95": [
+    -672.81,
+    72.39
+   ],
+   "move_with_median_bps": 0.0,
+   "intensify_ev_mean_bps": -201.46,
+   "intensify_ev_ci95": [
+    -580.82,
+    120.95
+   ],
+   "notional_share_of_gross_per_anchor": 2e-05
+  }
+ ]
+}
