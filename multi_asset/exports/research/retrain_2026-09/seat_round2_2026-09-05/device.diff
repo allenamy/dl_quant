@@ -1,0 +1,164 @@
+--- w10_health_orig.py	2026-09-05 07:08:32.000000000 +0000
++++ w10_seat2.py	2026-09-05 07:17:29.000000000 +0000
+@@ -31,6 +31,9 @@
+ FTRIM = os.environ.get("FTRIM", "off"); assert FTRIM in ("off", "zero"), FTRIM   # 部署态 FTRIM(pre-z 排除 rn8<=-10bp 空头, 两链), 与 w10_ftrim_band pre/zero/(-1.0,-0.0010] 同构
+ SEATNET = int(os.environ.get("SEATNET", "0")); assert SEATNET in (0, 1)
+ SEATF10 = int(os.environ.get("SEATF10", "0")); assert SEATF10 in (0, 1)   # T1: F10 链用 F10 自己的 msharpe 席位(四腿腿收益)
++SEATCOST_BPS = float(os.environ.get("SEATCOST_BPS", "0")); assert SEATCOST_BPS in (0.0, 2.035), f"SEATCOST_BPS 白名单外: {SEATCOST_BPS}"   # seat_round2 B3 (PREREG_seat_round2 §1): seat input r_leg,t − SEATCOST_BPS·turn_leg,t, turn = Σ|z/g_t − z/g_{t−1}| of that leg's own unit-gross rank book (axisB R2 code, legs()); applied in w3_at only when > 0 ⇒ default path unchanged
++PHIDYN = int(os.environ.get("PHIDYN", "0")); assert PHIDYN in (0, 1)   # seat_round2 B4: per-anchor φ_t = shp_f10book/(shp_kingbook + shp_f10book), shp = mean/std (ddof 0, +1e-9, as msharpe) over the previous PHIDYN_LOOK recorded anchors strictly before t of each book's own OOS net return (price − carry − cost of that book's weights, per unit gross); negatives → 0; both 0 ⇒ PHI; clip [0.2, 0.8]; PHI until PHIDYN_LOOK rows exist
++PHIDYN_LOOK = 900; PHIDYN_CLIP = (0.2, 0.8)
+ KTAIL = int(os.environ.get("KTAIL", "0")); assert KTAIL in (0, 1)         # T2: king 作尾部否决(fund 多尾中 king 秩底 20% / 空尾中 king 秩顶 20% 置零)
+ KMOD = float(os.environ.get("KMOD", "0")); assert KMOD in (0.0, 0.5)       # T3: z ×= (1 + KMOD·xz(king))
+ KMOD_AGREE = float(os.environ.get("KMOD_AGREE", "0")); assert KMOD_AGREE in (0.0, 0.5)
+@@ -48,10 +51,12 @@
+     assert len(_tiers) == 3, f"COSTB_JSON must give 3 tiers in device order (qv4h>=5e6, >=1e6, rest); got {len(_tiers)}"
+     COST_B_OVERRIDE = [(float(t["maker_bps"]), float(t["taker_bps"]), float(t["maker_share"])) if isinstance(t, dict) else (float(t[0]), float(t[1]), float(t[2])) for t in _tiers]
+ UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade", "m1"), UMASK_SCOPE   # m1 (team-lead refinement 2026-09-05) = live M1 semantics: members = universe ∩ listed for king/rev24/F10 and the trade set; fund z = rank within the 829 base (xz_in_base)   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+-_CFG = {"COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
++_CFG = {"SEATCOST_BPS": SEATCOST_BPS, "PHIDYN": PHIDYN, "PHIDYN_LOOK": PHIDYN_LOOK, "PHIDYN_CLIP": list(PHIDYN_CLIP), "COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
+ import hashlib as _hl
+ _CFG["HEALTH"] = {"device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb…, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE in {members (original), trade, m1 (fund z in the 829 base, other legs and trade set within the universe)} + legs() series saved; default path (all unset) bitwise-unchanged", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
++_CFG["SEAT2"] = {"device": "w10_seat2.py = w10_health.py (sha256 8684d9a9…) + SEATCOST_BPS (per-leg rank-book turnover recorded in legs() for king/rev24/fund/f10, deducted from the seat input in w3_at) + PHIDYN (per-book own net return per unit gross recorded every anchor; φ_t replaces PHI in the blend) + seat2 per-anchor series saved (phi_t, F10-book seat, per-book nets); default path (SEATCOST_BPS=0, PHIDYN=0) bitwise-unchanged in all four rec/W arrays",
++                 "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest(), "SEATCOST_BPS": SEATCOST_BPS, "PHIDYN": PHIDYN, "PHIDYN_LOOK": PHIDYN_LOOK, "PHIDYN_CLIP": list(PHIDYN_CLIP), "PHIDYN_FALLBACK": PHI}
+ print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
+ t0 = time.time()
+ MT = np.load(f"{B}/wide_fea_hist_meta.npz", allow_pickle=True)
+@@ -133,6 +138,7 @@
+     return t
+ def legs(SLOW):
+     LR = {l: [] for l in ("king", "rev24", "fund", "f10")}; idx = []
++    TURN = {l: [] for l in LR}; _prevb = {l: np.zeros(NW) for l in LR}   # seat_round2 (= axisB R2 code, extended to the f10 leg): per-leg unit-gross rank-book turnover
+     for i in range(nA):
+         j = pw_row.get(int(E_ts[i]))
+         if j is None: continue
+@@ -152,10 +158,17 @@
+             if SEATNET and g > 1e-9:   # X1: 减去该腿单位 gross 书的 4h carry(多头付正费率), bps
+                 _lr -= float((z / g * np.nan_to_num(FN[j, m], nan=0.0) * (4.0 / _IVf[j, m])).sum() * 1e4)
+             LR[leg].append(_lr)
++            _zb = np.zeros(NW)   # axisB R2: turnover of this leg's own unit-gross rank book t-1 -> t (full 829-vector, non-members = 0; g<=1e-9 ⇒ empty book); _lr above is untouched
++            if g > 1e-9: _zb[m] = z / g
++            TURN[leg].append(float(np.abs(_zb - _prevb[leg]).sum())); _prevb[leg] = _zb
+         idx.append(i)
+-    return {k: np.array(v) for k, v in LR.items()}, {int(i): p for p, i in enumerate(idx)}
++    _out = {k: np.array(v) for k, v in LR.items()}
++    for l in TURN: _out["turn_" + l] = np.array(TURN[l])
++    return _out, {int(i): p for p, i in enumerate(idx)}
+ W3FC = None
+ def run(SLOW, LRa, pos, depth, need, cool, look=900):
++    global W3FC
++    W3FC = None   # seat_round2: reset per run — the health_check device left the S0 run's LAST (2026) W3FC in place, so the d30 run's first LOOK warm-up anchors (2022-01→07) under SEATF10=1 used a 2026 seat for the F10 book; now the warm-up falls back to the shared warm-up seat w3 (=1/3 each). Affects only anchors with p < LOOK (2022), outside every judged window; SEATF10=0 path untouched (W3FC never read).
+     def w3_at(i):
+         if W3FIX is not None:
+             return np.array([float(x) for x in W3FIX.split(",")])
+@@ -168,6 +181,7 @@
+         if SEATF10:   # T1: f10 腿的席位由它自己的腿收益决定; 返回 kc 三腿席位, fc 席位放入 W3FC 全局
+             global W3FC
+             r4 = np.stack([LRa["king"][sl], LRa["rev24"][sl], LRa["fund"][sl], LRa["f10"][sl]])
++            if SEATCOST_BPS > 0: r4 = r4 - SEATCOST_BPS * np.stack([LRa["turn_king"][sl], LRa["turn_rev24"][sl], LRa["turn_fund"][sl], LRa["turn_f10"][sl]])   # seat_round2 B3/B6: net-of-turnover-fee seat input
+             shp4 = r4.mean(1) / (r4.std(1) + 1e-9); shp4 = np.maximum(shp4, 0.0)
+             mk = np.array([1.0 if c == "1" else 0.0 for c in LEGS])
+             wk = np.array([shp4[0], shp4[1], shp4[2]]) * mk; wk = wk / wk.sum() if wk.sum() > 0 else np.array([1/3]*3)
+@@ -175,6 +189,7 @@
+             W3FC = wf
+             return wk
+         r = np.stack([LRa["king"][sl], LRa["rev24"][sl], LRa["fund"][sl]])
++        if SEATCOST_BPS > 0: r = r - SEATCOST_BPS * np.stack([LRa["turn_king"][sl], LRa["turn_rev24"][sl], LRa["turn_fund"][sl]])   # seat_round2 B3: r_leg − fee·turn_leg (bps) in place of r_leg, then the production msharpe algebra unchanged
+         if WRULE == "iv":
+             iv = 1.0 / (r.std(1) + 1e-9)
+             return iv / iv.sum()
+@@ -189,6 +204,8 @@
+     HF = np.zeros(NW); HB = np.zeros(NW)      # F10 书自己的 EMA 态 / 上一锚的混合书
+     cnt = np.zeros(NW, int); su = np.full(NW, -1)
+     rec = []; WS = []
++    S2 = []; NK = []; NF = []   # seat_round2: per-anchor (phi_t, F10-book seat ×3, king-book net/ug, F10-book net/ug, gross_k, gross_f, phi_state); NK/NF = per-book own net return per unit gross (PHIDYN state)
++    _w3f = None; _smf = None; _HFprev = None; phi_t = PHI; _phis = 0   # _phis: 0 = warm-up/const, 1 = dynamic, 2 = both-shp-zero fallback, 3 = clipped
+     for i in range(nA):
+         j = pw_row.get(int(E_ts[i]))
+         if j is None: continue
+@@ -274,8 +291,21 @@
+                     if _blf.any(): _smf[_blf] = 0.0
+             else:
+                 _smf = HF.copy()
++            _HFprev = HF
+             HF = _smf
+-            smb = (1.0 - PHI) * sm + PHI * _smf
++            if PHIDYN:   # seat_round2 B4: φ_t from the two books' own OOS net returns over the previous PHIDYN_LOOK recorded anchors (strictly before this one: NK/NF are appended after this anchor's accounting)
++                if len(NK) >= PHIDYN_LOOK:
++                    _rk = np.array(NK[-PHIDYN_LOOK:]); _rf = np.array(NF[-PHIDYN_LOOK:])
++                    _sk = max(float(_rk.mean() / (_rk.std() + 1e-9)), 0.0); _sf = max(float(_rf.mean() / (_rf.std() + 1e-9)), 0.0)
++                    if _sk + _sf > 0:
++                        _raw = _sf / (_sk + _sf); phi_t = float(min(max(_raw, PHIDYN_CLIP[0]), PHIDYN_CLIP[1])); _phis = 3 if phi_t != _raw else 1
++                    else:
++                        phi_t = PHI; _phis = 2
++                else:
++                    phi_t = PHI; _phis = 0
++            else:
++                phi_t = PHI; _phis = 0
++            smb = (1.0 - phi_t) * sm + phi_t * _smf
+         else:
+             smb = sm
+         _smk = sm                     # ★ king 书自己的 sm 必须留住: 它的 EMA 态独立推进
+@@ -297,6 +327,16 @@
+         fnow = np.nan_to_num(FN[j, m], nan=0.0); ivv = IV[j, m]; ivv = np.where(np.isfinite(ivv) & (ivv > 0), ivv, 8.0)
+         car = (sm[m] * fnow * (4.0 / ivv)).sum() * 1e4
+         pnl_raw = float((sm[m] * yv).sum() * 1e4)
++        # seat_round2: each book's OWN OOS net return this anchor (price − carry − cost of its own weights/trades, same tier costs, members only as the blended accounting), per unit gross of that book
++        if PHI > 0:
++            _trk = _smk - H; _trfb = _smf - _HFprev
++            _ck = sum(np.abs(_trk[m])[tr == tt].sum() * (fr * mk + (1 - fr) * tk) for tt, (mk, tk, fr) in enumerate(COST_B))
++            _cf = sum(np.abs(_trfb[m])[tr == tt].sum() * (fr * mk + (1 - fr) * tk) for tt, (mk, tk, fr) in enumerate(COST_B))
++            _gk = float(np.abs(_smk).sum()); _gf_ = float(np.abs(_smf).sum())
++            _nk = float(((_smk[m] * yv).sum() * 1e4 - (_smk[m] * fnow * (4.0 / ivv)).sum() * 1e4 - _ck) / _gk) if _gk > 1e-9 else 0.0
++            _nf = float(((_smf[m] * yv).sum() * 1e4 - (_smf[m] * fnow * (4.0 / ivv)).sum() * 1e4 - _cf) / _gf_) if _gf_ > 1e-9 else 0.0
++        else:
++            _nk = _nf = _gk = _gf_ = 0.0
+         legc = []
+         for leg in ("king", "rev24", "fund"):
+             zz = np.nan_to_num(FZ if leg == "fund" else xz(sc[leg])); gl = np.abs(zz).sum()
+@@ -329,16 +369,31 @@
+                     legc[0], legc[1], legc[2], float(w3[0]), float(w3[1]), float(w3[2]), float(np.abs(trade).sum()),
+                     float(pnl_r - car_r - cbps_r), pnl_r, car_r, float(cbps_r), netlong))
+         WS.append(sm.astype(np.float32))
++        _w3fr = (_w3f if (PHI > 0 and _w3f is not None) else np.array([np.nan] * 3))
++        S2.append((float(phi_t), float(_w3fr[0]), float(_w3fr[1]), float(_w3fr[2]), _nk, _nf, _gk, _gf_, float(_phis)))
++        NK.append(_nk); NF.append(_nf)   # appended AFTER this anchor's φ_t was fixed ⇒ φ_t uses anchors strictly before t
+         H = _smk if PHI > 0 else sm      # king 书 EMA 态独立推进(φ=0 时二者同一)
+         HB = sm; HR = smr; Pi = Pi * (1.0 + yfull)
+         if i % 2000 == 0: print("run depth", depth, i, "/", nA, round(time.time() - t0, 1), "s", flush=True)
+-    return np.array(rec), np.stack(WS)
++    return np.array(rec), np.stack(WS), np.array(S2)
+ LRa, pos = legs(SLOW); print("legs done", round(time.time() - t0, 1), "s", flush=True)
+ ARMS = [("S0", None, 0, 0, "nets_histv2_0_0_0.npy"), ("d30_n2_c42", -0.30, 2, 42, "nets_histv2_-30_2_42.npy")]
+ COLS = ["ts", "net", "pnl", "carry", "cost", "gross_total", "gross_member", "gross_sel", "nsel", "nmember", "fires", "leg_king", "leg_rev24", "leg_fund", "w3_king", "w3_rev24", "w3_fund", "turnover", "net_ex", "pnl_ex", "carry_ex", "cost_ex", "netlong"]
++SEAT2_COLS = ["phi_t", "w3f_f10", "w3f_rev24", "w3f_fund", "netk_ug", "netf_ug", "gross_k", "gross_f", "phi_state"]
++_idxL = np.array(sorted(pos, key=pos.get)); _yrsL = yrs[_idxL]; _YL = sorted(set(_yrsL.tolist()))
++for _l in ("king", "rev24", "fund", "f10"):
++    _t = LRa["turn_" + _l]
++    print(f"SEAT2 turn_{_l} yearly mean (unit gross/anchor): " + " ".join(f"{int(y)}={_t[_yrsL == y].mean():.4f}" for y in _YL) + f" | all={_t.mean():.4f}"
++          + (f" | deduction {SEATCOST_BPS}·turn yearly (bps): " + " ".join(f"{int(y)}={SEATCOST_BPS * _t[_yrsL == y].mean():.4f}" for y in _YL) + f"; leg r mean {LRa[_l].mean():+.4f} -> net {(LRa[_l] - SEATCOST_BPS * _t).mean():+.4f}" if SEATCOST_BPS > 0 else ""), flush=True)
+ out = {}; save = {}
+ for nm, d, n_, c, reff in ARMS:
+-    R, WS = run(SLOW, LRa, pos, d, n_, c)
++    R, WS, S2 = run(SLOW, LRa, pos, d, n_, c)
++    _yy2 = np.array([time.gmtime(int(t)).tm_year for t in R[:, 0].astype(np.int64)]); _Y2 = sorted(set(_yy2.tolist()))
++    _ph = S2[:, 0]; _sw = int((np.sign(_ph[1:] - 0.5) != np.sign(_ph[:-1] - 0.5)).sum()); _st = S2[:, 8]
++    print(f"SEAT2 {nm} yearly mean w3_king: " + " ".join(f"{y}={R[_yy2 == y, 14].mean():.3f}" for y in _Y2), flush=True)
++    print(f"SEAT2 {nm} yearly mean F10-book seat (f10/rev24/fund): " + " ".join(f"{y}={np.nanmean(S2[_yy2 == y, 1]):.3f}/{np.nanmean(S2[_yy2 == y, 2]):.3f}/{np.nanmean(S2[_yy2 == y, 3]):.3f}" for y in _Y2), flush=True)
++    print(f"SEAT2 {nm} yearly mean phi_t: " + " ".join(f"{y}={_ph[_yy2 == y].mean():.3f}" for y in _Y2) + f" | switches(sign(phi-0.5) flips) {_sw} | jumps(|Δphi|>=0.05) {int((np.abs(np.diff(_ph)) >= 0.05).sum())} | state counts warm/dyn/fallback/clipped = {[int((_st == s).sum()) for s in (0, 1, 2, 3)]} | min/max {_ph.min():.3f}/{_ph.max():.3f}", flush=True)
++    print(f"SEAT2 {nm} per-book net/ug (bps/anchor) yearly king-book / F10-book: " + " ".join(f"{y}={S2[_yy2 == y, 4].mean():+.3f}/{S2[_yy2 == y, 5].mean():+.3f}" for y in _Y2), flush=True)
+     ref = np.load(f"{B}/{reff}")
+     if REF_SKIP:   # combo_recheck: reference parity skipped on request (REF_SKIP=1)
+         print(f"NOTE {nm}: REF_SKIP=1, reference parity vs pod_backup skipped", flush=True); ref = None
+@@ -374,8 +429,10 @@
+     print("RECEIPT_EX", nm, json.dumps(outx), flush=True)
+     save[f"{nm}_rec"] = R
+     save[f"{nm}_W"] = WS
++    save[f"{nm}_seat2"] = S2
+ _OT = os.environ.get("OUT_TAG", "")   # 并行道输出隔离(PREREG_universe_dyn): 未设时文件名与旧装置同
+ _OT = f"_{_OT}" if _OT else ""
+ json.dump(out, open(f"{PD}/w10_ablation_summary{_OT}.json", "w"), indent=1, ensure_ascii=False)
+-np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), legs_ts=E_ts[np.array(sorted(pos, key=pos.get))], legs_king=LRa["king"], legs_rev24=LRa["rev24"], legs_fund=LRa["fund"], **save)   # health_check: the seat inputs (legs() series) saved for the live-seat comparison; rec/W arrays unchanged
++np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), legs_ts=E_ts[np.array(sorted(pos, key=pos.get))], legs_king=LRa["king"], legs_rev24=LRa["rev24"], legs_fund=LRa["fund"],
++                    seat2_cols=np.array(SEAT2_COLS), legs_f10=LRa["f10"], seat2_turn=np.stack([LRa["turn_king"], LRa["turn_rev24"], LRa["turn_fund"], LRa["turn_f10"]]), **save)   # health_check: the seat inputs (legs() series) saved for the live-seat comparison; rec/W arrays unchanged. seat_round2: per-leg turnover (king/rev24/fund/f10 over the legs() sequence) + per-arm seat2 series
+ print("DONE", round(time.time() - t0, 1), "s", flush=True)
