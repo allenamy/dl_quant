@@ -22,15 +22,24 @@ def T(s): return int(calendar.timegm(time.strptime(s, "%Y-%m-%d")))
 CUT = T("2026-08-10") + 20 * 3600; APY = 2190
 WIN = {"2024": (T("2024-01-01"), T("2025-01-01")), "2025": (T("2025-01-01"), T("2026-01-01")), "2026->cut": (T("2026-01-01"), CUT + 1), "2024->26": (T("2024-01-01"), CUT + 1)}
 def sharpe(x): return float(x.mean() / x.std(ddof=1) * np.sqrt(APY)) if len(x) > 2 and x.std(ddof=1) > 0 else float("nan")
-out = {"self_sha256": hashlib.sha256(open(__file__, "rb").read()).hexdigest(), "artifacts": {}}
+NB = 2000; SEED = 20260905
+def boot_ci(x, days):
+    """UTC-day-block bootstrap CI95 of the mean (health_metrics.py form: 2000 resamples, seed 20260905)."""
+    ud, inv = np.unique(days, return_inverse=True); nd = len(ud)
+    s1 = np.bincount(inv, x); c = np.bincount(inv).astype(float)
+    rng = np.random.default_rng(SEED); idx = rng.integers(0, nd, size=(NB, nd)); m = s1[idx].sum(1) / c[idx].sum(1)
+    return [round(float(np.percentile(m, 2.5)), 4), round(float(np.percentile(m, 97.5)), 4)]
+out = {"self_sha256": hashlib.sha256(open(__file__, "rb").read()).hexdigest(), "first_anchor_rule": "w_{t-1} := w_t on the first anchor (team-lead addendum spec)", "bootstrap": {"blocks": "UTC day", "n": NB, "seed": SEED}, "artifacts": {}}
 for kv in sys.argv[2:]:
     tag, p = kv.split("="); z = np.load(p, allow_pickle=True); assert [str(c) for c in z["cols"]] == COLS
     rec = np.asarray(z["d30_n2_c42_rec"], float); W = np.asarray(z["d30_n2_c42_W"], np.float64)
     ts = rec[:, C["ts"]].astype(np.int64); Ei = (ts - T0) // 300; assert np.all(CTS[Ei] == ts)
     R1_48 = R(Ei, 1, 48); R1_5 = R(Ei, 1, 5); R6_48 = R(Ei, 6, 48)
-    Wp = np.vstack([np.zeros((1, 829)), W[:-1]])   # previous anchor's weights (first anchor: flat)
+    Wp = np.vstack([W[:1], W[:-1]])   # previous anchor's weights; first anchor uses w_t for both (addendum spec)
     pnl_a = (W * R1_48).sum(1) * 1e4; pnl_b = (W * R6_48).sum(1) * 1e4
     slice_new = (W * R1_5).sum(1) * 1e4; slice_old = (Wp * R1_5).sum(1) * 1e4; pnl_c = slice_old + pnl_b
+    slice_delta = slice_new - slice_old   # Σ (w_t − w_{t−1})·r[E+1..E+5] = return the replay books to turnover not yet executed
+    days = ts // 86400
     rp, rpx = rec[:, C["pnl"]], rec[:, C["pnl_ex"]]
     rcpt = {"max_abs_diff_vs_pnl": float(np.abs(pnl_a - rp).max()), "max_abs_diff_vs_pnl_ex": float(np.abs(pnl_a - rpx).max()),
             "corr_vs_pnl": float(np.corrcoef(pnl_a, rp)[0, 1]), "corr_vs_pnl_ex": float(np.corrcoef(pnl_a, rpx)[0, 1])}
@@ -49,10 +58,15 @@ for kv in sys.argv[2:]:
         d["retention_c_over_a"] = round(float(g["c_reconciled_prev_weights"].mean() / ma), 3) if abs(ma) > 1e-9 else None
         d["retention_b_over_a"] = round(float(g["b_zero_exposure_25m"].mean() / ma), 3) if abs(ma) > 1e-9 else None
         d["first25min_slice_per_gross"] = {"new_weights_w_t": round(float((slice_new[m] / gt[m]).mean()), 4), "prev_weights_w_t-1": round(float((slice_old[m] / gt[m]).mean()), 4)}
+        d["decomposition_first25min"] = {"held_w_t-1": {"mean": round(float((slice_old[m] / gt[m]).mean()), 4), "ci95": boot_ci(slice_old[m] / gt[m], days[m])},
+                                         "delta_w_t_minus_w_t-1": {"mean": round(float((slice_delta[m] / gt[m]).mean()), 4), "ci95": boot_ci(slice_delta[m] / gt[m], days[m])},
+                                         "a_minus_c": {"mean": round(float(((pnl_a[m] - pnl_c[m]) / gt[m]).mean()), 4), "ci95": boot_ci((pnl_a[m] - pnl_c[m]) / gt[m], days[m])}}
+        d["ci95_per_gross"] = {k: boot_ci(x, days[m]) for k, x in g.items()}
         d["device_net_per_gross"] = round(float((rec[m, C[net_col]] / gt[m]).mean()), 4)
         d["weight_overlap_mean"] = round(float(ovl[m].mean()), 4); d["n"] = int(m.sum())
         res["windows"][w] = d
-        print(f"[{tag} {w}] n {m.sum()} device {d['device_net_per_gross']:+.4f} | a {d['a_Eclose']['mean_bps_anchor_per_gross']:+.4f} (S {d['a_Eclose']['sharpe_anchor']:.2f}) | b {d['b_zero_exposure_25m']['mean_bps_anchor_per_gross']:+.4f} | c {d['c_reconciled_prev_weights']['mean_bps_anchor_per_gross']:+.4f} (S {d['c_reconciled_prev_weights']['sharpe_anchor']:.2f}) | ret c/a {d['retention_c_over_a']} b/a {d['retention_b_over_a']} | 25m slice new {d['first25min_slice_per_gross']['new_weights_w_t']:+.4f} prev {d['first25min_slice_per_gross']['prev_weights_w_t-1']:+.4f} | overlap {d['weight_overlap_mean']:.3f}", flush=True)
+        dc = d["decomposition_first25min"]
+        print(f"[{tag} {w}] n {m.sum()} device {d['device_net_per_gross']:+.4f} | a {d['a_Eclose']['mean_bps_anchor_per_gross']:+.4f} {d['ci95_per_gross']['a_Eclose']} (S {d['a_Eclose']['sharpe_anchor']:.2f}) | b {d['b_zero_exposure_25m']['mean_bps_anchor_per_gross']:+.4f} | c {d['c_reconciled_prev_weights']['mean_bps_anchor_per_gross']:+.4f} {d['ci95_per_gross']['c_reconciled_prev_weights']} (S {d['c_reconciled_prev_weights']['sharpe_anchor']:.2f}) | ret c/a {d['retention_c_over_a']} b/a {d['retention_b_over_a']} | 25m held {dc['held_w_t-1']['mean']:+.4f} {dc['held_w_t-1']['ci95']} delta {dc['delta_w_t_minus_w_t-1']['mean']:+.4f} {dc['delta_w_t_minus_w_t-1']['ci95']} a−c {dc['a_minus_c']['mean']:+.4f} {dc['a_minus_c']['ci95']} | overlap {d['weight_overlap_mean']:.3f}", flush=True)
     print(f"[{tag}] receipt {rcpt} -> weights match column {base_col}", flush=True)
     out["artifacts"][tag] = res
 json.dump(out, open(sys.argv[1], "w"), indent=1); print("RECONCILE_DONE", flush=True)
