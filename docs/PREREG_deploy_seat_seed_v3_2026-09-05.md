@@ -23,5 +23,5 @@
 - 禁: 改 bundle 或生产者代码"顺手"一起换; 在 16:00–16:30Z 之间做任何改动。
 
 ## 3. 收据(执行后填)
-- 换入时间/sha/PID: <填>
+- 换入: 2026-09-05 12:47:3xZ; 备份 `leg_returns_live.json.pre_seatseed_v3_20260905` sha bef771d68d94; 换入后 live sha 4a3bfd9a9353(= 干跑产物); king 行改 917, fund/rev24 逐位不变; 现场重算掩码 king 席位 0.2999, w3 [0.264, 0.1195, 0.6164]; 生产者 kickstart PID 58281 → 10900, shadow.lock = 10900, loop.out `next 2026-09-05T16:16:00+00:00`, 无 Traceback。研究仓预注册提交 2040662(sha fed8faa4)。
 - 16Z 验收: <填>

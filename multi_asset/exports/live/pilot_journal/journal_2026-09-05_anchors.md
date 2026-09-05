@@ -63,3 +63,9 @@
 ## 11:48Z 重挂随机实验上线(用户字 09-05 "重挂可以随机实验, 但是一定不要引入任何错误, 精准实施")
 - 预注册 `PREREG_requote_randomised_2026-09-05`(sha 4b8b5ec3, 6736d4b)先于实施; 实盘仓 `12aa2a1`(safe_commit 128/128 绿, 已推送): 新模块 `live/requote_experiment.py`(纯函数, 与 placement_bandit 同形态, 不同哈希盐), `_requote_benign_rejects` 在读新鲜盘口前分臂并过滤 direct 臂, 报告加 n_direct/n_exempt/p_requote, `_order_row` 加 requote_arm/requote_p; config `requote_experiment.p_requote=0.5`; 套件 `tests_requote_experiment` 30 断言(恒等 p=1.0 / fail-closed 到现行为 / 确定性与独立盐 / 份额 / exempt / direct 零新路径零场所调用 / requote 臂逐位现行为 / 记账列 / 配置在位 / 静态钉); 旧 RQ 夹具钉 p=1.0; 普查豁免声明。首跑电池一红(普查未声明新模块)→ 加声明复跑绿。
 - 生效 = 12Z 锚; 12Z 巡检做 MC-3(日志 requote 报告 p_requote 0.5 且 n_direct>0, 订单行带 requote_arm)。读数点前不看臂间差。
+
+
+## 12:47Z king 席位历史播种(用户字; 预注册 PREREG_deploy_seat_seed_v3 fed8faa4 先于执行)
+- 干跑(seat_seed_v3_2026-09-05/dryrun_seat_seed.py): 状态文件前 834 行三腿逐位 = 08-16 旧 bundle 尾(03-29 04Z..08-15 00Z), 后 116 行与 score 日志锚一一对应(两处非 4h 间隔系当时停跑); v3 bundle 在 834 行上 fund/rev24 逐位相等、king 0/834 相等。装置规则: v3 覆盖的 917 行换 king 列, 33 行实盘行不动。席位 0.1878 → 0.2999(只换 834 行 0.2946; v3 末 900 行单独 0.3228)。
+- 换入 12:47Z: 备份 sha bef771d68d94 → live sha 4a3bfd9a9353(= 干跑产物), 917 行改, fund/rev24 逐位不变, 现场重算 0.2999; kickstart PID 58281→10900, lock 10900, loop.out next 16:16Z, 无 Traceback。锚静默窗内完成(12Z 锚已过, 距 16Z 3.5 h)。
+- 16Z 验收清单: w3 掩码 king ∈ [0.28, 0.32]; 状态文件 950 行且新增 12Z 行; combo_stage 五层安全通过; 执行器 16:23Z 正常 + readback; sidecar 自平价 PASS; FTRIM/M1 PASS。不成立 ⇒ 回滚 = 备份文件 + kickstart。
