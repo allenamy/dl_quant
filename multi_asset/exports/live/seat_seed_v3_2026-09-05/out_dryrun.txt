@@ -1,0 +1,13 @@
+live state file sha bef771d68d94 rows {'king': 950, 'rev24': 950, 'fund': 950}
+v3 bundle leg_returns.npz sha 6061af108e45 ts 2022-01-08 00:00Z -> 2026-08-30 20:00Z n 10176
+bundle-era prefix (all 3 legs bitwise == OLD bundle): 834 rows = anchors 2026-03-29 04:00Z .. 2026-08-15 00:00Z; live rows after: 116
+score-log anchors after prefix end: 116 (state live rows 116); first 2026-08-16 12:00Z last 2026-09-05 08:00Z; non-4h gaps 2: [('2026-08-18 08:00Z', '2026-08-18 20:00Z'), ('2026-08-29 12:00Z', '2026-08-30 00:00Z')]
+rows covered by the v3 bundle: 917 of 950 (last covered anchor 2026-08-30 20:00Z); uncovered live rows: 33 = 2026-08-31 00:00Z .. 2026-09-05 08:00Z
+prefix vs v3: fund bitwise-equal 834 / 834 ; rev24 834 / 834 ; king equal 0 / 834
+CURRENT: w3 [0.1623, 0.1361, 0.7017] masked king 0.1878; king mean 1.276 sd 28.53 shp 0.0447
+OPTION A (prefix only, 834 rows): w3 [0.2591, 0.1203, 0.6205] masked king 0.2946; king mean 2.337 shp 0.0807
+OPTION B' (device rule, 917 rows): w3 [0.264, 0.1195, 0.6164] masked king 0.2999; king mean 2.414 shp 0.0828
+REFERENCE (v3 bundle last 900 rows alone): w3 [0.284, 0.1203, 0.5957] masked king 0.3228
+king rows changed: 917 unchanged: 33
+staged file /Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/seat_seed_v3_2026-09-05/leg_returns_live.seeded_v3.json sha 4a3bfd9a9353
+DRYRUN_OK
