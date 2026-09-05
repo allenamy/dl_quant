@@ -1,0 +1,51 @@
+22a23,33
+> # ── fold2026 derivation (PREREG_live_form_health_check_2026-09-05 AMENDMENT 1). Base = /workspace/pod_f10_train_ext.py sha256 93cc2cdf… (verbatim 09-01 gate trainer).
+> # FOLDS = test folds that are TRAINED (default = all four = base behaviour). A skipped fold only replays the base script's numpy RNG draws
+> # (one np.random.permutation(starts) per epoch) so the numpy stream at the trained fold is identical to a full 4-fold run; torch RNG is re-seeded
+> # per fold by the base script (torch.manual_seed(SEED + YV)). F10_TAG / F10_PREDS_DIR / F10_RES_DIR redirect the outputs (defaults = base paths);
+> # F10_MODELS_DIR (if set) saves the selected best-validation model (state_dict + mu/sd standardisation + config) per trained fold. Numerics untouched.
+> BASE_SHA256 = "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598"
+> FOLDS = tuple(int(x) for x in os.environ.get("FOLDS", "2023,2024,2025,2026").split(","))
+> TAG = os.environ.get("F10_TAG", f"f10_{ARM}_s{SEED}")
+> PREDS_DIR = os.environ.get("F10_PREDS_DIR", f"{OUT}/preds"); RES_DIR = os.environ.get("F10_RES_DIR", f"{OUT}/results"); MODELS_DIR = os.environ.get("F10_MODELS_DIR", "")
+> for _d in (PREDS_DIR, RES_DIR, MODELS_DIR):
+>     if _d: os.makedirs(_d, exist_ok=True)
+92a104
+> if ARM == "V2MAIN": assert V2 == 1, "E-0826-D: ARM=V2MAIN requires V2=1 (msharpe-leg composite chain)"
+138a151,153
+> rep.update({"v2": V2, "folds_trained": list(FOLDS), "tag": TAG, "base_script_sha256": BASE_SHA256, "torch": torch.__version__, "cuda": torch.version.cuda,
+>             "device": (torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"), "legs_sha256": (sha(f"{OUT}/data/f10v2_legs.npz") if V2 else None),
+>             "env": {k: os.environ.get(k) for k in ("ARM", "SEED", "V2", "FOLDS", "F10_DLW", "F10_OUT", "F10_TAG", "F10_PREDS_DIR", "F10_RES_DIR", "F10_MODELS_DIR", "COST", "LDD", "AFIX", "EPOCHS", "LR", "NCOL", "EXTRA", "LPP", "LDC", "CTXA", "REC", "PLE")}})
+278a294,298
+>     if YV not in FOLDS:   # fold2026: replay this fold's per-epoch numpy draws (base: order = np.random.permutation(starts) once per epoch), train nothing
+>         for _ep in range(EPOCHS): np.random.permutation(starts)
+>         log(f"[{YV}] SKIPPED (FOLDS={FOLDS}): replayed {EPOCHS} np.random.permutation draws over {len(starts)} starts; train idx {int(tr_idx[0])}..{int(tr_idx[-1])}")
+>         del mdl, opt; torch.cuda.empty_cache(); continue
+>     fold_t0 = time.time()
+320a341,350
+>     if MODELS_DIR:   # fold2026: persist the selected model (best validation epoch) with its standardisation vectors and config
+>         _mp = f"{MODELS_DIR}/{TAG}_fold{YV}.pt"
+>         _fc = {"fold": YV, "model_path": _mp, "first_te": int(first_te), "n_test": int(te.size), "n_trainval_anchors": int(len(tr_idx)), "n_train_anchors": int(len(tr1)), "n_val_anchors": int(len(va1)),
+>                "train_first_E_ts": int(E_ts[tr1[0]]), "train_last_E_ts": int(E_ts[tr1[-1]]), "val_first_E_ts": int(E_ts[va1[0]]), "val_last_E_ts": int(E_ts[va1[-1]]),
+>                "max_trainval_idx": int(tr_idx[-1]), "max_trainval_E_ts": int(E_ts[tr_idx[-1]]), "embargo_anchors_between": int(first_te - 1 - tr_idx[-1]),
+>                "first_test_E_ts": int(E_ts[first_te]), "last_test_E_ts": int(E_ts[te[-1]]), "best_va": float(best_va), "best_epoch": int(np.argmax(va_curve)), "alpha_final": float(mdl.alpha()),
+>                "n_starts": int(len(starts)), "config": {k: v for k, v in rep.items() if k != "folds"}}
+>         torch.save({"state_dict": {k: v.cpu() for k, v in best_state.items()}, "mu": mu.cpu(), "sd": sd.cpu(), "fold_config": _fc}, _mp)
+>         json.dump(_fc, open(f"{MODELS_DIR}/{TAG}_fold{YV}_config.json", "w"), indent=1, default=float)
+>         log(f"[{YV}] model saved {_mp} (sha256 {sha(_mp)[:16]}) best_epoch {int(np.argmax(va_curve))} best_va {best_va:+.4f}")
+359c389
+<                              "turnover_mean": round(float(np.mean(trn_series)), 5)}
+---
+>                              "turnover_mean": round(float(np.mean(trn_series)), 5), "wall_s": round(time.time() - fold_t0, 1)}
+361,362c391,392
+<     np.save(f"{OUT}/preds/f10_{ARM}_s{SEED}.npy", PRED)
+<     json.dump(rep, open(f"{OUT}/results/f10_{ARM}_s{SEED}.json", "w"), indent=1, default=float)
+---
+>     np.save(f"{PREDS_DIR}/{TAG}.npy", PRED)
+>     json.dump(rep, open(f"{RES_DIR}/{TAG}.json", "w"), indent=1, default=float)
+364,365c394,395
+< rep["net_mean_all"] = round(float(np.mean([f["net_mean_bps"] for f in rep["folds"].values()])), 4)
+< json.dump(rep, open(f"{OUT}/results/f10_{ARM}_s{SEED}.json", "w"), indent=1, default=float)
+---
+> rep["net_mean_all"] = round(float(np.mean([f["net_mean_bps"] for f in rep["folds"].values()])), 4); rep["wall_total_s"] = round(time.time() - T0, 1)
+> json.dump(rep, open(f"{RES_DIR}/{TAG}.json", "w"), indent=1, default=float)
