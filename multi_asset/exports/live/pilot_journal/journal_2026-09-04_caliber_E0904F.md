@@ -19,3 +19,4 @@
 - jpline 第 16 次超时 2026-09-05 02:53:05Z(ssh connect timeout, 2 小时重试 cron; 第二仪器改由 pod2 从源码重建, PREREG_second_instrument_rebuild)
 - jpline 第 17 次超时 2026-09-05 04:38:16Z(ssh connect timeout; 04:23Z 定时槽未产生记录, 手动补跑)
 - jpline 第 18 次超时 2026-09-05 04:53:10Z(04:23Z 槽延迟触发; 自 09-04 11:47Z 不可达 ≈17 h)
+- jpline 第 19 次超时 2026-09-05 06:53:51Z(ssh connect timeout, 2 小时重试 cron; 自 09-04 11:47Z 不可达 ≈19 h)
