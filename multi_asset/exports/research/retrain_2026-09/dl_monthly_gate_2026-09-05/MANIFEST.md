@@ -45,3 +45,6 @@ ccb7a0805be2a106898467b5ffef3a8fd4813a659e044492c0a437b0e5d7aece  /workspace/rev
 158cd4ac8f8f30f7f41a5a6cba0bd19a450ce756727e4aeae3d4e4b0b67d0054  /workspace/shadow_bundle_v3/slow_pred_pinned.npy (pinned king)
 ```
 回放臂环境(逐字, `replay/logs/commands.txt`): `LEGS=101 CAL=log SLOW_NPY=… WRULE=msharpe LOOK=900 MEMBERS_TOPN=829 FTRIM=zero PHI=0.45 UMASK_SCOPE=m1 UMASK_NPZ=… COSTB_JSON=… FSEED=42 FPRED=f10_gate_<TAG>_<ARM>_s42.npy`; φdyn 臂加 `PHIDYN=1 PHIDYN_CLIP=0.3,0.6` 走 `w10_seat2g.py`。等价收据(`replay/logs/check_equiv.log`): BASE_s42/BASE_s2027 四数组 `array_equal` = health_check `M1_UPIT_prod_s{42,2027}_ccal`; w10_seat2g PHIDYN=0 = w10_health(BASE 与 R1 两组)。
+
+## 5. 附录 addendum_mE1_s2027/(2026-09-05 17:4xZ; RESULT §10)
+mE1 月折以种子 2027 重训(dl_monthly_wf 逐字月折训练器 + 一行种子白名单补丁, 4 分片, 15:08Z 配额事故后 resume 重启, 20/20 折)→ 拼接 → 拼行(spl27/spl42)→ 同装置回放 → `judge_gate_addendum.py`(冻结主窗 + 全窗)。pod 根 `/workspace/review_scratch/allweather_trackB/mwf_s2027/` + `…/replay/dev_alt/`; 数组 sha `addendum_mE1_s2027/POD_SHA256SUMS_arrays_and_devices.txt`; 归档文件 pod 端 sha `POD_SHA256SUMS_archived_files.txt`(63/63 相等)。

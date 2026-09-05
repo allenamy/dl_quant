@@ -1,0 +1,47 @@
+CMD[IDENT s42] 2026-09-05T14:37:11Z gpu_mem=2 MiB : env ARM=V2MAIN_IDENT V2=1 SEED=42 DRO_T=inf SS_W=0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+PID[IDENT s42] python 119173 (launcher 119167) 2026-09-05T14:37:11Z
+CMD[B2 s42] 2026-09-05T14:39:55Z gpu_mem=2444 MiB : env ARM=V2MAIN_B2 V2=1 SEED=42 DRO_T=inf SS_W=1.0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+CMD[B3 s42] 2026-09-05T14:39:55Z gpu_mem=2444 MiB : env ARM=V2MAIN_B3 V2=1 SEED=42 DRO_T=0.5 SS_W=1.0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+CMD[B1 s42] 2026-09-05T14:39:55Z gpu_mem=2444 MiB : env ARM=V2MAIN_B1 V2=1 SEED=42 DRO_T=0.5 SS_W=0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+PID[B2 s42] python 119869 (launcher 119853) 2026-09-05T14:39:55Z
+PID[B3 s42] python 119871 (launcher 119855) 2026-09-05T14:39:55Z
+PID[B1 s42] python 119873 (launcher 119851) 2026-09-05T14:39:55Z
+CMD[B1 s2027] 2026-09-05T14:45:09Z gpu_mem=9848 MiB : env ARM=V2MAIN_B1 V2=1 SEED=2027 DRO_T=0.5 SS_W=0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+CMD[B2 s2027] 2026-09-05T14:45:09Z gpu_mem=9848 MiB : env ARM=V2MAIN_B2 V2=1 SEED=2027 DRO_T=inf SS_W=1.0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+PID[B1 s2027] python 120435 (launcher 120423) 2026-09-05T14:45:09Z
+PID[B2 s2027] python 120437 (launcher 120425) 2026-09-05T14:45:09Z
+STOPPED python 120435 2026-09-05T14:50:12Z
+STOPPED python 120437 2026-09-05T14:50:12Z
+CMD[mE1s2027 shard1] 2026-09-05T14:50:12Z gpu_mem=14898 MiB : env ARM=V2MAIN V2=1 SEED=2027 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext MWF_OUT=/workspace/review_scratch/allweather_trackB/mwf_s2027/shard1 EMBARGO=1 MONTHS=202502,202506,202510,202602,202606 /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_s2027.py
+CMD[mE1s2027 shard2] 2026-09-05T14:50:12Z gpu_mem=14898 MiB : env ARM=V2MAIN V2=1 SEED=2027 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext MWF_OUT=/workspace/review_scratch/allweather_trackB/mwf_s2027/shard2 EMBARGO=1 MONTHS=202503,202507,202511,202603,202607 /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_s2027.py
+CMD[mE1s2027 shard0] 2026-09-05T14:50:12Z gpu_mem=14898 MiB : env ARM=V2MAIN V2=1 SEED=2027 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext MWF_OUT=/workspace/review_scratch/allweather_trackB/mwf_s2027/shard0 EMBARGO=1 MONTHS=202501,202505,202509,202601,202605 /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_s2027.py
+CMD[mE1s2027 shard3] 2026-09-05T14:50:12Z gpu_mem=14898 MiB : env ARM=V2MAIN V2=1 SEED=2027 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext MWF_OUT=/workspace/review_scratch/allweather_trackB/mwf_s2027/shard3 EMBARGO=1 MONTHS=202504,202508,202512,202604,202608 /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_s2027.py
+PID[mE1s2027 shard0] python 121030 (launcher 120998) 2026-09-05T14:50:12Z
+PID[mE1s2027 shard1] python 121026 (launcher 121000) 2026-09-05T14:50:12Z
+PID[mE1s2027 shard2] python 121028 (launcher 121002) 2026-09-05T14:50:12Z
+PID[mE1s2027 shard3] python 121032 (launcher 121004) 2026-09-05T14:50:12Z
+END[IDENT s42] python 119173 rc=0 2026-09-05T15:02:31Z wall 1520 s; F10_TRAIN_DONE: 1; preds sha 42666fc75aa68b44
+END[B1 s42] python 119873 rc=0 2026-09-05T15:08:12Z wall 1697 s; F10_TRAIN_DONE: 1; preds sha 3b0191ac5f18a085
+INCIDENT 2026-09-05 ~15:08-15:10Z: /workspace quota ceiling (lead 16:33Z); B2_s42, B3_s42 (fold 2025 ep9-10) and the 4 mE1 s2027 shards (2nd fold) died without traceback (log writes failed); no END lines; first-fold shard artifacts verified intact (check_shard_artifacts.py); partial files quarantined to *partial_20260905T1508*; relaunch 2026-09-05T16:36:26Z
+CMD[B3 s42] 2026-09-05T16:36:26Z gpu_mem=4807 MiB : env ARM=V2MAIN_B3 V2=1 SEED=42 DRO_T=0.5 SS_W=1.0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+CMD[B2 s42] 2026-09-05T16:36:26Z gpu_mem=4807 MiB : env ARM=V2MAIN_B2 V2=1 SEED=42 DRO_T=inf SS_W=1.0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+CMD[mE1s2027 shard3] 2026-09-05T16:36:26Z gpu_mem=4807 MiB : env ARM=V2MAIN V2=1 SEED=2027 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext MWF_OUT=/workspace/review_scratch/allweather_trackB/mwf_s2027/shard3 EMBARGO=1 MONTHS=202504,202508,202512,202604,202608 /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_s2027.py
+PID[B3 s42] python 131557 (launcher 131525) 2026-09-05T16:36:26Z
+CMD[mE1s2027 shard1] 2026-09-05T16:36:26Z gpu_mem=4807 MiB : env ARM=V2MAIN V2=1 SEED=2027 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext MWF_OUT=/workspace/review_scratch/allweather_trackB/mwf_s2027/shard1 EMBARGO=1 MONTHS=202502,202506,202510,202602,202606 /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_s2027.py
+CMD[mE1s2027 shard0] 2026-09-05T16:36:26Z gpu_mem=4807 MiB : env ARM=V2MAIN V2=1 SEED=2027 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext MWF_OUT=/workspace/review_scratch/allweather_trackB/mwf_s2027/shard0 EMBARGO=1 MONTHS=202501,202505,202509,202601,202605 /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_s2027.py
+CMD[mE1s2027 shard2] 2026-09-05T16:36:26Z gpu_mem=4807 MiB : env ARM=V2MAIN V2=1 SEED=2027 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext MWF_OUT=/workspace/review_scratch/allweather_trackB/mwf_s2027/shard2 EMBARGO=1 MONTHS=202503,202507,202511,202603,202607 /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_s2027.py
+PID[B2 s42] python 131559 (launcher 131523) 2026-09-05T16:36:26Z
+PID[mE1s2027 shard0] python 131563 (launcher 131515) 2026-09-05T16:36:26Z
+PID[mE1s2027 shard3] python 131561 (launcher 131521) 2026-09-05T16:36:26Z
+PID[mE1s2027 shard1] python 131567 (launcher 131517) 2026-09-05T16:36:26Z
+PID[mE1s2027 shard2] python 131565 (launcher 131519) 2026-09-05T16:36:26Z
+END[mE1s2027 shard0] python 131563 rc=0 2026-09-05T17:17:04Z wall 2438 s; folds done: 5; MWF_TRAIN_DONE: 1
+END[mE1s2027 shard1] python 131567 rc=0 2026-09-05T17:17:42Z wall 2476 s; folds done: 5; MWF_TRAIN_DONE: 1
+END[mE1s2027 shard2] python 131565 rc=0 2026-09-05T17:18:19Z wall 2513 s; folds done: 5; MWF_TRAIN_DONE: 1
+END[mE1s2027 shard3] python 131561 rc=0 2026-09-05T17:18:57Z wall 2551 s; folds done: 5; MWF_TRAIN_DONE: 1
+END[B2 s42] python 131559 rc=0 2026-09-05T17:24:39Z wall 2893 s; F10_TRAIN_DONE: 1; preds sha 7f1581b47b9cb317
+END[B3 s42] python 131557 rc=0 2026-09-05T17:24:48Z wall 2902 s; F10_TRAIN_DONE: 1; preds sha ea07fdfcbe5b8e82
+RESUMED python 120435 2026-09-05T17:31:41Z
+RESUMED python 120437 2026-09-05T17:31:41Z
+CMD[B3 s2027] 2026-09-05T17:31:41Z gpu_mem=4807 MiB : env ARM=V2MAIN_B3 V2=1 SEED=2027 DRO_T=0.5 SS_W=1.0 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/review_scratch/allweather_trackB/f8_out /workspace/venv/bin/python /workspace/review_scratch/allweather_trackB/pod_f10_train_dro.py
+PID[B3 s2027] python 136163 (launcher 136157) 2026-09-05T17:31:41Z

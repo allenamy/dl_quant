@@ -1,4 +1,4 @@
-> **创建:** 2026-09-05 14:3xZ(计算收据 pod2 `logs/commands.txt` CHAIN START 11:27:48Z → `END[judge] rc=0` 11:29:57Z; 归档与本文由 Track B 代理写于 14:2x–14:4xZ, 判官复跑逐字节相等 14:21:32Z)| **Session:** b9646a9e / teammate Track B(allweather Part 0)| **状态:** final(判据 = PREREG §A 冻结先于数字, 数字后未改; 本文只读归档文件, 未加臂、未改窗)| **预注册:** `docs/PREREG_dl_monthly_gate_and_phi_grid_2026-09-05.md` §A sha256 `05801bb24563910970acb842b2c9338d94212d6306dda4a8ea27c5d6178f6199`(commit dfbe516)| **装置:** pod2 `/workspace/review_scratch/dl_monthly_gate/`(回放 w10_health.py sha256 `8684d9a9f43a8d15…` = health_check / phi_grid / dl_monthly_wf 装置逐字节同; φdyn 臂 w10_seat2g.py `13d0c849…`; 判官 judge_gate.py, 复跑 json sha `1f0385e19a9619be…` 两侧同)| **归档:** `multi_asset/exports/research/retrain_2026-09/dl_monthly_gate_2026-09-05/`(SHA256SUMS + MANIFEST.md + `gate_tables.md` 由 `build_result_gate_doc.py` 从归档 json 打印)| **作废条件:** 面板 / 折模型 / 年折预测 / 装置任一 sha 变更; 判读在看数字后被改; 本文任何数字无归档文件出处
+> **创建:** 2026-09-05 14:3xZ(计算收据 pod2 `logs/commands.txt` CHAIN START 11:27:48Z → `END[judge] rc=0` 11:29:57Z; 归档与本文由 Track B 代理写于 14:2x–14:4xZ, 判官复跑逐字节相等 14:21:32Z)| **Session:** b9646a9e / teammate Track B(allweather Part 0)| **状态:** final(判据 = PREREG §A 冻结先于数字, 数字后未改; 本文只读归档文件, 未加臂、未改窗)+ **§10 附录 17:4xZ: mE1 种子 2027 复现 NOT keepable(两种子 × 两窗口)**| **预注册:** `docs/PREREG_dl_monthly_gate_and_phi_grid_2026-09-05.md` §A sha256 `05801bb24563910970acb842b2c9338d94212d6306dda4a8ea27c5d6178f6199`(commit dfbe516)| **装置:** pod2 `/workspace/review_scratch/dl_monthly_gate/`(回放 w10_health.py sha256 `8684d9a9f43a8d15…` = health_check / phi_grid / dl_monthly_wf 装置逐字节同; φdyn 臂 w10_seat2g.py `13d0c849…`; 判官 judge_gate.py, 复跑 json sha `1f0385e19a9619be…` 两侧同)| **归档:** `multi_asset/exports/research/retrain_2026-09/dl_monthly_gate_2026-09-05/`(SHA256SUMS + MANIFEST.md + `gate_tables.md` 由 `build_result_gate_doc.py` 从归档 json 打印)| **作废条件:** 面板 / 折模型 / 年折预测 / 装置任一 sha 变更; 判读在看数字后被改; 本文任何数字无归档文件出处
 
 # RESULT · DL 月度换装门(t−2 截止 / t−1 验证)的因果模拟 — PREREG §A
 
@@ -327,3 +327,96 @@
 - pod 原件(只读): `/workspace/review_scratch/dl_monthly_gate/`; 折模型 `/workspace/review_scratch/dl_monthly_wf/models/`。
 - 复跑(逐字, pod2): `cd /workspace/review_scratch/dl_monthly_gate && bash chain_gate.sh`(链 = setup → infer(GPU) → simulate mE1/mE60 → replay 16 臂 → judge, 2 分 9 秒, `logs/commands.txt`); 只重跑判官: `/workspace/venv/bin/python judge_gate.py`(本次复跑收据 `verify_rerun/commands.txt`); 本文表格: `python3 build_result_gate_doc.py <归档目录>`。
 - 交叉引用: `docs/RESULT_dl_monthly_walkforward_2026-09-05.md`(f311321, 折模型来源与泄漏门)· `docs/RESULT_phi_grid_2026-09-05.md`(同装置 φ 网格, §B)· `docs/RESULT_live_form_health_check_2026-09-05.md`(装置主臂)· `docs/RESULT_seat_round2_2026-09-05.md`(B4 动态 φ)· `docs/RUNBOOK_monthly_retrain_2026-09.md`(DL 步骤, 本文不改)。
+
+---
+
+## §10 附录(2026-09-05 17:3xZ, lead 指令 ~14:55Z / 16:33Z): mE1 月折以种子 2027 重训 —— "月折劣于年折"是种子伪影还是形态?
+
+> **创建:** 2026-09-05 17:4xZ(判官收据 `addendum_mE1_s2027/logs/judge_gate_addendum.log` ADDENDUM_JUDGE_DONE 17:33Z; 训练 14:50:12Z–17:18:57Z 含 15:08–16:36Z 配额事故停机)| **Session:** b9646a9e / teammate Track B | **状态:** 附录 final(判据 = §A4 原条款, 窗口 = 预注册主窗 + f311321 全窗, 数字后未改; 只加种子, 不加规则)| **装置:** pod2 `/workspace/review_scratch/allweather_trackB/mwf_s2027/`(月折训练器 = dl_monthly_wf `pod_f10_train_monthly.py` sha `7bb39f8d…` **仅一行补丁** `SEED == 42` → `SEED in (42, 2027)`(逐字文件拒绝其它种子), 补丁后 sha `14d08c63…`, diff 归档)| **归档:** `dl_monthly_gate_2026-09-05/addendum_mE1_s2027/`(63 文件 pod 端 sha 逐一相等; 数组 sha 见 `POD_SHA256SUMS_arrays_and_devices.txt`)| **作废条件:** 同主文
+
+### §10.0 结论(白话)
+
+**种子 2027 的 20 个 mE1 月折(禁运 1 锚, 同输入, 同折规则, 同回放装置, 同自举)复现了 §0.4 的读数: 月度换装(R0)在书层劣于年折, 两个种子、两个窗口都是 CI 上界 < 0。** 同种子主配对 R0(mE1, s2027) − 年折 s2027: 冻结主窗 2025-03→08-10 **−0.238 [−0.395, −0.078]**, 全窗 2025-01→08-10 **−0.212 [−0.366, −0.052]** bps/锚/gross(= −10.4 / −9.3 NAV %/yr @2×; ΔSharpe −0.41/−0.36; maxDD 938→1098; 换手 +4.5%)(VERIFIED 表 AD-2/AD-3)。与 s42 不同, 2025-01/02 两月没有救它(+0.023 [−0.58, +0.61])。跨种子配对 R0 s2027 − 年折 s42: 冻结 −0.173 [−0.345, −0.005], 全窗 −0.157 [−0.319, −0.002]; 若 2025 前行改拼年折 s42(进入 2025 的书态相同): 冻结 −0.173 [−0.340, −0.019], 全窗 −0.158 [−0.319, +0.000](上界 +0.0003, 临界)。**两种子平均** R0 − 两种子平均年折: 冻结 **−0.205 [−0.329, −0.083]**, 全窗 **−0.170 [−0.294, −0.052]**, 逐年 2025 全年 −0.180 [−0.342, −0.020]、2026≤cut −0.154 [−0.305, −0.016], 去掉最佳月仍 −0.238 [−0.369, −0.110]。种子间差异本身很小: 月折 s2027 − 月折 s42 −0.002 [−0.147, +0.134], 年折 s2027 − 年折 s42 +0.065 [−0.099, +0.222] ⇒ **差在形态(月折 vs 年折), 不在种子**。分数层: 月折 s2027 主窗 IC +0.0198 vs 年折 s2027 +0.0231(ΔIC −0.0033 [−0.0060, −0.0006], CI<0; s42 时 +0.0011 含 0), 两种子月折分数的逐锚秩相关只有 0.53(p10 0.06)—— DL 分数对种子敏感, 但书层劣势跨种子稳定。**§A4 字面读法(不变): 现行月度换装 NOT keepable, 两种子 × 两窗口(仅两条"2025 前拼 s42 行 vs 年折 s42"的全窗配对上界 ≈ 0)。** 本附录不作部署动作; 它把 §0.4 的"候选预注册依据"从单种子升为双种子。机制仍 UNRESOLVED(§8)。
+
+### §10.1 装置与收据(VERIFIED `addendum_mE1_s2027/logs/commands.txt` / `fold_configs/*.json` / `results/merge.json` / `replay_logs/`)
+
+- 训练: 4 个分片进程(`MONTHS` 环境变量 = 逐字训练器自带的折子集; 每折 RNG = `SEED+YM`, 分片不影响任何折), 各自 `MWF_OUT`(无结果 json 竞写); 14:50:12Z 起, **15:08–15:10Z /workspace 配额事故**杀掉 4 个分片(各在第 2 折; 日志无 traceback, END 行缺失; 首折产物 15:01–15:02Z 已落盘, `check_shard_artifacts.py` 逐件加载验证), 16:36Z 以 resume 重启(`skip 2025xx: already done` 4 行), 17:17–17:18Z 四分片 rc=0, **20/20 折**; 重启后各折逐 epoch 验证分与事故前日志逐位相同(如 202505 ep7 va −4.583), 事故前部分日志归档为 `*.part1`。
+- 每折: CAUSALITY ASSERT OK(标签末 = 截止 = 首测锚 − 1 锚), 输入 sha 断言 = 09-01 门跑, `seed_fold = 2027 + YM`, 训练锚 6563(2025-01)→10025(2026-08), 单折 516–688 s(GPU 共享)。合并: `merge_mwf.py` 断言 20 月各恰一次 → 拼接文件 `f10_V2MAIN_mE1_s2027.npy`(ext 网格, sha `5764336b…`, 有限行 3642 = s42 拼接文件逐位同掩码), 20/20 月覆盖满额。
+- 拼接回放输入(0822 网格): `spl27` = 2025-01-01 前取年折 s2027 行(同种子主臂, sha `02220685…`), `spl42` = 前取年折 s42 行(sha `b59cf4de…`); 重叠段有限掩码与年折差 2 格(与 f311321 同: 单锚 TIE_EXEMPT)。
+- 回放: 同装置 `w10_health.py` `8684d9a9…`(等价收据 §1), `FSEED=2027 FPRED=…spl27` / `FSEED=42 FPRED=…spl42`, rc=0 17:32:36Z。判官 `judge_gate_addendum.py`(写于数字前): 年折/R0 s42 工件直接读 dl_monthly_gate 原件(sha 断言 = `judge_gate.json["arms"]`), 窗口 = 冻结主窗 + 全窗 + 逐年, UTC 日块自举 2000 种子 20260905(自举流与主文脚本的调用顺序不同 ⇒ s42 配对的 CI 端点差 ≤0.01, 点估计逐位相同: 冻结 −0.1716 / −0.2364, 全窗 −0.1287 / −0.1841 = §0.4 的对账数)。
+
+### §10.2 数表(VERIFIED `addendum_mE1_s2027/results/addendum_tables.md`, 由 `judge_gate_addendum.py` 打印, 以下整段原样嵌入)
+
+<!-- judge_gate_addendum.py: n=10038 2022-01-31 00:00→2026-08-30 20:00; windows {'pre-2025': 6396, '2025-01/02': 354, 'FROZEN 2025-03->26<=cut': 3168, 'FULL 2025-01->26<=cut': 3522, '2025-03->12': 1836, '2025 full': 2190, '2026<=cut': 1332, '2026-postcut': 120}; bootstrap UTC-day 2000 seed 20260905 -->
+## AD-1 · Levels per gross (bps/anchor); VERIFIED judge_gate_addendum.json levels
+| arm | FPRED | seed | FROZEN 2025-03→26≤cut [CI95] | S | maxDD | turn/gross | FULL 2025-01→26≤cut [CI95] | S | 2025-01/02 | 2025-03→12 | 2026≤cut | 2025 full |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| yearly_s42 | (default f10_V2MAIN_s{FSEED}) | 42 | **+1.557** [+0.580, +2.498] | +2.57 | 1133 | 0.06442 | **+1.611** [+0.710, +2.535] | +2.69 | +2.088 | +0.374 | +3.189 | +0.651 |
+| yearly_s2027 | (default f10_V2MAIN_s{FSEED}) | 2027 | **+1.622** [+0.683, +2.618] | +2.68 | 938 | 0.05945 | **+1.666** [+0.739, +2.495] | +2.78 | +2.058 | +0.519 | +3.143 | +0.768 |
+| R0_s42 | f10_gate_mE1_R0_s42.npy | 42 | **+1.386** [+0.397, +2.367] | +2.26 | 1213 | 0.06381 | **+1.482** [+0.593, +2.448] | +2.44 | +2.342 | +0.225 | +2.986 | +0.567 |
+| R0_s2027 | f10_gate_mE1s2027_R0_spl27.npy | 2027 | **+1.384** [+0.466, +2.374] | +2.27 | 1098 | 0.06213 | **+1.454** [+0.527, +2.326] | +2.42 | +2.081 | +0.184 | +3.038 | +0.491 |
+| R0_s2027_spl42 | f10_gate_mE1s2027_R0_spl42.npy | 42 | **+1.384** [+0.439, +2.319] | +2.27 | 1098 | 0.06213 | **+1.452** [+0.558, +2.348] | +2.42 | +2.065 | +0.184 | +3.038 | +0.488 |
+| R0_seedmean | (seed mean) | 42+2027 | **+1.385** [+0.458, +2.347] | +2.27 | 1154 | 0.06297 | **+1.468** [+0.559, +2.413] | +2.44 | +2.212 | +0.204 | +3.012 | +0.529 |
+| yearly_seedmean | (seed mean) | 42+2027 | **+1.590** [+0.617, +2.550] | +2.63 | 1035 | 0.06194 | **+1.638** [+0.757, +2.514] | +2.74 | +2.073 | +0.446 | +3.166 | +0.709 |
+
+## AD-2 · Paired Δ per gross (Δg = g_x − g_ref by anchor; UTC-day-block bootstrap; Δ [CI95] P(Δ>0)); VERIFIED judge_gate_addendum.json deltas
+| pair | pre-2025 | 2025-01/02 | 2025-03→12 | 2025 full | 2026≤cut | **FROZEN 2025-03→26≤cut** | **FULL 2025-01→26≤cut** | ΔSharpe frozen/full | Δturn% frozen | maxDD ref→x (frozen) | Δ w/o best month (frozen) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| R0(mE1,s2027) − yearly s2027 [same-seed, primary] | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.023 [-0.579,+0.605] P0.54 | -0.334 [-0.599,-0.082] P0.00 | -0.277 [-0.518,-0.032] P0.01 | -0.105 [-0.248,+0.029] P0.06 | **-0.238 [-0.395,-0.078] P0.00** | **-0.212 [-0.366,-0.052] P0.00** | -0.406 / -0.361 | +4.5% | 938→1098 | -0.264 [-0.447,-0.097] (best 202603 +34 bps) |
+| R0(mE1,s2027; pre-2025 = yearly s42) − yearly s42 | +0.000 [+0.000,+0.000] P0.00 (=0) | -0.022 [-0.682,+0.588] P0.47 | -0.189 [-0.433,+0.041] P0.06 | -0.162 [-0.389,+0.050] P0.07 | -0.151 [-0.400,+0.045] P0.07 | **-0.173 [-0.340,-0.019] P0.01** | **-0.158 [-0.319,+0.000] P0.03** | -0.297 / -0.273 | -3.6% | 1133→1098 | -0.213 [-0.376,-0.067] (best 202504 +86 bps) |
+| R0(mE1,s2027) − yearly s42 | +0.018 [-0.036,+0.073] P0.73 | -0.007 [-0.606,+0.629] P0.49 | -0.189 [-0.427,+0.049] P0.06 | -0.160 [-0.372,+0.054] P0.09 | -0.151 [-0.379,+0.045] P0.07 | **-0.173 [-0.345,-0.005] P0.02** | **-0.157 [-0.319,-0.002] P0.02** | -0.297 / -0.271 | -3.6% | 1133→1098 | -0.213 [-0.361,-0.061] (best 202504 +86 bps) |
+| R0(mE1,s42) − yearly s42 [Part 0 keepable_s42] | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.255 [-0.556,+1.101] P0.73 | -0.149 [-0.379,+0.077] P0.11 | -0.084 [-0.304,+0.131] P0.23 | -0.203 [-0.462,+0.032] P0.04 | **-0.172 [-0.342,-0.013] P0.02** | **-0.129 [-0.310,+0.032] P0.07** | -0.309 / -0.247 | -0.9% | 1133→1213 | -0.220 [-0.391,-0.046] (best 202507 +113 bps) |
+| R0(mE1,s42) − yearly s2027 [Part 0 keepable_s2027] | -0.018 [-0.075,+0.040] P0.27 | +0.285 [-0.309,+0.843] P0.83 | -0.294 [-0.544,-0.048] P0.01 | -0.201 [-0.425,+0.028] P0.04 | -0.157 [-0.329,+0.012] P0.03 | **-0.236 [-0.411,-0.067] P0.00** | **-0.184 [-0.344,-0.022] P0.01** | -0.418 / -0.338 | +7.3% | 938→1213 | -0.267 [-0.441,-0.105] (best 202507 +48 bps) |
+| R0(mE1,s2027) − R0(mE1,s42) [seed-to-seed] | +0.018 [-0.039,+0.076] P0.73 | -0.262 [-0.846,+0.328] P0.19 | -0.040 [-0.261,+0.176] P0.34 | -0.076 [-0.273,+0.128] P0.23 | +0.051 [-0.132,+0.243] P0.70 | **-0.002 [-0.147,+0.134] P0.48** | **-0.028 [-0.170,+0.123] P0.37** | +0.012 / -0.024 | -2.6% | 1213→1098 | -0.062 [-0.208,+0.086] (best 202603 +178 bps) |
+| yearly s2027 − yearly s42 [seed-to-seed] | +0.018 [-0.038,+0.075] P0.74 | -0.030 [-0.834,+0.839] P0.47 | +0.145 [-0.099,+0.404] P0.89 | +0.117 [-0.125,+0.356] P0.82 | -0.046 [-0.253,+0.141] P0.34 | **+0.065 [-0.099,+0.222] P0.78** | **+0.055 [-0.120,+0.219] P0.74** | +0.109 / +0.091 | -7.7% | 1133→938 | +0.022 [-0.131,+0.166] (best 202504 +140 bps) |
+| seed-mean R0(mE1) − seed-mean yearly | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.139 [-0.274,+0.536] P0.75 | -0.242 [-0.424,-0.058] P0.00 | -0.180 [-0.342,-0.020] P0.02 | -0.154 [-0.305,-0.016] P0.01 | **-0.205 [-0.329,-0.083] P0.00** | **-0.170 [-0.294,-0.052] P0.00** | -0.359 / -0.307 | +1.7% | 1035→1154 | -0.238 [-0.369,-0.110] (best 202507 +60 bps) |
+
+## AD-3 · §A4 'keepable' reading (keepable ⇔ R0 − yearly CI95 upper > 0), frozen window (as preregistered) and full window (f311321 convention)
+| pair | frozen Δ [CI95] | frozen upper>0 | full Δ [CI95] | full upper>0 | NAV %/yr @2× (frozen / full) |
+|---|---|---|---|---|---|
+| R0(mE1,s2027) − yearly s2027 [same-seed, primary] | -0.238 [-0.395,-0.078] | False | -0.212 [-0.366,-0.052] | False | -10.4 / -9.3 |
+| R0(mE1,s2027; pre-2025 = yearly s42) − yearly s42 | -0.173 [-0.340,-0.019] | False | -0.158 [-0.319,+0.000] | True | -7.6 / -6.9 |
+| R0(mE1,s2027) − yearly s42 | -0.173 [-0.345,-0.005] | False | -0.157 [-0.319,-0.002] | False | -7.6 / -6.9 |
+| R0(mE1,s42) − yearly s42 [Part 0 keepable_s42] | -0.172 [-0.342,-0.013] | False | -0.129 [-0.310,+0.032] | True | -7.5 / -5.6 |
+| R0(mE1,s42) − yearly s2027 [Part 0 keepable_s2027] | -0.236 [-0.411,-0.067] | False | -0.184 [-0.344,-0.022] | False | -10.4 / -8.1 |
+| seed-mean R0(mE1) − seed-mean yearly | -0.205 [-0.329,-0.083] | False | -0.170 [-0.294,-0.052] | False | -9.0 / -7.5 |
+
+## AD-4 · Score level: per-anchor rank IC (ext grid, same anchor set = anchors where all four files are finite); ΔIC with UTC-day-block bootstrap
+| window | IC R0 s42 | IC R0 s2027 | IC yearly s42 | IC yearly s2027 | ΔIC R0s2027−yearly s2027 [CI95] | ΔIC R0s42−yearly s42 [CI95] | ΔIC R0s2027−R0s42 [CI95] |
+|---|---|---|---|---|---|---|---|
+| FROZEN 2025-03->26<=cut (n=3168) | +0.0202 | +0.0198 | +0.0191 | +0.0231 | -0.0033 [-0.0060,-0.0006] | +0.0011 [-0.0017,+0.0038] | -0.0004 [-0.0039,+0.0032] |
+| FULL 2025-01->26<=cut (n=3522) | +0.0197 | +0.0192 | +0.0187 | +0.0217 | -0.0026 [-0.0050,-0.0003] | +0.0009 [-0.0019,+0.0037] | -0.0005 [-0.0038,+0.0026] |
+| 2026<=cut (n=1332) | +0.0212 | +0.0206 | +0.0126 | +0.0209 | -0.0004 [-0.0037,+0.0030] | +0.0085 [+0.0039,+0.0129] | -0.0006 [-0.0058,+0.0049] |
+
+### §10.3 逐折表(VERIFIED `addendum_mE1_s2027/logs/merge_mwf.log` / `results/f10_V2MAIN_mE1_s2027_merged.json`; 训练帧数字 = 折自身 test 月的净额/ES5/换手, 非书装置)
+
+| fold | shard | n_train | best_ep | net bps | ES5 | turnover | α* | wall s | .pt sha |
+|---|---|---|---|---|---|---|---|---|---|
+| 202501 | shard0 | 6563 | 7 | +0.197 | 20.66 | 0.0713 | 0.0965 | 638 | 3cbbfc0cfb41 |
+| 202502 | shard1 | 6749 | 6 | -0.298 | 33.31 | 0.0713 | 0.0968 | 653 | df303b93efcc |
+| 202503 | shard2 | 6917 | 1 | +0.636 | 15.12 | 0.0864 | 0.0991 | 668 | d73a6f27888a |
+| 202504 | shard3 | 7103 | 0 | +0.028 | 15.90 | 0.0851 | 0.0996 | 688 | 4cd441d9f140 |
+| 202505 | shard0 | 7283 | 2 | -0.095 | 19.39 | 0.0842 | 0.0983 | 516 | aef94ca69011 |
+| 202506 | shard1 | 7469 | 1 | -0.593 | 11.99 | 0.0823 | 0.0987 | 528 | 0c5fb26bb242 |
+| 202507 | shard2 | 7649 | 4 | +0.550 | 24.57 | 0.0726 | 0.0959 | 542 | 3330f74aa89f |
+| 202508 | shard3 | 7835 | 3 | -0.105 | 13.95 | 0.0775 | 0.0968 | 553 | f029b6879897 |
+| 202509 | shard0 | 8021 | 7 | +2.662 | 29.44 | 0.0506 | 0.0953 | 563 | e11df9abeaf5 |
+| 202510 | shard1 | 8201 | 6 | +6.307 | 49.23 | 0.0276 | 0.0954 | 577 | 150f2469b725 |
+| 202511 | shard2 | 8387 | 11 | +1.080 | 53.58 | 0.0142 | 0.0949 | 592 | 1a2c9b0b1fe0 |
+| 202512 | shard3 | 8567 | 1 | +0.591 | 39.73 | 0.0197 | 0.0980 | 605 | 657f0755c327 |
+| 202601 | shard0 | 8753 | 9 | +1.329 | 36.76 | 0.0269 | 0.0935 | 624 | 95e117122c63 |
+| 202602 | shard1 | 8939 | 11 | +3.637 | 29.59 | 0.0387 | 0.0941 | 634 | 2cda3d2d6475 |
+| 202603 | shard2 | 9107 | 8 | +3.310 | 25.05 | 0.0531 | 0.0941 | 646 | 7277502b8147 |
+| 202604 | shard3 | 9293 | 5 | +5.980 | 38.52 | 0.0564 | 0.0942 | 664 | d5bb816d9bc3 |
+| 202605 | shard0 | 9473 | 2 | +2.304 | 34.72 | 0.0496 | 0.0972 | 679 | 568e2695b7e0 |
+| 202606 | shard1 | 9659 | 4 | +5.591 | 49.06 | 0.0390 | 0.0944 | 683 | ebf99958732d |
+| 202607 | shard2 | 9839 | 3 | +4.396 | 40.65 | 0.0414 | 0.0943 | 681 | ce9de1935524 |
+| 202608 | shard3 | 10025 | 9 | -0.248 | 46.14 | 0.0375 | 0.0921 | 677 | 2e2d46326320 |
+
+- stitched /workspace/review_scratch/allweather_trackB/mwf_s2027/preds/f10_V2MAIN_mE1_s2027.npy sha 5764336b45bbff73 finite rows 3642 net_mean_all +1.863
+- vs seed-42 monthly stitched (sha 54bd748d2f155377): finite rows equal True, finite cells equal True; per-anchor rank corr s2027 vs s42: mean +0.531 median +0.626 p10 +0.059 (n=3642)
+
+### §10.4 归档清单
+
+- `addendum_mE1_s2027/results/`: `judge_gate_addendum.json` · `addendum_tables.md` · `merge.json`(拼接/拼行 sha、覆盖、s42 对比)· `f10_V2MAIN_mE1_s2027_merged.json`(逐折 .pt/npz sha)。`fold_configs/` 20 折自报 config; `shard_results/` 4 分片结果 json; `scripts/`(补丁训练器 + 逐字原件副本 + diff + 分片启动 + merge + 判官 + 产物检查 + stage); `logs/`(commands.txt 清洗版 + 原始含 NUL 版、分片日志 ×4 + 事故前 .part1 ×4、merge/judge 日志、patch sha); `replay_logs/` + `replay_dev_alt_logs/` + `replay_summary/`(两臂); `POD_SHA256SUMS_arrays_and_devices.txt`(20 .pt + 20 npz + 拼接/拼行/工件 sha)· `POD_SHA256SUMS_archived_files.txt`(63/63 本地相等)。
+- pod 原件(只读): `/workspace/review_scratch/allweather_trackB/mwf_s2027/`(折模型/折预测)、`…/replay/dev_alt/`(拼行文件与工件)。复跑(逐字): 4 条 `bash launch_mwf_s2027.sh <k> <MONTHS>`(`logs/commands.txt` CMD 行)→ `merge_mwf.py` → 两条 run_arm.sh(`replay_logs/commands.txt`)→ `judge_gate_addendum.py`。
