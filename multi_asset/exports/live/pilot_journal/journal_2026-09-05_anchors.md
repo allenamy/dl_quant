@@ -78,3 +78,12 @@
 - ⑤ 执行质量: **尺寸梯度 markout60(本锚 maker, 成交额加权)小/中/大 −2.58 / +1.65 / −15.08 bps; 08-26 以来累计 −1.80 / −1.54 / −5.10(覆盖 7,486/7,583)** —— 大单桶被本锚拖深(亏损锚的趋势行情), 单锚观察, 不处置。
 - ⑥ 异常核对: (a) "撤名残差 −11,215 = −6.58%, 由 BTCUSDT/ZORAUSDT 撤下" —— 文案与算术不符(E-0903-D 已登记: 该量是整条 untradable 通道之和); popped 两名的目标只有 BTC +53 / ZORA −732 USDT; **BTCUSDT 自 09-01 起每锚被 pop, 09-03 16Z 前 ETH/LINK/LTC 也在(入金 ×4 后消失)⇒ 与"目标名义低于场所最小可交易量"一致, 非场所封禁(n_zero_cap_withheld 0); 文案"withheld by the venue (maxNotionalValue=0)"属告警文案≠来源家族, 登记待改**; (b) position reconcile 每锚 6–15 名"adopting venue truth"(00/04/08/12Z: 6/15/8/15), 例行; (c) factor_health UNKNOWN(影子监控报告不可读, 已告警过的 episode, 只报不页)。**无需处置; 回滚缺省 king 形态未触发。**
 - 待 16Z: 席位播种验收(掩码 king ∈ [0.28, 0.32]; combo 五层; 执行器/readback; sidecar; FTRIM/M1)。
+
+## 16Z 锚(1788624000)深查(17:1x–17:4xZ; 播种后首锚 = 验收锚)
+- ① 守护: 生产者 10900 = shadow.lock(播种后 kickstart 的新 PID, 已跑 4h51m); combo 30944 = pidfile; sidecar 30943。
+- ② 信号: OK, coverage 1.0, members 400, sel 242, fund_updates 457(结算锚 ✓), forced_exit 1, fetched 450/缺 0, runtime 316s; **w3 [0.2677, 0.1209, 0.6114] ⇒ 掩码 king 0.3045 ∈ [0.28, 0.32] 验收带 ✓(播种预注册 §2.4)**; 状态文件 950 行 ✓; 上锚(12Z→16Z)score gross +27.1 / net +25.8 bps; combo rc=0 16:21:55Z, n 240, gross 0.806, kc/fc own, **w3m [0.3045, 0, 0.6955](自动采用新席位 ✓)**, ρ(kc,fc) 0.975; 反事实改写 19.3%(台阶不变)。FTRIM/M1/sidecar 生产者六项 PASS。
+- ③ 漏斗(A1788625439): 481 行 = min_notional 209 / partial_expired 159 / venue_reject 57 / filled 53 / no_chase_arm 3; 首次 −5022 54/194 = 27.8%(< 40% 升级线; 旧口径 44.5%); **重挂随机实验第二锚: 候选 22 全重挂(落单 19, 再拒 3), direct 32, 行标记 requote 44 / direct 32 ✓**(累计 direct 51); behind 占比 0.508 ✓; chase forced 65 / no 50 / chase 44; fills 284 笔 10,834 USDT = **换手 6.27%(稳态上限 5.5%, 系席位 0.19→0.30 一次性重排)**, **maker 占比 0.643(新低; 同因)**, 费 2.77 bps(超带); 锚内 markout 覆盖 256/284。
+- ④ 记账: readback 265 名, venue gross 169,151 = 1.956×NAV 86,489; **net/gross +1.81%(第 12 锚 >1%; 机制同 08Z: 止损/冷却名不能开的目标仓, 停止名 4 + 冷却 7)**; 16Z 结算 261 行合计 −11.36 USDT; 日内已实现 +1,588(funding −54.1)/未实现 +1,821; phase_C 三件齐 16:44:51Z, anchor done rc=0 16:55:25Z; **DASHUSDT 16:44Z 已出场入 7 天冷却(至 09-12 16:44Z)**。
+- ⑤ 执行质量: markout60 小/中/大 −2.47 / −1.52 / −5.85(本锚), 08-26 以来 −1.74 / −1.51 / −5.12; 大桶持续最差。
+- ⑥ 告警核对: 撤名残差 −11,630(文案≠算术, 已登记); 38 名 reduce-only(HYPE 在减); "35 个 maker 被 −5022 拒…进入 taker 补单" = direct 臂 32 + 二次拒 3(实验预期); 限流差值同族。**无需处置; 席位播种验收 PASS(六项), 回滚未触发。**
+- 待 20Z 复核: maker 占比是否回到 ≥0.85(若否登记), 换手回到稳态。

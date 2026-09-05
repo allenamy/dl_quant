@@ -24,4 +24,4 @@
 
 ## 3. 收据(执行后填)
 - 换入: 2026-09-05 12:47:3xZ; 备份 `leg_returns_live.json.pre_seatseed_v3_20260905` sha bef771d68d94; 换入后 live sha 4a3bfd9a9353(= 干跑产物); king 行改 917, fund/rev24 逐位不变; 现场重算掩码 king 席位 0.2999, w3 [0.264, 0.1195, 0.6164]; 生产者 kickstart PID 58281 → 10900, shadow.lock = 10900, loop.out `next 2026-09-05T16:16:00+00:00`, 无 Traceback。研究仓预注册提交 2040662(sha fed8faa4)。
-- 16Z 验收: <填>
+- 16Z 验收 ✓(巡检 17:1x–17:4xZ): 生产者 w3 [0.2677, 0.1209, 0.6114] ⇒ 掩码 king 0.3045 ∈ [0.28, 0.32]; 状态文件 950 行含 12Z 新行; combo_stage w3m [0.3045, 0, 0.6955] 五层 rc=0; 执行器 16:23Z 正常, readback 265, anchor done rc=0 16:55Z; sidecar 自平价 PASS; FTRIM 8/8 与 M1 PASS。一次性代价: 本锚换手 6.27%、maker 占比 0.643(重排), 20Z 复核。
