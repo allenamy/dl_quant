@@ -1,0 +1,70 @@
+WROTE REPORT.md 63bab7061a4925cd cost_calib.json 87250dde4ff73be7
+poststrat: {
+ "maker": {
+  "buckets": [
+   {
+    "delay_s": "[0,10)",
+    "population_notional_share": 0.07036020281584067,
+    "n_backfilled": 111,
+    "subset_weighted_bps": -10.998350684352932
+   },
+   {
+    "delay_s": "[10,60)",
+    "population_notional_share": 0.4013890050256854,
+    "n_backfilled": 119,
+    "subset_weighted_bps": -2.3140783629345667
+   },
+   {
+    "delay_s": "[60,300)",
+    "population_notional_share": 0.3923290481459457,
+    "n_backfilled": 63,
+    "subset_weighted_bps": -3.3614757543264906
+   },
+   {
+    "delay_s": "[300,inf)",
+    "population_notional_share": 0.13592174401252827,
+    "n_backfilled": 16,
+    "subset_weighted_bps": -27.295696104318058
+   }
+  ],
+  "adjusted_bps": -6.731574998036056,
+  "raw_weighted_bps": -6.201975126218458,
+  "n_backfilled": 309,
+  "n_population": 6544,
+  "note": "subset markout re-weighted to the population's fill-delay mix (buckets with <5 marks dropped and weights renormalised). INFERRED: the backfill subset is the alphabetically-first symbols and the earliest fills of each anchor, not a random sample."
+ },
+ "topup_taker": {
+  "buckets": [
+   {
+    "delay_s": "[0,10)",
+    "population_notional_share": 0.0,
+    "n_backfilled": 0,
+    "subset_weighted_bps": null
+   },
+   {
+    "delay_s": "[10,60)",
+    "population_notional_share": 0.0,
+    "n_backfilled": 0,
+    "subset_weighted_bps": null
+   },
+   {
+    "delay_s": "[60,300)",
+    "population_notional_share": 0.0,
+    "n_backfilled": 0,
+    "subset_weighted_bps": null
+   },
+   {
+    "delay_s": "[300,inf)",
+    "population_notional_share": 1.0,
+    "n_backfilled": 21,
+    "subset_weighted_bps": -53.25270899567609
+   }
+  ],
+  "adjusted_bps": -53.25270899567609,
+  "raw_weighted_bps": -53.25270899567609,
+  "n_backfilled": 21,
+  "n_population": 687,
+  "note": "subset markout re-weighted to the population's fill-delay mix (buckets with <5 marks dropped and weights renormalised). INFERRED: the backfill subset is the alphabetically-first symbols and the earliest fills of each anchor, not a random sample."
+ }
+}
+FINALIZE_DONE

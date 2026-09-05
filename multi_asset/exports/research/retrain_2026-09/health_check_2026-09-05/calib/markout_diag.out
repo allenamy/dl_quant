@@ -1,0 +1,60 @@
+backfilled n 400 population n 9798
+
+== +60s markout (bps, >0 favourable) by type, backfilled only
+  maker: n=370 mean=-3.44 wmean=-11.31 med=-1.89 p5=-42.3 p25=-11.3 p75=+5.8 p95=+30.7 min=-201.5 max=+188.3
+  topup_taker: n=30 mean=-17.20 wmean=-20.06 med=-4.02 p5=-88.1 p25=-28.7 p75=+6.0 p95=+24.5 min=-111.8 max=+25.2
+  maker excl |mo|>100: n=361 mean=-3.37 wmean=-10.84 med=-1.88 p5=-37.8 p25=-11.1 p75=+5.6 p95=+27.1 min=-99.1 max=+88.4
+
+== largest |markout| rows
+   AEROUSDT maker buy notl=22.6 mo=-201.5 vam=+1.9 lag=0.12 spr=3.8744672607512203 09-04 12Z
+   ARIAUSDT maker buy notl=28.6 mo=+188.3 vam=+0.0 lag=0.029 spr=5.621135469364583 08-28 04Z
+   AKEUSDT maker sell notl=13.4 mo=+170.5 vam=+149.4 lag=0.241 spr=8.177092459552668 08-27 00Z
+   4USDT maker sell notl=122.9 mo=-118.5 vam=+0.8 lag=0.076 spr=14.113529229117479 09-04 16Z
+   0GUSDT maker sell notl=22.8 mo=+117.1 vam=+4.3 lag=0.218 spr=8.680555555555804 09-01 00Z
+   AKEUSDT topup_taker buy notl=64.1 mo=-111.8 vam=+448.2 lag=0.05 spr=3.7528146109576324 09-03 00Z
+   AKEUSDT maker buy notl=23.6 mo=+111.7 vam=+0.6 lag=0.015 spr=1.2984483542157572 08-31 08Z
+   AKEUSDT maker buy notl=1.5 mo=-110.7 vam=+0.7 lag=0.14 spr=1.446654611211765 09-04 08Z
+   AIOUSDT maker buy notl=5.9 mo=-108.1 vam=+1.1 lag=1.461 spr=6.8973445223594085 08-28 16Z
+   4USDT maker sell notl=20.1 mo=-104.6 vam=-0.0 lag=0.116 spr=2.614037380734892 08-31 08Z
+   AKEUSDT maker buy notl=93.1 mo=-99.1 vam=+0.7 lag=0.868 spr=1.446654611211765 09-04 08Z
+   ACUUSDT maker buy notl=5.9 mo=-90.8 vam=+21.3 lag=3.032 spr=10.08885957083691 08-28 16Z
+
+== mark_lag_s: n=400 mean=+1.31 wmean=+nan med=+0.84 p5=+0.0 p25=+0.2 p75=+2.1 p95=+3.9 min=+0.0 max=+5.0
+
+== representativeness: backfilled subset vs population on 100%-covered fields
+  maker: vs_anchor_mid  subset n=370 mean=+3.10 wmean=+6.19 med=+1.27 p5=+0.0 p25=+0.4 p75=+2.9 p95=+8.1 min=-18.5 max=+149.4
+  maker: vs_anchor_mid  popul. n=8389 mean=+4.26 wmean=+4.57 med=+2.10 p5=+0.0 p25=+0.7 p75=+5.1 p95=+14.7 min=-54.3 max=+149.4
+  maker: notional       subset n=370 mean=+35.84 wmean=+nan med=+11.88 p5=+1.6 p25=+6.6 p75=+28.5 p95=+92.6 min=+0.0 max=+1393.3
+  maker: notional       popul. n=8389 mean=+30.99 wmean=+nan med=+10.91 p5=+1.0 p25=+6.4 p75=+24.0 p95=+100.1 min=+0.0 max=+1400.2
+  maker: fill delay s   subset n=370 mean=+76.59 wmean=+nan med=+22.33 p5=+1.3 p25=+5.4 p75=+64.6 p95=+407.8 min=+0.5 max=+917.0
+  maker: fill delay s   popul. n=8389 mean=+139.91 wmean=+nan med=+64.98 p5=+7.8 p25=+31.2 p75=+151.6 p95=+571.6 min=+0.5 max=+1105.5
+  maker: spread bps     subset n=370 mean=+3.82 wmean=+nan med=+3.36 p5=+0.3 p25=+1.9 p75=+5.1 p95=+8.6 min=+0.1 max=+19.4
+  maker: spread bps     popul. n=8389 mean=+4.21 wmean=+nan med=+3.81 p5=+0.8 p25=+2.0 p75=+5.8 p95=+9.5 min=+0.0 max=+38.0
+  maker: side buy share subset 0.532 popul. 0.536
+  topup_taker: vs_anchor_mid  subset n=30 mean=+232.75 wmean=+267.12 med=+28.04 p5=-102.4 p25=-23.1 p75=+62.6 p95=+1626.7 min=-123.0 max=+1627.7
+  topup_taker: vs_anchor_mid  popul. n=1409 mean=-19.49 wmean=-22.96 med=-21.04 p5=-162.9 p25=-79.0 p75=+23.2 p95=+136.9 min=-782.7 max=+1627.7
+  topup_taker: notional       subset n=30 mean=+49.37 wmean=+nan med=+16.13 p5=+2.7 p25=+5.1 p75=+67.5 p95=+221.8 min=+0.7 max=+280.0
+  topup_taker: notional       popul. n=1409 mean=+32.73 wmean=+nan med=+11.65 p5=+3.4 p25=+5.5 p75=+32.1 p95=+122.6 min=+0.0 max=+1018.6
+  topup_taker: fill delay s   subset n=30 mean=+1091.20 wmean=+nan med=+1057.31 p5=+1013.6 p25=+1019.0 p75=+1194.8 p95=+1196.2 min=+958.0 max=+1196.2
+  topup_taker: fill delay s   popul. n=1409 mean=+1150.87 wmean=+nan med=+1158.72 p5=+1015.4 p25=+1071.2 p75=+1216.5 p95=+1290.2 min=+958.0 max=+1310.5
+  topup_taker: spread bps     subset n=30 mean=+2.26 wmean=+nan med=+2.00 p5=+0.6 p25=+0.8 p75=+3.5 p95=+5.0 min=+0.3 max=+6.8
+  topup_taker: spread bps     popul. n=1409 mean=+3.41 wmean=+nan med=+2.73 p5=+0.6 p25=+1.4 p75=+5.0 p95=+8.7 min=+0.0 max=+18.2
+  topup_taker: side buy share subset 0.467 popul. 0.551
+
+== backfilled symbol concentration: distinct 40 top [('4USDT', 50), ('1000PEPEUSDT', 34), ('ACEUSDT', 30), ('1000BONKUSDT', 29), ('0GUSDT', 26), ('1000RATSUSDT', 25), ('AEROUSDT', 24), ('AKEUSDT', 22)]
+   population distinct symbols 333
+== backfilled fills' rank-within-anchor by fill time (0=first): n=400 mean=+0.31 wmean=+nan med=+0.19 p5=+0.0 p25=+0.0 p75=+0.6 p95=+0.9 min=+0.0 max=+1.0
+
+== maker subset corr(markout, vs_anchor_mid) = 0.2355085454897479 ; mean(mo+vam) = -0.34532347706628275
+
+== taker vs_anchor_mid by anchor (notional-weighted), worst 8:
+   08-29 04Z -206.0 bps on 111 USDT, 9 fills
+   09-01 00Z -130.2 bps on 141 USDT, 16 fills
+   09-02 08Z -114.1 bps on 77 USDT, 9 fills
+   08-26 00Z -101.5 bps on 209 USDT, 8 fills
+   09-04 12Z -95.2 bps on 1003 USDT, 32 fills
+   09-03 08Z -92.4 bps on 235 USDT, 16 fills
+   08-26 08Z -75.8 bps on 23 USDT, 3 fills
+   09-05 00Z -72.7 bps on 697 USDT, 29 fills
+== taker vs_anchor_mid overall wmean -22.964600027468 median -21.03615283009569 ; by delay bucket:
+   delay 900-2000s: n=1409 wmean=-23.0 med=-21.0
