@@ -21,3 +21,4 @@
 - jpline 第 18 次超时 2026-09-05 04:53:10Z(04:23Z 槽延迟触发; 自 09-04 11:47Z 不可达 ≈17 h)
 - jpline 第 19 次超时 2026-09-05 06:53:51Z(ssh connect timeout, 2 小时重试 cron; 自 09-04 11:47Z 不可达 ≈19 h)
 - jpline 第 20 次超时 2026-09-05 08:53:19Z(ssh connect timeout, 2 小时重试 cron; 自 09-04 11:47Z 不可达 ≈21 h)
+- jpline 第 21 次超时 2026-09-05 11:03:07Z(ssh connect timed out; 下次重试 2h 后)
