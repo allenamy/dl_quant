@@ -54,3 +54,7 @@
 - **处置**: 实盘仓提交 `d59649f`(safe_commit, 127/127 绿, 已推送; 首跑因 reject_rate 未登记 PRODUCTION_MODULES 被 tests_imports 拒, 登记后复跑绿)`live/reject_rate.py` + 告警块改分母 + 新套件 `tests_reject_rate`(22 检查)+ SUITES/gate_coverage; 不可重试代码 >5% HIGH 不变, −5022 真实率 >0.40 HIGH, 常规读数入 phase-A 记录 `post_only_refusals`; 下一锚(12Z)起生效, 12Z 巡检验 MC-3(运行代码=源码: 日志出现 `拒单率 post-only 穿价` 行)。分析归档 `multi_asset/exports/live/exec_reject5022_2026-09-05/`。
 - **可提升的钱在哪(未做, 需字)**: from_reject 补单在 k 窗末成交, 成交额加权 +20.75 bps vs 锚 mid + taker 费 4.5 bps, 14 天 41.6k USDT; 候选 (a) 分批刷新盘口 (b) behind 全量(bandit 复读待做) (c) 拒单立即转 taker(08-02 预注册未部署), (c) 上限 ≈ 6 USDT/日 ≈ NAV 2.5%/年。
 - 观察: watchdog §4-5c 的 venue_reject 比例只数带 submit_ts 的行, 而拒单行 submit_ts=None ⇒ 该门对拒单簇结构性失明(声明的盲区, 未改, 守卫改动需预注册)。
+
+## 10:30Z 历史标记导入复核(定时指令触发; 无冲突进程)
+- `ps` 无 run_anchor/anchor_loop/backfill_markout 进程; 导入脚本 `--dry-run`(marks.json sha 12c5a099…): n_marked 0 / already 16,904 / missing 681(= 09-05 当日成交, 档案 D+1 才发布)/ not_in_marks 3,052 ⇒ **09:37Z 的导入已完整, 无需实跑**。
+- 覆盖复算(全天去重 20,712 笔): 已标 19,956 = 96.3%(档案 15,802 + 场所 4,154), 终止 75, 待办 681 —— 与 09:37Z 收据逐数相同。待办 681 由 D+1 07Z 后 `--resume` 回填。
