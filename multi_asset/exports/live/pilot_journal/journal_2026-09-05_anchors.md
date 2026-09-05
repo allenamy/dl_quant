@@ -11,3 +11,13 @@
 - ⑥ 告警核对: "撤名残差 −9,777 = −5.87% 由 BTCUSDT/ZORAUSDT" 每锚复发(48h 12 次), 文案与算术不符已在账本 L351 记录(实为 untradable 通道整体); position reconcile 6 名(前两锚 20/9)采用场所真相; 34 名 maxNotionalValue=0 reduce-only(退出通道, alarm_text≠source)。**无需处置; 回滚缺省 king 形态未触发。**
 - ⑦ regime 仪表盘 00Z: 旗标无; σ_fund 7.3, fund 席位 0.80, IC_fund 0.007, FTRIM 反事实 +0.207 bps; 30 锚 sleeve: L|pos +1,951 / S|pos −1,037 / S|deepneg −658 USDT; 规则 R1–R4 无触发。
 - 勘误(05:0xZ, 成本标定): 09-03 16Z 日记行的"−5022 拒单 76%"定义不明, 按单腿 36.2%(79/218)/按额 36.6%(health_check/calib/REPORT.md); 该行不作为引用来源。
+
+## 04Z 锚(1788580800)深查(05:39–05:45Z, 全深度模板)
+- ① 守护: shadow_loop_v3 58281 = shadow.lock; combo_live_daemon 30944 = pid; sidecar 30943 在; heartbeat OK 04:20:31Z。
+- ② 信号: OK, coverage 1.0, members 400, sel 233, w3 [0.1696,0.1247,0.7057] → 掩码 king 0.1938(算术一致), turnover 2.0%, **forced_exit 2 名**, fund_updates 357(4h 锚稳态 ~353), fetched 450/缺 0, booster 8d79186b, runtime 267s; 上锚(00Z)score gross +56.8 / net +55.1 bps(单位书, 强正锚); combo 锚匹配/ok/读者验收, n 231, gross 0.7939, kc/fc own, f10 400, FTRIM 10/10 验收 PASS, sidecar 干跑 PASS; 反事实改写 20.5%(20.5/20.3/20.5 台阶不变)。
+- ③ 漏斗(A1788582240): 497 单 = min_notional 226 / 部分过期 180 / 场所拒 61 / 成交 23 / 无臂 7; maker 306 / taker 补单 191; behind 0.42; **拒单 61/306 maker 单 = 19.9%(告警口径 61/126 = 48%; 近 5 锚 42/47/17/38/48%)**; **maker 成交额占比 0.830(<0.90, 12Z 0.80 / 00Z 0.85 / 04Z 0.83 三次)**; 成交额 11,915 USDT = **换手 7.1%(高于 2–5.5% 稳态, 本锚重平衡量大)**; 费 2.69 USDT = 2.26 bps(带内上沿); 未成交 买 1,865 / 卖 1,472。
+- ④ 记账: venue_gross 167,983 = 1.961×NAV 85,641(target 167,940, 差 0.03%); **net/gross +1.65%(第 9 锚 >1%; 序列 …1.58/1.52/1.65, 未达 2%, 未连升三锚)**; 04Z 结算 FUNDING_FEE n=189 合计 −4.76 USDT; **daily_nav 20260905 NAV 85,640.7, 较 09-04 +2,122(+2.5%; 已实现 +1,008 / 未实现 +1,541)**; phase_C 三件齐; anchor done rc=0 04:54:32Z; guard twin AGREE(eq 85,720.8); per_name_stop 停 4 冷却 6 不变。
+- ⑤ 执行质量: 本锚 fills 无 +60s 标记; markout 回填仍被 request_budget 截停(本锚写 4, pending 17,432, 累计覆盖 ≈15%)⇒ 尺寸梯度不可评; 单名最多 3 单。
+- ⑥ 告警核对: position reconcile 15 名(前三锚 20/9/6)采用场所真相; 撤名残差 −11,926 = −6.96%(文案与算术不符, 账本 L351 已记); 36 名 reduce-only(退出通道); −5022 拒单 48% HIGH(见 ③, 跟踪项)。**无需处置; 回滚缺省 king 形态未触发。**
+- ⑦ regime 仪表盘 04Z: 旗标无; σ_fund 9.7, fund 席位 0.81, IC_fund +0.081, FTRIM 反事实 −0.50 bps; R1–R4 无触发。
+- 关注项汇总: (a) −5022 拒单率近 5 锚 3 次 >40%(告警口径), 账本 L351 升级条件"持续 >40%"接近; (b) maker 占比三次 <0.90; (c) net/gross 第 9 锚 >1%; (d) markout 回填覆盖停在 15%, 逆向选择成本(体检最大未知)因此定不下来 —— 提高回填 request budget 属执行器改动, 待用户字。
