@@ -1,0 +1,4 @@
+116c116
+< OUT["judge"] = J; json.dump(OUT, open(f"{G}/results/judge_gate.json", "w"), indent=1, default=float); print(f"\nwrote {G}/results/judge_gate.json"); print("JUDGE_DONE", flush=True)
+---
+> OUT["judge"] = J; json.dump(OUT, open(os.environ["JUDGE_OUT"], "w"), indent=1, default=float); print(f"\nwrote {G}/results/judge_gate.json"); print("JUDGE_DONE", flush=True)
