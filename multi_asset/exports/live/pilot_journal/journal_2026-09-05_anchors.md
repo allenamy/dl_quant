@@ -26,3 +26,8 @@
 - 实盘仓 `bc099d7`(safe_commit, 电池 125/125 全绿, 已推送): `ops/backfill_markout.py` 三处 —— 标记窗口 5s → 60s(`mark_lag_s`/`mark_window_s` 逐行落盘, 严格口径可按 lag ≤5s 筛); 窗口内确无成交的行写入终止行(`mark_status=no_trade_within_window`, mid 保持 None = 未测, 退出待办集, 不再每轮重查); 锚间 launchd 任务预算 240 请求/300s → 900/1800s(PACE 2s 不变 ⇒ 600 权重/分; 锚内路径仍受其自身 deadline 约束)。新增 `live/tests_markout_window.py`(SUITES + gate_coverage 边界自述); `tests_guard_coverage` f3 期望改为终止语义(17 → 0 请求)。
 - 根因收据: 覆盖停在 15% 不是预算不足, 是稀薄名 5s 窗内无成交且"未落盘"导致每轮重查同一批(240 请求换 4–5 个标记)。生效: 下一锚(08Z)锚内路径 + 下一次锚间任务(17:05 本地 = 09:05Z)。
 - 未动: E-0905-F(COMMISSION 分项 tranId 去重碰撞)待用户字。
+
+## 09:1xZ 执行器第二次改动上线: markout 回填的 2 天窗口规则(E-0905-G; 非书行为)
+- 根因(08:54Z 探针, VERIFIED): 交易所 `aggTrades` 按时间检索只开放最近 2 天(HTTP 400 −4166 "Search window is restricted to recent 2 days only"); 更早的窗每请求必败, 被吞成"截断"再逐名重试再败, 不落盘 ⇒ 每轮预算全部花在永远答不了的日子(待办 17,660 笔, 2 天窗内仅 1,856)。08Z 锚在第一次改动(bc099d7)下的实测: 每日 25 请求, written=0, terminal=0 —— 证明第一次改动不触及真因。
+- 实盘仓 `6a01b5a`(safe_commit, 电池 125/125): 回填前按 `now − (fill_ts+60s) > 47h` 切分, 超窗成交写终止行 `aggtrades_window_expired`(不发请求); `marks_for_group` 识别 −4166 ⇒ 整组终止, 不逐名重试; 汇总计 `n_expired`; 测试 (e)(f) 新增。生效: 下一锚(12Z)与下一次锚间任务(13:05Z)。预期: 2 天窗内的新成交在下一轮几乎全部获得标记, 覆盖从此按锚增长。
+- 历史 17.6k 笔: pod2 从交易所公开每日 aggTrades 档案(CDN, 免限速)按同一定义计算 +60s 标记(含 5s 严格变体与延迟), 产物 marks.json → 导入脚本以 supersede 行写回账本(待写, 经 safe_commit)。
