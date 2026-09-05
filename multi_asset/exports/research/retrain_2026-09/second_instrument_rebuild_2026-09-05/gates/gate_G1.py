@@ -133,5 +133,6 @@ try:
 except Exception as e:
     out["G1b"] = {"error": repr(e)}; print(f"G1b error {e!r}", flush=True)
 out["elapsed_s"] = round(time.time() - T0, 1)
-json.dump(out, open(f"{ROOT}/results/G1.json", "w"), indent=1)
-print(f"wrote results/G1.json ({out['elapsed_s']} s)", flush=True)
+OUTN = os.environ.get("G1_OUT", "G1.json")
+json.dump(out, open(f"{ROOT}/results/{OUTN}", "w"), indent=1)
+print(f"wrote results/{OUTN} ({out['elapsed_s']} s)", flush=True)

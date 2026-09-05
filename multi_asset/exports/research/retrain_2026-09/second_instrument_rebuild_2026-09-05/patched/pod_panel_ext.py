@@ -64,6 +64,9 @@ del CS_r, CS_r2, CS_q, CS_rng, CS_cpos, CS_tbf, CS_asz
 
 # ---- funding: zip(interval列) + 八月 API 尾巴 合并, 三口径 EMA ----
 fdir = "/workspace/wide_multisrc/funding"
+_FUND_SCOPE = _os.environ.get("FUND_SCOPE")   # jpline_rebuild P3-scope (input scope only, lead instruction 09-05): path of live_pins.json; when set only its symbols_live funding dirs are read = the 08-21 pod funding tree (450 live coins); unset = all dirs
+_FUND_KEEP = set(json.load(open(_FUND_SCOPE))["symbols_live"]) if _FUND_SCOPE else None
+print(f"CONFIG FUND_SCOPE={_FUND_SCOPE} n_symbols={len(_FUND_KEEP) if _FUND_KEEP is not None else 'all'}", flush=True)
 AUG = json.loads(gzip.open("/workspace/fund_aug.json.gz", "rt").read())
 AUG_IV = {k: float(v) for k, v in (AUG.get("intervals") or {}).items() if v}
 anchor_s = CTS[E]
@@ -77,7 +80,7 @@ ema_v2 = np.full((len(E), NW), np.nan, np.float32)
 n_fund = 0; n_iv_col = 0
 for sym_dir in sorted(glob.glob(fdir + "/*")):
     s = os.path.basename(sym_dir)
-    if s not in syms: continue
+    if s not in syms or (_FUND_KEEP is not None and s not in _FUND_KEEP): continue   # jpline_rebuild P3-scope
     j = syms.index(s)
     rows = []  # (ts_s, rate, iv_or_nan)
     for zp in sorted(glob.glob(sym_dir + "/*.zip")):

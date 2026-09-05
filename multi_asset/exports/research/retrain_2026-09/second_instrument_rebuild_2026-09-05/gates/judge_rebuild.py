@@ -12,7 +12,8 @@ CALS = {"log": "dev", "prod": "dev_alt"}
 CAL_DESC = {"log": "raw Σ-simple y4 over [E,E+47] (rebuilt meta), CAL=log = no transform", "prod": "Π(1+r5)-1 over [E+1,E+48] (meta_hist_newprod swap), CAL=log"}
 ARMS = {"F1": ["s42"], "F2": ["s42", "s2027"], "F3": ["s42", "s2027"]}
 ARM_DESC = {"F1": "08-21 three-leg LEGS=111 PHI=0 dynamic msharpe LOOK=900", "F2": "in-service fixed seats LEGS=101 PHI=0.45 W3FIX=0.21,0,0.79 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero", "F3": "F2 without W3FIX (dynamic seats)"}
-KING_NPY = {"pinned": f"{ROOT}/data/slow_pred_pinned_on_hist.npy", "hist": f"{ROOT}/data/slow_pred_hist_oos_rebuilt.npy"}
+DATA = os.environ.get("JR_DATA_ROOT", ROOT)   # data root (main run); ROOT may be a diagnostic root holding only artifacts
+KING_NPY = {"pinned": f"{DATA}/data/slow_pred_pinned_on_hist.npy", "hist": f"{DATA}/data/slow_pred_hist_oos_rebuilt.npy"}
 EXPECT = {"F1": {"LEGS": "111", "PHI": 0.0, "W3FIX": None, "MEMBERS_TOPN": 0, "TRADE_TOPN": 0, "FTRIM": "off"},
           "F2": {"LEGS": "101", "PHI": 0.45, "W3FIX": "0.21,0,0.79", "MEMBERS_TOPN": 829, "TRADE_TOPN": 400, "FTRIM": "zero"},
           "F3": {"LEGS": "101", "PHI": 0.45, "W3FIX": None, "MEMBERS_TOPN": 829, "TRADE_TOPN": 400, "FTRIM": "zero"}}
@@ -107,8 +108,8 @@ if "hist" in KINGS and "pinned" in KINGS:
                     print(f"{arm:3s} {seed:6s} n={len(common)} | " + " | ".join(f(w) for w in WNAMES) + f" | ΔS {dsh['2024->26']:+.2f} Δturn {dturn:+.1f}% DD {ddy:.0f}/{ddx:.0f}", flush=True)
                     MD.append(f"| {arm} | {seed} | {len(common)} | " + " | ".join(f(w) for w in WNAMES) + f" | {dsh['2024->26']:+.2f} | {dturn:+.1f}% | {ddy:.0f}/{ddx:.0f} |")
 # ───────── σ_fund terciles (judge.py L95-112 definition, rebuilt meta/panel) ─────────
-MT = np.load(f"{ROOT}/data/wide_fea_hist_meta_rebuilt.npz", allow_pickle=True); E_ts = MT["E_ts"].astype(np.int64); members = MT["members"]
-PW = np.load(f"{ROOT}/data/wide_panel_4h_hist_v2_rebuilt.npz", allow_pickle=True); pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}; FN = PW["f_fund_now"]; IV = PW["f_fund_iv"]
+MT = np.load(f"{DATA}/data/wide_fea_hist_meta_rebuilt.npz", allow_pickle=True); E_ts = MT["E_ts"].astype(np.int64); members = MT["members"]
+PW = np.load(f"{DATA}/data/wide_panel_4h_hist_v2_rebuilt.npz", allow_pickle=True); pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}; FN = PW["f_fund_now"]; IV = PW["f_fund_iv"]
 sig_map = {}
 for i in range(len(E_ts)):
     j = pw_row.get(int(E_ts[i]))
