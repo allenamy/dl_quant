@@ -1,0 +1,109 @@
+{
+ "self_sha256": "44cd3020c0b0bd816acf9d1bc4544848e301cc3941e03db0a502f3dba9735022",
+ "labels_lib_sha256": "0250b7d53cb1d50b7e9e7388a11143325c15e2b1c10a053a1dbb6d460801c60b",
+ "inputs": {
+  "cache": "72eb784949e90a099b6fb41eadc034d1833c712af28d050a390be1bc3ee80b4f",
+  "meta": "4b1b6047107d25573244a84df69d45bc987ada89b6731e826c867a230e247082",
+  "meta_newprod": "831857dd6a2035235647158d26d0155d17c7e77d85fa248b2ae9a617658ddf13",
+  "meta_newsum_ref": "8d0d33bd55e51cdcc26d104f91b3538822b8478edb14c2c644cd1e87ebfbdc3e",
+  "dlw_targets": "dd4ed2dfb5fa426f8b8f49c0a20f39bcf077280025ed03ebb19b2ece66fc68a3"
+ },
+ "label_rule": {
+  "i": "sum r5 rows [E, E+47] (CS_r[E+48]-CS_r[E]), NaN if finite bars < 46",
+  "ii": "sum r5 rows [E+1, E+48] (CS_r[E+49]-CS_r[E+1]), NaN if finite bars < 46",
+  "iii": "expm1(CS_L[E+49]-CS_L[E+1]) with CS_L = cumsum(log1p(r5)), NaN if finite bars < 46",
+  "cache_ts": "bar close (pod_merge_cache_ext.py L24: ts = open_time + 5min)"
+ },
+ "receipts": {
+  "(i) oldsum vs meta y4": {
+   "cells_both_finite": 3446599,
+   "exact_eq_frac": 1.0,
+   "max_abs_diff": 0.0,
+   "nan_pattern_mismatch": 0
+  },
+  "(iii) newprod vs refute_C6_2 meta_newprod y4": {
+   "cells_both_finite": 3446600,
+   "exact_eq_frac": 1.0,
+   "max_abs_diff": 0.0,
+   "nan_pattern_mismatch": 0
+  },
+  "(ii) newsum vs refute_C6_2 meta_newsum y4": {
+   "cells_both_finite": 3446600,
+   "exact_eq_frac": 1.0,
+   "max_abs_diff": 0.0,
+   "nan_pattern_mismatch": 0
+  },
+  "(iii) newprod vs dlw y4s (common anchors)": {
+   "cells_both_finite": 3374240,
+   "exact_eq_frac": 1.0,
+   "max_abs_diff": 0.0,
+   "nan_pattern_mismatch": 0,
+   "common_anchors": 10056
+  },
+  "(i) oldsum vs dlw y4old (common anchors)": {
+   "cells_both_finite": 3374239,
+   "exact_eq_frac": 1.0,
+   "max_abs_diff": 0.0,
+   "nan_pattern_mismatch": 0,
+   "common_anchors": 10056
+  }
+ },
+ "identities": {
+  "(ii)-(i) == r_E48 - r_E : max_abs_dev": 5.960464477539063e-08,
+  "cells": 3446093,
+  "(iii)-(ii) vs 0.5*conv : corr": 0.9560911805508353,
+  "mean (iii)-(ii) bps": -0.43526210937412607,
+  "mean 0.5*conv bps": -0.4205373301628925,
+  "cells2": 3446600
+ },
+ "cell_means_by_year_bps": {
+  "2022": {
+   "cells": 310787,
+   "mean(ii)-(i)": -0.0035944522824138403,
+   "mean|(ii)-(i)|": 29.012964248657227,
+   "mean(iii)-(ii)": -0.482444703578949,
+   "mean|(iii)-(ii)|": 3.205846071243286
+  },
+  "2023": {
+   "cells": 434966,
+   "mean(ii)-(i)": 0.009585700929164886,
+   "mean|(ii)-(i)|": 21.53199005126953,
+   "mean(iii)-(ii)": -0.3090411424636841,
+   "mean|(iii)-(ii)|": 1.9942353963851929
+  },
+  "2024": {
+   "cells": 645818,
+   "mean(ii)-(i)": -0.0027992110699415207,
+   "mean|(ii)-(i)|": 25.03037452697754,
+   "mean(iii)-(ii)": -0.2716439962387085,
+   "mean|(iii)-(ii)|": 3.117640495300293
+  },
+  "2025": {
+   "cells": 1069449,
+   "mean(ii)-(i)": 0.004458265379071236,
+   "mean|(ii)-(i)|": 27.41620635986328,
+   "mean(iii)-(ii)": -0.7601658701896667,
+   "mean|(iii)-(ii)|": 4.4484028816223145
+  },
+  "2026": {
+   "cells": 985579,
+   "mean(ii)-(i)": 0.015560322441160679,
+   "mean|(ii)-(i)|": 24.48493194580078,
+   "mean(iii)-(ii)": -0.23075060546398163,
+   "mean|(iii)-(ii)|": 3.3815815448760986
+  }
+ },
+ "outputs": {
+  "meta_newsum_f10cal": "8d0d33bd55e51cdcc26d104f91b3538822b8478edb14c2c644cd1e87ebfbdc3e",
+  "meta_keys": [
+   "E_ts",
+   "members",
+   "y4",
+   "qvk",
+   "names"
+  ],
+  "meta_newsum_f10cal y4 bitwise == (ii)": true,
+  "meta_newsum_f10cal y4 bitwise == refute_C6_2 meta_newsum y4": true,
+  "size_bytes": 89853054
+ }
+}

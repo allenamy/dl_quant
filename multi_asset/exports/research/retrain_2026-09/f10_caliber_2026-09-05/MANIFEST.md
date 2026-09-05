@@ -1,0 +1,50 @@
+# MANIFEST — f10_caliber_2026-09-05 (PREREG_f10_caliber_sensitivity_2026-09-05)
+
+pod2 root: /workspace/review_scratch/f10_caliber/ (read-only after 2026-09-05 08:25:44Z JUDGE rc=0; 270 MB on pod incl. .npz). Archived here: results json/md, scripts, logs (SHA256SUMS = local sha256 of the archived copies; every archived file's sha256 equals the pod-side value below).
+
+## pod-side sha256 of every product (sha256sum on pod2, 2026-09-05 10:5xZ)
+
+```
+f3f704c0fa3abb926565e312a88e0b4aafce050e59f5c72c27fa7b17851aa488  results/s0_receipts.json
+371933d6f89aead2c339fa0ec83f59312b826b73884b3b65b4ab430ac781b805  results/s1_tables.md
+f48199150a1d39fcc819fac871c2ad8b5607696c50095468e1979c338e66fe57  results/s1_tables.json
+bc61a81a782f7e0238f343fff78aef095d0d9883b7de6a23912c973c86f4b292  results/s2_tables.md
+fc3a346a1f4cc6cfc4e98965b758e02554b1bd9b2d6469882fdb3dfcdba6ddc7  results/s2_judge.json
+0bc5cbb44166168570fd2a4c171da50391ad02e6d06b22d0a22721c96d3c2733  results/s1_series.npz
+8d0d33bd55e51cdcc26d104f91b3538822b8478edb14c2c644cd1e87ebfbdc3e  meta/meta_newsum_f10cal.npz
+ccb7a0805be2a106898467b5ffef3a8fd4813a659e044492c0a437b0e5d7aece  masks/umask_UPIT.npz
+9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42  calib/costb_fee_steady.json
+2a51272aee73f6e71f312e1ee48aadf226b12b257ca465eb4c454e8b265bcd14  check_equiv.py
+08db02a14dea00ac14229cf58159bc918a9da2f3456fc68f9be637544b7083ea  judge_s2.py
+0250b7d53cb1d50b7e9e7388a11143325c15e2b1c10a053a1dbb6d460801c60b  labels_lib.py
+22d3fa40ffbaeaaae0dc17918feeca53087d90a69fdce16d8d439a7fd04a4da4  render_report.py
+44cd3020c0b0bd816acf9d1bc4544848e301cc3941e03db0a502f3dba9735022  s0_build_labels.py
+c5cf5818b149c23d70d60952b21a620ac5e7a1088b445fd0847cf77422a1b2ff  s1_decompose.py
+8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d  w10_health.py
+86f60b27d52cb88aa32d3a06d2f95645221c0aaa248ea4e6f33ed716ee8158c4  chain_s2.sh
+6c075a345a1e3607a53180a2a30af3d4410052377beb7a61be65ce09737ed7e3  run_arm.sh
+565e3490eb47997d8b9c223c949e2bb811bf0335e1a40178686138dc9e20f26b  setup.sh
+05140c47f27689035121a4f43abdc0998b1f32d1cdd524111431ba41b85267bd  logs/commands.txt
+28126bb560de586714e9aed8b81b10a9aec7c2c6e6c587fac026f2f3975aac1b  logs/check_equiv.log
+b283e5621cf8082c513f4cebf1104c84b2a4e09b3bb44ee122c874d53e854abb  logs/chain_s2.log
+e03cbcaa20a4a5b0c36d495d2d7cd186498ae3c10e369b1e0c5d1aa3d09093b5  logs/setup.log
+a8021fe6b7d33221a0c02c0aeebbd2e4277f164fa72d8e31a7cb05bd055d67e4  logs/s0_build_labels.log
+72734dabbc56f42f43327c7e414ed95c550a6f8d4bef745051e4174ff51af765  logs/s1_decompose.log
+4874444abdcfc4acdb9e41bf07b6b3aa8f2c2fa697f747c92355b42dac788f36  logs/judge_s2.log
+8b128fa43e3caa301d8c7c6170232c2b7f31fa6e3b96986075791012f631a1f9  dev/probe_artifacts/w10_ablation_series_log_phi045_s2027.npz
+eedc04b26d7f59cb5c25f8d1993afbb35465922fd753751bcf57f43512f41bf3  dev/probe_artifacts/w10_ablation_series_log_phi045_s42.npz
+efbe1a605fd317f7c846f6c95f968a71e5fa24187aeef1faf948303e95e5f901  dev/probe_artifacts/w10_ablation_series_log_phi0_s2027.npz
+4cb19ded45fffac2e0c044b7c74f8e6d18f1e3ec021133c75c104d9a7617146f  dev/probe_artifacts/w10_ablation_series_log_phi0_s42.npz
+4710b1bb4d5fb5b763820d9e7d1890ff37d1e1c055b1e2bfaee0d7c4f035e79b  dev_alt/probe_artifacts/w10_ablation_series_prod_phi045_s2027.npz
+53cd2d7fa7be3e00cbca3dffa15dec1d5f64085d4bb375cadd7953792cf2ae24  dev_alt/probe_artifacts/w10_ablation_series_prod_phi045_s42.npz
+d7e66b9607ef2412af360dde3ccaf9ef4fd8157a937adb4e1f8b29a905c58152  dev_alt/probe_artifacts/w10_ablation_series_prod_phi0_s2027.npz
+93b927b71ba9c6a61dba39186b4423d733441aa58ffa3870b7bba26fd13793f9  dev_alt/probe_artifacts/w10_ablation_series_prod_phi0_s42.npz
+521b110186ba74a1c8614db3d2435df04a82899c35ffe7522c41dc82c0cdf317  dev_alt2/probe_artifacts/w10_ablation_series_sum1_phi045_s2027.npz
+f4a8e23a27fb837d42f9e1fd9e9f8f121408559b49f0cb92849688b90ed94864  dev_alt2/probe_artifacts/w10_ablation_series_sum1_phi045_s42.npz
+67ec62c96f76b70e7c04acda69481d69e67d99ff1a5af8ebf5c8870f86a534d4  dev_alt2/probe_artifacts/w10_ablation_series_sum1_phi0_s2027.npz
+134352bc4d7be3337c1e730662acef059fdf0a20bbab4a78cc12ca3e3d5c78e9  dev_alt2/probe_artifacts/w10_ablation_series_sum1_phi0_s42.npz
+```
+
+## not archived (npz, left on pod): results/s1_series.npz, meta/meta_newsum_f10cal.npz (89,853,054 B, = refute_C6_2/altrun/meta_newsum.npz sha 8d0d33bd…), masks/umask_UPIT.npz (= health_check copy ccb7a080…), 12 device artifacts dev*/probe_artifacts/w10_ablation_series_{log,prod,sum1}_phi{0,045}_s{42,2027}.npz (sha above; the four PHI=0.45 log/prod ones are bitwise-equal in all four arrays to health_check M1_UPIT_{log,prod}_s{42,2027}_ccal, logs/check_equiv.log).
+
+## inputs (read-only, sha256 in s0_receipts.json / s1_tables.json): /workspace/data/dlnative_5m_wide829_f16_ext.npz 72eb7849…, /workspace/data/wide_fea_v2ext_meta.npz 4b1b6047…, /workspace/data/wide_panel_4h_v2ext.npz 5e67c055…, /workspace/shadow_bundle_v3/slow_pred_pinned.npy 158cd4ac…, /workspace/port_w10/f8_2026-08-22/preds/f10_V2MAIN_s{42,2027}.npy baf747ce…/c742ffaa…, /workspace/port_w10/dlw_2026-08-22/data/dlw_targets.npz dd4ed2df…, /workspace/review_scratch/refute_C6_2/altrun/meta_newprod.npz 831857dd…, health_check w10_health.py 8684d9a9… / calib/costb_fee_steady.json 9349ca63…
