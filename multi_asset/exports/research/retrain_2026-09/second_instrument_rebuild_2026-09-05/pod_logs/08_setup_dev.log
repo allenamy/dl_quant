@@ -1,0 +1,43 @@
+5424aceb34b4595b8b9be0d720e90a60e1944fd9bb915fad4c934bc4cf59e9f9  /workspace/review_scratch/jpline_rebuild/w10_universe_recheck.py
+5424aceb34b4595b8b9be0d720e90a60e1944fd9bb915fad4c934bc4cf59e9f9  src/w10_universe_recheck.py
+5424aceb34b4595b8b9be0d720e90a60e1944fd9bb915fad4c934bc4cf59e9f9  /workspace/review_scratch/combo_recheck/w10_universe_recheck.py
+--- diff vs port original (expected: REF_SKIP guard only)
+43c43,44
+< _CFG = {"KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+---
+> REF_SKIP = int(os.environ.get("REF_SKIP", "0")); assert REF_SKIP in (0, 1)   # combo_recheck 2026-09-04: 1 = skip pod_backup reference parity (port stubs are 144-byte placeholders); self-reported in _CFG
+> _CFG = {"REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+325c326,328
+<     if WRULE == "msharpe" and LOOK == 900 and LEGS == "111":
+---
+>     if REF_SKIP:   # combo_recheck: reference parity skipped on request (REF_SKIP=1)
+>         print(f"NOTE {nm}: REF_SKIP=1, reference parity vs pod_backup skipped", flush=True); ref = None
+>     elif WRULE == "msharpe" and LOOK == 900 and LEGS == "111":
+6826beb4fa5e89138782e3253427d4557e8809462fc64278c336a1cb2e85323b  gates/make_pinned_on_hist.py
+a9dde2a26e03dcce34690c3191a7461e53028773b7b58237e4f44d10c66ecc34  gates/build_alt_meta_hist.py
+PINNED_ON_HIST {"src": "/workspace/shadow_bundle_v3/slow_pred_pinned.npy", "src_sha256": "158cd4ac8f8f30f7f41a5a6cba0bd19a450ce756727e4aeae3d4e4b0b67d0054", "src_shape": [10176, 829], "src_first": "2022-01-08 00:00", "src_last": "2026-08-30 20:00", "dst_meta": "/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_meta_rebuilt.npz", "dst_shape": [12985, 829], "n_dst_anchors_mapped": 10086, "n_dst_anchors_unmapped": 2899, "rows_bitwise_equal_to_src": "10086/10086", "finite_frac_by_year": {"2020": 0.0, "2021": 0.0, "2022": 0.0, "2023": 0.0, "2024": 0.33035500449331057, "2025": 0.46808389929000666, "2026": 0.4825090470446321}, "out": "/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy", "out_sha256": "f48b57f9aff20dce2a4c9981513eaca4e9c4def274e77005add72eddf34c47fc", "self_sha256": "6826beb4fa5e89138782e3253427d4557e8809462fc64278c336a1cb2e85323b"}
+cumsums 81.5 s
+PARITY oldsum(rebuilt) vs meta y4: {'cells': 3700639, 'exact_eq': 1.0, 'max_abs': 0.0, 'nan_mismatch': 0}
+PARITY newprod_vs_dlw_y4s {'common_anchors': 12985, 'cells': 3700640, 'exact_eq': 1.0, 'max_abs': 0.0, 'nan_mismatch': 0}
+PARITY oldsum_vs_dlw_y4old {'common_anchors': 12985, 'cells': 3700639, 'exact_eq': 1.0, 'max_abs': 0.0, 'nan_mismatch': 0}
+by year (bps): {'2020': {'cells': 46708, 'mean_newprod_minus_oldsum': -0.5793629884719849, 'mean_abs': 35.91080856323242}, '2021': {'cells': 249993, 'mean_newprod_minus_oldsum': -1.6557894945144653, 'mean_abs': 46.48573684692383}, '2022': {'cells': 316546, 'mean_newprod_minus_oldsum': -0.46377915143966675, 'mean_abs': 29.5052490234375}, '2023': {'cells': 434966, 'mean_newprod_minus_oldsum': -0.2994554340839386, 'mean_abs': 21.851781845092773}, '2024': {'cells': 645818, 'mean_newprod_minus_oldsum': -0.27444323897361755, 'mean_abs': 25.479272842407227}, '2025': {'cells': 1069449, 'mean_newprod_minus_oldsum': -0.7557074427604675, 'mean_abs': 28.814464569091797}, '2026': {'cells': 937159, 'mean_newprod_minus_oldsum': -0.22277657687664032, 'mean_abs': 25.280040740966797}}
+saved 83.3 s; ALT_META_DONE
+--- layout
+/workspace/review_scratch/jpline_rebuild/dev/pod_backup_2026-08-21/nets_histv2_-30_2_42.npy -> /workspace/review_scratch/jpline_rebuild/data/nets_histv2_-30_2_42.npy
+/workspace/review_scratch/jpline_rebuild/dev/pod_backup_2026-08-21/nets_histv2_0_0_0.npy -> /workspace/review_scratch/jpline_rebuild/data/nets_histv2_0_0_0.npy
+/workspace/review_scratch/jpline_rebuild/dev/pod_backup_2026-08-21/slow_pred_hist_oos.npy -> /workspace/review_scratch/jpline_rebuild/data/slow_pred_hist_oos_rebuilt.npy
+/workspace/review_scratch/jpline_rebuild/dev/pod_backup_2026-08-21/wide_fea_hist_meta.npz -> /workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_meta_rebuilt.npz
+/workspace/review_scratch/jpline_rebuild/dev/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz -> /workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt.npz
+/workspace/review_scratch/jpline_rebuild/dev/f8_2026-08-22 -> /workspace/port_w10/f8_2026-08-22
+/workspace/review_scratch/jpline_rebuild/dev/dlw_2026-08-22 -> /workspace/port_w10/dlw_2026-08-22
+/workspace/review_scratch/jpline_rebuild/dev_alt/pod_backup_2026-08-21/nets_histv2_-30_2_42.npy -> /workspace/review_scratch/jpline_rebuild/data/nets_histv2_-30_2_42.npy
+/workspace/review_scratch/jpline_rebuild/dev_alt/pod_backup_2026-08-21/nets_histv2_0_0_0.npy -> /workspace/review_scratch/jpline_rebuild/data/nets_histv2_0_0_0.npy
+/workspace/review_scratch/jpline_rebuild/dev_alt/pod_backup_2026-08-21/slow_pred_hist_oos.npy -> /workspace/review_scratch/jpline_rebuild/data/slow_pred_hist_oos_rebuilt.npy
+/workspace/review_scratch/jpline_rebuild/dev_alt/pod_backup_2026-08-21/wide_fea_hist_meta.npz -> /workspace/review_scratch/jpline_rebuild/data/meta_hist_newprod.npz
+/workspace/review_scratch/jpline_rebuild/dev_alt/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz -> /workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt.npz
+/workspace/review_scratch/jpline_rebuild/dev_alt/f8_2026-08-22 -> /workspace/port_w10/f8_2026-08-22
+/workspace/review_scratch/jpline_rebuild/dev_alt/dlw_2026-08-22 -> /workspace/port_w10/dlw_2026-08-22
+baf747ceb31f10d614ffac79b9c969c499e1c3e9f82edfec246d7cfb0f353ace  /workspace/f8_2026-08-22/preds/f10_V2MAIN_s42.npy
+c742ffaa1f4397aee55a31a5486aabfd89ae28624123bbda535a7d41851b2a0b  /workspace/f8_2026-08-22/preds/f10_V2MAIN_s2027.npy
+dd4ed2dfb5fa426f8b8f49c0a20f39bcf077280025ed03ebb19b2ece66fc68a3  /workspace/data/dlw_targets.npz
+158cd4ac8f8f30f7f41a5a6cba0bd19a450ce756727e4aeae3d4e4b0b67d0054  /workspace/shadow_bundle_v3/slow_pred_pinned.npy

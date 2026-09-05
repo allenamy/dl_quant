@@ -1,0 +1,30 @@
+SELF_SHA256 61b026797e5e26116fff2805c645b94ab010a26c553c4f5eced0b26d3a3c1444 PATCH_SHA256 3ac2fd9873c2ae8f51e14cb254b7246717ead0e3b705758b9116cfa26b34148e /workspace/review_scratch/jpline_rebuild/logs/patches/pod_fea_wide_hist.py.diff
+cumsum ret5 (10s)
+cumsum log_qv (19s)
+anchors 10176
+cumsum range (40s)
+cumsum cpos (50s)
+cumsum log_cnt (60s)
+cumsum log_avgsz (70s)
+cumsum tbf (80s)
+NF = 40值 + 40秩 + 2funding = 82
+fea 0/10176 (0s)
+fea 2000/10176 (5s)
+fea 4000/10176 (11s)
+fea 6000/10176 (16s)
+fea 8000/10176 (23s)
+fea 10000/10176 (29s)
+FEA_DONE (10176, 829, 82) SHA f88b07205bf19870
+rc=0
+f88b07205bf19870aefd1ea6f8eaf6f14e78f3587c973f36514b43ea691d4097  /workspace/review_scratch/jpline_rebuild/drytest/data/fea_memtest.npy
+f88b07205bf19870aefd1ea6f8eaf6f14e78f3587c973f36514b43ea691d4097  /workspace/review_scratch/jpline_rebuild/drytest/data/wide_fea_hist_rebuilt.npy
+4b1b6047107d25573244a84df69d45bc987ada89b6731e826c867a230e247082  /workspace/review_scratch/jpline_rebuild/drytest/data/meta_memtest.npz
+4b1b6047107d25573244a84df69d45bc987ada89b6731e826c867a230e247082  /workspace/review_scratch/jpline_rebuild/drytest/data/wide_fea_hist_meta_rebuilt.npz
+FEA shapes (10176, 829, 82) (10176, 829, 82) array_equal(equal_nan) True
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+  File "<stdin>", line 4, in <dictcomp>
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/_core/numeric.py", line 2613, in array_equal
+    a1nan, a2nan = isnan(a1), isnan(a2)
+                   ^^^^^^^^^
+TypeError: ufunc 'isnan' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''

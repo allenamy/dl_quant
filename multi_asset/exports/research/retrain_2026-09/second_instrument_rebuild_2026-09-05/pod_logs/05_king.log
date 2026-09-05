@@ -1,0 +1,39 @@
+d19853d17c77cfd13b1e695e24e63d294607407afb07bcd667a7d1ef67e33c79  patched/pod_slow_hist_folds.py
+9b55534c536312a7e74101daa96a24a0644f8f1802498741c02892786373850b  logs/patches/pod_slow_hist_folds.py.diff
+4ee42f24667150745779492d8b90747f953a07bc5f7b0e6162036294501a9ebe  src/pod_slow_hist_folds.py
+lightgbm 4.7.0 numpy 2.4.6 scipy 1.17.1
+64
+SELF_SHA256 d19853d17c77cfd13b1e695e24e63d294607407afb07bcd667a7d1ef67e33c79 PATCH_SHA256 9b55534c536312a7e74101daa96a24a0644f8f1802498741c02892786373850b /workspace/review_scratch/jpline_rebuild/logs/patches/pod_slow_hist_folds.py.diff
+锚 12985 年分布 {np.int64(2020): np.int64(667), np.int64(2021): np.int64(2190), np.int64(2022): np.int64(2190), np.int64(2023): np.int64(2190), np.int64(2024): np.int64(2196), np.int64(2025): np.int64(2190), np.int64(2026): np.int64(1362)} 特征 78
+X (3002457, 78)
+fold 2022: train_rows 291314 IC 0.0625
+fold 2023: train_rows 596082 IC 0.055
+fold 2024: train_rows 1006440 IC 0.0605
+fold 2025: train_rows 1607846 IC 0.0637
+fold 2026: train_rows 2457657 IC 0.0582
+FOLDS_DONE {'2022': 0.0625, '2023': 0.055, '2024': 0.0605, '2025': 0.0637, '2026': 0.0582}
+1090418fa793f87c7525e3f22df3df9e09fd5b7208b6bc33cabe1a97466360e0  data/slow_pred_hist_oos_rebuilt.npy
+280b41ef29f5402c3561b9f93fa76889a3f112d35ea276eadd4c5743b70e0838  data/slow_hist_folds_rebuilt.json
+{
+ "ic_by_year": {
+  "2022": 0.0625,
+  "2023": 0.055,
+  "2024": 0.0605,
+  "2025": 0.0637,
+  "2026": 0.0582
+ },
+ "base_ic_2024_26": {
+  "2024": 0.0574,
+  "2025": 0.0617,
+  "2026": 0.0571
+ }
+}6077ee342f604643fc8f61f40c3458415017f6b3e49ea693c0018a7847a5eaf1  gates/compare_king.py
+  2020: n 667 finite 0.0000/0.0000 mask_eq True corr(pred) nan bitwise_share nan IC rebuilt nan ref nan
+  2021: n 2190 finite 0.0000/0.0000 mask_eq True corr(pred) nan bitwise_share nan IC rebuilt nan ref nan
+  2022: n 2190 finite 0.1679/0.1679 mask_eq True corr(pred) 0.8527 bitwise_share 0.0000 IC rebuilt 0.0625 ref 0.0603
+  2023: n 2190 finite 0.2260/0.2260 mask_eq True corr(pred) 0.8586 bitwise_share 0.0000 IC rebuilt 0.0550 ref 0.0557
+  2024: n 2196 finite 0.3304/0.3304 mask_eq True corr(pred) 0.8552 bitwise_share 0.0000 IC rebuilt 0.0605 ref 0.0621
+  2025: n 2190 finite 0.4681/0.4681 mask_eq True corr(pred) 0.8095 bitwise_share 0.0000 IC rebuilt 0.0637 ref 0.0617
+  2026: n 1362 finite 0.4825/0.4825 mask_eq False corr(pred) 0.8723 bitwise_share 0.0000 IC rebuilt 0.0582 ref 0.0580
+fold IC rebuilt {'2022': 0.0625, '2023': 0.055, '2024': 0.0605, '2025': 0.0637, '2026': 0.0582} ref(08-21) {'2022': 0.0603, '2023': 0.0557, '2024': 0.0621, '2025': 0.0617, '2026': 0.058}
+wrote results/compare_king.json

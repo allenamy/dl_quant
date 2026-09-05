@@ -1,0 +1,13 @@
+4d9cbc52590a627e084b1cf7afa86287ccd8051065fac2f61dad951edad1fe48  gates/gate_G3.py
+  (a) pod_stop_arms_v3.py:59 [volume, exempt] ok = np.isfinite(y4[i, m]); qv4h = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48
+  (a) pod_panel_ext.py:26 [volume, exempt] CS_q = cs(np.expm1(np.clip(qv, 0, 30)))
+  (a) return-path log/expm1 hits: 0 -> PASS
+  (b1) Y4 == Σ_[E,E+47] ret5 (cumsum recipe): both-finite 3734643 neq 0 nan-mismatch 0 -> PASS; direct float64 window sum on 300 anchors: neq 0/75173
+  (b2) y4s vs raw closes: n 1090 (2020-21: 346); max|Δ| 8.357e-05 (p99 1.94e-05, median 2.91e-06); excl. clipped cells 8.357e-05; skipped 10 -> FAIL
+  (b2) info: cells over 2e-5: 9, of which within 1.5x the float16 quantisation bound: 9; max |Δ|/f16_bound over all cells 0.44
+       worst: {'anchor': '2023-08-17 20:00', 'symbol': 'THETAUSDT', 'y4s': -0.07914084941148758, 'raw': -0.07905727923627692, 'y4old': -0.0690145492553711, 'year': 2023, 'clipped': False, 'f16_bound': 0.00018803074276341496, 'abs_diff': 8.357316255569458e-05}
+       worst: {'anchor': '2021-09-07 12:00', 'symbol': 'BZRXUSDT', 'y4s': -0.17895668745040894, 'raw': -0.1788765208387264, 'y4old': -0.13731002807617188, 'year': 2021, 'clipped': False, 'f16_bound': 0.0006587846838579126, 'abs_diff': 8.016824722290039e-05}
+       worst: {'anchor': '2021-07-18 16:00', 'symbol': 'CHRUSDT', 'y4s': 0.08602378517389297, 'raw': 0.08598452278589841, 'y4old': 0.08795785903930664, 'year': 2021, 'clipped': False, 'f16_bound': 0.00026563661828034926, 'abs_diff': 3.9264559745788574e-05}
+  (b3) Σ-simple[E,E+47] − Π(1+r)−1[E+1,E+48] per year (bps): 2020: +0.579 (|·| 35.91, n 46708) | 2021: +1.656 (|·| 46.49, n 249993) | 2022: +0.464 (|·| 29.51, n 316546) | 2023: +0.299 (|·| 21.85, n 434966) | 2024: +0.274 (|·| 25.48, n 645818) | 2025: +0.756 (|·| 28.81, n 1069449) | 2026: +0.223 (|·| 25.28, n 937159)
+G3 (a) PASS (b1) PASS (b2) FAIL => FAIL
+wrote results/G3.json

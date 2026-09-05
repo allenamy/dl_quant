@@ -1,0 +1,80 @@
+# jpline_rebuild PROGRESS (pod2, /workspace/review_scratch/jpline_rebuild) — prereg sha 32182341cb589c58
+
+| stage | status | receipt |
+|---|---|---|
+| 00 setup | DONE 01:09Z | src/ 21 verbatim git-tracked files (SHA256SUMS_src verified on pod), ref/ real 08-21 artefacts from Mac scratchpad 6737834a/pod_backup (SHA256SUMS_ref verified); git HEAD cac4be6b |
+| 01 download | RUNNING since 01:13:02Z | 829 symbols x (79 monthly 2020-01..2026-07 + 16 daily 2026-08-01..16) = 78,755 requests; 4.00 req/s shared bucket, 8 threads, anchor pauses [N-5,N+30] min; ETA 07:16Z (+pauses) |
+| 02..07 | scripts on pod, waiting for stage 01 | patches path-only (logs/patches/*.diff, 1-3 hunks each) |
+| 08..11 | scripts being written | |
+
+## Findings so far (before any rebuilt number)
+- G0: /workspace/data/wide_panel_4h_v1.npz sha256 f14bc33d78b2492994e793b494c2ff330958351abf5e6acbb1fe0364f032bc4a (matches prereg); 23 keys incl. f_fund_ema_v2/Y24 => produced by pod_panel_ext.py (sha db7f0474, already at that sha in commit 236a702 of 2026-08-21 01:05Z, before the 02:01Z build).
+- The 08-21 chain ran on the OLD pod (transcript 2026-08-21T02:01:44Z), not on jpline; artefacts were backed up to the Mac (session 6737834a scratchpad/pod_backup, Aug 21 11:34): real nets_histv2_* (12,279 anchors 2021-01-06 16:00 -> 2026-08-15 00:00), slow_pred_hist_oos.npy (12,985 x 829), wide_fea_hist_meta.npz. The pod2 port copies are 144-byte stubs. The repo's 9,941-row per-gross reference == nets_histv2_-30_2_42 truncated at 2022-01-31 08:00 (bitwise, same sha 0f548011 as the scratchpad file).
+- Dry test of the G1 script on v2ext-vs-v1 (known case): kline columns bitwise on the 2022+ overlap; the 08-21 v1 panel carries funding for EXACTLY the 450 live symbols (live_pins symbols_live), pod2's funding tree covers 829 => the rebuilt panel will differ from v1 in f_fund_* by coverage (375 extra symbols; ~1.03 M cells on 2022+), a data-source difference, not code. This also means the pod port instrument (v2ext, 829-symbol funding) and the 08-21 instrument differed in funding coverage in addition to the king training start.
+
+## 01:58Z update
+- Download: 10,802 requests done (4.00 req/s, 0 errors), 67,949 left; first anchor pause expected 03:55-04:30Z.
+- Dry-test harness (drytest/, stages 03..11 on 2022+ substitutes = ext cache / v2ext panel / pinned king) running to shake out script bugs before the real chain reaches them:
+  - dry stage 03 (patched pod_panel_ext.py on the ext cache) => panel SHA 5e67c0559daa904d == /workspace/data/wide_panel_4h_v2ext.npz (bitwise reproduction of the 09-01 pod panel; path-only patch is behaviour-preserving; funding inputs unchanged since 09-01).
+  - dry stage 04 (patched pod_fea_wide_hist.py) => meta SHA 4b1b6047… == /workspace/data/wide_fea_v2ext_meta.npz (bitwise; the 08-21 hist feature script and the 09-01 pod_fea_ext.py are equivalent on this input).
+  - 3 script defects found and fixed before the real chain (root-override edit swallowed trailing definitions in diag_g2a.py / judge_rebuild.py; quick-mode flag order in gate_G4b.py).
+
+## 02:15Z INCIDENT — unauthorised switch of the downloader (not by this agent)
+- At 02:01:57Z someone killed my paced chain (pids 65205/65214/65217) and relaunched run_chain.sh with a new script patched/dl_klines_fast.py (my paced script + env switches DL_RATE=1000000 DL_THREADS=24 DL_PAUSE=0 => no rate limit, no anchor pauses), editing stages/01_download.sh and writing "MANUAL_SWITCH ... user ruling 2026-09-05 解除限速" into my logs/chain.log and logs/commands.txt. No message reached me about any such ruling.
+- Observed rate 37-39 req/s from 02:02:01Z until I killed it at 02:10:49Z (RC 143 logged); ~19k requests in 9 min, outside any anchor window (next window 03:55-04:30Z). 0 .part files left; files are idempotent (.zip / .404 sentinels).
+- Action: killed the fast chain; restored my stages/01_download.sh (4 req/s, 8 threads, anchor pauses); relaunched the paced chain (resumes idempotently); reported to the lead and asked whether the ruling is real. Remaining after the burst: ~47.4k requests => ~3.3 h at 4 req/s + one pause => ETA ~05:55Z.
+- All other files verified against the Mac copies (sha256): only stages/01_download.sh differed; dl_klines_fast.py is an addition.
+
+## 02:27Z — dry-test chain DONE end-to-end (03..11) at 02:24:31Z; second unauthorised fast relaunch observed
+- All stage/gate scripts run to completion on the 2022+ substitutes. Device runs take ~20 s each (10k anchors); G4b full mode (19 LightGBM fits) is the only long gate.
+- Dry (substitute) findings that carry over as method receipts: G3 (a)/(b1) PASS mechanics; alt-meta parity 1.0; pinned re-index receipt; device parity gate inside w10_universe_recheck.py shows max|Δ| ~73 bps vs pod_stop_arms_v3 nets even under CAL=log (device form: DEMEAN-FIX + W6) — G2(c) will FAIL by construction, attributed in ATTR(1).
+- 02:21Z: the fast downloader (no rate limit) was relaunched again by someone else after my 02:12:55Z paced restore; facts being gathered, lead notified.
+
+## 02:30Z — ruling VERIFIED; fast download mode accepted
+- STATE.md §4 commit 6b38cbb (user haosiyu, 2026-09-05 01:49Z): "用户裁定 2026-09-05 01:5xZ(解除限速): pod2 上对 data.binance.vision 静态 CDN 的批量拉取免除 ≤4 req/s + 锚窗禁止 规则 … 交易所 API 的限速规则不变". Durable, committed user authorisation => the fast variant (patched/dl_klines_fast.py = my paced script + DL_PAUSE env switch + a FAST_VARIANT print; file semantics identical) stays. My 02:10Z stop predates any notice of the ruling.
+- Timeline: paced 01:13-02:02Z (11.7k requests @4/s) -> fast 02:02-02:10:49Z (killed by me) -> paced 02:12:55-02:21:25Z -> fast from 02:21:29Z (~36 req/s, ETA ~02:42Z). All three download logs kept (01_download.paced_until_0202Z.log, 01_download.paced2_until_0221Z.log, 01_download.log).
+- Mac record: stages/01_download.sh (paced, sha f458dbc5) is MY version; the pod ran stages/01_download.sh (fast, sha f06ea1ac) — copied back as stages/01_download.FAST_RAN.sh together with patched/dl_klines_fast.py and logs/patches/dl_klines_fast.diff.
+
+## 02:43Z — stage 01 DONE, 01b DONE, 02 (cache) running
+- Download totals (all three runs): 33,296 zip files (7,847,016,563 bytes) + 45,459 .404 sentinels = 78,755 = the planned request set; 0 errors (logs/dl_errors.txt empty). Last run: DL_DONE ok 19064 miss404 26343 requests 45408 (02:21:29-02:42:00Z).
+- 01b: sha256 manifest of all 33,296 zips (logs/klines5m_SHA256SUMS.txt), 404 list, zip integrity test (testzip on every file): bad 0.
+- 02_cache started 02:43:04Z (pod_build_wide_ext.py EXT_START=2020-01-01 EXT_END=2026-08-16, 12 processes).
+
+## 03:00Z — stages 02/03 DONE, G1 evaluated (results/G1.json)
+- Cache: (696673, 829, 7) f16, sha of file printed in 02_cache.log; panel rebuilt 14,329 anchors 2020-01-31..2026-08-15 (same ts axis and symbols as v1), sha 9f3e4ae14ef9ff1e.
+- Verbatim pod_build_wide_ext.py crashes at its own L48 (numpy appends .npz to the ".tmp" name); path-only patch P1b applied (temp name ends in .npz), rerun; output identical in bytes to what the first run had written under the suffixed name (2,290,946,807 bytes).
+- **G1 verdict: FAIL (0/21 arrays bitwise), but the classification is sharp:**
+  - Kline-derived arrays (elig, Y4, Y24, f_rev_*, f_mom_*, f_vol_7d, f_volq_ratio, f_amihud_24h, f_range/cpos/tbf/asz_24h): **zero unequal cells and zero NaN mismatches for 2020, 2021, 2022, 2023, 2024, 2025**; all differences are 2026 anchors ≥ 2026-08-12 (Y4: 4,608 cells NaN in v1 / finite in rebuilt, 348 symbols; window features: 2,694 unequal cells, 222 symbols; elig 2,274 cells). Hand check: rebuilt Y4 == recomputed from raw zips for the sampled tail cells. G1b (cache vs _ext cache, 2022+): 0 unequal finite cells in all 7 channels; NaN-only-in-ext cells start at 2026-08-12 00:05 (plus the known 2022-01-01 left edge). => class: August-tail data coverage of the 08-21 zip tree (its daily files ended 2026-08-11/12 for those symbols), not code, not floating point.
+  - Funding arrays: f_fund_now / f_fund_ema: 0 unequal values; 1,155,487 NaN-mismatch cells = 375-385 symbols absent from the 08-21 funding tree (v1 = 450 live symbols); f_fund_iv 138 / f_fund_ema_v1 324 / f_fund_ema_v2 316 unequal cells, all in 2026 (August interval column from the 2026-08 monthly zip vs the 08-21 API tail). => class: data-source coverage + August interval source.
+  - Built-in 7-column self-check flagged f_amihud_24h (corr 0.0555): heavy-tailed column dominated by the 2,694 tail cells; all other 6 columns corr ≥ 0.99991.
+- Consequence for the king: training rows for every fold (years < YV ≤ 2026) come from anchors whose features and labels are bitwise identical to the 08-21 data => the rebuilt king is trained on identical data; only 2026 tail anchors' features/labels differ.
+
+## 03:10Z — stage 04 OOM-killed; memory-restructured feature builder (P2-mem) with bitwise parity test
+- Container limit: cgroup memory.max = 60,999,999,488 bytes (61 GB; host has 259 GB); memory.events shows oom_kill 7. The verbatim pod_fea_wide_hist.py keeps all 7 channels' float64 cumulative sums resident (~78 GB at 696,673 rows) => killed at 03:03Z during the cumsum phase (the dry run at 490,753 rows had fitted).
+- Deviation (documented, diff logs/patches/pod_fea_wide_hist.py.diff, 3 hunks): cumulative sums computed channel by channel in the same order, freed after use; preallocated cumsum output; every expression/dtype/cast/column order unchanged. Parity test on the dry inputs vs the verbatim run's outputs: see below.
+- Parity receipt (logs/fea_mem_parity.log): P2-mem builder on the dry inputs => fea_memtest.npy sha256 f88b07205bf19870aefd1ea6f8eaf6f14e78f3587c973f36514b43ea691d4097 == verbatim dry output; meta_memtest.npz sha256 4b1b6047107d25573244a84df69d45bc987ada89b6731e826c867a230e247082 == verbatim dry output (== /workspace/data/wide_fea_v2ext_meta.npz). Byte-identical. Chain resumed at 04_fea.
+
+## 03:16Z — stages 04/05/G4a DONE (real data)
+- 04 fea: FEA (12985, 829, 82) sha 3568c673b274959b; meta vs 08-21 meta: E_ts identical (12,985 anchors 2020-09-11 20:00..2026-08-15 20:00), names identical, members identical for 12,967/12,985 anchors (18 differ, all 2026 tail ≥ 08-13), y4 0 unequal (6,348 NaN-mismatch = tail), qvk 3,836 unequal (tail).
+- 05 king: X (3,002,457 × 78); train rows 2022 291,314 / 2023 596,082 / 2024 1,006,440 / 2025 1,607,846 / 2026 2,457,657 (the 2026 fold row count equals the 08-21 RETRAIN_HIST.json receipt 2,457,657 exactly). Fold IC rebuilt vs 08-21: 2022 0.0625/0.0603, 2023 0.0550/0.0557, 2024 0.0605/0.0621, 2025 0.0637/0.0617, 2026 0.0582/0.0580. Prediction finite masks identical 2022-2025; Pearson(pred rebuilt, pred 08-21) 0.81-0.87 per year, bitwise share 0 => same training data, LightGBM fit not bitwise reproducible across machines/thread counts (INFERRED cause), IC within ±0.002.
+- G4a: (i) 5/5 folds max(train E_ts)+4h == first test anchor (gap 0 s, no overlap) PASS; (ii) PASS (pre-2022 all NaN; finite mask == members∧finite(y4) for 10,128/10,128 anchors); (vi) PASS (3 features × 100 anchors bitwise on [E-w,E-1]; shifted window differs in 94/86/20 of 100).
+
+## 03:24Z — stages 06/06g/07/07g/08/08g DONE; 09 G4b (full, 19 LightGBM fits) running since 03:23:20Z
+- G2(a) FAIL as defined (not bitwise): rebuilt d30 vs real 08-21 d30 on the identical 12,279-anchor grid: corr 0.927, mean Δ −0.237 bps/anchor; by year rebuilt/08-21: 2021 −1.876/−1.777, 2022 +0.790/+0.856, 2023 +0.078/+0.429, 2024 +0.180/+0.404, 2025 +0.947/+1.206, 2026 +2.432/+2.971. Summary json: d30 net_all 0.296 vs 0.533, 2024on 1.005 vs 1.316, Sharpe(2024on) 2.36 vs 3.06, maxDD 4375 vs 4138, fires 4357 vs 4151.
+- DIAG-A (funding masked to the 08-21 coverage + real 08-21 king, same rebuilt meta/panel): d30 corr 0.99998, mean Δ −0.004; per year 08-21 reproduced to ≤1e-6 bps in 2023/2024/2025 (2024: 100% bitwise; 2023/2025 max|Δ| 6e-7/5e-7), 2021 max 7e-3 bps, 2022 max 0.9 bps (residual funding-history gaps inside the 450 symbols: 3,648 NaN-mismatch cells in 2022), 2026 max 8 bps (August tail). => The 08-21 book is reproduced from source; nothing in the 08-21 pipeline is unexplained.
+- DIAG-B (rebuilt 829-symbol funding + 08-21 king): mean Δ −0.165; by year vs 08-21: 2021 −0.099, 2022 −0.065, 2023 −0.318, 2024 −0.207, 2025 −0.071, 2026 −0.269 => the fund leg/carry over 375 extra names lowers the book.
+- King refit effect (rebuilt king vs 08-21 king, both with 829 funding: G2a rebuilt minus DIAG-B): 2022 −0.001, 2023 −0.033, 2024 −0.017, 2025 −0.188, 2026 −0.270 bps/anchor (LightGBM fit variance across machines/threads, IC within ±0.002).
+
+## 03:25Z — G3, 08 setup/arms, G2(b)(c) evaluated
+- G3: (a) PASS (0 return-path log/expm1 hits; volume-only hits at pod_stop_arms_v3.py:59 and pod_panel_ext.py:26); (b1) PASS (Y4 == Σ_[E,E+47] ret5 on 3,734,643 finite cells, 0 unequal, 0 NaN-mismatch; independent direct float64 window sum on 300 anchors 0/75,173 unequal); (b2) FAIL as frozen: 1,090 sampled cells (346 in 2020-21), max|Δ| 8.36e-5 > 2e-5, p99 1.94e-5, median 2.9e-6; the 9 cells above 2e-5 are all within 1.5× the float16 quantisation bound of the cache path (max |Δ|/bound = 0.44 over all cells) => definition identical, the residual is the by-design float16 storage of 5-minute returns on extreme moves (worst: THETAUSDT 2023-08-17 20:00, 4h move −7.9%, Δ 8.4e-5). (b3) Σ-simple − Π(1+r)−1 per year, bps/cell: 2020 +0.58, 2021 +1.66, 2022 +0.46, 2023 +0.30, 2024 +0.27, 2025 +0.76, 2026 +0.22 (mean|·| 22-46 bps).
+- 08 setup: pinned king re-indexed onto the 12,985-anchor grid (10,086 rows mapped, all bitwise equal to the source; finite 2024 0.330 / 2025 0.468); prod-caliber meta parity 1.0 on 3,700,640 cells vs dlw y4s.
+- 08 arms (F1 form, rebuilt hist king): CAL=log d30 by year 2021 −1.874, 2022 +0.792, 2023 +0.062, 2024 +0.161, 2025 +0.812, 2026 +2.036 (net, device gross ~0.56-0.90); CAL=simple d30: 2023 −0.327, 2024 +0.346, 2026 +3.304 => the pseudo-convexity flag moves single years by up to +1.27 bps/anchor.
+- G2(b) FAIL: ts sets differ (step-8 series 12,279 anchors from 2021-01-06 vs the 9,941-row reference which is a 2022-01-31 08:00 truncation; ref ⊂ step8); on the 9,941 common anchors max|Δ| 117 bps, corr 0.906; per-gross by year step8/08-21: 2022 +1.019/+1.379, 2023 +0.054/+0.580, 2024 +0.355/+0.585, 2025 +1.205/+1.471, 2026 +2.279/+2.317.
+- Attribution: ATTR(1) device form alone (same inputs; w10 DEMEAN-FIX + W6 vs pod_stop_arms_v3): mean −0.074 bps/anchor, by year 2023 −0.017, 2024 −0.019, 2025 −0.136, 2026 −0.396. ATTR(2) inputs (= G2a) mean −0.237. Implied 08-21 gross 0.794 vs step-8 0.737.
+- G2(c) FAIL: parity max|Δ| under CAL=log 45/56 bps (S0/d30) and under CAL=simple 274/261 bps => the recheck device is not the 08-21 device even at CAL=log (book-form difference), and CAL=simple adds a further ~200 bps max deviation. The ledger sentence "pod 原始回放同法" is false as a statement about the device, true only about the absence of expm1 in the 08-21 device.
+
+## 03:28Z — CHAIN_DONE (03:27:44Z); G4b/G5/judge evaluated
+- G4b (full mode, 400 trees, 19 fits, 177 s): (iii) shuffle-future null 12/15 pass; FAIL on s1/2022 (+0.0081 vs 2·SE 0.0061), s2/2022 (+0.0070), s2/2026 (+0.0098 vs 0.0052); nulls range −0.0034…+0.0098 (true IC +0.055…+0.064); seed-mean per fold: 2022 +0.0046, 2023 −0.0011, 2024 +0.0011, 2025 −0.0029, 2026 +0.0055 (2·SE_anchor 0.0052 / 2·SE_dayblock 0.0059). (iv) PASS: peak k=0 (+0.0601), k=1..3 max +0.0466, k=−1 −0.1185. (v) PASS: 2024 Δ −0.0011, 2025 Δ +0.0005; in-script refit == stage-5 file exactly (LightGBM deterministic on this machine).
+- G4 verdict: hist king NOT admitted (frozen per-run rule) => G5 ran the 10 pinned-king arms only; the hist-vs-pinned separation exists only for F1/log (the G2 run). Lead asked whether to run the excluded hist arms as labelled diagnostics.
+
+## 03:50Z — REPORT.md written (Mac + pod), chain complete. Pending: lead's answer on running the excluded hist arms as labelled diagnostics.

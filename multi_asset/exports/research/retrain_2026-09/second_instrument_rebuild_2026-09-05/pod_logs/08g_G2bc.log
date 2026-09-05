@@ -1,0 +1,10 @@
+c7358dde35e2d777d3332bf463dc6911235829e07d15515b00d203b7e22d1fa1  gates/gate_G2bc.py
+G2(b) step8 F1_hist_log net/gross vs 08-21 per-gross ref: ts_set_identical False (step8 n 12279 2021-01-06 16:00..2026-08-15 00:00; ref n 9941; ref⊂step8 True); common 9941 max|Δ| 1.169e+02 corr 0.9055 bitwise 0.0000 -> FAIL
+   by year step8/ref/Δ: 2022: +1.019/+1.379/-0.361 | 2023: +0.054/+0.580/-0.526 | 2024: +0.355/+0.585/-0.230 | 2025: +1.205/+1.471/-0.266 | 2026: +2.279/+2.317/-0.037
+ATTR(1) device form: step8 net vs stage-6 nets (same inputs): common 12279 max|Δ| 5.625e+01 bps mean -0.0738 corr 0.9846; by year Δ: 2021: +0.002 | 2022: +0.001 | 2023: -0.017 | 2024: -0.019 | 2025: -0.136 | 2026: -0.396
+ATTR(2) inputs (G2a): stage-6 rebuilt nets vs real 08-21 nets: common 12279 max|Δ| 9.902e+01 mean -0.2372 corr 0.9275; by year Δ: 2021: -0.099 | 2022: -0.066 | 2023: -0.350 | 2024: -0.224 | 2025: -0.258 | 2026: -0.539
+ATTR(3) gross: step8 gross_total mean 0.7374 vs 08-21 implied (net/pergross) 0.7939
+G2(c) CAL=log: maxabs_diff_vs_pod_backup S0 4.498e+01 d30 5.625e+01 (n 12279) -> parity FAIL
+G2(c) CAL=simple: maxabs_diff_vs_pod_backup S0 2.735e+02 d30 2.612e+02 (n 12279) -> parity FAIL
+G2(c) => FAIL (log parity False, simple parity False)
+wrote results/G2bc.json

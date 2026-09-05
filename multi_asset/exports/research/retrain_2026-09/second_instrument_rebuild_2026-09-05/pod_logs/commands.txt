@@ -1,0 +1,97 @@
+CMD[launch] 2026-09-05T01:13:02Z: cd /workspace/review_scratch/jpline_rebuild && nohup bash run_chain.sh > logs/chain_nohup.out 2>&1 &
+CMD[01_download] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T01:13:02Z: env DL_RATE=4.0 DL_THREADS=8 /workspace/venv/bin/python patched/dl_klines_paced.py
+CMD[manual-switch] 2026-09-05T02:01:57Z: kill -TERM 65205 65214 65217   # user ruling 解除限速; paced chain stopped; stage 01 now runs patched/dl_klines_fast.py (DL_RATE=1000000 DL_THREADS=24 DL_PAUSE=0)
+CMD[manual-switch] 2026-09-05T02:02:01Z: nohup bash run_chain.sh >> logs/chain_nohup.out 2>&1 &  (pid 69041)
+CMD[01_download] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:02:01Z: env DL_RATE=1000000 DL_THREADS=24 DL_PAUSE=0 /workspace/venv/bin/python patched/dl_klines_fast.py
+RC[01_download] rc=143 2026-09-05T02:10:49Z
+CMD[relaunch-paced] 2026-09-05T02:12:54Z: restored stages/01_download.sh (paced, sha f458dbc52bf6dc3e); nohup bash run_chain.sh >> logs/chain_nohup.out 2>&1 &   # after killing the unauthorised fast chain at 02:10:49Z
+CMD[01_download] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:12:55Z: env DL_RATE=4.0 DL_THREADS=8 /workspace/venv/bin/python patched/dl_klines_paced.py
+CMD[manual-switch-2] 2026-09-05T02:21:25Z: kill -TERM 69952 69963 69968   # second manual switch to fast variant per user ruling 解除限速 (STATE §4 6b38cbb); agent had reverted at 02:10Z without having received the ruling
+CMD[manual-switch-2] 2026-09-05T02:21:29Z: nohup bash run_chain.sh >> logs/chain_nohup.out 2>&1 &  (pid 71684)
+CMD[01_download] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:21:29Z: env DL_RATE=1000000 DL_THREADS=24 DL_PAUSE=0 /workspace/venv/bin/python patched/dl_klines_fast.py
+NOTE[agent] 2026-09-05T02:28:26Z: ruling verified in repo STATE.md §4 commit 6b38cbb (user, 01:49Z) — fast variant authorised; no further reverts by this agent
+RC[01_download] rc=0 2026-09-05T02:42:00Z
+CMD[01b_manifest] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:42:09Z: bash -c find klines5m -name '*.zip' | sort | xargs -P 16 -n 200 sha256sum > logs/klines5m_SHA256SUMS.txt
+RC[01b_manifest] rc=0 2026-09-05T02:42:24Z
+CMD[01b_manifest] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:42:24Z: bash -c find klines5m -name '*.404' | sort > logs/klines5m_404.txt
+RC[01b_manifest] rc=0 2026-09-05T02:42:25Z
+CMD[01b_manifest] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:42:26Z: /workspace/venv/bin/python -
+RC[01b_manifest] rc=0 2026-09-05T02:43:04Z
+CMD[01b_manifest] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:43:04Z: bash -c sha256sum logs/klines5m_SHA256SUMS.txt logs/klines5m_404.txt logs/klines5m_badzips.txt
+RC[01b_manifest] rc=0 2026-09-05T02:43:04Z
+CMD[02_cache] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:43:04Z: env EXT_START=2020-01-01 EXT_END=2026-08-16 EXT_OUT=/workspace/review_scratch/jpline_rebuild/data/dlnative_5m_wide829_f16_hist.npz /workspace/venv/bin/python patched/pod_build_wide_ext.py
+RC[02_cache] rc=1 2026-09-05T02:46:04Z
+NOTE[agent] 2026-09-05T02:47:36Z: stage 02 crashed at verbatim L48 (np.savez_compressed appended .npz to the .tmp name; 2,290,946,807-byte *.npz.tmp.npz written 02:46:03Z); applied path-only patch P1b (temp name ends with .npz), removed the stale temp file, resuming chain at 02
+CMD[02_cache] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:47:36Z: env EXT_START=2020-01-01 EXT_END=2026-08-16 EXT_OUT=/workspace/review_scratch/jpline_rebuild/data/dlnative_5m_wide829_f16_hist.npz /workspace/venv/bin/python patched/pod_build_wide_ext.py
+RC[02_cache] rc=0 2026-09-05T02:50:51Z
+CMD[02_cache] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:50:51Z: sha256sum data/dlnative_5m_wide829_f16_hist.npz
+RC[02_cache] rc=0 2026-09-05T02:50:58Z
+CMD[03_panel] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:51:01Z: env CACHE_IN=/workspace/review_scratch/jpline_rebuild/data/dlnative_5m_wide829_f16_hist.npz PANEL_OUT=/workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt.npz /workspace/venv/bin/python patched/pod_panel_ext.py
+RC[03_panel] rc=3 2026-09-05T02:57:11Z
+CMD[03_panel] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:57:11Z: sha256sum data/wide_panel_4h_hist_v2_rebuilt.npz
+RC[03_panel] rc=0 2026-09-05T02:57:12Z
+CMD[03g_G1] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:57:12Z: /workspace/venv/bin/python gates/gate_G1.py
+RC[03g_G1] rc=0 2026-09-05T02:59:34Z
+CMD[04_fea] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T02:59:34Z: env CACHE_IN=/workspace/review_scratch/jpline_rebuild/data/dlnative_5m_wide829_f16_hist.npz PANEL_IN=/workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt.npz FEA_OUT=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_rebuilt.npy META_OUT=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_meta_rebuilt.npz /workspace/venv/bin/python patched/pod_fea_wide_hist.py
+RC[04_fea] rc=137 2026-09-05T03:03:10Z
+CMD[04_fea_memparity] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:06:05Z: env CACHE_IN=/workspace/data/dlnative_5m_wide829_f16_ext.npz PANEL_IN=/workspace/review_scratch/jpline_rebuild/drytest/data/wide_panel_4h_hist_v2_rebuilt.npz FEA_OUT=/workspace/review_scratch/jpline_rebuild/drytest/data/fea_memtest.npy META_OUT=/workspace/review_scratch/jpline_rebuild/drytest/data/meta_memtest.npz /workspace/venv/bin/python patched/pod_fea_wide_hist.py
+NOTE[agent] 2026-09-05T03:09:31Z: P2-mem parity = byte-identical files (sha256 equal for FEA and meta); the auxiliary np.array_equal check failed only on the string names array (isnan). Resuming chain at 04_fea.
+CMD[04_fea] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:09:31Z: env CACHE_IN=/workspace/review_scratch/jpline_rebuild/data/dlnative_5m_wide829_f16_hist.npz PANEL_IN=/workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt.npz FEA_OUT=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_rebuilt.npy META_OUT=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_meta_rebuilt.npz /workspace/venv/bin/python patched/pod_fea_wide_hist.py
+RC[04_fea] rc=0 2026-09-05T03:13:24Z
+CMD[04_fea] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:13:24Z: sha256sum data/wide_fea_hist_rebuilt.npy data/wide_fea_hist_meta_rebuilt.npz
+RC[04_fea] rc=0 2026-09-05T03:13:29Z
+CMD[04_fea] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:13:29Z: /workspace/venv/bin/python gates/compare_meta.py
+RC[04_fea] rc=0 2026-09-05T03:13:31Z
+CMD[05_king] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:13:40Z: env FEA_IN=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_rebuilt.npy META_IN=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_meta_rebuilt.npz /workspace/venv/bin/python patched/pod_slow_hist_folds.py
+RC[05_king] rc=0 2026-09-05T03:14:32Z
+CMD[05_king] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:14:32Z: sha256sum data/slow_pred_hist_oos_rebuilt.npy data/slow_hist_folds_rebuilt.json
+RC[05_king] rc=0 2026-09-05T03:14:32Z
+CMD[05_king] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:14:32Z: /workspace/venv/bin/python gates/compare_king.py
+RC[05_king] rc=0 2026-09-05T03:14:40Z
+CMD[05g_G4a] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:14:40Z: /workspace/venv/bin/python gates/gate_G4a.py
+RC[05g_G4a] rc=0 2026-09-05T03:15:40Z
+CMD[06_stop_arms] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:15:40Z: env TAG=histv2 META_IN=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_meta_rebuilt.npz PANEL_IN=/workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt.npz KING_IN=/workspace/review_scratch/jpline_rebuild/data/slow_pred_hist_oos_rebuilt.npy /workspace/venv/bin/python patched/pod_stop_arms_v3.py
+RC[06_stop_arms] rc=0 2026-09-05T03:16:18Z
+CMD[06_stop_arms] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:16:18Z: sha256sum data/nets_histv2_0_0_0.npy data/nets_histv2_-30_2_42.npy data/nets_histv2_-25_2_42.npy data/nets_histv2_-25_1_42.npy data/stop_arms_pod_v3_histv2.json
+RC[06_stop_arms] rc=0 2026-09-05T03:16:18Z
+CMD[06g_G2a] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:16:18Z: /workspace/venv/bin/python gates/gate_G2a.py
+RC[06g_G2a] rc=0 2026-09-05T03:16:19Z
+CMD[06g_G2a] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:16:19Z: /workspace/venv/bin/python gates/diag_g2a.py
+CMD[06g_diag] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:16:49Z: env TAG=diagA META_IN=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_meta_rebuilt.npz PANEL_IN=/workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt_fund450_DIAG.npz KING_IN=/workspace/review_scratch/jpline_rebuild/data/king0821_on_rebuilt_meta_DIAG.npy /workspace/venv/bin/python /workspace/review_scratch/jpline_rebuild/patched/pod_stop_arms_v3.py
+RC[06g_diag] diagA rc=0
+CMD[06g_diag] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:17:27Z: env TAG=diagB META_IN=/workspace/review_scratch/jpline_rebuild/data/wide_fea_hist_meta_rebuilt.npz PANEL_IN=/workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt.npz KING_IN=/workspace/review_scratch/jpline_rebuild/data/king0821_on_rebuilt_meta_DIAG.npy /workspace/venv/bin/python /workspace/review_scratch/jpline_rebuild/patched/pod_stop_arms_v3.py
+RC[06g_diag] diagB rc=0
+RC[06g_G2a] rc=0 2026-09-05T03:18:04Z
+CMD[07_targets] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:18:04Z: env DLWT_CACHE=/workspace/review_scratch/jpline_rebuild/data/dlnative_5m_wide829_f16_hist.npz DLWT_PANEL=/workspace/review_scratch/jpline_rebuild/data/wide_panel_4h_hist_v2_rebuilt.npz DLWT_OUT=/workspace/review_scratch/jpline_rebuild/data/dlw_hist /workspace/venv/bin/python src/pod_dlw_targets_ext.py
+RC[07_targets] rc=0 2026-09-05T03:19:22Z
+CMD[07_targets] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:19:22Z: sha256sum data/dlw_hist/data/dlw_targets.npz data/dlw_hist/results/dlw_targets_report.json
+RC[07_targets] rc=0 2026-09-05T03:19:22Z
+CMD[07g_G3] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:19:22Z: /workspace/venv/bin/python gates/gate_G3.py
+RC[07g_G3] rc=0 2026-09-05T03:21:25Z
+CMD[08_setup_dev] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:21:25Z: /workspace/venv/bin/python gates/make_pinned_on_hist.py
+RC[08_setup_dev] rc=0 2026-09-05T03:21:27Z
+CMD[08_setup_dev] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:21:27Z: /workspace/venv/bin/python gates/build_alt_meta_hist.py
+RC[08_setup_dev] rc=0 2026-09-05T03:22:51Z
+CMD[08_arms_g2] (cwd=/workspace/review_scratch/jpline_rebuild/dev) 2026-09-05T03:22:52Z: env LOOK=900 WRULE=msharpe SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_hist_oos_rebuilt.npy LEGS=111 PHI=0 FSEED=42 CAL=log OUT_TAG=F1_hist_log /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[08_arms_g2] (cwd=/workspace/review_scratch/jpline_rebuild/dev) 2026-09-05T03:22:52Z: env LOOK=900 WRULE=msharpe SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_hist_oos_rebuilt.npy LEGS=111 PHI=0 FSEED=42 CAL=simple OUT_TAG=F1_hist_simple /workspace/venv/bin/python ../w10_universe_recheck.py
+RC[08_arms_g2] F1_hist_log 0 2026-09-05T03:23:19Z
+RC[08_arms_g2] F1_hist_simple 0 2026-09-05T03:23:19Z
+CMD[08g_G2bc] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:23:19Z: /workspace/venv/bin/python gates/gate_G2bc.py
+RC[08g_G2bc] rc=0 2026-09-05T03:23:20Z
+CMD[09_G4b] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:23:20Z: /workspace/venv/bin/python gates/gate_G4b.py
+RC[09_G4b] rc=0 2026-09-05T03:26:23Z
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev) 2026-09-05T03:26:23Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=111 PHI=0 FSEED=42 OUT_TAG=F1_pinned_log /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev) 2026-09-05T03:26:23Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=101 PHI=0.45 FSEED=42 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero W3FIX=0.21,0,0.79 OUT_TAG=F2_pinned_log_s42 /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev) 2026-09-05T03:26:23Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=101 PHI=0.45 FSEED=42 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero OUT_TAG=F3_pinned_log_s42 /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev) 2026-09-05T03:26:23Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=101 PHI=0.45 FSEED=2027 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero W3FIX=0.21,0,0.79 OUT_TAG=F2_pinned_log_s2027 /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev) 2026-09-05T03:26:23Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=101 PHI=0.45 FSEED=2027 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero OUT_TAG=F3_pinned_log_s2027 /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev_alt) 2026-09-05T03:26:23Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=111 PHI=0 FSEED=42 OUT_TAG=F1_pinned_prod /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev_alt) 2026-09-05T03:26:50Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=101 PHI=0.45 FSEED=42 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero W3FIX=0.21,0,0.79 OUT_TAG=F2_pinned_prod_s42 /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev_alt) 2026-09-05T03:26:50Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=101 PHI=0.45 FSEED=42 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero OUT_TAG=F3_pinned_prod_s42 /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev_alt) 2026-09-05T03:27:01Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=101 PHI=0.45 FSEED=2027 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero W3FIX=0.21,0,0.79 OUT_TAG=F2_pinned_prod_s2027 /workspace/venv/bin/python ../w10_universe_recheck.py
+CMD[10_G5_arms] (cwd=/workspace/review_scratch/jpline_rebuild/dev_alt) 2026-09-05T03:27:01Z: env LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=/workspace/review_scratch/jpline_rebuild/data/slow_pred_pinned_on_hist.npy LEGS=101 PHI=0.45 FSEED=2027 MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero OUT_TAG=F3_pinned_prod_s2027 /workspace/venv/bin/python ../w10_universe_recheck.py
+G5_ARMS_DONE 2026-09-05T03:27:39Z
+CMD[11_judge] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:27:40Z: /workspace/venv/bin/python gates/judge_rebuild.py
+RC[11_judge] rc=0 2026-09-05T03:27:44Z
+CMD[11_judge] (cwd=/workspace/review_scratch/jpline_rebuild) 2026-09-05T03:27:44Z: sha256sum results/judge_rebuild.json results/REPORT_tables.md
+RC[11_judge] rc=0 2026-09-05T03:27:44Z
