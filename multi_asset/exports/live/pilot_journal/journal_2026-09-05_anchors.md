@@ -21,3 +21,8 @@
 - ⑥ 告警核对: position reconcile 15 名(前三锚 20/9/6)采用场所真相; 撤名残差 −11,926 = −6.96%(文案与算术不符, 账本 L351 已记); 36 名 reduce-only(退出通道); −5022 拒单 48% HIGH(见 ③, 跟踪项)。**无需处置; 回滚缺省 king 形态未触发。**
 - ⑦ regime 仪表盘 04Z: 旗标无; σ_fund 9.7, fund 席位 0.81, IC_fund +0.081, FTRIM 反事实 −0.50 bps; R1–R4 无触发。
 - 关注项汇总: (a) −5022 拒单率近 5 锚 3 次 >40%(告警口径), 账本 L351 升级条件"持续 >40%"接近; (b) maker 占比三次 <0.90; (c) net/gross 第 9 锚 >1%; (d) markout 回填覆盖停在 15%, 逆向选择成本(体检最大未知)因此定不下来 —— 提高回填 request budget 属执行器改动, 待用户字。
+
+## 07:0xZ 执行器改动上线: markout 回填(用户字 09-05 "提高回填预算"; 非书行为)
+- 实盘仓 `bc099d7`(safe_commit, 电池 125/125 全绿, 已推送): `ops/backfill_markout.py` 三处 —— 标记窗口 5s → 60s(`mark_lag_s`/`mark_window_s` 逐行落盘, 严格口径可按 lag ≤5s 筛); 窗口内确无成交的行写入终止行(`mark_status=no_trade_within_window`, mid 保持 None = 未测, 退出待办集, 不再每轮重查); 锚间 launchd 任务预算 240 请求/300s → 900/1800s(PACE 2s 不变 ⇒ 600 权重/分; 锚内路径仍受其自身 deadline 约束)。新增 `live/tests_markout_window.py`(SUITES + gate_coverage 边界自述); `tests_guard_coverage` f3 期望改为终止语义(17 → 0 请求)。
+- 根因收据: 覆盖停在 15% 不是预算不足, 是稀薄名 5s 窗内无成交且"未落盘"导致每轮重查同一批(240 请求换 4–5 个标记)。生效: 下一锚(08Z)锚内路径 + 下一次锚间任务(17:05 本地 = 09:05Z)。
+- 未动: E-0905-F(COMMISSION 分项 tranId 去重碰撞)待用户字。
