@@ -59,7 +59,7 @@
 - 服务端数值链与训练逐算子同序(标准化/截断/缺失值, E-0826-E); 工件当输入前开产它的代码(E-0825-H)。
 - 面板默认值陷阱 / IC-β 纪律 / 口径三层 / 排序≠净额: 见 CLAUDE.md(不变)。
 
-- **用户裁定 2026-09-05 02:0xZ("解除限速"):** pod2 上对 data.binance.vision 静态 CDN 的批量拉取**免除** "≤4 req/s + 锚窗禁止" 规则(该规则针对交易所 API 与 Mac 共用 IP 的权重风险; CDN 无账户权重, pod2 独立 IP)。交易所 API(fapi/api)的限速规则不变。
+- **用户裁定 2026-09-05 01:5xZ("解除限速"):** pod2 上对 data.binance.vision 静态 CDN 的批量拉取**免除** "≤4 req/s + 锚窗禁止" 规则(该规则针对交易所 API 与 Mac 共用 IP 的权重风险; CDN 无账户权重, pod2 独立 IP)。交易所 API(fapi/api)的限速规则不变。
 
 ## §5 基建
 milestone §6 的机器/路径表为准: mac(生产+执行)/ jpline(面板+判官)/ pod2(GPU+LOB)/ 151MB 旧 pod 档不入 git。
