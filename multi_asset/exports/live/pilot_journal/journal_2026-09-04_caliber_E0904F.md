@@ -17,3 +17,4 @@
 - 22:53Z jpline 第 14 次超时(自 09-04 11:47Z 不可达, ≈11 h); 2 小时重连继续(cron bbd0562c)。
 - jpline 第 15 次超时 2026-09-05 00:56:46Z(ssh connect timeout, 2 小时重试 cron)
 - jpline 第 16 次超时 2026-09-05 02:53:05Z(ssh connect timeout, 2 小时重试 cron; 第二仪器改由 pod2 从源码重建, PREREG_second_instrument_rebuild)
+- jpline 第 17 次超时 2026-09-05 04:38:16Z(ssh connect timeout; 04:23Z 定时槽未产生记录, 手动补跑)
