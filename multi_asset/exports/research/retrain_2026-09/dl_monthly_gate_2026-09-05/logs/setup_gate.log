@@ -1,0 +1,36 @@
+--- diff seat2 orig vs gate copy (expected: the PHIDYN_CLIP line only)
+36c36
+< PHIDYN_LOOK = 900; PHIDYN_CLIP = (0.2, 0.8)
+---
+> PHIDYN_LOOK = 900; PHIDYN_CLIP = tuple(float(_x) for _x in os.environ.get("PHIDYN_CLIP", "0.2,0.8").split(","))   # dl_monthly_gate: clip from env (default = seat_round2 value)
+36:PHIDYN_LOOK = 900; PHIDYN_CLIP = tuple(float(_x) for _x in os.environ.get("PHIDYN_CLIP", "0.2,0.8").split(","))   # dl_monthly_gate: clip from env (default = seat_round2 value)
+--- resolved targets vs health_check (must all be SAME)
+SAME dev/nets_histv2_0_0_0.npy
+SAME dev/nets_histv2_-30_2_42.npy
+SAME dev/slow_pred_hist_oos.npy
+SAME dev/wide_fea_hist_meta.npz
+SAME dev/wide_panel_4h_hist_v2.npz
+SAME dev_alt/nets_histv2_0_0_0.npy
+SAME dev_alt/nets_histv2_-30_2_42.npy
+SAME dev_alt/slow_pred_hist_oos.npy
+SAME dev_alt/wide_fea_hist_meta.npz
+SAME dev_alt/wide_panel_4h_hist_v2.npz
+8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d  /workspace/review_scratch/dl_monthly_gate/replay/w10_health.py
+8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d  /workspace/review_scratch/health_check/w10_health.py
+5285f0049286d8964d10ee1d4ce9e428b9343af3048924e94f52ae55eda0b8f0  /workspace/review_scratch/seat_round2/w10_seat2.py
+5285f0049286d8964d10ee1d4ce9e428b9343af3048924e94f52ae55eda0b8f0  /workspace/review_scratch/dl_monthly_gate/replay/w10_seat2_orig.py
+13d0c849fc472fb1b1cbe1d37855aff481fe6fe048a61225fef2a74f520fda57  /workspace/review_scratch/dl_monthly_gate/replay/w10_seat2g.py
+63b96c2855529acc5eae549cf142667888a8216d6906011695d294f287d64d09  /workspace/review_scratch/dl_monthly_gate/replay/check_equiv.py
+ccb7a0805be2a106898467b5ffef3a8fd4813a659e044492c0a437b0e5d7aece  /workspace/review_scratch/health_check/masks/umask_UPIT.npz
+9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42  /workspace/review_scratch/health_check/calib/costb_fee_steady.json
+158cd4ac8f8f30f7f41a5a6cba0bd19a450ce756727e4aeae3d4e4b0b67d0054  /workspace/shadow_bundle_v3/slow_pred_pinned.npy
+baf747ceb31f10d614ffac79b9c969c499e1c3e9f82edfec246d7cfb0f353ace  /workspace/f8_2026-08-22/preds/f10_V2MAIN_s42.npy
+c742ffaa1f4397aee55a31a5486aabfd89ae28624123bbda535a7d41851b2a0b  /workspace/f8_2026-08-22/preds/f10_V2MAIN_s2027.npy
+SETUP_DONE 2026-09-05T11:27:48Z
+PASS [gate BASE_s42 vs health_check M1_UPIT_prod_s42_ccal] dev_alt/probe_artifacts/w10_ablation_series_BASE_s42.npz vs /workspace/review_scratch/health_check/dev_alt/probe_artifacts/w10_ablation_series_M1_UPIT_prod_s42_ccal.npz: arrays {'d30_n2_c42_rec': True,
+PASS [gate BASE_s2027 vs health_check M1_UPIT_prod_s2027_ccal] dev_alt/probe_artifacts/w10_ablation_series_BASE_s2027.npz vs /workspace/review_scratch/health_check/dev_alt/probe_artifacts/w10_ablation_series_M1_UPIT_prod_s2027_ccal.npz: arrays {'d30_n2_c42_rec
+PASS [w10_seat2g default path (PHIDYN=0, clip env default) vs w10_health BASE_s42] dev_alt/probe_artifacts/w10_ablation_series_SEAT2DEF_s42.npz vs dev_alt/probe_artifacts/w10_ablation_series_BASE_s42.npz: arrays {'d30_n2_c42_rec': True, 'S0_rec': True, 'd30_n2
+EQ1 rc=0
+EQ2 rc=0
+EQ3 rc=0
+EQ_CHAIN_DONE 2026-09-05T11:28:23Z

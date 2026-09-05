@@ -1,0 +1,15 @@
+CHAIN START 2026-09-05T11:27:48Z gpu_mem=2 MiB other_train_procs=0
+CMD[setup] 2026-09-05T11:27:48Z: bash setup_gate.sh
+CMD[infer] 2026-09-05T11:27:48Z: TAGS=mE1,mE60 /workspace/venv/bin/python infer_fold_models.py (GPU inference only)
+END[infer] rc=0 2026-09-05T11:28:35Z [   31.7s] INFER_DONE models 40 all_bitwise True worst max|Δ| 0.00e+00 files 210
+END[setup] rc=0 2026-09-05T11:28:35Z EQ1 rc=0 EQ2 rc=0 EQ3 rc=0 EQ_CHAIN_DONE 2026-09-05T11:28:23Z 
+CMD[simulate mE1] 2026-09-05T11:28:35Z: /workspace/venv/bin/python simulate_gates.py mE1
+END[simulate mE1] rc=0 2026-09-05T11:28:58Z
+CMD[simulate mE60] 2026-09-05T11:28:58Z: /workspace/venv/bin/python simulate_gates.py mE60
+END[simulate mE60] rc=0 2026-09-05T11:29:21Z
+CMD[replay] 2026-09-05T11:29:21Z: bash run_gate_replay.sh
+END[replay] rc=0 2026-09-05T11:29:55Z
+CMD[judge] 2026-09-05T11:29:55Z: /workspace/venv/bin/python judge_gate.py
+END[judge] rc=0 2026-09-05T11:29:57Z
+END[render] rc=0 2026-09-05T11:29:57Z
+CHAIN DONE 2026-09-05T11:30:01Z
