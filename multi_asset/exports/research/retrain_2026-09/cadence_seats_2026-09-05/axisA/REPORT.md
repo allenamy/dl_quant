@@ -553,3 +553,137 @@ K2K3_ARMS_DONE 2026-09-05T01:52:53Z
 CMD[render_tables] 2026-09-05T01:53:07Z: cd /workspace/review_scratch/cadence_seats/axisA && /workspace/venv/bin/python render_tables.py > REPORT_tables.md 2> logs/render_tables.err
 ```
 Re-run recipe (verbatim, in order): `bash launch_train.sh d1` → `bash post_d1.sh` (d1_curve, noise_floor, k1rep arms) → `bash launch_train.sh monthly1` → (if `d1_curve.json` decision K3 == RUN) `bash launch_train.sh weekly1` → `bash run_equiv.sh` (pinned/rollm arms + equivalence) → `bash run_k2k3.sh` (rollm1/rollw1 arms, d1w_curve, ic_legs) → `/workspace/venv/bin/python judge.py` → `/workspace/venv/bin/python render_tables.py > REPORT_tables.md`. Environment: pod2 `/workspace/venv/bin/python` 3.11.10, numpy 2.4.6, lightgbm 4.7.0, scipy 1.17.1, 64 cores, no GPU; `NJOBS=48` for every fit; book arms `OMP_NUM_THREADS=4`.
+
+
+# ADDENDUM — AMENDMENT 2 (2026-09-05 02:28Z–02:4xZ): K0/K1/K2/K3 under the LIVE DYNAMIC SEAT (L-dyn)
+
+> **Why:** the user asked why the cadence axis was judged at the fixed live seat when the live book runs the dynamic msharpe rule. AMENDMENT 2 (recorded in the PREREG by the lead) adds the L-dyn form: `LEGS=101 LOOK=900 WRULE=msharpe CAL=log`, **no W3FIX**, `MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero`, F10 seeds 42 and 2027, both calibers. Thresholds unchanged (PREREG §1): ADMIT iff all four cells (2 calibers × 2 seeds) have 2025→26 CI95 lower > 0 and Δturnover ≤ +15%; REJECT iff any cell CI95 upper < 0 or Δturnover > +25%; else UNDECIDED. K2−K1 and K3−K2 reported separately. Seat-trajectory definitions = axis B's (yearly mean w3_king; switches = sign(w3_king−0.5) flips; jumps = |Δw3_king| ≥ 0.05; seat_turn = mean |Δw3_king| per anchor). Labels as in the main report; **[单仪器 pod]**.
+
+## A.0 Answer and decisions
+
+**Under the live dynamic seat, all three candidates remain UNDECIDED, and the sign of the best point estimate flips relative to the fixed seat.** K1 (monthly, 60-anchor embargo) is now the only king with a positive point estimate in all four cells (2025→26 Δ +0.027 / +0.035 raw, +0.023 / +0.042 compounded bps/anchor = +0.5 to +0.9 %/gross/yr, P(Δ>0) 0.67–0.80; every CI includes 0). K2 (monthly, 1-anchor embargo), the best candidate at the fixed seat, is negative under the dynamic seat in all four cells (−0.032 / −0.057 raw, −0.058 / −0.078 compounded = −0.7 to −1.7 %/gross/yr, P 0.12–0.29), driven by 2025 (−0.10 to −0.16 bps/anchor, P 0.03–0.14) while 2024 is positive in all four cells (+0.06 to +0.18) and 2026 mixed. K3 (weekly) is ≈0 on 2025→26 (−0.013 to −0.023, P 0.37–0.42) and mildly positive on the auxiliary 2024→26 window (+0.014 / +0.016 raw, +0.051 / +0.068 compounded, P 0.58–0.80). The embargo "cost" K2−K1 reverses sign under the dynamic seat: 2025→26 −0.059 [−0.160, +0.044] / −0.092 [−0.186, −0.004] raw and −0.081 [−0.196, +0.026] / −0.120 [−0.242, −0.009] compounded, i.e. two of four cells nominally below zero, concentrated in 2025 (−0.11 to −0.15 per cell) with 2024 positive (+0.11 to +0.16, P 0.92–0.98). Cadence at equal embargo K3−K2 is positive in all four cells (+0.019 to +0.059, CIs include 0) — the opposite of the fixed-seat reading. Turnover rises with freshness (K1 +0.4 to +1.1%, K2 +2.5 to +4.3%, K3 +1.7 to +3.7%, all far below +15%), the fresh kings take a slightly larger seat (2025→26 mean w_king K0 0.549 / 0.563 → K1 0.557 / 0.567, K2 0.568 / 0.585, K3 0.570 / 0.591 for raw / compounded) and a slightly deeper 2025→26 maxDD (raw s42: 771 → 801 / 813 / 853 bps).
+
+**Decisions (AMENDMENT 2, L-dyn, primary 2025→26, four cells):** K1 rollm60 **UNDECIDED**; K2 rollm1 **UNDECIDED**; K3 rollw1 **UNDECIDED**. No ADMIT, no REJECT. Combined with the main report: **no cadence/cutoff variant is admissible under either seat form, and the ordering of the candidates depends on the seat rule** (fixed seat: K2 > K3 ≈ K1 ≈ 0; dynamic seat: K1 > K3 ≈ 0 > K2), all inside ±0.1 bps/anchor.
+
+## A.1 Device and receipts
+- 16 runs (`run_dyn_all.sh` → `run_arms_dyn.sh <king>`; 4 threads each, all in parallel, 02:28:29Z → 02:29:13Z): kings pinned / rollm / rollm1 / rollw1 × calibers log (`dev/`) and prod (`dev_alt/`) × FSEED 42 / 2027, env exactly `LEGS=101 LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=<king> MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero FSEED=<seed> OUT_TAG=Ldyn_<king>_<cal>_s<seed>`, device `w10_universe_recheck.py` (sha 5424aceb…, unchanged).
+- **Equivalence (VERIFIED, `logs/check_equiv_dyn.log`, `check_equiv_dyn.py`): 16/16 PASS** — my K0 and K1 L-dyn artifacts (both calibers, both seeds) are bitwise equal (all four arrays, config equal minus REF_SKIP/AXISB) to axis B's `R0_{pinned,rollm}_{log,prod}_{s42,s2027}` artifacts (produced by axis B's `w10_universe_seats.py`) and to rolling_king's `Ldyn_*` artifacts (file sha identical, e.g. pinned log s42 `5cd88da0ab1301b9`). So K0/K1 rows below are the same numbers axis B and the rolling_king report use; K2/K3 are new.
+- Judge `judge_dyn.py` (sha 821d5afd…; copied from `judge.py`, seeds added, seat trajectory per axis B's definitions, decision per AMENDMENT 2); 16 artifacts share one anchor set (n 10038; asserted). Seat trajectories are identical across the two F10 seeds for every king and caliber (VERIFIED in the table below) — the seat inputs are the three legs, which do not depend on the F10 seed; consequently the four decision cells carry two independent pieces of information (the calibers), not four.
+
+## A.2 Reading of the tables (A.3)
+- **Levels (L-dyn, raw caliber, s42):** K0 2024 +0.149 (S +0.53, maxDD 795) / 2025 +0.359 (S +1.15) / 2026 +2.013 (S +3.84) bps/anchor = **+3.3 / +7.9 / +44.1 %/gross/yr**, 2025→26 +1.018 (S 2.48) = +22.3 %/gross/yr, 2024→26 +0.691 (S 1.88) = +15.1 %/gross/yr, worst month 2024-04 −363 bps; K1 +2.1 / +7.5 / +46.1 (2024→26 +15.1, S 1.85); K2 +4.5 / +5.1 / +46.5 (2024→26 +15.2, S 1.89; worst 2025-12 −335); K3 +4.5 / +6.5 / +45.5 (2024→26 +15.4, S 1.91; worst 2026-08 −355). s2027 runs are +1–2 %/gross/yr higher in 2024–25 for every king. Compounded caliber within ±1 %/gross/yr of raw. Contrast with L-fix (main report): the dynamic-seat book makes money in 2024 (+2 to +9 %/gross) where the fixed 0.21/0.79 seat lost 14–16%, because the dynamic seat held 0.64–0.83 king in 2024; it also turns over 2.1× more (0.031 vs 0.014 per anchor). The dynamic-seat book is a different book, not a re-weighting of the same one — which is why the candidate ordering can flip.
+- **K2's 2025 loss under the dynamic seat** (−0.125 / −0.159 raw, −0.102 / −0.119 compounded, P 0.03–0.14) occurs although K2's king *leg* beat K0's in 2025 (+2.548 vs +2.381 bps/gross/anchor, main report §2.3). INFERRED, mechanism not isolated: the seat path differs anchor by anchor (K2 held 0.79 king through 2024 vs 0.64 for K0, and 0.69 vs 0.67 in 2025), and the EMA/band book pays for every seat move; no decomposition run was made (none is prescribed). UNRESOLVED whether the 2025 gap is seat-path noise or systematic; it is the single largest cell in the addendum and still inside its CI.
+- **Seat trajectories:** fresh kings get more seat everywhere from 2024 on (yearly mean w_king raw: K0 0.639 / 0.673 / 0.361 for 2024 / 2025 / 2026 vs K2 0.792 / 0.694 / 0.377, K3 0.807 / 0.702 / 0.372) and at the 2026-08-10 20:00Z anchor K2/K3 hold 0.285 / 0.284 vs K0 0.272 and K1 0.227; switches (dominant-leg flips) 2024→26: K0 67, K1 101, K2 73, K3 69; jumps ≥0.05: 162 / 139 / 115 / 118; seat turnover 0.0088 / 0.0104 / 0.0078 / 0.0074 — the weekly king does not make the seat more restless. 2022–23 seats are the warm-up artifact (king leg = 0 before 2024), identical across kings.
+
+## A.3 Tables (rendered by `judge_dyn.py` from the 16 L-dyn artifacts; `ADDENDUM_tables.md` sha256 2738f333d31561a58da3f1bff1f3b3aabff820957f93a31a96be9ab8471bfcaf)
+
+### ADDENDUM Levels — arm d30_n2_c42, L-dyn (live dynamic msharpe seat), net_ex bps/anchor per unit NAV; cells: mean (Sharpe; maxDD bps); %/gross/yr = mean × 2190 / 100; worst calendar month (sum of net_ex, bps) over 2024→26
+
+**caliber log = raw Σ-simple y4 (meta), CAL=log = no transform**
+
+| king | seed | 2024 | 2025 | 2026<=08-10 | 2026->08-30 | 2024->26 | 2025->26 | %/gross/yr 2024 / 2025 / 2026(8m ann.) | worst month (bps) | gross 25on | w_king 25on | w_fund 25on | turnover 25on |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| K0 pinned | s42 | +0.149 (S +0.53; DD 795) | +0.359 (S +1.15; DD 418) | +2.512 (S +4.83; DD 452) | +2.013 (S +3.84; DD 771) | +0.691 (S +1.88; DD 795) | +1.018 (S +2.48; DD 771) | +3.3 / +7.9 / +44.1 | 202404 -363 | 0.630 | 0.549 | 0.451 | 0.03086 |
+| K0 pinned | s2027 | +0.217 (S +0.78; DD 740) | +0.438 (S +1.36; DD 430) | +2.486 (S +4.78; DD 460) | +1.994 (S +3.80; DD 757) | +0.742 (S +2.00; DD 757) | +1.058 (S +2.55; DD 757) | +4.8 / +9.6 / +43.7 | 202404 -365 | 0.642 | 0.549 | 0.451 | 0.03002 |
+| K1 rollm60 | s42 | +0.094 (S +0.33; DD 925) | +0.344 (S +1.11; DD 472) | +2.603 (S +4.88; DD 479) | +2.104 (S +3.91; DD 801) | +0.688 (S +1.85; DD 925) | +1.046 (S +2.51; DD 801) | +2.1 / +7.5 / +46.1 | 202404 -339 | 0.630 | 0.557 | 0.443 | 0.03121 |
+| K1 rollm60 | s2027 | +0.166 (S +0.59; DD 860) | +0.424 (S +1.34; DD 500) | +2.594 (S +4.86; DD 474) | +2.102 (S +3.90; DD 794) | +0.744 (S +2.00; DD 860) | +1.093 (S +2.60; DD 794) | +3.6 / +9.3 / +46.0 | 202512 -331 | 0.642 | 0.557 | 0.443 | 0.03013 |
+| K2 rollm1 | s42 | +0.207 (S +0.75; DD 721) | +0.234 (S +0.76; DD 532) | +2.634 (S +5.00; DD 467) | +2.122 (S +3.99; DD 813) | +0.693 (S +1.89; DD 813) | +0.986 (S +2.40; DD 813) | +4.5 / +5.1 / +46.5 | 202512 -335 | 0.632 | 0.568 | 0.432 | 0.03186 |
+| K2 rollm1 | s2027 | +0.301 (S +1.11; DD 658) | +0.279 (S +0.89; DD 588) | +2.589 (S +4.92; DD 477) | +2.090 (S +3.93; DD 800) | +0.738 (S +2.01; DD 800) | +1.001 (S +2.42; DD 800) | +6.6 / +6.1 / +45.8 | 202512 -359 | 0.643 | 0.568 | 0.432 | 0.03076 |
+| K3 rollw1 | s42 | +0.208 (S +0.76; DD 710) | +0.295 (S +0.96; DD 477) | +2.612 (S +4.90; DD 463) | +2.076 (S +3.86; DD 853) | +0.705 (S +1.91; DD 853) | +1.005 (S +2.42; DD 853) | +4.5 / +6.5 / +45.5 | 202608 -355 | 0.624 | 0.570 | 0.430 | 0.03160 |
+| K3 rollw1 | s2027 | +0.293 (S +1.09; DD 644) | +0.369 (S +1.18; DD 500) | +2.568 (S +4.82; DD 464) | +2.046 (S +3.79; DD 833) | +0.757 (S +2.05; DD 833) | +1.038 (S +2.48; DD 833) | +6.4 / +8.1 / +44.8 | 202608 -354 | 0.635 | 0.570 | 0.430 | 0.03053 |
+
+**caliber prod = compounded Π(1+r5)-1 over [E+1,E+48] (meta_newprod swap), CAL=log**
+
+| king | seed | 2024 | 2025 | 2026<=08-10 | 2026->08-30 | 2024->26 | 2025->26 | %/gross/yr 2024 / 2025 / 2026(8m ann.) | worst month (bps) | gross 25on | w_king 25on | w_fund 25on | turnover 25on |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| K0 pinned | s42 | +0.116 (S +0.43; DD 967) | +0.339 (S +1.06; DD 413) | +2.543 (S +4.95; DD 345) | +2.068 (S +4.00; DD 737) | +0.685 (S +1.88; DD 967) | +1.028 (S +2.51; DD 737) | +2.5 / +7.4 / +45.3 | 202404 -375 | 0.624 | 0.563 | 0.437 | 0.03157 |
+| K0 pinned | s2027 | +0.197 (S +0.73; DD 896) | +0.399 (S +1.22; DD 446) | +2.524 (S +4.92; DD 364) | +2.058 (S +3.98; DD 730) | +0.736 (S +2.00; DD 896) | +1.060 (S +2.56; DD 730) | +4.3 / +8.7 / +45.1 | 202404 -364 | 0.636 | 0.563 | 0.437 | 0.03078 |
+| K1 rollm60 | s42 | +0.116 (S +0.42; DD 906) | +0.344 (S +1.11; DD 462) | +2.603 (S +4.93; DD 358) | +2.117 (S +3.98; DD 777) | +0.699 (S +1.90; DD 906) | +1.051 (S +2.54; DD 777) | +2.5 / +7.5 / +46.4 | 202407 -301 | 0.624 | 0.567 | 0.433 | 0.03181 |
+| K1 rollm60 | s2027 | +0.214 (S +0.79; DD 806) | +0.404 (S +1.27; DD 484) | +2.641 (S +4.99; DD 359) | +2.155 (S +4.04; DD 773) | +0.768 (S +2.08; DD 806) | +1.102 (S +2.64; DD 773) | +4.7 / +8.9 / +47.2 | 202512 -292 | 0.636 | 0.567 | 0.433 | 0.03072 |
+| K2 rollm1 | s42 | +0.266 (S +0.99; DD 656) | +0.237 (S +0.77; DD 522) | +2.565 (S +4.92; DD 364) | +2.077 (S +3.95; DD 785) | +0.705 (S +1.95; DD 785) | +0.971 (S +2.38; DD 785) | +5.8 / +5.2 / +45.5 | 202512 -308 | 0.622 | 0.585 | 0.415 | 0.03294 |
+| K2 rollm1 | s2027 | +0.377 (S +1.42; DD 586) | +0.279 (S +0.89; DD 530) | +2.523 (S +4.86; DD 371) | +2.042 (S +3.90; DD 770) | +0.754 (S +2.08; DD 770) | +0.982 (S +2.39; DD 770) | +8.2 / +6.1 / +44.7 | 202512 -329 | 0.633 | 0.585 | 0.415 | 0.03190 |
+| K3 rollw1 | s42 | +0.289 (S +1.09; DD 615) | +0.268 (S +0.88; DD 483) | +2.647 (S +5.09; DD 344) | +2.118 (S +4.03; DD 834) | +0.736 (S +2.04; DD 834) | +1.006 (S +2.46; DD 834) | +6.3 / +5.9 / +46.4 | 202608 -340 | 0.615 | 0.591 | 0.409 | 0.03275 |
+| K3 rollw1 | s2027 | +0.410 (S +1.56; DD 511) | +0.336 (S +1.08; DD 513) | +2.617 (S +5.01; DD 349) | +2.104 (S +3.99; DD 816) | +0.804 (S +2.22; DD 816) | +1.041 (S +2.53; DD 816) | +9.0 / +7.4 / +46.1 | 202608 -345 | 0.625 | 0.591 | 0.409 | 0.03174 |
+
+### ADDENDUM Deltas — paired by anchor, UTC-day-block bootstrap (2000, seed 20260905); cells: Δ bps/anchor [CI95] P(Δ>0)
+
+**caliber log**
+
+| pair | seed | 2024 | 2025 | 2026<=08-10 | 2026->08-30 | 2024->26 | 2025->26 | ΔSharpe 24on / 25on | Δturnover % 25on / 24on | Δw_king 25on | maxDD ref / x (25on) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| rollm-pinned | s42 | -0.055 [-0.293, +0.172] 0.32 | -0.015 [-0.144, +0.108] 0.40 | +0.091 [-0.049, +0.238] 0.88 | +0.090 [-0.056, +0.234] 0.89 | -0.004 [-0.110, +0.103] 0.48 | +0.027 [-0.073, +0.119] 0.70 | -0.03 / +0.03 | +1.1 / +5.2 | +0.009 | 771 / 801 |
+| rollm-pinned | s2027 | -0.051 [-0.277, +0.177] 0.32 | -0.014 [-0.144, +0.117] 0.41 | +0.108 [-0.012, +0.240] 0.96 | +0.108 [-0.023, +0.236] 0.95 | +0.003 [-0.103, +0.111] 0.51 | +0.035 [-0.056, +0.131] 0.78 | -0.01 / +0.05 | +0.4 / +4.7 | +0.009 | 757 / 794 |
+| rollm1-pinned | s42 | +0.059 [-0.233, +0.373] 0.65 | -0.125 [-0.293, +0.043] 0.07 | +0.122 [-0.026, +0.274] 0.95 | +0.109 [-0.027, +0.253] 0.94 | +0.002 [-0.131, +0.135] 0.53 | -0.032 [-0.140, +0.080] 0.29 | +0.01 / -0.08 | +3.2 / +9.6 | +0.019 | 771 / 813 |
+| rollm1-pinned | s2027 | +0.085 [-0.227, +0.393] 0.70 | -0.159 [-0.317, +0.003] 0.03 | +0.104 [-0.036, +0.248] 0.92 | +0.096 [-0.042, +0.234] 0.91 | -0.004 [-0.140, +0.136] 0.48 | -0.057 [-0.168, +0.049] 0.13 | +0.00 / -0.14 | +2.5 / +9.2 | +0.019 | 757 / 800 |
+| rollw1-pinned | s42 | +0.059 [-0.268, +0.386] 0.61 | -0.064 [-0.226, +0.096] 0.22 | +0.101 [-0.070, +0.270] 0.88 | +0.063 [-0.120, +0.240] 0.77 | +0.014 [-0.138, +0.158] 0.58 | -0.013 [-0.133, +0.108] 0.42 | +0.03 / -0.06 | +2.4 / +9.8 | +0.022 | 771 / 853 |
+| rollw1-pinned | s2027 | +0.076 [-0.275, +0.412] 0.65 | -0.069 [-0.239, +0.098] 0.21 | +0.083 [-0.078, +0.239] 0.83 | +0.052 [-0.113, +0.220] 0.74 | +0.016 [-0.134, +0.163] 0.58 | -0.021 [-0.140, +0.105] 0.37 | +0.05 / -0.07 | +1.7 / +9.4 | +0.022 | 757 / 833 |
+| rollm1-rollm (embargo cost K2-K1) | s42 | +0.113 [-0.050, +0.279] 0.92 | -0.110 [-0.250, +0.018] 0.05 | +0.031 [-0.115, +0.184] 0.66 | +0.018 [-0.125, +0.154] 0.59 | +0.006 [-0.081, +0.095] 0.56 | -0.059 [-0.160, +0.044] 0.12 | +0.04 / -0.12 | +2.1 / +4.3 | +0.010 | 801 / 813 |
+| rollm1-rollm (embargo cost K2-K1) | s2027 | +0.136 [-0.029, +0.307] 0.94 | -0.145 [-0.278, -0.023] 0.01 | -0.005 [-0.145, +0.140] 0.49 | -0.012 [-0.152, +0.125] 0.44 | -0.007 [-0.096, +0.081] 0.45 | -0.092 [-0.186, -0.004] 0.02 | +0.01 / -0.19 | +2.1 / +4.2 | +0.010 | 794 / 800 |
+| rollw1-rollm1 (cadence at equal embargo K3-K2, aux) | s42 | +0.000 [-0.085, +0.084] 0.49 | +0.061 [-0.048, +0.169] 0.87 | -0.021 [-0.170, +0.134] 0.40 | -0.046 [-0.205, +0.109] 0.27 | +0.012 [-0.055, +0.075] 0.65 | +0.019 [-0.072, +0.104] 0.66 | +0.02 / +0.02 | -0.8 / +0.2 | +0.003 | 813 / 853 |
+| rollw1-rollm1 (cadence at equal embargo K3-K2, aux) | s2027 | -0.009 [-0.094, +0.072] 0.43 | +0.090 [-0.017, +0.199] 0.95 | -0.021 [-0.159, +0.118] 0.37 | -0.044 [-0.197, +0.115] 0.28 | +0.020 [-0.045, +0.085] 0.74 | +0.037 [-0.056, +0.123] 0.79 | +0.04 / +0.07 | -0.8 / +0.2 | +0.003 | 800 / 833 |
+
+**caliber prod**
+
+| pair | seed | 2024 | 2025 | 2026<=08-10 | 2026->08-30 | 2024->26 | 2025->26 | ΔSharpe 24on / 25on | Δturnover % 25on / 24on | Δw_king 25on | maxDD ref / x (25on) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| rollm-pinned | s42 | +0.001 [-0.219, +0.226] 0.51 | +0.005 [-0.135, +0.155] 0.54 | +0.061 [-0.088, +0.218] 0.79 | +0.049 [-0.100, +0.208] 0.74 | +0.014 [-0.094, +0.120] 0.60 | +0.023 [-0.081, +0.125] 0.67 | +0.02 / +0.03 | +0.8 / +3.2 | +0.005 | 737 / 777 |
+| rollm-pinned | s2027 | +0.017 [-0.217, +0.252] 0.56 | +0.006 [-0.134, +0.153] 0.55 | +0.116 [-0.028, +0.264] 0.93 | +0.097 [-0.046, +0.246] 0.91 | +0.033 [-0.074, +0.139] 0.72 | +0.042 [-0.062, +0.143] 0.80 | +0.07 / +0.08 | -0.2 / +2.7 | +0.005 | 730 / 773 |
+| rollm1-pinned | s42 | +0.150 [-0.135, +0.453] 0.84 | -0.102 [-0.277, +0.075] 0.13 | +0.022 [-0.208, +0.218] 0.60 | +0.009 [-0.200, +0.188] 0.54 | +0.020 [-0.116, +0.156] 0.62 | -0.058 [-0.188, +0.079] 0.20 | +0.07 / -0.13 | +4.3 / +8.0 | +0.023 | 737 / 785 |
+| rollm1-pinned | s2027 | +0.180 [-0.140, +0.495] 0.87 | -0.119 [-0.294, +0.059] 0.10 | -0.002 [-0.255, +0.208] 0.52 | -0.015 [-0.249, +0.179] 0.44 | +0.019 [-0.129, +0.165] 0.61 | -0.078 [-0.214, +0.051] 0.12 | +0.08 / -0.17 | +3.7 / +7.5 | +0.023 | 730 / 770 |
+| rollw1-pinned | s42 | +0.174 [-0.166, +0.512] 0.84 | -0.071 [-0.244, +0.101] 0.23 | +0.104 [-0.044, +0.249] 0.90 | +0.050 [-0.099, +0.206] 0.75 | +0.051 [-0.099, +0.217] 0.76 | -0.023 [-0.146, +0.105] 0.39 | +0.16 / -0.04 | +3.7 / +8.2 | +0.028 | 737 / 834 |
+| rollw1-pinned | s2027 | +0.213 [-0.136, +0.552] 0.90 | -0.062 [-0.246, +0.117] 0.25 | +0.093 [-0.052, +0.243] 0.88 | +0.046 [-0.105, +0.203] 0.71 | +0.068 [-0.088, +0.216] 0.80 | -0.019 [-0.152, +0.110] 0.37 | +0.21 / -0.03 | +3.1 / +7.8 | +0.028 | 730 / 816 |
+| rollm1-rollm (embargo cost K2-K1) | s42 | +0.149 [-0.010, +0.314] 0.96 | -0.108 [-0.244, +0.021] 0.05 | -0.038 [-0.266, +0.157] 0.37 | -0.040 [-0.246, +0.142] 0.36 | +0.006 [-0.096, +0.101] 0.56 | -0.081 [-0.196, +0.026] 0.08 | +0.05 / -0.16 | +3.5 / +4.6 | +0.018 | 777 / 785 |
+| rollm1-rollm (embargo cost K2-K1) | s2027 | +0.163 [+0.004, +0.329] 0.98 | -0.125 [-0.266, +0.004] 0.03 | -0.118 [-0.349, +0.093] 0.15 | -0.113 [-0.333, +0.075] 0.14 | -0.014 [-0.109, +0.084] 0.39 | -0.120 [-0.242, -0.009] 0.02 | +0.00 / -0.24 | +3.8 / +4.7 | +0.018 | 773 / 770 |
+| rollw1-rollm1 (cadence at equal embargo K3-K2, aux) | s42 | +0.024 [-0.073, +0.124] 0.67 | +0.031 [-0.076, +0.135] 0.72 | +0.082 [-0.104, +0.306] 0.78 | +0.041 [-0.155, +0.245] 0.66 | +0.031 [-0.040, +0.111] 0.80 | +0.035 [-0.067, +0.142] 0.75 | +0.09 / +0.09 | -0.6 / +0.3 | +0.005 | 785 / 834 |
+| rollw1-rollm1 (cadence at equal embargo K3-K2, aux) | s2027 | +0.033 [-0.064, +0.137] 0.75 | +0.057 [-0.049, +0.161] 0.85 | +0.094 [-0.105, +0.321] 0.81 | +0.061 [-0.132, +0.281] 0.73 | +0.049 [-0.024, +0.128] 0.91 | +0.059 [-0.047, +0.168] 0.85 | +0.14 / +0.14 | -0.5 / +0.3 | +0.005 | 770 / 816 |
+
+### ADDENDUM Seat trajectories — w3_king (production msharpe, LOOK=900): yearly mean; 2025→26 mean [min/max]; value at 2026-08-10 20:00Z; switches = sign(w_king−0.5) flips; jumps = |Δw_king| ≥ 0.05; seat_turn = mean |Δw_king| per anchor (axisB definitions)
+
+| king | seed | cal | 2022 | 2023 | 2024 | 2025 | 2026 | 2025→26 mean [min/max] | w_king @2026-08-10 20:00Z | switches 24on / 25on | jumps 24on / 25on | seat_turn 24on / 25on |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| K0 pinned | s42 | log | 0.225 | 0.066 | 0.639 | 0.673 | 0.361 | 0.549 [0.190/1.000] | 0.272 | 67 / 17 | 162 / 3 | 0.0088 / 0.0044 |
+| K0 pinned | s42 | prod | 0.222 | 0.050 | 0.682 | 0.687 | 0.375 | 0.563 [0.207/1.000] | 0.284 | 85 / 27 | 184 / 9 | 0.0094 / 0.0048 |
+| K0 pinned | s2027 | log | 0.225 | 0.066 | 0.639 | 0.673 | 0.361 | 0.549 [0.190/1.000] | 0.272 | 67 / 17 | 162 / 3 | 0.0088 / 0.0044 |
+| K0 pinned | s2027 | prod | 0.222 | 0.050 | 0.682 | 0.687 | 0.375 | 0.563 [0.207/1.000] | 0.284 | 85 / 27 | 184 / 9 | 0.0094 / 0.0048 |
+| K1 rollm60 | s42 | log | 0.225 | 0.066 | 0.713 | 0.692 | 0.354 | 0.557 [0.192/1.000] | 0.227 | 101 / 23 | 139 / 2 | 0.0104 / 0.0042 |
+| K1 rollm60 | s42 | prod | 0.222 | 0.050 | 0.735 | 0.705 | 0.360 | 0.567 [0.198/1.000] | 0.231 | 109 / 29 | 155 / 8 | 0.0105 / 0.0046 |
+| K1 rollm60 | s2027 | log | 0.225 | 0.066 | 0.713 | 0.692 | 0.354 | 0.557 [0.192/1.000] | 0.227 | 101 / 23 | 139 / 2 | 0.0104 / 0.0042 |
+| K1 rollm60 | s2027 | prod | 0.222 | 0.050 | 0.735 | 0.705 | 0.360 | 0.567 [0.198/1.000] | 0.231 | 109 / 29 | 155 / 8 | 0.0105 / 0.0046 |
+| K2 rollm1 | s42 | log | 0.225 | 0.066 | 0.792 | 0.694 | 0.377 | 0.568 [0.258/1.000] | 0.285 | 73 / 39 | 115 / 7 | 0.0078 / 0.0042 |
+| K2 rollm1 | s42 | prod | 0.222 | 0.050 | 0.810 | 0.710 | 0.397 | 0.585 [0.274/1.000] | 0.296 | 65 / 19 | 133 / 15 | 0.0086 / 0.0045 |
+| K2 rollm1 | s2027 | log | 0.225 | 0.066 | 0.792 | 0.694 | 0.377 | 0.568 [0.258/1.000] | 0.285 | 73 / 39 | 115 / 7 | 0.0078 / 0.0042 |
+| K2 rollm1 | s2027 | prod | 0.222 | 0.050 | 0.810 | 0.710 | 0.397 | 0.585 [0.274/1.000] | 0.296 | 65 / 19 | 133 / 15 | 0.0086 / 0.0045 |
+| K3 rollw1 | s42 | log | 0.225 | 0.066 | 0.807 | 0.702 | 0.372 | 0.570 [0.251/1.000] | 0.284 | 69 / 31 | 118 / 0 | 0.0074 / 0.0039 |
+| K3 rollw1 | s42 | prod | 0.222 | 0.050 | 0.832 | 0.720 | 0.395 | 0.591 [0.263/1.000] | 0.293 | 59 / 23 | 129 / 5 | 0.0079 / 0.0042 |
+| K3 rollw1 | s2027 | log | 0.225 | 0.066 | 0.807 | 0.702 | 0.372 | 0.570 [0.251/1.000] | 0.284 | 69 / 31 | 118 / 0 | 0.0074 / 0.0039 |
+| K3 rollw1 | s2027 | prod | 0.222 | 0.050 | 0.832 | 0.720 | 0.395 | 0.591 [0.263/1.000] | 0.293 | 59 / 23 | 129 / 5 | 0.0079 / 0.0042 |
+
+### ADDENDUM Frozen decision (AMENDMENT 2 = PREREG §1 thresholds on L-dyn; primary 2025→26; four cells = 2 calibers × 2 seeds; ADMIT iff all four CI95 lower > 0 and Δturnover ≤ +15%; REJECT iff any cell CI95 upper < 0 or Δturnover > +25%; else UNDECIDED)
+
+| candidate | cell | Δ 2025→26 [CI95] | P(Δ>0) | CI lower > 0 | CI upper < 0 | Δturnover % 25on | Δw_king 25on | aux Δ 2024→26 [CI95] | yearly Δ 2024 / 2025 / 2026 | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|
+| K1 rollm60 | log/s42 | +0.027 [-0.073, +0.119] | 0.70 | False | False | +1.1 | +0.009 | -0.004 [-0.110, +0.103] | -0.055 / -0.015 / +0.090 | **UNDECIDED** |
+| K1 rollm60 | log/s2027 | +0.035 [-0.056, +0.131] | 0.78 | False | False | +0.4 | +0.009 | +0.003 [-0.103, +0.111] | -0.051 / -0.014 / +0.108 | **UNDECIDED** |
+| K1 rollm60 | prod/s42 | +0.023 [-0.081, +0.125] | 0.67 | False | False | +0.8 | +0.005 | +0.014 [-0.094, +0.120] | +0.001 / +0.005 / +0.049 | **UNDECIDED** |
+| K1 rollm60 | prod/s2027 | +0.042 [-0.062, +0.143] | 0.80 | False | False | -0.2 | +0.005 | +0.033 [-0.074, +0.139] | +0.017 / +0.006 / +0.097 | **UNDECIDED** |
+| K2 rollm1 | log/s42 | -0.032 [-0.140, +0.080] | 0.29 | False | False | +3.2 | +0.019 | +0.002 [-0.131, +0.135] | +0.059 / -0.125 / +0.109 | **UNDECIDED** |
+| K2 rollm1 | log/s2027 | -0.057 [-0.168, +0.049] | 0.13 | False | False | +2.5 | +0.019 | -0.004 [-0.140, +0.136] | +0.085 / -0.159 / +0.096 | **UNDECIDED** |
+| K2 rollm1 | prod/s42 | -0.058 [-0.188, +0.079] | 0.20 | False | False | +4.3 | +0.023 | +0.020 [-0.116, +0.156] | +0.150 / -0.102 / +0.009 | **UNDECIDED** |
+| K2 rollm1 | prod/s2027 | -0.078 [-0.214, +0.051] | 0.12 | False | False | +3.7 | +0.023 | +0.019 [-0.129, +0.165] | +0.180 / -0.119 / -0.015 | **UNDECIDED** |
+| K3 rollw1 | log/s42 | -0.013 [-0.133, +0.108] | 0.42 | False | False | +2.4 | +0.022 | +0.014 [-0.138, +0.158] | +0.059 / -0.064 / +0.063 | **UNDECIDED** |
+| K3 rollw1 | log/s2027 | -0.021 [-0.140, +0.105] | 0.37 | False | False | +1.7 | +0.022 | +0.016 [-0.134, +0.163] | +0.076 / -0.069 / +0.052 | **UNDECIDED** |
+| K3 rollw1 | prod/s42 | -0.023 [-0.146, +0.105] | 0.39 | False | False | +3.7 | +0.028 | +0.051 [-0.099, +0.217] | +0.174 / -0.071 / +0.050 | **UNDECIDED** |
+| K3 rollw1 | prod/s2027 | -0.019 [-0.152, +0.110] | 0.37 | False | False | +3.1 | +0.028 | +0.068 [-0.088, +0.216] | +0.213 / -0.062 / +0.046 | **UNDECIDED** |
+
+**Embargo cost K2 − K1 (separate, not for selection):** log/s42: 2025→26 -0.059 [-0.160, +0.044], 2024→26 +0.006 [-0.081, +0.095], yearly +0.113/-0.110/+0.018; log/s2027: 2025→26 -0.092 [-0.186, -0.004], 2024→26 -0.007 [-0.096, +0.081], yearly +0.136/-0.145/-0.012; prod/s42: 2025→26 -0.081 [-0.196, +0.026], 2024→26 +0.006 [-0.096, +0.101], yearly +0.149/-0.108/-0.040; prod/s2027: 2025→26 -0.120 [-0.242, -0.009], 2024→26 -0.014 [-0.109, +0.084], yearly +0.163/-0.125/-0.113
+
+**Cadence at equal embargo K3 − K2 (auxiliary):** log/s42: 2025→26 +0.019 [-0.072, +0.104], 2024→26 +0.012 [-0.055, +0.075], yearly +0.000/+0.061/-0.046; log/s2027: 2025→26 +0.037 [-0.056, +0.123], 2024→26 +0.020 [-0.045, +0.085], yearly -0.009/+0.090/-0.044; prod/s42: 2025→26 +0.035 [-0.067, +0.142], 2024→26 +0.031 [-0.040, +0.111], yearly +0.024/+0.031/+0.041; prod/s2027: 2025→26 +0.059 [-0.047, +0.168], 2024→26 +0.049 [-0.024, +0.128], yearly +0.033/+0.057/+0.061
+
+## A.4 Not established / risks
+- The two seeds vary only the F10 sub-book; the king book and the seat are seed-identical (receipt in the seat table), so "four cells" ≈ two.
+- Single instrument (pod); no decomposition of the K2 2025 gap; 2024 dynamic-seat numbers carry the 2022–23 zero-king warm-up (PREREG §0.4: auxiliary only).
+- Same training-window caveat as the main report (all kings train from 2022-01-08; no 2020 front-extension).
+
+## A.5 Products and commands (appended verbatim to `logs/commands.txt`)
+- Artifacts `dev/probe_artifacts/w10_ablation_series_Ldyn_{pinned,rollm,rollm1,rollw1}_log_s{42,2027}.npz` and `dev_alt/…_prod_s{42,2027}.npz` (16; sha256 in `logs/judge_dyn.log` SHAS line and `judge_dyn.json`); `judge_dyn.json` sha256 d5c732a04c690a128334dcec3a57b90bfb9a7887ac9b0352e817011071f8d861; `ADDENDUM_tables.md` sha256 2738f333…; scripts `run_arms_dyn.sh` 6381d204…, `run_dyn_all.sh` edc1bc70…, `check_equiv_dyn.py` 76b30529…, `judge_dyn.py` 821d5afd….
+- Commands: `CMD[run_dyn_all] 2026-09-05T02:28:29Z: cd /workspace/review_scratch/cadence_seats/axisA && nohup bash run_dyn_all.sh > logs/run_dyn_all.out 2>&1 < /dev/null &` (16 × `env LEGS=101 LOOK=900 WRULE=msharpe CAL=log SLOW_NPY=<king> MEMBERS_TOPN=829 TRADE_TOPN=400 FTRIM=zero FSEED=<seed> OUT_TAG=Ldyn_<king>_<cal>_s<seed> /workspace/venv/bin/python ../w10_universe_recheck.py`, cwd `dev/` for log and `dev_alt/` for prod); `CMD[check_equiv_dyn] 2026-09-05T02:31:02Z: … /workspace/venv/bin/python check_equiv_dyn.py > logs/check_equiv_dyn.log`; `CMD[judge_dyn] 2026-09-05T02:31:09Z: … /workspace/venv/bin/python judge_dyn.py > logs/judge_dyn.log`.
