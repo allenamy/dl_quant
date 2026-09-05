@@ -1,0 +1,41 @@
+50,51c50,53
+< UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade", "m1"), UMASK_SCOPE   # m1 (team-lead refinement 2026-09-05) = live M1 semantics: members = universe ∩ listed for king/rev24/F10 and the trade set; fund z = rank within the 829 base (xz_in_base)   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+< _CFG = {"COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+---
+> UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade", "m1"), UMASK_SCOPE
+> AGEW = float(os.environ.get("AGEW", "0")); assert AGEW in (0.0, 0.5, 1.0, 2.0), f"AGEW 白名单外: {AGEW}"   # allweather Track C C1 (PREREG_allweather_programme §3 Track C): listing-age tilt of the fund leg — base-wide fund z ×= (1 + AGEW·1[age < AGE_DAYS]) then re-demeaned within the 829 base (m1 FZB path only); 0 = bitwise-unchanged path
+> AGE_DAYS = 90   # frozen (PREREG C1: age_anchors < 90 days); listing anchor = first meta anchor with an observation (finite y4 OR qvk > 0; E-0903-E: existence only, never panel feature columns); names already listed at the first meta anchor are left-censored ⇒ age unknown ⇒ treated as old   # m1 (team-lead refinement 2026-09-05) = live M1 semantics: members = universe ∩ listed for king/rev24/F10 and the trade set; fund z = rank within the 829 base (xz_in_base)   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+> _CFG = {"AGEW": AGEW, "AGE_DAYS": AGE_DAYS, "COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+54a57
+> _CFG["TRACKC"] = {"device": "w10_agew.py = health_check w10_health.py (sha256 8684d9a9…) + AGEW listing-age tilt inside FZB (m1 fund z path) + per-anchor young-count series saved; AGEW=0 ⇒ bitwise-unchanged path", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+66a70,79
+> _listed = np.isfinite(y4) | (np.nan_to_num(qvk, nan=0.0) > 0)   # Track C: observation exists at (anchor, name)
+> _lany = _listed.any(0); AGE_FIRST = np.where(_lany, _listed.argmax(0), -1).astype(np.int64)   # first listed anchor index per name; -1 never
+> YOUNG = np.zeros((nA, NW), bool)
+> for _k in range(NW):
+>     _f = int(AGE_FIRST[_k])
+>     if _f > 0: YOUNG[_f:, _k] = (E_ts[_f:] - E_ts[_f]) < AGE_DAYS * 86400   # _f == 0 ⇒ left-censored ⇒ old
+> _fy_first = np.where(np.isfinite(y4).any(0), np.isfinite(y4).argmax(0), -1); _fq_first = np.where((np.nan_to_num(qvk, nan=0.0) > 0).any(0), (np.nan_to_num(qvk, nan=0.0) > 0).argmax(0), -1)
+> print("AGEW_DEF " + json.dumps({"AGEW": AGEW, "AGE_DAYS": AGE_DAYS, "n_names": int(NW), "never_listed": int((AGE_FIRST < 0).sum()), "left_censored_at_anchor0": int((AGE_FIRST == 0).sum()),
+>       "first_y4_eq_first_qvk_share": round(float(np.mean(_fy_first == _fq_first)), 4), "young_names_per_anchor_by_year": {int(y): round(float(YOUNG[yrs == y].sum(1).mean()), 2) for y in sorted(set(yrs.tolist()))},
+>       "listed_names_per_anchor_by_year": {int(y): round(float(_listed[yrs == y].sum(1).mean()), 2) for y in sorted(set(yrs.tolist()))}}), flush=True)
+126c139,143
+< def FZB(j, m):   # health_check m1: fund z = rank position of each member among ALL finite fund-EMA values of the 829 base on panel row j (live xz_in_base semantics, PREREG_deploy_universe §2d: rankdata/(n-1)-0.5 over the base; members without a finite value stay NaN)
+---
+> def FZB(j, m, i):   # health_check m1: fund z = rank position of each member among ALL finite fund-EMA values of the 829 base on panel row j (live xz_in_base semantics, PREREG_deploy_universe §2d: rankdata/(n-1)-0.5 over the base; members without a finite value stay NaN)
+>     if AGEW > 0:   # Track C C1: tilt young names (age < AGE_DAYS at meta anchor i) then re-demean within the base (finite entries); AGEW=0 never enters this branch
+>         _zb = xz(FE[j, :]) * (1.0 + AGEW * YOUNG[i].astype(float)); _okb = np.isfinite(_zb)
+>         if _okb.any(): _zb[_okb] -= _zb[_okb].mean()
+>         return _zb[m]
+146c163
+<             z = np.nan_to_num(FZB(j, m) if (leg == "fund" and UMASK_SCOPE == "m1") else xz(sc[leg])); z = np.where(ok, z, 0.0); z -= z[ok].mean() if ok.sum() else 0
+---
+>             z = np.nan_to_num(FZB(j, m, i) if (leg == "fund" and UMASK_SCOPE == "m1") else xz(sc[leg])); z = np.where(ok, z, 0.0); z -= z[ok].mean() if ok.sum() else 0
+200c217
+<         FZ = FZB(j, m) if UMASK_SCOPE == "m1" else xz(sc["fund"])   # fund z used by both books and the leg-contribution diagnostic
+---
+>         FZ = FZB(j, m, i) if UMASK_SCOPE == "m1" else xz(sc["fund"])   # fund z used by both books and the leg-contribution diagnostic
+380c397
+< np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), legs_ts=E_ts[np.array(sorted(pos, key=pos.get))], legs_king=LRa["king"], legs_rev24=LRa["rev24"], legs_fund=LRa["fund"], **save)   # health_check: the seat inputs (legs() series) saved for the live-seat comparison; rec/W arrays unchanged
+---
+> np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), legs_ts=E_ts[np.array(sorted(pos, key=pos.get))], legs_king=LRa["king"], legs_rev24=LRa["rev24"], legs_fund=LRa["fund"], trackc_age_first=AGE_FIRST, trackc_young_count=YOUNG.sum(1).astype(np.int32), trackc_meta_ts=E_ts, **save)   # Track C: listing-age receipts (rec/W arrays unchanged)   # health_check: the seat inputs (legs() series) saved for the live-seat comparison; rec/W arrays unchanged
