@@ -58,3 +58,8 @@
 ## 10:30Z 历史标记导入复核(定时指令触发; 无冲突进程)
 - `ps` 无 run_anchor/anchor_loop/backfill_markout 进程; 导入脚本 `--dry-run`(marks.json sha 12c5a099…): n_marked 0 / already 16,904 / missing 681(= 09-05 当日成交, 档案 D+1 才发布)/ not_in_marks 3,052 ⇒ **09:37Z 的导入已完整, 无需实跑**。
 - 覆盖复算(全天去重 20,712 笔): 已标 19,956 = 96.3%(档案 15,802 + 场所 4,154), 终止 75, 待办 681 —— 与 09:37Z 收据逐数相同。待办 681 由 D+1 07Z 后 `--resume` 回填。
+
+
+## 11:48Z 重挂随机实验上线(用户字 09-05 "重挂可以随机实验, 但是一定不要引入任何错误, 精准实施")
+- 预注册 `PREREG_requote_randomised_2026-09-05`(sha 4b8b5ec3, 6736d4b)先于实施; 实盘仓 `12aa2a1`(safe_commit 128/128 绿, 已推送): 新模块 `live/requote_experiment.py`(纯函数, 与 placement_bandit 同形态, 不同哈希盐), `_requote_benign_rejects` 在读新鲜盘口前分臂并过滤 direct 臂, 报告加 n_direct/n_exempt/p_requote, `_order_row` 加 requote_arm/requote_p; config `requote_experiment.p_requote=0.5`; 套件 `tests_requote_experiment` 30 断言(恒等 p=1.0 / fail-closed 到现行为 / 确定性与独立盐 / 份额 / exempt / direct 零新路径零场所调用 / requote 臂逐位现行为 / 记账列 / 配置在位 / 静态钉); 旧 RQ 夹具钉 p=1.0; 普查豁免声明。首跑电池一红(普查未声明新模块)→ 加声明复跑绿。
+- 生效 = 12Z 锚; 12Z 巡检做 MC-3(日志 requote 报告 p_requote 0.5 且 n_direct>0, 订单行带 requote_arm)。读数点前不看臂间差。

@@ -24,5 +24,5 @@
 - 禁: 中途改 p 或阈值; 用观测数据先看臂间差; 多次读数。
 
 ## 3. 实施与验证收据(填于提交后)
-- 实盘仓提交: <hash>(safe_commit 全电池); 新模块 `live/requote_experiment.py`; 套件 `live/tests_requote_experiment.py`(30 断言: 恒等/失效安全/确定性/份额/exempt/direct 零新路径与零场所调用/requote 臂逐位现行为/记账列/配置在位/静态钉); `tests_binance_executor` 的旧 RQ 夹具钉 p=1.0(其断言语义不变)。
-- 首锚 MC-3 验收: <锚/UTC/收据>。
+- 实盘仓提交: **`12aa2a1`**(2026-09-05 11:48Z, safe_commit, 128/128 套件绿, 已推送; 首跑因普查未声明新模块被 `tests_rehearsal_anchor` 拒, 加豁免声明后复跑绿); 新模块 `live/requote_experiment.py`; 套件 `live/tests_requote_experiment.py`(30 断言: 恒等/失效安全/确定性/份额/exempt/direct 零新路径与零场所调用/requote 臂逐位现行为/记账列/配置在位/静态钉); `tests_binance_executor` 的旧 RQ 夹具钉 p=1.0(其断言语义不变)。
+- 首锚 MC-3 验收: 预计 12Z 锚(进程 12:00Z 起, 重挂发生于 ≈12:25Z); 收据待 12Z 巡检填入。
