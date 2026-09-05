@@ -1,0 +1,12 @@
+> **创建:** 2026-09-05 01:5xZ | **Session:** b9646a9e | **状态:** 只追加(每锚深查收据) | **作废条件:** 无(日记)
+
+# 2026-09-05 逐锚深查日记(实盘书零接触, 只读)
+
+## 00Z 锚(1788566400)深查(01:39–01:55Z, 全深度模板)
+- ① 守护: shadow_loop_v3 PID 58281 = shadow.lock 58281(自 09-04 11:46Z kickstart, 13h53m); combo_live_daemon.sh 30944 = combo_live_daemon.pid 30944; sidecar_daemon.sh 30943 在。heartbeat OK 00:20:28Z。
+- ② 信号: status OK, coverage 1.0, members 400, sel 234, w3 [0.1758,0.1177,0.7065] → 掩码 king 0.1993(target_combo w3_masked 0.19925 算术一致), turnover 0.916%, forced_exit 0, fund_updates 457(00Z 结算锚, 稳态 ~453), fetched 450 missing 0, booster 8d79186b, runtime 264s; combo_live_status anchor 匹配/ok/reader_ok, n 232, gross 0.7962; kc/fc=own, f10 打分 400; FTRIM 8/8 名(含 ONG), check_ftrim_anchor PASS; sidecar 干跑 PASS(king 自平价 4e-10); 反事实改写 20.3%(16Z 20.1 / 20Z 20.5 / 00Z 20.3, 台阶不变)。
+- ③ 漏斗(A1788567839): 466 单 = skipped_min_notional 228 / partial_expired 161 / venue_reject 50 / filled 20 / no_chase_arm 7; maker 294 / topup_taker 172; behind 占比 0.44; from_reject 11; fills 去重 201; maker 成交额占比 **0.848(<0.90, 与拒单高相关; 12Z 0.803 亦)**; 成交额 4,582 USDT = 换手 2.8%; 费 1.01 USDT = 2.21 bps(带内上沿)。**拒单率(告警口径 X/Y)近 7 锚: 23.8/20.3/31.4/42.0/47.2/17.1/37.6%**, 账本 L351 跟踪规则"持续 >40% ⇒ 升级": 未满足(两锚 >40% 后回落), 继续跟踪。
+- ④ 记账: venue_gross 163,522 = 1.963×NAV 83,314(target_gross 163,433, 差 0.05%); **net/gross +1.52%(第 6 锚 >1%; 序列 +0.92/1.10/1.14/1.45/1.34/1.58/1.52, 未升档、非连升)**; 未成交残差按边: 买未成 789 / 卖未成 610(净 +1,400, 方向与 venue 正净额相反 ⇒ 正净额非来自未成交空头); 被扣留名(add_blocked 4)venue 净 +24 可忽略; 00Z 结算 FUNDING_FEE n=255 合计 **−16.47 USDT**(收 3.28 / 付 19.75; 20Z −11.35); daily_nav 20260905 首行 NAV 83,314.51(较 09-04 −204.0, 09-04 全日 −438.7); phase_C anchors_row/readback 255/daily_nav 齐, per_name_stop stopped 4(CYS/MAGMA/RIVER/TRIA) cooldown 6; anchor_runs.log 末行 anchor done rc=0 00:53:56Z; guard twin AGREE(ledger-only; nav row stale) eq 83,343.28 day_twin −0.177。
+- ⑤ 执行质量: 本锚 fills 尚无 +60s 标记(markout 回填 pending 17,158, 本锚写 5, request_budget 停; 累计 3,045/20,195 = 15%)⇒ 尺寸梯度本锚待回填; attempt_idx>1 的名 172(maker→taker 补单常规), 单名最多 3 单; venue_rate 峰值 938/2400, 限流计数差值告警(+798/分, CloudFront 边缘 IP)为已知信息项。
+- ⑥ 告警核对: "撤名残差 −9,777 = −5.87% 由 BTCUSDT/ZORAUSDT" 每锚复发(48h 12 次), 文案与算术不符已在账本 L351 记录(实为 untradable 通道整体); position reconcile 6 名(前两锚 20/9)采用场所真相; 34 名 maxNotionalValue=0 reduce-only(退出通道, alarm_text≠source)。**无需处置; 回滚缺省 king 形态未触发。**
+- ⑦ regime 仪表盘 00Z: 旗标无; σ_fund 7.3, fund 席位 0.80, IC_fund 0.007, FTRIM 反事实 +0.207 bps; 30 锚 sleeve: L|pos +1,951 / S|pos −1,037 / S|deepneg −658 USDT; 规则 R1–R4 无触发。
