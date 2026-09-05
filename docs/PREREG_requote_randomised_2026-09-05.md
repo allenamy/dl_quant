@@ -25,4 +25,4 @@
 
 ## 3. 实施与验证收据(填于提交后)
 - 实盘仓提交: **`12aa2a1`**(2026-09-05 11:48Z, safe_commit, 128/128 套件绿, 已推送; 首跑因普查未声明新模块被 `tests_rehearsal_anchor` 拒, 加豁免声明后复跑绿); 新模块 `live/requote_experiment.py`; 套件 `live/tests_requote_experiment.py`(30 断言: 恒等/失效安全/确定性/份额/exempt/direct 零新路径与零场所调用/requote 臂逐位现行为/记账列/配置在位/静态钉); `tests_binance_executor` 的旧 RQ 夹具钉 p=1.0(其断言语义不变)。
-- 首锚 MC-3 验收: 预计 12Z 锚(进程 12:00Z 起, 重挂发生于 ≈12:25Z); 收据待 12Z 巡检填入。
+- 首锚 MC-3 验收 ✓(12Z 锚 A1788611039, 巡检 13:4xZ): launchd requote 报告 {n_candidates 18, n_requoted 18, n_rested 18, n_refused_again 0, p_requote 0.5, n_direct 19, n_exempt 0}; 订单行 requote_arm: requote 36 / direct 19; direct 臂 19 名走既有 from_reject 补单(告警文案同旧路径); 首次 −5022 37/171 = 21.6%。运行代码 = 12aa2a1(新口径日志行同锚出现)。
