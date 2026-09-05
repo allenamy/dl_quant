@@ -1,0 +1,42 @@
+{
+ "config": {
+  "mark_delay_ms": 60000,
+  "window_ms": 60000,
+  "strict_ms": 5000,
+  "workers": 16,
+  "retries": 4,
+  "base_url": "https://data.binance.vision/data/futures/um/daily/aggTrades/{sym}/{fname}",
+  "script": "/workspace/review_scratch/markout_cdn/scripts/markout_cdn.py",
+  "self_sha256": "542f98a67da3f0d826c9ac01af38fc8f948924f98abbfbaa0f2f32a3d87426f3",
+  "argv": [
+   "/workspace/review_scratch/markout_cdn/scripts/markout_cdn.py",
+   "--limit",
+   "8",
+   "--out",
+   "/workspace/review_scratch/markout_cdn/out/smoke_marks.json",
+   "--archives",
+   "/workspace/review_scratch/markout_cdn/out/smoke_archives.json",
+   "--meta",
+   "/workspace/review_scratch/markout_cdn/out/smoke_meta.json",
+   "--log",
+   "/workspace/review_scratch/markout_cdn/logs/smoke.log"
+  ],
+  "input_sha256": "e37a035324f69fd0cd445d4be6048ea7551378a277d8561aed92a524140af596"
+ },
+ "generated_utc": "2026-09-05T09:04:59Z",
+ "n_rows": 17660,
+ "n_marks_written": 9,
+ "status_counts": {
+  "ok": 7,
+  "archive_missing": 2
+ },
+ "archive_status_counts": {
+  "ok": 7,
+  "archive_missing": 1
+ },
+ "archives_fetched": 8,
+ "bytes_fetched": 4384993,
+ "n_unsorted_archives": 0,
+ "n_headerless_archives": 0,
+ "elapsed_s": 2.3
+}
