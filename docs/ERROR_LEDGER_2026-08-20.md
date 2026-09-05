@@ -435,3 +435,9 @@ C5 授权证据的对照项: A5 案 — 授权一个改动前先问"它的对照
 - **事实(VERIFIED `health_check/calib/commission_collision_test.out`):** daily_nav.realised_by_type.COMMISSION 与日志中"开仓成交"的手续费之比在 10/11 天为 1.000; 原因 = `live/binance_broker.py` 的 income 分页按 tranId 去重, 而减仓成交的 COMMISSION 行与同一笔的 REALIZED_PNL 行共用 tranId, COMMISSION 行被丢弃。量级小(0.002–0.011 BNB/天 ≈ 1.5–8 USDT), NAV 本身取自 margin_balance 不受影响; realised_pnl 分项还把 BNB 计价的手续费与 USDT 行直接相加。费用表改用 userTrades 的 fee_paid, 不受影响。
 - **处置:** 执行器仓改动只经 `ops/safe_commit.sh` + 电池(去重键改为 (tranId, incomeType); 新增测试); 非书行为, 但属实盘仓改动, 待用户字后做。
 - **附带:** 日记 09-03 16Z 行"−5022 拒单 76%"定义不明; 标定按单腿计 36.2%(79/218)、按额 36.6%; 引用前须从生成行重推(alarm_text≠source 家族)。
+
+### E-0905-G · markout 回填的根因: 交易所 aggTrades 按时间检索只开放最近 2 天(HTTP 400 −4166), 回填任务对更早的成交每轮必败且吞掉异常(2026-09-05 08:5xZ, 实测)
+- **事实(VERIFIED, 本机单次探针 08:54Z):** `/fapi/v1/aggTrades?symbol=BTCUSDT&startTime=<2026-08-06>` → 400 `{"code":-4166,"msg":"Search window is restricted to recent 2 days only."}`; 同端点 09-05 04:30 窗 → 200。`ops/backfill_markout.py` 的 `marks_for_group` 把任何异常当"窗口被截断"(返回 truncated=True)→ 逐名重试同样失败 → 计入 no_trade 但不落盘 → 下一轮再来; "最老的日子优先 + 每日均分"把预算全部花在永远答不了的日子上。待办 17,660 笔中只有 09-04/09-05 的 1,856 笔在 2 天窗内。**这就是覆盖冻结在 15% 的真因**; 我 07:0xZ 上线的"60s 窗口 + 终止行 + 预算 900"三项改动对此无效(08Z 锚: written=0, terminal=0), 因为失败是异常不是空窗。
+- **修复(实盘仓, safe_commit 进行中):** ① 回填前按 `now − (fill_ts+60s) > 47h` 切分, 超窗成交写终止行 `mark_status=aggtrades_window_expired`, 不发请求; ② `marks_for_group` 识别 −4166 → 该组直接终止行, 不逐名重试; ③ 计数 `n_expired` 进日志与汇总; 测试新增 (e)(f) 两例。
+- **历史 17.6k 笔的补标:** 改从交易所公开的每日 aggTrades 档案(data.binance.vision, pod2 免限速)计算同一定义的 +60s 标记(含严格 5s 变体与延迟), 再由导入脚本以 supersede 行写回账本(待写, 经 safe_commit)。
+- **规则:** 任何"每轮报 requests=N 但 written≈0"的回填/采集任务, 先查一次原始响应码, 再谈预算; 吞异常的 `except Exception` 必须至少记录码。
