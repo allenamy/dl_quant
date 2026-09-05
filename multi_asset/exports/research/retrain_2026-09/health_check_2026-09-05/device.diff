@@ -1,0 +1,33 @@
+44c44,51
+< _CFG = {"REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+---
+> COSTB_JSON = os.environ.get("COSTB_JSON")   # health_check 2026-09-05 (PREREG_live_form_health_check §0 row 成本 / §1): live-calibrated cost tiers; unset ⇒ default COST_B below, bitwise-unchanged path
+> COST_B_OVERRIDE = None
+> if COSTB_JSON:
+>     _cj = json.load(open(COSTB_JSON)); _tiers = _cj["tiers"] if isinstance(_cj, dict) else _cj
+>     assert len(_tiers) == 3, f"COSTB_JSON must give 3 tiers in device order (qv4h>=5e6, >=1e6, rest); got {len(_tiers)}"
+>     COST_B_OVERRIDE = [(float(t["maker_bps"]), float(t["taker_bps"]), float(t["maker_share"])) if isinstance(t, dict) else (float(t[0]), float(t[1]), float(t[2])) for t in _tiers]
+> UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade"), UMASK_SCOPE   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+> _CFG = {"COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+45a53,54
+> import hashlib as _hl
+> _CFG["HEALTH"] = {"device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb…, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE=trade branch; default path (both unset) bitwise-unchanged", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+82c91
+<     print(f"UMASK injected: {_um}", flush=True)
+---
+>     print(f"UMASK injected: {_um} scope={UMASK_SCOPE}", flush=True)
+117a127,128
+> if COST_B_OVERRIDE is not None: COST_B = COST_B_OVERRIDE   # health_check: live-calibrated tiers (maker_bps, taker_bps, maker_share) in device tier order
+> _CFG["COST_B"] = [list(t) for t in COST_B]; print("CONFIG_HEALTH " + json.dumps({"COSTB_JSON": COSTB_JSON, "COST_B": _CFG["COST_B"], "UMASK_SCOPE": UMASK_SCOPE, "HEALTH": _CFG["HEALTH"]}), flush=True)
+127c138
+<         if UMASK_ROW is not None:
+---
+>         if UMASK_ROW is not None and UMASK_SCOPE == "members":
+183c194
+<         if UMASK_ROW is not None:
+---
+>         if UMASK_ROW is not None and UMASK_SCOPE == "members":
+200a212,214
+>         if UMASK_ROW is not None and UMASK_SCOPE == "trade":   # health_check: universe mask restricts the tradeable set only (rank base = members); names outside it fall into _nonsel ⇒ forced exit
+>             _mku = UMASK_ROW.get(j)
+>             if _mku is not None: sel = sel & _mku[m]
