@@ -1,0 +1,47 @@
+--- w10_health.py
++++ w10_health_spotsup.py
+@@ -48,7 +48,9 @@
+     assert len(_tiers) == 3, f"COSTB_JSON must give 3 tiers in device order (qv4h>=5e6, >=1e6, rest); got {len(_tiers)}"
+     COST_B_OVERRIDE = [(float(t["maker_bps"]), float(t["taker_bps"]), float(t["maker_share"])) if isinstance(t, dict) else (float(t[0]), float(t[1]), float(t[2])) for t in _tiers]
+ UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade", "m1"), UMASK_SCOPE   # m1 (team-lead refinement 2026-09-05) = live M1 semantics: members = universe ∩ listed for king/rev24/F10 and the trade set; fund z = rank within the 829 base (xz_in_base)   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+-_CFG = {"COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
++SPOTSUP_B = float(os.environ.get("SPOTSUP_B", "0")); assert SPOTSUP_B in (0.0, 0.5, 1.0), SPOTSUP_B   # rider (PREREG_allweather §5, 2026-09-05): fund z ×= (1 + b·spot_support); 0 = bitwise baseline
++SPOTSUP_NPZ = os.environ.get("SPOTSUP_NPZ")   # ts × symbols spot-support score matrix (rank-transformed within members at use)
++_CFG = {"SPOTSUP_B": SPOTSUP_B, "SPOTSUP_NPZ": SPOTSUP_NPZ, "COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
+ import hashlib as _hl
+ _CFG["HEALTH"] = {"device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb…, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE in {members (original), trade, m1 (fund z in the 829 base, other legs and trade set within the universe)} + legs() series saved; default path (all unset) bitwise-unchanged", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+@@ -72,6 +74,14 @@
+     assert [str(x) for x in _fz["symbols"]] == [str(x) for x in PW["symbols"]], "FEMAT symbols mismatch"
+     assert np.array_equal(_fz["ts"].astype(np.int64), PW["ts"].astype(np.int64)), "FEMAT ts mismatch"
+     FE = np.asarray(_fz["mat"], dtype=float); print(f"FEMAT injected: {FEMAT_NPZ} finite {np.isfinite(FE).mean():.3f}", flush=True)
++SS = None
++if SPOTSUP_B > 0:   # rider: spot-support matrix aligned to the panel (same assertions as FEMAT)
++    _sz = np.load(SPOTSUP_NPZ, allow_pickle=True)
++    assert [str(x) for x in _sz["symbols"]] == [str(x) for x in PW["symbols"]], "SPOTSUP symbols mismatch"
++    assert np.array_equal(_sz["ts"].astype(np.int64), PW["ts"].astype(np.int64)), "SPOTSUP ts mismatch"
++    SS = np.asarray(_sz["mat"], dtype=float); print(f"SPOTSUP injected: {SPOTSUP_NPZ} b={SPOTSUP_B} finite {np.isfinite(SS).mean():.3f}", flush=True)
++def SSF(j, m):   # rider multiplier on the fund z: 1 + b·xz(spot_support[j, m]); members without a score -> factor 1
++    return (1.0 + SPOTSUP_B * np.nan_to_num(xz(SS[j, m]))) if SS is not None else 1.0
+ _IVf = np.where(np.isfinite(IV) & (IV > 0), IV, 8.0); _RN8 = np.nan_to_num(FN, nan=0.0) * (8.0 / _IVf)   # 8h 当量费率(全宽)
+ if FUNDSCALE:
+     _sig = np.array([np.std(_RN8[j][np.isfinite(FN[j])]) if np.isfinite(FN[j]).sum() > 50 else np.nan for j in range(len(PW["ts"]))]) * 1e4
+@@ -143,7 +153,9 @@
+         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m], "f10": (F10P[i, m] if SEATF10 else np.full(len(m), np.nan))}
+         ok = np.isfinite(y4[i, m])
+         for leg in LR:
+-            z = np.nan_to_num(FZB(j, m) if (leg == "fund" and UMASK_SCOPE == "m1") else xz(sc[leg])); z = np.where(ok, z, 0.0); z -= z[ok].mean() if ok.sum() else 0
++            z = np.nan_to_num(FZB(j, m) if (leg == "fund" and UMASK_SCOPE == "m1") else xz(sc[leg]))
++            if leg == "fund" and SS is not None: z = z * SSF(j, m)   # rider tilt (seat driver)
++            z = np.where(ok, z, 0.0); z -= z[ok].mean() if ok.sum() else 0
+             g = np.abs(z).sum()
+             _yy = np.nan_to_num(y4[i, m], nan=0.0)
+             if CAL == "simple":
+@@ -198,6 +210,7 @@
+             if _mk is not None: m = m[_mk[m]]
+         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m]}
+         FZ = FZB(j, m) if UMASK_SCOPE == "m1" else xz(sc["fund"])   # fund z used by both books and the leg-contribution diagnostic
++        if SS is not None: FZ = FZ * SSF(j, m)   # rider tilt (both books)
+         w3 = w3_at(i)
+         _fs = (FUNDSCALE_ROW[j] if FUNDSCALE else 1.0)
+         z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*_fs*np.nan_to_num(FZ)
