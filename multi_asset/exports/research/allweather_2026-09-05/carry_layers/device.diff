@@ -1,0 +1,62 @@
+50a51,58
+> # --- carry_layers (PREREG_carry_layers_2026-09-05 §1/§2): three settlement-instant layers on the fund leg; all default OFF = bitwise baseline path
+> DODGE_THR = float(os.environ.get("DODGE_THR", "inf")); assert DODGE_THR in (float("inf"), 6.0, 10.0, 15.0), f"DODGE_THR 白名单外: {DODGE_THR}"   # bps per settlement; inf = off
+> DODGE_COST = float(os.environ.get("DODGE_COST", "7.84")); assert DODGE_COST in (7.84, 15.8), f"DODGE_COST 白名单外: {DODGE_COST}"   # bps × notional, one extra round trip per dodge event
+> DODGE_RULE = os.environ.get("DODGE_RULE", "prev"); assert DODGE_RULE in ("prev", "oracle"), DODGE_RULE   # r̂ = previous settled rate (deployable) | the settled rate itself (upper bound)
+> HOUR_K = float(os.environ.get("HOUR_K", "0")); assert HOUR_K in (0.0, 0.5, 1.0), f"HOUR_K 白名单外: {HOUR_K}"   # paying-side z of 1h-interval names ×(1−κ)
+> LONG_HI = float(os.environ.get("LONG_HI", "inf")); assert LONG_HI in (float("inf"), 10.0, 20.0), f"LONG_HI 白名单外: {LONG_HI}"   # bps/8h; longs with last settled rn8 ≥ HI get z = 0
+> SETT_NPZ = os.environ.get("SETT_NPZ"); DODGE_ON = bool(np.isfinite(DODGE_THR)); HL_ON = bool(HOUR_K > 0 or np.isfinite(LONG_HI))
+> if DODGE_ON: assert SETT_NPZ, "DODGE_THR finite requires SETT_NPZ"
+54a63
+> _CFG["CARRY"] = {"DODGE_THR": str(DODGE_THR), "DODGE_COST": DODGE_COST, "DODGE_RULE": DODGE_RULE, "HOUR_K": HOUR_K, "LONG_HI": str(LONG_HI), "SETT_NPZ": SETT_NPZ, "DODGE_ON": DODGE_ON, "HL_ON": HL_ON, "device": "w10_carry.py = health_check w10_health.py (sha256 8684d9a9…) + DODGE (settlement-instant flatten accounting on the blended book, rec/W untouched, extra series saved) + HOUR_K/LONG_HI z-level layers at the FTRIM seat in both books; all off ⇒ bitwise-unchanged path", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+94a104,115
+> if DODGE_ON:   # carry_layers: per-(anchor, name, slot) settlement tables (build_settlement_tables.py): R oracle rate, P previous rate, DR price move over [S−10m, S+25m], MISS missing-bar count
+>     _sz = np.load(SETT_NPZ, allow_pickle=True)
+>     assert np.array_equal(_sz["E_ts"].astype(np.int64), E_ts) and [str(x) for x in _sz["symbols"]] == WSYM, "SETT_NPZ anchors/symbols mismatch"
+>     SR = _sz["R"].astype(np.float64); SP = _sz["P"].astype(np.float64); SDR = _sz["DR"].astype(np.float64); SMISS = _sz["MISS"]
+>     print(f"SETT injected: {SETT_NPZ} events {int(np.isfinite(SR).sum())} rule={DODGE_RULE} thr={DODGE_THR} cost={DODGE_COST}", flush=True)
+> def carry_hl(zv, j, m):   # carry_layers H/L at the FTRIM seat: returns (z, n_hour_hit, n_long_hit); the chain below (sel → demean → L1 → cap → L1) re-normalises
+>     _fnr = FN[j, m]; _ivr = IV[j, m]; _ivr = np.where(np.isfinite(_ivr) & (_ivr > 0), _ivr, 8.0); _fn0 = np.where(np.isfinite(_fnr), _fnr, 0.0); _rn8 = _fn0 * (8.0 / _ivr)
+>     _pay = ((zv > 0) & (_fn0 > 0)) | ((zv < 0) & (_fn0 < 0))
+>     _hm = _pay & (np.abs(_ivr - 1.0) < 1e-6) & (zv != 0); _lm = (zv > 0) & (_rn8 >= LONG_HI * 1e-4)
+>     if HOUR_K > 0: zv = np.where(_hm, zv * (1.0 - HOUR_K), zv)
+>     if np.isfinite(LONG_HI): zv = np.where(_lm, 0.0, zv)
+>     return zv, int(_hm.sum()) if HOUR_K > 0 else 0, int(_lm.sum()) if np.isfinite(LONG_HI) else 0
+191c212
+<     rec = []; WS = []
+---
+>     rec = []; WS = []; DG = []; EV = []; HL = []   # carry_layers extra series (rec/W untouched)
+212a234,235
+>         _hn_k = _ln_k = _hn_f = _ln_f = 0
+>         if HL_ON: z, _hn_k, _ln_k = carry_hl(z, j, m)   # carry_layers H/L (king book)
+256a280
+>             if HL_ON: _zf, _hn_f, _ln_f = carry_hl(_zf, j, m)   # carry_layers H/L (F10 book, same rule)
+327a352,366
+>         _dg = [0.0] * 8   # delta, credit, cost, drift, events, turn, miss, n_paying_settlements
+>         if DODGE_ON:
+>             _w = sm[m]; _nz = np.abs(_w) > 1e-12
+>             if _nz.any():
+>                 _mi = m[_nz]; _wv = _w[_nz]; _R = SR[i, _mi]; _P = SP[i, _mi]; _D = SDR[i, _mi]; _M = SMISS[i, _mi]
+>                 _rh = _P if DODGE_RULE == "prev" else _R
+>                 _has = np.isfinite(_R) & np.isfinite(_rh); _payS = _has & ((_wv[:, None] * _rh) > 0)
+>                 _dodge = _payS & (np.abs(_rh) >= DODGE_THR * 1e-4)
+>                 _dg[7] = float(_payS.sum())
+>                 if _dodge.any():
+>                     _wD = np.broadcast_to(_wv[:, None], _dodge.shape)[_dodge]; _rS = _R[_dodge]; _rP = _P[_dodge]; _dr = np.nan_to_num(_D[_dodge], nan=0.0); _ms = _M[_dodge].astype(np.float64)
+>                     _cr = float((_wD * _rS).sum() * 1e4); _co = float(DODGE_COST * np.abs(_wD).sum()); _dd = float((_wD * _dr).sum() * 1e4)
+>                     _dg = [_cr - _co - _dd, _cr, _co, _dd, float(_dodge.sum()), float(2.0 * np.abs(_wD).sum()), float((_ms > 0).sum()), _dg[7]]
+>                     _kk = np.broadcast_to(_mi[:, None], _dodge.shape)[_dodge].astype(np.float64)
+>                     for _e in range(len(_wD)): EV.append((float(E_ts[i]), _kk[_e], float(_wD[_e]), float(_rS[_e]), float(_rP[_e]) if np.isfinite(_rP[_e]) else np.nan, float(_dr[_e]), float(_ms[_e])))
+331a371
+>         DG.append(_dg); HL.append((_hn_k, _ln_k, _hn_f, _ln_f))
+335c375
+<     return np.array(rec), np.stack(WS)
+---
+>     return np.array(rec), np.stack(WS), {"dodge": np.array(DG, dtype=np.float64).reshape(-1, 8), "dodge_events": np.array(EV, dtype=np.float64).reshape(-1, 7), "hl": np.array(HL, dtype=np.int32).reshape(-1, 4)}
+341c381
+<     R, WS = run(SLOW, LRa, pos, d, n_, c)
+---
+>     R, WS, EX = run(SLOW, LRa, pos, d, n_, c)
+376a417,418
+>     save[f"{nm}_dodge"] = EX["dodge"]; save[f"{nm}_dodge_events"] = EX["dodge_events"]; save[f"{nm}_hl"] = EX["hl"]   # carry_layers: cols dodge=[delta,credit,cost,drift,events,turn,miss,n_paying]; events=[ts,k,w,r_S,r_prev,drift,miss]; hl=[h_king,l_king,h_f10,l_f10]
+>     print("RECEIPT_CARRY", nm, json.dumps({"dodge_delta_mean": float(EX["dodge"][:, 0].mean()), "dodge_events_total": int(EX["dodge"][:, 4].sum()), "dodge_turn_mean": float(EX["dodge"][:, 5].mean()), "hl_mean": EX["hl"].mean(0).tolist()}), flush=True)
