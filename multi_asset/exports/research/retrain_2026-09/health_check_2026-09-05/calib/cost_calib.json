@@ -4735,13 +4735,512 @@
   "canon_report.json": "679755f411343c3e454b91591e8921c9f69d9ca9d3888f4515a2ee6d0c84c40c",
   "commission_collision_test.py": "5cdec3e78161b66ea7bb94ec21e44cf7dfb04fe1f9f34cca24083c7b6360f014",
   "markout_diag.py": "4200fa48d41aa526a49011271fb193551a9e8a0c113c94fd0d6285e65a0f4530",
-  "finalize_and_render.py": "c46c5ae2d108e1c475ba9ff6d7121f432083d3f386c895a80e22f9c9d6ed88da",
+  "finalize_and_render.py": "ec0dc229376022396265b7dea9c4d639eae8e774ae9b9883effbb53693ef009a",
   "commands": [
    "cd <calib dir> && cp <research repo>/multi_asset/exports/research/retrain_2026-09/review_caliber_wf/gap_live_pnl/canon_reconcile.py . && python3 canon_reconcile.py > canon_run.log",
    "python3 cost_calib.py > calib_run.log",
    "python3 markout_diag.py > markout_diag.out",
    "python3 finalize_and_render.py"
   ],
-  "finalized_utc": "2026-09-05T04:44:51Z"
- }
+  "finalized_utc": "2026-09-05T04:50:49Z"
+ },
+ "tiers": [
+  {
+   "name": "tier0_qv4h>=5e6",
+   "maker_bps": -2.4141471914339716,
+   "taker_bps": 16.79187443175085,
+   "maker_share": 0.8511411862710598,
+   "fill_ratio": 0.8039704380843419,
+   "fill_ratio_after_topup": 0.9445794082725828,
+   "markout60_bps": -14.19439919475603,
+   "markout60_n": 59,
+   "n_fills": 837,
+   "n_anchors": 51,
+   "share_of_filled_notional": 0.13017336277334307,
+   "components": {
+    "maker_fee_bps": 1.800087895067653,
+    "taker_fee_bps": 4.500134058393526,
+    "maker_slippage_vs_anchor_mid_bps_favourable": {
+     "n": 689,
+     "wmean": 4.214235086501625,
+     "ci95_anchor_boot": [
+      2.8260468804976835,
+      6.09064021173502
+     ],
+     "raw_wmean": 4.214235086501625,
+     "median": 1.4146272457205968,
+     "notional": 15301.778085100002
+    },
+    "taker_slippage_vs_anchor_mid_bps_favourable_pooled_all_tiers": {
+     "n": 687,
+     "wmean": -12.291740373357323,
+     "ci95_anchor_boot": [
+      -21.263447213065284,
+      -2.8212651975246037
+     ],
+     "raw_wmean": 13.004087266781028,
+     "median": -12.995007181451044,
+     "notional": 12041.42222651
+    },
+    "taker_slippage_vs_anchor_mid_bps_favourable_this_tier": {
+     "n": 148,
+     "wmean": -0.1963487412867591,
+     "ci95_anchor_boot": [
+      -27.78848544103867,
+      35.692887976969644
+     ],
+     "raw_wmean": 119.69826945134697,
+     "median": 14.689680499449267,
+     "notional": 2676.177079
+    },
+    "taker_bps_using_this_tier_only": 4.696482799680285
+   },
+   "reject5022_first_rate": 0.3333333333333333,
+   "reject5022_to_taker_rate": 0.11328125
+  },
+  {
+   "name": "tier1_qv4h>=1e6",
+   "maker_bps": -2.438179698902931,
+   "taker_bps": 16.790541096195827,
+   "maker_share": 0.9246422006649931,
+   "fill_ratio": 0.8711537302235094,
+   "fill_ratio_after_topup": 0.9421522504564303,
+   "markout60_bps": -10.875938421095874,
+   "markout60_n": 124,
+   "n_fills": 2043,
+   "n_anchors": 51,
+   "share_of_filled_notional": 0.2544009697261376,
+   "components": {
+    "maker_fee_bps": 1.7990185647686063,
+    "taker_fee_bps": 4.498800722838504,
+    "maker_slippage_vs_anchor_mid_bps_favourable": {
+     "n": 1860,
+     "wmean": 4.237198263671537,
+     "ci95_anchor_boot": [
+      3.6125288644133278,
+      4.981215109187779
+     ],
+     "raw_wmean": 4.237279898337953,
+     "median": 2.082467084270908,
+     "notional": 32487.077317080002
+    },
+    "taker_slippage_vs_anchor_mid_bps_favourable_pooled_all_tiers": {
+     "n": 687,
+     "wmean": -12.291740373357323,
+     "ci95_anchor_boot": [
+      -21.263447213065284,
+      -2.8212651975246037
+     ],
+     "raw_wmean": 13.004087266781028,
+     "median": -12.995007181451044,
+     "notional": 12041.42222651
+    },
+    "taker_slippage_vs_anchor_mid_bps_favourable_this_tier": {
+     "n": 183,
+     "wmean": -39.62865497785557,
+     "ci95_anchor_boot": [
+      -54.87715809011348,
+      -18.339521748927602
+     ],
+     "raw_wmean": -79.15946764862319,
+     "median": -35.55016040926032,
+     "notional": 2647.6778279
+    },
+    "taker_bps_using_this_tier_only": 44.12745570069407
+   },
+   "reject5022_first_rate": 0.28692220969560317,
+   "reject5022_to_taker_rate": 0.06144306651634724
+  },
+  {
+   "name": "tier2_rest",
+   "maker_bps": -1.932306488993031,
+   "taker_bps": 16.791972957294433,
+   "maker_share": 0.9209652191948581,
+   "fill_ratio": 0.8478916856312538,
+   "fill_ratio_after_topup": 0.9206554905216857,
+   "markout60_bps": 4.219074513888467,
+   "markout60_n": 126,
+   "n_fills": 4351,
+   "n_anchors": 51,
+   "share_of_filled_notional": 0.6154256675005193,
+   "components": {
+    "maker_fee_bps": 1.7997821458364855,
+    "taker_fee_bps": 4.500232583937111,
+    "maker_slippage_vs_anchor_mid_bps_favourable": {
+     "n": 3995,
+     "wmean": 3.7320886348295166,
+     "ci95_anchor_boot": [
+      3.2073964686737506,
+      4.380695342189476
+     ],
+     "raw_wmean": 3.7591152250445887,
+     "median": 2.077130790002233,
+     "notional": 78277.51017889
+    },
+    "taker_slippage_vs_anchor_mid_bps_favourable_pooled_all_tiers": {
+     "n": 687,
+     "wmean": -12.291740373357323,
+     "ci95_anchor_boot": [
+      -21.263447213065284,
+      -2.8212651975246037
+     ],
+     "raw_wmean": 13.004087266781028,
+     "median": -12.995007181451044,
+     "notional": 12041.42222651
+    },
+    "taker_slippage_vs_anchor_mid_bps_favourable_this_tier": {
+     "n": 356,
+     "wmean": -6.335725207353317,
+     "ci95_anchor_boot": [
+      -17.770316959983827,
+      1.6133516425387917
+     ],
+     "raw_wmean": 6.824301942733692,
+     "median": -13.602589927206237,
+     "notional": 6717.56731961
+    },
+    "taker_bps_using_this_tier_only": 10.835957791290427
+   },
+   "reject5022_first_rate": 0.22161540672607072,
+   "reject5022_to_taker_rate": 0.04254096004599023
+  }
+ ],
+ "book": {
+  "maker_bps": -2.1211543349221844,
+  "taker_bps": 16.791636221433123,
+  "maker_share": 0.9128114176784381,
+  "fill_ratio": 0.8481039083935302,
+  "fill_ratio_after_topup": 0.9291118537392103,
+  "cost_per_unit_turnover_bps": -0.4721749385689411,
+  "turnover_per_anchor": 0.04549509156956227,
+  "components": {
+   "maker_slippage": {
+    "n": 6544,
+    "wmean": 3.920776818740873,
+    "ci95_anchor_boot": [
+     3.4692509007685914,
+     4.459986277705517
+    ],
+    "raw_wmean": 3.9375792882387226,
+    "median": 2.0267531507179113,
+    "notional": 126066.36558107001
+   },
+   "taker_slippage": {
+    "n": 687,
+    "wmean": -12.291740373357323,
+    "ci95_anchor_boot": [
+     -21.263447213065284,
+     -2.8212651975246037
+    ],
+    "raw_wmean": 13.004087266781028,
+    "median": -12.995007181451044,
+    "notional": 12041.42222651
+   }
+  },
+  "twin_bps_per_anchor": 1.2307720927807455,
+  "twin_definition": "real twin (venue positions \u00d7 \u0394mid, price leg) minus paper target book priced at the venue moment (+25 min), bps of realized gross per anchor; >0 = real beat paper",
+  "twin_bps_per_anchor_ci95": [
+   -3.721298823706306,
+   6.098452132615082
+  ],
+  "twin_plus_funding_bps_per_anchor": 0.26355283939676727,
+  "twin_plus_funding_ci95": [
+   -8.502762668874935,
+   8.912294105515365
+  ],
+  "paper_nominal_minus_real_bps_per_anchor": 3.5119419783449515,
+  "paper_nominal_minus_paper_shifted25_bps_per_anchor": 2.847555393156653,
+  "n_twin_anchors": 53
+ },
+ "n_anchors": 51,
+ "date_range": [
+  "2026-08-26",
+  "2026-09-05"
+ ],
+ "date_range_anchors": [
+  "08-26 04Z",
+  "09-05 00Z"
+ ],
+ "alternatives": {
+  "steady_fee_plus_slippage_vs_anchor_mid (== tiers[])": [
+   [
+    -2.414,
+    16.792,
+    0.8511
+   ],
+   [
+    -2.438,
+    16.791,
+    0.9246
+   ],
+   [
+    -1.932,
+    16.792,
+    0.921
+   ]
+  ],
+  "all_calib_fee_plus_slippage_vs_anchor_mid": [
+   [
+    -3.353,
+    35.418,
+    0.7571
+   ],
+   [
+    -3.817,
+    35.419,
+    0.8311
+   ],
+   [
+    -2.134,
+    35.418,
+    0.8787
+   ]
+  ],
+  "steady_fee_only": [
+   [
+    1.800087895067653,
+    4.500134058393526,
+    0.8511411862710598
+   ],
+   [
+    1.7990185647686063,
+    4.498800722838504,
+    0.9246422006649931
+   ],
+   [
+    1.7997821458364855,
+    4.500232583937111,
+    0.9209652191948581
+   ]
+  ],
+  "steady_fee_minus_markout60_INFERRED": [
+   [
+    15.994487089823684,
+    73.27306826476746,
+    0.8511411862710598
+   ],
+   [
+    12.67495698586448,
+    2.5095534187378283,
+    0.9246422006649931
+   ],
+   [
+    -2.4192923680519813,
+    6.652850850356973,
+    0.9209652191948581
+   ]
+  ],
+  "device_default": [
+   [
+    -0.25,
+    5.0,
+    0.85
+   ],
+   [
+    0.5,
+    6.0,
+    0.75
+   ],
+   [
+    2.0,
+    8.0,
+    0.55
+   ]
+  ],
+  "all_calib_tiers_full": [
+   {
+    "name": "tier0_qv4h>=5e6",
+    "maker_bps": -3.3532524430814936,
+    "taker_bps": 35.41786643039524,
+    "maker_share": 0.7571115296018223,
+    "fill_ratio": 0.7005602898553819,
+    "fill_ratio_after_topup": 0.925306592839523,
+    "markout60_bps": -13.038892035293312,
+    "markout60_n": 72,
+    "n_fills": 1138,
+    "n_anchors": 57,
+    "share_of_filled_notional": 0.1244753383149173,
+    "components": {
+     "maker_fee_bps": 1.8013311712372675,
+     "taker_fee_bps": 4.504319448635635,
+     "maker_slippage_vs_anchor_mid_bps_favourable": {
+      "n": 848,
+      "wmean": 5.154583614318761,
+      "ci95_anchor_boot": [
+       3.40559138259136,
+       6.366771285138911
+      ],
+      "raw_wmean": 5.154583614318761,
+      "median": 1.3939368255935773,
+      "notional": 28722.084920100002
+     },
+     "taker_slippage_vs_anchor_mid_bps_favourable_pooled_all_tiers": {
+      "n": 1401,
+      "wmean": -30.91354698175961,
+      "ci95_anchor_boot": [
+       -37.97192906159424,
+       -6.8626501204499855
+      ],
+      "raw_wmean": -22.606752148005732,
+      "median": -21.261516654853843,
+      "notional": 45902.20410621
+     },
+     "taker_slippage_vs_anchor_mid_bps_favourable_this_tier": {
+      "n": 290,
+      "wmean": -31.60541396767734,
+      "ci95_anchor_boot": [
+       -42.11967292603791,
+       12.559113944100439
+      ],
+      "raw_wmean": -5.439115333339488,
+      "median": -17.001085380029096,
+      "notional": 9214.313876
+     },
+     "taker_bps_using_this_tier_only": 36.10973341631298
+    },
+    "reject5022_first_rate": 0.35234215885947046,
+    "reject5022_to_taker_rate": 0.1395112016293279
+   },
+   {
+    "name": "tier1_qv4h>=1e6",
+    "maker_bps": -3.816750137565106,
+    "taker_bps": 35.41851363169615,
+    "maker_share": 0.8311236059796681,
+    "fill_ratio": 0.7945220478971309,
+    "fill_ratio_after_topup": 0.955961354220719,
+    "markout60_bps": -14.851326032121765,
+    "markout60_n": 139,
+    "n_fills": 2785,
+    "n_anchors": 57,
+    "share_of_filled_notional": 0.2980636918691514,
+    "components": {
+     "maker_fee_bps": 1.8013159019440195,
+     "taker_fee_bps": 4.504966649936542,
+     "maker_slippage_vs_anchor_mid_bps_favourable": {
+      "n": 2371,
+      "wmean": 5.6180660395091255,
+      "ci95_anchor_boot": [
+       4.157288539057412,
+       6.348444346351106
+      ],
+      "raw_wmean": 5.630446780272152,
+      "median": 2.1877050973520284,
+      "notional": 75500.09196928
+     },
+     "taker_slippage_vs_anchor_mid_bps_favourable_pooled_all_tiers": {
+      "n": 1401,
+      "wmean": -30.91354698175961,
+      "ci95_anchor_boot": [
+       -37.97192906159424,
+       -6.8626501204499855
+      ],
+      "raw_wmean": -22.606752148005732,
+      "median": -21.261516654853843,
+      "notional": 45902.20410621
+     },
+     "taker_slippage_vs_anchor_mid_bps_favourable_this_tier": {
+      "n": 414,
+      "wmean": -33.42522947872619,
+      "ci95_anchor_boot": [
+       -43.60740078274967,
+       -21.25973025800773
+      ],
+      "raw_wmean": -40.47841837153338,
+      "median": -33.444864318533185,
+      "notional": 15340.898980900001
+     },
+     "taker_bps_using_this_tier_only": 37.93019612866273
+    },
+    "reject5022_first_rate": 0.30644413537320353,
+    "reject5022_to_taker_rate": 0.0746407046824293
+   },
+   {
+    "name": "tier2_rest",
+    "maker_bps": -2.1344237662886885,
+    "taker_bps": 35.41757971450399,
+    "maker_share": 0.8787054606624275,
+    "fill_ratio": 0.8036529439169594,
+    "fill_ratio_after_topup": 0.9145874014611354,
+    "markout60_bps": -4.088267013215023,
+    "markout60_n": 155,
+    "n_fills": 5784,
+    "n_anchors": 57,
+    "share_of_filled_notional": 0.5774609698159314,
+    "components": {
+     "maker_fee_bps": 1.8012115360071363,
+     "taker_fee_bps": 4.504032732744377,
+     "maker_slippage_vs_anchor_mid_bps_favourable": {
+      "n": 5087,
+      "wmean": 3.935635302295825,
+      "ci95_anchor_boot": [
+       3.5314784416719966,
+       4.362788217599422
+      ],
+      "raw_wmean": 3.949315409860477,
+      "median": 2.151925973747411,
+      "notional": 154646.02019120997
+     },
+     "taker_slippage_vs_anchor_mid_bps_favourable_pooled_all_tiers": {
+      "n": 1401,
+      "wmean": -30.91354698175961,
+      "ci95_anchor_boot": [
+       -37.97192906159424,
+       -6.8626501204499855
+      ],
+      "raw_wmean": -22.606752148005732,
+      "median": -21.261516654853843,
+      "notional": 45902.20410621
+     },
+     "taker_slippage_vs_anchor_mid_bps_favourable_this_tier": {
+      "n": 697,
+      "wmean": -28.809899376235872,
+      "ci95_anchor_boot": [
+       -40.72513532174834,
+       -0.487944937773562
+      ],
+      "raw_wmean": -17.173694595235084,
+      "median": -21.261516654853843,
+      "notional": 21346.99124931
+     },
+     "taker_bps_using_this_tier_only": 33.31393210898025
+    },
+    "reject5022_first_rate": 0.2361241768579492,
+    "reject5022_to_taker_rate": 0.05244590780809031
+   }
+  ],
+  "all_calib_book": {
+   "maker_bps": -2.7603140778018114,
+   "taker_bps": 35.41794939216647,
+   "maker_share": 0.8493875916838933,
+   "fill_ratio": 0.7881428621531927,
+   "fill_ratio_after_topup": 0.9278954270932024,
+   "cost_per_unit_turnover_bps": 2.989806128736951,
+   "turnover_per_anchor": 0.09144136790135057,
+   "components": {
+    "maker_slippage": {
+     "n": 8306,
+     "wmean": 4.561569326444181,
+     "ci95_anchor_boot": [
+      3.8137664028925657,
+      4.973431351436495
+     ],
+     "raw_wmean": 4.573352625015877,
+     "median": 2.100987464108288,
+     "notional": 258868.19708058998
+    },
+    "taker_slippage": {
+     "n": 1401,
+     "wmean": -30.91354698175961,
+     "ci95_anchor_boot": [
+      -37.97192906159424,
+      -6.8626501204499855
+     ],
+     "raw_wmean": -22.606752148005732,
+     "median": -21.261516654853843,
+     "notional": 45902.20410621
+    }
+   }
+  }
+ },
+ "method": "Tiers: device COST_B order; qv4h = expm1(mean over the trailing 2016 5-minute bars of log1p(5m quote volume)) x 48, computed per anchor from the producer's own ~/wide_shadow/state/rolling.npz (ch3) exactly as shadow_loop_v3.py / w10_universe_recheck.py tier_of do; verified against the producer's sel_idx at 09-05 04Z (233/233). Each traded symbol is tiered by its own qv4h at its anchor. Set: 'steady' = 51 combo anchors 08-26 04Z..09-05 00Z excluding the 6 leverage-ramp/deposit step-up anchors (|dgross|>15%) and the halted/flattened 08-26 12Z/16Z (all_calib = 57 anchors, in alternatives). Fees: USDT fee_paid from /fapi/v1/userTrades (= commission_BNB x BNB mid, exact on 6908/6908 rows); maker 1.80 / taker 4.50 bps everywhere. maker_bps = maker fee - notional-weighted maker fill improvement vs the executor's mid_at_anchor (bookTicker mid at N+24m, the pricing moment), per tier, winsorised at +-100 bps per fill, 100% coverage; taker_bps = taker fee - the same for taker top-ups, POOLED across tiers (per-tier taker samples are 148-356 fills with heavy tails; per-tier values are in components). Positive slippage in components = filled better than the anchor mid. This vector excludes the 24-minute timing decay between the nominal 4h grid and the executor's pricing moment (paper nominal minus paper shifted 25 min = +2.85 bps per anchor here), which the device treats separately, and excludes the never-filled residual, whose effect is in book.twin_bps_per_anchor (real minus paper, price leg). markout60_bps (+60 s post-fill drift) is reported, not consumed: it is a 5% non-random backfill sample and, being post-fill, is common to paper and real books. CI95 are anchor-level bootstraps. Alternatives (fee only; fee minus markout; device default) are listed under 'alternatives'."
 }

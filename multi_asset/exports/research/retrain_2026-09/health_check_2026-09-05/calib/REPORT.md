@@ -1,4 +1,4 @@
-> **创建:** 2026-09-05T04:44:51Z | **Session:** b9646a9e (calib teammate, read-only on `~/dl_quant_live` and `~/wide_shadow`) | **状态:** calibration receipts, no ruling | **作废条件:** any log re-write, executor pricing/top-up change, or a tier rule different from the producer's `qv4h` | **方法:** `docs/PREREG_live_form_health_check_2026-09-05.md` §1 (frozen)
+> **创建:** 2026-09-05T04:50:49Z | **Session:** b9646a9e (calib teammate, read-only on `~/dl_quant_live` and `~/wide_shadow`) | **状态:** calibration receipts, no ruling | **作废条件:** any log re-write, executor pricing/top-up change, or a tier rule different from the producer's `qv4h` | **方法:** `docs/PREREG_live_form_health_check_2026-09-05.md` §1 (frozen)
 
 # Live execution cost and fill calibration — combo go-live 08-26 04Z → 09-05 00Z
 
@@ -16,6 +16,7 @@ All numbers below are printed by scripts in this directory (receipts in §12). U
 | −5022 refused twice → taker top-up | 0.057 pooled | VERIFIED |
 | turnover per anchor (filled / venue gross) | mean 0.0477, median 0.0420, notional-weighted 0.0455 | VERIFIED |
 | fee cost per unit of turnover (fee only) | 2.035 bps | VERIFIED |
+| replay vector emitted (fee + slippage vs anchor mid), maker_bps / taker_bps / maker_share by tier | (-2.41, 16.79, 0.851) / (-2.44, 16.79, 0.925) / (-1.93, 16.79, 0.921); book cost per unit turnover -0.47 bps | VERIFIED inputs (§8b) |
 | fee drag per anchor / per year | 0.0926 bps of gross per anchor = 2.03% of gross per year = 4.06% of NAV per year at 2× | VERIFIED arithmetic (2190 anchors/yr) |
 | +60 s markout, maker (notional-weighted) | -6.20 bps on 309 marks = 5.1% of notional; CI95 [-13.71, +1.33]; delay-reweighted -6.73 | INFERRED (non-random 5% subset) |
 | paper target vs real, twin + funding (bps of gross per anchor) | +0.26, CI95 [-8.50, +8.91], n = 53 | VERIFIED (canon_reconcile.py reused verbatim) |
@@ -294,6 +295,20 @@ Vectors in the device's `COST_B` shape `(maker_bps, taker_bps, maker_share)` per
 | live, fee − raw markout (steady) | (15.99, 73.27, 0.851) | (12.67, 2.51, 0.925) | (-2.42, 6.65, 0.921) | INFERRED, 68/134/128 marks, taker leg on 9/10/2 marks |
 | live, fee − delay-reweighted markout, all tiers pooled (steady) | maker 8.53, taker 57.75, maker share 0.913 → 12.82 bps per unit turnover | | | INFERRED |
 | device COST_B (unchanged) | (−0.25, 5.0, 0.85) | (0.5, 6.0, 0.75) | (2.0, 8.0, 0.55) | replay default |
+| **emitted for the replay: fee + slippage vs anchor mid (steady) = top-level `tiers`** | (-2.41, 16.79, 0.851) | (-2.44, 16.79, 0.925) | (-1.93, 16.79, 0.921) | VERIFIED inputs, 100% coverage; taker slippage pooled across tiers |
+
+### 8b. The vector the replay consumes (top-level `tiers`, `book`; device COST_B order)
+
+Why slippage versus the anchor mid and not the +60 s markout: the paper book is priced at a reference price and the real book at the fill; everything after the fill is common to both, so the incremental cost versus paper is (fill − reference) per unit traded. `mid_at_anchor` is the executor's pricing moment (N + 24 min) and covers every fill. Per-fill slippage is winsorised at ±100 bps; CI95 are anchor-level bootstraps. The 24-minute timing decay between the nominal 4h grid and that moment is not in this vector (paper nominal − paper shifted = +2.85 bps per anchor, §9); the never-filled residual is not either (it is in `book.twin_bps_per_anchor`).
+
+| tier | share of filled notional | maker fee | maker fill vs anchor mid, winsorised (CI95) [raw, median, n] | **maker_bps** | taker fee | taker fill vs anchor mid, pooled all tiers (CI95) [raw, median, n] | this tier only | **taker_bps** | **maker_share** | cost per unit turnover |
+|---|---|---|---|---|---|---|---|---|---|---|
+| tier0_qv4h>=5e6 | 0.130 | 1.80 | +4.21 [+2.83, +6.09] [+4.21, +1.41, 689] | **-2.41** | 4.50 | -12.29 [-21.26, -2.82] [+13.00, -13.00, 687] | -0.20 (n 148) → 4.70 | **16.79** | **0.851** | 0.44 |
+| tier1_qv4h>=1e6 | 0.254 | 1.80 | +4.24 [+3.61, +4.98] [+4.24, +2.08, 1860] | **-2.44** | 4.50 | -12.29 [-21.26, -2.82] [+13.00, -13.00, 687] | -39.63 (n 183) → 44.13 | **16.79** | **0.925** | -0.99 |
+| tier2_rest | 0.615 | 1.80 | +3.73 [+3.21, +4.38] [+3.76, +2.08, 3995] | **-1.93** | 4.50 | -12.29 [-21.26, -2.82] [+13.00, -13.00, 687] | -6.34 (n 356) → 10.84 | **16.79** | **0.921** | -0.45 |
+| book (all tiers) | 1.000 | 1.80 | +3.92 [+3.47, +4.46] | **-2.12** | 4.50 | -12.29 [-21.26, -2.82] | | **16.79** | **0.913** | -0.47 |
+
+Same vector on all 57 calibration anchors (ramps and deposit build included; in `alternatives`): (-3.35, 35.42, 0.757) / (-3.82, 35.42, 0.831) / (-2.13, 35.42, 0.879); book cost per unit turnover 2.99 bps.
 
 Units chain (VERIFIED arithmetic, printed by `cost_calib.py`):
 
@@ -376,8 +391,8 @@ Execution discount per unit of turnover, book level: (paper shifted − twin) / 
 | canon_report.json | 679755f411343c3e… | this directory |
 | commission_collision_test.py | 5cdec3e78161b66e… | this directory |
 | markout_diag.py | 4200fa48d41aa526… | this directory |
-| finalize_and_render.py | c46c5ae2d108e1c4… | this directory |
-| cost_calib.json | (written by finalize_and_render.py at 2026-09-05T04:44:51Z) | |
+| finalize_and_render.py | ec0dc22937602239… | this directory |
+| cost_calib.json | (written by finalize_and_render.py at 2026-09-05T04:50:49Z) | |
 
 Commands (run in this directory, in order):
 
