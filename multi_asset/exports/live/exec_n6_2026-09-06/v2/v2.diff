@@ -1,0 +1,133 @@
+--- shadow_loop_v3_live_orig.py	2026-09-06 12:41:59
++++ shadow_loop_v3_v2.py	2026-09-06 12:41:59
+@@ -5,6 +5,12 @@
+ """
+ import os, sys, json, time, math, signal, socket, urllib.request, urllib.error, datetime, hashlib
+ import numpy as np
++import threading, concurrent.futures
++# exec_n6 v2 (2026-09-06, PREREG_deploy_exec_n6_phase2): 取数层旋钮, 缺省 = 逐字现行为(顺序拉取 / 240 权重/分 / 逐名资金费 / 无超时)
++FETCH_WORKERS = int(os.environ.get("FETCH_WORKERS", "1"))      # K 线并行工作线程数; 1 = 顺序(现行为)
++FETCH_BUDGET = int(os.environ.get("FETCH_BUDGET", "240"))       # 60 s 滑窗权重预算; 240 = 现行为(交易所 2400 的 10%)
++FUND_BULK = int(os.environ.get("FUND_BULK", "0"))               # 1 = 资金费用无 symbol 的批量接口(时间分页)+ 逐名回退; 0 = 逐名(现行为)
++HTTP_TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "0")) or None   # urlopen 超时秒; 0 = 无(现行为)
+ 
+ HOME = os.environ.get("WIDE_SHADOW_HOME", os.path.expanduser("~/wide_shadow"))
+ BUNDLE = os.environ.get("WIDE_SHADOW_BUNDLE", os.path.join(os.path.expanduser("~/wide_shadow"), "shadow_bundle"))
+@@ -115,23 +121,28 @@
+         self.weight_used = 0
+         self.win_start = time.time()
+         self.win_weight = 0
++        self.lock = threading.Lock()   # v2: 多线程下窗口记账互斥
++        self.n_req = 0; self.n_err = 0
+     def get(self, path, params, weight):
+-        # 节流: 150 weight / 60s 滑窗
+-        now = time.time()
+-        if now - self.win_start > 60:
+-            self.win_start, self.win_weight = now, 0
+-        if self.win_weight + weight > 240:   # M1(PREREG_deploy_universe §1): 基扩 +≈210 weight, 150→240/min(≤4 req/s), 落盘 ≤N+21
+-            time.sleep(max(60 - (now - self.win_start), 0.5))
+-            self.win_start, self.win_weight = time.time(), 0
++        # 节流: FETCH_BUDGET weight / 60s 滑窗(缺省 240 = 现行为; M1: 基扩 +≈210 weight, ≤4 req/s)
++        # v2: 预算在调用前预留(含失败重试), 单线程缺省下与旧计数只在有失败请求时相差(weight_used 为日志量, 不入信号)
++        with self.lock:
++            now = time.time()
++            if now - self.win_start > 60:
++                self.win_start, self.win_weight = now, 0
++            if self.win_weight + weight > FETCH_BUDGET:
++                time.sleep(max(60 - (now - self.win_start), 0.5))
++                self.win_start, self.win_weight = time.time(), 0
++            self.weight_used += weight; self.win_weight += weight; self.n_req += 1
+         q = "&".join(f"{k}={v}" for k, v in params.items())
+         url = f"{BASE}{path}?{q}" if q else f"{BASE}{path}"
+         for att in range(3):  # V5: 超时重试后放弃, 永不挂死整锚
+             try:
+-                with urllib.request.urlopen(url) as r:
+-                    self.weight_used += weight; self.win_weight += weight
++                with (urllib.request.urlopen(url, timeout=HTTP_TIMEOUT) if HTTP_TIMEOUT else urllib.request.urlopen(url)) as r:
+                     return json.loads(r.read())
+             except Exception as e:
+                 if att == 2:
++                    with self.lock: self.n_err += 1
+                     return {"_err": f"{type(e).__name__}: {str(e)[:80]}"}
+                 time.sleep(1 + att)
+ 
+@@ -273,11 +284,16 @@
+     data_max_ts = 0
+     gap_bars = max(50, min(1000, (anchor - int(st.last_anchor)) // 300 + 4))
+     kw = 1 if gap_bars < 100 else (2 if gap_bars < 500 else 5)
++    _kq = lambda s: ("/fapi/v1/klines", {"symbol": s, "interval": "5m", "limit": gap_bars, "endTime": anchor * 1000 - 1})
++    _t_kl0 = time.time(); _resp = {}
++    if FETCH_WORKERS > 1:   # v2: 并行预取, 结果按原顺序处理(处理代码逐字不变 ⇒ 输出与顺序拉取相同)
++        _syms = [s for s in st.live if st.sym_idx.get(s) is not None]
++        with concurrent.futures.ThreadPoolExecutor(max_workers=FETCH_WORKERS) as _ex:
++            for s, r in zip(_syms, _ex.map(lambda s: fx.get(*_kq(s), weight=kw), _syms)): _resp[s] = r
+     for s in st.live:
+         j = st.sym_idx.get(s)
+         if j is None: continue
+-        r = fx.get("/fapi/v1/klines", {"symbol": s, "interval": "5m", "limit": gap_bars,
+-                                       "endTime": anchor * 1000 - 1}, weight=kw)
++        r = _resp[s] if s in _resp else fx.get(*_kq(s), weight=kw)
+         if isinstance(r, dict):
+             missing += 1; continue
+         pc = st.prev_close.get(s)
+@@ -318,6 +334,25 @@
+     base = list(st.base); _live_set = set(st.live)
+     # ── 4. funding 增量(V12: fundingTime<=anchor) ── M1: 遍历基名单; fund_updates 语义不变(live 名), 基外名计 fund_updates_base
+     fund_updates = 0; fund_updates_base = 0
++    _t_kl = round(time.time() - _t_kl0, 1); _t_fd0 = time.time()
++    _bulk = {}; _bulk_ok = False; _bulk_pages = 0; _bulk_rows = 0; _fund_fallback = 0
++    _bulk_start = (anchor - 8 * 3600 + 1) * 1000   # 批量窗 = 锚前 8h(覆盖 1h/4h/8h 名的全部应到结算); 更旧的名走逐名回退
++    if FUND_BULK:
++        _seen = set(); _start = _bulk_start; _ok = True
++        for _pg in range(6):   # 时间分页: 每页 ≤1000 行, 同一 fundingTime 的行 ≤ ~460 < 1000 ⇒ 用末行时刻(含)续页并按 (symbol, fundingTime) 去重
++            r = fx.get("/fapi/v1/fundingRate", {"startTime": _start, "endTime": anchor * 1000 + 999, "limit": 1000}, weight=1)
++            _bulk_pages += 1
++            if isinstance(r, dict) or not isinstance(r, list): _ok = False; break
++            for row in r:
++                k = (row["symbol"], int(row["fundingTime"]))
++                if k in _seen: continue
++                _seen.add(k); _bulk.setdefault(row["symbol"], []).append(row); _bulk_rows += 1
++            if len(r) < 1000: break
++            _start = int(r[-1]["fundingTime"])
++        else:
++            _ok = False   # 6 页仍未穷尽 ⇒ 不信任, 全部逐名
++        _bulk_ok = _ok
++        if not _bulk_ok: _bulk = {}
+     for s in base:
+         led = st.ledger.get(s, [])
+         last_ts = led[-1][0] if led else anchor - 40 * 86400
+@@ -330,8 +365,14 @@
+         #    下一锚补两倍 ⇒ 77% 宇宙带着 4 小时前的旧费率进模型, 而 fund 腿权重 0.653。
+         #    ★ 因果性不变: 本地过滤 `if ft > anchor: continue`(秒)本就允许"等于锚"的那次结算,
+         #      两处意图此前不一致; +999 只是让 API 侧与本地侧对齐到同一个整秒边界。
+-        r = fx.get("/fapi/v1/fundingRate", {"symbol": s, "startTime": (last_ts + 1) * 1000,
+-                                            "endTime": anchor * 1000 + 999, "limit": 100}, weight=1)
++        if _bulk_ok and (last_ts + 1) * 1000 >= _bulk_start:
++            # v2: 与逐名查询同语义: fundingTime ∈ [(last_ts+1)*1000, anchor*1000+999], 升序
++            r = sorted([row for row in _bulk.get(s, []) if int(row["fundingTime"]) >= (last_ts + 1) * 1000],
++                       key=lambda x: int(x["fundingTime"]))
++        else:
++            if _bulk_ok: _fund_fallback += 1
++            r = fx.get("/fapi/v1/fundingRate", {"symbol": s, "startTime": (last_ts + 1) * 1000,
++                                                "endTime": anchor * 1000 + 999, "limit": 100}, weight=1)
+         if isinstance(r, dict): continue
+         est = st.ema.get(s)
+         for row in r:
+@@ -351,6 +392,7 @@
+             else: fund_updates_base += 1
+         st.ledger[s] = led[-400:]
+         if est: st.ema[s] = est
++    _t_fd = round(time.time() - _t_fd0, 1)
+     # ── 5. 特征(与 pod_fea_wide 同公式, 单锚) ──
+     CDf = st.cd.astype(np.float32)
+     ai = row_of[anchor]
+@@ -556,6 +598,9 @@
+                 "fetched": fetched, "missing": missing, "future_dropped": future_dropped,
+                 "data_max_ts": data_max_ts, "fund_updates": fund_updates, "weight_used": fx.weight_used,
+                 "runtime_s": round(time.time() - t0, 1),
++                "fetch_v2": {"workers": FETCH_WORKERS, "budget": FETCH_BUDGET, "fund_bulk": FUND_BULK, "timeout": HTTP_TIMEOUT,
++                             "bulk_ok": _bulk_ok, "bulk_pages": _bulk_pages, "bulk_rows": _bulk_rows, "fund_fallback_n": _fund_fallback,
++                             "n_req": fx.n_req, "n_err": fx.n_err, "t_klines_s": _t_kl, "t_fund_s": _t_fd},
+                 "base_n": len(base), "fund_base_n": len(base_vals), "fund_updates_base": fund_updates_base, "exinfo_ok": exinfo_ok,   # M1
+                 "booster_sha": cfg.get("_booster_sha", "")[:12]})
+     st.save()
