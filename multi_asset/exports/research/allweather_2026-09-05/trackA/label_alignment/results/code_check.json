@@ -1,0 +1,168 @@
+{
+ "self_sha256": "37d140ad2fa0d5af0bf572f90e3c79d0c4d50ea13809fe48fa5a70f5652deabd",
+ "utc": "2026-09-06T02:24:55Z",
+ "checks": {
+  "1_identity": {
+   "pairs": {
+    "42": {
+     "rerun": "/workspace/review_scratch/allweather_trackA/label_alignment/preds_identity/pred_BASE_s42.npy",
+     "archived": "/workspace/review_scratch/allweather_trackA/results/preds/pred_BASE_s42.npy",
+     "sha_rerun": "671bf26e73685f6d0f1b8b7bb04d22ac7454ae6bd41121e0dae84ef165778841",
+     "sha_archived": "671bf26e73685f6d0f1b8b7bb04d22ac7454ae6bd41121e0dae84ef165778841",
+     "sha_equal": true,
+     "array_equal": true,
+     "max_abs_diff": 0.0,
+     "finite_rerun": 2032017,
+     "finite_archived": 2032017
+    },
+    "2027": {
+     "rerun": "/workspace/review_scratch/allweather_trackA/label_alignment/preds_identity/pred_BASE_s2027.npy",
+     "archived": "/workspace/review_scratch/allweather_trackA/results/preds/pred_BASE_s2027.npy",
+     "sha_rerun": "2cf6336d7ac8626911931b4d55e19ac5a6b68a398dfea4ba26717d6b46933c07",
+     "sha_archived": "2cf6336d7ac8626911931b4d55e19ac5a6b68a398dfea4ba26717d6b46933c07",
+     "sha_equal": true,
+     "array_equal": true,
+     "max_abs_diff": 0.0,
+     "finite_rerun": 2032017,
+     "finite_archived": 2032017
+    }
+   },
+   "PASS": true,
+   "rerun_config": {
+    "NJOBS": 12,
+    "lightgbm_version": "4.7.0",
+    "numpy_version": "2.4.6",
+    "device_self_sha256": "57611df1a3a4a6ae542cad3c1f63f563d017ecaf24b4df114573581229ef1afa",
+    "SEEDS": [
+     42,
+     2027
+    ],
+    "FOLDS": [
+     2024,
+     2025,
+     2026
+    ]
+   },
+   "rerun_env_threads": {
+    "OMP_NUM_THREADS": "12",
+    "OPENBLAS_NUM_THREADS": "12",
+    "MKL_NUM_THREADS": "12",
+    "NJOBS": "12"
+   },
+   "archived_preds_provenance": "results/preds/pred_BASE_s*.npy written by the s1_ALL run 2026-09-05 (NJOBS=24, device sha 1f58d60b, no Y4_ALT entry); S2_BASE replays used them"
+  },
+  "2_label_receipt": {
+   "n_sample": 2000,
+   "start_row": {
+    "all_anchors_row_E_closes_at_E": true,
+    "all_anchors_row_E+1_closes_at_E+300": true,
+    "target_leftmost_bar_open_equals_E": true,
+    "target_rightmost_bar_close_equals_E+4h": true
+   },
+   "y4_startE": {
+    "path": "/workspace/review_scratch/allweather_trackA/features/y4_startE.npz",
+    "sha256": "f17ed2377f2b421590d3a271da44b50b780e8d2208a80a1e9f614483f4b2b0c9",
+    "definition": "sum ret5 rows E+1..E+48 (target starts at the E close), NaN where meta y4 NaN or <46 bars",
+    "finite_cells": 3446599,
+    "max_abs_diff_recomputed": 0.0,
+    "n_gt_1e-6": 0,
+    "PASS": true
+   },
+   "y4_startE_acc": {
+    "path": "/workspace/review_scratch/allweather_trackA/features/y4_startE_acc.npz",
+    "sha256": "20cfffa634aa116c43e63d207b1b0b087357c764c5213eb56aba73b73b8c2d48",
+    "definition": "prod(1+ret5)-1 over rows E+1..E+48 (accounting form, target starts at the E close), NaN where meta y4 NaN or <46 bars",
+    "finite_cells": 3446599,
+    "max_abs_diff_recomputed": 2.53287387452783e-08,
+    "n_gt_1e-6": 0,
+    "PASS": true
+   },
+   "PASS": true
+  },
+  "3_causal": {
+   "feature_checked": "ret5_sum_864_v",
+   "window_rows": "E-864..E-1 (rightmost bar closes at E-300 s)",
+   "n_cells": 2000,
+   "max_abs_diff_correct_window": 0.0001558065414428711,
+   "n_beyond_f16_tolerance": 0,
+   "share_shifted_window_mismatch": 0.987,
+   "median_abs_diff_shifted_window": 0.0018914341926574707,
+   "target_leftmost_bar_open_equals_E": true,
+   "features_rightmost_close_le_E_minus_300": true,
+   "PASS": true
+  },
+  "4_fold_embargo": {
+   "rule": "train = years < test year (device: tr = YRA < YV), no embargo (as the pinned king pipeline)",
+   "folds": {
+    "2024": {
+     "n_train_anchors": 4338,
+     "n_test_anchors": 2196,
+     "last_train_anchor": "2023-12-31 20:00",
+     "first_test_anchor": "2024-01-01 00:00",
+     "label_end_minus_first_test_anchor_s": {
+      "ALT (rows E+1..E+48)": 0,
+      "BASE panel (rows E..E+47)": -300
+     },
+     "strict_lt": {
+      "ALT (rows E+1..E+48)": false,
+      "BASE panel (rows E..E+47)": true
+     },
+     "le": {
+      "ALT (rows E+1..E+48)": true,
+      "BASE panel (rows E..E+47)": true
+     },
+     "shared_rows_trainlabel_vs_testlabel_ALT": 0,
+     "shared_rows_trainlabel_vs_test_period_ALT": 0,
+     "overlap_rows_trainlabel_vs_testfeature_lookback_ALT (allowed direction, not a leak)": 144
+    },
+    "2025": {
+     "n_train_anchors": 6534,
+     "n_test_anchors": 2190,
+     "last_train_anchor": "2024-12-31 20:00",
+     "first_test_anchor": "2025-01-01 00:00",
+     "label_end_minus_first_test_anchor_s": {
+      "ALT (rows E+1..E+48)": 0,
+      "BASE panel (rows E..E+47)": -300
+     },
+     "strict_lt": {
+      "ALT (rows E+1..E+48)": false,
+      "BASE panel (rows E..E+47)": true
+     },
+     "le": {
+      "ALT (rows E+1..E+48)": true,
+      "BASE panel (rows E..E+47)": true
+     },
+     "shared_rows_trainlabel_vs_testlabel_ALT": 0,
+     "shared_rows_trainlabel_vs_test_period_ALT": 0,
+     "overlap_rows_trainlabel_vs_testfeature_lookback_ALT (allowed direction, not a leak)": 144
+    },
+    "2026": {
+     "n_train_anchors": 8724,
+     "n_test_anchors": 1452,
+     "last_train_anchor": "2025-12-31 20:00",
+     "first_test_anchor": "2026-01-01 00:00",
+     "label_end_minus_first_test_anchor_s": {
+      "ALT (rows E+1..E+48)": 0,
+      "BASE panel (rows E..E+47)": -300
+     },
+     "strict_lt": {
+      "ALT (rows E+1..E+48)": false,
+      "BASE panel (rows E..E+47)": true
+     },
+     "le": {
+      "ALT (rows E+1..E+48)": true,
+      "BASE panel (rows E..E+47)": true
+     },
+     "shared_rows_trainlabel_vs_testlabel_ALT": 0,
+     "shared_rows_trainlabel_vs_test_period_ALT": 0,
+     "overlap_rows_trainlabel_vs_testfeature_lookback_ALT (allowed direction, not a leak)": 144
+    }
+   },
+   "PASS_no_shared_bar": true,
+   "strict_lt_ALT_all_folds": false,
+   "note": "ALT label of the last training anchor ends exactly at the first test anchor's timestamp (\u0394 = 0 s): the literal strict '<' fails by equality while no cache row is shared (the test anchor's features stop at row E-1, its label starts at row E+1)."
+  }
+ },
+ "ALL_PASS_literal": false,
+ "ALL_PASS_no_shared_bar_reading": true
+}

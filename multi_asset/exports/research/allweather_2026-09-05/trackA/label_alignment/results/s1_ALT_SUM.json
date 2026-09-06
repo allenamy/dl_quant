@@ -1,0 +1,147 @@
+{
+ "config": {
+  "self_sha256": "57611df1a3a4a6ae542cad3c1f63f563d017ecaf24b4df114573581229ef1afa",
+  "FEA_IN": "/workspace/data/wide_fea_v2ext.npy",
+  "META_IN": "/workspace/data/wide_fea_v2ext_meta.npz",
+  "NEWF": [],
+  "ARMS": [
+   [
+    "BASE",
+    []
+   ]
+  ],
+  "SEEDS": [
+   42,
+   2027
+  ],
+  "FOLDS": [
+   2024,
+   2025,
+   2026
+  ],
+  "NJOBS": 12,
+  "lgbm": {
+   "n_estimators": 400,
+   "learning_rate": 0.05,
+   "num_leaves": 63,
+   "subsample": 0.8,
+   "colsample_bytree": 0.8
+  },
+  "lightgbm_version": "4.7.0",
+  "numpy_version": "2.4.6",
+  "utc": "2026-09-06T02:26:51Z",
+  "Y4_ALT": {
+   "path": "/workspace/review_scratch/allweather_trackA/features/y4_startE.npz",
+   "definition": "sum ret5 rows E+1..E+48 (target starts at the E close), NaN where meta y4 NaN or <46 bars",
+   "finite": 3446599
+  }
+ },
+ "base_frozen": {
+  "BASE_JP": {
+   "2024": 0.053,
+   "2025": 0.055,
+   "2026": 0.0545
+  },
+  "BASE_POD": {
+   "2024": 0.0574,
+   "2025": 0.0617,
+   "2026": 0.0571
+  }
+ },
+ "arms": {
+  "BASE": {
+   "families": [],
+   "n_cols": 78,
+   "runs": {
+    "42": {
+     "ic": {
+      "2024": 0.0545,
+      "2025": 0.0622,
+      "2026": 0.0554
+     },
+     "n_anchors": {
+      "2024": 2196,
+      "2025": 2190,
+      "2026": 1452
+     },
+     "train_rows": {
+      "2024": 709460,
+      "2025": 1310866,
+      "2026": 2160677
+     },
+     "fit_s": {
+      "2024": 8.4,
+      "2025": 14.4,
+      "2026": 40.6
+     },
+     "rho_base": {
+      "2024": 1.0,
+      "2025": 1.0,
+      "2026": 1.0
+     },
+     "ic_resid_base": {
+      "2024": 0.0156,
+      "2025": 0.0196,
+      "2026": 0.0131
+     },
+     "repro_vs_BASE_POD": {
+      "2024": -0.0029,
+      "2025": 0.0005,
+      "2026": -0.0017
+     },
+     "repro_vs_BASE_JP": {
+      "2024": 0.0015,
+      "2025": 0.0072,
+      "2026": 0.0009
+     },
+     "repro_within_0.003_POD": true,
+     "repro_within_0.003_JP": false
+    },
+    "2027": {
+     "ic": {
+      "2024": 0.0518,
+      "2025": 0.0612,
+      "2026": 0.0558
+     },
+     "n_anchors": {
+      "2024": 2196,
+      "2025": 2190,
+      "2026": 1452
+     },
+     "train_rows": {
+      "2024": 709460,
+      "2025": 1310866,
+      "2026": 2160677
+     },
+     "fit_s": {
+      "2024": 13.3,
+      "2025": 20.8,
+      "2026": 48.8
+     },
+     "rho_base": {
+      "2024": 1.0,
+      "2025": 1.0,
+      "2026": 1.0
+     },
+     "ic_resid_base": {
+      "2024": 0.0143,
+      "2025": 0.02,
+      "2026": 0.0129
+     },
+     "repro_vs_BASE_POD": {
+      "2024": -0.0056,
+      "2025": -0.0005,
+      "2026": -0.0013
+     },
+     "repro_vs_BASE_JP": {
+      "2024": -0.0012,
+      "2025": 0.0062,
+      "2026": 0.0013
+     },
+     "repro_within_0.003_POD": false,
+     "repro_within_0.003_JP": false
+    }
+   }
+  }
+ }
+}
