@@ -12,6 +12,7 @@ FETCH_BUDGET = int(os.environ.get("FETCH_BUDGET", "240"))       # 60 s 滑窗权
 FUND_BULK = int(os.environ.get("FUND_BULK", "0"))               # 1 = 资金费用无 symbol 的批量接口(时间分页)+ 逐名回退; 0 = 逐名(现行为)
 HTTP_TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "0")) or None   # urlopen 超时秒; 0 = 无(现行为)
 BULK_HOURS = int(os.environ.get("BULK_HOURS", "8"))                  # 批量资金费时间窗(小时); 8 = 首版; 窗越宽逐名回退越少(语义不变: 逐名仍按 fundingTime ≥ last_ts+1 筛)
+BULK_PAGES = int(os.environ.get("BULK_PAGES", "6"))                  # 批量分页上限; 6 = 首版。实测(2026-09-06): 8h 窗 2 页穷尽, 26h 窗需 7 页 ⇒ 26h 必须配 ≥8。达上限仍未穷尽 = 不信任 ⇒ 整锚回退逐名(保守语义不变)
 
 HOME = os.environ.get("WIDE_SHADOW_HOME", os.path.expanduser("~/wide_shadow"))
 BUNDLE = os.environ.get("WIDE_SHADOW_BUNDLE", os.path.join(os.path.expanduser("~/wide_shadow"), "shadow_bundle"))
@@ -336,11 +337,11 @@ def run_anchor(st, fx, cfg, booster, anchor):
     # ── 4. funding 增量(V12: fundingTime<=anchor) ── M1: 遍历基名单; fund_updates 语义不变(live 名), 基外名计 fund_updates_base
     fund_updates = 0; fund_updates_base = 0
     _t_kl = round(time.time() - _t_kl0, 1); _t_fd0 = time.time()
-    _bulk = {}; _bulk_ok = False; _bulk_pages = 0; _bulk_rows = 0; _fund_fallback = 0
+    _bulk = {}; _bulk_ok = False; _bulk_pages = 0; _bulk_rows = 0; _fund_fallback = 0; _fund_per_symbol = 0; _fund_err_syms = []
     _bulk_start = (anchor - BULK_HOURS * 3600 + 1) * 1000   # 批量窗 = 锚前 BULK_HOURS 小时(覆盖 1h/4h/8h 名的应到结算 + 陈旧名); 更旧的名走逐名回退
     if FUND_BULK:
         _seen = set(); _start = _bulk_start; _ok = True
-        for _pg in range(6):   # 时间分页: 每页 ≤1000 行, 同一 fundingTime 的行 ≤ ~460 < 1000 ⇒ 用末行时刻(含)续页并按 (symbol, fundingTime) 去重
+        for _pg in range(BULK_PAGES):   # 时间分页: 每页 ≤1000 行, 同一 fundingTime 的行 ≤ ~460 < 1000 ⇒ 用末行时刻(含)续页并按 (symbol, fundingTime) 去重
             r = fx.get("/fapi/v1/fundingRate", {"startTime": _start, "endTime": anchor * 1000 + 999, "limit": 1000}, weight=1)
             _bulk_pages += 1
             if isinstance(r, dict) or not isinstance(r, list): _ok = False; break
@@ -351,7 +352,7 @@ def run_anchor(st, fx, cfg, booster, anchor):
             if len(r) < 1000: break
             _start = int(r[-1]["fundingTime"])
         else:
-            _ok = False   # 6 页仍未穷尽 ⇒ 不信任, 全部逐名
+            _ok = False   # 达 BULK_PAGES 仍未穷尽 ⇒ 不信任, 全部逐名
         _bulk_ok = _ok
         if not _bulk_ok: _bulk = {}
     for s in base:
@@ -372,9 +373,12 @@ def run_anchor(st, fx, cfg, booster, anchor):
                        key=lambda x: int(x["fundingTime"]))
         else:
             if _bulk_ok: _fund_fallback += 1
+            _fund_per_symbol += 1   # 真实逐名请求数(bulk 失败时 _fund_fallback 恒 0, 会误导 — 2026-09-06)
             r = fx.get("/fapi/v1/fundingRate", {"symbol": s, "startTime": (last_ts + 1) * 1000,
                                                 "endTime": anchor * 1000 + 999, "limit": 100}, weight=1)
-        if isinstance(r, dict): continue
+        if isinstance(r, dict):
+            if len(_fund_err_syms) < 10: _fund_err_syms.append(s)   # 诊断: 哪些名恒失败
+            continue
         est = st.ema.get(s)
         for row in r:
             ft = int(row["fundingTime"]) // 1000
@@ -600,7 +604,7 @@ def run_anchor(st, fx, cfg, booster, anchor):
                 "data_max_ts": data_max_ts, "fund_updates": fund_updates, "weight_used": fx.weight_used,
                 "runtime_s": round(time.time() - t0, 1),
                 "fetch_v2": {"workers": FETCH_WORKERS, "budget": FETCH_BUDGET, "fund_bulk": FUND_BULK, "timeout": HTTP_TIMEOUT,
-                             "bulk_ok": _bulk_ok, "bulk_pages": _bulk_pages, "bulk_rows": _bulk_rows, "fund_fallback_n": _fund_fallback, "bulk_hours": BULK_HOURS,
+                             "bulk_ok": _bulk_ok, "bulk_pages": _bulk_pages, "bulk_rows": _bulk_rows, "fund_fallback_n": _fund_fallback, "bulk_hours": BULK_HOURS, "bulk_pages_cap": BULK_PAGES, "fund_per_symbol_n": _fund_per_symbol, "fund_err_syms": _fund_err_syms,
                              "n_req": fx.n_req, "n_err": fx.n_err, "t_klines_s": _t_kl, "t_fund_s": _t_fd},
                 "base_n": len(base), "fund_base_n": len(base_vals), "fund_updates_base": fund_updates_base, "exinfo_ok": exinfo_ok,   # M1
                 "booster_sha": cfg.get("_booster_sha", "")[:12]})

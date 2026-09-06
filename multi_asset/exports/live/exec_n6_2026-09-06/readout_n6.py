@@ -46,9 +46,14 @@ else:
         if any((t > fs and not h) for t, h in v): flap.append(s)
     for s in should: print(f"   {s:16s} first check N+{sorted(by[s])[0][0]:.0f}s present={'Y' if at_first[s] else 'n'} | first seen N+{first_seen[s]:.0f}s | later absent: {'YES' if s in flap else 'no'}")
     if should:
+        # 结果门 v2 §3.3: 判据 = 每个应结算名在其【第一次被查询时】即已存在 N 行, 且后续无一消失。
+        # 不再对"末名首查时刻"设秒数上限 —— 探针按 1 req/s 顺序扫描, 末名首查 ≈ 轮次起点+27 s, 量的是探针速度而非数据到位时刻(作废理由见 PREREG_exec_n6_phase2_gates_v2 §0.4)。
         mx = max(first_seen.values()); n_first = sum(at_first.values())
-        if mx <= 60 and not flap: print(f"P1 GREEN: 100% of should-settle names by N+{mx:.0f}s (present at first check {n_first}/{len(should)}; upper bound = first-check time); no flapping")
-        else: print(f"P1 RED by frozen wording: last name first seen N+{mx:.0f}s{' ; flapping ' + str(flap) if flap else ''} ⇒ remedy offset = ceil(({mx:.0f}+30)/60) = {math.ceil((mx + 30) / 60)} min")
+        if n_first == len(should) and not flap:
+            print(f"P1 GREEN(v2): 应结算名 {n_first}/{len(should)} 全部【首查即在】, 无抖动(末名首查 N+{mx:.0f}s = 探针扫描速度, 只报不判)")
+        else:
+            _late = [s for s in should if not at_first[s]]
+            print(f"P1 RED(v2): 首查即在 {n_first}/{len(should)}{' ; 晚到 ' + str(_late[:6]) if _late else ''}{' ; 抖动 ' + str(flap) if flap else ''}")
     if errs: print("P1 probe errors:", errs[:10])
     wts = [(r["t_after"], int(r["weight"])) for r in pr if r.get("weight") and 60 <= r["t_after"] <= 300]
     if wts: print(f"weight (X-MBX-USED-WEIGHT-1M seen by probe, [N+60,N+300]s): max {max(w for _, w in wts)} at N+{[t for t, w in wts if w == max(x for _, x in wts)][0]:.0f}s (IP-level upper bound sandbox+probe; limit 2400; sandbox budget 480)")
@@ -58,8 +63,8 @@ def rows(p, e):
 sbs, sbt = rows(SB + "/shadow_log.jsonl", "signal"), rows(SB + "/shadow_log.jsonl", "target_live")
 lvs, lvt = rows(W + "/shadow_log.jsonl", "signal"), rows(W + "/shadow_log.jsonl", "target_live")
 anom = [r for r in jl(SB + "/shadow_log.jsonl") if r.get("anchor_ts") == A and r.get("e") in ("anchor_skip", "anchor_error", "target_live_error", "killed")]
-P4_LIMIT_S = float(os.environ.get("P4_LIMIT_S", "150"))     # Phase 2: projected combo landing ≤ N+2:30 (Phase 1 was 330)
-RUNTIME_GATE_S = float(os.environ.get("RUNTIME_GATE_S", "90"))  # Phase 2 sandbox runtime gate
+P4_LIMIT_S = float(os.environ.get("P4_LIMIT_S", "150"))      # 结果门 v2 §3.2: 投影 combo 落盘 ≤ N+2:30(不变)
+RUNTIME_GATE_S = float(os.environ.get("RUNTIME_GATE_S", "210"))  # 结果门 v2 §3.5: ≤210 s(= 在役生产者当前水平, 保证不比现状慢; 旧的 90 s 是按最好情况写的, 已作废)
 def tline(tag, s, t):
     if not s: print(f"P4 {tag}: no signal row"); return None
     ts_t = parse_utc((t or {}).get("logged_utc")); ts_s = parse_utc(s.get("logged_utc"))
