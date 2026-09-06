@@ -1,0 +1,10 @@
+# pod2 /workspace 清理收据 2026-09-06 02:0xZ(lead; 原因: 配额顶 263 GiB, du 262.5 GiB, 早停两臂 8 个写进程前需 ≥2 GB 余量; pod 配额静默杀任务教训 09-05 15:08Z)
+# 删除对象 = Track A 原始特征数组(A1 现货/永续 5m 序列 + A2 premium index 5m), 判决已收口(RESULT_trackA 零录取; A2 S1 死, A1 S2 KILLED), 门跑真正输入(a1/a2_feat_shift*.npz, meta_exec25, y4_startE)保留;
+# 重建配方已归档: scripts/stream_a1.py(data.binance.vision spot/perp 5m)与 scripts/build_a2_premidx.py; sha 与 results/MANIFEST_pod.txt L26–30 逐位相符(删除前 sha256sum 实测, 无进程占用 lsof/ps 核对)。
+# 删除前 sha256  大小(bytes)  路径
+d8e8d345d4c99faac97f7eda04e6100246351e3ca86148f679c41196da3dbd18  1627337076  /workspace/review_scratch/allweather_trackA/features/premidx_5m.npy
+ed981e997f59db45d52d7d47737e3c8356ee4b2f1c242781a003499338471c18   468178490  /workspace/review_scratch/allweather_trackA/features/a1_spot_tbf.npy
+200b149b8d6880ddeb09104ddc19b7abd11783b5b1e7aeaba7765e5ddcd8868f   468178490  /workspace/review_scratch/allweather_trackA/features/a1_spot_lqv.npy
+fb098e5b5e17f1eecb892e095ca5dbcde44a20e29b92cc4de0f8df5641dadadb   936356852  /workspace/review_scratch/allweather_trackA/features/a1_spot_close.npy
+dc5cfe4d00fe3a6357e1b2f056314ff36ac47e8707e3b31040bff49b61a4b7be   936356852  /workspace/review_scratch/allweather_trackA/features/a1_perp_close.npy
+# du -sm /workspace: 268834 MiB(删除前, 262.5 GiB)→ 264653 MiB(删除后, 258.5 GiB); 余量 ≈ 4.5 GiB。allweather_trackA 6166 → 1934 MiB。
