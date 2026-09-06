@@ -48,3 +48,6 @@ ccb7a0805be2a106898467b5ffef3a8fd4813a659e044492c0a437b0e5d7aece  /workspace/rev
 
 ## 5. 附录 addendum_mE1_s2027/(2026-09-05 17:4xZ; RESULT §10)
 mE1 月折以种子 2027 重训(dl_monthly_wf 逐字月折训练器 + 一行种子白名单补丁, 4 分片, 15:08Z 配额事故后 resume 重启, 20/20 折)→ 拼接 → 拼行(spl27/spl42)→ 同装置回放 → `judge_gate_addendum.py`(冻结主窗 + 全窗)。pod 根 `/workspace/review_scratch/allweather_trackB/mwf_s2027/` + `…/replay/dev_alt/`; 数组 sha `addendum_mE1_s2027/POD_SHA256SUMS_arrays_and_devices.txt`; 归档文件 pod 端 sha `POD_SHA256SUMS_archived_files.txt`(63/63 相等)。
+
+## 6. 附录 addendum_mE1_constseed/(2026-09-06 01:5xZ; RESULT §11)
+固定种子(每折 seed 42)逐月折 20/20(逐字月折训练器一行行为补丁 + 一行元数据补丁, 4 分片)+ 年折 save 诊断跑(逐字年折训练器 + 12 行只保存补丁, 预测逐位同门跑)→ 拼接/拼行 → 同装置回放 → `judge_gate_addendum2.py`(冻结读法 (a)/(b)/(c))+ `agreement.py`(相邻月/跨年/种子间一致性)。pod 根 `/workspace/review_scratch/allweather_trackB/mE1_constseed/`; 数组 sha `addendum_mE1_constseed/POD_SHA256SUMS_arrays_and_devices.txt`; 归档文件 pod 端 sha `POD_SHA256SUMS_archived_files.txt`(70/70 相等)。

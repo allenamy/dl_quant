@@ -1,0 +1,8 @@
+330c330
+<     torch.manual_seed(SEED + YM); np.random.seed(SEED + YM)
+---
+>     torch.manual_seed(SEED); np.random.seed(SEED)   # mE1_constseed (addendum §11): constant init/shuffle seed for EVERY fold
+432c432
+<     json.dump({"tag": TAG, "fold": YM, "seed_fold": SEED + YM, **fold,
+---
+>     json.dump({"tag": TAG, "fold": YM, "seed_fold": SEED, **fold,
