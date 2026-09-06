@@ -1,0 +1,67 @@
+--- w10_health.py
++++ w10_volcap.py
+@@ -48,10 +48,13 @@
+     assert len(_tiers) == 3, f"COSTB_JSON must give 3 tiers in device order (qv4h>=5e6, >=1e6, rest); got {len(_tiers)}"
+     COST_B_OVERRIDE = [(float(t["maker_bps"]), float(t["taker_bps"]), float(t["maker_share"])) if isinstance(t, dict) else (float(t[0]), float(t[1]), float(t[2])) for t in _tiers]
+ UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade", "m1"), UMASK_SCOPE   # m1 (team-lead refinement 2026-09-05) = live M1 semantics: members = universe ∩ listed for king/rev24/F10 and the trade set; fund z = rank within the 829 base (xz_in_base)   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+-_CFG = {"COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
++VOLCAP_GAMMA = float(os.environ.get("VOLCAP_GAMMA", "0")); assert VOLCAP_GAMMA in (0.0, 0.5, 1.0), f"VOLCAP_GAMMA 白名单外: {VOLCAP_GAMMA}"   # PREREG_tail_aware_sizing_2026-09-06 §1: per-name cap capw·min(1,(σ_med/σ_i)^γ); 0 = bitwise-unchanged path
++VOLCAP_WIN = 42; VOLCAP_MIN_N = 30   # frozen: σ_i over meta anchors t−42…t−1 (7 days), ≥30 finite y4 values
++_CFG = {"VOLCAP_GAMMA": VOLCAP_GAMMA, "VOLCAP_WIN": VOLCAP_WIN, "VOLCAP_MIN_N": VOLCAP_MIN_N, "COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
+ import hashlib as _hl
+ _CFG["HEALTH"] = {"device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb…, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE in {members (original), trade, m1 (fund z in the 829 base, other legs and trade set within the universe)} + legs() series saved; default path (all unset) bitwise-unchanged", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
++_CFG["VOLCAP"] = {"device": "w10_volcap.py = health_check w10_health.py (sha256 8684d9a9…) + VOLCAP_GAMMA per-name realised-vol cap after the flat clip of both books (kc L222 / F10 L260 form) + per-anchor diagnostics; γ=0 ⇒ bitwise-unchanged path", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+ print("CONFIG " + json.dumps(_CFG), flush=True)   # E-0826-C/D: 装置必须自报全部生效配置
+ t0 = time.time()
+ MT = np.load(f"{B}/wide_fea_hist_meta.npz", allow_pickle=True)
+@@ -64,6 +67,17 @@
+     members = _mem2
+     print(f"MEMBERS_TOPN={MEMBERS_TOPN}: members rebuilt from qvk ranking", flush=True)
+ yrs = np.array([time.gmtime(int(t)).tm_year for t in E_ts]); nA = len(E_ts); NW = 829
++VC_SIG = None; VC_RATIO = np.ones((nA, NW), np.float32); VC_DIAG = np.full((nA, 4), np.nan)   # diag cols: n_capped, gross_removed_share, neff_after_renorm, hivol_tercile_gross_share
++if VOLCAP_GAMMA > 0:   # σ_i(t) = sample std (ddof=1) of y4 over meta anchors t−VOLCAP_WIN … t−1, NaN if < VOLCAP_MIN_N finite values (causal: anchor t−1 label ends at E_t)
++    _yv = np.where(np.isfinite(y4), y4, 0.0).astype(np.float64); _fv = np.isfinite(y4).astype(np.int64)
++    _S1 = np.concatenate([np.zeros((1, NW)), np.cumsum(_yv, 0)]); _S2 = np.concatenate([np.zeros((1, NW)), np.cumsum(_yv * _yv, 0)]); _Nv = np.concatenate([np.zeros((1, NW), np.int64), np.cumsum(_fv, 0)])
++    VC_SIG = np.full((nA, NW), np.nan)
++    for _i in range(nA):
++        _lo = max(0, _i - VOLCAP_WIN); _n = _Nv[_i] - _Nv[_lo]; _s1 = _S1[_i] - _S1[_lo]; _s2 = _S2[_i] - _S2[_lo]
++        with np.errstate(invalid="ignore", divide="ignore"):
++            _var = (_s2 - _s1 * _s1 / np.maximum(_n, 1)) / np.maximum(_n - 1, 1)
++        VC_SIG[_i] = np.where(_n >= VOLCAP_MIN_N, np.sqrt(np.maximum(_var, 0.0)), np.nan)
++    print("VOLCAP_DEF " + json.dumps({"gamma": VOLCAP_GAMMA, "win": VOLCAP_WIN, "min_n": VOLCAP_MIN_N, "sigma_finite_share": round(float(np.isfinite(VC_SIG).mean()), 4), "sigma_median_bps_by_year": {int(y): round(float(np.nanmedian(VC_SIG[yrs == y]) * 1e4), 1) for y in sorted(set(yrs.tolist()))}}), flush=True)
+ PW = np.load(f"{B}/wide_panel_4h_hist_v2.npz", allow_pickle=True)
+ pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}
+ FN = PW["f_fund_now"]; IV = PW["f_fund_iv"] if "f_fund_iv" in PW else np.full_like(PW["f_fund_now"], 8.0); R24 = PW["f_rev_24h"]; FE = PW["f_fund_ema_v1"]
+@@ -223,6 +237,16 @@
+         g = np.abs(w).sum()
+         if g < 1e-9: continue
+         w /= g; capw = 2.5 / max(int(sel.sum()), 1); w = np.clip(w, -capw, capw)
++        if VOLCAP_GAMMA > 0:   # PREREG_tail_aware_sizing §1: cap_i = capw·min(1,(σ_med/σ_i)^γ); names without a valid σ_i keep capw; ranking and gross untouched
++            _sg = VC_SIG[i, m]; _okg = np.isfinite(_sg) & (_sg > 0); _smed = float(np.median(_sg[_okg])) if _okg.any() else np.nan
++            _rat = np.ones(len(m))
++            if np.isfinite(_smed) and _smed > 0: _rat[_okg] = np.minimum(1.0, (_smed / _sg[_okg]) ** VOLCAP_GAMMA)
++            VC_RATIO[i, m] = _rat.astype(np.float32); _capi = capw * _rat; _wb = np.abs(w).copy()
++            w = np.clip(w, -_capi, _capi)
++            _wa = np.abs(w); _g2b = _wa.sum(); _wn = _wa / _g2b if _g2b > 1e-9 else _wa
++            _hi = np.zeros(len(m), bool)
++            if _okg.sum() >= 3: _hi[_okg] = _sg[_okg] >= np.percentile(_sg[_okg], 200.0 / 3)
++            VC_DIAG[i] = [float(((_wb > _capi + 1e-15) & sel).sum()), float(1.0 - _wa.sum() / _wb.sum()) if _wb.sum() > 1e-12 else np.nan, float(1.0 / np.sum(_wn ** 2)) if _g2b > 1e-9 else np.nan, float(_wn[_hi].sum())]
+         g2 = np.abs(w).sum()
+         if g2 > 1e-9: w /= g2
+         tgt = np.zeros(NW); tgt[m] = w
+@@ -261,6 +285,7 @@
+             if _gf > 1e-9:
+                 _wf = _wf / _gf
+                 _wf = np.clip(_wf, -capw, capw)
++                if VOLCAP_GAMMA > 0: _wf = np.clip(_wf, -_capi, _capi)   # PREREG_tail_aware_sizing §1: F10 book, same per-name cap
+                 _g2f = np.abs(_wf).sum()
+                 if _g2f > 1e-9:
+                     _wf = _wf / _g2f
+@@ -377,5 +402,5 @@
+ _OT = os.environ.get("OUT_TAG", "")   # 并行道输出隔离(PREREG_universe_dyn): 未设时文件名与旧装置同
+ _OT = f"_{_OT}" if _OT else ""
+ json.dump(out, open(f"{PD}/w10_ablation_summary{_OT}.json", "w"), indent=1, ensure_ascii=False)
+-np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), legs_ts=E_ts[np.array(sorted(pos, key=pos.get))], legs_king=LRa["king"], legs_rev24=LRa["rev24"], legs_fund=LRa["fund"], **save)   # health_check: the seat inputs (legs() series) saved for the live-seat comparison; rec/W arrays unchanged
++np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), legs_ts=E_ts[np.array(sorted(pos, key=pos.get))], legs_king=LRa["king"], legs_rev24=LRa["rev24"], legs_fund=LRa["fund"], **({"volcap_ratio": VC_RATIO.astype(np.float16), "volcap_sigma": VC_SIG.astype(np.float16), "volcap_diag": VC_DIAG, "volcap_meta_ts": E_ts} if VOLCAP_GAMMA > 0 else {}), **save)   # health_check: the seat inputs (legs() series) saved for the live-seat comparison; rec/W arrays unchanged
+ print("DONE", round(time.time() - t0, 1), "s", flush=True)
