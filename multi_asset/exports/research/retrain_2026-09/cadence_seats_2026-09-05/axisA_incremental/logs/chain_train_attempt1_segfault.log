@@ -1,0 +1,6 @@
+CHAIN_START 2026-09-06T02:22:36Z
+run_train.sh: line 8: 165206 Segmentation fault      (core dumped) MODE=$MODE NJOBS=12 /workspace/venv/bin/python train_incremental.py > logs/train_$MODE.log 2>&1
+CONFIG {"MODE": "ident", "NJOBS": 12, "EMB_anchors": 60, "EMB_s": 864000, "LABEL_s": 14400, "SEED0": 20260905, "DECAY": 0.9, "NEW_TREES": 40, "AGE_MAX": 12, "train_rule": "E_ts + 48*300 < first_test_E_ts - 60*14400 (K1 rule verbatim; strict '<')", "start_model": "/workspace/review_scratch/cadence_seats/axisA/models_d1/fold000_202401.txt", "start_model_sha256": "1c383f4d8f755b13e37d53d1f4dcb4bb2053f80df00e431974ac269ccfe371d8", "lightgbm": "4.7.0", "numpy": "2.4.6", "python": "3.11.10", "self_sha256": "fa56d7bc2dfbca408049e8ceddeaf3072f4c076f809e9b58d84cf23f92344971", "FEA": "/workspace/data/wi
+PREP X (2741477, 78) float32 Y (2741477,) rows_anchors 10176/10176 keep 78 E_ts[0] 2022-01-08 00:00 E_ts[-1] 2026-08-30 20:00 prep_s 2.5
+FOLDS 32 all K1 train_rows equal; prep+folds 3s
+ABORT ident rc!=0 2026-09-06T02:22:47Z

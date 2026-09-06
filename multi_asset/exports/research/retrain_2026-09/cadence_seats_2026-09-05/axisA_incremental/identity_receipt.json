@@ -1,0 +1,77 @@
+{
+ "config": {
+  "MODE": "ident",
+  "NJOBS": 12,
+  "EMB_anchors": 60,
+  "EMB_s": 864000,
+  "LABEL_s": 14400,
+  "SEED0": 20260905,
+  "DECAY": 0.9,
+  "NEW_TREES": 40,
+  "AGE_MAX": 12,
+  "train_rule": "E_ts + 48*300 < first_test_E_ts - 60*14400 (K1 rule verbatim; strict '<')",
+  "start_model": "/workspace/review_scratch/cadence_seats/axisA/models_d1/fold000_202401.txt",
+  "start_model_sha256": "1c383f4d8f755b13e37d53d1f4dcb4bb2053f80df00e431974ac269ccfe371d8",
+  "lightgbm": "4.7.0",
+  "numpy": "2.4.6",
+  "python": "3.11.10",
+  "self_sha256": "37cd588136ba66f3da11d6fdbfd743e6d7e24b88e54b255f943be8161b9fb44b",
+  "FEA": "/workspace/data/wide_fea_v2ext.npy",
+  "META": "/workspace/data/wide_fea_v2ext_meta.npz",
+  "k1_lgbm_params": {
+   "n_estimators": 400,
+   "learning_rate": 0.05,
+   "num_leaves": 63,
+   "subsample": 0.8,
+   "colsample_bytree": 0.8,
+   "verbose": -1
+  },
+  "k1_folds_d1_json": "/workspace/review_scratch/cadence_seats/axisA/folds_d1.json",
+  "k1_npy": "/workspace/review_scratch/rolling_king/slow_pred_rollm.npy",
+  "OMP_NUM_THREADS": "12"
+ },
+ "identity": {
+  "start_pred_equal_k1_fold0": true,
+  "start_pred_maxabs": 0.0,
+  "KR_identity": {
+   "decay_rate": 1.0,
+   "refit_s": 5.9,
+   "model_sha_equal": false,
+   "sha_start": "1c383f4d8f755b13",
+   "sha_refit": "ce77c9141fd6b532",
+   "n_leaf_values": 25200,
+   "leaf_values_equal": true,
+   "leaf_maxabs": 0.0,
+   "fold0_pred_equal": true,
+   "fold0_pred_maxabs": 0.0,
+   "model_string_lines_differ": 2,
+   "diff_examples": [
+    [
+     "[num_threads: 48]",
+     "[num_threads: 12]"
+    ],
+    [
+     "[refit_decay_rate: 0.9]",
+     "[refit_decay_rate: 1]"
+    ]
+   ]
+  },
+  "KC_identity": {
+   "path": "fallback: lgb.train(num_boost_round=1, init_model=start).predict(num_iteration=400) [0 rounds refused: ValueError: Number of boosting rounds must be greater than 0. Got 0.]",
+   "s": 2.8,
+   "trees_after": 401,
+   "fold1_pred_equal_start": true,
+   "fold1_pred_maxabs": 0.0,
+   "n": 43891
+  },
+  "KC_sklearn_path": {
+   "fit_s": 4.5,
+   "trees_after": 440,
+   "expected": 440,
+   "truncated_pred_equal_start": true,
+   "truncated_pred_maxabs": 0.0
+  },
+  "all_identities_hold": true
+ },
+ "wall_s": 18.1
+}

@@ -1,0 +1,45 @@
+CHAIN_START 2026-09-06T02:27:05Z
+CONFIG {"MODE": "ident", "NJOBS": 12, "EMB_anchors": 60, "EMB_s": 864000, "LABEL_s": 14400, "SEED0": 20260905, "DECAY": 0.9, "NEW_TREES": 40, "AGE_MAX": 12, "train_rule": "E_ts + 48*300 < first_test_E_ts - 60*14400 (K1 rule verbatim; strict '<')", "start_model": "/workspace/review_scratch/cadence_seats/axisA/models_d1/fold000_202401.txt", "start_model_sha256": "1c383f4d8f755b13e37d53d1f4dcb4bb2053f80df00e431974ac269ccfe371d8", "lightgbm": "4.7.0", "numpy": "2.4.6", "python": "3.11.10", "self_sha256": "37cd588136ba66f3da11d6fdbfd743e6d7e24b88e54b255f943be8161b9fb44b", "FEA": "/workspace/data/wi
+PREP X (2741477, 78) float32 Y (2741477,) rows_anchors 10176/10176 keep 78 E_ts[0] 2022-01-08 00:00 E_ts[-1] 2026-08-30 20:00 prep_s 4.2
+FOLDS 32 all K1 train_rows equal; prep+folds 5s
+START RECEIPT: models_d1/fold000_202401.txt trees 400 fold-0 test predictions == K1 slow_pred_rollm rows: True max|Δ| 0.000e+00 n 45328
+KR_IDENTITY {"decay_rate": 1.0, "refit_s": 5.9, "model_sha_equal": false, "sha_start": "1c383f4d8f755b13", "sha_refit": "ce77c9141fd6b532", "n_leaf_values": 25200, "leaf_values_equal": true, "leaf_maxabs": 0.0, "fold0_pred_equal": true, "fold0_pred_maxabs": 0.0, "model_string_lines_differ": 2, "diff_examples": [["[num_threads: 48]", "[num_threads: 12]"], ["[refit_decay_rate: 0.9]", "[refit_decay_rate: 1]"]]}
+KC_IDENTITY {"path": "fallback: lgb.train(num_boost_round=1, init_model=start).predict(num_iteration=400) [0 rounds refused: ValueError: Number of boosting rounds must be greater than 0. Got 0.]", "s": 2.8, "trees_after": 401, "fold1_pred_equal_start": true, "fold1_pred_maxabs": 0.0, "n": 43891}
+KC_SKLEARN_PATH {"fit_s": 4.5, "trees_after": 440, "expected": 440, "truncated_pred_equal_start": true, "truncated_pred_maxabs": 0.0}
+IDENTITY_DONE all_identities_hold True wall 18s
+CONFIG {"MODE": "KR", "NJOBS": 12, "EMB_anchors": 60, "EMB_s": 864000, "LABEL_s": 14400, "SEED0": 20260905, "DECAY": 0.9, "NEW_TREES": 40, "AGE_MAX": 12, "train_rule": "E_ts + 48*300 < first_test_E_ts - 60*14400 (K1 rule verbatim; strict '<')", "start_model": "/workspace/review_scratch/cadence_seats/axisA/models_d1/fold000_202401.txt", "start_model_sha256": "1c383f4d8f755b13e37d53d1f4dcb4bb2053f80df00e431974ac269ccfe371d8", "lightgbm": "4.7.0", "numpy": "2.4.6", "python": "3.11.10", "self_sha256": "37cd588136ba66f3da11d6fdbfd743e6d7e24b88e54b255f943be8161b9fb44b", "FEA": "/workspace/data/wide_
+PREP X (2741477, 78) float32 Y (2741477,) rows_anchors 10176/10176 keep 78 E_ts[0] 2022-01-08 00:00 E_ts[-1] 2026-08-30 20:00 prep_s 4.0
+FOLDS 32 all K1 train_rows equal; prep+folds 5s
+START RECEIPT: models_d1/fold000_202401.txt trees 400 fold-0 test predictions == K1 slow_pred_rollm rows: True max|Δ| 0.000e+00 n 45328
+SAVED /workspace/review_scratch/cadence_seats/axisA_incremental/slow_pred_KR.npy shape (10176, 829) sha256 879ab60b75f4838859791fd95a5c1ace0dbcfc746a59c3cad8141e3f9ab0008f finite_anchors 5838 pre2024_all_nan True finite_mask_equal_pinned True fold0_equal_k1 True
+IC_AGE KR: {"by_age": {"1": 0.05505, "2": 0.05413, "3": 0.05329, "4": 0.05246, "5": 0.05155, "6": 0.05065, "7": 0.04971, "8": 0.04875, "9": 0.04775, "10": 0.04674, "11": 0.04572, "12": 0.04466}, "paired": {"age1_minus_age12": 0.010391135700047016, "se": 0.0006805724708151762, "n": 3828}}
+DONE KR folds 32 total_fit_s 416.4 final_trees 400 consistency_mean 0.9990677419354841 wall 493s
+CONFIG {"MODE": "KC", "NJOBS": 12, "EMB_anchors": 60, "EMB_s": 864000, "LABEL_s": 14400, "SEED0": 20260905, "DECAY": 0.9, "NEW_TREES": 40, "AGE_MAX": 12, "train_rule": "E_ts + 48*300 < first_test_E_ts - 60*14400 (K1 rule verbatim; strict '<')", "start_model": "/workspace/review_scratch/cadence_seats/axisA/models_d1/fold000_202401.txt", "start_model_sha256": "1c383f4d8f755b13e37d53d1f4dcb4bb2053f80df00e431974ac269ccfe371d8", "lightgbm": "4.7.0", "numpy": "2.4.6", "python": "3.11.10", "self_sha256": "37cd588136ba66f3da11d6fdbfd743e6d7e24b88e54b255f943be8161b9fb44b", "FEA": "/workspace/data/wide_
+PREP X (2741477, 78) float32 Y (2741477,) rows_anchors 10176/10176 keep 78 E_ts[0] 2022-01-08 00:00 E_ts[-1] 2026-08-30 20:00 prep_s 5.1
+FOLDS 32 all K1 train_rows equal; prep+folds 5s
+START RECEIPT: models_d1/fold000_202401.txt trees 400 fold-0 test predictions == K1 slow_pred_rollm rows: True max|Δ| 0.000e+00 n 45328
+SAVED /workspace/review_scratch/cadence_seats/axisA_incremental/slow_pred_KC.npy shape (10176, 829) sha256 ce24ce7f6b86dac318411fc6e4cb768ecbe06dda3b24b314260f24a59ae543bc finite_anchors 5838 pre2024_all_nan True finite_mask_equal_pinned True fold0_equal_k1 True
+IC_AGE KC: {"by_age": {"1": 0.03896, "2": 0.03829, "3": 0.03791, "4": 0.03748, "5": 0.03682, "6": 0.03604, "7": 0.0354, "8": 0.03468, "9": 0.03414, "10": 0.03383, "11": 0.03334, "12": 0.03289}, "paired": {"age1_minus_age12": 0.006067600101232529, "se": 0.0008801330487715248, "n": 3828}}
+DONE KC folds 32 total_fit_s 341.8 final_trees 1640 consistency_mean 0.9902935483870969 wall 476s
+TRAIN_DONE 2026-09-06T02:43:52Z
+306e91b0b865a03e93a3c2d68c21552ff854407a1d560b2740628c550f386532  dev/probe_artifacts/w10_ablation_series_Ldyn_KC_log_s2027.npz
+fb9dd57949239d9adbe31d795b1c7ad9579257bfa2f8b10154f948f3a85e60fb  dev/probe_artifacts/w10_ablation_series_Ldyn_KC_log_s42.npz
+ecc30bfd00928e13980767cc8ccaa92f26968158e3440af0230b29f5ce246a8c  dev/probe_artifacts/w10_ablation_series_Ldyn_KR_log_s2027.npz
+8fa5a92495c474a35f686fbb0ee46bb0c8ae80320aae47662b4fc454118abba6  dev/probe_artifacts/w10_ablation_series_Ldyn_KR_log_s42.npz
+c7c48eb3610eb827f4046661e042c5f734996f65ed669b8c18be44e57fa96f2e  dev/probe_artifacts/w10_ablation_series_Ldyn_rollm_log_s2027.npz
+7b458aa683a76998adacb6771d0f1b85052bd0b7b37a2af5a865f9e3a513dd1e  dev/probe_artifacts/w10_ablation_series_Ldyn_rollm_log_s42.npz
+b53883b2a58ddedb3dda7a1c69ed7de1fe09838cf43440dec664cbdfdaa1ab9b  dev/probe_artifacts/w10_ablation_series_Lfix_KC_log_s42.npz
+bc2247f6d8b70b780644f707ccf089e51cb98555f6bfa6d0bbccc39adaa1784e  dev/probe_artifacts/w10_ablation_series_Lfix_KR_log_s42.npz
+8f9cd48f7d6d506a676aacd28f93af2760f3c58049a12afd3b122da703cbfae4  dev/probe_artifacts/w10_ablation_series_Lfix_rollm_log_s42.npz
+f3b86d2c76ad191e9a824175299165698e8924264593b06a7fef872a96538efa  dev_alt/probe_artifacts/w10_ablation_series_Ldyn_KC_prod_s2027.npz
+cc1c4ac1f65a52fd38fe961ab8ba73275a25f9be15c5eda59c9001f841a7d810  dev_alt/probe_artifacts/w10_ablation_series_Ldyn_KC_prod_s42.npz
+16c143a9a0cf2c0fe0af560d818433cbe29fb5f2569a1214ed1cec8f2bbcf5a7  dev_alt/probe_artifacts/w10_ablation_series_Ldyn_KR_prod_s2027.npz
+d18bb2d583b7f4671b0fd36a519c46738fe077b5039f481e379a91b8e0326754  dev_alt/probe_artifacts/w10_ablation_series_Ldyn_KR_prod_s42.npz
+54032e7b266e7e3e8d1d1759d2010c110b4df75d169a591255604c1e228db2b6  dev_alt/probe_artifacts/w10_ablation_series_Ldyn_rollm_prod_s2027.npz
+019358fc3641b652a382f817e40cf14455bc925ecb89615db4c3e752ccf221bd  dev_alt/probe_artifacts/w10_ablation_series_Ldyn_rollm_prod_s42.npz
+b4a0dec1a02c9518fcf8eca759f60b60b9cf179f293d74b98d5a236315acdf38  dev_alt/probe_artifacts/w10_ablation_series_Lfix_KC_prod_s42.npz
+7e02230ec576ce32fc71013567597845e739121834d9f70824ecc69a43f6143a  dev_alt/probe_artifacts/w10_ablation_series_Lfix_KR_prod_s42.npz
+d73f21390691efdb0331c849cf971c490abc8c6ac1a093f324a443cf51b0594e  dev_alt/probe_artifacts/w10_ablation_series_Lfix_rollm_prod_s42.npz
+879ab60b75f4838859791fd95a5c1ace0dbcfc746a59c3cad8141e3f9ab0008f  slow_pred_KR.npy
+ce24ce7f6b86dac318411fc6e4cb768ecbe06dda3b24b314260f24a59ae543bc  slow_pred_KC.npy
+CHAIN_DONE 2026-09-06T02:47:13Z
