@@ -31,3 +31,12 @@
 - ⑤ 执行质量: markout60 maker(154 笔)小 +1.72 / 中 +0.41 / **大 −9.87 bps**, 全部 −7.22(大桶拖深: 崩跌锚里大额单被逆向选择; 08-26 以来累计大桶 −4.7 同向); 桶界 13/33 USDT。
 - ⑥ 告警核对: **cond2 调查档首次触发 04:45Z(日权益 −2.73% ≤ −2.68%; ALERT ONLY 不停机; 历史 1.8/年, 实盘预期 3–4/年)—— 归因见 `docs/RESULT_giveback_attribution_live_2026-09-06.md`(73b2038): 多头极端正费率名单锚崩跌(4USDT −22.8% / CLO −14.3% / APR −12.9%), 非 BTC 非普跌**; guard_twin 05:01Z AGREE(twin −2.365% vs arith −2.727%, 差 0.36pp < 0.5 容差); 撤名残差 −12,341(文案≠算术, 已登记); 38 名 reduce-only(HEMI 在减); "39 个 maker 被 −5022 拒" = direct 31 + 再拒 8 ✓; 重整后 7 名跨 min_notional(只报)。**无需处置; 回滚未触发。**
 - 待 08Z: 8h 结算锚 fund_updates ~457; Phase 2 沙箱 v2 首跑(08:01Z)与 08:25Z 读数; maker 占比是否随 direct 臂比例波动。
+
+## exec_n6 Phase 2 读数 #1: 08Z 锚(1788681600, 8h 结算锚; 08:25Z; 只读)
+- **P1 数据到位 GREEN**: klines 收盘于 N 的 bar 在 N+10.4 s 时 10/10 在; fundingRate **27/27 名全部在各自第一次查询时已在**(N+24 s ~ N+56 s = 探针轮内逐名 1 s 顺序延迟), 后四轮无一消失, 无错误。8h 结算锚上所有名(4h/8h/1h 三类)都到位。
+- **P2 恒等 GREEN(本次验证的核心)**: 沙箱 v2(并行 K 线 6 线程 + 批量资金费 + 预算 720 + 超时 10 s)与实盘顺序取数逐位相同 —— members 400 / sel 243 / coverage 1.0 / **fund_updates 454(结算锚)/ fund_updates_base 75** / forced_exit 0 / fetched 450 / missing 0 全同; w3 [0.2922, 0.1158, 0.5921] 相同; king 形态 target 240 名 **max|Δw| 0.00e+00**, Σ|Δw|/gross 0, gross_norm 0.855604 相同, universe_sha 相同; 沙箱无 anchor_error/anchor_skip; 探针无 429/−1003。
+- **P2 时序: runtime GREEN, 三个子指标 RED**: **runtime 43.5 s**(门 ≤ 90 ✓; 实盘同锚 **290.1 s** ⇒ **6.7×**), `t_klines_s` 24.1(门 ≤ 45 ✓), 但 **`t_fund_s` 16.8 > 门 5 RED**、**`n_err` 5 > 门 0 RED**、**`fund_fallback_n` 8 > 门 5 RED**; 批量本身正常(bulk_ok true, 2 页 1240 行), weight_used 461(实盘 976)。
+- **P4 落盘 GREEN**: 沙箱 target 08:01:43Z = **N+1.72 min**(data_max_ts = N ✓); 实盘 target N+20.83, combo rc=0 N+21.52(延迟 41 s); 投影 offset 1 下 combo 落盘 **N+2.40 min ≤ 门 N+2:30 ✓**。
+- **判定: P1 GREEN / P2 恒等 GREEN / P2 时序 RED(三项)/ P4 GREEN ⇒ 按冻结判据本锚不合格, 不做任何换装动作。**
+- **红项溯源(诊断, 不改判据)**: (a) `n_err` 5 = 461 次请求里 5 次三试全败, 均为资金费逐名回退请求; 它们**未造成任何差异**(fetched 450/缺 0, fund_updates 与实盘逐位同) —— 因为回退名都是"上次结算早于 8h 批量窗"的陈旧名, 本锚无结算。根因 = **我在 v2 里新加的 10 s HTTP 超时**在 6 路并行下过紧(在役生产者根本没有超时, 只会一直等)。(b) `t_fund_s` 16.8 的大部分是这 5 次失败的重试等待(1 s + 2 s × 5 ≈ 9 s)。(c) `fund_fallback_n` 8 是**结构量**: 批量窗设为锚前 8h, 上次结算早于该窗的名必须逐名回退; 我把门写成 ≤5 是拍脑袋。
+- **处置(装置修, 判据不动)**: 把 HTTP 超时 10 s → 25 s、批量窗 8h → 26h(逐名筛选仍按 `fundingTime ≥ (last_ts+1)`, 语义不变, 页数上限 6 足够), 重启沙箱, **用同一套冻结门在新的锚(12Z/16Z/20Z)重新验证**; 08Z 这一锚的红读数按原样保留在案, 不追溯改判。**换装决策相应从 16:25Z 推迟到 20Z 锚之后。**
