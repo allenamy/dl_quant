@@ -47,3 +47,17 @@ N+6 Phase 2 换装建议**顺延到恢复并跑满数锚之后**: 换装本身�
 - **§2.4 电池**: 第一次运行 **`tests_threshold_roles` 判红并拒绝提交** —— 该套件逐字断言 cond2 那两行的写法, 正是为了防止 halt/alert 两个常量的角色被对调; 它抓到了这次改名。按其意图同步变量名(引入 `_HALT_LINE`/`_ALERT_LINE` 常量), **[E] 红能力保留并通过**(把 LIMIT 换成 ALERT 常量后仍必须判红), 另加一条断言钉住"判据取最近已定价日"。第二次运行 128/128 全绿。
 - **改动后即时核查**: `LIVE_MODE=LIVE bash ops/resume_from_trip.sh --check` 仍打印 **NOT RESUMABLE**(最近已定价日 = 09-06 = −4.12%)⇒ **今天不可恢复, 与设计一致**; 09-07 的 NAV 行写出后(00Z 锚 phase C ≈ 00:44Z)门才会放行。
 - **恢复动作**: 定时 `0b6c546e` 于 09-07 01:10Z 执行 §3 全部步骤(四项前置 → 只读核查必须 RESUMABLE → 唯一一次写操作 → 验证 → 记账 → 建 04Z 首锚验收定时)。杠杆维持 2.0×。
+
+## 7. 连带项复核(2026-09-06 10:3xZ, 用户令「反复确认所有细节生效且关联项正常」)
+逐环核查, 每条给方式与结论:
+| 环节 | 核查方式 | 结论 |
+|---|---|---|
+| 盘上代码 = 已提交 | `git status` 无差异 + 新逻辑字符串在文件内 | ✓ `c800690` |
+| 触发语义未削弱 | 逐日截断树 × 新旧两版 | ✓ 37/37 天 tripped 与 triggers 逐位相同 |
+| 判据取值与日期对齐 | 读循环体: 无 `continue`, 六个分支每日恰好 append 一次(含 `else: append(None)`) | ✓ `per_day_loss` 与 `days` 索引一一对应, `recent_day` 标注正确 |
+| 停机日是否让守卫变盲 | 合成「只有 NAV 行、无订单/成交/readback」的次日跑整套 | ✓ `tripped=False`, `conditions_blind=[]`, `conditions_unevaluated=[]` ⇒ **门会放行**(该脚本注释警告过的「停机=无输入=自锁」闭环在此不成立) |
+| 执行器进程模型 | `com.dlquant.live.anchor.plist` 每 4h 整点起一个新进程 | ✓ 清除状态后不会残留 broker 的 reduce-only |
+| 杠杆 | daily_nav `sizing_policy` | ✓ `constant_leverage_2.00`; σ 阶梯仍撤回(读取 missing ⇒ g=1.0) |
+| **连带缺陷(本次发现并修)** | 追查 cond2 明细的下游消费者 | **`scheduler/run_anchor.py` 的 investigate-episode dedup 指纹取 `worst_day_pct_of_equity`(全史最小值)。判据改用 `recent` 后两者脱钩 ⇒ 指纹恒定, 第二次起同档告警被 `AE.decide` 判为「已告警过」而静默吞掉** —— 正是该行原注释记录的「不能变化的 dedup 键 = 披着 episode 外衣的静音键」。修: 指纹优先取 `recent_day_pct`, 无该键的条款(cond4b 用 `actual_leverage`)回退原路径。提交 **`9ae2e39`, 电池 128/128 全绿**。|
+| 未证实项(不用推理代替) | 「完全停机的锚是否仍写当日 NAV 行」—— 恢复计划的前提 | ⏳ 由 12Z(第一个完全停机的锚)证实, 定时 `107531ca` 于 12:55Z 核查, 并确认该行非 truncated、无 external_flow |
+| 明日定时冲突 | 原 04:25Z 的 Phase 2 换装决策与 04Z 恢复建仓同锚 | ✓ 已删除并改为 `54782aff` 12:25Z **只读数不决策**; 换装顺延至复场后连续 ≥6 锚正常交易且首锚验收 PASS 再由用户裁定 |
