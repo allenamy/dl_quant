@@ -14,6 +14,7 @@
 - 恒等断言: 补丁的 `INIT_STATE` 为空时, 至少 1 折预测与 CONST 同折逐位相同。元数据: 每折 config 自报 init_state_path/sha、best_epoch、va_curve; ep0 被选中 = "沿用上月模型", 单独计数。
 - 读数: 拼接 spl42 → w10_health.py 8684d9a9 主臂回放 → judge_gate_addendum2 同形态(冻结主窗 2025-03→08-10 主判, 全窗并列, 每 gross bps/锚, UTC 日块 bootstrap 2000 种子 20260905); 主配对 W − yearly_s42、W − CONST42; 副: best_ep 分布(含 ep0 频次)、相邻月一致性、ΔIC、换手、maxDD、逐年、去最佳月。
 - **冻结读法**: (A) 至少一臂 W − yearly_s42 CI ∋ 0 且 Δ ≥ −0.05 **且** 同臂 W − CONST42 CI 下界 > 0 ⇒ 热启动候选; (B) 两臂 W − yearly_s42 CI 上界 < 0 ⇒ 热启动不救; (C) 其余 UNDECIDED。若早停臂(PREREG_dl_monthly_earlystop)读数 (A) 成立, 追加一臂 W1+FLOOR5(两变量组合, 单独预注册段, 先写后看)。
+- **§1.1 组合臂 W1F5(2026-09-06 03:5xZ 追加, 触发条件 = 早停臂 §12 读数 (A) 已成立; 本段写于 W1F5 任何数字之前)**: W1 热启动链 + `BEST_EP_FLOOR=5`(标签 mE1w1F5), 其余同 W1; 恒等: FLOOR=0 且 INIT 空 ⇒ ≡ CONST。判官配对(冻结主窗主判, 全窗并列): W1F5 − yearly_s42、W1F5 − CONST42、**W1F5 − FLOOR5**(组合是否在早停修正之上再加)、W1F5 − W1(下限是否在热启动之上再加)。读法: (A-组合) W1F5 − FLOOR5 CI 下界 > 0 且 W1F5 − yearly_s42 CI ∋ 0 或下界 > 0 ⇒ 组合候选优先于单项; (A-单项够用) W1F5 − FLOOR5 CI ∋ 0 ⇒ 以 FLOOR5/FIX7 单项为候选, 组合不进; (B) W1F5 − FLOOR5 CI 上界 < 0 ⇒ 热启动与早停修正相冲, 记录; 其余 UNDECIDED。家族 +1。
 
 ## 2. king 臂(锁死; 装置 = 轴 A `cadence_seats/axisA`, K1 rollm60 折表 `folds_d1.json`/同法; 判官 `judge_dyn.py`(L-dyn = 在役 msharpe 席位规则)为主, `judge.py`(L-fix W3FIX 0.21)并列)
 - **KR 叶值 refit**: 月 t 的模型 = 月 t−1 模型的树结构 + `refit(训练窗数据 through cutoff_t, decay_rate 0.9)`; 起点 = K1 的 2024-01 模型; 训练窗/禁运与 K1 逐字同。

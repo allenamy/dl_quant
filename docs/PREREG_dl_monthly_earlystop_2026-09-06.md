@@ -29,3 +29,10 @@
 ## 4. 归档与资源
 - `multi_asset/exports/research/retrain_2026-09/dl_monthly_gate_2026-09-05/addendum_earlystop/`(补丁与 diff、恒等收据、fold_configs、shard_results、results、replay_logs、logs/commands.txt、SHA256SUMS、MANIFEST 段); RESULT 写入 `RESULT_dl_monthly_gate_2026-09-05.md` §12 + 首行元信息一行。
 - GPU: pod2, 2 臂 × 4 分片(与 §11 同分片法), 预计 ≈ 1 h; 不与其它 GPU 任务并行; 监视器带存活探针(ps/nvidia-smi 计数, 教训 pod 配额静默杀任务); 磁盘先查配额余量(263 GB 顶)。
+
+## 5. 复验臂(2026-09-06 03:5xZ 追加, 写于复验数字之前; 触发 = §3 读数 (A) 已成立于种子 42)
+- **FLOOR5_s2027 / FIX7_s2027**: 同装置, 固定种子 2027(20 折每折 seed 2027, 其余逐字节同), 两臂各 4 分片。参照: yearly_s2027(拼 spl27)与 R0(mE1, s2027, 每折新种子; 已有)。不另跑 CONST_s2027(省 1 h GPU; 「下限 vs 不下限」的同种子对照已由种子 42 给出)。
+- **冻结读法(复验)**: 复验成立 ⇔ 两臂各自 ARM_s2027 − R0_s2027 CI95 下界 > 0 **且** ARM_s2027 − yearly_s2027 Δ ≥ −0.05(CI ∋ 0 或下界 > 0); 任一臂 ARM_s2027 − yearly_s2027 CI 上界 < 0 ⇒ 该臂复验失败; 其余 UNDECIDED。两种子同号是候选预注册的必要条件(项目铁律), 不是充分条件。
+- 副读数: best_ep 分布(只报 FLOOR5 改变的折数)、相邻月一致性、ΔIC、换手、maxDD、逐年、去最佳月。
+- 资源: 8 分片 ≈ 1 h; 可与热启动链(W1/W2/W1F5, 各单进程串行)并行, 前提 nvidia-smi 显存余量 ≥ 8 GB, 否则排在热启动之后。
+- 部署含义(先写后看): 复验成立 ⇒ 立候选预注册「月度重训配方修正: best-epoch 下限 5 或固定 epoch 7」(RUNBOOK DL 步骤改动 + 用户字 + 前向影子 ≥14 天), 冻结候选 `PREREG_dl_freeze_yearly` 正式撤回; 复验失败 ⇒ 早停机制为种子依赖, 回到 UNDECIDED, 两候选都留。
