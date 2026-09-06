@@ -97,4 +97,5 @@
 - **用户裁定 2026-09-05 01:5xZ("解除限速"):** pod2 上对 data.binance.vision 静态 CDN 的批量拉取**免除** "≤4 req/s + 锚窗禁止" 规则(该规则针对交易所 API 与 Mac 共用 IP 的权重风险; CDN 无账户权重, pod2 独立 IP)。交易所 API(fapi/api)的限速规则不变。
 
 ## §5 基建
+- **★ 新同事上手 / 全环节与易错点总览: `docs/ONBOARDING_independent_researcher_2026-09-06.md`(a73eaaa, 635 行)** —— 数据/信号/模型/执行四侧逐环拆解, 易错点 16 族为主干, 含 E-0904-F 口径反转完整案卷、当前 12 条已知缺陷、DNR 全表、协作协议(worktree/权限边界/建议切入点)。**结构性内容长期有效; 其 §1.3 与 §9 会过期, 以本文件与 ERROR_LEDGER 为准。**
 milestone §6 的机器/路径表为准: mac(生产+执行)/ jpline(面板+判官)/ pod2(GPU+LOB)/ 151MB 旧 pod 档不入 git。
