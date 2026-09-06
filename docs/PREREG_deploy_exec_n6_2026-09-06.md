@@ -23,6 +23,7 @@
 - **P1 数据到位探针(公开接口, ≤1 req/s, 27 名: 4h 12 / 8h 12 / 1h 3)**: 在 04Z/08Z/12Z 三个锚, 于 N+0:10 查 klines(endTime=N−1ms, 收盘于 N 的 bar 是否在), 于 N+0:20/+0:45/+1:15/+2:00/+4:00 查 `fundingRate`(N 结算行是否在)。**门 P1**: 三锚 × 全部应结算名, 在 **N+1:00** 前 100% 到位(否则生产者 offset 取"100% 到位时刻 + 30 s")。
 - **P2 沙箱生产者并行**(`WIDE_SHADOW_HOME=~/cc_tmp/.../exec_n6_sandbox`, 复制 state 99 MB, bundle 只读, offset 1, 预算 480; 独立 lock/log/target; 不写实盘任何文件): 04Z 起每锚与实盘生产者(N+16)的 target_live 逐名比对。**门 P2**: ≥3 锚(含 ≥1 个 8h 结算锚 08Z)`fund_updates`/`sel`/`w3`/成员集相同, 权重 max|Δw|/gross ≤ 1e-4(因果随机性允许 f16 抖动); 沙箱运行时间 ≤ 210 s; 沙箱 API 窗口权重峰值 ≤ 480/分钟且无 −1003/429。
 - **P3 执行器电池**: 前缀门 + offset 6 的测试(恒等/前缀等待/宽限回退+告警/超时预算); safe_commit 全绿; DRY_RUN 彩排锚验证等待逻辑在 N+6 读到 combo 文件。
+  - **P3 收据(01:02Z)**: 实盘仓 `0ae54cc`(safe_commit, 128/128 绿, 已推送): `external_book.py` 新键 require_producer_prefix/producer_grace_min(缺省 None/0 = 逐位现行为), `anchor_loop.py` 回退 HIGH 页报, `tests_external_book.py` +7 项(P0 恒等 / P1 关 / P2 配置 / P3 等重写 / P4 宽限回退 / P5 非轮询不阻塞 / P6 缺文件不变 / P7 页报静态钉)。config 未启用(换装时与 offset 同批)。
 - **P4 时序冲突表**: 沙箱落盘时刻 vs combo 守护 120–150 s 落定等待 vs 执行器 N+6 —— 逐锚打印; 若 combo 落盘 > N+5:30 任一锚 ⇒ offset 改 7。
 
 ## 3. 换装(静默窗, 全门绿后; 旧件保留)
