@@ -11,6 +11,7 @@ FETCH_WORKERS = int(os.environ.get("FETCH_WORKERS", "1"))      # K 线并行工�
 FETCH_BUDGET = int(os.environ.get("FETCH_BUDGET", "240"))       # 60 s 滑窗权重预算; 240 = 现行为(交易所 2400 的 10%)
 FUND_BULK = int(os.environ.get("FUND_BULK", "0"))               # 1 = 资金费用无 symbol 的批量接口(时间分页)+ 逐名回退; 0 = 逐名(现行为)
 HTTP_TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "0")) or None   # urlopen 超时秒; 0 = 无(现行为)
+BULK_HOURS = int(os.environ.get("BULK_HOURS", "8"))                  # 批量资金费时间窗(小时); 8 = 首版; 窗越宽逐名回退越少(语义不变: 逐名仍按 fundingTime ≥ last_ts+1 筛)
 
 HOME = os.environ.get("WIDE_SHADOW_HOME", os.path.expanduser("~/wide_shadow"))
 BUNDLE = os.environ.get("WIDE_SHADOW_BUNDLE", os.path.join(os.path.expanduser("~/wide_shadow"), "shadow_bundle"))
@@ -336,7 +337,7 @@ def run_anchor(st, fx, cfg, booster, anchor):
     fund_updates = 0; fund_updates_base = 0
     _t_kl = round(time.time() - _t_kl0, 1); _t_fd0 = time.time()
     _bulk = {}; _bulk_ok = False; _bulk_pages = 0; _bulk_rows = 0; _fund_fallback = 0
-    _bulk_start = (anchor - 8 * 3600 + 1) * 1000   # 批量窗 = 锚前 8h(覆盖 1h/4h/8h 名的全部应到结算); 更旧的名走逐名回退
+    _bulk_start = (anchor - BULK_HOURS * 3600 + 1) * 1000   # 批量窗 = 锚前 BULK_HOURS 小时(覆盖 1h/4h/8h 名的应到结算 + 陈旧名); 更旧的名走逐名回退
     if FUND_BULK:
         _seen = set(); _start = _bulk_start; _ok = True
         for _pg in range(6):   # 时间分页: 每页 ≤1000 行, 同一 fundingTime 的行 ≤ ~460 < 1000 ⇒ 用末行时刻(含)续页并按 (symbol, fundingTime) 去重
@@ -599,7 +600,7 @@ def run_anchor(st, fx, cfg, booster, anchor):
                 "data_max_ts": data_max_ts, "fund_updates": fund_updates, "weight_used": fx.weight_used,
                 "runtime_s": round(time.time() - t0, 1),
                 "fetch_v2": {"workers": FETCH_WORKERS, "budget": FETCH_BUDGET, "fund_bulk": FUND_BULK, "timeout": HTTP_TIMEOUT,
-                             "bulk_ok": _bulk_ok, "bulk_pages": _bulk_pages, "bulk_rows": _bulk_rows, "fund_fallback_n": _fund_fallback,
+                             "bulk_ok": _bulk_ok, "bulk_pages": _bulk_pages, "bulk_rows": _bulk_rows, "fund_fallback_n": _fund_fallback, "bulk_hours": BULK_HOURS,
                              "n_req": fx.n_req, "n_err": fx.n_err, "t_klines_s": _t_kl, "t_fund_s": _t_fd},
                 "base_n": len(base), "fund_base_n": len(base_vals), "fund_updates_base": fund_updates_base, "exinfo_ok": exinfo_ok,   # M1
                 "booster_sha": cfg.get("_booster_sha", "")[:12]})
