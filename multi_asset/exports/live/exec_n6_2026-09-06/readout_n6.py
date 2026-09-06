@@ -32,21 +32,23 @@ kl = [r for r in pr if r.get("kind") == "kline"]; fr = [r for r in pr if r.get("
 if not pr: print("P1: no probe rows for this anchor (probe not fired yet or skipped)")
 else:
     ok = sum(1 for r in kl if r.get("has_bar_closing_at_N")); print(f"P1 klines @N+{kl[0]['t_after'] if kl else '?'}s: bar closing at N present {ok}/{len(kl)}" + ("" if ok == len(kl) else "  ← RED"))
-    by = collections.defaultdict(dict); errs = []
+    # per-name reading (v2, 04:3xZ): the probe polls the 27 names sequentially (~1 s apart) in rounds at N+20/45/75/120/240 s,
+    # so grouping by t_after mixes names; read each name's own sequence instead.
+    by = collections.defaultdict(list); errs = []
     for r in fr:
-        by[r["symbol"]][round(r["t_after"] / 5) * 5] = r.get("has_N_row")
+        by[r["symbol"]].append((float(r["t_after"]), bool(r.get("has_N_row"))))
         if r.get("err"): errs.append((r["symbol"], r["t_after"], r["err"]))
-    checks = sorted({t for d in by.values() for t in d})
-    should = [s for s, d in by.items() if any(d.values())]
-    never = [s for s, d in by.items() if not any(d.values())]
-    print(f"P1 funding checks at t_after≈{checks}s; names {len(by)}: should-settle(N row by last check) {len(should)}, no N row by last check {len(never)} {sorted(never)}")
-    for t in checks:
-        got = sum(1 for s in should if by[s].get(t)); print(f"   t≈{t:>4}s: N row present {got}/{len(should)}")
-    t100 = next((t for t in checks if all(by[s].get(t) for s in should)), None)
+    should = sorted(s for s, v in by.items() if any(h for _, h in v)); never = sorted(s for s, v in by.items() if not any(h for _, h in v))
+    print(f"P1 funding: names {len(by)}; should-settle (N row seen by last check) {len(should)}; no N row by last check {len(never)} {never}")
+    first_seen = {}; at_first = {}; flap = []
+    for s in should:
+        v = sorted(by[s]); fs = min(t for t, h in v if h); first_seen[s] = fs; at_first[s] = v[0][1]
+        if any((t > fs and not h) for t, h in v): flap.append(s)
+    for s in should: print(f"   {s:16s} first check N+{sorted(by[s])[0][0]:.0f}s present={'Y' if at_first[s] else 'n'} | first seen N+{first_seen[s]:.0f}s | later absent: {'YES' if s in flap else 'no'}")
     if should:
-        if t100 is not None and t100 <= 45: print(f"P1 GREEN: 100% of should-settle names by the {t100}s check (< N+1:00)")
-        elif t100 is not None: print(f"P1 RED by frozen wording: 100% only at the {t100}s check ⇒ remedy offset = ceil(({t100}+30)/60) = {math.ceil((t100 + 30) / 60)} min")
-        else: print("P1 RED: never 100% within the probe window (N+4:00)")
+        mx = max(first_seen.values()); n_first = sum(at_first.values())
+        if mx <= 60 and not flap: print(f"P1 GREEN: 100% of should-settle names by N+{mx:.0f}s (present at first check {n_first}/{len(should)}; upper bound = first-check time); no flapping")
+        else: print(f"P1 RED by frozen wording: last name first seen N+{mx:.0f}s{' ; flapping ' + str(flap) if flap else ''} ⇒ remedy offset = ceil(({mx:.0f}+30)/60) = {math.ceil((mx + 30) / 60)} min")
     if errs: print("P1 probe errors:", errs[:10])
     wts = [(r["t_after"], int(r["weight"])) for r in pr if r.get("weight") and 60 <= r["t_after"] <= 300]
     if wts: print(f"weight (X-MBX-USED-WEIGHT-1M seen by probe, [N+60,N+300]s): max {max(w for _, w in wts)} at N+{[t for t, w in wts if w == max(x for _, x in wts)][0]:.0f}s (IP-level upper bound sandbox+probe; limit 2400; sandbox budget 480)")

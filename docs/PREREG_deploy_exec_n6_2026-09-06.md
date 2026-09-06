@@ -26,6 +26,9 @@
   - **P3 收据(01:02Z)**: 实盘仓 `0ae54cc`(safe_commit, 128/128 绿, 已推送): `external_book.py` 新键 require_producer_prefix/producer_grace_min(缺省 None/0 = 逐位现行为), `anchor_loop.py` 回退 HIGH 页报, `tests_external_book.py` +7 项(P0 恒等 / P1 关 / P2 配置 / P3 等重写 / P4 宽限回退 / P5 非轮询不阻塞 / P6 缺文件不变 / P7 页报静态钉)。config 未启用(换装时与 offset 同批)。
 - **P4 时序冲突表**: 沙箱落盘时刻 vs combo 守护 120–150 s 落定等待 vs 执行器 N+6 —— 逐锚打印; 若 combo 落盘 > N+5:30 任一锚 ⇒ offset 改 7。
 
+- **读数 #1(04Z, 04:3xZ; 详见 journal_2026-09-06_anchors.md)**: P1 GREEN(15/15 应结算名在首次查询 N+22–53 s 已在, 无抖动; klines 10/10 @N+10 s); P2 恒等 GREEN(w3 / target 逐位同, max|Δw| 0)但 **runtime 243.5 s > 210 s RED**(预算 480 未缩短运行: 瓶颈 = 逐请求延迟 ≈0.3 s × 804, 非限速器); P4 RED(沙箱落盘 N+5.05, 投影 combo N+5.68 > N+5:30 ⇒ 冻结补救 offset 7)。
+- **修正提案(2026-09-06 04:3xZ, 看数字后提出, 因此标为提案, 需用户字才生效; 未生效前 §2 原门照旧, 13:05Z 不换装)**: (a) 把「沙箱 runtime ≤ 210 s」改为「投影 combo 落盘 ≤ N+(执行器 offset − 0.5) min, 三锚全部成立」, 执行器 offset 取 7(其余改动不变: 生产者 offset 1 + 预算 480; 前缀门 + 宽限 5 min); 若 08Z 结算锚投影 > N+6:30 则 (a) 亦不成立。(b) Phase 2(另立预注册): 生产者 K 线/资金费拉取并行化(4 工作线程, 限速器仍 480/分钟 = 交易所 20%), 预期 runtime ≈ 70–90 s, 落盘 ≤ N+2:30, 执行器 offset 回到 6 甚至 4; 需三锚沙箱验证(同本文 P1/P2/P4)后换装。推荐: 若 08Z/12Z 投影 ≤ N+6:30 ⇒ 先按 (a) 以 offset 7 换装(拿到 17 分钟中的 17 分钟), Phase 2 随后; 否则直接走 (b)。
+
 ## 3. 换装(静默窗, 全门绿后; 旧件保留)
 1. 备份 plist 与 shadow_loop_v3.py; 改 env/常量; `launchctl bootout gui/$(id -u)/com.hsy.shadowloop` → `bootstrap`; 验 PID/lock/loop.out `next …:01:00`。
 2. 执行器: 已提交的前缀门 + config offset 6 生效于下一锚进程。
