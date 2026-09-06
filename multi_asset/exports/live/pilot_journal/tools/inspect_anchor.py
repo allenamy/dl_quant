@@ -52,8 +52,10 @@ ra = collections.Counter(r.get("requote_arm") for r in orders if r.get("requote_
 pa = collections.Counter(r.get("placement_arm") for r in orders if r.get("order_type") == "maker" and r.get("attempt_idx") == 1); print("placement arms:", dict(pa), "behind share", round(pa.get("behind", 0) / max(pa.get("behind", 0) + pa.get("join", 0), 1), 3))
 ca = collections.Counter(r.get("chase_arm_assigned") for r in orders if r.get("chase_arm_assigned")); print("chase arms:", dict(ca))
 mk = sum(abs(f.get("fill_notional") or 0) for f in fills if f.get("venue_maker_flag")); tk = sum(abs(f.get("fill_notional") or 0) for f in fills if not f.get("venue_maker_flag")); tot = mk + tk
-fee = sum(float(f.get("commission") or 0) for f in fills)
-print(f"fills n {len(fills)} notional {tot:.0f} maker share {mk/max(tot,1):.3f} fee {fee:.2f} USDT = {fee/max(tot,1)*1e4:.2f} bps; markout coverage {sum(1 for f in fills if f.get('mid_at_fill_plus_60s') is not None)}/{len(fills)}")
+fee_by = collections.Counter()
+for f in fills: fee_by[(f.get("commission_asset") or "?")] += float(f.get("commission") or 0)
+fee_txt = " ".join(f"{v:.6f} {a}" for a, v in sorted(fee_by.items()))  # 09-06: 佣金按资产分列; BNB 抵扣为用户配置(08-05), USDT 换算不在本脚本(旧版把 BNB 当 USDT 求和 ⇒ 0.00 假读数)
+print(f"fills n {len(fills)} notional {tot:.0f} maker share {mk/max(tot,1):.3f} commission by asset [{fee_txt}] (no USDT conversion here); markout coverage {sum(1 for f in fills if f.get('mid_at_fill_plus_60s') is not None)}/{len(fills)}")
 # launchd log: requote report + new alarm lines for this rebalance
 rid = None
 for r in orders:
