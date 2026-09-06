@@ -58,11 +58,15 @@ def rows(p, e):
 sbs, sbt = rows(SB + "/shadow_log.jsonl", "signal"), rows(SB + "/shadow_log.jsonl", "target_live")
 lvs, lvt = rows(W + "/shadow_log.jsonl", "signal"), rows(W + "/shadow_log.jsonl", "target_live")
 anom = [r for r in jl(SB + "/shadow_log.jsonl") if r.get("anchor_ts") == A and r.get("e") in ("anchor_skip", "anchor_error", "target_live_error", "killed")]
+P4_LIMIT_S = float(os.environ.get("P4_LIMIT_S", "150"))     # Phase 2: projected combo landing ≤ N+2:30 (Phase 1 was 330)
+RUNTIME_GATE_S = float(os.environ.get("RUNTIME_GATE_S", "90"))  # Phase 2 sandbox runtime gate
 def tline(tag, s, t):
     if not s: print(f"P4 {tag}: no signal row"); return None
     ts_t = parse_utc((t or {}).get("logged_utc")); ts_s = parse_utc(s.get("logged_utc"))
     dm = s.get("data_max_ts"); dm_txt = f"data_max_ts={dm} ({'=N' if dm == A else ('N-'+str(A-int(dm))+'s' if isinstance(dm,(int,float)) else '?')})"
     print(f"P4 {tag}: runtime {s.get('runtime_s')}s, fetched {s.get('fetched')}/missing {s.get('missing')}, fund_updates {s.get('fund_updates')}, weight_used {s.get('weight_used')}, {dm_txt}, target written {utc(ts_t)+' = N+'+str(round((ts_t-A)/60,2))+'min' if ts_t else '?'}, signal logged {utc(ts_s) if ts_s else '?'}")
+    if s.get("fetch_v2"): print(f"   fetch_v2: {s['fetch_v2']}")
+    if tag.startswith("sandbox") and s.get("runtime_s") is not None: print(f"   sandbox runtime gate ≤{RUNTIME_GATE_S:.0f}s: " + ("GREEN" if float(s["runtime_s"]) <= RUNTIME_GATE_S else "RED"))
     return ts_t
 t_sb = tline("sandbox", sbs.get(A), sbt.get(A)); t_lv = tline("live   ", lvs.get(A), lvt.get(A))
 rc = None
@@ -74,6 +78,6 @@ if os.path.exists(W + "/fea171/combo_live.log"):
             except Exception as ex: rc = (int(m.group(1)), None)
 if rc and rc[1]: print(f"P4 live combo rc={rc[0]} at {utc(rc[1])} = N+{(rc[1]-A)/60:.2f}min" + (f"; combo latency after live target = {rc[1]-t_lv:.0f}s" if t_lv else ""))
 if t_sb and rc and rc[1] and t_lv:
-    proj = t_sb + (rc[1] - t_lv); print(f"P4 projected combo landing with offset 1 = sandbox target + live combo latency = {utc(proj)} = N+{(proj-A)/60:.2f}min ⇒ " + ("GREEN (≤ N+5:30, offset 6 holds)" if proj - A <= 330 else "RED (> N+5:30 ⇒ offset 7)"))
+    proj = t_sb + (rc[1] - t_lv); print(f"P4 projected combo landing with offset 1 = sandbox target + live combo latency = {utc(proj)} = N+{(proj-A)/60:.2f}min ⇒ " + (f"GREEN (≤ N+{P4_LIMIT_S/60:.1f} min)" if proj - A <= P4_LIMIT_S else f"RED (> N+{P4_LIMIT_S/60:.1f} min)"))
 print("sandbox anomaly rows:", anom if anom else "none")
 if os.path.exists(SB + "/loop.out"): print("sandbox loop.out tail:", open(SB + "/loop.out", errors="ignore").read().strip().splitlines()[-1:])

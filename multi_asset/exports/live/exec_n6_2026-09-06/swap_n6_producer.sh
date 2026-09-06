@@ -5,11 +5,12 @@
 set -euo pipefail
 MODE=${1:-dry-run}; W=/Users/haosiyu/wide_shadow; PL=$HOME/Library/LaunchAgents/com.hsy.shadowloop.plist
 SB=/Users/haosiyu/cc_tmp/exec_n6_sandbox; TS=$(date -u +%Y%m%dT%H%M%SZ); UID_=$(id -u)
-PAT='if self.win_weight + weight > 240:'; NEW='if self.win_weight + weight > 480:'
+V2=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/live/exec_n6_2026-09-06/v2/shadow_loop_v3_v2.py; V2SHA_EXPECT=9df64f64f6f7326b
+KNOBS="FETCH_WORKERS=6 FETCH_BUDGET=720 FUND_BULK=1 HTTP_TIMEOUT=10"
 echo "mode=$MODE utc=$(date -u +%FT%TZ) backup_ts=$TS"
 # ---- preconditions (printed in both modes; enforced in --apply) ----
 off=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:SHADOW_OFFSET_MIN' "$PL"); echo "plist SHADOW_OFFSET_MIN=$off (expect 16)"
-n_pat=$(grep -c "$PAT" $W/shadow_loop_v3.py || true); echo "L123 pattern count=$n_pat (expect 1)"
+v2sha=$(shasum -a 256 $V2 | cut -c1-16); echo "v2 file sha=$v2sha (expect $V2SHA_EXPECT)"; n_pat=$([ "$v2sha" = "$V2SHA_EXPECT" ] && echo 1 || echo 0)
 sha0=$(shasum -a 256 $W/shadow_loop_v3.py | cut -c1-16); echo "shadow_loop_v3.py sha=$sha0"
 lock=$(cat $W/shadow.lock 2>/dev/null || echo none); echo "live shadow.lock pid=$lock alive=$(ps -p "$lock" -o pid= 2>/dev/null | wc -l | tr -d ' ')"
 m=$(( ($(date -u +%s) % 14400) / 60 )); echo "minutes since anchor=$m (quiet window 60..235)"
@@ -17,12 +18,12 @@ sbpid=$(cat $SB/shadow.lock 2>/dev/null || echo none); sbalive=$(ps -p "$sbpid" 
 if [ "$MODE" != "--apply" ]; then
   echo "DRY-RUN would: 1) touch $SB/KILL and wait for sandbox pid $sbpid to exit (kill by that exact pid after 120s)"
   echo "               2) cp $PL $PL.pre_n6_$TS ; PlistBuddy Set SHADOW_OFFSET_MIN 1"
-  echo "               3) cp $W/shadow_loop_v3.py $W/shadow_loop_v3.py.pre_n6_$TS ; replace '$PAT' -> '$NEW' (exactly one line)"
+  echo "               3) cp $W/shadow_loop_v3.py $W/shadow_loop_v3.py.pre_n6_$TS ; install v2 file ($V2SHA_EXPECT) ; plist env add $KNOBS"
   echo "               4) launchctl bootout gui/$UID_/com.hsy.shadowloop ; launchctl bootstrap gui/$UID_ $PL"
   echo "               5) verify: launchctl pid == shadow.lock pid ; loop.out last line 'next …:01:00'"; exit 0
 fi
 [ "$off" = "16" ] || { echo "ABORT: offset is $off, not 16"; exit 2; }
-[ "$n_pat" = "1" ] || { echo "ABORT: L123 pattern count $n_pat"; exit 2; }
+[ "$n_pat" = "1" ] || { echo "ABORT: v2 file sha mismatch"; exit 2; }
 [ $m -ge 60 ] && [ $m -le 235 ] || { echo "ABORT: not in quiet window"; exit 3; }
 # 1) stop sandbox (never the live pid)
 if [ "$sbalive" = "1" ]; then
@@ -33,13 +34,11 @@ fi
 ps -p "$sbpid" >/dev/null 2>&1 && { echo "ABORT: sandbox pid $sbpid still alive"; exit 4; }; echo "sandbox stopped"
 # 2) plist
 cp "$PL" "$PL.pre_n6_$TS"; /usr/libexec/PlistBuddy -c 'Set :EnvironmentVariables:SHADOW_OFFSET_MIN 1' "$PL"
+for kv in $KNOBS; do k=${kv%%=*}; v=${kv#*=}; /usr/libexec/PlistBuddy -c "Add :EnvironmentVariables:$k string $v" "$PL" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :EnvironmentVariables:$k $v" "$PL"; done
+/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables' "$PL"
 echo "plist SHADOW_OFFSET_MIN now=$(/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:SHADOW_OFFSET_MIN' "$PL") backup=$PL.pre_n6_$TS"
-# 3) constant
-cp $W/shadow_loop_v3.py $W/shadow_loop_v3.py.pre_n6_$TS
-python3 - "$W/shadow_loop_v3.py" "$PAT" "$NEW" <<'PY'
-import sys; p,a,b=sys.argv[1:4]; s=open(p).read(); assert s.count(a)==1, s.count(a)
-s=s.replace(a, b+"   # exec_n6 2026-09-06: offset 1 需 ≤N+3:30 落盘; 480/min 仍 ≤ 交易所 2400 的 20% (PREREG_deploy_exec_n6 §1)"); open(p,"w").write(s); print("constant replaced")
-PY
+# 3) code file: install v2 (verbatim original + fetch-layer knobs; knobs come from plist env)
+cp $W/shadow_loop_v3.py $W/shadow_loop_v3.py.pre_n6_$TS; cp "$V2" $W/shadow_loop_v3.py
 sha1=$(shasum -a 256 $W/shadow_loop_v3.py | cut -c1-16); echo "shadow_loop_v3.py sha $sha0 -> $sha1 backup=$W/shadow_loop_v3.py.pre_n6_$TS"
 # 4) reload launchd job (env change needs bootout/bootstrap; kickstart keeps old env — E-0904-A)
 launchctl bootout gui/$UID_/com.hsy.shadowloop || true; sleep 3; launchctl bootstrap gui/$UID_ "$PL"; sleep 5
