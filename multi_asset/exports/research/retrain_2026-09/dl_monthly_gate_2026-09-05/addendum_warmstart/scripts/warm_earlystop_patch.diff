@@ -1,0 +1,30 @@
+277a278,279
+> INIT_STATE = os.environ.get("INIT_STATE", ""); WARM = 1 if INIT_STATE else 0   # PREREG_incremental_retrain §1: warm start (empty = verbatim)
+> if WARM: assert os.path.exists(INIT_STATE), INIT_STATE
+282c284
+<     and PLEON == 0 and EPOCHS == 15 and LR == 3e-4 and NCOL == 167 and EXTRA == "" and LPP == 0.0 and int(XT.shape[1]) == 171 \
+---
+>     and PLEON == 0 and EPOCHS == 15 and LR in (3e-4, 1e-4) and NCOL == 167 and EXTRA == "" and LPP == 0.0 and int(XT.shape[1]) == 171 \
+293c295
+<                                                           "F10_DLW", "F10_OUT", "MWF_OUT", "EMBARGO", "MWF_TAG", "MONTHS", "FORCE", "BEST_EP_FLOOR", "BEST_EP_FIX")},
+---
+>                                                           "F10_DLW", "F10_OUT", "MWF_OUT", "EMBARGO", "MWF_TAG", "MONTHS", "FORCE", "BEST_EP_FLOOR", "BEST_EP_FIX", "INIT_STATE", "LR")},
+304a307
+> _prev_state, _prev_ym = None, None   # warm-start chain state
+315a319,320
+>         if WARM:   # resume: the chain continues from the skipped fold's saved best_state
+>             _pp = f"{MWF_OUT}/models/{TAG}_{YM}.pt"; _prev_state = torch.load(_pp, map_location=DEV); _prev_ym = YM; log(f"WARM resume: reloaded best_state of {YM} from disk {_pp} sha {sha(_pp)[:16]}")
+333a339,345
+>     _init_path, _init_sha, _init_from = None, None, None
+>     if WARM:   # warm start: first fold of the process from INIT_STATE, later folds from the previous fold's best_state (weights only; optimiser rebuilt below)
+>         if _prev_state is None:
+>             _init_path = INIT_STATE; _init_sha = sha(INIT_STATE); _init_from = "INIT_STATE"; mdl.load_state_dict(torch.load(INIT_STATE, map_location=DEV))
+>         else:
+>             _init_path = f"{MWF_OUT}/models/{TAG}_{_prev_ym}.pt"; _init_sha = sha(_init_path); _init_from = f"prev_fold_best_state:{_prev_ym}"; mdl.load_state_dict(_prev_state)
+>         log(f"WARM init {YM} from {_init_from} ({_init_path})")
+431a444
+>     if WARM: _prev_state = {k: v.detach().clone() for k, v in best_state.items()}; _prev_ym = YM
+437c450
+<             "wall_clock_s": round(wall, 1), "epoch_s": ep_s, "test_vs_all_maxdiff": _dm, "finished_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+---
+>             "wall_clock_s": round(wall, 1), "epoch_s": ep_s, "test_vs_all_maxdiff": _dm, "init_mode": ("warm" if WARM else "verbatim"), "init_state_path": _init_path, "init_state_sha256": _init_sha, "init_from": _init_from, "lr": LR, "finished_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}

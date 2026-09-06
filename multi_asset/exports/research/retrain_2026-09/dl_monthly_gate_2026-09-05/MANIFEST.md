@@ -54,3 +54,6 @@ mE1 月折以种子 2027 重训(dl_monthly_wf 逐字月折训练器 + 一行种�
 
 ## 7. 附录 addendum_earlystop/(2026-09-06 03:5xZ; RESULT §12; PREREG_dl_monthly_earlystop d1feddc0)
 CONST 训练器 + best-epoch 选择补丁(FLOOR5 / FIX7, 恒等 FLOOR0 折逐位同 CONST)→ 2 臂 × 4 分片 20/20 折 → 轨迹相等断言 → merge_mwf3 → 拼行 → 同装置回放 → `judge_gate_addendum3.py`(读法 (A)/(B)/(C))+ `agreement2.py`。pod 根 `/workspace/review_scratch/allweather_trackB/earlystop/`; 数组 sha `addendum_earlystop/POD_SHA256SUMS_arrays_and_devices.txt`; 归档文件 pod 端 sha `POD_SHA256SUMS_archived_files.txt`(109/109 相等)。
+
+## 8. 附录 addendum_warmstart/(2026-09-06 06:0xZ; RESULT §13; PREREG_incremental_retrain §1 1463d724)
+CONST 训练器 + 初始化补丁(INIT_STATE 链; 恒等 W0 逐位同 CONST)→ W1(LR 3e-4)/ W2(LR 1e-4)各一进程 20 折按月序(链条 sha 逐折断言)→ merge_mwf4 → 拼行 → 同装置回放 → `judge_gate_addendum4.py`(读法 (A)/(B)/(C))+ `agreement3.py`; 组合训练器 `pod_f10_train_monthly_warm_earlystop.py` 恒等已过、臂未跑。pod 根 `/workspace/review_scratch/allweather_trackB/warmstart/`; 数组 sha `addendum_warmstart/POD_SHA256SUMS_arrays_and_devices.txt`; 归档文件 pod 端 sha `POD_SHA256SUMS_archived_files.txt`(98/98 相等)。
