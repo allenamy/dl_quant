@@ -1,4 +1,4 @@
-> **创建:** 2026-09-05 14:3xZ(计算收据 pod2 `logs/commands.txt` CHAIN START 11:27:48Z → `END[judge] rc=0` 11:29:57Z; 归档与本文由 Track B 代理写于 14:2x–14:4xZ, 判官复跑逐字节相等 14:21:32Z)| **Session:** b9646a9e / teammate Track B(allweather Part 0)| **状态:** final(判据 = PREREG §A 冻结先于数字, 数字后未改; 本文只读归档文件, 未加臂、未改窗)+ **§10 附录 17:4xZ: mE1 种子 2027 复现 NOT keepable(两种子 × 两窗口)** + **§11 附录 09-06 01:5xZ: 固定种子逐月折 = (c) UNDECIDED(收回约 1/3 缺口; 相邻月一致性 0.54→0.80; 早停 ep≤2 折 10/20 为候选机制)**| **预注册:** `docs/PREREG_dl_monthly_gate_and_phi_grid_2026-09-05.md` §A sha256 `05801bb24563910970acb842b2c9338d94212d6306dda4a8ea27c5d6178f6199`(commit dfbe516)| **装置:** pod2 `/workspace/review_scratch/dl_monthly_gate/`(回放 w10_health.py sha256 `8684d9a9f43a8d15…` = health_check / phi_grid / dl_monthly_wf 装置逐字节同; φdyn 臂 w10_seat2g.py `13d0c849…`; 判官 judge_gate.py, 复跑 json sha `1f0385e19a9619be…` 两侧同)| **归档:** `multi_asset/exports/research/retrain_2026-09/dl_monthly_gate_2026-09-05/`(SHA256SUMS + MANIFEST.md + `gate_tables.md` 由 `build_result_gate_doc.py` 从归档 json 打印)| **作废条件:** 面板 / 折模型 / 年折预测 / 装置任一 sha 变更; 判读在看数字后被改; 本文任何数字无归档文件出处
+> **创建:** 2026-09-05 14:3xZ(计算收据 pod2 `logs/commands.txt` CHAIN START 11:27:48Z → `END[judge] rc=0` 11:29:57Z; 归档与本文由 Track B 代理写于 14:2x–14:4xZ, 判官复跑逐字节相等 14:21:32Z)| **Session:** b9646a9e / teammate Track B(allweather Part 0)| **状态:** final(判据 = PREREG §A 冻结先于数字, 数字后未改; 本文只读归档文件, 未加臂、未改窗)+ **§10 附录 17:4xZ: mE1 种子 2027 复现 NOT keepable(两种子 × 两窗口)** + **§11 附录 09-06 01:5xZ: 固定种子逐月折 = (c) UNDECIDED(收回约 1/3 缺口; 相邻月一致性 0.54→0.80; 早停 ep≤2 折 10/20 为候选机制)** + **§12 附录 09-06 03:5xZ: 早停两臂 FLOOR5/FIX7 = (A) 早停是主因(两窗口; 两臂追平/超过年折且 vs CONST CI>0; 冻结候选按预注册撤回, 改立月度重训+best-epoch 规则修正候选, 不部署)**| **预注册:** `docs/PREREG_dl_monthly_gate_and_phi_grid_2026-09-05.md` §A sha256 `05801bb24563910970acb842b2c9338d94212d6306dda4a8ea27c5d6178f6199`(commit dfbe516)| **装置:** pod2 `/workspace/review_scratch/dl_monthly_gate/`(回放 w10_health.py sha256 `8684d9a9f43a8d15…` = health_check / phi_grid / dl_monthly_wf 装置逐字节同; φdyn 臂 w10_seat2g.py `13d0c849…`; 判官 judge_gate.py, 复跑 json sha `1f0385e19a9619be…` 两侧同)| **归档:** `multi_asset/exports/research/retrain_2026-09/dl_monthly_gate_2026-09-05/`(SHA256SUMS + MANIFEST.md + `gate_tables.md` 由 `build_result_gate_doc.py` 从归档 json 打印)| **作废条件:** 面板 / 折模型 / 年折预测 / 装置任一 sha 变更; 判读在看数字后被改; 本文任何数字无归档文件出处
 
 # RESULT · DL 月度换装门(t−2 截止 / t−1 验证)的因果模拟 — PREREG §A
 
@@ -539,3 +539,178 @@ best_epoch 分布(INFERRED 诊断, 由归档 fold_configs 与年折 json 的 va_
 
 - `addendum_mE1_constseed/results/`: `judge_gate_addendum2.json` · `addendum2_tables.md` · `agreement.json` · `agreement_tables.md` · `merge.json` · `f10_V2MAIN_mE1c_s42_merged.json` · `identity_YS.json`; `fold_configs/` 20 折 config(seed_fold 42); `shard_results/` 4 分片 json; `yearly_out/` 年折 save 跑 json(s42/s2027); `scripts/`(两个补丁训练器 + 两个 diff + 两个生成器 + 启动 + merge + 判官 + agreement + identity); `logs/`(分片日志 ×4、年折日志 ×2、merge/judge/agreement/identity 日志、commands.txt、patch sha); `replay_logs/` + `replay_dev_alt_logs/` + `replay_summary/`(两臂); `POD_SHA256SUMS_arrays_and_devices.txt`(20 .pt + 20 npz + 8 年折 .pt/npz + 拼接/拼行/工件)· `POD_SHA256SUMS_archived_files.txt`(70/70 相等)。
 - pod 原件(只读): `/workspace/review_scratch/allweather_trackB/mE1_constseed/`; 复跑逐字: 4 条 `bash launch_mwf_constseed.sh <k> <MONTHS>` + 2 条 `bash launch_yearly_save.sh <seed>`(`logs/commands.txt`)→ `identity_YS.py` → `merge_mwf2.py` → 两条 run_arm.sh(`replay_logs/commands.txt`)→ `judge_gate_addendum2.py` → `agreement.py`。
+
+---
+
+## §12 附录(2026-09-06 02:08Z–03:36Z, PREREG_dl_monthly_earlystop_2026-09-06, sha `d1feddc0aad8dcc1…`, commit 4fd7d06): 逐月折"早停选到近初始化模型"机制检验 —— best-epoch 下限 FLOOR5 / 固定 epoch FIX7 两臂
+
+> **创建:** 2026-09-06 03:5xZ(判官收据 `addendum_earlystop/logs/judge_gate_addendum3.log` ADDENDUM3_JUDGE_DONE 03:36Z; 训练 02:08:31Z–03:31:44Z, 8 分片)| **Session:** b9646a9e / teammate Track B | **状态:** 附录 final(读法 (A)/(B)/(C) = 预注册 §3 逐字, 冻结先于数字, 数字后未改; 不加臂、不改判据)| **装置:** pod2 `/workspace/review_scratch/allweather_trackB/earlystop/`(训练器 = §11 CONST `6003c2a2…` + best-epoch 选择补丁 → `55ee8382…`, diff 23 行; 恒等 `IDENTITY_FLOOR0_OK`; 装置 `w10_health.py` `8684d9a9…`)| **归档:** `dl_monthly_gate_2026-09-05/addendum_earlystop/`(109 文件 pod 端 sha 相等; 数组 sha 见 `POD_SHA256SUMS_arrays_and_devices.txt`)| **作废条件:** 同主文
+
+### §12.0 结论(白话)
+
+1. **冻结读法 = (A) 早停是主因, 两个窗口都成立**(VERIFIED 表 AD3-3)。两臂都只改"保留哪个 epoch 的权重"这一处(训练轨迹与 CONST 逐折逐 epoch 相同, 验证曲线 15 点 × 20 折全等, VERIFIED `trajectory_check.json`)。每 gross bps/锚, 冻结主窗 2025-03→08-10 / 全窗 2025-01→08-10:
+   - **FLOOR5**(只在 ep ≥ 5 内取验证最优)− 年折 s42 **+0.053 [−0.133, +0.225]** / +0.050 [−0.126, +0.227](CI ∋ 0 且 Δ ≥ −0.05); FLOOR5 − CONST **+0.168 [+0.049, +0.293]** / +0.151 [+0.034, +0.261](下界 > 0)⇒ 满足 (A);
+   - **FIX7**(固定重载 ep 7)− 年折 s42 **+0.151 [−0.048, +0.353]** / +0.119 [−0.087, +0.326]; FIX7 − CONST **+0.267 [+0.083, +0.462]** / +0.221 [+0.035, +0.415] ⇒ 也满足 (A); (B) 不成立。
+   去掉最佳月(2025-04)后 vs CONST 仍 CI > 0(FLOOR5 +0.124 [+0.021, +0.239], FIX7 +0.208 [+0.034, +0.395]), 不是单月驱动。
+2. **两臂追平或超过年折, 同时换手更低、回撤更小**(VERIFIED 表 AD3-1): 冻结主窗每 gross 水平 年折 s42 +1.557(S 2.57, maxDD 1133)/ s2027 +1.622 / R0(每折新种子)+1.386 / CONST +1.442 / **FLOOR5 +1.610(S 2.69, maxDD 870, 换手/gross 0.0591 = 年折 −8.3%)/ FIX7 +1.708(S 2.87, maxDD 832)**; 2× 年化 NAV 68.2% / 63.1% / 70.5% / 74.8%。vs 年折 s2027(拼 spl27): FLOOR5 −0.012 [−0.158, +0.125], FIX7 +0.086 [−0.089, +0.272]; vs R0(mE1, s42): FLOOR5 +0.224 [+0.046, +0.407], FIX7 +0.323 [+0.086, +0.550]。分数层(VERIFIED AD3-4): ΔIC vs 年折 冻结 FLOOR5 +0.0050 [+0.0028, +0.0071], FIX7 +0.0027 [+0.0006, +0.0050] —— 这次分数层与书层同向。
+3. **机制读数(VERIFIED `trajectory_tables.md` / `agreement2_tables.md`)**: FLOOR5 改变了 10/20 折保留的 epoch([202503, 202504, 202505, 202506, 202507, 202508, 202604, 202605, 202606, 202608]; CONST best_ep 列表 [6,5,4,2,1,2,2,4,5,5,10,11,12,6,11,3,3,3,7,4], FLOOR5 [6,5,6,8,7,5,5,5,5,5,10,11,12,6,11,8,11,7,7,5]); 被保留 epoch 在**验证切片**上的分数比 CONST 的 argmax **更低**(均值 FLOOR5 −0.16, FIX7 −0.73 bps/锚), 而书层**更高** ⇒ 逐月折的验证切片(训练锚末 15%, ≈1000 锚)偏爱训练不足的早 epoch, 与 test 月的书层表现反向 —— 这就是 §11 提出的机制本身, 不只是伴随现象。相邻月一致性: FLOOR5 0.893(p10 0.81)、FIX7 0.920(p10 0.84)vs CONST 0.80、每折新种子 0.54; 两臂与年折 s42 同月一致性 0.76 / 0.74(CONST 0.71)。
+4. **部署含义(预注册 §3 先写后看, 不由本文执行)**: (A) ⇒ 冻结候选 `PREREG_dl_freeze_yearly_2026-09-05.md` 撤回, 改立"月度重训 + best-epoch 规则修正"候选(训练配方改动 = RUNBOOK 改动 + 用户字; 仍需前向影子 ≥14 天或第二仪器再验, **不直接部署**); 同时触发 PREREG_incremental_retrain §1 末句的 W1+FLOOR5 组合臂(先写预注册段再跑)。比较家族: 本文 2 格 + §10/§11 2 格 = 4(累计含热启动 8), 单侧 5% 期望假阳性 0.2–0.4; FLOOR5 与 FIX7 的方向一致、CI 互含(FLOOR5 − FIX7 −0.099 [−0.243, +0.034]), 两臂在 s2027 年折参照上分别为持平与 +0.09 —— 效应量在 +0.05~+0.15 每 gross(≈ +2~+7 NAV %/yr @2×), 与装置分辨率同量级, 因此"追平年折"比"超过年折"更稳。**实盘零改动。**
+5. 收据: 恒等 FLOOR0 折 202501 与 CONST 逐位相同(npz/.pt sha 相等, config 除规则与时钟字段全等); 20/20 折 × 2 臂 `seed_fold == 42`、CAUSALITY ASSERT OK、输入 sha = 09-01 门跑; 有限掩码与 CONST 拼接文件逐位同; 起臂前 du 264653 MiB(lead 02:05Z 腾出 4.2 GB 后), 全程 8 进程无事故。
+
+### §12.1 装置与收据(VERIFIED `addendum_earlystop/logs/commands.txt` / `results/identity_FLOOR0.json` / `fold_configs/*.json` / `results/*/merge.json` / `replay_logs/`)
+
+- **补丁**(`make_patch_earlystop.py`, 精确串替换, 锚点恰一次断言): 基底 = §11 的 CONST 训练器 `pod_f10_train_monthly_constseed.py`(sha `6003c2a2…` = 逐字月折训练器 `7bb39f8d…` + 固定种子 42), 产物 `pod_f10_train_monthly_earlystop.py`(sha `55ee8382…`), `earlystop_patch.diff` 23 行: 两个旋钮 `BEST_EP_FLOOR`(默认 0)/ `BEST_EP_FIX`(默认 −1 = 关); 保留权重的判断 `if va > best_va` → `if FIX ≥ 0: (ep == FIX)` / `elif ep ≥ FLOOR and va > best_va`(FLOOR=0 ≡ 逐字); `best_epoch` = FIX 或 FLOOR + argmax(va_curve[FLOOR:]), 加断言 `va_curve[best_epoch] == best_va`; 每折 config 新增 `best_epoch_rule`, `env_given` 记录两旋钮; `alpha_final` 取 best_epoch; **EPOCHS/LR/余弦/τ 退火/优化器/禁运 1 锚/验证切片 15%/输出格式零改动**(训练照跑满 15 epoch)。
+- **恒等断言(先于臂)**: `BEST_EP_FLOOR=0` 单折 202501 独跑(02:04:30Z rc=0)vs §11 CONST shard0 同折: preds_fold npz sha 相等、P 逐位相等(max|Δ| 0.0)、.pt sha 相等、config 全等(除 `best_epoch_rule`/`self_sha256`/`wall_clock_s`/`epoch_s`/`finished_utc`), best_epoch 6 = 6 ⇒ `IDENTITY_FLOOR0_OK`(VERIFIED `results/identity_FLOOR0.json`)。
+- **臂**: FLOOR5(`BEST_EP_FLOOR=5`, tag `mE1cF5`)与 FIX7(`BEST_EP_FIX=7`, tag `mE1cX7`), 各 4 分片 × 5 月(`MONTHS`), 固定种子 42, 禁运 1 锚, 输入 sha 断言 = 09-01 门跑, 每折 CAUSALITY ASSERT OK; `merge_mwf3.py` 断言 20 月各恰一次、`seed_fold == 42`、`best_epoch_rule` 与臂一致、FLOOR5 折 best_epoch ≥ 5 且 = 5 + argmax(va_curve[5:])、FIX7 折 best_epoch == 7、va_curve/alpha_curve 15 点; 有限掩码与 CONST 拼接文件逐位同。
+- **拼行 / 回放 / 判官 / 一致性**: 与 §10/§11 同法(spl42 主, spl27 附; 装置 `w10_health.py` `8684d9a9…`; `judge_gate_addendum3.py` 写于数字前, 读法 (A)/(B)/(C) 逐字 PREREG §3, 冻结主窗为主、全窗并列, UTC 日块自举 2000 种子 20260905; `agreement2.py` 相邻月一致性同 §11 方法)。
+- **资源与事故纪律**: 起臂前 /workspace 用量 262.4 GiB(顶 263), 300 MB 写探针通过; 臂写量 ≈ 0.4 GB; 已按 ⑥ 先报 lead; 监视器带存活探针(ps python 计数)。
+
+### §12.2 书层数表与冻结读法(VERIFIED `addendum_earlystop/results/addendum3_tables.md`, `judge_gate_addendum3.py` 打印, 原样嵌入)
+
+<!-- judge_gate_addendum3.py: n=10038 2022-01-31 00:00→2026-08-30 20:00; windows {'pre-2025': 6396, '2025-01/02': 354, 'FROZEN 2025-03->26<=cut': 3168, 'FULL 2025-01->26<=cut': 3522, '2025 full': 2190, '2026<=cut': 1332}; bootstrap UTC-day 2000 seed 20260905 -->
+## AD3-1 · Levels per gross (bps/anchor); VERIFIED judge_gate_addendum3.json levels; NAV %/yr @2× = mean × 43.8; 2×DD %NAV = maxDD × 2/100
+| arm | FPRED | seed | FROZEN [CI95] | S | maxDD (2×DD %NAV) | turn/gross | NAV %/yr @2× | FULL [CI95] | S | 2025-01/02 | 2025 full | 2026≤cut |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| yearly_s42 | (default f10_V2MAIN_s{FSEED}) | 42 | **+1.557** [+0.580, +2.498] | +2.57 | 1133 (22.7%) | 0.06442 | +68.2% | **+1.611** [+0.710, +2.535] | +2.69 | +2.088 | +0.651 | +3.189 |
+| yearly_s2027 | (default f10_V2MAIN_s{FSEED}) | 2027 | **+1.622** [+0.683, +2.618] | +2.68 | 938 (18.8%) | 0.05945 | +71.1% | **+1.666** [+0.739, +2.495] | +2.78 | +2.058 | +0.768 | +3.143 |
+| R0_s42 | f10_gate_mE1_R0_s42.npy | 42 | **+1.386** [+0.397, +2.367] | +2.26 | 1213 (24.3%) | 0.06381 | +60.7% | **+1.482** [+0.593, +2.448] | +2.44 | +2.342 | +0.567 | +2.986 |
+| CONST42 | f10_gate_mE1c_R0_spl42.npy | 42 | **+1.442** [+0.526, +2.449] | +2.37 | 1112 (22.2%) | 0.06337 | +63.1% | **+1.509** [+0.589, +2.391] | +2.50 | +2.112 | +0.540 | +3.103 |
+| FLOOR5 | f10_gate_mE1cF5_R0_spl42.npy | 42 | **+1.610** [+0.636, +2.535] | +2.69 | 870 (17.4%) | 0.05907 | +70.5% | **+1.660** [+0.786, +2.546] | +2.79 | +2.112 | +0.770 | +3.125 |
+| FLOOR5_spl27 | f10_gate_mE1cF5_R0_spl27.npy | 2027 | **+1.610** [+0.687, +2.553] | +2.69 | 870 (17.4%) | 0.05907 | +70.5% | **+1.663** [+0.773, +2.589] | +2.80 | +2.140 | +0.774 | +3.125 |
+| FIX7 | f10_gate_mE1cX7_R0_spl42.npy | 42 | **+1.708** [+0.769, +2.661] | +2.87 | 832 (16.6%) | 0.05910 | +74.8% | **+1.730** [+0.890, +2.597] | +2.93 | +1.920 | +0.798 | +3.263 |
+| FIX7_spl27 | f10_gate_mE1cX7_R0_spl27.npy | 2027 | **+1.708** [+0.797, +2.665] | +2.87 | 832 (16.6%) | 0.05910 | +74.8% | **+1.732** [+0.898, +2.612] | +2.93 | +1.940 | +0.801 | +3.263 |
+
+## AD3-2 · Paired Δ per gross (Δg = g_x − g_ref by anchor; UTC-day-block bootstrap; Δ [CI95] P(Δ>0)); VERIFIED judge_gate_addendum3.json deltas
+| pair | pre-2025 | 2025-01/02 | 2025 full | 2026≤cut | **FROZEN 2025-03→26≤cut** | **FULL 2025-01→26≤cut** | ΔSharpe frozen/full | Δturn% | maxDD ref→x | Δ w/o best month (frozen) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| FLOOR5 − yearly_s42 [primary] | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.024 [-0.606,+0.674] P0.52 | +0.119 [-0.140,+0.378] P0.82 | -0.064 [-0.289,+0.124] P0.27 | **+0.053 [-0.133,+0.225] P0.73** | **+0.050 [-0.126,+0.227] P0.71** | +0.119 / +0.104 | -8.3% | 1133→870 | -0.029 [-0.188,+0.138] (best 202504 +252) |
+| FLOOR5 − CONST42 [primary] | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.230 [+0.058,+0.399] P1.00 | +0.022 [-0.080,+0.131] P0.65 | **+0.168 [+0.049,+0.293] P0.99** | **+0.151 [+0.034,+0.261] P0.99** | +0.316 / +0.288 | -6.8% | 1112→870 | +0.124 [+0.021,+0.239] (best 202504 +162) |
+| FIX7 − yearly_s42 [primary] | +0.000 [+0.000,+0.000] P0.00 (=0) | -0.167 [-0.962,+0.627] P0.34 | +0.147 [-0.136,+0.460] P0.84 | +0.074 [-0.083,+0.237] P0.81 | **+0.151 [-0.048,+0.353] P0.93** | **+0.119 [-0.087,+0.326] P0.89** | +0.301 / +0.242 | -8.3% | 1133→832 | +0.055 [-0.134,+0.239] (best 202504 +314) |
+| FIX7 − CONST42 [primary] | +0.000 [+0.000,+0.000] P0.00 (=0) | -0.191 [-0.639,+0.296] P0.20 | +0.258 [-0.004,+0.508] P0.97 | +0.160 [-0.043,+0.400] P0.93 | **+0.267 [+0.083,+0.462] P1.00** | **+0.221 [+0.035,+0.415] P0.99** | +0.498 / +0.426 | -6.7% | 1112→832 | +0.208 [+0.034,+0.395] (best 202504 +224) |
+| FLOOR5(spl27) − yearly_s2027 | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.083 [-0.516,+0.661] P0.60 | +0.007 [-0.202,+0.205] P0.53 | -0.018 [-0.153,+0.116] P0.40 | **-0.012 [-0.158,+0.125] P0.41** | **-0.003 [-0.143,+0.129] P0.48** | +0.010 / +0.018 | -0.6% | 938→870 | -0.050 [-0.176,+0.073] (best 202504 +112) |
+| FIX7(spl27) − yearly_s2027 | +0.000 [+0.000,+0.000] P0.00 (=0) | -0.118 [-0.701,+0.409] P0.34 | +0.033 [-0.219,+0.280] P0.59 | +0.120 [-0.046,+0.312] P0.91 | **+0.086 [-0.089,+0.272] P0.83** | **+0.066 [-0.099,+0.241] P0.78** | +0.192 / +0.154 | -0.6% | 938→832 | +0.033 [-0.123,+0.193] (best 202504 +173) |
+| FLOOR5 − R0(mE1,s42) | +0.000 [+0.000,+0.000] P0.00 (=0) | -0.231 [-0.787,+0.298] P0.21 | +0.203 [-0.038,+0.465] P0.95 | +0.139 [-0.045,+0.335] P0.92 | **+0.224 [+0.046,+0.407] P0.99** | **+0.178 [+0.004,+0.360] P0.98** | +0.428 / +0.351 | -7.4% | 1213→870 | +0.153 [+0.003,+0.310] (best 202504 +252) |
+| FIX7 − R0(mE1,s42) | +0.000 [+0.000,+0.000] P0.00 (=0) | -0.422 [-1.169,+0.322] P0.12 | +0.231 [-0.085,+0.572] P0.93 | +0.276 [+0.087,+0.497] P1.00 | **+0.323 [+0.086,+0.550] P1.00** | **+0.248 [+0.032,+0.471] P0.99** | +0.610 / +0.489 | -7.4% | 1213→832 | +0.237 [+0.042,+0.437] (best 202504 +314) |
+| FLOOR5 − FIX7 | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.191 [-0.246,+0.662] P0.78 | -0.028 [-0.215,+0.157] P0.38 | -0.138 [-0.330,+0.024] P0.05 | **-0.099 [-0.243,+0.034] P0.07** | **-0.069 [-0.213,+0.072] P0.16** | -0.182 / -0.138 | -0.1% | 832→870 | -0.113 [-0.260,+0.035] (best 202509 +24) |
+| CONST42 − yearly_s42 [§11 reference] | +0.000 [+0.000,+0.000] P0.00 (=0) | +0.024 [-0.603,+0.686] P0.51 | -0.111 [-0.326,+0.108] P0.16 | -0.086 [-0.340,+0.136] P0.26 | **-0.116 [-0.289,+0.044] P0.08** | **-0.102 [-0.275,+0.062] P0.12** | -0.197 / -0.184 | -1.6% | 1133→1112 | -0.153 [-0.321,+0.009] (best 202504 +90) |
+
+## AD3-3 · Frozen reading (PREREG §3): (A) some arm: ARM − yearly_s42 CI ∋ 0 ∧ Δ ≥ −0.05 ∧ ARM − CONST42 CI lower > 0; (B) both arms ARM − yearly_s42 CI upper < 0; (C) otherwise
+| window | FLOOR5 − yearly | FLOOR5 − CONST | FLOOR5 (A)? | FIX7 − yearly | FIX7 − CONST | FIX7 (A)? | (A) | (B) | verdict |
+|---|---|---|---|---|---|---|---|---|---|
+| FROZEN 2025-03->26<=cut | +0.053 [-0.133,+0.225] | +0.168 [+0.049,+0.293] | True | +0.151 [-0.048,+0.353] | +0.267 [+0.083,+0.462] | True | True | False | **(A) 早停是主因 ⇒ 冻结候选撤回, 改立'月度重训 + best-epoch 规则修正'候选(仍需影子/第二仪器再验, 不直接部署)** |
+| FULL 2025-01->26<=cut | +0.050 [-0.126,+0.227] | +0.151 [+0.034,+0.261] | True | +0.119 [-0.087,+0.326] | +0.221 [+0.035,+0.415] | True | True | False | **(A) 早停是主因 ⇒ 冻结候选撤回, 改立'月度重训 + best-epoch 规则修正'候选(仍需影子/第二仪器再验, 不直接部署)** |
+
+## AD3-4 · Score level: per-anchor rank IC (same anchor set); ΔIC with UTC-day-block bootstrap
+| window | IC FLOOR5 | IC FIX7 | IC CONST | IC R0 s42 | IC yearly s42 | ΔIC FLOOR5−yearly | ΔIC FIX7−yearly | ΔIC FLOOR5−CONST | ΔIC FIX7−CONST |
+|---|---|---|---|---|---|---|---|---|---|
+| FROZEN 2025-03->26<=cut (n=3168) | +0.0241 | +0.0218 | +0.0206 | +0.0202 | +0.0191 | +0.0050 [+0.0028,+0.0071] | +0.0027 [+0.0006,+0.0050] | +0.0034 [+0.0018,+0.0051] | +0.0012 [-0.0009,+0.0031] |
+| FULL 2025-01->26<=cut (n=3522) | +0.0226 | +0.0200 | +0.0195 | +0.0197 | +0.0187 | +0.0039 [+0.0019,+0.0059] | +0.0013 [-0.0010,+0.0036] | +0.0031 [+0.0015,+0.0046] | +0.0005 [-0.0014,+0.0025] |
+
+### §12.3 轨迹相等断言与 best-epoch 表(VERIFIED `addendum_earlystop/results/trajectory_tables.md`, `check_trajectory.py` 打印, 原样嵌入; va 为验证切片分数 bps/锚)
+
+| fold | va_curve equal (CONST=FLOOR5=FIX7) | alpha_curve equal | argmax(va) | CONST best_ep | FLOOR5 best_ep | FIX7 best_ep | va@CONST | va@FLOOR5 | va@FIX7 | FLOOR5 changed? |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 202501 | True | True | 6 | 6 | 6 | 7 | -3.109 | -3.109 | -3.905 | False |
+| 202502 | True | True | 5 | 5 | 5 | 7 | -3.299 | -3.299 | -3.957 | False |
+| 202503 | True | True | 4 | 4 | 6 | 7 | -4.011 | -4.105 | -5.598 | True |
+| 202504 | True | True | 2 | 2 | 8 | 7 | -3.783 | -4.579 | -6.221 | True |
+| 202505 | True | True | 1 | 1 | 7 | 7 | -3.002 | -4.426 | -4.426 | True |
+| 202506 | True | True | 2 | 2 | 5 | 7 | -3.336 | -3.787 | -6.056 | True |
+| 202507 | True | True | 2 | 2 | 5 | 7 | -4.327 | -4.474 | -6.375 | True |
+| 202508 | True | True | 4 | 4 | 5 | 7 | -3.734 | -3.996 | -4.795 | True |
+| 202509 | True | True | 5 | 5 | 5 | 7 | -3.728 | -3.728 | -4.195 | False |
+| 202510 | True | True | 5 | 5 | 5 | 7 | -3.817 | -3.817 | -4.158 | False |
+| 202511 | True | True | 10 | 10 | 10 | 7 | -4.933 | -4.933 | -5.210 | False |
+| 202512 | True | True | 11 | 11 | 11 | 7 | -7.076 | -7.076 | -7.308 | False |
+| 202601 | True | True | 12 | 12 | 12 | 7 | -7.870 | -7.870 | -7.984 | False |
+| 202602 | True | True | 6 | 6 | 6 | 7 | -7.984 | -7.984 | -8.017 | False |
+| 202603 | True | True | 11 | 11 | 11 | 7 | -7.812 | -7.812 | -7.914 | False |
+| 202604 | True | True | 3 | 3 | 8 | 7 | -7.430 | -7.482 | -7.603 | True |
+| 202605 | True | True | 3 | 3 | 11 | 7 | -6.974 | -6.976 | -7.000 | True |
+| 202606 | True | True | 3 | 3 | 7 | 7 | -6.875 | -6.899 | -6.899 | True |
+| 202607 | True | True | 7 | 7 | 7 | 7 | -7.061 | -7.061 | -7.061 | False |
+| 202608 | True | True | 4 | 4 | 5 | 7 | -6.322 | -6.347 | -6.415 | True |
+
+- all folds: va_curve/alpha_curve identical across CONST/FLOOR5/FIX7 and rules obeyed = **True**; FLOOR5 changed the kept epoch in 10/20 folds ([202503, 202504, 202505, 202506, 202507, 202508, 202604, 202605, 202606, 202608]); CONST best_ep ≤ 2 in 4/20; mean validation-score gap vs CONST: FLOOR5 -0.164, FIX7 -0.731 (bps/anchor, validation slice)
+
+### §12.4 一致性数表(VERIFIED `addendum_earlystop/results/agreement2_tables.md`, 原样嵌入)
+
+## AG2-1 · Adjacent-month agreement: per-anchor Spearman(model_t, model_{t−1}) on month t's anchors; distribution over anchors 2025-02→2026-08 and per-month means
+| series | n | mean | median | p10 | p90 | 2502 | 2503 | 2504 | 2505 | 2506 | 2507 | 2508 | 2509 | 2510 | 2511 | 2512 | 2601 | 2602 | 2603 | 2604 | 2605 | 2606 | 2607 | 2608 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| monthly_s42 | 3456 | +0.540 | +0.587 | +0.176 | +0.841 | +0.63 | +0.69 | -0.11 | +0.80 | +0.62 | +0.70 | +0.77 | +0.87 | +0.80 | +0.39 | +0.86 | +0.38 | +0.34 | +0.30 | +0.40 | +0.10 | +0.46 | +0.47 | +0.76 |
+| monthly_s2027 | 3456 | +0.557 | +0.545 | +0.248 | +0.855 | +0.85 | +0.66 | +0.32 | +0.36 | +0.52 | +0.47 | +0.58 | +0.51 | +0.89 | +0.75 | +0.25 | +0.41 | +0.85 | +0.77 | +0.54 | +0.42 | +0.81 | +0.14 | +0.54 |
+| CONST42 | 3456 | +0.798 | +0.849 | +0.567 | +0.941 | +0.89 | +0.91 | +0.68 | +0.84 | +0.76 | +0.92 | +0.91 | +0.81 | +0.96 | +0.81 | +0.94 | +0.93 | +0.85 | +0.85 | +0.60 | +0.54 | +0.43 | +0.65 | +0.86 |
+| FLOOR5 | 3456 | +0.893 | +0.909 | +0.812 | +0.952 | +0.89 | +0.95 | +0.92 | +0.91 | +0.93 | +0.94 | +0.94 | +0.85 | +0.96 | +0.81 | +0.94 | +0.93 | +0.85 | +0.85 | +0.90 | +0.85 | +0.80 | +0.81 | +0.93 |
+| FIX7 | 3456 | +0.920 | +0.937 | +0.840 | +0.963 | +0.88 | +0.96 | +0.95 | +0.96 | +0.94 | +0.95 | +0.95 | +0.89 | +0.97 | +0.94 | +0.93 | +0.92 | +0.93 | +0.95 | +0.95 | +0.86 | +0.81 | +0.81 | +0.92 |
+
+## AG2-2 · Same-month agreement (age 1) of each arm vs CONST42, vs monthly s42, and vs the yearly s42 file (own test year rows), 2025-01→2026-08 anchors
+| pair | n | mean | median | p10 | p90 |
+|---|---|---|---|---|---|
+| FLOOR5 vs CONST42 | 3642 | +0.900 | +0.987 | +0.604 | +1.000 |
+| FLOOR5 vs monthly_s42 | 3642 | +0.656 | +0.718 | +0.336 | +0.873 |
+| FLOOR5 vs yearly_s42 | 3522 | +0.764 | +0.788 | +0.624 | +0.864 |
+| FIX7 vs CONST42 | 3642 | +0.855 | +0.881 | +0.689 | +0.970 |
+| FIX7 vs monthly_s42 | 3642 | +0.651 | +0.666 | +0.413 | +0.845 |
+| FIX7 vs yearly_s42 | 3522 | +0.743 | +0.748 | +0.665 | +0.820 |
+| CONST42 vs monthly_s42 | 3642 | +0.646 | +0.705 | +0.352 | +0.877 |
+| CONST42 vs yearly_s42 | 3522 | +0.705 | +0.744 | +0.466 | +0.872 |
+
+### §12.5 两臂逐折表(VERIFIED `addendum_earlystop/logs/merge_FLOOR5.log` / `merge_FIX7.log`; 训练帧数字)
+
+FLOOR5:
+
+| fold | shard | rule | best_ep | argmax(va) unrestricted | va@best | va max | n_train | net bps | ES5 | turnover | α* | wall s | .pt sha |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 202501 | shard0 | floor5 | 6 | 6 | -3.109 | -3.109 | 6563 | +0.229 | 22.94 | 0.0742 | 0.0966 | 736 | 7fdc5fd13c25 |
+| 202502 | shard1 | floor5 | 5 | 5 | -3.299 | -3.299 | 6749 | -0.185 | 29.08 | 0.0752 | 0.0969 | 751 | e49db8be5731 |
+| 202503 | shard2 | floor5 | 6 | 4 | -4.105 | -4.011 | 6917 | +0.905 | 17.57 | 0.0735 | 0.0966 | 768 | 1daf62386ba2 |
+| 202504 | shard3 | floor5 | 8 | 2 | -4.579 | -3.783 | 7103 | +0.376 | 22.34 | 0.0707 | 0.0958 | 791 | 8e4cd6178282 |
+| 202505 | shard0 | floor5 | 7 | 1 | -4.426 | -3.002 | 7283 | +0.520 | 12.96 | 0.0755 | 0.0958 | 1062 | 4b454f587f83 |
+| 202506 | shard1 | floor5 | 5 | 2 | -3.787 | -3.336 | 7469 | +0.443 | 12.74 | 0.0773 | 0.0962 | 1096 | 632d1e00748d |
+| 202507 | shard2 | floor5 | 5 | 2 | -4.474 | -4.327 | 7649 | +1.124 | 24.34 | 0.0698 | 0.0949 | 1119 | 422e1672f6ab |
+| 202508 | shard3 | floor5 | 5 | 4 | -3.996 | -3.734 | 7835 | -0.477 | 16.01 | 0.0743 | 0.0954 | 1162 | ce851c08a471 |
+| 202509 | shard0 | floor5 | 5 | 5 | -3.728 | -3.728 | 8021 | +2.394 | 27.74 | 0.0547 | 0.0954 | 931 | 817d3f0a03e5 |
+| 202510 | shard1 | floor5 | 5 | 5 | -3.817 | -3.817 | 8201 | +6.226 | 49.74 | 0.0278 | 0.0949 | 942 | e8bec48c75ba |
+| 202511 | shard2 | floor5 | 10 | 10 | -4.933 | -4.933 | 8387 | +1.082 | 53.58 | 0.0141 | 0.0930 | 953 | fed02badf42d |
+| 202512 | shard3 | floor5 | 11 | 11 | -7.076 | -7.076 | 8567 | +0.598 | 39.65 | 0.0191 | 0.0935 | 962 | 2d6c46807bca |
+| 202601 | shard0 | floor5 | 12 | 12 | -7.870 | -7.870 | 8753 | +1.329 | 36.77 | 0.0269 | 0.0937 | 966 | cd4fe9859a69 |
+| 202602 | shard1 | floor5 | 6 | 6 | -7.984 | -7.984 | 8939 | +3.716 | 29.69 | 0.0389 | 0.0950 | 984 | 6ac3a65848b5 |
+| 202603 | shard2 | floor5 | 11 | 11 | -7.812 | -7.812 | 9107 | +3.361 | 24.43 | 0.0535 | 0.0936 | 1004 | f03f05c39966 |
+| 202604 | shard3 | floor5 | 8 | 3 | -7.482 | -7.430 | 9293 | +5.950 | 40.00 | 0.0559 | 0.0934 | 1030 | 403d99748b2e |
+| 202605 | shard0 | floor5 | 11 | 3 | -6.976 | -6.974 | 9473 | +2.802 | 36.06 | 0.0411 | 0.0927 | 1053 | 36a4a2beac11 |
+| 202606 | shard1 | floor5 | 7 | 3 | -6.899 | -6.875 | 9659 | +5.795 | 51.37 | 0.0362 | 0.0934 | 1050 | 12ef169d8a49 |
+| 202607 | shard2 | floor5 | 7 | 7 | -7.061 | -7.061 | 9839 | +4.444 | 41.48 | 0.0390 | 0.0933 | 1027 | 9d94b8f1a039 |
+| 202608 | shard3 | floor5 | 5 | 4 | -6.347 | -6.322 | 10025 | -0.182 | 46.49 | 0.0389 | 0.0935 | 976 | e7139ef69089 |
+stitched /workspace/review_scratch/allweather_trackB/earlystop/FLOOR5/preds/f10_V2MAIN_mE1cF5_s42.npy sha f93025bd4db4ac1c finite rows 3642 net_mean_all +2.022; best_ep list [6, 5, 6, 8, 7, 5, 5, 5, 5, 5, 10, 11, 12, 6, 11, 8, 11, 7, 7, 5]; folds where the rule changed the epoch vs unrestricted argmax: 10/20
+
+FIX7:
+
+| fold | shard | rule | best_ep | argmax(va) unrestricted | va@best | va max | n_train | net bps | ES5 | turnover | α* | wall s | .pt sha |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 202501 | shard0 | fix7 | 7 | 6 | -3.905 | -3.109 | 6563 | +0.194 | 18.84 | 0.0703 | 0.0965 | 736 | 307bb9baf5af |
+| 202502 | shard1 | fix7 | 7 | 5 | -3.957 | -3.299 | 6749 | -0.025 | 37.92 | 0.0687 | 0.0965 | 752 | aa00fdf50b13 |
+| 202503 | shard2 | fix7 | 7 | 4 | -5.598 | -4.011 | 6917 | +1.117 | 18.91 | 0.0709 | 0.0964 | 768 | 2064cb78425f |
+| 202504 | shard3 | fix7 | 7 | 2 | -6.221 | -3.783 | 7103 | +1.442 | 20.48 | 0.0724 | 0.0960 | 790 | f9e1c571beaa |
+| 202505 | shard0 | fix7 | 7 | 1 | -4.426 | -3.002 | 7283 | +0.520 | 12.96 | 0.0755 | 0.0958 | 1062 | 71241b54cfa8 |
+| 202506 | shard1 | fix7 | 7 | 2 | -6.056 | -3.336 | 7469 | +0.366 | 21.32 | 0.0721 | 0.0957 | 1099 | 1234434400db |
+| 202507 | shard2 | fix7 | 7 | 2 | -6.375 | -4.327 | 7649 | +0.721 | 26.99 | 0.0658 | 0.0944 | 1116 | 8f7a8af44022 |
+| 202508 | shard3 | fix7 | 7 | 4 | -4.795 | -3.734 | 7835 | -0.429 | 17.19 | 0.0693 | 0.0948 | 1157 | c1f364a2c0d6 |
+| 202509 | shard0 | fix7 | 7 | 5 | -4.195 | -3.728 | 8021 | +2.382 | 28.34 | 0.0512 | 0.0948 | 931 | 4e30554ef866 |
+| 202510 | shard1 | fix7 | 7 | 5 | -4.158 | -3.817 | 8201 | +6.248 | 47.68 | 0.0274 | 0.0943 | 941 | d1f818f88ae7 |
+| 202511 | shard2 | fix7 | 7 | 10 | -5.210 | -4.933 | 8387 | +1.082 | 53.58 | 0.0141 | 0.0933 | 955 | a5a9b1774fce |
+| 202512 | shard3 | fix7 | 7 | 11 | -7.308 | -7.076 | 8567 | +0.598 | 39.66 | 0.0192 | 0.0939 | 964 | ba91536e37b5 |
+| 202601 | shard0 | fix7 | 7 | 12 | -7.984 | -7.870 | 8753 | +1.329 | 36.79 | 0.0270 | 0.0940 | 965 | 5763739cb2cc |
+| 202602 | shard1 | fix7 | 7 | 6 | -8.017 | -7.984 | 8939 | +3.690 | 29.73 | 0.0389 | 0.0948 | 983 | be2d88121b4c |
+| 202603 | shard2 | fix7 | 7 | 11 | -7.914 | -7.812 | 9107 | +3.175 | 24.40 | 0.0549 | 0.0940 | 1003 | 6555f7eab2d4 |
+| 202604 | shard3 | fix7 | 7 | 3 | -7.603 | -7.430 | 9293 | +6.066 | 40.02 | 0.0530 | 0.0935 | 1030 | 44ceb0ad4caa |
+| 202605 | shard0 | fix7 | 7 | 3 | -7.000 | -6.974 | 9473 | +2.740 | 35.25 | 0.0429 | 0.0931 | 1053 | 34637aac2fa8 |
+| 202606 | shard1 | fix7 | 7 | 3 | -6.899 | -6.875 | 9659 | +5.795 | 51.37 | 0.0362 | 0.0934 | 1050 | df60faa29e76 |
+| 202607 | shard2 | fix7 | 7 | 7 | -7.061 | -7.061 | 9839 | +4.444 | 41.48 | 0.0390 | 0.0933 | 1028 | 462faefba050 |
+| 202608 | shard3 | fix7 | 7 | 4 | -6.415 | -6.322 | 10025 | -0.118 | 46.65 | 0.0366 | 0.0929 | 978 | a5fc46b49d9f |
+stitched /workspace/review_scratch/allweather_trackB/earlystop/FIX7/preds/f10_V2MAIN_mE1cX7_s42.npy sha 3cf0aa675db2e080 finite rows 3642 net_mean_all +2.067; best_ep list [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]; folds where the rule changed the epoch vs unrestricted argmax: 19/20
+
+### §12.6 归档清单
+
+- `addendum_earlystop/results/`: `judge_gate_addendum3.json` · `addendum3_tables.md` · `trajectory_check.json` · `trajectory_tables.md` · `agreement2.json` · `agreement2_tables.md` · `identity_FLOOR0.json` · `FLOOR5_*_merged.json` / `FIX7_*_merged.json` / `*_merge.json`; `fold_configs/{FLOOR5,FIX7,FLOOR0_identity}/`; `shard_results/`; `scripts/`(补丁训练器 + 基底副本 + diff + 生成器 + 启动 + 恒等 + merge + 判官 + agreement + chain); `logs/`(8 分片日志 + 恒等折日志 + merge/judge/agreement/identity/trajectory 日志 + commands.txt + patch sha); `replay_logs/` + `replay_dev_alt_logs/` + `replay_summary/`(4 臂); `POD_SHA256SUMS_arrays_and_devices.txt`(40 .pt + 40 npz + 2 拼接 + 4 拼行 + 4 工件 + 装置)· `POD_SHA256SUMS_archived_files.txt`(109/109 相等)。
+- pod 原件(只读): `/workspace/review_scratch/allweather_trackB/earlystop/`; 复跑逐字: `bash launch_mwf_earlystop.sh FLOOR0 0 202501`(恒等)→ `python identity_FLOOR0.py` → 8 条 `bash launch_mwf_earlystop.sh {FLOOR5|FIX7} <k> <MONTHS>` → `bash chain_earlystop.sh`(merge ×2 → 4 条 run_arm.sh → judge_gate_addendum3 → agreement2 → check_trajectory)。

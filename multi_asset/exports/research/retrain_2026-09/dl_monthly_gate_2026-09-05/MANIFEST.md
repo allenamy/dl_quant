@@ -51,3 +51,6 @@ mE1 月折以种子 2027 重训(dl_monthly_wf 逐字月折训练器 + 一行种�
 
 ## 6. 附录 addendum_mE1_constseed/(2026-09-06 01:5xZ; RESULT §11)
 固定种子(每折 seed 42)逐月折 20/20(逐字月折训练器一行行为补丁 + 一行元数据补丁, 4 分片)+ 年折 save 诊断跑(逐字年折训练器 + 12 行只保存补丁, 预测逐位同门跑)→ 拼接/拼行 → 同装置回放 → `judge_gate_addendum2.py`(冻结读法 (a)/(b)/(c))+ `agreement.py`(相邻月/跨年/种子间一致性)。pod 根 `/workspace/review_scratch/allweather_trackB/mE1_constseed/`; 数组 sha `addendum_mE1_constseed/POD_SHA256SUMS_arrays_and_devices.txt`; 归档文件 pod 端 sha `POD_SHA256SUMS_archived_files.txt`(70/70 相等)。
+
+## 7. 附录 addendum_earlystop/(2026-09-06 03:5xZ; RESULT §12; PREREG_dl_monthly_earlystop d1feddc0)
+CONST 训练器 + best-epoch 选择补丁(FLOOR5 / FIX7, 恒等 FLOOR0 折逐位同 CONST)→ 2 臂 × 4 分片 20/20 折 → 轨迹相等断言 → merge_mwf3 → 拼行 → 同装置回放 → `judge_gate_addendum3.py`(读法 (A)/(B)/(C))+ `agreement2.py`。pod 根 `/workspace/review_scratch/allweather_trackB/earlystop/`; 数组 sha `addendum_earlystop/POD_SHA256SUMS_arrays_and_devices.txt`; 归档文件 pod 端 sha `POD_SHA256SUMS_archived_files.txt`(109/109 相等)。
