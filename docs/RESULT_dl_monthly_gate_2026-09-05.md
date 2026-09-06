@@ -863,3 +863,38 @@ stitched /workspace/review_scratch/allweather_trackB/warmstart/W2/preds/f10_V2MA
 
 - `addendum_warmstart/results/`: `judge_gate_addendum4.json` · `addendum4_tables.md` · `agreement3.json` · `agreement3_tables.md` · `identity_W0.json` · `identity_WF0.json`(组合训练器恒等)· `W1_*_merged.json` / `W2_*_merged.json` / `W*_merge.json`; `fold_configs/{W1,W2,W0_identity,WF0_identity}/`(每折 init_from / init_state_sha256 / lr / best_epoch / va_curve); `run_results/`; `scripts/`(两个补丁训练器 + 两个 diff + 两个生成器 + 两个启动 + 恒等 + merge + 判官 + agreement + chain); `logs/`(W1/W2/恒等日志 + merge/judge/agreement/identity 日志 + commands.txt + patch sha); `replay_logs/` + `replay_dev_alt_logs/` + `replay_summary/`(4 臂); `POD_SHA256SUMS_arrays_and_devices.txt`(40 .pt + 42 npz + 2 拼接 + 4 拼行 + 4 工件 + 年折 2025 .pt + 装置)· `POD_SHA256SUMS_archived_files.txt`(98/98 相等)。
 - pod 原件(只读): `/workspace/review_scratch/allweather_trackB/warmstart/`; 复跑逐字: `bash launch_mwf_warmstart.sh W0ident 202501`(恒等)→ `python identity_fold.py …` → `bash launch_mwf_warmstart.sh W1` / `W2`(各一进程, 按月序; resume 安全)→ `bash chain_warmstart.sh`(merge ×2 → 4 条 run_arm.sh → judge_gate_addendum4 → agreement3)。
+
+## §14 附录(2026-09-06 07:49Z–13:5xZ, PREREG_incremental_retrain_2026-09-06 §1.1 / §3.1 / §3.3, sha `1463d7244c5b39db…`, commits c63a216 / 2086c82 / 513ebf4): 组合臂 W1F5、12 个月窗 P1、单月窗剂量 P0 —— **三组全部不构成部署候选**
+
+> **创建:** 2026-09-06 14:0xZ | **Session:** b9646a9e / **由 lead 代写**(track-b-dl 两次撞 Fable 额度: 09-06 07:4xZ 与 14:01:49Z; 链条与判官由 lead 自跑, 见 `logs/commands_lead_excerpt.txt`)| **状态:** 附录 final(读法逐字取自判官 `reading` 键, 判据冻结先于数字, 数字后未改; 不加臂、不改判据)| **装置:** 判官 `judge_gate_addendum5.py`(归档在 `dl_replication_pretrain_2026-09-06/scripts/`), 回放 `w10_health.py` `8684d9a9…`, 臂 `d30_n2_c42`, n=10038 锚, UTC 日块自举 2000 种子 20260905 | **窗口:** FROZEN 2025-03→26≤cut **3168** / FULL 2025-01→26≤cut **3522** / 2025 全年 2190 / 2026≤cut 1332 / 2025-01·02 354 | **归档:** `multi_asset/exports/research/retrain_2026-09/dl_replication_pretrain_2026-09-06/`(58 文件; 判官 json + 表 + 恒等收据 + 逐折 merged config + 日志)| **作废条件:** 同主文
+
+### §14.0 结论(白话)
+
+1. **三组臂的冻结读法, 逐字取自判官 `reading` 键(VERIFIED `results/judge_gate_addendum5.json`), FROZEN 与 FULL 两个窗口给出相同读法**:
+   - **W1F5(热启动 + best-epoch 下限 5)= 「(A-单项够用) 以 FLOOR5/FIX7 单项为候选」** —— 组合**不优于任一单项**;
+   - **P1(训练窗从全史缩到 12 个月)= (C) UNDECIDED**;
+   - **P0(单月窗微调, 剂量 e0/e1/e3/e10)= (C) UNDECIDED**, 四个剂量的 `A_single` 与 `yearly_upper_lt0` **全为 false**。
+2. **W1F5 组合臂: 加了下限规则等于没加**(VERIFIED 表 AD6-2, 每 gross bps/锚, 冻结主窗)。**W1F5 − W1 = −0.034 [−0.142, +0.083] P0.30**(**点估计为负**), W1F5 − FLOOR5 = +0.072 [−0.194, +0.332] P0.69, W1F5 − 年折 s42 = +0.125 [−0.162, +0.439] P0.80, W1F5 − CONST42 = +0.241 [−0.058, +0.519] P0.95。⇒ 「热启动」与「早停下限」**不叠加**: 热启动一旦把起点换成训好的模型, 早停就不再选到近初始化的 epoch(§13.4 已记), 下限规则因此无事可做。**这与部署预注册 `PREREG_deploy_dl_recipe_2026-10`(33ee634)选定的方案 B「只热启动、不加下限」方向一致 —— 该选择在本节数字出来之前就已冻结, 本节是事后确认而非依据。**
+3. **P1(12 个月窗): 缩训练窗既不加分也不减分**(VERIFIED AD6-2)。冻结主窗 P1 − 年折 +0.096 [−0.130, +0.323] P0.79; P1 − CONST42 +0.212 [−0.022, +0.455] P0.95(**下界差 0.022 未过 (A)**); 近期加权项 **P1 − W2 = −0.085 [−0.318, +0.149] P0.24 含 0 且点估计为负** ⇒ (C)。书层水平 +1.654(S 2.73, maxDD 1005, 换手 −20.0%)。
+4. **P0(单月窗剂量): 剂量越大越差, 且"更新"本身没证明有价值**(VERIFIED AD6-1 / AD6-2)。冻结主窗水平: e0 **+1.660**(S 2.81, maxDD 815, 换手 −9.6%)/ e1 +1.609 / e3 +1.601 / **e10 +1.482**(S 2.45, maxDD 1046)—— **单调下降**。关键对照「更新有无改动书」= P0e_k − P0e0: e1 **−0.050** [−0.165, +0.056], e3 **−0.058** [−0.262, +0.125], e10 **−0.177** [−0.411, +0.072] —— **三个点估计全为负**, CI 全含 0。vs W2: e1 −0.129 [−0.322, +0.054], e3 −0.137 [−0.345, +0.069], **e10 −0.256 [−0.522, +0.007] P0.03**(几乎越线为负)。⇒ 用户 09-06 提出的直觉「只用最近一个月微调就不该跑大 epoch, 否则过拟合最近表现」**在书层被数据支持**(剂量单调向下), 但**"少跑几个 epoch 就比不更新好"这一步没有被证明**(e1/e3 对 e0 的点估计也是负的)。
+5. **★ 必须一起读的反向读数: P0 的分数层 IC 显著更高, 书层却不跟**(VERIFIED AD6-4)。冻结 IC: 年折 +0.0191 / CONST +0.0206 / **P0e1 +0.0286 / P0e3 +0.0330 / P0e10 +0.0336**, ΔIC vs 年折 **+0.0095 [+0.0075, +0.0115] / +0.0139 [+0.0115, +0.0166] / +0.0145 [+0.0114, +0.0176](三个 CI 下界均 > 0)**。**IC 最高的 e10 恰是书层最差的臂**(−0.075 vs 年折, −0.256 vs W2)。这是项目已在案的**「排序≠净额」第六例**: 分数层录取是必要非充分, 必须过书层净额 CI。反向的一侧同样成立: W1F5 的 IC 更低(ΔIC vs 年折 **−0.0076 [−0.0114, −0.0036]**, CI < 0)而书层不差, 与 §13 对 W1/W2 的记载同族(热启动收敛到另一族解, 增益在持仓路径)。
+6. **同月一致性(VERIFIED AD6-1 末列, 与 CONST42 比)**: W1F5 **0.189 / p10 0.045**(全表最低, 与 W1 的 0.209 同档)、P1 0.299 / 0.068、P0e0-e10 0.62–0.73。⇒ 热启动族与基线是**不同的解**, 而 P0 族仍与基线同族。
+7. **本节全部为单种子链(s42), 未满足项目的双种子同号门 ⇒ W1F5 / P1 / P0 三组均不构成部署候选。** 本轮唯一满足双种子门的是 **FLOOR5 / FIX7**(§12 主种子 + 种子 2027 复验 `results/judge_replication.json`: FLOOR5_s2027 − R0_s2027 **+0.243 [+0.066, +0.420]**, FIX7_s2027 − R0_s2027 **+0.299 [+0.071, +0.523]**, 全窗 +0.238 [+0.069, +0.405] / +0.276 [+0.069, +0.481] 同号)。**实盘零改动。**
+
+### §14.1 装置、恒等收据与一处必须登记的装置性质
+
+- **恒等断言(先于臂)**:
+  - `results/identity_P1.json` —— P1 装置把旋钮置于 W2 设定后跑折 202501, 与 `warmstart/W2` 同折**逐位相同**: `preds_npz_sha` 相等(`013e673f1175…`), `P_bitwise_equal true`, `P_max_abs_delta 0.0`, `.pt` sha 相等(`7cf9f768f4eb…`)。
+  - `results/identity_p0e0.json` —— P0 剂量 0(`epochs 0`, `theta_rel_change 0.0`, `musd_source yearly2025_rule`, `best_epoch −1`, `p0_train_month 202412`, `n_train 185`)折 202501 的预测与年折 2025 模型**逐位相同**(`P_bitwise_equal true`, `P_max_abs_delta 0.0`, shape [3642, 829], `first_te` 6564 两侧同)⇒ **剂量 0 = 不更新**, 是干净的对照臂。
+- **★ 装置性质(本次发现, 必须登记)**: 判官 `judge_gate_addendum5.py` L42 只建**一个全局** `np.random.default_rng(20260905)`, 之后每次自举(L44/L64)按调用顺序从同一条流里取数。⇒ **臂的数量改变时, 自举重采样的抽取序列随之改变, CI 边界会变, 点估计不变**。
+  - **实测对账**(两次判官运行, 归档 `README.md` §② 引的是 07:51Z 只含 P1 的那次, `judge_gate_addendum5.json` 是补跑 W1F5/P0 之后的那次): P1 − 年折 点估计 +0.096 两次相同, CI 由 [−0.136, +0.315] 变为 [−0.130, +0.323]; P1 − CONST 点估计 +0.212 相同, CI [−0.021, +0.459] → [−0.022, +0.455]; P1 − W2 点估计 −0.085 相同, CI [−0.321, +0.145] → [−0.318, +0.149]。**三个点估计逐位一致、六个 CI 边界全变**, 正是上述机制预言的签名(VERIFIED 读码 + 两份产物对照)。
+  - 量级 ≈ 0.005–0.008, 与 2000 次重采样的蒙特卡洛误差同量级(INFERRED, 未单独标定); **三条读法与 (A)/(C) 判决在两次运行下完全相同, 无翻转**。
+  - **纪律**: 引用本族 CI 时必须连**同一次判官运行的臂集**一起引; 跨运行比 CI 边界是无效比较。下次改判官应改为**每个比较各自 `default_rng(SEED, spawn_key=…)`**, 使 CI 对臂集不变 —— 记为待办, 本次不改(改判官等于改判据装置, 且不影响任何已有判决)。
+- **归档与复跑**: `dl_replication_pretrain_2026-09-06/`(判官 + 表 + 恒等 + 10 份逐折 merged config + lead 侧日志; pod 原件 `/workspace/review_scratch/allweather_trackB/{pretrain,warmstart}`)。复跑逐字: `bash scripts/chain_lead_repl_p1.sh`(merge_mwf3s ×2 → merge_chain P1 → run_arm ×N → judge_replication → judge_gate_addendum5)与 `scripts/chain_lead_w1f5.sh`。**首次运行因 lead 脚本里日志文件名含空格 rc=1 中止(无任何产物写出), 该失败行如实留在 pod `logs/commands.txt`, v2 重跑成功。**
+
+### §14.2 与既有结论的接口
+
+- **不改写 §12/§13 任何数字**; §13.0 第 5 条里"§1 末句触发的 W1+FLOOR5 组合臂待预注册段后再跑"由本节结清: 已跑、已判、**组合不加分**。
+- **归档 README(`dl_replication_pretrain_2026-09-06/README.md`)④ 的建议「从 v3 热启动 + best-epoch 下限 5(即 W1F5 形态)」写于 W1F5 判官出数之前, 按本节 §14.0-2 应修正为「只热启动、不加下限」**; 部署预注册 `PREREG_deploy_dl_recipe_2026-10`(33ee634)已经是后者, 无需改动。
+- 比较家族累计(本轮 DL 轴): §10 种子 2027 / §11 固定种子 / §12 早停 2 臂 / §13 热启动 2 臂 / §14 W1F5 + P1 + P0 4 剂量 = **约 12 格**; 单侧 5% 期望假阳性 ≈0.6。**唯一过双种子门的 FLOOR5/FIX7 仍须前向影子 ≥14 天或第二仪器再验**(部署预注册 §3 已写死)。
+
