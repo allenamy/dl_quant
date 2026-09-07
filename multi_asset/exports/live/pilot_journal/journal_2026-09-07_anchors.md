@@ -368,3 +368,64 @@ BNB 折扣基本耗尽(2,437 笔成交里仅 **6 笔**用 BNB), 补充待用户�
 - markout 回填: 本日 `pending=395 written=221 requests=208`, 本锚 +60s 覆盖 75% 名义, 名义加权 **−3.98 bps**。
 
 **⑥ 异常处置**: 无需触发。日内 +0.179%, 距 −2.68% 告警线远; guard_twin AGREE; 无新告警类型。**未 PushNotification**(无重大异常)。
+
+---
+## 20Z 锚深查(2026-09-07 20:24Z 执行, 20:51:09Z `anchor done rc=0`; 21:4xZ 记; 全深度)
+
+**一句话**: 全项通过, 且**执行质量较 16Z 明显回升**(maker 57%→79%, markout −3.98→−1.31 bps, −5022 33%→25%)。日内 **+0.446%**。**两条告警需要你看**: A_DECIDE 级仓位对账 12 名, 撤名残差 −5.91% of target gross。
+
+### ① 三守护(按句柄验) — 全绿
+`shadow_loop_v3` PID **10900** ≡ `shadow.lock` 10900 ✓ · `combo_live_daemon` PID **30944** ≡ `fea171/combo_live_daemon.pid` 30944 ✓ · `sidecar_daemon` PID 30943 在跑(**无 pid 文件系设计**, 上轮读码确认)· exec_n6 沙盒 PID 50689(Phase 2, 预期)。launchd 三项均在。
+
+### ② 信号六项 — 全绿
+| 项 | 读数 | |
+|---|---|---|
+| `fund_updates` | **354** | ✓ 20Z 非 8h 结算锚, 稳态 ~353 |
+| `forced_exit_n` | **2** (gross 0.0023) | 16Z 为 0; 量级 0.23% of book |
+| sel / members / coverage | 248 / 400 / **1.0** | ✓ |
+| fetched / missing / future_dropped | 450 / **0** / **0** | ✓ |
+| `w3` | [0.3006, 0.074, 0.6254], runtime 266.2s | |
+| **掩码算术** | `0.3006/(0.3006+0.6254) = 0.32462` ≡ 落盘 `w3m 0.3246` | ✓ **逐位** |
+| combo_live_status | anchor 1788811200 **匹配** · ok/reader_ok true · age **0.3s** · n 247 gross 0.8376 | ✓ |
+| kc/fc | `kc_src=own fc_src=own` · FTRIM 排除 **7** 名 rn8 覆盖 1.000 · ρ(f10,king) **0.136** | ✓ |
+| **反事实改写幅度** | **21.44%**(16Z 21.24%, 增量 **+0.20pp**) | 升级判据仍未触发(需连续 3 锚 >+0.2pp, 本次仅 1) |
+
+### ③ 执行漏斗(按 `anchor_ts` 归属)
+| 项 | 20Z | 16Z | 模板带 |
+|---|---|---|---|
+| 唯一成交 / 名义 | 228 / 6,198 | 276 / 7,596 | — |
+| **maker 笔 / 名义** | **79% / 83%** | 57% / 56% | ≥90% **仍未达** |
+| fee | **2.50 bps** | 3.32 | maker 1.80-2.3(**已是无 BNB 折扣口径**: 2.50×0.9 = 2.25 落带内) |
+| 换手/gross | **3.75%** | 4.6% | ✓ 2-5.5% |
+| **+60s markout** | **−1.31 bps @97% 覆盖** | −3.98 @75% | 大幅改善 |
+| `rate_5022` | **24.7%**(39/158, 二次 2) | 33.1% | 改善 |
+| placement behind | **51%**(213/417) | 52% | ✓ ≈50% |
+| requote 分臂 | requote 44 / direct 16 / exempt 2 | 48/32/1 | — |
+| 终态 | skipped_min_notional 194 · partial_expired 140 · venue_reject 41 · filled 28 · skipped_no_chase_arm 14 | | |
+| chase 实验 | 140 名随机化, seed `A1788812640` **逐锚变** ✓ | | |
+
+### ④ 记账 — 全绿
+`NAV 82,604.54` · `venue_gross 165,148` ⇒ **杠杆 1.9993×** ✓ · `venue_net −390` / **net/gross −0.0024** ✓ 带内 · `opening_halted False` · regime **calm** · `rows_persisted 417`
+**当日 6 行 NAV 全部 `external_flow=0` / `realised_truncated=False`** ⇒ 守卫可判; NAV 82,236 → 82,130 → 82,047 → 83,172 → 82,385 → **82,605**, **日内 +0.446%**。
+**FUNDING_FEE**: 20:00Z 结算 **167 名 −10.26 USDT**(注: 4h 间隔的名字在**每个** 4h 锚结算, 不止 00/08/16Z; 当日 interval 分布 1h/4h/8h = 16/424/104 笔), 当日累计 **−32.14 USDT**。
+**guard_twin AGREE** ✓ 20:46:33Z `eq=82574.40 nav=82604.54 day_twin=0.41 arith=0.446 anchor_rc=0 lev=1.998 gap=+0.00 deep=[]`。
+`phase_C`: `anchors_row true` / `readback 236` / `daily_nav_row true` / `cooldown_n 12` / `net_over_gross −0.002359` ✓
+`state/anchor_runs.log` 末行 **`2026-09-07T20:51:09Z anchor done rc=0`** ✓
+
+**归因 16Z→20Z(覆盖 100%)**: 价格 P&L **+247.3** / NAV 实变 **+219.6** / 差 −27.7(fee 1.55 + funding −10.26 ≈ −12, 余 ≈−16 属标记时点)。**多头腿 +531 / 空头腿 −284 —— 与 16Z 完全反向**(16Z 是多 −850 / 空 +87)。亏 110 名 / 盈 120 名。**4USDT +58.6(反弹)**。最亏 INJ −114 / BULLA −79 / AERO −72; 最赚 BR +149 / VVV +142 / AKE +94。
+
+### ⑤ 执行质量
+- **尺寸梯度三桶: 仍无法评估** —— `exec_probe/v2/KILL` 文件仍在(08-22 起, **16 天**)。
+- markout 回填: 20Z 跑 `pending=343 written=213 requests=180 budget_s=805 stopped_by=None`(16Z 为 395/221/208)。
+- **★ chase / placement 单名连抽: 已检验, 无异常。** 分臂规则读码确认 = `sha1(rebalance_id:symbol)`, `rebalance_id` **逐锚变** ⇒ 应每锚重抽。排除 `exempt` 后 6/6 在场 **221 名**: 最长连抽分布 {1:6, 2:88, 3:68, 4:39, 5:11, 6:9}。**2 万次公平硬币蒙特卡洛**: 最长连抽 ≥4 实测 **59** vs 期望 55.3 **95% [43, 68] 带内**; 6/6 全同实测 **9** vs 期望 6.9 **95% [2, 12] 带内**; 每锚 behind 占比 43/48/51/46/53/52% ≈ eps 0.50。
+  ⚠ **我初读误判**: 先看到"60 名连抽"以为异常, 实为 `run≥4` 而非 `6/6`, 且完全在公平硬币带内。**先算再报, 未发告警。**
+
+### ⑥ 告警 5 条 —— **两条需用户看**
+1. **★ [HIGH / A_DECIDE] 仓位对账: 12 个名字超出重估范围(符号翻转 / 单边 / >5%)—— 已采纳场所真值。** 这是**最高告警层级**(A_DECIDE), 本锚唯一一条。
+2. **★ [INFO / C_MEASURE] 撤名残差 −9,744.97 USDT = 目标 gross 的 −5.91%(阈值 >2%)**, 由 **14 个被撤下的名字**造成(ARB/BTC/BTR/COLLECT/CYS/DASH/EGLD…= 场所 `maxNotionalValue=0` 扣留的那批)。⇒ 书**想要**这 9.7k 单边敞口但**无法交易**; 最终 net/gross 仍 −0.0024, 说明重整后已归一化, 但**这是冻结宇宙 + 场所扣留叠加出来的结构性缺口**, 与「281 个新上市名被忽略」同源。
+3. [INFO] 重整后 3 名跨过 min_notional 门槛(1000FLOKI/1000LUNC/1000SHIB)—— 可交易性由重整改变而非信号改变, 仅报告不迭代。
+4. [INFO] 5 名场所扣留 reduce-only。
+5. [INFO] 18 个 maker 被 −5022 拒, 残差进 taker 补单。
+6. [INFO] 限流计数差 704 权重/分钟 —— **归属仍未定**(封禁 IP 是 CloudFront 边缘节点, 非本出口), 不喂任何决策。
+
+**未 PushNotification**: 无回滚级异常; 日内 +0.446% 距 −2.68% 告警线远; guard_twin AGREE; 杠杆/中性/守护全部带内。A_DECIDE 那条已由执行器自行处置(采纳场所真值)并记录。
