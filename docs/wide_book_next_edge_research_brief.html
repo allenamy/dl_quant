@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wide-Book Strategy — 下一阶段潜在 Edge</title>
+<style>
+body{margin:0;background:#f7f8fa;color:#18202a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.62}
+main{max-width:960px;margin:auto;padding:36px 20px 60px}
+h1{font-size:28px;margin:0 0 8px} h2{font-size:20px;margin:30px 0 12px;border-top:1px solid #e5e7eb;padding-top:16px}
+h3{font-size:16px;margin:0 0 6px}.sub{color:#667085;font-size:14px}
+.hero,.card,.note{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin:16px 0}
+.hero strong,.prio{color:#0f766e}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.badge{display:inline-block;background:#ecfdf5;color:#0f766e;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:8px}
+ul,ol{padding-left:20px}li{margin:5px 0}code{background:#f3f4f6;padding:1px 4px;border-radius:4px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;font-size:14px}
+th,td{padding:9px 11px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}th{background:#f9fafb}
+.note{background:#fffbeb;border-color:#fde68a}.small{font-size:13px;color:#667085}
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<div class="sub">Research Brief · 2026-09-02</div>
+<h1>Wide-Book Crypto Strategy：下一阶段潜在 Edge</h1>
+<p class="sub">给研究团队的简版建议：按“对 NAV 的真实杠杆”排序，而不是按技术新颖度排序。</p>
+
+<div class="hero"><strong>核心判断：</strong>当前最值得研究的，不是再换一个更强的 4h return predictor。现有证据显示模型腿席位有限、模型结构/训练目标多轮改造未转化为书层净额。下一阶段应重点研究：<strong>funding→price 映射的跨 regime 自适应、执行智能、市场状态建模、动态有效广度</strong>。</div>
+
+<h2>1. 优先级最高的四条研究线</h2>
+<div class="grid">
+<div class="card"><div class="badge">P0</div><h3>Fund Mapping Meta-Learning</h3>
+<p><b>问题：</b>Funding 是独立的杠杆资金状态量，但历史上会从 reversal 翻成 continuation。</p>
+<p><b>建议：</b>借鉴 FinPFN / in-context adaptation，让模型根据最近一段 <code>funding state → realized return</code> 映射判断当前 regime，而不是学习永久固定规则。</p>
+<ul><li>输入先保持经济可解释：fund EMA、shock、OI、basis、σfund、rank persistence、tail share。</li><li>第一阶段只做 shadow/dashboard，不直接改 production。</li><li>成功标准：能跨 2021→2026 捕捉符号变化，且书层扣成本后优于固定 mapping。</li></ul>
+</div>
+
+<div class="card"><div class="badge">P0</div><h3>Execution Intelligence</h3>
+<p><b>问题：</b>未来资金扩大后，容量瓶颈更可能来自 maker fill、逆向选择、机会成本和大单 markout。</p>
+<p><b>路线：</b>监督学习 → contextual bandit → world-model + RL。</p>
+<ul><li>Fill survival：预测 1/5/20min 成交概率。</li><li>联合预测 implementation shortfall / missed alpha。</li><li>根据状态选择 shallow/deep、timeout、chase/no-chase。</li><li>现有随机化 placement/chase 数据非常适合因果化学习。</li></ul>
+</div>
+
+<div class="card"><div class="badge">P1</div><h3>Market-State / World Model</h3>
+<p><b>问题：</b>2027 最大未知量是市场状态如何演化，而不是单币 4h 收益。</p>
+<p><b>建议：</b>预测 <code>p(S[t+1:t+H] | S≤t)</code>，状态包括 σfund、eligible N、短周期 funding 占比、rank persistence、carry concentration、OI/basis/liquidation、sleeve PnL。</p>
+<p>TimesFM-3 / Chronos / 小型 SSM-Mamba 可作为 benchmark，优先做概率/分位数输出。</p>
+</div>
+
+<div class="card"><div class="badge">P1</div><h3>Dynamic Effective Breadth / Graph</h3>
+<p><b>问题：</b>250 个持仓不等于 250 个独立 bet，有效 breadth 可能在 nominal breadth 不变时骤降。</p>
+<p><b>建议：</b>构建动态 cross-asset graph / cluster，重点输出 <b>N_effective、cluster concentration、crowding exposure</b>，而不是优先用 GNN 预测 return。</p>
+</div>
+</div>
+
+<h2>2. TimesFM-3 / 时序大模型怎么用</h2>
+<div class="note"><b>不建议：</b>直接 zero-shot 预测 450 个币未来 4h return，再替换 King/V2。时序 forecasting objective 与横截面排序目标并不一致，金融 return 本身也低信噪比。<br><br>
+<b>更合理：</b>把 TS foundation model 当成<strong>多变量状态表征器 / probabilistic regime forecaster</strong>：funding、OI、basis、vol、liquidity、breadth 历史 → state embedding / future state quantiles → FundMap context 或 dashboard。</div>
+
+<h2>3. RL / 世界模型的正确落点</h2>
+<table>
+<tr><th>场景</th><th>判断</th><th>原因</th></tr>
+<tr><td>Regime 自动切 Fund/King 权重</td><td>暂不推荐</td><td>真正独立的 regime transition 样本太少，容易过拟合。</td></tr>
+<tr><td>Execution contextual bandit</td><td><b>推荐</b></td><td>订单样本多、reward 快、已有随机实验。</td></tr>
+<tr><td>World-model + RL execution</td><td>中长期推荐</td><td>当需要连续挂单→撤单→重挂→追单时，MDP 才真正成立。</td></tr>
+<tr><td>LOB generative simulator</td><td>有潜力</td><td>用于 counterfactual execution：回答“如果当时换一个动作会怎样”。</td></tr>
+</table>
+
+<h2>4. 建议研究顺序</h2>
+<ol>
+<li><span class="prio">P0</span> FundMap in-context / meta-learning shadow。</li>
+<li><span class="prio">P0</span> Execution：Fill Survival → Conditional Shortfall → Contextual Bandit。</li>
+<li><span class="prio">P1</span> Regime Dashboard 升级为 probabilistic state forecast；TimesFM-3 仅作为 benchmark 之一。</li>
+<li><span class="prio">P1</span> Dynamic effective breadth / graph risk。</li>
+<li><span class="prio">P2</span> 只有前述方向出现稳定证据后，再考虑小型 crypto-domain pretraining / execution world model。</li>
+</ol>
+
+<h2>5. 研究纪律</h2>
+<ul>
+<li><b>问题优先于模型：</b>每个实验先说明解决哪个已验证瓶颈。</li>
+<li><b>Prediction ≠ Action：</b>IC/regime 诊断有效，不等于改仓有效；先 shadow，再书层，再 forward。</li>
+<li><b>统一按净额判：</b>alpha、carry、换手、执行成本、尾部风险一起算。</li>
+<li><b>复杂模型必须击败简单 baseline：</b>EMA / VAR / LightGBM / small SSM 没输之前，不需要 foundation model。</li>
+<li><b>暂不做 architecture zoo：</b>当前模型腿结构/目标轴已多轮 DNR；除非出现新的经济假设或模型腿席位明显上升。</li>
+</ul>
+
+<p class="small"><b>一句话：</b>下一阶段不是寻找“更强预测模型”，而是让系统更早知道 funding 的含义是否正在改变、更聪明地把 alpha 执行出来，并实时知道 250 个仓位究竟还剩多少真正独立的 bets。</p>
+</main></body></html>
