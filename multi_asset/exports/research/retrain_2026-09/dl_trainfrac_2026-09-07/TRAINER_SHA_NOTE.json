@@ -1,0 +1,28 @@
+{
+ "note": "merge_mwf3.py hardcodes the BASE trainer path in its top-level trainer_sha256 field; for the TRAIN_FRAC arms that field is MISLEADING. The truth is per-fold self_sha256. Same defect class as E-0907-G \u2014 recorded rather than silently inherited.",
+ "patched_trainer_sha16": "20b531ba0e65a899",
+ "arms": {
+  "X7FULL": {
+   "merged_json": "/workspace/review_scratch/allweather_trackB/earlystop/X7FULL/results/f10_V2MAIN_mE1x7full_s42_merged.json",
+   "top_level_trainer": "/workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_earlystop.py",
+   "top_level_trainer_sha16": "55ee8382deecebce",
+   "top_level_is_MISLEADING_for_this_arm": true,
+   "per_fold_self_sha256_set": [
+    "20b531ba0e65a899"
+   ],
+   "all_folds_match_patched_trainer": true,
+   "n_folds": 20
+  },
+  "X6FULL": {
+   "merged_json": "/workspace/review_scratch/allweather_trackB/earlystop/X6FULL/results/f10_V2MAIN_mE1x6full_s42_merged.json",
+   "top_level_trainer": "/workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_earlystop.py",
+   "top_level_trainer_sha16": "55ee8382deecebce",
+   "top_level_is_MISLEADING_for_this_arm": true,
+   "per_fold_self_sha256_set": [
+    "20b531ba0e65a899"
+   ],
+   "all_folds_match_patched_trainer": true,
+   "n_folds": 20
+  }
+ }
+}
