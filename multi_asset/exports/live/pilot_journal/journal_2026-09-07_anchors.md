@@ -335,3 +335,36 @@ members 400 · sel 246 · coverage 1.0 · fund_updates 354(4h 带)· forced_exit
 
 ### 未变的已知项
 BNB 折扣基本耗尽(2,437 笔成交里仅 **6 笔**用 BNB), 补充待用户字 · 逐名帽 combo 后未重施(E-0907-B)未修 · factor_health UNKNOWN(68f039b2)/ funding_span STALE(80c1c1db)长期未修 · 冻结宇宙忽略 **281 个新上市名**。
+
+### 16Z 锚 · 同锚重复触发(17:4xZ, **只报增量**, 补齐上一轮未覆盖的模板项)
+
+**① 三守护(按句柄验)**: shadow_loop_v3 PID 10900 ≡ `shadow.lock` 10900 ✓; combo_live_daemon PID 30944 ≡ `fea171/combo_live_daemon.pid` 30944 ✓; sidecar PID 30943 在跑但**无 pid 文件** —— 读码核实 `sidecar_daemon.sh` **根本不写 pid 文件**(由 launchd 托管)⇒ **模板这一项的前提有误, 不是缺陷**。另: exec_n6 沙盒 `cc_tmp/exec_n6_sandbox/shadow_loop_v3.py` PID 50689 在跑(Phase 2 实验, 预期)。
+
+**② 信号六项(上一轮完全未做)**
+- 生产者行(`shadow_log.jsonl`, anchor 1788796800, logged 16:21:24Z): `status OK` · `fund_updates 454`(16Z 是 8h 结算锚, 稳态 ~453 ✓)· `forced_exit_n 0` / `forced_exit_gross 0` · `sel 247` / `members 400` / `coverage 1.0` · `fetched 450 missing 0 future_dropped 0` · `w3 [0.2968, 0.0773, 0.6259]` · `runtime_s 323.7` · `booster_sha 8d79186b6380`(与执行器读到的一致)
+- **掩码算术验证**: `w3[0]/(w3[0]+w3[2]) = 0.2968/0.9227 = 0.32166` ≡ combo 落盘 `w3m=[0.3217, 0.0, 0.6783]` ✓ **逐位对上**
+- `kc_src=own fc_src=own` ✓ · combo_live_status anchor 匹配 + `ok true` + `reader_ok true` + `age_s 0.9` ✓
+- **★ 反事实改写幅度 = 21.24%**(Σ|target_live − target_live_king| / gross_king)。**模板记的 19-20% 台阶已过期。** 日均序列: 09-01 16.08 → 09-02 15.13 → 09-03 17.40 → 09-04 18.22 → 09-05 19.22 → **09-06 21.05 → 09-07 21.10**。
+  - **升级判据未触发**: 近 5 个锚间增量 −0.36/−0.09/+0.09/+0.36/−0.12, **无连续 3 个 >+0.2pp**; 近 12 锚均 21.03% **σ 仅 0.28pp**(已平台化)。
+  - **时间对齐(非因果)**: 席位播种 09-05 12:47Z 上线, w3_masked 0.1878(12Z)→ 0.3045(16Z); 改写幅度随后 18.93 → 19.35 → 20.50 → 20.65 → 20.83 → 21.09 后走平, **与席位同步平台化**。全样本相关 r = +0.179(被 08-30 换装期 29.76% 稀释)⇒ **只报时间对齐, 不作因果结论**(相关计数≠干预检验)。
+  - **建议**: 把记录的带从 19-20% 刷新为 **21.0-21.4%**, 而不是升级告警。**归用户裁定。**
+
+**③ 执行漏斗增量**
+- placement `behind` 占比 **222/426 = 52%** ≈ 0.50 ✓ · chase 分臂 requote 48 / direct 32 / exempt 1
+- **★ maker 名义占比 56%(笔数 57%)—— 模板带 ≥90% 未达, 且低于该书自身历史。** 逐锚: 09-01→09-05 12Z 均 **~89%**(76-100%)→ 09-05 16Z 起 **61-73%** → 09-07 100/82/85/**56**。下滑起点 = 09-05 16Z(席位播种后首锚)。**只记事实, 不断言机制。**
+- **★ BNB 手续费折扣于 09-07 04Z 锚耗尽**(commission_asset 逐锚: 09-06 08Z 前全 BNB → 04Z 1 BNB/365 USDT → 12Z/16Z 全 USDT)。
+  - **折扣实测 9.3%**(maker 名义占比 80-90% 匹配带内: BNB 期 11 锚均 **2.233 bps** vs USDT 期 **2.461 bps**), 与挂牌 10% 相符。
+  - 换算(脚本打印): 本锚 fee 2.52 / NAV 82,385 = 0.306 bps of NAV → **手续费总额 6.70% NAV/年**; 失去折扣 = **0.67% NAV/年**。
+  - ⚠ **我上一轮的费用序列有仪器错误**: 只汇总了 `commission_asset=='USDT'`, 导致 09-06 及以前显示 0.00 bps(实为 BNB 支付)。已改用逐单 `fee_paid`(USDT 计价)。
+
+**④ 记账增量**
+- **FUNDING_FEE 实收(16Z = 8h 结算锚)**: 230 名, `funding_paid −8.49 USDT`, Σ|仓位| 166,342。`position_read_age_s = 11,809 s = 3.28 h` —— **结构性而非缺陷**(16:00Z 结算之前最新的仓位读就是 12:24Z 那次)。结算间隔口径全部来自 `/fapi/v1/fundingInfo`: 1h 16 笔 / 4h 424 笔 / 8h 104 笔。
+- **guard_twin AGREE** ✓(16:46:09Z): `eq=82384.71 nav=82384.97 day_twin=0.179 arith=0.179 anchor_rc=0 lev=2.011 gap=+0.00 deep=[]` —— **独立仪器确认了本轮全部关键数字**。孪生还记录了回撤是 4 小时内渐进的(day_twin 1.135→0.941→…→0.375→0.179), **不是单点崩跌**。
+- phase_C: `anchors_row true` / `position_readback_rows 233` / `daily_nav_row true` / `venue_net_over_gross −0.001856`。
+- **★ 更正我上一轮的错报**: 我写「逐名停机 stopped 0 / cooldown 0 ✓ 复场后清空」。**实际 stopped 0 但 cooldown 12 名**(ARB/BTR/COLLECT/CYS/DASH/EGLD/FLOCK/HEMI/MAGMA/RIVER/TRIA/USELESS, 与 phase_C 的 `cooldown_n 12` 一致)。错因: 我只读了 `stopped` 键就下结论。这 12 名与场所扣留(maxNotionalValue=0)的 popped 名单高度重叠。
+
+**⑤ 执行质量**
+- **尺寸梯度三桶: 无法评估。** `exec_probe v2` 自 **2026-08-22 13:51 起被主动 KILL**(`v2/KILL` 文件在盘), `LastExitStatus 768 = exit 3` 是**设计内的拒绝启动**, 不是故障。**已停 16 天, 而模板每锚都要这一项** —— 属「声明的盲区≠关闭」: 要么重开(需走其 README 清单), 要么把该项从模板摘掉。**归用户裁定。**
+- markout 回填: 本日 `pending=395 written=221 requests=208`, 本锚 +60s 覆盖 75% 名义, 名义加权 **−3.98 bps**。
+
+**⑥ 异常处置**: 无需触发。日内 +0.179%, 距 −2.68% 告警线远; guard_twin AGREE; 无新告警类型。**未 PushNotification**(无重大异常)。
