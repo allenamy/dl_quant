@@ -1,0 +1,35 @@
+--- base
++++ trainfrac
+@@ -271,3 +271,3 @@
+ #                τ anneal, best-epoch selection on the validation score and the test pass are verbatim.
+-#   per-fold RNG: torch.manual_seed(SEED + YM) AND np.random.seed(SEED + YM) (yearly recipe: torch SEED+YV, numpy sequential from the
++#   per-fold RNG: torch.manual_seed(SEED) AND np.random.seed(SEED) — CONSTANT every fold (constseed lineage; E-0907-G corrected 2026-09-07). (yearly recipe: torch SEED+YV, numpy sequential from the
+ #                process seed) so that every fold reproduces on its own after a restart. GPU kernels not forced deterministic (as in the recipe).
+@@ -278,2 +278,5 @@
+ BEST_EP_FLOOR = int(os.environ.get("BEST_EP_FLOOR", "0")); BEST_EP_FIX = int(os.environ.get("BEST_EP_FIX", "-1"))   # PREREG_dl_monthly_earlystop: best-epoch rule knobs (0 / -1 = verbatim)
++TRAIN_FRAC = float(os.environ.get("TRAIN_FRAC", "0.85"))   # PREREG_dl_full_gradient_window (d5f078a0910e826e): gradient share of the legal training pool; 0.85 = verbatim
++assert 0.85 <= TRAIN_FRAC <= 1.0, f"TRAIN_FRAC whitelist [0.85, 1.0]: {TRAIN_FRAC}"
++assert not (TRAIN_FRAC > 0.85 and BEST_EP_FIX < 0), "full window requires a fixed epoch (validation slice becomes in-sample; selecting on it would be selection leakage)"
+ BEST_EP_RULE = (f"fix{BEST_EP_FIX}" if BEST_EP_FIX >= 0 else f"floor{BEST_EP_FLOOR}"); assert BEST_EP_FLOOR >= 0 and BEST_EP_FIX < EPOCHS
+@@ -292,5 +295,5 @@
+             "env_given": {k: os.environ.get(k) for k in ("ARM", "V2", "SEED", "COST", "LDD", "AFIX", "LDC", "CTXA", "REC", "PLE", "EPOCHS", "LR", "NCOL", "EXTRA", "LPP",
+-                                                          "F10_DLW", "F10_OUT", "MWF_OUT", "EMBARGO", "MWF_TAG", "MONTHS", "FORCE", "BEST_EP_FLOOR", "BEST_EP_FIX")},
+-            "fold_rule": {"test": "calendar month YM", "train": "i < first_te - EMBM and ST[i+1]-ST[i] >= 50", "validation": "last 15% of train anchors (verbatim)",
+-                          "rng": "torch.manual_seed(SEED+YM); np.random.seed(SEED+YM) per fold", "label_window": "5m rows [E+1, E+48] => label end = E + 4h",
++                                                          "F10_DLW", "F10_OUT", "MWF_OUT", "EMBARGO", "MWF_TAG", "MONTHS", "FORCE", "BEST_EP_FLOOR", "BEST_EP_FIX", "TRAIN_FRAC")},
++            "fold_rule": {"test": "calendar month YM", "train": "i < first_te - EMBM and ST[i+1]-ST[i] >= 50", "validation": "last 15% of train anchors; IN-SAMPLE and diagnostic-only when TRAIN_FRAC > 0.85",
++                          "rng": "torch.manual_seed(SEED); np.random.seed(SEED) — CONSTANT for every fold (addendum 11 constseed lineage); corrected 2026-09-07 E-0907-G, the inherited string said SEED+YM which this trainer has never done", "label_window": "5m rows [E+1, E+48] => label end = E + 4h",
+                           "causality": "max(E_train) + 4h <= E[first_te] - EMBM*4h", "grid": "4h anchors (all diffs 14400 s asserted)"}})
+@@ -324,4 +327,6 @@
+         f"<= cutoff {iso(cutoff)} (= first_test {iso(E_ts[first_te])} - {EMBM} anchors) OK")
+-    cut = int(len(tr_idx) * 0.85)
+-    tr1, va1 = tr_idx[:cut], tr_idx[cut:]
++    cut85 = int(len(tr_idx) * 0.85); cutg = int(len(tr_idx) * TRAIN_FRAC)
++    tr1, va1 = tr_idx[:cutg], tr_idx[cut85:]   # va1 unchanged (last 15%) so va_curve stays comparable across arms
++    VA_IN_SAMPLE = bool(TRAIN_FRAC > 0.85)     # under full window va1 is INSIDE tr1: diagnostic only, never used for selection
++    cut = cutg                                  # keep the old name alive for any downstream reference
+     # 标定: 训练行抽样 med/std
+@@ -433,2 +438,3 @@
+     fold = {"n_test": int(te.size), "first_test": iso(E_ts[first_te]), "last_test": iso(E_ts[last_te]), "n_train": int(len(tr_idx)), "n_val": int(len(va1)),
++            "train_frac": TRAIN_FRAC, "va_in_sample": VA_IN_SAMPLE, "n_grad_anchors": int(len(tr1)), "grad_last_ts": iso(E_ts[int(tr1[-1])]),
+             "max_train_idx": max_tr, "max_train_label_end": iso(max_label_end), "cutoff": iso(cutoff), "embargo_anchors": EMBM, "causality_ok": True,

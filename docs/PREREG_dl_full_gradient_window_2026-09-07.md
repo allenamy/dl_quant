@@ -51,7 +51,8 @@
 3. 硬断言(选择泄漏封死): `assert not (VA_IN_SAMPLE and BEST_EP_FIX < 0)`。
 4. 折 config 新增 `train_frac`, `va_in_sample`, `n_grad_anchors`, `grad_last_ts`; `env_given` 记录 `TRAIN_FRAC`(E-0826-D 白名单)。
 5. **零改动**: EPOCHS 15 / LR 3e-4 / 余弦 / τ 退火 / 优化器 / 禁运 / 测试月定义 / `starts` 构造 / 输出格式 / 因果断言。
-6. 归一化统计沿 L328 `rowsel = ... for i in tr1[::7]` **跟随梯度集**(正确做法: 不能用没训练的数据做统计), **这是臂定义的一部分, 已声明, 不是混淆**。
+7. **AMENDMENT 1(2026-09-07 15:2xZ, 写于任何本臂数字之前)**: 生成补丁时发现基底训练器带一个**假收据** —— L293 `fold_rule.rng` 写 `torch.manual_seed(SEED+YM) per fold`, 而 L330 实际是 `torch.manual_seed(SEED)` 常数种子(§11 constseed 血统)。**本臂不得继承假收据**, 故补丁另加两处修正(L293 收据串 + L272 头部注释), 只改字符串不改行为。立 **E-0907-G**。⇒ 补丁锚点由 5 增至 **7**, 产物 sha `20b531ba0e65a899`。
+8. 归一化统计沿 L328 `rowsel = ... for i in tr1[::7]` **跟随梯度集**(正确做法: 不能用没训练的数据做统计), **这是臂定义的一部分, 已声明, 不是混淆**。
 
 ## §3 臂(3 臂, 全部 seed 42, 20 折 202501–202608, EMBARGO=1)
 
