@@ -52,6 +52,8 @@
 ### ⑥ 告警 6 条 —— 两条结构性项**连续第三锚**出现
 1. **[HIGH / A_DECIDE] 仓位对账 5 名超出重估范围 —— 已采纳场所真值。**(20Z 为 12 名, **改善**)本锚唯一最高层级告警。
 2. **[C_MEASURE] 撤名残差 −9,030.14 USDT = 目标 gross 的 −5.44%(阈值 >2%)**, 仍由 **14 个 `maxNotionalValue=0` 扣留名**造成(20Z −5.91%)。**连续第三锚超阈**, 是冻结宇宙 + 场所扣留叠加的结构性缺口。
+> **★ 更正 2026-09-08 06:0xZ(E-0902-A 复发, 我的错)**: 上一条把「撤名残差」当成**书想要却拿不到的单边敞口**报出, **是错的**。读码(`anchor_loop.py` L1562 `apply_withhold_and_reshape`)确认: `net_before` 是 **pop 之后、reshape 之前**的失衡量, 而 reshape **当场把它修回中性** —— 告警原文即写「已重整回中性」, 账本 `net_after ≈ 3.6e-12`, `venue_net/gross` 逐锚在 ±0.3% 内。该告警分层是 **C_MEASURE / INFO / recorded-only**, 策略注释为 "informational unless it grows"。**它从来不是一个待处置的敞口, 我把告警文案当风险读了四次。**
+> **真正留在书上的是 `clamped_after_reshape`**(held untradable 被场所钉住、**故意不吸收**的残余), 而该字段自 **2026-09-05 12Z 起因变量名碰撞已停止落盘**(见 `ERROR_LEDGER` **E-0908-A**)。
 3. [B_EXPECTED] 重整后 **5 名**跨过 min_notional(1000FLOKI/1000LUNC/1000SHIB/AIXBT/ASTER)。
 4. [B_EXPECTED] **6 名**场所扣留 reduce-only(其中 1000LUNC/ASTER 进入 reducing)。
 5. [B_EXPECTED] **16 个** maker 被 −5022 拒(20Z 18)。
@@ -115,6 +117,8 @@
 ### ⑥ 告警 6 条 —— 两条结构性项**连续第四锚**
 1. **[HIGH / A_DECIDE] 仓位对账 7 名超出重估范围 —— 已采纳场所真值。**(00Z 5 名, 20Z 12 名)本锚唯一最高层级。
 2. **[C_MEASURE] 撤名残差 −9,001.59 USDT = 目标 gross 的 −5.39%(阈值 >2%)**, 仍由 **14 个 `maxNotionalValue=0` 扣留名**造成(00Z −5.44%, 20Z −5.91%)。**连续第四锚超阈, 数值稳定在 −5.4% 附近。**
+> **★ 更正 2026-09-08 06:0xZ(E-0902-A 复发, 我的错)**: 上一条把「撤名残差」当成**书想要却拿不到的单边敞口**报出, **是错的**。读码(`anchor_loop.py` L1562 `apply_withhold_and_reshape`)确认: `net_before` 是 **pop 之后、reshape 之前**的失衡量, 而 reshape **当场把它修回中性** —— 告警原文即写「已重整回中性」, 账本 `net_after ≈ 3.6e-12`, `venue_net/gross` 逐锚在 ±0.3% 内。该告警分层是 **C_MEASURE / INFO / recorded-only**, 策略注释为 "informational unless it grows"。**它从来不是一个待处置的敞口, 我把告警文案当风险读了四次。**
+> **真正留在书上的是 `clamped_after_reshape`**(held untradable 被场所钉住、**故意不吸收**的残余), 而该字段自 **2026-09-05 12Z 起因变量名碰撞已停止落盘**(见 `ERROR_LEDGER` **E-0908-A**)。
 3. [B_EXPECTED] 重整后 5 名跨 min_notional(1000LUNC/1000SHIB/AIXBT/ASTER/TURBO)。
 4. [B_EXPECTED] **7 名**场所扣留(ASTER/1000LUNC 进入 reducing)。
 5. [B_EXPECTED] **20 个** maker 被 −5022 拒(00Z 16, 20Z 18)。

@@ -71,6 +71,8 @@ orders **230 = `blocked_by_halt` 229 + `skipped_min_notional` 1**; fills 0; 拒�
 placement `behind` 占比 **0.43**(前三锚 0.469 / 0.515 / 0.539)—— **回落**, 印证 20Z 判读"在噪声内, 不作判断"是对的。
 NAV **82,236.03** · target_gross 164,473.73 vs NAV×2.0 = 164,472.05, 差 **+1.68** ✓ · venue_gross 0 · 已实现 **0.00**(新的一天) · flow **0.0** · truncated False · readback 全零 · `anchor done rc=0` 00:40:07Z · 权重峰值 **292**。
 `per_name_stop`: **冷却 13 / 停止 0**(SKRUSDT 冷却期满恢复可入, 14→13)。撤名残差 −8,202.79(−4.99%)/ 15 名。
+> **★ 更正 2026-09-08 06:0xZ(E-0902-A 复发, 我的错)**: 上一条把「撤名残差」当成**书想要却拿不到的单边敞口**报出, **是错的**。读码(`anchor_loop.py` L1562 `apply_withhold_and_reshape`)确认: `net_before` 是 **pop 之后、reshape 之前**的失衡量, 而 reshape **当场把它修回中性** —— 告警原文即写「已重整回中性」, 账本 `net_after ≈ 3.6e-12`, `venue_net/gross` 逐锚在 ±0.3% 内。该告警分层是 **C_MEASURE / INFO / recorded-only**, 策略注释为 "informational unless it grows"。**它从来不是一个待处置的敞口, 我把告警文案当风险读了四次。**
+> **真正留在书上的是 `clamped_after_reshape`**(held untradable 被场所钉住、**故意不吸收**的残余), 而该字段自 **2026-09-05 12Z 起因变量名碰撞已停止落盘**(见 `ERROR_LEDGER` **E-0908-A**)。
 
 ### ⑥ ★ guard_twin 的第三次预言兑现: DISAGREE 已消失
 09-06 我判 DISAGREE 是"平仓日两把尺子窗口不同"的口径现象、不是缺陷, 并预期新的一天会消失。**实测 00:44Z 与 01:04Z 两次 nav 行新鲜时均 `AGREE`**(day_twin −0.009 vs arith −0.002, 相差 0.007pp, 远在 0.5pp 容差内), `gap=-0.00`, `lev=0.0`。⇒ 该判读成立, **09-06 那串 DISAGREE 就此结案**。
@@ -276,6 +278,8 @@ members 400 · sel 246 · coverage 1.0 · fund_updates 354(4h 带)· forced_exit
 - `position reconcile: 10 名超出重估差 — adopting venue truth`(HIGH)= E-0902-F 慢性差异家族(08-22 宽宇宙起每锚 5~10 名)。
 - `3 held name(s) are withheld by the venue (maxNotionalValue=0)`: reducing=`1000LUNCUSDT` / add_blocked=`ZBTUSDT` / flatten_only=`TREEUSDT` —— **文案属 E-0902-A-2 已结案的误标家族**(实为退出/地板/止损通道), 3 名属正常轮换量级。
 - 撤名残差 −9,108.83(−5.49%)/ 15 名; 1000LUNCUSDT 跨 min_notional。
+> **★ 更正 2026-09-08 06:0xZ(E-0902-A 复发, 我的错)**: 上一条把「撤名残差」当成**书想要却拿不到的单边敞口**报出, **是错的**。读码(`anchor_loop.py` L1562 `apply_withhold_and_reshape`)确认: `net_before` 是 **pop 之后、reshape 之前**的失衡量, 而 reshape **当场把它修回中性** —— 告警原文即写「已重整回中性」, 账本 `net_after ≈ 3.6e-12`, `venue_net/gross` 逐锚在 ±0.3% 内。该告警分层是 **C_MEASURE / INFO / recorded-only**, 策略注释为 "informational unless it grows"。**它从来不是一个待处置的敞口, 我把告警文案当风险读了四次。**
+> **真正留在书上的是 `clamped_after_reshape`**(held untradable 被场所钉住、**故意不吸收**的残余), 而该字段自 **2026-09-05 12Z 起因变量名碰撞已停止落盘**(见 `ERROR_LEDGER` **E-0908-A**)。
 - 限流计数差值 **688** 权重/分钟(08Z 那次 785)—— 归属仍未定, 只记(见 08Z 段)。
 
 ### 判定与计数
@@ -373,6 +377,8 @@ BNB 折扣基本耗尽(2,437 笔成交里仅 **6 笔**用 BNB), 补充待用户�
 ## 20Z 锚深查(2026-09-07 20:24Z 执行, 20:51:09Z `anchor done rc=0`; 21:4xZ 记; 全深度)
 
 **一句话**: 全项通过, 且**执行质量较 16Z 明显回升**(maker 57%→79%, markout −3.98→−1.31 bps, −5022 33%→25%)。日内 **+0.446%**。**两条告警需要你看**: A_DECIDE 级仓位对账 12 名, 撤名残差 −5.91% of target gross。
+> **★ 更正 2026-09-08 06:0xZ(E-0902-A 复发, 我的错)**: 上一条把「撤名残差」当成**书想要却拿不到的单边敞口**报出, **是错的**。读码(`anchor_loop.py` L1562 `apply_withhold_and_reshape`)确认: `net_before` 是 **pop 之后、reshape 之前**的失衡量, 而 reshape **当场把它修回中性** —— 告警原文即写「已重整回中性」, 账本 `net_after ≈ 3.6e-12`, `venue_net/gross` 逐锚在 ±0.3% 内。该告警分层是 **C_MEASURE / INFO / recorded-only**, 策略注释为 "informational unless it grows"。**它从来不是一个待处置的敞口, 我把告警文案当风险读了四次。**
+> **真正留在书上的是 `clamped_after_reshape`**(held untradable 被场所钉住、**故意不吸收**的残余), 而该字段自 **2026-09-05 12Z 起因变量名碰撞已停止落盘**(见 `ERROR_LEDGER` **E-0908-A**)。
 
 ### ① 三守护(按句柄验) — 全绿
 `shadow_loop_v3` PID **10900** ≡ `shadow.lock` 10900 ✓ · `combo_live_daemon` PID **30944** ≡ `fea171/combo_live_daemon.pid` 30944 ✓ · `sidecar_daemon` PID 30943 在跑(**无 pid 文件系设计**, 上轮读码确认)· exec_n6 沙盒 PID 50689(Phase 2, 预期)。launchd 三项均在。
@@ -423,6 +429,8 @@ BNB 折扣基本耗尽(2,437 笔成交里仅 **6 笔**用 BNB), 补充待用户�
 ### ⑥ 告警 5 条 —— **两条需用户看**
 1. **★ [HIGH / A_DECIDE] 仓位对账: 12 个名字超出重估范围(符号翻转 / 单边 / >5%)—— 已采纳场所真值。** 这是**最高告警层级**(A_DECIDE), 本锚唯一一条。
 2. **★ [INFO / C_MEASURE] 撤名残差 −9,744.97 USDT = 目标 gross 的 −5.91%(阈值 >2%)**, 由 **14 个被撤下的名字**造成(ARB/BTC/BTR/COLLECT/CYS/DASH/EGLD…= 场所 `maxNotionalValue=0` 扣留的那批)。⇒ 书**想要**这 9.7k 单边敞口但**无法交易**; 最终 net/gross 仍 −0.0024, 说明重整后已归一化, 但**这是冻结宇宙 + 场所扣留叠加出来的结构性缺口**, 与「281 个新上市名被忽略」同源。
+> **★ 更正 2026-09-08 06:0xZ(E-0902-A 复发, 我的错)**: 上一条把「撤名残差」当成**书想要却拿不到的单边敞口**报出, **是错的**。读码(`anchor_loop.py` L1562 `apply_withhold_and_reshape`)确认: `net_before` 是 **pop 之后、reshape 之前**的失衡量, 而 reshape **当场把它修回中性** —— 告警原文即写「已重整回中性」, 账本 `net_after ≈ 3.6e-12`, `venue_net/gross` 逐锚在 ±0.3% 内。该告警分层是 **C_MEASURE / INFO / recorded-only**, 策略注释为 "informational unless it grows"。**它从来不是一个待处置的敞口, 我把告警文案当风险读了四次。**
+> **真正留在书上的是 `clamped_after_reshape`**(held untradable 被场所钉住、**故意不吸收**的残余), 而该字段自 **2026-09-05 12Z 起因变量名碰撞已停止落盘**(见 `ERROR_LEDGER` **E-0908-A**)。
 3. [INFO] 重整后 3 名跨过 min_notional 门槛(1000FLOKI/1000LUNC/1000SHIB)—— 可交易性由重整改变而非信号改变, 仅报告不迭代。
 4. [INFO] 5 名场所扣留 reduce-only。
 5. [INFO] 18 个 maker 被 −5022 拒, 残差进 taker 补单。
