@@ -1,0 +1,9 @@
+--- trainfrac
++++ costdose
+@@ -283,3 +283,5 @@
+ # E-0826-D env whitelist: the production V2MAIN recipe (09-01 gate run), asserted on the EFFECTIVE values, not on strings
+-assert ARM == "V2MAIN" and V2 == 1 and SEED == 42 and COST == 3.52 and LDD == 0.25 and AFIX == 0 and LDC == 0.0 and CTXA == 0 and REC == 0 \
++COST_WHITELIST = (3.52, 7.04, 14.08)   # PREREG_dl_path_cost_dose (ce7a6be927a4c312): training-time path penalty dose; 3.52 = measured turnover cost = verbatim default
++assert COST in COST_WHITELIST, f"COST whitelist {COST_WHITELIST}: {COST}"
++assert ARM == "V2MAIN" and V2 == 1 and SEED == 42 and LDD == 0.25 and AFIX == 0 and LDC == 0.0 and CTXA == 0 and REC == 0 \
+     and PLEON == 0 and EPOCHS == 15 and LR == 3e-4 and NCOL == 167 and EXTRA == "" and LPP == 0.0 and int(XT.shape[1]) == 171 \
