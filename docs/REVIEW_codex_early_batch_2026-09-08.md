@@ -307,3 +307,31 @@ COS/D/HIGH/MBOX 2026-06-11 09Z 结算 / 08:30 禁新仓; 旧研究装置在 08Z 
 
 ## A4.6 未主张
 不主张这提高了实盘收益(实盘一直在这条线上); 不主张 +7.37%/年可兑现; 不主张 U-PIT 有缺陷; 31 个已下架名的类别未经证实(按保留处理, 若其中有非加密品种则本臂**低估**了差异)。
+
+---
+
+# ADDENDUM 5 · **冻结读法(写于跑数之前, 11:0xZ)** —— 用户裁定落地 + 修我自己在 A4.4 的混装置
+
+## A5.0 用户裁定(2026-09-08, 「按照最佳建议来」)
+**CRYPTO(U-PIT ∩ 纯加密)自即日起为水平 / Sharpe / maxDD 的默认引用臂。** U-PIT 主 mask 不改(严格因果), CRYPTO 是并列口径臂。
+
+## A5.1 ★ 我在 A4.4 犯的错(自查, 写在跑数之前)
+A4.4 把 **+0.0932(FIX7 臂, 2024→26)** 当分子, 去除 **+0.45~0.52(健康体检 `M1_UPIT_prod_s{42,2027}_ccal` 臂)** 这个分母 —— **两个不同装置臂**(预测文件不同: `f10_gate_mE1cX7_R0_spl42.npy` vs 体检的 refit 臂; 成本标定同为 ccal 但预测源不同)。这正是我 09-07 自己写进 STATE 的 **参照名纪律 / E-0907-E「复验必须复同一个对照」**, 隔一天又犯。
+⇒ **A4.4 的 17.9–20.7% 无论本臂结果如何都作废**, 由本臂在**同一批臂**上直接测。
+
+## A5.2 装置(逐字抄自 `chain_m1.sh`, 只改一个键)
+六臂 = 既有 `M1_/MEM_/FIX_ _UPIT_prod_s{42,2027}_ccal` 各自把 `UMASK_NPZ` 从 `masks/umask_UPIT.npz` 换成 `masks/umask_UPIT_CRYPTO.npz`(sha16 `47d87b5165b695a7`), **其余每一个 env 逐字相同**:
+`LEGS=101 CAL=log SLOW_NPY=/workspace/shadow_bundle_v3/slow_pred_pinned.npy WRULE=msharpe LOOK=900 MEMBERS_TOPN=829 FTRIM=zero PHI=0.45 FSEED={42,2027} UMASK_SCOPE={m1,members} COSTB_JSON=calib/costb_fee_steady.json [W3FIX=0.21,0,0.79]`, cwd `dev_alt/`(prod 口径 = Π(1+r5)−1 记账目标), 装置 `w10_health.py`。
+
+## A5.3 自检(任一不过 ⇒ 停止, 不读任何数字)
+1. 与对应 UPIT 臂的 CONFIG 差异键数 **= 1**(仅 `UMASK_NPZ`)。
+2. **2022–2025 逐位相等**(非加密品种只在 2026 进入; ADDENDUM 4 已在 FIX7 臂上证实, 本臂独立复核)。
+3. 锚轴与 n 与对应 UPIT 臂逐位相同。
+
+## A5.4 交付(不设门, 不产生候选)
+1. **既有体检受据的 CRYPTO 版重述**: 逐年 bps/锚 + 锚 Sharpe + @2× 年化/CAGR/maxDD/最差日/最差月 + σ_fund 分档 + `m1 − members` + `W3FIX` 席位臂。
+2. **★ 同臂三分解(替代 A4.4 的跨装置比值)**: `U-FROZEN − U-PIT` = `(U-FROZEN − U-CRYPTO)`(**纯前视**, 品种类别已对齐) + `(U-CRYPTO − U-PIT)`(**品种类别**)。三项都在同一批臂上直接测, 报点估计与 CI。
+3. 措辞纪律同 A3.4: **换宇宙口径, 不是换策略**; 实盘从未交易过非加密品种。
+
+## A5.5 不主张
+不主张实盘收益提高; 不主张 U-PIT 有缺陷; 31 个已下架名类别未证实(按保留处理)。
