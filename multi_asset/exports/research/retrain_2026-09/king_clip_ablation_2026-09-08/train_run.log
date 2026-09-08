@@ -1,0 +1,17 @@
+=== SELF-CHECK 1: K_OLD at the deployed (default) seed must reproduce the deployed gate readings ===
+{"arm": "OLD", "seed": null, "n_rows": 2741477, "n_affected_rows": 477, "n_anchors_touched": 164, "ic2024": 0.054791437827022796, "ic2025": 0.06301476121435588, "ic26": 0.05835579390010887, "base_ic": {"2024": 0.05736871386917909, "2025": 0.06284947580566294, "2026": 0.0571}, "pred_sha16": "158cd4ac8f8f30f7"}
+  ic2024 +0.05479 vs base +0.05737 (|d|=0.00258, gate 0.004)
+  ic2025 +0.06301 vs base +0.06285 (|d|=0.00017, gate 0.004)
+  ic26   +0.05836 vs base +0.05710 (|d|=0.00126, gate 0.006)
+{"arm": "OLD", "seed": 42, "n_rows": 2741477, "n_affected_rows": 477, "n_anchors_touched": 164, "ic2024": 0.05621026902518855, "ic2025": 0.065073417129079, "ic26": 0.05726778068025016, "base_ic": {"2024": 0.05736871386917909, "2025": 0.06284947580566294, "2026": 0.0571}, "pred_sha16": "671bf26e73685f6d"}
+{"arm": "OLD", "seed": 2027, "n_rows": 2741477, "n_affected_rows": 477, "n_anchors_touched": 164, "ic2024": 0.05498577344676911, "ic2025": 0.06355823403217291, "ic26": 0.05777114460594169, "base_ic": {"2024": 0.05736871386917909, "2025": 0.06284947580566294, "2026": 0.0571}, "pred_sha16": "2cf6336d7ac86269"}
+{"arm": "WORST", "seed": 42, "n_rows": 2741477, "n_affected_rows": 477, "n_anchors_touched": 164, "ic2024": 0.055586514737071414, "ic2025": 0.06272801605090682, "ic26": 0.05736257097894451, "base_ic": {"2024": 0.05736871386917909, "2025": 0.06284947580566294, "2026": 0.0571}, "pred_sha16": "6ea01316be6adfff"}
+{"arm": "WORST", "seed": 2027, "n_rows": 2741477, "n_affected_rows": 477, "n_anchors_touched": 164, "ic2024": 0.05606516564076798, "ic2025": 0.06346805972122097, "ic26": 0.058147390432309494, "base_ic": {"2024": 0.05736871386917909, "2025": 0.06284947580566294, "2026": 0.0571}, "pred_sha16": "0db57d92414b8e86"}
+Traceback (most recent call last):
+  File "/workspace/review_scratch/king_clip_ablation.py", line 103, in <module>
+    allres.append(fit_arm(arm, seed))
+                  ^^^^^^^^^^^^^^^^^^
+  File "/workspace/review_scratch/king_clip_ablation.py", line 77, in fit_arm
+    PRED[a, m[okm]] = pv[sel]; ics_.append(sp(pv[sel], y4[a, m[okm]]))
+    ~~~~^^^^^^^^^^^
+ValueError: shape mismatch: value array of shape (239,) could not be broadcast to indexing result of shape (242,)
