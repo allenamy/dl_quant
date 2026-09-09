@@ -1,11 +1,11 @@
 {
  "utc": "2026-09-09T15:0xZ",
  "pod2_path": "/workspace/review_scratch/",
- "note": "archive = the versions that produced receipts/. *.r1_<sha8>.* = round-1 snapshots (judge/leakcheck/arms/trend288_receipt/v4_gate_json) taken before the 11:32Z pod2 edits (A1s arm, AMENDMENT-6 env, nan-aware receipt); kept because round-1 receipts were produced by them (判决装置与结论同寿命). holefix2 cache builder: ../caliber_program_2026-09-09/holefix2_daily.py.",
- "n_scripts": 55,
+ "note": "archive = the versions that produced receipts/. *.r1_<sha8>.* = round-1 snapshots (judge/leakcheck/arms/trend288_receipt/v4_gate_json) taken before the 11:32Z pod2 edits (A1s arm, AMENDMENT-6 env, nan-aware receipt); kept because round-1 receipts were produced by them (判决装置与结论同寿命). holefix2 cache builder: ../caliber_program_2026-09-09/holefix2_daily.py. Review b0a573a1 R5: v4_leakcheck.r1_b19a588e.py already carries the AMENDMENT-6 gate and cannot have produced the pre-AMD6 receipts (V3P_RAW.json, V3P_CLIP.json, V3P_*_mwf_v4b.json non-amd6); those were produced by v4_leakcheck.r0_bb7f14ac.py (research-repo commit a7d497d3, 12:27Z). Receipt→source map: V3P_{RAW,CLIP}.json + V3P_*_mwf_v4b.json → r0_bb7f14ac; V3P_*_amd6.json (s42) → r1_b19a588e; V3P_RAW_mwf_v4s_amd6_s2027.json → current v4_leakcheck.py.",
+ "n_scripts": 56,
  "n_match_pod2": 50,
  "n_pod2_differs": 0,
- "n_r1_snapshots": 5,
+ "n_r1_snapshots": 6,
  "scripts": {
   "build_a0p.py": {
    "archive_sha256": "1386ac202f33c74d403c2257e3673906d3a39ec12d6eb3d9d675033180112ee5",
@@ -281,6 +281,23 @@
    "archive_sha256": "b19a588eed98fef60fae08e79b085ab0f958714717c74e98efd07de56556373f",
    "pod2_sha256": null,
    "status": "r1_snapshot"
+  },
+  "v4_leakcheck.r0_bb7f14ac.py": {
+   "archive_sha256": "bb7f14acfb3f691505101ba74dab19a4fe15ccb475a6cade2c5b3322a71c4b26",
+   "pod2_sha256": null,
+   "status": "r0_snapshot"
   }
+ },
+ "receipt_to_source": {
+  "V3P_RAW.json": "v4_leakcheck.r0_bb7f14ac.py",
+  "V3P_CLIP.json": "v4_leakcheck.r0_bb7f14ac.py",
+  "V3P_RAW_mwf_v4b.json": "v4_leakcheck.r0_bb7f14ac.py",
+  "V3P_CLIP_mwf_v4b.json": "v4_leakcheck.r0_bb7f14ac.py",
+  "V3P_RAW_mwf_v4b_amd6.json": "v4_leakcheck.r1_b19a588e.py",
+  "V3P_CLIP_mwf_v4b_amd6.json": "v4_leakcheck.r1_b19a588e.py",
+  "V3P_RAW_mwf_v4s_amd6_s42.json": "v4_leakcheck.r1_b19a588e.py",
+  "V3P_RAW_mwf_v4s_amd6_s2027.json": "v4_leakcheck.py",
+  "JUDGE_v4.json": "judge_v4.r1_23c2cda7.py",
+  "JUDGE_v4_g3_s2027.json": "judge_v4.py"
  }
 }
