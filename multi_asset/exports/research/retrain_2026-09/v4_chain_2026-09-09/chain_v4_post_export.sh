@@ -1,16 +1,20 @@
 #!/bin/bash
-# chain_v4_post_export.sh — PREREG_v4 §2.4–2.5 queue: dev_v4 tree -> legs v4 -> (wait STEP1_PASS marker) -> 4 F10 chains x 4 shards (sequential chains) -> merge.
-R=/workspace/review_scratch; PY=/workspace/venv/bin/python; L=$R/v4_commands.txt; cd $R || exit 2
-say(){ echo "[$(date -u +%FT%TZ)] $*" >> $L; }
-grep -q BUNDLE_DONE $R/export_v4.log || { say "post_export: export not done"; exit 3; }
-say "post_export: build_dev_v4"; $PY build_dev_v4.py > build_dev_v4.log 2>&1 || { say FAIL_build_dev_v4; exit 1; }
-say "post_export: legs v4"; env LEGS_TG=/workspace/dlw_v4raw/data/dlw_targets.npz LEGS_META=/workspace/data/wide_fea_v4_meta.npz LEGS_PRED=/workspace/shadow_bundle_v4/slow_pred_pinned.npy LEGS_OUT=/workspace/f8_v4/data/f10v2_legs.npz $PY pod_legs_v4.py > legs_v4.log 2>&1 || { say FAIL_legs_v4; exit 1; }
-grep -q LEGS_V4_DONE legs_v4.log || { say FAIL_legs_v4_marker; exit 1; }
-while [ ! -f /workspace/f8_v4/gates/STEP1_PASS ]; do sleep 60; done; say "post_export: STEP1_PASS marker seen, launching F10 chains"
+# chain_v4_post_export.sh — PREREG_v4 §2.4–2.5 queue: dev_v4 tree -> legs v4b -> (wait for a FRESH STEP1 PASS receipt) -> 4 F10 chains x 4 shards -> merge.
+# HARDENED 2026-09-09 (review b0a573a1 P1-PIPE): the old `while [ ! -f STEP1_PASS ]` marker wait is replaced by `require` on step1.json
+# (PASS + input shas); export marker checked; legs marker checked; shards waited by PID; merge rc + MERGE_DONE; DONE only on success.
+set -o pipefail; R=/workspace/review_scratch; . $R/chain_lib.sh; cd $R || exit 2; export MWF_ROOT=${MWF_ROOT:-mwf_v4b}
+check_marker $R/export_v4.log "BUNDLE_DONE"
+say "post_export: build_dev_v4"; $PY build_dev_v4.py > build_dev_v4.log 2>&1 || die "build_dev_v4" 1
+say "post_export: legs v4b"; env LEGS_TG=/workspace/dlw_v4raw/data/dlw_targets.npz LEGS_META=/workspace/data/wide_fea_v4_meta.npz LEGS_PRED=/workspace/shadow_bundle_v4/slow_pred_pinned.npy LEGS_OUT=/workspace/f8_v4/data/f10v2_legs.npz $PY pod_legs_v4b.py > legs_v4.log 2>&1 || die "legs_v4b" 1
+check_marker legs_v4.log "LEGS_V4B_DONE"
+n=0; until $PY $R/v4_gate_common.py require $R/v4_gates/step1.json dlw_v4raw_targets=/workspace/dlw_v4raw/data/dlw_targets.npz fea82_v4raw=/workspace/dlw_v4raw/data/dlw_fea82.npz fea89_f8v4=/workspace/f8_v4/data/f8_fea89.npz > /dev/null 2>&1; do
+  n=$((n + 1)); [ $n -gt 120 ] && die "step1_receipt_timeout_2h" 3; sleep 60
+done; say "post_export: STEP1 receipt PASS + fresh, launching F10 chains"
 SH0=202501,202505,202509,202601,202605; SH1=202502,202506,202510,202602,202606; SH2=202503,202507,202511,202603,202607; SH3=202504,202508,202512,202604,202608
 for TS in "RAW 42" "RAW 2027" "CLIP 42" "CLIP 2027"; do set -- $TS; T=$1; SD=$2
-  say "F10 chain $T s$SD start"; bash launch_mwf_v4.sh $T $SD 0 $SH0 & bash launch_mwf_v4.sh $T $SD 1 $SH1 & bash launch_mwf_v4.sh $T $SD 2 $SH2 & bash launch_mwf_v4.sh $T $SD 3 $SH3 & wait
-  say "F10 chain $T s$SD shards ended: $(grep -a -c "^END\[$T s$SD shard.*rc=0" /workspace/f8_v4/logs/commands.txt)/4 rc=0"
-  $PY merge_mwf_v4.py $T $SD > /workspace/f8_v4/logs/merge_${T}_s${SD}.log 2>&1; say "merge $T s$SD rc=$? $(tail -1 /workspace/f8_v4/logs/merge_${T}_s${SD}.log | cut -c1-80)"
+  say "F10 chain $T s$SD start"
+  run_shards launch_mwf_v4b.sh $T $SD || die "shards_${T}_s${SD}_rc_[$RCS]" 1
+  $PY merge_mwf_v4b.py $T $SD > /workspace/f8_v4/logs/merge_${T}_s${SD}.log 2>&1; rc=$?; say "merge $T s$SD rc=$rc $(tail -1 /workspace/f8_v4/logs/merge_${T}_s${SD}.log | cut -c1-80)"
+  [ $rc -eq 0 ] || die "merge_${T}_s${SD}_rc_$rc" 1; check_marker /workspace/f8_v4/logs/merge_${T}_s${SD}.log "MERGE_DONE"
 done
-say "CHAIN_V4_POST_EXPORT_DONE"
+say "CHAIN_V4_POST_EXPORT_DONE (all shards rc=0, merges rc=0 + MERGE_DONE)"

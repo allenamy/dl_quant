@@ -2,11 +2,26 @@
  "utc": "2026-09-09T15:0xZ",
  "pod2_path": "/workspace/review_scratch/",
  "note": "archive = the versions that produced receipts/. *.r1_<sha8>.* = round-1 snapshots (judge/leakcheck/arms/trend288_receipt/v4_gate_json) taken before the 11:32Z pod2 edits (A1s arm, AMENDMENT-6 env, nan-aware receipt); kept because round-1 receipts were produced by them (判决装置与结论同寿命). holefix2 cache builder: ../caliber_program_2026-09-09/holefix2_daily.py. Review b0a573a1 R5: v4_leakcheck.r1_b19a588e.py already carries the AMENDMENT-6 gate and cannot have produced the pre-AMD6 receipts (V3P_RAW.json, V3P_CLIP.json, V3P_*_mwf_v4b.json non-amd6); those were produced by v4_leakcheck.r0_bb7f14ac.py (research-repo commit a7d497d3, 12:27Z). Receipt→source map: V3P_{RAW,CLIP}.json + V3P_*_mwf_v4b.json → r0_bb7f14ac; V3P_*_amd6.json (s42) → r1_b19a588e; V3P_RAW_mwf_v4s_amd6_s2027.json → current v4_leakcheck.py.",
- "n_scripts": 56,
+ "n_scripts": 75,
  "n_match_pod2": 50,
  "n_pod2_differs": 0,
  "n_r1_snapshots": 6,
  "scripts": {
+  "align_king_v4e.py": {
+   "archive_sha256": "f9cfc2fb5afa050561f8c5b1f05b50f42adde177e222e8ae575f052c752d72e4",
+   "pod2_sha256": null,
+   "status": "NEW_2026-09-09_NOT_YET_ON_POD2"
+  },
+  "base_pod_f10_refit_ext.py": {
+   "archive_sha256": "ea3675b8012ea266646571f6e1550f248d894cae832b190a8beab27befab9fb7",
+   "pod2_sha256": null,
+   "status": "base_verbatim_from_pod2"
+  },
+  "base_pod_f10_train_monthly_earlystop.py": {
+   "archive_sha256": "55ee8382deecebce60215a382bea47bd398ee3c99bab181f5df16ed1ef5fd450",
+   "pod2_sha256": null,
+   "status": "base_verbatim_from_pod2"
+  },
   "build_a0p.py": {
    "archive_sha256": "1386ac202f33c74d403c2257e3673906d3a39ec12d6eb3d9d675033180112ee5",
    "pod2_sha256": "1386ac202f33c74d403c2257e3673906d3a39ec12d6eb3d9d675033180112ee5",
@@ -22,10 +37,26 @@
    "pod2_sha256": "23584a0c818a0d886cc79ad5c03de686f6c7ae43c101024a8bfab051bfd4a81e",
    "status": "MATCH"
   },
-  "chain_fea89_stable.sh": {
+  "chain_fea89_stable.r1_97b23fc5.sh": {
    "archive_sha256": "97b23fc5c54c5654aa19d97ee958beb7b6491af1c48d503ff2bd30a76fa1ea09",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
+  },
+  "chain_fea89_stable.sh": {
+   "archive_sha256": "26febfdd2fb82629d9c56c4874c9dc57a48b1cbd392bd0f183a70329f21a033b",
    "pod2_sha256": "97b23fc5c54c5654aa19d97ee958beb7b6491af1c48d503ff2bd30a76fa1ea09",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "97b23fc5c54c5654aa19d97ee958beb7b6491af1c48d503ff2bd30a76fa1ea09"
+  },
+  "chain_king_e.sh": {
+   "archive_sha256": "ad795a25626d9ff135516e39d4e1200d12e320be04b830b1cbc5fdf15e3ea22f",
+   "pod2_sha256": null,
+   "status": "NEW_2026-09-09_NOT_YET_ON_POD2"
+  },
+  "chain_lib.sh": {
+   "archive_sha256": "58591c9cff8eab276ec645673a73cc37d580b4e0dc066629d00e15c5c95b6199",
+   "pod2_sha256": null,
+   "status": "NEW_2026-09-09_NOT_YET_ON_POD2"
   },
   "chain_v4_data.sh": {
    "archive_sha256": "4a11c789cf9b6c9bfd7e4c8117666e4f1b9d7a811dc016fa53068970b294bf9a",
@@ -37,20 +68,38 @@
    "pod2_sha256": "4594b2ce42a8ff477932a9688aab7386a6500886ee0aa845f1b76c2c0a7830a1",
    "status": "MATCH"
   },
-  "chain_v4_gpu3.sh": {
+  "chain_v4_gpu3.r1_7fd4c559.sh": {
    "archive_sha256": "7fd4c559c0b2311c5fc9a974dac0cbdcf6535f6c280666777e0dbf1fb9b0e451",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
+  },
+  "chain_v4_gpu3.sh": {
+   "archive_sha256": "91ea9595a8d4c9845b31637dac1450cbc97ae1a34cb9d7814443cca1ac5967d7",
    "pod2_sha256": "7fd4c559c0b2311c5fc9a974dac0cbdcf6535f6c280666777e0dbf1fb9b0e451",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "7fd4c559c0b2311c5fc9a974dac0cbdcf6535f6c280666777e0dbf1fb9b0e451"
+  },
+  "chain_v4_post_export.r1_e2dc28ad.sh": {
+   "archive_sha256": "e2dc28adf051f4887747facb7bde368dc417022533340e6ef9017e3c607f2c72",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
   },
   "chain_v4_post_export.sh": {
-   "archive_sha256": "e2dc28adf051f4887747facb7bde368dc417022533340e6ef9017e3c607f2c72",
+   "archive_sha256": "6a1eef6d0c0cb3ba87403fa8410d48c84e9a9ca1469fc790b16dd8d9edacadd0",
    "pod2_sha256": "e2dc28adf051f4887747facb7bde368dc417022533340e6ef9017e3c607f2c72",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "e2dc28adf051f4887747facb7bde368dc417022533340e6ef9017e3c607f2c72"
+  },
+  "chain_v4s_gpu.r1_8db81ab7.sh": {
+   "archive_sha256": "8db81ab72329529d40c69710afd59504a8425619c6b6204a146c823af4ca3585",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
   },
   "chain_v4s_gpu.sh": {
-   "archive_sha256": "8db81ab72329529d40c69710afd59504a8425619c6b6204a146c823af4ca3585",
+   "archive_sha256": "8d8d061695ea3e23fa10ee02ae5efc68f1d1269ec323e90c7d40656b12cd6dcd",
    "pod2_sha256": "8db81ab72329529d40c69710afd59504a8425619c6b6204a146c823af4ca3585",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "8db81ab72329529d40c69710afd59504a8425619c6b6204a146c823af4ca3585"
   },
   "diag_compare.py": {
    "archive_sha256": "6da508bf179e9523dab43737acb02330e1284a85a966d1b32effd1a5b11a854a",
@@ -82,13 +131,24 @@
    "pod2_sha256": "da1648274503c0377aafa1f328602bbf2bf1c3e9c48fc35299329acd2019f1a3",
    "status": "MATCH"
   },
+  "guard_reconcile_v4e.py": {
+   "archive_sha256": "db6350a0b64acab7d0a34187aa940775bcabd49dd79a85c26176df55f51e514d",
+   "pod2_sha256": null,
+   "status": "NEW_2026-09-09_NOT_YET_ON_POD2"
+  },
   "judge_v4.py": {
-   "archive_sha256": "17b562fdb35558740e120be36541ca1e056e0d881206fef406bc990a460f93b2",
+   "archive_sha256": "8b2c13b7edaebd44643085491b0332d09fe11503b99412db6b8f8722523a09d2",
    "pod2_sha256": "17b562fdb35558740e120be36541ca1e056e0d881206fef406bc990a460f93b2",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "17b562fdb35558740e120be36541ca1e056e0d881206fef406bc990a460f93b2"
   },
   "judge_v4.r1_23c2cda7.py": {
    "archive_sha256": "23c2cda7a7214f4d3473ed28f9c409a309bd7407921249c3dba6b24b6b897be9",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
+  },
+  "judge_v4.r2_17b562fd.py": {
+   "archive_sha256": "17b562fdb35558740e120be36541ca1e056e0d881206fef406bc990a460f93b2",
    "pod2_sha256": null,
    "status": "r1_snapshot"
   },
@@ -113,9 +173,10 @@
    "status": "MATCH"
   },
   "make_v4_scripts.py": {
-   "archive_sha256": "54a6593d7157bca1c9f4dd17a4c55027008f233dd45993c639f335eaa5dc54b9",
+   "archive_sha256": "881a727155f34307c99c126dc4336cc55b4aaed5d8566ae4806ee3a368564b2a",
    "pod2_sha256": "54a6593d7157bca1c9f4dd17a4c55027008f233dd45993c639f335eaa5dc54b9",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "54a6593d7157bca1c9f4dd17a4c55027008f233dd45993c639f335eaa5dc54b9"
   },
   "merge_mwf_v4.py": {
    "archive_sha256": "8326c407d36f0bf14f3d8c404312f1699a97215be602e98c7008e4cf84fec843",
@@ -177,6 +238,11 @@
    "pod2_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
    "status": "MATCH"
   },
+  "pod_fea_ext_e.py": {
+   "archive_sha256": "2cfc98609a99167b0ff0f3e6c3f51afa96966d544c696021c10b3a75efc44c76",
+   "pod2_sha256": null,
+   "status": "NEW_2026-09-09_NOT_YET_ON_POD2"
+  },
   "pod_legs_v4.py": {
    "archive_sha256": "ce0d985315991feb648485e79dbca266265c7c39acf92cae6be72457a680cdfc",
    "pod2_sha256": "ce0d985315991feb648485e79dbca266265c7c39acf92cae6be72457a680cdfc",
@@ -203,14 +269,26 @@
    "status": "r1_snapshot"
   },
   "run_v4_arms.sh": {
-   "archive_sha256": "0ade0c3860c0689d882d5a66b282e94e92a9efa9c692ff7722ae2184b66cf2ee",
+   "archive_sha256": "b9e26225565dece728052cce9dd0ba526114ffb8b73577cd88c555e06888b1d2",
    "pod2_sha256": "0ade0c3860c0689d882d5a66b282e94e92a9efa9c692ff7722ae2184b66cf2ee",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "0ade0c3860c0689d882d5a66b282e94e92a9efa9c692ff7722ae2184b66cf2ee"
   },
   "stable_trend.py": {
-   "archive_sha256": "5bdd862c847824f1d2b224dba8eb0f1671f0ad5eb22a4635937400a36cb98f30",
+   "archive_sha256": "01bf8b3d35a23b6599ceddcc849dbbbbb85eff5eceebfe1a5a045fe9ca8b79ae",
    "pod2_sha256": "5bdd862c847824f1d2b224dba8eb0f1671f0ad5eb22a4635937400a36cb98f30",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "5bdd862c847824f1d2b224dba8eb0f1671f0ad5eb22a4635937400a36cb98f30"
+  },
+  "stable_trend.r1_5bdd862c.py": {
+   "archive_sha256": "5bdd862c847824f1d2b224dba8eb0f1671f0ad5eb22a4635937400a36cb98f30",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
+  },
+  "tests_pipeline_gates.py": {
+   "archive_sha256": "da3496e05cc2384f5dc752c74158aee697534cc2dd0d12e706d930a730dd77a6",
+   "pod2_sha256": null,
+   "status": "NEW_2026-09-09_NOT_YET_ON_POD2"
   },
   "trend288_receipt.py": {
    "archive_sha256": "ca1c7a1d75bb63e86ff26b3c5ded9a616750dd73a4d06d12fda1a983d76de048",
@@ -228,9 +306,20 @@
    "status": "MATCH"
   },
   "v4_gate_closure.py": {
-   "archive_sha256": "6524020bee269d61f67653bd986a870fae64144206d35645b8f065b6991e9a67",
+   "archive_sha256": "15a03d4a0937095b83108b737be67aeb1110a077d96010b1de9e6609055de262",
    "pod2_sha256": "6524020bee269d61f67653bd986a870fae64144206d35645b8f065b6991e9a67",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "6524020bee269d61f67653bd986a870fae64144206d35645b8f065b6991e9a67"
+  },
+  "v4_gate_closure.r1_6524020b.py": {
+   "archive_sha256": "6524020bee269d61f67653bd986a870fae64144206d35645b8f065b6991e9a67",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
+  },
+  "v4_gate_common.py": {
+   "archive_sha256": "cf8039c6a1b63ab30297840bc6324b0b295a816b822519b046cea7692de5887f",
+   "pod2_sha256": null,
+   "status": "NEW_2026-09-09_NOT_YET_ON_POD2"
   },
   "v4_gate_json.py": {
    "archive_sha256": "15f63749468ad1ae4a7e5162fe44595dc920cce8b2400e16f265948b42cd4aba",
@@ -243,9 +332,15 @@
    "status": "r1_snapshot"
   },
   "v4_gate_step1.py": {
-   "archive_sha256": "fbcd4fc1205c58609cd7a5c359d84f86890cb90e4265a21984c4dc7c8d826948",
+   "archive_sha256": "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4",
    "pod2_sha256": "fbcd4fc1205c58609cd7a5c359d84f86890cb90e4265a21984c4dc7c8d826948",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "fbcd4fc1205c58609cd7a5c359d84f86890cb90e4265a21984c4dc7c8d826948"
+  },
+  "v4_gate_step1.r1_fbcd4fc1.py": {
+   "archive_sha256": "fbcd4fc1205c58609cd7a5c359d84f86890cb90e4265a21984c4dc7c8d826948",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
   },
   "v4_gate_step1_diag.py": {
    "archive_sha256": "8f4a69230bcb1f289992e22196531b3d0831b817f85bbc62efbb43df35126f4b",
@@ -258,9 +353,15 @@
    "status": "MATCH"
   },
   "v4_gate_step2.py": {
-   "archive_sha256": "f468fcd2108bd60a27b567bbd494b09f4d390ca935af06990166e1ebc38a5494",
+   "archive_sha256": "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8",
    "pod2_sha256": "f468fcd2108bd60a27b567bbd494b09f4d390ca935af06990166e1ebc38a5494",
-   "status": "MATCH"
+   "status": "HARDENED_2026-09-09_NOT_YET_ON_POD2",
+   "previous_archive_sha256": "f468fcd2108bd60a27b567bbd494b09f4d390ca935af06990166e1ebc38a5494"
+  },
+  "v4_gate_step2.r1_f468fcd2.py": {
+   "archive_sha256": "f468fcd2108bd60a27b567bbd494b09f4d390ca935af06990166e1ebc38a5494",
+   "pod2_sha256": null,
+   "status": "r1_snapshot"
   },
   "v4_gate_step2_diag.py": {
    "archive_sha256": "29bf957b4447b9e7779142ae9573da5213b9ee3aa77fcb6e886846dcee8c6849",
@@ -277,15 +378,20 @@
    "pod2_sha256": "5cd6fc57d57b29864d5a280f8710e65ed7e78df2f793165b623cc854bf56b0d1",
    "status": "MATCH"
   },
+  "v4_leakcheck.r0_bb7f14ac.py": {
+   "archive_sha256": "bb7f14acfb3f691505101ba74dab19a4fe15ccb475a6cade2c5b3322a71c4b26",
+   "pod2_sha256": null,
+   "status": "r0_snapshot"
+  },
   "v4_leakcheck.r1_b19a588e.py": {
    "archive_sha256": "b19a588eed98fef60fae08e79b085ab0f958714717c74e98efd07de56556373f",
    "pod2_sha256": null,
    "status": "r1_snapshot"
   },
-  "v4_leakcheck.r0_bb7f14ac.py": {
-   "archive_sha256": "bb7f14acfb3f691505101ba74dab19a4fe15ccb475a6cade2c5b3322a71c4b26",
+  "v4e_gate_parity.py": {
+   "archive_sha256": "f0fac5e33f44afcaf37e4d1471590a386c6400c1f4ecaa7fa427fb5fa8c97707",
    "pod2_sha256": null,
-   "status": "r0_snapshot"
+   "status": "NEW_2026-09-09_NOT_YET_ON_POD2"
   }
  },
  "receipt_to_source": {
@@ -299,5 +405,7 @@
   "V3P_RAW_mwf_v4s_amd6_s2027.json": "v4_leakcheck.py",
   "JUDGE_v4.json": "judge_v4.r1_23c2cda7.py",
   "JUDGE_v4_g3_s2027.json": "judge_v4.py"
- }
+ },
+ "utc_updated": "2026-09-09T16:0xZ",
+ "note_round2": "Review b0a573a1 hardening (branch review/b0a573a1-pipeline): gates exit 3 on FAIL and write receipts with input shas (v4_gate_common.finalize); chains dispatch only on `require` (PASS + fresh shas), wait shards by PID, abort before merge, DONE only on success (chain_lib.sh); judge refuses missing arms / short coverage (exit 2) and failed A0p reproduction (exit 3); generator emits the BUNDLE_BASE env line and regenerates all three v4 scripts bitwise from the archived bases (base_pod_f10_train_monthly_earlystop.py 55ee8382, base_pod_f10_refit_ext.py ea3675b8, ../pod_export_bundle_v3.py c210bac6). Receipt-producing versions kept as .r1_/.r2_ snapshots. E-0909-F (king clock) device: pod_fea_ext_e.py, v4e_gate_parity.py, guard_reconcile_v4e.py, align_king_v4e.py, chain_king_e.sh. Pod2 copies of the hardened scripts are synced after the running E-0909-F chain finishes; statuses *_NOT_YET_ON_POD2 are updated then."
 }

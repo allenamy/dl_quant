@@ -99,10 +99,5 @@ def sha(p):
 R["fea82_copy_identical"] = sha("/workspace/dlw_v4raw/data/dlw_fea82.npz") == sha("/workspace/dlw_hf3/data/dlw_fea82.npz")
 R["PASS"] = bool(R["A_raw_vs_clip"]["PASS"] and R["B_targets_hf3_vs_hf2"]["PASS"] and R["B_fea82_hf3_vs_hf2"]["PASS"] and R["B_fea89_f8v4_vs_f8hf2"]["PASS"] and R["fea82_copy_identical"])
 R["neigh_rows"] = NEIGH.tolist(); R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-import os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from v4_gate_common import finalize   # review b0a573a1 P1-PIPE: FAIL exits 3, receipt carries input shas
+import os; os.makedirs("/workspace/review_scratch/v4_gates", exist_ok=True); json.dump(R, open("/workspace/review_scratch/v4_gates/step1.json", "w"), indent=1)
 log("STEP1_GATE", "PASS" if R["PASS"] else "FAIL")
-finalize("STEP1", R, os.environ.get("STEP1_OUT", "/workspace/review_scratch/v4_gates/step1.json"),
-         {"dlw_v4raw_targets": "/workspace/dlw_v4raw/data/dlw_targets.npz", "dlw_hf3_targets": "/workspace/dlw_hf3/data/dlw_targets.npz",
-          "dlw_hf2_targets": "/workspace/dlw_hf2/data/dlw_targets.npz", "fea82_hf3": "/workspace/dlw_hf3/data/dlw_fea82.npz", "fea82_hf2": "/workspace/dlw_hf2/data/dlw_fea82.npz",
-          "fea82_v4raw": "/workspace/dlw_v4raw/data/dlw_fea82.npz", "fea89_f8v4": "/workspace/f8_v4/data/f8_fea89.npz", "fea89_f8hf2": "/workspace/f8_hf2/data/f8_fea89.npz",
-          "raw_patch": "/workspace/review_scratch/raw_patch.npz", "hole_cells": "/workspace/review_scratch/holefix2_cells.npz"})
