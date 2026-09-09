@@ -61,5 +61,9 @@ print("  gross %.2f (%.3fx equity), %d 名" % (
     sum(abs(v) for v in snap["positions_notional"].values()),
     sum(abs(v) for v in snap["positions_notional"].values()) / max(eq, 1e-9),
     len(snap["positions_notional"])))
-print("  注: cond2 今日记 UNKNOWN(external_flow≠0), 单日止损**不会**自动触发; cond4 累计线仍在岗。")
+# ★ 这一行原本是写死的, 到 2026-09-09 00:00Z 划转日过去后它就开始说假话。改成按当日实测判。
+if abs(flow) > 1e-9:
+    print("  注: 今日 external_flow=%.2f≠0 ⇒ cond2 记 UNKNOWN, 单日止损**不会**自动触发; cond4 累计线仍在岗。" % flow)
+else:
+    print("  注: 今日 external_flow=0 ⇒ cond2 正常定价本日, 单日止损在岗(本工具仅作旁证)。")
 sys.exit(0 if state == "OK" else (3 if state == "ALERT" else 4))
