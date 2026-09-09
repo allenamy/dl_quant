@@ -16,6 +16,6 @@ for pname in ("v2ext", "v3splice"):
         for leg in ("king", "rev24", "fund"):
             a = LRa[leg][ia]; b = LB[leg][ib]; r[f"leg_{leg}_corr_vs_bundle"] = float(np.corrcoef(a, b)[0, 1]); r[f"leg_{leg}_maxabs_vs_bundle"] = float(np.abs(a - b).max()); r[f"leg_{leg}_exact_share"] = float(np.mean(np.abs(a - b) < 1e-9))
         out[f"{name}|{pname}"] = r; print(f"{name} panel={pname}: guard Sharpe {r['guard_sharpe']:.3f} net {r['net_mean']:+.3f} | vs bundle legs: king corr {r['leg_king_corr_vs_bundle']:.6f} exact {r['leg_king_exact_share']:.3f} | rev24 corr {r['leg_rev24_corr_vs_bundle']:.6f} exact {r['leg_rev24_exact_share']:.3f} | fund corr {r['leg_fund_corr_vs_bundle']:.6f} exact {r['leg_fund_exact_share']:.3f}", flush=True)
-band = (2.27, 2.57); s4e = out["v4e|v3splice"]["guard_sharpe"]; out["v4e_guard_in_band"] = bool(band[0] <= s4e <= band[1]); out["band"] = band
+import os as _os; band = (float(_os.environ.get("BUNDLE_GUARD_LO", "2.27")), float(_os.environ.get("BUNDLE_GUARD_HI", "2.57"))); s4e = out["v4e|v3splice"]["guard_sharpe"]; out["v4e_guard_in_band"] = bool(band[0] <= s4e <= band[1]); out["band"] = band
 json.dump(out, open("/workspace/review_scratch/v4_gates/guard_reconcile_v4e.json", "w"), indent=1); print("GUARD_RECONCILE_V4E_DONE in_band", out["v4e_guard_in_band"], flush=True)
 import sys as _s; _s.exit(0 if out["v4e_guard_in_band"] else 3)

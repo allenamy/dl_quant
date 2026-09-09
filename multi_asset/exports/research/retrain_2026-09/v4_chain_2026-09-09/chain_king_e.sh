@@ -13,7 +13,7 @@ else say "stage1 skipped (START_STAGE=$START_STAGE), reusing $(tail -1 $R/fea_v4
 say "stage2 G1 parity gate (production wstat AST, 6 anchors)"
 $PY v4e_gate_parity.py > $R/g1_v4e_parity.log 2>&1; rc=$?
 say "stage2 rc=$rc $(grep G1_KING_CLOCK_PARITY $R/g1_v4e_parity.log | cut -c1-200)"; [ $rc -eq 0 ] || { say FAIL_stage2_G1_parity; exit 3; }
-say "stage3 export bundle v4e"
+say "stage3 export bundle v4e (guard band ${BUNDLE_GUARD_LO:-2.27}..${BUNDLE_GUARD_HI:-2.57}, AMENDMENT 2 if overridden)"
 env BUNDLE_OUT=/workspace/shadow_bundle_v4e BUNDLE_BASE=/workspace/slow_scorer_v4base.json BUNDLE_FEA=/workspace/data/wide_fea_v4e.npy BUNDLE_META=/workspace/data/wide_fea_v4e_meta.npz BUNDLE_CACHE=$C BUNDLE_TAR=/workspace/shadow_bundle_v4e.tar.gz EXPORT_PANEL=/workspace/data/wide_panel_4h_v3splice.npz EMA_STATE_JSON=/workspace/fund_state_canoncont.json $PY pod_export_bundle_v4.py > $R/export_v4e.log 2>&1; rc=$?
 say "stage3 rc=$rc $(tail -1 $R/export_v4e.log | cut -c1-120)"; { [ $rc -eq 0 ] && grep -q BUNDLE_DONE $R/export_v4e.log; } || { say FAIL_stage3_export; exit 1; }
 say "stage4 guard band (v3 must reproduce 2.284 first)"

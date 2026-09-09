@@ -19,7 +19,9 @@ COST_B = [(-0.25, 5.0, 0.85), (0.5, 6.0, 0.75), (2.0, 8.0, 0.55)]
 def tier_of(q):
     t = np.full(len(q), 2, np.int8); t[q >= 1e6] = 1; t[q >= 5e6] = 0
     return t
-PW = np.load("/workspace/data/wide_panel_4h_v2ext.npz", allow_pickle=True); pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}
+# AMENDMENT 2 device note: the exporter's guard runs on EXPORT_PANEL=v3splice (2.284 / 2.30 / 2.26); run 1 of this device used v2ext (1.92 replica) and could not reproduce R1/R2 — panel is now an env with the exporter's default.
+PANEL = os.environ.get("GUARD_PANEL", "/workspace/data/wide_panel_4h_v3splice.npz")
+PW = np.load(PANEL, allow_pickle=True); pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}
 FN = PW["f_fund_now"]; IV = PW["f_fund_iv"]; R24 = PW["f_rev_24h"]; FE = PW["f_fund_ema_v1"]; NW = 829
 def book(PRED, MT):
     E_ts = MT["E_ts"].astype(np.int64); members = MT["members"]; y4 = MT["y4"]; qvk = MT["qvk"]; nA = len(E_ts)
@@ -87,12 +89,12 @@ for name, (P, MT) in runs.items():
     out[name] = res
     print(f"== {name} ({time.time()-t0:.0f}s): guard Sharpe(>=2024) {res['sharpe_guard_ge2024']:.3f} net {res['net_mean_ge2024']:+.3f} std {res['std_ge2024']:.2f} n {res['n_ge2024']} | " + " ".join(f"{w}: S {res[w]['sharpe']:.2f} net {res[w]['net_mean']:+.3f}" for w in PER if w in res), flush=True)
 # AMENDMENT 2 rule: re-based band = [ref' - (2.284 - 2.27), ref' + (2.57 - 2.284)] with ref' = R4 (v3 on the E label)
-ref_old = out["R1 v3 (P3,M3) old label"]["sharpe_guard_ge2024"]; ref_new = out["R4 v3 on E label (P3, M3|y4<-E)"]["sharpe_guard_ge2024"]
+ref_old = out["R1 v3 (P3,M3) old label"]["sharpe_guard_ge2024"]; ref_new = out["R4 v3 on E label (P3, M3|y4<-E)"]["sharpe_guard_ge2024"]; ref_v4 = out["R2 v4 (P4,M4) old label"]["sharpe_guard_ge2024"]
 band_new = (ref_new - (2.284 - 2.27), ref_new + (2.57 - 2.284)); s4e = out["R3 v4e (P4e,M4e) E label"]["sharpe_guard_ge2024"]
-out["amendment2"] = {"ref_old_v3_reproduced": ref_old, "ref_old_reproduces_2.284": bool(abs(ref_old - 2.284) < 0.005), "ref_new_v3_on_E_label": ref_new,
+out["amendment2"] = {"ref_old_v3_reproduced": ref_old, "ref_old_reproduces_2.284": bool(abs(ref_old - 2.284) < 0.005), "v4_reproduces_2.30": bool(abs(ref_v4 - 2.30) < 0.005), "ref_new_v3_on_E_label": ref_new,
                      "label_effect_on_v3": ref_new - ref_old, "label_effect_on_v4": out["R5 v4 on E label (P4, M4|y4<-E)"]["sharpe_guard_ge2024"] - out["R2 v4 (P4,M4) old label"]["sharpe_guard_ge2024"],
                      "prediction_effect_v4e_vs_v4_on_old_label": out["R6 v4e on OLD label (P4e->M4 axis, M4)"]["sharpe_guard_ge2024"] - out["R2 v4 (P4,M4) old label"]["sharpe_guard_ge2024"],
                      "prediction_effect_v4e_vs_v4_on_E_label": s4e - out["R5 v4 on E label (P4, M4|y4<-E)"]["sharpe_guard_ge2024"],
                      "band_old": [2.27, 2.57], "band_rebased": list(band_new), "v4e_guard": s4e, "v4e_in_rebased_band": bool(band_new[0] <= s4e <= band_new[1])}
 print("AMENDMENT2", json.dumps(out["amendment2"]), flush=True)
-os.makedirs("/workspace/review_scratch/v4_gates", exist_ok=True); json.dump(out, open("/workspace/review_scratch/v4_gates/guard_decompose_v4e.json", "w"), indent=1); print("GUARD_DECOMPOSE_V4E_DONE", flush=True)
+os.makedirs("/workspace/review_scratch/v4_gates", exist_ok=True); out["panel"] = PANEL; json.dump(out, open(os.environ.get("OUT", "/workspace/review_scratch/v4_gates/guard_decompose_v4e.json"), "w"), indent=1); print("GUARD_DECOMPOSE_V4E_DONE", flush=True)
