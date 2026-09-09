@@ -47,7 +47,7 @@ VERIFIED(`receipts/JUDGE_v4.json` levels)。**A3 = king v4 + 在役 F10**: dyn s
 ## §4 在飞 / 待补(状态只从过程收据读)
 - F10 v4 四链(RAW/CLIP × s42/s2027, FIX7, 20 折, 4 shard 并行)03:36Z 起顺跑, 队列 `chain_v4_post_export.sh`(`receipts/v4_commands.txt`), 监视器 bemyggx2e; 每链结束 `merge_mwf_v4.py` 产 `f10_v4{RAW,CLIP}_s{42,2027}.npy`(2025 前行 = 在役年折拼接, spl 约定)。
 - 之后: `run_v4_arms.sh A1/A2` → `judge_v4.py`(主判 A1−A0; 附 A2−A0 / A1−A2 目标口径隔离 / A1−A3)。
-- §2.6 部署件: `pod_f10_refit_v4.py` s42/s2027(FIX7, v4 RAW)03:46Z 起 GPU; 门 V1(np≡torch)`pod_f10_np_export.py` F10_OUT=f8_v4; 门 V3′ `v4_leakcheck.py`(月折谱 vs 在役代); **V2(同装置双数据)由 §3 A 臂取代**(数据变化是刻意的口径纠正, 判在书层); **V4 跨机(jpline)03:47Z 连接超时, 待重试**。
+- §2.6 部署件 **已产出**: `pod_f10_refit_v4.py`(refit 逐字 + `BEST_EP_FIX` 三行 diff)s42/s2027 FIX7 于 v4 RAW, 03:54Z 完(472 s / 464 s): 检查点 `f8_v4/models/f10_live_s{42,2027}.pt` rule fix7, 保留 epoch 7(va@7 −6.542 / −6.497; 无约束 argmax 本会选 **10 / 0** — s2027 正是早停选到 epoch 0 的病态, FIX7 规避), α 0.0859/0.0861, n_cols 171; **门 V1 PASS 双种子**(Spearman 1.0000000, maxabs 1.17e-7 / 1.14e-7; 判据 ≥0.99999, ≤1e-5)→ `f10_live_s{42,2027}_np.npz`, `trained_through` 2026-08-31 20Z(索引末端); **梯度窗末端 2025-12-19 12Z, 验证切片 12-19 16Z→08-31 20Z**(refit L90 的 85% 切分逐字保留, E-0907-D 性质未变, 预注册如此)。门 V3′ `v4_leakcheck.py`(月折谱 vs 在役代)待 merge; **V2(同装置双数据)由 §3 A 臂取代**(数据变化是刻意的口径纠正, 判在书层); **V4 跨机(jpline)03:47Z / 03:52Z / 03:55Z 三次连接超时, 待重试**。
 - 换装规则 §3 原文: (A) 双种子 CI 下界>0 ⇒ 候选; (C)+门全绿 ⇒ 仍呈候选(措辞「未过否决线 + 口径正确」); (B)/任一门红 ⇒ 不换。任何换装都要用户对具体 bundle 再给字。
 
 ## §5 不主张
