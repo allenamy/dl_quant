@@ -95,3 +95,14 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 - **保留的改动(需预注册):** ③ 换装步骤禁止删除/重置 `state/leg_returns_live.json`; ⑤ 生产者 extra ≥900 行时忽略 bundle 序列(避免 2022–23 段生产 booster 样本内值在 extra 不足时进窗); 导出器 leg_returns 的 2022–23 段改用年折 OOS 预测(不入 900 窗, 只为"进席位的历史须 OOS"规则的完整性)。
 - **测试 [10] 改为口径一致性:** 实盘 state king 900 窗 Sharpe/锚 须在 bundle 同窗 ±0.05 内(bundle 与生产者同口径; 若有人再引入 expm1/log 会跳到 −0.02/+0.21 被抓住)。
 - **研究侧待办(另立预注册):** 装置 CAL 语义修正(默认不再 expm1)+ 重立复现收据; 所有 CAL=simple 结论用 CAL=log 复验(T3c/M1/阶梯/滚动 king/腿解剖)。
+
+## §v4 · 2026-09-09 口径正典配方(用户令「记录下来免得以后搞完了」; 装置 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`, 受据 RESULT_v4_chain_retrain_quantify_2026-09-09)
+下一次重训**按本节而不是上文旧步骤**; 每项都有门, 门红即停:
+1. **5m 缓存** = holefix2 正典(`dlnative_5m_wide829_f16_holefix2.npz`, sha16 1d7f459d)+ 滚动补月; 建后跑 `cache_coverage_gate_v2.py`(排除首末日; 洞 0 / 宽缺口 0 才过)。原始收益补丁 `raw_patch.npz`(952 bar)随缓存走。
+2. **king 特征** = `pod_fea_ext_clamp.py`(E−w clamp ≥ 0; 不再用 `pod_fea_ext.py`), PANEL_IN=当月 v2ext 谱系; 门 = 与上代特征差异只在缓存改动邻域 [start−48, end+8640+288] 行(`v4_gate_step2.py` 型)。
+3. **DL 目标/特征** = `pod_dlw_targets_raw.py`(记账 y4s 原始收益 RET_CH=0 + DLWT_RAW_PATCH; 训练标签 RAW/CLIP 已证无差, 默认 CLIP 即 `dlw_hf3` 型), fea82/fea89 同法重建; 门 = `v4_gate_step1.py` 型(RAW vs CLIP 差异恰为补丁窗; 邻域外差异只能是 trend_288 全局累积和残差且非被补符号逐位相等 — AMENDMENT 3 读法)。
+4. **legs** = `pod_legs_ext.py` 策略: **在役训练 legs 行逐位原样 + 新锚同公式**(禁止全行重算: king PRED 只从 2024 起, 全行重算会把 2023 king 席位算成 0 ⇒ DL 少学一半样本, AMENDMENT 5); 自检分年 WL(2023 king ≈0.59)。
+5. **king 导出** = `pod_export_bundle_v4.py` 型, env **逐字**: `EXPORT_PANEL=<本月 splice> EMA_STATE_JSON=<canoncont> BUNDLE_BASE=<上代 own fold IC>`; 门②③/守卫带 2.27–2.57 原样; 守卫红先复现上代发表值(guard_book_lib 逐字基线书)再报。`provenance.generation` 标签改为本代。
+6. **F10** = 月折 FIX7(`BEST_EP_FIX=7`, EMBARGO=1, 20 折 202501..)+ refit `pod_f10_refit_v4.py` FIX7; V1 np≡torch; V3′ 条款② 参照 = 同配方上一代月折(AMENDMENT 6), 对年折差另报。
+7. **书层量化** = dev 树 meta y4 用原始收益(`meta_newprod_v4` 型), 判官先复现已发表数字(A0p 法: 同代输入逐位), 冻结窗主判 + 扩展窗次级, 双种子双席位, 逐年表负年显式。
+8. 已知易错: NpzFile[key] 不进循环; pgrep 用 `[c]hain` 括号法; 一切 sha 由复跑实测; 过程状态只读过程收据。
