@@ -46,11 +46,10 @@ for q, a in enumerate(SEL):
     if q >= len(OUT):
         if neq.any(): res["control_all_equal"] = False
         continue
-    flip = (np.isnan(ra) != np.isnan(rb)) & fm; bothf = neq & fm & ~np.isnan(ra) & ~np.isnan(rb); dd = np.abs(ra.astype(np.float64) - rb.astype(np.float64))[bothf]
-    res["filled_nan_flips"] = res.get("filled_nan_flips", 0) + int(flip.sum())   # #25: NaN<->finite flips counted explicitly (previously swallowed by max(prev, nan))
-    if dd.size: res["filled_raw_maxabs"] = max(res["filled_raw_maxabs"], float(np.nanmax(dd))); res["filled_raw_n_diff"] += int(dd.size); res["filled_raw_n_diff_saturation_only"] += int(((np.abs(ra) == 1.0) | (np.abs(rb) == 1.0))[bothf].sum())
+    dd = np.abs(ra.astype(np.float64) - rb.astype(np.float64))[neq & fm]
+    if dd.size: res["filled_raw_maxabs"] = max(res["filled_raw_maxabs"], float(dd.max())); res["filled_raw_n_diff"] += int(dd.size); res["filled_raw_n_diff_saturation_only"] += int(((np.abs(ra) == 1.0) | (np.abs(rb) == 1.0))[neq & fm].sum())
     za = rank_block(ra); zb = rank_block(rb); f4 = np.array([x4[kmap4[int(a * NW + s)]] for s in m]); f2 = np.array([x2[kmap2[int(a * NW + s)]] for s in m])
     res["n_checked"] += 1; res["rank_reproduces_fea89_v4"] += int(np.allclose(za, f4, atol=2e-7, equal_nan=True)); res["rank_reproduces_fea89_hf2"] += int(np.allclose(zb, f2, atol=2e-7, equal_nan=True))
     if len(res["examples"]) < 5 and neq.any():
         s0 = np.nonzero(neq)[0][0]; res["examples"].append({"anchor": time.strftime("%F %H:%MZ", time.gmtime(int(Ets[a]))), "symbol": int(m[s0]), "filled": bool(fm[s0]), "raw_v4": float(ra[s0]), "raw_hf2": float(rb[s0]), "n_rank_changed": int((za != zb).sum()), "n_tied_at_pm1_v4": int((np.abs(ra) == 1.0).sum()), "n_tied_at_pm1_hf2": int((np.abs(rb) == 1.0).sum())})
-print(json.dumps(res, indent=1)); json.dump(res, open("/workspace/review_scratch/v4_gates/trend288_receipt_nanaware.json", "w"), indent=1); log("TREND288_RECEIPT_DONE")
+print(json.dumps(res, indent=1)); json.dump(res, open("/workspace/review_scratch/v4_gates/trend288_receipt.json", "w"), indent=1); log("TREND288_RECEIPT_DONE")

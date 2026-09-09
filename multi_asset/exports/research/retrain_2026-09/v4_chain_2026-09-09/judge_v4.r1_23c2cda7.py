@@ -35,7 +35,7 @@ def levels(ts, g, R):
                   "annual_pct_per_gross": float(v.mean() * APY / 1e4 * 100), "negative_year": bool(v.sum() < 0)}
     return out
 ARMS = {}; missing = []
-for arm in ("A0", "A0p", "A1", "A1s", "A2", "A3"):
+for arm in ("A0", "A0p", "A1", "A2", "A3"):
     for seat in ("dyn", "fix"):
         for s in ("42", "2027"):
             p = f"{HC}/dev_v4/probe_artifacts/w10_ablation_series_V4_{arm}_{seat}_s{s}.npz"
@@ -59,7 +59,7 @@ for k, (ts, g, R) in sorted(ARMS.items()):
     print(f"\n-- {'_'.join(k)} --"); print("%-34s %5s %8s %6s %8s %9s %11s %9s %11s %6s %6s %5s" % ("window", "n", "bps/anch", "Shp", "ann%/g", "maxDD", "worst day", "wd bps", "worst month", "negM", "w3k", "NEG"))
     for w, r in L.items(): print("%-34s %5d %+8.4f %6.2f %+8.2f %9.1f %11s %+9.1f %11s %3d/%2d %6.3f %5s" % (w, r["n"], r["mean_bps"], r["sharpe"], r["annual_pct_per_gross"], r["maxdd_bps"], r["worst_day"], r["worst_day_bps"], r["worst_month"], r["n_neg_months"], r["n_months"], r["w3_king_mean"], "NEG" if r["negative_year"] else ""))
 # --- contrasts (frozen), per-contrast RNG sub-stream
-CON = [("A1", "A0"), ("A2", "A0"), ("A3", "A0"), ("A1", "A2"), ("A1", "A3"), ("A1s", "A0"), ("A1s", "A1")]
+CON = [("A1", "A0"), ("A2", "A0"), ("A3", "A0"), ("A1", "A2"), ("A1", "A3")]
 print("\n== CONTRASTS (frozen 2025-03-01→2026-08-10 20Z; paired per anchor; UTC-day block bootstrap 2000; rng [20260905, k]) ==")
 print("%-10s %-4s %-5s %9s %22s %6s | %s" % ("contrast", "seat", "seed", "Δ bps", "CI95", "P>0", "levels base -> arm"))
 for ci, (a, b) in enumerate(CON):

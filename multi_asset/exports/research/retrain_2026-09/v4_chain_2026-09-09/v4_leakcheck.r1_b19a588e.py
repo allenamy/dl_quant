@@ -21,7 +21,7 @@ def spectrum(P, E_ts, y4s, members, anchors):
 E4, Y4, M4 = load_tg(f"{DLW}/data/dlw_targets.npz"); EX, YX, MX = load_tg("/workspace/dlw_ext/data/dlw_targets.npz"); yrs4 = np.array([time.gmtime(int(t)).tm_year for t in E4])
 bad = []; out = {}
 for S in SEEDS:
-    ROOT = os.environ.get("MWF_ROOT", "mwf_v4b"); F8 = os.environ.get("F8_DIR", "/workspace/f8_v4"); P4 = np.load(f"{F8}/{ROOT}/{T}_s{S}/preds/f10_V2MAIN_{T}_mE1cX7_s{S}.npy"); PX = np.load(f"/workspace/f8_ext/preds/f10_V2MAIN_s{S}.npy")
+    ROOT = os.environ.get("MWF_ROOT", "mwf_v4b"); P4 = np.load(f"/workspace/f8_v4/{ROOT}/{T}_s{S}/preds/f10_V2MAIN_{T}_mE1cX7_s{S}.npy"); PX = np.load(f"/workspace/f8_ext/preds/f10_V2MAIN_s{S}.npy")
     hfp = "/workspace/review_scratch/health_check/dev_hf2/f8_2026-08-22/preds/" + ("f10_gate_mE1cX7_R0_spl42_hf2.npy" if S == 42 else "f10_gate_mE1cX7s27_R0_spl27_hf2.npy"); PH = np.load(hfp)
     leak = int(np.isfinite(P4[yrs4 < 2023]).sum())
     fin4 = np.isfinite(P4).any(1); com = np.intersect1d(E4[fin4], EX); i4 = np.searchsorted(E4, com); ix = np.searchsorted(EX, com); step = max(1, len(i4) // 800)
