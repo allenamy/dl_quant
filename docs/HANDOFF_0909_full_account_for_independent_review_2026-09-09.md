@@ -67,7 +67,7 @@
 - **请看**: (1) 用你自己的方式取一个短窗确认「一笔成交 = 两行同 tranId」; (2) 是否存在第三种共享 tranId 的行型; (3) asset 入键对多币种手续费的正确性; (4) 部署后历史 daily_nav 行不自动重算, `ops/reprice_day.py` 按日重算路径由 `tests_reprice_day` 覆盖 —— 是否需要对 09-09 重算一次。
 
 ### C. 研究分支 620db83c · v4 链失败阻断(详 round-2 HANDOFF §2)
-- 归档 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`: `v4_gate_common.py`, 加固后的 `v4_gate_closure/step1/step2.py`, `stable_trend.py`, `judge_v4.py`(A1e 臂, `JUDGE_OUT/JUDGE_HC` env, 必需输入), `make_v4_scripts.py`(`GEN_*` env, `BUNDLE_BASE` 行), `chain_lib.sh`, 重写的四条链驱动, `tests_pipeline_gates.py`(21 项, pod2 ALL PASS `receipts/tests_pipeline_gates_pod2.log`), 真基底 `base_pod_f10_train_monthly_earlystop.py` / `base_pod_f10_refit_ext.py`, 快照 `*.r1_*/r2_*/r0_bb7f14ac`(每个收据配它当时的源码)。同步收据 c12c60dc: 加固脚本 23 件与 pod2 逐位(`receipts/v4_scripts_sha_full.json`)。
+- 归档 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`: `v4_gate_common.py`, 加固后的 `v4_gate_closure/step1/step2.py`, `stable_trend.py`, `judge_v4.py`(A1e 臂, `JUDGE_OUT/JUDGE_HC` env, 必需输入), `make_v4_scripts.py`(`GEN_*` env, `BUNDLE_BASE` 行), `chain_lib.sh`, 重写的四条链驱动, `tests_pipeline_gates.py`(21 项, pod2 ALL PASS `receipts/tests_pipeline_gates_pod2.log`), 真基底 `base_pod_f10_train_monthly_earlystop.py` / `base_pod_f10_refit_ext.py`, 快照 `*.r1_*/r2_*/r0_bb7f14ac`(每个收据配它当时的源码)。同步收据 c12c60dc(`receipts/v4_scripts_sha_full.json`, 17:1xZ 更新): 清单 75 脚本, 50 件与 pod2 逐位、0 件不同、r1 快照 6 份; 加固脚本与 E-0909-F 装置 17:0xZ 同步 pod2(提交信息记 23 件)。
 - **请看**: `chain_lib.sh` 的 `run_shards` 对 4 个分片的 PID 等待是否覆盖你复现的「子进程失败未传到父链」; 生成器从真基底再生的三份脚本 sha 是否与你手上的一致(55ee8382 / ea3675b8 / c210bac6 前缀)。
 
 ### D. 研究分支 ca7c5816 … 85a0eb70 · E-0909-F 训练—生产特征一致性(详 round-2 HANDOFF §3 + PREREG_king_clock_E)
@@ -135,6 +135,6 @@ cd /Users/haosiyu/Desktop/quant_research_wt/b0a573a1/multi_asset/exports/researc
 ## §7 受据索引(提交号)
 
 - 研究主线 multi-asset-v2(今日, 时间序): 82eebd97 / 3e76fb35(E-0909-D 定位)→ 21cccd93(d040c74 入主树记录)→ 8a768a94 / 5b8a7a1e(孤儿撤 + 12Z fills 回填)→ 6630b002(两分支推送)→ 7ff4be77(🛑 E-0909-G)→ fd7cfa3d(修复件干跑)→ ed8beb75(16Z 增量: 平仓代价)→ b30bd028(20Z: RESUMABLE 翻转 + E-0909-H)→ 4e5bbdf0(e1c4c87 收据)→ 9b8962be(23:22Z 复场)。
-- 研究复审分支 review/b0a573a1-pipeline: ca7c5816(PREREG E)→ 8e7908e2(装置)→ 620db83c(失败阻断)→ a36f61d8 → 893f1461(G4)→ 776d7802(G1 run-1 FAIL + AMD1)→ c10660ce / 5d214260(G2 + AMD2)→ 298383f6 → 85a0eb70(G3)→ c12c60dc(pod2 同步收据)→ **6d894476**(§5 附录)。
+- 研究复审分支 review/b0a573a1-pipeline: ca7c5816(PREREG E)→ 8e7908e2(装置)→ 620db83c(失败阻断)→ a36f61d8 → 893f1461(G4)→ 776d7802(G1 run-1 FAIL + AMD1)→ c10660ce / 5d214260(G2 + AMD2)→ 298383f6 → 85a0eb70(G3)→ c12c60dc(pod2 同步收据)→ **6d894476**(§5 附录)→ 5f9b8f4b(本文初版)→ 1b606aaf(复核更正: XAN 机制 / 分支 anchor_loop 与 disposition 改动描述 / fills 每笔两行 / 锚窗口径)→ 本分支 HEAD(sha 清单计数更正)。
 - 实盘: main **d040c74**; review/b0a573a1-executor **961a858 → e1c4c87**。
 - 本文: 研究复审分支(与 round-2 HANDOFF 同分支)。
