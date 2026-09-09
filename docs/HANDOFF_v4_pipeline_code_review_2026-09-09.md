@@ -5,7 +5,7 @@
 ## §0 一句话结论(先说清「落实到代码」指什么)
 
 - **落实了的**: 修正后的重训链是**可执行、sha 钉住、有收据的脚本**, 全部入库在研究仓 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(55 个脚本: 50 与 pod2 sha256 逐位一致 + 5 个首轮快照, 差异 0; 清单 `receipts/v4_scripts_sha_full.json`, 与 pod2 `/workspace/review_scratch/` 逐位对账), 配方写在 `docs/RUNBOOK_monthly_retrain_2026-10.md §v4` 八步, 每步有门、门有收据, 审计链 PREREG → 7 个 AMENDMENT → RESULT → 复审接受 全在 docs/。
-- **没落实的(明写, 不藏)**: ① 没有单一「一键跑通」的 v4 驱动脚本, 现在是五段 `chain_*.sh` + 判官手工串联; RUNBOOK §1–§4 旧步骤(v3 链: `pod_f10_inputs_chain.sh` / `pod_legs_ext.py` / `pod_f10_refit_ext.py`)仍留在文中, §v4 只是声明「按本节不按上文」; ② **线上生产者 `~/wide_shadow` 仍在跑 v3 旧链训练的 bundle**(09-01 换装), v4 bundle 在 pod2 `/workspace/shadow_bundle_v4`(sha16 16194c70)未换装, 其 `provenance.generation` 仍写 "v3_2026-09"; ③ 三个候选未入正典, 均待用户字: 稳定 trend 构建器(G3 四格 (C))、FIX7 epoch 规则(欠 CONST2027 第二种子 + 14 天影子)、bundle 代际标签。
+- **没落实的(明写, 不藏)**: ① 没有单一「一键跑通」的 v4 驱动脚本, 现在是五段 `chain_*.sh` + 判官手工串联; RUNBOOK §1–§4 旧步骤(v3 链: `pod_f10_inputs_chain.sh` / `pod_legs_ext.py` / `pod_f10_refit_ext.py`)仍留在文中, §v4 只是声明「按本节不按上文」; ② **线上生产者 `~/wide_shadow` 仍在跑 v3 旧链训练的 bundle**(09-01 换装), v4 bundle 在 pod2 `/workspace/shadow_bundle_v4`(sha16 16194c70)未换装, 其 `provenance.generation` 仍写 "v3_2026-09"; ③ 三个候选未入正典, 均待用户字: 稳定 trend 构建器(G3 四格 (C))、FIX7 epoch 规则(CONST2027 干净参照研究员 09-07 已完成 20/20 — 本文首版误写「欠」, 复审 b0a573a1 更正; 仍欠 14 天影子 + 用户字)、bundle 代际标签。
 - **换装与否不是本文的问题**: 十四格对照全 (C), 措辞只能是「在本合同与窗内未检出差异」; 换装 = 口径纠正, 不是收益主张。
 
 ## §1 提交清单(研究仓 `multi-asset-v2`, 2026-09-09, 按主题; 实盘仓另列)
