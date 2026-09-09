@@ -51,3 +51,9 @@
 - **动作(执行器自动, 我未参与)**: halt_opening → flatten(243 张 reduce-only, residual {}, 复读核实 ok, 场所快照 243 行写回)→ HIGH 页 16:47:23Z DELIVERED。**书已平, reduce_only=True, open_orders_halted=True, 下一锚(20Z)起不开仓**; `resume_requires: a deliberate manual action — the default is now NOT TRADING; §9-F7 ≥72h 不得起草 protocol v2`。guard_twin 16:50Z lev=0.0 与之一致。权益 16:50Z 116,128 vs 当日 NAV 行 116,281。
 - **定性**: 不是市场事件, 不是 d040c74 的缺陷触发(16Z 锚交易与修复路径全绿), 而是 **12Z 事故在账本上留下的「无授权行的成交」被风控按设计当作仓位断裂**。看门狗做了它该做的事(它看不见「那是我们自己 12Z 崩溃前发出的单」)。真正的缺口: (1) 崩溃锚的 orders 行不可追写(工具自述), 使账本永远缺这批授权; (2) E-0909-D 修复后的 `submit_with_cleanup` 会在崩溃时补行, **但对 12Z 这种已发生的历史缺口无效**。
 - **我未动任何东西**(零下单零撤单)。恢复 = 09-06 手册(`docs/HEALTHCHECK_pre_resume_2026-09-06.md`, `ops/resume_from_trip.sh`)+ 用户字; 恢复前须先决定 12Z 授权缺口怎么进账本(否则同一偏差在窗内可能再次触线, 详见 STATE)。
+
+### 2026-09-09 17:1xZ · E-0909-G 修复件已备并在看门狗同一代码路径上证明有效(未落盘, 等用户字)
+- `resume_from_trip.sh --check`(只读)= **NOT RESUMABLE**, 触发条件仍成立(§4-5e split_unauth 3,951U / 未授权 1.09%)。
+- 修复件 `pilot_journal/tools/reconstruct_orders_12Z.py`: 从场所 allOrders 按 `A1788956640-` 前缀重建 **52 条腿的 orders 行**(全部 FILLED, Σ|成交| 2,536U, 与 14:3xZ 回填的 69 条 fills 逐腿关联取成交时刻与手续费), 意图字段不可知者置 None 并在 note 明写 RECONSTRUCTED_FROM_VENUE; 该 rid 当前零行 ⇒ 追加不双计; 52/52 过 pilot_log 架构校验。干跑收据 `e0909g_repair_dryrun_2026-09-09.json` + 行 `e0909g_reconstructed_orders_12Z_DRYRUN.jsonl`。
+- **模拟(与 resume 工具第 1 步逐字同路径: copytree → WI.collect → WD.run(MockBroker))**: 账本原样 tripped=True(同一触发文案); 在副本追加 52 行后 **tripped=False, 无触发**; partial=[cond2_day_loss, cond4_drawdown] 前后不变。⇒ 补上授权行即清除条件, 不需要改任何判据。
+- 未做: 未写实盘账本, 未恢复。**等用户字**: (1) `--apply` 追加 52 行; (2) 09-06 手册前置核查 + `resume_from_trip.sh "<理由>"`; 时点建议 00Z(20Z 前走完体检太赶)。
