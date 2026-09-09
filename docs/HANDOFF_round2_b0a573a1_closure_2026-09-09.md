@@ -87,3 +87,12 @@ float64 归约参照(和先转 float32 再排序)vs 新存档: 六锚 **0 格**�
 2. 流水线: 运行 `tests_pipeline_gates.py`(21 项); 在 pod2 上核对同步后的脚本 sha 与 `receipts/v4_scripts_sha_full.json`; 检查 `chain_lib.sh` 的 `run_shards` 对 4 个分片的 PID 等待是否覆盖你复现的「子进程失败未传到父链」。
 3. 一致性: `v4e_gate_parity.py` 的六锚结果(你的三锚 + 预定三锚)与你 `clamp_clock/FEATURES.npz` 的 live 数组对照; G4 量化报告是否支持「送 booster 前 float16 往返」作为生产候选。
 4. 数字: `JUDGE_v4e.json` 的 A1e−A1 / A1e−A0 四格与 56 个 CI 复算。
+
+## §5 附录(2026-09-09 21:5xZ 追加)· E-0909-H 收入账本去重键过粗 → 分支 e1c4c87(同一实盘分支, 请一并复核)
+
+**发现(只读, 实盘账本)**: 20Z 锚 daily_nav 行 `realised_by_type` = COMMISSION −5.54 / REALIZED_PNL −685.54 / FUNDING −87.04; 场所 `/fapi/v1/income` 分型分页汇总 = COMMISSION **−125.69**(4,219 行)/ REALIZED_PNL **−696.74**(3,496 行)。用主树 d040c74 的 `BinanceBroker.income_since(day_start)` 直接跑, 逐位复现账本三数(5,351 行, truncated=False)⇒ 不是分页截断。
+**根因**: `income_since` 的分页去重键 = `tranId`; 而**同一笔成交的 COMMISSION 行与 REALIZED_PNL 行共享同一 tranId**(3 秒窗 134 行 / 67 tranId / 67 个 tranId 各含两种 incomeType)。第二行被当作翻页复送丢弃。方向系统性: 只少记亏损(与 `tests_numerator_honesty` 自述必须避免的方向相同)。
+**影响面**: cond2 日损判据自 [B32] 起 = 权益日变化(`watchdog.py` L983/L1262-1268 的 realised+unrealised 视图已退役为只记录), **止损判决未读错数**; 受影响 = daily_nav 的实现盈亏分解、据此的报表与 guard_twin 的 arith 项。
+**修复(分支, 未部署)**: 键改 `(tranId, incomeType, symbol, asset)`; 无 tranId 仍回退整行键。新套件 `live/tests_income_twin_rows.py` 11 项: [A] 平仓日复刻(3,049 笔 × 2 行 + 248 funding, 50 行/毫秒, 7 页)两孪生行全计; [B] 旧键阳性对照(同一夹具旧键恰好丢掉每笔的第二行); [C] 翻页复送仍只计一次; [D] 无 tranId 回退; [E] 小页多次重叠幂等。**同一套件对主树模块跑 3 项变红**(门看得见缺陷); 邻近套件 numerator_honesty 18 / reprice_day 20 / binance_broker 全绿; `gate_coverage` 131 套件全有盲区自述; safe_commit 全电池绿后入分支。
+**请复核**: (1) 用你自己的方式从场所取一个短窗确认「一笔成交 = 两行同 tranId」不是我夹具的假设(例如 `incomeType` 分型各取 200 行比对 tranId 集合); (2) 是否存在第三种共享 tranId 的行型(如 INSURANCE_CLEAR / TRANSFER 与成交无关, 但请看 REALIZED_PNL 与 FUNDING_FEE 在结算毫秒是否也可能同 tranId —— 我未检出, 也未穷举); (3) 修复后的键是否会把「同一 tranId、同 type、同 symbol、不同 asset」的真实两行(多币种手续费)误合并 —— 我把 asset 纳入键就是为此, 请确认; (4) `M6` 资金费账本走 `binance_funding.py` 自己的分页(只取 FUNDING_FEE), 不经此函数, 请确认不受波及。
+**部署语义**: 与 §1 同分支同一批复审; 合并 ≠ 部署; 部署后历史 daily_nav 行的 realised 分解不自动重算(需要时用 `ops/reprice_day.py` 按日重算, 那条路径已有 `tests_reprice_day` 覆盖)。
