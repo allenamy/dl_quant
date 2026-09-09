@@ -81,3 +81,9 @@
 - **00Z 预期(00:16Z 生产者 / 00:24Z 执行器)**: 从零重建全书, gross ≈ 2.0×NAV ≈ 232k, 换手 ≈100%(一次性), maker 为主 + k 窗补单; 验收带: phase A/B/C 三行齐, transport 0/歧义 0, 看门狗 tripped=False, realized_gross 进目标 ±5%, 复读非 0 仓 ≈ 目标名数, 无 §4-5e。建仓成本预期 = 平仓同量级(≈ 2–3 bps maker 占比下, 上限按 16:45Z 平仓 9.1 bps 计 ≈ 210U)。
 - **用户批评(原话要旨)**: 「为什么又犯这种错误了! 又要损失上百美金的一次性建仓成本! 不要再犯任何这种低级错误了, 非常失望!」
 - **我的错(不找借口)**: 12Z 崩溃后我在 14:3xZ 只回填了 fills 行, 明知 orders 行为零(重建工具的 docstring 就是这么写的), 却没有在 16Z 看门狗评估前(有 2 小时)用看门狗自己的判定路径在账本副本上跑一次「它会怎么看这批无授权行的成交」—— 这正是我事后用来证明修复件有效的方法, 提前跑就能避免 16:45Z 的平仓与本次重建, 两次一次性成本合计 ≈ 400U 量级。规则已写进记忆: **锚中途死 ⇒ 立刻查该 rid 的 orders 行数, 任何账本修补在下一锚前必须先在副本上过一遍看门狗**。
+
+### 2026-09-09 23:5xZ · 用户「double check 确保无误」: 全日转述逐项复核, 两处更正(只追加, 不改旧节)
+- 复核范围: 26 个提交号、21 个文件/收据路径、G1/G2/G4/JUDGE 收据内数字、分支常量与函数名(TRANSPORT_RETRY_MAX 3 / BACKOFF (0.5,1.5) / ORDER_QUERY_PAUSE_S 1.0 / SUBMIT_TRANSPORT_ABORT_N 5)、套件计数(69/89/22/11/21)、.env 符号链接、quarantine 文件、reprice_day 路径 —— 全部相符。
+- **更正 1(20Z 节 XAN 一句)**: XAN 不是「自 12Z 起被场所 withheld 列 flatten_only」; 它自 ≥04Z 起就在 per_name_stop 的 `stopped` 名单(04Z/08Z/16Z phase_C 均记 stopped=[XANUSDT], 逐名止损 flatten_only 出场中), 12Z/16Z 另被场所列 add_blocked。保护性平仓把仓位归零, 20Z 按条款「已停名平仓 → 进冷却」写入 7 天禁入。
+- **更正 2(账本读法, 非缺陷)**: fills.jsonl 每笔成交两行 —— 原行 + markout 回填写的 `supersedes_trade_id` 行(含 +60s 标记); 09-08/09-09 所有 rid 恰 2×。故 12Z 回填的 69 行现显示 138 行、fee 合计 1.0145, 折叠后仍 69 笔 / 0.5072; 16Z 542→288 同理。此前「重复 trade_id 家族」之说成立, 但机制是 supersede 行而非写两遍。
+- 转述文档更正版已提交研究复审分支(`docs/HANDOFF_0909_full_account_for_independent_review_2026-09-09.md`), 阅读版同步重发。
