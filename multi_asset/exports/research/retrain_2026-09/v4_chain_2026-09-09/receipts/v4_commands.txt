@@ -43,3 +43,17 @@ CMD[legs v4b run2] 2026-09-09T05:37:12Z: env LEGS_TG=/workspace/dlw_v4raw/data/d
 CMD[refit_v4 s42 run3 legs v4b] 2026-09-09T05:37:20Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=42 BEST_EP_FIX=7 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_refit_v4.py
 CMD[refit_v4 s2027 run3 legs v4b] 2026-09-09T05:37:20Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=2027 BEST_EP_FIX=7 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_refit_v4.py
 [2026-09-09T05:37:20Z] F10 chain RAW s42 start (gpu3, legs v4b)
+CMD[V1 np_export s42 run2 legs v4b] 2026-09-09T05:47:08Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=42 /workspace/venv/bin/python /workspace/pod_f10_np_export.py
+CMD[V1 np_export s2027 run2 legs v4b] 2026-09-09T05:47:32Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=2027 /workspace/venv/bin/python /workspace/pod_f10_np_export.py
+[2026-09-09T06:21:53Z] F10 chain RAW s42 shards ended: 8/4 rc=0 (cumulative incl. bad-legs runs)
+[2026-09-09T06:22:01Z] merge v4b RAW s42 rc=0 MERGE_DONE RAW 42
+[2026-09-09T06:22:01Z] F10 chain RAW s2027 start (gpu3, legs v4b)
+[2026-09-09T07:02:45Z] F10 chain RAW s2027 shards ended: 4/4 rc=0 (cumulative incl. bad-legs runs)
+[2026-09-09T07:02:55Z] merge v4b RAW s2027 rc=0 MERGE_DONE RAW 2027
+[2026-09-09T07:02:55Z] F10 chain CLIP s42 start (gpu3, legs v4b)
+[2026-09-09T07:43:31Z] F10 chain CLIP s42 shards ended: 8/4 rc=0 (cumulative incl. bad-legs runs)
+[2026-09-09T07:43:41Z] merge v4b CLIP s42 rc=0 MERGE_DONE CLIP 42
+[2026-09-09T07:43:41Z] F10 chain CLIP s2027 start (gpu3, legs v4b)
+[2026-09-09T08:24:29Z] F10 chain CLIP s2027 shards ended: 4/4 rc=0 (cumulative incl. bad-legs runs)
+[2026-09-09T08:24:38Z] merge v4b CLIP s2027 rc=0 MERGE_DONE CLIP 2027
+[2026-09-09T08:24:38Z] CHAIN_V4_GPU3_DONE
