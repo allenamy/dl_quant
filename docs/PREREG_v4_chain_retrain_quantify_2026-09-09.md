@@ -41,3 +41,16 @@
 5. **记账已是原始收益 ⇒ 判官不做 §5 型裁剪校正**(`judge_kclamp.py` 的 true_y 校正是为撤销记账里的裁剪; v4 树 meta y4 = `dlw_v4raw` y4s, R4′ 已证固定权重记账 = 补丁表), 直接用记录的 g = net_ex/gross_total。
 6. **步 3 读数(记录, 不改规则)**: 门② 2024 Δ−0.0004 / 2025 Δ−0.0021(绿, 带 ±0.004); 门③ ic26 +0.0573 vs 0.0571(绿); **守卫带 1.96 红**(带 2.27–2.57; v3 同装置 2.28; 净 0.900 vs v3 1.024)。按 §2.3 与 §3(B) 原文: **king v4 bundle 不成为换装候选, 先查因**; 查因装置 = 逐字复制导出脚本 L84–L160 的基线书, 先复现 v3 的 2.28 再报 v4, 四组(v3 / v4 / v4 预测×v3 meta / v3 预测×v4 meta)按时段分解。查因结论另立 AMENDMENT 2 或 RESULT, 本条不预设结论。
 **失效条件**: 以上任一事实被反证(例如发现有限值↔有限值的非被补符号差异; 或 20 折未能全部产出)。
+
+## AMENDMENT 2 · 2026-09-09 03:24Z · 步 3 守卫带 1.96 红 = 我方导出调用漏 env(E-0826-D 族), 非模型
+- **受据**: `docs/RUNBOOK_monthly_retrain_2026-10.md` §3.1 逐字: `pod_export_bundle_v3.py`(env: `EXPORT_PANEL=<splice> EMA_STATE_JSON=<canoncont>`); pod 文件 `/workspace/wide_panel_4h_v3splice.npz`(09-01 05:55)与 `/workspace/fund_state_canoncont.json`(09-01 05:55)。我方 03:11Z 的 v4 导出命令(`v4_commands.txt` 第 1 行)用了脚本默认 `EXPORT_PANEL=v2ext` 且未传 `EMA_STATE_JSON`。
+- **对账(先复现已发表数字, 再报新数字)**: 逐字复制导出脚本 L84–L160 的基线书(`guard_book_lib.py`), 与 v3 bundle 自带 `leg_returns.npz` 逐腿比对(`v4_gates/guard_reconcile.json`):
+  | 输入 | 守卫夏普 | 净 | king 腿 | rev24 腿 | fund 腿 |
+  |---|---|---|---|---|---|
+  | v3 预测 × v2ext 面板 | 1.920 | +0.881 | 逐位 | 逐位 | corr 0.866, 逐位 0% |
+  | **v3 预测 × v3splice 面板** | **2.284** | **+1.024** | 逐位 | 逐位 | **逐位 100%** ⇒ 复现 09-01 发表值 2.28/1.024 |
+  | v4 预测 × v2ext 面板 | 1.962 | +0.900 | — | — | — |
+  | **v4 预测 × v3splice 面板** | **2.304** | **+1.030** | — | — | — (带内 2.27–2.57) |
+  fund 腿对 `f_fund_ema_v1` 谱系敏感(09-01 同一机制: corr 0.9997 的列门放行载荷偏差损 0.4 夏普), 与模型无关。
+- **§1 面板行更正**: 「king 侧 v2ext 谱系」只对 **特征构建**(`PANEL_IN`, 受据 MANIFEST L14: 09-01 05:33 早于 splice 05:55)成立; **导出步**(守卫/腿收益/parity 信号/资金费账本/EMA 状态)= **v3splice + canoncont**(受据 RUNBOOK §3.1)。v4 导出**按受据 env 复跑**, 门②③/守卫由复跑自报(LightGBM n_jobs=100 非确定 ⇒ 复跑的预测即最终 v4 预测, 后续 legs/F10/量化一律用复跑产物)。
+- **不改任何阈值**; 守卫带 2.27–2.57 原样。失效条件: 复跑守卫仍红, 或复跑 fund 腿对 v3 bundle 非逐位(2026-08-11 前共同锚)。
