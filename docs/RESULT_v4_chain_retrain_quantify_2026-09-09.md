@@ -1,0 +1,54 @@
+> **创建:** 2026-09-09 03:5xZ | **Session:** 续 b9646a9e | **状态:** 进行中(A1/A2 F10 四链 GPU 在飞; 本文只写已受据部分, 每个数字带 VERIFIED/INFERRED/UNRESOLVED) | **预注册:** `docs/PREREG_v4_chain_retrain_quantify_2026-09-09.md`(61af466b; AMENDMENT 1–3 = ac2d8e6a / f99ca64e / 59a4860d, 全部写在书层数字之前) | **装置+收据:** `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(5749a821; receipts/*.json) | **作废条件:** 预注册 §1 任一事实被反证; 或 AMENDMENT 3 失效条件触发 | **实盘:** 零接触; 换装 = 呈读数后用户对具体 bundle 再给字
+
+# RESULT · 口径 v4 链: 全量重训 + 当前策略效果量化(进行中)
+
+## §0 到目前为止的结论(白话)
+1. **正确口径的数据/特征/标签链已建成并逐门验过**(holefix2 缓存 · king 窗口 clamp · DL 原始收益目标 · fea82/fea89/legs 重建 · 原始收益记账 · 轴 +6 锚)。两处门红都查到了因并写成 AMENDMENT: 一处是**我方导出漏了受据 env**(守卫 1.96 假红 → 2.30 真读数), 一处是 f8 特征 `C:trend_288` 的**数值残差**(非数据缺陷, 非被补符号逐位相等)。
+2. **king v4 bundle 三门全绿**(门② Δ−0.0004/−0.0021 · 门③ ic26 +0.0573 · 守卫 2.30 ∈ [2.27, 2.57])— VERIFIED(`receipts/export_v4.log`)。
+3. **在役形态(A0)在正确口径下的逐年表**(动态席位, 原始收益记账, 每 gross): 2022 +0.8% / **2023 −13.7%(负年)** / 2024 +12.3% / 2025 +16.7% / 2026→08-10 +81.7%; 冻结窗 2025-03→2026-08-10 每锚 +1.89 bps/gross(Sharpe 3.0), 年内 maxDD 820 bps gross(2× ⇒ ≈16% NAV)。固定实盘席位 0.21 下 **2022–2025 四年皆负**, 2024→08-10 +13.0%/gross/年、跨年 maxDD 33% gross(2× ⇒ 67% NAV)— 与 09-04 读数同量级。VERIFIED(`receipts/JUDGE_v4.json`)。
+4. **king v4 对 v3(在役 F10 不变)**: 动态席位 +0.015/+0.081, 固定席位 −0.019/+0.001 bps/锚/gross, 四格 CI 全含 0 ⇒ **(C) 未过否决线**(与 Track 1 clamp 消融一致)。
+5. **主判 A1−A0(king v4 + F10 v4 RAW/FIX7 vs 在役形态)待 F10 四链跑完**(≈5.5h GPU, 03:36Z 起)。
+
+## §1 v4 链定义与受据
+| 组件 | v3(在役) | v4 | 受据 |
+|---|---|---|---|
+| 5m 缓存 | `_ext` | `holefix2`(sha16 1d7f459d; 覆盖门 v2 复跑 PASS: 洞 0/宽缺口 0) | `receipts/cov2_holefix2_rerun.log`; 填格几何 `receipts/holefix2_cells.json`(4 段: 2022-02-26→03-01 48 名 / 04-01→04-03 49 名 / 2026-08-12→08-24 04Z 348 名 / 08-31 798 名; 既有格 1,114,912,699 逐位不变) |
+| king 特征 | `pod_fea_ext.py`(E-0909-A 回绕) | `pod_fea_ext_clamp.py`, PANEL_IN=v2ext | `receipts/step2.json` |
+| DL 目标 | y4s=Π(1+clip)−1 | RAW(`dlw_v4raw`, raw_patch 952 bar) 与 CLIP(`dlw_hf3`) 双臂 | `receipts/step1.json` A: 差异恰 590 补丁窗格, 其余噪声 ≤4.7e-10 |
+| DL 特征 | fea82/fea89 | holefix2 上重建(fea82 → 两目录 sha 同) | `receipts/step1.json` B, AMENDMENT 3 |
+| legs | `pod_legs_ext.py`(旧行原样) | `pod_legs_v4.py` 全行重算(v4 成员/king v4/RAW y4s) | `receipts/legs_v4.log`: 邻域外 300 锚 Z24/ZFD 逐位 1.0000 |
+| 面板 | — | 特征构建 v2ext; **导出步 v3splice + canoncont**(RUNBOOK_2026-10 §3.1) | AMENDMENT 2 |
+| epoch 规则 | argmax(含 2026 验证片) | FIX7 | 训练器 diff = 3 行(种子白名单/目录/门 JSON) |
+| 记账 | 裁剪复利 | 原始收益(`meta_newprod_v4` ← dlw_v4raw y4s; 邻域外 vs `meta_newprod_raw` maxabs 9e-13) | `receipts/build_dev_v4.log` |
+| 轴 | king 10176 / DL 10206 | king 10182 / DL 10212(+08-31 六锚) | AMENDMENT 1 |
+
+## §2 门读数
+- **步 1**(`receipts/step1.json`, `STEP1_VERDICT.json`): A RAW vs CLIP — 轴/成员/qvk/btcv/y4old 逐位; y4s 差异 638 格 = 590 补丁窗格(全在窗内, 最大 |Δ| 1.61)+ 48 噪声格(≤4.7e-10); YR4s 差异行 163 = 补丁行, YRZ 同 ⇒ PASS。B 目标 hf3 vs hf2 — 成员差 110 行、y4s/qvk/YR4s/YRZ 差异全在邻域内、值列符号全是被补符号 ⇒ PASS。fea82 — 只在邻域 ⇒ PASS。**fea89 — 字面 FAIL**(邻域外 247 锚)→ AMENDMENT 3 受据(`step1_diag2.json`, `trend288_receipt.json`: 非被补符号原始值逐位相等 247/247, 被补 max|Δ| 3.4e-5, 秩列复现 247/247)⇒ **PASS(修订读法)**。
+- **步 2**(`receipts/step2.json`): v4 vs clamp 差异 500 锚全在邻域(值列 35,695 对, 其中非被补符号 8,365 对全是成员变化的 NaN 型, 有限↔有限 0); v4 vs ext 638 锚 = 首 138(回绕)∪ 邻域, 邻域外 0; clamp vs ext 恰 138; 成员差 217 行全在邻域; y4/qvk 邻域外 0; 多出的 6 锚 = 08-31 ⇒ PASS。
+- **步 3**(`receipts/export_v4.log`, run2): fold 2024 IC +0.0544(v3 0.0548, Δ−0.0004)· fold 2025 +0.0609(v3 0.0630, Δ−0.0021)· pinned ic26 +0.0573(基 0.0571)· **守卫 2.30**(净 1.030)⇒ 三门绿。bundle `shadow_bundle_v4.tar.gz` sha16 16194c70(103 MB, 8 件); `provenance.generation` 仍写 "v3_2026-09"(脚本字面, 成候选前须改标重导)。
+- **守卫首读 1.96 红的对账**(`receipts/guard_reconcile.json`): 逐字复制导出 L84–L160 基线书; v3 预测 × v2ext 面板 1.920(fund 腿对 bundle 自带 leg_returns corr 0.866, 逐位 0%); **v3 预测 × v3splice 面板 2.284/净 1.024 = 09-01 发表值, 三腿逐位 100%**; v4 × v3splice 2.304。⇒ 假红 = 漏 `EXPORT_PANEL`/`EMA_STATE_JSON`(E-0826-D 族), 已按受据复跑。
+
+## §3 书层(冻结判官 §4; dev_v4 树, 原始收益记账, CRYPTO m1 掩码, 冻结窗 2025-03-01→2026-08-10 20Z, UTC 日块自举 2000, rng 子流 [20260905,k])
+**#20 复现**: A0p(与已发表 `RAW_M1_UCRYPTO` 同代 08-22 F10 预测对齐到 v4 轴)vs RAW_M1 冻结窗 **逐锚 Δ0.0000, 双种子**(`receipts/JUDGE_v4.json` reproduction)⇒ 判官与树成立, 且 2022 补洞与 +6 锚对冻结窗零影响。A0(在役 09-01 代 F10)与 08-22 代差 +0.116/−0.014 bps/锚 = F10 代际差(VERIFIED `receipts/a0p_vintage.json`: 两代文件 sha 异, 共同行 0% 逐位)。
+
+**A0 = 在役形态(v3 king + 在役 F10 年折 OOS)逐年表**, bps/锚/gross(年化 %/gross = ×2190/1e4; 2× gross ⇒ ×2):
+| 窗 | dyn s42 | dyn s2027 | fix(0.21) s42 | 备注 |
+|---|---|---|---|---|
+| 2022 | +0.036(+0.8%) | +0.036 | −0.031(−0.7%) NEG | 席位预热期 |
+| 2023 | **−0.625(−13.7%) NEG** | −0.588 NEG | −0.562 NEG | 最坏日 12-21 |
+| 2024 | +0.560(+12.3%) | +0.536 | **−0.785(−17.2%) NEG** | fix 最坏月 2024-11 |
+| 2025 | +0.763(+16.7%) | +0.847 | −0.114(−2.5%) NEG | 最坏日 05-13 −220 bps |
+| 2026→08-10 | +3.731(+81.7%) | +3.692 | +4.029(+88.2%) | 8/8 月正 |
+| 冻结窗 | +1.894, Sharpe 3.04, maxDD 820 | +1.898, 3.01, 906 | +1.826, 2.88, 722 | 负月 3/18(dyn) 5/18(fix) |
+| 2024-01→08-10 | +1.376, 2.47, maxDD 1254 | +1.390, 2.48 | +0.593, 1.07, **maxDD 3331(33% gross ⇒ 2× 67% NAV)** | 09-04 读数同量级 |
+| ext 08-11→08-30 | −3.44 NEG | −2.87 NEG | −4.11 NEG | 洞期; 尾部下界 |
+VERIFIED(`receipts/JUDGE_v4.json` levels)。**A3 = king v4 + 在役 F10**: dyn s42 2024 +0.727 / 2025 +0.771 / 2026 +3.765, 冻结 +1.909; A3−A0 dyn +0.015 [−0.169, +0.204] / +0.081 [−0.105, +0.276]; fix −0.019 [−0.089, +0.050] / +0.001 [−0.078, +0.084] ⇒ **(C) UNDECIDED**。
+
+## §4 在飞 / 待补(状态只从过程收据读)
+- F10 v4 四链(RAW/CLIP × s42/s2027, FIX7, 20 折, 4 shard 并行)03:36Z 起顺跑, 队列 `chain_v4_post_export.sh`(`receipts/v4_commands.txt`), 监视器 bemyggx2e; 每链结束 `merge_mwf_v4.py` 产 `f10_v4{RAW,CLIP}_s{42,2027}.npy`(2025 前行 = 在役年折拼接, spl 约定)。
+- 之后: `run_v4_arms.sh A1/A2` → `judge_v4.py`(主判 A1−A0; 附 A2−A0 / A1−A2 目标口径隔离 / A1−A3)。
+- §2.6 部署件: `pod_f10_refit_v4.py` s42/s2027(FIX7, v4 RAW)03:46Z 起 GPU; 门 V1(np≡torch)`pod_f10_np_export.py` F10_OUT=f8_v4; 门 V3′ `v4_leakcheck.py`(月折谱 vs 在役代); **V2(同装置双数据)由 §3 A 臂取代**(数据变化是刻意的口径纠正, 判在书层); **V4 跨机(jpline)03:47Z 连接超时, 待重试**。
+- 换装规则 §3 原文: (A) 双种子 CI 下界>0 ⇒ 候选; (C)+门全绿 ⇒ 仍呈候选(措辞「未过否决线 + 口径正确」); (B)/任一门红 ⇒ 不换。任何换装都要用户对具体 bundle 再给字。
+
+## §5 不主张
+不主张 v4 提高收益; A0 逐年表是**在役形态在正确口径下的期望区间**, 不是实盘曲线(执行/席位路径差异见 E-0902-D); 尾部数字一律下界; 九月数据不入本轮。
