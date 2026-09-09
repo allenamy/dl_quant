@@ -6,3 +6,40 @@ PID[export_v4 run2] 90547 2026-09-09T03:23:55Z
 [2026-09-09T03:29:51Z] post_export: legs v4
 [2026-09-09T03:36:01Z] post_export: STEP1_PASS marker seen, launching F10 chains
 [2026-09-09T03:36:01Z] F10 chain RAW s42 start
+CMD[refit_v4 s42, PREREG §2.6] 2026-09-09T03:46:05Z (cwd=/workspace/review_scratch): env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=42 BEST_EP_FIX=7 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_refit_v4.py
+PID[refit_v4 s42] 92779 2026-09-09T03:46:05Z
+CMD[refit_v4 s2027, PREREG §2.6] 2026-09-09T03:46:05Z (cwd=/workspace/review_scratch): env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=2027 BEST_EP_FIX=7 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_refit_v4.py
+PID[refit_v4 s2027] 92782 2026-09-09T03:46:05Z
+CMD[V1 np_export s42] 2026-09-09T03:54:42Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=42 /workspace/venv/bin/python /workspace/pod_f10_np_export.py
+CMD[V1 np_export s2027] 2026-09-09T03:55:06Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=2027 /workspace/venv/bin/python /workspace/pod_f10_np_export.py
+[2026-09-09T04:20:54Z] F10 chain RAW s42 shards ended: 4/4 rc=0
+[2026-09-09T04:21:03Z] merge RAW s42 rc=0 MERGE_DONE RAW 42
+[2026-09-09T04:21:03Z] F10 chain RAW s2027 start
+[2026-09-09T04:26:32Z] REORDER: killed chain 91044 + RAW s2027 shards (94350 94327 94352 94328 94354 94329 94356 94326 ) after 4 min (no fold finished); restarting as chain_v4_gpu2.sh order CLIP42→RAW2027→CLIP2027 — reason: V3P RAW s42 k0 0.0049 vs HF2 CLIP 0.0185, k-1 -0.052 vs -0.263
+[2026-09-09T04:26:32Z] F10 chain CLIP s42 start (gpu2 order)
+[2026-09-09T05:06:57Z] F10 chain CLIP s42 shards ended: 4/4 rc=0
+[2026-09-09T05:07:06Z] merge CLIP s42 rc=0 MERGE_DONE CLIP 42
+[2026-09-09T05:07:06Z] F10 chain RAW s2027 start (gpu2 order)
+CMD[DIAG D2 v4data+extlegs 202507] 2026-09-09T05:20:52Z: env ARM=V2MAIN V2=1 SEED=42 F10_DLW=/workspace/dlw_hf3 F10_OUT=/workspace/diag_legs F10_GATE_JSON=SKIP MWF_OUT=/workspace/diag_legs/mwf_D2 EMBARGO=1 MWF_TAG=mE1cX7 BEST_EP_FIX=7 MONTHS=202507 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_train_monthly_diag.py
+PID[DIAG D2] 98122
+CMD[DIAG D3 extdata 202507] 2026-09-09T05:20:52Z: env ARM=V2MAIN V2=1 SEED=42 F10_DLW=/workspace/dlw_ext F10_OUT=/workspace/f8_ext F10_GATE_JSON=SKIP MWF_OUT=/workspace/diag_legs/mwf_D3 EMBARGO=1 MWF_TAG=mE1cX7 BEST_EP_FIX=7 MONTHS=202507 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_train_monthly_diag.py
+PID[DIAG D3] 98124
+[2026-09-09T05:35:47Z] AMENDMENT 5: killed gpu2 chain 95366 + RAW s2027 shards (96640 96617 96642 96619 96644 96616 96646 96618 ): legs v4 defective (king seat ~0 before 2024, D2/D3 receipts diag_202507.json); rebuilding legs v4b (in-service policy) and rerunning refits + all four chains under mwf_v4b
+CMD[legs v4b] 2026-09-09T05:35:47Z: env LEGS_TG=/workspace/dlw_v4raw/data/dlw_targets.npz LEGS_META=/workspace/data/wide_fea_v4_meta.npz LEGS_PRED=/workspace/shadow_bundle_v4/slow_pred_pinned.npy LEGS_OUT=/workspace/f8_v4/data/f10v2_legs.npz /workspace/venv/bin/python pod_legs_v4b.py
+CMD[refit_v4 s42 run2 legs v4b] 2026-09-09T05:35:56Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=42 BEST_EP_FIX=7 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_refit_v4.py
+CMD[refit_v4 s2027 run2 legs v4b] 2026-09-09T05:35:56Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=2027 BEST_EP_FIX=7 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_refit_v4.py
+[2026-09-09T05:35:56Z] F10 chain RAW s42 start (gpu3, legs v4b)
+[2026-09-09T05:36:23Z] F10 chain RAW s42 shards ended: 4/4 rc=0 (cumulative incl. bad-legs runs)
+[2026-09-09T05:36:27Z] merge v4b RAW s42 rc=1 AssertionError: missing folds [202501, 202502, 202503, 202504, 202505, 202506, 2
+[2026-09-09T05:36:27Z] F10 chain RAW s2027 start (gpu3, legs v4b)
+[2026-09-09T05:36:40Z] F10 chain RAW s2027 shards ended: 0/4 rc=0 (cumulative incl. bad-legs runs)
+[2026-09-09T05:36:44Z] merge v4b RAW s2027 rc=1 AssertionError: missing folds [202501, 202502, 202503, 202504, 202505, 202506, 2
+[2026-09-09T05:36:44Z] F10 chain CLIP s42 start (gpu3, legs v4b)
+[2026-09-09T05:36:58Z] F10 chain CLIP s42 shards ended: 4/4 rc=0 (cumulative incl. bad-legs runs)
+[2026-09-09T05:37:02Z] merge v4b CLIP s42 rc=1 AssertionError: missing folds [202501, 202502, 202503, 202504, 202505, 202506, 2
+[2026-09-09T05:37:02Z] F10 chain CLIP s2027 start (gpu3, legs v4b)
+[2026-09-09T05:37:12Z] legs v4b first build failed assertion (08-31 04Z-20Z have no panel row); killed gpu3 99316 + refits 99313/99315 + shards; rebuilding
+CMD[legs v4b run2] 2026-09-09T05:37:12Z: env LEGS_TG=/workspace/dlw_v4raw/data/dlw_targets.npz LEGS_META=/workspace/data/wide_fea_v4_meta.npz LEGS_PRED=/workspace/shadow_bundle_v4/slow_pred_pinned.npy LEGS_OUT=/workspace/f8_v4/data/f10v2_legs.npz /workspace/venv/bin/python pod_legs_v4b.py
+CMD[refit_v4 s42 run3 legs v4b] 2026-09-09T05:37:20Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=42 BEST_EP_FIX=7 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_refit_v4.py
+CMD[refit_v4 s2027 run3 legs v4b] 2026-09-09T05:37:20Z: env F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=2027 BEST_EP_FIX=7 /workspace/venv/bin/python /workspace/review_scratch/pod_f10_refit_v4.py
+[2026-09-09T05:37:20Z] F10 chain RAW s42 start (gpu3, legs v4b)
