@@ -1,4 +1,4 @@
-> **创建:** 2026-09-09 03:5xZ | **Session:** 续 b9646a9e | **状态:** final(§3e 十格全 (C); 候选呈用户; V4 跨机门待 jpline) | **预注册:** `docs/PREREG_v4_chain_retrain_quantify_2026-09-09.md`(61af466b; AMENDMENT 1–3 = ac2d8e6a / f99ca64e / 59a4860d, 全部写在书层数字之前) | **装置+收据:** `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(5749a821; receipts/*.json) | **作废条件:** 预注册 §1 任一事实被反证; 或 AMENDMENT 3 失效条件触发 | **实盘:** 零接触; 换装 = 呈读数后用户对具体 bundle 再给字
+> **创建:** 2026-09-09 03:5xZ | **Session:** 续 b9646a9e | **状态:** 经研究员复审 c8e2fc13 修订(AMENDMENT 7): 十格 (C) 保留; fea89 门 FAIL(机制受据); 回放止于 08-31 00Z; 换装件未完成(不呈) | **预注册:** `docs/PREREG_v4_chain_retrain_quantify_2026-09-09.md`(61af466b; AMENDMENT 1–3 = ac2d8e6a / f99ca64e / 59a4860d, 全部写在书层数字之前) | **装置+收据:** `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(5749a821; receipts/*.json) | **作废条件:** 预注册 §1 任一事实被反证; 或 AMENDMENT 3 失效条件触发 | **实盘:** 零接触; 换装 = 呈读数后用户对具体 bundle 再给字
 
 # RESULT · 口径 v4 链: 全量重训 + 当前策略效果量化(进行中)
 
@@ -80,7 +80,7 @@ VERIFIED(`receipts/JUDGE_v4.json` levels)。**A3 = king v4 + 在役 F10**: dyn s
 | A1−A2(目标 RAW vs CLIP) | −0.022 [−0.077,+0.041] / +0.034 [−0.013,+0.082] | −0.002 / −0.005 | (C) |
 | A1−A3(F10 换代) | +0.045 / −0.033 | +0.023 / −0.011 | (C) |
 十格全 (C); 扩展窗(次级)同。分数层: 四条 v4 月折对 09-06 同配方 FIX7 逐锚相关 0.984–0.989; V3′ ①③ 全绿, ② 对同配方 ≤0.013 绿(AMENDMENT 6), 对年折字面 0.057–0.099 红(k−2/k−3 配方差)。折收据: 80/80 折 best_ep 7, 无约束 argmax 本会改 18–20/20 折。
-**结论**: 按正确数据/特征/口径全量重训的两条模型腿, 与在役形态在书层不可区分(十格 CI 含 0, 点估计动态席位 +0.01~+0.08、固定席位 ±0.01); 训练目标 RAW/CLIP 无差; king 换代与 F10 换代各自无差。这是对「口径缺陷是记账/尾部缺陷而非 alpha 缺陷」的最终定量确认。
+**结论(措辞按 E-0907-F(ii) 与研究员复审 c8e2fc13 收窄)**: 在本回放合同与冻结窗内, **没有检出**全量重训两条模型腿与在役形态的收益差异(十格 (C); s42 动态区间相容于每年 −3.7%~+6.3%/gross); 训练目标 RAW/CLIP、king 换代、F10 换代各自**未检出**差异。(C) 不是等效或非劣证明, 也不是「口径缺陷非 alpha 缺陷」的确认; 该判断仍只依据美元中性对消受据与本轮未检出差异。
 
 ## §6 收口清单(08:3xZ)
 - 候选件(如用户要换): king bundle v4 `shadow_bundle_v4.tar.gz`(16194c70; `generation` 标签改后重导)+ F10 refit v4b s42 `f8_v4/models/f10_live_s42{,_np}.npz`(V1 PASS); **V4 跨机门未做(jpline 8 次超时)**; 走 CHECKLIST_combo_switch(影子 sidecar 平价 → 首锚验收)。
