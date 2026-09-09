@@ -1,0 +1,9 @@
+> **创建:** 2026-09-09 | 只追加 | 实盘零接触
+
+### 2026-09-09 13:0xZ · ★ E-0909-D 执行器 12Z 锚中途崩溃, 留下孤儿挂单(用户发现「此时此刻有五笔委托」)
+- **事实(只读, 已验证)**: 12Z 锚 launchd `com.dlquant.live.anchor` 进程 12:00:00Z 起, 预测/arm/filters 正常(12:00:47Z), 等到外部目标(生产者 combo 12:20:32Z rc=0 正常)后进入 phase C 下单; **12:24Z 左右在 `binance_executor.submit_maker → binance_broker.submit → _request` 抛 `urllib.error.URLError: _ssl.c:1112 The handshake operation timed out`(HTTPS 握手超时), 未被捕获 ⇒ 进程退出 1**(`state/launchd_err.log` 尾部 traceback; `anchor_runs.log` 12Z 段无 phase_A/C/anchor done 行; `orders.jsonl` 12Z 零行 —— 行在终态才写)。
+- **孤儿挂单**: 13:04:19Z 只读 `GET /fapi/v1/openOrders`(1 次签名 GET, 锚窗外)= **4 笔**, 全部 clientOrderId 前缀 `A1788956640-`(= 12Z 锚 12:24:00Z 的 rebalance id), GTX 限价、NEW、成交 0: HUSDT 卖 2113 @0.08167(≈172U)/ CHZ 买 446 @0.01427(≈6U)/ ANKR 买 2396 @0.004342(≈10U)/ CLO 买 1253 @0.10618(≈133U), 下单时刻 12:24:02–12:24:15Z。用户看到 5 笔 ⇒ 其一在 12:24→13:04 间已成交或撤销(未记账; 16Z 锚 position reconcile 采场所真值 + `ops/backfill_fills.py` 可回补)。名义合计 ≈320U = gross 0.14%。
+- **12Z 再平衡基本未执行**(崩溃前只送出少数首单), 书维持 08Z 后状态到 16Z。
+- **自愈路径**: 执行器 phase 1.5 `sweep_stale_orders`(2026-07-29/07-30 两次同形事故后加的步骤)按 `{rebalance_id}-` 前缀撤销**不属于本锚**的挂单, 16Z 锚 ≈16:23Z 会自动撤掉这 4 笔; 建仓前 reconcile 采场所仓位。
+- **根因(执行器健壮性缺陷, 非策略)**: `_request` 对传输层异常(SSL 握手超时)无重试/退避, `_trade` 无 try/finally 的撤单收尾 ⇒ 一次网络抖动让整锚丢失并留下孤儿单。修复 = 实盘仓改动(`_request` 对 URLError/timeout 有界重试; `_trade` 中断时 `cancel_resting` 收尾)⇒ safe_commit + 电池 + 用户字。同类前例: 07-29 trip 抢占 / 07-30 −1003 ban(见 sweep 注释)。
+- **未动书**: 未撤单、未下单。处置选项报用户: (a) 等 16:23Z sweep 自动撤; (b) 用户给字则按 clientOrderId 逐笔撤(4 次 DELETE)。
