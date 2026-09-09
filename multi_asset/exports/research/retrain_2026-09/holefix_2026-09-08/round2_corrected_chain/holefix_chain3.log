@@ -1,0 +1,69 @@
+[2026-09-08T23:46:45Z] CHAIN3_START  cache=/workspace/data/dlnative_5m_wide829_f16_holefix.npz  P_DL=/workspace/data/wide_panel_4h_v3splice.npz  P_KING=/workspace/data/wide_panel_4h_v2holefix.npz
+8c0a483728e9a23a41b374d6b52174d93d0e6a83d6618f95c052341216daeeb7  /workspace/data/dlnative_5m_wide829_f16_holefix.npz
+c5d10f6ae31fa3f97006a8678c78382479a5380ae9d7f7af8386d2284ae3e90d  /workspace/data/wide_panel_4h_v3splice.npz
+d322ce7c07c7cb6aca85acf1286ad096b253484e0aedc5c631d89488dfb3c3a5  /workspace/data/wide_panel_4h_v2holefix.npz
+[2026-09-08T23:46:54Z] STEP3 dlw targets (v3splice)
+[    0.0s] sha256 inputs ...
+[   17.7s] cache 490753x829x7 ts 1640995200..1788220800
+[   45.7s] cumsums done
+[   46.1s] anchors 10212 平均成员 269 (≥360: 3347) 年份 {np.int64(2022): np.int64(2178), np.int64(2023): np.int64(2190), np.int64(2024): np.int64(2196), np.int64(2025): np.int64(2190), np.int64(2026): np.int64(1458)}
+[   52.0s] YR4s 完成 10207/10212 锚(有面板行 10207), 六因子值空间 R² 中位 0.0652
+[   52.1s] 对齐自检(y4s vs 面板旧 Y4): @0 +0.972 @-1 -0.009 @+1 -0.025 (n=198)
+[   53.4s] TARGETS_DONE {"n_anchors": 10212, "mean_members": 269.09097140618877, "n_res": 10207, "years": {"2022": 2178, "2023": 2190, "2024": 2196, "2025": 2190, "2026": 1458}, "target_vs_old": {"median_abs_diff_bps": 15.67506217956543, "mean_diff_bps": -0.428255558013916, "spearman_same_row_median": 0.9720193090863147, "spearman_prev_row": -0.008605460034125212, "spearman_next_row": -0.024678495076980403}}
+[2026-09-08T23:47:55Z] STEP4 dlw fea82 (v3splice)
+[   34.7s] channel ret5 done
+[   45.0s] channel range done
+[   55.4s] channel cpos done
+[   65.7s] channel log_qv done
+[   76.0s] channel log_cnt done
+[   86.4s] channel log_avgsz done
+[   96.7s] channel tbf done
+[   97.0s] fea 0/10212
+[  101.8s] fea 2000/10212
+[  106.8s] fea 4000/10212
+[  112.3s] fea 6000/10212
+[  118.3s] fea 8000/10212
+[  124.4s] fea 10000/10212
+[  131.2s] FEATURES_DONE (2747957, 82) no-panel anchors 5
+[2026-09-08T23:50:12Z] STEP5 f8 fea89
+[   16.7s] cache (490753, 829, 7) anchors 10212 pairs 2747957
+/workspace/pod_f8_build_ext.py:176: RuntimeWarning: invalid value encountered in divide
+  put("B:vr_48_288", np.log(V[48] / V[288]), chunk); put("B:vr_288_2016", np.log(V[288] / V[2016]), chunk); put("B:vr_2016_8640", np.log(V[2016] / V[8640]), chunk)
+/workspace/pod_f8_build_ext.py:176: RuntimeWarning: divide by zero encountered in log
+  put("B:vr_48_288", np.log(V[48] / V[288]), chunk); put("B:vr_288_2016", np.log(V[288] / V[2016]), chunk); put("B:vr_2016_8640", np.log(V[2016] / V[8640]), chunk)
+/workspace/pod_f8_build_ext.py:180: RuntimeWarning: divide by zero encountered in divide
+  put("B:dvol_1d", np.log(V[288] / vol_at(288, np.maximum(hi - 288, 0))), chunk)
+/workspace/pod_f8_build_ext.py:180: RuntimeWarning: invalid value encountered in divide
+  put("B:dvol_1d", np.log(V[288] / vol_at(288, np.maximum(hi - 288, 0))), chunk)
+/workspace/pod_f8_build_ext.py:180: RuntimeWarning: divide by zero encountered in log
+  put("B:dvol_1d", np.log(V[288] / vol_at(288, np.maximum(hi - 288, 0))), chunk)
+/workspace/pod_f8_build_ext.py:181: RuntimeWarning: divide by zero encountered in divide
+  put("B:dvol_4h", np.log(V[48] / vol_at(48, np.maximum(hi - 48, 0))), chunk)
+/workspace/pod_f8_build_ext.py:181: RuntimeWarning: invalid value encountered in divide
+  put("B:dvol_4h", np.log(V[48] / vol_at(48, np.maximum(hi - 48, 0))), chunk)
+/workspace/pod_f8_build_ext.py:181: RuntimeWarning: divide by zero encountered in log
+  put("B:dvol_4h", np.log(V[48] / vol_at(48, np.maximum(hi - 48, 0))), chunk)
+/workspace/pod_f8_build_ext.py:245: RuntimeWarning: Mean of empty slice
+  spq7 = np.nanmean(Q[:7], 0); spq7[np.isfinite(Q[:7]).sum(0) < 5] = np.nan; put("E:spq_7", spq7 - win_mean(CSlq, CSfq, 2016), chunk)
+/workspace/pod_f8_build_ext.py:246: RuntimeWarning: Mean of empty slice
+  spq30 = np.nanmean(Q, 0); spq30[np.isfinite(Q).sum(0) < 15] = np.nan; put("E:spq_30", spq30 - win_mean(CSlq, CSfq, 8640), chunk)
+/workspace/pod_f8_build_ext.py:247: RuntimeWarning: Mean of empty slice
+  G = sp_mean(CSrg, CSfg, 7); sprg7 = np.nanmean(G, 0); sprg7[np.isfinite(G).sum(0) < 5] = np.nan; put("E:sprg_7", sprg7 - win_mean(CSrg, CSfg, 2016), chunk)
+/workspace/pod_f8_build_ext.py:248: RuntimeWarning: Mean of empty slice
+  Tb = sp_mean(CStb, CSft, 7); spt7 = np.nanmean(Tb, 0); spt7[np.isfinite(Tb).sum(0) < 5] = np.nan; put("E:spt_7", spt7 - win_mean(CStb, CSft, 2016), chunk)
+[   50.8s] chunk 0-63 done (66 features so far)
+[   85.7s] chunk 64-127 done (66 features so far)
+[  118.0s] chunk 128-191 done (66 features so far)
+[  150.0s] chunk 192-255 done (66 features so far)
+[  183.0s] chunk 256-319 done (66 features so far)
+[  215.1s] chunk 320-383 done (66 features so far)
+[  249.6s] chunk 384-447 done (66 features so far)
+[  281.6s] chunk 448-511 done (66 features so far)
+[  313.1s] chunk 512-575 done (66 features so far)
+[  346.1s] chunk 576-639 done (66 features so far)
+[  377.5s] chunk 640-703 done (66 features so far)
+[  409.1s] chunk 704-767 done (66 features so far)
+[  440.0s] chunk 768-828 done (66 features so far)
+[  463.2s] BUILD_DONE (2747957, 89) max_off {'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'F': 0, 'G': 0, 'H': 0, 'I': 0, 'J': 0}
+[  463.2s] finite share (raw, min 5): [('C:vr48_8640', 0.980955669975913), ('E:spq_30', 0.9855387111224811), ('J:drank_m7_1d', 0.9920519134760842), ('J:drank_v7_1d', 0.9920519134760842), ('J:drank_r24_1d', 0.9920519134760842)]
+[2026-09-08T23:58:05Z] CHAIN3_DONE

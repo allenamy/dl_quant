@@ -177,3 +177,13 @@ AMENDMENT 1 的门跑出来又红两次。两次都是**我的门写错了**, �
 **已实测通过的部分**: GATE A 的 19 个特征键 + `elig` **全部 maxabs 0.000e+00 / nan_mismatch 0**;GATE B 五键 maxabs 0.000e+00(amihud 3.7e-09);`Y4`/`Y24` 的 `lost` 均为 **0**。
 
 **★ 同样明写**: 这两处修正也是看到红灯之后做的。它们成立的理由是 (a) A2.1 的根因写在装置自己的 docstring 里, 与本次干预无关; (b) A2.2 的边界由**实测全量验证**(所有 mismatch 锚都落在 `CH − 视界` 之后, 无一例外), 不是挑出来的; (c) 新门**新增了一条 AMENDMENT 1 没有的检验**(`lost = 0` 全时段)。
+
+---
+
+# AMENDMENT 3(2026-09-09 01:3xZ, 写于扩展窗读数之前的执行修正; 读数见 RESULT_holefix_round2)
+1. **§3 步骤 1/5 面板来源改为工件自报的 provenance**(研究员 `9954c158` 第 3 项): DL 侧 `PANEL = wide_panel_4h_v3splice.npz`(`c5d10f6a…`), **不重建**; king 侧沿用 v2 谱系(复现判定 28,587/28,587)。第一轮 `dlw_holefix/f8_holefix/wide_panel_4h_v2holefix` 用于 DL 侧的产物**作废**。
+2. **§4-2 的"在役配方次读"不可执行**: 在役年折模型无逐折权重存盘(`pod_f10_train_ext.py` L318 只留内存 `best_state`), 无法在修正输入上重预测 ⇒ 扩展窗**只报 FIX7**(202608 月折 checkpoint 纯推理, 研究员合同)。
+3. **king 腿扩展法**: 冻结 booster `slow2026.txt` 纯预测, 支持集沿用 `members ∩ finite(y4)`, 78 列 = `names[4:82]`(= `live_pins.keep_names`); 先 K1 门(旧特征重预测与在役 pinned 逐位)再在修正特征上重预测 ≥ 2026-08-12 的锚; 08-12 之前一律沿用 pinned。
+4. **B1′ 的参照臂由本会话生成**(`dev_ref` 树): 先证明 `dev_ref` 重跑 s42 与已发表 `G_FIX7_UCRYPTO` 全锚逐位同, 再以同树生成 s2027 参照; 修正链 vs 参照在 ≤ 08-10 20Z 逐位。
+5. **回放锚集 ≤ 2026-08-31 00Z**(panel/mask 止于此; 5 锚静默跳过, 明写)。
+6. 新增门: **G1 标定逐位**(hf2 输入按原月折配方重算 mu/sd 必须等于封存 `calibration.npz`)、**king 特征平价**(全锚, 不只洞前)。

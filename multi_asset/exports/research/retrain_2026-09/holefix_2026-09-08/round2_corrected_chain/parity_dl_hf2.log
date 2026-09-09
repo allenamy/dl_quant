@@ -1,0 +1,30 @@
+== TARGETS ==
+  anchors old 10206 new 10212 ; old is a prefix of new: True ; extra new anchors: ['2026-08-31 00:00Z', '2026-08-31 04:00Z', '2026-08-31 08:00Z', '2026-08-31 12:00Z', '2026-08-31 16:00Z', '2026-08-31 20:00Z']
+  members : anchors changed 107 ; FIRST changed anchor 2026-08-13 00:00Z
+  y4s     : anchors changed 73 ; cells 23400 ; finite->NaN (lost) 0 ; FIRST changed anchor 2026-08-12 00:00Z
+  YR4s   : shape (10206, 829) ; changed rows 107 ; FIRST 2026-08-13 00:00Z
+  YRZ    : shape (10206, 829) ; changed rows 107 ; FIRST 2026-08-13 00:00Z
+  qvk    : shape (10206, 829) ; changed rows 113 ; FIRST 2026-08-12 04:00Z
+  btcv   : shape (10206,) ; changed rows 0 ; FIRST -
+== FEA82 == names identical: True (82 cols) ; X dtype old float16 new float16
+  rows old 2745557 new 2747957 common 2737192 ; only-old 8365 ; only-new 10765
+    only-old FIRST anchor 2026-08-13 00:00Z
+    only-new FIRST anchor 2026-08-13 00:00Z  LAST 2026-08-31 20:00Z
+  common rows: changed rows 34835 cells 1320870 ; FIRST changed anchor 2026-08-13 00:00Z
+  changed columns (56): [('log_cnt_mean_8640_r', 34532), ('log_qv_mean_8640_r', 34485), ('log_avgsz_mean_2016_r', 34222), ('log_qv_mean_2016_r', 34208), ('log_avgsz_mean_864_r', 34178), ('log_avgsz_mean_288_r', 34140), ('log_avgsz_mean_48_r', 34136), ('log_cnt_mean_2016_r', 34075), ('log_qv_mean_864_r', 34015), ('log_avgsz_mean_8640_r', 34008), ('log_qv_mean_288_r', 33881), ('log_qv_mean_48_r', 33794)]
+  changed anchors 108 ; first 6: [('2026-08-13 00:00Z', 12615), ('2026-08-13 04:00Z', 12644), ('2026-08-13 08:00Z', 12628), ('2026-08-13 12:00Z', 12502), ('2026-08-13 16:00Z', 12679), ('2026-08-13 20:00Z', 12631)]
+== FEA89 == names identical: True (89 cols) ; X dtype old float32 new float32
+  rows old 2745557 new 2747957 common 2737192 ; only-old 8365 ; only-new 10765
+    only-old FIRST anchor 2026-08-13 00:00Z
+    only-new FIRST anchor 2026-08-13 00:00Z  LAST 2026-08-31 20:00Z
+  common rows: changed rows 34835 cells 2906439 ; FIRST changed anchor 2026-08-13 00:00Z
+  changed columns (88): [('H:r24xdisp', 34835), ('H:m7xdisp', 34835), ('H:disp_z', 34835), ('H:v7xdisp', 34835), ('H:r4xdisp', 34835), ('I:m7xv7xq7', 34806), ('I:r24xv7xq7', 34670), ('J:drank_v7_1d', 34645), ('J:drank_m7_1d', 34552), ('I:r24xq7', 34539), ('J:drank_r24_1d', 34505), ('F:amihud_2016', 34327)]
+  changed anchors 108 ; first 6: [('2026-08-13 00:00Z', 27564), ('2026-08-13 04:00Z', 27482), ('2026-08-13 08:00Z', 27395), ('2026-08-13 12:00Z', 27691), ('2026-08-13 16:00Z', 27740), ('2026-08-13 20:00Z', 27865)]
+
+== VERDICT ==
+  first changed 5m bar in cache (D1'): 2026-08-12 00:05Z
+  members  first change 2026-08-13 00:00Z -> OK (not before 2026-08-12 00:00Z)
+  y4s      first change 2026-08-12 00:00Z -> OK (not before 2026-08-12 00:00Z)
+  fea82    first change 2026-08-13 00:00Z -> OK (not before 2026-08-12 00:00Z)
+  fea89    first change 2026-08-13 00:00Z -> OK (not before 2026-08-12 00:00Z)
+INPUT_PARITY_GATE PASS
