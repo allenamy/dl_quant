@@ -5,9 +5,11 @@ set -o pipefail
 R=/workspace/review_scratch; PY=/workspace/venv/bin/python; L=$R/v4e_commands.txt; cd $R || exit 2
 say(){ echo "[$(date -u +%FT%TZ)] $*" >> $L; }
 C=/workspace/data/dlnative_5m_wide829_f16_holefix2.npz
+if [ "${START_STAGE:-1}" -le 1 ]; then
 say "E-0909-F stage1 build king features (E version)"
 CACHE_IN=$C PANEL_IN=/workspace/data/wide_panel_4h_v2ext.npz FEA_OUT=/workspace/data/wide_fea_v4e.npy META_OUT=/workspace/data/wide_fea_v4e_meta.npz $PY pod_fea_ext_e.py > $R/fea_v4e.log 2>&1; rc=$?
 say "stage1 rc=$rc $(tail -1 $R/fea_v4e.log | cut -c1-120)"; { [ $rc -eq 0 ] && grep -q FEA_EXT_E_DONE $R/fea_v4e.log; } || { say FAIL_stage1_features; exit 1; }
+else say "stage1 skipped (START_STAGE=$START_STAGE), reusing $(tail -1 $R/fea_v4e.log | cut -c1-60)"; grep -q FEA_EXT_E_DONE $R/fea_v4e.log || { say FAIL_stage1_marker_missing; exit 1; }; fi
 say "stage2 G1 parity gate (production wstat AST, 6 anchors)"
 $PY v4e_gate_parity.py > $R/g1_v4e_parity.log 2>&1; rc=$?
 say "stage2 rc=$rc $(grep G1_KING_CLOCK_PARITY $R/g1_v4e_parity.log | cut -c1-200)"; [ $rc -eq 0 ] || { say FAIL_stage2_G1_parity; exit 3; }

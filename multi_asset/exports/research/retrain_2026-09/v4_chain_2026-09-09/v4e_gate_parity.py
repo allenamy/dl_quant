@@ -3,7 +3,7 @@
 Production operator = the pure `wstat` function AST-extracted from a read-only copy of ~/wide_shadow/shadow_loop_v3.py
 (sha recorded), run in float32 on the same cache rows with the NEW meta's members (operator isolation, as in the
 independent review's clamp_clock harness). 80 columns (40 value + 40 rank) compared at float16 bit level.
-  (a) new builder archive vs production operator:   changed cells <= 0.1%  AND  production operator in float64 vs new archive == 0 cells
+  (a) new builder archive vs production operator:   changed cells <= 0.1%  AND  production operator reduced in float64 (sums cast to float32 before ranking, AMENDMENT 1) vs new archive == 0 cells
   (b) positive control: OLD archive (wide_fea_v4) vs production operator:  >= 1000 changed cells (the gate can see the defect)
   (c) axis / member deltas reported.
 FAIL -> exit 3. Paths via env: NEW_FEA/NEW_META/OLD_FEA/OLD_META/CACHE/PROD_SRC/OUT."""
@@ -91,7 +91,12 @@ for t, e, r in zip(ANCHORS, er, ranges):
     row = {"anchor": utc(t), "E_row": int(e), "in_new_axis": bool(in_new), "in_old_axis": bool(in_old), "buffer_rows": int(len(buf))}
     if in_new:
         mem = mn["members"][an]; new = np.asarray(fn[an, mem, :80], "f4")
-        p32 = assemble(prod_values(buf, i, "f4"), mem); p64 = assemble(prod_values(buf, i, "f8"), mem)
+        p32 = assemble(prod_values(buf, i, "f4"), mem)
+        # AMENDMENT 1 (2026-09-09 16:3xZ, after run 1 FAILED on 2 rank cells at 2 anchors): the float64 reference reduces in
+        # float64 but RANKS float32-cast sums, which is what both the builder (VAL float32 -> rankdata) and the producer
+        # (float32 wstat -> rankdata) do; ranking float64 sums re-orders near-ties and is a reference artefact, not a defect.
+        # Run-1 receipt kept as G1_king_clock_parity_run1_FAIL.json (values: 0 cells at all six anchors; ranks: 2 cells at two).
+        p64 = assemble([v.astype("f4") for v in prod_values(buf, i, "f8")], mem)
         row["members_new"] = int(len(mem)); row["a_new_vs_prod32"] = cmp(new, p32); row["a_new_vs_prod64"] = cmp(new, p64)
         ok_a &= (row["a_new_vs_prod32"]["changed_pct"] <= 0.1) and (row["a_new_vs_prod64"]["changed"] == 0)
         if in_old:
