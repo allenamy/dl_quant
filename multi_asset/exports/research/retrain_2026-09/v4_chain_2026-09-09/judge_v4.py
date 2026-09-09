@@ -10,9 +10,10 @@ HC = "/workspace/review_scratch/health_check"
 COLS = ["ts","net","pnl","carry","cost","gross_total","gross_member","gross_sel","nsel","nmember","fires","leg_king","leg_rev24","leg_fund","w3_king","w3_rev24","w3_fund","turnover","net_ex","pnl_ex","carry_ex","cost_ex","netlong"]
 C = {c: i for i, c in enumerate(COLS)}; APY = 2190
 def T(*a): return calendar.timegm(a + (0,) * (6 - len(a)))
-FROZEN = (T(2025, 3, 1), T(2026, 8, 10, 20) + 1)
+FROZEN = (T(2025, 3, 1), T(2026, 8, 10, 20) + 1); EXT = (T(2025, 3, 1), T(2026, 8, 31, 20) + 1)   # AMENDMENT 4: extended window = secondary reading (verdict stays on FROZEN)
 WIN = {"2022": (T(2022, 1, 1), T(2023, 1, 1)), "2023": (T(2023, 1, 1), T(2024, 1, 1)), "2024": (T(2024, 1, 1), T(2025, 1, 1)), "2025": (T(2025, 1, 1), T(2026, 1, 1)), "2026→08-10 20Z": (T(2026, 1, 1), T(2026, 8, 10, 20) + 1),
-       "frozen 2025-03-01→2026-08-10 20Z": FROZEN, "2024-01→2026-08-10 20Z": (T(2024, 1, 1), T(2026, 8, 10, 20) + 1), "ext 08-11→08-30 20Z": (T(2026, 8, 11), T(2026, 8, 30, 20) + 1), "08-31 (6)": (T(2026, 8, 31), T(2026, 9, 1))}
+       "frozen 2025-03-01→2026-08-10 20Z": FROZEN, "2024-01→2026-08-10 20Z": (T(2024, 1, 1), T(2026, 8, 10, 20) + 1), "ext 08-11→08-30 20Z": (T(2026, 8, 11), T(2026, 8, 30, 20) + 1), "08-31 (6)": (T(2026, 8, 31), T(2026, 9, 1)),
+       "2026→08-31 20Z (all)": (T(2026, 1, 1), T(2026, 8, 31, 20) + 1), "EXTENDED 2025-03-01→2026-08-31 20Z": EXT, "2024-01→2026-08-31 20Z": (T(2024, 1, 1), T(2026, 8, 31, 20) + 1)}
 def load(path):
     A = np.load(path, allow_pickle=True); R = A["d30_n2_c42_rec"]; ts = R[:, 0].astype(np.int64); g = R[:, C["net_ex"]] / R[:, C["gross_total"]]
     return ts, g, R
@@ -69,6 +70,15 @@ for ci, (a, b) in enumerate(CON):
             m = (ta >= FROZEN[0]) & (ta < FROZEN[1]); d = (ga - gb)[m]; rng = np.random.default_rng([20260905, ci]); lo, hi, p = boot(d, ta[m] // 86400, rng)
             out["contrasts"][f"{a}-{b}|{seat}|s{s}"] = {"delta": float(d.mean()), "ci95": [lo, hi], "p_gt0": p, "n": int(m.sum()), "level_base": float(gb[m].mean()), "level_arm": float(ga[m].mean()), "rng": [20260905, ci]}
             print("%-10s %-4s %-5s %+9.4f [%+8.4f,%+8.4f] %6.3f | %+7.4f -> %+7.4f" % (f"{a}-{b}", seat, s, d.mean(), lo, hi, p, gb[m].mean(), ga[m].mean()))
+print("\n== SECONDARY (AMENDMENT 4): same contrasts on the EXTENDED window 2025-03-01→2026-08-31 20Z (repaired August included; 126 more anchors; NOT the verdict window) ==")
+out["contrasts_extended"] = {}
+for ci, (a, b) in enumerate(CON):
+    for seat in ("dyn", "fix"):
+        for s in ("42", "2027"):
+            if (a, seat, s) not in ARMS or (b, seat, s) not in ARMS: continue
+            ta, ga, _ = ARMS[(a, seat, s)]; tb, gb, _ = ARMS[(b, seat, s)]; m = (ta >= EXT[0]) & (ta < EXT[1]); d = (ga - gb)[m]; rng = np.random.default_rng([20260905, 100 + ci]); lo, hi, p = boot(d, ta[m] // 86400, rng)
+            out["contrasts_extended"][f"{a}-{b}|{seat}|s{s}"] = {"delta": float(d.mean()), "ci95": [lo, hi], "p_gt0": p, "n": int(m.sum()), "level_base": float(gb[m].mean()), "level_arm": float(ga[m].mean()), "rng": [20260905, 100 + ci]}
+            print("%-10s %-4s %-5s %+9.4f [%+8.4f,%+8.4f] %6.3f | %+7.4f -> %+7.4f  (n=%d)" % (f"{a}-{b}", seat, s, d.mean(), lo, hi, p, gb[m].mean(), ga[m].mean(), m.sum()))
 print("\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==")
 for a, b in CON:
     for seat in ("dyn", "fix"):
