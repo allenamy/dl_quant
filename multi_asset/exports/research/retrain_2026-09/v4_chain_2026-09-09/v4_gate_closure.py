@@ -4,18 +4,18 @@ NaN<->finite change counts as a diff and is reported separately. usage: v4_gate_
 import numpy as np, json, sys, re, time
 A_, B_, TA, TB, OUT = sys.argv[1:6]
 H = np.load("/workspace/review_scratch/holefix2_cells.npz", allow_pickle=True); RUNS = H["fill_runs"]
+# explicit per-column lookback table derived from pod_f8_build_ext.py (rows): E family = day-phase windows j<=7/30 slots x 288 (+288 phase); J drank = base rank window + 6-anchor lag (288)
+EXPLICIT = {"E:spr_7": 7 * 288 + 288, "E:spr_30": 30 * 288 + 288, "E:spr_30_t": 30 * 288 + 288, "E:spq_7": 7 * 288 + 288 + 2016, "E:spq_30": 30 * 288 + 288 + 8640, "E:sprg_7": 7 * 288 + 288, "E:spt_7": 7 * 288 + 288,
+            "J:drank_m7_1d": 2016 + 288, "J:drank_v7_1d": 2016 + 288, "J:drank_r24_1d": 288 + 288, "J:r24_lag1": 288 + 288, "J:dqv_4h": 48 + 288, "B:vov_7d": 2016 + 288, "B:dvol_1d": 288 + 288, "B:dvol_4h": 48 + 48, "F:damihud": 2016 + 288}
+for k in range(2, 7): EXPLICIT[f"J:r4_lag_{k}"] = 48 + 48 * k
 def L_col(name):
-    fam, base = name.split(":", 1); m = re.search(r"_(\d+)$", base); L = int(m.group(1)) if m else None
-    if L is None:
-        if base.endswith("7d") or "_7" in base or base in ("vov_7d", "spr_7", "spq_7", "sprg_7", "spt_7"): L = 2016
-        elif "30" in base: L = 8640
-        elif base.endswith("1d") or "lag" in base or base == "dvol_1d": L = 288
-        elif base.endswith("4h") or base == "dqv_4h": L = 48
-        else: L = 8640
-    L = max(L, 48); extra = {"H": 8640 + 48, "J": 288, "E": 288}.get(fam, 0)
-    if fam == "H": L = 8640      # products of ranks with the 180-anchor causal z
-    if fam == "I": L = 8640
-    return 2016 + L + extra
+    fam, base = name.split(":", 1)
+    if name in EXPLICIT: L = EXPLICIT[name]
+    else:
+        m = re.search(r"_(\d+)$", base); L = int(m.group(1)) if m else 8640
+        if fam in ("H", "I"): L = 8640
+    extra = {"H": 8640 + 48}.get(fam, 0)
+    return 2016 + max(L, 48) + extra
 NW = 829
 Fa = np.load(A_, allow_pickle=True); Fb = np.load(B_, allow_pickle=True); names = [str(x) for x in Fa["names"]]; assert names == [str(x) for x in Fb["names"]]
 Ea = np.load(TA, allow_pickle=True)["E_row"].astype(np.int64); Eb = np.load(TB, allow_pickle=True)["E_row"].astype(np.int64); assert np.array_equal(Ea, Eb)
