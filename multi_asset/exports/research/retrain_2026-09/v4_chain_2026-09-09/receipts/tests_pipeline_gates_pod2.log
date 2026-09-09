@@ -1,0 +1,40 @@
+[A] identical builds PASS with rc 0 and a receipt bound to input SHAs
+  OK   ★★★ PASS, rc 0 — (0, 'G2 closure gate tmp vs tmp: common 360 pairs; only-A 0 (outside membership closure 0); only-B 0 (outside 0); columns with outside-closure diffs 0/89\nG2_closure PASS -> /tmp/tmpeq_z2f1c/out.json\n')
+  OK   ★★ receipt names every input with a sha256 and records the gate's own sha
+
+[B] a value change OUTSIDE the closure -> FAIL and rc 3 (reviewer: was PASS=false with rc 0)
+  OK   ★★★ FAIL is rc 3 and PASS false — 3
+  OK   ★★ the failing column is named — ['F:c5_48']
+
+[C] axis faults the old gate could not see (reviewer R7): E_ts +300 s and reversed symbols on side B
+  OK   ★★★ E_row unchanged but E_ts shifted + symbols reversed ⇒ FAIL rc 3 on the axis (was PASS=true rc 0) — (3, ['E_ts_equal', 'symbols_equal_same_order'])
+
+[D] duplicate pair key and wrong column count -> FAIL
+  OK   ★★ duplicate pair on B ⇒ FAIL (pairs_unique_B) — ['pairs_unique_B']
+  OK   ★★ expected 90 columns but 89 present ⇒ FAIL (n_cols_ok)
+
+[E] `require`: chains may only dispatch on a fresh PASS receipt
+  OK   ★★★ PASS receipt + unchanged inputs ⇒ rc 0 — REQUIRE_OK PASS (G2_closure, 2026-09-09T16:54:41Z, 2 inputs verified)
+  OK   ★★★ an input that changed AFTER the receipt ⇒ rc 3 (stale receipt is not a receipt) — REQUIRE_FAIL input 'fea_A' changed since the receipt: 70510e0fcc29 != 428b3e486bab
+  OK   ★★ a FAIL receipt ⇒ rc 3
+  OK   ★★ a missing receipt ⇒ rc 3
+  OK   ★ an input the receipt never hashed ⇒ rc 3 (no silent pass on an unrecorded dependency)
+
+[F] the judge REFUSES without its required inputs (reviewer R4: used to exit 0 with empty verdicts)
+  OK   ★★★ no arms at all ⇒ rc 3 at the reproduction gate (A0p reproduction absent), no verdict JSON written — (3, 'JUDGE_REFUSED reproduction (#20): A0p reproduction absent')
+  OK   ★ JUDGE_ALLOW_PARTIAL=1 (exploration only) lets it run through and says so — (0, "cluded; 126 more anchors; NOT the verdict window) ==\n\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==\nJUDGE_V4_DONE\n")
+
+[G] G1 stable-trend gate: required booleans decide the exit code
+  OK   ★★ synthetic G1 passes with rc 0 and a receipt (gate/PASS/self sha) — (0, 'nan_flips_vs_global": 282, "c_nan_flips_by_col": {"5": 282}, "c_flips_only_on_flat_symbol": true, "d_deterministic": true}\nG1_SYNTHETIC_DONE\nG1_stable_trend_synthetic PASS -> /tmp/tmpjc3hrzi8/G1.json\n')
+
+[H] generator regeneration is BITWISE (reviewer P1-REGEN: regenerating used to restore the hard-coded v3 BUNDLE_BASE)
+  OK   ★★★ the regenerated EXPORTER is byte-identical to the archived one (BUNDLE_BASE read from env survives regeneration) — (0, {'pod_export_bundle_v4.py': True, 'pod_f10_train_monthly_v4.py': True, 'pod_f10_refit_v4.py': True}, '@@\n-print(f"BUNDLE_DONE files {len(man)} size {os.path.getsize(\'/workspace/shadow_bundle_v3.tar.gz\')//1048576}MB", flush=True)\n+print(f"BUNDLE_DONE files {len(man)} size {os.path.getsize(os.environ.get(\'BUNDLE_TAR\', \'/workspace/shadow_bundle_v4.tar.gz\'))//1048576}MB", flush=True)\n\nall three compile\n')
+  OK   ★★ regenerated trainer + refit are byte-identical to the archived ones — {'pod_export_bundle_v4.py': True, 'pod_f10_train_monthly_v4.py': True, 'pod_f10_refit_v4.py': True}
+  OK   ★ the regenerated exporter reads BUNDLE_BASE from env
+
+[I] chain drivers: a failed shard aborts BEFORE merge; DONE is never written on failure (reviewer P1-PIPE)
+  OK   ★★★ shard 2 exits 7 ⇒ driver exits 1 with FAIL_shards_... naming the rc list, merge NEVER runs, no DONE — (1, ['[2026-09-09T16:54:51Z] shards RAW s42 rc=[0 0 7 0]', '[2026-09-09T16:54:51Z] FAIL_shards_RAW_s42_rc_[0 0 7 0]'])
+  OK   ★★ all shards rc 0 ⇒ merge runs and DONE is written — ['MERGE_RAN', '[2026-09-09T16:54:51Z] CHAIN_TEST_DONE']
+  OK   ★★★ a FAIL receipt stops the driver at require_gate (rc 3), nothing is dispatched — (3, '1Z] require /tmp/tmpjc3hrzi8/failed_gate.json: REQUIRE_FAIL receipt says PASS=False (gate G2_closure, None)\n[2026-09-09T16:54:51Z] FAIL_gate_require_failed_gate')
+
+ALL PASS  (21 checks)
