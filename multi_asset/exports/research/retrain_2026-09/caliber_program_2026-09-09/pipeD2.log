@@ -1,0 +1,24 @@
+[2026-09-09T02:31:19Z] targets on _ext + raw patch
+[    0.0s] sha256 inputs ...
+[   20.4s] cache 490753x829x7 ts 1640995200..1788220800
+[   39.9s] raw patch applied: 952 bars from /workspace/review_scratch/raw_patch.npz
+[   50.4s] cumsums done
+[   51.0s] anchors 10206 平均成员 269 (≥360: 3341) 年份 {np.int64(2022): np.int64(2178), np.int64(2023): np.int64(2190), np.int64(2024): np.int64(2196), np.int64(2025): np.int64(2190), np.int64(2026): np.int64(1452)}
+[   56.7s] YR4s 完成 10206/10206 锚(有面板行 10206), 六因子值空间 R² 中位 0.0650
+[   56.8s] 对齐自检(y4s vs 面板旧 Y4): @0 +0.972 @-1 -0.009 @+1 -0.025 (n=198)
+[   57.9s] TARGETS_DONE {"n_anchors": 10206, "mean_members": 269.0140113658632, "n_res": 10206, "years": {"2022": 2178, "2023": 2190, "2024": 2196, "2025": 2190, "2026": 1452}, "target_vs_old": {"median_abs_diff_bps": 15.77167797088623, "mean_diff_bps": -0.6175552010536194, "spearman_same_row_median": 0.9720193090863147, "spearman_prev_row": -0.008605460034125212, "spearman_next_row": -0.024678495076980403}}
+[2026-09-09T02:32:23Z] meta_newprod_raw (from _ext+patch)
+y4 changed cells 641 ; expected-window cells 590 ; outside-expected real (>1e-6) 0 ; outside noise max 4.66e-10
+written /workspace/review_scratch/refute_C6_2/altrun/meta_newprod_raw.npz
+META_RAW_DONE
+seed 42
+  2022     chain +0.0633/0.13/17.23%/-11.17%  vs patch-table +0.0717/0.14/16.95%/-11.17%  -> DIFF
+  2025     chain +0.6640/1.13/21.21%/-4.87%  vs patch-table +0.5823/1.02/21.21%/-4.87%  -> DIFF
+  2024-26  chain +1.3309/2.37/22.50%/-4.87%  vs patch-table +1.2580/2.27/22.60%/-4.87%  -> DIFF
+  full     chain +0.6430/1.27/44.55%/-11.17%  vs patch-table +0.6013/1.20/44.77%/-11.17%  -> DIFF
+seed 2027
+  2022     chain +0.0633/0.13/17.23%/-11.17%  vs patch-table +0.0717/0.14/16.95%/-11.17%  -> DIFF
+  2025     chain +0.8434/1.43/18.02%/-4.92%  vs patch-table +0.7097/1.24/18.02%/-4.92%  -> DIFF
+  2024-26  chain +1.4116/2.51/23.20%/-4.92%  vs patch-table +1.3225/2.38/23.08%/-4.92%  -> DIFF
+  full     chain +0.6939/1.37/44.03%/-11.17%  vs patch-table +0.6437/1.28/43.98%/-11.17%  -> DIFF
+GATE_R4 FAIL

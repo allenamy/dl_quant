@@ -1,0 +1,13 @@
+[2026-09-09T02:27:45Z] R2/R3 tolerant on dlw_raw32
+R2: axis+members+finiteness identical; y4s cells changed 641 over 245 anchors (first 2022-05-11 12:00Z, last 2026-08-24 12:00Z)
+R2: changed-outside-expected total 51, of which |Δ| > 1e-6 (real) 0 ; the rest are float64 cumsum-cancellation noise (|Δ| max 4.66e-10)
+R2: changed-but-not-expected 0 ; expected-but-unchanged 0 ; expected set size 590 -> PASS
+R3: 440 held cells -> resolved 440 ; |chain Δ − patch-table Δ| max 4.617e-04 p99 2.157e-04 median 3.262e-05 ; tol 5e-4 -> PASS
+[2026-09-09T02:27:49Z] R2R3_PASS
+[2026-09-09T02:27:49Z] meta_newprod_raw
+Traceback (most recent call last):
+  File "/workspace/review_scratch/meta_raw_build.py", line 7, in <module>
+    old = MN["y4"]; fa, fb = np.isfinite(old), np.isfinite(y4); assert np.array_equal(fa, fb), "finiteness changed"
+                                                                       ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: finiteness changed
+[2026-09-09T02:27:50Z] FAIL_meta_raw

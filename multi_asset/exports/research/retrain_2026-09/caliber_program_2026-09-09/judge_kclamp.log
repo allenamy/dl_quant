@@ -1,0 +1,13 @@
+loaded KCL_OLD_dyn_s42 (self-check ok)
+loaded KCL_OLD_fix_s42 (self-check ok)
+Traceback (most recent call last):
+  File "/workspace/review_scratch/judge_kclamp.py", line 89, in <module>
+    A[(arm, k, s)] = load(tag)
+                     ^^^^^^^^^
+  File "/workspace/review_scratch/judge_kclamp.py", line 53, in load
+    A = np.load("%s/dev_alt/probe_artifacts/w10_ablation_series_%s.npz" % (HC, tag), allow_pickle=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py", line 454, in load
+    fid = stack.enter_context(open(os.fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/review_scratch/health_check/dev_alt/probe_artifacts/w10_ablation_series_KCL_WORST_dyn_s42.npz'

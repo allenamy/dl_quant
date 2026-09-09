@@ -1,0 +1,31 @@
+[2026-09-09T02:12:30Z] raw channel on holefix
+boundary candidates (ch0 == float16(±0.3)): 953 over 440 symbols
+true clips replaced 952 ; boundary-but-not-clipped 1 ; unresolved (no official bar) 0
+examples (ts, sym, clipped, raw): [('2022-05-11 13:10', 'LUNAUSDT', 0.300048828125, 0.329137), ('2022-05-11 13:25', 'LUNAUSDT', 0.300048828125, 0.644582), ('2022-05-11 13:30', 'LUNAUSDT', 0.300048828125, 0.737712), ('2022-05-11 13:35', 'LUNAUSDT', -0.300048828125, -0.42), ('2022-05-11 14:05', 'LUNAUSDT', 0.300048828125, 0.360096)]
+clipped bars whose raw value rounds to the SAME float16 as the clip (|r| in (0.3, 0.30017)): 1 (reported, legitimate)
+GATE_R1 PASS: ch7 differs from ch0 on exactly 951 cells (= 952 true clips − 1 float16-identical), all inside the boundary set; nan_mismatch 0
+written /workspace/data/dlnative_5m_wide829_f16_holefix_raw.npz (490753, 829, 8) sha16 c3235081401acdb9
+RAW_CHANNEL_DONE
+[2026-09-09T02:18:13Z] targets_raw builder
+-    assert ch == CHN_EXPECT, ch
++    assert ch[:7] == CHN_EXPECT and (len(ch) == 7 or ch[7] == "ret5_raw"), ch
++    RET_CH = int(os.environ.get("DLWT_RET_CH", "0")); assert RET_CH in (0, 7)   # 7 = ret5_raw (PREREG_caliber_program §3)
+-    CS_L = np.concatenate([z1, np.cumsum(np.log1p(r5z.astype(np.float64)), 0)])
++    _rt = CD[:, :, RET_CH].astype(np.float32); _rtz = np.where(np.isfinite(_rt), _rt, 0).astype(np.float32)   # target channel only
++    assert np.array_equal(np.isfinite(_rt), np.isfinite(CD[:, :, 0])), "target channel finiteness must equal ch0"
++    CS_L = np.concatenate([z1, np.cumsum(np.log1p(_rtz.astype(np.float64)), 0)]); del _rt, _rtz
+targets_raw written; src sha16 c21683ee23b775b4
+[2026-09-09T02:18:13Z] targets RET_CH=7 on holefix_raw
+[    0.0s] sha256 inputs ...
+[   19.9s] cache 490753x829x8 ts 1640995200..1788220800
+[   50.0s] cumsums done
+[   50.4s] anchors 10212 平均成员 269 (≥360: 3347) 年份 {np.int64(2022): np.int64(2178), np.int64(2023): np.int64(2190), np.int64(2024): np.int64(2196), np.int64(2025): np.int64(2190), np.int64(2026): np.int64(1458)}
+[   56.1s] YR4s 完成 10207/10212 锚(有面板行 10207), 六因子值空间 R² 中位 0.0651
+[   56.2s] 对齐自检(y4s vs 面板旧 Y4): @0 +0.972 @-1 -0.009 @+1 -0.025 (n=198)
+[   57.2s] TARGETS_DONE {"n_anchors": 10212, "mean_members": 269.09097140618877, "n_res": 10207, "years": {"2022": 2178, "2023": 2190, "2024": 2196, "2025": 2190, "2026": 1458}, "target_vs_old": {"median_abs_diff_bps": 15.675071716308594, "mean_diff_bps": -0.616506814956665, "spearman_same_row_median": 0.9720193090863147, "spearman_prev_row": -0.008605460034125212, "spearman_next_row": -0.024678495076980403}}
+[2026-09-09T02:19:15Z] gates R2/R3
+R2: axis+members+finiteness identical; y4s cells changed 641 over 245 anchors (first 2022-05-11 12:00Z, last 2026-08-24 12:00Z)
+R2: changed-but-not-expected 51 ; expected-but-unchanged 0 ; expected set size 590 -> FAIL
+R3: 440 held cells -> resolved 440 ; |chain Δ − patch-table Δ| max 7.633e-04 p99 5.130e-04 median 1.042e-04 ; tol 5e-4 -> FAIL
+[2026-09-09T02:19:18Z] R2R3_FAIL
+[2026-09-09T02:19:18Z] PIPEA_DONE
