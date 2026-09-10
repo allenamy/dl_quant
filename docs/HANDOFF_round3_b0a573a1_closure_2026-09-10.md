@@ -184,3 +184,88 @@
 ### R5 我方自报(第四轮)
 - pod2 同步时一条 ssh 参数引用错误(`"-p 55572 root@…"` 被当成一个参数)使 `.pre_r4` 备份那一步没先执行, 而 scp 已经覆盖了 pod2 上的 8 个文件。随即自 fd50007c 重建 8 个改前版, 与第三轮 pod2 sha 记录 `receipts/pod2_shas_2026-09-10T01xxZ.txt` 逐一相等后补上传为 `.pre_r4`; pod2 当时无链在跑。无损失, 但顺序错了: 备份该在覆盖之前得到收据, 不是之后重建。
 - 第三轮 [L] 「export-gate PASS=true ⇒ candidate/PROMOTE」那条期望是第三轮设计本身的错(裸收据当许可), 本轮改写而非删除, 让翻转可见。
+
+---
+
+## §EXECUTOR 附录 A(2026-09-10 02:4xZ)· E-0910-A 熔断 + `reconstructed` 类型 + 账本写回状态 → 分支 3ff5e00
+
+> 电池 132/132 全绿。与 §EXECUTOR 同一分支同一批复核。预注册: `docs/PREREG_venue_lock_breaker_E0910A_2026-09-10.md`(研究主线)。
+
+### A1. E-0910-A 场所量化规则锁(-4400)熔断
+- **事实**: 00Z 复场锚补单相 71 张 IOC 全部 -4400「only reduceOnly order is allowed」; `apiTradingStatus` ACCOUNT 指标 TMV isLocked, plannedRecoverTime 02:34:10Z; 书建到 67%, net/gross +5.23%。若锁落在首挂相, 191 张 GTX 全拒会以 `venue_reject` 灌满 §4-7 的失败率 —— 那才是真正的风险。
+- **规则(冻结)**: 同一提交循环内首张 -4400 照旧记(首挂 `venue_reject` / 补单 `abandoned_max_attempts`); 其后**开仓**单不发, 记新终态 `skipped_venue_lock`(pilot_log TERMINAL_REASONS + order_disposition GAP 格, 矩阵一致性套件绿); **reduce-only 单照发**; 首挂/补单两相各自学习(不跨相传递, 15 分钟后重学一次代价一张单); `executor.venue_lock_report`; anchor_loop 两相各一条 HIGH 页, 含 `broker.api_trading_status()`(新只读方法, 仅供页面, 不参与决策)的锁指标与预计解锁时间。
+- **不改**: 不读 apiTradingStatus 来决定发不发; 不动 reduce-only 语义; 不动 §4-7 分母(未发的单不是 `venue_reject`)。
+- **证明**: 新套件 [13]: 首挂相 A 拒/B、D 未发/C(reduce-only)照发 ⇒ 2 POST; 补单相同构; 报告字段; 矩阵一致; -5022 循环不触发。
+- **请复核**: (1) 是否存在 -4400 只针对单名而非账户的情形(我们按账户级处理, 单名锁会让其它名的开仓单被误跳过一相); (2) 首相位 -4400 计一张 `venue_reject` 对 §4-7 分母的影响可忽略(1/191)但请确认; (3) `api_trading_status()` 失败时页面只写「读取失败」, 不影响熔断。
+
+### A2. `reconstructed` order_type(A1 的最终形状)
+- pilot_log `ORDER_TYPES` 加法扩展 + 消费者普查(注释入码): m1/m3/m4 按类型排除(m4 在旧形状下对 target_w None 抛错, 副本实测), gaps 按终态(+旗标)不计, reconcile/book 按量计入(它们确实执行了)。`pilot_metrics.py` 字节冻结**不动**。
+- 重建工具 `reconstruct_orders_12Z.py`: order_type=reconstructed, `leg_kind` 保留腿别(52 条全 maker), `DQL_ROOT` 指定校验树; 分支 pilot_log 52/52 过; Σfee 0.50724168。**写回等本分支部署**(现网 schema 会拒, 工具因而拒绝 —— 顺序正确)。
+- **请复核**: 普查是否遗漏了按 order_type 分组且不容忍未知类型的读者(ops/anchor_report、daily_summary 等报表按类型分组, 我方读到的是「未知类型自成一组」)。
+
+### A3. 账本写回状态
+| 件 | 状态 | 证据 |
+|---|---|---|
+| 平仓 3,095 笔 fills | **已写回 02:16:00Z**(用户字「按最佳路径推动」) | 副本先过看门狗 tripped=False / 5b CLEAN; 3,095 行 Σ 232,756.969 = 平仓行 Σfilled 逐名零差; USDT 费 116.378476 = 子窗 income 3,094 行到分; 收据 `backfill_flatten_fills_20260909_dryrun.json` reconciled/applied true |
+| 12Z 52 行 orders | 工具就绪, **等本分支部署** | 副本判官: 加入后 §4-5b 历史异常 15→6(12Z 的 9 个被解释), tripped False |
+| E-0909-H | 在本分支(e1c4c87), 等复核→合并→部署 | — |
+
+### A4. 我方自报
+- 平仓 fills 对账门第一次误判「不对账」: 我把 userTrades 的正数手续费与 income 的负数直接相加; 改为比幅度后通过。门确实拦了一次不对的写回, 这是它该做的。
+- ic_monitor #55 的处置文本此前从未写下(只有阈值), 已补预注册; 本次 DECIDE 用户裁定照常, 复核点 09-15 00Z。
+
+
+---
+
+## §EXECUTOR · 第四轮(复审 62ebf9f8: R1–R3 / 合同 §2 / E1–E4 / R7 / A4)→ 实盘分支 82e0cbf(a)+ 0d30095(b)
+
+> 两次提交, 各自全电池(132/132 / 132/132), 已推送 `review/b0a573a1-executor`。运行树 `~/dl_quant_live` 仍 d040c74(本轮零接触)。处置文档(研究主线): `docs/REVIEW_ACCEPT_round3_codex_62ebf9f8_2026-09-10.md`。**你要求「按独立问题拆小提交」**: 电池一次 ≈25 分钟, 我把第四轮拆成 a(合同主体 + 身份)与 b(合同 §2.1/2.2 + 边界)两次; a 内部每个 hunk 的注释都带你的编号(R1/R2/R3/E1/E2/E3/E4/R7/A4), 下表给 hunk → 函数映射, 便于逐项审。
+
+### 改了什么(对应你的编号)
+
+| 你的编号 | 文件 / 函数 | 改动 | 证据(套件 `tests_request_identity_unknown.py`) |
+|---|---|---|---|
+| R1 · 合同 §2.3 | `binance_executor.topup` | 补单腿**逐请求账本** `request_ledger`: 每张真实请求(单发 `-3` 或分块 `-3cN`)一条 {client_id, qty(带号合约), notional_est(按数量比例), state ∈ not_sent→confirmed/unknown/rejected, order_id(按 **client id** 从 broker 提交记录取, 不取「最近一张」), confirmed_notional, confirmed_qty(b)}; `ledger_totals` 只把 **unknown** 请求计入上界 → 行列 `filled_unknown_qty`(合约)+ `filled_unknown_residual`(USDT 估计)+ `filled_known_notional`; 传输分支: 抛异常的那张请求 = 歧义/absent ⇒ unknown, 否则 not_sent; 拒绝分支: 被拒的那张 = rejected | [14] 50 未知 + 50 拒 ⇒ unknown_qty 50; 场所 +90 ⇒ anomaly 40 |
+| R2 | `binance_executor._settle_leg_by_identity`(新, 从 `apply_commission_to_rows` 拆出) | 子成交按 orderId 联接到账本里的请求 ⇒ 该请求 confirmed(带号 Σ quote_qty × side); 旧行(无账本)走 `_sgn * max(|·|)` 保号 | [15] 卖 −50 已知 + 50 未知, 归属后 known **−50**; −80 解释 / +20 异常 |
+| R3 | 同上 | unknown 集只按身份缩小; `uq == 0` 才写 `filled_notional` 并把 `filled_amount_unknown` 改 `filled`; 否则保持 UNKNOWN + 已知下界, `out["unknown_kept"]` | [16] 归属后 known 50 / unknown 50; +140 ⇒ anomaly 40; 全部结算 ⇒ filled 100 |
+| 合同 §2(区间) | `reconcile._unknown_interval`(新) / `_between` / 残差环 | 买 [0, r] 卖 [−r, 0](合约; 优先 `filled_unknown_qty`, 旧行 USDT/自身价回退); 按名 **Minkowski 相加** [L, U]; e = (ΔQ−K) − clip(ΔQ−K, L, U), 之后乘 mark; 输出 `authorised_band_qty=[L,U]` 替代 `authorised_band_usdt`; 非有限数量/已知部分、side ∉{buy,sell}、非正价格 ⇒ `unquantifiable`(execution_of_unknown_size) | [17] 买 50 + 卖 50 ⇒ ±40 解释 ±60 异常; mark 1.1 持 100 解释 / 0.9 持 110 异常; NaN/Inf/side None/known NaN 全异常 |
+| 合同 §2.1/2.2(b) | `ledger_known_qty` / `ledger_inconsistencies`(新); `_exec_qty` | 每请求 `confirmed_qty` = 该请求 notional/avgPrice(场所恒等式; 子成交结算时用逐笔 qty); 行列 `filled_known_qty` = Σ, reconcile 优先取它; 子成交超请求量或反号 ⇒ 行 `ledger_inconsistent`(命名请求)⇒ reconcile 不可测(异常), `out["ledger_inconsistent"]` | [20] 价 2 成 50U = 25 合约, 75 解释 / 100 异常; 60 合约对 50 请求 ⇒ inconsistent ⇒ 异常 |
+| E1 | `venue_fills.fill_details_for` / `_scan_orders` / **`settle_ambiguous_legs`(新)** / `anchor_loop.complete_anchor` / `topup` | allOrders `limit` 500→**1000**(场所最大); `len(rows) ≥ 1000` ⇒ 该名满页(`last_full_pages()`); `_scan_orders` 记匹配到的 client id(`last_matched_cids()`); 阶段 B 对 `submit_ambiguous` 且 id 未见的计划: 满页 ⇒ UNKNOWN(不查); 否则 `GET /fapi/v1/order?origClientOrderId=cid`: 查到且 cid 相符 ⇒ 其事实(0 成交也是事实); **−2013 ⇒ 未下达(filled 0)**; 其它(传输/别的码/答非所问)⇒ UNKNOWN; 结算本身抛异常 ⇒ 全部歧义名 UNKNOWN; UNKNOWN 并入 `unknown_fills`; INFO/HIGH 页。`topup` 对 UNKNOWN 名(非 from_reject)写 **maker 行 `filled_amount_unknown`**, `filled_unknown_qty` = 所发数量, `request_ledger` 一条 unknown(order_id 按 cid 从提交记录取) | [18] 满页 ⇒ UNKNOWN 且 0 次 GET; 非满页 −2013 ⇒ absent 0; 查到 10 ⇒ 10; 查询失败 ⇒ UNKNOWN; 已匹配不重查; UNKNOWN 名 maker 行 `_exec_qty` = bounded |
+| E2 | `binance_broker.flatten_all` | 进程内 `_flatten_seq` 计数(不随符号/重试重置)⇒ 同秒重试 id 不同 | [19] 同秒两次 ⇒ `-HUSDT-1` / `-HUSDT-2` |
+| E3 | `venue_fills.submitted_order_legs` / `order_legs_from_venue` / `attribute_trades` | 键 (symbol, orderId); `attribute_trades` 按 (sym, oid) 联接; 冲突记录带 symbol; 三个既有套件(avgpx_backfill / fee_asset_detection / fill_backfill)夹具改键 | [19] BTC/ETH 同 77 ⇒ 两腿无冲突, ETH 费落 ETH topup |
+| E4 | `binance_executor.client_id_for`(新) / `flatten_all` | 补单 id > 36 ⇒ **拒绝**(ValueError; 该名记 abandoned_max_attempts 不发, 循环继续); 平仓 id > 36 ⇒ 先试紧凑前缀, 仍超 ⇒ **弃 id** 记 `client_id_dropped`(保护动作不因记账阻塞; orderId 仍是联接键) | [19] 超长 ⇒ ValueError; 普通 id 不变 |
+| EX-R3-4 表(b) | `venue_fills` 全部读者 | `startswith(RID + "-")`; 无 TIF 回退 `-1`/`-2` 皆 maker | [20] `RID1-…` 非我方; `-2` 为 maker |
+| R7 | `anchor_loop._trade` cap 调用边界 | `invalid` 处理**移到 `plan()` 之前**: field=target 且 held 有限 ⇒ target := held(delta 0 ⇒ skip 行不发单); held 非有限 ⇒ 弹出; cap 非有限但 target 有限 ⇒ 仍不截断、只页(改成拒绝交易是书行为改动, 归用户); `_capd["invalid_disposition"]` 入锚工件 | [18] wiring 断言; tests_venue_cap_clamp 22 绿 |
+| A4 | `anchor_loop` daily_nav / `ops/reprice_day.py` | 持久化 `realised_by_type_asset` + `realised_non_usdt_assets`(与混单位 `by_type` 并列; **换算未做**) | 电池 tests_reprice_day / numerator_honesty 绿 |
+
+### 你的反例在修复分支上的观测
+
+| 反例(你的分册) | 第三轮 | 第四轮 |
+|---|---|---|
+| risk R1: 买 50+50, 第一未知第二拒, 场所 +90 | CLEAN | **anomaly, residual_qty 40, band [0,50]**([14]) |
+| risk R2: 卖 −50 已知 + 50 未决, 归属后; −80 / +20 | BREAK / CLEAN | **解释 / anomaly**([15]) |
+| risk R3: 买 50+50 双未知, 第一回填; +140 | CLEAN | **anomaly 40**([16]) |
+| risk 数值边界: mark 1→1.1 合法 100; 0.9 超量 110; 混方向; NaN/Inf/side None | 5e 触发 / CLEAN / 对消 / CLEAN | 解释 / 异常 / 区间 [−50,50] / 全异常([17]) |
+| executor EX-R3-1: 满 500 页无本请求 → 0 → 再 POST 10 | filled 0, 2 POST | **UNKNOWN, 不补单, maker 行 bounded**([18]); 你的 `phase_b_clock_attempt02.py` 需把 allOrders mock 的 limit 从 500 改 1000(满页判据), 并为 `GET /fapi/v1/order` 加 mock, 否则新路径会因查询失败落 UNKNOWN(也是不补单, 但不是你想测的分支) |
+| executor EX-R3-2: 同秒重试同 CID | 同 id | 不同 id([19]); 你的 `flatten_retry_chain.py` 断言应改为「两次 id 不同 且 第二次 resolver 不会命中 771」 |
+| executor EX-R3-3: BTC/ETH 同 orderId 77 | 冲突 + ETH 费进 maker | 两腿, 费归位([19]) |
+| executor EX-R3-4: 19 字符号两分块同 id | 同 id | 补单拒绝 / 平仓弃 id([19]) |
+| risk R7: target NaN 进 planner | ValueError 整锚死 | target := held 或弹出, 页([18] wiring; 未构造完整 `_trade` 端到端, 你的 AST 提取脚本可直接对新源重跑) |
+
+### 未闭合(明写, 不是「已披露即接受」)
+
+1. **合同 §2.4 跨读数联合约束 / 跨进程未决账本**: 当前带只在含该行时间戳的窗口生效, 下一窗不再用(不会重复解释), 也**不会去结算**它 —— 晚到成交在下一窗读成未解释(fail-closed, 可能误触发), 旧 UNKNOWN 行永不关。需要: 未决请求落盘(`state/live/pending_requests.jsonl`)→ 下锚阶段 B 按 client id 查终态 → 追加修正行(orders 只追加: 修正行的形状、与原 UNKNOWN 行在 reconcile 的双计、m1/m3 消费者)→ 预注册。
+2. **−2013 终局性**: 阶段 B 在 k 窗(≥15 分钟)后对我方 id 得 −2013, 现按「从未接受」处理并允许补单。场所在此时长后是否仍可能「稍后出现」该单, 我方无证据; 若你判断需二次查询/更长等待, 是参数不是结构。
+3. **两进程同秒平仓**: `_flatten_seq` 是进程内计数; 看门狗阶梯是单进程, 但若将来两个进程同秒 flatten 同名, 前缀仍可撞。可加 pid 段但 36 字符会超(F14+sym14+seq3+分隔=34)。
+4. **income 缺行恢复 / 币种换算**: 未做(A4 只到持久化)。
+5. **cap 非有限但 target 有限**: 仍按未校验 cap 规划(只页)。改为拒绝交易该名需用户字。
+6. **合同 §2.2 「均价同一子集」的旧行**: 无账本的历史行仍用 known_notional / avg_fill_px; 新行有 `filled_known_qty`。
+
+### 我方在第四轮里承认的自己的错(见处置文档 §6)
+意图当授权(R1) / 取绝对值丢号(R2) / docstring 里无证明的「absent ⇒ 0」(E1) / 「never truncates」注释与 `[:36]` 相反(E4) / 第三轮套件 [6] 把错误合同写成期望 / orderId 当全账户唯一(E3)。
+
+### 请复核(第四轮新问题, 我方自报)
+1. `settle_ambiguous_legs` 在 **非满页** + 查单 **−2013** 时判「未下达」并允许补单 —— 这是本轮唯一把 UNKNOWN 收敛成 0 的路径, 请专门打它(k 窗后场所是否可能仍返回 −2013 而后成交)。
+2. `_unknown_interval` 对旧行(仅 USDT 上界)用行自身价格回退成数量 —— 旧行只在历史账本里, 但 reconcile 会读它们; 请判断回退是否应改为「旧行一律不可测」。
+3. R7 的 target := held 会产生一条 `skip` 计划行(delta 0), 与「该名被弹出」在锚工件里可区分(`invalid_disposition`); 请看是否需要独立终态。
+4. 分块 `notional_est` 按数量比例分摊整腿残差 —— 只用于 USDT 估计列与页文字, 不进风险合同(合同用 qty); 若你认为该列会误导, 可删。
