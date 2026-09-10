@@ -86,7 +86,7 @@ float64 归约参照(和先转 float32 再排序)vs 新存档: 六锚 **0 格**�
 1. 执行器: 用你的 `audit_transport.py` 夹具对 961a858 重跑六场景(期望全部变为「已处理」而非「复现缺陷」); 特别看 §1 末的 absent 处理边界。
 2. 流水线: 运行 `tests_pipeline_gates.py`(21 项); 在 pod2 上核对同步后的脚本 sha 与 `receipts/v4_scripts_sha_full.json`; 检查 `chain_lib.sh` 的 `run_shards` 对 4 个分片的 PID 等待是否覆盖你复现的「子进程失败未传到父链」。
 3. 一致性: `v4e_gate_parity.py` 的六锚结果(你的三锚 + 预定三锚)与你 `clamp_clock/FEATURES.npz` 的 live 数组对照; G4 量化报告是否支持「送 booster 前 float16 往返」作为生产候选。
-4. 数字: `JUDGE_v4e.json` 的 A1e−A1 / A1e−A0 四格与 56 个 CI 复算。
+4. 数字: `JUDGE_v4e_hardened.json` 的 18 格(9 对照 × 2 席位)与 **72 个 CI**(主窗 36 + 扩窗 36; 此前写 56 是加入 A1e 前的 7 对照计数, 2026-09-10 更正)复算; 扩窗比冻结窗多 **121** 锚(判官旧打印「121 more」为手写值, 第三轮改为计算值)。
 
 ## §5 附录(2026-09-09 21:5xZ 追加)· E-0909-H 收入账本去重键过粗 → 分支 e1c4c87(同一实盘分支, 请一并复核)
 
