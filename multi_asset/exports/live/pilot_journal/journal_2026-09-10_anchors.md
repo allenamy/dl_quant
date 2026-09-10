@@ -62,3 +62,9 @@
 - **未闭合(明写)**: Q6 跨读数 E_s/P_s 延续 → `docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md`(设计+验收判据, 未落码, 需 41 天账本副本回放 + 用户字); −2013 终局性(显式假设); 跨进程同秒平仓 id; M5 对 reconstructed 行的再封存; income 缺行恢复/币种换算; 物理 BUNDLE_export 门。平仓工具费用门改有符号恒等式(研究员 A3, 3.5e−7 通过、反号拒绝)。
 - **电池自身**: 首跑 NOT GREEN(2 红): `tests_notional_backfill` 变异注入锚点随门重排失配(更新锚点); `tests_daily_summary` Q2/跨日两条按全日行数判可检、工具却按 24h 窗渲染 ⇒ 状态副本超 24h 后假红(06:1xZ 首现, 与本轮无关) ⇒ 改按工具自报窗内行数, 不可检打 NOT EXERCISED; 修后重跑电池。
 - **交接**: HANDOFF(研究分支)新增 §PIPELINE 第五轮 + §EXECUTOR 第五轮(hunk → 编号表; 研究员脚本需改两处: DELETE mock 会被再调一次、查单/回包记录需带 origQty/side/executedQty)。协议不变: 第五轮复核 → 分别合并 → 部署另裁。运行树 d040c74 零接触(VERIFIED)。
+
+### 2026-09-10 07:2x–07:49Z · 研究员第五轮复审 ce7b3cf4 辩证处置 + 第六轮修复(实盘分支; 研究管线第五轮已被研究员收口)
+- **总判: 同意两个判决 —— 实盘 REQUEST_CHANGES(两条承重漏报可达), 研究管线修复收口(仍参考态)。** 两条承重项都是第五轮「请求生命周期」合同没做到底: (1) `complete_anchor` 无条件把 k-cancel 的 unresolved 并回 UNKNOWN, 阶段 B 已用撤单+查单证明 CANCELED/成交 4 的请求仍写成 known 4 + 带 6, 持仓 10 通过风控, pin 未清; (2) `request_remaining` 只对 terminal ∧ state=confirmed 归零, 而 state=confirmed 绑定金额可读 ⇒ EXPIRED 成交 20 金额不可读的请求仍留 30 的带, 持仓 100 通过; 反向 C=Q 金额未知被判不可测。处置 `docs/REVIEW_ACCEPT_round5_codex_ce7b3cf4_2026-09-10.md`(§5 我方五错)。
+- **实盘分支第六轮 → 07929ed(电池 132/132, 套件 [29]–[36] 136/136, 已推送)**: unresolved 按请求身份被较新终态覆盖 + 清 pin; UNKNOWN maker 行请求 terminal 取自场所折叠(终态 ∧ C 可信 = [C,C]); `request_remaining` 数量先于计价(C 可信: 终态 0 / 否则 Q−C; C 未知: |Q|); `ledger_qty_closed` ⇒ filled_qty 与金额可读无关; decoder 缺 executedQty 不当 0(同请求 cumQuote/avgPrice 推导并标源); 账本行只由账本定量, 均价只在全集贡献时写出, reconcile 拒绝名义/均价回退; bounded 读者验价; 同 trade id 矛盾记录; 撤单失败时已读事实入行(partial); 预检按真实块数。transport 夹具改为真实回包形状。
+- **Q6 预注册修订 1**: 研究员指出字面递推对迟到证据得 −50、及时到达得 +30(正确 +30) ⇒ 合同改为累计恒等式 + 事件/观察双时钟 + 启动/重启边界; §3.2 加终态 C80、§3.3 明确持仓水平语义与核解集。未落码, 先过其复核再谈 41 天回放。
+- **未闭合(明写)**: −2013 终局性(假设); 跨进程同秒平仓 id; M5 对 reconstructed 行再封存; income 缺行/币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。协议不变: 第六轮复核 → 分别合并 → 部署另裁。运行树 d040c74 零接触(VERIFIED)。
