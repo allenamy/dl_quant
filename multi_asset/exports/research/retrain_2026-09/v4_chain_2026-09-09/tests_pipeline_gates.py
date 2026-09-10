@@ -178,5 +178,92 @@ echo DISPATCHED >> {d}/cmds2.txt
     p = subprocess.run(["bash", f"{d}/harness2.sh"], capture_output=True, text=True, cwd=d); log2 = open(f"{d}/cmds2.txt").read()
     check("★★★ a FAIL receipt stops the driver at require_gate (rc 3), nothing is dispatched", p.returncode == 3 and "DISPATCHED" not in log2 and "FAIL_gate_require_failed_gate" in log2, (p.returncode, log2.strip()[-160:]))
 
+
+# ── [J] round 3 (review 31fa3e4e §2): the REAL chain drivers, path-translated into a private root, with stub producers ──────────────
+# The bash drivers are copied with /workspace -> <root>; `venv/bin/python` is a stub that runs v4_gate_common.py for real and fakes every
+# producer/trainer/merge; PATH provides fake nvidia-smi/sleep. Same shape as the reviewer's audit_faults.py chain_case, so the scenarios it
+# showed passing (wrong gate / wrong source / changed holes / changed RAW / data cp failure) are asserted to BLOCK here.
+import hashlib as _hl, shutil as _sh, stat as _st
+
+def _sha(p): return _hl.sha256(open(p, "rb").read()).hexdigest()
+
+
+def chain_case(entry, scenario, d):
+    root = f"{d}/{scenario}/workspace"; rr = f"{root}/review_scratch"
+    for sub in ("review_scratch/v4_gates", "venv/bin", "bin", "f8_v4/logs", "f8_v4s/logs", "f8_v4/gates", "f8_v4s/data", "f8_hf2s/data", "dlw_hf3/data", "dlw_hf2/data",
+                "dlw_v4raw/data", "f8_v4/data", "data", "dlw_hf3/results"):
+        os.makedirs(f"{root}/{sub}", exist_ok=True)
+    for f in os.listdir(HERE):
+        if f.endswith((".py", ".sh")):
+            open(f"{rr}/{f}", "w").write(open(f"{HERE}/{f}").read().replace("/workspace", root))
+    stub = f"""#!/usr/bin/env python3
+import sys, os, json, subprocess
+a = sys.argv[1:]; n = os.path.basename(a[0]) if a else ""
+cfg = json.load(open({root!r} + "/config.json"))
+open({root!r} + "/events.txt", "a").write(n + "\\n")
+if n == "v4_gate_common.py": sys.exit(subprocess.call([{PY!r}, "-B"] + a))
+if n == "-": sys.exit(subprocess.call([{PY!r}, "-B", "-"] + a[1:], stdin=sys.stdin))
+if "train_monthly" in n: sys.exit(7 if cfg.get("scenario") == "fail_shard" + os.environ.get("MWF_OUT", "x")[-1] else 0)
+if n.startswith("merge_"): print("MERGE_DONE"); sys.exit(0)
+if n == "pod_dlw_features_ext.py":
+    if cfg.get("scenario") != "data_fea82_missing": open({root!r} + "/dlw_hf3/data/dlw_fea82.npz", "wb").write(b"fea82")
+    sys.exit(0)
+if n == "pod_dlw_targets_raw.py": open({root!r} + "/dlw_v4raw/data/dlw_targets.npz", "wb").write(b"raw-targets"); sys.exit(0)
+if n == "pod_f8_build_ext.py": open({root!r} + "/f8_v4/data/f8_fea89.npz", "wb").write(b"fea89"); sys.exit(0)
+if n == "pod_fea_ext_clamp.py":
+    open({root!r} + "/data/wide_fea_v4.npy", "wb").write(b"k"); open({root!r} + "/data/wide_fea_v4_meta.npz", "wb").write(b"m"); sys.exit(0)
+print("STUB_DONE"); sys.exit(0)
+"""
+    open(f"{root}/venv/bin/python", "w").write(stub); os.chmod(f"{root}/venv/bin/python", 0o700)
+    for k, v in (("nvidia-smi", "#!/bin/bash\necho 0\n"), ("sleep", "#!/bin/bash\nexit 0\n")):
+        open(f"{root}/bin/{k}", "w").write(v); os.chmod(f"{root}/bin/{k}", 0o700)
+    json.dump({"scenario": scenario}, open(f"{root}/config.json", "w"))
+    files = {"fea_A": f"{root}/f8_v4s/data/f8_fea89.npz", "fea_B": f"{root}/f8_hf2s/data/f8_fea89.npz", "targets_A": f"{root}/dlw_hf3/data/dlw_targets.npz",
+             "targets_B": f"{root}/dlw_hf2/data/dlw_targets.npz", "hole_cells": f"{rr}/holefix2_cells.npz"}
+    step1 = {"dlw_v4raw_targets": f"{root}/dlw_v4raw/data/dlw_targets.npz", "dlw_hf3_targets": f"{root}/dlw_hf3/data/dlw_targets.npz",
+             "fea82_v4raw": f"{root}/dlw_v4raw/data/dlw_fea82.npz", "fea89_f8v4": f"{root}/f8_v4/data/f8_fea89.npz"}
+    for pth in list(files.values()) + list(step1.values()) + [f"{root}/f8_v4s/data/f10v2_legs.npz", f"{root}/f8_v4/data/f10v2_legs.npz"]:
+        open(pth, "wb").write(b"original:" + os.path.basename(pth).encode())
+    g2 = {"PASS": True, "gate": "G2_closure", "self_sha256": _sha(f"{rr}/v4_gate_closure.py"), "inputs_sha256": {k: _sha(v) for k, v in files.items()}}
+    s1 = {"PASS": True, "gate": "STEP1", "self_sha256": _sha(f"{rr}/v4_gate_step1.py"), "inputs_sha256": {k: _sha(v) for k, v in step1.items()}}
+    if scenario == "gate_fail": g2["PASS"] = False
+    if scenario == "wrong_gate": g2["gate"] = "UNRELATED_PASS"
+    if scenario == "wrong_source": g2["self_sha256"] = "0" * 64
+    if scenario == "step1_fail": s1["PASS"] = False
+    json.dump(g2, open(f"{rr}/v4_gates/G2_closure_stable.json", "w")); json.dump(s1, open(f"{rr}/v4_gates/step1.json", "w"))
+    if scenario == "changed_holes": open(files["hole_cells"], "wb").write(b"new-holes")
+    if scenario == "changed_RAW": open(step1["dlw_v4raw_targets"], "wb").write(b"changed RAW target after receipt")
+    if scenario == "changed_explicit_input": open(files["fea_A"], "wb").write(b"changed feaA")
+    if scenario == "legs_missing": os.remove(f"{root}/f8_v4s/data/f10v2_legs.npz")
+    env = dict(os.environ, PATH=f"{root}/bin:" + os.environ["PATH"])
+    p = subprocess.run(["bash", f"{rr}/{entry}"], capture_output=True, text=True, env=env, cwd=rr, timeout=120)
+    ev = open(f"{root}/events.txt").read() if os.path.exists(f"{root}/events.txt") else ""
+    log = open(f"{rr}/v4_commands.txt").read() if os.path.exists(f"{rr}/v4_commands.txt") else ""
+    data = open(f"{rr}/chain_v4_data.log").read() if os.path.exists(f"{rr}/chain_v4_data.log") else ""
+    return {"rc": p.returncode, "train": ev.count("train_monthly"), "merge": sum(1 for x in ev.splitlines() if x.startswith("merge_")),
+            "done": ("_DONE" in log and "CHAIN_" in log) or ("CHAIN_V4_DATA_DONE" in data), "log": log, "data": data, "err": p.stderr[-300:],
+            "deps": os.path.exists(f"{rr}/v4_gates/deps_v4s_gpu.json")}
+
+
+with tempfile.TemporaryDirectory() as d:
+    print("\n[J] chain_v4s_gpu.sh under fault injection (reviewer: wrong gate / wrong source / changed holes / changed RAW used to dispatch 8 trainings)")
+    r = chain_case("chain_v4s_gpu.sh", "success", d)
+    check("★★★ success: both receipts PASS+fresh ⇒ 8 trainings, 2 merges, DONE, deps pinned", r["rc"] == 0 and r["train"] == 8 and r["merge"] == 2 and r["done"] and r["deps"], {k: r[k] for k in ("rc", "train", "merge", "done", "deps", "err")})
+    for sc, why in (("wrong_gate", "receipt from another gate"), ("wrong_source", "all-zero self sha"), ("changed_holes", "hole_cells changed after the receipt"),
+                    ("changed_RAW", "RAW targets changed after the STEP1 receipt"), ("gate_fail", "G2 receipt FAIL"), ("step1_fail", "STEP1 receipt FAIL"), ("changed_explicit_input", "fea_A changed")):
+        r = chain_case("chain_v4s_gpu.sh", sc, d)
+        check(f"★★★ {sc}: {why} ⇒ rc 3, ZERO trainings, no DONE", r["rc"] == 3 and r["train"] == 0 and r["merge"] == 0 and not r["done"], {k: r[k] for k in ("rc", "train", "merge", "done")} | {"tail": r["log"].strip().splitlines()[-1][-160:] if r["log"].strip() else r["err"]})
+    r = chain_case("chain_v4s_gpu.sh", "legs_missing", d)
+    check("★★ legs file missing ⇒ rc 3 before any dispatch", r["rc"] == 3 and r["train"] == 0 and not r["done"], {k: r[k] for k in ("rc", "train", "done")})
+    r = chain_case("chain_v4s_gpu.sh", "fail_shard1", d)
+    check("★★ shard 1 rc 7 ⇒ rc 1, 4 trainings dispatched, no merge, no DONE (unchanged from round 2)", r["rc"] == 1 and r["train"] == 4 and r["merge"] == 0 and not r["done"], {k: r[k] for k in ("rc", "train", "merge", "done")})
+
+    print("\n[K] chain_v4_data.sh: an unchecked cp can no longer produce DATA_DONE (reviewer data_copy_failure)")
+    r = chain_case("chain_v4_data.sh", "data_fea82_missing", d)
+    check("★★★ fea82 producer 'succeeds' but writes no file ⇒ FAIL_fea82_output_missing, rc 1, no CHAIN_V4_DATA_DONE (was: DATA_DONE rc 0)",
+          r["rc"] == 1 and not r["done"] and "FAIL_fea82_output_missing" in r["data"], (r["rc"], r["data"].strip().splitlines()[-1][-120:] if r["data"].strip() else r["err"]))
+    r = chain_case("chain_v4_data.sh", "data_success", d)
+    check("★★ every producer writes its output and the copy verifies ⇒ CHAIN_V4_DATA_DONE rc 0", r["rc"] == 0 and r["done"], (r["rc"], r["data"].strip().splitlines()[-1][-120:] if r["data"].strip() else r["err"]))
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)
