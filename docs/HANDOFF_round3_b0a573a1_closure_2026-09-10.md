@@ -708,7 +708,7 @@ F 带到账本却没贯穿每个读者(普通 maker 行、均价回退、RC 带�
 
 ## §EXECUTOR · 第十三轮(复审 ec2fe835: 四条 P2 + 措辞)→ 实盘分支 5f2dd75
 
-> 全电池 132/132(notify_audit 副本 16:08Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round12_codex_ec2fe835_2026-09-11.md`; 事实表补格 `docs/DESIGN_request_fact_model_2026-09-10.md` §3g; §5 全表补你点名的漏项(M4/M5、`neutrality_price`、`chase_readout.collect`、`score_post_fix`、RC 残差计价与 `_unknown_interval` 后备; 「RC 仅无账本旧行读 avg」改为三种用途分列); §3f.1 措辞更正。你四项 P2 全部接受、全部修。
+> 全电池 132/132(notify_audit 副本 16:08Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round12_codex_ec2fe835_2026-09-10.md`; 事实表补格 `docs/DESIGN_request_fact_model_2026-09-10.md` §3g; §5 全表补你点名的漏项(M4/M5、`neutrality_price`、`chase_readout.collect`、`score_post_fix`、RC 残差计价与 `_unknown_interval` 后备; 「RC 仅无账本旧行读 avg」改为三种用途分列); §3f.1 措辞更正。你四项 P2 全部接受、全部修。
 
 ### 改了什么
 
