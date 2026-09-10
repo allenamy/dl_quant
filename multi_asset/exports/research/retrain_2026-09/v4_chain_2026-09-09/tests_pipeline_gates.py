@@ -416,11 +416,11 @@ def test_contract(approve_exporter=True):
 
 
 def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False, duplicate=False, nan_repro=False, promote=False, export_gate=None, bad_repro=False,
-               promote_arm="A1e", eligibility=None, mutate=None, contract="test", post_mutate=None):
+               promote_arm="A1e", eligibility=None, mutate=None, contract="test", post_mutate=None, strict=False):
     """eligibility: callable(q) -> {arm: entry} written to a file for JUDGE_ELIGIBILITY, or a str passed inline. mutate: callable(v_dir, raw_dir) run after the fixtures are written.
     Round 5: the judge runs from a DEVICE COPY (q/device: judge_v4.py + v4_gate_common.py + a contract) — contract="test" approves the archived exporter for
     BUNDLE_export (positive controls), "archive" runs the archived judge in place with the shipped contract, "none" ships no contract, or a dict is written verbatim.
-    post_mutate: callable(v_dir, raw_dir) run AFTER the eligibility receipts are written (a book replaced after the receipt)."""
+    post_mutate: callable(v_dir, raw_dir) run AFTER the eligibility receipts are written (a book replaced after the receipt). strict: JUDGE_REQUIRE_W=1."""
     q = f"{d}/{name}"; hc = f"{q}/hc"; v = f"{hc}/dev_v4/probe_artifacts"; old = f"{hc}/dev_raw/probe_artifacts"
     os.makedirs(v); os.makedirs(old)
     ts = _cal.timegm((2025, 3, 1, 0, 0, 0)) + np.arange(3168) * 14400
@@ -441,6 +441,7 @@ def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False,
     if mutate is not None: mutate(v, old)
     env = {"JUDGE_HC": hc, "JUDGE_OUT": f"{q}/J.json"}
     if partial: env["JUDGE_ALLOW_PARTIAL"] = "1"
+    if strict: env["JUDGE_REQUIRE_W"] = "1"
     if export_gate is not None:
         json.dump(export_gate, open(f"{q}/G2_export.json", "w")); env["JUDGE_EXPORT_GATE"] = f"{q}/G2_export.json"
     if callable(eligibility):
@@ -660,6 +661,38 @@ with tempfile.TemporaryDirectory() as d:
           and j["contract"]["approved_sources"]["BUNDLE_export"] == [_sha(f"{HERE}/pod_export_bundle_v4.py")] and j["eligibility_by_arm"]["A1e"]["inputs"][-4:] == ["book_dyn_s2027", "book_dyn_s42", "book_fix_s2027", "book_fix_s42"] or (j and sorted(j["eligibility_by_arm"]["A1e"]["inputs"])[:4] == ["book_dyn_s2027", "book_dyn_s42", "book_fix_s2027", "book_fix_s42"]),
           (rc, j and j["eligibility_by_arm"]["A1e"], j and j["contract"]["sha256"]))
     check("★ [r5] the caller's entry needs only {receipt, inputs}: caller_supplied is empty when it names no standard", j and j["eligibility_by_arm"]["A1e"].get("caller_supplied") in ({"gate": "BUNDLE_export", "self_sha": _sha(f"{HERE}/pod_export_bundle_v4.py")}, {}), j and j["eligibility_by_arm"]["A1e"].get("caller_supplied"))
+    # ── strict book contract (researcher negative_gross / infinite_gross / nonfinite_W / symbols_order_reversed / no_cols_strict / no_symbols_strict / rec_only_default / valid_strict_schema_positive) ──
+    _COLS = ["ts","net","pnl","carry","cost","gross_total","gross_member","gross_sel","nsel","nmember","fires","leg_king","leg_rev24","leg_fund","w3_king","w3_rev24","w3_fund","turnover","net_ex","pnl_ex","carry_ex","cost_ex","netlong"]
+    def _bookify(v, old, gross=None, W_nan=False, reverse_arm=None, drop=()):
+        for p in sorted(glob.glob(f"{v}/*.npz") + glob.glob(f"{old}/*.npz")):
+            z = np.load(p); r = z["d30_n2_c42_rec"].copy(); n = len(r)
+            if gross is not None: r[:, 5] = gross; r[:, 18] = r[:, 18] * (gross if np.isfinite(gross) else 1.0); r[:, 19] = r[:, 18]   # keep g when finite (the researcher's −1 case kept g)
+            sym = np.array(["SYNTH_A", "SYNTH_B"]); W = np.tile([0.5, -0.5], (n, 1)).astype(np.float32)
+            if reverse_arm and f"_{reverse_arm}_" in os.path.basename(p): sym = sym[::-1]
+            if W_nan: W[0, 0] = np.nan
+            arrays = {"d30_n2_c42_rec": r, "cols": np.array(_COLS), "symbols": sym, "d30_n2_c42_W": W}
+            for k in drop: arrays.pop(k)
+            np.savez(p, **arrays)
+    rc, out, j = judge_case(d, "r5_strict_positive", promote=True, strict=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")}, mutate=lambda v, o: _bookify(v, o))
+    check("★★★ [r5] valid_strict_schema_positive: full book schema (cols, symbols, finite W, gross 1) under JUDGE_REQUIRE_W=1 + the test contract ⇒ rc 0, A1e eligible, exactly 4 PROMOTE", rc == 0 and j and _n_promote(j) == 4, (rc, out.strip().splitlines()[-1][-160:]))
+    rc, out, j = judge_case(d, "r5_negative_gross", promote=True, strict=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")}, mutate=lambda v, o: _bookify(v, o, gross=-1.0))
+    check("★★★ [r5] negative_gross: gross_total = −1 with the numerators flipped (g unchanged) ⇒ rc 2 'gross_total on the frozen window must be finite and > 0' (round 4: rc 0, 4 PROMOTE)", rc == 2 and "finite and > 0" in out, out.strip().splitlines()[-1][-200:])
+    rc, out, j = judge_case(d, "r5_infinite_gross", strict=True, mutate=lambda v, o: _bookify(v, o, gross=np.inf))
+    check("★★★ [r5] infinite_gross: gross_total = +inf ⇒ rc 2 (round 4: accepted, g = 0)", rc == 2 and "finite and > 0" in out, out.strip().splitlines()[-1][-200:])
+    rc, out, j = judge_case(d, "r5_negative_gross_default_mode", mutate=lambda v, o: _bookify(v, o, gross=-1.0, drop=("cols", "symbols", "d30_n2_c42_W")))
+    check("★★★ [r5] the gross check holds in DEFAULT (rec-only) mode too: gross −1 on bare rec ⇒ rc 2", rc == 2 and "finite and > 0" in out, out.strip().splitlines()[-1][-200:])
+    rc, out, j = judge_case(d, "r5_nonfinite_W", strict=True, mutate=lambda v, o: _bookify(v, o, W_nan=True))
+    check("★★★ [r5] nonfinite_W: a NaN in W ⇒ rc 2 'non-finite entries in d30_n2_c42_W' (round 4: rc 0, 4 PROMOTE)", rc == 2 and "non-finite entries in d30_n2_c42_W" in out, out.strip().splitlines()[-1][-200:])
+    rc, out, j = judge_case(d, "r5_symbols_reversed", strict=True, mutate=lambda v, o: _bookify(v, o, reverse_arm="A1e"))
+    check("★★★ [r5] symbols_order_reversed: one arm's symbols axis reversed while W is not ⇒ rc 2 'symbols axis differs' (round 4: rc 0, 4 PROMOTE)", rc == 2 and "JUDGE_REFUSED symbols axis" in out and "A1e" in out, out.strip().splitlines()[-1][-200:])
+    rc, out, j = judge_case(d, "r5_no_cols_strict", strict=True, mutate=lambda v, o: _bookify(v, o, drop=("cols",)))
+    check("★★★ [r5] no_cols_strict: strict mode without cols ⇒ rc 2 'strict book contract: cols missing' (round 4: rc 0, 4 PROMOTE)", rc == 2 and "cols missing" in out, out.strip().splitlines()[-1][-200:])
+    rc, out, j = judge_case(d, "r5_no_symbols_strict", strict=True, mutate=lambda v, o: _bookify(v, o, drop=("symbols",)))
+    check("★★★ [r5] no_symbols_strict: strict mode without symbols ⇒ rc 2 'symbols missing' (round 4: rc 0, 4 PROMOTE)", rc == 2 and "symbols missing" in out, out.strip().splitlines()[-1][-200:])
+    rc, out, j = judge_case(d, "r5_rec_only_default", mutate=lambda v, o: _bookify(v, o, drop=("cols", "symbols", "d30_n2_c42_W")))
+    check("★★ [r5] rec_only_default: bare rec in DEFAULT mode is the documented narrow contract ⇒ rc 0, 18 verdicts (gross > 0 still enforced)", rc == 0 and j and len(j["verdicts"]) == 18, (rc, out.strip().splitlines()[-1][-120:]))
+    rc, out = run(["judge_v4.py"], {"JUDGE_HC": f"{d}/r5_rec_only_default/hc", "JUDGE_OUT": f"{d}/r5_alias.json", "JUDGE_STRICT_BOOK": "1"})
+    check("★ [r5] JUDGE_STRICT_BOOK=1 is an alias of JUDGE_REQUIRE_W=1 (bare rec ⇒ rc 2)", rc == 2, out.strip().splitlines()[-1][-120:])
 
 
 # ── [M] round 3 (review 31fa3e4e §6, AMENDMENT 4): G1 clause (c) is code, and the six anchors must be present ────────────────────

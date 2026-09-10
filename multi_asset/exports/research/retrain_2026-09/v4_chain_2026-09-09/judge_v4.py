@@ -32,7 +32,8 @@ Reproduction check first (#20): A0 dyn vs the published RAW_M1_UCRYPTO arm (dev_
   · JUDGE_ELIGIBILITY = {arm: {receipt, inputs}} only LOCATES the receipt; a caller-supplied gate/self_sha/profile that disagrees with the contract
     makes the arm ineligible; receipt.arm must equal the judged arm; the judge itself adds the arm's four judged book files to the declared inputs
     so the receipt must have hashed them (a book replaced after the receipt, or a receipt relabelled onto another arm, is refused)
-
+  · strict book contract (JUDGE_REQUIRE_W=1, alias JUDGE_STRICT_BOOK=1): cols == COLS and symbols present, W (n, n_symbols) finite, symbols axis
+    identical across arms; in EVERY mode gross_total on the frozen window must be finite and > 0 (default mode remains a rec-only contract otherwise)
   Researcher cases judge_both_raw_references_only60 / judge_raw_duplicate_and_gap / judge_fractional_timestamp_plus025 / judge_false_schema_no_W:
   · the A0p RAW references are validated BEFORE the reproduction: same schema as the arms, FULL frozen axis (JUDGE_N_FROZEN anchors, exact 4h
     grid, identical to the arms' frozen axis) and finite on it — a reference sharing 60 anchors, or one with a duplicate+gap, used to pass
@@ -52,6 +53,8 @@ WIN = {"2022": (T(2022, 1, 1), T(2023, 1, 1)), "2023": (T(2023, 1, 1), T(2024, 1
 PARTIAL = os.environ.get("JUDGE_ALLOW_PARTIAL") == "1"
 REQUIRE_W = os.environ.get("JUDGE_REQUIRE_W") == "1"   # round 4: demand the book weights W in every arm/reference (the real w10 artifacts carry them)
 class SchemaError(Exception): pass
+SYMBOLS = {}   # path -> symbols axis (round 5: identical across arms under the strict contract)
+REQUIRE_W = REQUIRE_W or os.environ.get("JUDGE_STRICT_BOOK") == "1"   # alias: the switch is the strict BOOK contract, not only "W exists"
 def load(path):
     """(ts, g, R). Round 4: the NPZ schema is validated before any number is read — a malformed artifact raises SchemaError (caller exits 2)."""
     A = np.load(path, allow_pickle=True); keys = set(A.files)
@@ -69,6 +72,23 @@ def load(path):
     t = np.asarray(R[:, 0], dtype=np.float64)
     if not np.isfinite(t).all(): raise SchemaError("non-finite timestamps in rec[:,0]")
     frac = np.abs(t - np.round(t))
+    # ★ round 5 (review cfaf1bbe §5): the STRICT BOOK CONTRACT (JUDGE_REQUIRE_W=1 / JUDGE_STRICT_BOOK=1) is a contract, not a presence check:
+    #   cols == COLS and symbols present, W (n, n_symbols) FINITE; and in EVERY mode the economic denominator on the frozen window is finite
+    #   and > 0 (gross_total = -1 with the numerators flipped kept g and PROMOTEd; +inf made g = 0 and passed). Symbol-axis identity across
+    #   arms is checked by the caller after loading (SYMBOLS).
+    if REQUIRE_W:
+        if "cols" not in keys: raise SchemaError("strict book contract: cols missing")
+        if "symbols" not in keys: raise SchemaError("strict book contract: symbols missing")
+    if "d30_n2_c42_W" in keys:
+        _W = np.asarray(A["d30_n2_c42_W"], dtype=np.float64)
+        if not np.isfinite(_W).all(): raise SchemaError(f"non-finite entries in d30_n2_c42_W ({int((~np.isfinite(_W)).sum())} cells)")
+    _gt = np.asarray(R[:, C["gross_total"]], dtype=np.float64); _tt = np.round(t).astype(np.int64) if np.isfinite(t).all() else None
+    if _tt is not None:
+        _m = (_tt >= FROZEN[0]) & (_tt < FROZEN[1])
+        if _m.any() and not (np.isfinite(_gt[_m]).all() and (_gt[_m] > 0).all()):
+            _bad = int(np.argmax(~(np.isfinite(_gt[_m]) & (_gt[_m] > 0))))
+            raise SchemaError(f"gross_total on the frozen window must be finite and > 0 (row {_bad} of the window: {_gt[_m][_bad]!r}); g = net_ex/gross_total is meaningless otherwise")
+    SYMBOLS[path] = [str(x) for x in np.asarray(A["symbols"]).ravel()] if "symbols" in keys else None
     if (frac >= 1e-9).any(): bad = int(np.argmax(frac >= 1e-9)); raise SchemaError(f"timestamps are not integer seconds (row {bad}: {t[bad]!r}; the old astype(int64) truncated silently)")
     ts = np.round(t).astype(np.int64); g = R[:, C["net_ex"]] / R[:, C["gross_total"]]
     return ts, g, R
@@ -110,6 +130,16 @@ for arm in ("A0", "A0p", "A1", "A1s", "A1e", "A2", "A3"):
 print("arms loaded:", sorted("_".join(k) for k in ARMS), "| missing:", missing, "| schema_bad:", _schema_bad)
 if _schema_bad and not PARTIAL:
     print("JUDGE_REFUSED arm schema:", _schema_bad, flush=True); sys.exit(2)
+# ★ round 5: under the strict book contract every arm's symbols axis must be IDENTICAL (same names, same order — W's columns are positional)
+_sym_ref = None; _sym_bad = {}
+for _k in sorted(ARMS):
+    _p = f"{HC}/dev_v4/probe_artifacts/w10_ablation_series_V4_{_k[0]}_{_k[1]}_s{_k[2]}.npz"; _s = SYMBOLS.get(_p)
+    if REQUIRE_W and _s is None: _sym_bad["_".join(_k)] = "no symbols axis"; continue
+    if _s is None: continue
+    if _sym_ref is None: _sym_ref = ("_".join(_k), _s)
+    elif _s != _sym_ref[1]: _sym_bad["_".join(_k)] = f"symbols axis differs from {_sym_ref[0]} (n {len(_s)} vs {len(_sym_ref[1])}; first difference at {next((i for i, (a, b) in enumerate(zip(_s, _sym_ref[1])) if a != b), min(len(_s), len(_sym_ref[1])))})"
+if _sym_bad and not PARTIAL:
+    print("JUDGE_REFUSED symbols axis:", _sym_bad, flush=True); sys.exit(2)
 out = {"arms": sorted("_".join(k) for k in ARMS), "missing": missing, "schema_bad": _schema_bad, "levels": {}, "contrasts": {}, "verdicts": {}, "reproduction": {}, "exploratory": bool(PARTIAL)}
 N_FROZEN = int(os.environ.get("JUDGE_N_FROZEN", "3168"))
 # --- eligibility (round 4): PER ARM and IDENTITY-BOUND. The promoted arm of a contrast may read "(A) PROMOTE" only if an export-gate receipt BOUND TO THAT
