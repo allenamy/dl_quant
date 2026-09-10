@@ -474,3 +474,45 @@
 1. `_order_row` 的账本覆盖对 `filled_notional` 的处理: 账本已关闭 ⇒ 取账本 Σ; 未关闭而调用方未标 UNKNOWN ⇒ 保留调用方值并标 `ledger_label_mismatch`(不改标签)—— 是否应改为直接置 None?
 2. `_scan_orders` 对「executedQty 缺失且 cumQuote/avgPrice 可读」的推导现在也用于 allOrders 页(不只 decoder); 推导值进入 `executed_qty` 与 `executed_qty_derived` —— 若你认为 allOrders 页的推导应降为下界而非可信 C, 请指出。
 3. 端到端夹具把行时间戳统一放进回读窗(fixture 的 updateTime 2000 ms 不是被测对象); 窗口语义由既有 reconcile 套件覆盖。
+
+
+---
+
+## §EXECUTOR · 第八轮(复审 82cbe018: A 来源合并 / B 可靠终态门 / C 矛盾 ⇒ UNKNOWN / #1 读者写金额)→ 实盘分支 2381030
+
+> 全电池 132/132, 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round7_codex_82cbe018_2026-09-10.md`; 事实表补格: `docs/DESIGN_request_fact_model_2026-09-10.md` §3b / §4.3(来源合并是表里漏掉的一列, 本轮补上); Q6 修订 3: `docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md` §1c(撤回「≤3 精确」, 联合可行集为对象)。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 173/173) |
+|---|---|---|---|
+| A | `binance_broker.merge_order_records`(新)/ `last_fill_details` | 提交回包与金额补查逐字段合并: 可读的 executedQty 不被缺字段撤销; 累计量不减(后读 < 先读 = 矛盾); 终态吸收(终态后 NEW = 矛盾); 显式 0 + 终态 = 测得零(任一入口); 金额/价格取可读者(后读优先); 负数 / NaN / 0 伴正金额 = 矛盾 | [43] 四格 + merge 单元; [44] 补单腿两链: 20(无金额)+50 ⇒ 70 / 持仓 100 异常 30; ACK+GET 0 + 50 ⇒ 50 / 持仓 100 异常 50 |
+| B | `venue_fills._scan_orders` / `settle_ambiguous_legs`; `anchor_loop.complete_anchor` | 折叠保留匹配记录 `last_matched_rows()`; 匹配的请求: 记录缺 status ⇒ 按未匹配走查单; 身份不符(symbol / side / origQty / orderId)⇒ UNKNOWN; 只有显式终态且身份相符才 `terminal_matched`(覆盖 unresolved、清 pin) | [45] 无 status ⇒ 查单失败 ⇒ UNKNOWN(不清 pin 不补单); origQty 5 vs 10 ⇒ UNKNOWN; 显式 CANCELED + 身份 ⇒ terminal_matched |
+| C | `anchor_loop.complete_anchor` | details 带 `inconsistent` 的名 ⇒ UNKNOWN(不入 filled, 不补单); UNKNOWN maker 行带 `inconsistent` ⇒ 读者不可测 | [46] 原链: 查单 C=0/N=4 ⇒ maker 行 inconsistent, 0 次补单, reconcile 任何持仓皆异常; 正控 CANCELED 0 ⇒ 补 10 成交 |
+| #1 | `binance_executor._order_row` | 有账本: `filled_notional` = 读者(未关闭 ⇒ None, 标签改 `filled_amount_unknown` + `ledger_label_mismatch`); `avg_fill_px` = 读者同集合均价或 None; 不再回退分支值 | [47] |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第七轮 | 第八轮 |
+|---|---|---|
+| A `known20_then_missing_C_and_N` | known 50 + 带 50, 持仓 100 CLEAN | filled_qty 70 / 带 0, 持仓 100 异常 30 |
+| A `terminal_zero_after_ACK` | known 50 + 带 50 | filled_qty 50 / filled 50, 持仓 100 异常 50 |
+| B allOrders 缺 status + 撤失败 | 清 pin, 补 10 | UNKNOWN, 不清 pin, 不补 |
+| B allOrders origQty 5 vs Q 10 | 补 6 | UNKNOWN |
+| C 查单 / allOrders C=0/N=4, C=−1/N=4 | 写 0, 补 10 | maker 行 inconsistent, 不补, 不可测 |
+| #1 999/123 夹具 | 回退分支值 | None / 读者值 |
+
+**版本配对(上一轮期望被改的格)**: [18]「匹配即不重查」、[41]「匹配且终态即 terminal_matched」改为带记录(显式终态 + 身份)才成立; `tests_signal_and_loop` 三处场所夹具行补 `symbol` / `origQty` / `orderId`(真实 allOrders 行必有; 身份门需要)。
+
+### 未闭合(明写)
+1. **Q6**: 修订 3(联合可行集为对象, 精确可满足性, 联合 checkpoint, 预测集, 证据/推断下界分离, 合同统一)未落码; 验收改为你的 8 组 40 条断言与网格解集原样重跑。
+2. R6-MARK 不可定价数量动作合同; −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。
+3. 撤单回包(k-cancel 的 DELETE 响应带 executedQty)尚未进入 `merge_order_records` 的合并(它只合并提交回包与补查); allOrders 与查单记录之间的合并在 settle 里按「较新可靠终态覆盖」处理, 不是逐字段合并 —— 登记为下一格。
+
+### 我方在第八轮里承认的自己的错(见处置文档 §4)
+`terminal_matched` 把「没看到 open」当「证明了终态」且没过身份门(第七轮新增放行域)/「六列都被推翻」说过头 / 事实表漏了「同一请求多条记录如何合并」这一列 / Q6「≤3 精确」无证明。
+
+### 请复核(第八轮新问题, 我方自报)
+1. `merge_order_records` 把「后读 executedQty 小于先读」判矛盾 —— 若场所在撤单竞态下可能短暂回退(文档未见), 请指出; 我方按累计量单调处理。
+2. 身份门对 allOrders 记录要求 `origQty` 与我方 Q 相符(1e-6 相对), 对被场所改量(如 -2027 截断后的接受量)的记录会判不符 ⇒ UNKNOWN(保守方向); 请判断是否有合法改量的情形。
+3. 折叠矛盾 ⇒ 整名 UNKNOWN: 同名若有多条我方记录(-1 与 -2), 一条矛盾使另一条也 UNKNOWN(保守方向)。
