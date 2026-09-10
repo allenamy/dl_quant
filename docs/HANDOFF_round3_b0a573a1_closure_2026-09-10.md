@@ -1,7 +1,7 @@
 # HANDOFF round 3 · 独立研究员复审 31fa3e4e 的修复收口(给研究员第三轮复核)
 
-> **创建:** 2026-09-10 01:3xZ | **Session:** https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX | **状态:** PIPELINE 节完成(研究分支); EXECUTOR 节由主研究员另补(实盘分支) | **作废条件:** 两条分支分别合并后降为历史记录; 若研究员第三轮再出 P1, 以其复核件为准
-> **被复审对象**: 研究分支 `review/b0a573a1-pipeline` 自 fb98a8f9 之后的第三轮提交(见 §P0 表); 实盘分支 `review/b0a573a1-executor` 的第三轮提交(主研究员另填)。
+> **创建:** 2026-09-10 01:3xZ | **Session:** https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX | **状态:** PIPELINE 节 + EXECUTOR 节均完成, 待研究员第三轮复核 | **作废条件:** 两条分支分别合并后降为历史记录; 若研究员第三轮再出 P1, 以其复核件为准
+> **被复审对象**: 研究分支 `review/b0a573a1-pipeline` 自 fb98a8f9 之后的第三轮提交(见 §P0 表); 实盘分支 `review/b0a573a1-executor` 的第三轮提交 **d73b1b0**(基 e1c4c87; 全电池 132/132 绿(第三次; 前两次分别被漂移门与静态名门拦下并修正); 见 §EXECUTOR)。
 > **协议不变**: 修复在分支 → 研究员复核 → 分别合入 `multi-asset-v2` / `main` → 部署另裁; 本轮不改任何研究结论(G2 FAIL, v4e 无换装资格, 18 格 (C))。
 
 ---
@@ -74,6 +74,52 @@
 4. **历史收据不重算**: JUDGE_v4e_* / G1 / G2 收据保持原样, 映射到产生它们的快照; 第三轮不改任何数字与判决。
 5. **快照 16 件不在 pod2**(按设计, 快照只在归档), 清单按前缀归类为 SNAPSHOT 不计入 DIFFERS。
 
-## §EXECUTOR(实盘分支 `review/b0a573a1-executor`)
+## §EXECUTOR · 实盘分支 `review/b0a573a1-executor` 第三轮(复审 31fa3e4e P1-1…P1-4 / cap P2 / A1–A3 收口)
 
-(由主研究员填写: P1-1 absent 语义 / P1-2 请求身份 / P1-3 UNKNOWN 消费者合同与对账授权带 / P1-4 408·-1007·-1006 / cap P2 / income 同毫秒饱和 truncated / 12Z 52 行补件重建器折叠。)
+> 提交: `d73b1b0`(基 e1c4c87 → d040c74; safe_commit 全电池 `132/132 绿(第三次; 前两次分别被漂移门与静态名门拦下并修正)`); 运行树 main 仍 d040c74, **未部署**。复审入口: 本节 + `live/tests_request_identity_unknown.py`(32 项) + 你自己的 `executor/fault_cases.py` / `consumer_followup.py`(我们在封闭副本上以 `python3 -O` 关闭断言重跑, 逐案观测见下表; 原件未改)。
+
+### 改了什么(每条对应你的编号)
+
+| 你的编号 | 修复 | 落点 | 证明 |
+|---|---|---|---|
+| P1-1 | `-2013×2` 不再是「未发」: `_settle_order_post` 置 `resolved="absent", ambiguous=True`(absent 是证据留在 `resolved`, 不是判决); 三个提交点(maker / 重挂 / 补单)把 `resolved=="absent"` 与 `ambiguous` 同待; 本锚对该意图**不再发任何单**; phase B 15 分钟后从 `allOrders` 结算(从未下达的单在那里就是不存在 ⇒ filled 0 ⇒ 补单, 非「本锚少一腿」外无代价) | `live/binance_broker.py` `_settle_order_post`; `live/binance_executor.py` L802/L988/L1550 三处 | 你的 case 1: live 0→**1**, 行 transport_error→**无行**, POST 1; consumer case「requote_absent_then_topup」: POST 2→**1**, rested 0→**1** |
+| P1-2 | 每个场所请求唯一 client id: maker `-1`、重挂 `-2`、补单 `-3`、分块 `-3c1…`(`attempt_idx` 不变, id 是请求身份, attempt 是行经济学); `_resolve_ambiguous_order` 核对 `found.clientOrderId == cid`, 不符 ⇒ unknown; `submitted_order_legs` 拒绝同 orderId 的第二个 client id, 记 `last_leg_conflicts()`, 锚内 HIGH 页 | broker `_resolve_ambiguous_order`; executor 补单 id; `venue_fills.submitted_order_legs` | 你的 case 3: filled 10.0→**None / known 5 / unknown 5**, ids `[-2,-2]`→`[-3c1]`; case 4: 归属 topup_taker→**maker 保留**, 末行 `filled_amount_unknown` |
+| P1-3 (i) | 补单 `except VenueError`: 若此前有不可读块(`_unknown`)⇒ 写 None / known / unknown, `filled_amount_unknown` | executor 补单 except 分支 | 你的 case 5: filled 0.0 known→**None / unk 10 / bounded** |
+| P1-3 (ii) | `apply_commission_to_rows`: 行带 `filled_unknown_residual` 时**只抬 `filled_known_notional` 下界**, 不写 filled_notional, 不改终态, `out["unknown_kept"]` 计数; `book_after_anchor` 因 filled None 把该名列入 unknown 而不记 5 | executor L18xx | 你的 case 6 / consumer case 2: after 5.0 filled→**None / filled_amount_unknown / known 5**, book {HUSDT:5}→**{} + unknown [HUSDT/topup_taker]** |
+| P1-3 (iii) | **UNKNOWN 有了消费者**: `reconcile._exec_qty` 新 kind `bounded`(known 部分入 expected, unknown 部分记为**签号授权带** USDT); `_between` 返回带; 残差落在带内同向 ⇒ 解释(`residual_qty` 0, 记 `residual_qty_raw` 与 `authorised_band_usdt`), 超带部分或反向 ⇒ 照旧异常。这样 UNKNOWN 不再被消费者抹掉, 也不会变成 §4-5b 的无条件异常(那会平仓) | `live/reconcile.py` | 新套件 [8]: venue +8 于 known 5 + 带 5 ⇒ 0 异常; +12 ⇒ 异常 2.0(raw 7); +2 ⇒ 异常 −3; 无带信息的纯 unknown 仍 `execution_of_unknown_size` |
+| P1-3 (iv) | 未归属成交有声: n_unattributed>0 ⇒ INFO; 若本锚该名有 UNKNOWN 请求 ⇒ HIGH 并点名 | `scheduler/anchor_loop.py` 收费收集段 | 代码 + 新套件 wiring |
+| P1-4 | `_execution_unknown`: HTTP 408 或 code ∈ {-1007, -1006} ⇒ 执行未知; -1008 等仍拒 | broker | 你的 case 2: GET 0 / venue_reject → **GET 1 / live 1**; 新套件 [3] 三组 + -1008 对照 |
+| cap P2 | `clamp_venue_cap` 先校验 cap/target/held/margin 有限性(非有限 ⇒ 记 `invalid` 且该名不动), 临时映射算完后**原子应用**; `reduce_to_cap` 名进 `reduce_only_syms`, 计划器调用点并入 reduce-only; 非有限 ⇒ HIGH 页点名 | `scheduler/anchor_loop.py` | 你的 case 8a: 异常+GOOD 已改 → **无异常, GOOD 1960, BROKEN 原样, invalid 点名**; 8b: nan → **100.0 原样**; 8c: 你的调用传 `reduce_only_syms=set()` 绕过了接线, 故 plan.reduce_only 仍 False, 但 clamp 报告 `reduce_only_syms=[HUSDT]`, 真实调用点已并入(新套件 [9] 证 plan.reduce_only True) |
+| A2 | `income_since`: 满页且游标无法前进(同毫秒饱和 / 无新行)⇒ `truncated=True`, `same_ms_saturated=True`; 页宽常量 `INCOME_PAGE_LIMIT`; 夹具 `_request` 按 `min(limit, self.page)` 真分页 | broker; `tests_income_twin_rows` [E][F] | 你的 A2 表: 1,001/2,001 行 ⇒ 1,000 行 **truncated True**(原 False); 页恰满且下一读无新行也 True; 短页 False |
+| A3 | docstring 改闭区间 `[start_ms, end_ms]`(场所 endTime 含边界), 相邻窗口用 `end−1`; 返回加 `by_type_asset` 与 `non_usdt_assets`(不换算, 具名) | broker | 新套件 [G]: BNB 手续费行被具名并分桶 |
+| A5 | **平仓单带我方 client id**: `flatten_all(..., client_prefix)` 每块 `F<yyyymmddHHMMSS>-<sym>-<i>`(≤36 字符不截断); 看门狗阶梯与陈旧信号阶梯两处以 broker 属性 `flatten_client_prefix` 传前缀(前缀 = 平仓时刻的 UTC 秒; 既有假 broker 的 `flatten_all(positions, reason)` 签名不受影响); 平仓 orders 行记 `client_id`。第一次电池因我改了字节冻结的 `pilot_metrics.py` 而红(漂移门), 第二次因阶梯作用域里引用了不存在的 `trip_key` 而红(静态名门), 均已修; 第三次 132/132 绿。**09-09 历史平仓**: 通用 `ops/backfill_fills.py` 因平仓单无 client id 正确拒绝(重建 0 腿); 专用工具 `pilot_journal/tools/backfill_flatten_fills_20260909.py` 按 **orderId 精确联接**(allOrders MARKET∧reduceOnly∧窗内 → userTrades.orderId): 243/243 名各识别平仓单, **3,095 笔 / Σ 232,756.969 = 243 张平仓行 Σfilled 逐名零差 / USDT 费 116.378476 = 子窗 income 3,094 行到分**(1 笔 BNB 计费 0 另列); 干跑收据在 pilot_journal; 写回等字 | `live/binance_broker.py`, `live/watchdog.py`, `scheduler/anchor_loop.py`; 研究主线工具 | 新套件 [11]; 干跑收据 `backfill_flatten_fills_20260909_dryrun.json`(reconciled=true 待重跑确认) |
+| A1 | 结构化旗标 `reconstructed_from_venue`: `order_disposition.gaps` 排除; 重建工具写该列 + 费用/毛额对账门。**`pilot_metrics.py` 是字节冻结模块**(漂移清单 + metrics_freeze 2026-08-05, 电池第一次因我改它而红): 排除重建行是指标定义改动, 登记为「有意再封存」决定(需用户字), 不在本轮改; 在此之前 **52 行不能 apply**(重建行 target_w/prev_w None 会让 `m4_turnover` 抛错, 新套件 [10] 把这个门记成断言) | `live/order_disposition.py`; 研究主线工具 | 新套件 [10]; 工具离线复算 Σfee 0.50724168 = 折叠 fills 69 笔 |
+
+### 你的 13 个反例在修复分支上的观测(封闭副本, `python3 -O`, 原脚本仅加 `rows_orders[-1]` 空表守卫)
+
+| 案 | 你的观测(e1c4c87) | 修复后观测 |
+|---|---|---|
+| 1 two_absent_then_late_filled | live 0, 行 transport_error, filled 0 | live **1**, **无行**, POST 1 |
+| 2 http408_backend_unknown | GET 0, venue_reject | GET **1**, live **1**, 无行 |
+| 3 second_chunk_queries_first_terminal | filled 10.0, ids [-2, -2], orderIds [9001] | filled **None**, known **5**, unknown **5**, ids **[-3c1]**, orderIds [9001] |
+| 4 requote_to_topup_id_alias | 归属 9101 → topup_taker, 末行 filled 5.0 | 归属 9101 **保留 maker**, 末行 `filled_amount_unknown`, unknown 5 |
+| 5 unreadable_earlier_chunk_then_refusal | filled 0.0, reconcile known | filled **None**, unknown **10**, reconcile **bounded** |
+| 6 known_subset_promotes_unknown_complete | after filled 5.0 `filled` | after **None** `filled_amount_unknown`, known 5, **bounded** |
+| 7 cleanup_row_fault_closed | 已关闭 | 不变(same_error, 2 行, 1 页) |
+| 8a cap_exception_is_partial_mutation | 异常且 GOOD 已改 1960 | **无异常**, GOOD 1960, BROKEN 原样(`invalid` 点名) |
+| 8b cap_nan_injects_nan | nan | **100.0 原样** |
+| 8c cap_reduce_not_tagged_reduceOnly | plan.reduce_only False | 你的调用绕过接线故仍 False; clamp 报 `reduce_only_syms=[HUSDT]`, 真实调用点并入(新套件 [9]) |
+| C1 requote_absent_then_topup | POST 2, rested 0 | POST **1**, rested **1**, 无行 |
+| C2 actual_attribution_and_book_after | after filled 5.0, book {HUSDT: 5}, known | after **None**, known 5, book **{}** + unknown [HUSDT/topup_taker], **bounded**, n_unattr 1 |
+| C3 cap_reduction_during_opening_halt | blocked_by_halt | 不变 |
+
+### 我方在第三轮里又抓到的自己的错
+- 我 09-09 17:4xZ 写的「平仓手续费 3,049 笔 / −114.77U = 4.93 bps」是下界: 我的临时 income 查询用 `startTime=last+1` 翻页, 在页边界丢了 45 行 —— **正是你 A2 指出的饱和缺陷, 在我自己的查询里再现**。子窗 + 去重重查: 3,094 行 / −116.378476U = **5.00 bps**; 平仓总代价 ≈ 96 + 116 ≈ 212U ≈ 9.1 bps/gross(结论不变)。journal 已追加更正。
+- 第一次全电池红: 我改了字节冻结的 `pilot_metrics.py`(漂移门抓到)。已还原, 排除逻辑改为登记再封存决定。
+
+### 请复核(第三轮新问题, 我方自报)
+1. **授权带的方向与标价**: 带以 `filled_unknown_residual`(USDT)/mark 转合约数, mark 取复读价; 若 unknown 请求以远离复读价成交, 带会略偏。是否可接受为「残差解释带」而非精确量?
+2. **absent ⇒ 歧义**的代价面: 一条真正从未下达的 maker 现在要等 phase B 才补单(≤15 分钟), 与旧规则「立即当未发、下锚补」相比, 本锚不再少一腿但多了一个 k 窗等待。是否有我们没看到的第三种代价?
+3. **client id 后缀读者**: 我们改了 `tests_signal_and_loop` 夹具(-3 / -3cN → orderId 202), 重建工具的 `rsplit("-",1)` 只服务历史 12Z(-1/-2); 请再扫一遍你能想到的其它读者。
+4. **§4-5b 与 bounded**: 有带信息的 unknown 不再直接进 `execution_of_unknown_size`; 无带信息(旧行)仍进。这是有意的不对称: 旧行本来就是异常。请确认没有把真正的洞变小。
+5. **未做**: 请求级持久化「未决列表」跨进程恢复(P1-1 的完整解); reduce-only 与库存变化的统一合同(cap 8c 的更深层); 同毫秒饱和的完整解法(页码/类型分区); asset 换算。均登记, 不在本轮。
