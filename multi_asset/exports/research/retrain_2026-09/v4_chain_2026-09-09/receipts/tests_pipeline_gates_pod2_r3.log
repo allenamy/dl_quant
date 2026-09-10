@@ -1,0 +1,92 @@
+[A] identical builds PASS with rc 0 and a receipt bound to input SHAs
+  OK   ★★★ PASS, rc 0 — (0, 'G2 closure gate tmp vs tmp: common 360 pairs; only-A 0 (outside membership closure 0); only-B 0 (outside 0); columns with outside-closure diffs 0/89\nG2_closure PASS -> /tmp/tmp73f8eifd/out.json\n')
+  OK   ★★ receipt names every input with a sha256 and records the gate's own sha
+
+[B] a value change OUTSIDE the closure -> FAIL and rc 3 (reviewer: was PASS=false with rc 0)
+  OK   ★★★ FAIL is rc 3 and PASS false — 3
+  OK   ★★ the failing column is named — ['F:c5_48']
+
+[C] axis faults the old gate could not see (reviewer R7): E_ts +300 s and reversed symbols on side B
+  OK   ★★★ E_row unchanged but E_ts shifted + symbols reversed ⇒ FAIL rc 3 on the axis (was PASS=true rc 0) — (3, ['E_ts_equal', 'symbols_equal_same_order'])
+
+[D] duplicate pair key and wrong column count -> FAIL
+  OK   ★★ duplicate pair on B ⇒ FAIL (pairs_unique_B) — ['pairs_unique_B']
+  OK   ★★ expected 90 columns but 89 present ⇒ FAIL (n_cols_ok)
+
+[E] `require`: chains may only dispatch on a fresh PASS receipt OF THE EXPECTED GATE with declared inputs
+  OK   ★★★ PASS receipt + expected gate + unchanged inputs ⇒ rc 0 — REQUIRE_OK PASS (G2_closure, 2026-09-10T01:21:25Z, self 15a03d4a0937, 2 inputs verified)
+  OK   ★★★ an input that changed AFTER the receipt ⇒ rc 3 (stale receipt is not a receipt) — REQUIRE_FAIL input 'fea_A' changed since the receipt: 70510e0fcc29 != 428b3e486bab
+  OK   ★★ a FAIL receipt ⇒ rc 3 — REQUIRE_FAIL receipt says PASS=False (gate G2_closure, None)
+  OK   ★★ a missing receipt ⇒ rc 3
+  OK   ★ an input the receipt never hashed ⇒ rc 3 (no silent pass on an unrecorded dependency)
+  OK   ★★★ [r3] a PASS receipt from ANOTHER gate ⇒ rc 3 (reviewer: wrong gate name used to pass) — REQUIRE_FAIL receipt is from gate 'G2_closure', caller expected 'UNRELATED_GATE'
+  OK   ★★★ [r3] a caller that names NO gate ⇒ rc 3 (no anonymous requires) — REQUIRE_FAIL caller did not declare the gate it expects (gate=<name>); a receipt cannot be required anonymously
+  OK   ★★★ [r3] self_sha256 all-zero ⇒ rc 3 (reviewer: pseudo/absent self sha used to pass) — eipt carries no usable self_sha256 ('0000000000000000000000000000000000000000000000000000000000000000'): the gate's own code is unidentified
+  OK   ★★★ [r3] self_sha256 missing ⇒ rc 3 (reviewer: pseudo/absent self sha used to pass) — REQUIRE_FAIL receipt carries no usable self_sha256 (None): the gate's own code is unidentified
+  OK   ★★★ [r3] self_sha256 garbage ⇒ rc 3 (reviewer: pseudo/absent self sha used to pass) — REQUIRE_FAIL receipt carries no usable self_sha256 ('not-a-sha'): the gate's own code is unidentified
+  OK   ★★ [r3] a pinned gate source that differs from the receipt's ⇒ rc 3 — REQUIRE_FAIL receipt was written by gate source 15a03d4a0937, caller trusts abababababab
+  OK   ★★ [r3] the pinned gate source that MATCHES ⇒ rc 0 — REQUIRE_OK PASS (G2_closure, 2026-09-10T01:21:25Z, self 15a03d4a0937, 1 inputs verified)
+  OK   ★★★ [r3] an EMPTY dependency list ⇒ rc 3 (reviewer: {PASS:true} with no inputs used to pass) — REQUIRE_FAIL caller declared no inputs: nothing would be verified, so nothing is permitted
+  OK   ★★ [r3] a hand-written {PASS:true, gate} with no self sha and no input shas ⇒ rc 3 — REQUIRE_FAIL receipt carries no usable self_sha256 (None): the gate's own code is unidentified
+  OK   ★ [r3] a receipt whose input sha is null (the gate never saw the file) ⇒ rc 3 — REQUIRE_FAIL receipt recorded no sha for input 'fea_A' (the gate did not see that file)
+
+[F] the judge REFUSES without its required inputs (reviewer R4: used to exit 0 with empty verdicts)
+  OK   ★★★ no arms at all ⇒ rc 3 at the reproduction gate (A0p reproduction absent), no verdict JSON written — (3, "JUDGE_REFUSED reproduction (#20): {'missing_reference': ['A0p_dyn_s42_vs_RAW_M1', 'A0p_dyn_s2027_vs_RAW_M1'], 'paired_maxabs_bad_or_nonfinite': {}}")
+  OK   ★ JUDGE_ALLOW_PARTIAL=1 (exploration only) lets it run through and says so — (0, 'Y RUN (JUDGE_ALLOW_PARTIAL=1): inputs incomplete — no verdict is issued, nothing can PROMOTE\n   ★ eligibility = informational (export gate not PASS): an (A) reads as INFO, never PROMOTE\nJUDGE_V4_DONE\n')
+
+[G] G1 stable-trend gate: required booleans decide the exit code
+  OK   ★★ synthetic G1 passes with rc 0 and a receipt (gate/PASS/self sha) — (0, 'nan_flips_vs_global": 282, "c_nan_flips_by_col": {"5": 282}, "c_flips_only_on_flat_symbol": true, "d_deterministic": true}\nG1_SYNTHETIC_DONE\nG1_stable_trend_synthetic PASS -> /tmp/tmpee4j1weg/G1.json\n')
+
+[H] generator regeneration is BITWISE (reviewer P1-REGEN: regenerating used to restore the hard-coded v3 BUNDLE_BASE)
+  OK   ★★★ the regenerated EXPORTER is byte-identical to the archived one (BUNDLE_BASE read from env survives regeneration) — (0, {'pod_export_bundle_v4.py': True, 'pod_f10_train_monthly_v4.py': True, 'pod_f10_refit_v4.py': True}, '@@\n-print(f"BUNDLE_DONE files {len(man)} size {os.path.getsize(\'/workspace/shadow_bundle_v3.tar.gz\')//1048576}MB", flush=True)\n+print(f"BUNDLE_DONE files {len(man)} size {os.path.getsize(os.environ.get(\'BUNDLE_TAR\', \'/workspace/shadow_bundle_v4.tar.gz\'))//1048576}MB", flush=True)\n\nall three compile\n')
+  OK   ★★ regenerated trainer + refit are byte-identical to the archived ones — {'pod_export_bundle_v4.py': True, 'pod_f10_train_monthly_v4.py': True, 'pod_f10_refit_v4.py': True}
+  OK   ★ the regenerated exporter reads BUNDLE_BASE from env
+
+[I] chain drivers: a failed shard aborts BEFORE merge; DONE is never written on failure (reviewer P1-PIPE)
+  OK   ★★★ shard 2 exits 7 ⇒ driver exits 1 with FAIL_shards_... naming the rc list, merge NEVER runs, no DONE — (1, ['[2026-09-10T01:21:33Z] shards RAW s42 rc=[0 0 7 0]', '[2026-09-10T01:21:33Z] FAIL_shards_RAW_s42_rc_[0 0 7 0]'])
+  OK   ★★ all shards rc 0 ⇒ merge runs and DONE is written — ['MERGE_RAN', '[2026-09-10T01:21:33Z] CHAIN_TEST_DONE']
+  OK   ★★★ a FAIL receipt stops the driver at require_gate (rc 3), nothing is dispatched — (3, 'IRE_FAIL caller did not declare the gate it expects (gate=<name>); a receipt cannot be required anonymously\n[2026-09-10T01:21:33Z] FAIL_gate_require_failed_gate')
+
+[J] chain_v4s_gpu.sh under fault injection (reviewer: wrong gate / wrong source / changed holes / changed RAW used to dispatch 8 trainings)
+  OK   ★★★ success: both receipts PASS+fresh ⇒ 8 trainings, 2 merges, DONE, deps pinned — {'rc': 0, 'train': 8, 'merge': 2, 'done': True, 'deps': True, 'err': '-8)\n/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)\n/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)\n/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)\n/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)\n'}
+  OK   ★★★ wrong_gate: receipt from another gate ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-10T01:21:34Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ wrong_source: all-zero self sha ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-10T01:21:35Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ changed_holes: hole_cells changed after the receipt ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-10T01:21:35Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ changed_RAW: RAW targets changed after the STEP1 receipt ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-10T01:21:35Z] FAIL_gate_require_step1'}
+  OK   ★★★ gate_fail: G2 receipt FAIL ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-10T01:21:35Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ step1_fail: STEP1 receipt FAIL ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-10T01:21:36Z] FAIL_gate_require_step1'}
+  OK   ★★★ changed_explicit_input: fea_A changed ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-10T01:21:36Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★ legs file missing ⇒ rc 3 before any dispatch — {'rc': 3, 'train': 0, 'done': False}
+  OK   ★★ shard 1 rc 7 ⇒ rc 1, 4 trainings dispatched, no merge, no DONE (unchanged from round 2) — {'rc': 1, 'train': 4, 'merge': 0, 'done': False}
+
+[K] chain_v4_data.sh: an unchecked cp can no longer produce DATA_DONE (reviewer data_copy_failure)
+  OK   ★★★ fea82 producer 'succeeds' but writes no file ⇒ FAIL_fea82_output_missing, rc 1, no CHAIN_V4_DATA_DONE (was: DATA_DONE rc 0) — (1, '[2026-09-10T01:21:37Z] FAIL_fea82_output_missing')
+  OK   ★★ every producer writes its output and the copy verifies ⇒ CHAIN_V4_DATA_DONE rc 0 — (0, '[2026-09-10T01:21:38Z] CHAIN_V4_DATA_DONE')
+
+[L] judge_v4: exact axis, both references, finiteness, exploratory standing, export-gate eligibility
+  OK   ★★★ full valid synthetic set (equal arms) ⇒ rc 0, 18 verdicts all (C), eligibility informational (no export gate given), not exploratory — (0, {'eligibility': 'informational', 'exploratory': False, 'n_extended_more_anchors': 0}, 'JUDGE_V4_DONE')
+  OK   ★ the extended-window surplus is COMPUTED (0 here: the synthetic arms end at the frozen window) — 0
+  OK   ★★★ the seed-2027 A0p reference missing ⇒ rc 3 (reviewer: `any` accepted one reference) — JUDGE_REFUSED reproduction (#20): {'missing_reference': ['A0p_dyn_s2027_vs_RAW_M1'], 'paired_maxabs_bad_or_nonfinite': {}}
+  OK   ★★★ one anchor duplicated (count still 3168) ⇒ rc 2 at the axis gate (reviewer: 3168 was a count, not a set) — ', 'A3_fix_2027': 'not a strict 4h grid at index 99: diff 0 s (duplicate or gap)', 'A3_fix_42': 'not a strict 4h grid at index 99: diff 0 s (duplicate or gap)'}
+  OK   ★★ 60 anchors ⇒ rc 2 (coverage) —  'A3_dyn_2027': 'n=60 != 3168', 'A3_dyn_42': 'n=60 != 3168', 'A3_fix_2027': 'n=60 != 3168', 'A3_fix_42': 'n=60 != 3168'}
+  OK   ★★★ a NaN in the A0p reference ⇒ rc 3 (reviewer: NaN > tol is False, used to pass) — JUDGE_REFUSED reproduction (#20): {'missing_reference': [], 'paired_maxabs_bad_or_nonfinite': {'A0p_dyn_s42_vs_RAW_M1': nan, 'A0p_dyn_s2027_vs_RAW_M1': nan}}
+  OK   ★★ A0p off by 1 bps ⇒ rc 3 (unchanged from round 2) — issing_reference': [], 'paired_maxabs_bad_or_nonfinite': {'A0p_dyn_s42_vs_RAW_M1': 1.0, 'A0p_dyn_s2027_vs_RAW_M1': 1.0}}
+  OK   ★★ a required arm missing ⇒ rc 2 — FUSED missing arms: ['A1e_fix_2027'] | frozen-window coverage != 3168 : {} | frozen axis not an exact shared 4h grid: {}
+  OK   ★★★ JUDGE_ALLOW_PARTIAL=1 on 60 anchors with A1e +1 bps ⇒ rc 0 but exploratory=true and NO verdict is a PROMOTE (reviewer: 4 PROMOTEs used to print) — (0, True, ['EXPLORATORY (partial inputs; no verdict issued)'])
+  OK   ★★★ full window, A1e +1 bps, NO export gate ⇒ the (A) cells read '(A) INFO — export gate not PASS', eligibility informational (reviewer: PROMOTE printed beside a failed G2) — (0, ['(A) INFO — export gate not PASS: informational only, no promotion', '(C) UNDECIDED'])
+  OK   ★★★ with an export-gate receipt PASS=false ⇒ same: INFO, never PROMOTE — (0, {'path': '/tmp/tmpgp2_j0hq/promote_export_FAIL/G2_export.json', 'present': True, 'gate': 'G2_export_v4e', 'PASS': False, 'utc': None})
+  OK   ★★ with an export-gate receipt PASS=true ⇒ eligibility candidate and the (A) cells may read PROMOTE — (0, 'candidate', ['(A) PROMOTE', '(C) UNDECIDED'])
+
+[M] G1 axis clause (c) and anchor presence
+  OK   ★★★ the two clamp-produced 2022-01-07 anchors added in front ⇒ (c) ok, both listed as allowed_hits, no unexplained — {'ok': True, 'n_new': 202, 'n_old': 200, 'new_not_in_old': [1641571200, 1641585600], 'old_not_in_new': [], 'allowed_new_anchors': [1641571200, 1641585600], 'allowed_hits': [1641571200, 1641585600], 'unexplained_new': [], 'tail_new_ok': True, 'tail_old_ok': True, 'rule': 'new_not_in_old ⊆ allowed ∪ {tail(new)}; old_not_in_new ⊆ {tail(old)}; at most one tail anchor each side'}
+  OK   ★★★ a THIRD early anchor not in the allowed list ⇒ (c) FAILS and names it (reviewer: early anchors passed as a report field) — {'ok': False, 'n_new': 203, 'n_old': 200, 'new_not_in_old': [1500000000, 1641571200, 1641585600], 'old_not_in_new': [], 'allowed_new_anchors': [1641571200, 1641585600], 'allowed_hits': [1641571200, 1641585600], 'unexplained_new': [1500000000], 'tail_new_ok': False, 'tail_old_ok': True, 'rule': 'new_not_in_old ⊆ allowed ∪ {tail(new)}; old_not_in_new ⊆ {tail(old)}; at most one tail anchor each side'}
+  OK   ★★ a single extra anchor at the TAIL of the new axis ⇒ ok (tail difference ≤ 1) — {'ok': True, 'n_new': 201, 'n_old': 200, 'new_not_in_old': [1602880000], 'old_not_in_new': [], 'allowed_new_anchors': [1641571200, 1641585600], 'allowed_hits': [], 'unexplained_new': [1602880000], 'tail_new_ok': True, 'tail_old_ok': True, 'rule': 'new_not_in_old ⊆ allowed ∪ {tail(new)}; old_not_in_new ⊆ {tail(old)}; at most one tail anchor each side'}
+  OK   ★★ the old axis has one extra TAIL anchor ⇒ ok — {'ok': True, 'n_new': 199, 'n_old': 200, 'new_not_in_old': [], 'old_not_in_new': [1602865600], 'allowed_new_anchors': [1641571200, 1641585600], 'allowed_hits': [], 'unexplained_new': [], 'tail_new_ok': True, 'tail_old_ok': True, 'rule': 'new_not_in_old ⊆ allowed ∪ {tail(new)}; old_not_in_new ⊆ {tail(old)}; at most one tail anchor each side'}
+  OK   ★★★ the new axis LACKS an interior old anchor ⇒ (c) FAILS — {'ok': False, 'n_new': 199, 'n_old': 200, 'new_not_in_old': [], 'old_not_in_new': [1600720000], 'allowed_new_anchors': [1641571200, 1641585600], 'allowed_hits': [], 'unexplained_new': [], 'tail_new_ok': True, 'tail_old_ok': False, 'rule': 'new_not_in_old ⊆ allowed ∪ {tail(new)}; old_not_in_new ⊆ {tail(old)}; at most one tail anchor each side'}
+  OK   ★★ TWO extra tail anchors ⇒ FAILS (only one may differ) — [1602880000, 1602894400]
+  OK   ★★ G1_ALLOWED_NEW_ANCHORS='' (no exception) ⇒ the same two anchors now FAIL (the exception is explicit, never implicit) — [1641571200, 1641585600]
+  OK   ★ parse_allowed: None ⇒ default pair; '1,2' ⇒ (1, 2)
+  OK   ★★ anchors_present names the missing one — {1600043200: True, 123: False}
+  OK   ★★★ the gate's PASS is (a) and (b) and (c) and anchors-present — wiring, not prose
+
+ALL PASS  (65 checks)
