@@ -1,0 +1,726 @@
+{
+ "utc": "2026-09-10T03:13:55Z",
+ "what": "The independent researcher's round-3 harnesses (extra_checks.py: 12 cases; audit_faults.py: 36 cases) rerun UNMODIFIED in a scratch copy whose device/chain is this archive after round 4. Their worktree was not touched.",
+ "researcher_harness_sha256": {
+  "extra_checks.py": "2a3f47440b646165ca0b93d49b4ae167c003bc10c41e5dd6236bc13d54825148",
+  "audit_faults.py": "e68ddeb8c8f9cf423415f07cb6bac6346fd91b94cfd8cc6a2788f0b1da3b7754"
+ },
+ "researcher_round3_results": {
+  "extra": "/Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_round3_review_2026-09-10/pipeline/collected/extra/RESULT.json",
+  "faults": "/Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_round3_review_2026-09-10/pipeline/collected/faults/RESULT.json"
+ },
+ "device_chain_round4_sha256": {
+  "judge_v4.py": "9cf7853f99b3189058eaad3c4fe8b684a0ad1f0af33d929f62661c9f5a933269",
+  "v4_gate_common.py": "4e0035737a9ec0ca44589393837e6f5812e4365456cae5defb23c45c712119df",
+  "chain_lib.sh": "ffbb89b83345012fe56a888e83e758f763f4fde80e22a43f96a25ce2a65566ce",
+  "chain_v4s_gpu.sh": "2563446d97a2149f824ad13868bceae4fdd70c6f6f691f0397306c212b828f80",
+  "chain_v4_gpu3.sh": "29611dbce258a022b2d621fb6fbb24a43d02fcee8ab337cea76ce951f9455195",
+  "chain_v4_post_export.sh": "e1dec02bbb4d8c5f00f4a826a7d4b65ada8864de21ddf19110255a212110b0a8",
+  "tests_pipeline_gates.py": "c4692d99da0c5c0859bcc63c073fe7d1ce648c987d7c3c71eada2bb08c77774d",
+  "make_sha_manifest.py": "2147fd74600eb024e8296473ff6f8a7dd6e0b28e4d8f588c4a80dc848d918f63"
+ },
+ "python": "/usr/bin/python3 (macOS; the pod2 venv rerun of OUR suite is receipts/tests_pipeline_gates_pod2_r4.log)",
+ "extra_cases": [
+  {
+   "case": "require_valid_wrong_source_unpinned",
+   "round3_rc": 0,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": true,
+   "round4_refusal": [
+    "REQUIRE_FAIL caller did not pin the gate source (self_sha=<sha256 of the gate script it trusts>); a receipt from an unidentified program is not permission"
+   ]
+  },
+  {
+   "case": "require_valid_wrong_source_pinned",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": false,
+   "round4_refusal": [
+    "REQUIRE_FAIL receipt was written by gate source 9cf7853f99b3, caller trusts 15a03d4a0937"
+   ]
+  },
+  {
+   "case": "require_correct_identity_dependency_subset",
+   "round3_rc": 0,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": true,
+   "round4_refusal": [
+    "REQUIRE_FAIL caller did not pin the gate source (self_sha=<sha256 of the gate script it trusts>); a receipt from an unidentified program is not permission"
+   ]
+  },
+  {
+   "case": "require_correct_identity_all_dependencies",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": false,
+   "round4_refusal": [
+    "REQUIRE_FAIL caller did not pin the gate source (self_sha=<sha256 of the gate script it trusts>); a receipt from an unidentified program is not permission"
+   ]
+  },
+  {
+   "case": "chain_valid_wrong_gate_source",
+   "round3_rc": 0,
+   "round4_rc": 3,
+   "round3": {
+    "train_dispatch": 8,
+    "merge_dispatch": 2,
+    "DONE": true
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": true,
+   "round4_refusal": [
+    "FAIL_gate_require_G2_closure_stable"
+   ]
+  },
+  {
+   "case": "judge_minimal_PASS",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {
+    "eligibility": "candidate",
+    "promoted": [
+     "A1e-A1|dyn",
+     "A1e-A1|fix",
+     "A1e-A0|dyn",
+     "A1e-A0|fix"
+    ]
+   },
+   "round4": {
+    "eligibility": "informational",
+    "promoted": []
+   },
+   "flipped": true,
+   "round4_refusal": [
+    "WARNING: JUDGE_EXPORT_GATE is DEPRECATED (round 4) — recorded for information only, it makes NO arm eligible; bind per arm with JUDGE_ELIGIBILITY={arm:{receipt,gate,self_sha,inputs}}"
+   ]
+  },
+  {
+   "case": "judge_unrelated_stale_PASS",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {
+    "eligibility": "candidate",
+    "promoted": [
+     "A1e-A1|dyn",
+     "A1e-A1|fix",
+     "A1e-A0|dyn",
+     "A1e-A0|fix"
+    ]
+   },
+   "round4": {
+    "eligibility": "informational",
+    "promoted": []
+   },
+   "flipped": true,
+   "round4_refusal": [
+    "WARNING: JUDGE_EXPORT_GATE is DEPRECATED (round 4) — recorded for information only, it makes NO arm eligible; bind per arm with JUDGE_ELIGIBILITY={arm:{receipt,gate,self_sha,inputs}}"
+   ]
+  },
+  {
+   "case": "judge_A1e_gate_promotes_other_arm",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {
+    "eligibility": "candidate",
+    "promoted": [
+     "A1-A0|dyn",
+     "A1-A0|fix",
+     "A1-A2|dyn",
+     "A1-A2|fix",
+     "A1-A3|dyn",
+     "A1-A3|fix"
+    ]
+   },
+   "round4": {
+    "eligibility": "informational",
+    "promoted": []
+   },
+   "flipped": true,
+   "round4_refusal": [
+    "WARNING: JUDGE_EXPORT_GATE is DEPRECATED (round 4) — recorded for information only, it makes NO arm eligible; bind per arm with JUDGE_ELIGIBILITY={arm:{receipt,gate,self_sha,inputs}}"
+   ]
+  },
+  {
+   "case": "judge_both_raw_references_only60",
+   "round3_rc": 0,
+   "round4_rc": 2,
+   "round3": {
+    "eligibility": "candidate",
+    "promoted": [
+     "A1e-A1|dyn",
+     "A1e-A1|fix",
+     "A1e-A0|dyn",
+     "A1e-A0|fix"
+    ]
+   },
+   "round4": {},
+   "flipped": true,
+   "round4_refusal": [
+    "WARNING: JUDGE_EXPORT_GATE is DEPRECATED (round 4) — recorded for information only, it makes NO arm eligible; bind per arm with JUDGE_ELIGIBILITY={arm:{receipt,gate,self_sha,inputs}}",
+    "JUDGE_REFUSED reference axis/schema: {'RAW_M1_s42': 'frozen axis: n=60 != 3168 (the reference must cover the FULL frozen window, not an overlap)', 'RAW_M1_s2027': 'frozen axis: n=60 != 3168 (the reference must cover the "
+   ]
+  },
+  {
+   "case": "judge_raw_duplicate_and_gap",
+   "round3_rc": 0,
+   "round4_rc": 2,
+   "round3": {
+    "eligibility": "candidate",
+    "promoted": [
+     "A1e-A1|dyn",
+     "A1e-A1|fix",
+     "A1e-A0|dyn",
+     "A1e-A0|fix"
+    ]
+   },
+   "round4": {},
+   "flipped": true,
+   "round4_refusal": [
+    "WARNING: JUDGE_EXPORT_GATE is DEPRECATED (round 4) — recorded for information only, it makes NO arm eligible; bind per arm with JUDGE_ELIGIBILITY={arm:{receipt,gate,self_sha,inputs}}",
+    "JUDGE_REFUSED reference axis/schema: {'RAW_M1_s42': 'frozen axis: not a strict 4h grid at index 99: diff 0 s (duplicate or gap) (the reference must cover the FULL frozen window, not an overlap)', 'RAW_M1_s2027': 'frozen "
+   ]
+  },
+  {
+   "case": "judge_fractional_timestamp_plus025",
+   "round3_rc": 0,
+   "round4_rc": 2,
+   "round3": {
+    "eligibility": "candidate",
+    "promoted": [
+     "A1e-A1|dyn",
+     "A1e-A1|fix",
+     "A1e-A0|dyn",
+     "A1e-A0|fix"
+    ]
+   },
+   "round4": {},
+   "flipped": true,
+   "round4_refusal": [
+    "JUDGE_REFUSED arm schema: {'A0_dyn_s42': 'timestamps are not integer seconds (row 0: 1740787200.25; the old astype(int64) truncated silently)', 'A0_dyn_s2027': 'timestamps are not integer seconds (row 0: 1740787200.25; t"
+   ]
+  },
+  {
+   "case": "judge_false_schema_no_W",
+   "round3_rc": 0,
+   "round4_rc": 2,
+   "round3": {
+    "eligibility": "candidate",
+    "promoted": [
+     "A1e-A1|dyn",
+     "A1e-A1|fix",
+     "A1e-A0|dyn",
+     "A1e-A0|fix"
+    ]
+   },
+   "round4": {},
+   "flipped": true,
+   "round4_refusal": [
+    "JUDGE_REFUSED arm schema: {'A0_dyn_s42': \"cols differ from the frozen COLS (first differences: [(0, 'WRONG_COLUMN', 'ts'), (1, 'WRONG_COLUMN', 'net'), (2, 'WRONG_COLUMN', 'pnl')])\", 'A0_dyn_s2027': \"cols differ from the "
+   ]
+  }
+ ],
+ "faults_cases": [
+  {
+   "case": "g2_identical",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {
+    "PASS": true
+   },
+   "round4": {
+    "PASS": true
+   },
+   "flipped": false
+  },
+  {
+   "case": "g2_time_plus300",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "PASS": false
+   },
+   "round4": {
+    "PASS": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "g2_reverse_symbols",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "PASS": false
+   },
+   "round4": {
+    "PASS": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "g2_both_axes_descending",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "PASS": false
+   },
+   "round4": {
+    "PASS": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "require_wrong_gate",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": false
+  },
+  {
+   "case": "require_wrong_self_sha",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": false
+  },
+  {
+   "case": "require_missing_self_sha",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": false
+  },
+  {
+   "case": "require_hole_changed_but_omitted",
+   "round3_rc": 0,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": true
+  },
+  {
+   "case": "require_hole_changed_explicit",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": false
+  },
+  {
+   "case": "require_empty_dependency_list",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {},
+   "round4": {},
+   "flipped": false
+  },
+  {
+   "case": "generator_run",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {},
+   "round4": {},
+   "flipped": false
+  },
+  {
+   "case": "chain_success",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {
+    "train_dispatch": 8,
+    "merge_dispatch": 2,
+    "DONE": true
+   },
+   "round4": {
+    "train_dispatch": 8,
+    "merge_dispatch": 2,
+    "DONE": true
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_gate_fail",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_changed_explicit_input",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_wrong_gate",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_wrong_source",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_changed_holes",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_changed_RAW",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_fail_shard0",
+   "round3_rc": 1,
+   "round4_rc": 1,
+   "round3": {
+    "train_dispatch": 4,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 4,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_fail_shard1",
+   "round3_rc": 1,
+   "round4_rc": 1,
+   "round3": {
+    "train_dispatch": 4,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 4,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_fail_shard2",
+   "round3_rc": 1,
+   "round4_rc": 1,
+   "round3": {
+    "train_dispatch": 4,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 4,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_fail_shard3",
+   "round3_rc": 1,
+   "round4_rc": 1,
+   "round3": {
+    "train_dispatch": 4,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 4,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_merge_fail",
+   "round3_rc": 1,
+   "round4_rc": 1,
+   "round3": {
+    "train_dispatch": 4,
+    "merge_dispatch": 1,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 4,
+    "merge_dispatch": 1,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "chain_merge_missing_marker",
+   "round3_rc": 1,
+   "round4_rc": 1,
+   "round3": {
+    "train_dispatch": 4,
+    "merge_dispatch": 1,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 4,
+    "merge_dispatch": 1,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "post_old_marker_FAIL",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "data_copy_failure",
+   "round3_rc": 1,
+   "round4_rc": 1,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "data_target_failure",
+   "round3_rc": 1,
+   "round4_rc": 1,
+   "round3": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "round4": {
+    "train_dispatch": 0,
+    "merge_dispatch": 0,
+    "DONE": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_full_valid",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {
+    "json_written": true
+   },
+   "round4": {
+    "json_written": true
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_short",
+   "round3_rc": 2,
+   "round4_rc": 2,
+   "round3": {
+    "json_written": false
+   },
+   "round4": {
+    "json_written": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_missing_arm",
+   "round3_rc": 2,
+   "round4_rc": 2,
+   "round3": {
+    "json_written": false
+   },
+   "round4": {
+    "json_written": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_bad_repro",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "json_written": false
+   },
+   "round4": {
+    "json_written": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_missing_raw2027",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "json_written": false
+   },
+   "round4": {
+    "json_written": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_duplicate_calendar",
+   "round3_rc": 2,
+   "round4_rc": 2,
+   "round3": {
+    "json_written": false
+   },
+   "round4": {
+    "json_written": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_nan_repro",
+   "round3_rc": 3,
+   "round4_rc": 3,
+   "round3": {
+    "json_written": false
+   },
+   "round4": {
+    "json_written": false
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_partial_short_promote",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {
+    "json_written": true
+   },
+   "round4": {
+    "json_written": true
+   },
+   "flipped": false
+  },
+  {
+   "case": "judge_upstreamFAIL_full_promote",
+   "round3_rc": 0,
+   "round4_rc": 0,
+   "round3": {
+    "json_written": true
+   },
+   "round4": {
+    "json_written": true
+   },
+   "flipped": false
+  }
+ ],
+ "summary": {
+  "extra_flipped": [
+   "require_valid_wrong_source_unpinned",
+   "require_correct_identity_dependency_subset",
+   "chain_valid_wrong_gate_source",
+   "judge_minimal_PASS",
+   "judge_unrelated_stale_PASS",
+   "judge_A1e_gate_promotes_other_arm",
+   "judge_both_raw_references_only60",
+   "judge_raw_duplicate_and_gap",
+   "judge_fractional_timestamp_plus025",
+   "judge_false_schema_no_W"
+  ],
+  "extra_unchanged": [
+   "require_valid_wrong_source_pinned",
+   "require_correct_identity_all_dependencies"
+  ],
+  "faults_flipped": [
+   "require_hole_changed_but_omitted"
+  ],
+  "faults_unchanged_count": 35
+ }
+}
