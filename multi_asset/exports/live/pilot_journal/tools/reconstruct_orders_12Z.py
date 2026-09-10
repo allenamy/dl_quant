@@ -50,10 +50,23 @@ def fetch_venue_orders(broker, syms):
     return out
 
 
-def build_rows(venue, fills):
-    """one order row per venue leg; fill times/commission from the backfilled fills rows (same rebalance)."""
-    by_leg = {}
+def collapse_fills(fills):
+    """★ Round 3 (independent review 31fa3e4e A1): fills.jsonl carries EVERY fill TWICE — the original row and the
+    markout backfill's superseding row (`supersedes_trade_id`, +60s mark). Summing them doubled every fee in the
+    first dry run (1.00970 vs 0.50724). One fill = one (symbol, trade_id); the LAST row written wins (it carries the
+    mark). Returns the collapsed list, in file order."""
+    last = {}
     for f in fills:
+        k = (f.get("symbol"), f.get("trade_id") if f.get("trade_id") is not None else f.get("venue_trade_id"))
+        last[k] = f
+    return list(last.values())
+
+
+def build_rows(venue, fills):
+    """one order row per venue leg; fill times/commission from the backfilled fills rows (same rebalance),
+    COLLAPSED to one row per trade first (see collapse_fills)."""
+    by_leg = {}
+    for f in collapse_fills(fills):
         if f.get("rebalance_id") != RID: continue
         k = (f["symbol"], int(f.get("attempt_idx") or 1)); by_leg.setdefault(k, []).append(f)
     rows = []
@@ -83,6 +96,9 @@ def build_rows(venue, fills):
             "fee_paid": fee, "rebalance_id": RID, "attempt_idx": attempt, "terminal_reason": tr, "notional_currency": "USDT",
             "venue_order_id": o.get("orderId"), "venue_status": st, "venue_executed_qty": ex, "venue_orig_qty": float(o.get("origQty") or 0),
             "n_fills_joined": len(legf),
+            # ★ structured flag (round 3): the execution-quality consumers (pilot_metrics m1/m3/m4, order_disposition.gaps)
+            #   exclude rows carrying it — a note is not a program condition.
+            "reconstructed_from_venue": True,
             "note": ("RECONSTRUCTED_FROM_VENUE (E-0909-G repair of the E-0909-D crash anchor: the process died before persisting any "
                      "order row; execution facts = venue allOrders + backfilled fills; plan intent NOT persisted ⇒ intended_notional := "
                      "executed, target_w/prev_w/mids None). Exclude from execution-quality metrics via this note."),
@@ -133,8 +149,17 @@ def main():
     print(f"rows written to {OUT_ROWS}")
     from collections import Counter
     print("terminal_reason:", dict(Counter(r["terminal_reason"] for r in rows)), "| executed legs:", sum(1 for r in rows if r["venue_executed_qty"] > 0), "| Σ|filled| USDT:", round(sum(abs(r["filled_notional"] or 0) for r in rows), 1))
+    # ★ round-3 acceptance: fee reconciliation against the collapsed fills (the first dry run failed exactly here)
+    _cf = [f for f in collapse_fills(fills) if f.get("rebalance_id") == RID]
+    _fee_fills = sum(float(f.get("commission") or 0.0) for f in _cf); _fee_rows = sum(float(r.get("fee_paid") or 0.0) for r in rows)
+    _gross_fills = sum(abs(float(f.get("fill_notional") or 0.0)) for f in _cf); _gross_rows = sum(abs(float(r.get("filled_notional") or 0.0)) for r in rows)
+    print(f"fee check: Σ fee_paid(rows) {_fee_rows:.8f} vs Σ commission(collapsed fills, n={len(_cf)}) {_fee_fills:.8f} | gross rows {_gross_rows:.4f} vs fills {_gross_fills:.4f}")
+    if abs(_fee_rows - _fee_fills) > 1e-6 or abs(_gross_rows - _gross_fills) > 0.05:
+        print("REFUSING: rows do not reconcile with the collapsed fills"); sys.exit(2)
     if bad or existing:
         print("REFUSING (invalid rows or rows already present)"); sys.exit(2)
+    if any(int(r.get("n_fills_joined") or 0) > int(r.get("venue_executed_qty") is not None and 10**6) for r in rows):
+        print("REFUSING: implausible fill join"); sys.exit(2)
     simulate(root, days, None, "BEFORE (ledger as is)")
     rec2, pb2 = simulate(root, days, rows, "AFTER (with reconstructed rows, in memory)")
     still = [a["symbol"] for a in (rec2.get("latest") or [])]
