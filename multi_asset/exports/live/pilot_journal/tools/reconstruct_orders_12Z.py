@@ -18,7 +18,7 @@ MODES:  (default)  dry run — fetch, build, validate, SIMULATE the reconcile + 
                    on the real ledger. Never resumes: `ops/resume_from_trip.sh` is a separate, human step.
 """
 import argparse, glob, json, os, shutil, sys, time
-LIVE = os.path.expanduser("~/dl_quant_live")
+LIVE = os.environ.get("DQL_ROOT", os.path.expanduser("~/dl_quant_live"))   # the tree whose pilot_log schema validates the rows
 for _d in ("live", "ops", "scheduler", "signal"):
     sys.path.insert(0, os.path.join(LIVE, _d))
 os.chdir(LIVE)
@@ -75,7 +75,12 @@ def build_rows(venue, fills):
         side = str(o.get("side", "")).lower(); sign = 1.0 if side == "buy" else -1.0
         ex = float(o.get("executedQty") or 0.0); cq = float(o.get("cumQuote") or 0.0); avg = float(o.get("avgPrice") or 0.0)
         st = str(o.get("status", "")).upper(); tif = str(o.get("timeInForce", "")).upper()
-        otype = "topup_taker" if tif == "IOC" or str(o.get("type", "")).upper() == "MARKET" else "maker"
+        # ★ round 3 (review 31fa3e4e A1): a rebuilt row is an AUTHORISATION RECORD, typed `reconstructed` so every
+        #   type-filtered metric (m1/m3/m4) excludes it by construction; the leg it stood for is kept in `leg_kind`.
+        #   Requires the deployed pilot_log to accept the type (live branch d73b1b0+ / round-3 addendum) — the tool
+        #   refuses otherwise via PL.validate below.
+        leg_kind = "topup_taker" if tif == "IOC" or str(o.get("type", "")).upper() == "MARKET" else "maker"
+        otype = "reconstructed"
         legf = by_leg.get((sym, attempt), [])
         fts = sorted(float(f["fill_ts"]) for f in legf if f.get("fill_ts") is not None)
         fee = sum(float(f.get("commission") or 0.0) for f in legf) if legf else None
@@ -95,6 +100,7 @@ def build_rows(venue, fills):
             "cancel_ts": (float(o.get("updateTime") or 0) / 1000.0 if st in ("CANCELED", "EXPIRED") else None),
             "fee_paid": fee, "rebalance_id": RID, "attempt_idx": attempt, "terminal_reason": tr, "notional_currency": "USDT",
             "venue_order_id": o.get("orderId"), "venue_status": st, "venue_executed_qty": ex, "venue_orig_qty": float(o.get("origQty") or 0),
+            "leg_kind": leg_kind,
             "n_fills_joined": len(legf),
             # ★ structured flag (round 3): the execution-quality consumers (pilot_metrics m1/m3/m4, order_disposition.gaps)
             #   exclude rows carrying it — a note is not a program condition.
