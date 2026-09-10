@@ -20,6 +20,14 @@
   whenever the caller did not pin — and no chain pinned. Now every caller must say which gate source it trusts (the chains
   compute it at run time from the gate script they invoke: chain_lib.sh gate_sha), and `require` refuses an unpinned call.
 
+★ ROUND 5 (independent review cfaf1bbe §2-4, 2026-09-10): the STANDARD is a frozen file, not the caller's word.
+  ELIGIBILITY_CONTRACT.json beside this module lists, per governed gate, the APPROVED gate source sha256s, and per candidate arm the
+  gate it must pass. `require` refuses a pinned source that is not approved for a gate listed there — the reviewer showed that a
+  locally edited gate, re-run, writes a receipt whose self sha equals its own runtime sha (the round-4 pin passed it): "receipt matches
+  the program on disk" is not "the program is the reviewed one". The judge derives every arm's standard from the contract and treats
+  JUDGE_ELIGIBILITY as a receipt LOCATOR only; the contract is read from the judge's own directory and no environment variable can
+  replace it. BUNDLE_export additionally requires the four judged book files of the arm (book_binding) in the receipt.
+
 ★ ROUND 4 (researcher require_correct_identity_dependency_subset): the FULL-DEPENDENCY CONTRACT is code. REQUIRED_INPUTS below registers,
   per gate (and per stage profile where stages legitimately consume different parts of a receipt), the input names a caller MUST declare;
   `require` refuses a caller that omits a registered name (extras are allowed). Round 3 verified whatever subset the caller chose to name —
@@ -47,7 +55,8 @@ REQUIRED_INPUTS = {
     "STEP1@v4s": ["dlw_v4raw_targets", "fea82_v4raw"],                                    # chain_v4s_gpu.sh (RAW only; its fea89 is bound through G2_closure fea_A)
     "STEP1@v4": ["dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"],    # chain_v4_gpu3.sh / chain_v4_post_export.sh (RAW + CLIP chains, fea89)
     "STEP2": ["wide_fea_v4", "wide_fea_v4_meta"],                                          # chain_v4_gpu3.sh king side
-    "BUNDLE_export": ["wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins"],   # pod_export_bundle_v4.py
+    "BUNDLE_export": ["wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins",
+                      "book_dyn_s42", "book_dyn_s2027", "book_fix_s42", "book_fix_s2027"],   # pod_export_bundle_v4.py inputs + the arm's four judged books (round 5)
     #   BUNDLE_FEA / BUNDLE_META / BUNDLE_BASE / EXPORT_PANEL / BUNDLE_CACHE / fund_aug.json.gz / live_pins.json — the judge's per-arm eligibility (JUDGE_ELIGIBILITY)
 }
 
@@ -60,6 +69,37 @@ def required_inputs(gate, profile=None):
     if profile:
         return [], key, False
     return [], key, None          # bare gate with no registry entry: no floor (the caller's non-empty declaration still binds)
+
+
+CONTRACT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ELIGIBILITY_CONTRACT.json")
+BOOK_INPUTS = ("book_dyn_s42", "book_dyn_s2027", "book_fix_s42", "book_fix_s2027")
+
+
+def load_contract(path=None):
+    """(contract dict or None, error). Round 5: the frozen research definition beside this module — never an env-supplied path."""
+    p = path or CONTRACT_PATH
+    if not os.path.exists(p):
+        return None, f"frozen contract missing: {p}"
+    try:
+        c = json.load(open(p))
+    except Exception as e:                              # noqa: BLE001
+        return None, f"frozen contract unreadable ({p}): {type(e).__name__}: {e}"
+    if not isinstance(c, dict) or not isinstance(c.get("gates"), dict) or not isinstance(c.get("arms"), dict) \
+            or str(c.get("contract_schema", "")).split("/")[0] != "v4_eligibility_contract":
+        return None, f"frozen contract malformed ({p}): expected contract_schema v4_eligibility_contract/N with 'gates' and 'arms'"
+    return c, None
+
+
+def approved_sources(gate, contract=None):
+    """(approved list or None if the gate is not governed by the contract, error)."""
+    c, err = (contract, None) if contract is not None else load_contract()
+    if c is None:
+        return None, err
+    g = c["gates"].get(gate)
+    if not isinstance(g, dict):
+        return None, None
+    lst = g.get("approved_source_sha256") or []
+    return [str(x) for x in lst if isinstance(x, str) and _HEX64.match(x)], None
 
 
 def sha256_file(p, chunk=16 << 20):
@@ -122,6 +162,20 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
         return False, f"receipt carries no usable self_sha256 ({ss!r}): the gate's own code is unidentified"
     if ss != expected_self_sha:
         return False, f"receipt was written by gate source {ss[:12]}, caller trusts {expected_self_sha[:12]}"
+    # ★ round 5: the pinned source must be an APPROVED source of the gate in the frozen contract (a governed gate with no contract, or
+    #   a contract that does not list it, is refused; an ungoverned gate — neither registered nor listed — carries no approval)
+    governed = expected_gate in REQUIRED_INPUTS or any(k.startswith(expected_gate + "@") for k in REQUIRED_INPUTS)
+    contract, cerr = load_contract()
+    if contract is None and governed:
+        return False, f"gate {expected_gate!r} is governed but the {cerr}: nothing can be required without the frozen research definition"
+    if contract is not None:
+        approved, _ = approved_sources(expected_gate, contract)
+        if approved is None and governed:
+            return False, f"gate {expected_gate!r} is registered in REQUIRED_INPUTS but absent from the frozen contract's gates: refused"
+        if approved is not None and expected_self_sha not in approved:
+            return False, (f"gate source {expected_self_sha[:12]} is not an APPROVED source of gate {expected_gate!r} in the frozen contract "
+                           f"(approved: {[a[:12] for a in approved] or 'none — the physical gate is not built'}); a program that re-ran and "
+                           f"signed its own receipt is not the reviewed program")
     if r.get("PASS") is not True:
         return False, f"receipt says PASS={r.get('PASS')!r} (gate {r.get('gate')}, {r.get('utc')})"
     if not inputs:
@@ -143,7 +197,7 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
         cur = sha256_file(p)
         if cur != rec[k]:
             return False, f"input {k!r} changed since the receipt: {cur[:12]} != {str(rec[k])[:12]}"
-    return True, (f"PASS ({r.get('gate')}, {r.get('utc')}, self {ss[:12]}, "
+    return True, (f"PASS ({r.get('gate')}, {r.get('utc')}, self {ss[:12]} approved, "
                   f"{len(inputs)} inputs verified, registered floor {key}={len(need) if registered else 'none'})")
 
 
@@ -155,6 +209,11 @@ def main():
         profile = kv.pop("profile", None)
         ok, why = require(sys.argv[2], kv, expected_gate=gate, expected_self_sha=self_sha, profile=profile)
         print(("REQUIRE_OK " if ok else "REQUIRE_FAIL ") + why, flush=True)
+        sys.exit(0 if ok else 3)
+    if len(sys.argv) >= 3 and sys.argv[1] == "approved":       # approved <gate> <sha256> -> rc 0 iff approved in the frozen contract
+        lst, err = approved_sources(sys.argv[2])
+        ok = bool(lst) and len(sys.argv) > 3 and sys.argv[3] in lst
+        print(("APPROVED " if ok else "NOT_APPROVED ") + (err or f"{sys.argv[2]}: {lst}"), flush=True)
         sys.exit(0 if ok else 3)
     if len(sys.argv) >= 3 and sys.argv[1] == "sha":
         for p in sys.argv[2:]:

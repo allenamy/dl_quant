@@ -23,6 +23,16 @@ Reproduction check first (#20): A0 dyn vs the published RAW_M1_UCRYPTO arm (dev_
     REQUIRED_INPUTS declared, every declared input's sha equal to the file on disk);
     an arm without a bound PASS is "informational" and its (A) cells read "(A) INFO"; a PASS bound to arm X never promotes arm Y
   · JUDGE_EXPORT_GATE is a DEPRECATED alias: recorded under out["export_gate"] for information, prints a warning, and can no longer make any arm eligible.
+
+★ ROUND 5 (researcher round-4 review cfaf1bbe: judge_actual_G2_not_export / actual_STEP1_downgraded_profile / receipt_A1e_relabel_to_A1 /
+  book_replaced_after_receipt / negative_gross / infinite_gross / nonfinite_W / symbols_order_reversed / no_cols_strict / no_symbols_strict) —
+  the STANDARD is the frozen ELIGIBILITY_CONTRACT.json beside this file (read from this directory; no env can replace it):
+  · per arm: candidacy_gate (BUNDLE_export for every candidate arm), profile, book_binding; per gate: approved_source_sha256 (a receipt written by
+    any other program — a re-run edited gate included — is not permission; BUNDLE_export's list is EMPTY until the physical gate exists and is reviewed)
+  · JUDGE_ELIGIBILITY = {arm: {receipt, inputs}} only LOCATES the receipt; a caller-supplied gate/self_sha/profile that disagrees with the contract
+    makes the arm ineligible; receipt.arm must equal the judged arm; the judge itself adds the arm's four judged book files to the declared inputs
+    so the receipt must have hashed them (a book replaced after the receipt, or a receipt relabelled onto another arm, is refused)
+
   Researcher cases judge_both_raw_references_only60 / judge_raw_duplicate_and_gap / judge_fractional_timestamp_plus025 / judge_false_schema_no_W:
   · the A0p RAW references are validated BEFORE the reproduction: same schema as the arms, FULL frozen axis (JUDGE_N_FROZEN anchors, exact 4h
     grid, identical to the arms' frozen axis) and finite on it — a reference sharing 60 anchors, or one with a duplicate+gap, used to pass
@@ -107,7 +117,15 @@ N_FROZEN = int(os.environ.get("JUDGE_N_FROZEN", "3168"))
 #     from another gate, a receipt whose inputs have changed, or a receipt bound to another arm makes nothing eligible (researcher cases minimal_PASS /
 #     unrelated_stale_PASS / A1e_gate_promotes_other_arm). JUDGE_EXPORT_GATE (round 3) is a deprecated alias: information only, promotes nothing.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from v4_gate_common import require as _require   # noqa: E402  (returns (ok, why) without exiting)
+from v4_gate_common import require as _require, load_contract as _load_contract, sha256_file as _sha256_file, CONTRACT_PATH as _CONTRACT_PATH, BOOK_INPUTS as _BOOK_INPUTS   # noqa: E402
+# ★ ROUND 5 (review cfaf1bbe §2-3): the STANDARD comes from the frozen contract beside this file, never from the caller. JUDGE_ELIGIBILITY only
+#   locates receipts; the contract says which gate an arm must pass, which gate sources are approved, and that the receipt must be bound to
+#   the arm and to its four judged books. A caller-supplied gate/self_sha/profile that disagrees with the contract makes the arm ineligible.
+_contract, _contract_err = _load_contract()
+out["contract"] = {"path": _CONTRACT_PATH, "sha256": (_sha256_file(_CONTRACT_PATH) if os.path.exists(_CONTRACT_PATH) else None), "error": _contract_err,
+                   "schema": (_contract or {}).get("contract_schema"), "arms": sorted((_contract or {}).get("arms", {})),
+                   "approved_sources": {g: (v or {}).get("approved_source_sha256", []) for g, v in (_contract or {}).get("gates", {}).items()}}
+if _contract_err: print("WARNING: frozen eligibility contract unavailable —", _contract_err, "— no arm can be a candidate", flush=True)
 def _json_inline_or_path(s):
     """JUDGE_ELIGIBILITY may be a path to a JSON file or the JSON text itself. Returns (obj, error)."""
     if s is None or s == "": return None, None
@@ -119,11 +137,48 @@ def _json_inline_or_path(s):
 _el_raw = os.environ.get("JUDGE_ELIGIBILITY"); _el_map, _el_err = _json_inline_or_path(_el_raw)
 if _el_raw and not isinstance(_el_map, dict): _el_map, _el_err = {}, (_el_err or "JUDGE_ELIGIBILITY must be a JSON object {arm: {receipt, gate, self_sha, inputs}}")
 _elig = {}
+def _eligibility(arm, spec):
+    """Round 5: derive the standard from the frozen contract; the entry only locates the receipt and the export inputs."""
+    rec = {"ok": False, "receipt": spec.get("receipt"), "contract_gate": None, "receipt_gate": None, "receipt_arm": None, "receipt_self_sha": None,
+           "inputs": sorted((spec.get("inputs") or {}).keys()), "caller_supplied": {k: spec.get(k) for k in ("gate", "self_sha", "profile") if spec.get(k) not in (None, "")}}
+    if _contract is None:
+        rec["why"] = f"no frozen contract: {_contract_err}"; return rec
+    c = _contract["arms"].get(arm)
+    if not isinstance(c, dict) or not c.get("candidacy_gate"):
+        rec["why"] = f"arm {arm!r} is not registered as a candidate in the frozen contract (arms: {sorted(_contract['arms'])})"; return rec
+    gate, profile = str(c["candidacy_gate"]), c.get("profile"); rec["contract_gate"] = gate; rec["contract_profile"] = profile
+    approved = [a for a in (_contract["gates"].get(gate) or {}).get("approved_source_sha256", []) if isinstance(a, str)]
+    conflicts = []
+    if rec["caller_supplied"].get("gate") not in (None, gate): conflicts.append(f"gate {rec['caller_supplied']['gate']!r} != contract {gate!r}")
+    if rec["caller_supplied"].get("profile") not in (None, profile): conflicts.append(f"profile {rec['caller_supplied']['profile']!r} != contract {profile!r}")
+    if rec["caller_supplied"].get("self_sha") not in (None,) and rec["caller_supplied"]["self_sha"] not in approved: conflicts.append(f"self_sha {str(rec['caller_supplied']['self_sha'])[:12]} is not an approved source of {gate!r}")
+    if conflicts:
+        rec["why"] = "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): " + "; ".join(conflicts); return rec
+    try: r = json.load(open(str(spec["receipt"])))
+    except Exception as e:   # noqa: BLE001
+        rec["why"] = f"receipt unreadable: {type(e).__name__}: {e}"; return rec
+    if not isinstance(r, dict): rec["why"] = "receipt is not a JSON object"; return rec
+    rec["receipt_gate"], rec["receipt_arm"], rec["receipt_self_sha"] = r.get("gate"), r.get("arm"), r.get("self_sha256")
+    if r.get("gate") != gate:
+        rec["why"] = f"receipt is from gate {r.get('gate')!r}; the frozen contract requires {gate!r} for arm {arm!r} (a quality gate's PASS is not export candidacy)"; return rec
+    if not approved:
+        rec["why"] = f"no approved gate source is registered for {gate!r} in the frozen contract (the physical gate is not built): no receipt can make {arm!r} a candidate"; return rec
+    if r.get("self_sha256") not in approved:
+        rec["why"] = f"receipt was written by gate source {str(r.get('self_sha256'))[:12]}, which is not an approved source of {gate!r} (approved {[a[:12] for a in approved]})"; return rec
+    if r.get("arm") != arm:
+        rec["why"] = f"receipt is bound to arm {r.get('arm')!r}, the judged arm is {arm!r} (a receipt cannot be relabelled onto another arm)"; return rec
+    inputs = dict(spec.get("inputs") or {})
+    for seat in ("dyn", "fix"):
+        for s in ("42", "2027"):
+            if (arm, seat, s) not in ARMS: rec["why"] = f"judged book {arm}_{seat}_s{s} is not loaded, so the receipt cannot be bound to it"; return rec
+            inputs[f"book_{seat}_s{s}"] = f"{HC}/dev_v4/probe_artifacts/w10_ablation_series_V4_{arm}_{seat}_s{s}.npz"   # the judge, not the caller, binds the books
+    ok, why = _require(str(spec["receipt"]), inputs, expected_gate=gate, expected_self_sha=str(r.get("self_sha256")), profile=profile)
+    rec["ok"] = bool(ok); rec["why"] = why; rec["inputs"] = sorted(inputs); return rec
 for _arm, _spec in sorted((_el_map or {}).items()):
     if not isinstance(_spec, dict) or not _spec.get("receipt"):
-        _elig[_arm] = {"ok": False, "why": "entry is not {receipt, gate, self_sha, inputs}", "receipt": None, "gate": None}; continue
-    _ok, _why = _require(str(_spec["receipt"]), dict(_spec.get("inputs") or {}), expected_gate=_spec.get("gate"), expected_self_sha=_spec.get("self_sha"), profile=_spec.get("profile"))
-    _elig[_arm] = {"ok": bool(_ok), "why": _why, "receipt": _spec["receipt"], "gate": _spec.get("gate"), "self_sha": _spec.get("self_sha"), "inputs": sorted((_spec.get("inputs") or {}).keys())}
+        _elig[_arm] = {"ok": False, "why": "entry is not {receipt, inputs}", "receipt": None, "contract_gate": None}; continue
+    _elig[_arm] = _eligibility(_arm, _spec)
+    if _elig[_arm].get("caller_supplied"): print(f"   note: eligibility[{_arm}] caller supplied {sorted(_elig[_arm]['caller_supplied'])} — the frozen contract, not the caller, defines the standard", flush=True)
 _eligible_arms = sorted(a for a, r in _elig.items() if r["ok"])
 out["eligibility_by_arm"] = _elig; out["eligible_arms"] = _eligible_arms; out["eligibility_error"] = _el_err
 out["eligibility"] = "candidate" if _eligible_arms else "informational"

@@ -64,7 +64,7 @@ def main():
                 continue
             a, b = line.split(" ", 1)
             pod2[b.strip()] = None if a == "MISSING" else a
-    files = sorted(f for f in os.listdir(HERE) if f.endswith((".py", ".sh")) and os.path.isfile(os.path.join(HERE, f)))
+    files = sorted(f for f in os.listdir(HERE) if (f.endswith((".py", ".sh")) or f == "ELIGIBILITY_CONTRACT.json") and os.path.isfile(os.path.join(HERE, f)))   # round 5: the frozen contract is reviewed like source
     rows = {}
     for f in files:
         s = sha(os.path.join(HERE, f)); m = SNAP.search(f); p2 = pod2.get(f) if pf else "UNQUERIED"

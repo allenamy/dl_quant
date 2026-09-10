@@ -168,10 +168,36 @@ with tempfile.TemporaryDirectory() as d:
     json.dump(dict(s1, gate="G9_unregistered"), open(f"{d}/g9.json", "w"))
     rc, out = run(["v4_gate_common.py", "require", f"{d}/g9.json", "gate=G9_unregistered", "self_sha=" + s1["self_sha256"], f"extra_recorded={d}/holes.npz"])
     check("★ [r4] an unregistered gate has no floor: the caller's own non-empty declaration still binds ⇒ rc 0 with 'registered floor G9_unregistered=none'", rc == 0 and "registered floor G9_unregistered=none" in out, out.strip()[-120:])
+    # ── round 5 (researcher drift case): an edited gate that re-runs signs its own receipt; the runtime pin matches it; the frozen contract does not ──
+    os.makedirs(f"{d}/edited"); open(f"{d}/edited/v4_gate_common.py", "w").write(open(f"{HERE}/v4_gate_common.py").read())
+    open(f"{d}/edited/v4_gate_closure.py", "w").write(open(f"{HERE}/v4_gate_closure.py").read() + "\n# local edit after review\n")
+    rc, out = run([f"{d}/edited/v4_gate_closure.py", f"{d}/fA.npz", f"{d}/fB.npz", f"{d}/tA.npz", f"{d}/tB.npz", f"{d}/edited_out.json"], {"HOLE_CELLS": f"{d}/holes.npz", "EXPECT_NCOLS": "89"})
+    ed = json.load(open(f"{d}/edited_out.json"))
+    check("★ [r5] the edited gate runs and PASSes on its own, signing the receipt with ITS sha", rc == 0 and ed["PASS"] is True and ed["self_sha256"] == _sha(f"{d}/edited/v4_gate_closure.py"), (rc, out[-160:]))
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/edited_out.json", G, "self_sha=" + ed["self_sha256"]] + ALL5)
+    check("★★★ [r5] require pinned to the edited gate's OWN runtime sha ⇒ rc 3 'not an APPROVED source' (round 4: pin == receipt ⇒ accepted; the reviewer's drift case)",
+          rc == 3 and "not an APPROVED source" in out, out.strip()[-200:])
+    rc, out = run(["v4_gate_common.py", "approved", "G2_closure", ed["self_sha256"]])
+    check("★ [r5] the CLI `approved` sub-command answers NOT_APPROVED for it (rc 3) and APPROVED for the archived gate (rc 0)",
+          rc == 3 and run(["v4_gate_common.py", "approved", "G2_closure", _sha(f"{HERE}/v4_gate_closure.py")])[0] == 0, out.strip()[-120:])
+    os.makedirs(f"{d}/nocontract"); open(f"{d}/nocontract/v4_gate_common.py", "w").write(open(f"{HERE}/v4_gate_common.py").read())
+    rc, out = run([f"{d}/nocontract/v4_gate_common.py", "require", f"{d}/out.json", G, SS] + ALL5)
+    check("★★ [r5] a governed gate required through a v4_gate_common with NO frozen contract beside it ⇒ rc 3 (nothing can be required without the reviewed definition)",
+          rc == 3 and "frozen contract missing" in out, out.strip()[-160:])
+    rc, out = run([f"{d}/nocontract/v4_gate_common.py", "require", f"{d}/g9.json", "gate=G9_unregistered", "self_sha=" + s1["self_sha256"], f"extra_recorded={d}/holes.npz"])
+    check("★ [r5] an UNGOVERNED gate (not registered, not in the contract) is unaffected by a missing contract (rc 0) — and confers nothing (arms map only to contract gates)", rc == 0, out.strip()[-120:])
+    _ct = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))
+    check("★★★ [r5] the ARCHIVED contract is self-consistent: approved sources of G2/STEP1/STEP2 are exactly the archived gate files' shas; BUNDLE_export approves NOTHING (physical gate not built); every candidate arm maps to BUNDLE_export",
+          _ct["gates"]["G2_closure"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_closure.py")] and _ct["gates"]["STEP1"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_step1.py")]
+          and _ct["gates"]["STEP2"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_step2.py")] and _ct["gates"]["BUNDLE_export"]["approved_source_sha256"] == []
+          and set(_ct["arms"]) == {"A1", "A1s", "A1e", "A2", "A3"} and all(a["candidacy_gate"] == "BUNDLE_export" and a["book_binding"] for a in _ct["arms"].values()),
+          {g: [x[:8] for x in v["approved_source_sha256"]] for g, v in _ct["gates"].items()})
+    check("★ [r5] make_sha_manifest.py lists the contract as a reviewed file", 'f == "ELIGIBILITY_CONTRACT.json"' in open(f"{HERE}/make_sha_manifest.py").read())
     import importlib; sys.path.insert(0, HERE); _gc = importlib.import_module("v4_gate_common")
     check("★★ [r4] REQUIRED_INPUTS names exactly what the archived chains declare: G2 5 (v4s), STEP1@v4s 2, STEP1@v4 4 (gpu3/post_export), STEP2 2",
           set(_gc.REQUIRED_INPUTS["G2_closure"]) == {"fea_A", "fea_B", "targets_A", "targets_B", "hole_cells"} and _gc.REQUIRED_INPUTS["STEP1@v4"] == ["dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"]
           and _gc.REQUIRED_INPUTS["STEP2"] == ["wide_fea_v4", "wide_fea_v4_meta"] and "profile=v4s" in open(f"{HERE}/chain_v4s_gpu.sh").read() and "profile=v4" in open(f"{HERE}/chain_v4_gpu3.sh").read() and "profile=v4" in open(f"{HERE}/chain_v4_post_export.sh").read())
+    check("★★ [r5] REQUIRED_INPUTS[BUNDLE_export] = the 7 export inputs + the arm's 4 judged books", _gc.REQUIRED_INPUTS["BUNDLE_export"][-4:] == list(_gc.BOOK_INPUTS) and len(_gc.REQUIRED_INPUTS["BUNDLE_export"]) == 11)
 
 
 with tempfile.TemporaryDirectory() as d:
@@ -241,6 +267,13 @@ def chain_case(entry, scenario, d):
     for f in os.listdir(HERE):
         if f.endswith((".py", ".sh")):
             open(f"{rr}/{f}", "w").write(open(f"{HERE}/{f}").read().replace("/workspace", root))
+    # round 5: the frozen contract travels with the device; its approved sources are the TRANSLATED gate scripts (path translation changes the bytes)
+    _ct = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))
+    for _g, _f in (("G2_closure", "v4_gate_closure.py"), ("STEP1", "v4_gate_step1.py"), ("STEP2", "v4_gate_step2.py")):
+        _ct["gates"][_g]["approved_source_sha256"] = [_sha(f"{rr}/{_f}")]
+    json.dump(_ct, open(f"{rr}/ELIGIBILITY_CONTRACT.json", "w"), indent=1)
+    if scenario == "gate_edited_rerun":   # round 5 (researcher drift case): the closure gate is edited locally AFTER the contract froze its sha; the chain pins the runtime sha of the edited file
+        open(f"{rr}/v4_gate_closure.py", "a").write("\n# local edit after review: not the approved program\n")
     stub = f"""#!/usr/bin/env python3
 import sys, os, json, subprocess
 a = sys.argv[1:]; n = os.path.basename(a[0]) if a else ""
@@ -320,6 +353,9 @@ with tempfile.TemporaryDirectory() as d:
     r = chain_case("chain_v4s_gpu.sh", "chain_omits_hole_cells", d)
     check("★★★ [r4] a driver that declares only 4 of the 5 registered G2 inputs (hole_cells dropped) ⇒ rc 3 'omitted registered input', ZERO trainings (round 3: the subset passed)",
           r["rc"] == 3 and r["train"] == 0 and not r["done"] and "omitted registered input(s) ['hole_cells']" in r["log"], {k: r[k] for k in ("rc", "train", "done")} | {"tail": r["log"].strip().splitlines()[-2][-160:] if len(r["log"].strip().splitlines()) > 1 else r["err"]})
+    r = chain_case("chain_v4s_gpu.sh", "gate_edited_rerun", d)
+    check("★★★ [r5] chain_runtime_gate_sha_accepts_changed_recipe: the closure gate edited after the contract froze its sha, receipt signed by the edited gate, chain pins the runtime sha ⇒ rc 3 'not an APPROVED source', ZERO trainings, no DONE (round 4: rc 0, 8 trainings, DONE)",
+          r["rc"] == 3 and r["train"] == 0 and r["merge"] == 0 and not r["done"] and "not an APPROVED source" in r["log"], {k: r[k] for k in ("rc", "train", "merge", "done")} | {"tail": r["log"].strip().splitlines()[-1][-200:] if r["log"].strip() else r["err"]})
     r = chain_case("chain_v4s_gpu.sh", "gate_script_missing", d)
     check("★★ [r4] the gate script the chain would pin is missing ⇒ rc 3 gate_source_unreadable before any require/dispatch", r["rc"] == 3 and r["train"] == 0 and "gate_source_unreadable_v4_gate_closure" in r["log"], {k: r[k] for k in ("rc", "train")} | {"tail": r["log"].strip().splitlines()[-1][-120:] if r["log"].strip() else r["err"]})
     check("★★ [r4] the success run's require lines carry the pinned source = sha of the translated gate scripts (pin computed at run time, not typed)",
@@ -353,21 +389,38 @@ import calendar as _cal
 ELIG_INPUTS = ("wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins")   # the BUNDLE_export input contract
 
 
-def bound_entry(q, arm, gate="BUNDLE_export", src=None, receipt_override=None, entry_override=None):
-    """Write a finalize-shaped export receipt BOUND to (gate, gate-source sha, input shas) for `arm` and return the JUDGE_ELIGIBILITY entry naming it.
-    Synthetic: the 'gate source' is the archived exporter, the inputs are small files written here (their shas are what binds)."""
+def bound_entry(q, arm, gate="BUNDLE_export", src=None, receipt_override=None, entry_override=None, bind_books=True, books_of=None):
+    """Write a finalize-shaped export receipt BOUND to (gate, gate-source sha, input shas, the arm's four judged books) for `arm` and return the
+    JUDGE_ELIGIBILITY entry naming it. Synthetic: the 'gate source' is the archived exporter (the test contract approves it), the inputs are small
+    files written here (their shas are what binds). Round 5: the receipt also hashes book_<seat>_s<seed> = the judged w10 files of `books_of` (default arm)."""
     src = src or f"{HERE}/pod_export_bundle_v4.py"; inputs = {}
     for k in ELIG_INPUTS:
         open(f"{q}/{arm}_{k}.bin", "wb").write(f"{arm}:{k}".encode()); inputs[k] = f"{q}/{arm}_{k}.bin"
-    rec = {"gate": gate, "PASS": True, "arm": arm, "self_sha256": _sha(src), "inputs_sha256": {k: _sha(p) for k, p in inputs.items()}, "inputs_path": inputs,
+    shas = {k: _sha(p) for k, p in inputs.items()}
+    if bind_books:
+        for seat in ("dyn", "fix"):
+            for seed in (42, 2027):
+                bp = f"{q}/hc/dev_v4/probe_artifacts/w10_ablation_series_V4_{books_of or arm}_{seat}_s{seed}.npz"
+                if os.path.exists(bp): shas[f"book_{seat}_s{seed}"] = _sha(bp)
+    rec = {"gate": gate, "PASS": True, "arm": arm, "self_sha256": _sha(src), "inputs_sha256": shas, "inputs_path": inputs,
            "utc": "2026-09-10T00:00:00Z", "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"}
     rec.update(receipt_override or {}); path = f"{q}/export_{arm}.json"; json.dump(rec, open(path, "w"))
     e = {"receipt": path, "gate": gate, "self_sha": _sha(src), "inputs": inputs}; e.update(entry_override or {}); return e
 
 
+def test_contract(approve_exporter=True):
+    """The archived frozen contract with BUNDLE_export's approved list = [sha of the archived exporter] (the synthetic gate source bound_entry signs with)."""
+    c = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))
+    c["gates"]["BUNDLE_export"]["approved_source_sha256"] = [_sha(f"{HERE}/pod_export_bundle_v4.py")] if approve_exporter else []
+    return c
+
+
 def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False, duplicate=False, nan_repro=False, promote=False, export_gate=None, bad_repro=False,
-               promote_arm="A1e", eligibility=None, mutate=None):
-    """eligibility: callable(q) -> {arm: entry} written to a file for JUDGE_ELIGIBILITY, or a str passed inline. mutate: callable(v_dir, raw_dir) run after the fixtures are written."""
+               promote_arm="A1e", eligibility=None, mutate=None, contract="test", post_mutate=None):
+    """eligibility: callable(q) -> {arm: entry} written to a file for JUDGE_ELIGIBILITY, or a str passed inline. mutate: callable(v_dir, raw_dir) run after the fixtures are written.
+    Round 5: the judge runs from a DEVICE COPY (q/device: judge_v4.py + v4_gate_common.py + a contract) — contract="test" approves the archived exporter for
+    BUNDLE_export (positive controls), "archive" runs the archived judge in place with the shipped contract, "none" ships no contract, or a dict is written verbatim.
+    post_mutate: callable(v_dir, raw_dir) run AFTER the eligibility receipts are written (a book replaced after the receipt)."""
     q = f"{d}/{name}"; hc = f"{q}/hc"; v = f"{hc}/dev_v4/probe_artifacts"; old = f"{hc}/dev_raw/probe_artifacts"
     os.makedirs(v); os.makedirs(old)
     ts = _cal.timegm((2025, 3, 1, 0, 0, 0)) + np.arange(3168) * 14400
@@ -391,9 +444,19 @@ def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False,
     if export_gate is not None:
         json.dump(export_gate, open(f"{q}/G2_export.json", "w")); env["JUDGE_EXPORT_GATE"] = f"{q}/G2_export.json"
     if callable(eligibility):
-        json.dump(eligibility(q), open(f"{q}/ELIG.json", "w")); env["JUDGE_ELIGIBILITY"] = f"{q}/ELIG.json"
+        _el = eligibility(q)
+        if isinstance(_el, str): env["JUDGE_ELIGIBILITY"] = _el                      # inline JSON text (round 5: books exist by now, so the entry can bind them)
+        else: json.dump(_el, open(f"{q}/ELIG.json", "w")); env["JUDGE_ELIGIBILITY"] = f"{q}/ELIG.json"
     elif isinstance(eligibility, str): env["JUDGE_ELIGIBILITY"] = eligibility
-    rc, out = run(["judge_v4.py"], env)
+    if post_mutate is not None: post_mutate(v, old)
+    judge = "judge_v4.py"
+    if contract != "archive":
+        os.makedirs(f"{q}/device")
+        for f in ("judge_v4.py", "v4_gate_common.py"): open(f"{q}/device/{f}", "w").write(open(f"{HERE}/{f}").read())
+        if contract == "test": json.dump(test_contract(), open(f"{q}/device/ELIGIBILITY_CONTRACT.json", "w"))
+        elif isinstance(contract, dict): json.dump(contract, open(f"{q}/device/ELIGIBILITY_CONTRACT.json", "w"))
+        judge = f"{q}/device/judge_v4.py"
+    rc, out = run([judge], env)
     j = json.load(open(f"{q}/J.json")) if os.path.exists(f"{q}/J.json") else None
     return rc, out, j
 
@@ -440,8 +503,8 @@ with tempfile.TemporaryDirectory() as d:
     check("★★★ [r4] judge_minimal_PASS: JUDGE_ELIGIBILITY names a bare {PASS:true} for A1e ⇒ informational, A1e NOT eligible (no gate/source/inputs), no PROMOTE anywhere",
           rc == 0 and j and j["eligibility"] == "informational" and j["eligibility_by_arm"]["A1e"]["ok"] is False and _no_promote(j), (rc, j and j["eligibility_by_arm"]))
     rc, out, j = judge_case(d, "r4_wrong_gate_name", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e", entry_override={"gate": "G2_closure"})})
-    check("★★★ [r4] a bound PASS receipt from ANOTHER gate (BUNDLE_export receipt, caller expects G2_closure) ⇒ A1e not eligible, no PROMOTE",
-          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "caller expected 'G2_closure'" in j["eligibility_by_arm"]["A1e"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    check("★★★ [r4→r5] the caller names gate=G2_closure for A1e while the frozen contract says BUNDLE_export ⇒ 'caller-supplied standard conflicts', A1e not eligible, no PROMOTE (round 4 let the caller name the gate)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "conflicts with the frozen contract" in j["eligibility_by_arm"]["A1e"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
     def _stale(q):
         e = bound_entry(q, "A1e"); open(e["inputs"]["bundle_cache"], "wb").write(b"cache rebuilt AFTER the export receipt"); return {"A1e": e}
     rc, out, j = judge_case(d, "r4_stale_input", promote=True, eligibility=_stale)
@@ -457,14 +520,18 @@ with tempfile.TemporaryDirectory() as d:
           rc == 0 and j and j["eligibility"] == "candidate" and j["eligible_arms"] == ["A1e"] and j["eligibility_by_arm"]["A1e"]["ok"] is True
           and sorted(k for k, v in j["verdicts"].items() if v == "(A) PROMOTE") == ["A1e-A0|dyn", "A1e-A0|fix", "A1e-A1|dyn", "A1e-A1|fix"]
           and all(v == "(C) UNDECIDED" for k, v in j["verdicts"].items() if not k.startswith("A1e")), (rc, j and j["eligible_arms"], j and sorted(set(j["verdicts"].values()))))
-    _q = f"{d}/r4_inline_json"; os.makedirs(_q); _e = bound_entry(_q, "A1e")
-    rc, out, j = judge_case(d, "r4_inline_json", promote=True, eligibility=json.dumps({"A1e": _e}))
+    rc, out, j = judge_case(d, "r4_inline_json", promote=True, eligibility=lambda q: json.dumps({"A1e": bound_entry(q, "A1e")}))
     check("★★ [r4] JUDGE_ELIGIBILITY given INLINE as JSON text (not a path) binds the same way", rc == 0 and j and j["eligible_arms"] == ["A1e"] and sum(v == "(A) PROMOTE" for v in j["verdicts"].values()) == 4, (rc, j and j["eligible_arms"]))
     rc, out, j = judge_case(d, "r4_garbage_env", promote=True, eligibility="{not json")
     check("★★ [r4] an unparseable JUDGE_ELIGIBILITY is ignored with a warning, never treated as permission: informational, eligibility_error set, no PROMOTE",
           rc == 0 and j and j["eligibility"] == "informational" and j["eligibility_error"] and _no_promote(j) and "JUDGE_ELIGIBILITY ignored" in out, (rc, j and j["eligibility_error"]))
     rc, out, j = judge_case(d, "r4_no_pin", promote=True, eligibility=lambda q: {"A1e": {k: v for k, v in bound_entry(q, "A1e").items() if k != "self_sha"}})
-    check("★★★ [r4] an eligibility entry that does not pin the gate source (no self_sha) ⇒ A1e not eligible ('did not pin'), no PROMOTE", rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "did not pin" in j["eligibility_by_arm"]["A1e"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    check("★★★ [r4→r5] an entry with NO self_sha is fine — the pin now comes from the frozen contract, not the caller: A1e eligible, 4 PROMOTE (round 4 required the caller to pin, which is the wrong party)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is True and sum(v == "(A) PROMOTE" for v in j["verdicts"].values()) == 4, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    rc, out, j = judge_case(d, "r5_receipt_from_unapproved_source", promote=True,
+                            eligibility=lambda q: {"A1e": {k: v for k, v in bound_entry(q, "A1e", receipt_override={"self_sha256": _sha(f"{HERE}/judge_v4.py")}).items() if k != "self_sha"}})
+    check("★★★ [r5] a BUNDLE_export receipt written by a program whose sha is NOT in the contract's approved list (the judge's) ⇒ A1e not eligible ('not an approved source'), no PROMOTE",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "not an approved source" in j["eligibility_by_arm"]["A1e"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
     def _drop_cache(q):
         e = bound_entry(q, "A1e"); e["inputs"] = {k: v for k, v in e["inputs"].items() if k != "bundle_cache"}; return {"A1e": e}
     rc, out, j = judge_case(d, "r4_missing_registered_input", promote=True, eligibility=_drop_cache)
@@ -527,6 +594,72 @@ with tempfile.TemporaryDirectory() as d:
     check("★★ [r4] JUDGE_ALLOW_PARTIAL=1 with fractional-timestamp arms ⇒ rc 0 exploratory, every arm listed under schema_bad, no verdict issued", rc == 0 and j and j["exploratory"] is True and len(j["schema_bad"]) == 28 and j["verdicts"] == {}, (rc, j and len(j["schema_bad"])))
     rc, out, j = judge_case(d, "r4_still_missing_ref", drop_raw27=True)
     check("★★ [r4] a MISSING seed-2027 reference still lands at the reproduction gate rc 3 'missing_reference' (unchanged round-3 behaviour; the new axis gate only judges files that exist)", rc == 3 and "missing_reference" in out and "A0p_dyn_s2027" in out, out.strip().splitlines()[-1][-160:])
+
+
+# ── [N] round 5 (independent review cfaf1bbe §2–5): the standard is the frozen contract; receipts bind to the arm and its books; strict book contract ──
+with tempfile.TemporaryDirectory() as d:
+    print("\n[N] judge_v4 round 5: frozen ELIGIBILITY_CONTRACT.json decides; JUDGE_ELIGIBILITY only locates receipts; strict book contract")
+    def _no_promote(j): return j and not any(v == "(A) PROMOTE" for v in j["verdicts"].values())
+    def _n_promote(j): return sum(v == "(A) PROMOTE" for v in (j or {}).get("verdicts", {}).values())
+    # a GENUINE G2_closure receipt, written by the archived closure gate on the [A] fixture, bound to A1e (researcher judge_actual_G2_not_export)
+    os.makedirs(f"{d}/g2"); fx = fixture(f"{d}/g2")
+    rc, out = run(["v4_gate_closure.py", f"{d}/g2/fA.npz", f"{d}/g2/fB.npz", f"{d}/g2/tA.npz", f"{d}/g2/tB.npz", f"{d}/g2/G2.json"], {"HOLE_CELLS": f"{d}/g2/holes.npz", "EXPECT_NCOLS": "89"}); assert rc == 0
+    _g2in = {"fea_A": f"{d}/g2/fA.npz", "fea_B": f"{d}/g2/fB.npz", "targets_A": f"{d}/g2/tA.npz", "targets_B": f"{d}/g2/tB.npz", "hole_cells": f"{d}/g2/holes.npz"}
+    rc, out, j = judge_case(d, "r5_actual_G2_not_export", promote=True, eligibility=lambda q: {"A1e": {"receipt": f"{d}/g2/G2.json", "inputs": _g2in}})
+    check("★★★ [r5] judge_actual_G2_not_export: a REAL G2_closure PASS (right gate source, all 5 inputs fresh) located for A1e ⇒ NOT eligible ('receipt is from gate G2_closure; the frozen contract requires BUNDLE_export'), 0 PROMOTE (round 4: 4 PROMOTE)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "requires 'BUNDLE_export'" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    rc, out, j = judge_case(d, "r5_actual_G2_caller_says_G2", promote=True, eligibility=lambda q: {"A1e": {"receipt": f"{d}/g2/G2.json", "gate": "G2_closure", "self_sha": _sha(f"{HERE}/v4_gate_closure.py"), "inputs": _g2in}})
+    check("★★★ [r5] the same G2 receipt with the caller ALSO naming gate=G2_closure + its true sha (a self-consistent but wrong standard) ⇒ 'caller-supplied standard conflicts with the frozen contract', 0 PROMOTE",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "conflicts with the frozen contract" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    def _step1_entry(q):
+        s1 = {"gate": "STEP1", "PASS": True, "arm": "A1e", "self_sha256": _sha(f"{HERE}/v4_gate_step1.py"), "inputs_sha256": {k: _sha(f"{d}/g2/holes.npz") for k in ("dlw_v4raw_targets", "fea82_v4raw")}}
+        json.dump(s1, open(f"{q}/s1.json", "w")); return {"A1e": {"receipt": f"{q}/s1.json", "profile": "v4s", "inputs": {k: f"{d}/g2/holes.npz" for k in ("dlw_v4raw_targets", "fea82_v4raw")}}}
+    rc, out, j = judge_case(d, "r5_actual_STEP1_downgraded_profile", promote=True, eligibility=_step1_entry)
+    check("★★★ [r5] judge_actual_STEP1_downgraded_profile: a STEP1 PASS under a caller-chosen profile=v4s located for A1e ⇒ not eligible (conflict: the contract's profile is None / gate STEP1 ≠ BUNDLE_export), 0 PROMOTE (round 4: 4 PROMOTE)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    def _unknown_gate(q):
+        u = {"gate": "UNREGISTERED_quality", "PASS": True, "arm": "A1e", "self_sha256": _sha(f"{HERE}/v4_gate_closure.py"), "inputs_sha256": {"fea_A": _sha(f"{d}/g2/fA.npz")}}
+        json.dump(u, open(f"{q}/u.json", "w")); return {"A1e": {"receipt": f"{q}/u.json", "inputs": {"fea_A": f"{d}/g2/fA.npz"}}}
+    rc, out, j = judge_case(d, "r5_actual_unknown_gate_one_input", promote=True, eligibility=_unknown_gate)
+    check("★★★ [r5] judge_actual_unknown_gate_one_input: a PASS from an unregistered gate name with one input ⇒ not eligible (gate ≠ BUNDLE_export), 0 PROMOTE (round 4: 4 PROMOTE)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "requires 'BUNDLE_export'" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    # ── binding to the arm and to its books (researcher receipt_A1e_relabel_to_A1 / book_replaced_after_receipt) ──
+    rc, out, j = judge_case(d, "r5_relabel_A1e_to_A1", promote=True, promote_arm="A1", eligibility=lambda q: {"A1": bound_entry(q, "A1e")})
+    check("★★★ [r5] receipt_A1e_relabel_to_A1: A1e's receipt (arm=A1e, A1e's books) located under map key A1 with A1 +1 bps ⇒ A1 not eligible ('bound to arm A1e'), 0 PROMOTE (round 4: 6 PROMOTE)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1"]["ok"] is False and "bound to arm 'A1e'" in j["eligibility_by_arm"]["A1"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1"]["why"]))
+    def _relabel_arm_field(q):   # the receipt's arm field is forged to A1 but the books hashed are A1e's
+        return {"A1": bound_entry(q, "A1", books_of="A1e")}
+    rc, out, j = judge_case(d, "r5_relabel_books_of_other_arm", promote=True, promote_arm="A1", eligibility=_relabel_arm_field)
+    check("★★★ [r5] a receipt whose arm field says A1 but whose hashed books are A1e's ⇒ A1 not eligible ('book_dyn_s42 changed since the receipt'), 0 PROMOTE",
+          rc == 0 and j and j["eligibility_by_arm"]["A1"]["ok"] is False and "book_" in j["eligibility_by_arm"]["A1"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1"]["why"]))
+    def _replace_book(v, old):
+        for p in sorted(glob.glob(f"{v}/*_A1e_*.npz")):
+            z = np.load(p); r = z["d30_n2_c42_rec"].copy(); r[:, 18] = 3.0; r[:, 19] = 3.0; np.savez(p, d30_n2_c42_rec=r)
+    import glob
+    rc, out, j = judge_case(d, "r5_book_replaced_after_receipt", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")}, post_mutate=_replace_book)
+    check("★★★ [r5] book_replaced_after_receipt: A1e's economics rewritten AFTER the receipt sealed its book shas ⇒ not eligible ('book_… changed since the receipt'), 0 PROMOTE (round 4: 4 PROMOTE)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "changed since the receipt" in j["eligibility_by_arm"]["A1e"]["why"] and "book_" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    rc, out, j = judge_case(d, "r5_receipt_without_books", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e", bind_books=False)})
+    check("★★★ [r5] a BUNDLE_export receipt that never hashed the judged books ⇒ not eligible ('no sha for input book_dyn_s42'), 0 PROMOTE (the seven export inputs alone do not connect the receipt to the judged artefact)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "book_dyn_s42" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    rc, out, j = judge_case(d, "r5_unregistered_arm", promote=True, eligibility=lambda q: {"A9": bound_entry(q, "A9", books_of="A1e")})
+    check("★★ [r5] an arm not registered in the contract (A9) ⇒ not eligible ('not registered as a candidate'), no PROMOTE", rc == 0 and j and j["eligibility_by_arm"]["A9"]["ok"] is False and "not registered as a candidate" in j["eligibility_by_arm"]["A9"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A9"]["why"]))
+    # ── the standard is not the caller's: the shipped contract approves NO export gate; a device without a contract cannot promote ──
+    rc, out, j = judge_case(d, "r5_shipped_contract_empty_approved", promote=True, eligibility=lambda q: {"A1e": {k: v for k, v in bound_entry(q, "A1e").items() if k in ("receipt", "inputs")}}, contract="archive")
+    check("★★★ [r5] the ARCHIVED judge + its shipped contract: a fully bound, book-bound A1e receipt signed by the archived exporter ⇒ STILL not eligible ('no approved gate source … physical gate is not built'), 0 PROMOTE — no real judge run can promote until v4e_gate_export.py exists and is reviewed",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "no approved gate source" in j["eligibility_by_arm"]["A1e"]["why"] and j["contract"]["approved_sources"]["BUNDLE_export"] == [] and _n_promote(j) == 0,
+          (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    rc, out, j = judge_case(d, "r5_device_without_contract", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")}, contract="none")
+    check("★★ [r5] a device copy with NO contract beside the judge ⇒ informational, contract.error set, a warning printed, 0 PROMOTE", rc == 0 and j and j["contract"]["error"] and j["eligibility"] == "informational" and "frozen eligibility contract unavailable" in out and _n_promote(j) == 0, (rc, j and j["contract"]["error"]))
+    _ct_bad = test_contract(); _ct_bad["contract_schema"] = "something/else"
+    rc, out, j = judge_case(d, "r5_malformed_contract", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")}, contract=_ct_bad)
+    check("★ [r5] a malformed contract (wrong schema tag) ⇒ treated as unavailable: informational, 0 PROMOTE", rc == 0 and j and j["contract"]["error"] and _n_promote(j) == 0, (rc, j and j["contract"]["error"]))
+    rc, out, j = judge_case(d, "r5_contract_sha_recorded", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")})
+    check("★★★ [r5] GREEN positive control under the TEST contract (device copy approving the archived exporter): A1e eligible, exactly 4 PROMOTE, and the output records the contract's sha and approved sources so a reviewer can see WHICH standard judged",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is True and _n_promote(j) == 4 and j["contract"]["sha256"] == _sha(f"{d}/r5_contract_sha_recorded/device/ELIGIBILITY_CONTRACT.json")
+          and j["contract"]["approved_sources"]["BUNDLE_export"] == [_sha(f"{HERE}/pod_export_bundle_v4.py")] and j["eligibility_by_arm"]["A1e"]["inputs"][-4:] == ["book_dyn_s2027", "book_dyn_s42", "book_fix_s2027", "book_fix_s42"] or (j and sorted(j["eligibility_by_arm"]["A1e"]["inputs"])[:4] == ["book_dyn_s2027", "book_dyn_s42", "book_fix_s2027", "book_fix_s42"]),
+          (rc, j and j["eligibility_by_arm"]["A1e"], j and j["contract"]["sha256"]))
+    check("★ [r5] the caller's entry needs only {receipt, inputs}: caller_supplied is empty when it names no standard", j and j["eligibility_by_arm"]["A1e"].get("caller_supplied") in ({"gate": "BUNDLE_export", "self_sha": _sha(f"{HERE}/pod_export_bundle_v4.py")}, {}), j and j["eligibility_by_arm"]["A1e"].get("caller_supplied"))
 
 
 # ── [M] round 3 (review 31fa3e4e §6, AMENDMENT 4): G1 clause (c) is code, and the six anchors must be present ────────────────────
