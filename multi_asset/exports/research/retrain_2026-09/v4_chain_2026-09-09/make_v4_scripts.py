@@ -33,6 +33,13 @@ n = n.replace('Z = zload("/workspace/data/dlnative_5m_wide829_f16_ext.npz", allo
 n = n.replace('with tarfile.open("/workspace/shadow_bundle_v3.tar.gz", "w:gz") as t:', 'with tarfile.open(os.environ.get("BUNDLE_TAR", "/workspace/shadow_bundle_v4.tar.gz"), "w:gz") as t:   # v4')
 n = n.replace("print(f\"BUNDLE_DONE files {len(man)} size {os.path.getsize('/workspace/shadow_bundle_v3.tar.gz')//1048576}MB\", flush=True)",
               "print(f\"BUNDLE_DONE files {len(man)} size {os.path.getsize(os.environ.get('BUNDLE_TAR', '/workspace/shadow_bundle_v4.tar.gz'))//1048576}MB\", flush=True)")
+# round 3 (review 31fa3e4e §5): the archived exporter reads the guard band from env (PREREG_king_clock_E AMENDMENT 2) — the generator did not emit
+# these lines, so a regeneration silently restored the fixed [2.27, 2.57] band and the frozen archive's own suite read 20/21.
+n = n.replace("if not (2.27 <= sh <= 2.57):",
+              '_GLO = float(os.environ.get("BUNDLE_GUARD_LO", "2.27")); _GHI = float(os.environ.get("BUNDLE_GUARD_HI", "2.57"))   # PREREG_king_clock_E AMENDMENT 2: band re-based for the [E+1,E+48] label; defaults verbatim\n'
+              'print(f"guard band [{_GLO:.3f}, {_GHI:.3f}] {\'PASS\' if _GLO <= sh <= _GHI else \'FAIL\'}", flush=True)\n'
+              "if not (_GLO <= sh <= _GHI):")
+assert 'os.environ.get("BUNDLE_GUARD_LO"' in n and 'os.environ.get("BUNDLE_GUARD_HI"' in n, "BUNDLE_GUARD env lines not emitted"
 assert n.count("# v4") == 4, n.count("# v4"); open(os.path.join(GEN_OUT, "pod_export_bundle_v4.py"), "w").write(n); out["bundle"] = diff(s, n, "pod_export_bundle_v3.py", "pod_export_bundle_v4.py")
 for k, v in out.items(): print("=== %s ===\n%s\n" % (k, v))
 json.dump({k: hashlib.sha256(open(f).read().encode()).hexdigest()[:16] for k, f in (("trainer_v4", os.path.join(GEN_OUT, "pod_f10_train_monthly_v4.py")), ("refit_v4", os.path.join(GEN_OUT, "pod_f10_refit_v4.py")), ("bundle_v4", os.path.join(GEN_OUT, "pod_export_bundle_v4.py")))}, open(os.path.join(GEN_OUT, "v4_scripts_sha.json"), "w"), indent=1)
