@@ -610,3 +610,48 @@
 1. 「缺 `confirmed_qty_final` 的旧行按 terminal 读」是遗留规则: 分支部署前已落盘的行都是场所终态 C, 语义不变; 但它是一个「缺键 ⇒ 假设」, 若你认为应改为「缺键 ⇒ 不可测」(会把历史行全判异常), 请指出。
 2. IOC 回包无 status 时按「IOC 的回包即终态」置 F=真 —— 这是 RESULT 回包形状的假设(实测 RESULT 必带 status); 若你见过无 status 的 IOC 回包, 请指出。
 3. 提交回包的身份按「带字段才比对」(它是 broker 按我方 cid 记录的回包); 其余记录仍要求字段齐全 —— 两种门的边界是「谁记录了它」。
+
+
+---
+
+## §EXECUTOR · 第十一轮(复审 f79dc8cd: R10-MAKER-F / R10-NONOBJECT-CARRY / R10-CHILD-CONSUMER + 三条自报答复)→ 实盘分支 6705bb3
+
+> 全电池 132/132(notify_audit 副本 13:59Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round10_codex_f79dc8cd_2026-09-10.md`; 事实表补格: `docs/DESIGN_request_fact_model_2026-09-10.md` §3e(金额的完整性; 有场所事实的 maker 行带账本; 出口清单; 无遗留回退; 提交记录按发送 id 绑定)+ §4.13–4.14。你三项 + 三条自报答复全部接受。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 279/279; 旧码上红) |
+|---|---|---|---|
+| R10-MAKER-F | `binance_broker.merge_order_records`; `binance_executor.apply_fill_details` / `topup`(maker 腿)/ `ledger_row_columns` | 均价回退 `n_final / c_final` 只在 C 为终值; `apply_fill_details` 标 `_venue_facts`, 有场所事实的普通 maker 行带账本 {L, F, T, N, N_final}, 数量列由读者写; 读者均价要求每张贡献请求 C 与 N 皆终值 | [60]: 合并 avg None(不再 1.5); 原链 maker 行 known 4 / 带 6 / 金额 6 / 价 None + 补 4 ⇒ 回读 8/10/14 CLEAN、6/16 异常; 正控 C6/N6/avg1 ⇒ 精确 6 |
+| R10-NONOBJECT-CARRY | `venue_fills.settle_ambiguous_legs` 非对象出口 | `_carry` | [61]: 原链 list 回包 ⇒ known 4 / 带 0, 回读 4 CLEAN、0/10 异常; 正控对象 ⇒ 4 + 补 6 |
+| R10-CHILD-CONSUMER | `binance_executor._settle_leg_by_identity` / `ledger_closed` / 补单腿 / UNKNOWN maker 行; `venue_fills._scan_orders` / `_merged`; `reconcile._exec_qty` | `confirmed_notional_final`(合并只发终值金额 ⇒ 真; 折叠 `filled_notional_final`; 子集只写 `confirmed_notional_lower`, 到达 Q 或与终值集相等才关闭); `ledger_closed` 要求金额终值; RC 账本行有带就走带分支(与 N 是否 None 无关) | [62]: 子集 30 ⇒ 金额不关闭、known 30 / 带 70, RC 30/80/100 CLEAN、20/110 异常; 手写 N80 + 带 20 行 ⇒ 读者走带; 子集到 Q ⇒ 皆终值 |
+| 自报 1 | `binance_executor._final_known` | 无 terminal 回退(缺键 / None 皆非终值); L 到达 Q ⇒ 容量终值 | [63] + 版本配对 [47] |
+| 自报 2 | 补单腿 `_r["terminal"]` / `_fin1` | 终态只来自显式 status; 无 status ⇒ 不终态不 F | [64]: C20 无 status + GET 失败 + 50 ⇒ known 70 / 带 30, 80 CLEAN |
+| 自报 3 | `binance_broker._submit_action_for` / `known_submit_record` / `known_order_id` | 按我方发送的 `order.client_id` 选记录; 回包声称别的 CID ⇒ orderId None, 现字段门判不可测 | [65] |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第十轮 | 第十一轮 |
+|---|---|---|
+| OPEN_C4_then_final_N6_no_C_no_avg(+补 4) | avg 1.5, maker 精确 4, 总量精确 8; 10/12/14 BREAK | maker 账本 known 4 / 带 6 / 金额 6; 总量 [8,14]; 8/10/14 CLEAN, 6/16 异常 |
+| CANCELED 4 → GET 答 list | known 0 / 带 10; 0/4/10 CLEAN | known 4 / 带 0; 4 CLEAN, 0/10 异常 |
+| terminal_unknown_child30_subset(+50) | filled_notional 80 关闭, RC 不可测, 80–100 报警 | 金额不关闭, known 80 / 带 20, 80–100 CLEAN |
+| 缺 F 键 terminal + C | 按 terminal 当终值 | 非终值(带); C=Q 按容量终值 |
+| C20 无 status + GET 失败 + 50 | 精确 70, 80 误报 | known 70 / 带 30, 80 CLEAN |
+| 发 A 回包 CID=B | lookup(B) 得 A 的记录, orderId 101 | lookup(B) 无; lookup(A) orderId None, 现字段门不可测 |
+
+**版本配对**: [47] 手写「已关闭账本」夹具显式 `confirmed_qty_final` / `confirmed_notional_final`。其余 258 项原样保留。
+
+### 未闭合(明写)
+1. R6-MARK: 无 mark 的「不可对账」不触发 halt —— 动作合同, 另议(你 §5 已列)。
+2. `_seen_syms > 1`(同名两张请求)与 settle 整体异常两个出口不带事实 —— 设计如此(事实无法归属), 明写。
+3. 同快照内 C×avg 与 N 一致性(容差待场所精度); 时窗核对; Q6 实现与回放。
+4. −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。
+
+### 我方在第十一轮里承认的自己的错(见处置文档 §4)
+F 带到账本却没贯穿每个读者(普通 maker 行、均价回退、RC 带分支)/ 金额没有自己的完整性 / 出口清单又漏一个 / 三条自报都是未验证的假设。
+
+### 请复核(第十一轮新问题, 我方自报)
+1. 有场所事实的 maker 行现在带账本: 其 `filled_qty` 只在 F 时写, 否则 None + 带 —— RC 用带读; 但 M1/M3 等只读 `filled_notional` 的消费者不受影响。请核对是否有别的消费者读 maker 行的 `avg_fill_px`(现在 C 非终值时为 None)。
+2. 没有任何场所事实的 maker 行(DRY_RUN / 注入 fills)仍无账本, 走旧 N/avg 读法 —— 生产不经过这条路(`_venue_facts` 由 apply_fill_details 写); 若你认为应一并带账本, 请指出。
+3. 子成交到达 Q 时同时置数量与金额终值 —— 这里假设「集合到达 Q ⇒ 集合完整」; 若场所会在 Q 之上再报孩子(超成交), `ledger_inconsistencies` 的「confirmed more than requested」会拦。
