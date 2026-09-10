@@ -317,3 +317,64 @@
 - 首次跑套件 2 红: (i) `r4_inline_json` 的条目在书夹具存在前生成 ⇒ 没绑到书(测试顺序错, 非产品); (ii) 「现网合同空批准表」一案的条目带了调用者 self_sha ⇒ 先撞冲突检查(结果同为不合格, 但拒因不是想证的那条)。两处只改测试, 产品源码未动。
 - r5-1 / r5-2 的拆分是**事后**做的: 先在工作树里去掉严格合同的代码块与测试提交 r5-1, 再恢复最终文件提交 r5-2; 两个中间状态都编译通过, 最终文件与跑出 151 的版本逐字节相同(`cmp` VERIFIED), 但 r5-1 单独那一刻的 143 项没有单独跑过。
 - 重跑收据第一版把研究员 trust14 记录读错(其 RESULT.json 里是 dict 不是 list)⇒ 14 案标成 ONLY_ONE_SIDE; 用其 `collected/trust/*/RESULT.json` 逐案重建后在推送前 amend 了 r5-3。
+
+
+---
+
+## §EXECUTOR · 第五轮(复审 cfaf1bbe: Q1–Q7 / E4-P1 / E4-P2A–C / A1)→ 实盘分支 b840ed9
+
+> 全电池 132/132(首跑 2 红为电池自身缺陷, 修后重跑全绿), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置文档(研究主线): `docs/REVIEW_ACCEPT_round4_codex_cfaf1bbe_2026-09-10.md`; 跨读数合同预注册: `docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md`(未落码)。你的五类阻断全部接受; 共因按你的诊断处理: 进入公式的请求状态/已知数量/账本行不完整或被另一口径替换 —— 所以第五轮的主体是**请求生命周期 + 单一读者**, 不是阈值。
+
+### 改了什么(对应你的编号)
+
+| 你的编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 117/117) |
+|---|---|---|---|
+| Q1 | `binance_executor`: `ledger_row_columns` / `apply_ledger_to_plan`(新); topup 三条出口; `_settle_leg_by_identity`; `binance_broker.last_fill_details` | 每张请求记 `confirmed_qty` = 场所 **executedQty**(`last_fill_details` 新返回 `status` / `executed_qty` / `orig_qty`), 不再 名义/均价; 行的 `filled_qty`(腿关闭时 Σ)、`filled_known_qty`、`filled_unknown_qty`、`filled_known_notional`、`filled_notional`、`avg_fill_px`(同集合 Σ名义/Σ数量)**全部由一个读者产出, 成功/传输/拒绝/结算四条路径都过它** | [21] 50@1+50@2 ⇒ filled_qty 100 / avg 1.5; RC 100 CLEAN、75 异常 |
+| Q2 | `request_remaining` / `ledger_totals` / `ledger_closed`(新语义); `_settle_leg_by_identity`; `apply_commission_to_rows` 门 | 请求状态 = (state, C, terminal): 子成交只抬 C, **不设终态**; 终态只由 status ∈ TERMINAL 或 C ≥ Q; 未读到回包的请求 terminal=False; 余量 = 0(拒绝/未发/终态) / |Q|(一无所知) / |Q|−|C|(仍开); 腿关闭 = 全部已发请求终态且名义已知且无矛盾; 有账本的行**每次归属都重跑结算** | [22] child 10 ⇒ known 10 / 带 90 仍 UNKNOWN; 10+70 ⇒ 80; 达 100 才关; PARTIALLY_FILLED 10/50 ⇒ 带 40+50 |
+| Q3 | `reconcile._exec_qty`; `ledger_inconsistencies` | 矛盾检查在读者**第一行**(先于 filled_qty/bounded/structural); 生产者侧(回包 executedQty > origQty)与结算侧(超量 / 反向 / 非有限 qty·notional / quote≠qty×price)都记; 矛盾腿永不关闭 | [23] 60 关 50 ⇒ 不关、不可测; 回包 60/50 ⇒ 不写 110; child NaN / SELL 对 BUY ⇒ 矛盾 |
+| Q4 | `_settle_leg_by_identity` | 每请求 `trade_qty{trade_id}` / `trade_quote{trade_id}` 集合; C = Σ 并集, 单调不降; 生产者读数大于子集时保留 | [24] [t1,t1,t2] ⇒ 40; 再给 [t1] ⇒ 40 |
+| Q5 / R7 | `anchor_loop.clamp_venue_cap` + 调用方 | **先**校验全部名 target/held(raw None 亦无效)再 cap; held 无效的名弹出 | [27] 四组合 |
+| Q7 | `_exec_qty` fn/avg 路径 | fn、px 有限且 px > 0, 否则不可测 | [17]/[23] |
+| E4-P1 | `venue_fills._scan_orders` / `settle_ambiguous_legs`(重写) / `anchor_loop.complete_anchor` / `binance_executor.apply_fill_details` / topup UNKNOWN 分支 | `_scan_orders` 读 status: NEW/PARTIALLY_FILLED 记 `non_terminal`(0 成交也返回记录), 输出 `executed_qty`/`orig_qty`; `settle_ambiguous_legs` 遍历**全部** live 计划: 匹配且仍开 ⇒ `cancel_order` → 复查, 终态 ⇒ 事实 / 仍开或失败 ⇒ UNKNOWN; 未匹配 ⇒ 满页 UNKNOWN, 否则查单并核 **symbol / clientOrderId / orderId / side / origQty**, 非终态同上; 已确认单的 −2013 ⇒ UNKNOWN(只有 `submit_ambiguous` 的才判 absent, 且标明假设); 同名两计划 ⇒ UNKNOWN; `complete_anchor`: `unknown |= 仍开的名 − found |= cancels.unresolved`; UNKNOWN 名的 maker 行带 C(场所 executedQty)与余量 | [25] 七格 + wiring 断言 + `_scan_orders` NEW 0 返回记录 |
+| A1 | `topup` 循环顺序 | UNKNOWN 名: maker 行 → (熔断 ? skipped_venue_lock : skipped_unknown_fill); 已知名: maker 行(filled/partial_expired)→ 熔断门 → 补单 | [26] 四断言 |
+| E4-P2A | `venue_fills.flatten_exec_from_trades` | 键 (symbol, orderId) | [28] |
+| E4-P2B | `binance_broker._FLATTEN_SEQ` | 模块级 `itertools.count`(进程级) | [28] |
+| E4-P2C | `flatten_all` except 分支 / `watchdog._write_flatten_rows` / `submit_maker` 预检 | 传输失败 ⇒ `execution_unknown`(submitted, 非 rejected, order_id 不借前单); 行类 `filled_amount_unknown`; `client_id_dropped` 入行; `submit_maker` 开头对全部计划算最长 id(`-3c99`), 超 36 在任何 POST 前抛 ValueError(全有或全无) | [28] |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第四轮 | 第五轮 |
+|---|---|---|
+| risk Q1 `all_confirmed_two_prices` | 75 张; 观察 75 CLEAN | filled_qty 100; 75 异常 25 |
+| risk Q1 `last_close_switches_back_to_stale_avg` | 150 张 | 关闭时 filled_qty = Σ C = 100, avg 同集合 |
+| risk Q2 `maker_partial10_then_child80` | 关腿 10, 80 不更新 ⇒ 残差 70 报警 | child 10 ⇒ known 10 / 带 90; 80 到来 ⇒ C 80; 场所 80 解释 |
+| risk Q2 `positive_partial_submit_marked_confirmed` | known 10 + unknown 50(丢 40) | known 10 + 带 90 |
+| risk Q3 `last_unknown_closes_over` / `all_confirmed_overquantity` / `..._nan_qty` | fn 110 / 110 / 100 CLEAN | 矛盾 ⇒ 不可测(异常), 腿不关 |
+| risk Q4 重复 child / 较小子集 | 60 / 40→10 | 40 / 40 |
+| risk Q5 四组合 | planner ValueError/TypeError | 全部 invalid, 不进 planner |
+| executor E4-P1 五格(NEW 0 / PARTIALLY_FILLED 4 / matched NEW / matched PF / 满页含 NEW) | 补 10 / 6 / 10 / 6 / 10 | 撤后仍开 ⇒ UNKNOWN 不补; 撤成功且复查终态 ⇒ 其事实(正控 CANCELED 4 ⇒ 4) |
+| executor E4-P2A/B/C | 漏恢复 / 同 id / submitted_rejected | 两名皆恢复 / 不同 id / execution_unknown |
+| account A1 四格 | BUSDT maker 行 0 ⇒ BREAK | maker 行保留 ⇒ 残差 0 |
+
+**你的脚本需改的地方**: `phase_b_full_chain_attempt02.py` 的 DELETE mock 现在会被 `settle_ambiguous_legs` 再调用一次(先撤后查), 且 GET 查单记录需带 `origQty`/`side`/`orderId`(否则按「非我方记录」落 UNKNOWN —— 也是不补单, 但不是你要测的分支); `risk_contract.py` 的 `all_confirmed_two_prices` 回包需带 `executedQty`(第五轮的数量来源), 缺 executedQty 时数量回退 名义/该请求均价(仍是同请求恒等式)。
+
+### 未闭合(明写)
+1. **Q6 / 合同 §2.4 跨读数**: 预注册已写(E_s 未解释余额 + P_s 未决请求跨窗延续, 只由可归属成交/显式记账/签字更正解决; 需 41 天账本副本回放 + 用户字), 未落码。我第四轮「只可能误报不会漏报」的说法撤回。
+2. **−2013 终局性**: 仍是显式业务假设(仅 `submit_ambiguous` 计划, 非满页, k 窗后); 报告文字已标注。
+3. **跨进程同秒平仓 id**: 进程级计数, 跨进程未解。
+4. **M5 对 reconstructed 行的 TypeError**(同锚有 anchors 行时): 冻结模块再封存候选; 当前 12Z 无 anchors 行不触发。
+5. income 缺行恢复 / 币种换算 / 物理 BUNDLE_export 门: 未做。
+6. **maker/requote 的 `[:36]`** 仍在, 但预检保证不可达(最长 id 已在发单前拒绝)。
+
+### 电池自身在第五轮里暴露的两处(非产品代码)
+- `tests_notional_backfill` 的变异注入锚点随 `apply_commission_to_rows` 门重排失配(`if` → `elif`), 已更新锚点, 变异仍成立(旧行价格重建、金额不重建 ⇒ 不可测)。
+- `tests_daily_summary` 的 Q2/跨日两条读**全日** nav 行数决定「是否可检」, 而工具渲染的是 `--since 24h` 窗; 状态副本超过 24h 后窗内只剩 1 行, 两条变成假红(06:1xZ 首现, 与第五轮改动无关, 第四轮 b 电池 03:1xZ 时窗内仍 ≥2 行)。改为按工具自报的窗内行数判, 不可检时打 NOT EXERCISED(不算过); 盲区自述已更新。**含义**: 在陈旧状态副本上的绿电池对这两条什么都没证明。
+
+### 我方在第五轮里承认的自己的错(见处置文档 §6)
+一个量两个读者 / 子成交当终态 + `filled_notional is not None` 屏蔽 / 矛盾检查藏分支 / 熔断先决定后记账 / 查单只核 cid、「−2013 唯一归零路径」表述不准 / 「只误报不漏报」撤回 / 夹具把非场所合同当真(改夹具不放宽规则)。
+
+### 请复核(第五轮新问题, 我方自报)
+1. `request_remaining` 对「终态但数量不可读」的已确认请求给 0 余量(它不会再成交), 其数量由名义/该请求均价回退 —— 请判断是否应改为不可测。
+2. `settle_ambiguous_legs` 对仍开的单执行 `cancel_order`: 这是阶段 B 的第二次撤单(k-cancel 之后), 请看是否与 `stuck_orders` pin 语义冲突。
+3. 一无所知(state unknown)的请求终态恒为 False, 即使 tif=IOC —— 保守方向, 但请确认与你的合同一致。
+4. 预检以 `-3c99` 为最长 id 假设(≤ 99 块); 更大块数请指出。
