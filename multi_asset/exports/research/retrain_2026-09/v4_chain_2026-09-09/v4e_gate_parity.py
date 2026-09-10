@@ -5,11 +5,15 @@ Production operator = the pure `wstat` function AST-extracted from a read-only c
 independent review's clamp_clock harness). 80 columns (40 value + 40 rank) compared at float16 bit level.
   (a) new builder archive vs production operator:   changed cells <= 0.1%  AND  production operator reduced in float64 (sums cast to float32 before ranking, AMENDMENT 1) vs new archive == 0 cells
   (b) positive control: OLD archive (wide_fea_v4) vs production operator:  >= 1000 changed cells (the gate can see the defect)
-  (c) axis / member deltas reported.
-FAIL -> exit 3. Paths via env: NEW_FEA/NEW_META/OLD_FEA/OLD_META/CACHE/PROD_SRC/OUT."""
+  (c) axis clause — ROUND 3 (review 31fa3e4e §6, AMENDMENT 4): EVALUATED, not reported. new_not_in_old ⊆ allowed(G1_ALLOWED_NEW_ANCHORS, default the two
+      clamp-produced 2022-01-07 16Z/20Z anchors) ∪ {tail(new)}; old_not_in_new ⊆ {tail(old)}. See v4e_parity_lib.axis_clause.
+  Every one of the six pre-declared anchors must be present in BOTH metas; a missing anchor is a FAIL, never a skipped row (round 3).
+PASS = (a) and (b) and (c) and all six anchors present. FAIL -> exit 3. Paths via env: NEW_FEA/NEW_META/OLD_FEA/OLD_META/CACHE/PROD_SRC/OUT."""
 import os, sys, json, ast, time, hashlib, zipfile
 import numpy as np
 from scipy.stats import rankdata
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from v4e_parity_lib import axis_clause, anchors_present, parse_allowed   # round 3: clause (c) as code
 
 CACHE = os.environ.get("CACHE", "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz")
 NEW_FEA = os.environ.get("NEW_FEA", "/workspace/data/wide_fea_v4e.npy"); NEW_META = os.environ.get("NEW_META", "/workspace/data/wide_fea_v4e_meta.npz")
@@ -84,6 +88,12 @@ def cmp(x, y):
 
 
 rows = []; ok_a = True; ok_b = True
+# ★ round 3: clause (c) and anchor presence are part of PASS
+ALLOWED_NEW = parse_allowed(os.environ.get("G1_ALLOWED_NEW_ANCHORS"))
+axis_c = axis_clause(En, Eo, ALLOWED_NEW); ok_c = bool(axis_c["ok"])
+present_new = anchors_present(En, ANCHORS); present_old = anchors_present(Eo, ANCHORS)
+missing_anchors = {"new": [utc(t) for t, ok in present_new.items() if not ok], "old": [utc(t) for t, ok in present_old.items() if not ok]}
+ok_present = not missing_anchors["new"] and not missing_anchors["old"]
 for t, e, r in zip(ANCHORS, er, ranges):
     buf = bufs[r]; i = int(e) - r[0]
     an = int(np.searchsorted(En, t)); ao = int(np.searchsorted(Eo, t))
@@ -104,12 +114,15 @@ for t, e, r in zip(ANCHORS, er, ranges):
             old = np.asarray(fo[ao, memo, :80], "f4"); p32o = assemble(prod_values(buf, i, "f4"), memo)
             row["b_old_vs_prod32_positive_control"] = cmp(old, p32o); ok_b &= row["b_old_vs_prod32_positive_control"]["changed"] >= 1000
     rows.append(row); print(json.dumps(row), flush=True)
-res = {"gate": "G1_king_clock_parity", "PASS": bool(ok_a and ok_b), "a_pass": bool(ok_a), "b_positive_control_pass": bool(ok_b),
+res = {"gate": "G1_king_clock_parity", "PASS": bool(ok_a and ok_b and ok_c and ok_present), "a_pass": bool(ok_a), "b_positive_control_pass": bool(ok_b),
+       "c_axis_pass": ok_c, "anchors_present_pass": ok_present, "missing_anchors": missing_anchors,
        "axis": {"n_new": int(len(En)), "n_old": int(len(Eo)), "new_not_in_old": [utc(t) for t in np.setdiff1d(En, Eo)][:10], "old_not_in_new": [utc(t) for t in np.setdiff1d(Eo, En)][:10],
-                "n_new_not_in_old": int(len(np.setdiff1d(En, Eo))), "n_old_not_in_new": int(len(np.setdiff1d(Eo, En)))},
+                "n_new_not_in_old": int(len(np.setdiff1d(En, Eo))), "n_old_not_in_new": int(len(np.setdiff1d(Eo, En))),
+                "clause_c": dict(axis_c, new_not_in_old_utc=[utc(t) for t in axis_c["new_not_in_old"]], old_not_in_new_utc=[utc(t) for t in axis_c["old_not_in_new"]],
+                                 allowed_new_anchors_utc=[utc(t) for t in axis_c["allowed_new_anchors"]])},
        "rows": rows, "prod_src": PROD_SRC, "prod_src_sha256": sha(PROD_SRC), "prod_wstat_ast_sha256": PROD_WSTAT_SHA,
        "inputs_sha256": {"new_meta": sha(NEW_META), "old_meta": sha(OLD_META), "cache": None}, "new_fea_size": os.path.getsize(NEW_FEA), "old_fea_size": os.path.getsize(OLD_FEA),
        "utc": utc(time.time()), "wall_s": round(time.time() - t0, 1), "self_sha256": sha(__file__)}
 os.makedirs(os.path.dirname(OUT), exist_ok=True); json.dump(res, open(OUT, "w"), indent=1)
-print("G1_KING_CLOCK_PARITY", "PASS" if res["PASS"] else "FAIL", json.dumps({k: res[k] for k in ("a_pass", "b_positive_control_pass", "axis")}))
+print("G1_KING_CLOCK_PARITY", "PASS" if res["PASS"] else "FAIL", json.dumps({k: res[k] for k in ("a_pass", "b_positive_control_pass", "c_axis_pass", "anchors_present_pass", "missing_anchors", "axis")}))
 sys.exit(0 if res["PASS"] else 3)

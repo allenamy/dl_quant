@@ -331,5 +331,34 @@ with tempfile.TemporaryDirectory() as d:
     check("★★ with an export-gate receipt PASS=true ⇒ eligibility candidate and the (A) cells may read PROMOTE", rc == 0 and j and j["eligibility"] == "candidate" and any(v == "(A) PROMOTE" for v in j["verdicts"].values()),
           (rc, j and j["eligibility"], j and sorted(set(j["verdicts"].values()))))
 
+
+# ── [M] round 3 (review 31fa3e4e §6, AMENDMENT 4): G1 clause (c) is code, and the six anchors must be present ────────────────────
+sys.path.insert(0, HERE)
+import v4e_parity_lib as _PL
+print("\n[M] G1 axis clause (c) and anchor presence")
+_Eo = 1_600_000_000 + 14400 * np.arange(200)
+_two = list(_PL.DEFAULT_ALLOWED_NEW)
+_En = np.sort(np.concatenate([np.array(_two, dtype=np.int64), _Eo]))
+_c = _PL.axis_clause(_En, _Eo)
+check("★★★ the two clamp-produced 2022-01-07 anchors added in front ⇒ (c) ok, both listed as allowed_hits, no unexplained", _c["ok"] and _c["allowed_hits"] == sorted(_two) and _c["unexplained_new"] == [], _c)
+_En2 = np.sort(np.concatenate([np.array(_two + [1_500_000_000], dtype=np.int64), _Eo]))
+_c = _PL.axis_clause(_En2, _Eo)
+check("★★★ a THIRD early anchor not in the allowed list ⇒ (c) FAILS and names it (reviewer: early anchors passed as a report field)", not _c["ok"] and _c["unexplained_new"] == [1_500_000_000], _c)
+_c = _PL.axis_clause(np.append(_Eo, _Eo[-1] + 14400), _Eo)
+check("★★ a single extra anchor at the TAIL of the new axis ⇒ ok (tail difference ≤ 1)", _c["ok"] and _c["unexplained_new"] == [int(_Eo[-1] + 14400)], _c)
+_c = _PL.axis_clause(_Eo[:-1], _Eo)
+check("★★ the old axis has one extra TAIL anchor ⇒ ok", _c["ok"] and _c["old_not_in_new"] == [int(_Eo[-1])], _c)
+_c = _PL.axis_clause(np.delete(_Eo, 50), _Eo)
+check("★★★ the new axis LACKS an interior old anchor ⇒ (c) FAILS", not _c["ok"] and _c["old_not_in_new"] == [int(_Eo[50])], _c)
+_c = _PL.axis_clause(np.append(_Eo, [_Eo[-1] + 14400, _Eo[-1] + 28800]), _Eo)
+check("★★ TWO extra tail anchors ⇒ FAILS (only one may differ)", not _c["ok"], _c["unexplained_new"])
+_c = _PL.axis_clause(_En, _Eo, allowed_new=_PL.parse_allowed(""))
+check("★★ G1_ALLOWED_NEW_ANCHORS='' (no exception) ⇒ the same two anchors now FAIL (the exception is explicit, never implicit)", not _c["ok"] and sorted(_c["unexplained_new"]) == sorted(_two), _c["unexplained_new"])
+check("★ parse_allowed: None ⇒ default pair; '1,2' ⇒ (1, 2)", _PL.parse_allowed(None) == tuple(_two) and _PL.parse_allowed("1, 2") == (1, 2))
+_pr = _PL.anchors_present(_Eo, [int(_Eo[3]), 123])
+check("★★ anchors_present names the missing one", _pr[int(_Eo[3])] is True and _pr[123] is False, _pr)
+_src = open(f"{HERE}/v4e_gate_parity.py").read()
+check("★★★ the gate's PASS is (a) and (b) and (c) and anchors-present — wiring, not prose", '"PASS": bool(ok_a and ok_b and ok_c and ok_present)' in _src and "axis_clause(En, Eo, ALLOWED_NEW)" in _src and "anchors_present(En, ANCHORS)" in _src)
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)
