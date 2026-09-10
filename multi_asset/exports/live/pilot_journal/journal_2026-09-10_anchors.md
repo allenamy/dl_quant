@@ -1,0 +1,8 @@
+# 2026-09-10 逐锚记录(只追加)
+
+### 2026-09-10 00:24–00:57Z · 00Z 复场锚(E-0909-G 停机后首锚)· ★ E-0910-A 场所量化规则锁(-4400)拒全部补单, 书只建到 67%
+- **相位(VERIFIED)**: phase_A 00:25:01Z 动作 TRADE, 目标 237 / 计划 237 / 首挂 191 张开仓 GTX, transport 0/歧义 0/熔断否, 扫单 CLEAN, 限流 0; post-only 拒 72 张(-5022 71 + -2027 1, 拒单率 30.2%), 复挂 36 张(28 挂上 / 8 再拒); phase_B 00:45:21Z k-cancel 撤 33 / 已终态 158 / 错误 0, 行 507, fills 693 行(去重后一笔一行), 未归属 0; phase_C 00:45:22Z 复读 237 行(162 名非零), daily_nav 行已写; 看门狗 00:47:06Z **tripped=False**(blind=[], partial=[cond2, cond4]); anchor done rc=0 00:56:40Z。
+- **★ E-0910-A(VERIFIED)**: 补单阶段 71 张 IOC 全部被场所以 **-4400「Futures Trading Quantitative Rules violated, only reduceOnly order is allowed, please try again later」** 拒绝(行终态 abandoned_max_attempts, Σ|意图| 72,813U); `GET /fapi/v1/apiTradingStatus`(只读, 00:58Z)= ACCOUNT 级指标 **TMV isLocked=true, value 10, triggerValue 59, plannedRecoverTime 2026-09-10T02:34:10Z**, 无单名锁。结果: maker 成交 Σ 155,558U, 补单成交 0 ⇒ **realized_gross 154,910 / target 232,259(67%)**, 复读非零 162 名, **net/gross +5.23%(net +8,107U, 欠缺侧 = SELL, 59 张卖单未成交; 页 00:45:21Z 已记「收锚不中性」)**。看门狗未触发(-4400 不在其码表; §4-5e 未授权 = 0)。
+- **机制(INFERRED)**: 量化规则(未成交率/撤单率/IOC 过期率等)按账户滚动窗评估; 平仓(243 张市价)→ 从零重建(191 张 GTX + 72 张 -5022 拒 + 36 复挂 + 33 撤)的密集下单/撤单形态把账户级违规计数推过线, 锁到 02:34Z。锁在 04Z 锚(04:24Z)之前解除 ⇒ 04Z 应能补齐; 期间书带 +7% NAV 的方向暴露(多头多 8.1k)。
+- **处置**: 未动作(零下单零撤单)。已推送通知用户。候选(需预注册+用户字): (1) 执行器识别 -4400 后本阶段停发剩余开仓单 + HIGH 页含 plannedRecoverTime(避免继续累计违规); (2) 复场/重建锚的下单节律(分两锚建仓)以避开量化规则。**平仓→重建循环本身是量化规则的触发器**, 这是 E-0909-G 的第三笔代价。
+- 其他: 4 条 INFO 页(43 名 -5022 残差进补单; 收锚不中性 +5.23%; 248 结算无仓; funding_span STALE 已知); guard_twin 00:52Z DISAGREE(nav 行 115,874 vs 权益 115,724, 重建成本与盈亏; lev 1.339); daily_nav 首行 nav 115,874.72, 当日已实现 −31.11。
