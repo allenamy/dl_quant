@@ -1,0 +1,1022 @@
+{
+ "utc": "2026-09-10T05:47:56Z",
+ "researcher_package": "codex_round4_review_2026-09-10/pipeline (cfaf1bbe)",
+ "their_RESULT_sha256": "2947015febf48256d0036b8f830a20661f959fab4c66205dc09b3be6a1605960",
+ "harness_sha256": {
+  "trust_checks.py": "ae0e3ee874957aff2c0d8d592ff977646cc7e94989675dcbf7d17ed675ba7ee8",
+  "audit_faults.py": "7f53d740e8231b494c68ac6ed5dc3b13b9988571d1b57ffcbbbf2483e7949b20",
+  "extra_checks.py": "8186b68fece3e42e16329ec9c4a56c37b077fe844c7085eb468bff476b9c70ee",
+  "trust_drift_retry.py": "f1099907386b20be4a99ece1d1859a9bf5ef6db14f6a46cff9817846f89c7f04"
+ },
+ "device_chain_round5": {
+  "judge_v4.py": "7f1aa5d63ea37d67db9518f7f1b03c73db917308bd169ba02de6a6298ef54c42",
+  "v4_gate_common.py": "7b6d49a3de74df8840b8bdf5e6a20226505a5a8a6abf25d57f822d522cba2eb2",
+  "ELIGIBILITY_CONTRACT.json": "3299dc97ab0c90d51ac77297b605e5072bafd4cfaac954ab8655699c498f271b",
+  "tests_pipeline_gates.py": "8d47748e74bc37957de4f91177f05ddd1b103483efd1c13016e67e52e2a4bbca",
+  "chain_lib.sh": "ffbb89b83345012fe56a888e83e758f763f4fde80e22a43f96a25ce2a65566ce",
+  "chain_v4s_gpu.sh": "2563446d97a2149f824ad13868bceae4fdd70c6f6f691f0397306c212b828f80",
+  "v4_gate_closure.py": "15a03d4a0937095b83108b737be67aeb1110a077d96010b1de9e6609055de262"
+ },
+ "method": "their four harness files copied unmodified into a scratch dir; device/ from their package with device/chain replaced by the round-5 archive (87 .py/.sh + ELIGIBILITY_CONTRACT.json); /usr/bin/python3 -B; trust_checks.py stops at its own drift fixture (allow_pickle, pre-existing in their run too) and trust_drift_retry.py finishes it",
+ "counts_by_class": {
+  "UNCHANGED": 42,
+  "FLIP_HARNESS_DEVICE_COPY_WITHOUT_CONTRACT": 7,
+  "FLIP_INTENDED_DIRECTION": 1,
+  "FLIP_INTENDED": 11,
+  "FLIP_BY_DESIGN_SHIPPED_CONTRACT_APPROVES_NO_EXPORT_GATE": 3
+ },
+ "cases": {
+  "chain_changed_RAW": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "chain_changed_explicit_input": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "chain_changed_holes": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "chain_fail_shard0": {
+   "round4_recorded": {
+    "rc": 1,
+    "train": 4,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "FLIP_HARNESS_DEVICE_COPY_WITHOUT_CONTRACT (their copy carries .py/.sh only; a governed gate without the frozen contract beside v4_gate_common is refused = fail-closed, zero dispatch; our [J] harness ships a translated contract and keeps 8/2/DONE)"
+  },
+  "chain_fail_shard1": {
+   "round4_recorded": {
+    "rc": 1,
+    "train": 4,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "FLIP_HARNESS_DEVICE_COPY_WITHOUT_CONTRACT (their copy carries .py/.sh only; a governed gate without the frozen contract beside v4_gate_common is refused = fail-closed, zero dispatch; our [J] harness ships a translated contract and keeps 8/2/DONE)"
+  },
+  "chain_fail_shard2": {
+   "round4_recorded": {
+    "rc": 1,
+    "train": 4,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "FLIP_HARNESS_DEVICE_COPY_WITHOUT_CONTRACT (their copy carries .py/.sh only; a governed gate without the frozen contract beside v4_gate_common is refused = fail-closed, zero dispatch; our [J] harness ships a translated contract and keeps 8/2/DONE)"
+  },
+  "chain_fail_shard3": {
+   "round4_recorded": {
+    "rc": 1,
+    "train": 4,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "FLIP_HARNESS_DEVICE_COPY_WITHOUT_CONTRACT (their copy carries .py/.sh only; a governed gate without the frozen contract beside v4_gate_common is refused = fail-closed, zero dispatch; our [J] harness ships a translated contract and keeps 8/2/DONE)"
+  },
+  "chain_gate_fail": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "chain_merge_fail": {
+   "round4_recorded": {
+    "rc": 1,
+    "train": 4,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "FLIP_HARNESS_DEVICE_COPY_WITHOUT_CONTRACT (their copy carries .py/.sh only; a governed gate without the frozen contract beside v4_gate_common is refused = fail-closed, zero dispatch; our [J] harness ships a translated contract and keeps 8/2/DONE)"
+  },
+  "chain_merge_missing_marker": {
+   "round4_recorded": {
+    "rc": 1,
+    "train": 4,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "FLIP_HARNESS_DEVICE_COPY_WITHOUT_CONTRACT (their copy carries .py/.sh only; a governed gate without the frozen contract beside v4_gate_common is refused = fail-closed, zero dispatch; our [J] harness ships a translated contract and keeps 8/2/DONE)"
+  },
+  "chain_runtime_gate_sha_accepts_changed_recipe": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": 8,
+    "promoted": null,
+    "section": "drift_retry"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "drift_retry",
+    "last_line": [
+     "chain_runtime_gate_sha_accepts_changed_recipe/workspace/review_scratch/ELIGIBILITY_CONTRACT.json: nothing can be required without the frozen research definition",
+     "[2026-09-10T05:44:06Z] FAIL_gate_require_G2_closure_stable"
+    ]
+   },
+   "class": "FLIP_INTENDED_DIRECTION (rc 0/8 trainings/DONE → rc 3/0) BUT the refusal in THEIR device copy is 'frozen contract missing' (copy carries .py/.sh only); the approved-source refusal on an edited gate is proven in tests_pipeline_gates [J] gate_edited_rerun and [E] drift with the contract present"
+  },
+  "chain_success": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": 8,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "FLIP_HARNESS_DEVICE_COPY_WITHOUT_CONTRACT (their copy carries .py/.sh only; a governed gate without the frozen contract beside v4_gate_common is refused = fail-closed, zero dispatch; our [J] harness ships a translated contract and keeps 8/2/DONE)"
+  },
+  "chain_valid_wrong_gate_source": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "chain_wrong_gate": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "chain_wrong_source": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "data_copy_failure": {
+   "round4_recorded": {
+    "rc": 1,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 1,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "data_target_failure": {
+   "round4_recorded": {
+    "rc": 1,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 1,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "g2_both_axes_descending": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "g2_identical": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "g2_reverse_symbols": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "g2_time_plus300": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "generator_run": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_A1e_gate_promotes_other_arm": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_actual_G2_not_export": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14",
+    "refusal": "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): gate 'G2_closure' != contract 'BUNDLE_export'; self_sha 15a03d4a0937 is not an approved source of",
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_actual_G2_wrong_expected_gate": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14",
+    "refusal": "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): self_sha 15a03d4a0937 is not an approved source of 'BUNDLE_export'",
+    "last_line": ""
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_actual_STEP1_downgraded_profile": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14",
+    "refusal": "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): gate 'STEP1' != contract 'BUNDLE_export'; profile 'v4s' != contract None; self_sha 7fa3c88e7dec i",
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_actual_unknown_gate_one_input": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14",
+    "refusal": "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): gate 'UNREGISTERED_quality' != contract 'BUNDLE_export'; self_sha 0e74790e8535 is not an approved",
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_bad_repro": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_book_replaced_after_receipt": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14",
+    "refusal": "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): self_sha b5b6cd19f1cc is not an approved source of 'BUNDLE_export'",
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_both_raw_references_only60": {
+   "round4_recorded": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_duplicate_calendar": {
+   "round4_recorded": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_false_schema_no_W": {
+   "round4_recorded": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_fractional_timestamp_plus025": {
+   "round4_recorded": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_full_valid": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_infinite_gross": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "trust14",
+    "refusal": null,
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_minimal_PASS": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_missing_arm": {
+   "round4_recorded": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_missing_raw2027": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_nan_repro": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_negative_gross": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "trust14",
+    "refusal": null,
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_no_cols_strict": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "trust14",
+    "refusal": null,
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_no_symbols_strict": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "trust14",
+    "refusal": null,
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_nonfinite_W": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "trust14",
+    "refusal": null,
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_partial_short_promote": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_raw_duplicate_and_gap": {
+   "round4_recorded": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_rec_only_default": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14",
+    "refusal": "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): self_sha b5b6cd19f1cc is not an approved source of 'BUNDLE_export'",
+    "last_line": ""
+   },
+   "class": "FLIP_BY_DESIGN_SHIPPED_CONTRACT_APPROVES_NO_EXPORT_GATE (0 PROMOTE until v4e_gate_export.py exists and its sha is approved; the allow path is proven in tests [N] with a device-copy contract)"
+  },
+  "judge_receipt_A1e_relabel_to_A1": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 6,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14",
+    "refusal": "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): self_sha b5b6cd19f1cc is not an approved source of 'BUNDLE_export'",
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_short": {
+   "round4_recorded": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_symbols_order_reversed": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 2,
+    "train": null,
+    "promoted": null,
+    "section": "trust14",
+    "refusal": null,
+    "last_line": ""
+   },
+   "class": "FLIP_INTENDED (researcher counterexample closed)"
+  },
+  "judge_unrelated_stale_PASS": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_upstreamFAIL_full_promote": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "judge_valid_new_eligibility_positive": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "adapted_extra13"
+   },
+   "class": "FLIP_BY_DESIGN_SHIPPED_CONTRACT_APPROVES_NO_EXPORT_GATE (0 PROMOTE until v4e_gate_export.py exists and its sha is approved; the allow path is proven in tests [N] with a device-copy contract)"
+  },
+  "judge_valid_strict_schema_positive": {
+   "round4_recorded": {
+    "rc": 0,
+    "train": null,
+    "promoted": 4,
+    "section": "trust14"
+   },
+   "round5_rerun": {
+    "rc": 0,
+    "train": null,
+    "promoted": 0,
+    "section": "trust14",
+    "refusal": "caller-supplied standard conflicts with the frozen contract (the caller does not define the standard): self_sha b5b6cd19f1cc is not an approved source of 'BUNDLE_export'",
+    "last_line": ""
+   },
+   "class": "FLIP_BY_DESIGN_SHIPPED_CONTRACT_APPROVES_NO_EXPORT_GATE (0 PROMOTE until v4e_gate_export.py exists and its sha is approved; the allow path is proven in tests [N] with a device-copy contract)"
+  },
+  "post_old_marker_FAIL": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": 0,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_correct_identity_all_dependencies": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_correct_identity_dependency_subset": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_empty_dependency_list": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_hole_changed_but_omitted": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_hole_changed_explicit": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_missing_self_sha": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_valid_wrong_source_pinned": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_valid_wrong_source_unpinned": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "adapted_extra13"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_wrong_gate": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  },
+  "require_wrong_self_sha": {
+   "round4_recorded": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "round5_rerun": {
+    "rc": 3,
+    "train": null,
+    "promoted": null,
+    "section": "faults36"
+   },
+   "class": "UNCHANGED"
+  }
+ }
+}
