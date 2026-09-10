@@ -102,8 +102,10 @@ def build_rows(venue, fills):
             "venue_order_id": o.get("orderId"), "venue_status": st, "venue_executed_qty": ex, "venue_orig_qty": float(o.get("origQty") or 0),
             "leg_kind": leg_kind,
             "n_fills_joined": len(legf),
-            # ★ structured flag (round 3): the execution-quality consumers (pilot_metrics m1/m3/m4, order_disposition.gaps)
-            #   exclude rows carrying it — a note is not a program condition.
+            # ★ structured flag (round 3). The exclusion from the execution-quality metrics is by TYPE (`reconstructed`
+            #   is outside pilot_metrics' m1/m3/m4 `order_type in ("maker","topup_taker")` filters — the frozen module is
+            #   untouched); `order_disposition.gaps` additionally skips rows carrying this flag. Rows are still counted by
+            #   reconcile / book_after_anchor as executions (quantity-based), which is what they are for.
             "reconstructed_from_venue": True,
             "note": ("RECONSTRUCTED_FROM_VENUE (E-0909-G repair of the E-0909-D crash anchor: the process died before persisting any "
                      "order row; execution facts = venue allOrders + backfilled fills; plan intent NOT persisted ⇒ intended_notional := "

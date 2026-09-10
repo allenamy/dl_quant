@@ -99,10 +99,19 @@ def main():
            "per_symbol_mismatch": mism[:20], "n_per_symbol_mismatch": len(mism), "applied": False, "rows_file": OUT_ROWS}
     with open(OUT_ROWS, "w") as f:
         for r in rows: f.write(json.dumps(r) + "\n")
-    _n_fee_rows = sum(1 for r in rows if float(r.get("commission") or 0.0) != 0.0)   # income writes no row for a 0 fee
-    ok = (not bad and not missing and not mism and _n_fee_rows == VENUE_N_TRADES and abs(fee + abs(VENUE_COMMISSION)) < 0.01
+    # ★ asset-aware (review 31fa3e4e A3): the venue's USDT income line is compared with USDT-denominated
+    #   commissions only; any other asset is counted and reported, never added as if it were USDT.
+    _usdt = [r for r in rows if str(r.get("commission_asset") or "") == "USDT" and float(r.get("commission") or 0.0) != 0.0]
+    _other = collections.defaultdict(lambda: [0, 0.0])
+    for r in rows:
+        if str(r.get("commission_asset") or "") != "USDT":
+            _other[str(r.get("commission_asset"))][0] += 1; _other[str(r.get("commission_asset"))][1] += float(r.get("commission") or 0.0)
+    fee_usdt = sum(float(r["commission"]) for r in _usdt)
+    # userTrades `commission` is the fee PAID (positive); income COMMISSION rows are negative — compare magnitudes
+    ok = (not bad and not missing and not mism and len(_usdt) == VENUE_N_TRADES and abs(abs(fee_usdt) - abs(VENUE_COMMISSION)) < 0.01
           and abs(gross - want_gross) < 1.0)
-    rec_extra = {"n_trades_with_nonzero_commission": _n_fee_rows}
+    rec_extra = {"n_trades_usdt_nonzero_commission": len(_usdt), "sum_commission_usdt": round(fee_usdt, 6),
+                 "non_usdt_commission": {k: {"n": v[0], "sum_in_asset_units": v[1]} for k, v in _other.items()}}
     rec["reconciled"] = ok; rec.update(rec_extra)
     json.dump(rec, open(RECEIPT, "w"), indent=1, default=str)
     print(json.dumps({k: rec[k] for k in rec if k not in ("symbols_without_flatten_order", "per_symbol_mismatch")}, default=str))
