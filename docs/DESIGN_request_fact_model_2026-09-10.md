@@ -107,3 +107,31 @@
 ## 4(续). 第十轮的结构性保证
 11. **完整性类型随事实走**: 合并器输出 `executed_qty_final`, 正典记录携带 `executedQtyFinal`, 折叠输出 `executed_qty_final`, 计划 `venue_executed_qty_final`, 账本 `confirmed_qty_final`; 读者只认这一个键, 不从 `terminal` 推。
 12. **每个 UNKNOWN 出口先合并已有记录**: `_carry(p, sym, cid, recs)` 是所有失败出口的唯一入口; 新增出口必须经过它(措辞门: 「每个」指向 [56]–[58] 覆盖的出口清单: 查单异常 / −2013 / 满页 / 结算撤单后查询失败 / 未达).
+
+## 3e. 第十一轮补格(研究员第十轮 R10-MAKER-F / R10-NONOBJECT-CARRY / R10-CHILD-CONSUMER + 三条自报答复): 完整性类型要贯穿每个读者, 金额与数量各自证明
+第十轮把 F 带到了账本, 但 (1) 普通 maker 行(金额可读)没有账本, 读者仍用 N/avg 读数量, 而合并器又用最终 N 除以旧下界 L 造出一个不属于任何快照的均价; (2) 「每个出口」又漏了一个(查单答非对象); (3) 金额关闭没有自己的完整性 —— 子成交子集的金额把 `filled_notional` 关闭, 数量读者又以「N 是否 None」决定是否看数量带。三条自报答复: 旧行缺 F 按 terminal 读的理由不成立(实盘 40 日 67,588 行无一带账本); IOC 无 status 置 F 是假设(wire 是 MARKET+RESULT, 无 timeInForce); POST 身份绑定被回包的 CID 决定(应按我方发送的 CID 选记录, 再核回包字段)。
+
+| 事实 | 字段 | 规则 |
+|---|---|---|
+| N 的完整性 | `confirmed_notional_final` | 只有终态快照(或终态后快照)给出的 N、或子成交集合到达 Q 才为真; 子集的 N 只写 `confirmed_notional_lower`; 金额关闭(`filled_notional`)要求每张已发请求 N 已知且 N 为终值 |
+| F 的来源 | `confirmed_qty_final` | 显式为真, 或 L 到达 Q(容量: 区间退化为点); 缺键 / None 一律不是终值(无遗留人口需要保护) |
+| 均价 | 读者 | 只在每张贡献请求 C 与 N 都是终值时写; 合并器不得用终值 N 除以下界 L |
+| 普通 maker 行 | `request_ledger` | 凡 apply_fill_details 给过场所事实的 maker 行都带账本(L / F / T / N / N_final); 数量列由读者写, 不再由 N/avg 推 |
+| 数量读者(RC) | 带分支 | 账本行有带就走带分支, 与 N 是否 None 无关 |
+| 提交回包身份 | broker 动作 | 按我方发送的 client_id 选记录; 回包声称别的 CID ⇒ orderId 不可信(None), 现字段门判「回包记在别的 id 下」 |
+| 补单请求终态 | 显式 status | 无 status 的回包不因本地 tif 名而终态; F 只在显式终态且合并器判终值 |
+
+| # | 来源 / 出口 | 反例格 | 反方向 | 邻格 |
+|---|---|---|---|---|
+| 1 | maker OPEN C4/N4 → 终态只有 N6 | 合并 avg None(不再 6/4); maker 行账本 L4 / F 假 / N6 终值 ⇒ known 4 / 带 6 / filled_notional 6; 补 4 ⇒ 总量 [8, 14]: 10 与 14 CLEAN, 6 与 16 异常 | 终态 C6/N6/avg1 ⇒ maker 6 精确, 补 4, 10 CLEAN、14 异常 4 | 同快照 N/avg 派生照旧 |
+| 2 | 查单答非对象(list) | `_carry` ⇒ known 4 / 带 0 / filled_qty 4; 回读 4 CLEAN, 0/10 异常 | 查单答 CANCELED 4 对象 ⇒ found, 补 6 | 出口清单: 查单异常 / −2013 / 满页 / 非对象 / 结算撤单后复查失败 / 未达 |
+| 3 | 终态未知 C + 子成交子集 30(+50) | `confirmed_notional` 不写(`_lower` 30), filled_notional None, 标签 filled_amount_unknown; known 80 / 带 20; RC 80/90/100 CLEAN, 70/110 异常 | 子集到达 Q ⇒ F 与 N 皆终值, 关闭 | 手写账本行 N80 已知 + 带 20 ⇒ RC 走带分支 |
+| 4 | 缺 F 键的账本 | terminal + C6 无键 ⇒ 不是终值: 带 4, filled_qty None; None 同 | 显式 True ⇒ 关闭 | C=Q ⇒ 容量终值(区间退化为点) |
+| 5 | 补单回包无 status | C20 无 status + GET 失败 + 50 ⇒ known 70 / 带 30(不再精确 70) | EXPIRED ⇒ 精确 70 | NEW ⇒ 带 30 |
+| 6 | 回包声称别的 CID | 发 A, 回包 CID=B/101 ⇒ lookup(B) 无, lookup(A) 的 orderId 不可信, 现字段门 ⇒ 不可测 | 回包 CID=A ⇒ 101 | 回包无 CID ⇒ 按发送 id 记 |
+
+**仍登记**: R6-MARK(无 mark 的「不可对账」不触发 halt, 动作合同另议); 同快照 C×avg 与 N 一致性; `_seen_syms > 1` 与 settle 整体异常的出口不带事实(设计如此, 明写)。
+
+## 4(续). 第十一轮的结构性保证
+13. **每个读者都只认完整性字段**: `_final_known` 不再有 terminal 回退; 均价、金额关闭、数量关闭三者各自要求自己的终值证明; RC 的带分支不看 N。
+14. **有场所事实的 maker 行一律带账本**(`_venue_facts` 标记由 apply_fill_details 写), N/avg 读法只剩没有任何场所事实的行(DRY_RUN / 注入 fills)。
