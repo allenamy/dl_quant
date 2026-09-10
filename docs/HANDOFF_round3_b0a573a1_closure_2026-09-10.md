@@ -562,3 +562,51 @@
 1. 「金额只在终态快照或 C 相等快照才是终值」: 对「开单快照 N40 无 C + 终态 C30 无 N」我方写金额未知(40 只是下界), 行 `filled_notional` None ⇒ 该名 UNKNOWN 不补单(保守); 若你认为终态且数量可关闭时应允许按数量补单(金额未知), 请指出 —— 这是补单合同问题, 不是事实问题。
 2. 撤单回包无执行字段(只有 status)时不进合并 —— 真实 DELETE 回包必带 executedQty; 若你见过不带的形状, 请指出。
 3. 身份门对 orderId 的比对以 ACK 为准; 提交回包丢失(歧义)时无 ACK 则不比对 —— 这是「有证据就用, 没证据不发明」的方向, 但也是一个放行域(歧义 POST 后, 场所记录的 orderId 无从核对)。
+
+
+---
+
+## §EXECUTOR · 第十轮(复审 38808cbd: R9-QFINAL / R9-CHILD-SUPPORT / R9-FACT-EXIT + 金额与措辞 P2)→ 实盘分支 63b51d3
+
+> 全电池 132/132(notify_audit 副本 12:33Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round9_codex_38808cbd_2026-09-10.md`; 事实表补格: `docs/DESIGN_request_fact_model_2026-09-10.md` §3d(五件事实 σ/Q/L/T/F; 失败出口)+ §4.11–4.12; §3c 行 2 措辞更正。你的两类缺口是同一种错的两个面: 合并器算对了「最终 vs 下界」却只输出一个数; 成功路径修了、失败出口没修。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 258/258; 旧码上红) |
+|---|---|---|---|
+| R9-QFINAL | `binance_broker.merge_order_records` / `last_fill_details`; `venue_fills._merged` / `_scan_orders`; `binance_executor.apply_fill_details` / UNKNOWN maker 行 / 补单腿 / `_final_known` / `request_remaining` / `ledger_qty_closed` | 完整性类型随事实走: `executed_qty_final` → `executedQtyFinal` → `executed_qty_final` → `venue_executed_qty_final` → `confirmed_qty_final`; 只有终态快照(或终态后的快照)给出的 C 是最终总量, 开单快照的 C 是下界 L; 读者余量 = F ? 0 : Q−L(终态与否一样), `filled_qty` 只在全部 F 时写; 缺键旧行按 terminal 读(遗留规则); IOC 无 status 的回包 = 最终(IOC 的回包就是终态) | [55]: OPEN 20 → EXPIRED 缺 C + 50 ⇒ known ±70 / 带 30 / filled_qty None, 回读 70/80/100 CLEAN、60/110 异常(BUY 与 SELL); 正控终态 20 ⇒ 精确 70; 合并 5 格 |
+| R9-CHILD-SUPPORT | `binance_executor._settle_leg_by_identity` | 子成交只抬 L, 永不置 F; 到达 Q ⇒ F(容量); 「超过」检查只对 F=真的 C | [55]: 终态未知 + child 30 ⇒ known 30 / 带 70; 开单 20 + child 30 ⇒ 30 无矛盾; F 20 + child 10 ⇒ 20; F 20 + child 30 ⇒ 矛盾; child 100 ⇒ 关闭 100 |
+| R9-FACT-EXIT | `venue_fills._carry`(新)/ `_resolve_open` / 查单异常出口 / 满页出口 / `_records` / `_merged`; `binance_broker.known_submit_record`(新) | 每个 UNKNOWN 出口先折叠手里的记录; 撤单与复查分两个 try; 提交回包是记录集合第一条(身份「带字段才比对」); status-only 撤单回包只贡献状态、证明存在 ⇒ 之后 −2013 是矛盾(不可测), ABSENT 仅在撤单 −2011/失败之后 | [56]: k-cancel 4 + 查单耗尽 ⇒ known 4 / 带 0 / filled_qty 4, 回读 4 CLEAN、0/10 异常; −2013 ⇒ 不可测; page PARTIAL 4 → 结算撤单 6 → 复查失败 ⇒ 6 终值(回读 6 CLEAN、10 异常 4); POST PARTIALLY_FILLED 4 + status-only + 稀疏终态 ⇒ known 4 / 带 6, 回读 4/10 CLEAN、14 异常、0 不可对账(无 mark; 不放行); [57] status-only + −2013 ⇒ 不可测, −2011 + −2013 ⇒ ABSENT; [58] POST 事实进 partial, 满页带 k-cancel 4 |
+| 金额 P2 | `merge_order_records` | 终态快照之间金额常量(同 C 不同 N ⇒ 矛盾) | [59] |
+| 措辞 P2 | DESIGN §3c 行 2 + 合并器文档 | 终态常量只在终态快照之间; 之前的开单快照是下界 | [55] 邻格 |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第九轮 | 第十轮 |
+|---|---|---|
+| open20_then_terminal_missing (+50) | 精确 ±70 / 带 0; 合法 ±80 报警 | known ±70 / 带 30; 70–100 CLEAN, 60/110 异常 |
+| terminal20_then_terminal_missing 正控 | 精确 70 | 精确 70(F 真) |
+| terminal_unknown_child30_subset (+50) | 精确 80 / 带 0 | known 80 / 带 20 |
+| open20_terminal_missing_child30 | 判「超过终态 20」不可测 | L=30, 无矛盾 |
+| k-cancel CANCELED4 → GET 运输失败 | known 0 / 带 10; 0/4/10 CLEAN | known 4 / 带 0; 4 CLEAN, 0/10 异常 |
+| 同上 → GET −2013 | 同上 | 不可测 |
+| 首撤失败 → PARTIAL4 → 结算撤单 CANCELED6 → GET 失败 | known 4 / 带 6 | known 6 / 带 0 |
+| POST PARTIALLY_FILLED 4 → status-only DELETE → 稀疏终态 GET | known 0 / 带 10; 0 CLEAN | known 4 / 带 6; 0 不可对账(不放行), 4/10 CLEAN |
+| status-only DELETE → −2013 | ABSENT 0, 补 10 | 不可测, 不补 |
+| 终态 N40 → N60(同 C20) | 无矛盾, N110 | 矛盾 |
+
+**版本配对(上一轮期望被改的格)**: 假 broker 的 `last_fill_details` 夹具 6 处与手写折叠/计划夹具 [29] 补 `executed_qty_final` / `venue_executed_qty_final`(真实生产者现在必写, 夹具随生产者形状); [49] 夹具显式 `confirmed_qty_final=True`(它模拟场所终态 C20); `_chain` 可注入提交记录(生产同进程, broker.actions 天然存在); 「absent 0」「nothing executed 0」内部字典标 final。其余 224 项原样保留。你更正的两处旧期望(兄弟腿 5+3=8; 先 CANCELED 后 PARTIAL = 矛盾)同意。
+
+### 未闭合(明写)
+1. Q6 修订 4 数学已接受; 实现 + 独立回归 + 41 天回放另排, 先过执行器收口。
+2. 同快照内 C×avg 与 N 的一致性(容差由场所精度定, 未擅定); 已知路径 maker 行仍无账本(数量由同快照 N/avg 读, 同快照时合法); 时窗核对未做。
+3. 观察顺序不逆事件顺序仍是假设; 陈旧快照读成矛盾 ⇒ UNKNOWN 可能误报, 未经实盘数据确认。
+4. R6-MARK; −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。
+
+### 我方在第十轮里承认的自己的错(见处置文档 §4)
+合并器算对了却只输出一个数(漏了「完整性类型」这件事实)/ 第九轮的终态常量保护读错了 finality, 把上游错误传导成误报 / 成功路径修了失败出口没修(「每个出口丢了哪件事实」没做到「每个」)/ `_records` 漏了最早的一条记录 / status-only 回包被整条忽略 / 措辞过宽。
+
+### 请复核(第十轮新问题, 我方自报)
+1. 「缺 `confirmed_qty_final` 的旧行按 terminal 读」是遗留规则: 分支部署前已落盘的行都是场所终态 C, 语义不变; 但它是一个「缺键 ⇒ 假设」, 若你认为应改为「缺键 ⇒ 不可测」(会把历史行全判异常), 请指出。
+2. IOC 回包无 status 时按「IOC 的回包即终态」置 F=真 —— 这是 RESULT 回包形状的假设(实测 RESULT 必带 status); 若你见过无 status 的 IOC 回包, 请指出。
+3. 提交回包的身份按「带字段才比对」(它是 broker 按我方 cid 记录的回包); 其余记录仍要求字段齐全 —— 两种门的边界是「谁记录了它」。
