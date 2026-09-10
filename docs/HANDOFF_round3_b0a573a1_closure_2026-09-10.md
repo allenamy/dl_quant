@@ -378,3 +378,54 @@
 2. `settle_ambiguous_legs` 对仍开的单执行 `cancel_order`: 这是阶段 B 的第二次撤单(k-cancel 之后), 请看是否与 `stuck_orders` pin 语义冲突。
 3. 一无所知(state unknown)的请求终态恒为 False, 即使 tif=IOC —— 保守方向, 但请确认与你的合同一致。
 4. 预检以 `-3c99` 为最长 id 假设(≤ 99 块); 更大块数请指出。
+
+
+---
+
+## §EXECUTOR · 第六轮(复审 ce7b3cf4: R5-E1 / R5-QA / R5-QB–QE / R5-E2 / ID 边界)→ 实盘分支 07929ed
+
+> 全电池 132/132, 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置文档(研究主线): `docs/REVIEW_ACCEPT_round5_codex_ce7b3cf4_2026-09-10.md`; Q6 预注册修订 1: `docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md`(累计恒等式 + 双时钟, 未落码)。两条承重项与全部边界项接受; 合同按你的 §4 实现: 数量先于计价, 终态且 C 可信 = [C, C], 金额缺失另报, C 未知不因终态归零。
+
+### 改了什么(对应你的编号)
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 136/136) |
+|---|---|---|---|
+| R5-E1 | `anchor_loop.complete_anchor`; `binance_executor.apply_fill_details` / topup UNKNOWN 分支; `venue_fills._scan_orders` | `unknown |= (cancels.unresolved − found)`(按请求身份, 较新可靠终态覆盖旧未决); `found ∩ unresolved` 的名清 pin(`stuck_orders.clear(mode, [(symbol, cid)], reason)`, INFO 页; 失败 HIGH 页); `_scan_orders` 输出 `terminal`(我方匹配单全部终态), `apply_fill_details` 写 `venue_terminal`(partial 事实不算终态), UNKNOWN 路径 maker 行的请求 `terminal` 取自它 | [29] 终态 + C 4 ⇒ 带 None / filled_qty 4; 持仓 10 ⇒ 异常 6; 仍开 + C 4 ⇒ 带 6; wiring 断言 |
+| R5-QA | `request_remaining` / `ledger_qty_closed`(新) / `ledger_row_columns` | C 可信 ⇒ 终态 0 否则 Q−|C|; C 未知 ⇒ |Q|(终态与否); `qty_closed`(全部已发请求终态且 C 可信)⇒ `filled_qty` = Σ C 与金额是否可读无关; `closed`(金额)仍单独决定 `filled_notional` | [30] 20(无金额)+50 ⇒ filled_qty 70 / 带 None; 100 ⇒ 异常 30; C=Q 金额未知 ⇒ 已知 100 |
+| R5-QB | `binance_broker.last_fill_details` | 只有明确 `"0"` 是零; 缺失/null 落到同请求 cumQuote/avgPrice 推导(`executed_qty_source` 标记); 都不可读 ⇒ None | [31] |
+| R5-QC | `ledger_row_columns`; `reconcile._exec_qty` | 均价只在每个已执行请求同时贡献金额与数量时写出; 账本行 `filled_qty` 为 None 时读者一律不可测(bounded 分支 known_qty 缺失亦然), 不回退到名义/均价 | [32] 150 / filled_qty None / avg None ⇒ 不可测 |
+| R5-QD | `_exec_qty` bounded 分支 | 价格有限且 > 0 才除 | [33] |
+| R5-QE | `_settle_leg_by_identity` | 同 trade id 不同 qty/quote ⇒ `inconsistent`, 首次读数保留 | [34] |
+| R5-E2 | `venue_fills.settle_ambiguous_legs`(`_keep_partial`); `complete_anchor` | 撤单/复查失败或复查仍开时, 已读到的 executed_qty/金额作 `partial` 返回并并入 details(标 `partial: True`, 不算终态) ⇒ maker 行 known C / 带 Q−C | [35] 查单 PARTIAL 4 + 撤失败 ⇒ UNKNOWN 且 partial 4 ⇒ 行 known 4 / 带 6 |
+| ID 边界 | `submit_maker` 预检 | 按每个计划的真实块数 `split_for_market(|qty|, mkt_max_qty, step)` 算最长 id; 不再假设 99 | [36] 100 块 + 长名 ⇒ POST 前拒; 1 块 ⇒ 过 |
+| 夹具 | `tests_transport_resilience._CB.last_fill_details` | 回包形状改为真实(带 executedQty/status): 第五轮「终态但 C 未知归零」的特例条款删除后, 旧夹具的「已知 5 未知 5」期望在真实形状下成立 | transport 92 绿 |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第五轮 | 第六轮 |
+|---|---|---|
+| R5-E1 撤失败 → PF4 → 撤成功 CANCELED/4 | known 4 / 带 6 / pin 留 / 持仓 10 CLEAN | known 4 / 带 0 / pin 清 / 持仓 10 异常 6; 合法补 6 照旧 |
+| R5-QA EXPIRED20(无金额)+FILLED50 | known 70 / 带 30 / 持仓 100 CLEAN | filled_qty 70 / 带 0 / 持仓 100 异常 30 |
+| R5-QA 反向 C=Q=50 金额未知 | 不可测 | filled_qty 已知 |
+| R5-QB 缺 executedQty + 100/2 | 总量 50 | 同请求推导 50 + 50 = 100(标源) |
+| R5-QC 金额 100 无数量 + 50@1 | RC 150 | 不可测 |
+| R5-QD 旧行 avg NaN | NaN 两门 CLEAN | 不可测(异常) |
+| R5-QE 同 id 20→50 | 覆盖 | 矛盾 |
+| R5-E2 查单 PF4 + 撤失败 | known 0 / 带 10 | known 4 / 带 6 |
+| 100 块 | maker 已发 1 才拒 | POST 前拒 |
+
+**你的脚本需改的地方**: `phase_b_full_chain_attempt02.py` 的 `cancels.unresolved` 夹具 —— 第二轮撤单成功后请断言 pin 被清(`stuck_orders.load(mode)` 为空)且 maker 行 `filled_unknown_qty is None`; `quantity_boundary` 的 `original_broker_missing_ex` 现在应读到 `executed_qty 50` 与 `executed_qty_source`。
+
+### 未闭合(明写)
+1. **Q6**: 修订 1 已写(累计恒等式 + 双时钟), 未落码; 请先复核修订 1 的数学, 再谈 41 天回放。
+2. **−2013 终局性**: 仍是显式业务假设。
+3. **跨进程同秒平仓 id**; **M5 对 reconstructed 行的再封存**; **income 缺行 / 币种换算**; **物理 BUNDLE_export 门**: 未做。
+4. **终态但 C 未知**: 现按 |Q| 带 + 读者不可测(你的第 3 点); 若你认为应区分「终态 + 金额可读 + 均价可读」(同请求可推 C)与「都不可读」—— 前者已在生产者推 C, 后者不可测。
+
+### 我方在第六轮里承认的自己的错(见处置文档 §5)
+按请求身份结算只做了一半(`_still_open` 做了, `unresolved` 和 pin 没做)/ 数量授权绑在金额可读上 / `-3c99` 是假设 / 读者侧仍留名义回退 / 「预检保证全锚原子」超出范围。
+
+### 请复核(第六轮新问题, 我方自报)
+1. 清 pin 用的是 `found ∩ unresolved` 的名对应计划的 cid(`{rid}-{sym}-{attempt_idx}`); 若 pin 的 cid 是 `-2` 重挂而 found 的是 `-1`(同名两请求), 清错; 同名两计划本轮已 ⇒ UNKNOWN, 但 pin 键仍请复核。
+2. `_keep_partial` 只在查单记录通过 `_valid` 时记录; 若记录部分损坏(缺 origQty)则不记 —— 保守方向。
+3. `venue_terminal` 对 partial 事实恒为 False; 对 `absent`(−2013 判未下达)的 updates 为 True(non_terminal 空)—— 与 −2013 假设同寿命。
