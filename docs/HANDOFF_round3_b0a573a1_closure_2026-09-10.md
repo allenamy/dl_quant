@@ -655,3 +655,50 @@ F 带到账本却没贯穿每个读者(普通 maker 行、均价回退、RC 带�
 1. 有场所事实的 maker 行现在带账本: 其 `filled_qty` 只在 F 时写, 否则 None + 带 —— RC 用带读; 但 M1/M3 等只读 `filled_notional` 的消费者不受影响。请核对是否有别的消费者读 maker 行的 `avg_fill_px`(现在 C 非终值时为 None)。
 2. 没有任何场所事实的 maker 行(DRY_RUN / 注入 fills)仍无账本, 走旧 N/avg 读法 —— 生产不经过这条路(`_venue_facts` 由 apply_fill_details 写); 若你认为应一并带账本, 请指出。
 3. 子成交到达 Q 时同时置数量与金额终值 —— 这里假设「集合到达 Q ⇒ 集合完整」; 若场所会在 Q 之上再报孩子(超成交), `ledger_inconsistencies` 的「confirmed more than requested」会拦。
+
+
+---
+
+## §EXECUTOR · 第十二轮(复审 83fcbbcc: R11-POST-READER / R11-CANONICAL-L0 + 三条金额 P2 + 两条表示 P2 + 合同选择)→ 实盘分支 84a3b51 · 随交「事实 × 读者」全表
+
+> 全电池 132/132(notify_audit 副本 15:02Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round11_codex_83fcbbcc_2026-09-10.md`; 事实表补格: `docs/DESIGN_request_fact_model_2026-09-10.md` §3f; **全表 §5(每个事实字段的生产者与全部读者)—— 请按表核, 表上缺的读者就是下一格**。你八项全部接受、全部修; 一项是合同选择(§3f.6), 已先登记再落码。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 302/302; 旧码上红) |
+|---|---|---|---|
+| R11-POST-READER | `binance_broker.submit_identity_mismatch`(新)/ `last_fill_details` | 回包先按发送的 order 核 cid / symbol / side / origQty(带字段才比对); 不符 ⇒ `inconsistent(identity)`, 不读数字, 不补查; 补查一律按发送的 cid | [66] 7 格: 声称别 id ⇒ 不可测、0 次 GET; 原补单链行 ledger_inconsistent, 70/80 皆拒; 正控照旧 |
+| R11-CANONICAL-L0 | `venue_fills._scan_orders` | 「显式 0 伴正金额 = 矛盾」只对精确 0(原始行 / F 真); 合并记录的下界 0 与任何金额相容 | [67] 5 格: 原链 NEW 0 → 撤单 → 只带 N4 的终态查单 ⇒ known 0 / 带 10 / 金额 4, 补 6, 总量 [6,16]; 原始 C0/N4 仍矛盾; 正控精确 4 |
+| 金额 P2 ×3 | `binance_executor._settle_leg_by_identity` / `apply_commission_to_rows` | 终值 N 常量(完整集金额 ≠ N ⇒ 矛盾); 子集金额不超终值 N; 去重表缺 quote 不撤销已记 quote; 后置写者对账本行只写 `avg_fill_px_children` | [68] 4 格 / [69] 2 格 |
+| 表示 P2 ×2 + 合同 | UNKNOWN maker 行 / `ledger_known_qty` / 零字典 | N 终值 + C 缺 ⇒ 记 N; 金额已知数量未知 = [0, Q](known 0 + 带 Q, **§3f.6 登记**); 明确零带 `filled_notional_final` | [70] 3 格(含原链普通 maker 账本 N4/C None + 补 6 ⇒ 6/10/16 CLEAN、4/18 异常)/ [71] 2 格 |
+| 措辞 | `_final_known` 文档 / 旧 IOC 注释 | 08-01..09-09 窗口 40 日 67,588 行无账本行(不是全称); 注释作废 | — |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第十一轮 | 第十二轮 |
+|---|---|---|
+| 发 A, 回包 B/C4/N4 | 4 记入 A, 回读 4 CLEAN | A 不可测, 0 次补查 |
+| 回包 B 缺金额 | 按 B 补查并接受 | 不补查(先判身份) |
+| NEW C0/N0 → status-only 撤单 → 终态只有 N4 | 判矛盾, 不补, 回读 4 触发 | known 0 / 带 10 / 金额 4, 补 6; 10/16 CLEAN, 4/18 异常 |
+| F 真 C20/N40 + 完整集 N60 / N20 | 行金额 110 / 70 | 矛盾, N 仍 40 |
+| quote 40 → 缺 → 60 | 擦成 None, 收 60 | 40 保留, 60 冲突 |
+| maker L4/带 6/N6 + 子集 4@1 | 行 avg 1, M1 完整 | 行 avg None, `avg_fill_px_children` 1 |
+| 终态 N4 无 C + 查单失败 | N 丢失 | 行 known_notional 4, 数量 [0,10] |
+| 普通 maker N4 终值 / C None + 补 6 | RC 不可量化, 5b 触发 | known 0 / 带 10 ⇒ 6/10/16 CLEAN, 4/18 异常 |
+| CANCELED C0/N0 | 行金额 None | 0.0 |
+
+**版本配对**: 第六轮 R5-QC「reconcile 拒绝量化(150/1)」改为「known 50 + 带 [0,50]; 150 仍拒, 75 CLEAN」—— 合同选择 §3f.6 的直接后果。其余 279 项原样保留。
+
+### 未闭合(明写)
+1. R6-MARK 动作合同(无 mark 的「不可对账」不触发 halt)。
+2. 同快照内 C×avg 与 N 一致性(容差待场所精度); 时窗核对。
+3. `_seen_syms > 1` 与 settle 整体异常两个出口不带事实; 无场所事实的 maker 行走旧 N/avg 读法 —— 均为来源前提, 明写在 §5。
+4. Q6 实现与回放; −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。
+
+### 我方在第十二轮里承认的自己的错(见处置文档 §4)
+「每个读者只认完整性字段」只做到账本读者, 漏了 broker 直接读者、折叠矛盾检查、后置写者 / 金额没有数量已有的三条规则 / 「无遗留人口」写成全称。
+
+### 请复核(第十二轮新问题, 我方自报; 均已做最便宜的验证)
+1. §3f.6 的合同选择(金额已知数量未知 = [0, Q])把 R5-QC 的「不可量化」改成了带 —— 已验证: 150 仍拒、75 CLEAN、原链 4/18 拒; 若你认为「金额已知数量未知」应保持不可测(更保守但会在合法持仓上触发), 请指出。
+2. 提交回包的身份门按「带字段才比对」—— 场所文档(POST /fapi/v1/order, newOrderRespType=RESULT)的响应字段含 clientOrderId / symbol / side / origQty / executedQty / cumQuote / avgPrice / status; `docs/API_SEMANTICS.md` 行 44 尚未单列这些字段(已登记, 下一次提交补一行, 不单独跑电池); 不带字段的回包(夹具形状)只按发送 id 记。
+3. 后置写者对账本行只写 `avg_fill_px_children` —— 已验证 M1 只读 `avg_fill_px`(pilot_metrics 134/145 行), 故子集价不再进入 M1; 无账本旧行照旧。
