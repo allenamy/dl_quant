@@ -2,17 +2,22 @@
 # chain_lib.sh — shared discipline for the v4 chain drivers (review b0a573a1 P1-PIPE, 2026-09-09; round 3 after review 31fa3e4e, 2026-09-10).
 #   · a stage may dispatch only on a FRESH PASS receipt OF THE EXPECTED GATE (v4_gate_common.py require <json> gate=<name> name=path ...)
 #     — round 3: `gate=` is mandatory, the receipt's self sha must be real, the dependency list may not be empty
+#     — round 4: `self_sha=` is mandatory and is computed AT RUN TIME from the gate script this chain invokes (gate_sha <script>):
+#       a receipt written by any other program — even a real sha of the judge — is refused (researcher chain_valid_wrong_gate_source)
 #   · every child is waited on BY PID and its rc collected; ANY non-zero rc aborts the driver (no merge, no DONE)
 #   · merges must exit 0 AND print their completion marker
 #   · the DONE line is written only on success and carries the rc list; failures write FAIL_<stage> and exit non-zero
 #   · round 3: `pin_deps <name> path...` writes $R/v4_gates/deps_<name>.json = sha256 of EVERY file the stage is about to consume
 #     (trainer/launcher/merge scripts, legs, features, targets); a missing file is fatal. This is PROVENANCE beside the gate receipts:
 #     the receipts prove the data passed a gate, the pin proves which exact scripts and files this dispatch used.
-# Source it: . chain_lib.sh ; then: require_gate <json> gate=<name> name=path ... ; pin_deps <name> path... ; run_shards <launcher> <T> <SD> ; check_marker <log> <marker>
+# Source it: . chain_lib.sh ; then: SRC=$(gate_sha $R/<gate>.py) || die ... ; require_gate <json> gate=<name> self_sha=$SRC name=path ... ; pin_deps <name> path... ; run_shards <launcher> <T> <SD> ; check_marker <log> <marker>
 PY=${PY:-/workspace/venv/bin/python}; R=${R:-/workspace/review_scratch}; L=${L:-$R/v4_commands.txt}
 say(){ echo "[$(date -u +%FT%TZ)] $*" >> "$L"; }
 die(){ say "FAIL_$1"; echo "FAIL_$1" >&2; exit "${2:-1}"; }
-require_gate(){  # require_gate <receipt.json> gate=<expected> [self_sha=<sha>] name=path ...
+gate_sha(){  # gate_sha <gate script> — sha256 of the gate source THIS chain trusts, from the file on disk at run time; non-zero rc if unreadable
+  local out; out=$($PY "$R/v4_gate_common.py" sha "$1" 2>/dev/null) || return 3; [ -n "$out" ] || return 3; echo "${out%% *}"
+}
+require_gate(){  # require_gate <receipt.json> gate=<expected> self_sha=<sha of the gate source, mandatory> name=path ...
   local out; out=$($PY "$R/v4_gate_common.py" require "$@" 2>&1); local rc=$?
   say "require $1: $out"; [ $rc -eq 0 ] || die "gate_require_$(basename "$1" .json)" 3
 }

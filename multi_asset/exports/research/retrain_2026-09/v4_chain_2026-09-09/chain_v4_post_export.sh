@@ -4,12 +4,14 @@
 # (PASS + input shas); export marker checked; legs marker checked; shards waited by PID; merge rc + MERGE_DONE; DONE only on success.
 # ROUND 3 (review 31fa3e4e §2, 2026-09-10): the export log must carry BUNDLE_DONE and must NOT carry BUNDLE_FAIL; the STEP1 receipt is
 # required BY NAME with all four inputs it hashed (RAW + CLIP targets, fea82, fea89); pin_deps records the dispatch's scripts and data.
+# ROUND 4 (2026-09-10): the STEP1 receipt is required (in the wait loop AND at dispatch) with self_sha= of $R/v4_gate_step1.py computed at run time.
 set -o pipefail; R=/workspace/review_scratch; . $R/chain_lib.sh; cd $R || exit 2; export MWF_ROOT=${MWF_ROOT:-mwf_v4b}
 check_marker $R/export_v4.log "BUNDLE_DONE"; check_no_marker $R/export_v4.log "BUNDLE_FAIL"
 say "post_export: build_dev_v4"; $PY build_dev_v4.py > build_dev_v4.log 2>&1 || die "build_dev_v4" 1
 say "post_export: legs v4b"; env LEGS_TG=/workspace/dlw_v4raw/data/dlw_targets.npz LEGS_META=/workspace/data/wide_fea_v4_meta.npz LEGS_PRED=/workspace/shadow_bundle_v4/slow_pred_pinned.npy LEGS_OUT=/workspace/f8_v4/data/f10v2_legs.npz $PY pod_legs_v4b.py > legs_v4.log 2>&1 || die "legs_v4b" 1
 check_marker legs_v4.log "LEGS_V4B_DONE"
-STEP1_REQ="$R/v4_gates/step1.json gate=STEP1 dlw_v4raw_targets=/workspace/dlw_v4raw/data/dlw_targets.npz dlw_hf3_targets=/workspace/dlw_hf3/data/dlw_targets.npz fea82_v4raw=/workspace/dlw_v4raw/data/dlw_fea82.npz fea89_f8v4=/workspace/f8_v4/data/f8_fea89.npz"
+S1_SRC=$(gate_sha $R/v4_gate_step1.py) || die "gate_source_unreadable_v4_gate_step1" 3
+STEP1_REQ="$R/v4_gates/step1.json gate=STEP1 self_sha=$S1_SRC dlw_v4raw_targets=/workspace/dlw_v4raw/data/dlw_targets.npz dlw_hf3_targets=/workspace/dlw_hf3/data/dlw_targets.npz fea82_v4raw=/workspace/dlw_v4raw/data/dlw_fea82.npz fea89_f8v4=/workspace/f8_v4/data/f8_fea89.npz"
 n=0; until $PY $R/v4_gate_common.py require $STEP1_REQ > /dev/null 2>&1; do
   n=$((n + 1)); [ $n -gt 120 ] && die "step1_receipt_timeout_2h" 3; sleep 60
 done; require_gate $STEP1_REQ; say "post_export: STEP1 receipt PASS + fresh, launching F10 chains"

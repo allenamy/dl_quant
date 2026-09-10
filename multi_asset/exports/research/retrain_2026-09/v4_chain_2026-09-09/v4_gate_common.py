@@ -15,8 +15,13 @@
       nothing and read as a pass, which is a gate with no door.
   A caller that cannot name its gate or its inputs is refused; that is the point.
 
+★ ROUND 4 (researcher round-3 extra cases require_valid_wrong_source_unpinned / chain_valid_wrong_gate_source, 2026-09-10):
+  `self_sha=` is MANDATORY. A receipt whose self_sha256 is a real sha of the WRONG program (the judge's, say) passed round 3
+  whenever the caller did not pin — and no chain pinned. Now every caller must say which gate source it trusts (the chains
+  compute it at run time from the gate script they invoke: chain_lib.sh gate_sha), and `require` refuses an unpinned call.
+
 CLI:
-  python v4_gate_common.py require <receipt.json> gate=<expected_gate> [self_sha=<sha256>] name=path [name=path ...]
+  python v4_gate_common.py require <receipt.json> gate=<expected_gate> self_sha=<sha256> name=path [name=path ...]
                                                                        # exit 0 iff PASS & identity & fresh
   python v4_gate_common.py sha <path> [...]                            # print sha256 per file
 """
@@ -66,10 +71,10 @@ def finalize(gate, res, out_path, inputs=None, exit_code_fail=3):
 
 
 def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=None):
-    """Return (ok, reason). ok iff the receipt exists, names the expected gate, carries a real
-    self sha (equal to `expected_self_sha` when given), says PASS, the caller declared at least
-    one input, and every declared input's sha equals the sha recorded in the receipt (a stale
-    receipt is not a receipt)."""
+    """Return (ok, reason). ok iff the receipt exists, names the expected gate, the caller PINNED the
+    gate source it trusts (`expected_self_sha`, mandatory since round 4) and the receipt's real self sha
+    equals it, says PASS, the caller declared at least one input, and every declared input's sha equals
+    the sha recorded in the receipt (a stale receipt is not a receipt)."""
     if not os.path.exists(receipt_path):
         return False, f"receipt missing: {receipt_path}"
     try:
@@ -80,10 +85,14 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
         return False, "caller did not declare the gate it expects (gate=<name>); a receipt cannot be required anonymously"
     if r.get("gate") != expected_gate:
         return False, f"receipt is from gate {r.get('gate')!r}, caller expected {expected_gate!r}"
+    if not expected_self_sha:
+        return False, "caller did not pin the gate source (self_sha=<sha256 of the gate script it trusts>); a receipt from an unidentified program is not permission"
+    if not isinstance(expected_self_sha, str) or not _HEX64.match(expected_self_sha) or set(expected_self_sha) == {"0"}:
+        return False, f"self_sha={expected_self_sha!r} is not a sha256 (64 hex, not all-zero)"
     ss = r.get("self_sha256")
     if not isinstance(ss, str) or not _HEX64.match(ss) or set(ss) == {"0"}:
         return False, f"receipt carries no usable self_sha256 ({ss!r}): the gate's own code is unidentified"
-    if expected_self_sha and ss != expected_self_sha:
+    if ss != expected_self_sha:
         return False, f"receipt was written by gate source {ss[:12]}, caller trusts {expected_self_sha[:12]}"
     if r.get("PASS") is not True:
         return False, f"receipt says PASS={r.get('PASS')!r} (gate {r.get('gate')}, {r.get('utc')})"

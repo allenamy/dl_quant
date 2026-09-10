@@ -18,6 +18,10 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 PY = sys.executable
 FAILS, N = [], [0]
+import hashlib as _hl
+
+
+def _sha(p): return _hl.sha256(open(p, "rb").read()).hexdigest()
 
 
 def check(name, cond, detail=""):
@@ -87,44 +91,54 @@ with tempfile.TemporaryDirectory() as d:
     rc, out = gate(d, {"EXPECT_NCOLS": "90"}); r = json.load(open(f"{d}/out.json"))
     check("★★ expected 90 columns but 89 present ⇒ FAIL (n_cols_ok)", rc == 3 and "n_cols_ok" in r.get("failing_axis_checks", []))
 
-    print("\n[E] `require`: chains may only dispatch on a fresh PASS receipt OF THE EXPECTED GATE with declared inputs")
+    print("\n[E] `require`: chains may only dispatch on a fresh PASS receipt OF THE EXPECTED GATE, FROM THE PINNED GATE SOURCE, with declared inputs")
     rc, out = gate(d); assert rc == 0
-    G = "gate=G2_closure"
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, f"fea_A={d}/fA.npz", f"targets_B={d}/tB.npz"])
-    check("★★★ PASS receipt + expected gate + unchanged inputs ⇒ rc 0", rc == 0 and "REQUIRE_OK" in out, out.strip()[-120:])
+    G = "gate=G2_closure"; good = json.load(open(f"{d}/out.json")); SS = "self_sha=" + good["self_sha256"]   # round 4: every caller pins the gate source
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, SS, f"fea_A={d}/fA.npz", f"targets_B={d}/tB.npz"])
+    check("★★★ PASS receipt + expected gate + pinned source + unchanged inputs ⇒ rc 0", rc == 0 and "REQUIRE_OK" in out, out.strip()[-120:])
     np.savez(f"{d}/fA.npz", X=fx["X"] + 1, pair_a=fx["pa"], pair_s=fx["ps"], names=fx["names"])
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, f"fea_A={d}/fA.npz"])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, SS, f"fea_A={d}/fA.npz"])
     check("★★★ an input that changed AFTER the receipt ⇒ rc 3 (stale receipt is not a receipt)", rc == 3 and "changed since the receipt" in out, out.strip()[-120:])
     np.savez(f"{d}/fA.npz", X=fx["X"].copy(), pair_a=fx["pa"], pair_s=fx["ps"], names=fx["names"])
-    json.dump({"gate": "G2_closure", "PASS": False, "inputs_sha256": {}, "self_sha256": "ab" * 32}, open(f"{d}/bad.json", "w"))
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/bad.json", G, f"fea_A={d}/fA.npz"])
+    json.dump({"gate": "G2_closure", "PASS": False, "inputs_sha256": {}, "self_sha256": good["self_sha256"]}, open(f"{d}/bad.json", "w"))
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/bad.json", G, SS, f"fea_A={d}/fA.npz"])
     check("★★ a FAIL receipt ⇒ rc 3", rc == 3 and "PASS=False" in out, out.strip()[-120:])
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/nope.json", G, f"fea_A={d}/fA.npz"])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/nope.json", G, SS, f"fea_A={d}/fA.npz"])
     check("★★ a missing receipt ⇒ rc 3", rc == 3 and "missing" in out)
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, f"unknown_input={d}/fA.npz"])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, SS, f"unknown_input={d}/fA.npz"])
     check("★ an input the receipt never hashed ⇒ rc 3 (no silent pass on an unrecorded dependency)", rc == 3 and "no sha for input" in out)
     # ── round 3 (review 31fa3e4e §2): identity and dependency binding ──
-    good = json.load(open(f"{d}/out.json"))
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", "gate=UNRELATED_GATE", f"fea_A={d}/fA.npz"])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", "gate=UNRELATED_GATE", SS, f"fea_A={d}/fA.npz"])
     check("★★★ [r3] a PASS receipt from ANOTHER gate ⇒ rc 3 (reviewer: wrong gate name used to pass)", rc == 3 and "caller expected 'UNRELATED_GATE'" in out, out.strip()[-140:])
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", f"fea_A={d}/fA.npz"])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", SS, f"fea_A={d}/fA.npz"])
     check("★★★ [r3] a caller that names NO gate ⇒ rc 3 (no anonymous requires)", rc == 3 and "did not declare the gate" in out, out.strip()[-140:])
     for label, ss in (("all-zero", "0" * 64), ("missing", None), ("garbage", "not-a-sha")):
         json.dump(dict(good, self_sha256=ss), open(f"{d}/ss.json", "w"))
-        rc, out = run(["v4_gate_common.py", "require", f"{d}/ss.json", G, f"fea_A={d}/fA.npz"])
+        rc, out = run(["v4_gate_common.py", "require", f"{d}/ss.json", G, SS, f"fea_A={d}/fA.npz"])
         check(f"★★★ [r3] self_sha256 {label} ⇒ rc 3 (reviewer: pseudo/absent self sha used to pass)", rc == 3 and "no usable self_sha256" in out, out.strip()[-140:])
     rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, "self_sha=" + "ab" * 32, f"fea_A={d}/fA.npz"])
     check("★★ [r3] a pinned gate source that differs from the receipt's ⇒ rc 3", rc == 3 and "caller trusts" in out, out.strip()[-140:])
     rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, "self_sha=" + good["self_sha256"], f"fea_A={d}/fA.npz"])
     check("★★ [r3] the pinned gate source that MATCHES ⇒ rc 0", rc == 0, out.strip()[-140:])
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, SS])
     check("★★★ [r3] an EMPTY dependency list ⇒ rc 3 (reviewer: {PASS:true} with no inputs used to pass)", rc == 3 and "declared no inputs" in out, out.strip()[-140:])
     json.dump({"PASS": True, "gate": "G2_closure"}, open(f"{d}/arbitrary.json", "w"))
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/arbitrary.json", G, f"fea_A={d}/fA.npz"])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/arbitrary.json", G, SS, f"fea_A={d}/fA.npz"])
     check("★★ [r3] a hand-written {PASS:true, gate} with no self sha and no input shas ⇒ rc 3", rc == 3, out.strip()[-140:])
     json.dump(dict(good, inputs_sha256=dict(good["inputs_sha256"], fea_A=None)), open(f"{d}/nullsha.json", "w"))
-    rc, out = run(["v4_gate_common.py", "require", f"{d}/nullsha.json", G, f"fea_A={d}/fA.npz"])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/nullsha.json", G, SS, f"fea_A={d}/fA.npz"])
     check("★ [r3] a receipt whose input sha is null (the gate never saw the file) ⇒ rc 3", rc == 3 and "recorded no sha" in out, out.strip()[-140:])
+    # ── round 4 (researcher require_valid_wrong_source_unpinned): the pin is mandatory ──
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, f"fea_A={d}/fA.npz"])
+    check("★★★ [r4] a caller that does NOT pin self_sha= ⇒ rc 3 even on a genuine PASS receipt (round 3 accepted any real-looking self sha when unpinned)", rc == 3 and "did not pin the gate source" in out, out.strip()[-160:])
+    json.dump(dict(good, self_sha256=_sha(f"{HERE}/judge_v4.py")), open(f"{d}/judge_written.json", "w"))
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/judge_written.json", G, f"fea_A={d}/fA.npz"])
+    check("★★★ [r4] require_valid_wrong_source_unpinned: receipt self sha = the JUDGE's real sha, caller unpinned ⇒ rc 3 (was rc 0)", rc == 3 and "did not pin" in out, out.strip()[-160:])
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/judge_written.json", G, SS, f"fea_A={d}/fA.npz"])
+    check("★★★ [r4] the same receipt with the closure gate pinned ⇒ rc 3 'caller trusts' (the judge did not write this gate's receipt)", rc == 3 and "caller trusts" in out, out.strip()[-160:])
+    for bad in ("self_sha=", "self_sha=not-a-sha", "self_sha=" + "0" * 64):
+        rc, out = run(["v4_gate_common.py", "require", f"{d}/out.json", G, bad, f"fea_A={d}/fA.npz"])
+        check(f"★★ [r4] {bad[:22]!r} ⇒ rc 3 (a pin must be a real sha256)", rc == 3 and ("did not pin" in out or "not a sha256" in out), out.strip()[-120:])
 
 
 with tempfile.TemporaryDirectory() as d:
@@ -183,13 +197,11 @@ echo DISPATCHED >> {d}/cmds2.txt
 # The bash drivers are copied with /workspace -> <root>; `venv/bin/python` is a stub that runs v4_gate_common.py for real and fakes every
 # producer/trainer/merge; PATH provides fake nvidia-smi/sleep. Same shape as the reviewer's audit_faults.py chain_case, so the scenarios it
 # showed passing (wrong gate / wrong source / changed holes / changed RAW / data cp failure) are asserted to BLOCK here.
-import hashlib as _hl, shutil as _sh, stat as _st
-
-def _sha(p): return _hl.sha256(open(p, "rb").read()).hexdigest()
+import shutil as _sh, stat as _st
 
 
 def chain_case(entry, scenario, d):
-    root = f"{d}/{scenario}/workspace"; rr = f"{root}/review_scratch"
+    root = f"{d}/{scenario if entry == 'chain_v4s_gpu.sh' or entry == 'chain_v4_data.sh' else entry.replace('.sh', '') + '_' + scenario}/workspace"; rr = f"{root}/review_scratch"
     for sub in ("review_scratch/v4_gates", "venv/bin", "bin", "f8_v4/logs", "f8_v4s/logs", "f8_v4/gates", "f8_v4s/data", "f8_hf2s/data", "dlw_hf3/data", "dlw_hf2/data",
                 "dlw_v4raw/data", "f8_v4/data", "data", "dlw_hf3/results"):
         os.makedirs(f"{root}/{sub}", exist_ok=True)
@@ -212,6 +224,7 @@ if n == "pod_dlw_targets_raw.py": open({root!r} + "/dlw_v4raw/data/dlw_targets.n
 if n == "pod_f8_build_ext.py": open({root!r} + "/f8_v4/data/f8_fea89.npz", "wb").write(b"fea89"); sys.exit(0)
 if n == "pod_fea_ext_clamp.py":
     open({root!r} + "/data/wide_fea_v4.npy", "wb").write(b"k"); open({root!r} + "/data/wide_fea_v4_meta.npz", "wb").write(b"m"); sys.exit(0)
+if n == "pod_legs_v4b.py": print("LEGS_V4B_DONE"); sys.exit(0)
 print("STUB_DONE"); sys.exit(0)
 """
     open(f"{root}/venv/bin/python", "w").write(stub); os.chmod(f"{root}/venv/bin/python", 0o700)
@@ -222,15 +235,23 @@ print("STUB_DONE"); sys.exit(0)
              "targets_B": f"{root}/dlw_hf2/data/dlw_targets.npz", "hole_cells": f"{rr}/holefix2_cells.npz"}
     step1 = {"dlw_v4raw_targets": f"{root}/dlw_v4raw/data/dlw_targets.npz", "dlw_hf3_targets": f"{root}/dlw_hf3/data/dlw_targets.npz",
              "fea82_v4raw": f"{root}/dlw_v4raw/data/dlw_fea82.npz", "fea89_f8v4": f"{root}/f8_v4/data/f8_fea89.npz"}
-    for pth in list(files.values()) + list(step1.values()) + [f"{root}/f8_v4s/data/f10v2_legs.npz", f"{root}/f8_v4/data/f10v2_legs.npz"]:
+    step2 = {"wide_fea_v4": f"{root}/data/wide_fea_v4.npy", "wide_fea_v4_meta": f"{root}/data/wide_fea_v4_meta.npz"}
+    for pth in list(files.values()) + list(step1.values()) + list(step2.values()) + [f"{root}/f8_v4s/data/f10v2_legs.npz", f"{root}/f8_v4/data/f10v2_legs.npz"]:
         open(pth, "wb").write(b"original:" + os.path.basename(pth).encode())
+    open(f"{rr}/export_v4.log", "w").write("BUNDLE_DONE files 8 size 1MB\n")   # post_export precondition (round 3 markers)
     g2 = {"PASS": True, "gate": "G2_closure", "self_sha256": _sha(f"{rr}/v4_gate_closure.py"), "inputs_sha256": {k: _sha(v) for k, v in files.items()}}
     s1 = {"PASS": True, "gate": "STEP1", "self_sha256": _sha(f"{rr}/v4_gate_step1.py"), "inputs_sha256": {k: _sha(v) for k, v in step1.items()}}
+    s2 = {"PASS": True, "gate": "STEP2", "self_sha256": _sha(f"{rr}/v4_gate_step2.py"), "inputs_sha256": {k: _sha(v) for k, v in step2.items()}}
     if scenario == "gate_fail": g2["PASS"] = False
     if scenario == "wrong_gate": g2["gate"] = "UNRELATED_PASS"
     if scenario == "wrong_source": g2["self_sha256"] = "0" * 64
     if scenario == "step1_fail": s1["PASS"] = False
-    json.dump(g2, open(f"{rr}/v4_gates/G2_closure_stable.json", "w")); json.dump(s1, open(f"{rr}/v4_gates/step1.json", "w"))
+    # round 4 (researcher chain_valid_wrong_gate_source): a REAL sha of the WRONG program — the judge's, or another gate's — in the receipt
+    if scenario == "g2_written_by_judge": g2["self_sha256"] = _sha(f"{rr}/judge_v4.py")
+    if scenario == "step1_written_by_closure_gate": s1["self_sha256"] = _sha(f"{rr}/v4_gate_closure.py")
+    if scenario == "step2_written_by_judge": s2["self_sha256"] = _sha(f"{rr}/judge_v4.py")
+    if scenario == "gate_script_missing": os.remove(f"{rr}/v4_gate_closure.py")
+    json.dump(g2, open(f"{rr}/v4_gates/G2_closure_stable.json", "w")); json.dump(s1, open(f"{rr}/v4_gates/step1.json", "w")); json.dump(s2, open(f"{rr}/v4_gates/step2.json", "w"))
     if scenario == "changed_holes": open(files["hole_cells"], "wb").write(b"new-holes")
     if scenario == "changed_RAW": open(step1["dlw_v4raw_targets"], "wb").write(b"changed RAW target after receipt")
     if scenario == "changed_explicit_input": open(files["fea_A"], "wb").write(b"changed feaA")
@@ -255,6 +276,27 @@ with tempfile.TemporaryDirectory() as d:
         check(f"★★★ {sc}: {why} ⇒ rc 3, ZERO trainings, no DONE", r["rc"] == 3 and r["train"] == 0 and r["merge"] == 0 and not r["done"], {k: r[k] for k in ("rc", "train", "merge", "done")} | {"tail": r["log"].strip().splitlines()[-1][-160:] if r["log"].strip() else r["err"]})
     r = chain_case("chain_v4s_gpu.sh", "legs_missing", d)
     check("★★ legs file missing ⇒ rc 3 before any dispatch", r["rc"] == 3 and r["train"] == 0 and not r["done"], {k: r[k] for k in ("rc", "train", "done")})
+    # ── round 4: the chains PIN the gate source (self_sha= computed at run time from the gate script they invoke) ──
+    r = chain_case("chain_v4s_gpu.sh", "g2_written_by_judge", d)
+    check("★★★ [r4] chain_valid_wrong_gate_source: G2 receipt self sha = the judge's REAL sha ⇒ rc 3, ZERO trainings, no DONE (researcher: rc 0, 8 trainings, DONE)",
+          r["rc"] == 3 and r["train"] == 0 and r["merge"] == 0 and not r["done"] and "caller trusts" in r["log"], {k: r[k] for k in ("rc", "train", "merge", "done")} | {"tail": r["log"].strip().splitlines()[-1][-160:] if r["log"].strip() else r["err"]})
+    r = chain_case("chain_v4s_gpu.sh", "step1_written_by_closure_gate", d)
+    check("★★★ [r4] STEP1 receipt self sha = the CLOSURE gate's real sha (a real gate, the wrong one) ⇒ rc 3, zero trainings", r["rc"] == 3 and r["train"] == 0 and not r["done"] and "caller trusts" in r["log"], {k: r[k] for k in ("rc", "train", "done")})
+    r = chain_case("chain_v4s_gpu.sh", "gate_script_missing", d)
+    check("★★ [r4] the gate script the chain would pin is missing ⇒ rc 3 gate_source_unreadable before any require/dispatch", r["rc"] == 3 and r["train"] == 0 and "gate_source_unreadable_v4_gate_closure" in r["log"], {k: r[k] for k in ("rc", "train")} | {"tail": r["log"].strip().splitlines()[-1][-120:] if r["log"].strip() else r["err"]})
+    check("★★ [r4] the success run's require lines carry the pinned source = sha of the translated gate scripts (pin computed at run time, not typed)",
+          "self " + _sha(f"{d}/success/workspace/review_scratch/v4_gate_closure.py")[:12] in open(f"{d}/success/workspace/review_scratch/v4_commands.txt").read()
+          and "self " + _sha(f"{d}/success/workspace/review_scratch/v4_gate_step1.py")[:12] in open(f"{d}/success/workspace/review_scratch/v4_commands.txt").read())
+    print("\n[J2] chain_v4_gpu3.sh / chain_v4_post_export.sh under the same harness (round 4: every require_gate call in the archive pins its gate source)")
+    r = chain_case("chain_v4_gpu3.sh", "success", d)   # separate scenario dir is keyed by scenario name: reuse 'success' root is fine (fresh d per entry below)
+    check("★★★ [r4] gpu3 success: STEP1 + STEP2 receipts PASS, fresh, from the pinned sources ⇒ 16 trainings, 4 merges, DONE", r["rc"] == 0 and r["train"] == 16 and r["merge"] == 4 and r["done"], {k: r[k] for k in ("rc", "train", "merge", "done", "err")})
+    for sc, why in (("step2_written_by_judge", "STEP2 receipt written by the judge"), ("step1_written_by_closure_gate", "STEP1 receipt written by the closure gate"), ("changed_RAW", "RAW targets changed after STEP1")):
+        r = chain_case("chain_v4_gpu3.sh", sc, d)
+        check(f"★★★ [r4] gpu3 {sc}: {why} ⇒ rc 3, ZERO trainings, no DONE", r["rc"] == 3 and r["train"] == 0 and r["merge"] == 0 and not r["done"], {k: r[k] for k in ("rc", "train", "merge", "done")} | {"tail": r["log"].strip().splitlines()[-1][-140:] if r["log"].strip() else r["err"]})
+    r = chain_case("chain_v4_post_export.sh", "success", d)
+    check("★★★ [r4] post_export success: export markers ok, STEP1 receipt (pinned source) passes the wait loop and the dispatch require ⇒ 16 trainings, 4 merges, DONE", r["rc"] == 0 and r["train"] == 16 and r["merge"] == 4 and r["done"], {k: r[k] for k in ("rc", "train", "merge", "done", "err")})
+    r = chain_case("chain_v4_post_export.sh", "step1_written_by_closure_gate", d)
+    check("★★★ [r4] post_export with a STEP1 receipt from the wrong gate source ⇒ the wait loop never sees a PASS, rc 3 step1_receipt_timeout, ZERO trainings", r["rc"] == 3 and r["train"] == 0 and not r["done"] and "step1_receipt_timeout" in r["log"], {k: r[k] for k in ("rc", "train", "done")} | {"tail": r["log"].strip().splitlines()[-1][-140:] if r["log"].strip() else r["err"]})
     r = chain_case("chain_v4s_gpu.sh", "fail_shard1", d)
     check("★★ shard 1 rc 7 ⇒ rc 1, 4 trainings dispatched, no merge, no DONE (unchanged from round 2)", r["rc"] == 1 and r["train"] == 4 and r["merge"] == 0 and not r["done"], {k: r[k] for k in ("rc", "train", "merge", "done")})
 
@@ -383,6 +425,8 @@ with tempfile.TemporaryDirectory() as d:
     rc, out, j = judge_case(d, "r4_garbage_env", promote=True, eligibility="{not json")
     check("★★ [r4] an unparseable JUDGE_ELIGIBILITY is ignored with a warning, never treated as permission: informational, eligibility_error set, no PROMOTE",
           rc == 0 and j and j["eligibility"] == "informational" and j["eligibility_error"] and _no_promote(j) and "JUDGE_ELIGIBILITY ignored" in out, (rc, j and j["eligibility_error"]))
+    rc, out, j = judge_case(d, "r4_no_pin", promote=True, eligibility=lambda q: {"A1e": {k: v for k, v in bound_entry(q, "A1e").items() if k != "self_sha"}})
+    check("★★★ [r4] an eligibility entry that does not pin the gate source (no self_sha) ⇒ A1e not eligible ('did not pin'), no PROMOTE", rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "did not pin" in j["eligibility_by_arm"]["A1e"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
     rc, out, j = judge_case(d, "r4_list_not_map", promote=True, eligibility=json.dumps([{"receipt": "x"}]))
     check("★ [r4] a JSON list instead of {arm: entry} ⇒ ignored (informational, no PROMOTE)", rc == 0 and j and j["eligibility"] == "informational" and _no_promote(j), (rc, j and j["eligibility_error"]))
 
