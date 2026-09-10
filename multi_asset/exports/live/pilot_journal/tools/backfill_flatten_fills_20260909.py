@@ -108,7 +108,7 @@ def main():
             _other[str(r.get("commission_asset"))][0] += 1; _other[str(r.get("commission_asset"))][1] += float(r.get("commission") or 0.0)
     fee_usdt = sum(float(r["commission"]) for r in _usdt)
     # userTrades `commission` is the fee PAID (positive); income COMMISSION rows are negative — compare magnitudes
-    ok = (not bad and not missing and not mism and len(_usdt) == VENUE_N_TRADES and abs(abs(fee_usdt) - abs(VENUE_COMMISSION)) < 0.01
+    ok = (not bad and not missing and not mism and len(_usdt) == VENUE_N_TRADES and abs(fee_usdt + VENUE_COMMISSION) < 0.01   # 研究员第四轮 A3: 有符号恒等式(费为正, income 为负); 比幅度会放过反号的 income
           and abs(gross - want_gross) < 1.0)
     rec_extra = {"n_trades_usdt_nonzero_commission": len(_usdt), "sum_commission_usdt": round(fee_usdt, 6),
                  "non_usdt_commission": {k: {"n": v[0], "sum_in_asset_units": v[1]} for k, v in _other.items()}}
