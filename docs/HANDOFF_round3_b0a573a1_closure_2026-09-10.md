@@ -516,3 +516,49 @@
 1. `merge_order_records` 把「后读 executedQty 小于先读」判矛盾 —— 若场所在撤单竞态下可能短暂回退(文档未见), 请指出; 我方按累计量单调处理。
 2. 身份门对 allOrders 记录要求 `origQty` 与我方 Q 相符(1e-6 相对), 对被场所改量(如 -2027 截断后的接受量)的记录会判不符 ⇒ UNKNOWN(保守方向); 请判断是否有合法改量的情形。
 3. 折叠矛盾 ⇒ 整名 UNKNOWN: 同名若有多条我方记录(-1 与 -2), 一条矛盾使另一条也 UNKNOWN(保守方向)。
+
+
+---
+
+## §EXECUTOR · 第九轮(复审 b92e9479: R8-MERGE / R8-TERMINAL / R8-CANCEL / R8-IDENTITY / R8-PARTIAL + risk §5 GET 身份边界)→ 实盘分支 7535914 → 7b49dec
+
+> 全电池 132/132(notify_audit 副本 11:17Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round8_codex_b92e9479_2026-09-10.md`; 事实表补格: `docs/DESIGN_request_fact_model_2026-09-10.md` §3c(「记录集合」层: 派生在记录内 / 终态常量 / 撤单回包入集合 / 身份门管事实 / partial 带整个折叠)+ §4.8–4.10; Q6 修订 4: `docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md` §1d(恢复政策 = 按时间准入观测等式; D8-2 验收例更正)。你五格的根因是一个: 第八轮把「来源合并」做成了字段合并, 不是事实合并。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 216/216; 旧码上红) |
+|---|---|---|---|
+| R8-MERGE | `binance_broker._snapshot`(新)/ `merge_order_records(*records)` / `last_fill_details` / `last_fill_notional` | 派生只在同一记录内(C ← N/avg, N ← avg×C 同记录); 金额只在终态快照(终态吸收)或 C 相等快照才是终值, 否则 `cum_quote_lower`; 均价只取终值快照自己的; `last_fill_notional` 委托 `last_fill_details`(原 raw 读者删除); 补单腿不再有 raw 回退 | [48] 7 格(旧码 7/7 红): 原补单链 N40 → avg3 + 50 ⇒ known 50 / 带 50 / filled_qty None; 回读 80 CLEAN、63.33 按带 CLEAN、110/40 异常 |
+| R8-TERMINAL | `merge_order_records`; `binance_executor._settle_leg_by_identity` | 终态常量: 终态记录可信 C_T 之后(或之前)任何可信 C_r ≠ C_T ⇒ 矛盾(不择大); 终态无 C 可补; 开→终态增长合法; 累计金额不减; 子成交并集 > 终态 C ⇒ 矛盾(首读保留) | [49] 9 格(旧码 6/9 红, 3 控制格绿): 20→30 原链 ⇒ `ledger_inconsistent`, 回读 80/70 皆拒; 同 updateTime; 无 status 的 30; EXPIRED 无 C → 30 允许 |
+| R8-CANCEL | `venue_fills._records` / `_merged` / `_facts`(新)/ `settle_ambiguous_legs` / `_resolve_open` / `_scan_orders` | k-cancel 与阶段 B 撤单的 DELETE 回包(带执行字段)是该请求的记录, 过身份门后与 allOrders 行 / 查单记录合并; 匹配终态路径、查单路径、开单路径、未达路径都用同一记录集合; 稀疏终态记录 = 数量与金额皆不可读(不是 notional 0); 带事实后 −2013 = 矛盾; 无执行字段的回包不进合并(无可注入) | [50] 8 格(旧码 7/8 红): 原链 k-cancel 4 + 稀疏查单 ⇒ maker 4, 补单量 6, 回读 10 CLEAN / 14 异常 4; 4→6 矛盾不补; allOrders 不可达 ⇒ UNKNOWN 行 known 4 / 带 0 不补 |
+| R8-IDENTITY | `venue_fills._valid`; `binance_broker.known_order_id`(新, 执行器 `_order_id_for` 委托); `_scan_orders` | 身份门管事实: 不符 ⇒ `inconsistent(identity)` ⇒ 请求不可测, `updates` 覆盖页面事实(C/终态不入账); side 必须存在且相符; origQty 必须有限且相符; orderId 必须等于 ACK 的 orderId(有 ACK 时); 折叠缺 side 的成交 = 矛盾(不再当 SELL) | [51] 11 格(旧码首格 KeyError): origQty 5 原链 ⇒ maker 行 inconsistent(confirmed None), 回读 4/10 皆拒; 缺 side 原链不补(曾 −4 补 14); NaN / Inf / 空 / 997 皆不符; 101 控制 ⇒ terminal_matched |
+| R8-PARTIAL | `venue_fills._keep_partial` | partial 经记录集合合并, 带整个折叠(inconsistent / derived / amount_unreadable) | [52] 4 格: query 与 page 同判; [35] 正控保留 |
+| risk §5 | `binance_broker.last_fill_details` | 补查记录过身份门(cid / symbol / orderId / origQty / side 与提交回包相符), 不符 ⇒ `inconsistent(identity)` | [54](第二次提交) |
+| 结构 | `known_order_id` 单一实现; 结算内折叠 `record=False` 不写页面缓存; 读到 status 即算应答(`_answered`) | — | [53] |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第八轮 | 第九轮 |
+|---|---|---|
+| hybrid_derived_C(N40 旧 + avg3 新, 加 50) | C 13.333, 行 63.33 精确, ±80 报警 | C 未知, 行 known 50 / 带 50, 80 CLEAN, 63.33 按带 CLEAN, 110/40 异常 |
+| terminal20_terminal30(加 50) | 行 80 精确, 回读 80 CLEAN | `ledger_inconsistent`, 回读 80 与 70 皆拒 |
+| cancel_C4_query_Cmissing_Nmissing | 补 10, 行 0 + 10, 回读 14 残差 4 | 补 6, 行 4 + 6, 回读 10 CLEAN / 14 异常 4 |
+| page_wrong_origQty_matched | 不补, 但 C4/终态入账, 回读 4 CLEAN | 不补, 行 inconsistent, 回读 4 与 10 皆拒 |
+| side 缺 / origQty NaN·Inf / orderId 997 | −4 补 14 / 补 6 / 补 6 | 皆 UNKNOWN 不补 |
+| query partial C0/N4 | 0..10 带, 回读 10 CLEAN | partial inconsistent ⇒ RC 拒(与 page 同判) |
+
+**版本配对(上一轮期望被改的格)**: `tests_signal_and_loop` 的 `_FillBroker` POST 逐币不同 orderId(BTC 1 / ETH 2 —— 真实场所每单不同; 身份门比对 ACK 的 orderId); [43] 合并单元检查原样通过(第二条记录是终态快照, 其金额是终值)。173 项原样保留。
+
+### 未闭合(明写)
+1. **Q6**: 修订 4(恢复政策 §1d + D8-2 更正)未落码; 请复核政策本身(按时间准入 vs 全局最大基数, 我方选前者的三条理由)与你两例的预测距离(1 / 30)。
+2. 「场所事后更正终态成交」若存在, 需要独立证据类型; 本轮一律按矛盾 ⇒ 不可测。
+3. 记录按观察顺序处理(每次 GET 不早于既有事实)是假设; 陈旧晚到快照会被读成矛盾 ⇒ UNKNOWN(保守方向), 不做事件时间排序。
+4. R6-MARK; −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。
+
+### 我方在第九轮里承认的自己的错(见处置文档 §4)
+字段合并 ≠ 事实合并(派生跨快照)/ 单调只写一个方向, 终态常量在 Q6 写了、在合并器没写 / 撤单回包登记成「下一格」而不是当轮修 / 门在动作前不在事实前 / `_keep_partial` 与 `last_fill_notional` 又是「同一事实的第二个读者」/ Q6 验收例写错。
+
+### 请复核(第九轮新问题, 我方自报)
+1. 「金额只在终态快照或 C 相等快照才是终值」: 对「开单快照 N40 无 C + 终态 C30 无 N」我方写金额未知(40 只是下界), 行 `filled_notional` None ⇒ 该名 UNKNOWN 不补单(保守); 若你认为终态且数量可关闭时应允许按数量补单(金额未知), 请指出 —— 这是补单合同问题, 不是事实问题。
+2. 撤单回包无执行字段(只有 status)时不进合并 —— 真实 DELETE 回包必带 executedQty; 若你见过不带的形状, 请指出。
+3. 身份门对 orderId 的比对以 ACK 为准; 提交回包丢失(歧义)时无 ACK 则不比对 —— 这是「有证据就用, 没证据不发明」的方向, 但也是一个放行域(歧义 POST 后, 场所记录的 orderId 无从核对)。
