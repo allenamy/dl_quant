@@ -72,7 +72,7 @@
 2. **legs / 脚本 sha 只有来源收据没有门**: `pin_deps` 记录不批准; 若研究员认为需要「legs 门」(由 pod_legs_v4b 写收据、链 require), 属新装置, 未做。
 3. **G2 导出资格进判官靠 env 指路**: 判官不自动寻找导出收据; 链在调用判官时须传 `JUDGE_EXPORT_GATE`(chain_king_e.sh 尚未改为传它 —— 本轮未动 chain_king_e, 因其上一轮已跑完且不在复审五项内; 下次运行判官前补)。
 4. **历史收据不重算**: JUDGE_v4e_* / G1 / G2 收据保持原样, 映射到产生它们的快照; 第三轮不改任何数字与判决。
-5. **快照 16 件不在 pod2**(按设计, 快照只在归档), 清单按前缀归类为 SNAPSHOT 不计入 DIFFERS。
+5. **快照不在 pod2**(按设计, 快照只在归档), 清单按前缀归类为 SNAPSHOT 不计入 DIFFERS。第三轮此处写「16 件」是错的: 当时清单逐行实为 22 件(r0 1 / r1 14 / r2 1 / r3 6, 与上表 739c8e80 行一致); 第四轮加回 `v4e_gate_parity.r0_f0fac5e3.py` 后为 23 件(见 §PIPELINE 第四轮 第 5 项; 数字 VERIFIED 自 `receipts/v4_scripts_sha_full.json` 逐行)。
 
 ## §EXECUTOR · 实盘分支 `review/b0a573a1-executor` 第三轮(复审 31fa3e4e P1-1…P1-4 / cap P2 / A1–A3 收口)
 

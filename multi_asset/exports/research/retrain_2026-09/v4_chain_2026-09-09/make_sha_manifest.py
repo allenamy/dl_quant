@@ -10,12 +10,16 @@ Status per file (one of):
   NOT_ON_POD2       no pod2 copy (all snapshots are expected here; a live script here is a sync gap)
   SNAPSHOT_r0/r1/r2/r3  by actual filename prefix (.r0_<sha8>., .r1_, .r2_, .r3_): receipt-producing versions kept alongside (判决装置与结论同寿命)
 Usage: POD2_SHA_FILE=<file> python make_sha_manifest.py [out.json]   (default out: receipts/v4_scripts_sha_full.json)
+
+★ ROUND 4 (2026-09-10): every RECEIPT_TO_SOURCE target must exist AND, when the receipt carries a self_sha256, the mapped file's sha must EQUAL it —
+  a mapping is a claim about which code wrote the receipt, so it is verified by sha, not by name (the round-3 map sent the run-1 G1 FAIL receipt,
+  self f0fac5e3…, to the r3 snapshot c69b3322…). Mismatch => exit 2, nothing written. Snapshot suffixes .r0–.r4 are recognised.
 """
 import hashlib, json, os, re, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "receipts", "v4_scripts_sha_full.json")
-SNAP = re.compile(r"\.r([0-3])_[0-9a-f]{8}\.")
+SNAP = re.compile(r"\.r([0-4])_[0-9a-f]{8}\.")
 
 # receipt -> the source version that PRODUCED it (round 3: g3 s2027 judge receipt -> the r2 judge, not the current one)
 RECEIPT_TO_SOURCE = {
@@ -32,7 +36,8 @@ RECEIPT_TO_SOURCE = {
     "JUDGE_v4e_informational.json": "judge_v4.r3_8b2c13b7.py",       # produced before the round-3 judge hardening
     "JUDGE_v4e_hardened.json": "judge_v4.r3_8b2c13b7.py",
     "G1_king_clock_parity.json": "v4e_gate_parity.r3_c69b3322.py",   # produced before the round-3 axis-clause change
-    "G1_king_clock_parity_run1_FAIL.json": "v4e_gate_parity.r3_c69b3322.py",
+    "G1_king_clock_parity_run1_FAIL.json": "v4e_gate_parity.r0_f0fac5e3.py",   # round 4 fix: run 1 (2026-09-09T16:33:30Z) was written by the PRE-AMENDMENT-1 gate
+    #   (commit 8e7908e2, self_sha256 f0fac5e3…), recovered from git history and verified by sha; round 3 wrongly mapped it to the r3 snapshot
     "G2_closure_stable_hardened.json": "v4_gate_closure.py",
     "G4_king_quant.json": "v4e_gate_quant.py",
     "guard_decompose_v4e.json": "guard_decompose_v4e.py",
@@ -77,17 +82,40 @@ def main():
         counts[r["status"]] = counts.get(r["status"], 0) + 1
     missing_sources = sorted({v for v in RECEIPT_TO_SOURCE.values() if v not in rows})
     missing_receipts = sorted(k for k in RECEIPT_TO_SOURCE if not os.path.exists(os.path.join(HERE, "receipts", k)))
+    # round 4: a receipt that carries self_sha256 must map to the file with THAT sha — the map is verified, not trusted
+    mapping_bad, mapping_verified, mapping_unverifiable = {}, [], []
+    for k, v in RECEIPT_TO_SOURCE.items():
+        rp = os.path.join(HERE, "receipts", k)
+        if v not in rows or not os.path.exists(rp):
+            continue
+        try:
+            ss = json.load(open(rp)).get("self_sha256")
+        except Exception:                                   # noqa: BLE001
+            ss = None
+        if isinstance(ss, str) and len(ss) == 64:
+            if ss == rows[v]["archive_sha256"]:
+                mapping_verified.append(k)
+            else:
+                mapping_bad[k] = {"receipt_self_sha256": ss, "mapped_to": v, "mapped_file_sha256": rows[v]["archive_sha256"]}
+        else:
+            mapping_unverifiable.append(k)                  # old-schema receipt without self_sha256: mapping rests on the commit history
     out = {"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "archive_dir": HERE, "pod2_path": "/workspace/review_scratch/",
            "pod2_sha_file": pf, "n_files": len(files), "counts_by_status": dict(sorted(counts.items())),
            "generator": "make_sha_manifest.py (per-file walk; counts derived from rows, never typed)",
            "scripts": rows, "receipt_to_source": RECEIPT_TO_SOURCE,
            "receipt_to_source_missing_sources": missing_sources, "receipt_to_source_missing_receipts": missing_receipts,
+           "receipt_to_source_sha_verified": sorted(mapping_verified), "receipt_to_source_sha_mismatch": mapping_bad,
+           "receipt_to_source_unverifiable_no_self_sha": sorted(mapping_unverifiable),
            "note": ("*.rN_<sha8>.* are the versions that produced receipts (判决装置与结论同寿命); a live script NOT_ON_POD2 or POD2_DIFFERS is a "
                     "sync gap between this archive and /workspace/review_scratch and must be resolved by syncing, not by editing this file. "
                     "Round-3 (review 31fa3e4e §5): the previous hand-typed counters (75/50/0/6) are replaced by these derived counts.")}
+    if mapping_bad:
+        print("MANIFEST_REFUSED receipt_to_source sha mismatch (a mapping is a claim about which code wrote the receipt):", json.dumps(mapping_bad, indent=1))
+        return 2
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(out, open(OUT, "w"), indent=1)
-    print(json.dumps({"n_files": out["n_files"], "counts": out["counts_by_status"], "missing_sources": missing_sources, "missing_receipts": missing_receipts, "out": OUT}, indent=0))
+    print(json.dumps({"n_files": out["n_files"], "counts": out["counts_by_status"], "missing_sources": missing_sources, "missing_receipts": missing_receipts,
+                      "sha_verified": len(mapping_verified), "unverifiable_no_self_sha": len(mapping_unverifiable), "out": OUT}, indent=0))
     return 0 if not missing_sources else 2
 
 
