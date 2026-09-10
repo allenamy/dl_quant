@@ -125,3 +125,12 @@
 - **版本配对**: [47] 手写「已关闭账本」夹具显式声明两个终值键(终值必须声明, 不再从 terminal 推)。
 - **我方新错**(处置文档 §4): F 没贯穿每个读者(maker 行 / 均价回退 / RC 带分支)、金额没有自己的完整性、出口清单又漏一个、三条自报都是未验证的假设。方法记忆追加。
 - **处置文档**: `docs/REVIEW_ACCEPT_round10_codex_f79dc8cd_2026-09-10.md`。协议不变: 第十一轮复核 → 分别合并 → 部署另裁; 运行树 d040c74 零接触(VERIFIED)。无策略/回测数字变化。
+
+### 2026-09-10 14:4x–15:2xZ · 研究员第十一轮复审 83fcbbcc 处置 + 第十二轮修复(每个读者只认完整性字段; 金额得到数量的三条规则; 交「事实 × 读者」全表; 实盘分支未合并未部署)
+
+- **用户之问「是否真的需要修正」→ 我方判八项全真全需修(一项是合同选择先登记后修)→ 用户裁「高质量完成, 争取解决所有问题」。**
+- **读码复现**: `last_fill_details` 取回包的 cid 当身份再按它补查(发 A 回包称 B/C4 曾记入 A); `_scan_orders` 的「0 伴正金额 = 矛盾」不看 `executedQtyFinal`(合并后的下界 0 被当精确 0 ⇒ NEW 0 → 成交 → 撤单 + 只带 N4 的终态查单被判矛盾, 回读 4 触发); `_settle_leg_by_identity` 集合完整时无条件覆盖终值 N、缺 quote 擦去重表; `apply_commission_to_rows` 后置写者把子集 vwap 写成行的 avg(M1 完整性假→真); UNKNOWN 行只在 C 与 N 同时可读才记 N; `ledger_known_qty` 对 confirmed / C None 返回 None ⇒ RC 不可量化; 零字典缺金额终值位。
+- **修复(DESIGN §3f)**: `submit_identity_mismatch` 先按发送的 order 核回包再读数字、补查按发送 cid; 矛盾检查只对精确 0; 终值 N 常量 + 子集不超 + 去重只增; 账本行后置写者只写 `avg_fill_px_children`; N 终值 + C 缺 ⇒ 记 N; **合同选择 §3f.6**: 金额已知数量未知 = [0, Q](known 0 + 带 Q); 零字典补终值位; 措辞收紧; 旧 IOC 注释作废。**全表 §5**: 每个事实字段的生产者与全部读者, 行级列与消费者(RC / M1 / M3 / daily_summary / watchdog / 报表)。
+- **证据**: `tests_request_identity_unknown.py` [66]–[71] 共 23 项, 302/302; 旧码(6705bb3)上 [66] 6/7 红、[67] 3/5 红、[68] 3/4 红、[69] 1/2 红、[70] 1 红 + 原链崩、[71] 1 红 + 原链崩; 6 个控制格全绿; 邻近 7 套件 + reconcile/watchdog/guard 7 套件全绿; 电池 132/132(84a3b51, notify_audit 副本 15:02Z)。反例翻转表见 HANDOFF §EXECUTOR 第十二轮。
+- **版本配对**: 第六轮 R5-QC「reconcile 拒绝量化(150/1)」→「known 50 + 带 [0,50]; 150 仍拒, 75 CLEAN」。
+- **处置文档**: `docs/REVIEW_ACCEPT_round11_codex_83fcbbcc_2026-09-10.md`。协议不变: 第十二轮复核 → 分别合并 → 部署另裁; 运行树 d040c74 零接触(VERIFIED)。无策略/回测数字变化。

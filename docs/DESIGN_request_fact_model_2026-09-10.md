@@ -135,3 +135,41 @@
 ## 4(续). 第十一轮的结构性保证
 13. **每个读者都只认完整性字段**: `_final_known` 不再有 terminal 回退; 均价、金额关闭、数量关闭三者各自要求自己的终值证明; RC 的带分支不看 N。
 14. **有场所事实的 maker 行一律带账本**(`_venue_facts` 标记由 apply_fill_details 写), N/avg 读法只剩没有任何场所事实的行(DRY_RUN / 注入 fills)。
+
+## 3f. 第十二轮补格(研究员第十一轮 R11-POST-READER / R11-CANONICAL-L0 + 三条金额 P2 + 两条表示 P2): 每个读者只认完整性字段 —— 用全表收口, 不再靠下一轮反例
+| # | 来源 / 出口 | 事实规则 | 反例格 | 反方向 | 邻格 |
+|---|---|---|---|---|---|
+| 1 | 提交回包直接读者(`last_fill_details`) | 回包先按我方发送的 order 核身份(cid / symbol / side / origQty, 带字段才比对); 不符 ⇒ `inconsistent(identity)`, 其 C/N 一律不入账; 补查只按发送的 cid | 发 A, 回包声称 B/C4/N4 ⇒ 请求不可测(曾: 4 记入 A, 回读 4 CLEAN); 回包声称 B 且缺金额 ⇒ 按 A 补查, 不按 B | 回包 cid=A ⇒ 4 照旧 | 回包无 cid ⇒ 按发送 id 记(照旧) |
+| 2 | 合并后的正典记录 C=0 是下界 | 「显式 0 伴正金额 = 矛盾」只对**精确** 0(原始同快照记录; 或 F=真)成立; F=假 的 0 是下界, 与任何金额相容 | POST NEW C0/N0 → status-only 撤单 → 终态 GET 只有 N4 ⇒ L0 / F 假 / N4 终值 ⇒ known 0 / 带 10 / 金额 4, 补 6 ⇒ 总量 [6,16]: 10 与 16 CLEAN, 4 与 18 异常(曾: 判矛盾, 不补, 回读 4 触发) | 原始同快照 C0/N4 ⇒ 仍矛盾(照旧 [40][46]) | 终态 GET 带 C4/N4/avg1 ⇒ 精确 4, 补 6, 10 CLEAN、14 异常 |
+| 3 | 子成交与终值金额 | 终值 N 也常量: 集合完整时 n_child ≠ 已有终值 N ⇒ 矛盾(保留场所 N); 子集 N 不得超过终值 N; 去重表只增不减 —— 同 trade id 再来一次缺 quote 不撤销已记 quote, 之后不同 quote 仍是冲突 | F 真 C20/N40 + 子集完整 N60 ⇒ 矛盾, N 仍 40(曾: N 改 110); quote 40 → 缺 → 60 ⇒ 冲突(曾: 擦成 None 再收 60) | N40 ⇒ 照旧 | 子集 N 超终值 N ⇒ 矛盾 |
+| 4 | 手续费归属的后置写者 | 有账本的行: `filled_notional` / `avg_fill_px` 只由读者写; 子成交经 `_settle_leg_by_identity`(尊重 F / N_final); 子集 vwap 写到独立字段 `avg_fill_px_children`, 不冒充整单均价 | maker L4 / 带 6 / N6 终值 + 子集 4@1 ⇒ 行 avg 仍 None, `avg_fill_px_children` 1.0(曾: avg 补成 1, M1 完整性假→真) | C 终值 + 集合完整 ⇒ 读者写均价 | 无账本旧行 ⇒ 后置写者照旧(兼容) |
+| 5 | UNKNOWN 出口只有 N 没 C | 金额与数量各自入账: N 终值 + C 缺 ⇒ `confirmed_notional` 4 / `_final` 真, `confirmed_qty` None | 终态撤单回包 N4 无 C/avg + 查单失败 ⇒ 行 known_notional 4, 数量 [0,10](曾: N 丢失) | 同源查单成功 ⇒ 补 6 | — |
+| 6 | 账本请求 confirmed 而 C 为 None(**合同选择, 本轮登记**) | 读成区间 [0, Q]: 已知量 0 + 带 Q(与失败出口的表示统一), 不再返回 None ⇒ 不可测; 「金额已知而数量未知」是带, 不是坏值 | 普通 maker 账本 N4 终值 / C None + 补 6 ⇒ known 6 / 带 10 ⇒ 6–16 CLEAN, 4 与 18 异常(曾: RC 不可量化, 5b 触发) | — | 金额未知且 C 未知 ⇒ 带 Q(照旧) |
+| 7 | 明确零(absent / nothing executed) | 零金额也带终值位 `filled_notional_final` | CANCELED C0/N0 ⇒ 行金额 0.0(曾 None) | — | — |
+| 措辞 | `_final_known` 文档 / 旧 IOC 注释 | 「无遗留人口」收紧为「08-01..09-09 窗口 40 日 67,588 行无账本行」; 删除「IOC 无 status 即终态」旧注释 | — | — | — |
+
+## 5. 事实 × 读者 全表(第十二轮; 交研究员按表核, 不再按反例核)
+每张请求(`request_ledger` 元素)的事实字段与它们的**全部**读者。规则: 读者只认本表列出的字段; 新增字段时本表加一列, 每个读者要么读它要么在此声明不需要。
+
+| 事实 | 字段 | 生产者 | 读者(必须尊重的规则) |
+|---|---|---|---|
+| σ, Q | `qty`(带号) | 补单腿 / UNKNOWN maker 行 / 普通 maker 行(有场所事实) | `request_remaining`(Q−L); `ledger_inconsistencies`(超量 / 反向); `_final_known`(容量: L≥Q ⇒ F) |
+| L 累计下界 | `confirmed_qty`(带号) | 合并器 `executed_qty` → 折叠 → 计划 `venue_executed_qty` → 行; 补单腿 `_ex1`; 子成交并集 | `request_remaining`(F ? 0 : Q−L); `ledger_known_qty`(Σ L; C None 的 confirmed 请求算 0 + 带 Q — 第十二轮); `ledger_qty_closed`; `ledger_row_columns` 均价(需 F); `_settle_leg_by_identity`(单调; F 时常量); `ledger_inconsistencies` |
+| F 最终总量已证明 | `confirmed_qty_final` | 合并器 `executed_qty_final`(终态快照)→ `executedQtyFinal` → 折叠 → `venue_executed_qty_final` → 行; 子成交到达 Q; 补单腿 `_fin1`(显式终态 + 合并终值) | `_final_known`(显式真或容量; **无 terminal 回退**); `request_remaining`; `ledger_qty_closed`; 均价; `_settle_leg_by_identity`(F 时 child > C ⇒ 矛盾) |
+| T 终态 | `terminal` | 显式 status(补单腿); 折叠 `non_terminal` 为空且非 partial(maker 行) | `ledger_closed`(金额关闭需 T); `_settle_leg_by_identity`(exhaustion 置 T) — **不再**用于推 F |
+| N 金额 | `confirmed_notional`(带号) | 合并器 `cum_quote`(只在终值)→ 折叠 `filled_notional` → `filled` 字典 → 行; 补单腿 `_one`; 子成交集合完整时 | `ledger_totals`(已知金额); `ledger_closed`; 均价; `ledger_inconsistencies`(非有限) |
+| N 完整性 | `confirmed_notional_final` / `confirmed_notional_lower` | 合并器 `cum_quote_final` → `cumQuoteFinal` → 折叠 `filled_notional_final` → `venue_notional_final` → 行; 补单腿(合并只发终值 ⇒ 真); 子成交(完整 ⇒ 真, 子集 ⇒ `_lower`) | `ledger_closed`(需真); 均价(需真); `_settle_leg_by_identity`(真时 N 常量, 子集不超) |
+| 身份 | `client_id`, `order_id` | 发送的 cid; `known_order_id`(按发送 id 绑定, 回包声称别 id ⇒ None) | `_settle_leg_by_identity`(按 orderId 联接子成交); 结算身份门 `_valid` / `_valid_present`; **提交回包直接读者 `last_fill_details`(第十二轮加门)** |
+| 矛盾 | `inconsistent` | 合并器(记录内 / 记录间) / 折叠 / 身份门 / 子成交(重复 id 不同量、超终值、反向) | `ledger_inconsistencies` → `ledger_row_columns.ledger_inconsistent` → RC 第一行「不可测」 |
+| 去重证据 | `trade_qty[tid]`, `trade_quote[tid]` | `_settle_leg_by_identity` | 同函数(只增不减 — 第十二轮: 缺 quote 不撤销已记 quote) |
+
+行级列(`_order_row` 由 `ledger_row_columns` 一次写出)与它们的读者:
+
+| 行列 | 读者 |
+|---|---|
+| `filled_qty`(全部 F 时 Σ L) | `reconcile._exec_qty`(known) |
+| `filled_known_qty` / `filled_unknown_qty` | `reconcile._exec_qty`(bounded; **有带就走带, 与 N 无关** — 第十一轮) |
+| `filled_notional`(全部 T+N+N_final) | `pilot_metrics` M1/M3 · `daily_summary` · `watchdog`(平仓行)· `first_anchor_review` / `score_post_fix`(报表)· `anchor_loop`(账本)· RC 仅无账本旧行 |
+| `avg_fill_px`(每张 C 与 N 皆终值) | `pilot_metrics` M1(滑点)· `daily_summary` · RC 仅无账本旧行 · `first_anchor_review`; **后置写者只写 `avg_fill_px_children`**(第十二轮) |
+| `ledger_inconsistent` | `reconcile._exec_qty` 第一行 |
+| `terminal_reason`(`filled` ⇔ 金额关闭, 否则 `filled_amount_unknown`) | `pilot_metrics`(完整性)· `watchdog` · 报表 |
