@@ -269,3 +269,51 @@
 2. `_unknown_interval` 对旧行(仅 USDT 上界)用行自身价格回退成数量 —— 旧行只在历史账本里, 但 reconcile 会读它们; 请判断回退是否应改为「旧行一律不可测」。
 3. R7 的 target := held 会产生一条 `skip` 计划行(delta 0), 与「该名被弹出」在锚工件里可区分(`invalid_disposition`); 请看是否需要独立终态。
 4. 分块 `notional_est` 按数量比例分摊整腿残差 —— 只用于 USDT 估计列与页文字, 不进风险合同(合同用 qty); 若你认为该列会误导, 可删。
+
+---
+
+## §PIPELINE 第五轮(研究分支 `review/b0a573a1-pipeline`, bc8b3772 → 本节末提交; 研究员第四轮 `codex_round4_review_2026-09-10/pipeline/` 的 P1/P1/P2 收口)
+
+> 只做研究分支半边; 不改任何研究结论(G2 FAIL / v4e 无换装资格 / 18 格 (C) 不变); 无训练、无 GPU、不动 `~/dl_quant_live*` 与研究主线、不碰研究员 worktree。pod2 只在 `/workspace/review_scratch/` 备份→同步→跑测试。**VERIFIED** = 收据/日志可查; **INFERRED** = 推断。
+
+### R0 提交表(每项一提交; 第四轮 117 项全部保留, 两条「调用者定标准」的期望改写并在断言文字里注明)
+| 提交 | 项 | 改动 | 检查项 |
+|---|---|---|---|
+| f0c84502 | **r5-1** | 冻结资格合同 `A/ELIGIBILITY_CONTRACT.json` + `v4_gate_common.load_contract/approved_sources` + `require` 批准源检查 + 判官按合同推导标准(臂绑定 + 书绑定)+ 合同进 sha 清单 | 117 → 143 |
+| 21a8bddd | **r5-2** | 判官严格书合同(cols/symbols 必在、W 有限、各臂 symbols 轴逐位相同)+ 任何模式下冻结窗 gross_total 有限且 > 0 | 143 → 151 |
+| 10795c14 | **r5-3** | pod2 同步(.pre_r5 备份先列出再 scp)+ pod2 151 日志 + pod2 逐文件 sha + 清单 88 文件 + 研究员三套 harness 原样重跑收据 | 151(pod2 151) |
+| (本提交) | **r5-4** | 本节 | — |
+
+### R1 每项改了什么 / 怎么证的(对应研究员 REVIEW 的编号)
+1. **[P1] 标准由谁定(REVIEW §2, `judge_actual_G2_not_export` / `actual_STEP1_downgraded_profile` / `actual_unknown_gate_one_input`)**: 第四轮 `JUDGE_ELIGIBILITY` 的 gate / self_sha / profile / inputs 全由调用者填, `require` 只核「调用者说的门与调用者给的数据自洽」, 所以真 G2 PASS、STEP1 降 profile、未登记门名都能让 A1e 四格 PROMOTE。现在: (a) 判官从**自己目录里的** `ELIGIBILITY_CONTRACT.json` 读标准(路径写死, 没有 env 能换合同; 换合同 = 换受审装置, 合同 sha 写进判官输出 `contract.sha256` 与 sha 清单); (b) 合同逐臂给 `candidacy_gate`(五个可晋级臂 A1/A1s/A1e/A2/A3 都是 `BUNDLE_export`)、profile、书绑定; 逐门给 `approved_source_sha256`(G2/STEP1/STEP2 = 归档门文件 sha; **BUNDLE_export = 空**: 物理导出门不存在, 空表 = 没有任何收据能授予候选); (c) `JUDGE_ELIGIBILITY` 只剩 `{arm: {receipt, inputs}}` 定位收据; 调用者若还报 gate/self_sha/profile 且与合同不一致 ⇒ `caller-supplied standard conflicts with the frozen contract` 不合格(一致则忽略); (d) 收据的 gate ≠ 合同门 ⇒ 不合格(「质量门的 PASS 不是导出候选」); 收据 self_sha256 ∉ 批准表 ⇒ 不合格。证: [N] 真 G2 PASS(归档 closure 门实跑写出)定位给 A1e ⇒ 0 PROMOTE; 调用者同时报 gate=G2_closure+真 sha ⇒ conflicts ⇒ 0; STEP1 PASS + profile=v4s ⇒ 0; 未登记门 ⇒ 0; 未登记臂 A9 ⇒ 不合格; 无合同的装置拷贝 ⇒ informational + WARNING; 畸形合同 ⇒ 同; **现网归档判官 + 现网合同 + 完整绑书的 A1e 收据 ⇒ 仍不合格**(`no approved gate source … physical gate is not built`); 正控(装置拷贝里的测试合同把归档导出器 sha 列为批准源)⇒ A1e 恰 4 PROMOTE 且输出记合同 sha/批准表。
+2. **[P1] map key 不是经济工件绑定(REVIEW §3, `receipt_A1e_relabel_to_A1` / `book_replaced_after_receipt`)**: 现在 `receipt.arm` 必须等于被判臂; 并且**判官自己**把该臂四份被判书文件(`book_{dyn,fix}_s{42,2027}` = `<JUDGE_HC>/dev_v4/probe_artifacts/w10_…_<arm>_<seat>_s<seed>.npz`)加进声明输入, `REQUIRED_INPUTS["BUNDLE_export"]` 从 7 项变 11 项, 于是收据必须 hash 过这四份书且 sha 等于判官加载的文件。证: [N] A1e 收据放在 key A1 下 ⇒ `bound to arm 'A1e'`, 0 PROMOTE(第四轮 6); 收据 arm 字段伪造成 A1 但书 hash 是 A1e 的 ⇒ `book_dyn_s42 changed since the receipt`; 收据封好后改 A1e 经济序列 ⇒ 不合格(第四轮 4 PROMOTE); 收据没 hash 书 ⇒ `no sha for input book_dyn_s42`。
+3. **[P1] 门源码「运行时 pin」≠「受审程序」(REVIEW §4 drift)**: `require` 在 pin 与收据相等之后再查 pin ∈ 合同批准表; 治理门(在 REQUIRED_INPUTS 里的)旁边没有合同 ⇒ 直接拒(`nothing can be required without the frozen research definition`); 未治理门(既未登记也不在合同)不受影响, 但它们映射不到任何臂, 授不出候选。新 CLI `v4_gate_common.py approved <gate> <sha>`。证: [E] 拷贝并改动 closure 门后实跑 ⇒ 自签收据 PASS; `require … self_sha=<改后 sha>` ⇒ rc 3 `not an APPROVED source`(第四轮 rc 0); [J] 新场景 `gate_edited_rerun`(链运行时 pin 到改后文件)⇒ rc 3 / 0 训练 / 无 DONE(研究员 `chain_runtime_gate_sha_accepts_changed_recipe`: rc 0 / 8 / DONE); 三条链成功路径在**带翻译后合同**的装置拷贝里仍 8/2/DONE、16/4/DONE。
+4. **[P2] 严格书合同(REVIEW §5 七例)**: `JUDGE_REQUIRE_W=1`(别名 `JUDGE_STRICT_BOOK=1`)现在 = cols==COLS 且 symbols 必在、`d30_n2_c42_W` (n, n_symbols) **有限**、各臂 symbols 轴**逐位相同**(W 列按位置对齐, 一臂反序 ⇒ rc 2); **任何模式**下冻结窗 `gross_total` 必须有限且 > 0(−1 配分子翻号曾保持 g 并 4 PROMOTE, +inf 曾令 g=0 通过; 现 rc 2, 默认模式亦然)。默认模式其余仍是明写的 rec-only 窄合同(`rec_only_default` rc 0)。证: [N] 七例 + 正控(严格 + 测试合同 ⇒ 4 PROMOTE)+ 别名。
+5. **合同进清单**: `make_sha_manifest.py` 把 `ELIGIBILITY_CONTRACT.json` 与 .py/.sh 同列; 清单 88 文件, MATCH_POD2 **65**(64 + 合同 `3299dc97…`), 快照 23(r0 2 / r1 14 / r2 1 / r3 6), 收据→源码 sha 核 4 / 旧 schema 15(VERIFIED, `receipts/v4_scripts_sha_full.json`)。
+
+### R2 研究员第四轮三套 harness 原样重跑(拷贝到 scratch, 未改其脚本; device/chain = 本轮归档 87 文件 + 合同; `A/receipts/researcher_round4_cases_rerun_after_r5.json` 逐案给其记录与本轮结果)
+| 类别 | 数 | 案例 |
+|---|---|---|
+| **意图翻转** | 11 | `judge_actual_G2_not_export` 4→**0** · `actual_STEP1_downgraded_profile` 4→**0** · `actual_unknown_gate_one_input` 4→**0** · `receipt_A1e_relabel_to_A1` 6→**0** · `book_replaced_after_receipt` 4→**0** · `negative_gross` rc 0/4→**rc 2** · `infinite_gross` rc 0→**rc 2** · `nonfinite_W` 4→**rc 2** · `symbols_order_reversed` 4→**rc 2** · `no_cols_strict` 4→**rc 2** · `no_symbols_strict` 4→**rc 2** |
+| **按设计翻转** | 3 | `valid_strict_schema_positive` / `valid_new_eligibility_positive` / `rec_only_default` 4→**0 PROMOTE**: 现网合同 BUNDLE_export 批准表为空, 任何合成导出收据都不授候选; 允许路径由我方 [N] 正控(装置拷贝 + 测试合同)证明。研究员若要在自己 harness 里跑正控, 需在其 device/chain 旁放一份把其合成导出器 sha 列为批准源的合同 |
+| **harness 拷贝无合同** | 7 (+1) | `chain_success` 8/2/DONE→rc 3/0, `chain_fail_shard0-3`, `chain_merge_fail`, `chain_merge_missing_marker`: 其 `chain_case` 只拷 .py/.sh 到翻译后的 root, 合同不在旁 ⇒ 治理门 fail-closed(`frozen contract missing`)。这是**新装置契约**: 装置拷贝必须带合同, 且路径翻译改变门字节 ⇒ 拷贝里的合同要重算批准 sha(我方 [J] harness 如此做, 8/2/DONE 保持)。`chain_runtime_gate_sha_accepts_changed_recipe`(drift retry)rc 0→**3** 方向对, 但其拷贝里的拒因是缺合同而非「未批准」; 「未批准」拒因由我方 [J]/[E] 在有合同时证明 |
+| 逐字相同 | 42 | faults 其余 22(g2 4 / require 6 / generator / post_old_marker / data 2 / judge 9)、extra 其余 12(含 `chain_valid_wrong_gate_source` rc 3、四个 judge 0 PROMOTE、四个 rc 2)、trust `actual_G2_wrong_expected_gate` 0→0 |
+
+### R3 收据
+- 本地 `/usr/bin/python3 A/tests_pipeline_gates.py` ⇒ **ALL PASS 151**(r5-1 后 143, r5-2 后 151; VERIFIED); pod2 `/workspace/venv/bin/python -B tests_pipeline_gates.py` ⇒ **ALL PASS 151**, 2m04s, `A/receipts/tests_pipeline_gates_pod2_r5.log`(VERIFIED)。
+- pod2 同步 5 文件(judge_v4 / v4_gate_common / tests / make_sha_manifest / 合同): **先** `cp -p f f.pre_r5` 并 `ls -la` + sha 列出四份备份(judge 9cf7853f = 第四轮 pod2 sha ✓)**再** scp; 同步后逐 sha 与本地相等; 同步前 GPU 0%、无链在跑(VERIFIED)。逐文件 sha `A/receipts/pod2_shas_2026-09-10T0544Z.txt`(88 名, 17 MISSING = 全部快照, 按设计)。
+- 研究员 harness sha 与本轮 device 8 文件 sha 在重跑收据里。
+
+### R4 未闭合 / 边界(明写)
+1. **物理导出门仍不存在**: 合同 BUNDLE_export 批准表为空 ⇒ 任何真实判官运行都是 informational(与「v4e 无换装资格」一致)。`v4e_gate_export.py`(finalize `BUNDLE_export`, 输入 = 7 导出件 + 该臂 4 份被判书)是新装置, 未做; 落地后其受审 sha 写进合同才有第一条允许路径。
+2. **合同本身可被有写权者改**: 程序门不能阻止(研究员亦如此判); 能做的是合同 = 受审文件(sha 清单 + git), 判官输出记合同 sha, 复核者据此核对。
+3. **装置拷贝契约变了**: 拷贝必须带 `ELIGIBILITY_CONTRACT.json`, 路径翻译后须重算批准 sha; 研究员的 `audit_faults.py chain_case` / `trust_checks.py` 需相应更新(否则链场景全 fail-closed, 见 R2)。这是保守方向, 但会让旧 harness 的成功路径读不到。
+4. 输入下限(`REQUIRED_INPUTS`)仍在代码里, 批准源与臂映射在合同里 —— 两处而非一处; 合同只引用门名。未治理门无下限无批准表(与第四轮同)。
+5. 严格模式的 symbols 轴一致性只在**臂**之间检查, 不含 RAW 参照(参照是另一书系, 复现只比 g); 默认模式仍是 rec-only(gross > 0 除外)。
+6. `JUDGE_HC`(书文件位置)仍是 env: 它定位工件, 不定义标准; 工件身份由书绑定 hash 核。
+7. 15 份旧 schema 收据仍无 self_sha; pod2 现网 `v4_gates/*.json` 仍旧 schema(自第三轮起链已拒派发); 未重跑任何数据门。
+
+### R5 我方自报(第五轮)
+- 首次跑套件 2 红: (i) `r4_inline_json` 的条目在书夹具存在前生成 ⇒ 没绑到书(测试顺序错, 非产品); (ii) 「现网合同空批准表」一案的条目带了调用者 self_sha ⇒ 先撞冲突检查(结果同为不合格, 但拒因不是想证的那条)。两处只改测试, 产品源码未动。
+- r5-1 / r5-2 的拆分是**事后**做的: 先在工作树里去掉严格合同的代码块与测试提交 r5-1, 再恢复最终文件提交 r5-2; 两个中间状态都编译通过, 最终文件与跑出 151 的版本逐字节相同(`cmp` VERIFIED), 但 r5-1 单独那一刻的 143 项没有单独跑过。
+- 重跑收据第一版把研究员 trust14 记录读错(其 RESULT.json 里是 dict 不是 list)⇒ 14 案标成 ONLY_ONE_SIDE; 用其 `collected/trust/*/RESULT.json` 逐案重建后在推送前 amend 了 r5-3。
