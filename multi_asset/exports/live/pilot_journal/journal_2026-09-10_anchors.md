@@ -30,3 +30,10 @@
 - **研究分支 `review/b0a573a1-pipeline` → 301acf1d + HANDOFF §EXECUTOR 提交**: 管线七项(require 身份/依赖绑定、链全依赖 + cp 检查、判官五门、生成器 guard 行 + 三份再生逐位相等、清单逐文件重生成 86 文件、G1 轴条款成布尔、PREREG AMENDMENT 4 + AMD1/AMD3 措辞); `tests_pipeline_gates` 21→65 本地与 pod2 全绿; 研究员 36 场景在新归档按设计阻断。已推送。
 - **交接**: `docs/HANDOFF_round3_b0a573a1_closure_2026-09-10.md`(研究分支)§PIPELINE + §EXECUTOR 均完成。**协议不变**: 研究员复核 → 分别合并 → 部署另裁; 换装/重训不在范围。
 - **待字**: ① 账本真值三件的写回(12Z 52 行 / 平仓 3,095 笔 fills / E-0909-H 部署); ② `pilot_metrics` 再封存以排除重建行(52 行 apply 的前置); ③ ic_monitor #55 DECIDE 的处置(降杠杆 / 回滚 / 停开仓 / 照常); ④ E-0910-A 候选(-4400 熔断 + 重建分两锚)。
+
+### 2026-09-10 02:0x–02:16Z · 用户裁定 + 平仓 fills 写回(账本真值三件之二)+ 第三轮附加
+- **用户字(02:0xZ)**: 「按当前策略执行暂不回滚」「不降杠杆」「其余项按最佳路径推动解决, 确保无误」。⇒ ic_monitor #55 DECIDE 处置 = 照常, 复核点 09-15 00Z(`docs/PREREG_ic_monitor_55_disposition_2026-09-10.md`); 杠杆 2.0 不动; 04Z 锚按现配置补齐。
+- **先过看门狗(规则)**: 账本副本 + 12Z 52 行(reconstructed 类型)+ 平仓 3,095 fills → 判官逐字同 resume 脚本: tripped False, blind [], partial 同现网, §4-5b CLEAN(历史异常 15 → 6: 52 行解释了 12Z 的 9 个)。消费者复核: m1/m2/m3/m5/gaps/reconcile 正常; m4 在旧类型(maker)下抛 float(None) ⇒ 12Z 行改为 `reconstructed` 类型后 m4 正常(分支 pilot_log 校验 52/52)。
+- **平仓 fills 写回(VERIFIED 02:16:00Z)**: `backfill_flatten_fills_20260909.py --apply`: 3,095 行追加到 `pilot_log/20260909/fills.jsonl`(rid FLATTEN-20260909T164536Z, order_type protective_flatten, 每笔 trade_id 唯一), Σ|fill| 232,756.969 = 243 张平仓行 Σfilled 逐名零差, USDT 费 116.378476 = 子窗 income 3,094 行到分(1 笔 BNB 计费 0 另列); 收据 `pilot_journal/backfill_flatten_fills_20260909_dryrun.json`(reconciled true, applied true)。对账门第一次因手续费符号(userTrades 正 / income 负)误判为不对账, 改为比幅度后通过 —— 写回前的门确实拦了一次。3,095 行 +60s 标记待 markout 回填(按锚预算, 约 12 锚)。
+- **12Z 52 行**: 工具已改 `reconstructed` 类型(+leg_kind=maker), 费用 0.50724168; **写回等实盘分支部署**(现网 pilot_log 不认该类型, 工具会拒绝; 这是正确的顺序)。
+- **实盘分支附加(电池在跑)**: E-0910-A 熔断(首张 -4400 后本相开仓单不发, 记 `skipped_venue_lock`, reduce-only 照发, HIGH 页含 apiTradingStatus 解锁时间)+ `reconstructed` 类型 + 新套件 [12][13](42 项)。
