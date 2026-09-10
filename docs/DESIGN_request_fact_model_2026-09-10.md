@@ -169,7 +169,7 @@
 |---|---|
 | `filled_qty`(全部 F 时 Σ L) | `reconcile._exec_qty`(known) |
 | `filled_known_qty` / `filled_unknown_qty` | `reconcile._exec_qty`(bounded; **有带就走带, 与 N 无关** — 第十一轮) |
-| `filled_notional`(全部 T+N+N_final) | `pilot_metrics` M1/M3/**M4 换手/M5 未成交与名义额**(冻结; 读 None 为「未测」)· `daily_summary` · `watchdog`(平仓行)· `first_anchor_review` / `score_post_fix`(报表)· `anchor_loop`(账本、`neutrality_price` 分母)· `chase_readout.collect`(分母)· RC 仅无账本旧行 |
+| `filled_notional`(全部 T+N+N_final) | `pilot_metrics`(冻结, **实际读法, 第十四轮据码核对**): M1 缺 N/avg 的行排除, 缺 fee 的行保留 N 并标 `measurement_complete=False`; M3 读金额; **M4 缺 N 的行按 realized 换手 0 计入**(`float(N or 0.0)`; 目标换手与锚数不受影响, M4 门读目标换手); **M5** 缺 intended/N 的行计入 `n_short_unknown` 不算 shortfall, 目标 vs 场所仓位比较照做 —— 不能统称「None 不参与」· `daily_summary` · `watchdog`(平仓行)· `first_anchor_review` / `score_post_fix`(报表)· `anchor_loop`(账本、`neutrality_price` 分母)· `chase_readout.collect`(分母)· RC 仅无账本旧行 |
 | `avg_fill_px`(每张 C 与 N 皆终值) | **数量读取**: RC 仅无账本旧行(`_exec_qty` N/avg)与 `_unknown_interval` 旧金额带后备(账本行必写 `filled_unknown_qty`, 不走此后备); **残差计价**: RC `_usable_mark` 候选之一(None ⇒ 退到回读 notional/qty 等候选, 不伪造); **成本报表**: `pilot_metrics` M1(滑点; 冻结)· `scheduler/anchor_loop.neutrality_price` · `ops/chase_readout.collect` · `ops/daily_summary` · `ops/score_post_fix` · `ops/first_anchor_review` —— 第十三轮起: 无均价的成交进「未定价」分子分母之外, 分母只含已定价成交, 覆盖率(n_priced / n, 未定价金额)与 bps 同报, 无已定价成交 ⇒ bps None 而非 0; **后置写者只写 `avg_fill_px_children`**(第十二轮) |
 | `ledger_inconsistent` | `reconcile._exec_qty` 第一行 |
 | `terminal_reason`(`filled` ⇔ 金额关闭, 否则 `filled_amount_unknown`) | `pilot_metrics`(完整性)· `watchdog` · 报表 |
@@ -177,10 +177,17 @@
 ## 3g. 第十三轮补格(研究员第十二轮四条 P2 + 措辞): 下界比较不等全集; 坏值不因邻字段缺失免检; 身份字段可读性四态跨来源一致; 未定价成本不是零成本
 | # | 来源 / 出口 | 事实规则 | 反例格 | 反方向 | 邻格 |
 |---|---|---|---|---|---|
-| 1 | 子成交金额下界(R12-PARTIAL-N) | 已知金额下界 = Σ 有 quote 的孩子; 与终值 N 的「不超」比较用下界(不要求所有孩子都有金额); 「等于终值」的关闭判断才要求全集 | F 真 C20/N40 + 孩子 5/N50 + 孩子 5/N 缺 ⇒ 下界 50 > 40 ⇒ 矛盾(曾: n_child None 跳过检查, 行 N90 读 70 CLEAN) | 孩子 5/N30 + 5/N 缺 ⇒ 下界 30 ≤ 40, 无矛盾, 金额不关闭(`_lower` 30) | 全集 N40 ⇒ 关闭照旧 |
+| 1 | 子成交金额下界(R12-PARTIAL-N) | 已知金额下界 = Σ 有 quote 的孩子; 与终值 N 的「不超」比较用下界(不要求所有孩子都有金额); 「等于终值」的关闭判断才要求全集 | F 真 C20/N40 + 孩子 5/N50 + 孩子 5/N 缺 ⇒ 下界 50 > 40 ⇒ 矛盾(曾: n_child None 跳过检查, 行 N90 读 70 CLEAN) | 孩子 5/N30 + 5/N 缺 ⇒ 下界 30 ≤ 40, 无矛盾, **已有终值 N40 保留、金额照旧关闭**(第十四轮更正措辞: 子集不撤销终值; 只有没有终值时才写 `_lower`) | 全集 N40 ⇒ 关闭照旧 |
 | 2 | 账本非有限金额(R12-N-FINITE) | 坏值不因另一字段缺失而免检: `ledger_inconsistencies` 先查 N 有限性再看 C 是否缺 | C None / N NaN ⇒ 矛盾 ⇒ 行不可测(曾: C 缺提前 continue, 按数量带通过) | C None / N 4 ⇒ 区间 [0,Q] 照旧 | C 坏 / Q 坏 照旧矛盾 |
 | 3 | 身份字段四态(R12-ID-SHAPE) | 每个身份字段: **缺键或 None** = 不是证据(跳过); **空串 / 不可解析 / 非有限** = 畸形 ⇒ 不符; **有值** = 比对。三处门(提交回包 / 补查记录 / 结算的提交记录)同一实现 `identity_field`; 完整记录门 `_valid`(allOrders / 查单)仍要求字段齐全 | 提交回包 origQty=NaN ⇒ 不符(曾: 不可解析被跳过 ⇒ 补 6 精确); 空 side ⇒ 三处门一致判不符 | 缺 origQty ⇒ 按发送量记(照旧) | 补查记录 origQty="Infinity" ⇒ 不符 |
 | 4 | 成本报表覆盖(R12-COST-COVERAGE) | 无均价的成交不进 bps 的分子分母; 报「已定价 n / 全部 n、未定价金额」; 无已定价成交 ⇒ bps None(不是 0); 名称改为 measured-over-priced | N6 / C 与 avg 未知 ⇒ `neutrality_price` bps None, n_fills_priced 0, unpriced_notional 6(曾 0 bps); `chase_readout` 同 | N6/C3/avg2, mid 1 ⇒ 10000 bps(正控; 夹具尺度) | 一半已定价 ⇒ bps 只按已定价一半, 覆盖率 0.5 |
 | 措辞 | DESIGN §3f.1 / `request_remaining` 注释 / API_SEMANTICS 行 44 / §5 avg 读者 | 「按 A 补查」改「先拒不补查」; 删 R5-QC 旧注释; 官方承诺 / 我方兼容政策 / 实际观测三分开写; avg 读者列全(数量读取 / 残差计价 / 成本报表) | — | — | — |
 
 **边界(研究员裁, 我方接受)**: [0, Q] 是合法请求的**保守数量范围**, 不是价格 / 金额事实的精确可行集(正金额排除精确 0、限价可给更高下界 —— 当前合同未用), 也不代表 Q6 已完成。
+
+## 3h. 第十四轮补格(研究员第十三轮: R13-ID-INTEGER / ID-MALFORMED / R13-COST-COMPLETENESS + 口径三处): 无损整数; 畸形不依赖可比值; 已测 = 价与费都已测
+| # | 来源 / 出口 | 事实规则 | 反例格 | 反方向 | 邻格 |
+|---|---|---|---|---|---|
+| 1 | orderId 解析(所有读者: `identity_field` / `known_order_id` / 结算 `_valid` / 子成交联接) | orderId 必须是**无损整数**: 整数或整值浮点/字符串; 小数、NaN、±Inf、文本 ⇒ 畸形(`order_id_value(raw)` 一个实现, 捕 Overflow); 畸形判定**不依赖有没有可比较的 expected** | GET orderId 102.75(数值)对 ACK 102 ⇒ 不再截成 102 接受, 判畸形 ⇒ 请求不可测; GET Infinity ⇒ 不再 OverflowError 穿出 complete_anchor, 判畸形; POST 缺 orderId + GET "badid" ⇒ 畸形(曾: 无 expected 跳过) | 整值 "102" / 102.0 ⇒ 接受 | 子成交 order_id 102.75 ⇒ 不联接(畸形计入 inconsistent 不静默) |
+| 2 | 成本诊断的「已测」(`neutrality_price` / `chase_readout.collect`) | 一条成交**已测** ⇔ 价可用(有限正 avg 与 mid)**且**费已知(fee_paid 非 None 且有限); bps 只按已测成交; 分别报「未定价」「费未知」计数与名义; 覆盖率分「名义」与「计数」两种; 无已测 ⇒ None | N6/avg1/mid1 但 fee None ⇒ bps None, n_fee_unknown 1(曾: fee or 0 ⇒ 0 bps; M1 已正确标不完整) | fee 0.06 已知 ⇒ 100 bps | NaN / 负 avg 或 mid ⇒ 归未定价(曾: truthy 当已定价, 出 NaN/负 bps); 价零 ⇒ 未定价(照旧) |
+| 口径 | 文档 | (a) 「新增键不改旧键含义」错: `measured_taker_bps_same_side` 分母由全部名义改为已测名义, 混合成交场景数值改变(研究员例 5300 → 10100 bps), `caliber` 文案同改; (b) 冻结 M1/M4/M5 的 None 读法按码写(见 §5); (c) §3g.1 反方向: 已有终值 N40 时子集 N30 不撤销终值, 行照旧关闭; (d) API_SEMANTICS: 官方页面(本次复开)示例**未列** cumQuote/avgPrice, 历史版本来源 = 代码注释 07-26 观测, 未取得正式 required 集合; (e) `chase_readout` 拒绝态逐锚打印补已测名义与覆盖率 | — | — | — |
