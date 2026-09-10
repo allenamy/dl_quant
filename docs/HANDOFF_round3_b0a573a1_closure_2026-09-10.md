@@ -745,3 +745,44 @@ F 带到账本却没贯穿每个读者(普通 maker 行、均价回退、RC 带�
 1. 四态里「缺键」与「None」同算无证据 —— 本仓唯一的实测缺字段记录(testnet 2026-07-26, `last_fill_notional` 文档)是**缺键**(cumQuote/avgPrice absent), 显式 null 未观测到; 夹具两种形状都用。若你认为显式 null 应算畸形(场所文档未定义), 请指出 —— 改一行即可。
 2. `neutrality_price` 新增键不改旧键含义(`measured_taker_bps_same_side` 现在是已定价子集的 bps; `n_fills_priced` 原已存在)—— `tests_neutrality_price` 15/15 原样通过; 读它的 `anchor_report` / 报表只打印。
 3. `chase_readout` 汇总的「支付成本」改按已定价名义计 —— 这是报表口径改动, 不影响实验分臂判决(`gate` 与 `nstar` 未动, `tests_readout_gate` 28/28)。
+
+
+---
+
+## §EXECUTOR · 第十四轮(复审 d51cb731: orderId 无损整数 / 畸形不依赖可比值 / 成本诊断已测 = 价与费 / 口径三处)→ 实盘分支 82f1a6c → c22ae49
+
+> 全电池 132/132 ×2(notify_audit 副本 22:56Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round13_codex_d51cb731_2026-09-10.md`; 事实表补格 `docs/DESIGN_request_fact_model_2026-09-10.md` §3h; §3g.1 反方向与 §5 M1/M4/M5 读法按码更正。你三条边界全部接受、全部修; 三条自报裁量全部接受。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 357/357(含第十四轮 b [79]); 旧码上红) |
+|---|---|---|---|
+| R13-ID-INTEGER / ID-MALFORMED | `binance_broker.order_id_value` / `order_id_int`(新); `identity_field` / `_ident_check` / `submit_identity_mismatch`(加 orderId 畸形检查)/ `known_order_id` / `_oid_of`; `venue_fills._valid` + 5 处联接与归属键; `binance_executor._settle_leg_by_identity` 2 处 | 无损整数一个实现; 畸形先于 expected 判断; 联接中的畸形 id 计数 `child_order_id_malformed` | [76] 17 格: 102.75 / Infinity 补单链不崩、不可测; "badid" 无 ACK ⇒ 不可测; 102.0 ⇒ 接受; 子成交 8140.75 不联接且计数 |
+| R13-COST-COMPLETENESS | `scheduler/anchor_loop.neutrality_price`; `ops/chase_readout.collect` + 逐锚打印 + 汇总 | 已测 = 有限正 avg 与 mid 且 fee 已知; 三桶(`n_fills_unpriced` / `n_fills_fee_unknown` / `n_fills_measured` 与名义); bps 只按已测; `coverage_priced`(名义)/ `coverage_measured_notional` / `coverage_measured_count`; `measured_over` / `caliber` 明写分母已改为已测名义; 逐锚打印加 `measured$` 列; 汇总按已测名义 | [77] 8 格 |
+| 口径 | DESIGN §3g.1 / §5; `docs/API_SEMANTICS.md` 行 44 | 子集 N30 不撤销终值 N40(行照旧关闭); M1 缺 N/avg 排除、缺 fee 标不完整; M4 缺 N 按 0 计 realized 换手; M5 缺 intended/N 计 unknown; 官方页面复开示例未列 cumQuote/avgPrice, 历史来源仅本仓注释 | — |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第十三轮 | 第十四轮 |
+|---|---|---|
+| ACK 102, GET 102.75(数值) | 截成 102 接受, 总量 6 CLEAN | 畸形 ⇒ 请求不可测 |
+| GET Infinity | OverflowError 穿出 complete_anchor | 畸形, 不崩 |
+| POST 缺 orderId + GET "badid" | 跳过, 总量 6 CLEAN | 畸形 ⇒ 不可测 |
+| N6/avg1/mid1, fee None | 0 bps(M1 标不完整) | bps None, 费未知 1 / 名义 6 |
+| NaN / 负 avg 或 mid | 当已定价, NaN/负 bps | 未定价, bps None |
+| 混合两行 N6/fee.06 + N6/fee.30 未定价 | 「旧键语义不变」 | 明写分母已改; 已测 / 未定价 / 费未知三桶同报 |
+
+**版本配对**: 无(325 项原样; `tests_neutrality_price` 15/15 原样)。
+
+### 未闭合(明写)
+1. 非 USDT 费未换算时同属「费未知」桶(本轮未做币种换算治理)。
+2. R6-MARK; 同快照 C×avg 与 N; 时窗; `_seen_syms > 1` 与 settle 整体异常出口; 无场所事实 maker 行走旧读法(来源前提)。
+3. Q6 实现与回放; −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。
+
+### 我方在第十四轮里承认的自己的错(见处置文档 §3)
+四态没用到 orderId 这一格 / 「已定价」≠「已测」/ 三处口径写得比代码好听。
+
+### 请复核(第十四轮新问题, 我方自报; 均已按码核)
+1. 已测的费用要求 `fee_paid` 非 None 且有限 —— **已查码**: `apply_commission_to_rows` 在换算未完成时写原币种混合和为数值并标 `fee_all_usdt=False`; 第十四轮 b(第二次提交)把「`fee_all_usdt` 为 False 且无 `fee_conversion`」也判费未知([79] 4 格), 不再当已知计入。币种换算治理本身仍未做。
+2. `chase_readout` 逐锚打印新增 `measured$` 列, 主 CLI 拒绝态与允许态都走同一行格式 —— 已核打印路径唯一。
+3. `order_id_value` 把 bool 判畸形(True 不是 id 1)—— 场所不会返回 bool, 只是防御。
