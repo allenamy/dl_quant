@@ -46,10 +46,19 @@
 | 阶段 B: 满页未匹配 | unknown | 带 Q | — |
 | 阶段 B: −2013(仅歧义计划, 显式假设) | absent | 0 | — |
 
+## 3b. 第八轮补格(研究员第七轮 A/B/C/#1)
+| 出口 / 来源 | 事实 | 行应写 | 反方向对照 |
+|---|---|---|---|
+| 提交回包 + 金额补查(同请求两条记录) | 逐字段合并: 缺字段不撤销已有事实; 显式 0 + 终态 = C 0(任一入口); 后读 C 小于先读 / 终态后 NEW = 矛盾 | POST C20 无金额 + GET 无 C ⇒ C 20 保留 | ACK + GET EXPIRED 0 ⇒ C 0 终态(不是带 Q) |
+| allOrders 匹配但记录无 status | 不是终态证据 ⇒ 走查单 | 查单失败 ⇒ UNKNOWN | 显式 CANCELED + 身份相符 ⇒ terminal_matched |
+| allOrders 匹配但身份不符(origQty / symbol / side / orderId) | 非我方记录 ⇒ UNKNOWN | 不清 pin, 不补单 | — |
+| 折叠记到矛盾(负 C / 0 伴正金额) | 该名 UNKNOWN(不入 filled) | maker 行带 `inconsistent`, 读者不可测, 不补单 | 真正 CANCELED 0 ⇒ 补单照旧 |
+| 任何账本行 | 金额/均价来自读者(同集合), 未关闭 ⇒ None + 标签改 `filled_amount_unknown` + `ledger_label_mismatch` | 分支手写值一律无效 | 已关闭 ⇒ 读者 Σ 与同集合均价 |
+
 ## 4. 结构性保证(不靠人记得)
 1. **读者在行发出时最后一次重算**: `_order_row` 看到 `request_ledger` 就用 `ledger_row_columns` 覆盖六个数量/金额列 —— 任何分支手写的列都被账本推翻; 分支只允许改账本, 不允许改列。
 2. **矛盾先于分类**: 读者第一行; 生产者(decoder / 折叠 / 子成交)各自记矛盾, 不猜。
-3. **可读性分离**: `_scan_orders` 与 decoder 对 C、N、价各出各的 None; 一项不可读不抹另一项。
+3. **可读性分离 + 来源合并**: `_scan_orders` 与 decoder 对 C、N、价各出各的 None; 一项不可读不抹另一项; 同一请求的多条记录(提交回包 / 补查 / allOrders / 撤单回包)逐字段合并(`merge_order_records`), 缺字段不撤销已有事实, 终态吸收, 累计量不减。
 4. **较新覆盖较旧, 按身份**: 终态来源比较由 (symbol, cid) 决定, 不由 symbol 集合决定; 覆盖时同步清 pin。
 5. **每个修复三件测试**: 反例格 + 同夹具反方向(持仓不变 CLEAN) + 邻格(同事实在其它出口); 加**原链端到端**(complete_anchor → RC/PB/WD)至少各一。
 6. **版本配对**: 交接里列出「上一轮期望被改的格」与原因; 研究员的旧夹具原样重跑, 翻转按预期/非预期分列。
