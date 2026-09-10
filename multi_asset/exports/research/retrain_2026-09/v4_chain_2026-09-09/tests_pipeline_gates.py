@@ -270,7 +270,24 @@ with tempfile.TemporaryDirectory() as d:
 import calendar as _cal
 
 
-def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False, duplicate=False, nan_repro=False, promote=False, export_gate=None, bad_repro=False):
+ELIG_INPUTS = ("wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins")   # the BUNDLE_export input contract
+
+
+def bound_entry(q, arm, gate="BUNDLE_export", src=None, receipt_override=None, entry_override=None):
+    """Write a finalize-shaped export receipt BOUND to (gate, gate-source sha, input shas) for `arm` and return the JUDGE_ELIGIBILITY entry naming it.
+    Synthetic: the 'gate source' is the archived exporter, the inputs are small files written here (their shas are what binds)."""
+    src = src or f"{HERE}/pod_export_bundle_v4.py"; inputs = {}
+    for k in ELIG_INPUTS:
+        open(f"{q}/{arm}_{k}.bin", "wb").write(f"{arm}:{k}".encode()); inputs[k] = f"{q}/{arm}_{k}.bin"
+    rec = {"gate": gate, "PASS": True, "arm": arm, "self_sha256": _sha(src), "inputs_sha256": {k: _sha(p) for k, p in inputs.items()}, "inputs_path": inputs,
+           "utc": "2026-09-10T00:00:00Z", "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"}
+    rec.update(receipt_override or {}); path = f"{q}/export_{arm}.json"; json.dump(rec, open(path, "w"))
+    e = {"receipt": path, "gate": gate, "self_sha": _sha(src), "inputs": inputs}; e.update(entry_override or {}); return e
+
+
+def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False, duplicate=False, nan_repro=False, promote=False, export_gate=None, bad_repro=False,
+               promote_arm="A1e", eligibility=None, mutate=None):
+    """eligibility: callable(q) -> {arm: entry} written to a file for JUDGE_ELIGIBILITY, or a str passed inline. mutate: callable(v_dir, raw_dir) run after the fixtures are written."""
     q = f"{d}/{name}"; hc = f"{q}/hc"; v = f"{hc}/dev_v4/probe_artifacts"; old = f"{hc}/dev_raw/probe_artifacts"
     os.makedirs(v); os.makedirs(old)
     ts = _cal.timegm((2025, 3, 1, 0, 0, 0)) + np.arange(3168) * 14400
@@ -281,17 +298,21 @@ def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False,
             for seed in (42, 2027):
                 if drop_arm and (arm, seat, seed) == ("A1e", "fix", 2027): continue
                 r = np.zeros((len(ts), 23)); r[:, 0] = ts; r[:, 5] = 1.0
-                r[:, 18] = 2.0 if (arm == "A1e" and promote) or (arm == "A0p" and bad_repro) else 1.0; r[:, 19] = r[:, 18]
+                r[:, 18] = 2.0 if (arm == promote_arm and promote) or (arm == "A0p" and bad_repro) else 1.0; r[:, 19] = r[:, 18]
                 if nan_repro and arm == "A0p": r[0, 18] = np.nan
                 np.savez(f"{v}/w10_ablation_series_V4_{arm}_{seat}_s{seed}.npz", d30_n2_c42_rec=r)
     for seed in (42, 2027):
         if drop_raw27 and seed == 2027: continue
         r = np.zeros((len(ts), 23)); r[:, 0] = ts; r[:, 5] = 1.0; r[:, 18] = 1.0; r[:, 19] = 1.0
         np.savez(f"{old}/w10_ablation_series_RAW_M1_UCRYPTO_s{seed}.npz", d30_n2_c42_rec=r)
+    if mutate is not None: mutate(v, old)
     env = {"JUDGE_HC": hc, "JUDGE_OUT": f"{q}/J.json"}
     if partial: env["JUDGE_ALLOW_PARTIAL"] = "1"
     if export_gate is not None:
         json.dump(export_gate, open(f"{q}/G2_export.json", "w")); env["JUDGE_EXPORT_GATE"] = f"{q}/G2_export.json"
+    if callable(eligibility):
+        json.dump(eligibility(q), open(f"{q}/ELIG.json", "w")); env["JUDGE_ELIGIBILITY"] = f"{q}/ELIG.json"
+    elif isinstance(eligibility, str): env["JUDGE_ELIGIBILITY"] = eligibility
     rc, out = run(["judge_v4.py"], env)
     j = json.load(open(f"{q}/J.json")) if os.path.exists(f"{q}/J.json") else None
     return rc, out, j
@@ -328,8 +349,42 @@ with tempfile.TemporaryDirectory() as d:
     check("★★★ with an export-gate receipt PASS=false ⇒ same: INFO, never PROMOTE", rc == 0 and j and j["eligibility"] == "informational" and j["export_gate"]["PASS"] is False and not any(v == "(A) PROMOTE" for v in j["verdicts"].values()),
           (rc, j and j["export_gate"]))
     rc, out, j = judge_case(d, "promote_export_PASS", promote=True, export_gate={"gate": "G2_export_v4e", "PASS": True})
-    check("★★ with an export-gate receipt PASS=true ⇒ eligibility candidate and the (A) cells may read PROMOTE", rc == 0 and j and j["eligibility"] == "candidate" and any(v == "(A) PROMOTE" for v in j["verdicts"].values()),
+    check("★★★ [r4] the DEPRECATED alias JUDGE_EXPORT_GATE with PASS=true ⇒ still informational, NO PROMOTE, a printed deprecation warning (round 3 let this bare receipt promote)",
+          rc == 0 and j and j["eligibility"] == "informational" and j["eligible_arms"] == [] and j["export_gate"]["deprecated"] is True and j["export_gate"]["PASS"] is True
+          and not any(v == "(A) PROMOTE" for v in j["verdicts"].values()) and "JUDGE_EXPORT_GATE is DEPRECATED" in out,
           (rc, j and j["eligibility"], j and sorted(set(j["verdicts"].values()))))
+
+    # ── round 4: eligibility is PER ARM and IDENTITY-BOUND (researcher extra cases judge_minimal_PASS / judge_unrelated_stale_PASS / judge_A1e_gate_promotes_other_arm)
+    def _no_promote(j): return j and not any(v == "(A) PROMOTE" for v in j["verdicts"].values())
+    rc, out, j = judge_case(d, "r4_minimal_PASS", promote=True, eligibility=lambda q: {"A1e": {"receipt": (json.dump({"PASS": True}, open(f"{q}/min.json", "w")) or f"{q}/min.json")}})
+    check("★★★ [r4] judge_minimal_PASS: JUDGE_ELIGIBILITY names a bare {PASS:true} for A1e ⇒ informational, A1e NOT eligible (no gate/source/inputs), no PROMOTE anywhere",
+          rc == 0 and j and j["eligibility"] == "informational" and j["eligibility_by_arm"]["A1e"]["ok"] is False and _no_promote(j), (rc, j and j["eligibility_by_arm"]))
+    rc, out, j = judge_case(d, "r4_wrong_gate_name", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e", entry_override={"gate": "G2_closure"})})
+    check("★★★ [r4] a bound PASS receipt from ANOTHER gate (BUNDLE_export receipt, caller expects G2_closure) ⇒ A1e not eligible, no PROMOTE",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "caller expected 'G2_closure'" in j["eligibility_by_arm"]["A1e"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    def _stale(q):
+        e = bound_entry(q, "A1e"); open(e["inputs"]["bundle_cache"], "wb").write(b"cache rebuilt AFTER the export receipt"); return {"A1e": e}
+    rc, out, j = judge_case(d, "r4_stale_input", promote=True, eligibility=_stale)
+    check("★★★ [r4] judge_unrelated_stale_PASS: a bound receipt whose input changed after it was written ⇒ A1e not eligible ('changed since the receipt'), no PROMOTE",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "changed since the receipt" in j["eligibility_by_arm"]["A1e"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    rc, out, j = judge_case(d, "r4_gate_promotes_other_arm", promote=True, promote_arm="A1", eligibility=lambda q: {"A1e": bound_entry(q, "A1e")})
+    check("★★★ [r4] judge_A1e_gate_promotes_other_arm: A1 +1 bps, the ONLY bound PASS is A1e's ⇒ A1's (A) cells read INFO, A1e is eligible but has nothing to promote: ZERO PROMOTE",
+          rc == 0 and j and j["eligible_arms"] == ["A1e"] and j["eligibility"] == "candidate" and _no_promote(j)
+          and all(j["verdicts"][f"A1-{b}|{s}"].startswith("(A) INFO") and "arm A1" in j["verdicts"][f"A1-{b}|{s}"] for b in ("A0", "A2", "A3") for s in ("dyn", "fix")),
+          (rc, j and j["eligible_arms"], j and sorted(set(j["verdicts"].values()))))
+    rc, out, j = judge_case(d, "r4_bound_A1e_promotes_A1e", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")})
+    check("★★★ [r4] GREEN: a correctly bound export receipt for A1e (gate name + gate source sha + every input sha) with A1e +1 bps ⇒ candidate, eligible_arms=[A1e], exactly the 4 A1e cells read (A) PROMOTE",
+          rc == 0 and j and j["eligibility"] == "candidate" and j["eligible_arms"] == ["A1e"] and j["eligibility_by_arm"]["A1e"]["ok"] is True
+          and sorted(k for k, v in j["verdicts"].items() if v == "(A) PROMOTE") == ["A1e-A0|dyn", "A1e-A0|fix", "A1e-A1|dyn", "A1e-A1|fix"]
+          and all(v == "(C) UNDECIDED" for k, v in j["verdicts"].items() if not k.startswith("A1e")), (rc, j and j["eligible_arms"], j and sorted(set(j["verdicts"].values()))))
+    _q = f"{d}/r4_inline_json"; os.makedirs(_q); _e = bound_entry(_q, "A1e")
+    rc, out, j = judge_case(d, "r4_inline_json", promote=True, eligibility=json.dumps({"A1e": _e}))
+    check("★★ [r4] JUDGE_ELIGIBILITY given INLINE as JSON text (not a path) binds the same way", rc == 0 and j and j["eligible_arms"] == ["A1e"] and sum(v == "(A) PROMOTE" for v in j["verdicts"].values()) == 4, (rc, j and j["eligible_arms"]))
+    rc, out, j = judge_case(d, "r4_garbage_env", promote=True, eligibility="{not json")
+    check("★★ [r4] an unparseable JUDGE_ELIGIBILITY is ignored with a warning, never treated as permission: informational, eligibility_error set, no PROMOTE",
+          rc == 0 and j and j["eligibility"] == "informational" and j["eligibility_error"] and _no_promote(j) and "JUDGE_ELIGIBILITY ignored" in out, (rc, j and j["eligibility_error"]))
+    rc, out, j = judge_case(d, "r4_list_not_map", promote=True, eligibility=json.dumps([{"receipt": "x"}]))
+    check("★ [r4] a JSON list instead of {arm: entry} ⇒ ignored (informational, no PROMOTE)", rc == 0 and j and j["eligibility"] == "informational" and _no_promote(j), (rc, j and j["eligibility_error"]))
 
 
 # ── [M] round 3 (review 31fa3e4e §6, AMENDMENT 4): G1 clause (c) is code, and the six anchors must be present ────────────────────

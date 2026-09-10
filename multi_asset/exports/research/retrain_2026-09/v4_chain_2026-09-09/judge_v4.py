@@ -12,9 +12,16 @@ Reproduction check first (#20): A0 dyn vs the published RAW_M1_UCRYPTO arm (dev_
     (no duplicate, no gap) and is identical across arms (was: a count)                                                                  -> exit 2
   · every g on the frozen window and every reference is finite (NaN/inf used to slip through `NaN > tol`)                             -> exit 3
   · JUDGE_ALLOW_PARTIAL=1 is EXPLORATION: the JSON carries exploratory=true and no verdict can be a PROMOTE
-  · eligibility comes from the export gate: JUDGE_EXPORT_GATE=<G2 export receipt>; missing or PASS!=true => eligibility="informational" and an (A)
-    reads "(A) INFO — export gate not PASS"; only a PASS export receipt allows "(A) PROMOTE" (the judge cannot promote what the export gate refused)
-  · the extended-window count is computed, not typed."""
+  · eligibility comes from the export gate: missing or not PASS => eligibility="informational" and an (A) reads "(A) INFO" (the judge cannot promote
+    what the export gate refused)
+  · the extended-window count is computed, not typed.
+
+★ ROUND 4 (researcher round-3 extra cases judge_minimal_PASS / judge_unrelated_stale_PASS / judge_A1e_gate_promotes_other_arm, 2026-09-10) —
+  eligibility is PER ARM and IDENTITY-BOUND, not a global boolean read off a bare {"PASS": true}:
+  · JUDGE_ELIGIBILITY = JSON (inline or a file path) {arm: {"receipt": path, "gate": name, "self_sha": sha256, "inputs": {name: path}}}; every entry
+    is put through v4_gate_common.require (gate name equal, gate source sha equal, PASS, every declared input's sha equal to the file on disk);
+    an arm without a bound PASS is "informational" and its (A) cells read "(A) INFO"; a PASS bound to arm X never promotes arm Y
+  · JUDGE_EXPORT_GATE is a DEPRECATED alias: recorded under out["export_gate"] for information, prints a warning, and can no longer make any arm eligible."""
 import numpy as np, json, calendar, time, os, sys
 HC = os.environ.get("JUDGE_HC", "/workspace/review_scratch/health_check")   # review b0a573a1 R4: parametrised so refusal paths can be tested
 COLS = ["ts","net","pnl","carry","cost","gross_total","gross_member","gross_sel","nsel","nmember","fires","leg_king","leg_rev24","leg_fund","w3_king","w3_rev24","w3_fund","turnover","net_ex","pnl_ex","carry_ex","cost_ex","netlong"]
@@ -64,15 +71,41 @@ for arm in ("A0", "A0p", "A1", "A1s", "A1e", "A2", "A3"):
             else: missing.append(f"{arm}_{seat}_s{s}")
 print("arms loaded:", sorted("_".join(k) for k in ARMS), "| missing:", missing)
 out = {"arms": sorted("_".join(k) for k in ARMS), "missing": missing, "levels": {}, "contrasts": {}, "verdicts": {}, "reproduction": {}, "exploratory": bool(PARTIAL)}
-# --- eligibility: the export gate's receipt decides whether an (A) may read PROMOTE at all (round 3)
-_eg_path = os.environ.get("JUDGE_EXPORT_GATE"); _eg = None
+# --- eligibility (round 4): PER ARM and IDENTITY-BOUND. The promoted arm of a contrast may read "(A) PROMOTE" only if an export-gate receipt BOUND TO THAT
+#     ARM passes v4_gate_common.require — the same (gate name, gate source sha, input shas) contract the chains dispatch on. A bare {"PASS": true}, a receipt
+#     from another gate, a receipt whose inputs have changed, or a receipt bound to another arm makes nothing eligible (researcher cases minimal_PASS /
+#     unrelated_stale_PASS / A1e_gate_promotes_other_arm). JUDGE_EXPORT_GATE (round 3) is a deprecated alias: information only, promotes nothing.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from v4_gate_common import require as _require   # noqa: E402  (returns (ok, why) without exiting)
+def _json_inline_or_path(s):
+    """JUDGE_ELIGIBILITY may be a path to a JSON file or the JSON text itself. Returns (obj, error)."""
+    if s is None or s == "": return None, None
+    if os.path.exists(s):
+        try: return json.load(open(s)), None
+        except Exception as e: return None, f"JUDGE_ELIGIBILITY file unreadable ({s}): {type(e).__name__}: {e}"   # noqa: BLE001
+    try: return json.loads(s), None
+    except Exception as e: return None, f"JUDGE_ELIGIBILITY is neither an existing file nor JSON: {type(e).__name__}: {e}"   # noqa: BLE001
+_el_raw = os.environ.get("JUDGE_ELIGIBILITY"); _el_map, _el_err = _json_inline_or_path(_el_raw)
+if _el_raw and not isinstance(_el_map, dict): _el_map, _el_err = {}, (_el_err or "JUDGE_ELIGIBILITY must be a JSON object {arm: {receipt, gate, self_sha, inputs}}")
+_elig = {}
+for _arm, _spec in sorted((_el_map or {}).items()):
+    if not isinstance(_spec, dict) or not _spec.get("receipt"):
+        _elig[_arm] = {"ok": False, "why": "entry is not {receipt, gate, self_sha, inputs}", "receipt": None, "gate": None}; continue
+    _ok, _why = _require(str(_spec["receipt"]), dict(_spec.get("inputs") or {}), expected_gate=_spec.get("gate"), expected_self_sha=_spec.get("self_sha"))
+    _elig[_arm] = {"ok": bool(_ok), "why": _why, "receipt": _spec["receipt"], "gate": _spec.get("gate"), "self_sha": _spec.get("self_sha"), "inputs": sorted((_spec.get("inputs") or {}).keys())}
+_eligible_arms = sorted(a for a, r in _elig.items() if r["ok"])
+out["eligibility_by_arm"] = _elig; out["eligible_arms"] = _eligible_arms; out["eligibility_error"] = _el_err
+out["eligibility"] = "candidate" if _eligible_arms else "informational"
+_eg_path = os.environ.get("JUDGE_EXPORT_GATE"); _eg = None   # deprecated alias, information only
 if _eg_path and os.path.exists(_eg_path):
     try: _eg = json.load(open(_eg_path))
     except Exception as _e: _eg = {"unreadable": f"{type(_e).__name__}: {_e}"}   # noqa: BLE001
-_eligible = bool(_eg) and _eg.get("PASS") is True
-out["export_gate"] = {"path": _eg_path, "present": bool(_eg), "gate": (_eg or {}).get("gate"), "PASS": (_eg or {}).get("PASS"), "utc": (_eg or {}).get("utc")}
-out["eligibility"] = "candidate" if _eligible else "informational"
-print(f"eligibility: {out['eligibility']} (export gate {_eg_path!r}: {out['export_gate']['PASS']!r}); exploratory={PARTIAL}", flush=True)
+out["export_gate"] = {"path": _eg_path, "present": bool(_eg), "gate": (_eg or {}).get("gate"), "PASS": (_eg or {}).get("PASS"), "utc": (_eg or {}).get("utc"), "deprecated": True,
+                      "effect": "information only (round 4): a bare receipt is bound to no gate source, no inputs and no arm, so it cannot make an arm eligible; use JUDGE_ELIGIBILITY"}
+if _eg_path: print("WARNING: JUDGE_EXPORT_GATE is DEPRECATED (round 4) — recorded for information only, it makes NO arm eligible; bind per arm with JUDGE_ELIGIBILITY={arm:{receipt,gate,self_sha,inputs}}", flush=True)
+if _el_err: print("WARNING: JUDGE_ELIGIBILITY ignored:", _el_err, flush=True)
+print(f"eligibility: {out['eligibility']} | eligible arms {_eligible_arms} | per arm { {a: r['ok'] for a, r in _elig.items()} } | deprecated export gate {_eg_path!r}: PASS={out['export_gate']['PASS']!r} | exploratory={PARTIAL}", flush=True)
+for _arm, _r in _elig.items(): print(f"   eligibility[{_arm}]: {'BOUND PASS' if _r['ok'] else 'NOT eligible'} — {_r['why']}", flush=True)
 # --- reproduction check first (#20): A0 dyn vs published RAW_M1_UCRYPTO (dev_raw), frozen window
 _nonfinite = []
 for arm0 in ("A0p", "A0"):   # A0p = same F10 vintage as the published RAW_M1 arm (port_w10 08-22 preds aligned to the v4 axis) -> the like-for-like reproduction; A0 = in-service 09-01 vintage
@@ -144,7 +177,8 @@ for ci, (a, b) in enumerate(CON):
             print("%-10s %-4s %-5s %+9.4f [%+8.4f,%+8.4f] %6.3f | %+7.4f -> %+7.4f  (n=%d)" % (f"{a}-{b}", seat, s, d.mean(), lo, hi, p, gb[m].mean(), ga[m].mean(), m.sum()))
 print("\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==")
 if PARTIAL: print("   ★ EXPLORATORY RUN (JUDGE_ALLOW_PARTIAL=1): inputs incomplete — no verdict is issued, nothing can PROMOTE")
-if not _eligible: print("   ★ eligibility = informational (export gate not PASS): an (A) reads as INFO, never PROMOTE")
+if not _eligible_arms: print("   ★ eligibility = informational (no arm has a bound export-gate PASS): an (A) reads as INFO, never PROMOTE")
+else: print(f"   ★ eligible arms (bound export-gate PASS): {_eligible_arms} — only THEIR (A) cells may read PROMOTE")
 for a, b in CON:
     for seat in ("dyn", "fix"):
         r = [out["contrasts"].get(f"{a}-{b}|{seat}|s{s}") for s in ("42", "2027")]
@@ -153,7 +187,7 @@ for a, b in CON:
             v = "EXPLORATORY (partial inputs; no verdict issued)"
         else:
             v = "(A) PROMOTE" if all(x["delta"] > 0 and x["ci95"][0] > 0 for x in r) else ("(B) REJECT" if all(x["ci95"][1] < 0 for x in r) else "(C) UNDECIDED")
-            if v == "(A) PROMOTE" and not _eligible: v = "(A) INFO — export gate not PASS: informational only, no promotion"
+            if v == "(A) PROMOTE" and a not in _eligible_arms: v = f"(A) INFO — no bound export-gate PASS for arm {a}: informational only, no promotion"
         out["verdicts"][f"{a}-{b}|{seat}"] = v; print(f"  {a}-{b:3s} {seat}: {v}")
 out["utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()); _jo = os.environ.get("JUDGE_OUT", "/workspace/review_scratch/v4_gates/JUDGE_v4.json"); os.makedirs(os.path.dirname(_jo), exist_ok=True); json.dump(out, open(_jo, "w"), indent=1); print("JUDGE_V4_DONE")
 sys.exit(0)
