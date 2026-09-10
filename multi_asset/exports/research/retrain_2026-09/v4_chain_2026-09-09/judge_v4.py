@@ -18,8 +18,9 @@ Reproduction check first (#20): A0 dyn vs the published RAW_M1_UCRYPTO arm (dev_
 
 ★ ROUND 4 (researcher round-3 extra cases judge_minimal_PASS / judge_unrelated_stale_PASS / judge_A1e_gate_promotes_other_arm, 2026-09-10) —
   eligibility is PER ARM and IDENTITY-BOUND, not a global boolean read off a bare {"PASS": true}:
-  · JUDGE_ELIGIBILITY = JSON (inline or a file path) {arm: {"receipt": path, "gate": name, "self_sha": sha256, "inputs": {name: path}}}; every entry
-    is put through v4_gate_common.require (gate name equal, gate source sha equal, PASS, every declared input's sha equal to the file on disk);
+  · JUDGE_ELIGIBILITY = JSON (inline or a file path) {arm: {"receipt": path, "gate": name, "self_sha": sha256, "inputs": {name: path}[, "profile": stage]}};
+    every entry is put through v4_gate_common.require (gate name equal, gate source sha equal, PASS, every input registered for the gate in
+    REQUIRED_INPUTS declared, every declared input's sha equal to the file on disk);
     an arm without a bound PASS is "informational" and its (A) cells read "(A) INFO"; a PASS bound to arm X never promotes arm Y
   · JUDGE_EXPORT_GATE is a DEPRECATED alias: recorded under out["export_gate"] for information, prints a warning, and can no longer make any arm eligible."""
 import numpy as np, json, calendar, time, os, sys
@@ -91,7 +92,7 @@ _elig = {}
 for _arm, _spec in sorted((_el_map or {}).items()):
     if not isinstance(_spec, dict) or not _spec.get("receipt"):
         _elig[_arm] = {"ok": False, "why": "entry is not {receipt, gate, self_sha, inputs}", "receipt": None, "gate": None}; continue
-    _ok, _why = _require(str(_spec["receipt"]), dict(_spec.get("inputs") or {}), expected_gate=_spec.get("gate"), expected_self_sha=_spec.get("self_sha"))
+    _ok, _why = _require(str(_spec["receipt"]), dict(_spec.get("inputs") or {}), expected_gate=_spec.get("gate"), expected_self_sha=_spec.get("self_sha"), profile=_spec.get("profile"))
     _elig[_arm] = {"ok": bool(_ok), "why": _why, "receipt": _spec["receipt"], "gate": _spec.get("gate"), "self_sha": _spec.get("self_sha"), "inputs": sorted((_spec.get("inputs") or {}).keys())}
 _eligible_arms = sorted(a for a, r in _elig.items() if r["ok"])
 out["eligibility_by_arm"] = _elig; out["eligible_arms"] = _eligible_arms; out["eligibility_error"] = _el_err

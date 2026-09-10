@@ -4,6 +4,8 @@
 #     — round 3: `gate=` is mandatory, the receipt's self sha must be real, the dependency list may not be empty
 #     — round 4: `self_sha=` is mandatory and is computed AT RUN TIME from the gate script this chain invokes (gate_sha <script>):
 #       a receipt written by any other program — even a real sha of the judge — is refused (researcher chain_valid_wrong_gate_source)
+#     — round 4: the dependency list must contain every input registered for the gate (v4_gate_common.REQUIRED_INPUTS, `profile=<stage>` selects
+#       a registered stage subset); a chain that omits a registered input is refused (researcher require_correct_identity_dependency_subset)
 #   · every child is waited on BY PID and its rc collected; ANY non-zero rc aborts the driver (no merge, no DONE)
 #   · merges must exit 0 AND print their completion marker
 #   · the DONE line is written only on success and carries the rc list; failures write FAIL_<stage> and exit non-zero

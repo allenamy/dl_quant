@@ -20,9 +20,14 @@
   whenever the caller did not pin — and no chain pinned. Now every caller must say which gate source it trusts (the chains
   compute it at run time from the gate script they invoke: chain_lib.sh gate_sha), and `require` refuses an unpinned call.
 
+★ ROUND 4 (researcher require_correct_identity_dependency_subset): the FULL-DEPENDENCY CONTRACT is code. REQUIRED_INPUTS below registers,
+  per gate (and per stage profile where stages legitimately consume different parts of a receipt), the input names a caller MUST declare;
+  `require` refuses a caller that omits a registered name (extras are allowed). Round 3 verified whatever subset the caller chose to name —
+  a chain that forgot hole_cells was silently unbound from the holes.
+
 CLI:
-  python v4_gate_common.py require <receipt.json> gate=<expected_gate> self_sha=<sha256> name=path [name=path ...]
-                                                                       # exit 0 iff PASS & identity & fresh
+  python v4_gate_common.py require <receipt.json> gate=<expected_gate> self_sha=<sha256> [profile=<stage>] name=path [name=path ...]
+                                                                       # exit 0 iff PASS & identity & fresh & full registered dependency set
   python v4_gate_common.py sha <path> [...]                            # print sha256 per file
 """
 import hashlib
@@ -33,6 +38,28 @@ import sys
 import time
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
+
+# ★ ROUND 4: the input names a caller MUST declare when it requires a receipt of this gate (extras allowed). Key = gate, or gate@profile for a
+#   stage that consumes a registered subset; a caller naming an unregistered profile is refused. Populated from what the chains ACTUALLY consume.
+REQUIRED_INPUTS = {
+    "G2_closure": ["fea_A", "fea_B", "targets_A", "targets_B", "hole_cells"],            # chain_v4s_gpu.sh: both feature builds, both target sets, the hole cells
+    "STEP1": ["dlw_v4raw_targets", "fea82_v4raw"],                                        # floor: RAW targets + fea82 every F10 chain reads
+    "STEP1@v4s": ["dlw_v4raw_targets", "fea82_v4raw"],                                    # chain_v4s_gpu.sh (RAW only; its fea89 is bound through G2_closure fea_A)
+    "STEP1@v4": ["dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"],    # chain_v4_gpu3.sh / chain_v4_post_export.sh (RAW + CLIP chains, fea89)
+    "STEP2": ["wide_fea_v4", "wide_fea_v4_meta"],                                          # chain_v4_gpu3.sh king side
+    "BUNDLE_export": ["wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins"],   # pod_export_bundle_v4.py
+    #   BUNDLE_FEA / BUNDLE_META / BUNDLE_BASE / EXPORT_PANEL / BUNDLE_CACHE / fund_aug.json.gz / live_pins.json — the judge's per-arm eligibility (JUDGE_ELIGIBILITY)
+}
+
+
+def required_inputs(gate, profile=None):
+    """(names, key, registered): the registered floor for gate[@profile]. Unknown profile -> registered False with the bad key."""
+    key = f"{gate}@{profile}" if profile else gate
+    if key in REQUIRED_INPUTS:
+        return list(REQUIRED_INPUTS[key]), key, True
+    if profile:
+        return [], key, False
+    return [], key, None          # bare gate with no registry entry: no floor (the caller's non-empty declaration still binds)
 
 
 def sha256_file(p, chunk=16 << 20):
@@ -70,11 +97,12 @@ def finalize(gate, res, out_path, inputs=None, exit_code_fail=3):
     sys.exit(0 if res["PASS"] else exit_code_fail)
 
 
-def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=None):
+def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=None, profile=None):
     """Return (ok, reason). ok iff the receipt exists, names the expected gate, the caller PINNED the
     gate source it trusts (`expected_self_sha`, mandatory since round 4) and the receipt's real self sha
-    equals it, says PASS, the caller declared at least one input, and every declared input's sha equals
-    the sha recorded in the receipt (a stale receipt is not a receipt)."""
+    equals it, says PASS, the caller declared at least one input AND every input registered for
+    gate[@profile] in REQUIRED_INPUTS (round 4), and every declared input's sha equals the sha recorded
+    in the receipt (a stale receipt is not a receipt)."""
     if not os.path.exists(receipt_path):
         return False, f"receipt missing: {receipt_path}"
     try:
@@ -98,6 +126,12 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
         return False, f"receipt says PASS={r.get('PASS')!r} (gate {r.get('gate')}, {r.get('utc')})"
     if not inputs:
         return False, "caller declared no inputs: nothing would be verified, so nothing is permitted"
+    need, key, registered = required_inputs(expected_gate, profile)
+    if registered is False:
+        return False, f"profile {profile!r} is not registered for gate {expected_gate!r} (known: {sorted(k for k in REQUIRED_INPUTS if k.startswith(expected_gate + '@'))})"
+    missing = [k for k in need if k not in inputs]
+    if missing:
+        return False, f"caller omitted registered input(s) {missing} for {key}: the stage would run unbound from them (REQUIRED_INPUTS[{key!r}] = {need})"
     rec = r.get("inputs_sha256") or {}
     for k, p in inputs.items():
         if k not in rec:
@@ -110,7 +144,7 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
         if cur != rec[k]:
             return False, f"input {k!r} changed since the receipt: {cur[:12]} != {str(rec[k])[:12]}"
     return True, (f"PASS ({r.get('gate')}, {r.get('utc')}, self {ss[:12]}, "
-                  f"{len(inputs)} inputs verified)")
+                  f"{len(inputs)} inputs verified, registered floor {key}={len(need) if registered else 'none'})")
 
 
 def main():
@@ -118,7 +152,8 @@ def main():
         kv = dict(a.split("=", 1) for a in sys.argv[3:])
         gate = kv.pop("gate", None)
         self_sha = kv.pop("self_sha", None)
-        ok, why = require(sys.argv[2], kv, expected_gate=gate, expected_self_sha=self_sha)
+        profile = kv.pop("profile", None)
+        ok, why = require(sys.argv[2], kv, expected_gate=gate, expected_self_sha=self_sha, profile=profile)
         print(("REQUIRE_OK " if ok else "REQUIRE_FAIL ") + why, flush=True)
         sys.exit(0 if ok else 3)
     if len(sys.argv) >= 3 and sys.argv[1] == "sha":
