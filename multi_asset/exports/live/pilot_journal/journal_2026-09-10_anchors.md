@@ -88,3 +88,13 @@
 - **实盘分支第八轮 → 2381030(电池 132/132, 套件 [43]–[47] 173/173, 已推送)**: `merge_order_records` 逐字段合并(可读 C 不被缺字段撤销、累计量不减、终态吸收、显式 0+终态=测得零任一入口、负数/NaN/0 伴正金额=矛盾); allOrders 匹配只有显式终态且身份相符才 terminal_matched(缺 status ⇒ 查单; 身份不符 ⇒ UNKNOWN); 折叠矛盾 ⇒ 该名 UNKNOWN 不补单; 有账本时行的金额/均价一律由读者写(未关闭 ⇒ None, 标签改 filled_amount_unknown)。原链端到端 [46]: 查单 C=0/N=4 ⇒ 不补单、不可测; 正控 CANCELED 0 ⇒ 补 10。版本配对: [18][41] 改为带记录; signal_and_loop 三处场所夹具补 symbol/origQty/orderId。
 - **Q6 预注册修订 3**: 撤回「≤3 请求区间传播精确」(研究员两张 BUY1 1→0 反例; 网格 6 vs 7 / 10 vs 13 / 15 vs 19); 联合可行集 F(t) 为对象(出生前 0、单调、终态后常量、证据下界、每锚和约束), 精确可满足性判定, 区间传播只作预筛; C_evidence 与 lower_feasible 分离; 预测集定义当前距离, 不可满足 ⇒ 历史审计未决; 联合 checkpoint(不是边际区间); 快照 executedQty 是累计约束。验收改为其 8 组 40 条断言与网格解集原样重跑。未落码。
 - **未闭合(明写)**: 撤单回包尚未进入逐字段合并(登记为下一格); R6-MARK; −2013 终局性; 跨进程同秒平仓 id; M5 再封存; income 缺行/币种换算; BUNDLE_export 门; 52 行写回等部署。协议不变: 第八轮复核 → 分别合并 → 部署另裁; 运行树 d040c74 零接触(VERIFIED)。
+
+### 2026-09-10 10:5x–11:5xZ · 研究员第八轮复审 b92e9479 处置 + 第九轮修复(「记录集合」层; 实盘分支未合并未部署)
+
+- **用户之问**: 「辩证分析是否正确」。**结论: 五格全部正确, Q6 两条(D8-1 恢复规则非唯一对象 / D8-2 验收例写错)也正确**; 逐条对着分支代码复现(读码即见: `merge_order_records` 的 `cum_quote`/`avg_price` 各取「可读者」再相除; 只拦 `ex < ex_prev`; `cancel_resp` 不在 settle 的输入; `_valid` 失败只 `unknown.add` 不覆盖 `_details`; `_keep_partial` 只挑三字段)。
+- **根因一个**: 第八轮把「来源合并」做成字段合并而非事实合并。第九轮对象改为**每张请求的记录集合**(POST / DELETE / allOrders 行 / GET, 观察顺序): 派生只在同一快照内(`_snapshot`); 合并按事实(累计量与金额不减、终态常量、终态吸收); 金额只在终态快照或 C 相等快照才是终值(否则下界); 撤单回包(带执行字段)入集合; 身份门在合并前逐记录作用、失败 ⇒ 请求不可测(C/终态不入账), `_valid` 补 side 存在 / origQty 有限 / orderId = ACK; 折叠缺 side 成交 = 矛盾; 稀疏终态记录 = 数量金额皆不可读; partial 带整个折叠; `known_order_id` 与 `last_fill_notional` 各并成一个读者; 补查记录也过身份门(risk §5)。事实表补 §3c(6 格)+ §4.8–4.10: `docs/DESIGN_request_fact_model_2026-09-10.md`。
+- **证据**: `tests_request_identity_unknown.py` [48]–[54] 共 224 项全绿; 同一新套件在旧码(2381030 归档副本)上 20 格红 + [51] 首格 KeyError, 控制格全绿(判别力); 电池 132/132 两次(7535914, 7b49dec; notify_audit 副本 11:17Z 刷新); 邻近套件 signal_and_loop / transport / guard_coverage / notional_backfill / chase_wiring / static_names 全绿。研究员反例翻转表见 HANDOFF §EXECUTOR 第九轮。
+- **版本配对**: `tests_signal_and_loop` `_FillBroker` POST 逐币不同 orderId(场所真实形状; 身份门比对 ACK orderId)。173 旧项原样保留。
+- **Q6 修订 4**(`docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md` §1d): 恢复政策 = 按时间准入观测等式, 使 F 为空者降级为「被排除观测」(审计保留, 不回头重排), 硬约束永不降级, 迟到硬证据按事件时间插入并重建前缀(原收据不重写), 硬约束自身不可满足 ⇒ 不可测; 明写 ≠ 全局最大基数(BUY2 2→0→1 保留第 1 锚); D8-2 更正: 两张终态 BUY1 仅后读 1 合法。未落码。
+- **我方新错**(处置文档 §4): 字段合并 ≠ 事实合并; 同一规则(终态常量)两份文档一份实现一份没有; 「登记为下一格」的可达后果应当轮修; 门在动作前不在事实前; 又出现两处「第二个读者」; Q6 验收例写错。方法记忆已追加。
+- **处置文档**: `docs/REVIEW_ACCEPT_round8_codex_b92e9479_2026-09-10.md`。协议不变: 第九轮复核 → 分别合并 → 部署另裁; 运行树 d040c74 零接触(VERIFIED)。无策略/回测数字变化。
