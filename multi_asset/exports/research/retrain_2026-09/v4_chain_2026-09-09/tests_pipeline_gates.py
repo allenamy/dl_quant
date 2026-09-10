@@ -472,6 +472,62 @@ with tempfile.TemporaryDirectory() as d:
     rc, out, j = judge_case(d, "r4_list_not_map", promote=True, eligibility=json.dumps([{"receipt": "x"}]))
     check("★ [r4] a JSON list instead of {arm: entry} ⇒ ignored (informational, no PROMOTE)", rc == 0 and j and j["eligibility"] == "informational" and _no_promote(j), (rc, j and j["eligibility_error"]))
 
+    # ── round 4: RAW references validated before the reproduction; NPZ schema + integer timestamps validated in load() (researcher extra cases) ──
+    import glob as _glob
+    def _rewrite(pattern, fn):
+        for p in sorted(_glob.glob(pattern)):
+            z = np.load(p, allow_pickle=True); arrays = {k: z[k] for k in z.files}; arrays = fn(arrays) or arrays; np.savez(p, **arrays)
+    def _raw_only60(v, old): _rewrite(f"{old}/*.npz", lambda a: dict(a, d30_n2_c42_rec=a["d30_n2_c42_rec"][-60:]))
+    rc, out, j = judge_case(d, "r4_both_raw_only60", mutate=_raw_only60)
+    check("★★★ [r4] judge_both_raw_references_only60: both RAW references carry only the last 60 frozen anchors ⇒ rc 2 at the reference-axis gate (round 3: intersect1d reproduced on 60 and passed)",
+          rc == 2 and "JUDGE_REFUSED reference axis" in out and "n=60 != 3168" in out, out.strip().splitlines()[-1][-200:])
+    def _raw_dup_gap(v, old):
+        def f(a): r = a["d30_n2_c42_rec"].copy(); r[100, 0] = r[99, 0]; return dict(a, d30_n2_c42_rec=r)
+        _rewrite(f"{old}/*.npz", f)
+    rc, out, j = judge_case(d, "r4_raw_duplicate_and_gap", mutate=_raw_dup_gap)
+    check("★★★ [r4] judge_raw_duplicate_and_gap: RAW references with anchor 100 duplicated onto 99 (count still 3168) ⇒ rc 2 'not a strict 4h grid' (round 3: intersect1d deduplicated and passed)",
+          rc == 2 and "JUDGE_REFUSED reference axis" in out and "not a strict 4h grid" in out, out.strip().splitlines()[-1][-200:])
+    def _arm_frac(v, old):
+        def f(a): r = a["d30_n2_c42_rec"].copy(); r[:, 0] += 0.25; return dict(a, d30_n2_c42_rec=r)
+        _rewrite(f"{v}/*.npz", f)
+    rc, out, j = judge_case(d, "r4_fractional_ts", mutate=_arm_frac)
+    check("★★★ [r4] judge_fractional_timestamp_plus025: every arm's rec[:,0] + 0.25 s ⇒ rc 2 'not integer seconds' (round 3: astype(int64) truncated silently and passed)",
+          rc == 2 and "JUDGE_REFUSED arm schema" in out and "not integer seconds" in out, out.strip().splitlines()[-1][-200:])
+    def _arm_tiny(v, old):
+        def f(a): r = a["d30_n2_c42_rec"].copy(); r[:, 0] += 1e-10; return dict(a, d30_n2_c42_rec=r)
+        _rewrite(f"{v}/*.npz", f)
+    rc, out, j = judge_case(d, "r4_tiny_float_ts", mutate=_arm_tiny)
+    check("★★ [r4] float timestamps within 1e-9 of an integer are accepted (float64 storage is fine, fractions are not) ⇒ rc 0", rc == 0 and j and len(j["verdicts"]) == 18, (rc, out.strip().splitlines()[-1][-120:]))
+    def _false_schema(v, old): _rewrite(f"{v}/*.npz", lambda a: dict(a, cols=np.array(["WRONG_COLUMN"] * 23), symbols=np.array(["WRONG_SYMBOL"])))
+    rc, out, j = judge_case(d, "r4_false_schema_no_W", mutate=_false_schema)
+    check("★★★ [r4] judge_false_schema_no_W: arms with cols=['WRONG_COLUMN']*23, symbols=['WRONG_SYMBOL'], no W ⇒ rc 2 'cols differ' (round 3: never looked at cols/symbols/W, passed and PROMOTEd)",
+          rc == 2 and "JUDGE_REFUSED arm schema" in out and "cols differ from the frozen COLS" in out, out.strip().splitlines()[-1][-200:])
+    _COLS = ["ts","net","pnl","carry","cost","gross_total","gross_member","gross_sel","nsel","nmember","fires","leg_king","leg_rev24","leg_fund","w3_king","w3_rev24","w3_fund","turnover","net_ex","pnl_ex","carry_ex","cost_ex","netlong"]
+    def _book_no_W(v, old): _rewrite(f"{v}/*.npz", lambda a: dict(a, cols=np.array(_COLS), symbols=np.array(["AAAUSDT", "BBBUSDT"])))
+    rc, out, j = judge_case(d, "r4_book_without_W", mutate=_book_no_W)
+    check("★★★ [r4] correct cols but a book (symbols present) WITHOUT d30_n2_c42_W ⇒ rc 2 'book without d30_n2_c42_W'", rc == 2 and "book without d30_n2_c42_W" in out, out.strip().splitlines()[-1][-160:])
+    def _book_bad_W(v, old): _rewrite(f"{v}/*.npz", lambda a: dict(a, cols=np.array(_COLS), symbols=np.array(["AAAUSDT", "BBBUSDT"]), d30_n2_c42_W=np.zeros((len(a["d30_n2_c42_rec"]), 3), np.float32)))
+    rc, out, j = judge_case(d, "r4_book_W_wrong_shape", mutate=_book_bad_W)
+    check("★★ [r4] W with 3 columns for 2 symbols ⇒ rc 2 (W shape must be (n, n_symbols))", rc == 2 and "d30_n2_c42_W shape" in out, out.strip().splitlines()[-1][-160:])
+    def _book_ok(v, old): _rewrite(f"{v}/*.npz", lambda a: dict(a, cols=np.array(_COLS), symbols=np.array(["AAAUSDT", "BBBUSDT"]), d30_n2_c42_W=np.zeros((len(a["d30_n2_c42_rec"]), 2), np.float32))); _rewrite(f"{old}/*.npz", lambda a: dict(a, cols=np.array(_COLS), symbols=np.array(["AAAUSDT", "BBBUSDT"]), d30_n2_c42_W=np.zeros((len(a["d30_n2_c42_rec"]), 2), np.float32)))
+    rc, out, j = judge_case(d, "r4_book_full_schema", mutate=_book_ok)
+    check("★★ [r4] GREEN: the full book schema (cols == COLS, symbols, W (n, n_symbols)) on arms AND references ⇒ rc 0, 18 verdicts", rc == 0 and j and len(j["verdicts"]) == 18, (rc, out.strip().splitlines()[-1][-120:]))
+    judge_case(d, "r4_require_W_fixture")   # a plain bare-rec fixture; rerun the judge on it with JUDGE_REQUIRE_W=1
+    rc, out = run(["judge_v4.py"], {"JUDGE_HC": f"{d}/r4_require_W_fixture/hc", "JUDGE_OUT": f"{d}/r4_require_W.json", "JUDGE_REQUIRE_W": "1"})
+    check("★★ [r4] JUDGE_REQUIRE_W=1 on bare-rec fixtures (no W anywhere) ⇒ rc 2 (the real w10 artifacts carry W; the flag demands it)", rc == 2 and "book without d30_n2_c42_W" in out and "JUDGE_REQUIRE_W=1" in out, out.strip().splitlines()[-1][-160:])
+    def _ref_nan(v, old):
+        def f(a): r = a["d30_n2_c42_rec"].copy(); r[5, 18] = np.nan; return dict(a, d30_n2_c42_rec=r)
+        _rewrite(f"{old}/*s42.npz", f)
+    rc, out, j = judge_case(d, "r4_ref_nonfinite", mutate=_ref_nan)
+    check("★★★ [r4] a NaN in the seed-42 RAW reference's frozen g ⇒ rc 3 'non-finite reference' BEFORE the reproduction", rc == 3 and "JUDGE_REFUSED non-finite reference" in out and "RAW_M1_s42" in out, out.strip().splitlines()[-1][-160:])
+    def _ref_no_rec(v, old): _rewrite(f"{old}/*s2027.npz", lambda a: {"something_else": a["d30_n2_c42_rec"]})
+    rc, out, j = judge_case(d, "r4_ref_schema", mutate=_ref_no_rec)
+    check("★★ [r4] a RAW reference without d30_n2_c42_rec ⇒ rc 2 (reference schema, before the reproduction)", rc == 2 and "JUDGE_REFUSED reference axis/schema" in out and "no d30_n2_c42_rec" in out, out.strip().splitlines()[-1][-160:])
+    rc, out, j = judge_case(d, "r4_partial_fractional", partial=True, mutate=_arm_frac)
+    check("★★ [r4] JUDGE_ALLOW_PARTIAL=1 with fractional-timestamp arms ⇒ rc 0 exploratory, every arm listed under schema_bad, no verdict issued", rc == 0 and j and j["exploratory"] is True and len(j["schema_bad"]) == 28 and j["verdicts"] == {}, (rc, j and len(j["schema_bad"])))
+    rc, out, j = judge_case(d, "r4_still_missing_ref", drop_raw27=True)
+    check("★★ [r4] a MISSING seed-2027 reference still lands at the reproduction gate rc 3 'missing_reference' (unchanged round-3 behaviour; the new axis gate only judges files that exist)", rc == 3 and "missing_reference" in out and "A0p_dyn_s2027" in out, out.strip().splitlines()[-1][-160:])
+
 
 # ── [M] round 3 (review 31fa3e4e §6, AMENDMENT 4): G1 clause (c) is code, and the six anchors must be present ────────────────────
 sys.path.insert(0, HERE)

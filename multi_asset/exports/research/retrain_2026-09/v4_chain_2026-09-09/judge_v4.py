@@ -22,7 +22,14 @@ Reproduction check first (#20): A0 dyn vs the published RAW_M1_UCRYPTO arm (dev_
     every entry is put through v4_gate_common.require (gate name equal, gate source sha equal, PASS, every input registered for the gate in
     REQUIRED_INPUTS declared, every declared input's sha equal to the file on disk);
     an arm without a bound PASS is "informational" and its (A) cells read "(A) INFO"; a PASS bound to arm X never promotes arm Y
-  · JUDGE_EXPORT_GATE is a DEPRECATED alias: recorded under out["export_gate"] for information, prints a warning, and can no longer make any arm eligible."""
+  · JUDGE_EXPORT_GATE is a DEPRECATED alias: recorded under out["export_gate"] for information, prints a warning, and can no longer make any arm eligible.
+  Researcher cases judge_both_raw_references_only60 / judge_raw_duplicate_and_gap / judge_fractional_timestamp_plus025 / judge_false_schema_no_W:
+  · the A0p RAW references are validated BEFORE the reproduction: same schema as the arms, FULL frozen axis (JUDGE_N_FROZEN anchors, exact 4h
+    grid, identical to the arms' frozen axis) and finite on it — a reference sharing 60 anchors, or one with a duplicate+gap, used to pass
+    through np.intersect1d                                                                                                       -> exit 2 (non-finite: 3)
+  · load() validates the NPZ SCHEMA before any number is read: d30_n2_c42_rec (n, 23); `cols` == COLS when present; a book (symbols present, or
+    JUDGE_REQUIRE_W=1) carries d30_n2_c42_W of shape (n, n_symbols); rec[:,0] finite and integer-valued seconds (|x-round(x)| < 1e-9; the old
+    astype(int64) silently truncated +0.25)                                                                                                  -> exit 2"""
 import numpy as np, json, calendar, time, os, sys
 HC = os.environ.get("JUDGE_HC", "/workspace/review_scratch/health_check")   # review b0a573a1 R4: parametrised so refusal paths can be tested
 COLS = ["ts","net","pnl","carry","cost","gross_total","gross_member","gross_sel","nsel","nmember","fires","leg_king","leg_rev24","leg_fund","w3_king","w3_rev24","w3_fund","turnover","net_ex","pnl_ex","carry_ex","cost_ex","netlong"]
@@ -33,8 +40,27 @@ WIN = {"2022": (T(2022, 1, 1), T(2023, 1, 1)), "2023": (T(2023, 1, 1), T(2024, 1
        "frozen 2025-03-01→2026-08-10 20Z": FROZEN, "2024-01→2026-08-10 20Z": (T(2024, 1, 1), T(2026, 8, 10, 20) + 1), "ext 08-11→08-30 20Z": (T(2026, 8, 11), T(2026, 8, 30, 20) + 1), "08-31 (6)": (T(2026, 8, 31), T(2026, 9, 1)),
        "2026→08-31 20Z (all)": (T(2026, 1, 1), T(2026, 8, 31, 20) + 1), "EXTENDED 2025-03-01→2026-08-31 20Z": EXT, "2024-01→2026-08-31 20Z": (T(2024, 1, 1), T(2026, 8, 31, 20) + 1)}
 PARTIAL = os.environ.get("JUDGE_ALLOW_PARTIAL") == "1"
+REQUIRE_W = os.environ.get("JUDGE_REQUIRE_W") == "1"   # round 4: demand the book weights W in every arm/reference (the real w10 artifacts carry them)
+class SchemaError(Exception): pass
 def load(path):
-    A = np.load(path, allow_pickle=True); R = A["d30_n2_c42_rec"]; ts = R[:, 0].astype(np.int64); g = R[:, C["net_ex"]] / R[:, C["gross_total"]]
+    """(ts, g, R). Round 4: the NPZ schema is validated before any number is read — a malformed artifact raises SchemaError (caller exits 2)."""
+    A = np.load(path, allow_pickle=True); keys = set(A.files)
+    if "d30_n2_c42_rec" not in keys: raise SchemaError(f"no d30_n2_c42_rec array (arrays: {sorted(keys)})")
+    R = A["d30_n2_c42_rec"]
+    if R.ndim != 2 or R.shape[1] != len(COLS): raise SchemaError(f"d30_n2_c42_rec shape {R.shape}, expected (n, {len(COLS)})")
+    if "cols" in keys:
+        cols = [str(c) for c in np.asarray(A["cols"]).ravel()]
+        if cols != COLS: raise SchemaError(f"cols differ from the frozen COLS (first differences: {[(i, c, COLS[i] if i < len(COLS) else None) for i, c in enumerate(cols) if i >= len(COLS) or c != COLS[i]][:3]})")
+    is_book = "symbols" in keys
+    if is_book or REQUIRE_W:
+        if "d30_n2_c42_W" not in keys: raise SchemaError("book without d30_n2_c42_W (symbols present" + (", JUDGE_REQUIRE_W=1" if REQUIRE_W else "") + ")")
+        W = A["d30_n2_c42_W"]; nsym = int(np.asarray(A["symbols"]).size) if is_book else None
+        if W.ndim != 2 or W.shape[0] != R.shape[0] or (nsym is not None and W.shape[1] != nsym): raise SchemaError(f"d30_n2_c42_W shape {W.shape} != (n={R.shape[0]}, n_symbols={nsym})")
+    t = np.asarray(R[:, 0], dtype=np.float64)
+    if not np.isfinite(t).all(): raise SchemaError("non-finite timestamps in rec[:,0]")
+    frac = np.abs(t - np.round(t))
+    if (frac >= 1e-9).any(): bad = int(np.argmax(frac >= 1e-9)); raise SchemaError(f"timestamps are not integer seconds (row {bad}: {t[bad]!r}; the old astype(int64) truncated silently)")
+    ts = np.round(t).astype(np.int64); g = R[:, C["net_ex"]] / R[:, C["gross_total"]]
     return ts, g, R
 def boot(v, days, rng):
     ud, inv = np.unique(days, return_inverse=True); nd = len(ud)
@@ -63,15 +89,19 @@ def frozen_axis_check(ts, n_expected):
         if (d != 14400).any():
             bad = int(np.argmax(d != 14400)); return False, f"not a strict 4h grid at index {bad}: diff {int(d[bad])} s (duplicate or gap)"
     return True, "exact 4h grid"
-ARMS = {}; missing = []
+ARMS = {}; missing = []; _schema_bad = {}
 for arm in ("A0", "A0p", "A1", "A1s", "A1e", "A2", "A3"):
     for seat in ("dyn", "fix"):
         for s in ("42", "2027"):
             p = f"{HC}/dev_v4/probe_artifacts/w10_ablation_series_V4_{arm}_{seat}_s{s}.npz"
-            if os.path.exists(p): ARMS[(arm, seat, s)] = load(p)
-            else: missing.append(f"{arm}_{seat}_s{s}")
-print("arms loaded:", sorted("_".join(k) for k in ARMS), "| missing:", missing)
-out = {"arms": sorted("_".join(k) for k in ARMS), "missing": missing, "levels": {}, "contrasts": {}, "verdicts": {}, "reproduction": {}, "exploratory": bool(PARTIAL)}
+            if not os.path.exists(p): missing.append(f"{arm}_{seat}_s{s}"); continue
+            try: ARMS[(arm, seat, s)] = load(p)
+            except SchemaError as e: _schema_bad[f"{arm}_{seat}_s{s}"] = str(e)
+print("arms loaded:", sorted("_".join(k) for k in ARMS), "| missing:", missing, "| schema_bad:", _schema_bad)
+if _schema_bad and not PARTIAL:
+    print("JUDGE_REFUSED arm schema:", _schema_bad, flush=True); sys.exit(2)
+out = {"arms": sorted("_".join(k) for k in ARMS), "missing": missing, "schema_bad": _schema_bad, "levels": {}, "contrasts": {}, "verdicts": {}, "reproduction": {}, "exploratory": bool(PARTIAL)}
+N_FROZEN = int(os.environ.get("JUDGE_N_FROZEN", "3168"))
 # --- eligibility (round 4): PER ARM and IDENTITY-BOUND. The promoted arm of a contrast may read "(A) PROMOTE" only if an export-gate receipt BOUND TO THAT
 #     ARM passes v4_gate_common.require — the same (gate name, gate source sha, input shas) contract the chains dispatch on. A bare {"PASS": true}, a receipt
 #     from another gate, a receipt whose inputs have changed, or a receipt bound to another arm makes nothing eligible (researcher cases minimal_PASS /
@@ -107,14 +137,36 @@ if _eg_path: print("WARNING: JUDGE_EXPORT_GATE is DEPRECATED (round 4) — recor
 if _el_err: print("WARNING: JUDGE_ELIGIBILITY ignored:", _el_err, flush=True)
 print(f"eligibility: {out['eligibility']} | eligible arms {_eligible_arms} | per arm { {a: r['ok'] for a, r in _elig.items()} } | deprecated export gate {_eg_path!r}: PASS={out['export_gate']['PASS']!r} | exploratory={PARTIAL}", flush=True)
 for _arm, _r in _elig.items(): print(f"   eligibility[{_arm}]: {'BOUND PASS' if _r['ok'] else 'NOT eligible'} — {_r['why']}", flush=True)
+# --- round 4: the RAW references are validated BEFORE the reproduction — same schema, FULL frozen axis (exact 4h grid of N_FROZEN anchors, identical
+#     to the arms' frozen axis), finite on it. Researcher cases: a reference sharing only 60 anchors with the arm, or one carrying a duplicate+gap,
+#     used to sail through np.intersect1d and "reproduce" on whatever overlapped.
+_nonfinite = []; REFS = {}; _ref_bad = {}; _ref_missing = []
+for s in ("42", "2027"):
+    p = f"{HC}/dev_raw/probe_artifacts/w10_ablation_series_RAW_M1_UCRYPTO_s{s}.npz"
+    if not os.path.exists(p): _ref_missing.append(f"RAW_M1_s{s}"); continue
+    try: t1, g1, R1 = load(p)
+    except SchemaError as e: _ref_bad[f"RAW_M1_s{s}"] = f"schema: {e}"; continue
+    ok, why = frozen_axis_check(t1, N_FROZEN)
+    if not ok: _ref_bad[f"RAW_M1_s{s}"] = f"frozen axis: {why} (the reference must cover the FULL frozen window, not an overlap)"; continue
+    a1 = t1[(t1 >= FROZEN[0]) & (t1 < FROZEN[1])]
+    for arm0 in ("A0p", "A0"):
+        if (arm0, "dyn", s) in ARMS:
+            t0 = ARMS[(arm0, "dyn", s)][0]; a0 = t0[(t0 >= FROZEN[0]) & (t0 < FROZEN[1])]
+            if not np.array_equal(a0, a1): _ref_bad[f"RAW_M1_s{s}"] = f"frozen axis differs from {arm0}_dyn_s{s} ({len(a0)} vs {len(a1)} anchors)"; break
+    if f"RAW_M1_s{s}" in _ref_bad: continue
+    if not np.isfinite(g1[(t1 >= FROZEN[0]) & (t1 < FROZEN[1])]).all(): _nonfinite.append(f"RAW_M1_s{s} reference (frozen window)")
+    REFS[s] = (t1, g1, R1)
+out["reference_axis_bad"] = _ref_bad; out["reference_missing"] = _ref_missing
+print("references:", {s: "ok" for s in REFS} | {k: v for k, v in _ref_bad.items()} | {k: "missing" for k in _ref_missing}, flush=True)
+if _ref_bad and not PARTIAL:
+    print("JUDGE_REFUSED reference axis/schema:", _ref_bad, flush=True); sys.exit(2)
+if _nonfinite and not PARTIAL:
+    print("JUDGE_REFUSED non-finite reference:", _nonfinite, flush=True); sys.exit(3)
 # --- reproduction check first (#20): A0 dyn vs published RAW_M1_UCRYPTO (dev_raw), frozen window
-_nonfinite = []
 for arm0 in ("A0p", "A0"):   # A0p = same F10 vintage as the published RAW_M1 arm (port_w10 08-22 preds aligned to the v4 axis) -> the like-for-like reproduction; A0 = in-service 09-01 vintage
   for s in ("42", "2027"):
-    p = f"{HC}/dev_raw/probe_artifacts/w10_ablation_series_RAW_M1_UCRYPTO_s{s}.npz"
-    if (arm0, "dyn", s) in ARMS and os.path.exists(p):
-        t0, g0, _ = ARMS[(arm0, "dyn", s)]; t1, g1, _ = load(p); com = np.intersect1d(t0, t1); i0 = np.searchsorted(t0, com); i1 = np.searchsorted(t1, com); m = (com >= FROZEN[0]) & (com < FROZEN[1])
-        if not np.isfinite(g1[i1][m]).all(): _nonfinite.append(f"RAW_M1_s{s} reference (frozen window)")
+    if (arm0, "dyn", s) in ARMS and s in REFS:
+        t0, g0, _ = ARMS[(arm0, "dyn", s)]; t1, g1, _ = REFS[s]; com = np.intersect1d(t0, t1); i0 = np.searchsorted(t0, com); i1 = np.searchsorted(t1, com); m = (com >= FROZEN[0]) & (com < FROZEN[1])
         d = g0[i0][m] - g1[i1][m]; m26 = (com >= T(2026, 1, 1)) & (com < FROZEN[1]); d26 = g0[i0][m26] - g1[i1][m26]
         out["reproduction"][f"{arm0}_dyn_s{s}_vs_RAW_M1"] = {"n": int(m.sum()), "arm_mean": float(g0[i0][m].mean()), "RAW_M1_mean": float(g1[i1][m].mean()), "paired_mean": float(d.mean()), "paired_maxabs": float(np.abs(d).max()) if m.any() else float("nan"), "share_exact": float(np.mean(np.abs(d) < 1e-9)), "share_lt_1e-3": float(np.mean(np.abs(d) < 1e-3)), "paired_maxabs_2026": float(np.abs(d26).max()) if m26.any() else float("nan")}
         print(f"REPRO {arm0} dyn s{s} vs RAW_M1 (frozen): {g0[i0][m].mean():+.4f} vs {g1[i1][m].mean():+.4f} | paired Δ {d.mean():+.4f} max|Δ| {np.abs(d).max() if m.any() else float('nan'):.4f} share<1e-3 {np.mean(np.abs(d) < 1e-3):.3f} | 2026 max|Δ| {np.abs(d26).max() if m26.any() else float('nan'):.4f}")
@@ -126,7 +178,6 @@ _rep_bad = {k: out["reproduction"][k]["paired_maxabs"] for k in _rep_need if k i
 if (_rep_bad or _rep_missing) and not PARTIAL:
     print("JUDGE_REFUSED reproduction (#20):", {"missing_reference": _rep_missing, "paired_maxabs_bad_or_nonfinite": _rep_bad}, flush=True); sys.exit(3)
 # --- axis + finiteness gates (round 3): exact frozen time set, identical across arms; every frozen g finite
-N_FROZEN = int(os.environ.get("JUDGE_N_FROZEN", "3168"))
 _axis_bad = {}; _ref_axis = None
 for k, (ts, g, R) in sorted(ARMS.items()):
     ok, why = frozen_axis_check(ts, N_FROZEN)
