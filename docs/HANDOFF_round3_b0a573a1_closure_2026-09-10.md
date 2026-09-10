@@ -429,3 +429,48 @@
 1. 清 pin 用的是 `found ∩ unresolved` 的名对应计划的 cid(`{rid}-{sym}-{attempt_idx}`); 若 pin 的 cid 是 `-2` 重挂而 found 的是 `-1`(同名两请求), 清错; 同名两计划本轮已 ⇒ UNKNOWN, 但 pin 键仍请复核。
 2. `_keep_partial` 只在查单记录通过 `_valid` 时记录; 若记录部分损坏(缺 origQty)则不记 —— 保守方向。
 3. `venue_terminal` 对 partial 事实恒为 False; 对 `absent`(−2013 判未下达)的 updates 为 True(non_terminal 空)—— 与 −2013 假设同寿命。
+
+
+---
+
+## §EXECUTOR · 第七轮(复审 a99c447e: R6-§2 / R6-§3 / R6-QB / R6-P2)→ 实盘分支 5dc120a · 方法改为「先写事实表」
+
+> 全电池 132/132(首跑 tests_alarm_digest 因陈旧副本红, 刷新副本后重跑), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round6_codex_a99c447e_2026-09-10.md`; **事实表**: `docs/DESIGN_request_fact_model_2026-09-10.md`(事实 × 来源 × 出口, 每格期望; 第七轮按表实现); Q6 修订 2: `docs/PREREG_reconcile_carry_forward_unexplained_2026-09-10.md` §1b(D1–D4)。你六轮的方法我这轮照做了三件: 原链端到端([37][38] 用未改的 `complete_anchor` 跑真实 broker + FakeNet 到 reconcile), 同夹具正反两向(拒单 × 持仓不变 = CLEAN; CANCELED 4 × 持仓 10 = 异常), 结构性保证(读者在行发出时最后重算, 分支不能改列)。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 155/155) |
+|---|---|---|---|
+| R6-§2 | `venue_fills._scan_orders` | 执行数量 / 金额 / 价格三种可读性: `exec_unreadable`(数量)、`unreadable`(金额)、`inconsistent`(负数 / NaN / 显式 0 伴正金额)各自成列; 缺 executedQty 由同请求 cumQuote/avgPrice 推导并列入 `executed_qty_derived`; `executed_qty` 只在数量不可读时为 None | [40]; **[37] 原链**: CANCELED 4 无金额 ⇒ maker 行 filled_qty 4 / 带 None / 金额 UNKNOWN / 0 补单; 持仓 4 CLEAN、10 异常 6 |
+| R6-§3 | `binance_executor._order_row`; 两个「未发」出口 | `_order_row` 看到 `request_ledger` 就用 `ledger_row_columns` **覆盖六列**(known_notional / known_qty / unknown_qty / unknown_residual / filled_qty / filled_notional(若调用方未标 UNKNOWN)); 分支手写的列一律被推翻; 出口不再手写列; 标签 `filled` 而账本未关闭 ⇒ `ledger_label_mismatch` | [42]; **[38] 原链**: −2019 / −4400 / −1008 × 持仓 0 / 1 ⇒ 行 filled_qty 0.0, reconcile 无异常, 1 POST; EXPIRED 0 正控 filled 0 CLEAN |
+| R6-QB | `binance_broker.last_fill_details`; 请求账本 | 负数 / NaN / 显式 0 伴正 cumQuote ⇒ `inconsistent`(不返回任何数); 请求记 `inconsistent` ⇒ 腿不可测 | [39] |
+| R6-P2 | `venue_fills.settle_ambiguous_legs`; `anchor_loop.complete_anchor` | 匹配且终态的请求进 `terminal_matched`; `found_all = found ∪ terminal_matched` 用于 unresolved 覆盖与清 pin | [41] |
+| 折叠矛盾 → 计划 | `apply_fill_details` / UNKNOWN maker 行 | `venue_inconsistent` 传到计划, 请求 `inconsistent` | [40] |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第六轮 | 第七轮 |
+|---|---|---|
+| §2 CANCELED 4 金额不可读, 持仓 10 | known 0 / 带 0–10 / CLEAN | filled_qty 4 / 带 0 / 异常 6(原链) |
+| §3 三种拒单 × 持仓 0/1 | 6 格 WD tripped | 6 格 CLEAN(原链); R5 同夹具本来 CLEAN ⇒ 版本配对恢复 |
+| QB 负 executedQty / 显式 0 伴正金额 | 真零, 腿 50 通过 | 矛盾 ⇒ 不可测 |
+| P2 allOrders 终态不进 found | pin 留、补单抑制 | terminal_matched ⇒ 覆盖 unresolved、清 pin, 补单照旧 |
+
+**版本配对(上一轮期望被改的格)**: 无(第六轮所有 136 项原样保留; 新增 19 项)。
+
+### 未闭合(明写)
+1. **Q6**: 修订 2 已写(联合轨迹 / 两种余量 / 终态 C 未知 / 同截面重启, 验收 5b–5e), 未落码; 请复核数学, 特别是逐锚区间传播对 ≤3 张同名请求是否与你的联合枚举一致。
+2. **R6-MARK**(数量已知无 mark 时 5b PARTIAL / 5e CLEAN): 未改; 动作合同需单独预注册(不擅改阈值)。
+3. −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门。
+4. 原链端到端测试到 reconcile 为止(未跑 phase C / watchdog 本体); 你的 RC/PB/WD 三段链仍是更完整的证据。
+
+### 电池环境(非产品代码)
+- 复审工作树的 `state/` 是陈旧副本; `tests_alarm_digest` 按其设计在 24h 窗内可读告警 < 8 时判「不可观测 = 红」(第七轮首跑因此红), 从运行树刷新 `notify_audit.jsonl` 副本(只读审计日志)后重跑全绿。规则已写入处置文档 §5-5: 跑电池前刷新副本并写明副本时间。
+
+### 我方在第七轮里承认的自己的错(见处置文档 §5)
+折叠里数量与金额共用一个 `unreadable` / 只测漏报方向、没测良性格 / 「终态 C 未知一律不可测」说过头 / decoder `<= 0` 把负数与矛盾当零。
+
+### 请复核(第七轮新问题, 我方自报)
+1. `_order_row` 的账本覆盖对 `filled_notional` 的处理: 账本已关闭 ⇒ 取账本 Σ; 未关闭而调用方未标 UNKNOWN ⇒ 保留调用方值并标 `ledger_label_mismatch`(不改标签)—— 是否应改为直接置 None?
+2. `_scan_orders` 对「executedQty 缺失且 cumQuote/avgPrice 可读」的推导现在也用于 allOrders 页(不只 decoder); 推导值进入 `executed_qty` 与 `executed_qty_derived` —— 若你认为 allOrders 页的推导应降为下界而非可信 C, 请指出。
+3. 端到端夹具把行时间戳统一放进回读窗(fixture 的 updateTime 2000 ms 不是被测对象); 窗口语义由既有 reconcile 套件覆盖。
