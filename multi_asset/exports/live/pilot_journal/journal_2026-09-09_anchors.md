@@ -87,3 +87,9 @@
 - **更正 1(20Z 节 XAN 一句)**: XAN 不是「自 12Z 起被场所 withheld 列 flatten_only」; 它自 ≥04Z 起就在 per_name_stop 的 `stopped` 名单(04Z/08Z/16Z phase_C 均记 stopped=[XANUSDT], 逐名止损 flatten_only 出场中), 12Z/16Z 另被场所列 add_blocked。保护性平仓把仓位归零, 20Z 按条款「已停名平仓 → 进冷却」写入 7 天禁入。
 - **更正 2(账本读法, 非缺陷)**: fills.jsonl 每笔成交两行 —— 原行 + markout 回填写的 `supersedes_trade_id` 行(含 +60s 标记); 09-08/09-09 所有 rid 恰 2×。故 12Z 回填的 69 行现显示 138 行、fee 合计 1.0145, 折叠后仍 69 笔 / 0.5072; 16Z 542→288 同理。此前「重复 trade_id 家族」之说成立, 但机制是 supersede 行而非写两遍。
 - 转述文档更正版已提交研究复审分支(`docs/HANDOFF_0909_full_account_for_independent_review_2026-09-09.md`), 阅读版同步重发。
+
+### 2026-09-10 00:4xZ · 独立研究员第二轮复审 31fa3e4e 处置(全文 `docs/REVIEW_ACCEPT_round2_codex_31fa3e4e_2026-09-10.md`)+ 两处账本事实更正(只追加)
+- **总判同意**: 部分修复成立; 实盘整包 e1c4c87、52 行补件、自动放行管线不放行。第三轮修复在既有两条分支进行, 合并 ≠ 部署。
+- **更正 A(16:47Z 节 / 17:1xZ 节 / 20Z 节的 §4-5e 描述)**: 触发不是「未授权 1.09% 越过 0.05 线」—— `PB_UNAUTH_PORTFOLIO_FRAC=0.05` 是 **5% 整书线**, 1.09% 未过; 实际由**逐名未授权门**触发(任一名的未授权量 ≥ 该名自身 min_notional, 本次 50+ 名)。「无盲区」只指 `conditions_blind=[]`, 同评估 `conditions_partial=[cond2_day_loss, cond4_drawdown]`。
+- **更正 B(17:1xZ 节修复件)**: 52 行重建的 `fee_paid` Σ 1.00970085 是折叠前 fills 的两倍(应 0.50724168, VERIFIED); 构造器 `build_rows` 未按 trade_id 折叠 supersede 行。数量/gross(2,536.21)正确, 费用错。**干跑件作废, 未落盘**; 重建前先修构造器并加结构化列。
+- 其余接受项/收窄项/撤回项(执行器 P1-1…P1-4 与 cap P2; 管线 require/判官/生成器/清单; G1 (c) 与成员 clamp 归因; G4/AMD2 措辞; 边际 SE 论证撤回; 72 CI)见处置文档 §1–§4; 我方新增六条错误见 §5。
