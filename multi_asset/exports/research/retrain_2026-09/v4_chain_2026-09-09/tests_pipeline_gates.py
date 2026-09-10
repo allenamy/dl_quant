@@ -265,5 +265,71 @@ with tempfile.TemporaryDirectory() as d:
     r = chain_case("chain_v4_data.sh", "data_success", d)
     check("★★ every producer writes its output and the copy verifies ⇒ CHAIN_V4_DATA_DONE rc 0", r["rc"] == 0 and r["done"], (r["rc"], r["data"].strip().splitlines()[-1][-120:] if r["data"].strip() else r["err"]))
 
+
+# ── [L] round 3 (review 31fa3e4e §3): the judge's preconditions and its self-declared standing, on synthetic arms ────────────────────
+import calendar as _cal
+
+
+def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False, duplicate=False, nan_repro=False, promote=False, export_gate=None, bad_repro=False):
+    q = f"{d}/{name}"; hc = f"{q}/hc"; v = f"{hc}/dev_v4/probe_artifacts"; old = f"{hc}/dev_raw/probe_artifacts"
+    os.makedirs(v); os.makedirs(old)
+    ts = _cal.timegm((2025, 3, 1, 0, 0, 0)) + np.arange(3168) * 14400
+    if n != 3168: ts = ts[-n:]
+    if duplicate: ts = ts.copy(); ts[100] = ts[99]
+    for arm in ("A0", "A0p", "A1", "A1s", "A1e", "A2", "A3"):
+        for seat in ("dyn", "fix"):
+            for seed in (42, 2027):
+                if drop_arm and (arm, seat, seed) == ("A1e", "fix", 2027): continue
+                r = np.zeros((len(ts), 23)); r[:, 0] = ts; r[:, 5] = 1.0
+                r[:, 18] = 2.0 if (arm == "A1e" and promote) or (arm == "A0p" and bad_repro) else 1.0; r[:, 19] = r[:, 18]
+                if nan_repro and arm == "A0p": r[0, 18] = np.nan
+                np.savez(f"{v}/w10_ablation_series_V4_{arm}_{seat}_s{seed}.npz", d30_n2_c42_rec=r)
+    for seed in (42, 2027):
+        if drop_raw27 and seed == 2027: continue
+        r = np.zeros((len(ts), 23)); r[:, 0] = ts; r[:, 5] = 1.0; r[:, 18] = 1.0; r[:, 19] = 1.0
+        np.savez(f"{old}/w10_ablation_series_RAW_M1_UCRYPTO_s{seed}.npz", d30_n2_c42_rec=r)
+    env = {"JUDGE_HC": hc, "JUDGE_OUT": f"{q}/J.json"}
+    if partial: env["JUDGE_ALLOW_PARTIAL"] = "1"
+    if export_gate is not None:
+        json.dump(export_gate, open(f"{q}/G2_export.json", "w")); env["JUDGE_EXPORT_GATE"] = f"{q}/G2_export.json"
+    rc, out = run(["judge_v4.py"], env)
+    j = json.load(open(f"{q}/J.json")) if os.path.exists(f"{q}/J.json") else None
+    return rc, out, j
+
+
+with tempfile.TemporaryDirectory() as d:
+    print("\n[L] judge_v4: exact axis, both references, finiteness, exploratory standing, export-gate eligibility")
+    rc, out, j = judge_case(d, "full_valid")
+    check("★★★ full valid synthetic set (equal arms) ⇒ rc 0, 18 verdicts all (C), eligibility informational (no export gate given), not exploratory",
+          rc == 0 and j and len(j["verdicts"]) == 18 and all(v.startswith("(C)") for v in j["verdicts"].values()) and j["eligibility"] == "informational" and j["exploratory"] is False,
+          (rc, j and {k: j.get(k) for k in ("eligibility", "exploratory", "n_extended_more_anchors")}, out.strip().splitlines()[-1][:100] if out.strip() else out))
+    check("★ the extended-window surplus is COMPUTED (0 here: the synthetic arms end at the frozen window)", j and j.get("n_extended_more_anchors") == 0, j and j.get("n_extended_more_anchors"))
+    rc, out, j = judge_case(d, "missing_raw2027", drop_raw27=True)
+    check("★★★ the seed-2027 A0p reference missing ⇒ rc 3 (reviewer: `any` accepted one reference)", rc == 3 and "missing_reference" in out and "A0p_dyn_s2027" in out, out.strip().splitlines()[-1][-160:])
+    rc, out, j = judge_case(d, "duplicate_anchor", duplicate=True)
+    check("★★★ one anchor duplicated (count still 3168) ⇒ rc 2 at the axis gate (reviewer: 3168 was a count, not a set)", rc == 2 and "not a strict 4h grid" in out, out.strip().splitlines()[-1][-160:])
+    rc, out, j = judge_case(d, "short60", n=60)
+    check("★★ 60 anchors ⇒ rc 2 (coverage)", rc == 2, out.strip().splitlines()[-1][-120:])
+    rc, out, j = judge_case(d, "nan_repro", nan_repro=True)
+    check("★★★ a NaN in the A0p reference ⇒ rc 3 (reviewer: NaN > tol is False, used to pass)", rc == 3 and ("nonfinite" in out or "non-finite" in out), out.strip().splitlines()[-1][-160:])
+    rc, out, j = judge_case(d, "bad_repro", bad_repro=True)
+    check("★★ A0p off by 1 bps ⇒ rc 3 (unchanged from round 2)", rc == 3 and "paired_maxabs_bad" in out, out.strip().splitlines()[-1][-120:])
+    rc, out, j = judge_case(d, "missing_arm", drop_arm=True)
+    check("★★ a required arm missing ⇒ rc 2", rc == 2 and "A1e_fix_s2027" in out, out.strip().splitlines()[-1][-120:])
+    rc, out, j = judge_case(d, "partial_short_promote", n=60, partial=True, promote=True)
+    check("★★★ JUDGE_ALLOW_PARTIAL=1 on 60 anchors with A1e +1 bps ⇒ rc 0 but exploratory=true and NO verdict is a PROMOTE (reviewer: 4 PROMOTEs used to print)",
+          rc == 0 and j and j["exploratory"] is True and j["verdicts"] and all(v.startswith("EXPLORATORY") for v in j["verdicts"].values()),
+          (rc, j and j["exploratory"], j and sorted(set(j["verdicts"].values()))))
+    rc, out, j = judge_case(d, "promote_no_export_gate", promote=True)
+    check("★★★ full window, A1e +1 bps, NO export gate ⇒ the (A) cells read '(A) INFO — export gate not PASS', eligibility informational (reviewer: PROMOTE printed beside a failed G2)",
+          rc == 0 and j and j["eligibility"] == "informational" and any(v.startswith("(A) INFO") for v in j["verdicts"].values()) and not any(v == "(A) PROMOTE" for v in j["verdicts"].values()),
+          (rc, j and sorted(set(j["verdicts"].values()))))
+    rc, out, j = judge_case(d, "promote_export_FAIL", promote=True, export_gate={"gate": "G2_export_v4e", "PASS": False, "reason": "baseline_guard"})
+    check("★★★ with an export-gate receipt PASS=false ⇒ same: INFO, never PROMOTE", rc == 0 and j and j["eligibility"] == "informational" and j["export_gate"]["PASS"] is False and not any(v == "(A) PROMOTE" for v in j["verdicts"].values()),
+          (rc, j and j["export_gate"]))
+    rc, out, j = judge_case(d, "promote_export_PASS", promote=True, export_gate={"gate": "G2_export_v4e", "PASS": True})
+    check("★★ with an export-gate receipt PASS=true ⇒ eligibility candidate and the (A) cells may read PROMOTE", rc == 0 and j and j["eligibility"] == "candidate" and any(v == "(A) PROMOTE" for v in j["verdicts"].values()),
+          (rc, j and j["eligibility"], j and sorted(set(j["verdicts"].values()))))
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)
