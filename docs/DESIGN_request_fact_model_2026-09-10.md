@@ -70,7 +70,7 @@
 | # | 来源 / 出口 | 事实规则 | 行应写(反例格) | 反方向(同夹具) | 邻格 |
 |---|---|---|---|---|---|
 | 1 | 同一请求两条记录: 金额在旧记录, 均价在新记录 | **派生只在同一记录内**: C_r ← executedQty_r, 否则 N_r/avg_r(同记录); N_r ← cumQuote_r, 否则 avg_r×C_r(同记录); 跨记录一律不派生。金额只在来自终态快照(终态吸收: 终态之后的每个快照都是终态快照)或来自 C_r = C_final 的快照时才是**终值**; 否则只是下界(`cum_quote_lower`), 行的金额 None | POST PARTIALLY_FILLED N40 + GET EXPIRED avg3 ⇒ C 未知(不是 13.33), N 非终值, 终态 ⇒ 请求区间 [0, Q]; 第二单 50 ⇒ 行 known 50 / 带 50 / filled_qty None; 回读 80 CLEAN(不再报警), 110 与 40 异常 | 同一记录 N40/avg2 ⇒ C20 派生(照旧, 标源) | POST N40/avg2(派生 C20, 开)+ GET EXPIRED C20 ⇒ 一致, N40 终值(C 相等); POST N40 开 + GET EXPIRED C30 无 N ⇒ C30 关闭数量, N 未知(40 只是下界), 行金额 None |
-| 2 | 终态后再读到不同的可信 C | **终态常量**: 任一终态记录的可信 C_T 之后(或之前)的任何可信 C_r ≠ C_T ⇒ 矛盾(不择大不择先); 终态但 C 未知 → 后补 C 允许; 开→终态的增长合法; 累计金额同样不减 | POST EXPIRED C20 + GET EXPIRED C30 ⇒ inconsistent ⇒ 请求不可测; 第二单 50 后行 `ledger_inconsistent`, 回读 80 异常(不再 CLEAN) | POST EXPIRED C20 + GET EXPIRED C20 ⇒ 70 关闭 | OPEN C10 → EXPIRED C20 ⇒ 关闭(合法增长); 终态 C20 之后无 status 的 C30 ⇒ 矛盾; 同 updateTime 终态 20/30 ⇒ 矛盾; EXPIRED 无 C → C30 ⇒ 30(补齐); 子成交并集 > 终态 C ⇒ 矛盾(账本 `_settle_leg_by_identity`, 首读保留) |
+| 2 | 终态后再读到不同的可信 C | **终态常量**(第十轮更正措辞, 研究员 risk §5): **终态快照之间**的可信 C 必须相等; 终态之前的开单快照 C 只是下界, 可以小于 C_T(开→终态增长合法), 大于 C_T 则是「累计量下降」矛盾; 终态但 C 未知 → 后补 C 允许; 累计金额同样不减, 终态快照之间的金额也必须相等 | POST EXPIRED C20 + GET EXPIRED C30 ⇒ inconsistent ⇒ 请求不可测; 第二单 50 后行 `ledger_inconsistent`, 回读 80 异常(不再 CLEAN) | POST EXPIRED C20 + GET EXPIRED C20 ⇒ 70 关闭 | OPEN C10 → EXPIRED C20 ⇒ 关闭(合法增长); 终态 C20 之后无 status 的 C30 ⇒ 矛盾; 同 updateTime 终态 20/30 ⇒ 矛盾; EXPIRED 无 C → C30 ⇒ 30(补齐); 子成交并集 > 终态 C ⇒ 矛盾(账本 `_settle_leg_by_identity`, 首读保留) |
 | 3 | 撤单回包 | DELETE 回包**带执行字段**(executedQty / cumQuote / avgPrice 之一)即为该请求的一条记录, 过身份门后进入合并(k-cancel 的与阶段 B 结算撤单的都算); 无执行字段的回包不进合并(无可注入; 状态只由查单定) | k-cancel CANCELED C4/N4 + allOrders 空 + 查单终态缺 C/N ⇒ C4 N4 ⇒ 补 6, maker 行 4 / 补单行 6; 回读 10 CLEAN, 14 异常 4 | k-cancel C4 + 查单 C4 ⇒ 补 6(已有正控) | k-cancel C4 + 查单终态 C6 ⇒ 终态常量矛盾 ⇒ UNKNOWN 不补; allOrders 未达(读失败)但 k-cancel C4 ⇒ UNKNOWN maker 行 known 4 / 带 0(终态), 不补单; k-cancel 带事实后查单 −2013 ⇒ 矛盾(不是 absent) |
 | 3b | 稀疏终态记录(缺 executedQty 且缺 cumQuote) | 数量不可读 **且** 金额不可读, 不是「未成交 0」; cumQuote 显式 0 只在旁边有显式 executedQty 0 时才是金额 0 | `_scan_orders` ⇒ executed None / filled_notional None ⇒ 该名 UNKNOWN | 显式 0/0 ⇒ 测得零(照旧) | executedQty 缺 + cumQuote 显式 0 ⇒ 金额不可读(保守) |
 | 4 | 身份不合法的记录 | **身份门作用于事实**: 我方 cid 下的记录身份不符(symbol / side 缺或不符 / origQty 非有限或 ≠ Q / orderId ≠ ACK 的 orderId)⇒ 该请求 `inconsistent(identity)` ⇒ 不可测; 其 C / 终态 / 金额一律不入账本; 折叠里缺 side 的成交行 = 矛盾(不再当 SELL) | allOrders origQty 5 ≠ Q10, C4 CANCELED ⇒ UNKNOWN 且 maker 行 `ledger_inconsistent`(不是 confirmed 4 / terminal), 回读 4 与 10 皆异常, 不补单 | 身份相符 C4 CANCELED ⇒ terminal_matched, 行 4 | side 缺 ⇒ 不符(不再折成 −4 补 14); origQty NaN / Inf ⇒ 不符; ACK orderId 101 而记录 997 ⇒ 不符; 查单来源同判 |
@@ -81,3 +81,29 @@
 8. **记录集合是对象**: 每张请求的记录集合 R(POST / DELETE / allOrders / GET, 按观察顺序)只经一个合并器 `merge_order_records(*R)`; 派生在记录内(`_snapshot`), 合并按事实(累计量与累计金额不减、终态常量、终态吸收); 身份门(`_valid`)在合并之前作用于**每条**记录; 折叠 `_scan_orders` 只吃合并后的正典记录(每 cid 一条), 且结算内的折叠不写回匹配缓存。
 9. **无事实字段的记录不进合并**: 只有状态没有执行字段的回包(夹具形状)不能注入也不能撤销任何事实; 状态由查单定。
 10. **`known_order_id` 只有一个实现**(broker 拥有 actions): 执行器的 `_order_id_for` 与结算的身份门读同一个函数。
+
+## 3d. 第十轮补格(研究员第九轮 R9-QFINAL / R9-FACT-EXIT / R9-CHILD-SUPPORT): 事实的「完整性类型」与失败出口
+第九轮把记录集合合并对了, 但两处又是同一种错: (1) 合并输出只有一个 `executed_qty`, 没有说它是**最终总量**还是**开单快照的下界** —— 读者用 `terminal + 有限 C` 当作精确关闭, 开单快照的 20 被升级成最终 20(合法 80 报警); (2) 失败出口(查询异常 / −2013 / 结算撤单后查询失败)直接 return, 已读到的撤单事实、POST 自己的执行字段不进集合(可靠 4 退化成 0–10 带)。每张请求的事实从四项变五项: σ、Q、**L(累计下界)**、T(终态)、**F(最终总量已证明)**。
+
+| 事实 | 字段 | 规则 |
+|---|---|---|
+| L 累计下界 | `confirmed_qty`(带号) | 任一快照的可信 C、子成交并集; 单调不减; 最终快照的 C 就是 L 且 F=真 |
+| F 最终总量已证明 | `confirmed_qty_final` | 只有三种来源为真: 终态快照(或终态之后的快照)给出的 C; L 到达 Q(容量); 拒绝/未发(0)。子成交并集**永不**单独给出 F(子集不能证明全集); 缺该键的旧行按 `terminal` 读(遗留规则, 新写行必写) |
+| 区间 | 读者 | rejected/not_sent [0,0]; F ⇒ [C,C], 余量 0; 否则 [L, Q], 余量 Q−L(**终态与否都一样**: 终态只把未来新增容量归零, 不消灭过去的未知量); L 未知 ⇒ [0,Q] |
+| 关闭 | `filled_qty` | 每张已发请求都 F 才写(不再是 terminal + 有限 C) |
+
+| # | 来源 / 出口 | 事实规则 | 行应写(反例格) | 反方向(同夹具) | 邻格 |
+|---|---|---|---|---|---|
+| 1 | 开单快照 C20 → 终态快照缺 C(R9-QFINAL) | L=20, T=真, F=假 ⇒ [20,50] | 加第二张 50 ⇒ known 70 / 带 30 / filled_qty None; 回读 70–100 CLEAN, 60 与 110 异常; SELL 对称 | 终态快照 C20 → 终态缺 C ⇒ F=真 ⇒ 70 精确, 80 异常 10 | OPEN10 → 终态 20 ⇒ 20 F; 终态缺 C → 之后 C30 ⇒ 30 F; 开单 20 且终态 + 子成交 30 ⇒ L=30(不是「超过终态 20」矛盾) |
+| 2 | 终态而 C 未知 + 子成交子集(R9-CHILD-SUPPORT) | 子成交只抬 L, F 仍假 | 终态未知 C + child 30 + 第二张 50 ⇒ known 80 / 带 20; 回读 80/90/100 CLEAN, 70 异常 | F=真 C20 + child 10 子集 ⇒ 保留 20 | F=真 C20 + child 30 ⇒ 矛盾(照旧); child 到达 Q ⇒ F=真(容量) |
+| 3 | 结算撤单成功后查询失败(R9-FACT-EXIT) | 撤单回包已读到的事实在查询失败时仍进集合 | 首撤失败 → page PARTIAL 4 → 结算撤单 CANCELED 6 → 查询失败 ⇒ known 6 / 带 0(F), 不补; 回读 6 CLEAN, 10 异常 4 | 查询成功 CANCELED 6 ⇒ maker 6, 补 4, 回读 10 CLEAN, 14 异常 4 | 撤单本身失败 ⇒ 之前的 partial 4 保留(已有) |
+| 4 | 查单异常(运输耗尽 / 满页)时已有 k-cancel 事实 | 每个 UNKNOWN 出口都先把手里的记录合并成事实(`_carry`) | k-cancel CANCELED 4/4 → 查单运输失败 ⇒ UNKNOWN 行 known 4 / 带 0 / filled_qty 4; 回读 4 CLEAN, 0 与 10 异常 | 无任何记录 ⇒ 带 10(照旧) | 满页同判 |
+| 5 | k-cancel 带事实后 −2013 | 矛盾 ⇒ 不可测(不是 ABSENT, 不是带) | 回读 0/4/10 皆异常 | 撤单 −2011 + 查单 −2013 ⇒ ABSENT(照旧) | status-only 撤单回包(有 CANCELED 无执行字段) + −2013 ⇒ 矛盾不可测(第九轮曾判 ABSENT 0 并补 10 —— 「存在」也是它携带的事实) |
+| 6 | POST 自己的执行字段 | 提交回包(broker 动作里的记录)是集合的第一条记录; 身份按「带字段才比对」(它是我方按 cid 记录的回包); status-only 撤单回包只贡献状态 | POST PARTIALLY_FILLED C4/N4 + status-only 撤单 + 稀疏终态查单 ⇒ L=4, F=假 ⇒ known 4 / 带 6; 回读 4 与 10 CLEAN, 0 与 14 异常 | 无 POST 事实 ⇒ 带 10 | 无 ACK(歧义 POST)+ 身份完整的查单 ID999 C4 ⇒ 接受(已有) |
+| 7 | 终态快照之间的金额 | 金额也是终态常量: 两个终态快照 N40 / N60 ⇒ 矛盾 | 行不可测 | N40 / N40 ⇒ 照旧 | 开单 N20 → 终态 N40 ⇒ 合法 |
+
+**登记未做**: 同快照内 C×avg 与 N 的一致性(容差由场所精度定, 不擅定阈值); 已知路径 maker 行(金额可读)仍无账本, 数量由 N/avg 读(同快照时合法).
+
+## 4(续). 第十轮的结构性保证
+11. **完整性类型随事实走**: 合并器输出 `executed_qty_final`, 正典记录携带 `executedQtyFinal`, 折叠输出 `executed_qty_final`, 计划 `venue_executed_qty_final`, 账本 `confirmed_qty_final`; 读者只认这一个键, 不从 `terminal` 推。
+12. **每个 UNKNOWN 出口先合并已有记录**: `_carry(p, sym, cid, recs)` 是所有失败出口的唯一入口; 新增出口必须经过它(措辞门: 「每个」指向 [56]–[58] 覆盖的出口清单: 查单异常 / −2013 / 满页 / 结算撤单后查询失败 / 未达).
