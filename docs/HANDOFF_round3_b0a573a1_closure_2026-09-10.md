@@ -702,3 +702,46 @@ F 带到账本却没贯穿每个读者(普通 maker 行、均价回退、RC 带�
 1. §3f.6 的合同选择(金额已知数量未知 = [0, Q])把 R5-QC 的「不可量化」改成了带 —— 已验证: 150 仍拒、75 CLEAN、原链 4/18 拒; 若你认为「金额已知数量未知」应保持不可测(更保守但会在合法持仓上触发), 请指出。
 2. 提交回包的身份门按「带字段才比对」—— 场所文档(POST /fapi/v1/order, newOrderRespType=RESULT)的响应字段含 clientOrderId / symbol / side / origQty / executedQty / cumQuote / avgPrice / status; `docs/API_SEMANTICS.md` 行 44 尚未单列这些字段(已登记, 下一次提交补一行, 不单独跑电池); 不带字段的回包(夹具形状)只按发送 id 记。
 3. 后置写者对账本行只写 `avg_fill_px_children` —— 已验证 M1 只读 `avg_fill_px`(pilot_metrics 134/145 行), 故子集价不再进入 M1; 无账本旧行照旧。
+
+
+---
+
+## §EXECUTOR · 第十三轮(复审 ec2fe835: 四条 P2 + 措辞)→ 实盘分支 5f2dd75
+
+> 全电池 132/132(notify_audit 副本 16:08Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round12_codex_ec2fe835_2026-09-11.md`; 事实表补格 `docs/DESIGN_request_fact_model_2026-09-10.md` §3g; §5 全表补你点名的漏项(M4/M5、`neutrality_price`、`chase_readout.collect`、`score_post_fix`、RC 残差计价与 `_unknown_interval` 后备; 「RC 仅无账本旧行读 avg」改为三种用途分列); §3f.1 措辞更正。你四项 P2 全部接受、全部修。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 325/325; 旧码上红) |
+|---|---|---|---|
+| R12-PARTIAL-N | `binance_executor._settle_leg_by_identity` | `n_lower = Σ 有 quote 的孩子` 参与「不超终值 N」比较(不等全集); 全集等式与关闭才用 `n_child` | [72]: 5/N50 + 5/N 缺 对终值 40 ⇒ 矛盾; 5/N30 + 缺 ⇒ 无矛盾; 无终值 ⇒ `_lower` 30 |
+| R12-N-FINITE | `binance_executor.ledger_inconsistencies` | N 有限性先于 C 缺失检查 | [73]: C None / N NaN|Inf ⇒ 行不可测; C None / N4 ⇒ [0,10] |
+| R12-ID-SHAPE | `binance_broker.identity_field` / `_ident_check`(新); `submit_identity_mismatch` / `requery_identity_mismatch`; `venue_fills._valid_present` | 四态: 缺键/None = 无证据; 空串/不可解析/非有限/非 BUY·SELL = 畸形 ⇒ 矛盾; 有值 = 比对。三处门同一实现; 完整记录门 `_valid` 仍要求字段齐全 | [74]: NaN / Infinity / 文本 origQty 三处门皆矛盾(曾: 提交门跳过 ⇒ 精确补 6); 空 side / 空 cid 一致; 缺字段 ⇒ 通过 |
+| R12-COST-COVERAGE | `scheduler/anchor_loop.neutrality_price`; `ops/chase_readout.collect` + 汇总 | bps 只按已定价成交(fee + signed adverse); 新键 `measured_over` / `n_fills_unpriced` / `notional_priced_usdt` / `unpriced_notional_usdt` / `fee_unpriced_usdt` / `coverage_priced`; 无已定价 ⇒ None; `chase_readout` 每臂 `_notional_priced` / `_unpriced_notional` / `_n_unpriced`, 汇总支付成本按已定价名义 | [75]: N6 无 avg ⇒ bps None / 覆盖 0 / 未定价 6; 正控 avg2 mid1 ⇒ 10000; 半定价 ⇒ 10000 且覆盖 0.5; `collect` 同 |
+| 措辞 | `request_remaining` 注释; `docs/API_SEMANTICS.md` 行 44 | R5-QC 旧注释作废; POST 回包三分开: 官方承诺(页面示例字段, 非正式必填集合)/ 我方政策(四态)/ 实际观测(testnet 07-26 带 executedQty 缺 cumQuote/avgPrice; 其余未单独观测) | — |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第十二轮 | 第十三轮 |
+|---|---|---|
+| 终值 C20/N40 + 孩子 5/N50 + 5/N 缺 | 检查跳过, 行 N90, 70 CLEAN | 下界 50 > 40 ⇒ 矛盾, N 仍 40 |
+| C None / N NaN | 按数量带通过 | 不可测 |
+| 提交回包 origQty=NaN | 跳过 ⇒ 精确补 6 | 矛盾(三处门一致) |
+| 空 side | 两门方向相反 | 三处门皆矛盾 |
+| N6 / C avg 未知 | neutrality_price 0 bps; collect 0 bps | None + 未定价 6 / 覆盖 0 |
+
+**版本配对**: [65] 身份门措辞统一。其余 301 项原样保留。
+
+### 未闭合(明写)
+1. R6-MARK 动作合同; 同快照内 C×avg 与 N 一致性; 时窗核对。
+2. `_seen_syms > 1` 与 settle 整体异常出口不带事实; 无场所事实 maker 行走旧读法 —— 来源前提, §5 明写。
+3. `pilot_metrics`(冻结)的 M1/M4/M5 对 None 的读法不改(读 None 为「未测」, 不参与); 若要在报表附「被排除金额」, 需另立协议改冻结件。
+4. Q6 实现与回放; −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。
+
+### 我方在第十三轮里承认的自己的错(见处置文档 §3)
+数量与金额的规则集不对称 / 「可读性」三处各写各的 / 「未测 ≠ 零」没推到报表层。
+
+### 请复核(第十三轮新问题, 我方自报; 均已验证)
+1. 四态里「缺键」与「None」同算无证据 —— 本仓唯一的实测缺字段记录(testnet 2026-07-26, `last_fill_notional` 文档)是**缺键**(cumQuote/avgPrice absent), 显式 null 未观测到; 夹具两种形状都用。若你认为显式 null 应算畸形(场所文档未定义), 请指出 —— 改一行即可。
+2. `neutrality_price` 新增键不改旧键含义(`measured_taker_bps_same_side` 现在是已定价子集的 bps; `n_fills_priced` 原已存在)—— `tests_neutrality_price` 15/15 原样通过; 读它的 `anchor_report` / 报表只打印。
+3. `chase_readout` 汇总的「支付成本」改按已定价名义计 —— 这是报表口径改动, 不影响实验分臂判决(`gate` 与 `nstar` 未动, `tests_readout_gate` 28/28)。
