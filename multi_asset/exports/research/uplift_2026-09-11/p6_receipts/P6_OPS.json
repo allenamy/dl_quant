@@ -1,0 +1,26 @@
+{
+ "coverage_of_finite_amihud_cells": {
+  "n": 3140350,
+  "frac_cov_lt_1.00": 0.0013664082029073191,
+  "frac_cov_lt_0.95": 0.0012864808062795548,
+  "frac_cov_lt_0.80": 0.0010865030967885745,
+  "frac_cov_lt_0.50": 0.0006760392949830433,
+  "min_cov": 0.003472222222222222
+ },
+ "mean_amihud_zrank": {
+  "cells_cov_lt_0.95": -0.08473164709250694,
+  "cells_cov_ge_0.95": 0.004179773808428365,
+  "n_anchors_with_low_cov": 322,
+  "n_anchors_sampled": 1435,
+  "note": "z-rank in [-0.5,+0.5]; larger = more illiquid = the tail the sleeve goes long of"
+ },
+ "producer_compute_ms": {
+  "incl_cube_f16_to_f32_cast_ms": 8.8085460010916,
+  "window_stat_only_ms": 0.2847490832209587,
+  "shape": [
+   11520,
+   400
+  ],
+  "note": "CDf cast already happens once per anchor in shadow_loop_v3 L355; only window_stat_only is NEW work"
+ }
+}

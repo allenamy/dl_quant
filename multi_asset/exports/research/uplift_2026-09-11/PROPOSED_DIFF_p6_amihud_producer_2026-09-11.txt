@@ -1,0 +1,126 @@
+PROPOSED DIFF — NOT APPLIED. ~/wide_shadow is READ-ONLY in this session (real money).
+Target: ~/wide_shadow/shadow_loop_v3.py + shadow_bundle/config.json.
+Contract: with params.ami_alloc == 0.0 the weight vector must be BITWISE the current one (gate C0).
+Reference for every formula: pod_panel_ext.py L20-54 (the panel's own construction).
+
+=========================================================================
+(1) config.json  ->  "params"
+=========================================================================
++  "ami_alloc":   0.0,      # 0.0 = OFF = bitwise-unchanged book. The ruling flips this to 0.20.
++  "ami_cov_min": 0.95,     # per-name 288-bar coverage floor; below it the name's Amihud is NaN (fail-CLOSED)
++  "ami_clip_hi": 30.0,     # the PANEL's clip (pod_panel_ext.py L27), NOT the ingest clip CHN_CLIPS[3]=25.0
++  "ami_lag":     1         # the signal is the PREVIOUS anchor's rank (r3_xib/sleeve.py: ZAL[1:]=ZA[:-1])
+
+=========================================================================
+(2) shadow_loop_v3.py  L357-362  wstat(): add the missing aggregator
+=========================================================================
+     def wstat(ch, w, kind):
+         seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch]
+         fin = np.isfinite(seg)
+         nf = np.maximum(fin.sum(0), 1)
++        if kind == "expsum":
++            # pod_panel_ext.py L27+L48: qv24 = sum over the window of expm1(clip(log_qv,0,30)).
++            # float64 accumulation: the panel's value is a difference of float64 cumsums, and a
++            # float32 accumulation here costs bitwise parity on 84% of cells (measured) for nothing.
++            e_ = np.where(fin, np.expm1(np.clip(seg, 0, P["ami_clip_hi"])), 0).astype(np.float32)
++            return e_.astype(np.float64).sum(0)
++        if kind == "cov":
++            return fin.sum(0) / float(w)
+         s_ = np.where(fin, seg, 0).sum(0)
+         if kind == "sum": return s_
+         return s_ / nf
+
+=========================================================================
+(3) shadow_loop_v3.py  after L466  rev24 = wstat(0, 288, "sum")[m]
+=========================================================================
+     rev24 = wstat(0, 288, "sum")[m]
++    # ---- Amihud sleeve (PREREG_p6_amihud_sleeve_2026-09-11) ----
++    # amihud_24h = |sum_288 ret5| / sum_288 expm1(clip(log_qv,0,30)) * 1e6   (pod_panel_ext.py L54)
++    AMI_ALLOC = float(P.get("ami_alloc", 0.0))
++    ami_ok = False; ami_z = None; ami_diag = {}
++    if AMI_ALLOC > 0:
++        _qv24 = wstat(3, 288, "expsum")[m]
++        _cov  = wstat(3, 288, "cov")[m]
++        _rv   = rev24.astype(np.float32)
++        with np.errstate(divide="ignore", invalid="ignore"):
++            _ami = np.where(_qv24 > 0, np.abs(_rv) / _qv24.astype(np.float32) * 1e6, np.nan).astype(np.float32)
++        # fail-CLOSED: a name whose 288-bar window is under-covered gets NO Amihud value at all.
++        # (measured on the v4 cube: 0.129% of finite cells sit under 0.95 coverage; those cells skew
++        #  toward the LIQUID end, z-rank -0.085 vs +0.004, so this floor is conservatism, not a fix.)
++        _ami = np.where(_cov >= P["ami_cov_min"], _ami, np.nan)
++        _za_now = xz(_ami)                                   # scipy rankdata AVERAGE ranks -- NEVER argsort(argsort)
++        # one-anchor lag: the signal is the PREVIOUS anchor's rank, carried in state
++        _prev = st.ami_prev if isinstance(getattr(st, "ami_prev", None), dict) else None
++        if _prev and int(_prev.get("anchor_ts", -1)) == anchor - 14400 * int(P["ami_lag"]):
++            _zl = np.array([_prev["z"].get(str(int(j)), np.nan) for j in m], float)
++            _zf = np.asarray(legz_fund_for_orth, float)      # see (4): the SAME vector the fund leg uses
++            _okp = np.isfinite(_zl) & np.isfinite(_zf)
++            if _okp.sum() >= 10:
++                _x = _zf[_okp]; _y = _zl[_okp]
++                _vx = float((_x * _x).sum()); _b = float((_x * _y).sum() / _vx) if _vx > 1e-12 else 0.0
++                _res = np.full(len(m), np.nan); _res[_okp] = _y - _b * _x
++                ami_z = xz(_res); ami_ok = np.isfinite(ami_z).sum() >= 10
++        ami_diag = {"n_ami": int(np.isfinite(_ami).sum()), "frac_cov_lt_min": float((_cov < P["ami_cov_min"]).mean()),
++                    "prev_ts": (int(_prev["anchor_ts"]) if _prev else None), "orth_b": (round(_b, 6) if ami_ok else None)}
++        # persist THIS anchor's rank for the next anchor, whatever happened above
++        st.ami_prev = {"anchor_ts": int(anchor),
++                       "z": {str(int(j)): float(v) for j, v in zip(m, _za_now) if np.isfinite(v)}}
+
+=========================================================================
+(4) shadow_loop_v3.py  L470-471  legz / z  — the ONE line that changes the book
+=========================================================================
+     legz = {"king": xz(pred), "rev24": xz(-rev24), "fund": xz_in_base(fe_v[m], [st.syms[int(j)] for j in m], base_vals)}
+-    z = w3[0] * np.nan_to_num(legz["king"]) + w3[1] * np.nan_to_num(legz["rev24"]) + w3[2] * np.nan_to_num(legz["fund"])
++    legz_fund_for_orth = legz["fund"]          # <- move block (3) to AFTER this line; it needs this vector
++    z3 = w3[0] * np.nan_to_num(legz["king"]) + w3[1] * np.nan_to_num(legz["rev24"]) + w3[2] * np.nan_to_num(legz["fund"])
++    if AMI_ALLOC > 0 and ami_ok:
++        z = (1.0 - AMI_ALLOC) * z3 + AMI_ALLOC * np.nan_to_num(ami_z)
++        legz["ami"] = ami_z
++    else:
++        z = z3
++        if AMI_ALLOC > 0:
++            # ---- THE FAIL-SAFE. It must be LOUD. ----
++            # Note what we canNOT do: reduce risk. external_book.py L483-490 target_vector() divides the
++            # weights by gross_in unconditionally, so the executor re-levers whatever we write back to
++            # NAV x gross_mult. A "run 20% less gross" degradation is NOT expressible in wide_target_v1.
++            # Therefore degradation = run the A0-shaped 3-leg book at FULL gross + ALARM + watchdog.
++            append_log({"e": "ami_degraded", "anchor_ts": anchor, "reason": "no_lagged_rank_or_too_few_names",
++                        **ami_diag})
++            st.ami_degraded_anchor = int(anchor)      # -> carried into heartbeat.json below
++
++  and at L562 (atomic_json(HEART, ...)):
++     atomic_json(HEART, {..., "status": status,
++                         + "ami_status": ("DEGRADED" if st.ami_degraded_anchor == anchor else "OK")})
++
++  ---- HONEST GAP, READ THIS BEFORE ACCEPTING THE DESIGN ----
++  There is currently NO wired escalation channel from the producer to a human or to the executor for
++  "still running, but degraded".  Verified by grep: ~/dl_quant_live reads ~/wide_shadow/heartbeat.json
++  NOWHERE (the only `heartbeat` hits in dl_quant_live are telegram_notify.py's own token check).  The
++  producer's ONLY wired escalations are (i) not writing target_live at all -- which trips the executor's
++  name-gate flatten, far too violent for one dead sleeve -- and (ii) the ~/wide_shadow/KILL file, which
++  stops the loop and therefore degenerates to (i).  So `append_log` + an `ami_status` field is a marker
++  that NOTHING WATCHES.  A watcher must be built and shown to fire (gate C4) BEFORE ami_alloc goes to
++  0.20; shipping the marker alone would be the "declared blind spot is not closed" failure mode.
+     z = ... (unchanged downstream: qv4h / sel / demean / L1 / cap / EMA / band / forced exit)
+
+=========================================================================
+(5) ShadowState: persist the lag
+=========================================================================
+  __init__:  + self.ami_prev = json.load(open(f"{STATE_DIR}/ami_prev.json")) if os.path.exists(...) else None
+  save():    + atomic_json(f"{STATE_DIR}/ami_prev.json", self.ami_prev or {})
+
+=========================================================================
+(6) tests_target_live_output.py  — the safety floor for the whole change
+=========================================================================
+  + test_ami_alloc_zero_is_bitwise_unchanged():
+  +     run one historical anchor with ami_alloc=0.0 against the pre-change code;
+  +     assert np.array_equal(sm_new, sm_old)  (NOT allclose)
+
+=========================================================================
+NOT CHANGED
+=========================================================================
+  ELIGIBILITY_CONTRACT.json   — no change needed
+  judge_v4.py                 — no change needed
+  ~/dl_quant_live/**          — no change under option (A). Option (B) (a risk_scale field in
+                                wide_target_v1 honoured by external_book.target_vector) is a separate
+                                real-money change and needs its own pre-registration; do not bundle it.
