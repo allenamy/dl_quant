@@ -164,3 +164,10 @@
 - **修复(DESIGN §3h)**: `order_id_value` / `order_id_int` 无损整数一个实现贯穿 identity_field、known_order_id、_oid_of、结算 _valid、子成交联接与归属键; 畸形先于 expected; 成本诊断已测 = 有限正 avg 与 mid 且 fee 已知, 三桶与两种覆盖率, bps 只按已测, caliber 明写分母已改; 口径三处按码重写。
 - **证据**: `tests_request_identity_unknown.py` [76]–[78] 共 28 项, 357/357(含第十四轮 b [79]); 旧码(5f2dd75)上 [76] 旧码首格崩(无 order_id_value; 定向探针: 门返回 None、102.75 被接受 filled_qty 2、Infinity OverflowError 崩 —— 三格皆红)、[77] 1 红 + 崩(旧键缺)、[78] 1 红; 邻近 18 套件全绿; 电池 132/132(82f1a6c → c22ae49, notify_audit 副本 22:56Z)。版本配对: 无。
 - **处置文档**: `docs/REVIEW_ACCEPT_round13_codex_d51cb731_2026-09-10.md`。协议不变; 运行树 d040c74 零接触(VERIFIED)。无策略/回测数字变化。
+
+### 2026-09-10 23:5x–00:5xZ · 研究员第十四轮复审 1ef6ce8c 处置 + 第十五轮修复(orderId 精确文本/精确数值; 成本读者引用已测; 费用标记同一次写入; 实盘分支未合并未部署)
+
+- **研究员总判**: 第十四轮修复成立, **未确认新 P1**; 两项 P2 + 一项接口反例 + 两处文案。**我方(用户字「辩证分析, 如有必要, 高质量修复」): 两项 P2 全真需修, 接口反例一行顺手修, 文案改** —— 读码复现: `order_id_value` 对字符串走 `float()` 再 `is_integer()`(2⁵³ 附近两个 id 合并 ⇒ 外来成交归入我方、未决 C2 关成 6, 合成); `verify_reshape_anchor` 仍打印「基于 n_fills_basis」并把费未知的 None 说成「无 taker 成交」; `apply_commission_to_rows` 重算不清旧 `fee_conversion`。
+- **修复(DESIGN §3i)**: orderId 可接受输入合同 = 精确文本 / 精确数值(数字串任意精度 int, 浮点仅整值且 < 2⁵³, 其余畸形), 贯穿门 / ACK 查找 / 子成交联接; `neutrality_lines` 引用已测笔数/名义并按三桶解释 None, 旧记录标注; 费用数值 / 币种标记 / 换算证据同一次写入。文案: `_lower` 与终值并存; `attribute_trades` 只把 USDT 计入 commission; 成本读者按读者分列。
+- **证据**: `tests_request_identity_unknown.py` [80]–[82] 共 21 项, 378/378; 旧码(c22ae49)上 [80] 10/15 红(5 控制格绿: 原生 int、小浮点、我方 id)、[81] 旧码崩(无 neutrality_lines)、[82] 2 红; 邻近 18 套件全绿; 电池 132/132(b681ca5, notify_audit 副本 00:39Z)。版本配对: 无。
+- **处置文档**: `docs/REVIEW_ACCEPT_round14_codex_1ef6ce8c_2026-09-11.md`。协议不变; 运行树 d040c74 零接触(VERIFIED)。无策略/回测数字变化。
