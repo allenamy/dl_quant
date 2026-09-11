@@ -1,0 +1,383 @@
+{
+ "device": "/workspace/uplift_2026-09-11/r12_intervene/w12_intervene.py",
+ "device_sha256": "5894cc71cd32413ef02dfdcb949a9d8ed79d9b43a6b905c1b658f0b075eea649",
+ "pinned_src_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
+ "cost_sha256": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+ "prereg_sha256": "17dd2db7b116b2625f6e7eacab7caf9eb025876e1a3f564f32429f31a2ea551f",
+ "env_whitelist": [
+  "LEGS",
+  "CAL",
+  "WRULE",
+  "LOOK",
+  "MEMBERS_TOPN",
+  "FTRIM",
+  "PHI",
+  "UMASK_SCOPE",
+  "UMASK_NPZ",
+  "SLOW_NPY",
+  "FSEED",
+  "FPRED",
+  "COSTB_JSON",
+  "OUT_TAG",
+  "CEM_Q",
+  "CEM_MODE",
+  "BYP_STATE",
+  "BYP_Q",
+  "BYP_A"
+ ],
+ "common_env": [
+  "LEGS=101",
+  "CAL=log",
+  "WRULE=msharpe",
+  "LOOK=900",
+  "MEMBERS_TOPN=829",
+  "FTRIM=zero",
+  "PHI=0.45",
+  "UMASK_SCOPE=m1",
+  "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+  "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+  "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy"
+ ],
+ "tree": "/workspace/uplift_2026-09-11/r12_intervene/dev_ext",
+ "links": {
+  "pod_backup_2026-08-21/wide_fea_hist_meta.npz": "/workspace/uplift_2026-09-11/r6/out/meta_newprod_v4_x0910.npz",
+  "pod_backup_2026-08-21/slow_pred_hist_oos.npy": "/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+  "pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz": "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_v2ext_x0910.npz",
+  "pod_backup_2026-08-21/nets_histv2_-30_2_42.npy": "/workspace/review_scratch/health_check/dev_alt/pod_backup_2026-08-21/nets_histv2_-30_2_42.npy",
+  "pod_backup_2026-08-21/nets_histv2_0_0_0.npy": "/workspace/review_scratch/health_check/dev_alt/pod_backup_2026-08-21/nets_histv2_0_0_0.npy",
+  "dlw_2026-08-22": "/workspace/uplift_2026-09-11/r6/out/dlw_v4raw_x0910",
+  "f8_2026-08-22/preds/f10_v4RAWx_s42.npy": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_s42.npy",
+  "f8_2026-08-22/preds/f10_v4RAWx_s2027.npy": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_s2027.npy"
+ },
+ "jobs": [
+  {
+   "tag": "R12_GATEP_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy"
+   ]
+  },
+  {
+   "tag": "R12_CEM_90_neutral_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "CEM_Q=0.90",
+    "CEM_MODE=neutral"
+   ]
+  },
+  {
+   "tag": "R12_CEM_90_derisk_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "CEM_Q=0.90",
+    "CEM_MODE=derisk"
+   ]
+  },
+  {
+   "tag": "R12_CEM_95_neutral_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "CEM_Q=0.95",
+    "CEM_MODE=neutral"
+   ]
+  },
+  {
+   "tag": "R12_CEM_95_derisk_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "CEM_Q=0.95",
+    "CEM_MODE=derisk"
+   ]
+  },
+  {
+   "tag": "R12_CEM_99_neutral_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "CEM_Q=0.99",
+    "CEM_MODE=neutral"
+   ]
+  },
+  {
+   "tag": "R12_CEM_99_derisk_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "CEM_Q=0.99",
+    "CEM_MODE=derisk"
+   ]
+  },
+  {
+   "tag": "R12_BYP_rally_90_a100_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=rally",
+    "BYP_Q=0.90",
+    "BYP_A=1.00"
+   ]
+  },
+  {
+   "tag": "R12_BYP_rally_95_a100_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=rally",
+    "BYP_Q=0.95",
+    "BYP_A=1.00"
+   ]
+  },
+  {
+   "tag": "R12_BYP_rally_95_a030_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=rally",
+    "BYP_Q=0.95",
+    "BYP_A=0.30"
+   ]
+  },
+  {
+   "tag": "R12_BYP_rev_90_a100_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=rev",
+    "BYP_Q=0.90",
+    "BYP_A=1.00"
+   ]
+  },
+  {
+   "tag": "R12_BYP_rev_95_a100_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=rev",
+    "BYP_Q=0.95",
+    "BYP_A=1.00"
+   ]
+  },
+  {
+   "tag": "R12_BYP_rev_95_a030_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=rev",
+    "BYP_Q=0.95",
+    "BYP_A=0.30"
+   ]
+  },
+  {
+   "tag": "R12_BYP_either_90_a100_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=either",
+    "BYP_Q=0.90",
+    "BYP_A=1.00"
+   ]
+  },
+  {
+   "tag": "R12_BYP_either_95_a100_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=either",
+    "BYP_Q=0.95",
+    "BYP_A=1.00"
+   ]
+  },
+  {
+   "tag": "R12_BYP_either_95_a030_s42",
+   "env": [
+    "LEGS=101",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "PHI=0.45",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy",
+    "BYP_STATE=either",
+    "BYP_Q=0.95",
+    "BYP_A=0.30"
+   ]
+  }
+ ],
+ "done_utc": "2026-09-11T21:59:52Z",
+ "self_sha256": "f6ddb1a736b71512e9cfcf3098d7c58d823f184a3c28e6d88efa2b7eed946186"
+}
