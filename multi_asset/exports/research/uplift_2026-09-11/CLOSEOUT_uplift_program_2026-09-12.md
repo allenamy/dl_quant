@@ -1,5 +1,6 @@
 > **创建:** 2026-09-12 | **Session:** https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX | **状态:** 本 program 收口判决; 待用户裁定 8 项(见 `DOCKET_r7_ship_2026-09-12.md`) | **作废条件:** 新数据源入库 / 新面板 / 有臂经 `judge_v4.py` 正式晋级后作废本文的"当前规划数"一节
 > **口径 PIN:** v4 chain 2026-09-09(`CALIBER_PIN_v4_2026-09-11.md`)。g = net_ex/gross_total, bps/4h 锚/单位 gross。成本 = 拟合 `r3k/costb_PWR_G230k.json`(K=0.17, α=0.87)。post-warm 丢前 900 锚(E-0911-A), 上界 2026-08-30 20Z(E-0911-D)。
+> **同内容单页(可离线读, 可给独立研究员):** https://claude.ai/code/artifact/39f410e5-0efb-437f-9afc-0f1ef155a51a
 > **实盘零接触:** 全程 `~/dl_quant_live` / `~/wide_shadow` 只读; 未写、未重启、未下单。研究全部在 `research/book-uplift-2026-09-11` 分支。
 > **ENV(E-0826-D):** 本文自身的算术由 `scratchpad/gap_arith.py` 产出, 环境变量白名单 = 空集。
 
