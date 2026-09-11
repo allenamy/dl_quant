@@ -786,3 +786,50 @@ F 带到账本却没贯穿每个读者(普通 maker 行、均价回退、RC 带�
 1. 已测的费用要求 `fee_paid` 非 None 且有限 —— **已查码**: `apply_commission_to_rows` 在换算未完成时写原币种混合和为数值并标 `fee_all_usdt=False`; 第十四轮 b(第二次提交)把「`fee_all_usdt` 为 False 且无 `fee_conversion`」也判费未知([79] 4 格), 不再当已知计入。币种换算治理本身仍未做。
 2. `chase_readout` 逐锚打印新增 `measured$` 列, 主 CLI 拒绝态与允许态都走同一行格式 —— 已核打印路径唯一。
 3. `order_id_value` 把 bool 判畸形(True 不是 id 1)—— 场所不会返回 bool, 只是防御。
+
+
+---
+
+## §EXECUTOR · 第十五轮(复审 1ef6ce8c: R14-ID-FLOAT-ROUNDTRIP / R14-COST-READER-COVERAGE + 重复 stamp 旧换算标记 + 文案两处)→ 实盘分支 b681ca5
+
+> 全电池 132/132(notify_audit 副本 00:39Z 刷新), 已推送 `review/b0a573a1-executor`。运行树 d040c74 零接触。处置(研究主线): `docs/REVIEW_ACCEPT_round14_codex_1ef6ce8c_2026-09-11.md`; 事实表补格 `docs/DESIGN_request_fact_model_2026-09-10.md` §3i; §3g.1 / §3h.2 / §5 按你的指正更正。两项 P2 全部接受、全部修; 接口反例顺手修; 边界照写。
+
+### 改了什么
+
+| 编号 | 文件 / 函数 | 改动 | 证据(`tests_request_identity_unknown.py`, 378/378; 旧码上红) |
+|---|---|---|---|
+| R14-ID-FLOAT-ROUNDTRIP | `binance_broker.order_id_value`(可接受输入合同写进 docstring) | int 原值; 数字串 `int(s)` 任意精度, 不经 float; 浮点仅整值且 |f| < 2⁵³; 小数文本 / 指数 / NaN / ±Inf / bool / 空串 = 畸形; 同值不同表示相等, 异值不合并, 保存值不变; 贯穿门、ACK 查找、子成交联接(`order_id_int` 同源) | [80] 16 格: 相邻 2⁵³ 的两个 id 门不符; 同值门相符; 查找返回原值 9007199254740993; 原补单链外来 id ⇒ 不可测 / 我方 id ⇒ 接受; 子成交外来 "…993" 不联接(C2 与余量 4 保留)|
+| R14-COST-READER-COVERAGE | `ops/verify_reshape_anchor.neutrality_lines`(新, 主流程调用) | 引用 `n_fills_measured` / `notional_measured_usdt`; 并列全部 / 未定价 / 费未知与两种覆盖率; None 按桶解释; 旧记录标注 | [81] 4 格 |
+| 重复 stamp | `binance_executor.apply_commission_to_rows` | 每次写 `fee_paid` 先清 `fee_conversion` | [82] 2 格 |
+| 文案 | DESIGN §3g.1 / §3h.2 / §5 | `_lower` 与终值并存; `attribute_trades` 主链只把 USDT 计入 commission; 成本读者按读者分列(只有两个诊断有三桶) | — |
+
+### 你的反例在修复分支上的观测
+
+| 反例 | 第十四轮 | 第十五轮 |
+|---|---|---|
+| ACK …992 / GET "…993" | 接受为同一请求 | 不符 ⇒ 不可测 |
+| ACK …993 / GET "…993" | 舍入后拒绝 | 相等 ⇒ 接受 |
+| 双方 "…993" | 账本存 …992 | 存 …993 |
+| "102.000000000000000001" | 读成 102 | 畸形 |
+| 外来 child "…993" 对 ours …992(ours 非终态 C2) | 归入, 关成 C6 | 不联接, C2 / 余量 4 保留 |
+| 3 笔/$15 只 1 笔/$6 已测 | 报表「基于 3 笔/$15」 | 「已测 1 笔/$6; 全部 3 笔/$15; 未定价 $6, 费未知 $3」 |
+| 价可用费部分换算 | 「该侧本锚无 taker 成交」 | 「费未知 1 笔/$3 ⇒ 不可计」 |
+| 先完整换算再缺价重算 | 旧 marker 留存 ⇒ 当全测 | marker 清除 ⇒ 费未知 |
+
+**版本配对**: 无(357 项原样)。
+
+### 未闭合(明写)
+1. 下游成本读者 `daily_summary` / `first_anchor_review` / `score_post_fix` 各自读法, 未继承三桶(§5 已分列登记); 冻结 M1 不改。
+2. 币种换算治理; R6-MARK; 同快照 C×avg 与 N; 时窗; `_seen_syms > 1` 与 settle 整体异常出口; 无场所事实 maker 行走旧读法。
+3. Q6 实现与回放; −2013 终局性(假设); 跨进程同秒平仓 id; M5 再封存; income 缺行 / 币种换算; 物理 BUNDLE_export 门; 52 行写回等部署。
+
+### 电池环境(非产品代码)
+- 首跑电池红 3 套件: `gate_coverage` / `tests_imports` 因盲区文案里的内层双引号打断了字典字符串(SyntaxError; 已改单引号 —— 文案是代码, 也要过语法); `tests_entrypoint_wiring` 在 00:22Z 跑时判「on-schedule」(它读墙钟与锚槽的偏移, 00:24Z 是执行器自己的槽), 00:38Z 复跑绿 —— 时间依赖, 不是缺陷; 规则: 电池避开 HH:20–HH:35(HH ∈ 00/04/…/20)。运行树在 00:24Z 正常跑了 09-11 00Z 锚, 与复审工作树无交集。
+
+### 我方在第十五轮里承认的自己的错(见处置文档 §3)
+「无损」没写可接受输入合同, 用 float 判整数性 / 改了生产者没 grep 它的读者 / 没读主链就概括 `attribute_trades`。
+
+### 请复核(第十五轮新问题, 我方自报; 均已按码核)
+1. 数字串合同只收「去空白后全为 0–9」: 带正号 "+102"、带千分位、带小数点的整值 "102.0" 文本都判畸形 —— 已核场所 JSON 返回原生 int, 文本形态只出现在夹具; 若你认为 "102.0" 文本应接受, 是合同选择, 请指出。
+2. 浮点上限取 2⁵³(含): 2⁵³ 本身可精确表示但 2⁵³+1 不可, 边界取严 —— 一行可改。
+3. `neutrality_lines` 对旧记录(无 `n_fills_measured`)按旧键降级显示并标「旧记录」—— 现网无此记录(分支未部署), 只为读历史文件不崩。
