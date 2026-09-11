@@ -1,0 +1,44 @@
+--- a/ELIGIBILITY_CONTRACT.json
++++ b/ELIGIBILITY_CONTRACT.json
+@@ -2,7 +2,7 @@
+  "contract_schema": "v4_eligibility_contract/1",
+  "created_utc": "2026-09-10T05:30:17Z",
+  "created_by": "main researcher, round 5 (independent review cfaf1bbe §2-4: the standard an arm must meet is a FROZEN research definition, never the eligibility caller's choice)",
+- "review_status": "written round 5; independent review pending. Changing any value here is a change of the reviewed research definition: it must go through review, and it is listed in receipts/v4_scripts_sha_full.json like a source file",
++ "review_status": "written round 5; independent review pending. Changing any value here is a change of the reviewed research definition: it must go through review, and it is listed in receipts/v4_scripts_sha_full.json like a source file | PROPOSED DIFF 2026-09-11 (INFRA2, round 2): BUNDLE_export source+approved sha, and arm XIBLAG50. NOT APPLIED — the frozen file is unchanged; a human must approve.",
+  "rules": [
+   "The judge (judge_v4.py) reads THIS file from its own directory; no environment variable can substitute another contract. JUDGE_ELIGIBILITY only LOCATES receipts ({arm: {receipt, inputs}}); a caller-supplied gate/self_sha/profile that disagrees with this file makes the arm ineligible.",
+   "An arm is a CANDIDATE only if its receipt (a) names the arm's candidacy_gate, (b) was written by a gate source whose sha256 is in gates.<gate>.approved_source_sha256, (c) says PASS, (d) is bound to this arm (receipt.arm == arm), (e) hashes every registered input of the gate (v4_gate_common.REQUIRED_INPUTS) including the four judged book files of the arm (book_binding), each equal to the file the judge loaded.",
+@@ -30,9 +30,11 @@
+    ]
+   },
+   "BUNDLE_export": {
+-   "source": null,
+-   "approved_source_sha256": [],
+-   "note": "physical gate not built: add the reviewed sha256 of v4e_gate_export.py (finalize('BUNDLE_export', ...) over the 7 export inputs + the 4 judged books of the arm) after review"
++   "source": "v4e_gate_export.py",
++   "approved_source_sha256": [
++    "f814c728938482b876cbcaa31f200832d207a0f89387d58ed3e2d0d45448e214"
++   ],
++   "note": "physical gate built 2026-09-11 (INFRA2). It RE-DERIVES the exporter's three guards from the shipped artifacts (fold IC 2024/2025 |d|<=0.004 and pinned 2026 IC |d|<=0.006 recomputed from slow_pred_pinned.npy against BUNDLE_META y4; baseline Sharpe band [2.27,2.57] re-run from block (2) of pod_export_bundle_v4.py), verifies MANIFEST integrity and config/live_pins parity, and enforces the strict book contract + device-sha + config binding on the arm's four judged books. Approving this sha approves those thresholds AS the export standard."
+   }
+  },
+  "arms": {
+@@ -65,6 +67,12 @@
+    "profile": null,
+    "book_binding": true,
+    "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
++  },
++  "XIBLAG50": {
++   "candidacy_gate": "BUNDLE_export",
++   "profile": null,
++   "book_binding": true,
++   "note": "round-2 uplift arm: A0's exact config with the fund-leg score = 0.5*xz(f_fund_ema_v1) + 0.5*xz(f_amihud_24h) whose 24h window ends ONE anchor before E. Injected through FEMAT_NPZ with the bitwise signal builder (xib_signal.py); knobs-off parity arm XIBPAR reproduces the archived A0 arrays bitwise."
+   }
+  },
+  "book_binding": {
+@@ -77,4 +85,4 @@
+   "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
+   "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
+  }
+-}+}

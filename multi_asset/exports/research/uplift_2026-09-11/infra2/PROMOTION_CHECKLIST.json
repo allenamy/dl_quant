@@ -1,0 +1,33 @@
+{
+ "title": "INFRA2 promotion checklist — what an arm must produce to be a CANDIDATE through judge_v4",
+ "created_utc": "2026-09-11",
+ "caliber": "v4 chain pin 2026-09-09; CAL=log, LEGS=101, PHI=0.45, LOOK=900, WRULE=msharpe, MEMBERS_TOPN=829, FTRIM=zero, UMASK_SCOPE=m1, COSTB=calib/costb_fee_steady.json",
+ "steps": [
+  {"n": 1, "what": "Build the four judged books", "detail": "seat dyn+fix x seed 42+2027, with the ARCHIVED replay device w10_health.py sha256 8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d and the pinned COMMON env. File names MUST be <JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz — the judge, not the caller, binds these four paths (ELIGIBILITY_CONTRACT.book_binding).", "receipt": "run_xib_bitwise.py"},
+  {"n": 2, "what": "Keep the FULL artifact", "detail": "cols, symbols, d30_n2_c42_rec (n,23), d30_n2_c42_W (n,n_symbols) finite, config_json. JUDGE_REQUIRE_W=1 demands cols==COLS, symbols present, W finite and shaped (n,n_symbols), the symbols axis IDENTICAL across every loaded arm, and gross_total finite and >0 on the frozen window. Round 1's out/*.npz dropped symbols and W and could never have been judged.", "receipt": "gate v4e_gate_export.py check E5"},
+  {"n": 3, "what": "Exact frozen axis", "detail": "3168 anchors, starting at 2025-03-01 00Z, strict 4h grid, identical to every other loaded arm. An anchor dropped OUTSIDE the window is legal for the schema but still crashes the judge's contrast loop (see judge diff).", "receipt": "gate check E5 frozen_axis_ok / frozen_axis_shared"},
+  {"n": 4, "what": "Run the physical BUNDLE_export gate", "detail": "v4e_gate_export.py. It hashes the 11 REQUIRED_INPUTS (wide_fea_v4, wide_fea_v4_meta, bundle_base, export_panel, bundle_cache, fund_aug, live_pins + the four books), writes receipt.arm = the arm, and exits 0 iff PASS.", "receipt": "receipts/BUNDLE_export_XIBLAG50.json"},
+  {"n": 5, "what": "HUMAN APPROVAL — the only non-mechanical step", "detail": "ELIGIBILITY_CONTRACT.json gates.BUNDLE_export.approved_source_sha256 must contain the gate source's sha256, and arms.<arm> must exist with candidacy_gate BUNDLE_export. See ELIGIBILITY_CONTRACT.PROPOSED.diff.", "receipt": "ELIGIBILITY_CONTRACT.PROPOSED.diff (NOT applied)"},
+  {"n": 6, "what": "Judge with JUDGE_ELIGIBILITY", "detail": "{arm: {receipt, inputs}}. It only LOCATES the receipt; the contract defines the standard. A caller-supplied gate/self_sha/profile that disagrees makes the arm ineligible.", "receipt": "elig_PROPOSED.json"},
+  {"n": 7, "what": "Pass the pre-registered verdict rule", "detail": "(A) PROMOTE requires point>0 AND CI95 lower>0 on BOTH SEEDS, per seat, on the frozen window. Eligibility only converts an (A) from INFO into PROMOTE; it never creates an (A)."}
+ ],
+ "blocking_lines_in_the_frozen_contract": [
+  {"line": "gates.BUNDLE_export.approved_source_sha256 == []  (and .source == null)",
+   "observed_refusal": "eligibility[A1]: NOT eligible — no approved gate source is registered for 'BUNDLE_export' in the frozen contract (the physical gate is not built): no receipt can make 'A1' a candidate",
+   "why_research_not_mechanical": "The sha names WHICH PROGRAM defines 'this arm's bundle is exportable'. The thresholds live inside that program: fold-IC |delta|<=0.004 for 2024 and 2025, pinned 2026 IC |delta|<=0.006, baseline Sharpe band [2.27,2.57], MANIFEST integrity, live_pins parity, and the strict book contract. Approving the sha IS approving those numbers as the standard, and freezing them against later edits. A reviewer must also decide whether re-deriving the guards from the shipped slow_pred_pinned.npy is an acceptable substitute for re-running the exporter (it is not identical: a retrain of the 2024/2025 folds is not reproducible at n_jobs=100, so the gate verifies the SHIPPED predictions, not the training run that made them)."},
+  {"line": "arms.<arm> absent",
+   "observed_refusal": "eligibility[XIBLAG50]: NOT eligible — arm 'XIBLAG50' is not registered as a candidate in the frozen contract (arms: ['A1','A1e','A1s','A2','A3'])",
+   "why_research_not_mechanical": "Registering an arm declares it a candidate FORM, i.e. that this book shape is one the desk is willing to run with real money — a pre-registration act, not bookkeeping."}
+ ],
+ "blocking_lines_outside_the_contract": [
+  {"file": "judge_v4.py L123", "issue": "the loaded-arm tuple ('A0','A0p','A1','A1s','A1e','A2','A3') is hard-coded with no env override: a new arm is never loaded, so its eligibility entry fails at 'judged book ... is not loaded'."},
+  {"file": "judge_v4.py L284", "issue": "CON (the contrast list) is hard-coded: a new arm has no contrast and therefore no verdict."},
+  {"file": "judge_v4.py L299", "issue": "assert np.array_equal(ta, tb) compares the FULL history axis. XIBLAG50_fix legitimately drops 2022-01-31 00Z (outside the frozen window), which raises an uncaught AssertionError. Proposed: assert equality on the FROZEN SLICE, which is the condition the paired statistic actually needs and is already gated to an exact shared 3168-anchor grid. Regression-checked: 0 of 36 pre-existing contrasts and 0 of 18 verdicts change."}
+ ],
+ "receipt_produced": {
+  "arm": "XIBLAG50", "gate": "BUNDLE_export", "PASS": true,
+  "gate_source_sha256": "f814c728938482b876cbcaa31f200832d207a0f89387d58ed3e2d0d45448e214",
+  "inputs_hashed": 11,
+  "require_result_under_the_proposed_contract": "PASS (BUNDLE_export, 2026-09-11T08:43:40Z, self f814c7289384 approved, 11 inputs verified, registered floor BUNDLE_export=11)"
+ }
+}

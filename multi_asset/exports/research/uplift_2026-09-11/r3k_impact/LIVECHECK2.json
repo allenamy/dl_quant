@@ -1,0 +1,115 @@
+{
+ "n_rows": 1064,
+ "n_anchors": 86,
+ "taker_notional": 42515.79937037,
+ "z_support": {
+  "median": 0.001112653954884152,
+  "p90": 0.008606172460903023,
+  "p99": 0.04841351148487869,
+  "max": 0.14936194515372903,
+  "turnwtd": 0.012015293041793046
+ },
+ "replay_turnwtd_z_at_G230k": 0.1592928508097196,
+ "replay_tier2_turnwtd_z_at_G230k": 0.22395,
+ "fit_z_only": {
+  "label": "anchor-FE, z only",
+  "n": 1047,
+  "n_anchors": 69,
+  "coef": {
+   "const": -0.0,
+   "z": 307.612
+  },
+  "se": {
+   "const": 1.664,
+   "z": 92.709
+  },
+  "z_slope_anchorboot_CI95": [
+   -19.65,
+   614.44
+  ],
+  "z_slope_anchorboot_sd": 175.65
+ },
+ "fit_z_plus_spread": {
+  "label": "anchor-FE, z + half-spread",
+  "n": 389,
+  "n_anchors": 41,
+  "coef": {
+   "const": -0.0,
+   "z": 315.907,
+   "halfspread": -1.1
+  },
+  "se": {
+   "const": 3.004,
+   "z": 119.356,
+   "halfspread": 2.411
+  },
+  "z_slope_anchorboot_CI95": [
+   -53.21,
+   663.38
+  ],
+  "z_slope_anchorboot_sd": 244.77
+ },
+ "fit_z_plus_spread_sigma": {
+  "label": "anchor-FE, z + half-spread + sigma4h",
+  "n": 389,
+  "n_anchors": 41,
+  "coef": {
+   "const": -0.0,
+   "z": 442.624,
+   "halfspread": -0.088,
+   "sigma4h": -0.134
+  },
+  "se": {
+   "const": 2.962,
+   "z": 123.56,
+   "halfspread": 2.395,
+   "sigma4h": 0.04
+  },
+  "z_slope_anchorboot_CI95": [
+   83.5,
+   605.53
+  ],
+  "z_slope_anchorboot_sd": 216.45
+ },
+ "fit_trim99": {
+  "label": "anchor-FE, z + half-spread, z<=p99",
+  "n": 378,
+  "n_anchors": 41,
+  "coef": {
+   "const": 3.897,
+   "z": 876.869,
+   "halfspread": -3.552
+  },
+  "se": {
+   "const": 3.488,
+   "z": 226.653,
+   "halfspread": 2.404
+  },
+  "z_slope_anchorboot_CI95": [
+   134.4,
+   1536.63
+  ],
+  "z_slope_anchorboot_sd": 374.33
+ },
+ "fit_trim95": {
+  "label": "anchor-FE, z + half-spread, z<=p95",
+  "n": 352,
+  "n_anchors": 41,
+  "coef": {
+   "const": 0.298,
+   "z": 136.52,
+   "halfspread": 2.547
+  },
+  "se": {
+   "const": 3.491,
+   "z": 224.961,
+   "halfspread": 2.386
+  },
+  "z_slope_anchorboot_CI95": [
+   -279.38,
+   1167.51
+  ],
+  "z_slope_anchorboot_sd": 368.2
+ },
+ "bookwalk_prediction_slope_bps_per_z": 9.5
+}

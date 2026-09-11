@@ -1,0 +1,50 @@
+--- a/judge_v4.py
++++ b/judge_v4.py
+@@ -121,5 +121,5 @@
+     return True, "exact 4h grid"
+ ARMS = {}; missing = []; _schema_bad = {}
+-for arm in ("A0", "A0p", "A1", "A1s", "A1e", "A2", "A3"):
++for arm in ("A0", "A0p", "A1", "A1s", "A1e", "A2", "A3", "XIBLAG50"):
+     for seat in ("dyn", "fix"):
+         for s in ("42", "2027"):
+@@ -282,5 +282,5 @@
+     for w, r in L.items(): print("%-34s %5d %+8.4f %6.2f %+8.2f %9.1f %11s %+9.1f %11s %3d/%2d %6.3f %5s" % (w, r["n"], r["mean_bps"], r["sharpe"], r["annual_pct_per_gross"], r["maxdd_bps"], r["worst_day"], r["worst_day_bps"], r["worst_month"], r["n_neg_months"], r["n_months"], r["w3_king_mean"], "NEG" if r["negative_year"] else ""))
+ # --- contrasts (frozen), per-contrast RNG sub-stream
+-CON = [("A1", "A0"), ("A2", "A0"), ("A3", "A0"), ("A1", "A2"), ("A1", "A3"), ("A1s", "A0"), ("A1s", "A1"), ("A1e", "A1"), ("A1e", "A0")]   # A1e = king clock E-version (PREREG_king_clock_E)
++CON = [("A1", "A0"), ("A2", "A0"), ("A3", "A0"), ("A1", "A2"), ("A1", "A3"), ("A1s", "A0"), ("A1s", "A1"), ("A1e", "A1"), ("A1e", "A0"), ("XIBLAG50", "A0")]   # A1e = king clock E-version (PREREG_king_clock_E); XIBLAG50 = round-2 uplift arm (INFRA2)
+ # ★ review b0a573a1 R4: required inputs + coverage are PROGRAM CONDITIONS. Every arm a contrast needs must be loaded for both seeds and both seats, and every
+ #   loaded arm must cover the whole frozen window as an EXACT 4h grid (round 3: identical time set, no duplicates/gaps); otherwise exit 2. JUDGE_ALLOW_PARTIAL=1 only for exploration.
+@@ -297,8 +297,15 @@
+         for s in ("42", "2027"):
+             if (a, seat, s) not in ARMS or (b, seat, s) not in ARMS: continue
+-            ta, ga, _ = ARMS[(a, seat, s)]; tb, gb, _ = ARMS[(b, seat, s)]; assert np.array_equal(ta, tb), "axis mismatch"
+-            m = (ta >= FROZEN[0]) & (ta < FROZEN[1]); d = (ga - gb)[m]; rng = np.random.default_rng([20260905, ci]); lo, hi, p = boot(d, ta[m] // 86400, rng)
+-            out["contrasts"][f"{a}-{b}|{seat}|s{s}"] = {"delta": float(d.mean()), "ci95": [lo, hi], "p_gt0": p, "n": int(m.sum()), "level_base": float(gb[m].mean()), "level_arm": float(ga[m].mean()), "rng": [20260905, ci]}
+-            print("%-10s %-4s %-5s %+9.4f [%+8.4f,%+8.4f] %6.3f | %+7.4f -> %+7.4f" % (f"{a}-{b}", seat, s, d.mean(), lo, hi, p, gb[m].mean(), ga[m].mean()))
++            ta, ga, _ = ARMS[(a, seat, s)]; tb, gb, _ = ARMS[(b, seat, s)]
++            # INFRA2 2026-09-11: the equality that matters is the VERDICT window, not all of history. An arm whose score
++            # legitimately drops an anchor OUTSIDE the frozen window (XIBLAG50_fix drops 2022-01-31 00Z) used to raise an
++            # uncaught AssertionError here. The frozen axis is already gated above to an exact shared 3168-anchor 4h grid,
++            # so asserting equality ON THAT SLICE is strictly the condition the paired statistic needs — it is not the
++            # np.intersect1d weakening round 4 removed from the references, which silently paired on whatever overlapped.
++            ma = (ta >= FROZEN[0]) & (ta < FROZEN[1]); mb = (tb >= FROZEN[0]) & (tb < FROZEN[1])
++            assert np.array_equal(ta[ma], tb[mb]), "frozen axis mismatch"
++            m = ma; d = ga[ma] - gb[mb]; rng = np.random.default_rng([20260905, ci]); lo, hi, p = boot(d, ta[m] // 86400, rng)
++            out["contrasts"][f"{a}-{b}|{seat}|s{s}"] = {"delta": float(d.mean()), "ci95": [lo, hi], "p_gt0": p, "n": int(m.sum()), "level_base": float(gb[mb].mean()), "level_arm": float(ga[ma].mean()), "rng": [20260905, ci]}
++            print("%-10s %-4s %-5s %+9.4f [%+8.4f,%+8.4f] %6.3f | %+7.4f -> %+7.4f" % (f"{a}-{b}", seat, s, d.mean(), lo, hi, p, gb[mb].mean(), ga[ma].mean()))
+ _ref_ts = next(iter(ARMS.values()))[0] if ARMS else np.array([], dtype=np.int64)
+ _n_ext_more = int(((_ref_ts >= EXT[0]) & (_ref_ts < EXT[1])).sum() - ((_ref_ts >= FROZEN[0]) & (_ref_ts < FROZEN[1])).sum())
+@@ -310,7 +317,10 @@
+         for s in ("42", "2027"):
+             if (a, seat, s) not in ARMS or (b, seat, s) not in ARMS: continue
+-            ta, ga, _ = ARMS[(a, seat, s)]; tb, gb, _ = ARMS[(b, seat, s)]; m = (ta >= EXT[0]) & (ta < EXT[1]); d = (ga - gb)[m]; rng = np.random.default_rng([20260905, 100 + ci]); lo, hi, p = boot(d, ta[m] // 86400, rng)
+-            out["contrasts_extended"][f"{a}-{b}|{seat}|s{s}"] = {"delta": float(d.mean()), "ci95": [lo, hi], "p_gt0": p, "n": int(m.sum()), "level_base": float(gb[m].mean()), "level_arm": float(ga[m].mean()), "rng": [20260905, 100 + ci]}
+-            print("%-10s %-4s %-5s %+9.4f [%+8.4f,%+8.4f] %6.3f | %+7.4f -> %+7.4f  (n=%d)" % (f"{a}-{b}", seat, s, d.mean(), lo, hi, p, gb[m].mean(), ga[m].mean(), m.sum()))
++            ta, ga, _ = ARMS[(a, seat, s)]; tb, gb, _ = ARMS[(b, seat, s)]
++            ma = (ta >= EXT[0]) & (ta < EXT[1]); mb = (tb >= EXT[0]) & (tb < EXT[1])
++            if not np.array_equal(ta[ma], tb[mb]): out["contrasts_extended"][f"{a}-{b}|{seat}|s{s}"] = {"skipped": "extended axis mismatch"}; continue
++            m = ma; d = ga[ma] - gb[mb]; rng = np.random.default_rng([20260905, 100 + ci]); lo, hi, p = boot(d, ta[m] // 86400, rng)
++            out["contrasts_extended"][f"{a}-{b}|{seat}|s{s}"] = {"delta": float(d.mean()), "ci95": [lo, hi], "p_gt0": p, "n": int(m.sum()), "level_base": float(gb[mb].mean()), "level_arm": float(ga[ma].mean()), "rng": [20260905, 100 + ci]}
++            print("%-10s %-4s %-5s %+9.4f [%+8.4f,%+8.4f] %6.3f | %+7.4f -> %+7.4f  (n=%d)" % (f"{a}-{b}", seat, s, d.mean(), lo, hi, p, gb[mb].mean(), ga[ma].mean(), m.sum()))
+ print("\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==")
+ if PARTIAL: print("   ★ EXPLORATORY RUN (JUDGE_ALLOW_PARTIAL=1): inputs incomplete — no verdict is issued, nothing can PROMOTE")

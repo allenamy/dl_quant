@@ -1,0 +1,44 @@
+=== PARITY DIAGNOSIS: IB2_PARITY vs archived A0_dyn_s42, per column ===
+  ts            bitwise=True  ndiff=    0  max|d|=0.000e+00  mean|d|=0.000e+00
+  net           bitwise=False ndiff= 8578  max|d|=1.675e+00  mean|d|=1.232e-02
+  pnl           bitwise=False ndiff= 8578  max|d|=1.675e+00  mean|d|=1.233e-02
+  carry         bitwise=False ndiff= 8574  max|d|=5.940e-02  mean|d|=1.643e-04
+  cost          bitwise=False ndiff= 8200  max|d|=3.494e-03  mean|d|=2.161e-05
+  gross_total   bitwise=False ndiff= 8581  max|d|=3.233e-03  mean|d|=6.160e-05
+  gross_member  bitwise=False ndiff= 8581  max|d|=3.233e-03  mean|d|=6.160e-05
+  gross_sel     bitwise=False ndiff= 8581  max|d|=3.233e-03  mean|d|=6.160e-05
+  nsel          bitwise=True  ndiff=    0  max|d|=0.000e+00  mean|d|=0.000e+00
+  nmember       bitwise=True  ndiff=    0  max|d|=0.000e+00  mean|d|=0.000e+00
+  fires         bitwise=False ndiff=    5  max|d|=2.000e+00  mean|d|=5.977e-04
+  leg_king      bitwise=False ndiff= 3528  max|d|=3.495e-02  mean|d|=3.657e-04
+  leg_rev24     bitwise=True  ndiff=    0  max|d|=0.000e+00  mean|d|=0.000e+00
+  leg_fund      bitwise=False ndiff= 3666  max|d|=2.817e-01  mean|d|=1.913e-03
+  w3_king       bitwise=False ndiff= 3529  max|d|=6.000e-04  mean|d|=2.007e-05
+  w3_rev24      bitwise=True  ndiff=    0  max|d|=0.000e+00  mean|d|=0.000e+00
+  w3_fund       bitwise=False ndiff= 3529  max|d|=6.000e-04  mean|d|=2.007e-05
+  turnover      bitwise=False ndiff= 8196  max|d|=1.727e-03  mean|d|=1.051e-05
+  net_ex        bitwise=False ndiff= 8580  max|d|=1.780e+00  mean|d|=9.776e-03
+  pnl_ex        bitwise=False ndiff= 8581  max|d|=1.777e+00  mean|d|=9.786e-03
+  carry_ex      bitwise=False ndiff= 8578  max|d|=5.942e-02  mean|d|=1.959e-04
+  cost_ex       bitwise=False ndiff= 8531  max|d|=6.063e-03  mean|d|=2.140e-05
+  netlong       bitwise=False ndiff= 8581  max|d|=5.108e-03  mean|d|=8.522e-05
+  g series: mean|dg| 0.01359 bps  max 2.3438  mean dg +0.000271
+
+=== BONFERRONI (K=36 declared): two-sided 95% and 99.8611% block-bootstrap bounds, full cycle ===
+  SL2_ORTH_AMIRESID__p     level +0.8760  CI95 [+0.4037,+1.3450]  BONF36 [+0.0433,+1.6211]  SURVIVES
+  SL2_ORTH_ASZSTAB__p      level +0.5808  CI95 [+0.1036,+1.0273]  BONF36 [-0.0449,+1.2522]  fails Bonferroni
+  SL2_ORTH_RESSKEW__m      level +0.4266  CI95 [+0.0491,+0.8198]  BONF36 [-0.2546,+1.0724]  fails Bonferroni
+  IB2_AMIRESID50           paired D +0.4913  CI95 [+0.2704,+0.7379]  BONF36 [+0.1584,+0.8602]  SURVIVES
+  IB2_AMIRESID25           paired D +0.2205  CI95 [+0.1095,+0.3357]  BONF36 [+0.0398,+0.4108]  SURVIVES
+
+=== candidate set: pairwise correlation and N_eff (full cycle) ===
+                            A0          TH_AMIRESID__p          RTH_ASZSTAB__p          RTH_RESSKEW__m
+A0                                       1.000                   0.173                   0.152                   0.197
+SL2_ORTH_AMIRESID__p                     0.173                   1.000                   0.407                   0.121
+SL2_ORTH_ASZSTAB__p                      0.152                   0.407                   1.000                  -0.061
+SL2_ORTH_RESSKEW__m                      0.197                   0.121                  -0.061                   1.000
+N_eff(participation ratio) = 3.515 of 4
+N_eff(three sleeves only)  = 2.672 of 3
+standalone SR: {'A0': 1.316, 'TH_AMIRESID__p': 1.816, 'RTH_ASZSTAB__p': 1.193, 'RTH_RESSKEW__m': 1.021}
+sqrt(sum SR^2) over the 3 sleeves + A0 (ZERO-correlation ideal) = 2.738
+in-sample optimal combination SR = 2.233 (upper bound, weights fitted in sample)

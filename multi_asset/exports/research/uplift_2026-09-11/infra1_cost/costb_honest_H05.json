@@ -1,0 +1,52 @@
+{
+ "tiers": [
+  {
+   "name": "tier0_qv4h>=5e6",
+   "maker_bps": 2.223015,
+   "taker_bps": 6.173846,
+   "maker_share": 0.810909
+  },
+  {
+   "name": "tier1_qv4h>=1e6",
+   "maker_bps": 2.694691,
+   "taker_bps": 7.195206,
+   "maker_share": 0.845542
+  },
+  {
+   "name": "tier2_rest",
+   "maker_bps": 4.170382,
+   "taker_bps": 9.494709,
+   "maker_share": 0.835498
+  }
+ ],
+ "model": "honest_fee+spread+impactK0.5",
+ "impact_multiple_K": 0.5,
+ "blended_bps_per_unit_turnover": [
+  2.9701,
+  3.3898,
+  5.0462
+ ],
+ "book_avg_bps_per_unit_turnover": 3.7349,
+ "turnover_share_by_tier": [
+  0.3092,
+  0.4041,
+  0.2867
+ ],
+ "calibration": {
+  "fills_source": "/Users/haosiyu/dl_quant_live/state/live/pilot_log/*/fills.jsonl + orders.jsonl, READ-ONLY",
+  "fills_raw_rows": 81161,
+  "fills_deduped": 33886,
+  "dedupe_key": "(symbol,trade_id)",
+  "sample_window_utc": [
+   "2026-08-01T04Z",
+   "2026-09-11T04Z"
+  ],
+  "n_live_anchors": 243,
+  "qv4h_join": "panel wide_panel_4h_v2ext / meta_newprod_v4 qvk -> expm1(clip(qvk,0,30))*48; anchors after 2026-08-31 20Z (15367 of 47135 rows) use the symbol's median qv4h over the last 42 panel rows = DECLARED EXTRAPOLATION",
+  "maker_share_excludes": "order_type=protective_flatten (14-17% of filled notional; stop-loss / watchdog events on 2026-09-06 and 2026-09-09, not steady-state rebalancing)",
+  "fee_note": "measured 1.90/4.76 bps vs the deployed model's 1.80/4.50: the deployed value assumes 100% BNB-discounted fees; realised BNB coverage is ~48% of fill notional",
+  "impact_form": "I_bps = K * sigma_4h_bps * sqrt(|trade|*G/qv4h), sigma_4h from meta y4 per name, G=230000 USDT (live NAV 114,949 x constant_leverage_2.00, daily_nav.jsonl 2026-09-11)",
+  "impact_extrapolation": "participation in the replay is 9.8e-6 (tier0) to 4.9e-4 (tier2); at that size impact is BELOW the noise floor of the live fills, so K is NOT fitted. Tier constants are a LINEARISATION valid at G=$230k; impact scales as sqrt(G), so K=2 == 4x gross and K=3 == 9x gross at the same K=1 coefficient.",
+  "replay_traded_range": "the device trades only qv4h>=2.5e5 (log10=5.4); the two least-liquid live deciles (log10 qv4h 4.71-5.40) are OUTSIDE the replay's traded set"
+ }
+}

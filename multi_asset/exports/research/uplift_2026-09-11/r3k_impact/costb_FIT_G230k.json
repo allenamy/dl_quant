@@ -1,0 +1,50 @@
+{
+ "tiers": [
+  {
+   "name": "tier0_qv4h>=5e6",
+   "maker_bps": 1.907038,
+   "taker_bps": 5.85787,
+   "maker_share": 0.810909
+  },
+  {
+   "name": "tier1_qv4h>=1e6",
+   "maker_bps": 1.945126,
+   "taker_bps": 6.44564,
+   "maker_share": 0.845542
+  },
+  {
+   "name": "tier2_rest",
+   "maker_bps": 2.505458,
+   "taker_bps": 7.829785,
+   "maker_share": 0.835498
+  }
+ ],
+ "model": "book-walk impact, excess of half-spread, G=$230000",
+ "impact_bps_by_tier": [
+  0.003096,
+  0.029318,
+  0.597585
+ ],
+ "blended_bps_per_unit_turnover": [
+  2.6541,
+  2.6403,
+  3.3813
+ ],
+ "book_avg_bps_per_unit_turnover": 2.857,
+ "turnover_share_by_tier": [
+  0.3092,
+  0.4041,
+  0.2867
+ ],
+ "calibration": {
+  "fees_and_spread": "MEASURED, infra1_cost/tier_stats.json (33,886 deduped live fills, 243 anchors)",
+  "impact_source": "MEASURED order-book walk, /workspace/lob_npz 0.2%-band era (2026 anchors only, 1331 of them), causal mean cumulative notional over [E-3600,E), book's own per-name trades from the archived A0 d30_n2_c42_W at the stated gross; piecewise-uniform density between published band edges.",
+  "known_limits": [
+   "the +-0.2% band exists only from 2026, so the tier constants are measured on 2026 and applied to 2022-2026; the 1%-band control says the full-history book-average walk is 0.40x the 2026 level, so this is CONSERVATIVE (over-charges the pre-2026 years)",
+   "book-walk cost is INSTANTANEOUS aggressive-execution cost. 81-85% of live fills are MAKER and never cross; charging them the walk is deliberately conservative.",
+   "no temporary/permanent decomposition and no queue/adverse-selection term."
+  ],
+  "gross_usdt": 230000.0,
+  "caliber": "excess_of_half_spread"
+ }
+}
