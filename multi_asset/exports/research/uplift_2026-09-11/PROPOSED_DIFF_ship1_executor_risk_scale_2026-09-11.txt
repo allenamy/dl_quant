@@ -1,0 +1,239 @@
+PROPOSED DIFF — NOT APPLIED.  ~/dl_quant_live is READ-ONLY in this session (real money).
+Session: SHIP-1 (round-5), branch research/book-uplift-2026-09-11, NOT committed.
+Base tree: the RUNNING tree /Users/haosiyu/dl_quant_live @ d040c74 (VERIFIED: `git -C ~/dl_quant_live
+rev-parse --short HEAD` = d040c74).  ★ origin/main is b681ca5, 19 commits AHEAD and NOT DEPLOYED
+(STATE.md 2026-09-11 04Z/08Z rows).  If the user deploys b681ca5 first, EVERY context line below must
+be re-derived against that tree before this patch is applied.  Do not apply a patch across a tree swap.
+
+Subject: BLOCKER 1 — let the producer say "I am degraded, run me smaller", in a way the executor honours.
+Where it would go:  live/external_book.py, scheduler/anchor_loop.py, config/book.json,
+                    live/tests_producer_risk.py (new), run_acceptance.sh, ops/gate_coverage.py.
+Applied by:         ops/safe_commit.sh only, with the full battery green.  Never by hand.
+
+=====================================================================================================
+0.  THE FACT THIS PATCH EXISTS TO FIX  (all VERIFIED by reading the running tree)
+=====================================================================================================
+The gross the book actually takes is decided in exactly three places, and the producer is in NONE of them:
+
+  external_book.py:483-490   target_vector() -> w_in / gross_in.  The divisor is UNCONDITIONAL.
+                             Whatever gross the producer wrote (gross_norm / gross_in) is divided out;
+                             the returned vector has sum|.| == 1 BY CONSTRUCTION.
+  anchor_loop.py:1490        book["target_w"] = EXT.target_vector(external, symbols)
+  anchor_loop.py:1588-1602   _g from sigma_ladder.load();
+                             _size_book(target_leverage = external["gross_mult"] * _g)
+  anchor_loop.py:1618        target = LG.to_notional(book["target_w"], symbols, self.gross)
+                             with self.gross = nav * target_leverage  (anchor_loop.py:1129-1198)
+
+  => live gross = NAV x gross_mult x g_sigma, and NOTHING the producer writes can lower it.
+     A producer that computed half a book, or a sleeve that silently went NaN, gets re-levered to
+     full risk by one division.  "Run me smaller" is NOT EXPRESSIBLE in schema wide_target_v1 today.
+
+=====================================================================================================
+1.  WHY NOT JUST REUSE THE sigma_ladder CHANNEL  (the cheapest-looking answer; I evaluated it and it loses)
+=====================================================================================================
+The precedent is real and it is the right ARITHMETIC (target_leverage = gross_mult x g, one
+multiplication, in the units the leverage policy itself speaks).  Reusing the FILE loses on four counts,
+three of them measured today:
+
+ (a) TWO WRITERS, ONE FILE.  The dashboard's writer /Users/haosiyu/regime_dash/sigma_ladder.py and its
+     job com.hsy.sigma_ladder.plist BOTH EXIST on this machine.  If the producer also wrote
+     state/live/sigma_ladder.json, the two would race on one path, last writer wins, and each would
+     silently erase the other's risk decision.  A shared mutable risk channel with two independent
+     authors is a defect, not a saving.
+ (b) THE WHITELIST IS WRONG FOR THIS USE.  sigma_ladder.ALLOWED_G == (0.5, 1.0).  A degraded-sleeve
+     scale of 0.8 would be REJECTED -> g=1.0 -> full risk.  Widening that whitelist changes the
+     sigma-ladder's own pre-registered contract (PREREG_deploy_sigma_ladder_2026-09-04) as a side
+     effect of a sleeve deployment.  Two rulings in one patch.
+ (c) IT INVERTS THE WRITE DIRECTION.  The producer today writes NOTHING into ~/dl_quant_live
+     (VERIFIED: `grep -rn dl_quant_live ~/wide_shadow/*.py` returns only READS of pilot_log and one
+     sys.path insert).  The executor reaches ACROSS to read the producer's tree; the producer never
+     reaches across to write the executor's.  tests_scoped_writes.py exists because write-scope
+     violations have already cost this repo a corrupted production ledger.
+ (d) `missing` IS SILENT, BY DESIGN.  sigma_ladder.evaluate(None) -> (1.0, reason="missing"), and
+     anchor_loop.py:1594-1595 alarms only when `reason not in ("missing","not_external")`.  So a
+     producer whose risk file never lands runs at FULL gross with NO alarm.  See §4: that exact
+     shape is not a hypothesis here, it is this channel's entire operating history.
+
+ ★ WHAT I DO REUSE: the arithmetic, the fail-safe direction (any defect -> 1.0, never a reduction we
+   did not decide), the module shape (pure evaluate() + one loader), and the S4 contract
+   ("default path byte-identical to the pre-change call").  Only the FILE is rejected.
+
+=====================================================================================================
+2.  THE MINIMAL CHANGE — one optional field in the file the executor ALREADY verifies
+=====================================================================================================
+wide_target_v1 gains ONE optional field, `risk_scale`.  It rides inside the target file, so it
+inherits — for free, with no new code — every protection that file already has: sha256 sidecar
+verification, anchor_ts == this anchor, written_utc freshness (max_age_min=10), the producer prefix
+check, and the staleness ladder.  A stale risk decision is a stale TARGET, which is already detected,
+already alarms HIGH, and already drives the pre-registered HOLD ladder (config/book.json
+external_book._on_unavailable).  That is the whole reason to put it here rather than in a second file.
+
+--- live/external_book.py
+@@ (new pure function, immediately above parse_target at L301)
++_RISK_SCALE_ALLOWED = (1.0, 0.8, 0.5)
++
++
++def parse_risk_scale(doc: Dict[str, Any]) -> Tuple[float, Dict[str, Any]]:
++    """The producer's own risk multiplier, 1.0 when it says nothing.  PURE.
++
++    ★ FAIL-SAFE IS 1.0 IN ONE DIRECTION ONLY, AND THAT ASYMMETRY IS THE POINT.
++    ABSENT  -> 1.0, accepted, reason "absent".  An old producer, or a producer running no sleeve,
++               must be bitwise the current behaviour.
++    PRESENT but not on the whitelist / not finite / not a number -> the WHOLE FILE IS REJECTED
++               (see parse_target below), NOT coerced to 1.0.  A producer that tried to say something
++               about risk and said it wrongly is a producer we do not trust to size the book; the
++               existing on_unavailable="hold" path (hold current positions + HIGH alarm) is the
++               honest response, and it is already written, already tested, already pre-registered.
++               Coercing a malformed risk statement to "full risk" is how sigma_ladder's `missing`
++               became invisible.  We do not repeat it.
++    The whitelist is DISCRETE on purpose: a continuous field lets a producer arithmetic bug write
++    0.003 or 4.0 and be believed.  Three values are enough to say "fine / degraded / badly degraded".
++    """
++    if "risk_scale" not in doc:
++        return 1.0, {"risk_scale": 1.0, "declared": False, "accepted": True, "reason": "absent"}
++    v = doc.get("risk_scale")
++    if isinstance(v, bool) or not isinstance(v, (int, float)):
++        return 1.0, {"risk_scale": None, "declared": True, "accepted": False,
++                     "reason": f"risk_scale not a number: {v!r}"}
++    f = float(v)
++    if math.isnan(f) or math.isinf(f):
++        return 1.0, {"risk_scale": None, "declared": True, "accepted": False,
++                     "reason": f"risk_scale not finite: {f}"}
++    if not any(abs(f - a) < 1e-12 for a in _RISK_SCALE_ALLOWED):
++        return 1.0, {"risk_scale": None, "declared": True, "accepted": False,
++                     "reason": f"risk_scale {f} not in whitelist {list(_RISK_SCALE_ALLOWED)}"}
++    rr = doc.get("risk_reason")
++    return f, {"risk_scale": f, "declared": True, "accepted": True, "reason": None,
++               "risk_reason": (str(rr)[:200] if isinstance(rr, str) else None),
++               "sleeve_alloc": (float(doc["sleeve_alloc"])
++                                if isinstance(doc.get("sleeve_alloc"), (int, float))
++                                and not isinstance(doc.get("sleeve_alloc"), bool) else None)}
+
+@@ live/external_book.py parse_target(), immediately AFTER the gross_norm_mismatch check (L357-359)
+     s_abs = float(sum(abs(v) for v in clean.values()))
+     if abs(s_abs - gn) > 1e-6 * max(gn, 1.0):
+         return _err("gross_norm_mismatch", f"sum|w|={s_abs:.9f} != gross_norm={gn:.9f}")
++    # ★ the producer's risk statement.  Malformed => the file is REJECTED, not silently re-levered.
++    _rs, _rinfo = parse_risk_scale(doc)
++    if not _rinfo["accepted"]:
++        return _err("risk_scale", _rinfo["reason"])
+
+@@ live/external_book.py parse_target() return dict (L385-398), add three keys
+             "age_s": round(age_s, 1), "producer": doc.get("producer"),
+-            "n_universe": doc.get("n_universe")}
++            "n_universe": doc.get("n_universe"),
++            # ★ RISK SCALE IS NOT APPLIED TO THE VECTOR.  See target_vector's docstring below: the
++            #   vector stays unit-gross so that every caliber downstream (min-notional mass_frac,
++            #   reshape gross_before, net_over_gross, the exposure floor) keeps the meaning it has
++            #   today.  The scale is applied ONCE, to target_leverage, where the leverage policy
++            #   (§4-4b) and the exposure floor can both SEE it.
++            "risk_scale": _rs, "risk_info": _rinfo,
++            "sleeve_alloc": _rinfo.get("sleeve_alloc")}
+
+@@ live/external_book.py target_vector() docstring L484-487 — ONE sentence added, NO code change
+     """w_in / gross_in aligned to `symbols` — sum|.| == 1 over the IN-UNIVERSE book, so
+     `to_notional(. , gross)` gives a live gross of exactly NAV x gross_mult, undiluted by any
+     out-of-universe tail (2026-08-22: the denominator moved from the file's gross_norm to the
+-    in-universe sum). A symbol the producer does not target (held name being exited) maps to 0."""
++    in-universe sum). A symbol the producer does not target (held name being exited) maps to 0.
++    ★ 2026-09-11: this division is ALSO why a producer cannot express "run me smaller" through the
++    weights — it is removed here by construction. The producer says that through ext["risk_scale"],
++    which anchor_loop multiplies into target_leverage. Do NOT scale the vector here: sum|.| == 1 is
++    depended on by the min-notional mass fraction, the reshape gross_before ratio and the
++    net_over_gross caliber, and a hidden scale would make self.gross a lie about the book."""
+
+--- scheduler/anchor_loop.py
+@@ L1588-1602 (the ladder block) — one load, one multiplication, two alarms
+         _g, _ginfo = (1.0, {"src": "sigma_ladder", "g": 1.0, "accepted": False, "reason": "not_external"})
++        _r, _rinfo = (1.0, {"risk_scale": 1.0, "declared": False, "accepted": True, "reason": "not_external"})
+         if _is_ext:
+             import sigma_ladder as _SLAD   # live/ 已在 sys.path(与 external_book/per_name_stop 同式)
+             _g, _ginfo = _SLAD.load()
+             if _ginfo.get("accepted") and _g < 1.0:
+                 self.alarm("INFO", f"σ_fund 阶梯低档: g={_g} ...")
+             elif (not _ginfo.get("accepted")) and _ginfo.get("reason") not in ("missing", "not_external"):
+                 self.alarm("INFO", f"σ_fund 阶梯状态文件被拒({_ginfo.get('reason')}) — 按 g=1.0 运行")
+             _bw["gross_ladder"] = _ginfo
++            # ★ PRODUCER-DECLARED RISK SCALE (PREREG_ship1_amihud_4th_leg_2026-09-11 §B1).
++            #   Already validated inside parse_target; a malformed one never reaches here (the file
++            #   was rejected upstream and this anchor is on the HOLD path instead).
++            _r, _rinfo = float(external.get("risk_scale", 1.0)), (external.get("risk_info") or {})
++            _bw["producer_risk"] = _rinfo
++            if _r < 1.0:
++                # HIGH, not INFO: the producer is telling us it is BROKEN, in production, with money on.
++                self.alarm("HIGH", f"生产者自报降级 risk_scale={_r} 原因={_rinfo.get('risk_reason')} — "
++                                   f"本锚目标 gross = NAV×{external['gross_mult']}×{_g}×{_r}; "
++                                   f"sleeve_alloc={_rinfo.get('sleeve_alloc')}")
++            # ★ SCHEMA REGRESSION GUARD — the answer to "a silent fail-safe to full risk is itself
++            #   the defect".  Once a producer has declared risk_scale, a LATER file that declares
++            #   nothing is not "a producer with nothing to say"; it is a producer that lost the code
++            #   path, and it would fail OPEN to full risk with no signature at all.  So we remember.
++            _seen = bool((state or {}).get("external_risk_scale_seen"))
++            if _rinfo.get("declared"):
++                state["external_risk_scale_seen"] = True
++            elif _seen:
++                self.alarm("HIGH", "生产者曾声明 risk_scale, 本锚不再声明 —— 降级通道可能已消失 "
++                                   "(schema regression), 本锚按 risk_scale=1.0 满仓运行")
+-        if _is_ext and _g < 1.0:   # ladder low mode (rare)
+-            _sz = self._size_book(target_leverage=external["gross_mult"] * _g,
+-                                  leverage_source=f"external_book.gross_mult×ladder({_g})")
+-        else:                       # default path — byte-identical to the pre-ladder call (S4 contract)
++        if _is_ext and (_g < 1.0 or _r < 1.0):   # ladder low mode and/or producer-declared degradation
++            _sz = self._size_book(target_leverage=external["gross_mult"] * _g * _r,
++                                  leverage_source=f"external_book.gross_mult×ladder({_g})×producer_risk({_r})")
++        else:                       # default path — byte-identical to the pre-change call (S4 contract)
+             _sz = self._size_book(target_leverage=(external["gross_mult"] if _is_ext else None),
+                                   leverage_source=("external_book.gross_mult" if _is_ext else None))
+
+  ★ NOTE ON THE EXPOSURE FLOOR (anchor_loop.py:1603-1616).  _size_book can return halt=True when
+    NAV x target_leverage falls below the floor, and the ruling there is "BELOW THE EXPOSURE FLOOR WE
+    STOP, WE DO NOT SHRINK".  risk_scale=0.5 halves target_leverage and therefore CAN trip that floor.
+    That is correct and intended — a half-size wide book is exactly the "concentrated residue with the
+    breadth the strategy depends on gone" that clause was written for — but it means a degraded sleeve
+    can escalate to a HALT, not merely to a smaller book.  It is in the failure-mode table in the
+    prereg (§B1-FM7) and it is a reason the whitelist stops at 0.5 rather than going lower.
+
+--- config/book.json  (external_book block)
++    "risk_scale_allowed": [1.0, 0.8, 0.5],
++    "_risk_scale": "生产者自报风险乘子(PREREG_ship1 §B1)。缺省=1.0(与今日逐位相同)。白名单外/非数/非有限 ⇒
++                    整个 target 文件被拒 ⇒ 走既有 on_unavailable=hold + HIGH 告警, 绝不静默按 1.0 满仓。
++                    应用点 = target_leverage(不是权重向量): 权重向量必须保持 sum|.|==1, 否则 min_notional
++                    质量分数 / reshape gross_before / net_over_gross 三个口径同时失真。
++                    0.5 会把 target_leverage 减半, 可能触发 _size_book 的 exposure floor ⇒ HALT(设计内)。"
+
+--- run_acceptance.sh  (SUITES array, after the tests_sigma_ladder line at L55)
+   "tests_sigma_ladder:$_SELF/live/tests_sigma_ladder.py"
++  "tests_producer_risk:$_SELF/live/tests_producer_risk.py"
+
+--- ops/gate_coverage.py  (SUITE_SCOPE dict — ★ REQUIRED: verify() goes RED for any battery suite
+                           with no blind-spot entry, and for any entry naming a suite not in the battery)
++    "tests_producer_risk": "that the book is ACTUALLY SMALLER when the producer says it is degraded — it
++     proves only, on fixture documents and a static read of the loop, that parse_risk_scale returns 1.0
++     for an absent field, that every malformed/off-whitelist value REJECTS the whole target file rather
++     than coercing to 1.0, that an accepted 0.8/0.5 survives parse_target round-trip, that the vector
++     returned by target_vector is UNCHANGED (sum|.|==1) in every case, and that anchor_loop's text
++     multiplies risk_scale into target_leverage and alarms HIGH below 1.0. Five blind spots: (a) every
++     behavioural case runs on the PURE functions plus a TEXT read of anchor_loop — nothing here proves a
++     live anchor reaches that block, which is the harvest_ema/per_name_stop shape and has bitten twice;
++     (b) it cannot establish that the PRODUCER ever writes the field truthfully — a producer whose sleeve
++     dies without noticing writes risk_scale=1.0 and every assertion here passes; the degradation
++     REHEARSAL (prereg §C4) is the only thing that tests that half, and it is a manual discipline with no
++     assertion in this battery; (c) the schema-regression guard is keyed on loop state
++     (external_risk_scale_seen), so a wiped state file silently re-arms the fail-open and nothing goes red;
++     (d) it says nothing about whether 0.8 is the RIGHT reduction — the number is a pre-registered guess,
++     not a measured one, and no evidence in this repo bears on it; (e) it does not exercise the exposure
++     floor interaction, so the case where risk_scale=0.5 escalates to a HALT is described in prose and
++     asserted nowhere.",
+
+=====================================================================================================
+3.  WHAT IS DELIBERATELY *NOT* IN THIS PATCH
+=====================================================================================================
+  target_vector()'s division              unchanged (only the docstring gains a warning)
+  the weight vector                       unchanged, still sum|.| == 1
+  sigma_ladder.py / its whitelist / plist unchanged
+  ELIGIBILITY_CONTRACT.json               no change needed
+  judge_v4.py                             no change needed
+  ~/wide_shadow/**                        the producer half is a SEPARATE diff
+                                          (PROPOSED_DIFF_p6_amihud_producer_2026-09-11.txt) and a
+                                          separate risk: this executor patch is inert until a
+                                          producer writes the field, which is why it can land first.
