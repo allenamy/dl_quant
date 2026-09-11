@@ -1,0 +1,256 @@
+{
+ "device": "/workspace/uplift_2026-09-11/r8b2/w10_sleeve_tilt.py",
+ "device_sha256": "7dd6324acd3610811b9cd191b5ab753ae6a01a80f46d3bcc0f17a5f0e1233c71",
+ "costb_sha256": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+ "env_whitelist": [
+  "LEGS",
+  "CAL",
+  "WRULE",
+  "LOOK",
+  "MEMBERS_TOPN",
+  "FTRIM",
+  "PHI",
+  "UMASK_SCOPE",
+  "UMASK_NPZ",
+  "SLOW_NPY",
+  "FSEED",
+  "FPRED",
+  "COSTB_JSON",
+  "OUT_TAG",
+  "TILT",
+  "TILT_TAU",
+  "TILT_K"
+ ],
+ "common_env": [
+  "CAL=log",
+  "WRULE=msharpe",
+  "LOOK=900",
+  "MEMBERS_TOPN=829",
+  "FTRIM=zero",
+  "UMASK_SCOPE=m1",
+  "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+  "SLOW_NPY=/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+  "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json"
+ ],
+ "jobs": [
+  [
+   "R8_A0_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy"
+   ]
+  ],
+  [
+   "R8_A0_s2027",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=2027",
+    "FPRED=f10_A0_s2027.npy"
+   ]
+  ],
+  [
+   "R8_FUND",
+   [
+    "LEGS=001",
+    "PHI=0",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy"
+   ]
+  ],
+  [
+   "R8_KING",
+   [
+    "LEGS=100",
+    "PHI=0",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy"
+   ]
+  ],
+  [
+   "R8_S00_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0"
+   ]
+  ],
+  [
+   "R8_S25_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.25"
+   ]
+  ],
+  [
+   "R8_S50_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.5"
+   ]
+  ],
+  [
+   "R8_S75_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.75"
+   ]
+  ],
+  [
+   "R8_R00_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=ramp",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0"
+   ]
+  ],
+  [
+   "R8_R25_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=ramp",
+    "TILT_TAU=4.75",
+    "TILT_K=0.25"
+   ]
+  ],
+  [
+   "R8_R50_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=ramp",
+    "TILT_TAU=4.75",
+    "TILT_K=0.5"
+   ]
+  ],
+  [
+   "R8_P05_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=0.5"
+   ]
+  ],
+  [
+   "R8_P10_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=1.0"
+   ]
+  ]
+ ],
+ "repro": {
+  "R8_A0_s42": {
+   "rec": {
+    "bitwise": true,
+    "shape": [
+     10039,
+     23
+    ]
+   },
+   "W": {
+    "bitwise": true,
+    "shape": [
+     10039,
+     829
+    ]
+   },
+   "ref": "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s42.npz",
+   "ref_sha16": "352ac36fb3195327"
+  },
+  "R8_A0_s2027": {
+   "rec": {
+    "bitwise": true,
+    "shape": [
+     10039,
+     23
+    ]
+   },
+   "W": {
+    "bitwise": true,
+    "shape": [
+     10039,
+     829
+    ]
+   },
+   "ref": "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s2027.npz",
+   "ref_sha16": "aa44e18fb6bcfa7e"
+  },
+  "R8_FUND": {
+   "d30_n2_c42_rec": {
+    "bitwise": true,
+    "shape": [
+     10039,
+     23
+    ]
+   },
+   "d30_n2_c42_W": {
+    "bitwise": true,
+    "shape": [
+     10039,
+     829
+    ]
+   },
+   "ref": "/workspace/uplift_2026-09-11/r7f2/dev/probe_artifacts/w10_ablation_series_R7_LEGFUND_PWR_s42.npz",
+   "ref_sha16": "87e417e3f6f01279"
+  },
+  "R8_KING": {
+   "d30_n2_c42_rec": {
+    "bitwise": true,
+    "shape": [
+     6738,
+     23
+    ]
+   },
+   "d30_n2_c42_W": {
+    "bitwise": true,
+    "shape": [
+     6738,
+     829
+    ]
+   },
+   "ref": "/workspace/uplift_2026-09-11/r7f2/dev/probe_artifacts/w10_ablation_series_R7_LEGKING_PWR_s42.npz",
+   "ref_sha16": "84a680dbf8037720"
+  }
+ },
+ "REPRO_PASS": true
+}

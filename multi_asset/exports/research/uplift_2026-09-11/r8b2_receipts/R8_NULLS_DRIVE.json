@@ -1,0 +1,347 @@
+{
+ "device2": "/workspace/uplift_2026-09-11/r8b2/w10_sleeve_tilt2.py",
+ "device2_sha256": "0ff501815bdc564f680ed5f89e832a5f02841786977b59546ef26b07fc861328",
+ "device1_sha256": "7dd6324acd3610811b9cd191b5ab753ae6a01a80f46d3bcc0f17a5f0e1233c71",
+ "env_whitelist": [
+  "LEGS",
+  "CAL",
+  "WRULE",
+  "LOOK",
+  "MEMBERS_TOPN",
+  "FTRIM",
+  "PHI",
+  "UMASK_SCOPE",
+  "UMASK_NPZ",
+  "SLOW_NPY",
+  "FSEED",
+  "FPRED",
+  "COSTB_JSON",
+  "OUT_TAG",
+  "TILT",
+  "TILT_TAU",
+  "TILT_K",
+  "TILT_SIG_NPZ",
+  "W3FIX"
+ ],
+ "common_env": [
+  "CAL=log",
+  "WRULE=msharpe",
+  "LOOK=900",
+  "MEMBERS_TOPN=829",
+  "FTRIM=zero",
+  "UMASK_SCOPE=m1",
+  "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+  "SLOW_NPY=/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+  "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json"
+ ],
+ "feeds": {
+  "SHIFT0": "/workspace/uplift_2026-09-11/r8b2/sig/SHIFT0.npz",
+  "SHIFT101": "/workspace/uplift_2026-09-11/r8b2/sig/SHIFT101.npz",
+  "SHIFT503": "/workspace/uplift_2026-09-11/r8b2/sig/SHIFT503.npz",
+  "SHIFT1009": "/workspace/uplift_2026-09-11/r8b2/sig/SHIFT1009.npz",
+  "ROT1": "/workspace/uplift_2026-09-11/r8b2/sig/ROT1.npz",
+  "ROT2": "/workspace/uplift_2026-09-11/r8b2/sig/ROT2.npz",
+  "ROT3": "/workspace/uplift_2026-09-11/r8b2/sig/ROT3.npz"
+ },
+ "jobs": [
+  [
+   "GP8B_A0_dyn_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "SLOW_NPY=/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "COSTB_JSON=/workspace/review_scratch/health_check/calib/costb_fee_steady.json"
+   ]
+  ],
+  [
+   "GP8B_A0_dyn_s2027",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "SLOW_NPY=/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+    "FSEED=2027",
+    "FPRED=f10_A0_s2027.npy",
+    "COSTB_JSON=/workspace/review_scratch/health_check/calib/costb_fee_steady.json"
+   ]
+  ],
+  [
+   "GP8B_A0_fix_s42",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "SLOW_NPY=/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "COSTB_JSON=/workspace/review_scratch/health_check/calib/costb_fee_steady.json",
+    "W3FIX=0.21,0,0.79"
+   ]
+  ],
+  [
+   "GP8B_A0_fix_s2027",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "CAL=log",
+    "WRULE=msharpe",
+    "LOOK=900",
+    "MEMBERS_TOPN=829",
+    "FTRIM=zero",
+    "UMASK_SCOPE=m1",
+    "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+    "SLOW_NPY=/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+    "FSEED=2027",
+    "FPRED=f10_A0_s2027.npy",
+    "COSTB_JSON=/workspace/review_scratch/health_check/calib/costb_fee_steady.json",
+    "W3FIX=0.21,0,0.79"
+   ]
+  ],
+  [
+   "R8N_S00_SHIFT0",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/SHIFT0.npz"
+   ]
+  ],
+  [
+   "R8N_S00_SHIFT101",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/SHIFT101.npz"
+   ]
+  ],
+  [
+   "R8N_S00_SHIFT503",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/SHIFT503.npz"
+   ]
+  ],
+  [
+   "R8N_S00_SHIFT1009",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/SHIFT1009.npz"
+   ]
+  ],
+  [
+   "R8N_S00_ROT1",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/ROT1.npz"
+   ]
+  ],
+  [
+   "R8N_S00_ROT2",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/ROT2.npz"
+   ]
+  ],
+  [
+   "R8N_S00_ROT3",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=step",
+    "TILT_TAU=4.75",
+    "TILT_K=0.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/ROT3.npz"
+   ]
+  ],
+  [
+   "R8N_P10_SHIFT0",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=1.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/SHIFT0.npz"
+   ]
+  ],
+  [
+   "R8N_P10_SHIFT101",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=1.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/SHIFT101.npz"
+   ]
+  ],
+  [
+   "R8N_P10_SHIFT503",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=1.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/SHIFT503.npz"
+   ]
+  ],
+  [
+   "R8N_P10_SHIFT1009",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=1.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/SHIFT1009.npz"
+   ]
+  ],
+  [
+   "R8N_P10_ROT1",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=1.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/ROT1.npz"
+   ]
+  ],
+  [
+   "R8N_P10_ROT2",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=1.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/ROT2.npz"
+   ]
+  ],
+  [
+   "R8N_P10_ROT3",
+   [
+    "LEGS=101",
+    "PHI=0.45",
+    "FSEED=42",
+    "FPRED=f10_A0_s42.npy",
+    "TILT=pow",
+    "TILT_TAU=4.75",
+    "TILT_K=1.0",
+    "TILT_SIG_NPZ=/workspace/uplift_2026-09-11/r8b2/sig/ROT3.npz"
+   ]
+  ]
+ ],
+ "GATE_P2": {
+  "dyn_s42": {
+   "d30_n2_c42_rec": true,
+   "d30_n2_c42_W": true,
+   "cfg_self_sha": "0ff501815bdc564f680ed5f89e832a5f02841786977b59546ef26b07fc861328",
+   "cfg_TILT": "",
+   "cfg_TILT_SIG_NPZ": null
+  },
+  "dyn_s2027": {
+   "d30_n2_c42_rec": true,
+   "d30_n2_c42_W": true,
+   "cfg_self_sha": "0ff501815bdc564f680ed5f89e832a5f02841786977b59546ef26b07fc861328",
+   "cfg_TILT": "",
+   "cfg_TILT_SIG_NPZ": null
+  },
+  "fix_s42": {
+   "d30_n2_c42_rec": true,
+   "d30_n2_c42_W": true,
+   "cfg_self_sha": "0ff501815bdc564f680ed5f89e832a5f02841786977b59546ef26b07fc861328",
+   "cfg_TILT": "",
+   "cfg_TILT_SIG_NPZ": null
+  },
+  "fix_s2027": {
+   "d30_n2_c42_rec": true,
+   "d30_n2_c42_W": true,
+   "cfg_self_sha": "0ff501815bdc564f680ed5f89e832a5f02841786977b59546ef26b07fc861328",
+   "cfg_TILT": "",
+   "cfg_TILT_SIG_NPZ": null
+  }
+ },
+ "GATE_P2_PASS": true,
+ "WIRING_SHIFT0_EQ_DEVICE1": {
+  "S00": {
+   "d30_n2_c42_rec": true,
+   "d30_n2_c42_W": true
+  },
+  "P10": {
+   "d30_n2_c42_rec": true,
+   "d30_n2_c42_W": true
+  }
+ },
+ "WIRING_PASS": true,
+ "self_sha256": "d1017087e8dc9a4822c881cabeb3db396a7265e528694a1a5d5e6c0d8d1c3fdc"
+}

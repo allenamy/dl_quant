@@ -1,0 +1,665 @@
+{
+ "task": "BUILD 2 - condition the leg weight on the one mechanism-identified dispersion relationship",
+ "session": "b9646a9e round 8",
+ "created_utc": "2026-09-12",
+ "status": "first-hand measurement, not independently reviewed",
+ "verdict": "REJECTED - 9/9 declared arms fail the frozen primary gate (a)",
+ "prereg": {
+  "file": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/PREREG_r8_BUILD2_dispersion_seat_tilt_2026-09-12.md",
+  "sha256_16": "b4308fd79949d628",
+  "K_declared": 9,
+  "frozen_before_any_number": true
+ },
+ "caliber_layer": "book layer, executor caliber: g = net_ex/gross_total, bps per 4h anchor per unit gross",
+ "caliber": {
+  "CAL": "log",
+  "UMASK_SCOPE": "m1 CRYPTO",
+  "MEMBERS_TOPN": 829,
+  "LEGS": "101",
+  "PHI": 0.45,
+  "LOOK": 900,
+  "WRULE": "msharpe",
+  "FTRIM": "zero",
+  "warm_rule": "E-0911-A drop first 900",
+  "cut": "2026-08-30 20:00Z (E-0911-D coverage ceiling, all arms are PHI>0)",
+  "n_postwarm": 9138
+ },
+ "devices": {
+  "pinned_base": {
+   "file": "/workspace/uplift_2026-09-11/w10_sleeve.py",
+   "sha256_16": "b88e35a46b93d712"
+  },
+  "tilt_device_1": {
+   "file": "/workspace/uplift_2026-09-11/r8b2/w10_sleeve_tilt.py",
+   "sha256_16": "7dd6324acd361081",
+   "delta": "+ {TILT, TILT_TAU, TILT_K, TILT_LO, TILT_HI}; all unset => bitwise-unchanged rec AND W"
+  },
+  "tilt_device_2_nullfeed": {
+   "file": "/workspace/uplift_2026-09-11/r8b2/w10_sleeve_tilt2.py",
+   "sha256_16": "0ff501815bdc564f",
+   "delta": "device 1 + TILT_SIG_NPZ (turnover-matched null sigma feed)"
+  }
+ },
+ "cost": {
+  "file": "/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+  "sha256_16": "295b4e7b462373e4",
+  "K": 0.17,
+  "alpha": 0.87,
+  "G_usdt": 230000
+ },
+ "env_whitelist_asserted": [
+  "LEGS",
+  "CAL",
+  "WRULE",
+  "LOOK",
+  "MEMBERS_TOPN",
+  "FTRIM",
+  "PHI",
+  "UMASK_SCOPE",
+  "UMASK_NPZ",
+  "SLOW_NPY",
+  "FSEED",
+  "FPRED",
+  "COSTB_JSON",
+  "OUT_TAG",
+  "W3FIX",
+  "TILT",
+  "TILT_TAU",
+  "TILT_K",
+  "TILT_SIG_NPZ",
+  "OMP_NUM_THREADS",
+  "OPENBLAS_NUM_THREADS",
+  "MKL_NUM_THREADS"
+ ],
+ "env_note": "nothing was trained this round, so no V2-class training flag applies (E-0826-D). Every analysis script asserts an EMPTY env whitelist and self-reports its own sha256.",
+ "gates": {
+  "GATE_P_device1": {
+   "result": "PASS 4/4 BITWISE",
+   "detail": "d30_n2_c42_rec AND _W equal to archived w10_ablation_series_V4_A0_{dyn,fix}_s{42,2027}",
+   "receipt": "GATE_P_r8.json"
+  },
+  "GATE_P2_device2": {
+   "result": "PASS 4/4 BITWISE",
+   "receipt": "R8_NULLS_DRIVE.json"
+  },
+  "WIRING_SHIFT0": {
+   "result": "PASS bitwise both arms",
+   "detail": "device 2 fed the TRUE sigma series reproduces device 1's arm exactly"
+  },
+  "sigma_gauge_identity": {
+   "result": "maxabs 0.0 over 9138 anchors",
+   "detail": "the device's internally computed causal sigma equals the round-7 LIVE gauge (829 qvk base INTERSECT m1 CRYPTO umask) exactly"
+  },
+  "first_hand_reproduction": {
+   "result": "PASS 4/4 BITWISE",
+   "detail": "A0 s42/s2027 vs r3k/arms/A0_PWR230k_s*; FUND vs r7f2 R7_LEGFUND_PWR_s42; KING vs r7f2 R7_LEGKING_PWR_s42",
+   "receipt": "R8_DRIVE.json"
+  }
+ },
+ "step1_reproduction_of_motivating_numbers": {
+  "FUND_leg_sigma_lt_4.75": {
+   "mine": {
+    "mean_g": -0.6089,
+    "CI95": [
+     -1.1654,
+     -0.0615
+    ],
+    "SR": -1.522,
+    "n": 4660
+   },
+   "round7": {
+    "mean_g": -0.6089,
+    "CI95": [
+     -1.1491,
+     -0.0631
+    ],
+    "SR": -1.522
+   },
+   "REPRODUCES": true
+  },
+  "KING_leg_sigma_lt_4.75": {
+   "mine": {
+    "mean_g": 0.3818,
+    "CI95": [
+     -0.6353,
+     1.4148
+    ],
+    "SR": 0.6921,
+    "n": 2334
+   },
+   "round7": {
+    "mean_g": 0.3818,
+    "CI95": [
+     -0.6445,
+     1.4187
+    ]
+   },
+   "REPRODUCES": true
+  },
+  "A0_non_inheritance_sigma_lt_4.75": {
+   "mine": {
+    "mean_g": -0.1548,
+    "CI95": [
+     -0.7063,
+     0.4213
+    ],
+    "SR": -0.3732
+   },
+   "round7": {
+    "mean_g": -0.1548,
+    "CI95": [
+     -0.708,
+     0.386
+    ]
+   },
+   "REPRODUCES": true
+  },
+  "A0_unconditional": {
+   "mine": {
+    "mean_g": 0.6342,
+    "CI95": [
+     0.1653,
+     1.1071
+    ],
+    "SR": 1.2912
+   },
+   "pinned": {
+    "mean_g": 0.634,
+    "CI95": [
+     0.161,
+     1.11
+    ],
+    "SR": 1.291
+   },
+   "REPRODUCES": true
+  },
+  "A0_giveback_2026_08_19_21": {
+   "mine": {
+    "mean_g": -20.7548,
+    "SR": -29.6065
+   },
+   "pinned": {
+    "SR": -29.61
+   },
+   "REPRODUCES": true
+  },
+  "seat_blindness": {
+   "corr_sigma_w3fund": -0.0361,
+   "w3_fund_mean_sigma_lt_4.75": 0.5555,
+   "w3_fund_mean_sigma_ge_4.75": 0.5204,
+   "w3_fund_sigma_decile1": 0.6834,
+   "reading": "the msharpe seat gives the fund leg MORE weight when the fuel is gone - the premise of the construction is confirmed"
+  },
+  "note_on_CI_differences": "CI bounds differ in the 3rd decimal because the day-block bootstrap seed differs from round 7's; every point estimate matches to 4 d.p. and every sign / zero-exclusion is unchanged"
+ },
+ "construction": {
+  "rule": "w_fund <- w_fund * f(sigma_i); w3 <- w3/sum(w3); LEGS=101 so the freed weight goes to king",
+  "sigma_definition": "1e4 * population sd (ddof=0) of the finite 8h-equivalent SETTLED funding rates rn8 = f_fund_now*8/f_fund_iv over the same masked member set the book ranks at anchor i",
+  "causality": "f_fund_now[j] = last settled rate at or before the anchor (pod_panel_ext.py L153-155). No lookahead. Verified equal to the LIVE gauge to maxabs 0.0.",
+  "tau": {
+   "value": 4.75,
+   "provenance": "INHERITED from round 7's in-sample profiled step threshold; not a free parameter of this round; recorded as a hole"
+  },
+  "gross": "untouched - the book's L1 is renormalised to 1.0 every anchor exactly as in A0",
+  "LOOK": "unchanged at 900"
+ },
+ "results_full_axis": "see R8_FINAL.json; paired-on-intersection reading in R8_JUDGE.json",
+ "all_9_arms": {
+  "S00": {
+   "f": "step k=0.00",
+   "delta_g": 0.2516,
+   "CI95": [
+    0.0221,
+    0.4887
+   ],
+   "theta_yearFE": 0.2104,
+   "theta_CI_bonf9944": [
+    -0.1033,
+    0.5501
+   ],
+   "years_positive": 4,
+   "delta_sharpe": 0.5865,
+   "heldout": 0.1793,
+   "giveback": 1.309,
+   "GATE_a": false,
+   "DISQUALIFIED": "holds NO BOOK on 2422/9138 = 26.5% of anchors => gross timing, a closed axis"
+  },
+  "S25": {
+   "f": "step k=0.25",
+   "delta_g": 0.0185,
+   "CI95": [
+    -0.0753,
+    0.1107
+   ],
+   "theta_yearFE": 0.0144,
+   "theta_CI_bonf9944": [
+    -0.1012,
+    0.1356
+   ],
+   "years_positive": 2,
+   "delta_sharpe": 0.0211,
+   "heldout": 0.1349,
+   "giveback": 0.8708,
+   "GATE_a": false
+  },
+  "S50": {
+   "f": "step k=0.50",
+   "delta_g": 0.0016,
+   "CI95": [
+    -0.0534,
+    0.0581
+   ],
+   "theta_yearFE": -0.0008,
+   "theta_CI_bonf9944": [
+    -0.0697,
+    0.0717
+   ],
+   "years_positive": 2,
+   "delta_sharpe": -0.0028,
+   "heldout": 0.0456,
+   "giveback": 0.5332,
+   "GATE_a": false
+  },
+  "S75": {
+   "f": "step k=0.75",
+   "delta_g": -0.0004,
+   "CI95": [
+    -0.0297,
+    0.0283
+   ],
+   "theta_yearFE": -0.0032,
+   "theta_CI_bonf9944": [
+    -0.0409,
+    0.035
+   ],
+   "years_positive": 3,
+   "delta_sharpe": -0.0027,
+   "heldout": 0.0506,
+   "giveback": 0.2283,
+   "GATE_a": false
+  },
+  "R00": {
+   "f": "ramp floor 0.00",
+   "delta_g": 0.0192,
+   "CI95": [
+    -0.042,
+    0.0803
+   ],
+   "theta_yearFE": 0.0141,
+   "theta_CI_bonf9944": [
+    -0.06,
+    0.0892
+   ],
+   "years_positive": 3,
+   "delta_sharpe": 0.0299,
+   "heldout": 0.0192,
+   "giveback": 0.048,
+   "GATE_a": false
+  },
+  "R25": {
+   "f": "ramp floor 0.25",
+   "delta_g": 0.0129,
+   "CI95": [
+    -0.0442,
+    0.0704
+   ],
+   "theta_yearFE": 0.0088,
+   "theta_CI_bonf9944": [
+    -0.0589,
+    0.0803
+   ],
+   "years_positive": 3,
+   "delta_sharpe": 0.0176,
+   "heldout": 0.0192,
+   "giveback": 0.048,
+   "GATE_a": false
+  },
+  "R50": {
+   "f": "ramp floor 0.50",
+   "delta_g": 0.0123,
+   "CI95": [
+    -0.0309,
+    0.0548
+   ],
+   "theta_yearFE": 0.01,
+   "theta_CI_bonf9944": [
+    -0.0433,
+    0.0641
+   ],
+   "years_positive": 3,
+   "delta_sharpe": 0.0187,
+   "heldout": 0.0187,
+   "giveback": 0.051,
+   "GATE_a": false
+  },
+  "P05": {
+   "f": "pow p=0.50",
+   "delta_g": 0.0538,
+   "CI95": [
+    -0.0131,
+    0.1202
+   ],
+   "theta_yearFE": 0.0538,
+   "theta_CI_bonf9944": [
+    -0.0512,
+    0.1557
+   ],
+   "years_positive": 3,
+   "delta_sharpe": 0.0719,
+   "heldout": -0.4518,
+   "giveback": -1.4332,
+   "GATE_a": false
+  },
+  "P10": {
+   "f": "pow p=1.00",
+   "delta_g": 0.0703,
+   "CI95": [
+    -0.0135,
+    0.1511
+   ],
+   "theta_yearFE": 0.0703,
+   "theta_CI_bonf9944": [
+    -0.0542,
+    0.191
+   ],
+   "years_positive": 3,
+   "delta_sharpe": 0.091,
+   "heldout": -0.5318,
+   "giveback": -2.076,
+   "GATE_a": false
+  }
+ },
+ "test_b_heldout": {
+  "window": "2026-08-11 00Z .. 2026-08-30 20Z, n=120",
+  "S": {
+   "pick": "S00",
+   "prediction": 0.0971,
+   "realisation": 0.1793,
+   "CI95": [
+    -0.1119,
+    0.5231
+   ],
+   "active_anchors": "3/120",
+   "reading": "sign agrees but the test has no power"
+  },
+  "R": {
+   "pick": "R00",
+   "prediction": 0.0192,
+   "realisation": 0.0192,
+   "CI95": [
+    -0.0065,
+    0.0493
+   ],
+   "active_anchors": "3/120",
+   "reading": "sign agrees but the test has no power"
+  },
+  "P": {
+   "pick": "P10",
+   "prediction": 0.0783,
+   "realisation": -0.5318,
+   "CI95": [
+    -1.2946,
+    0.2276
+   ],
+   "active_anchors": "120/120",
+   "s2027_realisation": -1.0789,
+   "reading": "FAILS, WRONG SIGN, -0.61 bps/anchor - the same failure mode in the same window as round 7's pooled curve"
+  }
+ },
+ "test_c_giveback": {
+  "window": "2026-08-19 00Z .. 2026-08-21 20Z, n=18",
+  "A0_mean_g": -20.7548,
+  "A0_SR": -29.6065,
+  "P05": {
+   "delta_g": -1.4332,
+   "delta_sharpe": -1.4149,
+   "active": "18/18",
+   "verdict": "makes it WORSE, like XIB_LAG50"
+  },
+  "P10": {
+   "delta_g": -2.076,
+   "delta_sharpe": -2.3295,
+   "active": "18/18",
+   "s2027": -1.6309,
+   "verdict": "makes it WORSE"
+  },
+  "S_R_families": {
+   "delta_g": "+0.048 to +1.309",
+   "active": "2/18",
+   "verdict": "not a pass - an inert tilt"
+  }
+ },
+ "test_d_turnover_matched_nulls": {
+  "design": "SHIFT101/503/1009 and 3 circular rotations of the SIGMA series, fed through TILT_SIG_NPZ. These preserve the tilt multiplier's marginal distribution and lag-1 persistence (hence its turnover) and destroy only time alignment. The per-anchor PERMUTATION placebo was NOT used - it is defective.",
+  "turnover_match_check": {
+   "S00_real": 1.1436,
+   "S00_nulls": [
+    1.1444,
+    1.18,
+    1.1904,
+    1.2887,
+    1.2154,
+    1.2336
+   ],
+   "P10_real": 0.9929,
+   "P10_nulls": [
+    0.987,
+    0.9878,
+    0.9959,
+    1.0608,
+    1.0601,
+    1.0297
+   ]
+  },
+  "S00": {
+   "real_delta_g": 0.2516,
+   "real_pnl_ex_gross": 0.1331,
+   "null_delta_g": [
+    0.1246,
+    0.0876,
+    0.1303,
+    -0.149,
+    -0.2727,
+    -0.2324
+   ],
+   "null_pnl_ex": [
+    -0.0043,
+    -0.0471,
+    0.0012,
+    -0.3893,
+    -0.437,
+    -0.4404
+   ],
+   "beats_all": true,
+   "empirical_p": 0.1429
+  },
+  "P10": {
+   "real_delta_g": 0.0703,
+   "real_pnl_ex_gross": 0.0644,
+   "null_delta_g": [
+    0.0588,
+    0.0658,
+    0.0335,
+    -0.0745,
+    -0.1063,
+    -0.1192
+   ],
+   "null_pnl_ex": [
+    0.0506,
+    0.0586,
+    0.0318,
+    -0.0744,
+    -0.1081,
+    -0.1203
+   ],
+   "beats_all": true,
+   "empirical_p": 0.1429
+  },
+  "reading": "Both beat all 6 nulls on g AND pnl_ex, but 6 nulls floor the empirical p at 1/7 = 0.1429, far above the corrected alpha 0.005556 - the nulls fail to refute, they do not confirm. Worse, they diagnose the effect: P10 real +0.0703 vs SHIFT503 +0.0658 means 94% of it survives shifting sigma by ~84 days; S00 real +0.2516 vs SHIFT1009 +0.1303 means half survives a ~168-day shift. That is a slow level/era component, not time-aligned dispersion information."
+ },
+ "cost_of_the_tilt": {
+  "A0_baseline": {
+   "turnover_L1_per_anchor": 0.03032,
+   "cost_bps_per_anchor": 0.1675
+  },
+  "marginal_turnover_and_alpha_given_up_in_sigma_ge_4.75": {
+   "S00": {
+    "marginal_turnover": 0.004967,
+    "ratio": 1.1436,
+    "delta_cost_bps": 0.041,
+    "delta_g_high_sigma": -0.0017,
+    "CI95": [
+     -0.1451,
+     0.1396
+    ]
+   },
+   "S25": {
+    "marginal_turnover": 0.002172,
+    "ratio": 1.0717,
+    "delta_cost_bps": 0.02,
+    "delta_g_high_sigma": -0.0271,
+    "CI95": [
+     -0.1126,
+     0.0547
+    ]
+   },
+   "S50": {
+    "marginal_turnover": 0.001324,
+    "ratio": 1.0437,
+    "delta_cost_bps": 0.011,
+    "delta_g_high_sigma": -0.0208,
+    "CI95": [
+     -0.0754,
+     0.0324
+    ]
+   },
+   "S75": {
+    "marginal_turnover": 0.000592,
+    "ratio": 1.0195,
+    "delta_cost_bps": 0.0045,
+    "delta_g_high_sigma": 0.0017,
+    "CI95": [
+     -0.0308,
+     0.0348
+    ]
+   },
+   "R00": {
+    "marginal_turnover": 0.00138,
+    "ratio": 1.0455,
+    "delta_cost_bps": 0.0119,
+    "delta_g_high_sigma": 0.0084,
+    "CI95": [
+     -0.0347,
+     0.0533
+    ]
+   },
+   "R25": {
+    "marginal_turnover": 0.001339,
+    "ratio": 1.0442,
+    "delta_cost_bps": 0.0114,
+    "delta_g_high_sigma": 0.0084,
+    "CI95": [
+     -0.0349,
+     0.053
+    ]
+   },
+   "R50": {
+    "marginal_turnover": 0.001023,
+    "ratio": 1.0337,
+    "delta_cost_bps": 0.0083,
+    "delta_g_high_sigma": 0.0153,
+    "CI95": [
+     -0.019,
+     0.0492
+    ]
+   },
+   "P05": {
+    "marginal_turnover": -0.000455,
+    "ratio": 0.985,
+    "delta_cost_bps": -0.0003,
+    "delta_g_high_sigma": 0.1216,
+    "CI95": [
+     0.0067,
+     0.2378
+    ]
+   },
+   "P10": {
+    "marginal_turnover": -0.000216,
+    "ratio": 0.9929,
+    "delta_cost_bps": 0.0031,
+    "delta_g_high_sigma": 0.1314,
+    "CI95": [
+     0.0035,
+     0.2623
+    ]
+   }
+  },
+  "reading": "The brief's object - helps in the bad states, costs nothing in the good ones - is not what any arm is. S25/S50 shave the good states 0.021-0.027 bps to buy 0.023-0.062 in the bad ones: a wash inside the noise. P05/P10 are the OPPOSITE of the designed object: their entire gain is in HIGH dispersion (the only regime CI in the whole grid that excludes zero) and they are flat in LOW dispersion, so they do not touch the identified fund-leg weakness at all."
+ },
+ "structural_kills": {
+  "1_S00_is_gross_timing": {
+   "anchors_with_no_book": 2422,
+   "share_pct": 26.5,
+   "all_in_low_sigma": true,
+   "mechanism": "kappa=0 drives w_fund to 0 below tau; when the msharpe seat ALSO has w_king=0 the whole w3 vector is zero and the device's `if g < 1e-9: continue` holds no book at all",
+   "paired_reading_delta_g": 0.0986,
+   "full_axis_reading_delta_g": 0.2516,
+   "why_it_matters": "pairing on the intersection silently conditions on 'the king seat was positive'; the full-axis gain is earned mostly by being FLAT, since A0's mean g on those anchors is negative. Gross timing is refuted 3x over 396 variants, OOS mean dSharpe -0.0502, one-sided 95% UB -0.0398."
+  },
+  "2_era_bet_with_no_sample": {
+   "n_sigma_lt_4.75_by_year": {
+    "2022": "730/1110",
+    "2023": "1596/2190",
+    "2024": "1747/2196",
+    "2025": "521/2190",
+    "2026": "66/1452"
+   },
+   "S00_full_axis_per_year_delta_g": {
+    "2022": 0.0085,
+    "2023": 0.6751,
+    "2024": 0.3636,
+    "2025": 0.0078,
+    "2026": -0.0028
+   },
+   "heldout_active": "3/120",
+   "giveback_active": "2/18",
+   "reading": "the entire effect is 2023-2024; in 2026, the regime the book actually trades, the construction is worth -0.0028 bps/anchor. Pre-registered in PREREG section 6 BEFORE any arm ran, so this is a structural limit, not a post-hoc excuse."
+  }
+ },
+ "verdict_detail": "REJECTED. 9/9 arms fail gate (a) at Bonferroni K=9; none clears even an uncorrected 95% CI on theta. Family P additionally fails (b) with the wrong sign in both seeds and fails (c) by deepening the giveback. Families S and R are inert in both (b) and (c). The only arm with a headline number is a 26.5%-of-the-time flat-the-book rule.",
+ "changes_the_conclusion": "NO. Round 7's verdict stands. The planning number remains A0 unconditional: +0.6342 bps/anchor CI95 [+0.1653,+1.1071], Sharpe 1.2912 = +27.8% of NAV/yr at 2.0x gross.",
+ "safety": "Nothing written to ~/dl_quant_live or ~/wide_shadow. No venue API call. ELIGIBILITY_CONTRACT.json and judge_v4.py untouched. No order submitted. Nothing committed.",
+ "holes": [
+  "tau=4.75 is inherited from round 7, where it was selected IN-SAMPLE by profiling the step threshold over the full pooled sample. No arm in this round re-selected it, but every S and R arm rests on it.",
+  "6 turnover-matched nulls floor the empirical p at 1/7=0.1429. A proper null distribution needs >=200 shifts/rotations; that was not run because gate (a) already failed for all 9 arms.",
+  "The held-out window (3 active anchors of 120) and the giveback window (2 of 18) cannot test the S and R families at all. Nothing in the available data can, because sigma<4.75 has essentially stopped occurring since 2025.",
+  "The full-axis reading fills g=0 where an arm holds no book. That is the deployable accounting, but it was not pre-registered - the prereg's primary metric was the paired reading. Both are reported and BOTH fail gate (a).",
+  "Single cost model (the fitted PWR G=230k). No sensitivity to the cost calibration was run.",
+  "The tilt multiplies the seat weight AFTER the msharpe normalisation; an alternative would be to tilt the leg SCORES before the seat sees them. Untested - but it would face the identical era-coverage problem.",
+  "KING leg support starts later than FUND (n 5838 vs 9138 to the cut); the round-7 leg contrast inherits that asymmetry and so does the mechanism claim behind the tilt."
+ ],
+ "artifacts_local": [
+  "GATE_P_r8.json",
+  "R8_DRIVE.json",
+  "R8_FINAL.json",
+  "R8_JUDGE.json",
+  "R8_NULLS.json",
+  "R8_NULLS_DRIVE.json",
+  "R8_REP.json",
+  "R8_REPRO.json",
+  "gateP_r8.py",
+  "mk_tilt.py",
+  "mk_tilt2.py",
+  "r8_drive.py",
+  "r8_final.py",
+  "r8_judge.py",
+  "r8_nulljudge.py",
+  "r8_nulls.py",
+  "r8_rep.py",
+  "r8_repro.py"
+ ],
+ "artifacts_pod2": [
+  "/workspace/uplift_2026-09-11/r8b2/ (device 1+2, drivers, judges, dev/ dev2/ gateP/ out/ sig/)"
+ ],
+ "self_sha256": null
+}
