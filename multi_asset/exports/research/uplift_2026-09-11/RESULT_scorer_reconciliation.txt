@@ -1,0 +1,74 @@
+RECONCILIATION: producer paper score vs realized live P&L (combo era 2026-08-26T04:00Z .. 2026-09-11T00:00Z)
+Devices (all in this dir, all READ-ONLY on ~/wide_shadow and ~/dl_quant_live):
+  recon_paper_vs_live.py   -> recon_anchor_table.json   (replica of shadow_loop_v3 scorer + deployed-weight rescore)
+  live_per_anchor.py       -> live_anchor_table.json    (venue mid-to-mid P&L, funding, fees per anchor)
+  actual_weight_score.py   -> actual_weight_table.json  (actual venue positions scored on producer panel)
+  decompose_b_and_c.py     -> decomp_table.json         (weights + carry decomposition)
+  fee_per_anchor.py        -> fee_table.json
+  join_recon.py            -> joined_combo_table.json
+  nav_check.py             (flow-adjusted NAV validation)
+
+SCORER FIDELITY
+  gross_bps replica vs logged, 146 anchors: max|diff| 0.0005 bps, mean diff 1e-5 bps.
+  => shadow_loop_v3 gross_bps = sum_j sm_j * y4_j * 1e4, sm = st.H (shadow's own 3-leg king book),
+     y4 = SUM of 48 5-min SIMPLE returns from st.cd[:,:,0] over (A, A+4h], NaN if <46/48 finite.
+     Normalisation: NOT per unit gross; sum|sm| = gross_norm (0.855 mean in combo era), so
+     gross_bps is bps per 0.855 units of gross. net_bps = gross - carry - cost (both COSTS).
+
+WHAT IS SCORED IS NOT WHAT IS TRADED
+  combo_stage.py (fea171) OVERWRITES state/target_live/<A>.json with 0.55*sm_kc + 0.45*sm_fc
+  (rev24 leg masked out of w3, FTRIM applied, own EMA states state_H_kc/state_H_fc).
+  It reads state/aux.json but never writes it. shadow_loop_v3 therefore keeps scoring st.H,
+  the RETIRED 3-leg king book, from 2026-08-26T04:00Z onward. cos(king, deployed) = 0.975,
+  L1 diff 0.147 of 0.80 gross, net tilt king -6.09% vs deployed -4.01%.
+  (2026-08-30T00:00Z: deployed file reverted to shadow_loop_v3 for one anchor = fail-open rollback.)
+
+ALL FIGURES BELOW: bps PER UNIT OF GROSS per anchor, n = 86 joined anchors, +ve = profit
+  producer paper gross  (king book, logged)          -1.9938   t -0.57
+  producer paper carry  (king book, logged, a COST)  +2.2649   t 19.2   [independent recompute 2.2604]
+  producer paper cost_bps (a COST)                   +0.0868
+  producer paper NET (king book)                     -4.3455
+  ---
+  paper gross on DEPLOYED combo target               -1.7293   t -0.46
+  model carry on DEPLOYED combo target               +1.6087
+  CORRECTED paper NET for the deployed book          -3.4248   (model cost)   /  -4.017 (realized fees)
+  ---
+  paper gross on ACTUAL venue positions              -0.5462   t -0.14
+  model carry on ACTUAL venue positions              +1.4313
+  ---
+  LIVE price, venue mid-to-mid (position_readback)   -0.5410   t -0.13
+  LIVE funding, venue ledger                         -1.3268   t -12.5
+  LIVE fees (fills, USDT + BNB@mid)                  -0.6723
+  LIVE NET (price + funding)                         -1.8679
+  LIVE NET (price + funding + fees)                  -2.5402
+
+DECOMPOSITION  producer paper net (-4.3455) -> live net price+funding (-1.8679) = +2.4777
+  (a) scored king book -> deployed combo target   +0.9163  (price +0.2646, carry +0.6517)
+  (b) deployed target  -> actual venue positions  +1.3604  (price +1.1830 t=0.62, carry +0.1774)
+  (c) carry model residual on the SAME book       +0.1045  (model 1.4313 vs venue 1.3268, 7.9% over)
+  (d) model cost_bps not charged on live side     +0.0868
+  (e) price instrument (panel vs venue mids)      +0.0052  t = 0.00
+  sum                                             +2.4732
+
+CROSS-VALIDATION
+  live_price(venue mids) - paper_on_actual(producer panel) = +0.0052 bps, sd 13.79, t 0.00, corr 0.930.
+  NAV: flow-adjusted equity delta 08-26..09-11 = -3562.8 USD; my ledger price+funding = -3535.0 USD;
+  residual 27.8 USD (0.8%).  funding.jsonl deduped total -829.4 USD vs daily_nav FUNDING_FEE sum ~ -764 (combo era -757).
+
+COST MODEL vs REALITY
+  modelled turnover/gross 2.31%/anchor  vs realized 11.3% (median) / 18.1% (mean excl. resize anchors).
+  modelled cost 3.66 bps per unit traded vs realized fee 2.28 bps per unit traded (model RATE is conservative).
+  net: model charges 0.087 bps/unit-gross/anchor, reality 0.672 -> understated by 0.585 (7.7x), all via turnover.
+  fee payment asset switched BNB -> USDT on 2026-09-07; BNB-paid fees (08-05..09-06) do NOT appear
+  in the USDT futures NAV, so NAV understates cost for that window.
+
+ic_monitor: INDEPENDENT of the producer's scorer.
+  /Users/haosiyu/dl_quant_live/ops/ic_monitor.py reads position_readback (actual venue book) and
+  venue mids (|notional|/|qty|); it never touches shadow_log.jsonl or the shadow panel.
+  Its value_ic correlates 0.804 with my venue mid-to-mid price bps -> the input is sound.
+  CAVEAT: thresholds R24_P5=-0.02277 / R24_P1=-0.04425 / R48_P1=-0.01656 were stamped from an OFFLINE
+  alpha=0.05+band=0.002 book distribution with per-anchor IC mean +0.03684, sd 0.21388.
+  Live per-anchor rank_ic sd = 0.12517 (all 219) / 0.08055 (combo era, n=84); combo-era mean -0.00456, t -0.52.
+  The thresholds therefore encode "you have lost the +0.037 IC you were calibrated to have", NOT
+  "your IC is significantly negative". Under the live noise scale the current r48=-0.0218 sits near the
+  ~3% tail of a zero-mean null, and the combo-era IC is statistically indistinguishable from ZERO.

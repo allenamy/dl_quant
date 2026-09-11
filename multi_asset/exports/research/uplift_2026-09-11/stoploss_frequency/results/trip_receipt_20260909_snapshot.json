@@ -1,0 +1,24 @@
+{
+ "tripped_at": "2026-09-09T16:45:36Z",
+ "triggers": [
+  "\u00a74-5b liquidation/position anomaly on 9 name(s) at the latest reconciled anchor (15 in this window's history)",
+  "\u00a74-5e position break [split_unauth]: 3951 USDT of raw deviation (1.7% of a 232746 USDT target gross), of which UNAUTHORIZED 1.09% vs a 0.05 line; name(s) at/over their own min_notional: DOGSUSDT, BLUAIUSDT, BTRUSDT, FIDAUSDT, CHILLGUYUSDT, CLOUSDT, BRUSDT, BUSDT, ATOMUSDT, HUMAUSDT, CFGUSDT, AEROUSDT, ARKMUSDT, KASUSDT, BERAUSDT, DYDXUSDT, ADAUSDT, KAVAUSDT, EPICUSDT, COMPUSDT, FILUSDT, GIGGLEUSDT, CAKEUSDT, AIOUSDT, ENSUSDT, EIGENUSDT, ARUSDT, GRASSUSDT, BEATUSDT, GWEIUSDT, COTIUSDT, CATIUSDT, FORMUSDT, ENAUSDT, BANKUSDT, JASMYUSDT, 0GUSDT, BLESSUSDT, BOMEUSDT, 4USDT, BBUSDT, 1000BONKUSDT, ANKRUSDT, DOODUSDT, APEUSDT, FARTCOINUSDT, IOTAUSDT, IOUSDT, EDGEUSDT, JTOUSDT, CHZUSDT, HEIUSDT; worst raw PIEVERSEUSDT -500 USDT. WHY: split_unauth: the halt is the UNAUTHORIZED bucket only; underfill alarms and is re-targeted by the next anchor PROVENANCE (read from the record, not composed here): unauth is NOT computed here: it is reconcile's per-name residual, expected_qty = qty(T1) + sum dq_fills. If that upstream quantity is wrong the error passes through undetected and BOTH buckets are wrong together \u2014 this split is exactly as trustworthy as B30 and no more. expected_qty has no independent cross-check today.",
+  "\u00a74-7 un-recovered position drift"
+ ],
+ "receipt": {
+  "ts": 1788972443.4261491,
+  "severity": "HIGH",
+  "message": "\u26a0\ufe0f HIGH\n\u6b62\u635f\u89e6\u53d1: \u00a74-5b liquidation/position anomaly on 9 name(s) at the latest reconciled anchor (15 in this window's history); \u00a74-5e position break [split_unauth]: 3951 USDT of raw deviation (1.7% of a 232746 USDT ta \u2014 \u4e66\u5df2\u5e73\u4ed3, reduce-only \u5df2\u542f\u7528\u3002\u4e0b\u4e00\u4e2a\u951a\u70b9\u8d77\u505c\u6b62\u5f00\u4ed3(state/watchdog/state.json \u73b0\u5728\u4f1a\u88ab\u5f00\u4ed3\u95e8\u8bfb\u53d6)\u3002\u6062\u590d: bash ops/resume_from_trip.sh \u2014\u2014 \u6761\u4ef6\u4ecd\u6210\u7acb\u65f6\u5b83\u4f1a\u62d2\u7edd\u3002 \u3010\u8bc4\u4f30 2026-09-09T16:45:36Z; \u9010\u65e5c=[6.96, 2.79, 3.14, 8.82, -0.31, 3.92, 4.48, 1.90, 3.33, 2.16, 0.48, -0.58, -0.24, 0.08, -0.16, -0.18, -0.27, -0.31, -1.01, -0.20, 3.13, 4.79, -5.33, -6.14, 2.78, -0.67, 0.33, -3.86, -0.64, -1.33, 1.28, -0.26, -32.86, 6.49, 1.58, 12.42, 6.81, 1.82, -0.01, -7.68]; \u5929=20260801..20260909\u3011",
+  "message_sha256": "a6d032dd2fcde3a5",
+  "n_redactions": 0,
+  "delivered_offbox": true,
+  "local_write_ok": true,
+  "policy_action": "PUSH",
+  "policy_tier": "A_DECIDE",
+  "policy_rule": "stop-loss tripped",
+  "status": "DELIVERED",
+  "message_id": 1263,
+  "attempts": 1
+ },
+ "written_utc": "2026-09-09T16:47:24Z"
+}

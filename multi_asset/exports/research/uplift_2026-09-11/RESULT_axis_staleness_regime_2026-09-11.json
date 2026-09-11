@@ -1,0 +1,188 @@
+{
+ "axis": "model staleness / 2026 regime novelty",
+ "1_training_cutoffs": {
+  "king_LGBM_slow2026.txt": {
+   "artifact": "/Users/haosiyu/wide_shadow/shadow_bundle/slow2026.txt (MANIFEST sha 8d79186b6380...)",
+   "device": "multi_asset/exports/research/retrain_2026-09/pod_export_bundle_v3.py L49 'tr = YRA < 2026; te = YRA == 2026'",
+   "gradient_window": "2022-01-08 .. 2025-12-31",
+   "2026_role": "pinned TEST fold only",
+   "bundle_built_utc": "2026-09-01T06:00:37Z (provenance.built_utc)",
+   "note": "the 2026-09-01 monthly retrain refit the booster but kept the SAME year mask -> it added zero new calendar data to the gradient"
+  },
+  "F10_DL_V2MAIN": {
+   "artifact": "/Users/haosiyu/wide_shadow/fea171/f10_live_s42_np.npz sha256 351ae26bd6b4a203... == pod2 /workspace/f8_ext/models/f10_live_s42_np.npz",
+   "device": "multi_asset/exports/research/retrain_2026-09/pod_f10_refit_ext.py sha256 ea3675b8012ea266... L89-90 'cut=int(len(tr_idx)*0.85)'",
+   "gradient_window": "2022-01-03 .. 2025-12-18T16:00Z (8675 anchors; last training SPAN ends 2025-12-17T00:00Z)",
+   "selection_window": "2025-12-18T20:00Z .. 2026-08-30T20:00Z (1531 anchors, 1452 of them 2026)",
+   "epoch_rule": "unconstrained argmax on that slice -> epoch 8/15 (va_curve in the .pt)",
+   "trained_through_field": "2026-08-30T20:00Z = INDEX end, NOT gradient end (255-day gap)"
+  },
+  "fund_leg": {
+   "trained": false,
+   "definition": "cross-sectional rank-z of f_fund_ema_v1 (funding EMA), no fit, no cutoff"
+  }
+ },
+ "2_v4_retrain_counterevidence": {
+  "finding": "RESULT_v4_chain_retrain_quantify_2026-09-09 ten-cell (C) UNDECIDED did NOT test adding 2026 to the gradient",
+  "receipts": [
+   "pod_export_bundle_v4.py L49 'tr = YRA < 2026' (identical to v3)",
+   "RESULT doc \u00a74: '\u68af\u5ea6\u7a97\u672b\u7aef 2025-12-19 12Z, \u9a8c\u8bc1\u5207\u7247 12-19 16Z\u219208-31 20Z (refit L90 \u7684 85% \u5207\u5206\u9010\u5b57\u4fdd\u7559, E-0907-D \u6027\u8d28\u672a\u53d8, \u9884\u6ce8\u518c\u5982\u6b64)'"
+  ]
+ },
+ "3_staleness_direct_test_score_layer": {
+  "prereg": "PREREG_staleness_king_2026-09-11.md (written before numbers)",
+  "device": "devices_uplift_pod_stale.py on pod2, data wide_fea_v4 (holefix2+clamp), lgbm 4.7.0",
+  "holdout": "2026-07-01..2026-08-31, 372 anchors / 62 UTC days, unseen by all arms",
+  "IC_S_stale_lt2026": 0.05281,
+  "IC_F_fresh_through_2026H1": 0.05581,
+  "IC_R_rolling24m": 0.05653,
+  "delta_F_minus_S": {
+   "point": 0.00301,
+   "ci95": [
+    -0.00149,
+    0.00748
+   ],
+   "P_gt0": 0.904,
+   "verdict": "(C) UNDECIDED"
+  },
+  "delta_R_minus_S": {
+   "point": 0.00372,
+   "ci95": [
+    -0.00157,
+    0.00925
+   ],
+   "P_gt0": 0.907,
+   "verdict": "(C) UNDECIDED"
+  },
+  "aug_only": {
+   "F_minus_S": 0.0014,
+   "R_minus_S": 0.00196,
+   "both_CI_contain_0": true
+  },
+  "monthly_IC_all_arms": {
+   "2026-07": [
+    0.0644,
+    0.069,
+    0.0699
+   ],
+   "2026-08": [
+    0.0412,
+    0.0426,
+    0.0432
+   ]
+  }
+ },
+ "4_deployed_model_IC_is_not_broken_in_august": {
+  "king_pinned_booster_monthly_rankIC": {
+   "2026 mean": 0.0584,
+   "2026-06": 0.0411,
+   "2026-07": 0.0636,
+   "2026-08": 0.0489,
+   "2025-09": 0.0501,
+   "reading": "August is ~25th pct of monthly ICs, inside the normal band"
+  },
+  "F10_deployed_monthly_rankIC": {
+   "2026 mean": 0.028,
+   "2026-07": 0.036,
+   "2026-08": 0.0379,
+   "reading": "August is the 2nd-BEST 2026 month for the DL leg"
+  },
+  "devices": [
+   "devices_uplift_pinned_ic.py",
+   "devices_uplift_f10_ic.py"
+  ]
+ },
+ "5_leg_attribution_of_the_live_loss": {
+  "live_leg_gross_bps_per_anchor_150_anchors_0816_to_0911": {
+   "king": 0.301,
+   "rev24": -2.169,
+   "fund": -4.69
+  },
+  "replay_2026_same_legs": {
+   "king": 3.13,
+   "rev24": null,
+   "fund": 5.824
+  },
+  "combo_book_weights_VERIFIED": {
+   "king_LGBM": 0.136,
+   "fund": 0.414,
+   "F10": 0.45,
+   "how": "w3 mean over the 150 live signal records = (0.2177, 0.1186, 0.6637); rev24 masked + renormalised -> (0.247, 0.753); x0.55 king-book, F10 book = 0.45"
+  },
+  "gap_decomposition_within_king_book": {
+   "total_live_minus_replay2026": -8.616,
+   "fund_leg_share": -7.917,
+   "king_leg_share": -0.699,
+   "fund_pct_of_gap": 0.919
+  }
+ },
+ "6_regime_distance": {
+  "device": "devices_uplift_pod_regime.py (holefix2 lineage) + ood_mahalanobis.json",
+  "mahalanobis_D2_median_vs_gradient_window": {
+   "GRAD": 6.9,
+   "2026H1": 13.9,
+   "2026-07": 14.7,
+   "2026-08": 13.5
+  },
+  "share_anchors_beyond_GRAD_p99": {
+   "GRAD": 0.01,
+   "2026H1": 0.045,
+   "2026-07": 0.065,
+   "2026-08": 0.133
+  },
+  "largest_shifts_2026-08_vs_GRAD_in_sd": {
+   "universe_turnover": 3.55,
+   "n_selected": 1.59,
+   "xsec_dispersion": 1.4,
+   "fund_ema_dispersion": 0.98,
+   "comovement": -0.81,
+   "breadth_pos": 0.0,
+   "share_new_listings_90d": -0.22
+  },
+  "reading": "2026 is genuinely OOD vs the gradient window, but 2026-08 is NOT more OOD than the profitable 2026H1 on the median; only the tail share rises"
+ },
+ "7_breadth_test": {
+  "question": "is the live drawdown a breadth event?",
+  "n_selected_per_anchor": "400 (NTOP cap) every anchor 2025-09..2026-08 - unchanged",
+  "producer_sel_names": "mean 250.0 over 153 live anchors (min 214, max 308), last-30 mean 250.6 - no contraction",
+  "breadth_pos_share_of_names_up": {
+   "GRAD": 0.504,
+   "2026-08": 0.5048
+  },
+  "verdict": "NOT a breadth event"
+ },
+ "8_instrument_caveat_fund_leg": {
+  "same_83_anchors_2026-08-16..08-30_fund_leg_bps_per_anchor": {
+   "live_computed": -7.458,
+   "replay_ext_panel": -7.825,
+   "replay_v3splice": -7.826,
+   "replay_holefix2": -4.006
+  },
+  "corr_live_vs_ext": 0.9735,
+  "corr_live_vs_holefix2": 0.792,
+  "reading": "the known 2026-08-12..08-24 5m cache holes (348 names) sit inside the live window; the live leg-return instrument shares those holes with the ext replay. About half the apparent August fund-leg collapse is cache-hole artifact; the other half survives the corrected lineage."
+ },
+ "9_uplift_translation": {
+  "empirical_IC_to_bps_map": "king_leg_bps_per_anchor = -9.345 + 197.29 * anchor_rankIC  (OLS, r=+0.801, n=5838 anchors 2024-01..2026-08; device king_anchor_ic.csv x bundle leg_returns.npz)",
+  "2026_only_slope": 235.89,
+  "king_retrain_through_2026H1": {
+   "delta_IC": 0.00301,
+   "delta_king_leg_bps_per_anchor": 0.594,
+   "delta_combo_bps_per_anchor_per_gross": 0.0808,
+   "ci95_combo_bps": [
+    -0.04,
+    0.2007
+   ],
+   "gap_to_explain_bps_per_anchor_per_gross": 2.7,
+   "share_of_gap": 0.03
+  },
+  "F10_retrain_through_2026": "UNRESOLVED - no equivalent experiment run; DL leg is 0.45 of book weight, rho(F10,king)~0.0, and its 2026-08 IC (0.0379) is the 2nd best 2026 month, so there is no IC deficit for a retrain to recover"
+ },
+ "10_provenance_chain_closed": {
+  "live_booster_sha_in_shadow_log_signal_records": "8d79186b6380 (last 30 anchors)",
+  "bundle_MANIFEST_slow2026.txt": "8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282",
+  "pod2_shadow_bundle_v3/slow2026.txt": "identical",
+  "deployed_f10_npz": "351ae26bd6b4a203... == pod2 /workspace/f8_ext/models/f10_live_s42_np.npz",
+  "note": "the local .pt in fea171 (2026-08-24, alpha 0.0952, trained_through 2026-08-10) is STALE and NOT what serves: combo_stage.py L160 loads f10_live_s42_np.npz only"
+ }
+}
