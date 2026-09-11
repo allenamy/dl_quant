@@ -159,9 +159,7 @@ for i in range(nA):
 arr = np.array([n for t, n in rec if time.gmtime(t).tm_year >= 2024])
 sh = float(arr.mean() / (arr.std() + 1e-12) * np.sqrt(6 * 365))
 print(f"pinned v1iv full b: 净{arr.mean():.3f} 夏普{sh:.2f}", flush=True)
-_GLO = float(os.environ.get("BUNDLE_GUARD_LO", "2.27")); _GHI = float(os.environ.get("BUNDLE_GUARD_HI", "2.57"))   # PREREG_king_clock_E AMENDMENT 2: band re-based for the [E+1,E+48] label; defaults verbatim
-print(f"guard band [{_GLO:.3f}, {_GHI:.3f}] {'PASS' if _GLO <= sh <= _GHI else 'FAIL'}", flush=True)
-if not (_GLO <= sh <= _GHI):
+if not (2.27 <= sh <= 2.57):
     print("BUNDLE_FAIL baseline_guard", flush=True); sys.exit(3)
 json.dump(sig_export, open(f"{OUT}/parity_signals_aug.json", "w"))
 np.savez_compressed(f"{OUT}/leg_returns.npz", ts=E_ts[np.array(idx)], **LRa)

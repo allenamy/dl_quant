@@ -2,7 +2,7 @@
  wide_fea_v4 (holefix2 + clamp) vs wide_fea_v2ext_clamp (_ext + clamp): differing anchors only inside hole neighbourhoods; value-col diffs only for filled symbols.
  wide_fea_v4 vs wide_fea_v2ext (_ext, unclamped): differing anchors ⊆ first-138 (E_row < 8640, E-0909-A) ∪ hole neighbourhoods.
  meta: E_ts bitwise = v2ext meta; members / y4 / qvk differences only inside hole neighbourhoods (y4/qvk symbols ⊆ filled)."""
-import numpy as np, json, time, os, sys
+import numpy as np, json, time, os
 t0 = time.time()
 def log(*a): print(f"[{time.time()-t0:7.1f}s]", *a, flush=True)
 H = np.load("/workspace/review_scratch/holefix2_cells.npz", allow_pickle=True); NEIGH = H["neigh_rows"]; RUNS = H["fill_runs"]
@@ -59,8 +59,5 @@ R["PASS"] = bool(S["v4_vs_clamp"]["outside"] == 0 and S["v4_vs_clamp"]["val_sym_
                  and R["members_diff_rows_outside_neigh"] == 0 and all(R[f"{k}_diff_outside_neigh"] == 0 and R[f"{k}_diff_symbol_not_filled"] == 0 for k in ("y4", "qvk")) and R["n_first138"] == 138
                  and R["anchors_only_v4_outside_neigh"] == 0 and R["anchors_only_v2ext_outside_neigh"] == 0)
 R["neigh_rows"] = NEIGH.tolist(); R["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+os.makedirs("/workspace/review_scratch/v4_gates", exist_ok=True); json.dump(R, open("/workspace/review_scratch/v4_gates/step2.json", "w"), indent=1)
 log("STEP2_GATE", "PASS" if R["PASS"] else "FAIL", json.dumps(R))
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from v4_gate_common import finalize   # review b0a573a1 P1-PIPE: FAIL exits 3, receipt carries input shas
-finalize("STEP2", R, os.environ.get("STEP2_OUT", "/workspace/review_scratch/v4_gates/step2.json"),
-         {"wide_fea_v4": "/workspace/data/wide_fea_v4.npy", "wide_fea_v4_meta": "/workspace/data/wide_fea_v4_meta.npz", "wide_fea_v2ext_clamp": "/workspace/data/wide_fea_v2ext_clamp.npy",
-          "wide_fea_v2ext": "/workspace/data/wide_fea_v2ext.npy", "wide_fea_v2ext_meta": "/workspace/data/wide_fea_v2ext_meta.npz", "hole_cells": "/workspace/review_scratch/holefix2_cells.npz"})

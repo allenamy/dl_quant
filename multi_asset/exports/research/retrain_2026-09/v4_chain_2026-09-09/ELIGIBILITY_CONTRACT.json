@@ -1,0 +1,80 @@
+{
+ "contract_schema": "v4_eligibility_contract/1",
+ "created_utc": "2026-09-10T05:30:17Z",
+ "created_by": "main researcher, round 5 (independent review cfaf1bbe §2-4: the standard an arm must meet is a FROZEN research definition, never the eligibility caller's choice)",
+ "review_status": "written round 5; independent review pending. Changing any value here is a change of the reviewed research definition: it must go through review, and it is listed in receipts/v4_scripts_sha_full.json like a source file",
+ "rules": [
+  "The judge (judge_v4.py) reads THIS file from its own directory; no environment variable can substitute another contract. JUDGE_ELIGIBILITY only LOCATES receipts ({arm: {receipt, inputs}}); a caller-supplied gate/self_sha/profile that disagrees with this file makes the arm ineligible.",
+  "An arm is a CANDIDATE only if its receipt (a) names the arm's candidacy_gate, (b) was written by a gate source whose sha256 is in gates.<gate>.approved_source_sha256, (c) says PASS, (d) is bound to this arm (receipt.arm == arm), (e) hashes every registered input of the gate (v4_gate_common.REQUIRED_INPUTS) including the four judged book files of the arm (book_binding), each equal to the file the judge loaded.",
+  "v4_gate_common.require refuses a pinned gate source that is not in the approved list of a gate registered here (a locally edited gate that re-runs and writes a fresh receipt matches its own runtime sha but is NOT the reviewed program).",
+  "An empty approved_source_sha256 list means no program is approved for that gate: no receipt can satisfy it and no arm can be a candidate through it. BUNDLE_export is empty because the physical export gate does not exist yet (pod_export_bundle_v4.py prints guard PASS/FAIL and never calls finalize).",
+  "Gates not listed here and not registered in REQUIRED_INPUTS are ungoverned: they carry no input floor and no approved-source list, and they cannot confer candidacy because arms map only to gates listed here."
+ ],
+ "gates": {
+  "G2_closure": {
+   "source": "v4_gate_closure.py",
+   "approved_source_sha256": [
+    "15a03d4a0937095b83108b737be67aeb1110a077d96010b1de9e6609055de262"
+   ]
+  },
+  "STEP1": {
+   "source": "v4_gate_step1.py",
+   "approved_source_sha256": [
+    "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4"
+   ]
+  },
+  "STEP2": {
+   "source": "v4_gate_step2.py",
+   "approved_source_sha256": [
+    "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8"
+   ]
+  },
+  "BUNDLE_export": {
+   "source": null,
+   "approved_source_sha256": [],
+   "note": "physical gate not built: add the reviewed sha256 of v4e_gate_export.py (finalize('BUNDLE_export', ...) over the 7 export inputs + the 4 judged books of the arm) after review"
+  }
+ },
+ "arms": {
+  "A1": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
+  },
+  "A1s": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
+  },
+  "A1e": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "king clock E-version (PREREG_king_clock_E)"
+  },
+  "A2": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
+  },
+  "A3": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
+  }
+ },
+ "book_binding": {
+  "input_names": [
+   "book_dyn_s42",
+   "book_dyn_s2027",
+   "book_fix_s42",
+   "book_fix_s2027"
+  ],
+  "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
+  "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
+ }
+}
