@@ -52,3 +52,96 @@
 - **⑤ 执行质量**: 尺寸桶 <500 **0.517**(n=272; 12Z 0.694 ⇒ 回落)/ ≥1500 0.0(n=1), 非负 ✓; markout 回填 16:57Z: day 09-11 pending 516 写 321; 累计 **pending 1,292 / 写 332**(12Z 1,358), **未撞 deadline 上限**(12Z 连撞两次)⇒ 队列在收窄。
 - **⑥ 异常处置**: **无需动作**(无回滚 / 无重启 / 无 PushNotification)。观察项按优先级: (1) **★ -5022 / join 拒单率 / behind 占比 三条同向恶化**, 20Z 复看, 若继续则查 post-only 定价与盘口的关系; (2) net/gross 虽收敛但补单前 book_net 已达动作带 86.7%; (3) 过底名 1 → 2 → 5 递增; (4) maker 占比 0.665 与费 3.01 bps 均为近日最差; (5) `neutrality_price` 仍 25 倍于常态; (6) IOSTUSDT 名级止损持续。**已结**: 反事实改写升级判据(未触发); E-0910-A(持续解除); forced_exit 连续序列(中断)。
 - **⑦ 分栏**: **已验证** = ①②③④⑤ 全部读数, 含 -5022 逐锚计数与 commission_asset 全量分布; **待验证** = `neutrality_price` 25 倍离群的分母构成(现网缺三桶字段)、-5022 恶化的机制(需 post-only 提交价对盘口的逐单数据, 而拒单行不带 spread/mid —— 即已登记的 -5022 数据缺口); **推断** = 「maker 占比下滑与费用上升由 -5022 推量到 taker 腿所致」(由拒单数与 topup filled 同向变化推断, 未做反事实)。
+
+---
+
+## 2026-09-11 20:00Z 锚 · 全深度深查(只读, 实盘零接触)
+
+**锚**: canonical 1789156800 (20:00Z) / 执行器 anchor_ts 1789158241.472 (20:24:01Z)。**结论: 无异常处置需求; 此前三项恶化指标全部反转。**
+
+### ① 三守护(按句柄验) — 全绿
+| 守护 | 句柄文件 | PID | launchd | 运行时长 |
+|---|---|---|---|---|
+| shadow_loop_v3 | `~/wide_shadow/shadow.lock` = 10900 | 10900 ✓ | com.hsy.shadowloop 10900 | 6d 08:57 |
+| sidecar_daemon.sh | — | 30943 | com.hsy.sidecar 30943 ✓ | 12d 16:41 |
+| combo_live_daemon.sh | `~/wide_shadow/fea171/combo_live_daemon.pid` = 30944 | 30944 ✓ | com.hsy.combolive 30944 ✓ | 12d 16:41 |
+
+注: `~/cc_tmp/exec_n6_sandbox/shadow_loop_v3.py` (PID 50689) 是研究沙箱副本, 非在役链路。
+
+### ② 信号六项 — 全部在带
+- **生产者**: status OK, coverage 1.0, members 400, sel 261, **fund_updates 355**(4h 非 8h 结算锚稳态 ~353 ✓), forced_exit_n 2 (gross 0.0024), turnover 0.03215, gross_pos 0.899, carry 1.08 bps, cost 0.111 bps, runtime 230.4s, missing 0, future_dropped 0, data_max_ts 匹配。
+- **w3** = [0.3227, 0.0973, 0.58] ⇒ **w3_masked king = 0.3227/0.9027 = 0.3575**, 与 target_combo 自报 [0.357498, 0.0, 0.642502] 一致 ✓
+- **combo_live_status**: anchor 1789156800 匹配 ✓, ok true, step done, **reader_ok true**, n 259, gross 0.8599, age_s 0.9
+- **target_combo**: phi 0.45, book_form combo_v2main_norev24, **kc_state_source/fc_state_source 均 own** ✓, **n_f10_scored 400** ✓, rho_kc_fc 0.9401, net_after_reshape −0.0
+- **反事实改写幅度 = 24.50%** (L1 差 / L1_king; n_live 259 vs n_king 261)。上一锚 24.53% ⇒ **增量 −0.03pp, 未触发升级**(判据: level 再升一档 或 连续 3 锚增量 > +0.2pp)
+
+### ③ 执行漏斗(按执行器 anchor_ts 归属)
+**★ 方法更正(我方本轮自犯)**: fills.jsonl 的重复 trade_id **不是脏数据** —— `ops/backfill_markout.py` 以**同 trade_id 追加新行**的方式回填 mark, 由 `pilot_metrics.dedupe_fills` **后写胜出**合并。我首跑写成先写胜出, 把带 mark 的行全丢了, 误读出 "markout 回填 0%"。已改正。
+
+| 项 | 读数 | 带 | 判 |
+|---|---|---|---|
+| orders | 497 (= anchors.rows_persisted 497 ✓) | — | ✓ |
+| fills 原始 / 去重(后写胜出) | 666 / 346 | — | ✓ |
+| 终态 | skipped_min_notional 222, partial_expired 193, venue_reject 50, filled 27, skipped_no_chase_arm 5 | — | — |
+| order_type | maker 280, topup_taker 217 | — | — |
+| **maker 占比** | 行 **0.8237** / 名义 **0.8846** | ≥0.90 | **带外(名义差 1.5pp)** |
+| **费** | **2.3463 bps** (maker **2.0000** / taker **5.0000**, 全 USDT 计价) | maker 1.80–2.3 | maker 在带上沿 |
+| 换手(生产者权重口径) | 3.215% | 2–5.5% | ✓ |
+| 换手(执行器 traded/gross) | **8.9%** | — | **口径差 2.77×, 见下** |
+| chase 分臂 | requote 50 / direct 21 / 其余 None | — | — |
+| **behind 占比** | **0.5584** (maker 腿排除 exempt) | ≈0.50 | ✓ |
+
+**venue_reject 50 明细**: **−5022** (post-only 会立刻成交) **49**(46 首发 + 3 重挂), **−2027**(超场所仓位上限) **1**。
+分臂拒单率: **join 0.2479** (30/121) / **behind 0.1307** (20/153) / exempt 0。合计 maker 拒单率 0.1786。
+
+### ④ 记账
+| 项 | 值 | 判 |
+|---|---|---|
+| venue_gross_usdt | 233,032.85 | target 234,906.53 ⇒ realized/target **0.9920** ✓ |
+| NAV | 117,515.79 | gross/NAV = **1.9993** ≈ 2.00 ✓ |
+| venue_net_usdt | −1,670.62 | — |
+| **net_over_gross** | **−0.7169%** | ±1% 带内 ✓ (1.5% 动作带的 47.8%) |
+| net_over_equity | −1.4216% | — |
+| opening_halted | False | ✓ |
+| 20:00Z 结算 FUNDING_FEE | **−13.90 USDT** (183 行, interval_h: 4h×181 / 1h×2) | 20Z 对 4h 周期名是结算锚 |
+| 当日 Σfunding_paid | −81.64 USDT | — |
+| phase_C readback | 255 行 ✓ | — |
+| per_name_stop | **无命中** | ✓ |
+| `state/anchor_runs.log` 末行 | `2026-09-11T20:58:06Z anchor done rc=0` | ✓ |
+| **guard_twin** | **AGREE** (ledger-only; nav 行 stale) eq=117,549.52 | ✓ |
+| known_gaps | 6 名, gross 2,614.92U, net 1,727.56U, venue_cap = PIEVERSEUSDT | — |
+| reshape | net_before −11,644.14 → net_after ~0 ✓; gross 221,073 → 234,946 | ✓ |
+| regime_at_anchor | normal | — |
+
+**当日 NAV**: 前日 115,126.80 → **117,515.79**, **+2,388.98 = +2.075%**(外部划转 0)。已实现 +124.73(REALIZED_PNL +215.43 / FUNDING_FEE −81.81 / COMMISSION −8.89), 未实现 +1,519.58。**连续第三个正日。**
+
+### ⑤ 执行质量
+- **尺寸梯度三桶**(我方自建: 已下单腿按 intended_notional 三分位): small 0.7676 / mid 0.8063 / **large 0.6707** ⇒ **非负性不成立**(大桶比中桶低 13.6pp)。**标 待验证** —— 分桶是我自己构造的, 非既有仪器。
+- **markout 回填**: 本锚 **320/346 = 92.5%**; 近八日 85.0%–100.0%。**健康。**
+- **本锚名义加权 60s markout = +3.9732 bps**(正 = 价格朝我们走, n=320, 覆盖名义 12,979.70)。**与 r11 全窗均值 −2.66 bps 反号** —— 单锚读数, 不外推。
+- **chase 单名连抽**: 25 个名字有 2 次 requote, 无 3 次及以上。
+
+### ⑥ 异常处置 — **无需处置**
+本锚告警 4 条, 全部为已知形态:
+1. INFO/HIGH: 8 个持仓名被场所扣住(maxNotionalValue=0), reduce-only。add_blocked=[MANAUSDT, IOSTUSDT], flatten_only=[OPENUSDT, ZBTUSDT, EVAAUSDT, MMTUSDT]
+2. HIGH: **−2027** 场所仓位上限拒单 PIEVERSEUSDT +2,171U, 规划器只截断
+3. INFO/HIGH: 24 个 maker 被 −5022 拒, 残差按全额进 taker 补单
+4. INFO/HIGH: 限流计数差值, 场所记的用量比本进程高 940 权重/分(公布限额 2400/分)。**该文件自陈归属未定**(被封 IP 是 CloudFront 边缘 130.176.187.x, 非本方出口 103.252.201.68), 不喂任何决策。
+
+### ⑦ 与前几锚对比 — **三项恶化全部反转**
+| 指标 | 04Z→16Z 轨迹 | **本锚 20Z** | 判 |
+|---|---|---|---|
+| −5022 拒单数 | 57→70→68→87→**104** | **49** | **反转** |
+| join 臂拒单率 | 25%→30%→39%→**45%** | **24.8%** | **反转** |
+| behind 占比(设计点 0.50) | **0.403** | **0.5584** | **回到设计点上方** |
+| maker 占比 | 0.816→**0.665** | 0.8237 行 / 0.8846 名义 | **回升, 仍差 1.5pp 到 0.90** |
+| 费 bps | 2.55→**3.01** | **2.3463** | **回落** |
+| net_over_gross | −1.20% / −0.952% / −1.304% | **−0.7169%** | **收窄** |
+
+### 待验证 / 推断分栏
+**已验证(本机第一手)**: ①②③④ 全部读数; markout 回填率; 分臂拒单率; NAV 与当日损益分解; guard_twin AGREE; anchor done rc=0。
+**待验证**: (a) 尺寸梯度三桶非负性 —— 分桶为我方自建, 需与既有仪器口径对齐后再判; (b) **执行器换手 8.9% vs 生产者 3.215% 的 2.77× 口径差** —— r11 已将其登记为"书里最大的未归因口径差, 且正压在每一条成本判决下面", 未闭合; (c) 告警 3 的 24 名 vs 账本 49 单, 分母不同(名 vs 单), 属已知形态([[reject_rate_alarm_denominator]])。
+**推断**: 三项恶化反转的**原因**未测 —— 可能是场所侧点差/深度状态变化, 也可能是 behind 占比回到 0.50 带来的一阶效应。本文不下因果结论。
+
+### 与研究线的交叉(只记, 不动)
+本锚费 maker **恰好 2.0000 bps**、taker **恰好 5.0000 bps**、346 笔 commission_asset **全部 USDT** —— **独立再证 r11 的发现: BNB 手续费折扣自 2026-09-07 起已断, 账户在 VIP0 底档**。恢复折扣值约 +1.5% NAV/年(r11 定价)。**属 sizing/运维裁定域, 本文只报不动。**
