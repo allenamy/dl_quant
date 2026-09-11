@@ -1,0 +1,13 @@
+[    0.2s] runtime {"torch": "2.11.0+cu128", "cuda": "12.8", "gpu": "NVIDIA RTX PRO 4500 Blackwell", "device": "cuda", "allow_tf32_matmul": false, "allow_tf32_cudnn": true, "float32_matmul_precision": "highest"}
+[    3.5s] input identity OK (targets/fea82/fea89/trainer sha256 == fold config)
+[    6.2s] incumbent: anchors 10212 (2022-01-03 00:00Z..2026-08-31 20:00Z) rows 2753289 cols 171
+[    6.2s] fold rebuild matches stored config: {"first_te": 10026, "last_te": 10211, "n_test": 186, "n_train": 10025, "n_val": 1504, "max_train_idx": 10024, "max_train_label_end": "2026-07-31 20:00Z", "cutoff": "2026-07-31 20:00Z", "first_test": "2026-08-01 00:00Z", "last_test": "2026-08-31 20:00Z"}
+[    6.5s] calibration rebuilt: {"n_rowsel": 296889, "n_rowsel_used": 98963, "mu_sha16": "f56e4ef58cf3e092", "sd_sha16": "940295744100733c", "mu_first5": [-0.00033459148835390806, 0.002528927056118846, 0.0009960291208699346, 0.0050711496733129025, 0.0016352444654330611], "sd_first5": [0.0258856900036335, 0.2899816632270813, 0.06416645646095276, 0.2897251844406128, 0.11155528575181961]}
+/workspace/uplift_2026-09-11/r9/r9_device.py:158: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+  REC["alpha_from_ckpt"] = float(mdl.alpha())
+[    6.6s] ckpt loaded strict; keys ['a', 'f.0.bias', 'f.0.weight', 'f.3.bias', 'f.3.weight', 'f.6.bias', 'f.6.weight']; alpha 0.0864 (config 0.0864)
+[    6.6s] GATE X-P: re-inferring anchors 10026..10211 (2026-08-01 00:00Z..2026-08-31 20:00Z)
+[    7.1s] GATE X-P: {"n_rows": 186, "n_cols": 829, "nan_pattern_equal": true, "n_cells_both_finite": 74400, "n_cells_finite_old_only": 0, "n_cells_finite_new_only": 0, "maxabs": 0.0, "bitwise_equal": true, "P_old_sha16": "20a2c0d349965596", "P_new_sha16": "20a2c0d349965596", "VERDICT": "PASS"}
+[    7.1s] GATE X-P PASSED. mu/sd persisted.
+GATE_XP_DONE

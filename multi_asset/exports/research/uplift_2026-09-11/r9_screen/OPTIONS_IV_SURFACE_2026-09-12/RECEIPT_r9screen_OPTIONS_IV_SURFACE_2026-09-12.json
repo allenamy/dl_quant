@@ -1,0 +1,130 @@
+{
+  "created_utc": "2026-09-11T19:2xZ",
+  "session": "https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX",
+  "branch": "research/book-uplift-2026-09-11",
+  "candidate": "OPTIONS_IV_SURFACE",
+  "verdict": "DEAD",
+  "verdict_stage": "STEP 1 (feasibility) for the per-name/cross-sectional form; STEP 2 (rho screen, algebraic) for the aggregate form",
+  "caliber_pin": "v4 chain 2026-09-09 (CALIBER_PIN_v4_2026-09-11.md). No device was run, so the pin was used only to decide which windows an arm would have to land in.",
+
+  "env_whitelist_E0826D": {
+    "analysis_scripts_whitelist": [],
+    "assertion": "EMPTY SET. Every command this session was a read-only curl prefix listing, cat, grep, find, ls, shasum, or a python3 arithmetic/simulation block with no environment variable set or read. No device (w10_universe.py / w10_sleeve.py / judge_v4.py / pod_legs_v4.py) was invoked. No training run. No V2/CAL/PHI/JUDGE_* flag exists in this work because no flag-consuming program was run."
+  },
+  "live_zero_touch": "~/dl_quant_live: not touched at all. ~/wide_shadow: one read-only `cat syms450.txt` and a `grep -rl` over the tree. No write, no restart, no process start/stop, no order, no signed endpoint.",
+  "gpu": "No GPU job launched, queued, or killed. The independent researcher's GPU was not contended: this screen ran entirely on the local CPU (curl + python3 arithmetic).",
+  "venue_traffic": "Anonymous GETs to the static bulk archive s3-ap-northeast-1.amazonaws.com/data.binance.vision, PREFIX AND KEY LISTINGS ONLY - zero market-data bytes downloaded (no .zip fetched). Issued 2026-09-11T19:19-19:25Z, OUTSIDE every anchor window (anchors 00/04/08/12/16/20Z, windows HH:00-HH:57; next anchor 20:00Z). No exchange API called: Deribit and Upbit were NOT contacted (hard constraint 1).",
+
+  "step1_feasibility": {
+    "result": "SURVEYOR'S DATA CLAIM IS HALF WRONG. The dataset does not run to the present.",
+    "M1_option_children": {"value": ["data/option/daily/"], "monthly": "data/option/monthly/ returns an empty ListBucketResult - no keys, no CommonPrefixes", "label": "VERIFIED", "file": "raw_listings/l1.xml, raw_listings/l3.xml"},
+    "M2_daily_children": {"value": ["data/option/daily/BVOLIndex/", "data/option/daily/EOHSummary/"], "IsTruncated": false, "label": "VERIFIED", "file": "raw_listings/l2.xml"},
+    "M3_EOHSummary_symbols": {"value": ["BNBUSDT", "BTCUSDT", "DOGEUSDT", "ETHUSDT", "XRPUSDT"], "count": 5, "IsTruncated": false, "label": "VERIFIED", "file": "raw_listings/eoh.xml"},
+    "M4_BVOLIndex_symbols": {"value": ["BTCBVOLUSDT", "ETHBVOLUSDT"], "count": 2, "IsTruncated": false, "label": "VERIFIED", "file": "raw_listings/bvol.xml"},
+    "M5_EOHSummary_LAST_KEY_surveyor_never_checked": {
+      "finding": "EOHSummary STOPS at 2023-10-23. It is not a running dataset.",
+      "per_symbol_zip_days_first_last": {
+        "BTCUSDT": {"zip_days": 147, "first": "2023-05-18", "last": "2023-10-23"},
+        "ETHUSDT": {"zip_days": 147, "first": "2023-05-18", "last": "2023-10-23"},
+        "BNBUSDT": {"zip_days": 121, "first": "2023-05-18", "last": "2023-10-23"},
+        "XRPUSDT": {"zip_days": 99,  "first": "2023-05-19", "last": "2023-10-20"},
+        "DOGEUSDT": {"zip_days": 31, "first": "2023-08-30", "last": "2023-10-20"}
+      },
+      "not_even_dense": "BTC/ETH have 147 zip days inside a 159-calendar-day span",
+      "stale_for_days": 1054,
+      "label": "VERIFIED",
+      "file": "raw_listings/keys_*.txt"
+    },
+    "M6_BVOLIndex_coverage": {"first": "2023-06-20", "last": "2026-09-10", "zip_days": 1153, "calendar_days": 1179, "missing_days": 26, "label": "VERIFIED"},
+    "M7_vol_index_not_tradable": {"syms450_count": 450, "matches_BVOL_or_OPT": 0, "source": "~/wide_shadow/syms450.txt (read-only)", "label": "VERIFIED"},
+    "M8_underlyings_in_universe": {"in_450": 5, "of": 450, "coverage_pct": 1.11, "label": "VERIFIED"},
+    "M9_E0825H_trap_avoided": {"token": "BVOL", "where": "multi_asset/exports/research/runpod_scripts/workspace_mirror/pod_kingslot.py:12", "actual_semantics": "PW[\"f_vol_7d\"][:, BTC_P] = REALISED 7-day BTC vol, NOT implied vol", "label": "VERIFIED"},
+    "DECISIVE_window_overlap_days": {
+      "axis": "meta_newprod_v4 E_ts 2022-01-08 00:00Z .. 2026-08-31 20:00Z, 6/day; 1697 days x 6 = 10182 reproduces the pinned axis length bit-for-bit (VERIFIED arithmetic; axis length itself INFERRED from the pin)",
+      "post_warm_axis_anchors": 9282,
+      "EOHSummary_best_symbol_anchors": 882,
+      "EOHSummary_pct_of_post_warm_axis": 9.50,
+      "judge_windows_EOH_overlap_days": {
+        "frozen 2025-03-01..2026-08-10 20Z": 0,
+        "2024-01-01..2026-08-10 20Z": 0,
+        "ext 2026-08-11..2026-08-30 20Z": 0,
+        "2026-01-01..2026-08-31 20Z": 0,
+        "EXTENDED 2025-03-01..2026-08-31 20Z": 0,
+        "2024-01-01..2026-08-31 20Z": 0
+      },
+      "judge_windows_BVOL_overlap_days": {"frozen": 528, "2024-01..2026-08-10": 953, "ext": 20, "2026..08-31": 243, "EXTENDED": 549, "2024-01..2026-08-31": 974},
+      "reading": "ZERO in all six. There is no window in which judge_v4.py could evaluate a per-name IV arm.",
+      "label": "VERIFIED"
+    },
+    "leakage_check": "Surveyor's embargo claim (end-of-hour snapshots embargo cleanly to 4h anchors) is technically sound but moot. This session built NO feature: panel_source.py default dirty panel never touched, no expm1 applied to any pod 5m lineage, no _ext lineage read, stride<horizon not applicable."
+  },
+
+  "step2_rho_to_A0": {
+    "cross_sectional_form": {"rho": "NOT_REACHED", "reason": "series cannot be built - zero anchors in every judge window (see DECISIVE_window_overlap_days). This is 'unbuildable', not 'unmeasured'."},
+    "aggregate_form": {
+      "why_this_is_the_only_form": "BVOLIndex is one scalar per anchor => zero cross-sectional variance => cannot rank 450 names; and the index is not in the tradable 450 (M7) => cannot be a position leg. The only remaining entry point is a gross/exposure multiplier w_t on A0: g_cand,t = w_t * g_A0,t.",
+      "identity": "rho(w*g, g) = E[w]/sqrt(E[w^2]) = 1/sqrt(1+CV(w)^2), valid per-observation, hence valid inside ANY conditioning cell",
+      "A0_moments_used": {"mean_bps": 0.6342, "annualised_Sharpe": 1.2912, "anchors_per_year": 2190, "implied_per_anchor_Sharpe": 0.02759, "implied_sd_bps": 22.986, "label": "VERIFIED arithmetic from the brief's headline"},
+      "simulation": {"n": 9138, "rng": "numpy.default_rng([20260905, 9])", "w": "lognormal, mean 1",
+        "rho_by_CV": {"0.10": 0.9951, "0.25": 0.9709, "0.50": 0.8985, "0.75": 0.8049, "1.00": 0.7187, "2.00": 0.4635, "3.18": 0.2899},
+        "theory_by_CV": {"0.10": 0.9950, "0.25": 0.9701, "0.50": 0.8944, "0.75": 0.8000, "1.00": 0.7071, "2.00": 0.4472, "3.18": 0.3000},
+        "label": "VERIFIED"},
+      "HEADLINE": "rho to A0 >= 0.894 for any deployable gross-scaling overlay; 0.970 at a realistic CV(w)=0.25. Reaching the 0.30 screen needs CV(w) > 3.18, i.e. a gross multiplier whose sd is 3.18x its mean - not deployable under a 2.0x NAV gross cap with w>=0.",
+      "comparison": "XIB_LAG50 rho to A0 = 0.889. This candidate is WORSE. It is a re-weighting of the same bet."
+    },
+    "conditional_rho_in_A0_loss_cells": {
+      "value": ">= 0.894 (0.970 at CV=0.25), identical to unconditional",
+      "why_no_test_needed": "the identity rho = 1/sqrt(1+CV^2) is per-observation, so it holds inside any subset including A0's losing cells. Unlike AMI (whose rho ROSE to +0.343/+0.438 in A0's loss cells after passing an unconditional look), this candidate's independence does not evaporate in bad states - it never existed.",
+      "label": "VERIFIED (algebra + simulation)"
+    },
+    "measured_OOS_sign_is_adverse": {
+      "citation": "DOCKET_r7_ship_2026-09-12.md L354 (opened and read verbatim this session)",
+      "content": "any timing / exposure-control / de-risk family: refuted by 396 walk-forward variants; in-sample selection ANTI-predicts out of sample, corr -0.171 de-risk / -0.275 up-lever; 300-variant de-risk family OOS mean dSharpe -0.0502, one-sided 95% upper bound -0.0398",
+      "consequence_simulated": {"overlay_Sharpe_at_CV_0.25": -0.7669, "overlay_Sharpe_at_CV_0.50": -2.0662, "label": "VERIFIED simulation using the measured -0.171"},
+      "label": "VERIFIED as a citation; the underlying 396-variant experiment was NOT re-run this session => INFERRED for the conclusion"
+    }
+  },
+
+  "step3_standalone": {"status": "NOT_REACHED", "reason": "primary screen not passed (rho 0.89-0.97 >> 0.30). No nulls run, no cost model applied, no bootstrap - there is no arm to evaluate.", "nulls_that_would_have_been_used": "r3_attack_RESID_SHARPE/null.py (SHIFT101/503/1009, RELAB1-3); the per-anchor permutation placebo is defective and was not considered"},
+
+  "step4_arithmetic": {
+    "formula": "S_comb = sqrt((S1^2 + S2^2 - 2*rho*S1*S2)/(1-rho^2))",
+    "A0_post_warm_S1": 1.4150,
+    "target": 3.966,
+    "needed_uncorrelated_standalone_Sharpe_post_warm": 3.7050,
+    "rows": [
+      {"config": "BVOL overlay, deployable CV=0.25", "rho": 0.970, "S2": 1.4150, "combined": 1.4257, "gain": 0.0107, "gap_remaining": 2.5403},
+      {"config": "BVOL overlay, aggressive CV=0.50", "rho": 0.894, "S2": 1.4150, "combined": 1.4539, "gain": 0.0389, "gap_remaining": 2.5121},
+      {"config": "hypothetical: passes the screen, A0-quality", "rho": 0.300, "S2": 1.4150, "combined": 1.7551, "gain": 0.3401, "gap_remaining": 2.2109},
+      {"config": "what the desk needs", "rho": 0.000, "S2": 3.7050, "combined": 3.9660, "gain": 2.5510, "gap_remaining": 0.0}
+    ],
+    "honest_statement": "At its MOST charitable configuration this candidate fills 1.5% of the gap (0.0389/2.5510), and that configuration is a forbidden timing overlay whose measured OOS sign is negative. At a deployable CV it fills 0.4%.",
+    "A0_quality_uncorrelated_books_still_needed": 6.86,
+    "label": "VERIFIED arithmetic"
+  },
+
+  "upstream_defects_found": [
+    {"id": "U1", "what": "The task brief mixes three different A0 Sharpes", "detail": "local r5_newdata3/A0_headline_check.json: FULL_all s42=1.2947 n=9139, s2027=1.3332; FULL_pw (drop-900, the caliber constraint 4 mandates) s42=1.4150 n=9018, s2027=1.4370. The brief's '3.705' reproduces ONLY from 1.4150; its '~7.9 books' reproduces ONLY from 1.3332; its headline says 1.2912. Under constraint 4 the correct pair is 3.7050 and 6.86 additional books.", "label": "VERIFIED"},
+    {"id": "U2", "what": "Constraint 4's cost-model path is wrong", "detail": "uplift_2026-09-11/r3k/ does not exist; the file is at uplift_2026-09-11/r3k_impact/costb_PWR_G230k.json. That JSON contains no K=0.17 and no alpha=0.87 field - it carries tiered maker/taker bps, impact_bps_by_tier, book_avg_bps_per_unit_turnover=2.9537, model 'POWER-shape book-walk impact, excess of half-spread, G=$230000', calibration source r3k_fitK3.py. The brief's K/alpha are INFERRED. Not used this session (no arm to cost).", "label": "VERIFIED"},
+    {"id": "U3", "what": "Constraint 5's nulls path is wrong", "detail": "uplift_2026-09-11/r3_attack_b9646/ does not exist; null.py is at uplift_2026-09-11/r3_attack_RESID_SHARPE/null.py. Not used this session.", "label": "VERIFIED"}
+  ],
+
+  "reopen_trigger": {
+    "cross_sectional_form": "BOTH required: (1) 100+ new symbol prefixes under data/option/daily/EOHSummary/, AND (2) the prefix resumes updating (last key today = 2023-10-23, stale 1054 days) and accumulates enough history to land inside a judge window.",
+    "aggregate_form": "NEVER reopens on new listings - it dies on algebra (rho = 1/sqrt(1+CV^2)), not on data.",
+    "recheck_command_verbatim": "curl -s \"https://s3-ap-northeast-1.amazonaws.com/data.binance.vision?delimiter=/&prefix=data/option/daily/EOHSummary/\" | grep -o '<Prefix>data/option/daily/EOHSummary/[^<]*</Prefix>'"
+  },
+
+  "not_verified": [
+    {"id": "NV1", "what": "Deribit underlying count", "why_not": "hard constraint 1: never call an exchange API. The surveyor's 'handful more underlyings, same order of magnitude' was NOT re-checked this session => INFERRED.", "verification_path": "anonymous GET https://www.deribit.com/api/v2/public/get_currencies then get_instruments?kind=option&currency=<c>"},
+    {"id": "NV2", "what": "EOHSummary column semantics (does it even carry IV/skew?)", "why_not": "prefix/key listings only, zero market-data bytes downloaded. E-0825-H: column semantics must not be inferred from names.", "verification_path": "download one zip, read header, cross-check Binance public docs"},
+    {"id": "NV3", "what": "axis length 10182 and the A0 per-anchor g series", "why_not": "no f10_A0_*.npy on this machine (summary JSON only); the npz lives on pod2", "verification_path": "pod2: read meta_newprod_v4.npz E_ts"},
+    {"id": "NV4", "what": "K=0.17 / alpha=0.87", "why_not": "see U2", "verification_path": "open r3k_fitK3.py"}
+  ],
+
+  "artifacts": {
+    "result_doc": "multi_asset/exports/research/uplift_2026-09-11/r9_screen/OPTIONS_IV_SURFACE_2026-09-12/RESULT_OPTIONS_IV_SURFACE_2026-09-12.md",
+    "raw_listings": "multi_asset/exports/research/uplift_2026-09-11/r9_screen/OPTIONS_IV_SURFACE_2026-09-12/raw_listings/ (l1,l2,l3,eoh,bvol .xml + keys_*.txt + SHA256SUMS.txt)",
+    "note": "An identical copy is mirrored under the literal (orchestrator-interpolated) output path r9_screen/'INDEPENDENT DATA SOURCE - ...json_2/'."
+  }
+}

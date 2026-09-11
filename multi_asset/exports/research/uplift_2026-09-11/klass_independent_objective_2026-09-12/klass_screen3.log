@@ -1,0 +1,26 @@
+=== (a) EMA turnover shaping sweep, all eligible names ===
+config                   grossG     turn  breakeven   SR@2.95    SR@0.0
+EMA a=1.0 b=0.0         +1.1585   1.3178     0.8791    -4.236    +1.795
+EMA a=0.5 b=0.0         +1.2710   0.7926     1.6036    -1.421    +1.687
+EMA a=0.25 b=0.0        -0.0991   0.3193    -0.3104    -1.320    -0.125
+EMA a=0.1 b=0.0         -0.4321   0.1092    -3.9559    -1.068    -0.612
+EMA a=0.05 b=0.0        -0.2117   0.0521    -4.0663    -0.550    -0.318
+EMA a=0.05 b=0.002      -0.0879   0.0539    -1.6293    -0.434    -0.154
+EMA a=0.1 b=0.002       -0.1673   0.1129    -1.4821    -0.851    -0.284
+EMA a=0.25 b=0.002      +0.1427   0.3197     0.4463    -1.249    +0.222
+
+=== (b) liquidity-tier restriction (cost tier0=2.67, tier1=2.68, rest=3.64 bps/unit) ===
+config                   grossG     turn  breakeven   SR@tier   rho_A0
+tier0 qv4h>=5e6 a=1.0   -0.0963   1.3077    -0.0737    -2.781  +0.0466
+tier0 qv4h>=5e6 a=0.25  -0.7080   0.3245    -2.1819    -1.715  -0.0202
+tier01 qv4h>=1e6 a=1.0  +0.9319   1.3144     0.7090    -3.191  +0.0341
+tier01 qv4h>=1e6 a=0.25  +0.0299   0.3200     0.0933    -1.298  +0.0046
+
+=== (c) per-year gross (all eligible, no shaping) and rho ===
+  2022: gross +0.9346  turn 1.3304  breakeven +0.7025  n=1110
+  2023: gross +1.3422  turn 1.3307  breakeven +1.0087  n=2190
+  2024: gross +1.5137  turn 1.3227  breakeven +1.1444  n=2196
+  2025: gross +1.2116  turn 1.3085  breakeven +0.9259  n=2190
+  2026: gross +0.4356  turn 1.2956  breakeven +0.3362  n=1452
+
+wrote KLASS_SCREEN3.json

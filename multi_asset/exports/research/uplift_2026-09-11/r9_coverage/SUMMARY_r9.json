@@ -1,0 +1,139 @@
+{
+ "round": "r9_coverage",
+ "created_utc": "2026-09-12",
+ "task": "close the E-0911-D coverage ceiling: rebuild the F10/V2MAIN forward inference device",
+ "status": "first-hand measurement, not independently reviewed",
+ "caliber_pin": "v4 chain 2026-09-09 (CALIBER_PIN_v4_2026-09-11.md)",
+ "statistic": "g = net_ex/gross_total, bps per 4h anchor per unit gross; post-warm drop 900 (E-0911-A); UTC-day block bootstrap; annualised Sharpe = mean/sd(ddof=1)*sqrt(2190); cost = r3k/costb_PWR_G230k.json sha 295b4e7b462373e4",
+ "replay_device": {"path": "/workspace/uplift_2026-09-11/w10_sleeve.py", "sha256_prefix": "b88e35a46b93d712", "unmodified": true},
+
+ "GATE_X_P": {
+  "verdict": "PASS",
+  "maxabs": 0.0,
+  "bitwise_equal": true,
+  "nan_pattern_equal": true,
+  "folds": {
+   "mwf_v4b/RAW_s42/shard3":   {"ckpt_sha16": "7859072d24db", "maxabs": 0.0, "verdict": "PASS", "canonical": true},
+   "mwf_v4b/RAW_s2027/shard3": {"ckpt_sha16": "fbd1ff28e1aa", "maxabs": 0.0, "verdict": "PASS", "canonical": true},
+   "mwf/RAW_s42/shard3":       {"ckpt_sha16": "efd5c1c420b1", "maxabs": 0.0, "verdict": "PASS", "canonical": false}
+  },
+  "test_slice": "anchors 10026..10211 = 2026-08-01 00:00Z..2026-08-31 20:00Z, 186 rows x 829 cols, 74400 both-finite cells",
+  "P_sha16_stored_and_reinferred": "20a2c0d349965596"
+ },
+
+ "GATE_X_OVERLAP_B_lineage_correct": {
+  "verdict": "PASS", "maxabs": 0.0, "bitwise_equal": true,
+  "compared_to": ["dev_v4/f8_2026-08-22/preds/f10_v4RAW_s42.npy sha16 58d64a6ff9684589",
+                  "dev_v4/f8_2026-08-22/preds/f10_v4RAW_s2027.npy sha16 47046ccd6dc7937c"],
+  "n_anchors": 186
+ },
+
+ "GATE_X_OVERLAP_A_literal_vs_f10_A0": {
+  "verdict": "FAIL",
+  "maxabs": {"s42": 0.38486963510513306, "s2027": 0.39216339588165283},
+  "pearson": {"s42": 0.8422971017122376, "s2027": 0.8312045200963971},
+  "impossible_by_construction": true,
+  "reason": "f10_A0 is the YEARLY 4-fold chain from /workspace/pod_f10_train_ext.py on the FORBIDDEN _ext lineage (dlw_ext targets sha 31d043e8..., axis 10206 ending 2026-08-30 20Z, cache sha 72eb7849...). That trainer never persists a per-fold model; /workspace/f8_ext/models holds only the full-history refits f10_live_s{42,2027}.pt, which w10_sleeve.py L110 itself forbids for historical evaluation. The 2026-fold weights do not exist on disk."
+ },
+
+ "GATE_X_PRE": {
+  "strict": {"verdict": "FAIL", "X_prefix_maxabs": 0.0115966796875},
+  "exempt":   {"verdict": "PASS", "matches_declared_E0911B": true},
+  "calib":    {"verdict": "PASS", "n_rows": 98963, "max_row": 2076486, "bitwise_equal": true},
+  "disjoint": {"verdict": "PASS", "forward_rows": [2753289, 2777289], "diff_rows_max": 2753288},
+  "exemption_detail": {
+   "n_diff_cells": 3866, "upper_bound_cells": 4000, "unchanged_because_both_exactly_zero": 134,
+   "anchors": ["2026-08-31 04:00Z", "2026-08-31 08:00Z", "2026-08-31 12:00Z", "2026-08-31 16:00Z", "2026-08-31 20:00Z"],
+   "columns": ["fund_ema", "fund_now"],
+   "fea89_diff_cells": 0,
+   "mechanism": "pod_dlw_features_ext.py L93: X[sl,col] = 0.0 if j is None -- no panel row => both funding columns hard-zeroed with no flag. Incumbent panel ends 2026-08-31 00:00Z while the DL axis runs to 2026-08-31 20:00Z. The r6 extended panel repairs it. THIRD FACE OF E-0911-B (king tensor / legs were the first two)."
+  },
+  "calibration_recomputed_on_extended_matrix_identical": true
+ },
+
+ "GATE_X_REPLAY_PREFIX": {"verdict": "PASS", "n_prefix_anchors": 10039, "maxabs_all_23_columns": 0.0,
+                          "paired_delta_old_window": 0.0, "corr": 1.0, "seeds": ["42", "2027"]},
+
+ "GATE_X_COV": {
+  "A0_archived_s42":  {"last_live_anchor": "2026-08-30 20:00Z", "n_postwarm_anchors_with_zero_finite_F10": 1111},
+  "A1_inc_s42":       {"last_live_anchor": "2026-08-31 00:00Z", "n_postwarm_anchors_with_zero_finite_F10": 1110},
+  "A1x_ext_s42":      {"last_live_anchor": "2026-09-10 00:00Z", "n_postwarm_anchors_with_zero_finite_F10": 1110,
+                       "median_finite_members_when_live": 300}
+ },
+
+ "NEW_FINDING_E0911D_is_two_sided": {
+  "claim": "Inside the PINNED A0 window (n=9138), 1110 anchors (12.15%) run with the F10 leg silently zeroed by w10_sleeve.py L267 np.nan_to_num.",
+  "dead_range": "2022-06-30 00:00Z .. 2022-12-31 20:00Z", "contiguous_prefix": true,
+  "dead_by_year": {"2022": 1110, "2023": 0, "2024": 0, "2025": 0, "2026": 0},
+  "mean_g_on_dead": 0.1586, "mean_g_on_live": 0.7000, "n_live": 8028, "sharpe_live_only": 1.3741,
+  "note": "F10's first OOS test fold starts 2023-01-01; the LOOK=900 warm-up ends 2022-06-30, so post-warm does NOT cover this hole. Pre-existing erratum, not caused by this round."
+ },
+
+ "EXTENSION": {
+  "out": {"s42":   {"path": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_s42.npy",   "sha256": "d41fcc933dfe3033b4deb3fc68b069c3db3aeef54fa357ece92ab453bd166dcb"},
+          "s2027": {"path": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_s2027.npy", "sha256": "01180436a573fef2cd5e9fb3309996b6c767a643cbbaeb9d307f601f04ef896f"}},
+  "shape": [10272, 829], "last_anchor": "2026-09-10 20:00Z",
+  "prefix_rows_bitwise_copied": 10212,
+  "new_anchors_total": 60, "new_anchors_scored": 60, "new_anchors_left_NaN": [],
+  "scoring_fold": "mE1cX7_202608, cutoff 2026-07-31 20:00Z, embargo 1 - causal for every new anchor, STALE by one month vs the monthly-WF rule",
+  "repair5_variant_NEEDS_USER_RULING": {
+    "s42":   {"path": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_repair5_s42.npy",   "sha256": "6eb8a757eed333281fcf62d0830e70119f5d34bfeb085125ce7c99b3b43e76f5", "rows_changed": 5, "cells_changed": 2000, "maxabs": 0.06178984045982361},
+    "s2027": {"path": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_repair5_s2027.npy", "sha256": "e3a9bf17f8ddebd406f1721e94608e7f53484b510601347d2ff98e34c2e22ac4", "rows_changed": 5, "cells_changed": 2000, "maxabs": 0.09398633241653442}}
+ },
+
+ "UPPER_BOUND": {"old": "2026-08-30 20:00Z", "new": "2026-09-10 00:00Z", "n_old": 9138, "n_new": 9199, "anchors_gained": 61,
+                 "why_not_20Z": "r6 section 13.3: the last 5 anchors 2026-09-10 04Z..20Z fall outside every window (structural panel/king truncation offset)"},
+
+ "RESULTS": {
+  "A0_archived_s42_OLD_WINDOW_reproduced": {"n": 9138, "mean_g": 0.6342, "sharpe_ann": 1.2912,
+     "CI95_R8_B4000": [0.1653, 1.1071], "CI95_TASK_B2000": [0.1774, 1.1136],
+     "matches_pinned": true},
+  "A0_archived_s2027_OLD_WINDOW": {"n": 9138, "mean_g": 0.6579, "sharpe_ann": 1.3299, "CI95_R8_B4000": [0.18, 1.139]},
+  "A1_inc_s42_OLD_WINDOW":   {"n": 9138, "mean_g": 0.6904, "sharpe_ann": 1.3474, "CI95_TASK_B2000": [0.1966, 1.1912]},
+  "A1_inc_s2027_OLD_WINDOW": {"n": 9138, "mean_g": 0.7133, "sharpe_ann": 1.3906, "CI95_TASK_B2000": [0.2242, 1.206]},
+  "A1x_ext_s42_NEW_WINDOW":   {"n": 9199, "mean_g": 0.6602, "sharpe_ann": 1.2857, "CI95_TASK_B2000": [0.1673, 1.1472], "CI95_R8_B4000": [0.1772, 1.154]},
+  "A1x_ext_s2027_NEW_WINDOW": {"n": 9199, "mean_g": 0.6828, "sharpe_ann": 1.3288, "CI95_TASK_B2000": [0.1911, 1.1717], "CI95_R8_B4000": [0.2009, 1.1735]}
+ },
+
+ "PAIRED": {
+  "A1_inc_minus_A0_archived_s42":   {"n_common": 9138, "mean_delta": 0.0562, "CI95_TASK": [-0.0778, 0.1894], "corr": 0.9526, "verdict": "UNDECIDED (CI contains 0)"},
+  "A1_inc_minus_A0_archived_s2027": {"n_common": 9138, "mean_delta": 0.0554, "CI95_TASK": [-0.0801, 0.1886], "corr": 0.9529, "verdict": "UNDECIDED (CI contains 0)"},
+  "A1x_ext_minus_A1_inc_s42_oldwindow": {"n_common": 9138, "mean_delta": 0.0, "CI95_TASK": [0.0, 0.0], "corr": 1.0, "verdict": "identical - pure prefix extension"}
+ },
+
+ "NEWLY_COVERED_61_ANCHORS": {
+  "window": "2026-08-31 00:00Z .. 2026-09-10 00:00Z", "n": 61,
+  "s42":   {"mean_g": -3.8739, "sharpe_on_slice": -5.9539, "CI95_TASK_B2000": [-12.1883, 3.5265]},
+  "s2027": {"mean_g": -3.8869, "sharpe_on_slice": -6.1349, "CI95_TASK_B2000": [-12.0242, 3.1896]},
+  "control_PHI0_no_DL_leg_s42": {"mean_g": -4.2649, "sharpe_on_slice": -7.2672,
+     "reading": "the stale DL fold is NOT the cause of the negative window; removing the DL leg entirely is WORSE by 0.39 bps/anchor"},
+  "reading_discipline": "n=61, CI contains 0 - this is NOT a regime conclusion, only 'the newly covered stretch is negative'."
+ },
+
+ "CHANGES_THE_CONCLUSION": "NO. Closing the coverage ceiling moves annualised Sharpe by about 0.06 on a CI width of about 0.98 bps/anchor. The gap to a cross-regime Sharpe significantly above 3.0 is untouched. This round is an instrument fix.",
+
+ "NOT_DONE": [
+  "f10_A0 itself cannot be extended: its yearly-fold weights were never persisted (retraining only).",
+  "A0's king leg also cannot be extended: it uses SLOW_v3_on_v4axis.npy; only the v4 king was extended by r6. Both of A0's model legs are v3-lineage artifacts.",
+  "The scoring fold is one month stale (202609 fold would require retraining).",
+  "The 1110 F10-dead anchors of 2022 are NOT repaired (would require retraining).",
+  "No formal judge_v4.py ruling; judge and ELIGIBILITY_CONTRACT.json untouched. Moving the decision window remains a user ruling.",
+  "repair5 variants changing 5 existing anchors are produced but NOT chosen - book-behaviour caliber, user ruling required."
+ ],
+
+ "ENV_WHITELIST": {
+  "analysis_and_gate_devices": [],
+  "analysis_note": "READ_ENV = [] asserted in every script; additionally asserts that no trainer/replay knob leaked into the process environment (ARM V2 SEED COST LDD AFIX LDC CTXA REC PLE EPOCHS LR NCOL EXTRA LPP F10_DLW F10_OUT MWF_OUT EMBARGO MWF_TAG MONTHS FORCE BEST_EP_FLOOR BEST_EP_FIX F10_GATE_JSON MWF_ROOT PHI LOOK FPRED FSEED LEGS CAL SLOW_NPY F171_PANEL). All paths are literals; CONFIG and self_sha256 written into every receipt.",
+  "replay_children": ["LEGS", "CAL", "WRULE", "LOOK", "MEMBERS_TOPN", "FTRIM", "PHI", "UMASK_SCOPE", "UMASK_NPZ", "SLOW_NPY", "FSEED", "FPRED", "COSTB_JSON", "OUT_TAG"],
+  "replay_effective_values": "LEGS=101 CAL=log WRULE=msharpe LOOK=900 MEMBERS_TOPN=829 FTRIM=zero PHI=0.45 UMASK_SCOPE=m1 UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json SLOW_NPY=<SLOW_v4|SLOW_v4_x0910> FSEED=<42|2027> FPRED=<f10_v4RAW_s*|f10_v4RAWx_s*>",
+  "perf_only": "OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=MKL_NUM_THREADS=3",
+  "nothing_trained": "No training this round, so no V2-class training flag applies (the hole that once trained a -0.219 Sharpe object)."
+ },
+
+ "SAFETY": {
+  "live_repos_touched": "none - ~/dl_quant_live and ~/wide_shadow byte-for-byte untouched, no process restarted, no venue API call, no order",
+  "r6_artifacts_modified": "none - new replay trees r9/dev_inc and r9/dev_ext built from symlinks; r6's dev_v4_x0910 untouched",
+  "judge_modified": "none - judge_v4.py and ELIGIBILITY_CONTRACT.json untouched",
+  "gpu": "checked free before starting (0 compute apps, 0%, 2 MiB); the independent researcher's 4 jobs were CPU data collection (collect_oi.py, sample_visibility.py, 2 launchers) and were all still running afterwards; total GPU use = 2 forward-inference passes of about 30 s each; never killed, never pkilled, never preempted, no queueing needed"
+ }
+}

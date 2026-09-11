@@ -1,0 +1,93 @@
+{
+ "step": "STEP1_FEASIBILITY",
+ "env_whitelist": [],
+ "self_sha256": "d54ae0c6436323e45c4b1d6fa837342b4bfc1611c2bc71543ccf521b47a051c9",
+ "inputs_sha256_16": {
+  "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz": "0e3c09ac86c727ac",
+  "/workspace/uplift_2026-09-11/r8b2/dev/probe_artifacts/w10_ablation_series_R8_A0_s42.npz": "9bd885ce39938cc2",
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d",
+  "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz": "47d87b5165b695a7",
+  "/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json": "295b4e7b462373e4"
+ },
+ "A0_config_readback": {
+  "LEGS": "101",
+  "PHI": 0.45,
+  "CAL": "log",
+  "WRULE": "msharpe",
+  "LOOK": 900,
+  "MEMBERS_TOPN": 829,
+  "FTRIM": "zero",
+  "UMASK_SCOPE": "m1",
+  "COSTB_JSON": "/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+  "FSEED": "42"
+ },
+ "A0_cost_model_in_config": [
+  [
+   1.923482,
+   5.874314,
+   0.810909
+  ],
+  [
+   1.987248,
+   6.487762,
+   0.845542
+  ],
+  [
+   2.765813,
+   8.09014,
+   0.835498
+  ]
+ ],
+ "pinned_cost_tiers_match_config": true,
+ "A0_reference_first_hand": {
+  "rec_rows_total": 10039,
+  "n_post_warm_and_cut": 9138,
+  "window_utc": [
+   "2022-06-30T00:00Z",
+   "2026-08-30T20:00Z"
+  ],
+  "mean_g_bps": 0.6342,
+  "annualised_sharpe": 1.2912,
+  "SE_annualised_sharpe": 0.4895,
+  "gross_alpha_pnl_ex_bps": 1.2813,
+  "carry_ex_bps": 0.4797,
+  "cost_ex_bps": 0.1675,
+  "turnover_mean": 0.03032,
+  "brief_claim": {
+   "mean_g": 0.6342,
+   "CI95": [
+    0.1653,
+    1.1071
+   ],
+   "sharpe": 1.2912,
+   "n": 9138,
+   "gross_pnl_ex": 1.3266
+  },
+  "mean_g_CI95": [
+   0.1774,
+   1.1136
+  ]
+ },
+ "net_identity_maxabs": {
+  "pnl-carry-cost": 0.0,
+  "pnl+carry-cost": 12.754024751743074
+ },
+ "axis": {
+  "meta_E_ts_len": 10182,
+  "A0_rec_len": 10039,
+  "A0_ts_subset_of_meta": true,
+  "meta_first": "2022-01-08T00:00Z",
+  "meta_last": "2026-08-31T20:00Z",
+  "anchor_spacing_unique_sec": [
+   14400
+  ],
+  "n_names": 829
+ },
+ "y4_coverage": {
+  "finite_frac_overall": 0.41183,
+  "names_finite_at_last_anchor": 798,
+  "median_names_finite_per_anchor": 282.0,
+  "max_abs_y4": 4.238038063049316,
+  "y4_is_sum_of_5m_simple_returns_NO_expm1": "E-0904-F: caliber bound to panel file; no expm1 applied"
+ }
+}

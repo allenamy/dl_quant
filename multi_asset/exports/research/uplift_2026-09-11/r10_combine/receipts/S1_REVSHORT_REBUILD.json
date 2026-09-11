@@ -1,0 +1,112 @@
+{
+ "step": "S1_REVSHORT_REBUILD",
+ "self_sha256": "5cf25f225da4877b9128bfa009e7884a4eaca714f34b3ed7c249338bdbb5ba58",
+ "env_whitelist": [],
+ "env_seen_at_runtime": [
+  "CPATH",
+  "HOME",
+  "LC_CTYPE",
+  "LIBRARY_PATH",
+  "MANPATH",
+  "MKL_NUM_THREADS",
+  "OMP_NUM_THREADS",
+  "OPENBLAS_NUM_THREADS",
+  "PATH",
+  "SDKROOT",
+  "__CF_USER_TEXT_ENCODING"
+ ],
+ "numpy": "1.26.4",
+ "python": "3.9.6",
+ "inputs": {
+  "meta_newprod_v4": {
+   "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/r10c/meta_newprod_v4.npz",
+   "sha256": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3"
+  },
+  "A0_PWR230k_s42": {
+   "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/r10c/A0_PWR230k_s42.npz",
+   "sha256": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339"
+  },
+  "costb_PWR_G230k": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r3k_impact/costb_PWR_G230k.json",
+   "sha256": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53"
+  }
+ },
+ "meta": {
+  "shape_y4": [
+   10182,
+   829
+  ],
+  "monotone_4h": true
+ },
+ "A0": {
+  "n": 9138,
+  "mean_g": 0.6342,
+  "SR": 1.2912
+ },
+ "eligibility": {
+  "rule": "member & isfinite(y4) & qv4h>=2.5e5 ; qv4h=expm1(clip(qvk,0,30))*48",
+  "mean_eligible_names_per_anchor": 267.19
+ },
+ "leak_interventional": {
+  "cuts": 24,
+  "failures": [],
+  "PASS": true
+ },
+ "GATE_reproduce_r9": {
+  "RAW_jump": {
+   "rebuilt": {
+    "gross": 1.1585,
+    "turn": 1.3178,
+    "cost": 3.8683,
+    "net": -2.7097,
+    "SRnet": -4.1986,
+    "rho": 0.0186
+   },
+   "archived_r9": {
+    "gross": 1.1585,
+    "turn": 1.3178,
+    "cost": 3.8683,
+    "net": -2.7097,
+    "SRnet": -4.1986,
+    "rho": 0.0186
+   },
+   "delta": {
+    "gross": 3.3e-05,
+    "turn": 2.9e-05,
+    "cost": -3.5e-05,
+    "net": -3.2e-05,
+    "SRnet": 4.6e-05,
+    "rho": -1.2e-05
+   },
+   "PASS": true
+  },
+  "EMA_a0.50": {
+   "rebuilt": {
+    "gross": 1.271,
+    "turn": 0.7926,
+    "cost": 2.3246,
+    "net": -1.0536,
+    "SRnet": -1.3986,
+    "rho": -0.0211
+   },
+   "archived_r9": {
+    "gross": 1.271,
+    "turn": 0.7926,
+    "cost": 2.3246,
+    "net": -1.0536,
+    "SRnet": -1.3986,
+    "rho": -0.0211
+   },
+   "delta": {
+    "gross": 8e-06,
+    "turn": 1.6e-05,
+    "cost": -8e-06,
+    "net": 1.6e-05,
+    "SRnet": 1.7e-05,
+    "rho": 1.2e-05
+   },
+   "PASS": true
+  }
+ },
+ "saved": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r10_combine/series/REV_SHORT_rebuilt.npz"
+}

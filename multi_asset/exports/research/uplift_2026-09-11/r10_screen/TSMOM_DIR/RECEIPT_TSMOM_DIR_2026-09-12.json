@@ -1,0 +1,241 @@
+{
+  "created": "2026-09-12",
+  "session": "https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX",
+  "candidate": "TSMOM_DIR -- per-name time-series trend as a DIRECTIONAL book, merged at the BOOK layer",
+  "screened_object_origin": "multi_asset/exports/research/uplift_2026-09-11/klass_independent_objective_2026-09-12/klass_screen2.py OBJ['TSMOM_net']",
+  "verdict": "DEAD",
+  "status": "SCREEN. Not a w10 judge verdict. No arm admitted. No deployment claim.",
+  "live_touch": "ZERO. ~/dl_quant_live and ~/wide_shadow opened READ-ONLY for three reads (signal/legs.py demean points; shadow_loop_v3.py L473-474; shadow_bundle/config.json L1449). No write, no restart, no exchange API, no order.",
+  "gpu": "NOT USED. nvidia-smi on pod2 read 0% util / 2 MiB used at screen time. All work numpy/CPU. No job preempted.",
+
+  "env_whitelist_E_0826_D": [],
+  "env_whitelist_note": "Every run executed as `env -i OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4 /workspace/venv/bin/python <script>`. Each script asserts that NONE of LEGS CAL WRULE LOOK PHI UMASK_NPZ UMASK_SCOPE FSEED FPRED COSTB_JSON MEMBERS_TOPN FTRIM SLOW_NPY W3FIX FEMAT_NPZ OUT_TAG SLEEVE SEATNET CDAMP KMOD KMOD_F10 KMOD_L KMOD_AGREE SEATF10 KTAIL FUNDSCALE TRADE_TOPN RNSM FTPOS LTRIM_TH FTRIM_TH REF_SKIP PANEL EXPORT_PANEL EMA_STATE_JSON is present, and raises if it is. Analysis scripts => whitelist is the EMPTY SET. The three thread caps are numerically identity-preserving and are declared here for completeness.",
+
+  "pins_sha256_computed_by_me_this_session": {
+    "meta_newprod_v4.npz": {"path": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz", "sha256": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3", "y4_shape": [10182, 829], "label": "VERIFIED"},
+    "A0_series": {"path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz", "sha256": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419", "keys_read": ["d30_n2_c42_rec", "d30_n2_c42_W", "S0_rec", "cols", "config_json"], "label": "VERIFIED"},
+    "funding_panel": {"path": "/workspace/data/wide_panel_4h_v2ext.npz", "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116", "fields_read": ["ts", "f_fund_now", "f_fund_iv"], "label": "VERIFIED"},
+    "cost_model": {"path": "/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json", "sha256": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53", "label": "VERIFIED"},
+    "universe_mask": {"path": "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz", "sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5", "label": "VERIFIED"}
+  },
+  "caliber_assertions": {
+    "no_expm1_on_y4": "TRUE. E-0904-F respected: this lineage's y4 = sum of 5-minute SIMPLE returns. The only expm1 in my code is qv4h = expm1(clip(qvk,0,30))*48, the device's own quote-volume transform (w10_sleeve.py L322 / shadow_loop_v3.py L473).",
+    "forbidden_v3_lineage_not_opened": ["dlw_ext / any _ext 5m cache", "pod_fea_ext.py", "clipped-compounding accounting", "pod_legs_ext.py", "shadow_bundle_v3", "wide_fea_v2ext_meta", "panel_source.py DEFAULT panel"],
+    "panel_passed_explicitly": true,
+    "A0_device_config_read": {"CAL": "log", "LEGS": "101", "PHI": 0.45, "WRULE": "msharpe", "LOOK": 900, "MEMBERS_TOPN": 829, "FTRIM": "zero", "UMASK_SCOPE": "m1", "COSTB_JSON": "costb_fee_steady.json", "label": "VERIFIED, read out of the npz config_json"}
+  },
+
+  "window": {"rule": "drop first 900 device anchors (E-0911-A), then cap ts <= 1788120000 = 2026-08-30T20:00:00Z (E-0911-D)", "n": 9138, "n_reproduces_exactly": true, "label": "VERIFIED"},
+  "statistic": "g = net_ex / gross_total, bps per 4h anchor per unit gross, paired per anchor",
+  "bootstrap": {"blocks": "UTC day", "resamples": 2000, "rng": "numpy.default_rng([20260905, k])"},
+  "SE_annualised_sharpe": 0.4895493525831451,
+
+  "cost_model_applied": {
+    "source": "costb_PWR_G230k.json, fitted POWER-shape book-walk impact excess of half-spread, G=$230,000",
+    "blended_bps_per_unit_turnover_recomputed_by_me": [2.6705, 2.6824, 3.6417],
+    "matches_file_field": true,
+    "charge_rule": "per name, per anchor, by that name's own qv4h tier (>=5e6 / >=1e6 / rest), on |dw|",
+    "label": "VERIFIED"
+  },
+
+  "GATE_A_no_lookahead": {
+    "test": "re-derive A0's own pnl and carry columns from its ARCHIVED weight matrix d30_n2_c42_W, the pinned y4, and the funding panel. If the identity closes, y4[t] is the FORWARD 4h return earned by weights decided at E_t.",
+    "meta_members_rule": {"max_abs_dpnl_bps": 3.537e+01, "max_abs_dcarry_bps": 3.480e-01, "mean_abs_dpnl_bps": 2.096e-01},
+    "device_actual_rule_MEMBERS_TOPN_829": {"max_abs_dpnl_bps": 6.528e-06, "max_abs_dcarry_bps": 1.552e-07, "mean_abs_dpnl_bps": 2.499e-07},
+    "resolution": "The first row was my error, not a leak: A0 ran with MEMBERS_TOPN=829, and w10_sleeve.py L70-76 REBUILDS membership from qvk when that is set, ignoring meta['members']. Under the device's real rule the identity closes to 6.5e-06 bps.",
+    "verdict": "PASS -- accounting axis carries no lookahead",
+    "label": "VERIFIED"
+  },
+  "other_leak_families_checked": {
+    "dirty_default_panel": "not used; funding panel passed by absolute path",
+    "vol_scaling_leak": "N/A, no vol scaling in this object",
+    "stride_lt_horizon": "stride = horizon = one 4h anchor",
+    "champion_selection": "K=6 arm set and the primary arm (TSMOM_L42_raw, the surveyor's exact object) were written into the script before the first number printed; the best-of-six was NOT promoted"
+  },
+
+  "reproduction_of_surveyor": {
+    "my_gross_price_g": 0.8181352498777122, "surveyor_gross_g": 0.8181352498777134,
+    "my_turnover": 0.1433008405278086, "surveyor_turnover": 0.1433008405278086,
+    "my_rho_A0": -0.09783592123264703, "surveyor_rho_A0": -0.0978326007032871,
+    "verdict": "surveyor's data claim CONFIRMED, independently reproduced", "label": "VERIFIED"
+  },
+
+  "A0_baseline_this_archive": {
+    "d30_n2_c42": {"mean_g": 0.6871853921408864, "annualised_sharpe": 1.3990507642323804, "turnover": 0.03031580569927569, "netlong_mean": -0.025287086376591043},
+    "S0": {"mean_g": 0.6285371771134751, "annualised_sharpe": 1.250417914249581},
+    "brief_value": {"mean_g": 0.6342, "annualised_sharpe": 1.2912},
+    "note": "n=9138 reproduces exactly; neither archived cell equals the brief's 0.6342/1.2912 (nearest is S0 at 0.6285/1.2504). Flagged, same as the surveyor flagged it; the discrepancy is well inside SE(Sharpe)=0.4895 and none of my conclusions turns on which cell is used. Primary reads use d30_n2_c42 (the deployed drawdown-guard shape).",
+    "label": "VERIFIED"
+  },
+
+  "STEP2_independence": {
+    "rho_uncond": -0.09783592123264703,
+    "rho_uncond_CI95": [-0.14688, -0.04733],
+    "spearman_uncond": -0.03541416931145102,
+    "rho_in_A0_bottom_quintile": -0.18530,
+    "rho_bottom_quintile_CI95": [-0.29812, -0.06869],
+    "n_bottom_quintile": 1828,
+    "A0_bottom_quintile_threshold_bps": -13.909266416667508,
+    "verdict": "PASS -- |rho| < 0.30 both unconditionally and conditionally, and it goes MORE negative where A0 loses. First candidate in this programme to do so.",
+    "conditional_MEANS_the_test_that_actually_matters": {
+      "Q0_A0_worst": {"n": 1828, "A0_mean": -29.399, "TSMOM_mean": 14.782, "CI95": [6.117, 23.095]},
+      "Q1": {"n": 1827, "A0_mean": -8.269, "TSMOM_mean": 1.941, "CI95": [-2.580, 6.041]},
+      "Q2": {"n": 1828, "A0_mean": 0.272, "TSMOM_mean": -1.727, "CI95": [-5.594, 2.397]},
+      "Q3": {"n": 1827, "A0_mean": 9.530, "TSMOM_mean": -5.485, "CI95": [-10.048, -0.679]},
+      "Q4_A0_best": {"n": 1828, "A0_mean": 31.302, "TSMOM_mean": -7.475, "CI95": [-14.679, -0.623]},
+      "A0_worst_decile": {"n": 914, "A0_mean": -40.676, "TSMOM_mean": 19.988, "CI95": [5.619, 34.561]}
+    },
+    "label": "VERIFIED"
+  },
+
+  "STEP3_net_edge": {
+    "primary_arm": "TSMOM_L42_raw",
+    "gross_price_g_bps": 0.8181352498777122,
+    "carry_g_bps": -0.016810960903273643,
+    "carry_note": "subtracted in net; being slightly net SHORT with usually-positive funding makes carry a small TAILWIND, not the killer",
+    "cost_g_bps": 0.42736314641837797,
+    "net_g_bps": 0.407583064362608,
+    "net_CI95": [-1.8376101985129802, 2.6668305723863672],
+    "annualised_sharpe_net": 0.1615971288617121,
+    "sharpe_in_SE": 0.3301,
+    "turnover": 0.1433008405278086,
+    "turnover_vs_A0": 4.727,
+    "cost_survival_pct_of_gross": 49.81854337941434,
+    "standalone_sharpe_needed_for_one_uncorrelated_source": 3.7110393367762615,
+    "uncorrelated_copies_of_THIS_needed_to_reach_3.966": 527.4,
+    "verdict": "FAIL -- CI95 contains zero with enormous margin; Sharpe 0.33 SE from zero",
+    "label": "VERIFIED"
+  },
+  "all_six_declared_arms": {
+    "K_declared_before_measurement": 6,
+    "TSMOM_L12_raw":   {"net_g": 0.8366, "CI95": [-1.4626, 3.1674], "SR": 0.333, "price_g": 1.6146, "cost": 0.8225, "turn": 0.2780, "rho": -0.050},
+    "TSMOM_L12_ema10": {"net_g": -0.3951, "CI95": [-2.6763, 1.8507], "SR": -0.159, "price_g": -0.1163, "cost": 0.2645, "turn": 0.0895, "rho": -0.088},
+    "TSMOM_L42_raw":   {"net_g": 0.4076, "CI95": [-1.8376, 2.6668], "SR": 0.162, "price_g": 0.8181, "cost": 0.4274, "turn": 0.1433, "rho": -0.098},
+    "TSMOM_L42_ema10": {"net_g": 0.2053, "CI95": [-2.0315, 2.5306], "SR": 0.081, "price_g": 0.3764, "cost": 0.1721, "turn": 0.0581, "rho": -0.085},
+    "TSMOM_L90_raw":   {"net_g": 0.8810, "CI95": [-1.4219, 3.1042], "SR": 0.356, "price_g": 1.1639, "cost": 0.2870, "turn": 0.0960, "rho": -0.077},
+    "TSMOM_L90_ema10": {"net_g": 0.6736, "CI95": [-1.7625, 2.9795], "SR": 0.264, "price_g": 0.8160, "cost": 0.1141, "turn": 0.0383, "rho": -0.072},
+    "note": "every arm's CI95 contains zero BEFORE any Bonferroni correction for K=6",
+    "label": "VERIFIED"
+  },
+
+  "nulls_turnover_matched": {
+    "family_source": "constructed to the same design as r3_attack_RESID_SHARPE/null.py; the DEFECTIVE per-anchor permutation placebo was NOT used",
+    "SHIFT101":  {"net_g": -1.6334769184372846, "SR": -0.6791595725503352, "turn": 0.14333369407703306},
+    "SHIFT503":  {"net_g": -1.3456099214613448, "SR": -0.5720558124094436, "turn": 0.143770333105878},
+    "SHIFT1009": {"net_g": -0.4244631282091215, "SR": -0.17559878806018842, "turn": 0.14254006815742842},
+    "RELAB1":    {"net_g": -0.21791899143435048, "SR": -0.08686515298872909, "turn": 0.1440093670162622},
+    "RELAB2":    {"net_g": -0.0953617499690073, "SR": -0.03867014814414783, "turn": 0.14485567215137768},
+    "RELAB3":    {"net_g": -0.45341532662725353, "SR": -0.17745266104082386, "turn": 0.14414342762988464},
+    "REAL":      {"net_g": 0.407583064362608, "SR": 0.1615971288617121, "turn": 0.1433008405278086},
+    "turnover_matched_to": "3 decimal places across all seven",
+    "real_exceeds_all_six_nulls": true,
+    "honest_reading": "The gross signal is not a construction artefact -- the nulls sit near -cost (~ -0.43) and the real number sits one gross-alpha above them. This is NOT a significance claim: six draws cannot resolve a statistic whose own CI95 is [-1.84, +2.67].",
+    "label": "VERIFIED"
+  },
+
+  "STEP4_downside": {
+    "sd_per_anchor_bps": 118.03329943492575,
+    "A0_sd_per_anchor_bps": 22.985952413056463,
+    "vol_ratio_TSMOM_over_A0": 5.135018872129944,
+    "netlong_mean": -0.015895466694610172,
+    "netlong_abs_mean": 0.5705246968593054,
+    "netlong_p5_p95": [-0.8985507246376812, 0.9201889763779523],
+    "A0_netlong_abs_mean": 0.03788402969231526,
+    "beta_to_eligible_universe_mean_return": -0.17693251518796385,
+    "corr_to_market": -0.2391087315039106,
+    "A0_beta_to_market": -0.002589287659208144,
+    "worst_utc_day_bps": -1764.91874809896,
+    "worst_utc_day": "2022-11-10",
+    "A0_worst_utc_day_bps": -232.2437040827384,
+    "A0_worst_utc_day": "2022-11-10",
+    "worst_day_is_the_SAME_day_as_A0s_worst_day": true,
+    "worst_day_depth_ratio": 7.6,
+    "p1_utc_day_bps": -738.5345062927612,
+    "A0_p1_utc_day_bps": -139.54077452671382,
+    "maxDD_bps": 5433.863459269776,
+    "A0_maxDD_bps": 2520.4742978895174,
+    "top5_anchor_share_of_abs_pnl": 0.010625186245566206,
+    "worst_day_anchor_decomposition_2022_11_10": [
+      {"anchor": "00:00Z", "TSMOM_g": -629.79, "pnl": -622.93, "netlong": -0.973, "A0_g": -71.15, "market_bps": 623.48},
+      {"anchor": "04:00Z", "TSMOM_g": -433.58, "pnl": -423.13, "netlong": -0.947, "A0_g": -80.39, "market_bps": 462.55},
+      {"anchor": "08:00Z", "TSMOM_g": 187.45, "pnl": 192.47, "netlong": -0.947, "A0_g": -8.33, "market_bps": -223.09},
+      {"anchor": "12:00Z", "TSMOM_g": -928.13, "pnl": -923.16, "netlong": -0.933, "A0_g": -66.31, "market_bps": 1000.94},
+      {"anchor": "16:00Z", "TSMOM_g": 105.63, "pnl": 107.93, "netlong": -0.893, "A0_g": -2.53, "market_bps": -87.15},
+      {"anchor": "20:00Z", "TSMOM_g": -66.49, "pnl": -60.21, "netlong": -0.893, "A0_g": -3.53, "market_bps": 58.71}
+    ],
+    "mechanism_refutation": "The book was 93-97% NET SHORT into the post-FTX reversal. 'Crisis-alpha convexity' is a claim about SUSTAINED directional moves; the post-crash REVERSAL -- the second half of the user's own complaint -- is exactly the state a trend book is maximally wrong-footed in.",
+    "ten_worst_TSMOM_days_with_A0_same_day": [["2022-11-10", -1764.9, -232.2], ["2024-12-09", -1481.6, -33.6], ["2024-08-08", -1180.9, 103.2], ["2025-04-09", -1074.8, 72.7], ["2023-03-12", -1021.4, -51.3], ["2024-11-06", -1017.3, -69.7], ["2024-03-20", -976.9, 143.5], ["2025-10-12", -961.1, 14.2], ["2026-02-06", -944.1, -46.7], ["2024-03-05", -915.2, 26.3]],
+    "ten_worst_A0_days_with_TSMOM_same_day": [["2022-11-10", -232.2, -1764.9], ["2025-05-13", -219.6, 405.9], ["2025-04-30", -216.9, 134.2], ["2026-08-22", -205.4, -140.7], ["2025-12-09", -197.7, 64.9], ["2026-05-07", -197.3, -32.2], ["2025-11-07", -174.5, -591.6], ["2024-04-12", -171.5, 327.7], ["2025-02-12", -156.7, 193.6], ["2026-04-24", -155.6, -66.9]],
+    "reading": "On 6 of its 10 worst days A0 was flat or POSITIVE -- most of this object's tail is NEW, ADDED downside, not hedged downside. On A0's 10 worst days it helps on 6 and hurts on the two deepest.",
+    "label": "VERIFIED"
+  },
+
+  "STEP5_combination_full_window": {
+    "formula": "gross adds: combined g = (g_A0 + c*g_T)/(1+c)",
+    "c=0.02": {"SR": 1.4225, "dSR": 0.0234, "maxDD": 2420.5, "dMaxDD": -100.0, "worst_day": -262.3, "dWorstDay": -30.1},
+    "c=0.05": {"SR": 1.4294, "dSR": 0.0303, "maxDD": 2287.4, "dMaxDD": -233.1, "worst_day": -305.2, "dWorstDay": -73.0},
+    "c=0.10": {"SR": 1.3741, "dSR": -0.0249, "maxDD": 2081.7, "dMaxDD": -438.7, "worst_day": -371.6, "dWorstDay": -139.3},
+    "c=0.20": {"SR": 1.1494, "dSR": -0.2496, "maxDD": 1878.3, "dMaxDD": -642.2, "worst_day": -487.7, "dWorstDay": -255.4},
+    "c=0.50": {"SR": 0.6813, "dSR": -0.7178, "maxDD": 2010.1, "dMaxDD": -510.4, "worst_day": -743.1, "dWorstDay": -510.9},
+    "worst_day_degrades_at_EVERY_allocation": true,
+    "optimal_in_sample_UPPER_BOUND": {"SR": 1.4308, "dSR": 0.0318, "dSR_in_SE": 0.065, "risk_share_TSMOM": 0.174, "gross_share_TSMOM": 0.039},
+    "target": 3.966,
+    "gap_from_A0": 2.5669,
+    "gap_from_optimal_combo": 2.5352,
+    "label": "VERIFIED"
+  },
+
+  "DECISIVE_regime_split": {
+    "discipline": "E-0907-A: the reference window must match the live regime",
+    "FULL_postwarm":   {"n": 9138, "TSMOM_net_g": 0.4076, "TSMOM_SR": 0.162, "A0_SR": 1.399, "rho": -0.0978, "rho_CI95": [-0.1469, -0.0473], "rho_in_A0_Q0": -0.1853, "TSMOM_mean_in_A0_Q0": 14.782, "TSMOM_mean_in_A0_Q0_CI95": [6.12, 23.09], "SR_opt_UB": 1.4308, "dSR": 0.0318, "dSR_in_SE": 0.065},
+    "ex2022":          {"n": 8028, "TSMOM_net_g": 0.8790, "TSMOM_SR": 0.348, "A0_SR": 1.489, "rho": -0.1159, "rho_CI95": [-0.1666, -0.0647], "rho_in_A0_Q0": -0.2141, "TSMOM_mean_in_A0_Q0": 17.937, "TSMOM_mean_in_A0_Q0_CI95": [9.56, 26.68], "SR_opt_UB": 1.5782, "dSR": 0.0895, "dSR_in_SE": 0.171},
+    "2024on":          {"n": 5838, "TSMOM_net_g": 0.7381, "TSMOM_SR": 0.280, "A0_SR": 2.278, "rho": -0.1330, "rho_CI95": [-0.1897, -0.0743], "rho_in_A0_Q0": -0.2315, "TSMOM_mean_in_A0_Q0": 20.959, "TSMOM_mean_in_A0_Q0_CI95": [10.75, 31.62], "SR_opt_UB": 2.3528, "dSR": 0.0746, "dSR_in_SE": 0.122},
+    "FROZEN_2025-03-01..2026-08-10": {"n": 3192, "TSMOM_net_g": 0.6725, "TSMOM_SR": 0.316, "A0_SR": 3.013, "rho": -0.0305, "rho_CI95": [-0.1185, 0.0600], "rho_in_A0_Q0": -0.2861, "TSMOM_mean_in_A0_Q0": 0.958, "TSMOM_mean_in_A0_Q0_CI95": [-11.39, 13.58], "SR_opt_UB": 3.0401, "dSR": 0.0275, "dSR_in_SE": 0.033},
+    "2025on":          {"n": 3642, "TSMOM_net_g": 0.4260, "TSMOM_SR": 0.182, "A0_SR": 2.763, "rho": -0.0907, "rho_CI95": [-0.1725, -0.0065], "rho_in_A0_Q0": -0.2833, "TSMOM_mean_in_A0_Q0": 9.646, "TSMOM_mean_in_A0_Q0_CI95": [-2.61, 23.01], "SR_opt_UB": 2.7968, "dSR": 0.0339, "dSR_in_SE": 0.044},
+    "2026":            {"n": 1452, "TSMOM_net_g": 0.4301, "TSMOM_SR": 0.311, "A0_SR": 4.585, "rho": 0.1848, "rho_CI95": [0.1130, 0.2556], "rho_in_A0_Q0": 0.0126, "TSMOM_mean_in_A0_Q0": -16.484, "TSMOM_mean_in_A0_Q0_CI95": [-25.28, -8.19], "SR_opt_UB": 4.6177, "dSR": 0.0324, "dSR_in_SE": 0.026,
+                        "combination_grid_is_NEGATIVE_at_every_allocation": {"c=0.02": -0.0251, "c=0.05": -0.0746, "c=0.10": -0.1844, "c=0.20": -0.4734}},
+    "per_year_TSMOM": {"2022": {"n": 1110, "net_g": -3.0017, "price_g": -2.3728, "SR": -1.205, "A0_g": 0.1725, "netlong": -0.075},
+                       "2023": {"n": 2190, "net_g": 1.2546, "price_g": 1.6394, "SR": 0.570, "A0_g": -0.6248, "netlong": 0.073},
+                       "2024": {"n": 2196, "net_g": 1.2557, "price_g": 1.8353, "SR": 0.409, "A0_g": 0.5597, "netlong": 0.036},
+                       "2025": {"n": 2190, "net_g": 0.4232, "price_g": 0.6170, "SR": 0.151, "A0_g": 0.7627, "netlong": -0.135},
+                       "2026": {"n": 1452, "net_g": 0.4301, "price_g": 0.7838, "SR": 0.311, "A0_g": 3.1385, "netlong": -0.003}},
+    "reading": "The entire measured hedge is a 2022-2024 phenomenon. On the regime-matched FROZEN window the unconditional rho is statistically zero and the conditional PAYOFF is zero (+0.958 CI [-11.39, +13.58]) even though the conditional rho is still -0.286 -- which is the trap: rho measures co-movement, not payoff. In 2026 the sign has flipped with confidence: rho +0.1848 CI [+0.113, +0.256] and TSMOM LOSES -16.484 CI [-25.28, -8.19] inside A0's bottom quintile. This is the Amihud failure mode arriving one regime later.",
+    "label": "VERIFIED"
+  },
+
+  "deployability_note": {
+    "finding": "The live signal chain is structurally market-neutral at four independent points, so a net-exposure book cannot reach the exchange through it without an executor risk-architecture change.",
+    "reads_READ_ONLY": ["~/dl_quant_live/signal/legs.py L14 (composition -> demean)", "L180 `w = w - w.mean()` in reshape_after_withhold(redemean=True)", "L238 `shaped = mag - mag.mean()` in shape_position", "L260 re-demean after the risk budget", "L269 EMA -> second demean -> L1"],
+    "corroborates": "r2_timeseries/RESULT_r2_timeseries_sleeves_2026-09-11.md section 1 (the F8 family)",
+    "status": "does not by itself decide this screen (the candidate is specified as merged at the BOOK layer), but any admission would arrive with a deployment blocker attached",
+    "label": "VERIFIED"
+  },
+  "live_gate_verified": {"qv4h_min": 250000.0, "source": "~/wide_shadow/shadow_bundle/config.json L1449, cross-read with shadow_loop_v3.py L473-474", "label": "VERIFIED"},
+
+  "cost_fairness_footnote": {
+    "A0_priced_at": "costb_fee_steady, turnover-share-weighted blended 2.067 bps/unit turnover",
+    "candidate_priced_at": "costb_PWR_G230k, book_avg 2.9537 bps/unit turnover",
+    "repricing_A0_at_PWR_would_cost_it_bps_per_anchor": 0.027,
+    "corroboration": "r3k_impact/RESULT_R3K.json A0_PWR230k_s42 FULL_pw g 0.689 SR 1.415",
+    "conclusion": "the comparison is not rescued by the cost asymmetry",
+    "label": "VERIFIED (arithmetic), INFERRED (the RESULT_R3K corroborating row, which I read but did not re-run)"
+  },
+
+  "limits": [
+    "NOT a w10 judge verdict; no GATE P bitwise parity against w10_sleeve.py was run. GATE A proves the ACCOUNTING is the device's accounting to 6.5e-06 bps; it does not make the BOOK the device's book.",
+    "Candidate eligibility uses the meta `members` array (267.2 names/anchor) = the surveyor's object; the device's own MEMBERS_TOPN=829 rule is a larger set.",
+    "No smoothing/vol-target/per-name-sizing/stop search beyond the declared alpha in {1.0, 0.1} -- deliberate: the task was to screen the object, not to make it work.",
+    "Bootstrap CIs are UTC-day block; dependence beyond one day is not modelled.",
+    "The 2026 sample is n=1452 anchors (~8 months). Its rho CI excludes zero but it is one regime."
+  ],
+  "what_would_change_the_verdict": [
+    "A 2026-and-forward sample where rho returns negative AND the conditional MEAN in A0's bottom quintile is positive with a CI excluding zero. Conditional rho alone is insufficient -- the frozen window shows rho can be -0.286 while the payoff is +0.96 +- 12.",
+    "A version whose worst day does not coincide with A0's worst day (i.e. one that is stopped out of, or flattened into, violent reversals). That is a different object needing its own mechanism and pre-registration.",
+    "A ~3x improvement in gross alpha per unit turnover (net Sharpe 0.16 -> ~0.5). No evidence such a version exists: the gross alpha decays year on year (2024 1.84 -> 2025 0.62 -> 2026 0.78).",
+    "Nothing here reopens the deployability question: a net-exposure book still cannot pass the live chain's four demean points."
+  ],
+  "files": ["RESULT_TSMOM_DIR_2026-09-12.md", "RECEIPT_TSMOM_DIR_2026-09-12.json", "SHA256SUMS.txt",
+            "devices/r10_tsmom.py", "devices/r10_tsmom2.py", "devices/r10_tsmom3.py", "devices/r10_tsmom4.py",
+            "receipts/STEP13.json", "receipts/STEP245.json", "receipts/STEP_REGIME.json", "receipts/STEP_REGIME2.json",
+            "receipts/primary_series.npz", "logs/part1.log", "logs/part2.log", "logs/part3.log", "logs/part4.log"]
+}

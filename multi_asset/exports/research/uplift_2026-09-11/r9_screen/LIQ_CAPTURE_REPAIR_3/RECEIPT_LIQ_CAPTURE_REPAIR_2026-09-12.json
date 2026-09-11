@@ -1,0 +1,90 @@
+{
+  "created_utc": "2026-09-12",
+  "session": "https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX",
+  "branch": "research/book-uplift-2026-09-11",
+  "candidate": "LIQ_CAPTURE_REPAIR (r9 screen slot 3)",
+  "verdict": "INFEASIBLE",
+  "caliber_pin_read": "multi_asset/exports/research/uplift_2026-09-11/CALIBER_PIN_v4_2026-09-11.md (read; NO v4 artifact loaded and NO device run, because the candidate has n=0 observations)",
+  "env_whitelist_E0826D": {
+    "whitelist": [],
+    "assertion": "EMPTY SET. No environment variable was set, exported or consumed by any step. Commands used: ls, find, cat, head, tail, wc, grep, shasum, python3 (stdlib json/math/datetime only), lsof, ps, sysctl, launchctl list, launchctl print, last, mkdir (output directory only), sed (output document only)."
+  },
+  "zero_touch_attestation": {
+    "live": "~/dl_quant_live and ~/wide_shadow: not read, not written, not restarted.",
+    "capture_asset": "~/w4_liq_capture: READ-ONLY inspection only. No file written, no process started/stopped/restarted, no launchctl load/unload/kickstart. `launchctl list` and `launchctl print` are read-only subcommands.",
+    "venue": "NO exchange API call of any kind (no REST, no websocket, no DNS-to-order path). The discriminating root-cause test requires opening wss://fstream.binance.com and was DELIBERATELY NOT RUN under hard constraint 1.",
+    "gpu": "No GPU job launched. pod2 not contacted by this screen.",
+    "writes": "Only two files, both under multi_asset/exports/research/uplift_2026-09-11/r9_screen/LIQ_CAPTURE_REPAIR_3/."
+  },
+  "output_path_substitution": {
+    "mandated_string": "r9_screen/INDEPENDENT DATA SOURCE — ... RECEIPT_r9_independent_source_survey_2026-09-12.json_3/",
+    "measured": "521 characters / 523 bytes and contains '/' characters; not a legal single path component (255-byte limit on this filesystem)",
+    "used_instead": "multi_asset/exports/research/uplift_2026-09-11/r9_screen/LIQ_CAPTURE_REPAIR_3/",
+    "label": "VERIFIED (length measured with python3), substitution declared not silent"
+  },
+  "sha256_computed_by_me_this_session": {
+    "/Users/haosiyu/w4_liq_capture/recorder.py": "2c7a43e48b512397ca6d0a8f90e2f95bbd93f5878a73b25065d0ef6103e68bce",
+    "/Users/haosiyu/Library/LaunchAgents/com.hsy.w4liqcapture.plist": "38daa8a415f74b482b8e97a679d04181e9ffa62443aacd862b8b96fcdfa0dab3",
+    "/Users/haosiyu/w4_liq_capture/heartbeat.jsonl": "533b03b29d4e527d1c82b14204ac040e6ce3ea03edd51c9258c4ed49cf2e3248",
+    "uplift_2026-09-11/r3k_impact/costb_PWR_G230k.json": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+    "uplift_2026-09-11/r3_attack_RESID_SHARPE/null.py": "91d4c91cb92a64404f8e635a76969b435b86ab7840fc110564d9509a1b0c7fa9",
+    "note_on_paths": "My brief names 'r3k/costb_PWR_G230k.json' and 'r3_attack_b9646/null.py'. Neither path exists locally. I located the real files by content-independent search and then IDENTIFIED null.py BY SHA: 91d4c91cb92a6440... is exactly the sha quoted for the null device in RESULT_r5_newdata2_liq_oi_2026-09-11.md S7. Identity established by sha, not by directory name (E-0825-G/H)."
+  },
+  "step1_feasibility": {
+    "outcome": "Surveyor's defect claim CONFIRMED and EXTENDED. Data required for the screen does not exist: n = 0.",
+    "F1_no_output_file": {"cmd": "find /Users/haosiyu/w4_liq_capture -name 'forceorder*'", "result": "empty output; directory holds heartbeat.jsonl, recorder.err, recorder.py, run.err, run.log(0 bytes)", "label": "VERIFIED"},
+    "F2_counter_zero_everywhere": {"cmd": "wc -l heartbeat.jsonl; grep -c '\"n_events\": 0' heartbeat.jsonl; python3 max over all non-ts numerics", "result": {"lines": 4080, "lines_with_n_events_0": 4080, "max_non_ts_numeric": 0}, "label": "VERIFIED", "note": "Stronger than the survey, which checked only the first and last line."},
+    "F3_seventeen_day_hole": {"result": {"n_gaps_gt_400s": 1, "gap_from_utc": "2026-08-12T08:17:35Z", "gap_to_utc": "2026-08-29T18:15:46Z", "gap_seconds": 1504690.5, "gap_days": 17.415, "median_interval_s": 300.012, "real_coverage_days": 14.17, "coverage_fraction_of_claimed_span": 0.449}, "label": "VERIFIED - NEW, not in the survey receipt"},
+    "F4_hole_is_host_downtime": {"cmd": "last reboot; sysctl kern.boottime; ps -o lstart,etime -p 1225", "result": {"shutdown_local": "Sun Aug 30 01:58 2026", "reboot_local": "Sun Aug 30 02:06 2026", "kern_boottime": "sec = 1788026797 = Sun Aug 30 02:06:37 2026 local", "proc_start_local": "Sun Aug 30 02:15:24 2026", "proc_start_utc": "2026-08-29T18:15:24Z", "proc_elapsed": "13-01:04:36", "host_tz_offset": "UTC+8 (derived from proc_start_local vs first post-gap heartbeat 2026-08-29T18:15:46Z)"}, "label": "VERIFIED"},
+    "F5_alive_AND_connected": {"cmd": "launchctl list | grep w4liq; launchctl print gui/501/com.hsy.w4liqcapture; lsof -p 1225 -a -i -n -P", "result": {"launchctl_list_row": "1225\t0\tcom.hsy.w4liqcapture", "state": "running", "runs": 1, "sockets": ["TCP 192.168.0.43:61075->57.182.85.6:443 (ESTABLISHED)"], "n_sockets": 1}, "label": "VERIFIED", "significance": "Excludes 'process dead' and 'no connection' - the two conditions KeepAlive + heartbeat were built to catch."},
+    "F6_error_channel_silent": {"result": {"recorder_err_lines": 5, "first_four": "WebSocketTimeoutException at 2026-08-11T05:30:11/05:30:42/05:31:14/05:32:11Z (within 111s of first start)", "last": "1788391200.009675 = 2026-09-02T23:20:00Z WebSocketConnectionClosedException", "days_silent_since": 8.84}, "label": "VERIFIED"},
+    "F7_interpreter_identity": {"result": {"plist_program": "/usr/bin/python3 /Users/haosiyu/w4_liq_capture/recorder.py", "resolved_binary_from_ps": "Xcode Python3.framework 3.9 Python.app", "python_version": "3.9.6", "websocket_client_version": "1.9.0", "websocket_path": "/Users/haosiyu/Library/Python/3.9/lib/python/site-packages/websocket/__init__.py", "run_err_tracebacks": "7 x ModuleNotFoundError, STALE (2026-08-11 13:29 local, before recorder.py mtime 13:32); import succeeds today"}, "label": "VERIFIED"},
+    "root_cause": {"status": "NOT ESTABLISHED", "verified_part": "A live ESTABLISHED TLS socket has delivered zero application messages in 13.0 days with a silent error channel.", "unexcluded_hypotheses": ["half-open/black-holed socket not torn down by ping_interval=180/ping_timeout=20", "raw-stream subscription not in effect server-side", "venue-side suppression for this client/region"], "why_not_discriminated": "The discriminating test opens a websocket to the exchange; hard constraint 1 forbids it.", "inferred_premise_flagged": "That the venue publishes liquidations continuously (so 13 days of zero is impossible if the subscription worked) is INFERRED domain knowledge, not measured here."},
+    "design_defects": ["D1 liveness != capture; n_events is written and never read; no flat-counter alarm", "D2 KeepAlive cannot fire on a process that never exits", "D3 no output-file existence check", "D4 laptop host => 17.4-day hole no in-process guard can cover", "D5 on_error writes to a file nobody reads", "D6 no per-UTC-day expected-count assertion"],
+    "lookahead_review": {"status": "MOOT at n=0", "if_repaired_required_guards": ["recv_ts vs venue event time kept separately", "panel join uses only rows with create_time <= t-300s (the r5 OI embargo)", "offset-spectrum peak@0 and a zero-lag leakage twin", "stride >= horizon"], "prereg_censoring_clause": "PREREG_w4_liquidation_2026-08-11.md L22: venue pushes at most 1 forceOrder per symbol per second since 2021-04 => the captured truth is a censored lower bound; ratio/imbalance features biased small.", "label": "VERIFIED (quote read today) / guards UNTESTED"}
+  },
+  "step2_rho_to_A0": {
+    "result": "NOT_REACHED",
+    "reason": "The candidate has zero observations. No per-anchor series can be constructed at any caliber. Historical substitute also does not exist: RESULT_r5_newdata2_liq_oi_2026-09-11.md S1 verified data.binance.vision has no liquidationSnapshot prefix, fapi/v1/allForceOrders = 404 (removed), fapi/v1/forceOrders = 401 (signed, own orders only).",
+    "conditional_rho_in_A0_loss_cells": "NOT_REACHED (same reason)",
+    "label": "VERIFIED absence of data"
+  },
+  "step3_standalone": {
+    "result": "NOT_REACHED",
+    "standing_bounds_cited_not_rerun": {
+      "G1_failed_twice": ["RESULT_w4_gate1 2026-08-11: W4 liquidation proxy 0/7 admissions (memory new_info_campaign_round1_2026_08_11.md; best cell F1_4h +0.0026, 87% off target)", "RESULT_r5_newdata2_liq_oi_2026-09-11.md S10: 0 admissions from 8 arms on the v4 829-name lineage at the book layer"],
+      "G0_is_gated_by_G1": "PREREG_w4_liquidation_2026-08-11.md L39: 'G1 过而 G0 败 ⇒ 历史代理作废 ... 任何部署提案必须 G0+G1 双过'. The capture serves G0; G1 is already failed, so repairing the capture cannot unblock a deployment.",
+      "mechanism_ceiling": "RESULT_r5_newdata2 S3: highest-power event cell (OI-drop >=1% with a down move, n=494,629) = +0.46 bps [-0.17,+1.12]; all 16 threshold cells contain zero.",
+      "cost_line": {"file": "r3k_impact/costb_PWR_G230k.json", "field": "book_avg_bps_per_unit_turnover", "value": 2.9537, "label": "VERIFIED (read today)", "caveat": "The brief describes this model as 'K=0.17, impact exponent alpha=0.87'. The JSON I read contains NO field named K and NO field named alpha; it declares model='POWER-shape book-walk impact, excess of half-spread, G=$230000' and calibration.note='A(x)=A02*(x/0.2)^p'. K=0.17 / alpha=0.87 are therefore UNVERIFIED by me."}
+    }
+  },
+  "step4_arithmetic": {
+    "identity_check": {"formula": "g = pnl_ex - carry - cost", "A0_row": "1.3266 - 0.4694 - 0.1682 = 0.6890", "label": "VERIFIED (reproduces RESULT_r5_newdata2 S6 A0 net g exactly)"},
+    "required_standalone_sharpe_at_rho_0": {"vs_A0_fullcycle_1.4150": 3.7050, "vs_A0_crossregime_1.2912": 3.7499, "label": "VERIFIED (my computation reproduces the brief's 3.705 to 4 dp)"},
+    "best_liquidation_adjacent_sleeve_on_record": {
+      "SA_LIQPC": {"sharpe": 0.4464, "rho_A0": 0.099, "combined_with_crossregime_A0": 1.3303, "delta": 0.0391, "gap_remaining_to_3.966": 2.6357, "combined_with_fullcycle_A0": 1.4481, "delta_full": 0.0331, "gap_full": 2.5179, "disqualifier": "168% of its +1.0737 bps net is funding carry (carry -1.8072) - a re-weighting of the book's own bet"},
+      "SA_OIV": {"sharpe": 0.4698, "rho_A0": 0.293, "combined_with_crossregime_A0": 1.2947, "delta": 0.0035},
+      "label": "VERIFIED arithmetic on INPUTS QUOTED from RESULT_r5_newdata2 S6 (I did not re-run those books)"
+    },
+    "fantasy_ceiling": {"A0_implied_per_anchor_sd_bps": 22.7869, "derivation": "0.6890 / (1.4150/sqrt(2190))", "zero_cost_zero_turnover_at_+1.12bps": 2.3001, "charged_measured_turnover_0.0902_at_2.9537": {"net_bps": 0.8536, "sharpe": 1.7530}, "at_event_point_estimate_+0.46": {"net_bps": 0.1936, "sharpe": 0.3975}, "what_was_actually_measured": {"SA_LIQDD_gross": "+0.4462 CI95 [-0.0475,+0.9396] (contains zero)", "SA_LIQDD_net_g": -1.0301, "turnover": 0.09021, "cost_bps": 1.3039}, "label": "VERIFIED arithmetic / the +1.12 input is an UPPER CI, so this is an explicit best case, not an estimate"},
+    "inversion_trap_closed": {"claim": "flipping the -2.15 Sharpe book does not recover the cost", "arithmetic": "g_inv = -0.4462 + 0.1724 - 1.3039 = -1.5777", "label": "VERIFIED arithmetic"},
+    "clock": "Forward-only capture repaired today yields its first 12 months in 2027-09: one regime, no walk-forward, no Q4 worst-quintile. Cannot support a cross-regime Sharpe claim inside this program. INFERRED (calendar), not measured."
+  },
+  "instrument_misreading_trap": {
+    "standing_rule": "docs/MILESTONE_2026-08-11.md S3 item 3: 'W4 真值裁定: 采集器 24h 心跳(~/w4_liq_capture)判端点生死 → 死则 Tardis C叉(~$700-1200 一次性, 用户钱裁定)'",
+    "danger": "Read literally, 4080 consecutive zero-event heartbeats is the 'endpoint dead' branch and triggers a $700-1200 purchase of the user's money.",
+    "why_that_would_be_wrong": "F5 (live ESTABLISHED socket) and F6 (error channel silent 8.8 days) leave a client-side defect entirely unexcluded. The heartbeat adjudicates endpoint liveness AND client health AND host uptime jointly, not endpoint liveness alone.",
+    "memory_families": ["my_own_instruments_fail_at_the_extremes", "measuring_a_misunderstood_quantity", "declared_blind_spot_is_not_closed", "silent_watcher_death", "handback_dies_silently"],
+    "action": "DO NOT fire the Tardis branch on this evidence. Amend the rule to require a client-side self-test first.",
+    "label": "VERIFIED quote + VERIFIED measurements; the recommendation is a judgement"
+  },
+  "recommendation": {
+    "as_uplift_candidate": "KILL. INFEASIBLE today (n=0) and pre-bounded even if repaired (G1 failed 0/7 and 0/8; mechanism ceiling ~1.1 bps vs 2.9537 bps cost line; 12-month clock).",
+    "as_engineering_hygiene": "Repair is cheap and worth doing, but NOT by me and NOT under this mandate: move to an always-on host (jpline/pod2); alarm on a FLAT COUNTER and on a MISSING DAILY FILE, not on process death; assert n_events>0 within one hour of start; persist the counter beside the data; add a per-UTC-day minimum-count rule.",
+    "not_done_by_me": "I did not restart, reload, modify or repair anything. Read-only throughout."
+  },
+  "files_written": [
+    "multi_asset/exports/research/uplift_2026-09-11/r9_screen/LIQ_CAPTURE_REPAIR_3/RESULT_LIQ_CAPTURE_REPAIR_2026-09-12.md",
+    "multi_asset/exports/research/uplift_2026-09-11/r9_screen/LIQ_CAPTURE_REPAIR_3/RECEIPT_LIQ_CAPTURE_REPAIR_2026-09-12.json"
+  ]
+}

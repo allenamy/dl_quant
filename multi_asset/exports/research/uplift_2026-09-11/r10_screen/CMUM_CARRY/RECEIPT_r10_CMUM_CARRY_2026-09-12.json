@@ -1,0 +1,867 @@
+{
+ "candidate": "CMUM_CARRY",
+ "verdict": "DEAD",
+ "created": "2026-09-12",
+ "session": "https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX",
+ "discipline": {
+  "live_touch": "NONE. ~/dl_quant_live and ~/wide_shadow never opened. NO fapi/api call at any point.",
+  "network": "ONLY data.binance.vision static CDN + its S3 listing endpoint (the single granted exemption).",
+  "gpu": "NONE. all numpy CPU on the local mac. pod2 used read-only for ls/sha256sum and to copy 3 pinned inputs.",
+  "env_whitelist_E_0826_D": [
+   "CPATH",
+   "HOME",
+   "LC_CTYPE",
+   "LIBRARY_PATH",
+   "MANPATH",
+   "PATH",
+   "SDKROOT",
+   "__CF_USER_TEXT_ENCODING"
+  ],
+  "env_launcher": "env -i HOME=$HOME PATH=/usr/bin:/bin:/usr/local/bin /usr/bin/python3 <script>",
+  "env_asserted_absent": [
+   "CAL",
+   "WRULE",
+   "LOOK",
+   "MEMBERS_TOPN",
+   "UMASK_SCOPE",
+   "UMASK_NPZ",
+   "COSTB_JSON",
+   "SLOW_NPY",
+   "LEGS",
+   "PHI",
+   "FTRIM",
+   "FEMAT_NPZ",
+   "OUT_TAG",
+   "TRADE_TOPN",
+   "KMOD_F10",
+   "KMOD_AGREE",
+   "KTAIL",
+   "EXPORT_PANEL",
+   "EMA_STATE_JSON",
+   "JUDGE_HC",
+   "PANEL_IN",
+   "JUDGE_REQUIRE_W"
+  ],
+  "caliber": "v4 chain 2026-09-09. Device reads NO panel (never touches panel_source.py default dirty panel); no _ext lineage (E-0909-A); no clipped-compounding accounting (E-0908-B); no expm1 on pod 5m lineage (E-0904-F).",
+  "nulls": "turnover-matched RELAB1-3 (rng default_rng([4242,d])) + SHIFT101/503/1009. Defective per-anchor permutation placebo NOT used.",
+  "bootstrap": "UTC-day block, B=2000, numpy.default_rng([20260905,k])"
+ },
+ "pinned_inputs_sha256_recomputed_this_session": {
+  "A0_PWR230k_s42.npz": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339",
+  "costb_PWR_G230k.json": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+  "meta_newprod_v4.npz": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3",
+  "wsym.json": "8c1f22c77c195bfe2939d47fedb0242a1734b1f20bf9d1cf333deeb69668616d"
+ },
+ "A0_replication_VERIFIED": {
+  "n": 9138,
+  "mean_g_bps": 0.6342,
+  "sharpe_ann": 1.2912,
+  "turnover": 0.054,
+  "pnl_ex_bps": 1.2813,
+  "NOTE_reconciliation": "brief states gross alpha pnl_ex 1.3266; the arm file A0_PWR230k_s42.npz reads 1.2813 (same as the r9 screen's independent read). 1.3266 does NOT come from this arm file.",
+  "window": "2022-07-01 00:00Z .. 2026-08-30 20:00Z",
+  "se_sharpe": 0.4895
+ },
+ "STEP1_feasibility": {
+  "surveyor_data_claim": "CONFIRMED - COIN-M funding and 4h klines are obtainable in bulk from data.binance.vision",
+  "cm_perp_symbols_listed_all_time": 49,
+  "um_counterparts_present": 49,
+  "um_counterparts_in_book_829_universe": 49,
+  "ARCHIVE_RETENTION": "bucket keeps the last 48 monthly files per symbol; newest COIN-M month on 2026-09-12 is 2026-06; COIN-M has NO daily fundingRate prefix (listing empty)",
+  "anchors_measurable": 8738,
+  "of_pinned": 9138,
+  "window": "2022-07-01 04:00Z .. 2026-06-30 20:00Z",
+  "A0_on_same_subaxis": {
+   "mean_g": 0.5906,
+   "sharpe": 1.2372,
+   "sd": 22.341
+  },
+  "DATA_DEFECT_FOUND": {
+   "name": "frozen-price zero-volume COIN-M klines",
+   "statement": "Binance keeps emitting 4h klines for dormant COIN-M contracts with the LAST TRADED PRICE frozen and volume 0. Bars stay contiguous, so a naive builder passes a contiguity check and reads a huge fake basis alpha/drag.",
+   "evidence": {
+    "ROSEUSD_PERP_2026-02-22": {
+     "CM": 0.09505,
+     "UM": 0.01335,
+     "CM_volume": 0.0
+    },
+    "basis_level_bps_mean": {
+     "ROSEUSD_PERP": 17340.27,
+     "APEUSD_PERP": 16379.82,
+     "ICXUSD_PERP": 9345.2,
+     "ZILUSD_PERP": 6343.93,
+     "KNCUSD_PERP": 5523.28,
+     "GALAUSD_PERP": 4333.07
+    },
+    "fake_pair_return_bps_per_anchor": {
+     "ROSEUSD_PERP": 1.7388,
+     "APEUSD_PERP": 1.6881,
+     "KNCUSD_PERP": 1.6518,
+     "ICXUSD_PERP": 1.6004
+    }
+   },
+   "fix": "require COIN-M realised volume*price > 0 in BOTH bar i and bar i-1"
+  },
+  "universe_after_volume_gate": {
+   "cm_names_trading_ge50pct_of_2026_bars": 22,
+   "cm_names_trading_ge80pct_of_2026_bars": 20,
+   "cm_names_trading_gt95pct_of_covered_anchors": 19,
+   "STOP_RULE": "brief said stop if under ~20 names with real history. Measured 19-20 - exactly on the line, and falling.",
+   "delistings_2026": {
+    "2026-03-18": [
+     "ALGO",
+     "ATOM",
+     "ENS",
+     "SAND"
+    ],
+    "2026-03-25": [
+     "APT",
+     "OP"
+    ],
+    "2026-04-09": [
+     "WIF",
+     "WLD"
+    ]
+   },
+   "delistings_2025": {
+    "2025-10-21": [
+     "CHZ"
+    ],
+    "2025-10-28": [
+     "GMT",
+     "DOGS"
+    ],
+    "2025-11-07": [
+     "AXS",
+     "THETA"
+    ],
+    "2025-11-13": [
+     "EGLD",
+     "MANA"
+    ],
+    "2025-11-19": [
+     "RUNE"
+    ]
+   }
+  },
+  "leakage": {
+   "offset_spectrum": {
+    "offset_-3": 0.0583,
+    "offset_-2": 0.13095,
+    "offset_-1": 0.21613,
+    "offset_+0": 0.14579,
+    "offset_+1": 0.69706,
+    "offset_+2": 0.59064,
+    "offset_+3": 0.17289
+   },
+   "offset_peak_at_plus1_is_construction_identity": "signal at anchor i+1 contains by definition the settlement that realised inside window i (analogue of REV_SHORT's k=-1 = -1.0000)",
+   "interventional_future_blank_failures": 0,
+   "interventional_n": 24,
+   "extra_lag_test": {
+    "lag0": {
+     "net": 0.0389,
+     "sr": 1.483
+    },
+    "lag1": {
+     "net": 0.0377,
+     "sr": 1.432
+    },
+    "lag2": {
+     "net": 0.0357,
+     "sr": 1.36
+    },
+    "lag6": {
+     "net": 0.0329,
+     "sr": 1.264
+    }
+   },
+   "stride_equals_horizon": true,
+   "panel_source_default_dirty_panel_used": false
+  }
+ },
+ "STEP2_independence": {
+  "rho_uncond_net": 0.0075,
+  "rho_uncond_net_ci95": [
+   -0.053,
+   0.079
+  ],
+  "rho_uncond_gross": 0.0076,
+  "daily_sum_rho": 0.0208,
+  "net_beta_to_A0": 0.0004,
+  "conditional": {
+   "A0_bottom_quintile_anchor": {
+    "n": 1748,
+    "rho": 0.1434,
+    "ci": [
+     -0.0359,
+     0.3085
+    ],
+    "cand_net": 0.0588,
+    "A0_g": -28.6156
+   },
+   "A0_bottom_decile_anchor": {
+    "n": 874,
+    "rho": 0.1855,
+    "ci": [
+     -0.0418,
+     0.3843
+    ],
+    "cand_net": 0.0256,
+    "A0_g": -39.4185
+   },
+   "A0_negative_anchor": {
+    "n": 4332,
+    "rho": 0.0793,
+    "ci": [
+     -0.037,
+     0.2136
+    ],
+    "cand_net": 0.0554,
+    "A0_g": -15.2304
+   },
+   "A0_top_quintile_anchor": {
+    "n": 1748,
+    "rho": -0.0392,
+    "ci": [
+     -0.0831,
+     0.0074
+    ],
+    "cand_net": -0.0408,
+    "A0_g": 30.3792
+   },
+   "A0_worst_quintile_UTCday": {
+    "n": 1751,
+    "rho": 0.0966,
+    "ci": [
+     -0.0678,
+     0.2385
+    ],
+    "cand_net": 0.0128,
+    "A0_g": -11.6767
+   }
+  },
+  "verdict": "PASS - lowest rho this desk has measured; conditional rho stays under 0.30 in every cell and the candidate is POSITIVE in every cell where A0 loses. NOT an Amihud.",
+  "CAVEAT": "mean-level independence is not tail-level independence: the candidate's single worst day (2025-10-10, -49.47) lands on A0's 1.2th-percentile day (A0 -137.57)."
+ },
+ "STEP3_net_edge": {
+  "arms": {
+   "A_last": {
+    "carry": 0.1453,
+    "price": 0.0798,
+    "gross": 0.2252,
+    "cost": 1.3052,
+    "net": -1.0801,
+    "net_ci": [
+     -1.1091,
+     -1.0494
+    ],
+    "sharpe": -24.0076,
+    "se_sharpe": 0.5006,
+    "sd": 2.1053,
+    "turnover": 0.4499,
+    "cost_survival_pct": -479.6,
+    "names": 23.5
+   },
+   "B_ema90": {
+    "carry": 0.0808,
+    "price": 0.0022,
+    "gross": 0.083,
+    "cost": 0.06,
+    "net": 0.0231,
+    "net_ci": [
+     0.0068,
+     0.0376
+    ],
+    "sharpe": 0.8856,
+    "se_sharpe": 0.5006,
+    "sd": 1.2187,
+    "turnover": 0.0207,
+    "cost_survival_pct": 27.8,
+    "names": 36.8
+   },
+   "B_ema180": {
+    "carry": 0.0726,
+    "price": -0.0032,
+    "gross": 0.0694,
+    "cost": 0.0353,
+    "net": 0.0341,
+    "net_ci": [
+     0.0167,
+     0.05
+    ],
+    "sharpe": 1.2645,
+    "se_sharpe": 0.5006,
+    "sd": 1.2621,
+    "turnover": 0.0122,
+    "cost_survival_pct": 49.2,
+    "names": 36.8
+   },
+   "B_ema360": {
+    "carry": 0.066,
+    "price": -0.0045,
+    "gross": 0.0615,
+    "cost": 0.0226,
+    "net": 0.0389,
+    "net_ci": [
+     0.0215,
+     0.055
+    ],
+    "sharpe": 1.4825,
+    "se_sharpe": 0.5006,
+    "sd": 1.2283,
+    "turnover": 0.0078,
+    "cost_survival_pct": 63.3,
+    "names": 36.8
+   },
+   "C_hyst0.25": {
+    "carry": 0.076,
+    "price": 0.0063,
+    "gross": 0.0823,
+    "cost": 0.0544,
+    "net": 0.0279,
+    "net_ci": [
+     0.0138,
+     0.0428
+    ],
+    "sharpe": 1.1359,
+    "se_sharpe": 0.5006,
+    "sd": 1.1502,
+    "turnover": 0.0184,
+    "cost_survival_pct": 33.9,
+    "names": 36.7
+   },
+   "C_hyst0.50": {
+    "carry": 0.0388,
+    "price": -0.0023,
+    "gross": 0.0365,
+    "cost": 0.0166,
+    "net": 0.0199,
+    "net_ci": [
+     0.0079,
+     0.0321
+    ],
+    "sharpe": 0.8889,
+    "se_sharpe": 0.5006,
+    "sd": 1.0485,
+    "turnover": 0.0056,
+    "cost_survival_pct": 54.6,
+    "names": 35.5
+   },
+   "C_hyst1.00": {
+    "carry": 0.0055,
+    "price": 0.0007,
+    "gross": 0.0061,
+    "cost": 0.0078,
+    "net": -0.0017,
+    "net_ci": [
+     -0.0185,
+     0.0156
+    ],
+    "sharpe": -0.06,
+    "se_sharpe": 0.5006,
+    "sd": 1.3301,
+    "turnover": 0.0026,
+    "cost_survival_pct": -27.8,
+    "names": 31.3
+   },
+   "E_static_shortCM": {
+    "carry": 0.0412,
+    "price": -0.0006,
+    "gross": 0.0406,
+    "cost": 0.0018,
+    "net": 0.0388,
+    "net_ci": [
+     0.0149,
+     0.0615
+    ],
+    "sharpe": 1.0887,
+    "se_sharpe": 0.5006,
+    "sd": 1.6683,
+    "turnover": 0.0006,
+    "cost_survival_pct": 95.6,
+    "names": 36.9
+   }
+  },
+  "primary_prereg_arm": "A_last",
+  "primary_verdict": "DEAD ON COST - gross +0.2252, cost 1.3052 (5.8x gross), net -1.0801 bps/anchor, Sharpe -24.008, cost survival -479.6%, turnover 0.4499 = 8.3x A0",
+  "best_of_8_arms": "B_ema360 net +0.0389 [+0.0215,+0.0550] Sharpe +1.4825 turnover 0.0078 cost survival 63.3%",
+  "zero_selection_arm": "E_static_shortCM net +0.0388 [+0.0149,+0.0615] Sharpe +1.089 turnover 0.0006 cost survival 95.6%",
+  "CHAMPION_SELECTION_DISCLOSURE": "B_ema360 was chosen as best of 8 arms. SE(ann Sharpe)=0.5006 on n=8738; ~2-3 effectively independent smoothing arms => max-order-statistic inflation ~+0.6 SE ~ +0.30 => selection-corrected ~1.18. The zero-selection static arm gives 1.089. Use ~1.1.",
+  "signal_adds_nothing": "B_ema360 net (+0.0389) equals E_static net (+0.0388) to three decimals: the funding-spread SIGN CONSTANT is the whole edge; the signal buys nothing.",
+  "nulls": {
+   "RELAB1": {
+    "net": 0.0099,
+    "turn": 0.0068,
+    "gross": 0.0295
+   },
+   "RELAB2": {
+    "net": 0.0026,
+    "turn": 0.0065,
+    "gross": 0.0216
+   },
+   "RELAB3": {
+    "net": 0.0029,
+    "turn": 0.0071,
+    "gross": 0.0237
+   },
+   "SHIFT101": {
+    "net": 0.021,
+    "turn": 0.0079,
+    "gross": 0.0436
+   },
+   "SHIFT503": {
+    "net": 0.0096,
+    "turn": 0.0077,
+    "gross": 0.0319
+   },
+   "SHIFT1009": {
+    "net": 0.0027,
+    "turn": 0.0073,
+    "gross": 0.0239
+   }
+  },
+  "null_beat": "6/6",
+  "null_z": 4.292,
+  "null_mean_is_positive_note": "nulls average +0.0093 because RELAB/SHIFT partly preserve the sign constant - itself corroborating that the edge is the constant, not the signal.",
+  "cost_sensitivity_coin_m_leg": {
+   "cmmult_1.00": {
+    "ema360_net": 0.0389,
+    "ema360_sr": 1.483,
+    "static_net": 0.0388,
+    "static_sr": 1.089
+   },
+   "cmmult_2.00": {
+    "ema360_net": 0.0269,
+    "ema360_sr": 1.021,
+    "static_net": 0.0378,
+    "static_sr": 1.061
+   },
+   "cmmult_2.72": {
+    "ema360_net": 0.0182,
+    "ema360_sr": 0.69,
+    "static_net": 0.0371,
+    "static_sr": 1.04
+   },
+   "cmmult_3.00": {
+    "ema360_net": 0.0148,
+    "ema360_sr": 0.561,
+    "static_net": 0.0369,
+    "static_sr": 1.033
+   },
+   "cmmult_5.00": {
+    "ema360_net": -0.0093,
+    "ema360_sr": -0.346,
+    "static_net": 0.0349,
+    "static_sr": 0.975
+   },
+   "cmmult_10.00": {
+    "ema360_net": -0.0695,
+    "ema360_sr": -2.456,
+    "static_net": 0.03,
+    "static_sr": 0.828
+   }
+  },
+  "breakeven_coin_m_cost_multiplier": {
+   "B_ema360": 2.72,
+   "E_static_shortCM": 22.72
+  },
+  "venue_depth": {
+   "cm_um_traded_usd_ratio_median": 0.0906,
+   "min": 0.033,
+   "max": 0.1618,
+   "note": "COIN-M is ~1/11 of USDT-M traded USD. The pinned cost model was fitted on USDT-M LOB only. B_ema360 breaks even at a 2.72x COIN-M cost multiple - easily reached on a venue that thin. Only the near-zero-turnover static arm is cost-robust (22.72x)."
+  }
+ },
+ "STEP4_downside": {
+  "candidate": {
+   "worst_day": -49.472,
+   "worst_day_date": "2025-10-10",
+   "worst_day_carry": -40.568,
+   "worst_day_price": -8.903,
+   "daily_sd": 1.982,
+   "worst_day_sigma": -25.0,
+   "maxDD": 50.7,
+   "worst5": [
+    [
+     "2025-10-10",
+     -49.47
+    ],
+    [
+     "2022-12-26",
+     -8.77
+    ],
+    [
+     "2025-02-03",
+     -8.41
+    ],
+    [
+     "2026-02-06",
+     -7.37
+    ],
+    [
+     "2026-06-30",
+     -6.78
+    ]
+   ],
+   "by_year": {
+    "2022": {
+     "n": 1103,
+     "net": 0.0846,
+     "sr": 2.538
+    },
+    "2023": {
+     "n": 2165,
+     "net": 0.0121,
+     "sr": 0.557
+    },
+    "2024": {
+     "n": 2196,
+     "net": 0.0223,
+     "sr": 1.126
+    },
+    "2025": {
+     "n": 2190,
+     "net": 0.0388,
+     "sr": 1.212
+    },
+    "2026": {
+     "n": 1084,
+     "net": 0.0797,
+     "sr": 3.231
+    }
+   }
+  },
+  "static_arm": {
+   "worst_day": -50.037,
+   "worst_day_date": "2025-10-10",
+   "worst_day_carry": -40.652,
+   "worst_day_price": -9.385,
+   "daily_sd": 2.647,
+   "worst_day_sigma": -18.9,
+   "maxDD": 62.6,
+   "worst5": [
+    [
+     "2025-10-10",
+     -50.04
+    ],
+    [
+     "2023-03-11",
+     -30.86
+    ],
+    [
+     "2023-03-10",
+     -14.39
+    ],
+    [
+     "2025-02-03",
+     -12.52
+    ],
+    [
+     "2026-03-18",
+     -10.76
+    ]
+   ],
+   "by_year": {
+    "2022": {
+     "n": 1103,
+     "net": 0.0733,
+     "sr": 1.554
+    },
+    "2023": {
+     "n": 2165,
+     "net": 0.01,
+     "sr": 0.268
+    },
+    "2024": {
+     "n": 2196,
+     "net": 0.0299,
+     "sr": 1.037
+    },
+    "2025": {
+     "n": 2190,
+     "net": 0.0401,
+     "sr": 1.102
+    },
+    "2026": {
+     "n": 1084,
+     "net": 0.0767,
+     "sr": 2.656
+    }
+   }
+  },
+  "combined_worst_utc_day": {
+   "combo_x0.25": {
+    "worst_day": -232.499,
+    "maxDD": 2578.53,
+    "sharpe": 1.2574
+   },
+   "combo_x0.50": {
+    "worst_day": -232.514,
+    "maxDD": 2564.72,
+    "sharpe": 1.2772
+   },
+   "combo_x1.00": {
+    "worst_day": -232.543,
+    "maxDD": 2538.97,
+    "sharpe": 1.3162
+   },
+   "combo_x2.00": {
+    "worst_day": -236.515,
+    "maxDD": 2491.89,
+    "sharpe": 1.3907
+   },
+   "combo_x4.00": {
+    "worst_day": -335.459,
+    "maxDD": 2397.73,
+    "sharpe": 1.5244
+   },
+   "combo_x8.00": {
+    "worst_day": -533.345,
+    "maxDD": 2209.4,
+    "sharpe": 1.7247
+   },
+   "combo_x13.70": {
+    "worst_day": -815.333,
+    "maxDD": 1941.05,
+    "sharpe": 1.8735
+   }
+  },
+  "A0_worst_day_bps": -232.485,
+  "A0_maxDD_bps": 2592.34,
+  "tail_overlap": {
+   "daily_corr": 0.0208,
+   "combo": {
+    "x1": {
+     "worst_day": -232.543,
+     "worst_date": "2022-11-10"
+    },
+    "x2": {
+     "worst_day": -236.515,
+     "worst_date": "2025-10-10"
+    },
+    "x4": {
+     "worst_day": -335.459,
+     "worst_date": "2025-10-10"
+    }
+   },
+   "cand_worst": [
+    [
+     "2025-10-10",
+     -49.472,
+     -137.572
+    ],
+    [
+     "2022-12-26",
+     -8.771,
+     -12.793
+    ],
+    [
+     "2025-02-03",
+     -8.406,
+     64.852
+    ],
+    [
+     "2026-02-06",
+     -7.37,
+     -46.987
+    ],
+    [
+     "2026-06-30",
+     -6.783,
+     61.283
+    ],
+    [
+     "2023-03-11",
+     -6.356,
+     -31.631
+    ]
+   ],
+   "a0_worst": [
+    [
+     "2022-11-10",
+     -232.485,
+     -0.058
+    ],
+    [
+     "2025-05-13",
+     -220.049,
+     -0.642
+    ],
+    [
+     "2025-04-30",
+     -217.608,
+     2.402
+    ],
+    [
+     "2025-12-09",
+     -197.962,
+     -0.118
+    ],
+    [
+     "2026-05-07",
+     -197.576,
+     0.712
+    ],
+    [
+     "2025-11-07",
+     -174.562,
+     5.304
+    ]
+   ]
+  },
+  "reading": "at x1 the combined worst day is unchanged (-232.54 vs -232.49) and maxDD improves; from x2 the worst day MIGRATES to 2025-10-10 and by x4/x8 it deepens 44%/129%. Every allocation that materially lifts Sharpe deepens the worst day - the live desk halts on a daily loss line."
+ },
+ "STEP5_honest_arithmetic": {
+  "combo_sharpe_vs_x": {
+   "0.00": 1.2372,
+   "0.50": 1.2772,
+   "1.00": 1.3162,
+   "2.00": 1.3907,
+   "3.00": 1.4602,
+   "4.00": 1.5244,
+   "6.00": 1.6357,
+   "8.00": 1.7247,
+   "10.00": 1.7928,
+   "13.70": 1.8735,
+   "20.00": 1.9221,
+   "40.00": 1.8564
+  },
+  "uncorrelated_ceiling_on_subaxis": 1.931,
+  "on_full_axis_scaling": {
+   "A0": 1.2912,
+   "x1_approx": 1.37,
+   "ceiling_approx": 2.0
+  },
+  "target": 3.966,
+  "se_sharpe_full_axis": 0.4895,
+  "gap_in_SE": 5.46,
+  "x1_lift": "+0.079 Sharpe = 0.16 SE = 3% of the gap",
+  "equivalent_uncorrelated_books": "candidate standalone Sharpe 1.089-1.483 (selection-corrected ~1.18) = 0.09-0.14 of the one Sharpe-3.705 source the desk needs",
+  "one_line": "This is real, but it moves the combined Sharpe from 1.29 to 1.37 at the only allocation that does not deepen the worst day, and its ceiling over ALL allocations is 2.00.",
+  "capacity_and_quanto": {
+   "x1.00": {
+    "cand_gross_usd": 230000,
+    "per_leg_usd": 3121,
+    "per_leg_vs_smallest_cm_4h_vol": 0.0099,
+    "coin_collateral_usd_at_10x": 11500,
+    "coin_collateral_pct_of_NAV": 10.0
+   },
+   "x2.00": {
+    "cand_gross_usd": 460000,
+    "per_leg_usd": 6242,
+    "per_leg_vs_smallest_cm_4h_vol": 0.0197,
+    "coin_collateral_usd_at_10x": 23000,
+    "coin_collateral_pct_of_NAV": 20.0
+   },
+   "x4.00": {
+    "cand_gross_usd": 920000,
+    "per_leg_usd": 12483,
+    "per_leg_vs_smallest_cm_4h_vol": 0.0395,
+    "coin_collateral_usd_at_10x": 46000,
+    "coin_collateral_pct_of_NAV": 40.0
+   },
+   "x8.00": {
+    "cand_gross_usd": 1840000,
+    "per_leg_usd": 24967,
+    "per_leg_vs_smallest_cm_4h_vol": 0.079,
+    "coin_collateral_usd_at_10x": 92000,
+    "coin_collateral_pct_of_NAV": 80.0
+   },
+   "x13.70": {
+    "cand_gross_usd": 3151000,
+    "per_leg_usd": 42756,
+    "per_leg_vs_smallest_cm_4h_vol": 0.1352,
+    "coin_collateral_usd_at_10x": 157550,
+    "coin_collateral_pct_of_NAV": 137.0
+   }
+  },
+  "quanto_quantified": {
+   "mark_to_market_is_linear": "inverse long PnL in coin = N*V*(1/P0-1/P1); valued at exit price = N*V*(P1/P0-1) = the linear contract's USD PnL. First order the two legs cancel in USD.",
+   "unhedged_coin_carry_cross_term_bps_per_anchor": 0.0016,
+   "REAL_nonlinearity_is_collateral": "COIN-M margin must be posted in COIN. At x1 that is 10% of NAV converted to naked long crypto beta; x8 = 80%; x13.7 = 137% (impossible). That beta needs its own hedge leg whose funding and turnover this screen has NOT charged, so even the x1 +0.079 is an optimistic upper bound."
+  }
+ },
+ "by_year": {
+  "B_ema360": {
+   "2022": {
+    "n": 1103,
+    "net": 0.0846,
+    "sr": 2.538
+   },
+   "2023": {
+    "n": 2165,
+    "net": 0.0121,
+    "sr": 0.557
+   },
+   "2024": {
+    "n": 2196,
+    "net": 0.0223,
+    "sr": 1.126
+   },
+   "2025": {
+    "n": 2190,
+    "net": 0.0388,
+    "sr": 1.212
+   },
+   "2026": {
+    "n": 1084,
+    "net": 0.0797,
+    "sr": 3.231
+   }
+  },
+  "E_static_shortCM": {
+   "2022": {
+    "n": 1103,
+    "net": 0.0733,
+    "sr": 1.554
+   },
+   "2023": {
+    "n": 2165,
+    "net": 0.01,
+    "sr": 0.268
+   },
+   "2024": {
+    "n": 2196,
+    "net": 0.0299,
+    "sr": 1.037
+   },
+   "2025": {
+    "n": 2190,
+    "net": 0.0401,
+    "sr": 1.102
+   },
+   "2026": {
+    "n": 1084,
+    "net": 0.0767,
+    "sr": 2.656
+   }
+  },
+  "note": "2023 is nearly flat (Sharpe 0.27-0.56) - the same year A0 is a clear negative year (-13.7%). Cross-regime stability is weak too."
+ },
+ "what_would_change_it": [
+  "Binance re-expanding COIN-M to a stable >=40 tradable names (currently 19-20 and falling: 8 delistings in 2026 alone).",
+  "A MEASURED execution receipt showing the COIN-M leg costs <= 2.7x the USDT-M tier (would revive the B_ema360 arm); on a venue with 1/11 the traded USD this is unlikely.",
+  "A price-neutral carry object on a venue whose cross-section is ~10x larger - the DIRECTION is validated here (rho +0.0075, positive in every A0-loss cell), only this venue is too small and shrinking."
+ ],
+ "artifacts": [
+  "RESULT_CMUM_CARRY_2026-09-12.md",
+  "STEP1_universe.json",
+  "STEP1c_magnitude.json",
+  "STEP1d_tradability.json",
+  "STEP2_carryonly.json",
+  "STEP3_arms.json",
+  "STEP3_final_arms.json",
+  "STEP234_full.json",
+  "STEP345_capacity.json",
+  "STEP4_robust.json",
+  "STEP4_tail_overlap.json",
+  "MANIFEST_download.json",
+  "SHA256SUMS.txt",
+  "book_inputs.npz",
+  "klines_grid.npz",
+  "funding_raw.npz",
+  "final_series.npz",
+  "best_series.npz",
+  "arms_series.npz"
+ ]
+}

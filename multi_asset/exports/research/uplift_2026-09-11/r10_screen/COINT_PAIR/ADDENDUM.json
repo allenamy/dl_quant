@@ -1,0 +1,141 @@
+{
+ "step": "ADDENDUM",
+ "env_whitelist": [],
+ "self_sha256": "c308b3fb9ae62629136a082e604b893ad578d3d283acd502aa90596850430a5f",
+ "prereg_sha256": "ca038101480e76e1ca2ed379a245bc59450315ed19fabc1eec938b87056b6b5e",
+ "gross_edge_exists": {
+  "gross_price_alpha_bps": 0.261,
+  "CI95": [
+   -0.0373,
+   0.5444
+  ],
+  "gross_minus_carry_bps": 0.1204,
+  "CI95_gross_minus_carry": [
+   -0.184,
+   0.3998
+  ],
+  "cost_bps": 0.3943,
+  "CI95_cost": [
+   0.3809,
+   0.4081
+  ],
+  "cost_as_pct_of_ABS_gross_price_alpha": 151.07,
+  "gross_sharpe_if_cost_were_zero": 0.386,
+  "gross_price_only_sharpe": 0.8369
+ },
+ "reverse_sign_book": {
+  "note": "flipping the rule flips pnl and carry but NOT cost; cost is a two-sided tax",
+  "net_mean_g_bps": -0.5147,
+  "CI95": [
+   -0.7954,
+   -0.2097
+  ],
+  "sharpe": -1.6489
+ },
+ "concentration_repriced": {
+  "mean_nonzero_names_A0_live_book": 249.61,
+  "mean_nonzero_names_pair_book": 24.59,
+  "per_name_notional_multiple": 10.149,
+  "impact_multiplier_at_exponent_0.87": 7.509,
+  "base_tier_rates_bps": [
+   2.6705,
+   2.6824,
+   3.6417
+  ],
+  "repriced_tier_rates_bps": [
+   2.7977,
+   3.1474,
+   9.2263
+  ],
+  "cost_bps_base": 0.3943,
+  "cost_bps_repriced": 0.6778,
+  "net_mean_g_bps_repriced": -0.5574,
+  "CI95": [
+   -0.8636,
+   -0.2766
+  ],
+  "sharpe_repriced": -1.7862
+ },
+ "break_even": {
+  "turnover_mean_pair_book": 0.13075,
+  "turnover_mean_A0": 0.03032,
+  "turnover_multiple_vs_A0": 4.313,
+  "realised_cost_rate_bps_per_unit_turnover": 3.0154,
+  "break_even_cost_rate_bps_per_unit_turnover": 0.921,
+  "pinned_book_avg_rate_bps": 2.9537,
+  "verdict": "the book needs a per-unit-turnover cost rate of 0.921 bps; the fitted model charges 3.015 bps"
+ },
+ "long_only_allocation_ladder": {
+  "note": "candidate scaled to A0's per-anchor vol, then risk-weighted LONG. The variance-optimal formula in STEP5 puts a NEGATIVE weight on this candidate (its Sharpe is negative) and is therefore not a deliverable allocation.",
+  "ladder": {
+   "risk_weight_0.05": {
+    "combined_sharpe": 1.2419,
+    "delta_vs_A0": -0.0493
+   },
+   "risk_weight_0.10": {
+    "combined_sharpe": 1.1836,
+    "delta_vs_A0": -0.1076
+   },
+   "risk_weight_0.15": {
+    "combined_sharpe": 1.1149,
+    "delta_vs_A0": -0.1763
+   },
+   "risk_weight_0.20": {
+    "combined_sharpe": 1.0345,
+    "delta_vs_A0": -0.2567
+   },
+   "risk_weight_0.30": {
+    "combined_sharpe": 0.8345,
+    "delta_vs_A0": -0.4567
+   }
+  },
+  "A0_sharpe": 1.2912
+ },
+ "per_year": {
+  "2022": {
+   "n": 1110,
+   "pair_net_mean_g_bps": 0.007,
+   "pair_gross_bps": 0.271,
+   "pair_cost_bps": 0.2004,
+   "pair_sharpe": 0.026,
+   "A0_mean_g_bps": 0.1586,
+   "A0_sharpe": 0.48
+  },
+  "2023": {
+   "n": 2190,
+   "pair_net_mean_g_bps": 0.1285,
+   "pair_gross_bps": 0.6285,
+   "pair_cost_bps": 0.3888,
+   "pair_sharpe": 0.479,
+   "A0_mean_g_bps": -0.6485,
+   "A0_sharpe": -1.936
+  },
+  "2024": {
+   "n": 2196,
+   "pair_net_mean_g_bps": -0.5767,
+   "pair_gross_bps": -0.0819,
+   "pair_cost_bps": 0.4256,
+   "pair_sharpe": -1.762,
+   "A0_mean_g_bps": 0.4865,
+   "A0_sharpe": 1.088
+  },
+  "2025": {
+   "n": 2190,
+   "pair_net_mean_g_bps": -0.6937,
+   "pair_gross_bps": 0.0084,
+   "pair_cost_bps": 0.4664,
+   "pair_sharpe": -2.18,
+   "A0_mean_g_bps": 0.677,
+   "A0_sharpe": 1.187
+  },
+  "2026": {
+   "n": 1452,
+   "pair_net_mean_g_bps": -0.0043,
+   "pair_gross_bps": 0.5985,
+   "pair_cost_bps": 0.3946,
+   "pair_sharpe": -0.012,
+   "A0_mean_g_bps": 3.0913,
+   "A0_sharpe": 4.516
+  }
+ }
+}

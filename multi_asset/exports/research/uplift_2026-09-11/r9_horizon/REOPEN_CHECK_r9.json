@@ -1,0 +1,532 @@
+{
+ "env_whitelist": [],
+ "inputs": {
+  "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r3k_impact/costb_PWR_G230k.json": "295b4e7b462373e4",
+  "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r3k_impact/costb_FIT_G230k.json": "0674a48bd45e2419",
+  "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/infra1_cost/costb_honest_H0.json": "4894184f40452a5e",
+  "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/infra1_cost/costb_honest_X1.json": "1f4d800929ac9b7c",
+  "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r2_horizon/RESULT_abcd.json": "e0ae5a0e26c7ba23"
+ },
+ "task1_reopen_1h_subanchor": {
+  "breakeven_bps_per_unit_turnover": 0.8198,
+  "source_of_gross_and_turnover": "r2_horizon/RESULT_r2_horizon_2026-09-11.md L10-11 (INFERRED: quoted, not re-derived)",
+  "reopen_threshold_stated_in_r2_horizon_L170": 0.82,
+  "cost_lines_bps_per_unit_turnover": {
+   "PINNED costb_PWR_G230k (this program's cost model)": 2.9537,
+   "costb_FIT_G230k (linear book-walk variant)": 2.857,
+   "costb_honest_H0 (fee + half-spread, ZERO impact)": 2.6729,
+   "costb_honest_X1 (fee + spread + exec-caliber impact K=1)": 5.517
+  },
+  "PINNED_maker_only_bps_min_max_by_tier": [
+   1.9235,
+   2.7658
+  ],
+  "maker_fee_assumed_by_r2_horizon": 1.8,
+  "maker_fee_MEASURED_by_INFRA1": 1.9,
+  "net_bps_per_hour_per_gross": {
+   "PINNED costb_PWR_G230k (this program's cost model)": -2.8297,
+   "costb_FIT_G230k (linear book-walk variant)": -2.7015,
+   "costb_honest_H0 (fee + half-spread, ZERO impact)": -2.4573,
+   "costb_honest_X1 (fee + spread + exec-caliber impact K=1)": -6.2289,
+   "FLOOR: cheapest tier maker_bps only (1.9235)": -1.4635
+  },
+  "ratio_pinned_cost_over_breakeven": 3.6027,
+  "ratio_cheapest_makeronly_over_breakeven": 2.3461,
+  "VERDICT": "REOPEN CONDITION NOT MET. Every measured cost line exceeds the 0.82 bps/unit-turnover breakeven. The cheapest possible line (maker fee only, most-liquid tier, zero spread, zero impact) is already 1.9235 bps = 2.35x the breakeven. The pinned model is 3.60x."
+ },
+ "task2_arm_inventory_n": 40,
+ "task2_arms": [
+  {
+   "arm": "A_AMI1H__p",
+   "sharpe": 1.7324,
+   "g_bps": 0.8108,
+   "abs_rho_A0": 0.1958,
+   "rho_A0": 0.1958,
+   "turn": 0.02061,
+   "carryfrac": 0.1615,
+   "yrs_pos": 5
+  },
+  {
+   "arm": "B_AMI12H__p",
+   "sharpe": 1.6784,
+   "g_bps": 0.7852,
+   "abs_rho_A0": 0.1913,
+   "rho_A0": 0.1913,
+   "turn": 0.01484,
+   "carryfrac": 0.0831,
+   "yrs_pos": 5
+  },
+  {
+   "arm": "C_AMI3D__p",
+   "sharpe": 1.565,
+   "g_bps": 0.7361,
+   "abs_rho_A0": 0.1791,
+   "rho_A0": 0.1791,
+   "turn": 0.01185,
+   "carryfrac": -0.062,
+   "yrs_pos": 5
+  },
+  {
+   "arm": "C_AMI7D__p",
+   "sharpe": 1.5135,
+   "g_bps": 0.7224,
+   "abs_rho_A0": 0.177,
+   "rho_A0": 0.177,
+   "turn": 0.01063,
+   "carryfrac": -0.1453,
+   "yrs_pos": 5
+  },
+  {
+   "arm": "C_TBF3D__p",
+   "sharpe": 1.3529,
+   "g_bps": 0.5623,
+   "abs_rho_A0": 0.0083,
+   "rho_A0": 0.0083,
+   "turn": 0.04072,
+   "carryfrac": -0.208,
+   "yrs_pos": 4
+  },
+  {
+   "arm": "C_TBF7D__p",
+   "sharpe": 1.2222,
+   "g_bps": 0.4977,
+   "abs_rho_A0": 0.0488,
+   "rho_A0": -0.0488,
+   "turn": 0.02383,
+   "carryfrac": -0.2111,
+   "yrs_pos": 4
+  },
+  {
+   "arm": "D_FCHG3D__m",
+   "sharpe": 1.1455,
+   "g_bps": 0.5464,
+   "abs_rho_A0": 0.1381,
+   "rho_A0": 0.1381,
+   "turn": 0.0794,
+   "carryfrac": -1.1718,
+   "yrs_pos": 4
+  },
+  {
+   "arm": "C_TBF14D__p",
+   "sharpe": 0.8789,
+   "g_bps": 0.3532,
+   "abs_rho_A0": 0.0635,
+   "rho_A0": -0.0635,
+   "turn": 0.01565,
+   "carryfrac": -0.3322,
+   "yrs_pos": 4
+  },
+  {
+   "arm": "B_TBF12H__p",
+   "sharpe": 0.8678,
+   "g_bps": 0.3872,
+   "abs_rho_A0": 0.0191,
+   "rho_A0": 0.0191,
+   "turn": 0.07627,
+   "carryfrac": -0.4765,
+   "yrs_pos": 3
+  },
+  {
+   "arm": "D_FSLOPE__p",
+   "sharpe": 0.5879,
+   "g_bps": 0.2348,
+   "abs_rho_A0": 0.0354,
+   "rho_A0": 0.0354,
+   "turn": 0.04894,
+   "carryfrac": -1.2892,
+   "yrs_pos": 4
+  },
+  {
+   "arm": "C_TBF30D__p",
+   "sharpe": 0.572,
+   "g_bps": 0.2309,
+   "abs_rho_A0": 0.0436,
+   "rho_A0": -0.0436,
+   "turn": 0.01093,
+   "carryfrac": -0.5181,
+   "yrs_pos": 4
+  },
+  {
+   "arm": "D_FCHG12H__m",
+   "sharpe": 0.2041,
+   "g_bps": 0.1008,
+   "abs_rho_A0": 0.114,
+   "rho_A0": 0.114,
+   "turn": 0.09054,
+   "carryfrac": -2.5171,
+   "yrs_pos": 2
+  },
+  {
+   "arm": "A_TBF1H__p",
+   "sharpe": 0.1664,
+   "g_bps": 0.0739,
+   "abs_rho_A0": 0.0594,
+   "rho_A0": 0.0594,
+   "turn": 0.0887,
+   "carryfrac": -2.4849,
+   "yrs_pos": 3
+  },
+  {
+   "arm": "A_VOL1H__p",
+   "sharpe": 0.1387,
+   "g_bps": 0.1188,
+   "abs_rho_A0": 0.0324,
+   "rho_A0": -0.0324,
+   "turn": 0.05404,
+   "carryfrac": -4.3371,
+   "yrs_pos": 4
+  },
+  {
+   "arm": "C_QVTR3D__m",
+   "sharpe": -0.1564,
+   "g_bps": -0.0799,
+   "abs_rho_A0": 0.1323,
+   "rho_A0": 0.1323,
+   "turn": 0.02678,
+   "carryfrac": -2.3696,
+   "yrs_pos": 2
+  },
+  {
+   "arm": "C_QVTR3D__p",
+   "sharpe": -0.1594,
+   "g_bps": -0.0794,
+   "abs_rho_A0": 0.0302,
+   "rho_A0": -0.0302,
+   "turn": 0.02688,
+   "carryfrac": 3.8551,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "A_VOL1H__m",
+   "sharpe": -0.4242,
+   "g_bps": -0.3576,
+   "abs_rho_A0": 0.106,
+   "rho_A0": 0.106,
+   "turn": 0.05445,
+   "carryfrac": -1.0711,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "B_REV12H__p",
+   "sharpe": -0.5514,
+   "g_bps": -0.4228,
+   "abs_rho_A0": 0.0958,
+   "rho_A0": 0.0958,
+   "turn": 0.08375,
+   "carryfrac": -0.6621,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "C_TBF30D__m",
+   "sharpe": -0.7253,
+   "g_bps": -0.2916,
+   "abs_rho_A0": 0.1792,
+   "rho_A0": 0.1792,
+   "turn": 0.011,
+   "carryfrac": -0.3534,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "C_TBF14D__m",
+   "sharpe": -0.8168,
+   "g_bps": -0.333,
+   "abs_rho_A0": 0.2024,
+   "rho_A0": 0.2024,
+   "turn": 0.0157,
+   "carryfrac": -0.2791,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "A_REV1H__m",
+   "sharpe": -0.8653,
+   "g_bps": -0.5566,
+   "abs_rho_A0": 0.0806,
+   "rho_A0": 0.0806,
+   "turn": 0.09071,
+   "carryfrac": 0.3486,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "B_REV12H__m",
+   "sharpe": -0.8758,
+   "g_bps": -0.6633,
+   "abs_rho_A0": 0.0561,
+   "rho_A0": 0.0561,
+   "turn": 0.08561,
+   "carryfrac": 0.3965,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "A_QVS1H__m",
+   "sharpe": -0.9696,
+   "g_bps": -0.6087,
+   "abs_rho_A0": 0.0753,
+   "rho_A0": 0.0753,
+   "turn": 0.08926,
+   "carryfrac": -1.0836,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "D_FSLOPE__m",
+   "sharpe": -1.0795,
+   "g_bps": -0.4382,
+   "abs_rho_A0": 0.1416,
+   "rho_A0": 0.1416,
+   "turn": 0.04898,
+   "carryfrac": -0.7529,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "PL_ORTHPERM__p",
+   "sharpe": -1.2344,
+   "g_bps": -0.5078,
+   "abs_rho_A0": 0.1731,
+   "rho_A0": 0.1731,
+   "turn": 0.09095,
+   "carryfrac": -0.0471,
+   "yrs_pos": 2
+  },
+  {
+   "arm": "C_AMI7D__m",
+   "sharpe": -1.282,
+   "g_bps": -0.6307,
+   "abs_rho_A0": 0.0698,
+   "rho_A0": -0.0698,
+   "turn": 0.01018,
+   "carryfrac": -0.1432,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "A_CPOS1H__p",
+   "sharpe": -1.3204,
+   "g_bps": -0.7094,
+   "abs_rho_A0": 0.2028,
+   "rho_A0": 0.2028,
+   "turn": 0.08922,
+   "carryfrac": 0.0449,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "C_AMI3D__m",
+   "sharpe": -1.389,
+   "g_bps": -0.672,
+   "abs_rho_A0": 0.0536,
+   "rho_A0": -0.0536,
+   "turn": 0.01137,
+   "carryfrac": -0.0609,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "C_TBF7D__m",
+   "sharpe": -1.4044,
+   "g_bps": -0.5855,
+   "abs_rho_A0": 0.1847,
+   "rho_A0": 0.1847,
+   "turn": 0.02391,
+   "carryfrac": -0.1475,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "A_QVS1H__p",
+   "sharpe": -1.4637,
+   "g_bps": -0.8961,
+   "abs_rho_A0": 0.1054,
+   "rho_A0": 0.1054,
+   "turn": 0.0896,
+   "carryfrac": 0.544,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "B_AMI12H__m",
+   "sharpe": -1.5108,
+   "g_bps": -0.7184,
+   "abs_rho_A0": 0.0586,
+   "rho_A0": -0.0586,
+   "turn": 0.01421,
+   "carryfrac": 0.0927,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "A_CPOS1H__m",
+   "sharpe": -1.5778,
+   "g_bps": -0.8014,
+   "abs_rho_A0": 0.0173,
+   "rho_A0": 0.0173,
+   "turn": 0.08906,
+   "carryfrac": -0.0294,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "A_AMI1H__m",
+   "sharpe": -1.5802,
+   "g_bps": -0.7488,
+   "abs_rho_A0": 0.0648,
+   "rho_A0": -0.0648,
+   "turn": 0.02,
+   "carryfrac": 0.1803,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "A_REV1H__p",
+   "sharpe": -1.6098,
+   "g_bps": -1.0636,
+   "abs_rho_A0": 0.0766,
+   "rho_A0": 0.0766,
+   "turn": 0.0902,
+   "carryfrac": -0.1723,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "C_TBF3D__m",
+   "sharpe": -1.8303,
+   "g_bps": -0.7785,
+   "abs_rho_A0": 0.139,
+   "rho_A0": 0.139,
+   "turn": 0.04066,
+   "carryfrac": -0.1293,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "B_TBF12H__m",
+   "sharpe": -2.1927,
+   "g_bps": -1.0579,
+   "abs_rho_A0": 0.1623,
+   "rho_A0": 0.1623,
+   "turn": 0.07611,
+   "carryfrac": -0.1705,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "PL_ORTHPERM__m",
+   "sharpe": -2.4264,
+   "g_bps": -1.0222,
+   "abs_rho_A0": 0.1094,
+   "rho_A0": 0.1094,
+   "turn": 0.09095,
+   "carryfrac": -0.0111,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "A_TBF1H__m",
+   "sharpe": -3.0512,
+   "g_bps": -1.4625,
+   "abs_rho_A0": 0.1622,
+   "rho_A0": 0.1622,
+   "turn": 0.08857,
+   "carryfrac": -0.1499,
+   "yrs_pos": 1
+  },
+  {
+   "arm": "D_FCHG3D__p",
+   "sharpe": -3.2333,
+   "g_bps": -1.5351,
+   "abs_rho_A0": 0.0514,
+   "rho_A0": 0.0514,
+   "turn": 0.07934,
+   "carryfrac": -0.5208,
+   "yrs_pos": 0
+  },
+  {
+   "arm": "D_FCHG12H__p",
+   "sharpe": -4.2775,
+   "g_bps": -2.1206,
+   "abs_rho_A0": 0.1301,
+   "rho_A0": 0.1301,
+   "turn": 0.09055,
+   "carryfrac": -0.3813,
+   "yrs_pos": 0
+  }
+ ],
+ "task2_pincer": {
+  "gate_S1_sharpe_ge": 1.5,
+  "gate_S3_absrho_le": 0.25,
+  "arms_passing_BOTH": [
+   "A_AMI1H__p",
+   "B_AMI12H__p",
+   "C_AMI3D__p",
+   "C_AMI7D__p"
+  ],
+  "n_arms_with_absrho_le_0.10": 20,
+  "best_sharpe_among_absrho_le_0.10": 1.3529,
+  "best_arm_among_absrho_le_0.10": "C_TBF3D__p",
+  "best_sharpe_overall": 1.7324,
+  "best_arm_overall": "A_AMI1H__p",
+  "abs_rho_of_best_arm_overall": 0.1958
+ },
+ "task3_bar_for_this_class": {
+  "A0_sharpe": 1.2912,
+  "n": 9138,
+  "SE_annualised_sharpe": 0.4895,
+  "point_estimate_needed_for_CI95_lower_bound_over_3.0": 3.9595,
+  "standalone_sharpe_a_ZERO_correlation_horizon_book_must_carry": 3.7431,
+  "best_standalone_sharpe_any_horizon_arm_measured": 1.7324,
+  "shortfall_multiple": 2.161,
+  "source_A0": "CLOSEOUT_uplift_program_2026-09-12.md sec.2 (INFERRED: quoted, not re-derived)"
+ },
+ "task4_independence_vs_edge": {
+  "pearson_absrho_vs_sharpe_over_40_horizon_arms": -0.037,
+  "reading": "~0 => in this family independence and edge are UNRELATED. Independence is free and plentiful (20/40 arms at |rho|<=0.10); edge is the binding constraint.",
+  "independent_cloud_top": [
+   {
+    "arm": "C_TBF3D__p",
+    "sharpe": 1.3529,
+    "rho_A0": 0.0083,
+    "turn": 0.04072
+   },
+   {
+    "arm": "C_TBF7D__p",
+    "sharpe": 1.2222,
+    "rho_A0": -0.0488,
+    "turn": 0.02383
+   },
+   {
+    "arm": "C_TBF14D__p",
+    "sharpe": 0.8789,
+    "rho_A0": -0.0635,
+    "turn": 0.01565
+   },
+   {
+    "arm": "B_TBF12H__p",
+    "sharpe": 0.8678,
+    "rho_A0": 0.0191,
+    "turn": 0.07627
+   },
+   {
+    "arm": "D_FSLOPE__p",
+    "sharpe": 0.5879,
+    "rho_A0": 0.0354,
+    "turn": 0.04894
+   },
+   {
+    "arm": "C_TBF30D__p",
+    "sharpe": 0.572,
+    "rho_A0": -0.0436,
+    "turn": 0.01093
+   }
+  ],
+  "only_arms_with_sharpe_ge_1.5": [
+   {
+    "arm": "A_AMI1H__p",
+    "sharpe": 1.7324,
+    "rho_A0": 0.1958
+   },
+   {
+    "arm": "B_AMI12H__p",
+    "sharpe": 1.6784,
+    "rho_A0": 0.1913
+   },
+   {
+    "arm": "C_AMI3D__p",
+    "sharpe": 1.565,
+    "rho_A0": 0.1791
+   },
+   {
+    "arm": "C_AMI7D__p",
+    "sharpe": 1.5135,
+    "rho_A0": 0.177
+   }
+  ],
+  "note_on_those": "all four are the SAME Amihud sleeve at four lookback windows; r2_horizon sec.3.1 measured their per-anchor g correlation to the round-1 SL_ORTH_f_amihud_24h__p at +0.931..+0.941, and the ex-ante AMENDMENT-1 rule (rho>=0.6 => horizon variant) forbids counting them as a new sleeve.",
+  "note_on_the_independent_cloud": "its best member C_TBF3D__p was REJECTED by the frozen S5 offset spectrum: k=-1 rank IC +0.03178 vs k=0 +0.00272 = 11.7x backward => the feature reads the past, it does not forecast."
+ }
+}

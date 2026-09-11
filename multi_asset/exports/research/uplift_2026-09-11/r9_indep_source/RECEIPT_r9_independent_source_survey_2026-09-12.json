@@ -1,0 +1,115 @@
+{
+  "created_utc": "2026-09-11T19:10Z",
+  "session": "https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX",
+  "klass": "INDEPENDENT DATA SOURCE (survey only, no book arm run, no judge run)",
+  "caliber_pin": "v4 chain 2026-09-09 (CALIBER_PIN_v4_2026-09-11.md)",
+  "env_whitelist_E0826D": {
+    "analysis_scripts_whitelist": [],
+    "note": "EMPTY SET. Every command in this survey was a read-only ls/cat/grep/curl/ssh or a numpy read of a pinned npz. No device (w10_universe.py / w10_sleeve.py / judge_v4.py) was run. No environment variable was set. No arm was produced."
+  },
+  "live_zero_touch": "~/dl_quant_live and ~/wide_shadow read-only; no write, no restart, no order, no signed endpoint. No process started or stopped.",
+  "gpu": "pod2 nvidia-smi at 2026-09-11T18:57Z: 0 compute apps, 2 MiB / 32623 MiB used, 0% util. No GPU job launched by this survey.",
+  "venue_traffic": "Anonymous GETs to the static bulk archive s3-ap-northeast-1.amazonaws.com/data.binance.vision (prefix listings only, no market data downloaded) at 2026-09-11T18:5xZ, OUTSIDE every anchor window (anchors 00/04/08/12/16/20Z, windows HH:00-HH:57). Anonymous GETs to api.llama.fi and stablecoins.llama.fi (not an exchange). Upbit was NOT called (constraint 1).",
+  "verified_measurements": [
+    {
+      "id": "V1_options_coverage",
+      "claim": "Binance option history exists but covers 5 underlyings and starts 2023-05-18",
+      "method": "S3 prefix listing of data/option/",
+      "result": {
+        "prefixes": ["data/option/daily/BVOLIndex/", "data/option/daily/EOHSummary/"],
+        "BVOLIndex_symbols": ["BTCBVOLUSDT", "ETHBVOLUSDT"],
+        "EOHSummary_symbols": ["BNBUSDT", "BTCUSDT", "DOGEUSDT", "ETHUSDT", "XRPUSDT"],
+        "EOHSummary_BTC_first_key": "BTCUSDT-EOHSummary-2023-05-18.zip",
+        "monthly_option_prefix": "empty"
+      },
+      "label": "VERIFIED"
+    },
+    {
+      "id": "V2_crossasset_panel_coverage",
+      "claim": "152 non-COIN (EQUITY/COMMODITY/INDEX/HK_EQUITY/KR_EQUITY/PREMARKET/CN_EQUITY) perps carry data in the pinned v4 829-name panel, but almost none has history",
+      "method": "pod2 /workspace/venv/bin/python /workspace/uplift_2026-09-11/chk2_r9.py, reading /workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz (y4, qvk, E_ts; axis 10182, E range 2022-01-08 00:00Z .. 2026-08-31 20:00Z) and /workspace/uplift_2026-09-11/r5nd/venue_class_2026-09-11.json",
+      "result": {
+        "venue_non_COIN_contracts": 194,
+        "non_COIN_in_829_panel": 152,
+        "with_ge_1290_finite_anchors": 6,
+        "with_ge_884_finite_anchors": 29,
+        "passing_live_250k_qv4h_gate_on_ge_50pct_of_last_500_anchors": 55,
+        "both_ge884_and_gate": 22,
+        "examples_first_anchor_and_median_qv4h_usd": {
+          "XAUUSDT": {"n_anchors": 1582, "first": "2025-12-11", "med_qv4h": 82860128, "gate_pass_frac": 1.0},
+          "XAGUSDT": {"n_anchors": 1419, "first": "2026-01-07", "med_qv4h": 36872136, "gate_pass_frac": 1.0},
+          "CLUSDT":  {"n_anchors": 915,  "first": "2026-04-01", "med_qv4h": 44332712, "gate_pass_frac": 1.0},
+          "BZUSDT":  {"n_anchors": 915,  "first": "2026-04-01", "med_qv4h": 15884075, "gate_pass_frac": 1.0},
+          "TSLAUSDT":{"n_anchors": 1292, "first": "2026-01-28", "med_qv4h": 2491188,  "gate_pass_frac": 1.0},
+          "NVDAUSDT":{"n_anchors": 950,  "first": "2026-03-26", "med_qv4h": 4073231,  "gate_pass_frac": 1.0},
+          "SPYUSDT": {"n_anchors": 884,  "first": "2026-04-XX", "med_qv4h": null, "note": "884 finite anchors; qv4h not separately tabulated in top-25 print"},
+          "UVXYUSDT":{"n_anchors": 489,  "med_qv4h_note": "fails gate"},
+          "TMFUSDT": {"n_anchors": 212,  "med_qv4h_note": "qvk median 0, fails gate"}
+        },
+        "crypto_reference_med_qv4h_usd": {"BTCUSDT": 961555328, "SOLUSDT": 160281408, "LINKUSDT": 9061771, "ARBUSDT": 2788487},
+        "caveat_INFERRED": "qv4h = expm1(clip(qvk,0,30))*48 is the live gate formula read out of ~/wide_shadow/shadow_loop_v3.py L473-474 per RESULT_r5_newdata3_universe_2026-09-11.md; applying it to the meta column named 'qvk' assumes qvk is the same quantity as the producer's qvm. NOT bit-verified against the producer. E-0825-H applies."
+      },
+      "label": "VERIFIED (coverage/anchor counts) + INFERRED (qv4h unit mapping)"
+    },
+    {
+      "id": "V3_defillama_availability",
+      "claim": "Unlock/emissions data is paywalled; TVL/fundamentals are free",
+      "method": "anonymous GET",
+      "result": {
+        "api.llama.fi/emissions": "HTTP 402, body 'Upgrade to the paid API plan at https://defillama.com/subscription'",
+        "api.llama.fi/protocols": "HTTP 200, 8794783 bytes, 8231 protocols",
+        "api.llama.fi/protocol/aave": "HTTP 200, 10428493 bytes (full historical TVL)",
+        "api.llama.fi/v2/historicalChainTvl/Ethereum": "HTTP 200, 3272 daily points, first date 1506470400 (2017-09-27), last 1789084800",
+        "stablecoins.llama.fi/stablecoins": "HTTP 200, 552550 bytes",
+        "stablecoins.llama.fi/stablecoincharts/all": "HTTP 200, 1272940 bytes"
+      },
+      "label": "VERIFIED"
+    },
+    {
+      "id": "V4_defillama_panel_overlap",
+      "claim": "Fundamental coverage of the 829-name panel is at most ~172 names",
+      "method": "local ticker match of base(symbol) against DefiLlama protocol 'symbol' field",
+      "result": {
+        "panel_names": 829,
+        "ticker_match_any_protocol": 381,
+        "ticker_match_and_protocol_tvl_gt_1m_today": 172,
+        "caveat": "Ticker match is crude and match-on-today's-protocol-list is itself survivorship-biased. 172 is an UPPER BOUND on true fundamental coverage."
+      },
+      "label": "VERIFIED (the count) / the count is an upper bound by construction"
+    },
+    {
+      "id": "V5_forward_liquidation_capture_is_dead",
+      "claim": "The forward !forceOrder@arr capture recommended by round 5 has been up for 31.6 days and has captured ZERO events",
+      "method": "read-only: launchctl print com.hsy.w4liqcapture; ls -la ~/w4_liq_capture; head/tail heartbeat.jsonl; cat recorder.py; cat recorder.err",
+      "result": {
+        "plist": "/Users/haosiyu/Library/LaunchAgents/com.hsy.w4liqcapture.plist, KeepAlive true, PID 1225, LastExitStatus 0",
+        "recorder": "/Users/haosiyu/w4_liq_capture/recorder.py -> wss://fstream.binance.com/ws/!forceOrder@arr",
+        "heartbeat_first": "ts 1786426180.98 = 2026-08-11T05:29:40Z, n_events 0",
+        "heartbeat_last": "ts 1789153428.55 = 2026-09-11T19:03:48Z, n_events 0",
+        "heartbeat_lines": 4077,
+        "span_days": 31.57,
+        "forceorder_jsonl_files_written": 0,
+        "last_error": "1788391200.01 = 2026-09-02T23:20:00Z WebSocketConnectionClosedException",
+        "reading": "silent_watcher_death family: the process is alive, the heartbeat is alive, the counter never moved, and the data file was never created. A month of the one 'costs nothing to start' asset is lost."
+      },
+      "label": "VERIFIED"
+    }
+  ],
+  "not_verified": [
+    {
+      "id": "NV1_upbit_kimchi",
+      "what": "Upbit KRW candle history depth and KRW-market overlap with the 450-name book",
+      "why_not": "Hard constraint 1 of this task: 'never call an exchange API'. data.binance.vision is the documented-compliant bulk archive with explicit precedent in this program (RESULT_r5_newdata2 S11); Upbit has no such precedent, so I did not call it.",
+      "verification_path": "anonymous GET https://api.upbit.com/v1/market/all (ticker list, for overlap) then https://api.upbit.com/v1/candles/minutes/60?market=KRW-BTC&to=<iso>&count=200 paged backwards (for history depth). Compute the premium entirely inside Upbit as (KRW-COIN / KRW-USDT) vs Binance COIN-USDT so no external FX series is needed."
+    },
+    {
+      "id": "NV2_social_news",
+      "what": "Any free historical social/news feed at 4h granularity across 450 names",
+      "why_not": "No free source located; LunarCrush/Santiment historical are paid."
+    }
+  ],
+  "artifacts": {
+    "pod2": ["/workspace/uplift_2026-09-11/chk_r9.py", "/workspace/uplift_2026-09-11/chk2_r9.py"],
+    "local": ["multi_asset/exports/research/uplift_2026-09-11/r9_indep_source/RECEIPT_r9_independent_source_survey_2026-09-12.json"]
+  }
+}

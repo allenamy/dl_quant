@@ -1,0 +1,17 @@
+[    0.2s] runtime {"torch": "2.11.0+cu128", "cuda": "12.8", "gpu": "NVIDIA RTX PRO 4500 Blackwell", "allow_tf32_matmul": false, "float32_matmul_precision": "highest"}
+[    4.6s] incumbent axis 10212 (2022-01-03 00:00Z..2026-08-31 20:00Z) rows 2753289
+[    5.1s] calibration {"n_train": 10025, "n_val": 1504, "first_te": 10026, "last_te": 10211, "n_rows_used": 98963, "max_row_used": 2076486, "mu_sha16": "f56e4ef58cf3e092", "sd_sha16": "940295744100733c"}
+[    7.1s] GATE X-P mwf_v4b_RAW_s42 PASS maxabs 0.0
+[    7.3s] GATE X-OVLP-B mwf_v4b_RAW_s42 PASS maxabs 0.0
+[    8.5s] GATE X-P mwf_v4b_RAW_s2027 PASS maxabs 0.0
+[    8.6s] GATE X-OVLP-B mwf_v4b_RAW_s2027 PASS maxabs 0.0
+[   30.7s] GATE X-PRE {"strict": "FAIL", "exemption_detail": null, "exempt": "PASS", "calib": "PASS", "disjoint": "PASS"}
+[   30.8s]   exemption {"n_diff_cells": 3866, "n_diff_rows": 2000, "columns_touched": [{"idx": 80, "name": "fund_ema", "n_diff_cells": 2000, "maxabs": 0.00276947021484375}, {"idx": 81, "name": "fund_now", "n_diff_cells": 1866, "maxabs": 0.0115966796875}], "anchors_touched": ["2026-08-31 04:00Z", "2026-08-31 08:00Z", "2026-08-31 12:00Z", "2026-08-31 16:00Z", "2026-08-31 20:00Z"], "anchor_idx_touched": [10207, 10208, 10209, 10210, 10211], "arithmetic_check": {"n_anchors": 5, "members_per_anchor": [400, 400, 400, 400, 400], "n_cols": 2, "upper_bound_cells": 4000, "actual_cells": 3866, "unchanged_because_both_exactly_zero": 134}, "matches_declared_E0911B": true}
+[   31.0s] calibration on extended matrix: bitwise identical
+[   31.4s] EXTENSION mwf_v4b_RAW_s42 {"out_sha256": "d41fcc933dfe3033b4deb3fc68b069c3db3aeef54fa357ece92ab453bd166dcb", "new_anchors_scored": 60, "new_anchors_total": 60, "last_finite_anchor": "2026-09-10 20:00Z"}
+[   31.7s] REPAIR5 VARIANT mwf_v4b_RAW_s42 {"out": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_repair5_s42.npy", "out_sha256": "6eb8a757eed333281fcf62d0830e70119f5d34bfeb085125ce7c99b3b43e76f5", "rows_changed": ["2026-08-31 04:00Z", "2026-08-31 08:00Z", "2026-08-31 12:00Z", "2026-08-31 16:00Z", "2026-08-31 20:00Z"], "n_cells_changed": 2000, "maxabs_change": 0.06178984045982361, "all_other_rows_bitwise_unchanged": true, "RULING_REQUIRED": "changes 5 EXISTING anchors of the deployed DL leg => book-behaviour caliber => user must rule; this round does not choose."}
+[   31.9s] EXTENSION mwf_v4b_RAW_s2027 {"out_sha256": "01180436a573fef2cd5e9fb3309996b6c767a643cbbaeb9d307f601f04ef896f", "new_anchors_scored": 60, "new_anchors_total": 60, "last_finite_anchor": "2026-09-10 20:00Z"}
+[   32.2s] REPAIR5 VARIANT mwf_v4b_RAW_s2027 {"out": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_repair5_s2027.npy", "out_sha256": "e3a9bf17f8ddebd406f1721e94608e7f53484b510601347d2ff98e34c2e22ac4", "rows_changed": ["2026-08-31 04:00Z", "2026-08-31 08:00Z", "2026-08-31 12:00Z", "2026-08-31 16:00Z", "2026-08-31 20:00Z"], "n_cells_changed": 2000, "maxabs_change": 0.09398633241653442, "all_other_rows_bitwise_unchanged": true, "RULING_REQUIRED": "changes 5 EXISTING anchors of the deployed DL leg => book-behaviour caliber => user must rule; this round does not choose."}
+[   32.4s] GATE X-OVLP-A mwf_v4b_RAW_s42 FAIL maxabs 0.38486963510513306 rho 0.8422971017122376
+[   32.5s] GATE X-OVLP-A mwf_v4b_RAW_s2027 FAIL maxabs 0.39216339588165283 rho 0.8312045200963971
+R9_EXTEND2_DONE

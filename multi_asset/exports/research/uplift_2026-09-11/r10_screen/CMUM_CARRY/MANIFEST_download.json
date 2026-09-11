@@ -1,0 +1,14 @@
+{
+ "source": "https://data.binance.vision  (static anonymous CDN; the ONE network exemption granted. NO fapi/api call was made at any point in this screen.)",
+ "listing_api": "https://s3-ap-northeast-1.amazonaws.com/data.binance.vision?delimiter=/&prefix=...",
+ "funding_url_pattern_cm": "data/futures/cm/monthly/fundingRate/{CMSYM}/{CMSYM}-fundingRate-{YYYY-MM}.zip",
+ "funding_url_pattern_um": "data/futures/um/monthly/fundingRate/{UMSYM}/{UMSYM}-fundingRate-{YYYY-MM}.zip",
+ "kline_url_pattern_cm":  "data/futures/cm/monthly/klines/{CMSYM}/4h/{CMSYM}-4h-{YYYY-MM}.zip",
+ "kline_url_pattern_um":  "data/futures/um/monthly/klines/{UMSYM}/4h/{UMSYM}-4h-{YYYY-MM}.zip",
+ "months_requested": "2022-07 .. 2026-06 (48)",
+ "files_requested": {"funding": 4704, "klines": 4704},
+ "files_returned_200": {"funding_cm": 2105, "funding_um": 2272, "klines_cm": 2036, "klines_um": 2250},
+ "misses_are_404": "months before listing / after delisting; every miss was an HTTP 404 from the CDN, never a parse failure",
+ "bytes_on_disk": {"funding": "18M", "klines": "47M"},
+ "ARCHIVE_RETENTION_LIMIT": "the bucket holds exactly the last 48 monthly files per symbol -> the newest COIN-M funding/kline month available on 2026-09-12 is 2026-06. There is NO daily fundingRate prefix for COIN-M (checked: empty listing). This is why the candidate is measured on 8738 of the pinned 9138 anchors."
+}

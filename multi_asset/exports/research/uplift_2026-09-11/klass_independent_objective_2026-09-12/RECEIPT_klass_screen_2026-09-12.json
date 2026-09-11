@@ -1,0 +1,59 @@
+{
+  "created": "2026-09-12",
+  "session": "https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX",
+  "klass": "INDEPENDENT OBJECTIVE ON DATA WE ALREADY HOLD",
+  "status": "SCREEN ONLY -- not a judge verdict, not a candidate, no arm declared, no deployment claim",
+  "live_touch": "ZERO. ~/dl_quant_live and ~/wide_shadow never opened for write; no exchange API called; no order placed.",
+  "gpu": "NOT USED. nvidia-smi on pod2 read 0% util / 2 MiB used at 2026-09-12; all work is numpy on CPU. No job preempted.",
+  "env_whitelist_E_0826_D": [],
+  "env_whitelist_note": "Every run executed as `env -i /workspace/venv/bin/python <script>`; each script asserts that none of LEGS CAL WRULE LOOK PHI UMASK_NPZ UMASK_SCOPE FSEED FPRED COSTB_JSON MEMBERS_TOPN FTRIM SLOW_NPY W3FIX FEMAT_NPZ OUT_TAG is present and raises if it is. Analysis script => whitelist is the EMPTY SET.",
+  "pins_verified_this_session": {
+    "meta_newprod_v4.npz": {"path": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz", "sha256_16": "0e3c09ac86c727ac", "shape_y4": [10182, 829], "computed_by_me": true},
+    "A0_series": {"path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz", "sha256_16": "88283c5f05b5d6b5", "key_read": "d30_n2_c42_rec", "computed_by_me": true}
+  },
+  "window": {
+    "rule": "drop first 900 device anchors (E-0911-A) then cap ts <= 2026-08-30T20:00:00Z (E-0911-D)",
+    "cap_epoch": 1788120000,
+    "cap_asserted_in_code": true,
+    "n": 9138
+  },
+  "statistic": "g = net_ex / gross_total, bps per 4h anchor per unit gross",
+  "A0_RECONCILIATION_DISCREPANCY": {
+    "brief_value": {"mean_g": 0.6342, "sharpe": 1.2912, "n": 9138},
+    "my_reads_from_archived_dev_v4": {
+      "dyn_s42_S0_rec": {"mean_g": 0.6285, "sharpe": 1.2504},
+      "dyn_s42_d30_n2_c42_rec": {"mean_g": 0.6872, "sharpe": 1.3991},
+      "dyn_s2027_S0_rec": {"mean_g": 0.6799, "sharpe": 1.3457},
+      "dyn_s2027_d30_n2_c42_rec": {"mean_g": 0.7121, "sharpe": 1.4393},
+      "fix_s42_d30_n2_c42_rec": {"mean_g": 0.1985, "sharpe": 0.4045}
+    },
+    "finding": "n = 9138 reproduces EXACTLY, so the window rule is right. None of the 8 archived dyn/fix x s42/s2027 x S0/d30 cells reproduces 0.6342 / 1.2912. Nearest is dyn/s42/S0_rec = 0.6285 / 1.2504. The round-8 figure was recomputed first-hand from its own device run, not read from this archive. Difference is well inside SE(Sharpe)=0.4895, so this is a cell-identity question, not a contradiction -- but the brief's number should carry the arm label that produced it.",
+    "status": "FLAGGED, unresolved, not used as a denominator anywhere in this survey"
+  },
+  "screen_device": {
+    "what_it_is": "crude cross-sectional rank book built directly on the pinned RAW y4 matrix: eligible = member AND finite y4 AND qv4h>=2.5e5 (the live gate, shadow_loop_v3 L473-474); weights = centred cross-sectional rank, normalised to sum|w|=1; per-anchor gross = 1e4 * sum(w*y4); turnover = sum|w_t - w_{t-1}|",
+    "what_it_is_NOT": "the w10 replay device. No GATE P bitwise parity was run. Carry (funding) is EXCLUDED from every number because y4 is price only. Costs are charged at flat published rates, not per-anchor per-name.",
+    "mean_eligible_names_per_anchor": 267.2,
+    "cost_rates_used_bps_per_unit_turnover": {
+      "A0_own_rate_measured_in_this_archive": 3.7766,
+      "A0_rate_quoted_by_r5": 5.53,
+      "costb_PWR_G230k_book_average": 2.9537,
+      "costb_PWR_G230k_tier0_qv4h_ge_5e6": 2.6705,
+      "r5_measured_rate_for_a_new_illiquid_tilted_signal": 13.2
+    }
+  },
+  "leak_guard_offset_spectrum_REV1": {
+    "k_minus_3": 0.02022, "k_minus_2": 0.04659, "k_minus_1": -1.0,
+    "k_0": 0.04034, "k_plus_1": 0.01337, "k_plus_2": 0.00417, "k_plus_3": 0.00080,
+    "reading": "k=-1 is exactly -1.0 BY CONSTRUCTION (the score IS minus y4[t-1]); that is an alignment self-check, not a leak. Forward decay is monotone 0.0403 -> 0.0134 -> 0.0042 -> 0.0008. Backward/forward ratio 0.0466/0.0403 = 1.16, inside the clean band the project uses (0.5-1.2x), versus the 122x signature of the dead event/settlement axis."
+  },
+  "headline_measurements": {
+    "REV1_xs": {"desc": "cross-sectional reversal on the previous 4h anchor's market-demeaned return = statistical liquidity provision", "gross_bps_per_anchor": 1.1585, "gross_sharpe": 1.795, "turnover": 1.3178, "rho_to_A0": 0.0189, "spearman_to_A0": 0.0034, "rho_to_A0_in_A0_bottom_quintile": 0.1100, "breakeven_bps_per_unit_turnover": 0.8791, "best_breakeven_after_EMA_shaping": 1.6036, "per_year_gross": {"2022": 0.9346, "2023": 1.3422, "2024": 1.5137, "2025": 1.2116, "2026": 0.4356}, "tier0_liquid_only_gross": -0.0963},
+    "REV6_xs": {"desc": "24h cross-sectional reversal = the RETIRED rev24 leg, as a control", "gross_bps_per_anchor": 0.7061, "gross_sharpe": 1.038, "turnover": 0.5275, "rho_to_A0": -0.0131, "breakeven_bps_per_unit_turnover": 1.3385},
+    "MOM42_xs": {"desc": "7d cross-sectional price momentum, control", "gross_bps_per_anchor": -0.2111, "rho_to_A0": -0.0677},
+    "BAV_xs": {"desc": "bet-against-vol, long low trailing realised vol = delta-one VRP proxy", "gross_bps_per_anchor": 0.2771, "gross_sharpe": 0.343, "turnover": 0.0630, "rho_to_A0": 0.0075, "rho_to_A0_in_A0_bottom_quintile": 0.0637, "breakeven_bps_per_unit_turnover": 4.398, "sharpe_net_at_3_78": 0.048},
+    "TSMOM_net": {"desc": "per-name time-series momentum, 7d, NET exposure allowed = directional trend book", "gross_bps_per_anchor": 0.8181, "gross_sharpe": 0.324, "turnover": 0.1433, "rho_to_A0": -0.0978, "rho_to_A0_in_A0_bottom_quintile": -0.1857, "breakeven_bps_per_unit_turnover": 5.709, "sharpe_net_at_3_78": 0.110}
+  },
+  "single_most_important_reading": "There IS a large, genuinely near-orthogonal gross alpha on data we already hold: short-horizon cross-sectional reversal pays 1.1585 bps/anchor of gross -- 87% of the ENTIRE live book's gross alpha (A0 pnl_ex 1.3266) -- at rho +0.0189 to A0. It is not admissible because its break-even is 0.88 bps per unit turnover (1.60 after the book's own EMA shaping) against every execution rate we have evidence for (2.95 / 3.78 / 5.53 / 13.2), AND because it vanishes in the liquid tier (tier0 gross -0.0963) where cost is cheapest. Those two facts together identify it as the bid-ask/liquidity premium rather than a forecast. That does not close it -- it relocates it: the object is not a signal to be traded through, it is a spread to be quoted.",
+  "files": ["klass_screen_step1.py", "klass_recon_a0.py", "klass_screen2.py", "klass_screen3.py", "KLASS_SCREEN.json", "KLASS_SCREEN3.json", "klass_screen2.log", "klass_screen3.log", "SHA256SUMS.txt"]
+}

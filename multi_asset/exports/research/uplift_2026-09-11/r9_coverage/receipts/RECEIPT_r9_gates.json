@@ -1,0 +1,680 @@
+{
+ "config": {
+  "device": "r9_f10_mwf_forward_extend_v2",
+  "caliber": "v4 chain 2026-09-09 (CALIBER_PIN_v4_2026-09-11)",
+  "fold": 202608,
+  "tag": "mE1cX7",
+  "embargo_anchors": 1,
+  "best_epoch_rule": "fix7",
+  "arch": {
+   "d": 171,
+   "h": 256,
+   "dropout": 0.1
+  },
+  "folds": [
+   {
+    "name": "mwf_v4b_RAW_s42",
+    "seed": 42,
+    "dir": "/workspace/f8_v4/mwf_v4b/RAW_s42/shard3",
+    "deployed": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s42.npy"
+   },
+   {
+    "name": "mwf_v4b_RAW_s2027",
+    "seed": 2027,
+    "dir": "/workspace/f8_v4/mwf_v4b/RAW_s2027/shard3",
+    "deployed": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s2027.npy"
+   }
+  ],
+  "inc": {
+   "targets": "/workspace/dlw_v4raw/data/dlw_targets.npz",
+   "fea82": "/workspace/dlw_v4raw/data/dlw_fea82.npz",
+   "fea89": "/workspace/f8_v4/data/f8_fea89.npz"
+  },
+  "ext": {
+   "targets": "/workspace/uplift_2026-09-11/r6/out/dlw_targets_x0910.npz",
+   "fea82": "/workspace/uplift_2026-09-11/r6/out/dlw_hf3_x0910/data/dlw_fea82.npz",
+   "fea89": "/workspace/uplift_2026-09-11/r6/out/f8_v4_x0910/data/f8_fea89.npz"
+  },
+  "A0_lineage": {
+   "42": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s42.npy",
+   "2027": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s2027.npy"
+  },
+  "trainer": "/workspace/review_scratch/pod_f10_train_monthly_v4.py",
+  "fea_builder": "/workspace/pod_dlw_features_ext.py",
+  "E0911B_exemption": {
+   "anchors": [
+    "2026-08-31 04:00Z",
+    "2026-08-31 08:00Z",
+    "2026-08-31 12:00Z",
+    "2026-08-31 16:00Z",
+    "2026-08-31 20:00Z"
+   ],
+   "columns": [
+    "fund_ema",
+    "fund_now"
+   ],
+   "mechanism": "pod_dlw_features_ext.py L93: `X[sl, col] = 0.0 if j is None else ...` \u2014 when the 4h panel has no row for the anchor, BOTH funding columns are written as hard 0.0 with no flag. The incumbent v3splice panel ends 2026-08-31 00:00Z while the DL axis runs to 2026-08-31 20:00Z => the last 5 anchors got fund_ema=fund_now=0.0 for every member. The r6 extended panel (to 2026-09-10 00:00Z) has those rows, so the extended fea82 carries real values there. The difference is a REPAIR of a known defect, not a new one."
+  },
+  "out_dir": "/workspace/uplift_2026-09-11/r9/out",
+  "torch_device": "cuda",
+  "self_sha256": "6bc095ef3baebb759c3a2173ef50bb93dc0e24976027e65100ffe752ccf48eb2"
+ },
+ "started_utc": "2026-09-11T19:17:41Z",
+ "runtime": {
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA RTX PRO 4500 Blackwell",
+  "allow_tf32_matmul": false,
+  "float32_matmul_precision": "highest"
+ },
+ "calibration": {
+  "n_train": 10025,
+  "n_val": 1504,
+  "first_te": 10026,
+  "last_te": 10211,
+  "n_rows_used": 98963,
+  "max_row_used": 2076486,
+  "mu_sha16": "f56e4ef58cf3e092",
+  "sd_sha16": "940295744100733c"
+ },
+ "GATE_X_P": {
+  "mwf_v4b_RAW_s42": {
+   "fold_dir": "/workspace/f8_v4/mwf_v4b/RAW_s42/shard3",
+   "seed": 42,
+   "ckpt_sha256": "7859072d24db12a8776644e82cfd285e8db6dec1042992f670a3d85ff43f204a",
+   "preds_fold_sha256": "2a706930d01a4e7e31b8bc49bc80ff607f5252350db62421b49b58610c869299",
+   "fold_legs_sha256": "c535decd6524b091ea7285b263b6447d47b6447b90f69ee958fd2b9ed8437dad",
+   "cutoff": "2026-07-31 20:00",
+   "test_window": "2026-08-01 00:00..2026-08-31 20:00",
+   "n_rows": 186,
+   "n_cells_both_finite": 74400,
+   "nan_pattern_equal": true,
+   "maxabs": 0.0,
+   "bitwise_equal": true,
+   "P_sha16": "7dcb2e7663b8759a",
+   "VERDICT": "PASS"
+  },
+  "mwf_v4b_RAW_s2027": {
+   "fold_dir": "/workspace/f8_v4/mwf_v4b/RAW_s2027/shard3",
+   "seed": 2027,
+   "ckpt_sha256": "fbd1ff28e1aa8b394df119202cb04c86f52495c8af829865f8384220798c2113",
+   "preds_fold_sha256": "e698ba111ac948def3c91f8edabbd2bdd166bebf05778e0e798460fbcb34194a",
+   "fold_legs_sha256": "c535decd6524b091ea7285b263b6447d47b6447b90f69ee958fd2b9ed8437dad",
+   "cutoff": "2026-07-31 20:00",
+   "test_window": "2026-08-01 00:00..2026-08-31 20:00",
+   "n_rows": 186,
+   "n_cells_both_finite": 74400,
+   "nan_pattern_equal": true,
+   "maxabs": 0.0,
+   "bitwise_equal": true,
+   "P_sha16": "3ddbf17b6a3859c1",
+   "VERDICT": "PASS"
+  }
+ },
+ "GATE_X_OVERLAP_B_lineage_correct": {
+  "mwf_v4b_RAW_s42": {
+   "deployed": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s42.npy",
+   "deployed_sha256": "58d64a6ff968458924f53193d2dac20c4541be65d267e108bb43445032bfbdcd",
+   "window": "2026-08-01 00:00Z..2026-08-31 20:00Z",
+   "n_anchors": 186,
+   "n_cells_both_finite": 74400,
+   "nan_pattern_equal": true,
+   "maxabs": 0.0,
+   "bitwise_equal": true,
+   "VERDICT": "PASS"
+  },
+  "mwf_v4b_RAW_s2027": {
+   "deployed": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s2027.npy",
+   "deployed_sha256": "47046ccd6dc7937ce39d9d9a880a34984ad4b6f966889505af0255da8adc136d",
+   "window": "2026-08-01 00:00Z..2026-08-31 20:00Z",
+   "n_anchors": 186,
+   "n_cells_both_finite": 74400,
+   "nan_pattern_equal": true,
+   "maxabs": 0.0,
+   "bitwise_equal": true,
+   "VERDICT": "PASS"
+  }
+ },
+ "GATE_X_PRE": {
+  "strict": {
+   "E_prefix_equal": true,
+   "pair_a_prefix_equal": true,
+   "pair_s_prefix_equal": true,
+   "ST_prefix_equal": true,
+   "X_prefix_bitwise_equal": false,
+   "X_prefix_maxabs": 0.0115966796875,
+   "VERDICT": "FAIL"
+  },
+  "exemption_detail": {
+   "n_diff_cells": 3866,
+   "n_diff_rows": 2000,
+   "columns_touched": [
+    {
+     "idx": 80,
+     "name": "fund_ema",
+     "n_diff_cells": 2000,
+     "maxabs": 0.00276947021484375
+    },
+    {
+     "idx": 81,
+     "name": "fund_now",
+     "n_diff_cells": 1866,
+     "maxabs": 0.0115966796875
+    }
+   ],
+   "anchors_touched": [
+    "2026-08-31 04:00Z",
+    "2026-08-31 08:00Z",
+    "2026-08-31 12:00Z",
+    "2026-08-31 16:00Z",
+    "2026-08-31 20:00Z"
+   ],
+   "anchor_idx_touched": [
+    10207,
+    10208,
+    10209,
+    10210,
+    10211
+   ],
+   "arithmetic_check": {
+    "n_anchors": 5,
+    "members_per_anchor": [
+     400,
+     400,
+     400,
+     400,
+     400
+    ],
+    "n_cols": 2,
+    "upper_bound_cells": 4000,
+    "actual_cells": 3866,
+    "unchanged_because_both_exactly_zero": 134
+   },
+   "matches_declared_E0911B": true
+  },
+  "exempt": {
+   "VERDICT": "PASS",
+   "meaning": "every differing cell is inside the pre-declared E-0911-B set (5 anchors x {fund_ema,fund_now})"
+  },
+  "calib": {
+   "n_rows": 98963,
+   "max_row": 2076486,
+   "bitwise_equal": true,
+   "VERDICT": "PASS"
+  },
+  "disjoint": {
+   "forward_rows": [
+    2753289,
+    2777289
+   ],
+   "diff_rows_min": 2751289,
+   "diff_rows_max": 2753288,
+   "calib_rows_max": 2076486,
+   "forward_disjoint_from_diff": true,
+   "calib_disjoint_from_diff": true,
+   "VERDICT": "PASS"
+  }
+ },
+ "calibration_recomputed_on_extended_matrix_identical": true,
+ "new_anchor_inventory": [
+  {
+   "anchor": "2026-09-01 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-01 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-01 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-01 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-01 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-01 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-02 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-02 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-02 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-02 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-02 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-02 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-03 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-03 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-03 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-03 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-03 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-03 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-04 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-04 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-04 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-04 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-04 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-04 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-05 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-05 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-05 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-05 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-05 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-05 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-06 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-06 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-06 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-06 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-06 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-06 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-07 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-07 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-07 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-07 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-07 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-07 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-08 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-08 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-08 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-08 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-08 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-08 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-09 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-09 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-09 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-09 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-09 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-09 20:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-10 00:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-10 04:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-10 08:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-10 12:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-10 16:00Z",
+   "n_member_rows": 400
+  },
+  {
+   "anchor": "2026-09-10 20:00Z",
+   "n_member_rows": 400
+  }
+ ],
+ "EXTENSION": {
+  "mwf_v4b_RAW_s42": {
+   "out": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_s42.npy",
+   "out_sha256": "d41fcc933dfe3033b4deb3fc68b069c3db3aeef54fa357ece92ab453bd166dcb",
+   "shape": [
+    10272,
+    829
+   ],
+   "source_deployed": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s42.npy",
+   "source_sha256": "58d64a6ff968458924f53193d2dac20c4541be65d267e108bb43445032bfbdcd",
+   "prefix_rows_bitwise_copied": 10212,
+   "scoring_fold": "mE1cX7_202608, cutoff 2026-07-31 20:00Z, embargo 1 (causal for every new anchor; STALE by one month vs the monthly-WF rule)",
+   "new_anchors_total": 60,
+   "new_anchors_scored": 60,
+   "new_anchors_left_NaN": [],
+   "first_new_anchor": "2026-09-01 00:00Z",
+   "last_new_anchor": "2026-09-10 20:00Z",
+   "last_finite_anchor": "2026-09-10 20:00Z",
+   "finite_cells_per_new_anchor": [
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ]
+  },
+  "mwf_v4b_RAW_s2027": {
+   "out": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_s2027.npy",
+   "out_sha256": "01180436a573fef2cd5e9fb3309996b6c767a643cbbaeb9d307f601f04ef896f",
+   "shape": [
+    10272,
+    829
+   ],
+   "source_deployed": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s2027.npy",
+   "source_sha256": "47046ccd6dc7937ce39d9d9a880a34984ad4b6f966889505af0255da8adc136d",
+   "prefix_rows_bitwise_copied": 10212,
+   "scoring_fold": "mE1cX7_202608, cutoff 2026-07-31 20:00Z, embargo 1 (causal for every new anchor; STALE by one month vs the monthly-WF rule)",
+   "new_anchors_total": 60,
+   "new_anchors_scored": 60,
+   "new_anchors_left_NaN": [],
+   "first_new_anchor": "2026-09-01 00:00Z",
+   "last_new_anchor": "2026-09-10 20:00Z",
+   "last_finite_anchor": "2026-09-10 20:00Z",
+   "finite_cells_per_new_anchor": [
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ]
+  }
+ },
+ "EXTENSION_repair5_VARIANT": {
+  "mwf_v4b_RAW_s42": {
+   "out": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_repair5_s42.npy",
+   "out_sha256": "6eb8a757eed333281fcf62d0830e70119f5d34bfeb085125ce7c99b3b43e76f5",
+   "rows_changed": [
+    "2026-08-31 04:00Z",
+    "2026-08-31 08:00Z",
+    "2026-08-31 12:00Z",
+    "2026-08-31 16:00Z",
+    "2026-08-31 20:00Z"
+   ],
+   "n_cells_changed": 2000,
+   "maxabs_change": 0.06178984045982361,
+   "all_other_rows_bitwise_unchanged": true,
+   "RULING_REQUIRED": "changes 5 EXISTING anchors of the deployed DL leg => book-behaviour caliber => user must rule; this round does not choose."
+  },
+  "mwf_v4b_RAW_s2027": {
+   "out": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_repair5_s2027.npy",
+   "out_sha256": "e3a9bf17f8ddebd406f1721e94608e7f53484b510601347d2ff98e34c2e22ac4",
+   "rows_changed": [
+    "2026-08-31 04:00Z",
+    "2026-08-31 08:00Z",
+    "2026-08-31 12:00Z",
+    "2026-08-31 16:00Z",
+    "2026-08-31 20:00Z"
+   ],
+   "n_cells_changed": 2000,
+   "maxabs_change": 0.09398633241653442,
+   "all_other_rows_bitwise_unchanged": true,
+   "RULING_REQUIRED": "changes 5 EXISTING anchors of the deployed DL leg => book-behaviour caliber => user must rule; this round does not choose."
+  }
+ },
+ "GATE_X_OVERLAP_A_literal_vs_f10_A0": {
+  "mwf_v4b_RAW_s42": {
+   "f10_A0": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s42.npy",
+   "f10_A0_sha256": "ff109711f5526c68cebb23599e299041a2310caa7857b5ff9aa50464d2e6077b",
+   "n_cells_both_finite": 2434010,
+   "nan_pattern_equal": false,
+   "maxabs": 0.38486963510513306,
+   "pearson": 0.8422971017122376,
+   "bitwise_equal": false,
+   "VERDICT": "FAIL",
+   "WHY": "f10_A0 is the YEARLY 4-fold chain trained by /workspace/pod_f10_train_ext.py on the FORBIDDEN _ext lineage (dlw_ext targets 31d043e8..., axis 10206, cache 72eb7849...); that trainer never saves a per-fold model, so its 2026 fold weights do not exist anywhere on disk. No device can reproduce it bitwise. This gate cannot be met by construction, and its failure says nothing about the device that passed X-P."
+  },
+  "mwf_v4b_RAW_s2027": {
+   "f10_A0": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s2027.npy",
+   "f10_A0_sha256": "98bfe779261b550f15bbd511dc4637403b7341b25ccc2d4ee15521cb33787f18",
+   "n_cells_both_finite": 2434010,
+   "nan_pattern_equal": false,
+   "maxabs": 0.39216339588165283,
+   "pearson": 0.8312045200963971,
+   "bitwise_equal": false,
+   "VERDICT": "FAIL",
+   "WHY": "f10_A0 is the YEARLY 4-fold chain trained by /workspace/pod_f10_train_ext.py on the FORBIDDEN _ext lineage (dlw_ext targets 31d043e8..., axis 10206, cache 72eb7849...); that trainer never saves a per-fold model, so its 2026 fold weights do not exist anywhere on disk. No device can reproduce it bitwise. This gate cannot be met by construction, and its failure says nothing about the device that passed X-P."
+  }
+ },
+ "finished_utc": "2026-09-11T19:18:14Z"
+}

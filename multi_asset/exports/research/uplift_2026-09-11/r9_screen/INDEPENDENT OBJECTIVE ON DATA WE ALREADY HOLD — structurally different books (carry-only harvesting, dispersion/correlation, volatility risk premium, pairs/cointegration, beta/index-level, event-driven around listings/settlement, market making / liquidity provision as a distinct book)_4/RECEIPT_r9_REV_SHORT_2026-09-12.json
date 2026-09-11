@@ -1,0 +1,159 @@
+{
+ "candidate": "REV_SHORT -- 4h short-horizon cross-sectional reversal as a standalone book",
+ "klass": "INDEPENDENT OBJECTIVE ON DATA WE ALREADY HOLD",
+ "created_utc": "2026-09-12",
+ "session": "https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX",
+ "branch": "research/book-uplift-2026-09-11",
+ "status": "SCREEN, first-hand independent re-measurement. Not a judge verdict, no arm declared, no deployment claim.",
+ "verdict": "DEAD -- passes the independence screen (rho +0.0186) but dies on execution cost at every shape, every liquidity tier, every year, and under the 100%-maker-fill counterfactual.",
+ "live_touch": "ZERO. ~/dl_quant_live and ~/wide_shadow never opened. No exchange API called. No order placed.",
+ "gpu": "NOT USED. nvidia-smi read 0% util / 2 MiB / zero compute apps before launch. All work numpy on CPU, 45 s. No job preempted, nothing killed.",
+ "env_whitelist_E_0826_D": [],
+ "env_whitelist_note": "Both devices launched as `env -i /workspace/venv/bin/python <script>`. Measured os.environ at runtime = ['LC_CTYPE'] only (ssh locale injection; not read by the device). Each device asserts none of {LEGS,CAL,WRULE,LOOK,PHI,UMASK_NPZ,UMASK_SCOPE,FSEED,FPRED,COSTB_JSON,MEMBERS_TOPN,FTRIM,SLOW_NPY,W3FIX,FEMAT_NPZ,OUT_TAG,TRADE_TOPN,TILT,KMOD,KMOD_F10,KMOD_AGREE,KTAIL,SEATF10,SEATNET,FUNDSCALE,REF_SKIP} is present, and writes env_seen_at_runtime into its own artifact. Analysis script => whitelist is the EMPTY SET.",
+ "devices": {
+  "r9_revshort.py": {"sha256": "029903632328b4cdc7b4564e4e0a59e3ecbda5cbf7273fb92673406c25e8102d", "computed_by_me": true,
+                     "remote": "/workspace/uplift_2026-09-11/r9_revshort.py", "log": "r9_revshort.log", "out": "R9_REVSHORT.json"},
+  "r9_revshort_add.py": {"sha256": "c3372b2166fbbc81319c3fecfcbda805527415667d5fe575438941aa96ee4649", "computed_by_me": true,
+                     "remote": "/workspace/uplift_2026-09-11/r9_revshort_add.py", "log": "r9_revshort_add.log", "out": "R9_REVSHORT_ADD.json"}
+ },
+ "inputs_sha256_computed_by_me": {
+  "meta_newprod_v4.npz": {"path": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz",
+                          "sha256": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3",
+                          "shape_y4": [10182, 829], "E_ts_monotone_4h": true},
+  "A0_PWR230k_s42.npz":  {"path": "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s42.npz",
+                          "sha256": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339"},
+  "costb_PWR_G230k.json":{"path": "/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+                          "sha256": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+                          "sha256_16_matches_r8_receipt": "295b4e7b462373e4"}
+ },
+ "caliber": {
+  "pin": "v4 chain 2026-09-09",
+  "CAL": "log => y4 used RAW, NO expm1 (E-0904-F respected)",
+  "statistic": "g = net/gross, bps per 4h anchor per unit gross; book has sum|w|=1 so gross==1",
+  "eligibility": "member AND isfinite(y4) AND qv4h>=2.5e5 ; qv4h = expm1(clip(qvk,0,30))*48 -- VERBATIM w10_universe.py L198-199",
+  "mean_eligible_names_per_anchor": 267.19,
+  "window": "drop first 900 device anchors (E-0911-A) then ts <= 1788120000 = 2026-08-30T20:00:00Z (E-0911-D)",
+  "n": 9138,
+  "span": ["2022-06-30 00Z", "2026-08-30 20Z"],
+  "cost_model": {"tiers_bps_per_unit_turnover": [2.6705, 2.6824, 3.6417], "book_avg": 2.9537,
+                 "charged": "per-name, per-anchor, by qv4h tier -- the SAME book A0 itself pays"},
+  "bootstrap": "UTC-day block, B=2000, numpy.default_rng([20260905, k])"
+ },
+ "STEP1_feasibility": {
+  "verdict": "VERIFIED BUILDABLE, causally clean. Surveyor's data claim is correct.",
+  "signal": "score[t] = -y4[t-1]; y4[t-1] spans [E(t-1),E(t)) and is fully observed at E(t)",
+  "note_on_surveyor_definition": "surveyor wrote -(y4[t-1] - market mean); for a RANK book subtracting a per-anchor scalar is a no-op on ranks, so the two produce the identical book. Verified by construction, stated in the device docstring.",
+  "interventional_leak_test": {"rule": "blank all y4 rows >= c, rebuild score, require bitwise-identical score rows 0..c",
+                               "cuts_tested": 24, "cuts_failing": 0, "PASS": true,
+                               "why_stronger_than_offset_spectrum": "offset spectrum is correlational; this is interventional (memory: correlational_count_vs_interventional_check)"},
+  "offset_spectrum_reproduced_bitwise": {"k-3": 0.02022, "k-2": 0.04659, "k-1": -1.0, "k0": 0.04034, "k+1": 0.01337, "k+2": 0.00417, "k+3": 0.0008},
+  "offset_reading": "k=-1 = -1.0000 BY CONSTRUCTION (alignment self-check, not a leak). Forward decay monotone. backward/forward = 0.04659/0.04034 = 1.155, far from the 122x dead-settlement-axis signature.",
+  "stride_vs_horizon": "stride 4h == horizon 4h, anti-pattern not triggered",
+  "panel_source_default_dirty_panel": "NOT TOUCHED -- this device reads no panel at all, only the pinned accounting matrix"
+ },
+ "A0_reconciliation": {
+  "reproduced_first_hand": {"n": 9138, "mean_g": 0.6342, "SR": 1.2912},
+  "matches_brief": true,
+  "resolves_open_flag": "klass receipt's A0_RECONCILIATION_DISCREPANCY is CLOSED: the brief's A0 is the arm with the SWAPPED COST BOOK (r3k/arms/A0_PWR230k_s42.npz, COSTB_JSON=costb_PWR_G230k.json), not the archived dev_v4 arm (costb_fee_steady.json). Arm label = A0_PWR230k_s42.",
+  "A0_decomposition_per_anchor_per_unit_gross": {"net_ex": 0.6342, "pnl_ex": 1.2813, "carry_ex": 0.4797, "cost_ex": 0.1675, "turnover": 0.0540},
+  "turnover_ratio_candidate_vs_A0": 24.4
+ },
+ "STEP2_rho_to_A0": {
+  "unconditional": {"rho_net": 0.0186, "rho_net_CI95": [-0.0198, 0.0550], "rho_gross": 0.0189},
+  "screen_threshold": 0.30,
+  "PASSES_INDEPENDENCE_SCREEN": true,
+  "comparison": "XIB_LAG50 rho 0.889 (INFERRED, from brief). This is the cleanest candidate this desk has screened.",
+  "conditional_on_A0_losing": {
+   "A0_bottom_quintile_anchors":  {"n": 1828, "rho": 0.1109, "CI95": [0.0207, 0.1969], "cand_mean_net": -4.7085, "A0_mean_g": -29.4534},
+   "A0_bottom_decile_anchors":    {"n": 914,  "rho": 0.1641, "CI95": [0.0391, 0.2786], "cand_mean_net": -5.1444, "A0_mean_g": -40.7312},
+   "A0_negative_anchors":         {"n": 4523, "rho": 0.1016, "CI95": [0.0420, 0.1638], "cand_mean_net": -2.7117, "A0_mean_g": -15.6215},
+   "A0_worst_quintile_UTCdays":   {"n": 1830, "rho": 0.1862, "CI95": [0.1085, 0.2686], "cand_mean_net": -3.9504, "A0_mean_g": -11.8924},
+   "A0_top_quintile_anchors":     {"n": 1828, "rho": -0.0580, "CI95": [-0.1290, 0.0170], "cand_mean_net": -3.7106, "A0_mean_g": 31.2446}
+  },
+  "conditional_reading": "Independence DOES drift the wrong way in A0's bad states (+0.019 -> +0.11..+0.19, 3 of 4 loss cells CI-positive) -- the same shape as the Amihud sleeve but roughly half its magnitude (+0.343/+0.438, INFERRED). Point estimates stay below 0.30, so the conditional screen is not what kills it. What is true and damning: it LOSES in A0's loss cells too (-2.71..-5.14 bps/anchor), so it is not a hedge -- but that is almost entirely the cost drag, not negative alpha."
+ },
+ "STEP3_standalone_edge": {
+  "arms": {
+   "RAW_jump_alpha1":      {"gross": 1.1585, "gross_CI95": [0.5109, 1.7911], "turnover": 1.3178, "cost": 3.8683, "net": -2.7097, "net_CI95": [-3.3334, -2.1182], "SR_gross": 1.7953, "SR_net": -4.1986, "breakeven": 0.8791, "eff_rate_paid": 2.9353},
+   "EMA_alpha0.5_BEST":    {"gross": 1.2710, "gross_CI95": [0.4745, 1.9845], "turnover": 0.7926, "cost": 2.3246, "net": -1.0536, "SR_net": -1.399, "breakeven": 1.6036, "eff_rate_paid": 2.9328},
+   "EMA_alpha0.25":        {"gross": -0.0991, "turnover": 0.3193, "net": -1.0359, "breakeven": -0.3104},
+   "EMA_alpha0.1":         {"gross": -0.4321, "turnover": 0.1092, "net": -0.7529, "breakeven": -3.9559},
+   "LIVE_chain_a0.1_cap2.5":{"gross": -0.1012, "turnover": 0.1107, "net": -0.4301, "SR_net": -0.754, "breakeven": -0.9136},
+   "tier0_only_qv4h_ge_5e6":{"gross": -0.0045, "turnover": 1.3074, "net": -3.4958, "breakeven": -0.0034},
+   "tier0_1_only_qv4h_ge_1e6":{"gross": 0.9062, "turnover": 1.3142, "net": -2.6154, "breakeven": 0.6895}
+  },
+  "turnover_matched_nulls": {
+   "family": "r3_attack_RESID_SHARPE/null.py families: RELAB (fixed symbol permutation every anchor) + SHIFT (score matrix advanced k anchors). Per-anchor permutation placebo NOT used (known defective).",
+   "RELAB1": {"gross": -0.2560, "turnover": 1.3096}, "RELAB2": {"gross": 0.2265, "turnover": 1.3198}, "RELAB3": {"gross": 0.5281, "turnover": 1.3200},
+   "SHIFT101": {"gross": -0.1699, "turnover": 1.3167}, "SHIFT503": {"gross": -0.3725, "turnover": 1.3204}, "SHIFT1009": {"gross": -0.2106, "turnover": 1.3233},
+   "null_mean": -0.0424, "null_sd": 0.3455, "signal_gross": 1.1585, "z": 3.476, "signal_exceeds_all_6": true,
+   "reading": "GROSS alpha is REAL, not a turnover artifact. Its own day-block CI95 [0.5109, 1.7911] excludes 0."
+  },
+  "per_year": {
+   "2022": {"gross": 0.9346, "net": -2.7684, "breakeven": 0.7025, "rho_A0": -0.0456, "n": 1110},
+   "2023": {"gross": 1.3422, "net": -2.4138, "breakeven": 1.0087, "rho_A0": 0.0217, "n": 2190},
+   "2024": {"gross": 1.5137, "net": -2.2756, "breakeven": 1.1444, "rho_A0": -0.0117, "n": 2196},
+   "2025": {"gross": 1.2116, "net": -2.7636, "breakeven": 0.9259, "rho_A0": 0.0772, "n": 2190},
+   "2026": {"gross": 0.4356, "net": -3.6866, "breakeven": 0.3362, "rho_A0": -0.0112, "n": 1452}
+  },
+  "cost_survival": "FAILS everywhere. 5/5 years net-negative. Best shape net -1.0536.",
+  "maker_only_counterfactual": {
+   "why": "the live book is maker-only; this is the most generous execution rate for which this desk has ANY evidence",
+   "method": "force maker_share=1.0 in the pinned cost book, charge maker_bps only",
+   "eff_rate_at_100pct_maker": 2.1726,
+   "best_arm_breakeven": 1.6036,
+   "shortfall_bps_per_unit_turnover": -0.569,
+   "net_at_100pct_maker_best_arm": -0.4510,
+   "net_at_100pct_maker_alpha1": -1.7076,
+   "reading": "Even under an impossible assumption it still loses. Mechanically impossible for THIS object: alpha decays to 1/3 within one anchor, and a passive quote on the reversal side is exactly the adversely-selected side."
+  },
+  "three_independent_signs_this_is_the_spread_not_a_forecast": [
+   "dies in the CHEAPEST tier: tier0 qv4h>=5e6 gross -0.0045 (essentially exactly zero) vs +1.1585 full universe",
+   "dies when slowed: alpha=0.25 gross turns NEGATIVE (-0.0991); the alpha lives entirely in the first anchor = a spread-rebound time constant, not an information time constant",
+   "decays year on year: 2024 +1.5137 -> 2026 +0.4356, 2026 breakeven down to 0.3362 = the spread is compressing"
+  ]
+ },
+ "STEP4_combination_arithmetic": {
+  "A0_SR": 1.2912, "SE_annualised_SR": 0.4895, "target_SR": 3.966, "gap_SR": 2.6748,
+  "combined_SR_at_weight": {"0.0": 1.2912, "0.1": 0.6693, "0.2": -0.0832, "0.3": -0.9278, "0.5": -2.5365},
+  "reading": "Every positive weight makes the book worse, monotonically. It closes NONE of the gap; it widens it.",
+  "max_sharpe_formula_trap": {
+   "formula_output": 4.4163,
+   "why_it_is_fake": "the candidate's NET Sharpe is -4.199, so the two-asset optimiser solves for a SHORT position. Shorting this book = 4h cross-sectional MOMENTUM at the same turnover, and cost does NOT flip sign.",
+   "measured_short_leg": {"MOM_SHORT_a1": {"gross": -1.1585, "net_fitted": -5.0268, "net_100pct_maker": -4.0246},
+                          "MOM_SHORT_a0.5": {"gross": -1.2710, "net_fitted": -3.5956, "net_100pct_maker": -2.9930}},
+   "conclusion": "4.4163 is NOT buildable. Do not report it. (memory: my_own_instruments_fail_at_the_extremes -- feeding a cost-inclusive net series to mean-variance sells you a Sharpe that does not exist.)"
+  },
+  "what_the_gap_actually_needs": {
+   "one_uncorrelated_source_standalone_SR": 3.7499,
+   "or_N_uncorrelated_books_of_current_quality": 9.43,
+   "brief_discrepancy_FLAGGED": "the brief states 3.705 and ~7.9 books. Recomputed from the brief's OWN A0 SR of 1.2912 these are 3.7499 and 9.43; the brief's pair corresponds to an A0 SR of about 1.41. Immaterial to every conclusion (the gap is 'one nearly-new ~3.7-Sharpe source' either way) but the numbers should carry a consistent label. Suggest main reconcile CLOSEOUT_uplift_program_2026-09-12.md."
+  }
+ },
+ "closed_list_check": {
+  "searched": ["docs/MILESTONE_2026-08-26.md", "docs/MILESTONE_2026-08-11.md", "memory index", "docs/ grep for reversal/cost"],
+  "no_receipt_closes_it_by_name": "no prior receipt closes '4h cross-sectional reversal as a standalone book'",
+  "but_it_lands_in_an_existing_closure_family": [
+   {"receipt": "docs/2026-07-06_MULTI_ASSET_V2_KICKOFF.md L91 (opened and read this session)",
+    "quote_zh": "净成本张力: 最强簇(反转)=最快换手(1-3h)+最小币(最宽 spread)=快微结构成本陷阱风险; 慢复活者(168h 反转/低波/size)才是净成本友好",
+    "relation": "SAME conclusion, written 2026-07-08. This round quantifies it on the v4 caliber at the 4h standalone-book shape: shortfall 1.33 bps per unit turnover."},
+   {"receipt": "docs/2026-07-06_MULTI_ASSET_V2_KICKOFF.md L94 (opened and read this session)",
+    "quote_zh": "Book-2 存在: 宽 universe 慢溢价净成本可交易; 反转簇成本陷阱", "relation": "direct hit"},
+   {"receipt": "docs/2026-07-07_midfreq_factor_research_catalog.md L13 (opened and read this session)",
+    "quote_zh": "短期反转 ... 流动性条件: 日反转只在流动性差的币, 大币显示日动量",
+    "relation": "independently predicts this round's tier0 gross of -0.0045"},
+   {"receipt": "the retired rev24 leg (combo switch 2026-08-26) -- INFERRED, not re-run",
+    "relation": "the slower sibling was already ejected from the live book; surveyor's REV6 control breakeven 1.3385 (INFERRED) is also below 2.95, consistent"}
+  ]
+ },
+ "limitations_declared": [
+  "CARRY EXCLUDED: y4 is price only. Flipping net positive would need +2.71 bps/anchor of carry; A0's ENTIRE book carry is +0.4797 bps/anchor (VERIFIED this round), 5.6x short -- but the candidate's own carry was NOT directly measured. That bound is INFERRED.",
+  "This device is NOT the w10 judge: it is a rank book built directly on the pinned accounting matrix, with no GATE P bitwise parity run. Adequate for rho and for orders of magnitude; NOT adequate for nominating an arm. This case never reached nomination.",
+  "Eligibility and cost tiering use the same-anchor qvk[t], matching the pinned device w10_universe.py L198 (so it is apples-to-apples with A0). The strictly-causal qvk[t-1] variant was run by the prior surveyor with same-direction results (INFERRED).",
+  "Only 6 nulls; z=3.476 is a coarse read. The signal exceeds all 6 and its own bootstrap CI excludes 0 -- two independent supports.",
+  "Only 5 conditioning cuts for the conditional rho. A regime-based cut (e.g. breadth) could differ. Immaterial since net is negative everywhere."
+ ],
+ "positive_information_for_the_desk": "There IS a genuinely near-orthogonal REAL gross alpha on data already held: +1.1585 bps/anchor = 90% of the live book's entire gross (pnl_ex +1.2813), at rho 0.019. Execution cost eats 100% of it. The other side of that sentence is that this money is PAID TO liquidity providers. Capturing it requires changing the book's IDENTITY (quote instead of take = a market-making book), not its weights. That axis is NOT closed by this round and needs its own feasibility case (venue rebates, queue position, adverse-selection modelling). It is NOT an extension of the delta-one object screened here.",
+ "files": ["RESULT_REV_SHORT_independence_screen_2026-09-12.md", "R9_REVSHORT.json", "R9_REVSHORT_ADD.json",
+           "r9_revshort.py", "r9_revshort_add.py", "r9_revshort.log", "r9_revshort_add.log", "SHA256SUMS.txt"]
+}

@@ -1,0 +1,39 @@
+sha256 meta_newprod_v4      0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3
+sha256 A0_series            88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419
+sha256 costb_PWR_G230k      295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53
+sha256 self                 e4e0ace950ef11f5efe0abb7bf5ff69f2716fe0240e8b59966c73e8eb800f6b6
+window n=9138  1656547200..1788120000   A0 meang=+0.6872 SR=+1.3991  A0 turn=0.0540 A0 costrate=2.1191
+cost rates [2.6705 2.6824 3.6417] book_avg 2.9537
+mean eligible names/anchor: 267.2
+
+== VRP_DELTA1 (L=42) ==
+gross g +0.2771  SR_gross +0.3435   turnover 0.06292
+cost tiered 0.1876 (rate 2.9812/unit)   cost flat 0.1858
+NET g +0.0895  SR_net +0.1110   |  NETflat g +0.0913 SR +0.1131
+cost survival 32.3% of gross
+
+OFFSET SPECTRUM VRP_DELTA1 score vs y4
+  VRP k=-3 IC=+0.04246 t=+10.65 n=3046
+  VRP k=-2 IC=+0.04504 t=+12.08 n=3046
+  VRP k=-1 IC=+0.03479 t=+9.42 n=3046
+  VRP k=+0 IC=+0.05602 t=+15.63 n=3046
+  VRP k=+1 IC=+0.05279 t=+15.64 n=3046
+  VRP k=+2 IC=+0.03809 t=+11.30 n=3046
+  VRP k=+3 IC=+0.05110 t=+14.29 n=3046
+OFFSET SPECTRUM control REV1 (must be -1.000 at k=-1 by construction: alignment proof)
+  REV1 k=-3 IC=+0.02022 t=+8.53 n=3046
+  REV1 k=-2 IC=+0.04659 t=+19.06 n=3046
+  REV1 k=-1 IC=-1.00000 t=-613692232182324352.00 n=3046
+  REV1 k=+0 IC=+0.04034 t=+16.16 n=3046
+  REV1 k=+1 IC=+0.01337 t=+5.78 n=3046
+  REV1 k=+2 IC=+0.00417 t=+1.85 n=3046
+  REV1 k=+3 IC=+0.00080 t=+0.35 n=3046
+
+== STEP 2 INDEPENDENCE ==
+rho(net, A0.g) = +0.0075  CI95 [-0.0389,+0.0590]   spearman +0.0091   rho(gross,A0)=+0.0075
+A0 bottom-quintile threshold -13.9093  n_lose=1828
+rho | A0 bottom quintile = +0.0639  CI95 [-0.0311,+0.1618]
+candidate NET mean g inside A0's losing cells = -0.7785  CI95 [-3.4862,+1.7587]  (A0 there -29.3990)
+weight-space cosine(VRP_w, A0_w): mean +0.1124  median +0.0664  p5 -0.2162 p95 +0.5942
+
+stage1 15s

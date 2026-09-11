@@ -1,0 +1,115 @@
+{
+ "device": "/workspace/uplift_2026-09-11/r9_revshort_add.py",
+ "self_sha256": "c3372b2166fbbc81319c3fecfcbda805527415667d5fe575438941aa96ee4649",
+ "env_whitelist": [],
+ "env_seen_at_runtime": [
+  "LC_CTYPE"
+ ],
+ "B": 2000,
+ "n": 9138,
+ "arms": {
+  "REV_SHORT a=1": {
+   "gross": 1.1585,
+   "turn": 1.3178,
+   "net_fitted": -2.7097,
+   "SR_net_fitted": -4.1986,
+   "net_100pct_maker": -1.7076,
+   "SR_net_100pct_maker": -2.6459,
+   "net_100pct_taker": -7.6927,
+   "eff_rate_fitted": 2.9353,
+   "eff_rate_100pct_maker": 2.1749,
+   "breakeven": 0.8791,
+   "gross_CI95": [
+    0.5109,
+    1.7911
+   ],
+   "net_CI95": [
+    -3.3453,
+    -2.1067
+   ]
+  },
+  "REV_SHORT a=0.5": {
+   "gross": 1.271,
+   "turn": 0.7926,
+   "net_fitted": -1.0536,
+   "SR_net_fitted": -1.3986,
+   "net_100pct_maker": -0.451,
+   "SR_net_100pct_maker": -0.5987,
+   "net_100pct_taker": -4.0473,
+   "eff_rate_fitted": 2.9328,
+   "eff_rate_100pct_maker": 2.1726,
+   "breakeven": 1.6036,
+   "gross_CI95": [
+    0.4745,
+    1.9845
+   ],
+   "net_CI95": [
+    -1.8252,
+    -0.2944
+   ]
+  },
+  "MOM_SHORT(sign-flip) a=1": {
+   "gross": -1.1585,
+   "turn": 1.3178,
+   "net_fitted": -5.0268,
+   "SR_net_fitted": -7.7893,
+   "net_100pct_maker": -4.0246,
+   "SR_net_100pct_maker": -6.2366,
+   "net_100pct_taker": -10.0098,
+   "eff_rate_fitted": 2.9353,
+   "eff_rate_100pct_maker": 2.1749,
+   "breakeven": -0.8791,
+   "gross_CI95": [
+    -1.7911,
+    -0.5109
+   ],
+   "net_CI95": [
+    -5.6396,
+    -4.3857
+   ]
+  },
+  "MOM_SHORT(sign-flip) a=0.5": {
+   "gross": -1.271,
+   "turn": 0.7926,
+   "net_fitted": -3.5956,
+   "SR_net_fitted": -4.7719,
+   "net_100pct_maker": -2.993,
+   "SR_net_100pct_maker": -3.9724,
+   "net_100pct_taker": -6.5893,
+   "eff_rate_fitted": 2.9328,
+   "eff_rate_100pct_maker": 2.1726,
+   "breakeven": -1.6036,
+   "gross_CI95": [
+    -1.9845,
+    -0.4745
+   ],
+   "net_CI95": [
+    -4.3595,
+    -2.8185
+   ]
+  }
+ },
+ "null_check_gross": {
+  "nulls_gross": [
+   -0.256,
+   0.2265,
+   0.5281,
+   -0.1699,
+   -0.3725,
+   -0.2106
+  ],
+  "null_mean": -0.0424,
+  "null_sd": 0.3455,
+  "signal_gross": 1.1585,
+  "z_vs_nulls": 3.476,
+  "signal_exceeds_all_6_nulls": true,
+  "note": "nulls read from R9_REVSHORT.json (RELAB1-3, SHIFT101/503/1009), all turnover-matched to ~1.31"
+ },
+ "required_execution_rate": {
+  "best_arm": "REV_SHORT a=0.5",
+  "breakeven_bps_per_unit_turnover": 1.6036,
+  "fitted_rate_it_actually_pays": 2.9328,
+  "rate_if_every_fill_were_maker": 2.1726,
+  "shortfall_vs_100pct_maker": -0.569
+ }
+}

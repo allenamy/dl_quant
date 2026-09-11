@@ -1,0 +1,133 @@
+{
+ "env_whitelist": [],
+ "gpu_used": false,
+ "live_touched": false,
+ "inputs_sha16": {
+  "trackB_realized_cost_rows.json": "8ae867eb3c1e47cf",
+  "r3k_impact/costb_PWR_G230k.json": "295b4e7b462373e4",
+  "r9_screen/CANDIDATE_3_COHORT_AGE_DECAY_CURVE_0/ARITH_r9screen.json": "f9390d751e40543f",
+  "r9_coverage/receipts/RECEIPT_r9_addendum.json": "8b8d429c6de78104"
+ },
+ "C1_realized_exec_cost_vs_60s_fair_value": {
+  "window": "2026-08-01 .. 2026-09-11 (day field of trackB rows)",
+  "n_anchor_rows": 243,
+  "n_rows_with_finite_markout60": 229,
+  "traded_notional_usdt": 1265349.43,
+  "markout60_definition_quoted_from_trackB_realized_cost_2026-09-11.py_L6": "markout = side_sign*(mid_at_fill_plus_60s - fill_px)/fill_px ; POSITIVE = price moved OUR WAY",
+  "fee_bps_of_traded": 2.3848,
+  "adverse_selection_bps_of_traded": 2.6573,
+  "adverse_selection_bps_coverage_adjusted": 2.6908,
+  "fee_plus_adverse_bps_per_unit_traded_one_side": 5.0421,
+  "markout60_bps_notional_weighted": -2.6573,
+  "anchors_with_favourable_markout_pct": 27.5,
+  "PINNED_MODEL_book_avg_bps_per_unit_turnover": 2.9537,
+  "PINNED_MODEL_composition_quoted": "POWER-shape book-walk impact, excess of half-spread, G=$230000",
+  "ratio_realized_over_pinned": 1.7071,
+  "gap_bps_per_unit_traded": 2.0884
+ },
+ "C2_planning_number_sensitivity_to_the_cost_gap": {
+  "A0_mean_g_bps_pinned": 0.6342,
+  "A0_sharpe_pinned": 1.2912,
+  "n": 9138,
+  "gap_bps_per_unit_traded_notional": 2.0884,
+  "by_turnover_assumption": {
+   "A0_turnover_0.03032_QUOTED_r9screen": {
+    "extra_cost_bps_per_anchor_per_unit_gross": 0.0633,
+    "A0_mean_g_bps_repriced": 0.5709,
+    "A0_sharpe_repriced_assuming_same_vol": 1.1623,
+    "pct_haircut_to_planning_number": 9.98,
+    "NAV_pct_per_year_at_2x_gross_lost": 2.773
+   },
+   "A0_turnover_0.0335_QUOTED_r2_horizon_L119": {
+    "extra_cost_bps_per_anchor_per_unit_gross": 0.07,
+    "A0_mean_g_bps_repriced": 0.5642,
+    "A0_sharpe_repriced_assuming_same_vol": 1.1488,
+    "pct_haircut_to_planning_number": 11.03,
+    "NAV_pct_per_year_at_2x_gross_lost": 3.064
+   }
+  },
+  "confound_test_is_the_markout_just_the_book_being_wrong": {
+   "A0_expected_alpha_per_60s_bps": 0.00264,
+   "measured_markout60_bps": -2.6573,
+   "ratio": 1005.6,
+   "reading": "the 60s markout is ~1000x the book's own expected alpha over 60s, so it is microstructure (adverse selection), not the book's directional view being wrong."
+  },
+  "CAVEAT": "markout at 60s is not proven to be a permanent cost for a multi-day holder; the desk records no other lag. This is the measurement named in HIGHEST_VALUE_NEXT."
+ },
+ "C3_demonstrability_of_the_stated_objective": {
+  "SE_annualised_sharpe_formula": "sqrt(2190/n)",
+  "point_estimate_needed_for_CI95_lower_bound_over_3.0_by_history_length": {
+   "1y": 4.96,
+   "2y": 4.3859,
+   "3y": 4.1316,
+   "4.17y_the_whole_panel": 3.9595,
+   "10y_hypothetical": 3.6198
+  },
+  "usable_panel_years": 4.173,
+  "incumbent_frozen_window_best_ever": {
+   "sharpe": 2.9357,
+   "CI95": [
+    1.306,
+    4.565
+   ]
+  },
+  "reading": "A NEW component, judged on the data it can have, cannot demonstrate a CI95 lower bound above 3.0 unless its point estimate exceeds 4.96 (1y) / 4.39 (2y) / 3.97 (4.17y). The objective as stated is bounded by the length of crypto history, not by skill."
+ },
+ "C4_A0_baseline_defects_carried_by_every_rho_screen": {
+  "dead_F10_prefix": {
+   "n_total": 9138,
+   "n_dead": 1110,
+   "frac_dead": 0.1215,
+   "first_dead": "2022-06-30 00:00Z",
+   "last_dead": "2022-12-31 20:00Z",
+   "mean_g_on_dead": 0.1586,
+   "mean_g_on_live": 0.7,
+   "sharpe_on_live_only": 1.3741
+  },
+  "forward_windows_since_the_coverage_fix": {
+   "r9_newly_covered_s42": {
+    "n": 61,
+    "mean_g": -3.8739,
+    "CI95": [
+     -12.1883,
+     3.5265
+    ]
+   },
+   "r2_horizon_ext_window_QUOTED_L167": {
+    "n": 121,
+    "A0_mean_g": -3.282
+   }
+  }
+ },
+ "C5_age_curve_fact_the_screen_produced_and_argued_away": {
+  "gross_share_pct_older_than_7d": 46.29,
+  "age42_83": {
+   "gross_share_pct": 20.628,
+   "standalone_sharpe": 0.4176,
+   "mean_g_bps": 0.338
+  },
+  "age84p": {
+   "gross_share_pct": 25.662,
+   "standalone_sharpe": 0.7116,
+   "mean_g_bps": 0.7719
+  },
+  "young_bands_for_contrast": {
+   "age2_5": [
+    1.0206,
+    0.9377
+   ],
+   "age6_11": [
+    0.9377,
+    0.7864
+   ],
+   "age12_23": [
+    1.0628,
+    0.8972
+   ],
+   "age24_41": [
+    1.0996,
+    0.8603
+   ]
+  }
+ }
+}

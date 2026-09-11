@@ -1,0 +1,844 @@
+{
+ "candidate": "COINT_PAIR",
+ "screen": "r10",
+ "date_utc": "2026-09-12",
+ "verdict": "DEAD",
+ "killed_by": [
+  "STEP3_COST (G3: net mean g CI95 lower bound <= 0 in 0/18 pre-registered grid cells)",
+  "G4: REAL does not beat all 6 turnover-matched nulls (RELAB2 and RELAB3 beat it)"
+ ],
+ "passed": [
+  "STEP1 feasibility / no-lookahead",
+  "STEP2 independence (the primary screen) - unconditional AND in A0 bottom-quintile"
+ ],
+ "discipline": {
+  "caliber_pin": "v4 chain 2026-09-09; g=net_ex/gross_total bps per 4h anchor per unit gross",
+  "post_warm_drop": 900,
+  "cut_utc": "2026-08-30T20:00Z",
+  "n": 9138,
+  "window_utc": [
+   "2022-06-30T00:00Z",
+   "2026-08-30T20:00Z"
+  ],
+  "bootstrap": "UTC-day block, 2000 resamples, numpy.default_rng([20260905,1])",
+  "env_whitelist": [],
+  "env_whitelist_note": "E-0826-D: every device asserts no config env present then replaces os.environ.get with a raising stub",
+  "gpu_used": false,
+  "gpu_compute_apps_at_run": "empty (nvidia-smi --query-compute-apps returned no rows)",
+  "live_touched": false,
+  "prereg_sha256": "ca038101480e76e1ca2ed379a245bc59450315ed19fabc1eec938b87056b6b5e",
+  "prereg_frozen_before_any_number": true,
+  "forbidden_v3_lineage_used": "none (no dlw_ext, no pod_fea_ext.py, no clipped-compounding, no shadow_bundle_v3, no wide_fea_v2ext_meta, no default panel_source panel, no expm1 on pod 5m lineage)"
+ },
+ "inputs_sha256_16_RECOMPUTED_BY_ME": {
+  "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz": "0e3c09ac86c727ac",
+  "/workspace/uplift_2026-09-11/r8b2/dev/probe_artifacts/w10_ablation_series_R8_A0_s42.npz": "9bd885ce39938cc2",
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d",
+  "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz": "47d87b5165b695a7",
+  "/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json": "295b4e7b462373e4"
+ },
+ "surveyor_data_claim": {
+  "claimed_sha256_16": "0e3c09ac86c727ac",
+  "recomputed_sha256_16": "0e3c09ac86c727ac",
+  "full_sha256": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3",
+  "match": true,
+  "label": "VERIFIED"
+ },
+ "devices_sha256_16": {
+  "s0_feas.py": "d54ae0c6436323e4",
+  "s1_engine.py": "b8af58df47982d11",
+  "s2_analyze.py": "b72575925b4ef443",
+  "s3_grid.py": "25151e9ac78d9ea1",
+  "s4_addendum.py": "c308b3fb9ae62629"
+ },
+ "rulers_sha256_16_RECOMPUTED_BY_ME": {
+  "rs_conc.py": "3fd2f76496a593ba (claimed 3fd2f76496a593ba - MATCH)",
+  "null.py (turnover-matched nulls, form replicated)": "91d4c91cb92a6440",
+  "costb_PWR_G230k.json": "295b4e7b462373e4"
+ },
+ "A0_reference_reproduced_first_hand": {
+  "rec_rows_total": 10039,
+  "n_post_warm_and_cut": 9138,
+  "window_utc": [
+   "2022-06-30T00:00Z",
+   "2026-08-30T20:00Z"
+  ],
+  "mean_g_bps": 0.6342,
+  "annualised_sharpe": 1.2912,
+  "SE_annualised_sharpe": 0.4895,
+  "gross_alpha_pnl_ex_bps": 1.2813,
+  "carry_ex_bps": 0.4797,
+  "cost_ex_bps": 0.1675,
+  "turnover_mean": 0.03032,
+  "brief_claim": {
+   "mean_g": 0.6342,
+   "CI95": [
+    0.1653,
+    1.1071
+   ],
+   "sharpe": 1.2912,
+   "n": 9138,
+   "gross_pnl_ex": 1.3266
+  },
+  "mean_g_CI95": [
+   0.1774,
+   1.1136
+  ]
+ },
+ "accounting_identity_vs_pinned_device": {
+  "pnl_ex_maxabs": 8.610722034063656e-06,
+  "carry_ex_maxabs": 1.5488434446098154e-07,
+  "cost_ex_maxabs": 2.5479989257393143e-08,
+  "gross_total_maxabs": 7.372935595384433e-09,
+  "turnover_maxabs": 0.03461681421597944,
+  "label": "VERIFIED",
+  "note": "bitwise-equal to the archived r9_screen/COHORT_IDENTITY.json values; device convention = P&L and carry on member names only, gross and cost on every weighted name"
+ },
+ "STEP1_feasibility": {
+  "verdict": "PASS",
+  "no_lookahead_construction": "p[t,i]=sum_{s<t} y4[s,i]; y4[t] spans [E_t+5m, E_t+4h+5m) so y4[..t-1] is realised at trade time E_t+5m; stride=horizon=1 anchor",
+  "signal_reads_only": [
+   "meta.y4 (strictly past)",
+   "meta.members",
+   "meta.qvk (device membership contract)"
+  ],
+  "panel_used_for": "ACCOUNTING ONLY (f_fund_now, f_fund_iv -> realised carry); no f_* field is a signal input",
+  "dirty_default_panel_avoided": true,
+  "vol_scaling_leak": "none - sigma comes from the formation window which ends strictly before the trading window",
+  "champion_selection_contamination": "none - pairs re-selected every 180 anchors from the prior 1080 anchors only"
+ },
+ "STEP2_independence": {
+  "verdict": "PASS",
+  "primary_cell": "ENTRY 2.0 / K 40 / L 1080",
+  "rho_to_A0": 0.0215,
+  "rho_to_A0_CI95": [
+   -0.0217,
+   0.0635
+  ],
+  "rho_in_A0_bottom_quintile": -0.0243,
+  "rho_bottom_quintile_CI95": [
+   -0.103,
+   0.0585
+  ],
+  "n_bottom_quintile": 1828,
+  "rho_in_A0_LOSS_cells": 0.0053,
+  "rho_loss_CI95": [
+   -0.0486,
+   0.0579
+  ],
+  "n_loss_cells": 4523,
+  "mean_g_in_A0_bottom_quintile": -1.2567,
+  "A0_mean_g_in_bottom_quintile": -29.4534,
+  "A0_bottom_quintile_threshold_bps": -13.9763,
+  "surveyor_estimate": "rho 0.00-0.15",
+  "surveyor_estimate_verdict": "VERIFIED, at the low end",
+  "contrast_amihud_sleeve": "Amihud rho RISES to +0.343/+0.438 exactly in A0-loss cells; COINT_PAIR is -0.0243 with CI [-0.103,+0.059] there",
+  "contrast_XIB_LAG50": "best of ~300 priors had rho 0.889 to A0; this is +0.0215"
+ },
+ "STEP3_net_edge": {
+  "verdict": "FAIL",
+  "per_unit_allocated_capital": {
+   "gross_alpha_pnl_bps": 0.261,
+   "carry_bps": 0.1406,
+   "cost_bps": 0.3943,
+   "net_mean_g_bps": -0.2739,
+   "net_mean_g_CI95": [
+    -0.5787,
+    0.005
+   ],
+   "annualised_sharpe": -0.8779,
+   "sharpe_CI95": [
+    -1.8229,
+    0.0153
+   ],
+   "SE_annualised_sharpe": 0.4895,
+   "turnover_mean": 0.13075
+  },
+  "per_unit_deployed_gross": {
+   "n_active": 8880,
+   "net_mean_g_bps": -0.9558,
+   "gross_alpha_bps": 0.6765,
+   "carry_bps": 0.4319,
+   "cost_bps": 1.2004,
+   "turnover_mean": 0.39581,
+   "annualised_sharpe_on_active": -0.9526
+  },
+  "deployment_rate_pct": 97.177,
+  "gross_alpha_CI95_includes_zero": [
+   -0.0373,
+   0.5444
+  ],
+  "cost_as_pct_of_ABS_gross_price_alpha": 151.07,
+  "cost_survival_pct_of_gross": -51.073,
+  "net_survival_pct_of_gross": -104.933,
+  "turnover_vs_A0": {
+   "turnover_mean_pair_book": 0.13075,
+   "turnover_mean_A0": 0.03032,
+   "turnover_multiple_vs_A0": 4.313,
+   "realised_cost_rate_bps_per_unit_turnover": 3.0154,
+   "break_even_cost_rate_bps_per_unit_turnover": 0.921,
+   "pinned_book_avg_rate_bps": 2.9537,
+   "verdict": "the book needs a per-unit-turnover cost rate of 0.921 bps; the fitted model charges 3.015 bps"
+  },
+  "holding": {
+   "mean_hold_anchors": 4.645,
+   "median_hold_anchors": 1.0,
+   "note": "state-dependent holding is a TURNOVER AMPLIFIER at 4h anchors, not a reducer"
+  },
+  "concentration_repriced_cost": {
+   "mean_nonzero_names_A0_live_book": 249.61,
+   "mean_nonzero_names_pair_book": 24.59,
+   "per_name_notional_multiple": 10.149,
+   "impact_multiplier_at_exponent_0.87": 7.509,
+   "base_tier_rates_bps": [
+    2.6705,
+    2.6824,
+    3.6417
+   ],
+   "repriced_tier_rates_bps": [
+    2.7977,
+    3.1474,
+    9.2263
+   ],
+   "cost_bps_base": 0.3943,
+   "cost_bps_repriced": 0.6778,
+   "net_mean_g_bps_repriced": -0.5574,
+   "CI95": [
+    -0.8636,
+    -0.2766
+   ],
+   "sharpe_repriced": -1.7862
+  },
+  "reverse_sign_book": {
+   "note": "flipping the rule flips pnl and carry but NOT cost; cost is a two-sided tax",
+   "net_mean_g_bps": -0.5147,
+   "CI95": [
+    -0.7954,
+    -0.2097
+   ],
+   "sharpe": -1.6489
+  }
+ },
+ "STEP3b_turnover_matched_nulls": {
+  "REAL_mean_g_alloc_bps": -0.2739,
+  "REAL_mean_g_CI95": [
+   -0.5787,
+   0.005
+  ],
+  "nulls": {
+   "SHIFT101": {
+    "mean_g_alloc_bps": -0.4126,
+    "sharpe": -1.512,
+    "turnover": 0.12796
+   },
+   "SHIFT503": {
+    "mean_g_alloc_bps": -0.4159,
+    "sharpe": -1.6803,
+    "turnover": 0.11922
+   },
+   "SHIFT1009": {
+    "mean_g_alloc_bps": -0.2324,
+    "sharpe": -0.9627,
+    "turnover": 0.10814
+   },
+   "RELAB1": {
+    "mean_g_alloc_bps": -0.2592,
+    "sharpe": -1.187,
+    "turnover": 0.04877
+   },
+   "RELAB2": {
+    "mean_g_alloc_bps": -0.0586,
+    "sharpe": -0.2574,
+    "turnover": 0.04777
+   },
+   "RELAB3": {
+    "mean_g_alloc_bps": 0.1668,
+    "sharpe": 0.6229,
+    "turnover": 0.05183
+   }
+  },
+  "null_min": -0.4159,
+  "null_max": 0.1668,
+  "REAL_beats_all_6": false
+ },
+ "G1_offset_spectrum": {
+  "convention": "shift>0 = install the weights the rule produced at t+shift (LOOKAHEAD); shift<0 = stale weights (LAG)",
+  "spectrum": {
+   "-5": -0.2058,
+   "-4": -0.1606,
+   "-3": -0.2078,
+   "-2": -0.1261,
+   "-1": -0.3433,
+   "0": -0.2739,
+   "1": -1.0112,
+   "2": -2.4507,
+   "3": -2.2662,
+   "4": -3.0159,
+   "5": -2.8529
+  },
+  "nominal_peak_lag": "-2",
+  "read": "NO LEAKAGE: lookahead side is monotonically worse (-1.01 -> -3.02) and lag 0 has no advantage over the lag side. Nominal peak at shift=-2 (-0.126 vs -0.274 at 0) is ~1 SE and every cell is negative, so the gate cannot discriminate where there is no alpha. Letter of G1 not met; purpose of G1 satisfied."
+ },
+ "STEP4_downside": {
+  "net_beta_to_equalweight_universe": 0.00555,
+  "A0_net_beta": -0.00229,
+  "mean_netlong_over_gross": 0.01519,
+  "worst_UTC_day_bps": -191.149,
+  "A0_worst_UTC_day_bps": -232.485,
+  "worst_UTC_day_date": "2022-11-09",
+  "maxDD_bps_of_gross": 3375.63,
+  "A0_maxDD_bps_of_gross": 2632.43,
+  "combined_worst_day_at_50_50_bps": -121.348,
+  "tail_concentration": {
+   "n_anchors": 8880,
+   "mean_names_nonzero": 25.31,
+   "leg_ret_bps": 0.6418,
+   "top5_share_of_mean": 0.6165,
+   "top20_share_of_mean": 1.1896,
+   "live_fund_leg_control_top20_share": 0.1109,
+   "ruler": "rs_conc.py sha16 3fd2f76496a593ba form: c_i=(w_i/gross)*y4_i*1e4"
+  }
+ },
+ "STEP5_arithmetic": {
+  "A0_sharpe": 1.2912,
+  "A0_SE_sharpe": 0.4895,
+  "target_point_estimate": 3.9595,
+  "gap_in_SE": 5.451,
+  "zero_rho_standalone_sharpe_that_closes_gap": 3.7431,
+  "candidate_standalone_sharpe": -0.8779,
+  "DELIVERABLE_long_only_ladder": {
+   "risk_weight_0.05": {
+    "combined_sharpe": 1.2419,
+    "delta_vs_A0": -0.0493
+   },
+   "risk_weight_0.10": {
+    "combined_sharpe": 1.1836,
+    "delta_vs_A0": -0.1076
+   },
+   "risk_weight_0.15": {
+    "combined_sharpe": 1.1149,
+    "delta_vs_A0": -0.1763
+   },
+   "risk_weight_0.20": {
+    "combined_sharpe": 1.0345,
+    "delta_vs_A0": -0.2567
+   },
+   "risk_weight_0.30": {
+    "combined_sharpe": 0.8345,
+    "delta_vs_A0": -0.4567
+   }
+  },
+  "variance_optimal_formula_value": 1.5773,
+  "variance_optimal_is_NOT_deliverable": "the formula solves to a NEGATIVE weight on a negative-Sharpe candidate, i.e. running the pair rule in reverse; measured reverse-sign book is net -0.5147 bps, Sharpe -1.6489, because cost does not flip sign. Do not report 1.5773 as an uplift.",
+  "plain_statement": "Not 'real but only moves 1.29 to 1.42'. Independence is real, net edge is negative, and every long allocation LOWERS the combined Sharpe: 1.2912 -> 1.2419 at 5% -> 1.1836 at 10%."
+ },
+ "selection_scale": {
+  "pairs_searched_per_full_run_L1080": 1735063,
+  "pairs_searched_per_full_run_L540": 2212018,
+  "formations": 50,
+  "pairs_admitted_primary_cell": 2000,
+  "entries_primary_cell": 27959,
+  "search_to_admit_ratio": "~868:1",
+  "note": "multiple-comparisons scale reported as required; it only strengthens a negative verdict"
+ },
+ "grid": {
+  "n_cells": 18,
+  "n_cells_with_CI95_lower_bound_above_0": 0,
+  "cells": [
+   {
+    "ENTRY": 1.5,
+    "K": 20,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 1060,
+    "entries": 23784,
+    "mean_hold_anchors": 4.119,
+    "deployment_rate_pct": 99.91,
+    "mean_utilisation": 0.4868,
+    "gross_alpha_bps": 0.8426,
+    "carry_bps": 0.1543,
+    "cost_bps": 0.668,
+    "net_mean_g_bps": 0.0203,
+    "net_mean_g_CI95": [
+     -0.4164,
+     0.4419
+    ],
+    "sharpe": 0.0445,
+    "turnover": 0.22009,
+    "rho_to_A0": 0.0703,
+    "rho_in_A0_bottom_quintile": 0.1169,
+    "secs": 1.3
+   },
+   {
+    "ENTRY": 1.5,
+    "K": 20,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 1000,
+    "entries": 14240,
+    "mean_hold_anchors": 5.85,
+    "deployment_rate_pct": 97.52,
+    "mean_utilisation": 0.4298,
+    "gross_alpha_bps": 0.2479,
+    "carry_bps": 0.1767,
+    "cost_bps": 0.4177,
+    "net_mean_g_bps": -0.3465,
+    "net_mean_g_CI95": [
+     -0.7662,
+     0.0627
+    ],
+    "sharpe": -0.8099,
+    "turnover": 0.13762,
+    "rho_to_A0": 0.0027,
+    "rho_in_A0_bottom_quintile": -0.0132,
+    "secs": 1.4
+   },
+   {
+    "ENTRY": 1.5,
+    "K": 40,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 2120,
+    "entries": 46436,
+    "mean_hold_anchors": 4.27,
+    "deployment_rate_pct": 100.0,
+    "mean_utilisation": 0.4814,
+    "gross_alpha_bps": 0.4521,
+    "carry_bps": 0.1301,
+    "cost_bps": 0.6207,
+    "net_mean_g_bps": -0.2986,
+    "net_mean_g_CI95": [
+     -0.6339,
+     0.0315
+    ],
+    "sharpe": -0.8585,
+    "turnover": 0.20481,
+    "rho_to_A0": 0.0763,
+    "rho_in_A0_bottom_quintile": 0.1333,
+    "secs": 1.7
+   },
+   {
+    "ENTRY": 1.5,
+    "K": 40,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 2000,
+    "entries": 29455,
+    "mean_hold_anchors": 5.653,
+    "deployment_rate_pct": 97.56,
+    "mean_utilisation": 0.4215,
+    "gross_alpha_bps": 0.3706,
+    "carry_bps": 0.1502,
+    "cost_bps": 0.4158,
+    "net_mean_g_bps": -0.1953,
+    "net_mean_g_CI95": [
+     -0.5225,
+     0.1105
+    ],
+    "sharpe": -0.5891,
+    "turnover": 0.13755,
+    "rho_to_A0": 0.0178,
+    "rho_in_A0_bottom_quintile": -0.0315,
+    "secs": 1.7
+   },
+   {
+    "ENTRY": 1.5,
+    "K": 80,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 4240,
+    "entries": 90189,
+    "mean_hold_anchors": 4.402,
+    "deployment_rate_pct": 100.0,
+    "mean_utilisation": 0.4734,
+    "gross_alpha_bps": 0.4227,
+    "carry_bps": 0.1229,
+    "cost_bps": 0.5831,
+    "net_mean_g_bps": -0.2832,
+    "net_mean_g_CI95": [
+     -0.5468,
+     -0.0319
+    ],
+    "sharpe": -1.0315,
+    "turnover": 0.19343,
+    "rho_to_A0": 0.0847,
+    "rho_in_A0_bottom_quintile": 0.1158,
+    "secs": 2.3
+   },
+   {
+    "ENTRY": 1.5,
+    "K": 80,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 4000,
+    "entries": 56049,
+    "mean_hold_anchors": 5.921,
+    "deployment_rate_pct": 97.57,
+    "mean_utilisation": 0.4132,
+    "gross_alpha_bps": 0.301,
+    "carry_bps": 0.1125,
+    "cost_bps": 0.3883,
+    "net_mean_g_bps": -0.1998,
+    "net_mean_g_CI95": [
+     -0.4804,
+     0.0704
+    ],
+    "sharpe": -0.7275,
+    "turnover": 0.12878,
+    "rho_to_A0": 0.051,
+    "rho_in_A0_bottom_quintile": 0.0115,
+    "secs": 2.3
+   },
+   {
+    "ENTRY": 2.0,
+    "K": 20,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 1060,
+    "entries": 22933,
+    "mean_hold_anchors": 3.547,
+    "deployment_rate_pct": 99.03,
+    "mean_utilisation": 0.4084,
+    "gross_alpha_bps": 0.7955,
+    "carry_bps": 0.1529,
+    "cost_bps": 0.6399,
+    "net_mean_g_bps": 0.0027,
+    "net_mean_g_CI95": [
+     -0.3966,
+     0.4122
+    ],
+    "sharpe": 0.0065,
+    "turnover": 0.21099,
+    "rho_to_A0": 0.0711,
+    "rho_in_A0_bottom_quintile": 0.1138,
+    "secs": 1.3
+   },
+   {
+    "ENTRY": 2.0,
+    "K": 20,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 1000,
+    "entries": 13492,
+    "mean_hold_anchors": 4.818,
+    "deployment_rate_pct": 96.07,
+    "mean_utilisation": 0.3401,
+    "gross_alpha_bps": 0.1832,
+    "carry_bps": 0.1655,
+    "cost_bps": 0.3933,
+    "net_mean_g_bps": -0.3757,
+    "net_mean_g_CI95": [
+     -0.755,
+     -0.0039
+    ],
+    "sharpe": -0.9365,
+    "turnover": 0.12986,
+    "rho_to_A0": -0.0008,
+    "rho_in_A0_bottom_quintile": -0.0184,
+    "secs": 1.4
+   },
+   {
+    "ENTRY": 2.0,
+    "K": 40,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 2120,
+    "entries": 44790,
+    "mean_hold_anchors": 3.705,
+    "deployment_rate_pct": 99.8,
+    "mean_utilisation": 0.4081,
+    "gross_alpha_bps": 0.4178,
+    "carry_bps": 0.1266,
+    "cost_bps": 0.5961,
+    "net_mean_g_bps": -0.3049,
+    "net_mean_g_CI95": [
+     -0.6069,
+     -0.0014
+    ],
+    "sharpe": -0.9547,
+    "turnover": 0.19685,
+    "rho_to_A0": 0.0763,
+    "rho_in_A0_bottom_quintile": 0.1269,
+    "secs": 1.6
+   },
+   {
+    "ENTRY": 2.0,
+    "K": 40,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 2000,
+    "entries": 27959,
+    "mean_hold_anchors": 4.645,
+    "deployment_rate_pct": 97.18,
+    "mean_utilisation": 0.3351,
+    "gross_alpha_bps": 0.261,
+    "carry_bps": 0.1406,
+    "cost_bps": 0.3943,
+    "net_mean_g_bps": -0.2739,
+    "net_mean_g_CI95": [
+     -0.5787,
+     0.005
+    ],
+    "sharpe": -0.8779,
+    "turnover": 0.13075,
+    "rho_to_A0": 0.0215,
+    "rho_in_A0_bottom_quintile": -0.0243,
+    "secs": 1.7
+   },
+   {
+    "ENTRY": 2.0,
+    "K": 80,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 4240,
+    "entries": 86937,
+    "mean_hold_anchors": 3.799,
+    "deployment_rate_pct": 100.0,
+    "mean_utilisation": 0.4005,
+    "gross_alpha_bps": 0.3581,
+    "carry_bps": 0.1192,
+    "cost_bps": 0.5615,
+    "net_mean_g_bps": -0.3226,
+    "net_mean_g_CI95": [
+     -0.5642,
+     -0.086
+    ],
+    "sharpe": -1.2691,
+    "turnover": 0.18638,
+    "rho_to_A0": 0.085,
+    "rho_in_A0_bottom_quintile": 0.1025,
+    "secs": 2.3
+   },
+   {
+    "ENTRY": 2.0,
+    "K": 80,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 4000,
+    "entries": 53077,
+    "mean_hold_anchors": 4.801,
+    "deployment_rate_pct": 97.48,
+    "mean_utilisation": 0.325,
+    "gross_alpha_bps": 0.1981,
+    "carry_bps": 0.1043,
+    "cost_bps": 0.3657,
+    "net_mean_g_bps": -0.272,
+    "net_mean_g_CI95": [
+     -0.5359,
+     -0.022
+    ],
+    "sharpe": -1.0733,
+    "turnover": 0.12154,
+    "rho_to_A0": 0.0463,
+    "rho_in_A0_bottom_quintile": -0.001,
+    "secs": 2.3
+   },
+   {
+    "ENTRY": 2.5,
+    "K": 20,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 1060,
+    "entries": 22319,
+    "mean_hold_anchors": 2.974,
+    "deployment_rate_pct": 97.72,
+    "mean_utilisation": 0.3363,
+    "gross_alpha_bps": 0.7379,
+    "carry_bps": 0.1505,
+    "cost_bps": 0.623,
+    "net_mean_g_bps": -0.0356,
+    "net_mean_g_CI95": [
+     -0.426,
+     0.35
+    ],
+    "sharpe": -0.0871,
+    "turnover": 0.20563,
+    "rho_to_A0": 0.0676,
+    "rho_in_A0_bottom_quintile": 0.1056,
+    "secs": 1.3
+   },
+   {
+    "ENTRY": 2.5,
+    "K": 20,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 1000,
+    "entries": 12976,
+    "mean_hold_anchors": 3.83,
+    "deployment_rate_pct": 92.82,
+    "mean_utilisation": 0.2628,
+    "gross_alpha_bps": 0.2581,
+    "carry_bps": 0.1635,
+    "cost_bps": 0.3758,
+    "net_mean_g_bps": -0.2812,
+    "net_mean_g_CI95": [
+     -0.6364,
+     0.0617
+    ],
+    "sharpe": -0.7537,
+    "turnover": 0.12417,
+    "rho_to_A0": 0.0081,
+    "rho_in_A0_bottom_quintile": 0.0027,
+    "secs": 1.4
+   },
+   {
+    "ENTRY": 2.5,
+    "K": 40,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 2120,
+    "entries": 43587,
+    "mean_hold_anchors": 3.122,
+    "deployment_rate_pct": 99.05,
+    "mean_utilisation": 0.337,
+    "gross_alpha_bps": 0.3972,
+    "carry_bps": 0.1229,
+    "cost_bps": 0.5811,
+    "net_mean_g_bps": -0.3068,
+    "net_mean_g_CI95": [
+     -0.6043,
+     -0.0159
+    ],
+    "sharpe": -1.0059,
+    "turnover": 0.19207,
+    "rho_to_A0": 0.0755,
+    "rho_in_A0_bottom_quintile": 0.1108,
+    "secs": 1.6
+   },
+   {
+    "ENTRY": 2.5,
+    "K": 40,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 2000,
+    "entries": 26960,
+    "mean_hold_anchors": 3.694,
+    "deployment_rate_pct": 95.49,
+    "mean_utilisation": 0.2602,
+    "gross_alpha_bps": 0.2713,
+    "carry_bps": 0.133,
+    "cost_bps": 0.379,
+    "net_mean_g_bps": -0.2407,
+    "net_mean_g_CI95": [
+     -0.5157,
+     0.015
+    ],
+    "sharpe": -0.8537,
+    "turnover": 0.12584,
+    "rho_to_A0": 0.0206,
+    "rho_in_A0_bottom_quintile": -0.0094,
+    "secs": 1.7
+   },
+   {
+    "ENTRY": 2.5,
+    "K": 80,
+    "L": 540,
+    "pairs_searched": 2212018,
+    "pairs_admitted": 4240,
+    "entries": 84625,
+    "mean_hold_anchors": 3.194,
+    "deployment_rate_pct": 99.79,
+    "mean_utilisation": 0.3319,
+    "gross_alpha_bps": 0.3437,
+    "carry_bps": 0.1165,
+    "cost_bps": 0.548,
+    "net_mean_g_bps": -0.3208,
+    "net_mean_g_CI95": [
+     -0.552,
+     -0.1064
+    ],
+    "sharpe": -1.3591,
+    "turnover": 0.1821,
+    "rho_to_A0": 0.0875,
+    "rho_in_A0_bottom_quintile": 0.0904,
+    "secs": 2.3
+   },
+   {
+    "ENTRY": 2.5,
+    "K": 80,
+    "L": 1080,
+    "pairs_searched": 1735063,
+    "pairs_admitted": 4000,
+    "entries": 51051,
+    "mean_hold_anchors": 3.78,
+    "deployment_rate_pct": 97.15,
+    "mean_utilisation": 0.2502,
+    "gross_alpha_bps": 0.1902,
+    "carry_bps": 0.1009,
+    "cost_bps": 0.3493,
+    "net_mean_g_bps": -0.2601,
+    "net_mean_g_CI95": [
+     -0.4914,
+     -0.0403
+    ],
+    "sharpe": -1.144,
+    "turnover": 0.11625,
+    "rho_to_A0": 0.0368,
+    "rho_in_A0_bottom_quintile": -0.0103,
+    "secs": 2.2
+   }
+  ],
+  "no_maximum_taken": true,
+  "primary_cell_named_in_prereg_before_any_number": "ENTRY 2.0 / K 40 / L 1080"
+ },
+ "per_year": {
+  "2022": {
+   "n": 1110,
+   "pair_net_mean_g_bps": 0.007,
+   "pair_gross_bps": 0.271,
+   "pair_cost_bps": 0.2004,
+   "pair_sharpe": 0.026,
+   "A0_mean_g_bps": 0.1586,
+   "A0_sharpe": 0.48
+  },
+  "2023": {
+   "n": 2190,
+   "pair_net_mean_g_bps": 0.1285,
+   "pair_gross_bps": 0.6285,
+   "pair_cost_bps": 0.3888,
+   "pair_sharpe": 0.479,
+   "A0_mean_g_bps": -0.6485,
+   "A0_sharpe": -1.936
+  },
+  "2024": {
+   "n": 2196,
+   "pair_net_mean_g_bps": -0.5767,
+   "pair_gross_bps": -0.0819,
+   "pair_cost_bps": 0.4256,
+   "pair_sharpe": -1.762,
+   "A0_mean_g_bps": 0.4865,
+   "A0_sharpe": 1.088
+  },
+  "2025": {
+   "n": 2190,
+   "pair_net_mean_g_bps": -0.6937,
+   "pair_gross_bps": 0.0084,
+   "pair_cost_bps": 0.4664,
+   "pair_sharpe": -2.18,
+   "A0_mean_g_bps": 0.677,
+   "A0_sharpe": 1.187
+  },
+  "2026": {
+   "n": 1452,
+   "pair_net_mean_g_bps": -0.0043,
+   "pair_gross_bps": 0.5985,
+   "pair_cost_bps": 0.3946,
+   "pair_sharpe": -0.012,
+   "A0_mean_g_bps": 3.0913,
+   "A0_sharpe": 4.516
+  }
+ },
+ "per_year_note": "2023 is the only positive pair year (+0.129, SR 0.48) and it lands on A0's only negative year (-0.649, SR -1.94). Logged as a LEAD for the 'solve 2023' axis, NOT as a live option for this candidate: single-year/single-fold conclusions are a logged anti-pattern and SR 0.48 is far from useful.",
+ "what_would_change_it": [
+  "A pair construction with turnover <= 0.040 per anchor that KEEPS >= 0.26 bps gross spread alpha. Lowest turnover in the 18-cell grid is 0.1163 and its gross alpha has already fallen to 0.19. Would require showing the gross-alpha age-decay curve stays flat past age 2 - not measured this round.",
+  "Replacing the fitted cost model. Break-even needs 0.921 bps per unit turnover; the pinned model charges 3.015 (book average 2.954), and that is the version that UNDERSTATES cost at 25 names - concentration-repriced it is 5.18 bps per unit turnover."
+ ],
+ "labels": {
+  "VERIFIED": "every number in this receipt was computed first-hand this session on pod2 from the pinned inputs whose sha256_16 I recomputed myself",
+  "INFERRED": [
+   "the Amihud +0.343/+0.438 and XIB_LAG50 0.889 comparison figures are quoted from the task brief, not recomputed here",
+   "the live fund-leg control top-20 share 11.09% is quoted from the brief/rs_conc.py lineage, not recomputed here",
+   "the brief's A0 gross pnl_ex 1.3266 differs from my per-anchor-ratio 1.2813 (3.4%); likely a sum-of-sums vs mean-of-ratios caliber difference, not reconciled"
+  ]
+ }
+}

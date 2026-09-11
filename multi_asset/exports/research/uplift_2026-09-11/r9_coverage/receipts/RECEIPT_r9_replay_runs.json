@@ -1,0 +1,111 @@
+{
+ "device": "/workspace/uplift_2026-09-11/w10_sleeve.py",
+ "device_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
+ "cost_json": "/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+ "cost_sha256": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+ "env_whitelist": [
+  "LEGS",
+  "CAL",
+  "WRULE",
+  "LOOK",
+  "MEMBERS_TOPN",
+  "FTRIM",
+  "PHI",
+  "UMASK_SCOPE",
+  "UMASK_NPZ",
+  "SLOW_NPY",
+  "FSEED",
+  "FPRED",
+  "COSTB_JSON",
+  "OUT_TAG"
+ ],
+ "common_env": [
+  "LEGS=101",
+  "CAL=log",
+  "WRULE=msharpe",
+  "LOOK=900",
+  "MEMBERS_TOPN=829",
+  "FTRIM=zero",
+  "PHI=0.45",
+  "UMASK_SCOPE=m1",
+  "UMASK_NPZ=/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+  "COSTB_JSON=/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json"
+ ],
+ "trees": {
+  "inc": {
+   "dir": "/workspace/uplift_2026-09-11/r9/dev_inc",
+   "links": {
+    "pod_backup_2026-08-21/wide_fea_hist_meta.npz": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz",
+    "pod_backup_2026-08-21/slow_pred_hist_oos.npy": "/workspace/review_scratch/king_v4/SLOW_v4.npy",
+    "pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz": "/workspace/data/wide_panel_4h_v2ext.npz",
+    "pod_backup_2026-08-21/nets_histv2_-30_2_42.npy": "/workspace/review_scratch/health_check/dev_alt/pod_backup_2026-08-21/nets_histv2_-30_2_42.npy",
+    "pod_backup_2026-08-21/nets_histv2_0_0_0.npy": "/workspace/review_scratch/health_check/dev_alt/pod_backup_2026-08-21/nets_histv2_0_0_0.npy",
+    "dlw_2026-08-22": "/workspace/dlw_v4raw",
+    "f8_2026-08-22/preds/f10_v4RAW_s42.npy": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s42.npy",
+    "f8_2026-08-22/preds/f10_v4RAW_s2027.npy": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s2027.npy",
+    "f8_2026-08-22/preds/f10_A0_s42.npy": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s42.npy",
+    "f8_2026-08-22/preds/f10_A0_s2027.npy": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s2027.npy"
+   }
+  },
+  "ext": {
+   "dir": "/workspace/uplift_2026-09-11/r9/dev_ext",
+   "links": {
+    "pod_backup_2026-08-21/wide_fea_hist_meta.npz": "/workspace/uplift_2026-09-11/r6/out/meta_newprod_v4_x0910.npz",
+    "pod_backup_2026-08-21/slow_pred_hist_oos.npy": "/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz": "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_v2ext_x0910.npz",
+    "pod_backup_2026-08-21/nets_histv2_-30_2_42.npy": "/workspace/review_scratch/health_check/dev_alt/pod_backup_2026-08-21/nets_histv2_-30_2_42.npy",
+    "pod_backup_2026-08-21/nets_histv2_0_0_0.npy": "/workspace/review_scratch/health_check/dev_alt/pod_backup_2026-08-21/nets_histv2_0_0_0.npy",
+    "dlw_2026-08-22": "/workspace/uplift_2026-09-11/r6/out/dlw_v4raw_x0910",
+    "f8_2026-08-22/preds/f10_v4RAWx_s42.npy": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_s42.npy",
+    "f8_2026-08-22/preds/f10_v4RAWx_s2027.npy": "/workspace/uplift_2026-09-11/r9/out/f10_v4RAWx_s2027.npy"
+   }
+  }
+ },
+ "jobs": [
+  {
+   "tree": "inc",
+   "tag": "R9_A1_inc_s42",
+   "env": [
+    "SLOW_NPY=/workspace/review_scratch/king_v4/SLOW_v4.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAW_s42.npy"
+   ]
+  },
+  {
+   "tree": "ext",
+   "tag": "R9_A1x_ext_s42",
+   "env": [
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=42",
+    "FPRED=f10_v4RAWx_s42.npy"
+   ]
+  },
+  {
+   "tree": "inc",
+   "tag": "R9_A1_inc_s2027",
+   "env": [
+    "SLOW_NPY=/workspace/review_scratch/king_v4/SLOW_v4.npy",
+    "FSEED=2027",
+    "FPRED=f10_v4RAW_s2027.npy"
+   ]
+  },
+  {
+   "tree": "ext",
+   "tag": "R9_A1x_ext_s2027",
+   "env": [
+    "SLOW_NPY=/workspace/uplift_2026-09-11/r6/out/SLOW_v4_x0910.npy",
+    "FSEED=2027",
+    "FPRED=f10_v4RAWx_s2027.npy"
+   ]
+  }
+ ],
+ "started_utc": "2026-09-11T19:22:06Z",
+ "results": [
+  "R9_A1_inc_s42 rc=0 29s",
+  "R9_A1x_ext_s42 rc=0 29s",
+  "R9_A1_inc_s2027 rc=0 29s",
+  "R9_A1x_ext_s2027 rc=0 29s"
+ ],
+ "wall_s": 29.1,
+ "finished_utc": "2026-09-11T19:22:35Z"
+}
