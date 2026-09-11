@@ -1,0 +1,384 @@
+{
+ "device": "r11_financing_arith.py",
+ "env_whitelist": [],
+ "gpu_used": false,
+ "network": false,
+ "live_touched_write": false,
+ "self_sha256": "e6f439ceaad87f68",
+ "ACCOUNT": {
+  "as_of_day": "20260911",
+  "nav_usdt": 116321.91,
+  "wallet_balance": 115956.55,
+  "sizing_policy": "constant_leverage_2.00",
+  "target_gross_usdt": 232434.53,
+  "realized_gross_usdt_median_last5d": 227624.01,
+  "realized_over_target_gross": 0.9948,
+  "note_realized_vs_target": "the book does not reach its target gross; the gap is name-level skips (min-notional, venue rejects, halts). Margin is consumed by REALIZED gross, so the encumbrance below is computed on realized, with the target-gross figure given as the upper bound."
+ },
+ "MARGIN": {
+  "initial_margin_rule": "notional/20 (expected_leverage_bracket=20, arm() A6 asserts it every launch)",
+  "IM_on_realized_gross_usdt": 11381.2,
+  "IM_on_target_gross_usdt": 11621.73,
+  "IM_as_pct_of_NAV_realized": 9.784,
+  "IM_as_pct_of_NAV_target": 9.991,
+  "maint_margin_ratio_blended_measured": 0.012006,
+  "MM_on_realized_gross_usdt": 2732.85,
+  "MM_as_pct_of_NAV": 2.349,
+  "unencumbered_by_IM_usdt": 104940.71,
+  "unencumbered_by_IM_pct_of_NAV": 90.216,
+  "MMR_CAVEAT": "1.2006% was measured on a 109-name universe on 2026-07-29. The universe is now 450 names, skewed to smaller caps whose tier-1 MMR is higher. Treat as a LOWER BOUND on MM."
+ },
+ "BUFFER": {
+  "tail_inputs": {
+   "full_history_maxDD_restated": 0.4487,
+   "worst_day_restated": 0.1121,
+   "status": "BOTH ARE LOWER BOUNDS, NOT ESTIMATES (E-0908-B: clip-then-compound flattened both the crash end and the squeeze end; extreme-day COUNT unchanged, DEPTH understated)"
+  },
+  "rule": "futures equity fraction E/N must cover the drawdown plus IM on the trough gross",
+  "by_safety_multiple_on_maxDD": {
+   "1.0x": {
+    "drawdown_assumed_pct_of_NAV": 44.87,
+    "required_futures_equity_pct_of_NAV": 50.38,
+    "genuinely_idle_pct_of_NAV": 49.62,
+    "idle_usdt_at_current_NAV": 57715.44
+   },
+   "1.25x": {
+    "drawdown_assumed_pct_of_NAV": 56.09,
+    "required_futures_equity_pct_of_NAV": 60.48,
+    "genuinely_idle_pct_of_NAV": 39.52,
+    "idle_usdt_at_current_NAV": 45971.87
+   },
+   "1.5x": {
+    "drawdown_assumed_pct_of_NAV": 67.3,
+    "required_futures_equity_pct_of_NAV": 70.57,
+    "genuinely_idle_pct_of_NAV": 29.43,
+    "idle_usdt_at_current_NAV": 34228.3
+   },
+   "2.0x": {
+    "drawdown_assumed_pct_of_NAV": 89.74,
+    "required_futures_equity_pct_of_NAV": 90.77,
+    "genuinely_idle_pct_of_NAV": 9.23,
+    "idle_usdt_at_current_NAV": 10741.16
+   }
+  },
+  "value_per_1pct_annual_yield": {
+   "1.0x": {
+    "NAV_pct_per_year": 0.4962,
+    "g_bps_per_anchor_per_unit_gross": 0.011329,
+    "pct_of_A0_0.6342": 1.786
+   },
+   "1.25x": {
+    "NAV_pct_per_year": 0.3952,
+    "g_bps_per_anchor_per_unit_gross": 0.009023,
+    "pct_of_A0_0.6342": 1.423
+   },
+   "1.5x": {
+    "NAV_pct_per_year": 0.2943,
+    "g_bps_per_anchor_per_unit_gross": 0.006719,
+    "pct_of_A0_0.6342": 1.059
+   },
+   "2.0x": {
+    "NAV_pct_per_year": 0.0923,
+    "g_bps_per_anchor_per_unit_gross": 0.002107,
+    "pct_of_A0_0.6342": 0.332
+   }
+  },
+  "STRUCTURAL_BLOCKER": "Under sizing_policy=constant_leverage_2.00 the book's gross is recomputed every anchor as nav x 2.0 where nav = the FUTURES account margin_balance. Every dollar moved out of the futures wallet therefore shrinks gross by two dollars at the next anchor. The idle fraction above is NOT withdrawable under the deployed policy; realising it requires either (a) a yield-bearing margin asset that never leaves the futures wallet, or (b) decoupling the sizing base from the futures wallet balance. Both are live changes. (a) additionally collides with arm() A5/A6, which assert the collateral and bracket configuration at every launch."
+ },
+ "FUNDING_CARRY": {
+  "window": [
+   "20260801",
+   "20260911"
+  ],
+  "rows_deduped": 35188,
+  "net_usdt": -871.74,
+  "sign": "funding_paid POSITIVE = RECEIVED by the book (verified on a row: long 903.53 notional at rate -0.00590608 -> +5.22 credited)",
+  "reading": "over these 42 days the book NET PAID 871.74 USDT of funding. This is NOT a non-forecast income line for this book: the funding-momentum leg deliberately holds the extreme-funding names, so paying funding is the position's entry fee, already inside A0's alpha (memory funding_settlement_window_momentum_dodge_refuted / funding_transfer_priced_in_settlement_window). Recorded here so it is not double-counted as upside.",
+  "by_day_last10": {
+   "20260902": -38.49,
+   "20260903": -47.63,
+   "20260904": -114.4,
+   "20260905": -69.53,
+   "20260906": -33.07,
+   "20260907": -32.14,
+   "20260908": 18.23,
+   "20260909": -75.16,
+   "20260910": -20.4,
+   "20260911": -67.82
+  }
+ },
+ "FEE_REGIMES": [
+  {
+   "label": "BNB discount ON (100% coverage)",
+   "days": [
+    "20260805",
+    "20260906"
+   ],
+   "traded_notional": 570310.82,
+   "fee_usdt": 127.259,
+   "all_in_fee_bps_per_unit_traded": 2.2314,
+   "maker_share": 0.8408,
+   "BNB_coverage": 0.9962,
+   "n_anchors": 186,
+   "turnover_traded_over_gross": 0.086814,
+   "fee_g_bps_per_anchor_per_unit_gross": 0.19372,
+   "fee_NAV_pct_per_year_at_2x": 8.4848,
+   "BNB_recoverable_bps_per_unit_traded": 0.0008,
+   "BNB_recoverable_g_bps": 7.3e-05,
+   "BNB_recoverable_NAV_pct_per_year_at_2x": 0.0032
+  },
+  {
+   "label": "BNB discount OFF (0% coverage) = CURRENT",
+   "days": [
+    "20260907",
+    "20260911"
+   ],
+   "traded_notional": 908903.45,
+   "fee_usdt": 284.053,
+   "all_in_fee_bps_per_unit_traded": 3.1252,
+   "maker_share": 0.6249,
+   "BNB_coverage": 0.0,
+   "n_anchors": 28,
+   "turnover_traded_over_gross": 0.170372,
+   "fee_g_bps_per_anchor_per_unit_gross": 0.53245,
+   "fee_NAV_pct_per_year_at_2x": 23.3213,
+   "BNB_recoverable_bps_per_unit_traded": 0.3125,
+   "BNB_recoverable_g_bps": 0.053245,
+   "BNB_recoverable_NAV_pct_per_year_at_2x": 2.3321
+  },
+  {
+   "label": "whole window",
+   "days": [
+    "20260801",
+    "20260911"
+   ],
+   "traded_notional": 1537656.6,
+   "fee_usdt": 428.196,
+   "all_in_fee_bps_per_unit_traded": 2.7847,
+   "maker_share": 0.708,
+   "BNB_coverage": 0.3695,
+   "n_anchors": 234,
+   "turnover_traded_over_gross": 0.128265,
+   "fee_g_bps_per_anchor_per_unit_gross": 0.35718,
+   "fee_NAV_pct_per_year_at_2x": 15.6447,
+   "BNB_recoverable_bps_per_unit_traded": 0.1756,
+   "BNB_recoverable_g_bps": 0.02252,
+   "BNB_recoverable_NAV_pct_per_year_at_2x": 0.9864
+  }
+ ],
+ "REJECT_RATE_corrected_denominator": {
+  "denominator": "attempt-1 maker lines that REACHED the venue (submitted or rejected); skipped_min_notional excluded \u2014 E-0905-H, the alarm's denominator shrank when the 09-03 deposit cut min-notional skips, inflating the printed ratio",
+  "by_day": {
+   "20260801": {
+    "n": 392,
+    "rej": 69,
+    "rate": 0.176
+   },
+   "20260802": {
+    "n": 679,
+    "rej": 94,
+    "rate": 0.1384
+   },
+   "20260803": {
+    "n": 550,
+    "rej": 159,
+    "rate": 0.2891
+   },
+   "20260804": {
+    "n": 527,
+    "rej": 134,
+    "rate": 0.2543
+   },
+   "20260805": {
+    "n": 573,
+    "rej": 84,
+    "rate": 0.1466
+   },
+   "20260806": {
+    "n": 453,
+    "rej": 100,
+    "rate": 0.2208
+   },
+   "20260807": {
+    "n": 538,
+    "rej": 103,
+    "rate": 0.1914
+   },
+   "20260808": {
+    "n": 579,
+    "rej": 100,
+    "rate": 0.1727
+   },
+   "20260809": {
+    "n": 558,
+    "rej": 99,
+    "rate": 0.1774
+   },
+   "20260810": {
+    "n": 306,
+    "rej": 66,
+    "rate": 0.2157
+   },
+   "20260811": {
+    "n": 101,
+    "rej": 17,
+    "rate": 0.1683
+   },
+   "20260812": {
+    "n": 83,
+    "rej": 10,
+    "rate": 0.1205
+   },
+   "20260813": {
+    "n": 66,
+    "rej": 6,
+    "rate": 0.0909
+   },
+   "20260814": {
+    "n": 88,
+    "rej": 6,
+    "rate": 0.0682
+   },
+   "20260815": {
+    "n": 68,
+    "rej": 3,
+    "rate": 0.0441
+   },
+   "20260816": {
+    "n": 72,
+    "rej": 6,
+    "rate": 0.0833
+   },
+   "20260817": {
+    "n": 85,
+    "rej": 8,
+    "rate": 0.0941
+   },
+   "20260818": {
+    "n": 187,
+    "rej": 43,
+    "rate": 0.2299
+   },
+   "20260819": {
+    "n": 90,
+    "rej": 6,
+    "rate": 0.0667
+   },
+   "20260820": {
+    "n": 112,
+    "rej": 20,
+    "rate": 0.1786
+   },
+   "20260821": {
+    "n": 209,
+    "rej": 47,
+    "rate": 0.2249
+   },
+   "20260822": {
+    "n": 1272,
+    "rej": 210,
+    "rate": 0.1651
+   },
+   "20260823": {
+    "n": 391,
+    "rej": 89,
+    "rate": 0.2276
+   },
+   "20260824": {
+    "n": 335,
+    "rej": 74,
+    "rate": 0.2209
+   },
+   "20260825": {
+    "n": 583,
+    "rej": 146,
+    "rate": 0.2504
+   },
+   "20260826": {
+    "n": 1163,
+    "rej": 252,
+    "rate": 0.2167
+   },
+   "20260827": {
+    "n": 1262,
+    "rej": 330,
+    "rate": 0.2615
+   },
+   "20260828": {
+    "n": 639,
+    "rej": 144,
+    "rate": 0.2254
+   },
+   "20260829": {
+    "n": 714,
+    "rej": 137,
+    "rate": 0.1919
+   },
+   "20260830": {
+    "n": 1072,
+    "rej": 207,
+    "rate": 0.1931
+   },
+   "20260831": {
+    "n": 886,
+    "rej": 215,
+    "rate": 0.2427
+   },
+   "20260901": {
+    "n": 737,
+    "rej": 170,
+    "rate": 0.2307
+   },
+   "20260902": {
+    "n": 571,
+    "rej": 107,
+    "rate": 0.1874
+   },
+   "20260903": {
+    "n": 912,
+    "rej": 213,
+    "rate": 0.2336
+   },
+   "20260904": {
+    "n": 1085,
+    "rej": 218,
+    "rate": 0.2009
+   },
+   "20260905": {
+    "n": 1205,
+    "rej": 278,
+    "rate": 0.2307
+   },
+   "20260906": {
+    "n": 1333,
+    "rej": 189,
+    "rate": 0.1418
+   },
+   "20260907": {
+    "n": 1217,
+    "rej": 229,
+    "rate": 0.1882
+   },
+   "20260908": {
+    "n": 1287,
+    "rej": 301,
+    "rate": 0.2339
+   },
+   "20260909": {
+    "n": 1083,
+    "rej": 223,
+    "rate": 0.2059
+   },
+   "20260910": {
+    "n": 1386,
+    "rej": 397,
+    "rate": 0.2864
+   },
+   "20260911": {
+    "n": 1196,
+    "rej": 344,
+    "rate": 0.2876
+   }
+  }
+ }
+}

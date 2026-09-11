@@ -1,0 +1,90 @@
+{
+ "device": "r11_quoting_arith.py",
+ "env_whitelist": [],
+ "gpu_used": false,
+ "network": false,
+ "live_touched_write": false,
+ "self_sha256": "8db465954ef4e07f",
+ "ARM_SUMMARY": {
+  "join": {
+   "n_plans": 10543,
+   "intended": 1230366.32,
+   "filled": 607064.45,
+   "fill_rate": 0.4934,
+   "itt_cost_bps_per_unit_intended": 1.0487,
+   "cost_bps_per_unit_filled": 2.1255,
+   "maker_share_of_fills": 0.8389,
+   "markout60_bps": -2.2494
+  },
+  "behind": {
+   "n_plans": 7694,
+   "intended": 1093989.72,
+   "filled": 509295.48,
+   "fill_rate": 0.4655,
+   "itt_cost_bps_per_unit_intended": -0.7171,
+   "cost_bps_per_unit_filled": -1.5403,
+   "maker_share_of_fills": 0.8464,
+   "markout60_bps": -3.9893
+  }
+ },
+ "ARM_ITT_DIFF_behind_minus_join": {
+  "unit": "bps per unit INTENDED notional; POSITIVE = behind is MORE EXPENSIVE",
+  "point": -1.7658,
+  "CI95": [
+   -3.8005,
+   0.1614
+  ],
+  "n_days": 31,
+  "n_boot": 2000,
+  "join_cost": 1.0487,
+  "behind_cost": -0.7171
+ },
+ "ARM_MARKOUT_DIFF_behind_minus_join": {
+  "unit": "bps markout60; NEGATIVE = behind is MORE adversely selected",
+  "point": -1.7399,
+  "CI95": [
+   -3.2191,
+   0.5261
+  ],
+  "join_markout": -2.2494,
+  "behind_markout": -3.9893
+ },
+ "REJECT_RATE_by_arm_whole_window": {
+  "join": {
+   "n_attempt1_maker_lines": 25489,
+   "venue_reject": 2985,
+   "reject_rate": 0.1171
+  },
+  "behind": {
+   "n_attempt1_maker_lines": 14314,
+   "venue_reject": 1536,
+   "reject_rate": 0.1073
+  }
+ },
+ "REJECT_RATE_by_arm_by_third_of_month": {
+  "202608B": {
+   "join": 0.019,
+   "behind": 0.0142
+  },
+  "202608C": {
+   "join": 0.1074,
+   "behind": 0.078
+  },
+  "202609A": {
+   "join": 0.1844,
+   "behind": 0.1316
+  },
+  "202609B": {
+   "join": 0.2875,
+   "behind": 0.2067
+  }
+ },
+ "QUOTE_WINDOW_MEASURED": {
+  "n": 19394,
+  "median_s": 970.8,
+  "p10_s": 918.2,
+  "p90_s": 1053.2,
+  "config_k_seconds": 900,
+  "CORRECTION": "the live quote window is k=900s (measured median rest 970.8s = k + ~70s latency), NOT the 180s named in the task brief. 180 was deployed and rolled back 2026-08-10 with ZERO anchors run at 180 (config/book.json _k_seconds_rollback_2026_08_10; memory maker_slippage_is_negative)."
+ }
+}

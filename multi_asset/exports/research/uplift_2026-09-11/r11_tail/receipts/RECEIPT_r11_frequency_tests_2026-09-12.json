@@ -1,0 +1,113 @@
+{
+ "env_whitelist": [],
+ "gpu_used": false,
+ "live_written": false,
+ "network_used": false,
+ "device_self_sha256": "461ed95dd78a6526f2931185d28e43a373ab28c824d4925f98b13f9319636b5f",
+ "inputs": {
+  "RECEIPT_r11_tail": "badf55e8571dd56c6080b2326616c83e3de0dc274ca88a148406c6ec1eaa8d65",
+  "RECEIPT_r11_live_vs_replay_vol": "ea4296ba2cfcc1d0bb8568faf2cd51880699e4d1f68ac2a6d57b0d150dfb80ed",
+  "live_watchdog.py": "f54188357da93ffc00efc30f9b745afd6f9d1a85c6e2faa9e3a6b546a35d6e02"
+ },
+ "what_the_desk_was_told": {
+  "source": "~/dl_quant_live/live/watchdog.py L100-122 (READ-ONLY)",
+  "sha256": "f54188357da93ffc00efc30f9b745afd6f9d1a85c6e2faa9e3a6b546a35d6e02",
+  "series": "1,641-day historical series 2022-01..2026-06, 'canonical engine'",
+  "daily_sd_pct_at_2x": 1.2427,
+  "n_days": 1641,
+  "breaches": {
+   "le_4.00": 3,
+   "le_2.68": 8,
+   "le_2.00": 17
+  },
+  "per_yr": {
+   "le_4.00": 0.6673,
+   "le_2.68": 1.7794,
+   "le_2.00": 3.7812
+  },
+  "quoted": "'this fires 3 times in 4.5 years' / '8 times in 4.5 years ~ 1.8/yr' / 'the real frequency can only be HIGHER than 1.8/yr, never lower'"
+ },
+ "three_ladders": {
+  "le_4.00": {
+   "desk_was_told_per_yr": 0.6673,
+   "corrected_replay_postwarm_per_yr": 0.9586,
+   "corrected_replay_nowarm_per_yr": 1.309,
+   "live_realised_per_yr": 11.0606,
+   "live_observed_k": 1,
+   "live_n_judgeable_days": 33,
+   "ratio_corrected_over_told": 1.437,
+   "binom_P_Xge_k_under_corrected_replay": 0.0831,
+   "binom_P_Xge_k_under_desk_told": 0.0586
+  },
+  "le_2.68": {
+   "desk_was_told_per_yr": 1.7794,
+   "corrected_replay_postwarm_per_yr": 4.7932,
+   "corrected_replay_nowarm_per_yr": 5.2361,
+   "live_realised_per_yr": 11.0606,
+   "live_observed_k": 1,
+   "live_n_judgeable_days": 33,
+   "ratio_corrected_over_told": 2.694,
+   "binom_P_Xge_k_under_corrected_replay": 0.3535,
+   "binom_P_Xge_k_under_desk_told": 0.1489
+  },
+  "le_2.00": {
+   "desk_was_told_per_yr": 3.7812,
+   "corrected_replay_postwarm_per_yr": 12.7019,
+   "corrected_replay_nowarm_per_yr": 13.5266,
+   "live_realised_per_yr": 33.1818,
+   "live_observed_k": 3,
+   "live_n_judgeable_days": 33,
+   "ratio_corrected_over_told": 3.359,
+   "binom_P_Xge_k_under_corrected_replay": 0.1063,
+   "binom_P_Xge_k_under_desk_told": 0.0048
+  }
+ },
+ "volatility_test": {
+  "live_daily_sd_pct_2x_equiv": 1.5916828021754041,
+  "n_live": 33,
+  "corrected_replay_daily_sd_pct_at_2x": 1.1335492692694327,
+  "n_replay_days": 1523,
+  "F": 1.9716609954162463,
+  "dof": [
+   32,
+   1522
+  ],
+  "p_one_sided_live_greater": 0.0010166469293145088,
+  "live_sd_CI95": [
+   1.280014078794785,
+   2.1053077012316486
+  ],
+  "reading": "a count of 1 breach in 34 days is NOT significant against any base rate; the volatility ratio is. The anomaly the desk is feeling is a SCALE anomaly.",
+  "per_anchor": {
+   "live_sd_pct": 0.5678365992842654,
+   "replay_sd_pct": 0.459699388985887,
+   "n_live_anchors": 238,
+   "F": 1.5258045622335266,
+   "dof": [
+    237,
+    9137
+   ],
+   "p_one_sided_live_greater": 4.991475646436776e-07
+  }
+ },
+ "drawdown_25": {
+  "postwarm_rolling_1y_maxDD": {
+   "max": 35.764256178802825,
+   "p90": 30.589810120480937,
+   "median": 16.99142564640801,
+   "min": 10.97710881056705,
+   "n_windows": 1159
+  },
+  "nowarm_rolling_1y_maxDD": {
+   "max": 35.764256178802825,
+   "p90": 30.25354814772766,
+   "median": 19.479573527208306,
+   "min": 10.97710881056705,
+   "n_windows": 1309
+  },
+  "bootstrap_P_1y_maxDD_ge25_at_2x_postwarm": 0.074,
+  "bootstrap_P_1y_maxDD_ge25_at_2x_nowarm": 0.1225,
+  "bootstrap_P_from_start_le_m25_at_2x_postwarm": 0.0215,
+  "live_rule_caliber": "watchdog.py L131 DRAWDOWN_LIMIT_PCT = -25.0, % of STARTING equity, explicitly NOT peak-relative; both calibers reported"
+ }
+}

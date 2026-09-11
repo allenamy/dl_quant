@@ -1,0 +1,103 @@
+{
+ "env_whitelist": [],
+ "gpu_used": false,
+ "live_written": false,
+ "network_used": false,
+ "inputs": {
+  "pin_npz": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r10_screen/CMUM_CARRY/pin/A0_PWR230k_s42.npz",
+   "sha256": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339"
+  }
+ },
+ "device_self_sha256": "c16c7a918745b7f6a705b24ce51fa6cccc5bf5b3d3b2a38dece4813c5eafcc0e",
+ "replay_primary_window_at_2x": {
+  "anchor_sd_pct": 0.459699388985887,
+  "daily_sd_pct": 1.1335492692694327,
+  "var_ratio": 1.013401865060715,
+  "sqrt6_x_anchor_sd_pct": 1.1260289380846245,
+  "anchor_sd_bps_per_gross": 22.98496944929435,
+  "anchor_lag1_autocorr_within_window": 0.0017928132827020509
+ },
+ "live": {
+  "source": "~/dl_quant_live/state/live/pilot_log/*/daily_nav.jsonl (READ-ONLY)",
+  "recomputed_utc": "2026-09-11T20:44:16Z",
+  "n_calendar_days": 42,
+  "n_judgeable_days": 34,
+  "daily_sd_pct_raw": 1.5737743258128456,
+  "daily_sd_pct_2x_equivalent": 1.5916828021754041,
+  "n_days_2x_equiv": 33,
+  "anchor_sd_pct_2x_equivalent": 0.5678365992842654,
+  "n_anchors_2x_equiv": 238,
+  "breaches": {
+   "le_4.00": [
+    [
+     "20260906",
+     -4.275
+    ]
+   ],
+   "le_2.68": [
+    [
+     "20260906",
+     -4.275
+    ]
+   ],
+   "le_2.00": [
+    [
+     "20260821",
+     -2.625
+    ],
+    [
+     "20260824",
+     -2.052
+    ],
+    [
+     "20260906",
+     -4.275
+    ]
+   ]
+  },
+  "variance_ratio_2x_equiv": 1.3095287427227398
+ },
+ "vol_decomposition": {
+  "per_anchor_vol_ratio_live_over_replay": 1.2352346182946488,
+  "within_day_serial_corr_ratio": 1.1367544630079325,
+  "product": 1.4041584652083419,
+  "observed_daily_vol_ratio": 1.4041584652083419,
+  "reading": "daily vol ratio = per-anchor vol ratio x sqrt(variance-ratio ratio); the product should reproduce the observed daily ratio."
+ },
+ "equivalent_gross": {
+  "replay_daily_sd_pct_at_2x": 1.1335492692694327,
+  "live_daily_sd_pct_2x_equiv": 1.5916828021754041,
+  "live_vol_equivalent_gross": 2.8083169304166837,
+  "live_vol_equivalent_gross_CI95_from_sd_chi2": [
+   2.2584180740899744,
+   3.7145411466561304
+  ],
+  "note": "the gross at which the REPLAY book would have the DAILY volatility the LIVE book has actually shown",
+  "halt_at_live_vol_equivalent_gross": {
+   "L": 2.81,
+   "E_halt_per_yr": 3.385,
+   "P_ge1": 0.968,
+   "P_ge2": 0.8445,
+   "P_ge3": 0.6485,
+   "median_maxDD_pct": 20.31340029271434,
+   "P_maxDD_ge25": 0.281,
+   "median_cagr_pct": 42.2134515157927
+  },
+  "halt_at_2.00x_for_contrast": {
+   "L": 2.0,
+   "E_halt_per_yr": 0.974,
+   "P_ge1": 0.62,
+   "P_ge2": 0.2505,
+   "P_ge3": 0.078,
+   "median_maxDD_pct": 14.771773715952797,
+   "P_maxDD_ge25": 0.074,
+   "median_cagr_pct": 29.68004063496654
+  }
+ },
+ "kelly_unconstrained": {
+  "L_star": 9.0,
+  "E_log_growth_ann_pct": 78.01325612708787,
+  "caveat": "expected-log-growth is scale-greedy and NOT drawdown aware; reported only to show that the binding constraint here is drawdown, not growth"
+ }
+}

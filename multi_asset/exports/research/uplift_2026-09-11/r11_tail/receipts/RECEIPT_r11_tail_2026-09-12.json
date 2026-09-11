@@ -1,0 +1,3863 @@
+{
+ "generated_utc": "2026-09-11T20:40:49Z",
+ "env_whitelist": [],
+ "env_observed_from_watchlist": {},
+ "gpu_used": false,
+ "live_touched": false,
+ "network_used": false,
+ "inputs": {
+  "pin_npz": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r10_screen/CMUM_CARRY/pin/A0_PWR230k_s42.npz",
+   "sha256": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339"
+  },
+  "pinned_device_w10_sleeve.py": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/trackA/w10_sleeve.py",
+   "sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650"
+  }
+ },
+ "device_self_sha256": "13190ca9f34f72d2e116701081bcc30144f2c333fdd570f15aaf07fb0ff9bf05",
+ "artifact_config": {
+  "RNSM": 0,
+  "FTPOS": 0,
+  "LTRIM_TH": null,
+  "CDAMP": 0.0,
+  "FTRIM_TH": -0.001,
+  "SLEEVE": 0,
+  "COSTB_JSON": "/workspace/uplift_2026-09-11/r3k/costb_PWR_G230k.json",
+  "COST_B": [
+   [
+    1.923482,
+    5.874314,
+    0.810909
+   ],
+   [
+    1.987248,
+    6.487762,
+    0.845542
+   ],
+   [
+    2.765813,
+    8.09014,
+    0.835498
+   ]
+  ],
+  "UMASK_SCOPE": "m1",
+  "REF_SKIP": 0,
+  "KMOD_F10": 0.0,
+  "KMOD_L": 0.5,
+  "KMOD_AGREE": 0.0,
+  "SEATF10": 0,
+  "KTAIL": 0,
+  "KMOD": 0.0,
+  "SEATNET": 0,
+  "FUNDSCALE": 0,
+  "FEMAT_NPZ": null,
+  "SLOW_NPY": "/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+  "W3FIX": null,
+  "MEMBERS_TOPN": 829,
+  "TRADE_TOPN": 0,
+  "FTRIM": "zero",
+  "UMASK_NPZ": "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+  "LOOK": 900,
+  "WRULE": "msharpe",
+  "CAL": "log",
+  "LEGS": "101",
+  "PHI": 0.45,
+  "FSEED": "42",
+  "FPRED": "f10_A0_s42.npy",
+  "UPLIFT": {
+   "device": "w10_sleeve.py = w10_health.py (sha256 8684d9a9f43a8d15) + {LTRIM_TH, CDAMP, FTRIM_TH, SLEEVE}; all unset/0 and FTRIM_TH=-0.0010 => bitwise-unchanged rec/W",
+   "src_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
+   "self_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650"
+  },
+  "HEALTH": {
+   "device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb\u2026, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE in {members (original), trade, m1 (fund z in the 829 base, other legs and trade set within the universe)} + legs() series saved; default path (all unset) bitwise-unchanged",
+   "device_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650"
+  }
+ },
+ "unit_reconciliation_of_the_cost_gap": {
+  "mean_modelled_cost_bps_per_unit_gross": 0.16748060204290624,
+  "mean_turnover_per_unit_gross_file_caliber": 0.05402702626085246,
+  "implied_turnover_per_unit_gross_from_cost/RATE": 0.05670196771605317,
+  "RATE_times_critic_turnover_0.03032": 0.089556184,
+  "RATE_times_measured_turnover_per_unit_gross": 0.16748060204290624
+ },
+ "window": {
+  "rule": "post-warm drop first 900 anchors (E-0911-A); upper bound 2026-08-30 20Z (E-0911-D)",
+  "t0": "2022-06-30 00Z",
+  "t1": "2026-08-30 20Z",
+  "n_anchors": 9138,
+  "n_utc_days": 1523
+ },
+ "A0_reproduction": {
+  "mean_g_bps": 0.6341956721704606,
+  "sharpe_ann": 1.2912234378101441,
+  "SE_sharpe": 0.4895493525831451,
+  "mean_g_CI95": [
+   0.15865151033294228,
+   1.1182642124046782
+  ]
+ },
+ "part1_tail_on_corrected_caliber": {
+  "PINNED": {
+   "n_days": 1523,
+   "cagr_pct": 28.99701677261195,
+   "ann_vol_pct": 21.6564283814151,
+   "maxDD_pct": 41.987446628607984,
+   "worst_from_start_pct": -37.48571873916304,
+   "worst_day_pct": -4.574162528659576,
+   "worst_week_7d_pct": -15.052943932819197,
+   "worst_month_30d_pct": -14.236657968578303,
+   "daily": {
+    "mean_pct": 0.07619297874383907,
+    "sd_pct": 1.1335492692694327,
+    "skew": 0.14962804380706965,
+    "exkurt": 1.5758562782031458,
+    "pct": {
+     "0.1": -4.325903362870352,
+     "1": -2.7783655308751984,
+     "5": -1.7135731518014705,
+     "25": -0.5666045921703666,
+     "50": 0.015845553216298214,
+     "75": 0.6735309461500694,
+     "95": 2.0305310823494596,
+     "99": 3.268998000326046,
+     "99.9": 4.372122105344934
+    }
+   },
+   "days_le_2.00pct": {
+    "close_to_close_n": 53,
+    "close_to_close_per_yr": 12.7019,
+    "intraday_touch_n": 73,
+    "intraday_touch_per_yr": 17.4951
+   },
+   "days_le_2.68pct": {
+    "close_to_close_n": 20,
+    "close_to_close_per_yr": 4.7932,
+    "intraday_touch_n": 26,
+    "intraday_touch_per_yr": 6.2311
+   },
+   "days_le_3.00pct": {
+    "close_to_close_n": 11,
+    "close_to_close_per_yr": 2.6362,
+    "intraday_touch_n": 15,
+    "intraday_touch_per_yr": 3.5949
+   },
+   "days_le_4.00pct": {
+    "close_to_close_n": 4,
+    "close_to_close_per_yr": 0.9586,
+    "intraday_touch_n": 4,
+    "intraday_touch_per_yr": 0.9586
+   },
+   "days_le_5.00pct": {
+    "close_to_close_n": 0,
+    "close_to_close_per_yr": 0.0,
+    "intraday_touch_n": 0,
+    "intraday_touch_per_yr": 0.0
+   },
+   "rolling_1y_maxDD_pct": {
+    "max": 35.764256178802825,
+    "p90": 30.589810120480937,
+    "median": 16.99142564640801,
+    "min": 10.97710881056705,
+    "n_windows": 1159
+   }
+  },
+  "REPRICED_CRITIC": {
+   "n_days": 1523,
+   "cagr_pct": 25.46887849901276,
+   "ann_vol_pct": 21.655057411226235,
+   "maxDD_pct": 44.76090502282904,
+   "worst_from_start_pct": -40.94907899438508,
+   "worst_day_pct": -4.58147014242658,
+   "worst_week_7d_pct": -15.098291686474607,
+   "worst_month_30d_pct": -14.432107946104477,
+   "daily": {
+    "mean_pct": 0.06858996140255387,
+    "sd_pct": 1.1334775094100313,
+    "skew": 0.14962849234758357,
+    "exkurt": 1.5758563288115743,
+    "pct": {
+     "0.1": -4.333227016505388,
+     "1": -2.7857880195579607,
+     "5": -1.72106275729044,
+     "25": -0.5741669320921516,
+     "50": 0.008246198147388029,
+     "75": 0.6658900829525249,
+     "95": 2.022804333560705,
+     "99": 3.2611933165421845,
+     "99.9": 4.364247834087511
+    }
+   },
+   "days_le_2.00pct": {
+    "close_to_close_n": 53,
+    "close_to_close_per_yr": 12.7019,
+    "intraday_touch_n": 73,
+    "intraday_touch_per_yr": 17.4951
+   },
+   "days_le_2.68pct": {
+    "close_to_close_n": 20,
+    "close_to_close_per_yr": 4.7932,
+    "intraday_touch_n": 26,
+    "intraday_touch_per_yr": 6.2311
+   },
+   "days_le_3.00pct": {
+    "close_to_close_n": 11,
+    "close_to_close_per_yr": 2.6362,
+    "intraday_touch_n": 15,
+    "intraday_touch_per_yr": 3.5949
+   },
+   "days_le_4.00pct": {
+    "close_to_close_n": 4,
+    "close_to_close_per_yr": 0.9586,
+    "intraday_touch_n": 4,
+    "intraday_touch_per_yr": 0.9586
+   },
+   "days_le_5.00pct": {
+    "close_to_close_n": 0,
+    "close_to_close_per_yr": 0.0,
+    "intraday_touch_n": 0,
+    "intraday_touch_per_yr": 0.0
+   },
+   "rolling_1y_maxDD_pct": {
+    "max": 37.51218643655424,
+    "p90": 32.41979059279107,
+    "median": 18.495724056115527,
+    "min": 11.523480675498842,
+    "n_windows": 1159
+   }
+  },
+  "REPRICED_UNITFIX": {
+   "n_days": 1523,
+   "cagr_pct": 22.477928901905962,
+   "ann_vol_pct": 21.64594277781353,
+   "maxDD_pct": 45.21959809290947,
+   "worst_from_start_pct": -41.371595093128455,
+   "worst_day_pct": -4.5893824904706175,
+   "worst_week_7d_pct": -15.10936133005747,
+   "worst_month_30d_pct": -15.014620624605756,
+   "daily": {
+    "mean_pct": 0.06197112526786228,
+    "sd_pct": 1.1330004276926466,
+    "skew": 0.14685838905534196,
+    "exkurt": 1.5807697342639573,
+    "pct": {
+     "0.1": -4.349074376750947,
+     "1": -2.7926939079767656,
+     "5": -1.7325542668957825,
+     "25": -0.5811675231293945,
+     "50": -0.0014875343134046481,
+     "75": 0.6543864475548888,
+     "95": 2.013844063612994,
+     "99": 3.2549114656506153,
+     "99.9": 4.363823876109212
+    }
+   },
+   "days_le_2.00pct": {
+    "close_to_close_n": 53,
+    "close_to_close_per_yr": 12.7019,
+    "intraday_touch_n": 73,
+    "intraday_touch_per_yr": 17.4951
+   },
+   "days_le_2.68pct": {
+    "close_to_close_n": 20,
+    "close_to_close_per_yr": 4.7932,
+    "intraday_touch_n": 26,
+    "intraday_touch_per_yr": 6.2311
+   },
+   "days_le_3.00pct": {
+    "close_to_close_n": 11,
+    "close_to_close_per_yr": 2.6362,
+    "intraday_touch_n": 15,
+    "intraday_touch_per_yr": 3.5949
+   },
+   "days_le_4.00pct": {
+    "close_to_close_n": 4,
+    "close_to_close_per_yr": 0.9586,
+    "intraday_touch_n": 4,
+    "intraday_touch_per_yr": 0.9586
+   },
+   "days_le_5.00pct": {
+    "close_to_close_n": 0,
+    "close_to_close_per_yr": 0.0,
+    "intraday_touch_n": 0,
+    "intraday_touch_per_yr": 0.0
+   },
+   "rolling_1y_maxDD_pct": {
+    "max": 38.2162445202455,
+    "p90": 33.48723797634964,
+    "median": 18.337077099683462,
+    "min": 11.545802512525816,
+    "n_windows": 1159
+   }
+  }
+ },
+ "part1_companion_NOWARM": {
+  "window": {
+   "t0": "2022-01-31 00Z",
+   "t1": "2026-08-30 20Z",
+   "n_anchors": 10038,
+   "n_utc_days": 1673,
+   "mean_g_bps": 0.560754123264806,
+   "sharpe_ann": 1.106162968875261
+  },
+  "at_2.00x": {
+   "n_days": 1673,
+   "cagr_pct": 24.716041785720357,
+   "ann_vol_pct": 22.578606175675326,
+   "maxDD_pct": 45.98580414735892,
+   "worst_from_start_pct": -40.5379218655018,
+   "worst_day_pct": -11.171398418422795,
+   "worst_week_7d_pct": -15.052943932819185,
+   "worst_month_30d_pct": -14.236657968578303,
+   "daily": {
+    "mean_pct": 0.06753423615557155,
+    "sd_pct": 1.1818182611091603,
+    "skew": -0.4497640120999626,
+    "exkurt": 6.214881987826955,
+    "pct": {
+     "0.1": -5.135192009780872,
+     "1": -2.857698824800349,
+     "5": -1.7179924676292258,
+     "25": -0.5766728728600734,
+     "50": 0.015845553216298214,
+     "75": 0.6793146225591018,
+     "95": 2.0539364374395035,
+     "99": 3.1811961679020855,
+     "99.9": 4.275181317115716
+    }
+   },
+   "days_le_2.00pct": {
+    "close_to_close_n": 62,
+    "close_to_close_per_yr": 13.5266,
+    "intraday_touch_n": 84,
+    "intraday_touch_per_yr": 18.3264
+   },
+   "days_le_2.68pct": {
+    "close_to_close_n": 24,
+    "close_to_close_per_yr": 5.2361,
+    "intraday_touch_n": 32,
+    "intraday_touch_per_yr": 6.9815
+   },
+   "days_le_3.00pct": {
+    "close_to_close_n": 13,
+    "close_to_close_per_yr": 2.8362,
+    "intraday_touch_n": 17,
+    "intraday_touch_per_yr": 3.7089
+   },
+   "days_le_4.00pct": {
+    "close_to_close_n": 6,
+    "close_to_close_per_yr": 1.309,
+    "intraday_touch_n": 6,
+    "intraday_touch_per_yr": 1.309
+   },
+   "days_le_5.00pct": {
+    "close_to_close_n": 2,
+    "close_to_close_per_yr": 0.4363,
+    "intraday_touch_n": 2,
+    "intraday_touch_per_yr": 0.4363
+   },
+   "rolling_1y_maxDD_pct": {
+    "max": 35.764256178802825,
+    "p90": 30.25354814772766,
+    "median": 19.479573527208306,
+    "min": 10.97710881056705,
+    "n_windows": 1309
+   }
+  },
+  "at_2.00x_bootstrap_1y": {
+   "n_resamples": 2000,
+   "horizon_days": 365,
+   "cagr_pct": {
+    "mean": 28.274206450755457,
+    "median": 25.300150384316023,
+    "p05": -13.145087519495096,
+    "p95": 80.1815354200526,
+    "p_negative": 0.149
+   },
+   "maxDD_pct": {
+    "median": 16.09565083530046,
+    "p90": 26.134769908085033,
+    "p99": 37.5691043104549,
+    "mean": 17.42520270973131
+   },
+   "P_maxDD_ge_25pct": 0.1225,
+   "P_from_start_le_minus25pct": 0.04,
+   "worst_day_pct": {
+    "median": -4.367311016088227,
+    "p05": -11.171398418422795,
+    "p01": -11.171398418422795
+   },
+   "halt": {
+    "line_pct": -4.0,
+    "close_to_close": {
+     "E_per_yr": 1.2675,
+     "P_ge1": 0.729,
+     "P_ge2": 0.3555,
+     "P_ge3": 0.1365
+    },
+    "intraday_touch": {
+     "E_per_yr": 1.2675,
+     "P_ge1": 0.729,
+     "P_ge2": 0.3555,
+     "P_ge3": 0.1365
+    },
+    "with_halt_applied": {
+     "cagr_pct_median": 25.64757373715669,
+     "maxDD_pct_median": 15.88946077781711,
+     "P_maxDD_ge_25pct": 0.117
+    }
+   }
+  }
+ },
+ "part2_leverage_ladder": {
+  "PINNED": {
+   "1.00x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 14.236397069533036,
+     "ann_vol_pct": 10.822641279526698,
+     "maxDD_pct": 23.444908146993647,
+     "worst_from_start_pct": -20.43030706594251,
+     "worst_day_pct": -2.3059034225800135,
+     "worst_week_7d_pct": -7.800343231456319,
+     "worst_month_30d_pct": -7.288747803737683,
+     "daily": {
+      "mean_pct": 0.03807449784095711,
+      "sd_pct": 0.5664829351316634,
+      "skew": 0.1319069339141578,
+      "exkurt": 1.5744017629990008,
+      "pct": {
+       "0.1": -2.1753677736000125,
+       "1": -1.3913224735272054,
+       "5": -0.8587296354143302,
+       "25": -0.2817900266510631,
+       "50": 0.008522065498595133,
+       "75": 0.3391754347567999,
+       "95": 1.0155944329555977,
+       "99": 1.6246792183461547,
+       "99.9": 2.171106684091909
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 19.59796752702687,
+      "p90": 16.420888266631405,
+      "median": 8.72447192997151,
+      "min": 5.570995800824652,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 15.166380984851513,
+      "median": 14.500448279712618,
+      "p05": -4.123618964465742,
+      "p95": 37.47056133793463,
+      "p_negative": 0.1135
+     },
+     "maxDD_pct": {
+      "median": 7.588097464938509,
+      "p90": 12.448050806677331,
+      "p99": 18.068126947643854,
+      "mean": 8.218397843592665
+     },
+     "P_maxDD_ge_25pct": 0.0,
+     "P_from_start_le_minus25pct": 0.0,
+     "worst_day_pct": {
+      "median": -2.159985916293672,
+      "p05": -2.3059034225800135,
+      "p01": -2.3059034225800135
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 14.500448279712618,
+       "maxDD_pct_median": 7.588097464938509,
+       "P_maxDD_ge_25pct": 0.0
+      }
+     }
+    }
+   },
+   "1.25x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 17.8880715826913,
+     "ann_vol_pct": 13.530024311688832,
+     "maxDD_pct": 28.50490105913397,
+     "worst_from_start_pct": -24.99797351896089,
+     "worst_day_pct": -2.8764828390801855,
+     "worst_week_7d_pct": -9.663487103335633,
+     "worst_month_30d_pct": -9.057773777263932,
+     "daily": {
+      "mean_pct": 0.04760008483364717,
+      "sd_pct": 0.7081938397965125,
+      "skew": 0.13633948711398514,
+      "exkurt": 1.574663428792313,
+      "pct": {
+       "0.1": -2.715334051274756,
+       "1": -1.7373853536259203,
+       "5": -1.072803496329633,
+       "25": -0.35274851257036666,
+       "50": 0.010566285930879715,
+       "75": 0.4236568087915171,
+       "95": 1.26917706369253,
+       "99": 2.0339109714853865,
+       "99.9": 2.7185461283551406
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 11,
+      "intraday_touch_per_yr": 2.6362
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 3,
+      "close_to_close_per_yr": 0.719,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 1,
+      "intraday_touch_per_yr": 0.2397
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 23.94054507838289,
+      "p90": 20.165751841954133,
+      "median": 10.834832131229877,
+      "min": 6.935989239890272,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 19.307505829850957,
+      "median": 18.249658493059794,
+      "p05": -5.291437424177735,
+      "p95": 48.57440112994357,
+      "p_negative": 0.1165
+     },
+     "maxDD_pct": {
+      "median": 9.4227035999213,
+      "p90": 15.363767053288264,
+      "p99": 22.17434388233819,
+      "mean": 10.184606710842814
+     },
+     "P_maxDD_ge_25pct": 0.0045,
+     "P_from_start_le_minus25pct": 0.001,
+     "worst_day_pct": {
+      "median": -2.6949729973908765,
+      "p05": -2.8764828390801855,
+      "p01": -2.8764828390801855
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 18.249658493059794,
+       "maxDD_pct_median": 9.4227035999213,
+       "P_maxDD_ge_25pct": 0.0045
+      }
+     }
+    }
+   },
+   "1.50x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 21.568447947275217,
+     "ann_vol_pct": 16.238111474239876,
+     "maxDD_pct": 33.272981058245236,
+     "worst_from_start_pct": -29.35955231473345,
+     "worst_day_pct": -3.4447152977339135,
+     "worst_week_7d_pct": -11.492947192202097,
+     "worst_month_30d_pct": -10.805451906513131,
+     "daily": {
+      "mean_pct": 0.05712838482875012,
+      "sd_pct": 0.8499416003303796,
+      "skew": 0.14077052336047463,
+      "exkurt": 1.5749930905623897,
+      "pct": {
+       "0.1": -3.2537465447188336,
+       "1": -2.0827415261968687,
+       "5": -1.2866339544150796,
+       "25": -0.4239109050181322,
+       "50": 0.012575998597275095,
+       "75": 0.5061173104498162,
+       "95": 1.5226645446332532,
+       "99": 2.4443728865979106,
+       "99.9": 3.2678590495932913
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 21,
+      "close_to_close_per_yr": 5.0328,
+      "intraday_touch_n": 27,
+      "intraday_touch_per_yr": 6.4708
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 6,
+      "close_to_close_per_yr": 1.438,
+      "intraday_touch_n": 8,
+      "intraday_touch_per_yr": 1.9173
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 28.077138158369465,
+      "p90": 23.773254876015613,
+      "median": 12.916279583181712,
+      "min": 8.289724086106231,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 23.598635898042385,
+      "median": 22.038072096146866,
+      "p05": -6.5012717809820115,
+      "p95": 60.4603734973399,
+      "p_negative": 0.117
+     },
+     "maxDD_pct": {
+      "median": 11.231362978094534,
+      "p90": 18.19795597195142,
+      "p99": 26.121740486424088,
+      "mean": 12.116289871853187
+     },
+     "P_maxDD_ge_25pct": 0.014,
+     "P_from_start_le_minus25pct": 0.006,
+     "worst_day_pct": {
+      "median": -3.2279656162802706,
+      "p05": -3.4447152977339135,
+      "p01": -3.4447152977339135
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 22.038072096146866,
+       "maxDD_pct_median": 11.231362978094534,
+       "P_maxDD_ge_25pct": 0.014
+      }
+     }
+    }
+   },
+   "1.75x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 25.2730026128412,
+     "ann_vol_pct": 18.946910311728317,
+     "maxDD_pct": 37.76275938296643,
+     "worst_from_start_pct": -33.52032334583869,
+     "worst_day_pct": -4.010606596844147,
+     "worst_week_7d_pct": -13.289257264214127,
+     "worst_month_30d_pct": -12.531753677311563,
+     "daily": {
+      "mean_pct": 0.06665936158872642,
+      "sd_pct": 0.9917266116329805,
+      "skew": 0.14520004236831996,
+      "exkurt": 1.5753907171428265,
+      "pct": {
+       "0.1": -3.7906035430691674,
+       "1": -2.4291943593237506,
+       "5": -1.5002210182209952,
+       "25": -0.49529336435171767,
+       "50": 0.014551208829671758,
+       "75": 0.5895303919978834,
+       "95": 1.7765784364807327,
+       "99": 2.8560676620632384,
+       "99.9": 3.819049641923944
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 35,
+      "close_to_close_per_yr": 8.388,
+      "intraday_touch_n": 48,
+      "intraday_touch_per_yr": 11.5036
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 10,
+      "close_to_close_per_yr": 2.3966,
+      "intraday_touch_n": 13,
+      "intraday_touch_per_yr": 3.1156
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 9,
+      "intraday_touch_per_yr": 2.1569
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 1,
+      "close_to_close_per_yr": 0.2397,
+      "intraday_touch_n": 2,
+      "intraday_touch_per_yr": 0.4793
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 32.015770840660295,
+      "p90": 27.24680499122355,
+      "median": 14.968555243506387,
+      "min": 9.632128743396562,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 28.04518353563373,
+      "median": 25.85897365843488,
+      "p05": -7.7566895587773645,
+      "p95": 73.22120497448098,
+      "p_negative": 0.119
+     },
+     "maxDD_pct": {
+      "median": 13.014183933531925,
+      "p90": 20.9685438741809,
+      "p99": 29.909782629328124,
+      "mean": 14.013938250649222
+     },
+     "P_maxDD_ge_25pct": 0.034,
+     "P_from_start_le_minus25pct": 0.013,
+     "worst_day_pct": {
+      "median": -3.7589684101910326,
+      "p05": -4.010606596844147,
+      "p01": -4.010606596844147
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.256,
+       "P_ge1": 0.226,
+       "P_ge2": 0.0275,
+       "P_ge3": 0.0015
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.4925,
+       "P_ge1": 0.386,
+       "P_ge2": 0.088,
+       "P_ge3": 0.0155
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 25.591343001034794,
+       "maxDD_pct_median": 13.061285179674359,
+       "P_maxDD_ge_25pct": 0.037
+      }
+     }
+    }
+   },
+   "2.00x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 28.99701677261195,
+     "ann_vol_pct": 21.6564283814151,
+     "maxDD_pct": 41.987446628607984,
+     "worst_from_start_pct": -37.48571873916304,
+     "worst_day_pct": -4.574162528659576,
+     "worst_week_7d_pct": -15.052943932819197,
+     "worst_month_30d_pct": -14.236657968578303,
+     "daily": {
+      "mean_pct": 0.07619297874383907,
+      "sd_pct": 1.1335492692694327,
+      "skew": 0.14962804380706965,
+      "exkurt": 1.5758562782031458,
+      "pct": {
+       "0.1": -4.325903362870352,
+       "1": -2.7783655308751984,
+       "5": -1.7135731518014705,
+       "25": -0.5666045921703666,
+       "50": 0.015845553216298214,
+       "75": 0.6735309461500694,
+       "95": 2.0305310823494596,
+       "99": 3.268998000326046,
+       "99.9": 4.372122105344934
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 53,
+      "close_to_close_per_yr": 12.7019,
+      "intraday_touch_n": 73,
+      "intraday_touch_per_yr": 17.4951
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 20,
+      "close_to_close_per_yr": 4.7932,
+      "intraday_touch_n": 26,
+      "intraday_touch_per_yr": 6.2311
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 11,
+      "close_to_close_per_yr": 2.6362,
+      "intraday_touch_n": 15,
+      "intraday_touch_per_yr": 3.5949
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 35.764256178802825,
+      "p90": 30.589810120480937,
+      "median": 16.99142564640801,
+      "min": 10.97710881056705,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 32.65275058920961,
+      "median": 29.68004063496654,
+      "p05": -9.055444438455256,
+      "p95": 86.86072756291087,
+      "p_negative": 0.121
+     },
+     "maxDD_pct": {
+      "median": 14.771773715952797,
+      "p90": 23.66696006338902,
+      "p99": 33.46148480539715,
+      "mean": 15.878061621361331
+     },
+     "P_maxDD_ge_25pct": 0.074,
+     "P_from_start_le_minus25pct": 0.0215,
+     "worst_day_pct": {
+      "median": -4.287986009923717,
+      "p05": -4.574162528659576,
+      "p01": -4.574162528659576
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.974,
+       "P_ge1": 0.62,
+       "P_ge2": 0.2505,
+       "P_ge3": 0.078
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.974,
+       "P_ge1": 0.62,
+       "P_ge2": 0.2505,
+       "P_ge3": 0.078
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 29.64085267683033,
+       "maxDD_pct_median": 14.766576676796838,
+       "P_maxDD_ge_25pct": 0.074
+      }
+     }
+    }
+   },
+   "2.50x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 36.48361931537798,
+     "ann_vol_pct": 27.077652510928402,
+     "maxDD_pct": 49.692356982949285,
+     "worst_from_start_pct": -44.85272041089026,
+     "worst_day_pct": -5.6942914291467694,
+     "worst_week_7d_pct": -18.484518200145818,
+     "worst_month_30d_pct": -17.58222598121645,
+     "daily": {
+      "mean_pct": 0.09526798810152055,
+      "sd_pct": 1.4173091091804895,
+      "skew": 0.15847949242520537,
+      "exkurt": 1.5769910865487207,
+      "pct": {
+       "0.1": -5.391824869735286,
+       "1": -3.478314920220238,
+       "5": -2.139811141012682,
+       "25": -0.7089420154536619,
+       "50": 0.01591330470906982,
+       "75": 0.8413673716683112,
+       "95": 2.53855228131659,
+       "99": 4.0985761953704225,
+       "99.9": 5.4839294748783205
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 86,
+      "close_to_close_per_yr": 20.6106,
+      "intraday_touch_n": 119,
+      "intraday_touch_per_yr": 28.5194
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 42,
+      "close_to_close_per_yr": 10.0657,
+      "intraday_touch_n": 61,
+      "intraday_touch_per_yr": 14.6192
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 30,
+      "close_to_close_per_yr": 7.1898,
+      "intraday_touch_n": 42,
+      "intraday_touch_per_yr": 10.0657
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 11,
+      "intraday_touch_per_yr": 2.6362
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 42.720980522104625,
+      "p90": 36.89778761412693,
+      "median": 20.948142321703244,
+      "min": 13.68634065211517,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 42.374332921472465,
+      "median": 37.415881786262304,
+      "p05": -11.773501406840966,
+      "p95": 116.80773086320903,
+      "p_negative": 0.1245
+     },
+     "maxDD_pct": {
+      "median": 18.22959564797117,
+      "p90": 28.867888481889775,
+      "p99": 40.08955888603564,
+      "mean": 19.507293386644655
+     },
+     "P_maxDD_ge_25pct": 0.195,
+     "P_from_start_le_minus25pct": 0.049,
+     "worst_day_pct": {
+      "median": -5.340084117941169,
+      "p05": -5.6942914291467694,
+      "p01": -5.6942914291467694
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 1.9425,
+       "P_ge1": 0.861,
+       "P_ge2": 0.571,
+       "P_ge3": 0.2995
+      },
+      "intraday_touch": {
+       "E_per_yr": 2.7085,
+       "P_ge1": 0.9335,
+       "P_ge2": 0.7415,
+       "P_ge3": 0.507
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 35.10528651423892,
+       "maxDD_pct_median": 18.57707276018592,
+       "P_maxDD_ge_25pct": 0.2095
+      }
+     }
+    }
+   }
+  },
+  "REPRICED_CRITIC": {
+   "1.00x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 12.663283583455275,
+     "ann_vol_pct": 10.822298672263246,
+     "maxDD_pct": 25.222299574533878,
+     "worst_from_start_pct": -22.665700906724815,
+     "worst_day_pct": -2.3096294558370922,
+     "worst_week_7d_pct": -7.8249077145800205,
+     "worst_month_30d_pct": -7.394402024328661,
+     "daily": {
+      "mean_pct": 0.03427413541519489,
+      "sd_pct": 0.5664650022478891,
+      "skew": 0.13190704620230115,
+      "exkurt": 1.5744017687652132,
+      "pct": {
+       "0.1": -2.17909798065515,
+       "1": -1.3950775459326754,
+       "5": -0.8625015930628421,
+       "25": -0.2855802727473933,
+       "50": 0.004722636804976865,
+       "75": 0.33536554043062106,
+       "95": 1.0117631159695792,
+       "99": 1.6208286862766763,
+       "99.9": 2.1672388846799318
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 20.699308259481985,
+      "p90": 17.525143503004195,
+      "median": 9.496049835722498,
+      "min": 5.754020977694719,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 13.580471034991653,
+      "median": 12.923700809691107,
+      "p05": -5.444007461158304,
+      "p95": 35.5776562200104,
+      "p_negative": 0.133
+     },
+     "maxDD_pct": {
+      "median": 7.827556090511656,
+      "p90": 12.920812728158552,
+      "p99": 18.790964147072028,
+      "mean": 8.503595424026345
+     },
+     "P_maxDD_ge_25pct": 0.0005,
+     "P_from_start_le_minus25pct": 0.0,
+     "worst_day_pct": {
+      "median": -2.1637165872543385,
+      "p05": -2.3096294558370922,
+      "p01": -2.3096294558370922
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 12.923700809691107,
+       "maxDD_pct_median": 7.827556090511656,
+       "P_maxDD_ge_25pct": 0.0005
+      }
+     }
+    }
+   },
+   "1.25x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 15.862351546226439,
+     "ann_vol_pct": 13.529488935439973,
+     "maxDD_pct": 30.595492352815324,
+     "worst_from_start_pct": -27.622536405341346,
+     "worst_day_pct": -2.8811176980317987,
+     "worst_week_7d_pct": -9.693585975147501,
+     "worst_month_30d_pct": -9.187317504146408,
+     "daily": {
+      "mean_pct": 0.042849273726591294,
+      "sd_pct": 0.7081658169228886,
+      "skew": 0.1363396625044414,
+      "exkurt": 1.5746634404936044,
+      "pct": {
+       "0.1": -2.7199753673377267,
+       "1": -1.7420654550555852,
+       "5": -1.0775099441571556,
+       "25": -0.3574835005482391,
+       "50": 0.005816936730607125,
+       "75": 0.41889104023513646,
+       "95": 1.2643778964163372,
+       "99": 2.0290816739995075,
+       "99.9": 2.713689800138748
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 11,
+      "intraday_touch_per_yr": 2.6362
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 3,
+      "close_to_close_per_yr": 0.719,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 1,
+      "intraday_touch_per_yr": 0.2397
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 25.240663000185414,
+      "p90": 21.48349223865652,
+      "median": 11.775035953407176,
+      "min": 7.196691857530412,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 17.257414677239748,
+      "median": 16.217728666341724,
+      "p05": -6.919014983189715,
+      "p95": 46.02165201764526,
+      "p_negative": 0.137
+     },
+     "maxDD_pct": {
+      "median": 9.724783872775756,
+      "p90": 15.94951513422469,
+      "p99": 22.968047104157467,
+      "mean": 10.533913544338352
+     },
+     "P_maxDD_ge_25pct": 0.0055,
+     "P_from_start_le_minus25pct": 0.0025,
+     "worst_day_pct": {
+      "median": -2.6996150745788317,
+      "p05": -2.8811176980317987,
+      "p01": -2.8811176980317987
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 16.217728666341724,
+       "maxDD_pct_median": 9.724783872775756,
+       "P_maxDD_ge_25pct": 0.0055
+      }
+     }
+    }
+   },
+   "1.50x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 19.066049823321872,
+     "ann_vol_pct": 16.237340456558513,
+     "maxDD_pct": 35.63170179942241,
+     "worst_from_start_pct": -32.31544199123143,
+     "worst_day_pct": -3.450249998945276,
+     "worst_week_7d_pct": -11.528350626360783,
+     "worst_month_30d_pct": -10.957912431407912,
+     "daily": {
+      "mean_pct": 0.05142698170843735,
+      "sd_pct": 0.8499012434204629,
+      "skew": 0.14077077583667932,
+      "exkurt": 1.5749931112864255,
+      "pct": {
+       "0.1": -3.2592904517995867,
+       "1": -2.0883411879827185,
+       "5": -1.292271502040695,
+       "25": -0.4295894992835225,
+       "50": 0.006876704868941097,
+       "75": 0.5003944552915751,
+       "95": 1.5168935504071912,
+       "99": 2.4385583242505535,
+       "99.9": 3.262005490178045
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 21,
+      "close_to_close_per_yr": 5.0328,
+      "intraday_touch_n": 27,
+      "intraday_touch_per_yr": 6.4708
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 6,
+      "close_to_close_per_yr": 1.438,
+      "intraday_touch_n": 8,
+      "intraday_touch_per_yr": 1.9173
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 29.549935995382114,
+      "p90": 25.282242866899697,
+      "median": 14.038082300278255,
+      "min": 8.639616283543905,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 21.054482046671524,
+      "median": 19.52601270855786,
+      "p05": -8.426102494038842,
+      "p95": 57.15782955111713,
+      "p_negative": 0.1385
+     },
+     "maxDD_pct": {
+      "median": 11.57834343902649,
+      "p90": 18.880906540657634,
+      "p99": 26.952802295216028,
+      "mean": 12.527043319072003
+     },
+     "P_maxDD_ge_25pct": 0.0165,
+     "P_from_start_le_minus25pct": 0.0065,
+     "worst_day_pct": {
+      "median": -3.2335106712457096,
+      "p05": -3.450249998945276,
+      "p01": -3.450249998945276
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 19.52601270855786,
+       "maxDD_pct_median": 11.57834343902649,
+       "P_maxDD_ge_25pct": 0.0165
+      }
+     }
+    }
+   },
+   "1.75x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 22.269795572724995,
+     "ann_vol_pct": 18.94586076712777,
+     "maxDD_pct": 40.347997303991725,
+     "worst_from_start_pct": -36.75433776893091,
+     "worst_day_pct": -4.017032201493265,
+     "worst_week_7d_pct": -13.32974163517301,
+     "worst_month_30d_pct": -12.70617678594268,
+     "daily": {
+      "mean_pct": 0.06000722307337818,
+      "sd_pct": 0.9916716759578053,
+      "skew": 0.14520038589933384,
+      "exkurt": 1.5753907506213611,
+      "pct": {
+       "0.1": -3.797041552791695,
+       "1": -2.435708363713195,
+       "5": -1.5067862799195386,
+       "25": -0.5019144359650951,
+       "50": 0.00790194720750037,
+       "75": 0.5828492687935061,
+       "95": 1.769831571404982,
+       "99": 2.8492613120775148,
+       "99.9": 3.8121901133698732
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 35,
+      "close_to_close_per_yr": 8.388,
+      "intraday_touch_n": 48,
+      "intraday_touch_per_yr": 11.5036
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 10,
+      "close_to_close_per_yr": 2.3966,
+      "intraday_touch_n": 13,
+      "intraday_touch_per_yr": 3.1156
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 9,
+      "intraday_touch_per_yr": 2.1569
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 1,
+      "close_to_close_per_yr": 0.2397,
+      "intraday_touch_n": 2,
+      "intraday_touch_per_yr": 0.4793
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 33.637196668579215,
+      "p90": 28.92611729800052,
+      "median": 16.281772067545496,
+      "min": 10.082105296628697,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 24.975573353215868,
+      "median": 22.841725616606357,
+      "p05": -9.9683697613505,
+      "p95": 69.06913171957225,
+      "p_negative": 0.1395
+     },
+     "maxDD_pct": {
+      "median": 13.439877069597683,
+      "p90": 21.748062061957686,
+      "p99": 30.815131243724565,
+      "mean": 14.483412539527318
+     },
+     "P_maxDD_ge_25pct": 0.045,
+     "P_from_start_le_minus25pct": 0.0175,
+     "worst_day_pct": {
+      "median": -3.765408052406549,
+      "p05": -4.017032201493265,
+      "p01": -4.017032201493265
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.256,
+       "P_ge1": 0.226,
+       "P_ge2": 0.0275,
+       "P_ge3": 0.0015
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.4925,
+       "P_ge1": 0.386,
+       "P_ge2": 0.088,
+       "P_ge3": 0.0155
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 22.580509373630107,
+       "maxDD_pct_median": 13.470923636363253,
+       "P_maxDD_ge_25pct": 0.0475
+      }
+     }
+    }
+   },
+   "2.00x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 25.46887849901276,
+     "ann_vol_pct": 21.655057411226235,
+     "maxDD_pct": 44.76090502282904,
+     "worst_from_start_pct": -40.94907899438508,
+     "worst_day_pct": -4.58147014242658,
+     "worst_week_7d_pct": -15.098291686474607,
+     "worst_month_30d_pct": -14.432107946104477,
+     "daily": {
+      "mean_pct": 0.06858996140255387,
+      "sd_pct": 1.1334775094100313,
+      "skew": 0.14962849234758357,
+      "exkurt": 1.5758563288115743,
+      "pct": {
+       "0.1": -4.333227016505388,
+       "1": -2.7857880195579607,
+       "5": -1.72106275729044,
+       "25": -0.5741669320921516,
+       "50": 0.008246198147388029,
+       "75": 0.6658900829525249,
+       "95": 2.022804333560705,
+       "99": 3.2611933165421845,
+       "99.9": 4.364247834087511
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 53,
+      "close_to_close_per_yr": 12.7019,
+      "intraday_touch_n": 73,
+      "intraday_touch_per_yr": 17.4951
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 20,
+      "close_to_close_per_yr": 4.7932,
+      "intraday_touch_n": 26,
+      "intraday_touch_per_yr": 6.2311
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 11,
+      "close_to_close_per_yr": 2.6362,
+      "intraday_touch_n": 15,
+      "intraday_touch_per_yr": 3.5949
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 37.51218643655424,
+      "p90": 32.41979059279107,
+      "median": 18.495724056115527,
+      "min": 11.523480675498842,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 29.02470998474526,
+      "median": 26.133228670219054,
+      "p05": -11.543216616044925,
+      "p95": 81.75083549868178,
+      "p_negative": 0.141
+     },
+     "maxDD_pct": {
+      "median": 15.27176528643781,
+      "p90": 24.523720769209422,
+      "p99": 34.57184450520737,
+      "mean": 16.403495730174004
+     },
+     "P_maxDD_ge_25pct": 0.0875,
+     "P_from_start_le_minus25pct": 0.0275,
+     "worst_day_pct": {
+      "median": -4.295311886695819,
+      "p05": -4.58147014242658,
+      "p01": -4.58147014242658
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.974,
+       "P_ge1": 0.62,
+       "P_ge2": 0.2505,
+       "P_ge3": 0.078
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.974,
+       "P_ge1": 0.62,
+       "P_ge2": 0.2505,
+       "P_ge3": 0.078
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 26.09591337377406,
+       "maxDD_pct_median": 15.27176528643781,
+       "P_maxDD_ge_25pct": 0.087
+      }
+     }
+    }
+   },
+   "2.50x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 31.833639514919266,
+     "ann_vol_pct": 27.07550994010881,
+     "maxDD_pct": 52.73989816108426,
+     "worst_from_start_pct": -48.64504231664248,
+     "worst_day_pct": -5.703336555645711,
+     "worst_week_7d_pct": -18.538963708677926,
+     "worst_month_30d_pct": -17.816996516814754,
+     "daily": {
+      "mean_pct": 0.0857627826226048,
+      "sd_pct": 1.4171969618982074,
+      "skew": 0.1584801927912369,
+      "exkurt": 1.576991187115036,
+      "pct": {
+       "0.1": -5.400894553753859,
+       "1": -3.487537710413429,
+       "5": -2.1491392762357266,
+       "25": -0.7183836545826217,
+       "50": 0.006414069665039435,
+       "75": 0.8318030686276123,
+       "95": 2.5288537237252413,
+       "99": 4.088755111724322,
+       "99.9": 5.473999254624646
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 87,
+      "close_to_close_per_yr": 20.8503,
+      "intraday_touch_n": 121,
+      "intraday_touch_per_yr": 28.9987
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 43,
+      "close_to_close_per_yr": 10.3053,
+      "intraday_touch_n": 61,
+      "intraday_touch_per_yr": 14.6192
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 30,
+      "close_to_close_per_yr": 7.1898,
+      "intraday_touch_n": 42,
+      "intraday_touch_per_yr": 10.0657
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 11,
+      "intraday_touch_per_yr": 2.6362
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 44.66270470016471,
+      "p90": 38.92864366160851,
+      "median": 22.831465257800375,
+      "min": 14.33177670424226,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 37.52382892463731,
+      "median": 32.73415542495649,
+      "p05": -14.77995144137427,
+      "p95": 109.42264596960169,
+      "p_negative": 0.1485
+     },
+     "maxDD_pct": {
+      "median": 18.836943707701554,
+      "p90": 29.873761958718088,
+      "p99": 41.624112479343964,
+      "mean": 20.136827990847163
+     },
+     "P_maxDD_ge_25pct": 0.2215,
+     "P_from_start_le_minus25pct": 0.0585,
+     "worst_day_pct": {
+      "median": -5.349157556640039,
+      "p05": -5.703336555645711,
+      "p01": -5.703336555645711
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 1.9425,
+       "P_ge1": 0.861,
+       "P_ge2": 0.571,
+       "P_ge3": 0.2995
+      },
+      "intraday_touch": {
+       "E_per_yr": 2.7085,
+       "P_ge1": 0.9335,
+       "P_ge2": 0.7415,
+       "P_ge3": 0.507
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 30.522909712480264,
+       "maxDD_pct_median": 19.168660328536465,
+       "P_maxDD_ge_25pct": 0.236
+      }
+     }
+    }
+   }
+  },
+  "REPRICED_UNITFIX": {
+   "1.00x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 11.312204347680987,
+     "ann_vol_pct": 10.818087270861723,
+     "maxDD_pct": 25.596108587030276,
+     "worst_from_start_pct": -22.942809353616667,
+     "worst_day_pct": -2.3136586160704797,
+     "worst_week_7d_pct": -7.830904260361626,
+     "worst_month_30d_pct": -7.710038350118453,
+     "daily": {
+      "mean_pct": 0.03096654345428943,
+      "sd_pct": 0.5662445674237704,
+      "skew": 0.1291210912346334,
+      "exkurt": 1.5794639525167735,
+      "pct": {
+       "0.1": -2.187170818819623,
+       "1": -1.3999032292815898,
+       "5": -0.8688581428435359,
+       "25": -0.2900324879125171,
+       "50": 0.00032049918754495366,
+       "75": 0.3292706712293203,
+       "95": 1.0040392591647085,
+       "99": 1.6174982272184126,
+       "99.9": 2.1670304105288496
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 21.147287556335026,
+      "p90": 18.179606153650628,
+      "median": 9.480245430429623,
+      "min": 5.765913880389684,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 12.218757843886545,
+      "median": 11.622094847817221,
+      "p05": -6.5393504924494135,
+      "p95": 33.93597684044483,
+      "p_negative": 0.155
+     },
+     "maxDD_pct": {
+      "median": 8.066853246263712,
+      "p90": 13.325880538332644,
+      "p99": 19.38325514799186,
+      "mean": 8.761162471624074
+     },
+     "P_maxDD_ge_25pct": 0.0005,
+     "P_from_start_le_minus25pct": 0.0,
+     "worst_day_pct": {
+      "median": -2.173046169517079,
+      "p05": -2.3136586160704797,
+      "p01": -2.3136586160704797
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 11.622094847817221,
+       "maxDD_pct_median": 8.066853246263712,
+       "P_maxDD_ge_25pct": 0.0005
+      }
+     }
+    }
+   },
+   "1.25x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 14.128204647249664,
+     "ann_vol_pct": 13.52411662204998,
+     "maxDD_pct": 31.00733670124821,
+     "worst_from_start_pct": -27.946590496123534,
+     "worst_day_pct": -2.886131237281808,
+     "worst_week_7d_pct": -9.700933482456797,
+     "worst_month_30d_pct": -9.574093082355962,
+     "daily": {
+      "mean_pct": 0.03871421314058094,
+      "sd_pct": 0.7078846171880913,
+      "skew": 0.13355767911155642,
+      "exkurt": 1.5796884294276792,
+      "pct": {
+       "0.1": -2.7300196277978515,
+       "1": -1.7478083892924254,
+       "5": -1.0852653642936139,
+       "25": -0.36271343254205,
+       "50": 6.792201341365711e-05,
+       "75": 0.4111871945375767,
+       "95": 1.2555098561279765,
+       "99": 2.0249774332280834,
+       "99.9": 2.713428117178609
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 11,
+      "intraday_touch_per_yr": 2.6362
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 3,
+      "close_to_close_per_yr": 0.719,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 1,
+      "intraday_touch_per_yr": 0.2397
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 25.768204192089115,
+      "p90": 22.261379757834863,
+      "median": 11.752787018645828,
+      "min": 7.211329136969824,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 15.50271763139861,
+      "median": 14.537387448557437,
+      "p05": -8.265814391886508,
+      "p95": 43.8097278830926,
+      "p_negative": 0.1585
+     },
+     "maxDD_pct": {
+      "median": 10.022298726820988,
+      "p90": 16.442263000052645,
+      "p99": 23.763231284636223,
+      "mean": 10.848981749420101
+     },
+     "P_maxDD_ge_25pct": 0.0065,
+     "P_from_start_le_minus25pct": 0.0035,
+     "worst_day_pct": {
+      "median": -2.7112233478273517,
+      "p05": -2.886131237281808,
+      "p01": -2.886131237281808
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 14.537387448557437,
+       "maxDD_pct_median": 10.022298726820988,
+       "P_maxDD_ge_25pct": 0.0065
+      }
+     }
+    }
+   },
+   "1.50x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 16.9308006891135,
+     "ann_vol_pct": 16.230763977197746,
+     "maxDD_pct": 36.06579119712423,
+     "worst_from_start_pct": -32.67894833746519,
+     "worst_day_pct": -3.4562388351643603,
+     "worst_week_7d_pct": -11.536992966451953,
+     "worst_month_30d_pct": -11.412840272344237,
+     "daily": {
+      "mean_pct": 0.046464224223584025,
+      "sd_pct": 0.8495570147580782,
+      "skew": 0.13799275840267336,
+      "exkurt": 1.5799809051728095,
+      "pct": {
+       "0.1": -3.271287559937658,
+       "1": -2.0954108904281723,
+       "5": -1.3013502592316861,
+       "25": -0.43546306633704956,
+       "50": -0.00031764119751143127,
+       "75": 0.49294249616886887,
+       "95": 1.507867865340908,
+       "99": 2.4337041514768907,
+       "99.9": 3.261690158311681
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 22,
+      "close_to_close_per_yr": 5.2725,
+      "intraday_touch_n": 28,
+      "intraday_touch_per_yr": 6.7104
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 6,
+      "close_to_close_per_yr": 1.438,
+      "intraday_touch_n": 8,
+      "intraday_touch_per_yr": 1.9173
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 30.146083766081066,
+      "p90": 26.169488798035033,
+      "median": 13.986387505835896,
+      "min": 8.656906396680897,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 18.883814814318004,
+      "median": 17.438199742727022,
+      "p05": -10.013131903682561,
+      "p95": 54.29300195930041,
+      "p_negative": 0.159
+     },
+     "maxDD_pct": {
+      "median": 11.948748195263137,
+      "p90": 19.485761470601684,
+      "p99": 27.96284437949197,
+      "mean": 12.896972658057418
+     },
+     "P_maxDD_ge_25pct": 0.0205,
+     "P_from_start_le_minus25pct": 0.0095,
+     "worst_day_pct": {
+      "median": -3.2473763486744134,
+      "p05": -3.4562388351643603,
+      "p01": -3.4562388351643603
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.0,
+       "P_ge1": 0.0,
+       "P_ge2": 0.0,
+       "P_ge3": 0.0
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 17.438199742727022,
+       "maxDD_pct_median": 11.948748195263137,
+       "P_maxDD_ge_25pct": 0.0205
+      }
+     }
+    }
+   },
+   "1.75x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 19.71554733746277,
+     "ann_vol_pct": 18.938036852820908,
+     "maxDD_pct": 40.79114075350508,
+     "worst_from_start_pct": -37.150458360537286,
+     "worst_day_pct": -4.023987293663334,
+     "worst_week_7d_pct": -13.339624193227673,
+     "worst_month_30d_pct": -13.226330249805418,
+     "daily": {
+      "mean_pct": 0.05421654040793733,
+      "sd_pct": 0.9912621535661547,
+      "skew": 0.1424263285758574,
+      "exkurt": 1.58034134981607,
+      "pct": {
+       "0.1": -3.810973004140103,
+       "1": -2.443014108343922,
+       "5": -1.5171131270219318,
+       "25": -0.5082811696772827,
+       "50": -0.0008361426508951553,
+       "75": 0.574536195194908,
+       "95": 1.7606457617022613,
+       "99": 2.843681216082893,
+       "99.9": 3.8118206904991223
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 35,
+      "close_to_close_per_yr": 8.388,
+      "intraday_touch_n": 48,
+      "intraday_touch_per_yr": 11.5036
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 10,
+      "close_to_close_per_yr": 2.3966,
+      "intraday_touch_n": 14,
+      "intraday_touch_per_yr": 3.3552
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 9,
+      "intraday_touch_per_yr": 2.1569
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 1,
+      "close_to_close_per_yr": 0.2397,
+      "intraday_touch_n": 2,
+      "intraday_touch_per_yr": 0.4793
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 34.29190036511899,
+      "p90": 29.90958642628217,
+      "median": 16.181119509587127,
+      "min": 10.101956850784932,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 22.364896679669517,
+      "median": 20.331229886714773,
+      "p05": -11.814632885492115,
+      "p95": 65.41875235386414,
+      "p_negative": 0.1645
+     },
+     "maxDD_pct": {
+      "median": 13.84245075158983,
+      "p90": 22.381413518226687,
+      "p99": 31.904505946977984,
+      "mean": 14.905898464262766
+     },
+     "P_maxDD_ge_25pct": 0.0555,
+     "P_from_start_le_minus25pct": 0.0205,
+     "worst_day_pct": {
+      "median": -3.7815099443196387,
+      "p05": -4.023987293663334,
+      "p01": -4.023987293663334
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.256,
+       "P_ge1": 0.226,
+       "P_ge2": 0.0275,
+       "P_ge3": 0.0015
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.4925,
+       "P_ge1": 0.386,
+       "P_ge2": 0.088,
+       "P_ge3": 0.0155
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 20.057899726694295,
+       "maxDD_pct_median": 13.90110173297116,
+       "P_maxDD_ge_25pct": 0.0565
+      }
+     }
+    }
+   },
+   "2.00x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 22.477928901905962,
+     "ann_vol_pct": 21.64594277781353,
+     "maxDD_pct": 45.21959809290947,
+     "worst_from_start_pct": -41.371595093128455,
+     "worst_day_pct": -4.5893824904706175,
+     "worst_week_7d_pct": -15.10936133005747,
+     "worst_month_30d_pct": -15.014620624605756,
+     "daily": {
+      "mean_pct": 0.06197112526786228,
+      "sd_pct": 1.1330004276926466,
+      "skew": 0.14685838905534196,
+      "exkurt": 1.5807697342639573,
+      "pct": {
+       "0.1": -4.349074376750947,
+       "1": -2.7926939079767656,
+       "5": -1.7325542668957825,
+       "25": -0.5811675231293945,
+       "50": -0.0014875343134046481,
+       "75": 0.6543864475548888,
+       "95": 2.013844063612994,
+       "99": 3.2549114656506153,
+       "99.9": 4.363823876109212
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 53,
+      "close_to_close_per_yr": 12.7019,
+      "intraday_touch_n": 73,
+      "intraday_touch_per_yr": 17.4951
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 20,
+      "close_to_close_per_yr": 4.7932,
+      "intraday_touch_n": 26,
+      "intraday_touch_per_yr": 6.2311
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 11,
+      "close_to_close_per_yr": 2.6362,
+      "intraday_touch_n": 15,
+      "intraday_touch_per_yr": 3.5949
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 0,
+      "close_to_close_per_yr": 0.0,
+      "intraday_touch_n": 0,
+      "intraday_touch_per_yr": 0.0
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 38.2162445202455,
+      "p90": 33.48723797634964,
+      "median": 18.337077099683462,
+      "min": 11.545802512525816,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 25.94888882344293,
+      "median": 23.195875177042613,
+      "p05": -13.630899858540976,
+      "p95": 77.22741041199258,
+      "p_negative": 0.1675
+     },
+     "maxDD_pct": {
+      "median": 15.718127046035619,
+      "p90": 25.21848880714877,
+      "p99": 35.649552183235485,
+      "mean": 16.876111525820473
+     },
+     "P_maxDD_ge_25pct": 0.1075,
+     "P_from_start_le_minus25pct": 0.033,
+     "worst_day_pct": {
+      "median": -4.313628900277244,
+      "p05": -4.5893824904706175,
+      "p01": -4.5893824904706175
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 0.974,
+       "P_ge1": 0.62,
+       "P_ge2": 0.2505,
+       "P_ge3": 0.078
+      },
+      "intraday_touch": {
+       "E_per_yr": 0.974,
+       "P_ge1": 0.62,
+       "P_ge2": 0.2505,
+       "P_ge3": 0.078
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 23.1520536719789,
+       "maxDD_pct_median": 15.72778539510072,
+       "P_maxDD_ge_25pct": 0.107
+      }
+     }
+    }
+   },
+   "2.50x": {
+    "realised": {
+     "n_days": 1523,
+     "cagr_pct": 27.917250236671087,
+     "ann_vol_pct": 27.063683954297314,
+     "maxDD_pct": 53.22997196444186,
+     "worst_from_start_pct": -49.1039933333704,
+     "worst_day_pct": -5.713136578529343,
+     "worst_week_7d_pct": -18.552253900932612,
+     "worst_month_30d_pct": -18.515868555753634,
+     "daily": {
+      "mean_pct": 0.07748695466117363,
+      "sd_pct": 1.4165779615100125,
+      "skew": 0.15571797840746843,
+      "exkurt": 1.5818302103408355,
+      "pct": {
+       "0.1": -5.420518709490335,
+       "1": -3.495928686355496,
+       "5": -2.1624725591572114,
+       "25": -0.7273319104710574,
+       "50": -0.004901359219222634,
+       "75": 0.8119934852727995,
+       "95": 2.5215039595963766,
+       "99": 4.081142896549415,
+       "99.9": 5.473464886082663
+      }
+     },
+     "days_le_2.00pct": {
+      "close_to_close_n": 89,
+      "close_to_close_per_yr": 21.3296,
+      "intraday_touch_n": 122,
+      "intraday_touch_per_yr": 29.2383
+     },
+     "days_le_2.68pct": {
+      "close_to_close_n": 43,
+      "close_to_close_per_yr": 10.3053,
+      "intraday_touch_n": 61,
+      "intraday_touch_per_yr": 14.6192
+     },
+     "days_le_3.00pct": {
+      "close_to_close_n": 30,
+      "close_to_close_per_yr": 7.1898,
+      "intraday_touch_n": 42,
+      "intraday_touch_per_yr": 10.0657
+     },
+     "days_le_4.00pct": {
+      "close_to_close_n": 8,
+      "close_to_close_per_yr": 1.9173,
+      "intraday_touch_n": 11,
+      "intraday_touch_per_yr": 2.6362
+     },
+     "days_le_5.00pct": {
+      "close_to_close_n": 4,
+      "close_to_close_per_yr": 0.9586,
+      "intraday_touch_n": 4,
+      "intraday_touch_per_yr": 0.9586
+     },
+     "rolling_1y_maxDD_pct": {
+      "max": 45.441000298154556,
+      "p90": 40.1770001452527,
+      "median": 22.53314892942876,
+      "min": 14.427224407630678,
+      "n_windows": 1159
+     }
+    },
+    "bootstrap_1y": {
+     "n_resamples": 2000,
+     "horizon_days": 365,
+     "cagr_pct": {
+      "mean": 33.43770684968545,
+      "median": 28.880641123382055,
+      "p05": -17.328036693212066,
+      "p95": 102.98510252362712,
+      "p_negative": 0.1755
+     },
+     "maxDD_pct": {
+      "median": 19.395712845521214,
+      "p90": 30.709307447291746,
+      "p99": 42.605456058187045,
+      "mean": 20.70290586457929
+     },
+     "P_maxDD_ge_25pct": 0.245,
+     "P_from_start_le_minus25pct": 0.0715,
+     "worst_day_pct": {
+      "median": -5.371841921479847,
+      "p05": -5.713136578529343,
+      "p01": -5.713136578529343
+     },
+     "halt": {
+      "line_pct": -4.0,
+      "close_to_close": {
+       "E_per_yr": 1.9425,
+       "P_ge1": 0.861,
+       "P_ge2": 0.571,
+       "P_ge3": 0.2995
+      },
+      "intraday_touch": {
+       "E_per_yr": 2.7085,
+       "P_ge1": 0.9335,
+       "P_ge2": 0.7415,
+       "P_ge3": 0.507
+      },
+      "with_halt_applied": {
+       "cagr_pct_median": 26.650976846792595,
+       "maxDD_pct_median": 19.682642532679907,
+       "P_maxDD_ge_25pct": 0.2605
+      }
+     }
+    }
+   }
+  }
+ },
+ "part2_objective_grid": {
+  "PINNED": [
+   {
+    "L": 0.25,
+    "median_cagr_pct": 3.5460102161472995,
+    "mean_cagr_pct": 3.5916367114133694,
+    "median_maxDD_pct": 1.933883262080277,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 3.436041237487291,
+    "calmar_median": 1.833621649081785
+   },
+   {
+    "L": 0.3,
+    "median_cagr_pct": 4.261861875264284,
+    "mean_cagr_pct": 4.325432136670797,
+    "median_maxDD_pct": 2.3173573550254956,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 4.114566147320577,
+    "calmar_median": 1.8391042995685898
+   },
+   {
+    "L": 0.35,
+    "median_cagr_pct": 4.979876979665621,
+    "mean_cagr_pct": 5.064469693682803,
+    "median_maxDD_pct": 2.6998924810592575,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 4.790196556452978,
+    "calmar_median": 1.844472331621091
+   },
+   {
+    "L": 0.4,
+    "median_cagr_pct": 5.700032105360187,
+    "mean_cagr_pct": 5.808786802372779,
+    "median_maxDD_pct": 3.0813135154286684,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 5.4629324376706885,
+    "calmar_median": 1.8498708673489868
+   },
+   {
+    "L": 0.45,
+    "median_cagr_pct": 6.422303493738268,
+    "mean_cagr_pct": 6.558421144808263,
+    "median_maxDD_pct": 3.4609650144090676,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 6.132773761900263,
+    "calmar_median": 1.8556395303044766
+   },
+   {
+    "L": 0.5,
+    "median_cagr_pct": 7.146667051766132,
+    "mean_cagr_pct": 7.3134106669064645,
+    "median_maxDD_pct": 3.8394005650510876,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 6.799720498203378,
+    "calmar_median": 1.8614017815229023
+   },
+   {
+    "L": 0.55,
+    "median_cagr_pct": 7.873098352237706,
+    "mean_cagr_pct": 8.073793580153758,
+    "median_maxDD_pct": 4.216622890383325,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 7.4637726137776585,
+    "calmar_median": 1.867157333465497
+   },
+   {
+    "L": 0.6,
+    "median_cagr_pct": 8.601572634071452,
+    "mean_cagr_pct": 8.839608363331322,
+    "median_maxDD_pct": 4.592634711531779,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 8.124930073956621,
+    "calmar_median": 1.8729058970166985
+   },
+   {
+    "L": 0.65,
+    "median_cagr_pct": 9.332064802645423,
+    "mean_cagr_pct": 9.610893764245187,
+    "median_maxDD_pct": 4.969725722800766,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 8.7831928422073,
+    "calmar_median": 1.8777826631016152
+   },
+   {
+    "L": 0.7,
+    "median_cagr_pct": 10.064549430188718,
+    "mean_cagr_pct": 10.387688801466725,
+    "median_maxDD_pct": 5.3467862115322955,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 9.438560880130584,
+    "calmar_median": 1.8823549384639402
+   },
+   {
+    "L": 0.75,
+    "median_cagr_pct": 10.799000756213406,
+    "mean_cagr_pct": 11.170032766074977,
+    "median_maxDD_pct": 5.72233947109419,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 10.091034147457325,
+    "calmar_median": 1.8871653474533359
+   },
+   {
+    "L": 0.8,
+    "median_cagr_pct": 11.535392688001023,
+    "mean_cagr_pct": 11.95796522341402,
+    "median_maxDD_pct": 6.095427689439359,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 10.740612602051531,
+    "calmar_median": 1.892466497139599
+   },
+   {
+    "L": 0.85,
+    "median_cagr_pct": 12.273698801127308,
+    "mean_cagr_pct": 12.75152601484951,
+    "median_maxDD_pct": 6.468366736152664,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 11.387296199906803,
+    "calmar_median": 1.8974958133600837
+   },
+   {
+    "L": 0.9,
+    "median_cagr_pct": 13.01389234003949,
+    "mean_cagr_pct": 13.550755259534213,
+    "median_maxDD_pct": 6.841041227385131,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 12.031084895144549,
+    "calmar_median": 1.9023262552408011
+   },
+   {
+    "L": 0.95,
+    "median_cagr_pct": 13.755946218686521,
+    "mean_cagr_pct": 14.355693356182861,
+    "median_maxDD_pct": 7.212838292596069,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 12.671978640014888,
+    "calmar_median": 1.9071474585541326
+   },
+   {
+    "L": 1.0,
+    "median_cagr_pct": 14.500448279712618,
+    "mean_cagr_pct": 15.166380984851513,
+    "median_maxDD_pct": 7.588097464938509,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 13.30997738489534,
+    "calmar_median": 1.9109464983433926
+   },
+   {
+    "L": 1.05,
+    "median_cagr_pct": 15.247757969688024,
+    "mean_cagr_pct": 15.982859108722023,
+    "median_maxDD_pct": 7.958222121199982,
+    "P_maxDD_ge25": 0.0005,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 13.945081078288432,
+    "calmar_median": 1.9159754198201355
+   },
+   {
+    "L": 1.1,
+    "median_cagr_pct": 15.99634874324135,
+    "mean_cagr_pct": 16.805168975894805,
+    "median_maxDD_pct": 8.326106304923142,
+    "P_maxDD_ge25": 0.001,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 14.577289666820963,
+    "calmar_median": 1.921228021528247
+   },
+   {
+    "L": 1.15,
+    "median_cagr_pct": 16.745738642260033,
+    "mean_cagr_pct": 17.633352121190473,
+    "median_maxDD_pct": 8.692985283248378,
+    "P_maxDD_ge25": 0.002,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 15.2066030952452,
+    "calmar_median": 1.926350741042842
+   },
+   {
+    "L": 1.2,
+    "median_cagr_pct": 17.496851515370583,
+    "mean_cagr_pct": 18.467450367950256,
+    "median_maxDD_pct": 9.058859379983335,
+    "P_maxDD_ge25": 0.003,
+    "P_from_start_le_m25": 0.0005,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 15.833021306433897,
+    "calmar_median": 1.9314629780027306
+   },
+   {
+    "L": 1.25,
+    "median_cagr_pct": 18.249658493059794,
+    "mean_cagr_pct": 19.307505829850957,
+    "median_maxDD_pct": 9.4227035999213,
+    "P_maxDD_ge25": 0.0045,
+    "P_from_start_le_m25": 0.001,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 16.45654424138224,
+    "calmar_median": 1.9367751834210531
+   },
+   {
+    "L": 1.3,
+    "median_cagr_pct": 19.004130384675044,
+    "mean_cagr_pct": 20.15356091272099,
+    "median_maxDD_pct": 9.78559172293118,
+    "P_maxDD_ge25": 0.0055,
+    "P_from_start_le_m25": 0.002,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 17.077171839205512,
+    "calmar_median": 1.9420522460733258
+   },
+   {
+    "L": 1.35,
+    "median_cagr_pct": 19.76023767945071,
+    "mean_cagr_pct": 21.005658316363128,
+    "median_maxDD_pct": 10.14741206958506,
+    "P_maxDD_ge25": 0.0065,
+    "P_from_start_le_m25": 0.0035,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 17.694904037137565,
+    "calmar_median": 1.9473179510151428
+   },
+   {
+    "L": 1.4,
+    "median_cagr_pct": 20.51795054757324,
+    "mean_cagr_pct": 21.863841036385633,
+    "median_maxDD_pct": 10.510553598667322,
+    "P_maxDD_ge25": 0.0085,
+    "P_from_start_le_m25": 0.004,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 18.30974077053097,
+    "calmar_median": 1.9521284350022057
+   },
+   {
+    "L": 1.45,
+    "median_cagr_pct": 21.277238841305955,
+    "mean_cagr_pct": 22.728152366036525,
+    "median_maxDD_pct": 10.873765582760086,
+    "P_maxDD_ge25": 0.0115,
+    "P_from_start_le_m25": 0.0055,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 18.921681972855257,
+    "calmar_median": 1.9567498194958473
+   },
+   {
+    "L": 1.5,
+    "median_cagr_pct": 22.038072096146866,
+    "mean_cagr_pct": 23.598635898042385,
+    "median_maxDD_pct": 11.231362978094534,
+    "P_maxDD_ge25": 0.014,
+    "P_from_start_le_m25": 0.006,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 19.530727575693994,
+    "calmar_median": 1.9621903538448147
+   },
+   {
+    "L": 1.55,
+    "median_cagr_pct": 22.80041953205878,
+    "mean_cagr_pct": 24.475335526458768,
+    "median_maxDD_pct": 11.586815979251302,
+    "P_maxDD_ge25": 0.0155,
+    "P_from_start_le_m25": 0.006,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 20.136877508746824,
+    "calmar_median": 1.9677899064667859
+   },
+   {
+    "L": 1.6,
+    "median_cagr_pct": 23.56425005472752,
+    "mean_cagr_pct": 25.358295448520174,
+    "median_maxDD_pct": 11.944810371738935,
+    "P_maxDD_ge25": 0.0205,
+    "P_from_start_le_m25": 0.0085,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 20.74013169982652,
+    "calmar_median": 1.9727604977706328
+   },
+   {
+    "L": 1.65,
+    "median_cagr_pct": 24.32953225687944,
+    "mean_cagr_pct": 26.247560166495663,
+    "median_maxDD_pct": 12.30210063854858,
+    "P_maxDD_ge25": 0.0245,
+    "P_from_start_le_m25": 0.009,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.2365,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 21.340490074856405,
+    "calmar_median": 1.9776729984343449
+   },
+   {
+    "L": 1.7,
+    "median_cagr_pct": 25.09542146372241,
+    "mean_cagr_pct": 27.143174489554532,
+    "median_maxDD_pct": 12.657325146779963,
+    "P_maxDD_ge25": 0.029,
+    "P_from_start_le_m25": 0.0105,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.2365,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 21.937952557871423,
+    "calmar_median": 1.9826796872723706
+   },
+   {
+    "L": 1.75,
+    "median_cagr_pct": 25.85897365843488,
+    "mean_cagr_pct": 28.04518353563373,
+    "median_maxDD_pct": 13.014183933531925,
+    "P_maxDD_ge25": 0.034,
+    "P_from_start_le_m25": 0.013,
+    "E_halt_cc_per_yr": 0.256,
+    "E_halt_id_per_yr": 0.4925,
+    "P_halt_ge1": 0.226,
+    "E_log_growth_ann_pct": 22.532519071016452,
+    "calmar_median": 1.9869838777833382
+   },
+   {
+    "L": 1.8,
+    "median_cagr_pct": 26.623565637383418,
+    "mean_cagr_pct": 28.953632733309476,
+    "median_maxDD_pct": 13.363810859865527,
+    "P_maxDD_ge25": 0.042,
+    "P_from_start_le_m25": 0.015,
+    "E_halt_cc_per_yr": 0.256,
+    "E_halt_id_per_yr": 0.4925,
+    "P_halt_ge1": 0.226,
+    "E_log_growth_ann_pct": 23.124189534544012,
+    "calmar_median": 1.9922135921079114
+   },
+   {
+    "L": 1.85,
+    "median_cagr_pct": 27.387097097024593,
+    "mean_cagr_pct": 29.8685678236756,
+    "median_maxDD_pct": 13.713481265944516,
+    "P_maxDD_ge25": 0.049,
+    "P_from_start_le_m25": 0.0175,
+    "E_halt_cc_per_yr": 0.491,
+    "E_halt_id_per_yr": 0.7275,
+    "P_halt_ge1": 0.3905,
+    "E_log_growth_ann_pct": 23.71296386681315,
+    "calmar_median": 1.9970929748550839
+   },
+   {
+    "L": 1.9,
+    "median_cagr_pct": 28.150688240930233,
+    "mean_cagr_pct": 30.790034862228378,
+    "median_maxDD_pct": 14.062017287169153,
+    "P_maxDD_ge25": 0.0555,
+    "P_from_start_le_m25": 0.0185,
+    "E_halt_cc_per_yr": 0.7375,
+    "E_halt_id_per_yr": 0.974,
+    "P_halt_ge1": 0.52,
+    "E_log_growth_ann_pct": 24.298841984289844,
+    "calmar_median": 2.0018954369097703
+   },
+   {
+    "L": 1.95,
+    "median_cagr_pct": 28.91501653987313,
+    "mean_cagr_pct": 31.71808022075148,
+    "median_maxDD_pct": 14.417565731019867,
+    "P_maxDD_ge25": 0.065,
+    "P_from_start_le_m25": 0.02,
+    "E_halt_cc_per_yr": 0.7375,
+    "E_halt_id_per_yr": 0.974,
+    "P_halt_ge1": 0.52,
+    "E_log_growth_ann_pct": 24.881823801543526,
+    "calmar_median": 2.0055408159271657
+   },
+   {
+    "L": 2.0,
+    "median_cagr_pct": 29.68004063496654,
+    "mean_cagr_pct": 32.65275058920961,
+    "median_maxDD_pct": 14.771773715952797,
+    "P_maxDD_ge25": 0.074,
+    "P_from_start_le_m25": 0.0215,
+    "E_halt_cc_per_yr": 0.974,
+    "E_halt_id_per_yr": 0.974,
+    "P_halt_ge1": 0.62,
+    "E_log_growth_ann_pct": 25.46190923124694,
+    "calmar_median": 2.009240136336068
+   },
+   {
+    "L": 2.05,
+    "median_cagr_pct": 30.445884887757746,
+    "mean_cagr_pct": 33.59409297764483,
+    "median_maxDD_pct": 15.122399067355442,
+    "P_maxDD_ge25": 0.083,
+    "P_from_start_le_m25": 0.0245,
+    "E_halt_cc_per_yr": 1.1985,
+    "E_halt_id_per_yr": 1.4385,
+    "P_halt_ge1": 0.699,
+    "E_log_growth_ann_pct": 26.039098184174513,
+    "calmar_median": 2.013297278570101
+   },
+   {
+    "L": 2.1,
+    "median_cagr_pct": 31.22004588982412,
+    "mean_cagr_pct": 34.542154718078045,
+    "median_maxDD_pct": 15.472103624430645,
+    "P_maxDD_ge25": 0.095,
+    "P_from_start_le_m25": 0.027,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.6965,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 26.613390569201496,
+    "calmar_median": 2.017828127813679
+   },
+   {
+    "L": 2.15,
+    "median_cagr_pct": 31.995245642067193,
+    "mean_cagr_pct": 35.49698346641203,
+    "median_maxDD_pct": 15.820886871737505,
+    "P_maxDD_ge25": 0.1045,
+    "P_from_start_le_m25": 0.0275,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.6965,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 27.184786293300633,
+    "calmar_median": 2.0223421039198266
+   },
+   {
+    "L": 2.2,
+    "median_cagr_pct": 32.77144826525616,
+    "mean_cagr_pct": 36.458627204345774,
+    "median_maxDD_pct": 16.169980144079176,
+    "P_maxDD_ge25": 0.121,
+    "P_from_start_le_m25": 0.03,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.9425,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 27.753285261544768,
+    "calmar_median": 2.0266845087781884
+   },
+   {
+    "L": 2.25,
+    "median_cagr_pct": 33.54440458852487,
+    "mean_cagr_pct": 37.42713424128329,
+    "median_maxDD_pct": 16.52257936432113,
+    "P_maxDD_ge25": 0.1345,
+    "P_from_start_le_m25": 0.033,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.9425,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 28.31888737710194,
+    "calmar_median": 2.030215975900269
+   },
+   {
+    "L": 2.3,
+    "median_cagr_pct": 34.31753815132521,
+    "mean_cagr_pct": 38.40255321625074,
+    "median_maxDD_pct": 16.868819816645814,
+    "P_maxDD_ge25": 0.1435,
+    "P_from_start_le_m25": 0.0355,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 2.181,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 28.881592541234085,
+    "calmar_median": 2.0343769465995094
+   },
+   {
+    "L": 2.35,
+    "median_cagr_pct": 35.0912937534006,
+    "mean_cagr_pct": 39.384933099821076,
+    "median_maxDD_pct": 17.20943859784744,
+    "P_maxDD_ge25": 0.159,
+    "P_from_start_le_m25": 0.039,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.181,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 29.441400653298285,
+    "calmar_median": 2.03907254463198
+   },
+   {
+    "L": 2.4,
+    "median_cagr_pct": 35.86563043864619,
+    "mean_cagr_pct": 40.37432319603537,
+    "median_maxDD_pct": 17.547601884007353,
+    "P_maxDD_ge25": 0.1695,
+    "P_from_start_le_m25": 0.041,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.4425,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 29.998311610743166,
+    "calmar_median": 2.0439049549747104
+   },
+   {
+    "L": 2.45,
+    "median_cagr_pct": 36.64050696075517,
+    "mean_cagr_pct": 41.370773144330705,
+    "median_maxDD_pct": 17.890295371773796,
+    "P_maxDD_ge25": 0.1805,
+    "P_from_start_le_m25": 0.0455,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.7085,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 30.55232530910756,
+    "calmar_median": 2.0480660715397856
+   },
+   {
+    "L": 2.5,
+    "median_cagr_pct": 37.415881786262304,
+    "mean_cagr_pct": 42.374332921472465,
+    "median_maxDD_pct": 18.22959564797117,
+    "P_maxDD_ge25": 0.195,
+    "P_from_start_le_m25": 0.049,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.7085,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 31.103441642019973,
+    "calmar_median": 2.0524800719003573
+   },
+   {
+    "L": 2.55,
+    "median_cagr_pct": 38.191713097635336,
+    "mean_cagr_pct": 43.385052843489085,
+    "median_maxDD_pct": 18.565341940772743,
+    "P_maxDD_ge25": 0.208,
+    "P_from_start_le_m25": 0.051,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.7085,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 31.651660501197416,
+    "calmar_median": 2.057151073191905
+   },
+   {
+    "L": 2.6,
+    "median_cagr_pct": 38.9679587964308,
+    "mean_cagr_pct": 44.40298356760545,
+    "median_maxDD_pct": 18.905662097521503,
+    "P_maxDD_ge25": 0.221,
+    "P_from_start_le_m25": 0.052,
+    "E_halt_cc_per_yr": 2.181,
+    "E_halt_id_per_yr": 2.947,
+    "P_halt_ge1": 0.891,
+    "E_log_growth_ann_pct": 32.19698177644153,
+    "calmar_median": 2.0611792697564093
+   },
+   {
+    "L": 2.65,
+    "median_cagr_pct": 39.74457650651617,
+    "mean_cagr_pct": 45.42817609418787,
+    "median_maxDD_pct": 19.244037119971857,
+    "P_maxDD_ge25": 0.234,
+    "P_from_start_le_m25": 0.0545,
+    "E_halt_cc_per_yr": 2.432,
+    "E_halt_id_per_yr": 3.426,
+    "P_halt_ge1": 0.9155,
+    "E_log_growth_ann_pct": 32.739405355640514,
+    "calmar_median": 2.065293070198271
+   },
+   {
+    "L": 2.7,
+    "median_cagr_pct": 40.51617325795629,
+    "mean_cagr_pct": 46.460681768682655,
+    "median_maxDD_pct": 19.57735648973881,
+    "P_maxDD_ge25": 0.2515,
+    "P_from_start_le_m25": 0.0615,
+    "E_halt_cc_per_yr": 2.918,
+    "E_halt_id_per_yr": 3.912,
+    "P_halt_ge1": 0.95,
+    "E_log_growth_ann_pct": 33.278931124765016,
+    "calmar_median": 2.0695426003603834
+   },
+   {
+    "L": 2.75,
+    "median_cagr_pct": 41.28768014434547,
+    "mean_cagr_pct": 47.500552283562506,
+    "median_maxDD_pct": 19.90960687714938,
+    "P_maxDD_ge25": 0.2655,
+    "P_from_start_le_m25": 0.0635,
+    "E_halt_cc_per_yr": 3.1565,
+    "E_halt_id_per_yr": 4.3625,
+    "P_halt_ge1": 0.96,
+    "E_log_growth_ann_pct": 33.81555896786752,
+    "calmar_median": 2.0737566743084264
+   },
+   {
+    "L": 2.8,
+    "median_cagr_pct": 42.0591622056832,
+    "mean_cagr_pct": 48.54783968027451,
+    "median_maxDD_pct": 20.24569170009852,
+    "P_maxDD_ge25": 0.278,
+    "P_from_start_le_m25": 0.065,
+    "E_halt_cc_per_yr": 3.385,
+    "E_halt_id_per_yr": 4.829,
+    "P_halt_ge1": 0.968,
+    "E_log_growth_ann_pct": 34.34928876708132,
+    "calmar_median": 2.0774376508696184
+   },
+   {
+    "L": 2.85,
+    "median_cagr_pct": 42.83429249465711,
+    "mean_cagr_pct": 49.602596351187465,
+    "median_maxDD_pct": 20.584199455661246,
+    "P_maxDD_ge25": 0.2895,
+    "P_from_start_le_m25": 0.07,
+    "E_halt_cc_per_yr": 3.615,
+    "E_halt_id_per_yr": 5.059,
+    "P_halt_ge1": 0.9725,
+    "E_log_growth_ann_pct": 34.880120402617706,
+    "calmar_median": 2.080930695746657
+   },
+   {
+    "L": 2.9,
+    "median_cagr_pct": 43.612538175633375,
+    "mean_cagr_pct": 50.664875041547184,
+    "median_maxDD_pct": 20.923620841037437,
+    "P_maxDD_ge25": 0.3015,
+    "P_from_start_le_m25": 0.0755,
+    "E_halt_cc_per_yr": 4.291,
+    "E_halt_id_per_yr": 5.735,
+    "P_halt_ge1": 0.981,
+    "E_log_growth_ann_pct": 35.40805375276688,
+    "calmar_median": 2.084368595042414
+   },
+   {
+    "L": 2.95,
+    "median_cagr_pct": 44.39093131731392,
+    "mean_cagr_pct": 51.734728851423185,
+    "median_maxDD_pct": 21.250790681028324,
+    "P_maxDD_ge25": 0.3235,
+    "P_from_start_le_m25": 0.08,
+    "E_halt_cc_per_yr": 4.776,
+    "E_halt_id_per_yr": 6.22,
+    "P_halt_ge1": 0.987,
+    "E_log_growth_ann_pct": 35.933088693892174,
+    "calmar_median": 2.0889072780216122
+   },
+   {
+    "L": 3.0,
+    "median_cagr_pct": 45.169428138876846,
+    "mean_cagr_pct": 52.81221123767167,
+    "median_maxDD_pct": 21.583619329606655,
+    "P_maxDD_ge25": 0.3385,
+    "P_from_start_le_m25": 0.083,
+    "E_halt_cc_per_yr": 4.776,
+    "E_halt_id_per_yr": 6.22,
+    "P_halt_ge1": 0.987,
+    "E_log_growth_ann_pct": 36.45522510043404,
+    "calmar_median": 2.092764306536721
+   }
+  ],
+  "REPRICED_UNITFIX": [
+   {
+    "L": 0.25,
+    "median_cagr_pct": 2.8936176284208748,
+    "mean_cagr_pct": 2.9223718363668945,
+    "median_maxDD_pct": 2.0582936472320457,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 2.787725543719249,
+    "calmar_median": 1.4058332407099234
+   },
+   {
+    "L": 0.3,
+    "median_cagr_pct": 3.4736473480082464,
+    "mean_cagr_pct": 3.5171456117715647,
+    "median_maxDD_pct": 2.465927066962487,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 3.3365906169518733,
+    "calmar_median": 1.4086577800887934
+   },
+   {
+    "L": 0.35,
+    "median_cagr_pct": 4.054041957203425,
+    "mean_cagr_pct": 4.115399327154286,
+    "median_maxDD_pct": 2.874044200165465,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 3.882562264147739,
+    "calmar_median": 1.4105704974787878
+   },
+   {
+    "L": 0.4,
+    "median_cagr_pct": 4.634770822070033,
+    "mean_cagr_pct": 4.717153266419935,
+    "median_maxDD_pct": 3.2799339823577967,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 4.425640446928646,
+    "calmar_median": 1.4130683260698758
+   },
+   {
+    "L": 0.45,
+    "median_cagr_pct": 5.215803104611638,
+    "mean_cagr_pct": 5.32242782696378,
+    "median_maxDD_pct": 3.685521260804464,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 4.965825125051435,
+    "calmar_median": 1.4152144935593585
+   },
+   {
+    "L": 0.5,
+    "median_cagr_pct": 5.797107765047227,
+    "mean_cagr_pct": 5.931243520205052,
+    "median_maxDD_pct": 4.089926081747864,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 5.503116256411116,
+    "calmar_median": 1.417411378390923
+   },
+   {
+    "L": 0.55,
+    "median_cagr_pct": 6.378653564131587,
+    "mean_cagr_pct": 6.543620972112175,
+    "median_maxDD_pct": 4.493306020610083,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 6.037513797036674,
+    "calmar_median": 1.4195902827169378
+   },
+   {
+    "L": 0.6,
+    "median_cagr_pct": 6.960409065512785,
+    "mean_cagr_pct": 7.159580923732747,
+    "median_maxDD_pct": 4.895981221484819,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 6.569017701092182,
+    "calmar_median": 1.4216576311544513
+   },
+   {
+    "L": 0.65,
+    "median_cagr_pct": 7.542342638135036,
+    "mean_cagr_pct": 7.779144231718507,
+    "median_maxDD_pct": 5.299227436283766,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 7.097627920874336,
+    "calmar_median": 1.4232909851146753
+   },
+   {
+    "L": 0.7,
+    "median_cagr_pct": 8.124422458679614,
+    "mean_cagr_pct": 8.402331868852524,
+    "median_maxDD_pct": 5.697971772200855,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 7.623344406812837,
+    "calmar_median": 1.4258446309469057
+   },
+   {
+    "L": 0.75,
+    "median_cagr_pct": 8.706616514044219,
+    "mean_cagr_pct": 9.029164924570646,
+    "median_maxDD_pct": 6.095006787723284,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 8.146167107466736,
+    "calmar_median": 1.4284834811966585
+   },
+   {
+    "L": 0.8,
+    "median_cagr_pct": 9.28889260387078,
+    "mean_cagr_pct": 9.65966460548974,
+    "median_maxDD_pct": 6.490727555707937,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 8.66609596952801,
+    "calmar_median": 1.431101910247664
+   },
+   {
+    "L": 0.85,
+    "median_cagr_pct": 9.871427383587738,
+    "mean_cagr_pct": 10.29385223592441,
+    "median_maxDD_pct": 6.886907115207191,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 9.183130937815912,
+    "calmar_median": 1.4333614812069029
+   },
+   {
+    "L": 0.9,
+    "median_cagr_pct": 10.45487504798116,
+    "mean_cagr_pct": 10.93174925840963,
+    "median_maxDD_pct": 7.2821630354945714,
+    "P_maxDD_ge25": 0.0,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 9.697271955277857,
+    "calmar_median": 1.4356826394880504
+   },
+   {
+    "L": 0.95,
+    "median_cagr_pct": 11.038441169246504,
+    "mean_cagr_pct": 11.573377234219745,
+    "median_maxDD_pct": 7.674443849006152,
+    "P_maxDD_ge25": 0.0005,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 10.208518962988506,
+    "calmar_median": 1.4383376028838875
+   },
+   {
+    "L": 1.0,
+    "median_cagr_pct": 11.622094847817221,
+    "mean_cagr_pct": 12.218757843886545,
+    "median_maxDD_pct": 8.066853246263712,
+    "P_maxDD_ge25": 0.0005,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 10.716871900149423,
+    "calmar_median": 1.4407222361706127
+   },
+   {
+    "L": 1.05,
+    "median_cagr_pct": 12.205805011555448,
+    "mean_cagr_pct": 12.867912887711693,
+    "median_maxDD_pct": 8.456891700318575,
+    "P_maxDD_ge25": 0.001,
+    "P_from_start_le_m25": 0.0,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 11.222330704085017,
+    "calmar_median": 1.4432968334093303
+   },
+   {
+    "L": 1.1,
+    "median_cagr_pct": 12.789540418176038,
+    "mean_cagr_pct": 13.52086428628442,
+    "median_maxDD_pct": 8.848550202076755,
+    "P_maxDD_ge25": 0.0025,
+    "P_from_start_le_m25": 0.0005,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 11.72489531024504,
+    "calmar_median": 1.445382591057045
+   },
+   {
+    "L": 1.15,
+    "median_cagr_pct": 13.373633962204156,
+    "mean_cagr_pct": 14.177634080991316,
+    "median_maxDD_pct": 9.24201931897904,
+    "P_maxDD_ge25": 0.004,
+    "P_from_start_le_m25": 0.001,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 12.22456565220138,
+    "calmar_median": 1.4470467438583037
+   },
+   {
+    "L": 1.2,
+    "median_cagr_pct": 13.955850707377815,
+    "mean_cagr_pct": 14.838244434526167,
+    "median_maxDD_pct": 9.631011370333326,
+    "P_maxDD_ge25": 0.006,
+    "P_from_start_le_m25": 0.0025,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 12.721341661646916,
+    "calmar_median": 1.4490534971608915
+   },
+   {
+    "L": 1.25,
+    "median_cagr_pct": 14.537387448557437,
+    "mean_cagr_pct": 15.50271763139861,
+    "median_maxDD_pct": 10.022298726820988,
+    "P_maxDD_ge25": 0.0065,
+    "P_from_start_le_m25": 0.0035,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 13.215223268394857,
+    "calmar_median": 1.4505043049309114
+   },
+   {
+    "L": 1.3,
+    "median_cagr_pct": 15.118637556892667,
+    "mean_cagr_pct": 16.17107607844073,
+    "median_maxDD_pct": 10.410658670543093,
+    "P_maxDD_ge25": 0.009,
+    "P_from_start_le_m25": 0.005,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 13.706210400378463,
+    "calmar_median": 1.4522268028699066
+   },
+   {
+    "L": 1.35,
+    "median_cagr_pct": 15.698131752869626,
+    "mean_cagr_pct": 16.843342305308585,
+    "median_maxDD_pct": 10.797752501832637,
+    "P_maxDD_ge25": 0.0115,
+    "P_from_start_le_m25": 0.0055,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 14.194302983647924,
+    "calmar_median": 1.4538332630059152
+   },
+   {
+    "L": 1.4,
+    "median_cagr_pct": 16.27708529340711,
+    "mean_cagr_pct": 17.519538964985077,
+    "median_maxDD_pct": 11.183799246136944,
+    "P_maxDD_ge25": 0.0145,
+    "P_from_start_le_m25": 0.0065,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 14.67950094237076,
+    "calmar_median": 1.455416440797564
+   },
+   {
+    "L": 1.45,
+    "median_cagr_pct": 16.855834294040783,
+    "mean_cagr_pct": 18.199688834278607,
+    "median_maxDD_pct": 11.566837348458769,
+    "P_maxDD_ge25": 0.017,
+    "P_from_start_le_m25": 0.0065,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 15.161804198830358,
+    "calmar_median": 1.457255236349178
+   },
+   {
+    "L": 1.5,
+    "median_cagr_pct": 17.438199742727022,
+    "mean_cagr_pct": 18.883814814318004,
+    "median_maxDD_pct": 11.948748195263137,
+    "P_maxDD_ge25": 0.0205,
+    "P_from_start_le_m25": 0.0095,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 15.641212673423835,
+    "calmar_median": 1.4594164558292455
+   },
+   {
+    "L": 1.55,
+    "median_cagr_pct": 18.019371859586496,
+    "mean_cagr_pct": 19.571939931046977,
+    "median_maxDD_pct": 12.330875150763527,
+    "P_maxDD_ge25": 0.027,
+    "P_from_start_le_m25": 0.012,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 16.11772628466146,
+    "calmar_median": 1.461321409816621
+   },
+   {
+    "L": 1.6,
+    "median_cagr_pct": 18.598170053074103,
+    "mean_cagr_pct": 20.264087335715637,
+    "median_maxDD_pct": 12.710466504555667,
+    "P_maxDD_ge25": 0.033,
+    "P_from_start_le_m25": 0.0145,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.0,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 16.591344949165972,
+    "calmar_median": 1.4632169516679954
+   },
+   {
+    "L": 1.65,
+    "median_cagr_pct": 19.176436221417347,
+    "mean_cagr_pct": 20.96028030536709,
+    "median_maxDD_pct": 13.088925869213048,
+    "P_maxDD_ge25": 0.0395,
+    "P_from_start_le_m25": 0.0175,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.2365,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 17.062068581670175,
+    "calmar_median": 1.4650886110160468
+   },
+   {
+    "L": 1.7,
+    "median_cagr_pct": 19.754134748177187,
+    "mean_cagr_pct": 21.660542243324517,
+    "median_maxDD_pct": 13.466253770705855,
+    "P_maxDD_ge25": 0.0465,
+    "P_from_start_le_m25": 0.019,
+    "E_halt_cc_per_yr": 0.0,
+    "E_halt_id_per_yr": 0.2365,
+    "P_halt_ge1": 0.0,
+    "E_log_growth_ann_pct": 17.529897095017382,
+    "calmar_median": 1.466936171301764
+   },
+   {
+    "L": 1.75,
+    "median_cagr_pct": 20.331229886714773,
+    "mean_cagr_pct": 22.364896679669517,
+    "median_maxDD_pct": 13.84245075158983,
+    "P_maxDD_ge25": 0.0555,
+    "P_from_start_le_m25": 0.0205,
+    "E_halt_cc_per_yr": 0.256,
+    "E_halt_id_per_yr": 0.4925,
+    "P_halt_ge1": 0.226,
+    "E_log_growth_ann_pct": 17.994830400157046,
+    "calmar_median": 1.468759416346827
+   },
+   {
+    "L": 1.8,
+    "median_cagr_pct": 20.907685763589356,
+    "mean_cagr_pct": 23.07336727172669,
+    "median_maxDD_pct": 14.215257847785152,
+    "P_maxDD_ge25": 0.0655,
+    "P_from_start_le_m25": 0.021,
+    "E_halt_cc_per_yr": 0.256,
+    "E_halt_id_per_yr": 0.7275,
+    "P_halt_ge1": 0.226,
+    "E_log_growth_ann_pct": 18.456868406148345,
+    "calmar_median": 1.4707918764095396
+   },
+   {
+    "L": 1.85,
+    "median_cagr_pct": 21.483466381975447,
+    "mean_cagr_pct": 23.785977804532838,
+    "median_maxDD_pct": 14.587843355897784,
+    "P_maxDD_ge25": 0.073,
+    "P_from_start_le_m25": 0.025,
+    "E_halt_cc_per_yr": 0.491,
+    "E_halt_id_per_yr": 0.7275,
+    "P_halt_ge1": 0.3905,
+    "E_log_growth_ann_pct": 18.91601102015348,
+    "calmar_median": 1.472696536276543
+   },
+   {
+    "L": 1.9,
+    "median_cagr_pct": 22.058533772984035,
+    "mean_cagr_pct": 24.50275219131285,
+    "median_maxDD_pct": 14.960411331661167,
+    "P_maxDD_ge25": 0.0815,
+    "P_from_start_le_m25": 0.027,
+    "E_halt_cc_per_yr": 0.7375,
+    "E_halt_id_per_yr": 0.974,
+    "P_halt_ge1": 0.52,
+    "E_log_growth_ann_pct": 19.372258147439513,
+    "calmar_median": 1.4744603797290585
+   },
+   {
+    "L": 1.95,
+    "median_cagr_pct": 22.627751814935802,
+    "mean_cagr_pct": 25.223714473948515,
+    "median_maxDD_pct": 15.344057441587793,
+    "P_maxDD_ge25": 0.093,
+    "P_from_start_le_m25": 0.0305,
+    "E_halt_cc_per_yr": 0.7375,
+    "E_halt_id_per_yr": 0.974,
+    "P_halt_ge1": 0.52,
+    "E_log_growth_ann_pct": 19.825609691377117,
+    "calmar_median": 1.4746915475959204
+   },
+   {
+    "L": 2.0,
+    "median_cagr_pct": 23.195875177042613,
+    "mean_cagr_pct": 25.94888882344293,
+    "median_maxDD_pct": 15.718127046035619,
+    "P_maxDD_ge25": 0.1075,
+    "P_from_start_le_m25": 0.033,
+    "E_halt_cc_per_yr": 0.974,
+    "E_halt_id_per_yr": 0.974,
+    "P_halt_ge1": 0.62,
+    "E_log_growth_ann_pct": 20.276065553438517,
+    "calmar_median": 1.4757404052725869
+   },
+   {
+    "L": 2.05,
+    "median_cagr_pct": 23.762863850981596,
+    "mean_cagr_pct": 26.678299540380852,
+    "median_maxDD_pct": 16.08811814100338,
+    "P_maxDD_ge25": 0.1215,
+    "P_from_start_le_m25": 0.0355,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.6965,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 20.723625633195535,
+    "calmar_median": 1.477044340594304
+   },
+   {
+    "L": 2.1,
+    "median_cagr_pct": 24.33054120500965,
+    "mean_cagr_pct": 27.411971055387745,
+    "median_maxDD_pct": 16.45862874129513,
+    "P_maxDD_ge25": 0.135,
+    "P_from_start_le_m25": 0.039,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.6965,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 21.16828982831923,
+    "calmar_median": 1.478284830859796
+   },
+   {
+    "L": 2.15,
+    "median_cagr_pct": 24.89984965479074,
+    "mean_cagr_pct": 28.149927929582585,
+    "median_maxDD_pct": 16.833873044932634,
+    "P_maxDD_ge25": 0.149,
+    "P_from_start_le_m25": 0.0415,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.6965,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 21.61005803457793,
+    "calmar_median": 1.4791515647248
+   },
+   {
+    "L": 2.2,
+    "median_cagr_pct": 25.46816236053717,
+    "mean_cagr_pct": 28.892194855028585,
+    "median_maxDD_pct": 17.200306533807275,
+    "P_maxDD_ge25": 0.163,
+    "P_from_start_le_m25": 0.0435,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.9425,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 22.048930145836636,
+    "calmar_median": 1.4806807256881958
+   },
+   {
+    "L": 2.25,
+    "median_cagr_pct": 26.035441743222464,
+    "mean_cagr_pct": 29.63879665517718,
+    "median_maxDD_pct": 17.565610069001007,
+    "P_maxDD_ge25": 0.177,
+    "P_from_start_le_m25": 0.0505,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 1.9425,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 22.484906054054697,
+    "calmar_median": 1.4821826080022482
+   },
+   {
+    "L": 2.3,
+    "median_cagr_pct": 26.603817387013596,
+    "mean_cagr_pct": 30.38975828530929,
+    "median_maxDD_pct": 17.929784419808918,
+    "P_maxDD_ge25": 0.1885,
+    "P_from_start_le_m25": 0.054,
+    "E_halt_cc_per_yr": 1.4565,
+    "E_halt_id_per_yr": 2.181,
+    "P_halt_ge1": 0.7715,
+    "E_log_growth_ann_pct": 22.917985649284237,
+    "calmar_median": 1.4837778728461208
+   },
+   {
+    "L": 2.35,
+    "median_cagr_pct": 27.17350158482519,
+    "mean_cagr_pct": 31.145104832973335,
+    "median_maxDD_pct": 18.2996534532171,
+    "P_maxDD_ge25": 0.2025,
+    "P_from_start_le_m25": 0.0575,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.181,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 23.348168819669944,
+    "calmar_median": 1.4849189168687813
+   },
+   {
+    "L": 2.4,
+    "median_cagr_pct": 27.742693421421684,
+    "mean_cagr_pct": 31.904861518416674,
+    "median_maxDD_pct": 18.664539384363408,
+    "P_maxDD_ge25": 0.22,
+    "P_from_start_le_m25": 0.062,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.4425,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 23.775455451446938,
+    "calmar_median": 1.4863851097586518
+   },
+   {
+    "L": 2.45,
+    "median_cagr_pct": 28.313154680664077,
+    "mean_cagr_pct": 32.66905369501349,
+    "median_maxDD_pct": 19.030608809397563,
+    "P_maxDD_ge25": 0.233,
+    "P_from_start_le_m25": 0.068,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.7085,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 24.19984542893956,
+    "calmar_median": 1.487769254480323
+   },
+   {
+    "L": 2.5,
+    "median_cagr_pct": 28.880641123382055,
+    "mean_cagr_pct": 33.43770684968545,
+    "median_maxDD_pct": 19.395712845521214,
+    "P_maxDD_ge25": 0.245,
+    "P_from_start_le_m25": 0.0715,
+    "E_halt_cc_per_yr": 1.9425,
+    "E_halt_id_per_yr": 2.7085,
+    "P_halt_ge1": 0.861,
+    "E_log_growth_ann_pct": 24.621338634558292,
+    "calmar_median": 1.4890218964058888
+   },
+   {
+    "L": 2.55,
+    "median_cagr_pct": 29.4454104628486,
+    "mean_cagr_pct": 34.21084660332311,
+    "median_maxDD_pct": 19.75984975478647,
+    "P_maxDD_ge25": 0.26,
+    "P_from_start_le_m25": 0.076,
+    "E_halt_cc_per_yr": 2.181,
+    "E_halt_id_per_yr": 2.947,
+    "P_halt_ge1": 0.891,
+    "E_log_growth_ann_pct": 25.039934948800973,
+    "calmar_median": 1.4901636818223265
+   },
+   {
+    "L": 2.6,
+    "median_cagr_pct": 30.009074277302773,
+    "mean_cagr_pct": 34.98849871119724,
+    "median_maxDD_pct": 20.119837820650055,
+    "P_maxDD_ge25": 0.276,
+    "P_from_start_le_m25": 0.0815,
+    "E_halt_cc_per_yr": 2.432,
+    "E_halt_id_per_yr": 3.198,
+    "P_halt_ge1": 0.9155,
+    "E_log_growth_ann_pct": 25.45563425025011,
+    "calmar_median": 1.4915167082759917
+   },
+   {
+    "L": 2.65,
+    "median_cagr_pct": 30.571596482553144,
+    "mean_cagr_pct": 35.7706890633643,
+    "median_maxDD_pct": 20.484724556160515,
+    "P_maxDD_ge25": 0.29,
+    "P_from_start_le_m25": 0.085,
+    "E_halt_cc_per_yr": 2.676,
+    "E_halt_id_per_yr": 3.67,
+    "P_halt_ge1": 0.935,
+    "E_log_growth_ann_pct": 25.868436415569672,
+    "calmar_median": 1.4924094487450228
+   },
+   {
+    "L": 2.7,
+    "median_cagr_pct": 31.132940928592102,
+    "mean_cagr_pct": 36.55744368507325,
+    "median_maxDD_pct": 20.83976981310084,
+    "P_maxDD_ge25": 0.3055,
+    "P_from_start_le_m25": 0.092,
+    "E_halt_cc_per_yr": 2.918,
+    "E_halt_id_per_yr": 3.912,
+    "P_halt_ge1": 0.95,
+    "E_log_growth_ann_pct": 26.278341319506815,
+    "calmar_median": 1.493919616569877
+   },
+   {
+    "L": 2.75,
+    "median_cagr_pct": 31.68589095445884,
+    "mean_cagr_pct": 37.34878873715964,
+    "median_maxDD_pct": 21.19241173425092,
+    "P_maxDD_ge25": 0.318,
+    "P_from_start_le_m25": 0.0945,
+    "E_halt_cc_per_yr": 3.1565,
+    "E_halt_id_per_yr": 4.3625,
+    "P_halt_ge1": 0.96,
+    "E_log_growth_ann_pct": 26.685348834888156,
+    "calmar_median": 1.4951526684076493
+   },
+   {
+    "L": 2.8,
+    "median_cagr_pct": 32.23675425834377,
+    "mean_cagr_pct": 38.144750516436865,
+    "median_maxDD_pct": 21.54609331622875,
+    "P_maxDD_ge25": 0.3325,
+    "P_from_start_le_m25": 0.1,
+    "E_halt_cc_per_yr": 3.385,
+    "E_halt_id_per_yr": 4.829,
+    "P_halt_ge1": 0.968,
+    "E_log_growth_ann_pct": 27.08945883261799,
+    "calmar_median": 1.496176303760028
+   },
+   {
+    "L": 2.85,
+    "median_cagr_pct": 32.78598111851523,
+    "mean_cagr_pct": 38.945355456084016,
+    "median_maxDD_pct": 21.902175598624098,
+    "P_maxDD_ge25": 0.354,
+    "P_from_start_le_m25": 0.1065,
+    "E_halt_cc_per_yr": 3.615,
+    "E_halt_id_per_yr": 5.059,
+    "P_halt_ge1": 0.9725,
+    "E_log_growth_ann_pct": 27.490671181678255,
+    "calmar_median": 1.4969280549725323
+   },
+   {
+    "L": 2.9,
+    "median_cagr_pct": 33.3335318180992,
+    "mean_cagr_pct": 39.750630126025435,
+    "median_maxDD_pct": 22.255450529223086,
+    "P_maxDD_ge25": 0.374,
+    "P_from_start_le_m25": 0.1105,
+    "E_halt_cc_per_yr": 4.5415,
+    "E_halt_id_per_yr": 5.9855,
+    "P_halt_ge1": 0.9855,
+    "E_log_growth_ann_pct": 27.888985749126423,
+    "calmar_median": 1.4977693565147001
+   },
+   {
+    "L": 2.95,
+    "median_cagr_pct": 33.87936661975499,
+    "mean_cagr_pct": 40.560601233303,
+    "median_maxDD_pct": 22.60765430526362,
+    "P_maxDD_ge25": 0.387,
+    "P_from_start_le_m25": 0.1155,
+    "E_halt_cc_per_yr": 4.776,
+    "E_halt_id_per_yr": 6.22,
+    "P_halt_ge1": 0.987,
+    "E_log_growth_ann_pct": 28.284402400092716,
+    "calmar_median": 1.4985794705763453
+   },
+   {
+    "L": 3.0,
+    "median_cagr_pct": 34.42191267000509,
+    "mean_cagr_pct": 41.375295622446835,
+    "median_maxDD_pct": 22.958787086849075,
+    "P_maxDD_ge25": 0.401,
+    "P_from_start_le_m25": 0.127,
+    "E_halt_cc_per_yr": 4.776,
+    "E_halt_id_per_yr": 6.22,
+    "P_halt_ge1": 0.987,
+    "E_log_growth_ann_pct": 28.676920997780215,
+    "calmar_median": 1.4992914277131897
+   }
+  ]
+ }
+}

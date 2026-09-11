@@ -1,0 +1,86 @@
+{
+ "estimand_A_vs_decision_price": {
+  "what_the_replay_needs": "fill price vs ANCHOR MID, plus fee  (device w10_sleeve.py L313 trade=sm-HB, L323 cbps, L324/L329 pnl_raw=sum(sm*y4[i]) marks anchor->anchor)",
+  "trackB_measured_bps_per_unit_traded": 0.286,
+  "model_charges": 2.9537,
+  "model_overcharge_bps_per_unit_traded": 2.6677
+ },
+ "estimand_B_vs_fill_price": {
+  "what_r11_measured": "mid(fill+D) vs FILL PRICE, a post-fill path quantity",
+  "fee_plus_adverse_60s": 5.9873,
+  "fee_plus_adverse_steady": 9.5011,
+  "why_it_is_not_chargeable": "the interval [fill, fill+D] lies INSIDE [anchor_i, anchor_i+1]; the replay's own mark sm*y4[i] already carries that price path. Charging it again double-counts."
+ },
+ "triangulation": {
+  "model_overcharge_bps_per_unit_traded": 2.6677,
+  "x_LIVE_turnover_per_gross": 0.2898,
+  "judge1_measured_bps_per_anchor": 0.2767,
+  "judge1_CI95": [
+   0.075,
+   0.653
+  ],
+  "agreement_pct": 4.74,
+  "x_REPLAY_turnover_per_gross": 0.1441,
+  "reading": "using the LIVE turnover reproduces judge1 to ~5%; using the REPLAY turnover gives half, and the factor between them is exactly the 2.01x live/replay turnover gap. Two independent instruments reconcile once the turnover caliber is matched."
+ },
+ "withdrawn_repricing": {
+  "r11_delta_g_bps_per_anchor": 0.3625,
+  "sign": "CHARGE (reduces g)",
+  "corrected_delta_g_bps_per_anchor_on_replay_turnover": -0.1441,
+  "sign2": "CREDIT (raises g) - opposite sign",
+  "spread_between_the_two_readings_bps_per_anchor": 0.5066
+ },
+ "planning_number": {
+  "arm": "A1x_ext_s42 (v4-native, coverage ceiling CLOSED, upper bound 2026-09-10 00Z)",
+  "mean_g": 0.6602,
+  "CI95": [
+   0.1673,
+   1.1472
+  ],
+  "sharpe": 1.2857,
+  "n": 9199,
+  "SE_sharpe": 0.4879,
+  "sharpe_in_SE_from_zero": 2.635,
+  "NAV_pct_yr_at_2x": 28.917,
+  "NAV_pct_yr_CI95_at_2x": [
+   7.33,
+   50.25
+  ],
+  "second_seed_s2027": {
+   "mean_g": 0.6828,
+   "CI95": [
+    0.1911,
+    1.1717
+   ],
+   "sharpe": 1.3288
+  },
+  "cost_repricing_applied": false
+ },
+ "build1_cost_sensitivity": {
+  "ladder_A0cost_to_marginal_dg": {
+   "ZEROISH": [
+    0.11506,
+    0.01057
+   ],
+   "PWR230k": [
+    0.16817,
+    0.01444
+   ],
+   "PWR2300k": [
+    0.30162,
+    0.02307
+   ]
+  },
+  "slope_dg_per_unit_A0cost": 0.067,
+  "at_r11_repriced_wall_A0cost_0.5409": 0.0391,
+  "at_corrected_lower_wall": "moves DOWN toward the ZEROISH rung +0.01057",
+  "reading": "BUILD 1 basis-in-book is the ONLY family whose value RISES with the cost wall (it reduces turnover -5.13%). Under the r11 repricing its marginal dg would have roughly tripled. Under the CORRECTED (cheaper) wall it shrinks. Closed harder, not reopened."
+ },
+ "trackB_prior_sensitivity": {
+  "prereg_prior_quoted": "A0_dyn frozen-window cost_ex = 0.1201 bps/anchor/gross; cost-to-zero ceiling +0.120 < G2 resolution 0.23 => the pure cost channel cannot produce a measurable improvement",
+  "under_r11_repricing_ceiling": 0.3863,
+  "vs_G2_gate": 0.23,
+  "would_have_reopened": true,
+  "under_corrected_cheaper_wall": "ceiling SHRINKS below 0.120 => axis stays closed, more firmly"
+ }
+}

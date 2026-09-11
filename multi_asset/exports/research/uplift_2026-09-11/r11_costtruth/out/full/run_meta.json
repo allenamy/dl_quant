@@ -1,0 +1,66 @@
+{
+ "config": {
+  "mark_delays_ms": [
+   60000,
+   300000,
+   900000,
+   3600000,
+   14400000
+  ],
+  "window_ms": 60000,
+  "base_url": "https://data.binance.vision/data/futures/um/daily/aggTrades/{sym}/{fname}",
+  "derived_from_sha256": "542f98a67da3f0d826c9ac01af38fc8f948924f98abbfbaa0f2f32a3d87426f3",
+  "workers": 20,
+  "self_sha256": "d9feae3240c1171d7d01899a3cdf54e959d1426a9264fc77546a04ed1711e8c8",
+  "argv": [
+   "scripts/markout_cdn_multilag.py",
+   "--input",
+   "out/r11_fills_input.json",
+   "--outdir",
+   "out/full",
+   "--workers",
+   "20"
+  ],
+  "env_whitelist": {},
+  "input_sha256": "bc4f218ef0a5ea247e2ae8eb065a14e0ab006770157cfcdf86a5d75063bf412d"
+ },
+ "generated_utc": "2026-09-11T20:51:30Z",
+ "n_rows": 34921,
+ "n_trade_ids": 34921,
+ "status_counts_by_lag": {
+  "60": {
+   "ok": 33139,
+   "no_trade_within_window": 103,
+   "archive_missing": 1679
+  },
+  "300": {
+   "ok": 33091,
+   "no_trade_within_window": 151,
+   "archive_missing": 1679
+  },
+  "900": {
+   "ok": 33112,
+   "no_trade_within_window": 130,
+   "archive_missing": 1679
+  },
+  "3600": {
+   "ok": 33146,
+   "no_trade_within_window": 96,
+   "archive_missing": 1679
+  },
+  "14400": {
+   "ok": 32823,
+   "no_trade_within_window": 117,
+   "archive_missing": 1981
+  }
+ },
+ "archive_status_counts": {
+  "ok": 6770,
+  "archive_missing": 252
+ },
+ "archives_fetched": 7022,
+ "bytes_fetched": 11074995504,
+ "n_unsorted_archives": 0,
+ "n_headerless_archives": 0,
+ "elapsed_s": 735.2
+}

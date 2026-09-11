@@ -1,0 +1,426 @@
+{
+ "doc": "RESULT_r11_cost_truth_2026-09-12.md",
+ "generated_utc": "2026-09-11T21:04:19Z",
+ "env_whitelist": {},
+ "caliber_pin": "v4 chain 2026-09-09; w10_sleeve.py sha16 b88e35a46b93d712",
+ "verdict": "(ii) PERSISTS \u2014 adverse markout does not revert; it roughly doubles by +5m and stays",
+ "sign_convention_quoted_verbatim_from": "trackB_realized_cost_2026-09-11.py L6-8: markout = side_sign*(mid_at_fill_plus_60s - fill_px)/fill_px ; POSITIVE markout = the price moved OUR WAY after the fill = a GAIN to us. Adverse selection COST is therefore -markout.",
+ "inputs_sha16": {
+  "trackB_realized_cost_rows.json": "8ae867eb3c1e47cf",
+  "trackB_realized_cost_2026-09-11.py": "9eb531f4269ed2ae",
+  "markout_cdn.py (derived-from device)": "542f98a67da3f0d8",
+  "costb_PWR_G230k.json": "295b4e7b462373e4",
+  "w10_sleeve.py": "b88e35a46b93d712",
+  "dlnative_5m_wide829_f16_holefix2.npz": "1d7f459dee434ec4"
+ },
+ "outputs_sha16": {
+  "scripts/export_fills_for_markout.py": "b6e66752cb8f8765",
+  "scripts/markout_cdn_multilag.py": "d9feae3240c1171d",
+  "scripts/r11_term_structure.py": "d5df8bf667043777",
+  "scripts/r11_decisive.py": "56d05e45cc0aabe4",
+  "scripts/r11_fee_side.py": "5eacf24216f7341d",
+  "scripts/r11_reprice.py": "3b60c06b8b61229a",
+  "out/r11_fills_input.json": "bc4f218ef0a5ea24",
+  "out/full/marks_multilag.json": "26ca67c969ec1e3f",
+  "out/full/archives.json": "dfe68e729672af9a",
+  "out/full/run_meta.json": "f8e389c7135e541d",
+  "out/r11_term_structure.json": "5c8e472fc666e781",
+  "out/r11_decisive.json": "15997d19a97af921",
+  "out/r11_fee_side.json": "2cbcc2fe102ea019",
+  "out/r11_reprice.json": "9b01ad1aa9691e72",
+  "RESULT_r11_cost_truth_2026-09-12.md": "d74b62ee872c4077"
+ },
+ "dedupe": {
+  "raw_rows": 84158,
+  "deduped": 34921,
+  "dropped": 49237,
+  "identical_payload": 49237,
+  "differing_payload": 0,
+  "key": "(symbol, trade_id); keep the row carrying mid_at_fill_plus_60s"
+ },
+ "gate": {
+  "rule_preset": ">98% exact price equality AND |delta NW markout| < 0.05 bps",
+  "compared": 32375,
+  "exact": 31149,
+  "exact_pct": 96.213,
+  "clause1": "FAIL",
+  "same_trade_selected": 32375,
+  "same_trade_pct": 100.0,
+  "exact_pct_cdn_lineage": 100.0,
+  "exact_pct_fapi_lineage": 92.602,
+  "nw_markout_mine": -3.1104,
+  "nw_markout_recorded": -3.1506,
+  "delta": 0.04024,
+  "clause2": "PASS",
+  "diagnosis": "every non-equal row selected the SAME aggTrade (identical timestamp and agg_trade_id); the two sources differ by ONE TICK on that trade's price; 88% of them are sub-$1 symbols where one tick IS 2-6 bps",
+  "decision": "PROCEED; term structure uses ONE instrument at all five lags so a level artifact is common to every lag and cancels in the SHAPE",
+  "mechanism_gate": "PASS"
+ },
+ "critic_C1_reproduction": {
+  "n_anchor_rows": 243,
+  "n_finite_markout": 229,
+  "traded_notional": 1265349,
+  "coverage_mean_of_anchors": 0.9944,
+  "maker_share_mean_of_anchors": 0.8776,
+  "adverse_anchors_pct": 72.5,
+  "fee_bps": 2.3848,
+  "markout60_all_traded_denominator": -2.6573,
+  "markout60_covered_denominator": -2.6908,
+  "all_reproduced_exactly": true,
+  "note": "critic's -2.6573 divides by ALL traded notional incl. the 1.24% with no markout; covered-notional caliber is -2.6908"
+ },
+ "archives": {
+  "fetched": 7022,
+  "ok": 6770,
+  "missing": 252,
+  "missing_all_on": "2026-09-11 (day still in progress, not yet published)",
+  "bytes": 11074995504,
+  "gb": 11.07,
+  "elapsed_s": 735.2,
+  "unsorted": 0,
+  "headerless": 0,
+  "source": "https://data.binance.vision/data/futures/um/daily/aggTrades/ (static CDN; user-granted exemption)"
+ },
+ "sample": {
+  "n_all": 34921,
+  "n_balanced": 32385,
+  "balanced_notional": 1452020.79496541,
+  "primary": "BALANCED PANEL (all five lags ok)",
+  "net_directional_tilt_all": 0.0004,
+  "net_directional_tilt_by_order_type": {
+   "maker": -0.032,
+   "topup_taker": 0.1528,
+   "protective_flatten": 0.0105
+  }
+ },
+ "term_structure_balanced_bps": {
+  "60": {
+   "mean": -3.202605177917428,
+   "ci95": [
+    -4.522543354298796,
+    -1.351287701757084
+   ],
+   "n": 32385,
+   "days": 41
+  },
+  "300": {
+   "mean": -6.642373247367828,
+   "ci95": [
+    -8.030463205068758,
+    -4.082131788240043
+   ],
+   "n": 32385,
+   "days": 41
+  },
+  "900": {
+   "mean": -6.304359924210368,
+   "ci95": [
+    -9.515828442007008,
+    -2.853924456031515
+   ],
+   "n": 32385,
+   "days": 41
+  },
+  "3600": {
+   "mean": -7.783054278757221,
+   "ci95": [
+    -13.281135636545299,
+    -3.9742415546563308
+   ],
+   "n": 32385,
+   "days": 41
+  },
+  "14400": {
+   "mean": -6.135888084035499,
+   "ci95": [
+    -16.936205972534818,
+    3.9421013018050264
+   ],
+   "n": 32385,
+   "days": 41
+  }
+ },
+ "decisive_paired_diff_vs_60s": {
+  "300": {
+   "paired_diff": -3.439768069450402,
+   "lo": -4.60214518623336,
+   "hi": -1.9536240966735112,
+   "days": 41
+  },
+  "900": {
+   "paired_diff": -3.101754746292933,
+   "lo": -6.984626265026896,
+   "hi": -0.037264038532108655,
+   "days": 41
+  },
+  "3600": {
+   "paired_diff": -4.580449100839789,
+   "lo": -10.092603087663795,
+   "hi": -1.046083712177717,
+   "days": 41
+  },
+  "14400": {
+   "paired_diff": -2.933282906118075,
+   "lo": -13.182079870642657,
+   "hi": 6.018955517165527,
+   "days": 41
+  }
+ },
+ "confound_test": {
+  "60": {
+   "markout": -3.202605177917427,
+   "lo": -4.551338223770329,
+   "hi": -1.4740768360607608,
+   "book_alpha": 0.0026425,
+   "ratio": 1211.9603322298685
+  },
+  "300": {
+   "markout": -6.642373247367836,
+   "lo": -8.03870890064524,
+   "hi": -4.252958157895625,
+   "book_alpha": 0.013212499999999999,
+   "ratio": 502.7340206144058
+  },
+  "900": {
+   "markout": -6.304359924210371,
+   "lo": -9.621031494343885,
+   "hi": -2.8984394011643575,
+   "book_alpha": 0.0396375,
+   "ratio": 159.05039228534523
+  },
+  "3600": {
+   "markout": -7.783054278757217,
+   "lo": -13.02145017788895,
+   "hi": -3.9220694200488753,
+   "book_alpha": 0.15855,
+   "ratio": 49.088957923413545
+  },
+  "14400": {
+   "markout": -6.135888084035489,
+   "lo": -16.306068011089387,
+   "hi": 3.6276689784015006,
+   "book_alpha": 0.6342,
+   "ratio": 9.675004862875259
+  }
+ },
+ "steady_state_plateau_bps": -6.716418883592728,
+ "understatement_of_60s_proxy": 2.097,
+ "order_type_values_actually_present": [
+  "maker",
+  "topup_taker",
+  "protective_flatten"
+ ],
+ "order_type_values_in_task_brief_NOT_PRESENT": [
+  "from_reject",
+  "from_partial"
+ ],
+ "protective_flatten": {
+  "all_on_one_utc_day": "2026-09-09",
+  "n": 3080,
+  "notional": 230600,
+  "share_of_traded_notional": 0.15,
+  "maker_share": 0.0,
+  "no_ci_possible": "single UTC day; day-block bootstrap needs >=2 days",
+  "point_estimates_bps": {
+   "60": -5.522142752259648,
+   "300": -9.159901511527595,
+   "900": -2.971813176700331,
+   "3600": -0.7144604762206606,
+   "14400": 0.18302117610627522
+  }
+ },
+ "fee_side": {
+  "window": [
+   "20260801",
+   "20260911"
+  ],
+  "traded_notional": 1537656.604180615,
+  "fee_usdt": 428.196338066652,
+  "fee_naive": 301.8310927999996,
+  "fee_bps": 2.7847331901184065,
+  "fee_bps_naive": 1.9629291220118623,
+  "bnb_notional_share": 0.3695056326604497,
+  "bnb_rowcount_share": 0.5665931674350677,
+  "maker_rate_usdt_bps": 1.9999995548611467,
+  "taker_rate_usdt_bps": 4.999999560776977,
+  "maker_rate_bnb_bps": 1.8000870216442018,
+  "taker_rate_bnb_bps": 4.500719033579614,
+  "inferred_tier": "VIP0",
+  "tier_schedule": [
+   2.0,
+   5.0
+  ],
+  "full_bnb_saving_usdt": 30.133598139595392,
+  "full_bnb_saving_bps_per_unit_traded": 0.19597092132058289,
+  "fee_bps_after_full_bnb": 2.588762268797824,
+  "n_fills": 34921,
+  "zerofee_notional_share": 1.5202345332790718e-06
+ },
+ "bnb_coverage": {
+  "by_notional": 0.3695,
+  "by_rowcount": 0.5666,
+  "quoted_in_brief": 0.48,
+  "verdict": "the quoted ~48% is WRONG on both calibers; by notional it is 36.95%"
+ },
+ "caliber_defect_found": {
+  "where": "CLOSEOUT_uplift_program_2026-09-12.md L139 and RECEIPT_r9_critic C2",
+  "fact": "replay weights are NOT normalised to gross 1; mean gross_total = 0.69565",
+  "turnover_raw": 0.03032,
+  "turnover_per_unit_gross": 0.05402,
+  "factor": 1.4375,
+  "selfcheck": "cost/gross_total / (turnover/gross_total) = 0.16266/0.05402 = 3.011 bps per unit turnover, reproducing the pinned model book avg 2.9537 to 1.9%; the mismatched pair does not reproduce it",
+  "consequence": "the closeout's repricing is understated by ~1.8x"
+ },
+ "model_decomposition": {
+  "book_avg_recomputed": 2.9538,
+  "model_maker_share": 0.832,
+  "live_maker_share": 0.708,
+  "fee_at_model_mix_vip0": 2.5041,
+  "model_nonfee_budget": 0.4496,
+  "measured_adverse_steady": 6.7164,
+  "model_budgets_pct_of_adverse_it_faces": 6.7,
+  "why_missed": "RESULT_r6_judge1 L165 compared the model's TOTAL cost against live FEE ALONE and read the agreement as confirmation"
+ },
+ "correction_to_critic": {
+  "claim": "INFRA1 \u00a75 says K is a literature centre value, never fitted to this book",
+  "status": "conflates two models",
+  "detail": "that sentence describes INFRA1's X1 arm (K=1, literature centre). The model actually pinned in r7-r10, costb_PWR_G230k, has K=0.17 FITTED \u2014 PREREG_r3_xib_lag50_fundleg_promotion_2026-09-11.md L24 verbatim: fitted K=0.17, NOT deployed costb_fee_steady, NOT K=1",
+  "effect_on_conclusion": "none in direction \u2014 the model is still too cheap \u2014 but the reason is not 'K was never fitted'"
+ },
+ "reconciliation": {
+  "fee_bps": 2.7847331901184065,
+  "adverse_60": 3.202605177917427,
+  "adverse_steady": 6.716418883592728,
+  "allin_60": 5.987338368035834,
+  "allin_steady": 9.501152073711134,
+  "model_rate": 2.9537,
+  "ratio_60": 2.0270638074401037,
+  "ratio_steady": 3.216695017676519,
+  "gap_steady": 6.547452073711135
+ },
+ "repricing": {
+  "A0_g_pinned": 0.6342,
+  "A0_sharpe_pinned": 1.2912,
+  "n": 9138,
+  "SE_sharpe": 0.4895493525831451,
+  "dg_additive_correct_caliber": 0.3536933610218755,
+  "dg_ratio_method": 0.37122991461028665,
+  "dg_used": 0.3624616378160811,
+  "A0_g_repriced": 0.2717383621839189,
+  "A0_sharpe_repriced": 0.5532459370102114,
+  "sharpe_in_SE": 1.13,
+  "nav_pct_per_year_lost": 15.88,
+  "nav_pct_per_year_remaining": 11.9,
+  "nav_pct_per_year_was": 27.78,
+  "vol_unchanged_assumption": "Sharpe scaled linearly in g; same assumption as the closeout; NOT verified"
+ },
+ "robustness": {
+  "plateau_5m_4h": {
+   "sharpe": 0.5532
+  },
+  "plateau_5m_15m": {
+   "sharpe": 0.5806
+  },
+  "plateau_5m_15m_1h": {
+   "sharpe": 0.5314
+  },
+  "most_conservative_4h_only": {
+   "sharpe": 0.6187
+  },
+  "desk_60s_proxy": {
+   "sharpe": 0.9493
+  }
+ },
+ "candidates_flipped": [
+  "TSMOM_DIR",
+  "VRP_DELTA1"
+ ],
+ "candidates_table": [
+  {
+   "arm": "A0 (incumbent)",
+   "gross": 0.8017,
+   "cost_model": 0.1675,
+   "net_model": 0.6342,
+   "cost_real": 0.5387,
+   "net_real": 0.263,
+   "verdict": "still alive but Sharpe at 1.13 SE"
+  },
+  {
+   "arm": "TSMOM_DIR",
+   "gross": 0.81814,
+   "cost_model": 0.42736,
+   "net_model": 0.3908,
+   "cost_real": 1.3747,
+   "net_real": -0.5565,
+   "verdict": "FLIPS survived->dead"
+  },
+  {
+   "arm": "VRP_DELTA1",
+   "gross": 0.27711,
+   "cost_model": 0.18757,
+   "net_model": 0.0895,
+   "cost_real": 0.6034,
+   "net_real": -0.3262,
+   "verdict": "FLIPS survived->dead"
+  },
+  {
+   "arm": "SLOW_CLOCK",
+   "gross": 0.3659,
+   "cost_model": 0.6375,
+   "net_model": -0.2716,
+   "cost_real": 2.0506,
+   "net_real": -1.6847,
+   "verdict": "already dead, deeper"
+  },
+  {
+   "arm": "COINT_PAIR",
+   "gross": 0.261,
+   "cost_model": 0.3943,
+   "net_model": -0.1333,
+   "cost_real": 1.2683,
+   "net_real": -1.0073,
+   "verdict": "already dead, deeper"
+  },
+  {
+   "arm": "CMUM_CARRY",
+   "gross": 0.2604,
+   "cost_model": 1.3052,
+   "net_model": -1.0448,
+   "cost_real": 4.1984,
+   "net_real": -3.938,
+   "verdict": "already dead, deeper"
+  },
+  {
+   "arm": "REV_SHORT",
+   "gross": 1.1585,
+   "cost_model": 3.8683,
+   "net_model": -2.7098,
+   "cost_real": 12.4431,
+   "net_real": -11.2846,
+   "verdict": "already dead, deeper"
+  }
+ ],
+ "second_unreconciled_gap": {
+  "replay_turnover_per_gross": 0.05402,
+  "live_traded_per_gross": 0.10864,
+  "ratio": 2.01,
+  "note": "NOT folded into the repricing (the planning number is a replay quantity); needs its own reconciliation; whether this is the same thing as the on-file raw-turnover x1.94 is NOT decided here"
+ },
+ "declared_blind_spots": [
+  "holding period is ~9.2 anchors ~37h (live turnover 0.10864/anchor); this measures only to +4h \u2014 what happens beyond 4h is NOT measured",
+  "+4h LEVEL CI crosses zero and every per-group 4h CI is powerless; the verdict rests on the PAIRED differences at +5m/+15m/+1h",
+  "protective_flatten is ONE day; no CI; cannot be extrapolated to a general stop cost",
+  "2026-09-11 archives not yet published; that day's fills are absent from the term structure",
+  "whether live traded notional and replay turnover are the same caliber is NOT decided (\u00a78); if not, the additive repricing needs one more correction (the ratio method is immune)"
+ ],
+ "statistic": {
+  "definition": "notional-weighted mean markout, bps",
+  "bootstrap": "UTC-day block, 2000 resamples, numpy.default_rng([20260905,k])",
+  "SE_annualised_sharpe": "sqrt(2190/n)"
+ },
+ "live_repo_writes": 0,
+ "gpu_used": false,
+ "gpu_note": "CPU-only; pod2 GPU left idle for the independent researcher",
+ "live_repo_note": "No file written in ~/dl_quant_live or ~/wide_shadow. Every modification visible under their state/ trees is the running executor/producer writing its own logs. The ONLY filesystem effect of this session in the live repo was `git status` refreshing .git/index (a stat cache; no tracked content changed). Reads only: fills.jsonl, anchors.jsonl, position_readback.jsonl, ops/backfill_markout.py, ops/import_markout_marks.py.",
+ "network_note": "Only https://data.binance.vision (static anonymous CDN, user-granted exemption). No account-authenticated fapi/api endpoint was called. No order, no trading endpoint."
+}
