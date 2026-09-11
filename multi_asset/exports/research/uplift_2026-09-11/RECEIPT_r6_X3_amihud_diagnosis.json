@@ -1,0 +1,26 @@
+{
+ "gate": "X3 panel parity (pod_panel_ext.py built-in self-check, UNMODIFIED)",
+ "verdict_as_written": "FAIL",
+ "reading": {"f_rev_24h": 0.999594, "f_mom_7d": 0.999770, "f_vol_7d": 0.999994,
+             "f_amihud_24h": 0.054600, "f_range_24h": 0.999705, "f_fund_ema": 1.000000, "f_fund_now": 1.000000,
+             "threshold": 0.999, "n_pooled_cells_amihud": 3073654},
+ "incumbent_same_gate": "v2ext vs v1 f_amihud_24h corr 1.000000 (n 3073654) - the incumbent PASSED because it was built from the SAME unfilled _ext cache as v1",
+ "diagnosis": {
+  "statistic_is_unfit": "pooled Pearson over ~3.1M cells of a heavy-tailed RATIO factor (amihud = |rev_24h|/qv24*1e6, pod_panel_ext.py L54). Median 0.0019; the incumbent panel max is 302.9 = 160000x the median.",
+  "cells_above_rawbuild_max_1p753": 38,
+  "distinct_anchors": 3,
+  "all_in_month": "2026-08",
+  "all_inside_or_near_a_holefix2_fill_run": "3 of 3",
+  "their_value_in_the_extension": {"min": 0.002194, "median": 0.01814, "max": 0.08748},
+  "mechanism": "those symbol-days had MISSING 5m bars, so qv24 (24h quote volume) was near zero and |rev_24h|/qv24 exploded. holefix2 fills the bars, the volume returns, and the illiquidity collapses by ~3 orders of magnitude. The extension REMOVES a missing-data artefact; it does not perturb the factor."
+ },
+ "book_caliber_statistic": {
+  "note": "amihud enters the book as a CROSS-SECTIONAL RANK (XIB_LAG50 = 0.5*rank(fund_ema) + 0.5*rank(amihud_24h)), so the decision-relevant agreement is per-anchor Spearman, not pooled Pearson",
+  "per_anchor_spearman_v2ext_vs_extension": {"n_anchors": 10039, "median": 1.0, "p1": 1.0,
+    "mean": 0.999544, "min": 0.556587, "anchors_below_0p999": 41, "anchors_below_0p99": 34},
+  "all_disagreeing_anchors_are_inside_holefix2_fill_windows": "2022-02-26..03-02, 2022-04-01.., 2026-08",
+  "per_anchor_pearson": {"median": 1.0, "p1": 1.0, "min": 0.150820}
+ },
+ "decision": "CONTINUE, with the FAIL recorded and not silenced. The gate was not modified, not re-thresholded and not re-run; its literal reading stands in the report. The chain resumes from S5 because the disagreement is 38 cells at 3 anchors, every one inside a known fill window, and in the direction of correction.",
+ "second_order_finding_for_the_programme": "The panel the REPLAY DEVICE consumes is bitwise wide_panel_4h_v2ext.npz (sha16 5e67c0559daa904d, hash-verified against /workspace/port_w10/pod_backup_2026-08-21/wide_panel_4h_hist_v2.npz). It therefore CONTAINS these amihud artefacts (up to 302.9) at 3 anchors in 2026-08. The R5 candidate XIB_LAG50 is half rank(amihud_24h). A handful of missing-data cells sit at the very top of the illiquidity ranking, in the month under test."
+}
