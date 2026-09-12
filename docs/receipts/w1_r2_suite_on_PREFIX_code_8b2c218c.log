@@ -1,0 +1,26 @@
+  PASS T1a thresholds stamped — -0.02277/-0.04425/-0.01656
+  PASS T1b ordering P1 < P5 < 0 — DECIDE must be rarer than ALERT
+  PASS T1c calibration source cited
+  PASS T1d thresholds unchanged by the 2026-09-12 contract fix
+  PASS T2a spearman +1
+  PASS T2b spearman −1
+  PASS T2c ties handled
+  PASS T3a insufficient below 24 — {'n_post_deploy': 10, 'judged': False, 'level': 'OK', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚 mid 收益排序; 不
+  PASS T3b healthy = OK judged — {'n_post_deploy': 30, 'judged': True, 'level': 'OK', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚 mid 收益排序; 不是
+  PASS T3c ALERT on r24 < p5 — {'n_post_deploy': 34, 'judged': True, 'level': 'ALERT', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚 mid 收益排序;
+  PASS T3d DECIDE on r24 < p1 — {'n_post_deploy': 24, 'judged': True, 'level': 'DECIDE', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚 mid 收益排序
+  PASS T3e pre-window rows excluded — rows before WINDOW_START_TS must not be judged
+  PASS T4 beta history pushed AFTER ic computation — idx ic=8107 push=8503
+  PASS T5a plist exists
+  PASS T5b plist runs ops/ic_monitor.py
+  PASS T6 known anchors skipped — []
+★ FAIL T7a OBJECT / CALIB_IDENTITY are byte-for-byte the task-book strings
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/prefix_r2/live/tests_ic_monitor.py", line 180, in <module>
+    check("T7b every page body (ALERT/DECIDE, RECOVERED, INCOMPLETE) carries BOTH lines", t7b(M))
+  File "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/prefix_r2/live/tests_ic_monitor.py", line 177, in t7b
+    return all(mod.OBJECT in b and mod.CALIB_IDENTITY in b for b in bodies(mod, fx).values())
+  File "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/prefix_r2/live/tests_ic_monitor.py", line 159, in bodies
+    "breach_in_event": mod.body_breach(fx["decide"], _ev("ALERT", ("r24",))),
+TypeError: body_breach() takes 1 positional argument but 2 were given
+== exit code = 1; new suite on the round-1 clone source (sha 8b2c218c…, the reviewer's frozen input) ==

@@ -1,4 +1,4 @@
-> **创建:** 2026-09-12 10:10 UTC | **Session:** W1(team, lead=main; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w1`, 分支 `fix/ic-monitor-contract`, 基线 918559f=origin/main) | **状态:** FINAL 10:58Z — §1-§3 事实表与设计先于码(10:10Z 写就), §4 收据(单跑 52/52 · 冻结账本回放 · 旧码红 · 电池 131/132, 唯一红 = 克隆无 .env)与 §5 RESULT 已回填; 代码只在克隆, **未部署**(lead 经 safe_commit 落地) | **作废条件:** `ops/ic_monitor.py` 再改; 或阈值按在役形态重标(生产者平价回放 Phase 2)落地; 或 launchd 调度/数据源变更
+> **创建:** 2026-09-12 10:10 UTC | **Session:** W1(team, lead=main; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w1`, 分支 `fix/ic-monitor-contract`, 基线 918559f=origin/main) | **状态:** FINAL r2 15:55Z — 第一轮 §1-§5(10:10Z 事实表先于码; 单跑 52/52; 电池 131/132) + 第二轮 §7(独立复审 W1-R1/R2/R3 修正: 14:30Z 事实表先于码; 单跑 76/76; 老码 918559f 与修前 8b2c218c 皆红; 最终树电池 131/132, 唯一红 = 克隆无 .env 的 tests_env_loading); 代码只在克隆, **未部署**(lead 经 safe_commit 落地) | **作废条件:** `ops/ic_monitor.py` 再改; 或阈值按在役形态重标(生产者平价回放 Phase 2)落地; 或 launchd 调度/数据源变更
 
 # #55 实现 rank-IC 监视器 — 告警合同修正(设计 + 事实表 + 收据)
 
@@ -162,3 +162,82 @@ cd /Users/haosiyu/cc_tmp/exec_w1/live && . ../ops/pyenv.sh && /usr/bin/python3 t
 - 同级严格 24h 冷却 vs 每日 01:30Z 调度的秒级抖动(F7: 86,398.51 s 抑制了 09-11 DECIDE)— 行为改动, 需 lead 裁(一行: 冷却 24h → 23h)。
 - 「mid」命名(F1: 实为 notional/qty 隐含价)— 正文按任务书用「下锚 mid 收益」字面; 状态 `contract.statistic` 里写明 p 的定义。
 - launchd 实际每日触发无断言(gate_coverage 盲区 d)— 新鲜度门是间接覆盖(停跑 ⇒ 账本冻 ⇒ INCOMPLETE 页), 但页本身也靠同一 job 发; 真正的 off-box 死人开关不在本单。
+
+---
+
+## §7 第二轮: 独立复审 W1-R1/R2/R3 修正(14:30Z 事实表先于码)
+
+复审来源: `/Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_batch_incident_review_2026-09-12/monitoring/RESULT.md`(14:06Z, 冻结克隆 `ops/ic_monitor.py` sha `8b2c218c…776f` = §4 R5 修后 sha)。复审 VERIFIED 的正面项照单接受: 五个数值函数与线上 AST 相同; 阈值/WINDOW_START 不变; 精确 `--check`/`--dry`/`--backfill --check` 零副作用; 遗留迁移/失败重试/OK 不重发。
+
+### §7.1 事实表(第二轮)
+
+| # | 事实 | 出处 | 核法 |
+|---|---|---|---|
+| F22 | **R1 反例**: 60 时点, r48 窗缺 6、r24 无缺 ⇒ r24=+0.01000 可判, r48=−0.09500 不判(< R48_P1 但缺失>4); 上次投递 DECIDE 时 `plan_delivery` 产 INCOMPLETE + RECOVERED, RECOVERED 标题「24/48 锚均值回到所用阈值以上」, 且 `last_delivered_level` 写成 OK | 复审 R1; 克隆 L406-424 | 本人读源确认: 恢复条件只看 `level=="OK"`, 不看**触发窗**是否重新可判 |
+| F23 | **R2 反例**: t0 投 DECIDE → t0+1h 投 RECOVERED(state=OK) → t0+2h 再 DECIDE ⇒ **零投递**, 因 L416 冷却键 = 旧 `last_DECIDE`(t0), 与事件是否已恢复无关 | 复审 R2; 克隆 L415-418 | 读源确认 |
+| F24 | **R3 反例**: argparse 默认 `allow_abbrev=True` ⇒ `--che` 解析为 check; 但 import 门 L49-52 只比较完整字串 ⇒ `--che` 先尝试 `import envfile`(复审陷阱截获)再进入只读路径 | 复审 R3 + `cli_probe_receipts.json` | 读源确认: 门在 L60, 解析在 L482, 顺序倒置且规则不一致 |
+| F25 | OBJECT 说「下锚 mid 收益」, `contract.statistic` 说 p=\|notional\|/\|qty\| 隐含价 —— 同一页两种说法 | 复审 §2 | 读源 |
+| F26 | `check()` 在 `len(post)<24` 提前 return, **无 census / 无 INCOMPLETE 页** ⇒ 空账本或 <24 行的冻死账本永远「OK 只记不判」 | 复审 §2 + probe `short` | 读源 L268-270 |
+| F27 | 复审 §4 指出 eval 缺「实际最新已评分锚」字段(census 只有期望前沿) | 复审 §4-2 | 读源 |
+| F28 | 三份「老码红」参照: 本轮修前克隆源 sha `8b2c218c…`(已快照到 scratch `prefix_r2/`), 用于证明每条新测试在修前为红 | 本人 | 命令 |
+
+### §7.2 设计决策(第二轮)
+
+**D9 事件模型(修 R1+R2).** 状态文件新增 `event` 块 = 一次越线**事件**: `{open, level, trigger_windows, opened_at, delivered:{ALERT:ts, DECIDE:ts}, closed_at, legacy}`。
+- **开**: 一页 ALERT/DECIDE **成功离机**时开(或在已开事件内更新 level/并入触发窗/记该级投递时刻)。触发窗 = 本次 verdict `trigger` 里的窗(`r24<…`⇒r24, `r48<…`⇒r48), 事件内取并集。
+- **恢复(R1)**: 仅当 `level=="OK"` 且 **事件的每个触发窗都在本次 `judged_windows` 内**(重新可判且未越线)才投 RECOVERED 并关事件(`open=False, closed_at`), `last_delivered_level` 才变 OK。触发窗未判 ⇒ **不恢复、不降级**; 此时若有 INCOMPLETE 页, 正文写「可判窗口未越线, 其余窗口未判; 事件 X(触发窗 …)仍开, 未恢复」— 只许这句, 不许「24/48 都恢复」。
+- **RECOVERED 标题按窗**: 两窗皆判 ⇒ 「24/48 锚均值回到所用阈值以上」; 否则 ⇒ 「触发窗 {W} 重新可判且回到所用阈值以上; 其余窗口未判」。仍附「不等于 alpha 恢复」、r24/r48 数值、r48<0 明写、事件起止。
+- **冷却限定在同一事件内(R2)**: 无开事件 ⇒ 越线 = **新事件, 立即投**(不看旧 `last_<LEVEL>`); 事件内同级 ⇒ 24h 冷却(键 = `event.delivered[level]`); 事件内升级/降级到另一级 ⇒ 按该级自身冷却。恢复后同级复发 = 新事件 ⇒ 投。R-10 秒级抖动(86,398 s)在**事件内**同级仍存在, 保留为已知开口。
+- **遗留迁移**: 无 `event` 键但有 `last_ALERT/last_DECIDE` ⇒ 合成开事件: level = 时间戳更大者(现状态 ⇒ DECIDE), **`trigger_windows=["r24","r48"]`(保守: 两窗都重新可判且未越线才恢复; 09-09/09-10 实为 r48 门触发, 但状态文件里没有这个事实, 不猜)**, `legacy=True`, `delivered` 取遗留时刻。首次 deliver 时物化进 `state["event"]`。
+- 兼容: `last_ALERT/last_DECIDE/last_delivered_level` 键继续写(只读用途), 不再作冷却键。
+
+**D10 只读门先于一切凭据加载(R3).** 解析器 `build_parser()` 定义在模块顶部, `allow_abbrev=False`; import 期门 `_readonly_invocation()` 用 `parse_known_args` 判: `--check`/`--dry` ⇒ 只读; **任何无法识别的参数(含 `--che` 缩写)⇒ 也按只读处理(不加载凭据)**, 随后 `main()` 的严格 `parse_args` 以 exit 2 拒绝它。`parse_known_args` 若自身 SystemExit ⇒ 视为只读。launchd 无参数 / `python3 -c` import ⇒ 不只读 ⇒ 照旧加载(tests_env_loading 总体语义不变)。
+
+**D11 OBJECT 措辞统一(F25).** OBJECT 改为「书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(\|notional\|/\|qty\|, 源码旧称 mid)收益排序; 不是模型分数 IC, 不是扣费净收益」; `contract.statistic` 已是隐含价, 一致。`load_anchors` 的 docstring 属 AST, **不动**(保持与线上 5/5 相同)。测试 OBJECT_SPEC 同步。
+
+**D12 <24 行也普查(F26).** `check()` 的 insufficient 分支也算 census: 任一窗不完整 ⇒ `level="INCOMPLETE"`, `incomplete=True`, 会有 INCOMPLETE 页(24h 一次); 两窗完整(年轻部署: 期望被 WINDOW_START 截短)⇒ 维持「OK 只记不判」。空账本 ⇒ INCOMPLETE(不再静默 OK)。
+
+**D13 census 加实际前沿(F27).** `census.newest_row_anchor(_ts)` = post 行里最大 anchor_ts(实际最新已评分锚), 与期望前沿 `frontier` 分列, 供 W5 读。
+
+### §7.3 测试矩阵(第二轮; 每条先在修前源 8b2c218c 上红, 再在修后绿)
+
+| 行为 | 绿断言 | 红能力 |
+|---|---|---|
+| D9 恢复按触发窗 | T12a 复审 R1 夹具 + 开事件 DECIDE(触发 r48): 计划只有 INCOMPLETE, 无 RECOVERED, last 仍 DECIDE, INCOMPLETE 正文含「可判窗口未越线, 其余窗口未判」与「未恢复」; T12b 其后 r48 重新可判且 OK ⇒ RECOVERED, 标题「24/48…」; T12c 事件触发 r24(ALERT) + r48 不完整 ⇒ RECOVERED 但标题为「触发窗 r24 …其余窗口未判」, 不含「24/48 锚均值回到所用阈值以上」 | M12: `_event_recoverable` ⇒ `return True` ⇒ T12a/T12c 红 |
+| D9 冷却限事件 | T13a DECIDE(t0)→RECOVERED(t0+1h)→DECIDE(t0+2h) ⇒ 第三步投 DECIDE, 新事件 opened_at=t0+2h; T13b 事件内 ALERT→DECIDE 升级即投; T13c 事件内同级 +1h 不投(T8h 保留) | M13: 新事件分支改回旧键 `last_<LEVEL>` ⇒ T13a 红 |
+| D10 只读门 | T14 子进程复刻复审陷阱(禁 import envfile/telegram_notify/binance_broker、禁 socket、禁写 open、禁 os.mkdir/… ), 对 `--check`/`--dry`/`--backfill --check` ⇒ 零事件、READ-ONLY 尾行、无异常; `--che` ⇒ **零事件且 SystemExit 2**(拒绝) | M14a 去 `allow_abbrev=False` ⇒ `--che` 被接受为 check 正常返回 ⇒ 红; M14b 门忽略 unknown ⇒ `--che` 尝试 import envfile ⇒ 红 |
+| D11 措辞 | T16 OBJECT 含「隐含价」与「\|notional\|/\|qty\|」, 不含孤立「mid 收益」; contract.statistic 同源 | 修前源 OBJECT 不同 ⇒ 老码红 |
+| D12 <24 普查 | T15a 23 行 + 时钟前进 3 天 ⇒ INCOMPLETE 且带 census; T15b 10 行年轻部署 ⇒ OK 不判且 census 完整; T15c 空账本 ⇒ INCOMPLETE | M15: insufficient 分支删 census ⇒ T15a/T15c 红 |
+| D13 | T15d census 含 newest_row_anchor = 最后一行 | — |
+| 既有 | T8a/T8d 断言改为含「24/48 锚均值回到所用阈值以上」(两窗皆判) + RECOVERED; M8 目标行更新为新恢复分支 | — |
+
+### §7.4 收据(第二轮, 回填)
+
+**R6 套件单跑(修后, 克隆).** 文件 `docs/receipts/w1_r2_ic_monitor_suite_standalone.log`(sha `01ab7e01…3f75`): **76 项全 PASS**(`grep -c "  PASS "` = 76 = 第一轮 52 + 第二轮 24: T12a-c 3 · T13a-d 4 · T14 1 · T15a-e 5 · T16 1 · M12/M13/M14a/M14b/M15 各「注入点恰一次」+「红」10), 19.7 s。命令逐字: `cd /Users/haosiyu/cc_tmp/exec_w1/live && . ../ops/pyenv.sh && /usr/bin/python3 tests_ic_monitor.py`。
+- 过程中被测试抓到并修掉的**本人缺陷**: 首版 `deliver()` 在事件更新之前写 `last_<LEVEL>`, 使首次投递把自己派生成「遗留事件」(T13b 红 ⇒ 改为事件先于遗留键 ⇒ 绿); 另一次 T13b 红是夹具错(−0.05 全序列同时越 r24/r48 门, 触发窗并集本应两窗)—— 改夹具为只越 r24 门。
+- T14 = 复审陷阱形状的子进程复刻(按 `__main__` 执行源码字节; 禁 import envfile/telegram_notify/binance_broker、禁 socket、禁写 open、禁 os.mkdir/makedirs/remove/unlink/replace/rename、禁开 .env): `--check`/`--dry`/`--backfill --check` ⇒ events=[] · error=None · READ-ONLY 尾行; `--che` ⇒ events=[] · `SystemExit:2`。M14b 的红收据显示旧门形态正是复审所见: events=['import:envfile']。
+
+**R7 老码红.** (a) 复审冻结的第一轮克隆源(sha `8b2c218c…776f`, 快照于 scratch `prefix_r2/`)跑新套件: exit 1 — T7a 红(OBJECT 措辞)后在 `body_breach(v, event)` 处 TypeError(旧签名), 文件 `w1_r2_suite_on_PREFIX_code_8b2c218c.log`(sha `75d50540…72be`); (b) origin/main 918559f: exit 1(MATURE_LAG_S 缺), 文件 `w1_r2_suite_on_OLD_code_918559f.log`(sha `b632dc7e…4a48`)。逐行为的红能力由 M12–M15 给出(R6)。
+
+**R8 冻结账本回放(重生成, 正式修后代码).** 文件 `w1_ic_monitor_replay_and_projection.txt`(sha `d80223f5…d32e`): 五次历史运行 r24/r48/n 与第一轮**逐位相同**(数值函数未动), 判级仍全 INCOMPLETE; 新列 `newest_row`(实际最新已评分锚)与期望前沿分列(09-07 运行: 前沿 09-06 20Z, 实际最新 09-06 04Z; 09-10 运行: 前沿 09-09 20Z, 实际最新 09-09 04Z)。填平投影新增「遗留事件(触发窗保守两窗)可恢复?」列: 09-13 否(r24 缺 4/r48 缺 9), 09-14/15 否(r48 缺 9/5), **09-16 起 是**(r48 缺 4 ≤ 4)。⇒ 部署后若无新洞, RECOVERED 最早在 09-16 01:30Z 运行, 标题「24/48 …」(两窗皆判); 09-13..15 每日一页 INFO INCOMPLETE 写「可判窗口未越线, 其余窗口未判; 事件 DECIDE(触发窗 r24,r48) 仍开, 未恢复」(09-14/15)或「无可判窗口」(09-13)。
+
+**R9 电池(最终树, 引用的那次).** 运行 2026-09-12 15:36:00Z → 15:51:37Z(避开 HH:20–HH:35 与锚小时; 树 = R10 的三个 sha), 命令逐字 `cd /Users/haosiyu/cc_tmp/exec_w1 && bash run_acceptance.sh`; runner stdout 原表 `w1_r2_battery_20260912T153600Z_summary.log`(sha `3fe45177…1a439`), 逐套件日志克隆 `state/acceptance/20260912T153600Z_*.log`(132 个)。**132 套件: 131 exit 0, 1 exit 1 = `tests_env_loading`**; runner 终判 NOT GREEN 即此一套件。解剖(`w1_r2_battery_20260912T153600Z_tests_env_loading_RED.log`, sha `d9b1fc0d…c74dc`): 10/14 过, 4 败全是 [B]「X populates TELEGRAM_* on import」, X = ops/ic_monitor.py, ops/redeliver_alarms.py, ops/unseed_rehearsal_halt.py, scheduler/run_anchor.py(安全总体四成员同败), 单一原因 = 克隆无 `.env`(F20; 其中三个是未改动模块; T10b 用临时假 .env 证明本模块无旗标 import 仍加载)。`tests_ic_monitor` 在电池内 exit 0, 76 PASS, 日志 sha `01ab7e01…3f75` **与单跑 R6 逐字节相同**。`gate_coverage`/`tests_static_names` exit 0。早期信号电池(14:40:56Z → 14:57:29Z, gate_coverage 文字改动前的混合树)同样 131/132 且唯一红同为 tests_env_loading — 仅作旁证, 不引用。
+
+**R10 diff 与 sha(最终树).** `w1_ic_monitor_contract.diff` 1372 行, 3 个 `diff --git`, sha `9e362e7ab9780a752a46a1ecf4022f8959f467f538b80a0e2c0b11470b82085b`(只含 ops/ic_monitor.py, live/tests_ic_monitor.py, ops/gate_coverage.py; 克隆 state/ 的 rsync 差异不在其中)。克隆代码: `ops/ic_monitor.py` `abac2fdf2568b5258d1883470e900f0421311ad1e1f871dd7a8ab4b72474e76a`(638 行) · `live/tests_ic_monitor.py` `cc9e67fb2d83952a8830a878447623f56d29eef61d390bfe1d1071dbd16e7909`(768 行) · `ops/gate_coverage.py` `2d9b2157496d3ae98077f66468ec899b437127c1ff0652ea0cc4ba8bcefa49c7`。
+
+### §7.5 RESULT(第二轮)
+
+**改了什么(`ops/ic_monitor.py`, 第一轮 525 → 638 行):**
+- L54-75 `build_parser()`(`allow_abbrev=False`)+ `_readonly_invocation()`: `parse_known_args` 在 import 期、任何凭据加载之前判门; 精确 `--check`/`--dry` **或任何未知参数**(含 `--che`)⇒ 不加载 .env; L83 门不变形。L600-… `main()` 用同一解析器严格解析 ⇒ `--che` exit 2。(R3)
+- L108-109 OBJECT 改为「下锚场所隐含价(|notional|/|qty|, 源码旧称 mid)收益排序」, 与 `contract.statistic` 一致; `load_anchors` 不动(AST 与线上相同)。
+- L260-282 `census()` 加 `newest_row_anchor(_ts)`(实际最新已评分锚, 与期望前沿分列)。
+- L284-… `check()` 的 <24 行分支也普查: 缺锚 ⇒ `level=INCOMPLETE`(空账本/冻死账本不再静默 OK); 年轻窗口(期望被 WINDOW_START 截短且无缺)⇒ 维持 OK 不判。
+- L371-438 正文: `_event_line`; `body_breach(v, event)` 写事件新开/已开; `body_recovered(v, event)` 标题**按窗**(两窗皆判才「24/48」, 否则「触发窗 W 重新可判且回到所用阈值以上; 其余窗口未判」), 写事件起止; `body_incomplete(v, event)` 写「可判窗口未越线, 其余窗口未判」+「事件 X(触发窗 …) 仍开, 未恢复」+ 实际最新已评分锚。
+- L457-520 事件模型: `_trigger_windows` · `open_event`(含遗留合成: level=时间戳更大者, 触发窗保守两窗, legacy=True)· `last_delivered_level`(开事件 ⇒ 其级; 关 ⇒ OK; 无 ⇒ None)· `_event_recoverable`(事件每个触发窗 ∈ judged_windows)· `plan_delivery`: 越线时 **无开事件 ⇒ 立即投**, 事件内同级按 `event.delivered[level]` 冷却 24h; OK 且事件可恢复才 RECOVERED。(R1+R2)
+- L530-588 `deliver()`: 事件先于遗留键更新; 越线页成功离机 ⇒ 开/更新事件; RECOVERED 成功 ⇒ 关事件(`closed_at`, `recovered_with`); `last_eval` 带 `event`。
+- `live/tests_ic_monitor.py` 490 → 768 行: T12–T16 + M12–M15(§7.3); T8f/T8g 传事件; bodies() 覆盖九种页形态(含事件变体)全部过 T7b 两行合同与 T11 PUSH。
+- `ops/gate_coverage.py` L150 条目文字同步(事件模型、按窗恢复、缩写拒绝、短账本普查、九个突变)。
+
+**复审三反例的关闭证据:** R1 → T12a(复审同一夹具 + 开事件 DECIDE/r48 ⇒ 只 INCOMPLETE, last 仍 DECIDE)+ T12c(标题按窗)+ M12 红; R2 → T13a(t0 DECIDE → t0+1h RECOVERED → t0+2h DECIDE **投**, 新事件)+ M13 红; R3 → T14(复审陷阱形状, `--che` 零事件 + exit 2)+ M14a/M14b 红。其余: T16(措辞)、T15a-e(短账本普查)+ M15 红。
+
+**未关(明列):** 阈值按在役形态重标 OUT OF SCOPE(Phase 2); 事件内同级 24h 严格冷却 vs 01:30Z 秒级抖动(R-10)保留为已知开口(事件模型已让「恢复后复发」不再被它吞掉); 遗留事件触发窗保守取两窗 ⇒ 现开事件的 RECOVERED 最早 09-16(lead 可裁: 若认可审计事实「09-09/09-10 由 r48 门触发」, 可把遗留触发窗写成 ["r48"], 一处常量); launchd 触发无断言; 数学路径的口径保留项(下一快照有仓才入样、显式零仓丢弃、隐含价非固定 E 时刻、无费用/资金费)不在本单, 不宣布关闭。
