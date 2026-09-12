@@ -1,5 +1,8 @@
 # SHIP · 第七轮决策登记册 — 八项待裁定, 正反同页
 
+> **★ SUPERSEDED 2026-09-12(独立复审 codex 8fb5c8d1 + 本方核实, 见 `RESPONSE_to_independent_review_2026-09-12.md` §3):** **#5 门 sha f814c728 → 不批准**(六个负例里五个仍 PASS, 门不可证伪; 待 v2 门); **#6 XIB_LAG50 → 不晋级, 保留研究测量**(干净基线 ρ 0.911; 回吐窗更差; 事后换窗不构成确认); #1 b681ca5 → 部署验收中(钉 exact commit, 不用浮动 pull); #2 risk_scale → 暂不部署(先隔离移植 + 动作合同); #7 Amihud → 不晋级但保留为优先分散候选; #8 规划数 → 指定历史读数非期望。本登记册其余正文保留为当时论证。
+
+
 > **创建:** 2026-09-12 | **Session:** https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX | **状态:** 待用户裁定; 本文 = 耐久副本, 同内容 Artifact 见文末 | **作废条件:** 八项全部裁定并写入 `STATE.md` 后转历史
 > **Artifact(同内容, 英文, 可离线阅读):** https://claude.ai/code/artifact/34f31832-d386-4690-ba0f-8918b5ac72c9
 > **前身:** `RULINGS_OUTSTANDING_2026-09-11.md`(SHIP-2, 四项)。本文取代之: 并入第六轮(覆盖延展/翻转对账)与第七轮(燃料曲线)结果, 并把 SHIP-1 的执行器补丁与研究裁决一并摊开。
