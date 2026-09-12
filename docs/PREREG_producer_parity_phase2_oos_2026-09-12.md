@@ -30,3 +30,10 @@ Phase 1 证明"装置 = 线上"(生产代码路径逐锚复现线上权重)。Ph
 
 ## §4 不主张
 不主张任何候选改动的效果(候选在装置过门后另立预注册); 不替代研究回放的 A0/A1x 规划数, 直到 G2-A..E 全过且研究员复核; 不改任何生产文件, 不调 API。
+
+## 收据 1 · G2-A 通道平价(2026-09-12 10:1xZ, pod2 CPU, 只读; `parity_replay_2026-09-12/phase2/G2A_channel_parity.json`, 装置 `phase2/g2a_channel_parity.py`)
+- 输入: 生产者缓存快照 `producer_state_snapshots/1789200000/rolling.npz`(11,520 行 × 829 × 7 f16)vs pod `dlnative_5m_wide829_f16_holefix2.npz`(490,753 行 × 829 × 7 f16); 符号轴 829 **同序**; 通道顺序同(`ret5 range cpos log_qv log_cnt log_avgsz tbf`)。
+- 重叠 2026-08-03 08:05Z → 2026-09-01 00:00Z, **8,256 个共同 5m 时刻**(pod 正典缓存止于 09-01 00:00Z)。
+- **七个通道: 两侧同为有限的格上 |Δ| 最大值全部 = 0.0(逐位相等), 超 f16 ulp 的格 0/0; 「生产者有限而 pod 为 NaN」的格 0**; 「pod 有限而生产者 NaN」= 1.06M–1.91M 格 = 生产者只抓取 450 个 live 名而 pod 覆盖 829 名(宇宙差, 不是数值差)。
+- ⇒ **G2-A PASS(通道值同源同算法; 用 pod 缓存喂生产代码不引入数值差)**。r17 记的「rolling.npz qv4h vs 面板 中位 |Δlog| 0.52」因此**不是 5m 数据差**, 是 4h 量的定义差(面板 qv4h 的构造 vs 生产者 `expm1(mean log_qv)×48`), Phase 2 里按生产者定义从缓存算 qv4h 即可, 不需要面板的 qv4h。
+- 未覆盖: 09-01 00:00Z 之后 pod 正典缓存无行(月度补月后再测); 非 live 名字的通道值无生产者对照(Phase 2 只用 live 名子集 + 面板宇宙, 已在 §1 明写)。
