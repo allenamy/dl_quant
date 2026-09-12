@@ -10,6 +10,7 @@
 > ③ **Amihud +0.2458 是方差削减不是 alpha**: a=0.20 时组合 mean g 下降(干净样本 −0.0900); 干净样本 ΔSharpe +0.2181 CI95 [−0.0278,+0.4664] 含零。审计所说"2023 单年修复"理由不对(剔 2023 仍 +0.1927)。
 > ④ **在役构成 77/13/10 过时**: 09-11 00Z 名义系数 **fund 65.4% / king 19.0% / DL 15.6%**(研究员自 `target_combo` 读出; 我方 09-12 00Z 掩码席位 king 0.3557 同向)。
 > ⑤ **新增两条结构性缺陷(源码坐实, 实盘工件复现)**: 席位纯价格看不见 carry(09-05 的 SEATNET REJECT 坐在 v3 作废口径上); FTRIM 是分数级 pre_zero, 经 demean 泄漏为小空头, 58 锚均值 68% 标记名仍为负目标、付 A0 carry_ex 的 59.8%(毛节省)。**验证臂 r15(FTPOS=1 / SEATNET=1)与 r16(减风险免带)在飞。**
+> ⑥ **r15 / r16 已出(2026-09-12, 全 v4 钉住, GATE P 逐位, 无录取)**: 仓位级 FTRIM 净 **+0.018**(省下 carry 的 77% 以放弃的价格还回; 2026 −0.20; 换手 +24%)⇒ **泄漏是真的, 修它是零和**, 我方"年化 12.6% NAV"为毛口径, **净 +0.8%/年 CI 跨零**; 腿层净额席位 **REJECT**(v4 上 fund 腿秩书 carry = 书的 **2.60×**, 过罚; DEEPNEG_SHORT 格 −1.87 CI<0); 书路径净额席位 UNDECIDED 但停机更差; 非对称带无录取(退出毛值 +0.44 被 ×7 换手吃掉, **带在进场侧净赚**); 实盘"零目标仍有仓"= **maker 退出 35% 未成交 + 灰尘低于 min_notional**, 不是带 ⇒ 与"给漏单定价"同轴。**换手因子更正**: 1.7819 是两均值之比, E[1/g]=1.5868, 1/E[g]=1.4375, 匹配口径只能逐锚算。
 
 
 1. **没有任何东西被录取, 而且在合同被裁定前也不可能。** `ELIGIBILITY_CONTRACT.json` 的 `gates.BUNDLE_export.source = null`、`approved_source_sha256 = []`, 而 A1/A1s/A1e/A2/A3 五条臂的 `candidacy_gate` 全指向它。按该文件自己的 `rules[4]`, 任何臂都不能成为候选。`RESULT_uplift_program` L4 自陈本轮 **EXPLORATORY, not promotable, not deployable**。**请把所有"判决"读作研究测量。** 合同自身 `review_status = "independent review pending"` —— **它也在你的复审范围内**。
