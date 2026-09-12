@@ -1,0 +1,414 @@
+{
+ "self_sha256": "6fb4fc68dc0a3f36a9f339cc4d76086b2993081d79956b86c0f1956c89e78d30",
+ "prereg_shas": {
+  "PREREG_r14_cost_estimand_2026-09-12.md": "bbedfdaa33644a82a05660dd50e38a65ffddef8ae3c06d509c643c7131183904",
+  "PREREG_AMENDMENT_1_r14_2026-09-12.md": "6207572a9dba8a32554b6c3a44467509e179127ae92084f2bf44f7fafb872594",
+  "PREREG_AMENDMENT_2_r14_2026-09-12.md": "abfcc85064ee2fbdbfa3c7f45f2a2b5a4fe2b3870ab4c8d7a9f03c26576cfc54"
+ },
+ "env_whitelist": [],
+ "env_whitelist_declared": "EXPLICITLY EMPTY SET (asserted at runtime)",
+ "utc": "2026-09-12T02:33:22Z",
+ "gates": {
+  "A2_4_ERA1_k_is_zero": {
+   "mean_k": 0.0,
+   "expect": 0.0
+  },
+  "G1_slip_reproduction_correct_window": {
+   "window_utc": [
+    "2026-08-01T04:00:00Z",
+    "2026-09-11T04:00:00Z"
+   ],
+   "tolerance_bps": 0.25,
+   "mk": {
+    "measured": -4.4894,
+    "archived_tierfree_target": -4.4894,
+    "abs_diff": 0.0,
+    "n_fills": 24096,
+    "notional": 1056208.9
+   },
+   "tk": {
+    "measured": 13.1767,
+    "archived_tierfree_target": 13.1767,
+    "abs_diff": 0.0,
+    "n_fills": 6626,
+    "notional": 209140.5
+   },
+   "PASS": true
+  }
+ },
+ "inputs": {
+  "orders_rows": 73894,
+  "fills_raw": 85517,
+  "fills_dedup": 35552,
+  "anchors": 248,
+  "days": [
+   "20260801",
+   "20260912"
+  ],
+  "cache_sha256": "838856342ea76f15b096077e321c1cb04d5ab8365657d1a76a659b308ba9dade",
+  "cache_path": "/Users/haosiyu/wide_shadow/state/rolling.npz",
+  "lineage": "LIVE-CACHE (~/wide_shadow/state/rolling.npz), not the pinned pod v4 cache"
+ },
+ "PRIMARY_drift_intent_ERA2": {
+  "mean": -1.3101,
+  "ci95": [
+   -6.0517,
+   2.6773
+  ],
+  "n": 36438,
+  "weight": 2954328.6,
+  "n_days": 23
+ },
+ "drift_intent_ERA1_control": {
+  "mean": 0.0,
+  "ci95": [
+   0.0,
+   0.0
+  ],
+  "n": 6562,
+  "weight": 299274.4,
+  "n_days": 20
+ },
+ "drift_intent_ALL": {
+  "mean": -1.1896,
+  "ci95": [
+   -5.7709,
+   2.5702
+  ],
+  "n": 43000,
+  "weight": 3253602.9,
+  "n_days": 40
+ },
+ "A2_1_drift_filled_ERA2": {
+  "mean": 0.3922,
+  "ci95": [
+   -5.2656,
+   6.5652
+  ],
+  "n": 14015,
+  "weight": 1421589.6,
+  "n_days": 23
+ },
+ "A2_3_drift_UNFILLED_ERA2": {
+  "mean": -2.8844,
+  "ci95": [
+   -13.5996,
+   2.2115
+  ],
+  "n": 33499,
+  "weight": 1532899.0,
+  "n_days": 23
+ },
+ "A2_2_SELECTION_fill_minus_intent_ERA2": {
+  "drift_filled": 0.3922,
+  "drift_intent": -1.3101,
+  "selection_bps": 1.7023,
+  "drift_unfilled": -2.8844,
+  "reading": "positive selection = filled orders saw MORE adverse drift than intent (would be surprising); negative = the fills are the favourable half, i.e. the classic maker selection effect"
+ },
+ "A2_3_fill_shortfall_ERA2": {
+  "attempt1_intent_notional": 2954328.6,
+  "attempt1_filled_notional": 1421589.6,
+  "fill_rate_vs_attempt1_intent": 0.4812,
+  "note": "the replay books 100% of dw; the desk books this share at attempt 1 (attempt-2 IOC top-up covers part of the remainder and is counted separately below)"
+ },
+ "A2_5_PLACEBO_pre_anchor_window_ERA2": {
+  "mean": -3.2355,
+  "ci95": [
+   -9.193,
+   0.682
+  ],
+  "n": 36706,
+  "weight": 2966448.1,
+  "n_days": 24
+ },
+ "A2_5_PLACEBO_pre_anchor_window_ERA1": {
+  "mean": 0.0,
+  "ci95": [
+   0.0,
+   0.0
+  ],
+  "n": 6562,
+  "weight": 299274.4,
+  "n_days": 20
+ },
+ "A2_6_k_sensitivity_ERA2": {
+  "k4_to_E+20m": {
+   "mean": -0.1248,
+   "ci95": [
+    -4.1291,
+    2.9275
+   ],
+   "n": 36438,
+   "weight": 2954328.6,
+   "n_days": 23
+  },
+  "k5_to_E+25m": {
+   "mean": -1.5692,
+   "ci95": [
+    -6.7298,
+    2.2627
+   ],
+   "n": 36438,
+   "weight": 2954328.6,
+   "n_days": 23
+  }
+ },
+ "A2_4_ERA1_forced_k5_placebo": {
+  "mean": -4.0158,
+  "ci95": [
+   -9.1451,
+   1.8164
+  ],
+  "n": 6562,
+  "weight": 299274.4,
+  "n_days": 20
+ },
+ "S3_by_order_type_ERA2": {
+  "maker": {
+   "mean": -2.1027,
+   "ci95": [
+    -7.3197,
+    2.0632
+   ],
+   "n": 35173,
+   "weight": 2458742.1,
+   "n_days": 21
+  },
+  "protective_flatten": {
+   "mean": 2.622,
+   "ci95": [
+    -6.383,
+    13.7247
+   ],
+   "n": 1265,
+   "weight": 495586.4,
+   "n_days": 5
+  }
+ },
+ "by_placement_arm_ERA2": {
+  "None": {
+   "mean": 2.622,
+   "ci95": [
+    -6.383,
+    13.7247
+   ],
+   "n": 1265,
+   "weight": 495586.4,
+   "n_days": 5
+  },
+  "behind": {
+   "mean": 3.3603,
+   "ci95": [
+    0.2337,
+    5.9691
+   ],
+   "n": 13476,
+   "weight": 1137177.1,
+   "n_days": 21
+  },
+  "exempt": {
+   "mean": 7.5752,
+   "ci95": [
+    -13.3981,
+    34.1061
+   ],
+   "n": 2184,
+   "weight": 82213.6,
+   "n_days": 21
+  },
+  "join": {
+   "mean": -7.7574,
+   "ci95": [
+    -18.1223,
+    -0.1554
+   ],
+   "n": 19513,
+   "weight": 1239351.4,
+   "n_days": 21
+  }
+ },
+ "S4_by_liquidity_decile_ERA2": {
+  "D0": {
+   "mean": -2.0002,
+   "ci95": [
+    -7.6354,
+    3.6592
+   ],
+   "n": 3643,
+   "weight": 131334.2,
+   "n_days": 23
+  },
+  "D1": {
+   "mean": -0.5731,
+   "ci95": [
+    -13.5964,
+    10.55
+   ],
+   "n": 3644,
+   "weight": 208068.3,
+   "n_days": 23
+  },
+  "D2": {
+   "mean": 1.3459,
+   "ci95": [
+    -7.3503,
+    8.9662
+   ],
+   "n": 3644,
+   "weight": 240109.3,
+   "n_days": 23
+  },
+  "D3": {
+   "mean": 7.7169,
+   "ci95": [
+    3.7602,
+    12.1363
+   ],
+   "n": 3644,
+   "weight": 324697.7,
+   "n_days": 23
+  },
+  "D4": {
+   "mean": -0.1597,
+   "ci95": [
+    -9.7515,
+    9.3098
+   ],
+   "n": 3644,
+   "weight": 314935.8,
+   "n_days": 23
+  },
+  "D5": {
+   "mean": 0.2426,
+   "ci95": [
+    -9.6819,
+    10.2207
+   ],
+   "n": 3643,
+   "weight": 374259.3,
+   "n_days": 23
+  },
+  "D6": {
+   "mean": -6.4212,
+   "ci95": [
+    -12.6287,
+    0.751
+   ],
+   "n": 3644,
+   "weight": 346569.0,
+   "n_days": 23
+  },
+  "D7": {
+   "mean": -2.2507,
+   "ci95": [
+    -17.1216,
+    9.8918
+   ],
+   "n": 3643,
+   "weight": 310385.2,
+   "n_days": 23
+  },
+  "D8": {
+   "mean": 0.5914,
+   "ci95": [
+    -15.1637,
+    11.2509
+   ],
+   "n": 3645,
+   "weight": 362374.0,
+   "n_days": 23
+  },
+  "D9": {
+   "mean": -10.6801,
+   "ci95": [
+    -30.8898,
+    4.4445
+   ],
+   "n": 3644,
+   "weight": 341595.8,
+   "n_days": 23
+  }
+ },
+ "S4_decile_edges_qv4h_usdt": [
+  240736.3,
+  355279.2,
+  488581.1,
+  675018.7,
+  976711.0,
+  1527306.1,
+  2548067.8,
+  4955487.0,
+  14142765.9
+ ],
+ "by_replay_tier_ERA2": {
+  "tier0_qv4h>=5e6": {
+   "mean": -4.351,
+   "ci95": [
+    -19.9823,
+    7.0229
+   ],
+   "n": 7238,
+   "weight": 699196.9,
+   "n_days": 23
+  },
+  "tier1_qv4h>=1e6": {
+   "mean": -3.1076,
+   "ci95": [
+    -8.4569,
+    2.5363
+   ],
+   "n": 10764,
+   "weight": 1020571.8,
+   "n_days": 23
+  },
+  "tier2_rest": {
+   "mean": 1.898,
+   "ci95": [
+    -2.2362,
+    5.2687
+   ],
+   "n": 18436,
+   "weight": 1234559.9,
+   "n_days": 23
+  }
+ },
+ "G6_reconciliation_vs_exec_caliber_reconcile": {
+  "exec_caliber_device_sha256": "e9d8daafa8bbb5aeed03c543e05688be86d77c78b540a18ff389c9ba6708d8a3",
+  "exec_caliber_path": "multi_asset/exports/research/allweather_2026-09-05/trackA/results/exec_caliber_reconcile.json",
+  "exec_caliber_a_minus_c_2024to26_s42": {
+   "mean": 0.1004,
+   "ci95": [
+    0.0667,
+    0.1327
+   ]
+  },
+  "exec_caliber_delta_w_slice_2024to26_s42": {
+   "mean": 0.0805,
+   "ci95": [
+    0.0531,
+    0.106
+   ]
+  },
+  "exec_caliber_2026_to_cut": {
+   "a_minus_c": 0.078,
+   "delta_w_slice": 0.0072,
+   "delta_w_ci95": [
+    -0.0296,
+    0.0452
+   ]
+  },
+  "r14_drift_intent_bps_per_unit_traded": -1.3101,
+  "r14_ci95": [
+   -6.0517,
+   2.6773
+  ],
+  "r14_in_bps_per_anchor_per_gross_on_LIVE_turnover": -0.1423,
+  "r14_ci95_bps_per_anchor_per_gross_on_LIVE_turnover": [
+   -0.6575,
+   0.2909
+  ],
+  "r14_in_bps_per_anchor_per_gross_on_MATCHED_replay_turnover": -0.0708,
+  "sign_convention": "+ = the replay over-credits (a CHARGE against the replay); - = the desk's delayed entry is cheaper than the replay's reference (a CREDIT)"
+ }
+}

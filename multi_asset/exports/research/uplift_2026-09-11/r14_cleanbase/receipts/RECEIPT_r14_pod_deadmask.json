@@ -1,0 +1,115 @@
+{
+ "step": "R14_POD_DEADMASK",
+ "self_sha256": "3564792fd59678b202fdb96f7de778dff4afca4ed5fcc299b610d7f5e185dd67",
+ "prereg_sha256": "89ba6e7d87d79866d78f7a95400ee13b21b7d0d511dfc82f6ce7b509ca956fe7",
+ "env_whitelist": [],
+ "env_seen_at_runtime": [
+  "HOME",
+  "LC_CTYPE",
+  "MKL_NUM_THREADS",
+  "OMP_NUM_THREADS",
+  "OPENBLAS_NUM_THREADS",
+  "PATH"
+ ],
+ "numpy": "2.4.6",
+ "python": "3.11.10",
+ "utc": "2026-09-12T02:23:41Z",
+ "inputs": {
+  "meta_newprod_v4": {
+   "path": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz",
+   "sha256": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3",
+   "bytes": 27497999
+  },
+  "panel_hist_v2": {
+   "path": "/workspace/data/wide_panel_4h_v2ext.npz",
+   "sha256": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+   "bytes": 232319980
+  },
+  "umask_UPIT_CRYPTO": {
+   "path": "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+   "sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+   "bytes": 100021
+  },
+  "SLOW_v3_on_v4axis": {
+   "path": "/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+   "sha256": "647673183e6af44ac5b2570b856692c9d2d51ab9f17194bfebb7a0d3dbbd9009",
+   "bytes": 33763640
+  },
+  "SLOW_v4": {
+   "path": "/workspace/review_scratch/king_v4/SLOW_v4.npy",
+   "sha256": "dde19142d017c37dd9bae564ab4a32a4b9b068f6aef8acc91e7ea329f4f1c8a6",
+   "bytes": 33763640
+  },
+  "f10_A0_s42": {
+   "path": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s42.npy",
+   "sha256": "ff109711f5526c68cebb23599e299041a2310caa7857b5ff9aa50464d2e6077b",
+   "bytes": 33863120
+  }
+ },
+ "shapes": {
+  "E_ts": 10182,
+  "SLOW_v3": [
+   10182,
+   829
+  ],
+  "SLOW_v4": [
+   10182,
+   829
+  ],
+  "f10_A0_s42_raw": [
+   10212,
+   829
+  ],
+  "panel_ts": 10039
+ },
+ "f10_alignment": {
+  "rows_aligned": 10182,
+  "of": 10182,
+  "cols": 829,
+  "finite_frac": 0.2893508234569911
+ },
+ "row_coverage": {
+  "SLOW_v3_on_v4axis": {
+   "finite_rows_of_axis": 5838,
+   "axis_rows": 10182,
+   "first_finite_row": 4338,
+   "first_finite_ts_utc": "2024-01-01T00:00:00Z"
+  },
+  "SLOW_v4": {
+   "finite_rows_of_axis": 5844,
+   "axis_rows": 10182,
+   "first_finite_row": 4338,
+   "first_finite_ts_utc": "2024-01-01T00:00:00Z"
+  },
+  "f10_A0_s42_on_axis": {
+   "finite_rows_of_axis": 8028,
+   "axis_rows": 10182,
+   "first_finite_row": 2148,
+   "first_finite_ts_utc": "2023-01-01T00:00:00Z"
+  }
+ },
+ "out_npz": "/workspace/uplift_2026-09-11/r14_cleanbase/r14_deadmask.npz",
+ "out_npz_sha256": "83c80561b44d4bdb45f7b52ce648f1d2d832f88e2703db166a6bc9d3cdbde8b3",
+ "amihud_inputs": {
+  "s42": {
+   "path": "/workspace/uplift_2026-09-11/p6/arms/w10_ablation_series_P6_AMQ64_PWR_s42.npz",
+   "sha256": "edcf068affc6fc57e9d6f7e2c3dab3b5bc40daccc0fe691e4bfaef7413ae2dcd",
+   "rec_key": "d30_n2_c42_rec",
+   "rec_shape": [
+    10039,
+    23
+   ]
+  },
+  "s2027": {
+   "path": "/workspace/uplift_2026-09-11/p6/arms/w10_ablation_series_P6_AMQ64_PWR_s2027.npz",
+   "sha256": "00c770d8a01742d984eaa78294b0a16eea3625fa2472fcc7a25c4b05a3ee5bb2",
+   "rec_key": "d30_n2_c42_rec",
+   "rec_shape": [
+    10039,
+    23
+   ]
+  }
+ },
+ "out_amihud": "/workspace/uplift_2026-09-11/r14_cleanbase/r14_amihud_arms.npz",
+ "out_amihud_sha256": "fedaa362d1b6f15838e0a1ae7675bc150757d74daa3ef3fe44373f2b19d3746b"
+}
