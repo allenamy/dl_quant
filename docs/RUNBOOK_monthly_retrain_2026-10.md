@@ -1,8 +1,28 @@
 # RUNBOOK: 宽书月度重训+换装 v2(2026-10 执行用; 定稿于 09-01 首跑收官)
 
-> **创建:** 2026-09-01 | **Session:** 6737834a(重训战役) | **状态:** 待执行(10-01 前后) | **作废条件:** 被更新月版取代或 combo 方案退役
+> **创建:** 2026-09-01 | **Session:** 6737834a(重训战役)| **修订:** 2026-09-12(§0★ 唯一执行步骤单 = v4 口径; §2–§4 降为历史; 用户字 09-12)| **状态:** 待执行(10-01 前后), **执行只按 §0★** | **作废条件:** 被更新月版取代或 combo 方案退役
 > 首跑全受据: `multi_asset/exports/research/retrain_2026-09/MANIFEST.md`(脚本×机器×门表+偏差D1-D5)+ `journal_2026-09-01_retrain_king_v3.md` + PREREG addendum(c24b8d2f)+ AMENDMENT A1(d2d20f5)。
 > **脚本单一真相源 = `multi_asset/exports/research/retrain_2026-09/`(git); pod/jpline 上只放运行副本。**
+
+## §0★ 唯一执行步骤单(v4 口径, 2026-09-12 定稿; 用户字 09-12「既然 v4 已经确定是正确口径, 10 月 runbook 为什么还不修」)
+
+> **本节取代 §2–§4(那三节自 2026-09-12 起只作 09-01 v3 首跑的历史记录, 不再执行)。** 命令逐字抄装置目录 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git 单源; pod 上只放运行副本 `R=/workspace/review_scratch`), 每步先过门再下一步, 门红即停。装置 sha(2026-09-12 实测): `chain_lib.sh` ffbb89b8 · `chain_v4_data.sh` ee0af0c0 · `chain_v4_gpu3.sh` 29611dbc · `chain_v4s_gpu.sh` 2563446d · `chain_king_e.sh` db5839e4 · `chain_v4_post_export.sh` e1dec02b。复跑前用 `v4_gate_common.py sha <file>` 实测, 不凭本表。
+
+| 步 | 做什么 | 命令 / 装置(逐字) | 门(红即停) |
+|---|---|---|---|
+| 0 | pod 环境 + 装置同步 + 本月钉子 | `bash /workspace/pod_env_bootstrap.sh`; rsync 装置目录 → `$R`; **live_pins.json 每月重抄**自在役 `~/wide_shadow/shadow_bundle/config.json`(symbols_live / keep_names); 基线 json = 上月 own fold IC(`slow_scorer_v4base.json` 型) | 装置 sha 与 git 单源逐文件相等 |
+| 1 | **5m 缓存** = holefix2 正典 + 滚动补月; 原始收益补丁 `raw_patch.npz` 随缓存走 | 补月后 `$PY $R/cache_coverage_gate_v2.py`(排除首末日) | **洞 0 / 宽缺口 0** 才过 |
+| 2 | **数据层**(CPU ≈40 分): RAW 目标 → fea82 → fea89 → king v4 特征(clamp) | `bash $R/chain_v4_data.sh`(内: `DLWT_CACHE=<holefix2> DLWT_PANEL=<本月 v3splice> DLWT_OUT=/workspace/dlw_v4raw DLWT_RET_CH=0 DLWT_RAW_PATCH=$R/raw_patch.npz $PY pod_dlw_targets_raw.py` → `F171_CACHE=… F171_OUT=/workspace/dlw_hf3 $PY pod_dlw_features_ext.py` → `F8_DLW=/workspace/dlw_hf3 F8_CACHE=… F8_OUT=/workspace/f8_v4 $PY pod_f8_build_ext.py build` → `CACHE_IN=… PANEL_IN=/workspace/data/wide_panel_4h_v2ext.npz FEA_OUT=/workspace/data/wide_fea_v4.npy META_OUT=/workspace/data/wide_fea_v4_meta.npz $PY pod_fea_ext_clamp.py`); 每步 rc 与每次 cp 都被检查, 终点 `CHAIN_V4_DATA_DONE` | `v4_gate_step1.py`(RAW vs CLIP 差异只在补丁窗, **邻域外差异必须为 0**)+ `v4_gate_step2.py`(king 特征差异只在缓存改动邻域); 收据 `$R/v4_gates/step1.json` / `step2.json` 必须是本链 self_sha 的 PASS |
+| 2b | (候选, 待用户字)fea89 稳定 trend: `pod_f8_build_stable.py` + `v4_gate_closure.py`(G2, 五输入含 hole_cells) | `bash $R/chain_v4s_gpu.sh` 型 | G2_closure PASS |
+| 3 | **legs**: 在役训练 legs 行逐位原样 + 新锚同公式(**禁全行重算**, AMENDMENT 5) | `$PY $R/pod_legs_v4b.py` → `/workspace/f8_v4/data/f10v2_legs.npz` | 自检分年 WL: 2023 king ≈0.59 |
+| 4 | **F10**(GPU ≈5.5h 四链; 生产只需 RAW × s42, 判官加 s2027): 月折 FIX7 `BEST_EP_FIX=7 EMBARGO=1` 20 折 202501.. 4 分片 → merge → refit | `bash $R/chain_v4_gpu3.sh`(内: `require_gate step1.json gate=STEP1 profile=v4 self_sha=$(gate_sha v4_gate_step1.py) …` + `require_gate step2.json gate=STEP2 …` + `pin_deps` + `run_shards launch_mwf_v4b.sh RAW 42` … + `merge_mwf_v4b.py` 要 `MERGE_DONE`)→ `$PY $R/pod_f10_refit_v4.py`(FIX7) | 门 V1 np≡torch(`jp_v4_np_check.py` ≤1e-5); V3′ 无未来峰 + 谱形 \|Δ\|≤0.03 参照 = 同配方上一代月折; 折外泄出 = 0 |
+| 5 | **king 导出**: env **逐字** | `env BUNDLE_OUT=/workspace/shadow_bundle_v4_<月> BUNDLE_BASE=<上代 own fold IC json> BUNDLE_FEA=/workspace/data/wide_fea_v4.npy BUNDLE_META=/workspace/data/wide_fea_v4_meta.npz EXPORT_PANEL=<本月 splice> EMA_STATE_JSON=<canoncont> LIVE_PINS=/workspace/live_pins.json $PY $R/pod_export_bundle_v4.py`(要 `BUNDLE_DONE`); **`provenance.generation` 标签改本代**(v4_2026-10) | 门②折 IC / 门③ ic26 / 守卫带 2.27–2.57(`guard_reconcile_v4e.py` 先复现上代发表值 2.284); 红先复现基线再报 |
+| 6 | **书层量化**(dev_v4 树, meta y4 原始记账): 臂 A1(新) vs A0(在役) dyn/fix × s42/s2027 | `bash $R/run_v4_arms.sh A1` → `JUDGE_OUT=$R/v4_gates/JUDGE_v4.json $PY $R/judge_v4.py`(要 `JUDGE_V4_DONE`; 判官先复现已发表 A0 数字) | (A) 双种子 CI 下界 >0 ⇒ 候选; (C)+门全绿 ⇒ 仍呈候选(措辞「未过否决线 + 口径正确」); (B) 或任一门红 ⇒ 不换 |
+| 7 | **出口门**(资格合同 `BUNDLE_export`): v2 门 gate + require | `env … V4CHAIN_DIR=<冻结合同目录> EXPORT_ARM=A1 BUNDLE_OUT=<步 5 输出> JUDGE_HC=… $PY infra2/v4e_gate_export_v2.py` → `… require <receipt>`(r20 `run_pod2_positive.sh` 的 env 逐字) | PASS + REQUIRE_OK; 合同 `gates.BUNDLE_export.approved_source_sha256` 必须含 v2 门 sha(**2026-09-12 起应用 PROPOSED2, 见 STATE**) |
+| 8 | **换装**(仅在用户对具体 bundle sha 给字后): 锚间静默窗; 备份旧 bundle(目录 + tar); 原子换; sidecar A2 平价; `acceptance.py` ALL_GREEN; 首锚验收写 journal; STATE 一行 | 同 §3-3 / §4-8 的动词 | 任一门红 ⇒ 不换, 影子继续旧 bundle |
+| 9 | 入档: RESULT + receipts(`$R/v4_gates/*.json`, `deps_*.json`)+ MANIFEST sha; memory | — | — |
+
+**易错项(全部咬过)**: NpzFile[key] 不进循环; pgrep 用 `[c]hain` 括号法; 一切 sha 由复跑实测; 过程状态只读过程收据; ssh 全内联(zsh 不分词); `pod_fea_ext.py`(未 clamp)/ `pod_export_bundle_v3.py` / `pod_legs_ext.py` 全行重算 **一律不再用**。
 
 ## §0 原则(不变式)
 
@@ -26,6 +46,8 @@ ssh ... 'bash /workspace/pod_env_bootstrap.sh'   # pandas/sklearn/lightgbm + tor
 
 ## §2 数据层(~40 分钟, 全 CPU)
 
+> **⛔ 作废(2026-09-12): 本节是 09-01 v3 首跑的历史记录(`pod_fea_ext` 未 clamp / `pod_export_bundle_v3` / `pod_legs_ext` 全行重算 / 裁剪目标), 不再执行; 执行按 §0★。**
+
 | 步 | 命令(pod /workspace) | 门(冻结) | 09-01 实测 |
 |---|---|---|---|
 | 1 vision 增量 | `EXT_DAYS=<上月逐日> python3 pod_extend_vision.py` | 404=新币缺日正常 | err 0 |
@@ -38,6 +60,8 @@ ssh ... 'bash /workspace/pod_env_bootstrap.sh'   # pandas/sklearn/lightgbm + tor
 > 门①若 funding EMA 列红: 先查 zip 覆盖(D3), 再走 09-01 对账链; **corr≥0.999 过门≠够用**——splice 滚动是常规步不是应急步(D5)。
 
 ## §3 king 轨(~30 分钟)+ bundle 换装
+
+> **⛔ 作废(2026-09-12): 本节是 09-01 v3 首跑的历史记录(`pod_fea_ext` 未 clamp / `pod_export_bundle_v3` / `pod_legs_ext` 全行重算 / 裁剪目标), 不再执行; 执行按 §0★。**
 
 1. `python3 pod_export_bundle_v3.py`(env: `EXPORT_PANEL=<splice> EMA_STATE_JSON=<canoncont>`)。内建门:
    门② 2024/25 折 IC |Δ|≤0.004 · 门③ ic26 ±0.006 · 守卫 2.27..2.57(带心重标=裁定项; 红先归因: 窗口新尾 vs 仪器, 09-01 干预实验为模板)· keep/宇宙断言=pins。
@@ -54,6 +78,8 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hsy.shadowloop.plist
 4. 首锚验收: shadow_log booster_sha 翻版 + kc/fc own + 改写幅度无跳变>3pp(09-01: 15.98%, −0.45pp)。
 
 ## §4 f10 轨(~90 分钟)+ 换装
+
+> **⛔ 作废(2026-09-12): 本节是 09-01 v3 首跑的历史记录(`pod_fea_ext` 未 clamp / `pod_export_bundle_v3` / `pod_legs_ext` 全行重算 / 裁剪目标), 不再执行; 执行按 §0★。**
 
 1. 输入链: `bash pod_f10_inputs_chain.sh`(targets→**pod_gate_dlw_ext.py**→fea82→fea89; targets/fea82 env 指 splice 面板)。
    门: y4s/qvk corr≥0.999(实测 1.000000)· YRZ ≥0.999(0.999910)· members 全等或 TIE_EXEMPT(qvk 逐位相等的 NTOP 平位才豁免)。
@@ -96,7 +122,7 @@ w10 回放的 king 腿 = `slow_pred_hist_oos.npy`(逐年折外, 2026 由 ≤2025
 - **测试 [10] 改为口径一致性:** 实盘 state king 900 窗 Sharpe/锚 须在 bundle 同窗 ±0.05 内(bundle 与生产者同口径; 若有人再引入 expm1/log 会跳到 −0.02/+0.21 被抓住)。
 - **研究侧待办(另立预注册):** 装置 CAL 语义修正(默认不再 expm1)+ 重立复现收据; 所有 CAL=simple 结论用 CAL=log 复验(T3c/M1/阶梯/滚动 king/腿解剖)。
 
-## §v4 · 2026-09-09 口径正典配方(用户令「记录下来免得以后搞完了」; 装置 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`, 受据 RESULT_v4_chain_retrain_quantify_2026-09-09)
+## §v4 · 2026-09-09 口径正典配方(2026-09-12 已展开为 §0★ 步骤单; 本节保留为配方原文)(用户令「记录下来免得以后搞完了」; 装置 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`, 受据 RESULT_v4_chain_retrain_quantify_2026-09-09)
 下一次重训**按本节而不是上文旧步骤**; 每项都有门, 门红即停:
 1. **5m 缓存** = holefix2 正典(`dlnative_5m_wide829_f16_holefix2.npz`, sha16 1d7f459d)+ 滚动补月; 建后跑 `cache_coverage_gate_v2.py`(排除首末日; 洞 0 / 宽缺口 0 才过)。原始收益补丁 `raw_patch.npz`(952 bar)随缓存走。
 2. **king 特征** = `pod_fea_ext_clamp.py`(E−w clamp ≥ 0; 不再用 `pod_fea_ext.py`), PANEL_IN=当月 v2ext 谱系; **候选(09-09 G3 关闭, 待用户字): fea89 的 trend_288/trend_2016 改用稳定局部算法 `pod_f8_build_stable.py`(= 构建器逐字, 只换 trend 块; 全局累积和对死名 NaN 翻转的闭合缺陷 G1/G2 已证; 书层 A1s−A0/A1s−A1 四格 (C) 未检出差异 — 口径纠正非收益主张, `PREREG_fea89_stable_trend_and_closure_gate_2026-09-09.md`);** 门 = 与上代特征差异只在缓存改动邻域 [start−48, end+8640+288] 行(`v4_gate_step2.py` 型)。
