@@ -1,8 +1,8 @@
 {
  "device": "test_matrix_v2.py",
- "self_sha256": "2b96266489744c71cf0a9bd66dd0b02374d4ea187e76a96c15a074766e0e8777",
- "utc": "2026-09-12T05:18:19Z",
- "seconds": 576.9,
+ "self_sha256": "cf0acbe6b5da0e0f4fb0f131570881192003286562c244a75d9e3f597367bed8",
+ "utc": "2026-09-12T05:28:53Z",
+ "seconds": 560.6,
  "env_whitelist": {
   "R20_ROOT": null,
   "R20_OUT": null,
@@ -11,11 +11,11 @@
  "python": "3.14.4",
  "numpy": "2.4.4",
  "sources": {
-  "v4e_gate_export_v2.py": "8b021a511225015af133c4220c9e2180c8f009db105d1c4139d29ec7c756e4d1",
+  "v4e_gate_export_v2.py": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
   "gate_signal_parity_v2.py": "abc45cad806c22d717d4924869b34d8e127dbe8e61fec07c00008e5df52a3ed0",
   "v4_gate_common.py": "7b6d49a3de74df8840b8bdf5e6a20226505a5a8a6abf25d57f822d522cba2eb2",
   "frozen_contract_read_only": "3299dc97ab0c90d51ac77297b605e5072bafd4cfaac954ab8655699c498f271b",
-  "isolated_world_contract": "6bf2dbf23cfedd0aa889a8890ab600704701387f1863603126428ddde26174ac"
+  "isolated_world_contract": "bafdc7fcb4b8fc741efacd5dc402a8efe5cba118901330e006642024b76b1ba5"
  },
  "world": {
   "y4_scale": 0.007117085489607933,
@@ -70,7 +70,7 @@
    "observed_PASS": true,
    "rc": 0,
    "failing_checks_named": [],
-   "identity_why": "PASS (BUNDLE_export, 2026-09-12T05:11:30Z, self 8b021a511225 approved, 28 inputs verified, registered floor BUNDLE_export=11)",
+   "identity_why": "PASS (BUNDLE_export, 2026-09-12T05:22:21Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=11)",
    "expected_failing_checks": null,
    "meets_expectation": true,
    "note": null
@@ -79,28 +79,24 @@
    "case": "P2_positive_with_femat (XIB-like, bound signal receipt)",
    "mode": "gate",
    "expected": "PASS",
-   "observed_PASS": false,
-   "rc": 3,
-   "failing_checks_named": [
-    "E7_signal_receipt"
-   ],
+   "observed_PASS": true,
+   "rc": 0,
+   "failing_checks_named": [],
    "identity_why": null,
    "expected_failing_checks": null,
-   "meets_expectation": false,
+   "meets_expectation": true,
    "note": null
   },
   {
    "case": "P2_positive_with_femat require",
    "mode": "require",
    "expected": "PASS",
-   "observed_PASS": false,
-   "rc": 3,
-   "failing_checks_named": [
-    "E7_signal_receipt"
-   ],
-   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:11:49Z)",
+   "observed_PASS": true,
+   "rc": 0,
+   "failing_checks_named": [],
+   "identity_why": "PASS (BUNDLE_export, 2026-09-12T05:22:39Z, self d63f4ec3f9e6 approved, 30 inputs verified, registered floor BUNDLE_export=11)",
    "expected_failing_checks": null,
-   "meets_expectation": false,
+   "meets_expectation": true,
    "note": null
   },
   {
@@ -110,10 +106,9 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E1_manifest",
-    "E7_signal_receipt"
+    "E1_manifest"
    ],
-   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:11:49Z)",
+   "identity_why": "input 'bundle/slow_pred_pinned.npy' changed since the receipt: adefbd04a04f != 13fc7f8408d5",
    "expected_failing_checks": null,
    "meets_expectation": true,
    "note": "the SHIPPED prediction is now a registered input"
@@ -125,8 +120,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E1_manifest",
-    "E7_signal_receipt"
+    "E1_manifest"
    ],
    "identity_why": null,
    "expected_failing_checks": [
@@ -142,10 +136,9 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E1_manifest",
-    "E7_signal_receipt"
+    "E1_manifest"
    ],
-   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:12:09Z)",
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:22:59Z)",
    "expected_failing_checks": null,
    "meets_expectation": true,
    "note": null
@@ -156,10 +149,8 @@
    "expected": "PASS",
    "observed_PASS": false,
    "rc": 3,
-   "failing_checks_named": [
-    "E7_signal_receipt"
-   ],
-   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:12:09Z)",
+   "failing_checks_named": [],
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:22:59Z)",
    "expected_failing_checks": null,
    "meets_expectation": false,
    "note": null
@@ -173,7 +164,7 @@
    "failing_checks_named": [
     "E7_signal_receipt"
    ],
-   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:12:09Z)",
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:22:59Z)",
    "expected_failing_checks": null,
    "meets_expectation": true,
    "note": null
@@ -200,10 +191,8 @@
    "expected": "FAIL",
    "observed_PASS": false,
    "rc": 3,
-   "failing_checks_named": [
-    "E7_signal_receipt"
-   ],
-   "identity_why": "receipt was written by gate source f814c7289384, caller trusts 8b021a511225",
+   "failing_checks_named": [],
+   "identity_why": "receipt was written by gate source f814c7289384, caller trusts d63f4ec3f9e6",
    "expected_failing_checks": null,
    "meets_expectation": true,
    "note": "original sha is not approved for BUNDLE_export in the isolated contract"
@@ -263,8 +252,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E6_books_config",
-    "E7_signal_receipt"
+    "E6_books_config"
    ],
    "identity_why": null,
    "expected_failing_checks": [
@@ -281,7 +269,6 @@
    "rc": 3,
    "failing_checks_named": [
     "E5_books_shape",
-    "E7_signal_receipt",
     "E8_books_content"
    ],
    "identity_why": null,
@@ -299,8 +286,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E6_books_config",
-    "E7_signal_receipt"
+    "E6_books_config"
    ],
    "identity_why": null,
    "expected_failing_checks": [
@@ -316,7 +302,6 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E7_signal_receipt",
     "E8_books_content",
     "E9_gross_band_vs_baseline"
    ],
@@ -334,7 +319,6 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E7_signal_receipt",
     "E9_gross_band_vs_baseline"
    ],
    "identity_why": null,
@@ -351,7 +335,6 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E7_signal_receipt",
     "E8_books_content",
     "E9_gross_band_vs_baseline"
    ],
@@ -370,8 +353,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E6_books_config",
-    "E7_signal_receipt"
+    "E6_books_config"
    ],
    "identity_why": null,
    "expected_failing_checks": [
@@ -387,8 +369,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E6_books_config",
-    "E7_signal_receipt"
+    "E6_books_config"
    ],
    "identity_why": null,
    "expected_failing_checks": [
@@ -404,7 +385,6 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E7_signal_receipt",
     "E8_books_content"
    ],
    "identity_why": null,
@@ -421,8 +401,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E1_manifest",
-    "E7_signal_receipt"
+    "E1_manifest"
    ],
    "identity_why": null,
    "expected_failing_checks": [
@@ -438,7 +417,6 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E7_signal_receipt",
     "E9_gross_band_vs_baseline"
    ],
    "identity_why": null,
@@ -495,8 +473,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E2b_pins_identity",
-    "E7_signal_receipt"
+    "E2b_pins_identity"
    ],
    "identity_why": null,
    "expected_failing_checks": [
@@ -512,8 +489,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E6_books_config",
-    "E7_signal_receipt"
+    "E6_books_config"
    ],
    "identity_why": null,
    "expected_failing_checks": [
@@ -529,7 +505,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [],
-   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:18:00Z)",
+   "identity_why": "input 'book_dyn_s2027' changed since the receipt: 828b62ed1781 != 0d6c0794faa4",
    "expected_failing_checks": null,
    "meets_expectation": true,
    "note": "book inputs differ by sha"
@@ -541,8 +517,7 @@
    "observed_PASS": false,
    "rc": 3,
    "failing_checks_named": [
-    "E6_books_config",
-    "E7_signal_receipt"
+    "E6_books_config"
    ],
    "identity_why": null,
    "expected_failing_checks": [
