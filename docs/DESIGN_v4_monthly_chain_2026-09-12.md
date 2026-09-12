@@ -80,7 +80,7 @@
 | `build_dev_v4.py` | 全部定位器 env 化(9 个九月默认); `locators` 入 BUILD.json | 同九月 |
 | `run_v4_arms.sh` | 逐 PID rc; `V4_HC/V4_KING_DIR`; SLOW 文件存在检查 | 同九月(多了失败会红) |
 | `make_v4_scripts.py` + `gen_*_2026-09-12.txt` ×4 | 生成器发出以上三脚本的全部改动; 片段文件 = 归档脚本原文切片 | 三脚本从基底**逐位再生**(测试 [H] 绿) |
-| `tests_pipeline_gates.py` | 新节 [P] 41 格(含 8 格突变红) | 151 旧格全绿 |
+| `tests_pipeline_gates.py` | 新节 [P] **47 格**(含 8 格突变红 + E-0912-B 后的沙箱 `run_sandboxed()` 三格 + 静态「裸真写手调用」格 + 缺 `BUNDLE_OUT` 拒绝格); 只改本节(行 863–~1040), 其余节为 W4([O]/[Q])/W7([R])所有 | 151 旧格全绿 |
 | `compare_gate_receipts.py` **新** | 门收据判决字段逐位对账(排除 utc/argv/sha 元数据) | — |
 | `docs/RUNBOOK_monthly_retrain_2026-10.md` | §0★ 横幅 + 修订 3 | 历史不删 |
 
@@ -88,10 +88,10 @@
 
 ### 6.1 本地自检(mac, `/usr/bin/python3 tests_pipeline_gates.py`)
 - 修前基线: **ALL PASS (151 checks)**, exit 0(本会话开工时实测)。
-- 修后: **ALL PASS (222 checks)**(= 151 旧格全绿 + 71 新格; 其中 [P] 节 41 格含 8 格突变红: MONTHS_ALL 越界、MONTHS ⊄、四键齐备时拒绝不触发、generation 齐备时拒绝不触发、malformed MONTHS_ALL、未批准门源码、无 DRYRUN 时 cache 阶段真跑、缺键合同)。中途两次红并修复: (a) 三脚本再生逐位([H]) — 生成器补齐, (b) [r4] 两格链场景 — 见 6.4。
+- 修后(共享文件同时被 W4 [O]/[Q] 与 W7 [R] 扩展, 计数随之增长): 本节相关的最终一次本地全跑 = **328 格 / 327 绿 / 1 红**, 唯一红 = W7 [R] G0 对其自己新文件 `v4_gate_step2_m.py` 的检查(非本任务文件); **[P] 47/47 绿**(151 旧格全绿; 突变红 8 格: MONTHS_ALL 越界、MONTHS ⊄、四键齐备时拒绝不触发、generation+BUNDLE_OUT 齐备时拒绝不触发、malformed MONTHS_ALL、未批准门源码、无 DRYRUN 时 cache 阶段真跑、缺键合同)。此前的中间全跑: 222/222(151 + W4 [O] 29 + 本节 42)两次(mac bash 3.2 + pod2)。中途红并修复: (a) 三脚本再生逐位([H]) — 生成器补齐; (b) [r4] 两格链场景 — 见 6.4; (c) E-0912-B 后本节改为沙箱 — 见 6.7。日志 `receipts/monthly_chain_2026-09-12/tests_pipeline_gates_mac_final_run9.log`。
 
 ### 6.2 pod2 正控: 九月路径 + 隔离根(`/workspace/w3_monthly_chain_2026-09-12/`, 运行副本 `/workspace/review_scratch` 零写入)
-- 装置副本 = git 单源: **100 文件 sha 相等**(`pod2_root/device_sha256_pod2.txt` vs 本地; 唯一差异为期间本地再改的 `tests_pipeline_gates.py`, 已重传)。
+- 装置副本 = git 单源: **100 文件 sha 相等**(`pod2_root/device_sha256_pod2.txt` vs 本地; 唯一差异为期间本地再改的 `tests_pipeline_gates.py`, 已重传)。pod2 上的自检: 222/222(修前文件)两次; 沙箱版 [P] **47/47 绿**(`tests_pipeline_gates_pod2_final2.crashed.log`: 237 绿后在 W7 [R] 段因我副本缺其 `receipts/monthly_chain_2026-09-12/w7_gates/` 而崩, 非本节); 全目录重传后的再跑见 `tests_pipeline_gates_pod2_final3.log`(若存在)。
 - 合同: `v4_month_2026-09.pod2ctrl.env` = 九月合同仅 `R` 改隔离根、`$R/` 引用展开为九月绝对路径(sha `266c2d0dfc56…`)。
 - **preflight PASS**: 21 装置文件钉 sha, 30 输入在位, 三门源码合同批准 STEP1 `278fdce611e9` / STEP2 `db7ab3561f97` / BUNDLE_export `d63f4ec3f9e6`(`pod2_root/preflight.json`)。
 - **gates**: STEP1 跑 37 s → **FAIL rc 3**(与 09-09 归档一致, AMENDMENT 3 的 trend_288 缺陷); STEP2 跑 21 s → **PASS rc 0**; require STEP1 拒(`REQUIRE_FAIL receipt says PASS=False`)⇒ 驱动 **rc 3 `FAIL_gate_require_step1`**(`pod2_root/v4_commands.txt`)。
@@ -116,8 +116,18 @@
 
 ### 6.6 sha256(创建/修改文件; 最终值见 W3 报文的清单, 由 `shasum -a 256` 实测)
 
+### 6.7 ★ 事故(我的, 2026-09-12 11:16Z; W4 14:36Z 只读观察到并通报): 自检的「突变格」在 pod2 上跑了真导出, 改写了 `/workspace/shadow_bundle_v4/slow2026.txt`
+- **事实(pod2 14:44Z 读盘)**: `slow2026.txt` mtime 11:16:59Z, sha `0a5adca16edb…` ≠ 归档 MANIFEST `f23657710f3a…`(**改**); `slow_pred_pinned.npy` mtime 11:18:22Z, sha `dde19142d017…` == 归档(**逐位相同地重写**); 其余 7 文件 + `/workspace/shadow_bundle_v4.tar.gz` 保持 09-09 mtime 与归档 sha(config.json provenance 仍 `v3_2026-09` / built 09-09)。
+- **机制**: 测试格「MUTATION: with BUNDLE_GENERATION the refusal does NOT fire」只设了 `BUNDLE_GENERATION`, 依赖 `from zload import zload` 在 mac 上失败来终止; pod2 有 `/workspace/zload.py`, 导出器于是以**全部默认路径**真跑: booster 存到默认 `BUNDLE_OUT=/workspace/shadow_bundle_v4`, PRED 存盘, 然后在默认 `EXPORT_PANEL`(v2ext, 非 v3splice)上的守卫带前后停止(未写 leg_returns/config/MANIFEST/tar)。三次 pod2 套件运行中至少一次到达该格(日志 `.final.log` L245 / `_P.log` L245)。
+- **后果**: r20 A1 v2 收据对该 bundle 失效(判官: `bundle/slow2026.txt changed since the receipt`), W4 的判官底 28 复核已看到。实盘/mac 零涉及; 我的 king 阶段控制只写隔离根(§6.5)。
+- **修复(已落地)**: (a) 导出器 **`BUNDLE_OUT` 必填**(缺 ⇒ `BUNDLE_FAIL bundle_out_env_missing` rc 2), 代码里不再出现 `/workspace/shadow_bundle_v4` 字面, tar 默认跟随 `BUNDLE_OUT`; 生成器同步; (b) 测试: 每个真程序调用都给**不存在的输入路径 + 临时输出目录**, 并断言临时目录为空(测试必须在任何机器上都碰不到真数据); 新增「缺 BUNDLE_OUT 被拒」格。(c) 复原: 未动 09-09 tar 与 r20 `bundle_mut` 副本中的 `slow2026.txt` sha 均 == `f23657710f3a…`(两个独立来源); 复原 = 从 tar 抽出的副本覆盖回去 + sha 复核, 被改文件留作 `slow2026.txt.w3_overwritten_20260912` — **等 team-lead 字后执行**(§6.7 追记)。
+- **教训(入 ERROR_LEDGER 候选)**: 「突变格必须红」的另一半是「突变格必须**不能**跑成功」——靠环境缺 import 来终止不是隔离; 隔离 = 不存在的输入 + 临时输出 + 空目录断言。与 §6.4 同族: 我的仪器在另一台机器上变成了写头。
+- **复原(team-lead GO, E-0912-B; 收据 `receipts/monthly_chain_2026-09-12/e0912b/restore_run.log` + `restore_verify.json`; pod2 14:58:04–14:58:05Z)**: (a) 研究员 PID 333197/339489 `Tl` 未动; 我的模式匹配到的进程只有本人的 pod2 套件(pid 492897)与复原 shell 自身; 导出器进程 0。(b) 从**未动**的 09-09 tar(mtime 03:29:38Z)抽出 `slow2026.txt`(2,390,238 B, mtime 09-09 03:25:04Z), sha `f23657710f3a6d0068bca8a95082965d694de805195ef143be64951c0f2f203a` == 目录内 MANIFEST.json 值, **写入前核**。(c) 被改文件(2,390,235 B, 11:16:59Z, `0a5adca16edb…`)`mv` 为 `slow2026.txt.w3_overwritten_20260912`(保留); `cp -p` 抽出件; 在位 sha == MANIFEST(`RESTORE_SHA_OK`); stat 前后入日志。(d) 目录 8 文件逐个 vs MANIFEST.json: **8/8 EQUAL**(`slow_pred_pinned.npy` mtime 仍 11:18:22Z 但 sha == MANIFEST); 目录外多余文件仅 `.w3_overwritten_20260912`。GPU `0 %, 2 MiB` 前后。(e) **复原后的 v2 出口门重立资格**(`e0912b/BUNDLE_export_v2_A1_restored2.json` + `REQUIRE_v2_A1_restored2.json`; env = r20 `run_pod2_positive.sh` [1]/[2] 逐字, `V4CHAIN_DIR` = 装置副本(合同 `1188267adf42`, 门源码 `d63f4ec3f9e6`, 盘上 `v4_gate_common` `24e813f145c3`)): 第一次 gate **FAIL E1_manifest**(`unlisted_files: [slow2026.txt.w3_overwritten_20260912]` — 留档件放在 bundle 目录内破坏了闭包), 把留档件移到 `root/e0912b/`(仍保留, sha `0a5adca16edb…`)后重跑: **gate PASS**(15:01:44Z, arm A1, 28 inputs, E1 ok n_files 8, `bundle/slow2026.txt` = `f23657710f3a…`), **REQUIRE_OK identity=True, 28 inputs verified, registered floor 28, content_failed=[]**。GPU `0 %, 2 MiB` 前后。A1 的资格由这份新收据而非「字节已复原」重立。
+- **追记 2 教训**: 「保留被改文件」与「bundle 闭包 = MANIFEST 列出的文件恰好是目录内容」冲突 —— 留档件必须放在 bundle 目录**外**。
+- **ERROR_LEDGER E-0912-B 草案(供 lead 入账)**: 「2026-09-12 11:16Z, 研究基建(pod2), 无实盘影响。W3 在链自检里加的突变格『设 BUNDLE_GENERATION 则拒绝不触发』只设一个 env 就调用真导出器, 依赖 mac 缺 `zload` 模块中止; pod2 有 zload ⇒ 导出器以全部默认路径真跑, 把 booster `slow2026.txt`(文本不同, 预测逐位同)与 `slow_pred_pinned.npy`(同字节)写回 `/workspace/shadow_bundle_v4`(r20 A1 收据的对象), 在默认 v2ext 面板守卫带前停止, 其余 7 文件与 tar 未动。W4 于判官底 28 复核时观察到收据失效(`bundle/slow2026.txt changed since the receipt`)并通报。复原: 从未动 tar 抽出、sha 先核后写, 8/8 == MANIFEST, 被改件留档; 新 v2 门收据重立资格(追记 2)。修法: 导出器 `BUNDLE_OUT` 必填(与 generation 同律); 自检新增 `run_sandboxed()`(不存在输入 + 临时输出 + 空目录断言)与静态格(任何真写手调用不经沙箱 ⇒ 红)。形态: 『仪器在另一台机器上变成写头』—— 依赖环境缺失来终止 = 没有隔离(与 [[my_own_instruments_fail_at_the_extremes]] / [[shallow_error_masks_deep_error]] 同族)。」
+
 ## §7 仍开 / 未验证(诚实清单; 十月前必裁的标 ★)
-- ★ (i) **STEP1/STEP2 门源码是九月专用且被合同冻结**: 内部写死 `/workspace/dlw_v4raw` 等路径与九月比对对象(hf3 vs hf2; v4 vs v2ext_clamp/v2ext; `n_first138 == 138`)。十月数据会让它们合法地红(新月尾部处处不同)。需要: 新门源码(env 定位 + 滚动参照的定义 = 预注册)→ 研究员复核 → 合同 `approved_source_sha256` 增补(用户字)。模板 `GATE_STEP1/2=TODO_…` 使 preflight 拒绝, 属有意。
+- ★ (i) **STEP1/STEP2 门源码是九月专用且被合同冻结**: 内部写死 `/workspace/dlw_v4raw` 等路径与九月比对对象(hf3 vs hf2; v4 vs v2ext_clamp/v2ext; `n_first138 == 138`)。十月数据会让它们合法地红(新月尾部处处不同)。需要: 新门源码(env 定位 + 滚动参照的定义 = 预注册)→ 研究员复核 → 合同 `approved_source_sha256` 增补(用户字)。模板 `GATE_STEP1/2=TODO_…` 使 preflight 拒绝, 属有意。**承接方(2026-09-12 晚)**: W7 `docs/PREREG_v4_gates_monthly_2026-09-12.md`(`v4_gate_step1_m.py` / `v4_gate_step2_m.py`, 冻结门不动; 测试节 [R])— 落地后把两个文件名写进月合同 `GATE_STEP1/GATE_STEP2` 即接入本驱动, 驱动不需改动。
 - ★ (ii) **全链未在真数据上跑到底**: 九月数据 STEP1 字面 FAIL(AMENDMENT 3; 稳定 trend 候选待用户字)⇒ 正控到 gates 为止; king/legs 阶段 CPU 正控见 §6.5; mwf/refit/arms/judge/export 五阶段的接线只经: 语法、阶段守卫测试、与九月 `v4_commands.txt` 的 CMD 行逐 env 比对, **未经真跑**(GPU 禁用)。这是最大的未验证面; 十月首跑应在 `V4_STAGES` 分段推进并逐阶段读收据。
 - (iii) CLIP 目标由 `pod_dlw_targets_raw.py` 无补丁产出; 与九月 `dlw_hf3`(sha `720f03a4…`)是否逐位相同**未验**(STEP1 A 部分会把两者绑住: 差异必须只在补丁窗)。
 - (iv) 十月 `SIGNAL_RECEIPT` 须先由 `gate_signal_parity_v2.py` 为本月臂产出; `HC` 隔离副本须含合同钉死的 A0 基线书四件(preflight 查存在, 出口门查 sha); `LEGS_OLD` 指向哪代取决于届时在役代(STATE.md); `REF_META`/`build_dev_v4` 自检是九月专用参照(十月应指九月的 `meta_newprod_v4.npz`, 模板已写, 语义待定)。
@@ -125,3 +135,11 @@
 - (vi) `run_arm.sh`(health_check 内)自身 rc 语义未查; 若它恒 0, 逐 PID rc 只等价于 END 行计数。
 - (vii) 崩溃型突变(preflight 自身 rc 1)只被通过条件覆盖, 没有专门测试格(我试过用坏解释器模拟, 但它先破坏 env 派生, 不构成证据)。
 - (viii) refit 新字段(`trained_through_label_utc` 等)与导出器 `king_train_end_utc` 只在 §6.5 CPU 控中被真数据触发一次(refit 需 GPU, 未触发); 定义按索引构造, 见 §1 R1′/R4。
+
+## §8 RESULT 追加(2026-09-12, W7; 独立研究员 B-R1 / B-R3 / B-R4 / R5 收口; 全文 `docs/PREREG_v4_gates_monthly_2026-09-12.md` AMENDMENT 1 + §7.9)
+- **§7 (i) 关闭到「待用户字」**: 月通用门 `v4_gate_step1_m.py` 79950786… / `v4_gate_step2_m.py` 0fe5ec55…(NONE 绑构建器身份 + 新尾质量 ≥ 0.90), 九月正控 STEP1 78/0(PASS=false 如归档)、STEP2 31 等 + 恰 1 差(`tail_quality`, 预注册); 合同 approved 增补 = 用户字。
+- **B-R1 关闭(代码)**: `chain_v4_monthly.sh` 每阶段先 `prereq_*` 再 guard/dispatch(chain_lib 七个前置助手, `FAIL_<stage>_prereq_<name>` rc 3); 空根上 10 个阶段各停于 `_prereq_preflight`、preflight 后各停于下一缺件(自检 [S]); 研究员假解释器形态下 refit 0 次被调。
+- **B-R3 关闭(代码)**: `load_month_env` 键须**在文件里**且先 `unset` 再 source(合同 46 键); 数据阶段五子进程 `env -i` + 白名单 + 逐变量显式, CLIP `DLWT_RAW_PATCH=` 空。§3 表「41 键」→ 46 键(+`PREV_DLW_CLIP PREV_F8 PREV_KING_FEA PREV_KING_FEA_UNCLAMPED PREV_CLAMP_BUILDER_SHA256`); §2 原则 1 的「41」同。
+- **R5 关闭(物理)**: 五个旧链脚本首行 `V4_LEGACY_OK=1` 守卫, 否则 rc 64 `LEGACY_REFUSED` 什么也不做([S] 逐个验证 cwd 零写入); [J]/[K] 自检传 `V4_LEGACY_OK=1`。
+- 自检 328 ALL PASS(`receipts/monthly_chain_2026-09-12/tests_pipeline_gates_w7.log` + `.SHA256SUMS`); `make_sha_manifest.py` rc 0; 研究员 13+8 探针复跑翻转 5 格(W7)+1 格(W4 并行), 见 `w7_gates/researcher_probes_live/README.md`。
+- §7 (ii) 仍开: 真数据全链(mwf/refit/arms/judge/export)未跑; 前置只在合成根上验证。

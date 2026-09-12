@@ -1,0 +1,41 @@
+# E-0912-B restore of /workspace/shadow_bundle_v4/slow2026.txt — captured from the ssh session's stdout (the remote `tee` copy under root/e0912b was not created because the shell variable E was relative; content below is the verbatim tool output of the run). Steps per team-lead GO (a)–(d).
+=== E-0912-B restore of /workspace/shadow_bundle_v4/slow2026.txt  start 2026-09-12T14:58:04Z
+--- (a) researcher PIDs + my process patterns
+    PID STAT     ELAPSED CMD
+ 333197 Tl      23:51:07 /workspace/venv/bin/python -B /workspace/codex_research/QNT-2026-0907/strategy_rebuil
+ 339489 Tl      22:54:25 /workspace/venv/bin/python -B /workspace/codex_research/QNT-2026-0907/strategy_rebuil
+pgrep tests_pipeline_gates (running pod2 final suite = mine):
+492897 /workspace/venv/bin/python tests_pipeline_gates.py
+497736 bash -c set -u; cd /workspace/w3_monthly_chain_2026-09-12; mkdir -p root/e0912b; E=root/e0912b; exec > >(tee /res
+497738 bash -c set -u; cd /workspace/w3_monthly_chain_2026-09-12; mkdir -p root/e0912b; E=root/e0912b; exec > >(tee /res
+pgrep exporter: 0
+0 %, 2 MiB
+--- (b) extract from the UNTOUCHED tar to temp, verify sha BEFORE any write
+08665459 2026-09-09 03:29:38.000000000 +0000 /workspace/shadow_bundle_v4.tar.gz
+ 2390238 2026-09-09 03:25:04.000000000 +0000 root/e0912b/tmp_extract/shadow_bundle/slow2026.txt
+tar copy sha   f23657710f3a6d0068bca8a95082965d694de805195ef143be64951c0f2f203a
+MANIFEST sha   f23657710f3a6d0068bca8a95082965d694de805195ef143be64951c0f2f203a
+VERIFIED_EQUAL_TO_MANIFEST
+--- (c) stat before; mv overwritten aside; copy verified; sha + stat after
+/workspace/shadow_bundle_v4/slow2026.txt 2390235 2026-09-12 11:16:59.000000000 +0000 1789211819
+0a5adca16edbcb418a7a3317fbf95033a8d5d191a908fc7d0560c5ea6ce4f58a
+/workspace/shadow_bundle_v4/slow2026.txt 2390238 2026-09-09 03:25:04.000000000 +0000 1788924304
+/workspace/shadow_bundle_v4/slow2026.txt.w3_overwritten_20260912 2390235 2026-09-12 11:16:59.000000000 +0000 1789211819
+in-place sha   f23657710f3a6d0068bca8a95082965d694de805195ef143be64951c0f2f203a
+RESTORE_SHA_OK
+--- (d) every file vs MANIFEST.json
+EQUAL ea5e42964938 ea5e42964938 2026-09-09T03:27:19Z cache_tail_40d.npz
+EQUAL 05e0afc15668 05e0afc15668 2026-09-09T03:29:29Z config.json
+EQUAL c1dbb41f7c91 c1dbb41f7c91 2026-09-09T03:29:29Z fund_ema_v1_state.json
+EQUAL 85f1a1dbb262 85f1a1dbb262 2026-09-09T03:29:29Z funding_ledger_seed.json
+EQUAL e9f11906606a e9f11906606a 2026-09-09T03:26:34Z leg_returns.npz
+EQUAL 481d387a1a18 481d387a1a18 2026-09-09T03:26:34Z parity_signals_aug.json
+EQUAL f23657710f3a f23657710f3a 2026-09-09T03:25:04Z slow2026.txt
+EQUAL dde19142d017 dde19142d017 2026-09-12T11:18:22Z slow_pred_pinned.npy
+files not in MANIFEST (kept aside): ['slow2026.txt.w3_overwritten_20260912']
+ALL_EQUAL_TO_MANIFEST True
+0 %, 2 MiB
+ 333197 Tl      23:51:09
+ 339489 Tl      22:54:27
+=== restore end 2026-09-12T14:58:05Z
+# Follow-up (see gate_restored*.log): the first v2 gate run over the restored dir FAILED E1_manifest because the kept-aside file was still inside the bundle directory; it was moved to root/e0912b/ (kept) and the gate + require were re-run (receipts *_restored2.json).
