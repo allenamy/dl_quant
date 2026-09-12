@@ -1,0 +1,246 @@
+{
+ "self_sha256": "e5dc4ae44c5f29406bcc4797bf029ae63898e62782b8818068bde8cedc925028",
+ "prereg_shas": {
+  "PREREG_r14_cost_estimand_2026-09-12.md": "bbedfdaa33644a82a05660dd50e38a65ffddef8ae3c06d509c643c7131183904",
+  "PREREG_AMENDMENT_1_r14_2026-09-12.md": "6207572a9dba8a32554b6c3a44467509e179127ae92084f2bf44f7fafb872594",
+  "PREREG_AMENDMENT_2_r14_2026-09-12.md": "abfcc85064ee2fbdbfa3c7f45f2a2b5a4fe2b3870ab4c8d7a9f03c26576cfc54",
+  "PREREG_AMENDMENT_3_r14_2026-09-12.md": "e6cc65a1a84dd2b815ed9ee819bc801bab7c197e61b3bbe57187e574dce46a44"
+ },
+ "env_whitelist": [],
+ "env_whitelist_declared": "EXPLICITLY EMPTY SET (asserted)",
+ "utc": "2026-09-12T02:43:31Z",
+ "realised_cash_wall": {
+  "ALL_fills_whole_live_window": {
+   "slip": -1.3278,
+   "fee": 2.3918,
+   "cash_wall_bps_per_unit_traded": 1.064,
+   "ci95": [
+    -1.309,
+    3.8895
+   ],
+   "notional": 1324604.3,
+   "n_days": 43
+  },
+  "ERA2_all_order_types": {
+   "slip": -1.6457,
+   "fee": 2.3973,
+   "cash_wall_bps_per_unit_traded": 0.7516,
+   "ci95": [
+    -2.1594,
+    4.172
+   ],
+   "notional": 1115603.6,
+   "n_days": 22
+  },
+  "ERA2_steady_state_excl_protective_flatten": {
+   "slip": -1.6457,
+   "fee": 2.3973,
+   "cash_wall_bps_per_unit_traded": 0.7516,
+   "ci95": [
+    -1.9807,
+    3.9216
+   ],
+   "notional": 1115603.6,
+   "n_days": 22
+  },
+  "COMBO_epoch_2026-08-26T04Z_onward": {
+   "slip": -1.7832,
+   "fee": 2.407,
+   "cash_wall_bps_per_unit_traded": 0.6239,
+   "ci95": [
+    -2.1949,
+    3.9578
+   ],
+   "notional": 1067224.7,
+   "n_days": 18
+  },
+  "COMBO_epoch_excl_protective_flatten": {
+   "slip": -1.7832,
+   "fee": 2.407,
+   "cash_wall_bps_per_unit_traded": 0.6239,
+   "ci95": [
+    -2.3078,
+    3.9566
+   ],
+   "notional": 1067224.7,
+   "n_days": 18
+  },
+  "trackB_published_comparator_bps": 0.286,
+  "caliber_note": "slip is measured against the ledger `mid_at_anchor` = the venue mid at the executor's anchor-RUN start (E+24m in ERA2), NOT the mid at E. The E->E+24m drift is measured separately in RECEIPT_r14_intent and is indistinguishable from zero."
+ },
+ "reprice_scenarios_lambda": {
+  "R0_status_quo": 1.0,
+  "R1_my_ERA2_steady_cash": 0.2545,
+  "R2_trackB_published_cash": 0.0968,
+  "R3_r11_withdrawn_estimand_B": 3.2167,
+  "R4_fee_only_floor": 0.8096
+ },
+ "lambda_note": "lambda = repriced wall / MODEL(2.9537). R4 is the defensible FLOOR: the commission is unavoidable cash and the model's fee component 2.3914 already matches the measured 2.397 to 0.006 bps. Any lambda below R4 is being bought entirely with the maker price improvement, which is the selection effect whose complement is the 45.48% fill rate (RECEIPT_r14_nulls N3).",
+ "candidates_ranked_by_how_much_the_repricing_moves_them": [
+  {
+   "name": "CMUM_CARRY",
+   "cost_over_gross": 5.8,
+   "src": "RESULT_r10_independent_sources_2026-09-12.md L78 cost survival -480%",
+   "verdict_was": "REJECTED",
+   "non_cost_killer": "universe collapse: 49 COIN-M perps -> 19-22 names in 2026 and falling (r10 \u00a73); prereg arm net SR -24.0",
+   "lambda_star_to_flip_net_positive": 0.1724,
+   "wall_bps_needed": 0.5093,
+   "survival_at": {
+    "R0_status_quo": -4.8,
+    "R1_my_ERA2_steady_cash": -0.4761,
+    "R2_trackB_published_cash": 0.4386,
+    "R3_r11_withdrawn_estimand_B": -17.6569,
+    "R4_fee_only_floor": -3.6957
+   },
+   "flips_at_R1": false,
+   "flips_at_R2": true,
+   "flips_at_R4_fee_floor": false,
+   "margin_bps_at_R1": -0.2423
+  },
+  {
+   "name": "REV_SHORT",
+   "cost_over_gross": 3.34,
+   "src": "RESULT_r10_independent_sources_2026-09-12.md L78 cost survival -234%",
+   "verdict_was": "REJECTED",
+   "non_cost_killer": "turnover 24.39x A0 in the MATCHED caliber (CLOSEOUT L183 corrected); the reprice does not touch that",
+   "lambda_star_to_flip_net_positive": 0.2994,
+   "wall_bps_needed": 0.8843,
+   "survival_at": {
+    "R0_status_quo": -2.34,
+    "R1_my_ERA2_steady_cash": 0.15,
+    "R2_trackB_published_cash": 0.6767,
+    "R3_r11_withdrawn_estimand_B": -9.7438,
+    "R4_fee_only_floor": -1.7041
+   },
+   "flips_at_R1": true,
+   "flips_at_R2": true,
+   "flips_at_R4_fee_floor": false,
+   "margin_bps_at_R1": 0.1327
+  },
+  {
+   "name": "SLOW_CLOCK",
+   "cost_over_gross": 1.74,
+   "src": "RESULT_r10_independent_sources_2026-09-12.md \u00a73 'cost eats 174% of gross'",
+   "verdict_was": "REJECTED",
+   "non_cost_killer": "the pre-declared pure-rho arm's NET was -0.2716 CI95 [-0.4504,-0.0979]; only post-hoc arm picking made it positive",
+   "lambda_star_to_flip_net_positive": 0.5747,
+   "wall_bps_needed": 1.6975,
+   "survival_at": {
+    "R0_status_quo": -0.74,
+    "R1_my_ERA2_steady_cash": 0.5572,
+    "R2_trackB_published_cash": 0.8316,
+    "R3_r11_withdrawn_estimand_B": -4.5971,
+    "R4_fee_only_floor": -0.4087
+   },
+   "flips_at_R1": true,
+   "flips_at_R2": true,
+   "flips_at_R4_fee_floor": false,
+   "margin_bps_at_R1": 0.9459
+  },
+  {
+   "name": "COINT_PAIR",
+   "cost_over_gross": 1.51,
+   "src": "RESULT_r10_independent_sources_2026-09-12.md \u00a73 'cost = 151% of gross'",
+   "verdict_was": "REJECTED",
+   "non_cost_killer": "GROSS itself insignificant: +0.2610 CI95 [-0.037,+0.544] contains zero",
+   "lambda_star_to_flip_net_positive": 0.6623,
+   "wall_bps_needed": 1.9561,
+   "survival_at": {
+    "R0_status_quo": -0.51,
+    "R1_my_ERA2_steady_cash": 0.6157,
+    "R2_trackB_published_cash": 0.8538,
+    "R3_r11_withdrawn_estimand_B": -3.8572,
+    "R4_fee_only_floor": -0.2225
+   },
+   "flips_at_R1": true,
+   "flips_at_R2": true,
+   "flips_at_R4_fee_floor": false,
+   "margin_bps_at_R1": 1.2045
+  },
+  {
+   "name": "VRP_DELTA1",
+   "cost_over_gross": 0.677,
+   "src": "RESULT_r10 L78 cost survival 32.3% => c = (1-0.323)/1",
+   "verdict_was": "REJECTED",
+   "non_cost_killer": "died BEFORE cost: gross SR 0.3435; net beta -0.130 injects direction into a neutral book",
+   "lambda_star_to_flip_net_positive": 1.4771,
+   "wall_bps_needed": 4.3629,
+   "survival_at": {
+    "R0_status_quo": 0.323,
+    "R1_my_ERA2_steady_cash": 0.8277,
+    "R2_trackB_published_cash": 0.9345,
+    "R3_r11_withdrawn_estimand_B": -1.1777,
+    "R4_fee_only_floor": 0.4519
+   },
+   "flips_at_R1": true,
+   "flips_at_R2": true,
+   "flips_at_R4_fee_floor": true,
+   "margin_bps_at_R1": 3.6113
+  },
+  {
+   "name": "TSMOM_DIR",
+   "cost_over_gross": 0.502,
+   "src": "RESULT_r10 \u00a73 'cost eats 50.2%'",
+   "verdict_was": "REJECTED",
+   "non_cost_killer": "mean |net exposure| 0.5705 vs A0 0.0379 and the four demean sites in live/signal/legs.py make it undeployable; hedge sign REVERSED in 2026",
+   "lambda_star_to_flip_net_positive": 1.992,
+   "wall_bps_needed": 5.8839,
+   "survival_at": {
+    "R0_status_quo": 0.498,
+    "R1_my_ERA2_steady_cash": 0.8722,
+    "R2_trackB_published_cash": 0.9514,
+    "R3_r11_withdrawn_estimand_B": -0.6148,
+    "R4_fee_only_floor": 0.5936
+   },
+   "flips_at_R1": true,
+   "flips_at_R2": true,
+   "flips_at_R4_fee_floor": true,
+   "margin_bps_at_R1": 5.1323
+  }
+ ],
+ "arms_that_get_WORSE_under_a_cheaper_wall": [
+  {
+   "name": "r8 BUILD1 basis-in-book",
+   "why": "it is the ONE family whose marginal dg RISES with the wall (marginal turnover -5.13%). Archived ladder dg vs A0 cost_ex: ZEROISH 0.11506->+0.01057, PWR230k 0.16817->+0.01444, PWR2300k 0.30162->+0.02307; slope +0.067 dg per unit A0 cost_ex.",
+   "at_R1": "A0 cost_ex 0.16817 -> 0.0428 => marginal dg falls to about +0.0061, i.e. BELOW the ZEROISH rung. Closed harder.",
+   "src": "RECEIPT_r11_cost_estimand_reconciliation.json build1_cost_sensitivity"
+  },
+  {
+   "name": "trackB pure cost channel",
+   "why": "its ceiling is the cost-to-zero improvement, = A0 cost_ex itself",
+   "at_R1": "frozen-window A0 cost_ex 0.1201 -> 0.0306 bps/anchor/gross, vs the G2 resolution 0.23. Was 0.1201 < 0.23 (closed); becomes 0.0306 < 0.23 (closed by 7.5x). Closed harder.",
+   "src": "RECEIPT_r11_cost_estimand_reconciliation.json trackB_prior_sensitivity"
+  },
+  {
+   "name": "r12 I-2 ICO_L24_th0228_lam00",
+   "why": "turnover-ADDING (+26.08%), so a cheaper wall helps it",
+   "at_R1": "archived: dg +0.01623 at lambda=1 and -0.08496 at lambda=3.2167 => d(dg)/d(lambda) = -0.04565. At lambda=0.2545 dg = +0.05026. STILL NOT ADMISSIBLE: CI95 [-0.1457,+0.1970] and Bonferroni-29 both contain zero, 4/5 years negative, effect entirely in 2026.",
+   "src": "RESULT_r12_intervention_layer_2026-09-12.md \u00a74"
+  }
+ ],
+ "cash_wall_coverage_ERA2_by_order_type": {
+  "maker": {
+   "n_fills": 19757,
+   "notional": 935328.2,
+   "notional_with_anchor_mid": 932792.0,
+   "coverage": 0.9973
+  },
+  "protective_flatten": {
+   "n_fills": 3095,
+   "notional": 232757.0,
+   "notional_with_anchor_mid": 0.0,
+   "coverage": 0.0
+  },
+  "topup_taker": {
+   "n_fills": 5450,
+   "notional": 182811.6,
+   "notional_with_anchor_mid": 182811.6,
+   "coverage": 1.0
+  }
+ },
+ "protective_flatten_exclusion_is_structural": {
+  "distinct_anchor_ts_on_pf_fills": 1,
+  "of_which_have_an_anchors_jsonl_row": 0,
+  "reading": "every protective_flatten fill carries an anchor_ts that has NO anchors.jsonl row, so there is no mid_at_anchor vector for it and it cannot enter a slip-vs-anchor-mid measurement AT ALL. The exclusion is structural, not a filter I chose; it happens to coincide with mk_costb.py's own maker_share_excludes rule (stop-loss / watchdog traffic on 2026-09-06 and 2026-09-09 is not steady-state rebalancing)."
+ }
+}

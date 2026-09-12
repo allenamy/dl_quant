@@ -1,0 +1,61 @@
+{
+ "step": "R14_FACTS",
+ "self_sha256": "434436070b54ed94a832efa982bc5ab27dbfc09c49d67816e7a8665af64adfdf",
+ "env_whitelist": [],
+ "env_seen_at_runtime": [
+  "CPATH",
+  "HOME",
+  "LC_CTYPE",
+  "LIBRARY_PATH",
+  "MANPATH",
+  "PATH",
+  "SDKROOT",
+  "__CF_USER_TEXT_ENCODING"
+ ],
+ "numpy": "1.26.4",
+ "inputs": {
+  "A0_PWR230k_s42": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r10_screen/CMUM_CARRY/pin/A0_PWR230k_s42.npz",
+   "sha256": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339"
+  },
+  "r14_clean_series": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r14_cleanbase/series/r14_clean_series.npz",
+   "sha256": "3f12d4958518adae97c1a5231c167043feb9eac57a53c8871aa935632f2653b8"
+  }
+ },
+ "utc": "2026-09-12T02:42:20Z",
+ "seat_weights": {
+  "on_KING_DEAD": {
+   "w3_king_mean": 0.17454545454545456,
+   "w3_king_max": 0.5,
+   "w3_rev24_mean": 0.0,
+   "w3_fund_mean": 0.8254545454545454,
+   "n_anchors_w3king_gt_1e-12": 1152
+  },
+  "on_CLEAN": {
+   "w3_king_mean": 0.6240527378297279,
+   "w3_rev24_mean": 0.0,
+   "w3_fund_mean": 0.3759472621702722,
+   "n_anchors_w3king_eq_0": 136
+  },
+  "mechanism": "LEGS=101 masks rev24 to 0 (measured: w3_rev24 == 0.0 on every W_ALPHA anchor). On the dead prefix the king leg's trailing 900-anchor returns are identically 0, so its msharpe is 0 and the seat normally hands the whole weight to fund (2148/3300 anchors, w3_king == 0). On the other 1152/3300 the FUND leg's trailing msharpe is also <= 0, so w3_at falls back to [1/3,1/3,1/3], which after the LEGS=101 mask and renormalisation is [0.5, 0, 0.5] -- the seat LABELS king at 0.5 while its z-vector is identically zero. Either way z = w3_fund * z_fund, a pure multiple of the fund score, and the subsequent w/=L1(w) removes the scalar: the TRADED book is the fund-only book on all 3300 dead anchors. w3_king > 0 there is a seat label, not an exposure."
+ },
+ "gross_total": {
+  "mean_FULL": 0.6956439874299009,
+  "mean_CLEAN": 0.6028086763294839,
+  "mean_KINGDEAD": 0.8598780923402748
+ },
+ "turnover_unit_arithmetic": {
+  "RAW_mean_FULL": 0.03031580569927569,
+  "MATCHED_mean_FULL": 0.05402702626085246,
+  "ratio_from_unrounded": 1.7821405374076298,
+  "ratio_quoted_in_brief": 1.78189,
+  "brief_ratio_uses_rounded_raw_0.03032": 1.781894005964791,
+  "one_over_mean_gross_total": 1.4375169167990094,
+  "RAW_mean_CLEAN": 0.03602812872539824,
+  "MATCHED_mean_CLEAN": 0.07088521318291878,
+  "ratio_CLEAN": 1.967496389368339,
+  "note": "the matched value is E[t_i/g_i] (mean of per-anchor ratios), NOT E[t]/E[g]; the Jensen gap is why raw/mean_gross_total != matched",
+  "raw_over_mean_gross_total": 0.043579483539100634
+ }
+}
