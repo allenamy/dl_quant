@@ -1,0 +1,167 @@
+--- w10_sleeve.py (pinned b88e35a46b93d712)
++++ w10_sleeve_r15.py (4c96cfffcd14815b)
+@@ -39,6 +39,12 @@
+ RNSM = int(os.environ.get("RNSM", "0")); assert RNSM in (0, 3, 6, 12)   # AMENDMENT 2: FTRIM band read on a CAUSAL trailing mean of rn8 over RNSM panel rows (0 = instantaneous, the deployed form)
+ SLEEVE = int(os.environ.get("SLEEVE", "0")); assert SLEEVE in (0, 1)   # uplift TrackA: per-sleeve pnl/carry/cost/gross instrument (pure diagnostic, book untouched)   # 部署态 FTRIM(pre-z 排除 rn8<=-10bp 空头, 两链), 与 w10_ftrim_band pre/zero/(-1.0,-0.0010] 同构
+ SEATNET = int(os.environ.get("SEATNET", "0")); assert SEATNET in (0, 1)
++R15_INSTR = int(os.environ.get("R15_INSTR", "0")); assert R15_INSTR in (0, 1)   # r15: instrumentation only (rec/W untouched)
++R15_KILL_NPZ = os.environ.get("R15_KILL_NPZ")   # r15 null: rn8 matrix used ONLY in the FTPOS kill test
++R15_KILL_TH = os.environ.get("R15_KILL_TH"); R15_KILL_TH = float(R15_KILL_TH) if R15_KILL_TH else None   # r15 null dose: kill threshold (default FTRIM_TH)
++R15_SEATC_NPZ = os.environ.get("R15_SEATC_NPZ")   # r15 null: 4h-carry matrix used ONLY in the SEATNET subtraction
++R15_SEATC_SCALE = float(os.environ.get("R15_SEATC_SCALE", "1.0"))   # r15 null dose: multiplier on the SEATNET subtraction
++R15_SB = int(os.environ.get("R15_SB", "0")); assert R15_SB in (0, 1)   # r15 ARM-SB: book-path-net seat (PREREG_r15 §2.1)
+ SEATF10 = int(os.environ.get("SEATF10", "0")); assert SEATF10 in (0, 1)   # T1: F10 链用 F10 自己的 msharpe 席位(四腿腿收益)
+ KTAIL = int(os.environ.get("KTAIL", "0")); assert KTAIL in (0, 1)         # T2: king 作尾部否决(fund 多尾中 king 秩底 20% / 空尾中 king 秩顶 20% 置零)
+ KMOD = float(os.environ.get("KMOD", "0")); assert KMOD in (0.0, 0.5)       # T3: z ×= (1 + KMOD·xz(king))
+@@ -59,6 +65,7 @@
+ UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade", "m1"), UMASK_SCOPE   # m1 (team-lead refinement 2026-09-05) = live M1 semantics: members = universe ∩ listed for king/rev24/F10 and the trade set; fund z = rank within the 829 base (xz_in_base)   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+ _CFG = {"RNSM": RNSM, "FTPOS": FTPOS, "LTRIM_TH": LTRIM_TH, "CDAMP": CDAMP, "FTRIM_TH": FTRIM_TH, "SLEEVE": SLEEVE, "COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
++_CFG["R15"] = {"R15_INSTR": R15_INSTR, "R15_KILL_NPZ": R15_KILL_NPZ, "R15_KILL_TH": R15_KILL_TH, "R15_SEATC_NPZ": R15_SEATC_NPZ, "R15_SEATC_SCALE": R15_SEATC_SCALE, "R15_SB": R15_SB, "pinned_src_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650"}
+ import hashlib as _hl
+ _CFG["UPLIFT"] = {"device": "w10_sleeve.py = w10_health.py (sha256 8684d9a9f43a8d15) + {LTRIM_TH, CDAMP, FTRIM_TH, SLEEVE}; all unset/0 and FTRIM_TH=-0.0010 => bitwise-unchanged rec/W", "src_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d", "self_sha256": None}
+ _CFG["HEALTH"] = {"device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb…, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE in {members (original), trade, m1 (fund z in the 829 base, other legs and trade set within the universe)} + legs() series saved; default path (all unset) bitwise-unchanged", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+@@ -84,6 +91,16 @@
+     assert np.array_equal(_fz["ts"].astype(np.int64), PW["ts"].astype(np.int64)), "FEMAT ts mismatch"
+     FE = np.asarray(_fz["mat"], dtype=float); print(f"FEMAT injected: {FEMAT_NPZ} finite {np.isfinite(FE).mean():.3f}", flush=True)
+ _IVf = np.where(np.isfinite(IV) & (IV > 0), IV, 8.0); _RN8 = np.nan_to_num(FN, nan=0.0) * (8.0 / _IVf)   # 8h 当量费率(全宽)
++R15_KILL = None; R15_C4 = None
++for _nm, _pth in (("KILL", R15_KILL_NPZ), ("C4", R15_SEATC_NPZ)):
++    if _pth:
++        _nz_ = np.load(_pth, allow_pickle=True)
++        assert [str(x) for x in _nz_["symbols"]] == [str(x) for x in PW["symbols"]], f"R15 {_nm} symbols mismatch"
++        assert np.array_equal(_nz_["ts"].astype(np.int64), PW["ts"].astype(np.int64)), f"R15 {_nm} ts mismatch"
++        _mat_ = np.asarray(_nz_["mat"], dtype=float); assert _mat_.shape == FN.shape and np.isfinite(_mat_).all(), f"R15 {_nm} shape/finite"
++        if _nm == "KILL": R15_KILL = _mat_
++        else: R15_C4 = _mat_
++        print(f"R15 {_nm} matrix injected: {_pth}", flush=True)
+ if FUNDSCALE:
+     _sig = np.array([np.std(_RN8[j][np.isfinite(FN[j])]) if np.isfinite(FN[j]).sum() > 50 else np.nan for j in range(len(PW["ts"]))]) * 1e4
+     _sref = np.array([np.nanmedian(_sig[max(0, j - 4380):j + 1]) if j >= 1000 else np.nan for j in range(len(_sig))])
+@@ -147,8 +164,11 @@
+ def tier_of(q):
+     t = np.full(len(q), 2, np.int8); t[q >= 1e6] = 1; t[q >= 5e6] = 0
+     return t
++LEGC_R15 = None; LEGP_R15 = None
+ def legs(SLOW):
+     LR = {l: [] for l in ("king", "rev24", "fund", "f10")}; idx = []
++    LC = {l: [] for l in LR}; LP = {l: [] for l in LR}   # r15: per-leg rank-book 4h carry (bps/unit gross) and price LR, recorded always
++    _HL = {l: np.zeros(NW) for l in LR}; _HRL = {l: np.zeros(NW) for l in LR}   # r15 ARM-SB: per-leg EMA book states
+     for i in range(nA):
+         j = pw_row.get(int(E_ts[i]))
+         if j is None: continue
+@@ -165,10 +185,39 @@
+             if CAL == "simple":
+                 _yy = np.expm1(_yy)
+             _lr = float((z / g * _yy).sum() * 1e4) if g > 1e-9 else 0.0
++            _lc = float((z / g * np.nan_to_num(FN[j, m], nan=0.0) * (4.0 / _IVf[j, m])).sum() * 1e4) if g > 1e-9 else 0.0   # r15: the SEATNET quantity, recorded for every leg
++            LC[leg].append(_lc); LP[leg].append(_lr)
+             if SEATNET and g > 1e-9:   # X1: 减去该腿单位 gross 书的 4h carry(多头付正费率), bps
+-                _lr -= float((z / g * np.nan_to_num(FN[j, m], nan=0.0) * (4.0 / _IVf[j, m])).sum() * 1e4)
++                if R15_C4 is not None or R15_SEATC_SCALE != 1.0:   # r15 null path only
++                    _c4v = (R15_C4[j, m] if R15_C4 is not None else np.nan_to_num(FN[j, m], nan=0.0) * (4.0 / _IVf[j, m]))
++                    _lr -= R15_SEATC_SCALE * float((z / g * _c4v).sum() * 1e4)
++                else:
++                    _lr -= _lc
++            if R15_SB and leg != "f10":   # r15 ARM-SB (PREREG_r15 §2.1): this leg's own EMA-chain book, executor caliber, net per unit gross
++                _qv = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48; _sel = ok & (_qv >= 2.5e5); _lr_sb = 0.0
++                if _sel.sum() >= 80:
++                    _w = np.where(_sel, z, 0.0); _w[_sel] -= _w[_sel].mean(); _gg = np.abs(_w).sum()
++                    if _gg > 1e-9:
++                        _w = _w / _gg; _cw = 2.5 / max(int(_sel.sum()), 1); _w = np.clip(_w, -_cw, _cw); _g2 = np.abs(_w).sum()
++                        if _g2 > 1e-9: _w = _w / _g2
++                        _tg = np.zeros(NW); _tg[m] = _w
++                        _s = _HL[leg] + 0.1 * (_tg - _HL[leg]); _s = np.where(np.abs(_s - _HL[leg]) < 2.5e-4, _HL[leg], _s)
++                        _ns = np.zeros(NW, bool); _ns[m[~_sel]] = True; _s = np.where(_ns, 0.0, _s)
++                        _sr = _s.copy(); _nzm = np.abs(_s) > 1e-12
++                        if _nzm.any():
++                            _sr[_nzm] -= _sr[_nzm].mean(); _g0 = np.abs(_s).sum(); _g1 = np.abs(_sr).sum()
++                            if _g1 > 1e-9: _sr *= _g0 / _g1
++                        _trr = _sr - _HRL[leg]; _gs = np.abs(_sr).sum()
++                        if _gs > 1e-9:
++                            _tr = tier_of(_qv); _ta = np.abs(_trr[m])
++                            _cb = sum(_ta[_tr == tt].sum() * (fr * mk + (1 - fr) * tk) for tt, (mk, tk, fr) in enumerate(COST_B))
++                            _pn = float((_sr[m] * _yy).sum() * 1e4); _ca = float((_sr[m] * np.nan_to_num(FN[j, m], nan=0.0) * (4.0 / _IVf[j, m])).sum() * 1e4)
++                            _lr_sb = (_pn - _ca - _cb) / _gs
++                        _HL[leg] = _s; _HRL[leg] = _sr
++                _lr = _lr_sb
+             LR[leg].append(_lr)
+         idx.append(i)
++    global LEGC_R15, LEGP_R15; LEGC_R15 = {k: np.array(v) for k, v in LC.items()}; LEGP_R15 = {k: np.array(v) for k, v in LP.items()}
+     return {k: np.array(v) for k, v in LR.items()}, {int(i): p for p, i in enumerate(idx)}
+ W3FC = None
+ def run(SLOW, LRa, pos, depth, need, cool, look=900):
+@@ -204,7 +253,7 @@
+     H = np.zeros(NW); HR = np.zeros(NW); Pi = np.ones(NW); sh = np.zeros(NW); cb = np.zeros(NW)
+     HF = np.zeros(NW); HB = np.zeros(NW)      # F10 书自己的 EMA 态 / 上一锚的混合书
+     cnt = np.zeros(NW, int); su = np.full(NW, -1)
+-    rec = []; WS = []; _SG = []; _SP = []; _SC = []; _SK = []
++    rec = []; WS = []; _SG = []; _SP = []; _SC = []; _SK = []; _R15 = []
+     for i in range(nA):
+         j = pw_row.get(int(E_ts[i]))
+         if j is None: continue
+@@ -225,6 +274,7 @@
+             z = np.where(((z >= _hi) & (_zk <= _klo)) | ((z <= _lo) & (_zk >= _khi)), 0.0, z)
+         _fnp = FN[j, m] * (8.0 / np.where(IV[j, m] > 0, IV[j, m], 8.0)); _fnp = np.where(np.isfinite(_fnp), _fnp, 0.0)
+         if RNSM: _fnp = _RN8S[j, m]   # 8h-equivalent current rate on the member set (was computed inside the FTRIM branch; hoisting is numerically a no-op)
++        _r15_flagK = (z < 0) & (_fnp <= FTRIM_TH); _r15_flagF = np.zeros(len(m), bool)   # r15: pre-trim flag, king chain
+         if FTRIM == "zero":
+             z = np.where((z < 0) & (_fnp <= FTRIM_TH), 0.0, z)
+         if LTRIM_TH is not None:
+@@ -273,6 +323,7 @@
+             if KTAIL:
+                 _zk = np.nan_to_num(xz(sc["king"])); _lo, _hi = np.quantile(_zf[np.isfinite(_zf)], [0.2, 0.8]); _klo, _khi = np.quantile(_zk, [0.2, 0.8])
+                 _zf = np.where(((_zf >= _hi) & (_zk <= _klo)) | ((_zf <= _lo) & (_zk >= _khi)), 0.0, _zf)
++            _r15_flagF = (_zf < 0) & (_fnp <= FTRIM_TH)   # r15: pre-trim flag, F10 chain
+             if FTRIM == "zero":
+                 _zf = np.where((_zf < 0) & (_fnp <= FTRIM_TH), 0.0, _zf)
+             if LTRIM_TH is not None:
+@@ -303,8 +354,10 @@
+             smb = (1.0 - PHI) * sm + PHI * _smf
+         else:
+             smb = sm
++        _kill = np.zeros(NW, bool)
+         if FTPOS:
+-            _kill = np.zeros(NW, bool); _kill[m] = (smb[m] < 0) & (_fnp <= FTRIM_TH)
++            _r15_fk = (R15_KILL[j, m] if R15_KILL is not None else _fnp); _r15_th = (R15_KILL_TH if R15_KILL_TH is not None else FTRIM_TH)   # r15 null injection point (default = pinned expression)
++            _kill[m] = (smb[m] < 0) & (_r15_fk <= _r15_th)
+             if _kill.any():
+                 _gk0 = np.abs(smb).sum(); smb = np.where(_kill, 0.0, smb); _gk1 = np.abs(smb).sum()
+                 if _gk1 > 1e-9: smb = smb * (_gk0 / _gk1)
+@@ -369,6 +422,11 @@
+             assert abs(_SP[-1].sum() - pnl_r) < 1e-7 and abs(_SC[-1].sum() - car_r) < 1e-7 and abs(_SK[-1].sum() - cbps_r) < 1e-7, "sleeve identity"
+         netlong = float(sm.sum() / max(np.abs(sm).sum(), 1e-9))
+         gm = float(np.abs(sm[m]).sum()); gsel = float(np.abs(sm[m][sel]).sum()); gt = float(np.abs(sm).sum())
++        if R15_INSTR:   # r15 instrumentation (read-only of the state)
++            _fkf = np.zeros(NW, bool); _fkf[m] = _r15_flagK; _fff = np.zeros(NW, bool); _fff[m] = _r15_flagF
++            _dpf = np.zeros(NW, bool); _dpf[m] = (_fnp <= FTRIM_TH); _mmf = np.zeros(NW, bool); _mmf[m] = True
++            _c4f = np.zeros(NW, np.float32); _c4f[m] = (fnow * (4.0 / ivv)).astype(np.float32)
++            _R15.append((_fkf, _fff, _dpf, _kill.copy(), _mmf, smr.astype(np.float32), _c4f))
+         rec.append((int(E_ts[i]), float(pnl_raw - car - cbps), pnl_raw, float(car), float(cbps), gt, gm, gsel, int(sel.sum()), int(len(m)), fires_i,
+                     legc[0], legc[1], legc[2], float(w3[0]), float(w3[1]), float(w3[2]), float(np.abs(trade).sum()),
+                     float(pnl_r - car_r - cbps_r), pnl_r, car_r, float(cbps_r), netlong))
+@@ -376,6 +434,7 @@
+         H = _smk if PHI > 0 else sm      # king 书 EMA 态独立推进(φ=0 时二者同一)
+         HB = sm; HR = smr; Pi = Pi * (1.0 + yfull)
+         if i % 2000 == 0: print("run depth", depth, i, "/", nA, round(time.time() - t0, 1), "s", flush=True)
++    global R15_LAST; R15_LAST = _R15
+     return np.array(rec), np.stack(WS), ((np.array(_SG), np.array(_SP), np.array(_SC), np.array(_SK)) if SLEEVE else None)
+ LRa, pos = legs(SLOW); print("legs done", round(time.time() - t0, 1), "s", flush=True)
+ ARMS = [("S0", None, 0, 0, "nets_histv2_0_0_0.npy"), ("d30_n2_c42", -0.30, 2, 42, "nets_histv2_-30_2_42.npy")]
+@@ -418,6 +477,9 @@
+     print("RECEIPT_EX", nm, json.dumps(outx), flush=True)
+     save[f"{nm}_rec"] = R
+     save[f"{nm}_W"] = WS
++    if R15_INSTR and R15_LAST:
++        for _k, _nm2 in enumerate(("flagK", "flagF", "deep", "kill", "member", "smr", "c4")):
++            save[f"{nm}_R15_{_nm2}"] = np.stack([r[_k] for r in R15_LAST])
+     if SLV is not None:
+         save[f"{nm}_SLV_gross"], save[f"{nm}_SLV_pnl"], save[f"{nm}_SLV_carry"], save[f"{nm}_SLV_cost"] = SLV
+         save[f"{nm}_SLV_names"] = np.array(["L|<=-30bp", "L|-30..-10", "L|-10..0", "L|0..10", "L|10..30", "L|>=30bp", "L|nofund",
+@@ -425,5 +487,5 @@
+ _OT = os.environ.get("OUT_TAG", "")   # 并行道输出隔离(PREREG_universe_dyn): 未设时文件名与旧装置同
+ _OT = f"_{_OT}" if _OT else ""
+ json.dump(out, open(f"{PD}/w10_ablation_summary{_OT}.json", "w"), indent=1, ensure_ascii=False)
+-np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), legs_ts=E_ts[np.array(sorted(pos, key=pos.get))], legs_king=LRa["king"], legs_rev24=LRa["rev24"], legs_fund=LRa["fund"], **save)   # health_check: the seat inputs (legs() series) saved for the live-seat comparison; rec/W arrays unchanged
++np.savez_compressed(f"{PD}/w10_ablation_series{_OT}.npz", cols=np.array(COLS), symbols=np.array(WSYM), config_json=np.array(json.dumps(_CFG)), legs_ts=E_ts[np.array(sorted(pos, key=pos.get))], legs_king=LRa["king"], legs_rev24=LRa["rev24"], legs_fund=LRa["fund"], legs_carry_king=LEGC_R15["king"], legs_carry_rev24=LEGC_R15["rev24"], legs_carry_fund=LEGC_R15["fund"], legs_price_king=LEGP_R15["king"], legs_price_rev24=LEGP_R15["rev24"], legs_price_fund=LEGP_R15["fund"], **save)   # health_check: the seat inputs (legs() series) saved for the live-seat comparison; rec/W arrays unchanged
+ print("DONE", round(time.time() - t0, 1), "s", flush=True)
