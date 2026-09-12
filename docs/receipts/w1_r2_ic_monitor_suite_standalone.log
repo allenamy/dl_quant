@@ -10,7 +10,7 @@
   PASS T3c ALERT on r24 < p5 — {'n_post_deploy': 34, 'judged': True, 'level': 'ALERT', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|not
   PASS T3d DECIDE on r24 < p1 — {'n_post_deploy': 24, 'judged': True, 'level': 'DECIDE', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|no
   PASS T3e pre-window rows excluded — rows before WINDOW_START_TS must not be judged
-  PASS T4 beta history pushed AFTER ic computation — idx ic=9207 push=9603
+  PASS T4 beta history pushed AFTER ic computation — idx ic=9687 push=10083
   PASS T5a plist exists
   PASS T5b plist runs ops/ic_monitor.py
   PASS T6 known anchors skipped — []
@@ -23,7 +23,7 @@
   PASS T8c never-delivered → OK delivers nothing
   PASS T8b ALERT→OK also recovers (transition from either breach level)
   PASS T8d legacy live state {last_ALERT, last_DECIDE} migrates to last level DECIDE and recovers
-DELIVERY NOT OFFBOX (NOT_CONFIGURED): [ic_monitor #55] RECOVERED: 24/48 锚均值回到所用阈值以上 — 不等于 alpha 恢复. r24=+0.05000, r48=+0.05000, n=60, 判窗=r24,r48. 事件 DECIDE(触发窗 r24,r48) 自 2026-08-17T13:01Z 起, 现关闭. 阈值: ALERT r24<-0.02277; DECIDE r24<-0.04425 或 r48<-0.01656. 数据前沿=2026-08-20T08:00Z; r24 窗 期望24 实有24 完整; r48 窗 期望48 实有48 完整.
+DELIVERY NOT OFFBOX (NOT_CONFIGURED): [ic_monitor #55] RECOVERED: 24/48 锚均值回到所用阈值以上 — 不等于 alpha 恢复. r24=+0.05000, r48=+0.05000, n=60, 判窗=r24,r48. 事件 DECIDE(触发窗 r48) 自 2026-08-17T13:01Z 起, 现关闭. 阈值: ALERT r24<-0.02277; DECIDE r24<-0.04425 或 r48<-0.01656. 数据前沿=2026-08-20T08:00Z; r24 窗 期望24 实有24 完整; r48 窗 期望48 实有48 完整.
 书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|notional|/|qty|, 源码旧称 mid)收益排序; 不是模型分数 IC, 不是扣费净收益
 阈值标定: α=0.05/band=0.002 离线书(2026-08-10, 9821 锚); 在役 α=0.1/band=0.00025 — 阈值未按在役形态重标, 5%/1% 概率含义不适用
   PASS T8e a RECOVERED that did not leave the box keeps last level DECIDE, so the next run retries (exactly one DELIVERED page, not exactly one attempt)
@@ -58,8 +58,8 @@ DELIVERY NOT OFFBOX (NOT_CONFIGURED): [ic_monitor #55] RECOVERED: 24/48 锚均�
   PASS T12c an r24-triggered ALERT recovers on r24 alone, and the title is per-window (never 24/48) while r48 is unjudged
   PASS T13a [R2] DECIDE→RECOVERED→DECIDE inside 3h: the recurrence is a NEW event and is delivered; a same-level repeat inside the new event is still cooled down
   PASS T13b escalation ALERT→DECIDE inside an open event is delivered; event level becomes DECIDE, trigger windows are the union, both delivery times recorded — {'open': True, 'level': 'DECIDE', 'trigger_windows': ['r24'], 'opened_at': 1787230860.0, 'delivered': {'ALERT': 1787230860.0, 'DECIDE': 1787234460.0}}
-  PASS T13c the legacy live state still migrates to an OPEN legacy event with both windows as trigger (conservative: nothing in the state file says which gate fired on 09-09/09-10)
-  PASS T13d legacy event + partial-OK verdict ⇒ no RECOVERED (r48 is a trigger window and unjudged)
+  PASS T13c the legacy live state migrates to an OPEN legacy event whose trigger window is r48 (lead ruling 2026-09-12 on the logged facts: 09-09 DECIDE r24 -0.03483/r48 -0.02373 and 09-10 DECIDE r24 -0.02705/r48 -0.02667 — r24 above the DECIDE line -0.04425 both times, r48 below R48_P1 -0.01656 both times)
+  PASS T13d legacy event + partial-OK verdict ⇒ no RECOVERED (r48 is THE trigger window and unjudged)
   PASS T14 [R3] under the reviewer-shaped trap harness (__main__ on source bytes; envfile/telegram/broker import, socket, write-open, os.mkdir/remove/... and .env all denied): --check, --dry, --backfill --check ⇒ zero events + READ-ONLY; --che ⇒ zero events AND rejected (SystemExit 2) — {'--check': ([], None), '--dry': ([], None), '--backfill--check': ([], None), '--che': ([], 'SystemExit:2')}
   PASS T15a 23 rows with the clock 3 days ahead ⇒ INCOMPLETE with census (was: silent OK, no census)
   PASS T15b a young window (10 rows, no gap since WINDOW_START) stays OK/not-judged with a complete census

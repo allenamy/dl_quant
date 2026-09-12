@@ -1,5 +1,5 @@
 diff --git a/live/tests_ic_monitor.py b/live/tests_ic_monitor.py
-index ee52582..227a2b8 100644
+index ee52582..f3e8281 100644
 --- a/live/tests_ic_monitor.py
 +++ b/live/tests_ic_monitor.py
 @@ -2,20 +2,51 @@
@@ -129,7 +129,7 @@ index ee52582..227a2b8 100644
  i_ic = src.find("ic = _spear(pos, ret)")
  i_push = src.find("# push history AFTER computing")
  check("T4 beta history pushed AFTER ic computation", 0 < i_ic < i_push,
-@@ -70,6 +121,648 @@ if os.path.exists(_pl):
+@@ -70,6 +121,652 @@ if os.path.exists(_pl):
  rows6 = M.compute_rows({W: {"A": (100.0, 1.0), "B": (-100.0, 2.0)}}, known_ts={W})
  check("T6 known anchors skipped", rows6 == [], str(rows6))
  
@@ -625,16 +625,20 @@ index ee52582..227a2b8 100644
 +      and _est["event"]["level"] == "DECIDE" and _est["event"]["trigger_windows"] == ["r24"]
 +      and set(_est["event"]["delivered"]) == {"ALERT", "DECIDE"} and _est["event"]["opened_at"] == _t0,
 +      str(_est.get("event"))[:200])
-+check("T13c the legacy live state still migrates to an OPEN legacy event with both windows as trigger "
-+      "(conservative: nothing in the state file says which gate fired on 09-09/09-10)",
-+      M.open_event(dict(LEGACY_LIVE_STATE)) == {"open": True, "level": "DECIDE",
-+                                                 "trigger_windows": ["r24", "r48"],
++check("T13c the legacy live state migrates to an OPEN legacy event whose trigger window is r48 "
++      "(lead ruling 2026-09-12 on the logged facts: 09-09 DECIDE r24 -0.03483/r48 -0.02373 and 09-10 "
++      "DECIDE r24 -0.02705/r48 -0.02667 — r24 above the DECIDE line -0.04425 both times, r48 below "
++      "R48_P1 -0.01656 both times)",
++      M.LEGACY_TRIGGER_WINDOWS == ["r48"] and -0.03483 > M.R24_P1 and -0.02705 > M.R24_P1
++      and -0.02373 < M.R48_P1 and -0.02667 < M.R48_P1
++      and M.open_event(dict(LEGACY_LIVE_STATE)) == {"open": True, "level": "DECIDE",
++                                                 "trigger_windows": ["r48"],
 +                                                 "opened_at": LEGACY_LIVE_STATE["last_ALERT"],
 +                                                 "delivered": {"ALERT": LEGACY_LIVE_STATE["last_ALERT"],
 +                                                               "DECIDE": LEGACY_LIVE_STATE["last_DECIDE"]},
 +                                                 "legacy": True})
 +_lp = M.plan_delivery(FX["partial"], dict(LEGACY_LIVE_STATE), _NP)
-+check("T13d legacy event + partial-OK verdict ⇒ no RECOVERED (r48 is a trigger window and unjudged)",
++check("T13d legacy event + partial-OK verdict ⇒ no RECOVERED (r48 is THE trigger window and unjudged)",
 +      [p["kind"] for p in _lp] == ["INCOMPLETE"] and "事件 DECIDE" in _lp[0]["body"]
 +      and "仍开, 未恢复" in _lp[0]["body"])
 +
@@ -792,7 +796,7 @@ index 46528dc..a47a3b6 100644
      "tests_chase_release_check": "that the chase experiment is SAFE — it proves the first-anchor release gate can go red (a tampered arm, a withheld name missing from the gap ledger, a gap filed under a borrowed reason), green, and NOT_EXERCISED, and that the third verdict is distinct from a pass. Four blind spots: (a) the fixtures are synthetic artefacts written by this suite, so nothing here proves the ANCHOR writes a block of that shape — only the wiring suite touches that, and it uses a stub broker; (b) the gate reads one anchor, so an experiment that behaves correctly once and drifts later is outside it entirely; (c) it checks that withheld names are RECORDED, never that withholding them was right — the opportunity cost the experiment exists to measure is not visible to any assertion here; (d) the inline re-derivation and chase_policy are asserted equal, which catches drift between them but cannot catch both being wrong in the same way, since one was written by reading the other",
      "tests_residual_vector": "that the unauth bucket is RIGHT — it proves reconcile publishes a per-name residual for every name in the readback (not only those above `tol`), signed, with a coverage denominator that can drop below 1. Four blind spots: (a) it proves the vector is PUBLISHED, never that the consumer takes it — since 2026-08-03 a halt gate reads it, and a consumer that took the anomaly list instead would leave this suite green while flooring every sub-tolerance name to zero; (b) it proves the vector reports what the anomaly list omits, never that `residual_qty = qty(T2) - (qty(T1) + sum dq_fills)` is the right definition of unauthorized — that is inherited from B30 and not re-litigated here; (c) the fixtures are two-anchor ledgers, so nothing exercises the interaction with real dq attribution across a 4-hour window, where the `_between` interval and the fill timestamps do the real work; (d) it says nothing about `underfill`, which is the OTHER half of the decomposition and does not exist yet",
 diff --git a/ops/ic_monitor.py b/ops/ic_monitor.py
-index f632d90..6d1e2b2 100644
+index f632d90..6ffe159 100644
 --- a/ops/ic_monitor.py
 +++ b/ops/ic_monitor.py
 @@ -1,10 +1,11 @@
@@ -810,7 +814,7 @@ index f632d90..6d1e2b2 100644
    · β 调整残差 IC 双轨: β=锚间收益 vs 宇宙等权, 滚动窗(min 20 锚), 严格因果。
      实盘病史(2026-08 空头侧)证明: 不拆 β, regime 保费会被误读成模型失效。
  
-@@ -13,10 +14,30 @@
+@@ -13,10 +14,31 @@
    ALERT : 滚动24锚均值 < R24_P5   (离线分布 5% 分位)
    DECIDE: 滚动24锚均值 < R24_P1 或 滚动48锚均值 < R48_P1
    判读起点: 账本 ≥24 个 2026-08-10T12:00Z(新配置窗口首锚)之后的锚; 之前只记不判。
@@ -830,7 +834,8 @@ index f632d90..6d1e2b2 100644
 +    一页 INFO "RECOVERED …不等于 alpha 恢复"(两窗皆判才说 24/48; 否则按触发窗说, 其余窗口未判), 关事件;
 +    触发窗未判 ⇒ 不恢复不降级, INCOMPLETE 页写「可判窗口未越线, 其余窗口未判; 事件仍开」。
 +    冷却只在同一开事件内计(同级 24h); 恢复后同级复发 = 新事件, 立即投。
-+    遗留 state(只有 last_ALERT/last_DECIDE)合成遗留事件: level = 时间戳更大者, 触发窗保守取两窗。
++    遗留 state(只有 last_ALERT/last_DECIDE)合成遗留事件: level = 时间戳更大者, 触发窗 = r48
++    (lead 裁定, 依据 09-09/09-10 两次 DECIDE 的日志数值: r24 未过 DECIDE 线, r48 过 R48_P1)。
 +  · 新鲜度门: 以 now 推数据前沿 frontier=floor((now−4h−1h)/4h)·4h, 数 4h 网格上尾部 24/48 个
 +    期望锚里账本实有几个; 缺 > MAX_MISSING(r24:2, r48:4)⇒ 该窗不判 ALERT/DECIDE; 两窗都不可判 ⇒
 +    level=INCOMPLETE; 普查写进 verdict/state/evals 账本; 24h 内至多一页 INFO 列出缺的锚。
@@ -844,7 +849,7 @@ index f632d90..6d1e2b2 100644
  """
  import argparse
  import glob
-@@ -28,19 +49,52 @@ import time
+@@ -28,19 +50,52 @@ import time
  from collections import defaultdict
  
  _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -902,7 +907,7 @@ index f632d90..6d1e2b2 100644
  
  # ── 预注册阈值, 2026-08-10 盖章。标定 = α0.05+带.002 书全史 9821 锚离线分布
  #    (逐锚 IC mean +0.03684 sd 0.21388, 43.6% 负锚 ⇒ 逐锚不可判, 只判滚动均值)。
-@@ -50,6 +104,36 @@ R24_P1 = -0.04425
+@@ -50,6 +105,42 @@ R24_P1 = -0.04425
  R48_P1 = -0.01656
  CALIB_SRC = "jpline:/mnt/storage/private/work_hsy/probe_artifacts/ic_calib_a005.json (2026-08-10)"
  
@@ -915,7 +920,13 @@ index f632d90..6d1e2b2 100644
 +# ── 新鲜度门. 前沿 = 最新一个【下锚回读已成熟】的锚: 回读 read_ts−E 观测 15.8–47.1 分钟,
 +#    取 1h 余量 ⇒ 01:30Z 运行时前沿 = 前日 20Z(与账本实际前沿一致)。缺数上限 = 任务书参数。──
 +MATURE_LAG_S = 3600
-+MAX_MISSING = {"r24": 2, "r48": 4}
++MAX_MISSING = {"r24": 2, "r48": 4}       # 裁定 R-11(lead, 2026-09-12): 保持任务书参数
++
++# ── 遗留事件的触发窗(lead 裁定 2026-09-12, 事实依据而非猜测): 现状态文件只有 last_ALERT/last_DECIDE,
++#    没有当年触发门; 但 icmonitor_out.log 记录 09-09 01:30Z DECIDE r24=−0.03483 / r48=−0.02373 与
++#    09-10 01:30Z DECIDE r24=−0.02705 / r48=−0.02667 —— 两次 r24 都在 DECIDE 线 −0.04425 之上,
++#    r48 都在 R48_P1=−0.01656 之下 ⇒ 两次遗留 DECIDE 均由 r48 门触发。故遗留事件按 r48 恢复。──
++LEGACY_TRIGGER_WINDOWS = ["r48"]
 +
 +
 +def contract():
@@ -939,7 +950,7 @@ index f632d90..6d1e2b2 100644
  
  def _rankdata(x):
      idx = sorted(range(len(x)), key=lambda i: x[i])
-@@ -163,18 +247,66 @@ def compute_rows(anchors, known_ts):
+@@ -163,18 +254,66 @@ def compute_rows(anchors, known_ts):
      return rows
  
  
@@ -1012,7 +1023,7 @@ index f632d90..6d1e2b2 100644
      ics = [r["rank_ic"] for r in post]
      r24 = sum(ics[-24:]) / 24.0
      out["r24"] = round(r24, 5)
-@@ -182,51 +314,292 @@ def check(ledger_rows):
+@@ -182,51 +321,292 @@ def check(ledger_rows):
      out["r48"] = None if r48 is None else round(r48, 5)
      resid = [r["rank_ic_beta_resid"] for r in post if r.get("rank_ic_beta_resid") is not None]
      out["r24_beta_resid"] = round(sum(resid[-24:]) / min(24, len(resid)), 5) if resid else None
@@ -1081,7 +1092,7 @@ index f632d90..6d1e2b2 100644
 +    if not event:
 +        return "事件: 新开"
 +    tw = ",".join(event.get("trigger_windows") or []) or "?"
-+    legacy = "(遗留状态迁移, 触发窗保守取两窗)" if event.get("legacy") else ""
++    legacy = "(遗留状态迁移: 09-09/09-10 DECIDE 皆由 r48 门触发)" if event.get("legacy") else ""
 +    return (f"事件: {event.get('level')} 自 {iso(float(event.get('opened_at') or 0))} 已开, "
 +            f"触发窗 {tw}{legacy}")
 +
@@ -1192,7 +1203,7 @@ index f632d90..6d1e2b2 100644
 +    """当前开着的越线事件, 无则 None。
 +    事件 = {open, level, trigger_windows, opened_at, delivered{级:成功离机时刻}, closed_at, legacy}。
 +    无 `event` 键但有遗留 last_ALERT/last_DECIDE(成功投递时刻)⇒ 合成遗留事件: level = 时间戳更大者
-+    (账本事实: 09-10 DECIDE 有 message_id), 触发窗**保守取两窗** —— 状态文件里没有当年触发门的事实, 不猜。"""
++    (账本事实: 09-10 DECIDE 有 message_id), 触发窗 = LEGACY_TRIGGER_WINDOWS(见其注释的两条日志事实)。"""
 +    ev = st.get("event")
 +    if isinstance(ev, dict):
 +        return ev if ev.get("open") else None
@@ -1207,7 +1218,7 @@ index f632d90..6d1e2b2 100644
 +    if not delivered:
 +        return None
 +    level = max(delivered, key=delivered.get)
-+    return {"open": True, "level": level, "trigger_windows": ["r24", "r48"],
++    return {"open": True, "level": level, "trigger_windows": list(LEGACY_TRIGGER_WINDOWS),
 +            "opened_at": min(delivered.values()), "delivered": delivered, "legacy": True}
 +
 +
@@ -1340,7 +1351,7 @@ index f632d90..6d1e2b2 100644
      known = set()
      rows = []
      if os.path.exists(LEDGER) and not args.backfill:
-@@ -239,16 +612,26 @@ def main():
+@@ -239,16 +619,26 @@ def main():
                  continue
      anchors = load_anchors()
      fresh = compute_rows(anchors, known if not args.backfill else set())

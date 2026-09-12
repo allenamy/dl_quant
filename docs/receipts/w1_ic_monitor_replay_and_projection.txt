@@ -1,4 +1,4 @@
-W1 receipt R2 (regenerated round 2) — formal ops/ic_monitor.py (post-fix) replayed on the FROZEN real ledger state/live/ic_monitor.jsonl (225 rows, sha fd62e6b7…)
+W1 receipt R2 (regenerated after lead ruling: LEGACY_TRIGGER_WINDOWS=['r48']) — formal ops/ic_monitor.py replayed on the FROZEN real ledger state/live/ic_monitor.jsonl (225 rows, sha fd62e6b7…)
 rows visible to each run = computed_at <= run_ts+5; now = run_ts; frontier = floor((now-4h-1h)/4h)*4h
 
 09-07 ALERT sent run 2026-09-07T01:30Z  frontier 2026-09-06T20:00Z  newest_row 2026-09-06T04:00Z  n=151  r24=-0.02372  r48=-0.00964  NEW level=INCOMPLETE  judged_windows=[]
@@ -18,7 +18,7 @@ rows visible to each run = computed_at <= run_ts+5; now = run_ts; frontier = flo
       r48: expected 48 present 39 missing 9 (max 4) complete=False  ['2026-09-06T08:00Z', '2026-09-06T12:00Z', '2026-09-06T16:00Z', '2026-09-06T20:00Z', '2026-09-07T00:00Z', '2026-09-09T08:00Z', '2026-09-09T12:00Z', '2026-09-09T16:00Z', '2026-09-09T20:00Z']
 
 Projection under the gate if every future grid anchor gets a row (synthetic rank_ic=0.0 fill after 2026-09-11T20Z; 'no new holes'):
-run(01:30:02Z)   frontier            r24 missing  r48 missing  judgeable   legacy event (trigger r24+r48) recoverable?
+run(01:30:02Z)   frontier            r24 missing  r48 missing  judgeable            legacy event (trigger r48) recoverable?
 2026-09-13       2026-09-12T20:00Z     4            9        []                   False
 2026-09-14       2026-09-13T20:00Z     0            9        ['r24']              False
 2026-09-15       2026-09-14T20:00Z     0            5        ['r24']              False
