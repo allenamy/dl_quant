@@ -46,3 +46,11 @@
 
 ## 结果指针(2026-09-12 10:5xZ)
 `RESULT_parity_phase1_2026-09-12.md`: G-P1 PASS 41/41(≤9.3e-10; LR 40/40 差 0.0); G-P2 **FAIL 按字面**(0/41 ≤1e-6; 中位 1.05e-5, 最大 1.13e-4, 14 名; 快照起步 3/3 精确 0.0); G-P3 FAIL(float32 存档); G-P4 PASS。机理排查与前向门见 RESULT §3–§4。
+
+## AMENDMENT 3(2026-09-12 13:0xZ, lead)—— G-P2 残差机理: 事后回填假说的第一手测量
+
+**装置**: `devices/backfill_probe.py`(eafced4b; 两份生产者 `rolling.npz` 快照, 只看 ≤ 早锚的行, 「早 NaN 晚有限」= 回填, 「早有限晚 NaN」= 丢失, 有限对有限值变 = 改写)。快照: 08Z `producer_state_snapshots/1789200000`(08:2xZ 取)与 12Z `…/1789214400`(12:59:05Z 取, `SNAPSHOT_OK 4 files`)。
+
+**读数**(收据 `parity_replay_2026-09-12/receipts/BACKFILL_probe_1789200000_vs_1789214400.json`): 比较行 **11,472**(≤ 08Z 锚的公共 5m 行)× 829 名; `cells_filled_later` **0**; `cells_lost` **0**; `cells_changed_finite` **0**; `symbols_with_fill` 0。
+
+**判**: 在一个 4h 锚间隔内, 生产者缓存对过去行**零改动**。RESULT §3 的「锚后回填影响 DL 截面特征」假说在 **4h 尺度上不成立**; 它若成立只能在更长尺度(链回放从 09-05 16Z 起用的是 09-11 的缓存, 中间 6 天)。本修订**不下机理结论**; 机理由同锚的快照种子平价(`REPLAY_RECEIPT_TAG=GP3_snapshot_12Z`, 以 08Z 快照为种子前推到 12Z)与后续 ≥3 锚的连续快照对(08Z→12Z→16Z→20Z, 各自 backfill_probe)共同裁定: 若快照种子前推逐锚精确且连续快照对回填恒为 0, 则 G-P2 残差只能来自「链起点状态 ≠ 当日在役状态」这一项(即 09-05 起点的 EMA/mini-cache 历史), 与缓存无关。**预注册**: 连续 3 对快照 probe 均为 0 且快照种子平价 3/3 精确 ⇒ 判「起点状态差」; 任一对 probe > 0 ⇒ 回填假说复活并按名列出。
