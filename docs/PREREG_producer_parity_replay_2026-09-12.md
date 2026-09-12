@@ -37,3 +37,6 @@
 
 ## §5 不主张
 本文不主张线上策略的任何历史表现; 不主张研究回放错; 不改任何生产文件、不重启任何进程、不调任何 API。
+
+## AMENDMENT 1(2026-09-12 09:4xZ, 定义性, 在窗口结果之前)
+**G-P3 的比较对象改为内容 sha**: 生产者 signal 行的 `weights_sha` 是 `weights/{A}.npz` **文件字节**的 sha(`np.savez_compressed` 的 zip 条目带写入时间, 同内容不同字节), 首锚试跑(1789200000)已证: 权重 L∞ 4.7e-10、w3/turnover/gross 逐位同而字节 sha 不同。G-P3 改为: 回放与线上 `weights/{A}.npz` 的 `idx` 与 `val` 数组 sha256 相等的锚数 = G-P1 通过锚数。G-P1/P2/P4 不变。
