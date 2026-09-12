@@ -145,3 +145,92 @@
 
 ### 与研究线的交叉(只记, 不动)
 本锚费 maker **恰好 2.0000 bps**、taker **恰好 5.0000 bps**、346 笔 commission_asset **全部 USDT** —— **独立再证 r11 的发现: BNB 手续费折扣自 2026-09-07 起已断, 账户在 VIP0 底档**。恢复折扣值约 +1.5% NAV/年(r11 定价)。**属 sizing/运维裁定域, 本文只报不动。**
+
+---
+
+## 2026-09-12 00:00Z 锚 · 全深度深查(只读, 实盘零接触)
+
+**锚**: canonical 1789171200 (00:00Z, **8h 结算锚**) / 执行器 anchor_ts 1789172641.107 (00:24:01Z)。**结论: 无异常处置需求; 但有四项要跟踪, 其中两项本锚新出现。**
+
+### ① 三守护 — 全绿(句柄为准)
+| 守护 | 句柄 | PID | launchd | 运行时长 |
+|---|---|---|---|---|
+| shadow_loop_v3 | `shadow.lock` = 10900 | 10900 ✓ | shadowloop 10900 | 6d 12:51 |
+| sidecar_daemon.sh | — | 30943 | sidecar 30943 ✓ | 12d 20:35 |
+| combo_live_daemon.sh | `fea171/combo_live_daemon.pid` = 30944 | 30944 ✓ | combolive 30944 ✓ | 12d 20:35 |
+
+`shadowloop` 的 last_exit = −15 是**历史退出码**(进程已连续运行 6d12h), 非本锚事件。PID 50689 = `cc_tmp/exec_n6_sandbox` 研究沙箱, 非在役。
+
+### ② 信号六项 — 全部在带
+status OK / coverage 1.0 / members 400 / sel 262 / **fund_updates 454**(8h 结算锚稳态 ~453 ✓) / forced_exit_n **0** / turnover 0.02404 / gross_pos 0.8968 / carry 1.065 bps / cost 0.079 bps / runtime 275.9s / missing 0 / future_dropped 0 / data_max_ts 匹配。
+w3 = [0.3185, 0.1048, 0.5768] ⇒ **w3_masked king = 0.3557**, 与 target_combo 自报 [0.355733, 0.0, 0.644267] 一致 ✓
+combo_live_status: anchor 匹配 ✓ / ok / done / **reader_ok true** / n 261 / gross 0.8635 / age_s 0.8
+target_combo: phi 0.45 / combo_v2main_norev24 / **kc·fc 均 own** ✓ / **n_f10_scored 400** ✓ / net_after_reshape 0.0 / rho_kc_fc 0.9369
+**反事实改写 = 24.52%**。序列 24.53(16Z) → 24.50(20Z) → **24.52**(本锚), 增量 **+0.02pp**, **未触发升级**。
+
+### ③ 执行漏斗(按执行器 anchor_ts 归属; fills 去重=**后写胜出**)
+orders **458**(= rows_persisted 458 ✓) / fills 原始 547 → 去重 **285**
+终态: skipped_min_notional 211 · partial_expired 148 · **venue_reject 56** · filled 35 · skipped_no_chase_arm 8
+order_type: maker 278 / topup_taker 180
+**venue_reject 56** = **−5022 五十五单**(47 首发 + 8 重挂) + **−2027 一单**(PIEVERSEUSDT)
+分臂拒单率: join **0.2148**(29/135) / behind **0.1825**(25/137) / exempt 0.3333(2/6, n 太小)
+**behind 占比 = 0.5037**(排除 exempt) — 设计点 0.50 ✓
+requote 44 / direct 24 / exempt 2
+
+### ④ 记账
+| 项 | 值 | 判 |
+|---|---|---|
+| venue_gross_usdt | 234,372.22 | target 236,408.84 ⇒ **0.9914** ✓ |
+| NAV | 118,120.06 | gross/NAV = **1.9842** ≈ 2.0 ✓ |
+| **net_over_gross** | **−1.0192%** | **★ 略越 ±1% 观察带**(上锚 −0.7169%) |
+| net_over_equity | −2.0222% | — |
+| opening_halted | False | ✓ |
+| **00:00Z 结算 FUNDING_FEE** | **−14.7963 USDT**(252 行; interval_h 4h×182 / 8h×68 / 1h×2) | 8h 名出现, 与 fund_updates 454 自洽 ✓ |
+| phase_C readback | 255 行 ✓ | — |
+| per_name_stop | **无命中** | ✓ |
+| `state/anchor_runs.log` 末行 | `2026-09-12T00:53:53Z anchor done rc=0` | ✓ |
+| **guard_twin** | **AGREE**(ledger-only; nav 行 stale) eq=118,129.68, day_twin 0.023 | ✓ |
+| n_names_skipped | 91(上锚 55) | ★ 上升 |
+| known_gaps | 9 名, gross 2,613.81U, net 2,334.97U, venue_cap = PIEVERSEUSDT | — |
+| reshape | net_before −11,395.49 → net_after 9.84e-12 ✓; gross 222,484 → 236,443 | ✓ |
+
+**当日 NAV**: 前日 117,515.79 → **118,120.06**, **+604.28 = +0.514%**(外部划转 0, 当日仅 00Z 一锚)。已实现 +57.47(REALIZED_PNL +73.29 / FUNDING_FEE −14.80 / COMMISSION −1.03), 未实现 +2,065.34。**连续第四个正日。**
+
+### ⑤ 执行质量
+- **maker 占比 行 0.7579 / 名义 0.7738** — 带 ≥0.90, **带外, 且较上锚(0.8237/0.8846)下滑**
+- **费 2.6786 bps** — maker 恰 **2.0000** / taker 恰 **5.0000**, 285 笔 commission_asset **全 USDT**。混合费升高是 **taker 占比升到 23%** 所致(上锚 12%)
+- **markout 回填 261/285 = 91.6%** ✓
+- **尺寸梯度三桶**: small 0.6200 / mid 0.7813 / **large 0.5661** ⇒ **非负性不成立, 连续第二锚同一形状**
+- **chase 单名连抽**: 23 个名字 2 次, **最大 2**, 无 3 次及以上 ✓
+
+### ⑥ 异常处置 — **无需处置**; 本锚告警 7 条, 两条本锚新出现
+1. ★**新**: `position reconcile: 5 个名字与场所的差异超出重估范围(符号翻转/单边/>5%) — 采用场所真值`
+2. ★**新**: `撤名残差 −11,395.49 USDT = 目标 gross 的 −4.82%(>2% 门), 由 10 个撤下的名字造成`(含 BTCUSDT)。告警自陈"这一撤幅本身是个发现"
+3. 重整后 3 个名字跨过 min_notional 门槛(ETCUSDT / IOSTUSDT / MANAUSDT), `floor_set_changed: true`, 只报告不迭代
+4. 7 个持仓名被场所扣住(maxNotionalValue=0), reduce-only
+5. **−2027** PIEVERSEUSDT +2,124U(上锚 +2,171U), 每锚重现直到目标回落; 候选修复需用户字
+6. 32 个 maker 被 −5022 拒, 残差按全额进 taker 补单
+7. 限流计数差值 731 权重/分(上锚 940), 归属未定, 不喂决策
+
+### ⑦ 与上一锚(20Z)对比
+| 指标 | 20Z | **00Z** | 向 |
+|---|---|---|---|
+| venue_reject(−5022) | 50 (49) | **56 (55)** | ↑ 恶化 |
+| join 臂拒单率 | 0.2479 | **0.2148** | ↓ 改善 |
+| behind 臂拒单率 | 0.1307 | **0.1825** | ↑ 恶化 |
+| **maker 占比(名义)** | 0.8846 | **0.7738** | **↑ 恶化** |
+| **费 bps** | 2.3463 | **2.6786** | **↑ 恶化** |
+| taker 占比 | 12% | **23%** | ↑ |
+| net_over_gross | −0.7169% | **−1.0192%** | ↑ 略越带 |
+| behind 占比 | 0.5584 | **0.5037** | → 贴设计点 |
+| 生产者 turnover | 3.215% | 2.404% | ↓ |
+| markout 回填 | 92.5% | 91.6% | → |
+| neutrality 同侧 taker bps | −7.7646 | **+17.3848** | ★ 大幅摆动 |
+
+### 待验证 / 推断分栏
+**已验证(本机第一手)**: ①②③④⑤ 全部读数; 分臂拒单率; 00Z 结算资金费分解; NAV 与损益分解; guard_twin AGREE; anchor done rc=0; 七条告警原文。
+**待验证**: (a) **尺寸梯度非负性连续两锚不成立** —— 分桶仍为我方自建, 需与既有仪器对齐口径后再判, 但**连续两锚同形状已值得立项**; (b) **撤名残差 −4.82%** 是否为常态, 需回溯 20 锚基率(本锚未做); (c) `position reconcile 5 名超重估范围`是否首次, 需回溯; (d) 执行器换手 6.7% vs 生产者 2.404% 的 2.79× 口径差, 与上锚 2.77× 一致 —— r11 已登记为"书里最大的未归因口径差", 未闭合。
+**推断**: maker 占比下滑与费升高**同源于 taker 占比 12%→23%**, 而 taker 占比上升由 −5022 拒单增加驱动(32 名残差全额进 taker); 但 −5022 增加的**外因**(场所点差/深度状态)本锚未测, 不下因果结论。
+
+### 与研究线的交叉(只记, 不动)
+本锚 maker 费**恰 2.0000** / taker **恰 5.0000** / 285 笔 commission_asset **全 USDT** ⇒ **BNB 折扣自 2026-09-07 断, 至本锚已第 6 天**, 账户仍在 VIP0 底档。r11 定价 ≈ +1.5% NAV/年。**属运维裁定域, 只报不动。**
