@@ -1,0 +1,1207 @@
+{
+ "document": "docs/ACCEPTANCE_b681ca5_2026-09-12.md",
+ "written_utc": "2026-09-12T06:06:54Z",
+ "deploy_executed_by_this_agent": false,
+ "deploy_reported_by_lead": "lead reports ff-merge executed 2026-09-12T06:0xZ after re-checking RUNBOOK §0; not re-verified by this agent",
+ "verdict": "GO (both battery reds tree-independent, see §4)",
+ "target_commit": "b681ca5285e9620cb6d9158d72dc2d50b2d21109",
+ "running_commit_at_acceptance": "b681ca5285e9620cb6d9158d72dc2d50b2d21109",
+ "live_tree": {
+  "path": "/Users/haosiyu/dl_quant_live",
+  "HEAD": "b681ca5285e9620cb6d9158d72dc2d50b2d21109",
+  "main": "b681ca5285e9620cb6d9158d72dc2d50b2d21109",
+  "origin_main": "b681ca5285e9620cb6d9158d72dc2d50b2d21109",
+  "touched_by_this_agent": "read-only (rev-parse/status/merge-base/rev-list, state rsync source)"
+ },
+ "clones": {
+  "new": {
+   "path": "/Users/haosiyu/cc_tmp/exec_b681_acceptance",
+   "HEAD": "b681ca5285e9620cb6d9158d72dc2d50b2d21109"
+  },
+  "old": {
+   "path": "/Users/haosiyu/cc_tmp/exec_d040c74_old",
+   "HEAD": "d040c7444c24f945d14b14803143771146886c4b"
+  },
+  "ledger_copy": "/Users/haosiyu/cc_tmp/exec_b681_acceptance_ledger/pilot_log"
+ },
+ "diffstat_d040c74_to_b681ca5": "27 files changed, 5098 insertions(+), 280 deletions(-)",
+ "preconditions": {
+  "head_is_d040c74": true,
+  "main_is_d040c74": true,
+  "origin_main_is_b681ca5": true,
+  "status_clean_excluding_state_rollback_staging": true,
+  "fast_forward_possible": true,
+  "b681ca5_reachable_from_origin_main": true,
+  "ahead_behind_HEAD_vs_origin_main": [
+   0,
+   19
+  ],
+  "no_battery_or_safe_commit_running": true,
+  "launchd_entrypoints_unchanged": true,
+  "anchor_04Z_done": "2026-09-12T04:57:28Z anchor done rc=0",
+  "checked_utc": [
+   "2026-09-12T04:45:52Z",
+   "2026-09-12T05:43:20Z"
+  ]
+ },
+ "state_snapshot": {
+  "initial_copy_utc": [
+   "2026-09-12T04:49:51Z",
+   "2026-09-12T04:50:16Z"
+  ],
+  "refresh_before_battery_utc": [
+   "2026-09-12T05:43:34Z",
+   "2026-09-12T05:43:50Z"
+  ],
+  "ledger_copy_byte_identical_to_live": true,
+  "notify_audit_rows_live_and_clone": [
+   1818,
+   1818
+  ],
+  "ledger_days": 43,
+  "ledger_first_last_day": [
+   "20260801",
+   "20260912"
+  ]
+ },
+ "drift_gate": {
+  "command": "cd <new clone> && /usr/bin/python3 ops/check_upstream_drift.py",
+  "rc": 0,
+  "output": "no drift across 5 vendored modules (declared A-set 5, all covered)",
+  "utc": "2026-09-12T04:48:40Z"
+ },
+ "battery": {
+  "command": "cd /Users/haosiyu/cc_tmp/exec_b681_acceptance && bash run_acceptance.sh",
+  "start_utc": "2026-09-12T05:44:11Z",
+  "end_line": "BATTERY_END 2026-09-12T05:59:37Z rc=1",
+  "n_suites": 132,
+  "n_green": 130,
+  "reds": [
+   {
+    "suite": "tests_env_loading",
+    "exit": 1,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_env_loading.log"
+   },
+   {
+    "suite": "tests_disposition_matrix",
+    "exit": 1,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_disposition_matrix.log"
+   }
+  ],
+  "verdict_line": "ACCEPTANCE: NOT GREEN — at least one suite failed (see table above)",
+  "wall_clock_window_HH20_35_crossed": false,
+  "reds_classified": {
+   "tests_env_loading": {
+    "passed": "10/14",
+    "class": "(iv) clone environment: no .env in the clone (credentials file deliberately not copied)",
+    "failing_checks": "[B] 4x 'populates TELEGRAM_* on import' (ops/ic_monitor.py, ops/redeliver_alarms.py, ops/unseed_rehearsal_halt.py, scheduler/run_anchor.py)",
+    "evidence": [
+     "live/envfile.py L34-35 ENV_PATH = REPO/.env; live tree has .env with TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID (names read only)",
+     "old tree d040c74 on the same state: same suite 10/14, same 4 checks red",
+     "intervention: throwaway clone + dummy .env (same variable names, placeholder values) -> 14/14 rc=0"
+    ],
+    "product_defect": false
+   },
+   "tests_disposition_matrix": {
+    "passed": "38/41",
+    "class": "(ii) data: real-ledger world-property assertions violated by the E-0910-A venue-lock anchors (A1788999840 09-10 00Z, A1789115039 09-11 08Z)",
+    "failing_checks": [
+     "EVERY steady trading anchor's INVOLUNTARY gap is small (<200U): A1789115039 involuntary 4504",
+     "-2027 VENUE-CAPPED residual <= 1% of anchor's own realized gross: A1788999840 PIEVERSEUSDT 2239 vs 1% of 154910",
+     "halted/trading SEPARATION on INVOLUNTARY total: max steady 4504 >= min halted 4169"
+    ],
+    "evidence": [
+     "old tree d040c74 on the same state: same suite red on the same 3 checks",
+     "intervention: throwaway clone with pilot_log days >= 20260910 removed -> 41/41 rc=0",
+     "the 2026-09-11 132/132 ran on a review-worktree state copy predating these anchors (commits record only notify_audit refresh)"
+    ],
+    "product_defect": false,
+    "operational_consequence": "running-directory battery after deploy is expected 131/132 (this suite red under d040c74 too); ops/safe_commit.sh requires all-green -> next safe_commit blocked until the suite's assertions are amended for E-0910-A"
+   }
+  },
+  "expected_running_dir_tally_after_deploy": "131/132 (tests_env_loading green with the real .env; tests_disposition_matrix red on the real ledger)",
+  "lead_independent_cross_check": {
+   "utc": "2026-09-12T06:0xZ",
+   "tree": "/Users/haosiyu/cc_tmp/exec_d040c74_old",
+   "snapshot": "same 05:43Z state",
+   "result": "both suites rc=1, 3+4 FAIL, identical to the new tree",
+   "disposition_payload_sha256_prefix12_both_trees": [
+    "d19da6693f71",
+    "bea0dd249993",
+    "78a55480d2cc"
+   ],
+   "conclusion": "both reds are tree-independent (environment / production-ledger facts), unrelated to b681ca5"
+  },
+  "conclusion_line": "GO (both battery reds tree-independent, see §4)",
+  "log": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/battery_stdout.log",
+  "suites": [
+   {
+    "suite": "tests_imports",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_imports.log"
+   },
+   {
+    "suite": "drift_gate",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_drift_gate.log"
+   },
+   {
+    "suite": "tests_binance_broker",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_binance_broker.log"
+   },
+   {
+    "suite": "tests_binance_executor",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_binance_executor.log"
+   },
+   {
+    "suite": "tests_binance_funding",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_binance_funding.log"
+   },
+   {
+    "suite": "tests_watchdog",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_watchdog.log"
+   },
+   {
+    "suite": "tests_pilot_log",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_pilot_log.log"
+   },
+   {
+    "suite": "tests_signal_and_loop",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_signal_and_loop.log"
+   },
+   {
+    "suite": "tests_entrypoint_wiring",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_entrypoint_wiring.log"
+   },
+   {
+    "suite": "tests_telegram_notify",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_telegram_notify.log"
+   },
+   {
+    "suite": "tests_markout_pacing",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_markout_pacing.log"
+   },
+   {
+    "suite": "tests_markout_window",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_markout_window.log"
+   },
+   {
+    "suite": "tests_markout_import",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_markout_import.log"
+   },
+   {
+    "suite": "tests_reject_rate",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_reject_rate.log"
+   },
+   {
+    "suite": "tests_requote_experiment",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_requote_experiment.log"
+   },
+   {
+    "suite": "tests_sigma_ladder",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_sigma_ladder.log"
+   },
+   {
+    "suite": "tests_inference_parity",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_inference_parity.log"
+   },
+   {
+    "suite": "tests_panel_build",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_panel_build.log"
+   },
+   {
+    "suite": "tests_risk_budget",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_risk_budget.log"
+   },
+   {
+    "suite": "tests_harvest_ema",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_harvest_ema.log"
+   },
+   {
+    "suite": "tests_manifest_consistency",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_manifest_consistency.log"
+   },
+   {
+    "suite": "tests_channel_causality",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_channel_causality.log"
+   },
+   {
+    "suite": "tests_static_names",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_static_names.log"
+   },
+   {
+    "suite": "tests_factor_health",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_factor_health.log"
+   },
+   {
+    "suite": "tests_state_root",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_state_root.log"
+   },
+   {
+    "suite": "tests_nosleep",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_nosleep.log"
+   },
+   {
+    "suite": "tests_venue_fills",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_venue_fills.log"
+   },
+   {
+    "suite": "tests_artifact_assertions",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_artifact_assertions.log"
+   },
+   {
+    "suite": "metrics_freeze",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_metrics_freeze.log"
+   },
+   {
+    "suite": "gate_coverage",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_gate_coverage.log"
+   },
+   {
+    "suite": "tests_trip_page",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_trip_page.log"
+   },
+   {
+    "suite": "tests_topup_leg_fill",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_topup_leg_fill.log"
+   },
+   {
+    "suite": "tests_flatten_ladder",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_flatten_ladder.log"
+   },
+   {
+    "suite": "tests_readback_universe",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_readback_universe.log"
+   },
+   {
+    "suite": "tests_market_maxqty",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_market_maxqty.log"
+   },
+   {
+    "suite": "tests_flatten_rows",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_flatten_rows.log"
+   },
+   {
+    "suite": "tests_scoped_writes",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_scoped_writes.log"
+   },
+   {
+    "suite": "tests_m4_rowtype",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_m4_rowtype.log"
+   },
+   {
+    "suite": "tests_ghost_rows",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_ghost_rows.log"
+   },
+   {
+    "suite": "tests_drift_gate",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_drift_gate.log"
+   },
+   {
+    "suite": "tests_persistence_and_dust",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_persistence_and_dust.log"
+   },
+   {
+    "suite": "tests_read_failure_visibility",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_read_failure_visibility.log"
+   },
+   {
+    "suite": "tests_acceptance_entrypoints",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_acceptance_entrypoints.log"
+   },
+   {
+    "suite": "tests_score_anchor_selection",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_score_anchor_selection.log"
+   },
+   {
+    "suite": "tests_cond6_eligibility",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_cond6_eligibility.log"
+   },
+   {
+    "suite": "tests_venue_error_classification",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_venue_error_classification.log"
+   },
+   {
+    "suite": "tests_rehearsal_anchor",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_rehearsal_anchor.log"
+   },
+   {
+    "suite": "tests_reconcile_qty_caliber",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_reconcile_qty_caliber.log"
+   },
+   {
+    "suite": "tests_flatten_record",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_flatten_record.log"
+   },
+   {
+    "suite": "tests_fill_collection_gap",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_fill_collection_gap.log"
+   },
+   {
+    "suite": "tests_fill_backfill",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_fill_backfill.log"
+   },
+   {
+    "suite": "tests_universe_guard",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_universe_guard.log"
+   },
+   {
+    "suite": "tests_frozen_inputs",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_frozen_inputs.log"
+   },
+   {
+    "suite": "tests_nav_staleness",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_nav_staleness.log"
+   },
+   {
+    "suite": "tests_avgpx_backfill",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_avgpx_backfill.log"
+   },
+   {
+    "suite": "tests_guard_coverage",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_guard_coverage.log"
+   },
+   {
+    "suite": "tests_position_break_blindspot",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_position_break_blindspot.log"
+   },
+   {
+    "suite": "tests_numerator_honesty",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_numerator_honesty.log"
+   },
+   {
+    "suite": "tests_reconcile_severity",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_reconcile_severity.log"
+   },
+   {
+    "suite": "tests_fee_asset_detection",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_fee_asset_detection.log"
+   },
+   {
+    "suite": "tests_universe_tripwire",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_universe_tripwire.log"
+   },
+   {
+    "suite": "tests_orphan_position",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_orphan_position.log"
+   },
+   {
+    "suite": "tests_frontier_staleness",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_frontier_staleness.log"
+   },
+   {
+    "suite": "tests_head_liveness",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_head_liveness.log"
+   },
+   {
+    "suite": "tests_sizing_policy",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_sizing_policy.log"
+   },
+   {
+    "suite": "tests_notional_backfill",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_notional_backfill.log"
+   },
+   {
+    "suite": "tests_request_budget",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_request_budget.log"
+   },
+   {
+    "suite": "tests_halt_evidence",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_halt_evidence.log"
+   },
+   {
+    "suite": "tests_threshold_roles",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_threshold_roles.log"
+   },
+   {
+    "suite": "tests_cond3_worst_selector",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_cond3_worst_selector.log"
+   },
+   {
+    "suite": "tests_halt_verdict_states",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_halt_verdict_states.log"
+   },
+   {
+    "suite": "tests_flatten_cancels_first",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_flatten_cancels_first.log"
+   },
+   {
+    "suite": "tests_stuck_position_ack",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_stuck_position_ack.log"
+   },
+   {
+    "suite": "tests_reprice_day",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_reprice_day.log"
+   },
+   {
+    "suite": "tests_alert_tiers_live",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_alert_tiers_live.log"
+   },
+   {
+    "suite": "tests_gap_observer",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_gap_observer.log"
+   },
+   {
+    "suite": "tests_live_install_ritual",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_live_install_ritual.log"
+   },
+   {
+    "suite": "tests_live_state_root",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_live_state_root.log"
+   },
+   {
+    "suite": "tests_setup_live_account",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_setup_live_account.log"
+   },
+   {
+    "suite": "tests_live_dry_pass",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_live_dry_pass.log"
+   },
+   {
+    "suite": "tests_stale_order_sweep",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_stale_order_sweep.log"
+   },
+   {
+    "suite": "tests_transport_resilience",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_transport_resilience.log"
+   },
+   {
+    "suite": "tests_venue_cap_clamp",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_venue_cap_clamp.log"
+   },
+   {
+    "suite": "tests_income_twin_rows",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_income_twin_rows.log"
+   },
+   {
+    "suite": "tests_request_identity_unknown",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_request_identity_unknown.log"
+   },
+   {
+    "suite": "tests_venue_rate_authority",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_venue_rate_authority.log"
+   },
+   {
+    "suite": "tests_filters_cache_per_mode",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_filters_cache_per_mode.log"
+   },
+   {
+    "suite": "tests_rate_backstop_window",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_rate_backstop_window.log"
+   },
+   {
+    "suite": "tests_alarm_redelivery",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_alarm_redelivery.log"
+   },
+   {
+    "suite": "tests_a2_withdrawal_gate",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_a2_withdrawal_gate.log"
+   },
+   {
+    "suite": "tests_readiness_filters_path",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_readiness_filters_path.log"
+   },
+   {
+    "suite": "tests_unseal_rehearsal_halt",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_unseal_rehearsal_halt.log"
+   },
+   {
+    "suite": "tests_cancel_ban_resilience",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_cancel_ban_resilience.log"
+   },
+   {
+    "suite": "tests_book_weights_effective",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_book_weights_effective.log"
+   },
+   {
+    "suite": "tests_request_accounting",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_request_accounting.log"
+   },
+   {
+    "suite": "tests_anchor_skip_visible",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_anchor_skip_visible.log"
+   },
+   {
+    "suite": "tests_env_loading",
+    "exit": 1,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_env_loading.log"
+   },
+   {
+    "suite": "tests_review_anchor_scoping",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_review_anchor_scoping.log"
+   },
+   {
+    "suite": "tests_param_encoding",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_param_encoding.log"
+   },
+   {
+    "suite": "tests_sheet_subject",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_sheet_subject.log"
+   },
+   {
+    "suite": "tests_fills_supersede",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_fills_supersede.log"
+   },
+   {
+    "suite": "tests_neutrality_check",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_neutrality_check.log"
+   },
+   {
+    "suite": "tests_book_reshape",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_book_reshape.log"
+   },
+   {
+    "suite": "tests_reduce_only_reject",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_reduce_only_reject.log"
+   },
+   {
+    "suite": "tests_neutrality_price",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_neutrality_price.log"
+   },
+   {
+    "suite": "tests_exit_ledger",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_exit_ledger.log"
+   },
+   {
+    "suite": "tests_ops_flag_safety",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_ops_flag_safety.log"
+   },
+   {
+    "suite": "tests_reject_topup",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_reject_topup.log"
+   },
+   {
+    "suite": "tests_disposition_matrix",
+    "exit": 1,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_disposition_matrix.log"
+   },
+   {
+    "suite": "tests_alarm_digest",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_alarm_digest.log"
+   },
+   {
+    "suite": "tests_redelivery_settles",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_redelivery_settles.log"
+   },
+   {
+    "suite": "tests_daily_summary",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_daily_summary.log"
+   },
+   {
+    "suite": "income_callers",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_income_callers.log"
+   },
+   {
+    "suite": "guard_reach",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_guard_reach.log"
+   },
+   {
+    "suite": "tests_guard_reach",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_guard_reach.log"
+   },
+   {
+    "suite": "tests_readout_gate",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_readout_gate.log"
+   },
+   {
+    "suite": "tests_break_decomposition",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_break_decomposition.log"
+   },
+   {
+    "suite": "tests_break_split_gate",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_break_split_gate.log"
+   },
+   {
+    "suite": "tests_break_split_wiring",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_break_split_wiring.log"
+   },
+   {
+    "suite": "tests_chase_release_check",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_chase_release_check.log"
+   },
+   {
+    "suite": "tests_residual_vector",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_residual_vector.log"
+   },
+   {
+    "suite": "tests_chase_policy",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_chase_policy.log"
+   },
+   {
+    "suite": "tests_chase_experiment_wiring",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_chase_experiment_wiring.log"
+   },
+   {
+    "suite": "tests_king_cadence",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_king_cadence.log"
+   },
+   {
+    "suite": "tests_k_window",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_k_window.log"
+   },
+   {
+    "suite": "tests_neutral_band",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_neutral_band.log"
+   },
+   {
+    "suite": "tests_ic_monitor",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_ic_monitor.log"
+   },
+   {
+    "suite": "tests_deadman_ping",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_deadman_ping.log"
+   },
+   {
+    "suite": "tests_per_name_stop",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_per_name_stop.log"
+   },
+   {
+    "suite": "tests_placement_bandit",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_placement_bandit.log"
+   },
+   {
+    "suite": "tests_guard_calibers",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_guard_calibers.log"
+   },
+   {
+    "suite": "tests_external_book",
+    "exit": 0,
+    "log": "/Users/haosiyu/cc_tmp/exec_b681_acceptance/state/acceptance/20260912T054411Z_tests_external_book.log"
+   }
+  ]
+ },
+ "verification_1_neutrality_price": {
+  "ledger_days": [
+   "20260909",
+   "20260910",
+   "20260911",
+   "20260912"
+  ],
+  "n_anchor_rows": 19,
+  "n_order_rows": 9105,
+  "n_compared": 19,
+  "n_equal": 19,
+  "new_only_keys": [
+   "coverage_measured_count",
+   "coverage_measured_notional",
+   "coverage_priced",
+   "fee_unknown_notional_usdt",
+   "measured_over",
+   "n_fills_fee_unknown",
+   "n_fills_measured",
+   "n_fills_unpriced",
+   "notional_measured_usdt",
+   "notional_priced_usdt",
+   "unpriced_notional_usdt"
+  ],
+  "rows": [
+   {
+    "rid": "A1788913440",
+    "anchor_utc": "2026-09-09T00:24:01Z",
+    "old_bps": 6.6121,
+    "new_bps": 6.6121,
+    "stored_bps": 6.6121,
+    "n_fills_basis": 36,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1788927840",
+    "anchor_utc": "2026-09-09T04:24:01Z",
+    "old_bps": -11.6884,
+    "new_bps": -11.6884,
+    "stored_bps": -11.6884,
+    "n_fills_basis": 20,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1788942240",
+    "anchor_utc": "2026-09-09T08:24:02Z",
+    "old_bps": 3.5548,
+    "new_bps": 3.5548,
+    "stored_bps": 3.5548,
+    "n_fills_basis": 30,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1788971040",
+    "anchor_utc": "2026-09-09T16:24:02Z",
+    "old_bps": 74.4142,
+    "new_bps": 74.4142,
+    "stored_bps": 74.4142,
+    "n_fills_basis": 28,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1788985440",
+    "anchor_utc": "2026-09-09T20:24:01Z",
+    "old_bps": null,
+    "new_bps": null,
+    "stored_bps": null,
+    "n_fills_basis": 0,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": null,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1788999840",
+    "anchor_utc": "2026-09-10T00:24:01Z",
+    "old_bps": null,
+    "new_bps": null,
+    "stored_bps": null,
+    "n_fills_basis": 0,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": null,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789014240",
+    "anchor_utc": "2026-09-10T04:24:02Z",
+    "old_bps": -3.4919,
+    "new_bps": -3.4919,
+    "stored_bps": -3.4919,
+    "n_fills_basis": 29,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789028640",
+    "anchor_utc": "2026-09-10T08:24:02Z",
+    "old_bps": 107.2102,
+    "new_bps": 107.2102,
+    "stored_bps": 107.2102,
+    "n_fills_basis": 9,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789043040",
+    "anchor_utc": "2026-09-10T12:24:01Z",
+    "old_bps": -40.905,
+    "new_bps": -40.905,
+    "stored_bps": -40.905,
+    "n_fills_basis": 50,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789057440",
+    "anchor_utc": "2026-09-10T16:24:01Z",
+    "old_bps": -69.8349,
+    "new_bps": -69.8349,
+    "stored_bps": -69.8349,
+    "n_fills_basis": 16,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789071839",
+    "anchor_utc": "2026-09-10T20:24:02Z",
+    "old_bps": -6.2798,
+    "new_bps": -6.2798,
+    "stored_bps": -6.2798,
+    "n_fills_basis": 49,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789086240",
+    "anchor_utc": "2026-09-11T00:24:02Z",
+    "old_bps": -15.5005,
+    "new_bps": -15.5005,
+    "stored_bps": -15.5005,
+    "n_fills_basis": 31,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789100640",
+    "anchor_utc": "2026-09-11T04:24:01Z",
+    "old_bps": 27.362,
+    "new_bps": 27.362,
+    "stored_bps": 27.362,
+    "n_fills_basis": 16,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789115039",
+    "anchor_utc": "2026-09-11T08:24:03Z",
+    "old_bps": null,
+    "new_bps": null,
+    "stored_bps": null,
+    "n_fills_basis": 0,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": null,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789129439",
+    "anchor_utc": "2026-09-11T12:24:01Z",
+    "old_bps": 235.4608,
+    "new_bps": 235.4608,
+    "stored_bps": 235.4608,
+    "n_fills_basis": 36,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789143840",
+    "anchor_utc": "2026-09-11T16:24:02Z",
+    "old_bps": 70.717,
+    "new_bps": 70.717,
+    "stored_bps": 70.717,
+    "n_fills_basis": 49,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789158240",
+    "anchor_utc": "2026-09-11T20:24:01Z",
+    "old_bps": -7.7646,
+    "new_bps": -7.7646,
+    "stored_bps": -7.7646,
+    "n_fills_basis": 13,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789172639",
+    "anchor_utc": "2026-09-12T00:24:01Z",
+    "old_bps": 17.3848,
+    "new_bps": 17.3848,
+    "stored_bps": 17.3848,
+    "n_fills_basis": 15,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   },
+   {
+    "rid": "A1789187040",
+    "anchor_utc": "2026-09-12T04:24:03Z",
+    "old_bps": 98.6721,
+    "new_bps": 98.6721,
+    "stored_bps": 98.6721,
+    "n_fills_basis": 33,
+    "n_unpriced": 0,
+    "n_fee_unknown": 0,
+    "coverage_measured_notional": 1.0,
+    "equal": true,
+    "stored_eq_old": true
+   }
+  ]
+ },
+ "verification_2_watchdog_evaluate": {
+  "n_leaf_diffs_excl_evaluated_utc": 0,
+  "diffs": [],
+  "n_leaf_diffs_incl_evaluated_utc": 1,
+  "tripped_old": false,
+  "tripped_new": false,
+  "triggers_old": [],
+  "triggers_new": [],
+  "metric_errors_old": [],
+  "metric_errors_new": [],
+  "n_days_evaluated": 43,
+  "first_run_artefact": "1 leaf diff dust_floor.n_symbols_with_own_minimum 654->658 = each tree's own state/live/exchange_info_cache.json (old clone had the git-tracked copy); 0 after copying live state into the old clone too"
+ },
+ "verification_2b_chase_readout_collect": {
+  "n_records_old": 239,
+  "n_records_new": 239,
+  "n_common_key_diffs_full_ledger": 3,
+  "common_key_diffs_full_ledger": [
+   [
+    "A1785931245",
+    "chase_bps",
+    10.1212,
+    null
+   ],
+   [
+    "A1785945696",
+    "chase_bps",
+    26.2383,
+    null
+   ],
+   [
+    "A1785945696",
+    "chase_forced_bps",
+    26.6209,
+    null
+   ]
+  ],
+  "diff_records_buckets": {
+   "A1785931245": {
+    "anchor_utc": "2026-08-05T12:00:47Z",
+    "chase_n": 2,
+    "chase_n_unpriced": 0,
+    "chase_n_fee_unknown": 2,
+    "chase_n_measured": 0,
+    "chase_notional": 91.1817,
+    "chase_notional_measured": 0
+   },
+   "A1785945696": {
+    "anchor_utc": "2026-08-05T16:01:36Z",
+    "chase_forced_n": 15,
+    "chase_forced_n_unpriced": 0,
+    "chase_forced_n_fee_unknown": 15,
+    "chase_forced_n_measured": 0,
+    "chase_forced_notional": 703.6432,
+    "chase_forced_notional_measured": 0
+   }
+  },
+  "n_records_in_window": 19,
+  "n_common_key_diffs_in_window": 0,
+  "common_key_diffs_in_window": [],
+  "new_only_keys": [
+   "chase_fee_unknown_notional",
+   "chase_forced_fee_unknown_notional",
+   "chase_forced_n_fee_unknown",
+   "chase_forced_n_measured",
+   "chase_forced_n_unpriced",
+   "chase_forced_notional_measured",
+   "chase_forced_notional_priced",
+   "chase_forced_unpriced_notional",
+   "chase_n_fee_unknown",
+   "chase_n_measured",
+   "chase_n_unpriced",
+   "chase_notional_measured",
+   "chase_notional_priced",
+   "chase_unpriced_notional"
+  ]
+ },
+ "verification_3_rollback_rehearsal": {
+  "clone": "/Users/haosiyu/cc_tmp/exec_b681_acceptance",
+  "command": "git revert --no-commit d040c74..b681ca5; git diff d040c74 --stat; git revert --abort",
+  "staged_shortstat": "27 files changed, 280 insertions(+), 5098 deletions(-)",
+  "n_files_diff_vs_d040c74": 0,
+  "abort_rc": 0,
+  "post_dirty_lines": 0,
+  "post_HEAD": "b681ca5285e9620cb6d9158d72dc2d50b2d21109",
+  "utc": "2026-09-12T04:49Z"
+ },
+ "row_readers": {
+  "chase_readout": {
+   "new_rc": 0,
+   "old_rc": 0,
+   "measured_fields_printed": true,
+   "point_estimate_new": "chase 名义 37,730.25 (已测 37,576.83; 未定价/费未知 153.42) 已测部分 +260.11 USDT (+69.22 bps)",
+   "point_estimate_old": "chase 名义 37,730.25 支付成本 +260.37 USDT (+69.01 bps)"
+  },
+  "verify_reshape_anchor": {
+   "rids": [
+    "A1789158240",
+    "A1789172639",
+    "A1789187040"
+   ],
+   "new_rc": [
+    1,
+    1,
+    1
+   ],
+   "old_rc": [
+    1,
+    1,
+    1
+   ],
+   "criteria_section_identical_old_new": [
+    true,
+    true,
+    true
+   ],
+   "failing_criterion": "判据1 |INTENT net| < 1.00 USDT (7033.00 / 12810.60 / 1706.83) — same on d040c74; anchor property, not a reader change",
+   "appendix_branch": "legacy-record branch (rows written by d040c74 have no n_fills_measured)",
+   "cosmetic_defect": "欠缺侧 header line printed twice (main L207-208 + neutrality_lines first element); P3, no number or rc impact"
+  }
+ },
+ "cmp_receipts": {
+  "dir": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/cmp_final",
+  "dumped_utc_old": "2026-09-12T05:44:53Z",
+  "dumped_utc_new": "2026-09-12T05:45:36Z"
+ },
+ "pinned_deploy_sequence": [
+  "git -C /Users/haosiyu/dl_quant_live fetch origin",
+  "git -C /Users/haosiyu/dl_quant_live rev-parse origin/main   # must equal b681ca5285e9620cb6d9158d72dc2d50b2d21109",
+  "git -C /Users/haosiyu/dl_quant_live merge --ff-only b681ca5285e9620cb6d9158d72dc2d50b2d21109",
+  "git -C /Users/haosiyu/dl_quant_live rev-parse HEAD   # expect b681ca5285e9620cb6d9158d72dc2d50b2d21109"
+ ],
+ "rollback_command": "git -C /Users/haosiyu/dl_quant_live revert --no-commit d040c74..b681ca5 && git -C /Users/haosiyu/dl_quant_live commit -m \"rollback: executor tree back to d040c74 (revert d040c74..b681ca5)\" && git -C /Users/haosiyu/dl_quant_live push origin main"
+}
