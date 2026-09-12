@@ -177,3 +177,147 @@ BNB 折扣断第 6 日(运维裁定域); 新读者的「已测口径」数字(0.
 - 根因链与代价见 ERROR_LEDGER E-0912-A; 12Z 快照 / 回填探针 0 / 快照种子平价精确 照做(db99c169)。13:00:20Z 执行器再跑一次 = off_schedule 只报告(orders=0, DRY_RUN N/A)。
 - 恢复需用户字; 修复设计 W6 开工; 16Z 起书空仓、开仓停, 锚照跑但不下单。
 
+
+
+<!-- 12Z 深查 ①–⑦ 由 insp-12z 代理产出(只读), lead 未改一字; 事故头见上节 -->
+## 2026-09-12 12:00Z 锚 · 全深度深查(只读, 实盘零接触)
+
+**锚**: canonical 1789214400(12:00Z; 188 个 4h 间隔名在此结算, 8h 名不结算)/ 执行器 anchor_ts 1789215841.923763(12:24:01Z)/ rid A1789215839 / **运行树 918559f = origin/main 918559f**(`.git/logs/HEAD`: 77d9baf → 918559f 于 09:51:55Z, 仅测试文件 `_CAP_CLAMP_DEPLOYED_TS=1789201439`; 运行时仍 = b681ca5, **新运行时的第二个实盘锚**)。`anchor_runs.log`: `12:00:00Z anchor start mode=LIVE` … `12:58:29Z anchor done rc=0`(其后 12:59:53Z 的 `mode=DRY_RUN` 是 safe_commit 电池, 不算)。
+
+**★★ 结论: 看门狗于 12:47:37Z 触发(§4-5b + §4-7), 阶梯执行 halt → 255 张 IOC reduce-only 全书平仓(Σ 235,382.55 U, 全 FILLED, 0 错)→ reduce-only 已启用, 下一锚起停止开仓; 锚仍 rc=0 收尾。触发源 = 两张全退出 maker 单(MEMEUSDT / POPCATUSDT)被新运行时的请求账本「identity: 场所应答 origQty 与我方不等」标成 `filled_amount_unknown`(差额 294 张 ≈ 0.15 U / 1 张 ≈ 0.05 U, 均 < 5 U 尘埃底), §4-5b 把「大小未知的执行」计为仓位异常。该标签为 pilot_log 全史首次出现(此前每日 0 行)。本锚需要用户裁定(书已平), 我方零动作。**
+
+### ★ 触发事实链(全部第一手, 句柄为准)
+| 时刻(Z) | 事件 | 句柄 |
+|---|---|---|
+| 12:24:01 | 锚执行 rid A1789215839, phase_A reconcile 4 名超重估范围(MINA/MET/STAR/LSK) | `launchd_out.log` phase_A |
+| 12:24:57 | MEMEUSDT sell 1,933,986 张 / POPCATUSDT sell 10,435 张 两张全退出 maker(target_w 0, placement_arm exempt, 属 external_book `held_exit` 7 名)下达; 场所应答 origQty **1,933,692 / 10,434** | orders.jsonl 两行 `request_ledger[0].inconsistent` |
+| 12:24–12:40 | 两单子成交: MEME 3 笔 Σ 1,015.19 U(= 场所接受量全成)/ POPCAT 2 笔 Σ 509.07 U(全成); 均 maker, 费 0.203 / 0.102 U | fills.jsonl trade_id 376472584-6 / 278395713-4 |
+| 12:45:47 | phase_B: rows_emitted 496, `book_cache_unknown_legs` 4 腿(MEME/POPCAT × maker/topup)保留缓存旧值; 两 maker 行 terminal **filled_amount_unknown**, 两 topup 行 **skipped_unknown_fill**; 告警×3(阶段 B 歧义 UNKNOWN 2 / 有数量无金额 2 / 不补单 2) | `launchd_out.log` phase_B; notify_audit 12:44:02–12:44:04 |
+| 12:45:47 | per_name_stop: **LSKUSDT 已出场 → 7 天禁入冷却至 09-19 12:45Z** | notify_audit; `per_name_stop.json` cooldown LSKUSDT=1789821947.8 |
+| 12:45:49 | phase_C: anchors 行 / readback 258 / daily_nav 行(NAV 117,976.93)/ venue net/gross −0.3778% | `launchd_out.log` phase_C |
+| 12:46:57 | funding 拉取 income 194 行 CONTINUOUS sign OK | `live/funding_last_pull.json` |
+| **12:47:37** | **看门狗评估 tripped=True**: triggers `§4-5b liquidation/position anomaly on 2 name(s) at the latest reconciled anchor (17 in this window's history)` + `§4-7 un-recovered position drift`; metric_errors []; partial [cond2, cond4]; cond5b examples = MEMEUSDT / POPCATUSDT `kind=execution_of_unknown_size, why="request ledger inconsistent"`, observed_qty 0.0, residual 不可定价; cond7 `drift_state=DRIFT` | `live/watchdog/last_eval.json` |
+| 12:47:38.6 | `halt_opening_orders` submitted_ok | `live/watchdog/events.jsonl` 末行 |
+| 12:47:39.2 → 12:50:00.9 | `flatten_all` **255 张 IOC reduce_only**(buy 144 / sell 111), 应答 **255/255 FILLED, executedQty==origQty 255/255, error 0**; Σ 235,382.55 U; rid `FLATTEN-20260912T124737Z` 255 行 orders(order_type protective_flatten, fee_paid None) | events.jsonl; orders.jsonl |
+| 12:50:01 | `set_reduce_only` true(enforced local); **平仓后 readback 255 行 Σ\|notional\| = 0.00, 非零 0**(source `ladder_flatten@post_flatten`) | position_readback.jsonl anchor_ts 1789217401.30 |
+| 12:50:01–04 | ALARM.log 第 4 条 `STOP-LOSS TRIPPED`; trip_receipt HIGH **PUSH DELIVERED** message_id 1403 sha 07da268f7808d427 | `live/watchdog/ALARM.log` / `trip_receipt.json` |
+| 12:58:29 | anchor done rc=0 | `anchor_runs.log` |
+
+**平仓成本(可读部分)**: 255 张 vs `mid_at_submit` 名义加权滑点 **+5.39 bps = 126.90 U**(中位 2.8 bps; >10 bps 55 张, <−10 bps 21 张; 最差 STARUSDT +82.5 bps on 2,219 U, 最好 UAIUSDT −120.8 bps on 2,339 U)。**taker 费未入账本**(平仓行 fee_paid None; fills.jsonl 无 FLATTEN 行; income 未再拉)— 按 5.0 bps 推断 ≈ 117.7 U。合计推断 ≈ 245 U ≈ 0.21% NAV。**平仓后 NAV 无任何账本读数**(daily_nav 行写于 12:45:47Z 平仓前), 待 16Z 锚 income/账户读回。
+
+**标签机制(已验证部分)**: 两行 `request_ledger[0]`: state confirmed, confirmed_qty = 场所 origQty, `confirmed_qty_final=false`, `inconsistent="…identity: submit response origQty 1933692.0 differs from ours 1933986.0"`(POPCAT 10434 vs 10435); 行 note「phase B could not settle this maker request … UNKNOWN, bounded」; `filled_known_notional` 0.0 但 `avg_fill_px_children` 已算(0.000525 / 0.04879)。**校验**: fills 去重 Σ 12,831.97 − orders Σ\|filled_notional\| 11,307.71 = 1,524.26 = MEME 1,015.19 + POPCAT 509.07 逐分相等 ⇒ 「未知」的量恰是账本里全部可见的子成交。全史: `grep filled_amount_unknown` 与 `origQty .* differs` 在 08-01..09-11 各日 orders.jsonl 均 0 行, 本日 2 / 2。**推断(未验)**: 两名均为全退出且在 `clamped_after_reshape` 9 名内, 场所把平仓量截到实际持仓量 ⇒ origQty 与我方按权重×价算出的量差一个尘埃; identity 门把任何 origQty 不等都判 inconsistent。需开 b681ca5 请求账本代码与场所 positionAmt 才能定论, 本轮未开。
+
+### ① 三守护 — 全绿(句柄为准)
+| 守护 | 句柄 | PID | launchd | 运行时长 |
+|---|---|---|---|---|
+| shadow_loop_v3 | `~/wide_shadow/shadow.lock` = 10900 | 10900 ✓ | com.hsy.shadowloop 10900 | 7d 00:19 |
+| sidecar_daemon.sh | — | 30943 ✓ | com.hsy.sidecar 30943 | 13d 08:03 |
+| combo_live_daemon.sh | `fea171/combo_live_daemon.pid` = 30944 | 30944 ✓ | com.hsy.combolive 30944 | 13d 08:03 |
+
+PID 50689 = `cc_tmp/exec_n6_sandbox` 研究沙箱, 非在役。`com.dlquant.live.anchor` 在册。运行树 HEAD 918559f = origin/main ✓(safe_commit 电池 12:59Z 起在跑, 未动)。
+
+### ② 信号六项 — 全部在带; forced_exit 重新出现
+status OK / coverage 1.0 / members 400 / sel 263 / **fund_updates 355**(4h 非 8h 结算锚稳态 ~353 ✓)/ **forced_exit_n 4, forced_exit_gross 0.0112**(≈1.1%; 08Z 0 / 04Z 0, 自 09-11 16Z 归零后首次再现, 名不在日志字段)/ turnover 0.0387 / gross_pos 0.8831 / carry 1.104 bps / cost 0.142 bps / runtime 283.4s / fetched 450 missing 0 / future_dropped 0 / data_max_ts = 锚 ✓ / exinfo_ok / logged 12:20:43Z(`shadow_log.jsonl` 末 signal 行; heartbeat 12:20:48Z OK)。
+w3 = [0.3277, 0.1091, 0.5632] ⇒ **w3_masked king = 0.3277/(0.3277+0.5632) = 0.3678** = target_combo 自报 [0.367819, 0.0, 0.632181] ✓(08Z 0.3672)。
+combo_live_status: anchor 1789214400 ✓ / ok / done / reader_ok true / n 261 / gross 0.85228 / age_s 0.4 / 12:21:29Z rc=0(`combo_live.log` ⑤ 读者验收 ok)。sidecar: blend n 263 gross 0.8475 ρ(f10,king) −0.085 SIDECAR_DRYRUN PASS 12:23:16Z。
+target_combo: phi 0.45 / combo_v2main_norev24 / **kc·fc 均 own** ✓ / **n_f10_scored 400** ✓ / net_after_reshape 0.0 / rho_kc_fc **0.9336**(08Z 0.9349, 缓降延续)/ kc_gross 0.8857 fc_gross 0.8422。FTRIM kc 7 / fc 7(ACE/IOST/LSK/ONG/RVN/SOPH/TREE), rn8 覆盖 1.0。
+**反事实改写 = 25.36%**(L1(w_live−w_king)/L1(w_king), `target_live/1789214400.json` vs `target_live_king/1789214400.json`, n 261 vs 263; 同法复算 08Z = 24.88% 与日志 24.9 ✓)。序列 24.52(00Z)→ 24.4(04Z, −0.1)→ 24.9(08Z, +0.5)→ **25.36(本锚, +0.46pp)**: **连续第二锚 >+0.2pp(不是第三), 「连续 3 锚」判据未满足**; 水平首次过 25%(历史最高此前 24.6), 是否算「升一档」按判据原文裁。
+生产者 paper 计分(对 08Z 书): gross −11.529 / net −12.483 bps(给已退役 king 书计分, 不喂决策)。
+regime 仪表盘(`~/regime_dash/REGIME_DASH.md` 12:50:01Z): σ_fund 8.51 bp(<p75)/ 短周期名占比 0.777(≥p95)/ 深负占比 0.018 / 书深负空头 0.003 / 席位 king 0.368 fund 0.632 / IC_fund −0.061 / IC_瞬时 +0.088 / FTRIM 7 / FTRIM 反事实 0.045 bps; **旗标无, R1–R4 无触发**; 上锚→本锚 sleeve: S|pos −214.6 U(116 名), L|pos +131.4 U, S|shallowneg −76.6 U。
+
+### ③ 执行漏斗(按执行器 anchor_ts 归属; fills 去重=后写胜出)
+orders **496**(= rows_persisted 496 ✓; 另 255 行 FLATTEN 见上)/ fills 567 行 → 去重 **336**(phase_B fill_rows_built 336 ✓, n_trades_unattributed 0)
+order_type: maker 277(attempt 1 = 275, 重挂 attempt 2 = 2)/ topup_taker 219
+终态: skipped_min_notional 198(maker 39 + topup 159)· partial_expired 192 · **venue_reject 44**(**−5022 首发 42 + 重挂再拒 2; −2027 = 0** ✓)· filled 40(topup)· skipped_no_chase_arm 18 · **filled_amount_unknown 2(maker, 新)** · **skipped_unknown_fill 2(topup, 新)**
+首发 post-only 穿价率(执行器自报 `[A1789215839]` 行): **42/219 = 19.2%**(分母 = 场所应答的首次 maker 单 = 首拒 42 + 首落单 177; 升级线 40%; 08Z 27.8%); 我方按全部 attempt-1 maker 行算 42/275 = 15.3%
+分臂拒单率(maker 行 venue_reject): **join 0.1745**(26/149)/ **behind 0.1513**(18/119)/ exempt 0(0/9); **behind 占比 0.444**(119/268; 设计 0.50; 08Z 0.464)
+requote(phase_B): candidates 19 → requoted 19 → 落单 17 / 再拒 2 转 taker; direct 23; p 0.5。chase 实验: population 192 全随机化; topup 实发 40(全成)/ no_chase 18。k_cancel: cancelled 33 / already_terminal 161 / errors 0
+换手四口径: anchor_report **7.9%**(08Z 8.3%)/ 成交 Σ 11,307.71 U(orders)÷ venue gross 235,398 = 4.80%(fills 去重 Σ 12,831.97 含 MEME/POPCAT 子成交 = 5.45%)/ maker attempt-1 意图 Σ 14,661.88 = 6.23% target gross / 生产者 turnover 3.87% ⇒ 口径差 7.9/3.87 = **2.04×**(04Z 2.84×)
+
+### ④ 记账(anchors 行 = 12:45:49Z 平仓前快照)
+| 项 | 值 | 判 |
+|---|---|---|
+| venue_gross_usdt | 235,397.72 | target 235,497.44 ⇒ **0.99958** ✓ |
+| NAV | 117,976.93(nav_ts 12:45:47Z, 平仓前) | gross/NAV = **1.9953** ≈ 2.0 ✓ |
+| net_over_gross | **−0.3778%** | 带内(08Z +0.18%; 04Z −1.12%) |
+| neutrality_price | deficient=buy, 需 taker 889.24 U, 同侧实测 **43.91 bps**(28 笔 / 1,378.62 U, coverage 1.0/1.0, n_fills_measured 28), 价 3.90 U(下界) | 08Z 0.88 → 43.9, 只测不补 |
+| net_over_equity | −0.7537% | — |
+| opening_halted(anchors 行) | False(写于触发前)| **现 `watchdog/state.json` open_orders_halted=true, reduce_only=true** |
+| 12Z 结算 | funding.jsonl **188 行 settlement_ts 12:00Z Σ −9.25 U**(4h 间隔名; funding_last_pull 12:46:57Z income 194 行 CONTINUOUS sign OK) | 与 income FUNDING_FEE 日累 −32.19(08Z)→ −41.33 相符 |
+| income 当日(至 12:45Z) | REALIZED +261.63 / FUNDING −41.33 / COMMISSION −11.16 = **+209.14**; 未实现 1,769.92 | 平仓后未再拉 |
+| readback | 258 行 post_anchor(Σ 235,397.72, 非零 255)+ **255 行 post_flatten(Σ 0.00, 非零 0)** | 平仓后书为空 ✓ |
+| per_name_stop | stopped 1 = IOSTUSDT(09-10 起)/ **LSKUSDT 出场 → cooldown 至 09-19 12:45Z** / cooldown 10(XANUSDT →09-16 20:39Z; DASHUSDT →09-12 17:24Z; COLLECT/CYS/FLOCK/HEMI/MAGMA/RIVER/TRIA →09-13 13:19Z) | 08Z stopped 2 / cooldown 9 |
+| `anchor_runs.log` 末 LIVE 行 | `2026-09-12T12:58:29Z anchor done rc=0` | ✓ |
+| **watchdog** | **tripped=True 12:47:37Z**, triggers §4-5b(2 名)+ §4-7, metric_errors [] | ★★ 见事实链 |
+| guard_twin | **AGREE**(ledger-only; nav 行 stale)eq=117,874.46(引用 nav 118,243.44 = 08Z 行) | ✓(对触发盲, 见 ⑥) |
+| n_names_skipped | 59(08Z 80) | ↓ |
+| known_gaps | **20 名 + 2 unsized(MEME/POPCAT topup)**, gross 2,555.90 / net −879.76; **venue_cap_usdt 0 / venue_cap_names []** ✓ | E-0909-E 第二锚归零; 截断 PIEVERSE +2,161→+1,960(201 U = 0.09%) |
+| reshape | net_before **−13,684.25(−5.80% target gross; 连续第四锚 >2%: −4.70/−4.75/−5.80)** → −3e-12 ✓; gross 221,607 → 235,777; popped 10(BTC/COLLECT/CYS/DASH/FLOCK/HEMI/MAGMA/RIVER/TRIA/XAN); floor 跨门 IOST/LSK/ZK; clamped_after_reshape 9 名 net_shift −79.06 U | ★ 加深 |
+| 限流 | **peak_window_weight 915**(08Z 725; 含平仓突发); rate_budget peak/min weight **981**(自限 1000)/ orders 238 / requests 244; waits 0 | ★ 贴近自限 |
+
+**当日 NAV**: 前日收 117,515.79 → 00Z 118,120.06 → 04Z 117,452.35 → 08Z 118,243.44 → **12Z(平仓前 12:45:47Z)117,976.93**: 本锚 −266.51, 当日累计 **+461.14 = +0.392%**; external_flow 0。**平仓后权益 = 117,976.93 − 未实现回吐/兑现差 − 平仓滑点 126.90 − taker 费(≈117.7 推断)—— 无读数, 不填数。**
+
+### ⑤ 执行质量(A1789215839 本身, 不含平仓)
+- **maker 占比 行 0.738 / 名义 0.862**(fills 去重 venue_maker_flag; 剔除 MEME/POPCAT 子成交 = 9,541/11,308 = 0.844; anchor_report taker 16%)— 带 ≥0.90 仍带外, 但为当日最好(08Z 0.771)
+- **费 2.4130 bps**(fills 基, Σ 3.0964 / 12,831.97; anchor_report 2.74 bps = 同费 / orders 基 11,307.7)— maker 恰 **2.0000** / taker 恰 **5.0000**, 336 笔 commission_asset **全 USDT**, `fee_asset_baseline` assets [] ⇒ **BNB 折扣断第 6 日**
+- **markout 回填 228/336 = 67.9%**(12:58Z 读; cron CAPPED(deadline) pending 171; 08Z 复读已达 273/332 = 82.2%)
+- **尺寸梯度三桶**(maker attempt-1, intended 三分位 15.6 / 49.4 U, Σ\|filled\|/Σintended): small **0.609** / mid **0.661** / large **0.651** ⇒ 非负性**微弱不成立**(m > l 0.01), 三桶齐升(08Z .52/.57/.65)
+- **chase 单名连抽**: 最大 1 ✓
+- **平仓腿**(独立列): 255 张 IOC 全 taker, 滑点 +5.39 bps / 126.90 U, 费未记账
+
+### ⑥ 异常处置 — **★★ 需用户裁定(书已平, 开仓已停); 我方零动作**。本锚告警 11 条(08Z 7): 推送 7 / 仅记 4 / 未送达 0; **四条新类型**
+1. position reconcile **4 名**超重估范围(MINA/MET/STAR/LSK; 08Z 8)— PUSH
+2. 重整后 **3 名**跨 min_notional(IOST/LSK/ZK), 只报不迭代 — 记
+3. 撤名残差 **−13,684.25 U = −5.80%**(>2%, 第四锚), 10 名撤下 — 记
+4. **10** 个持仓名被场所扣住 reduce-only(08Z 6): reducing ZRO / add_blocked IOST / flatten_only ACU·OPEN·MEME·LSK — 记
+5. 场所上限截断 1 名 201 U(PIEVERSE +2,161→+1,960, cap 2,000; E-0909-E 第二锚) — PUSH(正常)
+6. **★新**: 阶段 B 歧义 maker 结算: 查到 0 / 确认未下达 0 / **仍 UNKNOWN 2**(MEMEUSDT, POPCATUSDT; 文案「满页或查询失败」, 但行内 inconsistent 字段写的是 identity/origQty 不等)— PUSH
+7. **★新**: 2 名有成交数量无可读金额 → UNKNOWN 不补单(「读成 0.0 是产生 2.00x 加倍的输入」)— PUSH
+8. **★新**: 2 名 unreadable fills → skipped_unknown_fill, failure classes=UNRECORDED — PUSH
+9. 25 个 maker −5022 转 taker(08Z 35)— 记
+10. per_name_stop: **LSKUSDT 已出场 → 7 天冷却至 09-19 12:45Z** — PUSH
+11. **★新(事件)**: **止损触发 §4-5b + §4-7 — 书已平仓, reduce-only 已启用** — PUSH DELIVERED(id 1403)
+
+其他常驻读数: factor_health VERDICT UNKNOWN(shadow monitor 报告不可读; episode 68f039b2 已告警不重复, 既有)/ funding_span STALE(既有)/ metrics_freeze FROZEN_MATCH / nosleep ok / artifacts 11/11 / open_items 30。
+**E-0909-E −2027 残差 = 0** ✓(venue_reject 44 张全为 −5022)。**request_ledger**: maker 277 行中 **194 带 request_ledger**(= 192 partial_expired + 2 filled_amount_unknown; 39 min_notional 与 44 venue_reject 无账本, 合乎设计); topup filled 40 行全带 request_ledger; **四类标记: inconsistent 2 / venue_inconsistent 0 / filled_amount_unknown 2 / ledger_label_mismatch 0 ⇒ 预期 0/0/0/0 未达成**, 且这 2 正是触发源。`neutrality_price` 已测口径键全在(n_fills_measured 28, coverage_measured_notional 1.0)。
+**回滚 / 重启 / 整体回滚判据**: 生产者三守护绿、信号全在带、combo 读者 ok ⇒ 生产者侧无触发; 执行器 rc=0、传输 0 错、账本 496 行齐 ⇒ 无崩溃形态; **触发的是执行器自己的 §4-5b 状态门对两笔尘埃级 origQty 不等的分类**。恢复动词 = `ops/resume_from_trip.sh`(收据原文: 「条件仍成立时它会拒绝」; cond5b 以「最近已对账锚」为状态, 16Z 前不会自清)。这属书行为 = 用户字域, 本条只记事实。
+
+### ⑦ 与上一锚(08Z)对比
+| 指标 | 08Z | **12Z** | 向 |
+|---|---|---|---|
+| −2027 残差 | 0 | **0** | ✓ 持续 |
+| venue_reject(−5022 首发) | 61 (54) | **44 (42)** | ↓ 改善 |
+| 首发穿价率 | 27.8% | **19.2%**(42/219) | ↓ 改善(线 40%) |
+| join / behind 拒单率 | .253 / .177 | **.175 / .151** | ↓ / ↓ |
+| behind 占比 | 0.464 | 0.444 | → 离设计点 |
+| maker 占比(名义) | 0.771 | **0.862**(剔未知 0.844) | ↑ 仍带外 |
+| 费 bps | 2.687 | **2.413**(fills 基; 报告口径 2.74) | ↓ |
+| taker 占比(anchor_report) | 23% | **16%** | ↓ |
+| **net/gross** | +0.18% | **−0.38%** | 带内 |
+| neutrality 同侧 taker bps | 0.88 | **43.91** | ↑(04Z 98.67) |
+| known_gaps | 11 名 820 U | **20 名 + 2 unsized, 2,556 U** | ↑ |
+| 撤名残差 | −4.75% | **−5.80%** | ↑ 第四锚 |
+| 尺寸梯度 s/m/l | .52/.57/.65 | **.61/.66/.65** | 齐升; 非负性微弱失 |
+| reconcile 超范围名 | 8 | **4** | ↓ |
+| 反事实改写 | 24.9% | **25.36%** | ↑ +0.46pp(连续第二) |
+| forced_exit_n / gross | 0 / 0 | **4 / 0.0112** | ★ 再现 |
+| 生产者 turnover | 3.12% | **3.87%** | ↑ |
+| 执行器换手(anchor_report) | 8.3% | 7.9% | → |
+| markout 回填 | 67.5%→82.2%(复读) | 67.9%(12:58Z) | → |
+| peak_window_weight | 725 | **915** | ↑(含平仓) |
+| 告警数 / 新类型 | 7 / 2 | **11 / 4** | ↑ |
+| per_name_stop | stopped 2 / cd 9 | stopped 1 / **cd 10(LSK 出场)** | — |
+| NAV 当日(平仓前) | +0.62% | **+0.39%** | ↓ |
+| **watchdog** | tripped=False | **tripped=True 12:47:37Z, 全书已平** | ★★ |
+| guard_twin | AGREE eq 118,184.00 | AGREE eq 117,874.46 | ✓ |
+| 运行树 HEAD | 77d9baf | **918559f**(= origin/main) | 仅测试文件 |
+
+### 待验证 / 推断分栏
+**已验证(本机第一手)**: ①②③④⑤ 全部读数; 触发事实链每一行的句柄; 平仓 255/255 FILLED 与 post_flatten readback Σ 0; 两行 request_ledger 的 origQty 不等原文; 标签全史 0 → 2; 11 条告警原文; HEAD reflog 时刻; 反事实改写自算并对 08Z 复现。
+**待验证**: (a) **反事实改写 25.36%: 连续第二锚 >+0.2pp(不是第三), 判据未满足; 首次过 25% 是否算「升一档」按原文裁**; (b) **撤名残差 −5.80% 连续第四锚 >2% 且为四锚最深**, 基率回溯仍未做; (c) **LSKUSDT: 已出场并进 7 天冷却(至 09-19 12:45Z), stopped 表只剩 IOSTUSDT**; 30 天反事实对照待回填; (d) **§4-5b 把「identity origQty 不等」计为 execution_of_unknown_size 的语义, 与 5 U 尘埃底为何不适用(`mark_source: not applicable`)—— 需开 b681ca5 请求账本 / 看门狗代码逐位核, 本轮未开**; (e) **平仓后 NAV / 权益 / 手续费无账本读数**, 16Z 锚 income 拉取或人工读账后补; (f) §4-7 「un-recovered position drift」在 last_eval 只暴露 drift_state=DRIFT, 具体名/量未见; (g) W2: `ops/first_anchor_review.py` 运行树上为落地中的新版, **未运行**, 全部读原始文件。
+**推断(标明)**: 两名全退出单被场所截到实际持仓量 ⇒ origQty 少一个尘埃(MEME 294 张 ≈ 0.15 U, POPCAT 1 张 ≈ 0.05 U); 子成交合计恰等于场所接受量, 即两仓**实际已平干净**, 「未知」是标签而非执行事实; 08Z 同运行时无此形态, 因 08Z 无被截量的全退出单(未逐名核)。**不据此下结论, 交裁定。**
+
+### 与研究线的交叉(只记, 不动)
+- 新运行时 b681ca5 的请求账本 identity 门在第二个实盘锚把两笔尘埃级 origQty 差升级为「大小未知的执行」, 经 §4-5b 触发全书平仓 —— 与 E-0909-G(账本缺口触发)同族: **看门狗读的是账本标签而非场所仓位**(`ledger-not-book` 家族); 平仓成本 ≈ 245 U(滑点实测 126.90 + 费推断 117.7)。
+- anchor_report 常驻器 12:55Z 输出 `status=warn ["taker 占比 16%"]`, **对 12:47Z 的触发/平仓不着一字**(twin 也 AGREE)—— 该仪器对看门狗状态盲, 与 08Z 验收 §3#5 「anchor_report 照常出报」同源。
+- BNB 折扣断第 6 日(运维裁定域); 12Z 4h 名结算 188 行 −9.25 U 说明「非结算锚」只对 8h 名成立, 深查模板的 funding 预期需按间隔分列。
