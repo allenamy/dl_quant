@@ -1,0 +1,40 @@
+# W6 per-suite red comparison: A = FINAL chain 3308cbc + live ledger (battery #7) vs B = pristine 918559f + the same ledger (battery #5); FAIL lines compared as full text
+A = /Users/haosiyu/Desktop/quant_research/docs/receipts/w6_battery_20260912T155231Z_final3_ledger.log
+B = /Users/haosiyu/Desktop/quant_research/docs/receipts/w6_battery_20260912T142241Z_918559f_ledger.log
+
+=== tests_alarm_digest: RED in both; FAIL lines identical: True
+  [A] summary: ?
+  [A]   FAIL  ★★★ last-24h push discipline  — only 0 readable alarms in 24h — NOT OBSERVABLE, not a pass
+  [A] FAILURES: ['★★★ last-24h push discipline']  (32 checks)
+  [B] summary: ?
+  [B]   FAIL  ★★★ last-24h push discipline  — only 0 readable alarms in 24h — NOT OBSERVABLE, not a pass
+  [B] FAILURES: ['★★★ last-24h push discipline']  (32 checks)
+=== tests_break_split_wiring: RED in B only; FAIL lines identical: False
+  [A] green / not run
+  [B] summary: ?
+  [B]   FAIL  ★★★ on a healthy tree `split_alarm` returns None. An alarm that fires on ordinary anchors is a channel its users mute, and this one must survive to fire during an incident
+  [B] FAILURES: ★★★ on a healthy tree `split_alarm` returns None. An alarm that fires on ordinary anchors is a channel its users mute, and this one must survive to fire during an incident   (31 checks)
+=== tests_disposition_matrix: RED in both; FAIL lines identical: True
+  [A] summary: ?
+  [A]   FAIL  ★★★ ...and EVERY steady trading anchor's INVOLUNTARY gap is small — the deliberate no-chase-arm abstention is excluded (alpha we chose to forgo); REBUILD anchors (first trading anchor after a halt clears; intent = the whol
+  [A]   FAIL  ★★★ ...and the halted/trading SEPARATION holds on the INVOLUNTARY total — a halted anchor declares its whole book, a trading anchor involuntarily misses a small fraction. The deliberate part (no-chase, resize abstentions) 
+  [A] FAILURES: ["★★★ ...and EVERY steady trading anchor's INVOLUNTARY gap is small — the deliberate no-chase-arm abstention is excluded (alpha we chose to forgo); REBUILD anchors (first trading anchor after a halt clears; intent = the 
+  [B] summary: ?
+  [B]   FAIL  ★★★ ...and EVERY steady trading anchor's INVOLUNTARY gap is small — the deliberate no-chase-arm abstention is excluded (alpha we chose to forgo); REBUILD anchors (first trading anchor after a halt clears; intent = the whol
+  [B]   FAIL  ★★★ ...and the halted/trading SEPARATION holds on the INVOLUNTARY total — a halted anchor declares its whole book, a trading anchor involuntarily misses a small fraction. The deliberate part (no-chase, resize abstentions) 
+  [B] FAILURES: ["★★★ ...and EVERY steady trading anchor's INVOLUNTARY gap is small — the deliberate no-chase-arm abstention is excluded (alpha we chose to forgo); REBUILD anchors (first trading anchor after a halt clears; intent = the 
+=== tests_env_loading: RED in both; FAIL lines identical: True
+  [A] summary: 10/14 passed
+  [A]   FAIL ★★★ ops/ic_monitor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  [A]   FAIL ★★★ ops/redeliver_alarms.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  [A]   FAIL ★★★ ops/unseed_rehearsal_halt.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  [A]   FAIL ★★★ scheduler/run_anchor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  [A] FAILED: ★★★ ops/ic_monitor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent; ★★★ ops/redeliver_alarms.py populates TELEGRAM_* on import — otherwise its page is composed, audited l
+  [B] summary: 10/14 passed
+  [B]   FAIL ★★★ ops/ic_monitor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  [B]   FAIL ★★★ ops/redeliver_alarms.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  [B]   FAIL ★★★ ops/unseed_rehearsal_halt.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  [B]   FAIL ★★★ scheduler/run_anchor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  [B] FAILED: ★★★ ops/ic_monitor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent; ★★★ ops/redeliver_alarms.py populates TELEGRAM_* on import — otherwise its page is composed, audited l
+
+# per-suite logs: /Users/haosiyu/Desktop/quant_research/docs/receipts/w6_per_suite_logs/{final_3308cbc_ledger,pristine_918559f_ledger}/<suite>.log

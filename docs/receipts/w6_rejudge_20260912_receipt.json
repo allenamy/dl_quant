@@ -1,0 +1,169 @@
+{
+ "tool": "ops/rejudge_ledger_rows.py --check (READ-ONLY; writes only this receipt)",
+ "utc": "2026-09-12T14:34:40Z",
+ "pilot_log_root": "/Users/haosiyu/dl_quant_live/state/live/pilot_log",
+ "day": "20260912",
+ "events_path": "/Users/haosiyu/dl_quant_live/state/live/watchdog/events.jsonl",
+ "n_rows_with_ledger_inconsistent": 2,
+ "n_rows_rejudged_known": 2,
+ "n_rows_still_unquantifiable": 0,
+ "n_requests_cross_check_all_true": 2,
+ "submit_records_duplicates": {
+  "n": 4
+ },
+ "rows": [
+  {
+   "rebalance_id": "A1789215839",
+   "anchor_ts": 1789215841.923763,
+   "symbol": "MEMEUSDT",
+   "order_type": "maker",
+   "terminal_reason_as_written": "filled_amount_unknown",
+   "ledger_inconsistent_as_written": [
+    {
+     "client_id": "A1789215839-MEMEUSDT-1",
+     "why": "A1789215839-MEMEUSDT-1: identity: submit response: submit response origQty 1933692.0 differs from ours 1933986.0"
+    }
+   ],
+   "read_time_verdict": {
+    "kind": "known",
+    "quantity": -1933692.0,
+    "why": "request ledger re-derived (E-0912-A): venue-clamped reduce-only request(s), child fills determine the quantity",
+    "standing_contradictions": []
+   },
+   "requests": [
+    {
+     "client_id": "A1789215839-MEMEUSDT-1",
+     "Qs_sent": -1933986.0,
+     "C_confirmed": -1933692.0,
+     "children_sum": 1933692.0,
+     "n_children": 3,
+     "inconsistent": "A1789215839-MEMEUSDT-1: identity: submit response: submit response origQty 1933692.0 differs from ours 1933986.0",
+     "rule_verdict": "known",
+     "evidence": {
+      "post_response_found": true,
+      "post_origQty_Qv": 1933692.0,
+      "post_reduceOnly": true,
+      "post_side": "SELL",
+      "post_orderId": 7435864325,
+      "order_sent_quantity": 1933986.0,
+      "order_sent_reduce_only": true,
+      "string_Qv": 1933692.0,
+      "string_Qs": 1933986.0,
+      "children_in_day_fills": [
+       "376472584",
+       "376472585",
+       "376472586"
+      ],
+      "children_not_in_day_fills": [],
+      "fills_notional_sum": 1015.1883,
+      "readback_before": {
+       "anchor_ts": 1789201442.562113,
+       "qty": 1933692.0,
+       "notional": 1015.1883
+      },
+      "readback_at": {
+       "anchor_ts": 1789215841.923763,
+       "qty": 0.0,
+       "notional": 0.0
+      }
+     },
+     "cross_check": {
+      "string_Qv_equals_post_origQty": true,
+      "post_says_reduceOnly_and_we_sent_reduce_only": true,
+      "Qv_below_Qs": true,
+      "children_all_in_day_fills": true,
+      "children_sum_equals_C": true,
+      "readback_after_equals_before_plus_C": true,
+      "all": true
+     }
+    }
+   ]
+  },
+  {
+   "rebalance_id": "A1789215839",
+   "anchor_ts": 1789215841.923763,
+   "symbol": "POPCATUSDT",
+   "order_type": "maker",
+   "terminal_reason_as_written": "filled_amount_unknown",
+   "ledger_inconsistent_as_written": [
+    {
+     "client_id": "A1789215839-POPCATUSDT-1",
+     "why": "A1789215839-POPCATUSDT-1: identity: submit response: submit response origQty 10434.0 differs from ours 10435.0"
+    }
+   ],
+   "read_time_verdict": {
+    "kind": "known",
+    "quantity": -10434.0,
+    "why": "request ledger re-derived (E-0912-A): venue-clamped reduce-only request(s), child fills determine the quantity",
+    "standing_contradictions": []
+   },
+   "requests": [
+    {
+     "client_id": "A1789215839-POPCATUSDT-1",
+     "Qs_sent": -10435.0,
+     "C_confirmed": -10434.0,
+     "children_sum": 10434.0,
+     "n_children": 2,
+     "inconsistent": "A1789215839-POPCATUSDT-1: identity: submit response: submit response origQty 10434.0 differs from ours 10435.0",
+     "rule_verdict": "known",
+     "evidence": {
+      "post_response_found": true,
+      "post_origQty_Qv": 10434.0,
+      "post_reduceOnly": true,
+      "post_side": "SELL",
+      "post_orderId": 5056107890,
+      "order_sent_quantity": 10435.0,
+      "order_sent_reduce_only": true,
+      "string_Qv": 10434.0,
+      "string_Qs": 10435.0,
+      "children_in_day_fills": [
+       "278395713",
+       "278395714"
+      ],
+      "children_not_in_day_fills": [],
+      "fills_notional_sum": 509.07486,
+      "readback_before": {
+       "anchor_ts": 1789201442.562113,
+       "qty": 10434.0,
+       "notional": 508.97052
+      },
+      "readback_at": {
+       "anchor_ts": 1789215841.923763,
+       "qty": 0.0,
+       "notional": 0.0
+      }
+     },
+     "cross_check": {
+      "string_Qv_equals_post_origQty": true,
+      "post_says_reduceOnly_and_we_sent_reduce_only": true,
+      "Qv_below_Qs": true,
+      "children_all_in_day_fills": true,
+      "children_sum_equals_C": true,
+      "readback_after_equals_before_plus_C": true,
+      "all": true
+     }
+    }
+   ]
+  }
+ ],
+ "watchdog_derivation_on_copy": {
+  "cond5b": {
+   "state": "CLEAN",
+   "n": 0,
+   "triggered": false,
+   "last_reconciled_anchor_ts": 1789217401.2960482,
+   "n_historical_anomalies": 0
+  },
+  "cond5b_examples": [],
+  "cond7_drift_state": "CLEAN",
+  "cond7_triggered": false,
+  "tripped": false,
+  "triggers": [],
+  "conditions_blind": [],
+  "caliber": "WD.evaluate on a COPY of this day only; venue_events=[] (no public-path probe); §4-7 from derive_ops_stats"
+ },
+ "not_done_here": [
+  "no ledger row edited, no flag cleared, state/watchdog untouched",
+  "ops/resume_from_trip.sh NOT run; what it would check: (0) LIVE_MODE names the tripped mode; (0b) no `_seeded_by_rehearsal` marker; (1) HARD GATE = WI.collect (public-path probe, network) + WD.run on a COPY of the WHOLE pilot_log (all days): refuses on any `conditions_blind` or `tripped`; --check stops here; (2) quarantine state.json; (3) remove it + harvest_ema.json; (4) verify no halt/reduce-only state remains"
+ ]
+}

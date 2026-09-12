@@ -1,0 +1,26 @@
+[A] who can page a human at all
+  OK   ★★ the population is non-empty and computed, not typed — a hand list goes stale by one every time someone writes a new tool — ['ops/ic_monitor.py', 'ops/redeliver_alarms.py', 'ops/unseed_rehearsal_halt.py', 'scheduler/run_anchor.py']
+
+[B] ...and every one of them loads .env before it tries
+  FAIL ★★★ ops/ic_monitor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  FAIL ★★★ ops/redeliver_alarms.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  FAIL ★★★ ops/unseed_rehearsal_halt.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+  FAIL ★★★ scheduler/run_anchor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent — []
+
+[C] the loader itself: idempotent, and it never overwrites
+  OK   ★★ an unset key is taken from the file
+  OK   ★★★ a key ALREADY in the environment WINS — launchd's plist and the operator's shell put values there deliberately, and a file on disk must not quietly outrank the plist that decides which book we trade
+  OK   ★★ the report distinguishes 'set by me' from 'already present' — a caller diagnosing an undelivered alarm needs to tell those apart — {'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/envf_74933kik/.env', 'exists': True, 'n_set': 1, 'n_already': 1}
+  OK   ★★ a second load is a no-op, so entry points may each call it without fighting — {'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/envf_74933kik/.env', 'exists': True, 'n_set': 0, 'n_already': 2}
+  OK   ★★ an absent file is REPORTED as absent rather than raising — and 'absent' is a different fact from 'read, everything already set'
+
+[D] ★★★ the consequence the incident was measured in: delivery status
+  OK   ★★★ WITHOUT the loader the receipt is NOT_CONFIGURED and delivered_offbox is False — the exact receipt the LIVE unseal produced, reproduced from first principles — {'status': 'NOT_CONFIGURED', 'delivered': False}
+  OK   ★★★ WITH it the page is delivered — so the loader is the whole difference, and the mutation below is measured on the receipt, not on the source text — {'status': 'DELIVERED', 'delivered': True}
+
+[E] red capability — take the loader back out of the tool the incident was about
+  OK   M1 injection target matches exactly once — 1
+  OK   ★★★ M1 remove the loader => the tool no longer populates TELEGRAM_*, so its HIGH page about clearing a LIVE halt is composed and never sent — [B] goes red
+
+10/14 passed
+FAILED: ★★★ ops/ic_monitor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent; ★★★ ops/redeliver_alarms.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent; ★★★ ops/unseed_rehearsal_halt.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent; ★★★ scheduler/run_anchor.py populates TELEGRAM_* on import — otherwise its page is composed, audited locally, and never sent

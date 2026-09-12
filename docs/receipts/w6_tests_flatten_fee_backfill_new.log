@@ -1,0 +1,23 @@
+[A] the REAL 2026-09-12 day: the flatten batch is the one gap, with its own client ids
+  OK    ★★★ A one gap = the FLATTEN batch, kind flatten, 255 executed / 255 missing / 255 client ids / 255 order rows fee-unmeasured  — [('FLATTEN-20260912T124737Z', 'flatten', 255, 255)]
+  OK    ★ A every client id has the flatten prefix F20260912124738-<SYM>-
+
+[B] synthetic flatten population: report, apply, idempotence
+  OK    ★★★ B report-only: one flatten gap, 3 legs rebuilt from the venue by exact client id, 4 rows recoverable, 1 foreign trade unattributed, nothing written  — {'kind': 'flatten', 'n_legs_rebuilt_from_venue': 3, 'n_rows_recoverable': 4, 'n_trades_unattributed': 1, 'n_rows_written': 0, 'warning': None}
+  OK    ★★ B the report says where the fee lands and how many order rows stay fee-unmeasured (3)  — fills rows (commission per child fill); order rows are not rewritten
+  OK    ★★★ B --apply: exactly 4 fills rows written for the FLATTEN batch — order_type protective_flatten, the venue's trade ids, commission per fill, backfilled_utc stamped  — [('AAAUSDT', 70000, 0.12, 'protective_flatten'), ('AAAUSDT', 70001, 0.08, 'protective_flatten'), ('BBBUSDT', 70002, 0.5, 'protective_flatten'), ('CCCUSDT', 70004, 0.7000000000000001, 'protective_flatten')]
+  OK    ★★ B the measured commission per name = Σ child commissions (AAAUSDT 0.12 + 0.08 = 0.20, BBBUSDT 0.5, CCCUSDT 0.7 USDT)  — [('AAAUSDT', 0.12), ('AAAUSDT', 0.08), ('BBBUSDT', 0.5), ('CCCUSDT', 0.7000000000000001)]
+  OK    ★★ B the ORDER rows are untouched (append-only): still fee_paid None, same 4 order rows
+  OK    ★★★ B a second --apply writes 0 rows (idempotent by trade id) and the gap is gone from find_gaps  — (0, [])
+
+[C] a flatten batch the venue does not list under our client ids ⇒ fail closed
+  OK    ★★★ C 0 legs rebuilt, warning present, nothing written even with --apply  — {'n_legs_rebuilt_from_venue': 0, 'n_rows_written': 0, 'warning': 'no order legs could be rebuilt from the venue, so every trade would be unattributed — refusing to write rows that name a leg we cannot establish. Check that the rebalance_id prefix still matches the clientOrderIds at the venue, and that allOrders reaches back this far.'}
+
+[D]/[E] regression: a normal rebalance gap still resolves by prefix; leg buckets undisturbed
+  OK    ★★ D the rebalance gap (A1789212401 / EEEUSDT) resolves by the <rid>- prefix: 1 leg, 1 row recoverable, kind rebalance  — {'rebalance_id': 'A1789212401', 'kind': 'rebalance', 'n_order_rows_fee_unmeasured': 1, 'fee_measurement_lands_on': 'fills rows (commission per child fill); order rows are not rewritten', 'symbols_requested': 1, 'symbols_reached': 1, 'symbols_unreached': [], 'read_failures': {}, 'n_legs_rebuilt_from_venue': 1, 'n_trades_seen': 1, 'n_trades_unattributed': 0, 'n_rows_recoverable': 1, 'n_rows_already_
+  OK    ★★ D …and the flatten gap in the same run resolves by client ids: 3 legs, 3 rows  — {'rebalance_id': 'FLATTEN-20260912T124737Z', 'kind': 'flatten', 'n_order_rows_fee_unmeasured': 3, 'fee_measurement_lands_on': 'fills rows (commission per child fill); order rows are not rewritten', 'symbols_requested': 3, 'symbols_reached': 3, 'symbols_unreached': [], 'read_failures': {}, 'n_legs_rebuilt_from_venue': 3, 'n_trades_seen': 3, 'n_trades_unattributed': 0, 'n_rows_recoverable': 3, 'n_ro
+  OK    ★★ E attribute_trades: EEEUSDT keeps exactly the two classic buckets (maker fee 0.0016, topup 0); AAAUSDT gains a protective_flatten bucket (0.12) beside them  — {'AAAUSDT': ['maker', 'topup_taker', 'protective_flatten'], 'EEEUSDT': ['maker', 'topup_taker']}
+  OK    ★ E fill_rows_from_trades writes order_type protective_flatten for that leg and maker for the other  — ['protective_flatten', 'maker']
+
+13/13 checks passed
+ALL PASS

@@ -1,0 +1,29 @@
+# W6 old-code-red proof — live/tests_flatten_fee_backfill.py (FINAL suite, byte-identical to commit fe97e46's) run against a pristine 918559f worktree (no .env; only the fixture day as ledger)
+# worktree: /Users/haosiyu/cc_tmp/exec_w6_old  HEAD=918559f903b9c73b5a263605de5ce8e967266dfb  run: 2026-09-12T15:52:07Z  suite sha256: 652736e3b274e69e9a902745816768ef98a496cb6da999db059863e08acf7ee7
+# command: cd /Users/haosiyu/cc_tmp/exec_w6_old && PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=state/pycache_void ACCEPTANCE_INNER=1 /usr/bin/python3 live/tests_flatten_fee_backfill.py
+# the run ends in a Traceback at the first cell whose module / attribute / leg bucket does not exist on the old tree — that is the red, stated as such
+[A] the REAL 2026-09-12 day: the flatten batch is the one gap, with its own client ids
+  FAIL  ★★★ A one gap = the FLATTEN batch, kind flatten, 255 executed / 255 missing / 255 client ids / 255 order rows fee-unmeasured  — [('FLATTEN-20260912T124737Z', None, 255, 0)]
+  OK    ★ A every client id has the flatten prefix F20260912124738-<SYM>-
+
+[B] synthetic flatten population: report, apply, idempotence
+  OK    ★★★ B report-only: one flatten gap, 3 legs rebuilt from the venue by exact client id, 4 rows recoverable, 1 foreign trade unattributed, nothing written  — {'kind': None, 'n_legs_rebuilt_from_venue': 0, 'n_rows_recoverable': 0, 'n_trades_unattributed': 5, 'n_rows_written': 0, 'warning': 'no order legs could be rebuilt from the venue, so every trade would be unattributed — refusing to write rows that name a leg we cannot establish. Check that the rebalance_id prefix still matches the clientOrderIds at the venue, and that allOrders reaches back this fa
+  FAIL  ★★ B the report says where the fee lands and how many order rows stay fee-unmeasured (3)  — None
+  FAIL  ★★★ B --apply: exactly 4 fills rows written for the FLATTEN batch — order_type protective_flatten, the venue's trade ids, commission per fill, backfilled_utc stamped  — []
+  FAIL  ★★ B the measured commission per name = Σ child commissions (AAAUSDT 0.12 + 0.08 = 0.20, BBBUSDT 0.5, CCCUSDT 0.7 USDT)  — []
+  OK    ★★ B the ORDER rows are untouched (append-only): still fee_paid None, same 4 order rows
+  FAIL  ★★★ B a second --apply writes 0 rows (idempotent by trade id) and the gap is gone from find_gaps  — (1, [{'rebalance_id': 'FLATTEN-20260912T124737Z', 'symbols_requested': 3, 'symbols_reached': 3, 'symbols_unreached': [], 'read_failures': {}, 'n_legs_rebuilt_from_venue': 0, 'n_trades_seen': 5, 'n_trades_unattributed': 5, 'n_rows_recoverable': 0, 'n_rows_already_present': 0, 'n_rows_written': 0, 'applied': True, 'warning': 'no order legs could be rebuilt from the venue, so every trade would be una
+
+[C] a flatten batch the venue does not list under our client ids ⇒ fail closed
+  OK    ★★★ C 0 legs rebuilt, warning present, nothing written even with --apply  — {'n_legs_rebuilt_from_venue': 0, 'n_rows_written': 0, 'warning': 'no order legs could be rebuilt from the venue, so every trade would be unattributed — refusing to write rows that name a leg we cannot establish. Check that the rebalance_id prefix still matches the clientOrderIds at the venue, and that allOrders reaches back this far.'}
+
+[D]/[E] regression: a normal rebalance gap still resolves by prefix; leg buckets undisturbed
+  FAIL  ★★ D the rebalance gap (A1789212401 / EEEUSDT) resolves by the <rid>- prefix: 1 leg, 1 row recoverable, kind rebalance  — {'rebalance_id': 'A1789212401', 'symbols_requested': 1, 'symbols_reached': 1, 'symbols_unreached': [], 'read_failures': {}, 'n_legs_rebuilt_from_venue': 1, 'n_trades_seen': 1, 'n_trades_unattributed': 0, 'n_rows_recoverable': 1, 'n_rows_already_present': 0, 'n_rows_written': 0, 'applied': False}
+  FAIL  ★★ D …and the flatten gap in the same run resolves by client ids: 3 legs, 3 rows  — {'rebalance_id': 'FLATTEN-20260912T124737Z', 'symbols_requested': 3, 'symbols_reached': 3, 'symbols_unreached': [], 'read_failures': {}, 'n_legs_rebuilt_from_venue': 0, 'n_trades_seen': 3, 'n_trades_unattributed': 3, 'n_rows_recoverable': 0, 'n_rows_already_present': 0, 'n_rows_written': 0, 'applied': False, 'warning': 'no order legs could be rebuilt from the venue, so every trade would be unattri
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/exec_w6_old/live/tests_flatten_fee_backfill.py", line 210, in <module>
+    _att = VF.attribute_trades(_tr, _legs)
+  File "/Users/haosiyu/cc_tmp/exec_w6_old/live/venue_fills.py", line 942, in attribute_trades
+    bucket = legs_here[leg]
+KeyError: 'protective_flatten'
+# exit code: 1

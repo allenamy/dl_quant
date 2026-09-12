@@ -1,5 +1,5 @@
 diff --git a/live/binance_broker.py b/live/binance_broker.py
-index b3db98a..ac56861 100644
+index b3db98a..f3de2aa 100644
 --- a/live/binance_broker.py
 +++ b/live/binance_broker.py
 @@ -312,7 +312,10 @@ def identity_field(rec, key):
@@ -14,7 +14,7 @@ index b3db98a..ac56861 100644
      if not isinstance(rec, dict) or rec.get(key) is None:
          return "absent", None
      raw = rec.get(key)
-@@ -330,8 +333,51 @@ def identity_field(rec, key):
+@@ -330,8 +333,54 @@ def identity_field(rec, key):
      return "value", s
  
  
@@ -29,16 +29,19 @@ index b3db98a..ac56861 100644
 +def reduce_only_clamp(rec, expected, reduce_only) -> Optional[Dict[str, Any]]:
 +    """★ E-0912-A (2026-09-12 12:47Z false-positive flatten; DESIGN_reduce_only_clamp_identity_2026-09-12 §2a).
 +    THE FOURTH IDENTITY STATE, `clamped`: a reduceOnly order whose quantity exceeds the position is CLAMPED BY THE
-+    VENUE to the position — the record answers origQty = position (< ours), reduceOnly true, same side, no error
-+    (fact F3: MEMEUSDT origQty 1933692 vs ours 1933986, POPCATUSDT 10434 vs 10435, both equal to the 08Z readback to
-+    the contract; -2022 is raised only with no position / the wrong side). Ours was larger because a full exit was
-+    sized as round(delta / mid) with delta from position × MARK (F2) — the venue is more exact than our arithmetic,
-+    not a record that is not ours. The 1e-6 gate (F4) read that as "differs from ours" and the leg became
++    VENUE: the record answers a venue-accepted origQty **Qv** BELOW the quantity we sent **Qs**, reduceOnly true, same
++    side, no error (fact F3: MEMEUSDT Qv 1933692 vs Qs 1933986, POPCATUSDT 10434 vs 10435; on 2026-09-12 both Qv equalled
++    the 08Z readback position to the contract — an OBSERVATION of two records, not a definition: Qv is what the venue
++    accepted for THIS request; the position, later fills and other orders are other quantities; -2022 was raised only
++    with no position / the wrong side in the cases seen). Qs was larger because a full exit was sized as
++    round(delta / mid) with delta from position × MARK (F2). The 1e-6 gate (F4) read that as "differs from ours" and the leg became
 +    `execution_of_unknown_size` (F5) ⇒ §4-5b / §4-7 ⇒ a 235,383 USDT protective flatten (F7).
-+    Returns {"ours", "venue", "why"} when ALL hold:
++    Nomenclature (review 563e3470): Qs = the quantity we SENT; Qv = the venue-ACCEPTED origQty of this request; L = the
++    executed quantity's LOWER BOUND (an open snapshot / a child subset); F = the PROVEN final executed quantity.
++    Returns {"ours": Qs, "venue": Qv, "why"} when ALL hold:
 +        · WE sent the order reduce_only (`reduce_only` truthy — from the order we built / the plan row);
 +        · the RECORD itself says reduceOnly true (`_record_says_reduce_only`);
-+        · the record's origQty is a finite VALUE (`identity_field`) with 0 < origQty < ours, beyond the 1e-6 tolerance
++        · the record's origQty is a finite VALUE (`identity_field`) with 0 < Qv < Qs, beyond the 1e-6 tolerance
 +          (inside it the value is simply equal and the ordinary comparison already accepts it).
 +    None otherwise — so these all fall through to the ordinary comparison and STAY contradictions (T2/T3/T4):
 +        an origQty ABOVE ours; a record not flagged reduceOnly; an order of ours that was not reduce-only; a zero,
@@ -68,7 +71,7 @@ index b3db98a..ac56861 100644
      st, v = identity_field(rec, key)
      if st == "absent":
          return None
-@@ -340,16 +386,27 @@ def _ident_check(rec, key, expected, what) -> Optional[str]:
+@@ -340,16 +389,27 @@ def _ident_check(rec, key, expected, what) -> Optional[str]:
      if expected is None:
          return None
      if key in ("origQty", "quantity"):
@@ -99,7 +102,7 @@ index b3db98a..ac56861 100644
      if not isinstance(resp, dict):
          return "submit answered with a non-object"
      order = order or {}
-@@ -357,17 +414,20 @@ def submit_identity_mismatch(resp, order) -> Optional[str]:
+@@ -357,17 +417,20 @@ def submit_identity_mismatch(resp, order) -> Optional[str]:
      _q = identity_field(order, "quantity")
      for key, exp in (("clientOrderId", order.get("client_id")), ("symbol", order.get("symbol")), ("side", _side),
                       ("origQty", _q[1] if _q[0] == "value" else None), ("orderId", None)):
@@ -123,7 +126,7 @@ index b3db98a..ac56861 100644
      if not isinstance(o, dict):
          return "re-query answered with a non-object"
      order = order or {}
-@@ -380,7 +440,8 @@ def requery_identity_mismatch(resp, order, o) -> Optional[str]:
+@@ -380,7 +443,8 @@ def requery_identity_mismatch(resp, order, o) -> Optional[str]:
      _side = str(order.get("side") or "").upper() or None
      for key, exp in (("clientOrderId", _cid), ("symbol", _sym), ("orderId", _oid[1] if _oid[0] == "value" else None),
                       ("origQty", _oq[1] if _oq[0] == "value" else None), ("side", _side)):
@@ -133,7 +136,7 @@ index b3db98a..ac56861 100644
          if bad:
              return bad
      return None
-@@ -1484,11 +1545,17 @@ class BinanceBroker:
+@@ -1484,11 +1548,17 @@ class BinanceBroker:
                  sign = 1.0 if side == "buy" else -1.0
                  # ★ round 12 (review R11-POST-READER): the response is OURS only if it agrees with the order we
                  #   sent; the re-query is by OUR client id — the body never chooses its own trust context
@@ -145,14 +148,14 @@ index b3db98a..ac56861 100644
                      out["inconsistent"] = f"submit identity: {_idb}"
                      return out
 +                if _clamp.get("clamped"):
-+                    # ★ E-0912-A (a): the venue clamped our reduce-only exit to the position — a KNOWN quantity, not a
-+                    #   contradiction. Recorded here (INFO for the row); `orig_qty` below is the response's value, i.e.
-+                    #   the position; every reader bounds executedQty / child fills by THAT (executor `_req_qty`).
++                    # ★ E-0912-A (a): the venue accepted LESS than we sent for our reduce-only exit (Qv < Qs) — a KNOWN
++                    #   capacity, not a contradiction. Recorded here (INFO for the row); `orig_qty` below is the response's
++                    #   value = Qv; every reader bounds executedQty / child fills by Qv (executor `_req_qty`).
 +                    out["clamped"] = dict(_clamp["clamped"])
                  cid = _order.get("client_id") or resp.get("clientOrderId")
                  # round 5 (review Q1/Q2): the venue's own status and executedQty travel with the
                  # notional — the quantity is an identity of ITS request, the status says if it is over
-@@ -1536,10 +1603,12 @@ class BinanceBroker:
+@@ -1536,10 +1606,12 @@ class BinanceBroker:
                          o = resp
                  if o is not resp:
                      # ★ round 9 (review risk §5): the record must be OURS before it may say anything
@@ -167,7 +170,7 @@ index b3db98a..ac56861 100644
                  #    a replacement. Facts are merged per field: a record that lacks a field cannot
                  #    revoke what the other established (the POST's executedQty 20 survives a GET
 diff --git a/live/binance_executor.py b/live/binance_executor.py
-index 83b9e07..f08f398 100644
+index 83b9e07..1d70b2b 100644
 --- a/live/binance_executor.py
 +++ b/live/binance_executor.py
 @@ -44,6 +44,7 @@ import sys
@@ -178,14 +181,15 @@ index 83b9e07..f08f398 100644
  from watchdog import OpeningHalted                                            # noqa: E402
  import reduce_only_reject as RO                                               # noqa: E402
  
-@@ -88,6 +89,16 @@ def _fin(x):
+@@ -88,6 +89,17 @@ def _fin(x):
      return v if (v == v and v not in (float("inf"), float("-inf"))) else None
  
  
 +def _req_qty(r):
-+    """★ E-0912-A (a): a request's CAPACITY in signed contracts — the venue's origQty when the venue clamped our
-+    reduce-only exit to the position (`qty_venue`, stamped from the clamp record), else the quantity we sent
-+    (`qty`). ONE accessor for every capacity rule: finality by capacity (`_final_known`), the remaining band
++    """★ E-0912-A (a): a request's CAPACITY in signed contracts — Qv, the venue-ACCEPTED origQty, when the venue
++    clamped our reduce-only exit (`qty_venue`, stamped from the clamp record), else Qs, the quantity we SENT (`qty`).
++    (Qv is what the venue accepted for this request — on 2026-09-12 it equalled the position twice; that is an
++    observation, not what Qv means.) ONE accessor for every capacity rule: finality by capacity (`_final_known`), the remaining band
 +    (`request_remaining`), the over-fill contradiction (`ledger_inconsistencies`) and the child-fold closure
 +    (`_settle_leg_by_identity`). `qty` itself is never rewritten: it stays "what we sent" for the record."""
 +    v = r.get("qty_venue")
@@ -195,7 +199,7 @@ index 83b9e07..f08f398 100644
  def _final_known(r) -> bool:
      """★ Round 10/11 (review R9-QFINAL; R10 self-report 1): is this request's FINAL total proven? True only when
      the producer said so (`confirmed_qty_final`) or when the lower bound reached the request quantity (capacity:
-@@ -98,7 +109,7 @@ def _final_known(r) -> bool:
+@@ -98,7 +110,7 @@ def _final_known(r) -> bool:
      defect."""
      if r.get("confirmed_qty_final"):
          return True
@@ -204,7 +208,7 @@ index 83b9e07..f08f398 100644
      return c is not None and q is not None and abs(q) > 0 and abs(c) >= abs(q) - 1e-9
  
  
-@@ -112,7 +123,7 @@ def request_remaining(r) -> float:
+@@ -112,7 +124,7 @@ def request_remaining(r) -> float:
      st = r.get("state")
      if st in ("rejected", "not_sent"):
          return 0.0
@@ -213,7 +217,7 @@ index 83b9e07..f08f398 100644
      c = _fin(r.get("confirmed_qty"))
      if c is not None:
          # ★ Round 6 (review R5-QA): a PROVEN final C is the interval [C, C] whether or not its USDT
-@@ -136,7 +147,7 @@ def ledger_totals(reqs):
+@@ -136,7 +148,7 @@ def ledger_totals(reqs):
          rem = request_remaining(r)
          if rem > 0:
              uq += rem
@@ -222,7 +226,7 @@ index 83b9e07..f08f398 100644
              un += abs(float(r.get("notional_est") or 0.0)) * rem / q
      return known, uq, un
  
-@@ -169,7 +180,7 @@ def ledger_inconsistencies(reqs, tol=1e-6):
+@@ -169,7 +181,7 @@ def ledger_inconsistencies(reqs, tol=1e-6):
              continue
          if r.get("inconsistent"):
              bad.append({"client_id": r.get("client_id"), "why": str(r["inconsistent"])[:120]})
@@ -231,7 +235,7 @@ index 83b9e07..f08f398 100644
          n = r.get("confirmed_notional")
          if n is not None and _fin(n) is None:
              # ★ round 13 (review R12-N-FINITE): a bad value is never excused by a missing neighbour
-@@ -252,6 +263,19 @@ def ledger_row_columns(reqs) -> dict:
+@@ -252,6 +264,19 @@ def ledger_row_columns(reqs) -> dict:
              "closed": closed, "qty_closed": qty_closed}
  
  
@@ -251,7 +255,7 @@ index 83b9e07..f08f398 100644
  def apply_ledger_to_plan(p, reqs) -> dict:
      """Write the ledger's columns onto the leg dict (the row copies them). Returns the columns."""
      cols = ledger_row_columns(reqs)
-@@ -722,9 +746,22 @@ class RebalanceExecutor:
+@@ -722,9 +747,22 @@ class RebalanceExecutor:
      # ── phase 1: plan ────────────────────────────────────────────────────────────────────────
      def plan(self, target_notional: Dict[str, float], current_notional: Dict[str, float],
               mids: Dict[str, float],
@@ -275,7 +279,7 @@ index 83b9e07..f08f398 100644
          ★★★ `reduce_only_syms` (2026-08-01): names the venue has WITHHELD but which we HOLD. Their
          orders are reductions BY CONSTRUCTION — the clamp in `anchor_loop` guarantees it, sizing
          them at most to the current position and never past flat. Tagging writes that fact where
-@@ -771,7 +808,25 @@ class RebalanceExecutor:
+@@ -771,7 +809,25 @@ class RebalanceExecutor:
                  row["skip"] = "skipped_no_mid"         # no book => cannot price; labelled, not dropped
                  plans.append(row); continue
  
@@ -302,12 +306,12 @@ index 83b9e07..f08f398 100644
              if qty == 0:
                  row["skip"] = "skipped_min_notional"
                  plans.append(row); continue
-@@ -1024,6 +1079,18 @@ class RebalanceExecutor:
+@@ -1024,6 +1080,18 @@ class RebalanceExecutor:
                  p["submitted"] = True
                  live.append(p)
                  _tstreak = 0
-+                # ★ E-0912-A (a): if the venue CLAMPED this reduce-only exit to the position, the submit response
-+                #   already says so (origQty < ours, reduceOnly true). Stamped on the plan from the broker's own
++                # ★ E-0912-A (a): if the venue accepted LESS than we sent for this reduce-only exit (Qv < Qs), the
++                #   submit response already says so (origQty < ours, reduceOnly true). Stamped on the plan from the broker's own
 +                #   record so the request ledger bounds the request by the venue's capacity even when phase B's
 +                #   allOrders read later fails. ONE rule decides the clamp (`reduce_only_clamp`); this is only where
 +                #   its first observation is written down. A broker without records (fixtures) stamps nothing.
@@ -321,7 +325,7 @@ index 83b9e07..f08f398 100644
              except OpeningHalted:
                  # The halt is doing exactly its job: no NEW exposure while protection is engaged.
                  # NOT `venue_reject` — nothing was sent, so the venue refused nothing. Calling it
-@@ -1489,6 +1556,8 @@ class RebalanceExecutor:
+@@ -1489,6 +1557,8 @@ class RebalanceExecutor:
                  p["venue_terminal"] = (not d.get("non_terminal")) and not d.get("partial")
              if d.get("inconsistent"):
                  p["venue_inconsistent"] = list(d["inconsistent"])       # round 7: the fold's contradictions
@@ -330,7 +334,7 @@ index 83b9e07..f08f398 100644
              n += 1
          return n
  
-@@ -1607,6 +1676,7 @@ class RebalanceExecutor:
+@@ -1607,6 +1677,7 @@ class RebalanceExecutor:
                               "confirmed_qty_final": (bool(p.get("venue_terminal")) and bool(p.get("venue_executed_qty_final"))) if _mc is not None else False,
                               "confirmed_notional_final": bool(p.get("venue_notional_final")) if _mn is not None else False,   # round 11/12
                               **({"inconsistent": "; ".join(p["venue_inconsistent"])} if p.get("venue_inconsistent") else {}),
@@ -338,7 +342,7 @@ index 83b9e07..f08f398 100644
                               "order_id": _order_id_for(self.broker, _mcid)}
                      _mleg = dict(p, request_ledger=[_mreq])
                      apply_ledger_to_plan(_mleg, [_mreq])
-@@ -1712,6 +1782,7 @@ class RebalanceExecutor:
+@@ -1712,6 +1783,7 @@ class RebalanceExecutor:
                            "confirmed_qty_final": (bool(p.get("venue_terminal")) and bool(p.get("venue_executed_qty_final"))) if _mkc is not None else False,
                            "confirmed_notional_final": bool(p.get("venue_notional_final")),
                            **({"inconsistent": "; ".join(p["venue_inconsistent"])} if p.get("venue_inconsistent") else {}),
@@ -346,7 +350,7 @@ index 83b9e07..f08f398 100644
                            "order_id": _order_id_for(self.broker, _mkcid)}
                  maker_leg["request_ledger"] = [_mkreq]
                  apply_ledger_to_plan(maker_leg, [_mkreq])
-@@ -2055,7 +2126,7 @@ class RebalanceExecutor:
+@@ -2055,7 +2127,7 @@ class RebalanceExecutor:
                      # ★ round 10 (review R9-CHILD-SUPPORT): a child set is a SUBSET until it reaches Q — it
                      #   raises the lower bound, it never proves the final total (terminal or not)
                      _complete = ((_was_final and abs(abs(c_child) - abs(prev_c)) <= 1e-12)
@@ -355,7 +359,7 @@ index 83b9e07..f08f398 100644
                      if not _complete:
                          q["confirmed_qty_final"] = False
                      # ★ round 11 (review R10-CHILD-CONSUMER): the subset's AMOUNT is a lower bound too — it closes
-@@ -2084,7 +2155,7 @@ class RebalanceExecutor:
+@@ -2084,7 +2156,7 @@ class RebalanceExecutor:
                  q["state"] = "confirmed"
                  if bad:
                      q["inconsistent"] = bad
@@ -364,7 +368,7 @@ index 83b9e07..f08f398 100644
                      if not q.get("terminal"):
                          q["terminal"] = True; q["terminal_by"] = "fills reached the request quantity"
                      q["confirmed_qty_final"] = True                 # capacity: the final total can only be Q
-@@ -2207,6 +2278,9 @@ class RebalanceExecutor:
+@@ -2207,6 +2279,9 @@ class RebalanceExecutor:
                                                               and _lc["filled_notional"] is None) else terminal_reason)),
              "notional_currency": "USDT",
              **({"note": note} if note else {}),
@@ -7473,12 +7477,241 @@ index 0000000..bab7526
 @@ -0,0 +1,2 @@
 +{"action": "submit", "order": {"symbol": "MEMEUSDT", "side": "sell", "quantity": 1933986.0, "price": 0.000525, "tif": "GTX", "client_id": "A1789215839-MEMEUSDT-1", "reduce_only": true}, "resp": {"orderId": 7435864325, "symbol": "MEMEUSDT", "status": "NEW", "clientOrderId": "A1789215839-MEMEUSDT-1", "price": "0.0005250", "origQty": "1933692", "executedQty": "0", "cumQty": "0", "timeInForce": "GTX", "type": "LIMIT", "reduceOnly": true, "closePosition": false, "side": "SELL", "positionSide": "BOTH", "stopPrice": "0.0000000", "workingType": "CONTRACT_PRICE", "priceProtect": false, "origType": "LIMIT", "priceMatch": "NONE", "selfTradePreventionMode": "EXPIRE_MAKER", "goodTillDate": 0, "updateTime": 1789215897700}, "reason": "rebalance A1789215839 maker", "ts": 1789215897.726611}
 +{"action": "submit", "order": {"symbol": "POPCATUSDT", "side": "sell", "quantity": 10435.0, "price": 0.04879, "tif": "GTX", "client_id": "A1789215839-POPCATUSDT-1", "reduce_only": true}, "resp": {"orderId": 5056107890, "symbol": "POPCATUSDT", "status": "NEW", "clientOrderId": "A1789215839-POPCATUSDT-1", "price": "0.0487900", "origQty": "10434", "executedQty": "0", "cumQty": "0", "timeInForce": "GTX", "type": "LIMIT", "reduceOnly": true, "closePosition": false, "side": "SELL", "positionSide": "BOTH", "stopPrice": "0.0000000", "workingType": "CONTRACT_PRICE", "priceProtect": false, "origType": "LIMIT", "priceMatch": "NONE", "selfTradePreventionMode": "EXPIRE_MAKER", "goodTillDate": 0, "updateTime": 1789215897991}, "reason": "rebalance A1789215839 maker", "ts": 1789215897.972815}
+diff --git a/live/tests_flatten_fee_backfill.py b/live/tests_flatten_fee_backfill.py
+new file mode 100644
+index 0000000..8250bbf
+--- /dev/null
++++ b/live/tests_flatten_fee_backfill.py
+@@ -0,0 +1,223 @@
++"""E-0912-A (b) fee population: a PROTECTIVE FLATTEN's executions get fills rows and measured commission via the
++B26b backfill — the flatten's legs are joined by the rows' OWN client ids, as one `protective_flatten` leg.
++
++*** MOCK ONLY: `urllib.request.urlopen` is sealed by the transport suite's FakeNet; temp pilot_log trees; no venue,
++    no credentials, nothing written under state/. ***
++
++THE GAP (review 563e3470 §5.3, lead 12Z inspection (6)): the 2026-09-12 12:47Z ladder wrote 255 `protective_flatten`
++order rows with `fee_paid None`, no `fee_*` keys and ZERO fills rows — the cost of the flatten is therefore an
++estimate (≈5 bps) and M2 has no markout input for it. `ops/backfill_fills.py` (B26b) already detects such a batch as a
++gap, but its leg resolution (`venue_fills.order_legs_from_venue`) joined allOrders rows by the `<rebalance_id>-`
++client-id PREFIX; a flatten mints `F<utc>-SYM-n` ids under a `FLATTEN-<trip>` rebalance id, so zero legs were rebuilt
++and the runner refused (correctly) to write rows it could not attribute.
++
++WHAT CHANGED: `find_gaps` carries each missing symbol's own client ids and the batch kind; for a flatten batch
++`order_legs_from_venue(..., client_ids=…, leg="protective_flatten")` joins by EXACT client id; `attribute_trades` gives
++the leg its own bucket; `fill_rows_from_trades` writes `order_type = protective_flatten`. The order rows are NOT
++rewritten (append-only: a row records what we knew when we wrote it) — the measured commission lives on the fills rows.
++
++ASSERTED HERE:
++  [A] the REAL 2026-09-12 day (fixture, verbatim): `find_gaps` names the FLATTEN batch — 255 executed symbols, 255
++      missing fills, 255 client ids, 255 order rows with fee unmeasured — and nothing else (the anchors have fills).
++  [B] synthetic flatten population (3 names, 4 child fills, one foreign row and one foreign trade): report-only run
++      rebuilds 3 legs, 4 recoverable rows, writes nothing; `--apply` writes exactly the 4 fills rows (order_type
++      protective_flatten, FLATTEN rebalance id, commission per fill, the venue's trade ids); a second apply writes 0
++      (idempotent by trade id); the foreign trade is counted unattributed, never written.
++  [C] a flatten batch whose client ids the venue does not list ⇒ 0 legs, warning, nothing written (fail closed).
++  [D] regression: a normal rebalance gap still resolves by the `<rid>-` prefix (maker leg from GTX).
++  [E] the flatten's leg bucket does not disturb the maker/topup_taker buckets a normal batch produces.
++
++NOT asserted: that the venue's allOrders reaches back to the flatten (limit 500 / startTime — the runner reports
++`symbols_unreached`), nor the live run (`LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 [--apply]` is the
++operator's step, with credentials). Old code (918559f): [A] has no client_ids / kind, [B] rebuilds 0 legs ⇒ red.
++
++Exit 0 = all pass.
++"""
++import contextlib
++import io
++import json
++import os
++import sys
++import tempfile
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++sys.path.insert(0, HERE)
++for _d in ("ops", "scheduler", "signal"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++
++_ns = {"__file__": os.path.join(HERE, "tests_transport_resilience.py"), "__name__": "__fixture__"}
++_buf = io.StringIO()
++with contextlib.redirect_stdout(_buf):
++    try:
++        exec(compile(open(_ns["__file__"], encoding="utf-8").read(), _ns["__file__"], "exec"), _ns)
++    except SystemExit as _e:
++        if _e.code not in (0, None):
++            print(_buf.getvalue()[-2000:])
++            print("FIXTURE SUITE (tests_transport_resilience) IS RED — this suite cannot run on top of it")
++            sys.exit(1)
++NET, broker = _ns["NET"], _ns["broker"]
++import backfill_fills as BF            # noqa: E402
++import pilot_log as PL                 # noqa: E402
++import venue_fills as VF               # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(detail)[:400]) if detail != '' else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++FIX = os.path.join(HERE, "tests_fixtures", "e0912a_12z", "pilot_log")
++DAY = "20260912"
++RID_F = "FLATTEN-20260912T124737Z"
++TS = 1789217401.146036
++
++print("[A] the REAL 2026-09-12 day: the flatten batch is the one gap, with its own client ids")
++_g = BF.find_gaps(PL.read_day(FIX, DAY))
++check("★★★ A one gap = the FLATTEN batch, kind flatten, 255 executed / 255 missing / 255 client ids / 255 order rows fee-unmeasured",
++      len(_g) == 1 and _g[0]["rebalance_id"] == RID_F and _g[0].get("kind") == "flatten" and _g[0]["n_executed_symbols"] == 255
++      and _g[0]["n_missing_symbols"] == 255 and len(_g[0].get("client_ids") or {}) == 255 and _g[0].get("n_order_rows_fee_unmeasured") == 255,
++      [(x.get("rebalance_id"), x.get("kind"), x.get("n_missing_symbols"), len(x.get("client_ids") or {})) for x in _g])
++check("★ A every client id has the flatten prefix F20260912124738-<SYM>-",
++      all(all(c.startswith(f"F20260912124738-{s}-") for c in v) for s, v in (_g[0].get("client_ids") or {}).items()) if _g else False)
++
++
++# ── synthetic population ────────────────────────────────────────────────────────────────────────────────────────
++POP = [("AAAUSDT", "sell", 100.0, 2.0, 9001), ("BBBUSDT", "buy", 50.0, 10.0, 9002), ("CCCUSDT", "sell", 7.0, 100.0, 9003)]
++
++
++def _tree(with_rebalance_gap=False):
++    root = tempfile.mkdtemp(prefix="e0912a_bf_")
++    lg = PL.PilotLogger(root, day=DAY)
++    for sym, side, qty, px, _oid in POP:
++        lg.order(anchor_ts=TS, symbol=sym, side=side, target_w=0.0, prev_w=None, intended_notional=qty * px,
++                 order_type="protective_flatten", submit_ts=TS, price_submit=None, mid_at_submit=px, mid_at_anchor=None,
++                 filled_notional=(qty * px if side == "buy" else -qty * px), avg_fill_px=px, first_fill_ts=TS - 100.0,
++                 last_fill_ts=TS - 100.0, cancel_ts=None, fee_paid=None, rebalance_id=RID_F,
++                 client_id=f"F20260912124738-{sym}-1", attempt_idx=1, terminal_reason="filled", notional_currency="USDT",
++                 flatten_error=None)
++    # a normal anchor batch WITH its fill row (not a gap) — and optionally one without (a rebalance gap, for [D])
++    lg.order(anchor_ts=TS - 5000, symbol="DDDUSDT", side="buy", target_w=0.01, prev_w=0.0, intended_notional=5.0, order_type="maker",
++             submit_ts=TS - 4990, price_submit=1.0, mid_at_submit=1.0, mid_at_anchor=1.0, filled_notional=5.0, avg_fill_px=1.0,
++             first_fill_ts=TS - 4900, last_fill_ts=TS - 4900, cancel_ts=None, fee_paid=0.001, rebalance_id="A1789212401",
++             attempt_idx=1, terminal_reason="filled", notional_currency="USDT")
++    lg.fill(anchor_ts=TS - 5000, symbol="DDDUSDT", side="buy", order_type="maker", attempt_idx=1, fill_ts=TS - 4900, fill_px=1.0,
++            fill_notional=5.0, mid_at_fill_plus_60s=None, rebalance_id="A1789212401", trade_id=777001, commission=0.001,
++            commission_asset="USDT", venue_maker_flag=True)
++    if with_rebalance_gap:
++        lg.order(anchor_ts=TS - 5000, symbol="EEEUSDT", side="buy", target_w=0.01, prev_w=0.0, intended_notional=8.0, order_type="maker",
++                 submit_ts=TS - 4990, price_submit=1.0, mid_at_submit=1.0, mid_at_anchor=1.0, filled_notional=8.0, avg_fill_px=1.0,
++                 first_fill_ts=TS - 4900, last_fill_ts=TS - 4900, cancel_ts=None, fee_paid=None, rebalance_id="A1789212401",
++                 attempt_idx=1, terminal_reason="filled", notional_currency="USDT")
++    lg.close()
++    return root
++
++
++def _all_orders_row(sym, cid, oid, side, qty, px, tif="IOC"):
++    return {"clientOrderId": cid, "orderId": oid, "symbol": sym, "timeInForce": tif, "status": "FILLED", "side": side.upper(),
++            "origQty": f"{qty}", "executedQty": f"{qty}", "cumQuote": f"{qty * px}", "avgPrice": f"{px}", "reduceOnly": True,
++            "updateTime": int((TS - 100.0) * 1000)}
++
++
++def _trade(sym, oid, tid, side, qty, px, fee, asset="USDT"):
++    return {"id": tid, "orderId": oid, "symbol": sym, "side": side.upper(), "price": f"{px}", "qty": f"{qty}", "quoteQty": f"{qty * px}",
++            "commission": f"{fee}", "commissionAsset": asset, "time": int((TS - 100.0) * 1000), "maker": False, "buyer": side == "buy"}
++
++
++def _script_venue(foreign_only=False):
++    """allOrders + userTrades per symbol, in the runner's (sorted) symbol order; one foreign order row and one foreign trade."""
++    NET.calls.clear(); NET.script.clear()
++    ao, tr = [], []
++    for i, (sym, side, qty, px, oid) in enumerate(POP):
++        cid = f"F20260912124738-{sym}-1"
++        rows = [_all_orders_row(sym, "SOMEONE-ELSE-1", 5555 + i, side, 1.0, px)]
++        if not foreign_only:
++            rows.append(_all_orders_row(sym, cid, oid, side, qty, px))
++        ao.append(rows)
++        children = ([_trade(sym, oid, 70000 + 2 * i, side, qty * 0.6, px, 0.0006 * qty * px), _trade(sym, oid, 70001 + 2 * i, side, qty * 0.4, px, 0.0004 * qty * px)]
++                    if i == 0 else [_trade(sym, oid, 70000 + 2 * i, side, qty, px, 0.001 * qty * px)])
++        if i == 2:
++            children.append(_trade(sym, 5557, 99999, side, 1.0, px, 0.001))       # a foreign trade (another orderId)
++        tr.append(children)
++    NET.on("GET", "/fapi/v1/allOrders", *ao)
++    NET.on("GET", "/fapi/v1/userTrades", *tr)
++
++
++print("\n[B] synthetic flatten population: report, apply, idempotence")
++root = _tree()
++b = broker(); _script_venue()
++rep = BF.run(root=root, day=DAY, apply=False, broker=b)
++r0 = (rep.get("results") or [{}])[0]
++check("★★★ B report-only: one flatten gap, 3 legs rebuilt from the venue by exact client id, 4 rows recoverable, 1 foreign trade unattributed, nothing written",
++      rep["n_gaps"] == 1 and r0.get("kind") == "flatten" and r0.get("n_legs_rebuilt_from_venue") == 3 and r0.get("n_rows_recoverable") == 4
++      and r0.get("n_trades_unattributed") == 1 and r0.get("n_rows_written") == 0 and r0.get("applied") is False
++      and not PL.read_day(root, DAY)["fills"] or len(PL.read_day(root, DAY)["fills"]) == 1,
++      {k: r0.get(k) for k in ("kind", "n_legs_rebuilt_from_venue", "n_rows_recoverable", "n_trades_unattributed", "n_rows_written", "warning")})
++check("★★ B the report says where the fee lands and how many order rows stay fee-unmeasured (3)",
++      r0.get("n_order_rows_fee_unmeasured") == 3 and "fills rows" in str(r0.get("fee_measurement_lands_on")), r0.get("fee_measurement_lands_on"))
++b = broker(); _script_venue()
++rep = BF.run(root=root, day=DAY, apply=True, broker=b)
++r1 = rep["results"][0]
++fills = [f for f in PL.read_day(root, DAY)["fills"] if f.get("rebalance_id") == RID_F]
++check("★★★ B --apply: exactly 4 fills rows written for the FLATTEN batch — order_type protective_flatten, the venue's trade ids, commission per fill, backfilled_utc stamped",
++      r1.get("n_rows_written") == 4 and len(fills) == 4 and all(f["order_type"] == "protective_flatten" for f in fills)
++      and sorted(f["trade_id"] for f in fills) == [70000, 70001, 70002, 70004] and all(f.get("commission") is not None and f["commission"] > 0 for f in fills)
++      and all(f.get("backfilled_utc") for f in fills) and not any(f["trade_id"] == 99999 for f in fills),
++      [(f["symbol"], f["trade_id"], f["commission"], f["order_type"]) for f in fills])
++check("★★ B the measured commission per name = Σ child commissions (AAAUSDT 0.12 + 0.08 = 0.20, BBBUSDT 0.5, CCCUSDT 0.7 USDT)",
++      abs(sum(f["commission"] for f in fills if f["symbol"] == "AAAUSDT") - 0.20) < 1e-9 and abs(sum(f["commission"] for f in fills if f["symbol"] == "BBBUSDT") - 0.5) < 1e-9
++      and abs(sum(f["commission"] for f in fills if f["symbol"] == "CCCUSDT") - 0.7) < 1e-9, [(f["symbol"], f["commission"]) for f in fills])
++check("★★ B the ORDER rows are untouched (append-only): still fee_paid None, same 4 order rows",
++      [o.get("fee_paid") for o in PL.read_day(root, DAY)["orders"] if o["order_type"] == "protective_flatten"] == [None, None, None]
++      and len(PL.read_day(root, DAY)["orders"]) == 4)
++b = broker(); _script_venue()
++rep = BF.run(root=root, day=DAY, apply=True, broker=b)
++check("★★★ B a second --apply writes 0 rows (idempotent by trade id) and the gap is gone from find_gaps",
++      rep["n_gaps"] == 0 and rep.get("results") == [] and len([f for f in PL.read_day(root, DAY)["fills"] if f.get("rebalance_id") == RID_F]) == 4,
++      (rep["n_gaps"], rep.get("results")))
++
++print("\n[C] a flatten batch the venue does not list under our client ids ⇒ fail closed")
++root = _tree()
++b = broker(); _script_venue(foreign_only=True)
++rep = BF.run(root=root, day=DAY, apply=True, broker=b)
++r2 = rep["results"][0]
++check("★★★ C 0 legs rebuilt, warning present, nothing written even with --apply",
++      r2.get("n_legs_rebuilt_from_venue") == 0 and r2.get("warning") and r2.get("n_rows_written") == 0
++      and not [f for f in PL.read_day(root, DAY)["fills"] if f.get("rebalance_id") == RID_F], {k: r2.get(k) for k in ("n_legs_rebuilt_from_venue", "n_rows_written", "warning")})
++
++print("\n[D]/[E] regression: a normal rebalance gap still resolves by prefix; leg buckets undisturbed")
++root = _tree(with_rebalance_gap=True)
++b = broker(); NET.calls.clear(); NET.script.clear()
++# runner order: gaps sorted by anchor_ts ⇒ the rebalance batch (TS−5000) first, then the flatten
++NET.on("GET", "/fapi/v1/allOrders", [_all_orders_row("EEEUSDT", "A1789212401-EEEUSDT-1", 8001, "buy", 8.0, 1.0, tif="GTX")],
++       *[[_all_orders_row(s, f"F20260912124738-{s}-1", oid, side, q, px)] for s, side, q, px, oid in POP])
++NET.on("GET", "/fapi/v1/userTrades", [_trade("EEEUSDT", 8001, 80001, "buy", 8.0, 1.0, 0.0016)],
++       *[[_trade(s, oid, 90000 + i, side, q, px, 0.001 * q * px)] for i, (s, side, q, px, oid) in enumerate(POP)])
++rep = BF.run(root=root, day=DAY, apply=False, broker=b)
++kinds = {r["rebalance_id"]: r for r in rep["results"]}
++check("★★ D the rebalance gap (A1789212401 / EEEUSDT) resolves by the <rid>- prefix: 1 leg, 1 row recoverable, kind rebalance",
++      kinds.get("A1789212401", {}).get("kind") == "rebalance" and kinds["A1789212401"].get("n_legs_rebuilt_from_venue") == 1
++      and kinds["A1789212401"].get("n_rows_recoverable") == 1, kinds.get("A1789212401"))
++check("★★ D …and the flatten gap in the same run resolves by client ids: 3 legs, 3 rows", kinds.get(RID_F, {}).get("n_legs_rebuilt_from_venue") == 3 and kinds[RID_F].get("n_rows_recoverable") == 3, kinds.get(RID_F))
++_legs = {("EEEUSDT", 8001): {"symbol": "EEEUSDT", "client_id": "A1789212401-EEEUSDT-1", "leg": "maker", "tif": "GTX", "source": "t"},
++         ("AAAUSDT", 9001): {"symbol": "AAAUSDT", "client_id": "F20260912124738-AAAUSDT-1", "leg": "protective_flatten", "tif": "IOC", "source": "t"}}
++_tr = {"EEEUSDT": {"trades": [{"id": 1, "order_id": 8001, "side": "BUY", "price": 1.0, "qty": 8.0, "quote_qty": 8.0, "commission": 0.0016, "commission_asset": "USDT", "ts": 1, "maker": True}]},
++       "AAAUSDT": {"trades": [{"id": 2, "order_id": 9001, "side": "SELL", "price": 2.0, "qty": 100.0, "quote_qty": 200.0, "commission": 0.12, "commission_asset": "USDT", "ts": 1, "maker": False}]}}
++_att = VF.attribute_trades(_tr, _legs)
++check("★★ E attribute_trades: EEEUSDT keeps exactly the two classic buckets (maker fee 0.0016, topup 0); AAAUSDT gains a protective_flatten bucket (0.12) beside them",
++      set(_att["by_symbol"]["EEEUSDT"]) == {"maker", "topup_taker"} and abs(_att["by_symbol"]["EEEUSDT"]["maker"]["commission"] - 0.0016) < 1e-12
++      and set(_att["by_symbol"]["AAAUSDT"]) == {"maker", "topup_taker", "protective_flatten"} and abs(_att["by_symbol"]["AAAUSDT"]["protective_flatten"]["commission"] - 0.12) < 1e-12
++      and _att["n_unattributed"] == 0, {s: list(v) for s, v in _att["by_symbol"].items()})
++_rows = VF.fill_rows_from_trades(_att["attributed_trades"], TS, RID_F)
++check("★ E fill_rows_from_trades writes order_type protective_flatten for that leg and maker for the other",
++      sorted(r["order_type"] for r in _rows) == ["maker", "protective_flatten"], [r["order_type"] for r in _rows])
++
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  ")
++    sys.exit(1)
++print("ALL PASS")
 diff --git a/live/tests_reduce_only_clamp.py b/live/tests_reduce_only_clamp.py
 new file mode 100644
-index 0000000..5bc8301
+index 0000000..124fb26
 --- /dev/null
 +++ b/live/tests_reduce_only_clamp.py
-@@ -0,0 +1,519 @@
+@@ -0,0 +1,554 @@
 +"""E-0912-A: a reduce-only exit CLAMPED BY THE VENUE to the position is a KNOWN quantity, not a contradiction.
 +
 +*** MOCK ONLY: `urllib.request.urlopen` is replaced in-process (the transport suite's FakeNet). No account, no
@@ -7509,7 +7742,8 @@ index 0000000..5bc8301
 +      "venue_position_qty", other rows untouched.                                            [OLD CODE: RED]
 +  T6  no quantity in the readback / sign disagreement ⇒ the old delta/mid path, labelled `notional_over_mid`.
 +  T7  END TO END: the real `plan → submit_maker → complete_anchor` chain over FakeNet, POST answered by the two
-+      real 12Z responses, allOrders by a terminal record rebuilt from them + the real child fills, userTrades by
++      real 12Z responses, allOrders by a SYNTHETIC terminal record (reconstructed from the POST + the real child
++      fills — the saved original was never logged; a shape control, not the venue's record), userTrades by
 +      the real child fills (trade ids / qty / quote from the ledger), then `reconcile` against the real 08Z and
 +      12Z position readbacks ⇒ NEW: 0 anomalies, both names measured with residual 0, the maker rows closed with
 +      the venue's capacity; OLD: 2 × execution_of_unknown_size (the incident).                [OLD CODE: RED]
@@ -7669,8 +7903,10 @@ index 0000000..5bc8301
 +
 +
 +def _terminal_record(sym, **over):
-+    """The allOrders / order-query record of the request AFTER the fills: the real submit response's identity
-+    fields + terminal status + executedQty/cumQuote/avgPrice from the real child fills (REBUILT — see docstring)."""
++    """★ SYNTHETIC — NOT THE SAVED ORIGINAL. The venue's allOrders / order-query record of this request was never
++    logged; this is RECONSTRUCTED from the real POST response's identity fields + a terminal status + executedQty /
++    cumQuote / avgPrice summed from the real child fills. Every T7 cell that consumes it is a synthetic positive
++    control on the record's SHAPE, not evidence of what the venue's saved record said (review 563e3470 §2)."""
 +    r = dict(ACTS[sym]["resp"])
 +    tq, tn = MK[sym]["request_ledger"][0]["trade_qty"], MK[sym]["request_ledger"][0]["trade_quote"]
 +    ex, cq = sum(tq.values()), sum(tn.values())
@@ -7830,7 +8066,7 @@ index 0000000..5bc8301
 +      "wiring strings not found in anchor_loop.py")
 +
 +# ═══════════════════════════════════ T7: end to end, the real chain over the real responses ═════════════════
-+print("\n[T7] END TO END: plan → submit_maker (real POST answers) → complete_anchor (cancel/allOrders/userTrades) → reconcile vs real readbacks")
++print("\n[T7] END TO END: plan → submit_maker (real POST answers) → complete_anchor (cancel / SYNTHETIC allOrders terminal record / real userTrades) → reconcile vs real readbacks")
 +
 +
 +def _trades(sym):
@@ -7993,13 +8229,59 @@ index 0000000..5bc8301
 +      and c5b["n_historical_anomalies"] == 0 and ev9b["tripped"] is False,
 +      ({k: c5b.get(k) for k in ("state", "n", "last_reconciled_anchor_ts", "n_historical_anomalies")}, c7b.get("drift_state"), ev9b["triggers"]))
 +
++# ── T10: the READ-ONLY re-judgment receipt (review 563e3470 §5.2; lead (2)) ─────────────────────────────────────
++print("\n[T10] ops/rejudge_ledger_rows.py --check: re-judges the persisted rows against the ORIGINAL evidence and writes a receipt; edits nothing")
++import rejudge_ledger_rows as RJ       # noqa: E402
++_evp = os.path.join(tempfile.mkdtemp(prefix="e0912a_t10_"), "events.jsonl")
++open(_evp, "w").write(json.dumps({"ts": "2026-09-12T12:47:37Z", "triggers": [], "actions": [ACTS[MEME], ACTS[POP]]}) + "\n")
++_before = {f: os.path.getmtime(os.path.join(FIX, "pilot_log", "20260912", f)) for f in os.listdir(os.path.join(FIX, "pilot_log", "20260912"))}
++_rep = RJ.rejudge_day(os.path.join(FIX, "pilot_log"), "20260912", _evp)
++_after = {f: os.path.getmtime(os.path.join(FIX, "pilot_log", "20260912", f)) for f in os.listdir(os.path.join(FIX, "pilot_log", "20260912"))}
++check("★★★ T10 both 12Z rows re-judged KNOWN (−1933692 / −10434), none still unquantifiable; the day's files untouched",
++      _rep["n_rows_with_ledger_inconsistent"] == 2 and _rep["n_rows_rejudged_known"] == 2 and _rep["n_rows_still_unquantifiable"] == 0
++      and {r["symbol"]: r["read_time_verdict"]["quantity"] for r in _rep["rows"]} == {MEME: -POSN[MEME], POP: -POSN[POP]} and _before == _after,
++      {r["symbol"]: r["read_time_verdict"] for r in _rep["rows"]})
++check("★★★ T10 every request's cross-check against the ORIGINAL evidence holds: string Qv == POST origQty, POST reduceOnly ∧ we sent reduce_only, Qv < Qs, "
++      "children all in the day's fills, Σ children == C, readback_after == readback_before + C",
++      _rep["n_requests_cross_check_all_true"] == 2 and all(q["cross_check"]["all"] for r in _rep["rows"] for q in r["requests"])
++      and all(q["evidence"]["post_origQty_Qv"] == POSN[r["symbol"]] and q["evidence"]["string_Qv"] == POSN[r["symbol"]] for r in _rep["rows"] for q in r["requests"]),
++      [(r["symbol"], r["requests"][0]["cross_check"]) for r in _rep["rows"]])
++check("★★ T10 the receipt carries the guards' derivation on a COPY: cond5b CLEAN / §4-7 CLEAN / not tripped / nothing blind, and lists what resume_from_trip.sh would still check",
++      (_rep["watchdog_derivation_on_copy"].get("cond5b") or {}).get("state") == "CLEAN" and _rep["watchdog_derivation_on_copy"].get("cond7_drift_state") == "CLEAN"
++      and _rep["watchdog_derivation_on_copy"].get("tripped") is False and any("resume_from_trip" in s for s in _rep["not_done_here"]),
++      _rep["watchdog_derivation_on_copy"])
++_rep0 = RJ.rejudge_day(os.path.join(FIX, "pilot_log"), "20260912", None)
++check("★ T10 without the POST evidence the rule still re-judges (read-time), but no cross-check can be called true (evidence absent ≠ evidence passed)",
++      _rep0["n_rows_rejudged_known"] == 2 and _rep0["n_requests_cross_check_all_true"] == 0 and all(q["evidence"]["post_response_found"] is False for r in _rep0["rows"] for q in r["requests"]))
++_evp2 = os.path.join(tempfile.mkdtemp(prefix="e0912a_t10b_"), "events.jsonl")
++_a2 = json.loads(json.dumps(ACTS[MEME])); _a2["resp"]["origQty"] = "1933000"
++open(_evp2, "w").write(json.dumps({"ts": "x", "triggers": [], "actions": [_a2, ACTS[POP]]}) + "\n")
++_rep2 = RJ.rejudge_day(os.path.join(FIX, "pilot_log"), "20260912", _evp2)
++check("★★ T10 ctl: a POST record whose origQty disagrees with the persisted string ⇒ that request's cross-check is FALSE (the receipt names it), the other stays true",
++      {r["symbol"]: r["requests"][0]["cross_check"]["all"] for r in _rep2["rows"]} == {MEME: False, POP: True}
++      and _rep2["rows"][0]["requests"][0]["cross_check"]["string_Qv_equals_post_origQty"] is False, {r["symbol"]: r["requests"][0]["cross_check"] for r in _rep2["rows"]})
++
 +print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 +if FAILS:
 +    print("FAILED:", *FAILS, sep="\n  ")
 +    sys.exit(1)
 +print("ALL PASS")
+diff --git a/live/tests_rehearsal_anchor.py b/live/tests_rehearsal_anchor.py
+index db9e701..ce06540 100644
+--- a/live/tests_rehearsal_anchor.py
++++ b/live/tests_rehearsal_anchor.py
+@@ -325,6 +325,9 @@ _COUNTS = {
+ }
+ # NOT counting sites — each with the reason it does not need the predicate
+ _EXEMPT = {
++    "ops/rejudge_ledger_rows.py": "E-0912-A READ-ONLY re-judgment receipt: it READS `rebalance_id` off persisted "
++                                 "orders/fills rows to join a request's children and readbacks and writes a JSON receipt; "
++                                 "it mints nothing, counts nothing, and never writes a ledger row or state.",
+     "live/requote_experiment.py": "hashes (rebalance_id, symbol) with a distinct salt to draw the "
+                                   "deterministic requote/direct arm (PREREG_requote_randomised_2026-09-05). "
+                                   "Pure function of the string: sends nothing, stores nothing, counts "
 diff --git a/live/venue_fills.py b/live/venue_fills.py
-index 6c260c1..aa6b9b2 100644
+index 6c260c1..7b84ee1 100644
 --- a/live/venue_fills.py
 +++ b/live/venue_fills.py
 @@ -164,8 +164,13 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
@@ -8010,9 +8292,9 @@ index 6c260c1..aa6b9b2 100644
 -            return "record origQty differs from the quantity we sent"
 +        _ours = abs(float(p.get("qty") or 0.0))
 +        if abs(_oq - _ours) > max(1e-9, 1e-6 * _oq):
-+            # ★ E-0912-A (a): a reduceOnly record whose origQty is the POSITION (below ours) is our request, clamped
-+            #   by the venue (F3) — the fourth identity state. ONE rule decides it: `_BB.reduce_only_clamp`. Above
-+            #   ours / not flagged reduceOnly / our order not reduce-only ⇒ still "differs" (T2/T3).
++            # ★ E-0912-A (a): a reduceOnly record whose origQty Qv is BELOW the quantity we sent Qs is our request,
++            #   clamped by the venue (F3) — the fourth identity state. ONE rule decides it: `_BB.reduce_only_clamp`.
++            #   Above ours / not flagged reduceOnly / our order not reduce-only ⇒ still "differs" (T2/T3).
 +            if _BB.reduce_only_clamp(o, _ours, p.get("reduce_only")) is None:
 +                return "record origQty differs from the quantity we sent"
          return None
@@ -8032,9 +8314,9 @@ index 6c260c1..aa6b9b2 100644
          canon = {"clientOrderId": cid, "symbol": sym,
                   "side": ("BUY" if str(p.get("side", "")).lower() == "buy" else "SELL"),
                   "origQty": abs(float(p.get("qty") or 0.0))}
-+        # ★ E-0912-A (a): when the venue clamped our reduce-only exit to the position, the request's capacity IS the
-+        #   venue's origQty — the canon carries it (and the clamp) so the fold and the row bound executedQty / child
-+        #   fills by the position, not by our larger arithmetic (DESIGN §2a "后续 executedQty / 子成交按 origQty 为界").
++        # ★ E-0912-A (a): when the venue accepted less than we sent (Qv < Qs) for our reduce-only exit, the request's
++        #   capacity IS Qv — the canon carries it (and the clamp) so the fold and the row bound executedQty / child
++        #   fills by Qv, not by our larger Qs (DESIGN §2a "后续 executedQty / 子成交按 origQty 为界").
 +        for _, r in recs:
 +            _cl = _BB.reduce_only_clamp(r, canon["origQty"], p.get("reduce_only"))
 +            if _cl is not None:
@@ -8074,29 +8356,416 @@ index 6c260c1..aa6b9b2 100644
  
      def _carry(p, sym, cid, recs, why):
          """★ Round 10 (review R9-FACT-EXIT): EVERY exit that leaves the symbol UNKNOWN first folds the records
+@@ -939,7 +957,8 @@ def attribute_trades(trades: Dict[str, dict],
+             leg = info["leg"]
+             row = dict(t); row["leg"] = leg
+             mine.append(row)
+-            bucket = legs_here[leg]
++            # E-0912-A (b) fee population: a leg outside maker/topup_taker (`protective_flatten`) gets its own bucket
++            bucket = legs_here.setdefault(leg, {"commission": 0.0, "other": {}, "trades": []})
+             bucket["trades"].append(row)
+             c = abs(float(t.get("commission") or 0.0))
+             asset = str(t.get("commission_asset") or "USDT").upper()
+@@ -1116,7 +1135,7 @@ def fill_rows_from_trades(trades: Dict[str, dict], anchor_ts: float, rebalance_i
+             # leg is known (an unattributed trade) the flag is the only evidence there is.
+             leg = t.get("leg")
+             venue_maker = bool(t.get("maker"))
+-            otype = leg if leg in ("maker", "topup_taker") else (
++            otype = leg if leg in ("maker", "topup_taker", "protective_flatten") else (      # E-0912-A (b): the flatten's own leg
+                 "maker" if venue_maker else "topup_taker")
+             # ★ R19: these four are the VENUE's account of the fill, and an absent one must read as
+             # absent. Before this they were `str(...or "").lower()` and `float(... or 0.0)`, so a
+@@ -1215,7 +1234,8 @@ def make_provider(broker, since_ms: Optional[int] = None) -> Callable[[str, List
+ 
+ 
+ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
+-                          since_ms: Optional[int] = None) -> Dict[Tuple[str, int], dict]:
++                          since_ms: Optional[int] = None, client_ids: Optional[set] = None,
++                          leg: Optional[str] = None) -> Dict[Tuple[str, int], dict]:
+     """[B26b] The SAME map as `submitted_order_legs`, rebuilt from the VENUE instead of memory.
+ 
+     ★ WHY A SECOND SOURCE FOR ONE MAP, WHICH IS NORMALLY THE MISTAKE. `submitted_order_legs` reads
+@@ -1233,11 +1253,19 @@ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
+     GTX can only make and IOC can only take, so the TIF is the leg by construction. `allOrders`
+     returns `timeInForce`, so this is the thing itself and not a convention. The `-1`/`-2` client
+     id suffix is the fallback, used only when the venue's row carries no TIF.
++
++    ★ E-0912-A (b) fee population (review 563e3470 §5.3): a PROTECTIVE FLATTEN batch mints its client ids as
++    `F<utc>-SYM-<n>` (`flatten_client_prefix`), not `<rebalance_id>-…`, so the prefix join above finds nothing for
++    `FLATTEN-<trip>` batches — which is why the 2026-09-12 12:47Z flatten's 255 rows have fee_paid None and no fills
++    rows. `client_ids` (the batch's own rows' `client_id` values) joins by EXACT client id instead, and `leg` names
++    the leg for every match (the flatten is one leg, `protective_flatten`). Same key (our client id, returned
++    verbatim by the venue), same map; only how the set of OUR ids is known differs.
+     """
+     out: Dict[int, dict] = {}
+     if getattr(broker, "mode", "DRY_RUN") == "DRY_RUN":
+         return out
+     since_ms = since_ms or int((time.time() - 3600) * 1000)
++    _cids = {str(c) for c in (client_ids or ())}
+     for sym in symbols:
+         rows, ok = _read_symbol(broker, "/fapi/v1/allOrders",
+                                 {"symbol": sym, "startTime": int(since_ms), "limit": 500}, sym)
+@@ -1245,18 +1273,22 @@ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
+             continue
+         for r in rows:
+             cid = str(r.get("clientOrderId") or "")
+-            if not cid.startswith(rebalance_id + "-"):
++            if _cids:
++                if cid not in _cids:
++                    continue
++            elif not cid.startswith(rebalance_id + "-"):
+                 continue
+             oid = r.get("orderId")
+             if oid is None:
+                 continue
+             tif = str(r.get("timeInForce") or "").upper()
+-            leg = ("maker" if tif == TIF_POST_ONLY else
+-                   "topup_taker" if tif else
+-                   ("maker" if (cid.endswith("-1") or cid.endswith("-2")) else "topup_taker"))   # -2 = requote (maker)
++            _leg = leg or ("maker" if tif == TIF_POST_ONLY else
++                           "topup_taker" if tif else
++                           ("maker" if (cid.endswith("-1") or cid.endswith("-2")) else "topup_taker"))   # -2 = requote (maker)
+             try:
+                 out[(str(r.get("symbol") or sym), _BB.order_id_int(oid))] = {"symbol": r.get("symbol") or sym, "client_id": cid,
+-                                                                "leg": leg, "tif": tif, "source": "venue allOrders"}
++                                                                "leg": _leg, "tif": tif,
++                                                                "source": ("venue allOrders (client ids from the batch's own rows)" if _cids else "venue allOrders")}
+             except (TypeError, ValueError):
+                 continue
+     return out
+diff --git a/ops/backfill_fills.py b/ops/backfill_fills.py
+index 2c3099e..bcec0b0 100644
+--- a/ops/backfill_fills.py
++++ b/ops/backfill_fills.py
+@@ -65,19 +65,30 @@ def find_gaps(day_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+             continue                      # never sent, unknown, or filled nothing: nothing is due
+         rid, sym = o.get("rebalance_id"), o.get("symbol")
+         b = by_batch.setdefault(rid, {"rebalance_id": rid, "anchor_ts": float(o["anchor_ts"]),
+-                                      "executed_symbols": set(), "missing_symbols": set()})
++                                      "executed_symbols": set(), "missing_symbols": set(), "client_ids": {},
++                                      "n_fee_unmeasured": 0})
+         b["anchor_ts"] = min(b["anchor_ts"], float(o["anchor_ts"]))
+         b["executed_symbols"].add(sym)
++        if o.get("fee_paid") is None:
++            b["n_fee_unmeasured"] += 1
+         if (rid, sym) not in have:
+             b["missing_symbols"].add(sym)
++            # ★ E-0912-A (b) fee population: a PROTECTIVE FLATTEN batch's rows carry their own venue client ids
++            #   (`F<utc>-SYM-n`), which is the only join key the venue has for them (see `order_legs_from_venue`)
++            if o.get("client_id"):
++                b["client_ids"].setdefault(sym, []).append(str(o["client_id"]))
+     out = []
+     for b in by_batch.values():
+         if not b["missing_symbols"]:
+             continue
++        _rid = str(b["rebalance_id"] or "")
+         out.append({"rebalance_id": b["rebalance_id"], "anchor_ts": b["anchor_ts"],
++                    "kind": ("flatten" if _rid.startswith("FLATTEN-") else "rebalance"),
+                     "n_executed_symbols": len(b["executed_symbols"]),
+                     "n_missing_symbols": len(b["missing_symbols"]),
+-                    "missing_symbols": sorted(b["missing_symbols"])})
++                    "missing_symbols": sorted(b["missing_symbols"]),
++                    "client_ids": {s: sorted(v) for s, v in b["client_ids"].items()},
++                    "n_order_rows_fee_unmeasured": b["n_fee_unmeasured"]})
+     return sorted(out, key=lambda g: g["anchor_ts"])
+ 
+ 
+@@ -96,7 +107,13 @@ def backfill_batch(broker, root: str, day: str, gap: Dict[str, Any],
+     # rebalance id, so the join is the id and the window only bounds how far back to ask. One
+     # anchor interval of slack before it covers a leg submitted just before the anchor row landed.
+     since_ms = int((gap["anchor_ts"] - 600) * 1000)
+-    legs = VF.order_legs_from_venue(broker, gap["rebalance_id"], syms, since_ms=since_ms)
++    if gap.get("kind") == "flatten":
++        # ★ E-0912-A (b) fee population: the flatten's legs are joined by the rows' OWN client ids and are ONE leg
++        _cids = {c for v in (gap.get("client_ids") or {}).values() for c in v}
++        legs = VF.order_legs_from_venue(broker, gap["rebalance_id"], syms, since_ms=since_ms,
++                                        client_ids=_cids, leg="protective_flatten")
++    else:
++        legs = VF.order_legs_from_venue(broker, gap["rebalance_id"], syms, since_ms=since_ms)
+     trades = VF.user_trades_for(broker, syms, since_ms=since_ms)
+     reached = VF.last_trade_coverage()
+     att = VF.attribute_trades(trades, legs)
+@@ -106,6 +123,11 @@ def backfill_batch(broker, root: str, day: str, gap: Dict[str, Any],
+     fresh = [r for r in rows if r.get("trade_id") not in seen]
+     out = {
+         "rebalance_id": gap["rebalance_id"],
++        "kind": gap.get("kind", "rebalance"),
++        # ★ the ORDER rows' fee_paid stays None (append-only table: a row records what we knew when we wrote it);
++        #   the MEASURED commission of these executions lives on the fills rows written below, per child fill
++        "n_order_rows_fee_unmeasured": gap.get("n_order_rows_fee_unmeasured"),
++        "fee_measurement_lands_on": "fills rows (commission per child fill); order rows are not rewritten",
+         "symbols_requested": len(syms),
+         "symbols_reached": len(reached),
+         # ★ UNREACHED SYMBOLS ARE NAMED. "we asked and there were no trades" and "we could not
 diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
-index 46528dc..025680c 100644
+index 46528dc..dfc2893 100644
 --- a/ops/gate_coverage.py
 +++ b/ops/gate_coverage.py
-@@ -183,6 +183,7 @@ SUITE_SCOPE = {
+@@ -183,6 +183,8 @@ SUITE_SCOPE = {
      "tests_venue_rate_authority": "that the 80% backstop is ENOUGH — we still do not know what banned us on 07-30, only that it was not any counter we kept. The backstop makes the venue's own number authoritative and the out-of-band gap measurable; whether 80% of a published weight limit is the binding constraint at all is a question the next incident answers, and this time the record will contain the answer",
      "tests_venue_cap_clamp": "that the venue's cap is the number symbolConfig reports — it proves the pure clamp (shrink-only, sign-preserving, cap 0 and missing config untouched, over-cap positions reduced to the limit, PIEVERSE replica) and the wiring order pop→reshape→held-clamp→cap-clamp→plan. It cannot see whether the venue evaluates -2027 on mark price or on order price (the 2% margin is a policy number, not a measurement), nor whether a cap changes between arm and submit, nor whether the book's net shift from the clamp is worth hedging",
      "tests_request_identity_unknown": "that the venue will ever produce these sequences — every outcome is injected. It proves, against the real submit/requote/top-up/attribution/reconcile code, that a -2013×2 'absent' is carried as ambiguous and never re-sent this anchor, that every venue request has its own client id (-1/-2/-3/-3cN) and the resolver refuses a record under another id, that an UNKNOWN request survives a later refusal and a partial attribution, that reconcile consumes the unknown as an authorised band instead of a hole, that 408/-1007/-1006 are execution-unknown, and that the cap clamp validates and applies atomically; round 4 (review 62ebf9f8): that the top-up keeps a per-request ledger in which a rejected or never-sent request contributes NOTHING to the unknown bound, that the known part keeps its sign when child fills settle it, that attribution shrinks the unknown by request identity (orderId join) and closes the leg only when no request is left unknown, that reconcile sums per-request QUANTITY intervals (Minkowski, mixed directions do not cancel, mark-independent) and treats non-finite or side-less rows as unquantifiable, that an ambiguous maker absent from a FULL allOrders page stays UNKNOWN and is settled only by its own order query (-2013 ⇒ absent), that an UNKNOWN symbol gets a bounded maker row instead of a hole, that flatten retries mint distinct ids, that legs are keyed by (symbol, orderId), and that an id over 36 chars is refused rather than truncated. round 5 (review cfaf1bbe): that the row's quantity comes from each request's own executedQty on every path (two prices ⇒ 100, never 150/2), that a child fill raises a request's confirmed quantity without ending it (band = what it may still fill; the leg closes only when every request is terminal), that contradictions (over-fill, wrong side, non-finite) are checked before any classification and keep the leg open, that child fills are de-duplicated by trade id and confirmed quantity is monotone, that an order the venue shows OPEN is cancelled and re-queried and stays UNKNOWN if still open, that cancel-unresolved symbols are UNKNOWN, that the breaker records the maker leg before refusing the top-up, that target/held are validated for every name before the cap logic, and that flatten recovery keys by (symbol, orderId) with a process-wide id counter. It does NOT prove phase B's allOrders/order reads (mocked here) resolve every leg on the real venue, nor that the venue's -2013 after the k-window is final (a stated venue-consistency assumption), nor that two PROCESSES in the same UTC second cannot mint the same flatten id, nor that the latest-only reconcile baseline carries an unexplained residual forward (registered for pre-registration, not implemented). Round 6 (review ce7b3cf4): that a later terminal fact for a request (cancel + re-query in settlement) supersedes the k-cancel's unresolved set by request and clears its pin, that a terminal request with a trusted executed quantity has no remainder whether or not its USDT amount was readable (C = Q with an unknown amount is a KNOWN quantity), that a missing executedQty is not a measured zero, that a ledger row is quantified by its ledger only (no amount-over-subset-price fallback), that the bounded reader validates its price, that a conflicting duplicate trade id is a contradiction, that an open order's executed-so-far reaches the row when its cancel fails, and that the pre-flight uses the plan's real chunk count. Round 7 (review a99c447e, from the fact table docs/DESIGN_request_fact_model): that the ORIGINAL complete_anchor chain (real broker over a scripted transport → cancel → allOrders → order query → top-up → attribution → rows) keeps a readable executedQty when the amount is unreadable (CANCELED 4 ⇒ filled_qty 4, position 10 ⇒ anomaly 6), that three explicit refusals at an unchanged position (0 and 1) leave a determined filled_qty 0 and no anomaly (the round-6 false trigger), that the decoder and the allOrders fold record contradictions (negative executedQty, explicit 0 beside a positive amount) instead of zeros, that an allOrders-terminal request resolves the k-cancel's unresolved set and pin, and that the ledger reader owns the row's columns at emission (a branch cannot clear them). Round 8 (review 82cbe018): that the submit response and the amount re-query are MERGED per field (a record lacking executedQty never revokes an earlier 20; an explicit terminal 0 read at the GET entry is a measured zero; a falling executedQty or NEW after terminal is a contradiction), that an allOrders match resolves the k-cancel's unresolved set only with an explicit terminal status AND our identity (no status ⇒ exact query; origQty/symbol/side mismatch ⇒ UNKNOWN), that a fold contradiction makes the name UNKNOWN end to end (no top-up, reader refuses), and that with a ledger the row's amount and price are the reader's (an unclosed ledger writes None and relabels). It does NOT run phase C or the watchdog itself (reconcile is called on the emitted rows), its venue is FakeNet. Round 9 (review b92e9479, DESIGN §3c): that a derived quantity or amount comes from ONE record (an amount 40 in one snapshot and a price 3 in another derive nothing — C unknown, 40 a lower bound, the row a band), that a terminal executedQty is CONSTANT (20 then 30 is a contradiction end to end; a terminal record without a C may still learn it; child fills beyond a terminal C are a contradiction), that the k-cancel's DELETE body is a record of the request (CANCELED 4 survives a sparse terminal query ⇒ top-up 6; a differing terminal 6 ⇒ contradiction, no top-up; an unreached symbol's UNKNOWN row carries the 4; -2013 after a cancel with facts is a contradiction, not absent), that a sparse terminal record (no executedQty, no cumQuote) is unreadable rather than 0, that the identity gate governs FACTS (a record failing it makes the request unmeasurable instead of entering the ledger as C 4 / terminal; a missing side, a non-finite origQty and an orderId other than the acknowledged one fail it; a side-less fill is never read as SELL), that contradictions travel with the facts on the partial path (query and page agree), and that the amount re-query's record must be OUR request (client id / symbol / orderId / origQty / side compared when the record carries them; a mismatch makes the request unmeasurable). Round 10 (review 38808cbd, DESIGN §3d): that a quantity carries its COMPLETENESS TYPE (an open snapshot's 20 followed by a terminal record without a quantity is a lower bound — [20, Q], known 70 / band 30 beside a second leg of 50, legal 70–100 CLEAN, 60 and 110 anomalies — while a terminal snapshot's 20 is final; a child-fill subset raises the lower bound and never proves the total; a child set that reaches Q does), that every UNKNOWN exit first folds the records already held (a CANCELED 4 survives an exhausted or -2013 query — the latter as a contradiction; a settlement cancel that answered CANCELED 6 survives a failed re-query; the submit response's own PARTIALLY_FILLED 4 is the first record; a status-only DELETE body proves existence and terminality, so -2013 after it is a contradiction, not absent), and that two final snapshots with different amounts contradict. Round 11 (review f79dc8cd, DESIGN §3e): that a final amount is never divided by a lower-bound quantity to make a price, that a maker leg the venue told us about carries a request ledger so its quantity is the reader's band (open 4 / final amount 6 ⇒ known 4 / band 6, total [8, 14] beside a top-up of 4), that a non-object query answer still folds the records already held, that a child subset's amount is a lower bound (the amount closes only with the set; reconcile reads a ledger row's band whether or not its amount closed), that a missing or None finality key is NOT final (no legacy fallback) while a lower bound reaching Q is final by capacity, that a top-up response without a status proves no finality, and that the submit record is bound by the client id WE sent (a response naming another id lends no orderId and fails the present-field gate). Round 12 (review 83fcbbcc, DESIGN §3f / §5 field-by-reader table): that the submit response's direct reader checks the body against the order we sent before reading a number (a body naming another client id is a contradiction, and no re-query is made under that id), that a merged record whose quantity 0 is a LOWER BOUND is compatible with a positive final amount (NEW 0 → fills → cancel with an amount-only terminal read ⇒ known 0 / band 10 / amount 4, total [6, 16] beside a top-up of 6) while a raw same-snapshot 0-beside-amount stays a contradiction, that a final amount is constant against child fills and a subset's amount may not exceed it, that a duplicate trade id without a quote never erases a recorded quote, that a child subset's vwap goes to its own column and never becomes the row's price, that an amount known beside an unknown quantity is the interval [0, Q] (known 0 + band, on the UNKNOWN row and the normal maker ledger alike — a contract choice registered in DESIGN §3f.6), and that explicit zeros carry the amount's finality. Round 13 (review ec2fe835, DESIGN §3g): that the child-fill amount LOWER BOUND (Σ over the children that carry a quote) is compared against a final amount without waiting for the others (5/N50 + 5/N-missing against a final 40 is a contradiction), that a non-finite ledger amount is flagged even when the quantity is missing, that every identity gate reads a present-but-malformed field (empty side, non-finite origQty) as a contradiction and an absent one as no evidence (one `identity_field` for the submit gate, the re-query gate and the settlement's present-field gate), and that the two cost diagnostics (neutrality_price, chase_readout.collect) measure bps over PRICED fills only and report the unpriced count / notional / fee beside it (no priced fill ⇒ None, never 0). Round 14 (review d51cb731): that an order id is a LOSSLESS integer everywhere it is read (a fraction is never truncated, ±Inf never raises through complete_anchor, text is malformed even without an acknowledged id to compare with; the child-fill joins skip and count such ids), and that the two cost diagnostics count a fill as MEASURED only with a usable price AND a known fee (fee_paid None ⇒ fee-unknown bucket, never a free fill; NaN / negative prices ⇒ unpriced), with the bps key's denominator explicitly documented as the measured fills, and that a fee written as a raw non-USDT sum without a completed conversion (fee_all_usdt False, no fee_conversion) is fee-unknown, not a known fee. Round 15 (review 1ef6ce8c): that an order id is read as EXACT text or exact value — a digit string is parsed with arbitrary precision (never through float: '9007199254740993' stays itself, two ids near 2^53 never merge, the stored value never changes), a float at or beyond 2^53 or any fractional text is malformed — through the gates, the acknowledged-id lookup and the child-fill joins (an outside fill with a neighbouring id is not attributed and does not close our open request), that the reshape report's neutrality section cites the MEASURED count and notional and explains a None price by its bucket, and that the fee value, currency flag and conversion marker on a row come from the same write (a re-stamp clears the earlier marker). It does NOT prove the venue's DELETE body always carries the final executedQty (documented, assumed), nor that two differing terminal readings can never both be genuine (a venue-side correction would need its own evidence type).",
 +    "tests_reduce_only_clamp": "that the venue always CLAMPS a reduceOnly order that exceeds the position rather than refusing it — observed on 2026-09-12 12Z (MEMEUSDT/POPCATUSDT, origQty = the position to the contract, no error) and documented, assumed general; and that the allOrders record of a clamped request has the shape this suite rebuilds from the submit response + the child fills (the live record was not logged). It proves, against the real gates (`submit_identity_mismatch`, `last_fill_details`, `venue_fills.settle_ambiguous_legs`) driven by the REAL 12Z submit responses and the REAL 08Z/12Z readbacks, that a reduceOnly record whose origQty is BELOW ours is the fourth state `clamped` (recorded, orig_qty = the position, no `inconsistent`), that an origQty ABOVE ours, a non-reduceOnly difference and a wrong side are still contradictions at every gate (the 1e-6 tolerance is untouched), that `plan()` sizes a full exit as −held_qty from the same account snapshot (F2 removed at the source; no quantity ⇒ the old path, labelled `notional_over_mid`), and end to end through the unmodified plan→submit_maker→complete_anchor chain over a scripted transport that the maker rows close on the venue's capacity (`qty_venue`) and `reconcile` measures both names at residual 0 where the old code produced 2 × execution_of_unknown_size (the incident, reproduced from the live rows as a control; the origQty-above-ours mutation of the same chain still produces the 2 anomalies). It does NOT run the watchdog (the proportional response is (c), a separate ruling), nor prove that mark ≠ mid is the ONLY way ours can exceed the position.",
++    "tests_flatten_fee_backfill": "that the venue's allOrders still lists the flatten's orders when the runner is invoked (limit 500 / startTime — an unreached symbol is named, not fabricated), or that the LIVE run was ever performed (`LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 --apply` is the operator's step, with credentials; this suite drives the runner over an in-process fake). It proves, on the REAL 2026-09-12 day, that the flatten batch is detected as the one gap with its 255 own client ids and 255 fee-unmeasured order rows, and on a synthetic population that the legs are rebuilt by EXACT client id (never by the rebalance-id prefix a flatten does not carry), that --apply writes one fills row per child fill with order_type protective_flatten and the venue's commission, that a second apply writes nothing (idempotent by trade id), that a foreign trade is counted unattributed and never written, that a batch the venue does not list fails closed, and that the classic rebalance path and its maker/topup_taker buckets are untouched. The ORDER rows' fee_paid stays None by the ledger's append-only rule — the measurement lands on the fills rows, and a consumer that sums fees from order rows alone still under-reads the flatten.",
      "tests_income_twin_rows": "that the venue keys income rows the way the fixture does — it proves, against an in-process fake of /fapi/v1/income, that a trade's COMMISSION and REALIZED_PNL twins (same tranId) are BOTH summed, that a row re-served across a page boundary is still counted once, and that the old tranId-only key would have dropped exactly one twin per trade (positive control). Whether the venue also shares tranIds across OTHER pairs of types, or emits a third row per trade in some product, is a fact about the venue that only the live ledger reconciliation (income vs fills) can keep proving.",
      "tests_transport_resilience": "that the VENUE will be reachable on the resend — it proves, against an in-process fake of urlopen, that a request-phase failure on GET/DELETE is resent a bounded number of times while an order POST is NEVER resent under any failure — transport in either phase, HTTP 5xx, 200 non-JSON — but settled only by the venue's own order record (found ⇒ adopted, -2013 twice ⇒ recorded as not sent, else ambiguous), that the requote carries ambiguity as rested and the top-up keeps a confirmed chunk and writes UNKNOWN never zero, that a still-unresolvable POST is carried as possibly-resting, that the executor records transport rows and trips its circuit breaker, and that an exception escaping the submit loop cancels what rested, writes rows and pages before re-raising. It cannot see whether the venue actually processed a request whose answer we lost when the query ALSO fails (that order is handed to phase B as possibly-resting and to the next sweep), nor whether a 0.5 s pause is long enough for the venue to have decided before we ask it, nor whether Telegram delivers the page",
      "tests_stale_order_sweep": "that the VENUE lists an order we left behind — the whole sweep rests on openOrders returning it. If the venue omitted a resting order, or if a fill landed between the query and the cancel, this would look identical and the stale order would survive. It closes the gap between anchors, not the gap inside one",
+diff --git a/ops/rejudge_ledger_rows.py b/ops/rejudge_ledger_rows.py
+new file mode 100644
+index 0000000..1fcf2ac
+--- /dev/null
++++ b/ops/rejudge_ledger_rows.py
+@@ -0,0 +1,236 @@
++#!/usr/bin/python3
++"""E-0912-A — RE-JUDGE persisted `ledger_inconsistent` rows against their ORIGINAL evidence, and write a RECEIPT.
++READ-ONLY: never edits a ledger row, never clears a flag, never touches the watchdog's state directory. The only file it writes is
++the receipt at --out (default: a temp path printed at the end).
++
++★ WHY A TOOL AND NOT A FLAG FLIP (review 563e3470 §2/§5, lead 12Z inspection (1)/(2)). The 12Z rows still carry the
++OLD gate's verdict — `inconsistent: "… origQty 1933692.0 differs from ours 1933986.0"` and `ledger_inconsistent` —
++beside confirmed_qty −1933692 and child fills summing to exactly that. Three things must stay separate and each
++needs its own receipt: (i) NEW requests are no longer mis-judged (the broker/venue_fills gates, T1–T7); (ii) the
++HISTORICAL mis-classification is re-judged from evidence — THIS tool, and `reconcile._rederive_ledger` at read time;
++(iii) the resume gate can pass (T9 / `ops/resume_from_trip.sh --check`, the operator's step). Deleting the old string,
++clearing state or flipping a resume flag would collapse the three into one unevidenced act.
++
++★ WHAT IS RE-JUDGED, AND WITH WHAT EVIDENCE. For every `orders` row of the day that carries `ledger_inconsistent`:
++    · the read-time rule (`reconcile._rederive_ledger`: the string's own two numbers say the venue accepted LESS —
++      0 < Qv < Qs; |C| ≤ Qv ≤ |Qs| with Qs == the request's qty; Σ child trade_qty == |C|; same side) — verdict
++      `known` (quantity = C) or `stands`;
++    · the ORIGINAL evidence, independently of the string: the POST response filed by the broker (watchdog
++      `events.jsonl`, action `submit`, matched by `clientOrderId` == the request's client_id): its `origQty` (Qv),
++      `reduceOnly`, `side`; the day's `fills` rows of that (rebalance_id, symbol): their trade_ids vs the request's
++      `trade_qty` keys, Σ fill_notional; the `position_readback` rows before and at the anchor (the position the
++      request set out from, and what was left).
++    · a CROSS-CHECK: the string's Qv equals the POST response's origQty; the children named on the request are the
++      day's fills rows; readback_after == readback_before + C.
++  Nomenclature: Qs = quantity sent; Qv = venue-accepted origQty; L = executed lower bound; F = proven final; C = the
++  request's confirmed quantity (here Σ children = F when the venue's record is terminal).
++★ THEN the watchdog's §4-5b / §4-7 derivation is run on a COPY of the day (no network: `venue_events=[]`,
++  `derive_ops_stats` for §4-7) and its cond5b / drift states are written into the receipt — the reader sees what the
++  guards would say WITHOUT anyone having edited anything. What `ops/resume_from_trip.sh` would still check is listed
++  in the receipt verbatim (mode, seeded-rehearsal marker, the hard gate over the WHOLE pilot_log with the public-path
++  probe, then the quarantine/remove steps) — this tool runs none of them.
++
++Usage:
++    python3 ops/rejudge_ledger_rows.py --check --pilot-log <root> --day 20260912 --events <watchdog/events.jsonl> [--out receipt.json]
++Exit 0 = the receipt was written (whatever the verdicts); 2 = bad arguments / missing inputs.
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import os
++import shutil
++import sys
++import tempfile
++import time
++from typing import Any, Dict, List, Optional
++
++REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
++for _d in ("live", "ops", "signal", "scheduler"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++
++
++def _rows(path: str) -> List[dict]:
++    if not path or not os.path.exists(path):
++        return []
++    return [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
++
++
++def _fin(x) -> Optional[float]:
++    try:
++        v = float(x)
++    except (TypeError, ValueError):
++        return None
++    return v if (v == v and v not in (float("inf"), float("-inf"))) else None
++
++
++def submit_records(events_path: str) -> Dict[str, dict]:
++    """clientOrderId -> {order, resp} from the watchdog's events.jsonl (every `submit` action the broker filed).
++    The LAST record for an id wins (a re-submit under the same id would be its own defect, and is counted)."""
++    out: Dict[str, dict] = {}
++    dup = 0
++    for ev in _rows(events_path):
++        for a in ev.get("actions") or ():
++            if a.get("action") != "submit" or not isinstance(a.get("resp"), dict):
++                continue
++            cid = (a.get("order") or {}).get("client_id") or a["resp"].get("clientOrderId")
++            if cid is None:
++                continue
++            if str(cid) in out:
++                dup += 1
++            out[str(cid)] = {"order": a.get("order") or {}, "resp": a["resp"], "ts": a.get("ts")}
++    out["__duplicates__"] = {"n": dup}          # bookkeeping entry beside the client-id keys (read by the receipt only)
++    return out
++
++
++def rejudge_day(root: str, day: str, events_path: Optional[str]) -> Dict[str, Any]:
++    import pilot_log as PL
++    import reconcile as RC
++
++    data = PL.read_day(root, day)
++    subs = submit_records(events_path) if events_path else {}
++    fills_by = {}
++    for f in data.get("fills", []):
++        fills_by.setdefault((f.get("rebalance_id"), f.get("symbol")), {})[str(f.get("trade_id"))] = f
++    rb_by_anchor: Dict[float, Dict[str, dict]] = {}
++    for r in data.get("position_readback", []):
++        rb_by_anchor.setdefault(float(r["anchor_ts"]), {})[r["symbol"]] = r
++    anchors_sorted = sorted(rb_by_anchor)
++
++    rejudged: List[Dict[str, Any]] = []
++    for o in data.get("orders", []):
++        if not o.get("ledger_inconsistent"):
++            continue
++        rd = RC._rederive_ledger(o)
++        q, why, kind = RC._exec_qty(o)
++        ats = float(o["anchor_ts"])
++        prev_ats = max([a for a in anchors_sorted if a < ats], default=None)
++        rb_prev = (rb_by_anchor.get(prev_ats) or {}).get(o["symbol"]) if prev_ats is not None else None
++        rb_at = (rb_by_anchor.get(ats) or {}).get(o["symbol"])
++        reqs = []
++        for r in (o.get("request_ledger") or ()):
++            if not isinstance(r, dict):
++                continue
++            cid = r.get("client_id")
++            sub = subs.get(str(cid)) if cid is not None else None
++            resp = (sub or {}).get("resp") or {}
++            tq = r.get("trade_qty") or {}
++            fills_here = fills_by.get((o.get("rebalance_id"), o.get("symbol")), {})
++            children_in_fills = sorted(k for k in tq if k in fills_here)
++            children_not_in_fills = sorted(k for k in tq if k not in fills_here)
++            m = RC._ORIGQTY_PAIR.search(str(r.get("inconsistent") or ""))
++            str_qv = _fin(m.group(1)) if m else None
++            str_qs = _fin(m.group(2)) if m else None
++            post_qv = _fin(resp.get("origQty"))
++            entry = {
++                "client_id": cid,
++                "Qs_sent": r.get("qty"),
++                "C_confirmed": r.get("confirmed_qty"),
++                "children_sum": (sum(float(v) for v in tq.values()) if tq else None),
++                "n_children": len(tq),
++                "inconsistent": r.get("inconsistent"),
++                "rule_verdict": ("known" if (rd and cid in rd["known"]) else ("stands" if rd else "no ledger")),
++                "evidence": {
++                    "post_response_found": bool(sub),
++                    "post_origQty_Qv": post_qv,
++                    "post_reduceOnly": resp.get("reduceOnly"),
++                    "post_side": resp.get("side"),
++                    "post_orderId": resp.get("orderId"),
++                    "order_sent_quantity": (sub or {}).get("order", {}).get("quantity"),
++                    "order_sent_reduce_only": (sub or {}).get("order", {}).get("reduce_only"),
++                    "string_Qv": str_qv, "string_Qs": str_qs,
++                    "children_in_day_fills": children_in_fills,
++                    "children_not_in_day_fills": children_not_in_fills,
++                    "fills_notional_sum": (sum(float(fills_here[k]["fill_notional"]) for k in children_in_fills) if children_in_fills else None),
++                    "readback_before": ({"anchor_ts": prev_ats, "qty": rb_prev.get("venue_position_qty"), "notional": rb_prev.get("venue_position_notional")} if rb_prev else None),
++                    "readback_at": ({"anchor_ts": ats, "qty": rb_at.get("venue_position_qty"), "notional": rb_at.get("venue_position_notional")} if rb_at else None),
++                },
++            }
++            c = _fin(r.get("confirmed_qty"))
++            entry["cross_check"] = {
++                "string_Qv_equals_post_origQty": (str_qv is not None and post_qv is not None and abs(str_qv - post_qv) <= 1e-9),
++                "post_says_reduceOnly_and_we_sent_reduce_only": (resp.get("reduceOnly") is True and bool((sub or {}).get("order", {}).get("reduce_only"))),
++                "Qv_below_Qs": (str_qv is not None and str_qs is not None and 0 < str_qv < str_qs),
++                "children_all_in_day_fills": (bool(tq) and not children_not_in_fills),
++                "children_sum_equals_C": (c is not None and tq and abs(sum(float(v) for v in tq.values()) - abs(c)) <= 1e-9),
++                "readback_after_equals_before_plus_C": (rb_prev is not None and rb_at is not None and c is not None
++                                                        and abs(float(rb_prev.get("venue_position_qty") or 0.0) + c - float(rb_at.get("venue_position_qty") or 0.0)) <= 1e-9),
++            }
++            entry["cross_check"]["all"] = all(bool(v) for v in entry["cross_check"].values())
++            reqs.append(entry)
++        rejudged.append({
++            "rebalance_id": o.get("rebalance_id"), "anchor_ts": ats, "symbol": o["symbol"], "order_type": o.get("order_type"),
++            "terminal_reason_as_written": o.get("terminal_reason"),
++            "ledger_inconsistent_as_written": o.get("ledger_inconsistent"),
++            "read_time_verdict": {"kind": kind, "quantity": q, "why": why,
++                                  "standing_contradictions": (rd or {}).get("stands") if rd else None},
++            "requests": reqs,
++        })
++
++    # the guards' derivation on a COPY of the day — nothing here writes into `root`
++    tree = tempfile.mkdtemp(prefix="rejudge_")
++    shutil.rmtree(tree)
++    os.makedirs(tree)
++    shutil.copytree(os.path.join(root, day), os.path.join(tree, day))
++    wd: Dict[str, Any]
++    try:
++        import watchdog as WD
++        import watchdog_inputs as WI
++        ops = WI.derive_ops_stats(tree)
++        ev = WD.evaluate(tree, venue_events=[], ops_stats=ops)
++        c5 = ev["conditions"]["cond5_venue_event"]["5b_liquidation_anomaly"]
++        c7 = ev["conditions"]["cond7_ops"]
++        wd = {"cond5b": {k: c5.get(k) for k in ("state", "n", "triggered", "last_reconciled_anchor_ts", "n_historical_anomalies")},
++              "cond5b_examples": [(a.get("symbol"), a.get("kind")) for a in (c5.get("examples") or [])],
++              "cond7_drift_state": c7.get("drift_state"), "cond7_triggered": c7.get("triggered"),
++              "tripped": ev.get("tripped"), "triggers": ev.get("triggers"), "conditions_blind": ev.get("conditions_blind"),
++              "caliber": "WD.evaluate on a COPY of this day only; venue_events=[] (no public-path probe); §4-7 from derive_ops_stats"}
++    except Exception as e:                                  # noqa: BLE001 — the receipt must still be written
++        wd = {"error": f"{type(e).__name__}: {str(e)[:160]}"}
++    finally:
++        shutil.rmtree(tree, ignore_errors=True)
++
++    return {
++        "tool": "ops/rejudge_ledger_rows.py --check (READ-ONLY; writes only this receipt)",
++        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
++        "pilot_log_root": root, "day": day, "events_path": events_path,
++        "n_rows_with_ledger_inconsistent": len(rejudged),
++        "n_rows_rejudged_known": sum(1 for r in rejudged if r["read_time_verdict"]["kind"] == "known"),
++        "n_rows_still_unquantifiable": sum(1 for r in rejudged if r["read_time_verdict"]["kind"] != "known"),
++        "n_requests_cross_check_all_true": sum(1 for r in rejudged for q in r["requests"] if q["cross_check"]["all"]),
++        "submit_records_duplicates": subs.get("__duplicates__"),
++        "rows": rejudged,
++        "watchdog_derivation_on_copy": wd,
++        "not_done_here": [
++            "no ledger row edited, no flag cleared, the watchdog's state directory untouched",
++            "ops/resume_from_trip.sh NOT run; what it would check: (0) LIVE_MODE names the tripped mode; (0b) no `_seeded_by_rehearsal` marker; "
++            "(1) HARD GATE = WI.collect (public-path probe, network) + WD.run on a COPY of the WHOLE pilot_log (all days): refuses on any "
++            "`conditions_blind` or `tripped`; --check stops here; (2) quarantine state.json; (3) remove it + harvest_ema.json; (4) verify no halt/reduce-only state remains",
++        ],
++    }
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--check", action="store_true", help="the only mode; present so the invocation says what it does")
++    ap.add_argument("--pilot-log", required=True, help="pilot_log ROOT (the directory holding YYYYMMDD day dirs)")
++    ap.add_argument("--day", required=True)
++    ap.add_argument("--events", default=None, help="watchdog events.jsonl (POST responses); optional")
++    ap.add_argument("--out", default=None, help="receipt path (JSON); default: a temp file, printed")
++    a = ap.parse_args()
++    if not os.path.isdir(os.path.join(a.pilot_log, a.day)):
++        print(f"no such day: {os.path.join(a.pilot_log, a.day)}", file=sys.stderr)
++        return 2
++    rep = rejudge_day(a.pilot_log, a.day, a.events)
++    out = a.out or os.path.join(tempfile.mkdtemp(prefix="rejudge_receipt_"), f"rejudge_{a.day}.json")
++    with open(out, "w", encoding="utf-8") as f:
++        json.dump(rep, f, indent=1, default=str, ensure_ascii=False)
++    print(json.dumps({k: rep[k] for k in ("day", "n_rows_with_ledger_inconsistent", "n_rows_rejudged_known",
++                                          "n_rows_still_unquantifiable", "n_requests_cross_check_all_true")}, ensure_ascii=False))
++    print(json.dumps(rep["watchdog_derivation_on_copy"], default=str, ensure_ascii=False))
++    print(f"receipt: {out}")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
 diff --git a/run_acceptance.sh b/run_acceptance.sh
-index b9895c7..f9f83e9 100644
+index b9895c7..82f18f8 100644
 --- a/run_acceptance.sh
 +++ b/run_acceptance.sh
-@@ -162,6 +162,9 @@ SUITES=(
+@@ -162,6 +162,12 @@ SUITES=(
    "tests_venue_cap_clamp:$_SELF/live/tests_venue_cap_clamp.py"
    "tests_income_twin_rows:$_SELF/live/tests_income_twin_rows.py"
    "tests_request_identity_unknown:$_SELF/live/tests_request_identity_unknown.py"
 +  # E-0912-A (2026-09-12 12:47Z false-positive flatten): a reduce-only exit CLAMPED by the venue to the position is the
 +  # FOURTH identity state, not a contradiction; a full exit is sized as the position itself. Real 12Z rows, real chain.
 +  "tests_reduce_only_clamp:$_SELF/live/tests_reduce_only_clamp.py"
++  # E-0912-A (b) fee population: the protective flatten's executions get fills rows + measured commission via the B26b
++  # backfill (legs joined by the rows' own client ids); real-day gap cell + synthetic population + fail-closed control.
++  "tests_flatten_fee_backfill:$_SELF/live/tests_flatten_fee_backfill.py"
    "tests_venue_rate_authority:$_SELF/live/tests_venue_rate_authority.py"
    "tests_filters_cache_per_mode:$_SELF/live/tests_filters_cache_per_mode.py"
    "tests_rate_backstop_window:$_SELF/live/tests_rate_backstop_window.py"
