@@ -141,3 +141,14 @@ R-1 BNB 抵扣(建议恢复) · R-2 杠杆 2.0×(无建议) · R-3 XIB 影子 ·
 | 自检 | 151 → 228 → 278 → **328**(lead 复跑 ALL PASS; `tests_pipeline_gates_lead_final.log`), 新套件 19 | manifest rc 0 | 三人同文件并发编辑(W3/W7)—— 最终文件 sha 7181045d 在 lead 运行前后不变 |
 **仍开(诚实)**: mwf/refit/arms/judge/export 真数据未跑到底(GPU 禁); 十月合同批准 = 用户字(两门 sha); GPU 阶段 env 未清; r20 A1 收据以 e0912b 新收据替代(旧收据留档为过期)。**未入库**: W6(执行器)/ W1 / W2 仍在克隆, 待其电池与红集证明。
 
+## §11 追记 3(2026-09-12 17:0xZ)—— 执行器三件最终交付 + 叠加落地电池
+| 件 | 最终 diff(sha256 前 8) | 内容 | 自证 | 研究员复审项闭合 |
+|---|---|---|---|---|
+| **W6 (a)(b)** | `w6_reduce_only_clamp_ab.diff` **cdf37046**(= 918559f→fe97e46, 25 文件含 12Z 真日夹具 4.3MB) | clamped 第四态; 全退出 = 持仓张数; reconcile 从账本内容重判持久化的「矛盾」(仅限有据 clamp 型); 告警文案 = 行内原因; 平仓路径 fills/费回填修(F<utc>-SYM-n 无 rid 前缀 ⇒ B26b 重建 0 腿 = 根因); Qs/Qv/L/F 命名; T7 合成标注 | 新套件 75/75 + 回填 13/13; 旧码 918559f 红(32/70); **只读重判收据** `w6_rejudge_20260912_receipt.json`(两行 6/6 交叉核对真); **T9 真 12Z 日: 新码 cond5b CLEAN / §4-7 CLEAN, 旧码 ANOMALOUS 2 + DRIFT**; 43 日复现 `w6_resume_gate_replica_{new,old}.log`; 研究员探针重跑 exit 0 | C1 谓词(三格)、C2 符号边界(5 格)、C3 措辞、历史重判=只读收据、255 平仓费人口(代码修好, **真跑需凭据: `LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 [--apply]` = 运维步**) |
+| W6 (c) | `w6_proportional_response_c.diff`(fe97e46→3308cbc, 7 文件) | 比例响应, **默认 OFF**(`UNKNOWN_SIZE_LOCAL_RESPONSE=False`) | 50/50, 旧码 T8 红 | 不随 (a)(b) 落地; 翻开 = R-14 用户字 |
+| **W2** | `w2_readers_three_bucket.diff` **3794ecfd** | E6 完整性由 cost_buckets 派生(m1 位保留并标不一致; 冻结 `pilot_metrics.py` 不动 = R-12b); 残差要求 realised.complete; 「已读部分」; NaN 不可观测; 覆盖率精确比; 真账本格显式 SKIP | 64+42(有账本)/ 58+6 SKIP + 39+3 SKIP(无账本); 旧读者红; 克隆电池 133 套 132 绿 | W2-R1/R2 |
+| **W1** | `w1_ic_monitor_contract.diff` **86324465** | 恢复按触发窗/事件(RECOVERED 仅当触发窗可判且脱线); 冷却限同一事件; `allow_abbrev=False` 先解析后 import; OBJECT 措辞; <24 行普查; `LEGACY_TRIGGER_WINDOWS=["r48"]`(事实: 09-09/09-10 DECIDE 皆 r48 门); T9g 无账本 SKIP | 76/76; 旧码 918559f 与复审冻结版 8b2c218c 均红; 克隆电池 132 套 131 绿 | W1-R1/R2/R3; 最早 RECOVERED 仍 09-16(更正 09-14 说法) |
+**叠加落地电池**(fresh clone 918559f + W6ab → W2 → W1 顺序应用, 真 state 副本只读拷入, `stacked_landing_battery_20260912T164355Z.log`): 三 diff 干净应用(21 文件), compile ok, 四新套件全绿(reduce_only_clamp / ic_monitor / readers 42 / daily_summary 64+1 SKIP); **130 套, 红 2**: `tests_env_loading`(克隆无 .env, 预期)与 **`tests_disposition_matrix`**(今日账本事实: 12Z 锚两行被尺子计为稳态锚 1,524U 非自愿缺口, 且 12Z 既非稳态也非停机锚)。后者会在运行树 safe_commit 电池同样红 ⇒ **落地前需第七次尺子重标定(事实分类, 不放宽)**: 有据重判的行不计非自愿缺口 + 新类 TRIP-FLATTENED(承重断言: 255 张 protective_flatten Σ 235,383U), 已派 W6, 仅测试文件。
+**落地顺序(待用户字)**: 非锚窗 safe_commit ×3(W6ab → W2 → W1; 各自电池全绿)→ 首锚验收(RUNBOOK §3 + W6 新条目: 全退出名 origQty == 持仓、clamped 记录数、四类标记 0)→ 用户手动 `resume_from_trip.sh`(其自检: LIVE_MODE、公共路径探针、看门狗复评; W6 §4.5)→ 运维步: 平仓费真回填 `--apply`。
+**未入库/未做**: (c) 不落地; 平仓费真回填未跑(凭据); 16Z 前向平价 2/3, 20Z 后 3/3。
+
