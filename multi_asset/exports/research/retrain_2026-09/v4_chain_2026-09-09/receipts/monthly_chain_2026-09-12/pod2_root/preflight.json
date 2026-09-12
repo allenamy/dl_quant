@@ -1,0 +1,216 @@
+{
+ "gate": "PREFLIGHT",
+ "PASS": true,
+ "month": "2026-09",
+ "month_env": "v4_month_2026-09.pod2ctrl.env",
+ "month_env_sha256": "266c2d0dfc56f9e65f2f62b2d787eadc184fe1d9923cb8087c1bc96fb5254496",
+ "device_dir": "/workspace/w3_monthly_chain_2026-09-12/device",
+ "root": "/workspace/w3_monthly_chain_2026-09-12/root",
+ "device_sha256": {
+  "chain_lib.sh": "266a4cbe961c0a6fbf4a616c9a71969298af420230310f46d91b91e895ef884c",
+  "chain_v4_monthly.sh": "920d18faea7a02686ca6f7f8f86dc58f9576f56a540f9d7314e72578d2d54a03",
+  "v4_months.py": "1f99d5688f546b3787d70cdc1c5a2f496046cd09ebfa9851edd6c2cc9c5d4aed",
+  "v4_gate_common.py": "f8f4fc0e6ca3a02f9c51383b72f553b5f8614b3be5f496f510bae9d43fe0df12",
+  "ELIGIBILITY_CONTRACT.json": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+  "v4_gate_step1.py": "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4",
+  "v4_gate_step2.py": "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8",
+  "pod_dlw_targets_raw.py": "d7c528231f00902964c5244fe8402bbd84688af05c04c2dab8760fe8ad584be2",
+  "pod_fea_ext_clamp.py": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+  "pod_export_bundle_v4.py": "bd4744f6994e6908e156da0e4dc20548ee53e81b2da33b315b5358bf9075be03",
+  "pod_legs_v4b.py": "8c33a2305c38a148bd28accd1da873fad6332fcfb06775742fac16412d8185da",
+  "pod_f10_train_monthly_v4.py": "fd5707bd3acccdbb3689cf17484fcb30c48002cabf2e1c132bcf48791ac14e21",
+  "launch_mwf_v4b.sh": "07b2a602610380cd79e6b023a71929c32930f61f02031ab87db472779b1ae9fc",
+  "merge_mwf_v4b.py": "57b504826ac6d78a8ed163e49789e1d930cb546d96ca2a9458411a7e0aaed122",
+  "pod_f10_refit_v4.py": "6c0666f4eef2c664bf77aa436b3427e651c0cd79e58ae416c1edbd88294b3b86",
+  "build_dev_v4.py": "df80582a354d1734227596c1f2e375a947c55ff372716aec11033b390d3595b1",
+  "run_v4_arms.sh": "0da0d464fea75ac2a964301d176a3b613cbe187be031ca127f5611e218491bb8",
+  "judge_v4.py": "7f1aa5d63ea37d67db9518f7f1b03c73db917308bd169ba02de6a6298ef54c42",
+  "v4e_gate_export_v2.py": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+  "gate_signal_parity_v2.py": "abc45cad806c22d717d4924869b34d8e127dbe8e61fec07c00008e5df52a3ed0",
+  "cache_coverage_gate_v2.py": "23584a0c818a0d886cc79ad5c03de686f6c7ae43c101024a8bfab051bfd4a81e"
+ },
+ "external_sha256": {
+  "BUILDER_FEA82": {
+   "path": "/workspace/pod_dlw_features_ext.py",
+   "sha256": "e86725cc2768bb6265dd8fb2b3580629706166da012298768b1c0788e8f5a624"
+  },
+  "BUILDER_FEA89": {
+   "path": "/workspace/pod_f8_build_ext.py",
+   "sha256": "f606bffa620004f69ace3704ca19d8f3643b764e918f5eea5a4575b40587f07e"
+  },
+  "BASE_TRAINER": {
+   "path": "/workspace/pod_f10_train_ext.py",
+   "sha256": "93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598"
+  }
+ },
+ "inputs": {
+  "CACHE": {
+   "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+   "bytes": 2087655898,
+   "is_dir": false
+  },
+  "PANEL_SPLICE": {
+   "path": "/workspace/data/wide_panel_4h_v3splice.npz",
+   "bytes": 251172282,
+   "is_dir": false
+  },
+  "PANEL_KING": {
+   "path": "/workspace/data/wide_panel_4h_v2ext.npz",
+   "bytes": 232319980,
+   "is_dir": false
+  },
+  "RAW_PATCH": {
+   "path": "/workspace/review_scratch/raw_patch.npz",
+   "bytes": 11961,
+   "is_dir": false
+  },
+  "HOLE_CELLS": {
+   "path": "/workspace/review_scratch/holefix2_cells.npz",
+   "bytes": 22815370,
+   "is_dir": false
+  },
+  "BUNDLE_BASE": {
+   "path": "/workspace/slow_scorer_v4base.json",
+   "bytes": 306,
+   "is_dir": false
+  },
+  "EXPORT_PANEL": {
+   "path": "/workspace/data/wide_panel_4h_v3splice.npz",
+   "bytes": 251172282,
+   "is_dir": false
+  },
+  "EMA_STATE_JSON": {
+   "path": "/workspace/fund_state_canoncont.json",
+   "bytes": 31162,
+   "is_dir": false
+  },
+  "LIVE_PINS": {
+   "path": "/workspace/live_pins.json",
+   "bytes": 7265,
+   "is_dir": false
+  },
+  "FUND_AUG": {
+   "path": "/workspace/fund_aug.json.gz",
+   "bytes": 13533436,
+   "is_dir": false
+  },
+  "FUNDING_DIR": {
+   "path": "/workspace/wide_multisrc/funding",
+   "bytes": null,
+   "is_dir": true
+  },
+  "LEGS_OLD": {
+   "path": "/workspace/f8_ext/data/f10v2_legs.npz",
+   "bytes": 67892476,
+   "is_dir": false
+  },
+  "LEGS_PANEL": {
+   "path": "/workspace/data/wide_panel_4h_v3splice.npz",
+   "bytes": 251172282,
+   "is_dir": false
+  },
+  "SIGNAL_RECEIPT": {
+   "path": "/workspace/uplift_2026-09-11/infra2/GATE_signal_parity.json",
+   "bytes": 279,
+   "is_dir": false
+  },
+  "BUILDER_FEA82": {
+   "path": "/workspace/pod_dlw_features_ext.py",
+   "bytes": 5794,
+   "is_dir": false
+  },
+  "BUILDER_FEA89": {
+   "path": "/workspace/pod_f8_build_ext.py",
+   "bytes": 42618,
+   "is_dir": false
+  },
+  "BASE_TRAINER": {
+   "path": "/workspace/pod_f10_train_ext.py",
+   "bytes": 18448,
+   "is_dir": false
+  },
+  "PREV_META": {
+   "path": "/workspace/data/wide_fea_v2ext_meta.npz",
+   "bytes": 25383804,
+   "is_dir": false
+  },
+  "REF_META": {
+   "path": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_raw.npz",
+   "bytes": 27393697,
+   "is_dir": false
+  },
+  "DLW_EXT/data/dlw_targets.npz": {
+   "path": "/workspace/dlw_ext/data/dlw_targets.npz",
+   "bytes": 191877017
+  },
+  "F8_EXT/preds/f10_V2MAIN_s42.npy": {
+   "path": "/workspace/f8_ext/preds/f10_V2MAIN_s42.npy",
+   "bytes": 33843224
+  },
+  "F8_EXT/preds/f10_V2MAIN_s2027.npy": {
+   "path": "/workspace/f8_ext/preds/f10_V2MAIN_s2027.npy",
+   "bytes": 33843224
+  },
+  "PREV_BUNDLE/slow_pred_pinned.npy": {
+   "path": "/workspace/shadow_bundle_v3/slow_pred_pinned.npy",
+   "bytes": 33743744
+  },
+  "HC/masks/umask_UPIT_CRYPTO.npz": {
+   "path": "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+   "bytes": 100021
+  },
+  "HC/calib/costb_fee_steady.json": {
+   "path": "/workspace/review_scratch/health_check/calib/costb_fee_steady.json",
+   "bytes": 2394
+  },
+  "HC/run_arm.sh": {
+   "path": "/workspace/review_scratch/health_check/run_arm.sh",
+   "bytes": 1623
+  },
+  "HC/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz": {
+   "path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz",
+   "bytes": 15834714
+  },
+  "HC/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz": {
+   "path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz",
+   "bytes": 15933008
+  },
+  "HC/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s42.npz": {
+   "path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s42.npz",
+   "bytes": 9389729
+  },
+  "HC/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s2027.npz": {
+   "path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s2027.npz",
+   "bytes": 9368269
+  }
+ },
+ "gate_approval": {
+  "STEP1": {
+   "source": "v4_gate_step1.py",
+   "sha256": "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4",
+   "ok": true,
+   "why": "APPROVED STEP1: ['278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4']"
+  },
+  "STEP2": {
+   "source": "v4_gate_step2.py",
+   "sha256": "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8",
+   "ok": true,
+   "why": "APPROVED STEP2: ['db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8']"
+  },
+  "BUNDLE_export": {
+   "source": "v4e_gate_export_v2.py",
+   "sha256": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+   "ok": true,
+   "why": "APPROVED BUNDLE_export: ['d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e']"
+  }
+ },
+ "months_all": "202501,202502,202503,202504,202505,202506,202507,202508,202509,202510,202511,202512,202601,202602,202603,202604,202605,202606,202607,202608",
+ "seeds": [
+  "42",
+  "2027"
+ ],
+ "generation": "v3_2026-09",
+ "fails": [],
+ "utc": "2026-09-12T10:47:10Z",
+ "dryrun": "0"
+}

@@ -6,6 +6,7 @@
 
 ## §0★ 唯一执行步骤单(v4 口径, 2026-09-12 定稿; 用户字 09-12「既然 v4 已经确定是正确口径, 10 月 runbook 为什么还不修」)
 
+> **★ 修订 3(2026-09-12 W3, 见本节末「§0★ 修订 3」): 下表的逐步手工命令自本修订起由单一驱动 `chain_v4_monthly.sh <v4_month_<YYYY-MM>.env>` 接管**(装置目录 `v4_chain_2026-09-09/`; 月配置合同 `v4_month_2026-09.env` = 九月正控, `v4_month_2026-10.env.template` = 十月模板; 负控 `chain_v4_monthly_dryrun.sh`)。**十月重训只允许经驱动执行**; 下表保留为各阶段的「做什么/门」说明, 表中命令不再单独手抄(修订 2 已证手抄会漏 env)。设计与收据: `docs/DESIGN_v4_monthly_chain_2026-09-12.md`。**仍开(十月前必须裁定)**: STEP1/STEP2 门源码被合同冻结且写死九月比对对象, 十月需新门源码 + 合同批准(用户字); 见 DESIGN §6。
 > **本节取代 §2–§4(那三节自 2026-09-12 起只作 09-01 v3 首跑的历史记录, 不再执行)。** 命令逐字抄装置目录 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git 单源; pod 上只放运行副本 `R=/workspace/review_scratch`), 每步先过门再下一步, 门红即停。装置 sha(2026-09-12 实测): `chain_lib.sh` ffbb89b8 · `chain_v4_data.sh` ee0af0c0 · `chain_v4_gpu3.sh` 29611dbc · `chain_v4s_gpu.sh` 2563446d · `chain_king_e.sh` db5839e4 · `chain_v4_post_export.sh` e1dec02b。复跑前用 `v4_gate_common.py sha <file>` 实测, 不凭本表。
 
 | 步 | 做什么 | 命令 / 装置(逐字) | 门(红即停) |
@@ -42,6 +43,20 @@
 - (b) `pod_export_bundle_v4.py`: `provenance.generation` 从 env `BUNDLE_GENERATION` 读(缺省拒绝导出, 不再写死 "v3_2026-09"); 同时把 king 训练数据末锚(真正的梯度截止)写进 provenance, 不以构建日代替。
 - (c) `chain_lib.sh` / `chain_v4_data.sh` / `chain_v4_gpu3.sh` / `launch_mwf_v4b.sh`: 根目录 `R`、`dlw_v4raw`、`f8_v4` 等从一份**本月配置文件**读(`v4_month.env`, 内容 = 本月路径与月集合), 缺文件 rc≠0; 提供 `chain_v4_monthly_dryrun.sh`: 对空本月目录必须在第一道门停下(负控收据)。
 - 完成前, 十月重训的正确姿势 = **不做**; 若届时未完成, 影子继续跑 09-01 bundle(在役模型腿在正确口径下 (C) 不可区分, 见 CALIBER_STATUS 09-09)。
+
+### §0★ 修订 3(2026-09-12, W3; 修订 2 的三处代码改动 (a)(b)(c) 已落地, 研究员复核待做; 设计+收据 `docs/DESIGN_v4_monthly_chain_2026-09-12.md`)
+**执行姿势(十月)**: 在 pod 上把装置目录整目录拷为 `D`(git 单源 `v4_chain_2026-09-09/` 逐文件 sha 相等), 准备本月根 `R`(与九月 `/workspace/review_scratch` 完全分离), 填好 `v4_month_2026-10.env`(从 `v4_month_2026-10.env.template` 复制, 每个 `TODO_` 都换成真实路径), 然后**只跑一条命令**:
+```bash
+bash $D/chain_v4_monthly.sh $D/v4_month_2026-10.env          # 阶段: preflight → cache → data → gates → king → legs → mwf → refit → arms → judge → export
+```
+- 每阶段 rc + 完成标记/收据都被检查; 任一失败写 `FAIL_<原因>` 到 `$R/v4_commands.txt` 并 rc≠0; **只有整链全绿才写 `$R/v4_gates/MONTHLY_DONE.json`**(子集运行写 `MONTHLY_STAGES_DONE.json`, DONE=false)。
+- **顺序修正**(修订 2 ③): king 导出在 legs 之前, legs 的 `LEGS_PRED` = 本月 `$BUNDLE_OUT/slow_pred_pinned.npy`; refit 的四个 env 由驱动显式传(`F10_DLW F10_OUT SEED BEST_EP_FIX=7`, 另 `EMBARGO=1` 记档), 裸调用会被 `pod_f10_refit_v4.py` 拒绝(rc 2)。
+- **月集合**: `MONTHS_ALL` 写在合同里; 驱动在 mwf 前用 `v4_months.py check` 对目标轴断言(越过数据末完整月 ⇒ 拒绝); 四片 `SH0..SH3` 由 `MONTHS_ALL` 轮转生成(九月常量 ⇒ 与手写四片逐位相同, 测试 [N])。
+- **generation**: `BUNDLE_GENERATION` 必填(缺 ⇒ 导出器 rc 2); provenance 另记 `king_train_end_utc`(booster 真正的梯度截止 = 标签年 <2026 的最后锚, **月度导出不推进它**)与 `built_utc` 分离。
+- **负控**(每次改装置后必跑): `bash $D/chain_v4_monthly_dryrun.sh $D/v4_month_2026-10.env` ⇒ 必须 `DRYRUN_PASS`(空根在 preflight 停, 0 训练启动)。
+- **正控**: `V4_STAGES=preflight,gates bash $D/chain_v4_monthly.sh <九月合同(R 改隔离根)>` 在九月数据上复现 STEP1(PASS=false, 与 09-09 收据同数)/ STEP2(PASS=true 同数), 驱动因 STEP1 红而停 — 驱动不比门更绿。
+- **判官第七轮(2026-09-12 lead, F9)**: `judge_v4.py` 自绑 `eligibility_contract` = 它自己读的合同(此前调用方给路径); 前身 `judge_v4.r4_7f1aa5d6.py`; 自检节 [Q]; 见 `docs/DESIGN_judge_floor_28_2026-09-12.md` §8。步 8 判官命令不变。
+- **仍开, 十月前必裁**: (i) STEP1/STEP2 门源码被资格合同冻结(`278fdce6` / `db7ab356`), 内部写死九月路径与九月比对对象(hf3 vs hf2; v4 vs v2ext) ⇒ 十月需新门源码(env 定位 + 滚动参照)+ 复核 + 合同批准(用户字); 模板里 `GATE_STEP1/2=TODO_…` 使 preflight 拒绝, 属有意。(ii) 十月 `SIGNAL_RECEIPT` 需先由 `gate_signal_parity_v2.py` 为本月臂产出。(iii) `HC` 隔离副本须含合同钉死的 A0 基线书四件。(iv) 九月数据上 STEP1 字面 FAIL(trend_288 全局累积和, AMENDMENT 3; 稳定 trend 候选待用户字)⇒ 全链正控在九月数据上到 gates 为止。
 
 ## §0 原则(不变式)
 

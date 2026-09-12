@@ -1,0 +1,14 @@
+# W4 judge floor 11->28 — pod2 control, commands as executed (2026-09-12, from the mac; D = the archive dir)
+# D=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09
+# pre-flight (read-only): GPU idle + protected PIDs + real receipt + applied chain shas
+ssh pod2 'nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv; ps -o pid,etime,cmd -p 333197,339489; ls -la /workspace/uplift_2026-09-11/r20_gate_closure/receipts/pod2_applied/; sha256sum /workspace/uplift_2026-09-11/infra2/v4chain/*.py /workspace/uplift_2026-09-11/infra2/v4chain/ELIGIBILITY_CONTRACT.json'
+# the real receipt into the archive (sha checked both sides: 4fe0495ff7316db9187d26c6083b12d3ec3fa0267d96443437bcaac2f53597cd)
+scp -q pod2:/workspace/uplift_2026-09-11/r20_gate_closure/receipts/pod2_applied/BUNDLE_export_v2_A1_applied.json "$D/receipts/judge_floor_2026-09-12/BUNDLE_export_v2_A1_applied.json"
+# the round-6 module + driver to the isolated dir, then the five cells
+ssh pod2 'mkdir -p /workspace/uplift_2026-09-11/w4_judge_floor'
+scp -q "$D/v4_gate_common.py" pod2:/workspace/uplift_2026-09-11/w4_judge_floor/v4_gate_common.NEW.py
+scp -q "$D/receipts/judge_floor_2026-09-12/run_w4_pod2.sh" pod2:/workspace/uplift_2026-09-11/w4_judge_floor/run_w4_pod2.sh
+ssh pod2 'sha256sum /workspace/uplift_2026-09-11/w4_judge_floor/v4_gate_common.NEW.py; bash /workspace/uplift_2026-09-11/w4_judge_floor/run_w4_pod2.sh 2>&1 | tee /workspace/uplift_2026-09-11/w4_judge_floor/out/run_w4_pod2.log'
+# receipts back
+scp -q -r pod2:/workspace/uplift_2026-09-11/w4_judge_floor/out "$D/receipts/judge_floor_2026-09-12/pod2_out"
+scp -q pod2:/workspace/uplift_2026-09-11/w4_judge_floor/ELIG_A1_full28.json pod2:/workspace/uplift_2026-09-11/w4_judge_floor/ELIG_A1_omit_slowpred.json pod2:/workspace/uplift_2026-09-11/w4_judge_floor/ELIG_A1_omit_contract.json "$D/receipts/judge_floor_2026-09-12/"

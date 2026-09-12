@@ -31,6 +31,7 @@ Reproduction check first (#20): A0 dyn vs the published RAW_M1_UCRYPTO arm (dev_
     any other program — a re-run edited gate included — is not permission; BUNDLE_export's list is EMPTY until the physical gate exists and is reviewed)
   · JUDGE_ELIGIBILITY = {arm: {receipt, inputs}} only LOCATES the receipt; a caller-supplied gate/self_sha/profile that disagrees with the contract
     makes the arm ineligible; receipt.arm must equal the judged arm; the judge itself adds the arm's four judged book files to the declared inputs
+    and (round 7) binds `eligibility_contract` to the contract file it reads itself — the receipt must have hashed THIS contract, whatever path the caller named
     so the receipt must have hashed them (a book replaced after the receipt, or a receipt relabelled onto another arm, is refused)
   · strict book contract (JUDGE_REQUIRE_W=1, alias JUDGE_STRICT_BOOK=1): cols == COLS and symbols present, W (n, n_symbols) finite, symbols axis
     identical across arms; in EVERY mode gross_total on the frozen window must be finite and > 0 (default mode remains a rec-only contract otherwise)
@@ -202,6 +203,12 @@ def _eligibility(arm, spec):
         for s in ("42", "2027"):
             if (arm, seat, s) not in ARMS: rec["why"] = f"judged book {arm}_{seat}_s{s} is not loaded, so the receipt cannot be bound to it"; return rec
             inputs[f"book_{seat}_s{s}"] = f"{HC}/dev_v4/probe_artifacts/w10_ablation_series_V4_{arm}_{seat}_s{s}.npz"   # the judge, not the caller, binds the books
+    # ★ ROUND 7 (DESIGN_judge_floor_28 §7 F9): the judge, not the caller, binds the STANDARD: `eligibility_contract` is THIS judge's contract file, so require
+    #   demands the receipt hashed exactly the contract being enforced here (a receipt written under another contract, or an earlier version of this one,
+    #   is not this judge's permission). Round 6 registered the name in the floor but let the caller choose the path, so only "that file is unchanged" was checked.
+    _caller_c = (spec.get("inputs") or {}).get("eligibility_contract")
+    if _caller_c not in (None, _CONTRACT_PATH): rec["caller_contract_path"] = _caller_c
+    inputs["eligibility_contract"] = _CONTRACT_PATH
     ok, why = _require(str(spec["receipt"]), inputs, expected_gate=gate, expected_self_sha=str(r.get("self_sha256")), profile=profile)
     rec["ok"] = bool(ok); rec["why"] = why; rec["inputs"] = sorted(inputs); return rec
 for _arm, _spec in sorted((_el_map or {}).items()):

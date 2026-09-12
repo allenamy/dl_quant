@@ -6,8 +6,10 @@ Self-checks: common rows bitwise equal to the in-service legs; new rows finite; 
 import json, os, time, numpy as np
 from scipy.stats import rankdata
 TGP = os.environ["LEGS_TG"]; MTP = os.environ["LEGS_META"]; PRP = os.environ["LEGS_PRED"]; OUTP = os.environ["LEGS_OUT"]
-OLD = np.load("/workspace/f8_ext/data/f10v2_legs.npz", allow_pickle=True); OE = OLD["E_ts"].astype(np.int64); OZ24 = OLD["Z24"]; OZFD = OLD["ZFD"]; OWL = OLD["WL"]   # materialised once
-TG = np.load(TGP, allow_pickle=True); PW = np.load("/workspace/data/wide_panel_4h_v3splice.npz", allow_pickle=True); MT = np.load(MTP, allow_pickle=True); PRED = np.load(PRP)
+# monthly (2026-09-12, RUNBOOK_2026-10 §0★ 修订 2 ③/(c)): the in-service legs file and the panel are locators from the month env (defaults = September constants).
+OLDP = os.environ.get("LEGS_OLD", "/workspace/f8_ext/data/f10v2_legs.npz"); PANP = os.environ.get("LEGS_PANEL", "/workspace/data/wide_panel_4h_v3splice.npz")
+OLD = np.load(OLDP, allow_pickle=True); OE = OLD["E_ts"].astype(np.int64); OZ24 = OLD["Z24"]; OZFD = OLD["ZFD"]; OWL = OLD["WL"]   # materialised once
+TG = np.load(TGP, allow_pickle=True); PW = np.load(PANP, allow_pickle=True); MT = np.load(MTP, allow_pickle=True); PRED = np.load(PRP)
 E_ts = TG["E_ts"].astype(np.int64); members = TG["members"]; y4s = TG["y4s"]; nA = len(E_ts); NW = y4s.shape[1]
 pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}; fe_row = {int(t): i for i, t in enumerate(MT["E_ts"].astype(np.int64))}; old_row = {int(t): i for i, t in enumerate(OE)}
 R24 = PW["f_rev_24h"]; FE = PW["f_fund_ema_v1"]
@@ -52,5 +54,5 @@ yrs = np.array([time.gmtime(int(t)).tm_year for t in E_ts]); wl_by_year = {int(y
 print(f"legs v4b: old rows verbatim {n_copy}/{nA}; new rows {len(new_rows)} = {[time.strftime('%F %HZ', time.gmtime(int(E_ts[i]))) for i in new_rows]}; WL(new) = {WLo[new_rows].round(3).tolist()}", flush=True)
 print("WL mean by year (king, rev24, fund):", wl_by_year, flush=True)
 meta = {"note": "v4b: POLICY pod_legs_ext.py — in-service training legs rows verbatim (f8_ext/data/f10v2_legs.npz) + new anchors same formulas with v4 inputs (AMENDMENT 5; replaces pod_legs_v4.py whose all-rows WL had king seat ~0 before 2024)",
-        "inputs": {"old_legs": "/workspace/f8_ext/data/f10v2_legs.npz", "targets": TGP, "meta": MTP, "pred": PRP}, "n_copy": n_copy, "new_rows": [int(E_ts[i]) for i in new_rows], "new_rows_without_panel_row": [int(E_ts[i]) for i in no_panel], "wl_by_year": wl_by_year, "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+        "inputs": {"old_legs": OLDP, "panel": PANP, "targets": TGP, "meta": MTP, "pred": PRP}, "n_copy": n_copy, "new_rows": [int(E_ts[i]) for i in new_rows], "new_rows_without_panel_row": [int(E_ts[i]) for i in no_panel], "wl_by_year": wl_by_year, "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 os.makedirs(os.path.dirname(OUTP), exist_ok=True); np.savez(OUTP, Z24=Z24o, ZFD=ZFDo, WL=WLo, E_ts=E_ts, meta_json=json.dumps(meta)); print("LEGS_V4B_DONE", OUTP, flush=True)

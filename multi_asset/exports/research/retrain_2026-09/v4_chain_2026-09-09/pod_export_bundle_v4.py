@@ -10,16 +10,27 @@
   Δ6 ledger/ema_state 循环限定钉死 450。
 门③(ic26 ±0.006)与守卫带(2.27..2.57)沿用原装置硬编码, 不动。
 用法: python3 pod_export_bundle_v3.py
+★ 2026-09-12 (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 2 ④/(b); independent review 0dfc0d87 R4): `provenance.generation` was a SOURCE CONSTANT
+  ("v3_2026-09") — every export, whatever month, labelled itself September. Now BUNDLE_GENERATION is REQUIRED (refused before any import when absent).
+  Provenance also records the king booster's TRUE gradient cutoff: the export fits slow2026 on label-year < 2026 (L49-51, unchanged), so
+  `king_train_end_utc` = the last anchor in that training set (last 2025 anchor with >= 50 labels) — a month later the label cutoff does NOT move;
+  `built_utc` stays a build timestamp and is no longer the only date. LIVE_PINS / FUND_AUG / FUNDING_DIR are read from env (the RUNBOOK's LIVE_PINS=
+  word used to be ignored, review R3) with the September paths as defaults.
 """
-import os, io, csv, json, time, glob, gzip, zipfile, hashlib, tarfile
+import os, sys
+_GEN = os.environ.get("BUNDLE_GENERATION")
+if not _GEN:
+    print("BUNDLE_FAIL generation_env_missing: BUNDLE_GENERATION (e.g. v4_2026-10) is REQUIRED — provenance.generation is no longer a source constant (2026-09-12)", flush=True)
+    sys.exit(2)
+import io, csv, json, time, glob, gzip, zipfile, hashlib, tarfile
 import numpy as np
-import sys; sys.path.insert(0, "/workspace")
+sys.path.insert(0, "/workspace")
 from scipy.stats import rankdata, spearmanr
 from zload import zload
 
 OUT = os.environ.get("BUNDLE_OUT", "/workspace/shadow_bundle_v4")   # v4
 os.makedirs(OUT, exist_ok=True)
-PINS = json.load(open("/workspace/live_pins.json"))          # Δ4/Δ5
+PINS = json.load(open(os.environ.get("LIVE_PINS", "/workspace/live_pins.json")))          # Δ4/Δ5; monthly: env locator (default = September path)
 BASE = json.load(open(os.environ.get("BUNDLE_BASE", "/workspace/slow_scorer_v4base.json")))  # Δ2 (v4: base = v3 own fold IC, PREREG_v4 §2.3)
 
 # ── ① 重训并保存 booster ──
@@ -47,6 +58,9 @@ X = np.concatenate(rows_X); Y = np.concatenate(rows_y); A = np.concatenate(rows_
 YRA = yrs[A]
 import lightgbm as lgb
 tr = YRA < 2026; te = YRA == 2026
+_tr_anchors = np.unique(A[tr]); _king_train_end = int(E_ts[int(_tr_anchors.max())])   # 2026-09-12: the last anchor whose label entered the slow2026 fit (review R4)
+def _iso(t): return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
+print(f"king training set: {int(tr.sum())} rows / {len(_tr_anchors)} anchors, last training anchor {_iso(_king_train_end)} (label end {_iso(_king_train_end + 4 * 3600)}); axis end {_iso(E_ts[-1])}; generation {_GEN}", flush=True)
 gbm = lgb.LGBMRegressor(n_estimators=400, learning_rate=0.05, num_leaves=63,
                         subsample=0.8, colsample_bytree=0.8, n_jobs=100, verbose=-1).fit(X[tr], Y[tr])
 gbm.booster_.save_model(f"{OUT}/slow2026.txt")
@@ -172,7 +186,8 @@ CTS = Z["ts"].astype(np.int64); CD = Z["data"]; syms = [str(s) for s in Z["symbo
 TAIL = 11520  # 40d
 np.savez_compressed(f"{OUT}/cache_tail_40d.npz", ts=CTS[-TAIL:], symbols=np.array(syms),
                     data=CD[-TAIL:].astype(np.float16))
-AUG = json.loads(gzip.open("/workspace/fund_aug.json.gz", "rt").read())
+AUG = json.loads(gzip.open(os.environ.get("FUND_AUG", "/workspace/fund_aug.json.gz"), "rt").read())   # monthly: env locator (default = September path)
+_FUNDING_DIR = os.environ.get("FUNDING_DIR", "/workspace/wide_multisrc/funding")
 AUG_IV = {k: float(v) for k, v in (AUG.get("intervals") or {}).items() if v}
 HL = 3 * 86400.0
 ALLOWED = np.array([1.0, 2.0, 4.0, 6.0, 8.0])
@@ -180,7 +195,7 @@ ledger = {}; ema_state = {}
 live450 = list(PINS["symbols_live"])  # Δ4/Δ6(原: glob funding 目录)
 for s in live450:
     rows = []
-    for zp in sorted(glob.glob(f"/workspace/wide_multisrc/funding/{s}/*.zip")):
+    for zp in sorted(glob.glob(f"{_FUNDING_DIR}/{s}/*.zip")):
         try:
             zf = zipfile.ZipFile(zp)
             with zf.open(zf.namelist()[0]) as fh:
@@ -238,9 +253,17 @@ json.dump({"symbols_panel": syms, "symbols_live": live450,
                       "fund_caliber": "v1 normfix HL3d", "carry": "rate*4/iv", "cost_scen": "b",
                       "sel_min": 80, "anchor_offset_min": 6},
            "provenance": {"built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                          "generation": "v3_2026-09", "base_ic": BASE["ic"],
+                          "generation": _GEN, "base_ic": BASE["ic"],
                           "fold_ic_2024": round(fold_ic[2024], 4), "fold_ic_2025": round(fold_ic[2025], 4),
-                          "pinned_ic2026": round(ic26, 4), "pinned_sharpe_full_b": round(sh, 2)}},
+                          "pinned_ic2026": round(ic26, 4), "pinned_sharpe_full_b": round(sh, 2),
+                          # 2026-09-12: the booster's real gradient cutoff (label-year < 2026 fit, L49-51) — distinct from built_utc (review R4)
+                          "king_train_rule": "slow2026 booster fit on rows with label year < 2026 (yearly fold); the monthly export rebuilds the 2026 fold and does not move this cutoff",
+                          "king_train_end_utc": _iso(_king_train_end), "king_train_last_label_end_utc": _iso(_king_train_end + 4 * 3600),
+                          "king_train_n_anchors": int(len(_tr_anchors)), "king_train_n_rows": int(tr.sum()),
+                          "data_axis_end_utc": _iso(E_ts[-1]), "n_anchors_axis": int(nA),
+                          "inputs": {"fea": os.environ.get("BUNDLE_FEA", "/workspace/data/wide_fea_v4.npy"), "meta": os.environ.get("BUNDLE_META", "/workspace/data/wide_fea_v4_meta.npz"),
+                                     "base": os.environ.get("BUNDLE_BASE", "/workspace/slow_scorer_v4base.json"), "export_panel": os.environ.get("EXPORT_PANEL", "/workspace/data/wide_panel_4h_v2ext.npz"),
+                                     "live_pins": os.environ.get("LIVE_PINS", "/workspace/live_pins.json"), "ema_state_json": os.environ.get("EMA_STATE_JSON"), "month_env": os.environ.get("V4_MONTH_ENV")}}},
           open(f"{OUT}/config.json", "w"), indent=1)
 man = {}
 for f in sorted(os.listdir(OUT)):

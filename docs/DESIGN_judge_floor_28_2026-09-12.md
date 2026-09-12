@@ -112,3 +112,24 @@ A1−A0 冻结窗对照(n=3168)五格逐字节相同: dyn s42 Δ +0.0605 CI [−
 3. **F9: 判官不把 `eligibility_contract` 绑到自己读的合同**: 现在由调用方 entry 给路径, require 只验该路径文件未变; 「收据针对的合同 == 判官在用的合同」未被验。对称做法是判官像绑 4 判书那样自加 `inputs["eligibility_contract"] = CONTRACT_PATH`(一行, 但属判官语义增加 ⇒ 需 lead/用户裁定)。
 4. **manifest 的 POD2 栏**未查(与 09:20Z 版同口径 UNQUERIED); W3 本会话仍在改同目录多文件, **lead 提交前须重跑 `make_sha_manifest.py`**。
 5. **共享文件 `tests_pipeline_gates.py`** 现为两人合并版(615b26fa); 提交前 lead 应以「就地 merged 跑 ALL PASS」为准, 不以任何一方的独立副本为准。
+
+## §8 第七轮(2026-09-12 11:3xZ, lead): §7 (3) F9 关闭 —— 判官自绑 `eligibility_contract`
+
+**为什么现在做**: 用户字 09-12「按照最正确的逻辑全部做, 修复所有漏洞」; F9 是本文 §7 明写的漏洞: 第六轮把 `eligibility_contract` 放进 28 名底, 但**路径由调用方给**, require 只验「调用方指的那份文件自收据后未变」, 不验「收据针对的合同 == 判官此刻在用的合同」⇒ 一份在别的合同(或本合同早期版本)下签出的 PASS 收据, 只要调用方把名字指向那份文件, 判官就接受。
+
+**改动(一处语义, 七行)**: `judge_v4.py` `_eligibility()` 在绑 4 判书之后加 `inputs["eligibility_contract"] = _CONTRACT_PATH`(判官读的合同文件); 调用方给了别的路径时记 `caller_contract_path`(透明, 不作为拒绝理由——拒绝由 require 的 sha 比对给出)。前身存 `judge_v4.r4_7f1aa5d6.py`(它写出了 §5 的 pod2 收据; 判决装置与结论同寿命)。合同文件 `ELIGIBILITY_CONTRACT.json`(1188267a)**未动**——它第 7 句本来就写「判官从自己目录读本文件, 无 env 可替代」, 本轮只是让 require 也执行这句。
+
+**自检新节 [Q] 6 格**(`tests_pipeline_gates.py`; `judge_case` 新参 `judge_src` 可在装置副本里跑归档判官):
+| 格 | 情形 | 期望 | 结果 |
+|---|---|---|---|
+| (i) | 门对**另一份合同**(加一键, 批准表相同)签收据, 调用方把 `eligibility_contract` 指向它 | 不合格, why 命名 `'eligibility_contract' changed since the receipt`, 记 caller 路径, 0 PROMOTE | OK |
+| (ii) | 同上但那份文件是判官合同的**逐字节副本** | 仍合格(绑的是 sha 不是路径), 28 输入 verified, 4 PROMOTE | OKI |
+| (iii) | 出厂合同 + 归档判官 + v2 签名的全 28 收据, 但合同 sha 是另一份的 | 不合格, 判官合同 sha = 1188267a…, 0 PROMOTE | OKII |
+| (iv) | **旧码红**: `judge_v4.r4_7f1aa5d6.py` 在装置副本上跑情形 (i) | 合格 + 4 PROMOTE(旧判官验的是调用方的文件) | OKV |
+| (v) | 静态: 在役判官含绑定行; 快照 sha 以 7f1aa5d6 开头且不含绑定行; 合同第 7 句仍在 | 三真 | OK ×2 |
+
+**[O] 一格改标**: 第六轮的「调用方漏报 `eligibility_contract` ⇒ 不合格」在第七轮语义下反转为「仍合格」(该名已同四判书一样由判官绑定, 调用方漏报由判官补, 收据仍须散列过判官的那份合同); 首跑 227/228 正是这一格红, 改标后全绿。这不是放宽: 调用方**指错**仍拒((i)/(iii)), 只是**不指**不再是拒绝理由。
+
+**全套件**: 修前(W3+W4 合并, lead 复跑)**ALL PASS (222 checks)**(`receipts/monthly_chain_2026-09-12/tests_pipeline_gates_lead_merged.log`)→ 加 [Q] 后 **ALL PASS (228 checks)**(`…/tests_pipeline_gates_lead_r7.log`)。judge_v4.py sha 7f1aa5d6 → f6850dc3215f。
+
+**未做/仍开**: 合同文本第 8 句 (e) 只提「四判书」不提「合同自身」——文本落后于代码一句, 但改合同 = 改 sha = 需用户字, 记为下次合同修订项(RULINGS_requested 追加 R-9)。

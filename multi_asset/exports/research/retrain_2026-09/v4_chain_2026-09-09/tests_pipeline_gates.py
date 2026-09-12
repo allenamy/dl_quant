@@ -197,7 +197,9 @@ with tempfile.TemporaryDirectory() as d:
     check("★★ [r4] REQUIRED_INPUTS names exactly what the archived chains declare: G2 5 (v4s), STEP1@v4s 2, STEP1@v4 4 (gpu3/post_export), STEP2 2",
           set(_gc.REQUIRED_INPUTS["G2_closure"]) == {"fea_A", "fea_B", "targets_A", "targets_B", "hole_cells"} and _gc.REQUIRED_INPUTS["STEP1@v4"] == ["dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"]
           and _gc.REQUIRED_INPUTS["STEP2"] == ["wide_fea_v4", "wide_fea_v4_meta"] and "profile=v4s" in open(f"{HERE}/chain_v4s_gpu.sh").read() and "profile=v4" in open(f"{HERE}/chain_v4_gpu3.sh").read() and "profile=v4" in open(f"{HERE}/chain_v4_post_export.sh").read())
-    check("★★ [r5] REQUIRED_INPUTS[BUNDLE_export] = the 7 export inputs + the arm's 4 judged books", _gc.REQUIRED_INPUTS["BUNDLE_export"][-4:] == list(_gc.BOOK_INPUTS) and len(_gc.REQUIRED_INPUTS["BUNDLE_export"]) == 11)
+    check("★★ [r5→r6] REQUIRED_INPUTS[BUNDLE_export] = the 7 export inputs + the arm's 4 judged books at [7:11] + (round 6) the 4 baseline books, manifest, 8 bundle files, costb/umask/slow, the contract = 28 = the v2 export gate's closure (exact list vs the real receipt asserted in [O])",
+          _gc.REQUIRED_INPUTS["BUNDLE_export"][7:11] == list(_gc.BOOK_INPUTS) and len(_gc.REQUIRED_INPUTS["BUNDLE_export"]) == 28
+          and _gc.REQUIRED_INPUTS["BUNDLE_export"][:7] == ["wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins"], len(_gc.REQUIRED_INPUTS["BUNDLE_export"]))
 
 
 with tempfile.TemporaryDirectory() as d:
@@ -386,17 +388,37 @@ with tempfile.TemporaryDirectory() as d:
 import calendar as _cal
 
 
-ELIG_INPUTS = ("wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins")   # the BUNDLE_export input contract
+ELIG_UPSTREAM = ("wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins")   # the exporter's 7 upstream inputs (the round-5 floor minus the books)
+ELIG_BASELINE = ("base_dyn_s42", "base_dyn_s2027", "base_fix_s42", "base_fix_s2027")                                          # ROUND 6: the approved A0 baseline books (v2 gate E9)
+ELIG_BUNDLE_FILES = ("slow_pred_pinned.npy", "slow2026.txt", "config.json", "cache_tail_40d.npz", "fund_ema_v1_state.json",
+                     "funding_ledger_seed.json", "leg_returns.npz", "parity_signals_aug.json")                                # ROUND 6: the shipped bundle's closure (v2 gate E1: MANIFEST + every listed file)
+ELIG_MISC = ("costb_json", "umask_npz", "slow_npy", "eligibility_contract")                                                    # ROUND 6: cost model, mask, king file (E6), the standard itself (E0)
+ELIG_INPUTS = ELIG_UPSTREAM + ELIG_BASELINE + ("bundle_manifest",) + tuple(f"bundle/{f}" for f in ELIG_BUNDLE_FILES) + ELIG_MISC   # the 24 names a JUDGE_ELIGIBILITY entry declares; the judge adds the 4 judged books = the v2 gate's 28-name closure
 
 
-def bound_entry(q, arm, gate="BUNDLE_export", src=None, receipt_override=None, entry_override=None, bind_books=True, books_of=None):
+def bound_entry(q, arm, gate="BUNDLE_export", src=None, receipt_override=None, entry_override=None, bind_books=True, books_of=None, extra_inputs=None):
     """Write a finalize-shaped export receipt BOUND to (gate, gate-source sha, input shas, the arm's four judged books) for `arm` and return the
     JUDGE_ELIGIBILITY entry naming it. Synthetic: the 'gate source' is the archived exporter (the test contract approves it), the inputs are small
-    files written here (their shas are what binds). Round 5: the receipt also hashes book_<seat>_s<seed> = the judged w10 files of `books_of` (default arm)."""
+    files written here (their shas are what binds). Round 5: the receipt also hashes book_<seat>_s<seed> = the judged w10 files of `books_of` (default arm).
+    ROUND 6 (DESIGN_judge_floor_28_2026-09-12): the entry declares the v2 export gate's FULL closure in its real shape — the 7 upstream files, the 4
+    approved baseline books (= the hc A0 books, the path shape v4e_gate_export_v2.derive_paths uses), a bundle directory with the 8 shipped files and
+    a MANIFEST.json {file: sha256} (E1), costb/umask/slow files (E6) and the contract the judge reads (q/device/ELIGIBILITY_CONTRACT.json when the device
+    copy exists — judge_case writes it before calling this — else the archived one). extra_inputs: {name: path} recorded AND declared on top of the
+    floor (a FEMAT arm's femat / signal_receipt — extras the floor allows and require still verifies)."""
     src = src or f"{HERE}/pod_export_bundle_v4.py"; inputs = {}
-    for k in ELIG_INPUTS:
+    for k in ELIG_UPSTREAM + ELIG_MISC[:3]:
         open(f"{q}/{arm}_{k}.bin", "wb").write(f"{arm}:{k}".encode()); inputs[k] = f"{q}/{arm}_{k}.bin"
-    shas = {k: _sha(p) for k, p in inputs.items()}
+    for seat in ("dyn", "fix"):
+        for seed in (42, 2027):
+            inputs[f"base_{seat}_s{seed}"] = f"{q}/hc/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_{seat}_s{seed}.npz"   # the approved baseline arm is A0 (contract approved_baseline.baseline_arm)
+    bdir = f"{q}/{arm}_bundle"; os.makedirs(bdir, exist_ok=True); man = {}
+    for f in ELIG_BUNDLE_FILES:
+        open(f"{bdir}/{f}", "wb").write(f"{arm}:bundle:{f}".encode()); man[f] = _sha(f"{bdir}/{f}"); inputs[f"bundle/{f}"] = f"{bdir}/{f}"
+    json.dump(man, open(f"{bdir}/MANIFEST.json", "w")); inputs["bundle_manifest"] = f"{bdir}/MANIFEST.json"
+    cpath = f"{q}/device/ELIGIBILITY_CONTRACT.json"
+    inputs["eligibility_contract"] = cpath if os.path.exists(cpath) else f"{HERE}/ELIGIBILITY_CONTRACT.json"
+    inputs.update(extra_inputs or {})
+    shas = {k: _sha(p) for k, p in inputs.items() if os.path.exists(p)}
     if bind_books:
         for seat in ("dyn", "fix"):
             for seed in (42, 2027):
@@ -416,7 +438,7 @@ def test_contract(approve_exporter=True):
 
 
 def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False, duplicate=False, nan_repro=False, promote=False, export_gate=None, bad_repro=False,
-               promote_arm="A1e", eligibility=None, mutate=None, contract="test", post_mutate=None, strict=False):
+               promote_arm="A1e", eligibility=None, mutate=None, contract="test", post_mutate=None, strict=False, judge_src=None):
     """eligibility: callable(q) -> {arm: entry} written to a file for JUDGE_ELIGIBILITY, or a str passed inline. mutate: callable(v_dir, raw_dir) run after the fixtures are written.
     Round 5: the judge runs from a DEVICE COPY (q/device: judge_v4.py + v4_gate_common.py + a contract) — contract="test" approves the archived exporter for
     BUNDLE_export (positive controls), "archive" runs the archived judge in place with the shipped contract, "none" ships no contract, or a dict is written verbatim.
@@ -444,19 +466,19 @@ def judge_case(d, name, n=3168, partial=False, drop_arm=False, drop_raw27=False,
     if strict: env["JUDGE_REQUIRE_W"] = "1"
     if export_gate is not None:
         json.dump(export_gate, open(f"{q}/G2_export.json", "w")); env["JUDGE_EXPORT_GATE"] = f"{q}/G2_export.json"
+    judge = "judge_v4.py"
+    if contract != "archive":   # round 6: the device copy (and its contract) is written BEFORE the eligibility callback, so a bound entry can hash the contract the judge will read
+        os.makedirs(f"{q}/device")
+        for f in ("judge_v4.py", "v4_gate_common.py"): open(f"{q}/device/{f}", "w").write(open(f"{HERE}/{judge_src if (judge_src and f == 'judge_v4.py') else f}").read())   # round 7: judge_src runs an ARCHIVED judge in the device (old-code-is-red controls)
+        if contract == "test": json.dump(test_contract(), open(f"{q}/device/ELIGIBILITY_CONTRACT.json", "w"))
+        elif isinstance(contract, dict): json.dump(contract, open(f"{q}/device/ELIGIBILITY_CONTRACT.json", "w"))
+        judge = f"{q}/device/judge_v4.py"
     if callable(eligibility):
         _el = eligibility(q)
         if isinstance(_el, str): env["JUDGE_ELIGIBILITY"] = _el                      # inline JSON text (round 5: books exist by now, so the entry can bind them)
         else: json.dump(_el, open(f"{q}/ELIG.json", "w")); env["JUDGE_ELIGIBILITY"] = f"{q}/ELIG.json"
     elif isinstance(eligibility, str): env["JUDGE_ELIGIBILITY"] = eligibility
     if post_mutate is not None: post_mutate(v, old)
-    judge = "judge_v4.py"
-    if contract != "archive":
-        os.makedirs(f"{q}/device")
-        for f in ("judge_v4.py", "v4_gate_common.py"): open(f"{q}/device/{f}", "w").write(open(f"{HERE}/{f}").read())
-        if contract == "test": json.dump(test_contract(), open(f"{q}/device/ELIGIBILITY_CONTRACT.json", "w"))
-        elif isinstance(contract, dict): json.dump(contract, open(f"{q}/device/ELIGIBILITY_CONTRACT.json", "w"))
-        judge = f"{q}/device/judge_v4.py"
     rc, out = run([judge], env)
     j = json.load(open(f"{q}/J.json")) if os.path.exists(f"{q}/J.json") else None
     return rc, out, j
@@ -647,7 +669,7 @@ with tempfile.TemporaryDirectory() as d:
     check("★★ [r5] an arm not registered in the contract (A9) ⇒ not eligible ('not registered as a candidate'), no PROMOTE", rc == 0 and j and j["eligibility_by_arm"]["A9"]["ok"] is False and "not registered as a candidate" in j["eligibility_by_arm"]["A9"]["why"] and _no_promote(j), (rc, j and j["eligibility_by_arm"]["A9"]["why"]))
     # ── the standard is not the caller's: the shipped contract approves NO export gate; a device without a contract cannot promote ──
     rc, out, j = judge_case(d, "r5_shipped_contract_empty_approved", promote=True, eligibility=lambda q: {"A1e": {k: v for k, v in bound_entry(q, "A1e").items() if k in ("receipt", "inputs")}}, contract="archive")
-    check("★★★ [r5→r6] the ARCHIVED judge + its shipped contract (APPLIED 2026-09-12: BUNDLE_export approves ONLY v4e_gate_export_v2.py): a fully bound, book-bound A1e receipt signed by the archived EXPORTER (pod_export_bundle_v4.py) ⇒ STILL not eligible ('not an approved source'), 0 PROMOTE — the exporter is not the gate; only a receipt written by the reviewed v2 gate can confer candidacy",
+    check("★★★ [r5→r6] the ARCHIVED judge + its shipped contract (APPLIED 2026-09-12: BUNDLE_export approves ONLY v4e_gate_export_v2.py): a fully bound (28-name closure), book-bound A1e receipt signed by the archived EXPORTER (pod_export_bundle_v4.py) ⇒ STILL not eligible ('not an approved source'), 0 PROMOTE — the exporter is not the gate; only a receipt written by the reviewed v2 gate can confer candidacy",
           rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "not an approved source" in j["eligibility_by_arm"]["A1e"]["why"]
           and j["contract"]["approved_sources"]["BUNDLE_export"] == [_sha(f"{HERE}/v4e_gate_export_v2.py")] and _n_promote(j) == 0,
           (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
@@ -657,9 +679,11 @@ with tempfile.TemporaryDirectory() as d:
     rc, out, j = judge_case(d, "r5_malformed_contract", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")}, contract=_ct_bad)
     check("★ [r5] a malformed contract (wrong schema tag) ⇒ treated as unavailable: informational, 0 PROMOTE", rc == 0 and j and j["contract"]["error"] and _n_promote(j) == 0, (rc, j and j["contract"]["error"]))
     rc, out, j = judge_case(d, "r5_contract_sha_recorded", promote=True, eligibility=lambda q: {"A1e": bound_entry(q, "A1e")})
-    check("★★★ [r5] GREEN positive control under the TEST contract (device copy approving the archived exporter): A1e eligible, exactly 4 PROMOTE, and the output records the contract's sha and approved sources so a reviewer can see WHICH standard judged",
+    check("★★★ [r5→r6] GREEN positive control under the TEST contract (device copy approving the archived exporter): A1e eligible, exactly 4 PROMOTE, the output records the contract's sha and approved sources so a reviewer can see WHICH standard judged, and the judge bound the four judged books into the 28-name input set it verified (round 6 floor)",
           rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is True and _n_promote(j) == 4 and j["contract"]["sha256"] == _sha(f"{d}/r5_contract_sha_recorded/device/ELIGIBILITY_CONTRACT.json")
-          and j["contract"]["approved_sources"]["BUNDLE_export"] == [_sha(f"{HERE}/pod_export_bundle_v4.py")] and j["eligibility_by_arm"]["A1e"]["inputs"][-4:] == ["book_dyn_s2027", "book_dyn_s42", "book_fix_s2027", "book_fix_s42"] or (j and sorted(j["eligibility_by_arm"]["A1e"]["inputs"])[:4] == ["book_dyn_s2027", "book_dyn_s42", "book_fix_s2027", "book_fix_s42"]),
+          and j["contract"]["approved_sources"]["BUNDLE_export"] == [_sha(f"{HERE}/pod_export_bundle_v4.py")]
+          and {"book_dyn_s2027", "book_dyn_s42", "book_fix_s2027", "book_fix_s42"} <= set(j["eligibility_by_arm"]["A1e"]["inputs"]) and len(j["eligibility_by_arm"]["A1e"]["inputs"]) == 28
+          and "registered floor BUNDLE_export=28" in j["eligibility_by_arm"]["A1e"]["why"] and "28 inputs verified" in j["eligibility_by_arm"]["A1e"]["why"],
           (rc, j and j["eligibility_by_arm"]["A1e"], j and j["contract"]["sha256"]))
     check("★ [r5] the caller's entry needs only {receipt, inputs}: caller_supplied is empty when it names no standard", j and j["eligibility_by_arm"]["A1e"].get("caller_supplied") in ({"gate": "BUNDLE_export", "self_sha": _sha(f"{HERE}/pod_export_bundle_v4.py")}, {}), j and j["eligibility_by_arm"]["A1e"].get("caller_supplied"))
     # ── strict book contract (researcher negative_gross / infinite_gross / nonfinite_W / symbols_order_reversed / no_cols_strict / no_symbols_strict / rec_only_default / valid_strict_schema_positive) ──
@@ -696,6 +720,118 @@ with tempfile.TemporaryDirectory() as d:
     check("★ [r5] JUDGE_STRICT_BOOK=1 is an alias of JUDGE_REQUIRE_W=1 (bare rec ⇒ rc 2)", rc == 2, out.strip().splitlines()[-1][-120:])
 
 
+# ── [O] ROUND 6 (r20 gate closure; DESIGN_judge_floor_28_2026-09-12): the BUNDLE_export floor is the v2 export gate's FULL 28-name closure ─────
+# The independent reviewer showed the judge's require stayed PASS after the SHIPPED prediction file was mutated: the bundle was not among the 11 names.
+# Here: (i) the floor equals, name for name, what the REAL v2 receipt for A1 registered (a real receipt satisfies the judge); (ii) omitting any single
+# name is refused, at the require level (all 28) and at the judge level (the 17 new ones); (iii) the archived exporter is still not an approved source.
+with tempfile.TemporaryDirectory() as d:
+    print("\n[O] round 6: REQUIRED_INPUTS[BUNDLE_export] = the v2 export gate's 28-name closure; the judge refuses an entry that leaves any of them undeclared")
+    import importlib; sys.path.insert(0, HERE); _gc = importlib.import_module("v4_gate_common")
+    _FLOOR = list(_gc.REQUIRED_INPUTS["BUNDLE_export"]); _BOOKS = list(_gc.BOOK_INPUTS); _NEW17 = _FLOOR[11:]
+    _real_p = f"{HERE}/receipts/judge_floor_2026-09-12/BUNDLE_export_v2_A1_applied.json"; _real = json.load(open(_real_p))
+    check("★★★ [r6] (i) REAL SHAPE, static: the floor has 28 distinct names, the judged books at [7:11], and equals EXACTLY the registered_inputs of the real v2 receipt for A1 (pod2 2026-09-12T09:23:10Z, self d63f4ec3…, PASS, no failed check) — no name invented, none missing",
+          len(_FLOOR) == 28 and len(set(_FLOOR)) == 28 and _FLOOR[7:11] == _BOOKS and set(_FLOOR) == set(_real["registered_inputs"]) and set(_real["inputs_sha256"]) == set(_FLOOR)
+          and _real["gate"] == "BUNDLE_export" and _real["PASS"] is True and _real["arm"] == "A1" and _real["self_sha256"] == _sha(f"{HERE}/v4e_gate_export_v2.py") and _real["failed_checks"] == [],
+          (len(_FLOOR), sorted(set(_FLOOR) ^ set(_real["registered_inputs"]))))
+    check("★★ [r6] the real receipt recorded the OLD 11-name floor it was judged against (registered_floor_v4_gate_common) — the gap this round closes; femat/signal_receipt are absent from it (E7 not applicable for A1), so they are rightly NOT in the static floor",
+          _real["registered_floor_v4_gate_common"] == _FLOOR[:11] and _real["checks"]["E7_signal_receipt"]["applicable"] is False and "femat" not in _FLOOR and "signal_receipt" not in _FLOOR, _real.get("registered_floor_v4_gate_common"))
+    check("★★ [r6] the fixture declares exactly the 24 non-book names (the judge adds the 4 books): ELIG_INPUTS ∪ BOOK_INPUTS == the floor", set(ELIG_INPUTS) | set(_BOOKS) == set(_FLOOR) and len(ELIG_INPUTS) == 24 and not (set(ELIG_INPUTS) & set(_BOOKS)), sorted(set(ELIG_INPUTS) ^ (set(_FLOOR) - set(_BOOKS))))
+    check("★ [r6] the other gates' floors are untouched by round 6 (G2 5, STEP1 2, STEP1@v4s 2, STEP1@v4 4, STEP2 2; no BUNDLE_export@profile)",
+          {k: len(v) for k, v in _gc.REQUIRED_INPUTS.items()} == {"G2_closure": 5, "STEP1": 2, "STEP1@v4s": 2, "STEP1@v4": 4, "STEP2": 2, "BUNDLE_export": 28}, {k: len(v) for k, v in _gc.REQUIRED_INPUTS.items()})
+    # unit level, through the ARCHIVED module + SHIPPED contract: a receipt signed by the approved v2 gate over the full 28 ⇒ ok; any single omission ⇒ refused
+    q = f"{d}/unit"; os.makedirs(f"{q}/hc/dev_v4/probe_artifacts")
+    for arm in ("A0", "A1e"):
+        for seat in ("dyn", "fix"):
+            for seed in (42, 2027): np.savez(f"{q}/hc/dev_v4/probe_artifacts/w10_ablation_series_V4_{arm}_{seat}_s{seed}.npz", d30_n2_c42_rec=np.zeros((3, 23)))
+    _V2 = _sha(f"{HERE}/v4e_gate_export_v2.py")
+    e = bound_entry(q, "A1e", src=f"{HERE}/v4e_gate_export_v2.py")
+    full = dict(e["inputs"]); full.update({f"book_{seat}_s{seed}": f"{q}/hc/dev_v4/probe_artifacts/w10_ablation_series_V4_A1e_{seat}_s{seed}.npz" for seat in ("dyn", "fix") for seed in (42, 2027)})
+    ok, why = _gc.require(e["receipt"], full, expected_gate="BUNDLE_export", expected_self_sha=_V2)
+    check("★★★ [r6] (i) unit: a v2-signed receipt over the full 28 names, required through the archived module + shipped contract ⇒ ok, '28 inputs verified, registered floor BUNDLE_export=28'", ok is True and "28 inputs verified" in why and "registered floor BUNDLE_export=28" in why, why)
+    _omit_bad = {}
+    for k in _FLOOR:
+        ok_k, why_k = _gc.require(e["receipt"], {kk: vv for kk, vv in full.items() if kk != k}, expected_gate="BUNDLE_export", expected_self_sha=_V2)
+        if ok_k or f"omitted registered input(s) ['{k}']" not in why_k: _omit_bad[k] = (ok_k, why_k)
+    check("★★★ [r6] (ii) unit: omitting ANY single one of the 28 (each of the 28 tried in turn) ⇒ refused, naming exactly that input", not _omit_bad, _omit_bad)
+    ok, why = _gc.require(e["receipt"], full, expected_gate="BUNDLE_export", expected_self_sha=_sha(f"{HERE}/pod_export_bundle_v4.py"))
+    check("★★★ [r6] (iii) unit: the v2-signed receipt pinned to the archived EXPORTER's sha ⇒ refused at the identity check ('caller trusts') before approval is even consulted", ok is False and "caller trusts" in why, why)
+    e_x = bound_entry(q, "A1e")   # the SAME 28-name closure (identical synthetic files), but SIGNED by the archived exporter (pod_export_bundle_v4.py) and pinned to it
+    full_x = dict(e_x["inputs"]); full_x.update({k: v for k, v in full.items() if k.startswith("book_")})
+    ok, why = _gc.require(e_x["receipt"], full_x, expected_gate="BUNDLE_export", expected_self_sha=_sha(f"{HERE}/pod_export_bundle_v4.py"))
+    check("★★★ [r6] (iii) unit: a receipt over the same 28 names signed by the archived exporter and pinned to its own sha ⇒ 'not an APPROVED source' under the shipped contract (a wider floor does not widen approval)", ok is False and "not an APPROVED source" in why, why)
+    # judge level, on synthetic arms with A1e +1 bps (so that a PROMOTE would be visible), the ARCHIVED judge and the SHIPPED contract
+    def _n_promote(j): return sum(v == "(A) PROMOTE" for v in (j or {}).get("verdicts", {}).values())
+    def _v2_entry(q, drop=None, extra=None):
+        e = bound_entry(q, "A1e", src=f"{HERE}/v4e_gate_export_v2.py", extra_inputs=extra); return {"A1e": {"receipt": e["receipt"], "inputs": {k: v for k, v in e["inputs"].items() if k != drop}}}
+    rc, out, j = judge_case(d, "r6_real_shape_archive", promote=True, contract="archive", eligibility=lambda q: _v2_entry(q))
+    check("★★★ [r6] (i) judge: the ARCHIVED judge + SHIPPED contract, an entry {receipt, inputs} whose receipt is signed by the v2 gate over the real-shape 28 closure ⇒ A1e ELIGIBLE, 'registered floor BUNDLE_export=28', 28 inputs verified, exactly 4 PROMOTE (the positive control on the real standard)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is True and "registered floor BUNDLE_export=28" in j["eligibility_by_arm"]["A1e"]["why"] and "28 inputs verified" in j["eligibility_by_arm"]["A1e"]["why"]
+          and len(j["eligibility_by_arm"]["A1e"]["inputs"]) == 28 and j["contract"]["sha256"] == _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") and _n_promote(j) == 4, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    for k in _NEW17:
+        rc, out, j = judge_case(d, "r6_omit_" + k.replace("/", "__"), promote=True, contract="archive", eligibility=lambda q, k=k: _v2_entry(q, drop=k))
+        if k == "eligibility_contract":   # ROUND 7 ([Q]): this name is JUDGE-bound like the four books — the caller's omission is supplied by the judge from its own contract path; the receipt must still have hashed that exact file
+            check("★★ [r6→r7] (ii) judge: the entry with 'eligibility_contract' left undeclared ⇒ A1e STILL eligible — round 7 binds that name to the judge's own contract (the receipt hashed it), 28 inputs verified, 4 PROMOTE (was: refused as a caller omission in round 6; a caller-chosen path is what [Q] closes)",
+                  rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is True and "28 inputs verified" in j["eligibility_by_arm"]["A1e"]["why"] and "eligibility_contract" in j["eligibility_by_arm"]["A1e"]["inputs"] and _n_promote(j) == 4, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+            continue
+        check(f"★★★ [r6] (ii) judge: the same entry with {k!r} left undeclared ⇒ A1e NOT eligible ('omitted registered input(s) [{k!r}]'), 0 PROMOTE (the 11-name floor let this through)",
+              rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and f"omitted registered input(s) ['{k}']" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    def _stale_bundle(q):
+        m = _v2_entry(q); open(m["A1e"]["inputs"]["bundle/slow_pred_pinned.npy"], "wb").write(b"predictions rewritten AFTER the export receipt"); return m
+    rc, out, j = judge_case(d, "r6_shipped_pred_mutated", promote=True, contract="archive", eligibility=_stale_bundle)
+    check("★★★ [r6] the reviewer's original probe, now at the JUDGE: the shipped slow_pred_pinned.npy mutated after the receipt ⇒ A1e not eligible ('bundle/slow_pred_pinned.npy' changed since the receipt), 0 PROMOTE (with 11 names the judge could not see the bundle)",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "'bundle/slow_pred_pinned.npy' changed since the receipt" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    rc, out, j = judge_case(d, "r6_exporter_signed_28_archive", promote=True, contract="archive", eligibility=lambda q: {"A1e": {k: v for k, v in bound_entry(q, "A1e").items() if k in ("receipt", "inputs")}})
+    check("★★★ [r6] (iii) judge: a receipt over the SAME 28 names but signed by the archived exporter (pod_export_bundle_v4.py) under the shipped contract ⇒ still 'not an approved source', 0 PROMOTE",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is False and "not an approved source" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 0, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+    def _femat_arm(q):
+        open(f"{q}/femat.npz", "wb").write(b"femat"); open(f"{q}/sig.json", "w").write("{}"); return _v2_entry(q, extra={"femat": f"{q}/femat.npz", "signal_receipt": f"{q}/sig.json"})
+    rc, out, j = judge_case(d, "r6_femat_extras", promote=True, contract="archive", eligibility=_femat_arm)
+    check("★★ [r6] a FEMAT-arm shape (femat + signal_receipt recorded by the gate AND declared, on top of the 28) is verified as extras, not refused: eligible, 30 inputs verified, 4 PROMOTE",
+          rc == 0 and j and j["eligibility_by_arm"]["A1e"]["ok"] is True and len(j["eligibility_by_arm"]["A1e"]["inputs"]) == 30 and "30 inputs verified" in j["eligibility_by_arm"]["A1e"]["why"] and _n_promote(j) == 4, (rc, j and j["eligibility_by_arm"]["A1e"]["why"]))
+
+
+# ── [Q] ROUND 7 (2026-09-12; DESIGN_judge_floor_28_2026-09-12 §7 F9; user word 09-12「修复所有漏洞」): the judge binds the STANDARD it enforces ───────────
+# Round 6 put `eligibility_contract` in the 28-name floor but let the CALLER say which file that name points at: require then verified only "the file at the
+# caller's path is unchanged since the receipt", never "the receipt was written under the contract THIS judge reads". Here: (i) a receipt whose gate hashed a
+# DIFFERENT contract (one key added, same approvals) is refused at the judge, naming eligibility_contract, and the caller's path is recorded; (ii) a byte-identical
+# copy at another path is still accepted (the sha binds, not the path); (iii) the same probe under the SHIPPED contract (archive mode, v2-signed) is refused;
+# (iv) the archived round-6 judge (judge_v4.r4_7f1aa5d6.py) ACCEPTS case (i) — the old code is red under this suite's standard; (v) static guards.
+with tempfile.TemporaryDirectory() as d:
+    print("\n[Q] round 7: the judge, not the caller, binds eligibility_contract to the contract it reads")
+    import shutil as _sh
+    def _n_promote(j): return sum(v == "(A) PROMOTE" for v in (j or {}).get("verdicts", {}).values())
+    def _other(q, base, identical=False):
+        p = f"{q}/other_contract.json"
+        if identical: _sh.copyfile(base, p)
+        else: c = json.load(open(base)); c["_round7_probe"] = "one key added: a different contract carrying the same approvals"; json.dump(c, open(p, "w"))
+        return p
+    def _entry_other(q, identical=False, src=None):
+        base = f"{q}/device/ELIGIBILITY_CONTRACT.json" if os.path.exists(f"{q}/device/ELIGIBILITY_CONTRACT.json") else f"{HERE}/ELIGIBILITY_CONTRACT.json"
+        e = bound_entry(q, "A1e", src=src, extra_inputs={"eligibility_contract": _other(q, base, identical)}); return {"A1e": {"receipt": e["receipt"], "inputs": e["inputs"]}}
+    rc, out, j = judge_case(d, "r7_receipt_under_other_contract", promote=True, eligibility=lambda q: _entry_other(q))
+    _r = j and j["eligibility_by_arm"]["A1e"]
+    check("★★★ [r7] (i) a receipt whose gate hashed a DIFFERENT contract (one key added) and an entry pointing eligibility_contract at that file ⇒ A1e NOT eligible ('eligibility_contract' changed since the receipt: the judge rebinds the name to ITS contract), caller path recorded, 0 PROMOTE",
+          rc == 0 and _r and _r["ok"] is False and "'eligibility_contract' changed since the receipt" in _r["why"] and _r.get("caller_contract_path", "").endswith("/other_contract.json") and _n_promote(j) == 0, (rc, _r and _r["why"], _r and _r.get("caller_contract_path")))
+    rc, out, j = judge_case(d, "r7_identical_copy_elsewhere", promote=True, eligibility=lambda q: _entry_other(q, identical=True))
+    _r = j and j["eligibility_by_arm"]["A1e"]
+    check("★★ [r7] (ii) the same entry but the other file is a BYTE-IDENTICAL copy of the judge's contract ⇒ still eligible (the sha binds, not the path), 28 inputs verified, caller path recorded, 4 PROMOTE",
+          rc == 0 and _r and _r["ok"] is True and "28 inputs verified" in _r["why"] and _r.get("caller_contract_path", "").endswith("/other_contract.json") and _n_promote(j) == 4, (rc, _r and _r["why"]))
+    rc, out, j = judge_case(d, "r7_other_contract_archive", promote=True, contract="archive", eligibility=lambda q: _entry_other(q, src=f"{HERE}/v4e_gate_export_v2.py"))
+    _r = j and j["eligibility_by_arm"]["A1e"]
+    check("★★★ [r7] (iii) under the SHIPPED contract + archived judge, a v2-signed receipt over the full 28 names whose eligibility_contract sha is another contract's ⇒ NOT eligible, judge contract sha = shipped 1188267a…, 0 PROMOTE",
+          rc == 0 and _r and _r["ok"] is False and "'eligibility_contract' changed since the receipt" in _r["why"] and j["contract"]["sha256"] == _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") and _n_promote(j) == 0, (rc, _r and _r["why"]))
+    rc, out, j = judge_case(d, "r7_old_judge_accepts_other_contract", promote=True, judge_src="judge_v4.r4_7f1aa5d6.py", eligibility=lambda q: _entry_other(q))
+    _r = j and j["eligibility_by_arm"]["A1e"]
+    check("★★★ [r7] (iv) OLD CODE IS RED: the archived round-6 judge (judge_v4.r4_7f1aa5d6.py) run in the device on case (i) ⇒ A1e ELIGIBLE and 4 PROMOTE — it verified the caller's file, not its own contract (the defect this round closes)",
+          rc == 0 and _r and _r["ok"] is True and _n_promote(j) == 4 and "caller_contract_path" not in _r, (rc, _r and _r["why"]))
+    _js = open(f"{HERE}/judge_v4.py").read()
+    check("★★ [r7] (v) static: the live judge carries the binding line and the archived round-6 judge is the sha it is named by (7f1aa5d6…) and does NOT carry it",
+          'inputs["eligibility_contract"] = _CONTRACT_PATH' in _js and _sha(f"{HERE}/judge_v4.r4_7f1aa5d6.py").startswith("7f1aa5d6") and 'inputs["eligibility_contract"] = _CONTRACT_PATH' not in open(f"{HERE}/judge_v4.r4_7f1aa5d6.py").read(),
+          _sha(f"{HERE}/judge_v4.r4_7f1aa5d6.py")[:12])
+    check("★ [r7] (v) static: the contract's own text still describes the judge as the one that reads it from its directory (no env can substitute) — the binding line implements that sentence",
+          "reads THIS file from its own directory" in open(f"{HERE}/ELIGIBILITY_CONTRACT.json").read(), None)
+
+
 # ── [M] round 3 (review 31fa3e4e §6, AMENDMENT 4): G1 clause (c) is code, and the six anchors must be present ────────────────────
 sys.path.insert(0, HERE)
 import v4e_parity_lib as _PL
@@ -723,6 +859,142 @@ _pr = _PL.anchors_present(_Eo, [int(_Eo[3]), 123])
 check("★★ anchors_present names the missing one", _pr[int(_Eo[3])] is True and _pr[123] is False, _pr)
 _src = open(f"{HERE}/v4e_gate_parity.py").read()
 check("★★★ the gate's PASS is (a) and (b) and (c) and anchors-present — wiring, not prose", '"PASS": bool(ok_a and ok_b and ok_c and ok_present)' in _src and "axis_clause(En, Eo, ALLOWED_NEW)" in _src and "anchors_present(En, ANCHORS)" in _src)
+
+# ── [P] MONTHLY CHAIN (2026-09-12; RUNBOOK_2026-10 §0★ 修订 2 (a)(b)(c), independent review 0dfc0d87 R1–R5): the month set is derived/declared, refit and
+#        exporter refuse without env, the month env is a contract, the driver stops at preflight against an empty root (negative control) ──────────
+print("\n[P] monthly chain: month set, refusals without env, month env contract, preflight approval, dryrun negative control")
+import calendar as _cal
+import glob as _glob
+import v4_months as _VM
+_t0 = _cal.timegm((2025, 1, 1, 0, 0, 0)); _sep = list(range(_t0, _cal.timegm((2026, 9, 1, 0, 0, 0)), 14400))
+_der = _VM.months_all_from_axis(_sep)
+check("★★★ [P] month set DERIVED from a 2025-01-01..2026-08-31 20Z axis == the September constant 202501..202608 (bit-identity of the month set)", _der == _VM.LEGACY_MONTHS_ALL_2026_09 and len(_der) == 20, (_der[0], _der[-1], len(_der)))
+check("★★★ [P] round-robin shards of that set == the four hand-written SH0..SH3 lists of chain_v4_gpu3.sh (bit-identity of the dispatch)", _VM.shards(_der) == _VM.LEGACY_SHARDS_2026_09, _VM.shards(_der))
+_src3 = open(f"{HERE}/chain_v4_gpu3.sh").read()
+check("★★ [P] the legacy lists the test compares against ARE the strings in the archived chain_v4_gpu3.sh (the test is not self-referential)", all(f"SH{k}={s}" in _src3 for k, s in enumerate(_VM.LEGACY_SHARDS_2026_09)))
+_oct = list(range(_t0, _cal.timegm((2026, 10, 5, 0, 0, 0)), 14400))
+check("★★ [P] an axis extended into an INCOMPLETE October ⇒ derived set ends 202609 (September complete, October excluded)", _VM.months_all_from_axis(_oct)[-1] == 202609 and len(_VM.months_all_from_axis(_oct)) == 21)
+check("★★ [P] an axis ending 2026-09-30 20Z (September complete) ⇒ ends 202609", _VM.months_all_from_axis(list(range(_t0, _cal.timegm((2026, 10, 1, 0, 0, 0)), 14400)))[-1] == 202609)
+def _raises(fn, *a):
+    try:
+        fn(*a); return None
+    except ValueError as e:
+        return str(e)
+_e = _raises(_VM.months_all, "202501,202609", _sep)
+check("★★★ [P] MUTATION: declared MONTHS_ALL with 202609 on the September axis ⇒ refused (the data cannot label it) and the message names the month", _e is not None and "202609" in _e, _e)
+check("★★★ [P] MONTHS ⊄ MONTHS_ALL ⇒ refused", _raises(_VM.check_subset, [202609], _der) is not None)
+check("★★ [P] parse_months refuses '2025-03', duplicates and descending lists; tolerates spaces", all(_raises(_VM.parse_months, s) for s in ("202501,2025-03", "202501,202501", "202502,202501")) and _VM.parse_months("202501, 202502") == [202501, 202502])
+check("★★ [P] a missing interior anchor ⇒ that month is not complete ⇒ refused (no silent hole)", _raises(_VM.months_all_from_axis, np.delete(np.array(_sep), 100)) is not None)
+rc, out = run(["v4_months.py", "shards", ",".join(str(m) for m in _der)])
+check("★★ [P] CLI `v4_months.py shards` prints exactly SH0..SH3 of the September chain", rc == 0 and out.strip().splitlines() == [f"SH{k}={s}" for k, s in enumerate(_VM.LEGACY_SHARDS_2026_09)], out[-200:])
+rc, out = run(["v4_months.py", "shards", "202501,2025-03"])
+check("★ [P] CLI refuses a malformed list with rc 3", rc == 3 and "MONTHS_SHARDS_FAIL" in out)
+for _f in ("pod_f10_train_monthly_v4.py", "merge_mwf_v4b.py"):
+    _s = open(f"{HERE}/{_f}").read()
+    check(f"★★★ [P] {_f}: no hand-written 202501..202608 constant; imports v4_months.months_all", "202501 + k for k in range(12)" not in _s and "from v4_months import months_all" in _s)
+_tr = open(f"{HERE}/pod_f10_train_monthly_v4.py").read()
+check("★★ [P] trainer env whitelist takes the admissible dirs from V4_DLW_RAW/V4_DLW_CLIP/V4_F8 with the September constants as defaults (bare call unchanged)",
+      "DLW in (_V4_DLW_RAW, _V4_DLW_CLIP) and OUT == _V4_F8" in _tr and 'os.environ.get("V4_DLW_RAW", "/workspace/dlw_v4raw")' in _tr and 'os.environ.get("V4_F8", "/workspace/f8_v4")' in _tr and "_check_subset(MONTHS, ALL_MONTHS)" in _tr)
+_la = open(f"{HERE}/launch_mwf_v4b.sh").read()
+check("★★ [P] launcher: DLW/F8/device dir from the month env with September defaults; MONTHS_ALL forwarded to the trainer", "${V4_DLW_RAW:-/workspace/dlw_v4raw}" in _la and "${V4_DLW_CLIP:-/workspace/dlw_hf3}" in _la and "F8=${V4_F8:-/workspace/f8_v4}" in _la and "${MONTHS_ALL:+MONTHS_ALL=$MONTHS_ALL}" in _la)
+_mg = open(f"{HERE}/merge_mwf_v4b.py").read()
+check("★★ [P] merge: mwf root / gate json / trainer / splice sources / dev preds from V4_* env with September defaults; the HF2 comparison is skipped (never asserted) when the reference cannot align", 'os.environ.get("V4_F8", "/workspace/f8_v4")' in _mg and "hf_skip" in _mg and "assert HF.shape == PRED.shape" not in _mg)
+# refit: refuses without env, BEFORE importing torch (R1)
+_env_clear = {k: "" for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")}
+rc, out = run(["pod_f10_refit_v4.py"], _env_clear)
+check("★★★ [P] refit with NO env ⇒ rc 2 REFIT_REFUSED naming all four keys (was: silent dlw_ext / f8_ext / argmax)", rc == 2 and "REFIT_REFUSED" in out and all(k in out for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")), out[-200:])
+rc, out = run(["pod_f10_refit_v4.py"], {**_env_clear, "F10_DLW": "/nonexistent", "F10_OUT": "/nonexistent", "SEED": "42"})
+check("★★★ [P] refit with F10_DLW/F10_OUT/SEED but NO BEST_EP_FIX ⇒ refused, names BEST_EP_FIX only (the sub-shell FIX7 of the launcher never reaches a bare call)", rc == 2 and "['BEST_EP_FIX']" in out, out[-200:])
+rc, out = run(["pod_f10_refit_v4.py"], {**_env_clear, "F10_DLW": "/nonexistent", "F10_OUT": "/nonexistent", "SEED": "42", "BEST_EP_FIX": "7"})
+check("★★★ [P] MUTATION: all four keys present ⇒ the refusal does NOT fire (the program proceeds and fails later on the nonexistent inputs: rc≠0 but no REFIT_REFUSED)", rc != 0 and "REFIT_REFUSED" not in out, out[-200:])
+_rf = open(f"{HERE}/pod_f10_refit_v4.py").read()
+check("★★ [P] refit source: no environ.get defaults for the four keys; report = best_ep_rule + trained_through_label_utc (last TBPTT loss anchor) + the kept pool-end field + sidecar json",
+      all(x not in _rf for x in ('environ.get("F10_DLW"', 'environ.get("F10_OUT"', 'environ.get("BEST_EP_FIX"', 'environ.get("SEED"')) and '"trained_through_label_utc"' in _rf and '"best_ep_rule"' in _rf
+      and '"trained_through": int(E_ts[tr_idx[-1]])' in _rf and "_last_loss_idx = int(starts[-1] + WIN - 1)" in _rf and 'f"{OUT}/models/f10_live_s{SEED}.json"' in _rf)
+# exporter: generation REQUIRED, king training cutoff recorded (R4)
+rc, out = run(["pod_export_bundle_v4.py"], {"BUNDLE_GENERATION": ""})
+check("★★★ [P] exporter without BUNDLE_GENERATION ⇒ rc 2 BUNDLE_FAIL generation_env_missing (was: the source constant 'v3_2026-09')", rc == 2 and "BUNDLE_FAIL generation_env_missing" in out, out[-200:])
+rc, out = run(["pod_export_bundle_v4.py"], {"BUNDLE_GENERATION": "v4_2026-10"})
+check("★★★ [P] MUTATION: with BUNDLE_GENERATION the refusal does NOT fire (the program proceeds to its imports)", "generation_env_missing" not in out, out[-200:])
+_ex = open(f"{HERE}/pod_export_bundle_v4.py").read()
+check("★★ [P] exporter source: provenance.generation = env; king_train_end_utc = last anchor of the label-year<2026 fit; built_utc kept separate; LIVE_PINS/FUND_AUG from env",
+      '"generation": _GEN' in _ex and '"generation": "v3_2026-09"' not in _ex and '"king_train_end_utc": _iso(_king_train_end)' in _ex and "_tr_anchors = np.unique(A[tr]); _king_train_end = int(E_ts[int(_tr_anchors.max())])" in _ex
+      and '"built_utc": time.strftime' in _ex and 'os.environ.get("LIVE_PINS", "/workspace/live_pins.json")' in _ex and 'os.environ.get("FUND_AUG", "/workspace/fund_aug.json.gz")' in _ex)
+_lg = open(f"{HERE}/pod_legs_v4b.py").read()
+check("★★ [P] legs: the in-service legs file and the panel are env locators (LEGS_OLD / LEGS_PANEL) with September defaults", 'os.environ.get("LEGS_OLD", "/workspace/f8_ext/data/f10v2_legs.npz")' in _lg and 'os.environ.get("LEGS_PANEL", "/workspace/data/wide_panel_4h_v3splice.npz")' in _lg)
+_ar = open(f"{HERE}/run_v4_arms.sh").read()
+check("★★ [P] run_v4_arms.sh waits every arm BY PID and collects rcs (the bare `wait; grep | tail -4` is gone); dev tree / king dir from V4_HC / V4_KING_DIR", "for p in \"${pids[@]}\"; do wait $p; rc=$?" in _ar and "ARMS_FAIL" in _ar and "H=${V4_HC:-/workspace/review_scratch/health_check}" in _ar and "done; wait;" not in _ar)
+# month env contract (chain_lib.load_month_env) — bash level
+def _bash(cmd, env=None):
+    e = dict(os.environ); e.update(env or {}); p = subprocess.run(["bash", "-c", cmd], capture_output=True, text=True, env=e, cwd=HERE); return p.returncode, p.stdout + p.stderr
+_KEYS = [k for k in open(f"{HERE}/chain_lib.sh").read().split('V4_MONTH_KEYS="', 1)[1].split('"', 1)[0].split()]
+check("★★ [P] chain_lib registers the month contract keys (41) incl. the ones the task names: R, cache/panel/raw_patch, DLW/F8, MONTHS_ALL, SEEDS, BUNDLE_GENERATION, BUNDLE_BASE, EXPORT_PANEL, EMA_STATE_JSON, LIVE_PINS",
+      len(_KEYS) == 41 and all(k in _KEYS for k in ("R", "CACHE", "PANEL_SPLICE", "RAW_PATCH", "DLW_RAW", "DLW_CLIP", "F8", "MONTHS_ALL", "SEEDS", "BUNDLE_GENERATION", "BUNDLE_BASE", "EXPORT_PANEL", "EMA_STATE_JSON", "LIVE_PINS")), len(_KEYS))
+with tempfile.TemporaryDirectory() as d:
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {HERE}/v4_month_2026-09.env; echo R=$R V4_F8=$V4_F8 RAW_PATCH=$RAW_PATCH", {"L": "/dev/null"})
+    check("★★★ [P] load_month_env on the shipped September contract ⇒ rc 0; R / V4_F8 / RAW_PATCH resolve to the September paths (positive control of the contract file)",
+          rc == 0 and "R=/workspace/review_scratch " in out and "V4_F8=/workspace/f8_v4" in out and "RAW_PATCH=/workspace/review_scratch/raw_patch.npz" in out, out[-300:])
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {HERE}/v4_month_2026-10.env.template >/dev/null; echo GATE_STEP1=$GATE_STEP1", {"L": "/dev/null"})
+    check("★★ [P] the October template loads (every key present) and carries TODO gate sources that preflight refuses", rc == 0 and "GATE_STEP1=TODO_" in out, out[-200:])
+    _lines = open(f"{HERE}/v4_month_2026-09.env").read().splitlines()
+    open(f"{d}/missing.env", "w").write("\n".join(l for l in _lines if not l.startswith("SEEDS=")) + "\n")
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/missing.env", {"L": "/dev/null"})
+    check("★★★ [P] a contract missing one key (SEEDS) ⇒ rc 4 FAIL_month_env_key_missing_SEEDS", rc == 4 and "FAIL_month_env_key_missing_SEEDS" in out, out[-200:])
+    open(f"{d}/empty.env", "w").write("\n".join((l if not l.startswith("SEEDS=") else "SEEDS=") for l in _lines) + "\n")
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/empty.env", {"L": "/dev/null"})
+    check("★★ [P] a key present but EMPTY ⇒ refused the same way", rc == 4 and "FAIL_month_env_key_missing_SEEDS" in out, out[-200:])
+    open(f"{d}/bad.env", "w").write("\n".join(_lines) + "\nSEEDS=42; rm -rf /\n")
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/bad.env", {"L": "/dev/null"})
+    check("★★★ [P] a line with shell syntax (';') ⇒ rc 4 FAIL_month_env_malformed, nothing sourced", rc == 4 and "FAIL_month_env_malformed" in out, out[-200:])
+    open(f"{d}/sub.env", "w").write("\n".join((l if not l.startswith("SEEDS=") else "SEEDS=$(echo 42)") for l in _lines) + "\n")
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/sub.env", {"L": "/dev/null"})
+    check("★★ [P] a command substitution in a value ⇒ refused", rc == 4 and "FAIL_month_env_malformed" in out, out[-200:])
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/nope.env", {"L": "/dev/null"})
+    check("★★ [P] a missing contract file ⇒ rc 4 FAIL_month_env_missing", rc == 4 and "FAIL_month_env_missing" in out, out[-200:])
+    rc, out = _bash(f". {HERE}/chain_lib.sh; MONTHS_ALL={','.join(str(m) for m in _der)} set_shards_from_months_all; echo SH0=$SH0 SH1=$SH1 SH2=$SH2 SH3=$SH3", {"L": "/dev/null", "PY": PY, "CHAIN_DEVICE_DIR": HERE, "R": d})
+    check("★★★ [P] chain_lib set_shards_from_months_all reproduces the four hand-written shard lists from MONTHS_ALL", rc == 0 and all(f"SH{k}={s}" in out for k, s in enumerate(_VM.LEGACY_SHARDS_2026_09)), out[-300:])
+    rc, out = _bash(f". {HERE}/chain_lib.sh; MONTHS_ALL=202501,2025-03 set_shards_from_months_all; echo SH0=$SH0", {"L": "/dev/null", "PY": PY, "CHAIN_DEVICE_DIR": HERE, "R": d})
+    check("★★ [P] MUTATION: a malformed MONTHS_ALL ⇒ set_shards dies (rc 4), no shard list is set", rc == 4 and "SH0=2025" not in out, out[-200:])
+    # ── NEGATIVE CONTROL: the driver against an EMPTY month root stops at preflight and launches nothing ──
+    rc, out = _bash(f"bash {HERE}/chain_v4_monthly_dryrun.sh {HERE}/v4_month_2026-09.env {d}", {"PY": PY})
+    _recs = _glob.glob(f"{d}/v4_dryrun_*/dryrun_receipt.json"); _rr = json.load(open(_recs[0])) if _recs else None
+    check("★★★ [P] NEGATIVE CONTROL: chain_v4_monthly.sh against an empty month root ⇒ driver rc 3, stopped at FAIL_preflight, training_launched 0, dryrun exit 0 (control passed)",
+          rc == 0 and _rr and _rr["PASS"] is True and _rr["driver_rc"] == 3 and str(_rr["stopped_at"]).startswith("FAIL_preflight") and _rr["training_launched"] == 0, (rc, _rr and {k: _rr[k] for k in ("PASS", "driver_rc", "stopped_at", "training_launched")}))
+    check("★★ [P] the dryrun receipt binds the driver / chain_lib / env shas and lists the preflight failures (every input under the empty root is missing)",
+          _rr and _rr["driver_sha256"] == _sha(f"{HERE}/chain_v4_monthly.sh") and _rr["chain_lib_sha256"] == _sha(f"{HERE}/chain_lib.sh") and _rr["preflight_PASS"] is False and any("input missing" in f for f in _rr["preflight_fails"]), _rr and _rr["preflight_fails"][:2])
+    # ── a root where EVERY input exists (fakes): preflight PASSES; under V4_DRYRUN=1 the next stage dies at the guard; without it the stage really runs ──
+    def _fake_root(dd):
+        root = f"{dd}/root"; os.makedirs(f"{root}/v4_gates", exist_ok=True); os.makedirs(f"{root}/funding", exist_ok=True)
+        def touch(rel):
+            p = f"{root}/{rel}"; os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(b"x"); return p
+        keys = dict(V4_MONTH="2026-99", R=root, PY=PY, CACHE=touch("cache.npz"), PANEL_SPLICE=touch("splice.npz"), PANEL_KING=touch("king_panel.npz"), RAW_PATCH=touch("raw_patch.npz"), HOLE_CELLS=touch("holes.npz"),
+                    DLW_RAW=f"{root}/dlw_v4raw", DLW_CLIP=f"{root}/dlw_hf3", F8=f"{root}/f8_v4", KING_FEA=f"{root}/data/wide_fea_v4.npy", KING_META=f"{root}/data/wide_fea_v4_meta.npz",
+                    MONTHS_ALL="202501,202502", SEEDS="42", MWF_ROOT="mwf_v4b", BUNDLE_OUT=f"{root}/bundle", BUNDLE_TAR=f"{root}/bundle.tar.gz", BUNDLE_GENERATION="v4_test", BUNDLE_BASE=touch("base.json"),
+                    EXPORT_PANEL=f"{root}/splice.npz", EMA_STATE_JSON=touch("ema.json"), LIVE_PINS=touch("pins.json"), FUND_AUG=touch("aug.json.gz"), FUNDING_DIR=f"{root}/funding",
+                    LEGS_OLD=touch("legs_old.npz"), LEGS_PANEL=f"{root}/splice.npz", DLW_EXT=f"{root}/dlw_ext", F8_EXT=f"{root}/f8_ext", HC=f"{root}/hc", KING_DIR=f"{root}/king", EXPORT_ARM="A1", SIGNAL_RECEIPT=touch("sig.json"),
+                    BUILDER_FEA82=touch("b82.py"), BUILDER_FEA89=touch("b89.py"), BASE_TRAINER=touch("base_trainer.py"), GATE_STEP1="v4_gate_step1.py", GATE_STEP2="v4_gate_step2.py",
+                    PREV_BUNDLE=f"{root}/prev", PREV_META=touch("prev_meta.npz"), REF_META=touch("ref_meta.npz"))
+        touch("dlw_ext/data/dlw_targets.npz"); touch("f8_ext/preds/f10_V2MAIN_s42.npy"); touch("prev/slow_pred_pinned.npy")
+        for rel in ["masks/umask_UPIT_CRYPTO.npz", "calib/costb_fee_steady.json", "run_arm.sh"] + [f"dev_v4/probe_artifacts/w10_ablation_series_V4_A0_{seat}_s{s}.npz" for seat in ("dyn", "fix") for s in (42, 2027)]: touch(f"hc/{rel}")
+        envf = f"{dd}/fake.env"; open(envf, "w").write("\n".join(f"{k}={v}" for k, v in keys.items()) + "\n"); return root, envf
+    _root, _envf = _fake_root(d)
+    rc, out = _bash(f"V4_DRYRUN=1 V4_STAGES=preflight,cache bash {HERE}/chain_v4_monthly.sh {_envf}")
+    _pf = json.load(open(f"{_root}/v4_gates/preflight.json"))
+    check("★★★ [P] a root where every input EXISTS: preflight PASSES (21 device files pinned, 3/3 gate sources approved by the frozen contract) and, under V4_DRYRUN=1, the next stage dies at the guard (rc 9 FAIL_dryrun_guard_cache_would_launch) before running anything",
+          rc == 9 and _pf["PASS"] is True and len(_pf["device_sha256"]) == 21 and all(a["ok"] for a in _pf["gate_approval"].values()) and "FAIL_dryrun_guard_cache_would_launch" in out and not os.path.exists(f"{_root}/cache_coverage.log"), (rc, _pf["fails"][:2], out[-200:]))
+    rc, out = _bash(f"V4_STAGES=preflight,cache bash {HERE}/chain_v4_monthly.sh {_envf}")
+    check("★★ [P] MUTATION: the same root WITHOUT V4_DRYRUN ⇒ the cache stage really runs (cache_coverage.log written) and fails on the fake cache with FAIL_cache_coverage_rc_*, rc 3 — the guard is what stopped the dryrun",
+          rc == 3 and "FAIL_cache_coverage_rc_" in out and os.path.exists(f"{_root}/cache_coverage.log") and json.load(open(f"{_root}/v4_gates/cache_coverage.json"))["PASS"] is False, (rc, out[-200:]))
+    open(f"{_envf}.badgate", "w").write(open(_envf).read().replace("GATE_STEP1=v4_gate_step1.py", "GATE_STEP1=v4_gate_closure.py"))
+    rc, out = _bash(f"V4_STAGES=preflight bash {HERE}/chain_v4_monthly.sh {_envf}.badgate")
+    _pf = json.load(open(f"{_root}/v4_gates/preflight.json"))
+    check("★★★ [P] MUTATION: GATE_STEP1 pointing at a real but UNAPPROVED program (v4_gate_closure.py, approved only for G2_closure) ⇒ preflight FAIL 'gate source NOT approved', rc 3",
+          rc == 3 and _pf["PASS"] is False and any("NOT approved" in f and "STEP1" in f for f in _pf["fails"]), _pf["fails"][:2])
+    open(f"{_envf}.nokey", "w").write("\n".join(l for l in open(_envf).read().splitlines() if not l.startswith("BUNDLE_GENERATION=")) + "\n")
+    rc, out = _bash(f"V4_STAGES=preflight bash {HERE}/chain_v4_monthly.sh {_envf}.nokey")
+    check("★★ [P] the driver itself refuses a contract missing BUNDLE_GENERATION (rc 4) before any stage", rc == 4 and "FAIL_month_env_key_missing_BUNDLE_GENERATION" in out, out[-200:])
+    rc, out = _bash(f"V4_STAGES=preflight bash {HERE}/chain_v4_monthly.sh {_envf}")
+    check("★ [P] a stage SUBSET writes MONTHLY_STAGES_DONE.json (DONE false), never MONTHLY_DONE.json", rc == 0 and os.path.exists(f"{_root}/v4_gates/MONTHLY_STAGES_DONE.json") and json.load(open(f"{_root}/v4_gates/MONTHLY_STAGES_DONE.json"))["DONE"] is False and not os.path.exists(f"{_root}/v4_gates/MONTHLY_DONE.json"), out[-150:])
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)

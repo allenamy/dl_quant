@@ -33,6 +33,14 @@
   `require` refuses a caller that omits a registered name (extras are allowed). Round 3 verified whatever subset the caller chose to name —
   a chain that forgot hole_cells was silently unbound from the holes.
 
+★ ROUND 6 (r20 gate closure, 2026-09-12; DESIGN_judge_floor_28_2026-09-12.md): the BUNDLE_export floor is the v2 export gate's FULL closure, 28 names,
+  not the 11 the round-5 exporter registered. The independent reviewer showed that with 11 names the judge's own `require` stayed PASS after the
+  SHIPPED prediction file was mutated (the bundle was not in the floor); v4e_gate_export_v2.py registers manifest + every listed bundle file, the
+  approved A0 baseline books, the cost json / mask / king file the books' config_json names, and the contract itself. The judge passes the caller's
+  inputs plus the four judged books straight to `require`, so extending THIS list is what makes the judge refuse an entry that leaves any of them
+  undeclared. No profile: nothing legitimately consumes a SUBSET of a BUNDLE_export receipt (the v2 gate's require mode passes the derived full set;
+  no chain_*.sh requires this gate). G2_closure / STEP1(@v4, @v4s) / STEP2 are untouched.
+
 CLI:
   python v4_gate_common.py require <receipt.json> gate=<expected_gate> self_sha=<sha256> [profile=<stage>] name=path [name=path ...]
                                                                        # exit 0 iff PASS & identity & fresh & full registered dependency set
@@ -56,8 +64,14 @@ REQUIRED_INPUTS = {
     "STEP1@v4": ["dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"],    # chain_v4_gpu3.sh / chain_v4_post_export.sh (RAW + CLIP chains, fea89)
     "STEP2": ["wide_fea_v4", "wide_fea_v4_meta"],                                          # chain_v4_gpu3.sh king side
     "BUNDLE_export": ["wide_fea_v4", "wide_fea_v4_meta", "bundle_base", "export_panel", "bundle_cache", "fund_aug", "live_pins",
-                      "book_dyn_s42", "book_dyn_s2027", "book_fix_s42", "book_fix_s2027"],   # pod_export_bundle_v4.py inputs + the arm's four judged books (round 5)
-    #   BUNDLE_FEA / BUNDLE_META / BUNDLE_BASE / EXPORT_PANEL / BUNDLE_CACHE / fund_aug.json.gz / live_pins.json — the judge's per-arm eligibility (JUDGE_ELIGIBILITY)
+                      "book_dyn_s42", "book_dyn_s2027", "book_fix_s42", "book_fix_s2027",                        # round 5: the arm's four judged books (BOOK_INPUTS, [7:11])
+                      "base_dyn_s42", "base_dyn_s2027", "base_fix_s42", "base_fix_s2027",                        # ROUND 6 (r20): the approved A0 baseline books (E9)
+                      "bundle_manifest", "bundle/slow_pred_pinned.npy", "bundle/slow2026.txt", "bundle/config.json",   # ROUND 6 (r20): the shipped bundle's closure (E1)
+                      "bundle/cache_tail_40d.npz", "bundle/fund_ema_v1_state.json", "bundle/funding_ledger_seed.json", "bundle/leg_returns.npz", "bundle/parity_signals_aug.json",
+                      "costb_json", "umask_npz", "slow_npy", "eligibility_contract"],                             # ROUND 6 (r20): cost model, mask, king file (E6), the standard itself (E0)
+    #   = EXACTLY the 28 names v4e_gate_export_v2.py registers for an arm without FEMAT injection (the real A1 receipt of 2026-09-12T09:23:10Z,
+    #   receipts/judge_floor_2026-09-12/BUNDLE_export_v2_A1_applied.json); `femat` / `signal_receipt` are conditional (E6/E7, only when a book injected
+    #   a FEMAT) and are therefore NOT in the static floor — extras are allowed, and a receipt that recorded them is still verified on them.
 }
 
 

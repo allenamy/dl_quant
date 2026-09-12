@@ -1,0 +1,37 @@
+f8f4fc0e6ca3a02f9c51383b72f553b5f8614b3be5f496f510bae9d43fe0df12  /workspace/uplift_2026-09-11/w4_judge_floor/v4_gate_common.NEW.py
+tee: /workspace/uplift_2026-09-11/w4_judge_floor/out/run_w4_pod2.log: No such file or directory
+entries written; n_full = 28
+=== old_full28 (device_old, ELIG_A1_full28.json) 2026-09-12T10:20:33Z
+eligibility: candidate | eligible arms ['A1'] | per arm {'A1': True} | deprecated export gate None: PASS=None | exploratory=False
+   eligibility[A1]: BOUND PASS — PASS (BUNDLE_export, 2026-09-12T09:23:10Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=11)
+rc=0
+=== old_omit_slowpred (device_old, ELIG_A1_omit_slowpred.json) 2026-09-12T10:20:53Z
+eligibility: candidate | eligible arms ['A1'] | per arm {'A1': True} | deprecated export gate None: PASS=None | exploratory=False
+   eligibility[A1]: BOUND PASS — PASS (BUNDLE_export, 2026-09-12T09:23:10Z, self d63f4ec3f9e6 approved, 27 inputs verified, registered floor BUNDLE_export=11)
+rc=0
+=== new_full28 (device_new, ELIG_A1_full28.json) 2026-09-12T10:21:03Z
+eligibility: candidate | eligible arms ['A1'] | per arm {'A1': True} | deprecated export gate None: PASS=None | exploratory=False
+   eligibility[A1]: BOUND PASS — PASS (BUNDLE_export, 2026-09-12T09:23:10Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=28)
+rc=0
+=== new_omit_slowpred (device_new, ELIG_A1_omit_slowpred.json) 2026-09-12T10:21:13Z
+eligibility: informational | eligible arms [] | per arm {'A1': False} | deprecated export gate None: PASS=None | exploratory=False
+   eligibility[A1]: NOT eligible — caller omitted registered input(s) ['bundle/slow_pred_pinned.npy'] for BUNDLE_export: the stage would run unbound from them (REQUIRED_INPUTS['BUNDLE_export'] = ['wide_fea_v4', 'wide_fea_v4_meta', 'bundle_base', 'export_panel', 'bundle_cache', 'fund_aug', 'live_pins', 'book_dyn_s42', 'book_dyn_s2027', 'book_fix_s42', 'book_fix_s2027', 'base_dyn_s42', 'base_dyn_s2027', 'base_fix_s42
+rc=0
+=== new_omit_contract (device_new, ELIG_A1_omit_contract.json) 2026-09-12T10:21:20Z
+eligibility: informational | eligible arms [] | per arm {'A1': False} | deprecated export gate None: PASS=None | exploratory=False
+   eligibility[A1]: NOT eligible — caller omitted registered input(s) ['eligibility_contract'] for BUNDLE_export: the stage would run unbound from them (REQUIRED_INPUTS['BUNDLE_export'] = ['wide_fea_v4', 'wide_fea_v4_meta', 'bundle_base', 'export_panel', 'bundle_cache', 'fund_aug', 'live_pins', 'book_dyn_s42', 'book_dyn_s2027', 'book_fix_s42', 'book_fix_s2027', 'base_dyn_s42', 'base_dyn_s2027', 'base_fix_s42', 'bas
+rc=0
+JUDGE_new_full28.json | eligible_arms ['A1'] | A1 ok True | n_verdicts 18 | n_PROMOTE 0 | A1-A0 (C) UNDECIDED (C) UNDECIDED | contract 1188267adf42
+JUDGE_new_omit_contract.json | eligible_arms [] | A1 ok False | n_verdicts 18 | n_PROMOTE 0 | A1-A0 (C) UNDECIDED (C) UNDECIDED | contract 1188267adf42
+JUDGE_new_omit_slowpred.json | eligible_arms [] | A1 ok False | n_verdicts 18 | n_PROMOTE 0 | A1-A0 (C) UNDECIDED (C) UNDECIDED | contract 1188267adf42
+JUDGE_old_full28.json | eligible_arms ['A1'] | A1 ok True | n_verdicts 18 | n_PROMOTE 0 | A1-A0 (C) UNDECIDED (C) UNDECIDED | contract 1188267adf42
+JUDGE_old_omit_slowpred.json | eligible_arms ['A1'] | A1 ok True | n_verdicts 18 | n_PROMOTE 0 | A1-A0 (C) UNDECIDED (C) UNDECIDED | contract 1188267adf42
+0 %, 2 MiB
+2026-09-12T10:20:33Z
+0 %, 2 MiB
+2026-09-12T10:21:28Z
+Python 3.11.10
+numpy 2.4.6
+W4_DONE
+
+[exited with code 1]

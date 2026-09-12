@@ -1,0 +1,18 @@
+用法: python3 pod_export_bundle_v3.py
+★ 2026-09-12 (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 2 ④/(b); independent review 0dfc0d87 R4): `provenance.generation` was a SOURCE CONSTANT
+  ("v3_2026-09") — every export, whatever month, labelled itself September. Now BUNDLE_GENERATION is REQUIRED (refused before any import when absent).
+  Provenance also records the king booster's TRUE gradient cutoff: the export fits slow2026 on label-year < 2026 (L49-51, unchanged), so
+  `king_train_end_utc` = the last anchor in that training set (last 2025 anchor with >= 50 labels) — a month later the label cutoff does NOT move;
+  `built_utc` stays a build timestamp and is no longer the only date. LIVE_PINS / FUND_AUG / FUNDING_DIR are read from env (the RUNBOOK's LIVE_PINS=
+  word used to be ignored, review R3) with the September paths as defaults.
+"""
+import os, sys
+_GEN = os.environ.get("BUNDLE_GENERATION")
+if not _GEN:
+    print("BUNDLE_FAIL generation_env_missing: BUNDLE_GENERATION (e.g. v4_2026-10) is REQUIRED — provenance.generation is no longer a source constant (2026-09-12)", flush=True)
+    sys.exit(2)
+import io, csv, json, time, glob, gzip, zipfile, hashlib, tarfile
+import numpy as np
+sys.path.insert(0, "/workspace")
+from scipy.stats import rankdata, spearmanr
+from zload import zload

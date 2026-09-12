@@ -1,11 +1,25 @@
-"""F-10 部署重训 @jpline: V2MAIN 冻结配方全史(→2026-08-10), 保存权重+标定+α(REVIEW §6.2)。"""
-import os, json, time, math, hashlib
+"""F-10 部署重训 @jpline: V2MAIN 冻结配方全史(→2026-08-10), 保存权重+标定+α(REVIEW §6.2)。
+
+★ 2026-09-12 (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 2 ①; independent review 0dfc0d87 R1): NO SILENT DEFAULTS. The September copy defaulted to
+  F10_DLW=/workspace/dlw_ext, F10_OUT=/workspace/f8_ext and BEST_EP_FIX=-1 (argmax), so a bare call read the PREVIOUS generation's inputs, kept the argmax
+  epoch and overwrote f8_ext/models/f10_live_s42.pt; the launcher's sub-shell `BEST_EP_FIX=7` never reached a bare parent-shell call. Now the four
+  locators/knobs F10_DLW F10_OUT SEED BEST_EP_FIX must ALL be in the environment or the program refuses (rc 2) BEFORE importing torch.
+  The training recipe below the env block is byte-identical to the September copy (COST/LDD/WIN/BURN/STRIDE/EPOCHS/LR/CAPM, split, optimiser, FIX rule).
+  The report gains the TRUE label cutoff (review R1 ¶2): `trained_through` (kept, = pool end tr_idx[-1]) is NOT the last label the optimiser saw;
+  `trained_through_label_utc` = the last anchor whose net entered a TBPTT loss window (starts[-1] + WIN - 1), `trained_through_tr1_end_utc` = the tr1
+  split end, `validation_span_utc` = va1. A JSON sidecar beside the .pt carries the same metadata for readers without torch (the chain checks best_ep_rule)."""
+import os, sys, json, time, math, hashlib
+_REQ = ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")
+_missing = [k for k in _REQ if not os.environ.get(k)]
+if _missing:
+    print(f"REFIT_REFUSED: env {_missing} not set — pod_f10_refit_v4.py has NO defaults (the legacy dlw_ext / f8_ext / argmax defaults were removed 2026-09-12); "
+          f"pass F10_DLW F10_OUT SEED BEST_EP_FIX explicitly (chain_v4_monthly.sh does)", flush=True)
+    sys.exit(2)
 import numpy as np
 import torch, torch.nn as nn
-ROOT = "/workspace"  # EXT_ENV line rewritten
-DLW = os.environ.get("F10_DLW", f"{ROOT}/dlw_ext")
-OUT = os.environ.get("F10_OUT", f"{ROOT}/f8_ext")
-SEED = int(os.environ.get("SEED", "42")); BEST_EP_FIX = int(os.environ.get("BEST_EP_FIX", "-1"))   # v4: -1 = verbatim argmax; k = keep exactly epoch k (FIX rule)
+DLW = os.environ["F10_DLW"]
+OUT = os.environ["F10_OUT"]
+SEED = int(os.environ["SEED"]); BEST_EP_FIX = int(os.environ["BEST_EP_FIX"])   # v4: -1 = verbatim argmax; k = keep exactly epoch k (FIX rule) — explicit, never defaulted
 COST, LDD = 3.52, 0.25
 WIN, BURN, STRIDE, EPOCHS, LR, CAPM = 96, 24, 48, 15, 3e-4, 2.5
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
@@ -117,8 +131,26 @@ for ep in range(EPOCHS):
     log(f"ep{ep} va {va:+.3f} α {float(mdl.alpha()):.3f}")
 mdl.load_state_dict(best_state)
 os.makedirs(f"{OUT}/models", exist_ok=True)
-torch.save({"state_dict": best_state, "mu": mu.cpu(), "sd": sd.cpu(), "alpha": float(mdl.alpha()),
-            "seed": SEED, "n_cols": int(XT.shape[1]), "va_curve": curve, "best_va": best_va, "best_ep_rule": ("fix%d" % BEST_EP_FIX if BEST_EP_FIX >= 0 else "argmax"),
-            "trained_through": int(E_ts[tr_idx[-1]]), "recipe": "V2MAIN frozen (REVIEW §6.2)"},
-           f"{OUT}/models/f10_live_s{SEED}.pt")
-log(f"REFIT_DONE s{SEED} best_va {best_va:+.3f} α {float(mdl.alpha()):.3f} -> models/f10_live_s{SEED}.pt")
+def _iso(t): return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
+def _sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(1 << 24), b""): h.update(ch)
+    return h.hexdigest()
+_last_loss_idx = int(starts[-1] + WIN - 1)   # the last anchor whose net entered a loss window (span k >= BURN of the last TBPTT start); its label = 5m rows [E+1, E+48]
+_best_ep = int(BEST_EP_FIX) if BEST_EP_FIX >= 0 else int(np.argmax(curve))
+meta = {"seed": SEED, "n_cols": int(XT.shape[1]), "va_curve": curve, "best_va": best_va, "best_ep_rule": ("fix%d" % BEST_EP_FIX if BEST_EP_FIX >= 0 else "argmax"), "best_ep_kept": _best_ep,
+        "trained_through": int(E_ts[tr_idx[-1]]),   # KEPT for readers of the old key: the POOL END (tr_idx[-1]); the optimiser never saw labels past trained_through_label_utc (review R1)
+        "trained_through_meaning": "pool end = last anchor of tr_idx (its first 85% is tr1 = optimised, last 15% va1 = validation only); NOT the last loss label",
+        "trained_through_pool_end_utc": _iso(E_ts[tr_idx[-1]]), "trained_through_tr1_end_utc": _iso(E_ts[tr1[-1]]),
+        "trained_through_label_utc": _iso(E_ts[_last_loss_idx]), "trained_through_label_end_utc": _iso(int(E_ts[_last_loss_idx]) + 48 * 300), "trained_through_label_idx": _last_loss_idx,
+        "validation_span_utc": [_iso(E_ts[va1[0]]), _iso(E_ts[va1[-1]])], "n_train_anchors_tr1": int(len(tr1)), "n_val_anchors_va1": int(len(va1)), "n_tbptt_windows": int(len(starts)),
+        "data_axis_end_utc": _iso(E_ts[-1]), "epochs_computed": EPOCHS, "recipe": "V2MAIN frozen (REVIEW §6.2)",
+        "env_given": {k: os.environ.get(k) for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX", "EMBARGO", "V4_MONTH", "V4_MONTH_ENV")},
+        "inputs": {"targets": f"{DLW}/data/dlw_targets.npz", "fea82": f"{DLW}/data/dlw_fea82.npz", "fea89": f"{OUT}/data/f8_fea89.npz", "legs": f"{OUT}/data/f10v2_legs.npz"},
+        "self_sha256": _sha(os.path.abspath(__file__)), "torch": torch.__version__, "device": DEV, "finished_utc": _iso(time.time())}
+meta["inputs_sha256"] = {k: _sha(v) for k, v in meta["inputs"].items()}
+torch.save(dict({"state_dict": best_state, "mu": mu.cpu(), "sd": sd.cpu(), "alpha": float(mdl.alpha())}, **meta), f"{OUT}/models/f10_live_s{SEED}.pt")
+meta["pt"] = f"{OUT}/models/f10_live_s{SEED}.pt"; meta["pt_sha256"] = _sha(meta["pt"]); meta["alpha"] = float(mdl.alpha())
+json.dump(meta, open(f"{OUT}/models/f10_live_s{SEED}.json", "w"), indent=1)   # sidecar: the same metadata readable without torch
+log(f"REFIT_DONE s{SEED} best_va {best_va:+.3f} α {float(mdl.alpha()):.3f} rule {meta['best_ep_rule']} label cutoff {meta['trained_through_label_utc']} (pool end {meta['trained_through_pool_end_utc']}) -> models/f10_live_s{SEED}.pt")

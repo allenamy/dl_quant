@@ -1,0 +1,308 @@
+{
+ "note": "W4 judge-floor control on pod2, 2026-09-12 (DESIGN_judge_floor_28_2026-09-12.md §2 D6). Same real A1 v2 receipt (sha 4fe0495f…), same HC, CPU only; cells differ only in v4_gate_common (old 7b6d49a3 / new f8f4fc0e) and in which name the JUDGE_ELIGIBILITY entry leaves undeclared.",
+ "device": {
+  "judge_v4.py": "7f1aa5d63ea37d67db9518f7f1b03c73db917308bd169ba02de6a6298ef54c42",
+  "ELIGIBILITY_CONTRACT.json": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+  "v4_gate_common_old": "7b6d49a3de74df8840b8bdf5e6a20226505a5a8a6abf25d57f822d522cba2eb2",
+  "v4_gate_common_new": "f8f4fc0e6ca3a02f9c51383b72f553b5f8614b3be5f496f510bae9d43fe0df12",
+  "receipt": "4fe0495ff7316db9187d26c6083b12d3ec3fa0267d96443437bcaac2f53597cd",
+  "JUDGE_HC": "/workspace/review_scratch/health_check",
+  "python": [
+   "Python",
+   "3.11.10",
+   "numpy",
+   "2.4.6"
+  ]
+ },
+ "gpu_before": [
+  "0 %, 2 MiB",
+  "2026-09-12T10:20:33Z"
+ ],
+ "gpu_after": [
+  "0 %, 2 MiB",
+  "2026-09-12T10:21:28Z"
+ ],
+ "cells": {
+  "new_full28": {
+   "n_entry_inputs_declared": 28,
+   "A1_ok": true,
+   "A1_why": "PASS (BUNDLE_export, 2026-09-12T09:23:10Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=28)",
+   "n_inputs_bound_by_judge": 28,
+   "eligible_arms": [
+    "A1"
+   ],
+   "eligibility": "candidate",
+   "n_verdicts": 18,
+   "n_PROMOTE": 0,
+   "verdict_set": [
+    "(C) UNDECIDED"
+   ],
+   "A1_vs_A0": {
+    "A1-A0|dyn": "(C) UNDECIDED",
+    "A1-A0|fix": "(C) UNDECIDED"
+   },
+   "A1-A0_contrasts": {
+    "A1-A0|dyn|s42": {
+     "delta": 0.06054,
+     "ci95": [
+      -0.16825,
+      0.28742
+     ],
+     "n": 3168
+    },
+    "A1-A0|dyn|s2027": {
+     "delta": 0.04782,
+     "ci95": [
+      -0.17079,
+      0.27039
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s42": {
+     "delta": 0.00466,
+     "ci95": [
+      -0.07636,
+      0.08688
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s2027": {
+     "delta": -0.01025,
+     "ci95": [
+      -0.10173,
+      0.08768
+     ],
+     "n": 3168
+    }
+   },
+   "contract_sha256": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+   "exploratory": false,
+   "utc": "2026-09-12T10:21:13Z",
+   "json_sha256": "329756ea1414a0713be8f7af495d224230733c5d1c36055a8b9dd735fc8b16cb"
+  },
+  "new_omit_contract": {
+   "n_entry_inputs_declared": 27,
+   "A1_ok": false,
+   "A1_why": "caller omitted registered input(s) ['eligibility_contract'] for BUNDLE_export: the stage would run unbound from them (REQUIRED_INPUTS['BUNDLE_export'] = ['wide_fea_v4', 'wide_fea_v4_meta', 'bundle_base', 'export_panel', 'bundle_cache', 'fund_aug', 'live_pins',",
+   "n_inputs_bound_by_judge": 27,
+   "eligible_arms": [],
+   "eligibility": "informational",
+   "n_verdicts": 18,
+   "n_PROMOTE": 0,
+   "verdict_set": [
+    "(C) UNDECIDED"
+   ],
+   "A1_vs_A0": {
+    "A1-A0|dyn": "(C) UNDECIDED",
+    "A1-A0|fix": "(C) UNDECIDED"
+   },
+   "A1-A0_contrasts": {
+    "A1-A0|dyn|s42": {
+     "delta": 0.06054,
+     "ci95": [
+      -0.16825,
+      0.28742
+     ],
+     "n": 3168
+    },
+    "A1-A0|dyn|s2027": {
+     "delta": 0.04782,
+     "ci95": [
+      -0.17079,
+      0.27039
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s42": {
+     "delta": 0.00466,
+     "ci95": [
+      -0.07636,
+      0.08688
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s2027": {
+     "delta": -0.01025,
+     "ci95": [
+      -0.10173,
+      0.08768
+     ],
+     "n": 3168
+    }
+   },
+   "contract_sha256": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+   "exploratory": false,
+   "utc": "2026-09-12T10:21:27Z",
+   "json_sha256": "4f1417b8932615d4ae14a4f27ea543a8c7b8eedb45a43b4fede38a1d0c217529"
+  },
+  "new_omit_slowpred": {
+   "n_entry_inputs_declared": 27,
+   "A1_ok": false,
+   "A1_why": "caller omitted registered input(s) ['bundle/slow_pred_pinned.npy'] for BUNDLE_export: the stage would run unbound from them (REQUIRED_INPUTS['BUNDLE_export'] = ['wide_fea_v4', 'wide_fea_v4_meta', 'bundle_base', 'export_panel', 'bundle_cache', 'fund_aug', 'live",
+   "n_inputs_bound_by_judge": 27,
+   "eligible_arms": [],
+   "eligibility": "informational",
+   "n_verdicts": 18,
+   "n_PROMOTE": 0,
+   "verdict_set": [
+    "(C) UNDECIDED"
+   ],
+   "A1_vs_A0": {
+    "A1-A0|dyn": "(C) UNDECIDED",
+    "A1-A0|fix": "(C) UNDECIDED"
+   },
+   "A1-A0_contrasts": {
+    "A1-A0|dyn|s42": {
+     "delta": 0.06054,
+     "ci95": [
+      -0.16825,
+      0.28742
+     ],
+     "n": 3168
+    },
+    "A1-A0|dyn|s2027": {
+     "delta": 0.04782,
+     "ci95": [
+      -0.17079,
+      0.27039
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s42": {
+     "delta": 0.00466,
+     "ci95": [
+      -0.07636,
+      0.08688
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s2027": {
+     "delta": -0.01025,
+     "ci95": [
+      -0.10173,
+      0.08768
+     ],
+     "n": 3168
+    }
+   },
+   "contract_sha256": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+   "exploratory": false,
+   "utc": "2026-09-12T10:21:20Z",
+   "json_sha256": "0929f83c487deb2beae0b9cda43cbab953c4cd1edc897c2adafc0c858de0b483"
+  },
+  "old_full28": {
+   "n_entry_inputs_declared": 28,
+   "A1_ok": true,
+   "A1_why": "PASS (BUNDLE_export, 2026-09-12T09:23:10Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=11)",
+   "n_inputs_bound_by_judge": 28,
+   "eligible_arms": [
+    "A1"
+   ],
+   "eligibility": "candidate",
+   "n_verdicts": 18,
+   "n_PROMOTE": 0,
+   "verdict_set": [
+    "(C) UNDECIDED"
+   ],
+   "A1_vs_A0": {
+    "A1-A0|dyn": "(C) UNDECIDED",
+    "A1-A0|fix": "(C) UNDECIDED"
+   },
+   "A1-A0_contrasts": {
+    "A1-A0|dyn|s42": {
+     "delta": 0.06054,
+     "ci95": [
+      -0.16825,
+      0.28742
+     ],
+     "n": 3168
+    },
+    "A1-A0|dyn|s2027": {
+     "delta": 0.04782,
+     "ci95": [
+      -0.17079,
+      0.27039
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s42": {
+     "delta": 0.00466,
+     "ci95": [
+      -0.07636,
+      0.08688
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s2027": {
+     "delta": -0.01025,
+     "ci95": [
+      -0.10173,
+      0.08768
+     ],
+     "n": 3168
+    }
+   },
+   "contract_sha256": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+   "exploratory": false,
+   "utc": "2026-09-12T10:20:53Z",
+   "json_sha256": "a384b2e27f0b456a74b548a5d1a33e6c016aedbd073a28da77326d78cbff2037"
+  },
+  "old_omit_slowpred": {
+   "n_entry_inputs_declared": 27,
+   "A1_ok": true,
+   "A1_why": "PASS (BUNDLE_export, 2026-09-12T09:23:10Z, self d63f4ec3f9e6 approved, 27 inputs verified, registered floor BUNDLE_export=11)",
+   "n_inputs_bound_by_judge": 27,
+   "eligible_arms": [
+    "A1"
+   ],
+   "eligibility": "candidate",
+   "n_verdicts": 18,
+   "n_PROMOTE": 0,
+   "verdict_set": [
+    "(C) UNDECIDED"
+   ],
+   "A1_vs_A0": {
+    "A1-A0|dyn": "(C) UNDECIDED",
+    "A1-A0|fix": "(C) UNDECIDED"
+   },
+   "A1-A0_contrasts": {
+    "A1-A0|dyn|s42": {
+     "delta": 0.06054,
+     "ci95": [
+      -0.16825,
+      0.28742
+     ],
+     "n": 3168
+    },
+    "A1-A0|dyn|s2027": {
+     "delta": 0.04782,
+     "ci95": [
+      -0.17079,
+      0.27039
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s42": {
+     "delta": 0.00466,
+     "ci95": [
+      -0.07636,
+      0.08688
+     ],
+     "n": 3168
+    },
+    "A1-A0|fix|s2027": {
+     "delta": -0.01025,
+     "ci95": [
+      -0.10173,
+      0.08768
+     ],
+     "n": 3168
+    }
+   },
+   "contract_sha256": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+   "exploratory": false,
+   "utc": "2026-09-12T10:21:03Z",
+   "json_sha256": "e0aac938c351d6463d767dd6808f930c9539ac515827b6affa88dfaf698d6376"
+  }
+ }
+}

@@ -1,0 +1,25 @@
+mdl.load_state_dict(best_state)
+os.makedirs(f"{OUT}/models", exist_ok=True)
+def _iso(t): return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
+def _sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(1 << 24), b""): h.update(ch)
+    return h.hexdigest()
+_last_loss_idx = int(starts[-1] + WIN - 1)   # the last anchor whose net entered a loss window (span k >= BURN of the last TBPTT start); its label = 5m rows [E+1, E+48]
+_best_ep = int(BEST_EP_FIX) if BEST_EP_FIX >= 0 else int(np.argmax(curve))
+meta = {"seed": SEED, "n_cols": int(XT.shape[1]), "va_curve": curve, "best_va": best_va, "best_ep_rule": ("fix%d" % BEST_EP_FIX if BEST_EP_FIX >= 0 else "argmax"), "best_ep_kept": _best_ep,
+        "trained_through": int(E_ts[tr_idx[-1]]),   # KEPT for readers of the old key: the POOL END (tr_idx[-1]); the optimiser never saw labels past trained_through_label_utc (review R1)
+        "trained_through_meaning": "pool end = last anchor of tr_idx (its first 85% is tr1 = optimised, last 15% va1 = validation only); NOT the last loss label",
+        "trained_through_pool_end_utc": _iso(E_ts[tr_idx[-1]]), "trained_through_tr1_end_utc": _iso(E_ts[tr1[-1]]),
+        "trained_through_label_utc": _iso(E_ts[_last_loss_idx]), "trained_through_label_end_utc": _iso(int(E_ts[_last_loss_idx]) + 48 * 300), "trained_through_label_idx": _last_loss_idx,
+        "validation_span_utc": [_iso(E_ts[va1[0]]), _iso(E_ts[va1[-1]])], "n_train_anchors_tr1": int(len(tr1)), "n_val_anchors_va1": int(len(va1)), "n_tbptt_windows": int(len(starts)),
+        "data_axis_end_utc": _iso(E_ts[-1]), "epochs_computed": EPOCHS, "recipe": "V2MAIN frozen (REVIEW §6.2)",
+        "env_given": {k: os.environ.get(k) for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX", "EMBARGO", "V4_MONTH", "V4_MONTH_ENV")},
+        "inputs": {"targets": f"{DLW}/data/dlw_targets.npz", "fea82": f"{DLW}/data/dlw_fea82.npz", "fea89": f"{OUT}/data/f8_fea89.npz", "legs": f"{OUT}/data/f10v2_legs.npz"},
+        "self_sha256": _sha(os.path.abspath(__file__)), "torch": torch.__version__, "device": DEV, "finished_utc": _iso(time.time())}
+meta["inputs_sha256"] = {k: _sha(v) for k, v in meta["inputs"].items()}
+torch.save(dict({"state_dict": best_state, "mu": mu.cpu(), "sd": sd.cpu(), "alpha": float(mdl.alpha())}, **meta), f"{OUT}/models/f10_live_s{SEED}.pt")
+meta["pt"] = f"{OUT}/models/f10_live_s{SEED}.pt"; meta["pt_sha256"] = _sha(meta["pt"]); meta["alpha"] = float(mdl.alpha())
+json.dump(meta, open(f"{OUT}/models/f10_live_s{SEED}.json", "w"), indent=1)   # sidecar: the same metadata readable without torch
+log(f"REFIT_DONE s{SEED} best_va {best_va:+.3f} α {float(mdl.alpha()):.3f} rule {meta['best_ep_rule']} label cutoff {meta['trained_through_label_utc']} (pool end {meta['trained_through_pool_end_utc']}) -> models/f10_live_s{SEED}.pt")

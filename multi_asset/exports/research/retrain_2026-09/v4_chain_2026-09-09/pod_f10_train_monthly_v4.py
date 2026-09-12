@@ -278,26 +278,32 @@ TAG = os.environ.get("MWF_TAG", f"mE{EMBM}"); FORCE = int(os.environ.get("FORCE"
 BEST_EP_FLOOR = int(os.environ.get("BEST_EP_FLOOR", "0")); BEST_EP_FIX = int(os.environ.get("BEST_EP_FIX", "-1"))   # PREREG_dl_monthly_earlystop: best-epoch rule knobs (0 / -1 = verbatim)
 BEST_EP_RULE = (f"fix{BEST_EP_FIX}" if BEST_EP_FIX >= 0 else f"floor{BEST_EP_FLOOR}"); assert BEST_EP_FLOOR >= 0 and BEST_EP_FIX < EPOCHS
 # E-0826-D env whitelist: the production V2MAIN recipe (09-01 gate run), asserted on the EFFECTIVE values, not on strings
+_V4_DLW_RAW = os.environ.get("V4_DLW_RAW", "/workspace/dlw_v4raw"); _V4_DLW_CLIP = os.environ.get("V4_DLW_CLIP", "/workspace/dlw_hf3"); _V4_F8 = os.environ.get("V4_F8", "/workspace/f8_v4")   # monthly: month-env dirs (defaults = September)
 assert ARM == "V2MAIN" and V2 == 1 and SEED in (42, 2027) and COST == 3.52 and LDD == 0.25 and AFIX == 0 and LDC == 0.0 and CTXA == 0 and REC == 0 \
     and PLEON == 0 and EPOCHS == 15 and LR == 3e-4 and NCOL == 167 and EXTRA == "" and LPP == 0.0 and int(XT.shape[1]) == 171 \
-    and DLW in ("/workspace/dlw_v4raw", "/workspace/dlw_hf3") and OUT == "/workspace/f8_v4", "env whitelist (V2MAIN recipe on the v4 chain) violated"   # v4: DLW/OUT re-pointed
+    and DLW in (_V4_DLW_RAW, _V4_DLW_CLIP) and OUT == _V4_F8, "env whitelist (V2MAIN recipe on the v4 chain) violated"   # v4: DLW/OUT re-pointed; monthly (2026-09-12): the admissible dirs come from the month env (V4_DLW_RAW/V4_DLW_CLIP/V4_F8, defaults = the September constants)
 _GATE_V4 = json.load(open(os.environ["F10_GATE_JSON"]))   # v4: identity gate against the v4 data chain receipt (targets/fea82/fea89 sha256), written by the chain
 for _k, _v in _GATE_V4.items():
     assert rep[_k] == _v, f"{_k} differs from the v4 chain receipt: {rep[_k]} vs {_v}"
-_BASE = "/workspace/pod_f10_train_ext.py"
+_BASE = os.environ.get("V4_BASE_TRAINER", "/workspace/pod_f10_train_ext.py")   # monthly (2026-09-12): locator from the month env; default = the September constant
 rep.update({"embargo": EMBM, "tag": TAG, "base_trainer": _BASE, "base_sha256": sha(_BASE), "legs_sha256": sha(f"{OUT}/data/f10v2_legs.npz"),
             "torch": torch.__version__, "cuda": torch.version.cuda, "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
             "env_given": {k: os.environ.get(k) for k in ("ARM", "V2", "SEED", "COST", "LDD", "AFIX", "LDC", "CTXA", "REC", "PLE", "EPOCHS", "LR", "NCOL", "EXTRA", "LPP",
-                                                          "F10_DLW", "F10_OUT", "MWF_OUT", "EMBARGO", "MWF_TAG", "MONTHS", "FORCE", "BEST_EP_FLOOR", "BEST_EP_FIX")},
+                                                          "F10_DLW", "F10_OUT", "MWF_OUT", "EMBARGO", "MWF_TAG", "MONTHS", "FORCE", "BEST_EP_FLOOR", "BEST_EP_FIX",
+                                                          "MONTHS_ALL", "V4_DLW_RAW", "V4_DLW_CLIP", "V4_F8", "V4_BASE_TRAINER", "V4_MONTH", "V4_MONTH_ENV")},
             "fold_rule": {"test": "calendar month YM", "train": "i < first_te - EMBM and ST[i+1]-ST[i] >= 50", "validation": "last 15% of train anchors (verbatim)",
                           "rng": "torch.manual_seed(SEED+YM); np.random.seed(SEED+YM) per fold", "label_window": "5m rows [E+1, E+48] => label end = E + 4h",
                           "causality": "max(E_train) + 4h <= E[first_te] - EMBM*4h", "grid": "4h anchors (all diffs 14400 s asserted)"}})
 assert np.all(np.diff(E_ts) == 14400), "anchor grid is not a regular 4h grid"
 def iso(t): return time.strftime("%Y-%m-%d %H:%M", time.gmtime(int(t)))
 ym = np.array([time.gmtime(int(t)).tm_year * 100 + time.gmtime(int(t)).tm_mon for t in E_ts])
-ALL_MONTHS = [202501 + k for k in range(12)] + [202601 + k for k in range(8)]
-MONTHS = [int(m) for m in os.environ.get("MONTHS", "").split(",") if m] or ALL_MONTHS
-assert all(m in ALL_MONTHS for m in MONTHS), MONTHS
+# monthly (2026-09-12, RUNBOOK_2026-10 §0★ 修订 2 (a), review R2): the fold-month set is DECLARED by the month env (MONTHS_ALL) or DERIVED from the
+# targets axis (complete months 202501..last complete) — v4_months.py; a declared month the data cannot label is refused, MONTHS must be ⊆ MONTHS_ALL.
+import sys as _sys; _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from v4_months import months_all as _months_all, parse_months as _parse_months, check_subset as _check_subset
+ALL_MONTHS = _months_all(os.environ.get("MONTHS_ALL"), E_ts)
+MONTHS = _parse_months(os.environ["MONTHS"]) if os.environ.get("MONTHS") else ALL_MONTHS
+_check_subset(MONTHS, ALL_MONTHS)
+rep["months_all"] = ALL_MONTHS; rep["months_all_source"] = "env MONTHS_ALL" if os.environ.get("MONTHS_ALL") else "derived from the targets axis (v4_months.months_all_from_axis)"
 for _d in ("models", "preds_fold", "results", "preds"): os.makedirs(f"{MWF_OUT}/{_d}", exist_ok=True)
 PRED = np.full((nA, NW), np.nan, np.float32)
 _RESF = f"{MWF_OUT}/results/f10_V2MAIN_{TAG}_s{SEED}.json"

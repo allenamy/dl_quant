@@ -1,0 +1,22 @@
+"""F-10 部署重训 @jpline: V2MAIN 冻结配方全史(→2026-08-10), 保存权重+标定+α(REVIEW §6.2)。
+
+★ 2026-09-12 (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 2 ①; independent review 0dfc0d87 R1): NO SILENT DEFAULTS. The September copy defaulted to
+  F10_DLW=/workspace/dlw_ext, F10_OUT=/workspace/f8_ext and BEST_EP_FIX=-1 (argmax), so a bare call read the PREVIOUS generation's inputs, kept the argmax
+  epoch and overwrote f8_ext/models/f10_live_s42.pt; the launcher's sub-shell `BEST_EP_FIX=7` never reached a bare parent-shell call. Now the four
+  locators/knobs F10_DLW F10_OUT SEED BEST_EP_FIX must ALL be in the environment or the program refuses (rc 2) BEFORE importing torch.
+  The training recipe below the env block is byte-identical to the September copy (COST/LDD/WIN/BURN/STRIDE/EPOCHS/LR/CAPM, split, optimiser, FIX rule).
+  The report gains the TRUE label cutoff (review R1 ¶2): `trained_through` (kept, = pool end tr_idx[-1]) is NOT the last label the optimiser saw;
+  `trained_through_label_utc` = the last anchor whose net entered a TBPTT loss window (starts[-1] + WIN - 1), `trained_through_tr1_end_utc` = the tr1
+  split end, `validation_span_utc` = va1. A JSON sidecar beside the .pt carries the same metadata for readers without torch (the chain checks best_ep_rule)."""
+import os, sys, json, time, math, hashlib
+_REQ = ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")
+_missing = [k for k in _REQ if not os.environ.get(k)]
+if _missing:
+    print(f"REFIT_REFUSED: env {_missing} not set — pod_f10_refit_v4.py has NO defaults (the legacy dlw_ext / f8_ext / argmax defaults were removed 2026-09-12); "
+          f"pass F10_DLW F10_OUT SEED BEST_EP_FIX explicitly (chain_v4_monthly.sh does)", flush=True)
+    sys.exit(2)
+import numpy as np
+import torch, torch.nn as nn
+DLW = os.environ["F10_DLW"]
+OUT = os.environ["F10_OUT"]
+SEED = int(os.environ["SEED"]); BEST_EP_FIX = int(os.environ["BEST_EP_FIX"])   # v4: -1 = verbatim argmax; k = keep exactly epoch k (FIX rule) — explicit, never defaulted

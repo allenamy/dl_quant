@@ -1,0 +1,12 @@
+           "provenance": {"built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                          "generation": _GEN, "base_ic": BASE["ic"],
+                          "fold_ic_2024": round(fold_ic[2024], 4), "fold_ic_2025": round(fold_ic[2025], 4),
+                          "pinned_ic2026": round(ic26, 4), "pinned_sharpe_full_b": round(sh, 2),
+                          # 2026-09-12: the booster's real gradient cutoff (label-year < 2026 fit, L49-51) — distinct from built_utc (review R4)
+                          "king_train_rule": "slow2026 booster fit on rows with label year < 2026 (yearly fold); the monthly export rebuilds the 2026 fold and does not move this cutoff",
+                          "king_train_end_utc": _iso(_king_train_end), "king_train_last_label_end_utc": _iso(_king_train_end + 4 * 3600),
+                          "king_train_n_anchors": int(len(_tr_anchors)), "king_train_n_rows": int(tr.sum()),
+                          "data_axis_end_utc": _iso(E_ts[-1]), "n_anchors_axis": int(nA),
+                          "inputs": {"fea": os.environ.get("BUNDLE_FEA", "/workspace/data/wide_fea_v4.npy"), "meta": os.environ.get("BUNDLE_META", "/workspace/data/wide_fea_v4_meta.npz"),
+                                     "base": os.environ.get("BUNDLE_BASE", "/workspace/slow_scorer_v4base.json"), "export_panel": os.environ.get("EXPORT_PANEL", "/workspace/data/wide_panel_4h_v2ext.npz"),
+                                     "live_pins": os.environ.get("LIVE_PINS", "/workspace/live_pins.json"), "ema_state_json": os.environ.get("EMA_STATE_JSON"), "month_env": os.environ.get("V4_MONTH_ENV")}}},

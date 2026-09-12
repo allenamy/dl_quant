@@ -1,0 +1,13 @@
+[2026-09-12T10:47:10Z] chain_v4_monthly start month=2026-09 env=v4_month_2026-09.pod2ctrl.env sha=266c2d0dfc56f9e65f2f62b2d787eadc184fe1d9923cb8087c1bc96fb5254496 device=/workspace/w3_monthly_chain_2026-09-12/device root=/workspace/w3_monthly_chain_2026-09-12/root stages=preflight,gates dryrun=0
+[2026-09-12T10:47:10Z] preflight: device files, gate approval, inputs
+[2026-09-12T10:47:11Z] preflight rc=0 PASS 0 fails []
+[2026-09-12T10:47:11Z] gates: run v4_gate_step1.py and v4_gate_step2.py, then require both
+[2026-09-12T10:48:09Z] gates ran: STEP1 rc=3 STEP2 rc=0 (receipts /workspace/w3_monthly_chain_2026-09-12/root/v4_gates/step{1,2}.json)
+[2026-09-12T11:00:08Z] chain_v4_monthly start month=2026-09 env=v4_month_2026-09.pod2ctrl2.env sha=850903461da2b18b1c375345be75d9689388fb58dcaef0743ebe675e3cef22f9 device=/workspace/w3_monthly_chain_2026-09-12/device root=/workspace/w3_monthly_chain_2026-09-12/root stages=king,legs dryrun=0
+[2026-09-12T11:00:08Z] king: export bundle generation=v3_2026-09 -> /workspace/w3_monthly_chain_2026-09-12/root/shadow_bundle_v4_ctrl (requires the STEP2 receipt bound to /workspace/data/wide_fea_v4.npy//workspace/data/wide_fea_v4_meta.npz)
+[2026-09-12T11:08:37Z] king export rc=0 BUNDLE_DONE files 8 size 103MB
+provenance generation v3_2026-09 king_train_end_utc 2025-12-31T20:00:00Z built_utc 2026-09-12T11:08:26Z
+[2026-09-12T11:08:37Z] legs: pod_legs_v4b.py LEGS_PRED=/workspace/w3_monthly_chain_2026-09-12/root/shadow_bundle_v4_ctrl/slow_pred_pinned.npy LEGS_OLD=/workspace/f8_ext/data/f10v2_legs.npz
+[2026-09-12T11:08:49Z] legs rc=0 LEGS_V4B_DONE /workspace/w3_monthly_chain_2026-09-12/root/f8_v4/data/f10v2_legs.npz
+legs WL 2023 king seat 0.5864999890327454 (AMENDMENT 5: ~0.59 expected; < 0.4 = the all-rows recomputation defect)
+[2026-09-12T11:08:49Z] CHAIN_V4_MONTHLY_STAGES_DONE month=2026-09 stages=king,legs (a SUBSET ran, rc=0 each — NOT the full chain; no MONTHLY_DONE.json)
