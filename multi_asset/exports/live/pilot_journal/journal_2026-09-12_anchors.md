@@ -321,3 +321,11 @@ requote(phase_B): candidates 19 → requoted 19 → 落单 17 / 再拒 2 转 tak
 - 新运行时 b681ca5 的请求账本 identity 门在第二个实盘锚把两笔尘埃级 origQty 差升级为「大小未知的执行」, 经 §4-5b 触发全书平仓 —— 与 E-0909-G(账本缺口触发)同族: **看门狗读的是账本标签而非场所仓位**(`ledger-not-book` 家族); 平仓成本 ≈ 245 U(滑点实测 126.90 + 费推断 117.7)。
 - anchor_report 常驻器 12:55Z 输出 `status=warn ["taker 占比 16%"]`, **对 12:47Z 的触发/平仓不着一字**(twin 也 AGREE)—— 该仪器对看门狗状态盲, 与 08Z 验收 §3#5 「anchor_report 照常出报」同源。
 - BNB 折扣断第 6 日(运维裁定域); 12Z 4h 名结算 188 行 −9.25 U 说明「非结算锚」只对 8h 名成立, 深查模板的 funding 预期需按间隔分列。
+
+## 2026-09-12 16:00Z 锚 · 停开仓状态下的锚(只读, 实盘零接触; 每锚深查增量)
+- **执行器**: phase_A 16:24:02Z, rid A1789230240, phase_B 16:39:03Z(k_cancel 0), phase_C 16:39:07Z(readback 245 行, nav 行, per_name_stop 无触发, cooldown 11), `anchor done rc=0` 16:41:50Z。**订单行 245 = 243 `blocked_by_halt` + 2 `skipped_min_notional`, submit_ts 全空, fills 0** ⇒ 开仓停按设计生效, 零下单; 目标 gross 235,335U 全部被挡。看门狗 16:39:53Z 评估 tripped=False(最新对账锚无异常), 但 state 仍 reduce_only/halted(设计: 需人工恢复)。告警 raised 5 / delivered 2(factor_health、funding_span 已抑制重复)。
+- **首次平仓后 NAV 账本读数**: 16Z daily_nav **117,787.02**(12Z 平仓前 117,976.93 ⇒ **−189.91U = −0.16%**, 含平仓滑点/费与空仓期间的标记差; 当日 realised +1,781.69 = 平仓把未实现 P&L 变现); 读回 Σ|名义| **0.0**(245 行)。
+- **三守护** 10900 / 30943 / 30944 全在; 生产者 combo_live_status ok/done/reader_ok n 260 gross 0.845(16:22:31Z), last_anchor 1789228800。
+- **平价前向**: 16Z 生产者快照 1789228800(16:42:17Z, 4 文件); 回填探针 12Z→16Z **0/0/0**(11,472 行 × 829 名)⇒ 快照对 **2/3**; 快照种子平价(12Z 种子 → 16Z)运行中。
+- **处置**: 无。恢复交易 = W6 复审 → 用户字部署 → 用户手动 `resume_from_trip.sh`。
+
