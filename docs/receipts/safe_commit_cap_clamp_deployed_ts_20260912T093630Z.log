@@ -1,0 +1,30 @@
+── 1/5 拉取远端(显式检查, 不经管道)
+From https://github.com/allenamy/dl_quant_live
+ * branch            main       -> FETCH_HEAD
+  ✓ 已是最新
+── 2/5 检查显式路径存在(只对新文件 intent-to-add —— 见第 4 步为什么)
+ live/tests_disposition_matrix.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+── 3/5 验收 runner(全绿才提交)
+tests_external_book          0      /Users/haosiyu/dl_quant_live/state/acceptance/20260912T093632Z_tests_external_book.log
+----------------------------------------------------------------
+ACCEPTANCE: ALL GREEN (132/132 suites exit 0)
+── 4/5 提交(pathspec 形式 —— 只提交列出的路径)
+[main 918559f] tests_disposition_matrix: _CAP_CLAMP_DEPLOYED_TS = 1789201439.0 (b681ca5 E-0909-E 有限上限截断 06:05:30Z 部署; 首个受治理锚 = 09-12 08Z rid A1789201439: venue_cap_usdt 0, PIEVERSEUSDT +2,117→+1,960 截到 cap 2,000) — 按套件自身设计「SET AT DEPLOYMENT」; 此后 −2027 类「上线后必为零」断言生效, 上线前锚保留历史界(target 分母)
+ Committer: haosiyu <haosiyu@haosiyudeMacBook-Pro.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+── 5/5 推送
+To https://github.com/allenamy/dl_quant_live.git
+   77d9baf..918559f  main -> main
+✓ 完成: 918559f tests_disposition_matrix: _CAP_CLAMP_DEPLOYED_TS = 1789201439.0 (b681ca5 E-0909-E 有限上限截断 06:05:30Z 部署; 首个受治理锚 = 09-12 08Z rid A1789201439: venue_cap_usdt 0, PIEVERSEUSDT +2,117→+1,960 截到 cap 2,000) — 按套件自身设计「SET AT DEPLOYMENT」; 此后 −2027 类「上线后必为零」断言生效, 上线前锚保留历史界(target 分母)
