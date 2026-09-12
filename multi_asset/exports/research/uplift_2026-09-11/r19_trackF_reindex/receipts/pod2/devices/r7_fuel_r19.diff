@@ -1,0 +1,20 @@
+--- r7f2/r7_fuel.py
++++ r19_trackF_reindex/devices/r7_fuel_r19.py
+@@ -8,7 +8,7 @@
+                2026-08-31 00Z so its last row is carried forward for September -- flagged, as in r6j1)
+ REGRESSION: the incumbent prefix of the x0910 run must reproduce the incumbent run's sig_fund BITWISE."""
+ import numpy as np, json, time, hashlib, os
+-OUT="/workspace/uplift_2026-09-11/r7f2"
++OUT="/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r7f2"
+ ENV_WL=[]  # this device reads NO environment variable (E-0826-D: enumerated and empty)
+ assert all(k not in os.environ for k in ENV_WL)
+ def run(base):
+@@ -27,7 +27,7 @@
+     for i, t in enumerate(E_ts):
+         j = pw_row.get(int(t))
+         if j is None: continue
+-        m = members[i]; k = umap.get(j)
++        m = members[i]; k = umap.get(int(t))
+         if k is not None: m = m[UMM[k][m]]
+         elif int(t) > last_mask_ts: m = m[UMM[-1][m]]; carried += 1
+         if len(m) < 50: continue

@@ -1,0 +1,31 @@
+--- r7f2/r7_final.py
++++ r19_trackF_reindex/devices/r7_final_r19.py
+@@ -4,10 +4,10 @@
+ import numpy as np, json, time, calendar, hashlib, os
+ from scipy.stats import rankdata
+ ENV_WL=[]; assert all(k not in os.environ for k in ENV_WL)
+-R="/workspace/uplift_2026-09-11"; OUT=R+"/r7f2"; APY=2190
++R="/workspace/uplift_2026-09-11"; OUT=R+"/r7f2"; OUT19="/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r7f2"; APY=2190
+ def T(*a): return calendar.timegm(a+(0,)*(6-len(a)))
+ HI=T(2026,8,30,20)
+-FU=np.load(OUT+"/R7_FUEL.npz",allow_pickle=True); A=FU["inc"]
++FU=np.load(OUT19+"/R7_FUEL.npz",allow_pickle=True); A=FU["inc"]
+ fts=A[:,0].astype(np.int64); sig=A[:,2]
+ CAND={
+  "A0_s42":R+"/r3k/arms/A0_PWR230k_s42.npz","A0_s2027":R+"/r3k/arms/A0_PWR230k_s2027.npz",
+@@ -90,7 +90,7 @@
+     if not (LO<=int(t)<=HI): continue
+     j=pwrow.get(int(t)); r=brow.get(int(t))
+     if j is None or r is None: continue
+-    m=members[i]; kk=umap.get(j)
++    m=members[i]; kk=umap.get(int(t))
+     if kk is not None: m=m[UMM[kk][m]]
+     elif int(t)>lastm: m=m[UMM[-1][m]]
+     v=BM[r,m]; v=v[np.isfinite(v)]
+@@ -138,5 +138,5 @@
+            "today_percentiles":PCT,"today_sigma":TODAY,
+            "postwarm_sigma":{"n":int(len(F_sig)),"median":round(float(np.median(F_sig)),4),"mean":round(float(F_sig.mean()),4),
+                              "q33":round(float(q33),4),"q67":round(float(q67),4)},
+-           "decisive":FIN,"mechanism":MECH,"spec":SPEC},open(OUT+"/R7_FINAL.json","w"),indent=1)
++           "decisive":FIN,"mechanism":MECH,"spec":SPEC},open(OUT19+"/R7_FINAL.json","w"),indent=1)
+ print("FINAL_DONE")

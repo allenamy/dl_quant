@@ -1,0 +1,17 @@
+--- r4p3_b.py
++++ r19_trackF_reindex/devices/p3_b_r19.py
+@@ -16,7 +16,7 @@
+ T=lambda y,m,d,h=0: calendar.timegm((y,m,d,h,0,0)); HI=T(2026,8,10,20)
+ WARM=900; WCUT=int(D["A0_s42"][0][WARM])
+ SP={"FULL_pw":(WCUT,HI),"F24on":(T(2024,1,1),HI),"FROZEN":(T(2025,3,1),HI)}
+-Z=np.load(U+"/trackF/regime_labels.npz",allow_pickle=True)
++Z=np.load("/workspace/uplift_2026-09-11/r19_trackF_reindex/fixed_trackF/regime_labels.npz",allow_pickle=True)
+ lmap={int(t):int(l) for t,l in zip(Z["ts"].astype(np.int64),np.asarray(Z["lab"]))}
+ NM={-1:"UNLAB",0:"LL",1:"LH",2:"HL",3:"HH"}
+ ANN=np.sqrt(2190.)
+@@ -100,4 +100,4 @@
+       "rho_XIB_AMIrz":round(float(np.corrcoef(G[3],G[1])[0,1]),4)}
+     sdv=G[[2,1]].std(1,ddof=1); w=(1/sdv)/np.sum(1/sdv)
+     O["D_ranker_hole"][sp]["SR_A0+AMIrz_eqvol"]=round(sr(w@G[[2,1]]),4)
+-json.dump(O,open(R+"/RESULT_P3B.json","w"),indent=1); print(json.dumps(O,indent=1))
++json.dump(O,open("/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r4p3/RESULT_P3B.json","w"),indent=1); print(json.dumps(O,indent=1))

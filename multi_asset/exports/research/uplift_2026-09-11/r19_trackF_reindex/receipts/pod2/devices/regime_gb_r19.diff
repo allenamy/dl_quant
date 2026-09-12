@@ -1,0 +1,18 @@
+--- r8_inbook/regime_gb.py
++++ r19_trackF_reindex/devices/regime_gb_r19.py
+@@ -20,7 +20,7 @@
+ for i,t in enumerate(E_ts):
+     j=pw_row.get(int(t))
+     if j is None: continue
+-    m=MEM[i]; k=umap.get(j)
++    m=MEM[i]; k=umap.get(int(t))
+     if k is not None: m=m[UMM[k][m]]
+     if len(m)<50: continue
+     f=RN8[j,m]; f=f[np.isfinite(f)]; r=R24[j,m]; r=r[np.isfinite(r)]
+@@ -81,5 +81,5 @@
+         {k:v["dg"] for k,v in o["cells"].items()},o["giveback"]["dg"],
+         o["giveback"]["anchor_boot_ci95"][0],o["giveback"]["anchor_boot_ci95"][1],
+         o["giveback"]["n_pos"],o["giveback"]["dg_ex_worst_anchor"]),flush=True)
+-json.dump(OUT,open(R+"/REGIME_GIVEBACK.json","w"),indent=1)
++json.dump(OUT,open("/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r8_inbook/REGIME_GIVEBACK.json","w"),indent=1)
+ print("REGIME_GB_DONE")

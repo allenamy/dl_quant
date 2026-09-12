@@ -1,0 +1,177 @@
+{
+ "utc": "2026-09-12T05:07:03Z",
+ "self_sha256": "88a1830646d48415fa5d1ae58681b21c7ba8b9985586dc5adfea0793768ef49f",
+ "umask_sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+ "umask_last_ts_utc": "2026-08-31 00Z",
+ "rows": [
+  {
+   "round": "r2 trackF (original)",
+   "builder": "trackF/build_regime.py",
+   "builder_sha256": "db80e66fb0620333b0b224a14b2184e27be345027941092078abf56fba9299b4",
+   "product": "trackF/regime_vars.npz",
+   "product_sha256": "27e604f7444d02f6e6caf7b5fcd1ec5f178f1d2438219976ce6b053e72a801c4",
+   "n_anchors": 10039,
+   "mask_hits": 0,
+   "indexing_correct": false,
+   "member_rule": "meta members[i] (mask never applied)",
+   "note": "umap.get(j): row index into ts-keyed dict"
+  },
+  {
+   "round": "r19 trackF (fixed)",
+   "builder": "r19/devices/build_regime_fixed.py",
+   "builder_sha256": "ed79e19a0136540478d23430d5c2e595da3c905fa67249bb503a5e953c62745e",
+   "product": "r19/regime_vars_fixed.npz",
+   "product_sha256": "be8571eadc4da1b80cf8a3bf339a7e60a7c5809e2306820538a0883c9fde4846",
+   "n_anchors": 10039,
+   "mask_hits": 10039,
+   "indexing_correct": true,
+   "member_rule": "meta members[i] INTERSECT m1 CRYPTO umask",
+   "note": "umap.get(int(t))"
+  },
+  {
+   "round": "r6 judge1 Q4 (incumbent axis)",
+   "builder": "r6j1_regime.py (= judge1_r6/j1_regime_pod.py)",
+   "builder_sha256": "79c28167cc7b44072b357de3f778c87fecf310dbfb7cb7f850edc3cc33e74ac4",
+   "product": "r6j1/j1_regime.json",
+   "product_sha256": "dcc160f4e7ea64e0143c05bf5f72f1478080a0b77e47847498615880c51a8b9a",
+   "n_anchors": 10039,
+   "mask_hits": 0,
+   "indexing_correct": false,
+   "member_rule": "meta members[i], no mask",
+   "note": "row-index lookup; carry branch rows=0"
+  },
+  {
+   "round": "r6 judge1 Q4 (x0910 axis)",
+   "builder": "r6j1_regime.py",
+   "builder_sha256": "79c28167cc7b44072b357de3f778c87fecf310dbfb7cb7f850edc3cc33e74ac4",
+   "product": "r6j1/j1_regime.json",
+   "product_sha256": "dcc160f4e7ea64e0143c05bf5f72f1478080a0b77e47847498615880c51a8b9a",
+   "n_anchors": 10099,
+   "mask_hits": 0,
+   "indexing_correct": false,
+   "member_rule": "meta members[i]; ONLY the Sept tail masked with UMM[-1]",
+   "note": "row-index lookup; carry branch applied to 60 anchors => inconsistent masking along the axis"
+  },
+  {
+   "round": "r7 FUEL-2 gauge (incumbent)",
+   "builder": "r7f2/r7_fuel.py",
+   "builder_sha256": "aecc09c46e1ec9fe486769f05f490f39da8d4cd5b7b295b96f0898fb929303a2",
+   "product": "r7f2/R7_FUEL.npz",
+   "product_sha256": "c568226c237321ac3221ebc7b16886e6962714c24849dda6e61885d4d750a051",
+   "n_anchors": 10039,
+   "mask_hits": 0,
+   "indexing_correct": false,
+   "member_rule": "meta members[i], no mask",
+   "note": "verbatim copy of r6j1 line (ERROR_LEDGER P1-32)"
+  },
+  {
+   "round": "r7 FUEL-2 gauge (x0910)",
+   "builder": "r7f2/r7_fuel.py",
+   "builder_sha256": "aecc09c46e1ec9fe486769f05f490f39da8d4cd5b7b295b96f0898fb929303a2",
+   "product": "r7f2/R7_FUEL.npz",
+   "product_sha256": "c568226c237321ac3221ebc7b16886e6962714c24849dda6e61885d4d750a051",
+   "n_anchors": 10099,
+   "mask_hits": 0,
+   "indexing_correct": false,
+   "member_rule": "meta members[i]; Sept tail masked",
+   "note": "carry rows=60"
+  },
+  {
+   "round": "r7 FUEL-2 final L93 (basis-dispersion mechanism)",
+   "builder": "r7f2/r7_final.py",
+   "builder_sha256": "391a7c1545c9452212eff667ed9252b085062e621e518c23e98c10d92e05b834",
+   "product": "r7f2/R7_FINAL.json",
+   "product_sha256": "92110f257feb867953a6866db67fed046e2d69568a8bfe79caa751af60b7f92b",
+   "n_anchors": 10039,
+   "mask_hits": 0,
+   "indexing_correct": false,
+   "member_rule": "meta members[i], no mask",
+   "note": "kk=umap.get(j)"
+  },
+  {
+   "round": "r8 BUILD-1 G8 regime",
+   "builder": "r8_inbook/regime_gb.py",
+   "builder_sha256": "578c8b8437b3b1154b7c77522495361660b93cd8dc8a54e1ecdfe51035c43f0d",
+   "product": "r8_inbook/REGIME_GIVEBACK.json",
+   "product_sha256": "b02c7fbd13a45bede47729081ec19e5e52cdc047d3210d3ebf870658ab6994aa",
+   "n_anchors": 10039,
+   "mask_hits": 0,
+   "indexing_correct": false,
+   "member_rule": "829-qvk rank base (mask never applied)",
+   "note": "k=umap.get(j)"
+  },
+  {
+   "round": "r7 FUEL-1 sigma2 R6M/LIVE arms",
+   "builder": "r7f1/r7_sigma2.py",
+   "builder_sha256": "cbffc80a7177073d5911ce5af5bdacf9d5ebbaeee77038ef30dfb5bb1857e2c8",
+   "product": "r7f1/out/sigma_variants.npz",
+   "product_sha256": "30f2ba578d9425f2e0eb2ae399fea2081a162bf52acae9e30344dd2922b37a1c",
+   "n_anchors": 10099,
+   "mask_hits": 10039,
+   "indexing_correct": true,
+   "member_rule": "R6M: meta+mask; LIVE: 829-qvk+mask; R6 arm deliberately emulates the defect",
+   "note": "umap.get(int(t)); carry rows=60"
+  },
+  {
+   "round": "r12 causal primitives v1 (VOID)",
+   "builder": "r12_regime/pod_causal_regime_r12.py",
+   "builder_sha256": "7eb3194525047d8c146b519a964327b0252ae3203a93891e88c253bae75b7a98",
+   "product": "r12_regime/causal_primitives_r12.npz",
+   "product_sha256": "c74fd695fe036b633f117ee2d4cab3e66fe1941d7258c010a80ba5ffd7a8656e",
+   "n_anchors": 10182,
+   "mask_hits": 10039,
+   "indexing_correct": true,
+   "member_rule": "meta members[i] + mask (VOID: book uses 829-qvk rebuild)",
+   "note": "UMASK_ROW keyed by row j built from ts -> correct"
+  },
+  {
+   "round": "r12 causal primitives v2",
+   "builder": "r12_regime/pod_causal_regime_r12_v2.py",
+   "builder_sha256": "75362e2953250aa604b22085bbe9817d0a0517ddfc64b7a3082bcbf1c0c2f85e",
+   "product": "r12_regime/causal_primitives_r12_v2.npz",
+   "product_sha256": "0510f456f63f4963cae757a0fd86251477089de1d266b8b8859092f9f73cf08f",
+   "n_anchors": 10039,
+   "mask_hits": 10039,
+   "indexing_correct": true,
+   "member_rule": "829-qvk rebuild + mask (parity-asserted vs book 8.09e-6 bps)",
+   "note": "'t in umap' -> correct"
+  },
+  {
+   "round": "r12_smoothing REGIME12",
+   "builder": "r12_smoothing/regime12.py",
+   "builder_sha256": "6abc8699c7b0206737ab49966296d6cf92903790e10d6dfcbf86bf537dabad10",
+   "product": "r12_smoothing/REGIME12.npz",
+   "product_sha256": "1c82b382fdf9de94a0db2cdeafac587f7a7b97c4de20f5e241cb79e8ebd917cb",
+   "n_anchors": 10182,
+   "mask_hits": 0,
+   "indexing_correct": null,
+   "member_rule": "meta members[i], NO umask by construction (not an indexing error; universe != book's)",
+   "note": "breadth/crash partition on y4 of meta members"
+  },
+  {
+   "round": "r12_smoothing ALTSURGE masks / analyze12",
+   "builder": "r12_smoothing/mkmask12.py + analyze12.py",
+   "builder_sha256": "be19013fc9aa8a4f52e90bedf362b739fdd377afc5f0b3971eb0cfc6ccfd8787",
+   "product": "r12_smoothing/causal_primitives_r12.npz (v1 copy)",
+   "product_sha256": "c74fd695fe036b633f117ee2d4cab3e66fe1941d7258c010a80ba5ffd7a8656e",
+   "n_anchors": null,
+   "mask_hits": null,
+   "indexing_correct": true,
+   "member_rule": "consumes v1 (indexing correct, member rule VOID)",
+   "note": "A_ew from v1; see r16 note"
+  }
+ ],
+ "v2_consumers_by_receipt": [
+  "r12_regime table (r12_regime_table.py asserts PRIM sha)",
+  "r13_A_halfscale",
+  "r13_B_withinhalf",
+  "r13_deploy",
+  "r13b_nulls",
+  "r15_structural",
+  "r16_asym_band",
+  "r17_fill_pricing"
+ ],
+ "v1_consumers_by_receipt": [
+  "r12_smoothing mkmask12.py/analyze12.py (MASKS12.json primitives_sha16 c74fd695fe036b63)"
+ ]
+}

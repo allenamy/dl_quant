@@ -1,0 +1,20 @@
+--- r6j1_regime.py
++++ r19_trackF_reindex/devices/j1_regime_r19.py
+@@ -7,7 +7,7 @@
+ import numpy as np, time, json, calendar, hashlib, os
+ B  = "/workspace/review_scratch/health_check/dev_v4_x0910/pod_backup_2026-08-21"
+ B0 = "/workspace/review_scratch/health_check/dev_v4/pod_backup_2026-08-21"
+-OUT = "/workspace/uplift_2026-09-11/r6j1"
++OUT = "/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r6j1"
+ ENV_WL = ["R6J1_OUT"]; ENV = {k: os.environ.get(k) for k in ENV_WL}
+ def run(tag, base):
+     MT = np.load(f"{base}/wide_fea_hist_meta.npz", allow_pickle=True)
+@@ -25,7 +25,7 @@
+     for i, t in enumerate(E_ts):
+         j = pw_row.get(int(t))
+         if j is None: continue
+-        m = members[i]; k = umap.get(j)
++        m = members[i]; k = umap.get(int(t))
+         if k is not None: m = m[UMM[k][m]]
+         elif int(t) > last_mask_ts: m = m[UMM[-1][m]]; carried += 1
+         if len(m) < 50: continue

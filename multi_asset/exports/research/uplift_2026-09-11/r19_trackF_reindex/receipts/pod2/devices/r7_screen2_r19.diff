@@ -1,0 +1,22 @@
+--- r7f2/r7_screen2.py
++++ r19_trackF_reindex/devices/r7_screen2_r19.py
+@@ -4,10 +4,10 @@
+ import numpy as np, json, time, calendar, hashlib, os
+ from scipy.stats import rankdata
+ ENV_WL=[]; assert all(k not in os.environ for k in ENV_WL)
+-R="/workspace/uplift_2026-09-11"; OUT=R+"/r7f2"; APY=2190
++R="/workspace/uplift_2026-09-11"; OUT=R+"/r7f2"; OUT19="/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r7f2"; APY=2190
+ def T(*a): return calendar.timegm(a+(0,)*(6-len(a)))
+ HI=T(2026,8,30,20)
+-FU=np.load(OUT+"/R7_FUEL.npz",allow_pickle=True); A=FU["inc"]
++FU=np.load(OUT19+"/R7_FUEL.npz",allow_pickle=True); A=FU["inc"]
+ fts=A[:,0].astype(np.int64); sig=A[:,2]; d24=A[:,3]; mean8=A[:,4]
+ BURN=2190
+ def lab1(x):
+@@ -156,5 +156,5 @@
+            "coverage":COV,"common_n":int(len(common)),"tercile_breaks":[round(float(q33),4),round(float(q67),4)],
+            "rows":ROWS,"curve_A0":CURVE,"bands_A0":BANDS,
+            "today_sigma":{"masked_m1":TODAY_MASKED,"unmasked":TODAY_UNMASKED}},
+-          open(OUT+"/R7_SCREEN2.json","w"),indent=1)
++          open(OUT19+"/R7_SCREEN2.json","w"),indent=1)
+ print("SCREEN2_DONE")

@@ -1,0 +1,22 @@
+--- r7f2/r7_withinyear.py
++++ r19_trackF_reindex/devices/r7_withinyear_r19.py
+@@ -4,10 +4,10 @@
+ (b) terciles formed INSIDE each calendar year (year-specific breakpoints), then pooled.
+ Same caliber and window. Reads NO environment variable."""
+ import numpy as np, json, time, calendar, hashlib, os
+-R="/workspace/uplift_2026-09-11"; OUT=R+"/r7f2"; APY=2190
++R="/workspace/uplift_2026-09-11"; OUT=R+"/r7f2"; OUT19="/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r7f2"; APY=2190
+ def T(*a): return calendar.timegm(a+(0,)*(6-len(a)))
+ HI=T(2026,8,30,20)
+-FU=np.load(OUT+"/R7_FUEL.npz",allow_pickle=True); A=FU["inc"]
++FU=np.load(OUT19+"/R7_FUEL.npz",allow_pickle=True); A=FU["inc"]
+ fts=A[:,0].astype(np.int64); sig=A[:,2]
+ def load(p):
+     Z=np.load(p,allow_pickle=True); cols=[str(c) for c in Z["cols"]]; ix={c:i for i,c in enumerate(cols)}
+@@ -75,5 +75,5 @@
+ print("\n== within-year T0 Sharpe, by year ==")
+ for k,v in RES.items(): print("  %-20s"%k, v["within_year_T0_by_year"])
+ json.dump({"self_sha256":hashlib.sha256(open(__file__,"rb").read()).hexdigest(),"rows":RES},
+-          open(OUT+"/R7_WITHINYEAR.json","w"),indent=1)
++          open(OUT19+"/R7_WITHINYEAR.json","w"),indent=1)
+ print("WITHINYEAR_DONE")

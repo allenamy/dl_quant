@@ -1,0 +1,18 @@
+--- r4p3_an.py
++++ r19_trackF_reindex/devices/p3_an_r19.py
+@@ -46,7 +46,7 @@
+        "FROZEN":(T(2025,3,1),HI)}
+ OUT["_meta"]["warm_cut_utc"]=str(np.datetime64(WCUT,"s"))
+ # --- regime labels (round-2 expanding-median, strictly past) ---
+-Z=np.load(U+"/trackF/regime_labels.npz",allow_pickle=True)
++Z=np.load("/workspace/uplift_2026-09-11/r19_trackF_reindex/fixed_trackF/regime_labels.npz",allow_pickle=True)
+ ts_r=Z["ts"].astype(np.int64); LAB=np.asarray(Z["lab"])
+ lmap={int(t):int(LAB[i]) for i,t in enumerate(ts_r)}
+ NAMES={-1:"UNLAB",0:"LL",1:"LH",2:"HL",3:"HH"}
+@@ -209,5 +209,5 @@
+           "SR_cellwise_wf_CI95_k0":[round(x,4) for x in boot(lambda X: sr(X[0]),t[ok],rp_wf[ok][None,:],0)],
+           "SR_static_CI95_k0":[round(x,4) for x in boot(lambda X: sr(w_static@X),t,g,0)]}
+     OUT["Q3_portfolio"][sd]=res
+-json.dump(OUT,open(R+"/RESULT_P3.json","w"),indent=1)
++json.dump(OUT,open("/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r4p3/RESULT_P3.json","w"),indent=1)
+ print(json.dumps(OUT,indent=1))

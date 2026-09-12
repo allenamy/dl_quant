@@ -1,0 +1,59 @@
+== where today's dispersion sits, on the post-warm replayable distribution (n=9138) ==
+   post-warm sigma: median 4.605  mean 8.503  q33 2.626  q67 8.353
+   sigma= 9.0565 (masked_m1_SEP) -> percentile 69.04% of post-warm history
+   sigma= 8.7012 (unmasked_SEP) -> percentile 67.84% of post-warm history
+   sigma=12.9123 (frozen_window_med) -> percentile 78.45% of post-warm history
+   sigma=10.0581 (aug2026) -> percentile 71.70% of post-warm history
+
+== DECISIVE STATISTICS with day-block bootstrap CI95 (B=2000, rng[20260905,0]) ==
+candidate                 n | T0 (low-sigma) Sharpe      | T2 (high-sigma) Sharpe     | T2-T0 Sharpe gap        
+A0_s42                 9138 |  +0.558 [ -1.224, +2.344] P>0 0.736 |  +2.595 [ +0.865, +4.322] |  +2.037 [ -0.337, +4.537] P>0 0.954
+A0_s2027               9138 |  +0.438 [ -1.308, +2.185] P>0 0.688 |  +2.614 [ +0.888, +4.331] |  +2.176 [ -0.226, +4.678] P>0 0.964
+FUND_leg               9138 |  -1.286 [ -2.920, +0.388] P>0 0.076 |  +2.015 [ +0.289, +3.708] |  +3.300 [ +0.920, +5.708] P>0 0.997
+KING_leg               5838 |  +2.650 [ +0.257, +4.958] P>0 0.984 |  -1.030 [ -3.079, +0.868] |  -3.681 [ -6.728, -0.587] P>0 0.011
+XIB_LAG50_s42          9138 |  +1.474 [ -0.289, +3.160] P>0 0.950 |  +3.313 [ +1.591, +5.088] |  +1.839 [ -0.609, +4.401] P>0 0.934
+AMI_AMQ64              9138 |  +1.095 [ -0.535, +2.708] P>0 0.891 |  +2.365 [ +0.726, +4.092] |  +1.269 [ -1.173, +3.497] P>0 0.853
+R5_FBSLOPE_NOLAG       9127 |  +3.237 [ +1.450, +4.989] P>0 1.000 |  -0.740 [ -2.530, +1.111] |  -3.978 [ -6.458, -1.533] P>0 0.000
+RESID_SHARPE_s42       8028 |  +1.581 [ -0.288, +3.504] P>0 0.951 |  +2.555 [ +0.846, +4.408] |  +0.975 [ -1.778, +3.681] P>0 0.764
+
+== MECHANISM TEST: basis signal vs the fuel gauge ==
+   basis sig file keys: ['mat', 'symbols', 'ts']
+   corr( sigma_fund , xsec SD of the basis signal ) : pearson -0.1732  spearman -0.1964   (n=9117)
+   corr( g_basis , g_FUNDleg )                      : +0.0005 (n=9127)
+   corr( g_basis , g_A0 )                           : +0.0056 (n=9127)
+
+== TARGET SPEC: what a sleeve must be to lift the book to Sharpe 3.0 at today's dispersion ==
+  band today +-2  (7.06..11.06)     n=1156  A0: E[g] +1.245  sd 27.065  Sharpe +2.153
+      need a=0.15,rho=0.00  sleeve E[g]  +2.928 bps  => sleeve standalone Sharpe +5.062
+      need a=0.15,rho=0.15  sleeve E[g]  +3.181 bps  => sleeve standalone Sharpe +5.500
+      need a=0.20,rho=0.00  sleeve E[g]  +2.173 bps  => sleeve standalone Sharpe +3.757
+      need a=0.20,rho=0.15  sleeve E[g]  +2.421 bps  => sleeve standalone Sharpe +4.186
+      need a=0.25,rho=0.00  sleeve E[g]  +1.751 bps  => sleeve standalone Sharpe +3.028
+      need a=0.25,rho=0.15  sleeve E[g]  +1.992 bps  => sleeve standalone Sharpe +3.445
+      need a=0.30,rho=0.00  sleeve E[g]  +1.499 bps  => sleeve standalone Sharpe +2.592
+      need a=0.30,rho=0.15  sleeve E[g]  +1.732 bps  => sleeve standalone Sharpe +2.995
+      need a=0.40,rho=0.00  sleeve E[g]  +1.260 bps  => sleeve standalone Sharpe +2.179
+      need a=0.40,rho=0.15  sleeve E[g]  +1.470 bps  => sleeve standalone Sharpe +2.541
+  band bottom tercile  (<=2.63)     n=3046  A0: E[g] +0.212  sd 17.789  Sharpe +0.558
+      need a=0.15,rho=0.00  sleeve E[g]  +5.360 bps  => sleeve standalone Sharpe +14.100
+      need a=0.15,rho=0.15  sleeve E[g]  +5.526 bps  => sleeve standalone Sharpe +14.538
+      need a=0.20,rho=0.00  sleeve E[g]  +3.853 bps  => sleeve standalone Sharpe +10.137
+      need a=0.20,rho=0.15  sleeve E[g]  +4.016 bps  => sleeve standalone Sharpe +10.566
+      need a=0.25,rho=0.00  sleeve E[g]  +2.970 bps  => sleeve standalone Sharpe +7.812
+      need a=0.25,rho=0.15  sleeve E[g]  +3.128 bps  => sleeve standalone Sharpe +8.230
+      need a=0.30,rho=0.00  sleeve E[g]  +2.400 bps  => sleeve standalone Sharpe +6.314
+      need a=0.30,rho=0.15  sleeve E[g]  +2.553 bps  => sleeve standalone Sharpe +6.716
+      need a=0.40,rho=0.00  sleeve E[g]  +1.738 bps  => sleeve standalone Sharpe +4.571
+      need a=0.40,rho=0.15  sleeve E[g]  +1.875 bps  => sleeve standalone Sharpe +4.933
+  band full post-warm               n=9138  A0: E[g] +0.634  sd 22.985  Sharpe +1.291
+      need a=0.15,rho=0.00  sleeve E[g]  +4.885 bps  => sleeve standalone Sharpe +9.946
+      need a=0.15,rho=0.15  sleeve E[g]  +5.100 bps  => sleeve standalone Sharpe +10.383
+      need a=0.20,rho=0.00  sleeve E[g]  +3.538 bps  => sleeve standalone Sharpe +7.204
+      need a=0.20,rho=0.15  sleeve E[g]  +3.749 bps  => sleeve standalone Sharpe +7.633
+      need a=0.25,rho=0.00  sleeve E[g]  +2.757 bps  => sleeve standalone Sharpe +5.613
+      need a=0.25,rho=0.15  sleeve E[g]  +2.962 bps  => sleeve standalone Sharpe +6.031
+      need a=0.30,rho=0.00  sleeve E[g]  +2.261 bps  => sleeve standalone Sharpe +4.603
+      need a=0.30,rho=0.15  sleeve E[g]  +2.459 bps  => sleeve standalone Sharpe +5.006
+      need a=0.40,rho=0.00  sleeve E[g]  +1.705 bps  => sleeve standalone Sharpe +3.471
+      need a=0.40,rho=0.15  sleeve E[g]  +1.883 bps  => sleeve standalone Sharpe +3.834
+FINAL_DONE

@@ -1,0 +1,27 @@
+--- trackF/build_regime.py
++++ r19_trackF_reindex/devices/build_regime_fixed.py
+@@ -1,4 +1,5 @@
+-"""Track F step 1: ex-ante regime variables on the v4 replay axis.
++"""[r19 FIXED COPY of trackF/build_regime.py sha db80e66f...: L29 index fix + output path; see build_regime_fixed.diff]
++Track F step 1: ex-ante regime variables on the v4 replay axis.
+ All variables at anchor i use ONLY panel row j(i) trailing features (f_* are trailing by
+ construction: f_rev_24h is the leg score of the REVERSAL leg, f_mom_7d/f_vol_7d/f_range_24h
+ are trailing windows) plus the funding rate known AT the anchor. No forward return enters.
+@@ -26,7 +27,7 @@
+     j = pw_row.get(int(t))
+     if j is None: continue
+     m = members[i]
+-    k = umap.get(j)
++    k = umap.get(int(t))
+     if k is not None: m = m[UMM[k][m]]
+     if len(m) < 50: continue
+     for s in m:
+@@ -47,7 +48,7 @@
+ COLS = ["ts", "nmem", "sig_fund", "fund_mean", "fund_med", "frac_neg", "disp24", "mean24",
+         "breadth_up", "vol7_med", "absmom7_med", "range24_med", "btc_r24", "btc_m7", "btc_v7", "young30"]
+ A = np.array(rows, dtype=np.float64)
+-np.savez_compressed("/workspace/uplift_2026-09-11/trackF/regime_vars.npz", cols=np.array(COLS), V=A)
++np.savez_compressed("/workspace/uplift_2026-09-11/r19_trackF_reindex/regime_vars_fixed.npz", cols=np.array(COLS), V=A)
+ print("n", A.shape, "first", time.strftime("%F %HZ", time.gmtime(A[0, 0])), "last", time.strftime("%F %HZ", time.gmtime(A[-1, 0])))
+ yr = np.array([time.gmtime(int(t)).tm_year for t in A[:, 0]])
+ print("year      n " + " ".join(f"{c:>11s}" for c in COLS[2:]))

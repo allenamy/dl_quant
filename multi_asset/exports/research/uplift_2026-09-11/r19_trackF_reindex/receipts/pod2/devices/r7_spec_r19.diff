@@ -1,0 +1,20 @@
+--- r7f2/r7_spec.py
++++ r19_trackF_reindex/devices/r7_spec_r19.py
+@@ -1,8 +1,8 @@
+ import numpy as np, json, time, calendar, hashlib, os
+-R="/workspace/uplift_2026-09-11"; OUT=R+"/r7f2"; APY=2190
++R="/workspace/uplift_2026-09-11"; OUT=R+"/r7f2"; OUT19="/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r7f2"; APY=2190
+ def T(*a): return calendar.timegm(a+(0,)*(6-len(a)))
+ HI=T(2026,8,30,20)
+-FU=np.load(OUT+"/R7_FUEL.npz",allow_pickle=True); A=FU["inc"]
++FU=np.load(OUT19+"/R7_FUEL.npz",allow_pickle=True); A=FU["inc"]
+ fts=A[:,0].astype(np.int64); sig=A[:,2]
+ def load(p):
+     Z=np.load(p,allow_pickle=True); cols=[str(c) for c in Z["cols"]]; ix={c:i for i,c in enumerate(cols)}
+@@ -50,5 +50,5 @@
+             line.append("a=%.2f:%+6.2f"%(a,ShS)); TAB[nm]["req"]["tgt%.1f_a%.2f"%(tgt,a)]=round(float(ShS),3)
+         print("     combined target %.1f  ->  required sleeve standalone Sharpe (rho=0):  "%tgt+"  ".join(line))
+ json.dump({"tercile_year_composition":{("T%d"%j):{int(y):int(((yr==y)&(ter==j)).sum()) for y in sorted(set(yr))} for j in (0,1,2)},
+-           "target_table":TAB},open(OUT+"/R7_SPEC.json","w"),indent=1)
++           "target_table":TAB},open(OUT19+"/R7_SPEC.json","w"),indent=1)
+ print("SPEC_DONE")

@@ -1,0 +1,26 @@
+== year composition of each dispersion tercile (post-warm window) ==
+  T0 (n=3046, sig med   1.63):  {2022: 488, 2023: 1220, 2024: 1206, 2025: 126, 2026: 6}
+  T1 (n=3046, sig med   4.60):  {2022: 452, 2023: 609, 2024: 784, 2025: 916, 2026: 285}
+  T2 (n=3046, sig med  15.30):  {2022: 170, 2023: 361, 2024: 206, 2025: 1148, 2026: 1161}
+
+== BOTTOM-TERCILE Sharpe, by year (is T0 edge a 2022-23 artifact?) ==
+  A0     T0 by year: {2022: (488, 0.431), 2023: (1220, -2.54), 2024: (1206, 1.643), 2025: (126, 12.199), 2026: (6, None)}
+  BASIS  T0 by year: {2022: (488, 1.755), 2023: (1220, 5.507), 2024: (1206, 1.249), 2025: (126, 4.079), 2026: (6, None)}
+  KING   T0 by year: {2024: (1206, 1.804), 2025: (126, 10.862), 2026: (6, None)}
+  AMI    T0 by year: {2022: (488, -1.661), 2023: (1220, 0.999), 2024: (1206, 2.494), 2025: (126, -0.545), 2026: (6, None)}
+  RS     T0 by year: {2023: (1220, 2.156), 2024: (1206, 1.588), 2025: (126, -2.996), 2026: (6, None)}
+
+== combined-book target table: required SLEEVE standalone Sharpe in each band ==
+  band today (7.06..11.06)          n=1156  A0 Sharpe +2.153
+     combined target 2.0  ->  required sleeve standalone Sharpe (rho=0):  a=0.20: -0.37  a=0.25: -0.13  a=0.30: +0.05  a=0.40: +0.38
+     combined target 2.5  ->  required sleeve standalone Sharpe (rho=0):  a=0.20: +1.70  a=0.25: +1.45  a=0.30: +1.32  a=0.40: +1.28
+     combined target 3.0  ->  required sleeve standalone Sharpe (rho=0):  a=0.20: +3.76  a=0.25: +3.03  a=0.30: +2.59  a=0.40: +2.18
+  band bottom tercile (<=2.63)      n=3046  A0 Sharpe +0.558
+     combined target 2.0  ->  required sleeve standalone Sharpe (rho=0):  a=0.20: +6.01  a=0.25: +4.65  a=0.30: +3.77  a=0.40: +2.77
+     combined target 2.5  ->  required sleeve standalone Sharpe (rho=0):  a=0.20: +8.08  a=0.25: +6.23  a=0.30: +5.04  a=0.40: +3.67
+     combined target 3.0  ->  required sleeve standalone Sharpe (rho=0):  a=0.20:+10.14  a=0.25: +7.81  a=0.30: +6.31  a=0.40: +4.57
+  band full post-warm               n=9138  A0 Sharpe +1.291
+     combined target 2.0  ->  required sleeve standalone Sharpe (rho=0):  a=0.20: +3.08  a=0.25: +2.45  a=0.30: +2.06  a=0.40: +1.67
+     combined target 2.5  ->  required sleeve standalone Sharpe (rho=0):  a=0.20: +5.14  a=0.25: +4.03  a=0.30: +3.33  a=0.40: +2.57
+     combined target 3.0  ->  required sleeve standalone Sharpe (rho=0):  a=0.20: +7.20  a=0.25: +5.61  a=0.30: +4.60  a=0.40: +3.47
+SPEC_DONE

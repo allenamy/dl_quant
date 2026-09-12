@@ -1,0 +1,13 @@
+--- r3_gates/regcomp.py
++++ r19_trackF_reindex/devices/regcomp_r19.py
+@@ -7,8 +7,8 @@
+ Book axis = the archived A0 dyn s42 replay (10039 anchors); warm-up = first LOOK=900 anchors (E-0911-A).
+ """
+ import numpy as np, json, time, calendar
+-R = "/workspace/uplift_2026-09-11/trackF"
+-OUT = "/workspace/uplift_2026-09-11/r3_gates"
++R = "/workspace/uplift_2026-09-11/r19_trackF_reindex/fixed_trackF"
++OUT = "/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r3_gates"
+ Z = np.load(f"{R}/regime_labels.npz", allow_pickle=True)
+ ts_r = Z["ts"].astype(np.int64); LAB = np.asarray(Z["lab"]); LF = np.asarray(Z["lf"]); LD = np.asarray(Z["ld"])
+ V = np.load(f"{R}/regime_vars.npz", allow_pickle=True)

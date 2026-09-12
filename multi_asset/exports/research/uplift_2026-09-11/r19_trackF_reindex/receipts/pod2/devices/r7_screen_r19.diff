@@ -1,0 +1,24 @@
+--- r7f2/r7_screen.py
++++ r19_trackF_reindex/devices/r7_screen_r19.py
+@@ -14,12 +14,12 @@
+ import numpy as np, json, time, calendar, hashlib, os
+ ENV_WL=[]; assert all(k not in os.environ for k in ENV_WL)
+ R="/workspace/uplift_2026-09-11"
+-OUT=R+"/r7f2"
++OUT=R+"/r7f2"; OUT19="/workspace/uplift_2026-09-11/r19_trackF_reindex/out_r7f2"
+ APY=2190
+ def T(*a): return calendar.timegm(a+(0,)*(6-len(a)))
+ HI = T(2026,8,30,20)   # inclusive, E-0911-D
+ 
+-FU=np.load(OUT+"/R7_FUEL.npz",allow_pickle=True)
++FU=np.load(OUT19+"/R7_FUEL.npz",allow_pickle=True)
+ Ainc=FU["inc"]           # ts, n_members, sig_fund, disp24, mean8h, frac_neg, n_fin
+ fts=Ainc[:,0].astype(np.int64); sig=Ainc[:,2]; d24=Ainc[:,3]; mean8=Ainc[:,4]
+ 
+@@ -183,5 +183,5 @@
+            "tercile_breaks":[round(float(q33),4),round(float(q67),4)],
+            "caliber":{"g":"net_ex/gross_total [bps per unit gross]","cost":"costb_PWR_G230k.json",
+                       "gauge":"sig_fund = 1e4*xsec SD of 8h-equivalent funding on the CRYPTO-m1 member set"},
+-           "rows":ROWS}, open(OUT+"/R7_SCREEN.json","w"), indent=1)
++           "rows":ROWS}, open(OUT19+"/R7_SCREEN.json","w"), indent=1)
+ print("SCREEN_DONE")
