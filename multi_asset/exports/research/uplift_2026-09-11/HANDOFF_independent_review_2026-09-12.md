@@ -30,6 +30,7 @@
 | `handoff_audit/errors/ERROR_LEDGER_uplift_2026-09-12.md` | 完整错题册: 20 条"改了但没传播"+ 11 条"可能仍然是错的"(按影响半径)+ 错误形态学 | 错题册代理 |
 | `handoff_audit/repro/REPRO_AUDIT_2026-09-12.md` + `MINIMAL_RECIPE_planning_number.sh` | 机器地图 / 钉住输入存在性与 sha / 端到端最小复现配方 / 缺口 | 可复现性代理 |
 | `handoff_audit/{r1_r3,r4_r6,r7_r9,r10_r11,r12_r13}/` | 逐轮明细: 问题 / 预注册 sha / 装置 sha / 复跑命令 / 门 / 结果带 CI / 判决 / 口径 / 已作废 / **最弱点** | 五个分块审计代理, **只读收据不读叙述** |
+| **`handoff_audit/POSITIVE_FINDINGS_2026-09-12.md`** | **什么确实有正效果**: 可入账 **+5.29% NAV/年**(占在役书 19.1%) / CEM_99 把停机砍 28.6% 但 CI 含零 / 最优平滑角落是**更慢** / 降杠杆的正确 W_TAIL 阶梯 / paper 计分器在给退役书计分 / **b681ca5 的全部文档指针(在 `docs/`, 不在本目录)** | 本人合成 |
 | `handoff_audit/SECTION_lead_firsthand.md` | 我本人的 17 条错误、去重后的五种错误形态、我认为最该被攻击的七点 | 本人第一手 |
 | `handoff_audit/COMMIT_CHAIN_full.txt` | 22 个提交的完整正文(每轮当时的原始结论, 用于对账) | 机械导出 |
 | `CALIBER_PIN_v4_2026-09-11.md` | v4 口径锁(用/禁表) | 第一轮 |
