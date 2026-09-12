@@ -43,3 +43,6 @@
 
 ## AMENDMENT 2(2026-09-12 09:5xZ, 结果说明 + 前向定义, 不改 G-P1/P2/P4)
 窗口结果(`parity_replay_2026-09-12/receipts/PARITY_phase1_chain_*.json`): **G-P1 41/41**(L∞ 最大 9.3e-10, 门 1e-6); 链式模式下回放自己 step 6 生成的 40 条腿收益条目与线上 `leg_returns_live.json` **逐条相等(最大差 0.0)**; w3/sel/fund_updates 逐锚相同; **G-P4 红能力 3/3 红**(α 0.11 ⇒ L∞ 2.7e-4)。**G-P3(内容 sha)按 AMENDMENT 1 的定义 0/41 —— 判 FAIL 并给机理**: 线上把持仓 H 以 float32 存档(`weights/*.npz`), 回放从该存档起步, 与线上内存中的 float64 H 差 ≤2⁻²⁴ 相对, 经 EMA 平滑传播后使每锚 ≤51 个名字的 float32 存储值差 1 ulp(4.7e-10)。这是存档精度上限, 不是逻辑差。**前向定义**: 自 2026-09-12 08Z 起每锚落的 `producer_state_snapshots/<anchor>/aux.json` 含 float64 H, 从快照起步的锚上 G-P3 按原定义(内容 sha 相等)评判; 08Z 之前的锚 G-P3 以「L∞ ≤ 1e-9 且 LR 条目逐位相等」为替代读数(只报不判)。
+
+## 结果指针(2026-09-12 10:5xZ)
+`RESULT_parity_phase1_2026-09-12.md`: G-P1 PASS 41/41(≤9.3e-10; LR 40/40 差 0.0); G-P2 **FAIL 按字面**(0/41 ≤1e-6; 中位 1.05e-5, 最大 1.13e-4, 14 名; 快照起步 3/3 精确 0.0); G-P3 FAIL(float32 存档); G-P4 PASS。机理排查与前向门见 RESULT §3–§4。
