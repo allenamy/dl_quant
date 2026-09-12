@@ -1,0 +1,165 @@
+--- w10_sleeve.py (pinned b88e35a46b93d712)
++++ w10_sleeve_r17.py (e542c7292ce1306e)
+@@ -39,6 +39,21 @@
+ RNSM = int(os.environ.get("RNSM", "0")); assert RNSM in (0, 3, 6, 12)   # AMENDMENT 2: FTRIM band read on a CAUSAL trailing mean of rn8 over RNSM panel rows (0 = instantaneous, the deployed form)
+ SLEEVE = int(os.environ.get("SLEEVE", "0")); assert SLEEVE in (0, 1)   # uplift TrackA: per-sleeve pnl/carry/cost/gross instrument (pure diagnostic, book untouched)   # 部署态 FTRIM(pre-z 排除 rn8<=-10bp 空头, 两链), 与 w10_ftrim_band pre/zero/(-1.0,-0.0010] 同构
+ SEATNET = int(os.environ.get("SEATNET", "0")); assert SEATNET in (0, 1)
++R17_FILL = int(os.environ.get("R17_FILL", "0")); assert R17_FILL in (0, 1)   # r17: partial-fill execution (PREREG_r17 §3); 0 = bitwise-neutral
++R17_TABLE = os.environ.get("R17_TABLE")   # r17: fitted fill table json (required when R17_FILL=1)
++R17_MODE = os.environ.get("R17_MODE", "det"); assert R17_MODE in ("det", "stoch"), R17_MODE
++R17_SEED = int(os.environ.get("R17_SEED", "0"))
++R17_G = float(os.environ.get("R17_GROSS_USDT", "232000"))
++R17_X1 = int(os.environ.get("R17_X1", "0")); assert R17_X1 in (0, 1)   # r17: r16 ARM-X1 operator (de-risk names jump to target), verbatim
++R17_INSTR = int(os.environ.get("R17_INSTR", "0")); assert R17_INSTR in (0, 1)   # r17: per-anchor instrument, additive, never read by the book
++assert not (R17_FILL and not R17_TABLE), "R17_FILL=1 requires R17_TABLE"
++import hashlib as _hl17
++R17_PREREG_SHA = "a7533b922c68e6dc575b1eadd3d19f62d4d271393ec5d58621c31aa65f5ae272"; R17_AMEND1_SHA = "70c8142ac4595fb4e83659daaa83cd3a68ba1284f103fd77ba3a14ba3f3269bd"
++R17_PREREG_PATH = os.environ.get("R17_PREREG_PATH", "/workspace/uplift_2026-09-11/r17_fill_pricing/PREREG_r17_fill_pricing_2026-09-12.md")
++R17_AMEND1_PATH = os.environ.get("R17_AMEND1_PATH", "/workspace/uplift_2026-09-11/r17_fill_pricing/PREREG_AMENDMENT_1_r17_2026-09-12.md")
++assert _hl17.sha256(open(R17_PREREG_PATH, "rb").read()).hexdigest() == R17_PREREG_SHA, "PREREG r17 sha mismatch"
++assert _hl17.sha256(open(R17_AMEND1_PATH, "rb").read()).hexdigest() == R17_AMEND1_SHA, "PREREG r17 AMENDMENT 1 sha mismatch"
++R17_TABLE_SHA = _hl17.sha256(open(R17_TABLE, "rb").read()).hexdigest() if R17_TABLE else None
+ SEATF10 = int(os.environ.get("SEATF10", "0")); assert SEATF10 in (0, 1)   # T1: F10 链用 F10 自己的 msharpe 席位(四腿腿收益)
+ KTAIL = int(os.environ.get("KTAIL", "0")); assert KTAIL in (0, 1)         # T2: king 作尾部否决(fund 多尾中 king 秩底 20% / 空尾中 king 秩顶 20% 置零)
+ KMOD = float(os.environ.get("KMOD", "0")); assert KMOD in (0.0, 0.5)       # T3: z ×= (1 + KMOD·xz(king))
+@@ -59,6 +74,9 @@
+ UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade", "m1"), UMASK_SCOPE   # m1 (team-lead refinement 2026-09-05) = live M1 semantics: members = universe ∩ listed for king/rev24/F10 and the trade set; fund z = rank within the 829 base (xz_in_base)   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+ _CFG = {"RNSM": RNSM, "FTPOS": FTPOS, "LTRIM_TH": LTRIM_TH, "CDAMP": CDAMP, "FTRIM_TH": FTRIM_TH, "SLEEVE": SLEEVE, "COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
++_CFG["R17"] = {"device": "w10_sleeve_r17.py = w10_sleeve.py (sha256 b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650) + {R17_FILL, R17_TABLE, R17_MODE, R17_SEED, R17_GROSS_USDT, R17_X1, R17_INSTR}; all off => bitwise-unchanged rec/W (GATE P1)",
++               "pinned_src_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650", "prereg_sha256": R17_PREREG_SHA, "amendment1_sha256": R17_AMEND1_SHA, "R17_FILL": R17_FILL, "R17_TABLE": R17_TABLE, "R17_TABLE_SHA256": R17_TABLE_SHA,
++               "R17_MODE": R17_MODE, "R17_SEED": R17_SEED, "R17_GROSS_USDT": R17_G, "R17_X1": R17_X1, "R17_INSTR": R17_INSTR}
+ import hashlib as _hl
+ _CFG["UPLIFT"] = {"device": "w10_sleeve.py = w10_health.py (sha256 8684d9a9f43a8d15) + {LTRIM_TH, CDAMP, FTRIM_TH, SLEEVE}; all unset/0 and FTRIM_TH=-0.0010 => bitwise-unchanged rec/W", "src_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d", "self_sha256": None}
+ _CFG["HEALTH"] = {"device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb…, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE in {members (original), trade, m1 (fund z in the 829 base, other legs and trade set within the universe)} + legs() series saved; default path (all unset) bitwise-unchanged", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+@@ -75,6 +93,19 @@
+     members = _mem2
+     print(f"MEMBERS_TOPN={MEMBERS_TOPN}: members rebuilt from qvk ranking", flush=True)
+ yrs = np.array([time.gmtime(int(t)).tm_year for t in E_ts]); nA = len(E_ts); NW = 829
++_R17_QV4 = None; _R17_FHAT = None; _R17_EMPF = None; _R17_EMPC = None; _R17_PC = None; _R17_FLOOR = None; _R17_RNG = None
++if R17_FILL:
++    _tb = json.load(open(R17_TABLE)); assert _tb["prereg_sha256"] == R17_PREREG_SHA, "fill table was fitted under a different prereg"
++    assert _tb["classes"] == ["ADD", "DERISK", "FLIP", "ZERO_TARGET"] and _tb["tiers"] == [0, 1, 2] and abs(float(_tb["G_USDT"]) - R17_G) < 1e-6, ("table/knob mismatch", _tb.get("G_USDT"), R17_G)
++    _R17_PC = [float(x) for x in _tb["p_cuts"]]
++    _R17_FHAT = np.zeros(36); _R17_EMPF = [None] * 36; _R17_EMPC = [None] * 36
++    for _ci, _c in enumerate(_tb["classes"]):
++        for _t in (0, 1, 2):
++            for _q in (0, 1, 2):
++                _k = "%s|%d|%d" % (_c, _t, _q); _ix = _ci * 9 + _t * 3 + _q
++                _R17_FHAT[_ix] = float(_tb["fhat"][_k]["fhat"]); _R17_EMPF[_ix] = np.asarray(_tb["emp"][_k]["f_sorted"], float); _R17_EMPC[_ix] = np.asarray(_tb["emp"][_k]["cw"], float)
++    _R17_QV4 = np.where(np.isfinite(qvk), np.expm1(np.clip(np.nan_to_num(qvk, nan=0.0), 0, 30)) * 48, np.nan)   # same qv4h formula as tier_of()/cost tiers; NaN kept => tier 2, p-tercile 2
++    print(f"R17 fill table loaded: {R17_TABLE} sha {R17_TABLE_SHA[:16]} mode={R17_MODE} seed={R17_SEED} G={R17_G}", flush=True)
+ PW = np.load(f"{B}/wide_panel_4h_hist_v2.npz", allow_pickle=True)
+ pw_row = {int(t): j for j, t in enumerate(PW["ts"].astype(np.int64))}
+ FN = PW["f_fund_now"]; IV = PW["f_fund_iv"] if "f_fund_iv" in PW else np.full_like(PW["f_fund_now"], 8.0); R24 = PW["f_rev_24h"]; FE = PW["f_fund_ema_v1"]
+@@ -108,6 +139,9 @@
+ else:
+     UMASK_ROW = None if "f_fund_ema_v1" in PW else PW["f_fund_ema"]
+ WSYM = [str(s) for s in PW["symbols"]]
++if R17_FILL:
++    _R17_FLOOR = np.array([float(_tb["floors"].get(_s2, _tb["floor_default"])) for _s2 in WSYM])
++    print(f"R17 floors: {int((_R17_FLOOR == 5).sum())} x 5 / {int((_R17_FLOOR == 20).sum())} x 20 / {int((_R17_FLOOR == 50).sum())} x 50 USDT; missing->default {int(sum(1 for _s2 in WSYM if _s2 not in _tb['floors']))}", flush=True)
+ SLOW_NPY = os.environ.get("SLOW_NPY")   # 滚动月度 OOS king 预测覆盖(RUNBOOK §8; PREREG_allweather 后续): 形状必须与 slow_pred_hist_oos 同, 否则拒绝
+ SLOW = np.load(f"{B}/slow_pred_hist_oos.npy") if not SLOW_NPY else np.load(SLOW_NPY)
+ if SLOW_NPY:
+@@ -171,6 +205,42 @@
+         idx.append(i)
+     return {k: np.array(v) for k, v in LR.items()}, {int(i): p for p, i in enumerate(idx)}
+ W3FC = None
++_R17_COLS = ["tau_intent", "tau_exec", "gross_target", "gross_prev_held", "resid", "n_resid_m", "n_dust", "dust_notional",
++             "int_ADD", "int_DERISK", "int_FLIP", "int_ZT", "exec_ADD", "exec_DERISK", "exec_FLIP", "exec_ZT", "age1", "age2", "age3_5", "age6_12", "age_gt12", "n_intent_m", "n_exec_m"]
++def _r17_x1(tgt, H, sm_dep):
++    """r16 _x16_apply, XMODE=X1, XNULL=0: T = DR = nz & (flip | |tgt|<|H|); new = tgt; sm = where(T, new, sm_dep)."""
++    gap = tgt - H; nz = gap != 0.0
++    DR = nz & ((tgt * H < 0.0) | (np.abs(tgt) < np.abs(H)))
++    return np.where(DR, tgt, sm_dep)
++def _r17_execute(sm, HX, i, m, age):
++    """PREREG_r17 §3: intent = sm - HX; class/tier/participation lookup; dust floor; executed = f*intent; returns (executed book, instrument row)."""
++    intent = sm - HX; a_int = np.abs(intent); act = a_int > 0.0
++    hx0 = np.abs(HX) > 0.0; s0 = np.abs(sm) > 0.0
++    zt = act & hx0 & ~s0; flip = act & (sm * HX < 0.0); derisk = act & ~zt & ~flip & hx0 & (np.abs(sm) < np.abs(HX))
++    cl = np.where(zt, 3, np.where(flip, 2, np.where(derisk, 1, 0)))
++    qv = _R17_QV4[i]; tier = np.full(NW, 2, np.int8); tier[qv >= 1e6] = 1; tier[qv >= 5e6] = 0
++    with np.errstate(all="ignore"):
++        p = a_int * R17_G / qv
++    pt = np.where(np.isfinite(p), np.where(p <= _R17_PC[0], 0, np.where(p <= _R17_PC[1], 1, 2)), 2)
++    idx = cl * 9 + tier.astype(int) * 3 + pt
++    dust = act & (a_int * R17_G < _R17_FLOOR); send = act & ~dust
++    f = np.zeros(NW)
++    if R17_MODE == "det":
++        f[send] = _R17_FHAT[idx[send]]
++    else:
++        _si = np.nonzero(send)[0]
++        for _cell in np.unique(idx[_si]):
++            _names = _si[idx[_si] == _cell]; _u = _R17_RNG.random(len(_names))
++            f[_names] = _R17_EMPF[_cell][np.minimum(np.searchsorted(_R17_EMPC[_cell], _u, side="left"), len(_R17_EMPF[_cell]) - 1)]
++    ex = f * intent; new = HX + ex
++    rz = np.abs(sm - new); rn = rz > 5e-5; age[:] = np.where(rn, age + 1, 0)
++    inm = np.zeros(NW, bool); inm[m] = True
++    row = (float(a_int.sum()), float(np.abs(ex).sum()), float(np.abs(sm).sum()), float(np.abs(HX).sum()), float(rz.sum()), int((inm & (rz > 1e-12)).sum()), int(dust.sum()), float(a_int[dust].sum()),
++           float(a_int[cl == 0].sum()), float(a_int[cl == 1].sum()), float(a_int[cl == 2].sum()), float(a_int[cl == 3].sum()),
++           float(np.abs(ex[cl == 0]).sum()), float(np.abs(ex[cl == 1]).sum()), float(np.abs(ex[cl == 2]).sum()), float(np.abs(ex[cl == 3]).sum()),
++           int((rn & (age == 1)).sum()), int((rn & (age == 2)).sum()), int((rn & (age >= 3) & (age <= 5)).sum()), int((rn & (age >= 6) & (age <= 12)).sum()), int((rn & (age > 12)).sum()),
++           int((inm & act).sum()), int((inm & (np.abs(ex) > 0)).sum()))
++    return new, row
+ def run(SLOW, LRa, pos, depth, need, cool, look=900):
+     def w3_at(i):
+         if W3FIX is not None:
+@@ -202,6 +272,9 @@
+             w_ = w_ / w_.sum() if w_.sum() > 1e-12 else msk / max(msk.sum(), 1.0)
+         return w_
+     H = np.zeros(NW); HR = np.zeros(NW); Pi = np.ones(NW); sh = np.zeros(NW); cb = np.zeros(NW)
++    HX = np.zeros(NW); _R17_AGE = np.zeros(NW, np.int64); _R17 = []   # r17: executed-book state, residual ages, instrument rows
++    global _R17_RNG
++    if R17_FILL and R17_MODE == "stoch": _R17_RNG = np.random.default_rng([20260912, R17_SEED])   # reseeded per run() (S0 and d30 arms each start fresh)
+     HF = np.zeros(NW); HB = np.zeros(NW)      # F10 书自己的 EMA 态 / 上一锚的混合书
+     cnt = np.zeros(NW, int); su = np.full(NW, -1)
+     rec = []; WS = []; _SG = []; _SP = []; _SC = []; _SK = []
+@@ -252,6 +325,8 @@
+             if bl.any(): tgt[bl] = 0.0
+         sm = H + 0.1 * (tgt - H); trade = sm - H
+         sm = np.where(np.abs(trade) < 2.5e-4, H, sm); trade = sm - H
++        if R17_X1:
++            sm = _r17_x1(tgt, H, sm); trade = sm - H
+         # W6: 不合格流动性名强制出场(与 EXIT 同机制, 不受带约束) —— 只有目标层 demean 修复
+         # 清不掉存量: 每名 EMA 步长 < 带阈 ⇒ 历史篮子被带永久冻结(G1 实测 15.7%→15.2%)。
+         _nonsel = np.zeros(NW, bool); _nonsel[m[~sel]] = True
+@@ -293,6 +368,8 @@
+                 _smf = HF + 0.1 * (_tgtf - HF)
+                 _trf = _smf - HF
+                 _smf = np.where(np.abs(_trf) < 2.5e-4, HF, _smf)
++                if R17_X1:
++                    _smf = _r17_x1(_tgtf, HF, _smf)
+                 _smf = np.where(_nonsel, 0.0, _smf)
+                 if depth is not None:
+                     _blf = su > i
+@@ -310,6 +387,9 @@
+                 if _gk1 > 1e-9: smb = smb * (_gk0 / _gk1)
+         _smk = sm                     # ★ king 书自己的 sm 必须留住: 它的 EMA 态独立推进
+         sm = smb                      # 此后一切记账(盈亏/成本/carry/深度)都在混合书上
++        if R17_FILL:   # r17: sm becomes the EXECUTED book (target = smb stays inside the chain states H/HF only)
++            sm, _r17row = _r17_execute(sm, HX, i, m, _R17_AGE)
++            if R17_INSTR: _R17.append(_r17row)
+         trade = sm - HB
+         nz = np.abs(sm) > 1e-12
+         smr = sm.copy()
+@@ -374,8 +454,9 @@
+                     float(pnl_r - car_r - cbps_r), pnl_r, car_r, float(cbps_r), netlong))
+         WS.append(sm.astype(np.float32))
+         H = _smk if PHI > 0 else sm      # king 书 EMA 态独立推进(φ=0 时二者同一)
+-        HB = sm; HR = smr; Pi = Pi * (1.0 + yfull)
++        HB = sm; HR = smr; Pi = Pi * (1.0 + yfull); HX = sm
+         if i % 2000 == 0: print("run depth", depth, i, "/", nA, round(time.time() - t0, 1), "s", flush=True)
++    global _R17_LAST; _R17_LAST = np.array(_R17, float) if _R17 else None
+     return np.array(rec), np.stack(WS), ((np.array(_SG), np.array(_SP), np.array(_SC), np.array(_SK)) if SLEEVE else None)
+ LRa, pos = legs(SLOW); print("legs done", round(time.time() - t0, 1), "s", flush=True)
+ ARMS = [("S0", None, 0, 0, "nets_histv2_0_0_0.npy"), ("d30_n2_c42", -0.30, 2, 42, "nets_histv2_-30_2_42.npy")]
+@@ -418,6 +499,8 @@
+     print("RECEIPT_EX", nm, json.dumps(outx), flush=True)
+     save[f"{nm}_rec"] = R
+     save[f"{nm}_W"] = WS
++    if R17_INSTR and R17_FILL and _R17_LAST is not None:
++        save[f"{nm}_R17"] = _R17_LAST; save[f"{nm}_R17_cols"] = np.array(_R17_COLS)
+     if SLV is not None:
+         save[f"{nm}_SLV_gross"], save[f"{nm}_SLV_pnl"], save[f"{nm}_SLV_carry"], save[f"{nm}_SLV_cost"] = SLV
+         save[f"{nm}_SLV_names"] = np.array(["L|<=-30bp", "L|-30..-10", "L|-10..0", "L|0..10", "L|10..30", "L|>=30bp", "L|nofund",

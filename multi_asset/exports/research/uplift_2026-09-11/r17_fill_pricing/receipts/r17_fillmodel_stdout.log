@@ -1,0 +1,84 @@
+READ 2026-09-12T04:17:02Z days 20260801 20260912 orders rows 73894 groups 48348
+COUNTS {"offgrid_groups": 218, "qv_slice": 43679, "fill_unknown_rows": 0, "dust": 22970, "no_a1_protective_flatten": 1453, "halt": 2196, "a1_multi_retry": 3203, "fill_gt_intent_1.02": 75, "no_a1_exit_only": 23, "qv_dropped": 2975, "groups_total": 48348, "sent": 21488}
+INTENT USDT sent 1562819 dust 37149 (1.4%) halt 1002549 (38.5%)
+QV4H overlap {"n": 115824, "median_abs_dlog": 0.5209867769533245, "p90_abs_dlog": 1.7299293210953455, "mean_dlog": 0.5255023656581513, "tier_agree": 0.8349392181240503, "PASS": false}
+LIVE gross ratio {"n": 226, "median_all": 0.9995010999609465, "median_excl_lt_0p8": 0.9996036095452191, "n_lt_0p8": 3, "p10": 0.9864606396252233, "p90": 1.0080957240539932, "definition": "anchors.jsonl realized_gross/target_gross, anchors >= 2026-08-03 00Z; realized = venue gross at anchor start (held), target = sizing gross"}
+P cuts [1.2847003397859733e-05, 5.6139109993331655e-05] fhat src share {'T2': 21428, 'T1': 49, 'class': 11}
+
+T1 class x tier  (n | f_w | f_u | P0/Ppart/P1 | maker share)
+  ADD         tier0 n= 1611 f_w=0.8004 f_u=0.8893  P0=0.087 Ppart=0.780 P1=0.133  mk=0.837
+  ADD         tier1 n= 3033 f_w=0.8613 f_u=0.9146  P0=0.078 Ppart=0.728 P1=0.194  mk=0.866
+  ADD         tier2 n= 7849 f_w=0.8106 f_u=0.9085  P0=0.085 Ppart=0.714 P1=0.201  mk=0.839
+  DERISK      tier0 n= 1007 f_w=0.9446 f_u=0.9146  P0=0.061 Ppart=0.830 P1=0.109  mk=0.774
+  DERISK      tier1 n= 1884 f_w=0.9510 f_u=0.9417  P0=0.051 Ppart=0.834 P1=0.115  mk=0.831
+  DERISK      tier2 n= 4757 f_w=0.9392 f_u=0.9340  P0=0.058 Ppart=0.772 P1=0.170  mk=0.770
+  FLIP        tier0 n=  142 f_w=0.9674 f_u=0.9386  P0=0.035 Ppart=0.852 P1=0.113  mk=0.689
+  FLIP        tier1 n=  260 f_w=0.9625 f_u=0.9516  P0=0.042 Ppart=0.738 P1=0.219  mk=0.771
+  FLIP        tier2 n=  639 f_w=0.9545 f_u=0.9478  P0=0.047 Ppart=0.645 P1=0.308  mk=0.785
+  ZERO_TARGET tier0 n=    6 f_w=0.7668 f_u=0.8331  P0=0.167 Ppart=0.667 P1=0.167  mk=0.896
+  ZERO_TARGET tier1 n=    5 f_w=0.9999 f_u=0.9996  P0=0.000 Ppart=0.600 P1=0.400  mk=0.977
+  ZERO_TARGET tier2 n=  295 f_w=0.9162 f_u=0.8784  P0=0.105 Ppart=0.614 P1=0.281  mk=0.854
+class marginal {'ADD': (12493, 0.8224), 'DERISK': (7648, 0.9427), 'FLIP': (1041, 0.9578), 'ZERO_TARGET': (306, 0.911)} ALL 21488 0.8482
+class incl halt {'ADD': (14689, 0.4512, 2196), 'DERISK': (7648, 0.9427, 0), 'FLIP': (1041, 0.9578, 0), 'ZERO_TARGET': (306, 0.911, 0)}
+
+T2 (class|tier|ptercile: n f_w src)
+  ADD|0|0            n_T2= 1434 n_T1= 1611 fhat=0.8744 (T2)
+  ADD|0|1            n_T2=  131 n_T1= 1611 fhat=0.8344 (T2)
+  ADD|0|2            n_T2=   46 n_T1= 1611 fhat=0.6855 (T2)
+  ADD|1|0            n_T2= 1665 n_T1= 3033 fhat=0.9195 (T2)
+  ADD|1|1            n_T2=  890 n_T1= 3033 fhat=0.9318 (T2)
+  ADD|1|2            n_T2=  478 n_T1= 3033 fhat=0.8429 (T2)
+  ADD|2|0            n_T2=  410 n_T1= 7849 fhat=0.9263 (T2)
+  ADD|2|1            n_T2= 2651 n_T1= 7849 fhat=0.9180 (T2)
+  ADD|2|2            n_T2= 4788 n_T1= 7849 fhat=0.8046 (T2)
+  DERISK|0|0         n_T2=  971 n_T1= 1007 fhat=0.9209 (T2)
+  DERISK|0|1         n_T2=   31 n_T1= 1007 fhat=1.0000 (T2)
+  DERISK|0|2         n_T2=    5 n_T1= 1007 fhat=0.9446 (T1)
+  DERISK|1|0         n_T2= 1243 n_T1= 1884 fhat=0.9494 (T2)
+  DERISK|1|1         n_T2=  556 n_T1= 1884 fhat=0.9485 (T2)
+  DERISK|1|2         n_T2=   85 n_T1= 1884 fhat=0.9567 (T2)
+  DERISK|2|0         n_T2=  381 n_T1= 4757 fhat=0.9492 (T2)
+  DERISK|2|1         n_T2= 1825 n_T1= 4757 fhat=0.9370 (T2)
+  DERISK|2|2         n_T2= 2551 n_T1= 4757 fhat=0.9394 (T2)
+  FLIP|0|0           n_T2=  139 n_T1=  142 fhat=0.9681 (T2)
+  FLIP|0|1           n_T2=    3 n_T1=  142 fhat=0.9674 (T1)
+  FLIP|0|2           n_T2=    0 n_T1=  142 fhat=0.9674 (T1)
+  FLIP|1|0           n_T2=   88 n_T1=  260 fhat=0.9539 (T2)
+  FLIP|1|1           n_T2=  149 n_T1=  260 fhat=0.9524 (T2)
+  FLIP|1|2           n_T2=   23 n_T1=  260 fhat=0.9625 (T1)
+  FLIP|2|0           n_T2=    5 n_T1=  639 fhat=0.9545 (T1)
+  FLIP|2|1           n_T2=   89 n_T1=  639 fhat=0.9506 (T2)
+  FLIP|2|2           n_T2=  545 n_T1=  639 fhat=0.9546 (T2)
+  ZERO_TARGET|0|0    n_T2=    1 n_T1=    6 fhat=0.9110 (class)
+  ZERO_TARGET|0|1    n_T2=    4 n_T1=    6 fhat=0.9110 (class)
+  ZERO_TARGET|0|2    n_T2=    1 n_T1=    6 fhat=0.9110 (class)
+  ZERO_TARGET|1|0    n_T2=    3 n_T1=    5 fhat=0.9110 (class)
+  ZERO_TARGET|1|1    n_T2=    1 n_T1=    5 fhat=0.9110 (class)
+  ZERO_TARGET|1|2    n_T2=    1 n_T1=    5 fhat=0.9110 (class)
+  ZERO_TARGET|2|0    n_T2=    2 n_T1=  295 fhat=0.9162 (T1)
+  ZERO_TARGET|2|1    n_T2=   11 n_T1=  295 fhat=0.9162 (T1)
+  ZERO_TARGET|2|2    n_T2=  282 n_T1=  295 fhat=0.9163 (T2)
+
+by era (class f_w n): {'A': {'ADD': (3689, 0.937), 'DERISK': (2371, 0.928), 'FLIP': (958, 0.962), 'ZERO_TARGET': (119, 0.906)}, 'B': {'ADD': (3838, 0.87), 'DERISK': (1531, 0.931), 'FLIP': (33, 0.948), 'ZERO_TARGET': (142, 0.859)}, 'C': {'ADD': (4966, 0.798), 'DERISK': (3746, 0.95), 'FLIP': (50, 0.904), 'ZERO_TARGET': (45, 0.942)}}
+by anchor-of-day: {0: (3193, 0.741), 1: (3638, 0.79), 2: (3578, 0.899), 3: (3820, 0.929), 4: (3807, 0.937), 5: (3452, 0.871)}
+by side: {'buy': (11133, 0.836), 'sell': (10355, 0.861)} by arm: {'join': (9652, 0.842), 'behind': (7080, 0.828), 'None': (4380, 0.941)}
+
+CALIB insample slope 1.007 mae 0.0006 | holdout slope 0.972 mae 0.0131  GATE F-i True
+   d1 n= 2681 pred 0.797 real 0.801
+   d2 n= 3443 pred 0.829 real 0.818
+   d3 n= 1627 pred 0.895 real 0.912
+   d4 n= 1981 pred 0.911 real 0.930
+   d5 n= 2933 pred 0.927 real 0.929
+   d6 n= 2376 pred 0.932 real 0.933
+   d7 n= 1806 pred 0.937 real 0.951
+   d8 n= 1425 pred 0.943 real 0.913
+   d9 n= 3216 pred 0.957 real 0.938
+LOGIT {"intercept": -0.258, "cls_DERISK": 0.954, "cls_FLIP": 1.328, "cls_ZERO_TARGET": 0.765, "tier1": 0.683, "tier2": 0.445, "log_p": -0.109, "aod1": 0.195, "aod2": 0.899, "aod3": 1.322, "aod4": 1.493, "aod5": 0.433, "buy": -0.138} corr with T2 0.526
+
+ADVERSE SELECTION {"f_eq_1": {"n": 3711, "mean_bps": -4.12881544987219, "mean_intent_weighted_bps": 13.497940536774246, "ci95_days": [-18.51349170759542, 8.365244387891403]}, "f_partial": {"n": 15488, "mean_bps": -6.935310023172744, "mean_intent_weighted_bps": -18.984088277684002, "ci95_days": [-13.452457095840213, 0.0825393334395985]}, "f_eq_0": {"n": 1530, "mean_bps": 29.19042424598891, "mean_intent_weighted_bps": 9.569868348745501, "ci95_days": [13.730488482273238, 44.72847386706802]}, "all_sent": {"n": 20729, "mean_bps": -3.7664511880463176, "mean_intent_weighted_bps": -5.49016036290539, "ci95_days": [-8.612561954489717, 1.1769347792052827]}, "filled_notional_weighted": -8.620613162185293, "unfilled_notional_weighted": 11.883730054852279, "direction_reproduced_unfilled_gt_filled": true, "definition": "adv = sgn(intent) * (mid_at_anchor[next anchor] / mid_at_anchor[this row] - 1) * 1e4; + = price moved in the intended direction (missing the fill forgoes it); live config quote: filled +3.66 vs unfilled +5.48"}
+   f_eq_1 {'ADD': (2333, -4.89), 'DERISK': (1073, -3.41), 'FLIP': (267, 0.77), 'ZERO_TARGET': (38, -12.02)}
+   f_partial {'ADD': (8842, -9.77), 'DERISK': (5830, -4.57), 'FLIP': (720, 7.6), 'ZERO_TARGET': (96, 1.6)}
+   f_eq_0 {'ADD': (1026, 26.56), 'DERISK': (427, 34.36), 'FLIP': (46, -0.0), 'ZERO_TARGET': (31, 88.48)}
+
+TABLE /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing/receipts/r17_fill_table.json 56ecf0972da92586795094794d124d1b417dbfc31e99be46d48fa8d00d12a5af
+DONE_r17_fillmodel
