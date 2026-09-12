@@ -24,6 +24,25 @@
 
 **易错项(全部咬过)**: NpzFile[key] 不进循环; pgrep 用 `[c]hain` 括号法; 一切 sha 由复跑实测; 过程状态只读过程收据; ssh 全内联(zsh 不分词); `pod_fea_ext.py`(未 clamp)/ `pod_export_bundle_v3.py` / `pod_legs_ext.py` 全行重算 **一律不再用**。
 
+### §0★ 修订 2(2026-09-12 10:0xZ; 独立研究员复审 0dfc0d87 R1–R5 全部接受)
+**修订 1 的步骤单不可照抄执行**(研究员实测): ① 第 4 步裸 `pod_f10_refit_v4.py` 的默认是 `F10_DLW=/workspace/dlw_ext` / `F10_OUT=/workspace/f8_ext` / `BEST_EP_FIX=-1`(argmax); launcher 子 shell 里的 `BEST_EP_FIX=7` **不会回传父 shell** ⇒ 裸调用会读旧输入、选 argmax、覆盖旧 `f8_ext/models/f10_live_s42.pt`。② 训练器 `pod_f10_train_monthly_v4.py` L298 `ALL_MONTHS = 202501..202608` 硬编码白名单, `merge_mwf_v4b.py` L13 同; 202609 被拒。③ 第 3 步 `pod_legs_v4b.py` 需 4 个必需 env(`LEGS_TG / LEGS_META / LEGS_PRED / LEGS_OUT`), 且 legs 要用**本月新 king PRED** ⇒ king 导出必须先于 legs。④ 导出器 `pod_export_bundle_v4.py` L241 `generation` 硬编码 "v3_2026-09"。⑤ 链脚本 `R=/workspace/review_scratch` 硬编码, 外层无法换根。⑥ refit 记录的 `trained_through` 是全池末锚, 不是模型真正看过的末条 loss 标签(R1 附)。
+
+**因此 §0★ 表的第 3/4/5 步按下表执行(显式 env, 不依赖任何继承)**; 并且**下面三处代码改动在十月前必须先落地、各带自己的门与研究员复核**, 否则十月重训**不得开始**:
+
+| 步 | 逐字命令(env 显式) |
+|---|---|
+| 5→3 顺序 | **先 king 导出(得到本月 SLOW PRED), 再 legs, 再 F10** |
+| 3 legs | `LEGS_TG=/workspace/dlw_v4raw/data/dlw_targets.npz LEGS_META=/workspace/data/wide_fea_v4_meta.npz LEGS_PRED=<本月 king SLOW PRED .npy> LEGS_OUT=/workspace/f8_v4/data/f10v2_legs.npz $PY $R/pod_legs_v4b.py`(自检 2023 king WL ≈ 0.59 必须打印) |
+| 4a F10 月折 | `bash $R/chain_v4_gpu3.sh`(launcher 内已显式 `F10_DLW=$DLW F10_OUT=/workspace/f8_v4 EMBARGO=1 BEST_EP_FIX=7 MONTHS=$M`; 四片 MONTHS 必须覆盖到**本月**, 见代码改动 (a)) |
+| 4b F10 refit(部署件) | `F10_DLW=/workspace/dlw_v4raw F10_OUT=/workspace/f8_v4 SEED=42 BEST_EP_FIX=7 $PY $R/pod_f10_refit_v4.py`(**四个 env 逐字, 缺一不跑**); 产物 `f8_v4/models/f10_live_s42.pt` + 报告里 `best_ep_rule` 必须读 `fix7` |
+| 5 king 导出 | 修订 1 的 env + `BUNDLE_GENERATION=v4_2026-10`(见代码改动 (b)) |
+
+**十月前必做的代码改动(链装置目录, git 单源; 每项: 改动 + 正控(复现九月产物逐位)+ 负控(本月空目录 / 缺 env 必须 rc≠0)+ 研究员复核)**:
+- (a) `pod_f10_train_monthly_v4.py` / `merge_mwf_v4b.py`: 月白名单改为 env `MONTHS_ALL`(缺省 = 数据轴内到上月末的全部月), 拒绝越过数据末锚的月; 四片 `SH0..SH3` 由 `MONTHS_ALL` 生成而不是手写。
+- (b) `pod_export_bundle_v4.py`: `provenance.generation` 从 env `BUNDLE_GENERATION` 读(缺省拒绝导出, 不再写死 "v3_2026-09"); 同时把 king 训练数据末锚(真正的梯度截止)写进 provenance, 不以构建日代替。
+- (c) `chain_lib.sh` / `chain_v4_data.sh` / `chain_v4_gpu3.sh` / `launch_mwf_v4b.sh`: 根目录 `R`、`dlw_v4raw`、`f8_v4` 等从一份**本月配置文件**读(`v4_month.env`, 内容 = 本月路径与月集合), 缺文件 rc≠0; 提供 `chain_v4_monthly_dryrun.sh`: 对空本月目录必须在第一道门停下(负控收据)。
+- 完成前, 十月重训的正确姿势 = **不做**; 若届时未完成, 影子继续跑 09-01 bundle(在役模型腿在正确口径下 (C) 不可区分, 见 CALIBER_STATUS 09-09)。
+
 ## §0 原则(不变式)
 
 1. 重训 = **两个分离的显式版本事件**: king bundle(RUNBOOK 主流程)与 f10(addendum §A), 各自静默窗换、各自首锚验收、单变量留痕; 宇宙刷新 = 第三事件(§B, ≥3 天间隔 + 用户字)。
