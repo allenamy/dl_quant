@@ -113,3 +113,8 @@ requote 44 / direct 26 / exempt 2; requote report: candidates 23 → 落单 19, 
 - **132 套件 / 131 绿 / 1 红 = `tests_disposition_matrix`**(3 条真账本断言; payload sha 前 12 位 d19da6693f71 / bea0dd249993 / 78a55480d2cc 与克隆、旧树 d040c74 **三处逐字节同** ⇒ 账本事实: E-0910-A 锁复发锚 A1789115039 involuntary 4,504U; PIEVERSE −2027 残差超自身 gross 1% 于 A1788999840(09-10 00:24Z 重建锚)等)。`tests_env_loading` 运行目录 **14/14**(克隆红仅因 gitignored `.env`)。收据 `docs/receipts/rundir_battery_b681ca5_20260912T063630Z.log`; 逐套件日志 `~/dl_quant_live/state/acceptance/20260912T063630Z_*.log`。
 - ⚠ 电池的 DRY_RUN 锚写进了共享的 `state/anchor_runs.log`: `06:37:05Z anchor start mode=DRY_RUN … 06:38:40Z anchor done rc=0`(arm: no venue contacted; orders/fills/anchors.jsonl 在该窗 0 行)。**08Z 深查读 log 尾时以 `mode=LIVE` 的锚为准**(`start_dryrun_clock.sh` L156 已注明该共享性质)。
 - 运维后果(登记, 待裁定): 下一次 `safe_commit` 会被该套件挡住, 直到其分类按 E-0910-A / −2027 上限更新。
+
+### 07:35:01–07:49:52Z · `tests_disposition_matrix` 重标定经 safe_commit 落地(非锚事件; 用户字「确保无误可以更新」)
+- 运行目录 `ops/safe_commit.sh live/tests_disposition_matrix.py`: fetch 已最新 → **电池 132/132 ALL GREEN**(07:34:58–07:49:49Z)→ commit → push `b681ca5..77d9baf main`。运行树 HEAD = origin/main = **77d9baf**; 仅测试文件, 零运行时改动。
+- ⚠ 电池再次在共享 `state/anchor_runs.log` 留下 DRY_RUN 锚行(07:3x–07:4xZ `mode=DRY_RUN`); 08Z 深查以 `mode=LIVE` 为准。
+- 内容与收据: `docs/DESIGN_disposition_matrix_recalibration6_2026-09-12.md` §1–§4; 突变红日志 `docs/receipts/tests_disposition_matrix_recal6_mut_*.log`; safe_commit 日志 `docs/receipts/safe_commit_tests_disposition_matrix_20260912T073501Z.log`。

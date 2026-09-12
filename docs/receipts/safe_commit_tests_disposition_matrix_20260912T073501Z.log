@@ -1,0 +1,30 @@
+── 1/5 拉取远端(显式检查, 不经管道)
+From https://github.com/allenamy/dl_quant_live
+ * branch            main       -> FETCH_HEAD
+  ✓ 已是最新
+── 2/5 检查显式路径存在(只对新文件 intent-to-add —— 见第 4 步为什么)
+ live/tests_disposition_matrix.py | 128 +++++++++++++++++++++++++++++++++------
+ 1 file changed, 109 insertions(+), 19 deletions(-)
+── 3/5 验收 runner(全绿才提交)
+tests_external_book          0      /Users/haosiyu/dl_quant_live/state/acceptance/20260912T073458Z_tests_external_book.log
+----------------------------------------------------------------
+ACCEPTANCE: ALL GREEN (132/132 suites exit 0)
+── 4/5 提交(pathspec 形式 —— 只提交列出的路径)
+[main 77d9baf] tests_disposition_matrix 尺子第六次重标定(测试文件, 零运行时改动; 事实表 quant_research docs/DESIGN_disposition_matrix_recalibration6_2026-09-12.md; 用户字 09-12「确保无误可以更新」): ① VENUE-LOCKED 锚类(E-0910-A -4400 账户级锁; 稳态锚首例 09-11 08:24Z A1789115039 involuntary 4,014U = 73 张被拒补单意图, 逐 USDT 相等; 断言: 非自愿−锁<200U / 其后稳态锚<200U / anchor_loop 有主) ② -2027 场所上限类分母 realized→target gross(09-10 00:24Z 重建锚只建 67%, 1,549 分母把建仓未完成算进上限; 21 锚对 target 1% 全过, 最小余量 3.6%) ③ 自愿 no-chase 部分从行求和(gaps()[names] 截前 20 名, >20 名锚自愿被截成 0, 9 锚受影响, 只降低非自愿) + [G] 四条承重断言(类空⇒红 / 锁=非自愿到 1U / 分母换回⇒红 / 行法≠表法于 >20 名锚); 克隆真账本 48/48, 三种突变各自红; 修前运行目录电池 131/132 唯一红即本套件(d040c74 同红, 账本事实)
+ Committer: haosiyu <haosiyu@haosiyudeMacBook-Pro.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 109 insertions(+), 19 deletions(-)
+── 5/5 推送
+To https://github.com/allenamy/dl_quant_live.git
+   b681ca5..77d9baf  main -> main
+✓ 完成: 77d9baf tests_disposition_matrix 尺子第六次重标定(测试文件, 零运行时改动; 事实表 quant_research docs/DESIGN_disposition_matrix_recalibration6_2026-09-12.md; 用户字 09-12「确保无误可以更新」): ① VENUE-LOCKED 锚类(E-0910-A -4400 账户级锁; 稳态锚首例 09-11 08:24Z A1789115039 involuntary 4,014U = 73 张被拒补单意图, 逐 USDT 相等; 断言: 非自愿−锁<200U / 其后稳态锚<200U / anchor_loop 有主) ② -2027 场所上限类分母 realized→target gross(09-10 00:24Z 重建锚只建 67%, 1,549 分母把建仓未完成算进上限; 21 锚对 target 1% 全过, 最小余量 3.6%) ③ 自愿 no-chase 部分从行求和(gaps()[names] 截前 20 名, >20 名锚自愿被截成 0, 9 锚受影响, 只降低非自愿) + [G] 四条承重断言(类空⇒红 / 锁=非自愿到 1U / 分母换回⇒红 / 行法≠表法于 >20 名锚); 克隆真账本 48/48, 三种突变各自红; 修前运行目录电池 131/132 唯一红即本套件(d040c74 同红, 账本事实)

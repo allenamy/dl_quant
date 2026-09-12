@@ -37,3 +37,12 @@ b681ca5 部署前后两次电池(隔离克隆 05:44Z / 运行目录 06:36Z)与�
 - 不触实盘树; 落地经 `ops/safe_commit.sh`(fetch → 电池全绿 → commit → push), 窗 09:36–09:59Z(避锚小时与 HH:20–35)。
 
 ## §4 收据(落地时补)
+
+| 件 | 值 |
+|---|---|
+| 克隆分支(b681ca5 + 补丁, 05:43Z 真 state 快照) | `exec_b681_acceptance` `fix/disposition-venue-lock-20260912` 06e40d5; 套件 **48/48 ALL PASS**; 突变 lockcode / denom / listmethod 各红 3 / 2 / 3 条, 全在预期断言上(`docs/receipts/tests_disposition_matrix_recal6_mut_*.log`) |
+| 补丁 diff | `docs/receipts/tests_disposition_matrix_recal6_2026-09-12.diff`(sha256 d5e3f47a3ae5d950…; +109 −19) |
+| 落地 | 运行目录 `ops/safe_commit.sh` 07:35:01Z → fetch 已最新 → **电池 132/132 ALL GREEN**(07:34:58–07:49:49Z, 逐套件日志 `~/dl_quant_live/state/acceptance/20260912T073458Z_*.log`)→ commit → push: **origin/main b681ca5 → 77d9baf**; 运行树 HEAD = origin/main = 77d9baf, state/ 外干净; 日志 `docs/receipts/safe_commit_tests_disposition_matrix_20260912T073501Z.log` |
+| 运行时影响 | 零(仅 `live/tests_disposition_matrix.py`); 执行器 08Z 锚照常加载 77d9baf(与 b681ca5 运行时逐字节同) |
+| 请独立研究员复核 | ① VENUE-LOCKED 类的三条断言是否足够(尤其: 是否应额外要求锁行占已发补单的比例, 以防单张 -4400 建类); ② -2027 分母改 target 的理由(建仓未完成与场所上限分离)是否成立; ③ ③ 项 gaps()["names"] 前 20 名截断是否也影响其它读者(`chase_readout` / `anchor_report` 的 known_gaps 消费者); ④ 承重断言 [G] 第一条"类非空"是否算「pinned to live population」 |
+
