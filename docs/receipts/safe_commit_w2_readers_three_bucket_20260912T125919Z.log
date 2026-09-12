@@ -1,0 +1,16 @@
+── 1/5 拉取远端(显式检查, 不经管道)
+From https://github.com/allenamy/dl_quant_live
+ * branch            main       -> FETCH_HEAD
+  ✓ 已是最新
+── 2/5 检查显式路径存在(只对新文件 intent-to-add —— 见第 4 步为什么)
+ live/cost_buckets.py               | 170 ++++++++++++++++
+ live/tests_daily_summary.py        | 203 ++++++++++++++++++++
+ live/tests_readers_three_bucket.py | 384 +++++++++++++++++++++++++++++++++++++
+ ops/daily_summary.py               | 196 +++++++++++++++----
+ ops/first_anchor_review.py         | 105 ++++++----
+ ops/gate_coverage.py               |   3 +-
+ ops/score_post_fix.py              |  19 +-
+ run_acceptance.sh                  |   5 +
+ 8 files changed, 1013 insertions(+), 72 deletions(-)
+── 3/5 验收 runner(全绿才提交)
+2026-09-12T13:04:15Z STOPPED BY LEAD: LIVE watchdog tripped 12:47:37Z (§4-5b filled_amount_unknown MEMEUSDT/POPCATUSDT + §4-7 drift) — no executor landing during incident; W2 diff un-applied, run tree restored to 918559f
