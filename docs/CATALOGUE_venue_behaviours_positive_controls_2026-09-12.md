@@ -22,3 +22,11 @@
 | V14 | 撮合后价格保护 / 价带拒单(-4024)与 PERCENT_PRICE 变更 | 极端行情 | 计失败 | 1 套 | — | 覆盖薄 |
 
 **规则(纳入 TEAM_PROTOCOL 候选)**: 触及 `binance_broker` / `binance_executor` 回执读取 / `reconcile` / `watchdog` 分类的任何提交, DESIGN 必须附本表的一份逐行勾选(有正控 / 新增正控 / 不适用并说明), 且每个「全书级」响应必须写出**假阳性最大代价**一栏 —— 代价 ≥ 0.1% NAV 的响应必须过比例门(R-14)。
+
+## §更正(2026-09-12 14:4xZ, 独立研究员 563e3470 `incident/RESULT.md` §4; 全部接受)
+本表首版按关键词命中数推断覆盖, 研究员指出四处错误, 逐条更正; **规则**: 每行须分列「官方文档承诺(附出处)/ 我方真实观察(附 wire 记录)/ 我方政策假设」, 不得合并。
+- **V1/F3/F8 过度概括**: 本次事实只证明**两次**场所缩小 origQty(两份真实 POST + 子成交 + 前后读回); 官方 New Order 说明未证明「超持仓始终截量」「−2022 只可能无仓/错方向」; 官方失败订单 FAQ 另列 reduce-only 订单间优先级竞争。`differs from ours=0` 只证明此前没记录该诊断, 不证明从未发生「全退出 + mark/mid 差」。⇒ V1 改为: 官方=「reduceOnly 订单受持仓约束(出处待逐字引用)」; 观察=「2 例 origQty=持仓」; 政策=W6 (a) 的 clamped 态限定条件。
+- **V8 错**: 在役合并器对 CANCELED 且最终 C 已证(C4/Q10)给 terminal=True、executed_qty_final=True ⇒ 数量精确 [4,4]; 只有终态但最终 C 未知才保留 [L,Q] 带。本表原文把已修数轮的 F 语义改回去了, 撤回。
+- **V11 「STP 无处置」不成立**: 运行树 `ORDER_TERMINAL` 已含 `EXPIRED_IN_MATCH`, 合并器对该 status/C4 返回最终量 4 且无矛盾; 字段 `selfTradePreventionMode` 未被直接引用 ≠ status 无人处理。仍开: 完整 STP 竞争链(自家 maker vs 自家 taker 补单)未验证 ⇒ 改为「读者存在, 竞争链正控缺」。
+- **V9 混了三类身份**: 官方 userTrades 以 `id/orderId/symbol` 归属; income 分页孪生行是 tranId 问题(E-0909-H); 本地 `supersedes_trade_id` 是存储修订关系。三者分别测, 不得合成「userTrades 孪生 tranId」。
+- 覆盖计数列(「N 套」)只作缺口指引, 不是行为覆盖证据; 正式版本须以「是否存在按文档形状的合成正控 + 真行正控」两列替代。

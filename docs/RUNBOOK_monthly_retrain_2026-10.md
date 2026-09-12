@@ -58,6 +58,25 @@ bash $D/chain_v4_monthly.sh $D/v4_month_2026-10.env          # 阶段: preflight
 - **判官第七轮(2026-09-12 lead, F9)**: `judge_v4.py` 自绑 `eligibility_contract` = 它自己读的合同(此前调用方给路径); 前身 `judge_v4.r4_7f1aa5d6.py`; 自检节 [Q]; 见 `docs/DESIGN_judge_floor_28_2026-09-12.md` §8。步 8 判官命令不变。
 - **仍开, 十月前必裁**: (i) STEP1/STEP2 门源码被资格合同冻结(`278fdce6` / `db7ab356`), 内部写死九月路径与九月比对对象(hf3 vs hf2; v4 vs v2ext) ⇒ 十月需新门源码(env 定位 + 滚动参照)+ 复核 + 合同批准(用户字); 模板里 `GATE_STEP1/2=TODO_…` 使 preflight 拒绝, 属有意。(ii) 十月 `SIGNAL_RECEIPT` 需先由 `gate_signal_parity_v2.py` 为本月臂产出。(iii) `HC` 隔离副本须含合同钉死的 A0 基线书四件。(iv) 九月数据上 STEP1 字面 FAIL(trend_288 全局累积和, AMENDMENT 3; 稳定 trend 候选待用户字)⇒ 全链正控在九月数据上到 gates 为止。
 
+### §0★ 修订 4(2026-09-12, W7; 十月数据门源码已就位, **待研究员复核 + 用户字批准入合同**; 预注册+收据 `docs/PREREG_v4_gates_monthly_2026-09-12.md`)
+修订 3「仍开 (i)」的门源码已写成: `v4_gate_step1_m.py`(sha `79950786271e…`)/ `v4_gate_step2_m.py`(sha `455e3df4c195…`), 装置目录内, = 冻结门 `v4_gate_step1.py` 278fdce6 / `v4_gate_step2.py` db7ab356 **只改路径/参照/延伸尾的 15/14 行**(diff `receipts/monthly_chain_2026-09-12/w7_gates/v4_gate_step{1,2}_m.diff`, 每新行带 `# [M]`; 阈值/统计逐字, 自检 [R] 断言)。九月正控(pod2, CPU, 隔离目录 `/workspace/w7_gates_2026-09-12/`, 收据 `receipts/monthly_chain_2026-09-12/w7_gates/pod2_root/`): STEP1 **78 判决字段 0 差, PASS=false 两边**(AMENDMENT 3 字面 FAIL, 与 09-09 归档一致); STEP2 **31 字段 0 差, PASS=true**; GPU 0 %/2 MiB 前后。
+
+**十月合同(`v4_month_2026-10.env`)必须设**(逐字; 前两行替换模板的 `TODO_` 门行, 后四行是**新键**, 门自身对缺键拒绝 rc 3):
+```
+GATE_STEP1=v4_gate_step1_m.py
+GATE_STEP2=v4_gate_step2_m.py
+PREV_DLW_CLIP=/workspace/dlw_hf3                              # 上月(九月合同 DLW_CLIP)的 CLIP 目标 + fea82 目录 = STEP1 B 参照
+PREV_F8=/workspace/f8_v4                                      # 上月(九月合同 F8)的 fea89 = STEP1 B 参照
+PREV_KING_FEA=/workspace/data/wide_fea_v4.npy                 # 上月(九月合同 KING_FEA)的 king 特征 = STEP2 参照(PREV_META 模板已指九月 wide_fea_v4_meta.npz)
+PREV_KING_FEA_UNCLAMPED=NONE                                  # 十月没有共参照轴的未 clamp 构建 ⇒ 字面 NONE = 显式跳过 v4_vs_ext/clamp_vs_ext 两组 clamp 统计(收据记 clamp_checks=NOT_EVALUATED); 用户字, 条件 = 本月 deps_preflight_device.json 里 pod_fea_ext_clamp.py sha 与九月相同
+```
+(九月正控用的值: `PREV_DLW_CLIP=/workspace/dlw_hf2 PREV_F8=/workspace/f8_hf2 PREV_KING_FEA=/workspace/data/wide_fea_v2ext_clamp.npy PREV_KING_FEA_UNCLAMPED=/workspace/data/wide_fea_v2ext.npy`, 即冻结门写死的对象。)**已落地(lead 指示, 同日)**: 四键已入 `chain_lib.sh V4_MONTH_KEYS`(41→45, 缺键 ⇒ `load_month_env` rc 4)、`v4_month_2026-09.env`(九月值)、`v4_month_2026-10.env.template`(上面六行原样, TODO 待换真路径); 九月合同 `GATE_STEP1/2` 仍指冻结门(合同只批准它们)。驱动 preflight 的 `PF_INPUTS` 未加 PREV_*(`NONE` 不是路径), 缺失由门自己拒绝。
+
+- **合同批准 = 用户字**: `ELIGIBILITY_CONTRACT.json` 的 `gates.STEP1.approved_source_sha256` 须增补 `79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163`, `gates.STEP2.approved_source_sha256` 增补 `455e3df4c19545aa45f1042228501627938c9b0387053e4cc97a812d9e018ca5`, **在独立研究员复核 PREREG §1–§3 之后、由用户下字**; W7 未编辑合同。增补前: preflight 对十月合同报 `gate source NOT approved`(有意); `require` 对新门收据报 `not an APPROVED source`(pod2 实测 `require_real_step{1,2}.txt`); 增补后无需改驱动(pod2 上用合同副本模拟: STEP2 `REQUIRE_OK … registered floor STEP2=2`, `require_sim_step2.txt`; 自检 [R] 同型)。
+- **研究员复核点**: ① §3.3 `NONE` 开关(clamp 检验在十月不可评, 只能靠构建器 sha 继承); ② §3.4 延伸尾定义(只在本月且晚于参照末锚的锚/对不计入邻域外计数; 早于参照起点者不豁免, 自检有反例); ③ §3.5 参照≠候选拒绝; ④ 输入名 `dlw_hf3_targets`/`dlw_hf2_targets`/`wide_fea_v2ext*` 是注册角色名, 十月指本月/上月文件(不改名, 否则 `REQUIRED_INPUTS` 地板失效)。
+- **十月首跑已知风险**(PREREG §3.4): 参照轴末 ≤48 bar 的标签补全差异会让 STEP1 B / STEP2 meta 合法地红; 门不豁免; 若红, 差异须被证明全落在 `E_row > max(E_row_ref) − 48` 的锚, 再以 AMENDMENT 落墨。
+- 自检: `tests_pipeline_gates.py` 新节 [R] 50 格(全套 278 ALL PASS, `receipts/monthly_chain_2026-09-12/tests_pipeline_gates_w7.log`); 复跑正控命令逐字 = `receipts/monthly_chain_2026-09-12/w7_gates/run_w7_positive_control.sh`。
+
 ## §0 原则(不变式)
 
 1. 重训 = **两个分离的显式版本事件**: king bundle(RUNBOOK 主流程)与 f10(addendum §A), 各自静默窗换、各自首锚验收、单变量留痕; 宇宙刷新 = 第三事件(§B, ≥3 天间隔 + 用户字)。

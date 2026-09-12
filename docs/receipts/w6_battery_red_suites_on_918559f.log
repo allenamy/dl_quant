@@ -1,0 +1,65 @@
+# W6 — the 7 red suites of the (a)+(b) clone battery (w6_battery_20260912T133946Z.log, 126/133 green) re-run on a PRISTINE 918559f worktree in the SAME environment (no .env, no state/live ledger, no alarm history) — each fails identically ⇒ environmental, not (a)+(b)
+# clone battery: /Users/haosiyu/cc_tmp/exec_w6 @ 43a93bb; pristine worktree: /Users/haosiyu/cc_tmp/exec_w6_old @ 918559f903b9c73b5a263605de5ce8e967266dfb; run 2026-09-12T13:53:56Z
+# tests_env_loading: expected red by the lead's setup rule (no .env copied into the clone) — TELEGRAM_* not populated.
+# tests_unseal_rehearsal_halt: 56/57 on both trees; the one FAIL is 'FIDELITY vs the real LIVE tree' and the suite itself prints 'NOT OBSERVABLE (no state/live/pilot_log)'.
+
+=== tests_reject_topup ===
+--- clone @43a93bb (battery log tail):
+24:  FAIL  ★★★ ...and they account for ~93% of the 1131 USDT break that triggered the flatten  — sum |intended| = 799.18 of 1131
+25:  FAIL  ★★★ AFTER the fix, the refusals DO receive top-ups  — no post-fix anchor in the tree yet — NOT OBSERVABLE
+41:  OK    ★★★ an expired maker's top-up is tagged `from_partial` — the DEFAULT, so a plan that never passed through the reject branch cannot silently inherit the cheap label  — from_partial
+60:FAILURES: ['★★★ ...and they account for ~93% of the 1131 USDT break that triggered the flatten', '★★★ AFTER the fix, the refusals DO receive top-ups']  (39 checks)
+--- pristine 918559f (same env):
+24:  FAIL  ★★★ ...and they account for ~93% of the 1131 USDT break that triggered the flatten  — sum |intended| = 799.18 of 1131
+25:  FAIL  ★★★ AFTER the fix, the refusals DO receive top-ups  — no post-fix anchor in the tree yet — NOT OBSERVABLE
+41:  OK    ★★★ an expired maker's top-up is tagged `from_partial` — the DEFAULT, so a plan that never passed through the reject branch cannot silently inherit the cheap label  — from_partial
+60:FAILURES: ['★★★ ...and they account for ~93% of the 1131 USDT break that triggered the flatten', '★★★ AFTER the fix, the refusals DO receive top-ups']  (39 checks)
+--- identical FAIL set: YES
+
+=== tests_disposition_matrix ===
+--- clone @43a93bb (battery log tail):
+53:  FAIL  ★★★ the VENUE-LOCKED class absorbs at least one real anchor the steady ruler would fail — with the class emptied the steady assertion goes red and names it (09-11 08:24Z)
+55:  FAIL  ★★★ the -2027 ruler's denominator is load-bearing: against REALIZED gross the 09-10 00Z rebuild anchor (built 67%) fails the same class while every capped anchor passes against TARGET gross — the two facts must not share one number
+56:  FAIL  ★★★ deliberate is summed from the ROWS, not from gaps()['names'] (top-20 by |residual|): on at least one real anchor with >20 gap names the capped list under-reads the no-chase abstention (09-11 08Z: rows 490U, list 0U) — the two readings differ whe
+63:FAILURES: ['★★★ the 04:00Z anchor now declares ZERO gap — because the 1050.10 of -5022 is recovered by the top-up and the 68 abandoned rows are sub-floor dust. That is the fix, measured against the anchor that was liquidated over it', '★★★ the VENUE-LOCKED 
+--- pristine 918559f (same env):
+53:  FAIL  ★★★ the VENUE-LOCKED class absorbs at least one real anchor the steady ruler would fail — with the class emptied the steady assertion goes red and names it (09-11 08:24Z)
+55:  FAIL  ★★★ the -2027 ruler's denominator is load-bearing: against REALIZED gross the 09-10 00Z rebuild anchor (built 67%) fails the same class while every capped anchor passes against TARGET gross — the two facts must not share one number
+56:  FAIL  ★★★ deliberate is summed from the ROWS, not from gaps()['names'] (top-20 by |residual|): on at least one real anchor with >20 gap names the capped list under-reads the no-chase abstention (09-11 08Z: rows 490U, list 0U) — the two readings differ whe
+63:FAILURES: ['★★★ the 04:00Z anchor now declares ZERO gap — because the 1050.10 of -5022 is recovered by the top-up and the 68 abandoned rows are sub-floor dust. That is the fix, measured against the anchor that was liquidated over it', '★★★ the VENUE-LOCKED 
+--- identical FAIL set: YES
+
+=== tests_alarm_digest ===
+--- clone @43a93bb (battery log tail):
+33:  FAIL  ★★★ last-24h push discipline  — only 0 readable alarms in 24h — NOT OBSERVABLE, not a pass
+37:  OK    ★★★ an UNDELIVERED alarm is never demoted to MEASURE — tiering says nothing about delivery, and a digest that hides an alarm nobody received is worse than no digest  — 3 genuinely undelivered (FAILED/NOT_CONFIGURED) in the audit
+48:  OK    ★★★ a previous attempt that FAILED does not suppress the repeat — suppression requires that a human actually received it  — PUSH
+52:FAILURES: ['★★★ last-24h push discipline']  (32 checks)
+--- pristine 918559f (same env):
+33:  FAIL  ★★★ last-24h push discipline  — only 0 readable alarms in 24h — NOT OBSERVABLE, not a pass
+37:  OK    ★★★ an UNDELIVERED alarm is never demoted to MEASURE — tiering says nothing about delivery, and a digest that hides an alarm nobody received is worse than no digest  — 3 genuinely undelivered (FAILED/NOT_CONFIGURED) in the audit
+48:  OK    ★★★ a previous attempt that FAILED does not suppress the repeat — suppression requires that a human actually received it  — PUSH
+52:FAILURES: ['★★★ last-24h push discipline']  (32 checks)
+--- identical FAIL set: YES
+
+=== tests_daily_summary ===
+--- clone @43a93bb (battery log tail):
+7:  OK    ★★★ ...and the identity check can FAIL — a field that can only ever read True is not a check  — 7843.4
+40:  FAIL  ★★ the per-anchor table gives the trend the operator asked for, one row per anchor
+43:FAILURES: ['★★ the per-anchor table gives the trend the operator asked for, one row per anchor']  (26 checks)
+--- pristine 918559f (same env):
+7:  OK    ★★★ ...and the identity check can FAIL — a field that can only ever read True is not a check  — 7843.4
+40:  FAIL  ★★ the per-anchor table gives the trend the operator asked for, one row per anchor
+43:FAILURES: ['★★ the per-anchor table gives the trend the operator asked for, one row per anchor']  (26 checks)
+--- identical FAIL set: YES
+
+=== tests_break_split_wiring ===
+--- clone @43a93bb (battery log tail):
+8:  FAIL  ★★★ the anchor that flattened 83 positions is CLEARED: 1131.44 USDT of break, 26.4% of gross against a 25% line, and 0.0028 USDT of it unauthorized. The gate that fired is `split_unauth`, and the row records that the old rule would have fired
+11:  FAIL  ★★★ ...and the FLOOR SOURCE is a value on the record, not an assumption. If the SymbolFilters cache is missing, every floor silently becomes the 5.0 default — which is ~10x TIGHTER than the truth on BTC (50) and the ETH class (20), i.e. the per-name
+46:FAILURES: ★★★ the anchor that flattened 83 positions is CLEARED: 1131.44 USDT of break, 26.4% of gross against a 25% line, and 0.0028 USDT of it unauthorized. The gate that fired is `split_unauth`, and the row records that the old rule would have fired, ★★★
+--- pristine 918559f (same env):
+8:  FAIL  ★★★ the anchor that flattened 83 positions is CLEARED: 1131.44 USDT of break, 26.4% of gross against a 25% line, and 0.0028 USDT of it unauthorized. The gate that fired is `split_unauth`, and the row records that the old rule would have fired
+11:  FAIL  ★★★ ...and the FLOOR SOURCE is a value on the record, not an assumption. If the SymbolFilters cache is missing, every floor silently becomes the 5.0 default — which is ~10x TIGHTER than the truth on BTC (50) and the ETH class (20), i.e. the per-name
+46:FAILURES: ★★★ the anchor that flattened 83 positions is CLEARED: 1131.44 USDT of break, 26.4% of gross against a 25% line, and 0.0028 USDT of it unauthorized. The gate that fired is `split_unauth`, and the row records that the old rule would have fired, ★★★
+--- identical FAIL set: YES

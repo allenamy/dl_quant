@@ -1,0 +1,138 @@
+# W6 old-code-red proof — live/tests_reduce_only_clamp.py (the FINAL suite: T1–T7, T7-persisted, T3-alarm, T9; byte-identical to commit a211ea8's) run against a pristine 918559f worktree
+# worktree: /Users/haosiyu/cc_tmp/exec_w6_old  HEAD=918559f903b9c73b5a263605de5ce8e967266dfb  run: 2026-09-12T14:15:12Z
+# suite sha256: d3d3c781caa3b98d3e79b1e4a44f84cc81fa08e137a048c3700a92355386540f
+# command: cd /Users/haosiyu/cc_tmp/exec_w6_old && PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=state/pycache_void ACCEPTANCE_INNER=1 /usr/bin/python3 live/tests_reduce_only_clamp.py
+# expectation: T1 / T5 / T6 / T7 / T7-persisted / T3-alarm / T9 FAIL (the defect, the missing fix, the persisted verdict, the old alarm text); T2 / T3 / T4 and the persisted-row negative controls hold on old code (contradictions were already contradictions); exit code 1
+[F] fixture validity — the copied rows say what ERROR_LEDGER E-0912-A says
+  OK    F1/F3 MEMEUSDT: our order reduce_only sell 1933986, venue response reduceOnly true origQty 1933692 (= 08Z position)  — (1933986.0, '1933692', 1933692.0)
+  OK    F3 MEMEUSDT: Σ child fills == origQty, 12Z readback 0  — (1933692.0, 0.0)
+  OK    F4/F5 MEMEUSDT: the OLD verdict on the live row — 'differs from ours', ledger_inconsistent, filled_amount_unknown  — filled_amount_unknown
+  OK    F1/F3 POPCATUSDT: our order reduce_only sell 10435, venue response reduceOnly true origQty 10434 (= 08Z position)  — (10435.0, '10434', 10434.0)
+  OK    F3 POPCATUSDT: Σ child fills == origQty, 12Z readback 0  — (10434.0, 0.0)
+  OK    F4/F5 POPCATUSDT: the OLD verdict on the live row — 'differs from ours', ledger_inconsistent, filled_amount_unknown  — filled_amount_unknown
+  FAIL  ★★★ T7-persisted: reconcile on the REAL persisted 12Z rows (they still carry the old gate's ledger_inconsistent + 'differs from ours') RE-DERIVES the verdict from the ledger contents ⇒ 0 anomalies, both names KNOWN with residual 0 (OLD CODE: 2 × execution_of_unknown_size)  — ({'execution_of_unknown_size': 2}, {'MEMEUSDT': None, 'POPCATUSDT': None})
+  FAIL  ★★ T7-persisted MEMEUSDT: the maker row's quantity is KNOWN = confirmed_qty −1933692 ('request ledger re-derived')  — (None, 'unquantifiable', 'request ledger inconsistent (fills beyond / against / non-finite for a request)')
+  FAIL  ★★ T7-persisted POPCATUSDT: the maker row's quantity is KNOWN = confirmed_qty −10434 ('request ledger re-derived')  — (None, 'unquantifiable', 'request ledger inconsistent (fills beyond / against / non-finite for a request)')
+  FAIL  ★★★ T7-persisted ctl: child fills that do NOT sum to the confirmed quantity ⇒ still unquantifiable (the origQty string is not enough)  — ('request ledger inconsistent (fills beyond / against / non-finite for a request)', 'unquantifiable')
+  OK    ★★★ T7-persisted ctl: |confirmed| > |qty| (the venue filled MORE than we asked) ⇒ still unquantifiable
+  FAIL  ★★★ T7-persisted ctl: a row-level 'confirmed more than requested' beside the clamp string ⇒ still unquantifiable, and the reason names it  — request ledger inconsistent (fills beyond / against / non-finite for a request)
+  OK    ★★★ T7-persisted ctl: a SIDE identity mismatch ⇒ still unquantifiable (only the origQty value comparison re-derives)
+  OK    ★★ T7-persisted ctl: a MALFORMED origQty ⇒ still unquantifiable
+  OK    ★★ T7-persisted ctl: a confirmed quantity on the WRONG side of the request ⇒ still unquantifiable
+  OK    ★ T7-persisted ctl: a recorded venue capacity BELOW the confirmed quantity ⇒ still unquantifiable
+  OK    ★ T7-persisted ctl: a flagged row WITHOUT a ledger to re-derive from keeps its flag (unquantifiable)
+  OK    ★★★ T7-persisted ctl: the string says the venue's origQty was ABOVE ours (1935920 vs 1933986) — the venue asked for MORE, children ≤ ours notwithstanding ⇒ still unquantifiable  — ('request ledger inconsistent (fills beyond / against / non-finite for a request)', 'unquantifiable')
+  OK    ★★ T7-persisted ctl: a string whose 'ours' is not this request's qty is not about this request ⇒ still unquantifiable
+  OK    ★ T7-persisted ctl: an origQty string without the two numbers re-derives nothing ⇒ still unquantifiable
+  OK    ★ T7-persisted: the top-up rows (`skipped_unknown_fill`, never sent) are structural zeros, as before
+
+[T1] the REAL 12Z responses: fourth state `clamped`, orig_qty = the position, no `inconsistent`
+  FAIL  ★★★ T1 MEMEUSDT: submit_identity_mismatch(real response, real order) is None  — response origQty 1933692.0 differs from ours 1933986.0
+  FAIL  ★★★ T1 MEMEUSDT: last_fill_details carries clamped {ours 1933986, venue 1933692} and NO inconsistent  — {'inconsistent': 'submit identity: response origQty 1933692.0 differs from ours 1933986.0', 'clamped': None}
+  FAIL  ★★ T1 MEMEUSDT: orig_qty is the venue's value (the position), status NEW, quantity not yet read (executed 0 on a non-terminal)  — {'orig_qty': None, 'status': 'NEW', 'executed_qty': None}
+  FAIL  ★★★ T1 MEMEUSDT: settlement gate (submit response + FILLED record) ⇒ FOUND, executed_qty −1933692 final, amount final, clamped on the facts  — {'executed_qty': None, 'executed_qty_final': None, 'filled_notional': None, 'inconsistent': ['A1789215839-MEMEUSDT-1: identity: submit response: submit response origQty 1933692.0 differs from ours 1933986.0'], 'clamped': None, 'settled': 'the records of this request contradict each other or are not ours: unmeasurable'}
+  FAIL  ★★★ T1 POPCATUSDT: submit_identity_mismatch(real response, real order) is None  — response origQty 10434.0 differs from ours 10435.0
+  FAIL  ★★★ T1 POPCATUSDT: last_fill_details carries clamped {ours 10435, venue 10434} and NO inconsistent  — {'inconsistent': 'submit identity: response origQty 10434.0 differs from ours 10435.0', 'clamped': None}
+  FAIL  ★★ T1 POPCATUSDT: orig_qty is the venue's value (the position), status NEW, quantity not yet read (executed 0 on a non-terminal)  — {'orig_qty': None, 'status': 'NEW', 'executed_qty': None}
+  FAIL  ★★★ T1 POPCATUSDT: settlement gate (submit response + FILLED record) ⇒ FOUND, executed_qty −10434 final, amount final, clamped on the facts  — {'executed_qty': None, 'executed_qty_final': None, 'filled_notional': None, 'inconsistent': ['A1789215839-POPCATUSDT-1: identity: submit response: submit response origQty 10434.0 differs from ours 10435.0'], 'clamped': None, 'settled': 'the records of this request contradict each other or are not ours: unmeasurable'}
+
+[T2] origQty ABOVE ours on the same reduceOnly record ⇒ still a mismatch (no loosening)
+  OK    ★★★ T2 direct: origQty 1934000 > ours 1933986 ⇒ 'differs from ours'  — response origQty 1934000.0 differs from ours 1933986.0
+  OK    ★★ T2 direct: last_fill_details ⇒ inconsistent, no clamped  — submit identity: response origQty 1934000.0 differs from ours 1933986.0
+  OK    ★★★ T2 settlement: the allOrders record's origQty above ours ⇒ UNKNOWN, unmeasurable ('record origQty differs')  — [{'symbol': 'MEMEUSDT', 'cid': 'A1789215839-MEMEUSDT-1', 'verdict': 'UNKNOWN', 'why': 'submit response: submit response origQty 1933692.0 differs from ours 1933986.0'}]
+  OK    ★★ T2 settlement: the SUBMIT response's origQty above ours ⇒ UNKNOWN ('submit response origQty … differs')  — [{'symbol': 'MEMEUSDT', 'cid': 'A1789215839-MEMEUSDT-1', 'verdict': 'UNKNOWN', 'why': 'submit response: submit response origQty 1934000.0 differs from ours 1933986.0'}]
+  FAIL  ★ T2 rule: reduce_only_clamp is None for equal (within 1e-6), above, zero and absent origQty
+  OK    ★ T2 tolerance untouched: 1933986 vs 1933985.999 (0.5e-9 rel) equal; vs 1933983 (1.5e-6 rel, not reduceOnly) differs
+
+[T3] a non-reduceOnly origQty difference ⇒ still a mismatch
+  OK    ★★★ T3 our order NOT reduce-only, record not reduceOnly, origQty below ours ⇒ 'differs from ours'  — response origQty 1933692.0 differs from ours 1933986.0
+  OK    ★★★ T3 our order reduce-only but the RECORD does not say reduceOnly ⇒ 'differs from ours' (the record must say so)  — response origQty 1933692.0 differs from ours 1933986.0
+  OK    ★★ T3 settlement: plan row not reduce_only ⇒ UNKNOWN even though the record says reduceOnly  — [{'symbol': 'MEMEUSDT', 'cid': 'A1789215839-MEMEUSDT-1', 'verdict': 'UNKNOWN', 'why': 'submit response: submit response origQty 1933692.0 differs from ours 1933986.0'}]
+  FAIL  ★ T3 record flag reading: True / 'true' / 'TRUE ' say reduceOnly; False / 'false' / 1 / None do not
+
+[T4] the wrong side ⇒ mismatch, clamp or not
+  OK    ★★★ T4 direct: response side BUY on our SELL, origQty clamped ⇒ mismatch names the side  — response side 'BUY' is not ours ('SELL')
+  FAIL  ★★ T4 settlement: record side contradicts the plan ⇒ UNKNOWN  — [{'symbol': 'MEMEUSDT', 'cid': 'A1789215839-MEMEUSDT-1', 'verdict': 'UNKNOWN', 'why': 'submit response: submit response origQty 1933692.0 differs from ours 1933986.0'}]
+  OK    ★★ T4 settlement: SUBMIT response side BUY ⇒ UNKNOWN  — [{'symbol': 'MEMEUSDT', 'cid': 'A1789215839-MEMEUSDT-1', 'verdict': 'UNKNOWN', 'why': "submit response: submit response side 'BUY' is not ours ('SELL')"}]
+  FAIL  ★ T4 re-query gate: a clamped record is ours; a clamped record on the wrong side is not
+
+[T5] plan(): a full exit is the POSITION in contracts, not delta / mid
+  OK    ★ F2 arithmetic reproduced: floor(delta/mid) gives the live quantities 1933986 / 10435 (> position)  — (-1933986.0, -10435.0)
+  FAIL  ★★★ T5 MEMEUSDT: qty == −1933692 (the position), side sell, reduce_only, qty_source venue_position_qty  — {'qty': -1933986.0, 'side': 'sell', 'reduce_only': True, 'qty_source': None, 'skip': None}
+  FAIL  ★★★ T5 POPCATUSDT: qty == −10434 (the position), side sell, reduce_only, qty_source venue_position_qty  — {'qty': -10435.0, 'side': 'sell', 'reduce_only': True, 'qty_source': None, 'skip': None}
+  OK    ★★ T5 neighbour: a non-exit row (target 100, held 50 @ mid 2) is untouched — qty 25 from delta/mid, no qty_source  — {'symbol': 'XUSDT', 'target_notional': 100.0, 'prev_notional': 50.0, 'delta_notional': 50.0, 'mid_at_anchor': 2.0, 'target_w': 1.0, 'prev_w': 0.5, 'reduce_only': False, 'qty': 25.0, 'side': 'buy'}
+  OK    ★ T5 the exit row keeps its notional record: prev_notional = cached book, delta_notional = −cached, target_w 0
+
+[T6] plan(): no quantity in the readback ⇒ the old path, labelled
+  FAIL  ★★★ T6 held_qty {} ⇒ qty −1933986 (delta/mid, the F2 value) and qty_source notional_over_mid  — {'qty': -1933986.0, 'qty_source': None, 'qty_source_note': None}
+  FAIL  ★★ T6 held_qty None (DRY_RUN / failed read) ⇒ the same fallback  — -10435.0
+  FAIL  ★★ T6 a held quantity whose sign disagrees with the cached book (venue short, cache long) ⇒ fallback with the sign note; the other name takes the venue path  — {'MEMEUSDT': (-1933986.0, None), 'POPCATUSDT': (-10435.0, None)}
+  FAIL  ★ T6 a held quantity of 0 is 'no quantity' (never a zero-size order): fallback
+  FAIL  ★★ T5/T6 wiring: anchor_loop passes held_qty from the SAME account snapshot that fills state['positions'] (positions_contracts → _held_qty → plan)  — wiring strings not found in anchor_loop.py
+
+[T7] END TO END: plan → submit_maker (real POST answers) → complete_anchor (cancel/allOrders/userTrades) → reconcile vs real readbacks
+  OK    ★ T7 chain shape: 2 maker POSTs only (no top-up sent), 2 cancels answered -2011, allOrders + userTrades read per name  — [('POST', '/fapi/v1/order'), ('POST', '/fapi/v1/order'), ('DELETE', '/fapi/v1/order'), ('DELETE', '/fapi/v1/order'), ('GET', '/fapi/v1/allOrders'), ('GET', '/fapi/v1/allOrders'), ('GET', '/fapi/v1/userTrades'), ('GET', '/fapi/v1/userTrades')]
+  FAIL  ★★ T7 MEME: residual −0.058 USDT ⇒ maker partial_expired + top-up skipped_min_notional (nothing sent); POPCAT: residual 0 ⇒ maker filled, no top-up row  — {'MEMEUSDT': ('filled_amount_unknown', 'skipped_unknown_fill'), 'POPCATUSDT': ('filled_amount_unknown', 'skipped_unknown_fill')}
+  FAIL  ★★★ T7 MEMEUSDT maker row: closed by the venue's records — filled_qty −1933692, NO ledger_inconsistent, NOT filled_amount_unknown  — {'terminal_reason': 'filled_amount_unknown', 'filled_qty': None, 'filled_notional': None, 'ledger_inconsistent': [{'client_id': 'A1789215839-MEMEUSDT-1', 'why': 'A1789215839-MEMEUSDT-1: identity: submit response: submit response origQty 1933692.0 differs from ours 1933986.0'}]}
+  FAIL  ★★ T7 MEMEUSDT request ledger: qty −1933986 (what we sent, kept), qty_venue −1933692 (the capacity), clamped record, child fills joined, final  — {'qty': -1933986.0, 'qty_venue': None, 'clamped': None, 'confirmed_qty': -1933692.0, 'confirmed_qty_final': False, 'terminal': False, 'trade_qty': {'376472584': 560266.0, '376472585': 782806.0, '376472586': 590620.0}}
+  FAIL  ★ T7 MEMEUSDT maker row: fee stamped from the real child fills (Σ commission), filled_notional = Σ child quotes  — (0.20303766, None)
+  FAIL  ★★★ T7 POPCATUSDT maker row: closed by the venue's records — filled_qty −10434, NO ledger_inconsistent, NOT filled_amount_unknown  — {'terminal_reason': 'filled_amount_unknown', 'filled_qty': None, 'filled_notional': None, 'ledger_inconsistent': [{'client_id': 'A1789215839-POPCATUSDT-1', 'why': 'A1789215839-POPCATUSDT-1: identity: submit response: submit response origQty 10434.0 differs from ours 10435.0'}]}
+  FAIL  ★★ T7 POPCATUSDT request ledger: qty −10435 (what we sent, kept), qty_venue −10434 (the capacity), clamped record, child fills joined, final  — {'qty': -10435.0, 'qty_venue': None, 'clamped': None, 'confirmed_qty': -10434.0, 'confirmed_qty_final': False, 'terminal': False, 'trade_qty': {'278395713': 8433.0, '278395714': 2001.0}}
+  FAIL  ★ T7 POPCATUSDT maker row: fee stamped from the real child fills (Σ commission), filled_notional = Σ child quotes  — (0.10181496000000001, None)
+  FAIL  ★★★ T7 reconcile vs the REAL 08Z→12Z readbacks: 0 anomalies (OLD CODE: 2 × execution_of_unknown_size)  — {'execution_of_unknown_size': 2}
+  FAIL  ★★★ T7 both names MEASURED with residual 0 (expected 0 = position + execution, observed 0); nothing unmeasurable  — {'by_symbol': {}, 'unmeasurable': {'MEMEUSDT': 'execution_of_unknown_size', 'POPCATUSDT': 'execution_of_unknown_size'}, 'n_in_readback': 2, 'n_measured': 0, 'n_unmeasurable': 2, 'coverage': 0.0, 'net_usdt': 0, 'gross_usdt': 0, 'unmeasurable_by_kind': {'execution_of_unknown_size': 2}}
+  FAIL  ★ T7 no HIGH/CRITICAL alarm about unreadable fills / UNKNOWN names on this chain  — [('HIGH', "阶段 B 歧义 maker 结算: 查到 0 / 确认未下达 0 / 仍 UNKNOWN 2 (满页或查询失败: ['MEMEUSDT', 'POPCATUSDT']); UNKNOWN 名不补单, 其 maker 行带请求量作授权带"), ('HIGH', "2 symbol(s) reported a filled QUANTITY with no readable amount (['MEMEUSDT', 'POPCATUSDT']); they are treated as UNKNOWN and not topped up. Reading them as 0.0 is the input that produced the 2.00x doubling."), ('HIGH', '2 name(s) had unreadable fills; their 
+
+[T7-ctl] the same chain with the venue answering origQty ABOVE ours ⇒ the contradiction path is intact (2 anomalies)
+  OK    ★★★ T7-ctl origQty = ours × 1.001 on both responses/records ⇒ maker rows filled_amount_unknown with ledger_inconsistent ⇒ 2 × execution_of_unknown_size  — ({'execution_of_unknown_size': 2}, [('MEMEUSDT', 'filled_amount_unknown'), ('MEMEUSDT', 'skipped_unknown_fill'), ('POPCATUSDT', 'filled_amount_unknown'), ('POPCATUSDT', 'skipped_unknown_fill')])
+
+[T3-alarm] the phase-B settlement alarm names each UNKNOWN name's actual reason (first 120 chars), not '满页或查询失败'
+  FAIL  ★★★ T3-alarm: on the T7-ctl chain (origQty above ours ⇒ UNKNOWN) the alarm names both names with the reason class 'origQty … differs from ours', and never says '满页或查询失败' for them  — ["阶段 B 歧义 maker 结算: 查到 0 / 确认未下达 0 / 仍 UNKNOWN 2 (满页或查询失败: ['MEMEUSDT', 'POPCATUSDT']); UNKNOWN 名不补单, 其 maker 行带请求量作授权带"]
+  OK    ★ T3-alarm: HIGH severity, and the UNKNOWN count is 2  — ["阶段 B 歧义 maker 结算: 查到 0 / 确认未下达 0 / 仍 UNKNOWN 2 (满页或查询失败: ['MEMEUSDT', 'POPCATUSD", "2 symbol(s) reported a filled QUANTITY with no readable amount (['MEMEUSDT', 'PO", '2 name(s) had unreadable fills; their top-up is skipped and recorded as skipped_', "order rows: emitted 4, persisted 0 (no logger attached).  — the pilot's entire o", 'fill rows: built 5, persisted 0 (no logger attached).  — M2 (m
+
+[T9] watchdog §4-5b / §4-7 on the real 2026-09-12 pilot_log day (fixture pilot_log/20260912, verbatim)
+  FAIL  ★★★ T9a AS THE WATCHDOG SAW IT AT 12:47:37Z (12Z readback in, ladder readback/rows out): §4-5b CLEAN, 0 anomalies at the 12Z anchor, §4-7 CLEAN, not tripped, nothing blind (OLD CODE: ANOMALOUS 2 + DRIFT, tripped)  — ({'state': 'ANOMALOUS', 'n': 2, 'last_reconciled_anchor_ts': 1789215841.923763, 'n_historical_anomalies': 2}, 'DRIFT', ["§4-5b liquidation/position anomaly on 2 name(s) at the latest reconciled anchor (2 in this window's history)", '§4-7 un-recovered position drift'], [])
+  FAIL  ★★ T9a the day's history holds NO execution_of_unknown_size at all (the two false anomalies are gone from the record, not merely from the latest anchor)  — 2
+  FAIL  ★★ T9b AS IT STANDS (the ladder's 12:50:01Z readback is the latest reconciled anchor, its 255 protective_flatten rows explain the book): §4-5b CLEAN, §4-7 CLEAN, history 0 (OLD CODE: CLEAN at this anchor too, but history 2)  — ({'state': 'CLEAN', 'n': 0, 'last_reconciled_anchor_ts': 1789217401.2960482, 'n_historical_anomalies': 2}, 'CLEAN', [])
+
+32/70 checks passed
+FAILED:
+  ★★★ T7-persisted: reconcile on the REAL persisted 12Z rows (they still carry the old gate's ledger_inconsistent + 'differs from ours') RE-DERIVES the verdict from the ledger contents ⇒ 0 anomalies, both names KNOWN with residual 0 (OLD CODE: 2 × execution_of_unknown_size)
+  ★★ T7-persisted MEMEUSDT: the maker row's quantity is KNOWN = confirmed_qty −1933692 ('request ledger re-derived')
+  ★★ T7-persisted POPCATUSDT: the maker row's quantity is KNOWN = confirmed_qty −10434 ('request ledger re-derived')
+  ★★★ T7-persisted ctl: child fills that do NOT sum to the confirmed quantity ⇒ still unquantifiable (the origQty string is not enough)
+  ★★★ T7-persisted ctl: a row-level 'confirmed more than requested' beside the clamp string ⇒ still unquantifiable, and the reason names it
+  ★★★ T1 MEMEUSDT: submit_identity_mismatch(real response, real order) is None
+  ★★★ T1 MEMEUSDT: last_fill_details carries clamped {ours 1933986, venue 1933692} and NO inconsistent
+  ★★ T1 MEMEUSDT: orig_qty is the venue's value (the position), status NEW, quantity not yet read (executed 0 on a non-terminal)
+  ★★★ T1 MEMEUSDT: settlement gate (submit response + FILLED record) ⇒ FOUND, executed_qty −1933692 final, amount final, clamped on the facts
+  ★★★ T1 POPCATUSDT: submit_identity_mismatch(real response, real order) is None
+  ★★★ T1 POPCATUSDT: last_fill_details carries clamped {ours 10435, venue 10434} and NO inconsistent
+  ★★ T1 POPCATUSDT: orig_qty is the venue's value (the position), status NEW, quantity not yet read (executed 0 on a non-terminal)
+  ★★★ T1 POPCATUSDT: settlement gate (submit response + FILLED record) ⇒ FOUND, executed_qty −10434 final, amount final, clamped on the facts
+  ★ T2 rule: reduce_only_clamp is None for equal (within 1e-6), above, zero and absent origQty
+  ★ T3 record flag reading: True / 'true' / 'TRUE ' say reduceOnly; False / 'false' / 1 / None do not
+  ★★ T4 settlement: record side contradicts the plan ⇒ UNKNOWN
+  ★ T4 re-query gate: a clamped record is ours; a clamped record on the wrong side is not
+  ★★★ T5 MEMEUSDT: qty == −1933692 (the position), side sell, reduce_only, qty_source venue_position_qty
+  ★★★ T5 POPCATUSDT: qty == −10434 (the position), side sell, reduce_only, qty_source venue_position_qty
+  ★★★ T6 held_qty {} ⇒ qty −1933986 (delta/mid, the F2 value) and qty_source notional_over_mid
+  ★★ T6 held_qty None (DRY_RUN / failed read) ⇒ the same fallback
+  ★★ T6 a held quantity whose sign disagrees with the cached book (venue short, cache long) ⇒ fallback with the sign note; the other name takes the venue path
+  ★ T6 a held quantity of 0 is 'no quantity' (never a zero-size order): fallback
+  ★★ T5/T6 wiring: anchor_loop passes held_qty from the SAME account snapshot that fills state['positions'] (positions_contracts → _held_qty → plan)
+  ★★ T7 MEME: residual −0.058 USDT ⇒ maker partial_expired + top-up skipped_min_notional (nothing sent); POPCAT: residual 0 ⇒ maker filled, no top-up row
+  ★★★ T7 MEMEUSDT maker row: closed by the venue's records — filled_qty −1933692, NO ledger_inconsistent, NOT filled_amount_unknown
+  ★★ T7 MEMEUSDT request ledger: qty −1933986 (what we sent, kept), qty_venue −1933692 (the capacity), clamped record, child fills joined, final
+  ★ T7 MEMEUSDT maker row: fee stamped from the real child fills (Σ commission), filled_notional = Σ child quotes
+  ★★★ T7 POPCATUSDT maker row: closed by the venue's records — filled_qty −10434, NO ledger_inconsistent, NOT filled_amount_unknown
+  ★★ T7 POPCATUSDT request ledger: qty −10435 (what we sent, kept), qty_venue −10434 (the capacity), clamped record, child fills joined, final
+  ★ T7 POPCATUSDT maker row: fee stamped from the real child fills (Σ commission), filled_notional = Σ child quotes
+  ★★★ T7 reconcile vs the REAL 08Z→12Z readbacks: 0 anomalies (OLD CODE: 2 × execution_of_unknown_size)
+  ★★★ T7 both names MEASURED with residual 0 (expected 0 = position + execution, observed 0); nothing unmeasurable
+  ★ T7 no HIGH/CRITICAL alarm about unreadable fills / UNKNOWN names on this chain
+  ★★★ T3-alarm: on the T7-ctl chain (origQty above ours ⇒ UNKNOWN) the alarm names both names with the reason class 'origQty … differs from ours', and never says '满页或查询失败' for them
+  ★★★ T9a AS THE WATCHDOG SAW IT AT 12:47:37Z (12Z readback in, ladder readback/rows out): §4-5b CLEAN, 0 anomalies at the 12Z anchor, §4-7 CLEAN, not tripped, nothing blind (OLD CODE: ANOMALOUS 2 + DRIFT, tripped)
+  ★★ T9a the day's history holds NO execution_of_unknown_size at all (the two false anomalies are gone from the record, not merely from the latest anchor)
+  ★★ T9b AS IT STANDS (the ladder's 12:50:01Z readback is the latest reconciled anchor, its 255 protective_flatten rows explain the book): §4-5b CLEAN, §4-7 CLEAN, history 0 (OLD CODE: CLEAN at this anchor too, but history 2)
+# exit code: 1

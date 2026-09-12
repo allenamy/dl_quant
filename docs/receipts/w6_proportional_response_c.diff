@@ -1,0 +1,852 @@
+diff --git a/live/reconcile.py b/live/reconcile.py
+index 380a060..97f98f5 100644
+--- a/live/reconcile.py
++++ b/live/reconcile.py
+@@ -86,6 +86,20 @@ def signed_fills_by_anchor(orders: Iterable[Dict[str, Any]]) -> Dict[float, Dict
+ #   on large positions (the tolerance is the LARGER of the two, so a big book keeps its allowance).
+ DUST_ABS_USDT = 5.0        # the DEFAULT floor, for a symbol we have no parsed filter for
+ 
++# ★ E-0912-A (c) — FROZEN CRITERIA for a PROPORTIONAL response to `execution_of_unknown_size` (DESIGN_reduce_only_clamp_
++#   identity_2026-09-12 §2c). RECORD ONLY HERE: this module partitions the latest anchor's anomalies and says whether the
++#   local response WOULD apply; whether the watchdog ACTS on that partition is `watchdog.UNKNOWN_SIZE_LOCAL_RESPONSE`
++#   (default False = today's behaviour; a user ruling flips it). The criteria live here, not in the watchdog, because §4-5b
++#   and §4-7 read ONE comparison (`reconcile`) — a criterion held in two guards is the sign-defect family again.
++#   (i)  every anomaly at the latest anchor is an execution_of_unknown_size whose VENUE RECORDS ARE SELF-CONSISTENT
++#        (`_venue_consistency`: origQty-bounded child fills determine the confirmed quantity, and the readback equals
++#        position + that known part within the dust floor);
++#   (ii) the affected names number ≤ UNKNOWN_SIZE_LOCAL_MAX_NAMES and Σ|intended| ≤ UNKNOWN_SIZE_LOCAL_MAX_FRAC of the
++#        anchor's target gross (the `anchors` row of that anchor; no row ⇒ NOT eligible — fail closed to the full ladder).
++#   2026-09-12 12Z measured: 2 names, Σ|intended| 1,524.32 USDT = 0.65% of 235,497 (eligible); the full ladder flattened
++#   235,383 USDT. POLICY NUMBERS, frozen before any further look at data (option A of the design); B/C are the user's.
++UNKNOWN_SIZE_LOCAL_MAX_FRAC = 0.02
++UNKNOWN_SIZE_LOCAL_MAX_NAMES = 5
+ 
+ def _fin(x) -> Optional[float]:
+     """A finite float, or None (a non-number / NaN / ±Inf is 'not a value', never 0.0) — the executor's rule, restated
+@@ -178,6 +192,121 @@ def _rederive_ledger(o) -> Optional[Dict[str, Any]]:
+             continue
+         stands.append(f"{cid}: {str(why)[:120]}")
+     return {"stands": stands, "known": known, "n_requests": len(reqs)}
++
++
++def _venue_consistency(row, q1, q2, n1, n2, floor) -> Dict[str, Any]:
++    """★ E-0912-A (c) criterion (i), for ONE execution_of_unknown_size leg — RECORD ONLY (the anomaly still stands).
++    Self-consistent means: every SENT request of the row has a confirmed quantity that its own child fills determine
++    (Σ trade_qty == |confirmed_qty|, joined on the venue's orderId) and that does not exceed the request's capacity
++    (`qty_venue` — the venue's origQty when it clamped — else `qty`); and the readback quantity equals the previous
++    position + the row's known part within the dust floor. That is exactly the 12Z shape: origQty == Σ children ==
++    the position, readback 0 (E-0912-A ③). A leg whose known part does NOT explain the readback, whose children do not
++    add up, or whose row carries no known quantity is NOT self-consistent — the full response stays right for it."""
++    out: Dict[str, Any] = {"ok": False, "known_qty": None, "expected_if_known_qty": None, "residual_if_known_qty": None,
++                           "residual_if_known_usdt": None, "n_requests": 0, "children_equal_confirmed": None,
++                           "confirmed_equal_capacity": None, "why": ""}
++    known = _fin(row.get("filled_known_qty"))
++    if known is None:
++        out["why"] = "the row carries no known quantity (filled_known_qty)"; return out
++    out["known_qty"] = known
++    reqs = [r for r in (row.get("request_ledger") or ()) if isinstance(r, dict) and r.get("state") not in ("rejected", "not_sent")]
++    if not reqs:
++        out["why"] = "the row carries no request ledger"; return out
++    out["n_requests"] = len(reqs)
++    _cap_eq = True
++    for r in reqs:
++        c = _fin(r.get("confirmed_qty")); tq = r.get("trade_qty") or {}
++        try:
++            s = sum(float(v) for v in tq.values()) if tq else None
++        except (TypeError, ValueError):
++            s = None
++        if c is None or s is None or abs(abs(c) - s) > 1e-9:
++            out["children_equal_confirmed"] = False
++            out["why"] = f"request {r.get('client_id')}: child fills {s} do not determine the confirmed quantity {c}"; return out
++        cap = _fin(r.get("qty_venue")) if r.get("qty_venue") is not None else _fin(r.get("qty"))
++        if cap is None or abs(c) > abs(cap) + 1e-9:
++            out["confirmed_equal_capacity"] = False
++            out["why"] = f"request {r.get('client_id')}: confirmed {c} exceeds the request capacity {cap}"; return out
++        if r.get("qty_venue") is not None and abs(abs(c) - abs(cap)) > 1e-9:
++            _cap_eq = False
++    out["children_equal_confirmed"] = True
++    out["confirmed_equal_capacity"] = _cap_eq
++    if q1 is None or q2 is None:
++        out["why"] = "the readback carries no quantity for this name"; return out
++    exp = float(q1) + float(known); resid = float(q2) - exp
++    out["expected_if_known_qty"] = exp; out["residual_if_known_qty"] = resid
++    if resid == 0:
++        out["residual_if_known_usdt"] = 0.0; out["ok"] = True
++        out["why"] = "child fills (within the request capacity) determine the quantity; readback == position + known part exactly"
++        return out
++    mark = _usable_mark(n2 / q2 if q2 else None, n1 / q1 if q1 else None, row.get("avg_fill_px_children"), row.get("avg_fill_px"))
++    if mark is None:
++        out["why"] = f"readback differs from position + known part by {resid} contracts and no usable mark prices it"; return out
++    out["residual_if_known_usdt"] = abs(resid) * mark
++    if abs(resid) * mark <= floor:
++        out["ok"] = True
++        out["why"] = f"readback within the dust floor ({abs(resid) * mark:.4f} ≤ {floor}) of position + known part"
++    else:
++        out["why"] = f"readback differs from position + known part by {resid} contracts ≈ {abs(resid) * mark:.2f} USDT (> floor {floor})"
++    return out
++
++
++def _gross_ref(days_data, ats) -> Optional[float]:
++    """The anchor's target gross from its `anchors` row (exact anchor_ts), else the newest row at or before it; None when
++    there is none — and None means NOT eligible (a criterion that cannot be evaluated fails closed)."""
++    best, best_t = None, None
++    for _day, one in days_data or ():
++        for a in one.get("anchors", []) or ():
++            try:
++                t, g = float(a.get("anchor_ts")), float(a.get("target_gross"))
++            except (TypeError, ValueError):
++                continue
++            if ats is None or t > float(ats) + 1e-9 or not (g == g) or g <= 0:
++                continue
++            if best_t is None or t > best_t:
++                best, best_t = g, t
++    return best
++
++
++def unknown_size_local_eligibility(latest, gross_ref, max_frac=UNKNOWN_SIZE_LOCAL_MAX_FRAC,
++                                   max_names=UNKNOWN_SIZE_LOCAL_MAX_NAMES) -> Dict[str, Any]:
++    """★ E-0912-A (c): does the latest anchor's anomaly set meet the FROZEN criteria for a local response? Pure; the
++    verdict and every number behind it are returned so a reader can re-derive it. NOT eligible whenever a criterion cannot
++    be evaluated (no gross reference, an anomaly without a venue-consistency record or intended notional)."""
++    latest = list(latest or ())
++    out: Dict[str, Any] = {"eligible": False, "names": sorted({a.get("symbol") for a in latest if a.get("symbol")}),
++                           "n": len(latest), "sum_intended_usdt": None, "gross_ref_usdt": gross_ref, "frac": None,
++                           "max_frac": max_frac, "max_names": max_names, "why": [], "per_name": []}
++    if not latest:
++        out["why"].append("no anomaly at the latest reconciled anchor"); return out
++    for a in latest:
++        vc = a.get("venue_consistent") or {}
++        out["per_name"].append({"symbol": a.get("symbol"), "kind": a.get("kind"), "intended_usdt": a.get("intended_usdt"),
++                                "venue_consistent": bool(vc.get("ok")), "expected_if_known_qty": vc.get("expected_if_known_qty"),
++                                "known_qty": vc.get("known_qty"), "why": vc.get("why")})
++    others = [a for a in latest if a.get("kind") != "execution_of_unknown_size"]
++    if others:
++        out["why"].append(f"{len(others)} anomaly(ies) of another kind at the anchor ({sorted({a.get('kind') for a in others})})")
++    bad = [a for a in latest if a.get("kind") == "execution_of_unknown_size" and not (a.get("venue_consistent") or {}).get("ok")]
++    for a in bad:
++        out["why"].append(f"{a.get('symbol')}: venue records not self-consistent — {(a.get('venue_consistent') or {}).get('why')}")
++    if any(_fin(a.get("intended_usdt")) is None for a in latest):
++        out["why"].append("an anomaly carries no intended notional")
++    else:
++        out["sum_intended_usdt"] = float(sum(abs(float(a["intended_usdt"])) for a in latest))
++    if len(out["names"]) > max_names:
++        out["why"].append(f"{len(out['names'])} names > {max_names}")
++    if gross_ref is None or not (gross_ref > 0):
++        out["why"].append("no gross reference (anchors row target_gross) — cannot evaluate the gross criterion")
++    elif out["sum_intended_usdt"] is not None:
++        out["frac"] = out["sum_intended_usdt"] / float(gross_ref)
++        if out["frac"] > max_frac:
++            out["why"].append(f"Σ|intended| {out['sum_intended_usdt']:.2f} USDT = {out['frac']:.2%} of gross > {max_frac:.0%}")
++    out["eligible"] = not out["why"]
++    if out["eligible"]:
++        out["why"].append(f"{len(out['names'])} name(s), Σ|intended| {out['sum_intended_usdt']:.2f} USDT = {out['frac']:.2%} of gross "
++                          f"{gross_ref:.2f}, every leg's venue records self-consistent")
++    return out
+ # ★★ B20, CLOSED 2026-07-27: THE FLOOR IS PER SYMBOL, BECAUSE MIN_NOTIONAL IS.
+ # This constant was labelled "venue MIN_NOTIONAL", which restated a per-symbol venue value as a
+ # global. Measured the same day, from the venue rather than from memory:
+@@ -569,6 +698,7 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+                     # of the two — a defect classified by whichever branch is written first.
+                     if sym in _win_unknown:
+                         _why, _row = _win_unknown[sym]
++                        _intd = _row.get("intended_full") if _row.get("intended_full") is not None else _row.get("intended_notional")
+                         anomalies.append({
+                             "anchor_ts": ats, "symbol": sym,
+                             "kind": "execution_of_unknown_size",
+@@ -576,6 +706,11 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+                             "order_type": _row.get("order_type"),
+                             "terminal_reason": _row.get("terminal_reason"),
+                             "rebalance_id": _row.get("rebalance_id"),
++                            # ★ E-0912-A (c): the evidence a PROPORTIONAL response would need, recorded beside the
++                            #   anomaly (never instead of it): is the leg's size knowable from the venue's own records,
++                            #   and how much was intended. `unknown_size_local_eligibility` reads these.
++                            "intended_usdt": (abs(float(_intd)) if _fin(_intd) is not None else None),
++                            "venue_consistent": _venue_consistency(_row, q1, q2, n1, n2, _mn.get(sym, dust_abs)),
+                             # the residual is genuinely not computable, and a number here would be
+                             # an assumption about the leg's size — the exact fold this refuses
+                             "expected_qty": None, "observed_qty": q2, "residual_qty": None,
+@@ -684,7 +819,14 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+         _v["gross_usdt"] = round(sum(abs(d["residual_usdt_signed"]) for d in _m.values()), 6)
+         _v["unmeasurable_by_kind"] = {k: sum(1 for w in _u.values() if w == k)
+                                       for k in sorted(set(_u.values()))}
++    _latest = [a for a in anomalies if a["anchor_ts"] == last_ats]
++    _local = unknown_size_local_eligibility(_latest, _gross_ref(days_data, last_ats))
+     return {"anomalies": anomalies,
++            # ★ E-0912-A (c): the frozen-criteria verdict on the latest anchor (RECORD), and the anomaly list a guard
++            #   reads INSTEAD of `latest` when — and only when — `watchdog.UNKNOWN_SIZE_LOCAL_RESPONSE` is True: empty
++            #   when the local response applies, `latest` itself otherwise. `latest` is unchanged for every other reader.
++            "unknown_size_local": _local,
++            "latest_if_local_response": ([] if _local["eligible"] else _latest),
+             # ★ RECORD ONLY as of 2026-08-03 — nothing reads this yet. It exists so B's
+             #   decomposition has ONE implementation of the unauth quantity to consume instead of
+             #   writing a second one inside a stop-loss, which is the "two implementations
+diff --git a/live/tests_position_break_blindspot.py b/live/tests_position_break_blindspot.py
+index 5149b45..3851ec3 100644
+--- a/live/tests_position_break_blindspot.py
++++ b/live/tests_position_break_blindspot.py
+@@ -228,8 +228,19 @@ check("★★ and it can actually HALT — it is in hit5, and §4-5 already rout
+ check("★★ §4-5b's trigger is UNCHANGED: still the full `_latest`, not a filtered subset",
+       "if _latest:" in _src and "_latest_position" not in _src,
+       "the refuted downgrade must not come back through this door")
+-check("★ §4-5b still counts every anomaly kind (no execution_of_unknown_size exemption)",
+-      "execution_of_unknown_size" not in _src)
++# ★ E-0912-A (c), USER RULING 2026-09-12 13:19Z: this cell used to pin "no execution_of_unknown_size exemption" as a
++#   source-string absence. The ruling introduced ONE bounded carve-out — a venue-consistent execution_of_unknown_size set
++#   within reconcile's FROZEN criteria (≤ 5 names, Σ|intended| ≤ 2% of target gross) is routed to the LOCAL response
++#   (halt opening + HIGH alert + reduce-only re-check of those names), never to silence; anything outside the criteria
++#   still trips the full ladder (tests_unknown_size_local_response T8.C–H). The property guarded here is restated
++#   accordingly: the carve-out exists ONLY through reconcile's partition + the named switch, and the trigger list itself
++#   is still `_latest` (the line above) — a second, unnamed exemption would have to bypass both and go red here.
++import reconcile as _RCb                                                      # noqa: E402
++check("★ §4-5b counts every anomaly kind; the ONE carve-out (E-0912-A (c), ruled 13:19Z) is the reconcile partition behind the named switch, default ON, frozen at 2% / 5 names",
++      "_local = _rec.get(\"unknown_size_local\") or {}" in _src and "_latest = ([] if _local_active else _latest_all)" in _src
++      and _src.count("execution_of_unknown_size") <= 4 and getattr(WD, "UNKNOWN_SIZE_LOCAL_RESPONSE", None) is True
++      and _RCb.UNKNOWN_SIZE_LOCAL_MAX_FRAC == 0.02 and _RCb.UNKNOWN_SIZE_LOCAL_MAX_NAMES == 5,
++      (_src.count("execution_of_unknown_size"), getattr(WD, "UNKNOWN_SIZE_LOCAL_RESPONSE", None)))
+ _ev_now = WD.evaluate(LEDGER, venue_events=[], ops_stats=WI.derive_ops_stats(LEDGER))
+ # ★ [B32 2026-08-21] §4-2 now judges the EQUITY DAY CHANGE. On this testnet ledger that caliber
+ #   correctly prices the 2026-07-28 day (equity moved −4.6% while the old (realised+unrealised)/nav
+diff --git a/live/tests_unknown_size_local_response.py b/live/tests_unknown_size_local_response.py
+new file mode 100644
+index 0000000..5e16dd0
+--- /dev/null
++++ b/live/tests_unknown_size_local_response.py
+@@ -0,0 +1,386 @@
++"""E-0912-A (c): a PROPORTIONAL response to a venue-consistent `execution_of_unknown_size` — behind a switch, DEFAULT OFF.
++
++*** MOCK ONLY: MockBroker, temp state dirs, a pilot_log tree built from the fixture rows. No venue, no credentials,
++    nothing written under state/. ***
++
++THE RULING THIS SUITE SERVES (DESIGN_reduce_only_clamp_identity_2026-09-12 §2c): on 2026-09-12 12:47Z two names whose
++executions were fully knowable from the venue's own records (1,524 USDT = 0.65% of gross) tripped §4-5b and §4-7 and the
++ladder flattened the WHOLE book (235,383 USDT, ≈245 USDT of cost). (a)+(b) remove the cause. (c) asks a different question:
++when the SAME shape recurs for another reason, is "flatten everything" the right response to a few names the venue can
++account for? That is a book-behaviour change ⇒ the user's call — RULED 2026-09-12 13:19Z (relayed by the lead): thorough fix,
++no rollback, option A as the DEFAULT. This commit implements option A behind `watchdog.UNKNOWN_SIZE_LOCAL_RESPONSE`
++(default True = the ruling; False = option C, the pre-ruling ladder for every unknown-size anomaly) with tests on both
++sides of it.
++
++FROZEN CRITERIA (reconcile.unknown_size_local_eligibility; thresholds reconcile.UNKNOWN_SIZE_LOCAL_MAX_FRAC 2% /
++UNKNOWN_SIZE_LOCAL_MAX_NAMES 5): every anomaly at the latest anchor is an execution_of_unknown_size whose venue records are
++self-consistent (`_venue_consistency`: child fills within the request capacity determine the confirmed quantity; readback
++== position + known part within the dust floor) AND names ≤ 5 AND Σ|intended| ≤ 2% of the anchor's target gross (no
++anchors row ⇒ not eligible). §4-5b and §4-7 read ONE partition under ONE switch.
++
++THE FIXTURE AFTER (1): (a)+(b)+(1) re-derive the REAL 12Z rows' persisted contradiction into a KNOWN quantity (the venue asked
++for LESS: origQty 1933692 < ours 1933986), so those rows no longer yield the anomaly (c) is about — T8.0 pins that. (c)'s
++subject is the SAME anomaly kind for another reason: here the real rows with the persisted string's venue number raised
++ABOVE ours (venue ×1.001 — "the venue asked for MORE than we sent", which (1) must not re-derive) while the venue's own
++records stay self-consistent (children == confirmed ≤ ours, readback == position + known part). Everything below runs on
++that re-shaped day (`ORD`); the pristine rows are `ORD_REAL`.
++
++T8 — asserted here, on the real 12Z rows re-shaped as above (tests_fixtures/e0912a_12z) laid out as a pilot_log day:
++  T8.0  the switch DEFAULTS to True (USER RULING 2026-09-12 13:19Z, option A); reconcile RECORDS eligibility either
++        way (2 names, 0.65%, eligible).
++  T8.A  switch False (option C, kept as a tested branch) ⇒ the pre-ruling behaviour byte for byte: §4-5b + §4-7 trigger,
++        tripped, the ladder runs, state carries `degradation`; the eligibility is visible in the 5b detail as "would have
++        been local".
++  T8.B  switch True (the default) ⇒ NOT tripped, no trigger, `local_responses` names both; halt_opening_orders YES, flatten_all NO,
++        reduce-only key NOT set; 5b state LOCAL; §4-7 drift False from the SAME partition; state.json kind
++        local_response with tripped_at (the anchor re-applies the opening halt) and open_orders_halted; ALARM.log HIGH;
++        events.jsonl row flagged local_response; the re-check saw both names flat.
++  T8.C  switch True, 6 names ⇒ not eligible (names) ⇒ full ladder.       T8.D  switch True, 3% of gross ⇒ full ladder.
++  T8.E  switch True, NOT self-consistent (readback ≠ position + known; child fills ≠ confirmed) ⇒ full ladder.
++  T8.F  switch True, eligible, but the venue re-read shows a name still holding: below dust ⇒ recorded, no order;
++        above dust ⇒ THAT name only is flattened reduce-only by the unexplained part, rows + readback written.
++  T8.G  switch True, a quantity_residual anomaly beside the unknown-size ones ⇒ full ladder;  no anchors row ⇒ full ladder.
++  T8.H  a trip outranks a local response: with the switch on, an unrelated trigger still runs the ladder.
++
++WHAT IS NOT: that the venue's re-read at response time is fresher than the readback the anomaly was judged on (MockBroker);
++that the off-box page fires (that is the anchor's reading of `tripped_at`, unchanged); anything about (a)/(b).
++
++Old-code proof: this file + tests_fixtures/ on 918559f (no switch, no partition) ⇒ T8.0/T8.B/... FAIL, exit 1
++(receipt: quant_research docs/receipts/w6_oldcode_red_c.log).
++
++Exit 0 = all pass.
++"""
++import copy
++import json
++import os
++import sys
++import tempfile
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++sys.path.insert(0, HERE)
++for _d in ("scheduler", "ops", "signal"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++
++import reconcile as RC                 # noqa: E402
++import watchdog as WD                  # noqa: E402
++import watchdog_inputs as WI           # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(detail)[:400]) if detail != '' else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++FIX = os.path.join(HERE, "tests_fixtures", "e0912a_12z")
++
++
++def _jsonl(name):
++    return [json.loads(l) for l in open(os.path.join(FIX, name), encoding="utf-8") if l.strip()]
++
++
++ORD_REAL = _jsonl("orders_12z.jsonl")
++RB = _jsonl("position_readback_08z_12z.jsonl")
++
++
++def _unclamped(rows):
++    """The real rows with the persisted origQty string's VENUE number raised above ours (×1.001): the one contradiction shape
++    (1) does not re-derive (tests_reduce_only_clamp T7-persisted ctl) while the venue's records stay self-consistent."""
++    out = []
++    for r in rows:
++        r = copy.deepcopy(r)
++        if r.get("ledger_inconsistent") and r.get("request_ledger"):
++            q0 = r["request_ledger"][0]; ours = abs(float(q0["qty"])); venue = float(f"{ours * 1.001:.0f}")
++            q0["inconsistent"] = f"{q0['client_id']}: identity: submit response: submit response origQty {venue:.1f} differs from ours {ours:.1f}"
++            r["ledger_inconsistent"] = [{"client_id": q0["client_id"], "why": q0["inconsistent"]}]
++        out.append(r)
++    return out
++
++
++ORD = _unclamped(ORD_REAL)
++ANC = _jsonl("anchors_12z.jsonl")
++MEME, POP = "MEMEUSDT", "POPCATUSDT"
++A12, A08 = 1789215841.923763, 1789201442.562113
++GROSS = float(ANC[0]["target_gross"])
++_SW = getattr(WD, "UNKNOWN_SIZE_LOCAL_RESPONSE", "ABSENT")
++
++
++def _tree(orders=None, readback=None, anchors=None, day="20260912"):
++    """A pilot_log day written directly (fixture rows are already validated production rows)."""
++    root = tempfile.mkdtemp(prefix="e0912a_c_")
++    d = os.path.join(root, day); os.makedirs(d)
++    for name, rows in (("orders", ORD if orders is None else orders), ("position_readback", RB if readback is None else readback),
++                       ("anchors", ANC if anchors is None else anchors)):
++        if rows is None:
++            continue
++        with open(os.path.join(d, f"{name}.jsonl"), "w") as f:
++            for r in rows:
++                f.write(json.dumps(r) + "\n")
++    return root
++
++
++def _run(root, switch, positions=None, notional=None):
++    """watchdog.run on the production inputs path (derive_ops_stats ⇒ §4-7 reads the shared reconcile), scoped state."""
++    old = getattr(WD, "UNKNOWN_SIZE_LOCAL_RESPONSE", None)
++    WD.UNKNOWN_SIZE_LOCAL_RESPONSE = switch
++    try:
++        ops = WI.derive_ops_stats(root)
++        b = WD.MockBroker(positions=dict(positions or {}))
++        b._notional = dict(notional or {})
++        b._contracts_after = dict(positions or {})
++        b._mark = {s: (abs(notional[s] / positions[s]) if positions.get(s) else 1.0) for s in (positions or {})} if notional else {}
++        sdir = tempfile.mkdtemp(prefix="e0912a_c_state_")
++        ev, brk, st = WD.run(root, broker=b, venue_events=[], ops_stats=ops, verbose=False, state_dir=sdir)
++        return ev, brk, st, sdir, ops
++    finally:
++        if old is None:
++            try:
++                delattr(WD, "UNKNOWN_SIZE_LOCAL_RESPONSE")
++            except AttributeError:
++                pass
++        else:
++            WD.UNKNOWN_SIZE_LOCAL_RESPONSE = old
++
++
++def _acts(brk, kind):
++    return [a for a in brk.actions if a.get("action") == kind]
++
++
++def _ladder_ran(ev, brk, st):
++    """The FULL response's markers: tripped, the trip path's reduce-only key switch, a `degradation` record with the
++    ladder's halt. (The ladder re-reads `broker.positions()` and sends nothing on a flat book — so `flatten_all` being
++    called is NOT the marker; T8.A2 shows the whole-book flatten on a held mock.)"""
++    return (ev["tripped"] is True and len(_acts(brk, "set_reduce_only")) == 1 and isinstance(st.get("degradation"), dict)
++            and st["degradation"].get("stage3_open_halted") is True and ev.get("local_response") is None)
++
++
++def _5b(ev):
++    return ev["conditions"]["cond5_venue_event"]["5b_liquidation_anomaly"]
++
++
++def _renamed(sym_from, sym_to, intended=None):
++    """The fixture's rows for `sym_from` re-labelled `sym_to` (orders + both readbacks), intended scaled if given."""
++    o = [copy.deepcopy(r) for r in ORD if r["symbol"] == sym_from]
++    for r in o:
++        r["symbol"] = sym_to
++        if intended is not None and r["order_type"] == "maker":
++            r["intended_notional"] = -abs(intended); r["intended_full"] = -abs(intended)
++    rb = [dict(r, symbol=sym_to) for r in RB if r["symbol"] == sym_from]
++    return o, rb
++
++
++# ═══════════════════════════ T8.0: the default, and the record ═══════════════════════════════════════════════════════
++print("[T8.0] the switch defaults to True (user ruling 2026-09-12 13:19Z); reconcile records the eligibility either way")
++check("★★★ T8.0 watchdog.UNKNOWN_SIZE_LOCAL_RESPONSE exists and DEFAULTS to True (option A — the user's ruling 13:19Z; False = option C, still a tested branch)",
++      _SW is True, _SW)
++check("★ T8.0 thresholds frozen in reconcile: 2% of gross, 5 names",
++      getattr(RC, "UNKNOWN_SIZE_LOCAL_MAX_FRAC", None) == 0.02 and getattr(RC, "UNKNOWN_SIZE_LOCAL_MAX_NAMES", None) == 5)
++_rec0 = RC.reconcile([("20260912", {"orders": ORD_REAL, "position_readback": RB, "anchors": ANC})])
++check("★★★ T8.0 the PRISTINE real 12Z rows: (1) re-derives the persisted clamp contradiction ⇒ 0 anomalies, nothing for (c) to respond to (the venue asked for LESS)",
++      _rec0["n_anomalies_by_kind"] == {} and (_rec0.get("unknown_size_local") or {}).get("eligible") is False
++      and any("no anomaly" in w for w in (_rec0.get("unknown_size_local") or {}).get("why") or ()), (_rec0["n_anomalies_by_kind"], (_rec0.get("unknown_size_local") or {}).get("why") or ()))
++_rec = RC.reconcile([("20260912", {"orders": ORD, "position_readback": RB, "anchors": ANC})])
++_el = _rec.get("unknown_size_local") or {}
++check("★★★ T8.0 the re-shaped rows (venue origQty ABOVE ours — not a clamp, (1) keeps the contradiction): 2 execution_of_unknown_size, ELIGIBLE — 2 names, Σ|intended| 1524.32 USDT = 0.65% of gross 235,497, both venue-self-consistent",
++      _rec["n_anomalies_by_kind"] == {"execution_of_unknown_size": 2} and _el.get("eligible") is True and _el.get("names") == [MEME, POP]
++      and abs((_el.get("sum_intended_usdt") or 0) - 1524.32117076) < 1e-6 and abs((_el.get("gross_ref_usdt") or 0) - GROSS) < 1e-6
++      and abs((_el.get("frac") or 0) - 1524.32117076 / GROSS) < 1e-12,
++      {k: _el.get(k) for k in ("eligible", "names", "sum_intended_usdt", "gross_ref_usdt", "frac", "why")})
++check("★★ T8.0 each anomaly carries its evidence: venue_consistent ok, known −position, expected_if_known 0, residual 0; intended_usdt",
++      all(a.get("venue_consistent", {}).get("ok") is True and a["venue_consistent"]["expected_if_known_qty"] == 0.0
++          and a["venue_consistent"]["residual_if_known_qty"] == 0.0 and a.get("intended_usdt") for a in _rec["latest"]),
++      [a.get("venue_consistent") for a in _rec["latest"]])
++check("★★ T8.0 `latest` is UNCHANGED (2) and `latest_if_local_response` is empty — the partition is a second list, not a rewrite",
++      len(_rec["latest"]) == 2 and _rec.get("latest_if_local_response") == [], (len(_rec["latest"]), _rec.get("latest_if_local_response")))
++
++# ═══════════════════════════ T8.A: switch False = today's behaviour ═══════════════════════════════════════════════════
++print("\n[T8.A] switch False (option C, the pre-ruling behaviour): the incident's response, unchanged")
++ev, brk, st, sdir, ops = _run(_tree(), False)
++check("★★★ T8.A tripped, §4-5b AND §4-7 in the triggers, the ladder ran (reduce-only key set, degradation record), no local response",
++      _ladder_ran(ev, brk, st) and any("§4-5b" in t for t in ev["triggers"]) and any("§4-7 un-recovered" in t for t in ev["triggers"])
++      and ev.get("local_responses") == [] and st["degradation"].get("stage1_flat_on_reread") is True,
++      (ev["triggers"], [a["action"] for a in brk.actions]))
++ev2, brk2, st2, _, _ = _run(_tree(), False, positions={MEME: 1000.0, POP: 500.0, "OTHERUSDT": 100.0},
++                            notional={MEME: 0.525, POP: 24.4, "OTHERUSDT": 100.0})
++_fa2 = _acts(brk2, "flatten_all")
++check("★★★ T8.A2 switch False on a HELD book: the ladder flattens the WHOLE book — MEME, POPCAT and the unrelated OTHERUSDT (contrast: T8.F flattens the named name only)",
++      _ladder_ran(ev2, brk2, st2) and len(_fa2) == 1 and sorted(o["symbol"] for o in _fa2[0]["orders"]) == [MEME, "OTHERUSDT", POP],
++      [(o["symbol"], o["quantity"]) for o in _fa2[0]["orders"]] if _fa2 else [a["action"] for a in brk2.actions])
++check("★★ T8.A the 5b detail still says what WOULD have been local: state ANOMALOUS, local_response.eligible True, active False, switch False",
++      _5b(ev)["state"] == "ANOMALOUS" and _5b(ev).get("local_response", {}).get("eligible") is True
++      and _5b(ev)["local_response"].get("active") is False and _5b(ev)["local_response"].get("switch") is False,
++      _5b(ev).get("local_response"))
++check("★ T8.A §4-7 drift True from the same reconcile; its record shows the switch off and 2 names for drift",
++      ops[-1]["unrecovered_position_drift"] is True and ops[-1].get("drift_local_response", {}).get("switch") is False
++      and ops[-1]["drift_local_response"].get("n_latest_for_drift") == 2, ops[-1].get("drift_local_response"))
++
++# ═══════════════════════════ T8.B: switch True = the local response ═══════════════════════════════════════════════════
++print("\n[T8.B] switch True (the DEFAULT): halt opening + alert + re-check those names; the book is NOT flattened")
++ev, brk, st, sdir, ops = _run(_tree(), True)
++check("★★★ T8.B NOT tripped, no trigger, one local response naming MEME + POPCAT",
++      ev["tripped"] is False and ev["triggers"] == [] and len(ev.get("local_responses") or []) == 1
++      and (ev.get("local_responses") or [{}])[0].get("names") == [MEME, POP], (ev["tripped"], ev["triggers"], ev.get("local_responses")))
++check("★★★ T8.B broker: halt_opening_orders YES, flatten_all NO, reduce-only key NOT set",
++      len(_acts(brk, "halt_opening_orders")) == 1 and _acts(brk, "flatten_all") == [] and _acts(brk, "set_reduce_only") == []
++      and brk.open_orders_halted is True and brk.reduce_only is False, [a["action"] for a in brk.actions])
++check("★★ T8.B 5b state LOCAL, n 0 for the trigger, n_latest_all 2, local_response.active True",
++      _5b(ev)["state"] == "LOCAL" and _5b(ev)["n"] == 0 and _5b(ev)["n_latest_all"] == 2 and _5b(ev)["local_response"]["active"] is True,
++      {k: _5b(ev).get(k) for k in ("state", "n", "n_latest_all", "triggered")})
++check("★★★ T8.B §4-7 reads the SAME partition: drift False, cond7 not triggered, record shows switch True / 0 names for drift / 2 in all",
++      ops[-1]["unrecovered_position_drift"] is False and ev["conditions"]["cond7_ops"]["triggered"] is False
++      and ops[-1]["drift_local_response"] == {"switch": True, "eligible": True, "n_latest_all": 2, "n_latest_for_drift": 0},
++      (ops[-1].get("unrecovered_position_drift"), ops[-1].get("drift_local_response")))
++_lr = ev.get("local_response") or {}
++check("★★ T8.B the response record: names, open_halted, re-check saw both names flat (venue 0 = expected 0 ⇒ no flatten), no errors",
++      _lr.get("open_halted") is True and _lr.get("names") == [MEME, POP] and _lr.get("flatten_orders") == [] and _lr.get("errors") == []
++      and all((_lr.get("recheck") or {}).get(s, {}).get("venue_qty") == 0.0 and _lr["recheck"][s]["expected_if_known_qty"] == 0.0 and _lr["recheck"][s]["flatten"] is False for s in (MEME, POP))
++      and _lr.get("book_flattened") is False and _lr.get("reduce_only_key_set") is False, _lr)
++check("★★ T8.B state.json: kind local_response, tripped_at set (the anchor's 0b halt re-applies the opening halt), open_orders_halted True, no degradation, resume text says NOT flattened",
++      st.get("kind") == "local_response" and st.get("tripped_at") and st.get("open_orders_halted") is True and "degradation" not in st
++      and st.get("reduce_only") is False and "NOT flattened" in str(st.get("resume_requires")), {k: st.get(k) for k in ("kind", "tripped_at", "open_orders_halted", "reduce_only")})
++_al = [json.loads(l) for l in open(os.path.join(sdir, "ALARM.log"))] if os.path.exists(os.path.join(sdir, "ALARM.log")) else []
++check("★★ T8.B ALARM.log: one HIGH line naming both names, book_flattened False, human_action_required",
++      len(_al) == 1 and _al[0].get("severity") == "HIGH" and _al[0].get("names") == [MEME, POP] and _al[0].get("book_flattened") is False
++      and _al[0].get("human_action_required") is True, _al)
++_evl = [json.loads(l) for l in open(os.path.join(sdir, "events.jsonl"))] if os.path.exists(os.path.join(sdir, "events.jsonl")) else []
++check("★ T8.B events.jsonl: one row flagged local_response with the broker's actions",
++      len(_evl) == 1 and _evl[0].get("local_response") is True and any(a.get("action") == "halt_opening_orders" for a in _evl[0]["actions"]), _evl[:1])
++check("★ T8.B last_eval.json written with the local response (a reader can see why nothing tripped)",
++      json.load(open(os.path.join(sdir, "last_eval.json"))).get("local_responses"), "no local_responses in last_eval.json")
++
++# ═══════════════════════════ T8.C/D: the two size limits ══════════════════════════════════════════════════════════════
++print("\n[T8.C] switch True, 6 names ⇒ not eligible ⇒ the full ladder")
++_o6, _r6 = list(ORD), list(RB)
++for i, s in enumerate(("AAAUSDT", "BBBUSDT", "CCCUSDT", "DDDUSDT")):
++    o, rb = _renamed(MEME, s, intended=10.0)
++    _o6 += o; _r6 += rb
++_rec6 = RC.reconcile([("20260912", {"orders": _o6, "position_readback": _r6, "anchors": ANC})])
++check("★★ T8.C reconcile: 6 execution_of_unknown_size, NOT eligible, why names > 5",
++      _rec6["n_anomalies_by_kind"] == {"execution_of_unknown_size": 6} and (_rec6.get("unknown_size_local") or {}).get("eligible") is False
++      and any("6 names > 5" in w for w in (_rec6.get("unknown_size_local") or {}).get("why") or ()), (_rec6.get("unknown_size_local") or {}).get("why") or ())
++ev, brk, st, sdir, ops = _run(_tree(orders=_o6, readback=_r6), True)
++check("★★★ T8.C watchdog with the switch ON: tripped, the full ladder ran, no local response, §4-7 drift True",
++      _ladder_ran(ev, brk, st) and ev.get("local_responses") == [] and ops[-1]["unrecovered_position_drift"] is True,
++      (ev["tripped"], [a["action"] for a in brk.actions]))
++
++print("\n[T8.D] switch True, 3% of gross ⇒ the full ladder")
++_o3 = [copy.deepcopy(r) for r in ORD]
++for r in _o3:
++    if r["symbol"] == MEME and r["order_type"] == "maker":
++        r["intended_notional"] = -0.03 * GROSS; r["intended_full"] = -0.03 * GROSS
++_rec3 = RC.reconcile([("20260912", {"orders": _o3, "position_readback": RB, "anchors": ANC})])
++check("★★ T8.D reconcile: eligible False, frac ≈ 3.2% > 2%",
++      (_rec3.get("unknown_size_local") or {}).get("eligible") is False and ((_rec3.get("unknown_size_local") or {}).get("frac") or 0) > 0.03
++      and any("> 2%" in w for w in (_rec3.get("unknown_size_local") or {}).get("why") or ()), (_rec3.get("unknown_size_local") or {}).get("why") or ())
++ev, brk, st, sdir, ops = _run(_tree(orders=_o3), True)
++check("★★★ T8.D watchdog with the switch ON: tripped, full ladder", _ladder_ran(ev, brk, st) and ev.get("local_responses") == [], (ev["tripped"], [a["action"] for a in brk.actions]))
++_o2 = [copy.deepcopy(r) for r in ORD]
++for r in _o2:
++    if r["symbol"] == MEME and r["order_type"] == "maker":
++        r["intended_notional"] = -(0.02 * GROSS - 509.07486 - 0.01); r["intended_full"] = r["intended_notional"]
++check("★ T8.D boundary: Σ|intended| just UNDER 2% stays eligible (the threshold is ≤)",
++      (RC.reconcile([("20260912", {"orders": _o2, "position_readback": RB, "anchors": ANC})]).get("unknown_size_local") or {}).get("eligible") is True)
++
++# ═══════════════════════════ T8.E: not self-consistent ═══════════════════════════════════════════════════════════════
++print("\n[T8.E] switch True, venue records NOT self-consistent ⇒ the full ladder")
++_rbE = [copy.deepcopy(r) for r in RB]
++for r in _rbE:
++    if r["symbol"] == MEME and r["anchor_ts"] == A12:
++        r["venue_position_qty"] = 5000.0; r["venue_position_notional"] = 2.625
++_recE = RC.reconcile([("20260912", {"orders": ORD, "position_readback": _rbE, "anchors": ANC})])
++_vcE = [a for a in _recE["latest"] if a["symbol"] == MEME][0].get("venue_consistent") or {}
++# 5000 contracts × 0.000525 = 2.625 USDT is UNDER the 5 USDT dust floor ⇒ still consistent (a dust residual cannot be traded away);
++# the same shape at 20,000 contracts (10.5 USDT) is NOT
++check("★★ T8.E a residual under the dust floor (5000 × 0.000525 = 2.6 USDT) is still self-consistent — dust is dust",
++      _vcE.get("ok") is True and _vcE.get("residual_if_known_qty") == 5000.0 and abs((_vcE.get("residual_if_known_usdt") or 0.0) - 2.625) < 1e-9, _vcE)
++for r in _rbE:
++    if r["symbol"] == MEME and r["anchor_ts"] == A12:
++        r["venue_position_qty"] = 20000.0; r["venue_position_notional"] = 10.5
++_recE = RC.reconcile([("20260912", {"orders": ORD, "position_readback": _rbE, "anchors": ANC})])
++_vcE = [a for a in _recE["latest"] if a["symbol"] == MEME][0].get("venue_consistent") or {}
++check("★★★ T8.E readback 20,000 contracts (10.5 USDT) beyond position + known ⇒ NOT self-consistent, NOT eligible",
++      _vcE.get("ok") is False and "differs from position + known part" in str(_vcE.get("why") or ()) and (_recE.get("unknown_size_local") or {}).get("eligible") is False, _vcE)
++ev, brk, st, sdir, ops = _run(_tree(readback=_rbE), True)
++check("★★★ T8.E watchdog with the switch ON: tripped, full ladder", _ladder_ran(ev, brk, st) and ev.get("local_responses") == [], (ev["tripped"], [a["action"] for a in brk.actions]))
++_oE = [copy.deepcopy(r) for r in ORD]
++for r in _oE:
++    if r["symbol"] == POP and r["order_type"] == "maker":
++        r["request_ledger"][0]["trade_qty"].pop("278395714")            # a child fill missing: Σ children 8433 ≠ confirmed 10434
++_recE2 = RC.reconcile([("20260912", {"orders": _oE, "position_readback": RB, "anchors": ANC})])
++_vcE2 = [a for a in _recE2["latest"] if a["symbol"] == POP][0].get("venue_consistent") or {}
++check("★★★ T8.E child fills that do not determine the confirmed quantity ⇒ NOT self-consistent, NOT eligible",
++      _vcE2.get("ok") is False and "do not determine" in str(_vcE2.get("why") or ()) and (_recE2.get("unknown_size_local") or {}).get("eligible") is False, _vcE2)
++_oE3 = [copy.deepcopy(r) for r in ORD]
++for r in _oE3:
++    if r["symbol"] == POP and r["order_type"] == "maker":
++        r.pop("filled_known_qty", None)
++check("★ T8.E a row without a known quantity ⇒ NOT self-consistent",
++      (RC.reconcile([("20260912", {"orders": _oE3, "position_readback": RB, "anchors": ANC})]).get("unknown_size_local") or {}).get("eligible") is False)
++
++# ═══════════════════════════ T8.F: the re-check acts on THOSE names only ══════════════════════════════════════════════
++print("\n[T8.F] switch True, eligible, the venue re-read still holds a name")
++ev, brk, st, sdir, ops = _run(_tree(), True, positions={MEME: 1000.0}, notional={MEME: 0.525})
++_lr = ev.get("local_response") or {}
++check("★★ T8.F 1000 contracts (0.525 USDT) unexplained: BELOW dust ⇒ recorded, no order",
++      (_lr.get("recheck") or {}).get(MEME, {}).get("unexplained_qty") == 1000.0 and _lr["recheck"][MEME]["flatten"] is False and _lr["flatten_orders"] == []
++      and _acts(brk, "flatten_all") == [], _lr.get("recheck"))
++ev, brk, st, sdir, ops = _run(_tree(), True, positions={MEME: 100000.0, "OTHERUSDT": 5000.0}, notional={MEME: 52.5, "OTHERUSDT": 5000.0})
++_lr = ev.get("local_response") or {}
++_fa = _acts(brk, "flatten_all")
++check("★★★ T8.F 100,000 contracts (52.5 USDT) unexplained ⇒ flatten_all called for MEME ONLY (sell 100000, reduce_only), OTHERUSDT untouched",
++      len(_fa) == 1 and [o["symbol"] for o in _fa[0]["orders"]] == [MEME] and _fa[0]["orders"][0]["quantity"] == 100000.0
++      and _fa[0]["orders"][0]["side"] == "sell" and _fa[0]["orders"][0]["reduce_only"] is True and (_lr.get("recheck") or {}).get(MEME, {}).get("flatten") is True
++      and "OTHERUSDT" not in (_lr.get("recheck") or {}), (_fa, _lr.get("recheck")))
++_rows_root = os.path.join(sdir, "pilot_log")
++_pf = []
++for dd in (os.listdir(_rows_root) if os.path.isdir(_rows_root) else []):
++    p = os.path.join(_rows_root, dd, "orders.jsonl")
++    if os.path.exists(p):
++        _pf += [json.loads(l) for l in open(p)]
++check("★★ T8.F the flatten left rows: 1 protective_flatten order row for MEME (in the scoped pilot_log), a readback row written",
++      _lr.get("rows_written") == 1 and len(_pf) == 1 and _pf[0]["symbol"] == MEME and _pf[0]["order_type"] == "protective_flatten"
++      and (_lr.get("readback_rows_written") or 0) >= 1, (_lr.get("rows_written"), _lr.get("readback_rows_written"), _pf[:1]))
++check("★ T8.F still not a trip: opening halted, book not flattened, state kind local_response",
++      ev["tripped"] is False and brk.open_orders_halted is True and st.get("kind") == "local_response")
++
++# ═══════════════════════════ T8.G/H: other kinds, no gross, a real trip beside it ══════════════════════════════════════
++print("\n[T8.G] switch True, another anomaly kind / no gross reference ⇒ the full ladder")
++_rbG = list(RB) + [dict(RB[0], symbol="ZZZUSDT", venue_position_qty=100.0, venue_position_notional=100.0),
++                   dict(RB[2], symbol="ZZZUSDT", venue_position_qty=0.0, venue_position_notional=0.0)]
++_recG = RC.reconcile([("20260912", {"orders": ORD, "position_readback": _rbG, "anchors": ANC})])
++check("★★ T8.G a quantity_residual anomaly (ZZZUSDT 100 → 0 with no order) beside the two ⇒ NOT eligible",
++      _recG["n_anomalies_by_kind"].get("quantity_residual") == 1 and (_recG.get("unknown_size_local") or {}).get("eligible") is False
++      and any("another kind" in w for w in (_recG.get("unknown_size_local") or {}).get("why") or ()), (_recG.get("unknown_size_local") or {}).get("why") or ())
++ev, brk, st, sdir, ops = _run(_tree(readback=_rbG), True)
++check("★★★ T8.G watchdog with the switch ON: tripped, full ladder", _ladder_ran(ev, brk, st) and ev.get("local_responses") == [], (ev["tripped"], [a["action"] for a in brk.actions]))
++_recN = RC.reconcile([("20260912", {"orders": ORD, "position_readback": RB, "anchors": []})])
++check("★★ T8.G no anchors row ⇒ no gross reference ⇒ NOT eligible (fail closed)",
++      (_recN.get("unknown_size_local") or {}).get("eligible") is False and (_recN.get("unknown_size_local") or {}).get("gross_ref_usdt") is None
++      and any("no gross reference" in w for w in (_recN.get("unknown_size_local") or {}).get("why") or ()), (_recN.get("unknown_size_local") or {}).get("why") or ())
++ev, brk, st, sdir, ops = _run(_tree(anchors=[]), True)
++check("★★ T8.G …and the watchdog with the switch ON trips the full ladder", _ladder_ran(ev, brk, st) and ev.get("local_responses") == [])
++
++print("\n[T8.H] a trip outranks a local response")
++_oldsw = getattr(WD, "UNKNOWN_SIZE_LOCAL_RESPONSE", None)
++WD.UNKNOWN_SIZE_LOCAL_RESPONSE = True
++try:
++    _root = _tree(); _ops = WI.derive_ops_stats(_root)
++    _b = WD.MockBroker()
++    _sd = tempfile.mkdtemp(prefix="e0912a_c_h_")
++    # an unrelated §4-5a venue outage trigger beside the eligible local set
++    _ev, _b2, _st = WD.run(_root, broker=_b, venue_events=[{"kind": "outage", "severity": "stop"}], ops_stats=_ops, verbose=False, state_dir=_sd)
++finally:
++    WD.UNKNOWN_SIZE_LOCAL_RESPONSE = _oldsw
++check("★★ T8.H with the switch ON and a venue-outage trigger present: tripped by §4-5a, the full ladder runs, the local set is listed but not acted on separately",
++      _ladder_ran(_ev, _b2, _st) and any("§4-5a" in t for t in _ev["triggers"]) and _ev.get("local_responses")
++      and "local_response" not in _ev, (_ev["triggers"], [a["action"] for a in _b2.actions]))
++
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  ")
++    sys.exit(1)
++print("ALL PASS")
+diff --git a/live/watchdog.py b/live/watchdog.py
+index 0cc57ae..3240ed6 100644
+--- a/live/watchdog.py
++++ b/live/watchdog.py
+@@ -368,6 +368,23 @@ class OpeningHalted(RuntimeError):
+ #                            filling. The rule must not assume the benign cause (rounding).
+ SUBMISSION_IMPAIRED_CONDITIONS = ("§4-5", "§4-6", "§4-7")
+ 
++# ★ E-0912-A (c) — PROPORTIONAL RESPONSE SWITCH (DESIGN_reduce_only_clamp_identity_2026-09-12 §2c; a USER RULING flips it).
++#   False (DEFAULT = today's behaviour): any `execution_of_unknown_size` at the latest reconciled anchor trips §4-5b and
++#   §4-7 ⇒ the full ladder (halt opening → flatten the WHOLE book → alert). On 2026-09-12 12:47Z that flattened 235,383
++#   USDT (≈245 USDT of slippage + fees) over two names, 1,524 USDT = 0.65% of gross, whose executions were fully knowable
++#   from the venue's own records (ERROR_LEDGER E-0912-A ⑥⑦).
++#   True (option A): when EVERY anomaly at that anchor is an execution_of_unknown_size whose venue records are
++#   self-consistent, on ≤ reconcile.UNKNOWN_SIZE_LOCAL_MAX_NAMES names with Σ|intended| ≤ reconcile.UNKNOWN_SIZE_LOCAL_
++#   MAX_FRAC of the anchor's target gross, the response is LOCAL (`_local_response`): halt opening + HIGH alert + a
++#   reduce-only re-check of THOSE names only; the book is NOT flattened. Any other anomaly kind, any inconsistency, more
++#   names, more gross, or no gross reference ⇒ the full ladder exactly as today.
++#   The criteria and thresholds live in `reconcile` (ONE comparison for §4-5b and §4-7; `watchdog_inputs` reads this
++#   same switch); this constant only decides whether the two guards ACT on the partition.
++#   ★ USER RULING 2026-09-12 13:19Z (relayed by the lead: "肯定是彻底修复, 回滚的版本有其他问题" — thorough fix, no rollback,
++#     (c) default ON with the frozen §2(c) thresholds): the DEFAULT is True = option A. Option C (today's ladder for every
++#     unknown-size anomaly) is `False`, kept as a tested branch (tests_unknown_size_local_response T8.A/A2).
++UNKNOWN_SIZE_LOCAL_RESPONSE = True
++
+ 
+ def trip_page(ladder, triggers, eval_detail=None):
+     """★★ [j] THE ONE COMPOSITION OF A TRIP'S HUMAN-FACING FACTS. ALARM.log and the off-box page
+@@ -981,6 +998,7 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+     import venue_error_codes as VEC
+     days = PL.available_days(root)
+     triggers, detail = [], {}
++    local_responses: List[Dict[str, Any]] = []       # E-0912-A (c): proportional responses (never in `triggers`)
+ 
+     # Per-day metrics for the persistence-based conditions (1, 6, 7). Computed day-by-day rather
+     # than over the pooled window: "5 CONSECUTIVE days" is a statement about the daily sequence,
+@@ -1777,7 +1795,22 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+     #   by FACT, not by decay: flatten successfully and the next reconciliation is clean.
+     # ⇒ And it is what makes "our own defect" recoverable without an epoch parameter: the old rows
+     #   simply are not the current state. No window start, no N, no knob to choose.
+-    _latest = [a for a in anomalies if a["anchor_ts"] == last_reconciled_ats]
++    _latest_all = [a for a in anomalies if a["anchor_ts"] == last_reconciled_ats]
++    # ★ E-0912-A (c): the partition is reconcile's (`unknown_size_local`, frozen criteria); the switch is this module's.
++    #   Off (default): `_latest` is every anomaly at the anchor, as before. On: the anomalies the local response covers
++    #   leave the trigger list and go to `local_responses` — a DIFFERENT action, never silence.
++    _local = _rec.get("unknown_size_local") or {}
++    _local_active = bool(UNKNOWN_SIZE_LOCAL_RESPONSE and _local.get("eligible"))
++    _latest = ([] if _local_active else _latest_all)
++    if _local_active:
++        local_responses.append({
++            "kind": "unknown_size_local", "names": list(_local.get("names") or []),
++            "reason": (f"§4-5b-local: execution_of_unknown_size on {len(_local.get('names') or [])} name(s) "
++                       f"{list(_local.get('names') or [])} at the latest reconciled anchor; venue records self-consistent; "
++                       f"Σ|intended| {(_local.get('sum_intended_usdt') or 0.0):.2f} USDT = {(_local.get('frac') or 0.0):.2%} of gross "
++                       f"≤ {_local.get('max_frac'):.0%} — opening halted, those names re-checked reduce-only, book NOT flattened "
++                       f"(UNKNOWN_SIZE_LOCAL_RESPONSE)"),
++            "evidence": _local})
+     # ★★ [B30] "CLEAN" AND "NOT COMPARABLE" MUST NOT PRINT THE SAME. Under the quantity caliber a
+     # readback row that carries no `venue_position_qty` cannot be compared at all, and an empty
+     # anomaly list is exactly what "we could not ask" looks like. It does not TRIGGER — a gap in
+@@ -1785,7 +1818,7 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+     # failure mode this whole item removes — but it is named, counted, and given its own state.
+     _latest_unrec = _rec.get("latest_unreconcilable") or []
+     _5b_state = ("UNKNOWN" if last_reconciled_ats is None else
+-                 ("ANOMALOUS" if _latest else "PARTIAL" if _latest_unrec else "CLEAN"))
++                 ("LOCAL" if _local_active else "ANOMALOUS" if _latest else "PARTIAL" if _latest_unrec else "CLEAN"))
+     _pb_hit = bool(_pb and _pb.get("triggered"))
+     hit5 = bool(outage or _latest or acct_hit or _pb_hit)
+     detail["cond5_venue_event"] = {
+@@ -1793,6 +1826,12 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+         "5b_liquidation_anomaly": {"n": len(_latest), "examples": _latest[:3],
+                                    "triggered": bool(_latest),
+                                    "state": _5b_state,
++                                   # ★ E-0912-A (c): the partition and the switch, always reported — a reader can see
++                                   #   "this WOULD have been local" while the switch is off, and why it was not while on
++                                   "n_latest_all": len(_latest_all),
++                                   "local_response": {"switch": UNKNOWN_SIZE_LOCAL_RESPONSE, "active": _local_active,
++                                                      **{k: _local.get(k) for k in ("eligible", "names", "n", "sum_intended_usdt",
++                                                                                     "gross_ref_usdt", "frac", "max_frac", "max_names", "why")}},
+                                    "last_reconciled_anchor_ts": last_reconciled_ats,
+                                    "n_historical_anomalies": len(anomalies),
+                                    # ★ UNKNOWN is not a pass: with no reconciliation to evaluate,
+@@ -2153,7 +2192,92 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+             # which is precisely what a nearly-blind stop-loss must not inherit.
+             "conditions_degraded": sorted(k for k, v in detail.items()
+                                           if isinstance(v, dict) and v.get("degraded")),
+-            "tripped": bool(triggers), "conditions": detail}
++            "tripped": bool(triggers), "conditions": detail,
++            # ★ E-0912-A (c): a LOCAL response is not a trip and not silence — its own list, acted on by `run` when
++            #   nothing tripped (a trip outranks it: the ladder flattens the whole book, those names included)
++            "local_responses": local_responses}
++
++
++def _local_response(broker, ev, reason, alarm_path, rows_root, verbose=True, dust_abs=None):
++    """★ E-0912-A (c): the PROPORTIONAL response — three rungs in the ladder's order and isolation, scoped to the named
++    names: 1. halt opening (zero-dependency, first); 2. re-check THOSE names against the venue and flatten, reduce-only,
++    only the part of THOSE positions the ledger does not explain (above the dust floor); 3. HIGH alert (local write;
++    the anchor pages off-box from state.json's `tripped_at`). It never touches a name outside the list and never sets
++    the account's reduce-only key. Rows and a readback are written for any flatten it does send, exactly as the ladder
++    does — a protective action that leaves no row is the defect §4-5b then reports."""
++    import reconcile as _RC
++    dust = float(dust_abs if dust_abs is not None else _RC.DUST_ABS_USDT)
++    names, per = [], {}
++    for lr in ev.get("local_responses") or ():
++        for pn in (lr.get("evidence") or {}).get("per_name") or ():
++            per[pn.get("symbol")] = pn
++        names.extend(lr.get("names") or ())
++    names = sorted(set(names))
++    out: Dict[str, Any] = {"kind": "local_response", "names": names,
++                           "order": ["halt_opening", "recheck_named_reduce_only", "alert"],
++                           "open_halted": False, "recheck": {}, "flatten_orders": [], "rows_written": 0,
++                           "readback_rows_written": 0, "alert_local_write_ok": False, "errors": [],
++                           "book_flattened": False, "reduce_only_key_set": False,
++                           "caliber": ("recheck.unexplained_qty = venue contracts now − (position at the previous readback + "
++                                       "the leg's known part); flattened reduce-only only when |unexplained| × mark > the "
++                                       f"dust floor {dust} USDT and the venue still holds the name")}
++    try:
++        broker.halt_opening_orders(reason)
++        out["open_halted"] = True
++    except Exception as e:                                   # noqa: BLE001 — every rung isolated
++        out["errors"].append(f"halt_opening: {type(e).__name__}: {str(e)[:80]}")
++    try:
++        _snap = getattr(broker, "account_snapshot", None)
++        snap = _snap() if callable(_snap) else None
++        if snap is None:
++            raise RuntimeError("account_snapshot unavailable — the re-check has no venue reading")
++        contracts = snap.get("positions_contracts") or {}
++        notionals = snap.get("positions_notional") or {}
++        to_flatten: Dict[str, float] = {}
++        for s in names:
++            exp = (per.get(s) or {}).get("expected_if_known_qty")
++            held = float(contracts.get(s, 0.0) or 0.0)
++            diff = (held - float(exp)) if exp is not None else held
++            mark = (abs(float(notionals.get(s, 0.0) or 0.0) / held) if held else None)
++            usdt = (abs(diff) * mark) if (mark and mark > 0) else None
++            act = bool(held) and usdt is not None and usdt > dust
++            out["recheck"][s] = {"venue_qty": held, "expected_if_known_qty": exp, "unexplained_qty": diff,
++                                 "unexplained_usdt": usdt, "mark": mark, "flatten": act}
++            if act:
++                to_flatten[s] = diff
++        if to_flatten:
++            orders = broker.flatten_all(to_flatten, reason) or []
++            out["flatten_orders"] = orders
++            try:
++                out["rows_written"] = _write_flatten_rows(rows_root, orders, ev["evaluated_utc"], reason)
++            except Exception as e:                           # noqa: BLE001
++                out["errors"].append(f"flatten rows NOT written: {type(e).__name__}: {str(e)[:80]}")
++            try:
++                s2 = _snap() if callable(_snap) else None
++                out["readback_rows_written"] = write_flatten_readback(
++                    rows_root, (s2 or {}).get("positions_notional"), {o.get("symbol"): 1 for o in orders},
++                    time.time(), reason, venue_qty=(s2 or {}).get("positions_contracts"))
++            except Exception as e:                           # noqa: BLE001
++                out["errors"].append(f"flatten readback NOT written: {type(e).__name__}: {str(e)[:80]}")
++    except Exception as e:                                   # noqa: BLE001
++        out["errors"].append(f"recheck: {type(e).__name__}: {str(e)[:80]}")
++    try:
++        os.makedirs(os.path.dirname(alarm_path), exist_ok=True)
++        with open(alarm_path, "a") as f:
++            f.write(json.dumps({"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "severity": "HIGH",
++                                "msg": (f"局部响应 (E-0912-A c): {len(names)} 名 execution_of_unknown_size, 场所记录自洽 — 停开仓, "
++                                        f"仅复核这些名 (reduce-only), 全书未平; 复核后补平 {len(out['flatten_orders'])} 张; 需人工恢复"),
++                                "reason": reason, "names": names, "recheck": out["recheck"],
++                                "flatten_orders": len(out["flatten_orders"]), "errors": out["errors"],
++                                "open_orders_halted": out["open_halted"], "book_flattened": False,
++                                "human_action_required": True}, default=str) + "\n")
++        out["alert_local_write_ok"] = True
++    except Exception as e:                                   # noqa: BLE001
++        out["errors"].append(f"alert_write: {type(e).__name__}: {str(e)[:80]}")
++    if verbose:
++        print(f"  ★★ local response: names={names} halt={out['open_halted']} flattened={len(out['flatten_orders'])} "
++              f"alert_local={out['alert_local_write_ok']}", flush=True)
++    return out
+ 
+ 
+ def _clip(text, limit):
+@@ -2538,6 +2662,24 @@ def run(root, *, broker=None, venue_events, ops_stats, verbose=True, state_dir=N
+         with open(os.path.join(sdir, "events.jsonl"), "a") as f:
+             f.write(json.dumps({"ts": ev["evaluated_utc"], "triggers": ev["triggers"],
+                                 "actions": broker.actions}, default=str) + "\n")
++    elif ev.get("local_responses"):
++        # ★ E-0912-A (c): reachable ONLY with UNKNOWN_SIZE_LOCAL_RESPONSE True (evaluate fills the list only then). A
++        #   trip outranks it (the `if` above). The state carries `tripped_at` so the anchor's 0b halt re-applies the
++        #   opening halt across processes (anchor_loop reads `tripped_at`/`reduce_only`), and `kind` says which it is.
++        reason = "; ".join(lr["reason"] for lr in ev["local_responses"])
++        _lr = _local_response(broker, ev, reason, os.path.join(sdir, "ALARM.log"),
++                              rows_root or os.path.join(sdir, "pilot_log"), verbose=verbose)
++        ev["local_response"] = _lr
++        state = {"reduce_only": bool(state.get("reduce_only", False)), "kind": "local_response", "local_response": _lr,
++                 "open_orders_halted": getattr(broker, "open_orders_halted", False),
++                 "tripped_at": state.get("tripped_at") or ev["evaluated_utc"],
++                 "last_action_utc": ev["evaluated_utc"], "reason": reason, "flatten_ok": None,
++                 "resume_requires": ("a deliberate manual action — opening orders are HALTED (the anchor re-applies it from "
++                                     "this file); the book was NOT flattened and reduce-only exits still pass "
++                                     "(E-0912-A (c) local response). Per §9-F7 no protocol v2 may be drafted for >=72h.")}
++        with open(os.path.join(sdir, "events.jsonl"), "a") as f:
++            f.write(json.dumps({"ts": ev["evaluated_utc"], "triggers": [reason], "local_response": True,
++                                "actions": broker.actions}, default=str) + "\n")
+     # ★★ B19: ARCHIVE THE OUTGOING STATE BEFORE OVERWRITING IT.
+     # Measured on the real incident: the 00:17Z trip wrote a state saying "47 name-anchors" with
+     # `errors: ["flatten attempt 1: BrokerUnavailable: order submission failed for 53/54"]` and
+diff --git a/live/watchdog_inputs.py b/live/watchdog_inputs.py
+index 54f6951..bdf1446 100644
+--- a/live/watchdog_inputs.py
++++ b/live/watchdog_inputs.py
+@@ -112,8 +112,19 @@ def derive_ops_stats(root, days=None):
+         # honest. (0C found it; the note above cond7's own blind flag says NO INPUT IS NOT A PASS,
+         # and that flag guards `ops == []` but not `n_reconciled == 0`. Blind states have twins.)
+         _no_comparison = _rec["last_reconciled_ats"] is None
++        # ★ E-0912-A (c): §4-7 reads the SAME partition §4-5b reads, under the SAME switch — one comparison, one rule.
++        #   With the switch off (default) this is byte-for-byte `bool(_rec["latest"])`, as before.
++        try:
++            import watchdog as _WDs
++            _local_switch = bool(getattr(_WDs, "UNKNOWN_SIZE_LOCAL_RESPONSE", False))
++        except Exception:                                    # noqa: BLE001 — a missing switch is the default (off)
++            _local_switch = False
++        _lat = (_rec.get("latest_if_local_response", _rec["latest"]) if _local_switch else _rec["latest"])
+         out[-1]["unrecovered_position_drift"] = (None if _no_comparison
+-                                                 else bool(_rec["latest"]))
++                                                 else bool(_lat))
++        out[-1]["drift_local_response"] = {"switch": _local_switch,
++                                           "eligible": bool((_rec.get("unknown_size_local") or {}).get("eligible")),
++                                           "n_latest_all": len(_rec["latest"]), "n_latest_for_drift": len(_lat)}
+         out[-1]["drift_comparison_happened"] = not _no_comparison
+         out[-1]["drift_caliber"] = ("STATE: the most recent reconciled anchor only "
+                                     "(shared with §4-5b); history is not accumulated")
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 025680c..1aa5189 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -184,6 +184,7 @@ SUITE_SCOPE = {
+     "tests_venue_cap_clamp": "that the venue's cap is the number symbolConfig reports — it proves the pure clamp (shrink-only, sign-preserving, cap 0 and missing config untouched, over-cap positions reduced to the limit, PIEVERSE replica) and the wiring order pop→reshape→held-clamp→cap-clamp→plan. It cannot see whether the venue evaluates -2027 on mark price or on order price (the 2% margin is a policy number, not a measurement), nor whether a cap changes between arm and submit, nor whether the book's net shift from the clamp is worth hedging",
+     "tests_request_identity_unknown": "that the venue will ever produce these sequences — every outcome is injected. It proves, against the real submit/requote/top-up/attribution/reconcile code, that a -2013×2 'absent' is carried as ambiguous and never re-sent this anchor, that every venue request has its own client id (-1/-2/-3/-3cN) and the resolver refuses a record under another id, that an UNKNOWN request survives a later refusal and a partial attribution, that reconcile consumes the unknown as an authorised band instead of a hole, that 408/-1007/-1006 are execution-unknown, and that the cap clamp validates and applies atomically; round 4 (review 62ebf9f8): that the top-up keeps a per-request ledger in which a rejected or never-sent request contributes NOTHING to the unknown bound, that the known part keeps its sign when child fills settle it, that attribution shrinks the unknown by request identity (orderId join) and closes the leg only when no request is left unknown, that reconcile sums per-request QUANTITY intervals (Minkowski, mixed directions do not cancel, mark-independent) and treats non-finite or side-less rows as unquantifiable, that an ambiguous maker absent from a FULL allOrders page stays UNKNOWN and is settled only by its own order query (-2013 ⇒ absent), that an UNKNOWN symbol gets a bounded maker row instead of a hole, that flatten retries mint distinct ids, that legs are keyed by (symbol, orderId), and that an id over 36 chars is refused rather than truncated. round 5 (review cfaf1bbe): that the row's quantity comes from each request's own executedQty on every path (two prices ⇒ 100, never 150/2), that a child fill raises a request's confirmed quantity without ending it (band = what it may still fill; the leg closes only when every request is terminal), that contradictions (over-fill, wrong side, non-finite) are checked before any classification and keep the leg open, that child fills are de-duplicated by trade id and confirmed quantity is monotone, that an order the venue shows OPEN is cancelled and re-queried and stays UNKNOWN if still open, that cancel-unresolved symbols are UNKNOWN, that the breaker records the maker leg before refusing the top-up, that target/held are validated for every name before the cap logic, and that flatten recovery keys by (symbol, orderId) with a process-wide id counter. It does NOT prove phase B's allOrders/order reads (mocked here) resolve every leg on the real venue, nor that the venue's -2013 after the k-window is final (a stated venue-consistency assumption), nor that two PROCESSES in the same UTC second cannot mint the same flatten id, nor that the latest-only reconcile baseline carries an unexplained residual forward (registered for pre-registration, not implemented). Round 6 (review ce7b3cf4): that a later terminal fact for a request (cancel + re-query in settlement) supersedes the k-cancel's unresolved set by request and clears its pin, that a terminal request with a trusted executed quantity has no remainder whether or not its USDT amount was readable (C = Q with an unknown amount is a KNOWN quantity), that a missing executedQty is not a measured zero, that a ledger row is quantified by its ledger only (no amount-over-subset-price fallback), that the bounded reader validates its price, that a conflicting duplicate trade id is a contradiction, that an open order's executed-so-far reaches the row when its cancel fails, and that the pre-flight uses the plan's real chunk count. Round 7 (review a99c447e, from the fact table docs/DESIGN_request_fact_model): that the ORIGINAL complete_anchor chain (real broker over a scripted transport → cancel → allOrders → order query → top-up → attribution → rows) keeps a readable executedQty when the amount is unreadable (CANCELED 4 ⇒ filled_qty 4, position 10 ⇒ anomaly 6), that three explicit refusals at an unchanged position (0 and 1) leave a determined filled_qty 0 and no anomaly (the round-6 false trigger), that the decoder and the allOrders fold record contradictions (negative executedQty, explicit 0 beside a positive amount) instead of zeros, that an allOrders-terminal request resolves the k-cancel's unresolved set and pin, and that the ledger reader owns the row's columns at emission (a branch cannot clear them). Round 8 (review 82cbe018): that the submit response and the amount re-query are MERGED per field (a record lacking executedQty never revokes an earlier 20; an explicit terminal 0 read at the GET entry is a measured zero; a falling executedQty or NEW after terminal is a contradiction), that an allOrders match resolves the k-cancel's unresolved set only with an explicit terminal status AND our identity (no status ⇒ exact query; origQty/symbol/side mismatch ⇒ UNKNOWN), that a fold contradiction makes the name UNKNOWN end to end (no top-up, reader refuses), and that with a ledger the row's amount and price are the reader's (an unclosed ledger writes None and relabels). It does NOT run phase C or the watchdog itself (reconcile is called on the emitted rows), its venue is FakeNet. Round 9 (review b92e9479, DESIGN §3c): that a derived quantity or amount comes from ONE record (an amount 40 in one snapshot and a price 3 in another derive nothing — C unknown, 40 a lower bound, the row a band), that a terminal executedQty is CONSTANT (20 then 30 is a contradiction end to end; a terminal record without a C may still learn it; child fills beyond a terminal C are a contradiction), that the k-cancel's DELETE body is a record of the request (CANCELED 4 survives a sparse terminal query ⇒ top-up 6; a differing terminal 6 ⇒ contradiction, no top-up; an unreached symbol's UNKNOWN row carries the 4; -2013 after a cancel with facts is a contradiction, not absent), that a sparse terminal record (no executedQty, no cumQuote) is unreadable rather than 0, that the identity gate governs FACTS (a record failing it makes the request unmeasurable instead of entering the ledger as C 4 / terminal; a missing side, a non-finite origQty and an orderId other than the acknowledged one fail it; a side-less fill is never read as SELL), that contradictions travel with the facts on the partial path (query and page agree), and that the amount re-query's record must be OUR request (client id / symbol / orderId / origQty / side compared when the record carries them; a mismatch makes the request unmeasurable). Round 10 (review 38808cbd, DESIGN §3d): that a quantity carries its COMPLETENESS TYPE (an open snapshot's 20 followed by a terminal record without a quantity is a lower bound — [20, Q], known 70 / band 30 beside a second leg of 50, legal 70–100 CLEAN, 60 and 110 anomalies — while a terminal snapshot's 20 is final; a child-fill subset raises the lower bound and never proves the total; a child set that reaches Q does), that every UNKNOWN exit first folds the records already held (a CANCELED 4 survives an exhausted or -2013 query — the latter as a contradiction; a settlement cancel that answered CANCELED 6 survives a failed re-query; the submit response's own PARTIALLY_FILLED 4 is the first record; a status-only DELETE body proves existence and terminality, so -2013 after it is a contradiction, not absent), and that two final snapshots with different amounts contradict. Round 11 (review f79dc8cd, DESIGN §3e): that a final amount is never divided by a lower-bound quantity to make a price, that a maker leg the venue told us about carries a request ledger so its quantity is the reader's band (open 4 / final amount 6 ⇒ known 4 / band 6, total [8, 14] beside a top-up of 4), that a non-object query answer still folds the records already held, that a child subset's amount is a lower bound (the amount closes only with the set; reconcile reads a ledger row's band whether or not its amount closed), that a missing or None finality key is NOT final (no legacy fallback) while a lower bound reaching Q is final by capacity, that a top-up response without a status proves no finality, and that the submit record is bound by the client id WE sent (a response naming another id lends no orderId and fails the present-field gate). Round 12 (review 83fcbbcc, DESIGN §3f / §5 field-by-reader table): that the submit response's direct reader checks the body against the order we sent before reading a number (a body naming another client id is a contradiction, and no re-query is made under that id), that a merged record whose quantity 0 is a LOWER BOUND is compatible with a positive final amount (NEW 0 → fills → cancel with an amount-only terminal read ⇒ known 0 / band 10 / amount 4, total [6, 16] beside a top-up of 6) while a raw same-snapshot 0-beside-amount stays a contradiction, that a final amount is constant against child fills and a subset's amount may not exceed it, that a duplicate trade id without a quote never erases a recorded quote, that a child subset's vwap goes to its own column and never becomes the row's price, that an amount known beside an unknown quantity is the interval [0, Q] (known 0 + band, on the UNKNOWN row and the normal maker ledger alike — a contract choice registered in DESIGN §3f.6), and that explicit zeros carry the amount's finality. Round 13 (review ec2fe835, DESIGN §3g): that the child-fill amount LOWER BOUND (Σ over the children that carry a quote) is compared against a final amount without waiting for the others (5/N50 + 5/N-missing against a final 40 is a contradiction), that a non-finite ledger amount is flagged even when the quantity is missing, that every identity gate reads a present-but-malformed field (empty side, non-finite origQty) as a contradiction and an absent one as no evidence (one `identity_field` for the submit gate, the re-query gate and the settlement's present-field gate), and that the two cost diagnostics (neutrality_price, chase_readout.collect) measure bps over PRICED fills only and report the unpriced count / notional / fee beside it (no priced fill ⇒ None, never 0). Round 14 (review d51cb731): that an order id is a LOSSLESS integer everywhere it is read (a fraction is never truncated, ±Inf never raises through complete_anchor, text is malformed even without an acknowledged id to compare with; the child-fill joins skip and count such ids), and that the two cost diagnostics count a fill as MEASURED only with a usable price AND a known fee (fee_paid None ⇒ fee-unknown bucket, never a free fill; NaN / negative prices ⇒ unpriced), with the bps key's denominator explicitly documented as the measured fills, and that a fee written as a raw non-USDT sum without a completed conversion (fee_all_usdt False, no fee_conversion) is fee-unknown, not a known fee. Round 15 (review 1ef6ce8c): that an order id is read as EXACT text or exact value — a digit string is parsed with arbitrary precision (never through float: '9007199254740993' stays itself, two ids near 2^53 never merge, the stored value never changes), a float at or beyond 2^53 or any fractional text is malformed — through the gates, the acknowledged-id lookup and the child-fill joins (an outside fill with a neighbouring id is not attributed and does not close our open request), that the reshape report's neutrality section cites the MEASURED count and notional and explains a None price by its bucket, and that the fee value, currency flag and conversion marker on a row come from the same write (a re-stamp clears the earlier marker). It does NOT prove the venue's DELETE body always carries the final executedQty (documented, assumed), nor that two differing terminal readings can never both be genuine (a venue-side correction would need its own evidence type).",
+     "tests_reduce_only_clamp": "that the venue always CLAMPS a reduceOnly order that exceeds the position rather than refusing it — observed on 2026-09-12 12Z (MEMEUSDT/POPCATUSDT, origQty = the position to the contract, no error) and documented, assumed general; and that the allOrders record of a clamped request has the shape this suite rebuilds from the submit response + the child fills (the live record was not logged). It proves, against the real gates (`submit_identity_mismatch`, `last_fill_details`, `venue_fills.settle_ambiguous_legs`) driven by the REAL 12Z submit responses and the REAL 08Z/12Z readbacks, that a reduceOnly record whose origQty is BELOW ours is the fourth state `clamped` (recorded, orig_qty = the position, no `inconsistent`), that an origQty ABOVE ours, a non-reduceOnly difference and a wrong side are still contradictions at every gate (the 1e-6 tolerance is untouched), that `plan()` sizes a full exit as −held_qty from the same account snapshot (F2 removed at the source; no quantity ⇒ the old path, labelled `notional_over_mid`), and end to end through the unmodified plan→submit_maker→complete_anchor chain over a scripted transport that the maker rows close on the venue's capacity (`qty_venue`) and `reconcile` measures both names at residual 0 where the old code produced 2 × execution_of_unknown_size (the incident, reproduced from the live rows as a control; the origQty-above-ours mutation of the same chain still produces the 2 anomalies). It does NOT run the watchdog (the proportional response is (c), a separate ruling), nor prove that mark ≠ mid is the ONLY way ours can exceed the position.",
++    "tests_unknown_size_local_response": "that a LOCAL response is the right response — that is the user's ruling, and this suite only makes the ruling a one-line flip with both sides tested. It proves, on the real 2026-09-12 12Z rows laid out as a pilot_log day, that `watchdog.UNKNOWN_SIZE_LOCAL_RESPONSE` defaults to False and that with it False the incident's response is unchanged (§4-5b + §4-7 trip, the ladder's flatten_all, `degradation` in state) while reconcile RECORDS the eligibility (2 names, 0.65% of gross, venue records self-consistent); that with it True the same rows halt opening + write a HIGH alert + re-check those two names reduce-only and flatten NOTHING (no trigger, §4-7 reads the same partition, state kind local_response with tripped_at so the anchor re-applies the halt), that the re-check flattens only the unexplained part of a NAMED name above the dust floor and writes its rows, and that 6 names / 3% of gross / a readback the known part does not explain / child fills that do not add up / another anomaly kind / no anchors row / an unrelated trigger all still run the full ladder with the switch on. It does NOT prove the venue re-read at response time is fresher than the readback the anomaly was judged on (MockBroker), nor that the off-box page fires (the anchor reads `tripped_at`, unchanged), nor that 2% / 5 names are the right numbers (policy, frozen before data).",
+     "tests_income_twin_rows": "that the venue keys income rows the way the fixture does — it proves, against an in-process fake of /fapi/v1/income, that a trade's COMMISSION and REALIZED_PNL twins (same tranId) are BOTH summed, that a row re-served across a page boundary is still counted once, and that the old tranId-only key would have dropped exactly one twin per trade (positive control). Whether the venue also shares tranIds across OTHER pairs of types, or emits a third row per trade in some product, is a fact about the venue that only the live ledger reconciliation (income vs fills) can keep proving.",
+     "tests_transport_resilience": "that the VENUE will be reachable on the resend — it proves, against an in-process fake of urlopen, that a request-phase failure on GET/DELETE is resent a bounded number of times while an order POST is NEVER resent under any failure — transport in either phase, HTTP 5xx, 200 non-JSON — but settled only by the venue's own order record (found ⇒ adopted, -2013 twice ⇒ recorded as not sent, else ambiguous), that the requote carries ambiguity as rested and the top-up keeps a confirmed chunk and writes UNKNOWN never zero, that a still-unresolvable POST is carried as possibly-resting, that the executor records transport rows and trips its circuit breaker, and that an exception escaping the submit loop cancels what rested, writes rows and pages before re-raising. It cannot see whether the venue actually processed a request whose answer we lost when the query ALSO fails (that order is handed to phase B as possibly-resting and to the next sweep), nor whether a 0.5 s pause is long enough for the venue to have decided before we ask it, nor whether Telegram delivers the page",
+     "tests_stale_order_sweep": "that the VENUE lists an order we left behind — the whole sweep rests on openOrders returning it. If the venue omitted a resting order, or if a fill landed between the query and the cancel, this would look identical and the stale order would survive. It closes the gap between anchors, not the gap inside one",
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index f9f83e9..8324fd0 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -165,6 +165,9 @@ SUITES=(
+   # E-0912-A (2026-09-12 12:47Z false-positive flatten): a reduce-only exit CLAMPED by the venue to the position is the
+   # FOURTH identity state, not a contradiction; a full exit is sized as the position itself. Real 12Z rows, real chain.
+   "tests_reduce_only_clamp:$_SELF/live/tests_reduce_only_clamp.py"
++  # E-0912-A (c): the PROPORTIONAL response to a venue-consistent execution_of_unknown_size, behind
++  # watchdog.UNKNOWN_SIZE_LOCAL_RESPONSE (default False = today's ladder); both branches asserted on the real 12Z rows.
++  "tests_unknown_size_local_response:$_SELF/live/tests_unknown_size_local_response.py"
+   "tests_venue_rate_authority:$_SELF/live/tests_venue_rate_authority.py"
+   "tests_filters_cache_per_mode:$_SELF/live/tests_filters_cache_per_mode.py"
+   "tests_rate_backstop_window:$_SELF/live/tests_rate_backstop_window.py"

@@ -28,3 +28,10 @@ W1 落地(13:36Z 窗)→ 09-13 01:30Z 首次写账本 → W5 写码 + 克隆电�
 
 ## §4 不做
 不复活 jpline 影子监控(用户裁定 08-06); 不在步 9 里直接算 IC(#55 已是那台仪器, 两处算会分叉); 不改 #55 阈值(R-11 另裁)。
+
+## §5 更正(2026-09-12 14:4xZ, 研究员 563e3470 `monitoring/RESULT.md` §4, 全部接受; 落码前须按此改)
+1. **字段**: W1 `append_eval` 写 `eval_at / eval_at_iso`(非 `at`; `at` 只在 state.last_eval)⇒ §2-3 与测试改读 `eval_at`; 正控须用真实 W1 eval 形状, 不用自造对象。
+2. **frontier**: W1 `census.frontier_ts` 是随 now 推进的**期望**成熟网格, 账本冻结它也前进; eval 无 `newest_scored_anchor`, `judged_windows` 只是 r24/r48 两个名 ⇒ 「从 judged_windows 看最新锚」无事实可读。改为: W1 显式输出 observed latest anchor / label maturity 与 expected frontier 两字段, W5 分别验证; 单测用「eval 很新但数据冻结」的真实形状。
+3. **命名**: #55 是持仓排序诊断, 非模型分数 IC、非 carry/cost、非净 alpha; 阈值来自不同 α/band 书 ⇒ 消费者改名「持仓排序监控 / 监控输入健康」, 不得叫「因子衰减 HIGH」, 不宣称补齐模型有效性或整书净 alpha 监控。
+4. **三态**: 产物断言 #9 可认证「监控成功运行且诚实报告 INCOMPLETE」, 但不能继续叫「decay monitored on deployable caliber」后对任意非空 `not_judged_reason` 放行; 首日 30 h 宽限须绑定固定部署时点, 不随每次运行/缺文件重置。
+5. **通知职责**: W1 自发 ALERT/DECIDE; W5 不得每锚把同 level 再转 HIGH(第二条内容不同的报警流, hash 去重不跨 producer)⇒ W5 只报「来源缺失/过期/不可判」, 策略越线页归 W1; partial 状态传播方式写明。

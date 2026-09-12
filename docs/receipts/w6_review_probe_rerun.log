@@ -1,0 +1,102 @@
+# W6 regression run of the independent review's probe (563e3470) — 2026-09-12T14:29:21Z; command: cd /Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_batch_incident_review_2026-09-12/incident && python3 -B probe_incident.py
+{
+  "incident": {
+    "rid": "A1789215839",
+    "flatten_orders": 255,
+    "flatten_filled_gross_usdt": 235382.55349713,
+    "slippage_n_weighted_usdt": 126.89820466810626,
+    "slippage_bps": 5.3911474228974035,
+    "priced_orders": 255,
+    "fill_ts_min": 1789217259.196,
+    "fill_ts_max": 1789217401.011,
+    "fee_estimate_at_5bps_usdt": 117.691276748565,
+    "fee_estimate_is_not_measured": true,
+    "names": {
+      "MEMEUSDT": {
+        "sent_qty": 1933986.0,
+        "venue_orig_qty": 1933692.0,
+        "children_qty": 1933692.0,
+        "known_qty": -1933692.0,
+        "remaining_qty": 294.0,
+        "fee_paid_usdt": 0.20303766,
+        "old_identity_error": "response origQty 1933692.0 differs from ours 1933986.0",
+        "new_identity_error": null,
+        "new_clamped": {
+          "clamped": {
+            "ours": 1933986.0,
+            "venue": 1933692.0,
+            "why": "reduceOnly clamped to position"
+          }
+        },
+        "w6_plan_qty": -1933692,
+        "w6_qty_source": "venue_position_qty"
+      },
+      "POPCATUSDT": {
+        "sent_qty": 10435.0,
+        "venue_orig_qty": 10434.0,
+        "children_qty": 10434.0,
+        "known_qty": -10434.0,
+        "remaining_qty": 1.0,
+        "fee_paid_usdt": 0.10181496000000001,
+        "old_identity_error": "response origQty 10434.0 differs from ours 10435.0",
+        "new_identity_error": null,
+        "new_clamped": {
+          "clamped": {
+            "ours": 10435.0,
+            "venue": 10434.0,
+            "why": "reduceOnly clamped to position"
+          }
+        },
+        "w6_plan_qty": -10434,
+        "w6_qty_source": "venue_position_qty"
+      }
+    },
+    "flatten_rows_in_frozen_orders": 255,
+    "flatten_rows_in_frozen_fills": 0,
+    "all_fills_during_flatten_window": 0,
+    "latest_frozen_fill_ts": 1789217079.969,
+    "old_rows_under_new_reconcile_latest": [
+      {
+        "symbol": "MEMEUSDT",
+        "kind": "execution_of_unknown_size",
+        "why": "request ledger inconsistent (fills beyond / against / non-finite for a request)"
+      },
+      {
+        "symbol": "POPCATUSDT",
+        "kind": "execution_of_unknown_size",
+        "why": "request ledger inconsistent (fills beyond / against / non-finite for a request)"
+      }
+    ]
+  },
+  "probe_cases": 12,
+  "new_policy_counterexamples": [
+    {
+      "case": "row_known_not_request_sum",
+      "venue_consistency": {
+        "ok": true,
+        "known_qty": 9.0,
+        "expected_if_known_qty": 9.0,
+        "residual_if_known_qty": 0.0,
+        "residual_if_known_usdt": 0.0,
+        "n_requests": 1,
+        "children_equal_confirmed": true,
+        "confirmed_equal_capacity": true,
+        "why": "child fills (within the request capacity) determine the quantity; readback == position + known part exactly"
+      },
+      "local_response_eligible": true,
+      "expected": "must not demote a contradiction to verified self-consistency"
+    },
+    {
+      "case": "infinite_gross_reference",
+      "local_response_eligible": true,
+      "reported_frac": 0.0
+    },
+    {
+      "case": "full_reconcile_identity_contradiction",
+      "latest_count": 1,
+      "local_response_eligible": true,
+      "latest_if_switch_enabled": []
+    }
+  ]
+}
+# exit code: 0

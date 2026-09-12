@@ -69,10 +69,10 @@
 ## §6 今日其他入库(次要, 供索引)
 PLAN `docs/PLAN_fix_all_gaps_2026-09-12.md`(11 项 G1–G11 + §3 状态 + §4 事故改序); STATUS 三问 `docs/STATUS_three_questions_2026-09-12.md`(+追问 +更正); 每锚深查 04Z/08Z/12Z 三节(journal); parabolic_onset 每日一跑 f6e48d4a(θ8 P 41/200, 未达复判); r18/r19/r20/r21 入档(见 CLOSEOUT); 记忆五条(E-0912-A / 用户硬反馈 / 月度链 / 尺子重标定 / 等)。
 
-## §7 待实验与未测格(全部按预注册判据; 「零录取」= 无一过 (A))
+## §7 待实验与未测格(全部按预注册判据; **「零获准换装」**: 历史某窗显著、确认性证据、风险/成本接受域、正式资格是四件事 —— 研究员 563e3470 §7 更正, 原「零录取 = 无一过 (A)」与同表 XIB 全周期 (A) 矛盾)
 | 项 | 状态 | 下一步 | 阻塞 |
 |---|---|---|---|
-| ~300 候选 + r8–r21 | 零录取(CLOSEOUT) | — | — |
+| ~300 候选 + r8–r21 | **零获准换装**(CLOSEOUT); 其中 XIB_LAG50 全周期 (A) 是历史显著结果, 非录取 | — | — |
 | 席位只看价格(你的第 1 点) | 腿层净额席位 ARM-S REJECT(−0.093/−0.089, 换手 +27%); 书路径净额 ARM-SB UNDECIDED(+0.084/+0.100 CI 含零, 停机 6→9) | **未测一格: 按比例缩放的 carry 罚 κ∈(0,1)**(便宜) | 无 |
 | 仓位级 FTRIM(r15) | UNDECIDED +0.018 含零; 2026 −0.20; 换手 +24% | 不推进 | — |
 | 慢滤波/免交易带 | 非对称带判负(带在进场侧净赚); 更慢角落(0.05, 2.5e-4)中位 1 年 +8.2% vs +0.3% 点估计, Δg CI 含零 | 影子臂候选 | 出口门 + 用户字 |
@@ -105,5 +105,25 @@ R-1 BNB 抵扣(建议恢复) · R-2 杠杆 2.0×(无建议) · R-3 XIB 影子 ·
 - 逐年表: 收据内含重算脚本口径; `arms_rec/C0_s42.npz` sha 在 `SHA256_arms_rec.json`。
 - 事故: `state/live/watchdog/{state,last_eval,trip_receipt}.json`, `events.jsonl` 末行, `pilot_log/20260912/{orders,fills,position_readback}.jsonl` 两名行(只读)。
 
-## §11 追记(W6/W7 交付后原地更新)
-(待)
+## §11 追记 1(2026-09-12 14:4xZ)—— 独立研究员复审 563e3470 已收, 逐项处置
+入口 `.claude/worktrees/codex-independent-20260907/docs/HANDOFF_batch_incident_independent_review_2026-09-12.md`; 总评 `.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_batch_incident_review_2026-09-12/``REVIEW.md` + 四份分审。**总判: 事故主因成立, W6(a)(b) 成立; 不签「全部闭环」; W6(c) 保持 OFF。** 我方处置(全部接受, 无一条不成立):
+| 研究员发现 | 处置 | 派给 |
+|---|---|---|
+| C1 (P1) W6(c) 「自洽」不核 request.inconsistent / row.known=Σ请求 C / gross 有限 ⇒ 身份矛盾可被降级为局部响应 | (c) 默认改回 **OFF**; 自洽谓词按 C1 三格重写为红→绿; C2 `_local_response` 符号边界单测; C3 措辞改「事故后制定的政策阈值」 | W6 |
+| 旧 12Z 两行交新 reconcile 仍 2 异常; 恢复动词受 cond5b 阻 | 历史重判 = **只读收据**(不改账本、不翻 state), T9 用真账本证 CLEAN | W6 |
+| 255 笔保护性平仓 0 fills / 费 255 None | 平仓路径自写 fills / 触发 userTrades 回填, 费实测而非 5 bps 估 | W6 |
+| 正控目录 V1/F3/F8 过度概括、V8 错、V11 不成立、V9 混三身份 | 目录 §更正 已写 | lead(本提交) |
+| B-R1 (P1) `V4_STAGES=refit` 越过上游门 | 每阶段 dispatch 前 require 前置票据(依赖图非文件顺序) | W7 |
+| B-R2 (P1 有条件) 判官不验收据记录的条件依赖(femat/signal_receipt) | 判官按收据 inputs_sha256 全部记录项自行定位并验; 新套件 `tests_judge_dynamic_deps.py`; 前身 `judge_v4.r5_f6850dc3.py` | W4 |
+| B-R3 (P2) 配置继承父环境; CLIP 可继承 RAW 补丁 | loader 要求键**在文件中**且先 unset; CLIP 命令显式清空 `DLWT_RAW_PATCH` | W7 |
+| B-R4 (P2) W7 `NONE` 不核 builder 身份; 新尾全 NaN 仍过 | NONE 绑 `pod_fea_ext_clamp.py` 钉 sha; 新尾质量门(先入 PREREG 修订) | W7 |
+| R5 旧脚本只有横幅 | 五个旧链脚本加 `V4_LEGACY_OK=1` 物理门 + 测试 | W7 |
+| W1-R1/R2/R3 恢复语义 / 冷却吞复发 / `--che` 缩写 | 恢复按触发窗口与事件; 冷却限同一事件; `allow_abbrev=False` 先解析后 import | W1 |
+| W2-R1/R2 m1 完整性位错(冻结文件)/ 截断收入仍算残差 / 「下界」措辞 / 覆盖率先 round | 消费者改用 cost_buckets 完整性, 不改冻结 `pilot_metrics.py`(冲突记 R-12b); 残差要求 complete; 「已读部分」 | W2 |
+| G2-A 原 829 名/≥40 天门未满足却写 PASS(实 28.66 天, 829 轴支持差 15.47–27.88%) | PREREG Phase 2 AMENDMENT: 原门 **NOT PASSED AS WRITTEN**, 新具名子门 G2-A′「当前 live450 精确通道平价」PASS; G2-C 仍必须 | lead(本提交) |
+| AMENDMENT 3 机理措辞「只能来自起点状态差」不唯一 | 改为「候选解释, 未排除历史缓存/辅助文件/左边界差」; 七通道 08Z→12Z 0/0 由研究员独立加强 | lead(本提交) |
+| 逐年表: 多读一锚(至 08-31 00Z, n9139 vs 钉 9138)、2024 g 0.486、算术 gross DD×2 ≠ 复利 NAV DD(2023 33.5% vs **28.92%**)、SE 表述错(Sharpe=mean/std; 收据 sharpe_se=√(2190/n); bootstrap 是均值的)、「全史 ≥44% 下界」是点读数非下界 | 收据勘误节已写; 日块 bootstrap Sharpe CI 全窗 [0.32, 2.28]、2026 [2.21, 6.79] 采纳为探索性诊断 | lead(本提交) |
+| W5 设计: 字段 `eval_at` 非 `at`; 期望 frontier ≠ 实际 frontier; 命名不得叫「因子健康」; 三态; 通知职责重叠 | DESIGN §5 更正已写, 落码前再审 | lead(本提交) |
+| 「零录取」措辞 | 改「零获准换装」(§7) | lead(本提交) |
+| 过程: W2 落地启动早于深查 | 已认; 顺序改为「事故事实冻结 → 待部署 diff 冻结 → 恢复证据齐备」 | lead |
+**未接受/无**。研究员保留的正面结论(F9 自绑正确、W6 按合约量退出正确、近期 combo 三锚连续精确、live450 七通道精确)与本方一致。W6/W7/W4/W1/W2 交付后追记 2。
