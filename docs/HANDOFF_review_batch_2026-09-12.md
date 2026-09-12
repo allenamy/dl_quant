@@ -127,3 +127,17 @@ R-1 BNB 抵扣(建议恢复) · R-2 杠杆 2.0×(无建议) · R-3 XIB 影子 ·
 | 「零录取」措辞 | 改「零获准换装」(§7) | lead(本提交) |
 | 过程: W2 落地启动早于深查 | 已认; 顺序改为「事故事实冻结 → 待部署 diff 冻结 → 恢复证据齐备」 | lead |
 **未接受/无**。研究员保留的正面结论(F9 自绑正确、W6 按合约量退出正确、近期 combo 三锚连续精确、live450 七通道精确)与本方一致。W6/W7/W4/W1/W2 交付后追记 2。
+
+## §11 追记 2(2026-09-12 15:1xZ)—— 研究链装置第二批入库 `942b3e73`(lead 复跑 328/328 + 19/19 后一次提交)
+| 件 | 落地 | 收据 | 请复核 |
+|---|---|---|---|
+| W7 十月门 | `v4_gate_step1_m.py` 79950786 / `v4_gate_step2_m.py` **0fe5ec55**(B-R4 后), 由冻结源经白名单行生成; PREREG 2290f191 先冻结, AMENDMENT 1 4a407f2b 先于 r2 运行 | pod2 `w7_gates/`: STEP1 78/0(字面 FAIL 同归档), STEP2 r2 31 等 + 唯一预注册新字段 `tail_quality`; 真合同 REQUIRE_FAIL(预期) | 合同批准对象 = **0fe5ec55**(非 455e3df4); §3.3 NONE 条件; tail 豁免规则 |
+| B-R1 | `chain_v4_monthly.sh` c6ea34fa: 每阶段 prereq_* 先于 dispatch(绑本合同 sha + 本月根) | [S] 45 格; 研究员探针 `W3_refit_subset_dispatches_without_upstream_receipts` True→False | 依赖图是否完整(arms/judge/export 的前置) |
+| B-R3 | `chain_lib.sh` 3cd82956: 46 键须为文件内 KEY= 行, 先 unset; 数据阶段五子进程 `env -i` + 白名单, CLIP `DLWT_RAW_PATCH=` | 探针 `omitted_SEEDS_inherited` 0→4 拒; CLIP 环境格 | **未做**: GPU 阶段未 env -i(W7 明写) |
+| B-R4 | NONE 须 合同钉 == preflight 钉 == 盘上 builder sha(`PREV_CLAMP_BUILDER_SHA256`); `tail_quality` 成员 ≥1 ∧ 有限比 ≥0.90 | 探针 `NONE_positive_without_identity` PASS→REFUSED; `new_tail_NaN` PASS→FAIL | 0.90 地板来自九月标定(min 0.9756) —— 是否合理 |
+| R5 | 五个旧链脚本 `V4_LEGACY_OK` 物理门, 裸调 rc 64 | [S] 各一格 | — |
+| B-R2(W4) | `v4_gate_common.py` 24e813f1 `require(recorded_extras)`; `judge_v4.py` **c2a81c48** 按收据 inputs_sha256 全部记录项自行定位并验; 前身 `judge_v4.r5_f6850dc3.py`; `make_sha_manifest` r0–r9 | `tests_judge_dynamic_deps.py` 19/19(含旧判官红); 探针 `changed_receipt_extra_omitted` True→False; `receipts/judge_floor_2026-09-12/r8/` | 收据无 inputs_path 时的拒绝语义 |
+| E-0912-B(W3) | `pod_export_bundle_v4.py` 42555a37 无 BUNDLE_OUT 即拒; 自检 `run_sandboxed()` + 静态禁裸调格 | `e0912b/`: tar 恢复 sha 先验, 8/8 对清单, **恢复后 v2 门 PASS + REQUIRE_OK 15:01:44Z**; ERROR_LEDGER E-0912-B | 自检沙箱规则是否覆盖全部真写者 |
+| 自检 | 151 → 228 → 278 → **328**(lead 复跑 ALL PASS; `tests_pipeline_gates_lead_final.log`), 新套件 19 | manifest rc 0 | 三人同文件并发编辑(W3/W7)—— 最终文件 sha 7181045d 在 lead 运行前后不变 |
+**仍开(诚实)**: mwf/refit/arms/judge/export 真数据未跑到底(GPU 禁); 十月合同批准 = 用户字(两门 sha); GPU 阶段 env 未清; r20 A1 收据以 e0912b 新收据替代(旧收据留档为过期)。**未入库**: W6(执行器)/ W1 / W2 仍在克隆, 待其电池与红集证明。
+
