@@ -1,0 +1,195 @@
+{
+ "device": "probe_original_gate.py",
+ "self_sha256": "929aef9dfd80c5f759f28a5a863511d489833c09f30a25552ae16baee599587a",
+ "utc": "2026-09-12T04:58:24Z",
+ "env_whitelist": {
+  "R20_OUT": null,
+  "R20_SCRATCH": null
+ },
+ "python": "3.14.4",
+ "numpy": "2.4.4",
+ "sources": {
+  "v4e_gate_export.py": "f814c728938482b876cbcaa31f200832d207a0f89387d58ed3e2d0d45448e214",
+  "v4_gate_common.py": "7b6d49a3de74df8840b8bdf5e6a20226505a5a8a6abf25d57f822d522cba2eb2",
+  "ELIGIBILITY_CONTRACT.json (frozen, read only)": "3299dc97ab0c90d51ac77297b605e5072bafd4cfaac954ab8655699c498f271b",
+  "reviewer_receipt": "076b759790603d9192f23e74fa5e7d56436e72a31799ea68b1d3b0c8872353ea",
+  "reviewer_probe_script": "5d2fcd87fa6fa07e65e6601d71ecd0110deb275d618276f4cf6b54d9eafc655c"
+ },
+ "method": "E5/E6/E7 block of the original gate exec'd verbatim on isolated synthetic books; real v4_gate_common.require against an isolated contract copy approving the original sha",
+ "ALL_REPRODUCED": true,
+ "table": [
+  {
+   "probe": "positive_shape_control",
+   "reviewer_E5_E6": true,
+   "reviewer_E7": true,
+   "ours_E5_E6": true,
+   "ours_E7": true,
+   "reproduced": true
+  },
+  {
+   "probe": "bare_PASS_wrong_signal_gate",
+   "reviewer_E5_E6": true,
+   "reviewer_E7": true,
+   "ours_E5_E6": true,
+   "ours_E7": true,
+   "reproduced": true
+  },
+  {
+   "probe": "signal_FAIL_negative_control",
+   "reviewer_E5_E6": true,
+   "reviewer_E7": false,
+   "ours_E5_E6": true,
+   "ours_E7": false,
+   "reproduced": true
+  },
+  {
+   "probe": "different_cost_and_ftrim_accepted",
+   "reviewer_E5_E6": true,
+   "reviewer_E7": true,
+   "ours_E5_E6": true,
+   "ours_E7": true,
+   "reproduced": true
+  },
+  {
+   "probe": "bad_fixed_PIN_negative_control",
+   "reviewer_E5_E6": false,
+   "reviewer_E7": true,
+   "ours_E5_E6": false,
+   "ours_E7": true,
+   "reproduced": true
+  },
+  {
+   "probe": "zero_W_and_infinite_pnl_accepted",
+   "reviewer_E5_E6": true,
+   "reviewer_E7": true,
+   "ours_E5_E6": true,
+   "ours_E7": true,
+   "reproduced": true
+  },
+  {
+   "probe": "unbound_shipped_bundle",
+   "reviewer": [
+    true,
+    true,
+    false
+   ],
+   "ours": [
+    true,
+    true,
+    false
+   ],
+   "reproduced": true,
+   "meaning": "[require before, after pred mutated, after registered input mutated]"
+  }
+ ],
+ "raw": {
+  "positive_shape_control": {
+   "E5_E6_books": true,
+   "E7_signal_provenance": true,
+   "_detail_first_book": {
+    "W_finite": true,
+    "gross_finite_pos": true,
+    "cfg_diffs": {},
+    "ok": true
+   },
+   "_E7_detail": {
+    "signal_receipt_PASS": true,
+    "signal_gate": "SIGNAL"
+   }
+  },
+  "bare_PASS_wrong_signal_gate": {
+   "E5_E6_books": true,
+   "E7_signal_provenance": true,
+   "_detail_first_book": {
+    "W_finite": true,
+    "gross_finite_pos": true,
+    "cfg_diffs": {},
+    "ok": true
+   },
+   "_E7_detail": {
+    "signal_receipt_PASS": true,
+    "signal_gate": "NOT_A_SIGNAL_GATE"
+   }
+  },
+  "signal_FAIL_negative_control": {
+   "E5_E6_books": true,
+   "E7_signal_provenance": false,
+   "_detail_first_book": {
+    "W_finite": true,
+    "gross_finite_pos": true,
+    "cfg_diffs": {},
+    "ok": true
+   },
+   "_E7_detail": {
+    "signal_receipt_PASS": false,
+    "signal_gate": null
+   }
+  },
+  "different_cost_and_ftrim_accepted": {
+   "E5_E6_books": true,
+   "E7_signal_provenance": true,
+   "_detail_first_book": {
+    "W_finite": true,
+    "gross_finite_pos": true,
+    "cfg_diffs": {},
+    "ok": true
+   },
+   "_E7_detail": {
+    "signal_receipt_PASS": true,
+    "signal_gate": "NOT_A_SIGNAL_GATE"
+   }
+  },
+  "bad_fixed_PIN_negative_control": {
+   "E5_E6_books": false,
+   "E7_signal_provenance": true,
+   "_detail_first_book": {
+    "W_finite": true,
+    "gross_finite_pos": true,
+    "cfg_diffs": {
+     "PHI": [
+      0.99,
+      0.45
+     ]
+    },
+    "ok": false
+   },
+   "_E7_detail": {
+    "signal_receipt_PASS": true,
+    "signal_gate": "NOT_A_SIGNAL_GATE"
+   }
+  },
+  "zero_W_and_infinite_pnl_accepted": {
+   "E5_E6_books": true,
+   "E7_signal_provenance": true,
+   "_detail_first_book": {
+    "W_finite": true,
+    "gross_finite_pos": true,
+    "cfg_diffs": {},
+    "ok": true
+   },
+   "_E7_detail": {
+    "signal_receipt_PASS": true,
+    "signal_gate": "NOT_A_SIGNAL_GATE"
+   }
+  },
+  "unbound_shipped_bundle": {
+   "require_before": true,
+   "require_after_exported_prediction_mutated": true,
+   "require_after_registered_input_mutated": false,
+   "reason_control": "input 'wide_fea_v4' changed since the receipt: c64991799e92 != a5006e06e2a4",
+   "registered_names": [
+    "wide_fea_v4",
+    "wide_fea_v4_meta",
+    "bundle_base",
+    "export_panel",
+    "bundle_cache",
+    "fund_aug",
+    "live_pins",
+    "book_dyn_s42",
+    "book_dyn_s2027",
+    "book_fix_s42",
+    "book_fix_s2027"
+   ]
+  }
+ }
+}

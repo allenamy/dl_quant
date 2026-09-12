@@ -1,0 +1,126 @@
+=== r20 pod2 positive control 2026-09-12T05:22:19Z load=1.41 2.95 3.19
+--- shas of the device files actually used
+d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e  /workspace/uplift_2026-09-11/r20_gate_closure/v4e_gate_export_v2.py
+abc45cad806c22d717d4924869b34d8e127dbe8e61fec07c00008e5df52a3ed0  /workspace/uplift_2026-09-11/r20_gate_closure/gate_signal_parity_v2.py
+7b6d49a3de74df8840b8bdf5e6a20226505a5a8a6abf25d57f822d522cba2eb2  /workspace/uplift_2026-09-11/r20_gate_closure/v4chain_PROPOSED2/v4_gate_common.py
+0169256597bc813e9f1425e399e4c3f22eaca5357f6dc1baeecf452a6e347329  /workspace/uplift_2026-09-11/r20_gate_closure/v4chain_PROPOSED2/ELIGIBILITY_CONTRACT.json
+3299dc97ab0c90d51ac77297b605e5072bafd4cfaac954ab8655699c498f271b  /workspace/uplift_2026-09-11/infra2/v4chain/ELIGIBILITY_CONTRACT.json
+7b6d49a3de74df8840b8bdf5e6a20226505a5a8a6abf25d57f822d522cba2eb2  /workspace/uplift_2026-09-11/infra2/v4chain/v4_gate_common.py
+python 3.11.10 numpy 2.4.6 scipy 1.17.1
+
+=== [1] GATE v2 on genuine A1 (JUDGE_HC=/workspace/review_scratch/health_check, bundle=/workspace/shadow_bundle_v4)
+  OK   E0_contract_baseline {"why": [], "contract_sha256": "0169256597bc813e9f1425e399e4c3f22eaca5357f6dc1baeecf452a6e347329"}
+  OK   E1_manifest {"n_files": 8, "mismatched": {}, "unlisted_files": []}
+  OK   E2_config {"param_diffs": {}, "keep_names_equal": true, "symbols_live_equal": true, "n_live": 450}
+  OK   E2b_pins_identity {"live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "approved": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d", "approved_base": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d"}
+  OK   E3_ic_gates {"recomputed_ic": {"2024": 0.05444, "2025": 0.06092, "2026": 0.05732}, "base_ic": {"2024": 0.0548, "2025": 0.063, "2026": 0.0571}, "delta": {"2024": -0.00036, "2025": -0.00208, "2026": 0.00022}, "tolerance": {"2024": 0.004, "2025": 0.004, "2026": 0.006}, "provenance_claimed": {"fold_ic_2024": 0.0544, "fold_ic_2025": 0.0609, "pinned_ic2026": 0.0573}}
+  OK   E4_baseline_guard {"recomputed_sharpe_2024on": 2.3044, "band": [2.27, 2.57], "provenance_claimed": 2.3, "n_anchors": 10177, "mean_net_bps": 1.0302}
+  OK   E5_books_shape {"n_baseline_symbols": 829, "book_dyn_s2027": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline": true, "rec_finite": true, "W_shape_ok": true, "W_finite": true, "n_frozen": 3168, "frozen_axis_ok": true, "frozen_axis_shared": true, "ts_grid_4h": true, "ok": true}, "book_dyn_s42": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline":
+  OK   E6_books_config {"files": {"COSTB_JSON": {"one_value_for_all_cells": true, "value": ["/workspace/review_scratch/health_check/calib/costb_fee_steady.json"], "exists": true, "sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "ok": true, "approved": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "resolves_to_approved_tiers": true}, "UMASK_NPZ": {"one_value_for_all_cell
+  OK   E7_signal_receipt {"applicable": false, "reason": "no FEMAT injection in any judged book; the king signal is bound by E3 (fold ICs re-derived from the shipped predictions)", "signal_receipt_consulted": false}
+  OK   E8_books_content {"book_dyn_s2027": {"K1_sum_absW_eq_gross_maxdev": 6.8131594810338925e-09, "K1_ok": true, "K2_turnover_eq_sum_absdW_maxdev": 7.317335376511025e-09, "K2_ok": true, "K3_netlong_eq_sumW_over_gross_maxdev": 8.540343335305955e-09, "K3_ok": true, "K4_identity_net_maxdev": 0.0, "K4_identity_net_ex_maxdev": 0.0, "K4_ok": true, "K6_gross_min_frozen": 0.33554012746856243, "K6_gross_max_all": 0.9678548799590
+  OK   E9_gross_band_vs_baseline {"band": [0.6, 1.6], "median_band": [0.8, 1.25], "baseline_arm": "A0", "book_dyn_s42": {"baseline_path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz", "baseline_exists": true, "baseline_sha256": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419", "baseline_sha_ok": true, "n_frozen_compared": 3168, "baseline_axis_covers_frozen
+EXPORT_GATE_V2 PASS []
+BUNDLE_export PASS -> /workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_v2_A1.json
+[1] rc=0 (20s)
+
+=== [2] REQUIRE v2 on that receipt (full floor + content gates re-run from disk)
+  OK   E0_contract_baseline {"why": [], "contract_sha256": "0169256597bc813e9f1425e399e4c3f22eaca5357f6dc1baeecf452a6e347329"}
+  OK   E1_manifest {"n_files": 8, "mismatched": {}, "unlisted_files": []}
+  OK   E2_config {"param_diffs": {}, "keep_names_equal": true, "symbols_live_equal": true, "n_live": 450}
+  OK   E2b_pins_identity {"live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "approved": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d", "approved_base": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d"}
+  OK   E5_books_shape {"n_baseline_symbols": 829, "book_dyn_s2027": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline": true, "rec_finite": true, "W_shape_ok": true, "W_finite": true, "n_frozen": 3168, "frozen_axis_ok": true, "frozen_axis_shared": true, "ts_grid_4h": true, "ok": true}, "book_dyn_s42": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline":
+  OK   E6_books_config {"files": {"COSTB_JSON": {"one_value_for_all_cells": true, "value": ["/workspace/review_scratch/health_check/calib/costb_fee_steady.json"], "exists": true, "sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "ok": true, "approved": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "resolves_to_approved_tiers": true}, "UMASK_NPZ": {"one_value_for_all_cell
+  OK   E7_signal_receipt {"applicable": false, "reason": "no FEMAT injection in any judged book; the king signal is bound by E3 (fold ICs re-derived from the shipped predictions)", "signal_receipt_consulted": false}
+  OK   E8_books_content {"book_dyn_s2027": {"K1_sum_absW_eq_gross_maxdev": 6.8131594810338925e-09, "K1_ok": true, "K2_turnover_eq_sum_absdW_maxdev": 7.317335376511025e-09, "K2_ok": true, "K3_netlong_eq_sumW_over_gross_maxdev": 8.540343335305955e-09, "K3_ok": true, "K4_identity_net_maxdev": 0.0, "K4_identity_net_ex_maxdev": 0.0, "K4_ok": true, "K6_gross_min_frozen": 0.33554012746856243, "K6_gross_max_all": 0.9678548799590
+  OK   E9_gross_band_vs_baseline {"band": [0.6, 1.6], "median_band": [0.8, 1.25], "baseline_arm": "A0", "book_dyn_s42": {"baseline_path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz", "baseline_exists": true, "baseline_sha256": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419", "baseline_sha_ok": true, "n_frozen_compared": 3168, "baseline_axis_covers_frozen
+REQUIRE_OK identity=True (PASS (BUNDLE_export, 2026-09-12T05:22:40Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=11)) content_failed=[]
+[2] rc=0
+
+=== [3] REAL-DATA NEGATIVE: copy of the bundle with ONE prediction cell changed (genuine bundle untouched)
+mutated cell (4338, 3)
+[3a] require the A1 receipt against the mutated copy (must FAIL: bundle/slow_pred_pinned.npy changed)
+  OK   E0_contract_baseline {"why": [], "contract_sha256": "0169256597bc813e9f1425e399e4c3f22eaca5357f6dc1baeecf452a6e347329"}
+  FAIL E1_manifest {"n_files": 8, "mismatched": {"slow_pred_pinned.npy": "0e92849ac9e5 != manifest dde19142d017"}, "unlisted_files": []}
+  OK   E2_config {"param_diffs": {}, "keep_names_equal": true, "symbols_live_equal": true, "n_live": 450}
+  OK   E2b_pins_identity {"live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "approved": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d", "approved_base": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d"}
+  OK   E5_books_shape {"n_baseline_symbols": 829, "book_dyn_s2027": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline": true, "rec_finite": true, "W_shape_ok": true, "W_finite": true, "n_frozen": 3168, "frozen_axis_ok": true, "frozen_axis_shared": true, "ts_grid_4h": true, "ok": true}, "book_dyn_s42": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline":
+  OK   E6_books_config {"files": {"COSTB_JSON": {"one_value_for_all_cells": true, "value": ["/workspace/review_scratch/health_check/calib/costb_fee_steady.json"], "exists": true, "sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "ok": true, "approved": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "resolves_to_approved_tiers": true}, "UMASK_NPZ": {"one_value_for_all_cell
+  OK   E7_signal_receipt {"applicable": false, "reason": "no FEMAT injection in any judged book; the king signal is bound by E3 (fold ICs re-derived from the shipped predictions)", "signal_receipt_consulted": false}
+  OK   E8_books_content {"book_dyn_s2027": {"K1_sum_absW_eq_gross_maxdev": 6.8131594810338925e-09, "K1_ok": true, "K2_turnover_eq_sum_absdW_maxdev": 7.317335376511025e-09, "K2_ok": true, "K3_netlong_eq_sumW_over_gross_maxdev": 8.540343335305955e-09, "K3_ok": true, "K4_identity_net_maxdev": 0.0, "K4_identity_net_ex_maxdev": 0.0, "K4_ok": true, "K6_gross_min_frozen": 0.33554012746856243, "K6_gross_max_all": 0.9678548799590
+  OK   E9_gross_band_vs_baseline {"band": [0.6, 1.6], "median_band": [0.8, 1.25], "baseline_arm": "A0", "book_dyn_s42": {"baseline_path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz", "baseline_exists": true, "baseline_sha256": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419", "baseline_sha_ok": true, "n_frozen_compared": 3168, "baseline_axis_covers_frozen
+REQUIRE_FAIL identity=False (input 'bundle/slow_pred_pinned.npy' changed since the receipt: 0e92849ac9e5 != dde19142d017) content_failed=['E1_manifest']
+[3a] rc=3
+[3b] gate on the mutated copy (must FAIL E1_manifest; E3 IC tolerance is blind to one cell)
+  OK   E0_contract_baseline {"why": [], "contract_sha256": "0169256597bc813e9f1425e399e4c3f22eaca5357f6dc1baeecf452a6e347329"}
+  FAIL E1_manifest {"n_files": 8, "mismatched": {"slow_pred_pinned.npy": "0e92849ac9e5 != manifest dde19142d017"}, "unlisted_files": []}
+  OK   E2_config {"param_diffs": {}, "keep_names_equal": true, "symbols_live_equal": true, "n_live": 450}
+  OK   E2b_pins_identity {"live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "approved": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d", "approved_base": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d"}
+  OK   E3_ic_gates {"recomputed_ic": {"2024": 0.05444, "2025": 0.06092, "2026": 0.05732}, "base_ic": {"2024": 0.0548, "2025": 0.063, "2026": 0.0571}, "delta": {"2024": -0.00036, "2025": -0.00208, "2026": 0.00022}, "tolerance": {"2024": 0.004, "2025": 0.004, "2026": 0.006}, "provenance_claimed": {"fold_ic_2024": 0.0544, "fold_ic_2025": 0.0609, "pinned_ic2026": 0.0573}}
+  OK   E4_baseline_guard {"recomputed_sharpe_2024on": 2.3044, "band": [2.27, 2.57], "provenance_claimed": 2.3, "n_anchors": 10177, "mean_net_bps": 1.0302}
+  OK   E5_books_shape {"n_baseline_symbols": 829, "book_dyn_s2027": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline": true, "rec_finite": true, "W_shape_ok": true, "W_finite": true, "n_frozen": 3168, "frozen_axis_ok": true, "frozen_axis_shared": true, "ts_grid_4h": true, "ok": true}, "book_dyn_s42": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline":
+  OK   E6_books_config {"files": {"COSTB_JSON": {"one_value_for_all_cells": true, "value": ["/workspace/review_scratch/health_check/calib/costb_fee_steady.json"], "exists": true, "sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "ok": true, "approved": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "resolves_to_approved_tiers": true}, "UMASK_NPZ": {"one_value_for_all_cell
+  OK   E7_signal_receipt {"applicable": false, "reason": "no FEMAT injection in any judged book; the king signal is bound by E3 (fold ICs re-derived from the shipped predictions)", "signal_receipt_consulted": false}
+  OK   E8_books_content {"book_dyn_s2027": {"K1_sum_absW_eq_gross_maxdev": 6.8131594810338925e-09, "K1_ok": true, "K2_turnover_eq_sum_absdW_maxdev": 7.317335376511025e-09, "K2_ok": true, "K3_netlong_eq_sumW_over_gross_maxdev": 8.540343335305955e-09, "K3_ok": true, "K4_identity_net_maxdev": 0.0, "K4_identity_net_ex_maxdev": 0.0, "K4_ok": true, "K6_gross_min_frozen": 0.33554012746856243, "K6_gross_max_all": 0.9678548799590
+  OK   E9_gross_band_vs_baseline {"band": [0.6, 1.6], "median_band": [0.8, 1.25], "baseline_arm": "A0", "book_dyn_s42": {"baseline_path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz", "baseline_exists": true, "baseline_sha256": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419", "baseline_sha_ok": true, "n_frozen_compared": 3168, "baseline_axis_covers_frozen
+EXPORT_GATE_V2 FAIL ['E1_manifest']
+BUNDLE_export FAIL -> /workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_v2_A1_mutated_bundle.json
+[3b] rc=3
+
+=== [4] SIGNAL GATE v2 for XIBLAG50 (bound receipt; panel = the one the device reads, v2ext)
+{
+ "arm": "XIBLAG50",
+ "stats": {
+  "rows": 10039,
+  "NEW_rankdata_rows_failing_rerank_identity": 0,
+  "OLD_argsort_rows_failing_rerank_identity": 9031,
+  "NEW_float32_roundtrip_rows_failing": 0,
+  "femat_ts_aligned": true,
+  "femat_symbols_aligned": true,
+  "femat_shape": [
+   10039,
+   829
+  ],
+  "femat_finite_frac": 0.37547124717822444
+ },
+ "PASS": true
+}
+S_BITWISE_signal PASS -> /workspace/uplift_2026-09-11/r20_gate_closure/receipts/S_BITWISE_signal_v2_XIBLAG50.json
+[4] rc=0
+
+=== [5] GATE v2 on XIBLAG50 (INFORMATIONAL — unregistered arm; JHC as the INFRA2 run used)
+  OK   E0_contract_baseline {"why": [], "contract_sha256": "0169256597bc813e9f1425e399e4c3f22eaca5357f6dc1baeecf452a6e347329"}
+  OK   E1_manifest {"n_files": 8, "mismatched": {}, "unlisted_files": []}
+  OK   E2_config {"param_diffs": {}, "keep_names_equal": true, "symbols_live_equal": true, "n_live": 450}
+  OK   E2b_pins_identity {"live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "approved": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece", "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d", "approved_base": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d"}
+  OK   E3_ic_gates {"recomputed_ic": {"2024": 0.05444, "2025": 0.06092, "2026": 0.05732}, "base_ic": {"2024": 0.0548, "2025": 0.063, "2026": 0.0571}, "delta": {"2024": -0.00036, "2025": -0.00208, "2026": 0.00022}, "tolerance": {"2024": 0.004, "2025": 0.004, "2026": 0.006}, "provenance_claimed": {"fold_ic_2024": 0.0544, "fold_ic_2025": 0.0609, "pinned_ic2026": 0.0573}}
+  OK   E4_baseline_guard {"recomputed_sharpe_2024on": 2.3044, "band": [2.27, 2.57], "provenance_claimed": 2.3, "n_anchors": 10177, "mean_net_bps": 1.0302}
+  OK   E5_books_shape {"n_baseline_symbols": 829, "book_dyn_s2027": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline": true, "rec_finite": true, "W_shape_ok": true, "W_finite": true, "n_frozen": 3168, "frozen_axis_ok": true, "frozen_axis_shared": true, "ts_grid_4h": true, "ok": true}, "book_dyn_s42": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match_baseline":
+  OK   E6_books_config {"files": {"COSTB_JSON": {"one_value_for_all_cells": true, "value": ["/workspace/review_scratch/health_check/calib/costb_fee_steady.json"], "exists": true, "sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "ok": true, "approved": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42", "resolves_to_approved_tiers": true}, "UMASK_NPZ": {"one_value_for_all_cell
+  OK   E7_signal_receipt {"applicable": true, "signal_receipt_path": "/workspace/uplift_2026-09-11/r20_gate_closure/receipts/S_BITWISE_signal_v2_XIBLAG50.json", "signal_receipt_present": true, "signal_receipt_sha256": "e6dbd52cbd2a818637bd40eb7361a6b3273bd892e17c6a488c98615967936a2d", "gate": "S_BITWISE_signal", "gate_approved": true, "self_sha256": "abc45cad806c22d717d4924869b34d8e127dbe8e61fec07c00008e5df52a3ed0", "sour
+  OK   E8_books_content {"book_dyn_s2027": {"K1_sum_absW_eq_gross_maxdev": 6.9664133350855195e-09, "K1_ok": true, "K2_turnover_eq_sum_absdW_maxdev": 7.3272109699096255e-09, "K2_ok": true, "K3_netlong_eq_sumW_over_gross_maxdev": 8.666459102441015e-09, "K3_ok": true, "K4_identity_net_maxdev": 0.0, "K4_identity_net_ex_maxdev": 0.0, "K4_ok": true, "K6_gross_min_frozen": 0.31804941033838763, "K6_gross_max_all": 0.923099966358
+  FAIL E9_gross_band_vs_baseline {"band": [0.6, 1.6], "median_band": [0.8, 1.25], "baseline_arm": "A0", "book_dyn_s42": {"baseline_path": "/workspace/uplift_2026-09-11/infra2/JHC/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz", "baseline_exists": true, "baseline_sha256": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419", "baseline_sha_ok": true, "n_frozen_compared": 3168, "baseline_axis_covers_froze
+EXPORT_GATE_V2 FAIL ['E9_gross_band_vs_baseline']
+BUNDLE_export FAIL -> /workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_v2_XIBLAG50.json
+[5] rc=3
+
+=== [6] ORIGINAL gate (f814c728) on genuine A1 for the side-by-side (its own receipt; frozen chain dir read only)
+  OK   E1_manifest {"n_files": 8, "mismatched": {}, "unlisted_files": []}
+  OK   E2_config {"param_diffs": {}, "keep_names_equal": true, "symbols_live_equal": true, "n_live": 450}
+  OK   E3_ic_gates {"recomputed_ic": {"2024": 0.05444, "2025": 0.06092, "2026": 0.05732}, "base_ic": {"2024": 0.0548, "2025": 0.063, "2026": 0.0571}, "delta": {"2024": -0.00036, "2025": -0.00208, "2026": 0.00022}, "tolerance": {"2024": 0.004, "2025": 0.004, "2026": 0.006}, "provenance_claimed": {"fold_ic_2024": 0.0544, "fold_ic_2025": 0.0609, "pinned_ic2026": 0.0573}}
+  OK   E4_baseline_guard {"recomputed_sharpe_2024on": 2.3044, "band": [2.27, 2.57], "provenance_claimed": 2.3, "n_anchors": 10177, "mean_net_bps": 1.0302}
+  OK   E5_E6_books {"book_dyn_s2027": {"has_rec": true, "cols_ok": true, "symbols_present": true, "symbols_match": true, "W_shape_ok": true, "W_finite": true, "n_frozen": 3168, "frozen_axis_ok": true, "frozen_axis_shared": true, "gross_finite_pos": true, "cfg_diffs": {}, "seat_ok": true, "seed_ok": true, "device_sha_ok": true, "device_sha": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d", "FEMAT_N
+  OK   E7_signal_provenance {"femat_per_book": {}, "one_femat_for_all_cells": true, "signal_receipt_present": true, "signal_receipt_PASS": true, "signal_receipt_sha256": "3941268bcc86ae60cc0327d7122a83d498d272fc813344c8ee9312fb1e0bed03", "signal_gate": "S_BITWISE_signal"}
+EXPORT_GATE PASS []
+BUNDLE_export PASS -> /workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_ORIGINAL_A1.json
+[6] rc=0
+
+=== shas of every receipt written
+95136b1ef27b6cf9af654ed76bac891700298727a72b47cb7a151a1c030c8ce3  /workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_ORIGINAL_A1.json
+d0e3cf4190be078e6a0e560557ba98ec4e2216e35ac9b43763abee079182ccdb  /workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_v2_A1.json
+668e695851481070284aa867af4f62759799ae3b3c1abe05a48cd505311534d6  /workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_v2_A1_mutated_bundle.json
+3ed789a88e6faac70ad60713776e57eb12b8ed60183bab4e740d6965aa3afab6  /workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_v2_XIBLAG50.json
+fe008d12f2815577866dd19eb02c512456b49425b53a8e1512e78c6c2adb1eda  /workspace/uplift_2026-09-11/r20_gate_closure/receipts/REQUIRE_v2_A1.json
+6e2fceb01a3e26ee1d959e8f59406fb148bfa1e6fcbe12a8afd5aa2ce8f2d1a2  /workspace/uplift_2026-09-11/r20_gate_closure/receipts/REQUIRE_v2_A1_mutated_bundle.json
+e6dbd52cbd2a818637bd40eb7361a6b3273bd892e17c6a488c98615967936a2d  /workspace/uplift_2026-09-11/r20_gate_closure/receipts/S_BITWISE_signal_v2_XIBLAG50.json
+=== DONE 2026-09-12T05:23:46Z load=1.92 2.77 3.11

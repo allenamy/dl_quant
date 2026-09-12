@@ -1,0 +1,393 @@
+{
+ "mode": "require",
+ "receipt": "/workspace/uplift_2026-09-11/r20_gate_closure/receipts/BUNDLE_export_v2_A1.json",
+ "gate_self_sha256": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+ "identity_and_inputs": {
+  "ok": true,
+  "why": "PASS (BUNDLE_export, 2026-09-12T05:22:40Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=11)",
+  "n_inputs_declared": 28,
+  "inputs": [
+   "base_dyn_s2027",
+   "base_dyn_s42",
+   "base_fix_s2027",
+   "base_fix_s42",
+   "book_dyn_s2027",
+   "book_dyn_s42",
+   "book_fix_s2027",
+   "book_fix_s42",
+   "bundle/cache_tail_40d.npz",
+   "bundle/config.json",
+   "bundle/fund_ema_v1_state.json",
+   "bundle/funding_ledger_seed.json",
+   "bundle/leg_returns.npz",
+   "bundle/parity_signals_aug.json",
+   "bundle/slow2026.txt",
+   "bundle/slow_pred_pinned.npy",
+   "bundle_base",
+   "bundle_cache",
+   "bundle_manifest",
+   "costb_json",
+   "eligibility_contract",
+   "export_panel",
+   "fund_aug",
+   "live_pins",
+   "slow_npy",
+   "umask_npz",
+   "wide_fea_v4",
+   "wide_fea_v4_meta"
+  ]
+ },
+ "content_checks": {
+  "E0_contract_baseline": {
+   "ok": true,
+   "why": [],
+   "contract_sha256": "0169256597bc813e9f1425e399e4c3f22eaca5357f6dc1baeecf452a6e347329"
+  },
+  "E1_manifest": {
+   "ok": true,
+   "n_files": 8,
+   "mismatched": {},
+   "unlisted_files": []
+  },
+  "E2_config": {
+   "ok": true,
+   "param_diffs": {},
+   "keep_names_equal": true,
+   "symbols_live_equal": true,
+   "n_live": 450
+  },
+  "E2b_pins_identity": {
+   "ok": true,
+   "live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+   "approved": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+   "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d",
+   "approved_base": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d"
+  },
+  "E5_books_shape": {
+   "ok": true,
+   "n_baseline_symbols": 829,
+   "book_dyn_s2027": {
+    "has_rec": true,
+    "cols_ok": true,
+    "symbols_present": true,
+    "symbols_match_baseline": true,
+    "rec_finite": true,
+    "W_shape_ok": true,
+    "W_finite": true,
+    "n_frozen": 3168,
+    "frozen_axis_ok": true,
+    "frozen_axis_shared": true,
+    "ts_grid_4h": true,
+    "ok": true
+   },
+   "book_dyn_s42": {
+    "has_rec": true,
+    "cols_ok": true,
+    "symbols_present": true,
+    "symbols_match_baseline": true,
+    "rec_finite": true,
+    "W_shape_ok": true,
+    "W_finite": true,
+    "n_frozen": 3168,
+    "frozen_axis_ok": true,
+    "frozen_axis_shared": true,
+    "ts_grid_4h": true,
+    "ok": true
+   },
+   "book_fix_s2027": {
+    "has_rec": true,
+    "cols_ok": true,
+    "symbols_present": true,
+    "symbols_match_baseline": true,
+    "rec_finite": true,
+    "W_shape_ok": true,
+    "W_finite": true,
+    "n_frozen": 3168,
+    "frozen_axis_ok": true,
+    "frozen_axis_shared": true,
+    "ts_grid_4h": true,
+    "ok": true
+   },
+   "book_fix_s42": {
+    "has_rec": true,
+    "cols_ok": true,
+    "symbols_present": true,
+    "symbols_match_baseline": true,
+    "rec_finite": true,
+    "W_shape_ok": true,
+    "W_finite": true,
+    "n_frozen": 3168,
+    "frozen_axis_ok": true,
+    "frozen_axis_shared": true,
+    "ts_grid_4h": true,
+    "ok": true
+   }
+  },
+  "E6_books_config": {
+   "ok": true,
+   "files": {
+    "COSTB_JSON": {
+     "one_value_for_all_cells": true,
+     "value": [
+      "/workspace/review_scratch/health_check/calib/costb_fee_steady.json"
+     ],
+     "exists": true,
+     "sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42",
+     "ok": true,
+     "approved": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42",
+     "resolves_to_approved_tiers": true
+    },
+    "UMASK_NPZ": {
+     "one_value_for_all_cells": true,
+     "value": [
+      "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz"
+     ],
+     "exists": true,
+     "sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+     "ok": true,
+     "approved": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5"
+    },
+    "SLOW_NPY": {
+     "one_value_for_all_cells": true,
+     "value": [
+      "/workspace/review_scratch/king_v4/SLOW_v4.npy"
+     ],
+     "exists": true,
+     "sha256": "dde19142d017c37dd9bae564ab4a32a4b9b068f6aef8acc91e7ea329f4f1c8a6",
+     "ok": true
+    },
+    "FEMAT_NPZ": {
+     "one_value_for_all_cells": true,
+     "value": [
+      "None"
+     ],
+     "exists": null,
+     "sha256": null,
+     "ok": true
+    }
+   },
+   "book_dyn_s2027": {
+    "key_set_exact": true,
+    "unknown_keys": [],
+    "missing_keys": [],
+    "cfg_diffs": {},
+    "seat_ok": true,
+    "seed_ok": true,
+    "device_sha_ok": true,
+    "cost_tiers_ok": true,
+    "FPRED": "f10_v4RAW_s2027.npy",
+    "ok": true
+   },
+   "book_dyn_s42": {
+    "key_set_exact": true,
+    "unknown_keys": [],
+    "missing_keys": [],
+    "cfg_diffs": {},
+    "seat_ok": true,
+    "seed_ok": true,
+    "device_sha_ok": true,
+    "cost_tiers_ok": true,
+    "FPRED": "f10_v4RAW_s42.npy",
+    "ok": true
+   },
+   "book_fix_s2027": {
+    "key_set_exact": true,
+    "unknown_keys": [],
+    "missing_keys": [],
+    "cfg_diffs": {},
+    "seat_ok": true,
+    "seed_ok": true,
+    "device_sha_ok": true,
+    "cost_tiers_ok": true,
+    "FPRED": "f10_v4RAW_s2027.npy",
+    "ok": true
+   },
+   "book_fix_s42": {
+    "key_set_exact": true,
+    "unknown_keys": [],
+    "missing_keys": [],
+    "cfg_diffs": {},
+    "seat_ok": true,
+    "seed_ok": true,
+    "device_sha_ok": true,
+    "cost_tiers_ok": true,
+    "FPRED": "f10_v4RAW_s42.npy",
+    "ok": true
+   }
+  },
+  "E7_signal_receipt": {
+   "ok": true,
+   "applicable": false,
+   "reason": "no FEMAT injection in any judged book; the king signal is bound by E3 (fold ICs re-derived from the shipped predictions)",
+   "signal_receipt_consulted": false
+  },
+  "E8_books_content": {
+   "ok": true,
+   "book_dyn_s2027": {
+    "K1_sum_absW_eq_gross_maxdev": 6.8131594810338925e-09,
+    "K1_ok": true,
+    "K2_turnover_eq_sum_absdW_maxdev": 7.317335376511025e-09,
+    "K2_ok": true,
+    "K3_netlong_eq_sumW_over_gross_maxdev": 8.540343335305955e-09,
+    "K3_ok": true,
+    "K4_identity_net_maxdev": 0.0,
+    "K4_identity_net_ex_maxdev": 0.0,
+    "K4_ok": true,
+    "K6_gross_min_frozen": 0.33554012746856243,
+    "K6_gross_max_all": 0.9678548799590047,
+    "K6_ok": true,
+    "K7_cost_pos_frozen": true,
+    "K7_cost_le_turnover_x_ratemax_violations": 0,
+    "K7_rate_max": 2.2021300000000004,
+    "K7_ok": true,
+    "ok": true
+   },
+   "book_dyn_s42": {
+    "K1_sum_absW_eq_gross_maxdev": 7.372935595384433e-09,
+    "K1_ok": true,
+    "K2_turnover_eq_sum_absdW_maxdev": 9.514823193224053e-09,
+    "K2_ok": true,
+    "K3_netlong_eq_sumW_over_gross_maxdev": 1.013555555456902e-08,
+    "K3_ok": true,
+    "K4_identity_net_maxdev": 0.0,
+    "K4_identity_net_ex_maxdev": 0.0,
+    "K4_ok": true,
+    "K6_gross_min_frozen": 0.2982875064131301,
+    "K6_gross_max_all": 0.9704438736936946,
+    "K6_ok": true,
+    "K7_cost_pos_frozen": true,
+    "K7_cost_le_turnover_x_ratemax_violations": 0,
+    "K7_rate_max": 2.2021300000000004,
+    "K7_ok": true,
+    "ok": true
+   },
+   "book_fix_s2027": {
+    "K1_sum_absW_eq_gross_maxdev": 7.455892458985147e-09,
+    "K1_ok": true,
+    "K2_turnover_eq_sum_absdW_maxdev": 7.685702657633797e-09,
+    "K2_ok": true,
+    "K3_netlong_eq_sumW_over_gross_maxdev": 1.331236770818478e-08,
+    "K3_ok": true,
+    "K4_identity_net_maxdev": 0.0,
+    "K4_identity_net_ex_maxdev": 0.0,
+    "K4_ok": true,
+    "K6_gross_min_frozen": 0.6785678263199495,
+    "K6_gross_max_all": 0.9843502967430365,
+    "K6_ok": true,
+    "K7_cost_pos_frozen": true,
+    "K7_cost_le_turnover_x_ratemax_violations": 0,
+    "K7_rate_max": 2.2021300000000004,
+    "K7_ok": true,
+    "ok": true
+   },
+   "book_fix_s42": {
+    "K1_sum_absW_eq_gross_maxdev": 7.125422474274501e-09,
+    "K1_ok": true,
+    "K2_turnover_eq_sum_absdW_maxdev": 5.8651990174352076e-09,
+    "K2_ok": true,
+    "K3_netlong_eq_sumW_over_gross_maxdev": 9.113129908252388e-09,
+    "K3_ok": true,
+    "K4_identity_net_maxdev": 0.0,
+    "K4_identity_net_ex_maxdev": 0.0,
+    "K4_ok": true,
+    "K6_gross_min_frozen": 0.6789175368420052,
+    "K6_gross_max_all": 0.9851807286232969,
+    "K6_ok": true,
+    "K7_cost_pos_frozen": true,
+    "K7_cost_le_turnover_x_ratemax_violations": 0,
+    "K7_rate_max": 2.2021300000000004,
+    "K7_ok": true,
+    "ok": true
+   }
+  },
+  "E9_gross_band_vs_baseline": {
+   "ok": true,
+   "band": [
+    0.6,
+    1.6
+   ],
+   "median_band": [
+    0.8,
+    1.25
+   ],
+   "baseline_arm": "A0",
+   "book_dyn_s42": {
+    "baseline_path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s42.npz",
+    "baseline_exists": true,
+    "baseline_sha256": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419",
+    "baseline_sha_ok": true,
+    "n_frozen_compared": 3168,
+    "baseline_axis_covers_frozen": true,
+    "ratio_min": 0.7939715348752995,
+    "ratio_median": 1.0015833195541863,
+    "ratio_max": 1.254442112658041,
+    "n_anchors_outside_band": 0,
+    "band_ok": true,
+    "ok": true
+   },
+   "book_dyn_s2027": {
+    "baseline_path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_dyn_s2027.npz",
+    "baseline_exists": true,
+    "baseline_sha256": "6b40d13ddf6b676a775214711f8520225c01c54018bbdaf6ea82c9e75f2acabd",
+    "baseline_sha_ok": true,
+    "n_frozen_compared": 3168,
+    "baseline_axis_covers_frozen": true,
+    "ratio_min": 0.8420400522736252,
+    "ratio_median": 1.0210035080357323,
+    "ratio_max": 1.2179352378451587,
+    "n_anchors_outside_band": 0,
+    "band_ok": true,
+    "ok": true
+   },
+   "book_fix_s42": {
+    "baseline_path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s42.npz",
+    "baseline_exists": true,
+    "baseline_sha256": "a110c5b0f6881eb61a03c0bfcc6c672346057a70c17dcd3a23dda0d05fc245c4",
+    "baseline_sha_ok": true,
+    "n_frozen_compared": 3168,
+    "baseline_axis_covers_frozen": true,
+    "ratio_min": 0.9804811344893858,
+    "ratio_median": 1.0032750739885028,
+    "ratio_max": 1.0298180405826387,
+    "n_anchors_outside_band": 0,
+    "band_ok": true,
+    "ok": true
+   },
+   "book_fix_s2027": {
+    "baseline_path": "/workspace/review_scratch/health_check/dev_v4/probe_artifacts/w10_ablation_series_V4_A0_fix_s2027.npz",
+    "baseline_exists": true,
+    "baseline_sha256": "bbba0d78875292f35c00d3810ada1fbf08be25b65127819edfba6059b8da3153",
+    "baseline_sha_ok": true,
+    "n_frozen_compared": 3168,
+    "baseline_axis_covers_frozen": true,
+    "ratio_min": 0.9770501721620353,
+    "ratio_median": 1.0028045873454872,
+    "ratio_max": 1.0259092876803335,
+    "n_anchors_outside_band": 0,
+    "band_ok": true,
+    "ok": true
+   }
+  }
+ },
+ "content_failed": [],
+ "guards_recomputed": false,
+ "guards_binding_when_not_recomputed": "E3/E4 inputs (bundle/slow_pred_pinned.npy, wide_fea_v4_meta, bundle_base, export_panel, bundle/config.json) are sha-verified above; set REQUIRE_RECOMPUTE_GUARDS=1 to recompute",
+ "env": {
+  "EXPORT_ARM": "A1",
+  "BUNDLE_OUT": "/workspace/shadow_bundle_v4",
+  "BUNDLE_FEA": "/workspace/data/wide_fea_v4.npy",
+  "BUNDLE_META": "/workspace/data/wide_fea_v4_meta.npz",
+  "BUNDLE_BASE": "/workspace/slow_scorer_v4base.json",
+  "EXPORT_PANEL": "/workspace/data/wide_panel_4h_v3splice.npz",
+  "BUNDLE_CACHE": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+  "FUND_AUG": "/workspace/fund_aug.json.gz",
+  "LIVE_PINS": "/workspace/live_pins.json",
+  "JUDGE_HC": "/workspace/review_scratch/health_check",
+  "V4CHAIN_DIR": "/workspace/uplift_2026-09-11/r20_gate_closure/v4chain_PROPOSED2",
+  "SIGNAL_RECEIPT": "/workspace/uplift_2026-09-11/infra2/GATE_signal_parity.json",
+  "EXPORT_GATE_OUT": "/dev/null"
+ },
+ "contract_sha256": "0169256597bc813e9f1425e399e4c3f22eaca5357f6dc1baeecf452a6e347329",
+ "utc": "2026-09-12T05:22:47Z",
+ "REQUIRE_OK": true
+}

@@ -1,0 +1,114 @@
+--- w10_sleeve.py (pinned b88e35a46b93d712)
++++ w10_sleeve_r18.py (9b8a6323e8f0ac31)
+@@ -39,6 +39,11 @@
+ RNSM = int(os.environ.get("RNSM", "0")); assert RNSM in (0, 3, 6, 12)   # AMENDMENT 2: FTRIM band read on a CAUSAL trailing mean of rn8 over RNSM panel rows (0 = instantaneous, the deployed form)
+ SLEEVE = int(os.environ.get("SLEEVE", "0")); assert SLEEVE in (0, 1)   # uplift TrackA: per-sleeve pnl/carry/cost/gross instrument (pure diagnostic, book untouched)   # 部署态 FTRIM(pre-z 排除 rn8<=-10bp 空头, 两链), 与 w10_ftrim_band pre/zero/(-1.0,-0.0010] 同构
+ SEATNET = int(os.environ.get("SEATNET", "0")); assert SEATNET in (0, 1)
++R18_ELIG = int(os.environ.get("R18_ELIG", "0")); assert R18_ELIG in (0, 1)   # r18 N2: 1 = eligibility from the return that CLOSED at E (isfinite(y4[i-1, m])); 0 = pinned forward rule, bitwise
++R18_WARM = int(os.environ.get("R18_WARM", "0")); assert R18_WARM in (0, 1)   # r18 WU: 1 = warm-up seat is equal weight over the ACTIVE legs (LEGS mask applied inside the early return); 0 = pinned [1/3]*3
++R18_INSTR = int(os.environ.get("R18_INSTR", "0")); assert R18_INSTR in (0, 1)   # r18: per-anchor aux record only (rec/W untouched)
++SMA = float(os.environ.get("SMA", "0.1")); assert 0.0 < SMA <= 1.0, SMA        # r12-identical knob: harvest-EMA alpha; float("0.1") == 0.1 bitwise => default path unchanged
++SBAND = float(os.environ.get("SBAND", "2.5e-4")); assert 0.0 <= SBAND <= 4.0e-3, SBAND   # r12-identical knob: no-trade band (weight units); float("2.5e-4") == 2.5e-4 bitwise
+ SEATF10 = int(os.environ.get("SEATF10", "0")); assert SEATF10 in (0, 1)   # T1: F10 链用 F10 自己的 msharpe 席位(四腿腿收益)
+ KTAIL = int(os.environ.get("KTAIL", "0")); assert KTAIL in (0, 1)         # T2: king 作尾部否决(fund 多尾中 king 秩底 20% / 空尾中 king 秩顶 20% 置零)
+ KMOD = float(os.environ.get("KMOD", "0")); assert KMOD in (0.0, 0.5)       # T3: z ×= (1 + KMOD·xz(king))
+@@ -59,6 +64,8 @@
+ UMASK_SCOPE = os.environ.get("UMASK_SCOPE", "members"); assert UMASK_SCOPE in ("members", "trade", "m1"), UMASK_SCOPE   # m1 (team-lead refinement 2026-09-05) = live M1 semantics: members = universe ∩ listed for king/rev24/F10 and the trade set; fund z = rank within the 829 base (xz_in_base)   # members = original semantics (mask shrinks the member set = rank base AND trade set); trade = mask restricts only `sel` (rank base stays MEMBERS_TOPN) = PREREG §0 row 2 "MEMBERS_TOPN=829(秩基)+ UMASK(交易集)"
+ _CFG = {"RNSM": RNSM, "FTPOS": FTPOS, "LTRIM_TH": LTRIM_TH, "CDAMP": CDAMP, "FTRIM_TH": FTRIM_TH, "SLEEVE": SLEEVE, "COSTB_JSON": COSTB_JSON, "COST_B": None, "UMASK_SCOPE": UMASK_SCOPE, "REF_SKIP": REF_SKIP, "KMOD_F10": KMOD_F10, "KMOD_L": KMOD_L, "KMOD_AGREE": KMOD_AGREE, "SEATF10": SEATF10, "KTAIL": KTAIL, "KMOD": KMOD, "SEATNET": SEATNET, "FUNDSCALE": FUNDSCALE, "FEMAT_NPZ": FEMAT_NPZ, "SLOW_NPY": os.environ.get("SLOW_NPY"), "W3FIX": W3FIX, "MEMBERS_TOPN": MEMBERS_TOPN, "TRADE_TOPN": TRADE_TOPN, "FTRIM": FTRIM, "UMASK_NPZ": os.environ.get("UMASK_NPZ"), "LOOK": LOOK, "WRULE": WRULE, "CAL": CAL, "LEGS": LEGS, "PHI": PHI, "FSEED": FSEED,
+         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
++_CFG["R18"] = {"R18_ELIG": R18_ELIG, "R18_WARM": R18_WARM, "R18_INSTR": R18_INSTR, "SMA": SMA, "SBAND": SBAND, "pinned_src_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650", "prereg_sha256": "51120518b72f70ce3f78c4ef1e68b0ec655c76eb385692befcf904d0d2883f6c",
++               "device": "w10_sleeve_r18.py = pinned w10_sleeve.py + {R18_ELIG, R18_WARM, R18_INSTR, SMA, SBAND}; all default => bitwise-unchanged rec/W (GATE P)"}
+ import hashlib as _hl
+ _CFG["UPLIFT"] = {"device": "w10_sleeve.py = w10_health.py (sha256 8684d9a9f43a8d15) + {LTRIM_TH, CDAMP, FTRIM_TH, SLEEVE}; all unset/0 and FTRIM_TH=-0.0010 => bitwise-unchanged rec/W", "src_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d", "self_sha256": None}
+ _CFG["HEALTH"] = {"device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb…, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE in {members (original), trade, m1 (fund z in the 829 base, other legs and trade set within the universe)} + legs() series saved; default path (all unset) bitwise-unchanged", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+@@ -157,7 +164,7 @@
+             _mk = UMASK_ROW.get(j)
+             if _mk is not None: m = m[_mk[m]]
+         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m], "f10": (F10P[i, m] if SEATF10 else np.full(len(m), np.nan))}
+-        ok = np.isfinite(y4[i, m])
++        ok = ((np.isfinite(y4[i - 1, m]) if i >= 1 else np.zeros(len(m), bool)) if R18_ELIG else np.isfinite(y4[i, m]))   # r18 N2: causal = the 4h return that closed at E
+         for leg in LR:
+             z = np.nan_to_num(FZB(j, m) if (leg == "fund" and UMASK_SCOPE == "m1") else xz(sc[leg])); z = np.where(ok, z, 0.0); z -= z[ok].mean() if ok.sum() else 0
+             g = np.abs(z).sum()
+@@ -179,7 +186,10 @@
+             _e = np.array([1.0 if c == "1" else 0.0 for c in LEGS])
+             return _e / max(_e.sum(), 1.0)
+         p = pos.get(int(i), 0)
+-        if p < LOOK: return np.array([1/3]*3)
++        if p < LOOK:
++            if R18_WARM:   # r18 WU: equal weight over the ACTIVE legs only ([1/2, 0, 1/2] for LEGS=101; [1/3]*3 for LEGS=111)
++                _e = np.array([1.0 if c == "1" else 0.0 for c in LEGS]); return _e / max(_e.sum(), 1.0)
++            return np.array([1/3]*3)
+         sl = slice(p - LOOK, p)              # ★ 严格因果: 只用锚 i 之前的腿收益
+         if SEATF10:   # T1: f10 腿的席位由它自己的腿收益决定; 返回 kc 三腿席位, fc 席位放入 W3FC 全局
+             global W3FC
+@@ -204,7 +214,7 @@
+     H = np.zeros(NW); HR = np.zeros(NW); Pi = np.ones(NW); sh = np.zeros(NW); cb = np.zeros(NW)
+     HF = np.zeros(NW); HB = np.zeros(NW)      # F10 书自己的 EMA 态 / 上一锚的混合书
+     cnt = np.zeros(NW, int); su = np.full(NW, -1)
+-    rec = []; WS = []; _SG = []; _SP = []; _SC = []; _SK = []
++    rec = []; WS = []; _SG = []; _SP = []; _SC = []; _SK = []; _R18 = []
+     for i in range(nA):
+         j = pw_row.get(int(E_ts[i]))
+         if j is None: continue
+@@ -231,7 +241,7 @@
+             z = np.where((z > 0) & (_fnp >= LTRIM_TH), 0.0, z)
+         if CDAMP > 0:
+             z = z / (1.0 + CDAMP * np.maximum(0.0, np.sign(z) * _fnp) / 0.0010)
+-        ok = np.isfinite(y4[i, m]); qv4h = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48
++        ok = ((np.isfinite(y4[i - 1, m]) if i >= 1 else np.zeros(len(m), bool)) if R18_ELIG else np.isfinite(y4[i, m])); qv4h = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48   # r18 N2
+         sel = ok & (qv4h >= 2.5e5)
+         if UMASK_ROW is not None and UMASK_SCOPE == "trade":   # health_check: universe mask restricts the tradeable set only (rank base = members); names outside it fall into _nonsel ⇒ forced exit
+             _mku = UMASK_ROW.get(j)
+@@ -250,8 +260,8 @@
+         if depth is not None:
+             bl = su > i
+             if bl.any(): tgt[bl] = 0.0
+-        sm = H + 0.1 * (tgt - H); trade = sm - H
+-        sm = np.where(np.abs(trade) < 2.5e-4, H, sm); trade = sm - H
++        sm = H + SMA * (tgt - H); trade = sm - H
++        sm = np.where(np.abs(trade) < SBAND, H, sm); trade = sm - H
+         # W6: 不合格流动性名强制出场(与 EXIT 同机制, 不受带约束) —— 只有目标层 demean 修复
+         # 清不掉存量: 每名 EMA 步长 < 带阈 ⇒ 历史篮子被带永久冻结(G1 实测 15.7%→15.2%)。
+         _nonsel = np.zeros(NW, bool); _nonsel[m[~sel]] = True
+@@ -290,9 +300,9 @@
+                 if _g2f > 1e-9:
+                     _wf = _wf / _g2f
+                 _tgtf = np.zeros(NW); _tgtf[m] = _wf
+-                _smf = HF + 0.1 * (_tgtf - HF)
++                _smf = HF + SMA * (_tgtf - HF)
+                 _trf = _smf - HF
+-                _smf = np.where(np.abs(_trf) < 2.5e-4, HF, _smf)
++                _smf = np.where(np.abs(_trf) < SBAND, HF, _smf)
+                 _smf = np.where(_nonsel, 0.0, _smf)
+                 if depth is not None:
+                     _blf = su > i
+@@ -367,6 +377,11 @@
+             _SG.append(np.bincount(_k, np.abs(_sw), 14)); _SP.append(np.bincount(_k, _sw * yv * 1e4, 14))
+             _SC.append(np.bincount(_k, _sw * fnow * (4.0 / ivv) * 1e4, 14)); _SK.append(np.bincount(_k, tabs_r * _rate, 14))
+             assert abs(_SP[-1].sum() - pnl_r) < 1e-7 and abs(_SC[-1].sum() - car_r) < 1e-7 and abs(_SK[-1].sum() - cbps_r) < 1e-7, "sleeve identity"
++        if R18_INSTR:   # r18 aux: unknown-return exposure and eligibility-rule disagreement, per anchor (never read by the book)
++            _r18_liq = qv4h >= 2.5e5; _r18_old = np.isfinite(y4[i, m]); _r18_new = (np.isfinite(y4[i - 1, m]) if i >= 1 else np.zeros(len(m), bool))
++            _r18_un = sel & ~_r18_old
++            _R18.append((int(E_ts[i]), float(sel.sum()), float(_r18_un.sum()), float(np.abs(sm[m][_r18_un]).sum()), float(((_r18_old != _r18_new) & _r18_liq).sum()),
++                         float((_r18_new & ~_r18_old & _r18_liq).sum()), float((~_r18_new & _r18_old & _r18_liq).sum())))
+         netlong = float(sm.sum() / max(np.abs(sm).sum(), 1e-9))
+         gm = float(np.abs(sm[m]).sum()); gsel = float(np.abs(sm[m][sel]).sum()); gt = float(np.abs(sm).sum())
+         rec.append((int(E_ts[i]), float(pnl_raw - car - cbps), pnl_raw, float(car), float(cbps), gt, gm, gsel, int(sel.sum()), int(len(m)), fires_i,
+@@ -376,6 +391,7 @@
+         H = _smk if PHI > 0 else sm      # king 书 EMA 态独立推进(φ=0 时二者同一)
+         HB = sm; HR = smr; Pi = Pi * (1.0 + yfull)
+         if i % 2000 == 0: print("run depth", depth, i, "/", nA, round(time.time() - t0, 1), "s", flush=True)
++    global R18_LAST; R18_LAST = _R18
+     return np.array(rec), np.stack(WS), ((np.array(_SG), np.array(_SP), np.array(_SC), np.array(_SK)) if SLEEVE else None)
+ LRa, pos = legs(SLOW); print("legs done", round(time.time() - t0, 1), "s", flush=True)
+ ARMS = [("S0", None, 0, 0, "nets_histv2_0_0_0.npy"), ("d30_n2_c42", -0.30, 2, 42, "nets_histv2_-30_2_42.npy")]
+@@ -418,6 +434,8 @@
+     print("RECEIPT_EX", nm, json.dumps(outx), flush=True)
+     save[f"{nm}_rec"] = R
+     save[f"{nm}_W"] = WS
++    if R18_INSTR and R18_LAST:
++        save[f"{nm}_R18A"] = np.array(R18_LAST); save[f"{nm}_R18A_cols"] = np.array(["ts", "n_sel", "n_sel_y4nan", "gross_y4nan", "n_elig_changed", "n_elig_new_only", "n_elig_old_only"])
+     if SLV is not None:
+         save[f"{nm}_SLV_gross"], save[f"{nm}_SLV_pnl"], save[f"{nm}_SLV_carry"], save[f"{nm}_SLV_cost"] = SLV
+         save[f"{nm}_SLV_names"] = np.array(["L|<=-30bp", "L|-30..-10", "L|-10..0", "L|0..10", "L|10..30", "L|>=30bp", "L|nofund",

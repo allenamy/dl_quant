@@ -1,0 +1,555 @@
+{
+ "device": "test_matrix_v2.py",
+ "self_sha256": "2b96266489744c71cf0a9bd66dd0b02374d4ea187e76a96c15a074766e0e8777",
+ "utc": "2026-09-12T05:18:19Z",
+ "seconds": 576.9,
+ "env_whitelist": {
+  "R20_ROOT": null,
+  "R20_OUT": null,
+  "R20_KEEP": null
+ },
+ "python": "3.14.4",
+ "numpy": "2.4.4",
+ "sources": {
+  "v4e_gate_export_v2.py": "8b021a511225015af133c4220c9e2180c8f009db105d1c4139d29ec7c756e4d1",
+  "gate_signal_parity_v2.py": "abc45cad806c22d717d4924869b34d8e127dbe8e61fec07c00008e5df52a3ed0",
+  "v4_gate_common.py": "7b6d49a3de74df8840b8bdf5e6a20226505a5a8a6abf25d57f822d522cba2eb2",
+  "frozen_contract_read_only": "3299dc97ab0c90d51ac77297b605e5072bafd4cfaac954ab8655699c498f271b",
+  "isolated_world_contract": "6bf2dbf23cfedd0aa889a8890ab600704701387f1863603126428ddde26174ac"
+ },
+ "world": {
+  "y4_scale": 0.007117085489607933,
+  "sharpe_2024on": 2.375536743799014,
+  "ic": {
+   "2024": 0.4258160636787795,
+   "2025": 0.4254021477265195,
+   "2026": 0.42656468294218336
+  },
+  "n_anchors_panel": 5844,
+  "n_book_rows": 3307,
+  "signal_gate_rc": 0,
+  "signal_receipt": {
+   "gate": "S_BITWISE_signal",
+   "arm": "ARMX",
+   "PASS": true,
+   "self_sha256": "abc45cad806c22d717d4924869b34d8e127dbe8e61fec07c00008e5df52a3ed0",
+   "stats": {
+    "rows": 5844,
+    "NEW_rankdata_rows_failing_rerank_identity": 0,
+    "OLD_argsort_rows_failing_rerank_identity": 5844,
+    "NEW_float32_roundtrip_rows_failing": 0,
+    "femat_ts_aligned": true,
+    "femat_symbols_aligned": true,
+    "femat_shape": [
+     5844,
+     120
+    ],
+    "femat_finite_frac": 1.0
+   }
+  }
+ },
+ "ALL_ROWS_MEET_EXPECTATION": false,
+ "n_rows": 32,
+ "rows": [
+  {
+   "case": "P1_positive_no_femat (A1-like, FEMAT None)",
+   "mode": "gate",
+   "expected": "PASS",
+   "observed_PASS": true,
+   "rc": 0,
+   "failing_checks_named": [],
+   "identity_why": null,
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "P1_positive_no_femat require",
+   "mode": "require",
+   "expected": "PASS",
+   "observed_PASS": true,
+   "rc": 0,
+   "failing_checks_named": [],
+   "identity_why": "PASS (BUNDLE_export, 2026-09-12T05:11:30Z, self 8b021a511225 approved, 28 inputs verified, registered floor BUNDLE_export=11)",
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "P2_positive_with_femat (XIB-like, bound signal receipt)",
+   "mode": "gate",
+   "expected": "PASS",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": null,
+   "meets_expectation": false,
+   "note": null
+  },
+  {
+   "case": "P2_positive_with_femat require",
+   "mode": "require",
+   "expected": "PASS",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:11:49Z)",
+   "expected_failing_checks": null,
+   "meets_expectation": false,
+   "note": null
+  },
+  {
+   "case": "N1_pred_one_cell_changed require (reviewer probe 6 form)",
+   "mode": "require",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E1_manifest",
+    "E7_signal_receipt"
+   ],
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:11:49Z)",
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": "the SHIPPED prediction is now a registered input"
+  },
+  {
+   "case": "N1_pred_one_cell_changed re-gate",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E1_manifest",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E1_manifest"
+   ],
+   "meets_expectation": true,
+   "note": "E3 IC tolerance cannot see one cell; MANIFEST closure does"
+  },
+  {
+   "case": "R6_unbound_shipped_bundle: pred->NaN after receipt, require",
+   "mode": "require",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E1_manifest",
+    "E7_signal_receipt"
+   ],
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:12:09Z)",
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "R6 control: pred restored bytewise, require",
+   "mode": "require",
+   "expected": "PASS",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:12:09Z)",
+   "expected_failing_checks": null,
+   "meets_expectation": false,
+   "note": null
+  },
+  {
+   "case": "N8_femat_mutated_after_receipts require",
+   "mode": "require",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:12:09Z)",
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "N8_femat_mutated_after_signal_receipt re-gate",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E7_signal_receipt"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "N11_receipt_self_sha=original_gate require",
+   "mode": "require",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": "receipt was written by gate source f814c7289384, caller trusts 8b021a511225",
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": "original sha is not approved for BUNDLE_export in the isolated contract"
+  },
+  {
+   "case": "R1_bare_PASS_wrong_signal_gate",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E7_signal_receipt"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "R2a_signal_receipt_PASS_false",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E7_signal_receipt"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "R2b_signal_receipt_says_PASS_but_stats_violate_thresholds",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E7_signal_receipt"
+   ],
+   "meets_expectation": true,
+   "note": "PASS re-derived from stats, the word is not trusted"
+  },
+  {
+   "case": "R3_different_cost_and_ftrim (COST_B zero + injected FTRIM_TH key)",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E6_books_config",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E6_books_config"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "R4_zero_W_and_infinite_pnl",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E5_books_shape",
+    "E7_signal_receipt",
+    "E8_books_content"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E5_books_shape",
+    "E8_books_content"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "R5_bad_fixed_PIN (PHI 0.99, the one probe the original caught)",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E6_books_config",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E6_books_config"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "N2a_W_one_anchor_x2 (gross_total updated, turnover not)",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt",
+    "E8_books_content",
+    "E9_gross_band_vs_baseline"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E8_books_content"
+   ],
+   "meets_expectation": true,
+   "note": "K2 turnover identity"
+  },
+  {
+   "case": "N2b_W_one_anchor_x2 (every W-derived column recomputed)",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt",
+    "E9_gross_band_vs_baseline"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E9_gross_band_vs_baseline"
+   ],
+   "meets_expectation": true,
+   "note": "only the baseline band sees a self-consistent forgery"
+  },
+  {
+   "case": "N10_W_all_anchors_x2 (fully consistent)",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt",
+    "E8_books_content",
+    "E9_gross_band_vs_baseline"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E8_books_content",
+    "E9_gross_band_vs_baseline"
+   ],
+   "meets_expectation": true,
+   "note": "K6 gross<=1 and the band"
+  },
+  {
+   "case": "N3_cost_json_one_tier_rate_changed (books' COST_B untouched)",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E6_books_config",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E6_books_config"
+   ],
+   "meets_expectation": true,
+   "note": "costb sha + resolves_to_approved_tiers"
+  },
+  {
+   "case": "N3b_cost_json_same_tiers_but_different_bytes",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E6_books_config",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E6_books_config"
+   ],
+   "meets_expectation": true,
+   "note": "the file the book was built from is identified by sha, not by what it says"
+  },
+  {
+   "case": "N4_zero_cost (identities kept)",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt",
+    "E8_books_content"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E8_books_content"
+   ],
+   "meets_expectation": true,
+   "note": "K7"
+  },
+  {
+   "case": "N5_manifest_unlisted_file",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E1_manifest",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E1_manifest"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "N6_baseline_A0_book_replaced_by_another_cell",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt",
+    "E9_gross_band_vs_baseline"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E9_gross_band_vs_baseline"
+   ],
+   "meets_expectation": true,
+   "note": "approved baseline identity"
+  },
+  {
+   "case": "N7_signal_receipt_bound_to_other_arm",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E7_signal_receipt"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "N9_env_BUNDLE_GUARD_LO=0.0",
+   "mode": "refuse",
+   "expected": "REFUSE rc=2",
+   "observed_PASS": null,
+   "rc": 2,
+   "failing_checks_named": null,
+   "identity_why": null,
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": "thresholds are not the caller's"
+  },
+  {
+   "case": "N12_contract_missing_approved_baseline",
+   "mode": "refuse",
+   "expected": "REFUSE rc=2",
+   "observed_PASS": null,
+   "rc": 2,
+   "failing_checks_named": null,
+   "identity_why": null,
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "N13_live_pins_same_content_different_bytes",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E2b_pins_identity",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E2b_pins_identity"
+   ],
+   "meets_expectation": true,
+   "note": "E2 content parity passes; identity (d) fails"
+  },
+  {
+   "case": "N14_book_dyn_s42_declares_FSEED_2027",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E6_books_config",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E6_books_config"
+   ],
+   "meets_expectation": true,
+   "note": null
+  },
+  {
+   "case": "N15_require_ARMX_receipt_against_ARMY_books",
+   "mode": "require",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [],
+   "identity_why": "receipt says PASS=False (gate BUNDLE_export, 2026-09-12T05:18:00Z)",
+   "expected_failing_checks": null,
+   "meets_expectation": true,
+   "note": "book inputs differ by sha"
+  },
+  {
+   "case": "N16_umask_npz_replaced",
+   "mode": "gate",
+   "expected": "FAIL",
+   "observed_PASS": false,
+   "rc": 3,
+   "failing_checks_named": [
+    "E6_books_config",
+    "E7_signal_receipt"
+   ],
+   "identity_why": null,
+   "expected_failing_checks": [
+    "E6_books_config"
+   ],
+   "meets_expectation": true,
+   "note": null
+  }
+ ]
+}

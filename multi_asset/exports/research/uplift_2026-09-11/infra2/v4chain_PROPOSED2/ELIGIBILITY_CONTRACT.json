@@ -1,0 +1,197 @@
+{
+ "contract_schema": "v4_eligibility_contract/1",
+ "created_utc": "2026-09-10T05:30:17Z",
+ "created_by": "main researcher, round 5 (independent review cfaf1bbe \u00a72-4: the standard an arm must meet is a FROZEN research definition, never the eligibility caller's choice)",
+ "review_status": "written round 5; independent review pending. Changing any value here is a change of the reviewed research definition: it must go through review, and it is listed in receipts/v4_scripts_sha_full.json like a source file | PROPOSED2 (r20 gate closure, 2026-09-12): gates.BUNDLE_export filled for v4e_gate_export_v2.py with an approved_baseline block (identities + thresholds frozen here, never the caller's); arms UNCHANGED (XIBLAG50 stays unregistered \u2014 separate ruling). NOT APPLIED.",
+ "rules": [
+  "The judge (judge_v4.py) reads THIS file from its own directory; no environment variable can substitute another contract. JUDGE_ELIGIBILITY only LOCATES receipts ({arm: {receipt, inputs}}); a caller-supplied gate/self_sha/profile that disagrees with this file makes the arm ineligible.",
+  "An arm is a CANDIDATE only if its receipt (a) names the arm's candidacy_gate, (b) was written by a gate source whose sha256 is in gates.<gate>.approved_source_sha256, (c) says PASS, (d) is bound to this arm (receipt.arm == arm), (e) hashes every registered input of the gate (v4_gate_common.REQUIRED_INPUTS) including the four judged book files of the arm (book_binding), each equal to the file the judge loaded.",
+  "v4_gate_common.require refuses a pinned gate source that is not in the approved list of a gate registered here (a locally edited gate that re-runs and writes a fresh receipt matches its own runtime sha but is NOT the reviewed program).",
+  "An empty approved_source_sha256 list means no program is approved for that gate: no receipt can satisfy it and no arm can be a candidate through it. BUNDLE_export (PROPOSED2) is filled with v4e_gate_export_v2.py: its gates.BUNDLE_export.approved_baseline block FREEZES the approved baseline identity (device / cost json / mask / live_pins / bundle_base / A0 books by sha, every device knob by value) and every threshold; the gate refuses env overrides of them, registers the shipped bundle's full closure + cost/mask/king/FEMAT files + the bound signal receipt as inputs, and re-derives the book content identities from the shipped arrays.",
+  "Gates not listed here and not registered in REQUIRED_INPUTS are ungoverned: they carry no input floor and no approved-source list, and they cannot confer candidacy because arms map only to gates listed here."
+ ],
+ "gates": {
+  "G2_closure": {
+   "source": "v4_gate_closure.py",
+   "approved_source_sha256": [
+    "15a03d4a0937095b83108b737be67aeb1110a077d96010b1de9e6609055de262"
+   ]
+  },
+  "STEP1": {
+   "source": "v4_gate_step1.py",
+   "approved_source_sha256": [
+    "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4"
+   ]
+  },
+  "STEP2": {
+   "source": "v4_gate_step2.py",
+   "approved_source_sha256": [
+    "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8"
+   ]
+  },
+  "BUNDLE_export": {
+   "source": "v4e_gate_export_v2.py",
+   "approved_source_sha256": [
+    "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e"
+   ],
+   "approved_baseline": {
+    "device_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d",
+    "costb_json_sha256": "9349ca634747772dcfc9adfb7a42a5c7b5b34f60bc7f31bc6fd95c4ae5d0fc42",
+    "umask_npz_sha256": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+    "live_pins_sha256": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+    "bundle_base_sha256": "dce6a228543b4e3cea014d6494b6bfec5aab92b21d82f50b74c241ea9739a43d",
+    "baseline_books_sha256": {
+     "dyn_s42": "88283c5f05b5d6b5213ca45f20577a3060a4831f72c6169c6efea8588cea1419",
+     "dyn_s2027": "6b40d13ddf6b676a775214711f8520225c01c54018bbdaf6ea82c9e75f2acabd",
+     "fix_s42": "a110c5b0f6881eb61a03c0bfcc6c672346057a70c17dcd3a23dda0d05fc245c4",
+     "fix_s2027": "bbba0d78875292f35c00d3810ada1fbf08be25b65127819edfba6059b8da3153"
+    },
+    "costb_tiers": [
+     [
+      1.8001,
+      4.5001,
+      0.8511
+     ],
+     [
+      1.799,
+      4.4988,
+      0.9246
+     ],
+     [
+      1.7998,
+      4.5002,
+      0.921
+     ]
+    ],
+    "baseline_arm": "A0",
+    "book_env": {
+     "CAL": "log",
+     "LEGS": "101",
+     "PHI": 0.45,
+     "LOOK": 900,
+     "WRULE": "msharpe",
+     "MEMBERS_TOPN": 829,
+     "FTRIM": "zero",
+     "UMASK_SCOPE": "m1",
+     "REF_SKIP": 0,
+     "KMOD_F10": 0.0,
+     "KMOD_L": 0.5,
+     "KMOD_AGREE": 0.0,
+     "SEATF10": 0,
+     "KTAIL": 0,
+     "KMOD": 0.0,
+     "SEATNET": 0,
+     "FUNDSCALE": 0,
+     "TRADE_TOPN": 0
+    },
+    "thresholds": {
+     "guard_band": [
+      2.27,
+      2.57
+     ],
+     "n_frozen": 3168,
+     "frozen_window_utc": [
+      "2025-03-01T00:00Z",
+      "2026-08-10T20:00Z"
+     ],
+     "ic_tol": {
+      "2024": 0.004,
+      "2025": 0.004,
+      "2026": 0.006
+     },
+     "sharpe_claim_tol": 0.005,
+     "identity_tol": 1e-09,
+     "w_gross_tol": 1e-06,
+     "turnover_tol": 1e-06,
+     "netlong_tol": 1e-06,
+     "gross_max": 1.000001,
+     "gross_ratio_band": [
+      0.6,
+      1.6
+     ],
+     "gross_ratio_median_band": [
+      0.8,
+      1.25
+     ],
+     "_evidence": "guard band / N_FROZEN / IC tolerances verbatim from the original gate (its hard-coded defaults). Identity tolerances: the four exact device identities hold on the genuine A0/A1/A3/XIBLAG50 books to <= 1.5e-8 (r20 RESULT \u00a73). Gross ratio bands: per-anchor gross_total ratio arm/A0 (same seat, same seed) over the frozen window for the 7 registered-form arms (A0p,A1,A1s,A1e,A2,A3 x 4 cells) lies in [0.766, 1.258] with medians in [0.9665, 1.021]; XIBLAG50/XIBOLD50 dyn reach 2.10 and would FAIL the per-anchor band (reported, not hidden)."
+    },
+    "signal_gates": {
+     "S_BITWISE_signal": {
+      "source": "gate_signal_parity_v2.py",
+      "approved_source_sha256": [
+       "abc45cad806c22d717d4924869b34d8e127dbe8e61fec07c00008e5df52a3ed0"
+      ],
+      "thresholds": {
+       "NEW_rankdata_rows_failing_rerank_identity_max": 0,
+       "OLD_argsort_rows_failing_rerank_identity_min": 1,
+       "NEW_float32_roundtrip_rows_failing_max": 0,
+       "femat_ts_aligned": true,
+       "femat_symbols_aligned": true,
+       "rows_min": 1
+      },
+      "note": "gate_signal_parity.py (v1, sha 19b7419f\u2026) writes no self_sha256/arm/inputs and cannot satisfy E7 of the v2 export gate; XIBLAG50 needs a v2 signal receipt (r20 pod2 run produces one, informational)"
+     }
+    },
+    "provenance": {
+     "pod2_sha256sum_utc": "2026-09-12T04:5xZ (this session)",
+     "re_verified_by": "v2 gate E0/E2b/E6/E9 on pod2 positive control (r20 receipts/BUNDLE_export_v2_A1.json)",
+     "book_env_source": "w10_health.py sha 8684d9a9 _CFG keys; values read from config_json of the genuine A0/A1 books on pod2"
+    }
+   },
+   "note": "r20 gate closure 2026-09-12. Replaces the 2026-09-11 INFRA2 proposal (v4e_gate_export.py sha f814c728\u2026, WITHDRAWN: the independent reviewer showed it not falsifiable \u2014 wrong-gate PASS accepted, failing signal gate accepted, different cost/knobs accepted, zero W / non-finite pnl accepted, shipped bundle unbound). v2 keeps E1\u2013E4 verbatim and adds E0 contract block, E2b pin identity, E5 finite+baseline symbols, E6 all 27 knobs + cost/mask/king/FEMAT by file, E7 bound signal receipt with PASS re-derived, E8 exact device identities on the arrays, E9 gross band vs the approved A0 books; `require` mode re-verifies the full floor and re-runs the content gates. Approving this sha approves those checks, the approved_baseline shas and the thresholds AS the export standard."
+  }
+ },
+ "arms": {
+  "A1": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
+  },
+  "A1s": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
+  },
+  "A1e": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "king clock E-version (PREREG_king_clock_E)"
+  },
+  "A2": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
+  },
+  "A3": {
+   "candidacy_gate": "BUNDLE_export",
+   "profile": null,
+   "book_binding": true,
+   "note": "v4 chain arm; candidacy through the same export gate over its own bundle"
+  }
+ },
+ "book_binding": {
+  "input_names": [
+   "book_dyn_s42",
+   "book_dyn_s2027",
+   "book_fix_s42",
+   "book_fix_s2027"
+  ],
+  "file": "<JUDGE_HC>/dev_v4/probe_artifacts/w10_ablation_series_V4_<arm>_<seat>_s<seed>.npz",
+  "rule": "the judge adds these four paths to the arm's declared inputs; require then demands the receipt hashed each of them and that the hash equals the file the judge loaded (a book replaced after the receipt, or a receipt written for another arm's books, is not this arm's permission)"
+ },
+ "status": "PROPOSED - NOT APPLIED - requires user ruling; see r20_gate_closure/RESULT_r20_gate_closure_2026-09-12.md",
+ "proposed_changes_vs_frozen": [
+  "top-level status (new) \u2014 PROPOSED marker",
+  "review_status appended",
+  "rules[3] reworded (was: 'An empty approved_source_sha256 list means no program is approved for that gate:\u2026')",
+  "gates.BUNDLE_export.source/approved_source_sha256/approved_baseline/note filled",
+  "arms: UNCHANGED",
+  "book_binding: UNCHANGED",
+  "companion (not part of this file): REQUIRED_INPUTS['BUNDLE_export'] in v4_gate_common.py still lists 11 names; the v2 gate's own require mode enforces the full floor; extending the v4_gate_common floor so judge_v4's require also demands the bundle closure is a separate proposed diff (v4chain_PROPOSED2/v4_gate_common.PROPOSED.diff)"
+ ],
+ "proposed_utc": "2026-09-12T05:21:47Z"
+}
