@@ -199,10 +199,35 @@ index 0000000..0c3fd58
 +        parts.append("bps UNMEASURED (not 0)")
 +    return "; ".join(parts)
 diff --git a/live/tests_daily_summary.py b/live/tests_daily_summary.py
-index 9a619ca..7c0bf46 100644
+index 9a619ca..3c17c1c 100644
 --- a/live/tests_daily_summary.py
 +++ b/live/tests_daily_summary.py
-@@ -68,10 +68,12 @@ print("\n[B] ★★★ the three account quantities are asserted as DATA, not as
+@@ -25,7 +25,7 @@ import sys
+ _HERE = os.path.dirname(os.path.abspath(__file__))
+ _REPO = os.path.dirname(_HERE)
+ 
+-FAILS, N = [], [0]
++FAILS, N, SKIPS = [], [0], []
+ 
+ 
+ def check(name, cond, extra=""):
+@@ -35,6 +35,15 @@ def check(name, cond, extra=""):
+         FAILS.append(name)
+ 
+ 
++def skip(name, why):
++    """A cell that reads the REAL ledger and cannot be exercised in this tree. Declared, not counted:
++    neither a pass nor a fail (rule from W1's T9g, lead 2026-09-13). A fresh clone carries only the
++    tracked pilot_log snapshot (20260801), so every ledger-dependent cell passes ONLY in the run tree."""
++    SKIPS.append(name)
++    print(f"  SKIP  {name} — no/short real ledger in this tree (clone): {why} — passes only in the "
++          f"run tree. This is NOT a pass.")
++
++
+ _p = subprocess.run(["/usr/bin/python3", os.path.join(_REPO, "ops", "daily_summary.py"),
+                      "--since", "24h", "--mode", "LIVE"],
+                     capture_output=True, text=True, cwd=_REPO)
+@@ -68,10 +77,12 @@ print("\n[B] ★★★ the three account quantities are asserted as DATA, not as
  sys.path.insert(0, os.path.join(_REPO, "ops"))
  import daily_summary as DS            # noqa: E402
  
@@ -217,7 +242,7 @@ index 9a619ca..7c0bf46 100644
  F = DS.account_facts(_NAV)
  
  check("★★★ (a) the equity IDENTITY is a checked field, not a printed sentence — equity must "
-@@ -115,9 +117,11 @@ print("\n[B1b] ★★★ THE REAL INCIDENT — a deposit that the summary report
+@@ -115,9 +126,11 @@ print("\n[B1b] ★★★ THE REAL INCIDENT — a deposit that the summary report
  #       hours earlier, on the column three lines above. Fixing one and not its neighbour is what
  #       this fixture now prevents.
  _INCIDENT = [{"day": "20260802", "wallet_balance": 2140.0, "unrealised_pnl": 5.0,
@@ -231,10 +256,58 @@ index 9a619ca..7c0bf46 100644
  _FI = DS.account_facts(_INCIDENT)
  check("★★★ the deposit is REPORTED, not lost to the day boundary — reading only the newest row "
        "gives 0.0, which is a correct value for the wrong question",
-@@ -221,5 +225,265 @@ check("★★ the per-anchor table gives the trend the operator asked for, one r
+@@ -179,9 +192,11 @@ if len(_same_day) >= 2:
+           "given as two numbers, so the drop explains itself",
+           "一换手就降" in OUT and "落袋" in OUT and "入场成本" in OUT)
+ else:
+-    print(f"  ....  NOT EXERCISED — the window holds {len(_same_day)} same-day nav row(s); the "
+-          f"rotation explanation cannot be computed without two, and asserting its text here "
+-          f"would fail on correct behaviour. This is NOT a pass.")
++    skip("★★★ Q2 'why does it drop on rotation?' — the realised INCREMENT and the entry cost are "
++         "given as two numbers, so the drop explains itself",
++         f"the tool's 24h window holds {len(_same_day)} same-day nav row(s); the rotation "
++         f"explanation cannot be computed without two, and asserting its text would fail on "
++         f"correct behaviour")
+ check("★★ Q3 the exposure arithmetic and the external-flow figure are both rendered",
+       "目标敞口" in OUT and "TRANSFER" in OUT)
+ check("★★ ...and the sight boundary is stated in the text the operator reads",
+@@ -194,8 +209,9 @@ if _n_nav_win >= 2:
+           "跨越 00:00Z" in OUT or "同日内权益变动" in OUT,
+           "neither the refusal nor the same-day form appeared")
+ else:
+-    print(f"  ....  NOT EXERCISED — the tool's window holds {_n_nav_win} nav row(s); no equity change "
+-          f"exists to explain or refuse, so neither sentence is owed. This is NOT a pass.")
++    skip("★★★ the residual is NOT computed across 00:00Z, and it SAYS so",
++         f"the tool's 24h window holds {_n_nav_win} nav row(s); no equity change exists to explain "
++         f"or refuse, so neither sentence is owed")
+ check("★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can "
+       "check the scope rather than trust it",
+       "不跨 00:00Z" in OUT or "不足以给出" in OUT)
+@@ -216,10 +232,287 @@ check("★★★ the suppressed (tier-B/C) classes are listed with counts — ot
+       "被记录但未推送" in OUT)
+ check("★★ tier-A is re-listed too, so a page that arrived while nobody was watching is not lost",
+       "需要决定的" in OUT)
+-check("★★ the per-anchor table gives the trend the operator asked for, one row per anchor",
+-      "逐锚" in OUT and OUT.count("Z ") >= 3)
++# ★ 2026-09-13 (lead, fresh-clone landing test): this cell used `OUT.count("Z ") >= 3`, a proxy that
++#   needs ≥3 anchors inside the tool's 24h window — a fresh clone's pilot_log holds only 20260801, so
++#   it went red for a LEDGER reason on code that was fine. Now: the tool self-reports the anchor
++#   count it covered; with ≥1 anchor the table must have EXACTLY that many rows (stronger than the
++#   proxy); with 0 the cell is a declared SKIP, not a pass and not a fail.
++_m_anc = _re.search(r"covered:\s*(\d+) anchor\(s\)", OUT)
++_n_anc = int(_m_anc.group(1)) if _m_anc else 0
++_sec = OUT.split("【逐锚】", 1)[1].split("【", 1)[0] if "【逐锚】" in OUT else ""
++_rows = _re.findall(r"^\s+\d\d-\d\d \d\d:\d\dZ\s", _sec, _re.M)
++if _n_anc >= 1:
++    check("★★ the per-anchor table gives the trend the operator asked for, one row per anchor",
++          "逐锚" in OUT and len(_rows) == _n_anc, f"{len(_rows)} table row(s) vs {_n_anc} anchor(s)")
++else:
++    skip("★★ the per-anchor table gives the trend the operator asked for, one row per anchor",
++         "0 anchors inside the tool's 24h window (pilot_log has no anchor row within 24h of now)")
  check("★★ it reuses the production rules table rather than re-deciding what is routine",
        "import alarm_policy" in _src and "AP.classify" in _src)
  
+-print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 +print("\n[E] ★★★ W2 2026-09-12 — realised P&L: USDT-only, non-USDT UNCONVERTED, None is not zero")
 +# ★★★ TWO VERIFIED COUNTEREXAMPLES from the independent reviewer (codex_system_status_review_
 +#     2026-09-12/deployment/RESULT.md §5): (1) USDT -0.30 + BNB -0.01 summed to -0.31 and labelled
@@ -376,7 +449,8 @@ index 9a619ca..7c0bf46 100644
 +          f"usdt {_F5['realised_today']} carrier {_r.get('realised_pnl')} "
 +          f"unconverted {_F5['realised_unconverted']}")
 +else:
-+    print("  ....  NOT EXERCISED — no nav row in the state copy carries realised_by_type_asset yet")
++    skip("★★ E5 REAL LEDGER: the USDT figure equals the per-asset USDT slices summed",
++         "no nav row in this tree carries realised_by_type_asset (written since 2026-09-12 06:05Z)")
 +
 +print("\n[F] ★★★ W2 2026-09-12 — the per-anchor cost column: three buckets, None is not 0")
 +# ★ fact table §1b. The pre-fix table read `fee_paid or 0` over rows whose price fields were
@@ -484,7 +558,8 @@ index 9a619ca..7c0bf46 100644
 +          "measured fills",
 +          _old_cost(_rr) is not None and abs(_old_cost(_rr) + 3.70) < 0.01, _old_cost(_rr))
 +else:
-+    print("  ....  NOT EXERCISED — the state copy lacks 20260805 / A1785931245")
++    skip("★★★ F5 REAL LEDGER 2026-08-05 12:00Z (A1785931245): 103/103 fee-unknown ⇒ None; old -3.70bps",
++         "this tree lacks pilot_log/20260805 with anchor A1785931245")
 +if "20260912" in _ORD and _anchor_rows("20260912", "A1789201439"):
 +    _rr = _anchor_rows("20260912", "A1789201439")
 +    _c9 = DS.anchor_cost_facts(_rr)
@@ -493,16 +568,18 @@ index 9a619ca..7c0bf46 100644
 +          _c9["cost_coverage_notional"] == 1.0 and _c9["buckets"]["n_measured"] == 185
 +          and abs(_c9["cost_bps"] - _old_cost(_rr)) < 1e-9, (_c9["cost_bps"], _old_cost(_rr)))
 +else:
-+    print("  ....  NOT EXERCISED — the state copy lacks 20260912 / A1789201439")
++    skip("★★ F6 REAL LEDGER 2026-09-12 08:00Z (A1789201439): coverage 1.0 and new == old",
++         "this tree lacks pilot_log/20260912 with anchor A1789201439")
 +
- print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
++print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks"
++      f"{', ' + str(len(SKIPS)) + ' SKIP (ledger-dependent, declared)' if SKIPS else ''})")
  sys.exit(1 if FAILS else 0)
 diff --git a/live/tests_readers_three_bucket.py b/live/tests_readers_three_bucket.py
 new file mode 100644
-index 0000000..0486803
+index 0000000..b4f78a6
 --- /dev/null
 +++ b/live/tests_readers_three_bucket.py
-@@ -0,0 +1,447 @@
+@@ -0,0 +1,459 @@
 +"""The READ-ONLY cost readers inherit the three buckets: cost_buckets / first_anchor_review §3c /
 +score_post_fix E6. A fill that could not be measured is NOT a free fill, and None is never 0.
 +
@@ -540,7 +617,7 @@ index 0000000..0486803
 +import pilot_log as PL                          # noqa: E402
 +import pilot_metrics as PM                      # noqa: E402
 +
-+FAILS, N = [], [0]
++FAILS, N, SKIPS = [], [0], []
 +TMPS = []
 +
 +
@@ -549,6 +626,14 @@ index 0000000..0486803
 +    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(extra)) if extra else ''}", flush=True)
 +    if not cond:
 +        FAILS.append(name)
++
++
++def skip(name, why):
++    """A cell that reads the REAL ledger and cannot be exercised in this tree — declared, not counted
++    (W1 T9g rule, lead 2026-09-13). A fresh clone carries only the tracked 20260801 snapshot."""
++    SKIPS.append(name)
++    print(f"  SKIP  {name} — no/short real ledger in this tree (clone): {why} — passes only in the "
++          f"run tree. This is NOT a pass.", flush=True)
 +
 +
 +def row(sym, filled, px, mid, fee, all_usdt=True, conv=None, otype="topup_taker", rid="RID",
@@ -944,11 +1029,15 @@ index 0000000..0486803
 +          b04["n_fills"] == 79 and b04["n_measured"] == 79 and abs(b04["bps_measured"] - 7.8069) < 1e-3
 +          and b04["coverage_measured_notional"] == 1.0, b04["bps_measured"])
 +else:
-+    print("  ....  NOT EXERCISED — the state copy has no 20260805 day file")
++    for _nm in ("★★★ 12:00Z A1785931245: 103 fills, 103 fee-unknown ⇒ bps None, coverage 0",
++                "★★★ 16:00Z A1785945696: 100 fills, 100 fee-unknown ⇒ bps None",
++                "★★ 04:00Z A1785888079: 79/79 measured, +7.8069bps, coverage 1.0"):
++        skip(_nm, "this tree has no pilot_log/20260805 day file")
 +
 +for _t in TMPS:
 +    shutil.rmtree(_t, ignore_errors=True)
-+print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
++print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks"
++      f"{', ' + str(len(SKIPS)) + ' SKIP (ledger-dependent, declared)' if SKIPS else ''})")
 +sys.exit(1 if FAILS else 0)
 diff --git a/ops/daily_summary.py b/ops/daily_summary.py
 index f4a845c..20ddb10 100644

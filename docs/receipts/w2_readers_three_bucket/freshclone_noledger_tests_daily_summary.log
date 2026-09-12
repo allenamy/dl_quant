@@ -29,7 +29,7 @@
   OK    ★★ ...and the sight boundary is stated in the text the operator reads
 
 [C] ★ the day-boundary trap — it must refuse rather than compute a wrong number
-  OK    ★★★ the residual is NOT computed across 00:00Z, and it SAYS so. `realised_pnl` resets daily, so a cross-midnight difference reads a counter reset as a loss  — neither the refusal nor the same-day form appeared
+  SKIP  ★★★ the residual is NOT computed across 00:00Z, and it SAYS so — no/short real ledger in this tree (clone): the tool's 24h window holds 1 nav row(s); no equity change exists to explain or refuse, so neither sentence is owed — passes only in the run tree. This is NOT a pass.
   OK    ★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can check the scope rather than trust it
   OK    ★★★ and the reason is recorded where the next person will edit it: a column name is not a caliber, and two rows from different days are two different calibers of `realised_pnl`
   OK    ★★★ ...and the refusal is a FIELD, so it survives a reword: across a day boundary the residual is None with a stated reason, never a number  — 窗口跨越 00:00Z, 而 `realised_pnl` 是当日累计并在 00:00Z 归零, 所以跨日的权益残差没有定义
@@ -37,7 +37,7 @@
 [D] it is the OUTLET — everything denoising suppressed appears here
   OK    ★★★ the suppressed (tier-B/C) classes are listed with counts — otherwise suppression is just blindness
   OK    ★★ tier-A is re-listed too, so a page that arrived while nobody was watching is not lost
-  OK    ★★ the per-anchor table gives the trend the operator asked for, one row per anchor  — 4 table row(s) vs 4 anchor(s)
+  SKIP  ★★ the per-anchor table gives the trend the operator asked for, one row per anchor — no/short real ledger in this tree (clone): 0 anchors inside the tool's 24h window (pilot_log has no anchor row within 24h of now) — passes only in the run tree. This is NOT a pass.
   OK    ★★ it reuses the production rules table rather than re-deciding what is routine
 
 [E] ★★★ W2 2026-09-12 — realised P&L: USDT-only, non-USDT UNCONVERTED, None is not zero
@@ -64,7 +64,7 @@
   OK    ...and an untruncated read is complete; an absent flag is None, never True
   OK    ★★ E4 a row written BEFORE the per-asset split exists cannot be split: the carrier's sum is passed through under a STATED assumption (caliber), not invented  — legacy_carrier_sum_usdt_assumed
   OK    ★★ ...and a legacy row beside a split row in one window flags the increment's caliber as MIXED  — MIXED legacy_carrier_sum_usdt_assumed -> usdt_only
-  OK    ★★ E5 REAL LEDGER 20260912 nav_ts 1789202716.996306: the USDT figure equals the per-asset USDT slices summed, and the unconverted assets are exactly the carrier's list  — usdt 218.4401031200003 carrier 218.4401031200003 unconverted []
+  SKIP  ★★ E5 REAL LEDGER: the USDT figure equals the per-asset USDT slices summed — no/short real ledger in this tree (clone): no nav row in this tree carries realised_by_type_asset (written since 2026-09-12 06:05Z) — passes only in the run tree. This is NOT a pass.
 
 [F] ★★★ W2 2026-09-12 — the per-anchor cost column: three buckets, None is not 0
   OK    ★★★ F1 two fills whose fee is a raw mixed-asset 0.0 (fee_all_usdt False, no conversion): the cost is None, both fills sit in the fee-unknown bucket, coverage 0  — {'n_rows': 2, 'n_fills': 2, 'n_unknown_fill': 0, 'n_measured': 0, 'n_fee_unknown': 2, 'n_unpriced': 0, 'notional_usdt': 200.0, 'notional_measured_usdt': 0, 'fee_unknown_notional_usdt': 200.0, 'unpriced_notional_usdt': 0, 'fee_measured_usdt': 0, 'adverse_measured_usdt': 0.0, 'abs_slip_measured_usdt': 0.0, 'bps_measured': None, 'fee_bps_measured': None, 'adverse_bps_measured': None, 'abs_slip_bps_measured': None, 'abs_bps_measured': None, 'coverage_measured_notional': 0.0, 'coverage_measured_count': 0.0, 'measurement_complete': False, 'measured_over': 'MEASURED fills only — a fill with a usable price (finite positive avg_fill_px AND mid_at_anchor) AND a known fee (fee_paid not None and finite; a raw mixed-asset fee with fee_all_usdt=False and no fee_conversion is NOT known). An unpriced or fee-unknown fill is excluded from numerator AND denominator; it is not a zero-cost fill. bps is None when nothing was measured.'}
@@ -77,8 +77,7 @@
   OK    ★★★ R2-d coverage is the EXACT ratio (< 1.0 for 9999.6 measured beside 0.4 fee-unknown), completeness is False by COUNT, and the display floors to 99% — never 100%  — (0.9999600000000001, 99)
   OK    ★★★ MUTATION R2-d: the pre-review record rounded the ratio to 4dp first — that reads 1.0 here, so `< 1.0` was False and the anchor was not counted as under-covered
   OK    ★★ ...and a fully measured anchor is exactly 1.0 / complete True / prints 100%
-  OK    ★★★ F5 REAL LEDGER 2026-08-05 12:00Z (A1785931245): 103/103 fills carry fee_paid=0.0 beside fee_all_usdt=False with no conversion (BNB commissions) — cost None, all 103 fee-unknown  — {'n_rows': 211, 'n_fills': 103, 'n_unknown_fill': 0, 'n_measured': 0, 'n_fee_unknown': 103, 'n_unpriced': 0, 'notional_usdt': 4256.1859, 'notional_measured_usdt': 0, 'fee_unknown_notional_usdt': 4256.1859, 'unpriced_notional_usdt': 0, 'fee_measured_usdt': 0, 'adverse_measured_usdt': 0.0, 'abs_slip_measured_usdt': 0.0, 'bps_measured': None, 'fee_bps_measured': None, 'adverse_bps_measured': None, 'abs_slip_bps_measured': None, 'abs_bps_measured': None, 'coverage_measured_notional': 0.0, 'coverage_measured_count': 0.0, 'measurement_complete': False, 'measured_over': 'MEASURED fills only — a fill with a usable price (finite positive avg_fill_px AND mid_at_anchor) AND a known fee (fee_paid not None and finite; a raw mixed-asset fee with fee_all_usdt=False and no fee_conversion is NOT known). An unpriced or fee-unknown fill is excluded from numerator AND denominator; it is not a zero-cost fill. bps is None when nothing was measured.'}
-  OK    ★★★ MUTATION F5: the pre-fix table printed -3.70bps for this anchor — a cost over ZERO measured fills  — -3.700394462661703
-  OK    ★★ F6 REAL LEDGER 2026-09-12 08:00Z (A1789201439): every fill measured — coverage 1.0 and the new figure equals the old formula (reverse control on the live book)  — (1.491695638239944, 1.491695638239944)
+  SKIP  ★★★ F5 REAL LEDGER 2026-08-05 12:00Z (A1785931245): 103/103 fee-unknown ⇒ None; old -3.70bps — no/short real ledger in this tree (clone): this tree lacks pilot_log/20260805 with anchor A1785931245 — passes only in the run tree. This is NOT a pass.
+  SKIP  ★★ F6 REAL LEDGER 2026-09-12 08:00Z (A1789201439): coverage 1.0 and new == old — no/short real ledger in this tree (clone): this tree lacks pilot_log/20260912 with anchor A1789201439 — passes only in the run tree. This is NOT a pass.
 
-ALL PASS  (64 checks, 1 SKIP (ledger-dependent, declared))
+ALL PASS  (58 checks, 6 SKIP (ledger-dependent, declared))

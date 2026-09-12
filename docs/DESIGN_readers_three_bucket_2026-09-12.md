@@ -174,16 +174,22 @@ E6 读 `pilot_metrics.m1_effective_cost`: m1 已把 None 费 / 混币费记 `n_u
 ### 6e. sha256 (最终 = 第二轮复审收口后; 与 6d-2 电池所跑代码一致; 第一轮的 sha 见 receipts/w2_readers_three_bucket/battery_summary.txt 同目录第一轮日志)
 ```
 0d31d10a1353f4ba36702b22b8d0db94551f81dc884055ceb7b52e5e2375dfda  live/cost_buckets.py            (新)
-51df1a049c22eb2ecdc692db590c10a0a0a29886ca9f2a3af08bcca52e0fe99c  live/tests_readers_three_bucket.py (新)
-3465c469294e71dc195fc71ac1b68eb07d589b402d7bc408ec26d11ddaf77e1d  live/tests_daily_summary.py     (origin/main f53a5bf1…)
+f62e1f3beebd727cb55aeac8aa0036189a6ffe174804af394a90254d8be3e2d1  live/tests_readers_three_bucket.py (新)
+c59971d33ce0697dd912553021fb9f370367a4c53d499f47ebe14c99c5bd2d71  live/tests_daily_summary.py     (origin/main f53a5bf1…)
 2cead2155f855026dccac7ad5e83d80a9b8755f5fbfe0d6f321a90f20d8fc52b  ops/daily_summary.py            (origin/main 263e7635…, = 研究员 RESULT.md 冻结 sha)
 147bff8afad605a8bae9488096f1e08baa930d6ece8863845c4194ae24f88f6b  ops/first_anchor_review.py      (origin/main e80cc0e5…)
 35edf62b46ab7c20e6243648942b09bb401a58db962f446711d1c81d85b4824f  ops/score_post_fix.py           (origin/main c4b8eeaf…)
 31106d2d839307120e0cbb55099ac3f671cf259ddebf1e1f59be4141bc1a1ed3  ops/gate_coverage.py            (origin/main 49b357d8…)
 4a0e7ec0d9851b52ea22815c016c974dc865967cf0b8a58ec0213437af3b7ce1  run_acceptance.sh               (origin/main da9ac302…)
 5ac7b16d0f97f2f8013da728ab18f4f3787bc17c2192c1dba63e64e637c08f1f  live/pilot_metrics.py           (未改; = check_metrics_freeze FROZEN_MATCH)
-9d6e2584f761615dc06b6d57c7d6c007a279abf1323c9d6a42ff021433374640  docs/receipts/w2_readers_three_bucket.diff (1522 行, 8 文件 +1248/−80)
+3794ecfda3d7a8398a8dda40c967c7dafc8aa42d66651a762017ed1b254a2de7  docs/receipts/w2_readers_three_bucket.diff (第三轮: 两测试文件 SKIP 改造后重生成)
 ```
+
+### 6g. 第三轮 (2026-09-13, lead 新鲜克隆叠层落地测试 `exec_land_stack_20260912T162534Z`): 账本依赖格 ⇒ 声明 SKIP
+- 复现(只读副本 `exec_land_copy`): 该树 pilot_log 只有 20260801(跟踪快照), W2 六文件与本克隆逐位相同 ⇒ **非代码交互**; 唯一红 = 既有格「per-anchor table … one row per anchor」(`OUT.count("Z ") >= 3` 代理, 需 24h 窗内 ≥3 锚), 59 checks 1 FAIL。
+- 改法(W1 T9g 规则): 两套件加 `skip(name, why)` — 打「SKIP … no/short real ledger in this tree (clone): … — passes only in the run tree. This is NOT a pass.」, 不计入 checks 也不计 FAIL, 汇总行单列 SKIP 数。逐锚表格改为: 工具自报 `covered: N anchor(s)`; N ≥ 1 ⇒ 断言表行数**恰等于** N(比旧代理更强); N = 0 ⇒ SKIP。既有 NOT EXERCISED 格(Q2 / [C] 残差 / E5 / F5 / F6; RTB [F] ×3)统一为 SKIP。
+- 计数: 本克隆(有账本, 09-13 跑): DS **64 checks + 1 SKIP**(Q2: 24h 窗内同日 nav 行 < 2) ALL PASS; RTB **42 + 0 SKIP**。新鲜克隆副本(无账本): DS **58 checks + 6 SKIP** ALL PASS(改前 59 checks 1 FAIL); RTB **39 + 3 SKIP** ALL PASS。收据 `newcode_tests_*.log` / `freshclone_noledger_tests_*.log` / `freshclone_noledger_tests_daily_summary_BEFORE_skip_RED.log`。
+- 读者代码未动(6e 四个读者 sha 不变); 只改两个测试文件; `tests_static_names` / `gate_coverage` / `tests_imports` 复跑绿; 按 lead 指示未重跑全电池。
 
 ### 6f. 未闭合 / 明写
 - pyflakes 对 `ops/first_anchor_review.py:35` `typing` 未用、`ops/score_post_fix.py:23` `List` 未用、`ops/gate_coverage.py:212-213` 重复键、`ops/daily_summary.py:194` `ext` 未用: **全部 origin/main 既有**, 本轮不动(`tests_static_names` 只查未定义名, 绿)。

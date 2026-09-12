@@ -26,7 +26,7 @@
 
 [D] ★★★ first_anchor_review §3c: three buckets on the screen; 0 measured prints no bps
   OK    ★ the review runs on the fixture  —  host — market data and orders share a venue counter (the LIVE merge)
-   wall-clock duration: 148s   (self-kill cap 1500s)
+   wall-clock duration: 162s   (self-kill cap 1500s)
    — ABSENT: rate_timeline for A1785931247 — the clean re-measurement has no input
 
 ============================================================================================
@@ -55,8 +55,8 @@
   OK    ★★ ...while the rebalance verdict is untouched by the flatten row (maker legs all measured ⇒ PASS)
 
 [F] the real ledger copy (read-only): the 2026-08-05 anchors under the rule
-  OK    ★★★ 12:00Z A1785931245: 103 fills, 103 fee-unknown (fee_paid 0.0 + fee_all_usdt False, no conversion), 0 measured ⇒ bps None, coverage 0  — {'n_fills': 103, 'n_fee_unknown': 103, 'bps_measured': None}
-  OK    ★★★ 16:00Z A1785945696: 100 fills, 100 fee-unknown ⇒ bps None  — {'n_fills': 100, 'n_fee_unknown': 100, 'bps_measured': None}
-  OK    ★★ 04:00Z A1785888079 (before the BNB day began): 79/79 measured, +7.8069bps, coverage 1.0 — the rule changes nothing on a clean anchor  — 7.8069126747187
+  SKIP  ★★★ 12:00Z A1785931245: 103 fills, 103 fee-unknown ⇒ bps None, coverage 0 — no/short real ledger in this tree (clone): this tree has no pilot_log/20260805 day file — passes only in the run tree. This is NOT a pass.
+  SKIP  ★★★ 16:00Z A1785945696: 100 fills, 100 fee-unknown ⇒ bps None — no/short real ledger in this tree (clone): this tree has no pilot_log/20260805 day file — passes only in the run tree. This is NOT a pass.
+  SKIP  ★★ 04:00Z A1785888079: 79/79 measured, +7.8069bps, coverage 1.0 — no/short real ledger in this tree (clone): this tree has no pilot_log/20260805 day file — passes only in the run tree. This is NOT a pass.
 
-ALL PASS  (42 checks)
+ALL PASS  (39 checks, 3 SKIP (ledger-dependent, declared))
