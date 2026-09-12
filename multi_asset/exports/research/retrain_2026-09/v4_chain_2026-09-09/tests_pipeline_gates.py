@@ -187,9 +187,9 @@ with tempfile.TemporaryDirectory() as d:
     rc, out = run([f"{d}/nocontract/v4_gate_common.py", "require", f"{d}/g9.json", "gate=G9_unregistered", "self_sha=" + s1["self_sha256"], f"extra_recorded={d}/holes.npz"])
     check("★ [r5] an UNGOVERNED gate (not registered, not in the contract) is unaffected by a missing contract (rc 0) — and confers nothing (arms map only to contract gates)", rc == 0, out.strip()[-120:])
     _ct = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json"))
-    check("★★★ [r5] the ARCHIVED contract is self-consistent: approved sources of G2/STEP1/STEP2 are exactly the archived gate files' shas; BUNDLE_export approves NOTHING (physical gate not built); every candidate arm maps to BUNDLE_export",
+    check("★★★ [r5→r6] the ARCHIVED contract is self-consistent: approved sources of G2/STEP1/STEP2 are exactly the archived gate files' shas; BUNDLE_export approves exactly the archived v2 export gate (v4e_gate_export_v2.py, applied 2026-09-12 on user word after r20 closed N1; was [] while the physical gate did not exist); every candidate arm maps to BUNDLE_export with book binding",
           _ct["gates"]["G2_closure"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_closure.py")] and _ct["gates"]["STEP1"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_step1.py")]
-          and _ct["gates"]["STEP2"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_step2.py")] and _ct["gates"]["BUNDLE_export"]["approved_source_sha256"] == []
+          and _ct["gates"]["STEP2"]["approved_source_sha256"] == [_sha(f"{HERE}/v4_gate_step2.py")] and _ct["gates"]["BUNDLE_export"]["approved_source_sha256"] == [_sha(f"{HERE}/v4e_gate_export_v2.py")] and _ct["gates"]["BUNDLE_export"]["source"] == "v4e_gate_export_v2.py" and _ct["status"].startswith("APPLIED 2026-09-12")
           and set(_ct["arms"]) == {"A1", "A1s", "A1e", "A2", "A3"} and all(a["candidacy_gate"] == "BUNDLE_export" and a["book_binding"] for a in _ct["arms"].values()),
           {g: [x[:8] for x in v["approved_source_sha256"]] for g, v in _ct["gates"].items()})
     check("★ [r5] make_sha_manifest.py lists the contract as a reviewed file", 'f == "ELIGIBILITY_CONTRACT.json"' in open(f"{HERE}/make_sha_manifest.py").read())
