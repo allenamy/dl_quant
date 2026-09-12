@@ -18,7 +18,7 @@
 | G6 | 平价装置 Phase 2(折外历史水平) | 在役模型训练到 08-31 ⇒ 直接回放样本内 | 折外预测按**月度重训节奏**生成; king 梯度截止 = 训练末锚; 装置 = 生产代码路径 | PREREG 另立 | 本仓 | lead |
 | G7 | Q6 跨锚未解释量继承(PREREG 修订 4 未落码) | 数学已接受; 0→100→100 反例可达 | 落码 + 41 日回放验收(PREREG §3) | PREREG 判据 | safe_commit + 15 轮式复审 | 待用户裁定优先级 |
 | G8 | R6-MARK 不可定价量动作合同 | 记录 unknown, 无动作 | 合同选项: 停开新仓 / 缩仓 / 只记录 | 裁定 | — | 用户 |
-| G9 | factor_health UNKNOWN(影子监控报告 ssh 不可读) | 研究基建可达性, INFO | 修可达或改为本地报告源 | 首锚 report 可读 | 研究基建 | lead |
+| G9 | factor_health UNKNOWN(影子监控报告 ssh 不可读) | **诊断(11:4xZ, 只读)**: `ops/check_factor_health.py` L343 自述——jpline 影子监控 cron 于 2026-08-06 经用户裁定退役(服务器只训练+采集), 上游**不存在**, UNKNOWN 是预期态而非故障; 且它监控的对象本就是 3 腿 `A_provisional_3leg` 曲线(无 funding 腿, 非在役书)。⇒ 这是一台指向已退役上游、且口径错误的仪器, 每锚发 INFO | **W5**(W1 落地后): 把消费者改指本地源 = #55 的 `state/live/ic_monitor_evals.jsonl`(实盘书实现 rank-IC), 或明确退役该消费者; 不再 ssh | 首锚 factor_health 读到本地源且 `frontier_judged=True`; 旧码在新套件下红 | 执行器读者(safe_commit) | lead |
 | G10 | BNB 手续费抵扣断(09-07 起, ≈+1.5% NAV/年) | 全 USDT 费, VIP0 | 运维: 充 BNB/开抵扣 | 首锚 commission_asset 出现 BNB | 用户 | 用户 |
 | G11 | 生产者 paper 计分器给退役书计分 | `combo_stage` 不写 aux.json | 改生产者 = 换装事件 | 用户字 | — | 待裁定 |
 
