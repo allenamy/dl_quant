@@ -6,6 +6,7 @@
 # are bound through STEP1; pin_deps records trainer / launcher / merge / chain_lib / legs / fea89 / targets / fea82 shas at dispatch.
 # ROUND 4 (2026-09-10): receipts are required with self_sha= of $R/v4_gate_step1.py / $R/v4_gate_step2.py computed at run time (gate_sha), and with
 #   the full registered dependency set (v4_gate_common.REQUIRED_INPUTS: STEP1@v4 = RAW + CLIP targets, fea82, fea89; STEP2 = wide_fea_v4 + meta).
+[ "${V4_LEGACY_OK:-}" = 1 ] || { echo "LEGACY_REFUSED $(basename "$0"): September-only chain (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 3: a retrain runs ONLY through chain_v4_monthly.sh <month.env>); set V4_LEGACY_OK=1 to run it deliberately (researcher R5, 2026-09-12)" >&2; exit 64; }   # R5: physical seal, first action line — nothing above this runs code
 set -o pipefail; R=/workspace/review_scratch; . $R/chain_lib.sh; cd $R || exit 2; export MWF_ROOT=mwf_v4b
 SH0=202501,202505,202509,202601,202605; SH1=202502,202506,202510,202602,202606; SH2=202503,202507,202511,202603,202607; SH3=202504,202508,202512,202604,202608
 S1_SRC=$(gate_sha $R/v4_gate_step1.py) || die "gate_source_unreadable_v4_gate_step1" 3

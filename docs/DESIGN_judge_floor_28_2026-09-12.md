@@ -133,3 +133,35 @@ A1−A0 冻结窗对照(n=3168)五格逐字节相同: dyn s42 Δ +0.0605 CI [−
 **全套件**: 修前(W3+W4 合并, lead 复跑)**ALL PASS (222 checks)**(`receipts/monthly_chain_2026-09-12/tests_pipeline_gates_lead_merged.log`)→ 加 [Q] 后 **ALL PASS (228 checks)**(`…/tests_pipeline_gates_lead_r7.log`)。judge_v4.py sha 7f1aa5d6 → f6850dc3215f。
 
 **未做/仍开**: 合同文本第 8 句 (e) 只提「四判书」不提「合同自身」——文本落后于代码一句, 但改合同 = 改 sha = 需用户字, 记为下次合同修订项(RULINGS_requested 追加 R-9)。
+
+## §9 第八轮(2026-09-12 14:1x–14:4xZ, W4): 研究员 B-R2 —— 判官必须验收据**记录**的条件输入(femat / signal_receipt), 不只验调用方声明的
+
+**缺口(研究员独立反例, VERIFIED)**: 28 名静态底封不住判官的**动态**闭包。`require` 只遍历调用方 inputs; 判官只自加 4 判书 + 合同。一份合法 v2 形状收据若额外记录了 `femat` sha, FEMAT 改变后: 调用方**不报** femat ⇒ `ok=True`; 调用方报 ⇒ `False`。真 A1 无 FEMAT 不受影响; 月驱动 export 路线把收据全部 `inputs_path` 交判官(受保护); 缺口在判官独立入口 / 手工 locator。
+
+**修法(收据的记录闭包 = 依赖集)**:
+| 文件 | 位置 | 改动 | sha256 |
+|---|---|---|---|
+| `judge_v4.r5_f6850dc3.py` | 新 | 第七轮判官快照(判决装置与结论同寿命; 本轮「旧码红」用它) | f6850dc3215fc38624ea6152e96b248727b7c4ff1acec4b6bf6e642aa1873809 |
+| `v4_gate_common.py` | L161 签名 `recorded_extras=False`; L166-170 docstring; **L216-229** 扩展块: `recorded_extras` 为真时, `receipt.inputs_sha256` 中调用方未声明的每个名从 `receipt.inputs_path` 取路径并入验证集, **无可定位路径 ⇒ 拒**(`receipt recorded conditional input X but no locatable path`); L238-241 PASS 文案加 `(n recorded beyond the caller's declaration, …)`; L250 CLI `recorded_extras=1`; L44-49 docstring ROUND 8; L80-81 注释更正 | f8f4fc0e… → **24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1** |
+| `judge_v4.py` | **L217-226** `_eligibility`: 记 `recorded_extras` / `recorded_extras_paths`(收据记了、调用方+判官都未声明的名), `_require(..., recorded_extras=True)`, `inputs` 输出并入 extras; L46-49 docstring ROUND 8 | f6850dc3… → **c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba** |
+| `make_sha_manifest.py` | L22 `SNAP` 正则 `r([0-4])` → `r([0-9])`; L16 docstring | 5555c898… → **ba521004daaa164e815d92a7ee28810f84e1d4dd526fd3ed06550720e50cd4b1** |
+| `tests_judge_dynamic_deps.py` | 新文件(独立于 W7 在改的 `tests_pipeline_gates.py`) | 见下 | 4dfee3fd016a708ee320c5d23585632071e4f79331209d6a88f06d9829aa5122 |
+| `receipts/v4_scripts_sha_full.json` | 重生成 rc 0: utc 14:36:18Z, n_files 99, `SNAPSHOT_r4` 1 + **`SNAPSHOT_r5` 1**(旧正则会把 r5 快照列为活脚本), POD2_UNQUERIED 74 | 2714261de9fc9842269ae344e98159f761e48550598fdd7adf9369c1178bee3e |
+
+不动: 合同、v2 门、`tests_pipeline_gates.py` / `chain_lib.sh` / 月度门与 env(W7)。v2 门自身 require 模式从盘上派生全集, 不需要旗标。
+
+**`tests_judge_dynamic_deps.py` — ALL PASS (19 checks), 27.5 s**(`receipts/judge_floor_2026-09-12/r8/tests_judge_dynamic_deps.log`); 合成 7 臂 × 4 格 × 3168 锚, A1e +1 bps, 装置副本 = 待测判官 + 归档 common + **出厂合同**, 收据以归档 v2 门 sha 签:
+| 格 | 情形 | 结果 |
+|---|---|---|
+| (i) | 记录 femat, 收据后 FEMAT 改, 调用方不报 | **不合格**, why `'femat' changed since the receipt`, `recorded_extras=['femat']`, 0 PROMOTE |
+| (ii) | 记录 femat 未改, 调用方不报 | 合格, `29 inputs verified (1 recorded beyond the caller's declaration…)`, 4 PROMOTE |
+| (iii) | 记录 femat 但 `inputs_path` 无此键 | 拒, `recorded conditional input 'femat' but no locatable path` |
+| (iv) | 无 extras(真 A1 形状) | 合格, `28 inputs verified (0 recorded beyond…)`, `recorded_extras=[]`, 4 PROMOTE; 静态: 真 A1 收据 `inputs_sha256` 键集 == 28 底, 无 extras |
+| (v) **旧码红** | `judge_v4.r5_f6850dc3.py` 跑 (i) | **合格 + 4 PROMOTE**(旧判官看不见收据记的 FEMAT) |
+| + | 调用方报改过的 femat(两轮都拒); femat+signal_receipt 只后者改 ⇒ 拒并点名 `signal_receipt`; 两者未改 ⇒ 合格 30 inputs; extra 记 sha None ⇒ 拒; FEMAT 文件被删 ⇒ `missing on disk`; 单元级 `require(recorded_extras=False)` 仍过 / `True` 拒 / CLI `recorded_extras=1` rc 3 | 全 OK |
+
+**既有全套件一次**(`tests_pipeline_gates.py` 盘上 W7 在改版 c9c918b8 + `chain_lib.sh` 8865c34e, 14:3xZ): **222 OK / 1 FAIL**; 唯一红 = W7 自己的新格 `[P] chain_lib registers the month contract keys (45 = 41 + 4 PREV_*)`(W7 的 chain_lib 与其测试在飞, 与本轮无关); 我方 [O] 29 格与 lead 的 [Q] 全 OK; `28 inputs verified` 子串断言在新文案下保持成立。日志 `r8/tests_pipeline_gates_r8.log`, 输入 sha `r8/tests_pipeline_gates_r8_inputs_sha.txt`。
+
+**pod2 (iv) 真 A1(CPU only; GPU 0 %, 2 MiB 于 14:36:11Z 与 14:36:20Z; PID 333197/339489 在)**: 装置 `w4_judge_floor/device_r8/` = judge c2a81c48 + common 24e813f1 + 合同 1188267a, 同一 09:23Z 收据、同一 28 名 entry ⇒ **NOT eligible — `input 'bundle/slow2026.txt' changed since the receipt: 0a5adca16edb != f23657710f3a`**; `recorded_extras=[]`, 18 判决, 0 PROMOTE。**归因(只读核对)**: `/workspace/shadow_bundle_v4/slow2026.txt` mtime **2026-09-12 11:16:59Z**(`slow_pred_pinned.npy` 11:18:22Z 重写但 sha 未变), 28 个记录输入中**仅此一个**变了; 时间落在 W3 月度链 king 阶段(11:00–11:08Z 起)——该阶段把 king 产物写进 r20 收据用的同一 `BUNDLE_OUT`。**对照**: 第七轮判官 `r5_f6850dc3` + 同 common 在同一 entry 上给出**逐字相同**的拒绝(`r8/pod2_out_r8/JUDGE_r5ctl_full28.json`)⇒ 第八轮没有改变真 A1 的结论; 变的是环境。这正是第六轮 28 底要抓的事(11 名底下判官会仍判合格)。**后果**: r20 的 A1 收据(09:23Z)在 pod2 上已不再授予资格; 任何以判官晋级为目的的动作前, 必须对当前 bundle 重跑 v2 门 gate + require。收据: `r8/pod2_out_r8/`, `r8/run_r8_pod2.log`, `r8/pod2_bundle_attribution.log`, 全部 sha `r8/SHA256SUMS.txt`。
+
+**仍开**: 收据无签名(手改 `inputs_sha256`/`inputs_path` 仍可对齐——本轮把「记了就验」做实, 但「记的是真的」仍靠签名或判官复跑 v2 门); FEMAT 臂本身(XIBLAG50)仍未在合同注册, 本轮不给其资格。

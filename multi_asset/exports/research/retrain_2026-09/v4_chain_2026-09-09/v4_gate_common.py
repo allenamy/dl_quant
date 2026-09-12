@@ -41,9 +41,15 @@
   undeclared. No profile: nothing legitimately consumes a SUBSET of a BUNDLE_export receipt (the v2 gate's require mode passes the derived full set;
   no chain_*.sh requires this gate). G2_closure / STEP1(@v4, @v4s) / STEP2 are untouched.
 
+★ ROUND 8 (independent review B-R2, 2026-09-12; DESIGN_judge_floor_28 §9): the static floor did not close the judge's DYNAMIC closure. `require`
+  iterated only the caller's inputs, so a receipt that had recorded a conditional input (femat, signal_receipt — registered by the v2 gate only when
+  a book injected a FEMAT) was accepted after that file changed whenever the caller simply did not name it. `require(..., recorded_extras=True)` now
+  treats every name in receipt.inputs_sha256 beyond the caller's declaration as REQUIRED, locates it from receipt.inputs_path and verifies it (no
+  locatable path ⇒ refused). The judge passes recorded_extras=True; the v2 gate's own require mode derives the full set from disk and needs nothing.
+
 CLI:
-  python v4_gate_common.py require <receipt.json> gate=<expected_gate> self_sha=<sha256> [profile=<stage>] name=path [name=path ...]
-                                                                       # exit 0 iff PASS & identity & fresh & full registered dependency set
+  python v4_gate_common.py require <receipt.json> gate=<expected_gate> self_sha=<sha256> [profile=<stage>] [recorded_extras=1] name=path [name=path ...]
+                                                                       # exit 0 iff PASS & identity & fresh & full registered dependency set (& every recorded extra, round 8)
   python v4_gate_common.py sha <path> [...]                            # print sha256 per file
 """
 import hashlib
@@ -71,7 +77,8 @@ REQUIRED_INPUTS = {
                       "costb_json", "umask_npz", "slow_npy", "eligibility_contract"],                             # ROUND 6 (r20): cost model, mask, king file (E6), the standard itself (E0)
     #   = EXACTLY the 28 names v4e_gate_export_v2.py registers for an arm without FEMAT injection (the real A1 receipt of 2026-09-12T09:23:10Z,
     #   receipts/judge_floor_2026-09-12/BUNDLE_export_v2_A1_applied.json); `femat` / `signal_receipt` are conditional (E6/E7, only when a book injected
-    #   a FEMAT) and are therefore NOT in the static floor — extras are allowed, and a receipt that recorded them is still verified on them.
+    #   a FEMAT) and are therefore NOT in the static floor — extras are allowed; since ROUND 8 the judge verifies them from the receipt's own
+    #   inputs_path (require(recorded_extras=True)) whether or not the caller names them.
 }
 
 
@@ -151,12 +158,16 @@ def finalize(gate, res, out_path, inputs=None, exit_code_fail=3):
     sys.exit(0 if res["PASS"] else exit_code_fail)
 
 
-def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=None, profile=None):
+def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=None, profile=None, recorded_extras=False):
     """Return (ok, reason). ok iff the receipt exists, names the expected gate, the caller PINNED the
     gate source it trusts (`expected_self_sha`, mandatory since round 4) and the receipt's real self sha
     equals it, says PASS, the caller declared at least one input AND every input registered for
     gate[@profile] in REQUIRED_INPUTS (round 4), and every declared input's sha equals the sha recorded
-    in the receipt (a stale receipt is not a receipt)."""
+    in the receipt (a stale receipt is not a receipt).
+    recorded_extras=True (round 8): additionally every input the RECEIPT recorded beyond the caller's declaration
+    (conditional inputs such as femat / signal_receipt) is located from the receipt's own inputs_path and verified;
+    a recorded name with no locatable path is refused. The judge sets this; a caller that only re-verifies its own
+    declaration (the chains, the v2 gate's require mode which derives the full set from disk) leaves it False."""
     if not os.path.exists(receipt_path):
         return False, f"receipt missing: {receipt_path}"
     try:
@@ -201,6 +212,20 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
     if missing:
         return False, f"caller omitted registered input(s) {missing} for {key}: the stage would run unbound from them (REQUIRED_INPUTS[{key!r}] = {need})"
     rec = r.get("inputs_sha256") or {}
+    inputs = dict(inputs); n_extra = 0
+    if recorded_extras:
+        # ★ ROUND 8 (independent review B-R2, 2026-09-12): the receipt's RECORDED closure is the dependency set, not the caller's declaration.
+        #   Every name the gate hashed beyond what the caller declared (conditional inputs: femat, signal_receipt) is located from the receipt's
+        #   own inputs_path and verified below; a recorded name with no locatable path is refused. The reviewer showed that with the 28-name floor
+        #   alone a caller could shed a recorded FEMAT dependency simply by not naming it (omit femat ⇒ ok; declare it ⇒ 'changed since the receipt').
+        paths = r.get("inputs_path") if isinstance(r.get("inputs_path"), dict) else {}
+        for k in rec:
+            if k in inputs:
+                continue
+            p = paths.get(k)
+            if not isinstance(p, str) or not p:
+                return False, f"receipt recorded conditional input {k!r} but no locatable path (inputs_path lacks it): what the gate hashed cannot be re-verified"
+            inputs[k] = p; n_extra += 1
     for k, p in inputs.items():
         if k not in rec:
             return False, f"receipt has no sha for input {k!r}"
@@ -211,8 +236,9 @@ def require(receipt_path, inputs=None, expected_gate=None, expected_self_sha=Non
         cur = sha256_file(p)
         if cur != rec[k]:
             return False, f"input {k!r} changed since the receipt: {cur[:12]} != {str(rec[k])[:12]}"
-    return True, (f"PASS ({r.get('gate')}, {r.get('utc')}, self {ss[:12]} approved, "
-                  f"{len(inputs)} inputs verified, registered floor {key}={len(need) if registered else 'none'})")
+    return True, (f"PASS ({r.get('gate')}, {r.get('utc')}, self {ss[:12]} approved, {len(inputs)} inputs verified"
+                  + (f" ({n_extra} recorded beyond the caller's declaration, located from the receipt's inputs_path)" if recorded_extras else "")
+                  + f", registered floor {key}={len(need) if registered else 'none'})")
 
 
 def main():
@@ -221,7 +247,8 @@ def main():
         gate = kv.pop("gate", None)
         self_sha = kv.pop("self_sha", None)
         profile = kv.pop("profile", None)
-        ok, why = require(sys.argv[2], kv, expected_gate=gate, expected_self_sha=self_sha, profile=profile)
+        rx = kv.pop("recorded_extras", "0") == "1"       # round 8: also verify every input the receipt recorded beyond this declaration
+        ok, why = require(sys.argv[2], kv, expected_gate=gate, expected_self_sha=self_sha, profile=profile, recorded_extras=rx)
         print(("REQUIRE_OK " if ok else "REQUIRE_FAIL ") + why, flush=True)
         sys.exit(0 if ok else 3)
     if len(sys.argv) >= 3 and sys.argv[1] == "approved":       # approved <gate> <sha256> -> rc 0 iff approved in the frozen contract

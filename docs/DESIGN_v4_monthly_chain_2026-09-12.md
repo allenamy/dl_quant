@@ -143,3 +143,5 @@
 - **R5 关闭(物理)**: 五个旧链脚本首行 `V4_LEGACY_OK=1` 守卫, 否则 rc 64 `LEGACY_REFUSED` 什么也不做([S] 逐个验证 cwd 零写入); [J]/[K] 自检传 `V4_LEGACY_OK=1`。
 - 自检 328 ALL PASS(`receipts/monthly_chain_2026-09-12/tests_pipeline_gates_w7.log` + `.SHA256SUMS`); `make_sha_manifest.py` rc 0; 研究员 13+8 探针复跑翻转 5 格(W7)+1 格(W4 并行), 见 `w7_gates/researcher_probes_live/README.md`。
 - §7 (ii) 仍开: 真数据全链(mwf/refit/arms/judge/export)未跑; 前置只在合成根上验证。
+
+> **勘误(2026-09-12 15:1xZ, lead)**: 本文 §3/§5 写的「41 键」是 W3 交付时的数; W7 随后加入 `PREV_DLW_CLIP / PREV_F8 / PREV_KING_FEA / PREV_KING_FEA_UNCLAMPED / PREV_CLAMP_BUILDER_SHA256` ⇒ 现为 **46 键**(`chain_lib.sh` V4_MONTH_KEYS; 自检 [P] 键数格已同步)。键的语义见 `docs/PREREG_v4_gates_monthly_2026-09-12.md` §2。

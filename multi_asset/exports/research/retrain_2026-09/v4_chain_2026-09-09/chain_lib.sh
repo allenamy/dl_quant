@@ -21,12 +21,17 @@ PY=${PY:-/workspace/venv/bin/python}; R=${R:-/workspace/review_scratch}; L=${L:-
 say(){ echo "[$(date -u +%FT%TZ)] $*" >> "$L"; }
 die(){ say "FAIL_$1"; echo "FAIL_$1" >&2; exit "${2:-1}"; }
 # the month configuration contract: every key MUST be present and non-empty (schema documented in v4_month_2026-09.env and DESIGN_v4_monthly_chain_2026-09-12.md)
-V4_MONTH_KEYS="V4_MONTH R PY CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS DLW_RAW DLW_CLIP F8 KING_FEA KING_META MONTHS_ALL SEEDS MWF_ROOT BUNDLE_OUT BUNDLE_TAR BUNDLE_GENERATION BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL DLW_EXT F8_EXT HC KING_DIR EXPORT_ARM SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER GATE_STEP1 GATE_STEP2 PREV_BUNDLE PREV_META REF_META"
+V4_MONTH_KEYS="V4_MONTH R PY CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS DLW_RAW DLW_CLIP F8 KING_FEA KING_META MONTHS_ALL SEEDS MWF_ROOT BUNDLE_OUT BUNDLE_TAR BUNDLE_GENERATION BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL DLW_EXT F8_EXT HC KING_DIR EXPORT_ARM SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER GATE_STEP1 GATE_STEP2 PREV_BUNDLE PREV_META REF_META PREV_DLW_CLIP PREV_F8 PREV_KING_FEA PREV_KING_FEA_UNCLAMPED PREV_CLAMP_BUILDER_SHA256"   # 46 keys (W7 2026-09-12: +4 reference keys of the month-generic data gates, PREREG_v4_gates_monthly_2026-09-12 §2; +1 builder identity pin, PREREG AMENDMENT 1 / researcher B-R4)
 load_month_env(){  # load_month_env <v4_month.env> — sources the contract (KEY=value lines only; later keys may reference earlier ones as $R/...) and exports it; rc 4 on any defect
   local f=$1 k bad
   [ -n "$f" ] && [ -f "$f" ] || die "month_env_missing_${f:-<none>}" 4
   bad=$(grep -vE '^[[:space:]]*(#|$)' "$f" | grep -vE '^[A-Z_][A-Z0-9_]*=[^;&|`]*$'; grep -vE '^[[:space:]]*#' "$f" | grep -E '\$\(')   # comments are free text; every other line is KEY=value without ; & | ` $(
   [ -z "$bad" ] || { echo "month env $f: malformed line(s): $bad" >&2; die "month_env_malformed_$(basename "$f")" 4; }
+  # B-R3 (independent review 2026-09-12): a key must be PRESENT IN THE FILE — a value inherited from the parent shell is not the contract's value.
+  #   (1) every key must appear as a `KEY=` line of the file; (2) all contract keys are UNSET before sourcing, so nothing the caller exported survives.
+  local present; present=" $(grep -oE '^[A-Z_][A-Z0-9_]*=' "$f" | tr -d '=' | tr '\n' ' ') "
+  for k in $V4_MONTH_KEYS; do case "$present" in *" $k "*) ;; *) echo "month env $f: key $k is not a line of the file (an inherited environment value does not count)" >&2; die "month_env_key_missing_$k" 4 ;; esac; done
+  unset $V4_MONTH_KEYS V4_MONTH_ENV
   set -a; . "$f"; set +a
   for k in $V4_MONTH_KEYS; do [ -n "${!k:-}" ] || die "month_env_key_missing_$k" 4; done
   V4_MONTH_ENV=$f; export V4_MONTH_ENV
@@ -82,4 +87,107 @@ set_shards_from_months_all(){  # set_shards_from_months_all — SH0..SH3 = round
   done < <($PY "$D/v4_months.py" shards "$MONTHS_ALL" 4 2>&1)
   [ -n "${SH0:-}" ] && [ -n "${SH3:-}" ] || die "months_all_shards_empty" 4
   say "shards from MONTHS_ALL=$MONTHS_ALL: SH0=$SH0 SH1=$SH1 SH2=$SH2 SH3=$SH3"
+}
+# ── B-R1 (independent review 2026-09-12): a stage may DISPATCH only after its prerequisites are verified here, bound to THIS month's root/contract —
+#    the dependency graph is code, not file order. Every helper dies with FAIL_<stage>_prereq_<name> (rc 3) naming the missing/mismatching item.
+prereq_receipt(){  # prereq_receipt <stage> <name> <receipt.json> <gate> — receipt exists, names <gate>, PASS true; PREFLIGHT additionally bound to this contract (month_env_sha256) and root
+  local stage=$1 name=$2 rp=$3 gate=$4 out rc
+  out=$($PY - "$rp" "$gate" "${V4_MONTH_ENV:-}" "$R" 2>&1 <<'PYEOF'
+import hashlib, json, os, sys
+rp, gate, envf, root = sys.argv[1:5]
+if not os.path.isfile(rp): print(f"receipt missing: {rp}"); sys.exit(3)
+try: r = json.load(open(rp))
+except Exception as e: print(f"receipt unreadable: {e}"); sys.exit(3)
+if r.get("gate") != gate: print(f"receipt is from gate {r.get('gate')!r}, expected {gate!r}"); sys.exit(3)
+if r.get("PASS") is not True: print(f"receipt says PASS={r.get('PASS')!r} ({r.get('utc')})"); sys.exit(3)
+if gate == "PREFLIGHT":
+    h = hashlib.sha256(open(envf, "rb").read()).hexdigest() if envf and os.path.isfile(envf) else None
+    if r.get("month_env_sha256") != h: print(f"preflight receipt is bound to contract sha {str(r.get('month_env_sha256'))[:12]}, this run's contract is {str(h)[:12]}"); sys.exit(3)
+    if os.path.realpath(str(r.get("root", ""))) != os.path.realpath(root): print(f"preflight receipt root {r.get('root')} != this root {root}"); sys.exit(3)
+print(f"ok {gate} {r.get('utc')}")
+PYEOF
+); rc=$?
+  say "prereq $stage/$name: $out"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }
+}
+prereq_marker(){  # prereq_marker <stage> <name> <log> <marker> [<forbidden marker>] — the log exists in THIS root and carries the marker (and not the forbidden one)
+  local stage=$1 name=$2 log=$3 marker=$4 bad=${5:-}
+  [ -f "$log" ] || { say "prereq $stage/$name: log missing $log"; echo "prereq $stage/$name: log missing $log" >&2; die "${stage}_prereq_${name}" 3; }
+  grep -q "$marker" "$log" || { say "prereq $stage/$name: marker $marker absent in $log"; echo "prereq $stage/$name: marker $marker absent in $log" >&2; die "${stage}_prereq_${name}" 3; }
+  [ -z "$bad" ] || ! grep -q "$bad" "$log" || { say "prereq $stage/$name: forbidden marker $bad present in $log"; echo "prereq $stage/$name: forbidden marker $bad present in $log" >&2; die "${stage}_prereq_${name}" 3; }
+  say "prereq $stage/$name: ok ($marker in $(basename "$log"))"
+}
+prereq_file(){  # prereq_file <stage> <name> <path>
+  [ -f "$3" ] || { say "prereq $1/$2: file missing $3"; echo "prereq $1/$2: file missing $3" >&2; die "${1}_prereq_${2}" 3; }; say "prereq $1/$2: ok $3"
+}
+prereq_json_eq(){  # prereq_json_eq <stage> <name> <json> <field> <expected> — a recorded identity (e.g. cache_sha256) must equal what this run is about to consume
+  local stage=$1 name=$2 jp=$3 field=$4 want=$5 out rc
+  out=$($PY -c 'import json,sys;r=json.load(open(sys.argv[1]));v=str(r.get(sys.argv[2]));sys.exit(0 if v==sys.argv[3] else (print(f"{sys.argv[2]}={v[:16]} != expected {sys.argv[3][:16]}") or 3))' "$jp" "$field" "$want" 2>&1); rc=$?
+  say "prereq $stage/$name: ${out:-ok $field}"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }
+}
+prereq_deps_identity(){  # prereq_deps_identity <stage> <name> <deps.json> path... — every path's CURRENT sha256 equals the sha pin_deps recorded for it (the dispatch is bound to the files it pinned)
+  local stage=$1 name=$2 dp=$3; shift 3; local out rc
+  out=$($PY - "$dp" "$@" 2>&1 <<'PYEOF'
+import hashlib, json, os, sys
+dp = sys.argv[1]; paths = sys.argv[2:]
+if not os.path.isfile(dp): print(f"deps receipt missing: {dp}"); sys.exit(3)
+d = json.load(open(dp)).get("deps_sha256", {}); bad = []
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(1 << 24), b""): h.update(ch)
+    return h.hexdigest()
+for p in paths:
+    if p not in d: bad.append(f"{p}: not pinned"); continue
+    if not os.path.isfile(p): bad.append(f"{p}: missing on disk"); continue
+    cur = sha(p)
+    if cur != d[p]: bad.append(f"{p}: {cur[:12]} != pinned {d[p][:12]}")
+if bad: print("; ".join(bad)); sys.exit(3)
+print(f"ok {len(paths)} files identical to the pins")
+PYEOF
+); rc=$?
+  say "prereq $stage/$name: $out"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }
+}
+prereq_refit_sidecar(){  # prereq_refit_sidecar <stage> <name> <sidecar.json> <DLW_RAW> <F8> — best_ep_rule fix7, env_given bound to THIS month's dirs, every recorded input sha == the file now on disk
+  local stage=$1 name=$2 sc=$3 dlw=$4 f8=$5 out rc
+  out=$($PY - "$sc" "$dlw" "$f8" 2>&1 <<'PYEOF'
+import hashlib, json, os, sys
+sc, dlw, f8 = sys.argv[1:4]
+if not os.path.isfile(sc): print(f"refit sidecar missing: {sc}"); sys.exit(3)
+m = json.load(open(sc)); bad = []
+if m.get("best_ep_rule") != "fix7": bad.append(f"best_ep_rule={m.get('best_ep_rule')!r}")
+eg = m.get("env_given") or {}
+if eg.get("F10_DLW") != dlw: bad.append(f"env_given.F10_DLW={eg.get('F10_DLW')!r} != {dlw!r}")
+if eg.get("F10_OUT") != f8: bad.append(f"env_given.F10_OUT={eg.get('F10_OUT')!r} != {f8!r}")
+if str(eg.get("BEST_EP_FIX")) != "7": bad.append(f"env_given.BEST_EP_FIX={eg.get('BEST_EP_FIX')!r}")
+ins = m.get("inputs") or {}; shas = m.get("inputs_sha256") or {}
+if not ins or not shas: bad.append("sidecar records no inputs/inputs_sha256")
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for ch in iter(lambda: f.read(1 << 24), b""): h.update(ch)
+    return h.hexdigest()
+for k, p in ins.items():
+    if not os.path.isfile(p): bad.append(f"input {k} missing on disk: {p}"); continue
+    if sha(p) != shas.get(k): bad.append(f"input {k} changed since refit: {sha(p)[:12]} != {str(shas.get(k))[:12]}")
+pt = m.get("pt")
+if not pt or not os.path.isfile(pt): bad.append(f"weights missing: {pt}")
+elif m.get("pt_sha256") and sha(pt) != m["pt_sha256"]: bad.append(f"weights changed since refit: {sha(pt)[:12]} != {m['pt_sha256'][:12]}")
+if bad: print("; ".join(bad)); sys.exit(3)
+print(f"ok seed {m.get('seed')} fix7, {len(ins)} inputs + weights identical")
+PYEOF
+); rc=$?
+  say "prereq $stage/$name: $out"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }
+}
+prereq_count(){  # prereq_count <stage> <name> <file> <grep pattern> <min> — at least <min> matching lines
+  local stage=$1 name=$2 f=$3 pat=$4 min=$5 n
+  n=$(grep -a -c "$pat" "$f" 2>/dev/null || echo 0); say "prereq $stage/$name: $n lines match ($min needed)"
+  [ "$n" -ge "$min" ] || { echo "prereq $stage/$name: $n lines match ($min needed) in $f" >&2; die "${stage}_prereq_${name}" 3; }
+}
+# ── B-R3: subprocesses of the data stage run under `env -i` with ONLY this allowlist passed through + the variables the driver sets explicitly, so an
+#    ambient DLWT_RAW_PATCH / F171_* / F8_* / CACHE_IN of the parent shell can never reach a builder. Usage: clean_env; env -i "${CLEAN_ENV[@]}" KEY=val ... "$PY" ...
+clean_env(){
+  local v; CLEAN_ENV=()
+  for v in PATH HOME LANG LC_ALL TMPDIR VIRTUAL_ENV LD_LIBRARY_PATH OMP_NUM_THREADS MKL_NUM_THREADS OPENBLAS_NUM_THREADS PYTHONDONTWRITEBYTECODE CUDA_VISIBLE_DEVICES; do
+    [ -n "${!v:-}" ] && CLEAN_ENV+=("$v=${!v}")
+  done; return 0
 }

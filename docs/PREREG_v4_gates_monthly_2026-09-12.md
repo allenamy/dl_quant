@@ -128,6 +128,28 @@
 7. 不检验 `PREV_*` 真是「上月」(门看不见日历); 由合同与 preflight 钉 sha 负责。
 8. 新门注册的 `cache` 输入让收据多 hash 一个 2.09 GB 文件(实测秒级); 未纳入 `REQUIRED_INPUTS` 地板(那是 `v4_gate_common.py` 的改动, 冻结不动)。
 
+## AMENDMENT 1(2026-09-12, W7; 独立研究员复核 B-R4 + B-R1/B-R3/R5 派工; **先于任何再跑写成**, 本文追加前 sha 见 §7.9)
+
+**触发**: 研究员 `PROBE_W7_RESULTS.json` 两格: (a) `W7_NONE_positive_without_any_builder_or_preflight_identity` — `NONE` 只是 env 字串, §3.3 的「构建器 sha 相同」前提没有落到程序; (b) `W7_entire_new_tail_NaN_still_PASS_boundary` — 30 个新尾锚全 NaN 仍 PASS(尾部只被豁免、没有质量门)。
+
+### A1.1 `NONE` 绑定构建器身份(STEP2_m)
+- 新合同键 **`PREV_CLAMP_BUILDER_SHA256`**(46 键): 九月 = 冻结 STEP2 门在九月真数据上验过 clamp 性质时的 `pod_fea_ext_clamp.py` sha = `b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac`(`receipts/monthly_chain_2026-09-12/pod2_root/preflight.json` device_sha256 与 `device_sha256_pod2.txt` 同值); 十月 = 同值(构建器改了 = 新 PREREG, 不是改这个值)。
+- `PREV_KING_FEA_UNCLAMPED=NONE` 时门**必须**: ① 读 `$R/v4_gates/deps_preflight_device.json`(本月 preflight 钉的装置 sha), 取键以 `/pod_fea_ext_clamp.py` 结尾的条目; ② 算门所在目录的 `pod_fea_ext_clamp.py` 现值 sha; ③ 三者(合同钉值 / preflight 钉值 / 现值)**全等**, 否则 `REFUSED.clamp_builder_identity` 点名哪个缺/哪个不等(rc 3, PASS=false 收据)。收据 `clamp_checks` 由字串改为 dict: `{mode: "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE", builder, pinned_sha256, preflight_pinned_sha256, device_file_sha256, preflight_deps_receipt}`。非 NONE 时不读这些(九月正控路径不变)。
+- 边界(明写): 这绑的是「构建器代码身份 = 九月验过的那份」, 不是重新验 clamp 性质; 重新验需要上月留未 clamp 构建(§3.3)。
+
+### A1.2 新尾质量门(STEP2_m; 尾 = §3.4 定义: 只在本月且 `E_ts > max(E_ref)` 的锚)
+- **统计**: 每个尾锚 a 的 **成员格有限比例** `ff(a) = mean(isfinite(F4[a][members(a), :]))`(members 来自本月 KING_META; 82 列全算)与 `n_members(a)`。
+- **判据(冻结)**: 每个尾锚 `n_members(a) ≥ 1` ∧ `ff(a) ≥ 0.90`。收据字段 `tail_quality = {n_tail_anchors, member_finite_frac_min, member_finite_frac_median, n_members_min, floor: 0.90, ok}`; **有尾锚即出现**(不论豁免数), 进 PASS。
+- **校准数据(九月参照, 只读 pod2 2026-09-12 14:4xZ, 未看任何十月数据)**: `wide_fea_v4.npy` (10182, 829, 82) 逐锚成员格有限比例: 分位 {0: 0.9756, 1: 0.9756, 5: 1.0, 50: 1.0, 95: 1.0, 100: 1.0}; 最低 0.9756 = 80/82(轴首 8 锚与轴末 5 锚各缺 2 列); 成员数 135–400; 全币格有限比例 0.16–0.48 随成员数变化, **不可作绝对地板**(故用成员格)。0.90 与实测最低值 0.9756 之间留 ≈6 个 NaN 列的余量; 全 NaN 尾(ff=0)、半死尾(ff=0.5)必红; 合成夹具 NF=10 时 1 列 NaN(0.90)过、2 列 NaN(0.80)红。
+- **对 G1 的修订**: 九月 v4 相对 v2ext 有 6 个尾锚(2026-08-31 00–20Z)⇒ 九月正控的 STEP2 收据**多一个字段 `tail_quality`** ⇒ `compare_gate_receipts.py` 预期 **31 个判决字段全等 + 恰 1 差(`tail_quality` missing_in_archived)**, PASS=true 两边; STEP1 不变(78/0)。§0「豁免数 0 ⇒ 字段集合相同」的不变量据此修正为「除 `tail_quality` 外相同」。
+- 预期九月值(先写后看): 6 尾锚 ff = 五个 0.9756 + 一个 1.0 或全 0.9756 ⇒ min ≈ 0.9756 ≥ 0.90 ⇒ ok。若实测不符, 按实测报, 不改地板。
+
+### A1.3 同批(研究员 B-R1 / B-R3 / R5, 非门源码; 装置见 §7.9)
+- B-R1: 驱动每阶段先 `prereq_*`(preflight 收据绑本合同 sha 与根; 上游收据/标记; pin_deps 身份; refit 侧车 fix7+输入同一; END 行数)再 guard/dispatch, 失败 `FAIL_<stage>_prereq_<name>` rc 3。
+- B-R3: `load_month_env` 要求 46 键**出现在文件里**且先 `unset` 再 source; 数据阶段五个子进程 `env -i` + 白名单 + 逐变量显式(CLIP `DLWT_RAW_PATCH=` 空)。
+- R5: 五个旧链脚本首行守卫 `V4_LEGACY_OK=1`, 否则 rc 64 `LEGACY_REFUSED`。
+- 验收: 自检新节 [S]; 研究员 13+8 探针格中预期翻转: `W3_refit_subset_dispatches_without_upstream_receipts`、`W3_omitted_SEEDS_inherited_ACCEPTED`、`W3_CLIP_command_inherits_ambient_RAW_PATCH`、`W7_NONE_positive_without_any_builder_or_preflight_identity`、`W7_entire_new_tail_NaN_still_PASS_boundary`(5 格); F9/W4 七格与 `W7_*` 其余四格不变。
+
 ## §7 RESULT(2026-09-12 事后追加; 追加前(§0–§6 冻结时)本文 sha = `2290f191c59e11b33576d8cfe5b4b2bdef776c731f5dcea17914582a0b298f8f`, 先于任何门运行实测)
 
 ### 7.1 冻结文件 sha(事前 = 开工时 `shasum -a 256`; 事后 = 全部工作结束后再测, 见 7.7)
@@ -135,15 +157,15 @@
 |---|---|---|
 | `v4_gate_step1.py` | 278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4 | 同 |
 | `v4_gate_step2.py` | db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8 | 同 |
-| `v4_gate_common.py` | f8f4fc0e6ca3a02f9c51383b72f553b5f8614b3be5f496f510bae9d43fe0df12 | 同 |
-| `judge_v4.py` | f6850dc3215fc38624ea6152e96b248727b7c4ff1acec4b6bf6e642aa1873809 | 同 |
+| `v4_gate_common.py` | f8f4fc0e6ca3a02f9c51383b72f553b5f8614b3be5f496f510bae9d43fe0df12 | 同(W7 收工时); **随后 W4 同日并行改动 → 24e813f145c3…**(非 W7; pod2 两轮正控用的是 f8f4fc0e 副本) |
+| `judge_v4.py` | f6850dc3215fc38624ea6152e96b248727b7c4ff1acec4b6bf6e642aa1873809 | 同(W7 收工时); **随后 W4 并行改动 → c2a81c48f037…**(非 W7) |
 | `ELIGIBILITY_CONTRACT.json` | 1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732 | 同 |
 
 ### 7.2 新文件(装置目录 `v4_chain_2026-09-09/` 与 `receipts/monthly_chain_2026-09-12/w7_gates/`)
 | 文件 | sha256(前 12) | 说明 |
 |---|---|---|
 | `v4_gate_step1_m.py` | 79950786271e | 由 `make_gates_m.py` 从冻结源逐行替换生成; 删 15 行(= §1.1 白名单 L9,27,32,53,56,57,78,91,92,99,104–108), 加 36 行(全带 `# [M]`) |
-| `v4_gate_step2_m.py` | 455e3df4c195 | 删 14 行(= §1.2 白名单 L8,14,15,22,27,28,36,48,49,50,58,64,65,66), 加 37 行 |
+| `v4_gate_step2_m.py` | 455e3df4c195 → **0fe5ec5573f3**(AMENDMENT 1) | 删 14 行(= §1.2 白名单 L8,14,15,22,27,28,36,48,49,50,58,64,65,66), 加 37 → 61 行(NONE 身份绑定 + tail_quality) |
 | `w7_gates/v4_gate_step{1,2}_m.diff` | — | `difflib.unified_diff(n=0)`; 自检 [R] 现算相等 |
 | `w7_gates/make_gates_m.py` | — | 生成器(拒绝非冻结 sha 的源) |
 | `w7_gates/run_w7_positive_control.sh` | bda109d84e75 | pod2 正控转录(逐字复跑用) |
@@ -178,3 +200,16 @@
 - `v4_month_2026-09.env` +4 行 = §2 九月值(与 pod2 正控 export 的逐字相同); `GATE_STEP1/2` 仍 = 冻结门。
 - `v4_month_2026-10.env.template`: `GATE_STEP1=v4_gate_step1_m.py` `GATE_STEP2=v4_gate_step2_m.py`(preflight 在合同批准前以 NOT approved 拒绝, 有意); `PREV_DLW_CLIP=/workspace/TODO_dlw_hf3` `PREV_F8=/workspace/TODO_f8_v4` `PREV_KING_FEA=/workspace/data/TODO_wide_fea_v4.npy` `PREV_KING_FEA_UNCLAMPED=NONE`(注释: 仅在修订 4 条件下、用户字)。
 - 自检: [P] 键数格 41→45(+四键名), 模板格改断言 `GATE_STEP1=v4_gate_step1_m.py`, `_fake_root` 合同 +4 键; [R] +1 格「模板原样 ⇒ 两门因 TODO 路径拒绝, 无 missing_env, NONE 不算缺文件」。驱动 `chain_v4_monthly.sh` 未改。
+
+### 7.9 AMENDMENT 1 + 研究员 B-R1/B-R3/B-R4/R5 收口(2026-09-12, W7; 追加前本文 sha `4a407f2bcd84d569…` = AMENDMENT 1 写成、任何再跑之前)
+**改动(file:line, 装置目录 `v4_chain_2026-09-09/`)**:
+- `v4_gate_step2_m.py` → sha `0fe5ec5573f346969d9d3448c3e424f2ebc8b7c192cefe4313a05cdf84c09007`(由 `w7_gates/make_gates_m.py` 再生; 删的冻结行仍是 14 行白名单, 加行 61 全带 `# [M]`, 阈值字面量计数不变, 自检 [R] G0 复验): 头块 NONE 身份绑定(读 `$R/v4_gates/deps_preflight_device.json` 的 `pod_fea_ext_clamp.py` 钉值 + 门旁文件现值 + `PREV_CLAMP_BUILDER_SHA256`, 三者不等 ⇒ `REFUSED.clamp_builder_identity`), 冻结 L52 后插入 `tail_quality`(每尾锚成员格有限比例 ≥ 0.90 ∧ 成员 ≥ 1), PASS 行并入。`v4_gate_step1_m.py` 不变(79950786…)。
+- `chain_lib.sh`(sha `3cd82956833e…`): `V4_MONTH_KEYS` 45→46(+`PREV_CLAMP_BUILDER_SHA256`); `load_month_env` 要求每键**出现在文件里**(`grep -oE '^[A-Z_][A-Z0-9_]*='`)并 `unset $V4_MONTH_KEYS V4_MONTH_ENV` 后再 source(B-R3); 新增 `prereq_receipt / prereq_marker / prereq_file / prereq_json_eq / prereq_deps_identity / prereq_refit_sidecar / prereq_count`(失败 `FAIL_<stage>_prereq_<name>` rc 3, 理由同时写 say 日志与 stderr)与 `clean_env`(白名单 PATH HOME LANG LC_ALL TMPDIR VIRTUAL_ENV LD_LIBRARY_PATH OMP/MKL/OPENBLAS_NUM_THREADS PYTHONDONTWRITEBYTECODE CUDA_VISIBLE_DEVICES)。
+- `chain_v4_monthly.sh`(sha `c6ea34fa0131…`): 每阶段 `if want X; then` 之后、`guard X` 之前加前置: cache←preflight; data←preflight+cache_coverage 收据+缓存 sha 同一; gates←preflight+F10_GATE_{RAW,CLIP} 存在+targets/fea89 sha 同一; king←preflight+step2; legs←preflight+step1(+require_gate 绑本月 RAW); mwf←preflight+step1+legs 标记; refit←preflight+step1(require)+legs 标记/文件+每种子 MERGE_DONE+`deps_v4_monthly_mwf.json` 身份(legs/fea89/RAW targets/CLIP targets/fea82/训练器); arms←preflight+step2(require)+BUNDLE_DONE/PRED+每种子 refit 侧车(fix7, env_given 绑本月 DLW_RAW/F8, inputs_sha256 与 pt_sha256 同一); judge←preflight+DEV_V4_DONE+ARMS_DONE(无 ARMS_FAIL)+END rc=0 行 ≥ 2×种子; export←preflight+JUDGE_V4_DONE+JUDGE_v4.json+ARMS/BUNDLE 标记。数据阶段五个子进程改 `env -i "${CLEAN_ENV[@]}" <逐变量显式> "$PY" …`, CLIP 行 `DLWT_RAW_PATCH=` 显式为空(子进程读的全部变量已枚举: DLWT_CACHE/PANEL/OUT/RET_CH/RAW_PATCH; F171_CACHE/PANEL/OUT; F8_DLW/CACHE/OUT; CACHE_IN/PANEL_IN/FEA_OUT/META_OUT)。
+- 五个旧链脚本首行守卫(R5): `chain_v4_data.sh` L6 / `chain_v4_gpu3.sh` L9 / `chain_v4s_gpu.sh` L12 / `chain_king_e.sh` L4 / `chain_v4_post_export.sh` L9: `[ "${V4_LEGACY_OK:-}" = 1 ] || { echo LEGACY_REFUSED … >&2; exit 64; }`; `.rN_*.sh` 快照不动。
+- 合同: `v4_month_2026-09.env` + `PREV_CLAMP_BUILDER_SHA256=b9f9c728…`; 模板同(注释写明 NONE 的条件由门执行); [P] 键数格 46, `_fake_root` +1 键。
+**收据**:
+- pod2 r2(CPU, 隔离 `root_r2`, 转录 `w7_gates/run_w7_positive_control_r2.sh` sha f41bd4b0…; 2026-09-12T15:00:38Z→15:01:11Z): STEP2_m 0fe5ec55 **PASS rc 0**; `compare_gate_receipts.py` vs W3 `pod2_root/step2.json`: **31 判决字段全等 + 恰 1 差 `tail_quality` missing_in_archived**(= AMENDMENT 1 预言, `parity_STEP2_r2_vs_W3_pod2root.json`); `tail_quality = {n_tail_anchors 6, member_finite_frac_min 0.9756, median 0.9756, n_members_min 400, floor 0.9, ok true}`(预言「五个 0.9756 + 一个 1.0 或全 0.9756」⇒ 实测全 0.9756); 收据 7 输入全有 sha; 真合同 `REQUIRE_FAIL … not an APPROVED source`(0fe5ec55 未批准, 预期); 合同副本 `REQUIRE_OK … registered floor STEP2=2`; 真合同 sha 仍 1188267a; GPU `0 %, 2 MiB` 前后; PID 333197/339489 `Tl` 前后; review_scratch ls 前==后。收据目录 `w7_gates/pod2_root_r2/`。STEP1_m 未再跑(源码未变)。
+- 自检: `tests_pipeline_gates.py` **ALL PASS (328 checks)**(= 278 + [S] 45 + 并行 W3 新增的 [P] 格; W7 未改旧格, 仅 [J] 传 `V4_LEGACY_OK=1`、[P] 键数格 45→46 与 `_fake_root` +1 键、[R] 两格 NONE 改带身份、[R] 一格 regex 收窄为「非空默认」); 日志 `receipts/monthly_chain_2026-09-12/tests_pipeline_gates_w7.log` + 同名 `.SHA256SUMS`(运行时各文件 sha)。`make_sha_manifest.py` rc 0。
+- 研究员探针复跑(`w7_gates/researcher_probes_live/`, 探针指向现装置, 夹具函数按名定位): **翻转 5 格**(W7): `W3_refit_subset_dispatches_without_upstream_receipts` True→False; `W3_omitted_SEEDS_inherited_ACCEPTED` 0→4; `W3_CLIP_command_inherits_ambient_RAW_PATCH` 'stale-inherited-patch'→(研究员 mock 在 env -i 下失去 PROBE_LOG 而无记录; W7 [S] 同型格实测 CLIP 子进程 `DLWT_RAW_PATCH=''`); `W7_NONE_positive_without_any_builder_or_preflight_identity` PASS→REFUSED; `W7_entire_new_tail_NaN_still_PASS_boundary` PASS→FAIL(研究员 env 无钉值故先被身份拒绝; 带钉值的尾质量红见 [S])。**另 1 格由 W4 并行改动翻转**(非 W7): `W4_changed_receipt_extra_omitted_by_caller_ACCEPTED` True→False。其余 15 格不变。
+**未做/边界**: 驱动 preflight 的 `PF_INPUTS` 未加 PREV_*(NONE 非路径; 缺失由门拒绝); mwf/refit/arms/judge/export 五阶段的前置只在合成根上证「缺则停、齐则派」, 真数据全链仍未跑(DESIGN §7 (ii)); `env -i` 只施于数据阶段(GPU 阶段的 torch/CUDA 环境不敢清); 旧链 `.rN_*.sh` 快照与 `chain_fea89_stable.sh` / `chain_v4_gpu2.sh` 未加守卫(lead 未点名; 快照按纪律不动); 合同批准仍 = 用户字(0fe5ec55 取代 455e3df4)。

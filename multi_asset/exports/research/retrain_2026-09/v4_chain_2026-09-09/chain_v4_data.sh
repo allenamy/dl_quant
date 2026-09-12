@@ -3,6 +3,7 @@
 # ROUND 3 (review 31fa3e4e §2, 2026-09-10): every step's rc AND every copy is checked (the two bare `cp` used to be unchecked, so a missing
 # fea82 source still produced CHAIN_V4_DATA_DONE); the copied file is verified byte-equal to its source; DATA_DONE is written only after
 # every producer and every copy succeeded. Failures write FAIL_<step> to the log and exit non-zero (chain_lib die).
+[ "${V4_LEGACY_OK:-}" = 1 ] || { echo "LEGACY_REFUSED $(basename "$0"): September-only chain (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 3: a retrain runs ONLY through chain_v4_monthly.sh <month.env>); set V4_LEGACY_OK=1 to run it deliberately (researcher R5, 2026-09-12)" >&2; exit 64; }   # R5: physical seal, first action line — nothing above this runs code
 set -o pipefail; R=/workspace/review_scratch; L=$R/chain_v4_data.log; : > $L; . $R/chain_lib.sh; cd /workspace || exit 2
 C=/workspace/data/dlnative_5m_wide829_f16_holefix2.npz; P=/workspace/data/wide_panel_4h_v3splice.npz
 mkdir -p /workspace/dlw_v4raw/data /workspace/dlw_v4raw/results /workspace/f8_v4/data /workspace/f8_v4/results /workspace/f8_v4/preds /workspace/f8_v4/models || die "mkdir" 1

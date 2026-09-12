@@ -22,13 +22,16 @@ _GEN = os.environ.get("BUNDLE_GENERATION")
 if not _GEN:
     print("BUNDLE_FAIL generation_env_missing: BUNDLE_GENERATION (e.g. v4_2026-10) is REQUIRED — provenance.generation is no longer a source constant (2026-09-12)", flush=True)
     sys.exit(2)
+if not os.environ.get("BUNDLE_OUT"):   # 2026-09-12 incident (W3): a test that let the exporter fall through with defaults rewrote /workspace/shadow_bundle_v4 on pod2. NO silent OUTPUT default.
+    print("BUNDLE_FAIL bundle_out_env_missing: BUNDLE_OUT is REQUIRED — the exporter has no default output directory any more (2026-09-12; the September default /workspace/shadow_bundle_v4 is the r20 receipt's object)", flush=True)
+    sys.exit(2)
 import io, csv, json, time, glob, gzip, zipfile, hashlib, tarfile
 import numpy as np
 sys.path.insert(0, "/workspace")
 from scipy.stats import rankdata, spearmanr
 from zload import zload
 
-OUT = os.environ.get("BUNDLE_OUT", "/workspace/shadow_bundle_v4")   # v4
+OUT = os.environ["BUNDLE_OUT"]   # v4; monthly 2026-09-12: REQUIRED (checked above), no default
 os.makedirs(OUT, exist_ok=True)
 PINS = json.load(open(os.environ.get("LIVE_PINS", "/workspace/live_pins.json")))          # Δ4/Δ5; monthly: env locator (default = September path)
 BASE = json.load(open(os.environ.get("BUNDLE_BASE", "/workspace/slow_scorer_v4base.json")))  # Δ2 (v4: base = v3 own fold IC, PREREG_v4 §2.3)
@@ -270,6 +273,6 @@ for f in sorted(os.listdir(OUT)):
     if f == "MANIFEST.json": continue
     man[f] = hashlib.sha256(open(f"{OUT}/{f}", "rb").read()).hexdigest()
 json.dump(man, open(f"{OUT}/MANIFEST.json", "w"), indent=1)
-with tarfile.open(os.environ.get("BUNDLE_TAR", "/workspace/shadow_bundle_v4.tar.gz"), "w:gz") as t:   # v4
+with tarfile.open(os.environ.get("BUNDLE_TAR", OUT.rstrip("/") + ".tar.gz"), "w:gz") as t:   # v4; monthly 2026-09-12: the tar default follows BUNDLE_OUT, never a fixed September path
     t.add(OUT, arcname="shadow_bundle")
-print(f"BUNDLE_DONE files {len(man)} size {os.path.getsize(os.environ.get('BUNDLE_TAR', '/workspace/shadow_bundle_v4.tar.gz'))//1048576}MB", flush=True)
+print(f"BUNDLE_DONE files {len(man)} size {os.path.getsize(os.environ.get('BUNDLE_TAR', OUT.rstrip('/') + '.tar.gz'))//1048576}MB", flush=True)

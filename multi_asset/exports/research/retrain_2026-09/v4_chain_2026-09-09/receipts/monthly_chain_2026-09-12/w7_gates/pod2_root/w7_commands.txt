@@ -1,0 +1,15 @@
+[2026-09-12T13:48:36Z] W7 positive control start (this script: bda109d84e750ef6d77ac771bd2651cbe97f0842edda67b8c1a75077b7065ec7)
+[2026-09-12T13:48:36Z] gpu before: 0 %, 2 MiB | paused pids:  333197 Tl      22:41:40  339489 Tl      21:44:58 
+[2026-09-12T13:48:36Z] device shas verified (4 pinned) -> /workspace/w7_gates_2026-09-12/root/device_sha256_w7.txt
+MONTH_ENV_OK /workspace/w7_gates_2026-09-12/device/v4_month_2026-09.env V4_MONTH=2026-09 R=/workspace/review_scratch D=/workspace/w7_gates_2026-09-12/device MONTHS_ALL=202501,202502,202503,202504,202505,202506,202507,202508,202509,202510,202511,202512,202601,202602,202603,202604,202605,202606,202607,202608 SEEDS=42,2027 BUNDLE_GENERATION=v3_2026-09
+[2026-09-12T13:48:36Z] env: R=/workspace/review_scratch D=/workspace/w7_gates_2026-09-12/device PY=/workspace/venv/bin/python | HOLE_CELLS=/workspace/review_scratch/holefix2_cells.npz RAW_PATCH=/workspace/review_scratch/raw_patch.npz CACHE=/workspace/data/dlnative_5m_wide829_f16_holefix2.npz DLW_RAW=/workspace/dlw_v4raw DLW_CLIP=/workspace/dlw_hf3 F8=/workspace/f8_v4 KING_FEA=/workspace/data/wide_fea_v4.npy KING_META=/workspace/data/wide_fea_v4_meta.npz PREV_META=/workspace/data/wide_fea_v2ext_meta.npz | PREV_DLW_CLIP=/workspace/dlw_hf2 PREV_F8=/workspace/f8_hf2 PREV_KING_FEA=/workspace/data/wide_fea_v2ext_clamp.npy PREV_KING_FEA_UNCLAMPED=/workspace/data/wide_fea_v2ext.npy
+[2026-09-12T13:49:46Z] gates ran: STEP1 rc=3 (expected 3: AMENDMENT 3 literal FAIL) STEP2 rc=0 (expected 0)
+[2026-09-12T13:49:46Z] runtime self shas: STEP1_m 79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163 STEP2_m 455e3df4c19545aa45f1042228501627938c9b0387053e4cc97a812d9e018ca5
+[2026-09-12T13:49:46Z] require REAL contract STEP1 rc=3 REQUIRE_FAIL gate source 79950786271e is not an APPROVED source of gate 'STEP1' in the frozen contract (approved: ['278fdce611e9']); a program that re-ran and s
+[2026-09-12T13:49:46Z] require REAL contract STEP2 rc=3 REQUIRE_FAIL gate source 455e3df4c195 is not an APPROVED source of gate 'STEP2' in the frozen contract (approved: ['db7ab3561f97']); a program that re-ran and s
+[2026-09-12T13:49:46Z] require SIM contract STEP1 rc=3 REQUIRE_FAIL receipt says PASS=False (gate STEP1, 2026-09-12T13:49:17Z)
+[2026-09-12T13:49:47Z] require SIM contract STEP2 rc=0 REQUIRE_OK PASS (STEP2, 2026-09-12T13:49:45Z, self 455e3df4c195 approved, 2 inputs verified, registered floor STEP2=2)
+[2026-09-12T13:49:47Z] contract shas (real must still be 1188267a…): 1188267adf42 bc984c6bc4be 
+[2026-09-12T13:49:47Z] gpu after: 0 %, 2 MiB | paused pids:  333197 Tl      22:42:51  339489 Tl      21:46:09 
+[2026-09-12T13:49:47Z] review_scratch untouched (ls before == after)
+[2026-09-12T13:49:47Z] W7 positive control end: STEP1 rc=3 STEP2 rc=0 receipts /workspace/w7_gates_2026-09-12/root/v4_gates/step{1,2}.json

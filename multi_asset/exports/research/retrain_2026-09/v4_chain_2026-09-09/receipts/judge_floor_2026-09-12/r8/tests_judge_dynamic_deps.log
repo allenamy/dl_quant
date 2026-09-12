@@ -1,0 +1,27 @@
+[S] static: the device under test and its predecessor
+  OK   ★★★ [r8] the archived judge passes recorded_extras=True to require; the r5 snapshot exists, its sha starts with f6850dc3 and it does NOT — f6850dc3215f
+  OK   ★★ [r8] v4_gate_common.require has the recorded_extras keyword and the CLI accepts recorded_extras=1
+  OK   ★ [r8] make_sha_manifest recognises snapshot suffixes .r0–.r9 (was .r0–.r4: the r5 snapshot would have been listed as a live script)
+  OK   ★★ [r8] (iv) static: the REAL A1 v2 receipt records exactly the 28 floor names — no conditional extras, so round 8 changes nothing for it — []
+
+[D] judge level: the receipt's recorded closure is the dependency set
+  OK   ★★★ [r8] (i) recorded femat, FEMAT changed after the receipt, caller omits femat ⇒ A1e NOT eligible, why names 'femat' changed since the receipt, recorded_extras=['femat'], 0 PROMOTE (round 7: eligible, 4 PROMOTE) — (0, "input 'femat' changed since the receipt: f7414bdb72a0 != 55cf7449b471")
+  OK   ★★ [r8] (i) the judge output locates the extra it verified (recorded_extras_paths.femat = the receipt's inputs_path.femat) — {'femat': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmpc9mjk4sd/i_changed_omitted/femat.npz'}
+  OK   ★★★ [r8] (ii) recorded femat UNCHANGED, caller omits femat ⇒ eligible: the judge verified it from the receipt — '29 inputs verified (1 recorded beyond the caller's declaration', inputs lists femat, 4 PROMOTE — (0, "PASS (BUNDLE_export, 2026-09-12T00:00:00Z, self d63f4ec3f9e6 approved, 29 inputs verified (1 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)")
+  OK   ★★★ [r8] (iii) recorded femat but inputs_path lacks it ⇒ refused 'receipt recorded conditional input 'femat' but no locatable path', 0 PROMOTE — (0, "receipt recorded conditional input 'femat' but no locatable path (inputs_path lacks it): what the gate hashed cannot be re-verified")
+  OK   ★★★ [r8] (iv) a receipt with NO extras (the real A1 shape) is unaffected: eligible, '28 inputs verified (0 recorded beyond', recorded_extras=[], 4 PROMOTE — (0, "PASS (BUNDLE_export, 2026-09-12T00:00:00Z, self d63f4ec3f9e6 approved, 28 inputs verified (0 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)")
+  OK   ★★★ [r8] (v) OLD CODE RED: judge_v4.r5_f6850dc3.py on cell (i) (same common, same contract) ⇒ eligible and 4 PROMOTE — the changed FEMAT the receipt hashed is invisible when the caller does not name it — (0, 'PASS (BUNDLE_export, 2026-09-12T00:00:00Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=28)')
+  OK   ★★★ [r8] the reviewer's other half: caller DECLARES the changed femat ⇒ not eligible ('femat' changed since the receipt), 0 recorded beyond (it was declared), 0 PROMOTE — (0, "input 'femat' changed since the receipt: f7414bdb72a0 != 55cf7449b471")
+  OK   ★★★ [r8] two recorded extras (femat, signal_receipt), only the signal receipt changed, caller omits both ⇒ not eligible naming 'signal_receipt', recorded_extras=['femat','signal_receipt'], 0 PROMOTE — (0, "input 'signal_receipt' changed since the receipt: fdddfdbd9da7 != 44136fa355b3")
+  OK   ★★ [r8] two recorded extras, both unchanged, caller omits both ⇒ eligible, '30 inputs verified (2 recorded beyond', 4 PROMOTE — (0, "PASS (BUNDLE_export, 2026-09-12T00:00:00Z, self d63f4ec3f9e6 approved, 30 inputs verified (2 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)")
+  OK   ★★ [r8] an extra recorded with sha None (the gate did not see the file) ⇒ refused 'receipt recorded no sha for input 'femat'', 0 PROMOTE — (0, "receipt recorded no sha for input 'femat' (the gate did not see that file)")
+  OK   ★★ [r8] the recorded FEMAT deleted after the receipt, caller omits it ⇒ refused 'input 'femat' missing on disk', 0 PROMOTE — (0, "input 'femat' missing on disk: /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmpc9mjk4sd/x_file_deleted/femat.npz")
+
+[U] unit level: the flag is the mechanism (archived module + shipped contract)
+  OK   ★★★ [r8] require(recorded_extras=False) on the changed-FEMAT receipt with the 28 declared ⇒ ok (the round-7 blind spot, still the behaviour of callers that re-verify only their own declaration) — PASS (BUNDLE_export, 2026-09-12T00:00:00Z, self d63f4ec3f9e6 approved, 28 inputs verified, registered floor BUNDLE_export=28)
+  OK   ★★★ [r8] require(recorded_extras=True) on the same call ⇒ refused naming 'femat' changed since the receipt — input 'femat' changed since the receipt: f7414bdb72a0 != 55cf7449b471
+  OK   ★★ [r8] FEMAT restored ⇒ recorded_extras=True passes with '29 inputs verified (1 recorded beyond the caller's declaration' — PASS (BUNDLE_export, 2026-09-12T00:00:00Z, self d63f4ec3f9e6 approved, 29 inputs verified (1 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)
+  OK   ★★ [r8] CLI: `require ... recorded_extras=1` ⇒ rc 3 naming femat; without the flag ⇒ rc 0 (documented, not hidden) — REQUIRE_FAIL input 'femat' changed since the receipt: f7414bdb72a0 != 55cf7449b471
+
+ALL PASS  (19 checks)
+rc=0

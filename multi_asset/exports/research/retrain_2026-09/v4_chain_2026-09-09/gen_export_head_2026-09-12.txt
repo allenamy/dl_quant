@@ -11,6 +11,9 @@ _GEN = os.environ.get("BUNDLE_GENERATION")
 if not _GEN:
     print("BUNDLE_FAIL generation_env_missing: BUNDLE_GENERATION (e.g. v4_2026-10) is REQUIRED — provenance.generation is no longer a source constant (2026-09-12)", flush=True)
     sys.exit(2)
+if not os.environ.get("BUNDLE_OUT"):   # 2026-09-12 incident (W3): a test that let the exporter fall through with defaults rewrote /workspace/shadow_bundle_v4 on pod2. NO silent OUTPUT default.
+    print("BUNDLE_FAIL bundle_out_env_missing: BUNDLE_OUT is REQUIRED — the exporter has no default output directory any more (2026-09-12; the September default /workspace/shadow_bundle_v4 is the r20 receipt's object)", flush=True)
+    sys.exit(2)
 import io, csv, json, time, glob, gzip, zipfile, hashlib, tarfile
 import numpy as np
 sys.path.insert(0, "/workspace")

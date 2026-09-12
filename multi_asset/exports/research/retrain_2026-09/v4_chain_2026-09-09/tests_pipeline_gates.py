@@ -326,7 +326,7 @@ print("STUB_DONE"); sys.exit(0)
     if scenario == "changed_RAW": open(step1["dlw_v4raw_targets"], "wb").write(b"changed RAW target after receipt")
     if scenario == "changed_explicit_input": open(files["fea_A"], "wb").write(b"changed feaA")
     if scenario == "legs_missing": os.remove(f"{root}/f8_v4s/data/f10v2_legs.npz")
-    env = dict(os.environ, PATH=f"{root}/bin:" + os.environ["PATH"])
+    env = dict(os.environ, PATH=f"{root}/bin:" + os.environ["PATH"], V4_LEGACY_OK="1")   # R5 (2026-09-12): the legacy chains refuse without V4_LEGACY_OK=1; the harness runs them deliberately
     p = subprocess.run(["bash", f"{rr}/{entry}"], capture_output=True, text=True, env=env, cwd=rr, timeout=120)
     ev = open(f"{root}/events.txt").read() if os.path.exists(f"{root}/events.txt") else ""
     log = open(f"{rr}/v4_commands.txt").read() if os.path.exists(f"{rr}/v4_commands.txt") else ""
@@ -900,26 +900,65 @@ check("★★ [P] launcher: DLW/F8/device dir from the month env with September 
 _mg = open(f"{HERE}/merge_mwf_v4b.py").read()
 check("★★ [P] merge: mwf root / gate json / trainer / splice sources / dev preds from V4_* env with September defaults; the HF2 comparison is skipped (never asserted) when the reference cannot align", 'os.environ.get("V4_F8", "/workspace/f8_v4")' in _mg and "hf_skip" in _mg and "assert HF.shape == PRED.shape" not in _mg)
 # refit: refuses without env, BEFORE importing torch (R1)
-_env_clear = {k: "" for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")}
-rc, out = run(["pod_f10_refit_v4.py"], _env_clear)
-check("★★★ [P] refit with NO env ⇒ rc 2 REFIT_REFUSED naming all four keys (was: silent dlw_ext / f8_ext / argmax)", rc == 2 and "REFIT_REFUSED" in out and all(k in out for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")), out[-200:])
-rc, out = run(["pod_f10_refit_v4.py"], {**_env_clear, "F10_DLW": "/nonexistent", "F10_OUT": "/nonexistent", "SEED": "42"})
-check("★★★ [P] refit with F10_DLW/F10_OUT/SEED but NO BEST_EP_FIX ⇒ refused, names BEST_EP_FIX only (the sub-shell FIX7 of the launcher never reaches a bare call)", rc == 2 and "['BEST_EP_FIX']" in out, out[-200:])
-rc, out = run(["pod_f10_refit_v4.py"], {**_env_clear, "F10_DLW": "/nonexistent", "F10_OUT": "/nonexistent", "SEED": "42", "BEST_EP_FIX": "7"})
-check("★★★ [P] MUTATION: all four keys present ⇒ the refusal does NOT fire (the program proceeds and fails later on the nonexistent inputs: rc≠0 but no REFIT_REFUSED)", rc != 0 and "REFIT_REFUSED" not in out, out[-200:])
+_env_clear = {k: "" for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")}   # empty = "not set" for the refit's guard; run_sandboxed (defined below) supplies nonexistent inputs + temp outputs
 _rf = open(f"{HERE}/pod_f10_refit_v4.py").read()
 check("★★ [P] refit source: no environ.get defaults for the four keys; report = best_ep_rule + trained_through_label_utc (last TBPTT loss anchor) + the kept pool-end field + sidecar json",
       all(x not in _rf for x in ('environ.get("F10_DLW"', 'environ.get("F10_OUT"', 'environ.get("BEST_EP_FIX"', 'environ.get("SEED"')) and '"trained_through_label_utc"' in _rf and '"best_ep_rule"' in _rf
       and '"trained_through": int(E_ts[tr_idx[-1]])' in _rf and "_last_loss_idx = int(starts[-1] + WIN - 1)" in _rf and 'f"{OUT}/models/f10_live_s{SEED}.json"' in _rf)
-# exporter: generation REQUIRED, king training cutoff recorded (R4)
-rc, out = run(["pod_export_bundle_v4.py"], {"BUNDLE_GENERATION": ""})
-check("★★★ [P] exporter without BUNDLE_GENERATION ⇒ rc 2 BUNDLE_FAIL generation_env_missing (was: the source constant 'v3_2026-09')", rc == 2 and "BUNDLE_FAIL generation_env_missing" in out, out[-200:])
-rc, out = run(["pod_export_bundle_v4.py"], {"BUNDLE_GENERATION": "v4_2026-10"})
-check("★★★ [P] MUTATION: with BUNDLE_GENERATION the refusal does NOT fire (the program proceeds to its imports)", "generation_env_missing" not in out, out[-200:])
+# exporter: generation AND output dir REQUIRED, king training cutoff recorded (R4).
+# ★ 2026-09-12 INCIDENT (W3): the first version of the mutation check below ran the exporter with ONLY BUNDLE_GENERATION set; on the mac it died at
+#   `from zload import zload`, on pod2 zload exists, so it exported with every DEFAULT path and rewrote /workspace/shadow_bundle_v4/slow2026.txt (the
+#   r20 A1 bundle). Rule now enforced by this block: every real-program invocation in the suite names NONEXISTENT inputs and a temp output, and asserts
+#   that nothing was written — a test must be unable to touch real data whatever machine it runs on.
+_NOPE = {"BUNDLE_FEA": "/nonexistent/w3/fea.npy", "BUNDLE_META": "/nonexistent/w3/meta.npz", "BUNDLE_BASE": "/nonexistent/w3/base.json", "LIVE_PINS": "/nonexistent/w3/pins.json",
+         "EXPORT_PANEL": "/nonexistent/w3/panel.npz", "BUNDLE_CACHE": "/nonexistent/w3/cache.npz", "FUND_AUG": "/nonexistent/w3/aug.json.gz", "FUNDING_DIR": "/nonexistent/w3/funding",
+         "EMA_STATE_JSON": "/nonexistent/w3/ema.json", "BUNDLE_TAR": "/nonexistent/w3/never.tar.gz"}
+# ★ SUITE RULE (team-lead, E-0912-B): a cell that invokes a REAL WRITER runs it only through run_sandboxed() — every input key it reads is a nonexistent
+#   path, every output key is a fresh temp dir, and the cell asserts the temp dir stays empty. The static cell below greps THIS file for writer
+#   invocations outside the helper (or outside the incident-sandbox `_NOPE` block) and fails if any exists.
+_REAL_WRITERS = ("pod_export_bundle_v4.py", "pod_f10_refit_v4.py", "pod_legs_v4b.py", "build_dev_v4.py", "pod_dlw_targets_raw.py", "pod_fea_ext_clamp.py",
+                 "merge_mwf_v4b.py", "pod_f10_train_monthly_v4.py", "pod_f8_build_stable.py", "pod_dlw_targets_raw.py")
+_WRITER_INPUT_KEYS = ("BUNDLE_FEA", "BUNDLE_META", "BUNDLE_BASE", "LIVE_PINS", "EXPORT_PANEL", "BUNDLE_CACHE", "FUND_AUG", "FUNDING_DIR", "EMA_STATE_JSON",
+                      "F10_DLW", "LEGS_TG", "LEGS_META", "LEGS_PRED", "LEGS_OLD", "LEGS_PANEL", "KING_META", "DLW_RAW", "CACHE", "HOLE_CELLS", "PREV_META", "V4_REF_META",
+                      "DLWT_CACHE", "DLWT_PANEL", "CACHE_IN", "PANEL_IN", "F10_GATE_JSON", "MONTHS")
+_WRITER_OUTPUT_KEYS = ("BUNDLE_OUT", "BUNDLE_TAR", "F10_OUT", "LEGS_OUT", "MWF_OUT", "DLWT_OUT", "FEA_OUT", "META_OUT", "V4_R", "V4_HC", "V4_KING_DIR", "V4_F8", "V4_DEV_PREDS", "GEN_OUT")
+def run_sandboxed(script, env, tmp):
+    """Run a real writer with NONEXISTENT inputs and temp outputs; return (rc, out, written) where written = files that appeared under tmp."""
+    e = {k: f"/nonexistent/w3sandbox/{k.lower()}" for k in _WRITER_INPUT_KEYS}
+    e.update({k: f"{tmp}/{k.lower()}" for k in _WRITER_OUTPUT_KEYS}); e.update(env or {})
+    rc, out = run([script], e)
+    written = [os.path.relpath(os.path.join(r, f), tmp) for r, _, fs in os.walk(tmp) for f in fs]
+    return rc, out, written
+with tempfile.TemporaryDirectory() as _dx:
+    rc, out, _w = run_sandboxed("pod_f10_refit_v4.py", _env_clear, _dx)
+    check("★★★ [P] refit with NO env ⇒ rc 2 REFIT_REFUSED naming all four keys (was: silent dlw_ext / f8_ext / argmax); nothing written", rc == 2 and "REFIT_REFUSED" in out and all(k in out for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX")) and _w == [], out[-200:])
+    rc, out, _w = run_sandboxed("pod_f10_refit_v4.py", {"SEED": "42", "BEST_EP_FIX": ""}, _dx)
+    check("★★★ [P] refit with F10_DLW/F10_OUT/SEED but NO BEST_EP_FIX ⇒ refused, names BEST_EP_FIX only (the sub-shell FIX7 of the launcher never reaches a bare call); nothing written", rc == 2 and "['BEST_EP_FIX']" in out and _w == [], out[-200:])
+    rc, out, _w = run_sandboxed("pod_f10_refit_v4.py", {"SEED": "42", "BEST_EP_FIX": "7"}, _dx)
+    check("★★★ [P] MUTATION + SANDBOX: all four keys present ⇒ the refusal does NOT fire; the program proceeds and dies on the first nonexistent input (rc≠0, no REFIT_REFUSED), temp root stays EMPTY", rc != 0 and "REFIT_REFUSED" not in out and _w == [], (rc, _w, out[-160:]))
+    rc, out, _w = run_sandboxed("pod_legs_v4b.py", {}, _dx)
+    check("★★★ [P] SANDBOX: pod_legs_v4b.py with nonexistent LEGS_* inputs dies before writing (no LEGS_V4B_DONE, temp root empty)", rc != 0 and "LEGS_V4B_DONE" not in out and _w == [], (rc, _w, out[-160:]))
+    rc, out, _w = run_sandboxed("build_dev_v4.py", {}, _dx)
+    check("★★★ [P] SANDBOX: build_dev_v4.py with nonexistent inputs dies before writing (no DEV_V4_DONE, temp root empty)", rc != 0 and "DEV_V4_DONE" not in out and _w == [], (rc, _w, out[-160:]))
+    _self = open(os.path.abspath(__file__)).read().splitlines()
+    _viol = [(i + 1, l.strip()[:120]) for i, l in enumerate(_self)
+             if ("run([" in l or "_bash(" in l or "subprocess.run(" in l) and any(w in l for w in _REAL_WRITERS) and "run_sandboxed" not in l and "_NOPE" not in l and "GEN_OUT" not in l and not l.lstrip().startswith("#")]
+    check("★★★ [P] STATIC RULE: no cell in this suite invokes a real writer outside run_sandboxed()/the _NOPE sandbox block (E-0912-B: a bare invocation exported into /workspace/shadow_bundle_v4 on pod2)", _viol == [], _viol[:5])
+with tempfile.TemporaryDirectory() as _dx:
+    _out = f"{_dx}/never_written_bundle"
+    rc, out = run(["pod_export_bundle_v4.py"], {**_NOPE, "BUNDLE_GENERATION": "", "BUNDLE_OUT": _out})
+    check("★★★ [P] exporter without BUNDLE_GENERATION ⇒ rc 2 BUNDLE_FAIL generation_env_missing (was: the source constant 'v3_2026-09'); nothing written", rc == 2 and "BUNDLE_FAIL generation_env_missing" in out and not os.path.exists(_out), out[-200:])
+    rc, out = run(["pod_export_bundle_v4.py"], {**_NOPE, "BUNDLE_GENERATION": "v4_2026-10", "BUNDLE_OUT": ""})
+    check("★★★ [P] exporter without BUNDLE_OUT ⇒ rc 2 BUNDLE_FAIL bundle_out_env_missing (2026-09-12 incident: the September default was the r20 bundle); nothing written", rc == 2 and "BUNDLE_FAIL bundle_out_env_missing" in out and not os.path.exists(_out), out[-200:])
+    rc, out = run(["pod_export_bundle_v4.py"], {**_NOPE, "BUNDLE_GENERATION": "v4_2026-10", "BUNDLE_OUT": _out})
+    check("★★★ [P] MUTATION: with BUNDLE_GENERATION + BUNDLE_OUT the refusals do NOT fire — the program proceeds and dies on the FIRST nonexistent input (rc≠0, no BUNDLE_FAIL, the temp output dir stays EMPTY)",
+          rc != 0 and "generation_env_missing" not in out and "bundle_out_env_missing" not in out and "BUNDLE_DONE" not in out and (not os.path.exists(_out) or os.listdir(_out) == []), (rc, out[-200:], os.path.exists(_out) and os.listdir(_out)))
 _ex = open(f"{HERE}/pod_export_bundle_v4.py").read()
 check("★★ [P] exporter source: provenance.generation = env; king_train_end_utc = last anchor of the label-year<2026 fit; built_utc kept separate; LIVE_PINS/FUND_AUG from env",
       '"generation": _GEN' in _ex and '"generation": "v3_2026-09"' not in _ex and '"king_train_end_utc": _iso(_king_train_end)' in _ex and "_tr_anchors = np.unique(A[tr]); _king_train_end = int(E_ts[int(_tr_anchors.max())])" in _ex
       and '"built_utc": time.strftime' in _ex and 'os.environ.get("LIVE_PINS", "/workspace/live_pins.json")' in _ex and 'os.environ.get("FUND_AUG", "/workspace/fund_aug.json.gz")' in _ex)
+check("★★★ [P] exporter source: NO output default — BUNDLE_OUT is os.environ[...] (refused above when absent) and the tar default follows BUNDLE_OUT; the September path /workspace/shadow_bundle_v4 appears in no code line",
+      'OUT = os.environ["BUNDLE_OUT"]' in _ex and 'os.environ.get("BUNDLE_OUT",' not in _ex and '"/workspace/shadow_bundle_v4' not in "\n".join(l for l in _ex.splitlines() if not l.lstrip().startswith("#") and '"""' not in l and "BUNDLE_FAIL bundle_out_env_missing" not in l))
 _lg = open(f"{HERE}/pod_legs_v4b.py").read()
 check("★★ [P] legs: the in-service legs file and the panel are env locators (LEGS_OLD / LEGS_PANEL) with September defaults", 'os.environ.get("LEGS_OLD", "/workspace/f8_ext/data/f10v2_legs.npz")' in _lg and 'os.environ.get("LEGS_PANEL", "/workspace/data/wide_panel_4h_v3splice.npz")' in _lg)
 _ar = open(f"{HERE}/run_v4_arms.sh").read()
@@ -928,14 +967,14 @@ check("★★ [P] run_v4_arms.sh waits every arm BY PID and collects rcs (the ba
 def _bash(cmd, env=None):
     e = dict(os.environ); e.update(env or {}); p = subprocess.run(["bash", "-c", cmd], capture_output=True, text=True, env=e, cwd=HERE); return p.returncode, p.stdout + p.stderr
 _KEYS = [k for k in open(f"{HERE}/chain_lib.sh").read().split('V4_MONTH_KEYS="', 1)[1].split('"', 1)[0].split()]
-check("★★ [P] chain_lib registers the month contract keys (41) incl. the ones the task names: R, cache/panel/raw_patch, DLW/F8, MONTHS_ALL, SEEDS, BUNDLE_GENERATION, BUNDLE_BASE, EXPORT_PANEL, EMA_STATE_JSON, LIVE_PINS",
-      len(_KEYS) == 41 and all(k in _KEYS for k in ("R", "CACHE", "PANEL_SPLICE", "RAW_PATCH", "DLW_RAW", "DLW_CLIP", "F8", "MONTHS_ALL", "SEEDS", "BUNDLE_GENERATION", "BUNDLE_BASE", "EXPORT_PANEL", "EMA_STATE_JSON", "LIVE_PINS")), len(_KEYS))
+check("★★ [P] chain_lib registers the month contract keys (46 = 41 + the 4 PREV_* reference keys of the month-generic gates + PREV_CLAMP_BUILDER_SHA256, W7 2026-09-12) incl. the ones the task names: R, cache/panel/raw_patch, DLW/F8, MONTHS_ALL, SEEDS, BUNDLE_GENERATION, BUNDLE_BASE, EXPORT_PANEL, EMA_STATE_JSON, LIVE_PINS",
+      len(_KEYS) == 46 and all(k in _KEYS for k in ("R", "CACHE", "PANEL_SPLICE", "RAW_PATCH", "DLW_RAW", "DLW_CLIP", "F8", "MONTHS_ALL", "SEEDS", "BUNDLE_GENERATION", "BUNDLE_BASE", "EXPORT_PANEL", "EMA_STATE_JSON", "LIVE_PINS", "PREV_DLW_CLIP", "PREV_F8", "PREV_KING_FEA", "PREV_KING_FEA_UNCLAMPED", "PREV_CLAMP_BUILDER_SHA256")), len(_KEYS))
 with tempfile.TemporaryDirectory() as d:
     rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {HERE}/v4_month_2026-09.env; echo R=$R V4_F8=$V4_F8 RAW_PATCH=$RAW_PATCH", {"L": "/dev/null"})
     check("★★★ [P] load_month_env on the shipped September contract ⇒ rc 0; R / V4_F8 / RAW_PATCH resolve to the September paths (positive control of the contract file)",
           rc == 0 and "R=/workspace/review_scratch " in out and "V4_F8=/workspace/f8_v4" in out and "RAW_PATCH=/workspace/review_scratch/raw_patch.npz" in out, out[-300:])
     rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {HERE}/v4_month_2026-10.env.template >/dev/null; echo GATE_STEP1=$GATE_STEP1", {"L": "/dev/null"})
-    check("★★ [P] the October template loads (every key present) and carries TODO gate sources that preflight refuses", rc == 0 and "GATE_STEP1=TODO_" in out, out[-200:])
+    check("★★ [P] the October template loads (every key present) and names the month-generic gate v4_gate_step1_m.py (not yet contract-approved: preflight refuses it as NOT approved until the user's word)", rc == 0 and "GATE_STEP1=v4_gate_step1_m.py" in out, out[-200:])
     _lines = open(f"{HERE}/v4_month_2026-09.env").read().splitlines()
     open(f"{d}/missing.env", "w").write("\n".join(l for l in _lines if not l.startswith("SEEDS=")) + "\n")
     rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/missing.env", {"L": "/dev/null"})
@@ -973,7 +1012,8 @@ with tempfile.TemporaryDirectory() as d:
                     EXPORT_PANEL=f"{root}/splice.npz", EMA_STATE_JSON=touch("ema.json"), LIVE_PINS=touch("pins.json"), FUND_AUG=touch("aug.json.gz"), FUNDING_DIR=f"{root}/funding",
                     LEGS_OLD=touch("legs_old.npz"), LEGS_PANEL=f"{root}/splice.npz", DLW_EXT=f"{root}/dlw_ext", F8_EXT=f"{root}/f8_ext", HC=f"{root}/hc", KING_DIR=f"{root}/king", EXPORT_ARM="A1", SIGNAL_RECEIPT=touch("sig.json"),
                     BUILDER_FEA82=touch("b82.py"), BUILDER_FEA89=touch("b89.py"), BASE_TRAINER=touch("base_trainer.py"), GATE_STEP1="v4_gate_step1.py", GATE_STEP2="v4_gate_step2.py",
-                    PREV_BUNDLE=f"{root}/prev", PREV_META=touch("prev_meta.npz"), REF_META=touch("ref_meta.npz"))
+                    PREV_BUNDLE=f"{root}/prev", PREV_META=touch("prev_meta.npz"), REF_META=touch("ref_meta.npz"),
+                    PREV_DLW_CLIP=f"{root}/prev_clip", PREV_F8=f"{root}/prev_f8", PREV_KING_FEA=touch("prev_king_fea.npy"), PREV_KING_FEA_UNCLAMPED="NONE", PREV_CLAMP_BUILDER_SHA256=_sha(f"{HERE}/pod_fea_ext_clamp.py"))
         touch("dlw_ext/data/dlw_targets.npz"); touch("f8_ext/preds/f10_V2MAIN_s42.npy"); touch("prev/slow_pred_pinned.npy")
         for rel in ["masks/umask_UPIT_CRYPTO.npz", "calib/costb_fee_steady.json", "run_arm.sh"] + [f"dev_v4/probe_artifacts/w10_ablation_series_V4_A0_{seat}_s{s}.npz" for seat in ("dyn", "fix") for s in (42, 2027)]: touch(f"hc/{rel}")
         envf = f"{dd}/fake.env"; open(envf, "w").write("\n".join(f"{k}={v}" for k, v in keys.items()) + "\n"); return root, envf
@@ -995,6 +1035,333 @@ with tempfile.TemporaryDirectory() as d:
     check("★★ [P] the driver itself refuses a contract missing BUNDLE_GENERATION (rc 4) before any stage", rc == 4 and "FAIL_month_env_key_missing_BUNDLE_GENERATION" in out, out[-200:])
     rc, out = _bash(f"V4_STAGES=preflight bash {HERE}/chain_v4_monthly.sh {_envf}")
     check("★ [P] a stage SUBSET writes MONTHLY_STAGES_DONE.json (DONE false), never MONTHLY_DONE.json", rc == 0 and os.path.exists(f"{_root}/v4_gates/MONTHLY_STAGES_DONE.json") and json.load(open(f"{_root}/v4_gates/MONTHLY_STAGES_DONE.json"))["DONE"] is False and not os.path.exists(f"{_root}/v4_gates/MONTHLY_DONE.json"), out[-150:])
+
+# ── [R] MONTH-GENERIC DATA GATES (2026-09-12 W7; docs/PREREG_v4_gates_monthly_2026-09-12.md; DESIGN_v4_monthly_chain §7 (i)): v4_gate_step1_m.py / v4_gate_step2_m.py read every
+#        path from the month contract env, compare against the PREVIOUS month's pinned build, exempt the extension tail, refuse missing inputs and a reference identical to the candidate.
+#        Frozen sources untouched (G0); diff == whitelist (G0); refusals on the October template (G2); wrong-month mutations on synthetic two-month worlds (G3); receipt identity + require (G4) ──
+print("\n[R] month-generic STEP1/STEP2 gates: frozen untouched, diff == whitelist, template refusals (G2), wrong-month mutations (G3), receipt identity / require (G4)")
+import difflib as _dl
+import re as _re
+import shutil as _shu
+_W7 = f"{HERE}/receipts/monthly_chain_2026-09-12/w7_gates"
+_FROZEN_SHA = {"v4_gate_step1.py": "278fdce611e91571d24ec26c78ddc4620668bfd4598a01f577f1f6887dd62be4", "v4_gate_step2.py": "db7ab3561f97423a8d5dd74251257adcedd743129d22a07d7cd186d102dd80d8"}
+for _f, _s in _FROZEN_SHA.items():
+    check(f"★★★ [R] G0 frozen {_f} sha unchanged ({_s[:12]}) — the contract-approved program is not the one edited", _sha(f"{HERE}/{_f}") == _s, _sha(f"{HERE}/{_f}")[:12])
+import inspect as _insp
+import v4_gate_common as _GC
+check("★★ [R] G0 v4_gate_common: finalize(gate, res, out_path, inputs, exit_code_fail) and the STEP1@v4 / STEP2 registry names the new gates keep verbatim",
+      list(_insp.signature(_GC.finalize).parameters) == ["gate", "res", "out_path", "inputs", "exit_code_fail"] and _GC.REQUIRED_INPUTS["STEP1@v4"] == ["dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"] and _GC.REQUIRED_INPUTS["STEP2"] == ["wide_fea_v4", "wide_fea_v4_meta"])
+_CON = json.load(open(f"{HERE}/ELIGIBILITY_CONTRACT.json")); _CON_SHA = _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json"); _COMMON_SHA = _sha(f"{HERE}/v4_gate_common.py"); _NEW_SHA = {g: _sha(f"{HERE}/{g}") for g in ("v4_gate_step1_m.py", "v4_gate_step2_m.py")}
+check("★★ [R] G0 contract approves the frozen gates (278fdce6 / db7ab356) and does NOT (yet) list the month-generic ones — approval is the user's word, not this task's",
+      _FROZEN_SHA["v4_gate_step1.py"] in _CON["gates"]["STEP1"]["approved_source_sha256"] and _FROZEN_SHA["v4_gate_step2.py"] in _CON["gates"]["STEP2"]["approved_source_sha256"]
+      and _NEW_SHA["v4_gate_step1_m.py"] not in _CON["gates"]["STEP1"]["approved_source_sha256"] and _NEW_SHA["v4_gate_step2_m.py"] not in _CON["gates"]["STEP2"]["approved_source_sha256"])
+_WL = {"v4_gate_step1.py": [9, 27, 32, 53, 56, 57, 78, 91, 92, 99, 104, 105, 106, 107, 108], "v4_gate_step2.py": [8, 14, 15, 22, 27, 28, 36, 48, 49, 50, 58, 64, 65, 66]}   # PREREG §1 tables
+_LIT = {"v4_gate_step1.py": ["1e-6", "t - 48", "t - 1", "200000", "8640"], "v4_gate_step2.py": ["< 8640", "== 138", "CH = 128", "% 2048"]}                              # PREREG §4 thresholds
+for _f, _wl in _WL.items():
+    _m = _f.replace(".py", "_m.py"); _fl = open(f"{HERE}/{_f}").read().splitlines(keepends=True); _ml = open(f"{HERE}/{_m}").read().splitlines(keepends=True)
+    _d = list(_dl.unified_diff(_fl, _ml, fromfile=_f, tofile=_m, n=0)); _saved = open(f"{_W7}/{_m.replace('.py', '.diff')}").read()
+    check(f"★★★ [R] G0 saved diff {_m.replace('.py', '.diff')} == difflib recomputed now (the reviewer's artefact IS the change)", "".join(_d) == _saved, len(_d))
+    _rm = []; _add = [l for l in _d if l.startswith("+") and not l.startswith("+++")]
+    for _h in _d:
+        _mm = _re.match(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", _h)
+        if _mm:
+            _a = int(_mm.group(1)); _b = int(_mm.group(2)) if _mm.group(2) is not None else 1; _rm += list(range(_a, _a + _b))
+    check(f"★★★ [R] G0 {_m}: the REMOVED frozen lines are exactly the PREREG §1 whitelist ({len(_wl)} lines: paths, reference objects, tail counts, finalize inputs)", sorted(_rm) == _wl, sorted(_rm))
+    check(f"★★ [R] G0 {_m}: every ADDED line carries the `# [M]` marker (grep-able month-generic surface, {len(_add)} lines)", _add and all("# [M]" in l for l in _add), [l[:60] for l in _add if "# [M]" not in l][:3])
+    _ft = "".join(_fl); _mt = "".join(_ml)
+    check(f"★★★ [R] G0 {_m}: threshold literals occur exactly as often as in the frozen source {_LIT[_f]} (thresholds/statistics unchanged)", all(_ft.count(t) == _mt.count(t) for t in _LIT[_f]), {t: (_ft.count(t), _mt.count(t)) for t in _LIT[_f]})
+    check(f"★ [R] G0 {_m}: no September literal path survives (/workspace/review_scratch, /workspace/dlw_, /workspace/f8_, /workspace/data/)", not any(p in _mt for p in ("/workspace/review_scratch", "/workspace/dlw_", "/workspace/f8_", "/workspace/data/")))
+    check(f"★ [R] G0 {_m}: no os.environ.get(<key>, <non-empty default>) — every locator is required (an empty-string default is the refusal path, not a September fallback)", not _re.search(r'os\.environ\.get\("[A-Z_0-9]+",\s*"[^"]', _mt))
+
+# ── synthetic two-month worlds: anchors E_row = 2016 + 48k (k < 138 ⇔ E_row < 8640 ⇒ n_first138 == 138 on any common axis ≥ 138 anchors), 6 symbols,
+#    hole run rows 2100..2150 ⇒ neigh [2052, 10790] ⇒ anchors k ∈ [1, 182] inside, k = 0 and k ≥ 183 outside; filled symbols {0, 1} ──
+_T0 = 1_700_000_000; _NWm = 6; _KP = [10, 50, 120, 170]; _NA_REF = 200; _NA_NEW = 230
+_N82 = np.array(["fund_ema", "fund_now", "a_v", "b_v", "c_v", "d_r", "e_r", "f_r", "g_v", "h_r"]); _N89 = np.array([f"A:skew_{k}" for k in range(8)]); _SYM = np.array([f"S{i}USDT" for i in range(_NWm)])
+def _members(nA, short=()):
+    m = np.empty(nA, dtype=object)
+    for i in range(nA): m[i] = np.arange(_NWm - 1) if i in short else np.arange(_NWm)
+    return m
+def _base(seed, nA):
+    rng = np.random.default_rng(seed); E_row = 2016 + 48 * np.arange(nA); E_ts = _T0 + 300 * E_row
+    return dict(E_row=E_row, E_ts=E_ts, y4s=rng.normal(size=(nA, _NWm)), qvk=rng.uniform(1, 2, size=(nA, _NWm)), YR4s=rng.normal(size=(nA, _NWm)), YRZ=rng.integers(0, _NWm, size=(nA, _NWm)).astype(float),
+                yrs=np.full(nA, 2025), has_panel=np.ones((nA, _NWm), bool), btcv=rng.normal(size=nA), X82=rng.normal(size=(nA * _NWm, len(_N82))).astype(np.float32),
+                X89=rng.normal(size=(nA * _NWm, len(_N89))).astype(np.float32), F=rng.normal(size=(nA, _NWm, len(_N82))).astype(np.float32), y4=rng.normal(size=(nA, _NWm)))
+def _write_month(d, b, nA, kind, hole=(2100, 2150), patch_k=(30, 100, 210), prev=None):
+    """kind 'new': RAW+CLIP targets, fea82 (+RAW copy), fea89, king fea/meta, cache, holes, raw_patch. kind 'ref': the reference build = first nA anchors of `prev`
+    (same base) perturbed ONLY inside the hole neighbourhood for filled symbols (+ an unclamped variant differing only in the first 138 anchors)."""
+    os.makedirs(f"{d}/dlw_raw/data", exist_ok=True); os.makedirs(f"{d}/dlw_clip/data", exist_ok=True); os.makedirs(f"{d}/f8/data", exist_ok=True)
+    sl = slice(0, nA); E_row = b["E_row"][sl]; E_ts = b["E_ts"][sl]; nrows = 2016 + 48 * (_NA_NEW + 4)
+    np.savez(f"{d}/cache.npz", ts=_T0 + 300 * np.arange(nrows))
+    hr = np.arange(hole[0], hole[1] + 1); np.savez(f"{d}/holes.npz", fill_runs=np.array([list(hole)]), neigh_rows=np.array([[hole[0] - 48, hole[1] + 8640]]), row=np.repeat(hr, 2), col=np.tile([0, 1], len(hr)), symbols=_SYM)
+    y4s = b["y4s"][sl].copy(); y4old = (b["y4s"][sl] * 0.9).copy(); qvk = b["qvk"][sl].copy(); YR4s = b["YR4s"][sl].copy(); YRZ = b["YRZ"][sl].copy(); y4 = b["y4"][sl].copy()
+    X82 = b["X82"][: nA * _NWm].copy(); X89 = b["X89"][: nA * _NWm].copy(); F = b["F"][sl].copy(); pa = np.repeat(np.arange(nA), _NWm); ps = np.tile(np.arange(_NWm), nA)
+    short = ()
+    if kind == "ref":   # perturb inside neigh (k in _KP ⊂ [1,182]) — value columns only for filled symbols {0,1}; rank columns any symbol; members shortened
+        kp = np.array(_KP); short = tuple(_KP)
+        y4s[kp, 0] += 0.01; y4old[kp, 1] += 0.01; qvk[kp, 0] *= 1.1; YR4s[kp, :] += 0.01; YRZ[kp, :] += 1; y4[kp, 0] += 0.01
+        X82[kp * _NWm + 0, 2] += 0.01; X82[kp * _NWm + 3, 5] += 0.01; X89[kp * _NWm + 1, 0] += 0.01; F[kp, 0, 2] += 0.01; F[kp, 3, 5] += 0.01
+        FE = F.copy(); FE[:138, :, 2] += 0.001; np.save(f"{d}/king_fea_unclamped.npy", FE)
+    tg = dict(E_ts=E_ts, E_row=E_row, members=_members(nA, short), yrs=b["yrs"][sl], has_panel=b["has_panel"][sl], symbols=_SYM, btcv=b["btcv"][sl], qvk=qvk, y4old=y4old, y4s=y4s, YR4s=YR4s, YRZ=YRZ)
+    np.savez(f"{d}/dlw_clip/data/dlw_targets.npz", **tg); np.savez(f"{d}/dlw_clip/data/dlw_fea82.npz", X=X82, pair_a=pa, pair_s=ps, names=_N82); np.savez(f"{d}/f8/data/f8_fea89.npz", X=X89, pair_a=pa, pair_s=ps, names=_N89)
+    np.save(f"{d}/king_fea.npy", F); np.savez(f"{d}/king_meta.npz", E_ts=E_ts, names=_N82, members=_members(nA, short), y4=y4, qvk=qvk)
+    if kind == "new":   # RAW = CLIP except inside the raw-patch windows (E_row in [t-48, t-1]); YR4s/YRZ differ on the patched rows
+        pk = np.array([k for k in patch_k if k < nA]); prow = E_row[pk] + 24; np.savez(f"{d}/raw_patch.npz", row=prow, col=np.full(len(pk), 2))
+        A = dict(tg); A["y4s"] = y4s.copy(); A["y4s"][pk, 2] += 0.5; A["YR4s"] = YR4s.copy(); A["YR4s"][pk, :] += 0.1; A["YRZ"] = YRZ.copy(); A["YRZ"][pk, :] += 1
+        np.savez(f"{d}/dlw_raw/data/dlw_targets.npz", **A); _shu.copyfile(f"{d}/dlw_clip/data/dlw_fea82.npz", f"{d}/dlw_raw/data/dlw_fea82.npz")
+def _env1(new, ref, out, **over):
+    e = dict(HOLE_CELLS=f"{new}/holes.npz", DLW_RAW=f"{new}/dlw_raw", DLW_CLIP=f"{new}/dlw_clip", RAW_PATCH=f"{new}/raw_patch.npz", CACHE=f"{new}/cache.npz", F8=f"{new}/f8", PREV_DLW_CLIP=f"{ref}/dlw_clip", PREV_F8=f"{ref}/f8", STEP1_OUT=out); e.update(over); return e
+def _env2(new, ref, out, **over):
+    e = dict(HOLE_CELLS=f"{new}/holes.npz", CACHE=f"{new}/cache.npz", KING_FEA=f"{new}/king_fea.npy", KING_META=f"{new}/king_meta.npz", PREV_KING_FEA=f"{ref}/king_fea.npy", PREV_KING_FEA_UNCLAMPED=f"{ref}/king_fea_unclamped.npy", PREV_META=f"{ref}/king_meta.npz", STEP2_OUT=out); e.update(over); return e
+def _none_env(new, ref, out, rootdir, **over):
+    """AMENDMENT 1: a NONE month must carry PREV_CLAMP_BUILDER_SHA256 and a month root R whose v4_gates/deps_preflight_device.json pins pod_fea_ext_clamp.py at that sha."""
+    os.makedirs(f"{rootdir}/v4_gates", exist_ok=True); _pin = over.pop("pin", _sha(f"{HERE}/pod_fea_ext_clamp.py")); _pf = over.pop("preflight_pin", _pin)
+    json.dump({"stage": "preflight_device", "deps_sha256": {f"{HERE}/pod_fea_ext_clamp.py": _pf, f"{HERE}/chain_lib.sh": _sha(f"{HERE}/chain_lib.sh")}}, open(f"{rootdir}/v4_gates/deps_preflight_device.json", "w"))
+    return _env2(new, ref, out, PREV_KING_FEA_UNCLAMPED="NONE", PREV_CLAMP_BUILDER_SHA256=_pin, R=rootdir, **over)
+def _g(script, env):
+    rc, out = run([script], env); rp = env.get("STEP1_OUT") or env.get("STEP2_OUT"); r = json.load(open(rp)) if rp and os.path.exists(rp) else None; return rc, out, r
+_META = {"utc", "built_utc", "argv", "self_sha256", "inputs_sha256", "inputs_path", "receipt_schema", "gate"}
+def _keys(o, path=""):
+    if isinstance(o, dict): return set().union(*[_keys(v, f"{path}/{k}") for k, v in o.items() if path or k not in _META]) | {f"{path}/{k}" for k in o if path or k not in _META}
+    return set()
+def _tmpl_env(path):
+    e = {}
+    for l in open(path):
+        l = l.strip()
+        if l and not l.startswith("#"): k, v = l.split("=", 1); e[k] = v.replace("$R", e.get("R", "$R"))
+    return e
+_ARCH1 = json.load(open(f"{HERE}/receipts/monthly_chain_2026-09-12/pod2_root/step1.json")); _ARCH2 = json.load(open(f"{HERE}/receipts/monthly_chain_2026-09-12/pod2_root/step2.json"))
+with tempfile.TemporaryDirectory() as d:
+    _bX = _base(1, _NA_NEW); _bY = _base(7, _NA_REF)
+    _write_month(f"{d}/X1", _bX, _NA_NEW, "new"); _write_month(f"{d}/X0", _bX, _NA_REF, "ref"); _write_month(f"{d}/X1same", _bX, _NA_REF, "new"); _write_month(f"{d}/Y", _bY, _NA_REF, "ref", hole=(6000, 6050))
+    # ── positive: month X+1 (230 anchors) against its reference month X (200 anchors): differences only in the hole neighbourhood, 30 tail anchors exempt ──
+    rc, out, r = _g("v4_gate_step1_m.py", _env1(f"{d}/X1", f"{d}/X0", f"{d}/s1_tail.json"))
+    check("★★★ [R] G3(h) STEP1 on the extension-month fixture ⇒ PASS rc 0; the 30 new-month anchors are the tail: axis_only_hf3=30, outside_neigh 0, tail_exempt 30 + ref_axis_end_utc; fea82/fea89 pairs_only_a=180 all tail-exempt",
+          rc == 0 and r and r["PASS"] is True and r["B_targets_hf3_vs_hf2"]["axis_only_hf3"] == 30 and r["B_targets_hf3_vs_hf2"]["axis_only_hf3_outside_neigh"] == 0 and r["B_targets_hf3_vs_hf2"]["axis_only_hf3_tail_exempt"] == 30
+          and "ref_axis_end_utc" in r["B_targets_hf3_vs_hf2"] and all(r[k]["pairs_only_a"] == 180 and r[k]["pairs_only_a_outside_neigh"] == 0 and r[k]["pairs_only_a_tail_exempt"] == 180 for k in ("B_fea82_hf3_vs_hf2", "B_fea89_f8v4_vs_f8hf2")), (rc, out[-300:]))
+    check("★★ [R] STEP1 the in-neigh reference differences are counted (not hidden) and A (RAW vs CLIP) sees exactly the 3 patched anchors", r and r["B_targets_hf3_vs_hf2"]["y4s_diff_cells"] == 4 and r["B_targets_hf3_vs_hf2"]["members_diff_rows"] == 4 and r["B_fea82_hf3_vs_hf2"]["common_pairs_diff"] == 8
+          and r["A_raw_vs_clip"]["patch_anchors"] == 3 and r["A_raw_vs_clip"]["y4s_big_cells"] == 3 and r["A_raw_vs_clip"]["PASS"] is True and r["fea82_copy_identical"] is True, r and (r["B_targets_hf3_vs_hf2"]["y4s_diff_cells"], r["A_raw_vs_clip"]["patch_anchors"]))
+    check("★★★ [R] G4 STEP1 receipt identity: gate=STEP1, self_sha256 == sha(v4_gate_step1_m.py), every REQUIRED_INPUTS[STEP1@v4] name + hf2/raw_patch/hole_cells + cache hashed (11 inputs, none None)",
+          r and r["gate"] == "STEP1" and r["self_sha256"] == _NEW_SHA["v4_gate_step1_m.py"] and set(r["inputs_sha256"]) == set(_ARCH1["inputs_sha256"]) | {"cache"} and all(r["inputs_sha256"].values()) and len(r["inputs_sha256"]) == 11, r and sorted(r["inputs_sha256"]))
+    _S1 = dict(zip(("dlw_v4raw_targets", "dlw_hf3_targets", "fea82_v4raw", "fea89_f8v4"), (f"{d}/X1/dlw_raw/data/dlw_targets.npz", f"{d}/X1/dlw_clip/data/dlw_targets.npz", f"{d}/X1/dlw_raw/data/dlw_fea82.npz", f"{d}/X1/f8/data/f8_fea89.npz")))
+    rc, out = run(["v4_gate_common.py", "require", f"{d}/s1_tail.json", "gate=STEP1", "profile=v4", f"self_sha={_NEW_SHA['v4_gate_step1_m.py']}"] + [f"{k}={v}" for k, v in _S1.items()])
+    check("★★★ [R] G4 require under the REAL contract refuses the month-generic gate's PASS receipt: 'not an APPROVED source' (the contract, not the caller, decides; approval = user word)", rc == 3 and "not an APPROVED source" in out, out[-200:])
+    os.makedirs(f"{d}/sim"); _shu.copyfile(f"{HERE}/v4_gate_common.py", f"{d}/sim/v4_gate_common.py"); _c2 = json.loads(json.dumps(_CON))
+    _c2["gates"]["STEP1"]["approved_source_sha256"].append(_NEW_SHA["v4_gate_step1_m.py"]); _c2["gates"]["STEP2"]["approved_source_sha256"].append(_NEW_SHA["v4_gate_step2_m.py"]); json.dump(_c2, open(f"{d}/sim/ELIGIBILITY_CONTRACT.json", "w"))
+    rc, out = run([f"{d}/sim/v4_gate_common.py", "require", f"{d}/s1_tail.json", "gate=STEP1", "profile=v4", f"self_sha={_NEW_SHA['v4_gate_step1_m.py']}"] + [f"{k}={v}" for k, v in _S1.items()])
+    check("★★★ [R] G4 the SAME receipt under a SIMULATED contract copy (approved list + new sha; real contract untouched) ⇒ REQUIRE_OK with the STEP1@v4 floor (4 inputs verified) — nothing else has to change for the driver to accept the new gates once approved",
+          rc == 0 and "REQUIRE_OK" in out and "registered floor STEP1@v4=4" in out and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") == _CON_SHA, out[-200:])
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/s2_tail.json"))
+    check("★★★ [R] G3(h) STEP2 on the extension-month fixture ⇒ PASS rc 0; anchors_only_v4 = 30 (tail) exempt, n_first138 == 138, clamp checks evaluated (clamp_vs_ext.anchors 138, outside_138 0), in-neigh reference diffs counted",
+          rc == 0 and r2 and r2["PASS"] is True and len(r2["anchors_only_v4"]) == 30 and r2["anchors_only_v4_outside_neigh"] == 0 and r2["anchors_only_v4_tail_exempt"] == 30 and "ref_axis_end_utc" in r2 and r2["n_first138"] == 138
+          and r2["features"]["clamp_vs_ext"] == {"anchors": 138, "outside_138": 0} and r2["features"]["v4_vs_ext"]["outside_138_and_neigh"] == 0 and r2["features"]["v4_vs_clamp"]["anchors"] == 4 and r2["members_diff_rows"] == 4 and "clamp_checks" not in r2, (rc, out[-300:]))
+    check("★★★ [R] G4 STEP2 receipt identity: gate=STEP2, self_sha256 == sha(v4_gate_step2_m.py), the 6 frozen input names + cache hashed (7, none None)",
+          r2 and r2["gate"] == "STEP2" and r2["self_sha256"] == _NEW_SHA["v4_gate_step2_m.py"] and set(r2["inputs_sha256"]) == set(_ARCH2["inputs_sha256"]) | {"cache"} and all(r2["inputs_sha256"].values()), r2 and sorted(r2["inputs_sha256"]))
+    rc, out = run([f"{d}/sim/v4_gate_common.py", "require", f"{d}/s2_tail.json", "gate=STEP2", f"self_sha={_NEW_SHA['v4_gate_step2_m.py']}", f"wide_fea_v4={d}/X1/king_fea.npy", f"wide_fea_v4_meta={d}/X1/king_meta.npz"])
+    check("★★★ [R] G4 STEP2 receipt under the simulated contract ⇒ REQUIRE_OK (STEP2 floor, 2 inputs) — exactly the driver's require_gate call shape", rc == 0 and "REQUIRE_OK" in out and "registered floor STEP2=2" in out, out[-200:])
+    # ── field-set identity: no extension tail ⇒ the receipt's verdict field set == the archived September receipts' (recursively) ──
+    rc, out, r = _g("v4_gate_step1_m.py", _env1(f"{d}/X1same", f"{d}/X0", f"{d}/s1_same.json"))
+    check("★★★ [R] G3(i) STEP1 with NO extension tail (same axis as the reference) ⇒ PASS and the verdict field set == the archived September step1.json field set (78 fields; no *_tail_exempt anywhere)",
+          rc == 0 and r and r["PASS"] is True and _keys(r) == _keys(_ARCH1) and "tail_exempt" not in json.dumps(r), r and (sorted(_keys(r) ^ _keys(_ARCH1))[:6], rc))
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1same", f"{d}/X0", f"{d}/s2_same.json"))
+    check("★★★ [R] G3(i) STEP2 with NO extension tail ⇒ PASS and the verdict field set == the archived September step2.json field set (31 fields)", rc == 0 and r2 and r2["PASS"] is True and _keys(r2) == _keys(_ARCH2) and "tail_exempt" not in json.dumps(r2), r2 and sorted(_keys(r2) ^ _keys(_ARCH2))[:6])
+    # ── G2: the October TEMPLATE (TODO paths, four new keys absent) ⇒ clean refusal: rc 3, PASS=false receipt, REFUSED names every missing key and TODO path, no PASS anywhere ──
+    _te = _tmpl_env(f"{HERE}/v4_month_2026-10.env.template"); _te = {k: _te[k] for k in ("HOLE_CELLS", "DLW_RAW", "DLW_CLIP", "RAW_PATCH", "CACHE", "F8", "KING_FEA", "KING_META", "PREV_META")}
+    rc, out, r = _g("v4_gate_step1_m.py", {**_te, "PREV_DLW_CLIP": "", "PREV_F8": "", "STEP1_OUT": f"{d}/s1_tmpl.json"})
+    check("★★★ [R] G2 STEP1 on the October template env (TODO paths; PREV_DLW_CLIP / PREV_F8 absent) ⇒ rc 3, STEP1_REFUSED, receipt PASS=false naming missing_env [PREV_DLW_CLIP, PREV_F8] and every TODO/absent path; inputs sha None",
+          rc == 3 and "STEP1_REFUSED" in out and r and r["PASS"] is False and r["REFUSED"]["missing_env"] == ["PREV_DLW_CLIP", "PREV_F8"] and any("TODO_" in str(v) for v in r["REFUSED"]["missing_files"].values())
+          and set(r["REFUSED"]["missing_files"]) >= {"hole_cells", "cache", "dlw_v4raw_targets", "dlw_hf2_targets", "fea89_f8hf2"} and not any(r["inputs_sha256"].values()), (rc, r and r["REFUSED"].get("missing_env"), out[-200:]))
+    rc, out, r2 = _g("v4_gate_step2_m.py", {**_te, "PREV_KING_FEA": "", "PREV_KING_FEA_UNCLAMPED": "", "STEP2_OUT": f"{d}/s2_tmpl.json"})
+    check("★★★ [R] G2 STEP2 on the October template env ⇒ rc 3, STEP2_REFUSED, PASS=false, missing_env [PREV_KING_FEA, PREV_KING_FEA_UNCLAMPED], TODO cache/holes named",
+          rc == 3 and "STEP2_REFUSED" in out and r2 and r2["PASS"] is False and r2["REFUSED"]["missing_env"] == ["PREV_KING_FEA", "PREV_KING_FEA_UNCLAMPED"] and any("TODO_" in str(v) for v in r2["REFUSED"]["missing_files"].values()), (rc, r2 and r2["REFUSED"].get("missing_env")))
+    _full = _tmpl_env(f"{HERE}/v4_month_2026-10.env.template"); _te2 = {k: _full[k] for k in list(_te) + ["PREV_DLW_CLIP", "PREV_F8", "PREV_KING_FEA", "PREV_KING_FEA_UNCLAMPED"]}
+    rc, out, r = _g("v4_gate_step1_m.py", {**_te2, "STEP1_OUT": f"{d}/s1_tmpl2.json"}); rc2_, out2_, r2_ = _g("v4_gate_step2_m.py", {**_te2, "STEP2_OUT": f"{d}/s2_tmpl2.json"})
+    check("★★★ [R] G2 the October template AS SHIPPED (PREV_* = TODO paths, PREV_KING_FEA_UNCLAMPED=NONE, GATE_STEP1/2 = the _m gates): both gates refuse on the TODO PATHS (no missing_env), rc 3, PASS=false; STEP2 treats NONE as the explicit skip (wide_fea_v2ext not a missing file)",
+          rc == 3 and rc2_ == 3 and r and r2_ and r["PASS"] is False and r2_["PASS"] is False and "missing_env" not in r["REFUSED"] and "missing_env" not in r2_["REFUSED"] and "TODO_dlw_hf3" in r["REFUSED"]["missing_files"]["dlw_hf2_targets"]
+          and "TODO_wide_fea_v4" in r2_["REFUSED"]["missing_files"]["wide_fea_v2ext_clamp"] and "wide_fea_v2ext" not in r2_["REFUSED"]["missing_files"] and _full["GATE_STEP1"] == "v4_gate_step1_m.py" and _full["GATE_STEP2"] == "v4_gate_step2_m.py" and _te2["PREV_KING_FEA_UNCLAMPED"] == "NONE", (rc, rc2_, r and r["REFUSED"].keys(), r2_ and sorted(r2_["REFUSED"].get("missing_files", {}))))
+    rc, out, r = _g("v4_gate_step1_m.py", _env1(f"{d}/X1", f"{d}/X0", f"{d}/s1_todo.json", PREV_DLW_CLIP="/workspace/m2026-10/TODO_prev_clip"))
+    check("★★ [R] G3(f) a TODO path in one key ⇒ REFUSED names exactly that input pair (dlw_hf2_targets, fea82_hf2) by path; rc 3; PASS=false", rc == 3 and r and r["PASS"] is False and set(r["REFUSED"]["missing_files"]) == {"dlw_hf2_targets", "fea82_hf2"} and "TODO_prev_clip" in r["REFUSED"]["missing_files"]["dlw_hf2_targets"] and "missing_env" not in r["REFUSED"], r and r["REFUSED"])
+    rc, out = run(["v4_gate_step1_m.py"], {**_env1(f"{d}/X1", f"{d}/X0", ""), "STEP1_OUT": ""})
+    check("★★ [R] G2 STEP1 without STEP1_OUT ⇒ rc 3 'STEP1_REFUSED missing STEP1_OUT' and NO receipt (no September default path is written to)", rc == 3 and "STEP1_REFUSED missing STEP1_OUT" in out and not os.path.exists("/workspace/review_scratch/v4_gates/step1.json"), out[-120:])
+    for _r_ in ("s1_tmpl", "s2_tmpl", "s1_todo"):
+        rc, out = run(["v4_gate_common.py", "require", f"{d}/{_r_}.json", "gate=" + ("STEP1" if _r_.startswith("s1") else "STEP2"), f"self_sha={_NEW_SHA['v4_gate_step1_m.py' if _r_.startswith('s1') else 'v4_gate_step2_m.py']}", f"x={HERE}/v4_gate_common.py"])
+        check(f"★ [R] G2 a refusal receipt ({_r_}) can never be required (rc 3)", rc == 3, out[-120:])
+    # ── G3 mutations: pointing a path at the WRONG month's file changes the verdict or is refused (each named) ──
+    rc, out, r = _g("v4_gate_step1_m.py", _env1(f"{d}/X1", f"{d}/X0", f"{d}/s1_self.json", PREV_DLW_CLIP=f"{d}/X1/dlw_clip"))
+    check("★★★ [R] G3(a) STEP1 reference == candidate (PREV_DLW_CLIP → this month's DLW_CLIP) ⇒ REFUSED reference_is_candidate names dlw_hf3_targets==dlw_hf2_targets and fea82_hf3==fea82_hf2; rc 3; nothing compared",
+          rc == 3 and r and r["PASS"] is False and r["REFUSED"] == {"reference_is_candidate": ["dlw_hf3_targets==dlw_hf2_targets", "fea82_hf3==fea82_hf2"]} and "A_raw_vs_clip" not in r, (rc, r and r["REFUSED"]))
+    rc, out, r = _g("v4_gate_step1_m.py", _env1(f"{d}/X1", f"{d}/X0", f"{d}/s1_wrongref.json", PREV_DLW_CLIP=f"{d}/Y/dlw_clip"))
+    check("★★★ [R] G3(b) STEP1 PREV_DLW_CLIP → an unrelated month (world Y) ⇒ B targets/fea82 differences outside the neighbourhood ⇒ PASS false, rc 3 (the verdict changed)",
+          rc == 3 and r and r["PASS"] is False and r["B_targets_hf3_vs_hf2"]["PASS"] is False and r["B_targets_hf3_vs_hf2"]["y4s_diff_outside_neigh"] > 0 and r["B_fea82_hf3_vs_hf2"]["diff_pairs_outside_neigh"] > 0 and r["A_raw_vs_clip"]["PASS"] is True, r and (r["B_targets_hf3_vs_hf2"]["y4s_diff_outside_neigh"]))
+    rc, out, r = _g("v4_gate_step1_m.py", _env1(f"{d}/X1", f"{d}/X0", f"{d}/s1_wrongf8.json", PREV_F8=f"{d}/Y/f8"))
+    check("★★★ [R] G3(b′) STEP1 PREV_F8 → world Y ⇒ only the fea89 comparison fails (diff_pairs_outside_neigh > 0), targets/fea82 still PASS ⇒ total PASS false", rc == 3 and r and r["PASS"] is False and r["B_fea89_f8v4_vs_f8hf2"]["PASS"] is False and r["B_fea89_f8v4_vs_f8hf2"]["diff_pairs_outside_neigh"] > 0 and r["B_targets_hf3_vs_hf2"]["PASS"] is True and r["B_fea82_hf3_vs_hf2"]["PASS"] is True, r and r["B_fea89_f8v4_vs_f8hf2"]["diff_pairs_outside_neigh"])
+    rc, out, r = _g("v4_gate_step1_m.py", _env1(f"{d}/X1", f"{d}/X0", f"{d}/s1_wrongholes.json", HOLE_CELLS=f"{d}/Y/holes.npz"))
+    check("★★★ [R] G3(c) STEP1 HOLE_CELLS → world Y's hole file (run at rows 6000..6050) ⇒ the reference's real differences (k=10, 50) fall outside that neighbourhood ⇒ PASS false", rc == 3 and r and r["PASS"] is False and r["B_targets_hf3_vs_hf2"]["members_diff_rows_outside_neigh"] > 0 and r["neigh_rows"] == [[5952, 14690]], r and r["neigh_rows"])
+    rc, out, r = _g("v4_gate_step1_m.py", _env1(f"{d}/X1", f"{d}/X0", f"{d}/s1_nokey.json", PREV_F8=""))
+    check("★★★ [R] G3(e) STEP1 PREV_F8 unset ⇒ REFUSED missing_env ['PREV_F8'] + missing_files fea89_f8hf2 (None); rc 3", rc == 3 and r and r["PASS"] is False and r["REFUSED"]["missing_env"] == ["PREV_F8"] and r["REFUSED"]["missing_files"] == {"fea89_f8hf2": None}, r and r["REFUSED"])
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/s2_self.json", KING_FEA=f"{d}/X0/king_fea.npy"))
+    check("★★★ [R] G3(d) STEP2 KING_FEA → the reference file ⇒ REFUSED reference_is_candidate ['wide_fea_v4==wide_fea_v2ext_clamp'] (a same-content comparison verifies nothing); rc 3", rc == 3 and r2 and r2["PASS"] is False and r2["REFUSED"] == {"reference_is_candidate": ["wide_fea_v4==wide_fea_v2ext_clamp"]}, r2 and r2["REFUSED"])
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/s2_selfmeta.json", PREV_META=f"{d}/X1/king_meta.npz"))
+    check("★★ [R] G3(d′) STEP2 PREV_META → this month's meta ⇒ REFUSED ['wide_fea_v4_meta==wide_fea_v2ext_meta']", rc == 3 and r2 and r2["REFUSED"] == {"reference_is_candidate": ["wide_fea_v4_meta==wide_fea_v2ext_meta"]}, r2 and r2["REFUSED"])
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/s2_wrongref.json", PREV_KING_FEA=f"{d}/Y/king_fea.npy"))
+    check("★★★ [R] G3(b) STEP2 PREV_KING_FEA → world Y ⇒ v4_vs_clamp.outside > 0 and clamp_vs_ext.outside_138 > 0 ⇒ PASS false, rc 3", rc == 3 and r2 and r2["PASS"] is False and r2["features"]["v4_vs_clamp"]["outside"] > 0 and r2["features"]["clamp_vs_ext"]["outside_138"] > 0, r2 and r2["features"])
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/s2_wrongmeta.json", PREV_META=f"{d}/Y/king_meta.npz"))
+    check("★★ [R] G3(b″) STEP2 PREV_META → world Y's meta ⇒ y4/qvk differences outside the neighbourhood ⇒ PASS false", rc == 3 and r2 and r2["PASS"] is False and r2["y4_diff_outside_neigh"] > 0, r2 and r2.get("y4_diff_outside_neigh"))
+    rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/s2_none.json", f"{d}/R_none"))
+    check("★★★ [R] G3(g) STEP2 PREV_KING_FEA_UNCLAMPED=NONE (with the builder identity of AMENDMENT 1) ⇒ PASS (data checks intact) and the receipt SAYS so: clamp_checks.mode='NOT_EVALUATED…' + the three equal builder shas, features == {v4_vs_clamp} only, wide_fea_v2ext path/sha None (the skip is recorded, never silent)",
+          rc == 0 and r2 and r2["PASS"] is True and str(r2["clamp_checks"]["mode"]).startswith("NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE") and r2["clamp_checks"]["pinned_sha256"] == r2["clamp_checks"]["preflight_pinned_sha256"] == r2["clamp_checks"]["device_file_sha256"] == _sha(f"{HERE}/pod_fea_ext_clamp.py")
+          and set(r2["features"]) == {"v4_vs_clamp"} and r2["inputs_path"]["wide_fea_v2ext"] is None and r2["inputs_sha256"]["wide_fea_v2ext"] is None and r2["anchors_only_v4_tail_exempt"] == 30, (rc, r2 and (r2.get("REFUSED"), list(r2.get("features", {})))))
+    rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/s2_none_wrong.json", f"{d}/R_none", PREV_KING_FEA=f"{d}/Y/king_fea.npy"))
+    check("★★★ [R] G3(g′) NONE does not blind the data check: NONE + PREV_KING_FEA → world Y ⇒ PASS false (v4_vs_clamp.outside > 0)", rc == 3 and r2 and r2["PASS"] is False and r2["features"]["v4_vs_clamp"]["outside"] > 0, r2 and r2["features"])
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/s2_nokey.json", PREV_KING_FEA_UNCLAMPED=""))
+    check("★★ [R] G3(e′) STEP2 PREV_KING_FEA_UNCLAMPED EMPTY (not NONE) ⇒ REFUSED missing_env — the skip needs the explicit word NONE in the contract", rc == 3 and r2 and r2["REFUSED"]["missing_env"] == ["PREV_KING_FEA_UNCLAMPED"], r2 and r2["REFUSED"])
+    # ── the tail exemption is ONE-SIDED: an extra new-month anchor BEFORE the reference's first anchor is not a tail and must be explained by a hole ──
+    _m1 = dict(np.load(f"{d}/X1/king_meta.npz", allow_pickle=True)); _F1 = np.load(f"{d}/X1/king_fea.npy"); os.makedirs(f"{d}/X1pre")
+    _mm = np.empty(len(_m1["members"]) + 1, dtype=object); _mm[0] = np.arange(_NWm); _mm[1:] = _m1["members"]
+    np.savez(f"{d}/X1pre/king_meta.npz", E_ts=np.concatenate([[_T0 + 300 * 1968], _m1["E_ts"]]), names=_m1["names"], members=_mm, y4=np.vstack([_m1["y4"][:1], _m1["y4"]]), qvk=np.vstack([_m1["qvk"][:1], _m1["qvk"]])); np.save(f"{d}/X1pre/king_fea.npy", np.concatenate([_F1[:1] * 0.5, _F1]))
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/s2_pre.json", KING_FEA=f"{d}/X1pre/king_fea.npy", KING_META=f"{d}/X1pre/king_meta.npz"))
+    check("★★★ [R] G3 MUTATION of the tail rule: a new-month anchor BEFORE the reference axis start (row 1968, outside neigh) is NOT exempt ⇒ anchors_only_v4_outside_neigh == 1 ⇒ PASS false (the 30 real tail anchors still exempt)",
+          rc == 3 and r2 and r2["PASS"] is False and r2["anchors_only_v4_outside_neigh"] == 1 and r2["anchors_only_v4_tail_exempt"] == 30 and len(r2["anchors_only_v4"]) == 31, r2 and (r2.get("anchors_only_v4_outside_neigh"), r2.get("anchors_only_v4_tail_exempt")))
+    # ── the driver's calling convention: chain_lib.run_gate <name> <basename in D> <log> STEPx_OUT=… with the contract keys exported ──
+    rc, out = _bash(f". {HERE}/chain_lib.sh; run_gate STEP1 v4_gate_step1_m.py {d}/rg1.log STEP1_OUT={d}/rg1.json; echo rc=$?", {**_env1(f"{d}/X1", f"{d}/X0", ""), "STEP1_OUT": "", "PY": PY, "CHAIN_DEVICE_DIR": HERE, "R": d, "L": "/dev/null"})
+    check("★★★ [R] under the driver's run_gate (chain_lib.sh; D=CHAIN_DEVICE_DIR; contract keys exported) the month-generic STEP1 runs, rc 0, receipt PASS — no driver change is needed, only the contract keys + approval",
+          "rc=0" in out and os.path.exists(f"{d}/rg1.json") and json.load(open(f"{d}/rg1.json"))["PASS"] is True and "STEP1 PASS" in open(f"{d}/rg1.log").read(), out[-200:])
+    rc, out = _bash(f". {HERE}/chain_lib.sh; run_gate STEP2 v4_gate_step2_m.py {d}/rg2.log STEP2_OUT={d}/rg2.json; echo rc=$?", {**_env2(f"{d}/X1", f"{d}/X0", ""), "STEP2_OUT": "", "PY": PY, "CHAIN_DEVICE_DIR": HERE, "R": d, "L": "/dev/null"})
+    check("★★ [R] run_gate STEP2 v4_gate_step2_m.py ⇒ rc 0, receipt PASS", "rc=0" in out and os.path.exists(f"{d}/rg2.json") and json.load(open(f"{d}/rg2.json"))["PASS"] is True, out[-200:])
+check("★★★ [R] G0 after every run: the frozen gate sources still carry their contract-approved shas (step1 278fdce6, step2 db7ab356) and v4_gate_common / the contract are byte-identical to what this section started with (the tests never wrote to them)",
+      _sha(f"{HERE}/v4_gate_step1.py") == _FROZEN_SHA["v4_gate_step1.py"] and _sha(f"{HERE}/v4_gate_step2.py") == _FROZEN_SHA["v4_gate_step2.py"] and _sha(f"{HERE}/v4_gate_common.py") == _COMMON_SHA and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") == _CON_SHA)
+
+# ── [S] INDEPENDENT REVIEW B-R1 / B-R3 / B-R4 / R5 (2026-09-12 W7; codex_batch_incident_review_2026-09-12/retrain/RESULT.md; PREREG_v4_gates_monthly AMENDMENT 1):
+#        B-R1 every driver stage verifies its prerequisites (bound to this contract/root/inputs) BEFORE guard/dispatch — the graph is code, not file order;
+#        B-R3 the month contract is isolated from the parent shell (keys must be lines of the file; unset before sourcing) and the data stage runs its
+#        subprocesses under env -i with every variable they read set explicitly (CLIP: DLWT_RAW_PATCH= empty); B-R4 NONE is bound to the builder identity and
+#        every new-tail anchor must pass the pre-registered quality floor; R5 the five legacy chains are sealed behind V4_LEGACY_OK=1 ──
+print("\n[S] researcher B-R1 (stage prerequisites), B-R3 (contract isolation + clean data env), B-R4 (NONE builder identity + tail quality), R5 (legacy seal)")
+_LEGACY = ("chain_v4_data.sh", "chain_v4_gpu3.sh", "chain_v4s_gpu.sh", "chain_king_e.sh", "chain_v4_post_export.sh")
+_PRODUCER_SKIP = ("v4_gate_common.py", "-", "v4_months.py")
+def _producers(calls): return [os.path.basename(c["argv"][0]) for c in calls if c["argv"] and os.path.basename(c["argv"][0]) not in _PRODUCER_SKIP and c["argv"][0] != "-c"]
+with tempfile.TemporaryDirectory() as d:
+    # ── R5 ──
+    for _f in _LEGACY:
+        _src = open(f"{HERE}/{_f}").read().splitlines(); _gi = next(i for i, l in enumerate(_src) if "V4_LEGACY_OK" in l)
+        check(f"★★ [S] R5 {_f}: the V4_LEGACY_OK guard is the FIRST action line (line {_gi + 1}, exit 64); everything above it is comment/blank", all(l.startswith("#") or not l.strip() for l in _src[:_gi]) and "exit 64" in _src[_gi], _gi + 1)
+        _cw = f"{d}/legacy_{_f}"; os.makedirs(f"{_cw}/cwd"); _e = {k: v for k, v in os.environ.items() if k != "V4_LEGACY_OK"}
+        open(f"{_cw}/{_f}", "w").write(open(f"{HERE}/{_f}").read().replace("/workspace", f"{_cw}/ws"))   # PATH-TRANSLATED copy (E-0912-B safety): even a broken guard could only write under the temp root, never into September's /workspace
+        p = subprocess.run(["bash", f"{_cw}/{_f}"], capture_output=True, text=True, env=_e, cwd=f"{_cw}/cwd", timeout=60)
+        check(f"★★★ [S] R5 bare `bash {_f}` (translated copy) ⇒ rc 64, LEGACY_REFUSED on stderr, NOTHING written in cwd or the translated root (the September-only chain is physically sealed, not just documented)", p.returncode == 64 and "LEGACY_REFUSED" in p.stderr and os.listdir(f"{_cw}/cwd") == [] and not os.path.exists(f"{_cw}/ws"), (p.returncode, p.stderr[-100:], os.listdir(_cw)))
+    p = subprocess.run(["bash", f"{d}/legacy_chain_v4_data.sh/chain_v4_data.sh"], capture_output=True, text=True, env=dict(os.environ, V4_LEGACY_OK="1"), cwd=f"{d}/legacy_chain_v4_data.sh/cwd", timeout=60)
+    check("★★ [S] R5 with V4_LEGACY_OK=1 the guard opens: the translated chain_v4_data.sh proceeds past it (rc ≠ 64, no LEGACY_REFUSED) and fails on its (translated, nonexistent) paths instead — the [J]/[K] harness runs the guarded chains for real with V4_LEGACY_OK=1", p.returncode != 64 and "LEGACY_REFUSED" not in p.stderr, (p.returncode, p.stderr[-120:]))
+    check("★ [S] R5 the archived snapshots (.rN_<sha8>.sh) are untouched by the seal (判决装置与结论同寿命)", not any("V4_LEGACY_OK" in open(f"{HERE}/{f}").read() for f in os.listdir(HERE) if _re.search(r"\.r[0-4]_[0-9a-f]{8}\.sh$", f)))
+    # ── B-R3: the contract is a FILE, not the environment ──
+    _lines = open(f"{HERE}/v4_month_2026-09.env").read().splitlines(); open(f"{d}/noseeds.env", "w").write("\n".join(l for l in _lines if not l.startswith("SEEDS=")) + "\n")
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/noseeds.env; echo rc=$? SEEDS=$SEEDS", {"L": "/dev/null", "SEEDS": "42"})
+    check("★★★ [S] B-R3 (researcher W3_omitted_SEEDS_inherited_ACCEPTED, was rc 0): SEEDS deleted from the file while SEEDS=42 is in the parent shell ⇒ rc 4 FAIL_month_env_key_missing_SEEDS — a key must be a LINE OF THE FILE", rc == 4 and "FAIL_month_env_key_missing_SEEDS" in out and "not a line of the file" in out, out[-200:])
+    rc, out = _bash(f". {HERE}/chain_lib.sh; load_month_env {HERE}/v4_month_2026-09.env >/dev/null; echo rc=$? R=$R DLW_RAW=$DLW_RAW PREV_F8=$PREV_F8", {"L": "/dev/null", "R": "/tmp/inherited_junk", "DLW_RAW": "/tmp/junk_dlw", "PREV_F8": "/tmp/junk_prev"})
+    check("★★★ [S] B-R3 inherited R / DLW_RAW / PREV_F8 in the parent shell are UNSET before sourcing ⇒ the file's values win (rc 0)", rc == 0 and "R=/workspace/review_scratch " in out and "DLW_RAW=/workspace/dlw_v4raw" in out and "PREV_F8=/workspace/f8_hf2" in out, out[-200:])
+    _keys46 = open(f"{HERE}/chain_lib.sh").read().split('V4_MONTH_KEYS="', 1)[1].split('"', 1)[0].split()
+    check("★★ [S] B-R4 contract key PREV_CLAMP_BUILDER_SHA256 registered (46 keys); the September contract pins the builder sha the frozen STEP2 gate was verified with (b9f9c728… == the archived preflight device_sha256 == the file in the device dir)",
+          "PREV_CLAMP_BUILDER_SHA256" in _keys46 and len(_keys46) == 46 and "PREV_CLAMP_BUILDER_SHA256=b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac" in open(f"{HERE}/v4_month_2026-09.env").read()
+          and json.load(open(f"{HERE}/receipts/monthly_chain_2026-09-12/pod2_root/preflight.json"))["device_sha256"]["pod_fea_ext_clamp.py"] == "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac" == _sha(f"{HERE}/pod_fea_ext_clamp.py"), (len(_keys46), _sha(f"{HERE}/pod_fea_ext_clamp.py")[:12]))
+    # ── B-R1 / B-R3 on the DRIVER with a fail-closed mock interpreter (the researcher's shape: logs every call, delegates only v4_gate_common / heredocs / -c to the real interpreter, exits 77 otherwise) ──
+    _MOCK = f"{d}/mock_python"; _MLOG = f"{d}/mock_calls.jsonl"
+    open(_MOCK, "w").write(f'''#!{PY}
+import json, os, sys, subprocess
+LOG = {_MLOG!r}; a = sys.argv[1:]; n = os.path.basename(a[0]) if a else ""
+open(LOG, "a").write(json.dumps({{"argv": a, "env": {{k: os.environ.get(k) for k in ("F10_DLW", "F10_OUT", "BEST_EP_FIX", "SEED", "DLWT_RAW_PATCH", "DLWT_CACHE", "DLWT_OUT", "F171_OUT", "F8_OUT", "FEA_OUT", "W7_CANARY", "PATH")}}}}) + "\\n")
+if n in ("v4_gate_common.py", "-", "v4_months.py") or (a and a[0] == "-c"): sys.exit(subprocess.call([{PY!r}, "-B"] + a, stdin=sys.stdin))
+def w(p, b=b"x"): os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(b)
+if n == "cache_coverage_gate_v2.py": sys.exit(0)
+if n == "pod_dlw_targets_raw.py": w(os.environ["DLWT_OUT"] + "/data/dlw_targets.npz", ("raw" if os.environ.get("DLWT_RAW_PATCH") else "clip").encode()); sys.exit(0)
+if n == "b82.py": w(os.environ["F171_OUT"] + "/data/dlw_fea82.npz"); sys.exit(0)
+if n == "b89.py": w(os.environ["F8_OUT"] + "/data/f8_fea89.npz"); sys.exit(0)
+if n == "pod_fea_ext_clamp.py": w(os.environ["FEA_OUT"]); w(os.environ["META_OUT"]); sys.exit(0)
+print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
+'''); os.chmod(_MOCK, 0o755)
+    def _mock_env(dd):
+        _r, _e = _fake_root(dd); _em = f"{dd}.env"; _txt = open(_e).read(); assert f"PY={PY}\n" in _txt; open(_em, "w").write(_txt.replace(f"PY={PY}\n", f"PY={_MOCK}\n")); return _r, _em
+    def _drv(stages, envf, dryrun=False):
+        open(_MLOG, "w").close(); e = {"V4_STAGES": stages, "W7_CANARY": "leak", "DLWT_RAW_PATCH": "stale-inherited-patch"}
+        if dryrun: e["V4_DRYRUN"] = "1"
+        rc, out = _bash(f"bash {HERE}/chain_v4_monthly.sh {envf}", e); calls = [json.loads(l) for l in open(_MLOG) if l.strip()]; return rc, out, calls
+    _bad = {}
+    for _st in ("cache", "data", "gates", "king", "legs", "mwf", "refit", "arms", "judge", "export"):
+        _r2, _e2 = _mock_env(f"{d}/empty_{_st}"); rc, out, calls = _drv(_st, _e2)
+        if not (rc == 3 and f"FAIL_{_st}_prereq_preflight" in out and not _producers(calls)): _bad[_st] = (rc, out[-160:], _producers(calls))
+    check("★★★ [S] B-R1 (researcher W3_refit_subset_dispatches_without_upstream_receipts, was: refit dispatched): V4_STAGES=<stage> on a root with NO preflight receipt ⇒ each of the 10 stages dies FAIL_<stage>_prereq_preflight rc 3 and the interpreter receives NO producer/trainer/refit call", not _bad, _bad)
+    _r3, _e3 = _mock_env(f"{d}/empty_refit_dry"); rc, out, calls = _drv("refit", _e3, dryrun=True)
+    check("★★★ [S] B-R1 prerequisites are checked BEFORE the dryrun guard: V4_DRYRUN=1 V4_STAGES=refit on an empty root ⇒ FAIL_refit_prereq_preflight (not 'would launch'), rc 3, zero refit calls", rc == 3 and "FAIL_refit_prereq_preflight" in out and "would_launch" not in out and not any("pod_f10_refit_v4.py" in c["argv"][0] for c in calls if c["argv"]), (rc, out[-160:]))
+    _rP, _eP = _mock_env(f"{d}/pf"); rc, out, calls = _drv("preflight", _eP)
+    check("★★ [S] B-R1 setup: preflight alone on the fake root PASSES under the mock interpreter (rc 0; preflight.json PASS bound to this contract's sha; deps_preflight_device.json pinned)",
+          rc == 0 and json.load(open(f"{_rP}/v4_gates/preflight.json"))["PASS"] is True and json.load(open(f"{_rP}/v4_gates/preflight.json"))["month_env_sha256"] == _sha(_eP) and os.path.exists(f"{_rP}/v4_gates/deps_preflight_device.json"), out[-200:])
+    _exp = {"data": "FAIL_data_prereq_cache_coverage", "gates": "FAIL_gates_prereq_f10_gate_RAW", "king": "FAIL_king_prereq_step2", "legs": "FAIL_legs_prereq_step1", "mwf": "FAIL_mwf_prereq_step1", "refit": "FAIL_refit_prereq_step1", "arms": "FAIL_arms_prereq_step2", "judge": "FAIL_judge_prereq_build_dev", "export": "FAIL_export_prereq_judge"}
+    _bad = {}
+    for _st, _want in _exp.items():
+        rc, out, calls = _drv(_st, _eP)
+        if not (rc == 3 and _want in out and not _producers(calls)): _bad[_st] = (rc, out[-160:], _producers(calls))
+    check("★★★ [S] B-R1 dependency GRAPH: with preflight PASS and nothing else, each stage stops at its NEXT missing prerequisite BY NAME (data→cache_coverage, gates→f10_gate_RAW, king/arms→step2, legs/mwf/refit→step1, judge→build_dev, export→judge), rc 3, no producer called", not _bad, _bad)
+    open(f"{d}/other.env", "w").write(open(_eP).read() + "# a different contract file (same keys, extra comment => different sha)\n")
+    rc, out, calls = _drv("cache", f"{d}/other.env")
+    check("★★★ [S] B-R1 the preflight receipt is bound to the CONTRACT: the same root run under a contract file with a different sha ⇒ FAIL_cache_prereq_preflight ('bound to contract sha … this run's contract is …')", rc == 3 and "FAIL_cache_prereq_preflight" in out and not _producers(calls), out[-200:])
+    rc, out, calls = _drv("cache", _eP)
+    check("★★ [S] B-R1 positive: with the preflight prerequisite satisfied the cache stage DISPATCHES (mock cache gate rc 0 ⇒ cache_coverage.json PASS, rc 0)", rc == 0 and json.load(open(f"{_rP}/v4_gates/cache_coverage.json"))["PASS"] is True and "cache_coverage_gate_v2.py" in _producers(calls), (rc, out[-160:]))
+    rc, out, calls = _drv("data", _eP); _tg = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) == "pod_dlw_targets_raw.py"]; _prod = [c for c in calls if c["argv"] and os.path.basename(c["argv"][0]) in ("pod_dlw_targets_raw.py", "b82.py", "b89.py", "pod_fea_ext_clamp.py")]
+    check("★★★ [S] B-R3 (researcher W3_CLIP_command_inherits_ambient_RAW_PATCH, was 'stale-inherited-patch'): data stage rc 0 under the mock; the RAW build gets DLWT_RAW_PATCH=<contract RAW_PATCH>, the CLIP build gets DLWT_RAW_PATCH='' (explicitly empty) — the parent's DLWT_RAW_PATCH=stale-inherited-patch reaches neither",
+          rc == 0 and len(_tg) == 2 and _tg[0]["env"]["DLWT_RAW_PATCH"] == f"{_rP}/raw_patch.npz" and _tg[1]["env"]["DLWT_RAW_PATCH"] == "" and _tg[0]["env"]["DLWT_OUT"] == f"{_rP}/dlw_v4raw" and _tg[1]["env"]["DLWT_OUT"] == f"{_rP}/dlw_hf3", (rc, [(c["env"]["DLWT_OUT"], c["env"]["DLWT_RAW_PATCH"]) for c in _tg], out[-160:]))
+    check("★★★ [S] B-R3 env -i: none of the 5 data subprocesses sees the parent's canary W7_CANARY=leak (allowlist only: PATH kept), all 5 called in order, DATA_DONE written",
+          len(_prod) == 5 and all(c["env"]["W7_CANARY"] is None and c["env"]["PATH"] for c in _prod) and [os.path.basename(c["argv"][0]) for c in _prod] == ["pod_dlw_targets_raw.py", "pod_dlw_targets_raw.py", "b82.py", "b89.py", "pod_fea_ext_clamp.py"] and "CHAIN_V4_MONTHLY_DATA_DONE" in open(f"{_rP}/chain_v4_monthly.log").read(), [os.path.basename(c["argv"][0]) for c in _prod])
+    check("★★ [S] B-R3 the CLIP targets file was built WITHOUT a patch and the RAW one WITH (the mock wrote what it was told)", open(f"{_rP}/dlw_hf3/data/dlw_targets.npz", "rb").read() == b"clip" and open(f"{_rP}/dlw_v4raw/data/dlw_targets.npz", "rb").read() == b"raw")
+    rc, out, calls = _drv("gates", _eP)
+    check("★★★ [S] B-R1 positive control of the graph: after data, V4_STAGES=gates finds its prerequisites (F10_GATE receipts, identical targets/fea89) and DISPATCHES the gate programs (mock ⇒ rc 77, no receipt) ⇒ stops at FAIL_gate_require_step1, rc 3", rc == 3 and "v4_gate_step1.py" in _producers(calls) and "FAIL_gate_require_step1" in out and "_prereq_" not in out.split("gates ran")[-1], (rc, _producers(calls), out[-160:]))
+    open(f"{_rP}/dlw_v4raw/data/dlw_targets.npz", "wb").write(b"raw-changed-after-data-stage")
+    rc, out, calls = _drv("gates", _eP)
+    check("★★★ [S] B-R1 MUTATION: RAW targets changed after the data stage ⇒ gates stops at FAIL_gates_prereq_f10_gate_raw_targets (identity vs the F10_GATE receipt), no gate program invoked", rc == 3 and "FAIL_gates_prereq_f10_gate_raw_targets" in out and not _producers(calls), (rc, out[-160:]))
+    # ── B-R1 helpers on synthetic receipts: pinned-input identity, refit sidecar binding ──
+    open(f"{d}/a.bin", "wb").write(b"A"); open(f"{d}/b.bin", "wb").write(b"B"); json.dump({"stage": "x", "deps_sha256": {f"{d}/a.bin": _sha(f"{d}/a.bin"), f"{d}/b.bin": _sha(f"{d}/b.bin")}}, open(f"{d}/deps.json", "w"))
+    _pe = {"L": "/dev/null", "PY": PY, "R": d}
+    rc, out = _bash(f". {HERE}/chain_lib.sh; prereq_deps_identity refit mwf_inputs {d}/deps.json {d}/a.bin {d}/b.bin; echo rc=$?", _pe)
+    check("★★ [S] B-R1 prereq_deps_identity: pinned files unchanged ⇒ ok (rc 0)", "rc=0" in out and "FAIL" not in out, out[-150:])
+    open(f"{d}/b.bin", "wb").write(b"B2"); rc, out = _bash(f". {HERE}/chain_lib.sh; prereq_deps_identity refit mwf_inputs {d}/deps.json {d}/a.bin {d}/b.bin; echo rc=$?", _pe)
+    check("★★★ [S] B-R1 prereq_deps_identity: an input changed after the mwf dispatch pinned it ⇒ FAIL_refit_prereq_mwf_inputs rc 3", rc == 3 and "FAIL_refit_prereq_mwf_inputs" in out, out[-150:])
+    rc, out = _bash(f". {HERE}/chain_lib.sh; prereq_deps_identity refit mwf_inputs {d}/deps.json {d}/a.bin {d}/never_pinned.bin; echo rc=$?", _pe)
+    check("★★ [S] B-R1 prereq_deps_identity: a file the dispatch never pinned ⇒ refused ('not pinned')", rc == 3 and "not pinned" in out, out[-150:])
+    for _p in ("dlw/data/dlw_targets.npz", "dlw/data/dlw_fea82.npz", "f8/data/f8_fea89.npz", "f8/data/f10v2_legs.npz", "f8/models/f10_live_s42.pt"): os.makedirs(os.path.dirname(f"{d}/{_p}"), exist_ok=True); open(f"{d}/{_p}", "wb").write(_p.encode())
+    _ins = {"targets": f"{d}/dlw/data/dlw_targets.npz", "fea82": f"{d}/dlw/data/dlw_fea82.npz", "fea89": f"{d}/f8/data/f8_fea89.npz", "legs": f"{d}/f8/data/f10v2_legs.npz"}
+    _sc = {"seed": 42, "best_ep_rule": "fix7", "env_given": {"F10_DLW": f"{d}/dlw", "F10_OUT": f"{d}/f8", "BEST_EP_FIX": "7"}, "inputs": _ins, "inputs_sha256": {k: _sha(v) for k, v in _ins.items()}, "pt": f"{d}/f8/models/f10_live_s42.pt", "pt_sha256": _sha(f"{d}/f8/models/f10_live_s42.pt")}
+    _scp = f"{d}/f8/models/f10_live_s42.json"; json.dump(_sc, open(_scp, "w"))
+    rc, out = _bash(f". {HERE}/chain_lib.sh; prereq_refit_sidecar arms refit_s42 {_scp} {d}/dlw {d}/f8; echo rc=$?", _pe)
+    check("★★ [S] B-R1 prereq_refit_sidecar: fix7 + env_given bound to this month's dirs + inputs/weights identical ⇒ ok (rc 0)", "rc=0" in out and "FAIL" not in out, out[-150:])
+    def _restore():
+        open(f"{d}/f8/data/f10v2_legs.npz", "wb").write(b"f8/data/f10v2_legs.npz"); open(f"{d}/f8/models/f10_live_s42.pt", "wb").write(b"f8/models/f10_live_s42.pt")
+    for _name, _mut in (("argmax epoch rule", lambda m: m.update(best_ep_rule="argmax")), ("F10_DLW of ANOTHER month (dlw_ext)", lambda m: m["env_given"].update(F10_DLW="/workspace/dlw_ext")),
+                        ("legs changed after refit", lambda m: open(f"{d}/f8/data/f10v2_legs.npz", "wb").write(b"changed legs")), ("weights swapped after refit", lambda m: open(f"{d}/f8/models/f10_live_s42.pt", "wb").write(b"other weights"))):
+        m = json.loads(json.dumps(_sc)); _mut(m); json.dump(m, open(_scp, "w")); rc, out = _bash(f". {HERE}/chain_lib.sh; prereq_refit_sidecar arms refit_s42 {_scp} {d}/dlw {d}/f8; echo rc=$?", _pe); _restore()
+        check(f"★★★ [S] B-R1 prereq_refit_sidecar MUTATION {_name} ⇒ FAIL_arms_prereq_refit_s42 rc 3", rc == 3 and "FAIL_arms_prereq_refit_s42" in out, out[-150:])
+    # ── B-R4 on the [R] fixtures: NONE bound to the builder identity; new-tail quality floor 0.90 ──
+    _bX = _base(1, _NA_NEW); _write_month(f"{d}/X1", _bX, _NA_NEW, "new"); _write_month(f"{d}/X0", _bX, _NA_REF, "ref")
+    rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/n0.json", PREV_KING_FEA_UNCLAMPED="NONE"))
+    check("★★★ [S] B-R4 (researcher W7_NONE_positive_without_any_builder_or_preflight_identity, was PASS): NONE with NO builder pin and NO month root ⇒ REFUSED clamp_builder_identity naming PREV_CLAMP_BUILDER_SHA256 and R; rc 3; PASS=false",
+          rc == 3 and r2 and r2["PASS"] is False and "clamp_builder_identity" in r2["REFUSED"] and any("PREV_CLAMP_BUILDER_SHA256" in w for w in r2["REFUSED"]["clamp_builder_identity"]["why"]) and any(w.startswith("R unset") for w in r2["REFUSED"]["clamp_builder_identity"]["why"]), (rc, r2 and r2.get("REFUSED")))
+    rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/n1.json", f"{d}/Rn1", pin="ab" * 32))
+    check("★★★ [S] B-R4 NONE with a contract pin that is NOT the builder on disk ⇒ REFUSED ('on-disk builder … != contract pin'); the receipt records the compared shas", rc == 3 and r2 and any("on-disk builder" in w for w in r2["REFUSED"]["clamp_builder_identity"]["why"]) and r2["REFUSED"]["clamp_builder_identity"]["device_file_sha256"] == _sha(f"{HERE}/pod_fea_ext_clamp.py"), r2 and r2.get("REFUSED"))
+    rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/n2.json", f"{d}/Rn2", preflight_pin="cd" * 32))
+    check("★★★ [S] B-R4 NONE where THIS month's preflight pinned a different builder than the contract ⇒ REFUSED ('preflight-pinned builder … != contract pin')", rc == 3 and r2 and any("preflight-pinned builder" in w for w in r2["REFUSED"]["clamp_builder_identity"]["why"]), r2 and r2.get("REFUSED"))
+    _e4 = _none_env(f"{d}/X1", f"{d}/X0", f"{d}/n3.json", f"{d}/Rn3"); os.remove(f"{d}/Rn3/v4_gates/deps_preflight_device.json"); rc, out, r2 = _g("v4_gate_step2_m.py", _e4)
+    check("★★ [S] B-R4 NONE without this month's deps_preflight_device.json ⇒ REFUSED ('preflight deps receipt missing')", rc == 3 and r2 and any("preflight deps receipt missing" in w for w in r2["REFUSED"]["clamp_builder_identity"]["why"]), r2 and r2.get("REFUSED"))
+    _F = np.load(f"{d}/X1/king_fea.npy"); _orig = _F.copy(); _F[200:] = np.nan; np.save(f"{d}/X1/king_fea.npy", _F)
+    rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/t0.json", f"{d}/Rt0"))
+    check("★★★ [S] B-R4 (researcher W7_entire_new_tail_NaN_still_PASS_boundary, was PASS): the 30 new-tail anchors all NaN ⇒ tail_quality.ok false (member_finite_frac_min 0.0 < floor 0.90) ⇒ PASS false rc 3 — the tail is exempt from the reference comparison, not from quality",
+          rc == 3 and r2 and r2["PASS"] is False and r2["tail_quality"]["ok"] is False and r2["tail_quality"]["member_finite_frac_min"] == 0.0 and r2["tail_quality"]["n_tail_anchors"] == 30 and r2["tail_quality"]["floor"] == 0.90 and r2["features"]["v4_vs_clamp"]["outside"] == 0, (rc, r2 and r2.get("tail_quality")))
+    _F = _orig.copy(); _F[200:, :, 0] = np.nan; np.save(f"{d}/X1/king_fea.npy", _F); rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/t1.json", f"{d}/Rt1"))
+    check("★★ [S] B-R4 tail with 1 of 10 feature columns NaN (member finite fraction 0.90) ⇒ AT the floor ⇒ ok, PASS", rc == 0 and r2 and r2["tail_quality"]["ok"] is True and abs(r2["tail_quality"]["member_finite_frac_min"] - 0.9) < 1e-9, r2 and r2.get("tail_quality"))
+    _F = _orig.copy(); _F[200:, :, :2] = np.nan; np.save(f"{d}/X1/king_fea.npy", _F); rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/t2.json", f"{d}/Rt2"))
+    check("★★★ [S] B-R4 tail with 2 of 10 columns NaN (0.80 < 0.90) ⇒ FAIL", rc == 3 and r2 and r2["PASS"] is False and r2["tail_quality"]["ok"] is False and abs(r2["tail_quality"]["member_finite_frac_min"] - 0.8) < 1e-9, r2 and r2.get("tail_quality"))
+    _F = _orig.copy(); _F[205] = np.nan; np.save(f"{d}/X1/king_fea.npy", _F); rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/t2b.json", f"{d}/Rt2b"))
+    check("★★★ [S] B-R4 a SINGLE dead tail anchor among 30 good ones ⇒ FAIL (the floor is per anchor, min not mean)", rc == 3 and r2 and r2["tail_quality"]["ok"] is False and r2["tail_quality"]["member_finite_frac_min"] == 0.0 and r2["tail_quality"]["member_finite_frac_median"] == 1.0, r2 and r2.get("tail_quality"))
+    np.save(f"{d}/X1/king_fea.npy", _orig); rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/t3.json"))
+    check("★★ [S] B-R4 the tail quality gate also runs on the unclamped-reference path (positive fixture: 30 tail anchors, min 1.0, ok) and is part of PASS", rc == 0 and r2 and r2["PASS"] is True and r2["tail_quality"] == {"n_tail_anchors": 30, "member_finite_frac_min": 1.0, "member_finite_frac_median": 1.0, "n_members_min": 6, "floor": 0.9, "ok": True}, r2 and r2.get("tail_quality"))
+    _write_month(f"{d}/X1s", _bX, _NA_REF, "new"); rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1s", f"{d}/X0", f"{d}/t4.json"))
+    check("★★ [S] B-R4 no tail ⇒ no tail_quality field (the September-style field set of [R] G3(i) is unchanged)", rc == 0 and r2 and "tail_quality" not in r2 and _keys(r2) == _keys(_ARCH2), r2 and sorted(_keys(r2) ^ _keys(_ARCH2))[:4])
+check("★★★ [S] G0 after every run: frozen gate sources, v4_gate_common and the contract byte-identical to what [R] started with",
+      _sha(f"{HERE}/v4_gate_step1.py") == _FROZEN_SHA["v4_gate_step1.py"] and _sha(f"{HERE}/v4_gate_step2.py") == _FROZEN_SHA["v4_gate_step2.py"] and _sha(f"{HERE}/v4_gate_common.py") == _COMMON_SHA and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") == _CON_SHA)
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)

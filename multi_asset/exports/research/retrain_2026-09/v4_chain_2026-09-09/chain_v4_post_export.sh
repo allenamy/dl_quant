@@ -6,6 +6,7 @@
 # required BY NAME with all four inputs it hashed (RAW + CLIP targets, fea82, fea89); pin_deps records the dispatch's scripts and data.
 # ROUND 4 (2026-09-10): the STEP1 receipt is required (in the wait loop AND at dispatch) with self_sha= of $R/v4_gate_step1.py computed at run time
 #   and with the full registered dependency set (v4_gate_common.REQUIRED_INPUTS STEP1@v4).
+[ "${V4_LEGACY_OK:-}" = 1 ] || { echo "LEGACY_REFUSED $(basename "$0"): September-only chain (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 3: a retrain runs ONLY through chain_v4_monthly.sh <month.env>); set V4_LEGACY_OK=1 to run it deliberately (researcher R5, 2026-09-12)" >&2; exit 64; }   # R5: physical seal, first action line — nothing above this runs code
 set -o pipefail; R=/workspace/review_scratch; . $R/chain_lib.sh; cd $R || exit 2; export MWF_ROOT=${MWF_ROOT:-mwf_v4b}
 check_marker $R/export_v4.log "BUNDLE_DONE"; check_no_marker $R/export_v4.log "BUNDLE_FAIL"
 say "post_export: build_dev_v4"; $PY build_dev_v4.py > build_dev_v4.log 2>&1 || die "build_dev_v4" 1

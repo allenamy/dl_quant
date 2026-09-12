@@ -46,16 +46,16 @@ n = n.replace(_old_tail, open(os.path.join(os.path.dirname(os.path.abspath(__fil
 assert n.count("v4:") == 2 and "REFIT_REFUSED" in n and '"trained_through_label_utc"' in n; open(os.path.join(GEN_OUT, "pod_f10_refit_v4.py"), "w").write(n); out["refit"] = diff(s, n, "pod_f10_refit_ext.py", "pod_f10_refit_v4.py")
 # ---- 3) king bundle export ----
 p = os.environ.get("GEN_EXPORT_BASE", "/workspace/pod_export_bundle_v3.py"); s = open(p).read(); n = s
-n = n.replace('OUT = "/workspace/shadow_bundle_v3"', 'OUT = os.environ.get("BUNDLE_OUT", "/workspace/shadow_bundle_v4")   # v4')
+n = n.replace('OUT = "/workspace/shadow_bundle_v3"', 'OUT = os.environ["BUNDLE_OUT"]   # v4; monthly 2026-09-12: REQUIRED (checked above), no default')   # 2026-09-12 incident: no silent output default
 # review b0a573a1 P1-REGEN: the archived exporter reads BUNDLE_BASE from env (AMENDMENT 2); regenerating used to restore the hard-coded v3 base and silently void the env.
 n = n.replace('BASE = json.load(open("/workspace/slow_scorer_v3base.json"))  # Δ2', 'BASE = json.load(open(os.environ.get("BUNDLE_BASE", "/workspace/slow_scorer_v4base.json")))  # Δ2 (v4: base = v3 own fold IC, PREREG_v4 §2.3)')
 assert 'os.environ.get("BUNDLE_BASE"' in n, "BUNDLE_BASE env line not emitted"
 n = n.replace('FEA = np.load("/workspace/data/wide_fea_v2ext.npy")\nMT = np.load("/workspace/data/wide_fea_v2ext_meta.npz", allow_pickle=True)',
               'FEA = np.load(os.environ.get("BUNDLE_FEA", "/workspace/data/wide_fea_v4.npy"))   # v4\nMT = np.load(os.environ.get("BUNDLE_META", "/workspace/data/wide_fea_v4_meta.npz"), allow_pickle=True)')
 n = n.replace('Z = zload("/workspace/data/dlnative_5m_wide829_f16_ext.npz", allow_pickle=True)', 'Z = zload(os.environ.get("BUNDLE_CACHE", "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz"), allow_pickle=True)   # v4')
-n = n.replace('with tarfile.open("/workspace/shadow_bundle_v3.tar.gz", "w:gz") as t:', 'with tarfile.open(os.environ.get("BUNDLE_TAR", "/workspace/shadow_bundle_v4.tar.gz"), "w:gz") as t:   # v4')
+n = n.replace('with tarfile.open("/workspace/shadow_bundle_v3.tar.gz", "w:gz") as t:', 'with tarfile.open(os.environ.get("BUNDLE_TAR", OUT.rstrip("/") + ".tar.gz"), "w:gz") as t:   # v4; monthly 2026-09-12: the tar default follows BUNDLE_OUT, never a fixed September path')
 n = n.replace("print(f\"BUNDLE_DONE files {len(man)} size {os.path.getsize('/workspace/shadow_bundle_v3.tar.gz')//1048576}MB\", flush=True)",
-              "print(f\"BUNDLE_DONE files {len(man)} size {os.path.getsize(os.environ.get('BUNDLE_TAR', '/workspace/shadow_bundle_v4.tar.gz'))//1048576}MB\", flush=True)")
+              "print(f\"BUNDLE_DONE files {len(man)} size {os.path.getsize(os.environ.get('BUNDLE_TAR', OUT.rstrip('/') + '.tar.gz'))//1048576}MB\", flush=True)")
 # round 3 (review 31fa3e4e §5): the archived exporter reads the guard band from env (PREREG_king_clock_E AMENDMENT 2) — the generator did not emit
 # these lines, so a regeneration silently restored the fixed [2.27, 2.57] band and the frozen archive's own suite read 20/21.
 n = n.replace("if not (2.27 <= sh <= 2.57):",

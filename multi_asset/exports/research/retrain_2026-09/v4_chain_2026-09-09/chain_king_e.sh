@@ -1,6 +1,7 @@
 #!/bin/bash
 # chain_king_e.sh — PREREG_king_clock_E_2026-09-09: E-version king features -> G1 parity gate -> export v4e (env verbatim AMD2 run2) -> guard band -> align + arm A1e -> judge.
 # Every stage checks its rc AND its completion marker; any failure exits non-zero and writes FAIL_* to the receipt log (no silent DONE).
+[ "${V4_LEGACY_OK:-}" = 1 ] || { echo "LEGACY_REFUSED $(basename "$0"): September-only chain (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 3: a retrain runs ONLY through chain_v4_monthly.sh <month.env>); set V4_LEGACY_OK=1 to run it deliberately (researcher R5, 2026-09-12)" >&2; exit 64; }   # R5: physical seal, first action line — nothing above this runs code
 set -o pipefail
 R=/workspace/review_scratch; PY=/workspace/venv/bin/python; L=$R/v4e_commands.txt; cd $R || exit 2
 say(){ echo "[$(date -u +%FT%TZ)] $*" >> $L; }

@@ -5,6 +5,10 @@
 #   V4_STAGES=preflight,gates bash chain_v4_monthly.sh <env>     # a subset (comma list of the stage names below) — every stage still requires its
 #                                                                #   upstream receipts/markers, so a subset cannot skip a gate, only skip WORK
 #   V4_DRYRUN=1 bash chain_v4_monthly.sh <env>                   # NEGATIVE-CONTROL mode: any stage after preflight dies BEFORE launching anything
+# B-R1 (independent review 2026-09-12): EVERY stage first verifies its PREREQUISITES in this root, bound to this contract/inputs (chain_lib prereq_*: preflight
+#   receipt PASS with this contract's sha, upstream receipts/markers, pinned-input identity, refit sidecars fix7 + identical inputs, END rows) and dies
+#   FAIL_<stage>_prereq_<name> (rc 3) BEFORE any guard/dispatch — a subset such as V4_STAGES=refit cannot skip a gate. B-R3: the data stage's subprocesses run
+#   under `env -i` with an allowlist + every variable they read set explicitly (the CLIP build gets DLWT_RAW_PATCH= empty), so nothing ambient leaks in.
 # Discipline (chain_lib.sh): every child's rc is collected; a gate is required BY NAME with self_sha= computed at run time and the full registered
 # input set; every producer is followed by an output-existence check and its completion marker; a stage's failure writes FAIL_<reason> to
 # $R/v4_commands.txt and exits non-zero; CHAIN_V4_MONTHLY_DONE is written only at the end of a fully successful run.
@@ -104,6 +108,7 @@ fi
 
 # ── cache coverage gate ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if want cache; then
+  prereq_receipt cache preflight "$R/v4_gates/preflight.json" PREFLIGHT
   guard cache; stage "cache: coverage gate v2 on $CACHE"
   "$PY" "$D/cache_coverage_gate_v2.py" "$CACHE" > "$R/cache_coverage.log" 2>&1; rc=$?
   "$PY" - "$R/v4_gates/cache_coverage.json" "$CACHE" "$rc" "$R/cache_coverage.log" <<'PYEOF'
@@ -119,25 +124,28 @@ fi
 
 # ── data chain ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if want data; then
-  guard data; DL=$R/chain_v4_data.log; : > "$DL"
+  prereq_receipt data preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_receipt data cache_coverage "$R/v4_gates/cache_coverage.json" CACHE_COVERAGE_v2
+  prereq_json_eq data cache_identity "$R/v4_gates/cache_coverage.json" cache_sha256 "$(gate_sha "$CACHE")"   # the cache the coverage gate passed is the cache this stage reads
+  guard data; DL=$R/chain_v4_data.log; : > "$DL"; clean_env
   mkdir -p "$DLW_RAW/data" "$DLW_RAW/results" "$DLW_CLIP/data" "$DLW_CLIP/results" "$F8/data" "$F8/results" "$F8/preds" "$F8/models" "$F8/logs" "$F8/gates" "$(dirname "$KING_FEA")" || die "data_mkdir" 1
   stage "data: RAW targets (holefix2 + raw_patch) -> $DLW_RAW"
-  DLWT_CACHE=$CACHE DLWT_PANEL=$PANEL_SPLICE DLWT_OUT=$DLW_RAW DLWT_RET_CH=0 DLWT_RAW_PATCH=$RAW_PATCH "$PY" "$D/pod_dlw_targets_raw.py" >> "$DL" 2>&1 || die "targets_raw" 1
+  env -i "${CLEAN_ENV[@]}" DLWT_CACHE=$CACHE DLWT_PANEL=$PANEL_SPLICE DLWT_OUT=$DLW_RAW DLWT_RET_CH=0 DLWT_RAW_PATCH=$RAW_PATCH "$PY" "$D/pod_dlw_targets_raw.py" >> "$DL" 2>&1 || die "targets_raw" 1   # B-R3: every DLWT_* the builder reads is set here
   [ -f "$DLW_RAW/data/dlw_targets.npz" ] || die "targets_raw_output_missing" 1
   stage "data: CLIP targets (holefix2, clipped ret5 channel, no patch) -> $DLW_CLIP"
-  DLWT_CACHE=$CACHE DLWT_PANEL=$PANEL_SPLICE DLWT_OUT=$DLW_CLIP DLWT_RET_CH=0 "$PY" "$D/pod_dlw_targets_raw.py" >> "$DL" 2>&1 || die "targets_clip" 1
+  env -i "${CLEAN_ENV[@]}" DLWT_CACHE=$CACHE DLWT_PANEL=$PANEL_SPLICE DLWT_OUT=$DLW_CLIP DLWT_RET_CH=0 DLWT_RAW_PATCH= "$PY" "$D/pod_dlw_targets_raw.py" >> "$DL" 2>&1 || die "targets_clip" 1   # B-R3: DLWT_RAW_PATCH EXPLICITLY EMPTY — the CLIP build never inherits a patch
   [ -f "$DLW_CLIP/data/dlw_targets.npz" ] || die "targets_clip_output_missing" 1
   stage "data: fea82 -> $DLW_CLIP (copied + verified to $DLW_RAW)"
-  ( cd "$(dirname "$BUILDER_FEA82")" && F171_CACHE=$CACHE F171_PANEL=$PANEL_SPLICE F171_OUT=$DLW_CLIP "$PY" "$BUILDER_FEA82" ) >> "$DL" 2>&1 || die "fea82" 1
+  ( cd "$(dirname "$BUILDER_FEA82")" && env -i "${CLEAN_ENV[@]}" F171_CACHE=$CACHE F171_PANEL=$PANEL_SPLICE F171_OUT=$DLW_CLIP "$PY" "$BUILDER_FEA82" ) >> "$DL" 2>&1 || die "fea82" 1   # B-R3: the three F171_* the builder reads
   [ -f "$DLW_CLIP/data/dlw_fea82.npz" ] || die "fea82_output_missing" 1
   cp "$DLW_CLIP/data/dlw_fea82.npz" "$DLW_RAW/data/dlw_fea82.npz" || die "cp_fea82_to_raw" 1
   cmp -s "$DLW_CLIP/data/dlw_fea82.npz" "$DLW_RAW/data/dlw_fea82.npz" || die "cp_fea82_verify_mismatch" 1
   [ -f "$DLW_CLIP/results/dlw_features_report.json" ] && { cp "$DLW_CLIP/results/dlw_features_report.json" "$DLW_RAW/results/" || die "cp_fea82_report" 1; }
   stage "data: fea89 -> $F8"
-  ( cd "$(dirname "$BUILDER_FEA89")" && F8_DLW=$DLW_CLIP F8_CACHE=$CACHE F8_OUT=$F8 "$PY" "$BUILDER_FEA89" build ) >> "$DL" 2>&1 || die "fea89" 1
+  ( cd "$(dirname "$BUILDER_FEA89")" && env -i "${CLEAN_ENV[@]}" F8_DLW=$DLW_CLIP F8_CACHE=$CACHE F8_OUT=$F8 "$PY" "$BUILDER_FEA89" build ) >> "$DL" 2>&1 || die "fea89" 1   # B-R3: the three F8_* the builder reads
   [ -f "$F8/data/f8_fea89.npz" ] || die "fea89_output_missing" 1
   stage "data: king features (clamp) -> $KING_FEA"
-  CACHE_IN=$CACHE PANEL_IN=$PANEL_KING FEA_OUT=$KING_FEA META_OUT=$KING_META "$PY" "$D/pod_fea_ext_clamp.py" >> "$DL" 2>&1 || die "king_fea" 1
+  env -i "${CLEAN_ENV[@]}" CACHE_IN=$CACHE PANEL_IN=$PANEL_KING FEA_OUT=$KING_FEA META_OUT=$KING_META "$PY" "$D/pod_fea_ext_clamp.py" >> "$DL" 2>&1 || die "king_fea" 1   # B-R3: the four env the clamp builder reads
   [ -f "$KING_FEA" ] && [ -f "$KING_META" ] || die "king_fea_output_missing" 1
   for T in RAW CLIP; do
     case $T in RAW) DW=$DLW_RAW ;; CLIP) DW=$DLW_CLIP ;; esac
@@ -156,6 +164,11 @@ fi
 
 # ── STEP1 / STEP2 gates: RUN, then REQUIRE ──────────────────────────────────────────────────────────────────────────────────────────────────
 if want gates; then
+  prereq_receipt gates preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  for T in RAW CLIP; do prereq_file gates f10_gate_$T "$F8/gates/F10_GATE_$T.json"; done   # the data stage finished in THIS root (identity receipts written last)
+  prereq_json_eq gates f10_gate_raw_targets "$F8/gates/F10_GATE_RAW.json" targets_sha256 "$(gate_sha "$DLW_RAW/data/dlw_targets.npz")"
+  prereq_json_eq gates f10_gate_clip_targets "$F8/gates/F10_GATE_CLIP.json" targets_sha256 "$(gate_sha "$DLW_CLIP/data/dlw_targets.npz")"
+  prereq_json_eq gates f10_gate_fea89 "$F8/gates/F10_GATE_RAW.json" fea89_sha256 "$(gate_sha "$F8/data/f8_fea89.npz")"
   guard gates; stage "gates: run $GATE_STEP1 and $GATE_STEP2, then require both"
   run_gate STEP1 "$GATE_STEP1" "$R/gate_step1.log" STEP1_OUT="$R/v4_gates/step1.json"; rc1=$?
   run_gate STEP2 "$GATE_STEP2" "$R/gate_step2.log" STEP2_OUT="$R/v4_gates/step2.json"; rc2=$?
@@ -170,6 +183,8 @@ fi
 
 # ── king export (BEFORE legs: legs need THIS month's PRED) ────────────────────────────────────────────────────────────────────────────────
 if want king; then
+  prereq_receipt king preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_receipt king step2 "$R/v4_gates/step2.json" STEP2
   guard king; stage "king: export bundle generation=$BUNDLE_GENERATION -> $BUNDLE_OUT (requires the STEP2 receipt bound to $KING_FEA/$KING_META)"
   S2_SRC=$(gate_sha "$D/$GATE_STEP2") || die "gate_source_unreadable_$GATE_STEP2" 3
   require_gate "$R/v4_gates/step2.json" gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META
@@ -183,6 +198,9 @@ fi
 
 # ── legs (in-service rows verbatim + new anchors from THIS month's king PRED) ──────────────────────────────────────────────────────────────
 if want legs; then
+  prereq_receipt legs preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_receipt legs step1 "$R/v4_gates/step1.json" STEP1; S1_SRC=$(gate_sha "$D/$GATE_STEP1") || die "gate_source_unreadable_$GATE_STEP1" 3
+  require_gate "$R/v4_gates/step1.json" gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz   # legs read THIS month's RAW targets: bound through STEP1
   guard legs; stage "legs: pod_legs_v4b.py LEGS_PRED=$BUNDLE_OUT/slow_pred_pinned.npy LEGS_OLD=$LEGS_OLD"
   [ -f "$BUNDLE_OUT/slow_pred_pinned.npy" ] || die "legs_king_pred_missing" 3
   check_marker "$R/export_v4.log" "BUNDLE_DONE"; check_no_marker "$R/export_v4.log" "BUNDLE_FAIL"   # legs consume THIS month's export: its marker must be present in this root
@@ -200,6 +218,8 @@ fi
 
 # ── F10 monthly walk-forward (RAW x seeds) + merge ──────────────────────────────────────────────────────────────────────────────────────────
 if want mwf; then
+  prereq_receipt mwf preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_receipt mwf step1 "$R/v4_gates/step1.json" STEP1; prereq_marker mwf legs "$R/legs_v4.log" LEGS_V4B_DONE
   guard mwf; stage "mwf: MONTHS_ALL=$MONTHS_ALL seeds=[$SEED_LIST] root=$F8/$MWF_ROOT"
   "$PY" "$D/v4_months.py" check "$DLW_RAW/data/dlw_targets.npz" "$MONTHS_ALL" >> "$STAGE_LOG" 2>&1 || die "months_all_not_admissible_for_axis" 3
   set_shards_from_months_all; export MWF_ROOT
@@ -218,6 +238,12 @@ fi
 
 # ── refit (deployment weights), explicit env, FIX7 ──────────────────────────────────────────────────────────────────────────────────────────
 if want refit; then
+  prereq_receipt refit preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_receipt refit step1 "$R/v4_gates/step1.json" STEP1; S1_SRC=$(gate_sha "$D/$GATE_STEP1") || die "gate_source_unreadable_$GATE_STEP1" 3
+  require_gate "$R/v4_gates/step1.json" gate=STEP1 profile=v4 self_sha=$S1_SRC dlw_v4raw_targets=$DLW_RAW/data/dlw_targets.npz dlw_hf3_targets=$DLW_CLIP/data/dlw_targets.npz fea82_v4raw=$DLW_RAW/data/dlw_fea82.npz fea89_f8v4=$F8/data/f8_fea89.npz
+  prereq_marker refit legs "$R/legs_v4.log" LEGS_V4B_DONE; prereq_file refit legs_file "$F8/data/f10v2_legs.npz"
+  for SD in $SEED_LIST; do prereq_marker refit merge_s$SD "$F8/logs/merge_v4b_RAW_s$SD.log" MERGE_DONE; done
+  prereq_deps_identity refit mwf_inputs "$R/v4_gates/deps_v4_monthly_mwf.json" "$F8/data/f10v2_legs.npz" "$F8/data/f8_fea89.npz" "$DLW_RAW/data/dlw_targets.npz" "$DLW_CLIP/data/dlw_targets.npz" "$DLW_RAW/data/dlw_fea82.npz" "$D/pod_f10_train_monthly_v4.py"   # the mwf dispatch pinned these; refit consumes the same files
   guard refit
   for SD in $SEED_LIST; do
     stage "refit s$SD: env F10_DLW=$DLW_RAW F10_OUT=$F8 SEED=$SD BEST_EP_FIX=7 EMBARGO=1"
@@ -230,6 +256,11 @@ fi
 
 # ── book layer: dev tree + arms ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if want arms; then
+  prereq_receipt arms preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_receipt arms step2 "$R/v4_gates/step2.json" STEP2; S2_SRC=$(gate_sha "$D/$GATE_STEP2") || die "gate_source_unreadable_$GATE_STEP2" 3
+  require_gate "$R/v4_gates/step2.json" gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META   # build_dev reads KING_META
+  prereq_marker arms bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL; prereq_file arms king_pred "$BUNDLE_OUT/slow_pred_pinned.npy"
+  for SD in $SEED_LIST; do prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8"; done   # fix7 + env bound to this month + inputs/weights identical
   guard arms; stage "arms: build_dev_v4 (raw meta, SLOW_v4 from $BUNDLE_OUT, A0 preds) then run_v4_arms.sh $EXPORT_ARM seeds [$SEED_LIST]"
   mkdir -p "$HC/dev_v4/logs" "$KING_DIR" || die "arms_mkdir" 1
   env KING_META=$KING_META DLW_RAW=$DLW_RAW CACHE=$CACHE HOLE_CELLS=$HOLE_CELLS BUNDLE_OUT=$BUNDLE_OUT "$PY" "$D/build_dev_v4.py" > "$R/build_dev_v4.log" 2>&1; rc=$?
@@ -243,6 +274,9 @@ fi
 
 # ── judge ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if want judge; then
+  prereq_receipt judge preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_marker judge build_dev "$R/build_dev_v4.log" DEV_V4_DONE; prereq_marker judge arms "$R/arms_${EXPORT_ARM}.log" ARMS_DONE ARMS_FAIL
+  prereq_count judge arms_end_rows "$HC/logs/commands.txt" "^END\[V4_${EXPORT_ARM}_.*rc=0" $(( 2 * $(echo $SEED_LIST | wc -w) ))
   guard judge; stage "judge: JUDGE_HC=$HC -> $R/v4_gates/JUDGE_v4.json"
   JUDGE_HC=$HC JUDGE_OUT=$R/v4_gates/JUDGE_v4.json "$PY" "$D/judge_v4.py" > "$R/judge_v4.log" 2>&1; rc=$?
   stage "judge rc=$rc $(grep -a "JUDGE_V4_DONE\|JUDGE_REFUSED" "$R/judge_v4.log" | tail -1 | cut -c1-140)"; [ $rc -eq 0 ] || die "judge_rc_$rc" 1
@@ -251,6 +285,9 @@ fi
 
 # ── export gate v2: gate, require, then judge WITH the eligibility locator ──────────────────────────────────────────────────────────────────
 if want export; then
+  prereq_receipt export preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  prereq_marker export judge "$R/judge_v4.log" JUDGE_V4_DONE; prereq_file export judge_json "$R/v4_gates/JUDGE_v4.json"
+  prereq_marker export arms "$R/arms_${EXPORT_ARM}.log" ARMS_DONE ARMS_FAIL; prereq_marker export bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL
   guard export; stage "export: v4e_gate_export_v2.py gate + require on arm $EXPORT_ARM (V4CHAIN_DIR=$D)"
   GX="EXPORT_ARM=$EXPORT_ARM BUNDLE_OUT=$BUNDLE_OUT BUNDLE_FEA=$KING_FEA BUNDLE_META=$KING_META BUNDLE_BASE=$BUNDLE_BASE EXPORT_PANEL=$EXPORT_PANEL BUNDLE_CACHE=$CACHE FUND_AUG=$FUND_AUG LIVE_PINS=$LIVE_PINS JUDGE_HC=$HC V4CHAIN_DIR=$D SIGNAL_RECEIPT=$SIGNAL_RECEIPT"
   REC=$R/v4_gates/BUNDLE_export_v2_${EXPORT_ARM}.json

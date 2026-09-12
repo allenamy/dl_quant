@@ -13,13 +13,13 @@ Usage: POD2_SHA_FILE=<file> python make_sha_manifest.py [out.json]   (default ou
 
 ★ ROUND 4 (2026-09-10): every RECEIPT_TO_SOURCE target must exist AND, when the receipt carries a self_sha256, the mapped file's sha must EQUAL it —
   a mapping is a claim about which code wrote the receipt, so it is verified by sha, not by name (the round-3 map sent the run-1 G1 FAIL receipt,
-  self f0fac5e3…, to the r3 snapshot c69b3322…). Mismatch => exit 2, nothing written. Snapshot suffixes .r0–.r4 are recognised.
+  self f0fac5e3…, to the r3 snapshot c69b3322…). Mismatch => exit 2, nothing written. Snapshot suffixes .r0–.r9 are recognised (round 8: was .r0–.r4).
 """
 import hashlib, json, os, re, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "receipts", "v4_scripts_sha_full.json")
-SNAP = re.compile(r"\.r([0-4])_[0-9a-f]{8}\.")
+SNAP = re.compile(r"\.r([0-9])_[0-9a-f]{8}\.")   # round 8: r0–r9 (was r0–r4; judge_v4.r5_f6850dc3.py would have been listed as a live script)
 
 # receipt -> the source version that PRODUCED it (round 3: g3 s2027 judge receipt -> the r2 judge, not the current one)
 RECEIPT_TO_SOURCE = {

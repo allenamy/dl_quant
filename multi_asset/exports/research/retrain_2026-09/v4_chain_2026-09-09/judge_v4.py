@@ -41,7 +41,12 @@ Reproduction check first (#20): A0 dyn vs the published RAW_M1_UCRYPTO arm (dev_
     through np.intersect1d                                                                                                       -> exit 2 (non-finite: 3)
   · load() validates the NPZ SCHEMA before any number is read: d30_n2_c42_rec (n, 23); `cols` == COLS when present; a book (symbols present, or
     JUDGE_REQUIRE_W=1) carries d30_n2_c42_W of shape (n, n_symbols); rec[:,0] finite and integer-valued seconds (|x-round(x)| < 1e-9; the old
-    astype(int64) silently truncated +0.25)                                                                                                  -> exit 2"""
+    astype(int64) silently truncated +0.25)                                                                                                  -> exit 2
+
+★ ROUND 8 (independent review B-R2, 2026-09-12; DESIGN_judge_floor_28 §9) — the receipt's RECORDED closure is the dependency set, not the caller's list:
+  · _eligibility calls require(..., recorded_extras=True): every input the receipt recorded beyond the caller's declaration and the judge-bound names
+    (conditional femat / signal_receipt of a FEMAT arm) is located from receipt.inputs_path and verified; a recorded name with no locatable path is
+    refused. Output records recorded_extras / recorded_extras_paths per arm. (Round 7 accepted a changed FEMAT whenever the caller left it unnamed.)"""
 import numpy as np, json, calendar, time, os, sys
 HC = os.environ.get("JUDGE_HC", "/workspace/review_scratch/health_check")   # review b0a573a1 R4: parametrised so refusal paths can be tested
 COLS = ["ts","net","pnl","carry","cost","gross_total","gross_member","gross_sel","nsel","nmember","fires","leg_king","leg_rev24","leg_fund","w3_king","w3_rev24","w3_fund","turnover","net_ex","pnl_ex","carry_ex","cost_ex","netlong"]
@@ -209,8 +214,16 @@ def _eligibility(arm, spec):
     _caller_c = (spec.get("inputs") or {}).get("eligibility_contract")
     if _caller_c not in (None, _CONTRACT_PATH): rec["caller_contract_path"] = _caller_c
     inputs["eligibility_contract"] = _CONTRACT_PATH
-    ok, why = _require(str(spec["receipt"]), inputs, expected_gate=gate, expected_self_sha=str(r.get("self_sha256")), profile=profile)
-    rec["ok"] = bool(ok); rec["why"] = why; rec["inputs"] = sorted(inputs); return rec
+    # ★ ROUND 8 (independent review B-R2, 2026-09-12; DESIGN_judge_floor_28 §9): the RECEIPT's recorded closure is the dependency set. Every name the
+    #   gate hashed beyond the caller's declaration + the judge-bound names (conditional inputs: femat, signal_receipt) is located from the receipt's
+    #   own inputs_path and verified by require(recorded_extras=True); a recorded name without a locatable path is refused. Round 7 let a caller
+    #   shed a recorded FEMAT dependency by not naming it (omit femat ⇒ eligible after the FEMAT changed; declare it ⇒ 'changed since the receipt').
+    _rec_sha = r.get("inputs_sha256") if isinstance(r.get("inputs_sha256"), dict) else {}
+    _rec_paths = r.get("inputs_path") if isinstance(r.get("inputs_path"), dict) else {}
+    rec["recorded_extras"] = sorted(k for k in _rec_sha if k not in inputs)
+    rec["recorded_extras_paths"] = {k: _rec_paths.get(k) for k in rec["recorded_extras"]}
+    ok, why = _require(str(spec["receipt"]), inputs, expected_gate=gate, expected_self_sha=str(r.get("self_sha256")), profile=profile, recorded_extras=True)
+    rec["ok"] = bool(ok); rec["why"] = why; rec["inputs"] = sorted(set(inputs) | set(rec["recorded_extras"])); return rec
 for _arm, _spec in sorted((_el_map or {}).items()):
     if not isinstance(_spec, dict) or not _spec.get("receipt"):
         _elig[_arm] = {"ok": False, "why": "entry is not {receipt, inputs}", "receipt": None, "contract_gate": None}; continue

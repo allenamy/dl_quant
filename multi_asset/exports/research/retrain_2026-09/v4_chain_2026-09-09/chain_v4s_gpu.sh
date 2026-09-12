@@ -9,6 +9,7 @@
 # ROUND 4 (researcher chain_valid_wrong_gate_source, 2026-09-10): each receipt is required with self_sha= of the gate script THIS archive
 #   invokes ($R/v4_gate_closure.py, $R/v4_gate_step1.py), computed here at run time — a receipt written by another program is refused;
 #   and every input registered in v4_gate_common.REQUIRED_INPUTS for G2_closure / STEP1@v4s must be declared (omitting hole_cells is refused).
+[ "${V4_LEGACY_OK:-}" = 1 ] || { echo "LEGACY_REFUSED $(basename "$0"): September-only chain (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 3: a retrain runs ONLY through chain_v4_monthly.sh <month.env>); set V4_LEGACY_OK=1 to run it deliberately (researcher R5, 2026-09-12)" >&2; exit 64; }   # R5: physical seal, first action line — nothing above this runs code
 set -o pipefail; R=/workspace/review_scratch; . $R/chain_lib.sh; cd $R || exit 2; export MWF_ROOT=mwf_v4s
 SH0=202501,202505,202509,202601,202605; SH1=202502,202506,202510,202602,202606; SH2=202503,202507,202511,202603,202607; SH3=202504,202508,202512,202604,202608
 G2_SRC=$(gate_sha $R/v4_gate_closure.py) || die "gate_source_unreadable_v4_gate_closure" 3

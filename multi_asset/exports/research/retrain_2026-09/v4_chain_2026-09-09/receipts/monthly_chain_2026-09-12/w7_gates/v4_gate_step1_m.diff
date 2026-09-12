@@ -1,0 +1,63 @@
+--- v4_gate_step1.py
++++ v4_gate_step1_m.py
+@@ -6,0 +7,3 @@
++# [M] MONTH-GENERIC (W7 2026-09-12, docs/PREREG_v4_gates_monthly_2026-09-12.md): every path comes from the month contract env (chain_lib.load_month_env exports it);
++# [M] the reference is the PREVIOUS month's contract-pinned build (PREV_DLW_CLIP / PREV_F8, September = hf2 / f8_hf2); thresholds and statistics are the frozen ones verbatim;
++# [M] anchors/pairs after the reference axis end are the extension tail (§3.4); a reference identical to the candidate is refused (§3.5); missing inputs are refused with a PASS=false receipt (§3.6).
+@@ -9 +12,19 @@
+-H = np.load("/workspace/review_scratch/holefix2_cells.npz", allow_pickle=True); NEIGH = H["neigh_rows"]; RUNS = H["fill_runs"]; CSYM = H["symbols"]
++import os   # [M]
++sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from v4_gate_common import finalize, sha256_file   # [M] refusal receipts go through finalize BEFORE any load
++_OUT = os.environ.get("STEP1_OUT")   # [M] required, no September default
++if not _OUT: print("STEP1_REFUSED missing STEP1_OUT (no receipt path: nothing written)", flush=True); sys.exit(3)   # [M]
++_KEYS = ("HOLE_CELLS", "DLW_RAW", "DLW_CLIP", "RAW_PATCH", "PREV_DLW_CLIP", "CACHE", "F8", "PREV_F8")   # [M] month contract keys this gate reads (PREREG §2)
++_E = {k: os.environ.get(k, "") for k in _KEYS}; _missing_env = [k for k in _KEYS if not _E[k]]   # [M]
++def _p(k, rel=""): return (_E[k] + rel) if _E[k] else None   # [M]
++INPUTS = {"dlw_v4raw_targets": _p("DLW_RAW", "/data/dlw_targets.npz"), "dlw_hf3_targets": _p("DLW_CLIP", "/data/dlw_targets.npz"), "dlw_hf2_targets": _p("PREV_DLW_CLIP", "/data/dlw_targets.npz"),   # [M]
++          "fea82_hf3": _p("DLW_CLIP", "/data/dlw_fea82.npz"), "fea82_hf2": _p("PREV_DLW_CLIP", "/data/dlw_fea82.npz"), "fea82_v4raw": _p("DLW_RAW", "/data/dlw_fea82.npz"),   # [M]
++          "fea89_f8v4": _p("F8", "/data/f8_fea89.npz"), "fea89_f8hf2": _p("PREV_F8", "/data/f8_fea89.npz"), "raw_patch": _p("RAW_PATCH"), "hole_cells": _p("HOLE_CELLS"), "cache": _p("CACHE")}   # [M]
++_missing_files = {k: v for k, v in INPUTS.items() if v is None or not os.path.isfile(v)}; _refused = {}   # [M]
++if _missing_env: _refused["missing_env"] = _missing_env   # [M]
++if _missing_files: _refused["missing_files"] = _missing_files   # [M]
++if not _refused:   # [M] reference must not be the candidate (PREREG §3.5): a file compared with itself verifies nothing
++    _sh = {}; _S = lambda k: _sh.setdefault(k, sha256_file(INPUTS[k]))   # [M]
++    _same = [f"{a}=={b}" for a, b in (("dlw_hf3_targets", "dlw_hf2_targets"), ("fea82_hf3", "fea82_hf2"), ("fea89_f8v4", "fea89_f8hf2")) if _S(a) == _S(b)]   # [M]
++    if _same: _refused["reference_is_candidate"] = _same   # [M]
++if _refused: print("STEP1_REFUSED", json.dumps(_refused), flush=True); finalize("STEP1", {"PASS": False, "REFUSED": _refused}, _OUT, INPUTS)   # [M] rc 3; receipt PASS=false; missing shas None
++H = np.load(INPUTS["hole_cells"], allow_pickle=True); NEIGH = H["neigh_rows"]; RUNS = H["fill_runs"]; CSYM = H["symbols"]   # [M] $HOLE_CELLS
+@@ -27 +48 @@
+-A = np.load("/workspace/dlw_v4raw/data/dlw_targets.npz", allow_pickle=True); B = np.load("/workspace/dlw_hf3/data/dlw_targets.npz", allow_pickle=True)
++A = np.load(INPUTS["dlw_v4raw_targets"], allow_pickle=True); B = np.load(INPUTS["dlw_hf3_targets"], allow_pickle=True)   # [M] $DLW_RAW / $DLW_CLIP (this month RAW vs CLIP)
+@@ -32 +53 @@
+-P = np.load("/workspace/review_scratch/raw_patch.npz"); prow = P["row"].astype(np.int64); pcol = P["col"].astype(np.int64)
++P = np.load(INPUTS["raw_patch"]); prow = P["row"].astype(np.int64); pcol = P["col"].astype(np.int64)   # [M] $RAW_PATCH
+@@ -53 +74 @@
+-C = np.load("/workspace/dlw_hf2/data/dlw_targets.npz", allow_pickle=True); RB = {}
++C = np.load(INPUTS["dlw_hf2_targets"], allow_pickle=True); RB = {}   # [M] $PREV_DLW_CLIP = the PREVIOUS month's contract-pinned CLIP build (September: hf2)
+@@ -56,2 +77,4 @@
+-    only_b = np.setdiff1d(Eb, Ec); only_c = np.setdiff1d(Ec, Eb); rb = (only_b - int(np.load("/workspace/data/dlnative_5m_wide829_f16_holefix2.npz")["ts"][0])) // 300
+-    RB["axis_only_hf3"] = len(only_b); RB["axis_only_hf2"] = len(only_c); RB["axis_only_hf3_outside_neigh"] = int((neigh_of(rb) < 0).sum())
++    only_b = np.setdiff1d(Eb, Ec); only_c = np.setdiff1d(Ec, Eb); rb = (only_b - int(np.load(INPUTS["cache"])["ts"][0])) // 300   # [M] $CACHE
++    _tail = only_b > int(Ec.max()); _out = neigh_of(rb) < 0   # [M] extension tail (PREREG §3.4): only-in-new anchors AFTER the reference axis end are this month's new data
++    RB["axis_only_hf3"] = len(only_b); RB["axis_only_hf2"] = len(only_c); RB["axis_only_hf3_outside_neigh"] = int((_out & ~_tail).sum())   # [M] tail not counted
++    if int((_out & _tail).sum()): RB["axis_only_hf3_tail_exempt"] = int((_out & _tail).sum()); RB["ref_axis_end_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(Ec.max())))   # [M] conditional: present iff the tail rule was load-bearing
+@@ -78 +101,3 @@
+-    res["pairs_only_a_outside_neigh"] = int((neigh_of(Erow_a[only_a // NW]) < 0).sum()); res["pairs_only_b_outside_neigh"] = int((neigh_of(Erow_b[only_b // NW]) < 0).sum())
++    _oa = neigh_of(Erow_a[only_a // NW]) < 0; _ta = Erow_a[only_a // NW] > int(Erow_b.max())   # [M] extension tail (PREREG §3.4): pairs at anchors after the reference's last E_row
++    res["pairs_only_a_outside_neigh"] = int((_oa & ~_ta).sum()); res["pairs_only_b_outside_neigh"] = int((neigh_of(Erow_b[only_b // NW]) < 0).sum())   # [M] tail not counted
++    if int((_oa & _ta).sum()): res["pairs_only_a_tail_exempt"] = int((_oa & _ta).sum())   # [M] conditional: present iff the tail rule was load-bearing
+@@ -91,2 +116,2 @@
+-R["B_fea82_hf3_vs_hf2"] = fea_gate("/workspace/dlw_hf3/data/dlw_fea82.npz", "/workspace/dlw_hf2/data/dlw_fea82.npz", ErB, ErC, "B fea82:")
+-R["B_fea89_f8v4_vs_f8hf2"] = fea_gate("/workspace/f8_v4/data/f8_fea89.npz", "/workspace/f8_hf2/data/f8_fea89.npz", ErB, ErC, "B fea89:")
++R["B_fea82_hf3_vs_hf2"] = fea_gate(INPUTS["fea82_hf3"], INPUTS["fea82_hf2"], ErB, ErC, "B fea82:")   # [M] $DLW_CLIP vs $PREV_DLW_CLIP
++R["B_fea89_f8v4_vs_f8hf2"] = fea_gate(INPUTS["fea89_f8v4"], INPUTS["fea89_f8hf2"], ErB, ErC, "B fea89:")   # [M] $F8 vs $PREV_F8
+@@ -99 +124 @@
+-R["fea82_copy_identical"] = sha("/workspace/dlw_v4raw/data/dlw_fea82.npz") == sha("/workspace/dlw_hf3/data/dlw_fea82.npz")
++R["fea82_copy_identical"] = sha(INPUTS["fea82_v4raw"]) == sha(INPUTS["fea82_hf3"])   # [M] $DLW_RAW vs $DLW_CLIP fea82
+@@ -104,5 +129 @@
+-finalize("STEP1", R, os.environ.get("STEP1_OUT", "/workspace/review_scratch/v4_gates/step1.json"),
+-         {"dlw_v4raw_targets": "/workspace/dlw_v4raw/data/dlw_targets.npz", "dlw_hf3_targets": "/workspace/dlw_hf3/data/dlw_targets.npz",
+-          "dlw_hf2_targets": "/workspace/dlw_hf2/data/dlw_targets.npz", "fea82_hf3": "/workspace/dlw_hf3/data/dlw_fea82.npz", "fea82_hf2": "/workspace/dlw_hf2/data/dlw_fea82.npz",
+-          "fea82_v4raw": "/workspace/dlw_v4raw/data/dlw_fea82.npz", "fea89_f8v4": "/workspace/f8_v4/data/f8_fea89.npz", "fea89_f8hf2": "/workspace/f8_hf2/data/f8_fea89.npz",
+-          "raw_patch": "/workspace/review_scratch/raw_patch.npz", "hole_cells": "/workspace/review_scratch/holefix2_cells.npz"})
++finalize("STEP1", R, _OUT, INPUTS)   # [M] names = the REQUIRED_INPUTS registry roles (dlw_hf3_targets = this month's CLIP, dlw_hf2_targets = the previous month's); `cache` is an extra
