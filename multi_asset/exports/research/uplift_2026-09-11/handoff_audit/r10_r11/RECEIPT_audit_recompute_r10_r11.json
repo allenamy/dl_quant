@@ -1,0 +1,548 @@
+{
+ "self_sha256": "770920ed255edf3ad6c5d6e1b732a026528c3533ec2b5c9b7027cd5fa67be5f6",
+ "env_whitelist": [],
+ "env_seen_at_runtime": [
+  "CPATH",
+  "HOME",
+  "LC_CTYPE",
+  "LIBRARY_PATH",
+  "MANPATH",
+  "PATH",
+  "SDKROOT",
+  "__CF_USER_TEXT_ENCODING"
+ ],
+ "numpy": "1.26.4",
+ "python": "3.9.6",
+ "sha_manifest_check": {
+  "ok": 110,
+  "mismatch": [],
+  "missing": [],
+  "no_manifest": [
+   "r10_screen/COINT_PAIR",
+   "r10_screen/SLOW_CLOCK"
+  ]
+ },
+ "independence": {
+  "n": 9138,
+  "monotone_4h": true,
+  "span": [
+   "2022-06-30T00:00Z",
+   "2026-08-30T20:00Z"
+  ],
+  "A0_row": {
+   "A0": 1.0,
+   "TSMOM": -0.097836,
+   "VRP": 0.007561,
+   "CMUM": 0.005753,
+   "SLOW": -0.082782,
+   "COINT": 0.021532,
+   "REVS": 0.018588
+  },
+  "maxabs_diff_vs_receipt": 0.0,
+  "max_offdiag_abs_among_candidates": 0.31195417382755564,
+  "zero_padded": {
+   "A0": 0,
+   "TSMOM": 0,
+   "VRP": 0,
+   "CMUM": 400,
+   "SLOW": 0,
+   "COINT": 248,
+   "REVS": 0
+  },
+  "rho_on_covered_only": {
+   "CMUM": 0.005087,
+   "COINT": 0.021693
+  }
+ },
+ "allocation_asymmetry_counterexamples": [
+  [
+   "maxDD_WORSENS",
+   "POOL_A_all_primary",
+   "equal_risk",
+   4443.5
+  ],
+  [
+   "WORSTDAY_IMPROVES",
+   "POOL_A_all_primary",
+   "equal_risk",
+   191.2
+  ],
+  [
+   "WORSTDAY_IMPROVES",
+   "POOL_C_survivors_bestarm",
+   "equal_risk",
+   193.5
+  ],
+  [
+   "WORSTDAY_IMPROVES",
+   "POOL_C_survivors_bestarm",
+   "max_sharpe_longonly_INSAMPLE",
+   193.4
+  ],
+  [
+   "WORSTDAY_IMPROVES",
+   "POOL_A2_all_zeroselect",
+   "equal_risk",
+   203.5
+  ],
+  [
+   "WORSTDAY_IMPROVES",
+   "POOL_A2_all_zeroselect",
+   "max_sharpe_longonly_INSAMPLE",
+   182.4
+  ]
+ ],
+ "allocation_n_nontrivial": 24,
+ "tsmom": {
+  "A0_in_this_series": {
+   "mean_g": 0.6872,
+   "sharpe": 1.3991,
+   "reading": "0.6872/1.3991 = fee_steady cost arm, NOT the PWR arm (0.6342/1.2912)"
+  },
+  "FULL_postwarm": {
+   "n": 9138,
+   "rho": -0.097836,
+   "rho_bq": -0.185303,
+   "TSMOM_mean_bq": 14.78227,
+   "A0_mean_bq": -29.399
+  },
+  "AS_CODED_frozen_label_upper_1786737600": {
+   "n": 3192,
+   "rho": -0.030469,
+   "rho_bq": -0.28609,
+   "TSMOM_mean_bq": 0.958347,
+   "A0_mean_bq": -37.5525
+  },
+  "TRUE_frozen_upper_2026-08-10T20Z_1786392000": {
+   "n": 3168,
+   "rho": -0.032229,
+   "rho_bq": -0.288432,
+   "TSMOM_mean_bq": 1.202079,
+   "A0_mean_bq": -37.3741
+  },
+  "Y2026": {
+   "n": 1452,
+   "rho": 0.18484,
+   "rho_bq": 0.012632,
+   "TSMOM_mean_bq": -16.484462,
+   "A0_mean_bq": -40.8663
+  },
+  "FINDING": "r10_tsmom4.py L22 labels the mask FROZEN..2026-08-10 but its upper bound 1786737600 is 2026-08-14 20Z; 24 anchors / 4 days past the pinned frozen window."
+ },
+ "A0_calibers": {
+  "sha256_A0_npz": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339",
+  "n": 9138,
+  "mean_gross_total": 0.695644,
+  "per_gross": {
+   "net_ex": 0.6341957,
+   "pnl_ex": 1.2813368,
+   "carry_ex": 0.4796605,
+   "cost_ex": 0.1674806,
+   "turnover": 0.054027,
+   "pnl": 1.3384331,
+   "carry": 0.4997495,
+   "cost": 0.1626644,
+   "net": 0.6760192
+  },
+  "turnover_raw": 0.0303158,
+  "REVS_turnover_ratio_matched_caliber": 24.3915,
+  "REVS_turnover_ratio_mixed_caliber": 43.4691,
+  "identity_residual_net_ex_minus_pnl_ex_plus_carry_ex_minus_cost_ex": {
+   "mean": -0.727903,
+   "frac_rows_zero": 0.0
+  },
+  "REVS_gross_1.1585_as_pct_of": {
+   "A0_pnl_ex_per_gross": 90.41,
+   "A0_pnl_per_gross": 86.56
+  }
+ },
+ "watchdog_recalibration": {
+  "watchdog_py_sha256": "f54188357da93ffc00efc30f9b745afd6f9d1a85c6e2faa9e3a6b546a35d6e02",
+  "watchdog_comment_claim": "fires 3 times in 4.5 years, ALL THREE in 2024 (2024-02-28, 2024-03-08, 2024-11-13)",
+  "W_ALPHA_postwarm": {
+   "n_days": 1523,
+   "daily_sd_pct": 1.1335,
+   "breaches_le_4pct": [
+    [
+     "2022-11-10",
+     -4.5742
+    ],
+    [
+     "2025-04-30",
+     -4.288
+    ],
+    [
+     "2025-05-13",
+     -4.3673
+    ],
+    [
+     "2026-08-22",
+     -4.0745
+    ]
+   ],
+   "worst_day": [
+    "2022-11-10",
+    -4.5742
+   ]
+  },
+  "W_TAIL_nowarm": {
+   "n_days": 1673,
+   "daily_sd_pct": 1.1818,
+   "breaches_le_4pct": [
+    [
+     "2022-05-11",
+     -6.2846
+    ],
+    [
+     "2022-06-07",
+     -11.1714
+    ],
+    [
+     "2022-11-10",
+     -4.5742
+    ],
+    [
+     "2025-04-30",
+     -4.288
+    ],
+    [
+     "2025-05-13",
+     -4.3673
+    ],
+    [
+     "2026-08-22",
+     -4.0745
+    ]
+   ],
+   "worst_day": [
+    "2022-06-07",
+    -11.1714
+   ]
+  },
+  "FINDING": "zero breaches in 2024 on the corrected v4/PWR caliber, on either window"
+ },
+ "live_ledger": {
+  "source": "/Users/haosiyu/dl_quant_live/state/live/pilot_log/*/fills.jsonl (READ-ONLY)",
+  "dedupe": "key=(symbol,trade_id); the row carrying mid_at_fill_plus_60s supersedes (LAST-WINS on the mark)",
+  "per_day": {
+   "20260801": {
+    "deduped_rows": 324,
+    "BNB": 0,
+    "USDT": 324,
+    "notional": 9136.1
+   },
+   "20260802": {
+    "deduped_rows": 594,
+    "BNB": 0,
+    "USDT": 594,
+    "notional": 14678.7
+   },
+   "20260803": {
+    "deduped_rows": 761,
+    "BNB": 0,
+    "USDT": 761,
+    "notional": 18645.2
+   },
+   "20260804": {
+    "deduped_rows": 731,
+    "BNB": 0,
+    "USDT": 731,
+    "notional": 15982.2
+   },
+   "20260805": {
+    "deduped_rows": 541,
+    "BNB": 430,
+    "USDT": 111,
+    "notional": 12587.8
+   },
+   "20260806": {
+    "deduped_rows": 482,
+    "BNB": 482,
+    "USDT": 0,
+    "notional": 8336.0
+   },
+   "20260807": {
+    "deduped_rows": 552,
+    "BNB": 552,
+    "USDT": 0,
+    "notional": 11343.6
+   },
+   "20260808": {
+    "deduped_rows": 642,
+    "BNB": 642,
+    "USDT": 0,
+    "notional": 13152.2
+   },
+   "20260809": {
+    "deduped_rows": 573,
+    "BNB": 573,
+    "USDT": 0,
+    "notional": 10141.4
+   },
+   "20260810": {
+    "deduped_rows": 335,
+    "BNB": 335,
+    "USDT": 0,
+    "notional": 10342.7
+   },
+   "20260811": {
+    "deduped_rows": 120,
+    "BNB": 120,
+    "USDT": 0,
+    "notional": 2302.8
+   },
+   "20260812": {
+    "deduped_rows": 88,
+    "BNB": 88,
+    "USDT": 0,
+    "notional": 1779.9
+   },
+   "20260813": {
+    "deduped_rows": 74,
+    "BNB": 74,
+    "USDT": 0,
+    "notional": 1763.6
+   },
+   "20260814": {
+    "deduped_rows": 91,
+    "BNB": 91,
+    "USDT": 0,
+    "notional": 2117.3
+   },
+   "20260815": {
+    "deduped_rows": 82,
+    "BNB": 82,
+    "USDT": 0,
+    "notional": 1562.5
+   },
+   "20260816": {
+    "deduped_rows": 76,
+    "BNB": 76,
+    "USDT": 0,
+    "notional": 1586.7
+   },
+   "20260817": {
+    "deduped_rows": 81,
+    "BNB": 81,
+    "USDT": 0,
+    "notional": 1840.5
+   },
+   "20260818": {
+    "deduped_rows": 451,
+    "BNB": 451,
+    "USDT": 0,
+    "notional": 22566.5
+   },
+   "20260819": {
+    "deduped_rows": 123,
+    "BNB": 123,
+    "USDT": 0,
+    "notional": 6056.7
+   },
+   "20260820": {
+    "deduped_rows": 163,
+    "BNB": 163,
+    "USDT": 0,
+    "notional": 7289.9
+   },
+   "20260821": {
+    "deduped_rows": 366,
+    "BNB": 366,
+    "USDT": 0,
+    "notional": 35788.2
+   },
+   "20260822": {
+    "deduped_rows": 1643,
+    "BNB": 1643,
+    "USDT": 0,
+    "notional": 33298.8
+   },
+   "20260823": {
+    "deduped_rows": 459,
+    "BNB": 459,
+    "USDT": 0,
+    "notional": 2716.9
+   },
+   "20260824": {
+    "deduped_rows": 427,
+    "BNB": 427,
+    "USDT": 0,
+    "notional": 2613.9
+   },
+   "20260825": {
+    "deduped_rows": 618,
+    "BNB": 618,
+    "USDT": 0,
+    "notional": 8407.3
+   },
+   "20260826": {
+    "deduped_rows": 943,
+    "BNB": 943,
+    "USDT": 0,
+    "notional": 26596.7
+   },
+   "20260827": {
+    "deduped_rows": 1343,
+    "BNB": 1343,
+    "USDT": 0,
+    "notional": 28508.2
+   },
+   "20260828": {
+    "deduped_rows": 671,
+    "BNB": 671,
+    "USDT": 0,
+    "notional": 6874.4
+   },
+   "20260829": {
+    "deduped_rows": 709,
+    "BNB": 709,
+    "USDT": 0,
+    "notional": 11380.8
+   },
+   "20260830": {
+    "deduped_rows": 1030,
+    "BNB": 1030,
+    "USDT": 0,
+    "notional": 18269.1
+   },
+   "20260831": {
+    "deduped_rows": 778,
+    "BNB": 778,
+    "USDT": 0,
+    "notional": 12305.9
+   },
+   "20260901": {
+    "deduped_rows": 689,
+    "BNB": 689,
+    "USDT": 0,
+    "notional": 8908.4
+   },
+   "20260902": {
+    "deduped_rows": 604,
+    "BNB": 604,
+    "USDT": 0,
+    "notional": 12156.7
+   },
+   "20260903": {
+    "deduped_rows": 1626,
+    "BNB": 1626,
+    "USDT": 0,
+    "notional": 137526.5
+   },
+   "20260904": {
+    "deduped_rows": 1204,
+    "BNB": 1204,
+    "USDT": 0,
+    "notional": 39003.6
+   },
+   "20260905": {
+    "deduped_rows": 1496,
+    "BNB": 1496,
+    "USDT": 0,
+    "notional": 48102.6
+   },
+   "20260906": {
+    "deduped_rows": 800,
+    "BNB": 800,
+    "USDT": 0,
+    "notional": 23082.6
+   },
+   "20260907": {
+    "deduped_rows": 1533,
+    "BNB": 4,
+    "USDT": 1529,
+    "notional": 190395.5
+   },
+   "20260908": {
+    "deduped_rows": 2031,
+    "BNB": 9,
+    "USDT": 2022,
+    "notional": 109572.3
+   },
+   "20260909": {
+    "deduped_rows": 4259,
+    "BNB": 3,
+    "USDT": 4256,
+    "notional": 274522.3
+   },
+   "20260910": {
+    "deduped_rows": 3129,
+    "BNB": 1,
+    "USDT": 3128,
+    "notional": 277556.6
+   },
+   "20260911": {
+    "deduped_rows": 2025,
+    "BNB": 0,
+    "USDT": 2025,
+    "notional": 70324.3
+   },
+   "20260912": {
+    "deduped_rows": 285,
+    "BNB": 0,
+    "USDT": 285,
+    "notional": 8773.3
+   }
+  },
+  "rates_bps_in_own_asset": {
+   "maker|BNB": {
+    "n": 16565,
+    "notional": 478295.4,
+    "rate_bps": 0.0026
+   },
+   "maker|USDT": {
+    "n": 8818,
+    "notional": 629015.6,
+    "rate_bps": 2.0
+   },
+   "taker|BNB": {
+    "n": 3221,
+    "notional": 89877.3,
+    "rate_bps": 0.0064
+   },
+   "taker|USDT": {
+    "n": 6948,
+    "notional": 362709.2,
+    "rate_bps": 5.0
+   }
+  },
+  "window_0801_0911": {
+   "n_fills": 35267,
+   "traded_notional": 1551124.21,
+   "BNB_notional_share": 0.3663,
+   "receipt_says": {
+    "n_fills": 34921,
+    "traded_notional": 1537656.604180615,
+    "BNB_share": 0.3695
+   },
+   "why_different": "export_fills_for_markout.py drops rows with no anchor_ts/fill_ts"
+  },
+  "config_book_json_sha256": "f6fd6d0e0f10039a7c61267a72d448cc86920b85b7ff97bc44ee9bb9a55bc454",
+  "placement_bandit_sha256": "87814c96347ea5e463de4984260672fead96f91bbefc509ac902391c9263f732"
+ },
+ "cost_model_provenance": {
+  "costb_PWR_G230k.json": {
+   "sha256": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+   "has_K": true,
+   "has_exponent": false,
+   "book_avg_bps_per_unit_turnover": 2.9537,
+   "blended_bps_per_unit_turnover": [
+    2.6705,
+    2.6824,
+    3.6417
+   ]
+  },
+  "FITK_v3_shape.json": {
+   "sha256": "0f682c91c29725c3bd0f294ac4b004051bb9e96661976c759e239b38e90a5d16",
+   "POWER_K_excess": 0.17,
+   "POWER_K_excess_CI95": [
+    0.1522,
+    0.1883
+   ],
+   "implied_impact_exponent_alpha_1_over_p": 0.7826,
+   "p_exponent_turnwtd": 1.2777
+  },
+  "FITK_v2.json_pooled_alpha": 0.8739,
+  "FINDING": "CALIBER_PIN says the pinned model is K=0.17 with impact exponent 0.87. K=0.17 IS the POWER K_excess in FITK_v3_shape.json. 0.87 is NOT: the v3 POWER shape implies 0.7826. 0.8739 is FITK_v2's pooled power-law of VWAP impact vs participation - a different fit."
+ }
+}

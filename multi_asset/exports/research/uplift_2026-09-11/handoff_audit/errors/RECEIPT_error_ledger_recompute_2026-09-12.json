@@ -1,0 +1,220 @@
+{
+ "device": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/handoff_audit/errors/ledger_recompute.py",
+ "self_sha256": "7a01efe715965f2c48a43814a642545f13e8fbce9a65bb3f410106ccd7b0568f",
+ "utc": "2026-09-12T01:24:22Z",
+ "env_whitelist": [],
+ "gpu_used": false,
+ "network_used": false,
+ "live_written": false,
+ "inputs_sha256": {
+  "r10_screen/CMUM_CARRY/pin/A0_PWR230k_s42.npz": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339",
+  "r3_placebo/MATCH_DIAGNOSTIC.json": "0da70b3d5dbf8cc8d8b5c2ba6fe0e18e9ac9b12643b65ae3fea99bc17554a17d",
+  "r3k_impact/costb_PWR_G230k.json": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+  "r3k_impact/FITK_v3_shape.json": "0f682c91c29725c3bd0f294ac4b004051bb9e96661976c759e239b38e90a5d16",
+  "r3k_impact/FITK_v2.json": "60e5ded62b0be84b560a180b96845489e0c3a6fa893400e2ac17e652634cacf7",
+  "trackA/w10_sleeve.py": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650"
+ },
+ "windows": {
+  "axis_rows": 10039,
+  "axis_first": "2022-01-31 00Z",
+  "axis_last": "2026-08-31 00Z",
+  "W_ALPHA_n": 9138,
+  "W_TAIL_n": 10038,
+  "W_ALPHA_first": "2022-06-30 00Z",
+  "W_ALPHA_last": "2026-08-30 20Z"
+ },
+ "A0_levels": {
+  "W_ALPHA_mean_g": 0.6341956721704608,
+  "W_ALPHA_sharpe": 1.2912234378101446,
+  "W_ALPHA_SE_sharpe": 0.4895493525831451,
+  "W_TAIL_mean_g": 0.560754123264806,
+  "W_TAIL_sharpe": 1.106162968875261
+ },
+ "turnover_calibers": {
+  "raw_mean_sum_abs_dw": 0.03031580569927569,
+  "mean_gross_total": 0.6956439874299009,
+  "ratio_of_means_turnover_over_gross": 0.043579483539100634,
+  "ratio_of_means_over_raw": 1.4375169167990096,
+  "mean_of_per_anchor_ratios": 0.05402702626085247,
+  "mean_of_ratios_over_raw": 1.78214053740763,
+  "note": "the caliber that matches g = net_ex/gross_total is the MEAN OF PER-ANCHOR RATIOS 0.0540270; it is raw x 1.78214, NOT raw x 1.4375. 1.4375 = 1/mean(gross_total) produces 0.043579, a third number that appears nowhere in the programme.",
+  "REV_SHORT_ratio_matched": 24.391496093777548,
+  "REV_SHORT_ratio_on_raw_0.03032": 43.46907395674083,
+  "REV_SHORT_ratio_on_raw_0.0335": 39.33731343283582
+ },
+ "accounting_identity": {
+  "net_ex_minus_(pnl_ex_PLUS_carry_ex_minus_cost_ex)_maxabs": 12.754024751743074,
+  "net_ex_minus_(pnl_ex_MINUS_carry_ex_minus_cost_ex)_maxabs": 0.0,
+  "verdict": "carry_ex is carry PAID and is SUBTRACTED. net_ex = pnl_ex - carry_ex - cost_ex holds bitwise (maxabs 0.0). Any audit that adds carry_ex reads a spurious -0.7279 residual."
+ },
+ "dead_leg_prefixes": {
+  "1110": {
+   "last_ts": "2022-12-31 20Z",
+   "dead_mean_g": 0.15858983986080896,
+   "dead_sharpe": 0.47972677428671207,
+   "live_mean_g": 0.6999558208829313,
+   "live_sharpe": 1.374098638019729,
+   "share_of_W_ALPHA": 0.12147078135259357
+  },
+  "3300": {
+   "last_ts": "2023-12-31 20Z",
+   "dead_mean_g": -0.37703890097843146,
+   "dead_sharpe": -1.1301625220376734,
+   "live_mean_g": 1.2058082263656207,
+   "live_sharpe": 2.150814701617985,
+   "share_of_W_ALPHA": 0.36112934996717005
+  },
+  "reading": "prefix 1110 = F10 leg identically zero (E-0911-D left edge, r9); prefix 3300 = king leg ALSO identically zero (r7-r9 block, pod2). 1110 = every W_ALPHA anchor in 2022; 3300 = 2022 + 2023 exactly. Reproduces RECEIPT_r9_addendum (+0.1586/+0.7000/1.3741) and the r7_r9 pod2 recomputation (-0.3770/+1.2058/-1.1302/2.1508) from LOCAL data only."
+ },
+ "A0_by_year_W_ALPHA": {
+  "2022": {
+   "n": 1110,
+   "mean_g": 0.15858983986080896,
+   "sharpe": 0.47972677428671207,
+   "SE_sharpe": 1.404625563263382,
+   "t": 0.3415335637008895,
+   "ann_pct_of_gross": 3.4731174929517166
+  },
+  "2023": {
+   "n": 2190,
+   "mean_g": -0.6485219614037998,
+   "sharpe": -1.9355026449501072,
+   "SE_sharpe": 1.0,
+   "t": -1.9355026449501072,
+   "ann_pct_of_gross": -14.202630954743215
+  },
+  "2024": {
+   "n": 2196,
+   "mean_g": 0.48647981337637497,
+   "sharpe": 1.0875194742498433,
+   "SE_sharpe": 0.9986329453622295,
+   "t": 1.0890082079711203,
+   "ann_pct_of_gross": 10.65390791294261
+  },
+  "2025": {
+   "n": 2190,
+   "mean_g": 0.6770059235370639,
+   "sharpe": 1.1866837903078131,
+   "SE_sharpe": 1.0,
+   "t": 1.1866837903078131,
+   "ann_pct_of_gross": 14.826429725461699
+  },
+  "2026": {
+   "n": 1452,
+   "mean_g": 3.0912918614337492,
+   "sharpe": 4.516466453113408,
+   "SE_sharpe": 1.2281141896460268,
+   "t": 3.6775623074717236,
+   "ann_pct_of_gross": 67.69929176539911
+  }
+ },
+ "defective_placebo_ratios": {
+  "n_arms": 12,
+  "turnover_ratio_min": [
+   1.686,
+   "TBF_ema08"
+  ],
+  "turnover_ratio_max": [
+   16.36,
+   "LOBDEPTH_RAW"
+  ],
+  "turnover_ratios": [
+   [
+    1.686,
+    "TBF_ema08"
+   ],
+   [
+    1.696,
+    "XIB50_s42"
+   ],
+   [
+    1.846,
+    "IB_TRI_B_s42"
+   ],
+   [
+    2.266,
+    "ORTH_AMIRESID"
+   ],
+   [
+    2.344,
+    "AMI_lag"
+   ],
+   [
+    2.346,
+    "ORTH_amihud"
+   ],
+   [
+    3.259,
+    "RESID_SHARPE"
+   ],
+   [
+    9.297,
+    "ORTH_RESSKEW"
+   ],
+   [
+    13.481,
+    "ORTH_AMI3D"
+   ],
+   [
+    13.727,
+    "LOBDEPTH_ORTH"
+   ],
+   [
+    14.497,
+    "ORTH_LISTEVT"
+   ],
+   [
+    16.36,
+    "LOBDEPTH_RAW"
+   ]
+  ],
+  "cost_ratio_min": [
+   1.861,
+   "XIB50_s42"
+  ],
+  "cost_ratio_max": [
+   46.211,
+   "LOBDEPTH_RAW"
+  ],
+  "claim_in_six_documents": "2.6-7.7x",
+  "verdict": "WRONG AT BOTH ENDS on its own receipt"
+ },
+ "cost_model_provenance": {
+  "pinned_file_has_K_field": false,
+  "pinned_file_has_exponent_field": false,
+  "pinned_impact_bps_by_tier": [
+   0.01954,
+   0.07144,
+   0.85794
+  ],
+  "FITK_v3_POWER_per_tier_excess": [
+   0.01954,
+   0.07144,
+   0.85794
+  ],
+  "tiers_identical": true,
+  "FITK_v3_POWER_K_excess": 0.17,
+  "FITK_v3_POWER_K_excess_CI95": [
+   0.1522,
+   0.1883
+  ],
+  "FITK_v3_UNIF_K_excess": 0.1165,
+  "FITK_v3_implied_alpha_1_over_p": 0.7826,
+  "FITK_v3_p_exponent_turnwtd": 1.2777,
+  "book_avg_bps_per_unit_turnover": 2.9537,
+  "verdict": "K=0.17 IS fitted (POWER branch, with a CI) and the pinned tier impacts are bitwise the POWER fit's per-tier excess. The documented exponent 0.87 is NOT this file's: it is FITK_v2's pooled log-vwap-on-log-participation alpha. This file's implied exponent is 0.7826.",
+  "FITK_v2_pooled_alpha": 0.8739
+ },
+ "repricing_3p2167": {
+  "mean_cost_ex_bps_per_anchor_raw": 0.0947563111667767,
+  "mean_gross_total": 0.6956439874299009,
+  "mean_cost_ex_over_gross_matched": 0.1674806020429062,
+  "implied_rate_bps_per_unit_traded_matched": 3.099941152309196,
+  "extra_cost_matched": 0.3712542505485102,
+  "extra_cost_ratio_of_means_variant": 0.30194513107117166,
+  "extra_cost_via_gap_6.5475_x_matched_turnover": 0.35374195444293155,
+  "A0_mean_g_repriced_matched": 0.2629414216219506,
+  "A0_sharpe_repriced_same_vol": 0.5353491694565297,
+  "note": "three routes to the same object land at 0.354-0.371 bps/anchor/unit gross, i.e. g 0.634 -> 0.263-0.281 and Sharpe -> 0.54-0.57. The programme's own r11 device reports 0.2717 / 0.5532. The ratio-of-means variant (0.302) is the 1.4375 unit trap again and is 18% too small."
+ }
+}

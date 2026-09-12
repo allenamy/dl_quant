@@ -1,0 +1,87 @@
+{
+ "doc": "Reproducibility audit of uplift_2026-09-11 for independent-reviewer handoff: every sha256 below was RECOMPUTED in this session (never copied from a document).",
+ "created_utc": "2026-09-12",
+ "session": "https://claude.ai/code/session_01H39k5rgyd43mFMNsaBqzeX",
+ "env_whitelist": [],
+ "method": "local: shasum -a 256 <path>.  pod2: sha256sum <path> over ssh (read-only; no file written on pod2, no GPU used).",
+ "machines_reachable_2026-09-12": {
+  "mac_local": "REACHABLE (this machine)",
+  "pod2": "REACHABLE (hostname f4530321c9b8, up 43 days, /workspace 2.1P mfs, GPU RTX PRO 4500 Blackwell 2 MiB/32623 MiB used => idle at check time)",
+  "jpline": "UNREACHABLE - ssh: connect to host 212.50.244.62 port 31999: Operation timed out (same failure recorded during the programme; STILL TRUE)"
+ },
+ "pinned_v4_inputs_pod2": {
+  "dlnative_5m_wide829_f16_holefix2.npz": {"path": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz", "bytes": 2087655898, "sha256": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488", "claim_in_pin": "sha16 1d7f459d", "verdict": "MATCH"},
+  "wide_fea_v4_meta.npz": {"path": "/workspace/data/wide_fea_v4_meta.npz", "bytes": 25477849, "sha256": "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51", "claim_in_pin": "size only (25M)", "verdict": "EXISTS; NO SHA WAS EVER PINNED - this is the first sha256 on record"},
+  "dlw_v4raw/dlw_targets.npz": {"path": "/workspace/dlw_v4raw/data/dlw_targets.npz", "bytes": 192038760, "sha256": "d1976cf6246cdc25054d21b1a9fa7f8fd02ee43278720d81ce2a35686d63c6f8", "cross_check": "equals r9_coverage/receipts/lineage_A0.json.dlw_v4raw_targets.sha256", "verdict": "MATCH"},
+  "dlw_v4raw/dlw_fea82.npz": {"path": "/workspace/dlw_v4raw/data/dlw_fea82.npz", "bytes": 468075570, "sha256": "40608701cad1aea1d72936eb91e31cee4f10cd37fccf48d6b6f4a4b1c7d9389d", "cross_check": "equals lineage_A0.json.dlw_v4raw_fea82.sha256", "verdict": "MATCH"},
+  "meta_newprod_v4.npz": {"path": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz", "bytes": 27497999, "sha256": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3", "verdict": "EXISTS; NO SHA PREVIOUSLY PINNED"},
+  "shadow_bundle_v4/slow_pred_pinned.npy": {"path": "/workspace/shadow_bundle_v4/slow_pred_pinned.npy", "bytes": 33763640, "sha256": "dde19142d017c37dd9bae564ab4a32a4b9b068f6aef8acc91e7ea329f4f1c8a6", "verdict": "EXISTS; NO SHA PREVIOUSLY PINNED. NOTE: this file is NOT the king leg of the programme's planning arm A0 - see finding F2."},
+  "dev_v4_tree": {"path": "/workspace/review_scratch/health_check/dev_v4/", "verdict": "EXISTS; BUILD.json present, dlw_2026-08-22 -> /workspace/dlw_v4raw, 57 entries under probe_artifacts/"},
+  "w10_universe.py": {"path": "/workspace/port_w10/w10_universe.py", "bytes": 26085, "sha256": "64c70a44ee88b79547a444ccb969c58d17d3a25f2f02af9cc77055b767bfe430", "verdict": "EXISTS; NO SHA PREVIOUSLY PINNED"},
+  "w10_sleeve.py_pod2": {"path": "/workspace/uplift_2026-09-11/w10_sleeve.py", "sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650", "verdict": "MATCH to the pin b88e35a46b93d712"},
+  "pod_legs_v4.py": {"path": "/workspace/review_scratch/pod_legs_v4.py (and /workspace/review_scratch/r3_check/v4_chain/pod_legs_v4.py)", "sha256": "ce0d985315991feb648485e79dbca266265c7c39acf92cae6be72457a680cdfc", "verdict": "MATCH across pod2 copies AND the repo copy"}
+ },
+ "pinned_devices_local_repo": {
+  "trackA/w10_sleeve.py": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
+  "r3k_impact/costb_PWR_G230k.json": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53",
+  "r3_attack_RESID_SHARPE/null.py": "91d4c91cb92a64404f8e635a76969b435b86ab7840fc110564d9509a1b0c7fa9",
+  "r3_gates/devices/rs_conc.py": "3fd2f76496a593ba5342bbf8dd21d9f52473a52fe55657b7592f30d06143ab11",
+  "r3_placebo/null_families.py": "2ce8b88b49ae54626d13219e2317836b7a5485c36da26fd5c768d4e2e2a1fd06",
+  "trackB_devices/w10_tb.py": "a6bae3a1975c7b325321f798f0e3d46c8bb1e022dc604e2e39d0b0db8a28ea87",
+  "infra2/v4e_gate_export.py": "f814c728938482b876cbcaa31f200832d207a0f89387d58ed3e2d0d45448e214",
+  "infra2/xib_signal.py": "3110388ea920e7cbd3b61d7ed2b8ca5b1bae422fa58b4dd94ecf4deb9f69fbec",
+  "infra2/measure_xib.py": "e0b4ebfee52ae2cc72201f3fc6b932cfba372cf258b23b23b26605b3eb4194e2",
+  "r8b2_receipts/r8_repro.py": "afb839ecbec873ae0caab4f4e624fef8bb7cb2b88b0d7b23a98e84cd085f8594",
+  "retrain_2026-09/v4_chain_2026-09-09/judge_v4.py": "7f1aa5d63ea37d67db9518f7f1b03c73db917308bd169ba02de6a6298ef54c42",
+  "retrain_2026-09/v4_chain_2026-09-09/ELIGIBILITY_CONTRACT.json": "3299dc97ab0c90d51ac77297b605e5072bafd4cfaac954ab8655699c498f271b",
+  "retrain_2026-09/v4_chain_2026-09-09/pod_legs_v4.py": "ce0d985315991feb648485e79dbca266265c7c39acf92cae6be72457a680cdfc"
+ },
+ "judge_v4_copies_on_pod2_DIVERGENT": {
+  "/workspace/uplift_2026-09-11/infra2/v4chain/judge_v4.py": "7f1aa5d63ea37d67db9518f7f1b03c73db917308bd169ba02de6a6298ef54c42",
+  "/workspace/review_scratch/judge_v4.py": "7f1aa5d63ea37d67db9518f7f1b03c73db917308bd169ba02de6a6298ef54c42",
+  "/workspace/uplift_2026-09-11/infra2/v4chain_PROPOSED/judge_v4.py": "62e9da3a5d9b27712adc9bf7f30098662886e5a50309d137856d75164159a0bc",
+  "/workspace/review_scratch/r3_check/v4_chain/judge_v4.py": "634ecce076451cf0d06242084f0559bd32fdc0dcdc4e2cb23a00c92775cfc0e8",
+  "note": "THREE distinct judge_v4.py programs live on pod2. Only 7f1aa5d6 matches the repo copy the caliber pin names. A reviewer who types 'judge_v4.py' without a full path can silently run a different program."
+ },
+ "eligibility_contract_state": {
+  "frozen_copy_sha256": "3299dc97ab0c90d51ac77297b605e5072bafd4cfaac954ab8655699c498f271b",
+  "identical_at": ["repo: multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/ELIGIBILITY_CONTRACT.json", "pod2: /workspace/uplift_2026-09-11/infra2/v4chain/ELIGIBILITY_CONTRACT.json", "pod2: /workspace/review_scratch/ELIGIBILITY_CONTRACT.json"],
+  "BUNDLE_export.approved_source_sha256": [],
+  "BUNDLE_export.source": null,
+  "arms_mapped_to_BUNDLE_export": ["A1", "A1s", "A1e", "A2", "A3"],
+  "verdict": "STILL EMPTY. Every registered arm's candidacy_gate is BUNDLE_export, whose approved-source list is the empty list. By the contract's own rule 4 no receipt can satisfy it and no arm can be a candidate. THE PROMOTION PATH IS HARD-BLOCKED.",
+  "proposed_but_NOT_applied": {"file": "/workspace/uplift_2026-09-11/infra2/v4chain_PROPOSED/ELIGIBILITY_CONTRACT.json", "sha256": "3780ae5f223b82b8e2705762027692df7769fc1c7521d90788a8b56cc4b83fb1", "fills_in": "BUNDLE_export.source=v4e_gate_export.py, approved_source_sha256=[f814c728938482b876cbcaa31f200832d207a0f89387d58ed3e2d0d45448e214], plus a new arm XIBLAG50", "status_text_in_file": "NOT APPLIED - the frozen file is unchanged; a human must approve"}
+ },
+ "planning_number_reproduced_first_hand": {
+  "A0_PWR230k_s42": {
+   "arm_file": "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s42.npz",
+   "arm_sha256": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339",
+   "arm_sha16_claimed_in_R8_REPRO.json": "352ac36fb3195327",
+   "n": 9138, "span": ["2022-06-30 00Z", "2026-08-30 20Z"],
+   "mean_g": 0.634196, "sharpe_ann": 1.291223,
+   "CI95_as_published_seed_20260912_31_B4000": [0.165290, 1.107099],
+   "CI95_under_PINNED_caliber_seed_20260905_31_B2000": [0.152085, 1.084290],
+   "mean_turnover_raw": 0.0303158,
+   "mean_gross_total": 0.6956440,
+   "turnover_ratio_of_means": 0.0435795,
+   "turnover_mean_of_ratios": 0.0540270,
+   "verdict": "EXACT reproduction of the published 0.6342 / [0.1653, 1.1071] / 1.2912."
+  },
+  "A1x_ext_s42_v4_native": {
+   "arm_file": "/workspace/uplift_2026-09-11/r9/dev_ext/probe_artifacts/w10_ablation_series_R9_A1x_ext_s42.npz",
+   "arm_sha256": "57d18ca50e3a30bb798ec3626e0b3c71e6f6bf72a6e376cfbfb5365a45d6d3b8",
+   "claimed_in": "r9_coverage/receipts/RECEIPT_r9_judge.json",
+   "n": 9199, "span": ["2022-06-30 00Z", "2026-09-10 00Z"],
+   "mean_g": 0.660154, "sharpe_ann": 1.285667,
+   "CI95_B4000_seed_20260912_31": [0.1772, 1.1540],
+   "verdict": "EXACT reproduction of the published 0.6602 / 1.2857 / [0.1772, 1.154]."
+  }
+ },
+ "two_windows_verified_first_hand": {
+  "W_ALPHA_n": 9138,
+  "W_TAIL_n": 10038,
+  "W_TAIL_worst_utc_day": {"date": "2022-06-07", "sum_of_anchor_g_pct_per_unit_gross": -5.6661},
+  "W_ALPHA_worst_utc_day": {"date": "2022-11-10", "sum_of_anchor_g_pct_per_unit_gross": -2.3248},
+  "confirms": "dropping the first 900 anchors DOES discard 2022-06-07, the sample's worst day. Any tail number on the post-warm window is biased toward safety."
+ }
+}
