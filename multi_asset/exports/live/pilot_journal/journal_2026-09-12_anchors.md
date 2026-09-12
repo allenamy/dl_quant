@@ -118,3 +118,51 @@ requote 44 / direct 26 / exempt 2; requote report: candidates 23 → 落单 19, 
 - 运行目录 `ops/safe_commit.sh live/tests_disposition_matrix.py`: fetch 已最新 → **电池 132/132 ALL GREEN**(07:34:58–07:49:49Z)→ commit → push `b681ca5..77d9baf main`。运行树 HEAD = origin/main = **77d9baf**; 仅测试文件, 零运行时改动。
 - ⚠ 电池再次在共享 `state/anchor_runs.log` 留下 DRY_RUN 锚行(07:3x–07:4xZ `mode=DRY_RUN`); 08Z 深查以 `mode=LIVE` 为准。
 - 内容与收据: `docs/DESIGN_disposition_matrix_recalibration6_2026-09-12.md` §1–§4; 突变红日志 `docs/receipts/tests_disposition_matrix_recal6_mut_*.log`; safe_commit 日志 `docs/receipts/safe_commit_tests_disposition_matrix_20260912T073501Z.log`。
+
+## 2026-09-12 08:00Z 锚 · 全深度深查 + **b681ca5 首锚验收(RUNBOOK §3)**(只读, 实盘零接触)
+
+**锚**: canonical 1789200000(08:00Z, **8h 结算锚**)/ 执行器 anchor_ts 1789201442.562(08:24:02Z)/ rid A1789201439 / **运行树 77d9baf(= b681ca5 运行时 + 测试文件)—— 新执行器代码的第一个实盘锚**。**结论: §3 六条全过, 首锚验收 PASS; E-0909-E 有限上限截断生效(−2027 残差 2,102U → 0); 无异常处置; 一项新事件(per_name_stop 触发 LSKUSDT)。**
+
+### §3 首锚验收
+| # | 条目 | 读数 | 判 |
+|---|---|---|---|
+| 1 | `anchor_runs.log` 末行 / 看门狗 | `08:56:06Z anchor done rc=0`; tripped=False, triggers [], metric_errors [] | ✓ |
+| 2 | 带 `request_ledger` 的 maker 行 >0; inconsistent / venue_inconsistent / filled_amount_unknown / ledger_label_mismatch 行数; 补单行子成交 | maker 283 行中 **159 带 request_ledger**(= 全部 159 条 partial_expired 即有场所事实的行; 63 min_notional 与 61 venue_reject 无账本, 合乎设计); 四类标记行 **0 / 0 / 0 / 0**; 48 条 filled 补单**全部**带 request_ledger(逐请求 confirmed_qty/notional, settled_by=identity)+ fee_source「userTrades, N child fill(s)」(RUNBOOK 写的键名 `avg_fill_px_children` 不存在, 子成交信息在 request_ledger/fee_source 里) | ✓ |
+| 3 | `neutrality_price` 新键 | 有 `n_fills_measured` 20 / `coverage_measured_notional` 1.0 / `measured_over`(已测口径说明); deficient=sell, 需 taker 416.8U, **同侧实测 0.88 bps**(04Z 的 98.67 极端读数回落), 价 0.0365U 下界 | ✓ |
+| 4 | `verify_reshape_anchor` 引已测口径 | 中性段:「该侧实测 taker 0.88bps(已测 20 笔 / $1220.06; 未定价 $0, 费未知 $0; 覆盖 1.0/1.0)」✓。判据 1 \|INTENT net\| 7,441U FAIL、判据 2 FAIL = 外部书锚的既有性质(E1 验收: 旧树 d040c74 同 rc=1 同判据段), 非读者变化 | ✓(既有) |
+| 5 | guard_twin / anchor_report | **twin AGREE**(ledger-only; nav 行 stale)eq=118,184.00; anchor_report 照常出报 | ✓ |
+| 6 | HEAD = origin/main | **77d9baf = 77d9baf** | ✓ |
+| + | **E-0909-E 有限上限截断** | known_gaps `venue_cap_usdt` **0**, `venue_cap_names` **[]**(04Z: 2,102U PIEVERSEUSDT); 新告警「场所上限截断 1 名 Σ\|Δ\| 157U = gross 0.07%: PIEVERSEUSDT +2,117→+1,960(cap 2,000)」; PIEVERSE maker 行 partial_expired 1,960(无 −2027) | ✓ **首次归零** |
+
+### ① 三守护 全绿: shadow.lock=10900 ✓ / sidecar 30943 ✓ / combo_live_daemon.pid=30944 ✓。
+### ② 信号六项 全在带
+status OK / coverage 1.0 / members 400 / sel 267 / **fund_updates 454**(8h 结算锚 ~453 ✓)/ forced_exit_n 0 / runtime 312.3s / fetched 450 missing 0。w3 [0.3271, 0.1092, 0.5636] ⇒ 掩码 king **0.3672** = target_combo 0.367264 ✓。combo_live_status 匹配 / ok / done / reader_ok / n 265 / gross 0.8648 / 08:21:57Z rc=0; kc·fc own ✓, rho 0.9349, phi 0.45。**反事实改写 24.9%**(序列 24.52 → 24.4 → **24.9**, 本锚 +0.5pp; 判据 = 台阶再升一档或连续 3 锚 >+0.2pp, 未触发, 12Z 再看)。生产者 paper 计分(对 04Z 书): gross +1.233 / net +0.02。
+### ③ 执行漏斗(anchor_ts 归属; fills 后写胜出)
+orders **477** = rows_persisted ✓ / fills 332。终态 min_notional 198 · partial_expired 159 · **venue_reject 61**(−5022 首发 54 + 重挂再拒 7; **−2027 0**)· filled 48 · no_chase 11。首发穿价率 **54/194 = 27.8%**(04Z 23.3%, 线 40%)。分臂拒单率 join **0.253** / behind **0.177**; behind 占比 **0.464**(04Z 0.554; 设计 0.50)。requote 52 / direct 28。换手三口径: anchor_report ? / 成交 Σ 11,883U ÷ gross 236,243 = 5.03%; 生产者 turnover(signal 行)未取, 12Z 补。
+### ④ 记账
+venue_gross 236,243 / target 235,972 ⇒ **1.0012** ✓; NAV **118,243.44** ⇒ gross/NAV 1.998 ✓; **net/gross +0.1764%**(04Z −1.12%; 三锚单调加深被本锚打断, 回到带内); net/equity +0.35%; opening_halted False; **08Z 结算 FUNDING**: funding.jsonl 255 行 settlement_ts 08:00Z, anchor_report 「funding 255 名 −8.11U」; 当日 income FUNDING_FEE 累计 −32.19(00Z −14.80 ⇒ 08Z 结算 ≈ −17.39); readback 照常; per_name_stop **新触发 LSKUSDT**(深度 −32.3% 连续 2 终锚 ≤ −30% ⇒ flatten_only, 7 天禁入; 条款 cf40ea21)⇒ stopped 2(IOST 自 09-10, LSK 本锚)/ cooldown 9; known_gaps **11 名 / 820U**(04Z 20 / 3,094U —— −2027 归零所致); reshape net_before **−11,212(−4.75%, 连续第三锚 >2%)** → 0 ✓, floor 跨门 IOST; n_names_skipped 80; 限流 peak_window_weight 725(04Z 760)。
+**当日 NAV**: 117,515.79(前日收)→ 118,120.06(00Z)→ 117,452.35(04Z)→ **118,243.44(08Z)**: 本锚 +791.09, 当日累计 **+727.65 = +0.62%**; external_flow 0; 已实现 +218.44(REALIZED +258.69 / FUNDING −32.19 / COMMISSION −8.06); 未实现 2,030.20。
+### ⑤ 执行质量
+maker 占比 行 0.581 / **名义 0.771**(04Z 0.762, 带 ≥0.90 仍带外); 费 **2.687 bps**(maker 恰 2.0000 / taker 恰 5.0000, 332 笔全 USDT ⇒ **BNB 折扣断第 6 日**); markout 回填 224/332 = 67.5%(锚后 30 分钟, 回填 cron 仍在跑: pending 385 written 247, 12Z 复读); **尺寸梯度 s/m/l 0.517 / 0.575 / 0.655 ⇒ 非负性成立**(前三锚不成立后首次成立); chase 单名连抽 最大 1 ✓。
+### ⑥ 异常处置 — **无需处置**; 告警 7 条(04Z 6), 两条新类型(一条是修复生效的正常信息, 一条是止损事件)
+1. position reconcile 超范围 **8 名**(04Z 10) 2. 1 名跨 min_notional(IOST) 3. 撤名残差 −11,212U = −4.75%(第三锚) 4. 6 名被场所扣住 reduce-only(04Z 8) 5. **★新(正常)**: 场所上限截断 1 名 157U(E-0909-E 生效) 6. 35 个 maker −5022 转 taker(04Z 30) 7. **★新事件**: per_name_stop 触发 LSKUSDT。**−2027 告警自 09-08 起首次消失。** 回滚/重启/整体回滚均未触发。
+### ⑦ 与 04Z 对比
+| 指标 | 04Z | **08Z** | 向 |
+|---|---|---|---|
+| −2027 残差 | 2,102U | **0** | ★ 修复生效 |
+| venue_reject(−5022 首发) | 54 (49) | 61 (54) | ↑ |
+| 首发穿价率 | 23.3% | **27.8%** | ↑(线 40%) |
+| join / behind 拒单率 | .252 / .147 | .253 / **.177** | → / ↑ |
+| maker 占比(名义) | 0.762 | 0.771 | → 带外 |
+| 费 bps | 2.714 | 2.687 | → |
+| **net/gross** | −1.12% | **+0.18%** | ★ 回带 |
+| neutrality 同侧 taker bps | 98.67 | **0.88** | ★ 回落 |
+| known_gaps | 20 名 3,094U | **11 名 820U** | ↓ |
+| 尺寸梯度 s/m/l | .46/.60/.53 | **.52/.57/.65** | ★ 非负成立 |
+| reconcile 超范围名 | 10 | 8 | ↓ |
+| 反事实改写 | 24.4% | **24.9%** | ↑ +0.5pp |
+| NAV 当日 | −0.05% | **+0.62%** | ↑ |
+### 待验证 / 推断
+**已验证**: §3 六条 + 截断归零; ①–⑥ 全部读数。**待验证**: (a) 反事实改写 +0.5pp 单锚跳变, 12Z 看是否连升; (b) 撤名残差连续第三锚 >2%(−4.7~−4.8% 稳定), 基率回溯仍未做; (c) LSKUSDT 止损 30 天反事实对照待回填(条款自带); (d) 测试 `_CAP_CLAMP_DEPLOYED_TS` 应按套件自身设计设为本锚(首个受截断治理的锚, anchor_ts 1789201439), 使 −2027 类「上线后必为零」断言开始生效 —— 测试文件小改, 走 safe_commit(下一窗 09:36Z 后)。**推断**: net/gross 回带与 −2027 归零同锚发生, 但 net 由多因素决定, 不归因。
+### 与研究线的交叉(只记)
+BNB 折扣断第 6 日(运维裁定域); 新读者的「已测口径」数字(0.88 bps)将进入 r21/r14 同族的下一次成本对账。
