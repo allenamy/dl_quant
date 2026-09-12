@@ -2,7 +2,7 @@
 
 # r20 — Closing the export-gate falsifiability gap (N1)
 
-**One line.** The INFRA2 export gate (`infra2/v4e_gate_export.py`, sha `f814c728…`) that I had recommended approving into `ELIGIBILITY_CONTRACT.gates.BUNDLE_export` is not falsifiable: the reviewer's six probes reproduce exactly (§2). A replacement `v4e_gate_export_v2.py` (sha `d63f4ec3…`) plus a companion bound signal gate is proposed; on an isolated synthetic world it passes 2 positives and fails every one of 30 negatives with the failing check named (§5); on pod2 the genuine A1 bundle + A1 books pass it end-to-end (gate + require) and a one-cell mutation of a *copy* of the shipped predictions fails it (§6). The proposed contract fill is `infra2/v4chain_PROPOSED2/ELIGIBILITY_CONTRACT.json` (§7). Nothing frozen or live was written.
+**One line.** The INFRA2 export gate (`infra2/v4e_gate_export.py`, sha `f814c728…`) that I had recommended approving into `ELIGIBILITY_CONTRACT.gates.BUNDLE_export` is not falsifiable: the reviewer's six probes reproduce exactly (§2). A replacement `v4e_gate_export_v2.py` (sha `d63f4ec3…`) plus a companion bound signal gate is proposed; on an isolated synthetic world its 32-row matrix meets expectation on every row — 5 expected-PASS rows (two positive worlds through gate and `require`, plus a bytewise-restore control), 25 negatives that FAIL with the failing check named, 2 malformed-standard cases refused (§5); on pod2 the genuine A1 bundle + A1 books pass it end-to-end (gate + require) and a one-cell mutation of a *copy* of the shipped predictions fails it (§6). The proposed contract fill is `infra2/v4chain_PROPOSED2/ELIGIBILITY_CONTRACT.json` (§7). Nothing frozen or live was written.
 
 Scope discipline: only `uplift_2026-09-11/infra2/` (new files) and `uplift_2026-09-11/r20_gate_closure/` (new) were written locally; on pod2 only the new dir `/workspace/uplift_2026-09-11/r20_gate_closure/`. `~/dl_quant_live`, `~/wide_shadow`, `infra2/v4chain/*`, `/workspace/shadow_bundle_v4/*` and every judged book were read only. XIBLAG50 stays unregistered (arms block untouched).
 
@@ -60,6 +60,51 @@ Device `devices/probe_original_gate.py` (E5/E6/E7 block of the original exec'd v
 ## 4. Caliber of the content checks
 
 Pinned book conventions (`CALIBER_PIN_v4_2026-09-11.md` §3): `g = net_ex/gross_total`; the identity `net_ex = pnl_ex − carry_ex − cost_ex` is exact in the device (`rec.append(... float(pnl_r - car_r - cbps_r), pnl_r, car_r, float(cbps_r) ...)`, L327) and is checked at 1e-9. Tolerances for the W-derived identities (1e-6) are 60–130× the observed float32-storage deviations (F6). The gross band constants are evidence-based (F7), not chosen to admit anything in particular; the arm that would fail them (XIBLAG50, 2.10) is reported in §6, not hidden.
+
+## 5. Falsifiability matrix on the isolated synthetic world — `devices/test_matrix_v2.py`, receipt `receipts/RECEIPT_test_matrix_v2.json`
+
+Final run (utc 2026-09-12T05:38:40Z, 571 s, python 3.14.4 / numpy 2.4.4). Sources hashed into the receipt: gate v2 `d63f4ec3f9e6…`, signal gate v2 `abc45cad806c…`, `v4_gate_common.py` `7b6d49a3de74…`, frozen contract (read only) `3299dc97ab0c…`, isolated world contract `bafdc7fcb4b8…` (= frozen + PROPOSED2-style fill with the fixture's own shas). World: 5844 panel anchors (2024-01-01→2026-08-31, 120 names), y4 scale bisected to 0.007117 so the verbatim E4 replay lands at Sharpe 2.3755 ∈ [2.27, 2.57]; fold ICs 0.4258/0.4254/0.4266 (BASE := re-derived, Δ = 0); 3307-row books (3168 frozen) built to satisfy the device identities exactly; a real `gate_signal_parity_v2.py` receipt for the FEMAT arm (rc 0). Positive receipts kept: `receipts/RECEIPT_v2_fixture_positive_no_femat.json`, `…_with_femat.json`.
+
+**n_rows = 32, ALL_ROWS_MEET_EXPECTATION = True.** Expected PASS 5 (two positive worlds through gate **and** `require`, plus the bytewise-restore control), expected FAIL 25, expected REFUSE (rc 2) 2. Every FAIL row names the failing check(s); a row "meets expectation" iff the observed verdict equals the expected one and every expected check name appears in the named list (extra names allowed and shown).
+
+| # | Case | Mode | Expected | Observed | rc | Failing check(s) named | Meets | Note / identity reason |
+|---|---|---|---|---|---|---|---|---|
+| 1 | P1_positive_no_femat (A1-like, FEMAT None) | gate | PASS | PASS | 0 | — | yes |  |
+| 2 | P1_positive_no_femat require | require | PASS | PASS | 0 | — | yes | PASS |
+| 3 | P2_positive_with_femat (XIB-like, bound signal receipt) | gate | PASS | PASS | 0 | — | yes |  |
+| 4 | P2_positive_with_femat require | require | PASS | PASS | 0 | — | yes | PASS |
+| 5 | N1_pred_one_cell_changed require (reviewer probe 6 form) | require | FAIL | FAIL | 3 | E1_manifest | yes | the SHIPPED prediction is now a registered input; input 'bundle/slow_pred_pinned.npy' changed since the receipt: adefbd04a04f != 13fc7f8408d5 |
+| 6 | N1_pred_one_cell_changed re-gate | gate | FAIL | FAIL | 3 | E1_manifest | yes | E3 IC tolerance cannot see one cell; MANIFEST closure does |
+| 7 | R6_unbound_shipped_bundle: pred->NaN after receipt, require | require | FAIL | FAIL | 3 | E1_manifest | yes | input 'bundle/slow_pred_pinned.npy' changed since the receipt: 1b356a03dbf4 != 13fc7f8408d5 |
+| 8 | R6 control: pred restored bytewise, require | require | PASS | PASS | 0 | — | yes | PASS |
+| 9 | N8_femat_mutated_after_receipts require | require | FAIL | FAIL | 3 | E7_signal_receipt | yes | input 'femat' changed since the receipt: 157061d3094b != 355ff3253874 |
+| 10 | N8_femat_mutated_after_signal_receipt re-gate | gate | FAIL | FAIL | 3 | E7_signal_receipt | yes |  |
+| 11 | N11_receipt_self_sha=original_gate require | require | FAIL | FAIL | 3 | — | yes | original sha is not approved for BUNDLE_export in the isolated contract; receipt was written by gate source f814c7289384, caller trusts d63f4ec3f9e6 |
+| 12 | R1_bare_PASS_wrong_signal_gate | gate | FAIL | FAIL | 3 | E7_signal_receipt | yes |  |
+| 13 | R2a_signal_receipt_PASS_false | gate | FAIL | FAIL | 3 | E7_signal_receipt | yes |  |
+| 14 | R2b_signal_receipt_says_PASS_but_stats_violate_thresholds | gate | FAIL | FAIL | 3 | E7_signal_receipt | yes | PASS re-derived from stats, the word is not trusted |
+| 15 | R3_different_cost_and_ftrim (COST_B zero + injected FTRIM_TH key) | gate | FAIL | FAIL | 3 | E6_books_config | yes |  |
+| 16 | R4_zero_W_and_infinite_pnl | gate | FAIL | FAIL | 3 | E5_books_shape, E8_books_content | yes |  |
+| 17 | R5_bad_fixed_PIN (PHI 0.99, the one probe the original caught) | gate | FAIL | FAIL | 3 | E6_books_config | yes |  |
+| 18 | N2a_W_one_anchor_x2 (gross_total updated, turnover not) | gate | FAIL | FAIL | 3 | E8_books_content, E9_gross_band_vs_baseline (expected E8_books_content; also fired: E9_gross_band_vs_baseline) | yes | K2 turnover identity |
+| 19 | N2b_W_one_anchor_x2 (every W-derived column recomputed) | gate | FAIL | FAIL | 3 | E9_gross_band_vs_baseline | yes | only the baseline band sees a self-consistent forgery |
+| 20 | N10_W_all_anchors_x2 (fully consistent) | gate | FAIL | FAIL | 3 | E8_books_content, E9_gross_band_vs_baseline | yes | K6 gross<=1 and the band |
+| 21 | N3_cost_json_one_tier_rate_changed (books' COST_B untouched) | gate | FAIL | FAIL | 3 | E6_books_config | yes | costb sha + resolves_to_approved_tiers |
+| 22 | N3b_cost_json_same_tiers_but_different_bytes | gate | FAIL | FAIL | 3 | E6_books_config | yes | the file the book was built from is identified by sha, not by what it says |
+| 23 | N4_zero_cost (identities kept) | gate | FAIL | FAIL | 3 | E8_books_content | yes | K7 |
+| 24 | N5_manifest_unlisted_file | gate | FAIL | FAIL | 3 | E1_manifest | yes |  |
+| 25 | N6_baseline_A0_book_replaced_by_another_cell | gate | FAIL | FAIL | 3 | E9_gross_band_vs_baseline | yes | approved baseline identity |
+| 26 | N7_signal_receipt_bound_to_other_arm | gate | FAIL | FAIL | 3 | E7_signal_receipt | yes |  |
+| 27 | N9_env_BUNDLE_GUARD_LO=0.0 | refuse | REFUSE rc=2 | REFUSE | 2 | n/a (refused before any check) | yes | thresholds are not the caller's |
+| 28 | N12_contract_missing_approved_baseline | refuse | REFUSE rc=2 | REFUSE | 2 | n/a (refused before any check) | yes |  |
+| 29 | N13_live_pins_same_content_different_bytes | gate | FAIL | FAIL | 3 | E2b_pins_identity | yes | E2 content parity passes; identity (d) fails |
+| 30 | N14_book_dyn_s42_declares_FSEED_2027 | gate | FAIL | FAIL | 3 | E6_books_config | yes |  |
+| 31 | N15_require_ARMX_receipt_against_ARMY_books | require | FAIL | FAIL | 3 | — | yes | book inputs differ by sha; input 'book_dyn_s2027' changed since the receipt: 828b62ed1781 != 0d6c0794faa4 |
+| 32 | N16_umask_npz_replaced | gate | FAIL | FAIL | 3 | E6_books_config | yes |  |
+
+Mapping to the reviewer's six probes: R1 ↔ bare_PASS_wrong_signal_gate (now E7); R2a ↔ signal_FAIL_negative_control (E7) with R2b the sharper form (the word PASS left true, stats violate → E7); R3 ↔ different_cost_and_ftrim (E6: COST_B tiers ≠ approved **and** the injected key breaks the exact 27-key set — the reviewer's `FTRIM_TH` is not a device knob, F5); R4 ↔ zero_W_and_infinite_pnl (E5 rec_finite + E8 K1/K6/K7); R5 ↔ bad_fixed_PIN (E6, as before); rows 5–8 ↔ unbound_shipped_bundle (`require` now fails on `bundle/slow_pred_pinned.npy`, and passes again only when the bytes are restored).
+
+Process notes (receipts are of the final run only): run 1 exposed a v2 bug — E7 looked up the statistic under the threshold's own name (`rows_min`) instead of `rows`, so the genuine bound receipt failed re-evaluation; fixed, and it is why every ARMX row of run 1 also named E7. Run 2 exposed a harness defect — a re-gate after a mutation overwrote the positive receipt at the same path, so the later `require` rows failed for the wrong reason (`receipt says PASS=False`); fixed by tagging re-gate receipts (`_regate1/2`). Run 3 is the receipt above. Neither fix changed a threshold or a check's meaning; the v2 gate sha in §3 is the run-3 sha.
 
 ## 6. Positive control on REAL data (pod2) — `devices/run_pod2_positive.sh`, log `receipts/pod2/pod2_run.log`
 
