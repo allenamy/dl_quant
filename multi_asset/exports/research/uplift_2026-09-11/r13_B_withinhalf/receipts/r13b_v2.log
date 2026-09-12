@@ -1,0 +1,49 @@
+[    0.4s] meta (10182, 829) panel (10039, 829)
+[    0.8s] A_ew parity vs r12 = 0.0 (bit-exact), members mean 282.8
+[    1.2s] beta prefix-sum vs direct maxabs {60: 9.614531393253856e-13, 120: 5.224709553885987e-13, 250: 2.3447910280083306e-13}
+[    1.4s] beta matrix W=60 built, finite frac 0.3243
+[    1.6s] beta matrix W=120 built, finite frac 0.3194
+[    1.8s] beta matrix W=250 built, finite frac 0.3085
+[    2.7s] archive self-check OK {'mean_g': 0.6341956721704608, 'sharpe': 1.2912234378101446, 'turn_raw': 0.03031580569927569, 'turn_matched': 0.05402702626085247}
+[    3.2s] GATE P s42 {'pnl_ex_maxabs': 8.610721977220237e-06, 'carry_ex_maxabs': 1.5488434490507075e-07, 'cost_ex_maxabs': 2.547998927127093e-08, 'net_ex_maxabs': 8.607697964180261e-06, 'g_maxabs': 1.1258829715643515e-05, 'mean_g_rebuild': 0.6341956744917235, 'mean_g_archive': 0.6341956721704608}
+[    3.7s] GATE P s2027 {'pnl_ex_maxabs': 8.610721977220237e-06, 'carry_ex_maxabs': 1.4247008461865107e-07, 'cost_ex_maxabs': 2.51799325834412e-08, 'net_ex_maxabs': 8.607697964180261e-06, 'g_maxabs': 1.1258829715643515e-05, 'mean_g_rebuild': 0.6579358511842209, 'mean_g_archive': 0.6579358470455169}
+[    6.4s] shrinkage no-op ASSERTED {'g_maxabs': 2.6645352591003757e-13, 'theta_maxabs': 5.551115123125783e-16, 'note': 'Vasicek rho scales Bhat, s and V so it cancels exactly in theta* = kappa*Bhat*s/(VL+VS). AMENDMENT 1 made this true by defining Bhat on DEMEANED betas; it is now ASSERTED.'}
+[    7.8s] arm K0.25_W60 done
+[    9.1s] arm K0.25_W120 done
+[   10.5s] arm K0.25_W250 done
+[   11.8s] arm K0.50_W60 done
+[   13.2s] arm K0.50_W120 done
+[   14.5s] arm K0.50_W250 done
+[   15.9s] arm K0.75_W60 done
+[   17.2s] arm K0.75_W120 done
+[   18.6s] arm K0.75_W250 done
+[   20.0s] arm K1.00_W60 done
+[   21.3s] arm K1.00_W120 done
+[   22.7s] arm K1.00_W250 done
+[   23.9s] ARM K0.25_W120 dg +0.0157 CI [-0.0311, 0.065] dturn% +1.30
+[   23.9s] ARM K0.25_W250 dg -0.0018 CI [-0.0491, 0.0461] dturn% +0.91
+[   23.9s] ARM K0.25_W60 dg +0.0182 CI [-0.0262, 0.0657] dturn% +2.01
+[   23.9s] ARM K0.50_W120 dg +0.0298 CI [-0.0612, 0.1259] dturn% +3.36
+[   23.9s] ARM K0.50_W250 dg -0.0050 CI [-0.0978, 0.09] dturn% +2.41
+[   23.9s] ARM K0.50_W60 dg +0.0310 CI [-0.0539, 0.1214] dturn% +5.06
+[   23.9s] ARM K0.75_W120 dg +0.0369 CI [-0.0912, 0.1741] dturn% +5.68
+[   24.0s] ARM K0.75_W250 dg +0.0008 CI [-0.1334, 0.1376] dturn% +4.10
+[   24.0s] ARM K0.75_W60 dg +0.0404 CI [-0.0799, 0.1683] dturn% +8.43
+[   24.0s] ARM K1.00_W120 dg +0.0440 CI [-0.1167, 0.2133] dturn% +8.01
+[   24.0s] ARM K1.00_W250 dg +0.0077 CI [-0.1639, 0.1794] dturn% +5.81
+[   24.0s] ARM K1.00_W60 dg +0.0496 CI [-0.1017, 0.2109] dturn% +11.87
+[   24.0s] stage1 receipt written
+[   25.0s] GATE M {"base": -0.0260912315448634, "overlay": -0.0022059423830271454, "abs_base": 0.08501480366545436, "abs_overlay": 0.0068853840557406235, "pct_reduction": 91.90095870498554, "ci_abs_base": [0.0814487918280004, 0.08862462221117798], "ci_abs_overlay": [0.006146304330562481, 0.00767849142492073], "ci_delta_abs": [-0.08133837892225992, -0.07498854080210364]}
+[   25.0s] GATE M pass = True
+[   26.4s] regime table done, cells 34
+[   26.4s] tail {"base": {"n_days": 1673, "worst_day": "20220607", "worst_day_ret": -0.11171398183738601, "halt4": 6, "alert268": 24, "halt4_per_yr": 1.3090257023311416, "maxDD": 0.46417931631583276}, "overlay": {"n_days": 1673, "worst_day": "20220607", "worst_day_ret": -0.0633398879829804, "halt4": 2, "alert268": 13, "halt4_per_yr": 0.4363419007770472, "maxDD": 0.37429278944720323}, "archive": {"n_days": 1673, "worst_day": "20220607", "worst_day_ret": -0.11171398418422795, "halt4": 6, "alert268": 24, "halt4_per_yr": 1.3090257023311416, "maxDD": 0.4641793134243045}, "window": "W_TAIL n=10038 (NO warm drop)"}
+[   32.7s] NULL NULL_RELAB1 kappa 3.2500 dg -0.0253 dturn +0.003212 (target +0.003233) fire 8861/9131
+[   41.4s] NULL NULL_RELAB2 kappa 3.1875 dg -0.0027 dturn +0.003245 (target +0.003233) fire 9126/9131
+[   47.8s] NULL NULL_RELAB3 kappa 3.2500 dg -0.0270 dturn +0.003238 (target +0.003233) fire 9123/9131
+[   60.0s] NULL NULL_SHIFT101 kappa 1.0469 dg -0.0252 dturn +0.003256 (target +0.003233) fire 9127/9131
+[   69.2s] NULL NULL_SHIFT503 kappa 1.1875 dg -0.0267 dturn +0.003228 (target +0.003233) fire 9131/9131
+[   74.2s] NULL NULL_SHIFT1009 kappa 1.5000 dg -0.0490 dturn +0.003249 (target +0.003233) fire 8910/9131
+[   74.2s] rho {"d_vs_gA0": [-0.4225820511941414, 9138], "g_overlay_vs_gA0": [0.9361707514392741, 9138], "d_vs_dXIB": [0.07976706302974958, 9138], "gXIB_vs_gA0": [0.8898834950267084, 9138], "d_vs_gXIB": [-0.37979733550811146, 9138], "xib_file": "/workspace/uplift_2026-09-11/seatladder/dev/probe_artifacts/w10_ablation_series_LAD_XIB_dyn_s42.npz", "xib_sha256": "60e58d79d52a789ae0a9502b56129c410dd25e335ebdcda5669d0b10d10fa6bd", "note": "d = overlay increment. |rho(d, dXIB)| >= 0.60 would mean the overlay is the same alpha re-weighting in disguise (prereg 8)."}
+[   79.0s] seed s2027 {"dg": 0.016037601840678775, "ci95": [-0.1578926920270667, 0.18980065058719678], "boot_se": 0.0885102151041667, "dturn_matched": 0.003330918571187865, "dturn_pct": 5.842461087714144, "sharpe_ov": 1.5041183833849796, "sharpe_base": 1.329865076707991, "exante_gap_reduction_pct": 91.42827090827362, "dg_reprice_3p2167": -0.006353975226706237, "tail": {"n_days": 1673, "worst_day": "20220607", "worst_day_ret": -0.0633398879829804, "halt4": 2, "alert268": 16, "halt4_per_yr": 0.4363419007770472, "maxDD": 0.38338879398822157}}
+[   79.0s] DONE
+RESULT_JSON_AT /workspace/uplift_2026-09-11/r13_B_withinhalf/RECEIPT_r13B_full.json

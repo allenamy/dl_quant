@@ -1,0 +1,44 @@
+{
+ "tiers": [
+  {
+   "name": "tier0_qv4h>=5e6",
+   "maker_bps": 1.923482,
+   "taker_bps": 5.874314,
+   "maker_share": 0.810909
+  },
+  {
+   "name": "tier1_qv4h>=1e6",
+   "maker_bps": 1.987248,
+   "taker_bps": 6.487762,
+   "maker_share": 0.845542
+  },
+  {
+   "name": "tier2_rest",
+   "maker_bps": 2.765813,
+   "taker_bps": 8.09014,
+   "maker_share": 0.835498
+  }
+ ],
+ "model": "POWER-shape book-walk impact, excess of half-spread, G=$230000",
+ "impact_bps_by_tier": [
+  0.01954,
+  0.07144,
+  0.85794
+ ],
+ "blended_bps_per_unit_turnover": [
+  2.6705,
+  2.6824,
+  3.6417
+ ],
+ "book_avg_bps_per_unit_turnover": 2.9537,
+ "turnover_share_by_tier": [
+  0.3092,
+  0.4041,
+  0.2867
+ ],
+ "calibration": {
+  "source": "r3k_fitK3.py POWER caliber, LOB 0.2%/1% bands, 2026 anchors",
+  "gross_usdt": 230000.0,
+  "note": "A(x)=A02*(x/0.2)^p fitted per (anchor,name) through the two published bands"
+ }
+}
