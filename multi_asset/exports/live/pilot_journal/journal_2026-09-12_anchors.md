@@ -108,3 +108,8 @@ requote 44 / direct 26 / exempt 2; requote report: candidates 23 → 落单 19, 
 - **§2 核**: HEAD ✓ · 27 文件 +5098/−280 ✓ · state/ 外干净 ✓ · `ops/check_upstream_drift.py` rc=0 ✓ · compileall rc=0 ✓ · 烟测 identity_unknown / static_names / transport_resilience(92)ALL PASS ✓ · `com.dlquant.live.anchor` 在册 ✓。
 - **部署前验收**(`docs/ACCEPTANCE_b681ca5_2026-09-12.md`, 隔离克隆, 05:43Z 快照): 神经价读者 19/19 锚逐位相等; 看门狗 43 日 0 差; 回滚排演 diff=0; 克隆电池 130/132 绿。**两红树无关**: 旧树 d040c74 克隆同快照直接跑同两套 ⇒ rc=1, FAIL 3+4 条, 三条 disposition payload sha 前 12 位 d19da6693f71 / bea0dd249993 / 78a55480d2cc 两树一致。归因: `.env` gitignored(克隆无); 账本事实 — A1789115039(09-11 08:23Z, E-0910-A 锁复发)involuntary 4,504U; PIEVERSE −2027 残差 ≈2.2kU 超自身 gross 1%(A1788999840 09-10 00:24Z 重建锚 gross 154,910 等)。
 - **待办**: 08Z 首锚 §3 六条验收; 06:36Z 后运行目录电池作收据(预期 tests_disposition_matrix 红, 账本事实); tests_disposition_matrix 分类更新需裁定(否则挡 safe_commit); 52 行写回另裁。回滚 = §5 revert 链。
+
+### 06:36:30–06:50:53Z · 运行目录全电池(RUNBOOK §2-6 部署收据, HEAD b681ca5)
+- **132 套件 / 131 绿 / 1 红 = `tests_disposition_matrix`**(3 条真账本断言; payload sha 前 12 位 d19da6693f71 / bea0dd249993 / 78a55480d2cc 与克隆、旧树 d040c74 **三处逐字节同** ⇒ 账本事实: E-0910-A 锁复发锚 A1789115039 involuntary 4,504U; PIEVERSE −2027 残差超自身 gross 1% 于 A1788999840(09-10 00:24Z 重建锚)等)。`tests_env_loading` 运行目录 **14/14**(克隆红仅因 gitignored `.env`)。收据 `docs/receipts/rundir_battery_b681ca5_20260912T063630Z.log`; 逐套件日志 `~/dl_quant_live/state/acceptance/20260912T063630Z_*.log`。
+- ⚠ 电池的 DRY_RUN 锚写进了共享的 `state/anchor_runs.log`: `06:37:05Z anchor start mode=DRY_RUN … 06:38:40Z anchor done rc=0`(arm: no venue contacted; orders/fills/anchors.jsonl 在该窗 0 行)。**08Z 深查读 log 尾时以 `mode=LIVE` 的锚为准**(`start_dryrun_clock.sh` L156 已注明该共享性质)。
+- 运维后果(登记, 待裁定): 下一次 `safe_commit` 会被该套件挡住, 直到其分类按 E-0910-A / −2027 上限更新。
