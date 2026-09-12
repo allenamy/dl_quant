@@ -24,3 +24,16 @@
 
 ## §2 顺序
 G5(12Z 测量)→ G1/G2 落地(下一非锚窗)→ G3/G4 复核后提交 → G6 PREREG → 裁定项(G7/G8/G10/G11)。
+
+## §3 状态(2026-09-12 11:2xZ)
+| # | 状态 | 收据 |
+|---|---|---|
+| G1 | **W1 交付**: 合同/恢复/新鲜度门/只读门 + 52 检查 + 突变红; 克隆电池 131/132(红 = 无 .env); 待 13:36Z 窗 safe_commit 落地 | `docs/DESIGN_ic_monitor_contract_2026-09-12.md`, `docs/receipts/w1_*` |
+| G2 | **W2 交付**: daily_summary / first_anchor_review / score_post_fix 三桶 + 非 USDT 单列 + None≠0; 新纯模块 cost_buckets(规则逐字抄 anchor_loop 并逐键钉住); 53+31 检查; 旧码红; 克隆电池 132/133; 待 13:00Z 窗 safe_commit 落地 | `docs/DESIGN_readers_three_bucket_2026-09-12.md`, `docs/receipts/w2_*` |
+| G3 | W3 进行中(pod2 CPU 正控 + 自检) | — |
+| G4 | **W4 交付**: judge 底 11→28, 夹具 28 名, 自检 151→180(合并文件 222), pod2 正负控; 待与 G3 同一提交(共享自检文件) | `docs/DESIGN_judge_floor_28_2026-09-12.md`, `v4_chain…/receipts/judge_floor_2026-09-12/` |
+| G5 | king 段 PASS 41/41; combo 段按字面 FAIL(机理待 12Z 快照回填测量) | `parity_replay_2026-09-12/RESULT_parity_phase1_2026-09-12.md` |
+| G6 | PREREG 已立; G2-A 通道平价 PASS | `docs/PREREG_producer_parity_phase2_oos_2026-09-12.md` |
+| G7–G11 | 待裁定 | `docs/RULINGS_requested_2026-09-12.md` |
+新增待裁定(W1 发现): #55 同级 24h 冷却与 01:30Z 抖动(86,398.51 s 压掉了 09-11 的 DECIDE 重发)—— 一处常量 COOLDOWN_S, 建议 23h; 新鲜度门 MAX_MISSING={r24:2, r48:4} 使 09-07..09-12 五次判级全部 INCOMPLETE(事实: 窗被平仓掏空), 是否维持该门待裁定。
+

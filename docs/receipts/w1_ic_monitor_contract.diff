@@ -1,0 +1,978 @@
+diff --git a/live/tests_ic_monitor.py b/live/tests_ic_monitor.py
+index ee52582..058b083 100644
+--- a/live/tests_ic_monitor.py
++++ b/live/tests_ic_monitor.py
+@@ -2,20 +2,46 @@
+ 
+ 覆盖: [T1] 阈值已盖章且引标定源 [T2] IC 数学(已知符号的合成数据) [T3] 判级逻辑(OK/不足/ALERT/DECIDE)
+ [T4] β 严格因果(历史在计算之后推进) [T5] launchd plist 存在且指向本脚本 [T6] 幂等(known_ts 跳过)
+-盲区(自陈): (a) 不跑真实 position_readback —— 数据形状变化本套件不红; (b) 不测 telegram 投递
+-(deliver 的 import 在 try 内, 死投递只打印); (c) 阈值的【正确性】来自离线标定文档, 本套件只钉存在。
++2026-09-12 告警合同修正(设计/事实表: quant_research docs/DESIGN_ic_monitor_contract_2026-09-12.md):
++[T7] 对象与标定身份两行逐字进每一页正文与 contract 块 [T8] 恢复通知 = 最后投递级别的一次性转移
++(含真实遗留 state 字典的迁移) [T9] 新鲜度门: 网格期望 vs 实有, 缺 > 上限的窗不判; 统计量不变;
++冻结真实账本回放 09-12 01:30:02Z 逐位复现 [T10] --check/--dry 严格只读(子进程: 不加载 .env,
++不 import telegram, 账本/状态/evals 三文件 sha 前后相等) [T11] 四种正文经 alarm_policy 都是 PUSH
++(命中 B/C 层规则的 INFO 页会被静默记档而永不上手机)
++红能力: [M7] 正文去掉 OBJECT ⇒ T7b 红 [M8] 删恢复转移分支 ⇒ T8a/T8d 红 [M9] 关新鲜度门 ⇒ T9a/T9e 红
++[M10] 删 argv 门 ⇒ T10a 红。突变体写到 tmp 目录按路径加载, 不碰 ops/ 树。
++盲区(自陈): (a) 不跑真实 position_readback 的【形状断言】—— T10c 在真实回读上跑 main(--check) 只证
++无副作用, 不证 loader 读到了对的字段, 上游 schema 变了本套件不红; (b) telegram 【传输】不在此
++(投递决策用注入桩测; 传输由 tests_telegram_notify 管); (c) 阈值的【正确性】来自离线标定文档且已知
++与在役形态不匹配 —— 本套件只钉「这个事实被写进每一页」, 不钉阈值对不对; (d) launchd 每日实际触发
++无断言 —— 新鲜度门只在 job 跑起来时才会因账本冻死而报 INCOMPLETE, job 不跑则页也不发。
++★ 本套件绝不构造真 notifier: import 前置 LIVE_ALARM_SUPPRESS=1 + LIVE_NOTIFY_AUDIT=<tmp>。
+ """
++import hashlib
+ import importlib.util
+ import json
+ import os
++import shutil
++import subprocess
+ import sys
++import tempfile
+ 
+ _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+-spec = importlib.util.spec_from_file_location("ic_monitor",
+-                                              os.path.join(_REPO, "ops", "ic_monitor.py"))
+-M = importlib.util.module_from_spec(spec)
+-spec.loader.exec_module(M)
++_TMP = tempfile.mkdtemp(prefix="icmon_t_")
++# ★ 在 import 被测模块之前: 任何意外构造的 notifier 只会 SUPPRESSED, 审计落 tmp。
++os.environ["LIVE_ALARM_SUPPRESS"] = "1"
++os.environ["LIVE_NOTIFY_AUDIT"] = os.path.join(_TMP, "notify_audit.jsonl")
++_SRC_PATH = os.path.join(_REPO, "ops", "ic_monitor.py")
+ 
++
++def _load(path, name="ic_monitor"):
++    spec = importlib.util.spec_from_file_location(name, path)
++    m = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(m)
++    return m
++
++
++M = _load(_SRC_PATH)
+ FAIL = []
+ 
+ 
+@@ -25,35 +51,55 @@ def check(name, cond, detail=""):
+         FAIL.append(name)
+ 
+ 
++G = M.GRID_S
++W = M.WINDOW_START_TS
++mk = lambda i, ic: {"anchor_ts": W + i * 14400, "rank_ic": ic}
++
++
++def rows_(n, ic=0.05, holes=()):
++    return [mk(i, ic) for i in range(n) if i not in holes]
++
++
++def now_for(rows):
++    """夹具的「现在」: 最后一锚的下锚回读刚成熟 ⇒ 前沿 = 夹具最后锚。"""
++    return max(r["anchor_ts"] for r in rows) + G + M.MATURE_LAG_S + 60
++
++
+ # [T1] 阈值盖章
+ check("T1a thresholds stamped", all(v is not None for v in (M.R24_P5, M.R24_P1, M.R48_P1)),
+       f"{M.R24_P5}/{M.R24_P1}/{M.R48_P1}")
+ check("T1b ordering P1 < P5 < 0", M.R24_P1 < M.R24_P5 < 0,
+       "DECIDE must be rarer than ALERT")
+ check("T1c calibration source cited", "ic_calib_a005" in M.CALIB_SRC)
++check("T1d thresholds unchanged by the 2026-09-12 contract fix",
++      (M.R24_P5, M.R24_P1, M.R48_P1) == (-0.02277, -0.04425, -0.01656)
++      and M.WINDOW_START_TS == 1786363200.0)
+ 
+ # [T2] IC 数学: 完全同序 ⇒ spearman=1; 反序 ⇒ −1
+ check("T2a spearman +1", abs(M._spear([1, 2, 3, 4, 5], [10, 20, 30, 40, 50]) - 1.0) < 1e-9)
+ check("T2b spearman −1", abs(M._spear([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]) + 1.0) < 1e-9)
+ check("T2c ties handled", M._spear([1, 1, 2], [1, 2, 3]) is not None)
+ 
+-# [T3] 判级: <24 锚只记不判; 越线判级正确
+-W = M.WINDOW_START_TS
+-mk = lambda i, ic: {"anchor_ts": W + i * 14400, "rank_ic": ic}
+-v0 = M.check([mk(i, 0.05) for i in range(10)])
+-check("T3a insufficient below 24", not v0["judged"] and v0["level"] == "OK", str(v0))
+-v1 = M.check([mk(i, 0.05) for i in range(30)])
+-check("T3b healthy = OK judged", v1["judged"] and v1["level"] == "OK", str(v1))
+-v2 = M.check([mk(i, 0.05) for i in range(10)] + [mk(10 + i, M.R24_P5 - 0.005) for i in range(24)])
+-check("T3c ALERT on r24 < p5", v2["level"] in ("ALERT", "DECIDE"), str(v2))
+-v3 = M.check([mk(i, M.R24_P1 - 0.01) for i in range(24)])
+-check("T3d DECIDE on r24 < p1", v3["level"] == "DECIDE", str(v3))
+-v4 = M.check([mk(i, 0.05) for i in range(30)] + [{"anchor_ts": W - 999999, "rank_ic": -9.9}])
++# [T3] 判级: <24 锚只记不判; 越线判级正确。(now= 使前沿 = 夹具最后锚, 语义与修前相同)
++r0 = [mk(i, 0.05) for i in range(10)]
++v0 = M.check(r0, now=now_for(r0))
++check("T3a insufficient below 24", not v0["judged"] and v0["level"] == "OK", str(v0)[:120])
++r1 = [mk(i, 0.05) for i in range(30)]
++v1 = M.check(r1, now=now_for(r1))
++check("T3b healthy = OK judged", v1["judged"] and v1["level"] == "OK", str(v1)[:120])
++r2 = [mk(i, 0.05) for i in range(10)] + [mk(10 + i, M.R24_P5 - 0.005) for i in range(24)]
++v2 = M.check(r2, now=now_for(r2))
++check("T3c ALERT on r24 < p5", v2["level"] in ("ALERT", "DECIDE"), str(v2)[:120])
++r3 = [mk(i, M.R24_P1 - 0.01) for i in range(24)]
++v3 = M.check(r3, now=now_for(r3))
++check("T3d DECIDE on r24 < p1", v3["level"] == "DECIDE", str(v3)[:120])
++r4 = [mk(i, 0.05) for i in range(30)] + [{"anchor_ts": W - 999999, "rank_ic": -9.9}]
++v4 = M.check(r4, now=now_for(r4[:30]))
+ check("T3e pre-window rows excluded", v4["level"] == "OK",
+       "rows before WINDOW_START_TS must not be judged")
+ 
+ # [T4] β 严格因果: compute_rows 内 history 推进必须在 IC 计算之后(静态序检查)
+-src = open(os.path.join(_REPO, "ops", "ic_monitor.py")).read()
++src = open(_SRC_PATH).read()
+ i_ic = src.find("ic = _spear(pos, ret)")
+ i_push = src.find("# push history AFTER computing")
+ check("T4 beta history pushed AFTER ic computation", 0 < i_ic < i_push,
+@@ -70,6 +116,375 @@ if os.path.exists(_pl):
+ rows6 = M.compute_rows({W: {"A": (100.0, 1.0), "B": (-100.0, 2.0)}}, known_ts={W})
+ check("T6 known anchors skipped", rows6 == [], str(rows6))
+ 
++# ══ 2026-09-12 告警合同 ═══════════════════════════════════════════════════════════════════════
++OBJECT_SPEC = "书级实现 rank-IC = 场所实持仓名义排序 vs 下锚 mid 收益排序; 不是模型分数 IC, 不是扣费净收益"
++CALIB_SPEC = ("阈值标定: α=0.05/band=0.002 离线书(2026-08-10, 9821 锚); "
++              "在役 α=0.1/band=0.00025 — 阈值未按在役形态重标, 5%/1% 概率含义不适用")
++
++
++def fixtures(mod):
++    """四种 verdict: 健康 OK / 由 r48 门触发的 DECIDE / 两窗都不完整 / r48<0 的 OK(恢复用)。"""
++    ok = rows_(60)
++    dec = [mk(i, -0.05) for i in range(24)] + [mk(24 + i, 0.01) for i in range(24)]
++    inc = rows_(60, holes={50, 51, 52, 53, 20, 21})
++    rec = [mk(i, -0.03) for i in range(24)] + [mk(24 + i, 0.02) for i in range(24)]
++    return {"ok": mod.check(ok, now=now_for(ok)), "decide": mod.check(dec, now=now_for(dec)),
++            "incomplete": mod.check(inc, now=now_for(inc)), "recover": mod.check(rec, now=now_for(rec))}
++
++
++def bodies(mod, fx):
++    return {"breach": mod.body_breach(fx["decide"]), "recovered": mod.body_recovered(fx["recover"]),
++            "incomplete": mod.body_incomplete(fx["incomplete"]),
++            "breach_from_ok_verdict": mod.body_breach(fx["ok"])}
++
++
++# [T7] 对象与标定身份
++FX = fixtures(M)
++check("T7a OBJECT / CALIB_IDENTITY are byte-for-byte the task-book strings",
++      M.OBJECT == OBJECT_SPEC and M.CALIB_IDENTITY == CALIB_SPEC)
++
++
++def t7b(mod):
++    fx = fixtures(mod)
++    return all(mod.OBJECT in b and mod.CALIB_IDENTITY in b for b in bodies(mod, fx).values())
++
++
++check("T7b every page body (ALERT/DECIDE, RECOVERED, INCOMPLETE) carries BOTH lines", t7b(M))
++_c = M.contract()
++check("T7c contract block: object + calibration identity + the three thresholds, equal to constants",
++      _c["object"] == OBJECT_SPEC and _c["calibration"] == CALIB_SPEC
++      and _c["thresholds"] == {"ALERT_r24_lt": M.R24_P5, "DECIDE_r24_lt": M.R24_P1,
++                               "DECIDE_r48_lt": M.R48_P1}
++      and FX["ok"]["contract"] == _c, str(_c)[:160])
++_bb = M.body_breach(FX["decide"])
++check("T7d breach body prints R48_P1 and names the gate that fired (audit gap: 09-10 DECIDE "
++      "was r48-triggered and the page showed only r24 thresholds)",
++      str(M.R48_P1) in _bb and "r48<R48_P1" in _bb and FX["decide"]["trigger"] == ["r48<R48_P1"],
++      _bb[:140])
++check("T7e breach body carries the data frontier and both window censuses",
++      "数据前沿=" in _bb and "r24 窗" in _bb and "r48 窗" in _bb)
++
++# [T8] 恢复通知
++SENT = []
++
++
++def stub_ok(sev, body):
++    SENT.append((sev, body))
++    return {"status": "DELIVERED", "delivered_offbox": True}
++
++
++def stub_fail(sev, body):
++    SENT.append((sev, body))
++    return {"status": "NOT_CONFIGURED", "delivered_offbox": False}
++
++
++def _state_file(d):
++    p = os.path.join(_TMP, f"st_{len(os.listdir(_TMP))}.json")
++    json.dump(d, open(p, "w"))
++    return p
++
++
++def t8a(mod):
++    """DECIDE 已投 → 本次 OK ⇒ 恰一页 INFO RECOVERED, state last=OK; 再次 OK ⇒ 零页。"""
++    fx = fixtures(mod)
++    now = now_for(rows_(60))
++    sp = _state_file({"last_delivered_level": "DECIDE", "last_DECIDE": now - 3 * 86400})
++    sent = []
++    r1 = mod.deliver(fx["ok"], now=now, state_path=sp,
++                     sender=lambda s, b: (sent.append((s, b)) or {"status": "DELIVERED",
++                                                                  "delivered_offbox": True}))
++    st = json.load(open(sp))
++    r2 = mod.deliver(fx["ok"], now=now + 86400, state_path=sp,
++                     sender=lambda s, b: (sent.append((s, b)) or {"status": "DELIVERED",
++                                                                  "delivered_offbox": True}))
++    return (len(r1) == 1 and r1[0]["kind"] == "RECOVERED" and r1[0]["severity"] == "INFO"
++            and r1[0]["delivered_offbox"] and st.get("last_delivered_level") == "OK"
++            and sent[0][1].startswith("[ic_monitor #55] RECOVERED: 24/48 锚均值回到所用阈值以上 — "
++                                      "不等于 alpha 恢复")
++            and r2 == [] and len(sent) == 1)
++
++
++check("T8a DECIDE→OK delivers exactly one INFO RECOVERED; OK→OK delivers nothing", t8a(M))
++_now = now_for(rows_(60))
++_sp = _state_file({})
++check("T8c never-delivered → OK delivers nothing",
++      M.deliver(FX["ok"], now=_now, state_path=_sp, sender=stub_ok) == []
++      and json.load(open(_sp)).get("last_delivered_level") is None)
++_sp = _state_file({"last_delivered_level": "ALERT", "last_ALERT": _now - 3 * 86400})
++check("T8b ALERT→OK also recovers (transition from either breach level)",
++      [r["kind"] for r in M.deliver(FX["ok"], now=_now, state_path=_sp, sender=stub_ok)]
++      == ["RECOVERED"])
++
++LEGACY_LIVE_STATE = {"last_ALERT": 1788744602.8063512, "last_DECIDE": 1789003803.967849}
++
++
++def t8d(mod):
++    """真实遗留 state(克隆快照逐字: 只有 last_ALERT/last_DECIDE)⇒ 最后投递级别 = DECIDE(时间戳
++    更大者)⇒ 部署后首个 OK 判级发 RECOVERED —— 手机上最后一页正是 09-10 DECIDE。"""
++    fx = fixtures(mod)
++    sp = _state_file(dict(LEGACY_LIVE_STATE))
++    got = mod.last_delivered_level(dict(LEGACY_LIVE_STATE))
++    r = mod.deliver(fx["ok"], now=1789263002.0, state_path=sp, sender=stub_ok)
++    st = json.load(open(sp))
++    return (got == "DECIDE" and [x["kind"] for x in r] == ["RECOVERED"]
++            and st["last_delivered_level"] == "OK" and st["last_DECIDE"] == LEGACY_LIVE_STATE["last_DECIDE"])
++
++
++check("T8d legacy live state {last_ALERT, last_DECIDE} migrates to last level DECIDE and recovers",
++      t8d(M))
++_sp = _state_file({"last_delivered_level": "DECIDE", "last_DECIDE": _now - 3 * 86400})
++_r = M.deliver(FX["ok"], now=_now, state_path=_sp, sender=stub_fail)
++_st = json.load(open(_sp))
++_r2 = M.deliver(FX["ok"], now=_now + 60, state_path=_sp, sender=stub_ok)
++check("T8e a RECOVERED that did not leave the box keeps last level DECIDE, so the next run retries "
++      "(exactly one DELIVERED page, not exactly one attempt)",
++      _r and not _r[0]["delivered_offbox"] and _st["last_delivered_level"] == "DECIDE"
++      and [x["kind"] for x in _r2] == ["RECOVERED"] and _r2[0]["delivered_offbox"])
++_rb = M.body_recovered(FX["recover"])
++check("T8f r48 still negative is said explicitly in the RECOVERED body",
++      FX["recover"]["level"] == "OK" and FX["recover"]["r48"] < 0 and "r48 仍 <0" in _rb, _rb[:160])
++check("T8g a healthy r48>=0 RECOVERED body does NOT claim r48<0",
++      "r48 仍 <0" not in M.body_recovered(FX["ok"]))
++_sp = _state_file({})
++_r = M.deliver(FX["decide"], now=_now, state_path=_sp, sender=stub_ok)
++_st = json.load(open(_sp))
++_r2 = M.deliver(FX["decide"], now=_now + 3600, state_path=_sp, sender=stub_ok)
++check("T8h a delivered DECIDE records last_delivered_level=DECIDE + last_DECIDE, and the same "
++      "level inside 24h is not re-paged (existing cooldown preserved)",
++      [x["kind"] for x in _r] == ["DECIDE"] and _r[0]["severity"] == "CRITICAL"
++      and _st["last_delivered_level"] == "DECIDE" and _st["last_DECIDE"] == _now and _r2 == [])
++check("T8i state file carries the contract block and the last evaluation census",
++      _st.get("contract") == M.contract() and _st["last_eval"]["level"] == "DECIDE"
++      and _st["last_eval"]["census"]["r24"]["expected"] == 24)
++
++# [T9] 新鲜度门
++_inc_rows = rows_(60, holes={50, 51, 52, 53, 20, 21})
++
++
++def t9a(mod):
++    v = mod.check(_inc_rows, now=now_for(_inc_rows))
++    c = v["census"]
++    exp_missing = [mod.iso(W + i * G) for i in (50, 51, 52, 53)]
++    return (v["level"] == "INCOMPLETE" and not v["judged"] and v["judged_windows"] == []
++            and v["incomplete_windows"] == ["r24", "r48"]
++            and c["r24"]["expected"] == 24 and c["r24"]["present"] == 20
++            and c["r24"]["missing"] == 4 and c["r24"]["missing_anchors"] == exp_missing
++            and c["r48"]["expected"] == 48 and c["r48"]["missing"] == 6
++            and c["frontier_ts"] == W + 59 * G)
++
++
++check("T9a 4 anchors missing from the trailing 24 (and 6 from the 48) ⇒ INCOMPLETE, census exact, "
++      "missing anchors listed by ISO", t9a(M))
++_r9b = rows_(60, holes={52, 53, 20, 21})
++_v9b = M.check(_r9b, now=now_for(_r9b))
++check("T9b 2 missing (r24) / 4 missing (r48) are within tolerance ⇒ complete, judged OK",
++      _v9b["level"] == "OK" and _v9b["judged"] and not _v9b["incomplete"]
++      and _v9b["judged_windows"] == ["r24", "r48"], str(_v9b["census"])[:200])
++
++
++def t9c(mod):
++    """账本冻死: now 前进 3 天而行不进 ⇒ 前沿领先 18 锚 ⇒ INCOMPLETE(审计: 固定旧 ledger 曾可永久 OK)。"""
++    rows = rows_(60)
++    v = mod.check(rows, now=now_for(rows) + 3 * 86400)
++    return (v["level"] == "INCOMPLETE" and v["census"]["r24"]["missing"] == 18
++            and v["census"]["r24"]["missing_anchors"][-1] == mod.iso(W + 59 * G + 18 * G))
++
++
++check("T9c a frozen ledger 3 days behind the clock is INCOMPLETE, not OK", t9c(M))
++_v9a = M.check(_inc_rows, now=now_for(_inc_rows))
++_sp = _state_file({})
++_n9 = now_for(_inc_rows)
++_d1 = M.deliver(_v9a, now=_n9, state_path=_sp, sender=stub_ok)
++_d2 = M.deliver(_v9a, now=_n9 + 3600, state_path=_sp, sender=stub_ok)
++_d3 = M.deliver(_v9a, now=_n9 + 25 * 3600, state_path=_sp, sender=stub_ok)
++check("T9d INCOMPLETE delivers one INFO page naming the missing anchors, at most once per 24h",
++      [x["kind"] for x in _d1] == ["INCOMPLETE"] and _d1[0]["severity"] == "INFO"
++      and _d2 == [] and [x["kind"] for x in _d3] == ["INCOMPLETE"]
++      and M.iso(W + 50 * G) in SENT[-1][1] and "缺4锚" in SENT[-1][1])
++check("T9d' an INCOMPLETE page does not touch last_delivered_level",
++      json.load(open(_sp)).get("last_delivered_level") is None)
++
++
++def t9e(mod):
++    """r24 完整且健康, r48 不完整且其拉长窗均值 < R48_P1 ⇒ 只按 r24 判 = OK, 不因 r48 判 DECIDE。"""
++    rows = [mk(i, -0.20) for i in range(36)] + [mk(36 + i, 0.01) for i in range(24)]
++    rows = [r for r in rows if r["anchor_ts"] not in {W + i * G for i in (20, 21, 22, 23, 24, 25)}]
++    v = mod.check(rows, now=now_for(rows))
++    return (v["r48"] is not None and v["r48"] < mod.R48_P1 and v["level"] == "OK"
++            and v["judged_windows"] == ["r24"] and v["incomplete_windows"] == ["r48"]
++            and v["trigger"] == [] and v["incomplete"])
++
++
++check("T9e r48 window incomplete ⇒ an r48 below R48_P1 does NOT fire DECIDE; judged on r24 only", t9e(M))
++_ics = [r["rank_ic"] for r in sorted(_inc_rows, key=lambda r: r["anchor_ts"])]
++check("T9f the statistic is unchanged: r24/r48 are still the mean of the last 24/48 ledger rows "
++      "(holes stretch the calendar span, the gate refuses to judge, the number is the same number)",
++      _v9a["r24"] == round(sum(_ics[-24:]) / 24.0, 5)
++      and _v9a["r48"] == round(sum(_ics[-48:]) / 48.0, 5))
++
++# T9g: 冻结真实账本回放 09-12 01:30:02Z(审计 VERIFIED 的最新判级)— 数字逐位复现 + 普查
++_LEDGER = os.path.join(_REPO, "state", "live", "ic_monitor.jsonl")
++_T0912 = 1789176602.4                       # 2026-09-12T01:30:02Z (state/icmonitor_out.log)
++if os.path.exists(_LEDGER):
++    _real = []
++    for _l in open(_LEDGER):
++        try:
++            _r = json.loads(_l)
++        except Exception:
++            continue
++        if _r.get("computed_at", 0) <= _T0912 + 5 and _r["anchor_ts"] <= M.frontier_ts(_T0912):
++            _real.append(_r)
++    _vr = M.check(_real, now=_T0912)
++    check("T9g replay of the real 2026-09-12 01:30Z evaluation: r24=+0.00472 r48=-0.01104 n=176 "
++          "reproduced; census: r24 missing exactly the 09-09 08/12/16/20Z flatten anchors (E-0909-G), "
++          "r48 missing 9 (+09-06 08Z..09-07 00Z stop-loss day) ⇒ INCOMPLETE under the gate",
++          _vr["n_post_deploy"] == 176 and _vr["r24"] == 0.00472 and _vr["r48"] == -0.01104
++          and _vr["census"]["frontier"] == "2026-09-11T20:00Z"
++          and _vr["census"]["r24"]["missing_anchors"] == ["2026-09-09T08:00Z", "2026-09-09T12:00Z",
++                                                         "2026-09-09T16:00Z", "2026-09-09T20:00Z"]
++          and _vr["census"]["r48"]["missing"] == 9 and _vr["level"] == "INCOMPLETE",
++          f"n={_vr['n_post_deploy']} r24={_vr.get('r24')} r48={_vr.get('r48')} level={_vr['level']} "
++          f"miss24={_vr.get('census', {}).get('r24', {}).get('missing_anchors')}")
++else:
++    check("T9g real ledger present (state/live/ic_monitor.jsonl is production state)", False,
++          "ledger absent — the monitor has nothing to judge")
++
++# [T10] --check / --dry 严格只读(子进程)
++_LIVE = os.path.join(_REPO, "live")
++_FAKE_ENV = os.path.join(_TMP, "fake.env")
++open(_FAKE_ENV, "w").write("TELEGRAM_BOT_TOKEN=fake-token-not-a-credential\nTELEGRAM_CHAT_ID=0\n")
++_CLEAN_ENV = {k: v for k, v in os.environ.items()
++              if k not in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")}
++
++
++def _probe_import(path, argv):
++    """子进程: 设 argv → 猴补 envfile.ENV_PATH 到假 .env → import 被测模块 → 报环境是否被填。"""
++    code = (
++        "import os, sys, json, importlib.util\n"
++        f"sys.argv = ['ic_monitor.py'] + {argv!r}\n"
++        f"sys.path.insert(0, {_LIVE!r})\n"
++        f"import envfile; envfile.ENV_PATH = {_FAKE_ENV!r}\n"
++        f"spec = importlib.util.spec_from_file_location('icm_probe', {path!r})\n"
++        "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n"
++        "print(json.dumps({'tok': bool(os.environ.get('TELEGRAM_BOT_TOKEN')), "
++        "'tn': 'telegram_notify' in sys.modules}))\n")
++    p = subprocess.run(["/usr/bin/python3", "-c", code], capture_output=True, text=True,
++                       env=_CLEAN_ENV, timeout=120)
++    try:
++        return json.loads((p.stdout or "").strip().splitlines()[-1])
++    except Exception:
++        return {"tok": None, "tn": None, "err": (p.stderr or "")[-300:]}
++
++
++def t10a(path):
++    r = _probe_import(path, ["--check"])
++    return r.get("tok") is False and r.get("tn") is False
++
++
++check("T10a `--check` does NOT load .env at import (TELEGRAM_* stay unset with a fake .env present)",
++      t10a(_SRC_PATH), str(_probe_import(_SRC_PATH, ["--check"])))
++check("T10a' `--dry` likewise", _probe_import(_SRC_PATH, ["--dry"]).get("tok") is False)
++_pb = _probe_import(_SRC_PATH, [])
++check("T10b the default (launchd, no flag) invocation STILL loads .env — the tests_env_loading "
++      "property is kept, the monitor stays in the alarm-capable population", _pb.get("tok") is True,
++      str(_pb))
++
++
++def _sha(p):
++    return hashlib.sha256(open(p, "rb").read()).hexdigest() if os.path.exists(p) else "ABSENT"
++
++
++def t10c():
++    """在真实回读上跑 main(--check) 与 main(--dry): 账本/状态/evals 三文件(重定向到 tmp 副本)sha 前后
++    相等; telegram_notify 未被 import; urllib.urlopen 陷阱未触发; 无审计行落盘。"""
++    d = os.path.join(_TMP, "ro")
++    os.makedirs(d, exist_ok=True)
++    led, st, ev = (os.path.join(d, n) for n in ("ledger.jsonl", "state.json", "evals.jsonl"))
++    if os.path.exists(_LEDGER):
++        shutil.copy(_LEDGER, led)
++    else:
++        open(led, "w").write("")
++    json.dump(dict(LEGACY_LIVE_STATE), open(st, "w"))
++    audit = os.path.join(d, "audit.jsonl")
++    code = (
++        "import os, sys, json, importlib.util, hashlib, urllib.request\n"
++        "sys.argv = ['ic_monitor.py', '--check']\n"
++        f"sys.path.insert(0, {_LIVE!r})\n"
++        f"import envfile; envfile.ENV_PATH = {_FAKE_ENV!r}\n"
++        "def _trap(*a, **k): raise AssertionError('network call under read-only door')\n"
++        "urllib.request.urlopen = _trap\n"
++        f"os.environ['LIVE_NOTIFY_AUDIT'] = {audit!r}\n"
++        f"spec = importlib.util.spec_from_file_location('icm_ro', {_SRC_PATH!r})\n"
++        "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n"
++        f"m.LEDGER, m.STATE, m.EVALS = {led!r}, {st!r}, {ev!r}\n"
++        "sha = lambda p: hashlib.sha256(open(p,'rb').read()).hexdigest() if os.path.exists(p) else 'ABSENT'\n"
++        f"before = [sha(p) for p in ({led!r}, {st!r}, {ev!r})]\n"
++        "v1 = m.main(['--check']); v2 = m.main(['--dry'])\n"
++        f"after = [sha(p) for p in ({led!r}, {st!r}, {ev!r})]\n"
++        "print('RESULT ' + json.dumps({'same': before == after, 'evals_absent': after[2] == 'ABSENT', "
++        "'tn': 'telegram_notify' in sys.modules, 'tok': bool(os.environ.get('TELEGRAM_BOT_TOKEN')), "
++        f"'audit': os.path.exists({audit!r}), 'lvl': v1.get('level'), "
++        "'same_verdict': all(v1.get(k) == v2.get(k) for k in ('level', 'r24', 'r48', 'n_post_deploy', "
++        "'judged_windows', 'incomplete_windows'))}))\n")
++    p = subprocess.run(["/usr/bin/python3", "-c", code], capture_output=True, text=True,
++                       env=_CLEAN_ENV, timeout=300)
++    line = [x for x in (p.stdout or "").splitlines() if x.startswith("RESULT ")]
++    if not line:
++        return False, (p.stderr or p.stdout or "")[-400:]
++    r = json.loads(line[0][7:])
++    return (r["same"] and r["evals_absent"] and not r["tn"] and not r["tok"] and not r["audit"]
++            and r["same_verdict"]), r
++
++
++_ok10c, _det10c = t10c()
++check("T10c main(--check) then main(--dry) on the real readbacks: ledger/state/evals sha unchanged, "
++      "evals never created, telegram_notify never imported, no network, no audit row, no .env",
++      _ok10c, str(_det10c)[:300])
++
++# [T11] 四种正文经 alarm_policy 都是 PUSH(否则 INFO 页被静默记档, 恢复通知永不上手机)
++sys.path.insert(0, _LIVE)
++import alarm_policy as AP                                                    # noqa: E402
++_pol = {k: AP.decide(b, "INFO") for k, b in bodies(M, FX).items()}
++check("T11 every page body is tier-A PUSH under alarm_policy (no MEASURE/EXPECTED word in the text)",
++      all(d["action"] == "PUSH" and not d["suppressed_as_repeat"] for d in _pol.values()),
++      {k: (d["action"], d["rule"]) for k, d in _pol.items()})
++check("T11' bodies fit the telegram cap with margin",
++      all(len(b) < 3000 for b in bodies(M, FX).values()))
++
++# ══ 红能力: 突变体写到 tmp, 按路径加载 ═══════════════════════════════════════════════════════════
++
++
++def mutant(find, repl, tag):
++    n = src.count(find)
++    check(f"{tag} injection target matches exactly once", n == 1, f"count={n}")
++    if n != 1:
++        return None
++    p = os.path.join(_TMP, f"_mutant_{tag}.py")
++    open(p, "w").write(src.replace(find, repl, 1))
++    return p
++
++
++_m7 = mutant('    return f"\\n{OBJECT}\\n{CALIB_IDENTITY}"', '    return f"\\n{CALIB_IDENTITY}"', "M7")
++if _m7:
++    check("M7 remove OBJECT from the page tail ⇒ T7b goes red", t7b(_load(_m7, "m7")) is False)
++_m8 = mutant('    elif level == "OK" and verdict.get("judged") and last_delivered_level(st) in ("ALERT", "DECIDE"):',
++             '    elif False:', "M8")
++if _m8:
++    _M8 = _load(_m8, "m8")
++    check("M8 delete the ALERT/DECIDE→OK transition ⇒ T8a and T8d go red",
++          t8a(_M8) is False and t8d(_M8) is False)
++_m9 = mutant('MAX_MISSING = {"r24": 2, "r48": 4}', 'MAX_MISSING = {"r24": 10**9, "r48": 10**9}', "M9")
++if _m9:
++    _M9 = _load(_m9, "m9")
++    check("M9 disable the freshness gate ⇒ T9a (hole), T9c (frozen ledger) and T9e (r48 DECIDE "
++          "through an incomplete window) go red",
++          t9a(_M9) is False and t9c(_M9) is False and t9e(_M9) is False)
++_m10 = mutant("if not _readonly_invocation():\n    try:\n        import envfile as _envfile",
++              "if True:\n    try:\n        import envfile as _envfile", "M10")
++if _m10:
++    check("M10 remove the argv gate ⇒ `--check` loads .env again ⇒ T10a goes red", t10a(_m10) is False)
++
++shutil.rmtree(_TMP, ignore_errors=True)
+ n = len(FAIL)
+ print(f"\ntests_ic_monitor: {'ALL PASS' if n == 0 else f'{n} FAIL: {FAIL}'}")
+ sys.exit(1 if n else 0)
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 46528dc..59ff785 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -147,7 +147,7 @@ SUITE_SCOPE = {
+     "tests_neutral_band": "that the NO-TRADE BAND IS THE NEUTRAL ONE THAT WAS RULED — it proves the function holds in-band names bitwise (including flat names, so no dust opens), restores Σw=0 exactly by spreading the residual over the TRADED set only, passes venue-constrained names through untouched and unspread, is the identity at band<=0 (the replay fidelity gate uses the same passthrough), is wired AFTER withhold+reshape and BEFORE plan, and that the dormant bps-caliber band (executor DEFAULT_BAND_BPS=0.0) stays dormant so exactly one band mechanism is ever live — the unit-trap trio (T7) exists because 0.002 in the wrong caliber is a 10,000x-too-small silent no-op indistinguishable from today. Four blind spots: (a) all function inputs are synthetic dicts — nothing here runs a live anchor, so the first real proof the band FIRED is state/live/no_trade_band.json showing n_held>0, which no assertion here reads; (b) it proves neutrality of the TARGET, not of the realized book — downstream min-notional skips reintroduce a bounded drift (~5 USDT x n_skipped / gross) that only the reshape-anchor verification sees; (c) the economic case (+0.058 now / +0.097 post-deposit) lives in the frozen replay and this suite passes just as green on a band that destroys the book; (d) the T7 static greps pin today's spellings — a renamed constant or a refactored wiring line goes invisible, the classic green-battery-on-old-defects shape",
+     "tests_placement_bandit": "that the PLACEMENT BANDIT RANDOMIZES EXACTLY AS PRE-REGISTERED AND NOTHING ELSE — eps=0 and every malformed config are the bitwise identity (dormant-trap discipline), assignment is a deterministic hash of (rebalance_id, symbol) so audits and replays reconstruct every draw, behind moves AWAY from the touch on both sides (a sign error would only ever produce a benign -5022 because GTX is untouched — asserted, not relied upon), shifted prices stay on the tick grid at legal decimals (the -1111 float-residue family), reduce_only rows are exempt, the behind share at eps=0.10 lands in [8,12]%, and the arm is recorded from the EXECUTOR-LEVEL experiment record never stamped on the shared plan row (the chase top-up contamination that bit three times). Blind spots: (a) no real order is sent — the actual behind fill-rate difference is what the experiment itself measures; (b) T8 is a static grep and a refactor rename goes invisible; (c) top-up rows carry the drawn arm but their price is re-quoted without the shift — analysis must filter attempt_idx==1 exactly as the prereg scopes it",
+     "tests_deadman_ping": "that the OFF-BOX DEADMAN PING FIRES ONLY FROM THE LIVE MODE — it pins the user-provided hc-ping URL, the guard expression being byte-identical to main()'s canonical LIVE_MODE read (a second spelling is a second mode tree), every LIVE_MODE read defaulting to DRY_RUN, and the ping living inside __main__ so module-loading tests cannot ping. Exists because the ungated first version pinged from the battery's own DRY pass at 14:00Z on deploy day — a battery run would have reset the off-box clock and masked a genuinely dead anchor. Blind spots: (a) static greps pin today's spellings — a refactor that renames the guard goes invisible (green-battery-on-old-defects shape); (b) nothing here proves healthchecks actually ALERTS on silence — the check's period/grace live on the user's account, outside this repo; (c) a ping that fails silently in LIVE (network up for trading but hc-ping.com down) looks identical to a dead anchor from off-box, which errs toward false alarm, the safe direction",
+-    "tests_ic_monitor": "that the #55 REALIZED-IC MONITOR JUDGES WHAT WAS PRE-REGISTERED — it proves the thresholds are stamped (from the alpha=0.05+band offline distribution, DECIDE rarer than ALERT, both below zero), the spearman math on known-sign fixtures, the judgment ladder (insufficient<24 records-only, healthy OK, r24<p5 ALERT, r24<p1 DECIDE, pre-window rows excluded), beta causality by source order (history pushed after computation), idempotent append, and that the launchd plist exists and points at the script. Four blind spots: (a) it never reads real position_readback — a schema change upstream leaves this green while the monitor silently computes on nothing; (b) telegram delivery is untested (the import lives in a try, so a dead notifier degrades to a printed line no one reads — the silent-watcher form, partially mitigated by the DELIVERY FAILED print landing in the launchd log); (c) the thresholds' CORRECTNESS rests entirely on the offline calibration file — if the live book diverges structurally from the replay (different floors, different universe), p5/p1 stop meaning 5%/1% and nothing here notices; (d) launchd actually FIRING daily is asserted nowhere — the plist existing and the job running are different facts, and the first missed day looks identical to a healthy quiet day",
++    "tests_ic_monitor": "that the #55 REALIZED-IC MONITOR JUDGES WHAT WAS PRE-REGISTERED AND SAYS WHAT IT IS — it proves the thresholds are stamped and unchanged (from the alpha=0.05+band=0.002 offline distribution, DECIDE rarer than ALERT, both below zero), the spearman math on known-sign fixtures, the judgment ladder (insufficient<24 records-only, healthy OK, r24<p5 ALERT, r24<p1 DECIDE, pre-window rows excluded), beta causality by source order, idempotent append, the launchd plist pointing at the script; and since 2026-09-12 the ALERT CONTRACT: every page body and the state file carry the object line (book-level realised rank-IC of venue positions vs next-anchor return — not a model-score IC, not net P&L) and the calibration-identity line (thresholds calibrated on alpha=0.05/band=0.002, in-service book is alpha=0.1/band=0.00025, so 5%/1% do not apply), the breach body names the gate that fired and prints R48_P1; a RECOVERED INFO page is delivered exactly once on the ALERT/DECIDE→OK transition of the LAST DELIVERED level (legacy state with only last_ALERT/last_DECIDE migrates to the later one; an undelivered RECOVERED is retried), and never while OK persists; the freshness gate counts expected anchors on the 4h grid in the trailing 24/48 ending at the maturity frontier vs usable rows, refuses to judge a window missing >2/>4, reports INCOMPLETE with the missing anchors (one INFO per 24h), keeps the statistic itself unchanged, and is replayed on the real frozen ledger at the 2026-09-12 01:30Z run (r24=+0.00472/r48=-0.01104 reproduced, r24 missing exactly the four 09-09 flatten anchors); `--check`/`--dry` are read-only in a subprocess on the real readbacks (no .env at import, telegram_notify never imported, ledger/state/evals sha unchanged) while the flagless launchd invocation still loads .env; all four bodies classify as tier-A PUSH under alarm_policy; and four mutations go red (OBJECT removed from the tail, recovery transition deleted, gate disabled, argv gate removed). Four blind spots: (a) it never asserts the SHAPE of real position_readback — main(--check) runs on the real readbacks only to prove no side effect, so a schema change upstream leaves this green while the monitor computes on nothing; (b) the telegram TRANSPORT is untested here — delivery decisions are proven with an injected sender, the wire is tests_telegram_notify's subject, and a dead notifier still degrades to a printed line in the launchd log; (c) the thresholds' CORRECTNESS is not established anywhere — they are known NOT to be calibrated on the in-service form, this suite only pins that the fact is printed on every page, and recalibration waits on the producer parity replay; (d) launchd actually FIRING daily is asserted nowhere — the freshness gate turns a frozen ledger into INCOMPLETE only when the job runs, and the job that stops running also stops paging",
+     "tests_break_split_wiring": "that ANYTHING ASKS the split and that the answer moves the book — it replays both directions on the real live tree (the 04:00Z anchor cleared, the 08-01T20:00Z exits newly stopped), proves three classes the guard must still stop for (the 93.46% break whose rows cannot be decomposed, the halted-but-holding anchor, the ghost book), and mutates the firing-order premise to show §4-6 re-arms itself. Four blind spots: (a) the production replays are READ-ONLY over two trees that between them contain ONE unauthorized event and ONE undecomposable break — every claim about how often either happens is outside it; (b) it never places an order or runs the ladder, so 'the halt is decided' is proven and 'the book is actually flattened' is not; (c) the alarm assertions stop at the watchdog's output — that `run_anchor` pages them, and that the page leaves the box, is asserted elsewhere or not at all; (d) the three-day underfill ledger is synthetic and coherent by construction, which is what makes it usable and also what stops it from saying anything about the incoherent ledgers production actually produces",
+     "tests_chase_release_check": "that the chase experiment is SAFE — it proves the first-anchor release gate can go red (a tampered arm, a withheld name missing from the gap ledger, a gap filed under a borrowed reason), green, and NOT_EXERCISED, and that the third verdict is distinct from a pass. Four blind spots: (a) the fixtures are synthetic artefacts written by this suite, so nothing here proves the ANCHOR writes a block of that shape — only the wiring suite touches that, and it uses a stub broker; (b) the gate reads one anchor, so an experiment that behaves correctly once and drifts later is outside it entirely; (c) it checks that withheld names are RECORDED, never that withholding them was right — the opportunity cost the experiment exists to measure is not visible to any assertion here; (d) the inline re-derivation and chase_policy are asserted equal, which catches drift between them but cannot catch both being wrong in the same way, since one was written by reading the other",
+     "tests_residual_vector": "that the unauth bucket is RIGHT — it proves reconcile publishes a per-name residual for every name in the readback (not only those above `tol`), signed, with a coverage denominator that can drop below 1. Four blind spots: (a) it proves the vector is PUBLISHED, never that the consumer takes it — since 2026-08-03 a halt gate reads it, and a consumer that took the anomaly list instead would leave this suite green while flooring every sub-tolerance name to zero; (b) it proves the vector reports what the anomaly list omits, never that `residual_qty = qty(T2) - (qty(T1) + sum dq_fills)` is the right definition of unauthorized — that is inherited from B30 and not re-litigated here; (c) the fixtures are two-anchor ledgers, so nothing exercises the interaction with real dq attribution across a 4-hour window, where the `_between` interval and the fill timestamps do the real work; (d) it says nothing about `underfill`, which is the OTHER half of the decomposition and does not exist yet",
+diff --git a/ops/ic_monitor.py b/ops/ic_monitor.py
+index f632d90..e37e29c 100644
+--- a/ops/ic_monitor.py
++++ b/ops/ic_monitor.py
+@@ -1,10 +1,11 @@
+ """#55 逐锚实现 IC 监视器 — 换装/换节奏/换α之后, 盯"部署的书还在工作吗"的唯一仪器。
+ 
+-对象与口径(刻意选择):
++对象与口径(刻意选择; 每一页与状态文件都原样写出 OBJECT / CALIB_IDENTITY 两行):
+   · 测【书】不测【模型分数】: spearman(实持仓名义, 下锚 mid 收益) —— 实持仓来自
+-    position_readback(场所回读), 收益来自同一数据的 mid(=|notional|/|qty|)锚间比。
+-    它包含 EMA/带/地板后的真实书 —— 正是深平滑(α=0.05, 有效记忆~3.3天)让书变慢之后,
++    position_readback(场所回读), 收益来自同一数据的 p(=|notional|/|qty|, 场所 notional/qty
++    隐含价, 源码历史上叫 mid)锚间比。它包含 EMA/带/地板后的真实书 —— 正是深平滑让书变慢之后,
+     "失效发现"不能再依赖书自身响应的原因: 本仪器直接读场所, 不经过书的惯性。
++  · 它【不是】扣费净收益: 无费用/资金费/成交现金流; 也不是 target_live × 回放收益的意图书。
+   · β 调整残差 IC 双轨: β=锚间收益 vs 宇宙等权, 滚动窗(min 20 锚), 严格因果。
+     实盘病史(2026-08 空头侧)证明: 不拆 β, regime 保费会被误读成模型失效。
+ 
+@@ -13,10 +14,25 @@
+   ALERT : 滚动24锚均值 < R24_P5   (离线分布 5% 分位)
+   DECIDE: 滚动24锚均值 < R24_P1 或 滚动48锚均值 < R48_P1
+   判读起点: 账本 ≥24 个 2026-08-10T12:00Z(新配置窗口首锚)之后的锚; 之前只记不判。
+-  投递: 越线即 telegram(正文由本次 eval 事实组装 —— 复发的越线正文不同, 不会被去重吞掉);
+-  同级 24h 内不重发(state 里记 last_alert)。
++  ★ 标定身份(2026-09-12 独立复核): 阈值标定于 α=0.05/band=0.002 的离线书; 在役书 α=0.1/
++    band=0.00025 —— 阈值【未】按在役形态重标, 5%/1% 的概率含义对在役形态不成立。重标需要
++    生产者平价回放 Phase 2 的在役书逐锚分布 + 重盖章; 本文件只把这个事实写进每一页。
+ 
+-用法: --append(默认, launchd 每日 01:30Z)| --check(只判不写)| --backfill(全史重建)
++告警合同(2026-09-12 修正, 设计与事实表: quant_research docs/DESIGN_ic_monitor_contract_2026-09-12.md):
++  · 投递: 越线即 telegram(正文由本次 eval 事实组装 —— 复发的越线正文不同, 不会被去重吞掉);
++    同级 24h 内不重发(state 里记 last_<LEVEL>)。正文必含: 触发门、r24/r48 与三个阈值、数据前沿、
++    两窗普查、OBJECT、CALIB_IDENTITY。
++  · 恢复: state 记【最后成功投递的级别】last_delivered_level; 从 ALERT/DECIDE 转到 OK 时投且只投
++    一页 INFO "RECOVERED …不等于 alpha 恢复"(附 r24/r48; r48<0 明写); OK 持续不重发。
++    遗留 state(只有 last_ALERT/last_DECIDE)按时间戳更大者迁移为最后投递级别。
++  · 新鲜度门: 以 now 推数据前沿 frontier=floor((now−4h−1h)/4h)·4h, 数 4h 网格上尾部 24/48 个
++    期望锚里账本实有几个; 缺 > MAX_MISSING(r24:2, r48:4)⇒ 该窗不判 ALERT/DECIDE; 两窗都不可判 ⇒
++    level=INCOMPLETE; 普查写进 verdict/state/evals 账本; 24h 内至多一页 INFO 列出缺的锚。
++    统计量本身(最后 24/48 行均值)、阈值常量、判读起点一字不动。
++  · --check / --dry 严格只读: import 期不加载 .env, 不写账本/状态/evals, 不 import telegram。
++
++用法: --append(默认, launchd 每日 01:30Z)| --check(只判不写不发)| --dry(--check + 打印会投什么)
++      | --backfill(全史重建; 与 --check/--dry 同用时仍不写)
+ """
+ import argparse
+ import glob
+@@ -28,19 +44,34 @@ import time
+ from collections import defaultdict
+ 
+ _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
++
++
++def _readonly_invocation(argv=None):
++    """--check / --dry 是只读门: 不加载 .env, 不投递, 不落盘。按 argv 判, 在 import 期就生效。"""
++    argv = sys.argv[1:] if argv is None else argv
++    return any(a in ("--check", "--dry") for a in argv)
++
++
+ # ★ tests_env_loading 强制(事故: 页面组好、本地审计、永不发出): 任何会发 telegram 的工具
+ #   必须在 import 期加载 .env, 否则 launchd 环境下 TELEGRAM_* 为空 ⇒ NOT_CONFIGURED 静默。
++#   该套件用正则 `TelegramNotifier(` 算总体, 本模块是成员 —— 加载器【保留】, 只按 argv 门控:
++#   launchd 无参数 ⇒ 加载; --check/--dry ⇒ 不加载(只读门不该碰凭据)。
+ sys.path.insert(0, os.path.join(_REPO, "live"))
+-try:
+-    import envfile as _envfile
+-    _envfile.load()
+-except Exception:
+-    pass          # .env 缺失时 send() 自会给 NOT_CONFIGURED 回执并被 deliver() 打印
++if not _readonly_invocation():
++    try:
++        import envfile as _envfile
++        _envfile.load()
++    except Exception:
++        pass          # .env 缺失时 send() 自会给 NOT_CONFIGURED 回执并被 deliver() 打印
+ LEDGER = os.path.join(_REPO, "state", "live", "ic_monitor.jsonl")
+ STATE = os.path.join(_REPO, "state", "live", "ic_monitor_state.json")
++# 评估账本(每次 eval 一行: verdict + census + contract + 投递结果)。与锚行账本分离: main() 把
++# ic_monitor.jsonl 的每一行当锚行解析, 非锚行会让 check() KeyError。
++EVALS = os.path.join(_REPO, "state", "live", "ic_monitor_evals.jsonl")
+ GRID_S = 14400
+ WINDOW_START_TS = 1786363200.0   # 2026-08-10T12:00Z 新配置(α.05+带.002)窗口首锚
+ BETA_WIN, BETA_MIN = 180, 20
++COOLDOWN_S = 24 * 3600           # 同级 / 同类 INFO 页 24h 内不重发
+ 
+ # ── 预注册阈值, 2026-08-10 盖章。标定 = α0.05+带.002 书全史 9821 锚离线分布
+ #    (逐锚 IC mean +0.03684 sd 0.21388, 43.6% 负锚 ⇒ 逐锚不可判, 只判滚动均值)。
+@@ -50,6 +81,36 @@ R24_P1 = -0.04425
+ R48_P1 = -0.01656
+ CALIB_SRC = "jpline:/mnt/storage/private/work_hsy/probe_artifacts/ic_calib_a005.json (2026-08-10)"
+ 
++# ── 告警合同常量(2026-09-12). 两行文字逐字来自 lead 任务书; 进每一页正文与状态文件。 ──
++OBJECT = ("书级实现 rank-IC = 场所实持仓名义排序 vs 下锚 mid 收益排序; "
++          "不是模型分数 IC, 不是扣费净收益")
++CALIB_IDENTITY = ("阈值标定: α=0.05/band=0.002 离线书(2026-08-10, 9821 锚); "
++                  "在役 α=0.1/band=0.00025 — 阈值未按在役形态重标, 5%/1% 概率含义不适用")
++
++# ── 新鲜度门. 前沿 = 最新一个【下锚回读已成熟】的锚: 回读 read_ts−E 观测 15.8–47.1 分钟,
++#    取 1h 余量 ⇒ 01:30Z 运行时前沿 = 前日 20Z(与账本实际前沿一致)。缺数上限 = 任务书参数。──
++MATURE_LAG_S = 3600
++MAX_MISSING = {"r24": 2, "r48": 4}
++
++
++def contract():
++    """写进每次 verdict / 状态文件 / evals 账本的合同块: 测的是什么、阈值是谁标的、怎么判。"""
++    return {
++        "object": OBJECT,
++        "calibration": CALIB_IDENTITY,
++        "thresholds": {"ALERT_r24_lt": R24_P5, "DECIDE_r24_lt": R24_P1, "DECIDE_r48_lt": R48_P1},
++        "calib_src": CALIB_SRC,
++        "statistic": ("mean of the last 24/48 ledger rows' rank_ic; row = spearman(signed venue "
++                      "notional @t0, p(t1)/p(t0)-1), p=|notional|/|qty| from position_readback, "
++                      "adjacent 4h-grid anchors <=6h apart, >=30 co-held names"),
++        "window_start_ts": WINDOW_START_TS,
++        "freshness_gate": {"grid_s": GRID_S, "mature_lag_s": MATURE_LAG_S,
++                           "max_missing": dict(MAX_MISSING),
++                           "rule": ("expected anchors on the 4h grid in the trailing 24/48 ending "
++                                    "at frontier=floor((now-grid-lag)/grid)*grid vs usable rows "
++                                    "present; missing above max => that window is not judged")},
++    }
++
+ 
+ def _rankdata(x):
+     idx = sorted(range(len(x)), key=lambda i: x[i])
+@@ -163,10 +224,43 @@ def compute_rows(anchors, known_ts):
+     return rows
+ 
+ 
+-def check(ledger_rows):
+-    post = [r for r in ledger_rows
+-            if r["anchor_ts"] >= WINDOW_START_TS and r.get("rank_ic") is not None]
+-    out = {"n_post_deploy": len(post), "judged": False, "level": "OK"}
++# ── 新鲜度普查 ─────────────────────────────────────────────────────────────────────────────────
++def iso(t):
++    return time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime(t))
++
++
++def frontier_ts(now):
++    """最新一个下锚回读已成熟的网格锚。01:30Z 运行 ⇒ 前日 20Z。"""
++    return int(math.floor((now - GRID_S - MATURE_LAG_S) / GRID_S) * GRID_S)
++
++
++def census(post_rows, now):
++    """4h 网格上尾部 24/48 个期望锚(截到 WINDOW_START_TS) vs 账本实有的可用行。
++
++    缺 = 期望 − 实有; 包括【洞】(平仓日/回读缺失 ⇒ 该锚无行)和【账本冻死】(now 前进而行不进)。
++    两者对判级的意义相同: 最后 24 行均值不再是尾部 24 个锚的均值。"""
++    present = {int(r["anchor_ts"]) for r in post_rows}
++    fr = frontier_ts(now)
++    out = {"now": round(float(now), 3), "frontier_ts": fr, "frontier": iso(fr),
++           "mature_lag_s": MATURE_LAG_S}
++    for k, w in (("r24", 24), ("r48", 48)):
++        pts = [fr - i * GRID_S for i in range(w)]
++        pts = [t for t in pts if t >= WINDOW_START_TS]
++        missing = sorted(t for t in pts if t not in present)
++        out[k] = {"expected": len(pts), "present": len(pts) - len(missing),
++                  "missing": len(missing), "max_missing": MAX_MISSING[k],
++                  "missing_anchors": [iso(t) for t in missing],
++                  "complete": len(missing) <= MAX_MISSING[k]}
++    return out
++
++
++def check(ledger_rows, now=None):
++    """判级。统计量 = 最后 24/48 行均值(不变); 新鲜度普查决定【哪扇窗可以据以判级】。"""
++    now = time.time() if now is None else float(now)
++    post = sorted((r for r in ledger_rows
++                   if r["anchor_ts"] >= WINDOW_START_TS and r.get("rank_ic") is not None),
++                  key=lambda r: r["anchor_ts"])
++    out = {"n_post_deploy": len(post), "judged": False, "level": "OK", "contract": contract()}
+     if any(v is None for v in (R24_P5, R24_P1, R48_P1)):
+         out["level"] = "UNSTAMPED"
+         out["note"] = f"thresholds not stamped from {CALIB_SRC}"
+@@ -174,7 +268,6 @@ def check(ledger_rows):
+     if len(post) < 24:
+         out["note"] = f"insufficient ({len(post)}/24) — recording only"
+         return out
+-    out["judged"] = True
+     ics = [r["rank_ic"] for r in post]
+     r24 = sum(ics[-24:]) / 24.0
+     out["r24"] = round(r24, 5)
+@@ -182,51 +275,218 @@ def check(ledger_rows):
+     out["r48"] = None if r48 is None else round(r48, 5)
+     resid = [r["rank_ic_beta_resid"] for r in post if r.get("rank_ic_beta_resid") is not None]
+     out["r24_beta_resid"] = round(sum(resid[-24:]) / min(24, len(resid)), 5) if resid else None
+-    if r24 < R24_P1 or (r48 is not None and r48 < R48_P1):
++    cz = census(post, now)
++    out["census"] = cz
++    j24 = cz["r24"]["complete"]
++    j48 = cz["r48"]["complete"] and r48 is not None
++    out["incomplete_windows"] = [k for k in ("r24", "r48") if not cz[k]["complete"]]
++    out["incomplete"] = bool(out["incomplete_windows"])
++    out["judged_windows"] = [k for k, f in (("r24", j24), ("r48", j48)) if f]
++    out["trigger"] = []
++    if not out["judged_windows"]:
++        out["level"] = "INCOMPLETE"
++        out["note"] = ("no window is judgeable: missing anchors exceed MAX_MISSING — r24/r48 are "
++                       "stretched-window means, reported but not judged")
++        return out
++    out["judged"] = True
++    if j24 and r24 < R24_P1:
++        out["trigger"].append("r24<R24_P1")
++    if j48 and r48 < R48_P1:
++        out["trigger"].append("r48<R48_P1")
++    if out["trigger"]:
+         out["level"] = "DECIDE"
+-    elif r24 < R24_P5:
++    elif j24 and r24 < R24_P5:
+         out["level"] = "ALERT"
++        out["trigger"] = ["r24<R24_P5"]
+     return out
+ 
+ 
+-def deliver(verdict):
+-    if verdict["level"] not in ("ALERT", "DECIDE"):
+-        return
+-    st = {}
+-    if os.path.exists(STATE):
++# ── 正文 ─────────────────────────────────────────────────────────────────────────────────────────
++# ★ 用词避开 live/alarm_policy.py 的 B/C 层规则(coverage/覆盖率/weight/net-gross/门槛/REGRESSION/
++#   停机/无法判定 …): 命中 C 层 ⇒ RECORD 永不上手机, 命中 B 层 ⇒ 只进日报。tests_ic_monitor T11
++#   对四种正文直接调 alarm_policy.decide 断言 PUSH。
++def _fmt(v):
++    return "None" if v is None else f"{v:+.5f}"
++
++
++def _thresholds_line():
++    return f"阈值: ALERT r24<{R24_P5}; DECIDE r24<{R24_P1} 或 r48<{R48_P1}"
++
++
++def _window_line(v):
++    cz = v.get("census") or {}
++    parts = []
++    for k in ("r24", "r48"):
++        c = cz.get(k)
++        if not c:
++            continue
++        tag = "完整" if c["complete"] else f"不完整(缺{c['missing']}>{c['max_missing']}, 不判)"
++        parts.append(f"{k} 窗 期望{c['expected']} 实有{c['present']} {tag}")
++    return f"数据前沿={cz.get('frontier')}; " + "; ".join(parts)
++
++
++def _contract_tail():
++    return f"\n{OBJECT}\n{CALIB_IDENTITY}"
++
++
++def body_breach(v):
++    return (f"[ic_monitor #55] {v['level']}: 触发门={','.join(v.get('trigger') or [])}. "
++            f"r24={_fmt(v.get('r24'))}, r48={_fmt(v.get('r48'))}, "
++            f"β-resid r24={_fmt(v.get('r24_beta_resid'))}, n={v['n_post_deploy']}. "
++            f"{_thresholds_line()}. {_window_line(v)}. "
++            f"书级实现 rank-IC 越线 — 深平滑书响应慢, 本仪器直读场所, 请按 #55 预注册处置."
++            + _contract_tail())
++
++
++def body_recovered(v):
++    r48 = v.get("r48")
++    extra = []
++    if r48 is not None and r48 < 0:
++        extra.append(f"r48 仍 <0 ({_fmt(r48)})")
++    if "r48" in (v.get("incomplete_windows") or []):
++        extra.append("r48 窗不完整, 未判")
++    return (f"[ic_monitor #55] RECOVERED: 24/48 锚均值回到所用阈值以上 — 不等于 alpha 恢复. "
++            f"r24={_fmt(v.get('r24'))}, r48={_fmt(r48)}, n={v['n_post_deploy']}, "
++            f"判窗={','.join(v.get('judged_windows') or [])}. "
++            + ("; ".join(extra) + ". " if extra else "")
++            + f"{_thresholds_line()}. {_window_line(v)}."
++            + _contract_tail())
++
++
++def body_incomplete(v):
++    cz = v["census"]
++    parts = []
++    for k in v.get("incomplete_windows") or []:
++        c = cz[k]
++        parts.append(f"{k} 窗缺{c['missing']}锚(上限{c['max_missing']}): "
++                     f"{', '.join(c['missing_anchors'])}")
++    judged = v.get("judged_windows") or []
++    return (f"[ic_monitor #55] INCOMPLETE: 判窗不完整, 该窗不判 ALERT/DECIDE. "
++            f"{'; '.join(parts)}. 数据前沿={cz['frontier']}. "
++            f"参考值(拉长窗均值, 不据以判级): r24={_fmt(v.get('r24'))}, r48={_fmt(v.get('r48'))}, "
++            f"n={v['n_post_deploy']}. 可判窗={','.join(judged) or '无'}; 本次 level={v['level']}. "
++            f"{_thresholds_line()}."
++            + _contract_tail())
++
++
++# ── 投递状态机 ────────────────────────────────────────────────────────────────────────────────────
++def load_state(path=None):
++    path = STATE if path is None else path
++    if os.path.exists(path):
+         try:
+-            st = json.load(open(STATE))
++            return json.load(open(path))
+         except Exception:
+-            st = {}
+-    last = float(st.get(f"last_{verdict['level']}", 0.0))
+-    if time.time() - last < 24 * 3600:
+-        return
+-    # 正文由本次 eval 事实组装(复发时数字不同 ⇒ 不会被内容去重吞掉)
+-    body = (f"[ic_monitor #55] {verdict['level']}: r24={verdict.get('r24')} "
+-            f"(ALERT<{R24_P5}, DECIDE<{R24_P1}), r48={verdict.get('r48')}, "
+-            f"β-resid r24={verdict.get('r24_beta_resid')}, n={verdict['n_post_deploy']}. "
+-            f"书级实现 rank-IC 越线 — 深平滑書响应慢, 本仪器直读场所, 请按 #55 预注册处置。")
+-    try:
+-        sys.path.insert(0, os.path.join(_REPO, "live"))
+-        import telegram_notify as TN
+-        # 正确 API 是 TelegramNotifier().send(severity, text) —— 首版按模块函数调用, 投递
+-        # 必失败且只打印(= 本套件自陈盲区 b 的现实版), 部署当日当场修正。
+-        r = TN.TelegramNotifier().send("HIGH" if verdict["level"] == "ALERT" else "CRITICAL",
+-                                       body)
+-        if r.get("delivered_offbox"):
+-            st[f"last_{verdict['level']}"] = time.time()
+-            json.dump(st, open(STATE, "w"))
++            return {}
++    return {}
++
++
++def save_state(st, path=None):
++    path = STATE if path is None else path
++    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
++    json.dump(st, open(path, "w"))          # ASCII-escaped on disk: no locale dependence under launchd
++
++
++def last_delivered_level(st):
++    """最后一次【成功离机】的级别。遗留 state 只有 last_ALERT/last_DECIDE(成功投递时刻)——
++    取时间戳更大者迁移; 这是账本事实(09-10 DECIDE 有 message_id), 不是猜测。"""
++    lvl = st.get("last_delivered_level")
++    if lvl in ("ALERT", "DECIDE", "OK"):
++        return lvl
++    best, out = 0.0, None
++    for k in ("ALERT", "DECIDE"):
++        try:
++            t = float(st.get(f"last_{k}", 0.0) or 0.0)
++        except (TypeError, ValueError):
++            t = 0.0
++        if t > best:
++            best, out = t, k
++    return out
++
++
++def plan_delivery(verdict, st, now):
++    """纯函数: 本次 verdict + 状态 ⇒ 要投的页(0..2 页)。不碰网络, 不改 st。"""
++    plans = []
++    level = verdict.get("level")
++    if verdict.get("incomplete"):
++        if now - float(st.get("last_INCOMPLETE", 0.0) or 0.0) >= COOLDOWN_S:
++            plans.append({"kind": "INCOMPLETE", "severity": "INFO",
++                          "body": body_incomplete(verdict),
++                          "state_ts_key": "last_INCOMPLETE", "sets_level": None})
++    if level in ("ALERT", "DECIDE"):
++        if now - float(st.get(f"last_{level}", 0.0) or 0.0) >= COOLDOWN_S:
++            plans.append({"kind": level, "severity": "HIGH" if level == "ALERT" else "CRITICAL",
++                          "body": body_breach(verdict),
++                          "state_ts_key": f"last_{level}", "sets_level": level})
++    elif level == "OK" and verdict.get("judged") and last_delivered_level(st) in ("ALERT", "DECIDE"):
++        plans.append({"kind": "RECOVERED", "severity": "INFO",
++                      "body": body_recovered(verdict),
++                      "state_ts_key": "last_RECOVERED", "sets_level": "OK"})
++    return plans
++
++
++def _telegram_sender(severity, body):
++    """真实投递。正确 API 是 TelegramNotifier().send(severity, text) —— 首版按模块函数调用, 投递
++    必失败且只打印(= tests_ic_monitor 自陈盲区 b 的现实版), 部署当日当场修正。"""
++    sys.path.insert(0, os.path.join(_REPO, "live"))
++    import telegram_notify as TN
++    return TN.TelegramNotifier().send(severity, body)
++
++
++def deliver(verdict, now=None, state_path=None, sender=None, persist=True):
++    """按 plan_delivery 投页; 只有【成功离机】才推进 last_<kind> / last_delivered_level。
++    state 总是补写 contract + last_eval(含普查)。sender 可注入(测试用桩), 默认 telegram。"""
++    now = time.time() if now is None else float(now)
++    st = load_state(state_path)
++    plans = plan_delivery(verdict, st, now)
++    send = _telegram_sender if sender is None else sender
++    results = []
++    for p in plans:
++        try:
++            r = send(p["severity"], p["body"]) or {}
++        except Exception as e:
++            r = {"status": f"DELIVERY FAILED ({type(e).__name__})", "delivered_offbox": False}
++        ok = bool(r.get("delivered_offbox"))
++        if ok:
++            st[p["state_ts_key"]] = now
++            if p["sets_level"]:
++                st["last_delivered_level"] = p["sets_level"]
+         else:
+-            print(f"DELIVERY NOT OFFBOX ({r.get('status')}): {body}")
+-    except Exception as e:
+-        print(f"DELIVERY FAILED ({type(e).__name__}): {body}")
++            print(f"DELIVERY NOT OFFBOX ({r.get('status')}): {p['body']}")
++        results.append({"kind": p["kind"], "severity": p["severity"],
++                        "delivered_offbox": ok, "status": r.get("status")})
++    st["contract"] = contract()
++    st["last_eval"] = {"at": now, "at_iso": iso(now), "level": verdict.get("level"),
++                       "judged": verdict.get("judged"), "r24": verdict.get("r24"),
++                       "r48": verdict.get("r48"), "trigger": verdict.get("trigger"),
++                       "judged_windows": verdict.get("judged_windows"),
++                       "incomplete_windows": verdict.get("incomplete_windows"),
++                       "census": verdict.get("census"), "delivery": results,
++                       "last_delivered_level": last_delivered_level(st)}
++    if persist:
++        save_state(st, state_path)
++    return results
++
++
++def append_eval(verdict, results, now, path=None):
++    path = EVALS if path is None else path
++    rec = dict(verdict)
++    rec["eval_at"] = now
++    rec["eval_at_iso"] = iso(now)
++    rec["delivery"] = results
++    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
++    with open(path, "a") as f:
++        f.write(json.dumps(rec) + "\n")
+ 
+ 
+-def main():
++def main(argv=None):
+     ap = argparse.ArgumentParser()
+-    ap.add_argument("--check", action="store_true")
++    ap.add_argument("--check", action="store_true",
++                    help="只判不写不发: 不加载 .env, 不写账本/状态/evals, 不 import telegram")
++    ap.add_argument("--dry", action="store_true",
++                    help="= --check, 另打印 plan_delivery 会投什么(纯计算, 不构造 notifier)")
+     ap.add_argument("--backfill", action="store_true")
+-    args = ap.parse_args()
++    args = ap.parse_args(argv)
++    readonly = bool(args.check or args.dry)
+     known = set()
+     rows = []
+     if os.path.exists(LEDGER) and not args.backfill:
+@@ -239,16 +499,26 @@ def main():
+                 continue
+     anchors = load_anchors()
+     fresh = compute_rows(anchors, known if not args.backfill else set())
+-    if not args.check:
++    if not readonly:
+         mode = "w" if args.backfill else "a"
+         with open(LEDGER, mode) as f:
+             for r in fresh:
+                 f.write(json.dumps(r) + "\n")
+         print(f"appended {len(fresh)} rows (ledger now {len(known) + len(fresh)})")
+     allrows = sorted((rows if not args.backfill else []) + fresh, key=lambda r: r["anchor_ts"])
+-    verdict = check(allrows)
++    now = time.time()
++    verdict = check(allrows, now=now)
+     print(json.dumps(verdict, ensure_ascii=False))
+-    deliver(verdict)
++    if readonly:
++        if args.dry:
++            for p in plan_delivery(verdict, load_state(), now):
++                print(f"DRY would send [{p['severity']}] {p['kind']}:\n{p['body']}")
++        print(f"READ-ONLY ({'--dry' if args.dry else '--check'}): no .env, no telegram, "
++              f"no ledger/state/evals write; {len(fresh)} computable new row(s) NOT appended")
++        return verdict
++    results = deliver(verdict, now=now)
++    append_eval(verdict, results, now)
++    return verdict
+ 
+ 
+ if __name__ == "__main__":

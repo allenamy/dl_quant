@@ -1,0 +1,73 @@
+[A] it runs, and it says what it covered
+  OK    ★★★ exits clean on the real ledger
+  OK    ★★★ it SELF-REPORTS its window and row counts — a summary that cannot state its own scope cannot be judged complete (same defect as `--since` silently selecting everything)
+
+[B] ★★★ the three account quantities are asserted as DATA, not as sentences
+  OK    ★★★ (a) the equity IDENTITY is a checked field, not a printed sentence — equity must equal wallet + unrealised, and a break is reported as a residual
+  OK    ★★★ ...and the identity check can FAIL — a field that can only ever read True is not a check  — 7843.4
+  OK    ★★★ (b) the target-exposure arithmetic is a field: equity x leverage, with the leverage it used carried beside it rather than hardcoded in a format string  — 2160.43 x 2.0 = 4320.86
+  OK    ★★★ (c) external flow is a STATE, not a number a reader must interpret  — zero
+  OK    ★★★ ...and the three states are distinguished: an inflow, an outflow, and a read failure are three different facts that a bare 0.0 cannot tell apart
+  OK    ★★★ ...and the record states the BOUNDARY OF OUR SIGHT rather than inferring where the money is. The old wording said a zero probably meant the money was in spot — true only for a deposit; on a WITHDRAWAL the identical 0.0 carried the identical sentence and the fact was the reverse. `spot_visible: False` is true on every day  — futures income endpoint (incomeType=TRANSFER) only
+  OK    ★★ ...and an absent nav is NOT OBSERVABLE rather than a zero account
+
+[B1b] ★★★ THE REAL INCIDENT — a deposit that the summary reported as 'no funds moved'
+  OK    ★★★ the deposit is REPORTED, not lost to the day boundary — reading only the newest row gives 0.0, which is a correct value for the wrong question  — 36.82261
+  OK    ★★★ ...and the state is `inflow`, so the 'we cannot see spot' sentence — which would be ACTIVE MISDIRECTION here — is not printed  — inflow
+  OK    ★★ ...and the record names WHICH DAYS it covered, because the field cannot be sliced to an arbitrary window: each day is counted in full  — {'20260802': 36.82261, '20260803': 0.0}
+  OK    ★★ ...and it flags that the first day may OVER-include (a window opening mid-day counts transfers made before it began) — an over-count that is stated, not folded in
+  OK    ★★★ MUTATION: the pre-fix reading (newest row only) yields 0.0 on this exact data — so this fixture condemns the defect rather than merely covering the code  — naive 0.0 vs fixed 36.82261
+
+[B2] ★★★ THE ACCEPTANCE CRITERION: reword anything, the assertions hold
+  OK    the renderer's ONLY input is the fact dict, so it cannot quietly recompute a quantity a different way  — ['f']
+  OK    ★★★ every quantity assertion above ran against `account_facts` and touched no rendered text at all — so replacing every sentence in `render_account` cannot break one of them  — 11 lines
+
+[B3] the rendered text still answers the operator's three questions
+  OK    ★★ Q1 names which line the operator is probably looking at
+  ....  NOT EXERCISED — the window holds 0 same-day nav row(s); the rotation explanation cannot be computed without two, and asserting its text here would fail on correct behaviour. This is NOT a pass.
+  OK    ★★ Q3 the exposure arithmetic and the external-flow figure are both rendered
+  OK    ★★ ...and the sight boundary is stated in the text the operator reads
+
+[C] ★ the day-boundary trap — it must refuse rather than compute a wrong number
+  OK    ★★★ the residual is NOT computed across 00:00Z, and it SAYS so. `realised_pnl` resets daily, so a cross-midnight difference reads a counter reset as a loss  — neither the refusal nor the same-day form appeared
+  OK    ★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can check the scope rather than trust it
+  OK    ★★★ and the reason is recorded where the next person will edit it: a column name is not a caliber, and two rows from different days are two different calibers of `realised_pnl`
+  OK    ★★★ ...and the refusal is a FIELD, so it survives a reword: across a day boundary the residual is None with a stated reason, never a number  — 窗口跨越 00:00Z, 而 `realised_pnl` 是当日累计并在 00:00Z 归零, 所以跨日的权益残差没有定义
+
+[D] it is the OUTLET — everything denoising suppressed appears here
+  OK    ★★★ the suppressed (tier-B/C) classes are listed with counts — otherwise suppression is just blindness
+  OK    ★★ tier-A is re-listed too, so a page that arrived while nobody was watching is not lost
+  OK    ★★ the per-anchor table gives the trend the operator asked for, one row per anchor
+  OK    ★★ it reuses the production rules table rather than re-deciding what is routine
+
+[E] ★★★ W2 2026-09-12 — realised P&L: USDT-only, non-USDT UNCONVERTED, None is not zero
+  OK    ★★★ E1 the USDT figure is the USDT slice ONLY (-0.30), not the carrier's mixed-asset sum  — -0.3
+  OK    ★★★ ...and the BNB amount is listed UNCONVERTED with type, asset and raw amount — never added  — [{'type': 'COMMISSION', 'asset': 'BNB', 'amount': -0.01}]
+  OK    ★★★ ...and the rendered line carries -0.30 USDT; -0.31 is printed NOWHERE as a USDT figure, and the BNB row is printed as unconverted  — ['\n   当日已实现   -0.3000 USDT   [口径: USDT]   = 交易 +0.0000  手续费 -0.3000  资金费 +0.0000']
+  OK    ★★★ MUTATION E1: the pre-fix reading `float(realised_pnl or 0.0)` gives -0.31 on this row — the fixture condemns the defect rather than merely covering the code  — naive -0.31 vs fixed -0.3
+  OK    ★★ reverse: an all-USDT row reads the carrier's sum unchanged, nothing unconverted
+  OK    ★★★ E2 realised_pnl=None ⇒ realised is NOT OBSERVABLE: observable False and NO numeric total  — {'observable': False, 'usdt': None, 'by_type_usdt': {}, 'unconverted': [], 'caliber': None, 'complete': None, 'carrier_sum': None, 'carrier_sum_mixes_assets': None, 'why': '`realised_pnl` is None on this nav row — the income ledger was not read (source: UNAVAILABLE (HTTPError: 503) — the daily loss stop-loss is blind for this day); NOT OBSERVABLE, which is not zero'}
+  OK    ★★★ ...and the same-day residual REFUSES — it needs the realised increment, and 0 would be a lie  — 当日已实现在窗口的一端不可观测(income 未读), 已实现增量没有定义, 所以权益残差不计算
+  OK    ★★★ ...and the text says WHAT is unobservable and cites the carrier's own source line  — ['   期货钱包余额 (wallet)          1,010.00   ← 已落袋的一切: 本金 + 累计已实现', '\n   当日已实现   不可观测 —— `realised_pnl` is None on this nav row — the income ledger was not read (source: UNAVAILABLE (HTTPError: 503) — the daily loss stop-loss is blind for this day); NOT OBSERVABLE, which is not zero', '   (当日已实现在窗口的一端不可观测(income 未读), 已实现增量没有定义, 所以权益残差不计算 —— 不计算, 而不是算一个错的。)']
+  OK    ★★ ...while wallet / unrealised / equity stay observable (they come from the account snapshot, not from the income ledger) — the top-level `observable` keeps its meaning
+  OK    ★★★ MUTATION E2: the pre-fix reading gives 0.0 — and the old same-day residual would then have printed +10.00 of 'unexplained' equity change from a fabricated zero  — naive 0.0 vs fixed None
+  OK    ★★ neighbour: when only the window's FIRST row is unread the increment is still undefined
+  OK    ★★ E3 a truncated income read is kept but labelled INCOMPLETE — a lower bound, not the total
+  OK    ...and an untruncated read is complete; an absent flag is None, never True
+  OK    ★★ E4 a row written BEFORE the per-asset split exists cannot be split: the carrier's sum is passed through under a STATED assumption (caliber), not invented  — legacy_carrier_sum_usdt_assumed
+  OK    ★★ ...and a legacy row beside a split row in one window flags the increment's caliber as MIXED  — MIXED legacy_carrier_sum_usdt_assumed -> usdt_only
+  OK    ★★ E5 REAL LEDGER 20260912 nav_ts 1789202716.996306: the USDT figure equals the per-asset USDT slices summed, and the unconverted assets are exactly the carrier's list  — usdt 218.4401031200003 carrier 218.4401031200003 unconverted []
+
+[F] ★★★ W2 2026-09-12 — the per-anchor cost column: three buckets, None is not 0
+  OK    ★★★ F1 two fills whose fee is a raw mixed-asset 0.0 (fee_all_usdt False, no conversion): the cost is None, both fills sit in the fee-unknown bucket, coverage 0  — {'n_rows': 2, 'n_fills': 2, 'n_unknown_fill': 0, 'n_measured': 0, 'n_fee_unknown': 2, 'n_unpriced': 0, 'notional_usdt': 200.0, 'notional_measured_usdt': 0, 'fee_unknown_notional_usdt': 200.0, 'unpriced_notional_usdt': 0, 'fee_measured_usdt': 0, 'adverse_measured_usdt': 0.0, 'abs_slip_measured_usdt': 0.0, 'bps_measured': None, 'fee_bps_measured': None, 'adverse_bps_measured': None, 'abs_slip_bps_measured': None, 'abs_bps_measured': None, 'coverage_measured_notional': 0.0, 'coverage_measured_count': 0.0, 'measured_over': 'MEASURED fills only — a fill with a usable price (finite positive avg_fill_px AND mid_at_anchor) AND a known fee (fee_paid not None and finite; a raw mixed-asset fee with fee_all_usdt=False and no fee_conversion is NOT known). An unpriced or fee-unknown fill is excluded from numerator AND denominator; it is not a zero-cost fill. bps is None when nothing was measured.'}
+  OK    ★★★ MUTATION F1: the pre-fix formula prints -1.00bps for the same two fills — price improvement booked as a cost FIGURE with the fee silently 0  — -1.0000000000005116
+  OK    ★★ reverse: two fully-measured fills read 1.0 + 2.0 = +3.00bps, coverage 100%, and EQUAL the old formula — the fix changes nothing on a clean anchor  — 3.0000000000005116
+  OK    ★★ neighbour: a fee-None fill beside two measured ones is EXCLUDED from numerator and denominator (still +3.00bps over the measured 200; coverage 50%); the old formula read +6.50 — the 10bps adverse of the fee-None fill entered with its fee silently 0  — (3.0000000000005116, 6.499999999999972)
+  OK    ★★ neighbour: a fill with no anchor mid is UNPRICED — counted, not dropped silently
+  OK    ★★ F4 a maker leg with filled_notional None is an UNKNOWN fill: counted apart, and the fill-rate becomes a LOWER BOUND (≥50%), not 50% as if the leg had filled nothing  — {'cost_bps': 0.0, 'cost_coverage_notional': 1.0, 'buckets': {'n_rows': 2, 'n_fills': 1, 'n_unknown_fill': 1, 'n_measured': 1, 'n_fee_unknown': 0, 'n_unpriced': 0, 'notional_usdt': 100.0, 'notional_measured_usdt': 100.0, 'fee_unknown_notional_usdt': 0, 'unpriced_notional_usdt': 0, 'fee_measured_usdt': 0.0, 'adverse_measured_usdt': 0.0, 'abs_slip_measured_usdt': 0.0, 'bps_measured': 0.0, 'fee_bps_measured': 0.0, 'adverse_bps_measured': 0.0, 'abs_slip_bps_measured': 0.0, 'abs_bps_measured': 0.0, 'coverage_measured_notional': 1.0, 'coverage_measured_count': 1.0, 'measured_over': 'MEASURED fills only — a fill with a usable price (finite positive avg_fill_px AND mid_at_anchor) AND a known fee (fee_paid not None and finite; a raw mixed-asset fee with fee_all_usdt=False and no fee_conversion is NOT known). An unpriced or fee-unknown fill is excluded from numerator AND denominator; it is not a zero-cost fill. bps is None when nothing was measured.'}, 'maker_intended_usdt': 200.0, 'maker_filled_known_usdt': 100.0, 'maker_fill_rate_pct': 50.0, 'maker_fill_rate_is_lower_bound': True, 'maker_n_unknown_fill': 1}
+  OK    ★★ the rendered table carries the coverage column beside the cost column
+  OK    ★★★ F5 REAL LEDGER 2026-08-05 12:00Z (A1785931245): 103/103 fills carry fee_paid=0.0 beside fee_all_usdt=False with no conversion (BNB commissions) — cost None, all 103 fee-unknown  — {'n_rows': 211, 'n_fills': 103, 'n_unknown_fill': 0, 'n_measured': 0, 'n_fee_unknown': 103, 'n_unpriced': 0, 'notional_usdt': 4256.1859, 'notional_measured_usdt': 0, 'fee_unknown_notional_usdt': 4256.1859, 'unpriced_notional_usdt': 0, 'fee_measured_usdt': 0, 'adverse_measured_usdt': 0.0, 'abs_slip_measured_usdt': 0.0, 'bps_measured': None, 'fee_bps_measured': None, 'adverse_bps_measured': None, 'abs_slip_bps_measured': None, 'abs_bps_measured': None, 'coverage_measured_notional': 0.0, 'coverage_measured_count': 0.0, 'measured_over': 'MEASURED fills only — a fill with a usable price (finite positive avg_fill_px AND mid_at_anchor) AND a known fee (fee_paid not None and finite; a raw mixed-asset fee with fee_all_usdt=False and no fee_conversion is NOT known). An unpriced or fee-unknown fill is excluded from numerator AND denominator; it is not a zero-cost fill. bps is None when nothing was measured.'}
+  OK    ★★★ MUTATION F5: the pre-fix table printed -3.70bps for this anchor — a cost over ZERO measured fills  — -3.700394462661703
+  OK    ★★ F6 REAL LEDGER 2026-09-12 08:00Z (A1789201439): every fill measured — coverage 1.0 and the new figure equals the old formula (reverse control on the live book)  — (1.491695638239944, 1.491695638239944)
+
+ALL PASS  (53 checks)

@@ -1,0 +1,1266 @@
+diff --git a/live/cost_buckets.py b/live/cost_buckets.py
+new file mode 100644
+index 0000000..748f94e
+--- /dev/null
++++ b/live/cost_buckets.py
+@@ -0,0 +1,170 @@
++"""Three-bucket classification of filled order rows for the READ-ONLY cost readers. Pure; no I/O.
++
++★★★ WHY THIS MODULE EXISTS (W2, 2026-09-12; POSTMORTEM_b0a573a1 §5 "下游成本读者未继承三桶").
++    The in-production cost diagnostics (`anchor_loop.neutrality_price`, `chase_readout.collect`,
++    `verify_reshape_anchor.neutrality_lines`) were migrated in review rounds 13/14/14b/15 to ONE
++    rule: a fill is MEASURED only when its price is usable AND its fee is known; everything else
++    is named by its bucket, and a bps over zero measured fills is None, never 0. Three operator
++    readers still read `fee_paid or 0` and filtered unpriced rows away silently:
++      · `ops/daily_summary.py`       per-anchor cost column
++      · `ops/first_anchor_review.py` §3c realised cost
++      · `ops/score_post_fix.py`      E6 (through pilot_metrics.m1, whose denominator keeps
++                                     fee-unknown rows at fee 0 — a documented lower bound)
++    Measured on the LIVE ledger (read-only copy, 2026-09-12): anchor 2026-08-05 12:00Z had
++    103/103 fills with `fee_paid=0.0, fee_all_usdt=False, fee_conversion=None` — every fee was a
++    BNB commission nobody converted — and the daily summary printed **-3.70 bps** for it, a cost
++    figure computed over ZERO measured fills. This module makes that read `None` with the
++    bucket counts beside it.
++
++★★ THE RULE IS COPIED, NOT IMPORTED, AND THE COPY IS PINNED BY AN EQUALITY ASSERTION.
++   `anchor_loop.neutrality_price` owns the rule on the production path; importing anchor_loop into
++   an operator tool would drag the whole loop (torch, venue clients) into a read-only screen. So
++   the two predicates below are the same code as `anchor_loop.py` `_pos` / `_fee`, and the suite
++   `tests_readers_three_bucket` asserts bucket_fills() and neutrality_price() agree key by key on
++   the same rows. Drift between them goes red there before it reaches a screen.
++
++★ SIGN CONVENTION: the adverse-slippage sign is taken from the SIGN OF `filled_notional` (buy > 0),
++  as the two production diagnostics do — not from the `side` string. The review tool used `side`;
++  the two agree on every row the executor writes (side="buy" <=> filled_notional > 0) and the
++  equality assertion is what makes that a checked fact rather than a belief.
++
++None is never coerced to 0 anywhere in this file. A quantity that could not be read is absent
++from BOTH the numerator and the denominator, and the record says how much was absent.
++"""
++from __future__ import annotations
++
++from typing import Any, Dict, List, Optional, Tuple
++
++_INF = (float("inf"), float("-inf"))
++
++MEASURED_OVER = ("MEASURED fills only — a fill with a usable price (finite positive avg_fill_px "
++                 "AND mid_at_anchor) AND a known fee (fee_paid not None and finite; a raw "
++                 "mixed-asset fee with fee_all_usdt=False and no fee_conversion is NOT known). "
++                 "An unpriced or fee-unknown fill is excluded from numerator AND denominator; "
++                 "it is not a zero-cost fill. bps is None when nothing was measured.")
++
++
++def usable_px(x: Any) -> Optional[float]:
++    """Finite, strictly positive price — or None. Same as anchor_loop.neutrality_price `_pos`."""
++    try:
++        v = float(x)
++    except (TypeError, ValueError):
++        return None
++    return v if (v == v and v not in _INF and v > 0) else None
++
++
++def known_fee(o: Dict[str, Any]) -> Optional[float]:
++    """The row's fee as a KNOWN USDT number — or None. Same as anchor_loop `_fee`.
++
++    ★ `fee_all_usdt is False` without `fee_conversion` means the writer stored the raw USDT slice
++      (often 0.0) of a fee that was partly charged in another asset. That is not a known fee.
++    """
++    f = o.get("fee_paid")
++    if f is None:
++        return None
++    if o.get("fee_all_usdt") is False and not o.get("fee_conversion"):
++        return None
++    try:
++        v = float(f)
++    except (TypeError, ValueError):
++        return None
++    return v if (v == v and v not in _INF) else None
++
++
++def filled_abs(o: Dict[str, Any]) -> Optional[float]:
++    """|filled_notional| when it is a finite number, else None (unknown fill — NOT zero)."""
++    f = o.get("filled_notional")
++    if f is None:
++        return None
++    try:
++        v = float(f)
++    except (TypeError, ValueError):
++        return None
++    return abs(v) if (v == v and v not in _INF) else None
++
++
++def partition(rows: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]],
++                                                    List[Dict[str, Any]], List[Dict[str, Any]]]:
++    """(measured, fee_unknown, unpriced, unknown_fill). Rows with a known zero fill are in none."""
++    measured, fee_unknown, unpriced, unknown = [], [], [], []
++    for o in rows:
++        fa = filled_abs(o)
++        if fa is None:
++            unknown.append(o)
++            continue
++        if fa <= 0:
++            continue
++        if usable_px(o.get("avg_fill_px")) is None or usable_px(o.get("mid_at_anchor")) is None:
++            unpriced.append(o)
++        elif known_fee(o) is None:
++            fee_unknown.append(o)
++        else:
++            measured.append(o)
++    return measured, fee_unknown, unpriced, unknown
++
++
++def bucket_fills(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
++    """Three buckets + coverage + bps over the measured set. JSON-safe (no row objects)."""
++    measured, fee_unknown, unpriced, unknown = partition(rows)
++    n_fills = len(measured) + len(fee_unknown) + len(unpriced)
++    notl_m = sum(filled_abs(o) for o in measured)
++    notl_fu = sum(filled_abs(o) for o in fee_unknown)
++    notl_up = sum(filled_abs(o) for o in unpriced)
++    notl = notl_m + notl_fu + notl_up
++    fee_m = sum(known_fee(o) for o in measured)
++    adverse = 0.0            # signed: + = paid through the mid, - = price improvement
++    abs_slip = 0.0           # dispersion: |deviation| x notional
++    for o in measured:
++        px, mid = usable_px(o.get("avg_fill_px")), usable_px(o.get("mid_at_anchor"))
++        fa = filled_abs(o)
++        sgn = 1.0 if float(o["filled_notional"]) > 0 else -1.0
++        dev = (px - mid) / mid
++        adverse += sgn * dev * fa
++        abs_slip += abs(dev) * fa
++
++    def _bps(num: float) -> Optional[float]:
++        return (1e4 * num / notl_m) if notl_m else None
++
++    return {
++        "n_rows": len(rows),
++        "n_fills": n_fills,                       # known, non-zero fills (any bucket)
++        "n_unknown_fill": len(unknown),           # filled_notional None: NOT a zero fill
++        "n_measured": len(measured),
++        "n_fee_unknown": len(fee_unknown),
++        "n_unpriced": len(unpriced),
++        "notional_usdt": round(notl, 4),
++        "notional_measured_usdt": round(notl_m, 4),
++        "fee_unknown_notional_usdt": round(notl_fu, 4),
++        "unpriced_notional_usdt": round(notl_up, 4),
++        "fee_measured_usdt": round(fee_m, 8),
++        "adverse_measured_usdt": round(adverse, 8),
++        "abs_slip_measured_usdt": round(abs_slip, 8),
++        # bps over the MEASURED set only; None when nothing was measured
++        "bps_measured": _bps(fee_m + adverse),          # fee + signed adverse (money)
++        "fee_bps_measured": _bps(fee_m),
++        "adverse_bps_measured": _bps(adverse),
++        "abs_slip_bps_measured": _bps(abs_slip),
++        "abs_bps_measured": _bps(fee_m + abs_slip),     # fee + |slip| (m1's `c_bps_overall` caliber)
++        "coverage_measured_notional": (round(notl_m / notl, 4) if notl else None),
++        "coverage_measured_count": (round(len(measured) / n_fills, 4) if n_fills else None),
++        "measured_over": MEASURED_OVER,
++    }
++
++
++def coverage_note(b: Dict[str, Any]) -> str:
++    """One line a screen can print beside a bps: what was measured and what was not."""
++    if not b.get("n_fills"):
++        return ("no known non-zero fill" + (f"; {b['n_unknown_fill']} row(s) with UNKNOWN fill"
++                                            if b.get("n_unknown_fill") else ""))
++    parts = [f"measured {b['n_measured']}/{b['n_fills']} fills"]
++    cov = b.get("coverage_measured_notional")
++    parts.append(f"notional coverage {cov:.0%}" if cov is not None else "notional coverage n/a")
++    if b.get("n_fee_unknown"):
++        parts.append(f"fee-unknown {b['n_fee_unknown']} / ${b['fee_unknown_notional_usdt']:,.2f}")
++    if b.get("n_unpriced"):
++        parts.append(f"unpriced {b['n_unpriced']} / ${b['unpriced_notional_usdt']:,.2f}")
++    if b.get("n_unknown_fill"):
++        parts.append(f"unknown-fill rows {b['n_unknown_fill']}")
++    if b.get("bps_measured") is None:
++        parts.append("bps UNMEASURED (not 0)")
++    return "; ".join(parts)
+diff --git a/live/tests_daily_summary.py b/live/tests_daily_summary.py
+index 9a619ca..960bba2 100644
+--- a/live/tests_daily_summary.py
++++ b/live/tests_daily_summary.py
+@@ -221,5 +221,208 @@ check("★★ the per-anchor table gives the trend the operator asked for, one r
+ check("★★ it reuses the production rules table rather than re-deciding what is routine",
+       "import alarm_policy" in _src and "AP.classify" in _src)
+ 
++print("\n[E] ★★★ W2 2026-09-12 — realised P&L: USDT-only, non-USDT UNCONVERTED, None is not zero")
++# ★★★ TWO VERIFIED COUNTEREXAMPLES from the independent reviewer (codex_system_status_review_
++#     2026-09-12/deployment/RESULT.md §5): (1) USDT -0.30 + BNB -0.01 summed to -0.31 and labelled
++#     USDT; (2) realised_pnl=None read as realised_today=0.0 with observable=True. The income carrier
++#     has written `realised_by_type_asset` / `realised_non_usdt_assets` beside its sum since
++#     2026-09-12 06:05Z (E-0909-H round 4); the reader ignored them. Fact table:
++#     quant_research/docs/DESIGN_readers_three_bucket_2026-09-12.md §1a.
++_BASE = {"day": "20260912", "wallet_balance": 1000.0, "unrealised_pnl": 0.0, "nav": 1000.0,
++         "external_flow_usdt": 0.0, "realised_truncated": False,
++         "realised_pnl_source": "/fapi/v1/income since 00:00Z, sum of REALIZED_PNL+COMMISSION+FUNDING_FEE"}
++_MIX = dict(_BASE, realised_pnl=-0.31, realised_by_type={"COMMISSION": -0.31},
++            realised_by_type_asset={"COMMISSION": {"USDT": -0.30, "BNB": -0.01}},
++            realised_non_usdt_assets=["BNB"])
++_FM = DS.account_facts([_MIX])
++_naive_mix = float(_MIX.get("realised_pnl") or 0.0)          # the pre-fix reading, verbatim
++check("★★★ E1 the USDT figure is the USDT slice ONLY (-0.30), not the carrier's mixed-asset sum",
++      _FM["realised_observable"] is True and abs(_FM["realised_today"] + 0.30) < 1e-9
++      and _FM["realised"]["caliber"] == "usdt_only", _FM["realised_today"])
++check("★★★ ...and the BNB amount is listed UNCONVERTED with type, asset and raw amount — never added",
++      _FM["realised_unconverted"] == [{"type": "COMMISSION", "asset": "BNB", "amount": -0.01}]
++      and _FM["realised"]["carrier_sum_mixes_assets"] is True, _FM["realised_unconverted"])
++_lines_mix = DS.render_account(_FM)
++_real_line = [l for l in _lines_mix if "当日已实现" in l]
++check("★★★ ...and the rendered line carries -0.30 USDT; -0.31 is printed NOWHERE as a USDT figure, and "
++      "the BNB row is printed as unconverted",
++      bool(_real_line) and "-0.3000 USDT" in _real_line[0]
++      and not any("-0.3100" in l for l in _lines_mix)
++      and any("BNB" in l and "未换算" in l for l in _lines_mix), _real_line)
++check("★★★ MUTATION E1: the pre-fix reading `float(realised_pnl or 0.0)` gives -0.31 on this row — the "
++      "fixture condemns the defect rather than merely covering the code",
++      abs(_naive_mix + 0.31) < 1e-9 and abs(_naive_mix - _FM["realised_today"]) > 0.005,
++      f"naive {_naive_mix} vs fixed {_FM['realised_today']}")
++_ALL = dict(_MIX, realised_pnl=-0.30, realised_by_type={"COMMISSION": -0.30},
++            realised_by_type_asset={"COMMISSION": {"USDT": -0.30}}, realised_non_usdt_assets=[])
++_FA = DS.account_facts([_ALL])
++check("★★ reverse: an all-USDT row reads the carrier's sum unchanged, nothing unconverted",
++      abs(_FA["realised_today"] + 0.30) < 1e-9 and _FA["realised_unconverted"] == []
++      and _FA["realised"]["carrier_sum_mixes_assets"] is False)
++
++_NONE = dict(_BASE, realised_pnl=None, realised_by_type=None, realised_by_type_asset=None,
++             realised_non_usdt_assets=None, realised_truncated=None,
++             realised_pnl_source="UNAVAILABLE (HTTPError: 503) — the daily loss stop-loss is blind for this day")
++_FN = DS.account_facts([_NONE, dict(_NONE, nav=1010.0, wallet_balance=1010.0)])
++_naive_none = float(_NONE.get("realised_pnl") or 0.0)
++check("★★★ E2 realised_pnl=None ⇒ realised is NOT OBSERVABLE: observable False and NO numeric total",
++      _FN["realised_observable"] is False and _FN["realised"]["observable"] is False
++      and _FN["realised_today"] is None, _FN["realised"])
++check("★★★ ...and the same-day residual REFUSES — it needs the realised increment, and 0 would be a lie",
++      _FN["unexplained_computable"] is False and _FN["unexplained_equity_change"] is None
++      and "不可观测" in str(_FN["unexplained_why_not"]), _FN["unexplained_why_not"])
++check("★★★ ...and the text says WHAT is unobservable and cites the carrier's own source line",
++      any("当日已实现" in l and "不可观测" in l and "UNAVAILABLE" in l for l in DS.render_account(_FN)),
++      [l for l in DS.render_account(_FN) if "已实现" in l])
++check("★★ ...while wallet / unrealised / equity stay observable (they come from the account "
++      "snapshot, not from the income ledger) — the top-level `observable` keeps its meaning",
++      _FN["observable"] is True and _FN["equity"] == 1010.0)
++check("★★★ MUTATION E2: the pre-fix reading gives 0.0 — and the old same-day residual would then "
++      "have printed +10.00 of 'unexplained' equity change from a fabricated zero",
++      _naive_none == 0.0 and _FN["realised_today"] is None,
++      f"naive {_naive_none} vs fixed {_FN['realised_today']}")
++_FN2 = DS.account_facts([_NONE, _ALL])
++check("★★ neighbour: when only the window's FIRST row is unread the increment is still undefined",
++      _FN2["realised_observable"] is True and _FN2["unexplained_computable"] is False
++      and _FN2["unexplained_equity_change"] is None)
++
++_TR = dict(_ALL, realised_truncated=True)
++_FT = DS.account_facts([_TR])
++check("★★ E3 a truncated income read is kept but labelled INCOMPLETE — a lower bound, not the total",
++      _FT["realised"]["complete"] is False and _FT["realised_today"] is not None
++      and any("不完整" in l for l in DS.render_account(_FT)), _FT["realised"]["complete"])
++check("...and an untruncated read is complete; an absent flag is None, never True",
++      _FA["realised"]["complete"] is True
++      and DS.account_facts([dict(_ALL, realised_truncated=None)])["realised"]["complete"] is None)
++
++_LEG = {k: v for k, v in _MIX.items()
++        if k not in ("realised_by_type_asset", "realised_non_usdt_assets")}
++_FL = DS.account_facts([_LEG])
++check("★★ E4 a row written BEFORE the per-asset split exists cannot be split: the carrier's sum is "
++      "passed through under a STATED assumption (caliber), not invented",
++      _FL["realised"]["caliber"] == "legacy_carrier_sum_usdt_assumed"
++      and abs(_FL["realised_today"] + 0.31) < 1e-9 and _FL["realised_unconverted"] == []
++      and any("假定" in l for l in DS.render_account(_FL)), _FL["realised"]["caliber"])
++check("★★ ...and a legacy row beside a split row in one window flags the increment's caliber as MIXED",
++      str(DS.account_facts([_LEG, _ALL])["realised_increment_caliber"]).startswith("MIXED"),
++      DS.account_facts([_LEG, _ALL])["realised_increment_caliber"])
++
++_split = [r for r in _NAV_ROWS if isinstance(r.get("realised_by_type_asset"), dict)]
++if _split:
++    _r = _split[-1]
++    _F5 = DS.account_facts([_r])
++    _usdt_sum = sum(float((_r["realised_by_type_asset"].get(t) or {}).get("USDT", 0.0))
++                    for t in ("REALIZED_PNL", "COMMISSION", "FUNDING_FEE"))
++    check(f"★★ E5 REAL LEDGER {_r.get('day')} nav_ts {_r.get('nav_ts')}: the USDT figure equals the "
++          f"per-asset USDT slices summed, and the unconverted assets are exactly the carrier's list",
++          abs(_F5["realised_today"] - _usdt_sum) < 1e-9
++          and sorted({u["asset"] for u in _F5["realised_unconverted"]})
++          == sorted(_r.get("realised_non_usdt_assets") or []),
++          f"usdt {_F5['realised_today']} carrier {_r.get('realised_pnl')} "
++          f"unconverted {_F5['realised_unconverted']}")
++else:
++    print("  ....  NOT EXERCISED — no nav row in the state copy carries realised_by_type_asset yet")
++
++print("\n[F] ★★★ W2 2026-09-12 — the per-anchor cost column: three buckets, None is not 0")
++# ★ fact table §1b. The pre-fix table read `fee_paid or 0` over rows whose price fields were
++#   truthy. `_old_cost` below IS that formula, verbatim, so every fixture can condemn it.
++
++
++def _orow(sym, filled, px, mid, fee, all_usdt=True, conv=None, otype="maker", intended=None):
++    return {"symbol": sym, "order_type": otype, "filled_notional": filled, "avg_fill_px": px,
++            "mid_at_anchor": mid, "fee_paid": fee, "fee_all_usdt": all_usdt,
++            "fee_conversion": conv,
++            "intended_notional": intended if intended is not None else filled}
++
++
++def _old_cost(og):
++    fl = [o for o in og if abs(float(o.get("filled_notional") or 0)) > 0
++          and o.get("avg_fill_px") and o.get("mid_at_anchor")]
++    den = sum(abs(float(o["filled_notional"])) for o in fl)
++    if not den:
++        return None
++    fee = sum(float(o.get("fee_paid") or 0) for o in fl)
++    adv = sum((1 if float(o["filled_notional"]) > 0 else -1)
++              * (float(o["avg_fill_px"]) - float(o["mid_at_anchor"]))
++              / float(o["mid_at_anchor"]) * abs(float(o["filled_notional"])) for o in fl)
++    return 1e4 * (fee + adv) / den
++
++
++_FU = [_orow("AAAUSDT", 100.0, 99.99, 100.0, 0.0, all_usdt=False),
++       _orow("BBBUSDT", -100.0, 100.01, 100.0, 0.0, all_usdt=False)]
++_cf = DS.anchor_cost_facts(_FU)
++check("★★★ F1 two fills whose fee is a raw mixed-asset 0.0 (fee_all_usdt False, no conversion): the "
++      "cost is None, both fills sit in the fee-unknown bucket, coverage 0",
++      _cf["cost_bps"] is None and _cf["buckets"]["n_fee_unknown"] == 2
++      and _cf["buckets"]["n_measured"] == 0 and _cf["cost_coverage_notional"] == 0.0,
++      _cf["buckets"])
++check("★★★ MUTATION F1: the pre-fix formula prints -1.00bps for the same two fills — price "
++      "improvement booked as a cost FIGURE with the fee silently 0",
++      _old_cost(_FU) is not None and abs(_old_cost(_FU) + 1.0) < 1e-6, _old_cost(_FU))
++_OK = [_orow("AAAUSDT", 100.0, 100.01, 100.0, 0.02), _orow("BBBUSDT", -100.0, 99.99, 100.0, 0.02)]
++_ck = DS.anchor_cost_facts(_OK)
++check("★★ reverse: two fully-measured fills read 1.0 + 2.0 = +3.00bps, coverage 100%, and EQUAL the "
++      "old formula — the fix changes nothing on a clean anchor",
++      abs(_ck["cost_bps"] - 3.0) < 1e-6 and _ck["cost_coverage_notional"] == 1.0
++      and abs(_old_cost(_OK) - _ck["cost_bps"]) < 1e-9, _ck["cost_bps"])
++_MX = _OK + [_orow("CCCUSDT", 200.0, 100.10, 100.0, None)]
++_cm = DS.anchor_cost_facts(_MX)
++check("★★ neighbour: a fee-None fill beside two measured ones is EXCLUDED from numerator and "
++      "denominator (still +3.00bps over the measured 200; coverage 50%); the old formula read +6.50 "
++      "— the 10bps adverse of the fee-None fill entered with its fee silently 0",
++      abs(_cm["cost_bps"] - 3.0) < 1e-6 and _cm["cost_coverage_notional"] == 0.5
++      and abs(_old_cost(_MX) - 6.5) < 1e-6, (_cm["cost_bps"], _old_cost(_MX)))
++_UP = _OK + [_orow("DDDUSDT", 50.0, 100.0, None, 0.01)]
++check("★★ neighbour: a fill with no anchor mid is UNPRICED — counted, not dropped silently",
++      DS.anchor_cost_facts(_UP)["buckets"]["n_unpriced"] == 1
++      and abs(DS.anchor_cost_facts(_UP)["cost_bps"] - 3.0) < 1e-6)
++_UF = [_orow("AAAUSDT", None, None, 100.0, None, intended=100.0),
++       _orow("BBBUSDT", 100.0, 100.0, 100.0, 0.0, intended=100.0)]
++_cu = DS.anchor_cost_facts(_UF)
++check("★★ F4 a maker leg with filled_notional None is an UNKNOWN fill: counted apart, and the "
++      "fill-rate becomes a LOWER BOUND (≥50%), not 50% as if the leg had filled nothing",
++      _cu["maker_n_unknown_fill"] == 1 and _cu["maker_fill_rate_is_lower_bound"] is True
++      and abs(_cu["maker_fill_rate_pct"] - 50.0) < 1e-9 and _cu["buckets"]["n_unknown_fill"] == 1,
++      _cu)
++check("★★ the rendered table carries the coverage column beside the cost column",
++      "覆盖" in OUT and "成本bps" in OUT)
++
++_ORD = {}
++for _d in ("20260805", "20260912"):
++    _p = os.path.join(_REPO, "state", "live", "pilot_log", _d)
++    if os.path.exists(os.path.join(_p, "orders.jsonl")) and os.path.exists(
++            os.path.join(_p, "anchors.jsonl")):
++        _ORD[_d] = ([_json.loads(l) for l in open(os.path.join(_p, "orders.jsonl")) if l.strip()],
++                    [_json.loads(l) for l in open(os.path.join(_p, "anchors.jsonl")) if l.strip()])
++
++
++def _anchor_rows(day, rid):
++    o, a = _ORD[day]
++    ats = [float(x["anchor_ts"]) for x in a if x.get("rebalance_id") == rid]
++    return [r for r in o if float(r.get("anchor_ts") or 0) == ats[0]] if ats else []
++
++
++if "20260805" in _ORD and _anchor_rows("20260805", "A1785931245"):
++    _rr = _anchor_rows("20260805", "A1785931245")
++    _c5 = DS.anchor_cost_facts(_rr)
++    check("★★★ F5 REAL LEDGER 2026-08-05 12:00Z (A1785931245): 103/103 fills carry fee_paid=0.0 beside "
++          "fee_all_usdt=False with no conversion (BNB commissions) — cost None, all 103 fee-unknown",
++          _c5["cost_bps"] is None and _c5["buckets"]["n_fee_unknown"] == 103
++          and _c5["buckets"]["n_fills"] == 103, _c5["buckets"])
++    check("★★★ MUTATION F5: the pre-fix table printed -3.70bps for this anchor — a cost over ZERO "
++          "measured fills",
++          _old_cost(_rr) is not None and abs(_old_cost(_rr) + 3.70) < 0.01, _old_cost(_rr))
++else:
++    print("  ....  NOT EXERCISED — the state copy lacks 20260805 / A1785931245")
++if "20260912" in _ORD and _anchor_rows("20260912", "A1789201439"):
++    _rr = _anchor_rows("20260912", "A1789201439")
++    _c9 = DS.anchor_cost_facts(_rr)
++    check("★★ F6 REAL LEDGER 2026-09-12 08:00Z (A1789201439): every fill measured — coverage 1.0 and "
++          "the new figure equals the old formula (reverse control on the live book)",
++          _c9["cost_coverage_notional"] == 1.0 and _c9["buckets"]["n_measured"] == 185
++          and abs(_c9["cost_bps"] - _old_cost(_rr)) < 1e-9, (_c9["cost_bps"], _old_cost(_rr)))
++else:
++    print("  ....  NOT EXERCISED — the state copy lacks 20260912 / A1789201439")
++
+ print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
+ sys.exit(1 if FAILS else 0)
+diff --git a/live/tests_readers_three_bucket.py b/live/tests_readers_three_bucket.py
+new file mode 100644
+index 0000000..2f7b2ec
+--- /dev/null
++++ b/live/tests_readers_three_bucket.py
+@@ -0,0 +1,384 @@
++"""The READ-ONLY cost readers inherit the three buckets: cost_buckets / first_anchor_review §3c /
++score_post_fix E6. A fill that could not be measured is NOT a free fill, and None is never 0.
++
++*** MOCK ONLY: temp pilot_log trees, plus a read of the real ledger COPY under state/. No venue, no
++    credentials, nothing written outside tempdirs. ***
++
++★★★ WHY (W2, 2026-09-12; POSTMORTEM_b0a573a1 §5 "下游成本读者未继承三桶"; fact table
++    quant_research/docs/DESIGN_readers_three_bucket_2026-09-12.md §1b/§1c).
++    Review rounds 13/14/14b/15 gave the production cost diagnostics ONE rule — measured only with a
++    usable price AND a known fee, bps over the measured set, None when nothing was measured — and
++    three operator screens kept reading `fee_paid or 0`. On the LIVE ledger copy, anchor
++    2026-08-05 12:00Z has 103/103 fills with `fee_paid=0.0, fee_all_usdt=False, fee_conversion=None`
++    (BNB commissions, never converted): the daily summary printed -3.70bps and the review screen
++    would have printed fee 0.00bps beside it. A number computed over zero measured fills.
++
++★★ THE RULE IS DUPLICATED IN `live/cost_buckets.py` (importing anchor_loop into an operator tool
++   would drag the whole loop in), so [B] asserts the copy and `anchor_loop.neutrality_price` agree
++   KEY BY KEY on the same rows — the duplication-with-equality-assertion pattern. Drift goes red here.
++
++Exit 0 = all pass.
++"""
++import json
++import os
++import shutil
++import subprocess
++import sys
++import tempfile
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++for _d in ("live", "ops", "scheduler", "signal"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++
++import cost_buckets as CB                       # noqa: E402
++import pilot_log as PL                          # noqa: E402
++import pilot_metrics as PM                      # noqa: E402
++
++FAILS, N = [], [0]
++TMPS = []
++
++
++def check(name, cond, extra=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(extra)) if extra else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++def row(sym, filled, px, mid, fee, all_usdt=True, conv=None, otype="topup_taker", rid="RID",
++        side=None):
++    return {"rebalance_id": rid, "order_type": otype, "symbol": sym, "filled_notional": filled,
++            "avg_fill_px": px, "mid_at_anchor": mid, "fee_paid": fee, "fee_all_usdt": all_usdt,
++            "fee_conversion": conv, "anchor_ts": 1.0,
++            "side": side or ("buy" if (filled or 0) > 0 else "sell")}
++
++
++# ═══ [A] the pure classifier ═══════════════════════════════════════════════════════════════════
++print("[A] cost_buckets: three buckets, coverage, and a bps that is None over nothing")
++check("★★ usable_px: None / NaN / inf / 0 / negative / text are NOT prices; a numeric string is",
++      all(CB.usable_px(x) is None for x in (None, float("nan"), float("inf"), float("-inf"),
++                                            0, 0.0, -1.0, "abc"))
++      and CB.usable_px("1.5") == 1.5 and CB.usable_px(100) == 100.0)
++check("★★★ known_fee: None ⇒ None; NaN ⇒ None; a raw mixed-asset fee (fee_all_usdt False, no "
++      "conversion) ⇒ None; the same with a completed conversion ⇒ known; all-USDT ⇒ known",
++      CB.known_fee({"fee_paid": None}) is None
++      and CB.known_fee({"fee_paid": float("nan")}) is None
++      and CB.known_fee({"fee_paid": 0.0, "fee_all_usdt": False}) is None
++      and CB.known_fee({"fee_paid": 0.0, "fee_all_usdt": False, "fee_conversion": None}) is None
++      and CB.known_fee({"fee_paid": 0.02, "fee_all_usdt": False,
++                        "fee_conversion": {"BNB": {"qty": 1e-5, "px": 500}}}) == 0.02
++      and CB.known_fee({"fee_paid": 0.02, "fee_all_usdt": True}) == 0.02
++      and CB.known_fee({"fee_paid": 0.02}) == 0.02)
++check("★★ filled_abs: None / NaN / text ⇒ None (UNKNOWN fill); 0.0 ⇒ 0.0 (a KNOWN zero); -100 ⇒ 100",
++      CB.filled_abs({"filled_notional": None}) is None
++      and CB.filled_abs({"filled_notional": float("nan")}) is None
++      and CB.filled_abs({"filled_notional": "x"}) is None
++      and CB.filled_abs({"filled_notional": 0.0}) == 0.0
++      and CB.filled_abs({"filled_notional": -100.0}) == 100.0)
++
++_ROWS = [row("M1USDT", 100.0, 100.01, 100.0, 0.02),                       # measured: +1bps +2bps fee
++         row("M2USDT", -100.0, 99.99, 100.0, 0.02),                       # measured: +1bps +2bps fee
++         row("F1USDT", 200.0, 100.10, 100.0, None),                       # fee None
++         row("F2USDT", 200.0, 100.10, 100.0, 0.0, all_usdt=False),        # raw mixed-asset fee
++         row("U1USDT", 50.0, 100.0, None, 0.01),                          # no anchor mid
++         row("U2USDT", 50.0, float("nan"), 100.0, 0.01),                  # NaN price
++         row("Z1USDT", 0.0, None, 100.0, None),                           # known zero fill
++         row("N1USDT", None, None, 100.0, None)]                          # UNKNOWN fill
++_b = CB.bucket_fills(_ROWS)
++check("★★★ buckets: 2 measured / 2 fee-unknown / 2 unpriced / 1 unknown-fill; the known-zero fill "
++      "is in no bucket; n_fills counts every KNOWN non-zero fill",
++      (_b["n_measured"], _b["n_fee_unknown"], _b["n_unpriced"], _b["n_unknown_fill"],
++       _b["n_fills"], _b["n_rows"]) == (2, 2, 2, 1, 6, 8), _b)
++check("★★★ notionals: measured 200 / fee-unknown 400 / unpriced 100 / total 700; coverage 200/700 "
++      "and 2/6 — the unmeasured notional is NAMED, not folded",
++      (_b["notional_measured_usdt"], _b["fee_unknown_notional_usdt"],
++       _b["unpriced_notional_usdt"], _b["notional_usdt"]) == (200.0, 400.0, 100.0, 700.0)
++      and _b["coverage_measured_notional"] == round(200 / 700, 4)
++      and _b["coverage_measured_count"] == round(2 / 6, 4), _b)
++check("★★★ bps over the MEASURED set only: fee 2.00 + adverse 1.00 = +3.00; the 400 of fee-unknown "
++      "notional at 10bps adverse never enters numerator OR denominator",
++      abs(_b["bps_measured"] - 3.0) < 1e-9 and abs(_b["fee_bps_measured"] - 2.0) < 1e-9
++      and abs(_b["adverse_bps_measured"] - 1.0) < 1e-9
++      and abs(_b["abs_bps_measured"] - 3.0) < 1e-9, _b["bps_measured"])
++_bz = CB.bucket_fills([r for r in _ROWS if r["symbol"][0] in "FUZN"])
++check("★★★ with ZERO measured fills every bps is None — never 0 — while the buckets still count",
++      _bz["bps_measured"] is None and _bz["abs_bps_measured"] is None
++      and _bz["fee_bps_measured"] is None and _bz["coverage_measured_notional"] == 0.0
++      and _bz["n_fills"] == 4, _bz)
++check("★★ ...and the coverage note says so in words",
++      "UNMEASURED" in CB.coverage_note(_bz) and "measured 0/4" in CB.coverage_note(_bz)
++      and "unknown-fill rows 1" in CB.coverage_note(_bz), CB.coverage_note(_bz))
++check("★ an empty set: no fills, no bps, coverage None (not 0 — there is nothing to cover)",
++      CB.bucket_fills([])["bps_measured"] is None
++      and CB.bucket_fills([])["coverage_measured_notional"] is None)
++check("★ the record is JSON-safe (score_post_fix dumps it)",
++      json.dumps(_b) and isinstance(_b["measured_over"], str))
++check("★★ sign convention: the adverse sign comes from the SIGN OF filled_notional (buy > 0), as "
++      "the production diagnostics do — a contradicting `side` string does not flip it",
++      abs(CB.bucket_fills([row("XUSDT", 100.0, 100.01, 100.0, 0.0, side="sell")])["bps_measured"]
++          - 1.0) < 1e-9)
++
++# ═══ [B] equality with the production rule ═════════════════════════════════════════════════════
++print("\n[B] ★★★ cost_buckets == anchor_loop.neutrality_price, key by key, on the same rows")
++import anchor_loop as AL                        # noqa: E402
++
++_KEYS = (("n_measured", "n_fills_measured"), ("n_fee_unknown", "n_fills_fee_unknown"),
++         ("n_unpriced", "n_fills_unpriced"), ("n_fills", "n_fills_basis"),
++         ("notional_measured_usdt", "notional_measured_usdt"),
++         ("fee_unknown_notional_usdt", "fee_unknown_notional_usdt"),
++         ("unpriced_notional_usdt", "unpriced_notional_usdt"),
++         ("notional_usdt", "notional_basis_usdt"),
++         ("coverage_measured_notional", "coverage_measured_notional"),
++         ("coverage_measured_count", "coverage_measured_count"))
++
++
++def _same(legs_buy, label):
++    np_ = AL.neutrality_price({"venue_net_usdt": -100.0}, legs_buy, "RID")   # deficient = buy
++    b = CB.bucket_fills(legs_buy)
++    diffs = [(k1, b.get(k1), k2, np_.get(k2)) for k1, k2 in _KEYS
++             if (b.get(k1) is None) != (np_.get(k2) is None)
++             or (b.get(k1) is not None and abs(float(b[k1]) - float(np_[k2])) > 1e-9)]
++    bps_a, bps_b = b["bps_measured"], np_["measured_taker_bps_same_side"]
++    bps_same = ((bps_a is None and bps_b is None)
++                or (bps_a is not None and bps_b is not None and abs(round(bps_a, 4) - bps_b) < 1e-9))
++    check(f"★★★ {label}: every count / notional / coverage key equal, and bps equal to 4dp "
++          f"({bps_a} vs {bps_b})", not diffs and bps_same, diffs)
++
++
++_BUY = [r for r in _ROWS if (r["filled_notional"] or 0) > 0 and r["symbol"][0] != "N"]
++_same(_BUY, "mixed buckets (measured + fee-unknown + unpriced)")
++_same([row("AUSDT", 100.0, 100.10, 100.0, 0.05), row("BUSDT", 300.0, 99.95, 100.0, 0.10)],
++      "all measured")
++_same([row("AUSDT", 100.0, 100.10, 100.0, 0.0, all_usdt=False),
++       row("BUSDT", 300.0, 99.95, 100.0, None)], "none measured (bps None on both)")
++# ★ THE INSTRUMENT CAN GO RED: a naive `fee or 0 over priced` reading disagrees with the rule.
++_naive = [row("AUSDT", 100.0, 100.10, 100.0, 0.0, all_usdt=False)]
++_np = AL.neutrality_price({"venue_net_usdt": -100.0}, _naive, "RID")
++_naive_bps = 1e4 * (0.0 + (100.10 - 100.0) / 100.0 * 100.0) / 100.0
++check("★★★ MUTATION: the pre-fix reading (fee or 0, over priced fills) gives +10.00bps where the "
++      "rule — and cost_buckets — give None; the equality above is therefore a real constraint",
++      _np["measured_taker_bps_same_side"] is None and abs(_naive_bps - 10.0) < 1e-9
++      and CB.bucket_fills(_naive)["bps_measured"] is None)
++
++# ═══ [C] the relation to pilot_metrics.m1 (the E6 / §4-1 caliber) ═════════════════════════════
++print("\n[C] ★★ cost_buckets vs pilot_metrics.m1: equal when everything is measured; the divergence "
++      "on fee-unknown rows is the documented lower bound")
++_REG = {1.0: "calm"}
++_ALLM = [row("AUSDT", 100.0, 100.10, 100.0, 0.05, otype="maker"),
++         row("BUSDT", -300.0, 99.95, 100.0, 0.10, otype="topup_taker")]
++_m1 = PM.m1_effective_cost(_ALLM, _REG)
++_bm = CB.bucket_fills(_ALLM)
++check("★★★ all measured: abs_bps_measured == m1.c_bps_overall (fee + |slip|) and bps_measured == "
++      "m1.c_bps_net_overall (fee + signed slip), to 4dp",
++      abs(round(_bm["abs_bps_measured"], 4) - _m1["c_bps_overall"]) < 1e-9
++      and abs(round(_bm["bps_measured"], 4) - _m1["c_bps_net_overall"]) < 1e-9
++      and _m1["measurement_complete"] is True,
++      (_bm["abs_bps_measured"], _m1["c_bps_overall"], _bm["bps_measured"], _m1["c_bps_net_overall"]))
++_FUM = [row("AUSDT", 100.0, 100.10, 100.0, 0.0, all_usdt=False, otype="maker"),
++        row("BUSDT", 100.0, 100.10, 100.0, None, otype="topup_taker")]
++_m1f = PM.m1_effective_cost(_FUM, _REG)
++_bf = CB.bucket_fills(_FUM)
++check("★★★ fee-unknown rows: m1 counts them (n_unmeasured_fee 2) but KEEPS their notional in its "
++      "denominator at fee 0 ⇒ c_bps_overall is a NUMBER (+10.00, the lower bound E6's rule names); "
++      "cost_buckets reports None with n_fee_unknown 2 — the divergence is exactly the fee term",
++      _m1f["n_unmeasured_fee"] == 2 and _m1f["measurement_complete"] is False
++      and abs(_m1f["c_bps_overall"] - 10.0) < 1e-6
++      and _bf["bps_measured"] is None and _bf["n_fee_unknown"] == 2,
++      (_m1f["c_bps_overall"], _m1f["n_unmeasured_fee"], _bf["bps_measured"]))
++
++
++# ═══ [D] first_anchor_review §3c on fixture trees ═════════════════════════════════════════════
++print("\n[D] ★★★ first_anchor_review §3c: three buckets on the screen; 0 measured prints no bps")
++DAY, T0 = "20260805", 1785931247.0
++
++
++def build_review_tree(root, legs, unknown_maker=False):
++    """One anchor; `legs` = (sym, filled, px, mid, fee, all_usdt, conv, otype, source)."""
++    lg = PL.PilotLogger(root, DAY)
++    rid = f"A{int(T0)}"
++    lg.anchor(anchor_ts=T0, target_vector_hash="h", realized_gross=0,
++              target_gross=sum(abs(l[1] or 0) for l in legs), n_names_skipped=0,
++              regime_at_anchor="calm", mid_at_anchor_vector={l[0]: l[3] for l in legs},
++              factor_version="{}", panel_hash="p", rebalance_id=rid, opening_halted=False,
++              weights={"king": 0.5, "s2": 0.17, "funding": 0.17, "size": 0.16})
++    for (s, v, px, mid, fee, all_usdt, conv, otype, src) in legs:
++        kw = {}
++        if src:
++            kw["topup_source"] = src
++        lg.order(anchor_ts=T0, symbol=s, side="buy" if (v or 1) > 0 else "sell",
++                 target_w=0.1, prev_w=0.0, intended_notional=abs(v) if v else 100.0,
++                 order_type=otype, submit_ts=T0 + 1, price_submit=mid, mid_at_submit=mid,
++                 mid_at_anchor=mid, filled_notional=v, avg_fill_px=px, first_fill_ts=T0 + 2,
++                 last_fill_ts=T0 + 3, cancel_ts=None, fee_paid=fee, rebalance_id=rid,
++                 attempt_idx=1, terminal_reason="filled", notional_currency="USDT",
++                 fee_all_usdt=all_usdt, fee_conversion=conv, **kw)
++        lg.position_readback(anchor_ts=T0, symbol=s, venue_position_notional=v or 0.0,
++                             venue_position_qty=(v or 0.0) / (mid or 1.0), source="fixture")
++    if unknown_maker:
++        lg.order(anchor_ts=T0, symbol="NNNUSDT", side="buy", target_w=0.1, prev_w=0.0,
++                 intended_notional=100.0, order_type="maker", submit_ts=T0 + 1,
++                 price_submit=100.0, mid_at_submit=100.0, mid_at_anchor=100.0,
++                 filled_notional=None, avg_fill_px=None, first_fill_ts=None, last_fill_ts=None,
++                 cancel_ts=None, fee_paid=None, rebalance_id=rid, attempt_idx=1,
++                 terminal_reason="filled_amount_unknown", notional_currency="USDT")
++    lg.daily_nav(day=DAY, target_gross=1000.0, nav=10000.0, realised_pnl=0.0,
++                 unrealised_pnl=0.0, sizing_policy="constant_leverage_2.00", nav_ts=T0 + 60)
++    lg.close()
++
++
++def run_review(state_root):
++    env = dict(os.environ, LIVE_MODE="DRY_RUN")
++    code = (
++        "import os, sys\n"
++        f"sys.path.insert(0, {os.path.join(REPO, 'live')!r})\n"
++        "import state_root as SR\n"
++        f"SR.root_for = lambda m=None: {state_root!r}\n"
++        f"SR.paths_for = lambda m=None: dict(root={state_root!r},\n"
++        f"    pilot_log=os.path.join({state_root!r}, 'pilot_log'),\n"
++        f"    watchdog_dir=os.path.join({state_root!r}, 'watchdog'),\n"
++        f"    watchdog_state=os.path.join({state_root!r}, 'watchdog', 'state.json'))\n"
++        "sys.argv = ['review']\n"
++        f"exec(compile(open({os.path.join(REPO, 'ops', 'first_anchor_review.py')!r})"
++        f".read(), 'review', 'exec'), "
++        "{'__name__': '__main__', '__file__': "
++        f"{os.path.join(REPO, 'ops', 'first_anchor_review.py')!r}}})\n")
++    p = subprocess.run(["/usr/bin/python3", "-c", code], capture_output=True, text=True,
++                       env=env, timeout=180)
++    return p.stdout + p.stderr
++
++
++# (i) every fill fee-unknown — the real 2026-08-05 12:00Z shape
++_FEEU = [("AAAUSDT", 100.0, 99.99, 100.0, 0.0, False, None, "maker", None),
++         ("BBBUSDT", -100.0, 100.01, 100.0, 0.0, False, None, "maker", None),
++         ("CCCUSDT", 50.0, 100.05, 100.0, 0.0, False, None, "topup_taker", "from_partial")]
++d1 = tempfile.mkdtemp(prefix="rtb_feeu_")
++TMPS.append(d1)
++build_review_tree(os.path.join(d1, "pilot_log"), _FEEU)
++o1 = run_review(d1)
++check("★ the review runs on the fixture", "3c. REALISED COST" in o1, o1[-300:])
++check("★★★ (i) all fills fee-unknown: the screen prints UNMEASURED with the bucket counts and "
++      "prints NO 'TOTAL adverse' bps at all",
++      "cost UNMEASURED — 0 of 2 fills measured (fee-unknown 2" in o1
++      and "cost UNMEASURED — 0 of 3 fills measured (fee-unknown 3" in o1
++      and "TOTAL adverse" not in o1,
++      [l.strip() for l in o1.splitlines() if "UNMEASURED" in l or "TOTAL" in l][:6])
++# ★ the pre-fix `_leg` formula, verbatim, on the same maker rows: a NUMBER
++_mk = [dict(symbol=s, filled_notional=v, avg_fill_px=px, mid_at_anchor=mid, fee_paid=fee,
++            side="buy" if v > 0 else "sell") for (s, v, px, mid, fee, _, _, ot, _) in _FEEU
++       if ot == "maker"]
++_notl = sum(abs(float(r["filled_notional"])) for r in _mk)
++_fee_old = sum(float(r.get("fee_paid") or 0.0) for r in _mk)
++_adv_old = sum(((float(r["avg_fill_px"]) - float(r["mid_at_anchor"])) / float(r["mid_at_anchor"])
++                if r["side"] == "buy" else
++                (float(r["mid_at_anchor"]) - float(r["avg_fill_px"])) / float(r["mid_at_anchor"]))
++               * abs(float(r["filled_notional"])) for r in _mk)
++check("★★★ MUTATION (i): the pre-fix `_leg` formula gives TOTAL adverse -1.00bps with fee 0.00bps "
++      "on these rows — a cost figure with every fee unknown, and no warning (n_nofee was 0)",
++      abs((_fee_old + _adv_old) * 1e4 / _notl + 1.0) < 1e-9
++      and sum(1 for r in _mk if r.get("fee_paid") is None) == 0,
++      (_fee_old + _adv_old) * 1e4 / _notl)
++
++# (ii) all measured
++_MEAS = [("AAAUSDT", 100.0, 100.01, 100.0, 0.02, True, None, "maker", None),
++         ("BBBUSDT", -100.0, 99.99, 100.0, 0.02, True, None, "maker", None)]
++d2 = tempfile.mkdtemp(prefix="rtb_meas_")
++TMPS.append(d2)
++build_review_tree(os.path.join(d2, "pilot_log"), _MEAS)
++o2 = run_review(d2)
++check("★★★ (ii) all measured: TOTAL adverse +3.00bps over 100% of notional, 2/2 fills, and no "
++      "exclusion note",
++      "TOTAL adverse  +3.00bps" in o2 and "(100% of notional, 2/2 fills)" in o2
++      and "excluded from numerator" not in o2,
++      [l.strip() for l in o2.splitlines() if "TOTAL" in l or "measured" in l][:6])
++
++# (iii) mixed + an unknown-fill maker leg
++_MIXD = _MEAS + [("CCCUSDT", 200.0, 100.10, 100.0, None, None, None, "maker", None),
++                 ("DDDUSDT", 50.0, 100.0, None, 0.01, True, None, "maker", None)]
++d3 = tempfile.mkdtemp(prefix="rtb_mix_")
++TMPS.append(d3)
++build_review_tree(os.path.join(d3, "pilot_log"), _MIXD, unknown_maker=True)
++o3 = run_review(d3)
++check("★★★ (iii) mixed: bps over the MEASURED 200 only (+3.00), coverage 200/450 = 44%, and the "
++      "fee-unknown 200 / unpriced 50 are NAMED as excluded from numerator AND denominator",
++      "TOTAL adverse  +3.00bps" in o3 and "(44% of notional, 2/4 fills)" in o3
++      and "fee-unknown 1 / $200.00, unpriced 1 / $50.00" in o3,
++      [l.strip() for l in o3.splitlines() if "TOTAL" in l or "measured" in l][:6])
++check("★★ ...the UNKNOWN-fill maker leg is counted apart in §3 and turns the fill-rate into a "
++      "lower bound with the count printed",
++      "order rows with UNKNOWN fill      1" in o3 and "maker fill-rate (notional) >= " in o3
++      and "1 leg(s) with UNKNOWN fill amount excluded — lower bound" in o3,
++      [l.strip() for l in o3.splitlines() if "UNKNOWN" in l][:4])
++check("★★ the tokens other suites pin are untouched (estimability gate, unique-execution line)",
++      all(t in open(os.path.join(REPO, "ops", "first_anchor_review.py")).read()
++          for t in ("NOT ESTIMABLE", "_MIN_N, _MAX_SHARE = 5, 0.50", "largest is",
++                    "collapse_supersedes", "backfill")))
++
++# ═══ [E] score_post_fix E6: additive keys, pre-registered keys untouched ═══════════════════════
++print("\n[E] ★★ score_post_fix E6 carries the buckets BESIDE the pre-registered keys")
++import score_post_fix as SPF                    # noqa: E402
++
++_PRE = {"verdict", "measurement_complete", "counters", "c_bps_overall", "caliber",
++        "protective_flatten_cost", "rule"}
++e6f = SPF.score(root=os.path.join(d1, "pilot_log"), day=DAY)["E6_cost_comparable"]
++check("★★★ fee-unknown tree: every pre-registered key present; verdict stays the pre-registered "
++      "rule (measurement_complete False ⇒ FAIL); c_bps_overall stays m1's lower-bound NUMBER",
++      _PRE <= set(e6f) and e6f["verdict"] == "FAIL" and e6f["measurement_complete"] is False
++      and isinstance(e6f["c_bps_overall"], float),
++      {k: e6f.get(k) for k in ("verdict", "measurement_complete", "c_bps_overall")})
++check("★★★ ...and `buckets` says the truth beside it: 3 fee-unknown, 0 measured, bps None; the "
++      "counters agree (n_unmeasured_fee 3)",
++      e6f["buckets"]["n_fee_unknown"] == 3 and e6f["buckets"]["n_measured"] == 0
++      and e6f["buckets"]["bps_measured"] is None and e6f["counters"]["n_unmeasured_fee"] == 3
++      and "ADDITIVE" in e6f["bucket_rule"], e6f["buckets"])
++e6m = SPF.score(root=os.path.join(d2, "pilot_log"), day=DAY)["E6_cost_comparable"]
++_m1m = PM.m1_effective_cost([r for r in PL.read_day(os.path.join(d2, "pilot_log"), DAY)["orders"]],
++                            {T0: "calm"})
++check("★★★ measured tree: verdict PASS, and buckets.bps_measured == m1.c_bps_net_overall / "
++      "abs_bps_measured == c_bps_overall (the two calibers coincide when everything is measured)",
++      e6m["verdict"] == "PASS" and e6m["buckets"]["coverage_measured_notional"] == 1.0
++      and abs(round(e6m["buckets"]["bps_measured"], 4) - _m1m["c_bps_net_overall"]) < 1e-9
++      and abs(round(e6m["buckets"]["abs_bps_measured"], 4) - e6m["c_bps_overall"]) < 1e-9,
++      (e6m["buckets"]["bps_measured"], _m1m["c_bps_net_overall"], e6m["c_bps_overall"]))
++check("★ the scorer's JSON round-trips with the new keys",
++      json.loads(json.dumps(e6m, default=str))["buckets"]["n_measured"] == 2)
++
++# ═══ [F] the real ledger, read-only ════════════════════════════════════════════════════════════
++print("\n[F] the real ledger copy (read-only): the 2026-08-05 anchors under the rule")
++
++
++def _day(day):
++    p = os.path.join(REPO, "state", "live", "pilot_log", day)
++    if not (os.path.exists(os.path.join(p, "orders.jsonl"))
++            and os.path.exists(os.path.join(p, "anchors.jsonl"))):
++        return None
++    return PL.read_day(os.path.join(REPO, "state", "live", "pilot_log"), day)
++
++
++_D = _day("20260805")
++if _D:
++    def _rows(rid):
++        ats = [float(a["anchor_ts"]) for a in _D["anchors"] if a.get("rebalance_id") == rid]
++        return [o for o in _D["orders"] if ats and float(o.get("anchor_ts") or 0) == ats[0]
++                and o.get("order_type") in ("maker", "topup_taker")]
++    b12 = CB.bucket_fills(_rows("A1785931245"))
++    b16 = CB.bucket_fills(_rows("A1785945696"))
++    b04 = CB.bucket_fills(_rows("A1785888079"))
++    check("★★★ 12:00Z A1785931245: 103 fills, 103 fee-unknown (fee_paid 0.0 + fee_all_usdt False, no "
++          "conversion), 0 measured ⇒ bps None, coverage 0",
++          b12["n_fills"] == 103 and b12["n_fee_unknown"] == 103 and b12["bps_measured"] is None
++          and b12["coverage_measured_notional"] == 0.0, {k: b12[k] for k in ("n_fills", "n_fee_unknown", "bps_measured")})
++    check("★★★ 16:00Z A1785945696: 100 fills, 100 fee-unknown ⇒ bps None",
++          b16["n_fills"] == 100 and b16["n_fee_unknown"] == 100 and b16["bps_measured"] is None,
++          {k: b16[k] for k in ("n_fills", "n_fee_unknown", "bps_measured")})
++    check("★★ 04:00Z A1785888079 (before the BNB day began): 79/79 measured, +7.8069bps, coverage 1.0 "
++          "— the rule changes nothing on a clean anchor",
++          b04["n_fills"] == 79 and b04["n_measured"] == 79 and abs(b04["bps_measured"] - 7.8069) < 1e-3
++          and b04["coverage_measured_notional"] == 1.0, b04["bps_measured"])
++else:
++    print("  ....  NOT EXERCISED — the state copy has no 20260805 day file")
++
++for _t in TMPS:
++    shutil.rmtree(_t, ignore_errors=True)
++print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
++sys.exit(1 if FAILS else 0)
+diff --git a/ops/daily_summary.py b/ops/daily_summary.py
+index f4a845c..3edda2c 100644
+--- a/ops/daily_summary.py
++++ b/ops/daily_summary.py
+@@ -39,6 +39,94 @@ for _d in ("live", "scheduler", "signal", "ops"):
+ 
+ LEVERAGE = 2.0
+ 
++# the three income types whose sum the carrier calls "realised" (binance_broker.income_since,
++# `realised_components`) — read from the row when it says, else this default
++_REALISED_TYPES = ("REALIZED_PNL", "COMMISSION", "FUNDING_FEE")
++
++
++def realised_facts(row) -> dict:
++    """The row's realised P&L as a RECORD with its own observability, USDT caliber and completeness.
++
++    ★★★ W2 2026-09-12 — two VERIFIED counterexamples from the independent reviewer
++        (codex_system_status_review_2026-09-12/deployment/RESULT.md §5):
++        (1) the income carrier sums every asset's raw amount into `realised_pnl`; on a row with
++            USDT -0.30 and BNB -0.01 the old reader printed **-0.31** and called it USDT. The carrier
++            writes `realised_by_type_asset` / `realised_non_usdt_assets` beside the sum since
++            2026-09-12 06:05Z (E-0909-H round 4) precisely so a reader can SEE the foreign-unit row;
++            this reader now sums the USDT slice only and lists every other asset UNCONVERTED, with
++            its raw amount and asset — never added into a USDT figure.
++        (2) `realised_pnl=None` (the income endpoint failed; the loop refuses to write 0 there)
++            read as `realised_today=0.0` under `or 0.0`, and the same-day residual was then computed
++            with that fabricated zero. Now: `observable=False`, `usdt=None`, and the residual refuses.
++    ★ A row written before the per-asset split existed cannot be split. The carrier's sum is passed
++      through with `caliber="legacy_carrier_sum_usdt_assumed"` — an assumption STATED, not a number
++      invented. `realised_truncated=True` (income paging hit its cap) makes the figure a partial
++      read: kept, labelled `complete=False`, never presented as the day's total.
++    """
++    r = row or {}
++    src = r.get("realised_pnl_source")
++    if r.get("realised_pnl") is None:
++        return {"observable": False, "usdt": None, "by_type_usdt": {}, "unconverted": [],
++                "caliber": None, "complete": None, "carrier_sum": None,
++                "carrier_sum_mixes_assets": None,
++                "why": ("`realised_pnl` is None on this nav row — the income ledger was not read "
++                        f"(source: {src or 'not stated'}); NOT OBSERVABLE, which is not zero")}
++    carrier = float(r["realised_pnl"])
++    types = tuple(r.get("realised_components") or _REALISED_TYPES)
++    bta = r.get("realised_by_type_asset")
++    trunc = r.get("realised_truncated")
++    complete = None if trunc is None else (not bool(trunc))
++    if not isinstance(bta, dict):
++        by_type = r.get("realised_by_type") or {}
++        return {"observable": True, "usdt": carrier,
++                "by_type_usdt": {t: float(by_type[t]) for t in types if t in by_type},
++                "unconverted": [], "caliber": "legacy_carrier_sum_usdt_assumed",
++                "complete": complete, "carrier_sum": carrier, "carrier_sum_mixes_assets": None,
++                "why": None}
++    by_type_usdt, unconverted = {}, []
++    for t in types:
++        per_asset = bta.get(t) or {}
++        by_type_usdt[t] = float(per_asset.get("USDT", 0.0))
++        for asset, amt in sorted(per_asset.items()):
++            if asset != "USDT":
++                unconverted.append({"type": t, "asset": asset, "amount": float(amt)})
++    usdt = sum(by_type_usdt.values())
++    return {"observable": True, "usdt": usdt, "by_type_usdt": by_type_usdt,
++            "unconverted": unconverted, "caliber": "usdt_only",
++            "complete": complete, "carrier_sum": carrier,
++            "carrier_sum_mixes_assets": bool(unconverted), "why": None}
++
++
++def anchor_cost_facts(orders_of_anchor) -> dict:
++    """One anchor's cost / fill facts from its order rows, as DATA. Pure.
++
++    ★★★ W2 2026-09-12. The per-anchor table read `fee_paid or 0` and kept only rows whose
++        `avg_fill_px` and `mid_at_anchor` were truthy. Measured on the LIVE ledger copy: anchor
++        2026-08-05 12:00Z had 103/103 fills with `fee_paid=0.0, fee_all_usdt=False,
++        fee_conversion=None` (BNB commissions, never converted) and the table printed
++        **-3.70 bps** — a cost over ZERO measured fills. The three buckets (measured / fee-unknown
++        / unpriced, `live/cost_buckets.py`, same rule as anchor_loop.neutrality_price) make that
++        read `None` with the counts beside it. A `filled_notional` of None is an UNKNOWN fill,
++        not a zero fill: it is counted apart and turns the fill-rate into a lower bound.
++    """
++    import cost_buckets as CB
++    og = list(orders_of_anchor or [])
++    b = CB.bucket_fills(og)
++    mk = [o for o in og if o.get("order_type") == "maker"]
++    want = sum(abs(float(o.get("intended_notional") or 0)) for o in mk)
++    got_known = sum((CB.filled_abs(o) or 0.0) for o in mk)
++    n_unknown_mk = sum(1 for o in mk if CB.filled_abs(o) is None)   # None / non-finite: unknown
++    return {
++        "cost_bps": b["bps_measured"],                 # None = UNMEASURED, not 0
++        "cost_coverage_notional": b["coverage_measured_notional"],
++        "buckets": b,
++        "maker_intended_usdt": round(want, 4),
++        "maker_filled_known_usdt": round(got_known, 4),
++        "maker_fill_rate_pct": (100.0 * got_known / want if want else None),
++        "maker_fill_rate_is_lower_bound": n_unknown_mk > 0,
++        "maker_n_unknown_fill": n_unknown_mk,
++    }
++
+ 
+ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+     """The account section's three key quantities, as DATA. Pure; no printing, no I/O.
+@@ -78,7 +166,12 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+     wal = float(n1.get("wallet_balance") or 0.0)
+     unr = float(n1.get("unrealised_pnl") or 0.0)
+     eq = float(n1.get("nav") or 0.0)
+-    real = float(n1.get("realised_pnl") or 0.0)
++    # ★★★ W2 2026-09-12: `float(realised_pnl or 0.0)` turned an UNREAD income ledger into a
++    #     realised P&L of 0.0 and a mixed-asset raw sum into a USDT figure. Both are the
++    #     reviewer's VERIFIED counterexamples; see `realised_facts`.
++    real_f = realised_facts(n1)
++    real0_f = realised_facts(n0)
++    real = real_f["usdt"]                         # None when NOT observable — never 0.0
+     # ★★★ P0, 2026-08-03. `external_flow_usdt` IS A SINCE-MIDNIGHT CUMULATIVE, PER DAY — reading
+     #     it off the LAST row reports only the CURRENT day's flow, and a window that spans two days
+     #     silently drops everything that happened before midnight.
+@@ -107,8 +200,17 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+         "wallet": wal, "unrealised": unr, "equity": eq,
+         "equity_identity_residual": round(eq - (wal + unr), 6),
+         "equity_identity_holds": abs(eq - (wal + unr)) < 0.01,
++        # ★ realised is a RECORD: observable? in which caliber? complete? and what was left
++        #   UNCONVERTED. `realised_today` stays for existing readers and is None when unobservable.
+         "realised_today": real,
+-        "realised_by_type": n1.get("realised_by_type") or {},
++        "realised_observable": real_f["observable"],
++        "realised": real_f,
++        "realised_by_type": n1.get("realised_by_type") or {},        # the carrier's raw sums
++        "realised_by_type_usdt": real_f["by_type_usdt"],              # USDT slice per type
++        "realised_unconverted": real_f["unconverted"],                # never summed into USDT
++        "realised_increment_caliber": (None if not (real_f["observable"] and real0_f["observable"])
++                                       else real_f["caliber"] if real_f["caliber"] == real0_f["caliber"]
++                                       else f"MIXED {real0_f['caliber']} -> {real_f['caliber']}"),
+         # (b) the target-exposure arithmetic
+         "leverage": leverage,
+         "target_exposure": round(eq * leverage, 6),
+@@ -129,16 +231,22 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+         "flow_query_scope": "futures income endpoint (incomeType=TRANSFER) only",
+         # (d) the residual, or a refusal to compute it
+         "equity_change": round(d_eq, 6),
+-        "unexplained_computable": bool(same_day),
++        "unexplained_computable": bool(same_day and real_f["observable"] and real0_f["observable"]),
+     }
+-    if same_day:
+-        f["unexplained_equity_change"] = round(
+-            d_eq - (real - float(n0.get("realised_pnl") or 0.0)) - (ext_f or 0.0), 6)
+-        f["unexplained_why_not"] = None
+-    else:
++    if not same_day:
+         f["unexplained_equity_change"] = None
+         f["unexplained_why_not"] = ("窗口跨越 00:00Z, 而 `realised_pnl` 是当日累计并在 00:00Z "
+                                     "归零, 所以跨日的权益残差没有定义")
++    elif not (real_f["observable"] and real0_f["observable"]):
++        # ★ the residual needs the realised INCREMENT; with either end unread there is no
++        #   increment to subtract, and subtracting a fabricated 0 would print a wrong residual
++        f["unexplained_equity_change"] = None
++        f["unexplained_why_not"] = ("当日已实现在窗口的一端不可观测(income 未读), 已实现增量没有定义, "
++                                    "所以权益残差不计算")
++    else:
++        f["unexplained_equity_change"] = round(
++            d_eq - (real - real0_f["usdt"]) - (ext_f or 0.0), 6)
++        f["unexplained_why_not"] = None
+     return f
+ 
+ 
+@@ -163,11 +271,23 @@ def render_account(f: dict) -> list:
+     if not f["equity_identity_holds"]:
+         out.append(f"   ★★ wallet + unrealised 与 equity 差 {f['equity_identity_residual']:+.4f} "
+                    f"—— 这个恒等式不该被破坏, 破了说明有一项我们读错了。")
+-    by = f["realised_by_type"]
+-    out.append(f"\n   当日已实现   {f['realised_today']:+.4f}"
+-               + (f"   = 交易 {float(by.get('REALIZED_PNL', 0)):+.4f}"
+-                  f"  手续费 {float(by.get('COMMISSION', 0)):+.4f}"
+-                  f"  资金费 {float(by.get('FUNDING_FEE', 0)):+.4f}" if by else ""))
++    rf = f.get("realised") or {}
++    if not rf.get("observable"):
++        # ★ "we do not know" and "nothing was realised" are different facts
++        out.append(f"\n   当日已实现   不可观测 —— {rf.get('why')}")
++    else:
++        by = rf.get("by_type_usdt") or {}
++        _cal = ("USDT" if rf.get("caliber") == "usdt_only"
++                else "载体原数和, 币种未拆分, **假定**全 USDT (2026-09-12 06:05Z 前的行)")
++        out.append(f"\n   当日已实现   {rf['usdt']:+.4f} USDT   [口径: {_cal}]"
++                   + (f"   = 交易 {float(by.get('REALIZED_PNL', 0)):+.4f}"
++                      f"  手续费 {float(by.get('COMMISSION', 0)):+.4f}"
++                      f"  资金费 {float(by.get('FUNDING_FEE', 0)):+.4f}" if by else ""))
++        for u in rf.get("unconverted") or []:
++            out.append(f"   ★ 未换算(非 USDT, **未计入**上行): {u['type']} {u['asset']} "
++                       f"{u['amount']:+.8f} —— 原币种数量, 不是 USDT")
++        if rf.get("complete") is False:
++            out.append("   ★★ income 分页截断 —— 上行是不完整读取(下界), **不是**当日总额")
+     out.append(f"\n   ★ 目标敞口 = 权益 × 杠杆 = {f['equity']:,.2f} × {f['leverage']:.2f} "
+                f"= {f['target_exposure']:,.2f}")
+     st = f["external_flow_state"]
+@@ -251,24 +371,17 @@ def main():
+ 
+     # ── 2. per-anchor table: the trend, one row each ──────────────────────────────────────
+     print("\n【逐锚】 —— 用户要的是趋势, 所以一锚一行")
+-    print(f"   {'anchor':<9}{'成本bps':>9}{'成交率':>8}{'缺口':>9}{'中性%':>8}{'gross':>10}  备注")
++    # ★ 成本bps 只按已测成交(价可用 且 费已知)算; 覆盖 = 已测名义 / 全部成交名义。n/a = 未测, 不是 0。
++    #   成交率前的 ≥ 表示有成交金额未知的行(下界)。覆盖列向下取整: 99.6% 印 99%, 不印成 100%。
++    print(f"   {'anchor':<9}{'成本bps':>9}{'覆盖':>6}{'成交率':>8}{'缺口':>9}{'中性%':>8}{'gross':>10}  备注")
++    _cov_short = 0
+     for r in A:
+         ats = float(r["anchor_ts"])
+         og = [o for o in rows["orders"] if float(o.get("anchor_ts") or 0) == ats]
+-        fl = [o for o in og if abs(float(o.get("filled_notional") or 0)) > 0
+-              and o.get("avg_fill_px") and o.get("mid_at_anchor")]
+-        den = sum(abs(float(o["filled_notional"])) for o in fl)
+-        cost = None
+-        if den:
+-            fee = sum(float(o.get("fee_paid") or 0) for o in fl)
+-            adv = sum((1 if float(o["filled_notional"]) > 0 else -1)
+-                      * (float(o["avg_fill_px"]) - float(o["mid_at_anchor"]))
+-                      / float(o["mid_at_anchor"]) * abs(float(o["filled_notional"])) for o in fl)
+-            cost = 1e4 * (fee + adv) / den
+-        mk = [o for o in og if o.get("order_type") == "maker"]
+-        want = sum(abs(float(o.get("intended_notional") or 0)) for o in mk)
+-        fill = (100 * sum(abs(float(o.get("filled_notional") or 0)) for o in mk) / want
+-                if want else None)
++        cf = anchor_cost_facts(og)
++        cost, cov, fill = cf["cost_bps"], cf["cost_coverage_notional"], cf["maker_fill_rate_pct"]
++        if cov is not None and cov < 1.0:
++            _cov_short += 1
+         kg = (r.get("known_gaps") or {}).get("gross_usdt")
+         nog = r.get("net_over_gross")
+         note = []
+@@ -276,12 +389,23 @@ def main():
+             note.append("停机")
+         if (r.get("reshape") or {}).get("n_popped"):
+             note.append(f"撤{r['reshape']['n_popped']}")
++        _b = cf["buckets"]
++        if _b["n_fills"] and _b["n_measured"] < _b["n_fills"]:
++            note.append(f"未测{_b['n_fills'] - _b['n_measured']}/{_b['n_fills']}"
++                        f"(费未知{_b['n_fee_unknown']} 未定价{_b['n_unpriced']})")
++        if _b["n_unknown_fill"]:
++            note.append(f"成交未知{_b['n_unknown_fill']}行")
++        _fill_s = ("n/a" if fill is None else
++                   f"{'≥' if cf['maker_fill_rate_is_lower_bound'] else ''}{fill:.0f}%")
+         print(f"   {utc(ats,'%m-%d %H:%MZ'):<9}"
+               f"{(f'{cost:+.2f}' if cost is not None else 'n/a'):>9}"
+-              f"{(f'{fill:.0f}%' if fill is not None else 'n/a'):>8}"
++              f"{(f'{int(100*cov)}%' if cov is not None else '—'):>6}"
++              f"{_fill_s:>8}"
+               f"{(f'{kg:.0f}' if kg is not None else 'n/a'):>9}"
+               f"{(f'{100*float(nog):+.2f}' if nog is not None else 'n/a'):>8}"
+               f"{float(r.get('target_gross') or 0):>10,.0f}  {' '.join(note)}")
++    if _cov_short:
++        print(f"   ★ {_cov_short} 锚的成本覆盖 < 100%: bps 只按已测成交算, 未测 ≠ 零成本 —— 见备注")
+ 
+     # ── the rotation question: banked vs entry cost ───────────────────────────────────────
+     # ★ SAME DAY-BOUNDARY TRAP AS ABOVE, and here it was worse: differencing across 00:00Z made
+@@ -289,10 +413,18 @@ def main():
+     _today = [r for r in nav if r.get("day") == nav[-1].get("day")] if nav else []
+     if len(_today) >= 2:
+         r0, r1 = _today[0], _today[-1]
+-        _dr = float(r1.get("realised_pnl") or 0) - float(r0.get("realised_pnl") or 0)
++        _rf0, _rf1 = realised_facts(r0), realised_facts(r1)
+         print(f"\n   ★ 「一换手就降」(当日 {r1.get('day')}, 不跨 00:00Z):")
+-        print(f"     已实现 {float(r0.get('realised_pnl') or 0):+.4f} → "
+-              f"{float(r1.get('realised_pnl') or 0):+.4f}  (增量 {_dr:+.4f}) —— 轮换把浮盈**落袋**")
++        if _rf0["observable"] and _rf1["observable"]:
++            _dr = _rf1["usdt"] - _rf0["usdt"]
++            print(f"     已实现 {_rf0['usdt']:+.4f} → {_rf1['usdt']:+.4f} USDT  (增量 {_dr:+.4f}) "
++                  f"—— 轮换把浮盈**落袋**"
++                  + ("" if _rf0["caliber"] == _rf1["caliber"] else
++                     f"   ★ 两端口径不同 ({_rf0['caliber']} → {_rf1['caliber']}), 增量只是近似"))
++        else:
++            # ★ an unread income ledger at either end: no increment exists, and a 0 would be a lie
++            print(f"     已实现 增量不可观测 —— "
++                  f"{'首行' if not _rf0['observable'] else '末行'}的 income 未读, 不打一个用 0 算出的增量")
+         print(f"     浮动   {float(r0.get('unrealised_pnl') or 0):+.4f} → "
+               f"{float(r1.get('unrealised_pnl') or 0):+.4f}  —— 新仓位的账面")
+         print(f"     入场成本见上表'成本bps'一列。落袋 + 入场成本两个数一出来, '降'就自解释了。")
+diff --git a/ops/first_anchor_review.py b/ops/first_anchor_review.py
+index bb9a1b3..4580712 100755
+--- a/ops/first_anchor_review.py
++++ b/ops/first_anchor_review.py
+@@ -213,6 +213,12 @@ def main() -> int:
+     hdr("3. FILLS AND BREADTH")
+     filled = [o for o in mine if o.get("filled_notional") not in (None, 0, 0.0)]
+     print(f"   order rows with a non-zero fill   {len(filled)}")
++    # ★ W2 2026-09-12: since round 7 a row can carry `filled_notional: None` with a KNOWN part and
++    #   an UNKNOWN residual (`filled_known_notional` / `filled_unknown_residual`). That is not a
++    #   zero fill; the old screen folded it into "no fill" by omission.
++    _unk = [o for o in mine if o.get("filled_notional") is None]
++    print(f"   order rows with UNKNOWN fill      {len(_unk)}"
++          f"{'   ★ filled_notional None — an unknown amount, NOT a zero fill' if _unk else ''}")
+     # ★ the number that misled 0C: raw rows double-count markout backfills. Both shown.
+     _uf = PL.collapse_supersedes(fills)
+     print(f"   fills: unique executions          {len(_uf)}"
+@@ -348,43 +354,53 @@ def main() -> int:
+ 
+     # ── 3c. REALISED COST — the number P0 exists for ────────────────────────────────────────
+     hdr("3c. REALISED COST (bps) vs the shadow model's assumptions")
+-    ex = [o for o in mine if o.get("filled_notional") and o.get("avg_fill_px")
+-          and o.get("mid_at_anchor")]
++    # ★★★ W2 2026-09-12 — THREE BUCKETS, the rule the production diagnostics adopted in review
++    #     rounds 13/14 (`anchor_loop.neutrality_price`, `chase_readout`): a fill is MEASURED only
++    #     with a usable price AND a known fee; a fee written as a raw mixed-asset sum
++    #     (`fee_all_usdt=False`, no `fee_conversion`) is UNKNOWN, not 0. This screen used to read
++    #     `fee_paid or 0.0` and counted only `fee_paid is None` as "no fee" — so on the LIVE
++    #     ledger's 2026-08-05 12:00Z anchor (103/103 fills with fee_paid=0.0 beside
++    #     fee_all_usdt=False: BNB commissions, never converted) it would have printed a fee of
++    #     0.00bps and a TOTAL of -3.70bps with no warning at all. Now: bps over the MEASURED set,
++    #     the two other buckets named with count and notional, and "0 measured" prints
++    #     UNMEASURED rather than a number.
++    import cost_buckets as CB
++    ex = [o for o in mine if CB.filled_abs(o)]        # known, non-zero fills — any bucket
+     if not ex:
+-        miss("no row carries filled_notional + avg_fill_px + mid_at_anchor together — "
++        miss("no row carries a known non-zero filled_notional — "
+              "cost is UNMEASURED, which is not the same as zero")
+     else:
+         def _leg(rows, label):
+-            notl = sum(abs(float(r["filled_notional"])) for r in rows)
+-            if notl <= 0:
++            b = CB.bucket_fills(rows)
++            notl = b["notional_usdt"]
++            if b["n_fills"] == 0 or notl <= 0:
+                 print(f"   {label:14s} no filled notional — UNMEASURED, not 0")
+                 return
+-            fee = sum(float(r.get("fee_paid") or 0.0) for r in rows)
+-            n_nofee = sum(1 for r in rows if r.get("fee_paid") is None)
++            _excl = (f"   ★ excluded from numerator AND denominator: "
++                     f"fee-unknown {b['n_fee_unknown']} / ${b['fee_unknown_notional_usdt']:,.2f}, "
++                     f"unpriced {b['n_unpriced']} / ${b['unpriced_notional_usdt']:,.2f} "
++                     f"— an unmeasured fill is NOT a free fill"
++                     if b["n_measured"] < b["n_fills"] else "")
++            if b["n_measured"] == 0:
++                print(f"   {label:14s} filled {notl:12,.2f}   cost UNMEASURED — 0 of "
++                      f"{b['n_fills']} fills measured (fee-unknown {b['n_fee_unknown']}, "
++                      f"unpriced {b['n_unpriced']}); no bps is printed because none exists")
++                return
+             # ★ SIGNED-ADVERSE, and the absolute version beside it. A buy above the anchor mid and
+             #   a sell below it are costs; the opposite is price IMPROVEMENT, and |slippage| would
+-            #   book that as a cost too. The spec asked for |.|; both are printed so the choice is
+-            #   visible rather than silently substituted.
+-            adv = abs_ = 0.0
+-            for r in rows:
+-                mid, px = float(r["mid_at_anchor"]), float(r["avg_fill_px"])
+-                if mid <= 0:
+-                    continue
+-                d = (px - mid) / mid if str(r.get("side", "")).lower() == "buy" else (mid - px) / mid
+-                w = abs(float(r["filled_notional"]))
+-                adv += d * w
+-                abs_ += abs(d) * w
+-            print(f"   {label:14s} filled {notl:12,.2f}   fee {fee * 1e4 / notl:6.2f}bps"
+-                  f"   slip(adverse) {adv * 1e4 / notl:+6.2f}bps"
+-                  f"   slip(|.|) {abs_ * 1e4 / notl:6.2f}bps")
+-            # ★ `adv`/`abs_` are already notional-WEIGHTED sums, i.e. USDT — the same units as
+-            #   `fee`. The first version wrote `adv * notl`, multiplying by the notional twice and
+-            #   printing TOTAL -4843bps beside a slip of -1.75bps. Two numbers that cannot both be
+-            #   right, on the same line, and only reading the output caught it.
+-            print(f"   {'':14s} TOTAL adverse {(fee + adv) * 1e4 / notl:+6.2f}bps"
+-                  f"   |.| {(fee + abs_) * 1e4 / notl:6.2f}bps"
+-                  + (f"   ★ {n_nofee} row(s) carry NO fee — excluded from the numerator, "
+-                     f"so this UNDERSTATES" if n_nofee else ""))
++            #   book that as a cost too. Both are printed so the choice is visible. The sign is
++            #   taken from the SIGN OF filled_notional, as the production diagnostics do.
++            print(f"   {label:14s} filled {notl:12,.2f}   measured {b['notional_measured_usdt']:12,.2f}"
++                  f" ({b['coverage_measured_notional']:.0%} of notional, "
++                  f"{b['n_measured']}/{b['n_fills']} fills)")
++            print(f"   {'':14s} fee {b['fee_bps_measured']:6.2f}bps"
++                  f"   slip(adverse) {b['adverse_bps_measured']:+6.2f}bps"
++                  f"   slip(|.|) {b['abs_slip_bps_measured']:6.2f}bps   — over the MEASURED set")
++            # ★ the bps are ratios of notional-WEIGHTED USDT sums to the measured notional; the
++            #   first version of this screen multiplied by the notional twice and printed
++            #   TOTAL -4843bps beside a slip of -1.75bps.
++            print(f"   {'':14s} TOTAL adverse {b['bps_measured']:+6.2f}bps"
++                  f"   |.| {b['abs_bps_measured']:6.2f}bps{_excl}")
+ 
+         _leg([r for r in ex if r.get("order_type") == "maker"], "maker")
+         _leg([r for r in ex if r.get("order_type") == "topup_taker"], "taker")
+@@ -459,27 +475,40 @@ def main() -> int:
+                 if not _ok2:
+                     print(f"   {_src:14s} NOT ESTIMABLE — {_why2} (same two fills as above)")
+                     continue
+-                _n = sum(abs(float(r["filled_notional"])) for r in _sub)
+-                _a = 0.0
++                # ★ W2: a row without a usable fill price or limit price has an UNKNOWN vs-limit
++                #   cost; it is left out of numerator AND denominator and the count is printed.
++                _n = _a = 0.0
++                _n_unp = 0
+                 for r in _sub:
+-                    _L, _px = float(r["intended_limit_px"]), float(r["avg_fill_px"])
+-                    if _L <= 0:
++                    _L, _px = CB.usable_px(r.get("intended_limit_px")), CB.usable_px(r.get("avg_fill_px"))
++                    if _L is None or _px is None:
++                        _n_unp += 1
+                         continue
+                     _d = ((_px - _L) / _L if str(r.get("side", "")).lower() == "buy"
+                           else (_L - _px) / _L)
+                     _a += _d * abs(float(r["filled_notional"]))
++                    _n += abs(float(r["filled_notional"]))
+                 if _n > 0:
+                     print(f"   {_src:14s} filled {_n:12,.2f}   vs-limit(adverse) "
+                           f"{_a * 1e4 / _n:+6.2f}bps"
+-                          f"   ← NEGATIVE = better than the price we asked for")
++                          f"   ← NEGATIVE = better than the price we asked for"
++                          + (f"   ★ {_n_unp} fill(s) unpriced, excluded" if _n_unp else ""))
++                else:
++                    print(f"   {_src:14s} vs-limit UNMEASURED — {_n_unp} fill(s) without a usable "
++                          f"fill/limit price; not 0")
+         sub_m = [o for o in mine if o.get("order_type") == "maker"
+                  and o.get("submit_ts") is not None]
+-        fil_m = [o for o in sub_m if o.get("filled_notional")]
++        fil_m = [o for o in sub_m if CB.filled_abs(o)]
+         n_sub = sum(abs(float(o.get("intended_notional") or 0.0)) for o in sub_m)
+-        n_fil = sum(abs(float(o.get("filled_notional") or 0.0)) for o in fil_m)
++        n_fil = sum(CB.filled_abs(o) for o in fil_m)
++        # ★ W2: a maker leg whose amount could not be read is NOT an unfilled leg. It is left
++        #   out of the numerator and the rate is printed as a LOWER BOUND with the count.
++        n_unk_m = sum(1 for o in sub_m if CB.filled_abs(o) is None)
+         if n_sub > 0:
+-            print(f"\n   maker fill-rate (notional) {n_fil / n_sub:6.2%}"
+-                  f"   over {len(sub_m)} submitted maker legs")
++            print(f"\n   maker fill-rate (notional) {'>= ' if n_unk_m else ''}{n_fil / n_sub:6.2%}"
++                  f"   over {len(sub_m)} submitted maker legs"
++                  + (f"   ★ {n_unk_m} leg(s) with UNKNOWN fill amount excluded — lower bound"
++                     if n_unk_m else ""))
+         else:
+             miss("no maker leg was submitted — fill-rate UNMEASURED")
+         print("   ── the shadow model assumes: maker fill-rate 0.51, cost 1.9bps (calm regime) ──")
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 46528dc..f6e986e 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -156,7 +156,8 @@ SUITE_SCOPE = {
+     "tests_cond3_worst_selector": "that §4-3 has anything to judge — over all history the stress-anchor count is 0, so this fix is INERT on current data. It proves the accumulator selects the worst day and that the record carries one caliber; it cannot prove the regime labelling that decides which days are stress days at all",
+     "tests_readiness_filters_path": "that the cached filters are CORRECT — it proves the sheet looks at the file we actually write and counts real symbols. Whether those 653 entries carry the right tick/step/minNotional for LIVE is established by the venue stamp and by arm(), not here",
+     "tests_neutrality_check": "that the book WILL be neutral — it proves only that the realised net is measured from venue truth and spoken when it leaves the band. It changes no order and closes no gap: the 16:00Z anchor would still have ended -6.9% short, we would merely have known within the minute instead of in a post-mortem. Nor does it establish that 3% is the right band — that figure is policy, not calibration, and two anchors is not a distribution",
+-    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines.",
++    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it.",
++    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 / E6 caliber) still keeps fee-unknown notional in its denominator at fee 0 and is deliberately NOT changed here (a pre-registered judging rule), so E6 shows both calibers and judges on the old one; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent",
+     "tests_redelivery_settles": "that every alarm reaches a human — it proves the QUEUE stops asking once one has, which is a different guarantee. Four blind spots: (a) it settles on an explicit key, so a redelivery path that forgets to pass `settles` regresses silently and only the repeat count would show it, days later; (b) it does not retroactively settle the six already sent — the seventh redelivery closes the loop, so the ledger keeps six rows that look like a live defect; (c) `SUPPRESSED` counts as settled, which is right for a test harness and wrong if anyone ever suppresses in production; (d) it says nothing about whether the redelivered TEXT is still meaningful — a stale alarm replayed hours later is delivered, settled, and possibly misleading",
+     "tests_alarm_digest": "that the right things get read — it proves the classifier separates and never demotes an undelivered alarm, not that the tiers match what a human would choose. Four blind spots: (a) the rules are REGEX over message text, so rewording an alarm silently reclassifies it and nothing here would notice; (b) `UNRECOGNISED -> DECIDE` is safe but means the tool degrades toward noise exactly as the system produces novel shapes — i.e. during an incident; (c) tier B asserts 'already decided', which is a claim about a RULING that lives outside the code — if a ruling is reversed, the tier is silently wrong; (d) it measures compression on the last 24h and reports the historical ratio ungraded, so a slow drift toward everything-is-A across weeks would not fail anything",
+     "tests_disposition_matrix": "that no name will evaporate again — it proves every terminal state HAS a declared destination and that the ledger sizes the ones we abandon, not that the destinations are the right ones. Four blind spots: (a) the matrix is closed over `TERMINAL_REASONS`, so a leg that ends WITHOUT writing a row at all is invisible to it — and that is precisely how -5022 vanished, by never reaching a disposition; (b) it is RECORD-ONLY, so a gap being named changes nothing about whether a guard forgives it — the ledger could be perfect and §4-5e would still flatten the book; (c) the two code-dependent cells resolve on a substring of `note`, so a venue that reworded its errors would silently reclassify -5022 as a gap and -4164 as a real one; (d) `blocked_by_halt` dominating a halted anchor at ~4200 USDT is arithmetically right and operationally noisy — nothing here establishes that a halted anchor SHOULD report its whole book as gap",
+diff --git a/ops/score_post_fix.py b/ops/score_post_fix.py
+index e266775..76b5f65 100644
+--- a/ops/score_post_fix.py
++++ b/ops/score_post_fix.py
+@@ -374,6 +374,16 @@ def score(root: Optional[str] = None, day: Optional[str] = None,
+     counters = {k: m1.get(k) for k in ("n_excluded_unknown_fill", "n_excluded_no_anchor_mid",
+                                        "n_unmeasured_fee", "n_unmeasured_slippage")}
+     complete = m1.get("measurement_complete")
++    # ★ W2 2026-09-12 — THE THREE BUCKETS, ADDED BESIDE THE PRE-REGISTERED KEYS, NEVER INSTEAD.
++    #   E6's verdict, `c_bps_overall` and `measurement_complete` are the pre-registered contract
++    #   (docs/POST_FIX_EXPECTATIONS.md E6) and are not touched. `pilot_metrics.m1` keeps a
++    #   fee-unknown row in the DENOMINATOR at fee 0 — which is exactly why `c_bps_overall` is a
++    #   lower bound when `measurement_complete` is False. `buckets` reports the same rows under
++    #   the production diagnostics' rule (measured / fee-unknown / unpriced; bps over MEASURED
++    #   only, None when nothing was measured), so a reader can see how far the two calibers are
++    #   apart on this anchor instead of inheriting the lower bound as a number.
++    import cost_buckets as _CB
++    _bk = _CB.bucket_fills([o for o in mine if o.get("order_type") in ("maker", "topup_taker")])
+     out["E6_cost_comparable"] = {
+         "verdict": _verdict(None if complete is None else bool(complete)),
+         "measurement_complete": complete, "counters": counters,
+@@ -381,7 +391,14 @@ def score(root: Optional[str] = None, day: Optional[str] = None,
+         "protective_flatten_cost": m1.get("protective_flatten_cost"),
+         "rule": ("if measurement_complete is not True, c is a LOWER BOUND and MUST NOT be "
+                  "compared against the 9.0bps limit — the rule is unchanged from the "
+-                 "pre-registration; only the prediction was amended")}
++                 "pre-registration; only the prediction was amended"),
++        "buckets": _bk,
++        "bucket_rule": ("ADDITIVE (W2 2026-09-12): the rebalance legs (maker + topup_taker) under "
++                        "the three-bucket rule of anchor_loop.neutrality_price. `bps_measured` is "
++                        "over MEASURED fills only and is None when none was measured; it equals "
++                        "m1's `c_bps_net_overall` exactly when every fill is measured, and "
++                        "diverges when m1 keeps fee-unknown notional in its denominator at fee 0. "
++                        "Not judged; the verdict above is the pre-registered one.")}
+     out["overall"] = {k: v["verdict"] for k, v in out.items()
+                       if isinstance(v, dict) and "verdict" in v}
+     return out
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index b9895c7..3d82bc4 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -189,6 +189,11 @@ SUITES=(
+   "tests_alarm_digest:$_SELF/live/tests_alarm_digest.py"
+   "tests_redelivery_settles:$_SELF/live/tests_redelivery_settles.py"
+   "tests_daily_summary:$_SELF/live/tests_daily_summary.py"
++  # ★ W2 2026-09-12 (POSTMORTEM_b0a573a1 §5 "下游成本读者未继承三桶"): the read-only cost readers
++  #   (daily_summary per-anchor column / first_anchor_review §3c / score_post_fix E6) consume the three
++  #   buckets through the live/cost_buckets module, pinned equal to anchor_loop.neutrality_price key by key.
++  #   (no `.py` suffix in this comment: tests_imports' script scan would read it as an invocation)
++  "tests_readers_three_bucket:$_SELF/live/tests_readers_three_bucket.py"
+   # ★ TWO suites for one feature, deliberately. `chase_policy` proves the rule decides correctly
+   #   given a residual set; `chase_experiment_wiring` proves topup() ever ASKS it and that a
+   #   withheld name leaves a row. Every defect this repo has paid for lived in the second gap.

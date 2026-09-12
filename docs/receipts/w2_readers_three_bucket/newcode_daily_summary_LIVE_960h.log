@@ -1,0 +1,754 @@
+==============================================================================
+DAILY SUMMARY   mode=LIVE   08-03 10:28Z -> 09-12 10:28Z
+  window read as: duration 960h before now
+  covered: 236 anchor(s) · 1543 alarm row(s) · 237 nav row(s)   [ledger totals: 250 / 1825]
+==============================================================================
+
+【账户】 —— 权益是三样东西, 不是一个数
+   期货钱包余额 (wallet)        116,213.24   ← 已落袋的一切: 本金 + 累计已实现
+   浮动盈亏     (unrealised)     +2,030.20   ← 还在仓位里, 没落袋, 会随价格跳
+   ────────────────────────────────────────
+   权益         (equity/nav)    118,243.44   = wallet + unrealised
+   ★ 用户看到的'盈亏'通常是**浮动**那一行。它跳, 是因为仓位还开着。
+
+   当日已实现   +218.4401 USDT   [口径: USDT]   = 交易 +258.6889  手续费 -8.0588  资金费 -32.1901
+
+   ★ 目标敞口 = 权益 × 杠杆 = 118,243.44 × 2.00 = 236,486.88
+   期货账户外部资金流入(TRANSFER)  +116,973.37   [覆盖 41 天: {'20260803': 0.0, '20260804': 0.0, '20260805': -199.66725, '20260806': 0.0, '20260807': 0.0, '20260808': 0.0, '20260809': 0.0, '20260810': 3810.1716, '20260811': 0.0, '20260812': 0.0, '20260813': 0.0, '20260814': 0.0, '20260815': 0.0, '20260816': 0.0, '20260817': 0.0, '20260818': 9908.060759, '20260819': 0.0, '20260820': 0.0, '20260821': 0.0, '20260822': 0.0, '20260823': 0.0, '20260824': 0.0, '20260825': 0.0, '20260826': 0.0, '20260827': 5449.616411, '20260828': 0.0, '20260829': 0.0, '20260830': 0.0, '20260831': 0.0, '20260901': 0.0, '20260902': 0.0, '20260903': 62997.811995, '20260904': 0.0, '20260905': 0.0, '20260906': 0.0, '20260907': 0.0, '20260908': 35007.379956, '20260909': 0.0, '20260910': 0.0, '20260911': 0.0, '20260912': 0.0}]
+   ⇒ 本窗口期货账户有资金流入, 已计入上面的权益与目标敞口。本系统只查期货, 看不见现货。
+   (窗口跨越 00:00Z, 而 `realised_pnl` 是当日累计并在 00:00Z 归零, 所以跨日的权益残差没有定义 —— 不计算, 而不是算一个错的。)
+
+【逐锚】 —— 用户要的是趋势, 所以一锚一行
+   anchor       成本bps    覆盖     成交率       缺口     中性%     gross  备注
+   08-03 12:01Z    +0.25  100%     55%        0   -0.53     4,385  撤1
+   08-03 16:01Z    +6.18  100%     60%        9   -0.84     4,384  撤1
+   08-03 20:00Z    +5.08   97%     56%       82   -0.83     4,400  撤1 未测1/96(费未知0 未定价1)
+   08-04 00:01Z    +6.89   99%     52%       32   +0.48     4,402  撤1 未测1/85(费未知0 未定价1)
+   08-04 04:00Z    +2.03   98%     75%       73   -0.43     4,406  撤2 未测1/81(费未知0 未定价1)
+   08-04 08:01Z   +27.39  100%     55%       91   +0.13     4,415  撤2
+   08-04 12:00Z    +4.78  100%     80%       72   +1.05     4,411  撤2
+   08-04 16:01Z    +9.10  100%     50%      229   -0.50     4,421  撤2
+   08-04 20:00Z    +5.25  100%     60%       28   +2.05     4,413  撤2
+   08-05 00:01Z    +7.81  100%     52%       14   -0.02     4,418  撤2
+   08-05 04:00Z      n/a     —      0%     4366     n/a     4,402  停机 撤2
+   08-05 08:01Z      n/a     —      0%     4364     n/a     4,381  停机 撤2
+   08-05 12:00Z      n/a    0%     75%       34   -2.42     4,378  撤2 未测103/103(费未知103 未定价0)
+   08-05 16:01Z      n/a    0%     51%      205   -0.55     4,378  撤2 未测100/100(费未知100 未定价0)
+   08-05 20:00Z    +0.94  100%     76%       18   +0.47     4,386  撤2
+   08-06 00:01Z    +4.99  100%     63%       24   -0.34     4,378  撤2
+   08-06 04:00Z    +5.92  100%     59%       43   -0.73     4,358  撤2
+   08-06 08:01Z    +1.51  100%     60%       65   -0.35     4,362  撤2
+   08-06 12:00Z    +0.21   87%     46%        0   -1.41     4,349  撤2 未测1/35(费未知0 未定价1)
+   08-06 16:01Z    -2.36  100%     62%        8   -1.72     4,341  撤2
+   08-06 20:00Z    +5.88  100%     50%       26   -0.88     4,323  撤2
+   08-07 00:00Z    +7.79  100%     56%       15   -1.09     4,307  撤2
+   08-07 04:01Z    +0.77   98%     73%       40   -1.19     4,314  撤2 未测1/71(费未知0 未定价1)
+   08-07 08:01Z    +4.07  100%     58%      232   -3.17     4,318  撤2
+   08-07 12:00Z    +6.11  100%     65%       41   -0.99     4,349  撤2
+   08-07 16:01Z    +6.58  100%     65%       15   -0.74     4,356  撤2
+   08-07 20:00Z    +0.48  100%     73%        5   -1.10     4,354  撤2
+   08-08 00:01Z    +0.63  100%     83%       18   -1.84     4,373  撤2
+   08-08 04:00Z    +1.91  100%     78%        5   -1.29     4,386  撤2
+   08-08 08:01Z    +1.81  100%     59%       99   -1.28     4,382  撤2
+   08-08 12:00Z    +3.20  100%     64%       28   -0.71     4,392  撤2
+   08-08 16:01Z    +1.78  100%     74%       74   -1.00     4,396  撤2
+   08-08 20:00Z    +2.11   97%     62%       84   -0.15     4,377  撤2 未测1/81(费未知0 未定价1)
+   08-09 00:01Z    +2.15  100%     71%      112   -1.92     4,365  撤2
+   08-09 04:00Z   +10.60  100%     52%       63   -0.07     4,335  撤2
+   08-09 08:01Z    +4.12  100%     41%       77   -0.72     4,332  撤2
+   08-09 12:00Z    +0.04  100%     74%       45   +1.52     4,341  撤2
+   08-09 16:01Z    +1.04  100%     67%      144   +1.96     4,334  撤2
+   08-09 20:00Z    +1.49  100%     75%       39   +0.06     4,284  撤2
+   08-10 00:01Z    +9.12  100%     65%        0   +0.78     4,314  撤2
+   08-10 04:00Z    +1.16   93%     57%       18   +0.78     4,309  撤2 未测1/48(费未知0 未定价1)
+   08-10 08:01Z    +0.91  100%     61%      562   -0.72    11,936  撤2
+   08-10 12:00Z    -0.97   86%     80%      126   -1.10    11,944  撤2 未测1/9(费未知0 未定价1)
+   08-10 16:01Z    +0.06  100%     86%        0   -0.21    11,818  撤2
+   08-10 20:00Z    +0.73  100%     82%       12   -0.26    11,756  撤2
+   08-11 00:01Z    -2.94  100%     69%        0   -0.31    11,750  撤2
+   08-11 04:00Z    -0.05   81%     83%        0   -0.28    11,672  撤2 未测1/14(费未知0 未定价1)
+   08-11 08:01Z    +0.44  100%     78%       21   -0.56    11,624  撤2
+   08-11 12:00Z    +1.12  100%     77%       37   -0.67    11,828  撤2
+   08-11 16:01Z    +4.28  100%     61%        0   -0.54    11,708  撤2
+   08-11 20:00Z    +0.07   93%     64%       27   -0.22    11,960  撤2 未测1/16(费未知0 未定价1)
+   08-12 00:01Z    -0.63  100%     67%       29   -0.72    11,932  撤2
+   08-12 04:00Z    +0.10  100%     61%       40   -0.68    11,948  撤2
+   08-12 08:01Z    -0.43  100%     86%        0   +0.04    12,064  撤2
+   08-12 12:00Z    -0.49  100%     72%       62   +0.00    11,988  撤2
+   08-12 16:01Z    -1.26  100%     60%       91   +0.10    11,974  撤2
+   08-12 20:00Z    -0.24  100%     55%      144   -1.24    11,984  撤2
+   08-13 00:01Z    +0.18  100%     69%       46   -0.51    12,017  撤2
+   08-13 04:00Z    -0.47  100%     91%        0   +0.14    12,059  撤2
+   08-13 08:01Z    -0.62   67%     60%      109   +1.18    12,055  撤2 未测1/10(费未知0 未定价1)
+   08-13 12:00Z    -0.98   88%     70%       27   +0.01    12,010  撤2 未测1/12(费未知0 未定价1)
+   08-13 16:01Z    +0.68  100%     69%       30   +0.58    11,952  撤2
+   08-13 20:00Z    +0.42  100%     84%       32   +0.49    11,988  撤2
+   08-14 00:01Z    +0.82  100%     87%        0   +0.22    12,214  撤2
+   08-14 04:00Z    -0.18  100%     79%       23   +0.07    12,217  撤2
+   08-14 08:01Z    -0.50   91%     74%       25   +0.05    12,148  撤2 未测1/12(费未知0 未定价1)
+   08-14 12:00Z    -1.02  100%     65%       46   +0.03    12,184  撤2
+   08-14 16:01Z    +0.36  100%     77%       56   -0.05    12,099  撤2
+   08-14 20:00Z    +0.59   91%     73%       72   -0.21    12,173  撤3 未测1/15(费未知0 未定价1)
+   08-15 00:01Z    +0.05  100%     67%       34   +0.10    12,070  撤3
+   08-15 04:00Z    +0.14  100%     57%       84   -0.21    12,099  撤3
+   08-15 08:01Z    -0.26  100%     66%       52   -0.02    12,177  撤3
+   08-15 12:00Z    -0.64  100%     70%      126   +0.11    12,217  撤3
+   08-15 16:01Z    -0.38  100%     58%       18   +0.89    12,197  撤3
+   08-15 20:01Z    +0.26  100%     79%       36   +0.13    12,226  撤3
+   08-16 00:01Z    -0.49  100%     65%        0   +0.45    12,029  撤3
+   08-16 04:00Z    -0.18  100%     67%       66   +0.43    11,970  撤3
+   08-16 08:01Z    -0.33  100%     72%       92   +0.12    12,216  撤3
+   08-16 12:00Z    -0.45  100%     71%       36   +0.31    12,249  撤3
+   08-16 16:01Z    +0.05  100%     74%       63   -0.27    12,208  撤3
+   08-16 20:00Z    +0.38  100%     77%       40   -0.63    12,138  撤3
+   08-17 00:01Z    +0.30  100%     49%       59   -0.26    12,063  撤3
+   08-17 04:00Z    -0.43  100%     72%       94   -0.27    12,022  撤3
+   08-17 08:01Z    -0.62  100%     88%       21   +0.33    12,133  撤3
+   08-17 12:00Z    -0.54  100%     75%       66   +0.25    12,154  撤3
+   08-17 16:01Z    -0.34  100%     63%       66   +1.01    12,236  撤3
+   08-17 20:00Z    +0.40  100%     76%       57   +0.49    12,146  撤3
+   08-18 00:01Z    -0.35  100%     65%       19   +0.11    12,301  撤3
+   08-18 04:00Z    -0.42  100%     58%     1424   -0.07    31,826  撤2
+   08-18 08:01Z    -0.24   89%     96%        0   -0.05    31,779  撤2 未测1/9(费未知0 未定价1)
+   08-18 12:00Z    +0.88  100%     76%      122   -0.28    32,007  撤2
+   08-18 16:01Z    +0.35  100%     91%       43   +0.15    31,817  撤2
+   08-18 20:00Z    +0.41   99%     82%       56   -0.14    31,728  撤2 未测5/17(费未知0 未定价5)
+   08-19 00:01Z    +0.86  100%     93%       71   +0.24    31,979  撤2
+   08-19 04:00Z    -0.18  100%     90%      136   +0.10    31,937  撤2
+   08-19 08:01Z    -0.55   76%     84%      140   -0.48    31,683  撤2 未测1/16(费未知0 未定价1)
+   08-19 12:00Z    +0.83  100%     72%      121   -0.37    31,903  撤2
+   08-19 16:01Z    -9.65  100%     39%      367   -1.10    32,468  撤2
+   08-19 20:00Z    -0.28  100%     88%        0   +0.15    32,568  撤2
+   08-20 00:01Z    -1.92  100%     56%      105   -0.26    32,552  撤2
+   08-20 04:00Z    -1.56  100%     71%      174   +0.07    32,156  撤2
+   08-20 08:01Z    +0.38  100%     87%       94   -0.16    32,150  撤2
+   08-20 12:00Z    -0.88  100%     83%        0   +0.15    31,680  撤2
+   08-20 16:01Z    +1.95  100%     61%       91   -0.19    31,912  撤2
+   08-20 20:00Z    +0.58  100%     80%      110   -0.49    31,492  撤2
+   08-21 00:01Z    -0.19  100%     64%      125   -0.15    31,154  撤2
+   08-21 04:00Z    -0.52  100%     80%       34   +0.11    31,309  撤2
+   08-21 08:01Z   -27.30  100%     59%       82   +0.05    31,252  撤2
+   08-21 12:00Z    -0.10  100%     67%       33   -0.34    31,220  撤2
+   08-21 16:01Z    +5.02  100%     64%      327   +0.89    30,677  撤5
+   08-21 20:00Z    -2.27  100%     81%        0   -0.34    30,305  撤5
+   08-22 00:01Z      n/a     —      0%    30715     n/a    30,715  停机 撤5
+   08-22 04:00Z      n/a     —      0%    30526     n/a    30,526  停机 撤5
+   08-22 08:25Z      n/a     —      0%    15456     n/a    15,456  停机 撤109
+   08-22 12:23Z    +8.20  100%     60%      525   +1.09    23,180  撤95
+   08-22 16:23Z    -2.69  100%     58%      812   -0.52    23,062  撤39
+   08-22 20:23Z    +0.15  100%     64%       29   +0.69    23,024  撤38
+   08-23 00:23Z   -16.00  100%     22%       64   +0.35    23,189  撤37
+   08-23 04:23Z    -4.80  100%     43%       11   -0.13    23,184  撤36
+   08-23 08:23Z    -1.48  100%     34%       18   -0.29    23,170  撤36
+   08-23 12:23Z    -3.96  100%     37%       75   -0.98    22,964  撤35
+   08-23 16:23Z    -2.22  100%     38%       32   -1.48    22,869  撤35
+   08-23 20:23Z    -7.56  100%     36%        0   -1.58    22,881  撤34
+   08-24 00:23Z    -1.71  100%     32%       29   -1.52    22,850  撤33
+   08-24 04:23Z    -2.99  100%     31%       11   -1.51    22,817  撤32
+   08-24 08:23Z    -0.22  100%     38%        0   -1.22    22,887  撤31
+   08-24 12:23Z   -17.73  100%     39%        8   -1.12    22,703  撤30
+   08-24 16:23Z    -4.92  100%     30%       66   -1.34    22,501  撤29
+   08-24 20:23Z    -5.99  100%     34%       18   -1.53    22,455  撤28
+   08-25 00:23Z    -1.74  100%     32%        5   -2.04    22,403  撤28
+   08-25 04:23Z   +47.46  100%     25%        0   -2.11    22,116  撤28
+   08-25 08:23Z    -0.56  100%     35%        0   -2.17    22,226  撤27
+   08-25 12:23Z    -0.15  100%     31%        0   -2.18    22,226  撤27
+   08-25 20:23Z    +1.19  100%     54%      814   +1.53    22,271  撤18
+   08-26 00:23Z   +15.03  100%     48%      129   -1.52    22,235  撤20
+   08-26 04:23Z    -4.19  100%     62%        0   -1.80    22,061  撤21
+   08-26 08:23Z    -2.14  100%     41%        0   -1.76    22,166  撤22
+   08-26 12:23Z    +2.65  100%     57%       69   -1.93    29,718  撤20
+   08-26 16:23Z      n/a     —      0%    22752     n/a    22,752  停机 撤37
+   08-26 20:23Z    -3.40  100%     53%     7086  -15.06    22,751  撤40
+   08-27 00:23Z    +3.99  100%     48%      335   +1.44    22,539  撤39
+   08-27 04:23Z    +0.57  100%     58%      462   +0.95    26,621  撤33
+   08-27 08:24Z    -2.87  100%     53%     1035   -1.08    30,484  撤29
+   08-27 12:24Z    -1.37  100%     66%      785   -0.09    41,159  撤24
+   08-27 16:24Z    -5.93  100%     46%      292   -0.23    40,894  撤21
+   08-27 20:24Z    +9.66  100%     47%       56   -0.62    41,036  撤20
+   08-28 00:24Z    +2.01  100%     48%        8   -0.67    40,949  撤20
+   08-28 04:24Z    -2.49  100%     54%       22   -0.20    41,132  撤18
+   08-28 08:24Z    -5.46  100%     59%       89   +0.19    41,218  撤17
+   08-28 12:24Z    -3.07  100%     51%      464   +0.87    41,154  撤16
+   08-28 16:24Z    -5.30  100%     63%       33   -0.12    41,236  撤15
+   08-28 20:24Z    -5.71  100%     47%       24   -0.15    41,333  撤15
+   08-29 00:24Z    -3.53  100%     46%      211   -0.64    41,200  撤15
+   08-29 04:24Z   +11.57  100%     65%      219   -0.97    41,509  撤16
+   08-29 08:24Z    -0.34  100%     66%      573   +0.08    41,481  撤13
+   08-29 12:24Z    -5.71  100%     52%      491   +1.04    42,016  撤12
+   08-29 16:24Z    -8.32  100%     41%      268   +0.13    41,998  撤12
+   08-30 00:24Z    +0.52  100%     76%      516   +0.01    42,283  撤11
+   08-30 04:24Z    -1.68  100%     74%      295   -0.24    42,172  撤12
+   08-30 08:24Z    -3.22  100%     64%      422   +0.36    42,278  撤11
+   08-30 12:24Z    -5.27  100%     65%      153   -0.48    42,278  撤10
+   08-30 16:24Z    -4.40  100%     62%      161   -0.55    42,146  撤10
+   08-30 20:24Z    +3.36  100%     56%      213   +0.51    41,690  撤10
+   08-31 00:24Z    -0.01  100%     59%       64   +0.26    41,339  撤10
+   08-31 04:24Z    -2.26  100%     56%      199   -0.30    41,615  撤10
+   08-31 08:24Z    -0.25  100%     64%      194   +0.03    41,269  撤10
+   08-31 12:24Z    +3.22  100%     63%      224   +0.94    41,305  撤9
+   08-31 16:24Z    +6.32  100%     54%       79   -0.02    41,028  撤10
+   08-31 20:24Z    -1.26  100%     62%      275   +0.80    40,837  撤10
+   09-01 00:24Z   +11.91  100%     58%       91   +0.42    40,710  撤12
+   09-01 04:24Z    +0.66  100%     69%      118   +0.32    40,390  撤10
+   09-01 08:24Z    -4.94  100%     40%      152   +1.06    40,356  撤10
+   09-01 12:24Z    -3.64  100%     63%       37   +0.41    40,017  撤11
+   09-01 16:24Z    -2.79  100%     62%       29   +0.08    40,228  撤11
+   09-01 20:24Z    -3.52  100%     51%      281   +0.71    40,068  撤11
+   09-02 04:24Z    -1.89  100%     71%       66   +0.37    40,644  撤7
+   09-02 08:24Z    +3.09  100%     69%       28   +0.20    40,602  撤7
+   09-02 12:24Z    -3.11  100%     47%      521   +1.02    40,256  撤7
+   09-02 16:24Z    -3.73  100%     68%       53   -0.13    40,822  撤7
+   09-02 20:24Z  -263.53  100%     49%        0   +0.19    41,210  撤7
+   09-03 00:24Z   -25.44  100%     57%       45   +0.24    41,702  撤7
+   09-03 04:24Z    -4.29  100%     62%       58   +0.25    41,656  撤7
+   09-03 08:24Z    +7.62  100%     69%       33   +0.44    41,672  撤7
+   09-03 12:24Z   +12.19  100%     47%      471   +0.89    41,676  撤8
+   09-03 16:24Z    +7.60  100%     54%     4378   +0.64   166,555  撤3
+   09-03 20:24Z    -1.83  100%     66%      195   +0.54   165,808  撤3
+   09-04 00:24Z    -2.27  100%     75%       85   +0.92   165,640  撤3
+   09-04 04:24Z    -1.15  100%     70%      244   +1.10   164,550  撤3
+   09-04 08:24Z    +0.18  100%     72%      140   +1.14   163,630  撤3
+   09-04 12:24Z   +16.02  100%     56%      102   +1.45   163,341  撤2
+   09-04 16:24Z    -0.91  100%     77%      138   +1.34   162,735  撤2
+   09-04 20:24Z    +1.53  100%     78%      192   +1.58   163,899  撤2
+   09-05 00:24Z    +9.94  100%     63%      358   +1.52   163,433  撤2
+   09-05 04:24Z   +50.10  100%     64%      253   +1.65   167,940  撤2
+   09-05 08:24Z    +0.13  100%     53%       48   +1.79   168,141  撤2
+   09-05 12:24Z   -14.02  100%     67%      588   +1.44   167,004  
+   09-05 16:24Z   -19.94  100%     59%       67   +1.81   169,272  
+   09-05 20:24Z   +26.19  100%     52%      583   +1.53   168,251  
+   09-06 00:24Z    -3.04  100%     59%      452   +1.25   167,286  
+   09-06 04:24Z   +16.09  100%     48%      410   +1.26   164,637  
+   09-06 08:24Z    +5.31  100%     52%      626   +1.45   162,232  
+   09-06 12:24Z      n/a     —      0%   164478     n/a   164,482  停机
+   09-06 16:24Z      n/a     —      0%   164462     n/a   164,469  停机
+   09-06 20:24Z      n/a     —      0%   164469     n/a   164,479  停机
+   09-07 00:24Z      n/a     —      0%   164470     n/a   164,474  停机
+   09-07 04:24Z    -2.10  100%     57%    62119   +7.58   164,451  
+   09-07 08:24Z    +8.13  100%     73%     3052   +0.78   164,519  
+   09-07 12:24Z    -0.47  100%     73%      259   +0.06   165,864  
+   09-07 16:24Z    +7.00  100%     46%      233   -0.19   165,024  
+   09-07 20:24Z    -3.61  100%     62%      412   -0.24   164,964  
+   09-08 00:24Z    +1.26  100%     65%      407   -0.31   165,933  
+   09-08 04:24Z    -7.66  100%     66%      195   +0.29   166,827  
+   09-08 08:24Z    +6.25  100%     55%     1004   -0.64   165,679  撤14
+   09-08 12:24Z    -0.95  100%     62%     3471   -0.90   233,803  撤13
+   09-08 16:24Z    +3.62  100%     38%     1677   -0.72   234,151  撤13
+   09-08 20:24Z    -0.41  100%     68%      798   -0.21   233,959  撤13
+   09-09 00:24Z    +4.29  100%     63%      839   -0.24   233,722  撤13
+   09-09 04:24Z    -3.71  100%     60%     1244   -0.64   233,083  撤13
+   09-09 08:24Z    -1.24  100%     59%      555   -0.20   233,040  撤13
+   09-09 16:24Z   -22.53  100%     53%     2176   -1.04   232,746  撤12
+   09-09 20:24Z      n/a     —      0%   232267     n/a   232,276  停机 撤15
+   09-10 00:24Z    -3.55  100%     59%    76658   +5.23   232,259  撤16
+   09-10 04:24Z    -5.66  100%     53%     4499   -1.08   230,484  撤16
+   09-10 08:24Z    +4.11  100%     59%     2887   -0.96   229,783  撤15
+   09-10 12:24Z    -5.03  100%     53%     2270   -1.00   230,739  撤14
+   09-10 16:24Z    -2.82  100%     44%     2891   -0.92   230,297  撤14
+   09-10 20:24Z    +0.49  100%     55%     2733   -1.05   230,420  撤13
+   09-11 00:24Z    +2.52  100%     42%     2702   -0.74   231,160  撤13
+   09-11 04:24Z    +1.15  100%     56%     2954   -1.20   230,304  撤13
+   09-11 08:24Z    -8.91  100%     46%     6706   -1.44   231,427  撤13
+   09-11 12:24Z   +22.70  100%     61%     2204   -1.30   234,259  撤12
+   09-11 16:24Z   +14.90  100%     46%     2782   -1.12   232,417  撤11
+   09-11 20:24Z    +0.82  100%     67%     2615   -0.72   234,907  撤10
+   09-12 00:24Z    -7.72  100%     55%     2614   -1.02   236,409  撤10
+   09-12 04:24Z   +16.99  100%     53%     3094   -1.12   234,516  撤10
+   09-12 08:24Z    +1.49  100%     61%      820   +0.18   235,972  撤11
+   ★ 19 锚的成本覆盖 < 100%: bps 只按已测成交算, 未测 ≠ 零成本 —— 见备注
+
+   ★ 「一换手就降」(当日 20260912, 不跨 00:00Z):
+     已实现 +57.4712 → +218.4401 USDT  (增量 +160.9689) —— 轮换把浮盈**落袋**   ★ 两端口径不同 (legacy_carrier_sum_usdt_assumed → usdt_only), 增量只是近似
+     浮动   +2065.3370 → +2030.1955  —— 新仓位的账面
+     入场成本见上表'成本bps'一列。落袋 + 入场成本两个数一出来, '降'就自解释了。
+
+【被记录但未推送】 —— 降噪压掉的东西, 这里是它们的出口
+   265x  known uncapped name withheld
+   178x  min-notional floor crossing
+   170x  -5022 refusals recovered
+   161x  retired shadow-monitor report staleness
+   156x  reshape residual
+   108x  rate-limit / request budget
+    17x  name left the universe and was exited
+     9x  coverage / completeness
+     4x  neutrality outside band
+
+【需要决定的(A 层)】 —— 已经推送过, 这里重列标题以免遗漏
+   08-03 12:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 29/49 单 (>5%) — 代码分布 {'-5022': 29}。其中 -5022 共 2
+   08-03 16:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 17/34 单 (>5%) — 代码分布 {'-5022': 17}。其中 -5022 共 1
+   08-03 20:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 33/44 单 (>5%) — 代码分布 {'-5022': 33}。其中 -5022 共 3
+   08-03 20:18Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-04 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 36/59 单 (>5%) — 代码分布 {'-5022': 35, '-4164': 1}。
+   08-04 00:18Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-04 04:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 16/42 单 (>5%) — 代码分布 {'-5022': 16}。其中 -5022 共 1
+   08-04 04:17Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-04 08:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 24/50 单 (>5%) — 代码分布 {'-5022': 24}。其中 -5022 共 2
+   08-04 12:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 9/30 单 (>5%) — 代码分布 {'-5022': 9}。其中 -5022 共 9 单
+   08-04 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 2 name(s) differ from the venue 
+   08-04 16:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 29/41 单 (>5%) — 代码分布 {'-5022': 28, '-4164': 1}。
+   08-04 20:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 20/36 单 (>5%) — 代码分布 {'-5022': 18, '-4164': 2}。
+   08-05 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 26/53 单 (>5%) — 代码分布 {'-5022': 25, '-4164': 1}。
+   08-05 00:19Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-1 c > 9.0 bps for 5 consecutive days — 书已平仓
+   08-05 04:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 102 name(s) differ from the venu
+   08-05 04:15Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-1 c > 9.0 bps for 5 consecutive days — 书已平仓
+   08-05 04:15Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: a trip left the machine (delivere
+   08-05 08:16Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-1 c > 9.0 bps for 5 consecutive days — 书已平仓
+   08-05 12:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 19/24 单 (>5%) — 代码分布 {'-5022': 19}。其中 -5022 共 1
+   08-05 12:18Z  UNRECOGNISED                       ⚠️ HIGH 102 symbol(s) paid commission in a non-USDT asset ([
+   08-05 12:19Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-1 c > 9.0 bps for 5 consecutive days — 书已平仓
+   08-05 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 102 name(s) differ from the venu
+   08-05 16:02Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 23/27 单 (>5%) — 代码分布 {'-5022': 23}。其中 -5022 共 2
+   08-05 16:19Z  UNRECOGNISED                       ⚠️ HIGH 98 symbol(s) paid commission in a non-USDT asset (['
+   08-05 20:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 16/40 单 (>5%) — 代码分布 {'-5022': 15, '-4164': 1}。
+   08-05 20:18Z  UNRECOGNISED                       ⚠️ HIGH 82 symbol(s) paid commission in a non-USDT asset (['
+   08-06 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 9/47 单 (>5%) — 代码分布 {'-5022': 8, '-4164': 1}。其中
+   08-06 00:18Z  UNRECOGNISED                       ⚠️ HIGH 68 symbol(s) paid commission in a non-USDT asset (['
+   08-06 04:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 17/47 单 (>5%) — 代码分布 {'-5022': 16, '-4164': 1}。
+   08-06 04:17Z  UNRECOGNISED                       ⚠️ HIGH 73 symbol(s) paid commission in a non-USDT asset (['
+   08-06 08:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 28/62 单 (>5%) — 代码分布 {'-5022': 27, '-4164': 1}。
+   08-06 08:18Z  UNRECOGNISED                       ⚠️ HIGH 70 symbol(s) paid commission in a non-USDT asset (['
+   08-06 12:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 9/84 单 (>5%) — 代码分布 {'-5022': 9}。其中 -5022 共 9 单
+   08-06 12:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-06 12:16Z  UNRECOGNISED                       ⚠️ HIGH fee assets ['BNB'] observed for the FIRST time — rec
+   08-06 12:17Z  UNRECOGNISED                       ⚠️ HIGH 因子健康: UNREACHABLE: the shadow monitor report could n
+   08-06 16:02Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 18/67 单 (>5%) — 代码分布 {'-5022': 18}。其中 -5022 共 1
+   08-06 20:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-06 20:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 37/62 单 (>5%) — 代码分布 {'-5022': 37}。其中 -5022 共 3
+   08-06 20:18Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: decay monitored on the deployable
+   08-06 20:18Z  UNRECOGNISED                       ⚠️ HIGH 因子健康: FRONTIER_UNKNOWN: the upstream report carries 
+   08-07 00:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-07 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 20/60 单 (>5%) — 代码分布 {'-5022': 19, '-4164': 1}。
+   08-07 00:18Z  UNRECOGNISED                       ℹ️ 因子健康: FRONTIER_UNKNOWN: the upstream report carries no da
+   08-07 04:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 17/53 单 (>5%) — 代码分布 {'-5022': 16, '-4164': 1}。
+   08-07 04:18Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-07 08:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 24/51 单 (>5%) — 代码分布 {'-5022': 22, '-4164': 2}。
+   08-07 12:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 13/47 单 (>5%) — 代码分布 {'-5022': 13}。其中 -5022 共 1
+   08-07 16:02Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 29/46 单 (>5%) — 代码分布 {'-5022': 28, '-4164': 1}。
+   08-07 20:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 14/54 单 (>5%) — 代码分布 {'-5022': 13, '-4164': 1}。
+   08-08 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 10/41 单 (>5%) — 代码分布 {'-5022': 8, '-4164': 2}。其
+   08-08 04:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 9/32 单 (>5%) — 代码分布 {'-5022': 9}。其中 -5022 共 9 单
+   08-08 08:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 29/57 单 (>5%) — 代码分布 {'-5022': 28, '-4164': 1}。
+   08-08 12:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 24/51 单 (>5%) — 代码分布 {'-5022': 24}。其中 -5022 共 2
+   08-08 12:18Z  UNRECOGNISED                       ℹ️ 因子健康: UNREACHABLE: the shadow monitor report could not be
+   08-08 16:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 21/42 单 (>5%) — 代码分布 {'-5022': 21}。其中 -5022 共 2
+   08-08 20:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 19/44 单 (>5%) — 代码分布 {'-5022': 19}。其中 -5022 共 1
+   08-08 20:18Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-09 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 13/46 单 (>5%) — 代码分布 {'-5022': 11, '-4164': 2}。
+   08-09 04:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 22/46 单 (>5%) — 代码分布 {'-5022': 22}。其中 -5022 共 2
+   08-09 08:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 26/64 单 (>5%) — 代码分布 {'-5022': 25, '-4164': 1}。
+   08-09 08:18Z  UNRECOGNISED                       ℹ️ 因子健康: UNREACHABLE: the shadow monitor report could not be
+   08-09 12:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 16/41 单 (>5%) — 代码分布 {'-5022': 14, '-4164': 2}。
+   08-09 12:18Z  UNRECOGNISED                       ℹ️ 因子健康: UNREACHABLE: the shadow monitor report could not be
+   08-09 16:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 17/32 单 (>5%) — 代码分布 {'-5022': 17}。其中 -5022 共 1
+   08-09 20:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-09 20:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 19/52 单 (>5%) — 代码分布 {'-5022': 17, '-4164': 2}。
+   08-09 20:18Z  opening halted / kill              ⚠️ HIGH 调查档(INVESTIGATE-ONLY, 不停机) — cond2_day_loss: ALERT O
+   08-10 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 28/61 单 (>5%) — 代码分布 {'-5022': 28}。其中 -5022 共 2
+   08-10 04:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 14/74 单 (>5%) — 代码分布 {'-5022': 14}。其中 -5022 共 1
+   08-10 04:17Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-10 08:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 33/36 单 (>5%) — 代码分布 {'-5022': 33}。其中 -5022 共 3
+   08-10 12:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-10 20:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-11 04:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-11 04:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-11 08:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-11 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 3 name(s) differ from the venue 
+   08-11 16:17Z  UNRECOGNISED                       ℹ️ 因子健康: UNREACHABLE: the shadow monitor report could not be
+   08-11 20:00Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 6/99 单 (>5%) — 代码分布 {'-5022': 6}。其中 -5022 共 6 单
+   08-11 20:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-12 08:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 4 name(s) differ from the venue 
+   08-12 12:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-12 16:02Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 5/97 单 (>5%) — 代码分布 {'-5022': 5}。其中 -5022 共 5 单
+   08-13 00:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-13 04:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-13 08:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-13 12:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-13 12:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-13 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 2 name(s) differ from the venue 
+   08-13 20:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-14 00:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-14 04:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-14 04:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-14 08:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-14 12:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-14 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-14 20:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 2 name(s) differ from the venue 
+   08-14 20:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-15 00:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-15 04:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 2 name(s) differ from the venue 
+   08-15 04:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-15 08:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-15 12:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-15 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-16 00:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-16 04:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-16 04:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-16 08:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-16 12:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-16 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-17 00:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-17 00:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-17 12:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-17 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-18 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 7/97 单 (>5%) — 代码分布 {'-5022': 7}。其中 -5022 共 7 单
+   08-18 00:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-18 04:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 42/62 单 (>5%) — 代码分布 {'-5022': 42}。其中 -5022 共 4
+   08-18 04:18Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-18 08:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-18 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-18 20:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-18 20:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 5 order row(s) have an UNKNOWN fee: either userTrade
+   08-19 00:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-19 04:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-19 08:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-19 08:16Z  fee/cost dimension unmeasured      ⚠️ HIGH 1 order row(s) have an UNKNOWN fee: either userTrade
+   08-19 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 11 name(s) differ from the venue
+   08-19 20:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 1 name(s) differ from the venue 
+   08-20 00:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 4 name(s) differ from the venue 
+   08-20 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 6/102 单 (>5%) — 代码分布 {'-5022': 6}。其中 -5022 共 6 
+   08-20 00:17Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-20 04:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-20 08:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 2 name(s) differ from the venue 
+   08-20 12:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   08-20 12:16Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: BOMEUSDT 深度 -39.0% 连续 2 个终锚读回 ≤ 
+   08-20 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 3 name(s) differ from the venue 
+   08-20 16:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 10/99 单 (>5%) — 代码分布 {'-5022': 10}。其中 -5022 共 1
+   08-20 16:16Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: BOMEUSDT 已出场, 进入 7 天禁入冷却(至 08-27 16:1
+   08-21 00:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 3 name(s) differ from the venue 
+   08-21 00:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 7/93 单 (>5%) — 代码分布 {'-5022': 7}。其中 -5022 共 7 单
+   08-21 00:18Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-21 04:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 3 name(s) differ from the venue 
+   08-21 04:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-21 08:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 11 name(s) differ from the venue
+   08-21 08:01Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 8/99 单 (>5%) — 代码分布 {'-5022': 8}。其中 -5022 共 8 单
+   08-21 08:16Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: ENAUSDT 深度 -32.7% 连续 2 个终锚读回 ≤ -
+   08-21 12:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   08-21 12:16Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: ENAUSDT 已出场, 进入 7 天禁入冷却(至 08-28 12:16
+   08-21 12:17Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-2 single-day loss -4.52% of EQUITY, worse t
+   08-21 16:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 105 name(s) differ from the venu
+   08-21 16:02Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 38/41 单 (>5%) — 代码分布 {'-5022': 38}。其中 -5022 共 3
+   08-21 16:19Z  opening halted / kill              ⚠️ HIGH 调查档(INVESTIGATE-ONLY, 不停机) — cond2_day_loss: ALERT O
+   08-21 20:00Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-21 20:16Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-5b liquidation/position anomaly on 2 name(s
+   08-22 00:01Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 102 name(s) differ from the venu
+   08-22 00:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-22 04:16Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-22 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 133/133 单 (>5%) — 代码分布 {'-5022': 133}。其中 -5022 
+   08-22 12:47Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-22 16:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   08-22 16:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 132/199 单 (>5%) — 代码分布 {'-5022': 130, '-4164': 
+   08-22 16:48Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-22 20:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   08-22 20:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 18/327 单 (>5%) — 代码分布 {'-5022': 16, '-4164': 2}
+   08-23 00:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-23 00:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 28/345 单 (>5%) — 代码分布 {'-5022': 24, '-4164': 4}
+   08-23 00:39Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: TACUSDT 深度 -32.0% 连续 2 个终锚读回 ≤ -
+   08-23 00:41Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-23 04:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   08-23 04:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 36/308 单 (>5%) — 代码分布 {'-5022': 36}。其中 -5022 共 
+   08-23 04:40Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: TACUSDT 已出场, 进入 7 天禁入冷却(至 08-30 04:40
+   08-23 04:41Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-23 08:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   08-23 08:39Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: MAGMAUSDT 深度 -32.4% 连续 2 个终锚读回 ≤
+   08-23 08:40Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-23 12:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   08-23 12:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: MAGMAUSDT 已出场, 进入 7 天禁入冷却(至 08-30 12:
+   08-23 12:41Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-23 16:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   08-23 16:40Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-23 20:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 2 name(s) differ from the venue 
+   08-23 20:40Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-24 00:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   08-24 00:40Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-24 04:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   08-24 04:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 18/338 单 (>5%) — 代码分布 {'-5022': 18}。其中 -5022 共 
+   08-24 08:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   08-24 12:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 13 name(s) differ from the venue
+   08-24 16:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   08-24 16:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 29/337 单 (>5%) — 代码分布 {'-5022': 28, '-4164': 1}
+   08-24 20:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   08-24 20:39Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: VELVETUSDT 深度 -105.6% 连续 2 个终锚读回
+   08-25 00:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 2 name(s) differ from the venue 
+   08-25 00:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: VELVETUSDT 已出场, 进入 7 天禁入冷却(至 09-01 00
+   08-25 00:41Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-25 04:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-25 04:39Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-25 08:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 14 name(s) differ from the venue
+   08-25 12:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-25 12:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 19/338 单 (>5%) — 代码分布 {'-5022': 19}。其中 -5022 共 
+   08-25 12:39Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: USUSDT 深度 -32.1% 连续 2 个终锚读回 ≤ -3
+   08-25 19:00Z  UNRECOGNISED                       ⚠️ HIGH 锚任务异常 [com.dlquant.live.anchor] 上次退出码 1(≠0 ⇒ 该锚未完成: 
+   08-25 20:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 16 name(s) differ from the venue
+   08-25 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 140/210 单 (>5%) — 代码分布 {'-5022': 140}。其中 -5022 
+   08-25 20:46Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: USUSDT 已出场, 进入 7 天禁入冷却(至 09-01 20:46Z
+   08-25 20:46Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: SKYAIUSDT 深度 -40.1% 连续 2 个终锚读回 ≤
+   08-25 20:46Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: PROMUSDT 深度 -31.7% 连续 2 个终锚读回 ≤ 
+   08-25 21:04Z  UNRECOGNISED                       ℹ️ 锚任务已恢复 [com.dlquant.live.anchor] 退出码=0 评估年龄=0.26h
+   08-26 00:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 2 name(s) differ from the venue 
+   08-26 00:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 26/281 单 (>5%) — 代码分布 {'-5022': 26}。其中 -5022 共 
+   08-26 00:40Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: PROMUSDT 已出场, 进入 7 天禁入冷却(至 09-02 00:4
+   08-26 00:40Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: SKYAIUSDT 已出场, 进入 7 天禁入冷却(至 09-02 00:
+   08-26 00:41Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-26 02:23Z  UNRECOGNISED                       ⚠️ HIGH combo 换装写者中止 [08-26 00:00锚] 过硬截止 N+22:40(now−anchor=
+   08-26 02:24Z  UNRECOGNISED                       ℹ️ combo_live 告警通道自检(换装前置)
+   08-26 02:24Z  UNRECOGNISED                       ⚠️ HIGH combo 换装写者中止 [08-26 00:00锚] 过硬截止 N+22:40(now−anchor=
+   08-26 04:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   08-26 04:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 22/252 单 (>5%) — 代码分布 {'-5022': 22}。其中 -5022 共 
+   08-26 04:42Z  redelivery that ALSO failed        ⚠️ HIGH [补发] ⚠️ HIGH combo 换装写者中止 [08-26 00:00锚] 过硬截止 N+22:4
+   08-26 04:42Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-26 08:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 13 name(s) differ from the venue
+   08-26 08:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 17/301 单 (>5%) — 代码分布 {'-5022': 17}。其中 -5022 共 
+   08-26 08:41Z  UNRECOGNISED                       ⚠️ HIGH funding span 表已过期: 14 个 symbol 的结算间隔与交易所不符 (ANKRUSDT
+   08-26 12:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   08-26 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 157/233 单 (>5%) — 代码分布 {'-5022': 157}。其中 -5022 
+   08-26 12:49Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-5b liquidation/position anomaly on 2 name(s
+   08-26 16:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 279 name(s) differ from the venu
+   08-26 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 132/132 单 (>5%) — 代码分布 {'-5022': 132}。其中 -5022 
+   08-27 00:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 13 name(s) differ from the venue
+   08-27 00:23Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 61/211 单 (>5%) — 代码分布 {'-5022': 61}。其中 -5022 共 
+   08-27 00:42Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-27 04:23Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 15 name(s) differ from the venue
+   08-27 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 93/124 单 (>5%) — 代码分布 {'-5022': 93}。其中 -5022 共 
+   08-27 04:46Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-27 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   08-27 08:25Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 113/143 单 (>5%) — 代码分布 {'-5022': 113}。其中 -5022 
+   08-27 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   08-27 12:25Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 98/107 单 (>5%) — 代码分布 {'-5022': 98}。其中 -5022 共 
+   08-27 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-27 16:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 32/245 单 (>5%) — 代码分布 {'-5022': 32}。其中 -5022 共 
+   08-27 16:41Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: BOMEUSDT 冷却期满, 恢复可入
+   08-27 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 13 name(s) differ from the venue
+   08-27 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 21/225 单 (>5%) — 代码分布 {'-5022': 21}。其中 -5022 共 
+   08-28 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   08-28 00:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 16/252 单 (>5%) — 代码分布 {'-5022': 16}。其中 -5022 共 
+   08-28 00:41Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-28 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 11 name(s) differ from the venue
+   08-28 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 21/219 单 (>5%) — 代码分布 {'-5022': 21}。其中 -5022 共 
+   08-28 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   08-28 08:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 16/209 单 (>5%) — 代码分布 {'-5022': 16}。其中 -5022 共 
+   08-28 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   08-28 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 20/193 单 (>5%) — 代码分布 {'-5022': 20}。其中 -5022 共 
+   08-28 12:41Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: ENAUSDT 冷却期满, 恢复可入
+   08-28 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 32 name(s) differ from the venue
+   08-28 16:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 74/210 单 (>5%) — 代码分布 {'-5022': 73, '-4164': 1}
+   08-28 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-28 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 33/234 单 (>5%) — 代码分布 {'-5022': 33}。其中 -5022 共 
+   08-29 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   08-29 00:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 16/224 单 (>5%) — 代码分布 {'-5022': 16}。其中 -5022 共 
+   08-29 00:42Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-29 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-29 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 26/178 单 (>5%) — 代码分布 {'-5022': 26}。其中 -5022 共 
+   08-29 04:43Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-29 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-29 08:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 56/142 单 (>5%) — 代码分布 {'-5022': 56}。其中 -5022 共 
+   08-29 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 13 name(s) differ from the venue
+   08-29 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 38/162 单 (>5%) — 代码分布 {'-5022': 38}。其中 -5022 共 
+   08-29 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   08-29 16:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 35/197 单 (>5%) — 代码分布 {'-5022': 35}。其中 -5022 共 
+   08-29 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 3 name(s) differ from the venue 
+   08-29 20:29Z  UNRECOGNISED                       ⚠️ HIGH external_book_unavailable: missing — no target file 
+   08-29 20:29Z  UNRECOGNISED                       ⚠️ HIGH signal stale 1.1 anchors — HOLDING, no new orders
+   08-30 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   08-30 00:25Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 41/99 单 (>5%) — 代码分布 {'-5022': 41}。其中 -5022 共 4
+   08-30 00:46Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-30 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   08-30 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 34/123 单 (>5%) — 代码分布 {'-5022': 34}。其中 -5022 共 
+   08-30 04:43Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: TACUSDT 冷却期满, 恢复可入
+   08-30 04:44Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   08-30 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   08-30 08:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 25/150 单 (>5%) — 代码分布 {'-5022': 25}。其中 -5022 共 
+   08-30 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-30 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 43/167 单 (>5%) — 代码分布 {'-5022': 43}。其中 -5022 共 
+   08-30 12:43Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: MAGMAUSDT 冷却期满, 恢复可入
+   08-30 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-30 16:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 47/166 单 (>5%) — 代码分布 {'-5022': 47}。其中 -5022 共 
+   08-30 16:43Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: SKRUSDT 深度 -41.0% 连续 2 个终锚读回 ≤ -
+   08-30 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   08-30 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 58/176 单 (>5%) — 代码分布 {'-5022': 58}。其中 -5022 共 
+   08-30 20:42Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: SKRUSDT 已出场, 进入 7 天禁入冷却(至 09-06 20:42
+   08-31 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 28 name(s) differ from the venue
+   08-31 00:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 50/185 单 (>5%) — 代码分布 {'-5022': 50}。其中 -5022 共 
+   08-31 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   08-31 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 34/190 单 (>5%) — 代码分布 {'-5022': 34}。其中 -5022 共 
+   08-31 04:41Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: MAGMAUSDT 深度 -31.5% 连续 2 个终锚读回 ≤
+   08-31 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-31 08:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 65/168 单 (>5%) — 代码分布 {'-5022': 65}。其中 -5022 共 
+   08-31 08:43Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: ZORAUSDT 深度 -40.3% 连续 2 个终锚读回 ≤ 
+   08-31 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   08-31 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 35/184 单 (>5%) — 代码分布 {'-5022': 35}。其中 -5022 共 
+   08-31 12:41Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: ZORAUSDT 已出场, 进入 7 天禁入冷却(至 09-07 12:4
+   08-31 12:41Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: BTRUSDT 深度 -35.3% 连续 2 个终锚读回 ≤ -
+   08-31 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   08-31 16:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 42/168 单 (>5%) — 代码分布 {'-5022': 42}。其中 -5022 共 
+   08-31 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   08-31 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 24/174 单 (>5%) — 代码分布 {'-5022': 24}。其中 -5022 共 
+   09-01 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   09-01 00:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 44/176 单 (>5%) — 代码分布 {'-5022': 44}。其中 -5022 共 
+   09-01 00:42Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: VELVETUSDT 冷却期满, 恢复可入
+   09-01 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-01 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 33/162 单 (>5%) — 代码分布 {'-5022': 33}。其中 -5022 共 
+   09-01 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 4 name(s) differ from the venue 
+   09-01 08:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 49/211 单 (>5%) — 代码分布 {'-5022': 49}。其中 -5022 共 
+   09-01 08:41Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: CYSUSDT 深度 -42.9% 连续 2 个终锚读回 ≤ -
+   09-01 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   09-01 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 21/173 单 (>5%) — 代码分布 {'-5022': 21}。其中 -5022 共 
+   09-01 12:41Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: TRIAUSDT 深度 -39.4% 连续 2 个终锚读回 ≤ 
+   09-01 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 3 name(s) differ from the venue 
+   09-01 16:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 41/202 单 (>5%) — 代码分布 {'-5022': 41}。其中 -5022 共 
+   09-01 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 4 name(s) differ from the venue 
+   09-01 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 18/182 单 (>5%) — 代码分布 {'-5022': 18}。其中 -5022 共 
+   09-02 00:01Z  book/venue disagreement            🚨🚨 CRITICAL 锚点拒绝启动(arm 断言失败): 本锚零交易, 且逐名止损层同处本进程一并停摆。 Arming
+   09-02 00:13Z  UNRECOGNISED                       ⚠️ HIGH 锚任务异常 [com.dlquant.live.anchor] 上次退出码 1(≠0 ⇒ 该锚未完成: 
+   09-02 04:13Z  UNRECOGNISED                       ⚠️ HIGH 锚任务异常 [com.dlquant.live.anchor] 上次退出码 1(≠0 ⇒ 该锚未完成: 
+   09-02 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   09-02 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 31/163 单 (>5%) — 代码分布 {'-5022': 31}。其中 -5022 共 
+   09-02 04:42Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: PROMUSDT 冷却期满, 恢复可入
+   09-02 04:42Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: SKYAIUSDT 冷却期满, 恢复可入
+   09-02 04:42Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: USUSDT 冷却期满, 恢复可入
+   09-02 04:53Z  UNRECOGNISED                       ℹ️ 锚任务已恢复 [com.dlquant.live.anchor] 退出码=0 评估年龄=0.16h
+   09-02 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-02 08:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 26/182 单 (>5%) — 代码分布 {'-5022': 26}。其中 -5022 共 
+   09-02 08:41Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: BTRUSDT 已出场, 进入 7 天禁入冷却(至 09-09 08:41
+   09-02 08:41Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: RIVERUSDT 深度 -30.6% 连续 2 个终锚读回 ≤
+   09-02 09:20Z  UNRECOGNISED                       ℹ️ REGIME_DASH @2026-09-02T08:00Z regime_dash T1/T2 上线: 旗标转移
+   09-02 09:21Z  UNRECOGNISED                       ℹ️ REGIME 周报 2026-09-02 ## regime 位置(近 7 天均值 vs 历史) - sig_fu
+   09-02 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 10 name(s) differ from the venue
+   09-02 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 26/175 单 (>5%) — 代码分布 {'-5022': 26}。其中 -5022 共 
+   09-02 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   09-02 16:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 28/183 单 (>5%) — 代码分布 {'-5022': 28}。其中 -5022 共 
+   09-02 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   09-02 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 30/192 单 (>5%) — 代码分布 {'-5022': 30}。其中 -5022 共 
+   09-03 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   09-03 00:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 22/191 单 (>5%) — 代码分布 {'-5022': 22}。其中 -5022 共 
+   09-03 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   09-03 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 34/183 单 (>5%) — 代码分布 {'-5022': 34}。其中 -5022 共 
+   09-03 04:41Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: EGLDUSDT 深度 -34.3% 连续 2 个终锚读回 ≤ 
+   09-03 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   09-03 08:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 31/179 单 (>5%) — 代码分布 {'-5022': 31}。其中 -5022 共 
+   09-03 08:41Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: EGLDUSDT 已出场, 进入 7 天禁入冷却(至 09-10 08:4
+   09-03 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 17 name(s) differ from the venue
+   09-03 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 25/182 单 (>5%) — 代码分布 {'-5022': 25}。其中 -5022 共 
+   09-03 12:41Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: ARBUSDT 深度 -32.2% 连续 2 个终锚读回 ≤ -
+   09-03 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 24 name(s) differ from the venue
+   09-03 16:25Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 111/146 单 (>5%) — 代码分布 {'-5022': 111}。其中 -5022 
+   09-03 16:45Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: ARBUSDT 已出场, 进入 7 天禁入冷却(至 09-10 16:45
+   09-03 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 4 name(s) differ from the venue 
+   09-03 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 52/137 单 (>5%) — 代码分布 {'-5022': 52}。其中 -5022 共 
+   09-04 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   09-04 00:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 35/147 单 (>5%) — 代码分布 {'-5022': 35}。其中 -5022 共 
+   09-04 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-04 04:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 30/148 单 (>5%) — 代码分布 {'-5022': 30}。其中 -5022 共 
+   09-04 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   09-04 08:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 48/153 单 (>5%) — 代码分布 {'-5022': 48}。其中 -5022 共 
+   09-04 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   09-04 12:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 68/162 单 (>5%) — 代码分布 {'-5022': 68}。其中 -5022 共 
+   09-04 12:43Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: USELESSUSDT 深度 -36.1% 连续 2 个终锚读回
+   09-04 12:45Z  UNRECOGNISED                       ℹ️ 因子健康: UNREACHABLE: the shadow monitor report could not be
+   09-04 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 20 name(s) differ from the venue
+   09-04 16:25Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 60/127 单 (>5%) — 代码分布 {'-5022': 60}。其中 -5022 共 
+   09-04 16:44Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: USELESSUSDT 已出场, 进入 7 天禁入冷却(至 09-11 1
+   09-04 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   09-04 20:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 24/140 单 (>5%) — 代码分布 {'-5022': 24}。其中 -5022 共 
+   09-05 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 6 name(s) differ from the venue 
+   09-05 00:24Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 50/133 单 (>5%) — 代码分布 {'-5022': 50}。其中 -5022 共 
+   09-05 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 15 name(s) differ from the venue
+   09-05 04:25Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 61/126 单 (>5%) — 代码分布 {'-5022': 61}。其中 -5022 共 
+   09-05 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   09-05 08:25Z  venue refusal RATE                 ⚠️ HIGH 场所拒单 87/187 单 (>5%) — 代码分布 {'-5022': 87}。其中 -5022 共 
+   09-05 08:43Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: DASHUSDT 深度 -31.8% 连续 2 个终锚读回 ≤ 
+   09-05 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 15 name(s) differ from the venue
+   09-05 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 11 name(s) differ from the venue
+   09-05 16:44Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: DASHUSDT 已出场, 进入 7 天禁入冷却(至 09-12 16:4
+   09-05 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 14 name(s) differ from the venue
+   09-06 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-06 00:44Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: HEMIUSDT 深度 -33.7% 连续 2 个终锚读回 ≤ 
+   09-06 01:00Z  UNRECOGNISED                       ℹ️ REGIME 周报 2026-09-06 ## regime 位置(近 7 天均值 vs 历史) - sig_fu
+   09-06 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 13 name(s) differ from the venue
+   09-06 04:45Z  opening halted / kill              ⚠️ HIGH 调查档(INVESTIGATE-ONLY, 不停机) — cond2_day_loss: ALERT O
+   09-06 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   09-06 08:44Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: FLOCKUSDT 深度 -42.3% 连续 2 个终锚读回 ≤
+   09-06 08:44Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: COLLECTUSDT 深度 -51.3% 连续 2 个终锚读回
+   09-06 08:48Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-2 single-day loss -4.12% of EQUITY, worse t
+   09-06 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 233 name(s) differ from the venu
+   09-06 12:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: COLLECTUSDT 已出场, 进入 7 天禁入冷却(至 09-13 1
+   09-06 12:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: CYSUSDT 已出场, 进入 7 天禁入冷却(至 09-13 12:39
+   09-06 12:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: FLOCKUSDT 已出场, 进入 7 天禁入冷却(至 09-13 12:
+   09-06 12:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: HEMIUSDT 已出场, 进入 7 天禁入冷却(至 09-13 12:3
+   09-06 12:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: MAGMAUSDT 已出场, 进入 7 天禁入冷却(至 09-13 12:
+   09-06 12:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: RIVERUSDT 已出场, 进入 7 天禁入冷却(至 09-13 12:
+   09-06 12:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: TRIAUSDT 已出场, 进入 7 天禁入冷却(至 09-13 12:3
+   09-06 12:39Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-2 single-day loss -4.27% of EQUITY, worse t
+   09-06 16:39Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-2 single-day loss -4.28% of EQUITY, worse t
+   09-06 20:39Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-2 single-day loss -4.28% of EQUITY, worse t
+   09-07 00:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: SKRUSDT 冷却期满, 恢复可入
+   09-07 00:39Z  artefact assertion regression      ⚠️ HIGH 锚点产物断言 REGRESSION: no orders column is constant for 
+   09-07 01:30Z  UNRECOGNISED                       ⚠️ HIGH [ic_monitor #55] ALERT: r24=-0.02372 (ALERT<-0.02277
+   09-07 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   09-07 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 10 name(s) differ from the venue
+   09-07 12:43Z  UNRECOGNISED                       ⚠️ HIGH fee-asset set CHANGED ['BNB'] -> []. If BNB left the
+   09-07 12:43Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: ZORAUSDT 冷却期满, 恢复可入
+   09-07 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 15 name(s) differ from the venue
+   09-07 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   09-08 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-08 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   09-08 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 12 name(s) differ from the venue
+   09-08 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 11 name(s) differ from the venue
+   09-08 12:45Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: XANUSDT 深度 -30.8% 连续 2 个终锚读回 ≤ -
+   09-08 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 13 name(s) differ from the venue
+   09-08 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   09-09 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-09 01:30Z  UNRECOGNISED                       🚨🚨 CRITICAL [ic_monitor #55] DECIDE: r24=-0.03483 (ALERT<-0.
+   09-09 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   09-09 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 9 name(s) differ from the venue 
+   09-09 08:44Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: BTRUSDT 冷却期满, 恢复可入
+   09-09 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 11 name(s) differ from the venue
+   09-09 12:30Z  UNRECOGNISED                       ⚠️ HIGH 锚任务异常 [com.dlquant.live.anchor] 上次退出码 1(≠0 ⇒ 该锚未完成: 
+   09-09 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 51 name(s) differ from the venue
+   09-09 16:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-09 16:30Z  UNRECOGNISED                       ⚠️ HIGH 锚任务异常 [com.dlquant.live.anchor] 上次退出码 1(≠0 ⇒ 该锚未完成: 
+   09-09 16:47Z  stop-loss tripped                  ⚠️ HIGH 止损触发: §4-5b liquidation/position anomaly on 9 name(s
+   09-09 17:11Z  UNRECOGNISED                       ℹ️ 锚任务已恢复 [com.dlquant.live.anchor] 退出码=0 评估年龄=0.42h
+   09-09 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 238 name(s) differ from the venu
+   09-09 20:39Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: XANUSDT 已出场, 进入 7 天禁入冷却(至 09-16 20:39
+   09-10 00:25Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-10 00:47Z  UNRECOGNISED                       ⚠️ HIGH funding span 表已过期: 15 个 symbol 的结算间隔与交易所不符 (ANKRUSDT
+   09-10 01:30Z  UNRECOGNISED                       🚨🚨 CRITICAL [ic_monitor #55] DECIDE: r24=-0.02705 (ALERT<-0.
+   09-10 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   09-10 04:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-10 04:50Z  UNRECOGNISED                       ℹ️ REGIME_DASH @2026-09-10T04:00Z 建议[R1_双引擎同负]: 讨论降杠杆(唯一预注册的
+   09-10 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 10 name(s) differ from the venue
+   09-10 08:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-10 08:43Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: EGLDUSDT 冷却期满, 恢复可入
+   09-10 08:43Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: IOSTUSDT 深度 -40.9% 连续 2 个终锚读回 ≤ 
+   09-10 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   09-10 12:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-10 12:24Z  venue refusal RATE                 ⚠️ HIGH ★ post-only 拒单率超升级线 — 拒单率 post-only 穿价(-5022) 首次尝试 8
+   09-10 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 17 name(s) differ from the venue
+   09-10 16:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-10 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   09-10 20:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-10 20:44Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: ARBUSDT 冷却期满, 恢复可入
+   09-11 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 3 name(s) differ from the venue 
+   09-11 00:25Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-11 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 7 name(s) differ from the venue 
+   09-11 04:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-11 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-11 08:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-11 12:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-11 12:25Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-11 16:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 27 name(s) differ from the venue
+   09-11 16:25Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-11 16:44Z  UNRECOGNISED                       ⚠️ HIGH per_name_stop: USELESSUSDT 冷却期满, 恢复可入
+   09-11 20:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 3 name(s) differ from the venue 
+   09-11 20:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-12 00:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 5 name(s) differ from the venue 
+   09-12 00:24Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-12 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 10 name(s) differ from the venue
+   09-12 04:24Z  order construction rejected        ⚠️ HIGH 撤名残差 -11024.37 USDT = 目标 gross 的 -4.70% (>2%), 由 10 
+   09-12 04:25Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-12 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   09-12 08:24Z  UNRECOGNISED                       ℹ️ 场所上限截断 1 名 (Σ|Δ| 157U = gross 0.07%): PIEVERSEUSDT +2,117
+   09-12 08:45Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: LSKUSDT 深度 -32.3% 连续 2 个终锚读回 ≤ -
+
+==============================================================================

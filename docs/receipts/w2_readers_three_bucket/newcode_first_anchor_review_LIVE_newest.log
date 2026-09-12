@@ -1,0 +1,132 @@
+============================================================================================
+ANCHOR REVIEW   mode=LIVE   day=20260912   tree=/Users/haosiyu/cc_tmp/exec_w2/state/live
+                read at 2026-09-12T10:26:33Z
+============================================================================================
+
+────────────────────────────────────────────────────────────────────────────────────────────
+1. THE ANCHOR, AND WHICH BOOK IT TRADED
+────────────────────────────────────────────────────────────────────────────────────────────
+   rebalance_id     A1789201439
+   anchor_ts        2026-09-12T08:24:02Z
+   target_gross     235972.03934492124   realized 236243.4737951501
+   regime           normal
+   opening_halted   False
+   weights          {'book_source': 'external', 'gross_mult': 2.0, 'gross_ladder': {'src': 'sigma_ladder', 'g': 1.0, 'accepted': False, 'reason': 'missing'}}
+   vs config now    ★ DIFFERENT: {'king': 0.5952380952380952, 's2': 0.20238095238095238, 'funding': 0.20238095238095238, 'size': 0.0}
+
+   SCOPE: anchor_ts 1789201442.562113  rebalance_id A1789201439
+          readback rows 257 of 769 in the day file   |   fill rows 587 of 1720
+          (512 rows belong to OTHER anchors today and are excluded — summing them describes a book that never existed)
+
+────────────────────────────────────────────────────────────────────────────────────────────
+2. ORDERS — the terminal_reason distribution (the 30-second verdict)
+────────────────────────────────────────────────────────────────────────────────────────────
+   skipped_min_notional        198
+   partial_expired             159
+   venue_reject                 61
+   filled                       48
+   skipped_no_chase_arm         11
+   TOTAL rows                  477   submitted 207
+
+   venue reject codes:
+     [ -5022]   54  (post-only declined to cross — BENIGN by design, expect some)
+
+   VERDICT: mixed — no single code dominates
+
+────────────────────────────────────────────────────────────────────────────────────────────
+3. FILLS AND BREADTH
+────────────────────────────────────────────────────────────────────────────────────────────
+   order rows with a non-zero fill   185
+   order rows with UNKNOWN fill      0
+   fills: unique executions          332   (587 rows incl. 255 markout backfill rows)
+   filled rows lacking avg_fill_px   0
+   skipped_min_notional  TOTAL 198  =  maker 63 (never entered the book)  +  top-up 135 (residual too small; the maker leg filled)
+     maker-skipped: ['1000FLOKIUSDT', '1000PEPEUSDT', '1000SHIBUSDT', '1INCHUSDT', 'AAVEUSDT', 'AIXBTUSDT', 'AVAXUSDT', 'BASEDUSDT', 'BCHUSDT', 'BNBUSDT', 'CATIUSDT', 'CCUSDT']
+   per-name notional                 ~$918.18  over 257 names
+   effective floor per symbol = max(min_notional, min_qty x price):
+     LINKUSDT       intended $   8.02   declared $ 20.0   min_qty x px $   0.12   binding: min_notional
+     TRXUSDT        intended $   5.07   declared $  5.0   min_qty x px $   0.34   binding: min_notional
+     OPNUSDT        intended $   4.96   declared $  5.0   min_qty x px $   0.05   binding: min_notional
+     WUSDT          intended $   4.95   declared $  5.0   min_qty x px $   0.00   binding: min_notional
+     BCHUSDT        intended $   4.58   declared $ 20.0   min_qty x px $   0.23   binding: min_notional
+     ZENUSDT        intended $   4.45   declared $  5.0   min_qty x px $   0.65   binding: min_notional
+     ZROUSDT        intended $   4.37   declared $  5.0   min_qty x px $   0.10   binding: min_notional
+     CATIUSDT       intended $   4.26   declared $  5.0   min_qty x px $   0.06   binding: min_notional
+   (A name's presence or absence is not by itself a fault; a name you EXPECTED
+    and do not see is worth one query.)
+   names holding a position          257 of 257 read back
+
+────────────────────────────────────────────────────────────────────────────────────────────
+3b. NET DIRECTIONAL EXPOSURE (signed) — is the book still market-neutral?
+────────────────────────────────────────────────────────────────────────────────────────────
+   VENUE  net      +416.82 USDT   gross   236,243.47   long 112 / short 145
+          net/gross   +0.18%   <- leverage-independent; the asymmetry read
+          net/equity  +0.35%   (equity 118,243.44)   => NORMAL
+   INTENT net      -205.07 USDT   ( -0.09% of target_gross)   over the 257 names that got rows
+          ^ this is the PLANNING residual: directionality present before a single order was sent
+   ⇒ VENUE minus INTENT: +621.89 USDT
+     (this is a DIFFERENCE, not an attribution: it moves with execution asymmetry AND
+      with which names were popped. Judge execution on it only when INTENT is ≈0.)
+   ★ CALIBER: a SNAPSHOT at readback time. It contains no later price drift, and it is
+     notional at the readback mark — not a P&L, and not a forecast.
+
+────────────────────────────────────────────────────────────────────────────────────────────
+3c. REALISED COST (bps) vs the shadow model's assumptions
+────────────────────────────────────────────────────────────────────────────────────────────
+   maker          filled     9,161.01   measured     9,161.01 (100% of notional, 137/137 fills)
+                  fee   2.00bps   slip(adverse)  -1.94bps   slip(|.|)   3.29bps   — over the MEASURED set
+                  TOTAL adverse  +0.06bps   |.|   5.29bps
+   taker          filled     2,722.46   measured     2,722.46 (100% of notional, 48/48 fills)
+                  fee   5.00bps   slip(adverse)  +1.32bps   slip(|.|)  28.68bps   — over the MEASURED set
+                  TOTAL adverse  +6.32bps   |.|  33.68bps
+   both           filled    11,883.47   measured    11,883.47 (100% of notional, 185/185 fills)
+                  fee   2.69bps   slip(adverse)  -1.20bps   slip(|.|)   9.11bps   — over the MEASURED set
+                  TOTAL adverse  +1.49bps   |.|  11.79bps
+     from_partial filled       631.80   measured       631.80 (100% of notional, 13/13 fills)
+                  fee   5.00bps   slip(adverse) +16.76bps   slip(|.|)  16.76bps   — over the MEASURED set
+                  TOTAL adverse +21.76bps   |.|  21.76bps
+     from_reject  filled     2,090.66   measured     2,090.66 (100% of notional, 35/35 fills)
+                  fee   5.00bps   slip(adverse)  -3.35bps   slip(|.|)  32.28bps   — over the MEASURED set
+                  TOTAL adverse  +1.65bps   |.|  37.28bps
+                  ── vs OUR OWN LIMIT (not the anchor mid) ──
+   from_partial   filled       631.80   vs-limit(adverse) +19.67bps   ← NEGATIVE = better than the price we asked for
+   from_reject    filled     2,090.66   vs-limit(adverse)  -0.84bps   ← NEGATIVE = better than the price we asked for
+
+   maker fill-rate (notional) 86.15%   over 159 submitted maker legs
+   ── the shadow model assumes: maker fill-rate 0.51, cost 1.9bps (calm regime) ──
+   ★ Neither figure is a markout. M2 (adverse selection at +60s) is a different quantity
+     and is NOT computed here; if it is missing it is missing, not zero.
+
+────────────────────────────────────────────────────────────────────────────────────────────
+4. GUARDS
+────────────────────────────────────────────────────────────────────────────────────────────
+   tripped   False   triggers []
+   blind     []
+   degraded  []
+   errors    0
+   halt state: file present, declares halted=False   (tripped_at=None, reduce_only=False)
+
+────────────────────────────────────────────────────────────────────────────────────────────
+5. ORDERS LEFT RESTING (pins)
+────────────────────────────────────────────────────────────────────────────────────────────
+   no stuck orders pinned
+
+────────────────────────────────────────────────────────────────────────────────────────────
+6. RATE — per host, and the venue-vs-us gap RE-MEASURED
+────────────────────────────────────────────────────────────────────────────────────────────
+   rate_budget[api.binance.com]: weight=1 requests=1 orders=0 peak/min w=1 r=1 o=0
+   rate_budget[fapi.binance.com]: weight=7576 requests=1660 orders=427 peak/min w=982 r=2
+   rate_timeline: 3322 rows (dropped 0) -> /Users/haosiyu/dl_quant_live/state/live/rate_t
+   venue_rate: DECIDED_ON=window_high_water(aligned 1m) peak_window_weight=725 | REPORTED
+
+   per-host lines: 2   two hosts — the paths are on separate counters (TESTNET shape)
+   wall-clock duration: 3366s   (self-kill cap 1500s)   ★ WITHIN 10% OF THE CAP
+
+   timeline rows 3322 (dropped 0)   venue header readings 1263
+     fapi.binance.com             venue peak/1m    725   our spend on it   7576   gap  -6851
+   ★ CALIBER: `our spend` is this PROCESS's total on that host over the whole anchor;
+     the venue figure is a per-minute peak for the whole IP. They are not the same shape —
+     read the gap as a direction, not a subtraction, until the timeline's per-minute
+     bucketing is added (registered follow-up).
+
+============================================================================================

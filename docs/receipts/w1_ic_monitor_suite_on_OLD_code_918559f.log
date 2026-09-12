@@ -1,0 +1,15 @@
+  PASS T1a thresholds stamped — -0.02277/-0.04425/-0.01656
+  PASS T1b ordering P1 < P5 < 0 — DECIDE must be rarer than ALERT
+  PASS T1c calibration source cited
+  PASS T1d thresholds unchanged by the 2026-09-12 contract fix
+  PASS T2a spearman +1
+  PASS T2b spearman −1
+  PASS T2c ties handled
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/oldcode/live/tests_ic_monitor.py", line 85, in <module>
+    v0 = M.check(r0, now=now_for(r0))
+  File "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/oldcode/live/tests_ic_monitor.py", line 65, in now_for
+    return max(r["anchor_ts"] for r in rows) + G + M.MATURE_LAG_S + 60
+AttributeError: module 'ic_monitor' has no attribute 'MATURE_LAG_S'
+
+== exit code = 1 (observed: 'old-code exit=1'). New suite run against origin/main (918559f) ops/ic_monitor.py sha ba89bf68…: T1–T2 pass, then crashes at the first new-signature call (MATURE_LAG_S absent) — the suite cannot pass on the pre-fix monitor; the per-behaviour reds are the M7–M10 mutants in the standalone log ==

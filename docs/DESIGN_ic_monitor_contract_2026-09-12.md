@@ -1,0 +1,164 @@
+> **创建:** 2026-09-12 10:10 UTC | **Session:** W1(team, lead=main; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w1`, 分支 `fix/ic-monitor-contract`, 基线 918559f=origin/main) | **状态:** FINAL 10:58Z — §1-§3 事实表与设计先于码(10:10Z 写就), §4 收据(单跑 52/52 · 冻结账本回放 · 旧码红 · 电池 131/132, 唯一红 = 克隆无 .env)与 §5 RESULT 已回填; 代码只在克隆, **未部署**(lead 经 safe_commit 落地) | **作废条件:** `ops/ic_monitor.py` 再改; 或阈值按在役形态重标(生产者平价回放 Phase 2)落地; 或 launchd 调度/数据源变更
+
+# #55 实现 rank-IC 监视器 — 告警合同修正(设计 + 事实表 + 收据)
+
+**一句话:** 监视器的数学不动(统计量、阈值常量、判读窗起点全部原样), 改的是它**对人说的话**(对象/标定身份写进每页与状态文件)、**它何时说话**(恢复通知; 判窗不完整时不判并告知缺哪些锚)、以及 **`--check` 必须零副作用**。
+
+**硬边界(任务作废条件):** 运行树 `~/dl_quant_live` 与生产者 `~/wide_shadow` 只读; 不跑 `safe_commit.sh`; 不部署; 不调交易所/Telegram API; 不上 pod2/GPU; 研究仓不提交不推送。所有改动只在克隆。
+
+---
+
+## §0 事实基线(独立复核 + lead 给定, 本文照单接受, 不重新论证)
+
+来源: `/Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_system_status_review_2026-09-12/monitoring/RESULT.md`(独立研究员 09-12 09:19Z, 全部 VERIFIED 项)+ lead 任务书。克隆内 `ops/ic_monitor.py` sha256 `ba89bf68…9162f` 与审计 pin 逐位相同(§4 R0)。
+
+## §1 事实表(每条: 事实 · 出处 · 我如何核)
+
+| # | 事实 | 出处(克隆内路径:行) | 核法 |
+|---|---|---|---|
+| F1 | 统计对象 = spearman(场所回读**实持仓有符号名义** @t0, **p(t1)/p(t0)−1**), p=\|notional\|/\|qty\|(不是订单簿 mid, 是场所 notional/qty 隐含价) | `ops/ic_monitor.py:86-103`(loader 只读 `venue_position_notional/qty/anchor_ts`), `:119-122,141` | 读源; 与审计 VERIFIED 1-5 一致 |
+| F2 | 它**不是**模型分数 IC, **不是**扣费净收益: 无 target_live/分数输入, 无费用/资金费/成交现金流 | 同上; 审计 VERIFIED 4 | 读源 |
+| F3 | 阈值常量 ALERT r24<−0.02277; DECIDE r24<−0.04425 或 r48<−0.01656; 标定 = α=0.05/band=0.002 离线书, 2026-08-10, 9821 锚 | `ops/ic_monitor.py:11-17,45-51` | 读源 |
+| F4 | 在役书 α=0.1/band=0.00025(combo, 去 rev24) ⇒ 5%/1% 概率含义对在役形态**不成立**; 源码无按形态换阈值机制 | 审计 VERIFIED「阈值身份不匹配」(读 `~/wide_shadow/shadow_bundle/config.json` + `fea171/combo_stage.py:90`); lead 任务书 | 只读树, 本人未开; 照审计+lead 接受 |
+| F5 | 最新评估 2026-09-12 01:30:02Z: **OK**, r24 +0.00472, r48 −0.01104, n=176; 前三日 01:30Z 均 DECIDE(09-09 −0.03483/−0.02373; 09-10 −0.02705/−0.02667; 09-11 −0.02788/−0.02178) | 克隆 `state/icmonitor_out.log` 末 8 行 | 读文件 |
+| F6 | 状态文件当前 = `{"last_ALERT": 1788744602.806 (=09-07 01:30:02Z), "last_DECIDE": 1789003803.968 (=09-10 01:30:03Z)}`; **无「最后投递级别」字段** | 克隆 `state/live/ic_monitor_state.json`(sha `2e690e1f…`) | 读文件 |
+| F7 | 手机最后一页 = 09-10 DECIDE; 09-11 DECIDE 未投(距上次成功投递 86,398.51 s < 严格 24h 冷却); 09-12 OK 时 `deliver()` 对非 ALERT/DECIDE **直接 return**, 恢复零通知 | `ops/ic_monitor.py:192-203`; 审计 INFERRED(冷却)+VERIFIED(无恢复路径) | 读源 |
+| F8 | `--check` **不是**只读: import 期 L33-37 无条件加载 `.env`; main L251 对任何模式都调 `deliver()`, 它 import `telegram_notify` 并构造 notifier(即使 NOT_CONFIGURED 也**写** `state/notify_audit.jsonl` 一行) | `ops/ic_monitor.py:31-38,209-222,242-251`; `live/telegram_notify.py:206-212,239-248` | 读源 |
+| F9 | 统计量 = 账本**最后 24/48 行**均值, 行只在「相邻网格间隔 ≤6h 且共持 ≥30 名」时产生 ⇒ 缺锚被**跳过而拉长窗口**, 无新鲜度门, `check()` 不知现在时钟 | `ops/ic_monitor.py:112-116,124,178-181` | 读源 + 本人在冻结账本上量: 09-12 运行的最后 24 行跨 **112h**(理想 96h), 48 行跨 **228h**(理想 192h) |
+| F10 | 冻结账本 post-window 176 行(08-10 12Z → 09-11 20Z), 网格期望 195 点, **缺 19**: 08-21 20Z…08-22 08Z(4), 08-25 12/16Z, 08-26 12/16Z, 09-01 20Z, 09-02 00Z, **09-06 08Z→09-07 00Z(5, 首次单日止损平仓 E-0906)**, **09-09 08Z→20Z(4, 看门狗账本缺口平仓 E-0909-G)** | 克隆 `state/live/ic_monitor.jsonl`(sha `fd62e6b7…`) | 本人脚本 census(§4 R2 同码复算) |
+| F11 | **按任务书门(r24 缺>2 / r48 缺>4)在冻结账本上逐日回放** — 前沿 = floor((run−4h−1h)/4h)·4h: | 本人脚本(§4 R2 以正式代码复算并留收据) | 计算 |
+|  | 09-07 01:30Z(实投 ALERT): r24 缺 4 [09-06 08/12/16/20Z] · r48 缺 6 ⇒ **INCOMPLETE** | | |
+|  | 09-09 01:30Z(实投 DECIDE): r24 缺 5 · r48 缺 7 ⇒ **INCOMPLETE** | | |
+|  | 09-10 01:30Z(实投 DECIDE, 由 r48 门触发): r24 缺 9 · r48 缺 10 ⇒ **INCOMPLETE**(当日最近可评分起点仅 09-09 04Z, 前沿 09-09 20Z) | | |
+|  | 09-11 01:30Z(DECIDE 未投): r24 缺 5 · r48 缺 9 ⇒ **INCOMPLETE** | | |
+|  | 09-12 01:30Z(OK): r24 缺 4 [09-09 08/12/16/20Z] · r48 缺 9 ⇒ **INCOMPLETE** | | |
+|  | ⇒ **本轮全部四次判级(3 页实投 + 1 次 OK)都落在跨越平仓洞的拉长窗上; 门按任务书参数会把它们全部标 INCOMPLETE。** 这是任务书参数的直接后果, 本文如实呈报, 不擅改参数(常量集中一处 `MAX_MISSING`, lead 可裁) | | |
+| F12 | `tests_env_loading` 的**总体是算出来的**: 正则 `TelegramNotifier\s*\(` 扫 ops/scheduler/live/signal 非 tests_ 模块, 每个成员在子进程 import 后必须已填 TELEGRAM_*(不看 argv) ⇒ `ic_monitor.py` 是成员; **删 import 期加载 = 该安全套件红; 改写法躲开正则 = 把监视器从安全总体里悄悄除名**(更糟) | `live/tests_env_loading.py:59-75,84-105` | 读源 |
+| F13 | `alarm_policy` 只按**正文文字**分级: 无规则命中 ⇒ UNRECOGNISED ⇒ tier A ⇒ PUSH; 命中 MEASURE 规则(如 `coverage\|覆盖率\|measurement_complete`, `weight`, `net/gross`)⇒ RECORD **永不推送**; 命中 EXPECTED(如 `redeliver`, `门槛` 组合)⇒ DAILY 不推送; 同正文 24h 内已投 ⇒ 抑制。严重度 INFO/HIGH/CRITICAL **不参与**分级 | `live/alarm_policy.py:39-113,116-141,147-178` | 读源 |
+| F14 | 现役正文只打印 r24 的两个阈值, 不打印触发 09-10 DECIDE 的 R48_P1; 不写数据前沿 | `ops/ic_monitor.py:205-208`; 审计 VERIFIED | 读源 |
+| F15 | 电池: `run_acceptance.sh` SUITES 数组注册, `tests_ic_monitor` 在 L222; 每个 `live/tests_*.py` 必须注册否则拒跑; 解释器 `/usr/bin/python3`(3.9.6); `ops/pyenv.sh` 关字节码写+私有缓存 | `run_acceptance.sh:26-28,39-…,222,244-256` | 读源 |
+| F16 | `ops/gate_coverage.SUITE_SCOPE` 每套件必有条目(verify 只查**键存在**, 不查文字); `tests_ic_monitor` 条目盲区 (b)「投递未测」(c)「阈值正确性全靠离线标定, 无人注意形态漂移」在本改动后**部分失真**, 需改文字 | `ops/gate_coverage.py:150,339-371` | 读源 |
+| F17 | launchd: `/usr/bin/python3 /Users/haosiyu/dl_quant_live/ops/ic_monitor.py` **无参数**(=append 模式), 每日 09:30 SGT=01:30Z; stdout→`state/icmonitor_out.log`; runs=14, last exit 0(审计 09:09:58Z `launchctl print`) | `~/Library/LaunchAgents/com.dlquant.live.icmonitor.plist`(只读) | 读文件 |
+| F18 | `ic_monitor.jsonl` 每行被 `main()` 当锚行解析(`known.add(r["anchor_ts"])`), 非锚行会进 `rows` 再在 `check()` KeyError ⇒ **评估/普查记录不能写进这个 jsonl** | `ops/ic_monitor.py:232-239,166-168` | 读源 |
+| F19 | `tests_imports` 不 import `ic_monitor`(不在 run_anchor 可达图), 只正则扫 ops 文件的 `"/fapi/v…"` 字串 | `live/tests_imports.py:300-320` | 读源 |
+| F20 | 克隆: HEAD 918559f=origin/main; **无 `.env`**(故意; 无任何凭据) ⇒ `tests_env_loading` [B] 在克隆对总体每个成员必红 — **已知克隆伪影, 唯一允许的红** | `git -C clone log -1`; `ls clone/.env` 不存在 | 命令 |
+| F21 | 克隆快照回读网格 237 个, 最后 09-12 08Z; 账本最后行 09-11 20Z(09-12 00/04Z 行要等 09-13 01:30Z 运行追加) | 本人 census | 计算 |
+
+## §2 设计决策(每条: 规则 · 被拒替代 · 可调常量)
+
+**D1 对象与标定身份 = 常量, 进每一页与状态文件。** 两个字串**逐字**取 lead 任务书:
+- `OBJECT = "书级实现 rank-IC = 场所实持仓名义排序 vs 下锚 mid 收益排序; 不是模型分数 IC, 不是扣费净收益"`
+- `CALIB_IDENTITY = "阈值标定: α=0.05/band=0.002 离线书(2026-08-10, 9821 锚); 在役 α=0.1/band=0.00025 — 阈值未按在役形态重标, 5%/1% 概率含义不适用"`
+- 每页(ALERT/DECIDE/RECOVERED/INCOMPLETE)正文尾部两行原样附上; `contract()` 块 = {object, calibration, thresholds{ALERT_r24_lt, DECIDE_r24_lt, DECIDE_r48_lt}, calib_src, statistic, freshness_gate} 写入 `ic_monitor_state.json["contract"]`、每条评估记录、以及 `check()` 输出(进 launchd stdout 日志)。
+- 顺带补 F14: 正文打印 R48_P1, 写明**哪扇门触发**, 写数据前沿与两窗普查。
+
+**D2 恢复通知 = 状态机上的一次性转移。**
+- 新状态键 `last_delivered_level ∈ {ALERT, DECIDE, OK}`, 只在**成功离机**(`delivered_offbox`)时更新: ALERT/DECIDE 页成功 ⇒ 记该级; RECOVERED 页成功 ⇒ 记 OK。
+- **遗留状态迁移(部署首日就要对):** 无 `last_delivered_level` 时, 取 `last_ALERT/last_DECIDE` 中时间戳更大者为「最后投递级别」(F6 ⇒ DECIDE)。这是账本事实(09-10 DECIDE 确有 message_id), 不是猜测。
+- 转移规则: 本次 `level == "OK"` 且 `judged` 且 `last_delivered_level ∈ {ALERT, DECIDE}` ⇒ 投**一页 INFO** `RECOVERED: 24/48 锚均值回到所用阈值以上 — 不等于 alpha 恢复` + r24/r48 数值 + 若 r48<0 明写「r48 仍 <0」+ 若 r48 窗未判明写。OK 持续 ⇒ last=OK ⇒ 不再发。投递失败 ⇒ last 不变 ⇒ 次日重试(=「恰好一页**送达**」)。
+- INCOMPLETE 不改 `last_delivered_level`(它不是判级)。ALERT/DECIDE 同级冷却与升级逻辑**原样**。
+- 被拒替代: 「等两窗都完整才 RECOVERED」— 任务书写的是 level 转移; 保留任务书语义, 正文把未判窗写明; 若 lead 要更严, 改一处条件。
+
+**D3 新鲜度门 = 网格期望 vs 实有, 不动统计量。**
+- 前沿 `frontier = floor((now − GRID_S − MATURE_LAG_S)/GRID_S)·GRID_S`, `MATURE_LAG_S = 3600`(回读 read_ts−E 观测 15.8–47.1 分钟, 取 1h 余量; 01:30Z 运行 ⇒ 前沿 = 前日 20Z, 与账本实际前沿一致 F11)。
+- 期望点 = `{frontier − i·GRID_S | i<24 (48)} ∩ [WINDOW_START_TS, ∞)`; 实有 = 期望点中账本有 `rank_ic≠None` 行者; 缺 = 期望 − 实有。
+- `MAX_MISSING = {"r24": 2, "r48": 4}`(任务书); 缺 > 上限 ⇒ 该窗 `complete=False`, **不在该窗上判** ALERT/DECIDE; 两窗都不可判 ⇒ `level="INCOMPLETE"`; 一窗可判 ⇒ 只按可判窗判级, `judged_windows` 写明。
+- r24/r48 **数值照旧算**(最后 24/48 行均值)并照旧输出——只是不据以判级; 阈值常量、WINDOW_START_TS、`compute_rows` 一字不动。
+- 普查 `census` 进 `check()` 输出、状态文件 `last_eval`、评估账本 `state/live/ic_monitor_evals.jsonl`(新文件, 只 append 模式写, 与锚行账本分离 — F18)。
+- 任一窗不完整 ⇒ 24h 内至多一页 INFO `INCOMPLETE`, 列出缺的锚(ISO), 状态键 `last_INCOMPLETE`。
+- **后果(F11)如实报**: 冻结账本上本轮四次判级均 INCOMPLETE; 若此后每个网格锚都有行(无新洞), r24 于 **09-14 01:30Z** 运行(前沿 09-13 20Z, 09-09 洞滑出 24 窗, 缺 0)恢复可判, r48 于 **09-16 01:30Z** 运行(前沿 09-15 20Z, 缺 4 = 恰在上限)恢复可判, **09-18** 起两窗缺 0 — §4 R2 用正式代码复算(10:10Z 初稿误写 09-18, 以 R2 为准)。
+- 新鲜度**同时**覆盖「账本冻死」: 前沿随 now 前进而行不进 ⇒ 缺数上升 ⇒ INCOMPLETE(审计「固定旧 ledger 可永久 OK/DECIDE」的洞由此关上)。
+
+**D4 `--check` 严格只读; `--dry` = `--check` + 投递预演。**
+- import 期 `.env` 加载改为 **argv 门控**: `sys.argv[1:]` 含 `--check`/`--dry` ⇒ 不加载; 否则照旧加载(launchd 无参数 ⇒ 加载; `tests_env_loading` 子进程 `python3 -c` ⇒ argv=['-c'] ⇒ 加载 ⇒ 该套件语义不变, 监视器仍在安全总体内 — F12)。
+- `--check`: 不写 LEDGER/STATE/EVALS, 不调 `deliver`, 不 import `telegram_notify`; 只打印 verdict(含 census+contract)。
+- `--dry`: 同 `--check`, 另打印 `plan_delivery()` 结果(会发什么页、给谁级别、正文)— **不构造 notifier**, 纯计算。
+- 被拒替代: 把 `TelegramNotifier(` 挪到别处/改写法 — 会让监视器逃出 F12 的安全总体; 拒。
+
+**D5 正文用词避开 alarm_policy 的 B/C 层规则(F13)**: 不用 coverage/覆盖率/weight/net-gross/门槛/REGRESSION/停机/无法判定 等; 用「判窗不完整」「缺」「阈值」「不判」。测试 T11 直接调 `alarm_policy.decide(body)` 断言四种正文都是 PUSH(否则 INFO 页会被静默记档而永不上手机 — 这正是恢复通知最怕的失败形态)。
+
+**D6 不动的东西(明列, 免误读):** 阈值三常量; 统计量; `compute_rows`(β 因果、n≥30、6h 间隔); WINDOW_START_TS; 同级严格 24h 冷却(F7 的 86,398 s 伪抑制是**已知开口**, §6 列出, 不在本单)。
+
+**D7 测试纪律:** 测试文件顶部、import 模块前置 `LIVE_ALARM_SUPPRESS=1` + `LIVE_NOTIFY_AUDIT=<tmp>`(即便某路径构造了 notifier 也只会 SUPPRESSED 且审计落 tmp); 投递用注入的 `sender` 桩; 突变体写到 tmp 目录用 importlib 按路径加载(不碰 ops/ 树); 子进程测试用临时 `.env` 路径**猴补 `envfile.ENV_PATH`**(克隆内不创建 `.env`)。
+
+## §3 测试矩阵(行为 → 绿断言 → 红能力)
+
+| 行为 | 绿断言(新 T#) | 突变(必须红) |
+|---|---|---|
+| D1 对象/标定 | T7a 两常量逐字等于任务书; T7b 四种正文都含两串; T7c `contract()` 的 object/calibration/thresholds 与常量/阈值相等; T7d 正文含 R48_P1 与触发门 | M7: 正文去掉 OBJECT ⇒ T7b 红 |
+| D2 恢复 | T8a DECIDE→OK 恰一页 INFO RECOVERED, state last=OK; T8b OK→OK 零页; T8c 从未投递→OK 零页; T8d **真实遗留状态字典(F6)**→OK ⇒ RECOVERED; T8e 投递未离机 ⇒ last 不变(次日重试); T8f r48<0 ⇒ 正文含「r48 仍 <0」 | M8: 删转移分支 ⇒ T8a/T8d 红 |
+| D3 新鲜度 | T9a 24 窗挖 4 锚 ⇒ r24 不完整、缺锚列表逐位相等、level INCOMPLETE; T9b 挖 2 锚 ⇒ 完整、照判; T9c 账本冻死(now 前进 3 天)⇒ INCOMPLETE; T9d INCOMPLETE INFO 页 24h 内恰一次; T9e r24 完整/r48 不完整 ⇒ 只按 r24 判, r48 越线不触发 DECIDE; T9f 统计量不变: r24 数值 = 最后 24 行均值(不论洞); **T9g 冻结真实账本回放 09-12 01:30:02Z ⇒ r24=+0.00472, r48=−0.01104 复现, r24 缺 [09-09 08/12/16/20Z], r48 缺 9** | M9: `MAX_MISSING` 置 10^9 ⇒ T9a/T9c 红 |
+| D4 只读 | T10a 子进程 argv `--check` + 临时 fake .env ⇒ TELEGRAM_BOT_TOKEN 未填; T10b 无旗标 ⇒ 已填(加载器仍在, F12 性质保住); T10c `main(--check)`/`main(--dry)` 在克隆真实回读上跑, LEDGER/STATE/EVALS 三文件 sha 前后相等, `telegram_notify∉sys.modules`, `urllib.request.urlopen` 陷阱未触发 | M10: 删 argv 门 ⇒ T10a 红 |
+| D5 分级 | T11 四种正文 `alarm_policy.decide()` 均 action=PUSH | (M7 的正文变体仍 PUSH; 此项是合同守卫非突变对象) |
+| 既有 | T1–T6 全保留; T3 各调用补 `now=`(签名新增参数, 夹具语义不变: 前沿 = 夹具最后锚) | — |
+
+## §4 收据
+
+全部收据文件在 `/Users/haosiyu/Desktop/quant_research/docs/receipts/`(研究仓, **未提交**); 代码只在克隆 `/Users/haosiyu/cc_tmp/exec_w1`(分支 `fix/ic-monitor-contract`, **未提交未推送**, 运行树未动)。
+
+**R0 基线.** 克隆 HEAD `918559f` = origin/main; 修前 `ops/ic_monitor.py` sha256 `ba89bf68ba5a7d28d60fabc031f2fee85aed529048bbfa18430a091c6709162f`(= 审计 pin, 逐位同); 修前 `live/tests_ic_monitor.py` `15e4722c…c6a584c`; 快照 `state/live/ic_monitor.jsonl` `fd62e6b7…5fd47af0`(= 审计 pin), `ic_monitor_state.json` `2e690e1f…27d3b8`。克隆无 `.env`(`ls` 不存在)。
+
+**R1 套件单跑(克隆, `/usr/bin/python3`, pyenv.sh 生效).** 文件 `w1_ic_monitor_suite_standalone.log`: **52 项全 PASS**(`grep -c "  PASS "` = 52; T1a-d, T2a-c, T3a-e, T4, T5a-b, T6 = 16 项既有/微调; T7a-e 5 + T8a-i 9 + T9a-g(含 T9d') 8 + T10a/a'/b/c 4 + T11/T11' 2 = 28 项新; M7/M8/M9/M10 各「注入点恰一次」+「突变红」= 8 项), 6.6 s。逐行复跑命令(逐字):
+```
+cd /Users/haosiyu/cc_tmp/exec_w1/live && . ../ops/pyenv.sh && /usr/bin/python3 tests_ic_monitor.py
+```
+
+**R2 冻结账本回放(正式代码).** 文件 `w1_ic_monitor_replay_and_projection.txt`。五次历史运行(行 = `computed_at ≤ run+5`, now = run): 09-07 ALERT/09-09 DECIDE/09-10 DECIDE/09-11 DECIDE(未投)/09-12 OK 的 r24/r48/n **逐位等于** `icmonitor_out.log` 与审计表(−0.02372/−0.00964 n151; −0.03483/−0.02373 n162; −0.02705/−0.02667 n164; −0.02788/−0.02178 n170; +0.00472/−0.01104 n176); 新门下五次全部 **INCOMPLETE**(r24 缺 4/5/9/5/4, r48 缺 6/7/10/9/9)。填平投影(09-11 20Z 后每锚补一行): 09-13 缺 4/9 ⇒ INCOMPLETE; **09-14 缺 0/9 ⇒ r24 可判**; 09-15 缺 0/5; **09-16 缺 0/4 ⇒ 两窗可判**; 09-18 起缺 0/0。
+
+**R3 红能力.** (i) 突变体 M7/M8/M9/M10(R1 内, 各自红); (ii) 新套件跑在 **origin/main 旧码** 上: 文件 `w1_ic_monitor_suite_on_OLD_code_918559f.log`, exit=1(T1-T2 过后在首个新签名调用处 AttributeError: MATURE_LAG_S 缺 — 旧码不可能过新套件)。
+
+**R4 电池(克隆, 代码 = R5 的 sha, 运行 2026-09-12 10:36:02Z → 10:51:28Z, 避开 HH:20–HH:35 与锚小时).** 文件 `w1_battery_20260912T1036Z_summary.log`(runner stdout 原表, 逐字抄转录命令: `cd /Users/haosiyu/cc_tmp/exec_w1 && bash run_acceptance.sh`); 逐套件日志在克隆 `state/acceptance/20260912T103603Z_*.log`(132 个)。
+
+| 计 | 数 |
+|---|---|
+| 套件总数 | 132 |
+| exit 0 | 131 |
+| exit ≠ 0 | **1: `tests_env_loading`**(exit 1) |
+| runner 终判 | `ACCEPTANCE: NOT GREEN — at least one suite failed` |
+
+**唯一红的解剖**(文件 `w1_battery_20260912T1036Z_tests_env_loading_RED.log`): 14 项中 10 过、**4 败, 全部是 [B]「X populates TELEGRAM_* on import」**, X = ops/ic_monitor.py, ops/redeliver_alarms.py, ops/unseed_rehearsal_halt.py, scheduler/run_anchor.py —— 即安全总体的**全部四个成员**同败, 原因单一: 克隆无 `.env`(F20, 故意不拷贝凭据), `envfile.load()` 报 exists=False。[A] 总体计算、[C] 加载器语义、[D] 有/无加载器的投递回执、[E] 突变 M1 全过。**本模块的 argv 门不是原因**: T10b 用临时假 `.env` 证明无旗标 import 仍加载(`tok: True`); 且另外三个未改动的成员同败。在运行树(有 `.env`)该套件应绿 —— 由 lead 落地时的电池证实, 本文不声称。
+
+`tests_ic_monitor` 在电池内: exit 0, 52 PASS, 日志 `w1_battery_20260912T1036Z_tests_ic_monitor.log` sha `9e06dfd0…` **与单跑日志逐字节相同**(确定性输出)。`gate_coverage` exit 0(条目文字改后 verify 通过)。`tests_static_names`(pyflakes)exit 0。
+
+**R5 diff 与文件 sha.**
+- diff(**只含三个代码文件**; 克隆 `state/` 的 rsync 差异不在其中): `w1_ic_monitor_contract.diff`, 978 行, 3 个 `diff --git`(live/tests_ic_monitor.py, ops/gate_coverage.py, ops/ic_monitor.py), sha256 `ad2f6dba97be0b28c48ee793d0495ba1f098eafc789ca5194c458f5a98711477`。生成命令(逐字): `git -C /Users/haosiyu/cc_tmp/exec_w1 diff origin/main -- ops/ic_monitor.py live/tests_ic_monitor.py ops/gate_coverage.py`。
+- 克隆代码(修后):
+  - `ops/ic_monitor.py` `8b2c218c7270a7bb1629c2affa35fdaa5e2c11d4784fb0b1ff947c072d33776f`(修前 `ba89bf68…`)
+  - `live/tests_ic_monitor.py` `0b1f2b6eca8ba2c2e3718ea96d20b8b21c3ad1066fdca1deaab86166517ce9bf`(修前 `15e4722c…`)
+  - `ops/gate_coverage.py` `591cb8ff2eb58f87efdc626cb44c134b2631d032f89d2b0e109d996985e07684`
+- 研究仓收据(`docs/receipts/`, 未提交):
+  - `w1_ic_monitor_suite_standalone.log` `9e06dfd0318351b456c292126b2d090d739b123f2ab0e8108bd5dc9fd3726510`
+  - `w1_ic_monitor_suite_on_OLD_code_918559f.log` `cd28c25a1263b36b32239ba39dceedc4395742d0374a59b4aeaefa5c8d51d6a5`
+  - `w1_ic_monitor_replay_and_projection.txt` `07b281b257c40368c963267ae91ef1384cd9dcf7502cbc60af04e71da2303269`
+  - `w1_battery_20260912T1036Z_summary.log` `e4bad4f616bd979b38b9a89c0b9b76869226933f8d9d3dfa9ac0ef2a103ff69a`
+  - `w1_battery_20260912T1036Z_tests_env_loading_RED.log` `61c3df91ad36bff0fb264e0292c2bd6b2f53ffb2504131303e67035bf74fd52f`
+  - `w1_battery_20260912T1036Z_tests_ic_monitor.log` `9e06dfd0318351b456c292126b2d090d739b123f2ab0e8108bd5dc9fd3726510`
+- 本文档自身的 sha 在最终报告里给(写入后才能算)。
+- **未做**: 研究仓不提交; 克隆不提交不推送; 运行树/生产者零写入; 零 API 调用(T10c 的 urlopen 陷阱在只读门下未触发; 电池里 `tests_telegram_notify` 等套件按其自身设计用桩)。
+
+## §5 RESULT
+
+**改了什么(克隆 `ops/ic_monitor.py`, 525 行; 修前 255 行):**
+- L1-41 模块文档: 对象/非对象、标定身份、合同四条、只读门、用法。
+- L49-64 `_readonly_invocation()` + **argv 门控**的 import 期 `.env` 加载(D4; F12 的安全总体成员身份不变)。
+- L70 `EVALS` 评估账本路径; L74 `COOLDOWN_S`; L85-88 `OBJECT`/`CALIB_IDENTITY`; L92-93 `MATURE_LAG_S`/`MAX_MISSING`; L96-112 `contract()`。
+- L115-225 `_rankdata/_corr/_spear/load_anchors/compute_rows` **逐字不动**(T4 静态序检查仍过)。
+- L228-254 `iso/frontier_ts/census`; L257-305 `check(ledger_rows, now=None)`: 统计量不变, 加普查、`judged_windows/incomplete_windows/trigger`, 两窗都不可判 ⇒ `level="INCOMPLETE"`。
+- L308-370 正文: `body_breach`(触发门 + 三阈值 + 前沿 + 两窗普查 + 两行合同)/`body_recovered`/`body_incomplete`。
+- L373-404 `load_state/save_state/last_delivered_level`(遗留迁移); L406-424 `plan_delivery`(纯函数状态机); L427-432 `_telegram_sender`; L435-467 `deliver(verdict, now, state_path, sender, persist)`: 只有离机成功才推进状态; 状态文件总带 `contract` + `last_eval`; L470-478 `append_eval`。
+- L481-521 `main(argv)`: `--check`/`--dry` 不写三文件、不调 deliver; append 模式 = 原行为 + deliver + evals。
+- `live/tests_ic_monitor.py`(490 行; 修前 75 行): T1-T6 保留(T3 调用补 `now=`); 新 T7-T11 + M7-M10(§3)。
+- `ops/gate_coverage.py` L150: `tests_ic_monitor` 条目文字重写(覆盖 + 四个盲区 a-d 更新; verify 仍 exit 0)。
+
+**每个测试证明什么:** 见 §3 矩阵; 要点 — T7 证两行**逐字**在每页与 contract 块(M7 证「少一行」会红); T8a/d/e 证恢复是「最后**送达**级别」上的一次性转移且遗留 state 迁移到 DECIDE(部署后首个可判 OK 会发 RECOVERED)(M8 证删转移会红); T9a/c/e/g 证门在洞、冻死、部分窗三种形态下都拒判且**真实 09-12 评估在门下是 INCOMPLETE**(M9 证关门会红); T10a/b/c 证 `--check`/`--dry` 在真实回读上零副作用且无参数调用仍加载 `.env`(M10 证删门会红); T11 证四种正文不会被 alarm_policy 静默降级。
+
+**行为后果(lead 必读):** ① 部署后下一次 01:30Z 运行(09-13)在冻结账本 + 正常追加下 = **INCOMPLETE**(r24 缺 09-09 四锚), 发一页 INFO 列缺锚, **不发 RECOVERED**; 若无新洞, 09-14 r24 可判 —— 若 OK 则发 RECOVERED(正文注明 r48 窗未判、r48 数值与符号); 09-16 两窗可判。② 本轮已投的三页(09-07/09-09/09-10)在门下都会被扣住 —— 门参数是任务书的, 若 lead 认为过严, 只改 `MAX_MISSING` 一处并重跑 R2。③ 遗留 state 迁移: 现状态文件按 `last_DECIDE` 迁为 DECIDE, 与手机最后一页一致。
+
+**未关(明列, 见 §6):** 阈值按在役形态重标 = OUT OF SCOPE(生产者平价回放 Phase 2); 24h 严格冷却的秒级抖动; 「mid」命名; launchd 触发断言。
+
+## §6 未关(明列)
+
+- **阈值按在役形态(α=0.1/band=0.00025, combo)重标 — 明确 OUT OF SCOPE**, 需生产者平价回放 Phase 2 产出在役书逐锚 IC 分布再盖章。本改动只把「未重标」写进每页与状态。
+- 同级严格 24h 冷却 vs 每日 01:30Z 调度的秒级抖动(F7: 86,398.51 s 抑制了 09-11 DECIDE)— 行为改动, 需 lead 裁(一行: 冷却 24h → 23h)。
+- 「mid」命名(F1: 实为 notional/qty 隐含价)— 正文按任务书用「下锚 mid 收益」字面; 状态 `contract.statistic` 里写明 p 的定义。
+- launchd 实际每日触发无断言(gate_coverage 盲区 d)— 新鲜度门是间接覆盖(停跑 ⇒ 账本冻 ⇒ INCOMPLETE 页), 但页本身也靠同一 job 发; 真正的 off-box 死人开关不在本单。

@@ -1,0 +1,47 @@
+[A] it runs, and it says what it covered
+  OK    ★★★ exits clean on the real ledger
+  OK    ★★★ it SELF-REPORTS its window and row counts — a summary that cannot state its own scope cannot be judged complete (same defect as `--since` silently selecting everything)
+
+[B] ★★★ the three account quantities are asserted as DATA, not as sentences
+  OK    ★★★ (a) the equity IDENTITY is a checked field, not a printed sentence — equity must equal wallet + unrealised, and a break is reported as a residual
+  OK    ★★★ ...and the identity check can FAIL — a field that can only ever read True is not a check  — 7843.4
+  OK    ★★★ (b) the target-exposure arithmetic is a field: equity x leverage, with the leverage it used carried beside it rather than hardcoded in a format string  — 2160.43 x 2.0 = 4320.86
+  OK    ★★★ (c) external flow is a STATE, not a number a reader must interpret  — zero
+  OK    ★★★ ...and the three states are distinguished: an inflow, an outflow, and a read failure are three different facts that a bare 0.0 cannot tell apart
+  OK    ★★★ ...and the record states the BOUNDARY OF OUR SIGHT rather than inferring where the money is. The old wording said a zero probably meant the money was in spot — true only for a deposit; on a WITHDRAWAL the identical 0.0 carried the identical sentence and the fact was the reverse. `spot_visible: False` is true on every day  — futures income endpoint (incomeType=TRANSFER) only
+  OK    ★★ ...and an absent nav is NOT OBSERVABLE rather than a zero account
+
+[B1b] ★★★ THE REAL INCIDENT — a deposit that the summary reported as 'no funds moved'
+  OK    ★★★ the deposit is REPORTED, not lost to the day boundary — reading only the newest row gives 0.0, which is a correct value for the wrong question  — 36.82261
+  OK    ★★★ ...and the state is `inflow`, so the 'we cannot see spot' sentence — which would be ACTIVE MISDIRECTION here — is not printed  — inflow
+  OK    ★★ ...and the record names WHICH DAYS it covered, because the field cannot be sliced to an arbitrary window: each day is counted in full  — {'20260802': 36.82261, '20260803': 0.0}
+  OK    ★★ ...and it flags that the first day may OVER-include (a window opening mid-day counts transfers made before it began) — an over-count that is stated, not folded in
+  OK    ★★★ MUTATION: the pre-fix reading (newest row only) yields 0.0 on this exact data — so this fixture condemns the defect rather than merely covering the code  — naive 0.0 vs fixed 36.82261
+
+[B2] ★★★ THE ACCEPTANCE CRITERION: reword anything, the assertions hold
+  OK    the renderer's ONLY input is the fact dict, so it cannot quietly recompute a quantity a different way  — ['f']
+  OK    ★★★ every quantity assertion above ran against `account_facts` and touched no rendered text at all — so replacing every sentence in `render_account` cannot break one of them  — 11 lines
+
+[B3] the rendered text still answers the operator's three questions
+  OK    ★★ Q1 names which line the operator is probably looking at
+  ....  NOT EXERCISED — the window holds 0 same-day nav row(s); the rotation explanation cannot be computed without two, and asserting its text here would fail on correct behaviour. This is NOT a pass.
+  OK    ★★ Q3 the exposure arithmetic and the external-flow figure are both rendered
+  OK    ★★ ...and the sight boundary is stated in the text the operator reads
+
+[C] ★ the day-boundary trap — it must refuse rather than compute a wrong number
+  OK    ★★★ the residual is NOT computed across 00:00Z, and it SAYS so. `realised_pnl` resets daily, so a cross-midnight difference reads a counter reset as a loss  — neither the refusal nor the same-day form appeared
+  OK    ★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can check the scope rather than trust it
+  OK    ★★★ and the reason is recorded where the next person will edit it: a column name is not a caliber, and two rows from different days are two different calibers of `realised_pnl`
+  OK    ★★★ ...and the refusal is a FIELD, so it survives a reword: across a day boundary the residual is None with a stated reason, never a number  — 窗口跨越 00:00Z, 而 `realised_pnl` 是当日累计并在 00:00Z 归零, 所以跨日的权益残差没有定义
+
+[D] it is the OUTLET — everything denoising suppressed appears here
+  OK    ★★★ the suppressed (tier-B/C) classes are listed with counts — otherwise suppression is just blindness
+  OK    ★★ tier-A is re-listed too, so a page that arrived while nobody was watching is not lost
+  OK    ★★ the per-anchor table gives the trend the operator asked for, one row per anchor
+  OK    ★★ it reuses the production rules table rather than re-deciding what is routine
+
+[E] ★★★ W2 2026-09-12 — realised P&L: USDT-only, non-USDT UNCONVERTED, None is not zero
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/exec_w2_old/live/tests_daily_summary.py", line 240, in <module>
+    _FM["realised_observable"] is True and abs(_FM["realised_today"] + 0.30) < 1e-9
+KeyError: 'realised_observable'
