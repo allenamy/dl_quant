@@ -1,6 +1,6 @@
 # DESIGN · 下游读者三桶迁移: daily_summary / first_anchor_review / score_post_fix (事实表先于代码)
 
-> **创建:** 2026-09-12 10:1xZ | **Session:** W2 (team lead 派单; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w2`, 分支 `fix/readers-three-bucket`, 基线 `origin/main` = 918559f) | **状态:** 完成(码在克隆分支 `fix/readers-three-bucket`, 未提交/未推送/未部署; 电池 132/133, 唯一红 = 克隆无 .env); §6 RESULT 含收据 | **作废条件:** 收入载体(`binance_broker.income_since`)改变 `by_type_asset` / `non_usdt_assets` 合同, 或 `anchor_loop.neutrality_price` 的三桶规则改变(本文 §3.2 的相等断言会先红)
+> **创建:** 2026-09-12 10:1xZ | **Session:** W2 (team lead 派单; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w2`, 分支 `fix/readers-three-bucket`, 基线 `origin/main` = 918559f) | **状态:** 完成 + 研究员复审 W2-R1/R2 收口(§7; 裁定项 R-12b 待裁); 码在克隆分支 `fix/readers-three-bucket`, 未提交/未推送/未部署; 两轮电池各 132/133, 唯一红 = 克隆无 .env | **作废条件:** 收入载体(`binance_broker.income_since`)改变 `by_type_asset` / `non_usdt_assets` 合同, 或 `anchor_loop.neutrality_price` 的三桶规则改变(本文 §3.2 的相等断言会先红)
 
 ## 0. 范围与硬约束
 - **只改读者, 不改生产者与守卫**: `ops/daily_summary.py` / `ops/first_anchor_review.py` / `ops/score_post_fix.py` + 一个新的纯函数模块 `live/cost_buckets.py` + 测试 + 注册(`run_acceptance.sh` SUITES, `ops/gate_coverage.py` SUITE_SCOPE)。
@@ -15,8 +15,8 @@
 | # | 事实 | 载体字段取值 | 旧读法 `account_facts`(L81/L110-111) | 新读法 | 反例 / 反向 / 邻格测试 |
 |---|---|---|---|---|---|
 | A1 | 已实现总额, **USDT 口径** | `realised_by_type_asset` 存在 | `float(realised_pnl or 0)` = 跨币种原数和 | Σ_{type∈{REALIZED_PNL,COMMISSION,FUNDING_FEE}} `by_type_asset[type]["USDT"]`; 非 USDT 条目**逐条列出**为 UNCONVERTED(type, asset, 原数), **永不相加** | 研究员反例: USDT −0.30 + BNB −0.01 ⇒ 旧 −0.31 标 USDT; 新 usdt=−0.30, unconverted=[(COMMISSION,BNB,−0.01)]; 反向: 全 USDT 行 usdt == realised_pnl 且 unconverted=[]; 邻格: 真账本 09-12 08Z 行(有 by_type_asset, 全 USDT) |
-| A2 | 已实现**不可观测** | `realised_pnl is None`(inc None) | `or 0.0` ⇒ realised_today=0.0, observable=True, **且**同日残差用 0 算出一个数 | `realised.observable=False`, `realised_today=None`, `unexplained_computable=False` + why 指明「已实现不可观测」; 文案「不可观测 —— <realised_pnl_source>」 | 研究员反例: realised_pnl=None ⇒ 旧 0.0/True; 新 None/False; 反向: 有数的行 observable True; 邻格: 只有 n0 不可观测时增量也不算 |
-| A3 | 已实现**不完整**(分页截断) | `realised_truncated is True` | 未读 | `realised.complete=False`, 数字保留但标「不完整读取(下界), 非当日总额」 | 截断行 ⇒ complete False + 文案; 反向 False ⇒ complete True; None ⇒ complete None(未知) |
+| A2 | 已实现**不可观测** | `realised_pnl is None`(inc None) **或非有限数(NaN/inf, 复审 W2-R2)** | `or 0.0` ⇒ realised_today=0.0, observable=True, **且**同日残差用 0 算出一个数 | `realised.observable=False`, `realised_today=None`, `unexplained_computable=False` + why 指明「已实现不可观测」; 文案「不可观测 —— <realised_pnl_source>」 | 研究员反例: realised_pnl=None ⇒ 旧 0.0/True; 新 None/False; 反向: 有数的行 observable True; 邻格: 只有 n0 不可观测时增量也不算 |
+| A3 | 已实现**不完整**(分页截断) | `realised_truncated is True` | 未读 | `realised.complete=False`, 数字保留但标「只是已读部分, 非当日总额, 也非任何一侧边界」(复审 W2-R2: 漏行带符号, 「下界」不成立); 残差与轮换增量**要求两端 complete is True**, None(标记缺失)= 完整性未知, 同样不算 | 截断行 ⇒ complete False + 文案 + 残差 None; 反向 False ⇒ complete True; None ⇒ complete None(未知) ⇒ 残差 None(另一条理由) |
 | A4 | 旧格式行(无 `realised_by_type_asset`) | 键缺失(09-12 06:05Z 前) | 同 A1 | 不能拆币种 ⇒ **不发明**: usdt = 载体和, `caliber="legacy_carrier_sum_usdt_assumed"` 明标假定 | 旧格式夹具 ⇒ caliber legacy 且 usdt == realised_pnl; 新格式 ⇒ caliber usdt_only |
 | A5 | 载体和是否混币 | `realised_pnl` vs USDT 切片 | — | `carrier_sum_mixes_assets = (unconverted 非空)`; 渲染时**不打印载体和**为 USDT | A1 夹具 True; 全 USDT False |
 | A6 | 「一换手就降」增量(main L289-298) | 两行 realised | `float(r.get("realised_pnl") or 0)` 两次 | 任一行不可观测 ⇒ 不算增量, 打「不可观测」 | 由 A2 覆盖(同一 `_realised_usdt` 助手) |
@@ -75,9 +75,31 @@ E6 读 `pilot_metrics.m1_effective_cost`: m1 已把 None 费 / 混币费记 `n_u
 - 非 USDT 的**换算**(BNB→USDT 价格)不在读者层做: 读者只列原数; 换算治理 = POSTMORTEM §5 独立项。
 - `daily_summary --since` 窗口跨 09-12 06:05Z 时, 旧格式与新格式 nav 行并存: 增量的口径混合由 `realised_increment_caliber` 明标, 不合成。
 
+## 7. 独立研究员复审 W2-R1 / W2-R2 收口 (2026-09-12 14:3xZ; 复审 `codex_batch_incident_review_2026-09-12/monitoring/RESULT.md`, 探针 `probe_review.py`)
+
+### 7a. 事实表补格 (每格: 复现 → 新读法 → 测试 → 修前红)
+| # | 研究员反例 | 我方复现(冻结 m1 sha 5ac7b16d…, 克隆) | 新读法 | 测试(新码绿 / 修前读者红) |
+|---|---|---|---|---|
+| R1-a | `fee_paid=NaN` ⇒ m1 `measurement_complete=True`, `c_bps_overall=NaN`; E6 据 m1 位判 PASS | 复现: complete True, c_bps nan, n_unmeasured_fee 0 | `cost_buckets.bucket_fills` 新增 `measurement_complete`(三态, 只由桶推: 费非有限 / 混币未换算 / 价不可用 / 成交未知 ⇒ False); E6 的 `measurement_complete` 与 verdict **改由桶位**推, m1 的位保留为 `m1_measurement_complete`, `completeness_disagrees_with_m1` 明写, `c_bps_overall` 仍是 m1 原数 + `c_bps_overall_is_finite` | RTB [E-R1]: NaN 费树 ⇒ m1 True / 桶 False / verdict FAIL / disagree True; MUTATION: `_verdict(m1 位)` = PASS。修前读者(pre-review)上 KeyError `measurement_complete` ⇒ 红 |
+| R1-b | protective_flatten 行 `fee_paid=0, fee_all_usdt=False, 无 conversion` ⇒ m1 退出费块 `fee_paid 0 / n_measured_fee 1 / complete True`(「测得免费」) | 复现: 同 | E6 加 `protective_flatten_buckets`, `protective_flatten_fee_known_by_buckets`(用 `known_fee`), `protective_flatten_fee_disagrees_with_m1`; m1 块原样保留 | RTB [E-R1]: 同 rid 的 flatten 行 ⇒ m1 n_measured_fee 1 vs 桶 0 ⇒ disagree True; 主判决不受 flatten 行影响(PASS) |
+| R1-c | daily_summary / first_anchor_review 是否也依赖 m1 位 | 两者从不读 m1(§1b); 完整性已由桶推 | `anchor_cost_facts.cost_measurement_complete`; 复审屏「measurement complete: yes/NO」 | RTB [A] 三态; [D] 文案 |
+| R2-a | 末行 `realised_truncated=True` 仍算数值残差 −10 | 复现: −10.0 | `unexplained_computable` 要求两端 `complete is True`; 截断 ⇒ None + 「不完整(分页截断, 只是已读部分)」; 标记缺失 ⇒ None + 「完整性未知」; 轮换增量同规则 | DS [R2-a] 同对 ⇒ None; MUTATION 旧规则 −10.0; [R2-b] 缺标记 ⇒ None; 反向: 完整 ⇒ 算。修前读者: 8 条 FAIL |
+| R2-b | 「不完整读取(下界)」措辞错: 收入带符号 | — | 文案改「只是已读部分, 不是当日总额; 漏掉的行带符号, 所以它也不是任何一侧的边界」; docstring / DESIGN A3 同改 | DS [E3]: 「已读部分」在, 「下界」不在 |
+| R2-c | `realised_pnl=NaN` 仍 observable True | 复现(探针 L180) | `_finite()`: None / NaN / inf / 文本 ⇒ 不可观测 + why「not a finite number」; 分币种切片含 NaN 同判 | DS [R2-c]: NaN / inf / 切片 NaN ⇒ observable False; MUTATION 旧判据 `is not None` 放过 NaN |
+| R2-d | `coverage_measured_notional` 先 round(4) ⇒ 9999.6/0.4 读 1.0, 表印 100%, `_cov_short` 不计 | 复现 | 覆盖改**精确比值**(round 只在显示: `pct_floor` 向下取整, 0.99996 ⇒ 99); `_cov_short` 按**计数**(已测 < 成交); 复审屏同用 `pct_floor` | DS [R2-d]: 比值 < 1.0 / complete False / 99%; MUTATION round(…,4)==1.0。RTB [B] 相等断言改在比较点上 round 到 4 位(与 `neutrality_price` 的记录精度一致) |
+
+### 7b. 裁定项 R-12b: `pilot_metrics.py` 冻结 vs 完整性位错误
+- `live/pilot_metrics.py` sha 5ac7b16d0f97f2f8013da728ab18f4f3787bc17c2192c1dba63e64e637c08f1f = `ops/check_metrics_freeze` FROZEN_MATCH; 电池套件 `metrics_freeze` 会因任何字节改动而红, 且它是 §4-1 判据的来源。**本轮不改它。**
+- 已知它的两处「已测」语义错误(R1-a NaN 费; R1-b 退出费块混币费计为已测)在冻结源码上**成立且保留**; 读者层已全部改由 `cost_buckets.known_fee` 推完整性, 并在 E6 输出里把 m1 的位与分歧明写。
+- **需裁定**: 是否解冻 m1 修这两处(改变 §4-1 看门狗输入的 completeness 语义 ⇒ 需预注册 + 用户裁定 + 重新冻结), 或长期接受「m1 位只作旁注」。研究员意见: 「E6 判据无需变更; 应先让『已测』含义一致再维持原判据」—— 本轮做法与此一致(判据不变, 位的来源换成一致的那个)。
+
+### 7c. 真账本核对 (只读副本 10:0xZ 同步)
+- 副本内 protective_flatten 行 **1453**(7 日: 08-01 105 / 08-02 83 / 08-05 210 / 08-21 210 / 08-26 334 / 09-06 268 / 09-09 243), 桶: 1453 unpriced(无 `mid_at_anchor`) / 0 measured / bps None; 研究员在其 13:57Z 冻结输入上对 E-0912-A 事故的 **255** 行 `FLATTEN-20260912T124737Z`(全 `fee_paid=None`, 键缺失)得到同形态 255 unpriced / 0 measured / bps None, `first_anchor_review._leg` 印 UNMEASURED。本副本不含 09-12 flatten 行(同步早于事故), 255 数字引自研究员 `INCIDENT_FEE_POPULATION.md`, 未独立重算。**退出费人口的修复属 W6, 不在本任务。**
+- `ops/first_real_anchor.py:81` 仍是旧格式读者(打印 `realised_by_type` 载体原数); **登记为开放项, 本轮未改**(未派单)。
+
 ## 6. RESULT (2026-09-12 10:3xZ; 克隆 `/Users/haosiyu/cc_tmp/exec_w2` 分支 `fix/readers-three-bucket`, 基线 origin/main 918559f; **未提交, 未推送, 未部署**)
 
-### 6a. 变更 (file:line, 克隆内; diff = `docs/receipts/w2_readers_three_bucket.diff`, 8 文件 +1013/−72, 排除 state/)
+### 6a. 变更 (file:line, 克隆内; diff = `docs/receipts/w2_readers_three_bucket.diff`, 限 ops/ live/ run_acceptance.sh; 第二轮(§7)后行号见 6a-2)
 | 文件 | 行 | 变更 |
 |---|---|---|
 | `live/cost_buckets.py`(新, 175 行) | 47 `usable_px` / 56 `known_fee` / 74 `filled_abs` / 86 `partition` / 106 `bucket_fills` / 154 `coverage_note` | 三桶纯函数; 规则逐字复刻 `anchor_loop.py:160-180` 的 `_pos`/`_fee`; 文件内无 `rebalance_id` / `/fapi/` 字串; 不在 run_anchor 可达图(`tests_imports` 通过) |
@@ -96,6 +118,17 @@ E6 读 `pilot_metrics.m1_effective_cost`: m1 已把 None 费 / 混币费记 `n_u
 | `live/tests_readers_three_bucket.py`(新, 384 行) | [A]-[F] | 31 check |
 | `run_acceptance.sh` | 189-195 | 注册 `tests_readers_three_bucket`(注释不含 `.py` 后缀: `tests_imports` 的脚本扫描会把它读成调用 —— 第一次跑就红了, 已改) |
 | `ops/gate_coverage.py` | 156-160 | SUITE_SCOPE 新条目 + `tests_daily_summary` 条目追加本轮盲区 |
+
+### 6a-2. 第二轮(复审 W2-R1/R2)增量变更
+| 文件 | 变更 |
+|---|---|
+| `live/cost_buckets.py` | `coverage_measured_*` 改精确比值; 新键 `measurement_complete`(三态); 新函数 `pct_floor`; `coverage_note` 用 `pct_floor` |
+| `ops/daily_summary.py` | `_finite()`; `realised_facts` NaN/inf ⇒ 不可观测(载体和与分币种切片); docstring/文案「已读部分」; `account_facts` 残差要求两端 `complete is True`(两条理由: 截断 / 标记缺失); `anchor_cost_facts.cost_measurement_complete`; 逐锚表 `CB.pct_floor` 显示 + `_cov_short` 按计数; 轮换块同完整性规则 |
+| `ops/first_anchor_review.py` | §3c measured 行用 `pct_floor` + 「measurement complete: yes/NO」 |
+| `ops/score_post_fix.py` | E6: `measurement_complete` 与 verdict 由桶推; `measurement_complete_source` / `m1_measurement_complete` / `completeness_disagrees_with_m1` / `c_bps_overall_is_finite` / `protective_flatten_buckets` / `protective_flatten_fee_known_by_buckets` / `protective_flatten_fee_disagrees_with_m1`; `rule` / `bucket_rule` 措辞更新 |
+| `ops/gate_coverage.py` | `tests_readers_three_bucket` 盲区 (b) 改述(m1 冻结, E6 位由桶推) |
+| `live/tests_daily_summary.py` | 53 → **64** checks: `_NAV` / `_INCIDENT` 夹具补 `realised_truncated: False`(生产者必写); [E3] 措辞; [R2-a..d] + 三条 MUTATION |
+| `live/tests_readers_three_bucket.py` | 31 → **42** checks: [A] `measurement_complete` 三态 / NaN 费 / `pct_floor`; [B] 比较点 round(4); [D] 文案; [E] 一致性断言; [E-R1] NaN 费树 + flatten 混币费树 + MUTATION |
 
 ### 6b. 每测证明什么 (收据 `docs/receipts/w2_readers_three_bucket/newcode_*.log`; 旧码红 `oldcode_918559f_*_RED.log`)
 | 测试 | 证明 | 旧码(918559f + 新测试) |
@@ -128,17 +161,28 @@ E6 读 `pilot_metrics.m1_effective_cost`: m1 已把 None 费 / 混币费记 `n_u
 | 日志 | 逐套件 `exec_w2/state/acceptance/20260912T103600Z_*.log`(133 件); 表 `receipts/w2_readers_three_bucket/battery_summary.txt` |
 | 电池外补跑(10:1x-10:3xZ, 新码) | `tests_review_anchor_scoping` 8/8 · `tests_reject_topup` 40 · `tests_fills_supersede` 19/19 · `tests_score_anchor_selection` ALL PASS · `tests_rehearsal_anchor` ALL PASS · `tests_static_names` ALL PASS · `tests_imports` ALL PASS · `gate_coverage` 133 套件全部有边界自述 |
 
-### 6e. sha256 (最终, 与 6d 电池所跑代码一致)
+### 6d-2. 电池 第二轮(复审收口后)
+| 项 | 值 |
+|---|---|
+| 运行 | 克隆 `bash run_acceptance.sh`, 2026-09-12 **14:36:04Z → 14:52:42Z**(锚外, 避开 HH:20–35); 代码 = 6e 最终 sha, 电池后复核 6 文件 sha 不变 |
+| 结果 | **133 套件, 132 exit 0, 1 红 = `tests_env_loading`**(克隆无 `.env`, 同第一轮; 收据 `battery_r2_20260912T143604Z_tests_env_loading_RED_no_env.log`) |
+| 本轮两套件 | `tests_daily_summary` ALL PASS **64**; `tests_readers_three_bucket` ALL PASS **42** |
+| 冻结 | `metrics_freeze` FROZEN_MATCH(`live/pilot_metrics.py` 未改) |
+| 修前读者红 | 新测试 × 复审前读者(`exec_w2_prev`, 6e 第一轮 sha): `tests_daily_summary` rc 1, 8 条 FAIL(E3 措辞 / R2-a 残差 / R2-a MUTATION / R2-b 缺标记 / R2-c NaN / R2-c MUTATION / 两邻格) 后 `pct_floor` AttributeError; `tests_readers_three_bucket` rc 1, 覆盖精确性 FAIL 后 KeyError `measurement_complete`; 收据 `prereview_readers_tests_*_RED.log` |
+| 日志 | 逐套件 `exec_w2/state/acceptance/20260912T143604Z_*.log`(133 件); 表 `receipts/w2_readers_three_bucket/battery_r2_summary.txt` |
+
+### 6e. sha256 (最终 = 第二轮复审收口后; 与 6d-2 电池所跑代码一致; 第一轮的 sha 见 receipts/w2_readers_three_bucket/battery_summary.txt 同目录第一轮日志)
 ```
-414606eef2852d381e7fbd5ff07b9a7c194ec5b7eedaba60603952016341ee7b  live/cost_buckets.py            (新)
-46c25bb28306255e5666c3b4f5fa309037a1bb8adb124c69182d537b4c99d11b  live/tests_readers_three_bucket.py (新)
-c297b8f9fbe7ea40153ba3bc95b0bca02dec22289550ce8a72e21aa086fbd6a2  live/tests_daily_summary.py     (origin/main f53a5bf1…)
-20b2d73602bb0720f129ab2a1b98db7fc8a356a253c5e0815277bd4fca0fead9  ops/daily_summary.py            (origin/main 263e7635…, = 研究员 RESULT.md 冻结 sha)
-a538ef25096de6c3c0417fbaf1c3bcc384dd60f343a8eefc67e4104a2865a894  ops/first_anchor_review.py      (origin/main e80cc0e5…)
-1e402279c142cb9a45ae5df5423329e9b06a84177746621f7b0f441639ef279b  ops/score_post_fix.py           (origin/main c4b8eeaf…)
-9b17dc70c619034613ab3c8505241270a840311e2fcf2565d6f968e796922012  ops/gate_coverage.py            (origin/main 49b357d8…)
+0d31d10a1353f4ba36702b22b8d0db94551f81dc884055ceb7b52e5e2375dfda  live/cost_buckets.py            (新)
+51df1a049c22eb2ecdc692db590c10a0a0a29886ca9f2a3af08bcca52e0fe99c  live/tests_readers_three_bucket.py (新)
+3465c469294e71dc195fc71ac1b68eb07d589b402d7bc408ec26d11ddaf77e1d  live/tests_daily_summary.py     (origin/main f53a5bf1…)
+2cead2155f855026dccac7ad5e83d80a9b8755f5fbfe0d6f321a90f20d8fc52b  ops/daily_summary.py            (origin/main 263e7635…, = 研究员 RESULT.md 冻结 sha)
+147bff8afad605a8bae9488096f1e08baa930d6ece8863845c4194ae24f88f6b  ops/first_anchor_review.py      (origin/main e80cc0e5…)
+35edf62b46ab7c20e6243648942b09bb401a58db962f446711d1c81d85b4824f  ops/score_post_fix.py           (origin/main c4b8eeaf…)
+31106d2d839307120e0cbb55099ac3f671cf259ddebf1e1f59be4141bc1a1ed3  ops/gate_coverage.py            (origin/main 49b357d8…)
 4a0e7ec0d9851b52ea22815c016c974dc865967cf0b8a58ec0213437af3b7ce1  run_acceptance.sh               (origin/main da9ac302…)
-fded2c21809601a3460456fe89ec11d53ec6cfd785b85ed5cb4a620231ce129f  docs/receipts/w2_readers_three_bucket.diff
+5ac7b16d0f97f2f8013da728ab18f4f3787bc17c2192c1dba63e64e637c08f1f  live/pilot_metrics.py           (未改; = check_metrics_freeze FROZEN_MATCH)
+9d6e2584f761615dc06b6d57c7d6c007a279abf1323c9d6a42ff021433374640  docs/receipts/w2_readers_three_bucket.diff (1522 行, 8 文件 +1248/−80)
 ```
 
 ### 6f. 未闭合 / 明写

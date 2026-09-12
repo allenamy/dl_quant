@@ -1,9 +1,9 @@
 diff --git a/live/cost_buckets.py b/live/cost_buckets.py
 new file mode 100644
-index 0000000..748f94e
+index 0000000..0c3fd58
 --- /dev/null
 +++ b/live/cost_buckets.py
-@@ -0,0 +1,170 @@
+@@ -0,0 +1,194 @@
 +"""Three-bucket classification of filled order rows for the READ-ONLY cost readers. Pure; no I/O.
 +
 +★★★ WHY THIS MODULE EXISTS (W2, 2026-09-12; POSTMORTEM_b0a573a1 §5 "下游成本读者未继承三桶").
@@ -151,10 +151,34 @@ index 0000000..748f94e
 +        "adverse_bps_measured": _bps(adverse),
 +        "abs_slip_bps_measured": _bps(abs_slip),
 +        "abs_bps_measured": _bps(fee_m + abs_slip),     # fee + |slip| (m1's `c_bps_overall` caliber)
-+        "coverage_measured_notional": (round(notl_m / notl, 4) if notl else None),
-+        "coverage_measured_count": (round(len(measured) / n_fills, 4) if n_fills else None),
++        # ★ EXACT, not rounded (review W2-R2, 2026-09-12): a rounded coverage read 1.0 for 9999.6
++        #   measured beside 0.4 fee-unknown, so `< 1.0` was false and a screen printed 100%. Round
++        #   for DISPLAY only (`pct_floor`); compare on the exact ratio or on the counts.
++        "coverage_measured_notional": ((notl_m / notl) if notl else None),
++        "coverage_measured_count": ((len(measured) / n_fills) if n_fills else None),
++        # ★ THREE STATES, derived from the buckets and from nothing else: None = nothing to
++        #   measure (no known fill and no unknown fill); True = every fill known, priced and
++        #   fee-known; False otherwise. A non-finite fee or a raw mixed-asset fee is fee-unknown
++        #   here, so this bit is False where pilot_metrics.m1's `measurement_complete` can still
++        #   read True (review W2-R1; m1 is frozen — consumers derive completeness from THIS key).
++        "measurement_complete": (None if (n_fills == 0 and not unknown) else
++                                 (len(unknown) == 0 and len(unpriced) == 0
++                                  and len(fee_unknown) == 0)),
 +        "measured_over": MEASURED_OVER,
 +    }
++
++
++def pct_floor(cov: Optional[float]) -> Optional[int]:
++    """Coverage as an integer percent, FLOORED — 0.99996 prints 99, never 100."""
++    if cov is None:
++        return None
++    try:
++        v = float(cov)
++    except (TypeError, ValueError):
++        return None
++    if v != v:
++        return None
++    return int(v * 100.0 + 1e-9) if v < 1.0 else 100
 +
 +
 +def coverage_note(b: Dict[str, Any]) -> str:
@@ -163,8 +187,8 @@ index 0000000..748f94e
 +        return ("no known non-zero fill" + (f"; {b['n_unknown_fill']} row(s) with UNKNOWN fill"
 +                                            if b.get("n_unknown_fill") else ""))
 +    parts = [f"measured {b['n_measured']}/{b['n_fills']} fills"]
-+    cov = b.get("coverage_measured_notional")
-+    parts.append(f"notional coverage {cov:.0%}" if cov is not None else "notional coverage n/a")
++    cov = pct_floor(b.get("coverage_measured_notional"))
++    parts.append(f"notional coverage {cov}%" if cov is not None else "notional coverage n/a")
 +    if b.get("n_fee_unknown"):
 +        parts.append(f"fee-unknown {b['n_fee_unknown']} / ${b['fee_unknown_notional_usdt']:,.2f}")
 +    if b.get("n_unpriced"):
@@ -175,10 +199,39 @@ index 0000000..748f94e
 +        parts.append("bps UNMEASURED (not 0)")
 +    return "; ".join(parts)
 diff --git a/live/tests_daily_summary.py b/live/tests_daily_summary.py
-index 9a619ca..960bba2 100644
+index 9a619ca..7c0bf46 100644
 --- a/live/tests_daily_summary.py
 +++ b/live/tests_daily_summary.py
-@@ -221,5 +221,208 @@ check("★★ the per-anchor table gives the trend the operator asked for, one r
+@@ -68,10 +68,12 @@ print("\n[B] ★★★ the three account quantities are asserted as DATA, not as
+ sys.path.insert(0, os.path.join(_REPO, "ops"))
+ import daily_summary as DS            # noqa: E402
+ 
++# ★ `realised_truncated: False` is on every row the producer writes (anchor_loop L2809); the residual
++#   now REQUIRES a complete income read at both ends (review W2-R2), so the fixture carries the flag.
+ _NAV = [{"day": "20260803", "wallet_balance": 2140.43, "unrealised_pnl": 15.17,
+-         "nav": 2155.60, "realised_pnl": 1.00, "external_flow_usdt": 0.0},
++         "nav": 2155.60, "realised_pnl": 1.00, "external_flow_usdt": 0.0, "realised_truncated": False},
+         {"day": "20260803", "wallet_balance": 2150.43, "unrealised_pnl": 10.00,
+-         "nav": 2160.43, "realised_pnl": 4.83, "external_flow_usdt": 0.0}]
++         "nav": 2160.43, "realised_pnl": 4.83, "external_flow_usdt": 0.0, "realised_truncated": False}]
+ F = DS.account_facts(_NAV)
+ 
+ check("★★★ (a) the equity IDENTITY is a checked field, not a printed sentence — equity must "
+@@ -115,9 +117,11 @@ print("\n[B1b] ★★★ THE REAL INCIDENT — a deposit that the summary report
+ #       hours earlier, on the column three lines above. Fixing one and not its neighbour is what
+ #       this fixture now prevents.
+ _INCIDENT = [{"day": "20260802", "wallet_balance": 2140.0, "unrealised_pnl": 5.0,
+-              "nav": 2145.0, "realised_pnl": 6.14, "external_flow_usdt": 36.82261},
++              "nav": 2145.0, "realised_pnl": 6.14, "external_flow_usdt": 36.82261,
++              "realised_truncated": False},
+              {"day": "20260803", "wallet_balance": 2191.0, "unrealised_pnl": 5.08,
+-              "nav": 2196.08, "realised_pnl": 9.55, "external_flow_usdt": 0.0}]
++              "nav": 2196.08, "realised_pnl": 9.55, "external_flow_usdt": 0.0,
++              "realised_truncated": False}]
+ _FI = DS.account_facts(_INCIDENT)
+ check("★★★ the deposit is REPORTED, not lost to the day boundary — reading only the newest row "
+       "gives 0.0, which is a correct value for the wrong question",
+@@ -221,5 +225,265 @@ check("★★ the per-anchor table gives the trend the operator asked for, one r
  check("★★ it reuses the production rules table rather than re-deciding what is routine",
        "import alarm_policy" in _src and "AP.classify" in _src)
  
@@ -249,9 +302,50 @@ index 9a619ca..960bba2 100644
 +
 +_TR = dict(_ALL, realised_truncated=True)
 +_FT = DS.account_facts([_TR])
-+check("★★ E3 a truncated income read is kept but labelled INCOMPLETE — a lower bound, not the total",
++check("★★ E3 a truncated income read is kept but labelled as the PART THAT WAS READ — not the total, "
++      "and not a bound of either sign (review W2-R2: the dropped rows are signed)",
 +      _FT["realised"]["complete"] is False and _FT["realised_today"] is not None
-+      and any("不完整" in l for l in DS.render_account(_FT)), _FT["realised"]["complete"])
++      and any("已读部分" in l for l in DS.render_account(_FT))
++      and not any("下界" in l for l in DS.render_account(_FT) if "已实现" in l or "income" in l),
++      _FT["realised"]["complete"])
++# ── review W2-R2 (2026-09-12) — a truncated read must not feed a numeric residual ──────────────
++_TRP = [_ALL, dict(_TR, nav=990.0, wallet_balance=990.0)]        # same day, last row truncated
++_FTP = DS.account_facts(_TRP)
++check("★★★ R2-a the same-day residual REFUSES when the income read at either end is truncated — a "
++      "residual built on a partial sum would contain the rows the page cap dropped",
++      _FTP["unexplained_computable"] is False and _FTP["unexplained_equity_change"] is None
++      and "已读部分" in str(_FTP["unexplained_why_not"]), _FTP["unexplained_why_not"])
++_naive_resid = round((990.0 - 1000.0) - (_TR["realised_pnl"] - _ALL["realised_pnl"]) - 0.0, 6)
++check("★★★ MUTATION R2-a: the pre-review rule (both ends observable ⇒ compute) gave -10.00 on this "
++      "very pair — the researcher's counterexample — and the new field is None",
++      _naive_resid == -10.0 and _FTP["unexplained_equity_change"] is None,
++      f"naive {_naive_resid} vs fixed {_FTP['unexplained_equity_change']}")
++_NOFLAG = [{k: v for k, v in _ALL.items() if k != "realised_truncated"},
++           {k: v for k, v in dict(_ALL, nav=990.0, wallet_balance=990.0).items()
++            if k != "realised_truncated"}]
++_FNF = DS.account_facts(_NOFLAG)
++check("★★ R2-b an ABSENT truncation flag is unknown completeness — also not computable, with its "
++      "own reason (not the truncated one)",
++      _FNF["unexplained_computable"] is False and _FNF["realised"]["complete"] is None
++      and "完整性未知" in str(_FNF["unexplained_why_not"])
++      and any("完整未知" in l for l in DS.render_account(_FNF)), _FNF["unexplained_why_not"])
++check("★★ reverse: complete at both ends ⇒ the residual IS computed (the [B] fixture)",
++      F["unexplained_computable"] is True and F["unexplained_equity_change"] is not None)
++_NAN = dict(_ALL, realised_pnl=float("nan"), realised_by_type_asset=None,
++            realised_non_usdt_assets=None)
++_FNAN = DS.account_facts([_NAN])
++check("★★★ R2-c realised_pnl=NaN is treated like None: NOT observable, no numeric total, and the "
++      "text says the value is not a finite number",
++      _FNAN["realised_observable"] is False and _FNAN["realised_today"] is None
++      and "not a finite number" in str(_FNAN["realised"]["why"]), _FNAN["realised"]["why"])
++check("★★★ MUTATION R2-c: the pre-review observability test was `realised_pnl is not None`, which "
++      "NaN passes — the old reader called this row observable with usdt NaN",
++      _NAN.get("realised_pnl") is not None and _FNAN["realised_observable"] is False)
++_NANA = dict(_ALL, realised_by_type_asset={"COMMISSION": {"USDT": float("nan")}})
++check("★★ neighbour: a NaN inside the per-asset split is equally unobservable",
++      DS.account_facts([_NANA])["realised_observable"] is False)
++check("★★ neighbour: inf is not a number we report either",
++      DS.account_facts([dict(_ALL, realised_pnl=float("inf"))])["realised_observable"] is False)
 +check("...and an untruncated read is complete; an absent flag is None, never True",
 +      _FA["realised"]["complete"] is True
 +      and DS.account_facts([dict(_ALL, realised_truncated=None)])["realised"]["complete"] is None)
@@ -347,6 +441,22 @@ index 9a619ca..960bba2 100644
 +      _cu)
 +check("★★ the rendered table carries the coverage column beside the cost column",
 +      "覆盖" in OUT and "成本bps" in OUT)
++# ── review W2-R2 minor: coverage must be EXACT; rounding made 9999.6/0.4 read 1.0 ─────────────
++sys.path.insert(0, os.path.join(_REPO, "live"))
++import cost_buckets as _CB            # noqa: E402
++_TINY = [_orow("AAAUSDT", 9999.6, 100.0, 100.0, 0.02), _orow("BBBUSDT", 0.4, 100.0, 100.0, None)]
++_ct = DS.anchor_cost_facts(_TINY)
++check("★★★ R2-d coverage is the EXACT ratio (< 1.0 for 9999.6 measured beside 0.4 fee-unknown), "
++      "completeness is False by COUNT, and the display floors to 99% — never 100%",
++      _ct["cost_coverage_notional"] < 1.0 and _ct["cost_measurement_complete"] is False
++      and _CB.pct_floor(_ct["cost_coverage_notional"]) == 99,
++      (_ct["cost_coverage_notional"], _CB.pct_floor(_ct["cost_coverage_notional"])))
++check("★★★ MUTATION R2-d: the pre-review record rounded the ratio to 4dp first — that reads 1.0 "
++      "here, so `< 1.0` was False and the anchor was not counted as under-covered",
++      round(_ct["cost_coverage_notional"], 4) == 1.0)
++check("★★ ...and a fully measured anchor is exactly 1.0 / complete True / prints 100%",
++      _ck["cost_coverage_notional"] == 1.0 and _ck["cost_measurement_complete"] is True
++      and _CB.pct_floor(_ck["cost_coverage_notional"]) == 100)
 +
 +_ORD = {}
 +for _d in ("20260805", "20260912"):
@@ -389,10 +499,10 @@ index 9a619ca..960bba2 100644
  sys.exit(1 if FAILS else 0)
 diff --git a/live/tests_readers_three_bucket.py b/live/tests_readers_three_bucket.py
 new file mode 100644
-index 0000000..2f7b2ec
+index 0000000..0486803
 --- /dev/null
 +++ b/live/tests_readers_three_bucket.py
-@@ -0,0 +1,384 @@
+@@ -0,0 +1,447 @@
 +"""The READ-ONLY cost readers inherit the three buckets: cost_buckets / first_anchor_review §3c /
 +score_post_fix E6. A fill that could not be measured is NOT a free fill, and None is never 0.
 +
@@ -489,8 +599,22 @@ index 0000000..2f7b2ec
 +      "and 2/6 — the unmeasured notional is NAMED, not folded",
 +      (_b["notional_measured_usdt"], _b["fee_unknown_notional_usdt"],
 +       _b["unpriced_notional_usdt"], _b["notional_usdt"]) == (200.0, 400.0, 100.0, 700.0)
-+      and _b["coverage_measured_notional"] == round(200 / 700, 4)
-+      and _b["coverage_measured_count"] == round(2 / 6, 4), _b)
++      and abs(_b["coverage_measured_notional"] - 200 / 700) < 1e-12
++      and abs(_b["coverage_measured_count"] - 2 / 6) < 1e-12, _b)
++check("★★★ measurement_complete is derived from the buckets: False with any unknown / unpriced / "
++      "fee-unknown fill, True when every fill is measured, None when there is nothing to measure",
++      _b["measurement_complete"] is False
++      and CB.bucket_fills(_ROWS[:2])["measurement_complete"] is True
++      and CB.bucket_fills([])["measurement_complete"] is None
++      and CB.bucket_fills([row("Z", 0.0, None, 100.0, None)])["measurement_complete"] is None
++      and CB.bucket_fills([row("N", None, None, 100.0, None)])["measurement_complete"] is False)
++check("★★★ a NaN fee is fee-UNKNOWN and makes the measurement incomplete (m1 reads it as complete)",
++      CB.bucket_fills([row("A", 100.0, 100.01, 100.0, float("nan"))])["measurement_complete"] is False
++      and CB.bucket_fills([row("A", 100.0, 100.01, 100.0, float("nan"))])["n_fee_unknown"] == 1)
++check("★★ pct_floor: 0.99996 → 99, 1.0 → 100, 0.0 → 0, None/NaN → None",
++      CB.pct_floor(0.99996) == 99 and CB.pct_floor(1.0) == 100 and CB.pct_floor(0.0) == 0
++      and CB.pct_floor(None) is None and CB.pct_floor(float("nan")) is None
++      and CB.pct_floor(9999.6 / 10000.0) == 99)
 +check("★★★ bps over the MEASURED set only: fee 2.00 + adverse 1.00 = +3.00; the 400 of fee-unknown "
 +      "notional at 10bps adverse never enters numerator OR denominator",
 +      abs(_b["bps_measured"] - 3.0) < 1e-9 and abs(_b["fee_bps_measured"] - 2.0) < 1e-9
@@ -531,9 +655,11 @@ index 0000000..2f7b2ec
 +def _same(legs_buy, label):
 +    np_ = AL.neutrality_price({"venue_net_usdt": -100.0}, legs_buy, "RID")   # deficient = buy
 +    b = CB.bucket_fills(legs_buy)
++    # neutrality_price rounds its coverage to 4dp; cost_buckets keeps the exact ratio (W2-R2), so
++    # the copy is rounded to the production record's precision at the point of comparison only
 +    diffs = [(k1, b.get(k1), k2, np_.get(k2)) for k1, k2 in _KEYS
 +             if (b.get(k1) is None) != (np_.get(k2) is None)
-+             or (b.get(k1) is not None and abs(float(b[k1]) - float(np_[k2])) > 1e-9)]
++             or (b.get(k1) is not None and abs(round(float(b[k1]), 4) - float(np_[k2])) > 1e-9)]
 +    bps_a, bps_b = b["bps_measured"], np_["measured_taker_bps_same_side"]
 +    bps_same = ((bps_a is None and bps_b is None)
 +                or (bps_a is not None and bps_b is not None and abs(round(bps_a, 4) - bps_b) < 1e-9))
@@ -683,7 +809,8 @@ index 0000000..2f7b2ec
 +o2 = run_review(d2)
 +check("★★★ (ii) all measured: TOTAL adverse +3.00bps over 100% of notional, 2/2 fills, and no "
 +      "exclusion note",
-+      "TOTAL adverse  +3.00bps" in o2 and "(100% of notional, 2/2 fills)" in o2
++      "TOTAL adverse  +3.00bps" in o2
++      and "(100% of notional, 2/2 fills; measurement complete: yes)" in o2
 +      and "excluded from numerator" not in o2,
 +      [l.strip() for l in o2.splitlines() if "TOTAL" in l or "measured" in l][:6])
 +
@@ -696,7 +823,8 @@ index 0000000..2f7b2ec
 +o3 = run_review(d3)
 +check("★★★ (iii) mixed: bps over the MEASURED 200 only (+3.00), coverage 200/450 = 44%, and the "
 +      "fee-unknown 200 / unpriced 50 are NAMED as excluded from numerator AND denominator",
-+      "TOTAL adverse  +3.00bps" in o3 and "(44% of notional, 2/4 fills)" in o3
++      "TOTAL adverse  +3.00bps" in o3
++      and "(44% of notional, 2/4 fills; measurement complete: NO)" in o3
 +      and "fee-unknown 1 / $200.00, unpriced 1 / $50.00" in o3,
 +      [l.strip() for l in o3.splitlines() if "TOTAL" in l or "measured" in l][:6])
 +check("★★ ...the UNKNOWN-fill maker leg is counted apart in §3 and turns the fill-rate into a "
@@ -725,7 +853,7 @@ index 0000000..2f7b2ec
 +      "counters agree (n_unmeasured_fee 3)",
 +      e6f["buckets"]["n_fee_unknown"] == 3 and e6f["buckets"]["n_measured"] == 0
 +      and e6f["buckets"]["bps_measured"] is None and e6f["counters"]["n_unmeasured_fee"] == 3
-+      and "ADDITIVE" in e6f["bucket_rule"], e6f["buckets"])
++      and "three-bucket" in e6f["bucket_rule"], e6f["buckets"])
 +e6m = SPF.score(root=os.path.join(d2, "pilot_log"), day=DAY)["E6_cost_comparable"]
 +_m1m = PM.m1_effective_cost([r for r in PL.read_day(os.path.join(d2, "pilot_log"), DAY)["orders"]],
 +                            {T0: "calm"})
@@ -737,6 +865,51 @@ index 0000000..2f7b2ec
 +      (e6m["buckets"]["bps_measured"], _m1m["c_bps_net_overall"], e6m["c_bps_overall"]))
 +check("★ the scorer's JSON round-trips with the new keys",
 +      json.loads(json.dumps(e6m, default=str))["buckets"]["n_measured"] == 2)
++check("★★ on both trees the bucket-derived completeness AGREES with m1's bit (no false disagreement)",
++      e6f["completeness_disagrees_with_m1"] is False and e6f["m1_measurement_complete"] is False
++      and e6m["completeness_disagrees_with_m1"] is False and e6m["m1_measurement_complete"] is True)
++
++# ── review W2-R1 (2026-09-12): the completeness bit comes from the buckets, not from frozen m1 ──
++print("\n[E-R1] ★★★ E6 completeness: NaN fee / mixed-asset flatten fee — m1 says complete, the buckets say no")
++_NANF = _MEAS + [("CCCUSDT", 100.0, 100.10, 100.0, float("nan"), True, None, "maker", None)]
++d4 = tempfile.mkdtemp(prefix="rtb_nanfee_")
++TMPS.append(d4)
++build_review_tree(os.path.join(d4, "pilot_log"), _NANF)
++e6n = SPF.score(root=os.path.join(d4, "pilot_log"), day=DAY)["E6_cost_comparable"]
++check("★★★ PRE-ASSERT (frozen m1, sha 5ac7b16d…): fee_paid=NaN reads measurement_complete=True with a "
++      "NaN c_bps_overall — the counterexample is real on this tree",
++      e6n["m1_measurement_complete"] is True and e6n["c_bps_overall_is_finite"] is False,
++      (e6n["m1_measurement_complete"], e6n["c_bps_overall"]))
++check("★★★ E6 now derives completeness from the buckets: measurement_complete False, verdict FAIL, "
++      "and the disagreement with m1 is RECORDED in the output",
++      e6n["measurement_complete"] is False and e6n["verdict"] == "FAIL"
++      and e6n["completeness_disagrees_with_m1"] is True and e6n["buckets"]["n_fee_unknown"] == 1
++      and "cost_buckets" in e6n["measurement_complete_source"],
++      {k: e6n[k] for k in ("verdict", "measurement_complete", "completeness_disagrees_with_m1")})
++check("★★★ MUTATION R1: the pre-review E6 keyed its verdict on m1's bit — on this tree that reads PASS",
++      SPF._verdict(e6n["m1_measurement_complete"]) == "PASS" and e6n["verdict"] == "FAIL")
++check("★★ the pre-registered keys are still all present",
++      _PRE <= set(e6n))
++# the flatten block: a raw mixed-asset fee (fee_paid 0, fee_all_usdt False, no conversion) that m1
++# counts as a measured (free) fee
++_FLATF = _MEAS + [("FFFUSDT", -100.0, 100.0, None, 0.0, False, None, "protective_flatten", None)]
++d5 = tempfile.mkdtemp(prefix="rtb_flatfee_")
++TMPS.append(d5)
++build_review_tree(os.path.join(d5, "pilot_log"), _FLATF)
++e6x = SPF.score(root=os.path.join(d5, "pilot_log"), day=DAY)["E6_cost_comparable"]
++check("★★★ PRE-ASSERT (frozen m1): the flatten block counts the mixed-asset fee as MEASURED "
++      "(n_measured_fee 1, fee_paid 0.0) — 'measured free'",
++      e6x["protective_flatten_cost"].get("n_measured_fee") == 1
++      and e6x["protective_flatten_cost"].get("fee_paid") == 0.0, e6x["protective_flatten_cost"])
++check("★★★ ...and E6 records that the buckets know ZERO flatten fees and DISAGREE with m1",
++      e6x["protective_flatten_fee_known_by_buckets"] == 0
++      and e6x["protective_flatten_fee_disagrees_with_m1"] is True
++      and e6x["protective_flatten_buckets"]["n_unpriced"] == 1
++      and e6x["protective_flatten_buckets"]["measurement_complete"] is False,
++      {k: e6x[k] for k in ("protective_flatten_fee_known_by_buckets",
++                            "protective_flatten_fee_disagrees_with_m1")})
++check("★★ ...while the rebalance verdict is untouched by the flatten row (maker legs all measured ⇒ PASS)",
++      e6x["verdict"] == "PASS" and e6x["measurement_complete"] is True)
 +
 +# ═══ [F] the real ledger, read-only ════════════════════════════════════════════════════════════
 +print("\n[F] the real ledger copy (read-only): the 2026-08-05 anchors under the rule")
@@ -778,16 +951,25 @@ index 0000000..2f7b2ec
 +print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 +sys.exit(1 if FAILS else 0)
 diff --git a/ops/daily_summary.py b/ops/daily_summary.py
-index f4a845c..3edda2c 100644
+index f4a845c..20ddb10 100644
 --- a/ops/daily_summary.py
 +++ b/ops/daily_summary.py
-@@ -39,6 +39,94 @@ for _d in ("live", "scheduler", "signal", "ops"):
+@@ -39,6 +39,115 @@ for _d in ("live", "scheduler", "signal", "ops"):
  
  LEVERAGE = 2.0
  
 +# the three income types whose sum the carrier calls "realised" (binance_broker.income_since,
 +# `realised_components`) — read from the row when it says, else this default
 +_REALISED_TYPES = ("REALIZED_PNL", "COMMISSION", "FUNDING_FEE")
++
++
++def _finite(x):
++    """float(x) if it is a finite number, else None. NaN / inf / text are not numbers we report."""
++    try:
++        v = float(x)
++    except (TypeError, ValueError):
++        return None
++    return v if (v == v and v not in (float("inf"), float("-inf"))) else None
 +
 +
 +def realised_facts(row) -> dict:
@@ -806,18 +988,27 @@ index f4a845c..3edda2c 100644
 +            with that fabricated zero. Now: `observable=False`, `usdt=None`, and the residual refuses.
 +    ★ A row written before the per-asset split existed cannot be split. The carrier's sum is passed
 +      through with `caliber="legacy_carrier_sum_usdt_assumed"` — an assumption STATED, not a number
-+      invented. `realised_truncated=True` (income paging hit its cap) makes the figure a partial
-+      read: kept, labelled `complete=False`, never presented as the day's total.
++      invented. `realised_truncated=True` (income paging hit its cap) makes the figure a PARTIAL
++      READ: kept, labelled `complete=False`, never presented as the day's total — and NOT called a
++      bound of any kind: the missing rows are signed (P&L, commission, funding), so the partial sum
++      is neither a lower nor an upper bound (review W2-R2). `complete=None` = the flag is absent.
 +    """
 +    r = row or {}
 +    src = r.get("realised_pnl_source")
-+    if r.get("realised_pnl") is None:
++
++    def _unobs(why):
 +        return {"observable": False, "usdt": None, "by_type_usdt": {}, "unconverted": [],
 +                "caliber": None, "complete": None, "carrier_sum": None,
-+                "carrier_sum_mixes_assets": None,
-+                "why": ("`realised_pnl` is None on this nav row — the income ledger was not read "
-+                        f"(source: {src or 'not stated'}); NOT OBSERVABLE, which is not zero")}
-+    carrier = float(r["realised_pnl"])
++                "carrier_sum_mixes_assets": None, "why": why}
++    if r.get("realised_pnl") is None:
++        return _unobs("`realised_pnl` is None on this nav row — the income ledger was not read "
++                      f"(source: {src or 'not stated'}); NOT OBSERVABLE, which is not zero")
++    # ★ review W2-R2 (2026-09-12): a NaN / inf carrier sum is as unreadable as None — "not None"
++    #   was standing in for "a finite number", and NaN sailed through as observable
++    carrier = _finite(r.get("realised_pnl"))
++    if carrier is None:
++        return _unobs(f"`realised_pnl` is not a finite number ({r.get('realised_pnl')!r}) — "
++                      "NOT OBSERVABLE, which is not zero")
 +    types = tuple(r.get("realised_components") or _REALISED_TYPES)
 +    bta = r.get("realised_by_type_asset")
 +    trunc = r.get("realised_truncated")
@@ -837,6 +1028,8 @@ index f4a845c..3edda2c 100644
 +            if asset != "USDT":
 +                unconverted.append({"type": t, "asset": asset, "amount": float(amt)})
 +    usdt = sum(by_type_usdt.values())
++    if _finite(usdt) is None or any(_finite(u["amount"]) is None for u in unconverted):
++        return _unobs("a per-asset realised component is not a finite number — NOT OBSERVABLE")
 +    return {"observable": True, "usdt": usdt, "by_type_usdt": by_type_usdt,
 +            "unconverted": unconverted, "caliber": "usdt_only",
 +            "complete": complete, "carrier_sum": carrier,
@@ -864,7 +1057,8 @@ index f4a845c..3edda2c 100644
 +    n_unknown_mk = sum(1 for o in mk if CB.filled_abs(o) is None)   # None / non-finite: unknown
 +    return {
 +        "cost_bps": b["bps_measured"],                 # None = UNMEASURED, not 0
-+        "cost_coverage_notional": b["coverage_measured_notional"],
++        "cost_coverage_notional": b["coverage_measured_notional"],   # EXACT ratio; floor for display
++        "cost_measurement_complete": b["measurement_complete"],      # from the buckets, never from m1
 +        "buckets": b,
 +        "maker_intended_usdt": round(want, 4),
 +        "maker_filled_known_usdt": round(got_known, 4),
@@ -876,7 +1070,7 @@ index f4a845c..3edda2c 100644
  
  def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
      """The account section's three key quantities, as DATA. Pure; no printing, no I/O.
-@@ -78,7 +166,12 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+@@ -78,7 +187,12 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
      wal = float(n1.get("wallet_balance") or 0.0)
      unr = float(n1.get("unrealised_pnl") or 0.0)
      eq = float(n1.get("nav") or 0.0)
@@ -890,7 +1084,7 @@ index f4a845c..3edda2c 100644
      # ★★★ P0, 2026-08-03. `external_flow_usdt` IS A SINCE-MIDNIGHT CUMULATIVE, PER DAY — reading
      #     it off the LAST row reports only the CURRENT day's flow, and a window that spans two days
      #     silently drops everything that happened before midnight.
-@@ -107,8 +200,17 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+@@ -107,8 +221,17 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
          "wallet": wal, "unrealised": unr, "equity": eq,
          "equity_identity_residual": round(eq - (wal + unr), 6),
          "equity_identity_holds": abs(eq - (wal + unr)) < 0.01,
@@ -909,12 +1103,13 @@ index f4a845c..3edda2c 100644
          # (b) the target-exposure arithmetic
          "leverage": leverage,
          "target_exposure": round(eq * leverage, 6),
-@@ -129,16 +231,22 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+@@ -129,16 +252,33 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
          "flow_query_scope": "futures income endpoint (incomeType=TRANSFER) only",
          # (d) the residual, or a refusal to compute it
          "equity_change": round(d_eq, 6),
 -        "unexplained_computable": bool(same_day),
-+        "unexplained_computable": bool(same_day and real_f["observable"] and real0_f["observable"]),
++        "unexplained_computable": bool(same_day and real_f["observable"] and real0_f["observable"]
++                                       and real_f["complete"] is True and real0_f["complete"] is True),
      }
 -    if same_day:
 -        f["unexplained_equity_change"] = round(
@@ -931,6 +1126,16 @@ index f4a845c..3edda2c 100644
 +        f["unexplained_equity_change"] = None
 +        f["unexplained_why_not"] = ("当日已实现在窗口的一端不可观测(income 未读), 已实现增量没有定义, "
 +                                    "所以权益残差不计算")
++    elif not (real_f["complete"] is True and real0_f["complete"] is True):
++        # ★ review W2-R2: a truncated income read is a PARTIAL sum; an "unexplained" residual built
++        #   on it would contain the rows the page cap dropped and be quoted as money nobody can
++        #   attribute. An ABSENT flag is unknown completeness, which is also not "complete".
++        _c0, _c1 = real0_f["complete"], real_f["complete"]
++        f["unexplained_equity_change"] = None
++        f["unexplained_why_not"] = ("当日已实现在窗口的一端"
++                                    + ("不完整(income 分页截断, 只是已读部分)" if False in (_c0, _c1)
++                                       else "完整性未知(行上没有 realised_truncated 标记)")
++                                    + ", 已实现增量没有定义, 所以权益残差不计算")
 +    else:
 +        f["unexplained_equity_change"] = round(
 +            d_eq - (real - real0_f["usdt"]) - (ext_f or 0.0), 6)
@@ -938,7 +1143,7 @@ index f4a845c..3edda2c 100644
      return f
  
  
-@@ -163,11 +271,23 @@ def render_account(f: dict) -> list:
+@@ -163,11 +303,26 @@ def render_account(f: dict) -> list:
      if not f["equity_identity_holds"]:
          out.append(f"   ★★ wallet + unrealised 与 equity 差 {f['equity_identity_residual']:+.4f} "
                     f"—— 这个恒等式不该被破坏, 破了说明有一项我们读错了。")
@@ -963,17 +1168,22 @@ index f4a845c..3edda2c 100644
 +            out.append(f"   ★ 未换算(非 USDT, **未计入**上行): {u['type']} {u['asset']} "
 +                       f"{u['amount']:+.8f} —— 原币种数量, 不是 USDT")
 +        if rf.get("complete") is False:
-+            out.append("   ★★ income 分页截断 —— 上行是不完整读取(下界), **不是**当日总额")
++            out.append("   ★★ income 分页截断 —— 上行只是**已读部分**, 不是当日总额; 漏掉的行带符号, "
++                       "所以它也不是任何一侧的边界")
++        elif rf.get("complete") is None:
++            out.append("   ★ 行上没有 realised_truncated 标记 —— 读取是否完整未知")
      out.append(f"\n   ★ 目标敞口 = 权益 × 杠杆 = {f['equity']:,.2f} × {f['leverage']:.2f} "
                 f"= {f['target_exposure']:,.2f}")
      st = f["external_flow_state"]
-@@ -251,24 +371,17 @@ def main():
+@@ -251,24 +406,19 @@ def main():
  
      # ── 2. per-anchor table: the trend, one row each ──────────────────────────────────────
      print("\n【逐锚】 —— 用户要的是趋势, 所以一锚一行")
 -    print(f"   {'anchor':<9}{'成本bps':>9}{'成交率':>8}{'缺口':>9}{'中性%':>8}{'gross':>10}  备注")
++    import cost_buckets as CB
 +    # ★ 成本bps 只按已测成交(价可用 且 费已知)算; 覆盖 = 已测名义 / 全部成交名义。n/a = 未测, 不是 0。
-+    #   成交率前的 ≥ 表示有成交金额未知的行(下界)。覆盖列向下取整: 99.6% 印 99%, 不印成 100%。
++    #   成交率前的 ≥ 表示有成交金额未知的行(下界)。覆盖列向下取整(精确比值上取整, 不先四舍五入):
++    #   99.996% 印 99%, 不印成 100%; 「覆盖 < 100% 的锚数」按计数(已测 < 成交)判, 不按比值。
 +    print(f"   {'anchor':<9}{'成本bps':>9}{'覆盖':>6}{'成交率':>8}{'缺口':>9}{'中性%':>8}{'gross':>10}  备注")
 +    _cov_short = 0
      for r in A:
@@ -995,12 +1205,12 @@ index f4a845c..3edda2c 100644
 -                if want else None)
 +        cf = anchor_cost_facts(og)
 +        cost, cov, fill = cf["cost_bps"], cf["cost_coverage_notional"], cf["maker_fill_rate_pct"]
-+        if cov is not None and cov < 1.0:
++        if cf["cost_measurement_complete"] is False:      # by COUNT, not by a rounded ratio
 +            _cov_short += 1
          kg = (r.get("known_gaps") or {}).get("gross_usdt")
          nog = r.get("net_over_gross")
          note = []
-@@ -276,12 +389,23 @@ def main():
+@@ -276,12 +426,23 @@ def main():
              note.append("停机")
          if (r.get("reshape") or {}).get("n_popped"):
              note.append(f"撤{r['reshape']['n_popped']}")
@@ -1015,7 +1225,7 @@ index f4a845c..3edda2c 100644
          print(f"   {utc(ats,'%m-%d %H:%MZ'):<9}"
                f"{(f'{cost:+.2f}' if cost is not None else 'n/a'):>9}"
 -              f"{(f'{fill:.0f}%' if fill is not None else 'n/a'):>8}"
-+              f"{(f'{int(100*cov)}%' if cov is not None else '—'):>6}"
++              f"{(f'{CB.pct_floor(cov)}%' if cov is not None else '—'):>6}"
 +              f"{_fill_s:>8}"
                f"{(f'{kg:.0f}' if kg is not None else 'n/a'):>9}"
                f"{(f'{100*float(nog):+.2f}' if nog is not None else 'n/a'):>8}"
@@ -1025,7 +1235,7 @@ index f4a845c..3edda2c 100644
  
      # ── the rotation question: banked vs entry cost ───────────────────────────────────────
      # ★ SAME DAY-BOUNDARY TRAP AS ABOVE, and here it was worse: differencing across 00:00Z made
-@@ -289,10 +413,18 @@ def main():
+@@ -289,10 +450,25 @@ def main():
      _today = [r for r in nav if r.get("day") == nav[-1].get("day")] if nav else []
      if len(_today) >= 2:
          r0, r1 = _today[0], _today[-1]
@@ -1034,12 +1244,19 @@ index f4a845c..3edda2c 100644
          print(f"\n   ★ 「一换手就降」(当日 {r1.get('day')}, 不跨 00:00Z):")
 -        print(f"     已实现 {float(r0.get('realised_pnl') or 0):+.4f} → "
 -              f"{float(r1.get('realised_pnl') or 0):+.4f}  (增量 {_dr:+.4f}) —— 轮换把浮盈**落袋**")
-+        if _rf0["observable"] and _rf1["observable"]:
++        if _rf0["observable"] and _rf1["observable"] and _rf0["complete"] is True \
++                and _rf1["complete"] is True:
 +            _dr = _rf1["usdt"] - _rf0["usdt"]
 +            print(f"     已实现 {_rf0['usdt']:+.4f} → {_rf1['usdt']:+.4f} USDT  (增量 {_dr:+.4f}) "
 +                  f"—— 轮换把浮盈**落袋**"
 +                  + ("" if _rf0["caliber"] == _rf1["caliber"] else
 +                     f"   ★ 两端口径不同 ({_rf0['caliber']} → {_rf1['caliber']}), 增量只是近似"))
++        elif _rf0["observable"] and _rf1["observable"]:
++            # ★ review W2-R2: a truncated (or unflagged) read at either end is only the PART that
++            #   was read; differencing it would call the dropped rows "banked"
++            print(f"     已实现 增量不计算 —— 一端的 income 读取"
++                  f"{'不完整(分页截断, 只是已读部分)' if False in (_rf0['complete'], _rf1['complete']) else '完整性未知'}"
++                  f"; 已读: {_rf0['usdt']:+.4f} → {_rf1['usdt']:+.4f} USDT, 不当增量用")
 +        else:
 +            # ★ an unread income ledger at either end: no increment exists, and a 0 would be a lie
 +            print(f"     已实现 增量不可观测 —— "
@@ -1048,7 +1265,7 @@ index f4a845c..3edda2c 100644
                f"{float(r1.get('unrealised_pnl') or 0):+.4f}  —— 新仓位的账面")
          print(f"     入场成本见上表'成本bps'一列。落袋 + 入场成本两个数一出来, '降'就自解释了。")
 diff --git a/ops/first_anchor_review.py b/ops/first_anchor_review.py
-index bb9a1b3..4580712 100755
+index bb9a1b3..72de3b8 100755
 --- a/ops/first_anchor_review.py
 +++ b/ops/first_anchor_review.py
 @@ -213,6 +213,12 @@ def main() -> int:
@@ -1064,7 +1281,7 @@ index bb9a1b3..4580712 100755
      # ★ the number that misled 0C: raw rows double-count markout backfills. Both shown.
      _uf = PL.collapse_supersedes(fills)
      print(f"   fills: unique executions          {len(_uf)}"
-@@ -348,43 +354,53 @@ def main() -> int:
+@@ -348,43 +354,55 @@ def main() -> int:
  
      # ── 3c. REALISED COST — the number P0 exists for ────────────────────────────────────────
      hdr("3c. REALISED COST (bps) vs the shadow model's assumptions")
@@ -1133,9 +1350,11 @@ index bb9a1b3..4580712 100755
 -                     f"so this UNDERSTATES" if n_nofee else ""))
 +            #   book that as a cost too. Both are printed so the choice is visible. The sign is
 +            #   taken from the SIGN OF filled_notional, as the production diagnostics do.
++            # ★ coverage is FLOORED for display (review W2-R2): 99.996% prints 99%, never 100%
 +            print(f"   {label:14s} filled {notl:12,.2f}   measured {b['notional_measured_usdt']:12,.2f}"
-+                  f" ({b['coverage_measured_notional']:.0%} of notional, "
-+                  f"{b['n_measured']}/{b['n_fills']} fills)")
++                  f" ({CB.pct_floor(b['coverage_measured_notional'])}% of notional, "
++                  f"{b['n_measured']}/{b['n_fills']} fills; measurement complete: "
++                  f"{'yes' if b['measurement_complete'] is True else 'NO'})")
 +            print(f"   {'':14s} fee {b['fee_bps_measured']:6.2f}bps"
 +                  f"   slip(adverse) {b['adverse_bps_measured']:+6.2f}bps"
 +                  f"   slip(|.|) {b['abs_slip_bps_measured']:6.2f}bps   — over the MEASURED set")
@@ -1147,7 +1366,7 @@ index bb9a1b3..4580712 100755
  
          _leg([r for r in ex if r.get("order_type") == "maker"], "maker")
          _leg([r for r in ex if r.get("order_type") == "topup_taker"], "taker")
-@@ -459,27 +475,40 @@ def main() -> int:
+@@ -459,27 +477,40 @@ def main() -> int:
                  if not _ok2:
                      print(f"   {_src:14s} NOT ESTIMABLE — {_why2} (same two fills as above)")
                      continue
@@ -1198,7 +1417,7 @@ index bb9a1b3..4580712 100755
              miss("no maker leg was submitted — fill-rate UNMEASURED")
          print("   ── the shadow model assumes: maker fill-rate 0.51, cost 1.9bps (calm regime) ──")
 diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
-index 46528dc..f6e986e 100644
+index 46528dc..ddc2531 100644
 --- a/ops/gate_coverage.py
 +++ b/ops/gate_coverage.py
 @@ -156,7 +156,8 @@ SUITE_SCOPE = {
@@ -1207,15 +1426,15 @@ index 46528dc..f6e986e 100644
      "tests_neutrality_check": "that the book WILL be neutral — it proves only that the realised net is measured from venue truth and spoken when it leaves the band. It changes no order and closes no gap: the 16:00Z anchor would still have ended -6.9% short, we would merely have known within the minute instead of in a post-mortem. Nor does it establish that 3% is the right band — that figure is policy, not calibration, and two anchors is not a distribution",
 -    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines.",
 +    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it.",
-+    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 / E6 caliber) still keeps fee-unknown notional in its denominator at fee 0 and is deliberately NOT changed here (a pre-registered judging rule), so E6 shows both calibers and judges on the old one; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent",
++    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent",
      "tests_redelivery_settles": "that every alarm reaches a human — it proves the QUEUE stops asking once one has, which is a different guarantee. Four blind spots: (a) it settles on an explicit key, so a redelivery path that forgets to pass `settles` regresses silently and only the repeat count would show it, days later; (b) it does not retroactively settle the six already sent — the seventh redelivery closes the loop, so the ledger keeps six rows that look like a live defect; (c) `SUPPRESSED` counts as settled, which is right for a test harness and wrong if anyone ever suppresses in production; (d) it says nothing about whether the redelivered TEXT is still meaningful — a stale alarm replayed hours later is delivered, settled, and possibly misleading",
      "tests_alarm_digest": "that the right things get read — it proves the classifier separates and never demotes an undelivered alarm, not that the tiers match what a human would choose. Four blind spots: (a) the rules are REGEX over message text, so rewording an alarm silently reclassifies it and nothing here would notice; (b) `UNRECOGNISED -> DECIDE` is safe but means the tool degrades toward noise exactly as the system produces novel shapes — i.e. during an incident; (c) tier B asserts 'already decided', which is a claim about a RULING that lives outside the code — if a ruling is reversed, the tier is silently wrong; (d) it measures compression on the last 24h and reports the historical ratio ungraded, so a slow drift toward everything-is-A across weeks would not fail anything",
      "tests_disposition_matrix": "that no name will evaporate again — it proves every terminal state HAS a declared destination and that the ledger sizes the ones we abandon, not that the destinations are the right ones. Four blind spots: (a) the matrix is closed over `TERMINAL_REASONS`, so a leg that ends WITHOUT writing a row at all is invisible to it — and that is precisely how -5022 vanished, by never reaching a disposition; (b) it is RECORD-ONLY, so a gap being named changes nothing about whether a guard forgives it — the ledger could be perfect and §4-5e would still flatten the book; (c) the two code-dependent cells resolve on a substring of `note`, so a venue that reworded its errors would silently reclassify -5022 as a gap and -4164 as a real one; (d) `blocked_by_halt` dominating a halted anchor at ~4200 USDT is arithmetically right and operationally noisy — nothing here establishes that a halted anchor SHOULD report its whole book as gap",
 diff --git a/ops/score_post_fix.py b/ops/score_post_fix.py
-index e266775..76b5f65 100644
+index e266775..67b1d82 100644
 --- a/ops/score_post_fix.py
 +++ b/ops/score_post_fix.py
-@@ -374,6 +374,16 @@ def score(root: Optional[str] = None, day: Optional[str] = None,
+@@ -374,14 +374,64 @@ def score(root: Optional[str] = None, day: Optional[str] = None,
      counters = {k: m1.get(k) for k in ("n_excluded_unknown_fill", "n_excluded_no_anchor_mid",
                                         "n_unmeasured_fee", "n_unmeasured_slippage")}
      complete = m1.get("measurement_complete")
@@ -1229,22 +1448,59 @@ index e266775..76b5f65 100644
 +    #   apart on this anchor instead of inheriting the lower bound as a number.
 +    import cost_buckets as _CB
 +    _bk = _CB.bucket_fills([o for o in mine if o.get("order_type") in ("maker", "topup_taker")])
++    # ★★ review W2-R1 (2026-09-12): m1's completeness bit can read True beside a NaN cost
++    #    (fee_paid=NaN passes its `is None` test) and its flatten block counts a raw mixed-asset
++    #    fee (fee_paid=0, fee_all_usdt=False, no conversion) as a measured fee. pilot_metrics.py
++    #    is FROZEN (ops/check_metrics_freeze, FROZEN_MATCH), so it is not edited; the E6
++    #    completeness bit is DERIVED HERE from the buckets (finite fee, all-USDT or converted,
++    #    usable price, known fill) and m1's own bit is carried beside it with the disagreement
++    #    stated. The pre-registered RULE (complete ⇒ comparable; not complete ⇒ lower bound, do
++    #    not compare) is unchanged; only the source of the completeness bit moved. Ruling item
++    #    R-12b in DESIGN_readers_three_bucket_2026-09-12.md §7.
++    _complete_b = _bk["measurement_complete"]
++    _flat_rows = [o for o in mine if o.get("order_type") == "protective_flatten"]
++    _flat_bk = _CB.bucket_fills(_flat_rows)
++    _flat_fee_known_b = sum(1 for o in _flat_rows if _CB.known_fee(o) is not None)
++    _pfc = m1.get("protective_flatten_cost") or {}
++    _c_m1 = m1.get("c_bps_overall")
++    _c_m1_finite = (_c_m1 is not None and _c_m1 == _c_m1
++                    and _c_m1 not in (float("inf"), float("-inf")))
      out["E6_cost_comparable"] = {
-         "verdict": _verdict(None if complete is None else bool(complete)),
-         "measurement_complete": complete, "counters": counters,
-@@ -381,7 +391,14 @@ def score(root: Optional[str] = None, day: Optional[str] = None,
-         "protective_flatten_cost": m1.get("protective_flatten_cost"),
+-        "verdict": _verdict(None if complete is None else bool(complete)),
+-        "measurement_complete": complete, "counters": counters,
+-        "c_bps_overall": m1.get("c_bps_overall"), "caliber": m1.get("caliber"),
+-        "protective_flatten_cost": m1.get("protective_flatten_cost"),
++        "verdict": _verdict(None if _complete_b is None else bool(_complete_b)),
++        "measurement_complete": _complete_b,
++        "measurement_complete_source": ("cost_buckets.bucket_fills over the rebalance legs: every "
++                                        "fill known, priced, and fee-known (finite; all-USDT or "
++                                        "converted). NOT pilot_metrics.m1's bit — see "
++                                        "`m1_measurement_complete`."),
++        "m1_measurement_complete": complete,
++        "completeness_disagrees_with_m1": (complete != _complete_b),
++        "counters": counters,
++        "c_bps_overall": _c_m1, "c_bps_overall_is_finite": _c_m1_finite,
++        "caliber": m1.get("caliber"),
++        "protective_flatten_cost": _pfc,
++        "protective_flatten_buckets": _flat_bk,
++        "protective_flatten_fee_known_by_buckets": _flat_fee_known_b,
++        "protective_flatten_fee_disagrees_with_m1": (
++            _pfc.get("n_measured_fee") is not None
++            and int(_pfc.get("n_measured_fee") or 0) != _flat_fee_known_b),
          "rule": ("if measurement_complete is not True, c is a LOWER BOUND and MUST NOT be "
                   "compared against the 9.0bps limit — the rule is unchanged from the "
 -                 "pre-registration; only the prediction was amended")}
-+                 "pre-registration; only the prediction was amended"),
++                 "pre-registration; only the prediction was amended (and, W2-R1, the completeness "
++                 "bit is now derived from the three buckets, since m1 is frozen)"),
 +        "buckets": _bk,
-+        "bucket_rule": ("ADDITIVE (W2 2026-09-12): the rebalance legs (maker + topup_taker) under "
-+                        "the three-bucket rule of anchor_loop.neutrality_price. `bps_measured` is "
++        "bucket_rule": ("W2 2026-09-12: the rebalance legs (maker + topup_taker) under the "
++                        "three-bucket rule of anchor_loop.neutrality_price. `bps_measured` is "
 +                        "over MEASURED fills only and is None when none was measured; it equals "
 +                        "m1's `c_bps_net_overall` exactly when every fill is measured, and "
 +                        "diverges when m1 keeps fee-unknown notional in its denominator at fee 0. "
-+                        "Not judged; the verdict above is the pre-registered one.")}
++                        "The verdict keys on `measurement_complete` (bucket-derived); "
++                        "`c_bps_overall` stays m1's figure and may be non-finite — see "
++                        "`c_bps_overall_is_finite`.")}
      out["overall"] = {k: v["verdict"] for k, v in out.items()
                        if isinstance(v, dict) and "verdict" in v}
      return out
