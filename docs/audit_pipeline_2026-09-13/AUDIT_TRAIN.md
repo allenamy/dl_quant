@@ -1,0 +1,569 @@
+> **创建:** 2026-09-13 13:4xZ | **Session:** aud-train(team-lead 派工, 会话 b9646a9e) | **状态:** 审计完成 — 只读; 未执行任何训练 / 导出 / 链阶段 / 测试 | **作废条件:** 被引装置文件 sha 改变(`receipts_train/SHA256SUMS_v4_chain_dir.txt` 复核 mismatches > 0)、`ELIGIBILITY_CONTRACT.json` ≠ 1188267a、或 RUNBOOK §0★ / 十月月合同修订 ⇒ 按差异复核
+
+# AUDIT_TRAIN — October retrain chain and model preparation (read-only, 2026-09-13)
+
+Companion data: `AUDIT_TRAIN.json` (same register, generated from the same source). Receipts: `receipts_train/`.
+
+## 0. Bottom line
+
+- **The October retrain, as documented today, cannot run end to end, and three gaps could let wrong data or a wrong model through without any gate noticing.** (1) The month-roll inputs (rolled cache, hole cells, raw-return patch, panels, funding tail, EMA state, base json, pins) have no procedure, and the git scripts that make them overwrite files September's receipts hash (TRN-01). (2) Nothing checks that the raw-return patch covers the new month's clipped bars, so the clip-then-compound label error can come back silently (TRN-02). (3) The numpy DL model the live book loads is exported outside the chain, and a bare export packages the old 09-01 model (TRN-03).
+- **Historical defects asked about:** (a) king v0/v1 fund-EMA split — returns; (b) the same split for V2MAIN — returns; (c) D20 forward-finite mask — returns, and it is wider than recorded (member selection itself, F10 out-of-fold too); (d) x0910 interval error — returns if September's funding tail is pulled with a pull-time interval, and nothing checks; (e) metrics label switch — not present (no OI inputs); (f) argmax epoch rule — gone (FIX7), but the 15% validation slice still keeps ~260 days of the newest data out of DL gradients, and king never learns past 2025; (g) seat rows of a different caliber — returns; (h) training-end labelling — fixed for new king bundles, still wrong in documents and in the DL numpy artifact.
+- **Approvals:** STEP1_m `79950786…` and STEP2_m `d99a9109…` are not in the contract. October also needs an export-baseline ruling that is on no list (TRN-15), and the runbook still names superseded STEP2_m shas (TRN-27).
+- **r20 export gate v2 is APPLIED** (contract `1188267a`, 2026-09-12T09:04:39Z); the memory note saying 'PROPOSED' is stale (TRN-29).
+- **Severity:** no P0; P1 = TRN-01, TRN-02, TRN-03. Counts in §7.
+
+## 1. What the October retrain would execute
+
+Driver: `bash $D/chain_v4_monthly.sh $D/v4_month_2026-10.env` (RUNBOOK_monthly_retrain_2026-10 §0★ 修订 3). Stages S4–S17 are the driver; S0–S3, S12, S15 and S18 are outside it. In this file `C/` = `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/` and `T/` = `multi_asset/exports/research/retrain_2026-09/` (the JSON keeps full paths); other paths are repository-relative unless they start with `/workspace` (pod2) or `~` (Mac).
+
+### 1.1 Stage table
+
+| # | Stage | In driver | Script(s) and sha256 prefix | Ran on real data | Current sha on real data | October status |
+|---|---|---|---|---|---|---|
+| S0 | pod bootstrap + device sync + monthly pins | no (RUNBOOK §0★ step 0) | T/pod_env_bootstrap.sh 6f8e74db (absent on pod2 /workspace); rsync of T/v4_chain_2026-09-09 (111 tracked top-level files, receipts_train/SHA256SUMS_v4_chain_dir.txt); live_pins re-copy; base json | n/a. pod2 run copy /workspace/review_scratch is the September legacy set: chain_lib ffbb89b8, contract 3299dc97, exporter b5b6cd19, trainer 2147a7dd, refit 2e9c999b, judge 7f1aa5d6; chain_v4_monthly.sh, v4_gate_step{1,2}_m.py, v4e_gate_export_v2.py absent | n/a | October must build a fresh device dir D and root /workspace/m2026-10 (does not exist on pod2) |
+| S1 | raw data refresh: 5m klines/premium daily, funding monthly zips, funding REST tail (FUND_AUG) | NO | T/pod_extend_vision.py ddf957fe; T/pod_fund_zips.py 1bc2eb5b; T/fund_pull_pod.py fa665810 (output hardcoded /workspace/fund_aug.json.gz = September FUND_AUG); pod2-only r6_fetch_klines.py 2e52f81a, r6_fetch_funding.py 298927ad | 09-01 (September retrain, legacy); r6 one-off to 2026-09-10 (09-11) | pod2 run copies == git for all three (mtimes 2026-09-01); r6 scripts pod2-only | no §0★ command; September monthly funding zip may not be published at 10-01, so September funding comes from REST (r6 §2: vision had no 2026-09 monthly zip, no daily fundingRate) |
+| S2 | 5m cache roll (holefix2 canon + September) + hole cells + raw-return patch | NO | no git script for the holefix2 roll (T/pod_merge_cache_ext.py de7a0661 builds _ext from _fresh); C/v4_hole_cells.py 6afd2672 (hardcoded inputs, output = September HOLE_CELLS); T/caliber_program_2026-09-09/make_raw_patch.py 7716e7d3 (holefix input, output = September RAW_PATCH); pod2-only r6_merge_cache.py 3227e4f5, r6_raw_patch_ext.py 808d2f66 | 09-09 holefix2 + 952-bar patch; r6 extension to 09-10 (3 new clipped bars) | pod2 run copies of v4_hole_cells.py / make_raw_patch.py / pod_merge_cache_ext.py == git (mtimes 09-09 / 09-09 / 09-01); r6 scripts pod2-only | unspecified; see TRN-01/TRN-02 |
+| S3 | 4h panels: v2ext (PANEL_KING) and v3splice + EMA state (PANEL_SPLICE / EXPORT_PANEL / LEGS_PANEL / EMA_STATE_JSON) | NO | T/pod_panel_ext.py db7f0474 (AUG path hardcoded L65); T/pod_panel_splice.py a9c29141 (inputs L11-12 and outputs L115-116 hardcoded); pod2-only r6_panel_splice.py cccc5b6b (x0910 interval defect) | 09-01 (September); r6 x0910 panels 09-11 | pod2 run copies == git (mtimes 2026-09-01) | unspecified; no panel parity gate in the driver (old gate ① dropped); see TRN-01/TRN-07/TRN-17 |
+| S4 | preflight (contract parse, device pins, gate approvals, inputs exist) | yes | C/chain_v4_monthly.sh e8e688d5 + chain_lib.sh 4ee217e1 + v4_gate_common.py 24e813f1 + ELIGIBILITY_CONTRACT.json 1188267a; negative control chain_v4_monthly_dryrun.sh 407aa438 | driver 920d18fa / chain_lib 266a4cbe on pod2 2026-09-12T10:47Z, September contract, isolated root: PREFLIGHT PASS (receipts/monthly_chain_2026-09-12/pod2_root/preflight.json) | partial: chain_lib 4ee217e1 load_month_env on the real September contract, pod2 2026-09-13T07:54Z (PREREG §7.11 E1); current driver never on pod2 | refuses by design until STEP1_m/STEP2_m are approved and TODO paths are real |
+| S5 | cache coverage gate | yes | C/cache_coverage_gate_v2.py 23584a0c | 09-09 legacy on holefix2 (receipts/cov2_holefix2_rerun.log) | pod2 run copy == git (mtime 09-09); via driver only on a fake cache (DESIGN §6.3) | gate itself unchanged |
+| S6 | data: RAW targets (+patch), CLIP targets, fea82 (copied to RAW), fea89, king features (clamp), F10_GATE identity json | yes (env -i allowlist) | C/pod_dlw_targets_raw.py d7c52823; BUILDER_FEA82 /workspace/pod_dlw_features_ext.py e86725cc (pod2 == git); BUILDER_FEA89 /workspace/pod_f8_build_ext.py f606bffa (pod2 == git, global-cumsum trend); C/pod_fea_ext_clamp.py b9f9c728 | same builder shas in the 09-09 legacy chain (receipts/PROVENANCE_v4_chain.json) | yes (builders); via driver: never | inherits TRN-02 (patch coverage), TRN-06 (forward-finite members), TRN-04/05 (fund_ema v0 in col 80) |
+| S7 | data gates STEP1_m / STEP2_m (run, then require) | yes | C/v4_gate_step1_m.py 79950786; C/v4_gate_step2_m.py d99a9109 (contract approves only frozen 278fdce6 / db7ab356) | isolated pod2 controls on September data: STEP1_m 2026-09-12T13:48Z rc 3 PASS=false (78/0 fields = 09-09 archive); STEP2_m d99a9109 2026-09-13T07:54Z PASS rc 0 (38/0 vs round 3) | yes (both, isolated, September data) | NOT APPROVED (TRN-26); frozen STEP1 fails on September data (TRN-16) |
+| S8 | king export (booster fit on label-year < 2026, pinned PRED, guard, leg_returns, EMA state, bundle tar) | yes (explicit env, no env -i) | C/pod_export_bundle_v4.py 42555a37 | 23b1a5c7 in the 09-09 legacy chain; bd4744f6 via driver pod2 2026-09-12T11:00Z (fold IC 0.0544/0.0609, ic26 0.0573, guard 2.30, king_train_end_utc 2025-12-31T20:00:00Z; receipts/monthly_chain_2026-09-12/pod2_king_legs/) | no (diff vs bd4744f6 = BUNDLE_OUT refusal + tar default) | inherits TRN-04 (H2b), TRN-06 (D20 PRED mask), TRN-11 (cutoff frozen at 2025), TRN-15 (base json) |
+| S9 | legs (in-service rows verbatim + new anchors from this month's king PRED) | yes | C/pod_legs_v4b.py 8c33a230 | current sha via driver pod2 2026-09-12T11:08Z (2023 king seat 0.5865) | yes | inherits TRN-17 (frontier rows without panel row) |
+| S10 | F10 V2MAIN monthly walk-forward (MONTHS_ALL x seeds, FIX7, embargo 1) + merge | yes | C/launch_mwf_v4b.sh 07b2a602; C/pod_f10_train_monthly_v4.py fd5707bd; C/merge_mwf_v4b.py 57b50482; C/v4_months.py 1f99d568; BASE_TRAINER /workspace/pod_f10_train_ext.py 93cc2cdf (hash recorded only) | legacy trainer 2147a7dd on pod2 GPU 2026-09-09 (/workspace/f8_v4/mwf_v4b RAW/CLIP x s42/s2027) | no (GPU stage never run with current sources) | 21 folds x 2 seeds retrained from scratch in the new root |
+| S11 | F10 refit (deployment weights), FIX7 | yes | C/pod_f10_refit_v4.py 6c0666f4 | legacy 2e9c999b on pod2 2026-09-09T05:45Z (no sidecar) | no | gradient cutoff ~2026-01-09T20Z vs pool end 2026-09-30T20Z (TRN-10) |
+| S12 | F10 deployable numpy export + V1 np==torch + V3' leak check | NO | T/pod_f10_np_export.py 3e304c27 (silent defaults f8_ext/dlw_ext); T/jp_v4_np_check.py 3364f942; C/v4_leakcheck.py 5cd6fc57 | 09-09 np exports exist (/workspace/f8_v4/models/f10_live_s{42,2027}_np.npz 05:47Z); in-service np 351ae26b from 09-01 | yes (legacy) | outside every gate (TRN-03) |
+| S13 | book-layer dev tree + arm (EXPORT_ARM=A1) | yes | C/build_dev_v4.py df80582a; C/run_v4_arms.sh 0da0d464; HC run_arm.sh 69e1e949, w10_health.py 8684d9a9 (contract device sha) | legacy 2026-09-09: END[V4_A1_*] rc=0 x4 (/workspace/review_scratch/health_check/logs/commands.txt) | no | HC isolated copy has no command in §0★ |
+| S14 | judge | yes | C/judge_v4.py c2a81c48 | current sha on pod2 2026-09-12T14:36Z (W4 r8) on real A1: A1-A0 (C) UNDECIDED, 0 PROMOTE, A1 not eligible (E-0912-B window) | yes | windows hardcoded to 2026-08-31 (TRN-24) |
+| S15 | signal parity receipt (SIGNAL_RECEIPT) | NO (preflight only checks the file exists) | C/gate_signal_parity_v2.py abc45cad | r20 2026-09-12 | yes | TRN-24 |
+| S16 | export gate v2 (gate + require) | yes | C/v4e_gate_export_v2.py d63f4ec3 (contract 1188267a status APPLIED 2026-09-12T09:04:39Z) | current sha on pod2 real A1: r20 PASS; after E-0912-B restore 2026-09-12T15:01:44Z PASS + REQUIRE_OK, 28 inputs | yes | E2b refuses a new BUNDLE_BASE / LIVE_PINS (TRN-15) |
+| S17 | judge with eligibility locator | yes | C/judge_v4.py c2a81c48 + JUDGE_ELIGIBILITY written from the receipt's inputs_path | as S14 | yes | D4 locator binding pending (DESIGN §9.4) |
+| S18 | bundle + F10 swap on the Mac (only after user word on a bundle sha) | NO | RUNBOOK_2026-10 L23 step 8 (cites void §3-3/§4-8); ~/wide_shadow/acceptance.py 2149b64c (A2 H=ref); seat seeding multi_asset/exports/live/seat_seed_v3_2026-09-05/dryrun_seat_seed.py 521990ef (not referenced); producer shadow_loop_v3.py e9c98374; combo_stage.py b5c698f9; atomic mv of fea171/f10_live_s42_np.npz | last swaps 2026-09-01: king v3 bundle (booster 8d79186b), F10 np 351ae26b; a v4 bundle has never been swapped in | n/a | TRN-12 / TRN-18 |
+
+### 1.2 Real-data runs in one paragraph
+
+Through the driver, only preflight + gates (with the frozen September gates, 2026-09-12T10:47Z) and king + legs (2026-09-12T11:00Z) have run on real data, each on an isolated September root. cache, data, mwf, refit, arms, judge and export have never run through the driver; older versions of the business stages ran in the 09-09 legacy chain. Current sources that have run on real data: the data builders and the cache coverage gate (same shas as 09-09), STEP1_m 79950786 and STEP2_m d99a9109 (isolated controls), legs 8c33a230, judge c2a81c48 (W4 r8) and export gate v2 d63f4ec3 (r20 and the E-0912-B restore). Current trainer fd5707bd, refit 6c0666f4, exporter 42555a37, merge 57b50482, launcher 07b2a602, build_dev df80582a and run_v4_arms 0da0d464 have not (TRN-25).
+
+### 1.3 Pending approvals (evidence in TRN-26)
+
+1. STEP1_m source 79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163 — NOT in ELIGIBILITY_CONTRACT.json gates.STEP1.approved_source_sha256 (currently only 278fdce6…)
+2. STEP2_m source d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d — NOT in gates.STEP2.approved_source_sha256 (currently only db7ab356…); 455e3df4 / 0fe5ec55 / b2f9cfd4 are superseded red-control snapshots
+3. PREV_KING_FEA_UNCLAMPED=NONE in the October contract (skips the two clamp statistics; gate now binds it to clamp builder b9f9c728) — user word (RUNBOOK 修订 4)
+4. October export baseline: either reuse September's BUNDLE_BASE (dce6a228) and LIVE_PINS (fd27fe48) byte-identically, or amend gates.BUNDLE_export.approved_baseline — NOT listed in any pending list (TRN-15)
+5. fea89 stable local trend builder (pod_f8_build_stable.py) instead of the global-cumsum builder — optional, user word (TRN-16)
+6. FIX7 deployment precondition (>=14-day forward shadow + user word), DL gradient window, king label-year cutoff (TRN-09/10/11)
+7. fund_ema caliber for king col 80 and V2MAIN col 80 (serve v0 or train v1) — producer/bundle change, user word (TRN-04/05)
+8. D4 judge locator minimal binding (DESIGN §9.4) — lead/user ruling
+9. swap of a specific bundle sha + seat seeding (RUNBOOK §0★ step 8)
+
+### 1.4 Export gate v2
+
+APPLIED. `ELIGIBILITY_CONTRACT.json` (1188267a) top-level `status` = "APPLIED 2026-09-12 (user word 09-12 …); was PROPOSED2 01692565…", `applied_utc` 2026-09-12T09:04:39Z; `gates.BUNDLE_export.approved_source_sha256` = [d63f4ec3…]; the judge's BUNDLE_export floor is the gate's 28-name closure (`v4_gate_common.py` L72-78). The gate cannot catch the caliber splits in TRN-04/05 and pins September's base json and pins (TRN-15).
+
+## 2. Defect carry-over (a)–(h)
+
+| Question | Would the next export reintroduce it? | Register |
+|---|---|---|
+| (a) king trained on v0 fund EMA, exported/served with v1 state | YES | TRN-04 |
+| (b) same split for V2MAIN | YES | TRN-05 |
+| (c) D20 forward-finite mask in training / OOF targets | YES (wider than recorded: member selection itself, and F10 OOF too) | TRN-06 |
+| (d) x0910 interval error if panels are extended the same way | CONDITIONAL YES (if the tail puller records a pull-time interval; no gate) | TRN-07 |
+| (e) metrics-archive label switch if OI features are added | NO today (no OI/metrics input); latent, no guard | TRN-08 |
+| (f) epoch and early-stopping rule | argmax NOT reintroduced (FIX7 in folds and refit); 15% validation slice still withholds ~260 days of gradients; king cutoff frozen at 2025; FIX7 deployment precondition not in chain | TRN-09 / TRN-10 / TRN-11 |
+| (g) seeding the seat with rows from a different feature caliber | YES (bundle leg_returns king rows are v0-scored with the D20 mask; live rows are v1-served); seeding step absent from §0★ | TRN-12 |
+| (h) booster training-end vs 'trained to 08-31' labelling | NO for new king bundles (v4 exporter writes king_train_end_utc); docs still wrong; the DL numpy export would reintroduce the analogous mislabel | TRN-13 / TRN-14 / TRN-11 |
+
+Minimal fixes are in each register entry (§5.2).
+
+## 3. Reproducibility
+
+- **Env whitelists.** Only the data stage runs children under env -i with an allowlist (driver L130-148). The trainer asserts the V2MAIN recipe on effective values (L282-284) and the refit refuses missing F10_DLW/F10_OUT/SEED/BEST_EP_FIX before importing torch (L12-17); the exporter refuses missing BUNDLE_GENERATION/BUNDLE_OUT (L21-27) and gets every locator explicitly from the driver. Gaps: judge/export/guard knobs read from the shell (TRN-20); the numpy export has silent defaults (TRN-03).
+- **Seeds.** SEEDS ⊆ {42, 2027} (preflight L94-95, trainer assert L282). Folds use the constant SEED (trainer L336) while the results claim SEED+YM (TRN-22). Refit seeds torch/numpy with SEED (L28). GPU kernels are not forced deterministic (trainer L273). King LightGBM: seed 0, deterministic 0, 100 threads (TRN-21). Production serves s42 only; no ensembling.
+- **Device self-sha recording.** Gate receipts carry self_sha256 through finalize and are required by gate name + runtime sha (chain_lib require_gate). Refit sidecar carries self_sha256, input shas and pt sha, and prereq_refit_sidecar recomputes them before arms (driver L263). Fold configs carry self/base/targets/fea/legs shas; merge records but does not assert them (TRN-23). Preflight pins 21 device files, 3 external files and the contract (deps_preflight_device.json) but does not compare the external ones with expected values (TRN-23). The bundle's config.json has paths but no shas and no exporter sha; the numpy export records nothing (TRN-03/TRN-23). Rerun commands are transcribed in $R/v4_commands.txt, chain_v4_monthly.log and $F8/logs/commands.txt.
+- **Recipe drift, research vs production (DL).** Research monthly folds (pod_f10_train_monthly_v4.py) and the deployment refit (pod_f10_refit_v4.py) share the V2MAIN core, checked by code comparison: Net layers (variant branches disabled by the trainer whitelist), softrank, τ 0.5→0.1 over 15 epochs, AdamW lr 3e-4 wd 1e-4, cosine schedule, grad clip 1.0, mu/sd from tr1[::7] rows[::3], 85/15 split, FIX7. Differences: fold spans truncated at first_te − embargo, per-fold constant seed, embargo 1. The deployed refit is never evaluated out of sample (by design); the judge evaluates the monthly fold models. Training fea82 col 80 is v0 while serving is v1 (TRN-05); training members need a finite future label while serving members do not (TRN-06).
+- **Recipe drift, research vs production (king).** The exporter is both the research king source (pinned PRED: 2024/2025 from unsaved fold boosters, 2026 from slow2026) and the production booster, so there is no code drift; the drift is in inputs: research PRED is scored on v0 col 80 with the D20 mask, production scores v1 col 80 on trailing members (TRN-04/TRN-06). The declared subsample=0.8 is inert (TRN-21).
+
+## 4. Reviewer P3: bare-R parser output
+
+Confirmed on the current source (chain_lib.sh 4ee217e1 is the sha the reviewer froze). L147 splits each parser output line with `${line%%=*}` / `${line#*=}`; a bare `R` becomes key `R`, value `R`, passes L148-151 and is exported as `R=R` at L157. The suite's only parser-output control (tests_pipeline_gates.py L1602-1603) covers a value outside the grammar, not a missing `=`. Minimal fix: reject any output line without `=` before splitting, and add a [U] cell with a stub interpreter emitting a bare `R` (expect rc 4 and no MONTH_ENV_OK), run against both the current and the pre-fix chain_lib. Register: TRN-19 (P3).
+
+## 5. Register
+
+### 5.1 Summary
+
+| ID | Sev | Status | Affects | Layer | Title |
+|---|---|---|---|---|---|
+| TRN-01 | P1 | OPEN_NOT_MEASURED | future_retrain, future_eval | DATA (upstream month roll) | The October month-roll stage (cache roll, hole cells, raw patch, panels, funding tail, EMA state, base json, live pins) is outside the driver, has no §0★ command, and the git builders for it overwrite September's receipt-registered inputs |
+| TRN-02 | P1 | OPEN_NOT_MEASURED | future_retrain, future_eval | DATA (targets) | Raw-return patch coverage is not checked, so E-0908-B can return silently on the new month's clipped bars |
+| TRN-03 | P1 | OPEN_NOT_MEASURED | future_retrain, live_trading, reporting | DL (deployment artifact) | The deployable F10 numpy model is produced outside every gate; a bare export silently packages the in-service 09-01 model |
+| TRN-04 | P2 | VERIFIED_IMMATERIAL | live_trading, future_retrain | KING (feature caliber) | (a) H2b is reintroduced: the October export trains king on v0 fund EMA in column 80 and ships a v1 EMA state that the producer serves in column 80 |
+| TRN-05 | P2 | OPEN_NOT_MEASURED | live_trading, future_eval | DL (feature caliber) | (b) The same v0-train / v1-serve split is reintroduced for V2MAIN, and October's fold checkpoints still cannot measure it |
+| TRN-06 | P2 | OPEN_NOT_MEASURED | future_eval, future_retrain | DATA / KING / DL (universe) | (c) D20 is reintroduced and is wider than recorded: members are selected on a finite forward label, so king OOF and F10 OOF both exist only where future bars exist |
+| TRN-07 | P2 | OPEN_NOT_MEASURED | future_eval, future_retrain, live_trading | DATA (funding intervals) | (d) The x0910 interval error returns if September's funding tail carries a pull-time interval; the git splice, panel builder and exporter all apply it and no gate checks intervals |
+| TRN-08 | P3 | VERIFIED_IMMATERIAL | future_retrain | DATA (feature sources) | (e) The metrics-archive label switch cannot be reintroduced today: no builder reads the metrics archive |
+| TRN-09 | P2 | PENDING_USER_DECISION | live_trading, future_retrain | DL (epoch rule) | (f) argmax is not reintroduced (FIX7 in folds and refit), but an October swap changes the live DL epoch rule without the forward shadow STATE requires |
+| TRN-10 | P2 | PENDING_USER_DECISION | live_trading, future_retrain | DL (gradient window) | (f) Under FIX7 the 15% validation slice selects nothing but still withholds ~260 days of the newest data from gradients |
+| TRN-11 | P2 | PENDING_USER_DECISION | live_trading, future_retrain | KING (training window) | (f/h) The king label-year cutoff is a literal `YRA < 2026`: monthly exports never advance it, now or in 2027 |
+| TRN-12 | P3 | OPEN_NOT_MEASURED | live_trading | SWAP (seat) | (g) Seat seeding mixes calibers again: bundle king rows are v0-scored with the D20 mask while live rows are v1-served, and the seeding step is not in §0★ |
+| TRN-13 | P3 | DOC_STALE | reporting | DOC (king cutoff labels) | (h) Documents still say the in-service booster is 'trained to 08-31'; it was fitted on label year < 2026. New v4 bundles would carry the right field |
+| TRN-14 | P3 | OPEN_NOT_MEASURED | reporting | DL (artifact metadata) | The live F10 numpy artifact claims trained_through 2026-08-30T20Z (pool end); the next numpy export would write the same kind of value |
+| TRN-15 | P2 | PENDING_USER_DECISION | future_retrain | EXPORT (gate baseline) | The export gate pins September's BUNDLE_BASE and LIVE_PINS by sha, while the October template requires new files: an unlisted approval blocks October's export stage |
+| TRN-16 | P2 | PENDING_USER_DECISION | future_retrain | GATE (fea89 trend) | Frozen STEP1 fails on September data (global-cumsum trend_288); October's references were built under that failure and STEP1_m can pass only if the cache prefix is byte-unchanged |
+| TRN-17 | P2 | OPEN_NOT_MEASURED | future_eval, future_retrain | DL (legs at the data frontier) | E-0911-B recurs every month: the last 5 anchors of the axis have no panel row, so legs rows go dead (WL 1/3) and king fund columns are NaN, with only a printed warning |
+| TRN-18 | P2 | OPEN_NOT_MEASURED | live_trading | SWAP (acceptance) | The swap step's acceptance cannot catch caliber splits (A2 resets to the reference every anchor), cites void sections, and has no producer-path score parity |
+| TRN-19 | P3 | OPEN_NOT_MEASURED | future_retrain | CHAIN (contract loader) | Reviewer P3 confirmed on the current source: a parser output line without '=' (bare `R`) is exported as R=R, and no negative control exists |
+| TRN-20 | P3 | OPEN_NOT_MEASURED | future_retrain, future_eval | REPRO (environment) | The env allowlist covers only the data stage; judge/export knobs that loosen gates are read from the operator's shell, and the driver ignores the judge's exploratory flag |
+| TRN-21 | P3 | VERIFIED_IMMATERIAL | reporting | REPRO (king recipe) | King recipe declares subsample=0.8 but bagging never runs (bagging_freq 0); training is non-deterministic by configuration |
+| TRN-22 | P3 | VERIFIED_IMMATERIAL | reporting | REPRO (self-report) | E-0907-G recurs: the October trainer's results claim per-fold seeds SEED+YM while the code uses the constant SEED |
+| TRN-23 | P3 | OPEN_NOT_MEASURED | future_retrain, reporting | REPRO (provenance / single source) | Provenance gaps: git single-source copy of the base trainer is a different file; external builder shas are recorded, not asserted; bundle provenance has no shas; merge does not assert fold identity; pod2 run copy is stale |
+| TRN-24 | P3 | OPEN_NOT_MEASURED | future_eval, reporting | EVAL (judge / signal receipt / naming) | Judge windows end at 2026-08-31, so October's new month is never read; SIGNAL_RECEIPT is required before it can exist; September predictions land in a file named SLOW_v3_on_v4axis |
+| TRN-25 | P2 | OPEN_NOT_MEASURED | future_retrain | CHAIN (integration) | Seven of the driver's eleven stages (cache, data, mwf, refit, arms, judge, export) have never run through the driver on real data; current sources of trainer, refit, exporter, merge, launcher, build_dev and run_v4_arms have never run on real data |
+| TRN-26 | P2 | PENDING_USER_DECISION | future_retrain | APPROVALS | Pending approvals before October can run to export: STEP1_m 79950786…, STEP2_m d99a9109…, NONE clamp switch, and an unlisted export-baseline ruling; plus recipe/caliber rulings |
+| TRN-27 | P2 | DOC_STALE | reporting | DOC (runbook) | RUNBOOK_2026-10 never names the current STEP2_m approval object d99a9109; it asks for 0fe5ec55 (修订 4) and b2f9cfd4 (修订 5), and its device sha table is stale |
+| TRN-28 | P2 | DOC_STALE | future_retrain, reporting | DOC (routing) | CLAUDE.md routes 月度重训 to the superseded September runbook, which is still marked 待执行 |
+| TRN-29 | P3 | DOC_STALE | reporting | DOC (memory) | Memory says the r20 v2 export gate is 'PROPOSED 未应用'; the chain contract shows it APPLIED on 2026-09-12T09:04:39Z |
+
+### 5.2 Entries
+
+#### TRN-01 — The October month-roll stage (cache roll, hole cells, raw patch, panels, funding tail, EMA state, base json, live pins) is outside the driver, has no §0★ command, and the git builders for it overwrite September's receipt-registered inputs
+
+- **Layer:** DATA (upstream month roll) · **Severity:** P1 — October cannot be started from git without improvising this stage; the obvious improvisations either invalidate September's registered receipts (E-0912-B class) or silently blank September funding features, and no driver gate would catch either.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_retrain, future_eval · **Method:** VERIFIED (code, pod2 read-only listing); October outcome INFERRED
+- **What is wrong:** chain_v4_monthly.sh starts from CACHE / PANEL_SPLICE / PANEL_KING / RAW_PATCH / HOLE_CELLS / FUND_AUG / EMA_STATE_JSON / BUNDLE_BASE / LIVE_PINS. The October template leaves them as TODO paths and no document says how to produce them: RUNBOOK §0★ step 1 only says 'holefix2 正典 + 滚动补月', and §2 — the only place the upstream commands were ever written — is void. Every git script for these inputs hardcodes September or older paths. Run as-is they read the wrong lineage (holefix instead of holefix2, _fresh→_ext instead of the holefix2 roll) or overwrite files that September's gate and export receipts hash (raw_patch, holefix2_cells, fund_aug, fund_state_canoncont, wide_panel_4h_v3splice) — the E-0912-B failure class. pod_panel_ext.py ignores FUND_AUG and reads the September funding file, whose rows end 2026-09-01 02:00Z, so September anchors lose funding under its 12h staleness rule (r6 ties this to E-0911-B). The only month extension ever done (r6, to 2026-09-10) used scripts that exist only on pod2, not in git, and one of them carries the x0910 interval defect. The driver has no panel parity gate (the old gate ① was dropped), so none of this would be caught before training. Late vendor data adds a further decision the runbook does not make: the 2026-08-31 day in the September cache was synthesised by holefix2 (229,824 cells) and the vendor archive for it now exists (r6 §2).
+- **Evidence:**
+  - C/v4_month_2026-10.env.template L9-11, L13, L27, L29, L31-32: CACHE / PANEL_SPLICE / PANEL_KING / HOLE_CELLS / BUNDLE_BASE / EMA_STATE_JSON / LIVE_PINS / FUND_AUG = TODO_ paths
+  - docs/RUNBOOK_monthly_retrain_2026-10.md L15 (step 1: no roll command); L115, L130, L148 '⛔ 作废(2026-09-12)' on §2, §3, §4
+  - T/caliber_program_2026-09-09/make_raw_patch.py 7716e7d3 L5 zload("/workspace/data/dlnative_5m_wide829_f16_holefix.npz"); L33 np.savez_compressed("/workspace/review_scratch/raw_patch.npz", ...) = September RAW_PATCH (STEP1 input raw_patch adecf276)
+  - C/v4_hole_cells.py 6afd2672 L8/L10 hardcoded holefix2 and ext caches; L38 np.savez("/workspace/review_scratch/holefix2_cells.npz", ...) = September HOLE_CELLS
+  - T/pod_merge_cache_ext.py de7a0661 L42 base '/workspace/data/dlnative_5m_wide829_f16_fresh.npz'; L59-61 output '..._ext.npz'
+  - T/pod_panel_ext.py db7f0474 L65 AUG = json.loads(gzip.open("/workspace/fund_aug.json.gz", "rt").read()) (no env); L160 stale = ... > 12 * 3600
+  - T/pod_panel_splice.py a9c29141 L11-12 CAN = wide_panel_4h_v1.npz, EXT = wide_panel_4h_v2ext.npz; L115 json.dump(state, open("/workspace/fund_state_canoncont.json", "w")); L116 np.savez_compressed("/workspace/data/wide_panel_4h_v3splice.npz", **out)
+  - T/fund_pull_pod.py fa665810 L29 gzip.open("/workspace/fund_aug.json.gz", "wt") = September FUND_AUG (BUNDLE_export registered input fund_aug)
+  - multi_asset/exports/research/uplift_2026-09-11/RESULT_r6_coverage_extension_2026-09-11.md L109 (S5): 'pod_panel_ext.py 的 funding 只读到 fund_aug.json.gz 的 2026-09-01 02:00Z, 九月行会被它 L160 的 12h 陈旧规则判 NaN —— 那正是 E-0911-B 本身'; §2: vision had no 2026-09 monthly funding zip, '九月 funding 只能走 REST'; 08-31 day was holefix2-filled and its vendor archive now returns 200
+  - pod2 read-only 2026-09-13T13:12Z (receipts_train/pod2_readonly_receipt_2026-09-13T1312Z.txt): r6_panel_splice.py cccc5b6b, r6_merge_cache.py 3227e4f5, r6_raw_patch_ext.py 808d2f66, r6_fetch_funding.py 298927ad exist only under /workspace/uplift_2026-09-11/r6/; git ls-files has no r6_*.py
+  - C/chain_v4_monthly.sh e8e688d5 L49 PF_INPUTS: existence check only; no panel parity stage in L45-303
+- **Recommended action:** Add a month-roll stage (or driver) whose inputs and outputs are month-contract keys under $R and which refuses any output path equal to a previous month's contract value; move r6_merge_cache / r6_raw_patch_ext / r6_panel_splice into git with the interval fix of TRN-07; make pod_panel_ext.py read FUND_AUG from env; decide and write down whether late vendor archives replace holefix2-filled rows; restore a panel parity gate on the common prefix before the data stage; put the commands in RUNBOOK §0★.
+
+#### TRN-02 — Raw-return patch coverage is not checked, so E-0908-B can return silently on the new month's clipped bars
+
+- **Layer:** DATA (targets) · **Severity:** P1 — Wrong training labels and wrong replay accounting on exactly the extreme-move names that drive tail losses, with no gate able to see it; the last extension already had 3 such bars in 10 days.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_retrain, future_eval · **Method:** VERIFIED
+- **What is wrong:** The 5m cache stores ret5 clipped at ±0.30; DLWT_RAW_PATCH puts back the exact return for clipped bars before 4h labels are compounded (the E-0908-B fix). Nothing verifies that the patch covers every clipped bar of this month's cache, or that each patch row/col still addresses the same timestamp and symbol. STEP1 part A only checks that RAW−CLIP differences sit inside patched windows, so a bar missing from the patch (RAW == CLIP there) is invisible. The October template gives RAW_PATCH a normal path with no TODO marker (preflight only checks existence), and the git patch builder cannot target the October cache (TRN-01). The 2026-09-01..09-10 extension alone found 3 new clipped bars: AKEUSDT +42.5%, BULLAUSDT +55.8%, WOOUSDT +30.06%, all stored as +0.30.
+- **Evidence:**
+  - C/pod_dlw_targets_raw.py d7c52823 L78-81 `_rtz[_P["row"], _P["col"]] = _P["raw32"]` (no coverage assert, no ts/symbol assert); L100 y4s = np.expm1(CS_L[hi_t] - CS_L[lo_t])
+  - C/v4_gate_step1_m.py 79950786 part A: window mask X built only from patch rows (`for t, c in zip(prow, pcol): ... X[lo:hi, c] = True`); PASS uses y4s_big_outside_patch_windows == 0
+  - C/v4_month_2026-10.env.template L12 RAW_PATCH=$R/raw_patch.npz (no TODO_)
+  - multi_asset/exports/research/uplift_2026-09-11/r6_RECEIPT_raw_patch.json: old_n 952, new_kept 3 (AKEUSDT 2026-09-02 21:45Z raw 0.4249; BULLAUSDT 2026-09-05 03:00Z raw 0.5581; WOOUSDT 2026-09-06 01:35Z raw 0.3006; clip16 0.30005)
+  - memory clip_compound_label_defect (E-0908-B): clip then compound writes −48% as +55%
+- **Recommended action:** Before building targets assert {(row, col): |ret5| == float16(0.30)} ⊆ patch (row, col) minus declared-unresolved, and CTS[row] == ts and symbols[col] == symbol for every patch row; give RAW_PATCH a TODO_ value and an env-located generator.
+
+#### TRN-03 — The deployable F10 numpy model is produced outside every gate; a bare export silently packages the in-service 09-01 model
+
+- **Layer:** DL (deployment artifact) · **Severity:** P1 — The only file the live DL leg loads is made by an ungated manual step whose defaults point at the previous generation.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_retrain, live_trading, reporting · **Method:** VERIFIED
+- **What is wrong:** The live DL leg reads fea171/f10_live_s42_np.npz. The driver stops at the refit .pt and its sidecar; there is no stage for the numpy export, the V1 np==torch gate, the V3' leak check, or the >=14-day forward shadow that STATE lists as FIX7's deployment precondition. pod_f10_np_export.py still has the silent defaults the reviewer removed from the refit (R1): without explicit env it loads /workspace/f8_ext/models/f10_live_s42.pt and /workspace/dlw_ext targets, i.e. the in-service generation. It also writes trained_through = max(E_ts) of the targets (pool end), the E-0907-D mislabel (TRN-14).
+- **Evidence:**
+  - C/chain_v4_monthly.sh e8e688d5: stages preflight..export (L45-303); grep for np_export|np_check|leakcheck|swap returns nothing
+  - T/pod_f10_np_export.py 3e304c27 L13 OUT = os.environ.get("F10_OUT", "/workspace/f8_ext"); L14 DLW = os.environ.get("F10_DLW", "/workspace/dlw_ext"); L15 CK = f"{OUT}/models/f10_live_s{SEED}.pt"; L26 trained_through = int(TG["E_ts"].astype(np.int64).max())
+  - docs/RUNBOOK_monthly_retrain_2026-10.md L19 (step 4 lists gates V1 / V3' in text only)
+  - STATE.md (line ~207 at 13Z): 'FIX7 / FLOOR5 = 候选, 未部署。欠: 前向影子 ≥14 天 + 用户字'
+  - ~/wide_shadow/fea171/f10_live_s42_np.npz 351ae26b (read-only): trained_through 1788120000 = 2026-08-30T20:00Z
+- **Recommended action:** Add an np_export stage after refit: F10_OUT / F10_DLW / SEED required (refuse defaults), V1 receipt through finalize bound to the sidecar pt_sha256, carry trained_through_label_utc / pool_end into the npz; add a V3' leak-check stage; put the FIX7 forward-shadow precondition (or an explicit waiver) into the swap checklist.
+
+#### TRN-04 — (a) H2b is reintroduced: the October export trains king on v0 fund EMA in column 80 and ships a v1 EMA state that the producer serves in column 80
+
+- **Layer:** KING (feature caliber) · **Severity:** P2 — Measured below resolution, but unguarded, and its size scales with the share of gross on non-8h names (82% per T1), which moves with the settlement-interval regime.
+- **Status:** VERIFIED_IMMATERIAL — resolution: T4 frozen rule (PREREG sha 0f94b754): KING_LIVE 2024+ book Δg (v1−v0) +0.0181 [−0.030, +0.063] s42, +0.0161 [−0.033, +0.065] s2027; ΔIC −0.000101 [−0.000272, +0.000070]; resolution ±0.05 bps/anchor.
+- **Affects:** live_trading, future_retrain · **Method:** VERIFIED
+- **What is wrong:** Column 80 of the king features is the panel's f_fund_ema (EMA of the raw per-settlement rate, v0). The exporter fits slow2026 on those features and, in the same run, writes fund_ema_v1_state.json normalised to 8h (v1); the producer feeds that state into column 80. 4h-settlement names are served at 2x and 1h names at 8x the training scale. No gate in the chain or the export gate scores the booster on the producer's feature path.
+- **Evidence:**
+  - C/pod_fea_ext_clamp.py b9f9c728 L63 FUND = [PW["f_fund_ema"], PW["f_fund_now"]] → cols 80/81
+  - T/pod_panel_splice.py a9c29141 L94 e0 = e0 + a * (fr[i_] - e0) (raw rate) → L100 out["f_fund_ema"]; L95 e1 uses rate_nf (v1)
+  - C/pod_export_bundle_v4.py 42555a37 L40-41 load BUNDLE_FEA/BUNDLE_META; L46 keep drops only ret5_sum_48/288; L58 rows_X; L67-69 fit + save_model(slow2026.txt)
+  - C/pod_export_bundle_v4.py L231-234 i_ derived, rn = r_ * (8.0 / i_); L242 ema_state[s] = {"acc": ...}; L245-251 EMA_STATE_JSON override then fund_ema_v1_state.json; L256 "fund_caliber": "v1 normfix HL3d"
+  - ~/wide_shadow/shadow_loop_v3.py e9c98374 L147 booster = lgb.Booster(model_file=slow2026.txt); L344 rn = rate * (8.0 / iv); L412 fe_v[j] = est["acc"]; L418 FE_ANCH[:, 80] = np.nan_to_num(fe_v[m], nan=0); L421-422 booster.predict(X)
+  - C/v4e_gate_export_v2.py d63f4ec3 L233 and gate_signal_parity_v2.py abc45cad L59 read only f_fund_ema_v1 for the fund leg; no booster-on-producer-path parity
+  - memory king-fund-ema-feature-train-v0-serve-v1 / T4 RESULT: both in-service boosters v0-trained; split inside the exporter
+- **Recommended action:** User ruling on the caliber (serve v0 in col 80, or build king features from f_fund_ema_v1 and retrain). Independently add an export-stage raw-score parity gate: score recent anchors with the new booster on the offline FEA and on the producer feature path and require max|Δ| within tolerance.
+
+#### TRN-05 — (b) The same v0-train / v1-serve split is reintroduced for V2MAIN, and October's fold checkpoints still cannot measure it
+
+- **Layer:** DL (feature caliber) · **Severity:** P2 — Unguarded unit mismatch on the DL leg (which also sets V2MAIN's seat coefficient); the fix that makes it measurable is one line.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** live_trading, future_eval · **Method:** VERIFIED
+- **What is wrong:** fea82 column 80 is built from the v3splice panel's f_fund_ema (v0) for training; serving builds the same column from the producer's v1 EMA state. The October chain changes neither side. Monthly fold checkpoints are saved as bare state_dicts without mu/sd, so the historical book effect (NOT MEASURED in T4b) stays unmeasurable from October's artifacts.
+- **Evidence:**
+  - T/pod_dlw_features_ext.py e86725cc (pod2 == git) L73 FUND = [PW["f_fund_ema"], PW["f_fund_now"]]; driver L139 F171_PANEL=$PANEL_SPLICE
+  - ~/wide_shadow/fea171/combo_stage.py b5c698f9 L138-141 fe[-1, j] = float(est["acc"]) (producer v1 state); L146 np.savez(xfer_panel_live.npz, f_fund_ema=fe, ...); dlw_features.py 29ae6a98 L73 reads PW["f_fund_ema"]
+  - C/pod_f10_train_monthly_v4.py fd5707bd L435 torch.save(best_state, f"{MWF_OUT}/models/{TAG}_{YM}.pt") (no mu/sd)
+  - T4b RESULT (memory king-fund-ema…): served mu/sd match v0 on 171 columns (col 80 rel 2.4e-7; v1 ~150% off); historical book effect NOT MEASURED; live 6 anchors combo target L1 median 0.0022; zero-filled history rows do not reach the scored row
+- **Recommended action:** Save mu/sd/alpha with every fold checkpoint so the v0/v1 effect can be measured on October folds; then a user ruling on the caliber; add DL raw-score parity (numpy model on producer features vs torch on training features) to the np_export stage of TRN-03.
+
+#### TRN-06 — (c) D20 is reintroduced and is wider than recorded: members are selected on a finite forward label, so king OOF and F10 OOF both exist only where future bars exist
+
+- **Layer:** DATA / KING / DL (universe) · **Severity:** P2 — Optimistic for levels (delisting/halting names removed ex ante) and shared by A0/A1 in paired contrasts; size unknown; L4b (forced exits) measures the related population.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_eval, future_retrain · **Method:** VERIFIED (code); impact not measured
+- **What is wrong:** King meta and DL targets both choose each anchor's members with a condition that the forward 4h label is finite, before the top-400 volume cut. King OOF predictions are written only on finite-label members (D20). fea82/fea89 pairs are the DL members, so F10 monthly OOF scores exist only there as well (P2 recorded this as not checked). The producer and combo_stage choose members from trailing data only. So training cross-sections exclude names that stop trading within 4h, and replay/judge universes drop them before the fact.
+- **Evidence:**
+  - C/pod_fea_ext_clamp.py L37 ok = (covr[i] >= 0.95) & (v7[i] >= 1e-4) & np.isfinite(y4[i])
+  - C/pod_export_bundle_v4.py L55-56 (training rows need >=50 finite labels); L80-81 and L91-92 okm = np.isfinite(y4[a, m]); PRED[a, m[okm]] = pv[sel]
+  - C/pod_dlw_targets_raw.py L107 ok = (covr[i] >= 0.95) & (vstd[i] >= 1e-4) & np.isfinite(y4s[i]); L109-110 NTOP cut after the filter
+  - T/pod_dlw_features_ext.py L37 MS = TG["members"], L81/L95 pair_a/pair_s from MS; C/pod_f10_train_monthly_v4.py L398-414 PRED_f written only at pair symbols midx
+  - ~/wide_shadow/fea171/combo_stage.py L121-123 ms_arr[i] = pm (current members, no future term)
+  - docs/PREREG_producer_parity_phase2_oos_2026-09-12.md L329 (D20 VERIFIED for king; 'F10 OOF 的可得性掩码未核')
+- **Recommended action:** Select members from trailing data only and mask the loss/label (not membership) where the label is not finite; write OOF predictions for every trailing-eligible member; report per year the anchor×name cells removed by the forward-finite term.
+
+#### TRN-07 — (d) The x0910 interval error returns if September's funding tail carries a pull-time interval; the git splice, panel builder and exporter all apply it and no gate checks intervals
+
+- **Layer:** DATA (funding intervals) · **Severity:** P2 — Recurrence depends on an unspecified puller; the affected quantities (fund leg, carry, FTRIM) dominate the book but only on the new month's rows; live exposure only on a cold bootstrap (INFERRED).
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_eval, future_retrain, live_trading · **Method:** VERIFIED (mechanism in code, pod2 read-only); October recurrence INFERRED
+- **What is wrong:** The defect is one pull-time settlement interval applied to every API tail row of a symbol. r6 read fundingIntervalHours from /fapi/v1/fundingInfo once and its splice applied it to all September rows, so names whose interval changed in September got the wrong 8h normalisation (547 cells, 23 names; SKR and SOPH x1/4, IOST x8). The git pod_panel_splice.py, pod_panel_ext.py and pod_export_bundle_v4.py use the same `AUG_IV.get(s)` pattern; they are safe today only because the canonical fund_aug.json.gz has an empty intervals map, which forces timestamp-gap derivation. For October, September funding must come from REST (no monthly zip yet at month start), the puller is unspecified (TRN-01), and no gate compares intervals with settlement gaps. Scope: v0 EMA (king col 80, DL col 80) uses the raw rate and is unaffected; v1 EMA, f_fund_iv, carry and FTRIM are affected (fund leg in the exporter guard and leg_returns, legs, replay/judge). The bundle's fund_ema_v1_state.json is read by the producer only on a cold bootstrap.
+- **Evidence:**
+  - pod2 /workspace/uplift_2026-09-11/r6/r6_fetch_funding.py 298927ad L33-34 INFO = {d["symbol"]: float(d["fundingIntervalHours"]) ... fundingInfo}; L69 json.dump({..., "intervals": {k: v ...}})
+  - pod2 r6_panel_splice.py cccc5b6b L59 SEP_IV = {...intervals...}; L82 rows.append((..., SEP_IV.get(s, np.nan))); L90 iv_full = np.where(np.isfinite(fiv), fiv, dv); L92 rate_nf = fr * (8.0 / iv_full)
+  - T/pod_panel_splice.py a9c29141 L60-61 AUG_IV.get(s) on AUG rows, L71 iv_full = np.where(np.isfinite(fiv), fiv, dv); T/pod_panel_ext.py db7f0474 L66, L104-105; C/pod_export_bundle_v4.py L194, L219-220
+  - pod2 /workspace/fund_aug.json.gz: n_rates 827, n_intervals 0 (receipt); fund_pull_pod.py fa665810 L28 out = {"rates": rates, "intervals": {}}
+  - multi_asset/exports/research/uplift_r2_2026-09-13/T5d/PREREG_T5d_iv_corrected_replay_2026-09-13.md L14 (547 mismatching cells, 23 names, 60 extension rows); docs/HANDOFF_round4_review_request_2026-09-13.md L85
+  - ~/wide_shadow/shadow_loop_v3.py L193-198: bundle EMA state used only when state/rolling.npz is absent
+- **Recommended action:** Derive the interval of each settlement from the gap to the previous fundingTime (or the zip interval column) and never apply a pull-time interval to historical rows; add a gate that every recorded interval equals the rounded gap except at listed switches.
+
+#### TRN-08 — (e) The metrics-archive label switch cannot be reintroduced today: no builder reads the metrics archive
+
+- **Layer:** DATA (feature sources) · **Severity:** P3 — Latent until an OI feature is added (L2 is working on OI data).
+- **Status:** VERIFIED_IMMATERIAL — resolution: 0 metrics/OI inputs in the five chain builders; latent only.
+- **Affects:** future_retrain · **Method:** VERIFIED
+- **What is wrong:** The chain's features come from the 5m kline cache (7 channels; taker-buy fraction from klines), the 4h panel and the targets. None of the builders reads data.binance.vision metrics (open interest, long/short ratios). The switch (label = window end up to 2024-03-03, window start from 2024-03-04) would matter only if OI features are added; the chain has no per-regime guard for that.
+- **Evidence:**
+  - grep metrics|open_interest|long_short|toptrader|premium: 0 hits in T/pod_dlw_features_ext.py, T/pod_f8_build_ext.py, C/pod_fea_ext_clamp.py, C/pod_dlw_targets_raw.py; their np.load/zload inputs are the cache, the panel, targets and fea82
+  - memory binance-metrics-archive-label-switch-2024-03-04 (L2 Stage A receipt RECEIPT_L2_A_switch.json, commit b50cef70)
+- **Recommended action:** If OI/metrics features are added: pick the label regime by date inside the builder and run an offset-spectrum check (peak at lag 0) per regime in the data stage before the STEP gates.
+
+#### TRN-09 — (f) argmax is not reintroduced (FIX7 in folds and refit), but an October swap changes the live DL epoch rule without the forward shadow STATE requires
+
+- **Layer:** DL (epoch rule) · **Severity:** P2 — Clean two-seed evidence for FIX7, but its stated deployment precondition is not part of the chain or the swap checklist.
+- **Status:** PENDING_USER_DECISION
+- **Affects:** live_trading, future_retrain · **Method:** VERIFIED
+- **What is wrong:** Monthly folds and the refit both keep epoch 7. The live DL model was fitted with unconstrained argmax, so swapping in the October model changes the live recipe. STATE lists FIX7's deployment preconditions as a >=14-day forward shadow plus the user's word; the chain and the swap step have no shadow.
+- **Evidence:**
+  - C/launch_mwf_v4b.sh 07b2a602 L11 ... EMBARGO=1 MWF_TAG=mE1cX7 BEST_EP_FIX=7 ...; C/merge_mwf_v4b.py L30 assert C["best_epoch_rule"] == RULE and C["best_epoch"] == 7
+  - C/chain_v4_monthly.sh L250 env ... BEST_EP_FIX=7 ...; L253 sidecar check best_ep_rule == 'fix7'; C/pod_f10_refit_v4.py L129 FIX rule
+  - in-service T/pod_f10_refit_ext.py ea3675b8 L115-116 `if va > best_va:` (argmax)
+  - STATE.md (line ~207): 'FIX7 / FLOOR5 = 候选, 未部署。欠: 前向影子 ≥14 天 + 用户字'; memory live_dl_epoch_rule_is_unconstrained_argmax (FIX7 − CONST42 +0.267 [+0.083, +0.462])
+- **Recommended action:** Add the FIX7 forward shadow (or an explicit user waiver) to the swap checklist before any v4 DL model is swapped in.
+
+#### TRN-10 — (f) Under FIX7 the 15% validation slice selects nothing but still withholds ~260 days of the newest data from gradients
+
+- **Layer:** DL (gradient window) · **Severity:** P2 — Tested alternative (full window) is undecided, so this needs a ruling rather than a code fix; but the monthly cadence does not do what its name suggests for the DL leg.
+- **Status:** PENDING_USER_DECISION
+- **Affects:** live_trading, future_retrain · **Method:** VERIFIED (September arithmetic); October arithmetic assumes +180 anchors (INFERRED)
+- **What is wrong:** The refit keeps `cut = 0.85` and trains only on tr1, while FIX7 no longer uses the validation curve. On the real September axis the refit's last loss label is 2025-12-16T20Z against a pool end of 2026-08-31T20Z (255 days). With 180 more anchors in October it would be 2026-01-09T20Z against 2026-09-30T20Z (260 days): a monthly retrain moves the DL gradient window by under a month. The monthly research folds use the same split.
+- **Evidence:**
+  - C/pod_f10_refit_v4.py 6c0666f4 L104 cut = int(len(tr_idx) * 0.85); tr1, va1 = tr_idx[:cut], tr_idx[cut:]; L111 starts = list(range(int(tr1[0]) + BURN, int(tr1[-1]) - WIN, STRIDE)); L140 _last_loss_idx
+  - C/pod_f10_train_monthly_v4.py L329-330 (same split)
+  - pod2 read-only arithmetic on /workspace/dlw_v4raw/data/dlw_targets.npz (10212 anchors, 2022-01-03T00Z..2026-08-31T20Z, min 135 members): SEPT last_loss_label 2025-12-16T20:00Z; OCT(+180) 2026-01-09T20:00Z, pool end 2026-09-30T20:00Z, va1 259.8 days (receipts_train/pod2_readonly_receipt_2026-09-13T1312Z.txt)
+  - STATE.md (line ~208): X7FULL − FIX7 CI lower −0.212 vs δ 0.05 ('满窗梯度 = 不换装')
+- **Recommended action:** User ruling: keep 85/15 and state the lag in provenance, or preregister a fixed-length validation tail (memory: a 500-anchor tail recovers ~172 of 255 days).
+
+#### TRN-11 — (f/h) The king label-year cutoff is a literal `YRA < 2026`: monthly exports never advance it, now or in 2027
+
+- **Layer:** KING (training window) · **Severity:** P2 — A design choice with undecided evidence, but hardcoded, so it cannot be changed by a monthly contract.
+- **Status:** PENDING_USER_DECISION
+- **Affects:** live_trading, future_retrain · **Method:** VERIFIED
+- **What is wrong:** Every export fits slow2026 on rows with label year < 2026. With an unchanged cache prefix October's training set equals September's, so October's booster is effectively September's; without a code change it will still stop at 2025 in 2027. The v4 exporter now records this honestly (king_train_end_utc).
+- **Evidence:**
+  - C/pod_export_bundle_v4.py L63 tr = YRA < 2026; te = YRA == 2026; L64 _king_train_end; L263-266 king_train_rule / king_train_end_utc
+  - receipts/monthly_chain_2026-09-12/pod2_king_legs/export_v4.log: 'king training set: 2166009 rows / 8724 anchors, last training anchor 2025-12-31T20:00:00Z ... axis end 2026-08-31T20:00:00Z'
+  - T/pod_export_bundle_v3.py c210bac6 L49 same rule (in-service booster 8d79186b)
+  - docs/PREREG_producer_parity_phase2_oos_2026-09-12.md L52 ('逐年折 SLOW_v4 的 fold Y 训练到 Y−1 年末'); memory king_retrain_cadence_axisA_2026_09_05 (UNDECIDED)
+- **Recommended action:** Make the king label cutoff a month-contract key (default = current value) so moving it is an explicit preregistered ruling, not a code edit.
+
+#### TRN-12 — (g) Seat seeding mixes calibers again: bundle king rows are v0-scored with the D20 mask while live rows are v1-served, and the seeding step is not in §0★
+
+- **Layer:** SWAP (seat) · **Severity:** P3 — Descriptive magnitude is small (T4b); mainly a missing procedure step.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** live_trading · **Method:** VERIFIED (code); book effect not measured
+- **What is wrong:** The producer's seat is msharpe over the last 900 rows of bundle leg_returns + state rows. The seat-seed rule says every bundle swap re-seeds the king column from the new bundle's OOS rows. Those rows are scored by the exporter on v0 features with the D20 mask; rows appended live come from v1-served scores. The October bundle repeats this, and RUNBOOK §0★ step 8 does not mention seeding at all.
+- **Evidence:**
+  - ~/wide_shadow/shadow_loop_v3.py L223-226 self.LR = {leg: list(lr[leg]) + list(extra[leg])}; L237-239 n_keep = 950; L457-460 msharpe over st.LR[leg][-look:] (look 900)
+  - C/pod_export_bundle_v4.py L114-127 leg returns from PRED (v0 features, D20 mask); L184 leg_returns.npz
+  - ~/wide_shadow/state/leg_returns_live.json: 950 rows per leg (read-only count)
+  - memory seat_seed_v3_deployed_2026_09_05 ('每次换 bundle(月度重训)后, 状态文件的 king 列必须按同法播种'); T4b: re-scoring the 876 seeded rows with v1 moves the masked king seat +0.0078, combo target L1 0.0066
+  - docs/RUNBOOK_monthly_retrain_2026-10.md L23 (step 8: no seeding)
+- **Recommended action:** Add seat seeding to the swap checklist; seed from rows scored on the serving caliber (or after the TRN-04 ruling) and record the seat before and after.
+
+#### TRN-13 — (h) Documents still say the in-service booster is 'trained to 08-31'; it was fitted on label year < 2026. New v4 bundles would carry the right field
+
+- **Layer:** DOC (king cutoff labels) · **Severity:** P3 — Misleads readers about what the live king has seen (E-0907-D family); no numeric effect.
+- **Status:** DOC_STALE
+- **Affects:** reporting · **Method:** VERIFIED
+- **What is wrong:** The in-service booster 8d79186b was fitted with `tr = YRA < 2026` (last training anchor 2025-12-31T20Z). Its bundle config has only built_utc and generation. Three documents describe it as trained to 08-31. The v4 exporter writes king_train_end_utc, so the October bundle itself would not repeat the mislabel.
+- **Evidence:**
+  - docs/PREREG_producer_parity_phase2_oos_2026-09-12.md L6 and L28 ('在役 booster(训练到 08-31)', '在役训练到 08-31 的 booster')
+  - docs/PREREG_producer_parity_replay_2026-09-12.md L36 ('训练到 08-31 的在役 booster'); docs/PLAN_fix_all_gaps_2026-09-12.md L18 ('在役模型训练到 08-31')
+  - ~/wide_shadow/shadow_bundle/config.json 3a8422f3 provenance keys: built_utc 2026-09-01T06:00:37Z, generation v3_2026-09, base_ic, fold_ic_2024/2025, pinned_ic2026, pinned_sharpe_full_b (no training cutoff)
+  - T/pod_export_bundle_v3.py L49 tr = YRA < 2026; C/pod_export_bundle_v4.py L263-266
+- **Recommended action:** Correct the three documents to 'fit on label year < 2026 (last training anchor 2025-12-31T20Z)'.
+
+#### TRN-14 — The live F10 numpy artifact claims trained_through 2026-08-30T20Z (pool end); the next numpy export would write the same kind of value
+
+- **Layer:** DL (artifact metadata) · **Severity:** P3 — No numeric effect; a known misleading-field pattern that has already produced one wrong conclusion (E-0907-D).
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** reporting · **Method:** VERIFIED
+- **What is wrong:** pod_f10_np_export.py writes the maximum anchor of the targets file as trained_through. The in-service refit's gradients ended about 2025-12 (85/15 split). The refit sidecar now separates label cutoff and pool end, but the numpy artifact the producer loads does not.
+- **Evidence:**
+  - ~/wide_shadow/fea171/f10_live_s42_np.npz 351ae26b: keys alpha,b0,b1,b2,mu,n_cols,sd_,trained_through,w0,w1,w2; trained_through 1788120000 = 2026-08-30T20:00Z
+  - T/pod_f10_np_export.py 3e304c27 L26; in-service refit T/pod_f10_refit_ext.py ea3675b8 L90 cut 0.85, L122 trained_through = E_ts[tr_idx[-1]]
+  - docs/ERROR_LEDGER_2026-08-20.md E-0907-D (L495) and E-0907-H (pool end ≠ loss-window end)
+- **Recommended action:** Numpy export copies trained_through_label_utc and trained_through_pool_end_utc from the refit sidecar and drops or renames the ambiguous key.
+
+#### TRN-15 — The export gate pins September's BUNDLE_BASE and LIVE_PINS by sha, while the October template requires new files: an unlisted approval blocks October's export stage
+
+- **Layer:** EXPORT (gate baseline) · **Severity:** P2 — Fails closed (no bad bundle passes), but it stops October at export and the required ruling is not listed anywhere.
+- **Status:** PENDING_USER_DECISION
+- **Affects:** future_retrain · **Method:** VERIFIED (code); October outcome INFERRED
+- **What is wrong:** E2b requires LIVE_PINS and BUNDLE_BASE to be byte-identical to the approved baseline in the contract. RUNBOOK §1 and the October template require a newly established base json (the previous generation's own fold IC) and a re-copied pins file. So October's export either fails E2b by construction, or the operator reuses September's base json against the runbook, or someone amends approved_baseline — which is not on any pending-approval list.
+- **Evidence:**
+  - C/v4e_gate_export_v2.py d63f4ec3 L182-184: sp_ = sha256_file(E["LIVE_PINS"]); sb = sha256_file(E["BUNDLE_BASE"]); chk("E2b_pins_identity", sp_ == cx.ab["live_pins_sha256"] and sb == cx.ab["bundle_base_sha256"], ...)
+  - C/ELIGIBILITY_CONTRACT.json 1188267a gates.BUNDLE_export.approved_baseline: bundle_base_sha256 dce6a228543b…, live_pins_sha256 fd27fe485417…
+  - C/v4_month_2026-10.env.template L26-27 'base = the previous generation's OWN fold IC json … re-established every month' BUNDLE_BASE=/workspace/TODO_slow_scorer_v4base_2026-10.json; L30-31 LIVE_PINS re-copied
+  - docs/RUNBOOK_monthly_retrain_2026-10.md L111 '基线 json 每月重立'
+  - September export base IC 0.0548 / 0.0630 / 0.0571 vs September v4 own fold IC 0.0544 / 0.0609 / 0.0573 (receipts/monthly_chain_2026-09-12/pod2_king_legs/export_v4.log)
+- **Recommended action:** Decide before running: reuse September's base json and pins byte-identically (and say so in §0★), or amend approved_baseline with the October shas under the user's word.
+
+#### TRN-16 — Frozen STEP1 fails on September data (global-cumsum trend_288); October's references were built under that failure and STEP1_m can pass only if the cache prefix is byte-unchanged
+
+- **Layer:** GATE (fea89 trend) · **Severity:** P2 — Fails closed, but October may stop at the gates for a reason unrelated to October's data quality; the ruling decides which fea89 October trains on.
+- **Status:** PENDING_USER_DECISION
+- **Affects:** future_retrain · **Method:** VERIFIED (September); October outcome INFERRED
+- **What is wrong:** fea89's trend_288/trend_2016 use full-axis cumulative sums; any upstream edit changes values far downstream and dead names flip NaN/finite. The frozen STEP1 therefore FAILS on September data, and the AMENDMENT 3 exception reading was withdrawn. September's DL products (October's PREV_* references) were built by that builder. October's STEP1_m compares the two months on the common axis; it can pass only if the cache prefix is untouched — replacing the holefix2-filled 2026-08-31 day with the now-available vendor archive, or any new prefix fill, would make it fail outside hole neighbourhoods. The stable local-trend builder (G1/G2 PASS, book effect (C)) awaits the user's word; the October template still points BUILDER_FEA89 at the global builder.
+- **Evidence:**
+  - docs/PREREG_fea89_stable_trend_and_closure_gate_2026-09-09.md L6 (pod_f8_build_ext.py L204–L216 global cumsum; 31,059 NaN flips), L30-31 (stable builder G2 PASS; global builder FAIL 53,425 cells / 247 anchors on trend_288)
+  - docs/PREREG_v4_gates_monthly_2026-09-12.md §7.4: STEP1_m on September data rc 3, PASS=false, 78/0 fields vs the 09-09 archive; DESIGN §6.2 driver stops FAIL_gate_require_step1
+  - docs/RUNBOOK_monthly_retrain_2026-10.md L59 (iv) '九月数据上 STEP1 字面 FAIL(trend_288 全局累积和 … 稳定 trend 候选待用户字)'
+  - C/v4_month_2026-10.env.template L47 BUILDER_FEA89=/workspace/pod_f8_build_ext.py (f606bffa, global builder)
+  - multi_asset/exports/research/uplift_2026-09-11/RESULT_r6_coverage_extension_2026-09-11.md §2: 2026-08-31 cache day was holefix2-filled (229,824 cells / 798 symbols); vendor daily archive now 200
+- **Recommended action:** Rule on the stable-trend builder before October; if kept global, make the month roll strictly append-only and record that choice in the month contract.
+
+#### TRN-17 — E-0911-B recurs every month: the last 5 anchors of the axis have no panel row, so legs rows go dead (WL 1/3) and king fund columns are NaN, with only a printed warning
+
+- **Layer:** DL (legs at the data frontier) · **Severity:** P2 — Silent every month on the frontier anchors that feed the newest fold test and the judge extension windows; bounded to a few anchors unless the panel is not extended.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_eval, future_retrain · **Method:** VERIFIED
+- **What is wrong:** The panels require E+288 <= TT while the king/DL axis requires E+48 <= TT, so the panel is always 5 anchors short at the frontier (r6: 'structural, recurs at every extension frontier'). pod_legs_v4b.py leaves Z24/ZFD NaN for rows without a panel row and prints their list; the trainer maps NaN to 0, so on those anchors the DL book has no rev24/fund legs and the seat is the untrained [1/3,1/3,1/3]. For October that is at least 2026-09-30 04Z–20Z (202609 test month, refit validation slice, judge windows); if LEGS_PANEL is not extended at all, all September rows.
+- **Evidence:**
+  - C/pod_legs_v4b.py 8c33a230 L21-22 z24/zfd filled only `if j is not None`; L51-52 prints 'new rows without a panel row (Z24/ZFD NaN by construction)' (no assert)
+  - C/pod_f10_refit_v4.py L37-39 np.nan_to_num(L["Z24"], nan=0.0), L["ZFD"] nan=0.0, L["WL"] nan=1/3
+  - C/pod_fea_ext_clamp.py L79-82 fund columns written only when the panel has the anchor (else left NaN)
+  - multi_asset/exports/research/uplift_2026-09-11/RESULT_r6_coverage_extension_2026-09-11.md §1 (E-0911-B: 2026-08-31 04Z–20Z legs Z24/ZFD 0 finite, WL [1/3,1/3,1/3]; king fund_ema finite frac 0.0000) and L286 ('E-0911-B 是结构性的 … 每一次延展的前沿上复发')
+  - C/chain_v4_monthly.sh L209-216 checks only LEGS_V4B_DONE and the 2023 king seat
+- **Recommended action:** Align the panel and axis truncation rules, or cut every decision window and fold test at the last anchor that has a panel row; make pod_legs_v4b.py fail when a new in-axis row lacks a panel row.
+
+#### TRN-18 — The swap step's acceptance cannot catch caliber splits (A2 resets to the reference every anchor), cites void sections, and has no producer-path score parity
+
+- **Layer:** SWAP (acceptance) · **Severity:** P2 — The last check before live money is known to be blind to the defect class this audit finds reintroduced.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** live_trading · **Method:** VERIFIED
+- **What is wrong:** acceptance.py A2 advances the comparison with the reference weights each anchor (H = ref) and passes on median weight correlation >= 0.99; both vectors share 0.9·H, so input-scale errors such as TRN-04/05 pass. RUNBOOK §0★ step 8 points to the verbs of §3-3/§4-8, which are marked void. There is no raw-score parity of the new booster or the new numpy DL model on the producer's feature path, and the continuous-parity device (parity_replay_2026-09-12) is not part of the swap.
+- **Evidence:**
+  - ~/wide_shadow/acceptance.py 2149b64c L165 `H = ref  # 每锚对照后用参考轨迹前进(隔离单锚误差, 不累积)`; L167 report("A2_frozen_parity", med >= 0.99 and len(cors) >= 60, ...)
+  - docs/RUNBOOK_monthly_retrain_2026-10.md L23 step 8 '同 §3-3 / §4-8 的动词'; L130, L148 void banners
+  - STATE.md (line ~57): reviewer 0dfc0d87 ② accepted — '旧 A2 是单步平价(acceptance.py L165 H=ref), 合成翻倍反例仍过'
+  - memory king-fund-ema-feature-train-v0-serve-v1 L17: 'Shadow acceptance A2 could not catch it'
+- **Recommended action:** Write a v4 swap checklist inside §0★ (backup, atomic swap, seat seeding, producer-path raw-score parity for booster and numpy model, N-anchor continuous parity, first-anchor acceptance) and stop treating A2 as a pass criterion.
+
+#### TRN-19 — Reviewer P3 confirmed on the current source: a parser output line without '=' (bare `R`) is exported as R=R, and no negative control exists
+
+- **Layer:** CHAIN (contract loader) · **Severity:** P3 — Second-line defence only; requires a broken or substituted interpreter.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_retrain · **Method:** VERIFIED (code read; not re-executed)
+- **What is wrong:** After the Python parser exits 0, Bash re-validates each output line with `${line%%=*}` / `${line#*=}`. A line with no '=' yields key R and value R, passes the registered-key and literal-character checks, and is exported as R=R. The suite has a control for a value outside the grammar but none for a bare key. The real parser always prints key=value, so this needs a faulty interpreter to trigger.
+- **Evidence:**
+  - C/chain_lib.sh 4ee217e1 L147 `k=${line%%=*}; v=${line#*=}`; L148-151 checks; L157 `export "${line%%=*}=${line#*=}"`; L131 real parser prints k + "=" + resolved[k]
+  - C/tests_pipeline_gates.py a3af858d L1602-1603: only 'parser that exits 0 but emits a single key whose value is outside the grammar ⇒ rc 4'
+  - .claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_round4_code_review_2026-09-13/retrain/RESULT.md §2 (parser_bare_registered_key_OUTPUT_ACCEPTED: stub parser, loader rc 0, PARSED_R=<R>); reviewer's frozen chain_lib sha = current 4ee217e1
+- **Recommended action:** Before splitting: `case $line in *=*) ;; *) die month_env_parser_output_$(basename "$f") 4 ;; esac`; add a [U] cell with a stub PY emitting a bare `R` (expect rc 4, no MONTH_ENV_OK) run against the current and pre-fix chain_lib.
+
+#### TRN-20 — The env allowlist covers only the data stage; judge/export knobs that loosen gates are read from the operator's shell, and the driver ignores the judge's exploratory flag
+
+- **Layer:** REPRO (environment) · **Severity:** P3 — Needs a polluted operator shell; partly fail-closed.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_retrain, future_eval · **Method:** VERIFIED
+- **What is wrong:** Only data-stage children run under env -i. King export, legs, mwf, refit, arms, judge and export inherit the shell. BUNDLE_GUARD_LO/HI (exporter guard band), JUDGE_ALLOW_PARTIAL / JUDGE_REPRO_TOL / JUDGE_N_FROZEN (judge) and FORCE / BEST_EP_FLOOR (trainer) are read from it. Some fail closed (trainer effective-value whitelist; the export gate refuses a band or N_FROZEN that differs from the contract). JUDGE_REPRO_TOL loosens the reproduction gate, and JUDGE_ALLOW_PARTIAL makes the judge exploratory while the driver still writes JUDGE_V4_DONE and MONTHLY_DONE.
+- **Evidence:**
+  - C/chain_v4_monthly.sh L130-148 env -i only in the data stage; L191-192, L207, L250, L281, L300 plain env; L282-283 judge checked only by marker
+  - C/pod_export_bundle_v4.py L179 BUNDLE_GUARD_LO/HI from env; C/judge_v4.py L59-63 JUDGE_ALLOW_PARTIAL / JUDGE_REQUIRE_W / JUDGE_STRICT_BOOK, L150 JUDGE_N_FROZEN, L279 JUDGE_REPRO_TOL; C/pod_f10_train_monthly_v4.py L277-278 FORCE / BEST_EP_FLOOR
+  - C/v4e_gate_export_v2.py L107-110 refuses env thresholds that disagree with the contract
+- **Recommended action:** Run every non-GPU stage under env -i with an allowlist; unset JUDGE_*, BUNDLE_GUARD_*, FORCE, BEST_EP_FLOOR, MONTHS before GPU dispatch; refuse a judge JSON with exploratory=true.
+
+#### TRN-21 — King recipe declares subsample=0.8 but bagging never runs (bagging_freq 0); training is non-deterministic by configuration
+
+- **Layer:** REPRO (king recipe) · **Severity:** P3 — Declared recipe differs from the effective one; no drift between research and production because both use this exporter.
+- **Status:** VERIFIED_IMMATERIAL — resolution: Same effective recipe (no bagging) in every generation; predictions reproduced bitwise in the 09-12 control.
+- **Affects:** reporting · **Method:** VERIFIED
+- **What is wrong:** LightGBM only bags rows when bagging_freq > 0. The saved in-service booster records bagging_fraction 0.8 with bagging_freq 0, so row subsampling has never happened in any generation. deterministic is 0 with 100 threads; the chain absorbs that with |ΔIC| tolerances rather than bitwise parity.
+- **Evidence:**
+  - C/pod_export_bundle_v4.py L67-68 LGBMRegressor(n_estimators=400, learning_rate=0.05, num_leaves=63, subsample=0.8, colsample_bytree=0.8, n_jobs=100, verbose=-1)
+  - ~/wide_shadow/shadow_bundle/slow2026.txt 8d79186b L7706 [num_threads: 100], L7707 [seed: 0], L7708 [deterministic: 0], L7715 [bagging_fraction: 0.8], L7718 [bagging_freq: 0], L7721 [feature_fraction: 0.8]
+  - LightGBM Parameters docs (context7): 'To effectively enable bagging, the bagging_freq parameter must also be set to a non-zero value'
+  - receipts/monthly_chain_2026-09-12 (DESIGN §6.5): 6 of 8 bundle files bitwise equal to 09-09; slow_pred_pinned.npy bitwise equal; slow2026.txt differs in tree_sizes text
+- **Recommended action:** Either set subsample_freq=1 under a preregistration (recipe change) or record the effective parameters and LightGBM version in provenance.
+
+#### TRN-22 — E-0907-G recurs: the October trainer's results claim per-fold seeds SEED+YM while the code uses the constant SEED
+
+- **Layer:** REPRO (self-report) · **Severity:** P3 — A false receipt on the seed axis; readers of the string alone get the wrong answer.
+- **Status:** VERIFIED_IMMATERIAL — resolution: Zero numeric effect per E-0907-G (seed_fold and env_given.SEED record the real seed).
+- **Affects:** reporting · **Method:** VERIFIED
+- **What is wrong:** The v4 trainer was generated from the base copy that still carries the false fold_rule.rng string; ledger E-0907-G fixed it only in the full-window patch.
+- **Evidence:**
+  - C/pod_f10_train_monthly_v4.py fd5707bd L272 comment 'per-fold RNG: torch.manual_seed(SEED + YM)'; L295 "rng": "torch.manual_seed(SEED+YM); np.random.seed(SEED+YM) per fold"; L336 torch.manual_seed(SEED); np.random.seed(SEED)   # mE1_constseed
+  - C/make_v4_scripts.py L8 generator base /workspace/review_scratch/allweather_trackB/pod_f10_train_monthly_earlystop.py (archived as base_pod_f10_train_monthly_earlystop.py 55ee8382)
+  - docs/ERROR_LEDGER_2026-08-20.md E-0907-G (zero numeric effect; string false)
+- **Recommended action:** Fix the emitted string and comment in make_v4_scripts.py; add an AST test that the rng string matches the seeding call.
+
+#### TRN-23 — Provenance gaps: git single-source copy of the base trainer is a different file; external builder shas are recorded, not asserted; bundle provenance has no shas; merge does not assert fold identity; pod2 run copy is stale
+
+- **Layer:** REPRO (provenance / single source) · **Severity:** P3 — None changes a number today; each weakens the ability to prove later which code produced an artifact.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_retrain, reporting · **Method:** VERIFIED
+- **What is wrong:** (1) retrain_2026-09/pod_f10_train_ext.py in git is f3c1e3cf (the L1SM variant), not the 93cc2cdf base that the v4 trainer header and T4b cite and that pod2 holds (its git copy lives under allweather_2026-09-05/trackB/scripts/). (2) BASE_TRAINER, BUILDER_FEA82 and BUILDER_FEA89 are hashed by preflight but never compared with expected values (today pod2 == git for both builders). (3) The bundle's config.json lists input paths but no input shas and no exporter sha (the month root's deps pins and the export-gate receipt do carry them). (4) merge_mwf_v4b.py records each fold's self_sha256 but does not assert it equals the dispatched trainer; the trainer resumes finished folds without checking legs/source identity (DESIGN §7 (v)). (5) pod2's /workspace/review_scratch is the September legacy run copy, and /workspace/pod_env_bootstrap.sh named in §0★ step 0 is absent.
+- **Evidence:**
+  - receipts_train/SHA256SUMS_retrain_scripts_and_docs.txt: retrain_2026-09/pod_f10_train_ext.py f3c1e3cf…; allweather_2026-09-05/trackB/scripts/pod_f10_train_ext.py 93cc2cdf…; pod2 /workspace/pod_f10_train_ext.py 93cc2cdf (pod2 receipt); git log 8d6d8faa 'PREREG L1SM … 装置f3c1e3cf3afc'
+  - C/pod_f10_train_monthly_v4.py L263 'byte-identical to /workspace/pod_f10_train_ext.py (sha256 93cc2cdf…)', L288-289 base_sha256 recorded
+  - C/chain_v4_monthly.sh L62-65 external_sha256 recorded only; C/pod_export_bundle_v4.py L258-269 provenance (paths, no shas)
+  - C/merge_mwf_v4b.py L29-35 (asserts seed/embargo/causality/rule/GATE; records self_sha256 without comparison); C/pod_f10_train_monthly_v4.py L318-320 _done resume
+  - pod2 receipt: review_scratch chain_lib ffbb89b8, v4_gate_common 7b6d49a3, contract 3299dc97, exporter b5b6cd19, trainer 2147a7dd, refit 2e9c999b, merge 9f8c2b93, judge 7f1aa5d6; chain_v4_monthly.sh / v4_gate_step{1,2}_m.py / v4e_gate_export_v2.py absent; /workspace/pod_env_bootstrap.sh absent
+- **Recommended action:** Restore the 93cc2cdf file under retrain_2026-09/pod_f10_train_ext.py (rename the L1SM variant) or pin BASE_TRAINER's sha in the contract; add expected-sha keys for the two external builders; add exporter sha and input shas to config.json provenance; assert fold self_sha/legs_sha in merge.
+
+#### TRN-24 — Judge windows end at 2026-08-31, so October's new month is never read; SIGNAL_RECEIPT is required before it can exist; September predictions land in a file named SLOW_v3_on_v4axis
+
+- **Layer:** EVAL (judge / signal receipt / naming) · **Severity:** P3 — Reading gaps and naming hazards (E-0825-H); no verdict changes.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_eval, reporting · **Method:** VERIFIED
+- **What is wrong:** (1) judge_v4.py's windows are literals ending 2026-08-31; October's month appears in no judge reading (the frozen verdict is unaffected). (2) Preflight requires SIGNAL_RECEIPT to exist before any stage, while the template says it is produced for this month's arm before export; for A1 the export gate marks E7 not applicable, so the file only has to exist. (3) With the October template, build_dev_v4.py writes September's v4 predictions into SLOW_v3_on_v4axis.npy.
+- **Evidence:**
+  - C/judge_v4.py L55-58 FROZEN = (2025-03-01, 2026-08-10 20Z), EXT = (2025-03-01, 2026-08-31 20Z), '08-31 (6)' window
+  - C/chain_v4_monthly.sh L49 PF_INPUTS includes SIGNAL_RECEIPT; C/v4_month_2026-10.env.template L44-45; C/v4e_gate_export_v2.py L378 E7 not applicable without FEMAT
+  - C/build_dev_v4.py L46-47 (PREV_BUNDLE pinned PRED aligned → SLOW_v3_on_v4axis.npy); template L55-56 PREV_BUNDLE=/workspace/shadow_bundle_v4, PREV_META=wide_fea_v4_meta.npz
+- **Recommended action:** Derive the judge's extension windows from the axis end (keep FROZEN fixed); make SIGNAL_RECEIPT conditional on a FEMAT-injected arm; rename the reference SLOW file to a generation-neutral name.
+
+#### TRN-25 — Seven of the driver's eleven stages (cache, data, mwf, refit, arms, judge, export) have never run through the driver on real data; current sources of trainer, refit, exporter, merge, launcher, build_dev and run_v4_arms have never run on real data
+
+- **Layer:** CHAIN (integration) · **Severity:** P2 — The design fails closed, so the likely cost is a stalled October run rather than a silent bad bundle.
+- **Status:** OPEN_NOT_MEASURED
+- **Affects:** future_retrain · **Method:** VERIFIED
+- **What is wrong:** Real-data runs through the driver were limited to preflight+gates (frozen September gates) and king+legs on isolated September roots. Older versions of the business stages ran in the 09-09 legacy chain. The reviewer's five (mwf/refit/arms/judge/export) remain unexercised end to end; cache and data were only exercised on synthetic or legacy paths.
+- **Evidence:**
+  - receipts/monthly_chain_2026-09-12/pod2_root/chain_v4_monthly.log (stages=preflight,gates; FAIL_gate_require_step1); pod2_king_legs/chain_v4_monthly.log (stages=king,legs; MONTHLY_STAGES_DONE)
+  - docs/DESIGN_v4_monthly_chain_2026-09-12.md §7 (ii); reviewer round-4 RESULT §3 '真实mwf/refit/arms/judge/export尚未跑通'
+  - receipts/PROVENANCE_v4_chain.json scripts (09-09): trainer 2147a7dd, exporter 23b1a5c7, refit 2e9c999b, legs pod_legs_v4 91330c06
+- **Recommended action:** Before October, rehearse mwf→export once on an isolated root with September data and a reduced month set (one shard, one seed), reading every receipt; resolve TRN-16 (or use a waived STEP1 copy for the rehearsal only).
+
+#### TRN-26 — Pending approvals before October can run to export: STEP1_m 79950786…, STEP2_m d99a9109…, NONE clamp switch, and an unlisted export-baseline ruling; plus recipe/caliber rulings
+
+- **Layer:** APPROVALS · **Severity:** P2 — Blocks October by design until ruled.
+- **Status:** PENDING_USER_DECISION
+- **Affects:** future_retrain · **Method:** VERIFIED
+- **What is wrong:** The contract approves only the frozen September gate sources; the month-generic gates and several October-specific switches need the user's word. The export-baseline ruling (TRN-15) is on no existing list.
+- **Evidence:**
+  - C/ELIGIBILITY_CONTRACT.json 1188267a: gates.STEP1.approved_source_sha256 = [278fdce611e9…]; gates.STEP2.approved_source_sha256 = [db7ab3561f97…]
+  - docs/PREREG_v4_gates_monthly_2026-09-12.md §7.11 E5: real contract 'REQUIRE_FAIL … d99a910951e0 is not an APPROVED source'; AMENDMENT 3 '★ 批准对象再次变更 … d99a9109'
+  - C/v4_month_2026-10.env.template L63-68 (NONE + PREV_CLAMP_BUILDER_SHA256 b9f9c728)
+- **Recommended action:** Present the list in AUDIT_TRAIN.md §1.3 to the user as one decision sheet, with d99a9109 (not 0fe5ec55/b2f9cfd4) as the STEP2_m object.
+
+#### TRN-27 — RUNBOOK_2026-10 never names the current STEP2_m approval object d99a9109; it asks for 0fe5ec55 (修订 4) and b2f9cfd4 (修订 5), and its device sha table is stale
+
+- **Layer:** DOC (runbook) · **Severity:** P2 — The decision document for a pending user ruling names the wrong object; preflight would still refuse (fails closed) but a ruling would be wasted.
+- **Status:** DOC_STALE
+- **Affects:** reporting · **Method:** VERIFIED
+- **What is wrong:** A user following the runbook text would approve a superseded red-control snapshot. The §0★ device sha table and the October template comment are also out of date.
+- **Evidence:**
+  - grep 'd99a9109' docs/RUNBOOK_monthly_retrain_2026-10.md → 0 matches
+  - docs/RUNBOOK_monthly_retrain_2026-10.md L62 (STEP2_m sha 0fe5ec5573f3…), L76 (合同批准 … 增补 0fe5ec55…), L91 (→ b2f9cfd4…); L10 device sha table (chain_lib ffbb89b8 …; current chain_lib 4ee217e1, chain_v4_data 2369a87d, chain_v4_gpu3 16bfdb7e)
+  - C/v4_month_2026-10.env.template L50 names 0fe5ec55; docs/DESIGN_v4_monthly_chain_2026-09-12.md §10.5 '陈旧注释(未改 …)'
+- **Recommended action:** Add 修订 6 to §0★ naming d99a9109 as the only STEP2_m approval object and 455e3df4/0fe5ec55/b2f9cfd4 as red-control snapshots; refresh or delete the sha table.
+
+#### TRN-28 — CLAUDE.md routes 月度重训 to the superseded September runbook, which is still marked 待执行
+
+- **Layer:** DOC (routing) · **Severity:** P2 — New sessions are routed to an obsolete procedure for a real-money model change.
+- **Status:** DOC_STALE
+- **Affects:** future_retrain, reporting · **Method:** VERIFIED
+- **What is wrong:** The session-start routing table points to RUNBOOK_monthly_retrain_2026-09.md (08-19, pre-v4 procedure: pod_export_shadow_bundle.py, unclamped features). The operative document is RUNBOOK_monthly_retrain_2026-10.md §0★. This audit's own brief started from the old file.
+- **Evidence:**
+  - CLAUDE.md L47 '| 月度重训 | `docs/RUNBOOK_monthly_retrain_2026-09.md` |'
+  - docs/RUNBOOK_monthly_retrain_2026-09.md L3 '状态: 待执行(pod 资源到位后)'; docs/RUNBOOK_monthly_retrain_2026-10.md L3-L10 (§0★ supersedes)
+- **Recommended action:** Route 月度重训 to RUNBOOK_monthly_retrain_2026-10.md §0★ and mark the September runbook superseded in its header.
+
+#### TRN-29 — Memory says the r20 v2 export gate is 'PROPOSED 未应用'; the chain contract shows it APPLIED on 2026-09-12T09:04:39Z
+
+- **Layer:** DOC (memory) · **Severity:** P3 — Misstates gate status to future sessions; no effect on the chain.
+- **Status:** DOC_STALE
+- **Affects:** reporting · **Method:** VERIFIED
+- **What is wrong:** The memory note and its MEMORY.md index line predate the application; the contract's BUNDLE_export gate approves d63f4ec3 and the judge floor is the v2 gate's 28-name closure.
+- **Evidence:**
+  - C/ELIGIBILITY_CONTRACT.json 1188267a status 'APPLIED 2026-09-12 (user word 09-12: …); was PROPOSED2 01692565…', applied_utc 2026-09-12T09:04:39Z; gates.BUNDLE_export.approved_source_sha256 [d63f4ec3f9e6…]
+  - C/v4_gate_common.py 24e813f1 L72-78 (BUNDLE_export floor = 28 names of the v2 gate)
+  - memory export_gate_v2_falsifiability_closure_2026_09_12 description '(NOT APPLIED, user ruling pending)'; MEMORY.md line 'r20 出口门 v2 可证伪性收口 09-12 (PROPOSED 未应用)'
+- **Recommended action:** Update the memory note and index line to 'APPLIED 2026-09-12T09:04:39Z (contract 1188267a)'.
+
+## 6. Checked and closed in code (not yet deployed)
+
+| Earlier defect | Where it is closed |
+|---|---|
+| R1 refit silent defaults (dlw_ext/f8_ext/argmax) | C/pod_f10_refit_v4.py L12-17 required env, refusal before torch import |
+| R2 hardcoded fold-month whitelist 202501..202608 | C/pod_f10_train_monthly_v4.py L302-305 (v4_months), merge_mwf_v4b.py L19 |
+| R3″ king export must precede legs; legs use this month's PRED | C/chain_v4_monthly.sh L184-217 |
+| R4 generation label constant; exporter default output dir (E-0912-B) | C/pod_export_bundle_v4.py L21-27, L259, L263-266 |
+| B-R3 CLIP targets inheriting a patch / ambient builder env | C/chain_v4_monthly.sh L130-148 (env -i, DLWT_RAW_PATCH= empty) |
+| R5 legacy September chain scripts runnable | chain_v4_data.sh L6, chain_v4_gpu3.sh L9, chain_v4s_gpu.sh L12, chain_king_e.sh L4, chain_v4_post_export.sh L9: V4_LEGACY_OK guard |
+| D1 refit sidecar identity (null locators) | C/chain_lib.sh prereq_refit_sidecar (reviewer round 4: VERIFIED CLOSED); driver L263 |
+| D3 month contract sourced by Bash | C/chain_lib.sh L25-165 data-grammar parser (except TRN-19); dryrun 407aa438 L27 load_month_env "$SRC" |
+| D2 / AMENDMENT 3 member index dtype | C/v4_gate_step2_m.py d99a9109 L115-122 (kind in 'iu' before 1-D/range/unique) |
+| E-0909-A negative-index wrap in king features | C/pod_fea_ext_clamp.py L48, L55 np.maximum(E - w, 0) |
+| AMENDMENT 5 legs all-row recompute | C/pod_legs_v4b.py L43-49 (old rows verbatim, asserted); driver L210-216 (2023 king seat >= 0.4) |
+| E-0912-B test cells running real writers | C/tests_pipeline_gates.py L946 static rule (run_sandboxed) |
+| refit trained_through ambiguity (sidecar) | C/pod_f10_refit_v4.py L140-147 trained_through_label_utc / pool_end / tr1_end |
+| king bundle training-cutoff label | C/pod_export_bundle_v4.py L263-266 king_train_end_utc |
+
+## 7. Counts
+
+| Status | n |
+|---|---|
+| FIXED_DEPLOYED | 0 |
+| VERIFIED_IMMATERIAL | 4 |
+| OPEN_MEASURED_MATERIAL | 0 |
+| OPEN_NOT_MEASURED | 15 |
+| PENDING_USER_DECISION | 6 |
+| DOC_STALE | 4 |
+| **total** | 29 |
+
+| Severity | n |
+|---|---|
+| P0 | 0 |
+| P1 | 3 |
+| P2 | 15 |
+| P3 | 11 |
+
+## 8. Not checked
+
+- No stage, gate, test suite (tests_pipeline_gates.py 392 cells) or probe was executed; the 392 ALL PASS and the reviewer's 162 observations are cited from their receipts, not rerun.
+- No GPU-stage behaviour observed; the current trainer, refit, exporter, merge, launcher, build_dev and run_v4_arms sources were read, not executed.
+- Large data artifacts (5m caches, panels, feature npy/npz, bundles, fold checkpoints on pod2) were not hashed or content-checked; the only data reads were E_ts/members of /workspace/dlw_v4raw/data/dlw_targets.npz and the intervals map of /workspace/fund_aug.json.gz.
+- Materiality of TRN-05 (V2MAIN split), TRN-06 (D20), TRN-07 (x0910 recurrence), TRN-12 (seat caliber mix) and TRN-17 (frontier dead rows) was not measured.
+- pod_f8_build_ext.py beyond its input list and the documented trend defect (the 89 fea89 column definitions were not reviewed).
+- judge_v4.py beyond its windows and env knobs; v4_gate_common.require beyond the registered floors; v4e_gate_export_v2.py content gates other than E0/E2b/E7 structure.
+- jpline (not accessed); the executor ~/dl_quant_live and how it consumes target_live; whether the running producer process uses the on-disk shadow_loop_v3.py (only the file was read).
+- The HC dev tree contents on pod2 (masks, calib, run_arm.sh rc semantics — DESIGN §7 (vi) — and the A0/A0p baseline book shas).
+- When data.binance.vision publishes the 2026-09 monthly fundingRate zip (decides whether October must use the REST tail).
+- Areas owned by the other auditors (data panels at large, execution, production path) except where they feed training inputs.
+
+## 9. Method, constraints and receipts
+
+- Read-only. Sources read from branch research/book-uplift-2026-09-11 (HEAD d7efe276 at audit start); the chain directory had no uncommitted changes and its last commit is e7bdd129 throughout. Line numbers are from `cat -n` of the files whose shas are in the receipts.
+- pod2: CPU-only reads under `nice -n 19` (sha256sum, ls, sed/grep, small numpy/json reads); GPU `0 %, 2 MiB` and PIDs 333197 / 339489 state `Tl` before and after (`receipts_train/pod2_readonly_receipt_2026-09-13T1312Z.txt`). No exchange API. `~/wide_shadow` files were only read.
+- Hashes: `t6_sha_guard.py write` for 111 chain-directory files, 28 retrain scripts / documents and 8 live producer files; a `check` pass on the chain-directory list returned mismatches 0; no receipt line carries the empty-file hash.
+- Receipts: `receipts_train/SHA256SUMS_v4_chain_dir.txt`, `receipts_train/SHA256SUMS_retrain_scripts_and_docs.txt`, `receipts_train/SHA256SUMS_live_producer_readonly_home_relative.txt`, `receipts_train/pod2_readonly_receipt_2026-09-13T1312Z.txt`.

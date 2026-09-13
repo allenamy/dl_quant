@@ -1,0 +1,92 @@
+== BEFORE 2026-09-13T13:12:09Z
+0 %, 2 MiB
+    PID STAT     ELAPSED
+ 333197 Tl    1-22:05:12
+ 339489 Tl    1-21:08:30
+== external builders / base trainer / legacy data scripts (/workspace)
+e86725cc2768bb6265dd8fb2b3580629706166da012298768b1c0788e8f5a624  pod_dlw_features_ext.py
+f606bffa620004f69ace3704ca19d8f3643b764e918f5eea5a4575b40587f07e  pod_f8_build_ext.py
+93cc2cdf925a1dada9190a5d86664d28c811d9ba0ecf3eaf377d54fc554f2598  pod_f10_train_ext.py
+3e304c27606d3c12f9734d520773b2afe5aa85dcd0cdc5e984e041f9988474f9  pod_f10_np_export.py
+db7f0474b64fb3098a8d1a6af29f61423d7b99c74c6834eb6424b77d1642b5ac  pod_panel_ext.py
+a9c29141985f11ad6cb5ca1df96d7215364f436fa68f2c7027ba68f1a7426510  pod_panel_splice.py
+fa665810dfea71b0684a1bac252e61e0cfb552639b16382d8167e58a60191cb7  fund_pull_pod.py
+de7a0661521d2bc2db9b2f645cf192096ab381174e7496f681b3a2a308d7a8d1  pod_merge_cache_ext.py
+02157bda4fe0f6cd6f42215a0a5551b819b817249de4d3ffda26a2963e6a0378  pod_fea_ext.py
+c210bac649071e30530147e4b808f662d87e07ad521eaadb307b3453c348dc6a  pod_export_bundle_v3.py
+ea3675b8012ea266646571f6e1550f248d894cae832b190a8beab27befab9fb7  pod_f10_refit_ext.py
+7d0454ad2c9c55eb9bc5031dd7f7ad03cea225222dc890028ade76672f5a1a32  zload.py
+ls: cannot access '/workspace/pod_env_bootstrap.sh': No such file or directory
+ls: cannot access '/workspace/m2026-10': No such file or directory
+== r6 month-extension devices (pod2 only)
+cccc5b6be9248671ac9370b6313eaa8a3e9b397414d86db18db2b344e836743d  r6_panel_splice.py
+298927ad16af7c03477642436cb964da47485d31de6f30414b2574e0a28c48d2  r6_fetch_funding.py
+2e52f81a64faf6d2af73e87524162c8560b3485a39cf1d9402241b1c4236cb76  r6_fetch_klines.py
+3227e4f5be49cf54cc6e604428a86b31ed872bc797636212344ce41c047d48bb  r6_merge_cache.py
+808d2f666f0c0be801bd71acb401af884275dd3d284e0837287f6ca639bcf3d6  r6_raw_patch_ext.py
+031b06b03a75e73dd1c47a44dac3bb330e8433b3e376a68e62f8d045222614d7  r6_legs_x0910.py
+f8aba90458f23f7afcc5482522cb4c70833daef9ff93f516319eba27ea0168e1  r6_king_pred.py
+== r6_fetch_funding.py L33-34, L69
+    INFO = {d["symbol"]: float(d["fundingIntervalHours"]) for d in get("https://fapi.binance.com/fapi/v1/fundingInfo")
+            if "fundingIntervalHours" in d}
+with gzip.open(OUT, "wt") as f: json.dump({"rates": rates, "intervals": {k: v for k, v in INFO.items() if k in rates}, "meta": meta}, f)
+== r6_panel_splice.py L58-59, L81-82, L90-92
+AUG = json.loads(gzip.open(AUGP, "rt").read()); AUG_IV = {k: float(v) for k, v in (AUG.get("intervals") or {}).items() if v}
+SEP = json.loads(gzip.open(FSEP, "rt").read()); SEP_IV = {k: float(v) for k, v in (SEP.get("intervals") or {}).items() if v}
+    for t_ms, rate in (AUG.get("rates") or {}).get(s, []): rows.append((int(t_ms)//1000, float(rate), AUG_IV.get(s, np.nan)))
+    for t_ms, rate in (SEP.get("rates") or {}).get(s, []): rows.append((int(t_ms)//1000, float(rate), SEP_IV.get(s, np.nan)))
+    iv_full = np.where(np.isfinite(fiv), fiv, dv); iv_full = np.where(np.isfinite(iv_full), iv_full, 8.0)
+    iv_full = ALLOWED[np.argmin(np.abs(iv_full[:, None] - ALLOWED[None, :]), axis=1)]
+    rate_nf = fr * (8.0 / iv_full)
+== fund_aug.json.gz intervals
+n_rates 827 n_intervals 0
+== refit gradient-window arithmetic on /workspace/dlw_v4raw/data/dlw_targets.npz (September axis; October = +180 anchors assumed)
+n 10212 axis 2022-01-03T00:00Z 2026-08-31T20:00Z min members 135 (all anchors have >=50 pairs => tr_idx = all)
+SEPT {'nA': 10212, 'tr1_end': '2025-12-19T12:00Z', 'last_loss_label_anchor': '2025-12-16T20:00Z', 'va1_start': '2025-12-19T16:00Z', 'pool_end': '2026-08-31T20:00Z', 'va1_days': 255.3}
+OCT {'nA': 10392, 'tr1_end': '2026-01-14T00:00Z', 'last_loss_label_anchor': '2026-01-09T20:00Z', 'va1_start': '2026-01-14T04:00Z', 'pool_end': '2026-09-30T20:00Z', 'va1_days': 259.8}
+== /workspace/review_scratch run copy vs current git (sha256)
+ffbb89b83345012fe56a888e83e758f763f4fde80e22a43f96a25ce2a65566ce  chain_lib.sh
+7b6d49a3de74df8840b8bdf5e6a20226505a5a8a6abf25d57f822d522cba2eb2  v4_gate_common.py
+3299dc97ab0c90d51ac77297b605e5072bafd4cfaac954ab8655699c498f271b  ELIGIBILITY_CONTRACT.json
+b5b6cd19f1cc6b9cfac07fe79835dcc78a229fe696dc77e7776c7ba02a875030  pod_export_bundle_v4.py
+2147a7dd128be180ac6c5b01cde6d066413ac0333700deb887cef542cc8d50bb  pod_f10_train_monthly_v4.py
+2e9c999b833a589927d782624b902b5bdff10fe3146a71f0b83c4115386f3454  pod_f10_refit_v4.py
+9f8c2b93cdeaf8bc4db5d158df466961fc0b81bc5a0ba62038353697f97e2ae9  merge_mwf_v4b.py
+7f1aa5d63ea37d67db9518f7f1b03c73db917308bd169ba02de6a6298ef54c42  judge_v4.py
+ls: cannot access 'chain_v4_monthly.sh': No such file or directory
+ls: cannot access 'v4_gate_step1_m.py': No such file or directory
+ls: cannot access 'v4_gate_step2_m.py': No such file or directory
+ls: cannot access 'v4e_gate_export_v2.py': No such file or directory
+== 09-09 v4 refit products
+drwxrwxrwx  3 root root 2000339 2026-09-09T05:47:44 .
+drwxrwxrwx 10 root root 3000261 2026-09-09T05:37:20 ..
+drwxrwxrwx  2 root root 2000169 2026-09-09T05:35:47 bad_legs_20260909
+-rw-rw-rw-  1 root root  445746 2026-09-09T05:45:12 f10_live_s2027.pt
+-rw-rw-rw-  1 root root  444372 2026-09-09T05:47:44 f10_live_s2027_np.npz
+-rw-rw-rw-  1 root root  445716 2026-09-09T05:45:13 f10_live_s42.pt
+-rw-rw-rw-  1 root root  444372 2026-09-09T05:47:30 f10_live_s42_np.npz
+== AFTER 2026-09-13T13:12:12Z
+0 %, 2 MiB
+    PID STAT     ELAPSED
+ 333197 Tl    1-22:05:15
+ 339489 Tl    1-21:08:33
+== FOLLOW-UP READ (same session, sha256sum + ls only): upstream scripts in /workspace and /workspace/review_scratch
+ddf957fe192a6a98273670326a52a625ff8d7b547069cabc56ce77364244ec40  pod_extend_vision.py
+1bc2eb5b4a6d6d066e19dfd14101c9e6030cddd7dd8b6731643a488d17b4bf02  pod_fund_zips.py
+-rw-rw-rw- 1 root root 1460 2026-09-01T02:00:49 fund_pull_pod.py
+-rw-rw-rw- 1 root root 2218 2026-09-01T01:29:54 pod_extend_vision.py
+-rw-rw-rw- 1 root root 2207 2026-09-01T03:35:38 pod_fund_zips.py
+-rw-rw-rw- 1 root root 3735 2026-09-01T01:49:39 pod_merge_cache_ext.py
+-rw-rw-rw- 1 root root 9309 2026-09-01T01:54:58 pod_panel_ext.py
+-rw-rw-rw- 1 root root 5872 2026-09-01T05:46:09 pod_panel_splice.py
+-rw-rw-rw- 1 root root 3247 2026-09-09T02:31:14 /workspace/review_scratch/cache_coverage_gate_v2.py
+-rw-rw-rw- 1 root root 2441 2026-09-09T02:22:17 /workspace/review_scratch/make_raw_patch.py
+-rw-rw-rw- 1 root root 3103 2026-09-09T03:02:36 /workspace/review_scratch/v4_hole_cells.py
+6afd2672b8a4c4528c39edbe6fd43f5fe68c42ae4095da8cc86092cfe9fc53d2  /workspace/review_scratch/v4_hole_cells.py
+23584a0c818a0d886cc79ad5c03de686f6c7ae43c101024a8bfab051bfd4a81e  /workspace/review_scratch/cache_coverage_gate_v2.py
+7716e7d3a491e96d3c8cf0c2e2d9bfd70f447e374a68db78570ae9144b1fccfa  /workspace/review_scratch/make_raw_patch.py
+== FOLLOW-UP AFTER 2026-09-13T13:29:24Z
+0 %, 2 MiB
+    PID STAT     ELAPSED
+ 333197 Tl    1-22:22:27
+ 339489 Tl    1-21:25:45
