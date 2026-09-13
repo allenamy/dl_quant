@@ -122,3 +122,4 @@ OPS-01 · OPS-02 · 回滚动词双演练 · Mac 盘满清理 23 个陈旧克隆
 - **新登记 W6C-C4**(FIXPROGRAM §9): 看门狗 cond4 在修前转账日读低记 realised ⇒ §4-4 回撤低估 0.26 pp(−1.3136% vs −1.5749%)。
 - **新增待用户裁定**: 无(转账日口径仍为 §5 第 3 项)。
 - **FX-PROD 头更新 afd94a2**(捆绑包已重建): 换装干跑驱动加时间守卫(锚时 HH:15–HH:50 与 HH+1:05 之前拒跑)与 `~/wide_shadow/shadow_bundle*` 只读前后 mtime/size 核对(打印 LIVE_RO unchanged/CHANGED); 读码沙箱审计: 写全在 `work/swapdry`, 对 `~/wide_shadow` 只读, 无场所调用(ReplayFetcher 拒绝录制外请求), 无 launchctl, 不向在役 PID 发信号。**干跑未运行**; 接手者于 17:05Z 后、锚窗外在克隆内执行 `/bin/bash migrations/swap_dryrun_frozen_20260913.sh`, 日志 `work/swapdry/run_dry.log`, 结束后提交收据。
+- **16:52Z lead 中止 FX-W6C 电池 `final2_3f85c0e`**(16:51:10Z 启动, 违反电池窗口 / 锁规则与「交接期不跑电池」指令, 且 16Z 实盘锚尚未 anchor done): 只杀电池驱动、run_acceptance 与其 python 子进程; 收据 `receipts/INFRA_stop_battery_in_anchor_window_20260913T165202Z.log`(第 1 次 kill 因 zsh 不分词未生效且进程树匹配到 lead 自身 shell, 已记入收据; 第 2 次按显式 PID 数组成功)。**fx_w6c 3f85c0e 的全电池仍未跑**, 接手者在 17:05–19:15Z 或 21:05–23:15Z 取锁运行。
