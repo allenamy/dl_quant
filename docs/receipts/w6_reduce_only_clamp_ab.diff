@@ -379,7 +379,7 @@ index 83b9e07..1d70b2b 100644
              #   "source" (it IS the source) and no separate limit reference (its own
              #   `price_submit` is that price). Emitting them everywhere would invite a reader to
 diff --git a/live/reconcile.py b/live/reconcile.py
-index e8fee1b..380a060 100644
+index e8fee1b..004a188 100644
 --- a/live/reconcile.py
 +++ b/live/reconcile.py
 @@ -30,6 +30,7 @@ our records and not a bug in this function — see docs/OPEN_ITEMS.md.
@@ -390,7 +390,7 @@ index e8fee1b..380a060 100644
  from collections import defaultdict
  from typing import Any, Dict, Iterable, List, Optional, Tuple
  
-@@ -84,6 +85,99 @@ def signed_fills_by_anchor(orders: Iterable[Dict[str, Any]]) -> Dict[float, Dict
+@@ -84,6 +85,214 @@ def signed_fills_by_anchor(orders: Iterable[Dict[str, Any]]) -> Dict[float, Dict
  # ⇒ It is a FLOOR, not a mute: 6 USDT unexplained still fires, and the relative test is untouched
  #   on large positions (the tolerance is the LARGER of the two, so a big book keeps its allowance).
  DUST_ABS_USDT = 5.0        # the DEFAULT floor, for a symbol we have no parsed filter for
@@ -417,14 +417,95 @@ index e8fee1b..380a060 100644
 +_ORIGQTY_PAIR = re.compile(r"origQty\s+(\S+?)\s+differs from ours\s+(\S+)")
 +
 +
-+def _clamp_rederived(r, why) -> Optional[float]:
-+    """★ E-0912-A (1): does this PERSISTED request have the shape of a venue clamp? — the string's own two numbers say
-+    the venue asked for LESS (0 < venue origQty < ours; a venue origQty ABOVE ours is the venue asking for MORE and stays
-+    a contradiction), the confirmed quantity is within both the venue's origQty and ours (|confirmed| ≤ venue ≤ |qty|; a
-+    `qty_venue`, when present, also bounds it), its child fills DETERMINE it (Σ trade_qty == |confirmed_qty|), and the side
-+    is ours (sign(confirmed) == sign(qty), or nothing filled). Then the origQty-kind `inconsistent` string is the old gate
-+    reading "the venue was more exact than us" (F3/F4) as a contradiction, and the request's KNOWN quantity is
-+    confirmed_qty. Returns that signed quantity, or None. An unparseable string re-derives nothing (the flag stands)."""
++def _child_qty_sum(tq) -> Optional[float]:
++    """Σ of one request's child fill quantities, or None when ANY child is unreadable.
++
++    ★ C7 (review 0158f5d1): `sum()` over a dict holding NaN yields NaN, and `abs(NaN - x) > tol` is
++      FALSE — so a corrupted child set used to PASS the "the children DETERMINE the quantity" gate
++      and a lower bound was promoted on no evidence at all. A negative child is not a fill history
++      either: a child quantity is a traded size, so two children of −1 and +5 are not "4 filled".
++      Both now fail CLOSED, per child, before any sum is formed.
++    """
++    if not isinstance(tq, dict) or not tq:
++        return None
++    tot = 0.0
++    for v in tq.values():
++        f = _fin(v)
++        if f is None or f < 0:
++            return None
++        tot += f
++    return tot
++
++
++def _reduce_only_evidence(r) -> Optional[bool]:
++    """True / False / None(not recorded) for "this request was reduce-only", from the STRUCTURED
++    fields only — ours and the venue's — never from the diagnostic string.
++
++    ★ C5 (review 0158f5d1): a request that explicitly records `reduce_only: False` is not a
++      reduce-only clamp, and a shrunken origQty on it stays a contradiction. The real 12Z rows
++      predate this column entirely, so ABSENT stays absent: they are re-derived on CAPACITY
++      CLOSURE (G6 below), not on this flag, and their reduce-only-ness is evidenced out of band by
++      the original POST (`ops/rejudge_ledger_rows.py --check`).
++    """
++    vals = [r.get(k) for k in ("reduce_only", "reduceOnly", "venue_reduce_only", "resp_reduce_only")
++            if isinstance(r, dict) and r.get(k) is not None]
++    if not vals:
++        return None
++    return all(v is True for v in vals)
++
++
++def _origqty_reasons(why) -> Optional[List[str]]:
++    """Every ";"-separated reason inside a persisted contradiction string, or None when ANY of them
++    is not the identity gate's origQty VALUE comparison.
++
++    ★ C6 (review 0158f5d1): the writer JOINS a fold's contradictions with "; "
++      (`binance_executor` L1679 / L1785), so "… origQty 8 differs from ours 10; identity: foreign
++      orderId … is not ours …" is a string this system can produce — and a substring test read it
++      as a pure clamp, letting a foreign-identity contradiction ride along. Every reason must be
++      the clamp kind or nothing is re-derived.
++    """
++    s = str(why or "").strip()
++    if not s:
++        return None
++    parts = [p.strip() for p in s.split(";") if p.strip()]
++    if not parts or not all(_is_identity_origqty_kind(p) for p in parts):
++        return None
++    return parts
++
++
++def _clamp_rederived(r, why) -> Optional[Dict[str, Any]]:
++    """★ E-0912-A (1) + ★ C4–C7 (review 0158f5d1): the STRUCTURED verdict for ONE persisted request.
++
++    Returns None — nothing may be re-derived, the contradiction STANDS — or
++      {"C": signed confirmed contracts, "Qv": the venue's accepted capacity (positive), "final": bool}
++    where `final` says the quantity is PROVEN FINAL and may be read as an exact executed amount.
++
++    ★★ C IS A CUMULATIVE LOWER BOUND; F IS THE QUANTITY. `binance_executor._settle_leg_by_identity`
++       writes `confirmed_qty` as what the venue has confirmed SO FAR — its own docstring says the
++       children are a lower bound. Round 1 of this fix returned C and `_exec_qty` called it "known",
++       so an OPEN request that had filled 4 of an accepted 8 was reported as EXACTLY 4 — and a real
++       execution of 6, which is legal inside [4, 8], became a 20 USDT quantity residual at mark 10.
++       That is a PROTECTIVE FALSE POSITIVE in the same family as the incident this whole fix exists
++       for. When the quantity is not final the honest answer is the interval [|C|, Qv], which the
++       caller reads as known + band, exactly as it did before any clamp re-derivation existed.
++
++    The gates, in order. The diagnostic string supplies the two numbers the OLD gate compared and
++    NOTHING else — it never authorises anything:
++      G1 kind      EVERY ";"-separated reason is the origQty value comparison            (C6)
++      G2 RO        an explicitly recorded reduce-only flag must be True                  (C5)
++      G3 capacity  Qv is `qty_venue` when the request carries it, and it must AGREE with the
++                   string's number; 0 < Qv < |Qs|, and the string's `ours` IS this request's qty
++      G4 side      sign(C) == sign(qty) (or C == 0) and |C| <= min(Qv, |qty|)
++      G5 children  every child finite and >= 0, and Σ children == |C|                    (C7)
++      G6 finality  (terminal AND confirmed_qty_final) OR |C| == Qv — capacity closure    (C4)
++
++    G6's second clause is what carries the real 12Z rows: their `confirmed_qty_final` is False, but
++    the venue accepted 1,933,692 and 1,933,692 filled, so nothing more CAN fill and C is F.
++    """
++    if _origqty_reasons(why) is None:
++        return None                                              # G1
++    if _reduce_only_evidence(r) is False:
++        return None                                              # G2
 +    m = _ORIGQTY_PAIR.search(str(why or ""))
 +    if not m:
 +        return None
@@ -432,21 +513,50 @@ index e8fee1b..380a060 100644
 +    if venue is None or ours is None or not (0 < venue < ours):
 +        return None
 +    c, q = _fin(r.get("confirmed_qty")), _fin(r.get("qty"))
-+    if c is None or q is None or q == 0 or abs(c) > abs(q) + 1e-9 or (c != 0 and c * q < 0):
++    if c is None or q is None or q == 0:
 +        return None
-+    if abs(c) > venue + 1e-9 or abs(abs(q) - ours) > max(1e-9, 1e-6 * ours):
-+        return None                  # the string must be about THIS request (ours == its qty) and the fills within the venue's origQty
-+    tq = r.get("trade_qty") or {}
-+    try:
-+        s = sum(float(v) for v in tq.values()) if isinstance(tq, dict) and tq else None
-+    except (TypeError, ValueError):
++    if abs(abs(q) - ours) > max(1e-9, 1e-6 * ours):
++        return None                  # the string must be about THIS request (its `ours` == this qty)
++    qv = _fin(r.get("qty_venue")) if r.get("qty_venue") is not None else None
++    if qv is not None:                                           # G3
++        qv = abs(qv)
++        if qv == 0 or abs(qv - venue) > max(1e-9, 1e-6 * venue):
++            return None              # the structured capacity and the string's disagree
++    cap = qv if qv is not None else venue
++    if abs(c) > cap + 1e-9 or abs(c) > abs(q) + 1e-9:
++        return None                                              # G4
++    if c != 0 and c * q < 0:
 +        return None
++    s = _child_qty_sum(r.get("trade_qty"))                       # G5
 +    if s is None or abs(s - abs(c)) > 1e-9:
 +        return None
-+    qv = _fin(r.get("qty_venue")) if r.get("qty_venue") is not None else None
-+    if qv is not None and abs(c) > abs(qv) + 1e-9:
++    final = bool(r.get("terminal")) and bool(r.get("confirmed_qty_final"))
++    if not final:
++        final = abs(abs(c) - cap) <= max(1e-9, 1e-6 * cap)       # G6: capacity closure
++    return {"C": c, "Qv": cap, "final": bool(final)}
++
++
++def _clamp_capacity_band(o) -> Optional[float]:
++    """The UNFILLED capacity the venue actually ACCEPTED on a row whose every sent request is a
++    re-derived clamp, in contracts — or None when the row is not that shape.
++
++    ★ C4: the producer writes `filled_unknown_qty` as |Qs| − |C|, i.e. what WE asked for minus what
++      is confirmed. Under a clamp the venue only ever accepted Qv, so the honest remaining band is
++      Qv − |C|, never |Qs| − |C|. Used ONLY to NARROW the row's own band (`min`), so a row this
++      cannot describe keeps exactly the band it had and nothing is ever widened.
++    """
++    reqs = [r for r in (o.get("request_ledger") or ()) if isinstance(r, dict)
++            and r.get("state") not in ("rejected", "not_sent")]
++    if not reqs:
 +        return None
-+    return c
++    tot = 0.0
++    for r in reqs:
++        inc = r.get("inconsistent")
++        ev = _clamp_rederived(r, inc) if inc else None
++        if ev is None:
++            return None
++        tot += 0.0 if ev["final"] else max(ev["Qv"] - abs(ev["C"]), 0.0)
++    return tot
 +
 +
 +def _rederive_ledger(o) -> Optional[Dict[str, Any]]:
@@ -456,28 +566,33 @@ index e8fee1b..380a060 100644
 +    ANOMALOUS at the latest reconciled anchor after the fix is deployed — and `ops/resume_from_trip.sh` refuses while it
 +    holds. So a contradiction is kept only if its CONTENTS still contradict:
 +      · a request-level `inconsistent` of the origQty kind on a request with the clamp shape (`_clamp_rederived`) ⇒ a
-+        KNOWN quantity (= confirmed_qty), not a contradiction;
++        re-derived CLAMP VERDICT, not a contradiction;
 +      · every other request-level string (another kind, or the clamp shape does not hold) STANDS;
 +      · every row-level `ledger_inconsistent` entry stands unless its `why` is the origQty kind AND names a request
 +        re-derived above (the row-level "confirmed more than requested" / "non-finite …" entries always stand).
 +    Returns None when the row has no ledger to re-derive from (the flag stands), else
-+    {"stands": [...], "known": {client_id: signed qty}, "n_requests": n}."""
++    {"stands": [...], "known": {client_id: verdict}, "n_requests": n}.
++
++    ★ C4 (review 0158f5d1): `known` maps a client id to the STRUCTURED verdict `_clamp_rederived` returns —
++      {"C", "Qv", "final"} — NOT to a bare quantity. The name is kept because three readers index it by KEY only
++      (`_exec_qty`, `ops/rejudge_ledger_rows.py`, the disposition ruler's cross-check); the one reader that takes
++      the VALUE must consult `final` before treating C as the executed amount, because C is a lower bound."""
 +    reqs = [r for r in (o.get("request_ledger") or ()) if isinstance(r, dict)]
 +    if not reqs:
 +        return None
 +    stands: List[str] = []
-+    known: Dict[Any, float] = {}
++    known: Dict[Any, Dict[str, Any]] = {}
 +    for r in reqs:
 +        if r.get("state") in ("rejected", "not_sent"):
 +            continue
 +        inc = r.get("inconsistent")
 +        if not inc:
 +            continue
-+        c = _clamp_rederived(r, inc) if _is_identity_origqty_kind(inc) else None
-+        if c is None:
++        ev = _clamp_rederived(r, inc) if _is_identity_origqty_kind(inc) else None
++        if ev is None:
 +            stands.append(f"{r.get('client_id')}: {str(inc)[:120]}")
 +        else:
-+            known[r.get("client_id")] = c
++            known[r.get("client_id")] = ev
 +    for e in (o.get("ledger_inconsistent") or ()):
 +        if isinstance(e, dict):
 +            cid, why = e.get("client_id"), e.get("why")
@@ -490,7 +605,7 @@ index e8fee1b..380a060 100644
  # ★★ B20, CLOSED 2026-07-27: THE FLOOR IS PER SYMBOL, BECAUSE MIN_NOTIONAL IS.
  # This constant was labelled "venue MIN_NOTIONAL", which restated a per-symbol venue value as a
  # global. Measured the same day, from the venue rather than from memory:
-@@ -200,7 +294,27 @@ def _exec_qty(o: Dict[str, Any]) -> Tuple[Optional[float], str, str]:
+@@ -200,7 +409,35 @@ def _exec_qty(o: Dict[str, Any]) -> Tuple[Optional[float], str, str]:
      #   quantified through any later branch (it used to hide inside the bounded branch and be
      #   bypassed the moment the last unknown request closed).
      if o.get("ledger_inconsistent"):
@@ -507,8 +622,16 @@ index e8fee1b..380a060 100644
 +            if not isinstance(_r, dict) or _r.get("state") in ("rejected", "not_sent"):
 +                continue
 +            _c = _fin(_r.get("confirmed_qty"))
-+            if _r.get("client_id") in _rd["known"]:
-+                _tot += _rd["known"][_r.get("client_id")]
++            _ev = _rd["known"].get(_r.get("client_id"))
++            if _ev is not None:
++                # ★ C4: a re-derived clamp gives an EXACT quantity only when it is PROVEN FINAL
++                #   (venue terminal + executed_qty_final, or |C| == the accepted capacity). While
++                #   it is open, C is a LOWER BOUND and the row keeps its known+band reading below —
++                #   promoting it made a legal execution inside [C, Qv] read as a position residual.
++                if not _ev["final"]:
++                    _all = False
++                    continue
++                _tot += _ev["C"]
 +            elif _c is not None and (_r.get("confirmed_qty_final") or abs(_c) >= abs(_fin(_r.get("qty")) or 0.0) - 1e-9):
 +                _tot += _c
 +            else:
@@ -519,8 +642,18 @@ index e8fee1b..380a060 100644
      q = o.get("filled_qty")
      if q is not None:
          # ★ Round 5 (review Q1): the QUANTITY is the authority when the producer wrote one (Σ of
+@@ -307,6 +544,9 @@ def _unknown_interval(o: Dict[str, Any]):
+         return None
+     if not (uq == uq) or uq in (float("inf"), float("-inf")) or uq < 0:
+         return None
++    _cap = _clamp_capacity_band(o)          # ★ C4: [|C|, Qv], never [|C|, |Qs|]
++    if _cap is not None:
++        uq = min(uq, _cap)
+     return (0.0, uq) if side == "buy" else (-uq, 0.0)
+ 
+ 
 diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
-index 3142562..3fa1a23 100644
+index 3142562..8766db0 100644
 --- a/live/tests_disposition_matrix.py
 +++ b/live/tests_disposition_matrix.py
 @@ -31,12 +31,32 @@
@@ -558,7 +691,7 @@ index 3142562..3fa1a23 100644
  import sys
  
  _HERE = os.path.dirname(os.path.abspath(__file__))
-@@ -158,6 +178,118 @@ check("★★ residual is intended MINUS filled, so a partially-covered gap coun
+@@ -158,6 +178,147 @@ check("★★ residual is intended MINUS filled, so a partially-covered gap coun
  check("★★ rows from another rebalance are excluded",
        OD.gaps([{**row("blocked_by_halt"), "rebalance_id": "OTHER"}], "RID")["n_named"] == 0)
  
@@ -594,12 +727,31 @@ index 3142562..3fa1a23 100644
 +      ② 串内两数 0 < Qv < Qs —— 场所要得【更少】。Qv > Qs 是场所要得更多, 仍是矛盾。
 +      ③ 串里的 Qs 就是这个请求自己的 qty —— 否则这串说的不是这张单。
 +      ④ 同侧(sign(confirmed) == sign(qty)), 且 |confirmed| ≤ min(Qv, |qty|)。
-+      ⑤ 子成交 Σ trade_qty == |confirmed_qty| —— 子成交把这个量【定死】了, 这才是「已知」。
-+      ⑥ 子成交报价 trade_quote 齐全且有限 —— 说得出张数说不出金额, 仍算读不出(缺口不能重判)。
++      ⑤ 子成交 Σ trade_qty == |confirmed_qty|, 且【逐个】子成交有限且非负 —— 子成交把这个量
++         【定死】了, 这才是「已知」。−1 与 +5 抵消成 4 不是成交史。
++      ⑥ 子成交报价 trade_quote 齐全且有限 —— 说得出张数说不出金额, 仍算读不出(缺口不能重判);
++         若请求自报了【最终】成交额(confirmed_notional_final)而它与子成交报价和不符, 是金额矛盾, 拒。
++      ⑦ **终局性**: (terminal ∧ confirmed_qty_final) ∨ |C| == Qv(容量闭合)。
++
++    ★ 2026-09-13 C4–C8(独立研究员 0158f5d1): 原来这里缺第 ⑦ 条 —— **C 是累计下界, F 才是量**。
++      场所接受 8、目前成交 4、单子还开着时, 把 4 当最终成交额会把一段合法区间 [4, 8] 读成一个确定的
++      小缺口 —— 尺子会少报缺口, 方向与 reconcile 的误报相反但同一个错。不能证明终局就**不重判**,
++      这一行保持它原来的整笔缺口。真实两行 |C| == Qv(容量闭合), 仍然是终局, 仍然重判。
++      同时补 C5(显式 reduce_only=False)、C6(组合诊断文本)、C7(负子成交)、C8(金额矛盾)四道门。
++      ★ 这些门全部写在函数体内(不引新的模块级常量/辅助名), 因为独立研究员的 `pure()` 探针按名字
++        抽取本文件的函数, 新名字会让他们的回归跑不起来。
 +    """
 +    if not isinstance(req, dict):
 +        return None
-+    m = _ORIGQTY_PAIR.search(str(req.get("inconsistent") or ""))
++    _raw = str(req.get("inconsistent") or "")
++    _parts = [p.strip() for p in _raw.split(";") if p.strip()]
++    if not _parts or not all(_is_origqty_kind(p) for p in _parts):
++        return None                                   # ① C6: 每一条理由都必须是截量那一种
++    _ro = [req.get(k) for k in ("reduce_only", "reduceOnly", "venue_reduce_only", "resp_reduce_only")
++           if req.get(k) is not None]
++    if _ro and not all(v is True for v in _ro):
++        return None                                   # C5: 明写不是 reduce-only ⇒ 矛盾照旧
++    m = _ORIGQTY_PAIR.search(_raw)
 +    if not m:
 +        return None
 +    qv, qs = _fin(m.group(1)), _fin(m.group(2))
@@ -619,11 +771,21 @@ index 3142562..3fa1a23 100644
 +        return None
 +    sq = [_fin(v) for v in tq.values()]
 +    sv = [_fin(v) for v in tqt.values()]
-+    if any(v is None for v in sq) or any(v is None for v in sv) or set(tq) != set(tqt):
-+        return None
++    if any(v is None or v < 0 for v in sq) or any(v is None for v in sv) or set(tq) != set(tqt):
++        return None                                   # C7: 逐个有限且非负(不许抵消)
 +    if abs(sum(sq) - abs(c)) > 1e-9:
 +        return None                                   # 子成交没有定下这个量
-+    return c, (sum(sv) if c > 0 else -sum(sv))
++    _amt = (sum(sv) if c > 0 else -sum(sv))
++    if req.get("confirmed_notional_final") is True:   # C8: 自报最终金额与子成交报价必须一致
++        _cn = _fin(req.get("confirmed_notional"))
++        if _cn is None or abs(_cn - _amt) > max(1e-6, 1e-6 * abs(_amt)):
++            return None
++    _final = bool(req.get("terminal")) and bool(req.get("confirmed_qty_final"))
++    if not _final:
++        _final = abs(abs(c) - qv) <= max(1e-9, 1e-6 * qv)       # ⑦ C4: 容量闭合
++    if not _final:
++        return None
++    return c, _amt
 +
 +
 +def _is_origqty_kind(why):
@@ -677,7 +839,7 @@ index 3142562..3fa1a23 100644
  print("\n[E] the REAL ledger — what each anchor would now declare")
  _all_anchor_rows = []
  for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.jsonl"))):
-@@ -165,10 +297,11 @@ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.j
+@@ -165,10 +326,11 @@ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.j
          _l = _l.strip()
          if _l:
              _all_anchor_rows.append(json.loads(_l))
@@ -691,7 +853,7 @@ index 3142562..3fa1a23 100644
  # ★★★ THIS ASSERTION WAS `len(_halted) == 2` AND IT EXPIRED WITHIN THE HOUR — third instance
  #     today of the family this repo keeps paying for, and the third one in MY OWN tests. A count
  #     of a LIVE, GROWING population is pinned-to-transient-state wearing a different hat: the
-@@ -179,15 +312,67 @@ for _A in sorted({r["anchor_ts"] for r in _all}):
+@@ -179,15 +341,67 @@ for _A in sorted({r["anchor_ts"] for r in _all}):
  #       worth making was never "there are two" — it is "a halted anchor declares its whole book,
  #       a trading anchor declares far less", and that survives every future anchor.
  _halt_flag = {}
@@ -760,7 +922,7 @@ index 3142562..3fa1a23 100644
  # ★★ 2026-08-04: `< 200` FAILED on A1785859279 (229.5) and the failure was CORRECT ARITHMETIC on
  #   a WRONG QUANTITY. 6 of that anchor's 7 gap rows were `skipped_no_chase_arm` — the chase
  #   experiment's no_chase arm, residuals that were sendable and DELIBERATELY not sent so the
-@@ -236,6 +421,14 @@ def _split(rid):
+@@ -236,6 +450,14 @@ def _split(rid):
      return d, g["gross_usdt"] - d - cap
  
  
@@ -775,7 +937,7 @@ index 3142562..3fa1a23 100644
  _tr_split = {r: _split(r) for r in _traded}
  _tr_cap = {r: float(_by[r].get("venue_cap_usdt") or 0.0) for r in _traded}
  # ★ 2026-08-27 尺子第三次重标定(与 08-18 resize 案同一修复家族, 一层更深): E-0826-F 停机清除后的
-@@ -252,7 +445,6 @@ _rebuild = {r for i, r in enumerate(_all_ids)
+@@ -252,7 +474,6 @@ _rebuild = {r for i, r in enumerate(_all_ids)
  #   A1787819040(1.75→2.0 收官步)非自愿 798 是建仓未完成部分, 前提(意图≈稳态换手)失效,
  #   分离性质未失效。修复同法: 独立成类, 界=自身整书 realized_gross 的 5%(同代书尺,
  #   比稳态 200U 松 ~10×, 仍能抓住真正的建仓卡死); 其后首个稳态锚必须回 200U 线内。
@@ -783,7 +945,7 @@ index 3142562..3fa1a23 100644
  def _resize_sig(rid):
      row = _row_by_rid.get(rid) or {}
      eb = row.get("external_book") or {}
-@@ -378,6 +570,72 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
+@@ -378,6 +599,72 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
            for rb in _rebuild) if _rebuild else True,
        {rb: (_next_traded_after(rb), round(_tr_split[_next_traded_after(rb)][1])
              if _next_traded_after(rb) else None) for rb in _rebuild})
@@ -856,7 +1018,7 @@ index 3142562..3fa1a23 100644
  # ★ 2026-08-18 尺子重标定: 原断言在 TOTAL(自愿+非自愿)上执行, 隐含前提"没有合法的大额
  #   自愿弃单"。当日 04:00Z 入金 resize(2×NAV, 目标增量 2.6×)被 no-chase 政策正确弃单
  #   1424 USDT(全部 deliberate, involuntary=0), 打破了按无大额重整时代标定的 0.25 界 ——
-@@ -429,6 +687,121 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
+@@ -429,6 +716,156 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
        and all(abs(_old_d[r] - _tr_split[r][0]) < 1e-2 for r in _traded if r not in _gt20),
        {r: (round(_old_d[r]), round(_tr_split[r][0])) for r in _gt20 if abs(_old_d[r] - _tr_split[r][0]) > 1.0})
  
@@ -898,6 +1060,30 @@ index 3142562..3fa1a23 100644
 +     {**_REQ_OK, "qty": -1900000.0}),
 +    ("child quantities readable but no child QUOTE — the size is known, the notional is not",
 +     {**_REQ_OK, "trade_quote": {}}),
++    # ★ 2026-09-13 C4–C8(独立研究员 0158f5d1): 下面五条是这一轮新加的门。
++    ("C4 the quantity is NOT proven final — C is a cumulative LOWER bound, the venue accepted more "
++     "than has filled and the request is still open",
++     {**_REQ_OK, "qty": -10.0, "confirmed_qty": -4.0,
++      "inconsistent": "X-1: identity: submit response origQty 8.0 differs from ours 10.0",
++      "trade_qty": {"a": 4.0}, "trade_quote": {"a": 4.0}}),
++    ("C5 the request EXPLICITLY records reduce_only False — a shrunken origQty on it is not a clamp",
++     {**_REQ_OK, "reduce_only": False}),
++    ("C6 a clamp reason JOINED with a foreign-identity reason ('; ' is what the writer emits)",
++     {**_REQ_OK, "inconsistent": _REQ_OK["inconsistent"] + "; identity: foreign orderId 9 is not ours (1)"}),
++    ("C7 a negative child cancelling a larger one — the sum is right, the history is not",
++     {**_REQ_OK, "trade_qty": {"a": -1.0, "b": 1933693.0}}),
++    ("C8 the request's OWN final notional disagrees with its children's quotes",
++     {**_REQ_OK, "confirmed_notional_final": True, "confirmed_notional": -3.0}),
++]
++# 每条新门的正控: 拿掉那一个字段/换成合法值, 同一请求必须重新被接受(门是门, 不是一律拒绝)。
++_POS = [
++    ("C4 same shape but venue-terminal AND executed-qty-final",
++     {**_REQ_OK, "qty": -10.0, "confirmed_qty": -4.0, "terminal": True, "confirmed_qty_final": True,
++      "inconsistent": "X-1: identity: submit response origQty 8.0 differs from ours 10.0",
++      "trade_qty": {"a": 4.0}, "trade_quote": {"a": 4.0}}, (-4.0, -4.0)),
++    ("C5 reduce_only recorded True", {**_REQ_OK, "reduce_only": True}, (-1933692.0, -1015.1883)),
++    ("C8 final notional AGREEING with the children's quotes",
++     {**_REQ_OK, "confirmed_notional_final": True, "confirmed_notional": -1015.1883}, (-1933692.0, -1015.1883)),
 +]
 +
 +
@@ -944,14 +1130,25 @@ index 3142562..3fa1a23 100644
 +      "part, the ruler and the book have stopped meaning the same thing by \"known\")",
 +      not _rc_disagree, _rc_disagree or f"{_rc_checked} rows cross-checked, {_rc_known_n} clamped")
 +check("★★★ ...and the rule accepts ONLY the clamp shape — a rule that turns UNKNOWN into KNOWN can "
-+      "only ever SHRINK a gap, so each of its six gates has a counter-example that must stay "
-+      "unknown: venue asked for MORE / opposite side / children do not sum to the confirmed qty / "
-+      "a non-origQty contradiction / the string is about another request / no readable child quote",
++      "only ever SHRINK a gap, so EVERY gate has a counter-example that must stay unknown: venue "
++      "asked for MORE / opposite side / children do not sum / a non-origQty contradiction / the "
++      "string is about another request / no readable child quote / the quantity is not proven "
++      "FINAL (C4) / reduce_only explicitly False (C5) / a combined diagnostic string (C6) / a "
++      "negative child (C7) / a final notional that disagrees with the children (C8)",
 +      _clamp_known(_REQ_OK) is not None
 +      and abs(_clamp_known(_REQ_OK)[1] - (-1015.1883)) < 1e-9
 +      and all(_clamp_known(q) is None for _, q in _NEG),
 +      [n for n, q in _NEG if _clamp_known(q) is not None]
 +      or f"positive control -1015.1883 USDT; {len(_NEG)} counter-examples all UNKNOWN")
++check("★★★ ...and every one of those gates is a GATE, not a blanket refusal — restore the one fact "
++      "each counter-example removed and the SAME request is accepted again, with the right numbers. "
++      "A rule that rejected everything would pass the line above and measure nothing",
++      all(_clamp_known(q) is not None
++          and abs(_clamp_known(q)[0] - want[0]) < 1e-6 and abs(_clamp_known(q)[1] - want[1]) < 1e-6
++          for _, q, want in _POS),
++      [n for n, q, want in _POS if _clamp_known(q) is None
++       or abs(_clamp_known(q)[0] - want[0]) > 1e-6 or abs(_clamp_known(q)[1] - want[1]) > 1e-6]
++      or f"{len(_POS)} positive controls back to exactly their own numbers")
 +check("★★★ the HALTED class is LOAD-BEARING: read as trading anchors — which is all they are until "
 +      "the `opening_halted` flag is consulted — every halted anchor shows an involuntary gap far "
 +      "outside the steady 200U ruler, so the class is what keeps a blocked anchor from being read "
@@ -8167,10 +8364,10 @@ index 0000000..8250bbf
 +print("ALL PASS")
 diff --git a/live/tests_reduce_only_clamp.py b/live/tests_reduce_only_clamp.py
 new file mode 100644
-index 0000000..124fb26
+index 0000000..0e813f1
 --- /dev/null
 +++ b/live/tests_reduce_only_clamp.py
-@@ -0,0 +1,554 @@
+@@ -0,0 +1,672 @@
 +"""E-0912-A: a reduce-only exit CLAMPED BY THE VENUE to the position is a KNOWN quantity, not a contradiction.
 +
 +*** MOCK ONLY: `urllib.request.urlopen` is replaced in-process (the transport suite's FakeNet). No account, no
@@ -8719,6 +8916,124 @@ index 0000000..124fb26
 +check("★★ T10 ctl: a POST record whose origQty disagrees with the persisted string ⇒ that request's cross-check is FALSE (the receipt names it), the other stays true",
 +      {r["symbol"]: r["requests"][0]["cross_check"]["all"] for r in _rep2["rows"]} == {MEME: False, POP: True}
 +      and _rep2["rows"][0]["requests"][0]["cross_check"]["string_Qv_equals_post_origQty"] is False, {r["symbol"]: r["requests"][0]["cross_check"] for r in _rep2["rows"]})
++
++# ════════════════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[T11] C4–C8 (independent review 0158f5d1): C IS A LOWER BOUND, F IS THE QUANTITY — and the re-judgment "
++      "must rest on the STRUCTURED request/response, never on a regex over the diagnostic string")
++# The reviewer executed a complete `reconcile` on a synthetic but entirely legal shape: we asked for 10, the venue
++# accepted 8, 4 is confirmed so far, the request is still OPEN. Round 1 of the clamp re-derivation called that an
++# EXACT 4 — so a real execution of 6, which is legal inside [4, 8], was reported as a 20 USDT quantity residual at
++# mark 10. That is a PROTECTIVE FALSE POSITIVE: the same family as the incident this whole fix exists for, pointing
++# the other way. Their receipt: .../codex_followup_code_review_2026-09-13/incident/ROOT_PARTIAL_STATES.json
++
++
++def _c4_req(**over):
++    r = {"client_id": "SYNTH-1", "state": "confirmed", "qty": 10.0, "confirmed_qty": 4.0, "qty_venue": 8.0,
++         "terminal": False, "confirmed_qty_final": False,
++         "inconsistent": "identity: response origQty 8.0 differs from ours 10.0",
++         "trade_qty": {"T1": 4.0}, "trade_quote": {"T1": 4.0}, "reduce_only": True}
++    r.update(over)
++    return r
++
++
++def _c4_row(side="buy", req_over=None, **over):
++    r = {"symbol": "SYNTH", "side": side, "anchor_ts": 2.0, "submit_ts": 2.0, "last_fill_ts": 2.0,
++         "order_type": "maker", "terminal_reason": "filled_amount_unknown", "intended_notional": 10.0,
++         "filled_notional": None, "filled_qty": None, "filled_known_qty": 4.0, "filled_unknown_qty": 6.0,
++         "avg_fill_px_children": 1.0, "request_ledger": [_c4_req(**(req_over or {}))],
++         "ledger_inconsistent": [{"client_id": "SYNTH-1",
++                                  "why": "identity: response origQty 8.0 differs from ours 10.0"}]}
++    r.update(over)
++    return r
++
++
++def _c4_run(o, q1, q2, mark=10.0):
++    """The FULL reconcile, not a helper: one symbol, two readbacks, one anchor."""
++    rb = [{"symbol": "SYNTH", "anchor_ts": t, "read_ts": t, "venue_position_qty": q,
++           "venue_position_notional": mark * abs(q)} for t, q in ((1.0, q1), (3.0, q2))]
++    return RC.reconcile([("SYN", {"orders": [copy.deepcopy(o)], "position_readback": rb,
++                                  "anchors": [{"anchor_ts": 3.0, "target_gross": 1000.0}]})],
++                        min_notional_by_symbol={})
++
++
++_c4_states = {st: RC._exec_qty(_c4_row(req_over={"state": st})) for st in ("unknown", "pending", "confirmed")}
++check("★★★ C4: an OPEN clamped request is NOT an exact quantity — C is what the venue has confirmed SO FAR, and "
++      "`binance_executor._settle_leg_by_identity` writes it as a lower bound. In every persisted state the row now "
++      "reads as BOUNDED (known 4 + band), never `known`",
++      all(v[2] == "bounded" and v[0] == 4.0 for v in _c4_states.values()),
++      {k: (v[0], v[2]) for k, v in _c4_states.items()})
++_c4_anom = {st: len(_c4_run(_c4_row(req_over={"state": st}), 0.0, 6.0)["latest"])
++            for st in ("unknown", "pending", "confirmed")}
++check("★★★ ...and the load-bearing cell: a real execution of 6 is LEGAL inside the accepted [4, 8], so the complete "
++      "`reconcile` raises NO anomaly — round 1 raised a 20 USDT quantity_residual here, in all three states",
++      all(n == 0 for n in _c4_anom.values()), _c4_anom)
++_c4_short = {st: len(_c4_run(_c4_row(side="buy", req_over={"state": st}), -8.0, -2.0)["latest"])
++             for st in ("unknown", "pending", "confirmed")}
++check("★★★ ...and in the reviewer's own direction — held SHORT 8, BUY reduce-only, cumulative 6, left short 2 — a "
++      "legal shrink of a real position, not a synthetic RO opening from flat",
++      all(n == 0 for n in _c4_short.values()), _c4_short)
++check("★★★ ...but PROVEN FINAL is still an exact known: venue terminal AND executed-qty-final on the same shape "
++      "gives `known` 4 — the fix withholds the promotion, it does not remove the class",
++      RC._exec_qty(_c4_row(req_over={"terminal": True, "confirmed_qty_final": True}))[:1] == (4.0,)
++      and RC._exec_qty(_c4_row(req_over={"terminal": True, "confirmed_qty_final": True}))[2] == "known",
++      RC._exec_qty(_c4_row(req_over={"terminal": True, "confirmed_qty_final": True})))
++check("★★★ ...and so is CAPACITY CLOSURE (|C| == Qv), which is what carries the two REAL 12Z rows: their "
++      "`confirmed_qty_final` is False, and nothing more can fill because the venue accepted exactly what filled",
++      RC._exec_qty(_c4_row(req_over={"confirmed_qty": 8.0, "trade_qty": {"T1": 8.0}, "trade_quote": {"T1": 8.0}},
++                           filled_known_qty=8.0, filled_unknown_qty=2.0))[2] == "known")
++check("★★★ THE BAND IS THE ACCEPTED CAPACITY [|C|, Qv], never [|C|, |Qs|]: the producer writes "
++      "`filled_unknown_qty` = 10 − 4 = 6, but the venue only ever accepted 8, so the honest remaining band is 4. "
++      "A readback of 10 is therefore BEYOND what the venue agreed to and stays an anomaly",
++      RC._clamp_capacity_band(_c4_row()) == 4.0 and RC._unknown_interval(_c4_row()) == (0.0, 4.0)
++      and len(_c4_run(_c4_row(), 0.0, 8.0)["latest"]) == 0
++      and len(_c4_run(_c4_row(), 0.0, 10.0)["latest"]) == 1,
++      (RC._unknown_interval(_c4_row()), "row band 6.0",
++       [len(_c4_run(_c4_row(), 0.0, q)["latest"]) for q in (4.0, 6.0, 8.0, 10.0)]))
++check("★★ ...and the capacity narrowing can only NARROW: a row this rule cannot describe keeps exactly the band it "
++      "had (no request ledger ⇒ no capacity claim ⇒ the producer's own 6.0)",
++      RC._clamp_capacity_band({"request_ledger": []}) is None
++      and RC._unknown_interval({"side": "buy", "filled_unknown_qty": 6.0}) == (0.0, 6.0))
++# ── the evidence gates: the diagnostic string supplies two numbers and authorises nothing ──
++_c5 = RC._exec_qty(_c4_row(req_over={"reduce_only": False, "terminal": True, "confirmed_qty_final": True}))
++check("★★★ C5: a request that EXPLICITLY records `reduce_only: False` is not a reduce-only clamp — a shrunken "
++      "origQty on it stays a contradiction, even when it is otherwise final. The real 12Z rows predate the column, "
++      "so ABSENT stays absent and they re-derive on capacity closure instead",
++      _c5[2] == "unquantifiable" and RC._reduce_only_evidence({"reduce_only": False}) is False
++      and RC._reduce_only_evidence({}) is None and RC._reduce_only_evidence({"reduce_only": True}) is True, _c5[2])
++_c6s = "identity: response origQty 8.0 differs from ours 10.0 ; identity: foreign orderId 99 is not ours (1)"
++_c6 = RC._exec_qty(_c4_row(req_over={"inconsistent": _c6s, "terminal": True, "confirmed_qty_final": True},
++                           ledger_inconsistent=[{"client_id": "SYNTH-1", "why": _c6s}]))
++check("★★★ C6: the writer JOINS a fold's contradictions with '; ' (`binance_executor` L1679/L1785), so a clamp "
++      "reason carrying a FOREIGN-IDENTITY reason beside it is a string this system can produce — a substring test "
++      "read it as a pure clamp. Every ';'-separated reason must be the clamp kind or nothing is re-derived",
++      _c6[2] == "unquantifiable" and RC._origqty_reasons(_c6s) is None
++      and RC._origqty_reasons("identity: origQty 8.0 differs from ours 10.0") is not None, _c6[2])
++_c7a = RC._exec_qty(_c4_row(req_over={"trade_qty": {"T1": float("nan")}, "terminal": True,
++                                      "confirmed_qty_final": True}))
++_c7b = RC._exec_qty(_c4_row(req_over={"trade_qty": {"T1": -1.0, "T2": 5.0}, "terminal": True,
++                                      "confirmed_qty_final": True}))
++check("★★★ C7: `sum()` over a dict holding NaN is NaN and `abs(NaN - 4) > 1e-9` is FALSE, so a corrupted child set "
++      "used to PASS the 'the children DETERMINE the quantity' gate; and −1 with +5 is not a history of 4 filled. "
++      "Both now fail CLOSED, per child, before any sum is formed",
++      _c7a[2] == "unquantifiable" and _c7b[2] == "unquantifiable"
++      and RC._child_qty_sum({"a": float("nan")}) is None and RC._child_qty_sum({"a": -1.0, "b": 5.0}) is None
++      and RC._child_qty_sum({"a": 1.0, "b": 3.0}) == 4.0, (_c7a[2], _c7b[2]))
++check("★★ ...and a structured `qty_venue` that DISAGREES with the string's own venue number is a contradiction, not "
++      "a clamp — the two readings of the accepted capacity must be the same reading",
++      RC._exec_qty(_c4_row(req_over={"qty_venue": 7.0, "terminal": True,
++                                     "confirmed_qty_final": True}))[2] == "unquantifiable")
++# ── the REAL rows are the positive control for every gate above ──
++_real_ev = {r["symbol"]: (RC._rederive_ledger(r) or {}).get("known", {}) for r in ORD
++            if r.get("terminal_reason") == "filled_amount_unknown"}
++check("★★★ POSITIVE CONTROL, unchanged by all of the above: the two REAL 12Z rows still re-derive, still by CAPACITY "
++      "CLOSURE (|C| == Qv, `confirmed_qty_final` False), still exact, and the whole fixture day still reconciles to "
++      "ZERO anomalies. Fixing C4 must not cost the case the fix was written for",
++      len(_real_ev) == 2
++      and all(len(v) == 1 and list(v.values())[0]["final"] is True
++              and abs(abs(list(v.values())[0]["C"]) - list(v.values())[0]["Qv"]) < 1e-9 for v in _real_ev.values())
++      and {r["symbol"]: RC._exec_qty(r)[2] for r in ORD
++           if r.get("terminal_reason") == "filled_amount_unknown"} == {MEME: "known", POP: "known"},
++      {k: list(v.values()) for k, v in _real_ev.items()})
 +
 +print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 +if FAILS:

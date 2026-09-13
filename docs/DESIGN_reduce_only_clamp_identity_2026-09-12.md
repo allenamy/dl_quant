@@ -1,4 +1,4 @@
-> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(W8 §5) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 尺子第七次重标定(W8, 测试文件 only)。当前链: (a)(b) = `c4ec464` (= `fe97e46` + 重标定提交), (c) = `8e8510c` (= `3308cbc` cherry-pick 到其上); 分支 `fix/e0912a-reduce-only-clamp` → `8e8510c`; 旧 (c) 备份分支 `w8-backup-pre-recal7` = `3308cbc`。§4 正文里的 `fe97e46` / `3308cbc` 是 W8 之前的头, 保留不改写; 部署动词请用 §5.4 的新 sha。未部署; 部署与恢复 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
+> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(W8 §5)· 2026-09-13 01:5xZ(W8 §6) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 尺子第七次重标定** → **§6 C4–C8 收紧(独立研究员 0158f5d1 §3.A: C 是累计下界, F 才是量)。当前链: (a)(b) = `bea37cf`, (c) = `69a24bb` (= 原 (c) cherry-pick 到其上, 内容逐字未变); 分支 `fix/e0912a-reduce-only-clamp` → `69a24bb`; 备份分支 `w8-backup-pre-recal7` = `3308cbc`, `w8-backup-pre-c4fix` = `8e8510c`。§4 正文的 `fe97e46`/`3308cbc`、§5 的 `c4ec464`/`8e8510c` 都是当时的头, 保留不改写; **部署动词请用 §6.4 的 sha**。未部署; 部署与恢复 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
 
 # DESIGN W6: E-0912-A 修复 —— reduce-only 截量不是矛盾, 全退出按持仓张数下单, 局部「未知」不平全书
 
@@ -218,3 +218,81 @@ lead 的 (ii) 写的是「TRIP-FLATTENED 是**那个锚**的新类, 因为看门
    提交** ⇒ `c4ec464`, 然后**重跑**了套件、六个突变与全量电池(不靠 sha 推断, E-0826-B)。
    lead 在 `aedcd824` 已入库的四份日志里, `..._after_green.log` 与 `..._mutants.log` 是 `f0072fc` 那一版,
    工作树里已被 `c4ec464` 的新版覆盖(状态 M), **请重新 commit**; 另两份(旧码红)未变。
+
+## §6 C4–C8 收紧: C 是累计下界, F 才是量(W8, 2026-09-13; 独立研究员 `0158f5d1` §3.A + 专项 `codex_followup_code_review_2026-09-13`)
+
+> **一句话**: §2 (a) 的截量类是对的, §4 (1) 的「从账本内容重推」也是对的 —— 错在**重推出来的 C 被当成了 F**。
+> 场所接受 8、目前成交 4、单子还开着时, 新码报「精确成交 4」; 实际成交 6 同样合法, 却被完整 `reconcile` 读成
+> 20 USDT 的数量残差。**这是保护性误报, 与 E-0912-A 同族、方向相反**。另有四处证据绑定不足(C5–C8)。
+> 修法原则(lead 转述研究员): **只从结构化的原始请求/回包取证, 绝不用诊断串的正则授权; 精确已知只在
+> 【证明终局】时给出, 否则老老实实回到区间 [C, Qv]。**
+
+### 6.1 事实表(反例全部第一手复跑; 收据 = 研究员 `incident/COUNTEREXAMPLES.json` + `incident/ROOT_PARTIAL_STATES.json`)
+
+| # | 事实 | 在哪测的 | 后果 | 修法 | 断言 |
+|---|---|---|---|---|---|
+| G1 | `_clamp_rederived` 只核 \|C\| ≤ Qv 与 Σ子成交 == C 就返回 C, `_exec_qty` 直接把它加进 known —— 而同一段代码的**非截量**分支是有终局门的(`confirmed_qty_final` 或 \|C\| ≥ \|qty\|) | `live/reconcile.py` 旧 `_clamp_rederived` / `_exec_qty` 截量块 | 截量分支比它旁边的分支**更松**, 少了终局这一条 | **C4** | — |
+| G2 | 反例(研究员完整 `reconcile` 实跑): Qs=10 / Qv=8 / C=4 / 一个子成交 4 / `terminal=False` / `confirmed_qty_final=False` ⇒ 旧码 `_exec_qty` = `("known", 4)` | 我方 c4ec464 上逐字复现, `state ∈ {unknown, pending, confirmed}` 三种写法全中 | 下界被当成最终量 | C4 | T11 第 1 格 |
+| G3 | 承重格: 实际成交 **6** 在经核容量 [4, 8] 内, 完全合法 —— 旧码在 mark=10 上报 `quantity_residual` **20 USDT**(`unexplained_frac` 0.33) | 同上; 研究员 `ROOT_PARTIAL_STATES.json` 三态各一份 | **保护性误报**: 同一条阶梯再误杀一次 | C4 | T11 第 2 格 |
+| G4 | 合法减仓方向同样中: 先持空 8, BUY reduce-only 累计成交 6, 剩空 2 —— 不是「从平仓位凭空开 RO」的畸形夹具 | 研究员根代理追加; 我方复跑 | 反例不是畸形输入, 是统一数量合同**明确承认的合法状态** | C4 | T11 第 3 格 |
+| G5 | 真实 12Z 两行 \|C\| == Qv(1,933,692 / 10,434 逐张相等)—— **容量闭合**: 场所只接受了这么多, 全成交了, 没有别的量还能来 | 真账本 `request_ledger` | 真实正控**不靠** `confirmed_qty_final`, 靠容量闭合 ⇒ 修 C4 不会毁掉它 | C4 | T11 第 5、11 格 |
+| G6 | 生产者写的 `filled_unknown_qty` = \|Qs\| − \|C\| = 6 —— 那是**我们要的**减已确认, 不是**场所接受的**减已确认(应为 Qv − \|C\| = 4) | `_unknown_interval` 读该列 | 读回 10(超出场所接受的 8)本应是异常, 旧带 6 会放过 | C4 余带 | T11 第 6、7 格 |
+| G7 | 显式 `reduce_only: False` 的合成请求仍被重判为 known —— 重判只读了诊断串与数量, 没读过任何 reduceOnly 证据 | 我方复现(旧码 `known 4.0`) | **不能把「origQty 变小」一律说成合法截量** | **C5** | T11 第 8 格 |
+| G8 | 真实 12Z 的 `request_ledger` **没有 reduce_only 这一列**(键: client_id/qty/notional_est/state/confirmed_qty/terminal/confirmed_qty_final/inconsistent/order_id/trade_qty/trade_quote/settled_by/confirmed_notional_lower) | 真账本逐行 | ⇒ C5 只能做成三态: 显式 False 拒, **缺席保持缺席**(真实两行靠 G5 过) | C5 | `_reduce_only_evidence` 三态断言 |
+| G9 | 写者用 `"; ".join(...)` 拼接一折的多条矛盾 | `live/binance_executor.py` L1679 / L1785 | 「截量理由 + 外来 orderId 理由」是**本系统产得出的串**, 子串判定会把它读成纯截量 | **C6** | T11 第 9 格 |
+| G10 | `sum()` 里有 NaN ⇒ 和为 NaN, 而 `abs(NaN − 4) > 1e-9` 是 **False** ⇒ 「子成交定下这个量」这道门**通过** | 我方复现(旧码 `known 4.0`) | 失败方向错了: 读不出应该关向矛盾 | **C7** | T11 第 10 格 |
+| G11 | 子成交 `{-1, +5}` 和也是 4 —— 尺子侧(W8 `_clamp_known`)逐个用了 `_fin` 所以挡住 NaN, 但**没挡负数** | 我方复现 | 子成交量是成交尺寸, 永远非负; 抵消不是成交史 | C7 | T11 第 10 格 + 尺子反控 |
+| G12 | 尺子侧 `_clamp_known` 用子成交**报价**当已知成交额; 请求若自报 `confirmed_notional_final=True` 而 `confirmed_notional` 与报价和不符, 旧码取报价 | 研究员 C8 | 金额矛盾不该因为数量缩了就被盖掉 | **C8** | 尺子反控 + 正控 |
+| G13 | W8 尺子的重判**只会缩小缺口**(把 1,524 缩到 0.058), 所以它的门必须至少和 `reconcile` 一样严 | 方向分析 | 同一条 C/F 纪律必须两边一致 | C4–C8 同步 | 尺子 11 反控 + 3 正控 |
+
+### 6.2 改了什么
+
+| 环 | 位置 | 改动 |
+|---|---|---|
+| C4 判据 | `live/reconcile.py` **`_clamp_rederived`** | 返回值从 `Optional[float]` 改为 `{"C", "Qv", "final"}`。`final = (terminal ∧ confirmed_qty_final) ∨ (\|C\| == Qv)`。六道门按序: G1 kind(C6)/ G2 RO(C5)/ G3 容量(`qty_venue` 与串必须**同一个读数**)/ G4 同侧与上界 / G5 子成交(C7)/ G6 终局(C4) |
+| C4 消费 | `_exec_qty` 截量块 | 非终局的截量 ⇒ `_all = False`, **不进 known**, 落回行自己的 known + 余带(`bounded`)—— 与重判出现之前逐字一致, 不产生残差告警 |
+| C4 余带 | 新 **`_clamp_capacity_band`** + `_unknown_interval` | 行内每个已发请求都是可重推截量时, 余带 = Σ(Qv − \|C\|); 只用于 `min()` **收窄**, 描述不了的行保持原带 ⇒ 永远不会放宽 |
+| C5 | 新 **`_reduce_only_evidence`** | 三态, 只读结构化字段(`reduce_only` / `reduceOnly` / `venue_reduce_only` / `resp_reduce_only`) |
+| C6 | 新 **`_origqty_reasons`** | 按 `;` 拆开, **每一条**都必须是 origQty 值比较 |
+| C7 | 新 **`_child_qty_sum`** | 逐个 `_fin` 且非负, 求和**之前**就关闭 |
+| 命名 | `_rederive_ledger` | `known` 的值从裸数量变成结构化裁定; 局部名 `c` → `ev`, docstring 写明「三个读者只按键索引, 唯一取值的读者必须先看 `final`」(E-0905 同族: 同一函数体内换了来源的名字必须换名) |
+| C4–C8 尺子侧 | `live/tests_disposition_matrix.py` `_clamp_known` | 同六道门 + C8 金额一致门。**新门全部写在函数体内**, 不引新的模块级常量或辅助函数名 —— 研究员的 `pure()` 探针按名字抽取本文件的七个函数, 新名字会让他们的回归跑不起来 |
+
+### 6.3 测试与红能力
+
+| 件 | 新码 | 旧码(`c4ec464`) |
+|---|---|---|
+| `live/tests_reduce_only_clamp.py` **[T11] 12 格** | **87/87 ALL PASS**(原 75 格全部保留) | **3 格红后 `AttributeError: module 'reconcile' has no attribute '_clamp_capacity_band'`** ⇒ 即红 |
+| `live/tests_disposition_matrix.py` | **60/60 ALL PASS**; 反控 6 → **11** 条, 另加 **3** 条正控(把每条反例拿掉的那一个字段还原, 同一请求必须**重新被接受**且数字分毫不差 —— 一条「一律拒绝」的规则会骗过反控格) | 同样 60/60(新门写在测试文件内, 真账本上没有 C4–C8 形态的行) |
+| 研究员**自己的** harness + **自己的**冻结反例(`probe_followup.pure` AST 抽取 + `COUNTEREXAMPLES.json`) | **10/10 过** | **9/10 红** |
+| 逐条复现(旧码 → 新码) | C4 三态 `known 4` → `bounded 4`(读回 6 的异常 1 → **0**); C5/C6/C7a/C7b `known 4` → `unquantifiable`; 容量闭合正控 `known 8` → `known 8` **不变** | |
+| 真实正控 | 两行仍 `known` −1,933,692 / −10,434, `final=True` 由**容量闭合**给出; T9 看门狗 §4-5b **CLEAN**、§4-7 CLEAN; 真 09-12 全日 `reconcile` **0 异常** | |
+
+### 6.4 收据
+
+| 件 | 值 |
+|---|---|
+| 新 (a)(b) 头 | **`bea37cf79bcee3cb9b370270a92e44229b051ea2`**(在 `c4ec464` 之上的新提交; 3 文件 +343 −35) |
+| (c) 重接 | **`69a24bb0710c0f2c2d6c72fce6cc7ae351ec2079`**; 分支 `fix/e0912a-reduce-only-clamp` 指向它; 备份 `w8-backup-pre-c4fix` = 旧 `8e8510c`。`git diff 8e8510c 69a24bb` **只有我这三个文件** ⇒ (c) 自身内容逐字未变 |
+| `w6_reduce_only_clamp_ab.diff` | `git diff 918559f bea37cf`; **26 文件 / +8,966 −46**; sha256 **`fd9ac31a185c84436f3ab6c8475c4c1bdb3c31a74f12c1a91abb6bb665425c9b`**(上一版 `24b6513e…`) |
+| `w6_proportional_response_c.diff` | `git diff bea37cf 69a24bb`; 7 文件 / +859 −6; sha256 **`15d29d99faad2f1ad5597a89da1c1686ca94d2d94adc24c6ab1a4e4327912d5c`**(上一版 `9f137598…`)。**内容没变, 变的是上下文行** —— (c) 也改 `reconcile.py`, 我这轮改了它的邻行 |
+| 电池 (a)(b) 头 | `bash run_acceptance.sh` @ `bea37cf`, stamp `20260913T020214Z`: **134 套 / 133 绿 / 1 红** = `tests_env_loading`(克隆无 `.env`, 环境红)。`tests_reduce_only_clamp` 87/87, `tests_disposition_matrix` 60/60, `tests_watchdog` / `tests_binance_executor` / `tests_flatten_fee_backfill` 均 rc 0。日志 `docs/receipts/w8_c4_battery_bea37cf_ledger.log` |
+| 电池 分支尖端 | 同一快照 @ `69a24bb`, stamp `20260913T021838Z`: **135 套 / 134 绿 / 1 红** = `tests_env_loading`。(c) 的 `tests_unknown_size_local_response` 与 `tests_position_break_blindspot` 在新的 (a)(b) 之上仍 rc 0。日志 `docs/receipts/w8_c4_battery_69a24bb_ledger.log` |
+| 套件与回归收据 | `w8_c4_clamp_finality_new_green.log`(87/87)· `w8_c4_clamp_finality_oldcode_red.log`(旧码红 + 五个缺陷逐条复现与修后对照)· `w8_c4_reviewer_probe_regression.log` + `.py`(研究员 harness 喂研究员反例: 修后 10/10, 修前 9/10 红) |
+| 账本 | 与 §5 同一份只读快照 `2026-09-13T00:04:34Z` |
+| 运行时 | 运行树 `~/dl_quant_live` 全程只读(HEAD 仍 `918559f`), 无网络, 无场所/Telegram 调用, 未提交研究仓 |
+
+### 6.5 未修 / 已知项(**不在本轮范围**, 按 lead 的字记录)
+
+1. **C9 —— (c) 的 `_between` 顺序依赖(OFF, 不修)**: `live/reconcile.py` `_between` 对未知名用 `unknown.setdefault(symbol, …)`, **每名只保留第一行**; 后面的 `_venue_consistency` 只看那一行。研究员的完整反例: 同名同读回区间, 第一行意图 10 / C 4 / origQty 型矛盾(Qv 11 > Qs 10, 因此 (a)(b) **不**重推), 第二行意图 1000 / C 0 / **外来 orderId**。第一行较早 ⇒ `local.eligible=True`, 第二行的矛盾根本没进局部证据; **只交换两行先后** ⇒ `eligible=False`。同一组联合事实因排序改变风险动作。开关 `UNKNOWN_SIZE_LOCAL_RESPONSE` 默认 `False`, 隔离了这个局部动作; **它不隔离 (a)(b) 的内容重判**(那部分已由本节修完)。重开 (c) 之前必须先关掉 C9 与研究员的 Q6 联合上界。
+2. **(c) 的 `_is_evidenced_clamp_kind` 仍带 C6/C7 形态**: 它回答的是「场所自己的记录是否自洽」而不是「量是多少」, 且 (c) 的夹具**故意**钉住一条「(1) 不重推、但记录自洽」的形态(串里 Qv 高于 Qs)。本轮没有动它 —— 它是 (c) 的代码, (c) 默认关且本轮不改。重开 (c) 时与 C9 一起处理。
+3. **`ops/rejudge_ledger_rows.py` 的六项 `cross_check` 只是收据, 不是 runtime 门**(研究员另证: 喂错 side / 外来 cid 但六格吻合的合成输入仍得 `all=True`)。真实两行的身份另由原始 POST 独立核过。本轮未改该工具。
+4. **余带收窄的边界**: `_clamp_capacity_band` 只在**行内每个已发请求都是可重推截量**时给出容量; 混合行(一条截量 + 一条普通未决)不给容量, 保持生产者原带。这是保守失败, 不是漏纳, 但也意味着混合行上「超出场所接受容量」仍不会被抓。
+5. **研究员对 W8 尺子(§5)的两条观察, 本轮未改, 请裁定**:
+   (i) TRIP-FLATTENED 的「Σ\|filled\| 在所在锚 realized 的 10% 带内」**证明不了批次齐全**: 100 条各 1U 的完整平仓删掉 5 条,
+   95U 仍落在 100U 的 10% 带内, 该格照绿。它验证的是「记录里的批次大致覆盖整书」, 不是「逐笔齐全、全书归零」;
+   后者需要独立的预期订单/持仓人口或平仓后回读为 0 的硬断言。
+   (ii) **§5 那一格的注释说错了**(我的): 注释称「批次哪天改名仍会落进这个类」, 但断言要求结构集合 = FLATTEN 前缀集合 =
+   不在 anchors.jsonl 的集合, 所以**改名会让该格变红**, 不是静默纳入。失败方向是保守的(红, 不是漏), 但注释与代码说反话,
+   正是本文件开头警告的那类错。没在本轮改, 是为了不让交付的头再换一次 sha 而没有对应的电池; 修它只动注释。
+6. **未做**: 没有执行 `resume_from_trip.sh`, 没有回填平仓费用(仍是操作员步骤), 没有部署。

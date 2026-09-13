@@ -1,5 +1,5 @@
 diff --git a/live/reconcile.py b/live/reconcile.py
-index 380a060..fa3d5b3 100644
+index 004a188..5a6b939 100644
 --- a/live/reconcile.py
 +++ b/live/reconcile.py
 @@ -86,6 +86,42 @@ def signed_fills_by_anchor(orders: Iterable[Dict[str, Any]]) -> Dict[float, Dict
@@ -45,7 +45,7 @@ index 380a060..fa3d5b3 100644
  
  def _fin(x) -> Optional[float]:
      """A finite float, or None (a non-number / NaN / ±Inf is 'not a value', never 0.0) — the executor's rule, restated
-@@ -178,6 +214,145 @@ def _rederive_ledger(o) -> Optional[Dict[str, Any]]:
+@@ -293,6 +329,145 @@ def _rederive_ledger(o) -> Optional[Dict[str, Any]]:
              continue
          stands.append(f"{cid}: {str(why)[:120]}")
      return {"stands": stands, "known": known, "n_requests": len(reqs)}
@@ -191,7 +191,7 @@ index 380a060..fa3d5b3 100644
  # ★★ B20, CLOSED 2026-07-27: THE FLOOR IS PER SYMBOL, BECAUSE MIN_NOTIONAL IS.
  # This constant was labelled "venue MIN_NOTIONAL", which restated a per-symbol venue value as a
  # global. Measured the same day, from the venue rather than from memory:
-@@ -569,6 +744,7 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+@@ -695,6 +870,7 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
                      # of the two — a defect classified by whichever branch is written first.
                      if sym in _win_unknown:
                          _why, _row = _win_unknown[sym]
@@ -199,7 +199,7 @@ index 380a060..fa3d5b3 100644
                          anomalies.append({
                              "anchor_ts": ats, "symbol": sym,
                              "kind": "execution_of_unknown_size",
-@@ -576,6 +752,11 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+@@ -702,6 +878,11 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
                              "order_type": _row.get("order_type"),
                              "terminal_reason": _row.get("terminal_reason"),
                              "rebalance_id": _row.get("rebalance_id"),
@@ -211,7 +211,7 @@ index 380a060..fa3d5b3 100644
                              # the residual is genuinely not computable, and a number here would be
                              # an assumption about the leg's size — the exact fold this refuses
                              "expected_qty": None, "observed_qty": q2, "residual_qty": None,
-@@ -684,7 +865,14 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+@@ -810,7 +991,14 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
          _v["gross_usdt"] = round(sum(abs(d["residual_usdt_signed"]) for d in _m.values()), 6)
          _v["unmeasurable_by_kind"] = {k: sum(1 for w in _u.values() if w == k)
                                        for k in sorted(set(_u.values()))}
