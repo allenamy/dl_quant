@@ -1325,15 +1325,17 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
     check("★★ [S] B-R1 prereq_deps_identity: a file the dispatch never pinned ⇒ refused ('not pinned')", rc == 3 and "not pinned" in out, out[-150:])
     for _p in ("dlw/data/dlw_targets.npz", "dlw/data/dlw_fea82.npz", "f8/data/f8_fea89.npz", "f8/data/f10v2_legs.npz", "f8/models/f10_live_s42.pt"): os.makedirs(os.path.dirname(f"{d}/{_p}"), exist_ok=True); open(f"{d}/{_p}", "wb").write(_p.encode())
     _ins = {"targets": f"{d}/dlw/data/dlw_targets.npz", "fea82": f"{d}/dlw/data/dlw_fea82.npz", "fea89": f"{d}/f8/data/f8_fea89.npz", "legs": f"{d}/f8/data/f10v2_legs.npz"}
-    _sc = {"seed": 42, "best_ep_rule": "fix7", "env_given": {"F10_DLW": f"{d}/dlw", "F10_OUT": f"{d}/f8", "BEST_EP_FIX": "7"}, "inputs": _ins, "inputs_sha256": {k: _sha(v) for k, v in _ins.items()}, "pt": f"{d}/f8/models/f10_live_s42.pt", "pt_sha256": _sha(f"{d}/f8/models/f10_live_s42.pt")}
-    _scp = f"{d}/f8/models/f10_live_s42.json"; json.dump(_sc, open(_scp, "w"))
-    rc, out = _bash(f". {HERE}/chain_lib.sh; prereq_refit_sidecar arms refit_s42 {_scp} {d}/dlw {d}/f8; echo rc=$?", _pe)
+    # round 3: the fixture now models EVERY field pod_f10_refit_v4.py writes (seed / best_ep_kept / env_given.SEED / self_sha256) — the round-2 fixture omitted three of them and still passed
+    _sc = {"seed": 42, "best_ep_rule": "fix7", "best_ep_kept": 7, "env_given": {"F10_DLW": f"{d}/dlw", "F10_OUT": f"{d}/f8", "SEED": "42", "BEST_EP_FIX": "7"}, "inputs": _ins, "inputs_sha256": {k: _sha(v) for k, v in _ins.items()},
+           "pt": f"{d}/f8/models/f10_live_s42.pt", "pt_sha256": _sha(f"{d}/f8/models/f10_live_s42.pt"), "self_sha256": _sha(f"{HERE}/pod_f10_refit_v4.py")}
+    _scp = f"{d}/f8/models/f10_live_s42.json"; json.dump(_sc, open(_scp, "w")); _SIDE = f"prereq_refit_sidecar arms refit_s42 {_scp} {d}/dlw {d}/f8 42 {HERE}/pod_f10_refit_v4.py"
+    rc, out = _bash(f". {HERE}/chain_lib.sh; {_SIDE}; echo rc=$?", _pe)
     check("★★ [S] B-R1 prereq_refit_sidecar: fix7 + env_given bound to this month's dirs + inputs/weights identical ⇒ ok (rc 0)", "rc=0" in out and "FAIL" not in out, out[-150:])
     def _restore():
         open(f"{d}/f8/data/f10v2_legs.npz", "wb").write(b"f8/data/f10v2_legs.npz"); open(f"{d}/f8/models/f10_live_s42.pt", "wb").write(b"f8/models/f10_live_s42.pt")
     for _name, _mut in (("argmax epoch rule", lambda m: m.update(best_ep_rule="argmax")), ("F10_DLW of ANOTHER month (dlw_ext)", lambda m: m["env_given"].update(F10_DLW="/workspace/dlw_ext")),
                         ("legs changed after refit", lambda m: open(f"{d}/f8/data/f10v2_legs.npz", "wb").write(b"changed legs")), ("weights swapped after refit", lambda m: open(f"{d}/f8/models/f10_live_s42.pt", "wb").write(b"other weights"))):
-        m = json.loads(json.dumps(_sc)); _mut(m); json.dump(m, open(_scp, "w")); rc, out = _bash(f". {HERE}/chain_lib.sh; prereq_refit_sidecar arms refit_s42 {_scp} {d}/dlw {d}/f8; echo rc=$?", _pe); _restore()
+        m = json.loads(json.dumps(_sc)); _mut(m); json.dump(m, open(_scp, "w")); rc, out = _bash(f". {HERE}/chain_lib.sh; {_SIDE}; echo rc=$?", _pe); _restore()
         check(f"★★★ [S] B-R1 prereq_refit_sidecar MUTATION {_name} ⇒ FAIL_arms_prereq_refit_s42 rc 3", rc == 3 and "FAIL_arms_prereq_refit_s42" in out, out[-150:])
     # ── B-R4 on the [R] fixtures: NONE bound to the builder identity; new-tail quality floor 0.90 ──
     _bX = _base(1, _NA_NEW); _write_month(f"{d}/X1", _bX, _NA_NEW, "new"); _write_month(f"{d}/X0", _bX, _NA_REF, "ref")
@@ -1357,11 +1359,121 @@ print("MOCK_INTERCEPT_NO_BUSINESS_CODE " + n); sys.exit(77)
     _F = _orig.copy(); _F[205] = np.nan; np.save(f"{d}/X1/king_fea.npy", _F); rc, out, r2 = _g("v4_gate_step2_m.py", _none_env(f"{d}/X1", f"{d}/X0", f"{d}/t2b.json", f"{d}/Rt2b"))
     check("★★★ [S] B-R4 a SINGLE dead tail anchor among 30 good ones ⇒ FAIL (the floor is per anchor, min not mean)", rc == 3 and r2 and r2["tail_quality"]["ok"] is False and r2["tail_quality"]["member_finite_frac_min"] == 0.0 and r2["tail_quality"]["member_finite_frac_median"] == 1.0, r2 and r2.get("tail_quality"))
     np.save(f"{d}/X1/king_fea.npy", _orig); rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1", f"{d}/X0", f"{d}/t3.json"))
-    check("★★ [S] B-R4 the tail quality gate also runs on the unclamped-reference path (positive fixture: 30 tail anchors, min 1.0, ok) and is part of PASS", rc == 0 and r2 and r2["PASS"] is True and r2["tail_quality"] == {"n_tail_anchors": 30, "member_finite_frac_min": 1.0, "member_finite_frac_median": 1.0, "n_members_min": 6, "floor": 0.9, "ok": True}, r2 and r2.get("tail_quality"))
+    check("★★ [S] B-R4 the tail quality gate also runs on the unclamped-reference path (positive fixture: 30 tail anchors, valid member index, min 1.0, ok) and is part of PASS", rc == 0 and r2 and r2["PASS"] is True and r2["tail_quality"] == {"n_tail_anchors": 30, "member_index_ok": True, "member_finite_frac_min": 1.0, "member_finite_frac_median": 1.0, "n_members_min": 6, "floor": 0.9, "ok": True}, r2 and r2.get("tail_quality"))
     _write_month(f"{d}/X1s", _bX, _NA_REF, "new"); rc, out, r2 = _g("v4_gate_step2_m.py", _env2(f"{d}/X1s", f"{d}/X0", f"{d}/t4.json"))
     check("★★ [S] B-R4 no tail ⇒ no tail_quality field (the September-style field set of [R] G3(i) is unchanged)", rc == 0 and r2 and "tail_quality" not in r2 and _keys(r2) == _keys(_ARCH2), r2 and sorted(_keys(r2) ^ _keys(_ARCH2))[:4])
+print("\n[T] round 3 (REVIEW_code_and_research_2026-09-13 §3.D): D1 refit-sidecar identity, D2 new-tail member index, D3 contract value binding — every cell runs the ARCHIVED pre-round-3 source (RED) and the current one (GREEN) in the same breath")
+_PRE_LIB = f"{HERE}/chain_lib.r1_3cd82956.sh"; _PRE_S2 = f"{HERE}/v4_gate_step2_m.r1_0fe5ec55.py"
+check("★★★ [T] the pre-round-3 sources are archived beside the current ones and ARE the bytes the reviewer probed (chain_lib 3cd82956…, v4_gate_step2_m 0fe5ec55… — the shas in RESULT.md's key-source table); the RED control outlives the verdict",
+      _sha(_PRE_LIB).startswith("3cd82956") and _sha(_PRE_S2).startswith("0fe5ec55"), (_sha(_PRE_LIB)[:8], _sha(_PRE_S2)[:8]))
+with tempfile.TemporaryDirectory() as d:
+    # ── D1: prereq_refit_sidecar must prove WHAT the JSON is about, not that a JSON exists ──────────────────────────────────────────────────
+    for _r in ("dlw/data", "f8/data", "f8/models", "other/dlw/data", "other/f8/data"): os.makedirs(f"{d}/{_r}", exist_ok=True)
+    _IN = {"targets": f"{d}/dlw/data/dlw_targets.npz", "fea82": f"{d}/dlw/data/dlw_fea82.npz", "fea89": f"{d}/f8/data/f8_fea89.npz", "legs": f"{d}/f8/data/f10v2_legs.npz"}
+    for _k, _v in _IN.items(): open(_v, "wb").write(_k.encode())
+    _PTF = lambda s: f"{d}/f8/models/f10_live_s{s}.pt"
+    for _s in (42, 2027): open(_PTF(_s), "wb").write(f"weights s{_s}".encode())
+    _REFIT_SRC = f"{HERE}/pod_f10_refit_v4.py"; _REFIT_SHA = _sha(_REFIT_SRC); _SAYL = f"{d}/say.log"
+    def _mk(seed=42, **over):   # a COMPLETE sidecar in exactly the shape the refit writer emits
+        m = {"seed": seed, "best_ep_rule": "fix7", "best_ep_kept": 7, "env_given": {"F10_DLW": f"{d}/dlw", "F10_OUT": f"{d}/f8", "SEED": str(seed), "BEST_EP_FIX": "7"},
+             "inputs": dict(_IN), "inputs_sha256": {k: _sha(v) for k, v in _IN.items()}, "pt": _PTF(seed), "pt_sha256": _sha(_PTF(seed)), "self_sha256": _REFIT_SHA}
+        m.update(over); return m
+    def _side(lib, obj, slot=42, seed=42, bound=True, src=None):   # the helper only HASHES `src`; the canary cell below proves it is never executed
+        _p = f"{d}/f8/models/f10_live_s{slot}.json"; json.dump(obj, open(_p, "w")); open(_SAYL, "w").close()
+        _a = (" %d %s" % (seed, src or _REFIT_SRC)) if bound else ""
+        rc, out = _bash(f". {lib}; prereq_refit_sidecar arms refit_s{seed} {_p} {d}/dlw {d}/f8" + _a + "; echo rc=$?", {"L": _SAYL, "PY": PY, "R": d})
+        return rc, out + open(_SAYL).read()   # the ok-message goes through `say` to $L, only refusals reach stderr
+    _rc_n, _o_n = _side(f"{HERE}/chain_lib.sh", _mk())
+    check("★★★ [T] D1 POSITIVE: a complete, canonical seed-42 sidecar (four inputs at this month's paths, weights at f10_live_s42.pt, all shas current) ⇒ rc 0, and the chain log says the BYTES were verified, not that a JSON was found",
+          _rc_n == 0 and "4 inputs + weights verified against the bytes on disk" in _o_n and f"written by pod_f10_refit_v4.py {_REFIT_SHA[:12]}" in _o_n and "FAIL" not in _o_n, (_rc_n, _o_n[-200:]))
+    _CAN = f"{d}/canary_src.py"; _CANMARK = f"{d}/CANARY_WAS_EXECUTED"
+    open(_CAN, "w").write(f"open({_CANMARK!r}, 'w').write('executed')\n")
+    _rc_n, _o_n = _side(f"{HERE}/chain_lib.sh", _mk(), src=_CAN)
+    check("★★★ [T] D1 the refit source argument is HASHED, never RUN (interventional, not a reading of the code): point it at a script whose only statement writes a marker file ⇒ the helper refuses on the sha mismatch and the marker does NOT exist",
+          _rc_n == 3 and "written by a different program" in _o_n and not os.path.exists(_CANMARK), (_rc_n, os.path.exists(_CANMARK), _o_n[-160:]))
+    _keep42 = open(_PTF(42), "rb").read()
+    _m = _mk(); _m.pop("pt_sha256"); open(_PTF(42), "wb").write(b"tampered weights")
+    _rc_o, _o_o = _side(_PRE_LIB, _m, bound=False); _rc_n, _o_n = _side(f"{HERE}/chain_lib.sh", _m)
+    check("★★★ [T] D1(a) (researcher sidecar_changed_weights_missing_hash_ACCEPTED, rc 0): the weights changed AND the pt_sha256 key was deleted ⇒ pre-round-3 chain_lib ACCEPTS (rc 0 — `elif m.get('pt_sha256') and …` made an absent key a SKIP), round 3 REFUSES rc 3 naming it",
+          _rc_o == 0 and _rc_n == 3 and "NO pt_sha256" in _o_n and "FAIL_arms_prereq_refit_s42" in _o_n, (_rc_o, _rc_n, _o_n[-200:]))
+    open(_PTF(42), "wb").write(_keep42)
+    _m = _mk(); _m["inputs"] = {"targets": _IN["targets"]}; _m["inputs_sha256"] = {"targets": _sha(_IN["targets"])}
+    _rc_o, _o_o = _side(_PRE_LIB, _m, bound=False); _rc_n, _o_n = _side(f"{HERE}/chain_lib.sh", _m)
+    check("★★★ [T] D1(b) (researcher sidecar_omits_three_required_input_identities_ACCEPTED, rc 0): the four declared inputs shrunk to `targets` ⇒ pre-round-3 ACCEPTS (the loop walked whatever the sidecar listed), round 3 REFUSES and names fea82/fea89/legs",
+          _rc_o == 0 and _rc_n == 3 and all(k in _o_n for k in ("fea82", "fea89", "legs")), (_rc_o, _rc_n, _o_n[-200:]))
+    _rc_o, _o_o = _side(_PRE_LIB, _mk(seed=42), slot=2027, seed=2027, bound=False); _rc_n, _o_n = _side(f"{HERE}/chain_lib.sh", _mk(seed=42), slot=2027, seed=2027)
+    check("★★★ [T] D1(c) (researcher sidecar_seed42_submitted_for_seed2027_ACCEPTED, rc 0): a complete, internally consistent SEED-42 sidecar dropped into the seed-2027 slot ⇒ pre-round-3 ACCEPTS (it had no expected seed), round 3 REFUSES on all three seed carriers (seed, env_given.SEED, the .pt path)",
+          _rc_o == 0 and _rc_n == 3 and "seed=42 != expected 2027" in _o_n and "env_given.SEED='42' != expected 2027" in _o_n and "f10_live_s2027.pt" in _o_n, (_rc_o, _rc_n, _o_n[-240:]))
+    _OTH = {k: v.replace(f"{d}/", f"{d}/other/") for k, v in _IN.items()}
+    for _k, _v in _OTH.items(): open(_v, "wb").write(open(_IN[_k], "rb").read())
+    _m = _mk(); _m["inputs"] = _OTH; _m["inputs_sha256"] = {k: _sha(v) for k, v in _OTH.items()}
+    _rc_o, _o_o = _side(_PRE_LIB, _m, bound=False); _rc_n, _o_n = _side(f"{HERE}/chain_lib.sh", _m)
+    check("★★★ [T] D1(d) EXPECTED PATHS: the four inputs are BYTE-IDENTICAL copies under another tree ⇒ pre-round-3 ACCEPTS (every recorded sha matches its file), round 3 REFUSES — 'four files whose shas match' is not 'this month's four artefacts'",
+          _rc_o == 0 and _rc_n == 3 and all(f"input {k} path" in _o_n for k in ("targets", "fea82", "fea89", "legs")) and _o_n.count("!= this month's") >= 4, (_rc_o, _rc_n, _o_n.count("!= this month's"), _o_n[-200:]))
+    _rc_n, _o_n = _side(f"{HERE}/chain_lib.sh", _mk(self_sha256="ab" * 32))
+    check("★★ [T] D1(e) beyond the four mandated checks (reviewer: 绑定实际生成 sidecar 的程序): a sidecar whose self_sha256 is not the refit source this driver dispatches ⇒ refused — the same rule require_gate already applies to gate receipts",
+          _rc_n == 3 and "written by a different program" in _o_n, (_rc_n, _o_n[-160:]))
+    _rc_n, _o_n = _side(f"{HERE}/chain_lib.sh", _mk(), bound=False)
+    check("★★★ [T] D1(f) the helper FAILS CLOSED on its own arguments: called with the round-2 five-argument form (no expected seed, no refit source) ⇒ rc 3 'MANDATORY arguments', never a quieter check",
+          _rc_n == 3 and "MANDATORY arguments" in _o_n and "FAIL_arms_prereq_refit_s42" in _o_n, (_rc_n, _o_n[-160:]))
+    _DRV = open(f"{HERE}/chain_v4_monthly.sh").read()
+    check("★★★ [T] D1 call site: chain_v4_monthly.sh has exactly one prereq_refit_sidecar call and it passes the loop seed $SD and $D/pod_f10_refit_v4.py (a helper that fails closed is only useful if the driver actually binds it)",
+          _DRV.count("prereq_refit_sidecar") == 1 and 'prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"' in _DRV)
+    _RF = open(f"{HERE}/pod_f10_refit_v4.py").read()
+    check("★★★ [T] D1 no-drift: every key and path the gate now REQUIRES is one pod_f10_refit_v4.py actually writes (the four input roles, the {DLW}/{OUT} layout, models/f10_live_s{SEED}.pt, best_ep_kept, env_given.SEED, self_sha256) — a gate may not demand a field the writer never emits",
+          all(f'"{k}"' in _RF for k in ("seed", "best_ep_rule", "best_ep_kept", "env_given", "inputs", "inputs_sha256", "self_sha256", "targets", "fea82", "fea89", "legs", "SEED"))
+          and all(p in _RF for p in ('f"{DLW}/data/dlw_targets.npz"', 'f"{DLW}/data/dlw_fea82.npz"', 'f"{OUT}/data/f8_fea89.npz"', 'f"{OUT}/data/f10v2_legs.npz"', 'f"{OUT}/models/f10_live_s{SEED}.pt"'))
+          and 'meta["pt"]' in _RF and 'meta["pt_sha256"]' in _RF)
+    # ── D2: the new-tail member index is validated STRUCTURALLY FIRST, then the finite-fraction floor ───────────────────────────────────────
+    _bT = _base(1, _NA_NEW); _write_month(f"{d}/T1", _bT, _NA_NEW, "new"); _write_month(f"{d}/T0", _bT, _NA_REF, "ref")
+    _MFT = f"{d}/T1/king_meta.npz"; _MT = {k: v.copy() for k, v in np.load(_MFT, allow_pickle=True).items()}
+    def _memb(val, out, script="v4_gate_step2_m.py"):   # replace ONE new-tail anchor's member index, run the gate, restore
+        _mm = {k: v.copy() for k, v in _MT.items()}; _mm["members"][_NA_REF] = np.array(val, dtype=np.int64); np.savez(_MFT, **_mm)
+        rc, _, r = _g(script, _none_env(f"{d}/T1", f"{d}/T0", f"{d}/{out}.json", f"{d}/R{out}")); np.savez(_MFT, **_MT); return rc, r
+    _rc_o, _r_o = _memb([-1], "d2old", "v4_gate_step2_m.r1_0fe5ec55.py"); _rc_n, _r_n = _memb([-1], "d2new")
+    check("★★★ [T] D2 (researcher tail_invalid_negative_member_index_ACCEPTED, PASS): one new-tail anchor's members = [-1] ⇒ pre-round-3 gate PASSes rc 0 (numpy read the LAST column and scored finite fraction 1.0), round 3 FAILs rc 3 with member_index_ok false and the range named — structure first, floor second",
+          _rc_o == 0 and _r_o["PASS"] is True and _r_o["tail_quality"]["member_finite_frac_min"] == 1.0 and _rc_n == 3 and _r_n["PASS"] is False
+          and _r_n["tail_quality"]["member_index_ok"] is False and "outside [0, 6)" in _r_n["tail_quality"]["member_index_bad"][0]["why"][0], (_rc_o, _rc_n, _r_n["tail_quality"]))
+    _rc_o, _r_o = _memb([6], "d2hiold", "v4_gate_step2_m.r1_0fe5ec55.py"); _rc_n, _r_n = _memb([6], "d2hinew")
+    check("★★★ [T] D2 out-of-range HIGH (members = [6], NW = 6): the pre-round-3 gate CRASHED on the subscript (rc 1, no receipt at all), round 3 writes a clean FAIL receipt rc 3 — an invalid index is never used as a subscript",
+          _rc_o == 1 and _r_o is None and _rc_n == 3 and _r_n["PASS"] is False and _r_n["tail_quality"]["member_index_ok"] is False, (_rc_o, _rc_n, _r_n and _r_n["tail_quality"]))
+    _rc_o, _r_o = _memb([0, 0, 1, 2, 3, 4], "d2dupold", "v4_gate_step2_m.r1_0fe5ec55.py"); _rc_n, _r_n = _memb([0, 0, 1, 2, 3, 4], "d2dupnew")
+    check("★★★ [T] D2 DUPLICATE member (members = [0,0,1,2,3,4]): pre-round-3 PASSes (it counted symbol 0 twice and never noticed), round 3 FAILs naming '1 duplicate index(es)' — the count of members is not the count of symbols",
+          _rc_o == 0 and _r_o["PASS"] is True and _rc_n == 3 and _r_n["PASS"] is False and "duplicate" in _r_n["tail_quality"]["member_index_bad"][0]["why"][0], (_rc_o, _rc_n, _r_n["tail_quality"]))
+    _rc_n, _r_n = _memb([5, 4, 3, 2, 1, 0], "d2perm")
+    check("★★★ [T] D2 POSITIVE: an unsorted but valid permutation [5,4,3,2,1,0] still PASSes (the rule is integer / in [0, NW) / unique — NOT sortedness, and NOT a particular membership)",
+          _rc_n == 0 and _r_n["PASS"] is True and _r_n["tail_quality"]["member_index_ok"] is True and "member_index_bad" not in _r_n["tail_quality"], (_rc_n, _r_n["tail_quality"]))
+    _rc_n, _r_n = _memb([], "d2empty")
+    check("★★ [T] D2 the pre-existing zero-member rule is unchanged by the new structural rule (members = [] ⇒ FAIL via n_members_min 0, member_index_ok stays true — an empty index is well-formed, just empty)",
+          _rc_n == 3 and _r_n["PASS"] is False and _r_n["tail_quality"]["n_members_min"] == 0 and _r_n["tail_quality"]["member_index_ok"] is True, (_rc_n, _r_n["tail_quality"]))
+    # ── D3: a contract value may reference ONLY a contract key already defined in the same file ─────────────────────────────────────────────
+    _SEP = open(f"{HERE}/v4_month_2026-09.env").read(); assert "\nSEEDS=42,2027\n" in _SEP
+    open(f"{d}/ind.env", "w").write(_SEP.replace("\nSEEDS=42,2027\n", "\nSEEDS=$UNLISTED_SEEDS\n"))
+    _rc_o, _o_o = _bash(f". {_PRE_LIB}; load_month_env {d}/ind.env >/dev/null; echo rc=$? SEEDS=$SEEDS", {"L": "/dev/null", "UNLISTED_SEEDS": "2027"})
+    _rc_n, _o_n = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/ind.env", {"L": "/dev/null", "UNLISTED_SEEDS": "2027"})
+    check("★★★ [T] D3 (researcher BR3_file_key_indirect_ambient_reference_ACCEPTED, rc 0 with SEEDS=2027): `SEEDS=$UNLISTED_SEEDS` is a LINE of the file but its VALUE comes from the parent shell ⇒ pre-round-3 loader accepts and takes 2027 (only CONTRACT keys were unset), round 3 refuses rc 4 and names the key",
+          _rc_o == 0 and "SEEDS=2027" in _o_o and _rc_n == 4 and "$UNLISTED_SEEDS is not a contract key" in _o_n and "FAIL_month_env_unbound_reference_ind.env" in _o_n, (_rc_o, _o_o[-80:], _rc_n, _o_n[-200:]))
+    _rc_n, _o_n = _bash(f". {HERE}/chain_lib.sh; load_month_env {HERE}/v4_month_2026-09.env >/dev/null; echo rc=$? R=$R RAW_PATCH=$RAW_PATCH HC=$HC", {"L": "/dev/null", "R": "/tmp/inherited", "UNLISTED_SEEDS": "2027"})
+    check("★★★ [T] D3 POSITIVE: the shipped September contract still loads (rc 0) and its 5 legitimate `$R/...` values still resolve — a blanket ban on `$` would have rejected both delivered contracts (September 5 values, October template 12), so the rule is the narrow one: a contract key, defined earlier in the same file",
+          _rc_n == 0 and "R=/workspace/review_scratch " in _o_n and "RAW_PATCH=/workspace/review_scratch/raw_patch.npz" in _o_n and "HC=/workspace/review_scratch/health_check" in _o_n, (_rc_n, _o_n[-200:]))
+    _rc_n, _o_n = _bash(f". {HERE}/chain_lib.sh; load_month_env {HERE}/v4_month_2026-10.env.template >/dev/null; echo rc=$?", {"L": "/dev/null"})
+    check("★★ [T] D3 POSITIVE: the October template's 12 `$R/...` values pass the same rule (the template is refused later, by preflight, for its TODO_ paths — not by the loader for its syntax)", _rc_n == 0, (_rc_n, _o_n[-200:]))
+    open(f"{d}/fwd.env", "w").write("HC=$R/health_check\n" + _SEP.replace("\nHC=$R/health_check\n", "\n"))
+    _rc_n, _o_n = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/fwd.env", {"L": "/dev/null", "R": "/tmp/inherited"})
+    check("★★★ [T] D3 FORWARD reference: `HC=$R/...` placed BEFORE the R= line ⇒ rc 4 'referenced before it is defined' — otherwise the unset makes it expand to the empty string and HC silently becomes /health_check (non-empty, so the round-2 emptiness check would have passed it)",
+          _rc_n == 4 and "referenced before it is defined" in _o_n, (_rc_n, _o_n[-200:]))
+    for _nm, _val, _want in (("braced_foreign", "KING_DIR=${EVIL}/king", "$EVIL is not a contract key"), ("bare_dollar", "KING_DIR=/k$", "bare $ / command substitution")):
+        open(f"{d}/{_nm}.env", "w").write(_SEP.replace("\nKING_DIR=$R/king_v4\n", f"\n{_val}\n"))
+        _rc_n, _o_n = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/{_nm}.env", {"L": "/dev/null", "EVIL": "/tmp/pwn"})
+        check(f"★★ [T] D3 {_nm}: `{_val}` ⇒ rc 4 naming it ({_want})", _rc_n == 4 and _want in _o_n and "FAIL_month_env_unbound_reference" in _o_n, (_rc_n, _o_n[-160:]))
+    open(f"{d}/cmdsub.env", "w").write(_SEP.replace("\nKING_DIR=$R/king_v4\n", "\nKING_DIR=$(id -u)\n"))
+    _rc_n, _o_n = _bash(f". {HERE}/chain_lib.sh; load_month_env {d}/cmdsub.env", {"L": "/dev/null"})
+    check("★★ [T] D3 command substitution is still caught by the round-2 line grammar (rc 4 month_env_malformed), so the two layers do not depend on each other", _rc_n == 4 and "malformed" in _o_n, (_rc_n, _o_n[-160:]))
 check("★★★ [S] G0 after every run: frozen gate sources, v4_gate_common and the contract byte-identical to what [R] started with",
       _sha(f"{HERE}/v4_gate_step1.py") == _FROZEN_SHA["v4_gate_step1.py"] and _sha(f"{HERE}/v4_gate_step2.py") == _FROZEN_SHA["v4_gate_step2.py"] and _sha(f"{HERE}/v4_gate_common.py") == _COMMON_SHA and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json") == _CON_SHA)
+check("★★★ [T] G0 the FOUR contract-frozen files are byte-identical after round 3 as well (STEP1 278fdce6, STEP2 db7ab356, the contract 1188267a, the v2 export gate d63f4ec3) — round 3 touched none of them",
+      _sha(f"{HERE}/v4_gate_step1.py").startswith("278fdce6") and _sha(f"{HERE}/v4_gate_step2.py").startswith("db7ab356") and _sha(f"{HERE}/ELIGIBILITY_CONTRACT.json").startswith("1188267a") and _sha(f"{HERE}/v4e_gate_export_v2.py").startswith("d63f4ec3"),
+      [_sha(f"{HERE}/{f}")[:8] for f in ("v4_gate_step1.py", "v4_gate_step2.py", "ELIGIBILITY_CONTRACT.json", "v4e_gate_export_v2.py")])
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)

@@ -97,6 +97,11 @@
 ### 3.6 缺项拒绝(G2 的机制)
 任何 np.load 之前: 解析全部键; 缺键/空值/文件不存在 ⇒ `finalize(<gate>, {"PASS": False, "REFUSED": {"missing_env": [...], "missing_files": {键: 路径}}}, $STEPx_OUT, inputs)` ⇒ rc 3, 收据 PASS=false, 缺失文件 sha 记 None(这样的收据永不能过 `require`)。`STEPx_OUT` 本身缺 ⇒ 无处写收据: 打印 `STEPx_REFUSED missing STEPx_OUT` rc 3。冻结源内部的 `assert`(符号表对不上、形状对不上)**继承为崩溃**: rc 1、无收据 — 也不是 PASS, 但不「干净」; 列入 §6 未做。
 
+### 3.7 新尾成员索引的合法性, 与 0.90 地板的**射程**(AMENDMENT 2, 2026-09-13)
+- **先结构, 后比例**: `members(a)` 是**符号索引向量**。取特征前必须依次成立: ① 1-D; ② 整数(dtype 为整型, 或浮点值逐位等于其 int64 取整); ③ 每个值在 `[0, NW)`; ④ 无重复。任一不成立 ⇒ 该锚记入 `tail_quality.member_index_bad`(点名锚 UTC、前 8 个成员值、原因), `member_index_ok=false`, **`ok=false` ⇒ PASS=false, rc 3**; 且**绝不**用这个索引去下标特征(负值会静默环绕到末列, 越界会崩成 rc 1 无收据 — 两者都不是判决)。
+- **0.90 的射程(明写, 防止被引用成别的东西)**: 它只说「这个尾锚的成员格里有 ≥90% 是有限数」。它**不是**因果性门、**不是**预测有效性门、**不是**成员身份正确性门、**不是**经济意义门。成员是不是**对的**币、特征值是不是**对的**数, 本门一概不知道; 那由 A 部分(RAW vs CLIP)、`F10_GATE_*` 身份收据与下游判官负责。地板通过只等于「尾部不是一片 NaN, 且索引本身是合法索引」。
+- 收据字段: `member_index_ok`(有尾即出现, 布尔)与 `member_index_bad`(仅当非空时出现, 条件字段)。`tail_quality` 其余字段与 AMENDMENT 1 逐字相同; 无尾时整个 `tail_quality` 仍不出现(§0 的字段集合不变量不受影响)。
+
 ## §4 阈值与统计(逐字, 不变)
 - 邻域: `holefix2_cells.npz` 的 `neigh_rows`(上游按 `[run_start−48, run_end+8640]` 生成)与 `fill_runs`/`row`/`col`(被填补币集合按 run)。
 - STEP1 A: 补丁窗 `E_row ∈ [t−48, t−1]`; 大差 `> 1e-6`; 噪声 `≤ 1e-6`; `YR4s`/`YRZ` 行级差同 1e-6 带。PASS = 九个逐位字段全 True ∧ `y4s_finite_pattern_equal` ∧ `y4s_big_outside_patch_windows == 0` ∧ `y4s_noise_max_outside_patch ≤ 1e-6` ∧ `YR4s/YRZ_diff_rows_outside_patch_rows == 0`。
@@ -149,6 +154,17 @@
 - B-R3: `load_month_env` 要求 46 键**出现在文件里**且先 `unset` 再 source; 数据阶段五个子进程 `env -i` + 白名单 + 逐变量显式(CLIP `DLWT_RAW_PATCH=` 空)。
 - R5: 五个旧链脚本首行守卫 `V4_LEGACY_OK=1`, 否则 rc 64 `LEGACY_REFUSED`。
 - 验收: 自检新节 [S]; 研究员 13+8 探针格中预期翻转: `W3_refit_subset_dispatches_without_upstream_receipts`、`W3_omitted_SEEDS_inherited_ACCEPTED`、`W3_CLIP_command_inherits_ambient_RAW_PATCH`、`W7_NONE_positive_without_any_builder_or_preflight_identity`、`W7_entire_new_tail_NaN_still_PASS_boundary`(5 格); F9/W4 七格与 `W7_*` 其余四格不变。
+
+## AMENDMENT 2(2026-09-13, W7b; 独立研究员 `REVIEW_code_and_research_2026-09-13` §3.D + `codex_followup_code_review_2026-09-13/retrain` 探针 F-R3; 追加前本文 sha = `9468e0d20a7f0f915607e03c749cfb5e09081833221952059738bebaac8b4c59`(git HEAD 74b2acb5 的版本))
+
+> **诚实的次序声明(不冒充预注册)**: 本修订**不是**「先于任何数字写成」。真实次序是: ① 研究员报缺陷并给出 `[-1]` 反例(其收据先于本会话); ② lead 派工时已把判据定死为「整数 ∧ `[0, NW)` ∧ 唯一, 先结构后比例」; ③ 我先在归档的 `v4_gate_step2_m.r1_0fe5ec55.py` 上复现缺陷(自检 [T] 的红格), 再改码、跑自检; ④ 然后写本节。**没有任何阈值是看了结果才选的**: 0.90 与全部统计逐字继承 AMENDMENT 1, 新规则无可调参数。凡本节所述判据, 均可由 §3.7 独立重算。
+
+**触发**: `PROBE_W7_RESULTS.json` 的 `tail_invalid_negative_member_index_ACCEPTED` — 230/200 锚正常夹具, 只把一个新尾锚的 `members` 改成 `[-1]`, 特征保持正常 ⇒ 门 **PASS**, `member_finite_frac=1.0`, `n_members_min=1`。机制: AMENDMENT 1 的 L100 直接 `np.asarray(M4m[_i], dtype=np.int64)` 当下标, numpy 把 `-1` 解释为**末列**, 于是读到一个合法有限的格子。研究员的定性正确且已被本轮独立复现: 「此为新尾质量门的**输入结构**缺口, 不是要求另选一个 0.90 阈值」。
+
+- **规则**: 见 §3.7(先结构后比例; 四条结构判据; 非法索引绝不作下标)。**阈值与统计一律不改**: 0.90、`>= 1 member`、成员格有限比例的定义逐字不动。
+- **新增收据字段**: `tail_quality.member_index_ok`(有尾即出现)、`tail_quality.member_index_bad`(仅非空时出现)。九月正控受影响面: 九月 6 个尾锚的成员索引合法(`n_members_min=400`), 故 `member_index_ok=true`、无 `member_index_bad` ⇒ 对 G1 的预期从「31 全等 + 恰 1 差(`tail_quality`)」变为「31 全等 + 恰 1 差(`tail_quality`, 其内部多 `member_index_ok`)」, **PASS 与 rc 不变**。真数据复跑见 §7.10(未跑则明写未跑)。
+- **射程声明(用户/读者引用时必须带)**: 0.90 是**有限格门**, 不是因果性或预测有效性门(§3.7 第二条)。
+- **未覆盖(明写)**: 只校验**新尾**锚的成员索引; 公共轴上的成员由 `members_diff_rows_outside_neigh` 逐位对参照负责, 参照本身若带非法索引, 两边一致就不会红 —— 若要覆盖公共轴需新预注册(本轮不做)。
 
 ## §7 RESULT(2026-09-12 事后追加; 追加前(§0–§6 冻结时)本文 sha = `2290f191c59e11b33576d8cfe5b4b2bdef776c731f5dcea17914582a0b298f8f`, 先于任何门运行实测)
 
@@ -213,3 +229,17 @@
 - 自检: `tests_pipeline_gates.py` **ALL PASS (328 checks)**(= 278 + [S] 45 + 并行 W3 新增的 [P] 格; W7 未改旧格, 仅 [J] 传 `V4_LEGACY_OK=1`、[P] 键数格 45→46 与 `_fake_root` +1 键、[R] 两格 NONE 改带身份、[R] 一格 regex 收窄为「非空默认」); 日志 `receipts/monthly_chain_2026-09-12/tests_pipeline_gates_w7.log` + 同名 `.SHA256SUMS`(运行时各文件 sha)。`make_sha_manifest.py` rc 0。
 - 研究员探针复跑(`w7_gates/researcher_probes_live/`, 探针指向现装置, 夹具函数按名定位): **翻转 5 格**(W7): `W3_refit_subset_dispatches_without_upstream_receipts` True→False; `W3_omitted_SEEDS_inherited_ACCEPTED` 0→4; `W3_CLIP_command_inherits_ambient_RAW_PATCH` 'stale-inherited-patch'→(研究员 mock 在 env -i 下失去 PROBE_LOG 而无记录; W7 [S] 同型格实测 CLIP 子进程 `DLWT_RAW_PATCH=''`); `W7_NONE_positive_without_any_builder_or_preflight_identity` PASS→REFUSED; `W7_entire_new_tail_NaN_still_PASS_boundary` PASS→FAIL(研究员 env 无钉值故先被身份拒绝; 带钉值的尾质量红见 [S])。**另 1 格由 W4 并行改动翻转**(非 W7): `W4_changed_receipt_extra_omitted_by_caller_ACCEPTED` True→False。其余 15 格不变。
 **未做/边界**: 驱动 preflight 的 `PF_INPUTS` 未加 PREV_*(NONE 非路径; 缺失由门拒绝); mwf/refit/arms/judge/export 五阶段的前置只在合成根上证「缺则停、齐则派」, 真数据全链仍未跑(DESIGN §7 (ii)); `env -i` 只施于数据阶段(GPU 阶段的 torch/CUDA 环境不敢清); 旧链 `.rN_*.sh` 快照与 `chain_fea89_stable.sh` / `chain_v4_gpu2.sh` 未加守卫(lead 未点名; 快照按纪律不动); 合同批准仍 = 用户字(0fe5ec55 取代 455e3df4)。
+
+### 7.10 AMENDMENT 2 收口(2026-09-13, W7b; 受据 = 独立研究员 `REVIEW_code_and_research_2026-09-13.md` §3.D + 探针 F-R3)
+**改动(装置目录 `v4_chain_2026-09-09/`)**: `v4_gate_step2_m.py` `0fe5ec5573f3…` → **`b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9`**。只改 AMENDMENT 1 加的那段尾质量块(冻结源的删行集合仍是 §1.2 的 14 行白名单, 加行全带 `# [M]`, 阈值字面量计数不变 —— [R] G0 三格复验); 保存的 `w7_gates/v4_gate_step2_m.diff` 重生成为 `833c9a420d0e…`(105 行, 原 88)。`v4_gate_step1_m.py` **不变**(`79950786…`)。红控快照 `v4_gate_step2_m.r1_0fe5ec55.py`(= 研究员 `RESULT.md` 关键源表的那个 sha, 逐位)留在装置目录, 自检 [T] 每格同时跑它与新门。
+
+**pod2 正控(CPU, 隔离 `/workspace/w7b_round3_2026-09-13/`, `/workspace/review_scratch` 只读; 转录 `receipts/round3_2026-09-13/run_w7b_round3_control.sh` sha `6b49359c80fb…`; 2026-09-13T02:04:48Z→02:05:20Z)**。装置 = W7 r2 的副本逐位(`v4_gate_common.py` 仍是 `f8f4fc0e…`、合同 `1188267a…`、`pod_fea_ext_clamp.py` `b9f9c728…`、`v4_gate_step1_m.py` `79950786…`、九月合同 `563efdef…` 五件事前断言), **单一变量 = STEP2_m**(另加 round-3 `chain_lib.sh`, 只用于加载合同)。转录里的预期先于运行写成, 并写明「若 `member_index_ok` 回 false, 则是我的规则错、不是数据错, 照实报、不调规则」。实测:
+- `load_month_env` 的 round-3 新规则在**真九月合同**上 rc 0(D3 的真数据正控; 5 个 `$R/...` 正常解析)。
+- STEP2_m **PASS rc 0**; `tail_quality = {n_tail_anchors 6, member_index_ok true, member_finite_frac_min 0.975609756097561, median 同, n_members_min 400, floor 0.9, ok true}` —— 除新增 `member_index_ok` 外与 r2 **逐位相同**, 无 `member_index_bad`。**即: 九月 6 个尾锚各 400 个成员索引全部是 `[0, 829)` 内的合法唯一整数, 新结构规则不误伤真数据**(合成夹具只有 6 个符号, 证不了这一点)。
+- `compare_gate_receipts.py` vs r2 收据: **37 个判决字段全等 + 恰 1 差 = `tail_quality/member_index_ok missing_in_archived`**, PASS=true 两边(`pod2_root/parity_STEP2_round3_vs_r2.json`)。(r2 当时对 W3 冻结门收据是 31+1; 此处基准换成 r2 自己的收据, 故 31+6=37。)
+- 真合同 `REQUIRE_FAIL … b2f9cfd40b9e is not an APPROVED source`(预期: 批准 = 用户字, 且新 sha 取代 0fe5ec55 后仍需增补)。合同 sha 事后仍 `1188267adf42`。
+- GPU `0 %, 2 MiB` 事前事后; PID 333197/339489 `Tl` 事前事后; `review_scratch` ls 事前==事后。
+
+**自检**: `tests_pipeline_gates.py` **ALL PASS (352 checks)**(修前基线 328, 新节 [T] 24 格; 另有 3 格旧断言因本轮改动而更新: [R] G0 保存的 diff、[S] 侧车正控的夹具与参数、[S] 尾质量的整字典比对)。`make_sha_manifest.py` rc 0。日志与全部收据: `receipts/round3_2026-09-13/`。
+
+**仍开**: 合同 approved 增补 = 用户字(STEP1_m `79950786…` / STEP2_m `b2f9cfd4…`); 公共轴上的成员索引不查(AMENDMENT 2 末条); DESIGN §7 (ii) 真数据全链未跑, 原样仍开。

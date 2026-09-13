@@ -8,8 +8,6 @@
 # [M] anchors after the reference axis end are the extension tail (§3.4); a reference identical to the candidate is refused (§3.5); missing inputs are refused with a PASS=false receipt (§3.6).
 # [M] AMENDMENT 1 (researcher B-R4): NONE is bound to the builder identity (PREV_CLAMP_BUILDER_SHA256 == preflight-pinned == on-disk pod_fea_ext_clamp.py, else refused); every new-tail anchor
 # [M] must have >= 1 member and a member-cell finite fraction >= 0.90 (tail_quality, always present when a tail exists, part of PASS).
-# [M] AMENDMENT 2 (2026-09-13, researcher F-R3): the new-tail member index is validated STRUCTURALLY FIRST (1-D, integer, in [0, NW), no duplicates) and an invalid index is
-# [M] never used as a subscript; only then does the 0.90 floor apply. The floor is a FINITE-CELL gate on the tail — it is not a causal or predictive-validity gate (§3.7).
 import numpy as np, json, time, os, sys
 t0 = time.time()
 def log(*a): print(f"[{time.time()-t0:7.1f}s]", *a, flush=True)
@@ -97,25 +95,10 @@ for s in range(0, nA, CH):
     if s % 2048 == 0: log(f"{s}/{nA}", json.dumps(S))
 R["features"] = S
 _tail_idx = np.searchsorted(E4, x4[_t4]) if len(x4) else np.zeros(0, np.int64)   # [M] AMENDMENT 1 (B-R4): new-tail anchors = only-in-new AND after the reference axis end (§3.4)
-if len(_tail_idx):   # [M] tail quality gate: every tail anchor needs a STRUCTURALLY VALID member index, >= 1 member and a member-cell finite fraction >= 0.90 (floor pre-registered from the September calibration: min 0.9756, median 1.0)
-    # [M] ★ AMENDMENT 2 (2026-09-13, review §3.D / researcher probe tail_invalid_negative_member_index_ACCEPTED): the index was fed straight to numpy, so members=[-1]
-    # [M]   read the LAST column, scored finite fraction 1.0 and PASSed. A member index is a symbol index: it must be a 1-D vector of integers in [0, NW) without
-    # [M]   duplicates. Validity is decided FIRST and an invalid index is NEVER used to read features; only then does the finite-fraction floor apply (PREREG §3.7).
-    _ffs = []; _nms = []; _mbad = []   # [M]
-    for _i in _tail_idx:   # [M]
-        _raw = np.asarray(M4m[_i]); _why = []   # [M]
-        try: _m = _raw.astype(np.int64)   # [M] a member index that cannot even be read as integers is a clean FAIL receipt, not an uncaught cast (rc 1, no receipt)
-        except Exception as _e: _m = np.zeros(0, np.int64); _why.append(f"not castable to an integer index ({type(_e).__name__})")   # [M]
-        if _why: pass   # [M]
-        elif _raw.ndim != 1: _why.append(f"ndim {_raw.ndim} != 1 (a member index is a vector)")   # [M]
-        elif _raw.size and _raw.dtype.kind not in "iu" and not np.array_equal(_m, _raw): _why.append(f"dtype {_raw.dtype} is not an integer index")   # [M]
-        elif _m.size and (int(_m.min()) < 0 or int(_m.max()) >= NW): _why.append(f"index range [{int(_m.min())}, {int(_m.max())}] outside [0, {NW})")   # [M]
-        elif _m.size != int(np.unique(_m).size): _why.append(f"{_m.size - int(np.unique(_m).size)} duplicate index(es)")   # [M]
-        if _why: _mbad.append({"anchor_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(E4[_i]))), "i": int(_i), "members": _raw.reshape(-1).tolist()[:8], "why": _why})   # [M]
-        _nms.append(int(_m.size)); _ffs.append(float(np.isfinite(np.asarray(F4[_i])[_m]).mean()) if (_m.size and not _why) else 0.0)   # [M] an invalid index is never used as a subscript
-    _ffs = np.array(_ffs); R["tail_quality"] = {"n_tail_anchors": int(len(_tail_idx)), "member_index_ok": not _mbad, "member_finite_frac_min": float(_ffs.min()), "member_finite_frac_median": float(np.median(_ffs)), "n_members_min": int(min(_nms)), "floor": 0.90,   # [M]
-                                                "ok": bool(not _mbad and (_ffs >= 0.90).all() and min(_nms) >= 1)}   # [M]
-    if _mbad: R["tail_quality"]["member_index_bad"] = _mbad   # [M] conditional: present iff the structural rule was load-bearing
+if len(_tail_idx):   # [M] tail quality gate: every tail anchor needs >= 1 member and a member-cell finite fraction >= 0.90 (floor pre-registered from the September calibration: min 0.9756, median 1.0)
+    _ffs = []; _nms = []   # [M]
+    for _i in _tail_idx: _m = np.asarray(M4m[_i], dtype=np.int64); _nms.append(int(len(_m))); _ffs.append(float(np.isfinite(np.asarray(F4[_i])[_m]).mean()) if len(_m) else 0.0)   # [M]
+    _ffs = np.array(_ffs); R["tail_quality"] = {"n_tail_anchors": int(len(_tail_idx)), "member_finite_frac_min": float(_ffs.min()), "member_finite_frac_median": float(np.median(_ffs)), "n_members_min": int(min(_nms)), "floor": 0.90, "ok": bool((_ffs >= 0.90).all() and min(_nms) >= 1)}   # [M]
 # meta
 mrows = np.array([not np.array_equal(M4m[i], MEm[j]) for i, j in zip(I4, IE)]); R["members_diff_rows"] = int(mrows.sum()); R["members_diff_rows_outside_neigh"] = int((mrows & (nn < 0)).sum())
 for k in ("y4", "qvk"):

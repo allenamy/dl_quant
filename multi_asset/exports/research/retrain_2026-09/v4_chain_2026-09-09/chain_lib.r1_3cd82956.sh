@@ -31,24 +31,6 @@ load_month_env(){  # load_month_env <v4_month.env> — sources the contract (KEY
   #   (1) every key must appear as a `KEY=` line of the file; (2) all contract keys are UNSET before sourcing, so nothing the caller exported survives.
   local present; present=" $(grep -oE '^[A-Z_][A-Z0-9_]*=' "$f" | tr -d '=' | tr '\n' ' ') "
   for k in $V4_MONTH_KEYS; do case "$present" in *" $k "*) ;; *) echo "month env $f: key $k is not a line of the file (an inherited environment value does not count)" >&2; die "month_env_key_missing_$k" 4 ;; esac; done
-  # ★ ROUND 3 (2026-09-13, review §3.D / researcher probe BR3_file_key_indirect_ambient_reference_ACCEPTED): the presence check above proves the KEY is in the file,
-  #   not that its VALUE is. `SEEDS=$UNLISTED_SEEDS` is a line of the file, survives the unset below (only CONTRACT keys are unset) and is filled in by the parent
-  #   shell at `. "$f"` — so a 46-key contract could still be steered from outside. A blanket "no $ in a value" would reject both delivered contracts (the September
-  #   one has 5 `$R/...` values, the October template 12), so the rule is the narrow one the reviewer proposed: a value may reference ONLY a CONTRACT key that is
-  #   already DEFINED EARLIER IN THIS FILE. Command substitution and backticks stay rejected by the grep above and are re-rejected here (defence in depth).
-  local unbound; unbound=$(awk -v KEYS="$V4_MONTH_KEYS" '
-    BEGIN{ n = split(KEYS, a, " "); for (i = 1; i <= n; i++) contract[a[i]] = 1 }
-    /^[[:space:]]*(#|$)/ { next }
-    { e = index($0, "="); if (e == 0) next; key = substr($0, 1, e - 1); s = substr($0, e + 1)
-      while ((p = index(s, "$")) > 0) { rest = substr(s, p + 1); brace = 0
-        if (substr(rest, 1, 1) == "{") { brace = 1; rest = substr(rest, 2) }
-        if (match(rest, /^[A-Za-z_][A-Za-z0-9_]*/)) { name = substr(rest, 1, RLENGTH); s = substr(rest, RLENGTH + 1)
-          if (brace) { if (substr(s, 1, 1) != "}") printf "%s: malformed ${...} reference; ", key; else s = substr(s, 2) }
-          if (!(name in contract)) printf "%s: $%s is not a contract key (the parent shell would fill it in); ", key, name
-          else if (!(name in defined)) printf "%s: $%s is referenced before it is defined in this file; ", key, name
-        } else { printf "%s: a bare $ / command substitution is not allowed in a contract value; ", key; s = rest } }
-      defined[key] = 1 }' "$f")
-  [ -z "$unbound" ] || { echo "month env $f: unbound reference(s): $unbound" >&2; die "month_env_unbound_reference_$(basename "$f")" 4; }
   unset $V4_MONTH_KEYS V4_MONTH_ENV
   set -a; . "$f"; set +a
   for k in $V4_MONTH_KEYS; do [ -n "${!k:-}" ] || die "month_env_key_missing_$k" 4; done
@@ -165,82 +147,33 @@ PYEOF
 ); rc=$?
   say "prereq $stage/$name: $out"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }
 }
-# ★ ROUND 3 (2026-09-13, independent review REVIEW_code_and_research_2026-09-13 §3.D / probe F-R1): the old helper proved that A JSON EXISTS, not WHAT IT IS ABOUT.
-#   Three states it admitted (researcher fixtures, all rc 0): (a) weights changed and the `pt_sha256` key DELETED — `elif m.get("pt_sha256") and …` made a missing
-#   sha a SKIP; (b) the four declared inputs shrunk to one — the loop walked whatever the sidecar happened to list; (c) a complete seed-42 sidecar dropped into the
-#   seed-2027 slot — the function had no expected seed and read none of the seed fields. This gate runs BEFORE arms dispatch, so it is a resume-gate promise.
-#   Scope of the defect (DESIGN §9.1): arms consume the monthly prediction .npy, so there is NO evidence a wrong .pt was ever used for a real prediction; what was
-#   broken is the PROMISE that the refit artefacts were verified, not a proven bad training. Now: expected seed, COMPLETE key set (a missing required key is a
-#   refusal — never "absent ⇒ skip"), the expected paths of this month's contract, and the ACTUAL sha256 of the .pt and of every declared input, unconditionally.
-prereq_refit_sidecar(){  # prereq_refit_sidecar <stage> <name> <sidecar.json> <DLW_RAW> <F8> <expected seed> <refit source .py> — every argument is mandatory
-  local stage=$1 name=$2 sc=$3 dlw=$4 f8=$5 seed=$6 src=$7 out rc
-  [ -n "$seed" ] && [ -n "$src" ] || { echo "prereq $stage/$name: expected seed and refit source are MANDATORY arguments of prereq_refit_sidecar (an unbound call verifies nothing)" >&2; die "${stage}_prereq_${name}" 3; }
-  out=$($PY - "$sc" "$dlw" "$f8" "$seed" "$src" 2>&1 <<'PYEOF'
+prereq_refit_sidecar(){  # prereq_refit_sidecar <stage> <name> <sidecar.json> <DLW_RAW> <F8> — best_ep_rule fix7, env_given bound to THIS month's dirs, every recorded input sha == the file now on disk
+  local stage=$1 name=$2 sc=$3 dlw=$4 f8=$5 out rc
+  out=$($PY - "$sc" "$dlw" "$f8" 2>&1 <<'PYEOF'
 import hashlib, json, os, sys
-sc, dlw, f8, seed_s, src = sys.argv[1:6]
+sc, dlw, f8 = sys.argv[1:4]
 if not os.path.isfile(sc): print(f"refit sidecar missing: {sc}"); sys.exit(3)
-try: m = json.load(open(sc))
-except Exception as e: print(f"refit sidecar unreadable: {e}"); sys.exit(3)
-if not isinstance(m, dict): print(f"refit sidecar is not a JSON object: {sc}"); sys.exit(3)
-try: seed = int(seed_s)
-except ValueError: print(f"expected seed {seed_s!r} is not an integer"); sys.exit(3)
-bad = []
+m = json.load(open(sc)); bad = []
+if m.get("best_ep_rule") != "fix7": bad.append(f"best_ep_rule={m.get('best_ep_rule')!r}")
+eg = m.get("env_given") or {}
+if eg.get("F10_DLW") != dlw: bad.append(f"env_given.F10_DLW={eg.get('F10_DLW')!r} != {dlw!r}")
+if eg.get("F10_OUT") != f8: bad.append(f"env_given.F10_OUT={eg.get('F10_OUT')!r} != {f8!r}")
+if str(eg.get("BEST_EP_FIX")) != "7": bad.append(f"env_given.BEST_EP_FIX={eg.get('BEST_EP_FIX')!r}")
+ins = m.get("inputs") or {}; shas = m.get("inputs_sha256") or {}
+if not ins or not shas: bad.append("sidecar records no inputs/inputs_sha256")
 def sha(p):
     h = hashlib.sha256()
     with open(p, "rb") as f:
         for ch in iter(lambda: f.read(1 << 24), b""): h.update(ch)
     return h.hexdigest()
-def _empty(v): return v is None or (isinstance(v, (str, dict, list, tuple)) and len(v) == 0)
-# (1) COMPLETE KEY SET — pod_f10_refit_v4.py writes every one of these; a missing key is a REFUSAL, never a skipped check (researcher F-R1 (a))
-_TOP = ("seed", "best_ep_rule", "best_ep_kept", "env_given", "inputs", "inputs_sha256", "pt", "pt_sha256", "self_sha256")
-_miss = [k for k in _TOP if k not in m or _empty(m[k])]
-if _miss: bad.append(f"sidecar key(s) missing or empty: {_miss} (the refit writer emits all of {list(_TOP)})")
-eg = m.get("env_given") if isinstance(m.get("env_given"), dict) else {}
-_egmiss = [k for k in ("F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX") if k not in eg or _empty(eg[k])]
-if _egmiss: bad.append(f"env_given key(s) missing or empty: {_egmiss}")
-ins = m.get("inputs") if isinstance(m.get("inputs"), dict) else {}
-shas = m.get("inputs_sha256") if isinstance(m.get("inputs_sha256"), dict) else {}
-_WANT = {"targets": f"{dlw}/data/dlw_targets.npz", "fea82": f"{dlw}/data/dlw_fea82.npz", "fea89": f"{f8}/data/f8_fea89.npz", "legs": f"{f8}/data/f10v2_legs.npz"}
-if set(ins) != set(_WANT): bad.append(f"inputs names {sorted(ins)} != the four artefacts the refit consumes {sorted(_WANT)} (researcher F-R1 (b): a shrunk set used to pass)")
-if set(shas) != set(_WANT): bad.append(f"inputs_sha256 names {sorted(shas)} != {sorted(_WANT)}")
-# (2) EXPECTED PATHS — the sidecar must be about THIS month's contract directories, not merely about four files that happen to exist
-for k in sorted(_WANT):
-    p = ins.get(k)
-    if p is not None and os.path.realpath(str(p)) != os.path.realpath(_WANT[k]): bad.append(f"input {k} path {p!r} != this month's {_WANT[k]!r}")
-_ptw = f"{f8}/models/f10_live_s{seed}.pt"
-if m.get("pt") is not None and os.path.realpath(str(m["pt"])) != os.path.realpath(_ptw): bad.append(f"pt path {m.get('pt')!r} != this month's {_ptw!r}")
-# (3) EXPECTED SEED — all four seed carriers must agree with the seed the driver is verifying (researcher F-R1 (c))
-if m.get("seed") != seed: bad.append(f"seed={m.get('seed')!r} != expected {seed}")
-if str(eg.get("SEED")) != str(seed): bad.append(f"env_given.SEED={eg.get('SEED')!r} != expected {seed}")
-if os.path.basename(sc) != f"f10_live_s{seed}.json": bad.append(f"sidecar file {os.path.basename(sc)!r} is not the seed-{seed} slot f10_live_s{seed}.json")
-# recipe + month binding (round 2 checks, kept verbatim in meaning)
-if m.get("best_ep_rule") != "fix7": bad.append(f"best_ep_rule={m.get('best_ep_rule')!r}")
-if str(eg.get("BEST_EP_FIX")) != "7": bad.append(f"env_given.BEST_EP_FIX={eg.get('BEST_EP_FIX')!r}")
-if m.get("best_ep_kept") != 7: bad.append(f"best_ep_kept={m.get('best_ep_kept')!r} != 7 (the fix7 rule keeps exactly epoch 7)")
-if eg.get("F10_DLW") != dlw: bad.append(f"env_given.F10_DLW={eg.get('F10_DLW')!r} != {dlw!r}")
-if eg.get("F10_OUT") != f8: bad.append(f"env_given.F10_OUT={eg.get('F10_OUT')!r} != {f8!r}")
-# (4) ACTUAL ARTEFACT SHAs — every declared input AND the weights, verified against the bytes on disk; an absent recorded sha is its own refusal
-for k in sorted(_WANT):
-    p = ins.get(k)
-    if p is None: continue                                                       # already named by the key-set refusal above
+for k, p in ins.items():
     if not os.path.isfile(p): bad.append(f"input {k} missing on disk: {p}"); continue
-    if _empty(shas.get(k)): bad.append(f"input {k} has NO recorded sha256 in the sidecar: its identity is unverifiable"); continue
-    cur = sha(p)
-    if cur != shas[k]: bad.append(f"input {k} changed since refit: {cur[:12]} != {str(shas[k])[:12]}")
+    if sha(p) != shas.get(k): bad.append(f"input {k} changed since refit: {sha(p)[:12]} != {str(shas.get(k))[:12]}")
 pt = m.get("pt")
-if pt is None: pass                                                              # already named by the key-set refusal
-elif not os.path.isfile(str(pt)): bad.append(f"weights missing: {pt}")
-elif _empty(m.get("pt_sha256")): bad.append("sidecar records NO pt_sha256: the weights identity is unverifiable (this used to be treated as 'nothing to check')")
-else:
-    cur = sha(str(pt))
-    if cur != m["pt_sha256"]: bad.append(f"weights changed since refit: {cur[:12]} != {str(m['pt_sha256'])[:12]}")
-# (5) WHICH PROGRAM WROTE IT — the same discipline require_gate applies to gate receipts (self_sha computed at run time from the source this chain invokes)
-if not os.path.isfile(src): bad.append(f"refit source missing beside the driver: {src}")
-elif not _empty(m.get("self_sha256")):
-    _ss = sha(src)
-    if _ss != m["self_sha256"]: bad.append(f"sidecar was written by a different program: self_sha256 {str(m['self_sha256'])[:12]} != {os.path.basename(src)} {_ss[:12]}")
+if not pt or not os.path.isfile(pt): bad.append(f"weights missing: {pt}")
+elif m.get("pt_sha256") and sha(pt) != m["pt_sha256"]: bad.append(f"weights changed since refit: {sha(pt)[:12]} != {m['pt_sha256'][:12]}")
 if bad: print("; ".join(bad)); sys.exit(3)
-print(f"ok seed {seed} fix7, {len(ins)} inputs + weights verified against the bytes on disk, written by {os.path.basename(src)} {str(m['self_sha256'])[:12]}")
+print(f"ok seed {m.get('seed')} fix7, {len(ins)} inputs + weights identical")
 PYEOF
 ); rc=$?
   say "prereq $stage/$name: $out"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }

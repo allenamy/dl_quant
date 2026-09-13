@@ -260,7 +260,7 @@ if want arms; then
   prereq_receipt arms step2 "$R/v4_gates/step2.json" STEP2; S2_SRC=$(gate_sha "$D/$GATE_STEP2") || die "gate_source_unreadable_$GATE_STEP2" 3
   require_gate "$R/v4_gates/step2.json" gate=STEP2 self_sha=$S2_SRC wide_fea_v4=$KING_FEA wide_fea_v4_meta=$KING_META   # build_dev reads KING_META
   prereq_marker arms bundle "$R/export_v4.log" BUNDLE_DONE BUNDLE_FAIL; prereq_file arms king_pred "$BUNDLE_OUT/slow_pred_pinned.npy"
-  for SD in $SEED_LIST; do prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8"; done   # fix7 + env bound to this month + inputs/weights identical
+  for SD in $SEED_LIST; do prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"; done   # round 3: expected SEED + complete key set + this month's expected paths + the ACTUAL sha of the .pt and all four inputs + which program wrote the sidecar
   guard arms; stage "arms: build_dev_v4 (raw meta, SLOW_v4 from $BUNDLE_OUT, A0 preds) then run_v4_arms.sh $EXPORT_ARM seeds [$SEED_LIST]"
   mkdir -p "$HC/dev_v4/logs" "$KING_DIR" || die "arms_mkdir" 1
   env KING_META=$KING_META DLW_RAW=$DLW_RAW CACHE=$CACHE HOLE_CELLS=$HOLE_CELLS BUNDLE_OUT=$BUNDLE_OUT "$PY" "$D/build_dev_v4.py" > "$R/build_dev_v4.log" 2>&1; rc=$?

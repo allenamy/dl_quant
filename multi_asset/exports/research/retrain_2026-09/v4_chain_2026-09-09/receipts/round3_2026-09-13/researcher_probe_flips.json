@@ -1,0 +1,93 @@
+{
+ "utc": "2026-09-13T02:08:35Z",
+ "what": "independent researcher probes (codex_followup_code_review_2026-09-13/retrain, 23 core + 16 W7) re-run verbatim against the device BEFORE and AFTER round 3",
+ "device_after": {
+  "chain_lib.sh": "a331f0351b3eca9ac2e64636e94a906045deb209f25888f38a8ab07e4d715a40",
+  "v4_gate_step2_m.py": "b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9"
+ },
+ "note": "a flip to a refusal is the intended closure. BR3_CLIP_ambient_isolation_closed differs only in the fixture directory of the two runs (behaviour identical). sidecar_complete_identity_positive is the researcher POSITIVE control: it flips because its fixture puts the artefacts at non-canonical paths and omits three fields the real writer emits; see corrected_positive_control.json, where the SAME BYTES at the canonical layout return rc 0.",
+ "suites": {
+  "core_23": {
+   "n_cases": 23,
+   "n_flipped": 6,
+   "n_unchanged": 17,
+   "flipped": {
+    "BR3_file_key_indirect_ambient_reference_ACCEPTED": {
+     "pre": {
+      "actual": 0
+     },
+     "post": {
+      "actual": 4
+     }
+    },
+    "sidecar_complete_identity_positive": {
+     "pre": {
+      "actual": 0
+     },
+     "post": {
+      "actual": 3
+     }
+    },
+    "sidecar_changed_weights_missing_hash_ACCEPTED": {
+     "pre": {
+      "actual": 0
+     },
+     "post": {
+      "actual": 3
+     }
+    },
+    "sidecar_omits_three_required_input_identities_ACCEPTED": {
+     "pre": {
+      "actual": 0
+     },
+     "post": {
+      "actual": 3
+     }
+    },
+    "sidecar_seed42_submitted_for_seed2027_ACCEPTED": {
+     "pre": {
+      "actual": 0
+     },
+     "post": {
+      "actual": 3
+     }
+    },
+    "BR3_CLIP_ambient_isolation_closed": {
+     "pre": {
+      "actual": {
+       "DLWT_RAW_PATCH": "",
+       "DLWT_OUT": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/probes_pre/fixtures/core/clip",
+       "F171_CACHE": null,
+       "F8_DLW": null
+      }
+     },
+     "post": {
+      "actual": {
+       "DLWT_RAW_PATCH": "",
+       "DLWT_OUT": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/probes_post/fixtures/core/clip",
+       "F171_CACHE": null,
+       "F8_DLW": null
+      }
+     }
+    }
+   }
+  },
+  "w7_16": {
+   "n_cases": 16,
+   "n_flipped": 1,
+   "n_unchanged": 15,
+   "flipped": {
+    "tail_invalid_negative_member_index_ACCEPTED": {
+     "pre": {
+      "PASS": true,
+      "returncode": 0
+     },
+     "post": {
+      "PASS": false,
+      "returncode": 3
+     }
+    }
+   }
+  }
+ }
+}

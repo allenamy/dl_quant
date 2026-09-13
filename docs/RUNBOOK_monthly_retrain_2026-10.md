@@ -79,6 +79,17 @@ PREV_CLAMP_BUILDER_SHA256=b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b36240
 - **十月首跑已知风险**(PREREG §3.4): 参照轴末 ≤48 bar 的标签补全差异会让 STEP1 B / STEP2 meta 合法地红; 门不豁免; 若红, 差异须被证明全落在 `E_row > max(E_row_ref) − 48` 的锚, 再以 AMENDMENT 落墨。
 - 自检: `tests_pipeline_gates.py` 新节 [R] 50 格 + [S] 45 格(全套 328 ALL PASS, `receipts/monthly_chain_2026-09-12/tests_pipeline_gates_w7.log` + `.SHA256SUMS`); 复跑正控命令逐字 = `receipts/monthly_chain_2026-09-12/w7_gates/run_w7_positive_control.sh`(r1: 两门, 455e3df4 版 STEP2)与 `run_w7_positive_control_r2.sh`(r2: STEP2_m 0fe5ec55, 收据 `w7_gates/pod2_root_r2/`, 对账 31 等 + 恰 1 差 `tail_quality` 如预注册)。
 
+### §0★ 修订 5(2026-09-13, W7b; 独立研究员 `docs/REVIEW_code_and_research_2026-09-13.md` §3.D 四项定向收口; 设计 DESIGN §9 + PREREG AMENDMENT 2/§3.7 + 收据 `v4_chain_2026-09-09/receipts/round3_2026-09-13/`)
+
+**对十月执行的净影响: 门更严, 步骤不变, 合同要多写一行也不用改。** 三处改码 + 一处只写字, 每处都有一个「跑归档旧源就会红」的自检格(新节 [T], 旧源以 `.r1_<sha8>` 存在装置目录)。
+
+1. **refit 侧车前置(arms 之前)现在证明「这份 JSON 说的是谁」**: 旧版只要有一份 JSON 就放行 —— 删掉 `pt_sha256` 键、把四个输入缩成一个、把 **seed-42** 侧车放进 **seed-2027** 槽位, 三种坏状态都过。现在核: 期望种子(`seed` / `env_given.SEED` / `.pt` 路径 / 侧车文件名四者一致)、完整键集(缺一即拒, 永不「缺了就跳过」)、本月合同的期望路径(逐字节相同但放在别的树下的副本 ⇒ 拒)、`.pt` 与四个输入的**实际 sha 当场重算**, 外加侧车 `self_sha256` == 本次调度的 `pod_f10_refit_v4.py`。**边界(引用时必须带)**: arms 消费的是月度预测 `.npy`, 没有任何证据表明错误的 `.pt` 被用于真实预测 —— 这是一条没兑现的 resume-gate 承诺, 不是一次被证明的坏训练。**执行影响**: 若某月只重跑 `V4_STAGES=arms` 而 refit 是别的装置版本跑的, 现在会 rc 3 点名; 正确动作是重跑 refit, 不是放宽门。
+2. **STEP2_m 新尾成员索引先验结构再验比例**: `members=[-1]` 曾被 numpy 当成末列、拿满分 PASS。现在先核「1-D / 整数 / 在 `[0, NW)` / 无重复」, 非法索引**绝不**用作下标(负值会静默环绕, 越界会崩成 rc 1 无收据)。收据多一个 `member_index_ok`(有尾即出现)与 `member_index_bad`(仅非空时)。**九月真数据正控(pod2)**: 6 个尾锚各 400 个成员全部合法 ⇒ `member_index_ok=true`, 其余 `tail_quality` 与上一轮逐位相同, PASS rc 0 不变 —— 新规则不误伤真数据。**0.90 的射程**: 它只是**有限格门**, 不是因果性、不是预测有效性、不是成员身份正确性(PREREG §3.7)。
+3. **月合同的值现在也绑在文件里**: 46 键「出现在文件里」不等于值来自文件 —— `SEEDS=$UNLISTED_SEEDS` 是文件的一行, 但由父环境填入(实测旧版 rc 0、SEEDS=2027)。新规则: **值里的变量引用只许指向本文件更早定义过的合同键**, 其余(非合同名 / 前向引用 / `${外部名}` / 裸 `$`)rc 4 点名。**写十月合同时注意**: `$R/...` 照旧可用(R 必须在该行之前定义, 模板已如此); 不要引用任何不在 `V4_MONTH_KEYS` 里的名字。
+4. **判官定位器(`JUDGE_ELIGIBILITY`)本轮不动行为**: caller 显式给出同字节备份路径时, 已变的原路径仍可能被跳过。**月度 export 路线不受影响**(驱动把收据自己的全量 `inputs_path` 原样交判官), 反例只在手写 caller 时成立。闭包条件与最小绑定提案见 DESIGN §9.4, **待用户/lead 裁定**; 在裁定之前, 不得声称「判官 ≡ standalone gate 的全闭包」。
+
+**门源码 sha 变更(合同批准增补时用新值)**: `v4_gate_step2_m.py` `0fe5ec5573f3…` → **`b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9`**; `v4_gate_step1_m.py` **不变** `79950786271e…`。合同 `ELIGIBILITY_CONTRACT.json` 仍是 `1188267a…`(未编辑, 批准 = 用户字)。自检全套 **ALL PASS (352 checks)**; `make_sha_manifest.py` rc 0。
+
 ## §0 原则(不变式)
 
 1. 重训 = **两个分离的显式版本事件**: king bundle(RUNBOOK 主流程)与 f10(addendum §A), 各自静默窗换、各自首锚验收、单变量留痕; 宇宙刷新 = 第三事件(§B, ≥3 天间隔 + 用户字)。
