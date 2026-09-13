@@ -333,3 +333,38 @@ Five of six requirements are done; req. 6 (E10) is waiting on fx-exec's reply.
 - The scope is the previous anchor's book plus current holdings, so names entering this anchor are not in it.
 - The real target directory and account payload shapes are not read by this suite.
 - The floors are still diagnostics that no gate consumes.
+
+## ALM-06 · guard_twin alignment (package commit 24b6e083; not deployed)
+guard_twin fix is built and tested (6/6) but not deployed. guard_twin is not a git repo, so deployment is a file copy by the lead. Research-repo package under `docs/fixprogram_2026-09-13/FX_EXEC2/guard_twin_ALM06/`.
+
+**Problem.**
+- The twin's DAY check compared its change from its own last snapshot before 00:00Z (e.g. 23:42Z) to now against the arithmetic twin's change from the previous day's last daily_nav row (about 20:45Z) to today's last row. The two start times differ, so an evening move, or a move since the last row, showed as a disagreement. That is 37 of the 84 alert lines.
+- The CUM check compared the twin's income-ledger TWR with the watchdog's start-equity chain. Those are different calibers, and produced 8 lines.
+- `wd_worst_day_pct` shows the window's worst day (09-06, −4.2755) as if it were current. The shadow-block comment still describes pre-c800690 behaviour.
+
+**Facts.**
+- guard_twin.py is sha 0b299781…, run by launchd com.hsy.guardtwin every 1200 s, and makes signed GETs. So tests must never call main().
+- Replayed on the rows the running twin wrote (compare.jsonl copy): taking both DAY ends at the daily_nav nav_ts, with the twin's own snapshot nearest each within 900 s, removes all 35 alignable DAY lines. The largest remaining difference is 0.204 pp; 2 lines from 08-21 cannot be aligned.
+- Recomputing the watchdog's cond4 chain on daily_nav reproduces the watchdog's recorded cum exactly on all 8 CUM rows.
+
+**Red evidence.** The old twin has no pure functions and makes venue calls, so it cannot be re-run offline. The red evidence is its own recorded output on these same inputs: 37 DAY and 8 CUM lines, asserted as PRE in the test.
+
+**Fix** (4d7e452a…, diff sha 5145ce61…).
+- New pure helpers: nearest_snapshot, aligned_day_pct, wd_chain_arith_pct.
+- DAY line: both twins measured over [previous day's last nav_ts, today's last nav_ts ≤ now]; the twin uses its own snapshots, with transfers taken from income. If not alignable, it is recorded with a reason and no line is raised.
+- CUM line: compares cum_pct_wd_chain_arith against the watchdog. cum_pct_twin is kept, labelled informational, with a caliber note.
+- New fields `wd_worst_day_pct_history` and `wd_recent_day_pct`. The old key stays for one round with the same value.
+- The shadow block now reads recent_day_pct.
+- INPUT, LEDGER, LEV and ANCHOR_JOB checks are unchanged.
+
+**Tests.** tests_guard_twin_alignment.py 6/6; receipt `receipts/ALM06_guard_twin_alignment.log`. Offline and pure only. PRE: 37 DAY + 8 CUM lines recorded by the old twin. D1: 0 survive alignment. D2: a real 1% end-equity gap still fires. C1: 8/8 arithmetic reproduction. C2: an unseen −2% final close still fires. F1: field names.
+
+**Deploy (lead).** 1. `cp ~/guard_twin/guard_twin.py ~/guard_twin/guard_twin.py.bak_<utc>` and confirm sha 0b299781…. 2. Copy in `guard_twin_ALM06/guard_twin.py` and confirm sha 4d7e452a…. 3. The next launchd run (a fresh process every 1200 s) loads it.
+
+**Not proven.**
+- LEV lines on rebuild anchors are untouched (the twin still compares a building book).
+- A move within ±900 s of a daily_nav reference time is inside the snapshot-timing tolerance.
+- The arithmetic CUM twin shares the watchdog's inputs, so it cannot see input bias such as LED-04's 0.26 pp on transfer days. The informational cum_pct_twin is where that would show.
+- The new file has not run under launchd.
+
+**〔lead 复核 16:2xZ: 退回补一项〕** CUM 改为只比共享输入的算术双生, 使双生失去独立性(正是 LED-04 那类输入偏差会被隐藏)⇒ 要求保留两路告警: (i) 算术双生 vs 看门狗(紧容差, 抓代码缺陷); (ii) 独立收入账本 TWR vs 看门狗链, 按事实表逐因归因的口径带判(不得为消除 8 行而拟合); 合成 0.5 pp 单转账日输入偏差须触发 (ii) 不触发 (i)。部署在复审后。
