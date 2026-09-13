@@ -140,3 +140,23 @@ Phase 1 证明"装置 = 线上"(生产代码路径逐锚复现线上权重)。Ph
 - **必须附带的影响测量(描述, 不作门)**: 在 41 个重叠锚上, 用重建 EMA 与 live EMA 分别算 fund z(生产 FTRIM 前的同一 z 路径), 报逐锚 Spearman、fund 腿前/后十分位成员变动名数、以及 7 名 D17 名的 z 差; 写入 S1 收据。
 - **非阻断取证(交 P2 在 S1 门之后顺带做, 只读)**: 7 名存储 iv 不符行的来源 —— bundle `funding_ledger_seed.json` 的 iv 字段 / 早期生产者版本的追加逻辑 / 其他; 影响的日期范围与行数; 在役生产者当前取数层能否再产生此类行。若结论是「在役链路仍会产生」, 立即报 lead(可能是生产缺陷)。
 - G2-C / G2-C′ / G2-S / G2-D / G2-E 的程序与阈值**一字不改**(A2.5 原文), 顺序 = G2-B″ → G2-C → G2-C′ → G2-S → G2-D → G2-E, 红即停。本修订随第四轮合并审阅包交独立研究员复核。
+
+## AMENDMENT 4(2026-09-13 09:2xZ, P2 worker; 补 AMENDMENT 2 的偏差清单与资源约束, 受 lead 09-13 两条指示 —— 指示要求写入 AMENDMENT 2, 但 AMENDMENT 2 已随 4f92fe97 提交且其后已有收据 2 的数字, 故按时间顺序另立本修订; **写于收据 2 与 AMENDMENT 3 之后、G2-B″ 及其后任何 S1 数字与任何 S2 数字之前** —— 以下三项只影响 S2 书层/尾部读数与资源纪律, 不改 A2.5 / AMENDMENT 3 的任何门程序与阈值: 资金费 EMA 状态在 FTRIM / 带 / 执行器止损的上游)
+- 编号说明: A2.6 所写「记账合同在 S2 前另立 AMENDMENT 3」的编号已被 lead 的 AMENDMENT 3(G2-B″)占用, S2 记账合同改为其后的新编号修订, 内容要求不变; AMENDMENT 3 已用 D17(live 资金费 EMA 历史伪迹), 本修订的偏差顺延为 D18 / D19。
+
+### A4.1 偏差 D18 · 执行器逐名止损(生产在 target_live **之后**生效, 本装置重放的生产者与 combo 代码看不到它)
+- **源(只读)**: `~/dl_quant_live@918559f` `live/per_name_stop.py` 8fb79dd8… + `config/book.json` f6fd6d0e… 的 `per_name_stop` 块; 在役 `active_profile = "wide"` ⇒ depth_pct **−0.30** / consecutive_anchors **2** / cooloff_days **7** / min_notional_usdt **5**(基础值 −0.25/2/7/20 被覆盖)。调用点: `scheduler/anchor_loop.py` L2553 终锚读回后 `PNS.update_from_snapshot`, L1602–1604 下一锚计划时 `active_sets`。
+- **语义(读码)**: 深度 = unrealizedProfit / |notional|(`/fapi/v3/account` 逐仓读回, 分母是**当前**名义 ⇒ 多头约相当于价格跌 23.1%、空头约相当于涨 42.9% 触发); 连续 2 个终锚读回均 ≤ −0.30 ⇒ 该名 stopped ⇒ 下一锚并入 untradable、target 置 0、走 flatten_only(maker-only 出场, reduce-only, 不追); |notional| < 5 USDT(已出场)起 7 天冷却禁入; 缺读回 / 回浅 / dust ⇒ 计数归零。被停名之外的书经执行器 withhold → reshape(re-demean/rescale, `apply_withhold_and_reshape` L334 起)。本地 live 状态文件 `state/live/per_name_stop.json`(读时 10 名冷却, 0 名 stopped)。
+- **P2 如何建模**: 止损不回馈生产者/combo 状态 ⇒ 在 P2 目标序列上做**事后覆盖层**, 结构上与生产相同(无反馈), 不必重跑链。**S2 两臂: STOP(主; 一切尾部 / 回撤 / 停机读数只从此臂出)与 NOSTOP(对照)**, 二者配对报差。覆盖层定义在 S2 记账合同修订(见上方编号说明)冻结后才算数, 骨架先定: 按 §1「100% 成交于 E 收盘」模拟逐名持仓; 入场价按交易所均价规则(同向加仓取加权均价、减仓不变、归零或翻向重置); 标记价只用记账口径 meta y4 RAW 逐锚复利(**不从 5m 缓存 ret5 重算**); 每锚成交后读回深度; 连续 2 锚 ≤ −0.30 ⇒ 下一锚 E 收盘全额出场; 自出场锚起 42 锚冷却; min_notional 5 USDT 按该臂固定 2.0× 复利 NAV 路径换算; 停名 / 冷却名按执行器 withhold → reshape 从执行书剔除。
+- **做不到的(明写, 触发时点可与实盘不同)**: 实盘入场价 = 真实 maker 成交均价(部分成交、N+23 起的执行钟), 标记价 ≠ 锚收盘, unrealizedProfit 不含资金费, 读回时点晚于 E, maker 出场可跨数锚, NAV 水平不同。T5 §6.1 的 ONGUSDT 即一例: 回放止损层 08-25 20Z 已封锁, 生产者侧止损证据采集器 08-26 20Z 才记下 −46.1% 触发(且不改书)。⇒ **P2 不主张尾部行为的生产路径保真**, 只主张「生产目标 + 该覆盖层近似」。
+- 与 A0 的目标层止损 d30_n2_c42 的关系: T5 §3 构造桥中「P 止损层」占八月 carry 差 **18.5% [4.3, 32.0]**(s42, Shapley +0.220), 且与 FTRIM 有交互 ⇒ S2 对 A0 的配对差须把止损层作为单列分量报告(STOP 臂对 A0、NOSTOP 臂对 A0 的无止损版本), 不得混入「生产路径 vs 研究回放」的主差。
+
+### A4.2 偏差 D19 · FTRIM 顺序与中性带冻结(明写复现条件)
+- **代码事实(生产 `fea171/combo_stage.py` b5c698f9…)**: FTRIM 在 L239–248 把 (z<0 ∧ rn8 ≤ −0.0010) 的名的 **z 置 0**, 发生在 `chain()`(L78–102, 调用 L264–265)**之前**; 该名仍在 sel 内, 去均值(L81)后目标 = −mean 级的小值, **不是强制出场**。强制归零只经 keep 掩码(宇宙 ∧ 成员 ∧ 流动性, L93–101)。EMA α=0.1(L90), 中性带 L92 `smv = np.where(np.abs(trade) < P["band"], H, smv)`, band = 2.5e-4 ⇒ |H − tgt| < 2.5e-3 的残余仓位不再移动。rn8 = ledger_tail 末行 rate × 8 / 存储 iv(L241–243)。
+- **复现条件**: P2 的 combo 段是上述文件的逐字节副本(sha f5ba9a82…, 三处 Phase 1 替换均不触及 L78–102 / L230–271), FTRIM 阈值、z 置零位置、去均值 / L1 / cap / EMA / 带的顺序与 keep 掩码全部是生产原文; kc/fc 状态由链自己逐锚携带 ⇒ **只要输入同源, 该冻结机制在 P2 中自动、逐位按生产顺序发生, 装置不做任何额外处理**。输入层唯一已知差: P2 账本的 iv 恒为时间差推断, 而收据 2 显示 live 账本有 7 名存在「存储 iv ≠ 时间差 iv」的行(如 PROMUSDT 存 4.0、差为 1.0; = AMENDMENT 3 的 D17)⇒ 这类名在那些时点的 rn8 分类(≤ −10 bp 与否)可能与 live 不同, 影响未测。
+- **不主张**: 冻结机制的经济量级(T5 为推断; T5b 提交 51b93969 的标题称已按数据确认, P2 未打开其结果, 不引用其数字)。
+
+### A4.3 资源约束(08:02Z 配额事故与 cgroup 上限的受据规则; 对 S1 余门与 S2 全部生效)
+- **R1 不做多 GB 写入**: /workspace 有配额; 5m 缓存永不落盘副本, 父进程内存载入后 fork 各链共享页。
+- **R2 内存**: 容器 cgroup `memory.max` = 61,000,097,792 字节(61 GB), 不是 `free` 显示的 247 GB; 每个独立载入缓存的进程约 7 GB(估计) ⇒ 同一时刻独立载入缓存的进程 ≤ 4 个; 更多链一律由共享缓存的父进程 fork, 单父进程 ≤ 8 条链。
+- **R3 写前探针**: 任何单次计划写入 > 500 MB 之前, 先在 `P2/work/.ddprobe` 用 dd 写入「计划大小 × 1.1」并 fsync, 成功后立即删除再做正式写入; dd 任何报错 ⇒ 放弃该写入并上报。
