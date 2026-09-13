@@ -1,4 +1,4 @@
-> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(W8 §5)· 01:5xZ(W8 §6)· 03:xxZ(W8 §6.6–6.7 + lead 裁定入 §5.5)· 03:5xZ(W8 §7) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 尺子第七次重标定(lead 已接受, 研究仓 4442f6d5)** → **§6 C4–C8 收紧(lead 已接受, 研究仓 1d607665)+ §6.6 `[G7]`#2 改到 C/F 合同 + §6.7 全历史平仓费用回填提案(待裁定, 未执行)** → **§7 平仓完整性改为与看门狗动作记录逐行精确对账 + 注释更正(lead 裁定)。当前链: (a)(b) = `e22a222` (= `bea37cf` C4–C8 → `5feea3e` `[G7]`#2 合同 → `e22a222` 对账; 父提交说明见 §7.4), (c) = `4614d88` (= 原 (c) cherry-pick 到其上, 内容逐字未变); 分支 `fix/e0912a-reduce-only-clamp` → `4614d88`; 备份分支 `w8-backup-pre-recal7` = `3308cbc`, `w8-backup-pre-c4fix` = `8e8510c`。§4–§6 正文里的 sha 都是当时的头, 保留不改写; **部署动词请用 §7.4 的 sha**。未部署; 部署、恢复与回填 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
+> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(§5)· 01:5xZ(§6)· 03:xxZ(§6.6–6.7, lead 裁定入 §5.5)· 03:5xZ(§7)· 04:2xZ(§8 + §6.7 按费用裁定改写) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 重标定 #7(研究仓 4442f6d5)** → **§6 C4–C8(1d607665)+ §6.6 `[G7]`#2 C/F 合同(176bafdf)+ §6.7 回填: 按 lead 裁定只做 09-12 三步, 08-02 与老 8 批为后续工单, 09-09 fills 重复为具名风险(均需用户字)** → **§7 平仓对账草稿 `e22a222`(f43e81b3, 已被 §8 取代)** → **§8 平仓完整性对账终版。当前链: (a)(b) = `bf581eb`(父 `5feea3e`), (c) = `27b28db`(= 原 (c) cherry-pick 到其上, 内容逐字未变); 分支 `fix/e0912a-reduce-only-clamp` → `27b28db`; 备份分支 `w8-backup-pre-recal7` = `3308cbc`, `w8-backup-pre-c4fix` = `8e8510c`, `w8-backup-e22a222-superseded` = `4614d88`。§4–§7 正文里的 sha 都是当时的头, 保留不改写; **部署动词请用 §8.4 的 sha**。未部署; 部署、恢复与回填 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
 
 # DESIGN W6: E-0912-A 修复 —— reduce-only 截量不是矛盾, 全退出按持仓张数下单, 局部「未知」不平全书
 
@@ -422,6 +422,8 @@ W2 的 `live/cost_buckets.py` 读的是**订单行**的 `fee_paid`(L62 `f = o.ge
 
 ## §7 平仓完整性改为逐行精确对账 + 更正一条说反话的注释(W8, 2026-09-13; lead 裁定; **测试文件 only, 零运行时改动**)
 
+> **已被 §8 取代(2026-09-13 04:2xZ)**: 本节的头 `e22a222` 与 lead 裁定交叉, 终版是 §8 的 `bf581eb`(父 `5feea3e`)。本节正文保留原样。
+
 > **一句话**: ±10% 名义带证明不了逐笔齐全(研究员: 100 条各 1U 删 5 条仍在带内)。平仓批次有它**自己的动作记录** ——
 > 看门狗写行所用的 `flatten_all` 订单列表就在 `state/live/watchdog/events.jsonl` 里 —— 于是完整性改成**逐行对账**:
 > 同一集合、同一行数、逐行成交额与批合计到分、逐行终态与动作记录推出的类一致。**10 批 1,708 行逐行精确相等, 不符 0。**
@@ -486,3 +488,61 @@ W2 的 `live/cost_buckets.py` 读的是**订单行**的 `fee_paid`(L62 `f = o.ge
 2. **对账证明的是「账本忠实记录了看门狗做了什么」**, 不证明「看门狗想平的就是整本书」—— 后者由覆盖格(带)与平仓后读回(`write_flatten_readback`)各自回答, 本节没有新增读回为 0 的硬断言。
 3. 动作记录与账本行**都是我方写的**; 本节不接触场所侧真相(成交回报 / 佣金)。场所侧的逐笔核对是 §6.7 回填提案的事。
 4. 本节与 §6.7 同一事实: 9 批老平仓没有 client_id。§6.7 讲的是「因此无法向场所归属费用」, 本节讲的是「因此身份层不可观测, 但账本对自家动作记录逐行精确」。两者不矛盾。
+
+## §8 平仓完整性对账终版: 按 lead 02:37Z 裁定 (1)–(4) 在 `5feea3e` 上直接提交 `bf581eb`, 取代 §7 的 `e22a222`(W8, 2026-09-13; **测试文件 only, 零运行时改动**)
+
+> **为什么有 §8**: lead 的裁定与我 §7 那一轮(`e22a222`)**两次交叉** —— lead 读的是 `5feea3e`, 裁定写着「在 `5feea3e` 上新提交」, 并比 §7 多要三件事:
+> 逐单比对 `_exec`、确定性联接不成立时点名 NOT_OBSERVABLE、从动作记录删一张单的突变、带明写为次级合理性。§7(研究仓 `f43e81b3` 已入库)**保留不改写**;
+> 本节的 `bf581eb` 父提交就是 `5feea3e`, 内容是 §7 的全部加上这三件事。`e22a222` 留在备份分支 `w8-backup-e22a222-superseded`, **不用于部署**。
+
+### 8.1 事实表(快照 `2026-09-13T00:04:34Z`)
+
+| # | 事实 | 在哪测的 | 后果 | 改法 | 断言 |
+|---|---|---|---|---|---|
+| S1 | 写者从单与 `_exec` 抄到平仓行上的字段: `filled_notional`、`avg_fill_px`、`first_fill_ts` = `last_fill_ts` = `_exec.fill_ts`(场所成交时间, 毫秒)、`mid_at_submit`、`intended_notional` = ±`quantity` × `avg_fill_px`; 10 批 **1,708 行六个字段全部逐位相等**(另 `submit_ts` = `anchor_ts` 1,708/1,708) | `watchdog` 行写者 L2342–2371 + 逐行比对 | 每一行就是那张单的记录 | 对账逐行**逐位**比这六个字段(批 Σ 仍按分) | 完整性格 |
+| S2 | 老 9 批: 行上**没有** order id, orderId 只在动作一侧(`_exec.order_id`)⇒ 账本↔动作之间**不能**按 orderId 联接; 但 (symbol, side, attempt_idx) 两侧批内唯一, 且联上后 S1 六字段逐位相等 | 逐批 | lead 所说「若存在确定性联接就用它」—— 存在, 就是这把键, 字段逐位相等把它确认为同一张单 | 9 批按该键 EXACT, **不是** NOT_OBSERVABLE; 联接方式单独断言 | 完整性格 + 联接格 |
+| S3 | 联接的判定: 动作每张单都带 client_id 且两侧唯一 ⇒ client_id; 否则 (symbol, side, attempt_idx) 两侧唯一 ⇒ 该键; 都不成立 ⇒ **没有确定性联接** | 源码(测试) | lead: 无动作记录或无确定性联接 ⇒ 点名 NOT_OBSERVABLE, 绝不作通过 | 三态 EXACT / MISMATCH / NOT_OBSERVABLE; NOT_OBSERVABLE 带原因 | 完整性格 + 合成格 |
+| S4 | ±10% 带原来一格里混着两件事: 「每行 filled 且成交额非零」(结果)与「在交易锚区间内且 Σ\|filled\| 在 realized 的 10% 内」(合理性) | 条件逐项 | lead: 带只能作**次级合理性**, 不作完整性证明 | 拆两格, **五个合取项全部保留**(机械核对) —— 结果格 ★★★、次级合理性格 ★★ | 结果格 + 合理性格 |
+
+### 8.2 格(`tests_disposition_matrix` 60 → **66**, 相对 `5feea3e`; 真账本 **ALL PASS**)
+
+| 格 | 读数 |
+|---|---|
+| **完整性 = 精确对账** | `EXACT 10, rows_reconciled 1708, join {symbol_side_attempt: 9, client_id: 1}, MISMATCH {}, NOT_OBSERVABLE {}` |
+| **联接方式**(client_id 批 vs 该键批; 无 client_id 人口封闭) | client_id: 09-12; (symbol, side, attempt_idx): 08-01 … 09-09 共 9 批, 全部早于 09-12 |
+| **退出完成**(每行 filled, 成交额非零) | 10 批全过 |
+| **次级合理性**(★★, 交易锚区间 + 10% 带, 明写不是完整性) | 10 批全过 |
+| **承重突变**(套件内, 真数据, 两种联接各一批) | 删一行 / 某行 filled_notional 改一分 / **从动作记录删一张单** / 某行成交时间挪 1 ms ⇒ 各 MISMATCH; 原样 EXACT; 带对两个账本侧突变都通过 |
+| **失败记账**(合成) | 拒单写 `submitted_rejected` ⇒ EXACT; 写 `filled` ⇒ MISMATCH 且恰两条(类 + `failed` 登记, 经 JSON 往返按键) |
+| **无确定性联接**(合成) | 同批 (symbol, side, attempt_idx) 重复且无 client_id ⇒ NOT_OBSERVABLE, 原因 `no deterministic join` |
+| **选取器一致**(条件不变, 注释更正) | 改名 ⇒ 本格**红**(保守), 原「仍会落进这个类」的说法已更正 |
+
+**没有放宽**: 相对 `5feea3e` 断言名 60 → 66; 「消失」的 2 条 = 带那格(拆为结果 + 合理性两格, 五个合取项逐项仍在)与选取器那格(只改文字); 新增 8 条。
+
+### 8.3 红能力(外部文件级突变, 副本上; `w8_flatten_recon2_ext_mutants.log`)
+
+| 突变 | 实测 |
+|---|---|
+| E0 原样副本 | 绿: EXACT 10 / 1,708 行 |
+| **E1 删一行账本** | 完整性格**红**: `count: ledger 254 vs action 255` · 缺 `F20260912124738-ETHUSDT-1` · Σ 有符号 584.27 vs 969.60; 次级合理性格**绿**(带抓不到) |
+| **E2 某行 filled_notional 改一分** | 完整性格**红**: 该行 385.34064 vs 385.33064 · Σ 有符号 969.61 vs 969.60 · Σ\|·\| 235,382.56 vs 235,382.55; 合理性格绿 |
+| **E2b 从动作记录删一张单** | 完整性格**红**: `count: ledger 255 vs action 254` · 多出一行无对应单 · Σ 有符号 969.60 vs 584.27 |
+| E3 没有事件日志 | 完整性格**红**: 10 批全部 `NOT_OBSERVABLE: no watchdog event log` |
+| E4 删掉 09-12 的 flatten_all 动作 | 完整性格**红**: `NOT_OBSERVABLE: {FLATTEN-20260912T124737Z: no flatten_all action record}` |
+| E5 还原(`cmp` 逐字节相同) | 绿 |
+
+(E1/E2/E2b 里「联接方式」格同时红: 09-12 不再 EXACT, 于是没有 client_id 批可数 —— 保守连带, 不是另一个缺陷。)
+
+### 8.4 收据(**部署动词请用这里的 sha**)
+
+| 件 | 值 |
+|---|---|
+| (a)(b) 头 | **`bf581ebd0ae7b83df1b13f2e0bf7dbc0023989d8`**(父 = **`5feea3e`**; 测试文件 only, +284 −11) |
+| 分支尖端 | **`27b28db28af5ea20d95d58a56b2df1149e10a68d`** = 原 (c) cherry-pick 到 `bf581eb` 上; `git diff 8e8510c 27b28db` 只有 (a)(b) 那三个文件 ⇒ (c) 自身内容逐字未变 |
+| 被取代 | `e22a222` / `4614d88`(§7)→ 备份分支 `w8-backup-e22a222-superseded`; 不用 |
+| `w6_reduce_only_clamp_ab.diff` | `git diff 918559f bf581eb`; **26 文件 / +9,306 −46**; sha256 **`637b2859be32c66200fa7736a05845baf44514020fca806a12a7c168b5d16171`**(§7 版 `5e408246…`, `5feea3e` 版 `b1be2bdd…`) |
+| `w6_proportional_response_c.diff` | `git diff bf581eb 27b28db`; 7 文件 / +859 −6; sha256 **`15d29d99faad2f1ad5597a89da1c1686ca94d2d94adc24c6ab1a4e4327912d5c`**(与前几版逐字节相同) |
+| 套件 | `tests_disposition_matrix` @ `bf581eb` **66/66**: `w8_flatten_recon2_tests_disposition_matrix_bf581eb.log` |
+| 外部突变 | `w8_flatten_recon2_ext_mutants.log`(E0–E5 + E2b, 含驱动) |
+| **唯一一次电池** | @ `bf581eb`, stamp `20260913T040251Z`(04:19:30Z 结束; 接线套件约 04:05Z 跑完, 早于 04:22Z 生产者落盘): **134 套 / 133 绿 / 1 红** = `tests_env_loading`(克隆无 `.env`)。`w8_flatten_recon2_battery_bf581eb_ledger.log` |
+| 运行时 | 零运行时文件; 运行树 `~/dl_quant_live` HEAD 仍 `918559f` 且只读; 突变只改副本; 回填命令未以任何模式执行; 无网络、无场所/Telegram 调用; 未提交研究仓 |

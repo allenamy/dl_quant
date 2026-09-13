@@ -1,0 +1,122 @@
+# W8 flatten reconciliation (final, bf581eb) — EXTERNAL FILE-LEVEL MUTANTS on a COPY of the ledger and the watchdog event log
+# tree /Users/haosiyu/cc_tmp/w8_mut_wt @ bf581eb; its state/live is a copy (regular files; inodes differ from ~/dl_quant_live)
+# the lead's three required mutants: E1 delete one row · E2 alter one row's filled_notional · E2b drop one order from the action record
+# plus NOT-OBSERVABLE paths: E3 no event log · E4 no action record for 09-12; E0 / E5 (after byte-identical restore) must be green
+# ==================================================================
+mutant tree HEAD bf581eb
+=== E0_untouched_copy: rc=0 n_FAIL=0
+     recon extra: {'EXACT': 10, 'rows_reconciled': 1708, 'join': {'symbol_side_attempt': 9, 'client_id': 1}, 'MISMATCH': {}, 'NOT_OBSERVABLE': {}}
+  deleted one flatten row: True
+=== E1_delete_one_flatten_row: rc=1 n_FAIL=3
+       FAIL  ★★★ COMPLETENESS of a TRIP-FLATTENED batch is an EXACT reconciliation against the ladder's OWN action record (th
+       FAIL  ★★★ ...and which JOIN carried each batch is itself asserted: client_id wherever the ladder minted one; the batch
+       FAIL  ★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client_id-joined batch AND on a real (symbol, si
+     recon extra: {'EXACT': 9, 'rows_reconciled': 1453, 'join': {'symbol_side_attempt': 9}, 'MISMATCH': {'FLATTEN-20260912T124737Z': ['count: ledger 254 vs action 255', "1 action order(s) with no ledger row, e.g. [('client_id', 'F20260912124738-ETHUSDT-1')]", 'Σ filled (signed): ledger 584.27 vs action 969.60']}, 'NOT_OBSERVABLE': {}}
+  moved one flatten row by one cent: True
+=== E2_move_one_row_one_cent: rc=1 n_FAIL=3
+       FAIL  ★★★ COMPLETENESS of a TRIP-FLATTENED batch is an EXACT reconciliation against the ladder's OWN action record (th
+       FAIL  ★★★ ...and which JOIN carried each batch is itself asserted: client_id wherever the ladder minted one; the batch
+       FAIL  ★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client_id-joined batch AND on a real (symbol, si
+     recon extra: {'EXACT': 9, 'rows_reconciled': 1453, 'join': {'symbol_side_attempt': 9}, 'MISMATCH': {'FLATTEN-20260912T124737Z': ["('client_id', 'F20260912124738-ETHUSDT-1'): filled_notional ledger 385.34064 vs action 385.33064", 'Σ filled (signed): ledger 969.61 vs action 969.60', 'Σ|filled|: ledger 235382.56 vs action 235382.55']}, 'NOT_OBSERVABLE': {}}
+  dropped one order from the 12:47:37Z flatten_all action: 1
+=== E2b_drop_one_order_from_action_record: rc=1 n_FAIL=3
+       FAIL  ★★★ COMPLETENESS of a TRIP-FLATTENED batch is an EXACT reconciliation against the ladder's OWN action record (th
+       FAIL  ★★★ ...and which JOIN carried each batch is itself asserted: client_id wherever the ladder minted one; the batch
+       FAIL  ★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client_id-joined batch AND on a real (symbol, si
+     recon extra: {'EXACT': 9, 'rows_reconciled': 1453, 'join': {'symbol_side_attempt': 9}, 'MISMATCH': {'FLATTEN-20260912T124737Z': ['count: ledger 255 vs action 254', "1 ledger row(s) with no action order, e.g. [('client_id', 'F20260912124738-ETHUSDT-1')]", 'Σ filled (signed): ledger 969.60 vs action 584.27']}, 'NOT_OBSERVABLE': {}}
+=== E3_no_event_log: rc=1 n_FAIL=3
+       FAIL  ★★★ COMPLETENESS of a TRIP-FLATTENED batch is an EXACT reconciliation against the ladder's OWN action record (th
+       FAIL  ★★★ ...and which JOIN carried each batch is itself asserted: client_id wherever the ladder minted one; the batch
+       FAIL  ★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client_id-joined batch AND on a real (symbol, si
+     recon extra: {'EXACT': 0, 'rows_reconciled': 0, 'join': {}, 'MISMATCH': {}, 'NOT_OBSERVABLE': {'FLATTEN-20260801T201827Z': ['no watchdog event log'], 'FLATTEN-20260802T041821Z': ['no watchdog event log'], 'FLATTEN-20260805T001853Z': ['no watchdog event log'], 'FLATTEN-20260805T121829Z': ['no watchdog event log'], 'FLATTEN-20260821T121630Z': ['no watchdog event log'], 'FLATTEN-20260821T201600Z': ['no watchdog eve
+  removed flatten_all actions from the 12:47:37Z record: 1
+=== E4_no_action_record_for_0912: rc=1 n_FAIL=3
+       FAIL  ★★★ COMPLETENESS of a TRIP-FLATTENED batch is an EXACT reconciliation against the ladder's OWN action record (th
+       FAIL  ★★★ ...and which JOIN carried each batch is itself asserted: client_id wherever the ladder minted one; the batch
+       FAIL  ★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client_id-joined batch AND on a real (symbol, si
+     recon extra: {'EXACT': 9, 'rows_reconciled': 1453, 'join': {'symbol_side_attempt': 9}, 'MISMATCH': {}, 'NOT_OBSERVABLE': {'FLATTEN-20260912T124737Z': ['no flatten_all action record']}}
+COPY restored byte-identical
+=== E5_restored_copy: rc=0 n_FAIL=0
+     recon extra: {'EXACT': 10, 'rows_reconciled': 1708, 'join': {'symbol_side_attempt': 9, 'client_id': 1}, 'MISMATCH': {}, 'NOT_OBSERVABLE': {}}
+
+# ================= driver =================
+# #!/bin/bash
+# # External mutants for the flatten reconciliation, on a COPY of the ledger and event log (never the live tree).
+# set -u
+# WT=/Users/haosiyu/cc_tmp/w8_mut_wt
+# OUT=/Users/haosiyu/cc_tmp/w8_ext_mut; rm -rf "$OUT"; mkdir -p "$OUT"
+# git -C "$WT" checkout -q --force bf581ebd0ae7b83df1b13f2e0bf7dbc0023989d8
+# echo "mutant tree HEAD $(git -C "$WT" rev-parse --short HEAD)"
+# ORD="$WT/state/live/pilot_log/20260912/orders.jsonl"
+# EVT="$WT/state/live/watchdog/events.jsonl"
+# cp "$ORD" "$OUT/orders.bak"; cp "$EVT" "$OUT/events.bak"
+# run() {  # $1 label
+#   out=$(cd "$WT" && python3 live/tests_disposition_matrix.py 2>&1); rc=$?
+#   echo "$out" > "$OUT/$1.log"
+#   echo "=== $1: rc=$rc n_FAIL=$(echo "$out" | grep -c '^  FAIL')"
+#   echo "$out" | grep "^  FAIL" | cut -c1-120 | sed 's/^/     /'
+#   echo "$out" | grep "COMPLETENESS of a TRIP-FLATTENED" | grep -v "^FAILURES" | sed 's/.*  — /     recon extra: /' | cut -c1-420
+# }
+# restore() { cp "$OUT/orders.bak" "$ORD"; cp "$OUT/events.bak" "$EVT"; }
+# run E0_untouched_copy
+# # E1: delete ONE protective_flatten row (the first 09-12 flatten row) from the COPY
+# python3 - "$ORD" <<'PY'
+# import sys, json
+# p=sys.argv[1]; L=open(p).read().splitlines(); out=[]; done=False
+# for l in L:
+#     if not done and l.strip() and json.loads(l).get("order_type")=="protective_flatten":
+#         done=True; continue
+#     out.append(l)
+# open(p,"w").write("\n".join(out)+"\n"); print("  deleted one flatten row:", done)
+# PY
+# run E1_delete_one_flatten_row; restore
+# # E2: move ONE flatten row's filled_notional by one cent in the COPY
+# python3 - "$ORD" <<'PY'
+# import sys, json
+# p=sys.argv[1]; L=open(p).read().splitlines(); out=[]; done=False
+# for l in L:
+#     if not done and l.strip():
+#         r=json.loads(l)
+#         if r.get("order_type")=="protective_flatten":
+#             r["filled_notional"]=float(r["filled_notional"])+0.01; l=json.dumps(r); done=True
+#     out.append(l)
+# open(p,"w").write("\n".join(out)+"\n"); print("  moved one flatten row by one cent:", done)
+# PY
+# run E2_move_one_row_one_cent; restore
+# # E2b: drop ONE order (the first) from the 09-12 flatten_all action in the COPY of the event log
+# python3 - "$EVT" <<'PY'
+# import sys, json
+# p=sys.argv[1]; L=open(p).read().splitlines(); out=[]; n=0
+# for l in L:
+#     if l.strip():
+#         try: e=json.loads(l)
+#         except Exception: out.append(l); continue
+#         if str(e.get("ts","")).startswith("2026-09-12T12:47:37"):
+#             for a in (e.get("actions") or []):
+#                 if a.get("action")=="flatten_all" and a.get("orders"):
+#                     a["orders"]=a["orders"][1:]; n+=1
+#             l=json.dumps(e)
+#     out.append(l)
+# open(p,"w").write("\n".join(out)+"\n"); print("  dropped one order from the 12:47:37Z flatten_all action:", n)
+# PY
+# run E2b_drop_one_order_from_action_record; restore
+# # E3: no event log at all in the COPY
+# mv "$EVT" "$OUT/events.moved"
+# run E3_no_event_log; mv "$OUT/events.moved" "$EVT"; restore
+# # E4: drop the 09-12 flatten_all action from the COPY of the event log
+# python3 - "$EVT" <<'PY'
+# import sys, json
+# p=sys.argv[1]; L=open(p).read().splitlines(); out=[]; n=0
+# for l in L:
+#     if l.strip():
+#         try: e=json.loads(l)
+#         except Exception: out.append(l); continue
+#         if str(e.get("ts","")).startswith("2026-09-12T12:47:37"):
+#             acts=[a for a in (e.get("actions") or []) if a.get("action")!="flatten_all"]
+#             n+=len(e.get("actions") or [])-len(acts); e["actions"]=acts; l=json.dumps(e)
+#     out.append(l)
+# open(p,"w").write("\n".join(out)+"\n"); print("  removed flatten_all actions from the 12:47:37Z record:", n)
+# PY
+# run E4_no_action_record_for_0912; restore
+# cmp -s "$ORD" "$OUT/orders.bak" && cmp -s "$EVT" "$OUT/events.bak" && echo "COPY restored byte-identical" || echo "RESTORE MISMATCH"
+# run E5_restored_copy
