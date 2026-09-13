@@ -175,7 +175,8 @@ def write_npz_deterministic(path, arrays):
     with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         for k in sorted(arrays):
             zi = zipfile.ZipInfo(k + ".npy", date_time=(1980, 1, 1, 0, 0, 0)); zi.compress_type = zipfile.ZIP_DEFLATED
-            with zf.open(zi, "w", force_zip64=True) as fh: np.lib.format.write_array(fh, np.ascontiguousarray(arrays[k]), allow_pickle=False)
+            a = np.asarray(arrays[k]); a = a if a.ndim == 0 else np.ascontiguousarray(a)   # run 1 (rc=1): ascontiguousarray promoted 0-d scalars to shape (1,), caught by the reload roundtrip
+            with zf.open(zi, "w", force_zip64=True) as fh: np.lib.format.write_array(fh, a, allow_pickle=False)
     os.replace(tmp, path)
 os.makedirs(OUT_DIR, exist_ok=True)
 art = os.path.join(OUT_DIR, "tradability_v1.npz")
