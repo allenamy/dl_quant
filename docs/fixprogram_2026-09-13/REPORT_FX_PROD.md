@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13 15:3xZ | **Session:** FX-PROD (fix worker, team-lead dispatch; session b9646a9e) | **状态:** 执行中 — sections appended per item; every section awaits independent review; nothing deployed | **作废条件:** a cited fx_prod commit is rewritten, or a cited receipt's sha changes without a new section here
+> **创建:** 2026-09-13 15:3xZ | **Session:** FX-PROD (fix worker, team-lead dispatch; session b9646a9e) | **状态:** HANDOFF 16:27Z — P1/P6/P2/P6-M/P9 code+tests+parity committed; P5 device committed but NOT run; every section awaits independent review; nothing deployed | **作废条件:** a cited fx_prod commit is rewritten, or a cited receipt's sha changes without a new section here
 
 # REPORT_FX_PROD — producer train/serve and funding-label fixes (FIXPROGRAM P1 P2 P5 P6 + P6-M, P9)
 
@@ -71,5 +71,27 @@ Chain: 41 anchors 09-05 16Z → 09-12 08Z, start state inverted from the frozen 
 - **V0P — PASS, no exceptions.** Served v0 (ON king column 76 on fresh members) vs the training panel `f_fund_ema` (x0910, fa284e5b…) on 27 anchors / 10,800 cells: median relative difference 0.0, 100% ≤ 1e-3, 99.94% ≤ 1e-6, max 9.95e-6. T4's exceptions (DEXE/GWEI/EPIC) came from its short-history v0 feed and vanish with the full-history bootstrap.
 - Producer window: runs ended 15:43Z (chain) and 15:51Z (snapshot); STOP/CONT guards armed and exited unused (`receipts/replay/guard_*.log`). First snapshot attempt failed on two driver bugs (relative symlink target; sums self-entry), fixed in d620f6e and rerun; attempt logs kept.
 
-## P5 — pending (next: Mac after 16:50Z)
+## Lead ruling recorded (FIXPROGRAM §6, 09-13 ~16:2xZ): column-80 caliber
+Live fix = P1 + P2. King and V2MAIN serve column 80 with the training definition v0 under the already-deployed boosters; this is a defect fix and needs no retrain. For future retrains, keeping v0 or switching to interval-normalised v1 is a recipe choice, not a defect fix. FX-MODEL will pre-register paired v0-consistent and v1-consistent arms; until that verdict, October exports stay v0-consistent.
+
+## P5 — seat king rows (device committed, NOT run)
+- Decision (consistency): rescore only the live-appended king rows, 08-31 00Z → state's last anchor (81 rows on 09-13 12Z). They were scored with column 80 = v1. Keep the booster that scored each anchor, read from the log `signal.booster_sha`: 29ffaf58 through 09-01 04Z, 8d79186b from 09-01 08Z. Only the caliber changes. The 869 seeded rows (v3 exporter, v0) and the fund and rev24 rows stay untouched. Also replace `aux.prev_rec.legz.king`, the vector that books the first post-swap step-6 row.
+- Device `migrations/p5_rescore_seat_king.py` (80cd6aa, 5b3a056). Its SERVED arm must reproduce every recorded king row and prev_rec king vector bitwise; if not, rc 2 and no output. The earlier draft hard-coded the booster switch at 08-31 20Z; that was wrong against the log and is fixed in 80cd6aa.
+- Swap tooling: `migrations/swap_state_compose_check.py` (bba6b8f), `migrations/swap_load_test.py` (8de133c), dry-run driver `migrations/swap_dryrun_frozen_20260913.sh` (f289fc0). Swap plan DRAFT: `FX_PROD/SWAP_PLAN_FX_PROD.md`.
+- **Not run.** The dry run on the frozen 09-13 12Z state was scheduled for 16:51Z. It was cancelled before its first step at the lead's handoff order (16:27Z). No P5 number exists. Next command: `/bin/bash migrations/swap_dryrun_frozen_20260913.sh` in `/Users/haosiyu/cc_tmp/fx_prod`, outside anchor windows. Output goes to `work/swapdry/run_dry.log`; it needs roughly 30 min on the Mac, not measured.
+
+## Queue / state at handoff (16:27Z)
+- PROD-27 (silent combo skip; AUDIT_PROD 57f7e2be): received, not started. No fact table, no code.
+- pod2 quota exhaustion at 15:51Z: the August zip pull had already finished. `receipts/p9/pull_2026-08.log` ends with its SUMMARY: 832/832 requests, 680 × 200, 152 × 404, checksum_mismatch 0, manifest 02647116…. At 16:04–16:11Z on the Mac, the correction tool re-hashed all 680 files against the manifest sha and the assert passed. No file needs a re-fetch; nothing was resumed.
+- P11 (king train members 829 vs production 450): not visible in this harness. The FX replays score the production 450-name set only, so there is no evidence here.
+- FX-DATA answer, exact vs likely rows: `receipts/p9/EXACT_VS_LIKELY.md`.
+- Stack diff: `docs/receipts/fx_prod_stack.diff` = `git diff b891748..f289fc0` (17 files, +2608/−0), sha256 17a16f6e7d624325ff46dacdecc16d32b3670e1ff926d3ec091127b8c9743a7f. Commit chain: `FX_PROD/receipts/fx_prod_commit_chain.txt`.
+
+## Unproven boundaries (at handoff)
+- No book value is claimed for P1/P2; only (c) deltas are reported.
+- P5 has not run (see above). The swap plan is a draft, not dry-run, and not executed.
+- At-anchor labels and FTRIM on transition rows are unchanged under H2 (58 flips over 6.6 years). Hfi and the pre-settlement recorder are not implemented.
+- T 09-06 00Z and SKR 09-07 20Z stay unresolved until the September zip. COTI and DOS are corrected only by the monthly reconciliation migration, not by the live code.
+- A bundle reset with the new code refuses until the bundle is re-exported with a v0 state and corrected seed labels.
+- King f16 train vs f32 serve (P10) was closed by aud-prod, not by this item.
 
