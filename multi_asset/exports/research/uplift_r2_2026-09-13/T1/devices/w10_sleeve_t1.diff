@@ -1,0 +1,109 @@
+44a45
+> T1_INSTR = int(os.environ.get("T1_INSTR", "0")); assert T1_INSTR in (0, 1)   # T1: per-leg exact-additive component books (rec/W untouched)
+72a74,76
+> _CFG["T1"] = {"T1_INSTR": T1_INSTR, "r18_src_sha256": "9b8a6323e8f0ac31ecb4046f6759dce09ba89645cbfc356db71f51c662b2c5c4", "prereg_sha256": "9548214267b5a44900ba90fee6b2fb2bbeb77964d562628b77678b16c56777f6", "device": "w10_sleeve_t1.py = w10_sleeve_r18.py + T1_INSTR per-leg component books (king, rev24, fund, f10); default => bitwise-unchanged; PREREG_T1 §3"}
+> if T1_INSTR:
+>     assert KMOD == 0 and KMOD_F10 == 0 and KMOD_AGREE == 0 and KTAIL == 0 and LTRIM_TH is None and CDAMP == 0 and FTPOS == 0 and SEATF10 == 0 and FUNDSCALE == 0, "T1_INSTR requires the A0 chain (no KMOD/KTAIL/LTRIM/CDAMP/FTPOS/SEATF10/FUNDSCALE)"
+217a222,225
+>     _T1 = bool(T1_INSTR and depth is not None)   # T1: instrument the stop-layer arm only (the archived A0 = d30_n2_c42)
+>     if _T1:
+>         HL = np.zeros((4, NW)); HFL = np.zeros((4, NW)); HRL = np.zeros((4, NW))
+>         T1AGG = []; T1ID = []; T1SMR = []; T1TRR = []; T1YV = []; T1C4 = []; T1RN = []; T1RATE = []; T1MEM = []
+229a238,239
+>         if _T1:
+>             ZC = np.stack([w3[0]*np.nan_to_num(xz(sc["king"])), w3[1]*np.nan_to_num(xz(sc["rev24"])), w3[2]*_fs*np.nan_to_num(FZ), np.zeros(len(m))])
+238a249
+>             if _T1: ZC = np.where(((z < 0) & (_fnp <= FTRIM_TH))[None, :], 0.0, ZC)
+256c267,273
+<         w /= g; capw = 2.5 / max(int(sel.sum()), 1); w = np.clip(w, -capw, capw)
+---
+>         w /= g; capw = 2.5 / max(int(sel.sum()), 1)
+>         if _T1:
+>             WC = np.where(sel[None, :], ZC, 0.0); WC[:, sel] -= WC[:, sel].mean(axis=1, keepdims=True); WC /= g
+>             _wpre = w.copy()
+>         w = np.clip(w, -capw, capw)
+>         if _T1:
+>             _rat = np.where(_wpre != 0.0, w / np.where(_wpre != 0.0, _wpre, 1.0), 1.0); WC = WC * _rat[None, :]
+258a276
+>         if _T1 and g2 > 1e-9: WC /= g2
+259a278
+>         if _T1: TGC = np.zeros((4, NW)); TGC[:, m] = WC
+262c281,283
+<             if bl.any(): tgt[bl] = 0.0
+---
+>             if bl.any():
+>                 tgt[bl] = 0.0
+>                 if _T1: TGC[:, bl] = 0.0
+263a285,286
+>         if _T1:
+>             SMC = HL + SMA * (TGC - HL); SMC = np.where((np.abs(trade) < SBAND)[None, :], HL, SMC)
+268a292
+>         if _T1: SMC[:, _nonsel] = 0.0
+279a304,305
+>             if _T1:
+>                 ZFC = np.stack([np.zeros(len(m)), _w3f[1] * np.nan_to_num(xz(sc["rev24"])), _w3f[2] * np.nan_to_num(FZ), _w3f[0] * np.nan_to_num(xz(F10P[i, m]))])
+286a313
+>                 if _T1: ZFC = np.where(((_zf < 0) & (_fnp <= FTRIM_TH))[None, :], 0.0, ZFC)
+294a322,324
+>             if _T1:
+>                 WFC = np.where(sel[None, :], ZFC, 0.0)
+>                 if sel.any(): WFC[:, sel] -= WFC[:, sel].mean(axis=1, keepdims=True)
+297a328
+>                 if _T1: WFC = WFC / _gf; _wfpre = _wf.copy()
+298a330,331
+>                 if _T1:
+>                     _ratf = np.where(_wfpre != 0.0, _wf / np.where(_wfpre != 0.0, _wfpre, 1.0), 1.0); WFC = WFC * _ratf[None, :]
+301a335
+>                     if _T1: WFC = WFC / _g2f
+304a339,341
+>                 if _T1:
+>                     TGFC = np.zeros((4, NW)); TGFC[:, m] = WFC
+>                     SMFC = HFL + SMA * (TGFC - HFL); SMFC = np.where((np.abs(_trf) < SBAND)[None, :], HFL, SMFC)
+306a344
+>                 if _T1: SMFC[:, _nonsel] = 0.0
+309c347,349
+<                     if _blf.any(): _smf[_blf] = 0.0
+---
+>                     if _blf.any():
+>                         _smf[_blf] = 0.0
+>                         if _T1: SMFC[:, _blf] = 0.0
+311a352
+>                 if _T1: SMFC = HFL.copy()
+312a354
+>             if _T1: HFL = SMFC
+313a356
+>             if _T1: SMBC = (1.0 - PHI) * SMC + PHI * SMFC
+315a359
+>             if _T1: SMBC = SMC.copy()
+325a370
+>         if _T1: SMRC = SMBC.copy()
+327a373
+>             if _T1: SMRC[:, nz] -= SMRC[:, nz].mean(axis=1, keepdims=True)
+330a377
+>                 if _T1: SMRC *= _g0 / _g1
+331a379
+>         if _T1: TRRC = SMRC - HRL; _HRprev = HR.copy()
+365a414,427
+>         if _T1:
+>             _rate = np.array([fr * mk + (1 - fr) * tk for (mk, tk, fr) in COST_B])[tr]
+>             _c4 = fnow * (4.0 / ivv); _smr_m = smr[m]; _sgn_tr = np.sign(trr[m])
+>             _side = np.where(_smr_m != 0.0, np.sign(_smr_m), np.sign(_HRprev[m]))
+>             _Pn = SMRC[:, m] * yv[None, :] * 1e4; _Cn = SMRC[:, m] * _c4[None, :] * 1e4; _Kn = _rate[None, :] * TRRC[:, m] * _sgn_tr[None, :]
+>             _Lp = _smr_m > 0; _Sp = _smr_m < 0; _Lk = _side > 0; _Sk = _side < 0
+>             T1AGG.append(np.stack([_Pn[:, _Lp].sum(1), _Pn[:, _Sp].sum(1), _Cn[:, _Lp].sum(1), _Cn[:, _Sp].sum(1), _Kn[:, _Lk].sum(1), _Kn[:, _Sk].sum(1)]))
+>             T1ID.append((float(np.abs(SMRC.sum(0) - smr).max()), float(_Pn.sum() - pnl_r), float(_Cn.sum() - car_r), float(_Kn.sum() - cbps_r), float(np.abs(SMRC[1]).max()), float(np.abs(SMC.sum(0) - _smk).max()) if PHI > 0 else 0.0))
+>             T1SMR.append(SMRC.astype(np.float32)); _tq = np.zeros((4, NW), np.float32); _tq[:, m] = TRRC[:, m]; T1TRR.append(_tq)
+>             _a = np.zeros(NW, np.float32); _a[m] = yv; T1YV.append(_a)
+>             _a = np.zeros(NW, np.float32); _a[m] = _c4; T1C4.append(_a)
+>             _a = np.full(NW, np.nan, np.float32); _a[m] = _fnp; T1RN.append(_a)
+>             _a = np.full(NW, np.nan, np.float32); _a[m] = _rate; T1RATE.append(_a)
+>             _b = np.zeros(NW, bool); _b[m] = True; T1MEM.append(_b)
+392a455,456
+>         if _T1:
+>             HL = SMC if PHI > 0 else SMBC; HRL = SMRC
+394a459
+>     global T1_LAST; T1_LAST = (dict(T1AGG=np.array(T1AGG), T1ID=np.array(T1ID), T1SMR=np.stack(T1SMR), T1TRR=np.stack(T1TRR), T1YV=np.stack(T1YV), T1C4=np.stack(T1C4), T1RN=np.stack(T1RN), T1RATE=np.stack(T1RATE), T1MEM=np.stack(T1MEM)) if _T1 else None)
+436a502,504
+>     if T1_INSTR and T1_LAST is not None:
+>         for _k, _v in T1_LAST.items(): save[f"{nm}_{_k}"] = _v
+>         save[f"{nm}_T1AGG_axes"] = np.array(["rows: pnlL,pnlS,carL,carS,costL,costS", "cols: king,rev24,fund,f10", "T1ID: maxabs(sum_l smr_l - smr), pnl_id, carry_id, cost_id, max|rev24 smr comp|, maxabs(sum_l SMC - king-half sm)"])
