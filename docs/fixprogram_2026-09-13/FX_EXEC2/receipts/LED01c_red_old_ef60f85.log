@@ -1,0 +1,25 @@
+tree ef60f85
+[R] the canonical reader
+  FAIL  ★★★ pilot_log.read_fills exists (old tree: none — every reader opens or indexes the table itself)  — absent
+
+[S1] ★★★ no direct read of fills.jsonl outside the accessor
+  FAIL  ★★★ S1 no module outside live/pilot_log.py names the fills.jsonl path (old tree: ops/assert_anchor_artifacts.py)  — {'ops/assert_anchor_artifacts.py': [162]}
+
+[S2] ★★★ every module that indexes the fills table has a decision
+  OK    ★★★ S2a no undeclared module indexes the fills table  — {}
+  FAIL  ★★ S2b no stale declaration (a declared module that no longer touches the table)  — ['live/pilot_log.py', 'ops/assert_anchor_artifacts.py', 'ops/daily_summary.py', 'ops/score_post_fix.py']
+  FAIL  ★★ S2c every COLLAPSES decision names a function that occurs in that module  — ['ops/daily_summary.py']
+  OK    S2d every RAW decision carries a reason
+
+[S3] ★★ the scanners catch the two mutations
+  OK    S3a a module that builds the fills.jsonl path is flagged; the docstring mention is not
+  OK    S3b a module that indexes one['fills'] is flagged by the table scanner
+  OK    S3c alarm text that mentions fills.jsonl is not a path
+
+5/9 checks passed
+FAILED:
+  ★★★ pilot_log.read_fills exists (old tree: none — every reader opens or indexes the table itself)
+  ★★★ S1 no module outside live/pilot_log.py names the fills.jsonl path (old tree: ops/assert_anchor_artifacts.py)
+  ★★ S2b no stale declaration (a declared module that no longer touches the table)
+  ★★ S2c every COLLAPSES decision names a function that occurs in that module
+rc=1

@@ -1,0 +1,76 @@
+# Research-repo .py files naming fills.jsonl (git grep at HEAD, 2026-09-13 16:0xZ; FX-EXEC2 LED-01 req. 5)
+# columns: path | uses a canonical collapse (collapse_supersedes/dedupe_fills/read_fills) | mentions trade_id | note
+# NOT FIXED except multi_asset/exports/live/pilot_journal/tools/inspect_anchor.py (lead: list the others, do not fix).
+# A file with neither a collapse call nor trade_id is the naive-reader shape (exact 2x on sums, first-row markouts);
+# a file with trade_id but no collapse call may dedupe by trade_id ALONE (the per-symbol collision family). Static only.
+docs/fixprogram_2026-09-13/FX_EXEC2/devices/build_fixture_led01.py | False | False | NO collapse, NO trade_id: naive-reader shape
+docs/fixprogram_2026-09-13/FX_EXEC2/devices/led01_contract_positive_control.py | False | True | trade_id-keyed? verify symbol
+docs/fixprogram_2026-09-13/X_COST/devices/x_cost_decompose.py | True | True | collapse call
+docs/fixprogram_2026-09-13/X_COST/devices/x_cost_schema_census.py | False | False | NO collapse, NO trade_id: naive-reader shape
+docs/fixprogram_2026-09-13/devices/e1_backfill_apply_live.py | False | True | trade_id-keyed? verify symbol
+docs/fixprogram_2026-09-13/devices/e1_backfill_rehearsal.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/audit_0C_20260728/q1_qty_residual.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/audit_0C_20260728/q4_post_flatten.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/audit_0C_20260728_trip.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/audit_fills_ledger_gap 5.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/audit_fills_ledger_gap 6.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/audit_fills_ledger_gap 7.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/audit_fills_ledger_gap 8.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/audit_fills_ledger_gap.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/class_sweep_0C.py | True | True | collapse call
+multi_asset/exports/eda/kcurve_2026-08-21/devices_2026-08-21/turnover_cost_reaudit.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/eda/migrate_fill_sign 5.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/migrate_fill_sign 6.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/migrate_fill_sign 7.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/migrate_fill_sign 8.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/migrate_fill_sign 9.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/migrate_fill_sign.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/probes/judges_2026-08-11/cost_postswap.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/eda/probes/judges_2026-08-11/replay_both.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/live/exec_requote_behind_2026-09-05/analyse_requote_behind.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/live/pilot_journal/tools/inspect_anchor.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/live/pilot_journal/tools/live_root_cause_part3_flatten_funding.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/live/pilot_journal/tools/reconstruct_orders_12Z.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/live/wide_live_staging_2026-08-22/live_repo/ops/gate_coverage.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/canon_reconcile.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/cost_calib.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/retrain_2026-09/health_check_2026-09-05/calib/finalize_and_render.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/retrain_2026-09/review_caliber_wf/gap_live_pnl/canon_reconcile.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/research/retrain_2026-09/review_caliber_wf/gap_live_pnl/dump_logs.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/research/uplift_2026-09-11/fee_per_anchor.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/research/uplift_2026-09-11/handoff_audit/r10_r11/audit_recompute_r10_r11.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/infra1_cost/extract_fill_costs.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/infra1_cost/mk_costb.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/judge1_r6/j1_fee_fix.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/judge1_r6/j1_realized.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/live_per_anchor.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/research/uplift_2026-09-11/part6_livecost.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r11_costtruth/scripts/export_fills_for_markout.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r11_costtruth/scripts/markout_cdn_multilag.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r11_costtruth/scripts/r11_term_structure.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r11_income/r11_financing_arith.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r11_income/r11_income_arith.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r11_income/r11_quoting_arith.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r14_estimand/devices/r14_flip.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r14_estimand/devices/r14_gap.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r14_estimand/devices/r14_intent.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r14_estimand/devices/r14_nulls.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge/devices/r21_bridge.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/refute_r6/r6_fee_dedupe.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/trackB_attack_2026-09-11/fee2.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/trackB_attack_2026-09-11/fee3.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/trackB_attack_2026-09-11/fee_recheck.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/trackB_attack_2026-09-11/live_cost_attack.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/trackB_churn_decomp_2026-09-11.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/trackB_cost_decomp.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/trackB_cost_v2.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_2026-09-11/trackB_realized_cost_2026-09-11.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_realized.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_crosscheck.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_gate_repro.py | True | True | collapse call
+multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_markout_desc.py | False | True | trade_id-keyed? verify symbol
+multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_passive_rev.py | True | True | collapse call
+multi_asset/exports/research/uplift_r2_2026-09-13/T5b/devices/t5b_copy.py | False | False | NO collapse, NO trade_id: naive-reader shape
+multi_asset/exports/research/uplift_r2_2026-09-13/T5b/devices/t5b_exec.py | False | True | trade_id-keyed? verify symbol
+multi_asset/probes/bandit_readout.py | False | False | NO collapse, NO trade_id: naive-reader shape
+# totals: 70 files; collapse call 4; trade_id without collapse call 38; neither 28

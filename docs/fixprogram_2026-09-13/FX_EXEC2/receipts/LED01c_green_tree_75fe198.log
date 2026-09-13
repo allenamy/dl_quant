@@ -1,0 +1,21 @@
+[R] the canonical reader
+  OK    ★★★ R1 read_fills collapses on (symbol, trade_id), last written row wins, write order kept  — [{'anchor_ts': 1.0, 'side': 'buy', 'order_type': 'maker', 'attempt_idx': 1, 'fill_ts': 2.0, 'fill_px': 1.0, 'fill_notional': 5.0, 'mid_at_fill_plus_60s': None, 'rebalance_id': 'A1', 'symbol': 'BUSDT', 'trade_id': 7}, {'anchor_ts': 1.0, 'side': 'buy', 'order_type': 'maker', 'attempt_idx': 1, 'fill_ts': 2.0, 'fill_px': 1.0, 'fill_notional': 5.0, 'mid_at_fill_plus_60s': 1.1, 'rebalance_id': 'A1', 'sy
+  OK    R2 raw=True returns the rows in write order
+  OK    R3 a day without a fills file is []
+
+[S1] ★★★ no direct read of fills.jsonl outside the accessor
+  OK    ★★★ S1 no module outside live/pilot_log.py names the fills.jsonl path (old tree: ops/assert_anchor_artifacts.py)  — {}
+
+[S2] ★★★ every module that indexes the fills table has a decision
+  OK    ★★★ S2a no undeclared module indexes the fills table  — {}
+  OK    ★★ S2b no stale declaration (a declared module that no longer touches the table)  — []
+  OK    ★★ S2c every COLLAPSES decision names a function that occurs in that module  — []
+  OK    S2d every RAW decision carries a reason
+
+[S3] ★★ the scanners catch the two mutations
+  OK    S3a a module that builds the fills.jsonl path is flagged; the docstring mention is not
+  OK    S3b a module that indexes one['fills'] is flagged by the table scanner
+  OK    S3c alarm text that mentions fills.jsonl is not a path
+
+11/11 checks passed
+ALL PASS
