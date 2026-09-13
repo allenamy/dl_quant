@@ -1,4 +1,4 @@
-> **创建:** 2026-09-12 13:2xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6) = `fe97e46`, (c) 默认关 + C1/C2/C3 = `3308cbc` (独立复核 563e3470 后), 克隆分支 fix/e0912a-reduce-only-clamp; 未部署; 部署与恢复 = 用户字** | **作废条件:** W6 落地后转收据; 或用户裁定回滚 d040c74
+> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(W8 §5) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 尺子第七次重标定(W8, 测试文件 only)。当前链: (a)(b) = `c4ec464` (= `fe97e46` + 重标定提交), (c) = `8e8510c` (= `3308cbc` cherry-pick 到其上); 分支 `fix/e0912a-reduce-only-clamp` → `8e8510c`; 旧 (c) 备份分支 `w8-backup-pre-recal7` = `3308cbc`。§4 正文里的 `fe97e46` / `3308cbc` 是 W8 之前的头, 保留不改写; 部署动词请用 §5.4 的新 sha。未部署; 部署与恢复 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
 
 # DESIGN W6: E-0912-A 修复 —— reduce-only 截量不是矛盾, 全退出按持仓张数下单, 局部「未知」不平全书
 
@@ -103,3 +103,118 @@ W1/W2/E1 的克隆把运行树 `state/live`(43 日账本)整棵复制进克隆, 
 8. 三个旧码收据以 Traceback 结尾(旧树缺模块/属性/桶), 即红; 未再为旧码防崩。
 9. 恢复复现无公网探针(`WI.collect` 含 `public_path_alive()`), 用 `venue_events=[]` 替。
 10. 复核 §4 对新正控目录(V1/F3/F8 过度概括、V8 终态 [L,Q]、V11 STP、V9 身份混合)的批评针对 HANDOFF 目录, 不在本节改; 本节代码不主张 V1/F3 的一般性(见 2)。
+
+## §5 尺子第七次重标定(W8, 2026-09-13; **测试文件 only, 零运行时改动**)
+
+> 起因: 在 `fe97e46` / `3308cbc` 上把运行树 `state/` 整棵复制进克隆后, `live/tests_disposition_matrix.py`
+> 两格真账本断言红 —— 不是代码退化, 是**账本长出了三种断言外的新形态**(§4.3 第 2 条已预告「修尺子是另一件事」)。
+> 红挡住 `safe_commit` 的电池全绿门, 所以必须按事实重标。**方法与第六次同**: 拆开事实 → 独立成类 →
+> 断言关系 → 再加一条「新尺在真账本上承重」的证明。**放宽阈值 / 删断言 / 把锚移出人口, 一次都没有。**
+
+### 5.1 事实表(全部第一手; 账本快照 2026-09-13T00:04:34Z 复制自 `~/dl_quant_live/state`, 44 日 / 76,101 orders 行 / 253 anchors 行)
+
+| # | 事实 | 在哪测的 | 后果 | 新类 | 断言 |
+|---|---|---|---|---|---|
+| F1 | 12Z 锚 **A1789215839**(anchor_ts 1789215841.923763)的非自愿缺口 = **1,524.3211 USDT**, 逐 USDT 等于两行 `filled_amount_unknown` 的意图和(MEME 1,015.24631076 + POPCAT 509.07486 = **1,524.3212**) | `state/live/pilot_log/20260912/orders.jsonl`; `OD.gaps` 同一残差算术(`filled_notional` 未写 ⇒ 残差 = intended) | 稳态 200U 尺红 + halted/trading 分离尺红(两格) | — | — |
+| F2 | 这两笔在**场所记录里完全可知**: 回执 origQty == `confirmed_qty`(MEME −1,933,692 / POPCAT −10,434), Σ 子成交 `trade_qty` == \|confirmed_qty\| **逐张相等**(560266+782806+590620 / 8433+2001), Σ `trade_quote` = 1,015.1883 / 509.07486, 本锚读回 0 | 行内 `request_ledger`(第一手); 只读重判收据 `docs/receipts/w6_rejudge_20260912_receipt.json`(2 行 known, 6 项交叉核对 2/2 全真) | 「未知」是**我方身份门 1e-6 容差的读数错误**(E-0912-A ④), 不是事实 ⇒ 按事实重判量 | **① 重判 KNOWN** | `_clamp_known` 六道门 |
+| F3 | 重判后残差: MEME **−0.05801076**, POPCAT **恰 0** ⇒ 该锚非自愿缺口 **0.058 USDT** | 测试运行时从 `request_ledger` 重算(不写死) | 回到 200U 线内, 阈值未动 | ① | `[G7]` 第 1 格(双向) |
+| F4 | 全账本 `filled_amount_unknown` **只有这 2 行**; 带 `ledger_inconsistent` 的只有这 2 行; 含 "differs from ours" 的只有这 2 行 | 44 日 76,101 行全扫 | 类今天只有 1 个成员 —— 所以按**结构**选(串 + 请求账本内容), 不按名字/计数 | ① | 反控六条 |
+| F5 | 本文件独立实现的截量判据与运行时 `reconcile._clamp_rederived` 在**全账本 441 个带请求账本的行**上逐请求一致(2 个 clamped) | 测试运行时对账(`import reconcile`) | 尺子与书对「已知」同义; 两者若分家 ⇒ 红 | ① | `[G7]` 第 2 格 |
+| F6 | 12:47:37Z 看门狗阶梯在 **12Z 锚的区间内**平了全书: **255 行** `protective_flatten`, rid `FLATTEN-20260912T124737Z`, Σ\|filled_notional\| = **235,382.55 USDT**, 终态**全 `filled`**, **255/255 行 `fee_paid` 为 None** | orders.jsonl 逐行 | 这批执行不属于任何锚的缺口账本 | **② TRIP-FLATTENED** | `[E]` 三格 |
+| F7 | 全账本这样的批次共 **10 个 / 1,708 行 / 738,216.00 USDT / 1,704 行费未测**; 每批 Σ\|filled\| 与其所在锚的 `realized_gross` 相对差 ≤ **0.11%**(全书被平掉, 不是一小片) | 全扫 + `anchors.jsonl` | 类不是一次性形态, 有 10 个成员 | ② | Σ\|filled\| 在所在锚 realized 的 10% 带内 |
+| F8 | 这 10 个 rid **不在 `anchors.jsonl` 里**(0/253), 于是既不进 `_halted` 也不进 `_traded` ⇒ **把这 1,708 行整批删掉, `[E]` 读到的每个 `gross_usdt` / `n_named` 一位不变** | 测试运行时重算整个 `[E]` | **盲区**: 73.8 万 USDT 的真实执行, 本文件此前**一条断言都读不到** | ② | `[G7]` 第 5 格(盲区被**实测**, 不是被声明) |
+| F9 | 12Z 锚**自己的单确实成交了**(重判后非自愿 0.058) | F3 | ⇒ 该锚**不移出稳态人口**: 把它豁免掉会是放宽, 不是重标定 | ② | `[G7]` 第 1 格末句断言 `_rj_anchors ⊆ _steady_ids` |
+| F10 | 停机锚 **16/16** 的真实形态: 终态词汇只有 `blocked_by_halt` / `skipped_min_notional`, `submit_ts` **0 个**, 成交 **0 笔**, 且 Σ\|intended\| **== anchors 行的 `target_gross`**(全部 16 个偏差 < 0.01 USDT) | 全扫 + anchors 行 | 原断言只有「整书缺口 > 1000U」—— 一条交易得很差的锚也能过的绝对界 | **③ HALTED-NO-SUBMIT** | 形态格 + 恒等式格 |
+| F11 | 把这 16 个停机锚**当交易锚读**, 非自愿缺口 **4,169 – 235,320 USDT**, 每一个都远超 200U | 测试运行时用同一拆分算术重算 | 停机类是承重的, 不是分类装饰 | ③ | `[G7]` 第 4 格 |
+| F12 | 16Z **A1789230240**(245 行 = 243 `blocked_by_halt` + 2 `skipped_min_notional`, target 235,335.37)与 20Z **A1789244640**(target 235,286.47)正是这个形态 —— 今天新增的两个 | orders + anchors | 尺子没把它们读成「巨额非自愿缺口的交易锚」(它们本来就落在 `_halted`, 但此前只被那条绝对界描述) | ③ | 同上, 逐锚点名 |
+| F13 | `protective_flatten` 行 **1,704/1,708 `fee_paid` 为 None**(另 4 行是 08-05 那批的真 0.0)。`fee or 0` 的读法会在 235,382.55 USDT 的 IOC taker 执行上打印 **0.00 USDT 成本** | 全扫 | 费用三态纪律(与 `fee_paid` / `filled_notional` 同一条)必须贯到这个类 | ② | `[E]` 费用格(任一行未测 ⇒ 本批 `fee_usdt = None`)+ `[G7]` 第 6 格(夹具: None 与 0.0 分桶) |
+| F14 | 回填这 255 笔的佣金是**操作员未做步骤**: `LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912`(需凭据), §4.7 第 6 条已记 | DESIGN §4.1 (6) / §4.6 | 断言的是「尺子**报告**它未测」, 不是「它永远未测」—— 回填后 `fee_usdt` 变成数字, 该格仍绿 | ② | `[E]` 费用格写成蕴含式 |
+
+### 5.2 改了什么(`live/tests_disposition_matrix.py`, 零运行时文件改动)
+
+| 环 | 位置 | 改动 |
+|---|---|---|
+| ① 判据 | `_ORIGQTY_PAIR` / `_fin` / `_clamp_known` / `_is_origqty_kind` / `_row_rejudged` | 六道门: 身份门 origQty **值比较**文本 ∧ 串内 0 < Qv < Qs ∧ 串里的 Qs == 该请求自己的 `qty` ∧ 同侧 ∧ \|confirmed\| ≤ min(Qv, \|qty\|) ∧ Σ 子成交 `trade_qty` == \|confirmed\| ∧ 子成交 `trade_quote` 齐全有限。整行判据更严: 行内**每个**请求都要被解释, 行级 `ledger_inconsistent` 每条都要指向已重判的 client_id, 否则整行不重判(**失败一律关向「未知」**) |
+| ① 接线 | `_all_rj`(重判副本, 只改 `filled_notional`)/ `_by` 用它 / `_by_raw` + `_split_raw` 保留重判前的同一算术 | 终态字符串不改, 行仍是 GAP 行 —— 变的只是**量**。`[A]` 的闭世界检查读 `terminal_reason`, 不受影响 |
+| ② 选取 | `_flat_rows` / `_flat_rids`(`order_type == "protective_flatten"`)→ `_traded` 的排除条件 | 原来只有 `str(r).startswith("FLATTEN")` 一条**按名字**的过滤(E-0825-H)。现按行的结构选, 并断言三个读法(结构 / 名字前缀 / 不在 anchors.jsonl)在全账本重合 |
+| ② 事实 | `_containing_anchor` / `_fee_states` / `_flat_batches` / `_flat_facts` | 每批: 行数、是否全成交、Σ\|filled\|、所在锚与其 realized、费用三态 |
+| ③ 形态 | `_HALT_REASONS` / `_halt_shape` / `_halt_shapes` | 终态词汇、提交数、成交数、Σ\|intended\| |
+| ③/① 装置 | `_as_traded` / `_rc_disagree` / `_REQ_OK` / `_NEG`(6 条反控)/ `_by_nf` / `_blind_same` | `[G7]` 六格的全部输入在断言前算好, 断言只做比较 |
+| 顺序 | `_row_by_rid` 提前到 `_halt_flag` 同一循环(原定义在 resize 段, 被 ③ 提前用到), 原处删除 | 无语义变化 |
+
+### 5.3 承重与红能力
+
+**新增 11 格**(`[E]` 5 格 + `[G7]` 6 格), 套件 **48 → 59 格**, 真账本 **ALL PASS**。
+
+**「没有放宽」是机械核对过的, 不是自称**: 把修前红日志与修后绿日志的**断言名逐条集合比对** —— 旧 48 条 **一条不少**地出现在新 59 条里(`LOST = 0`), 新增恰好 11 条。全文件的删除行只有 **6 行**, 全部是结构行(docstring 收尾 / `_by` 初始化与赋值 / `_traded` 过滤器那一行**被加严**成三个合取项 / `_row_by_rid` 定义位置前移), **没有一条断言、没有一个阈值(200 / 0.25 / 1% / 5% / 0.5×)被动过**。
+
+| 突变(临时副本, 跑完即还原) | 打掉的是什么 | 预期红 | 实测 |
+|---|---|---|---|
+| **M1** `_row_rejudged` 直接 `return None` | ① 重判整体失效 | 稳态格 + 分离格 + `[G7]`#1 | **3 红, 全在预期格** |
+| **M2** 去掉 `_clamp_known` 的同侧门 | 反侧的 confirmed 也被当截量 | `[G7]`#3 | **1 红** |
+| **M3** `_fee_states` 改成 `sum(fee or 0)` | 费用三态并成一态 | `[E]` 费用格 + `[G7]`#6 | **2 红** |
+| **M4** `_halt_shape` 的 `intended_usdt` 改读 `filled_notional` | 停机恒等式量换错 | `[E]` 停机恒等式格 | **1 红** |
+| **M5** `_flat_rows` 选 `topup_taker` | 平仓类选错腿 | TRIP-FLATTENED 两格(+ 稳态格: `_traded` 被清空 ⇒ `_tr_split` 空 ⇒ 假) | **3 红** |
+| **M6** 去掉 `Σ子成交 == \|C\|` 的门 | 「子成交没有定下量」也算已知 | `[G7]`#3 | **1 红** |
+
+**旧码红(iv)**: 重标定**前**的同一文件(sha256 `bf0da6a1310b4926ae0717cbba4ad9b6223811b024d2a6653f5970e7746e3066`, 在 `918559f` / `fe97e46` / `3308cbc` 三个 sha 上**逐字节相同**)跑在**同一个**账本快照上 ⇒ **2 格红**, 正是 §4.3 第 2 条预告的那两格。
+
+**第三条独立对账**(不在套件里, 手工做并记于此): 本文件的重判规则在全账本上重判出的行集合 =
+`{(A1789215839, MEMEUSDT, maker), (A1789215839, POPCATUSDT, maker)}`, 与 W6 只读收据
+`docs/receipts/w6_rejudge_20260912_receipt.json` 的 `read_time_verdict.kind == "known"` 行集合**完全相同**
+(收据: 2 行 known, 6 项交叉核对 2/2 全真)。已知成交额 −1015.1883 / −509.07486, 残差 −0.05801076 / 0.0。
+
+### 5.4 收据
+
+| 件 | 值 |
+|---|---|
+| 账本快照 | `2026-09-13T00:04:34Z` `rsync -a ~/dl_quant_live/state/ <worktree>/state/`(**只读复制**, 无 `.env`); 44 日 / 76,101 orders 行 / 253 anchors 行 / 16 停机锚 / 10 个平仓批次 |
+| 工作区 | `git -C /Users/haosiyu/cc_tmp/exec_w6 worktree add --detach /Users/haosiyu/cc_tmp/w8_ledger_fe97e46 fe97e46` |
+| 重标定提交(**新 (a)(b) 头**) | **`c4ec4641fd95869c8a4cb8fe7c028ccfb709b82f`**(在 `fe97e46` 之上的**新**提交, 未 amend `fe97e46`; 只动 `live/tests_disposition_matrix.py`, +379 −6) |
+| (c) 重新落在其上 | `3308cbc` cherry-pick ⇒ **`8e8510cc581a50c5bfab88b349d3f5b9261440d7`**; 分支 `fix/e0912a-reduce-only-clamp` 指向它; 备份分支 `w8-backup-pre-recal7` = 旧 `3308cbc`。`git diff 3308cbc 8e8510c` **只有** `live/tests_disposition_matrix.py` 一个文件 ⇒ (c) 的内容逐字未变 |
+| `w6_reduce_only_clamp_ab.diff` | 重生成 = `git diff 918559f c4ec464`; **26 文件 / +8,658 −46**(原 25 文件 / +8,279 −40, 差值恰为本文件 +379 −6); sha256 **`24b6513e0dc041b29c2d20a8a74c30f8c463584447ea56ea949ae11efd4c5940`**(旧 `cdf370469d84d29d…`) |
+| `w6_proportional_response_c.diff` | 重生成 = `git diff c4ec464 8e8510c`; 7 文件 / +859 −6; sha256 **`9f1375989342fe2f465062091a5bb05e0be0e7320ceadd9837c04cf582bb4653`** —— 与重生成前**逐字节相同**(底座动了, 内容没动) |
+| 套件 修后(绿) | `docs/receipts/w8_disposition_recal7_after_green.log` — **ALL PASS (59 checks)**, rc 0 |
+| 套件 修前(红) | `docs/receipts/w8_disposition_recal7_before_red.log` = `…_oldfile_on_new_ledger_red.log` — **2 FAIL (48 checks)**, rc 1(两文件同一次运行, 因为旧文件在三个 sha 上逐字节相同) |
+| 突变 | `docs/receipts/w8_disposition_recal7_mutants.log` — 六个突变各自红在预期格 |
+| 电池(**全量**, 新 (a)(b) 头 + 同一账本快照) | `bash run_acceptance.sh` @ `c4ec464`, stamp `20260913T010348Z`: **134 套 / 133 绿 / 1 红**。唯一红 = **`tests_env_loading`**(10/14; 四格全是「`ops/ic_monitor.py` / `ops/redeliver_alarms.py` / `ops/unseed_rehearsal_halt.py` / `scheduler/run_anchor.py` populates TELEGRAM_* on import」)—— 克隆无 `.env`(lead 规则), **环境红, 不是代码红**。`tests_disposition_matrix` rc 0 / ALL PASS 59; `tests_reduce_only_clamp` 与 `tests_flatten_fee_backfill` 均 rc 0。日志 `docs/receipts/w8_disposition_recal7_battery_c4ec464_ledger.log` |
+| 电池(**全量**, **分支尖端 `8e8510c`** = (c) 在 (a)(b) 之上, 同一账本快照) | stamp `20260913T012821Z`: **135 套 / 134 绿 / 1 红**, 唯一红仍是 `tests_env_loading`。(c) 的 `tests_unknown_size_local_response` rc 0, `tests_position_break_blindspot` rc 0, `tests_disposition_matrix` rc 0, `tests_reduce_only_clamp` / `tests_flatten_fee_backfill` rc 0 —— 部署动词要用的那个 sha 上全量跑过。日志 `docs/receipts/w8_disposition_recal7_battery_8e8510c_ledger.log` |
+| 电池 **对照**(干净 `918559f` + **逐字节相同**的账本快照) | **132 套 / 130 绿 / 2 红** = `tests_env_loading` + **`tests_disposition_matrix`** —— 后者就是 (iv) 的旧码红, 在电池层面又证了一遍。少 2 套是因为 (a)(b) 新增了 `tests_reduce_only_clamp` 与 `tests_flatten_fee_backfill`。**§4.3 当时的另外两红(`tests_alarm_digest` / `tests_break_split_wiring`)在本快照上两棵树都绿** —— 差别是**账本**(本快照含近 24h 可读告警; 最新对账锚已是 20Z 停机锚, 不再是 12Z 那个锚), 不是代码。日志 `docs/receipts/w8_disposition_recal7_battery_918559f_control.log` |
+| 运行时影响 | **零** —— 本次只改 `live/tests_disposition_matrix.py`(+379 −6); 运行树 `~/dl_quant_live` 与生产者 `~/wide_shadow` 全程只读(只 `rsync -a` **出**账本, 没有写回), 无网络、无场所/Telegram 调用。**一处如实说明**: 全量电池里的 `tests_env_loading` 会在**干净子进程里 import**(不是运行)`ops/ic_monitor.py` 等四个模块来检查它们是否在 import 时装载 TELEGRAM_* —— 那是该套件的断言本身; `ic_monitor.py` 有 `if __name__ == "__main__"` 守卫, 模块层只绑常量并指向**克隆自己的** `state/`, 对运行树零接触。除此之外没有以任何形式调用过 `ops/ic_monitor.py` |
+
+### 5.5 与 lead 规格的一处**刻意差异**(请裁定)
+
+lead 的 (ii) 写的是「TRIP-FLATTENED 是**那个锚**的新类, 因为看门狗平仓让它**既不是普通稳态交易锚也不是停机锚**」。
+**我把类做在了平仓批次上, 并且没有把 12Z 锚移出稳态人口。** 理由是事实:
+- 重判后(①)该锚**自己的单**非自愿缺口 = **0.058 USDT**, 它按自身成绩就在 200U 线内 —— 把它豁免掉
+  是**放宽**(多一个免检锚), 不是重标定, 直接违反规格 (v);
+- 真正**没有任何断言读到**的, 是平仓批次那 255 行 / 235,382.55 USDT(全账本 10 批 / 1,708 行 / 73.8 万 USDT),
+  §5.1 F8 用「删掉它们 `[E]` 一位不变」把这件事**实测**出来了。类做在批次上, 才对得上没被读到的那件事。
+
+所以这一格是**净增断言 + 零豁免**。若 lead 仍要「该锚移出稳态人口」, 那是一次独立裁定, 我不替选;
+真做的话改一行(`_steady_ids` 再排除 `_trip_anchors`), 但那会让 `[G7]`#1 的末句断言(`_rj_anchors ⊆ _steady_ids`)失效, 需要同时重写。
+
+### 5.6 未能验证 / 边界
+
+1. **`[G7]`#2 把尺子绑在了运行时上**: 本文件 `import reconcile` 并与 `_clamp_rederived` 逐请求对账。
+   若日后 `reconcile` 重构掉那个私有函数, 这格会红 —— 那是**要的**(尺子与书对「已知」不再同义就该有人看),
+   但它意味着本测试文件从此对 `live/reconcile.py` 有依赖。已在代码注释里写明。
+2. **两条规则有一处刻意不同**: 我方额外要求子成交 `trade_quote` 齐全可读(说得出张数说不出金额, 仍算读不出),
+   `reconcile._clamp_rederived` 只定张数。今天账本上两者判出的请求集合相同; 若将来出现「有 trade_qty 无
+   trade_quote」的截量行, `[G7]`#2 会红, 届时要按事实裁定是谁更对, **不要直接放宽**。
+3. **平仓费用回填是操作员未做步骤**(F14): 断言的是「尺子报告它未测」, 不是「它永远未测」。回填后
+   `fee_usdt` 变数字, `[E]` 费用格仍绿(蕴含式), `[G7]`#6 是夹具格不受账本影响。
+4. **`_containing_anchor` 用「anchor_ts ≤ 批次 ts 的最后一个 anchors 行」定区间**, 不是真正的区间上界;
+   今天 10 批全部落在交易锚里且 Σ|filled| 与该锚 realized 差 ≤0.11%, 所以这个近似在账本上被验证过 ——
+   但它在「平仓发生在下一个锚行写出之后」这种边界上没有正控。
+5. **账本是活的**: 本次所有数字都是 2026-09-13T00:04:34Z 快照上重算的, 套件本身**每次运行都重算**
+   (规格 (v): readers recompute at emission), 文中的数只是那一刻的读数。16Z / 20Z 两个停机锚是 09-12 12:47Z
+   跳闸后新长出来的; 再多几个同形态的停机锚不会让任何一格变红。
+6. **本节不碰 §4 的任何结论**, §4 的文件在本次改动里一行未动。两个头都跑了全量电池: (a)(b) 头 `c4ec464`
+   **134 套 133 绿**, 分支尖端 `8e8510c` **135 套 134 绿**, 两次唯一红都是 `tests_env_loading`;
+   §4 的三套新套件在 `8e8510c` 上全部 rc 0。
+7. **收据有一次重做**: 第一版重标定提交是 `f0072fc`, 我在自查时发现文件里两处注释写「五条反控」而代码是
+   六条(正是本文件开头警告的那类「注释与它旁边的代码说反话」), 于是修注释 + 折行并 **amend 我自己那个
+   提交** ⇒ `c4ec464`, 然后**重跑**了套件、六个突变与全量电池(不靠 sha 推断, E-0826-B)。
+   lead 在 `aedcd824` 已入库的四份日志里, `..._after_green.log` 与 `..._mutants.log` 是 `f0072fc` 那一版,
+   工作树里已被 `c4ec464` 的新版覆盖(状态 M), **请重新 commit**; 另两份(旧码红)未变。
