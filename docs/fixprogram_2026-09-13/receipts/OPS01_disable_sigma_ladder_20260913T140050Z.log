@@ -1,0 +1,22 @@
+OPS-01 apply 20260913T140050Z (lead; completes the 09-04 withdrawal PREREG_deploy_sigma_ladder §6: unload + state file renamed; this adds the persistent launchd disable + retires the plist)
+--- BEFORE
+Sun Sep 13 14:00:50 UTC 2026
+-rw-r--r--@ 1 haosiyu  staff  1318 Sep  4 17:35 /Users/haosiyu/Library/LaunchAgents/com.hsy.sigma_ladder.plist
+plist_sha256 239274a3aef467e1c2aadc1086d78fac55b9d48648459ab2ec05331c637483b5 1318
+launchctl list: 0 rows
+print-disabled: no sigma override
+-rw-r--r--@   1 haosiyu  staff    276 Sep  4 17:35 sigma_ladder.json.reserve_20260904
+--- APPLY
+disable rc=0
+move rc=0
+--- AFTER
+		"com.hsy.sigma_ladder" => disabled
+ls: /Users/haosiyu/Library/LaunchAgents/com.hsy.sigma_ladder.plist: No such file or directory
+total 8
+drwxr-xr-x@   3 haosiyu  staff    96 Sep 13 22:00 .
+drwx------@ 124 haosiyu  staff  3968 Sep 13 22:00 ..
+-rw-r--r--@   1 haosiyu  staff  1318 Sep  4 17:35 com.hsy.sigma_ladder.plist.retired_20260913T140050Z
+retired_sha256 239274a3aef467e1c2aadc1086d78fac55b9d48648459ab2ec05331c637483b5
+repo_copy_sha256 239274a3aef467e1c2aadc1086d78fac55b9d48648459ab2ec05331c637483b5
+launchctl list: 0 rows
+live daemons unchanged: combolive=30944 shadowloop=10900 sidecar=30943
