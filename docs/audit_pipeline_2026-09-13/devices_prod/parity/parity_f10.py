@@ -198,7 +198,8 @@ H_FALLBACK = {}
 def members_prod_row(i, t):
     """production member set of history row i; rows without a full 7-day window (first 2015 rows of this cache, all outside every scored anchor's
     180-anchor causal window and 6-anchor drank lag) get the member set of the first full-window row, so that no row is empty (recorded)."""
-    if t >= W0: return weights_members(t)
+    if t >= W0 and os.path.exists(f"{WS}/state/weights/{int(t)}.npz"): return weights_members(t)
+    if t >= W0: H_FALLBACK.setdefault("no_weights_file_rule_used", []).append(U(t))   # producer skipped this anchor (no weights file): production member code instead
     if i < 2015:
         if "m" not in H_FALLBACK:
             i2 = next(k for k in range(2015, len(rts_h)) if rts_h[k] % 14400 == 0); H_FALLBACK["row"] = U(rts_h[i2]); H_FALLBACK["m"] = members_prod_row(i2, int(rts_h[i2]))
@@ -210,7 +211,8 @@ for t in [x for x in [W0, W0 + 14400, W0 + 28800] if x <= H_END]:
     mm = np.asarray(PMEM(st, {int(x): j for j, x in enumerate(rts_h[lo:i + 1])}, int(t), P), np.int64); g["checked_anchors"] += 1; g["equal"] += int(np.array_equal(mm, weights_members(t)))
 g["PASS"] = g["equal"] == g["checked_anchors"]; RC["gates"]["G-MEMBERCODE"] = g; log("G-MEMBERCODE", g); assert g["PASS"]
 FH_out, FH_rep = run_pipeline("FH", rts_h, RD_h, members_prod_row, BTCV, {A: fund_from_record(A) for A in OVL}, OVL); RC["FH_run"] = FH_rep
-RC["FH_early_rows_fallback"] = {"first_full_window_row": H_FALLBACK.get("row"), "n_rows_filled": len(H_FALLBACK.get("rows_filled", [])), "last_filled": (H_FALLBACK.get("rows_filled") or [None])[-1]}
+RC["FH_early_rows_fallback"] = {"first_full_window_row": H_FALLBACK.get("row"), "n_rows_filled": len(H_FALLBACK.get("rows_filled", [])), "last_filled": (H_FALLBACK.get("rows_filled") or [None])[-1],
+                                "anchors_without_weights_file_member_code_used": H_FALLBACK.get("no_weights_file_rule_used", [])}
 log("F_H done", FH_rep)
 del rts_h, RD_h
 # ---- F_D: one long run on the pod slice with training members and training btcv
@@ -242,6 +244,9 @@ with ThreadPoolExecutor(3) as ex:
         assert np.array_equal(scT, scS); FT[A] = (XT_, XS_, repT["n_e_rows"], (repS or {}).get("n_e_rows"))
 log("F_T done", {U(a): (v[2], v[3]) for a, v in FT.items()})
 
+# ---- arrays kept for inspection (scratch, not a receipt)
+np.savez_compressed(HOME + "/cc_tmp/aud_prod/f10_arrays.npz", **{f"FS_{a}": FS[a] for a in OVL}, **{f"FH_{a}": FH_out[a][0] for a in OVL}, **{f"FHs_{a}": FH_out[a][1] for a in OVL},
+                    **{f"FD_{a}": FD_out[a][0] for a in OVL}, **{f"FDs_{a}": FD_out[a][1] for a in OVL}, **{f"FT_{a}": FT[a][0] for a in FT}, **{f"FTS_{a}": FT[a][1] for a in FT})
 # ---- statistics
 RANKLIKE = lambda j: (NAMES[j].endswith("_r") or (j >= 82 and not NAMES[j].startswith("H:")) or NAMES[j].startswith("I:"))
 def pair_stats(pairs, cols):
