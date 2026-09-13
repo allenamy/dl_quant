@@ -204,14 +204,15 @@ for seed in ("42", "2027"):
                                          maxabs_delta=float(np.abs(dd[WIN[w]]).max())) for w in WNAMES}
         del W64, X
 
-OUT.update(executor=EXINFO, boot=BOOTINFO, t6=T6INFO, references=REFINFO, levels=LEV, per_year=PY, contrasts=CON, verdicts=VER, dsr_primary=DSR, delta_set_A0=DSET,
+OUT.update(label="生产路径历史 combo 链未被 S1 认证 (STATE 2026-09-13 12:1xZ ④; continuous historical combo chain parity 0/41)", executor=EXINFO, boot=BOOTINFO, t6=T6INFO, references=REFINFO, levels=LEV, per_year=PY, contrasts=CON, verdicts=VER, dsr_primary=DSR, delta_set_A0=DSET,
            deviations=DEV, overlay_events=OVL, windows={w: int(WIN[w].sum()) for w in WNAMES}, d12_n={w: int((WIN[w] & D12).sum()) for w in WNAMES},
            jan543_n=int(JAN.sum()), nav_ref=L.NAV_REF, lev=L.LEV)
 
 # ───────────── markdown ─────────────
 def f(x, n=4): return "—" if x is None else (f"{x:+.{n}f}" if isinstance(x, (int, float)) else str(x))
 md = [f"# S2 tables (AMENDMENT 6, prereg sha {L.PREREG_SHA[:16]}…; device {SELF_SHA[:16]}…, lib {LIB_SHA[:16]}…; built {L.iso(time.time())})", "",
-      "Layer: every P2 number is the HELD-BOOK layer (target weights), v4 accounting (meta y4 RAW, costb_PWR_G230k, g = net_ex/gross_total, E-close fills). Research references = archived rec.", ""]
+      "Layer: every P2 number is the HELD-BOOK layer (target weights), v4 accounting (meta y4 RAW, costb_PWR_G230k, g = net_ex/gross_total, E-close fills). Research references = archived rec.", "",
+      "**LABEL (STATE 2026-09-13 12:1xZ ④): 生产路径历史 combo 链未被 S1 认证 — every S2 full-history P2 number below carries this label (continuous historical combo chain parity remains 0/41).**", ""]
 md += ["## Levels", "", "| series | window | n | g bps/anchor/gross | CI95 k0 | CI95 k9 | Sharpe | 2.0x maxDD | worst day (2.0x) |", "|---|---|---|---|---|---|---|---|---|"]
 for key in LEV:
     for w in WNAMES:
