@@ -1,0 +1,119 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec_ledger suite=live/tests_per_name_stop.py head=4058b85c4ce728b7a7359db77fd0d7191d1b016b dirty=1 start=2026-09-13T17:26:59Z py=Python 3.9.6
+# suite_sha256=2f4b13d2b561549beefe155fdf85f88311f773b81778daa3be33312b9de2b162
+PASS T1a 第 1 锚只计数不触发
+PASS T1b 第 2 连续锚触发进 stopped
+PASS T2 回浅复位, 三锚不触发
+PASS T3 缺读回打断连续性
+PASS T4 dust 名不计数
+PASS T5a 平仓名转入冷却
+PASS T5b 冷却期内 active_sets 含禁入名
+PASS T5c 期满自动恢复
+PASS T6 停中未平保持原状
+PASS T7 enabled=false 恒等
+PASS T8 快照缺失恒等
+PASS T9 盈利名不计数
+PASS W1 broker 快照携带逐名 unrealized
+PASS W2 终锚钩子在位(update_from_snapshot)
+PASS W3 plan 钩子在位(active_sets 并入 untradable)
+PASS W4 stop 名 target 置零在 apply_withhold 之前
+PASS W6 终锚写入被正典 LIVE 判别式看门(fixture 快照防线, 02:23Z 洞)
+PASS W5 config 参数与条款冻结值一致
+
+[R0] 夹具有效性 — 旧序列在三个真锚上逐名复现账本(新旧代码皆绿)
+PASS R0a 1788451200 旧序列(置零 → withhold/reshape/clamp)复现本锚全部 253 个名的记录目标 ≤ 1e-6 USDT, 账本推出的桶无无法解释的名
+PASS R0b 1788451200 复现的桶与 phase_A 记录桶一致(记录每桶截 12 名 ⇒ 记录 ⊆ 复现)
+PASS R0a 1789041600 旧序列(置零 → withhold/reshape/clamp)复现本锚全部 244 个名的记录目标 ≤ 1e-6 USDT, 账本推出的桶无无法解释的名
+PASS R0b 1789041600 复现的桶与 phase_A 记录桶一致(记录每桶截 12 名 ⇒ 记录 ⊆ 复现)
+PASS R0a 1789056000 旧序列(置零 → withhold/reshape/clamp)复现本锚全部 244 个名的记录目标 ≤ 1e-6 USDT, 账本推出的桶无无法解释的名
+PASS R0b 1789056000 复现的桶与 phase_A 记录桶一致(记录每桶截 12 名 ⇒ 记录 ⊆ 复现)
+PASS R0c 缺陷在夹具里是真的: 09-03 16Z CYS/MAGMA/RIVER/TRIA(多头)旧序列判 add_blocked 且目标 = 持仓; 09-10 12Z IOST reduced(持仓 → a), 16Z IOST add_blocked
+
+[R1–R3] 修复 — 生产调用(force_flat = stop 集)在三个真锚上: 每个持仓已停名 flatten_only、目标恰为 0.0、带 reduce-only
+PASS R1 1788451200 ARBUSDT(持仓 -168.71)落 flatten_only 且只落这一桶
+PASS R2 1788451200 ARBUSDT 目标恰为 0.0(不是 a, 不是持仓)
+PASS R3 1788451200 ARBUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+PASS R1 1788451200 CYSUSDT(持仓 +7.06)落 flatten_only 且只落这一桶
+PASS R2 1788451200 CYSUSDT 目标恰为 0.0(不是 a, 不是持仓)
+PASS R3 1788451200 CYSUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+PASS R1 1788451200 MAGMAUSDT(持仓 +13.19)落 flatten_only 且只落这一桶
+PASS R2 1788451200 MAGMAUSDT 目标恰为 0.0(不是 a, 不是持仓)
+PASS R3 1788451200 MAGMAUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+PASS R1 1788451200 RIVERUSDT(持仓 +16.06)落 flatten_only 且只落这一桶
+PASS R2 1788451200 RIVERUSDT 目标恰为 0.0(不是 a, 不是持仓)
+PASS R3 1788451200 RIVERUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+PASS R1 1788451200 TRIAUSDT(持仓 +13.86)落 flatten_only 且只落这一桶
+PASS R2 1788451200 TRIAUSDT 目标恰为 0.0(不是 a, 不是持仓)
+PASS R3 1788451200 TRIAUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+PASS R1 1789041600 IOSTUSDT(持仓 +960.72)落 flatten_only 且只落这一桶
+PASS R2 1789041600 IOSTUSDT 目标恰为 0.0(不是 a, 不是持仓)
+PASS R3 1789041600 IOSTUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+PASS R1 1789056000 IOSTUSDT(持仓 +45.42)落 flatten_only 且只落这一桶
+PASS R2 1789056000 IOSTUSDT 目标恰为 0.0(不是 a, 不是持仓)
+PASS R3 1789056000 IOSTUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+
+[R4–R6] 邻格 — 同一真锚上三类邻居的处置不变
+PASS R4 已停空头 ARB @09-03 16Z: 桶 flatten_only、目标 0.0, 与旧序列和账本相同
+PASS R5 冷却持仓 ['BTRUSDT', 'EGLDUSDT', 'SKRUSDT'] @09-03 16Z: 桶与旧序列相同, 目标逐位 == 账本记录(add_blocked = 持仓)
+PASS R6 非止损 untradable 持仓 28 名 @09-03 16Z(含 KMNO/PYTH add_blocked 与持有退出名 flatten_only): 桶与目标都不变
+
+[R7] 其余书在【去掉已停名的人口】上中性, 且逐名等于独立算术
+PASS R7 1788451200 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 217 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6)
+PASS R7 1789041600 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 243 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6)
+PASS R7 1789056000 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 243 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6)
+
+[R8] POP 语义不变 + 默认参数逐位旧行为
+PASS R8a 未持有的已停名仍在 POP 里被撤并记入 popped(读者口径不变); 持仓但不在 target 的已停名 flatten_only 0.0
+PASS R8b force_flat 为空 ⇒ 与不传该参数逐位相同(三个真锚的 target 与桶字典全等)
+
+[R9] 符号对称 — 09-03 16Z 夹具镜像(权重与持仓取负 ⇒ a < 0, 即内部书时代的形态)
+PASS R9 镜像里旧序列钉住已停【空头】(与 a 同号), 修后全部已停名 flatten_only 0.0 —— 修法不依赖 a 的符号
+
+[R10] 实盘 09-13 08Z 撤名缺口(rid A1789287840): 撤名残差 −20,475.81 USDT = sizing gross 235,542.59 的 −8.69%, 11 名撤下, 空仓停开仓 —— 复场后 reshape 围绕这个缺口中性化; 已停多空须恰为 0 走 flatten_only, 可交易书净 0, 已停名的处理不新增跨 min_notional 的名
+PASS R10a 夹具有效性: 真锚(空仓, 11 名未持有撤下)重放逐项等于账本 —— net_before −20,475.81 与 names_crossed_floor ['1000CATUSDT'] 逐字相同, popped 11 名相同, 244 个名的记录目标 243 个 ≤ 1e-6 USDT, 唯一不同的是其后被场所上限截断的名
+PASS R10b 已停多头 IOST(持仓 +37.99)与已停空头 LSK(持仓 −85.77)在这个缺口里都恰为 0.0 并只落 flatten_only(旧码: 平移 a ≈ +90 > 37.99 ⇒ IOST add_blocked 钉住)
+PASS R10c 可交易书在去掉已停名后净额 0、gross = sizing(≤ 1e-6), 且撤名残差仍是账本那一笔 −20,475.81(已停名不改缺口本身)
+PASS R10d 已停名的处理不新增跨 min_notional 门槛的名: 跨门槛集合 == 账本自己的 ['1000CATUSDT'], 不含已停名 —— 这一名是缺口本身造成的(无任何已停名的真锚 reshape 就把 1000CAT 从 −80.88 平移到 +3.28, 低于门槛 5.0), 不是本修复引入, 按接缝设计只报告不迭代
+
+[RC] 原链 — DRY_RUN run_anchor(外部书): 生产者仍给已停持仓多头正权重, 冷却名被撤使 net_before < 0
+[A1789320420] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+PASS RC1 链跑通: action TRADE, 冷却名 QQQ 被撤(popped), 已停持仓多头 SSS 被处置
+PASS RC2 锚 target 里 SSS 恰为 0.0(旧码: net_before<0 ⇒ a>0 > 持仓 40 ⇒ add_blocked 钉在 40.0)
+PASS RC3 SSS 在 untradable_names.flatten_only, 不在 add_blocked / reduced
+PASS RC4 plan 行 SSS 带 reduce_only=True(卖出平多)
+PASS RC5 其余书中性且满 gross: Σ 非止损目标 ≈ 0、Σ| | = 10,000
+PASS RS 静态: run_anchor 的 withhold 调用语句把 stop 集以 force_flat= 传入(只看这一条语句, 不做全文件子串)
+
+[E4] 裁定 R2′ — 已停名的 from_partial 残差不进任何追单路径; from_reject 转换保留; 残差留到下锚时有告警
+PASS E4-F 夹具有效性(新旧代码皆绿): 真锚 09-12 12Z 的 192 行 from_partial 残差 + 记录的 seed/weights/书净额/书毛额 重跑 plan_experiment ⇒ arm_assigned 逐名等于记录(LSKUSDT = chase), C 的 fill 集等于记录; 计划期止损集 = 08Z phase_C 的 {IOSTUSDT, LSKUSDT}
+PASS E4-1 策略层: 止损集在 C 与抽签之前离开人口 —— LSKUSDT 不在任何臂(非 chase / no_chase / chase_forced), 记录 excluded_before_assignment 恰为 {LSKUSDT}(IOST 本锚无 from_partial 残差, 不在人口里), 人口 192 → 191(旧码: 无此参数, LSKUSDT 仍 chase)
+PASS E4-2 邻格(新旧皆绿): 同一 seed 下其余 191 名的臂逐位不变(抽签只哈希名字; LSK 在 C 的 skip 集里, C 的 fill 集不变), no_chase 臂净额不变, 新记录按自身 seed 复算通过(recompute_check)
+PASS E4-3a 执行器层夹具有效性(新旧皆绿): 真 192 名残差 + 记录的书净额/毛额驱动真 topup() 且不传止损集 ⇒ 执行器自己的实验记录 arm_assigned 逐名等于实盘记录, LSKUSDT 在 chase 臂并被发出(补单行 intended = 85.77049032)
+PASS ★★★ E4-3 红格(旧码红): 同一真锚、同一 topup(), 带上计划期止损集 ⇒ LSKUSDT 的 from_partial 残差被拒绝追单 —— 不发任何单, 补单行 skipped_stop_maker_only、intended 85.77049032 USDT、无 chase_arm; 旧码: 止损集到不了补单, LSK 抽 chase 并以 MARKET reduce-only 发出(实盘 +253.7 bps)
+PASS E4-4 邻格(新旧皆绿): 其余 191 名的补单行(终态 + 臂)与发出集合在两次运行里逐名相同 —— 豁免只动已停名
+PASS ★★ E4-5 残差留到下一锚时可见(旧码红): 执行器 stop_exit_report 点名 LSKUSDT(skipped_stop_maker_only, +85.77049032U), 条款政策写在报告里
+PASS E4-6 新终态有 schema 与处置格: skipped_stop_maker_only ∈ TERMINAL_REASONS, DISPOSITION = GAP 且带理由; 这些行 unknown_reasons 为空, 且缺口账本点名 LSKUSDT(故意的缺口仍是缺口)
+PASS E4-7 保留(新旧皆绿): 已停名的 from_reject 转换照旧 —— PROMUSDT 08-26 00Z 与 BTRUSDT 08-31 16Z(各自在计划期止损集里)各发出一张 reduce-only 补单, 不写 skipped_stop_maker_only, 也不进『残差留到下锚』报告
+PASS E4-8 邻格: 止损集 {SSS} 时, 冷却名 QQQ 与普通名 RRR 的补单(终态 + 臂 + 是否发出)与不带止损集时逐名相同; 只有 SSS 变为 skipped_stop_maker_only (旧码: SSS 照追 —— 本格在旧码上红在 SSS, 不在 QQQ/RRR)
+[A1789320420] 拒单率 post-only 穿价(-5022) 首次尝试 0/9 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 9); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+PASS ★★★ E4-C1 原链(旧码红): 同一 DRY_RUN 锚走到阶段 B —— 已停持仓多头 SSS 的 from_partial 出场残差不发补单, 行 skipped_stop_maker_only (旧码: 所有追单路径打开时 SSS 被当作普通残差发出 submit_dry_run)
+PASS ★★ E4-C2 原链: 残差留到下一锚时 HIGH 告警点名 SSS 与条款政策, 阶段 B 输出 stop_exit_carried 记录它(旧码: 无告警、无字段)
+PASS E4-S 静态: complete_anchor 的 topup 调用语句只把【止损】集以 stop_names= 传入, 取自计划期 _pns_sets["stop"], 冷却集不进(只看这一条语句及其紧前赋值)
+
+[E6] 告警与文档文字 = 代码实际做的事
+PASS E6-F 夹具有效性: 16Z 的 7 个被钳持仓名 = held_exit 5 名 ∪ dust 2 名(记录的来源解释全部 7 名), 实盘那条告警把 7 名都写成 maxNotionalValue=0
+FAIL ★★★ E6-A1 (OLD CODE: RED) 同一真锚的来源喂给告警文字: CLO/EVAA/KSM/NOT/US 归『外部书不再持有』, ENSO/ZK 归『低于 2×minNotional』, 不出现 maxNotionalValue=0, 未持有的冷却名不进持仓告警; 仍是 reduce-only from here 且 alarm_policy 仍归 B 层(与旧告警同层, 只改归因)
+FAIL ★★ E6-A1b (OLD CODE: RED) …并且 dust 两名在自己的来源下, 冷却名 IOST/LSK/XAN 不出现, 层级 = B_EXPECTED(旧告警也是 B)
+FAIL ★★ E6-A2 (OLD CODE: RED) 一个名同时属于两个来源 ⇒ 两个来源下都列出; 没有任何记录来源的持仓名 ⇒ 列在『来源未记录』, 绝不默认归给场所
+FAIL ★★★ E6-A3 (OLD CODE: RED) 原链: W9 那次 DRY_RUN 锚(已停持仓多头 SSS)真实发出的持仓告警把 SSS 归到逐名止损, 不说 maxNotionalValue=0 — ["1 held name(s) are withheld by the venue (maxNotionalValue=0): reduce-only from here. reducing=[] add_blocked=[] flatten_only=['SSSUSDT']"]
+[A1789320428] 拒单率 post-only 穿价(-5022) 首次尝试 0/11 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 11); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+FAIL ★★★ E6-A4 (OLD CODE: RED) 原链: 生产者不再持有的持仓名 YYY 归『外部书不再持有』, 已停 SSS 归『逐名止损已停』, 同一条告警里各在各的来源下 — ('TRADE', ["2 held name(s) are withheld by the venue (maxNotionalValue=0): reduce-only from here. reducing=[] add_blocked=[] flatten_only=['YYYUSDT', 'SSSUSDT']"])
+FAIL ★★ E6-A5 (OLD CODE: RED) universe gate 逐名给出两种场所理由: 状态非 TRADING = [HALT], maxNotionalValue=0 = [ZCAP]; tradable = [OKAY] 不变 — {'tradable': ['OKAYUSDT'], 'withheld_status_names': None, 'withheld_zero_cap_names': None}
+FAIL ★★★ E6-B1 (OLD CODE: RED) 文字 = 代码: 条款 docstring 的『动作』、触发事件、STOP_EXIT_POLICY、残差留下锚告警四处都说出同一件事 —— 先挂 maker; 被场所拒绝的 maker 在补单环节转市价(MARKET) reduce-only, 受 25 bps 点差门(= binance_executor.MAX_CROSS_BPS); 只有部分成交残差不追。且四处都不再有无范围的『政策 A 不追 / maker-only 出场 / maker 出场, 不追)』。代码侧同格核对: MAX_CROSS_BPS == 25, E4-7 已停名 from_reject 照发 reduce-only, E4-3 已停名 from_partial 写 skipped_stop_maker_only — {'missing': {'docstring 动作': ['市价', '25'], 'trigger event': ['reduce-only', '市价'], 'STOP_EXIT_POLICY': ['reduce-only', 'MARKET', '25'], 'carried-residual alarm': ['reduce-only', '市价', '25']}, 'false_claims': {'docstring 动作': ['政策 A 不追', 'maker-only 出场'], 'trigger event': ['maker 出场, 不追)'], 'STOP_EXIT_POLICY': ['exit maker-only, never chased'], 'carried-residual alarm': []}, 'scoped': {'docstring 动作': False, 'trigger event': False, 'STOP_EXIT_POLICY': False, 'carried-residual alarm': False}}
+PASS ★★ E6-B2 neighbour (both versions): 触发事件改写不改告警层级 —— 与 ef60f85 原文对同一输入的 alarm_policy 分层相同
+PASS ★★ E6-B3 neighbour (both versions): 残差留下锚告警改写后仍是推送层(与原文同层)且仍含 E4-C2 钉住的 'maker-only' 与 SSSUSDT
+FAIL ★★★ E6-C1 (OLD CODE: RED) 真锚 09-13 08Z (A1789287840): reshape 记录带上生产者书自身净额与撤下名净额, 且恒等 net_before = 生产者净 − 撤下名净 (≤1e-6); 数值等于夹具独立算出的 -18511.19 与 1964.62 — {'net_before': -20475.81443721837, 'net_producer_usdt': None, 'net_removed_usdt': None, 'n_removed': None}
+FAIL ★★★ E6-C2 (OLD CODE: RED) 撤名残差告警分开报两个量: 生产者书自身净额(占 gross)与撤下 11 名的净额, 不再写『由 11 个撤下的名字造成』; 仍以『撤名残差』开头, alarm_policy 仍是原来的 C 层(只记录)
+FAIL ★★ E6-C3 (OLD CODE: RED) 原链: W9 那次 DRY_RUN 锚真实发出的撤名残差告警就是这个函数的文字(生产者净 + 撤下名净), 不是旧的归因句 — ["撤名残差 -1111.11 USDT = 目标 gross 的 -11.11% (>2%), 由 1 个撤下的名字造成: ['QQQUSDT']。已重整回中性, 但这一撤幅本身是个发现。"]
+
+FAILURES: ★★★ E6-A1 (OLD CODE: RED) 同一真锚的来源喂给告警文字: CLO/EVAA/KSM/NOT/US 归『外部书不再持有』, ENSO/ZK 归『低于 2×minNotional』, 不出现 maxNotionalValue=0, 未持有的冷却名不进持仓告警; 仍是 reduce-only from here 且 alarm_policy 仍归 B 层(与旧告警同层, 只改归因), ★★ E6-A1b (OLD CODE: RED) …并且 dust 两名在自己的来源下, 冷却名 IOST/LSK/XAN 不出现, 层级 = B_EXPECTED(旧告警也是 B), ★★ E6-A2 (OLD CODE: RED) 一个名同时属于两个来源 ⇒ 两个来源下都列出; 没有任何记录来源的持仓名 ⇒ 列在『来源未记录』, 绝不默认归给场所, ★★★ E6-A3 (OLD CODE: RED) 原链: W9 那次 DRY_RUN 锚(已停持仓多头 SSS)真实发出的持仓告警把 SSS 归到逐名止损, 不说 maxNotionalValue=0, ★★★ E6-A4 (OLD CODE: RED) 原链: 生产者不再持有的持仓名 YYY 归『外部书不再持有』, 已停 SSS 归『逐名止损已停』, 同一条告警里各在各的来源下, ★★ E6-A5 (OLD CODE: RED) universe gate 逐名给出两种场所理由: 状态非 TRADING = [HALT], maxNotionalValue=0 = [ZCAP]; tradable = [OKAY] 不变, ★★★ E6-B1 (OLD CODE: RED) 文字 = 代码: 条款 docstring 的『动作』、触发事件、STOP_EXIT_POLICY、残差留下锚告警四处都说出同一件事 —— 先挂 maker; 被场所拒绝的 maker 在补单环节转市价(MARKET) reduce-only, 受 25 bps 点差门(= binance_executor.MAX_CROSS_BPS); 只有部分成交残差不追。且四处都不再有无范围的『政策 A 不追 / maker-only 出场 / maker 出场, 不追)』。代码侧同格核对: MAX_CROSS_BPS == 25, E4-7 已停名 from_reject 照发 reduce-only, E4-3 已停名 from_partial 写 skipped_stop_maker_only, ★★★ E6-C1 (OLD CODE: RED) 真锚 09-13 08Z (A1789287840): reshape 记录带上生产者书自身净额与撤下名净额, 且恒等 net_before = 生产者净 − 撤下名净 (≤1e-6); 数值等于夹具独立算出的 -18511.19 与 1964.62, ★★★ E6-C2 (OLD CODE: RED) 撤名残差告警分开报两个量: 生产者书自身净额(占 gross)与撤下 11 名的净额, 不再写『由 11 个撤下的名字造成』; 仍以『撤名残差』开头, alarm_policy 仍是原来的 C 层(只记录), ★★ E6-C3 (OLD CODE: RED) 原链: W9 那次 DRY_RUN 锚真实发出的撤名残差告警就是这个函数的文字(生产者净 + 撤下名净), 不是旧的归因句
+# end=2026-09-13T17:27:08Z rc=1

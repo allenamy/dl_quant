@@ -1,0 +1,18 @@
+M1_unknown_source_defaults_to_venue rc 1 fails ['E6-A2'] expect ['E6-A2'] traceback False => KILLED
+M2_held_exit_source_not_recorded rc 1 fails ['E6-A4'] expect ['E6-A4'] traceback False => KILLED
+M3_stop_source_not_recorded rc 1 fails ['E6-A3', 'E6-A4'] expect ['E6-A3'] traceback False => KILLED
+M4_zero_cap_names_empty rc 1 fails ['E6-A5'] expect ['E6-A5'] traceback False => KILLED
+M5_residual_text_old_attribution rc 1 fails ['E6-C3'] expect ['E6-C3'] traceback False => KILLED
+M6_producer_net_after_pop rc 1 fails [] expect ['E6-C1'] traceback True => SURVIVED
+ile "/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/e6mut_eupmk7ux/live/tests_per_name_stop.py", line 186, in <dictcomp>
+    OLD = {A: _run(LF[A], "old") for A in LF}
+  File "/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/e6mut_eupmk7ux/live/tests_per_name_stop.py", line 176, in _run
+    c, r = ALM.apply_withhold_and_reshape(t, h, list(lf["untradable"]), lf["S"])
+  File "/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/e6mut_eupmk7ux/scheduler/anchor_loop.py", line 424, in apply_withhold_and_reshape
+    rs["net_producer_usdt"] = _net_composed
+NameError: name '_net_composed' is not defined
+
+M7_policy_text_back_to_E4 rc 1 fails ['E6-B1'] expect ['E6-B1'] traceback False => KILLED
+M8_trigger_text_back rc 1 fails ['E6-B1'] expect ['E6-B1'] traceback False => KILLED
+M9_carried_alarm_spread_literal rc 1 fails ['E6-B1'] expect ['E6-B1'] traceback False => KILLED
+SUMMARY {"n": 9, "killed": 8, "not_killed": ["M6_producer_net_after_pop"]}

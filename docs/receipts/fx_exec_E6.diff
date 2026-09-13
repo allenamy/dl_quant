@@ -1,0 +1,601 @@
+diff --git a/live/binance_executor.py b/live/binance_executor.py
+index e06ef6f..0c4ab06 100644
+--- a/live/binance_executor.py
++++ b/live/binance_executor.py
+@@ -57,10 +57,6 @@ SUBMIT_TRANSPORT_ABORT_N = 5
+ #   reduce-only orders are still accepted. The breaker stops sending opening orders after the
+ #   first -4400 and records the rest as `skipped_venue_lock`.
+ VENUE_LOCK_CODE = -4400
+-# ★ E4 (FX-EXEC 2026-09-13; ruling R2′): the per-name stop clause's exit policy, stated once — cf40ea21 §1 "目标归零, maker-only
+-#   出场, 政策 A 不追". Written on every row and record that applies it, so the reason a residual was not chased is never inferred.
+-STOP_EXIT_POLICY = ("stopped names exit maker-only, never chased (per-name stop cf40ea21; ruling R2' 2026-09-13) — "
+-                    "a from_reject conversion is unchanged")
+ 
+ 
+ def client_id_for(*parts) -> str:
+@@ -310,6 +306,15 @@ def apply_ledger_to_plan(p, reqs) -> dict:
+ K_SECONDS = 900                 # passive window; the engine's fill model was calibrated at k=900
+ MAX_ATTEMPTS = 2                # F16
+ MAX_CROSS_BPS = 25.0            # F16: never chase across a spread wider than this
++# ★ E4 (FX-EXEC 2026-09-13; ruling R2′): the per-name stop clause's exit policy, stated once and written on every row and record that
++#   applies it, so the reason a residual was not chased is never inferred.
++# ★ E6 (same day): the E4 wording ("stopped names exit maker-only, never chased") repeated cf40ea21's own sentence, and that sentence is
++#   not what the channel does: a refused maker IS converted to a MARKET reduce-only top-up (E4-7 keeps it). Stated as the code does it,
++#   with this file's own spread gate, and pinned against the code by tests_per_name_stop [E6] B1. Defined here, after MAX_CROSS_BPS.
++STOP_EXIT_POLICY = (f"a stopped name exits reduce-only, maker first; a maker the venue refused (it would have crossed) is converted at "
++                    f"top-up to a MARKET reduce-only order behind the {MAX_CROSS_BPS:g} bps spread gate and the min-notional floor; a "
++                    f"partially filled maker's residual is not chased — that residual stays maker-only and is carried to the next anchor "
++                    f"(per-name stop cf40ea21; ruling R2' 2026-09-13)")
+ DEFAULT_BAND_BPS = 0.0          # no-trade band; value is decided by measured cost, not by venue
+                                 # rules (optimal band is 25-500x the exchange minimum). At the
+                                 # structural 1.9bps it is worth ~0; at real taker cost it matters.
+diff --git a/live/per_name_stop.py b/live/per_name_stop.py
+index 94abf49..f57e988 100644
+--- a/live/per_name_stop.py
++++ b/live/per_name_stop.py
+@@ -4,8 +4,14 @@
+ 条款语义(冻结参数在 config/book.json per_name_stop 块):
+   深度 = unrealizedProfit / |notional|(与观察线同源字段, /fapi/v3/account 逐仓);
+   触发 = 深度 ≤ depth_pct(−0.25)且【连续 consecutive_anchors(2)个终锚读回】均越线;
+-  动作 = 该名并入 untradable 且 target 置 0 ⇒ 走既有 flatten_only 通道(maker-only 出场,
+-         reduce-only 标记, 政策 A 不追, 带/EMA 经既有豁免) — 零新执行形态;
++  动作 = 该名并入 untradable, 目标恰为 0(W9: withhold 接缝函数的 force_flat)⇒ 落 flatten_only 桶, 出场单全部 reduce-only,
++         走既有执行通道 —— 零新执行形态:
++         先挂 maker; maker 被场所拒绝(挂上即会成交)的, 在补单环节转市价(MARKET)reduce-only 单, 与所有补单一样受
++         25 bps 点差门(binance_executor.MAX_CROSS_BPS)与最小名义额约束; maker 部分成交后的残差不追(E4 / 裁定 R2′
++         2026-09-13: 不进追单实验的任何臂、C 强制与回退), 记 skipped_stop_maker_only, 留到下一锚重新挂 maker, 并逐锚 HIGH
++         告警; 带/EMA 经既有豁免。
++         ★ E6(FX-EXEC 2026-09-13)按代码更正: 预注册原文把出场描述为只挂 maker、一律不追, 但被拒 maker 的市价转换一直在这条
++           通道里(实盘 PROMUSDT 08-26 00Z / BTRUSDT 08-31 16Z); 条款参数、触发与冷却逻辑逐字未变, 只改这段对执行的描述。
+   冷却 = 平仓(|notional|<min_notional_usdt)后 cooloff_days(7)天该名禁入
+          (untradable ⇒ 未持有名被 pass-1 pop, 不进 target) — 其余名字全程正常交易;
+   复位 = 缺读回 / 回浅 / dust ⇒ 计数归零(连续性要求 readback 均越线, 防单针与陈旧触发)。
+@@ -127,7 +133,8 @@ def evaluate(snapshot, state, conf, now_ts):
+                 st["stopped"][s] = now_ts
+                 st["counters"].pop(s, None)
+                 ev.append(f"★ per_name_stop 触发: {s} 深度 {depth:.1%} 连续 {need} 个终锚读回 "
+-                          f"≤ {depth_pct:.0%} ⇒ flatten_only(maker 出场, 不追), 出场后 "
++                          f"≤ {depth_pct:.0%} ⇒ flatten_only(先挂 reduce-only maker; 被场所拒绝的 maker 转市价 reduce-only, "
++                          f"受 25 bps 点差门; 部分成交残差不追, 下一锚再挂), 出场后 "
+                           f"{cool_days:g} 天禁入 — 条款 cf40ea21, 30 天反事实对照待回填")
+             else:
+                 st["counters"][s] = c
+diff --git a/live/tests_fixtures/e6_withheld_sources/anchor_A1789316640_withheld.json b/live/tests_fixtures/e6_withheld_sources/anchor_A1789316640_withheld.json
+new file mode 100644
+index 0000000..adca2f9
+--- /dev/null
++++ b/live/tests_fixtures/e6_withheld_sources/anchor_A1789316640_withheld.json
+@@ -0,0 +1,158 @@
++{
++ "alarm_rows": [
++  {
++   "delivered_offbox": false,
++   "local_write_ok": true,
++   "message": "⚠️ HIGH\n7 held name(s) are withheld by the venue (maxNotionalValue=0): reduce-only from here. reducing=[] add_blocked=['ENSOUSDT', 'ZKUSDT'] flatten_only=['CLOUSDT', 'EVAAUSDT', 'KSMUSDT', 'NOTUSDT']",
++   "message_sha256": "f08761dea85a7b03",
++   "n_redactions": 0,
++   "policy_action": "DAILY",
++   "policy_rule": "known uncapped name withheld",
++   "policy_tier": "B_EXPECTED",
++   "severity": "INFO",
++   "severity_demoted_by": "denoising tier B_EXPECTED: recorded, not paged. The original severity is kept in `severity_original`; this row is NOT an undelivered page and is NOT owed by the redelivery queue.",
++   "severity_original": "HIGH",
++   "status": "RECORDED_NOT_PUSHED",
++   "ts": 1789316642.936657
++  }
++ ],
++ "built_utc": "2026-09-13T17:22:21Z",
++ "external_book": {
++  "below_min_notional": {
++   "checked": true,
++   "mass_frac": 3.2e-05,
++   "mult": 2.0,
++   "n": 2,
++   "names": [
++    "ENSOUSDT",
++    "ZKUSDT"
++   ]
++  },
++  "held_exit": [
++   "CLOUSDT",
++   "EVAAUSDT",
++   "KSMUSDT",
++   "NOTUSDT",
++   "USUSDT"
++  ],
++  "meta_excluded": {}
++ },
++ "orders_of_clamped_names": [
++  {
++   "intended_notional": 0.0,
++   "order_type": "maker",
++   "reduce_only": null,
++   "symbol": "ENSOUSDT",
++   "terminal_reason": "skipped_min_notional"
++  },
++  {
++   "intended_notional": 0.0,
++   "order_type": "maker",
++   "reduce_only": null,
++   "symbol": "ZKUSDT",
++   "terminal_reason": "skipped_min_notional"
++  },
++  {
++   "intended_notional": 54.2724,
++   "order_type": "maker",
++   "reduce_only": null,
++   "symbol": "KSMUSDT",
++   "terminal_reason": "venue_reject"
++  },
++  {
++   "intended_notional": 54.2724,
++   "order_type": "maker",
++   "reduce_only": null,
++   "symbol": "KSMUSDT",
++   "terminal_reason": "venue_reject"
++  },
++  {
++   "intended_notional": -2528.98806375,
++   "order_type": "maker",
++   "reduce_only": null,
++   "symbol": "CLOUSDT",
++   "terminal_reason": "partial_expired"
++  },
++  {
++   "intended_notional": 1.1958862500000578,
++   "order_type": "topup_taker",
++   "reduce_only": null,
++   "symbol": "CLOUSDT",
++   "terminal_reason": "skipped_min_notional"
++  },
++  {
++   "intended_notional": -434.9362,
++   "order_type": "maker",
++   "reduce_only": null,
++   "symbol": "EVAAUSDT",
++   "terminal_reason": "partial_expired"
++  },
++  {
++   "intended_notional": 0.08990000000000009,
++   "order_type": "topup_taker",
++   "reduce_only": null,
++   "symbol": "EVAAUSDT",
++   "terminal_reason": "skipped_min_notional"
++  },
++  {
++   "intended_notional": -363.902448,
++   "order_type": "maker",
++   "reduce_only": null,
++   "symbol": "NOTUSDT",
++   "terminal_reason": "filled"
++  },
++  {
++   "intended_notional": -306.0253179,
++   "order_type": "maker",
++   "reduce_only": null,
++   "symbol": "USUSDT",
++   "terminal_reason": "partial_expired"
++  },
++  {
++   "intended_notional": -273.7584409,
++   "order_type": "topup_taker",
++   "reduce_only": null,
++   "symbol": "USUSDT",
++   "terminal_reason": "skipped_no_chase_arm"
++  },
++  {
++   "intended_notional": 54.2724,
++   "order_type": "topup_taker",
++   "reduce_only": null,
++   "symbol": "KSMUSDT",
++   "terminal_reason": "filled"
++  }
++ ],
++ "per_name_stop_at_copy": {
++  "cooldown": {
++   "IOSTUSDT": 1789835943.365185,
++   "LSKUSDT": 1789821947.803481,
++   "XANUSDT": 1789591142.42489
++  },
++  "stopped": {}
++ },
++ "rebalance_id": "A1789316640",
++ "reshape": {
++  "clamped_names": [
++   "CLOUSDT",
++   "ENSOUSDT",
++   "EVAAUSDT",
++   "KSMUSDT",
++   "NOTUSDT",
++   "USUSDT",
++   "ZKUSDT"
++  ],
++  "forced_flat_names": [],
++  "popped_names": [
++   "IOSTUSDT",
++   "LSKUSDT",
++   "XANUSDT"
++  ]
++ },
++ "sources_sha256": {
++  "anchors": "b32434cd3bb23fb17a36396c61c2fad6d0f529fee5282b0dc63e790769dc282b",
++  "notify_audit": "7b1a7bb655fbd5d88502fc7617f483b19e9bb9a7509d36da3a0d75893167fc0a",
++  "orders": "9bb6ec83ebec734039534d632612d39edef9ea6e7e56ccd50fa5e6300b1172ad",
++  "per_name_stop": "5665ae7f0ad04dc5409adb6f51328bab1997adfbc35af1fc80a2881231bd67a8"
++ }
++}
+\ No newline at end of file
+diff --git a/live/tests_fixtures/e6_withheld_sources/build_fixture.py b/live/tests_fixtures/e6_withheld_sources/build_fixture.py
+new file mode 100644
+index 0000000..71d8fed
+--- /dev/null
++++ b/live/tests_fixtures/e6_withheld_sources/build_fixture.py
+@@ -0,0 +1,34 @@
++"""E6 fixture builder (FX-EXEC 2026-09-13) — READ-ONLY on ~/dl_quant_live/state; run once by hand, never by the suite.
++Takes, verbatim, for the 2026-09-13 16Z anchor A1789316640:
++  · from pilot_log/20260913/anchors.jsonl: that row's external_book.held_exit / below_min_notional / meta_excluded and its
++    reshape.popped_names / forced_flat_names / clamped_after_reshape.names;
++  · from per_name_stop.json: the cooldown map and stopped map as they stand at copy time (the cooldowns expire 09-16..09-19, so they
++    held at 16Z) — recorded with the copy time, not asserted as the 16Z state beyond that;
++  · from notify_audit.jsonl: the alarm row the clamp channel wrote at that anchor ("N held name(s) are withheld by the venue …");
++  · from pilot_log/20260913/orders.jsonl: that anchor's rows for the seven withheld names (order_type, terminal_reason, intended).
++and records sha256 of every source file read."""
++import hashlib, json, os, time
++HERE = os.path.dirname(os.path.abspath(__file__))
++ST = os.path.expanduser("~/dl_quant_live/state")
++RID, ATS = "A1789316640", 1789316640
++def sha(p): return hashlib.sha256(open(p, "rb").read()).hexdigest()
++src = {"anchors": os.path.join(ST, "live/pilot_log/20260913/anchors.jsonl"), "orders": os.path.join(ST, "live/pilot_log/20260913/orders.jsonl"),
++       "per_name_stop": os.path.join(ST, "live/per_name_stop.json"), "notify_audit": os.path.join(ST, "notify_audit.jsonl")}
++row = next(json.loads(l) for l in open(src["anchors"]) if l.strip() and json.loads(l).get("rebalance_id") == RID)
++ext, rs = row.get("external_book") or {}, row.get("reshape") or {}
++names = sorted((rs.get("clamped_after_reshape") or {}).get("names") or [])
++alarm = [json.loads(l) for l in open(src["notify_audit"]) if "are withheld by the venue" in l]
++alarm = [a for a in alarm if abs(float(a["ts"]) - ATS) < 3600]
++pns = json.load(open(src["per_name_stop"]))
++orders = [json.loads(l) for l in open(src["orders"]) if l.strip()]
++orders = [{k: o.get(k) for k in ("symbol", "order_type", "terminal_reason", "intended_notional", "reduce_only")}
++          for o in orders if o.get("rebalance_id") == RID and o.get("symbol") in names]
++out = {"built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "rebalance_id": RID,
++       "sources_sha256": {k: sha(v) for k, v in src.items()},
++       "external_book": {"held_exit": ext.get("held_exit"), "below_min_notional": ext.get("below_min_notional"), "meta_excluded": ext.get("meta_excluded")},
++       "reshape": {"popped_names": rs.get("popped_names"), "forced_flat_names": rs.get("forced_flat_names"), "clamped_names": names},
++       "per_name_stop_at_copy": {"stopped": pns.get("stopped"), "cooldown": pns.get("cooldown")},
++       "alarm_rows": alarm, "orders_of_clamped_names": orders}
++json.dump(out, open(os.path.join(HERE, "anchor_A1789316640_withheld.json"), "w"), ensure_ascii=False, indent=1, sort_keys=True)
++print(json.dumps({"clamped": names, "held_exit": ext.get("held_exit"), "dust": (ext.get("below_min_notional") or {}).get("names") if isinstance(ext.get("below_min_notional"), dict) else ext.get("below_min_notional"),
++                  "n_alarm_rows": len(alarm), "alarm": [a["message"] for a in alarm]}, ensure_ascii=False, indent=1))
+diff --git a/live/tests_per_name_stop.py b/live/tests_per_name_stop.py
+index a626c0e..c69d561 100644
+--- a/live/tests_per_name_stop.py
++++ b/live/tests_per_name_stop.py
+@@ -577,5 +577,125 @@ check("E4-S 静态: complete_anchor 的 topup 调用语句只把【止损】集
+       "stop_names=_stop_now" in _tcall and '_stop_now = set((getattr(self, "_pns_sets", None) or {}).get("stop") or ())' in _tpre[-400:]
+       and "cooldown" not in _tcall, _tcall[:200])
+ 
++# ══ [E6] FX-EXEC 2026-09-13 — alarm and docstring text must name what the code actually does ═══════════════════════════════════
++# (A) the held-withheld alarm said EVERY held untradable name was "withheld by the venue (maxNotionalValue=0)". Live 09-13 16Z
++#     (A1789316640, fixture e6_withheld_sources): 7 held names — CLO/EVAA/KSM/NOT/US were names the producer no longer targets
++#     (external held_exit) and ENSO/ZK were below 2×minNotional (external dust); none is recorded as zero-cap. Stopped and cooldown
++#     names travel the same channel. (B) per_name_stop's docstring and trigger event said "maker-only 出场 … 政策 A 不追" / "maker 出场,
++#     不追" — but a stopped name's maker that the venue REFUSES is converted at top-up to a MARKET reduce-only order (behind the 25 bps
++#     spread gate and the min-notional floor; E4-7 keeps it), and only a partially filled maker's residual is not chased (E4); my own E4
++#     texts (STOP_EXIT_POLICY, the carried-residual alarm) said "maker-only" without that scope. (C) EXE-03: 撤名残差 attributed the whole
++#     pre-reshape net to the withheld names, while it is the producer's own net minus the withheld names' net.
++import alarm_policy as APm            # noqa: E402
++import types as _types                # noqa: E402
++_E6 = os.path.join(REPO, "live", "tests_fixtures", "e6_withheld_sources")
++_F16 = json.load(open(os.path.join(_E6, "anchor_A1789316640_withheld.json"), encoding="utf-8"))
++_HW = getattr(ALM, "held_withheld_alarm_text", None)
++_RRT = getattr(ALM, "reshape_residual_alarm_text", None)
++print("\n[E6] 告警与文档文字 = 代码实际做的事")
++_old16 = _F16["alarm_rows"][0]["message"]
++_src16 = {"external_held_exit": _F16["external_book"]["held_exit"], "external_dust": _F16["external_book"]["below_min_notional"]["names"],
++          "per_name_stop_cooldown": sorted(_F16["per_name_stop_at_copy"]["cooldown"])}
++_cl16 = {"reduced": [], "add_blocked": ["ENSOUSDT", "ZKUSDT"], "flatten_only": ["CLOUSDT", "EVAAUSDT", "KSMUSDT", "NOTUSDT", "USUSDT"]}
++check("E6-F 夹具有效性: 16Z 的 7 个被钳持仓名 = held_exit 5 名 ∪ dust 2 名(记录的来源解释全部 7 名), 实盘那条告警把 7 名都写成 maxNotionalValue=0",
++      sorted(_F16["reshape"]["clamped_names"]) == sorted(set(_src16["external_held_exit"]) | set(_src16["external_dust"]))
++      and "7 held name(s) are withheld by the venue (maxNotionalValue=0)" in _old16
++      and sorted(_cl16["add_blocked"] + _cl16["flatten_only"]) == sorted(_F16["reshape"]["clamped_names"]), _old16[:120])
++_t16 = _HW(_cl16, _src16) if _HW else ""
++check("★★★ E6-A1 (OLD CODE: RED) 同一真锚的来源喂给告警文字: CLO/EVAA/KSM/NOT/US 归『外部书不再持有』, ENSO/ZK 归『低于 2×minNotional』, "
++      "不出现 maxNotionalValue=0, 未持有的冷却名不进持仓告警; 仍是 reduce-only from here 且 alarm_policy 仍归 B 层(与旧告警同层, 只改归因)",
++      bool(_t16) and "maxNotionalValue=0" not in _t16 and "reduce-only from here" in _t16
++      and all(n in _t16.split("外部书不再持有")[1].split(";")[0] for n in _src16["external_held_exit"]) if "外部书不再持有" in _t16 else False,
++      _t16[:300])
++check("★★ E6-A1b (OLD CODE: RED) …并且 dust 两名在自己的来源下, 冷却名 IOST/LSK/XAN 不出现, 层级 = B_EXPECTED(旧告警也是 B)",
++      bool(_t16) and "外部书目标低于 2×minNotional" in _t16 and all(n in _t16.split("外部书目标低于 2×minNotional")[1].split(";")[0] for n in ("ENSOUSDT", "ZKUSDT"))
++      and not any(n in _t16 for n in ("IOSTUSDT", "LSKUSDT", "XANUSDT"))
++      and APm.classify(_t16)[0] == APm.EXPECTED and APm.classify(_old16.split("\n", 1)[1])[0] == APm.EXPECTED,
++      (APm.classify(_t16)[:2] if _t16 else None))
++_tm = _HW({"reduced": ["MMMUSDT"], "add_blocked": [], "flatten_only": ["NNNUSDT"]},
++          {"per_name_stop": ["MMMUSDT"], "venue_zero_cap": ["MMMUSDT"]}) if _HW else ""
++check("★★ E6-A2 (OLD CODE: RED) 一个名同时属于两个来源 ⇒ 两个来源下都列出; 没有任何记录来源的持仓名 ⇒ 列在『来源未记录』, 绝不默认归给场所",
++      bool(_tm) and _tm.count("MMMUSDT") >= 2 and "来源未记录" in _tm and "NNNUSDT" in _tm.split("来源未记录")[1], _tm[:240])
++_hw_rc = [m for s_, m in _al if "reduce-only from here" in m]
++check("★★★ E6-A3 (OLD CODE: RED) 原链: W9 那次 DRY_RUN 锚(已停持仓多头 SSS)真实发出的持仓告警把 SSS 归到逐名止损, 不说 maxNotionalValue=0",
++      len(_hw_rc) == 1 and "逐名止损已停" in _hw_rc[0] and "SSSUSDT" in _hw_rc[0].split("逐名止损已停")[1].split(";")[0]
++      and "maxNotionalValue=0" not in _hw_rc[0], _hw_rc)
++# a second DRY_RUN external anchor: a held name the producer no longer targets (YYY) beside the stopped SSS
++_saved6 = (ALM.PNS.cfg_enabled, ALM.PNS.load_state)
++ALM.PNS.cfg_enabled = lambda *a, **k: True
++ALM.PNS.load_state = lambda *a, **k: {"counters": {}, "stopped": {"SSSUSDT": _now - 3600}, "cooldown": {}}
++_al6 = []
++try:
++    with BC._using(_bp):
++        ALM._save(os.environ["LIVE_LOOP_STATE"], {"positions": {"SSSUSDT": 40.0, "YYYUSDT": 30.0}, "stale_ref_positions": None, "alarmed_stages": []})
++        _b6 = _W9DryBroker(); _ex6 = EX.RebalanceExecutor(_b6)
++        _ex6.filters.f = {s: {"tick": 0.01, "step": 0.001, "min_notional": 5.0} for s in list(_WC) + ["YYYUSDT"]}
++        _ex6.capture_anchor = lambda syms: (time.time(), {s: 100.0 for s in syms})
++        _loop6 = ALM.AnchorLoop(_b6, _ex6, gross_usdt=0.0, alarm=lambda s_, m: _al6.append((s_, m)))
++        _loop6._equity = 10_000.0
++        _o6 = _loop6.run_anchor()
++finally:
++    ALM.PNS.cfg_enabled, ALM.PNS.load_state = _saved6
++_hw6 = [m for s_, m in _al6 if "reduce-only from here" in m]
++check("★★★ E6-A4 (OLD CODE: RED) 原链: 生产者不再持有的持仓名 YYY 归『外部书不再持有』, 已停 SSS 归『逐名止损已停』, 同一条告警里各在各的来源下",
++      _o6.get("action") == "TRADE" and len(_hw6) == 1 and "外部书不再持有" in _hw6[0] and "YYYUSDT" in _hw6[0].split("外部书不再持有")[1].split(";")[0]
++      and "SSSUSDT" in _hw6[0].split("逐名止损已停")[1].split(";")[0] if (_hw6 and "逐名止损已停" in _hw6[0] and "外部书不再持有" in _hw6[0]) else False,
++      (_o6.get("action"), _hw6))
++# the universe gate names its two venue reasons per name (LIVE-only path, driven on a stub loop — no network)
++_stub = _types.SimpleNamespace(
++    broker=_types.SimpleNamespace(mode="LIVE", positions=lambda: {"ZCAPUSDT": 3.0}, symbol_config={"ZCAPUSDT": {"maxNotionalValue": "0"}, "OKAYUSDT": {"maxNotionalValue": "500000"}}),
++    src=_types.SimpleNamespace(_get=lambda path: {"symbols": [{"symbol": "ZCAPUSDT", "status": "TRADING", "contractType": "PERPETUAL", "quoteAsset": "USDT"},
++                                                             {"symbol": "OKAYUSDT", "status": "TRADING", "contractType": "PERPETUAL", "quoteAsset": "USDT"},
++                                                             {"symbol": "HALTUSDT", "status": "SETTLING", "contractType": "PERPETUAL", "quoteAsset": "USDT"}]}),
++    alarm=lambda *a, **k: None, executor=_types.SimpleNamespace(note_exit_fill=lambda *a, **k: None))
++_g6 = ALM.AnchorLoop._universe_gate(_stub, ["ZCAPUSDT", "OKAYUSDT", "HALTUSDT"], {})
++check("★★ E6-A5 (OLD CODE: RED) universe gate 逐名给出两种场所理由: 状态非 TRADING = [HALT], maxNotionalValue=0 = [ZCAP]; tradable = [OKAY] 不变",
++      _g6.get("tradable") == ["OKAYUSDT"] and _g6.get("withheld_status_names") == ["HALTUSDT"] and _g6.get("withheld_zero_cap_names") == ["ZCAPUSDT"],
++      {k: _g6.get(k) for k in ("tradable", "withheld_status_names", "withheld_zero_cap_names")})
++
++# (B) the per-name stop exit, stated as the code does it
++_snap_t = {"positions_notional": {"TTTUSDT": 100.0}, "positions_unrealized": {"TTTUSDT": -40.0}}
++_cf_t = {"enabled": True, "depth_pct": -0.25, "consecutive_anchors": 2, "cooloff_days": 7, "min_notional_usdt": 20.0}
++_st_t, _ev_t = P.evaluate(_snap_t, {"counters": {"TTTUSDT": 1}, "stopped": {}, "cooldown": {}}, _cf_t, 1_800_000_000.0)
++_trig = [e for e in _ev_t if "触发" in e]
++_docA = P.__doc__.split("动作 =")[1].split("冷却 =")[0] if "动作 =" in (P.__doc__ or "") else ""
++_carried = (_ch.get("alarms") or [""])[0]
++_bps = f"{EX.MAX_CROSS_BPS:g}"
++_texts = {"docstring 动作": _docA, "trigger event": (_trig or [""])[0], "STOP_EXIT_POLICY": EX.STOP_EXIT_POLICY, "carried-residual alarm": _carried}
++_need = {k: [w for w in ("maker", "reduce-only", "市价" if k != "STOP_EXIT_POLICY" else "MARKET", _bps) if w not in v] for k, v in _texts.items()}
++_false = {k: [w for w in ("政策 A 不追", "maker-only 出场", "maker 出场, 不追)", "exit maker-only, never chased") if w in v] for k, v in _texts.items()}
++_scope = {k: (("部分成交" in v and "不追" in v) if k != "STOP_EXIT_POLICY" else ("partially filled" in v and "not chased" in v)) for k, v in _texts.items()}
++check("★★★ E6-B1 (OLD CODE: RED) 文字 = 代码: 条款 docstring 的『动作』、触发事件、STOP_EXIT_POLICY、残差留下锚告警四处都说出同一件事 —— 先挂 maker; "
++      "被场所拒绝的 maker 在补单环节转市价(MARKET) reduce-only, 受 %s bps 点差门(= binance_executor.MAX_CROSS_BPS); 只有部分成交残差不追。"
++      "且四处都不再有无范围的『政策 A 不追 / maker-only 出场 / maker 出场, 不追)』。代码侧同格核对: MAX_CROSS_BPS == 25, E4-7 已停名 from_reject "
++      "照发 reduce-only, E4-3 已停名 from_partial 写 skipped_stop_maker_only" % _bps,
++      all(not v for v in _need.values()) and all(not v for v in _false.values()) and all(_scope.values()) and len(_trig) == 1
++      and EX.MAX_CROSS_BPS == 25.0 and all(v["sent"] == [True] for v in _keep.values())
++      and (_rowsB.get("LSKUSDT") or {}).get("terminal_reason") == "skipped_stop_maker_only",
++      {"missing": _need, "false_claims": _false, "scoped": _scope})
++_OLD_TRIGGER = ("★ per_name_stop 触发: TTTUSDT 深度 -40.0% 连续 2 个终锚读回 ≤ -25% ⇒ flatten_only(maker 出场, 不追), 出场后 7 天禁入 — 条款 "
++                "cf40ea21, 30 天反事实对照待回填")          # ef60f85 per_name_stop.py L130, rendered for the same inputs
++check("★★ E6-B2 neighbour (both versions): 触发事件改写不改告警层级 —— 与 ef60f85 原文对同一输入的 alarm_policy 分层相同",
++      len(_trig) == 1 and APm.classify(_trig[0])[0] == APm.classify(_OLD_TRIGGER)[0], (APm.classify((_trig or [""])[0])[:2], APm.classify(_OLD_TRIGGER)[:2]))
++check("★★ E6-B3 neighbour (both versions): 残差留下锚告警改写后仍是推送层(与原文同层)且仍含 E4-C2 钉住的 'maker-only' 与 SSSUSDT",
++      "maker-only" in _carried and "SSSUSDT" in _carried and APm.classify(_carried)[0] == APm.DECIDE, APm.classify(_carried)[:2] if _carried else None)
++
++# (C) EXE-03: the pre-reshape net is the producer's own net minus the withheld names' net
++_net_prod8 = sum(_T8.values())
++_net_rem8 = sum(_T8[s_] for s_ in _L8["popped_names"])
++check("★★★ E6-C1 (OLD CODE: RED) 真锚 09-13 08Z (A1789287840): reshape 记录带上生产者书自身净额与撤下名净额, 且恒等 net_before = 生产者净 − 撤下名净 "
++      "(≤1e-6); 数值等于夹具独立算出的 %.2f 与 %.2f" % (_net_prod8, _net_rem8),
++      _rb is not None and abs((_rb.get("net_producer_usdt") or 1e18) - _net_prod8) < 1e-6 and abs((_rb.get("net_removed_usdt") or 1e18) - _net_rem8) < 1e-6
++      and abs(_rb["net_before"] - (_rb.get("net_producer_usdt", 0.0) - _rb.get("net_removed_usdt", 0.0))) < 1e-6,
++      {k: (_rb or {}).get(k) for k in ("net_before", "net_producer_usdt", "net_removed_usdt", "n_removed")})
++_t8 = _RRT(_rb, _S8) if (_RRT and _rb is not None) else ""
++check("★★★ E6-C2 (OLD CODE: RED) 撤名残差告警分开报两个量: 生产者书自身净额(占 gross)与撤下 11 名的净额, 不再写『由 11 个撤下的名字造成』; 仍以『撤名残差』"
++      "开头, alarm_policy 仍是原来的 C 层(只记录)",
++      bool(_t8) and _t8.startswith("撤名残差") and "生产者书自身净" in _t8 and "撤下 11 名" in _t8 and "造成" not in _t8
++      and f"{_net_prod8:+.2f}" in _t8 and f"{_net_rem8:+.2f}" in _t8 and APm.classify(_t8)[0] == APm.MEASURE, _t8[:260])
++_rr_rc = [m for s_, m in _al if m.startswith("撤名残差")]
++check("★★ E6-C3 (OLD CODE: RED) 原链: W9 那次 DRY_RUN 锚真实发出的撤名残差告警就是这个函数的文字(生产者净 + 撤下名净), 不是旧的归因句",
++      len(_rr_rc) == 1 and "生产者书自身净" in _rr_rc[0] and "造成" not in _rr_rc[0], _rr_rc)
++
+ print(f"\n{'ALL PASS' if not fails else 'FAILURES: ' + ', '.join(fails)}")
+ sys.exit(1 if fails else 0)
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index bac0546..f3470c6 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -168,7 +168,14 @@ SUITE_SCOPE = {
+         'everything here green, W1 only proves the KEY exists; (d) cooldown is honoured via untradable->pop — '
+         'a refactor that stops consuming _untradable lets a cooled name re-enter unnoticed; (e) the ECONOMICS '
+         "are entirely outside: prereg cf40ea21 SS4's 30-day counterfactual backfill is a manual discipline "
+-        'with no assertion here, so a clause that fires too often and burns premium would stay green'),
++        'with no assertion here, so a clause that fires too often and burns premium would stay green. '
++        "E6 (FX-EXEC 2026-09-13): the held-withheld page names each held name's recorded source (stop / cooldown / venue zero-cap / "
++        "not TRADING / external held-exit / dust / meta; an unrecorded source is said, never defaulted to the venue), the 撤名残差 page "
++        "states the producer's own net and the removed names' net (net_before = producer - removed), and the stop exit is described as "
++        "the code does it (maker first; a refused maker converts to MARKET reduce-only behind MAX_CROSS_BPS; a partial residual is not "
++        "chased) in the clause docstring, the trigger event, STOP_EXIT_POLICY and the carried-residual page, pinned against the code. "
++        "Not seen: a NEW untradable source added without a label (it shows as unrecorded), and alarm_policy's rule NAME for that page "
++        "still reads 'held name withheld by venue'"),
+     "tests_harvest_ema": "that the HARVEST-SPEED TRANSFORM IS RIGHT — neutrality, unit gross, byte-identical no-op through five OFF switches, state keyed by NAME (a symbol-order permutation leaves every per-name weight unchanged), reset-on-flatten, new names starting from their own raw rather than 0, and that turnover actually falls. Five blind spots: (a) ★★★ THIS ONE MATERIALISED WITHIN 90 MINUTES OF BEING DECLARED, WHICH IS THE ENTRY'S REAL LESSON: declaring a blind spot does not close it. The wiring shipped with `_tripped = os.path.exists(_wd_path)` against a path hardcoded to the DRY_RUN tree — and all three modes' watchdog state files exist permanently carrying `tripped_at: null` (NOT tripped), so the predicate was constant True, prev was constant None, and alpha=0.3 was a byte-identical no-op while the record still said `applied: true`. It reached production (state/live/harvest_ema.json, 08:39:55Z, n_carried=0) and no reading went red. Fixed 2026-08-06 10:1xZ by extracting the predicate into `legs.harvest_reset_required` — the point of the extraction is that an inline expression inside a 300-line method is not addressable by any unit, so it could not have been covered where it was. The [W] group now pins the predicate (six cases incl. the exact regression) and the CALL SITE (two static gates: no os.path.exists predicate, and mode-rooted paths — the hardcoded state/live path also meant a DRY_RUN anchor would write into LIVE's EMA memory). The [W] group has since grown two more pins (2026-08-06 10:2xZ): the resume script must quarantine-and-remove the EMA memory (the in-loop reset only fires if anchors RUN during the trip; a stopped loop leaves pre-trip state that resume would otherwise carry across the flatten), and tests_signal_and_loop must redirect LIVE_HARVEST_STATE (measured: the battery wrote EMA state into the real DRY_RUN tree at 09:51:54Z). STILL UNCOVERED: that anchor_loop reads config/book.json harvest_ema.alpha, that it persists the state at all, and that the block is REACHED — a config key rename or an early return above it still reverts the book to alpha=1.0 with this suite green; (b) reset-on-trip is exercised by handing prev=None, never by making the watchdog trip — the detection half is untested; (c) it says nothing about whether the EMA is ECONOMICALLY right: the +0.63 net Sharpe is a replay result and this suite would pass just as green on an alpha that destroys the book; (d) the state file is JSON on disk and a truncated or hand-edited one is never fed in — the failure mode there is a silent restart from raw, i.e. degradation to alpha=1.0 with no red reading anywhere; (e) the turnover assertion runs on random walks, and the real book's reduction differs measurably (live retroactive: -88.7% vs replay -93.9%), so the number here is a direction, never a magnitude",
+     "tests_manifest_consistency": "that the DEPLOYMENT RECORD DOES NOT LIE ABOUT WHICH MODEL IS TRADING — it proves the same three hashes stored TWICE inside checkpoints/MANIFEST.json (the `files` table and the `models` block) agree with each other AND with the bytes on disk, that the four mu/sd per-array hashes match the deployed norm_stats, and that the universe pin declares it was not re-derived for the deployed generation. It exists because MANIFEST's own first line states its purpose as 'Hashes make a silent swap detectable' and a silent swap was NOT detected: the 08-04 S2 swap updated `files` and left all seven fields of `models` describing the previous generation for two days. Five blind spots, and the first is the reason the damage was bounded rather than the reason it was safe: (a) it cannot tell you the bytes are the RIGHT model — only that three records agree; the training host never re-signed this manifest (the 08-04 amendment says so explicitly), so agreement here is self-consistency on this machine, not provenance; (b) it is a TEST, not a runtime gate — a swap performed between batteries is invisible until someone runs one, and the only runtime coverage is frozen_inputs reading the `files` table, which is why the fix was deliberately NOT a raise in load(); (c) the universe pin is asserted to be SELF-DECLARING, never to be CORRECT — the deployed generation's true member union lives on the training host and is not checked against anything here, so a generation trained on a genuinely different roster passes; (d) it says nothing about the 12 vendored source files in the same `files` table, whose drift is check_upstream_drift's claim; (e) `models` and `files` are compared to each other and to disk, but all three could be updated together to describe a model nobody intended to deploy — this suite makes divergence impossible and makes a wrong-but-consistent deployment exactly as invisible as before",
+     "tests_risk_budget": "that the RISK BUDGET IS RIGHT — it proves the compose_book transform (sign·|shaped|^α/(σ/medσ)^λ, re-demean, L1) is neutral, unit-gross, risk-de-concentrating, sign-preserving, byte-identical OFF through five distinct switches, and numerically pinned on a hand-derivable case. Four blind spots: (a) it proves the TRANSFORM, never the WIRING — that anchor_loop actually passes rvol24 and config risk_budget is asserted nowhere here, so a preds file that stops carrying rvol24 silently reverts the book to unscaled and this stays green (the no-op fallback is deliberate fail-safe, which is exactly what makes the reversion silent); (b) α=0.5/λ=1.0 are USER-RULED numbers from a replay sweep whose IC budget is the FULL-AVERAGE caliber — 2024 alone breaches 10% and nothing here re-litigates that; (c) σ is the panel rvol_24h at the anchor row — a stale or degenerate panel produces a stale σ and every assertion here still passes on it; (d) the golden case is N=4 with one leg — interactions with funding rank-centring and the 99pct cap are exercised only through the synthetic N=60 case, not proven bounded", 
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index 5e2ff6c..d67705e 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -383,10 +383,15 @@ def apply_withhold_and_reshape(target, held, untradable, sizing_gross,
+     if _force and set(_force) - set(untradable):
+         untradable = list(untradable) + sorted(set(_force) - set(untradable))   # a force_flat name is untradable
+ 
++    # ★ E6 (EXE-03): the book's net AS COMPOSED, before anything leaves it — so the reshape report can say how much of the
++    #   pre-reshape net is the producer's own and how much the removed names took away (the alarm used to blame the removed names
++    #   for all of it; 09-13 12Z the producer's book was itself −8.46% of its gross and the 11 withheld names were +0.80%).
++    _net_composed = float(sum(float(v or 0.0) for v in target.values()))
+     # ── 1. the UNHELD untradables: pop. This is the shape change. ──────────────────────────
+     clamp["popped"] = withhold_pop(target, held, untradable)
+     # ── 1b. W9: the HELD force_flat names still in the target leave the reshape population ───────
+     _flat_out = [s_ for s_ in _force if s_ in target]
++    _flat_out_net = float(sum(float(target.get(s_) or 0.0) for s_ in _flat_out))
+     for s_ in _flat_out:
+         target.pop(s_)
+ 
+@@ -416,6 +421,12 @@ def apply_withhold_and_reshape(target, held, untradable, sizing_gross,
+         rs["n_popped"] = len(clamp["popped"])
+         rs["popped_names"] = sorted(clamp["popped"])
+         rs["sizing_gross"] = g
++        # ★ E6 (EXE-03): net_before == net_producer_usdt − net_removed_usdt, both stated
++        rs["net_producer_usdt"] = _net_composed
++        rs["net_removed_usdt"] = _net_composed - float(rs["net_before"])
++        rs["n_removed"] = len(clamp["popped"]) + len(_flat_out)
++        rs["removed_names"] = sorted(set(clamp["popped"]) | set(_flat_out))
++        rs["net_removed_flat_out_usdt"] = _flat_out_net
+     # ── 2b. W9: the held force_flat names come back at EXACTLY 0.0 — after the reshape, so no shift reaches them ──
+     for s_ in _flat_out:
+         target[s_] = 0.0
+@@ -477,6 +488,51 @@ def clamp_held_untradable(target, held, untradable):
+ #   roughly two popped names at typical tail weight; more than that means the universe gate is
+ #   removing a slice of the book big enough that "we corrected it" stops being the whole story.
+ RESHAPE_RESIDUAL_ALARM_FRAC = 0.02
++
++
++def reshape_residual_alarm_text(rs, gross):
++    """★ E6 (EXE-03, FX-EXEC 2026-09-13): the 撤名残差 page states the two quantities that make the pre-reshape net — the producer's
++    book as composed, and what the removed names took away — instead of "由 N 个撤下的名字造成", which blamed the removed names for the
++    producer's own net. Kept under the same head word, so alarm_policy files it where it always went (C, record only)."""
++    g = max(float(gross or 0.0), 1e-9)
++    nb, npr, nrm = float(rs["net_before"]), float(rs.get("net_producer_usdt", 0.0)), float(rs.get("net_removed_usdt", 0.0))
++    return (f"撤名残差 {nb:+.2f} USDT = 目标 gross 的 {nb / g:+.2%} (>{RESHAPE_RESIDUAL_ALARM_FRAC:.0%}) = 生产者书自身净 {npr:+.2f} "
++            f"({npr / g:+.2%}) − 撤下 {int(rs.get('n_removed', rs.get('n_popped', 0)))} 名的净 {nrm:+.2f} ({nrm / g:+.2%}): "
++            f"{sorted(rs.get('removed_names') or rs.get('popped_names') or [])[:8]}。已重整回中性; 这一净额的大头若在生产者书里, "
++            f"它不是撤名带来的。")
++
++
++# ★ E6 (FX-EXEC 2026-09-13): WHY a held name is withheld, per name. Every source that joins `_untradable` in run_anchor, in display
++#   order. The held-withheld page said "withheld by the venue (maxNotionalValue=0)" for all of them; on 09-13 16Z the seven held
++#   names were five the producer no longer targets and two below 2x minNotional, and stopped / cooldown names ride the same channel.
++WITHHELD_SOURCE_LABELS = (
++    ("per_name_stop", "逐名止损已停(cf40ea21)"),
++    ("per_name_stop_cooldown", "逐名止损冷却期"),
++    ("venue_zero_cap", "场所 maxNotionalValue=0(不许开新仓)"),
++    ("venue_not_trading", "场所状态非 TRADING"),
++    ("external_held_exit", "外部书不再持有(持仓出场)"),
++    ("external_dust", "外部书目标低于 2×minNotional"),
++    ("external_meta", "外部书元数据排除"),
++)
++
++
++def held_withheld_alarm_text(clamp, sources):
++    """The page for HELD untradable names, each listed under every source that put it there; a held name no source recorded is listed
++    as such — never attributed to the venue by default. Keeps "reduce-only from here", so alarm_policy files it where it always went (B)."""
++    held = sorted(set(clamp.get("reduced") or []) | set(clamp.get("add_blocked") or []) | set(clamp.get("flatten_only") or []))
++    src = {k: set(v or ()) for k, v in (sources or {}).items()}
++    parts, seen = [], set()
++    for key, label in WITHHELD_SOURCE_LABELS:
++        names = [n for n in held if n in src.get(key, set())]
++        if names:
++            seen |= set(names)
++            parts.append(f"{label}: {names[:8]}{' +' + str(len(names) - 8) if len(names) > 8 else ''}")
++    unknown = [n for n in held if n not in seen]
++    if unknown:
++        parts.append(f"来源未记录: {unknown[:8]}")
++    return (f"{len(held)} held name(s) withheld, reduce-only from here — by source: " + "; ".join(parts) + ". "
++            f"reducing={list(clamp.get('reduced') or [])[:4]} add_blocked={list(clamp.get('add_blocked') or [])[:4]} "
++            f"flatten_only={list(clamp.get('flatten_only') or [])[:4]}")
+ # share of an EXTERNAL book's gross withheld by the 2x-min-notional eligibility filter above which
+ # the breadth loss is a finding. ★ A POLICY NUMBER, same reasoning as min_gross_usdt's '排除 ≤10%':
+ # measured on the 2026-08-22 00:00Z shadow weights at NAV 15.4k x 1.0 the filter withholds 6.2% of
+@@ -1448,6 +1504,7 @@ class AnchorLoop:
+         # a venue rejection into a non-event; the previous anchor spent one order discovering it.
+         # Existing positions are NOT withheld — a cap of 0 blocks opening, not closing.
+         blocked = set()
++        _status_withheld = sorted(set(pred_symbols) - set(cls["tradable"]))          # E6: not TRADING (or gone), per name
+         cfgmap = getattr(self.broker, "symbol_config", None) or {}
+         if cfgmap:
+             blocked = {sym for sym, c in cfgmap.items()
+@@ -1461,6 +1518,9 @@ class AnchorLoop:
+                                        f"{sorted(set(cls['tradable']) - set(shrunk))[:5]}")
+                 cls["tradable"] = shrunk
+         return {"tradable": cls["tradable"], "n_exit_only": len(cls["exit_only_held"]),
++                # ★ E6: the two venue reasons, per name, so the held-withheld page can say which one applies
++                "withheld_status_names": _status_withheld,
++                "withheld_zero_cap_names": sorted((set(pred_symbols) - set(_status_withheld)) & blocked),
+                 "n_zero_cap_withheld": len(blocked & set(cls["tradable"] + list(blocked))),
+                 "n_gone": len(cls["gone_from_venue_held"]),
+                 "n_new_listings_ignored": len(cls["new_listings"])}
+@@ -1627,6 +1687,9 @@ class AnchorLoop:
+             self._untradable = set(symbols) - set(gate["tradable"])
+         else:
+             self._untradable = set()
++        # ★ E6: every source that adds to `_untradable` is recorded per name, for the held-withheld page
++        self._untradable_sources = {"venue_not_trading": set(gate.get("withheld_status_names") or ()),
++                                    "venue_zero_cap": set(gate.get("withheld_zero_cap_names") or ())}
+         # ── 逐名止损条款(cf40ea21): stop 名与冷却名并入 untradable ⇒ 复用既有 pop/clamp/
+         #    reduce-only 全通道。stop 名的目标恰为 0 由 withhold 接缝函数的 force_flat 参数保证(_pns_zero_targets, W9)。
+         self._pns_sets = {"stop": set(), "cooldown": set()}
+@@ -1639,6 +1702,8 @@ class AnchorLoop:
+                     # 的一次性告警在终锚钩子; 每锚的持续状态由 clamp 通道的 withheld 告警与
+                     # anchors 行的 per_name_stop 字段承载。
+                     self._untradable = set(self._untradable) | _pns_all
++                    self._untradable_sources["per_name_stop"] = set(self._pns_sets["stop"])
++                    self._untradable_sources["per_name_stop_cooldown"] = set(self._pns_sets["cooldown"])
+             except Exception as _e:
+                 self.alarm("HIGH", f"per_name_stop 状态读取失败({type(_e).__name__}) — 条款本锚未生效, "
+                                    f"计数状态未损失(只读路径)")
+@@ -1653,6 +1718,7 @@ class AnchorLoop:
+                 self._ext_meta = EXT.venue_meta_exclusions(_exi, symbols)
+                 if self._ext_meta:
+                     self._untradable = set(self._untradable) | set(self._ext_meta)
++                    self._untradable_sources["external_meta"] = set(self._ext_meta)
+             except Exception as _e:                  # noqa: BLE001
+                 self.alarm("HIGH", f"external book: exchangeInfo 元数据过滤不可用({type(_e).__name__}) — "
+                                    f"本锚只按 status 门过滤(非 COIN/非 ASCII 名未排除)")
+@@ -1660,6 +1726,7 @@ class AnchorLoop:
+         if _is_ext and getattr(self, "_ext_held_exit", None):
+             # held names the producer no longer targets ⇒ reduce-only exit via clamp/flatten_only
+             self._untradable = set(self._untradable) | set(self._ext_held_exit)
++            self._untradable_sources["external_held_exit"] = set(self._ext_held_exit)
+         if _is_ext:
+             # ★ THE PRODUCER'S WEIGHTS ARE THE TARGET (design §1): no compose_book, no risk budget,
+             #   no harvest EMA, no neutral band. target_w = w / gross_norm (unit gross), so the
+@@ -1825,6 +1892,7 @@ class AnchorLoop:
+             self._ext_dust = EXT.below_min_notional(target, _fl, external["min_notional_mult"])
+             if self._ext_dust["names"]:
+                 self._untradable = set(getattr(self, "_untradable", ())) | set(self._ext_dust["names"])
++                self._untradable_sources = dict(getattr(self, "_untradable_sources", None) or {}, external_dust=set(self._ext_dust["names"]))
+             if (self._ext_dust.get("mass_frac") or 0.0) > EXT_DUST_ALARM_FRAC:
+                 self.alarm("HIGH", f"external book: {self._ext_dust['n']} 个名字的目标名义额低于 "
+                                    f"{external['min_notional_mult']:g}×minNotional, 合计 gross 的 "
+@@ -1851,21 +1919,12 @@ class AnchorLoop:
+                 self.gross, 1e-9):
+             # the CORRECTION is routine; a correction THIS LARGE means the universe gate took out
+             # a slice of the book big enough that "we fixed it" is not the whole story.
+-            self.alarm("HIGH",
+-                       f"撤名残差 {_rs['net_before']:+.2f} USDT = 目标 gross 的 "
+-                       f"{_rs['net_before'] / max(self.gross, 1e-9):+.2%} "
+-                       f"(>{RESHAPE_RESIDUAL_ALARM_FRAC:.0%}), 由 {_rs['n_popped']} 个撤下的名字造成: "
+-                       f"{sorted(_clamp['popped'])[:8]}。已重整回中性, 但这一撤幅本身是个发现。")
++            self.alarm("HIGH", reshape_residual_alarm_text(_rs, self.gross))       # E6 (EXE-03): producer net and removed net, separately
+         if any(_clamp[k] for k in ("reduced", "add_blocked", "flatten_only")):
+             # ★ HIGH, and it names the disposition per name. A held position the venue will not
+             # let us re-open is a state an operator has to know about while it lasts — and until
+             # this fix the only way to learn of it was to notice the position was not moving.
+-            self.alarm("HIGH",
+-                       f"{len(_clamp['reduced']) + len(_clamp['add_blocked']) + len(_clamp['flatten_only'])} "
+-                       f"held name(s) are withheld by the venue (maxNotionalValue=0): "
+-                       f"reduce-only from here. reducing={_clamp['reduced'][:4]} "
+-                       f"add_blocked={_clamp['add_blocked'][:4]} "
+-                       f"flatten_only={_clamp['flatten_only'][:4]}")
++            self.alarm("HIGH", held_withheld_alarm_text(_clamp, getattr(self, "_untradable_sources", None) or {}))   # E6: per-name source
+         out_clamp = _clamp
+ 
+         if _is_ext:
+@@ -2369,9 +2428,11 @@ class AnchorLoop:
+         if _sx.get("carried"):
+             # ★ E4: a stop exit that did not close this anchor is paged EVERY anchor it lasts — the trigger page fires once;
+             #   a maker exit that keeps not filling would otherwise be as silent as the pinned longs W9 found
++            import binance_executor as _BEXs          # the spread gate the conversion is subject to — its own constant, not a copy
+             self.alarm("HIGH",
+-                       f"逐名止损出场未完成 {len(_sx['carried'])} 名, 残差留待下一锚 maker 出场(条款 cf40ea21: maker-only、不追; "
+-                       f"R2′): " + ", ".join(f"{c['symbol']} {c['terminal_reason']} "
++                       f"逐名止损出场未完成 {len(_sx['carried'])} 名: 部分成交残差不追, 留待下一锚重新挂 maker(reduce-only; 这部分残差"
++                       f"是 maker-only 的); 被场所拒绝的 maker 当锚已在补单环节转市价 reduce-only, 受 {_BEXs.MAX_CROSS_BPS:g} bps 点差门与最小名义额约束"
++                       f"(条款 cf40ea21, 裁定 R2′): " + ", ".join(f"{c['symbol']} {c['terminal_reason']} "
+                                               f"{float(c['residual_usdt']):+.2f}U" if c.get("residual_usdt") is not None
+                                               else f"{c['symbol']} {c['terminal_reason']} residual=UNKNOWN"
+                                               for c in _sx["carried"][:8]))

@@ -1,0 +1,24 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_alert_tiers_live.py head=4058b85c4ce728b7a7359db77fd0d7191d1b016b dirty=4 start=2026-09-13T17:27:34Z py=Python 3.9.6
+# suite_sha256=39ce7a8b0ca4768912dbb4ab580c93d644faf4adf9cb9723195e21c0b3e07506
+[A] run_anchor imports cleanly with NO path help — the launchd context
+  OK   ★★★ run_anchor's module scope loads and `AE` (alarm_episode) is bound — this is the exact failure that killed the investigate tier six times, and no in-process test could see it because the test had already fixed sys.path for itself — IMPORT_OK True
+
+[B] ops/ is on the path from the TOP, not from halfway down the file
+  OK   ★★ the path loop includes ops
+  OK   ★★ and `import alarm_episode` is at MODULE scope, so a missing alarm module dies at startup rather than at the moment an alarm is due
+  OK   ★★ no alert block imports it locally any more — a local import re-creates exactly the position-dependence that caused this
+
+[C] ★★ red capability — take ops/ back out and the subprocess must FAIL
+  OK   ★ the injection matched
+  OK   ★★★ without ops/ on the path the module does NOT import — and it fails LOUDLY at load, which is the whole point of hoisting: the old shape failed quietly, inside an `except Exception`, at alarm time — ne 45, in <module>
+    import alarm_episode as AE                                              # noqa: E402
+ModuleNotFoundError: No module named 'alarm_episode'
+  OK   ★ the mutant file is gone (it sits inside the package dir, so leaving it would put a second run_anchor on the path)
+
+[D] the investigate fingerprint keys a field that EXISTS
+  OK   ★★ cond2 publishes `worst_day_pct_of_equity`, and that is the key the fingerprint uses
+  OK   ★★ the non-existent `worst_day_pct` is gone from the fingerprint
+  OK   ★ and the field really is what the watchdog writes
+
+ALL PASS  (10 checks)
+# end=2026-09-13T17:27:35Z rc=0

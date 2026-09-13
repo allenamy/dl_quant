@@ -1,0 +1,36 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_venue_cap_clamp.py head=4058b85c4ce728b7a7359db77fd0d7191d1b016b dirty=4 start=2026-09-13T17:27:25Z py=Python 3.9.6
+# suite_sha256=c6256fcd641588012e1711a7ab6d29ff1157d368addcc5eb63a1af8e55de5c29
+[A] the PIEVERSE replica — the case that was refused six times
+  OK   ★★★ target 2,330 against cap 2,000 becomes cap×(1−margin) = 1,960 — an order of +70 the venue accepts, instead of +440 it refuses — {'PIEVERSEUSDT': 1960.0, 'BTCUSDT': 5000.0}
+  OK   ★★ the name is reported with before/after/cap/held and kind=add_capped — {'capped': [{'symbol': 'PIEVERSEUSDT', 'target_before': 2330.0, 'target_after': 1960.0, 'cap': 2000.0, 'held': 1890.0, 'kind': 'add_capped'}], 'n_checked': 2, 'margin': 0.02, 'invalid': [], 'reduce_only_syms': []}
+  OK   ★★ BTC (cap far above) is untouched and counted as checked
+  OK   ★ margin is a positive policy number (0 would put the order exactly ON the cap) — 0.02
+
+[B] shrink-only, sign-preserving, and the cases it must NOT touch
+  OK   ★★★ a SHORT above the cap is clamped to −cap×(1−margin): sign kept — -1960.0
+  OK   ★★ a name under its cap is untouched
+  OK   ★★★ cap 0 is NOT this clamp's business (withheld: the untradable clamps own it)
+  OK   ★★ a non-numeric cap is skipped, not treated as 0
+  OK   ★★ a malformed config entry is skipped
+  OK   ★★ a name with no config at all is untouched
+  OK   ★ nothing is popped: every key survives
+  OK   ★ empty / None config is a no-op
+
+[C] a position ALREADY above the limit (the venue lowered the cap): reduce to the limit
+  OK   ★★★ target becomes cap×(1−margin) < position — a REDUCTION the venue always accepts, kind=reduce_to_cap — {'capped': [{'symbol': 'GUSDT', 'target_before': 2400.0, 'target_after': 1960.0, 'cap': 2000.0, 'held': 2300.0, 'kind': 'reduce_to_cap'}], 'n_checked': 1, 'margin': 0.02, 'invalid': [], 'reduce_only_syms': ['GUSDT']}
+  OK   ★★ a target on the OTHER side of an over-cap position is untouched (|−100| ≤ limit): the flatten-and-flip is the reshape/held-clamp's business, not this one's
+
+[D] the clamp is idempotent and never grows a target
+  OK   ★★ applying twice equals applying once
+  OK   ★★★ 500 random targets: |after| ≤ |before|, sign never flips, |after| ≤ cap×(1−margin) whenever the cap is positive
+
+[E] WIRING: on the final numbers, before plan(), fail-closed, reported
+  OK   ★★★ order in _trade: pop→reshape→held-clamp, THEN the cap clamp, THEN plan() — the cap sees the final numbers and plan() sees the capped ones — (128061, 133378, 136252)
+  OK   ★★ the call site is fail-closed: inside try/except that pages HIGH and leaves targets alone
+  OK   ★★ the clamp reads the broker's symbolConfig snapshot (arm-time), never a hard-coded table
+  OK   ★ the report travels in the phase-A run log
+  OK   ★ a capped name is paged by name (INFO normally, HIGH when >3 names or >1% gross)
+  OK   ★★ the 5th recalibration's retirement clause is now an ASSERTION in the ruler suite
+
+ALL PASS  (22 checks)
+# end=2026-09-13T17:27:26Z rc=0
