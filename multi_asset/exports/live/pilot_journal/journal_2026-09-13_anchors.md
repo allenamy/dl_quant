@@ -52,3 +52,18 @@ coverage 1.0 / members 400 / sel 255 / **fund_updates 454**(8h 结算锚稳态 ~
 | **08Z** | **243/1** | **117,768.77** | **−7.65** | **0.9191** | **27.2%** |
 ### 待验证 / 推断
 **待验证**: (a) 空仓五锚 NAV 累计 **−18.25U**(16Z→08Z)来源仍无 API 确证(无持仓无成交; 推断费用币重估或计息); (b) **撤名残差 −20,475.81U = 目标 gross −8.69%**(11 名撤下, 含冷却 10 名; 09-12 12Z 为 −5.80%)—— 恢复交易时去均值要围绕这个洞做, 与 W9(止损多头被钉住)同一路径, 已把实态交 W9 作为测试格; (c) 场所上限截断 PIEVERSE +2,392→+1,960(cap 2,000)与 1000CAT 因重整跨 min_notional 两条 INFO 告警, 空仓下仅描述。**推断**: 生产者纸面书本锚 −17 bps/gross(按 2× 约 −0.35% NAV)被空仓避开; 该量是目标书自评, 不是可交易净额证据。**空仓约 20 小时 / 5 个锚。**
+
+## 12:00Z 锚 · 复场重建首锚 · 首锚验收(只读; 查于 13:0xZ)
+**锚** canonical 1789300800 / rid **A1789302239** / 运行树 **ef60f85**(E-0912-A 修复包: W6ab/W2/W1/W9; 运行树电池 ALL GREEN 135/135)/ 12:05:36Z `resume_from_trip.sh`。**结论: 首锚验收通过, 无处置; 一项告警为装置误报, 已入修复纲领 E9。**
+### ① 三守护 句柄一致(同 08Z)。② 信号六项 在带
+coverage 1.0 / members 400 / sel 255 / fund_updates 355(4h 稳态 ✓)/ forced_exit_n 1 / fetched 450 missing 0; w3 [0.3422, 0.1044, 0.5534] ⇒ 掩码 0.382095 ✓; combo 落盘 12:20:44Z rc=0, kc/fc own, rho_kc_fc 0.9146; 反事实改写 27.2%(平)。生产者自评上一锚(08Z→12Z 纸面书)gross −26.6 / net −27.5 bps/gross —— 空仓避开。
+### ③ 执行漏斗(重建)
+external_book ok(255 名, gross_in 0.8252, gross_mult 2.0, sha_ok)/ action TRADE / transport 错 0 / 限速 0。订单行 530: partial_expired 201 / skipped_min_notional 171 / venue_reject 85(-5022 post-only 穿价)/ filled 62 / skipped_no_chase_arm 11。**post-only 首次拒单率 69/244 = 28.3%**(升级线 40%; 09-10 重建 30%); 重报价 42 → 落单 26 / 二次拒 16 转 taker 补单; **-4400 场所量化规则锁 0**(09-10 重建时补单全被锁)。fills 1,777 笔 / 名义 228,081U / **maker 占比 0.686** / 佣金 67.07U(≈2.94 bps, 重建含 taker 补单, 非稳态带)。chase 臂 chase 100 / chase_forced 4 / no_chase 97; placement behind 0.485。
+### ④ 记账
+**实现 gross 227,672U / 目标 235,111U = 96.8%**; 净 −1,320U(净/gross −0.58%); 持仓 237 名; NAV 117,566.70(下单前 117,773.79, −207U = 佣金 67 + 重建滑点/盯市); `anchor done rc=0` **12:58:30Z**; 看门狗 12:46:53Z tripped=False、blind [], partial = cond2/cond4(重建日 NAV 行不全, 预期), state.json = `{reduce_only: false, tripped_at: null}`; per_name_stop 冷却 3(本锚 7 名冷却期满恢复可入: COLLECT/CYS/FLOCK/HEMI/MAGMA/RIVER/TRIA)。
+### W6 / W9 首锚条目(DESIGN §4.6)
+530 行中 clamped / inconsistent / capacity_conflict / execution_of_unknown_size / venue_clamped 键 **均无出现**, filled_unknown_qty 全 None(无未知成交)⇒ 四类标记 0 ✓; 本锚无全退出名(从空仓重建)⇒ **全退出 qty_source=venue_position_qty 路径与 W9 持有止损名出场路径均未被本锚覆盖**(撤名 11 名均未持有 ⇒ popped), 留待首次发生时验。
+### 告警 11(送出 9)
+撤名残差 −21,813.91U = 目标 gross −9.26%(11 名)⇒ 修复纲领 P8; 场所上限截断 PIEVERSE +2,396→+1,960; 43 个 maker -5022 转 taker 补单; 7 条冷却期满; **HIGH「锚点产物断言 REGRESSION: NO_PRODUCER=['filled_unknown_qty','filled_unknown_residual']」= 装置误报**: 09-12 前 OK, 09-13 00/04/08Z 空仓日把全部成交列判 NO_PRODUCER, 复场后只剩这两列恒 None —— 执行器只在存在未知成交量时写它们(`binance_executor.py` L265–266), 今日无此事件, 应判 event_not_yet 而非 NO_PRODUCER ⇒ 修复纲领 **E9**(误报 HIGH 且去重会吞掉真回归)。
+### 待验证 / 推断
+**待验证**: 全退出与持有止损名出场两条新路径(首次发生时); 重建滑点构成(−207U 中除佣金外 ~140U 的分解)。**推断**: 本锚 −4400 未现可能与平仓 → 重建间隔 ~23h 远离 09-10 的密集形态有关。
