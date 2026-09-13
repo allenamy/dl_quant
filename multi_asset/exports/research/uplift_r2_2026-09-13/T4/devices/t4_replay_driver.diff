@@ -1,0 +1,194 @@
+--- /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/parity_replay_2026-09-12/devices/replay_driver.py	2026-09-12 18:07:07
++++ t4_replay_driver.py	2026-09-13 15:07:13
+@@ -1,14 +1,30 @@
+ #!/usr/bin/env python3
+-"""Phase-1 parity driver (PREREG_producer_parity_replay_2026-09-12): rebuild the producer state as of anchor A from the
+-producer's own recorded state, run the generated device's run_anchor(A) offline, and compare the king-stage outputs
+-with the recorded live files. READ-ONLY on ~/wide_shadow; all writes go to REPLAY_HOME.
+-Usage: python3 replay_driver.py <anchor_ts> [<anchor_ts> ...]   (each anchor is replayed independently from recorded state)"""
++"""T4 driver (PREREG_T4_king_feature_skew_2026-09-13 §6), DERIVED from parity_replay_2026-09-12/devices/replay_driver.py (sha f2ced820…);
++the unified diff against that file is devices/t4_replay_driver.diff. Changes, all marked "# T4":
++  (1) one replay home per arm under T4/private/ (the parity replay_home is never written);
++  (2) producer state read from the frozen snapshot T4/private/snapshot_1789272000 (SHA256SUMS verified at start), not the live files;
++  (3) --arm served | v1inj | v0 selects the device (parity copy / one-line v0col80 device) and injects T4_COL80_ROW for the latter;
++  (4) a booster proxy records the exact X and pred of every anchor (the device is not touched); per-anchor outputs saved;
++  (5) PYTHONDONTWRITEBYTECODE=1 for the combo subprocess and sys.dont_write_bytecode (no bytecode written under ~/dl_quant_live);
++  (6) chain mode only. READ-ONLY on ~/wide_shadow and ~/dl_quant_live.
++Usage: python3 -B t4_replay_driver.py --arm <arm> --chain <anchor_ts> ...   (REPLAY_COMBO=0 in the launch env for v1inj)"""
+ import os, sys, json, glob, math, hashlib, shutil, importlib, time
+ import numpy as np
+ WS = os.path.expanduser("~/wide_shadow"); HERE = os.path.dirname(os.path.abspath(__file__))
+-RH = os.path.join(os.path.dirname(HERE), "replay_home"); os.makedirs(RH + "/state", exist_ok=True)
++sys.dont_write_bytecode = True   # T4 (5)
++T4 = os.path.dirname(HERE); SNAP = T4 + "/private/snapshot_1789272000"   # T4 (2)
++ARM = sys.argv[sys.argv.index("--arm") + 1] if "--arm" in sys.argv else None; assert ARM in ("served", "v1inj", "v0"), ARM   # T4 (3)
++DEVMOD = {"served": "shadow_loop_v3_replay", "v1inj": "shadow_loop_v3_replay_v0col80", "v0": "shadow_loop_v3_replay_v0col80"}[ARM]
++PREREG_SHA = "0f94b754c9ca4c6e65c3f2a63146dab7036f37862abd2210cbbfcef661aab4dd"; DEV_SHA = {"shadow_loop_v3_replay": "4d3bc157f03e3462a69e64f817b3fd4cd51be4c03d72650304b7d0c1a0089d42", "shadow_loop_v3_replay_v0col80": "0fff8406c1680c9f5a8b149b54c7a261fa0f85e9673bea1889b162955944a39e"}
++COMBO_SHA = "f5ba9a8234ef0c01ee1aa5bdb0ebd87e8e7093c10b164e37f4fc10f97bc7f77b"
++def _sha(p): return hashlib.sha256(open(p, "rb").read()).hexdigest()
++assert _sha(T4 + "/PREREG_T4_king_feature_skew_2026-09-13.md") == PREREG_SHA and _sha(f"{HERE}/{DEVMOD}.py") == DEV_SHA[DEVMOD] and _sha(f"{HERE}/combo_stage_replay.py") == COMBO_SHA
++for _l in open(SNAP + "/SHA256SUMS.txt"):
++    _h, _f = _l.split(None, 1); assert _sha(SNAP + "/" + _f.strip()[2:]) == _h, ("SNAPSHOT CHANGED", _f)
++assert os.environ.get("REPLAY_COMBO", "1") == ("0" if ARM == "v1inj" else "1"), ("REPLAY_COMBO must be 0 for v1inj and 1 otherwise", ARM)
++RH = T4 + f"/private/replay_home_{ARM}"; os.makedirs(RH + "/state", exist_ok=True)   # T4 (1)
+ os.environ["WIDE_SHADOW_HOME"] = RH; os.environ["WIDE_SHADOW_BUNDLE"] = f"{WS}/shadow_bundle"   # bundle read-only (load_bundle only reads)
+-sys.path.insert(0, HERE); dev = importlib.import_module("shadow_loop_v3_replay")
++sys.path.insert(0, HERE); dev = importlib.import_module(DEVMOD)
+ assert dev.STATE_DIR == RH + "/state" and dev.BUNDLE == f"{WS}/shadow_bundle", (dev.STATE_DIR, dev.BUNDLE)
+ dev.ShadowState.save = lambda self: None          # in-memory only; the driver saves what the gate needs
+ 
+@@ -71,7 +87,7 @@
+     aux = snap["aux"]
+     st.prev_close = {}
+     # H = holdings after the previous anchor = the producer's own weights file
+-    st.H = np.zeros(st.NW); wf = f"{WS}/state/weights/{anchor-14400}.npz"
++    st.H = np.zeros(st.NW); wf = f"{SNAP}/state/weights/{anchor-14400}.npz"   # T4 (2)
+     assert os.path.exists(wf), f"missing weights file {wf}"
+     w = np.load(wf); st.H[w["idx"].astype(np.int64)] = w["val"].astype(np.float64)
+     st.last_anchor = anchor - 14400
+@@ -97,14 +113,14 @@
+     return st, ledger_full, diag
+ 
+ def compare(anchor, out_state_dir):
+-    rep = np.load(f"{out_state_dir}/weights/{anchor}.npz"); liv = np.load(f"{WS}/state/weights/{anchor}.npz")
++    rep = np.load(f"{out_state_dir}/weights/{anchor}.npz"); liv = np.load(f"{SNAP}/state/weights/{anchor}.npz")   # T4 (2)
+     NW = 829; a = np.zeros(NW); b = np.zeros(NW)
+     a[rep["idx"].astype(int)] = rep["val"].astype(np.float64); b[liv["idx"].astype(int)] = liv["val"].astype(np.float64)
+     d = np.abs(a - b); linf = float(d.max()); l1 = float(d.sum())
+     def _csha(z): return hashlib.sha256(z["idx"].astype(np.int32).tobytes() + z["val"].astype(np.float32).tobytes()).hexdigest()
+     content_sha_equal = _csha(rep) == _csha(liv)
+     ulp = int((np.abs(a - b) > 0).sum())
+-    rj = json.load(open(f"{out_state_dir}/target_live/{anchor}.json")); lj = json.load(open(f"{WS}/state/target_live_king/{anchor}.json"))
++    rj = json.load(open(f"{out_state_dir}/target_live/{anchor}.json")); lj = json.load(open(f"{SNAP}/state/target_live_king/{anchor}.json"))   # T4 (2)
+     rw, lw = rj["weights"], lj["weights"]; keys = set(rw) | set(lw)
+     jd = max(abs(rw.get(k, 0.0) - lw.get(k, 0.0)) for k in keys) if keys else 0.0
+     return {"anchor": anchor, "weights_npz_Linf": linf, "weights_npz_L1": l1, "n_nonzero_replay": int((a != 0).sum()), "n_nonzero_live": int((b != 0).sum()),
+@@ -125,7 +141,7 @@
+     rp = f"{RH}/state/rolling.npz"
+     if not os.path.islink(rp): 
+         if os.path.exists(rp): os.remove(rp)
+-        os.symlink(f"{WS}/state/rolling.npz", rp)
++        os.symlink(f"{SNAP}/state/rolling.npz", rp)   # T4 (2)
+ 
+ def run_combo_stage(A, st, first):
+     """Run the generated combo_stage_replay.py against the replay home; on the first anchor seed the fea171 copy and the previous
+@@ -148,19 +164,19 @@
+         elif not os.path.exists(dst): shutil.copy2(src, dst)
+     if first:
+         for tag in ("f10", "kc", "fc"):
+-            src = f"{WS}/fea171/state_H_{tag}_{A-14400}.npz"
++            src = f"{SNAP}/fea171/state_H_{tag}_{A-14400}.npz"   # T4 (2)
+             if os.path.exists(src): shutil.copy2(src, f"{fe}/state_H_{tag}_{A-14400}.npz")
+-        if os.path.exists(f"{WS}/state/weights/{A-14400}.npz"): shutil.copy2(f"{WS}/state/weights/{A-14400}.npz", f"{RH}/state/weights/{A-14400}.npz")
++        if os.path.exists(f"{SNAP}/state/weights/{A-14400}.npz"): shutil.copy2(f"{SNAP}/state/weights/{A-14400}.npz", f"{RH}/state/weights/{A-14400}.npz")   # T4 (2)
+     _write_replay_state(A, st)
+     shutil.rmtree(f"{fe}/mini/data", ignore_errors=True)      # force the 171 feature pipeline to recompute for THIS anchor (as live did)
+-    env = {"PATH": "/usr/bin:/bin", "HOME": os.path.expanduser("~"), "WIDE_SHADOW_HOME": RH, "COMBO_LIVE": "1", "COMBO_LIVE_DIR": f"{RH}/state/target_live_combo", "REPLAY_TRUNCATE_CACHE": "1"}
++    env = {"PATH": "/usr/bin:/bin", "HOME": os.path.expanduser("~"), "WIDE_SHADOW_HOME": RH, "COMBO_LIVE": "1", "COMBO_LIVE_DIR": f"{RH}/state/target_live_combo", "REPLAY_TRUNCATE_CACHE": "1", "PYTHONDONTWRITEBYTECODE": "1"}   # T4 (5)
+     t0 = time.time(); p = subprocess.run([sys.executable, os.path.join(HERE, "combo_stage_replay.py")], cwd=fe, env=env, capture_output=True, text=True, timeout=900)
+     out = {"rc": p.returncode, "runtime_s": round(time.time() - t0, 1), "tail": p.stdout.strip().splitlines()[-3:] if p.stdout else [], "err": p.stderr.strip().splitlines()[-3:] if p.stderr else []}
+     try:
+-        rc_ = json.load(open(f"{RH}/state/target_combo/{A}.json")); lc = json.load(open(f"{WS}/state/target_combo/{A}.json"))
++        rc_ = json.load(open(f"{RH}/state/target_combo/{A}.json")); lc = json.load(open(f"{SNAP}/state/target_combo/{A}.json"))   # T4 (2)
+         keys = set(rc_["weights"]) | set(lc["weights"]); out["target_combo_Linf"] = max(abs(rc_["weights"].get(k, 0.0) - lc["weights"].get(k, 0.0)) for k in keys)
+         out["target_combo_n"] = (len(rc_["weights"]), len(lc["weights"])); out["w3m_equal"] = rc_["w3_masked"] == lc["w3_masked"]; out["ftrim_n"] = (rc_["ftrim"]["n_kc"], rc_["ftrim"]["n_fc"], lc["ftrim"]["n_kc"], lc["ftrim"]["n_fc"])
+-        rl = json.load(open(f"{RH}/state/target_live_combo/{A}.json")); ll = json.load(open(f"{WS}/state/target_live/{A}.json"))
++        rl = json.load(open(f"{RH}/state/target_live_combo/{A}.json")); ll = json.load(open(f"{SNAP}/state/target_live/{A}.json"))   # T4 (2)
+         keys = set(rl["weights"]) | set(ll["weights"]); out["target_live_Linf"] = max(abs(rl["weights"].get(k, 0.0) - ll["weights"].get(k, 0.0)) for k in keys)
+         out["target_live_n"] = (len(rl["weights"]), len(ll["weights"])); out["live_producer_tag"] = ll.get("producer", "")[:40]
+     except Exception as e:
+@@ -200,11 +216,30 @@
+         if os.environ.get("REPLAY_COMBO", "1") == "1": cmp["combo"] = run_combo_stage(A, st, k == 0)
+         receipts["anchors"].append(cmp); cb = cmp.get("combo") or {}
+         print(json.dumps({"anchor": A, "king_Linf": cmp["weights_npz_Linf"], "content_sha_equal": cmp["content_sha_equal"], "ulp_names": cmp["n_names_differing_any"], "combo_rc": cb.get("rc"), "target_combo_Linf": cb.get("target_combo_Linf"), "target_live_Linf": cb.get("target_live_Linf"), "err": cb.get("err") or cb.get("compare_error")}), flush=True)
++
++class RecBooster:   # T4 (4): records the exact matrix the device feeds the booster and the returned scores; delegates unchanged
++    def __init__(self, b): self.b = b; self.last = None
++    def predict(self, X):
++        p = self.b.predict(X); self.last = (np.array(X, dtype=np.float32, copy=True), np.array(p, dtype=np.float64, copy=True)); return p
+ 
++def t4_record(A, st, rb):   # T4 (4): per-anchor outputs for the T4 live-window judge
++    X, pred = rb.last; pr = st.prev_rec; m = np.array(pr["members"], np.int64)
++    ivm = np.array([float(st.ledger[st.syms[j]][-1][2]) if st.ledger.get(st.syms[j]) else np.nan for j in m])
++    kw = np.load(f"{RH}/state/weights/{A}.npz"); sig = [r for r in jl(f"{RH}/shadow_log.jsonl") if r.get("e") == "signal"]
++    o = dict(anchor=int(A), members=m, X=X, pred=pred, legz_king=np.array(pr["legz"]["king"]), iv_last=ivm, king_idx=kw["idx"].astype(np.int64), king_val=kw["val"].astype(np.float64),
++             w3=np.array(sig[-1]["w3"]) if sig else None)
++    for d_ in ("target_live_combo", "target_combo"):
++        f = f"{RH}/state/{d_}/{A}.json"
++        if os.path.exists(f):
++            J = json.load(open(f)); o[d_ + "_weights"] = J["weights"]
++            if d_ == "target_combo": o["w3_masked"] = J["w3_masked"]; o["ftrim_n"] = (J["ftrim"]["n_kc"], J["ftrim"]["n_fc"])
++    return o
++
+ def main_chain(anchors, cfg, booster, snap, receipts):
+     """CHAIN mode: rebuild state once (first anchor) and carry the float64 state forward; step 6 (score/LR append) runs
+     from the replay's own prev_rec, so the appended LR entries are compared with the live leg_returns_live entries."""
+     A0 = anchors[0]; st, ledger_full, diag0 = build_state(A0, cfg, snap); fx = dev.ReplayFetcher(st.base, ledger_full)
++    rb = RecBooster(booster); REC = []   # T4 (4)
+     live_extra = snap["lr_extra"]; n_after0 = sum(1 for r in snap["log"] if r.get("e") == "score" and int(r.get("anchor_ts", 0)) >= A0)
+     receipts["chain_start_diag"] = diag0
+     for k, A in enumerate(anchors):
+@@ -215,10 +250,11 @@
+         if os.path.exists(f"{RH}/shadow_log.jsonl"): os.remove(f"{RH}/shadow_log.jsonl")
+         # cache rows for (last_anchor, A] are already in st.cd (producer's own rows); ledger stub serves (last_ts, A]
+         lr_len_before = len(st.LR["king"])
+-        t0 = time.time(); dev.run_anchor(st, fx, cfg, booster, A); dt = time.time() - t0
++        t0 = time.time(); rb.last = None; dev.run_anchor(st, fx, cfg, rb, A); dt = time.time() - t0   # T4 (4)
+         cmp = compare(A, f"{RH}/state"); cmp["runtime_s"] = round(dt, 1); cmp["mode"] = "chain"
+         if os.environ.get("REPLAY_COMBO", "1") == "1":
+             cmp["combo"] = run_combo_stage(A, st, k == 0)
++        REC.append(t4_record(A, st, rb))   # T4 (4)
+         # LR parity: the entry appended by this anchor's step 6 (score for A-14400) vs the live file's entry at the same position
+         if k > 0 and len(st.LR["king"]) == lr_len_before + 1:
+             live_pos = len(live_extra["king"]) - n_after0 + k       # index in live extra list of the entry appended at anchor A
+@@ -228,6 +264,7 @@
+         cmp["signal_live"] = {kk: live_sig[-1].get(kk) for kk in ("members", "sel", "w3", "turnover", "gross_pos", "base_n", "fund_updates")} if live_sig else None
+         cmp["signal_replay"] = {kk: rep_sig[-1].get(kk) for kk in ("members", "sel", "w3", "turnover", "gross_pos", "base_n", "fund_updates")} if rep_sig else None
+         receipts["anchors"].append(cmp)
++        np.save(T4 + f"/private/replay_rec_{ARM}.npy", np.array(REC, dtype=object), allow_pickle=True)   # T4 (4): rewritten each anchor
+         cb = cmp.get("combo") or {}
+         print(json.dumps({"anchor": A, "king_Linf": cmp["weights_npz_Linf"], "lr_diff": cmp.get("lr_entry_max_abs_diff"), "combo_rc": cb.get("rc"), "target_combo_Linf": cb.get("target_combo_Linf"), "target_live_Linf": cb.get("target_live_Linf"), "w3m_equal": cb.get("w3m_equal"), "ftrim_n": cb.get("ftrim_n"), "combo_s": cb.get("runtime_s"), "err": cb.get("err") or cb.get("compare_error")}), flush=True)
+ 
+@@ -236,23 +273,36 @@
+     argv = list(sys.argv[1:])
+     if "--snapshot" in argv:
+         i = argv.index("--snapshot"); snapdir = argv[i + 1]; del argv[i:i + 2]
++    if "--arm" in argv: i = argv.index("--arm"); del argv[i:i + 2]   # T4 (3)
+     anchors = [int(x) for x in argv if x != "--chain"]; chain = "--chain" in argv
++    assert chain and not snapdir, "T4: chain mode only"   # T4 (6)
+     cfg, booster, man = dev.load_bundle(); cfg["_booster_sha"] = man.get("slow2026.txt", "")
+     if os.environ.get("REPLAY_ALPHA_OVERRIDE"):   # G-P4 red-capability control only
+         cfg["params"]["alpha"] = float(os.environ["REPLAY_ALPHA_OVERRIDE"]); print("G-P4 CONTROL: alpha overridden to", cfg["params"]["alpha"], flush=True)
+-    snap = {"aux": json.load(open(f"{WS}/state/aux.json")), "lr_extra": json.load(open(f"{WS}/state/leg_returns_live.json")),
+-            "rolling": f"{WS}/state/rolling.npz", "log": jl(f"{WS}/shadow_log.jsonl")}
+-    receipts = {"device_sha256": sha_file(os.path.join(HERE, "shadow_loop_v3_replay.py")), "production_sha256": dev.REPLAY_META["production_sha256"],
++    snap = {"aux": json.load(open(f"{SNAP}/state/aux.json")), "lr_extra": json.load(open(f"{SNAP}/state/leg_returns_live.json")),
++            "rolling": f"{SNAP}/state/rolling.npz", "log": jl(f"{SNAP}/shadow_log.jsonl")}   # T4 (2)
++    receipts = {"device_sha256": sha_file(os.path.join(HERE, DEVMOD + ".py")), "production_sha256": dev.REPLAY_META["production_sha256"],   # T4 (3)
+                 "bundle_manifest_sha256": sha_file(f"{WS}/shadow_bundle/MANIFEST.json"), "rolling_sha256": sha_file(snap["rolling"]),
+-                "aux_sha256": sha_file(f"{WS}/state/aux.json"), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "anchors": []}
++                "aux_sha256": sha_file(f"{SNAP}/state/aux.json"), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "anchors": []}   # T4 (2)
+     if snapdir:
+         main_snapshot(snapdir, anchors, cfg, booster, snap, receipts)
+         tag = os.environ.get("REPLAY_RECEIPT_TAG", "GP3_snapshot")
+         json.dump(receipts, open(os.path.join(os.path.dirname(HERE), "receipts", f"PARITY_{tag}_{anchors[0]}_{anchors[-1]}.json"), "w"), indent=1); return
++    if ARM == "v0":
++        FEED = np.load(T4 + "/private/v0_feed.npz", allow_pickle=True); FA = {int(a): i for i, a in enumerate(FEED["anchors"])}; V0 = FEED["V0"]
++        assert [str(x) for x in FEED["symbols"]] == list(cfg["symbols_panel"]) and all(int(a) in FA for a in anchors)
++        dev.T4_COL80_ROW = lambda st, anchor: V0[FA[int(anchor)]]
++        receipts["v0_feed_sha256"] = _sha(T4 + "/private/v0_feed.npz")
++    elif ARM == "v1inj":
++        dev.T4_COL80_ROW = lambda st, anchor: np.array([float(st.ema[s_]["acc"]) if isinstance(st.ema.get(s_), dict) else np.nan for s_ in st.syms])
++    else:
++        assert not hasattr(dev, "T4_COL80_ROW") and "T4_COL80_ROW" not in open(f"{HERE}/{DEVMOD}.py").read()
+     if chain:
+         main_chain(anchors, cfg, booster, snap, receipts)
+-        tag = os.environ.get("REPLAY_RECEIPT_TAG", "phase1_chain")
+-        json.dump(receipts, open(os.path.join(os.path.dirname(HERE), "receipts", f"PARITY_{tag}_{anchors[0]}_{anchors[-1]}.json"), "w"), indent=1); return
++        tag = f"T4_REPLAY_{ARM}"   # T4
++        receipts.update(arm=ARM, device_module=DEVMOD, device_file_sha256=DEV_SHA[DEVMOD], combo_device_sha256=COMBO_SHA, prereg_sha256=PREREG_SHA, snapshot=SNAP, snapshot_sums_sha256=_sha(SNAP + "/SHA256SUMS.txt"),
++                        driver_sha256=_sha(os.path.abspath(__file__)), env={k: os.environ[k] for k in sorted(os.environ)}, python=sys.version.split()[0], numpy=np.__version__)
++        json.dump(receipts, open(os.path.join(os.path.dirname(HERE), "receipts", f"{tag}_{anchors[0]}_{anchors[-1]}.json"), "w"), indent=1); return
+     for A in anchors:
+         for d_ in ("weights", "target_live"):
+             shutil.rmtree(f"{RH}/state/{d_}", ignore_errors=True)

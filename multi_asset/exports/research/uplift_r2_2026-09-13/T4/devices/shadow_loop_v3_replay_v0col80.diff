@@ -1,0 +1,9 @@
+--- shadow_loop_v3_replay.py
++++ shadow_loop_v3_replay_v0col80.py
+@@ -393,5 +393,5 @@
+         led = st.ledger.get(s); est = st.ema.get(s)
+         if led and est and anchor - led[-1][0] <= 12 * 3600: base_vals[s] = float(est["acc"])
+-    FE_ANCH[:, 80] = np.nan_to_num(fe_v[m], nan=0)
++    FE_ANCH[:, 80] = np.nan_to_num(np.where(np.isfinite(fe_v[m]), T4_COL80_ROW(st, anchor)[m], np.nan), nan=0)   # T4: the only change
+     FE_ANCH[:, 81] = np.nan_to_num(fn_v[m], nan=0)
+     keep = cfg["keep_idx"]
