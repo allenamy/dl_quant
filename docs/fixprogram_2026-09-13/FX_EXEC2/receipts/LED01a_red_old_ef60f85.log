@@ -1,0 +1,33 @@
+tree ef60f85 pilot_log.py f02baa69756ffe1d pilot_metrics.py 5ac7b16d0f97f2f8
+[0] fixture integrity
+  OK    every extract hashes to its MANIFEST sha
+
+[K] ★★★ a cross-symbol trade-id collision is two executions
+  FAIL  ★★★ collapse_supersedes keeps both (old tree: merged to one — the first execution silently vanishes)  — 1
+  FAIL  ★★★ FROZEN pilot_metrics.dedupe_fills keeps both (old tree: merged to one)  — 1
+  FAIL  ★★ m2_markout counts both executions (old tree: counts one)  — {'markout_bps': -10.0, 'n_fills': 1, 'n_unmeasured': 0, 'n_unusable': 0, 'measurement_complete': True, 'maker_notional': 95.82, 'sign_convention': 'positive = adverse (mid moved against us 60s after the fill)', 'caliber': 'maker-only, per CHILD fill, notional-weighted, D=60s; fills whose +60s mark is not yet observable are EXCLUDED and counted, never valued at 0'}
+  OK    ★ the same symbol and id is still one execution (last row kept)
+
+[V] ★★★ the write contract as code
+  FAIL  ★★★ pilot_log.fills_contract_violations exists (old tree: the contract lives only in a comment)  — attribute absent
+
+[C] ★★ chains stay legal; collapse takes the last row in write order
+  OK    C1 the real 1000RATSUSDT day has O,S,S chains (terminal expired row, then an import row)  — [3, 3, 2, 2, 3, 2]
+  OK    C2 collapse returns exactly the LAST written row of every key, in write order
+  OK    PRE: the 09-12 PAXGUSDT day holds one E1 flatten original with its mark pending
+  FAIL  C3 the E1 single original followed by a markout supersede (backfill_markout `_complete` shape) is legal
+  OK    C4 ...and collapse returns the supersede for that key
+  FAIL  C5 the real 09-09 B26b late originals (backfilled_utc, no supersedes) are originals, not violations  — 1
+
+[H] the live ledger under state/live/pilot_log (read-only, when present)
+  SKIP  (declared) ledger days with fills: 44; validator present: False
+
+6/12 checks passed
+FAILED:
+  ★★★ collapse_supersedes keeps both (old tree: merged to one — the first execution silently vanishes)
+  ★★★ FROZEN pilot_metrics.dedupe_fills keeps both (old tree: merged to one)
+  ★★ m2_markout counts both executions (old tree: counts one)
+  ★★★ pilot_log.fills_contract_violations exists (old tree: the contract lives only in a comment)
+  C3 the E1 single original followed by a markout supersede (backfill_markout `_complete` shape) is legal
+  C5 the real 09-09 B26b late originals (backfilled_utc, no supersedes) are originals, not violations
+rc=1

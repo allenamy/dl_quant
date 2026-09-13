@@ -1,0 +1,30 @@
+[0] fixture integrity
+  OK    every extract hashes to its MANIFEST sha
+
+[K] ★★★ a cross-symbol trade-id collision is two executions
+  OK    ★★★ collapse_supersedes keeps both (old tree: merged to one — the first execution silently vanishes)  — 2
+  OK    ★★★ FROZEN pilot_metrics.dedupe_fills keeps both (old tree: merged to one)  — 2
+  OK    ★★ m2_markout counts both executions (old tree: counts one)  — {'markout_bps': -10.0, 'n_fills': 2, 'n_unmeasured': 0, 'n_unusable': 0, 'measurement_complete': True, 'maker_notional': 143.73, 'sign_convention': 'positive = adverse (mid moved against us 60s after the fill)', 'caliber': 'maker-only, per CHILD fill, notional-weighted, D=60s; fills whose +60s mark is not yet observable are EXCLUDED and counted, never valued at 0'}
+  OK    ★ the same symbol and id is still one execution (last row kept)
+
+[V] ★★★ the write contract as code
+  OK    ★★★ the three real chains carry 0 violations  — [[], [], []]
+  OK    V1 a second original for the key ⇒ duplicate_original
+  OK    V2 a supersede row with no earlier original ⇒ orphan_supersede
+  OK    V3 supersedes_trade_id ≠ trade_id ⇒ supersede_id_mismatch
+  OK    V4 a supersede that changes a fact column ⇒ supersede_changes_fact_columns naming the column  — [{'index': 1, 'key': ['PAXGUSDT', 131756668], 'kind': 'supersede_changes_fact_columns', 'detail': "differs from the original outside the mark columns: ['fill_notional']"}]
+  OK    V5 mark-only changes, a dropped mark_status and a row without trade_id are legal
+
+[C] ★★ chains stay legal; collapse takes the last row in write order
+  OK    C1 the real 1000RATSUSDT day has O,S,S chains (terminal expired row, then an import row)  — [3, 3, 2, 2, 3, 2]
+  OK    C2 collapse returns exactly the LAST written row of every key, in write order
+  OK    PRE: the 09-12 PAXGUSDT day holds one E1 flatten original with its mark pending
+  OK    C3 the E1 single original followed by a markout supersede (backfill_markout `_complete` shape) is legal
+  OK    C4 ...and collapse returns the supersede for that key
+  OK    C5 the real 09-09 B26b late originals (backfilled_utc, no supersedes) are originals, not violations  — 1
+
+[H] the live ledger under state/live/pilot_log (read-only, when present)
+  OK    H1 0 contract violations over 1 ledger day(s)  — {}
+
+18/18 checks passed
+ALL PASS
