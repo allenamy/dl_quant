@@ -84,13 +84,20 @@ def check(b):
         def b4():
             sd = f"{W}/snapshots/{A - 14400}"
             F("B4.aux_last_anchor", int(json.load(open(sd + "/aux.json"))["last_anchor"]) == A - 14400, f"{slot}: snapshot aux last_anchor")
-            miss = []
+            # attempt 1 matched SHA256SUMS names literally: the 1789200000 list carries repo-relative paths, so no s12 file was checked and the check
+            # passed vacuously (receipts G2C_BIND.attempt1_sums_vacuous.*). Names are now resolved by basename, the list's self-entry is skipped by name,
+            # and every data file present in the directory must be covered by a matching entry.
+            miss = []; covered = set()
             for line in open(sd + "/SHA256SUMS.txt"):
                 if not line.strip(): continue
-                d_, n_ = line.split(None, 1); n_ = n_.strip()
-                if os.path.exists(f"{sd}/{n_}"): F("B4.sums", sha(f"{sd}/{n_}") == d_, f"{slot}: {n_} sha != SHA256SUMS")
-                else: miss.append(n_)
-            info.setdefault("snapshot_sums_not_present", {})[slot] = miss
+                d_, n_ = line.split(None, 1); base = os.path.basename(n_.strip())
+                if base == "SHA256SUMS.txt": continue
+                if os.path.exists(f"{sd}/{base}"):
+                    covered.add(base); F("B4.sums", sha(f"{sd}/{base}") == d_, f"{slot}: {base} sha != SHA256SUMS")
+                else: miss.append(n_.strip())
+            present = {f_ for f_ in os.listdir(sd) if f_ != "SHA256SUMS.txt"}
+            F("B4.sums_cover", len(present) > 0 and present <= covered, f"{slot}: present but not covered by SHA256SUMS: {sorted(present - covered)}")
+            info.setdefault("snapshot_sums", {})[slot] = dict(covered=sorted(covered), listed_not_present=miss)
             for tag in ("f10", "kc", "fc"):
                 p_ = f"{fh}/fea171/state_H_{tag}_{A - 14400}.npz"
                 F("B4.state_H", os.path.exists(p_) and int(np.load(p_)["anchor"]) == A - 14400, f"{slot}: {p_}")
