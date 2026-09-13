@@ -1,0 +1,37 @@
+# W8 [G7] cell 2 -> C/F contract (commit 5feea3e) — RED CAPABILITY + the demonstration that motivated it
+# ledger = read-only copy of ~/dl_quant_live/state taken 2026-09-13T00:04:34Z
+# fixed runtime  = /Users/haosiyu/cc_tmp/w8_ledger_fe97e46 (reconcile.py @ bea37cf)
+# pre-fix runtime = /Users/haosiyu/cc_tmp/w8_old_c4ec464 (reconcile.py @ c4ec464, promotes C to F)
+# ==========================================================================
+## DEMONSTRATION (why the keys-only cell had to change) — the three contract fixtures through both runtimes:
+#   runtime: /Users/haosiyu/cc_tmp/w8_ledger_fe97e46
+#     open C4 (C=4 < Qv=8, not terminal)     W8=reject runtime_verdict={'C': 4.0, 'Qv': 8.0, 'final': False}            OLD-cell(keys)=DISAGREE  NEW-cell(final)=agree
+#     capacity closure (C == Qv)             W8=accept runtime_verdict={'C': 8.0, 'Qv': 8.0, 'final': True}             OLD-cell(keys)=agree  NEW-cell(final)=agree
+#     terminal + final (C < Qv)              W8=accept runtime_verdict={'C': 4.0, 'Qv': 8.0, 'final': True}             OLD-cell(keys)=agree  NEW-cell(final)=agree
+#   runtime: /tmp/w8_oldrt_probe
+#     open C4 (C=4 < Qv=8, not terminal)     W8=reject runtime_verdict=4.0                                              OLD-cell(keys)=DISAGREE  NEW-cell(final)=DISAGREE
+#     capacity closure (C == Qv)             W8=accept runtime_verdict=8.0                                              OLD-cell(keys)=agree  NEW-cell(final)=agree
+#     terminal + final (C < Qv)              W8=accept runtime_verdict=4.0                                              OLD-cell(keys)=agree  NEW-cell(final)=agree
+#   (OLD-cell = the delivered keys-only comparison; NEW-cell = per-request final-contract comparison)
+# ==========================================================================
+
+### A_fixed_runtime__ruler_finality_removed  — n_FAIL=2
+  FAIL  ★★★ ...and the ruler and the RUNTIME mean the SAME thing by "known" under the C/F contract — this file's clamp rule is written independently of `reconcile._clamp_rederived`; the ruler accepts a request EXACTLY when the runtime's verdict is PROVEN FINAL
+  FAIL  ★★★ ...and the rule accepts ONLY the clamp shape — a rule that turns UNKNOWN into KNOWN can only ever SHRINK a gap, so EVERY gate has a counter-example that must stay unknown: venue asked for MORE / opposite side / children do not sum / a non-origQty c
+    extra: [('CONTRACT-FIXTURE', 'SYNTH', 'OPEN-1', 'ruler', 4.0, 'runtime', {'C': 4.0, 'Qv': 8.0, 'final': False})]
+--- tail ---
+FAILURES: ['★★★ ...and the ruler and the RUNTIME mean the SAME thing by "known" under the C/F contract — this file\'s clamp rule is written independently of `reconcile._clamp_rederived`; the ruler accepts a request EXACTLY when the runtime\'s verdict is PROVEN FINAL, with the same confirmed quantity
+
+### B_prefix_runtime__new_test_file  — n_FAIL=1
+  FAIL  ★★★ ...and the ruler and the RUNTIME mean the SAME thing by "known" under the C/F contract — this file's clamp rule is written independently of `reconcile._clamp_rederived`; the ruler accepts a request EXACTLY when the runtime's verdict is PROVEN FINAL
+    extra: [('CONTRACT-FIXTURE', 'SYNTH', 'OPEN-1', 'ruler', None, 'runtime', 4.0)]
+--- tail ---
+FAILURES: ['★★★ ...and the ruler and the RUNTIME mean the SAME thing by "known" under the C/F contract — this file\'s clamp rule is written independently of `reconcile._clamp_rederived`; the ruler accepts a request EXACTLY when the runtime\'s verdict is PROVEN FINAL, with the same confirmed quantity
+
+### C_prefix_runtime__ledger_only_check  — n_FAIL=0
+    extra: [('CONTRACT-FIXTURE', 'SYNTH', 'OPEN-1', 'ruler', None, 'runtime', 4.0)]
+--- tail ---
+ALL PASS  (60 checks)
+
+# UNMUTATED on the fixed runtime: ALL PASS (60 checks); [G7]#2 extra:
+#   ledger 441 rows: 2 final / 0 open verdicts; fixtures: 2 final / 1 open — all agree

@@ -653,7 +653,7 @@ index e8fee1b..004a188 100644
  
  
 diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
-index 3142562..8766db0 100644
+index 3142562..b9e9186 100644
 --- a/live/tests_disposition_matrix.py
 +++ b/live/tests_disposition_matrix.py
 @@ -31,12 +31,32 @@
@@ -945,7 +945,7 @@ index 3142562..8766db0 100644
  def _resize_sig(rid):
      row = _row_by_rid.get(rid) or {}
      eb = row.get("external_book") or {}
-@@ -378,6 +599,72 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
+@@ -378,6 +599,74 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
            for rb in _rebuild) if _rebuild else True,
        {rb: (_next_traded_after(rb), round(_tr_split[_next_traded_after(rb)][1])
              if _next_traded_after(rb) else None) for rb in _rebuild})
@@ -999,8 +999,10 @@ index 3142562..8766db0 100644
 +       for b, f in _flat_facts.items()})
 +check("★★★ ...and the flatten's FEE is reported UNMEASURED, never summed as zero — the ladder "
 +      "writes `fee_paid` None on rows it never priced, and a batch holding any such row reports "
-+      "its fee as None. `fee or 0` would print 0.00 USDT of cost for 235,382.55 USDT of IOC taker "
-+      "execution. Closing it is an OPERATOR step (`ops/backfill_fills.py --day <d>`), still open",
++      "its fee as None. `fee or 0` would print 0.00 USDT of cost for a whole book of IOC taker "
++      "execution. This cell reads the ORDER layer, which is append-only: a backfill lands measured "
++      "commission on `fills` rows and never rewrites `fee_paid` here, so this count does NOT fall "
++      "when fees are recovered (the fills-layer split is in DESIGN §5)",
 +      all((f["fee_usdt"] is None) == (f["n_unmeasured"] > 0)
 +          and f["n_unmeasured"] + f["n_measured"] == f["n_rows"] for f in _flat_facts.values()),
 +      {b: (f["n_rows"], "rows /", f["n_unmeasured"], "fee-unmeasured / fee_usdt", f["fee_usdt"])
@@ -1018,24 +1020,63 @@ index 3142562..8766db0 100644
  # ★ 2026-08-18 尺子重标定: 原断言在 TOTAL(自愿+非自愿)上执行, 隐含前提"没有合法的大额
  #   自愿弃单"。当日 04:00Z 入金 resize(2×NAV, 目标增量 2.6×)被 no-chase 政策正确弃单
  #   1424 USDT(全部 deliberate, involuntary=0), 打破了按无大额重整时代标定的 0.25 界 ——
-@@ -429,6 +716,156 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
+@@ -429,6 +718,221 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
        and all(abs(_old_d[r] - _tr_split[r][0]) < 1e-2 for r in _traded if r not in _gt20),
        {r: (round(_old_d[r]), round(_tr_split[r][0])) for r in _gt20 if abs(_old_d[r] - _tr_split[r][0]) > 1.0})
  
 +# ── [G7] 的装置(全部在这里算好, 断言只做比较) ─────────────────────────────────────────────
 +import reconcile as RC                      # noqa: E402  运行时的读时重推, 作为第二实现来对账
-+_rc_disagree, _rc_checked, _rc_known_n = [], 0, 0
-+for _o in _all:
-+    _reqs = [r for r in (_o.get("request_ledger") or ()) if isinstance(r, dict)
-+             and r.get("state") not in ("rejected", "not_sent")]
-+    if not _reqs:
-+        continue
-+    _rc_checked += 1
-+    _mine = sorted(str(r.get("client_id")) for r in _reqs if _clamp_known(r) is not None)
-+    _theirs = sorted(str(c) for c in ((RC._rederive_ledger(_o) or {}).get("known") or {}))
-+    _rc_known_n += len(_mine)
-+    if _mine != _theirs:
-+        _rc_disagree.append((_o.get("rebalance_id"), _o.get("symbol"), _mine, _theirs))
++
++
++# ★ 2026-09-13 [G7] 第 2 格改到 C/F 合同(lead 字: 「按新合同更新, 不许放宽」)。原来这格比的是【键】:
++#   尺子接受的请求集合 == 运行时 `known` 的全部键。C4 修复后 `known` 装的是结构化裁定 {C, Qv, final},
++#   【仍开着的截量也在里面】(final=False), 而尺子只接受证明终局的 —— 两个集合的定义已经不同了。今天账本里
++#   只有两个终局截量, 所以这格碰巧绿; 账本里出现第一个开着的截量, 它会报「分歧」, 而两边其实都对。
++#   新合同逐请求: 尺子接受 ⇔ 运行时裁定为证明终局, 且两边接受时已确认量相同; 开着的截量两边都拒。
++def _rt_verdict_final(v):
++    """运行时对一个请求的裁定在 C/F 合同下的读数: True = 证明终局 / False = 截量形状但仍开着 / None = 无裁定。
++    当前合同是 dict {"C", "Qv", "final"}; 第一轮合同是裸数(那一轮把每个重推的截量都当终局)⇒ 读作 True ——
++    这样在一个把 C 提升成 F 的运行时上本格会【红】, 而不是崩或静默。"""
++    if v is None:
++        return None
++    if isinstance(v, dict):
++        return bool(v.get("final"))
++    return True
++
++
++def _rt_verdict_c(v):
++    return _fin(v.get("C")) if isinstance(v, dict) else _fin(v)
++
++
++def _contract_disagreements(rows):
++    """逐请求比对尺子与运行时 ⇒ (分歧清单, 终局裁定数, 开着裁定数, 带请求账本的行数)。"""
++    out, n_final, n_open, n_rows = [], 0, 0, 0
++    for o in rows:
++        reqs = [r for r in (o.get("request_ledger") or ()) if isinstance(r, dict)
++                and r.get("state") not in ("rejected", "not_sent")]
++        if not reqs:
++            continue
++        n_rows += 1
++        known = (RC._rederive_ledger(o) or {}).get("known") or {}
++        for r in reqs:
++            k = _clamp_known(r)
++            v = known.get(r.get("client_id"))
++            fin = _rt_verdict_final(v)
++            if fin is True:
++                n_final += 1
++            elif fin is False:
++                n_open += 1
++            ok = (k is not None) == (fin is True)
++            if ok and k is not None:
++                c = _rt_verdict_c(v)
++                ok = c is not None and abs(k[0] - c) < 1e-9
++            if not ok:
++                out.append((o.get("rebalance_id"), o.get("symbol"), r.get("client_id"),
++                            "ruler", (k[0] if k else None), "runtime", v))
++    return out, n_final, n_open, n_rows
++
++
++_rc_disagree, _rc_final_n, _rc_open_n, _rc_checked = _contract_disagreements(_all)
 +
 +# 截量判据的正控 = 12Z MEMEUSDT 的真请求(逐字), 六条反控各打掉一道门。
 +_REQ_OK = {
@@ -1087,6 +1128,26 @@ index 3142562..8766db0 100644
 +]
 +
 +
++def _fx_row(cid, **req):
++    """合同夹具: 我们要 10、场所接受 8 的 reduce-only 请求, 其余字段按格给。"""
++    r = {"client_id": cid, "state": "confirmed", "terminal": False, "confirmed_qty_final": False,
++         "reduce_only": True, "qty": 10.0, "qty_venue": 8.0,
++         "inconsistent": f"{cid}: identity: response origQty 8.0 differs from ours 10.0"}
++    r.update(req)
++    return {"symbol": "SYNTH", "rebalance_id": "CONTRACT-FIXTURE", "request_ledger": [r],
++            "ledger_inconsistent": [{"client_id": cid, "why": r["inconsistent"]}]}
++
++
++# 账本今天只有终局截量 —— 所以两个分支都要有夹具, 否则「开着的截量两边都拒」这半条合同从未被执行过。
++_CONTRACT_FX = [
++    _fx_row("OPEN-1", confirmed_qty=4.0, trade_qty={"t": 4.0}, trade_quote={"t": 4.0}),   # 研究员 C4: 开着
++    _fx_row("CAP-1", confirmed_qty=8.0, trade_qty={"t": 8.0}, trade_quote={"t": 8.0}),    # 容量闭合: 终局
++    _fx_row("FIN-1", confirmed_qty=4.0, terminal=True, confirmed_qty_final=True,
++            trade_qty={"t": 4.0}, trade_quote={"t": 4.0}),                                 # terminal+final: 终局
++]
++_fx_disagree, _fx_final_n, _fx_open_n, _ = _contract_disagreements(_CONTRACT_FX)
++
++
 +def _as_traded(rid):
 +    """把一个停机锚【当交易锚】读会得到什么 —— HALTED 类的承重对照(同一拆分算术)。"""
 +    g = _by[rid]
@@ -1124,11 +1185,17 @@ index 3142562..8766db0 100644
 +           "= Σ|intended| of", len([t for t in _rejudged if t[0] == r]), "clamped rows",
 +           round(sum(abs(t[3]) for t in _rejudged if t[0] == r), 4),
 +           "-> re-judged", round(_tr_split[r][1], 4)) for r in _rj_anchors})
-+check("★★★ ...and the ruler re-judges the SAME requests the RUNTIME now re-derives — this file's "
-+      "clamp rule is written independently of `reconcile._clamp_rederived`, and the two agree on "
-+      "every request in the whole production ledger. Two instruments, one fact (and if they ever "
-+      "part, the ruler and the book have stopped meaning the same thing by \"known\")",
-+      not _rc_disagree, _rc_disagree or f"{_rc_checked} rows cross-checked, {_rc_known_n} clamped")
++check("★★★ ...and the ruler and the RUNTIME mean the SAME thing by \"known\" under the C/F contract — "
++      "this file's clamp rule is written independently of `reconcile._clamp_rederived`; the ruler "
++      "accepts a request EXACTLY when the runtime's verdict is PROVEN FINAL, with the same confirmed "
++      "quantity, and both reject a clamp that is still OPEN. Checked on every request in the "
++      "production ledger AND on three contract fixtures (an open C4 request / capacity closure / "
++      "terminal+final), because today's ledger holds only final clamps: a ledger-only check would "
++      "stay green for a runtime that promotes C to F again",
++      not _rc_disagree and not _fx_disagree and _fx_final_n >= 1 and _fx_open_n >= 1,
++      (_rc_disagree + _fx_disagree)
++      or f"ledger {_rc_checked} rows: {_rc_final_n} final / {_rc_open_n} open verdicts; "
++         f"fixtures: {_fx_final_n} final / {_fx_open_n} open — all agree")
 +check("★★★ ...and the rule accepts ONLY the clamp shape — a rule that turns UNKNOWN into KNOWN can "
 +      "only ever SHRINK a gap, so EVERY gate has a counter-example that must stay unknown: venue "
 +      "asked for MORE / opposite side / children do not sum / a non-origQty contradiction / the "

@@ -1,4 +1,4 @@
-> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(W8 §5)· 2026-09-13 01:5xZ(W8 §6) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 尺子第七次重标定** → **§6 C4–C8 收紧(独立研究员 0158f5d1 §3.A: C 是累计下界, F 才是量)。当前链: (a)(b) = `bea37cf`, (c) = `69a24bb` (= 原 (c) cherry-pick 到其上, 内容逐字未变); 分支 `fix/e0912a-reduce-only-clamp` → `69a24bb`; 备份分支 `w8-backup-pre-recal7` = `3308cbc`, `w8-backup-pre-c4fix` = `8e8510c`。§4 正文的 `fe97e46`/`3308cbc`、§5 的 `c4ec464`/`8e8510c` 都是当时的头, 保留不改写; **部署动词请用 §6.4 的 sha**。未部署; 部署与恢复 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
+> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(W8 §5)· 01:5xZ(W8 §6)· 03:xxZ(W8 §6.6–6.7 + lead 裁定入 §5.5) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 尺子第七次重标定(lead 已接受, 研究仓 4442f6d5)** → **§6 C4–C8 收紧(独立研究员 0158f5d1 §3.A: C 是累计下界, F 才是量)+ §6.6 `[G7]`#2 改到 C/F 合同 + §6.7 全历史平仓费用回填提案(待裁定, 未执行)。当前链: (a)(b) = `5feea3e`(= `bea37cf` C4–C8 + `[G7]`#2 合同), (c) = `595de41` (= 原 (c) cherry-pick 到其上, 内容逐字未变); 分支 `fix/e0912a-reduce-only-clamp` → `595de41`; 备份分支 `w8-backup-pre-recal7` = `3308cbc`, `w8-backup-pre-c4fix` = `8e8510c`。§4/§5/§6.1–6.5 正文里的 sha 都是当时的头, 保留不改写; **部署动词请用 §6.8 的 sha**。未部署; 部署、恢复与回填 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
 
 # DESIGN W6: E-0912-A 修复 —— reduce-only 截量不是矛盾, 全退出按持仓张数下单, 局部「未知」不平全书
 
@@ -128,7 +128,7 @@ W1/W2/E1 的克隆把运行树 `state/live`(43 日账本)整棵复制进克隆, 
 | F11 | 把这 16 个停机锚**当交易锚读**, 非自愿缺口 **4,169 – 235,320 USDT**, 每一个都远超 200U | 测试运行时用同一拆分算术重算 | 停机类是承重的, 不是分类装饰 | ③ | `[G7]` 第 4 格 |
 | F12 | 16Z **A1789230240**(245 行 = 243 `blocked_by_halt` + 2 `skipped_min_notional`, target 235,335.37)与 20Z **A1789244640**(target 235,286.47)正是这个形态 —— 今天新增的两个 | orders + anchors | 尺子没把它们读成「巨额非自愿缺口的交易锚」(它们本来就落在 `_halted`, 但此前只被那条绝对界描述) | ③ | 同上, 逐锚点名 |
 | F13 | `protective_flatten` 行 **1,704/1,708 `fee_paid` 为 None**(另 4 行是 08-05 那批的真 0.0)。`fee or 0` 的读法会在 235,382.55 USDT 的 IOC taker 执行上打印 **0.00 USDT 成本** | 全扫 | 费用三态纪律(与 `fee_paid` / `filled_notional` 同一条)必须贯到这个类 | ② | `[E]` 费用格(任一行未测 ⇒ 本批 `fee_usdt = None`)+ `[G7]` 第 6 格(夹具: None 与 0.0 分桶) |
-| F14 | 回填这 255 笔的佣金是**操作员未做步骤**: `LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912`(需凭据), §4.7 第 6 条已记 | DESIGN §4.1 (6) / §4.6 | 断言的是「尺子**报告**它未测」, 不是「它永远未测」—— 回填后 `fee_usdt` 变成数字, 该格仍绿 | ② | `[E]` 费用格写成蕴含式 |
+| F14 | ★ **费用盲区覆盖全部历史保护性平仓, 不只是 09-12 那 255 行 / 235,383 USDT**(lead 09-13 要求写明): 订单层 **10 批 / 1,708 行 / 738,216.00 USDT / 1,704 行 `fee_paid` 为 None**。按**佣金实际所在的层**再分(`fills` 行才带佣金, 订单行 append-only 永不改写): **(a)** 09-09 `FLATTEN-20260909T164536Z` 243 行 / 232,756.97 USDT —— **fills 层已测**: 3,095 笔唯一成交(账本里各写了两遍: 一遍 `rebuilt_from_venue`, 一遍 `backfilled_utc`, `collapse_supersedes` 后 3,095), 243 名全覆盖, 佣金全在, 币种 **BNB + USDT 混合**(原始合计 116.3785 **不是** USDT 数); **(b)** 09-12 255 行 / 235,382.55 USDT —— 未测, 但**现工具可归属**(255 个 `client_id`); **(c)** 其余 **8 批 / 1,210 行 / 270,076.47 USDT**(08-01 / 08-02 / 08-05×2 / 08-21×2 / 08-26 / 09-06)—— 未测, 且**现工具无法归属**: 09-10(`d73b1b0`)之前的 `flatten_all` 下单**不发 client id**(订单 dict 只有 symbol/side/quantity/reduce_only/tif), 账本行也没有 order id, 而 `order_legs_from_venue` 在 `client_ids` 为空时退回 `FLATTEN-<ts>-` 前缀匹配 ⇒ 0 条腿 ⇒ 工具拒写 | orders + fills 全扫; `find_gaps` 离线纯函数逐日跑(不建 broker); `git show d73b1b0^:live/binance_broker.py` `flatten_all` | 「用凭据跑一遍回填」**关不掉 8/10 批**; 真正可补的只有 09-12; 09-09 已在 fills 层测过 | ② | `[E]` 费用格措辞更正(见 §6.6): 它读**订单层**, 回填后计数**不会下降** —— 原文「回填后 `fee_usdt` 变成数字」**是我写错的** |
 
 ### 5.2 改了什么(`live/tests_disposition_matrix.py`, 零运行时文件改动)
 
@@ -182,7 +182,7 @@ W1/W2/E1 的克隆把运行树 `state/live`(43 日账本)整棵复制进克隆, 
 | 电池 **对照**(干净 `918559f` + **逐字节相同**的账本快照) | **132 套 / 130 绿 / 2 红** = `tests_env_loading` + **`tests_disposition_matrix`** —— 后者就是 (iv) 的旧码红, 在电池层面又证了一遍。少 2 套是因为 (a)(b) 新增了 `tests_reduce_only_clamp` 与 `tests_flatten_fee_backfill`。**§4.3 当时的另外两红(`tests_alarm_digest` / `tests_break_split_wiring`)在本快照上两棵树都绿** —— 差别是**账本**(本快照含近 24h 可读告警; 最新对账锚已是 20Z 停机锚, 不再是 12Z 那个锚), 不是代码。日志 `docs/receipts/w8_disposition_recal7_battery_918559f_control.log` |
 | 运行时影响 | **零** —— 本次只改 `live/tests_disposition_matrix.py`(+379 −6); 运行树 `~/dl_quant_live` 与生产者 `~/wide_shadow` 全程只读(只 `rsync -a` **出**账本, 没有写回), 无网络、无场所/Telegram 调用。**一处如实说明**: 全量电池里的 `tests_env_loading` 会在**干净子进程里 import**(不是运行)`ops/ic_monitor.py` 等四个模块来检查它们是否在 import 时装载 TELEGRAM_* —— 那是该套件的断言本身; `ic_monitor.py` 有 `if __name__ == "__main__"` 守卫, 模块层只绑常量并指向**克隆自己的** `state/`, 对运行树零接触。除此之外没有以任何形式调用过 `ops/ic_monitor.py` |
 
-### 5.5 与 lead 规格的一处**刻意差异**(请裁定)
+### 5.5 与 lead 规格的一处**刻意差异**(**已裁定: 接受**, 见本节末)
 
 lead 的 (ii) 写的是「TRIP-FLATTENED 是**那个锚**的新类, 因为看门狗平仓让它**既不是普通稳态交易锚也不是停机锚**」。
 **我把类做在了平仓批次上, 并且没有把 12Z 锚移出稳态人口。** 理由是事实:
@@ -194,6 +194,10 @@ lead 的 (ii) 写的是「TRIP-FLATTENED 是**那个锚**的新类, 因为看门
 所以这一格是**净增断言 + 零豁免**。若 lead 仍要「该锚移出稳态人口」, 那是一次独立裁定, 我不替选;
 真做的话改一行(`_steady_ids` 再排除 `_trip_anchors`), 但那会让 `[G7]`#1 的末句断言(`_rj_anchors ⊆ _steady_ids`)失效, 需要同时重写。
 
+> **★ lead 裁定(2026-09-13, 转述原字)**: 「**这处刻意差异接受, 而且是更好的设计。** 把 TRIP-FLATTENED 放在平仓**批次**上、
+> 12Z 锚留在稳态人口是对的: 重判后那个锚按自身成绩过 200U 线, 豁免它在规则 (v) 下就是放宽。你的盲区证明
+> (删掉批次 `[E]` 一位不变)正是我要的承重证据。」—— 本节不再是待裁定项。重标定 #7 已入研究仓 `4442f6d5`。
+
 ### 5.6 未能验证 / 边界
 
 1. **`[G7]`#2 把尺子绑在了运行时上**: 本文件 `import reconcile` 并与 `_clamp_rederived` 逐请求对账。
@@ -202,8 +206,11 @@ lead 的 (ii) 写的是「TRIP-FLATTENED 是**那个锚**的新类, 因为看门
 2. **两条规则有一处刻意不同**: 我方额外要求子成交 `trade_quote` 齐全可读(说得出张数说不出金额, 仍算读不出),
    `reconcile._clamp_rederived` 只定张数。今天账本上两者判出的请求集合相同; 若将来出现「有 trade_qty 无
    trade_quote」的截量行, `[G7]`#2 会红, 届时要按事实裁定是谁更对, **不要直接放宽**。
-3. **平仓费用回填是操作员未做步骤**(F14): 断言的是「尺子报告它未测」, 不是「它永远未测」。回填后
-   `fee_usdt` 变数字, `[E]` 费用格仍绿(蕴含式), `[G7]`#6 是夹具格不受账本影响。
+3. **平仓费用回填是操作员未做步骤**(F14): 断言的是「尺子报告它未测」, 不是「它永远未测」。
+   ~~回填后 `fee_usdt` 变数字~~ —— **更正(09-13)**: 回填把佣金写进 `fills` 行, 订单行 append-only 永不改写,
+   `[E]` 费用格读订单层, 所以回填后它**照样**报未测、照样绿(蕴含式成立), 但**不会**因为费用被补回而变化。
+   尺子若要看到补回的费用, 需要另读 fills 层 —— 那是一次新的重标定, 未做。`[G7]`#6 是夹具格不受账本影响。
+   **操作员命令的提案见 §6.7**(全历史, 待 lead 裁定, 未执行)。
 4. **`_containing_anchor` 用「anchor_ts ≤ 批次 ts 的最后一个 anchors 行」定区间**, 不是真正的区间上界;
    今天 10 批全部落在交易锚里且 Σ|filled| 与该锚 realized 差 ≤0.11%, 所以这个近似在账本上被验证过 ——
    但它在「平仓发生在下一个锚行写出之后」这种边界上没有正控。
@@ -296,3 +303,104 @@ lead 的 (ii) 写的是「TRIP-FLATTENED 是**那个锚**的新类, 因为看门
    不在 anchors.jsonl 的集合, 所以**改名会让该格变红**, 不是静默纳入。失败方向是保守的(红, 不是漏), 但注释与代码说反话,
    正是本文件开头警告的那类错。没在本轮改, 是为了不让交付的头再换一次 sha 而没有对应的电池; 修它只动注释。
 6. **未做**: 没有执行 `resume_from_trip.sh`, 没有回填平仓费用(仍是操作员步骤), 没有部署。
+
+### 6.6 追加(lead 09-13 字): `[G7]` 第 2 格改到 C/F 合同, 不许放宽 —— 提交 `5feea3e`(测试文件 only)
+
+| # | 事实 | 在哪测的 | 后果 | 改法 |
+|---|---|---|---|---|
+| H1 | 原格比的是**键**: 尺子接受的请求集合 == `reconcile._rederive_ledger` 的 `known` **全部键** | `tests_disposition_matrix.py` `[G7]` 装置 | C4 之后两个集合**定义不同**: `known` 里有开着的截量(`final=False`), 尺子只收终局的 | 逐请求比 |
+| H2 | 今天账本 441 个带请求账本的行: **2 个终局裁定 / 0 个开着的** | 测试运行时重算 | 原格在真账本上**碰巧**绿 | 加两分支夹具 |
+| H3 | 合成演示: 研究员的开着 C4 夹具在**修后**运行时上 —— 尺子拒、运行时 `{C 4, Qv 8, final False}`, 原格报 **DISAGREE**(两边其实都对); 新合同格 agree | `/tmp` 演示, 两个运行时各跑一遍 | 原格会在账本出现第一个开着的截量时**假红** | — |
+| H4 | 同一演示在**修前**运行时(`c4ec464`, 返回裸数 4.0 = 声称终局)上: 新合同格 **DISAGREE** | 同上 | 新合同格能分辨「正确运行时」与「把 C 提升成 F 的运行时」; 原格两个都报分歧, 分辨不了 | 裸数裁定读作「终局」 |
+
+**新合同**(逐请求): 尺子接受 ⇔ 运行时裁定为**证明终局**, 且两边接受时已确认量相同; 开着的截量两边都拒。
+另加三个合同夹具(研究员的开着 C4 / 容量闭合 / terminal+final), 要求终局 ≥ 1 且开着 ≥ 1 —— 否则「开着两边都拒」
+这半条合同从来没被执行过。格数不变(60/60): 这格是**被加严**, 不是新增。
+
+**红能力**(同一快照, 收据 `w8_g72_contract_mutants.log`):
+
+| 突变 | 预期 | 实测 |
+|---|---|---|
+| A 修后运行时 + 尺子 `_clamp_known` 去掉终局门 | 本格红 | **本格红**(另负控格红) |
+| B **修前**运行时 `c4ec464` + 新测试文件 | 本格红 | **仅本格红** |
+| C 修前运行时 + 本格只查账本、不查夹具 | 绿(证明夹具才承重) | **绿** |
+
+另: `[E]` 平仓费用格的措辞**我写错过** —— 原文「由操作员回填关闭」。回填落在 fills 行, 订单行不改, 该格读订单层,
+回填后计数不会下降。已改为如实描述(见 §5 F14 更正)。
+
+### 6.7 操作员命令提案: 全历史平仓费用回填(**待 lead 裁定, 未执行, 未以任何模式跑过**)
+
+**先说结论**: 按现有 `ops/backfill_fills.py`, 「全历史跑一遍」**只能真正补回 09-12 一批**(255 行 / 235,382.55 USDT)。
+09-09 那批 fills 层已测, 不需要。其余 **8 批 / 1,210 行 / 270,076.47 USDT 现工具补不回**: 当年下单没发 client id,
+账本行也没有 order id, 工具重建出 0 条腿后按设计拒写。所以下面的命令是**测量 + 补 09-12**, 不是「关闭历史盲区」。
+
+**工具事实**(读源码, `5feea3e`): 只接受单个 `--day YYYYMMDD` 与 `--apply`; `LIVE_MODE` 默认 **TESTNET**(读的是 testnet 的 pilot_log 根);
+「只报告」模式**不是离线的** —— `find_gaps` 一旦找到缺口, `run()` 就 `BinanceBroker(mode).arm()` 并对每个缺口调
+`allOrders` / `userTrades`, 只是不写盘; 两个查询都只带 `startTime`, 本仓 `docs/API_SEMANTICS.md` 没有记录这种查询能回溯多远
+(`ops/gate_coverage.py` 明写这是盲区)⇒ **报告本身就是那次测量**。
+
+**离线预判**(`find_gaps` 纯函数逐日跑在只读快照上, 未建 broker):
+
+| 日目录 | 平仓批次 | 缺 fills 的名 | client id | 预判 |
+|---|---|---|---|---|
+| 20260801 | `FLATTEN-20260801T201827Z` | 105/105 | 0 | 0 条腿 ⇒ 拒写 |
+| 20260802 | `FLATTEN-20260802T041821Z` | 83/83 | 0 | 0 条腿 ⇒ 拒写; **同一次运行还会查普通调仓批 `A1785657675`(缺 22 名)** |
+| 20260805 | `…T001853Z` / `…T121829Z` | 108/108 · 102/102 | 0 · 0 | 拒写 · 拒写 |
+| 20260821 | `…T121630Z` / `…T201600Z` | 108/108 · 102/102 | 0 · 0 | 拒写 · 拒写 |
+| 20260826 | `FLATTEN-20260826T124702Z` | 334/334 | 0 | 拒写 |
+| 20260906 | `FLATTEN-20260906T084608Z` | 268/268 | 0 | 拒写 |
+| 20260909 | — | 无缺口(fills 已有 3,095 笔唯一成交) | 0 | 无事可做 |
+| 20260912 | `FLATTEN-20260912T124737Z` | 255/255 | **255** | **可归属**(若场所仍回得出) |
+
+**提案命令**(在运行树跑, 那里有凭据; 解释器与电池同一个 `/usr/bin/python3`):
+
+```bash
+# 第 1 步 —— 全历史报告(会用凭据读场所, 不写盘)。先读报告, 再决定第 2 步。
+cd ~/dl_quant_live
+mkdir -p ~/backfill_reports_20260913
+for d in 20260801 20260802 20260805 20260821 20260826 20260906 20260909 20260912; do
+  LIVE_MODE=LIVE /usr/bin/python3 ops/backfill_fills.py --day "$d" \
+    > ~/backfill_reports_20260913/report_"$d".json
+done
+
+# 第 2 步 —— 只对报告里「n_legs_rebuilt_from_venue > 0、无 warning、symbols_unreached 为空」的日子 --apply。
+# 按离线预判, 这只会是 09-12:
+LIVE_MODE=LIVE /usr/bin/python3 ops/backfill_fills.py --day 20260912 --apply \
+  > ~/backfill_reports_20260913/apply_20260912.json
+
+# 第 3 步 —— 幂等复核: 再报告一次 09-12, 应得 n_rows_written 0 且 n_rows_already_present == n_rows_recoverable。
+LIVE_MODE=LIVE /usr/bin/python3 ops/backfill_fills.py --day 20260912 \
+  > ~/backfill_reports_20260913/recheck_20260912.json
+```
+
+**每份报告要读的字段**: `n_gaps`; 每个 result 的 `warning`(拒写原因)、`n_legs_rebuilt_from_venue`、`n_trades_seen`、
+`n_trades_unattributed`、`n_rows_recoverable`、`symbols_unreached`、`read_failures`。
+
+**需要 lead 另行裁定的三件事**:
+1. **`--day 20260802 --apply` 会连带写普通调仓批 `A1785657675` 的补回 fills 行**(不是平仓) —— 是否要它, 单独裁。
+2. **8 批补不回的平仓要不要改工具**: `state/live/watchdog/events.jsonl` 保留了每个跳闸日的平仓下单回包。按平仓形状
+   (`submit` 动作 ∧ `reduce_only` ∧ `tif=IOC`)逐日数「带回包 orderId 的动作」: 08-01 **105** · 08-02 **83** · 08-05 **210** ·
+   08-21 **210** · 08-26 **334** · 09-06 **268** · 09-09 **243** —— **与当日平仓订单行数逐日完全相等**(另各有 1–2 条无 orderId 的动作,
+   即下单失败那几条); 09-12 为 256 对 255 行。`userTrades` 本身按 orderId 归属, 所以按 events 里的 orderId 联接**在原则上能覆盖
+   全部历史平仓行**。但那是**工具改动**(新联接源 + 测试 + 旧码红), 不是命令; 且场所对只带 `startTime` 的查询能回溯到 08-01 与否未知。
+   不改的话, 这 1,210 行的费用只能标成「未测」或用 5 bps 这类**标明为估计**的数, 不能写成测得。
+3. **09-09 那批的 fills 行在账本里写了两遍**(6,190 = 2 × 3,095; 一遍 `rebuilt_from_venue`, 一遍 `backfilled_utc`, 无 `supersedes`)。
+   `collapse_supersedes` 读出 3,095; 任何不经它直接求和的费用读者会**翻倍**。佣金币种 BNB + USDT 混合, 换算要走现有 `fee_conversion`。
+
+**即使三步都做完**: 订单层 `fee_paid` 为 None 的计数仍是 **1,704**(append-only), 尺子 `[E]` 费用格照报未测;
+研究员另指出的两处继承边界仍在 —— `find_gaps` 按 (批, 名) 有任一 fill 即不算缺口(部分成功后的重跑看不出缺),
+`existing_trade_ids` 只按裸 trade_id 去重(跨 symbol 撞号会误删新行)。第一次完整拉取不受前者影响(09-12 当前 0 行 fills)。
+
+### 6.8 收据(本节终态; 部署动词用这里的 sha)
+
+| 件 | 值 |
+|---|---|
+| (a)(b) 头 | **`5feea3e9d1350d68700c329ccf16c703c338ed58`** = `bea37cf`(C4–C8, §6.1–6.5)+ `[G7]`#2 合同(§6.6, 测试文件 only)。两个都是新提交, 未 amend 任何已报告的头 |
+| 分支尖端 | **`595de41168d0eb44766bf319966e4946c274f39f`** = 原 (c) cherry-pick 到 `5feea3e` 上; `git diff 8e8510c 595de41` 只有 (a)(b) 那三个文件 ⇒ (c) 自身内容逐字未变 |
+| `w6_reduce_only_clamp_ab.diff` | `git diff 918559f 5feea3e`; **26 文件 / +9,033 −46**; sha256 **`b1be2bdda51c01828cff5ace88832566744de02800d93f081d88560c74b61e9f`**(上一版 `fd9ac31a…`) |
+| `w6_proportional_response_c.diff` | `git diff 5feea3e 595de41`; 7 文件 / +859 −6; sha256 **`15d29d99faad2f1ad5597a89da1c1686ca94d2d94adc24c6ab1a4e4327912d5c`** —— 与 `bea37cf` 那一版**逐字节相同**(本轮只动尺子文件, (c) 不碰它, 上下文行没动) |
+| 套件 @ `5feea3e` | `tests_reduce_only_clamp` **87/87**(T9a / T9b 看门狗 §4-5b CLEAN, §4-7 CLEAN)· `tests_disposition_matrix` **60/60**(`[G7]`#2 extra: 账本 441 行 2 终局 / 0 开着; 夹具 2 终局 / 1 开着; 全一致)。`w8_g72_tests_reduce_only_clamp_5feea3e.log` · `w8_g72_tests_disposition_matrix_5feea3e.log` |
+| `[G7]`#2 红能力 | A / B 红、C 绿, 全在预期格: `w8_g72_contract_mutants.log`(含促成本次改动的双运行时演示) |
+| 电池 (a)(b) 头 | @ `5feea3e`, stamp `20260913T024857Z`: **134 套 / 133 绿 / 1 红** = `tests_env_loading`(克隆无 `.env`)。`w8_g72_battery_5feea3e_ledger.log` |
+| 电池 分支尖端 | @ `595de41`, stamp `20260913T030452Z`: **135 套 / 134 绿 / 1 红** = `tests_env_loading`; (c) 的 `tests_unknown_size_local_response` 与 `tests_position_break_blindspot` rc 0。`w8_g72_battery_595de41_ledger.log` |
+| 快照与运行时 | 同 §5 只读快照 `2026-09-13T00:04:34Z`; 运行树 `~/dl_quant_live` HEAD 仍 `918559f`、全程只读; 回填命令**未以任何模式执行**; 无网络、无场所/Telegram 调用; 未提交研究仓 |
