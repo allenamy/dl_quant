@@ -43,7 +43,7 @@
 - **fx-prod: August-zip P9 table delivered (2026-09-14; verified locally, bytes 2,008,476):**
   - **Pinned FND input:** `/Users/haosiyu/cc_tmp/fx_prod/work/p9/P9_declared_interval_table_2026-07-01_2026-09-13T12Z_zipszips_2026-08.csv.gz`, sha256 **366763a4aae854b2415fb461334efe95c1a74f93fc9e81c112c6138b16ec3197**. Receipts: `FX_PROD/receipts/p9/RECEIPT_P9_declared_interval_table_zips_2026-08.json` and `MANIFEST_zips_2026-08.json`. Same columns as b797c85f.
   - **Zip pull:** 680 zips at HTTP 200, 152 at 404; 0 source conflicts.
-  - **Producer labels contradicted by the zip:** COTI 08-31 20Z (1→4) and ONG 08-25 08Z (2→4). Seed rows: DOS 08-11 16Z (8→4) and ERA 08-06 16Z (4→1). The other 533 D17 rows (ACE, BANK, DEXE, ERA, PROM; 08-01..08-14) are confirmed row by row.
+  - **Producer labels contradicted by the zip:** COTI 08-31 20Z (1→4) and ONG 08-25 08Z (2→4). ERA 08-06 16Z (4→1) is a seed row. DOS 08-11 16Z (8→4) is **not** a seed row; fx-prod corrected this in commit 3012a6af. It is DOS's first settlement, which the producer cold-started at M1 (09-04) with the first-row default label 8. That places it in the cold-start first-row family, with 07-26 08Z ×61 and ILV 09-04. The values and the table sha are unchanged. The other 533 D17 rows (ACE, BANK, DEXE, ERA, PROM; 08-01..08-14) are confirmed row by row.
   - **Caveat:** 16 August TradFi rows have calc_time 1 s past the hour; they are keyed to the nearest settlement hour (tolerance 60 s). T and SKR stay unresolved until the September zip exists.
   - **Still true:** the table does not read r6_fund_sep. ⇒ FND panels on resume use this table: 366763a4 replaces b797c85f.
 - **p2-oos-replay (replied):**
