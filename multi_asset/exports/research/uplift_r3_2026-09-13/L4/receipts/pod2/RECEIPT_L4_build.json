@@ -1,0 +1,241 @@
+{
+ "device": "l4_build.py",
+ "device_sha256": "e3ff9846bf4e9b5a9c2177332661a3efb794db0c97f0811373cc5e5cbbf9a05e",
+ "run_utc": "2026-09-13T11:38:55Z",
+ "prereg_sha256": "ced2f73f10b1d32377d469ddd64b4ee6614d0925c9be182bd09ff2f16a52cc8b",
+ "env_actual": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "PATH": "/usr/bin:/bin"
+ },
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "affinity": [
+  40,
+  41,
+  42,
+  43,
+  44,
+  45,
+  46,
+  47
+ ],
+ "out_dir": "/workspace/uplift_r3_2026-09-13/L4/work",
+ "inputs": {
+  "FUND": {
+   "path": "/workspace/fund_aug.json.gz",
+   "sha256": "8a9e771577602dd1875a87fb07f982bc2c255e740966f911469420a44a53a8c2",
+   "known": "8a9e771577602dd1875a87fb07f982bc2c255e740966f911469420a44a53a8c2",
+   "equal": true
+  },
+  "SETT": {
+   "path": "/workspace/review_scratch/allweather_trackC/carry_layers/data/sett_tables.npz",
+   "sha256": "f1c336298fc872997d3f8d9ae3093cc6e123705d11508fe049448082d5fa03cc",
+   "known": "f1c336298fc872997d3f8d9ae3093cc6e123705d11508fe049448082d5fa03cc",
+   "equal": true
+  },
+  "T7": {
+   "path": "/workspace/uplift_r2_2026-09-13/T7/receipts/T7_universe_elig.npz",
+   "sha256": "a530e123a13d172272a1f36c300eccba945ec8d2303f32556db844c65e256bfb",
+   "known": "a530e123a13d172272a1f36c300eccba945ec8d2303f32556db844c65e256bfb",
+   "equal": true
+  },
+  "A1": {
+   "path": "/workspace/review_scratch/allweather_trackA/features/a1_feat_shift0.npz",
+   "sha256": "8136537f593a65004b2df7ae335a37b093188cf534c02b43b41449703eca307a",
+   "known": "8136537f593a65004b2df7ae335a37b093188cf534c02b43b41449703eca307a",
+   "equal": true
+  },
+  "MAP": {
+   "path": "/workspace/review_scratch/allweather_trackA/spot/perp_to_spot_map.json",
+   "sha256": "b17eb0ba8fb50894bd268cdc79ba382d8c6bf07a43f38886ad8bfab9d0ee717a",
+   "known": "b17eb0ba8fb50894bd268cdc79ba382d8c6bf07a43f38886ad8bfab9d0ee717a",
+   "equal": true
+  },
+  "S3": {
+   "path": "/workspace/review_scratch/allweather_trackA/spot/s3_spot_symbols.json",
+   "sha256": "d2b21f1e8aa1eec8dca45f27911a98d3c6503a482dbe776caf0b230f4b3cdd9d",
+   "known": "d2b21f1e8aa1eec8dca45f27911a98d3c6503a482dbe776caf0b230f4b3cdd9d",
+   "equal": true
+  },
+  "R5": {
+   "path": "/workspace/uplift_2026-09-11/r5_basis/basis_panel.npz",
+   "sha256": "f974317a4988916549cfb0a3a03c2114a69c8370cb9845e8c964fc4dfde08310",
+   "known": "f974317a4988916549cfb0a3a03c2114a69c8370cb9845e8c964fc4dfde08310",
+   "equal": true
+  },
+  "T6_42": {
+   "path": "/workspace/uplift_r2_2026-09-13/T6/receipts/T6_SERIES_s42.npz",
+   "sha256": "a3120f298395cf03346bbdf038aaca2dcfbed25df28a25207788da940d98351e",
+   "known": "a3120f298395cf03346bbdf038aaca2dcfbed25df28a25207788da940d98351e",
+   "equal": true
+  },
+  "T6_2027": {
+   "path": "/workspace/uplift_r2_2026-09-13/T6/receipts/T6_SERIES_s2027.npz",
+   "sha256": "74d4b88d602a0093d999be1f7c546abda832cb1acf1bd3064b82ca9fd6d3a3ee",
+   "known": "74d4b88d602a0093d999be1f7c546abda832cb1acf1bd3064b82ca9fd6d3a3ee",
+   "equal": true
+  },
+  "EXT_CACHE": {
+   "path": "/workspace/data/dlnative_5m_wide829_f16_ext.npz",
+   "size": 2076379100,
+   "mtime_utc": "2026-09-01T01:52Z",
+   "sha256": "not hashed (5.7 GB; only symbols.npy member read)"
+  }
+ },
+ "gates": {
+  "G-IN": {
+   "pass_": true,
+   "detail": {
+    "FUND": true,
+    "SETT": true,
+    "T7": true,
+    "A1": true,
+    "MAP": true,
+    "S3": true,
+    "R5": true,
+    "T6_42": true,
+    "T6_2027": true,
+    "EXT_CACHE": null
+   }
+  },
+  "G-ALIGN": {
+   "pass_": true,
+   "detail": {
+    "symbols_T7_eq_R5": true,
+    "symbols_T7_eq_EXTCACHE_a1_order": true,
+    "fund_keys_subset": true,
+    "n_fund_keys": 827,
+    "fund_missing": [
+     "DOTECOUSDT",
+     "LENDUSDT"
+    ],
+    "W_subset_T7": true,
+    "R5_covers_W_and_next": true,
+    "A1_covers_W": true,
+    "T6_ts_eq_W": {
+     "42": true,
+     "2027": true
+    },
+    "map_targets_in_S3": true,
+    "map_keys_in_symbols": true,
+    "a1_E_contiguous": true,
+    "r5_E_contiguous": true
+   }
+  },
+  "G-A0": {
+   "pass_": true,
+   "detail": {
+    "s42_FROZEN_SR": {
+     "got": 2.93571303735249,
+     "want": 2.93571303735249,
+     "tol": 1e-09,
+     "pass_": true
+    },
+    "s42_WFULL_SR": {
+     "got": 1.106162968875261,
+     "want": 1.1062,
+     "tol": 5e-05,
+     "pass_": true
+    },
+    "s2027_FROZEN_SR": {
+     "got": 2.902147212598042,
+     "want": 2.9021,
+     "tol": 5e-05,
+     "pass_": true
+    }
+   }
+  },
+  "G-FUND": {
+   "pass_": true,
+   "detail": {
+    "zips": 17707,
+    "zip_404": 27778,
+    "api_events_in_zip_months": 2352933,
+    "matched": 2352933,
+    "api_unmatched": 0,
+    "vision_unmatched": 3797,
+    "rate_eq_1e9": 2352933,
+    "max_abs_drate": 0.0,
+    "interval_compared": 2352249,
+    "interval_agree": 2351566,
+    "symbols_with_zips": 826,
+    "matched_share_of_api": 1.0,
+    "rate_eq_share_of_matched": 1.0,
+    "interval_agree_share": 0.9997096395832243
+   }
+  },
+  "G-SETT": {
+   "pass_": true,
+   "detail": {
+    "shared_anchors": 10176,
+    "first": "2022-01-08T00:00Z",
+    "last": "2026-08-30T20:00Z",
+    "excluded_cells": 45,
+    "presence_mismatch": 0,
+    "cells_compared": 2394306,
+    "max_abs_diff": 2.2251531867079066e-09,
+    "presence_mismatch_in_excluded": 0
+   }
+  },
+  "G-UNITS": {
+   "pass_": true,
+   "detail": {
+    "i_funding_sign_vs_p_tw8": {
+     "n_pos": 2089,
+     "n_neg": 8001,
+     "agree_pos": 0.9885112494016276,
+     "agree_neg": 0.9971253593300837
+    },
+    "ii_b1_vs_b2": {
+     "n_cells_p10": 274092,
+     "spearman_b1_p_last": 0.6580362556276439,
+     "n_cells_p20": 49543,
+     "median_ratio_b1_over_p_last": 0.8715811496085583
+    }
+   }
+  }
+ },
+ "counts": {
+  "funding": {
+   "records": 2474251,
+   "dropped_outside_grid": 2957,
+   "same_hour_dup_records": 94,
+   "sec1_records": 29,
+   "spacing_hist": {
+    "4": 1494219,
+    "8": 896370,
+    "1": 79068,
+    "2": 3653,
+    "3": 47,
+    "0": 47,
+    "6": 8,
+    "16": 2,
+    "816": 2,
+    "955": 1,
+    "1012": 1,
+    "1632": 1,
+    "5": 1,
+    "18052": 1,
+    "504": 1,
+    "3608": 1,
+    "4296": 1
+   }
+  },
+  "spot_elig_basis": {
+   "mapped": 477,
+   "guard_fail_cells_W": 60125,
+   "spot_ok_cells_W": 2535898,
+   "elig_cells_W": 2414876,
+   "elig_and_spot_ok_cells_W": 2106031,
+   "elig_spot_ok_b2_finite_cells_W": 2098973
+  }
+ },
+ "output": {
+  "path": "/workspace/uplift_r3_2026-09-13/L4/work/l4_inputs.npz",
+  "sha256": "3d9d3466ce0078730c3630876d3767ba69da0135cfad9edf42fbfe59bfce05dd",
+  "size": 55046085
+ },
+ "elapsed_s": 267.7,
+ "all_gates_pass": true
+}

@@ -1,0 +1,1 @@
+env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C.UTF-8 nice -n 10 taskset -c 40-47 /workspace/venv/bin/python devices/l4_posthoc_basis_reconcile.py PATH,HOME,LC_CTYPE work devices/l4_run.py > work/l4_posthoc_stdout.log 2>&1; echo rc=$? > work/l4_posthoc_rc.txt

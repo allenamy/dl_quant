@@ -1,0 +1,19 @@
+CONFIG {"self_sha256": "cfa2517120979a46881eae42e4968a34a8d529e8fc817a0a54e16e45a0fc8a22", "prereg": "ced2f73f10b1d32377d469ddd64b4ee6614d0925c9be182bd09ff2f16a52cc8b", "inputs_sha256": "3d9d3466ce0078730c3630876d3767ba69da0135cfad9edf42fbfe59bfce05dd", "affinity": [40, 41, 42, 43, 44, 45, 46, 47]}
+G-SYN True cases=25 all_pos_eq=True explicit={"S1_A01": {"entry_t0": true, "ema_at_entry": 10.947989218879425, "exit_anchor_expected": 126, "exit_anchor_device": 126, "held_pattern_ok": true, "income_maxdiff": 0.0, "cost_maxdiff": 0.0, "basis_telescope_diff": 1.3877787807814457e-17, "n_holds": 1, "reason": "normal"}, "S2_A01": {"reasons": ["forced_a"], "exit_anchor": [85], "want": "forced_a", "ok": true}, "S3_A01": {"reasons": ["forced_b"], "exit_anchor": [106], "want": "forced_b", "ok": true}, "S5_A01": {"reasons": ["forced_c"], "exit_anchor": [95], "want": "forced_c", "ok": true}, "S4_K1": {"max_names_held": 1, "first_pick": 3, "ema_name0": 10.947989218879425, "ema_name3": 16.0}}
+SIMULATED 12 arms 3s
+G-CAUSAL True identical=20/20 neg_control_changed_draws=20 41s
+G-ACCT True
+ALL RUN GATES PASS; readings follow
+ARM A01 h_in=2 h_out=0.5 mh=3 K=10 | S2426 net 0.2660 [0.1342 adj 0.0921] SR 3.79 pos 0.96 | FULL SR 3.63 rho42 0.003/-0.015 | P0 True P1 False P2a True P2b True P3 True => adj False unadj False  46s
+ARM A02 h_in=2 h_out=0.5 mh=3 K=20 | S2426 net 0.2127 [0.0962 adj 0.0628] SR 5.31 pos 0.96 | FULL SR 5.02 rho42 0.002/-0.027 | P0 True P1 False P2a True P2b True P3 True => adj False unadj False  49s
+ARM A03 h_in=2 h_out=0.5 mh=9 K=10 | S2426 net 0.2496 [0.1198 adj 0.0786] SR 3.41 pos 0.96 | FULL SR 3.30 rho42 0.009/-0.013 | P0 True P1 False P2a True P2b True P3 True => adj False unadj False  53s
+ARM A04 h_in=2 h_out=0.5 mh=9 K=20 | S2426 net 0.2050 [0.0895 adj 0.0535] SR 4.95 pos 0.96 | FULL SR 4.73 rho42 0.007/-0.026 | P0 True P1 False P2a True P2b True P3 True => adj False unadj False  57s
+ARM A05 h_in=5 h_out=2 mh=3 K=10 | S2426 net 0.1256 [0.0126 adj -0.0265] SR 2.07 pos 0.31 | FULL SR 2.02 rho42 -0.006/-0.025 | P0 True P1 True P2a True P2b False P3 True => adj False unadj True  60s
+ARM A06 h_in=5 h_out=2 mh=3 K=20 | S2426 net 0.1107 [0.0136 adj -0.0090] SR 3.28 pos 0.31 | FULL SR 3.08 rho42 -0.009/-0.032 | P0 True P1 True P2a True P2b False P3 True => adj False unadj True  64s
+ARM A07 h_in=5 h_out=2 mh=9 K=10 | S2426 net 0.1099 [-0.0026 adj -0.0404] SR 1.73 pos 0.32 | FULL SR 1.74 rho42 0.002/-0.025 | P0 True P1 True P2a False P2b False P3 True => adj False unadj False  68s
+ARM A08 h_in=5 h_out=2 mh=9 K=20 | S2426 net 0.1029 [0.0057 adj -0.0172] SR 2.93 pos 0.32 | FULL SR 2.80 rho42 -0.001/-0.032 | P0 True P1 True P2a True P2b False P3 True => adj False unadj True  71s
+ARM A09 h_in=10 h_out=4 mh=3 K=10 | S2426 net 0.0600 [-0.0200 adj -0.0526] SR 1.12 pos 0.12 | FULL SR 0.85 rho42 0.002/0.000 | P0 False P1 True P2a False P2b False P3 True => adj False unadj False  75s
+ARM A10 h_in=10 h_out=4 mh=3 K=20 | S2426 net 0.0490 [-0.0090 adj -0.0255] SR 1.72 pos 0.12 | FULL SR 1.31 rho42 0.004/-0.002 | P0 False P1 True P2a False P2b False P3 True => adj False unadj False  79s
+ARM A11 h_in=10 h_out=4 mh=9 K=10 | S2426 net 0.0485 [-0.0269 adj -0.0578] SR 0.85 pos 0.12 | FULL SR 0.65 rho42 0.009/0.001 | P0 False P1 True P2a False P2b False P3 True => adj False unadj False  82s
+ARM A12 h_in=10 h_out=4 mh=9 K=20 | S2426 net 0.0432 [-0.0132 adj -0.0275] SR 1.44 pos 0.12 | FULL SR 1.10 rho42 0.010/-0.002 | P0 False P1 True P2a False P2b False P3 True => adj False unadj False  86s
+SUMMARY l4_run G-SYN=True G-CAUSAL=True G-ACCT=True | arms PASS_adj=[] PASS_unadj=['A05', 'A06', 'A08'] | nested PASS=True (picks ['A03', 'A02', 'A02', 'A02']) | DSR best A02 SR 5.31 P(SR>0) N_eff 1.000 N12 0.994 N18 0.989 | VERDICT=NOT PASS (multiplicity) | elapsed=87s self_sha256=cfa2517120979a46
