@@ -1,0 +1,13 @@
+DUMP /Users/haosiyu/cc_tmp/fx_exec2_old tripped False sha 7d19dccfc569d1ec8e8019783c789b305e6c90b19b09e33d28615065d75a5db0
+rc=0
+DUMP /Users/haosiyu/cc_tmp/fx_exec2 tripped False sha 40c59d4520678c10808e05f343db4ff65f4d65bd7cba6c787a9db4e961036dbe
+rc=0
+DIFF n_leaves [171584, 171584] n_diff 1
+  cond5_venue_event.5b_liquidation_anomaly.dust_floor.n_symbols_with_own_minimum 658 | 654
+rc=0
+# cmd: symbol-set difference of the DRY_RUN exchange_info_cache.json each tree reads (explains the one differing leaf dust_floor.n_symbols_with_own_minimum 658|654)
+ef60f85 tree cache /Users/haosiyu/cc_tmp/fx_exec2_old/state/exchange_info_cache.json 660 cd44cc3b711cf9b01149bf93cd3eeebce5914c95f238ae0e1610085c0c99744e
+fix tree cache     /Users/haosiyu/cc_tmp/fx_exec2/state/exchange_info_cache.json 656 08e286072dcf7d296a15b04d0ae19633016d2e7db5690d8b2afd485f3b3978cb
+only in ef60f85-tree cache ['MARSCOINUSDT', 'PONSUSDT', '哈基米USDT', '牛来USDT'] only in fix-tree cache []
+# the ef60f85 worktree's state/ is a symlink to the ledger copy; its top-level DRY_RUN files were rewritten at ~15:57Z by tests_entrypoint_wiring (public GET); files under live/ were not modified after the 14:27Z copy:
+n_files_under_live_newer_than_1430Z=       0
