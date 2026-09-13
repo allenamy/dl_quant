@@ -1,0 +1,17 @@
+[PRE] recorded outputs of the running twin
+  OK    PRE the running twin wrote 37 DAY and 8 CUM disagreement lines  — (37, 8)
+
+[D] DAY over aligned time points
+  OK    ★★★ D1 0 of the recorded DAY lines survive alignment (not alignable, named: ≤2)  — {'fire': 0, 'not_alignable': 2, 'max_abs_diff_pp': 0.204}
+  OK    ★★ D2 a real 1% equity gap at the end reference still fires (and the unperturbed case does not)  — (-0.116, -1.119, {'ref_start_utc': '2026-09-11T20:45:10Z', 'ref_end_utc': '2026-09-12T12:45:47Z', 'twin_start_utc': '2026-09-11T20:37:37Z', 'twin_end_utc': '2026-09-12T12:39:51Z'})
+
+[C] CUM: arithmetic twin of the watchdog chain
+  OK    ★★★ C1 the arithmetic twin reproduces the watchdog's recorded cum at every recorded CUM line ⇒ 0 CUM lines  — [('2026-08-21T16:22:14Z', 0.4853, 0.4853), ('2026-08-21T19:04:37Z', 0.4853, 0.4853), ('2026-08-27T01:11:18Z', -1.8597, -1.8597), ('2026-08-31T01:10:02Z', -0.0194, -0.0194), ('2026-09-03T16:56:14Z', 0.5783, 0.5783), ('2026-09-04T12:57:49Z', -0.6333, -0.6333), ('2026-09-11T20:57:41Z', -1.3563, -1.3563
+  OK    ★★ C2 a final daily_nav close the watchdog did not see (−2%) makes the arithmetic twin disagree  — -3.3814
+
+[F] field names
+  OK    F1 the compare record names the history-worst day and today's day; the shadow block reads recent_day_pct
+
+6/6 checks passed
+ALL PASS
+rc=0

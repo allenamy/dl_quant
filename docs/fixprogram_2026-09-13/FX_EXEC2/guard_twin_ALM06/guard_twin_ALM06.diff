@@ -1,0 +1,131 @@
+--- guard_twin.py.orig_0b299781	2026-09-14 00:19:56
++++ guard_twin.py	2026-09-14 00:19:56
+@@ -113,6 +113,80 @@
+         if rows: out[d] = rows
+     return out
+ 
++# ── ALM-06 (FX-EXEC2, 2026-09-13; AUDIT_EXEC 842bbffa): compare the twins over the SAME time points ─────────────
++# ★ DAY used to compare the twin's change from ITS OWN last snapshot before 00:00Z (e.g. 23:42Z) to NOW with the
++#   arithmetic twin's change from the previous day's LAST daily_nav row (~20:45Z) to TODAY's last row. An evening move
++#   between the two start times, or a move since the last row, read as a disagreement: 37 of the 84 alert lines, none of
++#   them a defect. Replayed on the recorded compare rows: with both ends taken at the daily_nav nav_ts (the twin's own
++#   snapshot nearest each, within ALIGN_TOL_S) 0 of the 35 alignable DAY lines stay above TOL.
++# ★ CUM compared the twin's income-ledger TWR (twin snapshot day closes, transfers from income) with the watchdog's
++#   start-equity chain (daily_nav day-last rows, transfer days priced by realised + Δunrealised): two calibers, 8 lines.
++#   The DISAGREE line now compares the ARITHMETIC twin — the watchdog's own chain recomputed on daily_nav — with the
++#   watchdog's reading (what an arithmetic twin is for); the income-ledger TWR stays recorded beside it, informational.
++ALIGN_TOL_S = 900.0
++
++
++def nearest_snapshot(snaps, ts, tol=ALIGN_TOL_S):
++    """The twin's own snapshot closest to `ts` within `tol` seconds, or None."""
++    best = None
++    for s_ in snaps:
++        d_ = abs(float(s_["ts"]) - float(ts))
++        if d_ <= tol and (best is None or d_ < abs(float(best["ts"]) - float(ts))):
++            best = s_
++    return best
++
++
++def aligned_day_pct(snaps, dn, today, now_ts, income):
++    """(twin %, arith %, detail): both over [previous day's last daily_nav nav_ts, today's last nav_ts <= now]. Pure."""
++    rows_today = [r for r in dn.get(today, []) if r.get("nav_ts") is not None and float(r["nav_ts"]) <= now_ts]
++    pdays = [d for d in dn if d < today]
++    if not rows_today or not pdays:
++        return None, None, {"why": "no daily_nav row today or no previous day"}
++    rT, rP = rows_today[-1], dn[pdays[-1]][-1]
++    if rP.get("nav_ts") is None or not rT.get("nav") or not rP.get("nav"):
++        return None, None, {"why": "a reference row lacks nav_ts or nav"}
++    flow = 0.0
++    try:
++        flow = float(rT.get("external_flow_usdt") or 0.0)
++    except Exception:
++        pass
++    arith = None if abs(flow) > 1e-9 else (float(rT["nav"]) - float(rP["nav"])) / float(rP["nav"]) * 100.0
++    sA, sB = nearest_snapshot(snaps, rP["nav_ts"]), nearest_snapshot(snaps, rT["nav_ts"])
++    det = {"ref_start_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(float(rP["nav_ts"]))),
++           "ref_end_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(float(rT["nav_ts"]))),
++           "twin_start_utc": sA and sA["utc"], "twin_end_utc": sB and sB["utc"]}
++    if not sA or not sB or not sA.get("equity"):
++        det["why"] = f"no twin snapshot within {ALIGN_TOL_S:.0f}s of a reference time"
++        return None, arith, det
++    tr = sum(r["income"] for r in income if r["type"] == "TRANSFER" and r["asset"] == "USDT"
++             and float(rP["nav_ts"]) * 1000 < r["time"] <= float(rT["nav_ts"]) * 1000)
++    return (float(sB["equity"]) - float(sA["equity"]) - tr) / float(sA["equity"]) * 100.0, arith, det
++
++
++def wd_chain_arith_pct(dn, now_ts):
++    """The watchdog §4-4 chain (watchdog.py cond4) recomputed on daily_nav rows with nav_ts <= now_ts. Pure; None if blind."""
++    prev, cum, n = None, 1.0, 0
++    for d in sorted(dn):
++        rows = [r for r in dn[d] if r.get("nav_ts") is not None and float(r["nav_ts"]) <= now_ts]
++        if not rows:
++            continue
++        last = rows[-1]
++        if last.get("realised_truncated") or not last.get("nav"):
++            continue
++        flow = any(abs(float(r.get("external_flow_usdt") or 0.0)) > 1e-9 for r in rows)
++        if prev is not None:
++            if flow:
++                if last.get("realised_pnl") is None or last.get("unrealised_pnl") is None or prev[1] is None:
++                    return None
++                rd = (float(last["realised_pnl"]) + float(last["unrealised_pnl"]) - float(prev[1])) / prev[0]
++            else:
++                rd = float(last["nav"]) / prev[0] - 1.0
++            cum *= 1.0 + rd
++            n += 1
++        prev = (float(last["nav"]), last.get("unrealised_pnl"))
++    return round((cum - 1.0) * 100.0, 4) if n else None
++
++
+ # ── E-0825-I ② 锚任务存活性: 这是本进程 **唯一** 接 Telegram 的检查项 ───────────────────────
+ #   理由: 算术分歧按设计只落文件(第一阶段不接线); 但"锚任务崩了/没跑"这一类失败**按构造无法自己告警**
+ #   —— 16:23Z 那次 ArmingRefused 在告警路径之前抛出, launchctl 只留一个 `1`, 无人被通知。
+@@ -301,7 +375,11 @@
+         if ts: nav_age_min = (t0 - float(ts)) / 60.0
+     cmp = {"utc": snap["utc"], "wd_evaluated_utc": wd_eval,
+            "equity": equity, "nav_latest": nav_latest, "nav_age_min": None if nav_age_min is None else round(nav_age_min, 1),
+-           "day_pct_twin": day_pct_twin, "day_pct_arith_on_daily_nav": arith_today, "wd_worst_day_pct": c2.get("worst_day_pct"),
++           "day_pct_twin": day_pct_twin, "day_pct_arith_on_daily_nav": arith_today,
++           # ALM-06: the watchdog's worst day over its WHOLE window (history), not today's; today's is recent_day_pct.
++           # The old key is kept one round with the same value so a reader of it is not silently emptied.
++           "wd_worst_day_pct_history": c2.get("worst_day_pct"), "wd_worst_day_pct": c2.get("worst_day_pct"),
++           "wd_recent_day_pct": c2.get("recent_day_pct"),
+            "prev_close_src": prev_src, "transfers_today": transfers_today,
+            "cum_pct_twin": cum_twin_pct, "wd_cum_from_start_pct": c4.get("cum_return_from_start_pct"),
+            "closed_account_gap_usdt": closed_account_gap, "ledger_identity_by_asset": ident, "pnl_ledger_usdt": pnl_ledger, "transfers_all": transfers_all,
+@@ -321,10 +399,21 @@
+     #   A stale row is NOT comparable; the twin's own readings are still recorded as the independent series.
+     _fresh = (nav_age_min is not None and nav_age_min <= 30.0)
+     cmp["comparable"] = bool(_fresh)
+-    if _fresh and day_pct_twin is not None and arith_today is not None and abs(day_pct_twin - arith_today) > TOL["day_pct"]:
+-        dis.append(f"DAY twin {day_pct_twin:+.3f}% vs daily_nav-arith {arith_today:+.3f}%")
+-    if _fresh and c4.get("cum_return_from_start_pct") is not None and abs(cum_twin_pct - float(c4["cum_return_from_start_pct"])) > TOL["cum_pct"]:
+-        dis.append(f"CUM twin {cum_twin_pct:+.3f}% vs wd {float(c4['cum_return_from_start_pct']):+.3f}%")
++    _day_al, _arith_al, _day_det = aligned_day_pct(snaps, dn, today, t0, inc)
++    cmp["day_pct_twin_aligned"] = _day_al
++    cmp["day_pct_arith_aligned"] = _arith_al
++    cmp["day_alignment"] = _day_det
++    if _fresh and _day_al is not None and _arith_al is not None and abs(_day_al - _arith_al) > TOL["day_pct"]:
++        dis.append(f"DAY twin {_day_al:+.3f}% vs daily_nav-arith {_arith_al:+.3f}% "
++                   f"(both {_day_det['ref_start_utc']}→{_day_det['ref_end_utc']})")
++    _wd_arith = wd_chain_arith_pct(dn, t0)
++    cmp["cum_pct_wd_chain_arith"] = _wd_arith
++    cmp["cum_caliber_note"] = ("cum_pct_twin = the twin's income-ledger TWR (snapshot day closes, transfers from income): "
++                               "informational, a different caliber from the watchdog's start-equity chain; the CUM line "
++                               "compares cum_pct_wd_chain_arith (that chain recomputed on daily_nav) with the watchdog")
++    if _fresh and _wd_arith is not None and c4.get("cum_return_from_start_pct") is not None \
++            and abs(_wd_arith - float(c4["cum_return_from_start_pct"])) > TOL["cum_pct"]:
++        dis.append(f"CUM daily_nav-arith {_wd_arith:+.3f}% vs wd {float(c4['cum_return_from_start_pct']):+.3f}%")
+     if abs(closed_account_gap) > max(2.0, 0.0005 * equity):
+         dis.append(f"LEDGER USDT wallet {ident['USDT']['wallet']:.2f} vs Σ USDT income {ident['USDT']['sum_income']:.2f} (gap {closed_account_gap:+.2f})")
+     _bnb = ident.get("BNB", {})
+@@ -351,7 +440,7 @@
+     # rule: cross −4.0% ⇒ pending_confirm (halt opening, no flatten); next reading: flatten only if BOTH ledgers
+     # read ≤ −4.0% (|gap| ≤ 0.5pp) AND the loss persists; else release. Here: what the rule would say NOW.
+     try:
+-        _wd_day = c2.get("worst_day_pct")   # watchdog's day reading (worst over window; today if today is worst)
++        _wd_day = c2.get("recent_day_pct")  # ALM-06: the watchdog's MOST RECENT day (worst_day_pct is the window's worst, history)
+         _tw = day_pct_twin
+         _both_below = (_tw is not None and _tw <= -4.0) and (arith_today is not None and arith_today <= -4.0)
+         _any_below = (_tw is not None and _tw <= -4.0) or (arith_today is not None and arith_today <= -4.0)
