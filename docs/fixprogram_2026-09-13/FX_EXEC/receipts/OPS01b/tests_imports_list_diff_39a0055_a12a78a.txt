@@ -1,0 +1,14 @@
+diff --git a/live/tests_imports.py b/live/tests_imports.py
+index 9c6e37c..e8fbb06 100644
+--- a/live/tests_imports.py
++++ b/live/tests_imports.py
+@@ -40,7 +40,8 @@ PRODUCTION_MODULES = [
+     "external_book",  # 外部书适配器 (DESIGN_wide_live_deployment_2026-08-22 §1): anchor_loop imports it
+     "reject_rate",    # 场所拒单率口径 (E-0905-H, 2026-09-05): anchor_loop imports it; pure functions + tests_reject_rate
+     "requote_experiment",  # -5022 重挂随机实验 (PREREG_requote_randomised_2026-09-05): binance_executor imports it; pure functions + tests_requote_experiment
+-    "sigma_ladder",   # σ_fund gross ladder consumer (PREREG_deploy_sigma_ladder_2026-09-04): fail-safe g=1.0; an import failure here would silently disable the ladder, never raise exposure
++    # `sigma_ladder` left 2026-09-13 (OPS-01b): the withdrawn σ_fund gross ladder is no longer read by anchor_loop, so it is not a
++    # production module; live/sigma_ladder.py stays only because tests_sigma_ladder pins its evaluator.
+     "universe", "state_root", "book_config", "rate_budget", "binance_funding",
+     # `reduce_only_reject` joined 2026-08-01: resolves a -2022 against the position readback.
+     # The drift assertion named it before I did — fifth time.

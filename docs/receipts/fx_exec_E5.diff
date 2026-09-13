@@ -1,0 +1,347 @@
+diff --git a/live/reconcile.py b/live/reconcile.py
+index 004a188..80f1616 100644
+--- a/live/reconcile.py
++++ b/live/reconcile.py
+@@ -164,6 +164,33 @@ def _origqty_reasons(why) -> Optional[List[str]]:
+     return parts
+ 
+ 
++def _origqty_pairs(why) -> Optional[List[Tuple[float, float]]]:
++    """(venue, ours) for EVERY origQty value comparison in a contradiction string whose every ";"-separated reason is that kind —
++    or None when any reason is another kind, carries no or several pairs, or a number that does not parse.
++
++    ★★ E5 (FX-EXEC 2026-09-13; = EXE-07): `_clamp_rederived` took its two numbers from the FIRST pair of the whole string
++      (`_ORIGQTY_PAIR.search`). Measured on the old code, the writer's own "; " joiner happened to fail closed only because the
++      `ours` group `(\S+)` swallows the ";" into the number ("1933986.0;" does not parse); a " ; " joiner, or two comparisons with
++      no ";" between them, were re-derived from whichever pair came first — so a second reason naming a DIFFERENT accepted
++      capacity was ignored, and the verdict depended on the order of the reasons. Correctness rested on an accident of the regex.
++      ⇒ Each reason is parsed on its own (no joiner can leak into a number) and must carry exactly one finite pair. The caller
++        decides what several pairs mean.
++    """
++    parts = _origqty_reasons(why)
++    if parts is None:
++        return None
++    out: List[Tuple[float, float]] = []
++    for p in parts:
++        ms = _ORIGQTY_PAIR.findall(p)
++        if len(ms) != 1:
++            return None
++        v, o = _fin(ms[0][0]), _fin(ms[0][1])
++        if v is None or o is None:
++            return None
++        out.append((v, o))
++    return out
++
++
+ def _clamp_rederived(r, why) -> Optional[Dict[str, Any]]:
+     """★ E-0912-A (1) + ★ C4–C7 (review 0158f5d1): the STRUCTURED verdict for ONE persisted request.
+ 
+@@ -182,7 +209,7 @@ def _clamp_rederived(r, why) -> Optional[Dict[str, Any]]:
+ 
+     The gates, in order. The diagnostic string supplies the two numbers the OLD gate compared and
+     NOTHING else — it never authorises anything:
+-      G1 kind      EVERY ";"-separated reason is the origQty value comparison            (C6)
++      G1 kind      the string is exactly ONE reason, the origQty value comparison, with exactly one pair  (C6; E5)
+       G2 RO        an explicitly recorded reduce-only flag must be True                  (C5)
+       G3 capacity  Qv is `qty_venue` when the request carries it, and it must AGREE with the
+                    string's number; 0 < Qv < |Qs|, and the string's `ours` IS this request's qty
+@@ -193,15 +220,16 @@ def _clamp_rederived(r, why) -> Optional[Dict[str, Any]]:
+     G6's second clause is what carries the real 12Z rows: their `confirmed_qty_final` is False, but
+     the venue accepted 1,933,692 and 1,933,692 filled, so nothing more CAN fill and C is F.
+     """
+-    if _origqty_reasons(why) is None:
+-        return None                                              # G1
++    pairs = _origqty_pairs(why)
++    if pairs is None or len(pairs) != 1:
++        # G1 (C6; E5): exactly ONE reason, the origQty value comparison, with exactly one pair. Several comparisons — agreeing
++        # or not — are never re-derived: the rule was validated on single-reason rows (the two real 12Z rows), two records
++        # naming different capacities are a conflict (R3-A1 / E2), and nothing here may depend on the order of reasons.
++        return None
+     if _reduce_only_evidence(r) is False:
+         return None                                              # G2
+-    m = _ORIGQTY_PAIR.search(str(why or ""))
+-    if not m:
+-        return None
+-    venue, ours = _fin(m.group(1)), _fin(m.group(2))
+-    if venue is None or ours is None or not (0 < venue < ours):
++    venue, ours = pairs[0]
++    if not (0 < venue < ours):
+         return None
+     c, q = _fin(r.get("confirmed_qty")), _fin(r.get("qty"))
+     if c is None or q is None or q == 0:
+@@ -273,6 +301,7 @@ def _rederive_ledger(o) -> Optional[Dict[str, Any]]:
+         return None
+     stands: List[str] = []
+     known: Dict[Any, Dict[str, Any]] = {}
++    known_why: Dict[Any, str] = {}
+     for r in reqs:
+         if r.get("state") in ("rejected", "not_sent"):
+             continue
+@@ -284,12 +313,18 @@ def _rederive_ledger(o) -> Optional[Dict[str, Any]]:
+             stands.append(f"{r.get('client_id')}: {str(inc)[:120]}")
+         else:
+             known[r.get("client_id")] = ev
++            known_why[r.get("client_id")] = str(inc)[:120]
+     for e in (o.get("ledger_inconsistent") or ()):
+         if isinstance(e, dict):
+             cid, why = e.get("client_id"), e.get("why")
+         else:
+             cid, why = None, e
+-        if _is_identity_origqty_kind(why) and cid in known:
++        # ★ E5: a row-level entry is explained by a re-derived request exactly when it IS that request's string as the writer copies
++        #   it (`binance_executor.ledger_inconsistencies`: str(inconsistent)[:120]). A different origQty contradiction under the same
++        #   client id is not what was re-derived, and stands. And the KIND test is not applied to the copy: a reason longer than 120
++        #   characters loses "differs from ours" in the truncation, so the old `_is_identity_origqty_kind(why)` kept the writer's own
++        #   copy of a re-derived request standing — a verdict that depended on the length of a diagnostic string.
++        if cid in known and str(why) == known_why.get(cid):
+             continue
+         stands.append(f"{cid}: {str(why)[:120]}")
+     return {"stands": stands, "known": known, "n_requests": len(reqs)}
+diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
+index 667f04a..02e84af 100644
+--- a/live/tests_disposition_matrix.py
++++ b/live/tests_disposition_matrix.py
+@@ -239,10 +239,12 @@ def _clamp_known(req):
+            if req.get(k) is not None]
+     if _ro and not all(v is True for v in _ro):
+         return None                                   # C5: 明写不是 reduce-only ⇒ 矛盾照旧
+-    m = _ORIGQTY_PAIR.search(_raw)
+-    if not m:
++    # E5: 恰好【一条】理由、恰好【一对】数, 逐条单独解析(连接符不会漏进数字)。多条比较 —— 一致也好不一致也好 —— 一律不重判:
++    #     规则只在单理由的真实行上验证过; 两条记录报不同容量是冲突(R3-A1/E2); 结论不得依赖理由的顺序。
++    _pairs = [_ORIGQTY_PAIR.findall(p) for p in _parts]
++    if len(_pairs) != 1 or len(_pairs[0]) != 1:
+         return None
+-    qv, qs = _fin(m.group(1)), _fin(m.group(2))
++    qv, qs = _fin(_pairs[0][0][0]), _fin(_pairs[0][0][1])
+     if qv is None or qs is None or not (0 < qv < qs):
+         return None
+     c, q = _fin(req.get("confirmed_qty")), _fin(req.get("qty"))
+@@ -296,16 +298,19 @@ def _row_rejudged(o):
+             and r.get("state") not in ("rejected", "not_sent")]
+     if not reqs:
+         return None
+-    total, cids = 0.0, []
++    total, cids, _whys = 0.0, [], {}
+     for r in reqs:
+         got = _clamp_known(r)
+         if got is None:
+             return None
+         total += got[1]
+         cids.append(r.get("client_id"))
++        _whys[r.get("client_id")] = str(r.get("inconsistent"))[:120]
+     for e in (o.get("ledger_inconsistent") or ()):
+         cid, why = (e.get("client_id"), e.get("why")) if isinstance(e, dict) else (None, e)
+-        if not (_is_origqty_kind(why) and cid in cids):
++        # E5: 行级条目必须【就是】写者对该请求串的拷贝(str(inconsistent)[:120]), 同一 client_id 下别的 origQty 矛盾解释不了;
++        #     拷贝本身不再做种类判断 —— 超过 120 字的理由截断后丢了 "differs from ours", 旧判据会让写者自己的拷贝永远解释不了
++        if not (cid in cids and str(why) == _whys.get(cid)):
+             return None
+     return total, cids
+ 
+@@ -1426,6 +1431,54 @@ check("★★★ ...and `fee_paid` None and 0.0 are DIFFERENT facts inside that
+       and _fee_states(_fee_fx[1:]) == {"n_unmeasured": 0, "n_measured": 2, "fee_usdt": 0.5},
+       (_fee_states(_fee_fx), _fee_states(_fee_fx[1:])))
+ 
++print("\n[G7-E5] E5 (FX-EXEC 2026-09-13; = EXE-07): the RULER re-judges only exactly ONE origQty comparison too, and a row-level entry is "
++      "explained only by the re-judged request's own string")
++# The same defect in this file's independent implementation: `_clamp_known` required every ';'-separated reason to be the origQty
++# kind (C6) but read the numbers with `_ORIGQTY_PAIR.search(_raw)` — the first pair of the whole string — and `_row_rejudged`
++# accepted any origQty-kind row-level entry for a re-judged client id. Cells use _REQ_OK (the real MEME request) with one reason
++# added; E5-R4 holds the ruler and the runtime to the same answer on every shape.
++_E5_S0 = _REQ_OK["inconsistent"]
++_E5_OTHER = "A1789215839-MEMEUSDT-1: identity: re-query: re-query origQty 1933000.0 differs from ours 1933986.0"
++_E5_SHAPES = {
++    "conflict_semicolon": _E5_S0 + "; " + _E5_OTHER,
++    "conflict_spaced": _E5_S0 + " ; " + _E5_OTHER,
++    "reversed_spaced": _E5_OTHER + " ; " + _E5_S0,
++    "glued": _E5_S0 + " " + _E5_OTHER.split(": ", 1)[1],
++    "duplicate_spaced": _E5_S0 + " ; " + _E5_S0,
++    "duplicate_semicolon": _E5_S0 + "; " + _E5_S0,
++}
++_e5_ruler = {k: _clamp_known({**_REQ_OK, "inconsistent": v}) for k, v in _E5_SHAPES.items()}
++check("★★★ E5-R1 (OLD CODE: RED) the ruler re-judges NONE of the multi-comparison shapes — conflicting capacities in either order and "
++      "either joiner, two comparisons glued into one reason, the same comparison repeated (old: the ' ; ' and glued shapes were "
++      "re-judged from the first pair; the '; ' shapes stood only because ';' was swallowed into the number)",
++      all(v is None for v in _e5_ruler.values()), {k: (v is not None) for k, v in _e5_ruler.items()})
++check("★★ E5-R2 neighbour (both versions): the single real comparison still re-judges to the real amount",
++      _clamp_known(_REQ_OK) is not None and abs(_clamp_known(_REQ_OK)[1] - (-1015.1883)) < 1e-9)
++
++
++def _e5_ruler_row(row_why):
++    return {"terminal_reason": "filled_amount_unknown", "filled_notional": None, "request_ledger": [dict(_REQ_OK)],
++            "ledger_inconsistent": [{"client_id": _REQ_OK["client_id"], "why": row_why}]}
++
++
++check("★★★ E5-R3 (OLD CODE: RED) a row-level entry for the re-judged client id that names a DIFFERENT origQty contradiction keeps the "
++      "row unknown; the writer's own copy (str(request.inconsistent)[:120]) is still explained",
++      _row_rejudged(_e5_ruler_row(_E5_OTHER)) is None and _row_rejudged(_e5_ruler_row(str(_E5_S0)[:120])) is not None,
++      (_row_rejudged(_e5_ruler_row(_E5_OTHER)), _row_rejudged(_e5_ruler_row(str(_E5_S0)[:120]))))
++_E5_LONG = _E5_S0.replace("identity: submit response: submit response", "identity: submit response (" + "x" * 60 + "): submit response")
++check("★★★ E5-R3b (OLD CODE: RED) a row whose one reason is longer than 120 characters is re-judged like a short one: its row-level entry "
++      "is the writer's truncated copy, which no longer reads as the origQty kind", len(_E5_LONG) > 120
++      and _row_rejudged({"terminal_reason": "filled_amount_unknown", "filled_notional": None,
++                         "request_ledger": [{**_REQ_OK, "inconsistent": _E5_LONG}],
++                         "ledger_inconsistent": [{"client_id": _REQ_OK["client_id"], "why": _E5_LONG[:120]}]}) is not None, len(_E5_LONG))
++_e5_par = {}
++for _k, _v in list(_E5_SHAPES.items()) + [("single", _E5_S0), ("single_long", _E5_LONG)]:
++    _rq = {**_REQ_OK, "inconsistent": _v}
++    _rt = RC._clamp_rederived(_rq, _v)
++    _e5_par[_k] = ((_clamp_known(_rq) is not None), (_rt is not None and _rt["final"]))
++check("★★ E5-R4 parity (both versions): on every E5 shape and the single real one, the ruler re-judges exactly when the runtime's "
++      "verdict is PROVEN FINAL", all(a == b for a, b in _e5_par.values()), _e5_par)
++
+ print("\n[F] red capability — mutate ANY cell and this file fails")
+ _orig = copy.deepcopy(OD.DISPOSITION)
+ _broken = []
+diff --git a/live/tests_reduce_only_clamp.py b/live/tests_reduce_only_clamp.py
+index b7426a9..0aa945a 100644
+--- a/live/tests_reduce_only_clamp.py
++++ b/live/tests_reduce_only_clamp.py
+@@ -1130,6 +1130,87 @@ check("★ T13 neighbour: `flatten_all` records the same amount / price / venue
+       len(_fo13) == 1 and _ex13.get("filled_notional") == 6.0 and _ex13.get("avg_fill_px") == 1.0 and _ex13.get("fill_ts") == _X_T0 / 1000.0,
+       _ex13)
+ 
++# ════════════════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[T14] E5 (FX-EXEC 2026-09-13; = EXE-07): a persisted contradiction is re-derived only when it is exactly ONE origQty "
++      "comparison, parsed per reason — never from the first of several; a row-level entry is dropped only when it IS the request's string")
++# `_clamp_rederived` required every ';'-separated reason to be the origQty kind (C6) but read its numbers with
++# `_ORIGQTY_PAIR.search` over the WHOLE string — the first pair. MEASURED on the old code: with the writer's own "; " joiner a
++# multi-reason string failed closed only by ACCIDENT, because the `ours` group `(\S+)` swallows the ';' ("1933986.0;" does not
++# parse); with " ; " (the joiner the C6 fixture itself uses) or two comparisons with no ';' between them, the first pair was
++# re-derived and a second reason naming a DIFFERENT accepted capacity — two records of one request disagreeing, the R3-A1 / E2
++# conflict — was ignored, and the verdict depended on the order of the reasons. `_rederive_ledger` also dropped EVERY row-level
++# origQty entry whose client id was re-derived, whatever it said. The census (receipt e5_fact_census) finds 2 contradiction strings
++# in 949 ledger rows, both single-reason, both with row-level copies equal to str(inconsistent)[:120]: nothing real changes verdict.
++_e5_real = copy.deepcopy(next(r for r in ORD if r["symbol"] == MEME and r.get("terminal_reason") == "filled_amount_unknown"))
++_e5_s0 = _e5_real["request_ledger"][0]["inconsistent"]
++_e5_cid = _e5_real["request_ledger"][0]["client_id"]
++_e5_other = f"{_e5_cid}: identity: re-query: re-query origQty 1933000.0 differs from ours 1933986.0"
++
++
++def _e5_row(inc, row_why=None):
++    o = copy.deepcopy(_e5_real)
++    o["request_ledger"][0]["inconsistent"] = inc
++    o["ledger_inconsistent"] = [{"client_id": _e5_cid, "why": str(inc)[:120] if row_why is None else row_why}]
++    return o
++
++
++def _e5_kind(inc, row_why=None):
++    return RC._exec_qty(_e5_row(inc, row_why))[2]
++
++
++check("E5-F fixture: the real MEME request re-derives today (one reason, capacity closure) — the base every E5 variant starts from; "
++      "and it is the census's only shape",
++      _e5_kind(_e5_s0) == "known" and len((RC._rederive_ledger(_e5_row(_e5_s0)) or {}).get("known", {})) == 1)
++check("★★ E5-1 neighbour (both versions — the OLD code only by accident): the writer's '; ' join of the real reason and a reason naming a "
++      "DIFFERENT capacity stands; on the old code `(\\S+)` read 'ours' as '1933986.0;', which does not parse",
++      _e5_kind(_e5_s0 + "; " + _e5_other) == "unquantifiable", _e5_kind(_e5_s0 + "; " + _e5_other))
++check("★★★ E5-2 (OLD CODE: RED) the same two reasons joined with ' ; ' (the joiner the C6 fixture uses) stand too — the old reader "
++      "re-derived the first pair and ignored the conflicting capacity",
++      _e5_kind(_e5_s0 + " ; " + _e5_other) == "unquantifiable", _e5_kind(_e5_s0 + " ; " + _e5_other))
++check("★★★ E5-3 (OLD CODE: RED) the verdict does not depend on the ORDER of the reasons: both orders stand (old: one re-derived, the "
++      "other stood)", _e5_kind(_e5_s0 + " ; " + _e5_other) == _e5_kind(_e5_other + " ; " + _e5_s0) == "unquantifiable",
++      (_e5_kind(_e5_s0 + " ; " + _e5_other), _e5_kind(_e5_other + " ; " + _e5_s0)))
++check("★★★ E5-4 (OLD CODE: RED) two comparisons glued into ONE reason (no ';') are not one comparison: stands",
++      _e5_kind(_e5_s0 + " " + _e5_other.split(": ", 1)[1]) == "unquantifiable", _e5_kind(_e5_s0 + " " + _e5_other.split(": ", 1)[1]))
++check("★★★ E5-5 (OLD CODE: RED) the SAME comparison repeated is still several comparisons — not re-derived with either joiner (old: "
++      "re-derived with ' ; '). The rule was validated on single-reason rows only; widening it is not a fix's job",
++      _e5_kind(_e5_s0 + " ; " + _e5_s0) == _e5_kind(_e5_s0 + "; " + _e5_s0) == "unquantifiable",
++      (_e5_kind(_e5_s0 + " ; " + _e5_s0), _e5_kind(_e5_s0 + "; " + _e5_s0)))
++check("★★★ E5-6 (OLD CODE: RED) a row-level entry for the re-derived client id that names a DIFFERENT origQty contradiction is not the "
++      "writer's copy of the request's string: it STANDS and names itself",
++      _e5_kind(_e5_s0, row_why=_e5_other) == "unquantifiable"
++      and any(_e5_other[:40] in x for x in (RC._rederive_ledger(_e5_row(_e5_s0, row_why=_e5_other)) or {}).get("stands", [])),
++      (_e5_kind(_e5_s0, row_why=_e5_other), (RC._rederive_ledger(_e5_row(_e5_s0, row_why=_e5_other)) or {}).get("stands")))
++_e5_long = _e5_s0.replace("identity: submit response: submit response", "identity: submit response (" + "x" * 60 + "): submit response")
++check("★★★ E5-7 (OLD CODE: RED — found while writing E5) ONE reason longer than 120 characters re-derives like a short one: its "
++      "row-level entry is the writer's str(inconsistent)[:120] copy, whose truncation drops 'differs from ours', and the old kind test "
++      "kept that copy standing — a false 'unquantifiable' that depended only on the LENGTH of a diagnostic string",
++      len(_e5_long) > 120 and _e5_kind(_e5_long) == "known" and (RC._rederive_ledger(_e5_row(_e5_long)) or {}).get("stands") == [],
++      (len(_e5_long), _e5_kind(_e5_long)))
++check("★★ E5-8 neighbour (both versions): the C6 foreign-identity join and a lone non-origQty reason still stand exactly as before",
++      _e5_kind(_e5_s0 + "; " + f"{_e5_cid}: identity: foreign orderId 99 is not ours (1)") == "unquantifiable"
++      and _e5_kind(f"{_e5_cid}: confirmed more than requested") == "unquantifiable")
++_e5_tree = tempfile.mkdtemp(prefix="e5_rj_")
++shutil.copytree(os.path.join(FIX, "pilot_log", "20260912"), os.path.join(_e5_tree, "20260912"))
++_e5_rows = [json.loads(l) for l in open(os.path.join(_e5_tree, "20260912", "orders.jsonl")) if l.strip()]
++with open(os.path.join(_e5_tree, "20260912", "orders.jsonl"), "w") as _fh:
++    for _r in _e5_rows:
++        if _r.get("symbol") == MEME and _r.get("terminal_reason") == "filled_amount_unknown" and _r.get("request_ledger"):
++            _r = _e5_row(_e5_s0 + " ; " + _e5_other)
++        _fh.write(json.dumps(_r) + "\n")
++_rep_e5 = RJ.rejudge_day(_e5_tree, "20260912", _evp)
++_row_e5 = next(r for r in _rep_e5["rows"] if r["symbol"] == MEME)
++_q_e5 = _row_e5["requests"][0]
++check("★★★ E5-9 (OLD CODE: RED) ops/rejudge_ledger_rows.py lists EVERY pair in the string, names no string Qv when there is more than "
++      "one, and the request's cross-check is FALSE; the row is still unquantifiable — the old receipt read the first pair and passed it",
++      _q_e5["evidence"].get("string_pairs") == [[1933692.0, 1933986.0], [1933000.0, 1933986.0]] and _q_e5["evidence"].get("string_Qv") is None
++      and _q_e5["cross_check"].get("string_has_exactly_one_pair") is False and _q_e5["cross_check"]["all"] is False
++      and _row_e5["read_time_verdict"]["kind"] == "unquantifiable",
++      (_q_e5["evidence"].get("string_pairs"), _q_e5["evidence"].get("string_Qv"), _q_e5["cross_check"], _row_e5["read_time_verdict"]["kind"]))
++shutil.rmtree(_e5_tree, ignore_errors=True)
++check("★★ E5-10 neighbour (both versions): the unmodified REAL day through the same tool still re-judges both rows KNOWN with every "
++      "cross-check true", _rep["n_rows_rejudged_known"] == 2 and _rep["n_requests_cross_check_all_true"] == 2)
++
+ print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
+ if FAILS:
+     print("FAILED:", *FAILS, sep="\n  ")
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 061b5ec..bac0546 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -198,7 +198,7 @@ SUITE_SCOPE = {
+         " JSON array / scalar / null, non-JSON, a bad ts, non-list actions or orders, a non-object _exec, a key that cannot be read)"
+         " is NAMED NOT OBSERVABLE and fails the completeness cell instead of ending the suite by exception or being skipped. It does"
+         " NOT recover what such a line said: a flatten record lost to corruption with its ledger rows also gone is named only as an"
+-        " unreadable line, never reconstructed, and a log that loses whole lines on disk (no line left to read) is still invisible.",
++        " unreadable line, never reconstructed, and a log that loses whole lines on disk (no line left to read) is still invisible. E5 (FX-EXEC 2026-09-13): the ruler's `_clamp_known` / `_row_rejudged` apply the same single-comparison and exact-copy rules in-body, with parity against reconcile on every E5 shape",
+     "tests_reject_topup": "that the book will reach its target — it recovers ONE refusal class (-5022) and makes the rest audible, and those are different guarantees. Four blind spots: (a) the recovered residual is now taken as a TAKER at a moment the market has just moved THROUGH our resting price, which is by definition the expensive moment — this suite asserts the order exists, never that the price was good, and the cost of the fix is unmeasured here; (b) -1111/-4164/-1102 clusters can still open the identical hole and by design cannot be auto-retried, so the only thing between them and another 4-5e flatten is an alarm a human must read; (c) it does not establish that 5% is the right alarm threshold — one anchor at 15.6% is not a distribution; (d) the top-up itself can fail, and a refused top-up of a refused maker leaves the same hole with two rows instead of none — better forensics, same exposure",
+     "tests_ops_flag_safety": "that an operator cannot change production state by accident — it closes ONE tool's flag handling and enforces the class for shell scripts only. Four blind spots: (a) the closed-world scan covers `ops/*.sh` and NOT the python tools, which are safe today only because they happen to use argparse — a future `sys.argv[1]` in a state-changing python tool would not be caught here; (b) it cannot see the inverse error, a flag that IS recognised but does the wrong thing; (c) `KILL.sh` reads no arguments at all, so `KILL.sh --check` silently fires the real kill — for an emergency stop firing is the safe direction, so it is left alone, but the expectation gap that caused this incident is still present there and this suite does not close it; (d) it asserts refusal, not comprehension: nothing here checks that the usage text an operator then reads is accurate",
+     "tests_exit_ledger": "that every position change will be explicable — it closes ONE unrecorded path (the universe exit) and proves that path end to end, from the emitted row to the real reconciler. It does not enumerate the others: any future code that moves the book without writing an order row reproduces 2026-08-01 exactly, and nothing here would notice. Three further blind spots: (a) it asserts the row EXPLAINS the change, not that the exit was the RIGHT action — a wrongly-classified name would be flattened and cleanly explained, and this suite would be green; (b) the fills.jsonl half is reachable only because the exit now carries a client id, but venue-side attribution itself is `venue_fills`' job and is not exercised here — an id that the venue never echoes back would still leave fills unattributed; (c) the fill facts come from `last_fill_details()` read one order at a time, so a broker that returned a stale answer would be recorded faithfully and wrongly, and no assertion here can tell those apart",
+@@ -229,7 +229,7 @@ SUITE_SCOPE = {
+         " request ledger. It does NOT prove that the venue ever sends such a pair (never observed; the old reader left no trace of the"
+         " 8->6 direction), that exit rows or flatten_all record the conflict (they read amount, price and time only), that an AGREED"
+         " clamp on a top-up narrows its band to Qv (the top-up ledger still carries no qty_venue: fail-wide), nor that the direct gate"
+-        " is as strict as the settlement `_valid` on ABSENT fields (it compares present fields; `_valid` requires orderId, side, origQty).",
++        " is as strict as the settlement `_valid` on ABSENT fields (it compares present fields; `_valid` requires orderId, side, origQty). E5 (FX-EXEC 2026-09-13): the runtime re-derives a clamp only from exactly ONE origQty comparison parsed per reason (several — agreeing, conflicting, either order, glued — stand; the old first-pair reader was fail-closed for the writer's '; ' joiner only because the regex swallowed ';' into the number), a row-level entry is dropped only when it equals the request's str(inconsistent)[:120] copy (no kind test on the truncated copy), and the rejudge receipt lists every pair; it cannot prove the writer never emits a multi-comparison string, only that none is re-derived",
+     "tests_flatten_fee_backfill": "that the venue's allOrders still lists the flatten's orders when the runner is invoked (limit 500 / startTime — an unreached symbol is named, not fabricated), or that the LIVE run was ever performed (`LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 --apply` is the operator's step, with credentials; this suite drives the runner over an in-process fake). It proves, on the REAL 2026-09-12 day, that the flatten batch is detected as the one gap with its 255 own client ids and 255 fee-unmeasured order rows, and on a synthetic population that the legs are rebuilt by EXACT client id (never by the rebalance-id prefix a flatten does not carry), that --apply writes one fills row per child fill with order_type protective_flatten and the venue's commission, that a second apply writes nothing (idempotent by trade id), that a foreign trade is counted unattributed and never written, that a batch the venue does not list fails closed, and that the classic rebalance path and its maker/topup_taker buckets are untouched. The ORDER rows' fee_paid stays None by the ledger's append-only rule — the measurement lands on the fills rows, and a consumer that sums fees from order rows alone still under-reads the flatten.",
+     "tests_income_twin_rows": "that the venue keys income rows the way the fixture does — it proves, against an in-process fake of /fapi/v1/income, that a trade's COMMISSION and REALIZED_PNL twins (same tranId) are BOTH summed, that a row re-served across a page boundary is still counted once, and that the old tranId-only key would have dropped exactly one twin per trade (positive control). Whether the venue also shares tranIds across OTHER pairs of types, or emits a third row per trade in some product, is a fact about the venue that only the live ledger reconciliation (income vs fills) can keep proving.",
+     "tests_transport_resilience": "that the VENUE will be reachable on the resend — it proves, against an in-process fake of urlopen, that a request-phase failure on GET/DELETE is resent a bounded number of times while an order POST is NEVER resent under any failure — transport in either phase, HTTP 5xx, 200 non-JSON — but settled only by the venue's own order record (found ⇒ adopted, -2013 twice ⇒ recorded as not sent, else ambiguous), that the requote carries ambiguity as rested and the top-up keeps a confirmed chunk and writes UNKNOWN never zero, that a still-unresolvable POST is carried as possibly-resting, that the executor records transport rows and trips its circuit breaker, and that an exception escaping the submit loop cancels what rested, writes rows and pages before re-raising. It cannot see whether the venue actually processed a request whose answer we lost when the query ALSO fails (that order is handed to phase B as possibly-resting and to the next sweep), nor whether a 0.5 s pause is long enough for the venue to have decided before we ask it, nor whether Telegram delivers the page",
+diff --git a/ops/rejudge_ledger_rows.py b/ops/rejudge_ledger_rows.py
+index 3b8ced4..4747375 100644
+--- a/ops/rejudge_ledger_rows.py
++++ b/ops/rejudge_ledger_rows.py
+@@ -154,9 +154,12 @@ def rejudge_day(root: str, day: str, events_path: Optional[str]) -> Dict[str, An
+             fills_here = fills_by.get((o.get("rebalance_id"), o.get("symbol")), {})
+             children_in_fills = sorted(k for k in tq if k in fills_here)
+             children_not_in_fills = sorted(k for k in tq if k not in fills_here)
+-            m = RC._ORIGQTY_PAIR.search(str(r.get("inconsistent") or ""))
+-            str_qv = _fin(m.group(1)) if m else None
+-            str_qs = _fin(m.group(2)) if m else None
++            # ★ E5: EVERY pair in the string, parsed per reason (a joiner never leaks into a number); the string's Qv/Qs are named
++            #   only when it holds exactly one — the same single-pair rule as reconcile._clamp_rederived
++            _pairs = [[_fin(a), _fin(b)] for p_ in str(r.get("inconsistent") or "").split(";") for a, b in RC._ORIGQTY_PAIR.findall(p_.strip())]
++            _one_pair = len(_pairs) == 1 and None not in _pairs[0]
++            str_qv = _pairs[0][0] if _one_pair else None
++            str_qs = _pairs[0][1] if _one_pair else None
+             post_qv = _fin(resp.get("origQty"))
+             entry = {
+                 "client_id": cid,
+@@ -174,7 +177,7 @@ def rejudge_day(root: str, day: str, events_path: Optional[str]) -> Dict[str, An
+                     "post_orderId": resp.get("orderId"),
+                     "order_sent_quantity": (sub or {}).get("order", {}).get("quantity"),
+                     "order_sent_reduce_only": (sub or {}).get("order", {}).get("reduce_only"),
+-                    "string_Qv": str_qv, "string_Qs": str_qs,
++                    "string_Qv": str_qv, "string_Qs": str_qs, "string_pairs": _pairs,
+                     "children_in_day_fills": children_in_fills,
+                     "children_not_in_day_fills": children_not_in_fills,
+                     "fills_notional_sum": (sum(float(fills_here[k]["fill_notional"]) for k in children_in_fills) if children_in_fills else None),
+@@ -184,6 +187,7 @@ def rejudge_day(root: str, day: str, events_path: Optional[str]) -> Dict[str, An
+             }
+             c = _fin(r.get("confirmed_qty"))
+             entry["cross_check"] = {
++                "string_has_exactly_one_pair": _one_pair,                                  # E5
+                 "string_Qv_equals_post_origQty": (str_qv is not None and post_qv is not None and abs(str_qv - post_qv) <= 1e-9),
+                 "post_says_reduceOnly_and_we_sent_reduce_only": (resp.get("reduceOnly") is True and bool((sub or {}).get("order", {}).get("reduce_only"))),
+                 "Qv_below_Qs": (str_qv is not None and str_qs is not None and 0 < str_qv < str_qs),

@@ -1,0 +1,42 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_frontier_staleness.py head=65234404eb22693cb3c67572ee49e6af86a1f0db dirty=6 start=2026-09-13T16:24:51Z py=Python 3.9.6
+# suite_sha256=c1a9234afcb836713ede8a0a1fecfa643d07e419804c9598f229e16b8917c092
+[A] the measured case: a fresh report whose data has not moved
+  OK    ★★ a 107.5h frozen frontier is NOT ok, though the report is 1h old  — age_h=1.0
+  OK    ★★ the finding names the frontier, not the report  — FRONTIER_STALE: the report is fresh but its DATA is not — newest score
+  OK       the report's own freshness is still reported and is NOT the complaint  — report age 1.0h vs limit 26.0h
+  OK    ★ and the frontier travels in the record, so it is auditable afterwards
+
+[B] an advancing frontier is quiet
+  OK    ★★ a 4h-old frontier with new anchors passes
+  OK       and it says it judged the frontier (not that it skipped it)
+  OK    ★ exactly at the limit is not a breach (the rule is strictly greater)  — 26.0h
+
+[C] an ABSENT marker is not a pass
+  OK    ★★ no frontier marker -> NOT ok, and flagged as unknown  — FRONTIER_UNKNOWN: the upstream report carries no data-frontier marker,
+  OK    ★★ and `frontier_judged` is False — 'we did not check' is its own state
+
+[D] the two clocks are independent
+  OK    ★★ a stale REPORT with a fresh frontier still fires — on STALE, not FRONTIER_STALE  — ['STALE']
+  OK    ★ the limit is the SAME constant for both, on purpose
+
+[E] red capability
+  OK    ★★ mutant 'ignore_frontier' reports ok=True on a 107.5h frozen frontier — the defect  — a punctual report about motionless data
+  OK    ★ the on-disk source is unchanged
+
+[F] [T3] the crash branch — 'the report could not be read' must be the LOUDEST case
+  OK    ★★ an unreachable report yields `findings`, so no consumer KeyErrors on it  — UNREACHABLE: the shadow monitor report could not be read at 
+  OK    ★★ it is INFO(不叫醒人) 但 ok 仍为 False(不是健康) —— 只降severity, 不降结论
+  OK    ★★ 补回强度①: 可读但【衰减】的报告仍必须 HIGH(实盘可行动, 不受本次降级波及)  — 若此断言因签名不符而无法构造, 说明衰减路径需单独回归
+  OK    ★★ 补回强度②: 该分支必须自陈是研究基建可达性, 而非书的状况  — could not read the shadow monitor report — factor health is UNKNOWN, which is no
+  OK    ★★ its key set COVERS the normal return — a consumer need not know which branch ran  — missing: set()
+  OK    ★ and it says UNKNOWN is not healthy, in the finding itself
+  OK    ★★ mutant 'drop_findings' reproduces the pre-fix return — the key is simply absent
+  OK    ★★ pre-fix: run() raises KeyError('findings') on an unreachable report  — KeyError('findings')
+  OK    ★★ pre-fix: and NOTHING inside run() ever spoke — the only page comes from run_anchor's handler, which names the WRONG CAUSE ('检查本轮无法运行')
+  OK    ★★ fixed: run() completes, and the page STATES THE CAUSE instead of a KeyError  — ('None', [('INFO', '因子健康: UNREACHABLE: the shadow monitor report could not be read at all. Factor health is UNKNOWN — which is not the same as healthy, and is the one state in this file that cannot be inferred from anything else. ★ This is a RESEARCH-INFRA fact (the report lives on a remote box reached over ssh); the live loop needs nothing from that box, so it is recorded at INFO rather than paged.')])
+  OK    ★★ fixed: at INFO(研究基建可达性, 实盘无事可做) —— 但消息仍必须发出, 不得被吞
+  OK    ★ 且降级不得改变结论: 消息里仍说 UNKNOWN 不等于健康
+  OK    ★ the on-disk source is STILL unchanged after all four loads
+
+ALL PASS  (26 checks)
+# end=2026-09-13T16:24:52Z rc=0

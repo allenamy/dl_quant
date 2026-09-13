@@ -1,0 +1,306 @@
+diff --git a/live/tests_gross_ladder_retired.py b/live/tests_gross_ladder_retired.py
+new file mode 100644
+index 0000000..6e35b7b
+--- /dev/null
++++ b/live/tests_gross_ladder_retired.py
+@@ -0,0 +1,203 @@
++"""The withdrawn σ_fund gross ladder can no longer set exposure (OPS-01b, FX-EXEC 2026-09-13).
++
++*** MOCK ONLY: DRY_RUN broker that refuses the network, every state path in a temp dir (LIVE_STATE_ROOT included, set before any
++    import), a fixture target file. Nothing live is read or written. ***
++
++★★★ THE FACTS
++  · PREREG_deploy_sigma_ladder_2026-09-04 wired a gross multiplier g in {0.5, 1.0} into anchor_loop's sizing, read from a
++    dashboard-written `state/live/sigma_ladder.json` (live/sigma_ladder.py; fail-safe g=1.0 on a missing/stale/tampered file).
++  · The ladder was WITHDRAWN. Its launchd producer was disabled and the plist retired at 2026-09-13T14:00:50Z (OPS-01, lead, receipt
++    OPS01_disable_sigma_ladder_20260913T140050Z.log). The reader in anchor_loop (~L1762-1780 at ef60f85) was not removed: a fresh,
++    well-formed g=0.5 file — hand-written, restored, or produced by a re-enabled job — halved target gross on the next anchor, with an
++    INFO line as the only trace.
++  · sigma_ladder.DEFAULT_PATH defaults to ~/dl_quant_live/state when LIVE_STATE_ROOT is unset, so any test process that ran an external
++    anchor was sized by whatever file sat in the LIVE tree. This suite sets LIVE_STATE_ROOT first.
++
++The cells run a real external-book anchor (the tests_external_book [L] harness, copied) with and without a ladder file that the
++ladder's OWN evaluator accepts, so a red on the old code is the wiring applying the file, not a malformed fixture.
++"""
++import ast
++import hashlib
++import json
++import os
++import shutil
++import sys
++import tempfile
++import time
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++for _d in ("live", "signal", "scheduler", "ops"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++
++TMP = tempfile.mkdtemp(prefix="ladder_retired_")
++os.environ["LIVE_STATE_ROOT"] = TMP                     # BEFORE sigma_ladder can be imported by anyone
++os.environ["LIVE_LOOP_STATE"] = os.path.join(TMP, "loop_state.json")
++os.environ["LIVE_PREDS_PATH"] = os.path.join(TMP, "preds.json")
++os.environ["LIVE_KILL_SWITCH"] = os.path.join(TMP, "KILL_SWITCH.json")
++os.environ["LIVE_HARVEST_STATE"] = os.path.join(TMP, "harvest_ema.json")
++os.environ["LIVE_FEE_BASELINE"] = os.path.join(TMP, "fee_asset_baseline.json")
++os.environ["LIVE_WATCHDOG_STATE"] = os.path.join(TMP, "watchdog_state.json")
++os.environ["LIVE_EXTERNAL_WAIT"] = "0"
++os.environ.setdefault("LIVE_MODE", "DRY_RUN")
++_preloaded = "sigma_ladder" in sys.modules
++
++import book_config as BC              # noqa: E402
++import external_book as EXT           # noqa: E402
++import anchor_loop as AL              # noqa: E402
++import binance_broker as BB           # noqa: E402
++import binance_executor as EX         # noqa: E402
++import sigma_ladder as SL             # noqa: E402
++
++FAILS = []
++
++
++def check(name, cond, detail=""):
++    print(("  OK    " if cond else "  FAIL  ") + name + (f"  — {detail}" if detail != "" else ""), flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++UTC = "%Y-%m-%dT%H:%M:%SZ"
++REAL_BOOK = json.load(open(BC.BOOK_PATH))
++
++
++def _internal_baseline(d):
++    d = json.loads(json.dumps(d))
++    d["book_source"] = "internal"
++    d["per_name_stop"] = dict(d.get("per_name_stop") or {}, active_profile=None)
++    return d
++
++
++BASE_BOOK = _internal_baseline(REAL_BOOK)
++W8 = {"AAAUSDT": 0.25, "BBBUSDT": -0.25, "CCCUSDT": 0.125, "DDDUSDT": -0.125,
++      "EEEUSDT": 0.0625, "FFFUSDT": -0.0625, "GGGUSDT": 0.0625, "HHHUSDT": -0.0625}
++UNIVERSE = sorted(W8) + ["IIIUSDT", "JJJUSDT", "ZZZUSDT"]
++BOOSTER = "b" * 64
++TDIR = os.path.join(TMP, "target_live")
++
++
++def write_target(dir_, anchor_ts, weights, written_ts):
++    os.makedirs(dir_, exist_ok=True)
++    doc = {"schema": "wide_target_v1", "anchor_ts": int(anchor_ts), "weights": dict(weights),
++           "gross_norm": float(sum(abs(v) for v in weights.values())), "n_names": len(weights),
++           "universe": list(UNIVERSE), "universe_sha": EXT.universe_sha(UNIVERSE), "n_universe": len(UNIVERSE),
++           "booster_sha": BOOSTER, "weights_sha": "a" * 64, "written_utc": time.strftime(UTC, time.gmtime(written_ts)),
++           "producer": "test_fixture", "anchor_offset_min": 23}
++    raw = json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
++    p = os.path.join(dir_, f"{int(anchor_ts)}.json")
++    open(p, "wb").write(raw)
++    open(p + ".sha256", "w").write(f"{hashlib.sha256(raw).hexdigest()}  {os.path.basename(p)}\n")
++
++
++def book_with(**over):
++    d = json.loads(json.dumps(BASE_BOOK))
++    d.update(over)
++    p = os.path.join(TMP, f"book_{len(os.listdir(TMP))}.json")
++    json.dump(d, open(p, "w"), ensure_ascii=False, indent=1)
++    return p
++
++
++def ext_block(path):
++    return {"path": path, "max_age_min": 10, "anchor_offset_min": 23, "poll_grace_min": 0, "gross_mult": 1.0,
++            "require_anchor_match": True, "universe_sha_pin": None, "booster_sha_pin": None, "min_notional_mult": 2.0,
++            "on_unavailable": "ladder", "schema": "wide_target_v1"}
++
++
++def pns_wide():
++    p = json.loads(json.dumps(BASE_BOOK["per_name_stop"]))
++    p["active_profile"] = "wide"
++    p.setdefault("profiles", {})["wide"] = {"depth_pct": -0.3, "consecutive_anchors": 2, "cooloff_days": 7, "min_notional_usdt": 20.0}
++    return p
++
++
++class _DryBroker(BB.BinanceBroker):
++    def __init__(self):
++        super().__init__(mode="DRY_RUN")
++        self.armed = True
++
++    def _request(self, method, path, params=None, signed=False, host=None):
++        raise AssertionError(f"network call attempted: {method} {path}")
++
++
++def run_external_anchor():
++    b = _DryBroker()
++    ex = EX.RebalanceExecutor(b)
++    ex.filters.f = {s: {"tick": 0.01, "step": 0.001, "min_notional": 5.0} for s in W8}
++    ex.capture_anchor = lambda syms: (time.time(), {s: 100.0 for s in syms})
++    al = []
++    loop = AL.AnchorLoop(b, ex, gross_usdt=0.0, alarm=lambda s, m: al.append((s, m)))
++    loop._equity = 10_000.0
++    AL._save(os.environ["LIVE_LOOP_STATE"], {"positions": {}, "stale_ref_positions": None, "alarmed_stages": []})
++    shutil.rmtree(TDIR, ignore_errors=True)
++    write_target(TDIR, NOMINAL, W8, written_ts=time.time() - 60)
++    with BC._using(_EXT_BOOK):
++        out = loop.run_anchor()
++    return out, (loop._anchor_ctx or {}), al
++
++
++def ladder_doc(g, now, tamper=False):
++    """The document shape the ladder's producer wrote (tests_sigma_ladder's mk()), signed with the ladder's own _sha."""
++    doc = {"schema": SL.SCHEMA, "g": g, "p": 0.2, "anchor_ts": int(now // 14400 * 14400),
++           "written_utc": time.strftime(UTC, time.gmtime(now - 600)), "streak_low": 90, "streak_high": 0, "rule": "test"}
++    doc["sha"] = SL._sha(doc)
++    if tamper:
++        doc["g"] = 1.0
++    return doc
++
++
++NOMINAL = EXT.nominal_anchor_ts(time.time())
++_EXT_BOOK = book_with(book_source="external", external_book=ext_block(TDIR), per_name_stop=pns_wide(), anchor_late_tolerance_min=10 ** 6)
++LADDER = os.path.join(TMP, "live", "sigma_ladder.json")
++
++print("[F] harness")
++check("F0 the ladder module was not imported before LIVE_STATE_ROOT was set, and its default path is inside this sandbox",
++      not _preloaded and os.path.abspath(SL.DEFAULT_PATH) == os.path.abspath(LADDER), SL.DEFAULT_PATH)
++os.makedirs(os.path.dirname(LADDER), exist_ok=True)
++json.dump(ladder_doc(0.5, time.time()), open(LADDER, "w"))
++_g, _gi = SL.load(LADDER)
++check("F1 the fixture ladder file is ACCEPTED by the ladder's own evaluator at g=0.5 (fresh, whitelisted, hash-consistent)",
++      _g == 0.5 and _gi.get("accepted") is True, _gi)
++os.remove(LADDER)
++
++print("\n[O] a real external anchor, with and without a ladder file")
++out0, ctx0, al0 = run_external_anchor()
++tgt0, sz0 = ctx0.get("target") or {}, out0.get("sizing") or {}
++check("O1 neighbour (both versions): with NO ladder file, gross = NAV x gross_mult = 10,000, target == w x 10,000 bitwise, "
++      "leverage source external_book.gross_mult",
++      out0.get("action") == "TRADE" and sz0.get("gross") == 10_000.0 and sz0.get("leverage_source") == "external_book.gross_mult"
++      and all(tgt0.get(s) == W8[s] * 10_000.0 for s in W8), (out0.get("action"), sz0.get("gross"), sz0.get("leverage_source")))
++json.dump(ladder_doc(0.5, time.time()), open(LADDER, "w"))
++out1, ctx1, al1 = run_external_anchor()
++tgt1, sz1 = ctx1.get("target") or {}, out1.get("sizing") or {}
++check("★★★ O2 (OLD CODE: RED) with a FRESH, ACCEPTED g=0.5 ladder file present, gross is STILL 10,000 and the target is still "
++      "w x 10,000 bitwise — the withdrawn rule halved it before — with no ladder alarm, and the book record says the ladder was "
++      "not read",
++      out1.get("action") == "TRADE" and sz1.get("gross") == 10_000.0 and sz1.get("leverage_source") == "external_book.gross_mult"
++      and all(tgt1.get(s) == W8[s] * 10_000.0 for s in W8) and not [m for _s, m in al1 if "σ_fund" in m]
++      and str(((ctx1.get("weights") or {}).get("gross_ladder") or {}).get("reason", "")).startswith("retired_not_read"),
++      (sz1.get("gross"), sz1.get("leverage_source"), [m[:60] for _s, m in al1 if "σ_fund" in m], (ctx1.get("weights") or {}).get("gross_ladder")))
++json.dump(ladder_doc(0.5, time.time(), tamper=True), open(LADDER, "w"))
++out2, ctx2, al2 = run_external_anchor()
++check("★★ O3 (OLD CODE: RED) a present but REJECTED ladder file (hash mismatch) is not read either: no 'σ_fund 阶梯状态文件被拒' "
++      "line, gross 10,000 — nothing on the anchor path parses that file any more",
++      (out2.get("sizing") or {}).get("gross") == 10_000.0 and not [m for _s, m in al2 if "σ_fund" in m],
++      [m[:60] for _s, m in al2 if "σ_fund" in m])
++os.remove(LADDER)
++
++print("\n[S] static")
++_importers = []
++for _dir in ("scheduler", "live", "ops", "signal"):
++    for _fn in sorted(os.listdir(os.path.join(REPO, _dir))):
++        if _fn.endswith(".py") and not _fn.startswith("tests_") and _fn != "sigma_ladder.py":
++            for _n in ast.walk(ast.parse(open(os.path.join(REPO, _dir, _fn), encoding="utf-8").read())):
++                if (isinstance(_n, ast.Import) and any(a.name.split(".")[-1] == "sigma_ladder" for a in _n.names)) or \
++                        (isinstance(_n, ast.ImportFrom) and ((_n.module or "").split(".")[-1] == "sigma_ladder"
++                                                             or any(a.name == "sigma_ladder" for a in _n.names))):
++                    _importers.append(f"{_dir}/{_fn}")
++check("★ S1 (OLD CODE: RED) no runtime module imports sigma_ladder — the reader is unreachable, not merely defaulted to g=1.0",
++      _importers == [], _importers)
++
++shutil.rmtree(TMP, ignore_errors=True)
++print(f"\n  {'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}", flush=True)
++sys.exit(0 if not FAILS else 1)
+diff --git a/live/tests_imports.py b/live/tests_imports.py
+index 9c6e37c..e8fbb06 100644
+--- a/live/tests_imports.py
++++ b/live/tests_imports.py
+@@ -40,7 +40,8 @@ PRODUCTION_MODULES = [
+     "external_book",  # 外部书适配器 (DESIGN_wide_live_deployment_2026-08-22 §1): anchor_loop imports it
+     "reject_rate",    # 场所拒单率口径 (E-0905-H, 2026-09-05): anchor_loop imports it; pure functions + tests_reject_rate
+     "requote_experiment",  # -5022 重挂随机实验 (PREREG_requote_randomised_2026-09-05): binance_executor imports it; pure functions + tests_requote_experiment
+-    "sigma_ladder",   # σ_fund gross ladder consumer (PREREG_deploy_sigma_ladder_2026-09-04): fail-safe g=1.0; an import failure here would silently disable the ladder, never raise exposure
++    # `sigma_ladder` left 2026-09-13 (OPS-01b): the withdrawn σ_fund gross ladder is no longer read by anchor_loop, so it is not a
++    # production module; live/sigma_ladder.py stays only because tests_sigma_ladder pins its evaluator.
+     "universe", "state_root", "book_config", "rate_budget", "binance_funding",
+     # `reduce_only_reject` joined 2026-08-01: resolves a -2022 against the position readback.
+     # The drift assertion named it before I did — fifth time.
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index ccafaf3..061b5ec 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -271,7 +271,7 @@ SUITE_SCOPE = {
+     # these boundaries are the reason a sibling suite exists.
+     "tests_trip_page": "that the page is DELIVERED — it composes severity and wording from the "
+                        "ladder's facts; whether the notifier reaches a human is B3's question",
+-    "tests_sigma_ladder": "that a dashboard-written gross-ladder state file can only LOWER exposure when it is fresh, well-formed, whitelisted and hash-consistent — every defect (missing, stale, tampered, out-of-range) falls back to g=1.0; the arithmetic contract target_leverage = gross_mult x g",
++    "tests_sigma_ladder": "that a dashboard-written gross-ladder state file can only LOWER exposure when it is fresh, well-formed, whitelisted and hash-consistent — every defect (missing, stale, tampered, out-of-range) falls back to g=1.0; the arithmetic contract target_leverage = gross_mult x g ★ SINCE 2026-09-13 (OPS-01b) THE ANCHOR NO LONGER READS THE LADDER: the rule was withdrawn and its producer disabled (OPS-01), anchor_loop imports nothing from live/sigma_ladder.py, so this suite pins a retired evaluator — tests_gross_ladder_retired is the one that says a ladder file cannot move exposure",
+     "tests_requote_experiment": "that the direct arm is CHEAPER or DEARER — it proves only, on a fake broker, "
+                                 "that the arm assignment is deterministic and reproducible from (rebalance_id, symbol), "
+                                 "that p=1.0 and every config/exception failure are bitwise the current behaviour (requote all), "
+@@ -302,6 +302,13 @@ SUITE_SCOPE = {
+                                 "the first is due 2026-09-14T01:30Z); (b) ALERT/DECIDE/UNSTAMPED shapes need one #55 constant moved; "
+                                 "(c) it cannot tell whether #55's launchd job is loaded — only whether its ledger moves; (d) the grace "
+                                 "constant is W1's commit time, so a W1 deployed later than ef60f85's commit would be judged early",
++    "tests_gross_ladder_retired": "that NOTHING ELSE sizes the book — it proves only that the withdrawn σ_fund ladder file no longer does: a "
++                                  "real external-book DRY_RUN anchor with a fresh g=0.5 file that the ladder's own evaluator ACCEPTS "
++                                  "sizes at NAV x gross_mult bitwise with no ladder alarm and a record saying the ladder was not read, a "
++                                  "rejected file is not parsed either, and no runtime module imports sigma_ladder. Blind spots: (a) the "
++                                  "internal-book path never read the ladder and is not exercised here; (b) it cannot see a DIFFERENT "
++                                  "exposure multiplier added elsewhere later; (c) the retired launchd job's state (disabled, plist moved) "
++                                  "is OPS-01's receipt, not something this suite reads",
+     "tests_ledger_notary": "that the notary RUNS and its manifests are TIMESTAMPED — it proves, in a sandbox (temp ledger, temp git "
+                            "repo + local bare remote, a fake git that fails like the launchd run, alarms suppressed into a temp "
+                            "audit), that ops/notarize_ledgers.py refuses an unlistable notary directory instead of writing GENESIS, "
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index 08cee2e..a2daf42 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -54,6 +54,8 @@ SUITES=(
+   "tests_ledger_notary:$_SELF/live/tests_ledger_notary.py"
+   # ALM-03 = W5 (FX-EXEC 2026-09-13): 步 9 改读 #55 评估账本; 产物断言 #9 不再对缺席空过
+   "tests_rank_monitor_input:$_SELF/live/tests_rank_monitor_input.py"
++  # OPS-01b (FX-EXEC 2026-09-13): 已撤回的 σ_fund gross 阶梯读取端移除; 新鲜可接受的 g=0.5 文件不再动 gross
++  "tests_gross_ladder_retired:$_SELF/live/tests_gross_ladder_retired.py"
+   "tests_reject_rate:$_SELF/live/tests_reject_rate.py"
+   "tests_requote_experiment:$_SELF/live/tests_requote_experiment.py"
+   "tests_sigma_ladder:$_SELF/live/tests_sigma_ladder.py"
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index 88b75ac..5e2ff6c 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -1759,24 +1759,21 @@ class AnchorLoop:
+         # `gross` was a config constant, so as equity fell the effective leverage rose and nobody
+         # decided that — the risk budget was being enlarged by arithmetic. It is now
+         # `nav x target_leverage`, recomputed here, every anchor.
+-        # ★ σ_fund gross ladder (PREREG_deploy_sigma_ladder_2026-09-04): target_leverage = gross_mult x g,
+-        #   g in {0.5, 1.0} read from a dashboard-written state file; FAIL-SAFE g=1.0 (missing/stale/tampered
+-        #   never reduces exposure). Logged on the anchors row; INFO when g<1 or when a present file is rejected.
+-        _g, _ginfo = (1.0, {"src": "sigma_ladder", "g": 1.0, "accepted": False, "reason": "not_external"})
++        # ★★ σ_fund gross ladder (PREREG_deploy_sigma_ladder_2026-09-04) — WITHDRAWN, AND NO LONGER READ (OPS-01b, FX-EXEC 2026-09-13).
++        #   It multiplied target_leverage by g in {0.5, 1.0} taken from a dashboard-written state file. The ladder was withdrawn by
++        #   ruling; its launchd producer was disabled and its plist retired at 2026-09-13T14:00:50Z (OPS-01). This reader stayed: any
++        #   fresh, well-formed g=0.5 file — written by hand, restored from a backup, or produced by a job someone re-enables — halved
++        #   target gross on the next anchor with nothing louder than an INFO line. (It also read ~/dl_quant_live/state by default, so a
++        #   test process could be sized by the LIVE tree's file.)
++        #   ⇒ No file sets exposure any more: sizing is NAV x gross_mult, the call that was already the default path. live/sigma_ladder.py
++        #     stays (tests_sigma_ladder pins the evaluator) but nothing on the anchor path imports it; the record below says the rule was
++        #     not applied, so an anchors row can never be read as "ladder at g=1.0 by choice". Re-instating a ladder is a new ruling and a
++        #     new wiring, not a file.
+         if _is_ext:
+-            import sigma_ladder as _SLAD   # live/ 已在 sys.path(与 external_book/per_name_stop 同式)
+-            _g, _ginfo = _SLAD.load()
+-            if _ginfo.get("accepted") and _g < 1.0:
+-                self.alarm("INFO", f"σ_fund 阶梯低档: g={_g} p={_ginfo.get('p')} streak_low={_ginfo.get('streak_low')} — 目标 gross = NAV×{external['gross_mult']}×{_g}")
+-            elif (not _ginfo.get("accepted")) and _ginfo.get("reason") not in ("missing", "not_external"):
+-                self.alarm("INFO", f"σ_fund 阶梯状态文件被拒({_ginfo.get('reason')}) — 按 g=1.0 运行")
+-            _bw["gross_ladder"] = _ginfo
+-        if _is_ext and _g < 1.0:   # ladder low mode (rare): exposure = NAV x gross_mult x g, stamped so the anchors row shows it
+-            _sz = self._size_book(target_leverage=external["gross_mult"] * _g,
+-                                  leverage_source=f"external_book.gross_mult×ladder({_g})")
+-        else:                       # default path — byte-identical to the pre-ladder call (S4 contract)
+-            _sz = self._size_book(target_leverage=(external["gross_mult"] if _is_ext else None),
+-                                  leverage_source=("external_book.gross_mult" if _is_ext else None))
++            _bw["gross_ladder"] = {"src": "sigma_ladder", "g": 1.0, "accepted": False,
++                                   "reason": "retired_not_read (OPS-01b: ladder withdrawn; producer disabled 2026-09-13T14:00:50Z)"}
++        _sz = self._size_book(target_leverage=(external["gross_mult"] if _is_ext else None),
++                              leverage_source=("external_book.gross_mult" if _is_ext else None))
+         out_sizing = _sz
+         self._last_sizing = _sz
+         if _sz.get("halt"):

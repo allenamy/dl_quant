@@ -1,0 +1,27 @@
+M1_several_pairs_accepted rc 1 E5 fails ['E5-1', 'E5-2', 'E5-3', 'E5-5', 'E5-9'] expect ['E5-5'] traceback False => KILLED
+M2_whole_string_first_pair rc 1 E5 fails ['E5-4'] expect ['E5-4'] traceback False => KILLED
+M3_row_equality_dropped rc 1 E5 fails ['E5-6'] expect ['E5-6'] traceback False => KILLED
+M4_row_kind_test_back rc 1 E5 fails ['E5-7'] expect ['E5-7'] traceback False => KILLED
+M5_rejudge_first_pair rc 1 E5 fails ['E5-9'] expect ['E5-9'] traceback False => KILLED
+M6_ruler_several_reasons rc 1 E5 fails [] expect ['E5-R1'] traceback True => SURVIVED
+ such row reports its fee as None. `fee or 0` would print 0.00 USDT of cost for a whole book of IOC taker execution. This cell reads the ORDER layer, which is append-only: a backfill lands measured commission on `fills` rows and never rewrites `fee_paid` here, so this count does NOT fall when fees are recovered (the fills-layer split is in DESIGN §5)
+Traceback (most recent call last):
+  File "/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/e5mut_g_6x22_o/live/tests_disposition_matrix.py", line 987, in <module>
+    (len(_flat_rids), sorted(_flat_rids)[-1]))
+IndexError: list index out of range
+
+M7_ruler_row_equality_dropped rc 1 E5 fails [] expect ['E5-R3'] traceback True => SURVIVED
+ such row reports its fee as None. `fee or 0` would print 0.00 USDT of cost for a whole book of IOC taker execution. This cell reads the ORDER layer, which is append-only: a backfill lands measured commission on `fills` rows and never rewrites `fee_paid` here, so this count does NOT fall when fees are recovered (the fills-layer split is in DESIGN §5)
+Traceback (most recent call last):
+  File "/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/e5mut_fku85swv/live/tests_disposition_matrix.py", line 987, in <module>
+    (len(_flat_rids), sorted(_flat_rids)[-1]))
+IndexError: list index out of range
+
+M8_ruler_row_kind_back rc 1 E5 fails [] expect ['E5-R3b'] traceback True => SURVIVED
+ such row reports its fee as None. `fee or 0` would print 0.00 USDT of cost for a whole book of IOC taker execution. This cell reads the ORDER layer, which is append-only: a backfill lands measured commission on `fills` rows and never rewrites `fee_paid` here, so this count does NOT fall when fees are recovered (the fills-layer split is in DESIGN §5)
+Traceback (most recent call last):
+  File "/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/e5mut_if4og2f6/live/tests_disposition_matrix.py", line 987, in <module>
+    (len(_flat_rids), sorted(_flat_rids)[-1]))
+IndexError: list index out of range
+
+SUMMARY {"n": 8, "killed": 5, "not_killed": ["M6_ruler_several_reasons", "M7_ruler_row_equality_dropped", "M8_ruler_row_kind_back"]}

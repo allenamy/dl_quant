@@ -1,0 +1,1049 @@
+diff --git a/live/tests_fixtures/alm03_rank_monitor/MANIFEST.json b/live/tests_fixtures/alm03_rank_monitor/MANIFEST.json
+new file mode 100644
+index 0000000..39be132
+--- /dev/null
++++ b/live/tests_fixtures/alm03_rank_monitor/MANIFEST.json
+@@ -0,0 +1,23 @@
++{
++ "built_utc": "2026-09-13T16:16:59Z",
++ "evals_ledger_existed_at_copy": false,
++ "files": {
++  "alarm_episode_factor_health.json": {
++   "bytes": 505,
++   "sha256": "32dbc30dad6de364bb2ea75f358b6b920b34a0c112461902d4daaca74949eedc",
++   "source": "state/alarm_episodes/factor_health.json"
++  },
++  "factor_health_last.json": {
++   "bytes": 1321,
++   "sha256": "d5c3d68926d0e8d64db8096bf72390ff37bd80b587e1c3d0a20439a49d899c91",
++   "source": "state/factor_health_last.json"
++  },
++  "ic_monitor.jsonl": {
++   "bytes": 32592,
++   "sha256": "d48c440c04154d00455f6c456d100925236104fc3831fa32b57ee585c8e1ea1b",
++   "source": "state/live/ic_monitor.jsonl"
++  }
++ },
++ "live_head": "ef60f85ad93e49f2e0f190bc6e8a15d04073f193 2026-09-13T20:04:14+08:00",
++ "source_repo": "/Users/haosiyu/dl_quant_live"
++}
+\ No newline at end of file
+diff --git a/live/tests_fixtures/alm03_rank_monitor/alarm_episode_factor_health.json b/live/tests_fixtures/alm03_rank_monitor/alarm_episode_factor_health.json
+new file mode 100644
+index 0000000..c582eeb
+--- /dev/null
++++ b/live/tests_fixtures/alm03_rank_monitor/alarm_episode_factor_health.json
+@@ -0,0 +1,8 @@
++{
++ "episode": "68f039b2261f3dff",
++ "at": 1788525915.753084,
++ "at_utc": "2026-09-04T12:45:15Z",
++ "findings": [
++  "UNREACHABLE: the shadow monitor report could not be read at all. Factor health is UNKNOWN \u2014 which is not the same as healthy, and is the one state in this file that cannot be inferred from anything else. \u2605 This is a RESEARCH-INFRA fact (the report lives on a remote box reached over ssh); the live loop needs nothing from that box, so it is recorded at INFO rather than paged."
++ ]
++}
+\ No newline at end of file
+diff --git a/live/tests_fixtures/alm03_rank_monitor/build_fixture.py b/live/tests_fixtures/alm03_rank_monitor/build_fixture.py
+new file mode 100644
+index 0000000..b91dc01
+--- /dev/null
++++ b/live/tests_fixtures/alm03_rank_monitor/build_fixture.py
+@@ -0,0 +1,21 @@
++"""ALM-03 fixture builder (FX-EXEC 2026-09-13) — READ-ONLY on ~/dl_quant_live/state, run once by hand; the suite never runs it.
++Copies, byte for byte:
++  state/live/ic_monitor.jsonl            #55's per-anchor rank-IC ledger (the rows W1's check() judges)
++  state/factor_health_last.json          what step 9 (check_factor_health.run) persisted at the last live anchor
++  state/alarm_episodes/factor_health.json its open episode
++and records sha256/bytes of each, the copy time, and the facts the suite re-derives: the ef60f85 commit time (W1's append_eval
++went live there) and that state/live/ic_monitor_evals.jsonl did NOT exist at copy time."""
++import hashlib, json, os, subprocess, time
++HERE = os.path.dirname(os.path.abspath(__file__))
++LIVE = os.path.expanduser("~/dl_quant_live")
++SRC = {"ic_monitor.jsonl": "state/live/ic_monitor.jsonl", "factor_health_last.json": "state/factor_health_last.json",
++       "alarm_episode_factor_health.json": "state/alarm_episodes/factor_health.json"}
++out = {"built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "source_repo": LIVE, "files": {}}
++for dst, rel in SRC.items():
++    b = open(os.path.join(LIVE, rel), "rb").read()
++    open(os.path.join(HERE, dst), "wb").write(b)
++    out["files"][dst] = {"source": rel, "sha256": hashlib.sha256(b).hexdigest(), "bytes": len(b)}
++out["evals_ledger_existed_at_copy"] = os.path.exists(os.path.join(LIVE, "state/live/ic_monitor_evals.jsonl"))
++out["live_head"] = subprocess.run(["git", "-C", LIVE, "log", "-1", "--format=%H %cI"], capture_output=True, text=True).stdout.strip()
++json.dump(out, open(os.path.join(HERE, "MANIFEST.json"), "w"), indent=1, sort_keys=True)
++print(json.dumps(out, indent=1))
+diff --git a/live/tests_fixtures/alm03_rank_monitor/factor_health_last.json b/live/tests_fixtures/alm03_rank_monitor/factor_health_last.json
+new file mode 100644
+index 0000000..26d1847
+--- /dev/null
++++ b/live/tests_fixtures/alm03_rank_monitor/factor_health_last.json
+@@ -0,0 +1,27 @@
++{
++ "ok": false,
++ "reason": "report_unreachable",
++ "findings": [
++  "UNREACHABLE: the shadow monitor report could not be read at all. Factor health is UNKNOWN \u2014 which is not the same as healthy, and is the one state in this file that cannot be inferred from anything else. \u2605 This is a RESEARCH-INFRA fact (the report lives on a remote box reached over ssh); the live loop needs nothing from that box, so it is recorded at INFO rather than paged."
++ ],
++ "detail": "could not read the shadow monitor report \u2014 factor health is UNKNOWN, which is not the same as healthy (research-infra reachability, not a live-book condition)",
++ "severity": "INFO",
++ "episode": "unreachable",
++ "as_of": null,
++ "age_h": null,
++ "rolling_rank_ic": null,
++ "caliber": null,
++ "decay_judged": false,
++ "frontier_age_h": null,
++ "frontier_status": null,
++ "newest_scored_anchor": null,
++ "n_new_anchors": null,
++ "frontier_judged": false,
++ "frontier_limit_h": 26.0,
++ "measured_weights": null,
++ "deployed_weights": null,
++ "weights_match_deployed": null,
++ "weights_caliber": "no report was read, so no mixture was judged",
++ "verdict_sentence": "factor health UNKNOWN \u2014 the shadow monitor report could not be read at all, so neither a decay verdict nor the mixture it would have been computed on exists.",
++ "checked_at": 1789303620.934299
++}
+\ No newline at end of file
+diff --git a/live/tests_fixtures/alm03_rank_monitor/ic_monitor.jsonl b/live/tests_fixtures/alm03_rank_monitor/ic_monitor.jsonl
+new file mode 100644
+index 0000000..82502a9
+--- /dev/null
++++ b/live/tests_fixtures/alm03_rank_monitor/ic_monitor.jsonl
+@@ -0,0 +1,228 @@
++{"anchor_ts": 1785585600, "n": 76, "rank_ic": 0.17075, "value_ic": 0.18644, "rank_ic_beta_resid": null, "computed_at": 1786350235.586259}
++{"anchor_ts": 1785600000, "n": 97, "rank_ic": 0.14657, "value_ic": 0.02878, "rank_ic_beta_resid": null, "computed_at": 1786350235.5866082}
++{"anchor_ts": 1785643200, "n": 74, "rank_ic": -0.0876, "value_ic": -0.20897, "rank_ic_beta_resid": null, "computed_at": 1786350235.586869}
++{"anchor_ts": 1785657600, "n": 93, "rank_ic": 4e-05, "value_ic": 0.13773, "rank_ic_beta_resid": null, "computed_at": 1786350235.5871942}
++{"anchor_ts": 1785672000, "n": 101, "rank_ic": 0.11974, "value_ic": 0.02716, "rank_ic_beta_resid": null, "computed_at": 1786350235.587538}
++{"anchor_ts": 1785686400, "n": 106, "rank_ic": 0.24377, "value_ic": 0.18172, "rank_ic_beta_resid": null, "computed_at": 1786350235.5879319}
++{"anchor_ts": 1785700800, "n": 106, "rank_ic": 0.13252, "value_ic": -0.09948, "rank_ic_beta_resid": null, "computed_at": 1786350235.5882912}
++{"anchor_ts": 1785715200, "n": 105, "rank_ic": 0.12219, "value_ic": -0.16146, "rank_ic_beta_resid": null, "computed_at": 1786350235.588647}
++{"anchor_ts": 1785729600, "n": 105, "rank_ic": 0.10143, "value_ic": 0.20649, "rank_ic_beta_resid": null, "computed_at": 1786350235.589011}
++{"anchor_ts": 1785744000, "n": 106, "rank_ic": 0.0313, "value_ic": 0.07829, "rank_ic_beta_resid": null, "computed_at": 1786350235.589374}
++{"anchor_ts": 1785758400, "n": 106, "rank_ic": 0.03677, "value_ic": -0.02883, "rank_ic_beta_resid": null, "computed_at": 1786350235.5897331}
++{"anchor_ts": 1785772800, "n": 105, "rank_ic": 0.15033, "value_ic": 0.19969, "rank_ic_beta_resid": null, "computed_at": 1786350235.590112}
++{"anchor_ts": 1785787200, "n": 107, "rank_ic": -0.1087, "value_ic": 0.01735, "rank_ic_beta_resid": null, "computed_at": 1786350235.590473}
++{"anchor_ts": 1785801600, "n": 106, "rank_ic": 0.00724, "value_ic": 0.05066, "rank_ic_beta_resid": null, "computed_at": 1786350235.5908322}
++{"anchor_ts": 1785816000, "n": 107, "rank_ic": 0.09538, "value_ic": 0.06561, "rank_ic_beta_resid": null, "computed_at": 1786350235.5911942}
++{"anchor_ts": 1785830400, "n": 107, "rank_ic": 0.0185, "value_ic": -0.02831, "rank_ic_beta_resid": null, "computed_at": 1786350235.591553}
++{"anchor_ts": 1785844800, "n": 107, "rank_ic": 0.08903, "value_ic": 0.01287, "rank_ic_beta_resid": null, "computed_at": 1786350235.5919201}
++{"anchor_ts": 1785859200, "n": 107, "rank_ic": 0.13863, "value_ic": -0.00437, "rank_ic_beta_resid": null, "computed_at": 1786350235.592297}
++{"anchor_ts": 1785873600, "n": 108, "rank_ic": -0.02891, "value_ic": 0.01446, "rank_ic_beta_resid": null, "computed_at": 1786350235.5926862}
++{"anchor_ts": 1785931200, "n": 94, "rank_ic": -0.07662, "value_ic": -0.06385, "rank_ic_beta_resid": null, "computed_at": 1786350235.593007}
++{"anchor_ts": 1785945600, "n": 98, "rank_ic": 0.28121, "value_ic": 0.11462, "rank_ic_beta_resid": 0.17681, "computed_at": 1786350235.5939531}
++{"anchor_ts": 1785960000, "n": 108, "rank_ic": -0.20552, "value_ic": -0.16222, "rank_ic_beta_resid": -0.25452, "computed_at": 1786350235.595144}
++{"anchor_ts": 1785974400, "n": 108, "rank_ic": -0.16733, "value_ic": -0.0827, "rank_ic_beta_resid": -0.20792, "computed_at": 1786350235.596483}
++{"anchor_ts": 1785988800, "n": 108, "rank_ic": -0.06879, "value_ic": 0.03274, "rank_ic_beta_resid": -0.03444, "computed_at": 1786350235.597862}
++{"anchor_ts": 1786003200, "n": 106, "rank_ic": -0.20936, "value_ic": -0.17808, "rank_ic_beta_resid": -0.16924, "computed_at": 1786350235.599276}
++{"anchor_ts": 1786017600, "n": 106, "rank_ic": -0.03906, "value_ic": -0.01395, "rank_ic_beta_resid": -0.04528, "computed_at": 1786350235.600679}
++{"anchor_ts": 1786032000, "n": 106, "rank_ic": 0.02852, "value_ic": -0.06213, "rank_ic_beta_resid": 0.00472, "computed_at": 1786350235.6021068}
++{"anchor_ts": 1786046400, "n": 107, "rank_ic": -0.18211, "value_ic": -0.12182, "rank_ic_beta_resid": -0.15738, "computed_at": 1786350235.603529}
++{"anchor_ts": 1786060800, "n": 105, "rank_ic": 0.19654, "value_ic": 0.03068, "rank_ic_beta_resid": 0.18001, "computed_at": 1786350235.604918}
++{"anchor_ts": 1786075200, "n": 107, "rank_ic": 0.20431, "value_ic": 0.07778, "rank_ic_beta_resid": 0.20186, "computed_at": 1786350235.6063418}
++{"anchor_ts": 1786089600, "n": 107, "rank_ic": 0.31362, "value_ic": 0.15455, "rank_ic_beta_resid": 0.32135, "computed_at": 1786350235.6077042}
++{"anchor_ts": 1786104000, "n": 107, "rank_ic": 0.08891, "value_ic": 0.01114, "rank_ic_beta_resid": 0.08496, "computed_at": 1786350235.609057}
++{"anchor_ts": 1786118400, "n": 107, "rank_ic": 0.04217, "value_ic": 0.06296, "rank_ic_beta_resid": 0.02127, "computed_at": 1786350235.610414}
++{"anchor_ts": 1786132800, "n": 108, "rank_ic": 0.14537, "value_ic": 0.15432, "rank_ic_beta_resid": 0.10627, "computed_at": 1786350235.611813}
++{"anchor_ts": 1786147200, "n": 108, "rank_ic": 0.32742, "value_ic": 0.15265, "rank_ic_beta_resid": 0.38837, "computed_at": 1786350235.6134}
++{"anchor_ts": 1786161600, "n": 107, "rank_ic": 0.01185, "value_ic": -0.07545, "rank_ic_beta_resid": 0.07139, "computed_at": 1786350235.614848}
++{"anchor_ts": 1786176000, "n": 107, "rank_ic": 0.12006, "value_ic": 0.10368, "rank_ic_beta_resid": 0.13483, "computed_at": 1786350235.616352}
++{"anchor_ts": 1786190400, "n": 108, "rank_ic": 0.07298, "value_ic": 0.02485, "rank_ic_beta_resid": 0.15563, "computed_at": 1786350235.617894}
++{"anchor_ts": 1786204800, "n": 107, "rank_ic": 0.00471, "value_ic": -0.06571, "rank_ic_beta_resid": -0.00612, "computed_at": 1786350235.619402}
++{"anchor_ts": 1786219200, "n": 107, "rank_ic": -0.08469, "value_ic": -0.07308, "rank_ic_beta_resid": -0.09187, "computed_at": 1786350235.620932}
++{"anchor_ts": 1786233600, "n": 105, "rank_ic": -0.2751, "value_ic": -0.16519, "rank_ic_beta_resid": -0.19401, "computed_at": 1786350235.6224551}
++{"anchor_ts": 1786248000, "n": 105, "rank_ic": 0.10819, "value_ic": 0.05063, "rank_ic_beta_resid": 0.10132, "computed_at": 1786350235.624}
++{"anchor_ts": 1786262400, "n": 107, "rank_ic": 0.25443, "value_ic": 0.08226, "rank_ic_beta_resid": 0.22093, "computed_at": 1786350235.6256042}
++{"anchor_ts": 1786276800, "n": 108, "rank_ic": -0.06196, "value_ic": -0.09995, "rank_ic_beta_resid": 0.05713, "computed_at": 1786350235.627239}
++{"anchor_ts": 1786291200, "n": 108, "rank_ic": -0.08521, "value_ic": -0.16153, "rank_ic_beta_resid": 0.0158, "computed_at": 1786350235.6288729}
++{"anchor_ts": 1786305600, "n": 107, "rank_ic": 0.04566, "value_ic": 0.03709, "rank_ic_beta_resid": -0.09129, "computed_at": 1786350235.630526}
++{"anchor_ts": 1786320000, "n": 106, "rank_ic": 0.05841, "value_ic": 0.0194, "rank_ic_beta_resid": 0.04938, "computed_at": 1786350235.632194}
++{"anchor_ts": 1786334400, "n": 107, "rank_ic": 0.29233, "value_ic": 0.09536, "rank_ic_beta_resid": 0.32951, "computed_at": 1786350235.633898}
++{"anchor_ts": 1786348800, "n": 107, "rank_ic": -0.00766, "value_ic": 0.05067, "rank_ic_beta_resid": -0.02149, "computed_at": 1786378080.9835231}
++{"anchor_ts": 1786363200, "n": 108, "rank_ic": -0.00577, "value_ic": -0.00347, "rank_ic_beta_resid": -0.09492, "computed_at": 1786411800.307223}
++{"anchor_ts": 1786377600, "n": 108, "rank_ic": 0.16539, "value_ic": 0.02665, "rank_ic_beta_resid": 0.16559, "computed_at": 1786411800.327745}
++{"anchor_ts": 1786392000, "n": 108, "rank_ic": -0.04954, "value_ic": 0.02003, "rank_ic_beta_resid": -0.10555, "computed_at": 1786411800.360302}
++{"anchor_ts": 1786406400, "n": 107, "rank_ic": -0.00759, "value_ic": -0.01588, "rank_ic_beta_resid": 0.02856, "computed_at": 1786498200.365797}
++{"anchor_ts": 1786420800, "n": 108, "rank_ic": 0.43068, "value_ic": 0.26227, "rank_ic_beta_resid": 0.3052, "computed_at": 1786498200.3969479}
++{"anchor_ts": 1786435200, "n": 108, "rank_ic": 0.06616, "value_ic": 0.16762, "rank_ic_beta_resid": 0.11513, "computed_at": 1786498200.428724}
++{"anchor_ts": 1786449600, "n": 108, "rank_ic": 0.1747, "value_ic": 0.11977, "rank_ic_beta_resid": -0.01077, "computed_at": 1786498200.4600441}
++{"anchor_ts": 1786464000, "n": 107, "rank_ic": -0.15034, "value_ic": -0.11218, "rank_ic_beta_resid": -0.03659, "computed_at": 1786498200.481171}
++{"anchor_ts": 1786478400, "n": 108, "rank_ic": 0.10944, "value_ic": -0.01416, "rank_ic_beta_resid": 0.13639, "computed_at": 1786498200.512985}
++{"anchor_ts": 1786492800, "n": 108, "rank_ic": 0.08471, "value_ic": 0.01862, "rank_ic_beta_resid": 0.08471, "computed_at": 1786584600.25025}
++{"anchor_ts": 1786507200, "n": 108, "rank_ic": 0.39509, "value_ic": 0.11366, "rank_ic_beta_resid": 0.28136, "computed_at": 1786584600.2527108}
++{"anchor_ts": 1786521600, "n": 108, "rank_ic": 0.01156, "value_ic": -0.01518, "rank_ic_beta_resid": 0.07454, "computed_at": 1786584600.2551801}
++{"anchor_ts": 1786536000, "n": 108, "rank_ic": -0.17941, "value_ic": -0.08648, "rank_ic_beta_resid": -0.2745, "computed_at": 1786584600.257684}
++{"anchor_ts": 1786550400, "n": 108, "rank_ic": 0.08987, "value_ic": 0.09149, "rank_ic_beta_resid": 0.02565, "computed_at": 1786584600.2602172}
++{"anchor_ts": 1786564800, "n": 108, "rank_ic": -0.191, "value_ic": -0.03159, "rank_ic_beta_resid": -0.20651, "computed_at": 1786584600.2627761}
++{"anchor_ts": 1786579200, "n": 108, "rank_ic": 0.0332, "value_ic": 0.01572, "rank_ic_beta_resid": 0.05285, "computed_at": 1786671000.4611049}
++{"anchor_ts": 1786593600, "n": 107, "rank_ic": 0.19887, "value_ic": 0.04293, "rank_ic_beta_resid": 0.2271, "computed_at": 1786671000.4942122}
++{"anchor_ts": 1786608000, "n": 106, "rank_ic": -0.04122, "value_ic": 0.01058, "rank_ic_beta_resid": -0.06465, "computed_at": 1786671000.527112}
++{"anchor_ts": 1786622400, "n": 108, "rank_ic": 0.08816, "value_ic": 0.0344, "rank_ic_beta_resid": 0.07128, "computed_at": 1786671000.563015}
++{"anchor_ts": 1786636800, "n": 108, "rank_ic": 0.07807, "value_ic": -0.00254, "rank_ic_beta_resid": 0.05485, "computed_at": 1786671000.573876}
++{"anchor_ts": 1786651200, "n": 108, "rank_ic": -0.32954, "value_ic": -0.14436, "rank_ic_beta_resid": -0.26346, "computed_at": 1786671000.580829}
++{"anchor_ts": 1786665600, "n": 108, "rank_ic": 0.20908, "value_ic": 0.09226, "rank_ic_beta_resid": 0.16864, "computed_at": 1786757400.6200168}
++{"anchor_ts": 1786680000, "n": 107, "rank_ic": -0.0449, "value_ic": -7e-05, "rank_ic_beta_resid": -0.17032, "computed_at": 1786757400.6225479}
++{"anchor_ts": 1786694400, "n": 108, "rank_ic": 0.20121, "value_ic": 0.11541, "rank_ic_beta_resid": 0.12963, "computed_at": 1786757400.625099}
++{"anchor_ts": 1786708800, "n": 108, "rank_ic": -0.1254, "value_ic": -0.17805, "rank_ic_beta_resid": -0.04352, "computed_at": 1786757400.627648}
++{"anchor_ts": 1786723200, "n": 107, "rank_ic": -0.00244, "value_ic": 0.018, "rank_ic_beta_resid": -0.01539, "computed_at": 1786757400.630325}
++{"anchor_ts": 1786737600, "n": 107, "rank_ic": -0.05919, "value_ic": -0.07108, "rank_ic_beta_resid": 0.06119, "computed_at": 1786757400.632895}
++{"anchor_ts": 1786752000, "n": 107, "rank_ic": 0.19111, "value_ic": 0.04825, "rank_ic_beta_resid": 0.20384, "computed_at": 1786843800.640374}
++{"anchor_ts": 1786766400, "n": 107, "rank_ic": -0.09305, "value_ic": -0.11602, "rank_ic_beta_resid": -0.11242, "computed_at": 1786843800.643019}
++{"anchor_ts": 1786780800, "n": 107, "rank_ic": 0.13134, "value_ic": -0.0378, "rank_ic_beta_resid": 0.15217, "computed_at": 1786843800.6457129}
++{"anchor_ts": 1786795200, "n": 107, "rank_ic": -0.04761, "value_ic": -0.06019, "rank_ic_beta_resid": -0.02011, "computed_at": 1786843800.648451}
++{"anchor_ts": 1786809600, "n": 107, "rank_ic": 0.03834, "value_ic": -0.04019, "rank_ic_beta_resid": 0.00888, "computed_at": 1786843800.6512058}
++{"anchor_ts": 1786824000, "n": 107, "rank_ic": 0.13972, "value_ic": 0.15706, "rank_ic_beta_resid": 0.0123, "computed_at": 1786843800.654346}
++{"anchor_ts": 1786838400, "n": 107, "rank_ic": 0.25628, "value_ic": 0.09531, "rank_ic_beta_resid": 0.20095, "computed_at": 1786930200.670757}
++{"anchor_ts": 1786852800, "n": 107, "rank_ic": -0.15987, "value_ic": -0.11626, "rank_ic_beta_resid": -0.12071, "computed_at": 1786930200.673874}
++{"anchor_ts": 1786867200, "n": 107, "rank_ic": -0.02573, "value_ic": -0.01897, "rank_ic_beta_resid": 0.00231, "computed_at": 1786930200.677144}
++{"anchor_ts": 1786881600, "n": 107, "rank_ic": -0.05554, "value_ic": -0.12016, "rank_ic_beta_resid": 0.07735, "computed_at": 1786930200.680466}
++{"anchor_ts": 1786896000, "n": 107, "rank_ic": 0.09873, "value_ic": 0.04975, "rank_ic_beta_resid": -0.00934, "computed_at": 1786930200.683815}
++{"anchor_ts": 1786910400, "n": 107, "rank_ic": 0.11869, "value_ic": 0.10811, "rank_ic_beta_resid": -0.09537, "computed_at": 1786930200.6871612}
++{"anchor_ts": 1786924800, "n": 107, "rank_ic": 0.06119, "value_ic": -0.02713, "rank_ic_beta_resid": 0.24509, "computed_at": 1787016600.7769332}
++{"anchor_ts": 1786939200, "n": 107, "rank_ic": 0.04124, "value_ic": 0.01723, "rank_ic_beta_resid": 0.00386, "computed_at": 1787016600.779835}
++{"anchor_ts": 1786953600, "n": 107, "rank_ic": 0.28429, "value_ic": 0.12227, "rank_ic_beta_resid": 0.26162, "computed_at": 1787016600.782772}
++{"anchor_ts": 1786968000, "n": 107, "rank_ic": 0.17944, "value_ic": 0.04531, "rank_ic_beta_resid": 0.19449, "computed_at": 1787016600.785743}
++{"anchor_ts": 1786982400, "n": 107, "rank_ic": 0.19004, "value_ic": 0.14772, "rank_ic_beta_resid": 0.17182, "computed_at": 1787016600.788757}
++{"anchor_ts": 1786996800, "n": 107, "rank_ic": 0.19338, "value_ic": 0.14073, "rank_ic_beta_resid": 0.1925, "computed_at": 1787016600.791853}
++{"anchor_ts": 1787011200, "n": 107, "rank_ic": -0.05905, "value_ic": 0.04261, "rank_ic_beta_resid": -0.17786, "computed_at": 1787103000.449418}
++{"anchor_ts": 1787025600, "n": 107, "rank_ic": 0.08699, "value_ic": 0.02555, "rank_ic_beta_resid": 0.12464, "computed_at": 1787103000.4525282}
++{"anchor_ts": 1787040000, "n": 108, "rank_ic": -0.02205, "value_ic": -0.05063, "rank_ic_beta_resid": 0.00391, "computed_at": 1787103000.455607}
++{"anchor_ts": 1787054400, "n": 107, "rank_ic": 0.08207, "value_ic": -0.06052, "rank_ic_beta_resid": 0.11823, "computed_at": 1787103000.458674}
++{"anchor_ts": 1787068800, "n": 107, "rank_ic": 0.2603, "value_ic": 0.15948, "rank_ic_beta_resid": 0.20509, "computed_at": 1787103000.4618251}
++{"anchor_ts": 1787083200, "n": 108, "rank_ic": -0.04882, "value_ic": 0.06068, "rank_ic_beta_resid": -0.09265, "computed_at": 1787103000.464993}
++{"anchor_ts": 1787097600, "n": 108, "rank_ic": -0.00947, "value_ic": -0.07117, "rank_ic_beta_resid": 0.00879, "computed_at": 1787189400.84797}
++{"anchor_ts": 1787112000, "n": 107, "rank_ic": 0.07122, "value_ic": 0.02382, "rank_ic_beta_resid": 0.09856, "computed_at": 1787189400.851274}
++{"anchor_ts": 1787126400, "n": 108, "rank_ic": 0.12692, "value_ic": 0.07787, "rank_ic_beta_resid": 0.2101, "computed_at": 1787189400.8545752}
++{"anchor_ts": 1787140800, "n": 108, "rank_ic": 0.03345, "value_ic": 0.05409, "rank_ic_beta_resid": 0.14772, "computed_at": 1787189400.857894}
++{"anchor_ts": 1787155200, "n": 108, "rank_ic": -0.26569, "value_ic": -0.21791, "rank_ic_beta_resid": -0.24056, "computed_at": 1787189400.861294}
++{"anchor_ts": 1787169600, "n": 108, "rank_ic": 0.09866, "value_ic": 0.05585, "rank_ic_beta_resid": 0.19824, "computed_at": 1787189400.864684}
++{"anchor_ts": 1787184000, "n": 108, "rank_ic": -0.1133, "value_ic": -0.11164, "rank_ic_beta_resid": -0.12316, "computed_at": 1787275803.000779}
++{"anchor_ts": 1787198400, "n": 108, "rank_ic": -0.05537, "value_ic": -0.10392, "rank_ic_beta_resid": 0.02539, "computed_at": 1787275803.004718}
++{"anchor_ts": 1787212800, "n": 108, "rank_ic": 0.05638, "value_ic": -0.02528, "rank_ic_beta_resid": 0.06218, "computed_at": 1787275803.008718}
++{"anchor_ts": 1787227200, "n": 108, "rank_ic": 0.23108, "value_ic": 0.14917, "rank_ic_beta_resid": 0.34835, "computed_at": 1787275803.012776}
++{"anchor_ts": 1787241600, "n": 108, "rank_ic": -0.23485, "value_ic": -0.14758, "rank_ic_beta_resid": -0.21212, "computed_at": 1787275803.016834}
++{"anchor_ts": 1787256000, "n": 108, "rank_ic": -0.17374, "value_ic": -0.27198, "rank_ic_beta_resid": -0.09795, "computed_at": 1787275803.021031}
++{"anchor_ts": 1787270400, "n": 108, "rank_ic": 0.26979, "value_ic": 0.06489, "rank_ic_beta_resid": 0.34915, "computed_at": 1787362200.759388}
++{"anchor_ts": 1787284800, "n": 108, "rank_ic": 0.04356, "value_ic": -0.02671, "rank_ic_beta_resid": 0.11995, "computed_at": 1787362200.763324}
++{"anchor_ts": 1787299200, "n": 108, "rank_ic": -0.28035, "value_ic": -0.23376, "rank_ic_beta_resid": -0.26904, "computed_at": 1787362200.767031}
++{"anchor_ts": 1787313600, "n": 101, "rank_ic": -0.03557, "value_ic": -0.04444, "rank_ic_beta_resid": 0.04056, "computed_at": 1787362200.770476}
++{"anchor_ts": 1787328000, "n": 101, "rank_ic": 0.15046, "value_ic": 0.10082, "rank_ic_beta_resid": 0.15102, "computed_at": 1787362200.7739189}
++{"anchor_ts": 1787400000, "n": 289, "rank_ic": -0.05374, "value_ic": -0.05167, "rank_ic_beta_resid": 0.00138, "computed_at": 1787448600.7875688}
++{"anchor_ts": 1787414400, "n": 354, "rank_ic": 0.01042, "value_ic": 0.02411, "rank_ic_beta_resid": 0.01326, "computed_at": 1787448600.791499}
++{"anchor_ts": 1787428800, "n": 359, "rank_ic": 0.14204, "value_ic": 0.11493, "rank_ic_beta_resid": 0.16317, "computed_at": 1787448600.795566}
++{"anchor_ts": 1787443200, "n": 358, "rank_ic": 0.10567, "value_ic": 0.07193, "rank_ic_beta_resid": -0.12136, "computed_at": 1787535000.532992}
++{"anchor_ts": 1787457600, "n": 360, "rank_ic": 0.07491, "value_ic": 0.05157, "rank_ic_beta_resid": 0.31373, "computed_at": 1787535000.5381389}
++{"anchor_ts": 1787472000, "n": 359, "rank_ic": -0.2604, "value_ic": -0.22693, "rank_ic_beta_resid": 0.04495, "computed_at": 1787535000.543376}
++{"anchor_ts": 1787486400, "n": 359, "rank_ic": -0.12612, "value_ic": -0.10319, "rank_ic_beta_resid": 0.09046, "computed_at": 1787535000.548661}
++{"anchor_ts": 1787500800, "n": 361, "rank_ic": -0.0028, "value_ic": 0.05728, "rank_ic_beta_resid": 0.15888, "computed_at": 1787535000.5539389}
++{"anchor_ts": 1787515200, "n": 361, "rank_ic": -0.06987, "value_ic": -0.05578, "rank_ic_beta_resid": -0.25323, "computed_at": 1787535000.559371}
++{"anchor_ts": 1787529600, "n": 360, "rank_ic": 0.03494, "value_ic": -0.03185, "rank_ic_beta_resid": -0.09365, "computed_at": 1787621400.8295722}
++{"anchor_ts": 1787544000, "n": 362, "rank_ic": 0.13388, "value_ic": 0.08306, "rank_ic_beta_resid": 0.0092, "computed_at": 1787621400.834079}
++{"anchor_ts": 1787558400, "n": 363, "rank_ic": -0.09635, "value_ic": -0.10226, "rank_ic_beta_resid": -0.01885, "computed_at": 1787621400.838683}
++{"anchor_ts": 1787572800, "n": 364, "rank_ic": -0.07251, "value_ic": -0.20317, "rank_ic_beta_resid": 0.18037, "computed_at": 1787621400.843402}
++{"anchor_ts": 1787587200, "n": 365, "rank_ic": -0.04726, "value_ic": -0.06223, "rank_ic_beta_resid": -0.10515, "computed_at": 1787621400.848208}
++{"anchor_ts": 1787601600, "n": 366, "rank_ic": 0.05438, "value_ic": -0.06472, "rank_ic_beta_resid": -0.0358, "computed_at": 1787621400.853133}
++{"anchor_ts": 1787616000, "n": 366, "rank_ic": -0.08185, "value_ic": -0.0902, "rank_ic_beta_resid": -0.00796, "computed_at": 1787707800.8951051}
++{"anchor_ts": 1787630400, "n": 366, "rank_ic": 0.05871, "value_ic": 0.10953, "rank_ic_beta_resid": 0.05184, "computed_at": 1787707800.900235}
++{"anchor_ts": 1787644800, "n": 367, "rank_ic": -0.00292, "value_ic": -0.01322, "rank_ic_beta_resid": -0.09194, "computed_at": 1787707800.905521}
++{"anchor_ts": 1787688000, "n": 327, "rank_ic": 0.09535, "value_ic": 0.0403, "rank_ic_beta_resid": 0.15815, "computed_at": 1787707800.91037}
++{"anchor_ts": 1787702400, "n": 328, "rank_ic": 0.03311, "value_ic": 0.01996, "rank_ic_beta_resid": 0.02779, "computed_at": 1787794200.9387069}
++{"anchor_ts": 1787716800, "n": 329, "rank_ic": 0.06298, "value_ic": 0.03501, "rank_ic_beta_resid": 0.03119, "computed_at": 1787794200.945017}
++{"anchor_ts": 1787731200, "n": 327, "rank_ic": 0.06983, "value_ic": 0.08404, "rank_ic_beta_resid": 0.07558, "computed_at": 1787794200.952039}
++{"anchor_ts": 1787774400, "n": 178, "rank_ic": -0.09698, "value_ic": -0.09176, "rank_ic_beta_resid": -0.17892, "computed_at": 1787794200.955864}
++{"anchor_ts": 1787788800, "n": 253, "rank_ic": 0.19869, "value_ic": 0.1729, "rank_ic_beta_resid": 0.21523, "computed_at": 1787880600.934564}
++{"anchor_ts": 1787803200, "n": 267, "rank_ic": -0.04741, "value_ic": -0.06737, "rank_ic_beta_resid": -0.0773, "computed_at": 1787880600.940785}
++{"anchor_ts": 1787817600, "n": 273, "rank_ic": -0.07718, "value_ic": -0.08491, "rank_ic_beta_resid": -0.00549, "computed_at": 1787880600.947546}
++{"anchor_ts": 1787832000, "n": 279, "rank_ic": -0.10391, "value_ic": -0.12549, "rank_ic_beta_resid": -0.16064, "computed_at": 1787880600.954646}
++{"anchor_ts": 1787846400, "n": 277, "rank_ic": 0.05971, "value_ic": 0.08122, "rank_ic_beta_resid": 0.1112, "computed_at": 1787880600.961511}
++{"anchor_ts": 1787860800, "n": 278, "rank_ic": 0.00045, "value_ic": -0.03688, "rank_ic_beta_resid": -0.03805, "computed_at": 1787880600.967787}
++{"anchor_ts": 1787875200, "n": 279, "rank_ic": 0.10302, "value_ic": 0.09653, "rank_ic_beta_resid": 0.18697, "computed_at": 1787967000.65404}
++{"anchor_ts": 1787889600, "n": 277, "rank_ic": 0.04827, "value_ic": 0.07232, "rank_ic_beta_resid": 0.03647, "computed_at": 1787967000.660259}
++{"anchor_ts": 1787904000, "n": 274, "rank_ic": 0.00843, "value_ic": -0.01164, "rank_ic_beta_resid": 0.02082, "computed_at": 1787967000.666552}
++{"anchor_ts": 1787918400, "n": 272, "rank_ic": 0.01831, "value_ic": -0.03557, "rank_ic_beta_resid": 0.06504, "computed_at": 1787967000.673992}
++{"anchor_ts": 1787932800, "n": 274, "rank_ic": 0.05833, "value_ic": 0.12431, "rank_ic_beta_resid": 0.0589, "computed_at": 1787967000.681529}
++{"anchor_ts": 1787947200, "n": 272, "rank_ic": -0.00686, "value_ic": -0.07722, "rank_ic_beta_resid": -0.05915, "computed_at": 1787967000.6890619}
++{"anchor_ts": 1787961600, "n": 268, "rank_ic": 0.06131, "value_ic": 0.10546, "rank_ic_beta_resid": 0.07708, "computed_at": 1788053401.1902819}
++{"anchor_ts": 1787976000, "n": 260, "rank_ic": 0.05997, "value_ic": 0.07036, "rank_ic_beta_resid": 0.08725, "computed_at": 1788053401.198302}
++{"anchor_ts": 1787990400, "n": 256, "rank_ic": 0.08552, "value_ic": 0.16481, "rank_ic_beta_resid": 0.08657, "computed_at": 1788053401.2063591}
++{"anchor_ts": 1788004800, "n": 255, "rank_ic": 0.02274, "value_ic": -0.02623, "rank_ic_beta_resid": 0.01147, "computed_at": 1788053401.2142808}
++{"anchor_ts": 1788019200, "n": 256, "rank_ic": 0.03176, "value_ic": 0.09548, "rank_ic_beta_resid": 0.04357, "computed_at": 1788053401.222465}
++{"anchor_ts": 1788033600, "n": 250, "rank_ic": 0.07719, "value_ic": 0.19104, "rank_ic_beta_resid": 0.09642, "computed_at": 1788053401.230453}
++{"anchor_ts": 1788048000, "n": 252, "rank_ic": 0.01405, "value_ic": -0.10694, "rank_ic_beta_resid": 0.01191, "computed_at": 1788139801.178803}
++{"anchor_ts": 1788062400, "n": 252, "rank_ic": 0.10635, "value_ic": 0.10037, "rank_ic_beta_resid": 0.1149, "computed_at": 1788139801.186421}
++{"anchor_ts": 1788076800, "n": 253, "rank_ic": 0.0414, "value_ic": -0.03748, "rank_ic_beta_resid": 0.00954, "computed_at": 1788139801.1943119}
++{"anchor_ts": 1788091200, "n": 252, "rank_ic": -0.02799, "value_ic": -0.00923, "rank_ic_beta_resid": -0.04506, "computed_at": 1788139801.201998}
++{"anchor_ts": 1788105600, "n": 253, "rank_ic": -0.05265, "value_ic": -0.12486, "rank_ic_beta_resid": -0.02096, "computed_at": 1788139801.209905}
++{"anchor_ts": 1788120000, "n": 253, "rank_ic": 0.00052, "value_ic": -0.0277, "rank_ic_beta_resid": 0.05779, "computed_at": 1788139801.217746}
++{"anchor_ts": 1788134400, "n": 252, "rank_ic": 0.13372, "value_ic": 0.06123, "rank_ic_beta_resid": 0.14062, "computed_at": 1788226202.235808}
++{"anchor_ts": 1788148800, "n": 253, "rank_ic": -0.04891, "value_ic": -0.0354, "rank_ic_beta_resid": -0.08704, "computed_at": 1788226202.244907}
++{"anchor_ts": 1788163200, "n": 250, "rank_ic": -0.03064, "value_ic": -0.04162, "rank_ic_beta_resid": 0.0147, "computed_at": 1788226202.253663}
++{"anchor_ts": 1788177600, "n": 250, "rank_ic": -0.05829, "value_ic": -0.07998, "rank_ic_beta_resid": -0.09622, "computed_at": 1788226202.2626078}
++{"anchor_ts": 1788192000, "n": 246, "rank_ic": -0.04228, "value_ic": -0.0788, "rank_ic_beta_resid": -0.05244, "computed_at": 1788226202.272046}
++{"anchor_ts": 1788206400, "n": 246, "rank_ic": -0.02692, "value_ic": -0.07421, "rank_ic_beta_resid": -0.07664, "computed_at": 1788226202.2811651}
++{"anchor_ts": 1788220800, "n": 247, "rank_ic": -0.10864, "value_ic": -0.08153, "rank_ic_beta_resid": -0.10109, "computed_at": 1788312601.054992}
++{"anchor_ts": 1788235200, "n": 248, "rank_ic": 0.01382, "value_ic": 0.03782, "rank_ic_beta_resid": 0.03958, "computed_at": 1788312601.063667}
++{"anchor_ts": 1788249600, "n": 250, "rank_ic": -0.11169, "value_ic": -0.07136, "rank_ic_beta_resid": -0.13229, "computed_at": 1788312601.07253}
++{"anchor_ts": 1788264000, "n": 249, "rank_ic": 0.01391, "value_ic": 0.06179, "rank_ic_beta_resid": -0.03413, "computed_at": 1788312601.081418}
++{"anchor_ts": 1788278400, "n": 248, "rank_ic": -0.00675, "value_ic": -0.02391, "rank_ic_beta_resid": -0.00296, "computed_at": 1788312601.090376}
++{"anchor_ts": 1788321600, "n": 247, "rank_ic": -0.04091, "value_ic": -0.00533, "rank_ic_beta_resid": -0.03458, "computed_at": 1788399001.397928}
++{"anchor_ts": 1788336000, "n": 246, "rank_ic": 0.00962, "value_ic": 0.07302, "rank_ic_beta_resid": 0.00257, "computed_at": 1788399001.407381}
++{"anchor_ts": 1788350400, "n": 247, "rank_ic": 0.06729, "value_ic": 0.1103, "rank_ic_beta_resid": 0.05823, "computed_at": 1788399001.417175}
++{"anchor_ts": 1788364800, "n": 247, "rank_ic": -0.02447, "value_ic": 0.11044, "rank_ic_beta_resid": -0.06174, "computed_at": 1788399001.428053}
++{"anchor_ts": 1788379200, "n": 248, "rank_ic": 0.08851, "value_ic": 0.00014, "rank_ic_beta_resid": 0.10142, "computed_at": 1788399001.4387991}
++{"anchor_ts": 1788393600, "n": 249, "rank_ic": -0.07336, "value_ic": -0.00514, "rank_ic_beta_resid": -0.12267, "computed_at": 1788485401.500928}
++{"anchor_ts": 1788408000, "n": 248, "rank_ic": 0.14564, "value_ic": 0.03192, "rank_ic_beta_resid": 0.11546, "computed_at": 1788485401.509963}
++{"anchor_ts": 1788422400, "n": 247, "rank_ic": -0.0107, "value_ic": -0.0182, "rank_ic_beta_resid": -0.0234, "computed_at": 1788485401.518955}
++{"anchor_ts": 1788436800, "n": 247, "rank_ic": 0.00578, "value_ic": 0.00496, "rank_ic_beta_resid": -0.02805, "computed_at": 1788485401.528343}
++{"anchor_ts": 1788451200, "n": 251, "rank_ic": -0.07762, "value_ic": 0.00068, "rank_ic_beta_resid": -0.08928, "computed_at": 1788485401.53827}
++{"anchor_ts": 1788465600, "n": 252, "rank_ic": -0.04931, "value_ic": -0.01125, "rank_ic_beta_resid": -0.03684, "computed_at": 1788485401.548256}
++{"anchor_ts": 1788480000, "n": 252, "rank_ic": -0.07141, "value_ic": -0.13309, "rank_ic_beta_resid": -0.04441, "computed_at": 1788571801.153058}
++{"anchor_ts": 1788494400, "n": 252, "rank_ic": -0.16875, "value_ic": -0.09301, "rank_ic_beta_resid": -0.16487, "computed_at": 1788571801.163371}
++{"anchor_ts": 1788508800, "n": 252, "rank_ic": -0.02481, "value_ic": 0.0758, "rank_ic_beta_resid": 0.01769, "computed_at": 1788571801.1739168}
++{"anchor_ts": 1788523200, "n": 253, "rank_ic": -0.00413, "value_ic": -0.02072, "rank_ic_beta_resid": -0.00756, "computed_at": 1788571801.184486}
++{"anchor_ts": 1788537600, "n": 253, "rank_ic": 0.03431, "value_ic": 0.10536, "rank_ic_beta_resid": 0.03178, "computed_at": 1788571801.19484}
++{"anchor_ts": 1788552000, "n": 255, "rank_ic": -0.05219, "value_ic": -0.04982, "rank_ic_beta_resid": -0.06516, "computed_at": 1788571801.205042}
++{"anchor_ts": 1788566400, "n": 255, "rank_ic": 0.01685, "value_ic": 0.12857, "rank_ic_beta_resid": 0.01775, "computed_at": 1788658201.572646}
++{"anchor_ts": 1788580800, "n": 256, "rank_ic": 0.00015, "value_ic": 0.01621, "rank_ic_beta_resid": -0.02204, "computed_at": 1788658201.58221}
++{"anchor_ts": 1788595200, "n": 258, "rank_ic": -0.05609, "value_ic": -0.12262, "rank_ic_beta_resid": -0.07105, "computed_at": 1788658201.592501}
++{"anchor_ts": 1788609600, "n": 259, "rank_ic": 0.18362, "value_ic": 0.1628, "rank_ic_beta_resid": 0.1888, "computed_at": 1788658201.6028988}
++{"anchor_ts": 1788624000, "n": 262, "rank_ic": -0.07365, "value_ic": -0.07915, "rank_ic_beta_resid": -0.08756, "computed_at": 1788658201.6132941}
++{"anchor_ts": 1788638400, "n": 265, "rank_ic": -0.12656, "value_ic": -0.16977, "rank_ic_beta_resid": -0.13523, "computed_at": 1788658201.6238358}
++{"anchor_ts": 1788652800, "n": 266, "rank_ic": -0.14469, "value_ic": -0.22462, "rank_ic_beta_resid": -0.1437, "computed_at": 1788744601.687485}
++{"anchor_ts": 1788667200, "n": 266, "rank_ic": -0.16332, "value_ic": -0.19247, "rank_ic_beta_resid": -0.16227, "computed_at": 1788744601.698184}
++{"anchor_ts": 1788753600, "n": 143, "rank_ic": -0.06449, "value_ic": 0.00715, "rank_ic_beta_resid": -0.08197, "computed_at": 1788831001.2979012}
++{"anchor_ts": 1788768000, "n": 223, "rank_ic": 0.1547, "value_ic": 0.2256, "rank_ic_beta_resid": 0.08561, "computed_at": 1788831001.307816}
++{"anchor_ts": 1788782400, "n": 230, "rank_ic": -0.13403, "value_ic": -0.14309, "rank_ic_beta_resid": -0.09091, "computed_at": 1788831001.317141}
++{"anchor_ts": 1788796800, "n": 231, "rank_ic": 0.00882, "value_ic": 0.04455, "rank_ic_beta_resid": -0.01167, "computed_at": 1788831001.3263922}
++{"anchor_ts": 1788811200, "n": 234, "rank_ic": 0.06675, "value_ic": 0.03987, "rank_ic_beta_resid": 0.05303, "computed_at": 1788831001.335847}
++{"anchor_ts": 1788825600, "n": 234, "rank_ic": 0.06254, "value_ic": 0.12726, "rank_ic_beta_resid": 0.04747, "computed_at": 1788917401.4110641}
++{"anchor_ts": 1788840000, "n": 235, "rank_ic": -0.13004, "value_ic": -0.15826, "rank_ic_beta_resid": -0.12115, "computed_at": 1788917401.419643}
++{"anchor_ts": 1788854400, "n": 237, "rank_ic": -0.19005, "value_ic": -0.12968, "rank_ic_beta_resid": -0.17765, "computed_at": 1788917401.431361}
++{"anchor_ts": 1788868800, "n": 238, "rank_ic": 0.01541, "value_ic": 0.03544, "rank_ic_beta_resid": -0.04958, "computed_at": 1788917401.440005}
++{"anchor_ts": 1788883200, "n": 241, "rank_ic": -0.06336, "value_ic": -0.05101, "rank_ic_beta_resid": 0.04999, "computed_at": 1788917401.448691}
++{"anchor_ts": 1788897600, "n": 241, "rank_ic": 0.01697, "value_ic": -0.00081, "rank_ic_beta_resid": 0.00774, "computed_at": 1788917401.457914}
++{"anchor_ts": 1788912000, "n": 241, "rank_ic": -0.08717, "value_ic": -0.0907, "rank_ic_beta_resid": -0.09702, "computed_at": 1789003802.8910139}
++{"anchor_ts": 1788926400, "n": 241, "rank_ic": 0.08038, "value_ic": 0.03408, "rank_ic_beta_resid": 0.01281, "computed_at": 1789003802.917782}
++{"anchor_ts": 1788998400, "n": 162, "rank_ic": -0.06661, "value_ic": -0.07419, "rank_ic_beta_resid": -0.04704, "computed_at": 1789090202.408818}
++{"anchor_ts": 1789012800, "n": 234, "rank_ic": -0.05925, "value_ic": -0.02239, "rank_ic_beta_resid": -0.02314, "computed_at": 1789090202.420326}
++{"anchor_ts": 1789027200, "n": 238, "rank_ic": -0.00513, "value_ic": 0.01787, "rank_ic_beta_resid": 0.03285, "computed_at": 1789090202.435025}
++{"anchor_ts": 1789041600, "n": 242, "rank_ic": -0.05506, "value_ic": -0.05194, "rank_ic_beta_resid": -0.01257, "computed_at": 1789090202.453705}
++{"anchor_ts": 1789056000, "n": 243, "rank_ic": 0.00066, "value_ic": 0.0275, "rank_ic_beta_resid": -0.00338, "computed_at": 1789090202.465836}
++{"anchor_ts": 1789070400, "n": 246, "rank_ic": 0.10446, "value_ic": 0.13097, "rank_ic_beta_resid": 0.10384, "computed_at": 1789090202.478467}
++{"anchor_ts": 1789084800, "n": 244, "rank_ic": -0.09253, "value_ic": -0.13532, "rank_ic_beta_resid": -0.10651, "computed_at": 1789176602.369376}
++{"anchor_ts": 1789099200, "n": 245, "rank_ic": 0.16005, "value_ic": 0.11017, "rank_ic_beta_resid": 0.17061, "computed_at": 1789176602.383014}
++{"anchor_ts": 1789113600, "n": 246, "rank_ic": 0.05274, "value_ic": 0.15098, "rank_ic_beta_resid": 0.01919, "computed_at": 1789176602.3966742}
++{"anchor_ts": 1789128000, "n": 248, "rank_ic": 0.02983, "value_ic": 0.02162, "rank_ic_beta_resid": 0.0174, "computed_at": 1789176602.4104068}
++{"anchor_ts": 1789142400, "n": 249, "rank_ic": 0.11895, "value_ic": 0.22842, "rank_ic_beta_resid": 0.14215, "computed_at": 1789176602.424334}
++{"anchor_ts": 1789156800, "n": 253, "rank_ic": 0.12427, "value_ic": 0.08597, "rank_ic_beta_resid": 0.11385, "computed_at": 1789176602.438347}
++{"anchor_ts": 1789171200, "n": 252, "rank_ic": 0.0597, "value_ic": -0.08472, "rank_ic_beta_resid": 0.04352, "computed_at": 1789263003.5965729}
++{"anchor_ts": 1789185600, "n": 255, "rank_ic": -0.01216, "value_ic": 0.11201, "rank_ic_beta_resid": -0.05588, "computed_at": 1789263003.6276119}
++{"anchor_ts": 1789200000, "n": 254, "rank_ic": -0.0284, "value_ic": -0.0624, "rank_ic_beta_resid": -0.04762, "computed_at": 1789263003.6420228}
+diff --git a/live/tests_imports.py b/live/tests_imports.py
+index 7112581..9c6e37c 100644
+--- a/live/tests_imports.py
++++ b/live/tests_imports.py
+@@ -76,7 +76,7 @@ PRODUCTION_MODULES = [
+     "fapi_source", "panel_build", "funding_panel", "assert_funding_dim", "live_panel",
+     "inference", "legs", "compute_preds", "regime_classifier",
+     # ops invoked by the anchor
+-    "assert_anchor_artifacts", "check_factor_health", "dryrun_ledger", "check_nosleep",
++    "assert_anchor_artifacts", "check_rank_monitor_input", "dryrun_ledger", "check_nosleep",
+     "check_scheduled_mode", "gate_coverage", "check_prewindow_state",
+     # ★ `guard_reach` joined 2026-08-03 — the guards' REACH census (what each cannot stop). Like
+     #   `gate_coverage` beside it, the anchor does not call it; it is import-reachable and it is
+diff --git a/live/tests_rank_monitor_input.py b/live/tests_rank_monitor_input.py
+new file mode 100644
+index 0000000..2711030
+--- /dev/null
++++ b/live/tests_rank_monitor_input.py
+@@ -0,0 +1,295 @@
++"""Step 9 and artefact assertion #9 — is the position-rank monitor (#55) running and reporting? (ALM-03 = W5, FX-EXEC 2026-09-13)
++
++*** SANDBOX ONLY: a temp state tree, a recording notifier, alarm episodes redirected into the sandbox; the retired ssh source is
++    replaced by its observed result (unreachable) and never contacted. Fixtures are byte copies of the live files (build_fixture.py). ***
++
++★★★ THE MEASUREMENT (2026-09-13, read-only on ~/dl_quant_live and ef60f85)
++  Step 9 ran `check_factor_health.run()`: an ssh read of a research-box report retired by user ruling on 2026-08-06. The live
++  `state/factor_health_last.json` (fixture, verbatim) is `{reason: report_unreachable, decay_judged: false}` and its episode has been
++  open since 2026-09-04T12:45Z. Artefact assertion #9 passed on exactly that record — `_fh_absent` — so every anchor since 08-06
++  reported "decay monitored" PASS while nothing watched the traded book. #55 `ops/ic_monitor.py` does watch it, on this box, and since
++  W1 (ef60f85) appends each evaluation to `state/live/ic_monitor_evals.jsonl`; that ledger did not exist yet when the fixture was copied.
++
++HOW THE CELLS DRIVE THE CODE. Every behavioural cell drives the module that scheduler/run_anchor.py's step 9 ACTUALLY imports (read
++from its source), with its sources pointed into a sandbox, and then runs the artefact checker's #9 on the same sandbox. On the old
++tree that module is check_factor_health with `fetch` returning None — the observed state of its source since 08-06, and the only way
++to run it without contacting the research box. Eval rows are produced by #55's OWN `check()` + `append_eval()` on the real
++ic_monitor.jsonl (§5-1: the real W1 shape, not a hand-made object); where a level the real rows never reach is needed, one threshold
++constant of #55 is moved and the cell says so.
++"""
++import ast
++import calendar
++import hashlib
++import importlib.util
++import inspect
++import json
++import os
++import re
++import shutil
++import sys
++import tempfile
++import time
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++for _d in ("live", "ops", "scheduler"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++FX = os.path.join(HERE, "tests_fixtures", "alm03_rank_monitor")
++FXM = json.load(open(os.path.join(FX, "MANIFEST.json"), encoding="utf-8"))
++FAILS, TMPS = [], []
++
++
++def check(name, cond, detail=""):
++    print(("  OK    " if cond else "  FAIL  ") + name + (f"  — {detail}" if detail != "" else ""), flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++def T(s):
++    return calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
++
++
++def load(name, path, argv=None):
++    saved = sys.argv[:]
++    if argv is not None:
++        sys.argv = argv
++    try:
++        spec = importlib.util.spec_from_file_location(name, path)
++        mod = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(mod)
++        return mod
++    finally:
++        sys.argv = saved
++
++
++IM = load("icm_under_test", os.path.join(REPO, "ops", "ic_monitor.py"), argv=["ic_monitor.py", "--check"])   # read-only: no .env
++import assert_anchor_artifacts as AA                                                                         # noqa: E402
++import alarm_episode as AE                                                                                   # noqa: E402
++import alarm_policy as AP                                                                                    # noqa: E402
++
++RA_SRC = open(os.path.join(REPO, "scheduler", "run_anchor.py"), encoding="utf-8").read()
++_s9 = RA_SRC[RA_SRC.index("    # ── 9. "):RA_SRC.index("    # ── 9b. ")]
++_m = re.search(r"import (\w+) as (\w+)\n\s+\2\.run\(", _s9)
++STEP9_MODULE = _m.group(1) if _m else None
++STEP9_PATH = os.path.join(REPO, "ops", f"{STEP9_MODULE}.py") if STEP9_MODULE else None
++ROWS = [json.loads(l) for l in open(os.path.join(FX, "ic_monitor.jsonl"), encoding="utf-8") if l.strip()]
++
++
++def real_eval(now, patch=None):
++    """#55's own evaluation of the real rows at `now` (rows it could have scored by then), as append_eval writes it."""
++    saved = {}
++    for k, v in (patch or {}).items():
++        saved[k] = getattr(IM, k)
++        setattr(IM, k, v)
++    try:
++        v = IM.check([r for r in ROWS if r["anchor_ts"] <= now - IM.GRID_S - IM.MATURE_LAG_S], now=now)
++        p = os.path.join(tempfile.mkdtemp(prefix="alm03_ev_"), "evals.jsonl")
++        TMPS.append(os.path.dirname(p))
++        IM.append_eval(v, [], now, path=p)
++        return json.loads(open(p).read().splitlines()[-1])
++    finally:
++        for k, v in saved.items():
++            setattr(IM, k, v)
++
++
++class Rec:
++    def __init__(self):
++        self.calls = []
++
++    def alarm(self, sev, msg, settles=None):
++        self.calls.append((sev, msg))
++        return {"status": "SUPPRESSED", "delivered_offbox": False}
++
++
++def sandbox():
++    sb = tempfile.mkdtemp(prefix="alm03_")
++    TMPS.append(sb)
++    os.makedirs(os.path.join(sb, "state", "live"))
++    os.makedirs(os.path.join(sb, "config"))
++    os.makedirs(os.path.join(sb, "pilot", "20260914"))
++    shutil.copy(os.path.join(REPO, "config", "book.json"), os.path.join(sb, "config", "book.json"))
++    shutil.copy(os.path.join(FX, "factor_health_last.json"), os.path.join(sb, "state", "factor_health_last.json"))
++    return sb
++
++
++def drive(sb, now, evals=None, raw=None):
++    """Step 9's module then assertion #9, both on sandbox `sb`. Returns (consumer result, pages, #9 assertion, log)."""
++    ev_path = os.path.join(sb, "state", "live", "ic_monitor_evals.jsonl")
++    if evals is not None or raw is not None:
++        with open(ev_path, "w") as f:
++            f.write(raw if raw is not None else "".join(json.dumps(e) + "\n" for e in evals))
++    mod = load(f"step9_{STEP9_MODULE}", STEP9_PATH, argv=["run_anchor.py"])
++    mod.LAST = os.path.join(sb, "state", os.path.basename(mod.LAST))
++    if hasattr(mod, "STATE"):
++        mod.STATE = os.path.join(sb, "state", "factor_health.json")
++    if hasattr(mod, "fetch"):
++        mod.fetch = lambda *a, **k: None          # the retired report: unreachable, as observed since 2026-08-06 — never contacted
++    saved_sp, saved_mod = AE._state_path, sys.modules.get("alarm_episode")
++    AE._state_path = lambda subject, mode=None, scope="mode": os.path.join(sb, "state", "alarm_episodes", f"{subject}.json")
++    sys.modules["alarm_episode"] = AE
++    saved_run = __import__("subprocess").run
++    net = []
++    __import__("subprocess").run = lambda *a, **k: net.append(a) or (_ for _ in ()).throw(AssertionError("subprocess.run during step 9"))
++    rec, logs = Rec(), []
++    try:
++        kw = {}
++        ps = inspect.signature(mod.run).parameters
++        if "now" in ps:
++            kw["now"] = now
++        if "path" in ps:
++            kw["path"] = ev_path
++        res = mod.run(notifier=rec, log=logs.append, **kw)
++    finally:
++        __import__("subprocess").run = saved_run
++        AE._state_path = saved_sp
++        if saved_mod is not None:
++            sys.modules["alarm_episode"] = saved_mod
++    saved_repo = AA.REPO
++    AA.REPO = sb
++    try:
++        kw = {"now": now} if "now" in inspect.signature(AA.check_artifacts).parameters else {}
++        r = AA.check_artifacts(None, None, mode="LIVE", rebalanced=False, day="20260914", root=os.path.join(sb, "pilot"),
++                               wd_state=os.path.join(sb, "_none.json"), **kw)
++    finally:
++        AA.REPO = saved_repo
++    a9 = [x for x in r["assertions"] if "decay monitored" in x["assert"] or "position-rank monitor" in x["assert"]]
++    return res, rec.calls, (a9[0] if len(a9) == 1 else {"assert": None, "ok": None, "n": len(a9)}), logs, net
++
++
++# ══ [F] fixture and facts ═══════════════════════════════════════════════════════════════════════
++print("[F] fixture")
++_ok = all(hashlib.sha256(open(os.path.join(FX, k), "rb").read()).hexdigest() == v["sha256"] for k, v in FXM["files"].items())
++_fh = json.load(open(os.path.join(FX, "factor_health_last.json")))
++check("F0 fixture validity: the three live files hash to what the builder recorded; the live step-9 record is the retired report's "
++      "'report_unreachable' with decay_judged false, and the evals ledger did not exist at copy time",
++      _ok and _fh.get("reason") == "report_unreachable" and _fh.get("decay_judged") is False
++      and FXM["evals_ledger_existed_at_copy"] is False and len(ROWS) == 228, (_ok, _fh.get("reason"), len(ROWS)))
++check("F1 the harness found step 9's module in run_anchor's source and it exists", STEP9_MODULE is not None and os.path.exists(STEP9_PATH),
++      STEP9_MODULE)
++_e0914 = real_eval(T("2026-09-14T01:30:00Z"))
++_e0905 = real_eval(T("2026-09-05T01:30:00Z"))
++check("F2 #55's own check() on the real rows: its next scheduled run (09-14 01:30Z) is INCOMPLETE — r24 misses 9 anchors after the "
++      "09-12 flatten — and 09-05 01:30Z is a judged OK; both rows carry eval_at, census.frontier_ts and census.newest_row_anchor_ts",
++      _e0914["level"] == "INCOMPLETE" and _e0914["judged"] is False and _e0914["census"]["r24"]["missing"] == 9
++      and _e0905["level"] == "OK" and _e0905["judged"] is True
++      and all(k in e and "frontier_ts" in e["census"] and "newest_row_anchor_ts" in e["census"] for e in (_e0914, _e0905) for k in ("eval_at", "contract")),
++      (_e0914["level"], _e0914["census"]["r24"]["missing"], _e0905["level"]))
++
++# ══ [A] step 9 + #9 ═════════════════════════════════════════════════════════════════════════════
++print("\n[A] step 9 and assertion #9, driven")
++_sb1 = sandbox()
++_r1, _p1, _a1, _l1, _n1 = drive(_sb1, T("2026-09-15T00:00:00Z"))
++check("★★★ A1 (OLD CODE: RED) the REAL situation — retired report unreachable, #55's evals ledger absent — checked after the grace: "
++      "assertion #9 FAILS and names the absent ledger (the old #9 passed on exactly this, every anchor since 08-06)",
++      _a1.get("ok") is False and "LEDGER_ABSENT" in str(_a1.get("detail")), (_a1, _r1.get("state")))
++_sb2 = sandbox()
++_r2, _p2, _a2, _l2, _n2 = drive(_sb2, T("2026-09-14T02:00:00Z"), evals=[_e0914])
++check("★★★ A2 (OLD CODE: RED) #55's real next evaluation (INCOMPLETE) in its ledger: step 9 records NOT_JUDGED from source "
++      "ic_monitor_evals with the missing anchors as the reason, pages nothing (#55 pages its own INCOMPLETE), and #9 passes — the gate "
++      "working is not a monitor failure",
++      _r2.get("source") == "ic_monitor_evals" and _r2.get("state") == "NOT_JUDGED" and "r24: 9 expected anchors missing" in str(_r2.get("not_judged_reason"))
++      and _p2 == [] and _a2.get("ok") is True, (_r2.get("state"), _r2.get("not_judged_reason"), _p2, _a2))
++_sb3 = sandbox()
++_r3, _p3, _a3, _l3, _n3 = drive(_sb3, T("2026-09-05T02:00:00Z"), evals=[_e0905])
++check("★★★ A3 (OLD CODE: RED) a real judged evaluation (09-05, OK): JUDGED, both clocks recorded — expected frontier "
++      "2026-09-04T20:00Z and observed newest anchor 2026-09-04T20:00Z, lag 0 — nothing paged, #9 passes",
++      _r3.get("state") == "JUDGED" and _r3.get("expected_frontier") == "2026-09-04T20:00:00Z"
++      and _r3.get("observed_newest_anchor") == "2026-09-04T20:00:00Z" and _r3.get("data_lag_anchors") == 0 and _p3 == []
++      and _a3.get("ok") is True, (_r3.get("state"), _r3.get("expected_frontier"), _r3.get("observed_newest_anchor"), _p3, _a3))
++_sb4 = sandbox()
++_r4, _p4, _a4, _, _ = drive(_sb4, T("2026-09-06T04:00:00Z"), evals=[_e0905])
++_r4b, _p4b, _a4b, _, _ = drive(_sb4, T("2026-09-06T08:00:00Z"))
++check("★★★ A4 (OLD CODE: RED) the same evaluation 26.5 h later: EVAL_STALE, paged ONCE at HIGH; the next anchor with the condition "
++      "unchanged does not page again (the episode key names the evaluation, not its age); #9 fails both times",
++      _r4.get("state") == "EVAL_STALE" and len(_p4) == 1 and _p4[0][0] == "HIGH" and _r4b.get("state") == "EVAL_STALE" and _p4b == []
++      and _a4.get("ok") is False and _a4b.get("ok") is False, (_r4.get("state"), _p4, _p4b, _a4.get("ok"), _a4b.get("ok")))
++_sb5 = sandbox()
++_r5a, _p5a, _a5a, _, _ = drive(_sb5, T("2026-09-13T16:00:00Z"))
++_r5b, _p5b, _a5b, _, _ = drive(_sb5, T("2026-09-14T18:00:00Z"))
++_r5c, _p5c, _a5c, _, _ = drive(_sb5, T("2026-09-14T18:05:00Z"))
++check("★★ A5 (OLD CODE: RED) the grace is a FIXED instant (W1 live 2026-09-13T12:04:14Z + 30 h), not reset by runs: absent at 09-13 16Z "
++      "and at 09-14 18:00Z is a named known gap (INFO, not paged, #9 passes as a gap), the grace end is the same both times, and at "
++      "18:05Z the same absence is LEDGER_ABSENT, paged, #9 fails",
++      _r5a.get("state") == _r5b.get("state") == "LEDGER_ABSENT_IN_GRACE" and _r5a.get("grace_until") == _r5b.get("grace_until") == "2026-09-14T18:04:14Z"
++      and _p5a == [] and _p5b == [] and _a5a.get("ok") is True and _a5b.get("ok") is True and bool(_a5a.get("producer"))
++      and _r5c.get("state") == "LEDGER_ABSENT" and len(_p5c) == 1 and _a5c.get("ok") is False,
++      (_r5a.get("state"), _r5a.get("grace_until"), _r5c.get("state"), _p5c, _a5c.get("ok")))
++_eD = real_eval(T("2026-09-05T01:30:00Z"), patch={"R24_P1": 0.5})
++_sb6 = sandbox()
++_r6, _p6, _a6, _, _ = drive(_sb6, T("2026-09-05T02:00:00Z"), evals=[_eD])
++check("★★ A6 (OLD CODE: RED) a DECIDE evaluation (#55's real check() with ONE constant moved, R24_P1 = 0.5): step 9 records JUDGED "
++      "level DECIDE and pages NOTHING — threshold pages are #55's (§5-5), a second stream here would not de-duplicate against them",
++      _eD["level"] == "DECIDE" and _r6.get("state") == "JUDGED" and _r6.get("level") == "DECIDE" and _p6 == [] and _a6.get("ok") is True,
++      (_eD["level"], _r6.get("state"), _p6))
++_e7 = dict(_e0914)
++_e7.pop("census")
++_sb7 = sandbox()
++_r7, _p7, _a7, _, _ = drive(_sb7, T("2026-09-14T02:00:00Z"), evals=[_e7])
++check("★★ A7 (OLD CODE: RED) 'not judged' WITHOUT the census that explains it is not the gate working: NOT_JUDGED_WITHOUT_CENSUS, "
++      "paged HIGH, #9 fails", _r7.get("state") == "NOT_JUDGED_WITHOUT_CENSUS" and len(_p7) == 1 and _a7.get("ok") is False,
++      (_r7.get("state"), _p7, _a7.get("ok")))
++_e7b = dict(_e0914, incomplete_windows=[])
++_sb7b = sandbox()
++_r7b, _p7b, _a7b, _, _ = drive(_sb7b, T("2026-09-14T02:00:00Z"), evals=[_e7b])
++check("★★ A7b (OLD CODE: RED) 'not judged' with a census but NO incomplete window named is equally unexplained: "
++      "NOT_JUDGED_WITHOUT_CENSUS, paged, #9 fails", _r7b.get("state") == "NOT_JUDGED_WITHOUT_CENSUS" and len(_p7b) == 1
++      and _a7b.get("ok") is False, (_r7b.get("state"), _p7b, _a7b.get("ok")))
++_sb8 = sandbox()
++_r8, _p8, _a8, _, _ = drive(_sb8, T("2026-09-14T02:00:00Z"), raw=json.dumps(_e0914) + "\n" + json.dumps(_e0914)[:200] + "\n")
++check("★★ A8 (OLD CODE: RED) a last row cut mid-write is LEDGER_UNREADABLE (paged, #9 fails) — never read as the row before it",
++      _r8.get("state") == "LEDGER_UNREADABLE" and len(_p8) == 1 and _a8.get("ok") is False, (_r8.get("state"), _a8.get("ok")))
++_eU = real_eval(T("2026-09-05T01:30:00Z"), patch={"R24_P5": None})
++_sb9 = sandbox()
++_r9, _p9, _a9, _, _ = drive(_sb9, T("2026-09-05T02:00:00Z"), evals=[_eU])
++check("★★ A9 (OLD CODE: RED) #55 reporting its thresholds UNSTAMPED (its real check() with R24_P5 = None) is paged and fails #9",
++      _eU["level"] == "UNSTAMPED" and _r9.get("state") == "UNSTAMPED" and len(_p9) == 1 and _a9.get("ok") is False, (_eU["level"], _r9.get("state")))
++_eL = json.loads(json.dumps(_e0905))
++_eL["census"]["newest_row_anchor_ts"] = _eL["census"]["frontier_ts"] - 3 * 14400
++_sb10 = sandbox()
++_r10, _p10, _a10, _, _ = drive(_sb10, T("2026-09-05T02:00:00Z"), evals=[_eL])
++check("★★ A10 (OLD CODE: RED) judged, yet its observed newest anchor lags its own expected frontier by 3 anchors (a judged r24 allows 2): "
++      "DATA_LAG_CONTRADICTION, paged, #9 fails — the two clocks are read separately (§5-2)",
++      _r10.get("state") == "DATA_LAG_CONTRADICTION" and _r10.get("data_lag_anchors") == 3 and len(_p10) == 1 and _a10.get("ok") is False,
++      (_r10.get("state"), _r10.get("data_lag_anchors")))
++_pages = _p4 + _p5c + _p7 + _p7b + _p8 + _p9 + _p10
++check("★★ A11 (OLD CODE: RED) every page step 9 raised above is tier A for alarm_policy (pushed) WITHOUT matching any rule — a matched "
++      "rule would file it under another source's name (e.g. 'unexplained' reads as a book/venue disagreement) — and none matches the "
++      "retired shadow-report staleness rule that files '因子健康: STALE' pages into the daily digest",
++      len(_pages) == 7 and all(AP.classify(m)[0] == AP.DECIDE and AP.classify(m)[1] == "UNRECOGNISED" for _, m in _pages)
++      and not any(re.search(r"因子健康: STALE: the shadow's own report|因子健康: FRONTIER_STALE", m) for _, m in _pages),
++      [AP.classify(m)[1] for _, m in _pages])
++_step9_imports = sorted({a.name.split(".")[0] for _n in ast.walk(ast.parse(open(STEP9_PATH, encoding="utf-8").read()))
++                         if isinstance(_n, (ast.Import, ast.ImportFrom)) for a in (_n.names if isinstance(_n, ast.Import) else [ast.alias(name=_n.module or "")])})
++check("★★ A12 (OLD CODE: RED) no subprocess ran in any drive of step 9, and step 9's module imports nothing that can reach another "
++      "machine (subprocess / socket / urllib / http / requests / paramiko)",
++      not any((_n1, _n2, _n3)) and not set(_step9_imports) & {"subprocess", "socket", "urllib", "http", "requests", "paramiko"},
++      (len(_n1), STEP9_MODULE, _step9_imports))
++
++# ══ [S] static facts ════════════════════════════════════════════════════════════════════════════
++print("\n[S] static")
++_RMI_PATH = os.path.join(REPO, "ops", "check_rank_monitor_input.py")
++_have = os.path.exists(_RMI_PATH)
++RMI = load("rmi_static", _RMI_PATH) if _have else None
++check("★ S1 (OLD CODE: RED) the consumer's copies of #55's facts equal #55's own: evals path, grid, the r24 missing-anchor limit",
++      _have and os.path.relpath(RMI.EVALS, REPO) == os.path.relpath(IM.EVALS, IM._REPO) and RMI.GRID_S == IM.GRID_S
++      and RMI.MAX_LAG_ANCHORS == IM.MAX_MISSING["r24"], _have)
++_live_head = FXM["live_head"].split()
++_w1 = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(calendar.timegm(time.strptime(_live_head[1][:19], "%Y-%m-%dT%H:%M:%S")) - 8 * 3600))
++check("★ S2 (OLD CODE: RED) W1_EVALS_LIVE_UTC is the ef60f85 commit time as recorded from the live repo (+08:00 → Z)",
++      _have and _live_head[0].startswith("ef60f85") and _live_head[1].endswith("+08:00") and RMI.W1_EVALS_LIVE_UTC == _w1, (_w1,))
++_importers = []
++for _dir in ("scheduler", "live", "ops", "signal"):
++    for _fn in sorted(os.listdir(os.path.join(REPO, _dir))):
++        if _fn.endswith(".py") and not _fn.startswith("tests_") and _fn != "check_factor_health.py":
++            for _n in ast.walk(ast.parse(open(os.path.join(REPO, _dir, _fn), encoding="utf-8").read())):
++                if isinstance(_n, ast.Import) and any(a.name == "check_factor_health" for a in _n.names):
++                    _importers.append(f"{_dir}/{_fn}")
++                if isinstance(_n, ast.ImportFrom) and _n.module == "check_factor_health":
++                    _importers.append(f"{_dir}/{_fn}")
++check("★ S3 (OLD CODE: RED) step 9 imports check_rank_monitor_input and calls its run(); no runtime module imports the retired "
++      "check_factor_health any more", STEP9_MODULE == "check_rank_monitor_input" and _importers == [], (STEP9_MODULE, _importers))
++
++for _t in TMPS:
++    shutil.rmtree(_t, ignore_errors=True)
++print(f"\n  {'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}", flush=True)
++sys.exit(0 if not FAILS else 1)
+diff --git a/ops/assert_anchor_artifacts.py b/ops/assert_anchor_artifacts.py
+index 1581e88..2f227af 100644
+--- a/ops/assert_anchor_artifacts.py
++++ b/ops/assert_anchor_artifacts.py
+@@ -150,7 +150,7 @@ def check_artifacts(rebalance_id: Optional[str], emitted: Optional[int],
+                     anchor_ts: Optional[float] = None, root: str = LOG_ROOT,
+                     wd_state: str = WD_STATE, notify_audit: str = NOTIFY_AUDIT,
+                     day: Optional[str] = None, mode: Optional[str] = None,
+-                    rebalanced: Optional[bool] = None) -> Dict[str, Any]:
++                    rebalanced: Optional[bool] = None, now: Optional[float] = None) -> Dict[str, Any]:
+     """Every count here comes from READING A FILE. Nothing is taken from the writer's word."""
+     mode = mode or os.environ.get("LIVE_MODE", "DRY_RUN")
+     day = day or time.strftime("%Y%m%d", time.gmtime())
+@@ -280,27 +280,32 @@ def check_artifacts(rebalance_id: Optional[str], emitted: Optional[int],
+     # known gaps carry an owner and a registration date so the list ages VISIBLY instead of
+     # fading into background. A gap that starts PASSING is reported too — otherwise closing one
+     # depends on somebody remembering to come back and check.
+-    # 9 — is decay actually being monitored on the caliber we deploy? (registered gap, owner 0C)
+-    fh_path = os.path.join(REPO, "state", "factor_health_last.json")
+-    fh = {}
+-    if os.path.exists(fh_path):
+-        try:
+-            fh = json.load(open(fh_path))
+-        except Exception:
+-            fh = {}
+-    # ★★ 2026-08-06: 本断言的前提是"上游影子监视器在发布". 用户裁定停掉该 cron(server = 训练 +
+-    #    采集) 之后, 上游【按设计】不再发布 ⇒ 这条从"衰减没人看着"(真缺陷)变成"我们决定不看"
+-    #    (已裁定的状态)。两者必须区分, 否则它每锚 REGRESSION 一次, 恰是今天治掉的告警疲劳换个
+-    #    出口复发 —— 20:00Z 锚就是这么响的, 与 FRONTIER_UNKNOWN 同因同时。
+-    #    ⇒ 上游【缺席】: 记录为已知缺口(带 owner), 不算 REGRESSION;
+-    #      上游【在场】却没判衰减: 仍是 REGRESSION(那才是监视器坏了)。
+-    _fh_absent = not fh or fh.get("reason") in ("report_unreachable",) or fh.get("as_of") is None
+-    add("decay monitored on the deployable caliber",
+-        bool(fh.get("decay_judged")) or _fh_absent,
+-        f"caliber={fh.get('caliber')} ic={fh.get('rolling_rank_ic')}"
+-        + (" | upstream ABSENT by ruling 2026-08-06 (shadow cron retired) — recorded gap, "
+-           "not a regression" if _fh_absent else ""),
+-        gap_owner="0C — monitor.py must publish the fixfunding curve on the tradeable universe")
++    # 9 — ★★ ALM-03 / W5 (FX-EXEC 2026-09-13): IS THE POSITION-RANK MONITOR (#55) RUNNING AND REPORTING? Read from ITS OWN evals
++    #   ledger, at check time.
++    #   The previous #9 ("decay monitored on the deployable caliber") read `state/factor_health_last.json` and passed whenever the
++    #   retired jpline report was ABSENT (`reason == report_unreachable` or `as_of is None`) — which it has been on every anchor since
++    #   the 2026-08-06 ruling. A per-anchor gate reported PASS for a monitor that watched nothing (the −2027-empty-set shape).
++    #   ⇒ It now evaluates the artefact #55 writes (`state/live/ic_monitor_evals.jsonl`) with the step-9 consumer's own evaluator,
++    #     NOT that consumer's state file: this assertion runs BEFORE step 9 in the same anchor, so the state file would describe the
++    #     previous anchor — and, on the first anchor after deployment, nothing.
++    #   PASS = JUDGED, or NOT_JUDGED with the census windows that explain it (the freshness gate working, §5-4). Known gap = the
++    #   ledger not written yet before the FIXED instant GRACE_UNTIL (W1 live + 30 h), never reset by a run. Everything else — absent
++    #   after the grace, stale, unreadable, wrong shape, unstamped, self-contradicting — fails. It says nothing about whether the
++    #   book's ranking is GOOD: #55 judges that and pages its own levels.
++    _rm_name = "the position-rank monitor (#55) evaluated recently and reported (judged, or honestly not judged)"
++    try:
++        import check_rank_monitor_input as _RMI
++        _rm_path = os.path.join(REPO, "state", "live", "ic_monitor_evals.jsonl")
++        _rm = _RMI.evaluate_ledger(*_RMI.read_last_eval(_rm_path), now=now, path=_rm_path)
++        add(_rm_name, _rm["ok"] or _rm["known_gap"],
++            f"state={_rm['state']} level={_rm['level']} judged={_rm['judged']} eval_at={_rm['eval_at_iso']} "
++            f"age_h={_rm['eval_age_h']} expected_frontier={_rm['expected_frontier']} newest={_rm['observed_newest_anchor']}"
++            + (f" | not judged: {_rm['not_judged_reason']}" if _rm["not_judged_reason"] else "")
++            + (f" | {_rm['findings'][0]}" if _rm["findings"] and _rm["state"] != "NOT_JUDGED" else ""),
++            gap_owner=(f"#55 ops/ic_monitor.py — its first evals row is due at the first 01:30Z run after W1 "
++                       f"({_RMI.W1_EVALS_LIVE_UTC}); grace ends {_rm['grace_until']}") if _rm["known_gap"] else None)
++    except Exception as e:                                   # noqa: BLE001 — a checker that cannot look is a failing check
++        add(_rm_name, False, f"could not evaluate #55's evals ledger: {type(e).__name__}: {e}")
+ 
+     # 10 — CONSTANT-VALUED COLUMNS: a producer-less field is indistinguishable from a real
+     # constant until you ask "would it still be constant once there are real fills?".
+diff --git a/ops/check_factor_health.py b/ops/check_factor_health.py
+index 70c98f3..2d6d107 100644
+--- a/ops/check_factor_health.py
++++ b/ops/check_factor_health.py
+@@ -1,5 +1,12 @@
+ """Factor-health consumer — the two numbers that answer "is this still worth doing?".
+ 
++★★★ RETIRED 2026-09-13 (ALM-03 = W5, FX-EXEC): NOT CALLED BY THE ANCHOR ANY MORE. Step 9 of scheduler/run_anchor.py now runs
++    ops/check_rank_monitor_input.py, which checks #55's local evaluations ledger. The report this file reads over ssh has had no
++    producer since the 2026-08-06 ruling, so every run since recorded UNKNOWN and assertion #9 passed on that absence. The code below
++    is kept byte-for-byte because four suites (tests_factor_health, tests_frontier_staleness, tests_book_weights_effective and the
++    red_capability mutants 6/7) pin it verbatim; they now pin a retired evaluator, and gate_coverage says so. Running this file by
++    hand no longer contacts the research box — `__main__` refuses.
++
+ ★ WHY THIS FILE EXISTS: both numbers were already being COMPUTED CORRECTLY and written to disk
+ every day, and nothing read either of them.
+ 
+@@ -458,4 +465,7 @@ def run(notifier=None, log=print) -> Dict[str, Any]:
+ 
+ 
+ if __name__ == "__main__":
+-    print(json.dumps(run(), indent=1, default=str))
++    # ★ RETIRED (ALM-03): a manual run used to ssh the research box for a report nobody publishes. Refuse, and say where to look.
++    print("check_factor_health is RETIRED (ALM-03, 2026-09-13): its source report has had no producer since 2026-08-06. "
++          "Step 9 runs ops/check_rank_monitor_input.py (#55's evals ledger); run that instead.")
++    raise SystemExit(2)
+diff --git a/ops/check_rank_monitor_input.py b/ops/check_rank_monitor_input.py
+new file mode 100644
+index 0000000..4e56515
+--- /dev/null
++++ b/ops/check_rank_monitor_input.py
+@@ -0,0 +1,204 @@
++"""Step 9 — is the position-rank monitor (#55, ops/ic_monitor.py) RUNNING and REPORTING? Read from its own evals ledger.
++
++ALM-03 = W5 (docs/DESIGN_factor_health_repoint_2026-09-12.md §2 with every §5 correction), FX-EXEC 2026-09-13.
++
++★★★ WHAT THIS REPLACES, AND WHY (fact table, read-only on the live tree and ef60f85):
++  · Step 9 called `check_factor_health.run()`, which ssh-reads a report on the research box (jpline) whose producer was RETIRED by
++    user ruling on 2026-08-06. Every anchor since: `factor_health_last.json = {reason: report_unreachable, decay_judged: false}`,
++    one INFO line, and one open episode (68f039b2, since 2026-09-04T12:45Z).
++  · Artefact assertion #9 ("decay monitored on the deployable caliber") passed whenever that report was ABSENT — i.e. on every anchor
++    since 08-06. A per-anchor gate reported PASS for a monitor that had watched nothing.
++  · The instrument that does measure the traded book already runs on THIS box: #55 `ops/ic_monitor.py` (launchd 01:30Z daily) judges
++    the rolling rank-IC of venue positions vs next-anchor returns and, since W1 (ef60f85, committed 2026-09-13T12:04:14Z), appends one
++    row per evaluation to `state/live/ic_monitor_evals.jsonl` (level / judged / r24 / r48 / trigger / judged_windows /
++    incomplete_windows / census{frontier_ts, newest_row_anchor_ts, r24, r48} / contract / eval_at). The live ledger did not exist yet
++    when this was written; its first row is due 2026-09-14T01:30Z.
++
++★★ WHAT THIS IS — AND IS NOT (§5-3). It checks the INPUT of a position-rank diagnostic: that #55 evaluated recently, that its row has
++   the contract shape, and that "not judged" comes with the census that explains it. It is NOT a model-score IC, NOT a carry/cost or
++   net-alpha monitor, and it issues NO decay verdict: #55's thresholds were stamped on a different α/band book (its own
++   CALIB_IDENTITY line says so), and #55 pages its own ALERT/DECIDE/INCOMPLETE. Re-paging those here would be a second stream with a
++   different body that hash de-duplication cannot join (§5-5) — so this file pages ONLY when the source is missing, stale, unreadable,
++   unstamped, or contradicts itself.
++
++★ STATES (one per evaluation; `ok` is True only for the first two):
++    JUDGED                  a judged row (OK / ALERT / DECIDE), fresh, whose observed newest anchor keeps up with the expected frontier
++    NOT_JUDGED              level INCOMPLETE with its census and incomplete windows — the freshness gate WORKING; not_judged_reason
++                            names the missing anchors
++    LEDGER_ABSENT_IN_GRACE  no ledger yet, and the check runs before GRACE_UNTIL — a fixed instant (W1 live + 30 h), never reset by a
++                            run or by the file being missing (§5-4); INFO, not paged
++    LEDGER_ABSENT           no ledger after GRACE_UNTIL — #55 has not written a single evaluation; HIGH
++    LEDGER_UNREADABLE       the file or its last row cannot be read as an object; HIGH
++    SHAPE                   the last row lacks a contract field; HIGH
++    EVAL_STALE              the last evaluation is older than MAX_EVAL_AGE_H — #55 stopped running; HIGH
++    UNSTAMPED               #55 reports its thresholds unstamped; HIGH
++    DATA_LAG_CONTRADICTION  judged, yet its observed newest anchor lags its own expected frontier by more than MAX_LAG_ANCHORS; HIGH
++    NOT_JUDGED_WITHOUT_CENSUS  not judged without the census/incomplete windows that would explain it; HIGH
++  The two clocks are separate (§5-2): `eval_at` says the monitor RAN; `census.newest_row_anchor_ts` against `census.frontier_ts` says
++  its DATA moved. Both are recorded on every state.
++"""
++from __future__ import annotations
++
++import calendar
++import json
++import os
++import time
++from typing import Any, Dict, Optional, Tuple
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++EVALS = os.path.join(REPO, "state", "live", "ic_monitor_evals.jsonl")     # = ic_monitor.EVALS (pinned equal by the suite)
++LAST = os.path.join(REPO, "state", "rank_monitor_input_last.json")
++SUBJECT = "rank_monitor_input"
++NAME = "持仓排序监控输入(#55 书级实现 rank-IC 的评估账本)"
++W1_EVALS_LIVE_UTC = "2026-09-13T12:04:14Z"      # ef60f85 commit time — the first deployed code that appends to the evals ledger
++LEDGER_GRACE_H = 30.0
++GRACE_UNTIL_TS = calendar.timegm(time.strptime(W1_EVALS_LIVE_UTC, "%Y-%m-%dT%H:%M:%SZ")) + LEDGER_GRACE_H * 3600
++# #55 runs once a day (launchd 01:30Z): one cycle plus two hours for a late run — the same arithmetic as check_factor_health's 26 h
++MAX_EVAL_AGE_H = 26.0
++GRID_S = 14400                                   # = ic_monitor.GRID_S
++MAX_LAG_ANCHORS = 2                              # = ic_monitor.MAX_MISSING["r24"]: a judged r24 window tolerates at most this many
++REQUIRED = ("eval_at", "level", "judged", "contract")
++HIGH_STATES = ("LEDGER_ABSENT", "LEDGER_UNREADABLE", "SHAPE", "EVAL_STALE", "UNSTAMPED", "DATA_LAG_CONTRADICTION",
++               "NOT_JUDGED_WITHOUT_CENSUS")
++
++
++def iso(t: Optional[float]) -> Optional[str]:
++    return None if t is None else time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(float(t)))
++
++
++def read_last_eval(path: str = EVALS) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
++    """(last row, None) or (None, why). 'absent' is its own why — the only one that can be inside the grace."""
++    if not os.path.exists(path):
++        return None, "absent"
++    try:
++        lines = [l for l in open(path, encoding="utf-8").read().splitlines() if l.strip()]
++    except (OSError, UnicodeDecodeError) as e:
++        return None, f"the ledger could not be read ({type(e).__name__}: {e})"
++    if not lines:
++        return None, "the ledger exists and holds no row"
++    try:
++        rec = json.loads(lines[-1])
++    except ValueError as e:
++        return None, f"its last row is not JSON ({e})"
++    if not isinstance(rec, dict):
++        return None, f"its last row is a {type(rec).__name__}, not an object"
++    return rec, None
++
++
++def evaluate_ledger(rec: Optional[Dict[str, Any]], err: Optional[str], now: Optional[float] = None,
++                    path: str = EVALS) -> Dict[str, Any]:
++    now = time.time() if now is None else float(now)
++    out: Dict[str, Any] = {"source": "ic_monitor_evals", "subject": NAME, "evals_path": path, "checked_at": now,
++                           "checked_at_iso": iso(now), "grace_until": iso(GRACE_UNTIL_TS), "w1_evals_live": W1_EVALS_LIVE_UTC,
++                           "eval_at": None, "eval_at_iso": None, "eval_age_h": None, "max_eval_age_h": MAX_EVAL_AGE_H,
++                           "level": None, "judged": None, "judged_windows": None, "incomplete_windows": None,
++                           "trigger": None, "r24": None, "r48": None, "not_judged_reason": None,
++                           "expected_frontier": None, "observed_newest_anchor": None, "data_lag_anchors": None,
++                           "object": None, "decay_verdict": "none issued here — #55 pages its own levels (§5-5)"}
++    findings = []
++
++    def done(state, page=None):
++        """`page` is the STABLE sentence the episode is keyed on: it names the condition and the evaluation it concerns, never an age
++        or a clock reading — alarm_episode fingerprints the exact text, so a number that moves every anchor would page every anchor."""
++        high = state in HIGH_STATES
++        out.update(state=state, ok=state in ("JUDGED", "NOT_JUDGED"), severity="HIGH" if high else "INFO",
++                   findings=findings, page_findings=[page] if high else [],
++                   known_gap=state == "LEDGER_ABSENT_IN_GRACE")
++        return out
++
++    if err == "absent":
++        if now <= GRACE_UNTIL_TS:
++            findings.append(f"LEDGER_ABSENT_IN_GRACE: {path} does not exist yet; #55 first appends to it at its first 01:30Z run after "
++                            f"W1 went live ({W1_EVALS_LIVE_UTC}). Grace ends at the fixed instant {iso(GRACE_UNTIL_TS)}.")
++            return done("LEDGER_ABSENT_IN_GRACE")
++        findings.append(f"LEDGER_ABSENT: {path} still does not exist at {iso(now)}, "
++                        f"{(now - GRACE_UNTIL_TS) / 3600 + LEDGER_GRACE_H:.1f} h after W1 went live — #55 has not recorded one "
++                        f"evaluation, so nothing is watching the traded book's position ranking.")
++        return done("LEDGER_ABSENT", f"LEDGER_ABSENT: {path} does not exist after the fixed grace {iso(GRACE_UNTIL_TS)} — #55 has "
++                                     f"recorded no evaluation of the traded book's position ranking")
++    if err:
++        findings.append(f"LEDGER_UNREADABLE: {path}: {err}.")
++        return done("LEDGER_UNREADABLE", f"LEDGER_UNREADABLE: {path}: {err}")
++    missing = [k for k in REQUIRED if k not in rec]
++    if missing:
++        findings.append(f"SHAPE: the last evaluation row lacks {missing} — not the row #55's append_eval writes.")
++        return done("SHAPE", findings[-1])
++    try:
++        eval_at = float(rec["eval_at"])
++    except (TypeError, ValueError):
++        findings.append(f"SHAPE: eval_at {rec.get('eval_at')!r} is not a timestamp.")
++        return done("SHAPE", findings[-1])
++    cz = rec.get("census") if isinstance(rec.get("census"), dict) else {}
++    fr, newest = cz.get("frontier_ts"), cz.get("newest_row_anchor_ts")
++    out.update(eval_at=eval_at, eval_at_iso=iso(eval_at), eval_age_h=round((now - eval_at) / 3600.0, 2), level=rec.get("level"),
++               judged=rec.get("judged"), judged_windows=rec.get("judged_windows"), incomplete_windows=rec.get("incomplete_windows"),
++               trigger=rec.get("trigger"), r24=rec.get("r24"), r48=rec.get("r48"),
++               expected_frontier=iso(fr) if fr is not None else None,
++               observed_newest_anchor=iso(newest) if newest is not None else None,
++               data_lag_anchors=(None if fr is None or newest is None else round((float(fr) - float(newest)) / GRID_S, 2)),
++               object=(rec.get("contract") or {}).get("object") if isinstance(rec.get("contract"), dict) else None)
++    if (now - eval_at) / 3600.0 > MAX_EVAL_AGE_H:
++        findings.append(f"EVAL_STALE: #55's last evaluation is {(now - eval_at) / 3600.0:.1f} h old (limit {MAX_EVAL_AGE_H} h; it runs "
++                        f"daily at 01:30Z) — the monitor stopped running; its last level {rec.get('level')} describes {iso(eval_at)}, "
++                        f"not now.")
++        return done("EVAL_STALE", f"EVAL_STALE: #55's last evaluation is {iso(eval_at)}, older than {MAX_EVAL_AGE_H} h — the "
++                                  f"monitor stopped running")
++    level, judged = rec.get("level"), rec.get("judged")
++    if level == "UNSTAMPED":
++        findings.append(f"UNSTAMPED: #55 reports its thresholds unstamped ({rec.get('note')}).")
++        return done("UNSTAMPED", f"UNSTAMPED: #55's evaluation of {iso(eval_at)} reports its thresholds unstamped")
++    if judged is True and level in ("OK", "ALERT", "DECIDE"):
++        lag = out["data_lag_anchors"]
++        if lag is None or lag > MAX_LAG_ANCHORS:
++            findings.append(f"DATA_LAG_CONTRADICTION: #55 judged ({level}) while its observed newest anchor "
++                            f"{out['observed_newest_anchor']} lags its own expected frontier {out['expected_frontier']} by "
++                            f"{lag} anchors (a judged r24 window allows {MAX_LAG_ANCHORS}).")
++            return done("DATA_LAG_CONTRADICTION", findings[-1] + f" [evaluation {iso(eval_at)}]")
++        return done("JUDGED")
++    inc = rec.get("incomplete_windows")
++    if judged is False and level == "INCOMPLETE" and cz and isinstance(inc, list) and inc \
++            and all(isinstance(cz.get(k), dict) for k in inc):
++        out["not_judged_reason"] = "; ".join(
++            f"{k}: {cz[k].get('missing')} expected anchors missing > {cz[k].get('max_missing')} "
++            f"({', '.join((cz[k].get('missing_anchors') or [])[:6])}{' …' if len(cz[k].get('missing_anchors') or []) > 6 else ''})"
++            for k in inc)
++        findings.append(f"NOT_JUDGED: #55 evaluated at {iso(eval_at)} and honestly did not judge — {out['not_judged_reason']}. "
++                        f"#55 pages this itself; recorded here, not re-paged.")
++        return done("NOT_JUDGED")
++    findings.append(f"NOT_JUDGED_WITHOUT_CENSUS: level {level!r}, judged {judged!r}, incomplete_windows {inc!r} — a row that is not "
++                    f"judged must carry the census windows that explain it.")
++    return done("NOT_JUDGED_WITHOUT_CENSUS", findings[-1] + f" [evaluation {iso(eval_at)}]")
++
++
++def run(notifier=None, log=print, path: str = EVALS, now: Optional[float] = None) -> Dict[str, Any]:
++    res = evaluate_ledger(*read_last_eval(path), now=now, path=path)
++    try:
++        os.makedirs(os.path.dirname(LAST), exist_ok=True)
++        json.dump(res, open(LAST, "w"), indent=1, default=str, ensure_ascii=False)
++    except Exception as e:                                  # noqa: BLE001 — named in the log; the verdict below still runs
++        log(f"rank_monitor_input: could not persist {LAST}: {type(e).__name__}: {e}")
++    log(f"rank_monitor_input: state={res['state']} ok={res['ok']} level={res['level']} judged={res['judged']} "
++        f"eval_at={res['eval_at_iso']} age_h={res['eval_age_h']} frontier={res['expected_frontier']} "
++        f"newest={res['observed_newest_anchor']} lag={res['data_lag_anchors']}")
++    import alarm_episode as _AE
++    if not res["page_findings"]:
++        _AE.decide(SUBJECT, [], scope="global")             # closes any open episode
++        return res
++    _d = _AE.decide(SUBJECT, res["page_findings"], scope="global")
++    if not _d["alarm"]:
++        log(f"rank_monitor_input: {_d['reason']}")
++        res["alarm_suppressed_same_episode"] = True
++        return res
++    if notifier is not None:
++        rcpt = notifier.alarm("HIGH", "持仓排序监控输入: " + " | ".join(res["page_findings"])[:600])
++        res["alarm_receipt"] = rcpt
++        if rcpt.get("delivered_offbox") or rcpt.get("status") == "SUPPRESSED":
++            _AE.record(SUBJECT, _d["episode"], res["page_findings"], scope="global")
++    else:
++        log("rank_monitor_input: no notifier attached; episode NOT recorded")
++    return res
++
++
++if __name__ == "__main__":
++    print(json.dumps(evaluate_ledger(*read_last_eval()), indent=1, default=str, ensure_ascii=False))
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index cee72c8..ccafaf3 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -250,7 +250,7 @@ SUITE_SCOPE = {
+     "tests_notional_backfill": "that the venue reported every child fill — it proves the amount is rebuilt from the children we hold, signed, and only when the column is empty. If userTrades itself is short the recovered figure is short with it, and the row would then read as a confident wrong size rather than an honest None",
+     "tests_sizing_policy": "that 2.0x / +-10%% / 4,000 USDT are the RIGHT policy numbers — they are the user's risk tolerance and no suite can settle them. It proves the sizing arithmetic, the dead zone, the floor-halts-not-shrinks rule, the dead-zone x floor interaction, and that the threshold move is exactly x(2/5) of the 5x originals. It does NOT prove the historical series that justified the restatement is representative — that series is the structural caliber and is a one-sided floor on dispersion",
+     "tests_orphan_position": "that a withheld-and-held name will actually be REDUCED at the venue — it proves the target survives the clamp so plan() emits a row, not that the order fills; a venue that refuses reduce orders too would still strand the position",
+-    "tests_frontier_staleness": "that the frontier marker the upstream publishes is CORRECT — it proves we consume it and that a frozen frontier is no longer a pass. If the producer published a wrong newest_scored_anchor this consumer would believe it",
++    "tests_frontier_staleness": "that the frontier marker the upstream publishes is CORRECT — it proves we consume it and that a frozen frontier is no longer a pass. If the producer published a wrong newest_scored_anchor this consumer would believe it. ★ SINCE 2026-09-13 (ALM-03) IT PINS A RETIRED EVALUATOR: ops/check_factor_health.py is no longer called by the anchor (step 9 runs ops/check_rank_monitor_input.py) and its ssh source has had no producer since 2026-08-06, so a green here says nothing about what the anchor monitors now — that is tests_rank_monitor_input",
+     "tests_head_liveness": "that a head which passes the liveness test is USEFUL — it proves a collapsed head is caught and that the verdict is scale-free, not that a live head carries signal. IC is what says that, and no liveness test can",
+     "tests_universe_tripwire": "that the frozen model actually saw every pinned symbol in TRAINING — the union was determined from a live-extended REBUILD, so it may be wider than the panel the training runs consumed, and that error is one-directional: it makes the guard LESS likely to fire. Only the training host can close it. It also cannot show the guard catching a monthly ROTATION: while the column set is frozen, members are a subset of the union by construction and OK is structural. That is the finding, not a gap in the suite",
+     "tests_fee_asset_detection": "that NON-USDT FEES ARE MEASURED AND ALARMED PROPORTIONATELY — [A-C] the column takes all three states from the real commissionAsset; [D] the per-LEG BNB→USDT conversion (c05f1f5) reaches the stamp and M1, so a converted fee is measured in full and a known-incomplete one is refused, never zero; [E] the alarm reports CHANGES of the fee-asset set, not its state (2026-08-06 re-tier, user-ruled: BNB fees are deliberate config — the old alarm paged HIGH six times in 6h for one known fact, and its text was FALSE post-conversion), with incomplete conversion still paging every anchor. Five blind spots: (a) the conversion price is a collect-time bookTicker mid, not the fill-time price — a fast BNB move between fill and collect misprices the fee by that drift, and nothing here bounds it; (b) the [E] change detection is SET-based: BNB's SHARE can swing arbitrarily without a page so long as the set {BNB} is unchanged — a slow depletion shows up only at the cliff, not on the slope; (c) the baseline is a file a human or a tree reset can delete, costing one spurious first-seen page (fail-noisy, by design); (d) the wiring checks are substring-grade statics over anchor_loop — they prove the call and the env override EXIST, not that the branch is reached on a real anchor; (e) baseline reads are not cross-mode-guarded (worst case: one wrong page after a mode mixup, judged not worth the read_stamped ceremony — revisit if a wrong-mode page is ever observed)",
+@@ -291,6 +291,17 @@ SUITE_SCOPE = {
+                             "supersedes pending and expired rows, venue marks win, no-trade becomes terminal, "
+                             "archive_missing is skipped, idempotent, dry-run writes nothing). The mark values "
+                             "themselves were validated on the pod against re-derived archives (20/20, 10/10), not here",
++    "tests_rank_monitor_input": "whether the traded book's position ranking is GOOD — #55 judges that and pages its own levels. It proves, "
++                                "driving the module run_anchor's step 9 really imports and then artefact assertion #9 in a sandbox, "
++                                "that step 9 reads #55's local evaluations ledger (no subprocess), records JUDGED / NOT_JUDGED with both "
++                                "clocks (eval_at; expected frontier vs observed newest anchor), pages only a missing / stale / unreadable / "
++                                "unstamped / self-contradicting source (tier A, episode keyed on the evaluation not its age), never re-pages "
++                                "#55's levels, and that #9 passes only on JUDGED, NOT_JUDGED-with-census, or absence before the FIXED grace "
++                                "end 2026-09-14T18:04:14Z — on #55's real rows and the real retired-report record. Blind spots: (a) the eval "
++                                "rows are #55's check() run by the suite, not rows #55 wrote under launchd (none existed at fixture time; "
++                                "the first is due 2026-09-14T01:30Z); (b) ALERT/DECIDE/UNSTAMPED shapes need one #55 constant moved; "
++                                "(c) it cannot tell whether #55's launchd job is loaded — only whether its ledger moves; (d) the grace "
++                                "constant is W1's commit time, so a W1 deployed later than ef60f85's commit would be judged early",
+     "tests_ledger_notary": "that the notary RUNS and its manifests are TIMESTAMPED — it proves, in a sandbox (temp ledger, temp git "
+                            "repo + local bare remote, a fake git that fails like the launchd run, alarms suppressed into a temp "
+                            "audit), that ops/notarize_ledgers.py refuses an unlistable notary directory instead of writing GENESIS, "
+@@ -361,7 +372,7 @@ SUITE_SCOPE = {
+     "tests_telegram_notify": "whether a message is DELIVERED off-box (the audit counter does)",
+     "tests_inference_parity": "that the frozen model is still the right model to be running",
+     "tests_panel_build": "live fapi data quality — parity is against a frozen server panel",
+-    "tests_factor_health": "whether the factor is decaying, only whether decay would be noticed",
++    "tests_factor_health": "whether the factor is decaying, only whether decay would be noticed. ★ SINCE 2026-09-13 (ALM-03) IT PINS A RETIRED EVALUATOR: ops/check_factor_health.py is no longer called by the anchor (step 9 runs ops/check_rank_monitor_input.py) and its ssh source has had no producer since 2026-08-06, so a green here says nothing about what the anchor monitors now — that is tests_rank_monitor_input",
+     "tests_state_root": "writes made through absolute paths that bypass the root entirely",
+     "tests_nosleep": "this machine's real power state — it runs on synthetic observations",
+     "tests_venue_fills": "whether the collector is CALLED by the anchor — it tests the collector, not its wiring, which is exactly how the doubling defect survived",
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index 7328cb1..08cee2e 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -52,6 +52,8 @@ SUITES=(
+   "tests_markout_import:$_SELF/live/tests_markout_import.py"
+   # E10 = LED-06 (FX-EXEC 2026-09-13): 台账公证器 — 前缀验证/追加检查点/修订记录/链读法; 列目录失败与 git 每步 rc 必告警
+   "tests_ledger_notary:$_SELF/live/tests_ledger_notary.py"
++  # ALM-03 = W5 (FX-EXEC 2026-09-13): 步 9 改读 #55 评估账本; 产物断言 #9 不再对缺席空过
++  "tests_rank_monitor_input:$_SELF/live/tests_rank_monitor_input.py"
+   "tests_reject_rate:$_SELF/live/tests_reject_rate.py"
+   "tests_requote_experiment:$_SELF/live/tests_requote_experiment.py"
+   "tests_sigma_ladder:$_SELF/live/tests_sigma_ladder.py"
+diff --git a/scheduler/run_anchor.py b/scheduler/run_anchor.py
+index f66c0a3..327fc02 100644
+--- a/scheduler/run_anchor.py
++++ b/scheduler/run_anchor.py
+@@ -768,21 +768,21 @@ def main() -> int:
+         log(f"artefact assertions FAILED to run: {e}")
+         notifier.alarm("HIGH", f"产物断言层本轮无法运行 ({e}) — 无人在检查系统是否留下痕迹。")
+ 
+-    # ── 9. factor health — the only number that says whether this is worth doing ────────────
+-    # ★ `decay_alarm` has been true since 2026-07-22 and NOTHING read it; the shadow's newest
+-    # observation was three days old while its cron logged `done` every morning. Both values were
+-    # computed correctly and written to disk. Consuming them is the whole fix.
++    # ── 9. is the position-rank monitor (#55) running and reporting? ─────────────────────────
++    # ★★ ALM-03 / W5 (FX-EXEC 2026-09-13). This step called `check_factor_health.run()`, which ssh-reads a research-box report whose
++    #   producer was retired by user ruling on 2026-08-06 — so since then every anchor recorded "UNKNOWN" at INFO and nothing watched
++    #   the traded book. The instrument that does is #55 on this box; this step now checks ITS evaluations ledger (local file, no ssh,
++    #   no network) and pages only when that source is missing, stale, unreadable or self-contradicting — #55 pages its own levels.
++    #   `check_factor_health` is RETIRED and no longer called from the anchor.
++    # ★ The failure branch is HIGH, not the INFO of the old branch: that INFO existed because the old source was a RESEARCH box the
++    #   live loop does not depend on (ruling 2026-08-06). This check reads a local file; if it cannot run, that is a defect on the
++    #   live box, and the monitor's liveness goes unchecked this anchor.
+     try:
+-        import check_factor_health as CFH
+-        CFH.run(notifier=notifier, log=log)
++        import check_rank_monitor_input as RMI
++        RMI.run(notifier=notifier, log=log)
+     except Exception as e:
+-        # ★ 同一条裁定(2026-08-06): 因子健康的产物在【研究机】上, 经 ssh 读取。实盘环路对那台机器
+-        #   零依赖(面板/模型/书/守卫全在本机) ⇒ 它读不到是【研究基建】事实, 不是实盘状况。
+-        #   降为 INFO: 仍逐锚记录、仍进日报, 但不再叫醒实盘值班人 —— 因为他对此无事可做,
+-        #   而它在告警面板上与"因子真的衰减了"(那条仍 HIGH)长得一模一样。
+-        log(f"factor health check FAILED to run: {e}")
+-        notifier.alarm("INFO", f"因子健康检查本轮无法运行 ({e}) — 研究机可达性问题, "
+-                               f"衰减与新鲜度本轮无人监视(实盘不依赖该机)。")
++        log(f"rank monitor input check FAILED to run: {e}")
++        notifier.alarm("HIGH", f"持仓排序监控输入检查本轮无法运行 ({e}) — #55 是否在跑、是否写出评估, 本轮无人核对。")
+ 
+     # ── 9b. is the funding-span table still what the venue says? ───────────────────────────
+     # ★ A STALE SPAN DOES NOT RAISE — it smooths the wrong number of settlements for that symbol

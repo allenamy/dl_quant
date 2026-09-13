@@ -1,0 +1,20 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_static_names.py head=a21797dc9005aa48a1d14487c08beabcfc20bce7 dirty=3 start=2026-09-13T16:08:27Z py=Python 3.9.6
+# suite_sha256=37189f0ca1f36d3860efa4d234d55db9a9ed9453b459d6e0fd5aebaeb5e819c7
+[0] the instrument exists and runs
+  OK    ★ pyflakes binary present — a MISSING linter must go RED, never skip: 'no findings' and 'never looked' must not share an exit code  — /opt/anaconda3/bin/pyflakes
+
+[1] the gate can actually SEE the defect it was built for (positive control)
+  OK    ★★ a cross-function local reference (the exact 2026-08-04 shape) is detected — if this fails the gate is blind and every result below is void  — [('state/_static_names_probe.py', '_g')]
+
+[2] no UNWAIVED undefined name anywhere in the production paths
+  OK    ★★★ zero unwaived undefined names in signal/engine/scheduler/live/ops — this is the class that killed the data-gap alarm for 16h while the behavioural battery stayed green
+
+[3] every waiver still corresponds to a real finding (no stale waivers)
+  OK    no waiver outlives the finding it excuses — fixing the code must also remove its waiver
+
+[4] the waived set is exactly what was audited on 2026-08-04, no silent growth
+  OK    waiver count pinned at 11 (10× the unreachable `fails` ternary + 1 PEP-526 local annotation); adding a waiver is a deliberate act that must change this number and its reason string  — 11
+
+==============================================================================
+ALL PASS
+# end=2026-09-13T16:08:37Z rc=0

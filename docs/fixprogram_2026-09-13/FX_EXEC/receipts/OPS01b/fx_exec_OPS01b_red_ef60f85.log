@@ -1,0 +1,19 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec_old suite=live/tests_gross_ladder_retired.py head=ef60f85ad93e49f2e0f190bc6e8a15d04073f193 dirty=0 start=2026-09-13T16:31:46Z py=Python 3.9.6
+# suite_sha256=31f392bab24a2bd48c3d2e045c14ea13fd3d693edf94b725f9039eaf7c6a39f2
+[F] harness
+  OK    F0 the ladder module was not imported before LIVE_STATE_ROOT was set, and its default path is inside this sandbox  — /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/ladder_retired_ku247epn/live/sigma_ladder.json
+  OK    F1 the fixture ladder file is ACCEPTED by the ladder's own evaluator at g=0.5 (fresh, whitelisted, hash-consistent)  — {'src': 'sigma_ladder', 'g': 0.5, 'accepted': True, 'reason': None, 'p': 0.2, 'anchor_ts': 1789315200, 'age_s': 600.2, 'streak_low': 90, 'streak_high': 0, 'rule': 'test', 'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/ladder_retired_ku247epn/live/sigma_ladder.json'}
+
+[O] a real external anchor, with and without a ladder file
+[A1789317108] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  OK    O1 neighbour (both versions): with NO ladder file, gross = NAV x gross_mult = 10,000, target == w x 10,000 bitwise, leverage source external_book.gross_mult  — ('TRADE', 10000.0, 'external_book.gross_mult')
+[A1789317108] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  FAIL  ★★★ O2 (OLD CODE: RED) with a FRESH, ACCEPTED g=0.5 ladder file present, gross is STILL 10,000 and the target is still w x 10,000 bitwise — the withdrawn rule halved it before — with no ladder alarm, and the book record says the ladder was not read  — (5000.0, 'external_book.gross_mult×ladder(0.5)', ['σ_fund 阶梯低档: g=0.5 p=0.2 streak_low=90 — 目标 gross = NAV×1.0×'], {'src': 'sigma_ladder', 'g': 0.5, 'accepted': True, 'reason': None, 'p': 0.2, 'anchor_ts': 1789315200, 'age_s': 600.3, 'streak_low': 90, 'streak_high': 0, 'rule': 'test', 'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/ladder_retired_ku247epn/live/sigma_ladder.json'})
+[A1789317108] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/0 = n/a 不含已落单 maker, 仅供跨切换对照。
+  FAIL  ★★ O3 (OLD CODE: RED) a present but REJECTED ladder file (hash mismatch) is not read either: no 'σ_fund 阶梯状态文件被拒' line, gross 10,000 — nothing on the anchor path parses that file any more  — ['σ_fund 阶梯状态文件被拒(sha_mismatch) — 按 g=1.0 运行']
+
+[S] static
+  FAIL  ★ S1 (OLD CODE: RED) no runtime module imports sigma_ladder — the reader is unreachable, not merely defaulted to g=1.0  — ['scheduler/anchor_loop.py']
+
+  FAILURES: ['★★★ O2 (OLD CODE: RED) with a FRESH, ACCEPTED g=0.5 ladder file present, gross is STILL 10,000 and the target is still w x 10,000 bitwise — the withdrawn rule halved it before — with no ladder alarm, and the book record says the ladder was not read', "★★ O3 (OLD CODE: RED) a present but REJECTED ladder file (hash mismatch) is not read either: no 'σ_fund 阶梯状态文件被拒' line, gross 10,000 — nothing on the anchor path parses that file any more", '★ S1 (OLD CODE: RED) no runtime module imports sigma_ladder — the reader is unreachable, not merely defaulted to g=1.0']
+# end=2026-09-13T16:31:49Z rc=1

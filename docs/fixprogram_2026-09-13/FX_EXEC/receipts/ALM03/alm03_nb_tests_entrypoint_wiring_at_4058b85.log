@@ -1,0 +1,37 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_entrypoint_wiring.py head=4058b85c4ce728b7a7359db77fd0d7191d1b016b dirty=0 start=2026-09-13T17:14:37Z py=Python 3.9.6
+# suite_sha256=c216887b01c90d2e5354994652789164e1ca1c2b92da849ac97f0c461ba0864e
+[A] the entry point references every protection layer
+  OK    watchdog is CALLED, not merely mentioned  — WD.run(
+  OK    watchdog inputs is CALLED, not merely mentioned  — WI.collect(
+  OK    kill switch (via loop) is CALLED, not merely mentioned  — run_anchor
+  OK    telegram is CALLED, not merely mentioned  — TelegramNotifier
+  OK    phase B top-up is CALLED, not merely mentioned  — complete_anchor(
+
+[B] a watchdog that cannot evaluate must alarm, never be swallowed
+  OK    evaluation is wrapped and failure raises a CRITICAL alarm
+
+[C] real run: the entry point executes end to end and the watchdog leaves state
+  OK    entry point exits 0
+  OK    the watchdog line is present in the run log  — ["2026-09-13T17:16:03Z watchdog: tripped=False n_days=9 public_path={'alive': True, 'ms': 177, 'n_markets': 234} blind=['cond1_c_persist', 'cond2_day_loss', 'cond4_drawdown', 'cond4b_leverage', 'cond5_venue_event', 'cond7_ops'] partial=[]"]
+  OK    it did NOT fail to evaluate
+  OK    watchdog persisted its evaluation (not in-memory only)
+  OK    the persisted evaluation names its conditions
+  OK    ★★ the watchdog EVALUATED during this run — evidence produced by the watchdog itself, not by a string in the source or a line in a log  — evaluated_utc is 85.3s after this run started (must be >= 0)
+
+[D] the clock gate and the anti-sleep guard are reached by the REAL entry point
+  OK    the anti-sleep guard was checked this run  — ['2026-09-13T17:17:04Z nosleep: ok=True agent_pid=1230 guard_age_h=359.011 power=AC | interval=48.0h log_verified=True slept_since_guard=0 slept_before_guard=0']
+  OK    ★ the sleep LOG was read this run, over a stated interval (not just 'the guard is held')  — ['2026-09-13T17:17:04Z nosleep: ok=True agent_pid=1230 guard_age_h=359.011 power=AC | interval=48.0h log_verified=True slept_since_guard=0 slept_before_guard=0']
+  OK    ...and the sleeps are attributed to both sides of the guard, so a failure is diagnosable  — ['2026-09-13T17:17:04Z nosleep: ok=True agent_pid=1230 guard_age_h=359.011 power=AC | interval=48.0h log_verified=True slept_since_guard=0 slept_before_guard=0']
+  OK    phase A records the schedule decision  — 2026-09-13T17:15:54Z phase_A: {"anchor_wall_ts": 1789319754.0692742, "book_source": "external", "schedule": {"now_utc": 
+  OK    ★ external book unavailable ⇒ HOLD with a NAMED reason and no plan  — action=HOLD external_book={'ok': False, 'reason': 'stale', 'detail': 'written 54.4 min ago > max_age_min=10.0', 'path': '/Users/haosiyu/wide_shadow/state/target_live/1789315200.json', 'nominal_ts': 1789315200, 'attempts': 1, 'gross_mult': 2.0, 'json_sha': '784971b3f5400cd8807dde5d83d881f66992a4fd5d06d2cfb0144d04c606f316', 'sha_ok': True, 'age_ref': {'age_anchors': 0.31625481070743666, 'ref_anchor_ts': 1789315200, 'ref_source': 'newest_verified_file'}}
+
+[E] ★★ the funding ledger RAN — and the evidence comes from the ledger, not the log
+  OK    ★★ the ledger pulled during THIS run (its own stamp, newer than the run start)  — evaluated_utc is 76.3s after this run started; file=/Users/haosiyu/cc_tmp/fx_exec/state/funding_last_pull.json
+  OK    ...and the stamp says what it found, so 'ran and found nothing' is distinguishable from 'never ran'  — {'n_income': 0, 'rows_written': 0, 'skipped_no_position': 0}
+  OK    the run log carries the line too (weak on its own, useful beside the stamp)  — ['2026-09-13T17:15:54Z funding: income=0 rows=0 skipped_no_position=0 gap=COLD_START sign=None']
+  OK    [E-0825-I] ★★★ b.arm() 被 try 包住(AST 结构断言, 非子串)  — found 1 try-blocks containing arm()
+  OK    [E-0825-I] ★★★ 其 except 里调用了 TelegramNotifier().alarm  — [(True, True)]
+  OK    [E-0825-I] ★★ 且仍然 re-raise(拒绝仍然是拒绝, 告警不吞异常)  — [(True, True)]
+
+ALL PASS
+# end=2026-09-13T17:17:07Z rc=0

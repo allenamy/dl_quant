@@ -1,0 +1,215 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_watchdog.py head=4058b85c4ce728b7a7359db77fd0d7191d1b016b dirty=0 start=2026-09-13T17:09:53Z py=Python 3.9.6
+# suite_sha256=f3e15e62221216281dddb9258addf781875581a7bf9b5170663a55b9a79484f3
+[0] clean baseline must NOT trip
+  OK   baseline does not trip — []
+  OK   baseline leaves reduce_only off
+[1] §4-1 c > 9bps for 5 consecutive days
+  OK   cond1 fires
+  OK   cond1 auto reduce-only
+  OK   cond1 generated flatten orders
+[2] §4-2 single-day loss worse than -4.0% of EQUITY  ([B32] caliber = equity DAY CHANGE)
+  OK   cond2 fires on a -5%/day equity path — -5.00000000000002
+  OK   cond2 declares its caliber
+[2b] ★ [B32] 2026-08-21 false-trip shape: realised loss booked today with FLAT equity must NOT fire
+  OK   cond2 silent when equity is flat (old caliber would have fired) — 0.0
+  OK   flat equity reads ~0% day change
+[2c] ★ 2026-09-06 RESUME SEMANTICS: the judged number is the MOST RECENT priced day, not the worst day ever
+  OK   cond2c still fires while the most recent day is losing — -5.000000000000014
+  OK   cond2c reports the judged number under its own name — {'limit_pct_of_equity': -4.0, 'alert_pct_of_equity': -2.68, 'limit_pct_of_target_gross_DEPRECATED': -6.7, 'worst_day_pct_of_gross_DEPRECATED': -8.0, 'investigate': False, 'investigate_note': 'ALERT ON
+  OK   cond2c keeps the historical minimum reported too
+  OK   cond2c CLEARS once the most recent priced day is flat (the resume gate can pass) — 0.0
+  OK   cond2c the historical worst day is still on record after clearing — -5.00000000000002
+  OK   cond2c fires again on a NEW losing day after a clear — -4.500000000000002
+  OK   cond2c blind only when NO day is priced
+[3] §4-3 crash-day markout tail worse than -25bps (stress anchors only)
+  OK   cond3 fires — worst=40.0
+[4] §4-4 cumulative drawdown worse than -25% of EQUITY
+  OK   cond4 fires — dd=-26.6096
+  OK   [B33] and the reading is the from-start cumulative return (≈ −26.6%), named as such — -26.6096 / ['§4-2 single-day loss -6.00% of EQUITY, worse than -4.0%', '§4-4 cumulative return from STARTING equity -26.61% (limit -25.0%)']
+  OK   [B33] −22.6% from start does NOT trip §4-4 (line is −25% of STARTING equity) — {'limit_pct_of_equity': -25.0, 'limit_pct_of_target_gross_DEPRECATED': -6.0, 'max_drawdown_pct_of_gross_DEPRECATED': -15.0, 'drawdown_caliber': '[B33] TIME-WEIGHTED cumulative equity return from STARTING equity (first priced LIVE day), deposits NOT rebased: ordinary day nav/nav_prev-1; transfer day (realised+d unrealised)/nav_prev (flow amount never enters); truncated/nav-less day withheld, chain spans it by nav ratio unless a transfer sits in the hole (then BLIND, named). Not peak-relative: under constant leverage a peak line re-bases upward after a good run and enlarges the absolute loss tolerated; peak DD is reported beside it, informational.', 'limit_pct': -25.0, 'max_drawdown_pct': -22.6219, 'cum_return_from_start_pct': -22.6219, 'max_drawdown_from_peak_pct_INFO': -22.6219, 'chain_broken': False, 'unpriced_flow_days': [], 'triggered': False, 'blind': False, 'n_days_truncated_withheld': 0, 'truncated_days_withheld': [], 'priced_coverage': 1.0, 'coverage_floor': 0.5, 'coverage_thin': False, 'max_drawdown_pct_of_equity': -22.6219, 'equity_caliber': '[B33] the LIMIT is applied to THIS equity reading (cumulative return from starting equity); the gross figure is deprecated/informational.', 'rehearsal_split': 'NOT SPLITTABLE — see cond2_day_loss; daily_nav has no rebalance_id', 'n_rehearsal_rows_per_day': [0, 0, 0, 0, 0, 0], 'n_priced_days': 6, 'partial': False, 'unpriced_days': []}
+  OK   [B33] a deposit day prices from P&L (+1.77%), not from the +200% nav jump; cum ≈ -0.26% — -0.2575 chain_broken=False
+  OK   [B33] a transfer inside an unpriceable hole breaks the chain ⇒ BLIND, reading None, day named — blind=True dd=None broken=True days=['20260803']
+[5] §4-5 venue event
+  OK   cond5 fires
+  OK   cond5 auto reduce-only
+[6] §4-6 weight fidelity < 0.85 for 3 days
+  OK   cond6 fires — per_day=[-29.0, -59.0, -89.0]
+[7] §4-7 ops: failure rate and un-recovered drift
+  OK   cond7 fires on failure rate
+  OK   cond7 fires on un-recovered drift
+[8] default-state semantics
+  OK   state persists reduce_only=True
+  OK   state records resume friction
+  OK   flatten precedes reduce-only switch
+  OK   flatten orders are reduce_only
+[5b] §4-5b liquidation/position anomaly via position_readback
+  OK   5b fires on unexplained position change — n=1
+  OK   5b reuses position_readback path
+[5c] §4-5c account restriction — behaviour is the guard, codes are a fast path
+  OK   5c fires on BEHAVIOUR alone (no error code supplied)
+  OK   5c fired without any code hit
+  OK   5c error-code fast path fires immediately
+  OK   unknown code still trips via behavioural fallback — an incomplete table must never fail open
+[5d] withdrawal halt is NOT in the realtime layer
+  OK   5d documented as out of realtime layer
+[9] stale state must NOT suppress action on a new trip (regression)
+  OK   acts again despite stale reduce_only state — a leftover True must never silence a genuine trigger
+
+[L] degradation ladder: retries must not resend stale quantities
+  OK   ★ retry re-read the venue instead of resending the original size — attempt1={'BTCUSDT': 1.0} attempt2={'BTCUSDT': 0.5}
+  OK   no oversized reduce-only was ever generated — [{'BTCUSDT': 1.0}, {'BTCUSDT': 0.5}]
+  OK   ladder still reports success once the book is flat
+  OK   ★ an unacknowledged flatten that DID land is detected on re-read, not resent — sent=1 ok=True
+  OK   ★ a failed position read sends NOTHING, and says why — ['stage1b: open orders unreadable — resting orders may survive this flatten', 'flatten attempt 1: RuntimeError: connection reset after partial fill', "position read before attempt 2 FAILED (RuntimeErr
+  OK   ★ ...and it does NOT fall back to the readback's USD notionals — None
+
+[U] gates with no input must report UNKNOWN, not pass
+  OK   ★ cond6 with ZERO comparisons reports UNKNOWN, not 1.0 (perfect) — {'per_day': [None], 'n_comparisons_per_day': [0], 'n_days_unknown': 1}
+  OK   cond6 carries its DENOMINATOR (n_comparisons per day)
+  OK   cond2 with no daily_nav reports UNKNOWN, not 0% loss — {'limit_pct_of_equity': -4.0, 'alert_pct_of_equity': -2.68, 'limit_pct_of_target_gross_DEPRECATED': -6.7, 'worst_day_pct_of_gross_DEPRECATED': None, 'investigate': False, 'investigate_note': 'ALERT ONLY, never a halt. Expected ~1.8/yr historically and MORE in production (the historical series is the structural caliber — a one-sided floor). Three or four a year is normal.', 'worst_day_pct': None, 'triggered': False, 'recent_day_pct': None, 'recent_day': None, 'judged_on': 'most recent priced day (2026-09-06); worst_day_pct is history', 'n_priced_days': 0, 'n_days': 1, 'blind': True, 'partial': False, 'n_days_truncated': 0, 'truncated_days': [], 'caliber': '[B32] EQUITY DAY CHANGE: (last nav of day - last nav of previous day)/previous; transfer days UNKNOWN (named); first day of window UNKNOWN', 'n_days_flow_excluded': 0, 'flow_days': [], 'degraded': False, 'truncation_caliber': 'a day whose income ledger hit the page cap yields a LOWER BOUND on realised P&L, and the rows that fall off are REALIZED_PNL rather than COMMISSION. Such a day is UNKNOWN, never a smaller loss.', 'worst_day_pct_of_equity': None, 'equity_caliber': 'informational. The LIMIT above is still applied to the gross figure; this key exists so a reader cannot mistake one caliber for the other. Re-basing the limit onto equity is a policy change, pending.', 'rehearsal_split': "NOT SPLITTABLE — daily_nav carries no rebalance_id and NAV is account-level; an 'excluding R' figure would be an attribution guess feeding a stop-loss", 'n_rehearsal_rows_per_day': [0]}
+  OK   cond1 with no anchors reports UNKNOWN cost, not 0 bps — [None]
+  OK   ★ no gate FIRES on absent input (absence is not evidence of a breach either) — []
+  OK   ★ and none of them claims a PASS it did not earn
+  OK   ★ and the report NAMES the blind ones — 'checked and fine' and 'could not check' are the same triggered=False from outside — ['cond1_c_persist', 'cond2_day_loss', 'cond4_drawdown', 'cond4b_leverage', 'cond7_ops']
+
+[Q] ★ two numbers that are not the same quantity must not be compared
+  OK   matching calibers: cond1 compares and fires at 12 bps
+  OK   ★ mismatched caliber: it REFUSES to compare (values become UNKNOWN)
+  OK   ★ and it does not read as a calm pass — the condition is reported BLIND
+  OK   ★ and the error names BOTH calibers, so the mismatch is diagnosable — ["m1[20260711]: CALIBER MISMATCH — the metric declares 'per-FILL effective cost, bps...' while the §4-1 limit is written for 'per-DAY aggregate: (sum 
+
+[M2] ★ a PENDING markout must not crash M2, and must not be counted as zero
+  OK   ★ a pending row does not crash M2
+  OK   ★ it is EXCLUDED from the mean, not folded in as zero adverse — 1
+  OK   ★ and it is COUNTED, so the gap is visible (same shape as M1's unmeasured fees) — 1
+  OK   markout uses only the measurable fill (-50 bps favourable => -50) — -50.0
+  OK   ★ ALL rows pending => markout is None, never 0.0 — {'markout_bps': None, 'n_fills': 0, 'n_unmeasured': 1, 'n_unusable': 0, 'measurement_complete': False, 'maker_notional': 0, 'sign_convention': 'positive = adverse (mid moved against us 60s after the fill)', 'caliber': 'maker-only, per CHILD fill, notional-weighted, D=60s; fills whose +60s mark is not yet observable are EXCLUDED and counted, never valued at 0'}
+
+[P] ★ P&L that cannot be priced is UNKNOWN — never a flat day
+  OK   a fully priced window reports both days
+  OK   ★ an unpriced day is EXCLUDED and named, not counted as flat — [{'day': '20260721', 'missing': ['realised_pnl']}]
+  OK   ★ and it names ONLY what is actually missing — a legitimate 0.0 unrealised is not absence — ['realised_pnl']
+  OK   ★ and it does not silently improve the drawdown: the two windows do not agree — gap=-8.0 full=-10.0
+  OK   ★ rows present but NONE priceable -> available=False (not a drawdown of 0) — daily_nav rows exist but NONE can be priced (realised and/or
+  OK   and a None P&L no longer raises — the crash took all seven conditions with it
+
+[S] 4-5c denominator = orders actually submitted
+  OK   ★ 40 never-sent rows labelled venue_reject do NOT trip 4-5c — n_submitted=0 hit=False
+  OK   ★ and the gate reports its denominator
+  OK   ★ RED-CAPABLE: rows we DID send and that WERE rejected still trip it — n_submitted=30 hit=True
+
+[R19] ★★ every column that LOST not_null must survive being None at its consumer
+  OK   ★ M1 survives a null filled_notional and a null mid_at_anchor
+  OK   ...and counts each exclusion separately rather than valuing it at zero — {'n_excluded_unknown_fill': 1, 'n_excluded_no_anchor_mid': 1}
+  OK   ...and refuses to call the measurement complete while rows were excluded — False
+  OK   ★ M3 survives a null intended_notional
+  OK   ...and the unknown row leaves BOTH sides of the ratio, counted — {'n_maker_rows_unknown': 1, 'maker_intended_attempt1_notional': 1000.0}
+  OK   ...so an unreadable row cannot flatter the fill rate — 1.0
+  OK   ★ M5's shortfall attribution survives both nulls and counts them — 1
+  OK   ★ M2 survives null side / fill_px / fill_notional
+  OK   ...and an unusable row is a THIRD state, not folded into 'mark pending' — {'n_unusable': 3, 'n_unmeasured': 0, 'n_fills': 1}
+  OK   ...and the measurement is not called complete with unusable rows present — False
+  OK   ★ the §3f wiring detector survives a null funding_rate
+  OK   ...and an unmatched rate is UNVERIFIABLE — neither agreement nor disagreement — {'n_unverifiable_no_rate': 1, 'n_compared': 0, 'wiring_error': False}
+  OK   ...while M6's cost total still counts the settlement (the cash was real) — -0.2
+
+[SIGN] ★★ a normal filled SELL must not look like an unexplained position
+  OK   ★★ a correctly filled SELL is fully explained — §4-5b silent — n=0 examples=[]
+  OK   ...and the anchor does not trip on it — []
+
+[SIGN] ★ the same column, three consumers, three correct readings
+  OK   ★★ M1's denominator is SCALE — dropping sells changes `c`, so it must not drop them — c=52.0 (52 = both legs; ~2 = the sell was dropped)
+  OK   ★★ M3's numerator is SCALE — a balanced book does not report a ~0 fill rate — fill_rate=1.0 (0.0 = buys and sells cancelled)
+  OK   ★ M5's shortfall is SCALE — a fully filled sell has no shortfall — {}
+
+[5b-STATE] ★★ §4-5b is a STATE gate: the latest reconciliation decides, history reports
+  OK   ★ case 1 — latest reconciliation anomalous => triggers — {'n': 1, 'state': 'ANOMALOUS'}
+  OK   ★★ case 2 — dirty HISTORY but a clean latest reconciliation => does NOT trigger — {'n': 0, 'state': 'CLEAN', 'n_historical_anomalies': 1}
+  OK   ...and the history is still REPORTED, not erased — 1
+  OK   ★ case 3 — no reconciliation => UNKNOWN and BLIND, never a silent pass — {'state': 'UNKNOWN', 'blind': True, 'triggered': False}
+
+[SHARED] ★★ one comparison, two guards, ONE answer
+  OK   ★ anomalous latest reconciliation => BOTH guards see it — 5b=True 4-7=True
+  OK   ★★ dirty history + clean latest => BOTH clear (this is what unblocks a resume) — 5b=False 4-7=False
+  OK   ...and neither is 'the latest DAY' — today's earlier anomaly does not hold them True — 4-7 read the latest RECONCILIATION, not the latest day
+
+[FLATTEN] ★★ the ladder's own flatten must be written down, or it accuses itself
+  OK   ★★ the ladder wrote protective_flatten rows — rows=1 reported=1
+  OK   ...under a FLATTEN- id, so no per-rebalance consumer picks them up — ['FLATTEN-20260913T170955Z']
+  OK   ★ a flatten order with no fill records None (never 0.0) and names WHY — [('filled', -0.5)]
+  OK   ★ ...and a row that never left the process has no submit_ts, while a refused one does — [('filled', 1789319395.878902)]
+  OK   ★ and it carries no mid_at_anchor — an exit is not priced against a decision anchor — [None]
+
+[FLATTEN] ★ property 1: an execution BETWEEN anchors still explains the position
+  OK   ★★ a flatten between two anchors explains the position going flat — latest anomalies=[]
+  OK   ...and with the flatten ABSENT the same change IS an anomaly (the check has teeth) — [{'anchor_ts': 200.0, 'symbol': 'BTCUSDT', 'kind': 'quantity_residual', 'expected': 1000.0, 'observed': 0.0, 'expected_qty': 10.0, 'observed_qty': 0.0, 'residual_qty': -10.0, 'residual_usdt': 1000.0, 'residual_qty_raw': -10.0, 'authorised_band_qty': [0.0, 0.0], 'mark_used': 100.0, 'mark_source': 'readback(T1) notional / qty (no usable mark at T2)', 'dust_floor_usdt': 50.0, 'unexplained_frac': 1.0}]
+
+[4-1] ★★ the streak counts PRICED days — a no-trade day is not evidence of good cost
+  OK   ★★ an unpriced trailing day does NOT clear an established streak — {'triggered': True, 'n_priced_days': 6, 'n_unpriced_days_in_window': 1}
+  OK   ★ and the window reports how many days carried no price (denominator discipline) — 1
+  OK   ★ a cheap book still does not trip — the rule skips UNPRICED days, not bad ones — [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, None]
+  OK   ★ zero priced days => BLIND, never a calm False — {'blind': True, 'in_blind_list': True}
+
+[M1] ★ the cost gate measures REBALANCE execution; a crisis exit is a different quantity
+  OK   ★★ a flatten row does not enter c, and does not spoil measurement_complete — {'c_bps_overall': 2.0, 'measurement_complete': True, 'n_excluded_no_anchor_mid': 0}
+  OK   ★ but its cost is REPORTED, not discarded — {'n_rows': 1, 'filled_notional': 500.0, 'n_unknown_fill': 0, 'fee_paid': 0.25, 'n_measured_fee': 1, 'n_unmeasured_fee': 0, 'measurement_complete': True}
+
+[REQ] ★★ omitting a watchdog input must EXPLODE, and an empty one must read as blind
+  OK   ★★ omitting ops_stats raises at the call site — run() missing 2 required keyword-only arguments: 'venue_events' and 'o
+  OK   ★★ an EMPTY ops_stats reports blind, not a calm False — {'blind': True, 'in_blind_list': True}
+  OK   ...and a supplied-but-clean ops_stats is NOT blind (blind means no input, not no finding) — False
+
+[B17] ★★ the THIRD state must not diverge either — a comparison that never happened
+  OK   ★★ one readback => 4-7 says UNKNOWN, not a confident CLEAN — {'drift_state': 'UNKNOWN', 'blind': True}
+  OK   ...and it joins conditions_blind, so 'all green' cannot absorb it — ['cond1_c_persist', 'cond4b_leverage', 'cond7_ops']
+  OK   ★ the two guards now agree on ALL THREE states (5b was already honest here) — 5b=UNKNOWN 4-7=UNKNOWN
+  OK   ★ >=2 readbacks and clean => CLEAN, not blind (blind means no comparison, not no finding) — {'drift_state': 'CLEAN', 'blind': False}
+
+[B19] ★★ the Nth trigger's state must survive the (N+1)th write
+  OK   the second trigger did overwrite state.json (the fixture reproduces the hazard) — first='§4-1 net c > 9.0 bps for 5 consecutive d' second='§4-1 net c > 9.0 bps for 5 consecutive d'
+  OK   ★★ the FIRST trigger's state survives in the archive, byte-for-byte — 1 archived; reasons=['§4-1 net c > 9.0 bps for 5 con']
+  OK   ★ once the state stops changing materially, the archive stops growing — 2 -> 2
+  OK   ...and `last_action_utc` alone never counts as a change (it is restamped every run) — 2 entries after settling
+
+[B19] ★ known-answer: replay the REAL sequence — '53/54' must be greppable afterwards
+  OK   ★★ '53/54' is recoverable from the archive after the echo overwrote the state — archive bytes=395
+  OK   ...and so are the incident's OTHER distinguishing facts (47 name-anchors, attempts 2) — 47=True attempts2=True
+
+[3b] §4-3 FULL CHAIN at 100bps — condition -> trigger -> ladder -> persisted state
+  OK   [3b] cond3 fires at 100bps — worst=100.0
+  OK   [3b] ★★ the record carries BOTH sides in ONE caliber, and its own verdict — worst=100.0 limit=25.0 breached=True
+  OK   [3b] ★ and the old two-caliber pair is GONE, not merely joined by a third number — ['limit_adverse_bps', 'worst_adverse_bps']
+  OK   [3b] ★★ triggered is NOT accompanied by blind — a blind condition that 'fires' is a different event and must never be counted as this one — False
+  OK   [3b] §4-3 appears in the trip's own trigger list, in words — ['§4-3 crash-day markout tail 100.0 bps adverse (limit 25.0 adverse)']
+  OK   [3b] ★★ the ladder actually ran: flatten issued, then the reduce-only switch — ['halt_opening_orders', 'submit', 'flatten_all', 'set_reduce_only']
+  OK   [3b] ★★ every flatten order is reduce_only — the exit stays open while the entrance shuts
+  OK   [3b] ★★ the state survives the process that wrote it (a halt that lives in RAM is none) — {'reduce_only': True, 'tripped_at': '2026-09-13T17:09:57Z'}
+  OK   [3b] and the persisted reason names §4-3, so the next reader knows WHICH stop fired
+  OK   [3b] ★★ CONTROL: the same 100bps on CALM days does not fire cond3 — the gate is the regime, not the magnitude — triggered=False
+[v2] §4-1 net caliber
+  OK   [v2-R4] symmetric ±10bps cancels to net 0 while dispersion reads 10 — net=0.0 disp=10.0
+  OK   [v2-R4] BUY above mid is a COST, SELL above mid is a CREDIT (the mirror trap) — buy=10.0 sell=-10.0
+  OK   [v2-R4] a row with an unreadable side is UNMEASURED, not guessed
+  OK   [v2-R1] ★★ 5 days of true 12bps net cost TRIPS — protection not weakened — ['§4-1 net c > 9.0 bps for 5 consecutive days (v2 net caliber)']
+  OK   [v2-R2] ★★ dispersion 17bps × 5 days with net 3.5 does NOT trip — scatter is not money — []
+  OK   [v2-R2] ...and the dispersion ALERT fires beside it (paged, never a halt)
+  OK   [v2-R3] net series [8.5, 4.0, 4.0, 9.7, 2.4] does not trip — no 5-streak exists — [3.0, 8.5, 4.0, 4.0, 9.7, 2.4]
+  OK   [j2] ★★★ two trips on the SAME trigger compose DIFFERENT bodies — the re-trip incident, replayed
+  OK   [j2] ...and the same evaluation twice composes the IDENTICAL body — true redelivery of one trip must still dedupe (the volume property is kept)
+  OK   [j2] the body carries the eval's own facts, not a counter — evaluated_utc and the per-day series are readable in the page
+  OK   [j2] eval_detail=None keeps the exact legacy text — the ladder-local ALARM.log path is byte-unchanged
+  OK   [j2] the FAILED-flatten branch carries the facts too — a second stuck-position trip is also news
+  OK   [j2] ★★★ END-TO-END: with trip A delivered 12h earlier, trip B's page PUSHES — the 12:19Z suppression can no longer occur — action=PUSH
+
+[E] 平仓核实(E-0825-E): 只有场所重读能置 stage1_ok
+  OK   ★★★ 调用正常返回但书没动 ⇒ stage1_ok 必须为 False(此前为 True: 返回值自证) — ok=False attempts=3
+  OK   ★★ 残留由场所重读给出, 且 readback_ok 为真 — {'AAAUSDT': 1.0, 'BBBUSDT': 2.0, 'CCCUSDT': 3.0}
+  OK   ★★ 页面不得宣称已平仓 — FLATTEN FAILED — positions may be stuck
+  OK   ★★ 真平掉时 stage1_ok 为真, 且带 verified_by_reread 标记(不是靠返回值) — ok=True verified=True
+  OK   ★ 一次尝试即成功, 不多发单 — sent=1
+  OK   ★★★ 平仓后读不到仓位 ⇒ 不得宣称已平(未读 ≠ 已平) — ok=False rb=False
+  OK   ★ 未能核实时页面明说未核实 — FLATTEN FAILED — positions may be stuck
+  OK   ★★★ 三个里只有一个卡住 ⇒ 页面只点它一个(此前点全部尝试过的且重复) — ['BBBUSDT']
+
+  ALL PASS
+# end=2026-09-13T17:09:57Z rc=0

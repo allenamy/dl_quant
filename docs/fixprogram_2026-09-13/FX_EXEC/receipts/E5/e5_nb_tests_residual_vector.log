@@ -1,0 +1,29 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_residual_vector.py head=4058b85c4ce728b7a7359db77fd0d7191d1b016b dirty=0 start=2026-09-13T17:09:46Z py=Python 3.9.6
+# suite_sha256=9e0d1f1298cc6c92980933244d13a371742a1e55f99cf7fe7e69efae68b3da89
+[1] the vector exists, and one implementation of unauth serves both consumers
+  OK    ★★★ reconcile publishes a per-name residual vector at all  — ['AAAUSDT', 'BBBUSDT', 'CCCUSDT', 'DDDUSDT']
+  OK    the explained name has a residual of exactly zero — an order that accounts for the position must not leave unauth behind
+  OK    ★★★ the vector is SIGNED — an unexplained SHORT reports negative. `dev = unauth + underfill` is an identity over signed quantities and collapses to nonsense over magnitudes  — {'AAAUSDT': 0.0, 'BBBUSDT': 400.0, 'DDDUSDT': -400.0, 'CCCUSDT': 0.2}
+  OK    ★★ ...and the two cancel in `net_usdt` while both count in `gross_usdt` — the one property a magnitude vector cannot imitate at any fixture size  — net 0.2 vs gross 800.2
+
+[2] ★★★ the vector reports what the ANOMALY LIST omits
+  OK    the fixture actually straddles the threshold (otherwise §2 is vacuous): the big unexplained names are anomalies, the small one is not  — ['BBBUSDT', 'DDDUSDT']
+  OK    ★★★ ...and the vector carries the sub-threshold one anyway. Consumed from `anomalies`, CCCUSDT's unauth would read 0.00 and its position would be filed as underfill — the bucket that does NOT stop the book  — {'residual_qty': 0.02, 'residual_usdt_signed': 0.2, 'residual_qty_raw': 0.02, 'authorised_band_qty': [0.0, 0.0], 'expected_qty': 0.0, 'observed_qty': 0.02, 'mark_used': 10.0, 'mark_source': 'readback(T2) notional / qty'}
+  OK    the anchor's gross exceeds what the anomaly list alone would total  — vector 800.2 vs anomalies 800.0
+
+[3] ★★ coverage — and it must be able to be less than 1
+  OK    a fully measurable anchor reports coverage 1.0 over the readback universe  — 4/4 cov=1.0
+  OK    ★★★ a name whose execution size is unreadable is UNMEASURABLE, not zero — this is the `unauth_unmeasurable` bucket the lead ruled must not feed the halt  — {'AAAUSDT': 'execution_of_unknown_size'}
+  OK    ★★★ ...so coverage drops below 1. A coverage that can only ever be 1.0 is a metric that cannot fail, and it would make a 60-of-109 vector indistinguishable from a clean one  — 1/2 cov=0.5
+  OK    the denominator is the READBACK UNIVERSE, not the names we answered about — dividing by the successes makes coverage 1.0 by construction  — 1+1 vs 2
+  OK    the unmeasurable names are classified, so the two reasons can be told apart  — {'execution_of_unknown_size': 1}
+
+[4] ★ a zero residual that could not be PRICED is measured, not a hole
+  OK    a flat name with no usable mark is MEASURED at zero — zero times any mark is zero, and filing it as a coverage hole would manufacture one out of the ordinary flat case, which is most names on most days  — {'by_symbol': {'AAAUSDT': {'residual_qty': 0.0, 'residual_usdt_signed': 0.0, 'expected_qty': 0.0, 'observed_qty': 0.0, 'mark_used': None, 'mark_source': 'not needed: residual is zero'}}, 'unmeasurable': {}, 'n_in_readback': 1, 'n_measured': 1, 'n_unmeasurable': 0, 'coverage': 1.0, 'net_usdt': 0.0, 'gross_usdt': 0.0, 'unmeasurable_by_kind': {}}
+
+[5] the addition changed nothing that already existed
+  OK    ★ the anomaly list is untouched by the vector's introduction — the vector is RECORD ONLY and no guard reads it yet  — ['BBBUSDT', 'DDDUSDT']
+  OK    the vector states its own caliber, including that an unmeasurable residual is not zero
+
+ALL PASS   (15 checks)
+# end=2026-09-13T17:09:46Z rc=0

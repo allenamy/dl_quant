@@ -1,0 +1,53 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_book_weights_effective.py head=65234404eb22693cb3c67572ee49e6af86a1f0db dirty=6 start=2026-09-13T16:24:52Z py=Python 3.9.6
+# suite_sha256=4ad29f7e970f97851f63f026f4e1740912ad6c84a5d8e2f8093060587249f44c
+[A] the file is the authority, and absence is refused
+  OK   ★★ the deployed weights read out of config/book.json, over exactly the four legs — {'king': 0.5952380952380952, 's2': 0.20238095238095238, 'funding': 0.20238095238095238, 'size': 0.0}
+  OK   ★★ no weights key is REFUSED, never defaulted or normalised — a default here recreates the exact defect: the caller gets the old book back and proceeds
+  OK   ★★ three legs silently missing is REFUSED, never defaulted or normalised — a default here recreates the exact defect: the caller gets the old book back and proceeds
+  OK   ★★ a leg nobody declared is REFUSED, never defaulted or normalised — a default here recreates the exact defect: the caller gets the old book back and proceeds
+  OK   ★★ sums to 0.9 is REFUSED, never defaulted or normalised — a default here recreates the exact defect: the caller gets the old book back and proceeds
+
+[B] the ordering path reads the file
+  OK   ★★★ `compose_book` is called WITH weights on the production path — the whole defect was one missing keyword argument — (king, s2, fund, dvol, weights=_bw, rvol=rv, risk_budget=_rb
+  OK   ★★ and those weights come from book_config, not from a second literal here
+  OK   ★★★ and OMITTING them is now impossible: the silent fallback to legs.WEIGHTS is gone, so the exact call that gave book.json zero readers raises instead of quietly trading the champion mixture — the class is closed by structure, not by remembering — refused
+
+[C] ★★★ the mutation the old code would have survived
+  OK   ★★ the fixture can SEE a mixture change at all — two mixtures producing the same book would make every assertion below vacuous — L1 diff 0.5215
+  OK   ★★★ with book.json set to champion .30/.10/.30/.30, the target weights are that book's — this is the assertion the pre-fix code FAILS, because it would return legs.WEIGHTS either way
+  OK   ★★★ with book.json set to challenger .50/.17/.17/.16, the target weights are that book's — this is the assertion the pre-fix code FAILS, because it would return legs.WEIGHTS either way
+  OK   ★★★ and specifically: the challenger file does NOT produce the champion book. A guard comparing the file to itself, or to legs.WEIGHTS, passes on the broken code — both agreed on the day the defect existed — L1 vs champion 0.5215
+  OK   ★★★ with size at weight 0 the book is BIT-IDENTICAL under a wildly different dvol input — a zero weight must mean no contribution, not a small one — max |diff| = 0.00e+00
+  OK   ★★★ ...and a NaN / zero dvol cannot poison the book through the switched-off leg — `0 * NaN` is NaN, so 'the weight is zero' is not by itself a guarantee — finite=True net=+6.94e-18
+  OK   ★★★ and the fixture CAN see the leg: re-enabling size moves the book. Without this the two assertions above would pass on a dvol vector that happened to be inert — max |diff| = 0.0322
+
+[D] signs / pos_cap_pct / funding_mode: still literals, so pinned to the file
+  OK   ★★★ `signs` in book.json equals the literal the ordering path uses — ({'king': 1, 's2': 1, 'funding': -1, 'size': 1}, {'king': 1, 's2': 1, 'funding': -1, 'size': 1})
+  OK   ★★★ `pos_cap_pct` matches — (99.0, 99.0)
+  OK   ★★★ `funding_mode` matches — ('rank', 'rank')
+  OK   ★★ and the wired-vs-pinned split is written down where the keys live, so nobody infers it from which one happens to move
+  OK   ★★★ the sign pin FAILS if the module literal is edited away from the file — the direction an ordinary code change would take — {'king': 1, 's2': 1, 'funding': 1, 'size': 1}
+  OK   ★★★ ...and it FAILS if the FILE is edited away from the literal — the direction a config switch would take, which is exactly what we did to `weights` this morning — {'king': -1, 's2': 1, 'funding': -1, 'size': 1}
+  OK   ★★★ SIGNS is what the ordering path actually applies — flip the funding sign and the book changes. Without this the pin could be guarding a constant nothing reads, which is the state `weights` was in until this morning — L1 1.1045
+  OK   ★★ and the flip was undone — a test that leaves a sign inverted in a shared module would be the worst possible instrument
+
+[E] a product that does not name its mixture cannot be compared across the switch
+  OK   ★★★ the shadow positions files stamp weights PER CURVE — A and B are built from different weight dicts, so one stamp at the top would be right for one curve and quietly wrong for the other
+  OK   ★★ and `track` is labelled as a LABEL, not a claim about what the pilot trades
+  OK   ★★★ the decay check MEASURES whether the mixture it judged is the deployed one, and carries the answer — the second occurrence of 'the alarm measured a different book' (the first read A_provisional_3leg, a curve with no funding leg)
+  OK   ★★★ a DECAYED verdict on a non-deployed mixture cannot be quoted without the caliber — both facts are in the same sentence — DECAYED: rolling rank-IC 0.02 < threshold 0.031 — on caliber `champion_fixfunding`, at mix
+  OK   ★★ and when they DO match the sentence says so, so 'no caveat' means something
+  OK   ★★★ an UNKNOWN mixture reads as unestablished, never as agreement — `null` is the state the upstream report is in right now
+  OK   ★★ the sentence is emitted by the check itself, so the window-end write-up quotes a field rather than composing its own
+  OK   ★★ and it does NOT invent a finding or a severity for the mismatch — changing what a guard pages at is a ruling, not a side effect of measuring
+
+[F] red capability — put the defect back
+  OK   M1 (the original defect) injection target matches exactly once — 1
+  OK   ★★★ M1: drop the keyword argument and the call site check goes red — which is the state the repo was in this morning
+  OK   M2 (fallback swallows the caller's weights) target matches exactly once — 1
+  OK   ★★★ M2: if compose_book ignored the weights it was handed, the challenger file would produce the champion book — [C]'s decisive assertion goes red
+  OK   M3 (silent renormalisation) target matches exactly once
+  OK   ★★★ M3: without the sum check a mixture that sums to 0.9 is accepted and traded — a typo becomes a book nobody wrote down, and [A] goes red
+
+37/37 passed
+# end=2026-09-13T16:24:53Z rc=0

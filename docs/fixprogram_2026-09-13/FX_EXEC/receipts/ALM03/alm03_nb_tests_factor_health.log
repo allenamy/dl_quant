@@ -1,0 +1,17 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_factor_health.py head=65234404eb22693cb3c67572ee49e6af86a1f0db dirty=6 start=2026-09-13T16:24:51Z py=Python 3.9.6
+# suite_sha256=42df261cd319aa19fa06c0a511db0ae31f5ce7c8c743701a81f7c13ac367c8cd
+[FH] the decay verdict is only ever taken from the deployable caliber
+  OK   ★ a wrong-caliber report does NOT produce a decay verdict — episode=INSTRUMENT
+  OK     and it says so loudly rather than silently passing
+  OK   ★ the CUMULATIVE decay_alarm flag is ignored (True here, yet healthy) — 0.0425 > 0.031 on the deployable caliber => healthy, despite decay_alarm=True
+  OK   ★ RED-CAPABLE: below threshold on the deployable caliber DOES alarm — and note decay_alarm=False here — current-vs-threshold is what decides
+
+[FH] freshness is an independent finding
+  OK   ★ a stale report alarms even when the number is healthy — age_h=30.0 limit=26.0
+  OK   ★ and a report INSIDE the window does not — the daily cron must not alarm 16h a day — age_h=24.0 limit=26.0 (cron is 0 9 * * *, daily)
+
+[FH] absence is UNKNOWN, never healthy
+  OK   ★ an unreachable report is a finding, not a pass
+
+  ALL PASS
+# end=2026-09-13T16:24:51Z rc=0

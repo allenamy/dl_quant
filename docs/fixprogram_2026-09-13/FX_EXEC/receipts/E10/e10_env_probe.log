@@ -1,0 +1,6 @@
+fake .env  ic_monitor         argv=['-c']                                   TELEGRAM_BOT_TOKEN populated = 1
+fake .env  notarize_ledgers   argv=['-c']                                   TELEGRAM_BOT_TOKEN populated = 1
+fake .env  notarize_ledgers   argv=['notarize_ledgers.py']                  TELEGRAM_BOT_TOKEN populated = 1
+fake .env  notarize_ledgers   argv=['notarize_ledgers.py', 'verify']        TELEGRAM_BOT_TOKEN populated = 0
+no .env    notarize_ledgers   argv=['-c']                                   TELEGRAM_BOT_TOKEN populated = 0
+no .env    ic_monitor         argv=['-c']                                   TELEGRAM_BOT_TOKEN populated = 0

@@ -1,0 +1,36 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_ops_flag_safety.py head=a21797dc9005aa48a1d14487c08beabcfc20bce7 dirty=3 start=2026-09-13T16:08:45Z py=Python 3.9.6
+# suite_sha256=e286ab96068d97fe53bc2af69a0efdd0e56cc99b56e75dded9e7adec3dbd09c1
+[A] ★ --check judges and TOUCHES NOTHING
+  OK    ★★★ the halt file SURVIVES a --check — this is the whole assertion, and it is the one that was false on 2026-08-02  — exists=True rc=0
+  OK    ★★ it says plainly that nothing was touched  — ['══ CHECK MODE — this run will not modify anything. ══']
+  OK    ★★ and it still printed the gate's own verdict rather than a separate re-derivation (the check is the real path truncated at the first write, not a second implementation)
+  OK    ★★★ no quarantine copy was made either — a preview that leaves artefacts is not a preview
+
+[B] ★ an unknown flag is REFUSED, never absorbed as the reason
+  OK    ★★★ `--typo` is refused (rc!=0), the halt survives, and it is NOT the reason — every one of these is a word an operator might reasonably try  — rc=2 halt_exists=True
+  OK    ★★★ `--dry-run` is refused (rc!=0), the halt survives, and it is NOT the reason — every one of these is a word an operator might reasonably try  — rc=2 halt_exists=True
+  OK    ★★★ `-n` is refused (rc!=0), the halt survives, and it is NOT the reason — every one of these is a word an operator might reasonably try  — rc=2 halt_exists=True
+  OK    ★★★ `--preview` is refused (rc!=0), the halt survives, and it is NOT the reason — every one of these is a word an operator might reasonably try  — rc=2 halt_exists=True
+
+[C] the real path still works, and records a REAL reason
+  OK    ★★★ a genuine run removes the halt  — rc=0 exists=False
+  OK    ★★ the evidence is quarantined, never deleted  — ['state_20260913T160850Z_resumed.json']
+  OK    ★★★ and the recorded reason is the operator's sentence — not a flag  — cleared after 59f249e; replay control/treatment; both sides flat
+
+[D] ★ THE CLASS, as a closed world — a positional that can swallow a flag
+  OK    ★★★ every shell script that reads a positional WITHOUT refusing unknown flags is DECLARED — a new one must be a decision, not a default  — declared: ['ops/safe_commit.sh']
+  OK    ★★ ...and no declaration is stale (a list that outlives its file stops being a census)
+  OK    ★★★ `resume_from_trip.sh` is no longer in the class at all — it reads a positional, and it now has the `-*)` branch that makes doing so safe  — clean
+
+[E] the sibling tools agree on --check, which is what the operator assumed
+  OK    ★★★ both recovery tools now accept `--check` — the assumption that caused the incident is now TRUE rather than punished
+  OK    ★★ the python ops tools that change state use argparse, which refuses unknown flags by construction — that is why the incident landed on the one shell script that did not
+
+[F] KILL.sh — the sibling gap, closed WITHOUT adding a failure path
+  OK    ★★★ it ECHOES the arguments it is ignoring — the 08-02 harm was not that the flag was ignored, it was that the operator never learned their assumption was wrong
+  OK    ★★★ ...and that echo cannot stop the kill: the block contains no `exit`, no `return`, and no non-zero status — a printf, and then execution continues  — arg echo block is print-only
+  OK    ★★★ NO argument validation was added — deliberately. Any check introduces a path where the kill does not happen because the arguments were wrong, and reliability beats tidiness in the one tool whose purpose is to work when things are broken
+  OK    ★★ and the usage says outright that it takes no arguments and that any argument is ignored while the stop proceeds — the expectation is stated rather than punished
+
+ALL PASS  (20 checks)
+# end=2026-09-13T16:08:52Z rc=0

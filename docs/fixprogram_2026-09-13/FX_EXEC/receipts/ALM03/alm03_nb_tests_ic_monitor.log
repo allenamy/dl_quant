@@ -1,0 +1,108 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_ic_monitor.py head=65234404eb22693cb3c67572ee49e6af86a1f0db dirty=6 start=2026-09-13T16:25:10Z py=Python 3.9.6
+# suite_sha256=983726eccc5a77be177786a32724a542a5c570d750d80bf756e12816f68b9493
+  PASS T1a thresholds stamped — -0.02277/-0.04425/-0.01656
+  PASS T1b ordering P1 < P5 < 0 — DECIDE must be rarer than ALERT
+  PASS T1c calibration source cited
+  PASS T1d thresholds unchanged by the 2026-09-12 contract fix
+  PASS T2a spearman +1
+  PASS T2b spearman −1
+  PASS T2c ties handled
+  PASS T3a insufficient below 24 — {'n_post_deploy': 10, 'judged': False, 'level': 'OK', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|notio
+  PASS T3b healthy = OK judged — {'n_post_deploy': 30, 'judged': True, 'level': 'OK', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|notion
+  PASS T3c ALERT on r24 < p5 — {'n_post_deploy': 34, 'judged': True, 'level': 'ALERT', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|not
+  PASS T3d DECIDE on r24 < p1 — {'n_post_deploy': 24, 'judged': True, 'level': 'DECIDE', 'contract': {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|no
+  PASS T3e pre-window rows excluded — rows before WINDOW_START_TS must not be judged
+  PASS T4 beta history pushed AFTER ic computation — idx ic=10743 push=11139
+  PASS T5a plist exists
+  PASS T5b plist runs ops/ic_monitor.py
+  PASS T6 known anchors skipped — []
+  PASS T7a OBJECT / CALIB_IDENTITY are byte-for-byte the task-book strings
+  PASS T7b every page body (ALERT/DECIDE, RECOVERED, INCOMPLETE) carries BOTH lines
+  PASS T7c contract block: object + calibration identity + the three thresholds, equal to constants — {'object': '书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|notional|/|qty|, 源码旧称 mid)收益排序; 不是模型分数 IC, 不是扣费净收益', 'calibration': '阈值标定: α=0.05/band=0.002 离线书(2026-08-10, 98
+  PASS T7d breach body prints R48_P1 and names the gate that fired (audit gap: 09-10 DECIDE was r48-triggered and the page showed only r24 thresholds) — [ic_monitor #55] DECIDE: 触发门=r48<R48_P1. r24=+0.01000, r48=-0.02000, β-resid r24=None, n=48. 阈值: ALERT r24<-0.02277; DECIDE r24<-0.04425 或 r
+  PASS T7e breach body carries the data frontier and both window censuses
+  PASS T8a DECIDE→OK delivers exactly one INFO RECOVERED; OK→OK delivers nothing
+  PASS T8c never-delivered → OK delivers nothing
+  PASS T8b ALERT→OK also recovers (transition from either breach level)
+  PASS T8d legacy live state {last_ALERT, last_DECIDE} migrates to last level DECIDE and recovers
+DELIVERY NOT OFFBOX (NOT_CONFIGURED): [ic_monitor #55] RECOVERED: 24/48 锚均值回到所用阈值以上 — 不等于 alpha 恢复. r24=+0.05000, r48=+0.05000, n=60, 判窗=r24,r48. 事件 DECIDE(触发窗 r48) 自 2026-08-17T13:01Z 起, 现关闭. 阈值: ALERT r24<-0.02277; DECIDE r24<-0.04425 或 r48<-0.01656. 数据前沿=2026-08-20T08:00Z; r24 窗 期望24 实有24 完整; r48 窗 期望48 实有48 完整.
+书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|notional|/|qty|, 源码旧称 mid)收益排序; 不是模型分数 IC, 不是扣费净收益
+阈值标定: α=0.05/band=0.002 离线书(2026-08-10, 9821 锚); 在役 α=0.1/band=0.00025 — 阈值未按在役形态重标, 5%/1% 概率含义不适用
+  PASS T8e a RECOVERED that did not leave the box keeps last level DECIDE, so the next run retries (exactly one DELIVERED page, not exactly one attempt)
+  PASS T8f r48 still negative is said explicitly in the RECOVERED body — [ic_monitor #55] RECOVERED: 24/48 锚均值回到所用阈值以上 — 不等于 alpha 恢复. r24=+0.02000, r48=-0.00500, n=48, 判窗=r24,r48. r48 仍 <0 (-0.00500). 事件 DECIDE(触发窗 r24,r48) 自 2026-0
+  PASS T8g a healthy r48>=0 RECOVERED body does NOT claim r48<0
+  PASS T8h a delivered DECIDE records last_delivered_level=DECIDE + last_DECIDE, and the same level inside 24h is not re-paged (existing cooldown preserved)
+  PASS T8i state file carries the contract block and the last evaluation census
+  PASS T9a 4 anchors missing from the trailing 24 (and 6 from the 48) ⇒ INCOMPLETE, census exact, missing anchors listed by ISO
+  PASS T9b 2 missing (r24) / 4 missing (r48) are within tolerance ⇒ complete, judged OK — {'now': 1787230860.0, 'frontier_ts': 1787212800, 'frontier': '2026-08-20T08:00Z', 'mature_lag_s': 3600, 'newest_row_anchor_ts': 1787212800, 'newest_row_anchor': '2026-08-20T08:00Z', 'r24': {'expected'
+  PASS T9c a frozen ledger 3 days behind the clock is INCOMPLETE, not OK
+  PASS T9d INCOMPLETE delivers one INFO page naming the missing anchors, at most once per 24h
+  PASS T9d' an INCOMPLETE page does not touch last_delivered_level
+  PASS T9e r48 window incomplete ⇒ an r48 below R48_P1 does NOT fire DECIDE; judged on r24 only
+  PASS T9f the statistic is unchanged: r24/r48 are still the mean of the last 24/48 ledger rows (holes stretch the calendar span, the gate refuses to judge, the number is the same number)
+  SKIP T9g SKIPPED: no real ledger in this tree (clone) — passes only in the run tree (expected /Users/haosiyu/cc_tmp/fx_exec/state/live/ic_monitor.jsonl)
+  PASS T10a `--check` does NOT load .env at import (TELEGRAM_* stay unset with a fake .env present) — {'tok': False, 'tn': False}
+  PASS T10a' `--dry` likewise
+  PASS T10b the default (launchd, no flag) invocation STILL loads .env — the tests_env_loading property is kept, the monitor stays in the alarm-capable population — {'tok': True, 'tn': False}
+  PASS T10c main(--check) then main(--dry) on the real readbacks: ledger/state/evals sha unchanged, evals never created, telegram_notify never imported, no network, no audit row, no .env — {'same': True, 'evals_absent': True, 'tn': False, 'tok': False, 'audit': False, 'lvl': 'INCOMPLETE', 'same_verdict': True}
+  PASS T11 every page body is tier-A PUSH under alarm_policy (no MEASURE/EXPECTED word in the text) — {'breach_new_event': ('PUSH', 'UNRECOGNISED'), 'breach_in_event': ('PUSH', 'UNRECOGNISED'), 'recovered_both': ('PUSH', 'UNRECOGNISED'), 'recovered_legacy': ('PUSH', 'UNRECOGNISED'), 'recovered_partial': ('PUSH', 'UNRECOGNISED'), 'incomplete_no_event': ('PUSH', 'UNRECOGNISED'), 'incomplete_open_event': ('PUSH', 'UNRECOGNISED'), 'incomplete_short': ('PUSH', 'UNRECOGNISED'), 'breach_from_ok_verdict': ('PUSH', 'UNRECOGNISED')}
+  PASS T11' bodies fit the telegram cap with margin
+  PASS M7 injection target matches exactly once — count=1
+  PASS M7 remove OBJECT from the page tail ⇒ T7b goes red
+  PASS M8 injection target matches exactly once — count=1
+  PASS M8 delete the ALERT/DECIDE→OK transition ⇒ T8a and T8d go red
+  PASS M9 injection target matches exactly once — count=1
+  PASS M9 disable the freshness gate ⇒ T9a (hole), T9c (frozen ledger) and T9e (r48 DECIDE through an incomplete window) go red
+  PASS M10 injection target matches exactly once — count=1
+  PASS M10 remove the argv gate ⇒ `--check` loads .env again ⇒ T10a goes red
+  PASS T12a [R1] partial-OK after a delivered DECIDE(r48) ⇒ INCOMPLETE only, no RECOVERED, event stays open, last level stays DECIDE, body says 可判窗口未越线/其余窗口未判/未恢复
+  PASS T12b once the triggering window (r48) is judgeable again and clear ⇒ RECOVERED with the 24/48 title, event closed
+  PASS T12c an r24-triggered ALERT recovers on r24 alone, and the title is per-window (never 24/48) while r48 is unjudged
+  PASS T13a [R2] DECIDE→RECOVERED→DECIDE inside 3h: the recurrence is a NEW event and is delivered; a same-level repeat inside the new event is still cooled down
+  PASS T13b escalation ALERT→DECIDE inside an open event is delivered; event level becomes DECIDE, trigger windows are the union, both delivery times recorded — {'open': True, 'level': 'DECIDE', 'trigger_windows': ['r24'], 'opened_at': 1787230860.0, 'delivered': {'ALERT': 1787230860.0, 'DECIDE': 1787234460.0}, 'observed': {'ALERT': 1787230860.0, 'DECIDE': 178
+  PASS T13c the legacy live state migrates to an OPEN legacy event whose trigger window is r48 (lead ruling 2026-09-12 on the logged facts: 09-09 DECIDE r24 -0.03483/r48 -0.02373 and 09-10 DECIDE r24 -0.02705/r48 -0.02667 — r24 above the DECIDE line -0.04425 both times, r48 below R48_P1 -0.01656 both times)
+  PASS T13d legacy event + partial-OK verdict ⇒ no RECOVERED (r48 is THE trigger window and unjudged)
+  PASS T14 [R3] under the reviewer-shaped trap harness (__main__ on source bytes; envfile/telegram/broker import, socket, write-open, os.mkdir/remove/... and .env all denied): --check, --dry, --backfill --check ⇒ zero events + READ-ONLY; --che ⇒ zero events AND rejected (SystemExit 2) — {'--check': ([], None), '--dry': ([], None), '--backfill--check': ([], None), '--che': ([], 'SystemExit:2')}
+  PASS T15a 23 rows with the clock 3 days ahead ⇒ INCOMPLETE with census (was: silent OK, no census)
+  PASS T15b a young window (10 rows, no gap since WINDOW_START) stays OK/not-judged with a complete census
+  PASS T15c an EMPTY ledger is INCOMPLETE, not a healthy quiet OK
+  PASS T15d census carries the actual newest scored anchor separately from the expected frontier (frozen ledger: they diverge)
+  PASS T15e the short-ledger INCOMPLETE pages once (INFO) and names the missing anchors
+  PASS T16 OBJECT names the implied price |notional|/|qty| (not a bare 'mid'), consistent with contract.statistic
+  PASS M12 injection target matches exactly once — count=1
+  PASS M12 ignore the triggering windows in the recovery condition ⇒ T12a (partial-OK recovers) goes red
+  PASS M13 injection target matches exactly once — count=1
+  PASS M13 cooldown keyed on the old last_<LEVEL> instead of the open event ⇒ T13a goes red
+  PASS M14a injection target matches exactly once — count=1
+  PASS M14a drop allow_abbrev=False ⇒ `--che` is accepted as --check and runs ⇒ T14 goes red
+  PASS M14b injection target matches exactly once — count=1
+  PASS M14b gate ignores unknown args ⇒ `--che` attempts `import envfile` before rejection ⇒ T14 goes red — {'events': ['import:envfile'], 'error': 'SystemExit:2', 'readonly_footer': False, 'tail': ['_mutant_M14b.py: error: unrecognized arguments: --che']}
+  PASS M15 injection target matches exactly once — count=1
+  PASS M15 short-ledger branch stops flagging INCOMPLETE ⇒ T15a and T15c go red
+  PASS T17b the two researcher input sets meet the contract they are claimed under: every anchor on the 4h grid, every step append-only (earlier rows byte-identical), every IC inside [-1,1] — no past IC is rewritten to manufacture either counter-example
+  PASS T17a [N1] set A: an r48 DECIDE observed during the same-level cooldown enters the event's trigger windows although NO page is sent; the later r24-healthy/r48-unjudgeable step pages INCOMPLETE only — no RECOVERED, event still open, last delivered level still DECIDE
+  PASS T18a [N2] set B: paging ALERT while the triggering r48 window is unjudgeable does NOT lower the event's risk level (stays DECIDE), and the re-escalation to DECIDE 12h later is delivered — the old DECIDE clock no longer swallows an upgrade over the last level actually delivered
+  PASS T19a [N3] a fresh full grid of NaN rank_ic is UNMEASURABLE ⇒ INCOMPLETE, not judged, the NaN anchors counted missing (was: both windows judgeable, r24/r48=NaN, level OK)
+  PASS T19b [N3] the same NaN ledger under an open DECIDE(r48) event delivers NO RECOVERED — health is never inferred from 'every threshold comparison is False'
+  PASS T19c [N3] 3 NaN rows inside the trailing 24 make the r24 window unjudgeable (r48 still judges) and r24 is still the mean of the last 24 MEASURABLE rows — the statistic is unchanged
+  PASS T19d [N3] ±Inf is unmeasurable too, and the predicate refuses None/bool while accepting any finite real
+DELIVERY NOT OFFBOX (NOT_CONFIGURED): [ic_monitor #55] DECIDE: 触发门=r24<R24_P1,r48<R48_P1. r24=-0.05000, r48=-0.05000, β-resid r24=None, n=60. 阈值: ALERT r24<-0.02277; DECIDE r24<-0.04425 或 r48<-0.01656. 数据前沿=2026-08-20T08:00Z; r24 窗 期望24 实有24 完整; r48 窗 期望48 实有48 完整. 事件: 新开, 触发窗 r24,r48. 书级实现 rank-IC 越线 — 深平滑书响应慢, 本仪器直读场所, 请按 #55 预注册处置.
+书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|notional|/|qty|, 源码旧称 mid)收益排序; 不是模型分数 IC, 不是扣费净收益
+阈值标定: α=0.05/band=0.002 离线书(2026-08-10, 9821 锚); 在役 α=0.1/band=0.00025 — 阈值未按在役形态重标, 5%/1% 概率含义不适用
+  PASS T20 an event opened by OBSERVATION whose page never left the box records the breach but has no delivered level; when it clears it is closed silently — no RECOVERED to someone who was never told about the breach, and no zombie event
+  PASS M16 injection target matches exactly once — count=1
+  PASS M16 observation stops merging the breach windows it just saw ⇒ T17a goes red (the cooled-down r48 vanishes and the event wrongly recovers)
+  PASS M17 injection target matches exactly once — count=1
+  PASS M17 event level overwritten on every observation instead of monotone max ⇒ T18a goes red (the event downgrades to ALERT while its trigger window is unjudgeable)
+  PASS M18 injection target matches exactly once — count=1
+  PASS M18 drop the 'escalation over the last DELIVERED level' rule ⇒ T18a goes red (the DECIDE re-escalation is swallowed by the old higher-level clock)
+  PASS M19 injection target matches exactly once — count=1
+  PASS M19 measurability back to 'is not None' ⇒ T19a and T19b go red (NaN judged healthy again)
+  PASS M20 injection target matches exactly once — count=1
+DELIVERY NOT OFFBOX (NOT_CONFIGURED): [ic_monitor #55] DECIDE: 触发门=r24<R24_P1,r48<R48_P1. r24=-0.05000, r48=-0.05000, β-resid r24=None, n=60. 阈值: ALERT r24<-0.02277; DECIDE r24<-0.04425 或 r48<-0.01656. 数据前沿=2026-08-20T08:00Z; r24 窗 期望24 实有24 完整; r48 窗 期望48 实有48 完整. 事件: 新开, 触发窗 r24,r48. 书级实现 rank-IC 越线 — 深平滑书响应慢, 本仪器直读场所, 请按 #55 预注册处置.
+书级实现 rank-IC = 场所实持仓名义排序 vs 下锚场所隐含价(|notional|/|qty|, 源码旧称 mid)收益排序; 不是模型分数 IC, 不是扣费净收益
+阈值标定: α=0.05/band=0.002 离线书(2026-08-10, 9821 锚); 在役 α=0.1/band=0.00025 — 阈值未按在役形态重标, 5%/1% 概率含义不适用
+  PASS M20 RECOVERED no longer requires the event to have delivered anything ⇒ T20 goes red
+
+tests_ic_monitor: ALL PASS
+# end=2026-09-13T16:25:16Z rc=0

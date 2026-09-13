@@ -1,0 +1,22 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_sigma_ladder.py head=39a00550783093bbd482615f7f8edd3731ffc8f5 dirty=4 start=2026-09-13T16:32:24Z py=Python 3.9.6
+# suite_sha256=7eb084e9b52e4fef9ef744bf7d54226471ef22eba434f7e8df4492294fea610d
+[1] fail-safe = 1.0
+  OK   1a missing -> 1.0/missing
+  OK   1b wrong schema -> 1.0
+  OK   1c g outside whitelist (0.7) -> 1.0
+  OK   1d tampered g (sha mismatch) -> 1.0
+  OK   1e stale (7h) -> 1.0
+  OK   1f future (>10min) -> 1.0
+[2] valid file is exact
+  OK   2a g=0.5 accepted with p/streaks — {'src': 'sigma_ladder', 'g': 0.5, 'accepted': True, 'reason': None, 'p': 0.2, 'anchor_ts': 1800000000, 'age_s': 600.0, 'streak_low': 90, 'streak_high': 0, 'rule': 'test'}
+  OK   2b g=1.0 accepted
+[3] loader
+  OK   3a no file -> missing
+  OK   3b corrupt json -> unreadable
+  OK   3c valid -> 0.5 with path
+[4] arithmetic contract: target_leverage = gross_mult x g
+  OK   4a 2.0 x 0.5 = 1.0
+  OK   4b 2.0 x 1.0 = 2.0
+
+ALL PASS   (13 checks)
+# end=2026-09-13T16:32:25Z rc=0
