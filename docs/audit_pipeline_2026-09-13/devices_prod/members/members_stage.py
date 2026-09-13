@@ -7,7 +7,7 @@ Reads, strictly read-only:
 Writes only under /Users/haosiyu/cc_tmp/aud_prod/members/stage/:
   config.json (byte copy), prod_members.npz (anchors int64, members object array, file_sha256 list),
   prod_prev_rec_1789272000.json (anchor_ts, members, sel_idx), manifest.json (sha256 of every staged file + source shas).
-Usage (Mac, outside anchor windows): env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu /usr/bin/python3 -B members_stage.py PATH,HOME
+Usage (Mac, outside anchor windows): env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu /usr/bin/python3 -B members_stage.py PATH,HOME,LC_CTYPE,CPATH,LIBRARY_PATH,MANPATH,SDKROOT,__CF_USER_TEXT_ENCODING (the Xcode python3 shim injects the last six keys)
 """
 import os, sys, json, glob, stat, hashlib, time
 WHITE = set(x for x in sys.argv[1].split(",") if x) if len(sys.argv) > 1 else None

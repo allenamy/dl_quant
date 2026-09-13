@@ -5,7 +5,7 @@ set -eu
 R=/Users/haosiyu/Desktop/quant_research; D=$R/docs/audit_pipeline_2026-09-13/devices_prod/members; S=/Users/haosiyu/cc_tmp/aud_prod/members/stage
 SNAP=$R/multi_asset/exports/research/uplift_r2_2026-09-13/T4/private/snapshot_1789272000/state/rolling.npz
 P=/workspace/aud_prod_2026-09-13/members
-env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu /usr/bin/python3 -B $D/members_stage.py PATH,HOME
+env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu /usr/bin/python3 -B $D/members_stage.py PATH,HOME,LC_CTYPE,CPATH,LIBRARY_PATH,MANPATH,SDKROOT,__CF_USER_TEXT_ENCODING
 ssh pod2 "mkdir -p $P/stage $P/receipts $P/device"
 scp -q $S/config.json $S/prod_members.npz $S/prod_prev_rec_1789272000.json $S/manifest.json pod2:$P/stage/
 scp -q $SNAP pod2:$P/stage/snapshot_rolling_1789272000.npz
