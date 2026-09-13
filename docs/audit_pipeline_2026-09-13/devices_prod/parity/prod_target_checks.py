@@ -79,9 +79,10 @@ R_ = [r["R"] for r in rows]
 RC["CHK01_descriptive"] = {"n_anchors": len(rows), "first": rows[0]["anchor"] if rows else None, "last": rows[-1]["anchor"] if rows else None,
     "corr_R_Rfc": corr(R_, [r.get("R_fc", np.nan) for r in rows]), "corr_R_Rkc": corr(R_, [r.get("R_kc", np.nan) for r in rows]),
     "corr_R_rev24_weight": corr(R_, [(r.get("w3") or [np.nan] * 3)[1] for r in rows]), "corr_R_rho_kc_fc": corr(R_, [r.get("rho_kc_fc") if r.get("rho_kc_fc") is not None else np.nan for r in rows]),
-    "corr_R_ftrim_n": corr(R_, [(r.get("ftrim_n_kc") or 0) + (r.get("ftrim_n_fc") or 0) if r.get("ftrim_n_kc") is not None else np.nan for r in rows])}
+    "corr_R_ftrim_n": corr(R_, [(r.get("ftrim_n_kc") or 0) + (r.get("ftrim_n_fc") or 0) if r.get("ftrim_n_kc") is not None else np.nan for r in rows]),
+    "corr_R_masked_model_seat": corr(R_, [(r.get("w3_masked") or [np.nan])[0] for r in rows]), "corr_Rfc_masked_model_seat": corr([r.get("R_fc", np.nan) for r in rows], [(r.get("w3_masked") or [np.nan])[0] for r in rows])}
 def at(a): return byA.get(a, {})
-RC["CHK01_change_0903_to_0913"] = {k: {"2026-09-03 08Z": at("2026-09-03 08Z").get(k), "2026-09-13 12Z": at("2026-09-13 12Z").get(k)} for k in ("R", "R_kc", "R_fc", "R_mix_vs_kc", "rho_kc_fc", "w3", "ftrim_n_kc", "ftrim_n_fc")}
+RC["CHK01_change_0903_to_0913"] = {k: {"2026-09-03 08Z": at("2026-09-03 08Z").get(k), "2026-09-13 12Z": at("2026-09-13 12Z").get(k)} for k in ("R", "R_kc", "R_fc", "R_mix_vs_kc", "rho_kc_fc", "w3", "w3_masked", "ftrim_n_kc", "ftrim_n_fc")}
 log("CHK-01", RC["CHK01_claims_vs_measured_pct"]["2026-09-13 12Z"], RC["CHK01_descriptive"])
 # ---------------- EXE-03
 A = 1789300800; RID = "A1789302239"
@@ -104,13 +105,18 @@ rep = {syms[i]: float(v2[i]) for i in range(len(syms))}
 common = sorted(set(rep) & set(tw))
 maxdiff = max(abs(rep[s] - tw[s]) for s in common) if common else None
 flips = [(s, w[s] / G, rep[s], tw.get(s), filled.get(s, 0.0)) for s in syms if np.sign(rest[s]) != np.sign(rep[s]) and rest[s] != 0]
+ratios = {s: tw[s] / rep[s] for s in common if abs(rep[s]) > 1e-9}; rmed = float(np.median(list(ratios.values())))
+ratio_outliers = {s: r_ for s, r_ in ratios.items() if abs(r_ - rmed) > 1e-9}
+sign_agree = sum(1 for s in common if np.sign(tw[s]) == np.sign(rep[s]))
 RC["EXE03"] = {"anchor": U(A), "producer_sum_w": NET, "producer_sum_abs_w": G, "producer_net_over_gross": NET / G,
                "popped_names": popped, "popped_sum_w_over_G": net_pop / G, "popped_gross_share": gross_pop / G,
                "remainder_net_over_full_gross": nb, "alarm_net_before_over_sizing_gross": rs["net_before"] / rs["sizing_gross"], "remainder_gross_over_full_gross": gb,
                "executor_gross_before_over_sizing": rs["gross_before"] / rs["sizing_gross"],
                "share_of_net_before_from_producer_net": (NET / G) / nb if nb else None, "share_from_removing_popped": (-net_pop / G) / nb if nb else None,
                "uniform_shift_per_name_unit_gross": shift, "n_names_after_pop": len(syms),
-               "reproduced_vs_orders_target_w": {"n_common": len(common), "n_orders_symbols": len(tw), "max_abs_diff": maxdiff},
+               "reproduced_vs_orders_target_w": {"n_common": len(common), "n_orders_symbols": len(tw), "max_abs_diff": maxdiff, "sign_agreement": sign_agree,
+                                                 "ratio_orders_over_reproduced_median": rmed, "ratio_outliers": ratio_outliers,
+                                                 "note": "a uniform ratio != 1 with named outliers = a post-reshape per-name cap followed by a rescale; signs are what EXE-03 needs"},
                "sign_flips": [{"symbol": s, "producer_unit_w": a, "reshaped_w": b, "orders_target_w": c, "filled_notional_usdt": f} for s, a, b, c, f in flips],
                "n_flips_short_to_long": sum(1 for x in flips if x[1] < 0), "n_flips_long_to_short": sum(1 for x in flips if x[1] > 0),
                "flipped_filled_notional_usdt": float(sum(x[4] for x in flips)), "flipped_filled_nonzero": sum(1 for x in flips if abs(x[4]) > 0)}
