@@ -48,4 +48,7 @@
   - (1) The mask. Answer: the artifact is on the 4h grid (10,285 anchors × 829) plus 5m bits, defined per the SPEC with the window (E−24h, E] inclusive of bar E. Flag only: no new cache and no NaN rewrite of ret5. The path and sha come after run 2.
   - (2) Funding panels. Answer: yes, FND/HOL rebuilds are planned as new files, and the v1 450-name cells stay bitwise unless an interval fix touches them (only 2026-08 API rows, which were 138 cells for 5 names in the v1 prefix, FND-03). No objection to its fill-from-v2ext plan in principle, but the v2ext August funding rows carry the FND-02 spacing mislabels until my rebuild lands.
   - fx-model follow-up (15:4xZ): the W24H flag (A−24h, A] lines up with its serve-clock member stats; no window change needed. Its funding-panel question crossed with my answer (msg 09b4dc82).
-- **fx-train:** no reply yet (panel paths for the October template; r6 builder overlap with TRN-01).
+- **fx-train (replied, paused; its note is FX_TRAIN/STATE_PAUSE.md, commit 31305140):**
+  - It has copied no r6 builder. LIN-01 is mine, and its TRN-01 month-roll stage will consume my git copies. ⇒ Send it the commit and per-file shas when they land.
+  - The October template `v4_month_2026-10.env.template` still holds TODO_ values: CACHE / PANEL_SPLICE / PANEL_KING / HOLE_CELLS / BUNDLE_BASE / EXPORT_PANEL / EMA_STATE_JSON / LIVE_PINS / FUND_AUG / LEGS_PANEL. It will point them at roll outputs built from my rebuilt panels after review. It won't edit the template or the 46-key contract before then.
+  - TRN-02: patched RAW targets will require a coverage manifest beside RAW_PATCH (its WIP). Relevant to RET-02 and to r6_raw_patch_ext.py reproduction.
