@@ -1,0 +1,150 @@
+# pre-round-4 readers = exec_w2_prev4 (sha e39689b5 / 9b51db9e)
+=== ops/daily_summary.py
+  77 OR    row or {}
+  86 OR    src or 'not stated'
+  93 OR    r.get("realised_components") or _REALISED_TYPES
+  98 OR    r.get("realised_by_type") or {}
+ 106 OR    bta.get(t) or {}
+ 112 OR    _finite(usdt) is None or any(_finite(u["amount"]) is None for u in unconverted)
+ 133 OR    orders_of_anchor or []
+ 136 OR    o.get("intended_notional") or 0
+ 137 OR    CB.filled_abs(o) or 0.0
+ 146 TRUTH want
+ 183 TRUTH not nav_rows
+ 187 OR    n1.get("wallet_balance") or 0.0
+ 188 OR    n1.get("unrealised_pnl") or 0.0
+ 189 OR    n1.get("nav") or 0.0
+ 214 TRUTH _by_day
+ 217 OR    n0.get("nav") or eq
+ 236 TRUTH same_day and _e0 is not None and _e1 is not None
+ 238 TRUTH not same_day
+ 253 OR    n1.get("realised_by_type") or {}
+ 256 TRUTH not (real_f["observable"] and real0_f["observable"])
+ 271 TRUTH nav_rows
+ 292 TRUTH not same_day
+ 296 TRUTH not (real_f["observable"] and real0_f["observable"])
+ 334 TRUTH not f.get("observable")
+ 344 TRUTH not f["equity_identity_holds"]
+ 347 OR    f.get("realised") or {}
+ 348 TRUTH not rf.get("observable")
+ 352 OR    rf.get("by_type_usdt") or {}
+ 356 TRUTH by
+ 359 OR    rf.get("unconverted") or []
+ 385 TRUTH f.get("external_flow_interval_computable")
+ 388 TRUTH f.get("external_flow_interval_why_not")
+ 390 TRUTH f["unexplained_computable"]
+ 391 OR    f["unexplained_equity_change"] or 0
+ 424 OR    one.get(k) or []
+ 425 OR    r.get("anchor_ts") or 0
+ 428 OR    [r for r in nav_all if float(r.get("nav_ts") or 0) >= since] or nav_all[-1:]
+ 428 OR    r.get("nav_ts") or 0
+ 431 TRUTH not os.path.exists(audit)
+ 434 TRUTH os.path.exists(audit)
+ 437 TRUTH line
+ 442 OR    r.get("ts") or 0
+ 466 OR    o.get("anchor_ts") or 0
+ 471 OR    r.get("known_gaps") or {}
+ 474 TRUTH r.get("opening_halted")
+ 476 OR    r.get("reshape") or {}
+ 476 TRUTH (r.get("reshape") or {}).get("n_popped")
+ 479 TRUTH _b["n_fills"] and _b["n_measured"] < _b["n_fills"]
+ 482 TRUTH _b["n_unknown_fill"]
+ 485 TRUTH cf['maker_fill_rate_is_lower_bound']
+ 492 OR    r.get('target_gross') or 0
+ 493 TRUTH _cov_short
+ 499 TRUTH nav
+ 504 TRUTH _rf0["observable"] and _rf1["observable"] and _rf0["complete"] is True \                 and _rf1["complete"] is True
+ 511 TRUTH _rf0["observable"] and _rf1["observable"]
+ 520 TRUTH not _rf0['observable']
+ 521 OR    r0.get('unrealised_pnl') or 0
+ 522 OR    r1.get('unrealised_pnl') or 0
+ 524 TRUTH nav
+ 532 OR    r.get("message") or ""
+ 533 TRUTH not body.strip()
+ 538 TRUTH not buckets
+ 547 OR    r.get("message") or ""
+ 548 TRUTH not body.strip()
+ 554 TRUTH not n_a
+=== ops/first_anchor_review.py
+  70 TRUTH not os.path.exists(RUNLOG)
+  76 TRUTH not mine
+  84 OR    dones[:1] or [len(lines)]
+  84 OR    later_same[:1] or [len(lines)]
+ 108 OR    a.day or (days[-1] if days else None)
+ 108 TRUTH days
+ 114 TRUTH not day
+ 119 OR    rows.get("anchors") or []
+ 120 OR    rows.get("orders") or []
+ 121 OR    rows.get("fills") or []
+ 122 OR    rows.get("position_readback") or []
+ 123 OR    rows.get("daily_nav") or []
+ 127 TRUTH not anchors
+ 147 TRUTH same
+ 162 TRUTH anchors
+ 165 OR    r.get("anchor_ts") or -1
+ 166 OR    rid is None or f.get("rebalance_id") == rid
+ 176 OR    rid is None or o.get("rebalance_id") == rid
+ 177 TRUTH not mine
+ 188 OR    o.get("note") or ""
+ 189 TRUTH n.startswith("[") and "]" in n
+ 191 TRUTH codes
+ 214 IN0   o.get("filled_notional") not in (None, 0, 0.0)
+ 221 TRUTH _unk
+ 228 TRUTH _noavg
+ 240 TRUTH anchors
+ 241 OR    anchors[-1].get("target_gross") or 0
+ 243 TRUTH n
+ 263 TRUTH o.get("mid_at_anchor")
+ 266 OR    _f.get(o["symbol"]) or {}
+ 268 OR    not _ff or not _mid
+ 268 TRUTH not _ff or not _mid
+ 270 OR    _ff.get("min_notional") or 0
+ 271 OR    _ff.get("min_qty") or 0
+ 272 OR    o.get("intended_notional") or 0
+ 282 OR    r.get("venue_position_qty") or 0
+ 296 TRUTH not rb
+ 299 OR    r.get("venue_position_notional") or 0.0
+ 302 TRUTH nav and nav[-1].get("nav")
+ 310 TRUTH equity
+ 319 TRUTH anchors and mine
+ 320 OR    anchors[-1].get("target_gross") or 0.0
+ 338 TRUTH tg
+ 343 OR    tg or 1
+ 382 TRUTH CB.filled_abs(o)
+ 384 TRUTH not ex
+ 387 TRUTH _unk_rows
+ 397 TRUTH _unk
+ 400 OR    b["n_fills"] == 0 or notl <= 0
+ 461 OR    sum(abs(float(r["filled_notional"])) for r in rows) or 1.0
+ 480 TRUTH not _sub
+ 481 TRUTH _sub_full
+ 486 TRUTH _ok
+ 497 TRUTH _tk
+ 505 TRUTH r.get("intended_limit_px")
+ 506 TRUTH _lim
+ 510 TRUTH not _sub
+ 518 TRUTH not _ok2
+ 527 OR    _L is None or _px is None
+ 538 TRUTH _n_unp
+ 544 TRUTH CB.filled_abs(o)
+ 545 OR    o.get("intended_notional") or 0.0
+ 551 TRUTH n_unk_m
+ 553 TRUTH n_unk_m
+ 564 TRUTH not os.path.exists(st)
+ 571 OR    ev.get('metric_errors') or []
+ 579 TRUTH not os.path.exists(ws)
+ 583 OR    json.load(open(ws)) or {}
+ 584 OR    _w.get("tripped_at") or _w.get("reduce_only")
+ 587 TRUTH _halted
+ 609 TRUTH n_inter
+ 614 TRUTH not block
+ 618 OR    "rate_budget[" in l or "venue_rate:" in l or "rate_timeline:" in l
+ 628 TRUTH n_inter
+ 634 TRUTH done
+ 635 TRUTH n_inter
+ 641 TRUTH t0 and t1
+ 648 TRUTH rid
+ 649 OR    not tf or not os.path.exists(tf)
+ 649 TRUTH not tf or not os.path.exists(tf)
+ 653 OR    tl.get("rows") or []
+ 663 OR    x.get("weight") or 0

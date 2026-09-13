@@ -1,6 +1,6 @@
 # DESIGN · 下游读者三桶迁移: daily_summary / first_anchor_review / score_post_fix (事实表先于代码)
 
-> **创建:** 2026-09-12 10:1xZ | **Session:** W2 (team lead 派单; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w2`, 分支 `fix/readers-three-bucket`, 基线 `origin/main` = 918559f) | **状态:** 第三轮(研究员 REVIEW_code_and_research_2026-09-13 §3.C 三缺陷)收口, 见 §8; 码在克隆分支, 未提交/未推送/未部署; 本轮未跑全电池(lead 跑叠层) | **作废条件:** 收入载体(`binance_broker.income_since`)改变 `by_type_asset` / `non_usdt_assets` / `truncated` 合同, 或 `external_flow_usdt` 不再是当日累计, 或 `anchor_loop.neutrality_price` 的三桶规则改变, 或 `pilot_metrics.py` 解冻(§8 的载体一致门会先红)
+> **创建:** 2026-09-12 10:1xZ | **Session:** W2 (team lead 派单; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w2`, 分支 `fix/readers-three-bucket`, 基线 `origin/main` = 918559f) | **状态:** 第四轮(研究员第三轮 monitoring NAV-R3-1 权益端点 0/None/NaN + 同族 `x or 回退` 审计)收口, 见 §9; 第三轮见 §8; 码在克隆分支, 未提交/未推送/未部署; 本轮未跑全电池(lead 跑叠层) | **作废条件:** `daily_nav` 的 `nav` / `wallet_balance` / `unrealised_pnl` / `external_flow_usdt` 载体合同改变(§9b), 或收入载体(`binance_broker.income_since`)改变 `by_type_asset` / `non_usdt_assets` / `truncated` 合同, 或 `external_flow_usdt` 不再是当日累计, 或 `anchor_loop.neutrality_price` 的三桶规则改变, 或 `pilot_metrics.py` 解冻(§8 的载体一致门会先红)
 
 ## 0. 范围与硬约束
 - **只改读者, 不改生产者与守卫**: `ops/daily_summary.py` / `ops/first_anchor_review.py` / `ops/score_post_fix.py` + 一个新的纯函数模块 `live/cost_buckets.py` + 测试 + 注册(`run_acceptance.sh` SUITES, `ops/gate_coverage.py` SUITE_SCOPE)。
@@ -308,3 +308,182 @@ e39689b56d1d79ead7415e1002529b1433c9d84790badfc2330fe22eed17371f  ops/daily_summ
 - `live/pilot_log.py` 的 orders schema 允许 `side: None`(`required` 有、`not_null` 无), `binance_executor.py:2148` 用 `p.get('side')` 写它 —— 这是 N1 反例的**生产者侧**成因。本轮**未改生产者**(改 schema = 改写入合同, 需另行派单); 读者层现在会因此拒绝 PASS 并点名。**没有证据说明真实计划产生过缺 side 的行**(研究员同结论)。
 - 载体人口同集是按**两个载体各自自报的计数与名义质量**(池化 + 逐 regime)断言的, 不是按行 id: 计数与名义在每个 regime 都相等的两个不同行集合仍会通过。
 - 区间资金流的正确性依赖「`external_flow_usdt` 是当日累计」这一载体事实(`anchor_loop.py:2822` ← `binance_broker.income_since` L1996); 读者层不重新推导它, 载体一改本文首行的作废条件生效。
+
+## 9. ROUND 4 — 独立研究员第三轮 monitoring「NAV-R3-1」(继承, P2) + 同族 `x or 回退` 审计 (X2, 2026-09-13; 事实表先于代码)
+
+> **入口**: `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round3_code_and_research_2026-09-13.md` §3 W2 段 + `…/codex_round3_code_review_2026-09-13/monitoring/RESULT.md` §5 NAV-R3-1; 探针 `probe_w2_round3.py` sha `efcddf72…`, `audit_common.py` sha `c82ed83f…`。
+> **命名对账**: 本节 = 派单口径 round 4。§8 (round 3) 的「日累计 → 区间流」修复不被本节撤销; 本节补的是 §8 没覆盖的**权益端点**与同族读法。
+> **本节 9a–9c 写于改码之前**; 9d 起为结果。
+
+### 9a. 复现 (改码前)
+- 研究员探针原样拷到 scratchpad, **只改路径**(读研究员冻结输入, 收据写 scratchpad; 两处 diff 共 7 行, 全是 `OUT → OUT_SRC` 与 `W2` 可由环境变量改指)。冻结快照上 **rc 0**, 本克隆修前 **rc 0**; 两次 stdout 与研究员 `probe_w2_round3_success.log` **逐字节相同**。研究员工作树 `git status` 净。
+- 同一输出里 NAV 四格: `equity_nan` 残差 NaN 且 computable True / `equity_none` −100 / `start_equity_none` 0.0 / `valid_zero_start_deposit` **−100**。
+- 修前 7 个文件 sha 与 §8f 逐位相同; 修前树快照 `/Users/haosiyu/cc_tmp/exec_w2_prev4`(布局同 `exec_w2_prev3`)。
+
+### 9b. 事实表 · 账户端点 (`ops/daily_summary.account_facts`, 行号 = 修前 e39689b5)
+
+**载体核对**(读码 + 数只读账本副本 `exec_w2/state/live/pilot_log`, 251 nav 行 / 250 anchor 行 / 74,860 order 行 / 49,117 readback 行):
+
+| 字段 | 生产者 | schema (`live/pilot_log.py`) | 可达取值 | 账本副本实测 |
+|---|---|---|---|---|
+| `nav` | `anchor_loop.py:2794` `nav=snap["equity"]` | daily_nav `not_null` | None 写不进(validate 拒); **NaN 写得进**(validate 只查 None, `json.dumps` 允许 NaN); **0 写得进**(空账户) | 有限 251 / 零 0 / None 0 / 非有限 0 |
+| `wallet_balance` | `:2811` | 不在 `required` | 缺键 ⇒ `.get` 为 None | 有限 251 |
+| `unrealised_pnl` | `:2810` | `required`, 可空 | None | 有限 237 / 零 14 |
+| `external_flow_usdt` | `:2822` `None if inc is None` | 不在 `required` | None(income 读失败, 生产者同时发 HIGH) | 有限 26 / 零 225 |
+
+⇒ **本轮每一格都是能力修复, 账本副本上没有一行触发**; 不把它写成已观察到的事故。
+
+| # | 事实 | 取值 | 旧读法 | 新读法 | 测试(修前读者红 / 新读者绿) |
+|---|---|---|---|---|---|
+| N4-a | 首端权益**合法为 0** | 研究员夹具 `valid_zero_start_deposit`: nav 0→100, flow 0→100, 同日, 收入完整 | L217 `float(n0.get('nav') or eq)` ⇒ 首端被末端替换 ⇒ Δ权益 0 ⇒ 残差 **−100**, computable True; 渲染「非交易原因的权益变化 −100.0000」 | `_finite(0.0) = 0.0` 是值; Δ权益 +100; 区间流 +100; 残差 **0.0**, computable True; 不渲染残差句 | DS [R4] 格 + MUTATION(旧式同行 −100) |
+| N4-b | 末端权益 NaN | `equity_nan` | L189 NaN 保留 ⇒ 残差 NaN, computable True; 渲染 `nan` | `equity` None, `equity_observable` False, 残差 None, computable False, why 点名「末行」+ `nan` + 不是有限数; `target_exposure` None; 恒等式 None; 渲染无 `nan` | DS [R4] + MUTATION(旧式 NaN 真值保留) |
+| N4-c | 末端权益 None | `equity_none` | L189 `or 0.0` ⇒ 权益 0 ⇒ 残差 −100, computable True | 同 N4-b, why 带 `None` | DS [R4] + MUTATION |
+| N4-d | 首端权益 None | `start_equity_none` | L217 首端被末端替换 ⇒ 残差 0.0 (一个不是测量的 0), computable True | computable False, 残差 None, why 点名「首行」 | DS [R4] + MUTATION |
+| N4-e | 首端权益 ±inf | 邻格 | 残差 ∓inf / NaN | 同 N4-d | DS [R4] 邻格 |
+| N4-f | 正常行 | [B] `_NAV` 与研究员 `prior_1000_both` / `same_day_transfer_20` | — | **逐字段不变**: `equity` / `wallet` / `unrealised` / `equity_change` / `target_exposure` / 恒等式 / 残差 = 旧公式在同行上的值 | DS [R4] 反向对照 |
+| N4-g | 末端 wallet None | `wallet_balance=None`, nav 有限 | L187 `or 0.0` ⇒ 恒等式残差 = nav ⇒ `holds` False ⇒ 渲染「这个恒等式不该被破坏」(假警报) | `wallet` None; 恒等式 `holds` None + `equity_identity_why_not`; 渲染「无法核对」; 残差不依赖 wallet, 照算 | DS [R4] + MUTATION |
+| N4-h | 末端 unrealised 合法 0 | 账本 14 行 | `0.0 or 0.0` 碰巧对 | 0.0 是值, 恒等式照算 | DS [R4] 反向 |
+| N4-i | 某日**末行**资金流 NaN | 单行 NaN | L211 `is not None` 放过 ⇒ 窗口总额 NaN ⇒ `external_flow_state` **outflow**(NaN 与 0/1e-9 比较皆假), 渲染 `+nan` | 该日未知 ⇒ 窗口总额 None ⇒ `not_observable`; 新键 `external_flow_unknown_days` | DS [R4] + MUTATION |
+| N4-j | 某日末行资金流 None, **前面有有限行** | 同日 [36.82261, None] | L212 跳过 None ⇒ 早先一行的累计**代替整日** ⇒ inflow 36.82261 | 当日累计由**末行**决定 ⇒ 该日未知 ⇒ 总额 None; 已知日照列 | DS [R4] + MUTATION |
+| N4-k | 前面 None, 末行有限 | 同日 [None, 36.82261] | 36.82261 | 36.82261(末行是 00:00Z 起累计, 前面的缺口不丢东西) | DS [R4] 反向 |
+| N4-l | 跨日, 后一日末行 None | [D1: 36.82261, D2: None] | 36.82261 inflow(整日被静默丢掉) | 总额 None; `external_flow_by_day` = {D1: 36.82261}; unknown [D2] | DS [R4] 邻格 |
+
+**分支顺序**(残差拒算理由只点名第一条): 跨 00:00Z → **权益端点不可观测(新)** → 已实现不可观测 → 已实现不完整 → 区间流未知 → 计算。权益放第二, 因为残差的第一项就是 Δ权益。**不变式**: `unexplained_computable is True` ⇒ 残差是有限数(每个 [R4] 格断言)。
+
+### 9c. 同族审计 (AST 扫描两文件每个 `a or b` 与裸真值判断; 扫描器 `receipts/w2_readers_three_bucket/round4_or_truthiness_scan.py`)
+
+**改(数值字段: 费 / 名义 / NAV / 流, 与同行权益分量)**, 全部在基线 918559f 已存在(继承):
+
+| # | 位置(修前行号) | 旧读法 | 旧读法的错 | 新读法 | 测试 |
+|---|---|---|---|---|---|
+| N4-a..e | `daily_summary.py` L187-189, L217, L246-247, L261, L285-290 | `or 0.0` / `or eq` | 见 9b | 见 9b | DS [R4] |
+| N4-i..l | `daily_summary.py` L209-214 | `is not None` + 早行代替 | 见 9b | 末行决定, 非有限 = 未知 | DS [R4] |
+| N4-m | `daily_summary.py` L136 `anchor_cost_facts` maker `intended_notional or 0` | None ⇒ 分母变小 ⇒ 成交率偏高且不标; NaN ⇒ 率 NaN 印 `nan%` | 任一 maker 行意图非有限 ⇒ `maker_fill_rate_pct` None(n/a) + `maker_n_unknown_intended`; 合法 0 仍是值 | DS [R4] + MUTATION |
+| N4-n | `daily_summary.py` L492 逐锚表 `target_gross or 0` | None ⇒ 印 0; NaN ⇒ 印 nan | 印 n/a | DS [R4-E2E] 原链 |
+| N4-o | `daily_summary.py` L521-522 轮换块 `unrealised_pnl or 0` | None ⇒ 印 +0.0000 | 印 不可观测 | DS [R4-E2E] 原链 |
+| F4-a | `first_anchor_review.py` L299 §3b `venue_position_notional or 0.0` | None(裸行)⇒ 未知仓位当平; NaN ⇒ net/gross NaN, net/equity NaN ⇒ 带宽「★★ ABOVE 15%」**假警报** | 非有限行排除并计数; VENUE 行只覆盖已知行并点名; 有未知行 ⇒ 带宽 NOT JUDGED | RTB [D-R4] |
+| F4-b | 同 L302/L310 §3b `nav` 真值 | 0 ⇒ 说成「cannot be formed」(理由像缺失); NaN ⇒ 真值通过 ⇒ 带宽「★★ ABOVE 15%」**假警报** | None/NaN/inf ⇒ NOT OBSERVABLE(带 repr); 0 ⇒ 除以零无定义; 有限非零不变 | RTB [D-R4] |
+| F4-c | 同 L320/L338/L343 §3b INTENT `target_gross or 0.0`, `if tg`, `tg or 1` | NaN ⇒ INTENT `nan`; None(裸行)⇒ INTENT +0.00 且 VENUE−INTENT = 整个 venue net; 0 ⇒ 比率印 +0.00%(0/0) | 非有限 ⇒ INTENT UNKNOWN, 不印差; 0 ⇒ INTENT 0.00, 比率 n/a | RTB [D-R4] |
+| F4-d | 同 L241 §3 每名名义 `target_gross or 0` | NaN ⇒ `~$nan`; None ⇒ `~$0.00` | UNKNOWN | RTB [D-R4] |
+| F4-e | 同 L214/L219 §3 `filled_notional not in (None, 0, 0.0)` / `is None` | NaN ⇒ 记为非零成交且不记为未知; §3c 的 `CB.filled_abs` 把同一行记为未知 —— 一件事实两种读法 | 两行都用 `CB.filled_abs` | RTB [D-R4] |
+| F4-f | 同 L545 §3c maker 成交率分母 `intended_notional or 0.0` | None ⇒ 分母变小 ⇒ 率偏高不标; NaN ⇒ 分母 NaN ⇒ 印「no maker leg was submitted」(理由错) | 任一已提交 maker 腿意图非有限 ⇒ UNMEASURED + 计数; 合法 0 是值 | RTB [D-R4] |
+| F4-g | 同 L263/L270-272 §3 有效下限表 `mid_at_anchor` 真值 / `min_notional or 0` / `min_qty or 0` / `intended_notional or 0` | min_qty 缺 ⇒ 0 ⇒ binding「min_notional」; min_notional 缺 ⇒ declared $0.0; NaN mid 过真值 ⇒ binding「min_notional」; 意图 None ⇒ `$0.00` —— 皆为**像真的错数** | mid 走 `CB.usable_px`; 过滤器 / 意图非有限 ⇒ n/a, binding UNKNOWN。缓存副本 658/658 symbol 两过滤器有限 | RTB [D-R4] |
+| F4-h | 同 L282 §3 持仓名数 `venue_position_qty or 0` | NaN / None ⇒ 记为未持仓 | 未知数量单列计数 | RTB [D-R4] |
+
+**不改(看过, 理由逐条)**:
+- 容器 / 文本回退(`or {}` / `or []` / `or ""` / `src or 'not stated'` / `realised_components or _REALISED_TYPES`): 非数值。
+- `daily_summary` L98 / L106 / L107 / L253 与渲染 L356-358 的 `by_type` / `by_type_asset` 缺键取 0: 载体 `binance_broker.py:1977-1986` 按**观测到的收入行**累加成**稀疏**和, 缺键 = 该类型/币种无收入行 = 真 0; 其前提(读取完整)由 `realised_truncated` 另行承载。不是回退。
+- `daily_summary` L137 `CB.filled_abs(o) or 0.0` 与 L146 `if want`: 未知成交已由 `maker_n_unknown_fill` 计数并把率标成下界(轮一); want 为 0 ⇒ 率 None(除零无定义)。有意且有标。
+- `daily_summary` L391 `abs(f["unexplained_equity_change"] or 0)`: 只在 `unexplained_computable` 为真时执行; 本轮使 computable ⇒ 残差有限(每格断言), `or 0` 无从替换。保留。
+- 时间戳 `anchor_ts or 0` / `nav_ts or 0` / `ts or 0`(`daily_summary` L425 L428 L442 L466)、`anchor_ts or -1`(`first_anchor_review` L165, **tests_review_anchor_scoping [B] M1 逐字注入靶**): 窗口 / 锚选择, 非金额量。
+- **登记, 不改**: `daily_summary` L428 `[...] or nav_all[-1:]` —— 窗口内无 nav 行时, 账户段显示账本最新一行却不说它在窗口外。这是「过期行代替窗口」, 与数值三态不同族, 超出本派单; 登记待 lead 裁定。
+- `first_anchor_review` L461 `_estimable` 的 `or 1.0`: 行来自 `ex`(已知非零成交), 和恒 > 0, 死回退; 常量行被 `tests_reject_topup [J]` 钉住。
+- `first_anchor_review` L505 `if r.get("intended_limit_px")`: 价格字段; 选中行随后都过 `CB.usable_px` 并计数未定价(轮一); 无限价行不进「vs OUR OWN LIMIT」表是显式范围, 不产出假数。
+- `first_anchor_review` L584 停机态 `tripped_at or reduce_only`: 时间戳 / 布尔, 且不可读按 HALTED; 非金额。L663 `weight or 0`: 限频权重, 非金额。
+- **登记, 不改**: §3b INTENT 的 `target_w`(L323-324 `is not None` 后 `float`): 非 `or`/真值位点, 也不是费/名义/NAV/流; NaN 权重印出可见的 `nan` 而非像真的数; 账本副本 74,860/74,860 有限。
+
+### 9d. 变更 (file:line = 克隆 `/Users/haosiyu/cc_tmp/exec_w2` 最终版; diff 限 ops/ live/ run_acceptance.sh)
+
+| 文件 | 行 | 变更 | 格 |
+|---|---|---|---|
+| `ops/daily_summary.py` | 136-155 | `anchor_cost_facts`: maker 意图逐腿 `_finite`; 任一非有限 ⇒ `maker_fill_rate_pct` None、`maker_intended_usdt` None; 新键 `maker_n_unknown_intended` | N4-m |
+| 同 | 195-221 | `account_facts`: `wal` / `unr` / `eq` / `eq0` 走 `_finite`; `_not_finite` 理由(行位 + 键 + repr); `_eq_why`(Δ权益理由)、`_snap_whys`(末行快照理由) | N4-a..e, g |
+| 同 | 241-253 | 当日资金流: `_day_last` 末行决定, `_flow_unknown_days`; 任一未知日 ⇒ `ext_f` None; `d_eq` 两端有限才算 | N4-i..l |
+| 同 | 281-291, 305, 315, 331-335 | 新键 `equity_observable` / `equity_start` / `equity_start_observable` / `account_snapshot_why_not` / `equity_identity_why_not` / `external_flow_unknown_days` / `equity_change_why_not`; `equity_identity_residual` / `holds` / `target_exposure` / `equity_change` 三态; `unexplained_computable` 加 `d_eq is not None` | N4-a..l |
+| 同 | 344-349 | 新拒算分支(权益端点不可观测), 排在跨日之后、已实现之前 | N4-b..e |
+| 同 | 391-409, 430-440 | `render_account`: `_num` 印「不可观测」; 快照理由逐条; 恒等式 None ⇒「无法核对」; 目标敞口 None 句; not_observable 资金流附未知日与已知日 | N4-b, c, g, l |
+| 同 | 542, 554-555, 564 | `main` 逐锚表: gross 非有限 ⇒ n/a; 备注「意图未知k行」 | N4-m, n |
+| 同 | 593-596 | `main` 轮换块: 浮动两端非有限 ⇒「不可观测」 | N4-o |
+| `ops/first_anchor_review.py` | 97-108 | 新 `_fin()`(与 `daily_summary._finite` 同式) | — |
+| 同 | 228-237 | §3: `cost_buckets` 导入上移到 §3; 非零成交 / 未知成交两行都用 `CB.filled_abs`(§3c L458 留注释) | F4-e |
+| 同 | 258-268 | §3 每名名义: target_gross 非有限 ⇒ UNKNOWN | F4-d |
+| 同 | 286-319 | §3 有效下限表: mid 走 `CB.usable_px`; 过滤器 / 意图非有限 ⇒ n/a + binding UNKNOWN; 已知意图在前; **自审追加**: 未入表的 skipped maker 行计数(L315-319) | F4-g |
+| 同 | 324-330 | §3 持仓名数: 数量非有限单列计数 | F4-h |
+| 同 | 346-386 | §3b: readback 名义非有限行排除并计数; 权益三态(None/NaN/inf、0、有限非零); 有未知行 ⇒ 带宽 NOT JUDGED | F4-a, b |
+| 同 | 388-420 | §3b INTENT: target_gross 非有限 ⇒ UNKNOWN 且不印差; 0 ⇒ 比率 UNDEFINED | F4-c |
+| 同 | 622-642 | §3c maker 成交率: 已提交腿意图非有限 ⇒ UNMEASURED + 计数; **自审追加**: 已提交腿意图全为 0 ⇒ UNDEFINED(旧式印「no maker leg was submitted」) | F4-f |
+| `ops/gate_coverage.py` | 159, 160 | 两个套件的盲区自述各加 round 4 段: DS (g) 能力格 / (h) 过期 nav 行回退登记; RTB (h) not_null 列的 None 由共用读法覆盖、非夹具行 / (i) `target_w` 登记 | — |
+| `live/tests_daily_summary.py` | 451-806 [R4] / 807-832 [R4-F] / 833-918 [R4-E2E] | **+35 格**: 25 单元格(研究员 nav 夹具原样 + 邻格 + 反向 + 不变式) / 4 成交率分母格 / 6 原链格(`main` 在两棵临时账本树上, 子进程) | 9b 全部 |
+| `live/tests_readers_three_bucket.py` | 404-608 [D-R4] | **+15 格**: 8 棵临时树 × `first_anchor_review` 全文件 exec(同 [D] 的 `run_review`) | F4-a..h |
+| `live/cost_buckets.py` / `ops/score_post_fix.py` / `run_acceptance.sh` / `live/pilot_metrics.py` | — | **未改**(sha 同 §8f; `check_metrics_freeze` = FROZEN_MATCH) | — |
+
+**两处自审追加的来由**(事实表之后、按「列出每个 continue/return 出口并问它丢了哪件事实」): ① 下限表的 `continue` 本来就会静默丢掉无缓存条目的名字, 本轮让 NaN mid 也走这条出口 —— 而本文件自己的首条原则是「IT REPORTS ABSENCE AS ABSENCE」, 所以计数; ② 成交率的 `else` 把「有已提交腿但意图全为 0」也说成「没有提交」—— 0 是值, 不是缺席。二者皆有红-绿格(F4-g (ii) / F4-f (ii))。
+
+**测试装置的两点说明**: round-4 格经 `_ok` / `_ex` 求值 —— 单格异常只记该格 FAIL 并在段尾点名, 不中止套件, 所以「新测试 × 修前读者」给出逐格红表而不是停在第一个 KeyError; 每格先断言**两版读者都写的键**上的实质量, 新记录字段单独成「(new record field)」格, 反向格只读旧键、必须在两版上都绿。
+
+### 9e. 计数与版本配对 (收据 `receipts/w2_readers_three_bucket/round4_*`; 汇总 `round4_run_summary.txt`, 07:54:20Z → 07:55:22Z, 跑前跑后 9 文件 sha 相同)
+
+| 树 | `tests_daily_summary` | `tests_readers_three_bucket` |
+|---|---|---|
+| 克隆 `exec_w2`(有账本副本) | **106 checks + 2 SKIP, rc 0** | **75 checks + 0 SKIP, rc 0** |
+| `exec_w2_noledger`(新鲜克隆形态, 无账本) | **101 checks + 6 SKIP, rc 0** | **72 checks + 3 SKIP, rc 0** |
+| 修前读者 `exec_w2_prev4` × 新测试 | **rc 1, 29 FAIL**(全在 [R4] / [R4-F] / [R4-E2E]), 77 OK | **rc 1, 12 FAIL**(全在 [D-R4]), 63 OK |
+
+- **有账本的 2 个 SKIP 是墙钟, 不是本轮**: 同一时刻修前树跑 round-3 测试也是 71 checks + 2 SKIP(收据 `round4_prereaders_round3tests_tests_daily_summary_wallclock_SKIP.log`) —— 账本副本最新 nav 行 09-12 08:45Z 已滑出 24h 窗, Q2 与 [C] 残差格按 SKIP 机制声明。§8e 的 73/0 取于 09-13 更早时刻。71 + 35 = 106。
+- 修前读者上 **只有两格抛异常**(两个 `(new record field)` 格, KeyError `equity_start`), 其余 27 个红格按**值**判红; 两版皆绿的是 6 个反向/原链格(R4-f ×2、R4-h、R4-k、意图 0、E2E-1 exit 0)与 RTB 的 3 格(全有限 §3b、全有限下限表行、钉住字串)。
+
+| 格 | 修前读者实际输出(红格收据里的 extra) | 新读者 |
+|---|---|---|
+| R4-a 研究员 0→100 | computable True, 残差 **−100.0**, Δ权益 0.0 | True, **0.0**, Δ权益 +100.0 |
+| R4-b 末端 NaN | True, **NaN** | False, None, 理由「窗口末行的 `nav` 不是有限数 (nan)」 |
+| R4-c 末端 None | True, **−100.0** | False, None, 理由带 `None` |
+| R4-d 首端 None | True, **0.0** | False, None, 理由「窗口首行」 |
+| R4-e ±inf | (True, −inf) ×2 | False ×2 |
+| R4-g 末端 wallet None | holds **False**, 恒等式残差 100.0, wallet 0.0 | holds None「无法核对」, wallet None, 残差照算 0.0 |
+| R4-i 流 NaN | state **outflow**, NaN | not_observable, None |
+| R4-j [36.82261, None] | **36.82261 inflow** | None, not_observable |
+| R4-l 跨日 D2 末行 None | 渲染「+36.82 [覆盖 1 天]」 | None; 页面 UNKNOWN + D2 未知 + D1 已知 |
+| R4-m 意图 None | 成交率 **100.0**, 意图 100.0 | None, None, 计数 1 |
+| 意图 NaN 邻格 | 率 **nan** | None |
+| E2E-1 原链 | 「★★ 非交易原因的权益变化 **−100.0000**」; gross 列 **nan**; 「浮动 +0.0000 → **+0.0000**」 | 无残差句; gross **n/a**; 「+0.0000 → 不可观测」 |
+| E2E-2 原链末端 NaN | 「权益 (equity/nav) **nan**」「目标敞口 = nan × 2.00 = nan」; **无**拒算句 | 两行「不可观测」; 拒算句点名末行 nav |
+| F4-a readback NaN | 「VENUE net **+nan** / gross nan」「net/equity +nan% => **★★ ABOVE 15%**」 | 排除并计数; −100 / 900; NOT JUDGED |
+| F4-h 数量 NaN | 「2 of 3 read back」无注 | 附「1 row(s) with UNKNOWN venue_position_qty」 |
+| F4-b 权益 NaN | 「net/equity +nan% (equity nan) => **★★ ABOVE 15%**」 | NOT OBSERVABLE (nan) |
+| F4-b (ii) 权益 0 | 「daily_nav.nav — net/equity cannot be formed」(缺席措辞) | 「is 0 — UNDEFINED (division by zero), so no band is judged」 |
+| F4-c target_gross NaN | 「INTENT net **+nan**」「VENUE minus INTENT: **+nan**」 | INTENT UNKNOWN, 不印差 |
+| F4-c (ii) target_gross 0 | 「( **+0.00%** of target_gross)」 | 「ratio UNDEFINED — target_gross is 0」, 差照印 −100.00 |
+| F4-d 每名名义 | 「**~$nan**」 | UNKNOWN |
+| F4-e 成交 NaN | 非零 **3** / 未知 **0** | 2 / 1(与 §3c 同读法) |
+| F4-f 意图 None | 「maker fill-rate (notional) **>= 75.00%**」 | UNMEASURED: 1 of 3 |
+| F4-f (ii) 意图全 0 | 「**no maker leg was submitted**」 | 「intended notional of 0 — fill-rate UNDEFINED」 |
+| F4-g 下限表 | YYY「min_qty x px $ **0.00** binding: **min_notional**」; VVV「$ **nan** binding: min_notional」; WWW「intended $ **0.00**」 | YYY n/a + UNKNOWN; VVV 不入表并计数; WWW n/a |
+
+**邻格套件(最终码)**: `tests_review_anchor_scoping` 8/8(逐字注入靶未动)· `tests_reject_topup` 40 · `tests_fills_supersede` 19/19 · `tests_score_anchor_selection` ALL PASS · `tests_rehearsal_anchor` ALL PASS · `tests_static_names` ALL PASS · `tests_imports` ALL PASS · `check_metrics_freeze` FROZEN_MATCH · `gate_coverage` 133 套件全部有边界自述。**全电池未跑**(派单: lead 跑叠层)。
+
+### 9f. 研究员探针回归 (收据 `receipts/w2_readers_three_bucket/round4_probe_regression/`, 逐字命令与 rc 见其 `COMMANDS.txt`)
+
+原探针**不在原地跑**: 它把 `w2_receipt.json` 写进研究员证据目录。拷贝只改路径 —— `audit_common.py` 7 行(`OUT_SRC` = 研究员 monitoring 目录, 冻结输入与清单 sha 校验照旧; `OUT` = 收据目录; `W2` 可由 `REGRESS_W2` 改指), 探针 2 行(两处 `C.OUT/private/...` → `C.OUT_SRC/private/...`), 断言逐字节不变。
+
+| # | 探针 | 被测树 | rc | 结果 |
+|---|---|---|---|---|
+| 1 | 原断言 | 研究员冻结快照 | **0** | stdout 与 `probe_w2_round3_success.log` 逐字节相同 |
+| 2 | 原断言 | 修前树 `exec_w2_prev4` | **0** | 同上, 逐字节相同 |
+| 3 | 原断言 | **修后克隆** | **1** | 第 121 行 `assert nav['equity_nan']['unexplained_computable'] and math.isnan(...)` 失败 —— 之前全部断言(E6 旧例、容差边界、两个载体 mock、1,200 人口成员检查、真锚 185 笔、255 行事故、首锚屏、四个资金流格)在修后克隆上通过 |
+| 4 | 合同式(第 121-122 行两条编码缺陷的断言换成 round-4 合同 + 版本配对: 918559f 与 0158f5d1 仍须复现缺陷) | **修后克隆** | **0** | stdout 与研究员日志只差 `nav_residuals` 四行: equity_nan / equity_none / start_equity_none → null, valid_zero_start_deposit −100.0 → **0.0** |
+| 5 | 合同式 | 研究员冻结快照 | **1** | 第 122 行失败(负控) |
+| 6 | 合同式 | 修前树 `exec_w2_prev4` | **1** | 第 122 行失败(负控) |
+
+研究员工作树跑后 `git status --short` 0 行。
+
+### 9g. sha256 (最终; = `round4_sha_after.txt`)
+```
+0d31d10a1353f4ba36702b22b8d0db94551f81dc884055ceb7b52e5e2375dfda  live/cost_buckets.py            (未改)
+e4e57b5beb8fb34201733cb335a58ae50408bec081b085a39e71712f73be7f3f  live/tests_daily_summary.py
+0bb56e0cabdd7030d84274001a7e90c4da7c5835d63b35d8b8583c9e60317813  live/tests_readers_three_bucket.py
+bf4151a8365c3c8224842c0fb00aae658332e20020d1792b9419afbe7d9eea8f  ops/daily_summary.py
+18e8ad8cdfb978fbd819262b964293289adb56a72a6fef4be0596fdec4d54a70  ops/first_anchor_review.py
+cee4a48cd963487900c625e094170438144b0275eb53842dcf44af86b21e64e6  ops/gate_coverage.py
+3c307356e8c6eeecec5ac3b21546fe5abf124839a36d3047aac71e51c0341277  ops/score_post_fix.py           (未改)
+4a0e7ec0d9851b52ea22815c016c974dc865967cf0b8a58ec0213437af3b7ce1  run_acceptance.sh               (未改)
+5ac7b16d0f97f2f8013da728ab18f4f3787bc17c2192c1dba63e64e637c08f1f  live/pilot_metrics.py           (未改; FROZEN_MATCH)
+2ad1c27203b5726aecd0feb3add9ffb7b865168d5ebb674208e72d6ad3ce802c  docs/receipts/w2_readers_three_bucket.diff  (ops/ live/ run_acceptance.sh only)
+```
+diff 校验: 三个未改文件的 diff 段与上一版 diff(`6b9e5e86…`)逐字节相同(生成命令一致); `git archive 918559f` 解出基线 + `git apply` 本 diff ⇒ 8 个文件与克隆逐字节相同。
+
+### 9h. 本轮明写不做 / 未闭合
+- **能力修复, 非既成事故**: 账本副本 251 nav 行 / 250 anchor 行 / 74,860 order 行 / 49,117 readback 行里, nav、wallet、target_gross、readback 名义与数量、意图名义均无 None 与非有限值, 无 0 权益(收据 `round4_ledger_numeric_census.out`); 交易所缓存副本 658/658 symbol 两个过滤器有限。未观察到任何一格在真实日发生。
+- **影响面**: 两个只读报表(每日摘要、首锚复审屏); 未发现交易处置或看门狗读取这些字段(与研究员 monitoring §5 的消费者搜索一致, 本轮未另做全仓消费者普查)。
+- **登记, 未改**: `daily_summary` 窗口内无 nav 行时 `or nav_all[-1:]` 回退到账本最新行且不声明在窗外(过期行, 不同族); §3b INTENT 的 `target_w` `is not None` 跳过(NaN 印可见 nan); 两者见 9c 与 `gate_coverage` 盲区。
+- **不变的保留项**(§8g/§8h 原样): 冻结 `pilot_metrics.m1` 与看门狗 §4-1 仍直接吃 m1 —— 「所有消费者已统一」仍然**不得**写。
+- 未提交 / 未推送 / 未部署; 运行目录 `~/dl_quant_live` 与 `~/wide_shadow` 未写; 未读 `.env`; 无网络。

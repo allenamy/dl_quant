@@ -199,7 +199,7 @@ index 0000000..0c3fd58
 +        parts.append("bps UNMEASURED (not 0)")
 +    return "; ".join(parts)
 diff --git a/live/tests_daily_summary.py b/live/tests_daily_summary.py
-index 9a619ca..610abd2 100644
+index 9a619ca..7ca5116 100644
 --- a/live/tests_daily_summary.py
 +++ b/live/tests_daily_summary.py
 @@ -25,7 +25,7 @@ import sys
@@ -283,7 +283,7 @@ index 9a619ca..610abd2 100644
  check("★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can "
        "check the scope rather than trust it",
        "不跨 00:00Z" in OUT or "不足以给出" in OUT)
-@@ -216,10 +232,346 @@ check("★★★ the suppressed (tier-B/C) classes are listed with counts — ot
+@@ -216,10 +232,690 @@ check("★★★ the suppressed (tier-B/C) classes are listed with counts — ot
        "被记录但未推送" in OUT)
  check("★★ tier-A is re-listed too, so a page that arrived while nobody was watching is not lost",
        "需要决定的" in OUT)
@@ -494,6 +494,237 @@ index 9a619ca..610abd2 100644
 +      and "跨越 00:00Z" in str(DS.account_facts([dict(_C0, day="20260911"),
 +                                                _C1])["unexplained_why_not"]))
 +
++# ── round 4 (2026-09-13): the EQUITY endpoints get the three states the other two terms have ─────
++# ★★★ INHERITED DEFECT (researcher round-3 monitoring RESULT §5, NAV-R3-1; present in 918559f and in
++#     both earlier W2 versions). `n0.get('nav') or eq`: a legitimate starting equity of 0 is falsy, so
++#     the START was replaced by the END — Δequity 0 — and a window that took a deposit of 100 into an
++#     empty account printed -100 of "money nobody can attribute". A NaN end equity kept
++#     `unexplained_computable=True`; a None read as 0. The fixtures are the researcher's own
++#     (`probe_w2_round3.py` nav_cases), copied verbatim, so this section pairs with that probe.
++#     Fact table: quant_research/docs/DESIGN_readers_three_bucket_2026-09-12.md §9b.
++# ★ Cell layout, so that this file run against the PRE-FIX readers is itself evidence: each cell
++#   tests the substantive old-key quantity FIRST (the pre-fix reader fails it on its value, not on a
++#   missing key); new record fields are asserted in their own "(new record field)" cells; REVERSE
++#   cells read only keys both readers write, and must pass on both.
++print("\n[R4] ★★★ equity endpoints: a finite 0 is a value; None / NaN / inf are NOT OBSERVABLE")
++
++# ★ round-4 cells evaluate through `_ok` / `_ex`: an exception inside ONE cell — e.g. a key the
++#   pre-round-4 reader never wrote — is a FAIL of that cell, not an abort of the suite, so running this
++#   file against the pre-fix readers lists every red cell instead of stopping at the first KeyError.
++_OK_ERR = []
++
++
++def _ok(fn):
++    try:
++        return bool(fn())
++    except Exception as e:                     # a cell that cannot evaluate is a FAIL, named below
++        _OK_ERR.append(f"{type(e).__name__}: {e}")
++        return False
++
++
++def _ex(fn):
++    try:
++        return fn()
++    except Exception as e:
++        return f"<{type(e).__name__}: {e}>"
++import math as _math
++_RB = dict(day='20260912', wallet_balance=100., unrealised_pnl=0., nav=100., external_flow_usdt=1000.,
++           realised_pnl=0., realised_by_type_asset={}, realised_truncated=False)
++_R4 = {
++    'prior_1000_both': [_RB, dict(_RB)],
++    'same_day_transfer_20': [_RB, dict(_RB, external_flow_usdt=1020., nav=120., wallet_balance=120.)],
++    'equity_nan': [_RB, dict(_RB, nav=float('nan'))],
++    'equity_none': [_RB, dict(_RB, nav=None)],
++    'start_equity_none': [dict(_RB, nav=None), _RB],
++    'valid_zero_start_deposit': [dict(_RB, nav=0., wallet_balance=0., external_flow_usdt=0.),
++                                 dict(_RB, nav=100., wallet_balance=100., external_flow_usdt=100.)],
++    'start_equity_inf': [dict(_RB, nav=float('inf')), _RB],
++    'end_equity_neg_inf': [_RB, dict(_RB, nav=float('-inf'))],
++    'end_wallet_none': [_RB, dict(_RB, wallet_balance=None)],
++}
++_F4 = {k: DS.account_facts(v) for k, v in _R4.items()}
++_RES = lambda f: (f.get("unexplained_computable"), f.get("unexplained_equity_change"),
++                  f.get("unexplained_why_not"))
++
++
++def _old_resid_r3(rows):
++    """The ROUND-3 reader's residual with its equity term VERBATIM (`n1.get('nav') or 0.0`,
++    `n0.get('nav') or eq`) and its interval-flow / realised terms as they were (correct on these
++    rows) — the MUTATION each [R4] equity cell is judged against."""
++    n0, n1 = rows[0], rows[-1]
++    eq = float(n1.get("nav") or 0.0)
++    d_eq = eq - float(n0.get("nav") or eq)
++    flow = float(n1["external_flow_usdt"]) - float(n0["external_flow_usdt"])
++    return round(d_eq - (float(n1["realised_pnl"]) - float(n0["realised_pnl"])) - flow, 6)
++
++
++_fz = _F4['valid_zero_start_deposit']
++check("★★★ R4-a the researcher's counterexample: equity 0 → 100 with a deposit of 100 inside the "
++      "window ⇒ the residual is 0.0, not -100 — a starting equity of 0 is a VALUE, not a missing one",
++      _ok(lambda: _fz["unexplained_computable"] is True and _fz["unexplained_equity_change"] == 0.0
++      and _fz["equity_change"] == 100.0 and _fz["external_flow_interval_usdt"] == 100.0),
++      _ex(lambda: (_RES(_fz)[:2], _fz.get("equity_change"))))
++check("★★ R4-a (new record field) the start endpoint is carried on the record, as the value 0.0",
++      _ok(lambda: _fz["equity_start"] == 0.0 and _fz["equity_start_observable"] is True
++      and _fz["equity_change_why_not"] is None))
++check("★★★ MUTATION R4-a: the round-3 equity term (`n0.get('nav') or eq`) replaces the start by the "
++      "end on these very rows and gives -100.0; the reader under test gives 0.0",
++      _ok(lambda: _old_resid_r3(_R4['valid_zero_start_deposit']) == -100.0 and _fz["unexplained_equity_change"] == 0.0),
++      _ex(lambda: f"old {_old_resid_r3(_R4['valid_zero_start_deposit'])} vs under test {_fz.get('unexplained_equity_change')}"))
++_lz = DS.render_account(_fz)
++check("★★ ...and the rendered page does not print '非交易原因的权益变化 -100.0000' for it; the equity "
++      "line reads 100.00",
++      _ok(lambda: not any("非交易原因的权益变化" in l for l in _lz)
++      and any("(equity/nav)" in l and "100.00" in l for l in _lz)),
++      _ex(lambda: [l.strip() for l in _lz if "非交易" in l or "(equity/nav)" in l]))
++
++_fn = _F4['equity_nan']
++check("★★★ R4-b end equity NaN ⇒ NOT OBSERVABLE: the residual REFUSES with the end row and its raw "
++      "value named, and nothing built on it is a number (Δequity, target exposure, identity)",
++      _ok(lambda: _fn["unexplained_computable"] is False and _fn["unexplained_equity_change"] is None
++      and _fn["equity"] is None and _fn["equity_change"] is None and _fn["target_exposure"] is None
++      and _fn["equity_identity_holds"] is None and _fn["equity_identity_residual"] is None
++      and "末行" in str(_fn["unexplained_why_not"]) and "nan" in str(_fn["unexplained_why_not"])
++      and "不是有限数" in str(_fn["unexplained_why_not"]) and _fn["equity_observable"] is False),
++      _ex(lambda: _RES(_fn)))
++check("★★★ MUTATION R4-b: NaN is truthy, so `nav or 0.0` KEEPS it — the round-3 residual on these rows "
++      "is NaN (and was marked computable); the reader under test gives None",
++      _ok(lambda: _math.isnan(float(float('nan') or 0.0)) and _math.isnan(_old_resid_r3(_R4['equity_nan']))
++      and _fn["unexplained_equity_change"] is None),
++      _ex(lambda: f"under test {_fn.get('unexplained_equity_change')}"))
++_ln = DS.render_account(_fn)
++_num_lines = [l for l in _ln if any(t in l for t in ("(wallet)", "(unrealised)", "(equity/nav)", "目标敞口 = 权益"))]
++check("★★★ ...and the page prints NOT OBSERVABLE on the equity line — no number line carries 'nan', "
++      "and the refusal sentence is on the page",
++      _ok(lambda: len(_num_lines) == 4 and not any("nan" in l.lower() for l in _num_lines)
++      and any("(equity/nav)" in l and "不可观测" in l for l in _num_lines)
++      and any("权益在窗口的一端不可观测" in l for l in _ln)),
++      _ex(lambda: [l.strip() for l in _num_lines]))
++_fe = _F4['equity_none']
++check("★★★ R4-c end equity None ⇒ the same refusal, with None named (not read as 0)",
++      _ok(lambda: _fe["unexplained_computable"] is False and _fe["unexplained_equity_change"] is None
++      and _fe["equity"] is None
++      and "末行" in str(_fe["unexplained_why_not"]) and "None" in str(_fe["unexplained_why_not"])),
++      _ex(lambda: _RES(_fe)))
++check("★★★ MUTATION R4-c: the round-3 reader read that None as equity 0 and printed -100.0; the reader "
++      "under test gives None",
++      _ok(lambda: _old_resid_r3(_R4['equity_none']) == -100.0 and _fe["unexplained_equity_change"] is None),
++      _ex(lambda: f"under test {_fe.get('unexplained_equity_change')}"))
++_fs = _F4['start_equity_none']
++check("★★★ R4-d START equity None ⇒ refuses and names the FIRST row; the end equity stays a value",
++      _ok(lambda: _fs["unexplained_computable"] is False and _fs["unexplained_equity_change"] is None
++      and _fs["equity"] == 100.0 and "首行" in str(_fs["unexplained_why_not"])
++      and "equity_start" in _fs and _fs["equity_start"] is None),
++      _ex(lambda: _RES(_fs)))
++check("★★★ MUTATION R4-d: the round-3 reader substituted the END for the missing start and printed a "
++      "residual of 0.0 — a zero that is not a measurement; the reader under test gives None",
++      _ok(lambda: _old_resid_r3(_R4['start_equity_none']) == 0.0 and _fs["unexplained_equity_change"] is None),
++      _ex(lambda: f"under test {_fs.get('unexplained_equity_change')}"))
++check("★★ R4-e neighbour: +inf at the start and -inf at the end are not numbers either",
++      _ok(lambda: _F4['start_equity_inf']["unexplained_computable"] is False
++      and "首行" in str(_F4['start_equity_inf']["unexplained_why_not"])
++      and _F4['end_equity_neg_inf']["unexplained_computable"] is False
++      and _F4['end_equity_neg_inf']["equity"] is None),
++      _ex(lambda: (_RES(_F4['start_equity_inf'])[:2], _RES(_F4['end_equity_neg_inf'])[:2])))
++check("★★ R4-f REVERSE (researcher's controls; passes on both readers): same-day 1000/1000 and a +20 "
++      "transfer with equity +20 compute a residual of 0.0",
++      _ok(lambda: _F4['prior_1000_both']["unexplained_computable"] is True
++      and _F4['prior_1000_both']["unexplained_equity_change"] == 0.0
++      and _F4['same_day_transfer_20']["unexplained_equity_change"] == 0.0))
++check("★★★ R4-f REVERSE on the [B] rows (passes on both readers): every account field equals the "
++      "pre-round-4 formula on finite endpoints — equity, wallet, unrealised, Δequity, target exposure, "
++      "identity, residual",
++      _ok(lambda: F["equity"] == 2160.43 and F["wallet"] == 2150.43 and F["unrealised"] == 10.0
++      and F["equity_change"] == round(2160.43 - 2155.60, 6)
++      and F["target_exposure"] == round(2160.43 * 2.0, 6)
++      and F["equity_identity_residual"] == round(2160.43 - (2150.43 + 10.0), 6)
++      and F["equity_identity_holds"] is True
++      and F["unexplained_equity_change"] == round((2160.43 - 2155.60) - (4.83 - 1.00) - 0.0, 6)),
++      _ex(lambda: (F.get("equity_change"), F.get("unexplained_equity_change"))))
++check("★★ R4-f (new record field) on the same rows: both endpoints observable, start 2155.60, no reason "
++      "attached to anything",
++      _ok(lambda: F["equity_start"] == 2155.60 and F["equity_observable"] is True
++      and F["equity_start_observable"] is True and F["account_snapshot_why_not"] == []
++      and F["equity_identity_why_not"] is None and F["equity_change_why_not"] is None))
++_fw = _F4['end_wallet_none']
++_lw = DS.render_account(_fw)
++check("★★★ R4-g end wallet_balance None ⇒ the identity CANNOT BE CHECKED (None, reason named) — it is "
++      "not 'broken'; equity, target exposure and the residual do not depend on it and stay numbers",
++      _ok(lambda: _fw["equity_identity_holds"] is None and _fw["equity_identity_residual"] is None
++      and _fw["wallet"] is None and _fw["equity"] == 100.0 and _fw["target_exposure"] == 200.0
++      and _fw["unexplained_computable"] is True and _fw["unexplained_equity_change"] == 0.0
++      and any("无法核对" in l for l in _lw) and not any("恒等式不该被破坏" in l for l in _lw)
++      and "wallet_balance" in str(_fw["equity_identity_why_not"])),
++      _ex(lambda: (_fw.get("equity_identity_holds"), _fw.get("equity_identity_residual"), _fw.get("wallet"))))
++_old_holds_w = abs(100.0 - (float(None or 0.0) + float(0.0 or 0.0))) < 0.01
++check("★★★ MUTATION R4-g: `wallet_balance or 0.0` made the identity residual +100 and `holds` False — "
++      "the old page printed '这个恒等式不该被破坏' for a row that merely lacked the field; the reader under "
++      "test gives None",
++      _ok(lambda: _old_holds_w is False and _fw["equity_identity_holds"] is None),
++      _ex(lambda: f"under test {_fw.get('equity_identity_holds')}"))
++check("★★ R4-h REVERSE (passes on both readers): an unrealised P&L of exactly 0 (14 rows on the ledger "
++      "copy) is a value — the identity is checked and holds",
++      _ok(lambda: _F4['prior_1000_both']["unrealised"] == 0.0 and _F4['prior_1000_both']["equity_identity_holds"] is True))
++_inv = [(k, v["unexplained_computable"], v["unexplained_equity_change"], v["unexplained_why_not"])
++        for k, v in _F4.items()]
++check("★★★ INVARIANT over every [R4] account cell: computable ⇒ the residual is a FINITE number and no "
++      "reason; not computable ⇒ the residual is None and a reason is given",
++      _ok(lambda: all((c is True and isinstance(r, float) and _math.isfinite(r) and w is None)
++          or (c is False and r is None and isinstance(w, str) and w) for _, c, r, w in _inv)),
++      _ex(lambda: [x[:3] for x in _inv]))
++
++# ── round 4: the day-cumulative flow — the day's LAST row decides, and non-finite is UNKNOWN ────
++def _old_flow(rows):
++    """The pre-round-4 per-day loop, VERBATIM: skip None, float() the rest, last kept row wins."""
++    _bd = {}
++    for r in rows:
++        _v = r.get("external_flow_usdt")
++        if _v is not None:
++            _bd[r.get("day")] = float(_v)
++    x = sum(_bd.values()) if _bd else None
++    return x, ("not_observable" if x is None else "zero" if abs(x) < 1e-9 else
++               "inflow" if x > 0 else "outflow")
++
++
++_q1 = [dict(_RB, external_flow_usdt=float('nan'))]
++_fq1 = DS.account_facts(_q1)
++check("★★★ R4-i a day whose last row carries flow NaN ⇒ that day's flow is UNKNOWN: state "
++      "not_observable, total None, the day named",
++      _ok(lambda: _fq1["external_flow_state"] == "not_observable" and _fq1["external_flow_usdt"] is None
++      and _fq1["external_flow_unknown_days"] == ["20260912"]),
++      _ex(lambda: (_fq1.get("external_flow_state"), _fq1.get("external_flow_usdt"))))
++check("★★★ MUTATION R4-i: the old loop let the NaN through as a number — state 'outflow' (NaN fails "
++      "both comparisons), printed '+nan'; the reader under test says not_observable",
++      _ok(lambda: _old_flow(_q1)[1] == "outflow" and _math.isnan(_old_flow(_q1)[0])
++      and _fq1["external_flow_state"] == "not_observable"),
++      _ex(lambda: (_old_flow(_q1), _fq1.get("external_flow_state"))))
++_q2 = [dict(_RB, external_flow_usdt=36.82261), dict(_RB, external_flow_usdt=None)]
++_fq2 = DS.account_facts(_q2)
++check("★★★ R4-j a day whose LAST row is None after a finite row ⇒ the day is UNKNOWN — an earlier "
++      "cumulative does not stand for the whole day",
++      _ok(lambda: _fq2["external_flow_usdt"] is None and _fq2["external_flow_state"] == "not_observable"
++      and _fq2["external_flow_unknown_days"] == ["20260912"]),
++      _ex(lambda: (_fq2.get("external_flow_usdt"), _fq2.get("external_flow_state"))))
++check("★★★ MUTATION R4-j: the old loop skipped the None and reported the earlier 36.82261 as the day's "
++      "inflow — a transfer after that row would have vanished; the reader under test gives None",
++      _ok(lambda: _old_flow(_q2) == (36.82261, "inflow") and _fq2["external_flow_usdt"] is None),
++      _ex(lambda: (_old_flow(_q2), _fq2.get("external_flow_usdt"))))
++_q3 = [dict(_RB, external_flow_usdt=None), dict(_RB, external_flow_usdt=36.82261)]
++check("★★ R4-k REVERSE (passes on both readers): a None EARLIER in the day loses nothing — the last row "
++      "is cumulative since 00:00Z — so the day reads 36.82261 inflow",
++      _ok(lambda: DS.account_facts(_q3)["external_flow_usdt"] == 36.82261
++      and DS.account_facts(_q3)["external_flow_state"] == "inflow" and _old_flow(_q3) == (36.82261, "inflow")))
++_q4 = [dict(_RB, day="20260911", external_flow_usdt=36.82261), dict(_RB, external_flow_usdt=None)]
++_fq4 = DS.account_facts(_q4)
++_lq4 = DS.render_account(_fq4)
++check("★★ R4-l neighbour across days: D1 known, D2's last row None ⇒ total None, D1 still listed, D2 "
++      "named unknown on the page (the old loop reported D1's 36.82261 as the window's inflow)",
++      _ok(lambda: _fq4["external_flow_usdt"] is None and _fq4["external_flow_by_day"] == {"20260911": 36.82261}
++      and _old_flow(_q4) == (36.82261, "inflow")
++      and any("UNKNOWN" in l and "20260912" in l and "20260911" in l for l in _lq4)
++      and _fq4["external_flow_unknown_days"] == ["20260912"]),
++      _ex(lambda: [l.strip() for l in _lq4 if "TRANSFER" in l]))
++
 +_split = [r for r in _NAV_ROWS if isinstance(r.get("realised_by_type_asset"), dict)]
 +if _split:
 +    _r = _split[-1]
@@ -630,15 +861,128 @@ index 9a619ca..610abd2 100644
 +    skip("★★ F6 REAL LEDGER 2026-09-12 08:00Z (A1789201439): coverage 1.0 and new == old",
 +         "this tree lacks pilot_log/20260912 with anchor A1789201439")
 +
++# ── round 4: the maker fill-rate DENOMINATOR, and the ORIGINAL CHAIN end to end ─────────────────
++print("\n[R4-F] ★★★ the fill-rate denominator: an unknown intent is not a 0 intent")
++_MI = [_orow("AAAUSDT", 50.0, 100.0, 100.0, 0.0, intended=100.0),
++       dict(_orow("BBBUSDT", 50.0, 100.0, 100.0, 0.0, intended=100.0), intended_notional=None)]
++_cmi = DS.anchor_cost_facts(_MI)
++_M0 = [_orow("AAAUSDT", 50.0, 100.0, 100.0, 0.0, intended=100.0),
++       _orow("BBBUSDT", 0.0, 100.0, 100.0, 0.0, intended=0.0)]
++_old_want = sum(abs(float(o.get("intended_notional") or 0)) for o in _MI if o.get("order_type") == "maker")
++check("★★★ R4-m a maker leg whose intended notional is None ⇒ the denominator is UNKNOWN: no fill-rate, "
++      "the leg counted (and the counter reads 0 when every intent is a number)",
++      _ok(lambda: _cmi["maker_fill_rate_pct"] is None and _cmi["maker_intended_usdt"] is None
++      and _cmi["maker_n_unknown_intended"] == 1
++      and DS.anchor_cost_facts(_M0)["maker_n_unknown_intended"] == 0),
++      _ex(lambda: (_cmi.get("maker_fill_rate_pct"), _cmi.get("maker_intended_usdt"))))
++check("★★★ MUTATION R4-m: `intended_notional or 0` dropped that leg from the denominator — 100 filled "
++      "over 100 intended read 100%, unlabelled, where the legs asked for 200; the reader under test "
++      "gives no rate",
++      _ok(lambda: _old_want == 100.0 and abs(100.0 * 100.0 / _old_want - 100.0) < 1e-9
++      and _cmi["maker_fill_rate_pct"] is None),
++      _ex(lambda: f"under test {_cmi.get('maker_fill_rate_pct')}"))
++check("★★ neighbour: a NaN intent is equally unknown",
++      _ok(lambda: DS.anchor_cost_facts([_MI[0], dict(_MI[1], intended_notional=float('nan'))])["maker_fill_rate_pct"] is None),
++      _ex(lambda: DS.anchor_cost_facts([_MI[0], dict(_MI[1], intended_notional=float('nan'))]).get("maker_fill_rate_pct")))
++check("★★ REVERSE (passes on both readers): an intent of exactly 0 is a value (6,770 such maker rows on "
++      "the ledger copy) — the rate is 50/100 = 50%",
++      _ok(lambda: DS.anchor_cost_facts(_M0)["maker_fill_rate_pct"] == 50.0))
++
++print("\n[R4-E2E] ★★★ the ORIGINAL CHAIN: `daily_summary.main` over temp ledgers (not the helper)")
++import shutil as _shutil
++import tempfile as _tempfile
++import pilot_log as _PL                   # noqa: E402  (on sys.path via daily_summary's own insert)
++_T0 = 1789286400.0                        # 2026-09-13T08:00:00Z
++_R4TMP = []
++
++
++def _r4_tree(nav_rows, target_gross):
++    root = _tempfile.mkdtemp(prefix="ds_r4_")
++    _R4TMP.append(root)
++    lg = _PL.PilotLogger(os.path.join(root, "pilot_log"), "20260913")
++    lg.anchor(anchor_ts=_T0, target_vector_hash="h", realized_gross=0, target_gross=target_gross,
++              n_names_skipped=0, regime_at_anchor="calm", mid_at_anchor_vector={"AAAUSDT": 100.0},
++              factor_version="{}", panel_hash="p", rebalance_id=f"A{int(_T0)}", opening_halted=False)
++    lg.order(anchor_ts=_T0, symbol="AAAUSDT", side="buy", target_w=0.1, prev_w=0.0,
++             intended_notional=100.0, order_type="maker", submit_ts=_T0 + 1, price_submit=100.0,
++             mid_at_submit=100.0, mid_at_anchor=100.0, filled_notional=100.0, avg_fill_px=100.01,
++             first_fill_ts=_T0 + 2, last_fill_ts=_T0 + 3, cancel_ts=None, fee_paid=0.02,
++             rebalance_id=f"A{int(_T0)}", attempt_idx=1, terminal_reason="filled",
++             notional_currency="USDT", fee_all_usdt=True, fee_conversion=None)
++    for i, nr in enumerate(nav_rows):
++        lg.daily_nav(**dict(dict(day="20260913", target_gross=200.0, realised_pnl=0.0,
++                                 realised_by_type_asset={}, realised_truncated=False,
++                                 nav_ts=_T0 + 60 * (i + 1)), **nr))
++    lg.close()
++    open(os.path.join(root, "notify_audit.jsonl"), "w").close()   # this tree's own (empty) alarm log
++    return root
++
++
++def _r4_run(root):
++    code = (
++        "import os, sys\n"
++        f"sys.path.insert(0, {os.path.join(_REPO, 'live')!r})\n"
++        "import state_root as SR\n"
++        f"SR.root_for = lambda m=None: {root!r}\n"
++        f"SR.paths_for = lambda m=None: dict(root={root!r}, pilot_log=os.path.join({root!r}, 'pilot_log'))\n"
++        "sys.argv = ['daily_summary', '--since', '2020-01-01T00:00:00Z', '--mode', 'LIVE']\n"
++        f"exec(compile(open({os.path.join(_REPO, 'ops', 'daily_summary.py')!r}).read(), 'daily_summary', "
++        "'exec'), {'__name__': '__main__', '__file__': "
++        f"{os.path.join(_REPO, 'ops', 'daily_summary.py')!r}}})\n")
++    return subprocess.run(["/usr/bin/python3", "-c", code], capture_output=True, text=True,
++                          cwd=_REPO, timeout=120)
++
++
++_e1 = _r4_run(_r4_tree([dict(nav=0.0, wallet_balance=0.0, unrealised_pnl=0.0, external_flow_usdt=0.0),
++                        dict(nav=100.0, wallet_balance=100.0, unrealised_pnl=None,
++                             external_flow_usdt=100.0)], target_gross=float("nan")))
++_o1 = _e1.stdout
++_acct1 = _o1.split("【账户】", 1)[-1].split("【逐锚】", 1)[0]
++_tab1 = _o1.split("【逐锚】", 1)[-1].split("【被记录但未推送】", 1)[0]
++check("★★★ E2E-1 (passes on both readers) the entry point runs to exit 0 on a tree with equity 0 → 100, "
++      "a deposit of 100, an end unrealised of None and an anchor whose target_gross is NaN",
++      _ok(lambda: _e1.returncode == 0 and "【账户】" in _o1 and "【逐锚】" in _o1), _ex(lambda: (_e1.stderr or "")[-300:]))
++check("★★★ E2E-1 account section: no '非交易原因的权益变化' (the old page printed -100.0000 here); the "
++      "window's own flow of +100.00 is on the page",
++      _ok(lambda: "非交易原因的权益变化" not in _acct1 and "区间内**的资金流 +100.00" in _acct1),
++      _ex(lambda: [l.strip() for l in _acct1.splitlines() if "区间" in l or "非交易" in l]))
++_row1 = [l for l in _tab1.splitlines() if "09-13 08:00Z" in l]
++_tok1 = _row1[0].split() if _row1 else []
++check("★★★ E2E-1 per-anchor table: the NaN target_gross prints n/a in the GROSS column (8th field: anchor "
++      "day, time, cost, coverage, fill-rate, gap, neutral, gross) — never 'nan', never 0 (the old column "
++      "read `float(target_gross or 0)`); the cost column beside it is unchanged (+3.00)",
++      _ok(lambda: len(_row1) == 1 and len(_tok1) == 8 and _tok1[7] == "n/a" and _tok1[2] == "+3.00"
++      and "nan" not in _tab1.lower()), _ex(lambda: _row1))
++check("★★★ E2E-1 rotation block: the end unrealised of None prints 不可观测, not +0.0000",
++      _ok(lambda: "浮动   +0.0000 → 不可观测" in _o1), _ex(lambda: [l.strip() for l in _o1.splitlines() if "浮动   " in l]))
++_e2 = _r4_run(_r4_tree([dict(nav=100.0, wallet_balance=100.0, unrealised_pnl=0.0, external_flow_usdt=0.0),
++                        dict(nav=float("nan"), wallet_balance=100.0, unrealised_pnl=0.0,
++                             external_flow_usdt=0.0)], target_gross=200.0))
++_acct2 = _e2.stdout.split("【账户】", 1)[-1].split("【逐锚】", 1)[0]
++_nl2 = [l for l in _acct2.splitlines() if any(t in l for t in ("(wallet)", "(unrealised)", "(equity/nav)", "目标敞口 = 权益"))]
++check("★★★ E2E-2 end equity NaN through the entry point: exit 0; the equity and target-exposure lines "
++      "say 不可观测 and no number line carries 'nan' (the old page printed nan in both and no refusal)",
++      _ok(lambda: _e2.returncode == 0 and len(_nl2) == 4 and not any("nan" in l.lower() for l in _nl2)
++      and any("(equity/nav)" in l and "不可观测" in l for l in _nl2)
++      and any("目标敞口" in l and "不可观测" in l for l in _nl2)),
++      _ex(lambda: [l.strip() for l in _nl2] or (_e2.stderr or "")[-300:]))
++check("★★★ E2E-2 ...and the residual REFUSES on the page, naming the end row's nav",
++      _ok(lambda: "权益在窗口的一端不可观测" in _acct2 and "末行的 `nav`" in _acct2),
++      _ex(lambda: [l.strip() for l in _acct2.splitlines() if "不计算" in l or "非交易" in l]))
++for _t in _R4TMP:
++    _shutil.rmtree(_t, ignore_errors=True)
++if _OK_ERR:
++    print(f"  (round-4 cells that raised instead of evaluating — each counted as a FAIL above: {_OK_ERR})")
++
 +print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks"
 +      f"{', ' + str(len(SKIPS)) + ' SKIP (ledger-dependent, declared)' if SKIPS else ''})")
  sys.exit(1 if FAILS else 0)
 diff --git a/live/tests_readers_three_bucket.py b/live/tests_readers_three_bucket.py
 new file mode 100644
-index 0000000..0cc729a
+index 0000000..022faeb
 --- /dev/null
 +++ b/live/tests_readers_three_bucket.py
-@@ -0,0 +1,622 @@
+@@ -0,0 +1,834 @@
 +"""The READ-ONLY cost readers inherit the three buckets: cost_buckets / first_anchor_review §3c /
 +score_post_fix E6. A fill that could not be measured is NOT a free fill, and None is never 0.
 +
@@ -1035,6 +1379,218 @@ index 0000000..0cc729a
 +          for t in ("NOT ESTIMABLE", "_MIN_N, _MAX_SHARE = 5, 0.50", "largest is",
 +                    "collapse_supersedes", "backfill")))
 +
++# ═══ [D-R4] first_anchor_review: numeric fields three-state (round 4, 2026-09-13) ════════════════
++# ★★★ Same family as the daily summary's NAV-R3-1 (researcher round-3 monitoring RESULT §5), audited
++#     across this screen: `x or 0` made a legitimate 0 and a missing value the same 0 and let NaN
++#     through as a number (NaN is truthy). On the stop-decision block (§3b) that printed
++#     "★★ ABOVE 15%" for a NaN readback notional or a NaN equity. Fact table:
++#     quant_research/docs/DESIGN_readers_three_bucket_2026-09-12.md §9c (F4-a..h).
++# ★ Layout as in tests_daily_summary [R4]: substantive text first; REVERSE cells pass on both readers.
++print("\n[D-R4] ★★★ first_anchor_review: None / NaN / inf are NOT OBSERVABLE; a finite 0 is a value")
++_OK_ERR = []
++
++
++def _ok(fn):
++    try:
++        return bool(fn())
++    except Exception as e:                     # a cell that cannot evaluate is a FAIL, named below
++        _OK_ERR.append(f"{type(e).__name__}: {e}")
++        return False
++
++
++def _ex(fn):
++    try:
++        return fn()
++    except Exception as e:
++        return f"<{type(e).__name__}: {e}>"
++
++
++def _r4_tree(root, target_gross=900.0, orders=(), readbacks=(), nav=10000.0, cache=None):
++    """One anchor A1785931247 on DAY; rows written through the validating writer (NaN passes it,
++    None only where the schema allows). `cache` = the tree's own exchange_info_cache.json."""
++    lg = PL.PilotLogger(os.path.join(root, "pilot_log"), DAY)
++    rid = f"A{int(T0)}"
++    lg.anchor(anchor_ts=T0, target_vector_hash="h", realized_gross=0, target_gross=target_gross,
++              n_names_skipped=0, regime_at_anchor="calm", mid_at_anchor_vector={"EEEUSDT": 100.0},
++              factor_version="{}", panel_hash="p", rebalance_id=rid, opening_halted=False)
++    for o in orders:
++        base = dict(anchor_ts=T0, side="buy", target_w=0.1, prev_w=0.0, intended_notional=100.0,
++                    order_type="maker", submit_ts=T0 + 1, price_submit=100.0, mid_at_submit=100.0,
++                    mid_at_anchor=100.0, filled_notional=100.0, avg_fill_px=100.01,
++                    first_fill_ts=T0 + 2, last_fill_ts=T0 + 3, cancel_ts=None, fee_paid=0.02,
++                    rebalance_id=rid, attempt_idx=1, terminal_reason="filled",
++                    notional_currency="USDT", fee_all_usdt=True, fee_conversion=None)
++        base.update(o)
++        lg.order(**base)
++    for sym, notl, qty in readbacks:
++        lg.position_readback(anchor_ts=T0, symbol=sym, venue_position_notional=notl,
++                             venue_position_qty=qty, source="fixture")
++    lg.daily_nav(day=DAY, target_gross=1000.0, nav=nav, realised_pnl=0.0, unrealised_pnl=0.0,
++                 sizing_policy="constant_leverage_2.00", nav_ts=T0 + 60)
++    lg.close()
++    if cache is not None:
++        json.dump(cache, open(os.path.join(root, "exchange_info_cache.json"), "w"))
++
++
++def _block(out, start, end):
++    return out.split(start, 1)[-1].split(end, 1)[0] if start in out else ""
++
++
++_ORD2 = [dict(symbol="EEEUSDT", filled_notional=400.0, intended_notional=400.0),
++         dict(symbol="FFFUSDT", side="sell", filled_notional=-500.0, intended_notional=-500.0,
++              avg_fill_px=99.99)]
++_NAN = float("nan")
++_RB_OK = [("EEEUSDT", 400.0, 4.0), ("FFFUSDT", -500.0, -5.0)]
++
++# T1a — one readback row with a NaN notional and NaN quantity; equity finite
++_d = tempfile.mkdtemp(prefix="rtb_r4_pos_"); TMPS.append(_d)
++_r4_tree(_d, orders=_ORD2, readbacks=_RB_OK + [("GGGUSDT", _NAN, _NAN)])
++_o = run_review(_d)
++_b3b = _block(_o, "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★★ F4-a a readback row whose notional is NaN is an UNKNOWN position: excluded and COUNTED — "
++      "VENUE net/gross cover the two known rows (-100 / 900) and the band is NOT JUDGED, never "
++      "'★★ ABOVE 15%' (the pre-fix screen read `notional or 0.0`: NaN is truthy, net and gross went "
++      "NaN and the NaN ratio failed both band tests)",
++      _ok(lambda: "1 of 3 readback row(s) carry an UNKNOWN venue_position_notional — EXCLUDED" in _b3b
++      and "VENUE  net      -100.00 USDT   gross       900.00" in _b3b
++      and "NOT JUDGED — 1 readback row(s) with UNKNOWN notional" in _b3b
++      and "ABOVE 15%" not in _b3b and "nan" not in _b3b.lower()),
++      _ex(lambda: [l.strip() for l in _b3b.splitlines() if "VENUE" in l or "net/equity" in l or "UNKNOWN" in l][:4]))
++check("★★ F4-h ...and the same row's NaN quantity is neither held nor flat: the held-names line counts it "
++      "apart (pre-fix: `qty or 0` counted it as not held, silently)",
++      _ok(lambda: "names holding a position          2 of 3 read back   ★ 1 row(s) with UNKNOWN venue_position_qty" in _o),
++      _ex(lambda: [l.strip() for l in _o.splitlines() if "names holding" in l]))
++
++# T1b — equity NaN; T1c — equity 0; T1d — REVERSE, everything finite
++_d = tempfile.mkdtemp(prefix="rtb_r4_eqnan_"); TMPS.append(_d)
++_r4_tree(_d, orders=_ORD2, readbacks=_RB_OK, nav=_NAN)
++_b = _block(run_review(_d), "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★★ F4-b the last nav row's equity is NaN ⇒ net/equity NOT OBSERVABLE, the raw value named — "
++      "never a band (pre-fix: NaN passed `if equity:` and the band read '★★ ABOVE 15%')",
++      _ok(lambda: "net/equity cannot be formed: the last nav row's nav is not a finite number (nan) — NOT OBSERVABLE" in _b
++      and "ABOVE 15%" not in _b and "net/equity " not in _b.replace("net/equity cannot", "")),
++      _ex(lambda: [l.strip() for l in _b.splitlines() if "net/equity" in l or "nav" in l][:3]))
++_d = tempfile.mkdtemp(prefix="rtb_r4_eqzero_"); TMPS.append(_d)
++_r4_tree(_d, orders=_ORD2, readbacks=_RB_OK, nav=0.0)
++_b = _block(run_review(_d), "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★ F4-b (ii) equity exactly 0 ⇒ net/equity is UNDEFINED and says so — not the 'absent' wording "
++      "the pre-fix truthiness test gave a real 0",
++      _ok(lambda: "daily_nav.nav is 0 — net/equity is UNDEFINED (division by zero), so no band is judged" in _b
++      and "=> " not in _b and "ABOVE 15%" not in _b),
++      _ex(lambda: [l.strip() for l in _b.splitlines() if "nav" in l][:2]))
++_d = tempfile.mkdtemp(prefix="rtb_r4_ok_"); TMPS.append(_d)
++_r4_tree(_d, orders=_ORD2, readbacks=_RB_OK, nav=10000.0)
++_ook = run_review(_d)
++_b = _block(_ook, "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★ REVERSE (passes on both readers): all rows finite ⇒ VENUE net -100 / gross 900, net/equity "
++      "-1.00% NORMAL, INTENT +180 over the two names (target_w 0.1 each x 900), the difference -280, and "
++      "the held line has no UNKNOWN note",
++      _ok(lambda: "VENUE  net      -100.00 USDT   gross       900.00" in _b
++      and "net/equity  -1.00%   (equity 10,000.00)   => NORMAL" in _b
++      and "INTENT net      +180.00 USDT   (+20.00% of target_gross)   over the 2 names" in _b
++      and "⇒ VENUE minus INTENT: -280.00 USDT" in _b
++      and "names holding a position          2 of 2 read back\n" in _ook),
++      _ex(lambda: [l.strip() for l in _b.splitlines() if "VENUE" in l or "net/equity" in l or "INTENT" in l][:3]))
++
++# T2 — target_gross NaN (the intent block and the per-name line); T2z — target_gross exactly 0
++_d = tempfile.mkdtemp(prefix="rtb_r4_tgnan_"); TMPS.append(_d)
++_r4_tree(_d, target_gross=_NAN, orders=_ORD2, readbacks=_RB_OK)
++_o = run_review(_d)
++_b = _block(_o, "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★★ F4-c target_gross NaN ⇒ the INTENT net is UNKNOWN and no VENUE-minus-INTENT difference is "
++      "printed (pre-fix: `target_gross or 0.0` kept the NaN and printed 'INTENT net +nan' and a nan "
++      "difference; a None would have printed +0.00 and a difference equal to the whole venue net)",
++      _ok(lambda: "INTENT net UNKNOWN — target_gross is not a finite number (nan)" in _b
++      and "⇒ VENUE minus INTENT:" not in _b and "nan USDT" not in _b and "nan%" not in _b),
++      _ex(lambda: [l.strip() for l in _b.splitlines() if "INTENT" in l][:3]))
++check("★★ F4-d ...and the per-name notional line says UNKNOWN instead of '~$nan'",
++      _ok(lambda: "per-name notional                 UNKNOWN — target_gross is not a finite number (nan)" in _o
++      and "~$nan" not in _o), _ex(lambda: [l.strip() for l in _o.splitlines() if "per-name" in l]))
++_d = tempfile.mkdtemp(prefix="rtb_r4_tgzero_"); TMPS.append(_d)
++_r4_tree(_d, target_gross=0.0, orders=_ORD2, readbacks=_RB_OK)
++_o = run_review(_d)
++_b = _block(_o, "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★ F4-c (ii) target_gross exactly 0 is a VALUE: intent net 0.00, the ratio UNDEFINED (not "
++      "+0.00%), the difference still printed, and the per-name line reads ~$0.00",
++      _ok(lambda: "INTENT net        +0.00 USDT   (ratio UNDEFINED — target_gross is 0)" in _b
++      and "VENUE minus INTENT: -100.00 USDT" in _b and "~$0.00  over 2 names" in _o),
++      _ex(lambda: [l.strip() for l in _b.splitlines() if "INTENT" in l][:3]))
++
++# T3 — a NaN fill amount and a submitted maker leg with an unknown intended notional
++_d = tempfile.mkdtemp(prefix="rtb_r4_fill_"); TMPS.append(_d)
++_r4_tree(_d, orders=[dict(symbol="AAAUSDT"),
++                     dict(symbol="BBBUSDT", filled_notional=_NAN, terminal_reason="filled"),
++                     dict(symbol="CCCUSDT", intended_notional=None, filled_notional=50.0)],
++         readbacks=[("AAAUSDT", 100.0, 1.0), ("CCCUSDT", 50.0, 0.5)])
++_o = run_review(_d)
++check("★★★ F4-e a NaN fill amount is an UNKNOWN fill in §3 — the same reading §3c's buckets use "
++      "(pre-fix §3: `not in (None, 0, 0.0)` counted it as a non-zero fill and `is None` did not count "
++      "it as unknown)",
++      _ok(lambda: "order rows with a non-zero fill   2\n" in _o and "order rows with UNKNOWN fill      1" in _o),
++      _ex(lambda: [l.strip() for l in _o.splitlines() if "order rows with" in l]))
++check("★★★ F4-f a submitted maker leg whose intended notional is None ⇒ the maker fill-rate is "
++      "UNMEASURED with the leg counted (pre-fix: `or 0.0` dropped it from the denominator and printed "
++      "a rate over the rest)",
++      _ok(lambda: "maker fill-rate — UNMEASURED: 1 of 3 submitted maker leg(s) carry an UNKNOWN intended notional" in _o
++      and "maker fill-rate (notional)" not in _o),
++      _ex(lambda: [l.strip() for l in _o.splitlines() if "fill-rate" in l]))
++
++_d = tempfile.mkdtemp(prefix="rtb_r4_int0_"); TMPS.append(_d)
++# (the fill-rate block is reached only when SOME row carries a known non-zero fill — here a top-up —
++#  while the only submitted maker leg asked for exactly 0)
++_r4_tree(_d, orders=[dict(symbol="AAAUSDT", intended_notional=0.0, filled_notional=0.0,
++                          avg_fill_px=None, first_fill_ts=None, last_fill_ts=None, fee_paid=None,
++                          terminal_reason="partial_expired"),
++                     dict(symbol="BBBUSDT", order_type="topup_taker", topup_source="from_partial",
++                          intended_notional=50.0, filled_notional=50.0)],
++         readbacks=[("AAAUSDT", 0.0, 0.0), ("BBBUSDT", 50.0, 0.5)])
++_o = run_review(_d)
++check("★★ F4-f (ii) a submitted maker leg whose intended notional is exactly 0 is a VALUE: the fill-rate is "
++      "UNDEFINED (division by zero) and says so — not 'no maker leg was submitted', which the pre-fix "
++      "screen printed for a leg that was submitted",
++      _ok(lambda: "the 1 submitted maker leg(s) carry an intended notional of 0 — fill-rate UNDEFINED (division by zero)" in _o
++      and "no maker leg was submitted" not in _o),
++      _ex(lambda: [l.strip() for l in _o.splitlines() if "fill-rate" in l]))
++
++# T4 — the effective-floor table: skipped makers against the tree's own exchange cache
++_SK = dict(terminal_reason="skipped_min_notional", submit_ts=None, filled_notional=None, avg_fill_px=None,
++           first_fill_ts=None, last_fill_ts=None, fee_paid=None)
++_d = tempfile.mkdtemp(prefix="rtb_r4_floor_"); TMPS.append(_d)
++_r4_tree(_d, orders=[dict(_SK, symbol="XXXUSDT", intended_notional=60.0),
++                     dict(_SK, symbol="YYYUSDT", intended_notional=45.0),
++                     dict(_SK, symbol="WWWUSDT", intended_notional=None),
++                     dict(_SK, symbol="VVVUSDT", intended_notional=30.0, mid_at_anchor=_NAN)],
++         readbacks=_RB_OK,
++         cache={"XXXUSDT": {"min_notional": 5.0, "min_qty": 1.0},
++                "YYYUSDT": {"min_notional": 50.0},
++                "WWWUSDT": {"min_notional": 5.0, "min_qty": 1.0},
++                "VVVUSDT": {"min_notional": 5.0, "min_qty": 1.0}})
++_o = run_review(_d)
++_fl = _block(_o, "effective floor per symbol", "(A name's presence")
++check("★★★ F4-g a symbol whose exchange filter lacks min_qty reads binding UNKNOWN with n/a — not "
++      "'min_notional' off a fabricated $0 quantity floor (pre-fix: `min_qty or 0`)",
++      _ok(lambda: "YYYUSDT        intended $  45.00   declared $ 50.0   min_qty x px      n/a   binding: UNKNOWN" in _fl),
++      _ex(lambda: [l.strip() for l in _fl.splitlines() if "YYY" in l]))
++check("★★ F4-g (ii) an unknown intended notional prints n/a, never $0.00; a NaN anchor mid is not a usable "
++      "price, so that symbol is not tabulated with a nan floor — and its absence is COUNTED under the table",
++      _ok(lambda: "WWWUSDT        intended      n/a   declared $  5.0   min_qty x px $ 100.00   binding: min_qty x price" in _fl
++      and "VVVUSDT" not in _fl and "nan" not in _fl.lower()
++      and "(1 maker-skipped row(s) not tabulated: no exchange-filter entry, or no usable anchor mid)" in _fl),
++      _ex(lambda: [l.strip() for l in _fl.splitlines() if "WWW" in l or "VVV" in l]))
++check("★★ REVERSE (passes on both readers): a symbol with every filter and price finite prints exactly "
++      "the pre-round-4 line",
++      _ok(lambda: "XXXUSDT        intended $  60.00   declared $  5.0   min_qty x px $ 100.00   binding: min_qty x price" in _fl),
++      _ex(lambda: [l.strip() for l in _fl.splitlines() if "XXX" in l]))
++check("★★ the injection target and the tokens other suites pin are untouched (tests_review_anchor_scoping "
++      "M1 line, estimability gate, unique-execution line)",
++      _ok(lambda: open(os.path.join(REPO, "ops", "first_anchor_review.py")).read().count(
++          '        rb = [r for r in rb_all if abs(float(r.get("anchor_ts") or -1) - float(A_ts)) < 1e-6]') == 1
++      and all(t in open(os.path.join(REPO, "ops", "first_anchor_review.py")).read()
++              for t in ("NOT ESTIMABLE", "_MIN_N, _MAX_SHARE = 5, 0.50", "largest is",
++                        "collapse_supersedes", "backfill"))))
++if _OK_ERR:
++    print(f"  (round-4 cells that raised instead of evaluating — each counted as a FAIL above: {_OK_ERR})")
++
 +# ═══ [E] score_post_fix E6: additive keys, pre-registered keys untouched ═══════════════════════
 +print("\n[E] ★★ score_post_fix E6 carries the buckets BESIDE the pre-registered keys")
 +import score_post_fix as SPF                    # noqa: E402
@@ -1262,10 +1818,10 @@ index 0000000..0cc729a
 +      f"{', ' + str(len(SKIPS)) + ' SKIP (ledger-dependent, declared)' if SKIPS else ''})")
 +sys.exit(1 if FAILS else 0)
 diff --git a/ops/daily_summary.py b/ops/daily_summary.py
-index f4a845c..2a9a83e 100644
+index f4a845c..b9b2065 100644
 --- a/ops/daily_summary.py
 +++ b/ops/daily_summary.py
-@@ -39,6 +39,115 @@ for _d in ("live", "scheduler", "signal", "ops"):
+@@ -39,6 +39,123 @@ for _d in ("live", "scheduler", "signal", "ops"):
  
  LEVERAGE = 2.0
  
@@ -1363,7 +1919,13 @@ index f4a845c..2a9a83e 100644
 +    og = list(orders_of_anchor or [])
 +    b = CB.bucket_fills(og)
 +    mk = [o for o in og if o.get("order_type") == "maker"]
-+    want = sum(abs(float(o.get("intended_notional") or 0)) for o in mk)
++    # ★ ROUND 4 (2026-09-13): the fill-rate DENOMINATOR is the maker legs' intended notional.
++    #   `intended_notional or 0` dropped a leg whose intent was None out of it — the rate read HIGH
++    #   and carried no label — and let a NaN turn the rate itself into NaN. A leg whose intent is
++    #   not a finite number makes the denominator UNKNOWN, so no rate is given; a 0 is a value.
++    _intents = [_finite(o.get("intended_notional")) for o in mk]
++    n_unknown_int = sum(1 for v in _intents if v is None)
++    want = sum(abs(v) for v in _intents if v is not None)
 +    got_known = sum((CB.filled_abs(o) or 0.0) for o in mk)
 +    n_unknown_mk = sum(1 for o in mk if CB.filled_abs(o) is None)   # None / non-finite: unknown
 +    return {
@@ -1371,9 +1933,11 @@ index f4a845c..2a9a83e 100644
 +        "cost_coverage_notional": b["coverage_measured_notional"],   # EXACT ratio; floor for display
 +        "cost_measurement_complete": b["measurement_complete"],      # from the buckets, never from m1
 +        "buckets": b,
-+        "maker_intended_usdt": round(want, 4),
++        "maker_intended_usdt": (round(want, 4) if not n_unknown_int else None),
++        "maker_n_unknown_intended": n_unknown_int,    # legs whose intent is not a finite number
 +        "maker_filled_known_usdt": round(got_known, 4),
-+        "maker_fill_rate_pct": (100.0 * got_known / want if want else None),
++        "maker_fill_rate_pct": (None if n_unknown_int else
++                                (100.0 * got_known / want if want else None)),
 +        "maker_fill_rate_is_lower_bound": n_unknown_mk > 0,
 +        "maker_n_unknown_fill": n_unknown_mk,
 +    }
@@ -1381,11 +1945,41 @@ index f4a845c..2a9a83e 100644
  
  def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
      """The account section's three key quantities, as DATA. Pure; no printing, no I/O.
-@@ -78,7 +187,12 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
-     wal = float(n1.get("wallet_balance") or 0.0)
-     unr = float(n1.get("unrealised_pnl") or 0.0)
-     eq = float(n1.get("nav") or 0.0)
+@@ -75,10 +192,39 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+         return {"observable": False,
+                 "why": "no daily_nav row in the window — NOT OBSERVABLE, which is not zero"}
+     n0, n1 = nav_rows[0], nav_rows[-1]
+-    wal = float(n1.get("wallet_balance") or 0.0)
+-    unr = float(n1.get("unrealised_pnl") or 0.0)
+-    eq = float(n1.get("nav") or 0.0)
 -    real = float(n1.get("realised_pnl") or 0.0)
++    # ★★★ ROUND 4, 2026-09-13 — INHERITED DEFECT (researcher round-3 monitoring RESULT §5,
++    #     NAV-R3-1; present in 918559f). The equity endpoints were read `n1.get("nav") or 0.0` and
++    #     `n0.get("nav") or eq`. A LEGITIMATE equity of 0 is falsy: a window that opens on an empty
++    #     account (nav 0), takes a deposit of 100 and closes at 100 had its START replaced by its
++    #     END — Δequity 0 — and printed **-100 of money nobody can attribute**. A None read as 0 (or
++    #     as the other endpoint), and a NaN went straight through as `unexplained_computable=True`.
++    #     The realised and flow terms of this identity already had three states; the equity term,
++    #     which is its FIRST term, did not.
++    #   ⇒ Same three states here: a finite number — 0 included — is a VALUE; None / NaN / inf / text
++    #     is NOT OBSERVABLE; an endpoint is never replaced by a fallback or by the other endpoint.
++    #     Every quantity built on an unobservable endpoint is None, with the endpoint named.
++    wal = _finite(n1.get("wallet_balance"))
++    unr = _finite(n1.get("unrealised_pnl"))
++    eq = _finite(n1.get("nav"))
++    eq0 = _finite(n0.get("nav"))
++    _end_label = "窗口末行" if len(nav_rows) > 1 else "窗口唯一一行"
++
++    def _not_finite(label, row, key):
++        return (f"{label}的 `{key}` 不是有限数 ({row.get(key)!r}) —— 不可观测, 不是 0, "
++                f"也不拿任何别的值代替")
++    _eq_whys = [_not_finite(lb, r, "nav")
++                for lb, r in ([("窗口首行", n0), (_end_label, n1)] if len(nav_rows) > 1
++                              else [(_end_label, n1)])
++                if _finite(r.get("nav")) is None]
++    _eq_why = "; ".join(_eq_whys) if _eq_whys else None
++    _snap_whys = [_not_finite(_end_label, n1, k) for k in ("wallet_balance", "unrealised_pnl", "nav")
++                  if _finite(n1.get(k)) is None]
 +    # ★★★ W2 2026-09-12: `float(realised_pnl or 0.0)` turned an UNREAD income ledger into a
 +    #     realised P&L of 0.0 and a mixed-asset raw sum into a USDT figure. Both are the
 +    #     reviewer's VERIFIED counterexamples; see `realised_facts`.
@@ -1395,10 +1989,29 @@ index f4a845c..2a9a83e 100644
      # ★★★ P0, 2026-08-03. `external_flow_usdt` IS A SINCE-MIDNIGHT CUMULATIVE, PER DAY — reading
      #     it off the LAST row reports only the CURRENT day's flow, and a window that spans two days
      #     silently drops everything that happened before midnight.
-@@ -101,14 +215,47 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+@@ -92,26 +238,71 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+     #       FUNCTION HOURS EARLIER, on the column three lines above it. I diagnosed the caliber for
+     #       one column and did not check its neighbour, which shares it exactly. "A column name is
+     #       not a caliber" — and neither is a column's neighbourhood.
+-    _by_day = {}
++    # ★ ROUND 4, 2026-09-13: the day's LAST row decides that day's cumulative, and when that last row
++    #   does not carry a finite figure the day's flow is UNKNOWN. The old loop skipped a None last
++    #   row and let an EARLIER row's cumulative stand for the whole day — a transfer after it simply
++    #   vanished — and passed a NaN through as a number (state "outflow", printed "+nan").
++    _day_last = {}
+     for r in nav_rows:
+-        _v = r.get("external_flow_usdt")
+-        if _v is not None:
+-            _by_day[r.get("day")] = float(_v)     # last row of each day wins: it is cumulative
+-    ext_f = sum(_by_day.values()) if _by_day else None
++        _day_last[r.get("day")] = _finite(r.get("external_flow_usdt"))  # last row of each day wins
++    _by_day = {d: v for d, v in _day_last.items() if v is not None}
++    _flow_unknown_days = sorted(d for d, v in _day_last.items() if v is None)
++    ext_f = sum(_by_day.values()) if (_by_day and not _flow_unknown_days) else None
      ext = ext_f
      same_day = n0.get("day") == n1.get("day")
-     d_eq = eq - float(n0.get("nav") or eq)
+-    d_eq = eq - float(n0.get("nav") or eq)
++    d_eq = (eq - eq0) if (eq is not None and eq0 is not None) else None
 +    # ★★★ ROUND 3, 2026-09-13 — INHERITED DEFECT, NOT INTRODUCED BY THE THREE-BUCKET WORK
 +    #     (researcher REVIEW_code_and_research_2026-09-13 §3.C, W2-N3). The residual below
 +    #     subtracted `ext_f` — a DAY-CUMULATIVE — from `d_eq`, an INTERVAL change between the
@@ -1426,9 +2039,20 @@ index f4a845c..2a9a83e 100644
      f = {
          "observable": True,
          # (a) the equity identity
-         "wallet": wal, "unrealised": unr, "equity": eq,
-         "equity_identity_residual": round(eq - (wal + unr), 6),
-         "equity_identity_holds": abs(eq - (wal + unr)) < 0.01,
+-        "wallet": wal, "unrealised": unr, "equity": eq,
+-        "equity_identity_residual": round(eq - (wal + unr), 6),
+-        "equity_identity_holds": abs(eq - (wal + unr)) < 0.01,
++        "wallet": wal, "unrealised": unr, "equity": eq,       # None = NOT OBSERVABLE (round 4)
++        "equity_observable": eq is not None,
++        "equity_start": eq0,
++        "equity_start_observable": eq0 is not None,
++        "account_snapshot_why_not": _snap_whys,               # [] when all three are numbers
++        # ★ round 4: three states — True / False / None = cannot be checked (a term is not a
++        #   number). Never False on a fabricated 0: a row that merely lacked `wallet_balance` used
++        #   to print "this identity must not break".
++        "equity_identity_residual": (round(eq - (wal + unr), 6) if not _snap_whys else None),
++        "equity_identity_holds": ((abs(eq - (wal + unr)) < 0.01) if not _snap_whys else None),
++        "equity_identity_why_not": ("; ".join(_snap_whys) if _snap_whys else None),
 +        # ★ realised is a RECORD: observable? in which caliber? complete? and what was left
 +        #   UNCONVERTED. `realised_today` stays for existing readers and is None when unobservable.
          "realised_today": real,
@@ -1443,8 +2067,19 @@ index f4a845c..2a9a83e 100644
 +                                       else f"MIXED {real0_f['caliber']} -> {real_f['caliber']}"),
          # (b) the target-exposure arithmetic
          "leverage": leverage,
-         "target_exposure": round(eq * leverage, 6),
-@@ -125,20 +272,54 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+-        "target_exposure": round(eq * leverage, 6),
++        "target_exposure": (round(eq * leverage, 6) if eq is not None else None),
+         # (c) external flow — and the boundary of our sight
+         "external_flow_usdt": ext_f,
+         # ★ WHICH DAYS THE FIGURE COVERS, because it cannot be sliced to an arbitrary window: each
+@@ -120,25 +311,69 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+         #   than silently folded in.
+         "external_flow_days": sorted(_by_day),
+         "external_flow_by_day": {k: round(v, 6) for k, v in sorted(_by_day.items())},
++        # ★ round 4: days whose LAST row carries no finite flow — any of them makes the total None
++        "external_flow_unknown_days": _flow_unknown_days,
+         "external_flow_first_day_may_over_include": bool(
+             _by_day and sorted(_by_day)[0] == (nav_rows[0].get("day") if nav_rows else None)),
          "external_flow_state": ("not_observable" if ext_f is None else
                                  "zero" if abs(ext_f) < 1e-9 else
                                  "inflow" if ext_f > 0 else "outflow"),
@@ -1458,9 +2093,12 @@ index f4a845c..2a9a83e 100644
          "spot_visible": False,
          "flow_query_scope": "futures income endpoint (incomeType=TRANSFER) only",
          # (d) the residual, or a refusal to compute it
-         "equity_change": round(d_eq, 6),
+-        "equity_change": round(d_eq, 6),
 -        "unexplained_computable": bool(same_day),
-+        "unexplained_computable": bool(same_day and real_f["observable"] and real0_f["observable"]
++        "equity_change": (round(d_eq, 6) if d_eq is not None else None),
++        "equity_change_why_not": _eq_why,
++        "unexplained_computable": bool(same_day and d_eq is not None
++                                       and real_f["observable"] and real0_f["observable"]
 +                                       and real_f["complete"] is True and real0_f["complete"] is True
 +                                       # round 3: and the flow term must be an INTERVAL, not a
 +                                       # day-cumulative subtracted from an interval change
@@ -1475,6 +2113,12 @@ index f4a845c..2a9a83e 100644
          f["unexplained_equity_change"] = None
          f["unexplained_why_not"] = ("窗口跨越 00:00Z, 而 `realised_pnl` 是当日累计并在 00:00Z "
                                      "归零, 所以跨日的权益残差没有定义")
++    elif d_eq is None:
++        # ★ round 4: Δequity is the residual's FIRST term. With an endpoint that is not a number
++        #   there is no Δequity, and substituting 0 or the other endpoint is the -100 counterexample.
++        f["unexplained_equity_change"] = None
++        f["unexplained_why_not"] = ("权益在窗口的一端不可观测: " + str(_eq_why)
++                                    + "; 权益变动没有定义, 所以权益残差不计算")
 +    elif not (real_f["observable"] and real0_f["observable"]):
 +        # ★ the residual needs the realised INCREMENT; with either end unread there is no
 +        #   increment to subtract, and subtracting a fabricated 0 would print a wrong residual
@@ -1505,8 +2149,28 @@ index f4a845c..2a9a83e 100644
      return f
  
  
-@@ -163,11 +344,26 @@ def render_account(f: dict) -> list:
-     if not f["equity_identity_holds"]:
+@@ -153,26 +388,56 @@ def render_account(f: dict) -> list:
+     if not f.get("observable"):
+         out.append(f"   {f.get('why')}")
+         return out
++    # ★ round 4: an account figure that is not a number prints NOT OBSERVABLE — never a formatted 0,
++    #   never "nan"
++    def _num(v, spec):
++        return format(v, spec) if v is not None else "不可观测"
+     out += [
+-        f"   期货钱包余额 (wallet)      {f['wallet']:12,.2f}   ← 已落袋的一切: 本金 + 累计已实现",
+-        f"   浮动盈亏     (unrealised)  {f['unrealised']:+12,.2f}   ← 还在仓位里, 没落袋, 会随价格跳",
++        f"   期货钱包余额 (wallet)      {_num(f['wallet'], '12,.2f'):>12}   ← 已落袋的一切: 本金 + 累计已实现",
++        f"   浮动盈亏     (unrealised)  {_num(f['unrealised'], '+12,.2f'):>12}   ← 还在仓位里, 没落袋, 会随价格跳",
+         "   ────────────────────────────────────────",
+-        f"   权益         (equity/nav)  {f['equity']:12,.2f}   = wallet + unrealised",
++        f"   权益         (equity/nav)  {_num(f['equity'], '12,.2f'):>12}   = wallet + unrealised",
+         "   ★ 用户看到的'盈亏'通常是**浮动**那一行。它跳, 是因为仓位还开着。",
+     ]
+-    if not f["equity_identity_holds"]:
++    for _w in f.get("account_snapshot_why_not") or []:
++        out.append(f"   ★ {_w}")
++    if f["equity_identity_holds"] is False:
          out.append(f"   ★★ wallet + unrealised 与 equity 差 {f['equity_identity_residual']:+.4f} "
                     f"—— 这个恒等式不该被破坏, 破了说明有一项我们读错了。")
 -    by = f["realised_by_type"]
@@ -1514,6 +2178,11 @@ index f4a845c..2a9a83e 100644
 -               + (f"   = 交易 {float(by.get('REALIZED_PNL', 0)):+.4f}"
 -                  f"  手续费 {float(by.get('COMMISSION', 0)):+.4f}"
 -                  f"  资金费 {float(by.get('FUNDING_FEE', 0)):+.4f}" if by else ""))
+-    out.append(f"\n   ★ 目标敞口 = 权益 × 杠杆 = {f['equity']:,.2f} × {f['leverage']:.2f} "
+-               f"= {f['target_exposure']:,.2f}")
++    elif f["equity_identity_holds"] is None:
++        out.append("   ★ wallet + unrealised = equity 无法核对 —— 其中一项不是有限数(见上行); "
++                   "既不当作恒等式被破坏, 也不当作成立")
 +    rf = f.get("realised") or {}
 +    if not rf.get("observable"):
 +        # ★ "we do not know" and "nothing was realised" are different facts
@@ -1534,10 +2203,22 @@ index f4a845c..2a9a83e 100644
 +                       "所以它也不是任何一侧的边界")
 +        elif rf.get("complete") is None:
 +            out.append("   ★ 行上没有 realised_truncated 标记 —— 读取是否完整未知")
-     out.append(f"\n   ★ 目标敞口 = 权益 × 杠杆 = {f['equity']:,.2f} × {f['leverage']:.2f} "
-                f"= {f['target_exposure']:,.2f}")
++    if f["target_exposure"] is not None:
++        out.append(f"\n   ★ 目标敞口 = 权益 × 杠杆 = {f['equity']:,.2f} × {f['leverage']:.2f} "
++                   f"= {f['target_exposure']:,.2f}")
++    else:
++        out.append("\n   ★ 目标敞口 = 权益 × 杠杆 —— 权益不可观测, 目标敞口不计算(不是 0)")
      st = f["external_flow_state"]
-@@ -184,10 +380,18 @@ def render_account(f: dict) -> list:
+     if st == "not_observable":
+-        out.append("   期货账户外部资金流入(TRANSFER)  读取失败 —— UNKNOWN, 不是 0")
++        out.append("   期货账户外部资金流入(TRANSFER)  读取失败 —— UNKNOWN, 不是 0"
++                   + (f"   [当日末行不是有限数的日: {f['external_flow_unknown_days']}; "
++                      f"已知日: {f['external_flow_by_day']}]"
++                      if f.get("external_flow_unknown_days") else ""))
+     elif st == "zero":
+         out.append(f"   期货账户外部资金流入(TRANSFER)  0.00"
+                    f"   [覆盖 {len(f['external_flow_days'])} 天: {f['external_flow_days']}]")
+@@ -184,10 +449,18 @@ def render_account(f: dict) -> list:
                     f"   [覆盖 {len(f['external_flow_days'])} 天: {f['external_flow_by_day']}]")
          out.append(f"   ⇒ 本窗口期货账户有资金{_w}, 已计入上面的权益与目标敞口。"
                     f"本系统只查期货, 看不见现货。")
@@ -1557,7 +2238,7 @@ index f4a845c..2a9a83e 100644
                         f"的余额。这个数不该非零; 非零意味着有一笔我们没有归因的钱。")
      else:
          out.append(f"   ({f['unexplained_why_not']} —— 不计算, 而不是算一个错的。)")
-@@ -251,24 +455,19 @@ def main():
+@@ -251,37 +524,46 @@ def main():
  
      # ── 2. per-anchor table: the trend, one row each ──────────────────────────────────────
      print("\n【逐锚】 —— 用户要的是趋势, 所以一锚一行")
@@ -1591,8 +2272,9 @@ index f4a845c..2a9a83e 100644
 +            _cov_short += 1
          kg = (r.get("known_gaps") or {}).get("gross_usdt")
          nog = r.get("net_over_gross")
++        _tg = _finite(r.get("target_gross"))       # round 4: not a finite number ⇒ n/a, not 0
          note = []
-@@ -276,12 +475,23 @@ def main():
+         if r.get("opening_halted"):
              note.append("停机")
          if (r.get("reshape") or {}).get("n_popped"):
              note.append(f"撤{r['reshape']['n_popped']}")
@@ -1602,6 +2284,8 @@ index f4a845c..2a9a83e 100644
 +                        f"(费未知{_b['n_fee_unknown']} 未定价{_b['n_unpriced']})")
 +        if _b["n_unknown_fill"]:
 +            note.append(f"成交未知{_b['n_unknown_fill']}行")
++        if cf["maker_n_unknown_intended"]:
++            note.append(f"意图未知{cf['maker_n_unknown_intended']}行")
 +        _fill_s = ("n/a" if fill is None else
 +                   f"{'≥' if cf['maker_fill_rate_is_lower_bound'] else ''}{fill:.0f}%")
          print(f"   {utc(ats,'%m-%d %H:%MZ'):<9}"
@@ -1611,13 +2295,14 @@ index f4a845c..2a9a83e 100644
 +              f"{_fill_s:>8}"
                f"{(f'{kg:.0f}' if kg is not None else 'n/a'):>9}"
                f"{(f'{100*float(nog):+.2f}' if nog is not None else 'n/a'):>8}"
-               f"{float(r.get('target_gross') or 0):>10,.0f}  {' '.join(note)}")
+-              f"{float(r.get('target_gross') or 0):>10,.0f}  {' '.join(note)}")
++              f"{(f'{_tg:,.0f}' if _tg is not None else 'n/a'):>10}  {' '.join(note)}")
 +    if _cov_short:
 +        print(f"   ★ {_cov_short} 锚的成本覆盖 < 100%: bps 只按已测成交算, 未测 ≠ 零成本 —— 见备注")
  
      # ── the rotation question: banked vs entry cost ───────────────────────────────────────
      # ★ SAME DAY-BOUNDARY TRAP AS ABOVE, and here it was worse: differencing across 00:00Z made
-@@ -289,10 +499,25 @@ def main():
+@@ -289,12 +571,29 @@ def main():
      _today = [r for r in nav if r.get("day") == nav[-1].get("day")] if nav else []
      if len(_today) >= 2:
          r0, r1 = _today[0], _today[-1]
@@ -1626,6 +2311,8 @@ index f4a845c..2a9a83e 100644
          print(f"\n   ★ 「一换手就降」(当日 {r1.get('day')}, 不跨 00:00Z):")
 -        print(f"     已实现 {float(r0.get('realised_pnl') or 0):+.4f} → "
 -              f"{float(r1.get('realised_pnl') or 0):+.4f}  (增量 {_dr:+.4f}) —— 轮换把浮盈**落袋**")
+-        print(f"     浮动   {float(r0.get('unrealised_pnl') or 0):+.4f} → "
+-              f"{float(r1.get('unrealised_pnl') or 0):+.4f}  —— 新仓位的账面")
 +        if _rf0["observable"] and _rf1["observable"] and _rf0["complete"] is True \
 +                and _rf1["complete"] is True:
 +            _dr = _rf1["usdt"] - _rf0["usdt"]
@@ -1643,27 +2330,226 @@ index f4a845c..2a9a83e 100644
 +            # ★ an unread income ledger at either end: no increment exists, and a 0 would be a lie
 +            print(f"     已实现 增量不可观测 —— "
 +                  f"{'首行' if not _rf0['observable'] else '末行'}的 income 未读, 不打一个用 0 算出的增量")
-         print(f"     浮动   {float(r0.get('unrealised_pnl') or 0):+.4f} → "
-               f"{float(r1.get('unrealised_pnl') or 0):+.4f}  —— 新仓位的账面")
++        # ★ round 4: an unrealised figure that is not a number prints NOT OBSERVABLE, not +0.0000
++        _u0, _u1 = _finite(r0.get("unrealised_pnl")), _finite(r1.get("unrealised_pnl"))
++        print(f"     浮动   {(f'{_u0:+.4f}' if _u0 is not None else '不可观测')} → "
++              f"{(f'{_u1:+.4f}' if _u1 is not None else '不可观测')}  —— 新仓位的账面")
          print(f"     入场成本见上表'成本bps'一列。落袋 + 入场成本两个数一出来, '降'就自解释了。")
+     elif nav:
+         print(f"\n   (当日只有 {len(_today)} 行 nav, 不足以给出'落袋 vs 入场成本'的对比 —— "
 diff --git a/ops/first_anchor_review.py b/ops/first_anchor_review.py
-index bb9a1b3..221a85b 100755
+index bb9a1b3..c7fb8d8 100755
 --- a/ops/first_anchor_review.py
 +++ b/ops/first_anchor_review.py
-@@ -213,6 +213,12 @@ def main() -> int:
+@@ -94,6 +94,20 @@ def _ts(line: str) -> Optional[float]:
+         return None
+ 
+ 
++def _fin(x: Any) -> Optional[float]:
++    """float(x) when it is a FINITE number, else None — ROUND 4 (2026-09-13).
++
++    ★ None / NaN / inf / text are NOT OBSERVABLE; a finite 0 is a real value and is never replaced
++      by a fallback. `x or 0` got both wrong at once: it made a legitimate 0 and a missing value the
++      same 0, and it let a NaN through as a number (NaN is truthy).
++    """
++    try:
++        v = float(x)
++    except (TypeError, ValueError):
++        return None
++    return v if (v == v and v not in (float("inf"), float("-inf"))) else None
++
++
+ def main() -> int:
+     ap = argparse.ArgumentParser()
+     ap.add_argument("--mode", default=os.environ.get("LIVE_MODE", "DRY_RUN"))
+@@ -211,8 +225,18 @@ def main() -> int:
+ 
+     # ── 3. fills and breadth ───────────────────────────────────────────────────────────────
      hdr("3. FILLS AND BREADTH")
-     filled = [o for o in mine if o.get("filled_notional") not in (None, 0, 0.0)]
+-    filled = [o for o in mine if o.get("filled_notional") not in (None, 0, 0.0)]
++    # ★ ROUND 4 (2026-09-13): ONE reading of "the fill amount is known" for the whole screen —
++    #   `CB.filled_abs`, the rule §3c's buckets use. `not in (None, 0, 0.0)` counted a NaN amount as
++    #   a non-zero fill here while §3c counted the very same row as an UNKNOWN fill.
++    import cost_buckets as CB
++    filled = [o for o in mine if CB.filled_abs(o)]
      print(f"   order rows with a non-zero fill   {len(filled)}")
 +    # ★ W2 2026-09-12: since round 7 a row can carry `filled_notional: None` with a KNOWN part and
 +    #   an UNKNOWN residual (`filled_known_notional` / `filled_unknown_residual`). That is not a
 +    #   zero fill; the old screen folded it into "no fill" by omission.
-+    _unk = [o for o in mine if o.get("filled_notional") is None]
++    _unk = [o for o in mine if CB.filled_abs(o) is None]
 +    print(f"   order rows with UNKNOWN fill      {len(_unk)}"
 +          f"{'   ★ filled_notional None — an unknown amount, NOT a zero fill' if _unk else ''}")
      # ★ the number that misled 0C: raw rows double-count markout backfills. Both shown.
      _uf = PL.collapse_supersedes(fills)
      print(f"   fills: unique executions          {len(_uf)}"
-@@ -348,47 +354,90 @@ def main() -> int:
+@@ -232,10 +256,16 @@ def main() -> int:
+           f"  +  top-up {len(_tk)} (residual too small; the maker leg filled)")
+     print(f"     maker-skipped: {sorted({str(o['symbol']) for o in _mk})[:12]}")
+     if anchors:
+-        tg = anchors[-1].get("target_gross") or 0
++        _tg_raw = anchors[-1].get("target_gross")
++        tg = _fin(_tg_raw)
+         n = len({o["symbol"] for o in mine})
+         if n:
+-            print(f"   per-name notional                 ~${tg / n:.2f}  over {n} names")
++            if tg is None:
++                # ★ round 4: an unknown target_gross is not $0 per name (`or 0` printed ~$0.00)
++                print(f"   per-name notional                 UNKNOWN — target_gross is not a finite "
++                      f"number ({_tg_raw!r}), so no per-name figure exists  over {n} names")
++            else:
++                print(f"   per-name notional                 ~${tg / n:.2f}  over {n} names")
+             # ★ NEUTRAL ON PURPOSE — this line asserted BTC would be skipped, then the opposite,
+             #   and each version rested on a DIFFERENT VINTAGE of data (a config average; the
+             #   06:29Z rehearsal's rows under champion weights; the 09:00Z preds under
+@@ -253,28 +283,51 @@ def main() -> int:
+             try:
+                 import binance_executor as _BE
+                 _f = json.load(open(_BE.default_cache_path(a.mode)))
+-                _mids = {o["symbol"]: o.get("mid_at_anchor") for o in mine
+-                         if o.get("mid_at_anchor")}
++                # ★ round 4: a mid is usable only when finite and positive (`CB.usable_px`). A NaN
++                #   mid passed the old truthiness test and made `min_qty x px` NaN, which then read
++                #   as binding "min_notional".
++                _mids = {o["symbol"]: CB.usable_px(o.get("mid_at_anchor")) for o in mine
++                         if CB.usable_px(o.get("mid_at_anchor")) is not None}
+                 _rows = []
+                 for o in _mk:
+                     _ff = _f.get(o["symbol"]) or {}
+                     _mid = _mids.get(o["symbol"])
+-                    if not _ff or not _mid:
++                    if not _ff or _mid is None:
+                         continue
+-                    _dec, _qty = float(_ff.get("min_notional") or 0), float(
+-                        _ff.get("min_qty") or 0) * float(_mid)
+-                    _rows.append((o["symbol"], abs(float(o.get("intended_notional") or 0)),
+-                                  _dec, _qty))
+-                for _s, _int, _dec, _qty in sorted(_rows, key=lambda r: -r[1])[:8]:
+-                    _bind = "min_qty x price" if _qty > _dec else "min_notional"
+-                    print(f"     {_s:14s} intended ${_int:7.2f}   declared ${_dec:5.1f}   "
+-                          f"min_qty x px ${_qty:7.2f}   binding: {_bind}")
++                    # ★ round 4: a missing filter is UNKNOWN, not a $0 floor — `or 0` made a missing
++                    #   min_qty read as binding "min_notional" and a missing min_notional as
++                    #   "declared $0.0"; an unknown intent printed as $0.00
++                    _dec, _mq = _fin(_ff.get("min_notional")), _fin(_ff.get("min_qty"))
++                    _qty = (_mq * _mid) if _mq is not None else None
++                    _iv = _fin(o.get("intended_notional"))
++                    _rows.append((o["symbol"], (abs(_iv) if _iv is not None else None), _dec, _qty))
++                # known intents first (largest first), unknown intents after them
++                for _s, _int, _dec, _qty in sorted(
++                        _rows, key=lambda r: (r[1] is None, -(r[1] if r[1] is not None else 0.0)))[:8]:
++                    _bind = ("UNKNOWN — a floor filter is not a finite number"
++                             if (_dec is None or _qty is None) else
++                             "min_qty x price" if _qty > _dec else "min_notional")
++                    print(f"     {_s:14s} intended "
++                          + (f"${_int:7.2f}" if _int is not None else "     n/a")
++                          + "   declared " + (f"${_dec:5.1f}" if _dec is not None else "  n/a")
++                          + "   min_qty x px " + (f"${_qty:7.2f}" if _qty is not None else "     n/a")
++                          + f"   binding: {_bind}")
++                # ★ round 4: this screen reports absence as absence — a skipped maker with no filter
++                #   entry or no usable anchor mid is COUNTED, not silently left out of the table
++                if len(_mk) > len(_rows):
++                    print(f"     ({len(_mk) - len(_rows)} maker-skipped row(s) not tabulated: no "
++                          f"exchange-filter entry, or no usable anchor mid)")
+             except Exception as _e:
+                 miss(f"effective floors ({type(_e).__name__}: {_e})")
+             print("   (A name's presence or absence is not by itself a fault; a name you EXPECTED")
+             print("    and do not see is worth one query.)")
+-    held = [r for r in rb if abs(float(r.get("venue_position_qty") or 0)) > 0]
+-    print(f"   names holding a position          {len(held)} of {len(rb)} read back")
++    # ★ round 4: an unreadable position quantity is neither held nor flat — it is counted apart
++    _rbq = [_fin(r.get("venue_position_qty")) for r in rb]
++    held = [q for q in _rbq if q is not None and q != 0.0]
++    _n_q_unk = sum(1 for q in _rbq if q is None)
++    print(f"   names holding a position          {len(held)} of {len(rb)} read back"
++          + (f"   ★ {_n_q_unk} row(s) with UNKNOWN venue_position_qty — neither held nor flat"
++             if _n_q_unk else ""))
+ 
+     # ── 3b. NET DIRECTIONAL EXPOSURE — the number nothing in this repo computed ─────────────
+     hdr("3b. NET DIRECTIONAL EXPOSURE (signed) — is the book still market-neutral?")
+@@ -290,28 +343,57 @@ def main() -> int:
+     if not rb:
+         miss("position_readback — cannot compute net exposure from venue truth")
+     else:
+-        sgn = [float(r.get("venue_position_notional") or 0.0) for r in rb]
++        # ★★ ROUND 4 (2026-09-13): a readback row whose notional is not a finite number is an
++        #    UNKNOWN position. `or 0.0` read a None as flat, and a NaN poisoned net and gross — and
++        #    then net/equity, whose NaN failed both band comparisons and printed "★★ ABOVE 15%" on
++        #    the screen used for a stop decision. Unknown rows are EXCLUDED and COUNTED, and while
++        #    any is present the band is not judged.
++        _pn = [_fin(r.get("venue_position_notional")) for r in rb]
++        _n_pn_unk = sum(1 for x in _pn if x is None)
++        sgn = [x for x in _pn if x is not None]
+         net = sum(sgn)
+         gross = sum(abs(x) for x in sgn)
+-        equity = float(nav[-1].get("nav")) if nav and nav[-1].get("nav") else None
++        # ★★ round 4: equity has three states — a finite non-zero number; 0 (net/equity is
++        #    undefined); NOT OBSERVABLE (None / NaN / inf). The old truthiness test sent a 0 to
++        #    "cannot be formed" and let a NaN through to the band.
++        _nav_raw = nav[-1].get("nav") if nav else None
++        equity = _fin(_nav_raw)
+         print(f"   VENUE  net {net:+12,.2f} USDT   gross {gross:12,.2f}   "
+               f"long {sum(1 for x in sgn if x > 0)} / short {sum(1 for x in sgn if x < 0)}")
++        if _n_pn_unk:
++            print(f"          ★ {_n_pn_unk} of {len(rb)} readback row(s) carry an UNKNOWN "
++                  f"venue_position_notional — EXCLUDED: net and gross above cover the known rows "
++                  f"only, and an unknown position is not a flat one")
+         if gross > 0:
+             # ★ net/gross is the better read for EXECUTION ASYMMETRY: it does not move with
+             #   leverage, so it is comparable across anchors and across equity levels.
+             print(f"          net/gross  {net / gross:+7.2%}   <- leverage-independent; the "
+                   f"asymmetry read")
+-        if equity:
++        if equity is None:
++            miss("daily_nav.nav — net/equity cannot be formed"
++                 + (f": the last nav row's nav is not a finite number ({_nav_raw!r}) — NOT "
++                    f"OBSERVABLE, which is not 0" if nav else ""))
++        elif equity == 0.0:
++            miss("daily_nav.nav is 0 — net/equity is UNDEFINED (division by zero), so no band is "
++                 "judged")
++        else:
+             r_eq = net / equity
+-            band = ("NORMAL" if abs(r_eq) < 0.05 else
++            band = (f"NOT JUDGED — {_n_pn_unk} readback row(s) with UNKNOWN notional; a net over "
++                    f"the known rows cannot certify neutrality" if _n_pn_unk else
++                    "NORMAL" if abs(r_eq) < 0.05 else
+                     "RECORD — find which names are missing" if abs(r_eq) < 0.15 else
+                     "★★ ABOVE 15% — the lead handles this at the anchor")
+             print(f"          net/equity {r_eq:+7.2%}   (equity {equity:,.2f})   => {band}")
+-        else:
+-            miss("daily_nav.nav — net/equity cannot be formed")
+         # the intent side, for comparison: the difference IS the execution-induced direction
+-        if anchors and mine:
+-            tg = float(anchors[-1].get("target_gross") or 0.0)
++        # ★ round 4: target_gross is the intent's SCALE. A non-finite one makes the intent net
++        #   UNKNOWN — `or 0.0` printed an intent of +0.00 and a VENUE-minus-INTENT equal to the whole
++        #   venue net, and a NaN printed nan. A target_gross of 0 is a value: intent 0, ratio undefined.
++        _tg_raw = anchors[-1].get("target_gross") if anchors else None
++        tg = _fin(_tg_raw)
++        if anchors and mine and tg is None:
++            print(f"   INTENT net UNKNOWN — target_gross is not a finite number ({_tg_raw!r}); the "
++                  f"intent net and VENUE minus INTENT cannot be formed (not 0)")
++        elif anchors and mine:
+             tw = {}
+             for o in mine:
+                 if o.get("target_w") is not None:
+@@ -329,12 +411,13 @@ def main() -> int:
+             #   two causes would have had us hunting execution asymmetry for a book that was
+             #   already tilted before a single order was sent.
+             _n_names = len(tw)
+-            _r_int = (net_intent / tg) if tg else 0.0
+-            print(f"   INTENT net {net_intent:+12,.2f} USDT   ({_r_int:+7.2%} of target_gross)"
++            _r_int_s = (f"{net_intent / tg:+7.2%} of target_gross" if tg != 0.0 else
++                        "ratio UNDEFINED — target_gross is 0")
++            print(f"   INTENT net {net_intent:+12,.2f} USDT   ({_r_int_s})"
+                   f"   over the {_n_names} names that got rows")
+             print(f"          ^ this is the PLANNING residual: directionality present before a "
+                   f"single order was sent")
+-            if abs(net_intent) > 0.005 * abs(tg or 1):
++            if tg != 0.0 and abs(net_intent) > 0.005 * abs(tg):
+                 print(f"          ★ NOT ≈0: the book is demeaned over ALL members, then untradable "
+                       f"names are popped\n            and the remainder is NOT re-demeaned. A "
+                       f"popped name of weight w leaves -w of net intent.\n            Check "
+@@ -348,47 +431,90 @@ def main() -> int:
  
      # ── 3c. REALISED COST — the number P0 exists for ────────────────────────────────────────
      hdr("3c. REALISED COST (bps) vs the shadow model's assumptions")
@@ -1693,7 +2579,7 @@ index bb9a1b3..221a85b 100755
 +    #     an unknown-fill row enters NEITHER the numerator nor the denominator (so every figure
 +    #     below is numerically unchanged) and it is counted in `n_unknown_fill`, which is what
 +    #     turns `measurement_complete` to False. The screen names it beside the label.
-+    import cost_buckets as CB
++    # (`cost_buckets as CB` is imported at §3 — one reading of a fill amount for the whole screen)
 +    ex = [o for o in mine if CB.filled_abs(o)]        # known, non-zero fills — any bucket
 +    _unk_rows = [o for o in mine if CB.filled_abs(o) is None]
      if not ex:
@@ -1789,7 +2675,7 @@ index bb9a1b3..221a85b 100755
          # ★★★ THE TAKER LEG IS TWO POPULATIONS WITH OPPOSITE ECONOMICS (2026-08-02).
          #   from_partial — the maker rested and the price RAN AWAY. Topping up is chasing.
          #   from_reject  — the venue refused the maker with -5022, i.e. the price CROSSED our
-@@ -418,14 +467,24 @@ def main() -> int:
+@@ -418,14 +544,24 @@ def main() -> int:
              return True, ""
  
          _tk = [r for r in ex if r.get("order_type") == "topup_taker"]
@@ -1815,7 +2701,7 @@ index bb9a1b3..221a85b 100755
                  else:
                      _n = sum(abs(float(r["filled_notional"])) for r in _sub)
                      _big = max(_sub, key=lambda r: abs(float(r["filled_notional"])))
-@@ -459,27 +518,40 @@ def main() -> int:
+@@ -459,27 +595,51 @@ def main() -> int:
                  if not _ok2:
                      print(f"   {_src:14s} NOT ESTIMABLE — {_why2} (same two fills as above)")
                      continue
@@ -1848,25 +2734,38 @@ index bb9a1b3..221a85b 100755
          sub_m = [o for o in mine if o.get("order_type") == "maker"
                   and o.get("submit_ts") is not None]
 -        fil_m = [o for o in sub_m if o.get("filled_notional")]
-+        fil_m = [o for o in sub_m if CB.filled_abs(o)]
-         n_sub = sum(abs(float(o.get("intended_notional") or 0.0)) for o in sub_m)
+-        n_sub = sum(abs(float(o.get("intended_notional") or 0.0)) for o in sub_m)
 -        n_fil = sum(abs(float(o.get("filled_notional") or 0.0)) for o in fil_m)
+-        if n_sub > 0:
+-            print(f"\n   maker fill-rate (notional) {n_fil / n_sub:6.2%}"
+-                  f"   over {len(sub_m)} submitted maker legs")
++        fil_m = [o for o in sub_m if CB.filled_abs(o)]
++        # ★ round 4: the DENOMINATOR is the submitted legs' intended notional. A leg whose intent is
++        #   not a finite number makes it UNKNOWN: `or 0.0` shrank it (the rate read high, unlabelled)
++        #   and a NaN made `n_sub > 0` False, which printed "no maker leg was submitted".
++        _sub_int = [_fin(o.get("intended_notional")) for o in sub_m]
++        n_unk_int_m = sum(1 for v in _sub_int if v is None)
++        n_sub = sum(abs(v) for v in _sub_int if v is not None)
 +        n_fil = sum(CB.filled_abs(o) for o in fil_m)
 +        # ★ W2: a maker leg whose amount could not be read is NOT an unfilled leg. It is left
 +        #   out of the numerator and the rate is printed as a LOWER BOUND with the count.
 +        n_unk_m = sum(1 for o in sub_m if CB.filled_abs(o) is None)
-         if n_sub > 0:
--            print(f"\n   maker fill-rate (notional) {n_fil / n_sub:6.2%}"
--                  f"   over {len(sub_m)} submitted maker legs")
++        if n_unk_int_m:
++            miss(f"maker fill-rate — UNMEASURED: {n_unk_int_m} of {len(sub_m)} submitted maker leg(s) "
++                 f"carry an UNKNOWN intended notional, so the denominator cannot be formed (not 0)")
++        elif n_sub > 0:
 +            print(f"\n   maker fill-rate (notional) {'>= ' if n_unk_m else ''}{n_fil / n_sub:6.2%}"
 +                  f"   over {len(sub_m)} submitted maker legs"
 +                  + (f"   ★ {n_unk_m} leg(s) with UNKNOWN fill amount excluded — lower bound"
 +                     if n_unk_m else ""))
++        elif sub_m:
++            miss(f"the {len(sub_m)} submitted maker leg(s) carry an intended notional of 0 — fill-rate "
++                 f"UNDEFINED (division by zero), not 0%")
          else:
              miss("no maker leg was submitted — fill-rate UNMEASURED")
          print("   ── the shadow model assumes: maker fill-rate 0.51, cost 1.9bps (calm regime) ──")
 diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
-index 46528dc..433ff34 100644
+index 46528dc..f444151 100644
 --- a/ops/gate_coverage.py
 +++ b/ops/gate_coverage.py
 @@ -156,7 +156,8 @@ SUITE_SCOPE = {
@@ -1874,8 +2773,8 @@ index 46528dc..433ff34 100644
      "tests_readiness_filters_path": "that the cached filters are CORRECT — it proves the sheet looks at the file we actually write and counts real symbols. Whether those 653 entries carry the right tick/step/minNotional for LIVE is established by the venue stamp and by arm(), not here",
      "tests_neutrality_check": "that the book WILL be neutral — it proves only that the realised net is measured from venue truth and spoken when it leaves the band. It changes no order and closes no gap: the 16:00Z anchor would still have ended -6.9% short, we would merely have known within the minute instead of in a post-mortem. Nor does it establish that 3% is the right band — that figure is policy, not calibration, and two anchors is not a distribution",
 -    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines.",
-+    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it. Round 3 (2026-09-13, researcher REVIEW §3.C): the same-day residual's flow term is now the INTERVAL difference of the day-cumulative `external_flow_usdt` (the old form subtracted a day total from an interval equity change and read -1000 on a window where nothing happened) and refuses when either endpoint is not a finite number. Two further blind spots it does NOT close: (e) the interval form is exact only because the residual is computed same-day, where both endpoints share one 00:00Z origin — nothing here re-derives that the carrier really is cumulative, it is read from `binance_broker.income_since`; (f) a zero residual is not proof the account identity holds — it means the three terms we CAN read cancel, and any movement none of them carries (a fee type outside `realised_components`, a spot transfer) is invisible to it.",
-+    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent. Round 3 (2026-09-13, researcher REVIEW §3.C): E6 may PASS only when its verdict's population and the number it publishes come from the SAME rows — the bucket counts and notional mass against m1's own `n_filled_orders`/`filled_notional_total`, pooled AND per regime, plus agreement of both bps calibers inside a stated tolerance — and the screen now publishes the bucket figure (`cost_bps_displayed`) beside m1's. Blind spots this adds: (e) the population identity is asserted on COUNTS AND MASS each carrier reports for itself, not on row identities, so two different row sets agreeing in count and notional (pooled and in every regime) would still pass; (f) the gate makes E6 refuse to certify a mismatch — it does not FIX m1, which stays frozen, so the number the pre-registration names (`c_bps_overall`) is still m1's; (g) the frozen `watchdog` §4-1 consumer still reads `m1.c_bps_net_overall` directly and treats a NaN cost as priced and not a breach, so 'all consumers are on the three buckets' is FALSE and must not be written anywhere",
++    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it. Round 3 (2026-09-13, researcher REVIEW §3.C): the same-day residual's flow term is now the INTERVAL difference of the day-cumulative `external_flow_usdt` (the old form subtracted a day total from an interval equity change and read -1000 on a window where nothing happened) and refuses when either endpoint is not a finite number. Two further blind spots it does NOT close: (e) the interval form is exact only because the residual is computed same-day, where both endpoints share one 00:00Z origin — nothing here re-derives that the carrier really is cumulative, it is read from `binance_broker.income_since`; (f) a zero residual is not proof the account identity holds — it means the three terms we CAN read cancel, and any movement none of them carries (a fee type outside `realised_components`, a spot transfer) is invisible to it. Round 4 (2026-09-13, researcher round-3 monitoring NAV-R3-1): the equity endpoints (start and end nav, end wallet and unrealised) and each day's closing flow are read with the same three states as realised income — a finite 0 is a value, None / NaN / inf are not observable, and an endpoint is never replaced by 0 or by the other endpoint — so a start equity of 0 no longer turns into the end equity (-100 printed on a deposit into an empty account) and a NaN equity no longer marks the residual computable; an unknown maker intent refuses the fill-rate instead of shrinking its denominator. Pre-fix readers fail 29 of its round-4 cells. Two further blind spots: (g) these are CAPABILITY cells — the ledger copy (251 nav rows, 74,860 order rows) holds no None, NaN or zero equity, so they run on synthetic rows and two temp-ledger runs of main, never on a real day where it happened; (h) when the window holds no nav row the account section still falls back to the ledger's newest row without saying it lies outside the window — staleness, a different family, registered and not fixed here.",
++    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent. Round 3 (2026-09-13, researcher REVIEW §3.C): E6 may PASS only when its verdict's population and the number it publishes come from the SAME rows — the bucket counts and notional mass against m1's own `n_filled_orders`/`filled_notional_total`, pooled AND per regime, plus agreement of both bps calibers inside a stated tolerance — and the screen now publishes the bucket figure (`cost_bps_displayed`) beside m1's. Blind spots this adds: (e) the population identity is asserted on COUNTS AND MASS each carrier reports for itself, not on row identities, so two different row sets agreeing in count and notional (pooled and in every regime) would still pass; (f) the gate makes E6 refuse to certify a mismatch — it does not FIX m1, which stays frozen, so the number the pre-registration names (`c_bps_overall`) is still m1's; (g) the frozen `watchdog` §4-1 consumer still reads `m1.c_bps_net_overall` directly and treats a NaN cost as priced and not a breach, so 'all consumers are on the three buckets' is FALSE and must not be written anywhere. Round 4 (2026-09-13): first_anchor_review reads every numeric field it prints — readback notional and quantity, equity, target_gross, fill amount, intended notional, exchange floor filters, anchor mid — as a finite number or NOT OBSERVABLE, with a finite 0 kept as a value; a NaN readback notional or a NaN equity used to print the band '★★ ABOVE 15%' on the stop-decision block, and pre-fix readers fail 11 of the [D-R4] cells. Blind spots it adds: (h) the [D-R4] trees write NaN through the validating writer but None only where the schema allows it, so a None in a not_null column (nav, target_gross, venue_position_notional) is covered by the shared finite-number reader, not by a fixture row; (i) target_w keeps its is-not-None skip — a NaN weight prints a visible nan — registered, not changed",
      "tests_redelivery_settles": "that every alarm reaches a human — it proves the QUEUE stops asking once one has, which is a different guarantee. Four blind spots: (a) it settles on an explicit key, so a redelivery path that forgets to pass `settles` regresses silently and only the repeat count would show it, days later; (b) it does not retroactively settle the six already sent — the seventh redelivery closes the loop, so the ledger keeps six rows that look like a live defect; (c) `SUPPRESSED` counts as settled, which is right for a test harness and wrong if anyone ever suppresses in production; (d) it says nothing about whether the redelivered TEXT is still meaningful — a stale alarm replayed hours later is delivered, settled, and possibly misleading",
      "tests_alarm_digest": "that the right things get read — it proves the classifier separates and never demotes an undelivered alarm, not that the tiers match what a human would choose. Four blind spots: (a) the rules are REGEX over message text, so rewording an alarm silently reclassifies it and nothing here would notice; (b) `UNRECOGNISED -> DECIDE` is safe but means the tool degrades toward noise exactly as the system produces novel shapes — i.e. during an incident; (c) tier B asserts 'already decided', which is a claim about a RULING that lives outside the code — if a ruling is reversed, the tier is silently wrong; (d) it measures compression on the last 24h and reports the historical ratio ungraded, so a slow drift toward everything-is-A across weeks would not fail anything",
      "tests_disposition_matrix": "that no name will evaporate again — it proves every terminal state HAS a declared destination and that the ledger sizes the ones we abandon, not that the destinations are the right ones. Four blind spots: (a) the matrix is closed over `TERMINAL_REASONS`, so a leg that ends WITHOUT writing a row at all is invisible to it — and that is precisely how -5022 vanished, by never reaching a disposition; (b) it is RECORD-ONLY, so a gap being named changes nothing about whether a guard forgives it — the ledger could be perfect and §4-5e would still flatten the book; (c) the two code-dependent cells resolve on a substring of `note`, so a venue that reworded its errors would silently reclassify -5022 as a gap and -4164 as a real one; (d) `blocked_by_halt` dominating a halted anchor at ~4200 USDT is arithmetically right and operationally noisy — nothing here establishes that a halted anchor SHOULD report its whole book as gap",

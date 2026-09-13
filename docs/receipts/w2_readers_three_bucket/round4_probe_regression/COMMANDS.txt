@@ -1,0 +1,22 @@
+Round-4 regression of the independent researcher's W2 probe (X2, 2026-09-13).
+Originals (read-only, NOT run in place — the original writes w2_receipt.json into the researcher's evidence dir):
+  /Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_round3_code_review_2026-09-13/monitoring/probe_w2_round3.py  sha256 efcddf7211f89aac47d7dd96ca9f8acb001bde155be2f77bb8b309c8c063d5ec
+  .../monitoring/audit_common.py  sha256 c82ed83f1a93a0a682d6ad99f8506e5c5bd37ecb13a64ef3ddebce8334009ee5
+Copies here differ ONLY in paths (diff shown in DESIGN_readers_three_bucket_2026-09-12.md §9f):
+  audit_common.py            OUT_SRC = researcher monitoring dir (frozen inputs, manifest sha checks unchanged); OUT = this dir (receipt);
+                             W2 = $REGRESS_W2 if set, else the researcher's frozen snapshot private/inputs/w2
+  probe_w2_round3_regress.py two reads of C.OUT/private/... -> C.OUT_SRC/private/...   (assertions byte-identical to the original)
+  probe_w2_round4_contract.py = regress copy with lines 121-122 (the two assertions encoding NAV-R3-1) replaced by the round-4
+                             contract + version pairing (base 918559f and prior 0158f5d1 must still show the defect)
+Interpreter: python3 = /usr/local/bin/python3 (3.14.4), same as the researcher's verification_receipt.json.
+
+Verbatim commands, run from the directory holding these three .py files (cwd = scratchpad/probe_regression), with rc:
+  python3 -B probe_w2_round3_regress.py > base_frozen.out 2>&1                                              rc=0  stdout == researcher probe_w2_round3_success.log (byte-identical)
+  REGRESS_W2=/Users/haosiyu/cc_tmp/exec_w2_prev4 python3 -B probe_w2_round3_regress.py > base_prev4_prefix.out 2>&1   rc=0  pre-fix tree (readers e39689b5/9b51db9e) == researcher log (byte-identical)
+  REGRESS_W2=/Users/haosiyu/cc_tmp/exec_w2_prev4 python3 -B probe_w2_round4_contract.py > prev4_contract_RED.out 2>&1   rc=1  AssertionError at line 122 on the pre-fix tree (negative control)
+  REGRESS_W2=/Users/haosiyu/cc_tmp/exec_w2 python3 -B probe_w2_round3_regress.py > fixed_unchanged_assertions.out 2>&1   rc=1  AssertionError at line 121 (equity_nan computable) — every earlier assertion passed on the fixed clone
+  REGRESS_W2=/Users/haosiyu/cc_tmp/exec_w2 python3 -B probe_w2_round4_contract.py > fixed_contract.out 2>&1   rc=0  stdout differs from the researcher log ONLY in nav_residuals equity_nan/equity_none/start_equity_none (-> null) and valid_zero_start_deposit (-100.0 -> 0.0)
+  python3 -B probe_w2_round4_contract.py > frozen_contract_RED.out 2>&1                                     rc=1  AssertionError at line 122 on the frozen pre-fix snapshot (negative control)
+w2_receipt_fixed_contract.json = the receipt written by the last fixed_contract run (runs that fail an assertion never reach C.write).
+All runs above were made on the FINAL code (shas in DESIGN §9g), 2026-09-13 ~08:0xZ.
+Researcher worktree `git status --short` after all runs: 0 lines.

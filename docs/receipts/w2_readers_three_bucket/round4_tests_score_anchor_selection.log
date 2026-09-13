@@ -1,0 +1,42 @@
+[1a] the ladder batch is OLDER and still wins max(str) — the real 20260727 shape
+  OK    ★★ the scorer selects the REBALANCE, not the ladder batch  — 'A1781000000' (want 'A1781000000')
+  OK    ...and it says so with an error only when there is genuinely nothing to score
+
+[1b] the ladder batch is NEWER — ordering by time alone does NOT fix this one
+  OK    ★★ a ladder batch newer than every rebalance is still not the exam  — 'A1781000000' (want 'A1781000000')
+
+[1c] the exclusion is VISIBLE — 'excluded 1' and 'there were none' must differ
+  OK    ★ the scorer reports how it chose  — {'rule': 'the newest batch, by anchor_ts, that has an `anchors` row (i.e. is a scheduled rebalance) and submitted at least one order; rehearsal (R*) batches are excluded from automatic selection and can only be scored by being named', 'n_batches_with_submissions': 2, 'n_batches_excluded_not_rebalance': 1, 'n_batches_excluded_rehearsal': 0, 'candidates': {'A1781000000': 1781000000.0}}
+  OK    ★★ ...and prints the count it excluded (0 excluded and 1 excluded must not look alike)  — 1
+  OK    ...naming the rule, not just the number  — the newest batch, by anchor_ts, that has an `anchors` row (i.e. is a scheduled rebalance) and submitted at least one order; rehearsal (R*) batches are excluded from automatic selection and can only be scored by being named
+
+[1d] an explicit id is still honoured — selection is a DEFAULT, not a filter on the API
+  OK    passing the id explicitly scores that id  — A1781000000
+
+[1e] the scorer holds no hardcoded ladder id or contamination source
+  OK    PRE-ASSERT: stripping comments does not empty the file (an empty haystack finds nothing)  — 19907/41684 chars survive
+  OK    ★★ no 'FLATTEN' literal in the scorer's CODE — the exclusion is a PROPERTY of the record  — an enumerated exemption would not hold for the next batch type we invent
+  OK    ...and the comments DO still cite the measured instance (evidence is not contraband)  — the defect that motivated the fix stays named in the file
+
+[1g] ★★ E5's denominator is a STOCK, not a FLOW
+  OK    ★ a FLAT-START anchor on target passes (it always did — the fix must not move this)  — 1.0
+  OK    ★★ a REBALANCING anchor whose book is ON TARGET passes — this is the false red  — 1.0 (the flow denominator gives ~20x here)
+  OK    ★★ REVERSE CONTROL: a genuinely DOUBLED book still FAILS — not an exemption  — 2.0
+  OK    ★ the denominator names itself, so the caliber travels with the number  — target_w x this anchor's own anchors.target_gross (a STOCK: what we meant to HOLD). NOT intended_notional, which is the anchor's DELTA and only equals the target when the book starts flat.
+  OK    ★ with no anchors row there is no target_gross ⇒ UNDETERMINED, never a guessed denominator  — UNDETERMINED
+
+[1f] a day with no rebalance at all is UNDETERMINED, never 'the ladder'
+  OK    ★ a ladder-only day yields NO subject rather than a wrong one  — no scheduled rebalance in this day submitted any order; nothing to score (a ladder-only or
+
+[E4] ★★ two contradictions that are only visible BETWEEN two fields
+  OK    ★★ the producer can no longer WRITE the contradiction (D2), so the exam reads history  — pilot_log.validate refuses terminal_reason='filled' with filled_notional=None
+  OK    ★★ a row whose terminal_reason says `filled` with no filled_notional is a contradiction  — 1
+  OK    ★★ a fill that precedes its own submit_ts is a contradiction  — 1
+  OK    ★ ...and both reach the verdict, rather than being reported beside a PASS  — FAIL
+  OK    ★ the exam's own subject reads 0 — correct, and by construction rather than by evidence  — PASS
+  OK    ★★ ...while the day-wide census DOES see the ladder row (a 0 that cannot move is not a check)  — {'maker': 0, 'protective_flatten': 1}
+  OK    ★ ...and the exam says so at the limit, so the structural 0 cannot be read as evidence  — 0 rows with last_fill_ts < submit_ts. THE EXAM'S SUBJECT CANNOT CONTAIN THIS: al
+
+  23 checks run
+
+ALL PASS
