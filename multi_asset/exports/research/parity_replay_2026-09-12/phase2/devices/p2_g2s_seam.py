@@ -23,7 +23,7 @@ H4 = 14400; W = 1830
 SX = calendar.timegm((2024, 2, 1, 0, 0, 0)); SY = SX + 300 * H4; GATE_FROM = SY + W * H4; E = SY + (W + 300) * H4
 def load(tag):
     j = f"{P2}/receipts/RUN_{tag}.json"; v = f"{P2}/receipts/RUN_{tag}.vec.npz"
-    d = json.load(open(j)); z = np.load(v)
+    d = json.load(open(j)); zf = np.load(v); z = {k: zf[k] for k in zf.files}   # decompress each member ONCE (attempt 1 re-read members inside the loop and was OOM-killed)
     assert d.get("fatal") is None, (tag, d.get("fatal"))
     recs = {int(r["anchor"]): r for r in d["records"]}
     vec = {}
