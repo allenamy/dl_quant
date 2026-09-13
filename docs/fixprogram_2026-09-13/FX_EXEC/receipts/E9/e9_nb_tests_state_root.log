@@ -1,0 +1,29 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_state_root.py head=3a641c3e7e1b6e351cec3f0a987e3fcd22ae54bc dirty=3 start=2026-09-13T15:11:19Z py=Python 3.9.6
+# suite_sha256=50abeca5e0d412bb6116f9e2b256760015edc3f376b51dfb37c4a38b2c165b3e
+[SR] one root moves with the mode; nothing else does
+  OK   DRY_RUN: the ONLY difference from LIVE is the root — root=state
+  OK   LIVE: the ONLY difference from LIVE is the root — root=live
+  OK   TESTNET: the ONLY difference from LIVE is the root — root=testnet
+  OK   TESTNET really is a different tree
+  OK   ★★ LIVE has its OWN tree — the shared-root design was retired 2026-07-30 (ruling L4) — LIVE=/Users/haosiyu/cc_tmp/fx_exec/state/live DRY_RUN=/Users/haosiyu/cc_tmp/fx_exec/state
+  OK   ★★ and all three roots are distinct, so no mode can reach another's ledger by using its own mode name
+  OK   ★ every derived path is under its own root
+  OK   paths_for is PURE — asking about a mode creates nothing
+
+[SR] the marker is FAIL-CLOSED
+  OK   binding writes a group marker — testnet
+  OK   ★ RED-CAPABLE: a tree owned by the other group REFUSES to start
+  OK   ★ an UNREADABLE marker also refuses (cannot prove ownership => do not write)
+  OK   LIVE after DRY_RUN in the same tree is allowed (same group)
+
+[SR] ★ the isolation stops us WRITING to the wrong tree; this stops us READING one
+  OK   a stamped file records which mode wrote it
+  OK   reading it as its own mode succeeds
+  OK   ★ RED-CAPABLE: reading another mode's state file is REFUSED, not silently believed
+  OK   an UNSTAMPED file (written before stamping) is read but flagged unverified — /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmp2tj8xoli/old.json carries no _mode stamp (written before stamping existed); unverified
+
+[X] ★★ no operator entry point may DERIVE a per-mode path a second time
+  OK   ★★ every per-mode path in ops/ comes from state_root (or is an env-var default) — clean
+
+  ALL PASS
+# end=2026-09-13T15:11:19Z rc=0
