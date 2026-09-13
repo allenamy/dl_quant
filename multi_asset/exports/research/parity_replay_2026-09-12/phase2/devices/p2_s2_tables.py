@@ -32,7 +32,8 @@ GT = json.load(open(RC + "/S2_GATES.json")); RR = json.load(open(RC + "/S2_R18_r
 assert GT["ALL_BLOCKING_PASS"] and GT["lib_sha256"] == LIB_SHA, ("S2 gates / lib sha", GT.get("ALL_BLOCKING_PASS"), GT.get("lib_sha256"), LIB_SHA)
 assert RR["GATE_S2_P_NW"]["PASS"] and RR["A1NW_all_rc0"]
 assert AU["PASS"] and AU["arms"]["S2_v4_s42"]["layer_a"]["king_withheld_equals_jan543"]
-OUT["preconditions"] = dict(S2_GATES_sha256=L.sha(RC + "/S2_GATES.json"), S2_R18_runner_sha256=L.sha(RC + "/S2_R18_runner.json"), S2_causality_audit_sha256=L.sha(RC + "/S2_causality_audit.json"))
+GB = json.load(open(RC + "/G2C_BIND.json")); assert GB["verdict"] == "PASS", "AMENDMENT 7: G2-C-BIND must PASS before any S2 number"
+OUT["preconditions"] = dict(S2_GATES_sha256=L.sha(RC + "/S2_GATES.json"), S2_R18_runner_sha256=L.sha(RC + "/S2_R18_runner.json"), S2_causality_audit_sha256=L.sha(RC + "/S2_causality_audit.json"), G2C_BIND_sha256=L.sha(RC + "/G2C_BIND.json"))
 
 # ───────────── S2-RUN ─────────────
 RUNS = {}
@@ -69,6 +70,31 @@ D12 = TS >= L.D12_LO
 MI = np.array([A.mrow[int(t)] for t in TS])
 def y4row(t): return A.y4[MI[t]]
 SER = {}; DEV = {}; OVL = {}
+# ───────────── D20 descriptive (AMENDMENT 7 §A7.3; no gate) ─────────────
+KMETA = ("/workspace/data/wide_fea_v4_meta.npz", "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51")
+assert L.sha(KMETA[0]) == KMETA[1]; KZ = np.load(KMETA[0], allow_pickle=True); assert np.array_equal(KZ["E_ts"].astype(np.int64), A.E); MEMK = KZ["members"]
+D20_OOF = {"SLOW_v4": ("/workspace/review_scratch/king_v4/SLOW_v4.npy", "dde19142d017c37dd9bae564ab4a32a4b9b068f6aef8acc91e7ea329f4f1c8a6"),
+           "SLOW_v3_on_v4axis": ("/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy", "647673183e6af44ac5b2570b856692c9d2d51ab9f17194bfebb7a0d3dbbd9009")}
+D20DROP = {}; D20CNT = {}
+for kn, (kp, ks) in D20_OOF.items():
+    assert L.sha(kp) == ks; KO = np.load(kp, mmap_mode="r"); drops = []; cnt = {str(y): dict(fold_rows=0, member_cells=0, dropped_cells=0, full_nan_rows=0) for y in L.YEARS}
+    for t in range(len(TS)):
+        y = int(L.YEAR_OF[t])
+        if y < 2024: drops.append(None); continue
+        i = MI[t]; m = np.asarray(MEMK[i], np.int64); fin = np.isfinite(KO[i, m]); d_ = m[~fin]; drops.append(d_)
+        c = cnt[str(y)]; c["fold_rows"] += 1; c["member_cells"] += int(len(m)); c["dropped_cells"] += int(len(d_)); c["full_nan_rows"] += int(not fin.any())
+    for c in cnt.values(): c["dropped_share_of_member_cells"] = (c["dropped_cells"] / c["member_cells"]) if c["member_cells"] else None
+    D20DROP[kn] = drops; D20CNT[kn] = cnt
+def d20_gross_share(Wb, kn):
+    out = {}
+    for y in L.YEARS:
+        num = 0.0; den = 0.0
+        for t in np.nonzero(L.YEAR_OF == y)[0]:
+            den += float(np.abs(Wb[t]).sum()); d_ = D20DROP[kn][t]
+            if d_ is not None and len(d_): num += float(np.abs(Wb[t][d_]).sum())
+        out[str(y)] = dict(book_gross_share_on_dropped_member_anchors=(num / den if den > 0 else None), has_king_fold=bool(y >= 2024))
+    return out
+D20BOOK = {}
 def book_series(Wb, key, mode="NOSTOP", Xo=None, gross=None):
     if mode == "NOSTOP":
         X = np.empty_like(Wb)
@@ -119,6 +145,7 @@ for tag in ARMS:
         dv[str(y)] = dict(n=int(m.sum()), traded_file=dict(tf), combo_states_written=int(fl["has_states"][m].sum()), known_crash=int(fl["crash"][m].sum()),
                           producer_skip=int(fl["skip"][m].sum()), combo_live_fail_reasons_top=why.most_common(4))
     DEV.setdefault("arms", {})[tag] = dv
+    D20BOOK[f"{tag}|CMB"] = d20_gross_share(B["CMB"], "SLOW_v3_on_v4axis" if "A0pred" in tag else "SLOW_v4")
     Xn, gn = book_series(B["CMB"], f"{tag}|CMB|NOSTOP")
     book_series(B["LIT"], f"{tag}|LIT|NOSTOP"); book_series(B["KING"], f"{tag}|KING|NOSTOP")
     if tag in ("S2_v4_s42", "S2_v4_s2027"):
@@ -199,12 +226,13 @@ DSET = {}
 for seed in ("42", "2027"):
     for rk, wk, nm in (("S0_rec", "S0_W", "A0_S0"), ("d30_n2_c42_rec", "d30_n2_c42_W", "A0_d30")):
         s = L.archive_series(f"C0_s{seed}", rk, wk); W64 = s["W"].astype(np.float64); X = np.stack([L.smr(W64[t]) for t in range(len(W64))])
+        D20BOOK[f"{nm}|s{seed}"] = d20_gross_share(W64, "SLOW_v3_on_v4axis")
         acc = A.account(TS, X, np.abs(W64).sum(1), "full"); gf, _, _ = L.g_of(acc); dd = gf - s["g"]
         DSET[f"{nm}|s{seed}"] = {w: dict(mean_g_archive=float(s["g"][WIN[w]].mean()), mean_g_full829=float(gf[WIN[w]].mean()), mean_delta=float(dd[WIN[w]].mean()),
                                          maxabs_delta=float(np.abs(dd[WIN[w]]).max())) for w in WNAMES}
         del W64, X
 
-OUT.update(label="生产路径历史 combo 链未被 S1 认证 (STATE 2026-09-13 12:1xZ ④; continuous historical combo chain parity 0/41)", executor=EXINFO, boot=BOOTINFO, t6=T6INFO, references=REFINFO, levels=LEV, per_year=PY, contrasts=CON, verdicts=VER, dsr_primary=DSR, delta_set_A0=DSET,
+OUT.update(label="生产路径历史 combo 链未被 S1 认证: king 连续 41/41 与 3 个快照起步锚通过, 连续 combo 历史链不通过 (0/41 @ 1e-6, 最大 1.12547e-4); S2 不是「生产路径平价已通过」 (STATE 2026-09-13 12:1xZ ④; AMENDMENT 7 §A7.3)", d20=dict(definition="king OOF non-finite on exporter members (wide_fea_v4_meta) on king-fold rows (year >= 2024); SLOW_v3 counted against v4-meta members (member-set differences between the v3 and v4 metas are included, so it is an upper bound on D20 for v3); book gross share uses the raw held target W (P2-CMB) / archived sm W (A0)", bias_direction="forward-looking availability mask: names without a finite next-4h return (delisting, halted, illiquid) get no king score; plausibly flatters both A0 and P2. Separately, held names with NaN y4 are accounted at 0 return (unknown-return exposure, reported per year)", counts=D20CNT, book_gross_share=D20BOOK), executor=EXINFO, boot=BOOTINFO, t6=T6INFO, references=REFINFO, levels=LEV, per_year=PY, contrasts=CON, verdicts=VER, dsr_primary=DSR, delta_set_A0=DSET,
            deviations=DEV, overlay_events=OVL, windows={w: int(WIN[w].sum()) for w in WNAMES}, d12_n={w: int((WIN[w] & D12).sum()) for w in WNAMES},
            jan543_n=int(JAN.sum()), nav_ref=L.NAV_REF, lev=L.LEV)
 
@@ -212,7 +240,7 @@ OUT.update(label="生产路径历史 combo 链未被 S1 认证 (STATE 2026-09-13
 def f(x, n=4): return "—" if x is None else (f"{x:+.{n}f}" if isinstance(x, (int, float)) else str(x))
 md = [f"# S2 tables (AMENDMENT 6, prereg sha {L.PREREG_SHA[:16]}…; device {SELF_SHA[:16]}…, lib {LIB_SHA[:16]}…; built {L.iso(time.time())})", "",
       "Layer: every P2 number is the HELD-BOOK layer (target weights), v4 accounting (meta y4 RAW, costb_PWR_G230k, g = net_ex/gross_total, E-close fills). Research references = archived rec.", "",
-      "**LABEL (STATE 2026-09-13 12:1xZ ④): 生产路径历史 combo 链未被 S1 认证 — every S2 full-history P2 number below carries this label (continuous historical combo chain parity remains 0/41).**", ""]
+      "**LABEL: 生产路径历史 combo 链未被 S1 认证: king 连续 41/41 与 3 个快照起步锚通过, 连续 combo 历史链不通过 (0/41 @ 1e-6, 最大 1.12547e-4); S2 不是「生产路径平价已通过」 (STATE 2026-09-13 12:1xZ ④; AMENDMENT 7 §A7.3) — every S2 full-history P2 number below carries this label.**", ""]
 md += ["## Levels", "", "| series | window | n | g bps/anchor/gross | CI95 k0 | CI95 k9 | Sharpe | 2.0x maxDD | worst day (2.0x) |", "|---|---|---|---|---|---|---|---|---|"]
 for key in LEV:
     for w in WNAMES:
@@ -234,6 +262,14 @@ md += ["", "## DSR — primary arm S2_v4 P2-CMB STOP (T6 conventions; V_SR_pp, N
        "| seed / window | T | SR annual | skew | kurt | N_eff | SR0 @N_eff | P(SR>0) @N_eff | P(SR>3) @N_eff | SR0 @300 | P(SR>0) @300 | P(SR>3) @300 |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
 for k, r in DSR.items():
     md.append(f"| {k} | {r['T']} | {r['SR_annual']:.4f} | {r['skew']:.3f} | {r['kurt']:.2f} | {r['N_eff']:.3f}{' (floored to 2)' if r['Nfloor_N_eff'] else ''} | {r['SR0_annual_N_eff']:.4f} | {r['P_true_SR_gt_0_N_eff']:.4f} | {r['P_true_SR_gt_3_N_eff']:.4f} | {r['SR0_annual_N_300']:.4f} | {r['P_true_SR_gt_0_N_300']:.4f} | {r['P_true_SR_gt_3_N_300']:.4f} |")
+md += ["", "## D20 — king OOF forward-label availability mask (descriptive; bias direction: plausibly flatters both A0 and P2)", "", "| mask | year | king-fold rows | member cells | dropped cells | dropped share | full-NaN rows |", "|---|---|---|---|---|---|---|"]
+for kn, cnt in D20CNT.items():
+    for y, c in cnt.items():
+        md.append(f"| {kn} | {y} | {c['fold_rows']} | {c['member_cells']} | {c['dropped_cells']} | {('%.4f' % c['dropped_share_of_member_cells']) if c['dropped_share_of_member_cells'] is not None else '—'} | {c['full_nan_rows']} |")
+md += ["", "| book | year | gross share on dropped member-anchors |", "|---|---|---|"]
+for bk, ys in D20BOOK.items():
+    for y, r in ys.items():
+        v = r["book_gross_share_on_dropped_member_anchors"]; md.append(f"| {bk} | {y} | {('%.5f' % v) if (v is not None and r['has_king_fold']) else '— (no king fold)'} |")
 md += ["", "## Deviations exercised", "", "```", json.dumps(dict(arms=DEV["arms"], overlay_events=OVL, delta_set_A0=DSET), indent=1, ensure_ascii=False, default=float)[:60000], "```"]
 mp = RC + "/S2_TABLES.md"; open(mp + ".tmp", "w").write("\n".join(md) + "\n"); os.replace(mp + ".tmp", mp)
 OUT["md_sha256"] = L.sha(mp); OUT["runtime_s"] = round(time.time() - T0, 1)
