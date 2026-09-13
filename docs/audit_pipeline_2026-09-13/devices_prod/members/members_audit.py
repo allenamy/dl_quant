@@ -210,11 +210,11 @@ RC["gates"]["VS_prod_sel_rule"]["PASS"] = RC["gates"]["VS_prod_sel_rule"]["membe
 log("VS", RC["gates"]["VS_prod_sel_rule"])
 
 # ---------------- research sets on the overlap axis
-KM = np.load(INPUTS["kmeta"][0], allow_pickle=True); KE = KM["E_ts"].astype(np.int64); KMEM = {int(t): np.asarray(m, np.int64) for t, m in zip(KE, KM["members"])}
+KM = np.load(INPUTS["kmeta"][0], allow_pickle=True); KE = KM["E_ts"].astype(np.int64); KMEMS = KM["members"]; KMEM = {int(t): np.asarray(m, np.int64) for t, m in zip(KE, KMEMS)}   # NpzFile re-reads a key on every access: load once
 DE = TG["E_ts"].astype(np.int64); DMEM = {int(t): np.asarray(m, np.int64) for t, m in zip(DE, TG["members"])}
 NM = np.load(INPUTS["npmeta"][0], allow_pickle=True); NE = NM["E_ts"].astype(np.int64); assert np.array_equal(NE, KE), "meta_newprod axis != king meta axis"
 NROW = {int(t): i for i, t in enumerate(NE)}; NQVK = NM["qvk"]; NY4 = NM["y4"]
-assert all(np.array_equal(np.asarray(KM["members"][i]), np.asarray(NM["members"][i])) for i in range(len(KE))), "meta_newprod members != king meta members"
+NMEMS = NM["members"]; assert all(np.array_equal(np.asarray(KMEMS[i]), np.asarray(NMEMS[i])) for i in range(len(KE))), "meta_newprod members != king meta members"
 PXTS = set(int(t) for t in np.load(INPUTS["panel_x"][0], allow_pickle=True)["ts"].astype(np.int64))
 UMR_ROW = {int(t): k for k, t in enumerate(UMr["ts"].astype(np.int64))}; UMC_ROW = {int(t): k for k, t in enumerate(UMc["ts"].astype(np.int64))}
 UMR = np.asarray(UMr["mask"]); UMC = np.asarray(UMc["mask"])
@@ -233,6 +233,7 @@ QV = {"dlog_P_vs_R": [], "dlog_r17_vs_R": [], "tier_agree_P_R": [0, 0], "tier_ag
 def tier(q): return np.where(q >= 5e6, 0, np.where(q >= 1e6, 1, 2))
 for a in OV_ANCH:
     e = CROW[a]; row = {"anchor": U(a), "ts": a}
+    if len(ROWS) % 20 == 0: log("anchor", U(a), len(ROWS), "/", len(OV_ANCH))
     Pm = PMEM[a]; Km = KMEM[a]; Dm = DMEM[a]
     sKf = win_stats(e, "E-1", None); sKl = win_stats(e, "E-1", LIVE_MASK); sEl = win_stats(e, "E", LIVE_MASK); sEf = win_stats(e, "E", None)
     k0, _ = rule64(sKf, "K", "q", "q"); d0, _ = rule64(sKf, "D", "r", "r")
