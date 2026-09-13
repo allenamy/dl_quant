@@ -58,3 +58,52 @@
   - NEW-01: flatten rows' `submit_ts`/`anchor_ts` are the row-write time (watchdog.py, fx-w6c).
   - NEW-02: flatten fills rows carry `attempt_idx 2` (venue_fills.py:1179).
   - NEW-03: gate_coverage SUITE_SCOPE has a duplicate key `tests_external_book`.
+
+---
+
+## Resume progress (appended 2026-09-13 16:2xZ; this section supersedes "Not started" above)
+
+**Branch and state.** The clone branch `main` was renamed at c2e9bdc to `fix/ledger-alarms-2026-09-13`, and clone-local `main` was reset to ef60f85. The ledger copy moved to `/Users/haosiyu/cc_tmp/fx_exec2_state_20260913T1427Z`, and the clone's `state/` was restored with `git checkout -- state`. The old worktree's `state` symlink points at the moved copy.
+
+**Executor chain** (ef60f85..e808697):
+
+| Item | Commit(s) |
+|---|---|
+| LED-02 | c46fb83 |
+| LED-07 | 7ca52ac |
+| LED-08 | 469c3f3 |
+| STA-02 | 8354c5a |
+| ALM-01 | c2e9bdc |
+| LED-01 | ec88424 (1/3), d3d16ea (2/3), 0d27a52 (3/3), df57077 (drift manifest follow-up) |
+| LED-04 | e05c45a |
+| ALM-05 | 63e116c |
+| STA-03 | 2f66d77 |
+| CFG-02 | 15c31a5 |
+| CFG-07 | 4b81443 |
+| DOC-01 | e808697 |
+
+Latest partial diff: `receipts/fx_exec2_partial_ef60f85_e808697.diff`.
+
+**Research repo:**
+- inspect_anchor.py fix: 5a866f0c.
+- ALM-06 guard_twin package: 24b6e083, under `guard_twin_ALM06/`. Deploy is a lead file copy.
+- OPS-03 design: 9add9bd5. It is NOT coded and waits for a lead ruling.
+- Devices committed before running:
+  - LED-04 apply/rehearsal: da1a9389.
+  - LED-03 proxy: two commits.
+  - LED-05 write-back: two commits.
+
+**Waiting on the lead:**
+- Whether the full battery may make public GETs (tests_entrypoint_wiring).
+- Timing of the research-copy re-vendor of pilot_metrics (deploy coupling).
+- LED-04: the watchdog cond4 transfer-day bias (0.26 pp).
+- OPS-03: option A, B or C.
+
+**Waiting on fx-exec:** the E10 notary test proposal (LED-01 req. 6).
+
+**Still to do after 16:50Z:**
+- LED-04 rehearsal (devices/led04_apply_amendments.py --rehearse).
+- LED-05 rehearsal (devices/led05_writeback_reconstructed.py --rehearse).
+- LED-03 proxy run and positive control.
+- The full battery, if allowed.
+- The final `docs/receipts/fx_exec2.diff`.
