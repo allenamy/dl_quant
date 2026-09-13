@@ -1,0 +1,48 @@
+START 2026-09-13T15:15:15Z
+adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b  /workspace/fx_train_2026-09-13/trn02_iso/sept/raw_patch.npz
+adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b  /workspace/fx_train_2026-09-13/trn02_iso/sept_on_x0910/raw_patch.npz
+94e8e8c119ea719a4ed1544813d433d00c39148a8e916018435ac10402a6f149  /workspace/fx_train_2026-09-13/trn02_iso/x0910/raw_patch.npz
+== S3_manifest_sept
+S3_manifest_sept rc=0
+cache dlnative_5m_wide829_f16_holefix2.npz TT 490753 candidates 953 | patch rows 952 | sources ['/workspace/review_scratch/raw5m_kl']
+RAWPATCH_MANIFEST_DONE {"candidates": 953, "patch_rows": 952, "kept": 952, "kept_rederived_bitwise": 952, "not_clipped": 1, "clipped_missing": 0, "unresolved": 0, "patch_rows_not_candidates": 0} -> /workspace/fx_train_2026-09-13/trn02_iso/sept/raw_patch.manifest.json
+== S3_manifest_x0910
+S3_manifest_x0910 rc=0
+cache dlnative_5m_wide829_f16_holefix2_x0910.npz TT 493633 candidates 956 | patch rows 955 | sources ['/workspace/review_scratch/raw5m_kl', '/workspace/uplift_2026-09-11/r6/dl/klines']
+RAWPATCH_MANIFEST_DONE {"candidates": 956, "patch_rows": 955, "kept": 955, "kept_rederived_bitwise": 955, "not_clipped": 1, "clipped_missing": 0, "unresolved": 0, "patch_rows_not_candidates": 0} -> /workspace/fx_train_2026-09-13/trn02_iso/x0910/raw_patch.manifest.json
+== S3_manifest_sept_on_x0910
+S3_manifest_sept_on_x0910 rc=0
+cache dlnative_5m_wide829_f16_holefix2_x0910.npz TT 493633 candidates 956 | patch rows 952 | sources ['/workspace/review_scratch/raw5m_kl', '/workspace/uplift_2026-09-11/r6/dl/klines']
+RAWPATCH_MANIFEST_DONE {"candidates": 956, "patch_rows": 952, "kept": 952, "kept_rederived_bitwise": 952, "not_clipped": 1, "clipped_missing": 3, "unresolved": 0, "patch_rows_not_candidates": 0} -> /workspace/fx_train_2026-09-13/trn02_iso/sept_on_x0910/raw_patch.manifest.json
+== S4_gate_sept
+S4_gate_sept rc=0
+  OK   G9_partition {"n_candidates": 953, "n_patch": 952, "n_not_clipped": 1, "candidates_unaccounted": [], "n_unaccounted": 0, "rows_not_candidates": [], "n_extra": 0}
+RAW_PATCH_COVERAGE PASS {"TT": 490753, "NW": 829, "n_candidates": 953, "n_patch": 952, "n_not_clipped": 1, "n_unaccounted": 0}
+RAW_PATCH_COVERAGE PASS -> /workspace/fx_train_2026-09-13/receipts/trn02_real/S4_gate_sept.json
+== S4_gate_x0910
+S4_gate_x0910 rc=0
+  OK   G9_partition {"n_candidates": 956, "n_patch": 955, "n_not_clipped": 1, "candidates_unaccounted": [], "n_unaccounted": 0, "rows_not_candidates": [], "n_extra": 0}
+RAW_PATCH_COVERAGE PASS {"TT": 493633, "NW": 829, "n_candidates": 956, "n_patch": 955, "n_not_clipped": 1, "n_unaccounted": 0}
+RAW_PATCH_COVERAGE PASS -> /workspace/fx_train_2026-09-13/receipts/trn02_real/S4_gate_x0910.json
+== S4_gate_sept_on_x0910
+S4_gate_sept_on_x0910 rc=3
+  FAIL G9_partition {"n_candidates": 956, "n_patch": 952, "n_not_clipped": 1, "candidates_unaccounted": [{"row": 491301, "col": 46, "ts": "2026-09-02 21:45Z", "symbol": "AKEUSDT"}, {"row": 491940, "col": 168, "ts": "2026-09-05 03:00Z", "symbol": "BULLAUSDT"}, {"row": 492211, "col": 784, "ts": "2026-09-06 01:35Z", "symb
+RAW_PATCH_COVERAGE FAIL {"TT": 493633, "NW": 829, "n_candidates": 956, "n_patch": 952, "n_not_clipped": 1, "n_unaccounted": 3}
+RAW_PATCH_COVERAGE FAIL -> /workspace/fx_train_2026-09-13/receipts/trn02_real/S4_gate_sept_on_x0910.json
+== S5_builder_fixed_sept_on_x0910
+S5_builder_fixed_sept_on_x0910 rc=3
+[    0.0s] sha256 inputs ...
+[   18.2s] cache 493633x829x7 ts 1640995200..1789084800
+[   33.0s] TARGETS_REFUSED raw_patch_coverage FAIL ['G8_no_clipped_missing_no_unresolved', 'G9_partition'] -> /workspace/fx_train_2026-09-13/trn02_iso/tg_red_sept_on_x0910/results/raw_patch_coverage.json (no targets written)
+/workspace/fx_train_2026-09-13/trn02_iso/tg_red_sept_on_x0910/data:
+total 978
+drwxrwxrwx 2 root root       1 Sep 13 15:19 .
+drwxrwxrwx 4 root root 1000402 Sep 13 15:19 ..
+
+/workspace/fx_train_2026-09-13/trn02_iso/tg_red_sept_on_x0910/results:
+total 1959
+drwxrwxrwx 2 root root 1000402 Sep 13 15:19 .
+drwxrwxrwx 4 root root 1000402 Sep 13 15:19 ..
+-rw-rw-rw- 1 root root    4123 Sep 13 15:19 raw_patch_coverage.json
+SEPT_ARTIFACTS_UNCHANGED
+END 2026-09-13T15:19:52Z
