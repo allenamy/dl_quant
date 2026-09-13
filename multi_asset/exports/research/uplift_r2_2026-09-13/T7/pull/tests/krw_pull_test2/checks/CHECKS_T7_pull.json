@@ -1,0 +1,177 @@
+{
+ "device": "t7_pull_checks.py",
+ "run_utc": "2026-09-13T09:18:07Z",
+ "plan_sha256": "d97165638bde78174d0ef669e79eed20d1446fde1164f9bf9b46bf4b7c1388dc",
+ "mode": "TEST",
+ "venues": {
+  "upbit": {
+   "n_markets": 3,
+   "n_market_units": 6,
+   "n_done": 4,
+   "done_reasons": {
+    "CUTOFF": 4
+   },
+   "n_manifest_pages": 8,
+   "n_orphan_files": 0,
+   "C3_C4": {
+    "days_checked": 48,
+    "EXACT": 48,
+    "ROUNDING": 0,
+    "MISMATCH": 0,
+    "C4_FRESH": 2,
+    "C4_NO_BARS": 1
+   },
+   "fail_lists": {
+    "NOT_DONE": [
+     "KRW-ZZZNOTACOIN 60m",
+     "KRW-ZZZNOTACOIN days"
+    ],
+    "C1": [
+     "KRW-ZZZNOTACOIN 60m",
+     "KRW-ZZZNOTACOIN days"
+    ],
+    "C4": [
+     "KRW-ZZZNOTACOIN"
+    ]
+   },
+   "fail_counts": {
+    "NOT_DONE": 2,
+    "C1": 2,
+    "C4": 1
+   },
+   "C5": {
+    "attempts_by_status": {
+     "200": 13,
+     "404": 6
+    },
+    "n_429": 0,
+    "max_sends_in_any_1s": 3,
+    "rate_ok": true,
+    "n_error_records": 4,
+    "error_kinds": {
+     "HTTP_OR_BODY_ERROR": 4
+    },
+    "n_unresolved_error_records": 4
+   }
+  },
+  "bithumb": {
+   "n_markets": 3,
+   "n_market_units": 6,
+   "n_done": 0,
+   "done_reasons": {},
+   "n_manifest_pages": 0,
+   "n_orphan_files": 0,
+   "C3_C4": {
+    "days_checked": 0,
+    "EXACT": 0,
+    "ROUNDING": 0,
+    "MISMATCH": 0,
+    "C4_NO_BARS": 3
+   },
+   "fail_lists": {
+    "NOT_DONE": [
+     "KRW-BTC 60m",
+     "KRW-BTC days",
+     "KRW-XRP 60m",
+     "KRW-XRP days",
+     "KRW-ZZZNOTACOIN 60m",
+     "KRW-ZZZNOTACOIN days"
+    ],
+    "C1": [
+     "KRW-BTC 60m",
+     "KRW-BTC days",
+     "KRW-XRP 60m",
+     "KRW-XRP days",
+     "KRW-ZZZNOTACOIN 60m",
+     "KRW-ZZZNOTACOIN days"
+    ],
+    "C4": [
+     "KRW-BTC",
+     "KRW-XRP",
+     "KRW-ZZZNOTACOIN"
+    ]
+   },
+   "fail_counts": {
+    "NOT_DONE": 6,
+    "C1": 6,
+    "C4": 3
+   },
+   "C5": {
+    "attempts_by_status": {},
+    "n_429": 0,
+    "max_sends_in_any_1s": 0,
+    "rate_ok": true,
+    "n_error_records": 0,
+    "error_kinds": {},
+    "n_unresolved_error_records": 0
+   }
+  }
+ },
+ "binance": {
+  "n_symbol_months_planned": 5,
+  "status_counts": {
+   "MISSING_NO_RECORD": 5
+  },
+  "n_rows_loaded": 0,
+  "flags": {
+   "MISSING_NO_RECORD": [
+    "BTCUSDT 2026-07",
+    "BTCUSDT 2026-08",
+    "XRPUSDT 2026-07",
+    "XRPUSDT 2026-08",
+    "ZZZNOTACOINUSDT 2026-07"
+   ]
+  },
+  "flag_counts": {
+   "MISSING_NO_RECORD": 5
+  },
+  "C5": {
+   "attempts_by_status": {},
+   "max_sends_in_any_1s": 0,
+   "rate_ok": true,
+   "n_error_records": 0,
+   "error_kinds": {}
+  }
+ },
+ "exits": {
+  "upbit": [
+   {
+    "utc": "2026-09-13T09:17:56.783Z",
+    "run_id": "20260913T091754Z_85013",
+    "exit_code": 3,
+    "n_data_requests": 2,
+    "units_done_this_run": 0,
+    "errors_this_run": 0,
+    "stopped": "max-requests reached (simulated interruption)"
+   },
+   {
+    "utc": "2026-09-13T09:18:06.949Z",
+    "run_id": "20260913T091757Z_85031",
+    "exit_code": 1,
+    "n_data_requests": 11,
+    "units_done_this_run": 4,
+    "errors_this_run": 4,
+    "unresolved": [
+     "KRW-ZZZNOTACOIN 60m",
+     "KRW-ZZZNOTACOIN days"
+    ]
+   }
+  ],
+  "bithumb": [],
+  "binance": []
+ },
+ "controls": {
+  "upbit": [
+   {
+    "run_id": "20260913T091754Z_85013",
+    "ok": true
+   },
+   {
+    "run_id": "20260913T091757Z_85031",
+    "ok": true
+   }
+  ],
+  "bithumb": [],
+  "binance": []
+ }
+}

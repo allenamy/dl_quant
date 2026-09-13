@@ -1,0 +1,43 @@
+{
+ "amendment": 1,
+ "utc": "2026-09-13T09:38:32Z",
+ "plan_sha256_unchanged": "88f8e42478c135dff31a8db39ff97f8c1cfa8e5a0bd0d9754eee2a27588b1b1c",
+ "kind": "TRANSPORT AND ROBUSTNESS ONLY \u2014 scope, stop rules, controls, checks thresholds, identity-guard and offset-spectrum criteria unchanged",
+ "reason": "v1 workers were latency-bound, not rate-bound: median request 378 ms (Upbit) / 504 ms (Bithumb) with 7-9 ms local overhead, a fresh TLS connection per request; projected Bithumb duration ~6.3 h. Keep-alive benchmark at <= 1 req/s: 85-87 ms vs 376-385 ms fresh.",
+ "changes": [
+  "t7_http2.py: one persistent HTTPS keep-alive connection per host (http.client), dropped on any exception or Connection: close; redirects not followed; limiter (<= 5 in any 1 s, >= 0.21 s gap) unchanged",
+  "t7_pull.py: at start, terminate any torn last JSONL line with a newline (recorded per run as torn_tails_repaired); graceful stop when run/STOP_<venue> exists",
+  "t7_pull_checks.py: report manifest torn lines separately from pages"
+ ],
+ "v1_workers_stopped": {
+  "pids": [
+   85081,
+   85083,
+   85085
+  ],
+  "signal": "SIGTERM",
+  "utc_approx": "2026-09-13T09:33:35Z",
+  "manifest_lines_at_stop": {
+   "done_bithumb.jsonl": 24,
+   "done_upbit.jsonl": 32,
+   "pages_binance.jsonl": 1949,
+   "pages_bithumb.jsonl": 1676,
+   "pages_upbit.jsonl": 2350
+  },
+  "all_manifest_files_end_with_newline_at_stop": true
+ },
+ "tests_before_relaunch": {
+  "root": "/Users/haosiyu/cc_tmp/krw_pull_test3",
+  "result": "phase1 --max-requests 2 exit 3 x3; injected torn fragment repaired; phase2 exit 1/1/0 (fixture unresolved as designed); checks: EXACT 48/46 days, FRESH 2+2, fixture C1/C4/NOT_DONE red, FLAG_MISSING_INDEX 1; keep-alive reuse 0.78-0.89, median 84-103 ms, max 5 sends in any 1 s"
+ },
+ "device_sha256_v1": {
+  "t7_http2.py": "29e4e8b53941d399c36c46c4b6c79c875fe516dfb787bb32f43a1d6ec95a817a",
+  "t7_pull.py": "dd23c3f5afa74684872e710a90c07f6bb8d0048d07ca756aee7925168d740531",
+  "t7_pull_checks.py": "7f32f8223a7a86d0e95302f34a28ebdcdd1de726ff8ff31cc33cfdfaf382d4d6"
+ },
+ "device_sha256_v2": {
+  "t7_http2.py": "8201293aabc9afef59545b9ba2d3b52430ff3c3e39a5c8dfe4391aa1947db4e0",
+  "t7_pull.py": "6b18d1dc4c931614966ff1c70cdd8fabc4fbe510c0875b0340002bf76d75332c",
+  "t7_pull_checks.py": "14b4b94251725ff8392bb80668b54112e6cad34c17cfa01f17417baa2cb82e87"
+ }
+}
