@@ -1,0 +1,1 @@
+env -i PATH=/usr/bin:/bin HOME=/root LC_CTYPE=C.UTF-8 nice -n 10 taskset -c 40-47 /workspace/venv/bin/python devices/l4b_pull.py PATH,HOME,LC_CTYPE work/FEAS_L4b.json work 8 > work/l4b_pull_stdout.log 2>&1; echo rc=$? > work/l4b_pull_rc.txt
