@@ -87,17 +87,22 @@ def check(b):
             # attempt 1 matched SHA256SUMS names literally: the 1789200000 list carries repo-relative paths, so no s12 file was checked and the check
             # passed vacuously (receipts G2C_BIND.attempt1_sums_vacuous.*). Names are now resolved by basename, the list's self-entry is skipped by name,
             # and every data file present in the directory must be covered by a matching entry.
-            miss = []; covered = set()
+            miss = []; covered = set(); prefix_len = {}
             for line in open(sd + "/SHA256SUMS.txt"):
                 if not line.strip(): continue
                 d_, n_ = line.split(None, 1); base = os.path.basename(n_.strip())
                 if base == "SHA256SUMS.txt": continue
                 if os.path.exists(f"{sd}/{base}"):
-                    covered.add(base); F("B4.sums", sha(f"{sd}/{base}") == d_, f"{slot}: {base} sha != SHA256SUMS")
+                    # attempt 2: the 1789200000 list records 16-hex sha256 PREFIXES (the other lists full digests); a digest of >= 16 hex chars is matched on its
+                    # recorded length (receipts G2C_BIND.attempt2_sums_prefix16.*), and the two start-state files are also bound to the full sha in G2C_prep.json.
+                    covered.add(base); F("B4.sums", len(d_) >= 16 and sha(f"{sd}/{base}").startswith(d_), f"{slot}: {base} sha != SHA256SUMS ({len(d_)} hex)")
+                    prefix_len[base] = len(d_)
                 else: miss.append(n_.strip())
             present = {f_ for f_ in os.listdir(sd) if f_ != "SHA256SUMS.txt"}
             F("B4.sums_cover", len(present) > 0 and present <= covered, f"{slot}: present but not covered by SHA256SUMS: {sorted(present - covered)}")
-            info.setdefault("snapshot_sums", {})[slot] = dict(covered=sorted(covered), listed_not_present=miss)
+            for kind, fn in (("aux", "aux.json"), ("rolling", "rolling.npz")):
+                F("B4.prep_full_sha", sha(f"{sd}/{fn}") == ((P.get("inputs") or {}).get(f"snap_{A - 14400}_{kind}") or {}).get("sha256"), f"{slot}: snapshot {fn} full sha != G2C_prep")
+            info.setdefault("snapshot_sums", {})[slot] = dict(covered=sorted(covered), listed_not_present=miss, digest_hex_len=prefix_len)
             for tag in ("f10", "kc", "fc"):
                 p_ = f"{fh}/fea171/state_H_{tag}_{A - 14400}.npz"
                 F("B4.state_H", os.path.exists(p_) and int(np.load(p_)["anchor"]) == A - 14400, f"{slot}: {p_}")
