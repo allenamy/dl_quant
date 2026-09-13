@@ -29,6 +29,8 @@ p2b = h5["P2_base_proxy_on_king_axis"]
 mx = E["matrix"]
 
 def yline(d, key, fmt=i): return " / ".join(fmt(d[y][key]) for y in YRS if y in d)
+BASE_SH = [h3[y]["base_DEAD_mean"] / h3[y]["base_mean"] for y in YRS]; U_SH = [h2[y]["U_DEAD"] / h2[y]["U_pairs"] for y in YRS]
+BASE_RNG = f"{100*min(BASE_SH):.1f}-{100*max(BASE_SH):.1f}%"; U_RNG = f"{100*min(U_SH):.1f}-{100*max(U_SH):.1f}%"
 
 # ------------------------------------------------------------------ register
 items = []
@@ -110,7 +112,7 @@ add(id="TIM-01", layer="king features and labels / clock (train vs serve)",
         {"source": "v4_chain_2026-09-09/chain_v4_monthly.sh:148", "quote": "env -i ... CACHE_IN=$CACHE PANEL_IN=$PANEL_KING FEA_OUT=$KING_FEA META_OUT=$KING_META \"$PY\" \"$D/pod_fea_ext_clamp.py\""},
         {"source": "grep 'E-0909-F|v4e|king_clock|时钟' RUNBOOK_monthly_retrain_2026-10.md, CALIBER_STATUS_2026-09-09.md, git show HEAD:docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md", "quote": "no entry for the king clock; RUNBOOK mentions v4e only as the export gate file v4e_gate_export_v2.py; FIXPROGRAM's only 时钟 hit is D2 (metrics archive)"}],
     status="OPEN_MEASURED_MATERIAL", affects=["live_trading", "future_retrain", "future_eval"], severity="P1",
-    severity_reason="A measured train/serve skew in a live model leg (10-20% of the top decile changes), with a ready fix blocked by a low-resolution guard, silently re-baked by the next retrain because it fell out of every register.",
+    severity_reason="A measured train/serve skew in a live model leg (7-22% of the top decile changes), with a ready fix blocked by a low-resolution guard, silently re-baked by the next retrain because it fell out of every register.",
     action="Add E-0909-F to FIXPROGRAM; decide the clock-aligned builder with a CI-based book judge instead of the ±0.6-noise guard band; until decided, state in RUNBOOK_2026-10 that October keeps the old clock.",
     method="VERIFIED", dependents=["in-service king booster 8d79186b", "v4 king SLOW_v4 (A1x, P2 king OOF)", "RESULT_king_clip_label_ablation / guard band 2.27-2.57 (computed on the same early-window label)", "none re-run"])
 
@@ -127,7 +129,7 @@ add(id="TRD-02", layer="fund leg rank base (replay FZB and P2 base proxy)",
         {"source": "AD_H_tradability.json H6 fund_now_finite_on_DEAD (v2ext cells)", "quote": yline(h6, "fund_now_finite_on_DEAD")},
         {"source": "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md:75", "quote": "D3 基名单: exchangeInfo 历史不可得 ⇒ (A−24h, A] 有结算的名作 TRADING 代理"}],
     status="OPEN_NOT_MEASURED", affects=["future_eval"], severity="P2",
-    severity_reason="Systematic 1-5% contamination of the rank base behind the book's dominant leg in every replay and in P2's production-path claim; effect on levels not measured but paired contrasts mostly cancel.",
+    severity_reason=f"Systematic {BASE_RNG} contamination of the rank base (yearly mean) behind the book's dominant leg in every replay and in P2's production-path claim; effect on levels not measured but paired contrasts mostly cancel.",
     action="Drop from the base any name with no trade in the trailing 24 h (TRD-01 flag) in w10 FZB and in P2's base proxy; report the paired A0 and P2 differences.",
     method="VERIFIED", dependents=["A0/NW/C0 and all m1-scope arms", "P2 S2 (running)", "none re-run"])
 
@@ -155,7 +157,7 @@ add(id="TRD-04", layer="state variables and member-set statistics",
         {"source": "devices_data/receipts/AD_H_tradability.json H2 U_pairs / U_DEAD / U_Z24", "quote": json.dumps({y: {k: h2[y][k] for k in ("U_pairs", "U_DEAD", "U_Z24")} for y in YRS})},
         {"source": "uplift_2026-09-11/r19_trackF_reindex/RESULT_r19_trackF_reindex_2026-09-12.md:14", "quote": "更正后 sig_fund 对 ... R6M 臂(meta 成员 ∩ m1, x0910 轴)共同 10039 锚 maxabs 3.78e-6"}],
     status="OPEN_NOT_MEASURED", affects=["future_eval", "reporting"], severity="P2",
-    severity_reason="About 1.2-1.5% of every member set is dead; state-conditioned readings (all nulls so far) are unlikely to flip but the bias is one-directional and undocumented.",
+    severity_reason=f"{U_RNG} of member pairs per year are dead; state-conditioned readings (all nulls so far) are unlikely to flip but the bias is one-directional and undocumented.",
     action="Recompute the T1/T8 state columns and r19 sig_fund with the trades flag once; if nothing moves beyond resolution, record VERIFIED_IMMATERIAL.", method="VERIFIED",
     dependents=["T1 H3 states", "T8 24 state columns", "r12 REGIME12 / causal primitives", "r19 sig_fund / disp24 labels", "none re-run"])
 
@@ -533,9 +535,9 @@ w("## 2. Short answers to the audit questions")
 w("")
 w("1. **Inventory.** Current devices read one canonical 5m cache (holefix2) plus its September extension, the pre-fix `_ext` cache only for axes/alignment, two raw-return patches, the v1/v2ext/v3splice panels and their x0910 extensions, the v4 king feature/meta pair, the v4 accounting meta, three DL target sets, fea82/fea89/legs, four OOF families, the CRYPTO mask, two funding pulls, the zip archive and P2's ledger. Paths, shas, builders, axes and consumers are in §6 and the JSON inventory; builders on pod2 equal git (LIN-03) except the x0910 builders, which are only on pod2 (LIN-01).")
 w("2. **Known defects per dataset.** (a) Return caliber: accounting returns are RAW and every clipped bar through 2026-09-11 is patched (RET-01); king labels stay clipped sums over an early window (LBL-01); some diagnostics still recompute returns from the clipped channel (RET-02). (b) Funding interval: the x0910 builder is located and reproduced exactly (FND-01); the canonical panels match settlement truth, but the spacing rule mislabels switch rows in API-only months (FND-02); the v1 prefix has 138 wrong cells (FND-03). (c) Timestamps: close-time labelling is consistent (TIM-03), the king clock is not (TIM-01), the metrics switch is handled (TIM-02). (d) Universe: tokenized stocks are 7.3% of 2026 training members (UNI-01); the September mask is carried forward (UNI-03). (e) Forward masks: the predicate removes almost nothing and the OOF arrays carry it exactly (FWD-01, FWD-02). (f) Survivorship: the axis keeps delisted names (UNI-02); the DL funding inputs exist only for the 2026-08 live list (FEA-01).")
-w("3. **Tradability by trades (L4b lesson).** No research layer defines tradability by trades. 156 dead contracts write 13.8M frozen rows with return exactly 0 in the canonical cache and 60 keep funding records; universes, rank bases and statistics admit them (TRD-01..05). On A0 the held exposure is tiny; the fund rank base carries 1-5% dead names; state statistics carry 1.2-1.5%.")
+w(f"3. **Tradability by trades (L4b lesson).** No research layer defines tradability by trades. {h1['symbols_dead_inside_cache']} dead contracts write {h1['post_death_signature']['post_death_untraded_rows']/1e6:.1f}M frozen rows with return exactly 0 in the canonical cache and {h5['symbols_with_events_after_death']} of them keep funding records; universes, rank bases and statistics admit them (TRD-01..05). On A0 the held exposure is at most {max(h2[y]['absW_DEAD_share'] for y in YRS):.1e} of gross; the fund rank base carries {BASE_RNG} dead names (yearly mean); member sets carry {U_RNG}.")
 w("4. **Dependent results.** Each item lists its dependents; only FND-01's T5c reading was re-run (T5d, not yet re-run by the lead). Nothing else has been re-run.")
-w("5. **October chain.** See §4: nine of the fifteen checked defects would be carried into the next retrain as the chain stands.")
+w(f"5. **October chain.** See §4: of {len(OCT)} checked defects, {sum(1 for _, b_, _c in OCT if b_.startswith('Yes') and not b_.startswith('Yes unless'))} would be carried into the next retrain as the chain stands, {sum(1 for _, b_, _c in OCT if b_.startswith(('Yes unless', 'Partly', 'Only if')))} conditionally, and {sum(1 for _, b_, _c in OCT if b_.startswith('No'))} not.")
 w("6. **Inputs folded in.** AUDIT_TRAIN TRN-02: data side confirmed clean through 2026-09-11 00:00Z, nothing later exists (RET-01). AUDIT_EXEC LED-04: research readers of the daily_nav fee split listed; no conclusion depends on them (LED-01).")
 w("")
 w("## 3. Register")
