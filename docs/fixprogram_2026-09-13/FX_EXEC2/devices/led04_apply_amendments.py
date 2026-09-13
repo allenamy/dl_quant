@@ -1,0 +1,120 @@
+#!/usr/bin/python3
+"""LED-04 amendment ledger apply device (committed BEFORE any run). No venue, no credentials.
+
+Writes ONE new file, <mode root>/ledger_amendments/daily_nav_realised_split.jsonl, holding the amendment records built
+offline by led04_daily_nav_amendment.py. It never opens a daily_nav/orders/fills file for writing.
+
+Checks, in both modes (any failure ⇒ exit 2, nothing written):
+  C1 the records file's guarded sha256 equals --records-sha;
+  C2 every record's (day, 1-based line, row_sha256) matches the VERBATIM line now in <root>/pilot_log/<day>/daily_nav.jsonl
+     and that line has no `realised_by_type_asset` (a pre-fix row); no two records share a (day, line);
+  C3 every pre-fix daily_nav row in the root has exactly one record (count reported);
+  C4 target absent ⇒ write; target present with the same sha ⇒ ALREADY APPLIED, 0 written (idempotent); present with a
+     different sha ⇒ REFUSE.
+Apply: temp file in the target dir, fsync, os.replace, re-hash; every daily_nav.jsonl sha before == after.
+Rehearsal (--rehearse): builds a temp root whose pilot_log is a SYMLINK to the given root's pilot_log, runs
+watchdog.evaluate (from --executor-tree) before and after applying into the temp root, applies twice (second must write 0),
+and loads the result through daily_summary.load_realised_amendments; the given root is never written.
+Usage:
+  led04_apply_amendments.py --root R --records F --records-sha S --receipt OUT [--apply | --rehearse --executor-tree T]"""
+import argparse, hashlib, json, os, stat, sys, tempfile, time
+ap = argparse.ArgumentParser(allow_abbrev=False)
+ap.add_argument("--root", required=True); ap.add_argument("--records", required=True)
+ap.add_argument("--records-sha", required=True); ap.add_argument("--receipt", required=True)
+ap.add_argument("--apply", action="store_true"); ap.add_argument("--rehearse", action="store_true")
+ap.add_argument("--executor-tree", default=None)
+a = ap.parse_args()
+REL = os.path.join("ledger_amendments", "daily_nav_realised_split.jsonl")
+SF_DATALESS = getattr(stat, "SF_DATALESS", 0x40000000)
+def gsha(p):
+    st = os.stat(p)
+    if st.st_flags & SF_DATALESS: raise SystemExit(f"REFUSE {p}: dataless")
+    h = hashlib.sha256(); n = 0
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(1 << 20), b""): h.update(b); n += len(b)
+    if n != st.st_size: raise SystemExit(f"REFUSE {p}: short read")
+    return h.hexdigest()
+def nav_shas(root):
+    pl = os.path.join(root, "pilot_log")
+    return {d: gsha(os.path.join(pl, d, "daily_nav.jsonl")) for d in sorted(os.listdir(pl))
+            if d.isdigit() and os.path.exists(os.path.join(pl, d, "daily_nav.jsonl"))}
+def checks(root):
+    fails, rec = [], {}
+    if gsha(a.records) != a.records_sha: fails.append("C1 records sha mismatch")
+    records = [json.loads(l) for l in open(a.records) if l.strip()]
+    seen = set(); lines_cache = {}
+    for r in records:
+        k = (r["day"], r["line"])
+        if k in seen: fails.append(f"C2 duplicate record {k}")
+        seen.add(k)
+        p = os.path.join(root, "pilot_log", r["day"], "daily_nav.jsonl")
+        if r["day"] not in lines_cache:
+            lines_cache[r["day"]] = open(p, "rb").read().splitlines(keepends=True) if os.path.exists(p) else []
+        ls = lines_cache[r["day"]]
+        if r["line"] > len(ls) or hashlib.sha256(ls[r["line"] - 1]).hexdigest() != r["row_sha256"]:
+            fails.append(f"C2 row mismatch {k}")
+        elif "realised_by_type_asset" in json.loads(ls[r["line"] - 1]):
+            fails.append(f"C2 record amends a post-fix row {k}")
+    n_prefix = 0; missing = []
+    for d in sorted(os.listdir(os.path.join(root, "pilot_log"))):
+        p = os.path.join(root, "pilot_log", d, "daily_nav.jsonl")
+        if not (d.isdigit() and os.path.exists(p)): continue
+        for i, l in enumerate(open(p, "rb").read().splitlines(keepends=True)):
+            if l.strip() and "realised_by_type_asset" not in json.loads(l):
+                n_prefix += 1
+                if (d, i + 1) not in seen: missing.append((d, i + 1))
+    if missing: fails.append(f"C3 {len(missing)} pre-fix row(s) without a record, first {missing[:3]}")
+    rec.update(n_records=len(records), n_prefix_rows=n_prefix, n_missing=len(missing))
+    return fails, rec
+def apply(root):
+    tgt = os.path.join(root, REL)
+    if os.path.exists(tgt):
+        s = gsha(tgt)
+        if s == a.records_sha: return {"written": 0, "state": "ALREADY_APPLIED", "target_sha256": s}
+        return {"written": 0, "state": "REFUSED_DIFFERENT_CONTENT", "target_sha256": s}
+    os.makedirs(os.path.dirname(tgt), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(tgt), prefix=".amend_")
+    with os.fdopen(fd, "wb") as f:
+        f.write(open(a.records, "rb").read()); f.flush(); os.fsync(f.fileno())
+    os.replace(tmp, tgt)
+    return {"written": 1, "state": "WRITTEN", "target_sha256": gsha(tgt)}
+res = {"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "root": a.root, "records": a.records,
+       "records_sha256": a.records_sha, "mode": "rehearse" if a.rehearse else ("apply" if a.apply else "check")}
+fails, info = checks(a.root); res.update(info); res["check_failures"] = fails
+if fails:
+    json.dump(res, open(a.receipt, "w"), indent=1); print("LED04_APPLY REFUSE", fails[:3]); sys.exit(2)
+if a.rehearse:
+    T = a.executor_tree
+    for d in ("live", "ops", "scheduler", "signal"): sys.path.insert(0, os.path.join(T, d))
+    os.environ.setdefault("LIVE_MODE", "DRY_RUN")
+    import watchdog as WD, daily_summary as DS
+    tmp_root = tempfile.mkdtemp(prefix="led04_rehearsal_")
+    os.symlink(os.path.join(os.path.abspath(a.root), "pilot_log"), os.path.join(tmp_root, "pilot_log"))
+    def wd():
+        ev = WD.evaluate(os.path.join(tmp_root, "pilot_log"), venue_events=[], ops_stats=[])
+        c = {k: v for k, v in (ev.get("conditions") or {}).items()}
+        return {"tripped": ev.get("tripped"), "blind": ev.get("conditions_blind"),
+                "conditions_sha256": hashlib.sha256(json.dumps(c, sort_keys=True, default=repr).encode()).hexdigest()}
+    nav0 = nav_shas(a.root)
+    res["watchdog_before"] = wd()
+    res["apply_1"] = apply(tmp_root)
+    res["apply_2_idempotency"] = apply(tmp_root)
+    res["watchdog_after"] = wd()
+    loaded = DS.load_realised_amendments(os.path.join(tmp_root, REL))
+    res["loaded_records"] = len(loaded)
+    res["daily_nav_sha_unchanged"] = nav_shas(a.root) == nav0
+    res["given_root_target_absent"] = not os.path.exists(os.path.join(a.root, REL))
+    res["verdict"] = ("PASS" if res["apply_1"]["state"] == "WRITTEN" and res["apply_2_idempotency"]["written"] == 0
+                      and res["watchdog_before"] == res["watchdog_after"] and res["loaded_records"] == res["n_records"]
+                      and res["daily_nav_sha_unchanged"] and res["given_root_target_absent"] else "FAIL")
+elif a.apply:
+    nav0 = nav_shas(a.root)
+    res["apply"] = apply(a.root)
+    res["daily_nav_sha_unchanged"] = nav_shas(a.root) == nav0
+    res["verdict"] = "PASS" if res["apply"]["state"] in ("WRITTEN", "ALREADY_APPLIED") and res["daily_nav_sha_unchanged"] else "FAIL"
+else:
+    res["verdict"] = "CHECKS_PASS"
+json.dump(res, open(a.receipt, "w"), indent=1, default=str)
+print("LED04_APPLY", res["mode"], res["verdict"], {k: res.get(k) for k in ("n_records", "n_prefix_rows", "n_missing", "apply_1", "apply_2_idempotency", "apply", "loaded_records", "daily_nav_sha_unchanged")},
+      "wd_equal", res.get("watchdog_before") == res.get("watchdog_after") if a.rehearse else None)
+sys.exit(0 if res["verdict"] in ("PASS", "CHECKS_PASS") else 1)
