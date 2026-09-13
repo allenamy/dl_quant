@@ -462,3 +462,43 @@ Ready to write back. Rehearsal passed on both trees; the live apply is the lead'
 **Live apply (lead).** `/usr/bin/python3 devices/led05_writeback_reconstructed.py --root ~/dl_quant_live/state/live --rows multi_asset/exports/live/pilot_journal/e0909g_reconstructed_orders_12Z_DRYRUN.jsonl --rows-sha 328933ea6ab16156fa8d8669b2cae37e2bbb5da7bc82ff468d04e32b06a160f5 --executor-tree ~/dl_quant_live --receipt <out> --apply` — no venue, no credentials; outside anchor windows; suggested `--rehearse` on the live root first (writes only a temp copy). **〔lead 裁定 17:0xZ: 实盘写回改变看门狗历史条件叶(虽为愈合方向且不触发), 交接期不在本会话执行; 随复审包由接手者先 --rehearse 于实盘根再 --apply, 锚窗外。09-10 用户裁定「写回等实盘分支部署(现网 schema 不认)」的前提已满足: C2 在 ef60f85 上通过。〕**
 
 **Not checked.** Live-ledger changes to 20260909 after 14:27Z (C3 and C4 re-prove them at apply time). Readers that cache per-day order counts (daily_summary is recomputed each run).
+
+## LED-03 · fees for the eight older protective-flatten batches (lead 逐字转录)
+Still unmeasured in the ledger. An offline proxy passed a 498/498 positive control; the exact fix is a credentialed backfill device for the lead to run.
+
+**Defect.** The eight batches from 08-01 to 09-06 have order rows but no fills rows: 1,210 legs, 270,076.47 USDT. Before 09-10 (d73b1b0) the flatten ladder sent no client id, so ops/backfill_fills.py builds zero legs for them and refuses to write. Their fees are unmeasured.
+
+**Before-state census** (device led03_flatten_cost_census.py, d34e4275; receipt LED03_flatten_cost_census_before.json, ff5c9e6c), the LED-02 reader flatten_cost run on the 14:27Z copy with the fix tree: eight older batches 0 measured, 1,210 fee_unknown (no_fills_rows 1,206; order_row_fee_not_known_usdt 4 on 08-05 12Z); 09-09 242/243 measured, fee 5.0 bps, 1 leg commission_non_usdt_unconverted; 09-12 255/255 measured, fee 5.0 bps.
+
+**Offline proxy** (device led03_flatten_fee_proxy.py, 28f06dbf + e4c3ccef, committed before running; receipts LED03_proxy.json/.log, ff5c9e6c).
+- Rule: the leg fee is the sum of guard_twin income COMMISSION rows for that symbol inside [trip time, batch row write time + 5 s]. Both bounds come from the ledger, not tuning. Income: guard_twin income.jsonl, sha ffbb1102…, 109,545 rows. A leg is ambiguous if another order row of the same symbol has a fill in the window.
+- Positive control: the same rule on the two batches that have exact fills rows, leg by leg per asset: 09-09 243/243 and 09-12 255/255 equal within 1e-8. control_pass True.
+- Proxy for the eight batches (0 ambiguous legs anywhere), per asset, BNB not converted:
+
+| Batch | Legs | Proxy fee | Note |
+|---|---|---|---|
+| 08-01 20Z | 105 | 2.04075448 USDT | 5.0 bps |
+| 08-02 04Z | 83 | 1.58283157 USDT | 5.0 bps |
+| 08-05 00Z | 108 | 2.21576550 USDT | 5.0 bps |
+| 08-05 12Z | 102 | 0.00320538 BNB | |
+| 08-21 12Z | 108 | 0.02094517 BNB | |
+| 08-21 20Z | 102 | 0.02041753 BNB | |
+| 08-26 12Z | 334 | 0.01893276 BNB | |
+| 09-06 08Z | 268 | 0.07661654 BNB + 16.92422909 USDT | |
+| **Total** | | **22.76358064 USDT + 0.14011738 BNB** | |
+
+- 13 legs have no COMMISSION income row (8 on 08-26, 5 on 09-06), all dust, notional ≤ 0.02 USDT.
+- The proxy is NOT written to any ledger. It is a cross-check for the exact run.
+
+**Exact fix, for the lead** (devices/led03_flatten_fills_backfill_exact.py, 18577be5; committed before any run; never run by FX-EXEC2 because it loads .env in-process).
+- Attribution per leg is by (symbol, side, window [trip − 5 s, batch row write time + 5 s]) using signed GET /fapi/v1/userTrades (weight 5).
+- Kept trades are those not already present by (symbol, trade_id). They must close the leg: Σ quoteQty = |filled_notional| within max(0.01, 1e-6 rel). Otherwise the leg is skipped and named (no_trades / not_closing / read_failed), never partially written.
+- Rows go through PilotLogger.fill (under the LED-01 guard on the fix tree) with the order row's attempt_idx.
+- arm() plus signed GETs only, the same pattern as ops/backfill_fills.py; arm() scanned: 6 GET requests, no POST/DELETE.
+- Modes: REPORT (default) reads the venue, writes nothing; --rehearse temp root, day copied, watchdog before/after, apply twice; --apply backs up the day's fills.jsonl, appends, re-reads, idempotent.
+- Suggested order per batch: REPORT, check every leg is attributable and the per-asset commission equals the proxy table above, then --rehearse, then --apply. Usage: `LIVE_MODE=LIVE /usr/bin/python3 devices/led03_flatten_fills_backfill_exact.py --repo ~/dl_quant_live --root ~/dl_quant_live/state/live --day <YYYYMMDD> --rid FLATTEN-<trip> --receipt <out> [--rehearse|--apply]`. About 1,210 GETs × weight 5; run outside anchor windows.
+- After-state: rerun led03_flatten_cost_census.py; expectation stated before the run: USDT-fee legs move to measured.
+
+**BNB conversion caliber (ruling requested).** BNB-fee legs (08-05 12Z, both 08-21 batches, 08-26, and part of 09-06) will stay fee_unknown with reason commission_non_usdt_unconverted even after the exact backfill; the three-bucket rule never folds an unconverted BNB fee to 0 or to a guessed price. **〔lead 裁定 17:0xZ: 口径 = BNBUSDT 现货 1m K 线中含成交时刻那根的收盘价(data.binance.vision 静态存档, 允许的公开拉取), 逐行记录换算价、来源 zip 与 sha 与口径名 `bnb_spot_1m_close_at_fill`; 永续 BNB 标记价作敏感性列只报不入; 未拉到对应分钟 ⇒ 保持 fee_unknown 并具名, 不插补。实现与首次运行随复审后。〕**
+
+**Not checked.** Whether userTrades still serves 08-01 (venue retention); REPORT mode will show no_trades if not. The exact device has never been executed, by design; its first run is the lead's.
