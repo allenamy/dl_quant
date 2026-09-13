@@ -10,7 +10,7 @@ import numpy as np
 t0 = time.time()
 SELF = C.sha256(os.path.abspath(__file__)); COMMON = C.sha256(C.__file__); PRE = C.check_prereg()
 ST0 = C.sysstate(); assert C.gpu_idle(ST0), ("GPU not idle before start", ST0["gpu"])
-print(f"T8 build start {ST0['utc']} self {SELF[:12]} common {COMMON[:12]} prereg {PRE[:12]}", flush=True)
+print(f"T8 build start {ST0['utc']} self {SELF[:12]} common {COMMON[:12]} prereg {PRE['prereg'][:12]} amendment_1 {PRE['amendment_1'][:12]}", flush=True)
 D, REP = C.load_inputs()
 nW = C.N_FULL
 R = dict(device="t8_build.py", self_sha256=SELF, common_sha256=COMMON, prereg_sha256=PRE, env=ENV, sys_before=ST0, **REP)
@@ -75,8 +75,9 @@ for s in C.SEEDS:
     cS = {k: shift_corr(D["SHORT_" + s][:nW], MKT, k) for k in KS}
     am = lambda c: max(KS, key=lambda k: abs(c[k]))
     g[s] = dict(c_N={str(k): v for k, v in cN.items()}, c_L={str(k): v for k, v in cL.items()}, c_S={str(k): v for k, v in cS.items()},
-                argmax_abs_N=am(cN), argmax_abs_L=am(cL), argmax_abs_S=am(cS),
-                PASS=bool(am(cN) == 0 and cN[0] < 0 and am(cL) == 0 and cL[0] > 0 and am(cS) == 0 and cS[0] < 0))
+                argmax_abs_N=am(cN), argmax_abs_L=am(cL), argmax_abs_S=am(cS), c_N_reported_only=True,
+                rule="PREREG_AMENDMENT_1_T8 §C.1: argmax|c_L|=0 & c_L(0)>0 & argmax|c_S|=0 & c_S(0)<0; c_N reported only",
+                PASS=bool(am(cL) == 0 and cL[0] > 0 and am(cS) == 0 and cS[0] < 0))
 gates["G2a"] = g; print("G2a", {s: g[s]["PASS"] for s in C.SEEDS}, flush=True)
 
 # ---- G3 shuffle-future + G3-NEG

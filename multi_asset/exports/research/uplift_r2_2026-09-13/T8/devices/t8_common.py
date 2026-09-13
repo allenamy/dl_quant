@@ -9,6 +9,8 @@ T8 = "/workspace/uplift_r2_2026-09-13/T8"
 PREREG = T8 + "/PREREG_T8.md"
 FREEZE = T8 + "/receipts/PREREG_FREEZE_sha.txt"
 PREREG_SHA = "53da0bcc948b2ed417ec505888f95c96c615e201ad2c57bdf549ea4ece884f8a"
+AMEND1 = T8 + "/PREREG_AMENDMENT_1_T8.md"
+AMEND1_SHA = "d5928ee3272c30b1ceb64a9c675b3d0d900cea7160e474d9538f6f266340be56"   # G2a: c_N reported only (AMENDMENT 1 §C.1)
 INPUTS = {
     "ARM_R18_s42": ("/workspace/uplift_2026-09-11/r18_foundation/arms/C0_s42.npz", "d6298deb8d89df54149d82df72d1fe606062cc74a2bfe6b93d0a27ffed3f5340"),
     "ARM_R18_s2027": ("/workspace/uplift_2026-09-11/r18_foundation/arms/C0_s2027.npz", "fa5ed19a546c4230d673c4d922ac1c98c1888bf032280fb4da1dbee1d1258f2b"),
@@ -65,10 +67,11 @@ def check_env(argv):
 
 
 def check_prereg():
-    s = sha256(PREREG)
+    s = sha256(PREREG); a = sha256(AMEND1); fr = open(FREEZE).read()
     assert s == PREREG_SHA, ("PREREG_T8.md sha changed", s)
-    assert PREREG_SHA in open(FREEZE).read(), "freeze receipt does not carry the frozen sha"
-    return s
+    assert a == AMEND1_SHA, ("PREREG_AMENDMENT_1_T8.md sha changed", a)
+    assert PREREG_SHA in fr and AMEND1_SHA in fr, "freeze receipt does not carry the frozen shas"
+    return dict(prereg=s, amendment_1=a)
 
 
 def sysstate():
