@@ -160,3 +160,8 @@ Phase 1 证明"装置 = 线上"(生产代码路径逐锚复现线上权重)。Ph
 - **R1 不做多 GB 写入**: /workspace 有配额; 5m 缓存永不落盘副本, 父进程内存载入后 fork 各链共享页。
 - **R2 内存**: 容器 cgroup `memory.max` = 61,000,097,792 字节(61 GB), 不是 `free` 显示的 247 GB; 每个独立载入缓存的进程约 7 GB(估计) ⇒ 同一时刻独立载入缓存的进程 ≤ 4 个; 更多链一律由共享缓存的父进程 fork, 单父进程 ≤ 8 条链。
 - **R3 写前探针**: 任何单次计划写入 > 500 MB 之前, 先在 `P2/work/.ddprobe` 用 dd 写入「计划大小 × 1.1」并 fsync, 成功后立即删除再做正式写入; dd 任何报错 ⇒ 放弃该写入并上报。
+
+## 收据 3 · G2-B″ 窗内递推平价 = **PASS** + D17 影响测量(2026-09-13 09:1xZ, pod2 CPU, 只读; 装置 `phase2/devices/p2_g2bpp_inwindow.py` e4acdb9d…(提交 3eadbdc5 先于运行), 收据 `phase2/receipts/G2Bpp_inwindow_recursion.json` 6bb771f3… / `.log` 3d9c4614…; 程序 = AMENDMENT 3 原文)
+- **门**: 自 ref(1788624000) 沿快照行前推, 41 锚 × 有效参照 21,520 对, 最大 |Δacc| **8.67e-18**(阈 1e-15), last_ts 全同, 违例 **0** ⇒ **PASS**。
+- **D17 影响测量(描述, 不作门)**: 41 锚上 live EMA 与全史冷启动重建 EMA 分别经装置 `xz_in_base` 算 fund z(成员 = 生产者 weights 的 members, 基 = 快照 base_syms, 新鲜度 ≤12h): 逐锚 Spearman **最小 0.9999567 / 中位 0.9999874**; 每锚 z 有变动的成员 9–11 名, 最大 |Δz| 0.023(秩单位, 全宽 1); fund 腿**前十分位成员 41 锚全不变**, 后十分位仅 1 锚换 2 名; D17 七名最大 |Δz|: PROMUSDT 0.0498 / DEXEUSDT 0.0058 / ERAUSDT 0.0038 / BANKUSDT 0.0038 / 其余 0。
+- 下一门: G2-C(A2.5 原文)。
