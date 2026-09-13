@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13 15:3xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** 活文档(随交付滚动更新; 每次更新单独提交); 修复纲领进行中, **未部署任何修复** | **作废条件:** 由最终合并复审包取代(FIXPROGRAM §5)
+> **创建:** 2026-09-13 15:3xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** 活文档 v2 15:4xZ(随交付滚动更新; 每次更新单独提交); 修复纲领进行中, **未部署任何修复** | **作废条件:** 由最终合并复审包取代(FIXPROGRAM §5)
 
 # 修复纲领进度与交接(给独立研究员接续 / 复审用)
 
@@ -28,8 +28,8 @@
 | E2 = EXE-05 broker 直接 GET 容量冲突合同 | ✅ | FX-EXEC | 克隆 `cc_tmp/fx_exec` 分支 `fix/known-issues-2026-09-13`: 6294534; 收据 3600d99e; diff sha de7a4dd7 | 旧码红 10/120(缺陷格), 新 120/120 |
 | E3 = EXE-06 损坏事件日志具名 NOT OBSERVABLE | ✅ | FX-EXEC | c28c0a7 + 82fcc16; diff 29c1e7e1 | 12 突变旧码 8 崩溃 + 4 静默全绿 → 新 12/12 具名红 |
 | E4 = EXE-02 已停名不进追单路径 | ✅ | FX-EXEC | 3a641c3; diff 529b588c | 裁定 R2′ + §4.2 前提更正: from_reject 转换是 MARKET reduce-only(保留, 裁定 (a)); 真 09-12 12Z LSKUSDT 追单被拦 |
-| E9 = ALM-04 产物断言 NO_PRODUCER 误报 | 🔧(克隆已提交 a21797d, 收据未入研究仓) | FX-EXEC | a21797d | |
-| E10 = LED-06 公证器 · ALM-03 · OPS-01b · E5 · E6(含止损文案 / EXE-03 告警归因)· E7 · 全电池 | ⬜ 队列 | FX-EXEC | — | **REPORT_FX_EXEC.md 未落盘**: FX-EXEC 工具策略阻止其写报告 .md, lead 未代写(待用户裁定); E2–E4 报告全文在 lead 会话记录中 |
+| E9 = ALM-04 产物断言 NO_PRODUCER 误报 | ✅ | FX-EXEC | a21797d; 收据 81e24fdd; diff 76f4c2ca | 旧码红恰 E9-1/E9-2; 真 09-13 全日复现: 旧码 00/04/08Z 同实盘告警, 新码 4 锚 ok |
+| E10 = LED-06 公证器 · ALM-03 · OPS-01b · E5 · E6(含止损文案 / EXE-03 告警归因)· E7 · 全电池 | ⬜ 队列 | FX-EXEC | — | `REPORT_FX_EXEC.md`(E2/E3/E4/E9)由 lead 逐字转录落盘 dce59600(子代理工具约定以文本交回) |
 | LED-02 平仓批按腿 mid 计 EXIT 成本 · LED-07 anchor_series · LED-08 逐锚报告读 cost_buckets · STA-02 冷却到期不推手机 | ⏸(克隆已提交) | FX-EXEC2 | 克隆 `cc_tmp/fx_exec2`(**分支名 main, 仅本地克隆**): c46fb83 · 7ca52ac · 469c3f3 · 8354c5a; 工作树另有未提交 `live/alarm_policy.py`、`ops/check_funding_span.py`(推断 ALM-01 进行中) | LED-01 裁定 B((symbol, trade_id) 键 + 写入守卫隔离不抛 + 唯一读者 + 44 日零违例正控 + 冻结指标逐位不变); 其余 LED-03/04/05 · ALM-01/05/06 · STA-03 · OPS-03 · CFG-02/07 · DOC-01 未做 |
 
 ### 2.2 生产者 / 模型服务(快照分支, 未部署)
@@ -40,14 +40,14 @@
 | P6′ bundle 引导: 种子间隔按精确申报规则重推 + EMA 状态对齐 | ✅(待电池) | 4b996aa · 031707c(红)· d7df9a5(修) | |
 | P2 V2MAIN 第 80 列 v0 + 12h 新鲜度 · P6-M 实盘 EMA 残差迁移 | 🔧 | 41f3deb(红)· 15921c0(P2 修)· c2cdfa7(平价回放驱动 + 判官 (a)(b)(c)); 回放 on/off 两臂运行中 | |
 | P5 席位播种 · P7 FTRIM 残余 · P8⊕EXE-03 撤名等额平移翻号 | ⬜ | — | P7/P8 = 书行为, 须 P2 认证后生产路径回放配对 |
-| P3 qv4h · P4 其余特征逐列平价 · P10 f16 训练 / f32 服务 | 🔧 审计 | AUDIT_PROD 装置: ebf1ceaa · a9c22ac4 · d9be5cb4 · 84e7aa56 · 6ce1b9d5 · fbab3d22 · 5243ae80 · c52af4ce · 962267a0 · 3e71e0de · d76ed216 · a0222c39 · 1127261e · b59fb791 · 1b02c837 · e9debe97 | `AUDIT_PROD.md` 未交付 |
+| P3 qv4h · P4 其余特征逐列平价 · P10 f16 训练 / f32 服务 | ✅ 审计(AUDIT_PROD 57f7e2be; P10 与 P3 关闭, P4 → PROD-01/02/03/06 归 FX-MODEL; PROD-27 静默跳过归 FX-PROD) | 装置: ebf1ceaa · a9c22ac4 · d9be5cb4 · 84e7aa56 · 6ce1b9d5 · fbab3d22 · 5243ae80 · c52af4ce · 962267a0 · 3e71e0de · d76ed216 · a0222c39 · 1127261e · b59fb791 · 1b02c837 · e9debe97 | 交付 `AUDIT_PROD.md` / `.json` / `AUDIT_PROD_columns.csv` |
 
 ### 2.3 生产路径回放认证(P2, 归入 main)
 | 项 | 状态 | 提交 | 说明 |
 |---|---|---|---|
 | S1 七门(G2-B 原门 RED 保留; G2-B″/C/C′/S/D/E PASS) | ✅ 前轮 | 见 `docs/PREREG_producer_parity_phase2_oos_2026-09-12.md` 收据 1–8 | |
-| G2-C-BIND(槽位↔锚 / 人口绑定 / 6 突变全红) | ✅ 自报 PASS(第 3 跑; 前两跑为装置缺陷, 已修留档) | 5146689c(AMENDMENT 7)· 3bef2183 · c3a2c5f7 · 7a5e4f58 | **收据 `G2C_BIND.json` 尚未入研究仓, lead 未核** |
-| 连续 combo 历史链残差(0/41 @1e-6, 最大 1.12547e-4, 只在 DL 腿) | ⬜ 机理未闭合 | — | 假说 H-a 数据版本 / H-b 生产者起点状态 / H-c F10 横截面输入(含死合约); 先冻结归因预注册 |
+| G2-C-BIND(槽位↔锚 / 人口绑定 / 6 突变全红) | ✅ lead 核验接受 | 5146689c(AMENDMENT 7)· 3bef2183 · c3a2c5f7 · 7a5e4f58 · 收据 ecd45655(`receipts/s2/G2C_BIND.json` c0aca587) | 第 3 跑; 前两跑为装置缺陷已修留档; 三槽 `combo_live_status.json` 列而不在, RESULT 须说明 |
+| 连续 combo 历史链残差(0/41 @1e-6, 最大 1.12547e-4, 只在 DL 腿) | ⬜ 机理未闭合(强候选已出) | — | **候选 H-d = AUDIT_PROD PROD-36**: 回放缓存 ≤213 锚行时 btcv 前 7 日回填进入 180 锚 z 窗(≥221 行为 0), 与观测形态一致, 待 P2 冻结判别检验; 另 H-a/H-b/H-c |
 | S2 六链 | 🔧 链已跑 | 5ea2dff8(出表装置, 强制「未认证」标签)· f89f2fee(D20 探针) | 出表前须以 AMENDMENT 采纳 K2 等价带(A6.7 点估计 0.23 规则是 K2 红集之一) |
 
 ### 2.4 评估口径(K2, 研究仓)
@@ -87,7 +87,7 @@
 - OPS-01(6cc95943)· OPS-02 + 回滚动词双演练(b63a0144; 第 1 次演练结论错误留档)· 盘满清理 23 个陈旧克隆(`receipts/INFRA_disk_cleanup_20260913T143228Z.log`)。
 
 ## 3 待用户裁定(阻塞或影响方案)
-1. **FX-EXEC 报告文件写入被其工具策略阻止**: 是否允许 lead 以其消息原文代为提交 `REPORT_FX_EXEC.md`, 或调整该代理权限。
+1. ~~FX-EXEC 报告文件写入~~ 已解决: 工具约定为子代理以文本交回, lead 逐字转录落盘(dce59600)。
 2. **CFG-04**: 重建锚上是否继续随机追单(no_chase 臂在从空到满重建锚留约 3% gross 未成交, 12Z 6,979 USDT; 分析又排除这些锚)—— (a) 重建锚全追 / (b) 维持随机 / (c) 只在复场锚全追。
 3. **CFG-06**: D1 无定论时默认值(提案回退 0.35 / 或维持 0.50)· D2 窗 28 天或 14 天 · D3「停 behind」= eps 0 或 0.10。
 4. 是否把 EXE-01 比例响应 + E4 止损出场 + OPS-01/02 作为小包提前复审部署(约 12 h 可备), 或按原计划随全部修复一次复审。
@@ -107,7 +107,7 @@
 - 执行器各项: 克隆分支逐提交 + `docs/receipts/fx_exec_*.diff` sha; 旧码红 / 新码绿日志在 `docs/fixprogram_2026-09-13/FX_EXEC/receipts/`。
 - 生产者: 克隆 `cc_tmp/fx_prod` 分支逐提交; 平价回放判官 c2cdfa7。
 - P2: 预注册 AMENDMENT 1–7 + 收据 1–8; G2-C-BIND 收据待入库。
-- 审计: `docs/audit_pipeline_2026-09-13/AUDIT_{EXEC,TRAIN,DATA}.md` + `AUDIT_KB_PARTIAL.md`(AUDIT_PROD 待交)。
+- 审计: `docs/audit_pipeline_2026-09-13/AUDIT_{EXEC,TRAIN,DATA,PROD}.md` + `AUDIT_KB_PARTIAL.md`。
 
 ## 7 剩余工作估时(工作者小时, 不含复审等待; 以约 5 个并发计)
 执行器余项 6–10 h · 比例响应 2–3 h · 生产者 P2/P6-M/P9 8–12 h · P2 链残差 2–8 h · 账本告警余项 6–8 h · 知识库收尾 3 h · 数据层 1–2 天 · 十月链 2–3 天 · 模型输入(含 GPU 重训)2–3 天 · 书行为 P7/P8 1–2 天(P2 认证后)。**main 全部约 4–6 天。**
