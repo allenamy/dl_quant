@@ -1,0 +1,149 @@
+--- w10_sleeve_r18.py (9b8a6323e8f0ac31)
++++ w10_sleeve_t2.py (380d6265082c6774)
+@@ -44,6 +44,15 @@
+ R18_INSTR = int(os.environ.get("R18_INSTR", "0")); assert R18_INSTR in (0, 1)   # r18: per-anchor aux record only (rec/W untouched)
+ SMA = float(os.environ.get("SMA", "0.1")); assert 0.0 < SMA <= 1.0, SMA        # r12-identical knob: harvest-EMA alpha; float("0.1") == 0.1 bitwise => default path unchanged
+ SBAND = float(os.environ.get("SBAND", "2.5e-4")); assert 0.0 <= SBAND <= 4.0e-3, SBAND   # r12-identical knob: no-trade band (weight units); float("2.5e-4") == 2.5e-4 bitwise
++T2_MODE = os.environ.get("T2_MODE", "off"); assert T2_MODE in ("off", "name", "seat"), T2_MODE   # T2 carry-net sizing (PREREG_T2 §3); off => bitwise r18 device
++T2_KPATH = os.environ.get("T2_KPATH", ""); T2_KCOL = os.environ.get("T2_KCOL", "scalar"); assert T2_KCOL in ("scalar", "sigma"), T2_KCOL
++T2_KFORCE = os.environ.get("T2_KFORCE", ""); assert T2_KFORCE in ("", "0", "1"), T2_KFORCE   # PC-0 / PC-1 / WIRE positive controls
++T2_INSTR = int(os.environ.get("T2_INSTR", "0")); assert T2_INSTR in (0, 1)
++T2_CLEAD = int(os.environ.get("T2_CLEAD", "0")); assert T2_CLEAD in (-1, 0, 1), T2_CLEAD   # PREREG_T2 §7 tripwire only (name mode)
++assert (T2_MODE == "off") == (T2_KPATH == ""), ("T2_KPATH must be set iff T2_MODE != off", T2_MODE, T2_KPATH)
++assert T2_MODE != "seat" or T2_KCOL == "scalar", "seat mode reads the scalar path only (PREREG_T2 §3)"
++assert T2_MODE == "name" or T2_CLEAD == 0, "T2_CLEAD applies to name mode only (PREREG_T2 §7)"
++assert T2_MODE != "off" or (T2_KFORCE == "" and T2_INSTR == 0 and T2_KCOL == "scalar"), "T2 knobs set while T2_MODE=off"
+ SEATF10 = int(os.environ.get("SEATF10", "0")); assert SEATF10 in (0, 1)   # T1: F10 链用 F10 自己的 msharpe 席位(四腿腿收益)
+ KTAIL = int(os.environ.get("KTAIL", "0")); assert KTAIL in (0, 1)         # T2: king 作尾部否决(fund 多尾中 king 秩底 20% / 空尾中 king 秩顶 20% 置零)
+ KMOD = float(os.environ.get("KMOD", "0")); assert KMOD in (0.0, 0.5)       # T3: z ×= (1 + KMOD·xz(king))
+@@ -66,6 +75,10 @@
+         "FPRED": os.environ.get("FPRED", "(default f10_V2MAIN_s{FSEED})")}
+ _CFG["R18"] = {"R18_ELIG": R18_ELIG, "R18_WARM": R18_WARM, "R18_INSTR": R18_INSTR, "SMA": SMA, "SBAND": SBAND, "pinned_src_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650", "prereg_sha256": "51120518b72f70ce3f78c4ef1e68b0ec655c76eb385692befcf904d0d2883f6c",
+                "device": "w10_sleeve_r18.py = pinned w10_sleeve.py + {R18_ELIG, R18_WARM, R18_INSTR, SMA, SBAND}; all default => bitwise-unchanged rec/W (GATE P)"}
++_CFG["T2"] = {"T2_MODE": T2_MODE, "T2_KPATH": T2_KPATH, "T2_KCOL": T2_KCOL, "T2_KFORCE": T2_KFORCE, "T2_INSTR": T2_INSTR, "T2_CLEAD": T2_CLEAD,
++              "T2_KPATH_sha256": (__import__("hashlib").sha256(open(T2_KPATH, "rb").read()).hexdigest() if T2_KPATH else None),
++              "parent_r18_sha256": "9b8a6323e8f0ac31ecb4046f6759dce09ba89645cbfc356db71f51c662b2c5c4", "prereg_sha256": "981293b02b2ddae6574fa6dcf8db9b09a65cfa9f122a8b72d7e604ad5ec87eca",
++              "device": "w10_sleeve_t2.py = r18 derived device + {T2_MODE, T2_KPATH, T2_KCOL, T2_KFORCE, T2_INSTR, T2_CLEAD}; T2_MODE=off => bitwise r18 device (GATE P)"}
+ import hashlib as _hl
+ _CFG["UPLIFT"] = {"device": "w10_sleeve.py = w10_health.py (sha256 8684d9a9f43a8d15) + {LTRIM_TH, CDAMP, FTRIM_TH, SLEEVE}; all unset/0 and FTRIM_TH=-0.0010 => bitwise-unchanged rec/W", "src_sha256": "8684d9a9f43a8d15beaa559cd12bd8f2977a3d088b01b93835f60f2bbf98a53d", "self_sha256": None}
+ _CFG["HEALTH"] = {"device": "w10_health.py = w10_universe_recheck.py (sha256 5424aceb…, = port w10_universe.py + REF_SKIP) + COSTB_JSON cost-tier override + UMASK_SCOPE in {members (original), trade, m1 (fund z in the 829 base, other legs and trade set within the universe)} + legs() series saved; default path (all unset) bitwise-unchanged", "device_sha256": _hl.sha256(open(__file__, "rb").read()).hexdigest()}
+@@ -74,6 +87,19 @@
+ t0 = time.time()
+ MT = np.load(f"{B}/wide_fea_hist_meta.npz", allow_pickle=True)
+ E_ts = MT["E_ts"].astype(np.int64); members = MT["members"]; y4 = MT["y4"]; qvk = MT["qvk"]
++if T2_MODE != "off":   # T2: per-anchor path on the meta axis written by t2_kappa.py; alignment and ranges asserted
++    _t2z = np.load(T2_KPATH, allow_pickle=True)
++    assert np.array_equal(_t2z["E_ts"].astype(np.int64), E_ts), "T2 path E_ts != meta E_ts"
++    _T2_ACT = np.asarray(_t2z["active_" + T2_KCOL], bool); _T2_KAP = np.asarray(_t2z["kappa_" + T2_KCOL], np.float64); _T2_LAM = np.asarray(_t2z["lam_" + T2_KCOL], np.float64)
++    assert _T2_ACT.shape == _T2_KAP.shape == _T2_LAM.shape == E_ts.shape
++    assert np.all(np.isfinite(_T2_KAP[_T2_ACT])) and np.all(np.isfinite(_T2_LAM[_T2_ACT])) and np.all((_T2_KAP[_T2_ACT] >= 0.0) & (_T2_KAP[_T2_ACT] <= 1.0)) and np.all(_T2_LAM[_T2_ACT] >= 0.0), "T2 path out of range"
++    if T2_KFORCE != "":
++        _T2_KAP = np.where(_T2_ACT, np.float64(T2_KFORCE), _T2_KAP)   # name mode: forced kappa where active (lam from the path); seat mode forces at every anchor in _t2_seat_kappa
++    print(f"T2 path loaded: mode={T2_MODE} col={T2_KCOL} force={T2_KFORCE!r} clead={T2_CLEAD} active {int(_T2_ACT.sum())}/{len(_T2_ACT)}", flush=True)
++T2_WIRE_ROWS = frozenset(900 + 745 * _k for _k in range(12))
++T2C_ARR = None
++def _t2_seat_kappa(i):
++    return float(T2_KFORCE) if T2_KFORCE != "" else (float(_T2_KAP[i]) if _T2_ACT[i] else 0.0)
+ if MEMBERS_TOPN > 0:   # 扩展臂: 逐锚按当锚 qvk 排名取前 N(era-synchronous: 只用当锚已知的报价额), 与 meta 排序口径同源
+     _mem2 = np.empty(len(E_ts), dtype=object)
+     for _i in range(len(E_ts)):
+@@ -155,7 +181,7 @@
+     t = np.full(len(q), 2, np.int8); t[q >= 1e6] = 1; t[q >= 5e6] = 0
+     return t
+ def legs(SLOW):
+-    LR = {l: [] for l in ("king", "rev24", "fund", "f10")}; idx = []
++    LR = {l: [] for l in ("king", "rev24", "fund", "f10")}; idx = []; _T2C = {l: [] for l in ("king", "rev24", "fund", "f10")}
+     for i in range(nA):
+         j = pw_row.get(int(E_ts[i]))
+         if j is None: continue
+@@ -175,7 +201,10 @@
+             if SEATNET and g > 1e-9:   # X1: 减去该腿单位 gross 书的 4h carry(多头付正费率), bps
+                 _lr -= float((z / g * np.nan_to_num(FN[j, m], nan=0.0) * (4.0 / _IVf[j, m])).sum() * 1e4)
+             LR[leg].append(_lr)
++            if T2_MODE == "seat":   # T2 ARM-SK: unit-gross rank-book 4h carry of the leg = the expression SEATNET subtracts, stored apart; w3_at applies the current kappa
++                _T2C[leg].append(float((z / g * np.nan_to_num(FN[j, m], nan=0.0) * (4.0 / _IVf[j, m])).sum() * 1e4) if g > 1e-9 else 0.0)
+         idx.append(i)
++    global T2C_ARR; T2C_ARR = {k: np.array(v) for k, v in _T2C.items()}
+     return {k: np.array(v) for k, v in LR.items()}, {int(i): p for p, i in enumerate(idx)}
+ W3FC = None
+ def run(SLOW, LRa, pos, depth, need, cool, look=900):
+@@ -201,6 +230,9 @@
+             W3FC = wf
+             return wk
+         r = np.stack([LRa["king"][sl], LRa["rev24"][sl], LRa["fund"][sl]])
++        if T2_MODE == "seat":   # T2 ARM-SK (PREREG_T2 §3): current kappa on the whole trailing window; kappa=1 == SEATNET=1 elementwise, kappa=0 == A0
++            _k2 = _t2_seat_kappa(i)
++            r = np.stack([LRa["king"][sl] - _k2 * T2C_ARR["king"][sl], LRa["rev24"][sl] - _k2 * T2C_ARR["rev24"][sl], LRa["fund"][sl] - _k2 * T2C_ARR["fund"][sl]])
+         if WRULE == "iv":
+             iv = 1.0 / (r.std(1) + 1e-9)
+             return iv / iv.sum()
+@@ -214,7 +246,7 @@
+     H = np.zeros(NW); HR = np.zeros(NW); Pi = np.ones(NW); sh = np.zeros(NW); cb = np.zeros(NW)
+     HF = np.zeros(NW); HB = np.zeros(NW)      # F10 书自己的 EMA 态 / 上一锚的混合书
+     cnt = np.zeros(NW, int); su = np.full(NW, -1)
+-    rec = []; WS = []; _SG = []; _SP = []; _SC = []; _SK = []; _R18 = []
++    rec = []; WS = []; _SG = []; _SP = []; _SC = []; _SK = []; _R18 = []; _T2A = []; _T2W = {}
+     for i in range(nA):
+         j = pw_row.get(int(E_ts[i]))
+         if j is None: continue
+@@ -224,6 +256,14 @@
+             if _mk is not None: m = m[_mk[m]]
+         sc = {"king": SLOW[i, m], "rev24": -R24[j, m], "fund": FE[j, m]}
+         FZ = FZB(j, m) if UMASK_SCOPE == "m1" else xz(sc["fund"])   # fund z used by both books and the leg-contribution diagnostic
++        _FZ0 = FZ   # T2: the leg-contribution diagnostic keeps the unadjusted fund score
++        _t2_used = False
++        if T2_MODE == "name" and _T2_ACT[i] and not (_T2_LAM[i] == 0.0 and _T2_KAP[i] == 0.0):   # T2 ARM-N / ARM-Nσ: 829-base rank of expected net = lam+ x FZ - kappa x carry (PREREG_T2 §3)
++            assert UMASK_SCOPE == "m1", "T2 name mode is defined for the m1 fund score only"
++            _t2_jc = j + T2_CLEAD
++            _t2_c = (np.nan_to_num(FN[_t2_jc, :], nan=0.0) * (4.0 / _IVf[_t2_jc, :])) if 0 <= _t2_jc < FN.shape[0] else np.zeros(FN.shape[1], np.float32)
++            FZ = xz(_T2_LAM[i] * xz(FE[j, :]) - _T2_KAP[i] * _t2_c)[m]
++            _t2_used = True
+         w3 = w3_at(i)
+         _fs = (FUNDSCALE_ROW[j] if FUNDSCALE else 1.0)
+         z = w3[0]*np.nan_to_num(xz(sc["king"])) + w3[1]*np.nan_to_num(xz(sc["rev24"])) + w3[2]*_fs*np.nan_to_num(FZ)
+@@ -339,7 +379,7 @@
+         pnl_raw = float((sm[m] * yv).sum() * 1e4)
+         legc = []
+         for leg in ("king", "rev24", "fund"):
+-            zz = np.nan_to_num(FZ if leg == "fund" else xz(sc[leg])); gl = np.abs(zz).sum()
++            zz = np.nan_to_num(_FZ0 if leg == "fund" else xz(sc[leg])); gl = np.abs(zz).sum()
+             legc.append(float(w3[{"king": 0, "rev24": 1, "fund": 2}[leg]] * (zz / gl * yv).sum() * 1e4) if gl > 1e-9 else 0.0)
+         fires_i = 0
+         # 成本均价深度(全宇宙价格路径)
+@@ -382,6 +422,14 @@
+             _r18_un = sel & ~_r18_old
+             _R18.append((int(E_ts[i]), float(sel.sum()), float(_r18_un.sum()), float(np.abs(sm[m][_r18_un]).sum()), float(((_r18_old != _r18_new) & _r18_liq).sum()),
+                          float((_r18_new & ~_r18_old & _r18_liq).sum()), float((~_r18_new & _r18_old & _r18_liq).sum())))
++        if T2_INSTR:   # T2 aux: path use and score-change size per anchor, FZ_book at 12 fixed rec rows (never read by the book)
++            _f0 = np.asarray(_FZ0, np.float64); _f1 = np.asarray(FZ, np.float64); _okf = np.isfinite(_f0) & np.isfinite(_f1)
++            _cc = float(np.corrcoef(_f0[_okf], _f1[_okf])[0, 1]) if (_t2_used and _okf.sum() > 2) else 1.0
++            _nm_act = bool(T2_MODE == "name" and _T2_ACT[i])
++            _T2A.append((int(E_ts[i]), float(_t2_used), float(_T2_KAP[i]) if _nm_act else float("nan"), float(_T2_LAM[i]) if _nm_act else float("nan"),
++                         float((_okf & (_f0 != _f1)).sum()), float(np.abs(_f1[_okf] - _f0[_okf]).mean()) if _okf.any() else 0.0, _cc,
++                         float(_t2_seat_kappa(i)) if T2_MODE == "seat" else float("nan"), float(w3[0])))
++            if len(rec) in T2_WIRE_ROWS: _T2W[len(rec)] = (int(E_ts[i]), np.array(m, np.int64), _f1.copy())
+         netlong = float(sm.sum() / max(np.abs(sm).sum(), 1e-9))
+         gm = float(np.abs(sm[m]).sum()); gsel = float(np.abs(sm[m][sel]).sum()); gt = float(np.abs(sm).sum())
+         rec.append((int(E_ts[i]), float(pnl_raw - car - cbps), pnl_raw, float(car), float(cbps), gt, gm, gsel, int(sel.sum()), int(len(m)), fires_i,
+@@ -392,6 +440,7 @@
+         HB = sm; HR = smr; Pi = Pi * (1.0 + yfull)
+         if i % 2000 == 0: print("run depth", depth, i, "/", nA, round(time.time() - t0, 1), "s", flush=True)
+     global R18_LAST; R18_LAST = _R18
++    global T2_LAST, T2W_LAST; T2_LAST = _T2A; T2W_LAST = _T2W
+     return np.array(rec), np.stack(WS), ((np.array(_SG), np.array(_SP), np.array(_SC), np.array(_SK)) if SLEEVE else None)
+ LRa, pos = legs(SLOW); print("legs done", round(time.time() - t0, 1), "s", flush=True)
+ ARMS = [("S0", None, 0, 0, "nets_histv2_0_0_0.npy"), ("d30_n2_c42", -0.30, 2, 42, "nets_histv2_-30_2_42.npy")]
+@@ -434,6 +483,13 @@
+     print("RECEIPT_EX", nm, json.dumps(outx), flush=True)
+     save[f"{nm}_rec"] = R
+     save[f"{nm}_W"] = WS
++    if T2_INSTR and T2_LAST:
++        save[f"{nm}_T2A"] = np.array(T2_LAST); save[f"{nm}_T2A_cols"] = np.array(["ts", "name_path_used", "kappa_name", "lam_name", "n_fz_changed", "mean_abs_dfz", "corr_fz_book_vs_fz", "kappa_seat", "w3_king"])
++        _wr = sorted(T2W_LAST); save[f"{nm}_T2W_rows"] = np.array(_wr, np.int64); save[f"{nm}_T2W_ts"] = np.array([T2W_LAST[_r][0] for _r in _wr], np.int64)
++        _wf = np.full((len(_wr), NW), np.nan)
++        for _q, _r in enumerate(_wr): _wf[_q, T2W_LAST[_r][1]] = T2W_LAST[_r][2]
++        save[f"{nm}_T2W_fz"] = _wf
++    if T2_MODE == "seat": save["T2C_king"], save["T2C_rev24"], save["T2C_fund"] = T2C_ARR["king"], T2C_ARR["rev24"], T2C_ARR["fund"]
+     if R18_INSTR and R18_LAST:
+         save[f"{nm}_R18A"] = np.array(R18_LAST); save[f"{nm}_R18A_cols"] = np.array(["ts", "n_sel", "n_sel_y4nan", "gross_y4nan", "n_elig_changed", "n_elig_new_only", "n_elig_old_only"])
+     if SLV is not None:
