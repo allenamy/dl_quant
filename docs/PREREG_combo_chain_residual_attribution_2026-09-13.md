@@ -51,12 +51,12 @@
 - **A1.5 中间件清理**: 每个变体跑完、sha 入收据后删除变体 rolling.npz、`replay_home/fea171/mini/` 与两份 ref_fea89.npz 副本(避免累计多 GB 写入); 驱动收据、日志、state_H 输出与目标文件保留。
 - **A1.6 描述量增补(无门)**: Stage C 另报 target_live 差最大的 5 个名、V2 死名中在生产者该锚 target_live 与 aux `prev_rec.members` 中的名数。
 
-## AMENDMENT 2 — 2026-09-13 16:0xZ(Stage C 第 1 次运行无任何数字; 只改运行方式, 判据 §3 一字不改)
+## AMENDMENT 2 — 2026-09-13 16:0xZ〔时间勘误: 实际提交 2561950e 于 15:57:29Z, 内容未改〕(Stage C 第 1 次运行无任何数字; 只改运行方式, 判据 §3 一字不改)
 - **事实**: 15:51Z pod2 `/workspace` 共享配额耗尽(15:55Z 1 MB dd 探针 "Disk quota exceeded"), Stage C 第 1 次运行三道并行 V0 被杀, 驱动收据与日志均 0 字节, 无数字产生; 证据 `phase2/receipts/ATTR_stageC.attempt1_quota.log`(提交 8ca083a8)。本人残树(约 757 MB)已删。
 - **A2.1** Stage C 三锚改为**逐道串行**(同一时刻只有一棵变体树, 峰值约 250 MB); 每个变体建树前写 300 MB 探针文件并 fsync 后删除, 探针失败 ⇒ 立即退出 4(不产生判定)。车道核绑定、驱动环境、绑定与清理规则同 AMENDMENT 1。
 - **A2.2** 运行日志经 `tee` 同时进 pod2 收据与本机会话输出(配额再耗尽时日志写失败不再静默), rc 取 `PIPESTATUS[0]`。
 
-## AMENDMENT 3 — 2026-09-13 16:2xZ(Stage D 运行前; 只写实现细节, §3 判据一字不改)
+## AMENDMENT 3 — 2026-09-13 16:2xZ〔时间勘误: 实际提交 b5803abe 于 16:07:14Z, 早于 Stage D 启动, 内容未改〕(Stage D 运行前; 只写实现细节, §3 判据一字不改)
 - **A3.1 装置** `phase2/devices/p2_attr_chain_asof.py`: 长源缓存 13,440 行(07-27 16:05Z → 09-12 08:00Z; ≤ 09-01 00:00Z 取 holefix2 且非在役名置 NaN, 之后取快照 1789200000 rolling), 收据记录其末 11,520 行是否与 G2-C 链拼接缓存逐字节相等。两棵树(D_id / D_asof)按 G2-C 链树逐件复制, 假 HOME `state/rolling.npz` = 指向长源缓存的符号链接(king 段 `CACHE_ROWS = 11520` 自截末 11,520 行, 与 G2-C 相同)。包装器进程以模块导入逐字节驱动 f2ced820…, 只替换模块全局名 `run_combo_stage`; 回放 `replay_home/state/rolling.npz` 在驱动首次写状态前即建为指向窗口文件的符号链接(驱动 `_write_replay_state` 遇链接不改)。窗口文件 float16 未压缩约 67 MB(§2 写的 134 MB 为 float32 估算), D-id 固定写一次, D-asof 逐锚覆写; 每锚记录窗口首末时刻、行数与 sha。
 - **A3.2 顺序与停止**: 先 D-id; D-id 未逐锚逐位复现 G2-C 链收据(41 锚的 `weights_npz_Linf` / `target_combo_Linf` / `target_live_Linf` 全部 JSON 浮点相等)⇒ 写 STOP 收据退出 3, **不跑** D-asof。D-asof 判 PASS 另要求 41/41 锚 combo rc = 0 且无 compare_error(§3「任一不满足 ⇒ RED」的逐字化)。
 - **A3.3 资源**: 构建前与每种模式前写 500 MB 配额探针(失败 ⇒ 退出 4, 无判定); 包装器 `taskset -c 0-7 nice -n 10`; 驱动环境 = `PATH`、`HOME=<树>/home`、`REPLAY_COMBO=1`、`REPLAY_RECEIPT_TAG=ATTR_D_<mode>`(包装器断言环境键集); 每种模式跑完删窗口文件、`mini/`、ref_fea89 副本。
