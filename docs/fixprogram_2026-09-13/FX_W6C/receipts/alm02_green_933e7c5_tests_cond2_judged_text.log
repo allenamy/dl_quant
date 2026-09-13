@@ -1,0 +1,18 @@
+[1] headline: an older −5.00% day in the window, the latest day trips at −4.11%
+  OK    ★★★ 1 the trip is decided on the latest day (−4.105%) and the trigger PRINTS that number and names 2026-09-14, not the window's worst day (−5.00% on 2026-09-12) — ef60f85 prints -5.00  — (['§4-2 single-day loss -4.11% of EQUITY on 2026-09-14, worse than -4.0%'], -4.105263157894737, -5.0)
+  OK    ★★★ 1 judged_on names the judged day 2026-09-14 (ef60f85: the literal 2026-09-06)  — most recent priced day (2026-09-14); worst_day_pct is history
+
+[2] neighbour: one losing day — worst == recent, the same number either way
+  OK    ★★ 2 −4.20% on the only losing day: the trigger prints -4.20% and names 2026-09-13  — ['§4-2 single-day loss -4.20% of EQUITY on 2026-09-13, worse than -4.0%']
+
+[3] neighbour: nothing trips — the record still names the day it judged
+  OK    ★★ 3 latest day +0.53% (an older −5.00% in the window): not triggered, judged_on names 2026-09-13  — most recent priced day (2026-09-13); worst_day_pct is history
+
+[4] neighbour: no priced day — the record says so instead of naming a date
+  OK    ★★ 4 no daily_nav at all: blind, recent_day None, judged_on names no date  — no priced day in the window (blind); worst_day_pct is history
+
+[5] source pin
+  OK    ★ 5 the §4-2 record's wording carries no hard-coded date and the trigger reads `recent`
+
+6/6 checks passed
+ALL PASS

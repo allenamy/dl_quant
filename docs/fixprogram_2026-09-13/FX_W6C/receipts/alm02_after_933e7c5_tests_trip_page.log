@@ -1,0 +1,20 @@
+[j] the page's facts must come from the ladder, not from constants
+  OK   watchdog exposes ONE trip-page composition (`trip_page`) — got <function trip_page at 0x1037ec310>
+  OK   [12:17:31Z] severity is CRITICAL when the flatten failed — CRITICAL
+  OK   [12:17:31Z] the page says positions may be STUCK — FLATTEN FAILED — positions may be stuck
+  OK   ★★ [12:17:31Z] the page does NOT claim the book was flattened — flattened=False msg=止损触发: §4-5b liquidation/position anomaly on 77 name(s); §4-7 un-recovered positi
+  OK   [12:17:31Z] the page carries the names it could not flatten — 止损触发: §4-5b liquidation/position anomaly on 77 name(s); §4-7 un-recovered position drift — ★ 平仓失败(3 次尝试), 仓位可能仍在场所上: 100
+  OK   [16:16:40Z] severity DEGRADES to HIGH when the flatten succeeded — HIGH
+  OK   [16:16:40Z] the page says the book was flattened — flattened=True
+  OK   ★★ severity DISCRIMINATES: stuck and clean do not share a level — CRITICAL vs HIGH
+  OK   ALARM.log's headline comes from the same function (stuck case) — FLATTEN FAILED — positions may be stuck
+  OK   ALARM.log's headline comes from the same function (clean case) — STOP-LOSS TRIPPED — book flattened, reduce-only engaged
+  OK   the trip block was located in code (the scan has something to read) — block len=641
+  OK   run_anchor's trip page is composed by the shared function — 'trip_page' present=True
+  OK   ★ run_anchor no longer hardcodes the trip severity — no literal severity at the trip site
+  OK   ★ run_anchor no longer hardcodes '书已平仓' — no literal flat-claim in code
+  OK   ★ the scan is capable of going red (replayed against the pre-fix source) — both assertions fire on the old code
+
+  15 checks run
+
+  ALL PASS

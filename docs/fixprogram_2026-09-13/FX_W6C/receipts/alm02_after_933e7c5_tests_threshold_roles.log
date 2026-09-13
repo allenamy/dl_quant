@@ -1,0 +1,27 @@
+[A] the two levels are ordered, and the ordering is what makes them two roles
+  OK   ★★ the backstop is strictly further out than the investigation level — backstop=-4.0 alert=-2.68
+  OK   ★ and they are not the same number wearing two names
+
+[B] ★★ the ROLES are wired, not merely written — a loss between the two levels
+  OK      the probe loss -3.340% sits strictly between the two levels
+  OK   ★★ the judged quantity is the MOST RECENT priced day, not the historical minimum (2026-09-06: `min()` made the day-loss stop a one-way door for the resume gate)
+  OK   ★★ the HALT test is against the backstop constant, and nothing else — §4-2's trip predicate
+  OK   ★★ the ALERT test is against the alert constant AND is suppressed once the halt fires (`not hit`) — one loss must not be reported as two separate events
+  OK   ★★ ALERT ONLY means it contributes no trigger: the alert constant appears in no `triggers.append` line
+  OK   ★ and the trigger text quotes the BACKSTOP, so the page names the level that stopped it
+
+[C] both levels travel in the record, so a reading can be judged after the fact
+  OK   ★★ the condition's detail carries BOTH levels, named by caliber (% of EQUITY)
+
+[D] the deprecated 5x-caliber twins may be RECORDED but never COMPARED
+  OK   ★★ DAY_LOSS_LIMIT_PCT_OF_… is defined once and every other use is a recorded VALUE — ['DAY_LOSS_LIMIT_PCT_OF_TARGET_GROSS_DEPRECATED = -6.7   # kept one round; see the note above', 'DAY_LOSS_LIMIT_PCT_OF_TARGET_GROSS_DEPRECATED,']
+  OK   ★★ …and it is never COMPARED — no live reading is judged against the old caliber — ['DAY_LOSS_LIMIT_PCT_OF_TARGET_GROSS_DEPRECATED,']
+  OK   ★★ DRAWDOWN_LIMIT_PCT_OF_… is defined once and every other use is a recorded VALUE — ['DRAWDOWN_LIMIT_PCT_OF_TARGET_GROSS_DEPRECATED = -6.0   # kept one round', 'DRAWDOWN_LIMIT_PCT_OF_TARGET_GROSS_DEPRECATED,']
+  OK   ★★ …and it is never COMPARED — no live reading is judged against the old caliber — ['DRAWDOWN_LIMIT_PCT_OF_TARGET_GROSS_DEPRECATED,']
+
+[E] ★★ red capability — swap the two constants' roles and this suite must go red
+  OK   ★★ the swap is a real edit (the find-string matched exactly once)
+  OK   ★★ and [B]'s halt-wiring assertion is what fails on it — the investigation level would halt the book, at a loss the rulings say should only be investigated
+  OK   ★ the on-disk source is unchanged
+
+ALL PASS  (16 checks)
