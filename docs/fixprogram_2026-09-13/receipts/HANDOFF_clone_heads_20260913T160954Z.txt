@@ -1,0 +1,57 @@
+== /Users/haosiyu/cc_tmp/fx_exec
+branch: fix/known-issues-2026-09-13
+head: a21797dc9005aa48a1d14487c08beabcfc20bce7
+tracked_dirty: 3
+  a21797d 09-13T23:11 E9 = ALM-04 (FX-EXEC 2026-09-13): 产物断言对事件依赖列判 EVENT_NOT_YET、对无交易(停机)日判 MODE_EXPLAINED; 事件已发生仍为空 / 无写者列仍 NO_PRODUCER
+  3a641c3 09-13T22:51 E4 = EXE-02 (FX-EXEC 2026-09-13, 裁定 R2′): 已停名的 from_partial 残差不进任何追单路径; from_reject 转换保留; 残差留到下锚时告警
+  82fcc16 09-13T22:26 E3 follow-up (FX-EXEC 2026-09-13): R3-A2 承重格复用已算的逐批判决, 不再对被读者接受但联接键读不出的记录二次对账而抛出
+  c28c0a7 09-13T22:09 E3 (FX-EXEC 2026-09-13): 损坏事件日志 = 具名 NOT OBSERVABLE 失败关闭, 不再异常退出或静默跳过
+  6294534 09-13T21:22 E2 (FX-EXEC 2026-09-13): broker 直接 GET 补查读路采用与结算链同一请求级容量冲突合同
+== /Users/haosiyu/cc_tmp/fx_exec2
+branch: fix/ledger-alarms-2026-09-13
+head: e05c45ae7c08873bcdef5b207be7bbb54d1d71a0
+tracked_dirty: 0
+  e05c45a 09-14T00:09 LED-04 (FX-EXEC2): daily_nav realised split for pre-fix rows read from amendment records built from guard_twin's income ledger
+  0d27a52 09-14T00:03 LED-01 (FX-EXEC2) 3/3: one canonical fills reader (pilot_log.read_fills) + closed-world reader census
+  d3d16ea 09-14T00:01 LED-01 (FX-EXEC2) 2/3: non-raising write-time guard for the fills contract; violating rows quarantined, one alarm per anchor
+  ec88424 09-13T23:47 LED-01 (FX-EXEC2) 1/3: fills write contract as code + (symbol, trade_id) collapse key; pilot_metrics re-frozen with identity proof
+  c2e9bdc 09-13T23:31 ALM-01 (FX-EXEC2): funding_span alarm fingerprints its values, says what the table feeds, and pages by consequence
+  8354c5a 09-13T23:13 STA-02 (FX-EXEC2): per-name-stop cooldown expiries are recorded for the daily summary, not pushed to the phone
+  469c3f3 09-13T23:07 LED-08 (FX-EXEC2): per-anchor Telegram report reads fees/fills through cost_buckets; warnings judged on the book's own trailing distributi
+  7ca52ac 09-13T23:06 LED-07 (FX-EXEC2): pilot_log.anchor_series — the anchors table as a clean per-anchor traded series
+  c46fb83 09-13T23:06 LED-02 (FX-EXEC2): protective flatten costed as an EXIT against each leg's own mid_at_submit, fee from the fills ledger
+== /Users/haosiyu/cc_tmp/fx_w6c
+branch: fix/exe01-proportional-response
+head: 3f85c0e82bb5d81d1d84025fd953c68aff8e168d
+tracked_dirty: 0
+  3f85c0e 09-14T00:04 M2-33: §4-2 judges the latest equity day; an unpriced latest day is BLIND, never a stale re-trip
+  933e7c5 09-14T00:00 ALM-02: §4-2 renders judged_on from the day it judged, and its trigger prints the number that tripped
+  b3c5fc2 09-13T23:40 EXE-01 step 3/n: the local response must survive the NEXT anchor; scan-battery regression fixed; ledger ruler split
+  f99dc80 09-13T23:13 EXE-01 step 2/n: proportionality gate on every book-level response (R-14 read as A, switch ON) + closes W6(c) gaps G1-G13
+  f0d4eac 09-13T22:47 EXE-01 step 1/n: W6(c) proportional response ported VERBATIM onto ef60f85 (default OFF, as reviewed)
+== /Users/haosiyu/cc_tmp/fx_prod
+branch: fix/train-serve-parity-2026-09-13
+head: dfd3b0bc97087171e9d2f3e9c27d666b96aa8b98
+tracked_dirty: 0
+  dfd3b0b 09-14T00:09 correction tool --zip-dir: key calc_time to the nearest settlement hour (16 August rows carry calc_time 1s past the hour, all TradFi names
+  61a55bc 09-14T00:04 (c) monthly zip reconciliation: fund_label_ema_correction.py --zip-dir adds the pulled monthly declared labels (manifest sha per file); co
+  d49f1ef 09-13T23:51 P9 table generator: fold in pulled monthly zips (--zip-dir, manifest sha per file, rate/label conflict counts); committed before the Augus
+  38223d8 09-13T23:50 P1 migration: offline builder of the v0 funding EMA state for a copy of the producer state (gated)
+  d620f6e 09-13T23:48 devices fix: fx_replay_driver snapshot mode — absolute --snapshot/--after paths (relative symlink target broke rolling.npz) and skip a sum
+  b90f1b8 09-13T23:48 P9: live append path re-resolves settlement intervals with exact rules and corrects the v1 EMA exactly (hybrid (a)); first-row default fix
+  3e4d78f 09-13T23:43 tests(P9): red battery for the live append-path interval labels (six live transition rows, neighbours, cold-start first row)
+  85e02ce 09-13T23:36 P9 rule evaluation v4: add H2 (hybrid + forward regime for impossible labels); committed before the run
+  76b4aed 09-13T23:34 P9 rule evaluation v3: append label of the latest row = snap(back) (H) or fundingInfo with signature tie-break (Hfi)
+  26b8dd8 09-13T23:33 P9 rule evaluation: add hybrid H (append signature, exact re-resolution with retroactive correction) and Hfi (fundingInfo append label)
+  86a52e3 09-13T23:30 P9 device: data.binance.vision monthly fundingRate pull for pod2 (<=5 req/s, in-memory sha, write probe, no overwrite)
+  69e8e22 09-13T23:25 P6-M / P9-M: offline exact correction of mislabelled settlements in a copy of the producer state (live v1 EMA + ledger labels)
+  c2cdfa7 09-13T23:09 devices: FX parity replay driver and judge (P1/P2 proofs (a)(b)(c) + V0P)
+  15921c0 09-13T23:08 P2: V2MAIN funding panel serves column 80 with the training definition (v0), applies the training 12h freshness, and keys the shared mini 
+  41f3deb 09-13T23:01 tests(P2, P6M): red battery for the V2MAIN funding panel and the live-state label correction; replay helpers
+  d7df9a5 09-13T22:42 P6: bundle bootstrap re-derives seed interval labels from exact declared-interval rules, aligns the EMA state, refuses inconsistent bundle
+  031707c 09-13T22:40 tests(P6): re-specify on the real bundles — R2 isolates the EMA/seed misalignment, R3 the in-service seed mislabel
+  4b996aa 09-13T22:34 tests(P6): red battery for bundle bootstrap — seed interval labels and EMA/seed alignment
+  e0e34ea 09-13T22:31 P9 evidence: per-settlement declared-interval table + labelling-rule evaluation against the zip column (no producer change)
+  633d44b 09-13T22:04 P1: serve king column 80 with the training definition (v0 raw-rate EMA); fund leg stays v1
+  1a2c1c1 09-13T22:04 tests(P1): N6 exec of the code under test needs __name__ in its globals
+  e4a1e84 09-13T21:32 tests(P1): red battery for king column 80 train/serve caliber + offline replay harness
