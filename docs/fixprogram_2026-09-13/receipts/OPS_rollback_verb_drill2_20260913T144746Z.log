@@ -1,0 +1,21 @@
+DRILL2 start 2026-09-13T14:47:46Z; live combolive before:  pid = 30944
+1) bootstrap rc=0
+  [14:48:01Z]  state = running; runs = 1; pid = 21206; last exit code = (never exited); pidfile=21206 procs=21206,
+2) kill 21206 rc=0
+  [14:48:02Z]  state = running; runs = 2; pid = 21332; state = active; pidfile=21332 procs=21332,
+  [14:48:04Z]  state = running; runs = 2; pid = 21332; state = active; pidfile=21332 procs=21332,
+  [14:48:07Z]  state = running; runs = 2; pid = 21332; state = active; pidfile=21332 procs=21332,
+  [14:48:13Z]  state = running; runs = 2; pid = 21332; state = active; pidfile=21332 procs=21332,
+  [14:48:17Z]  state = running; runs = 2; pid = 21332; state = active; pidfile=21332 procs=21332,
+  RESULT kill: RESPAWNED old=21206 new=21332 => kill is NOT a rollback
+3) bootout rc=0
+  [14:48:19Z]  pidfile=21332 procs=
+  [14:48:24Z]  pidfile=21332 procs=
+  [14:48:32Z]  pidfile=21332 procs=
+  RESULT bootout: unloaded, no process, no respawn over 15 s => bootout IS a rollback
+4) restore bootstrap rc=0
+  [14:48:35Z]  state = running; runs = 1; pid = 21656; last exit code = (never exited); pidfile=21656 procs=21656,
+  RESULT restore: running again => bootstrap restores
+5) cleanup bootout rc=0
+  [14:48:39Z]  pidfile=21656 procs=
+DRILL2 end 2026-09-13T14:48:39Z; live combolive after:  pid = 30944

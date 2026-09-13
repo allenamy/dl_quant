@@ -1,0 +1,53 @@
+INFRA disk cleanup 20260913T143228Z (lead). Reason: Mac data volume 98% full (12 GiB free at 14:27:58Z) → iCloud evicts research-repo .git objects (2,664 dataless files) → git commits take minutes; live executor/producer share this disk.
+Scope: stale ~/cc_tmp battery/fix clones from rounds already deployed in ef60f85 or earlier (W1 62a3032e, W2 2ad1c272, W6ab 259f50a6, W9 f8beb082, W8 77d9baf, b681ca5, d040c74) and the r3-r6 stacked-landing clones; every diff and battery log they produced is committed under docs/receipts; every tree is reproducible from ~/dl_quant_live history. Kept: fx_* / aud_prod / krw_pull / exec_w6 (W6(c) diff source for fx-w6c) / exec_n6_sandbox (open handles, PID 50689) / claude-501.
+--- before
+/dev/disk1s2   466Gi   430Gi    12Gi    98%    4.5M  130M    3%   /System/Volumes/Data
+open-handle check done
+DELETE exec_land_stack_20260912T162534Z size_kb=441332 head=918559f903b9c73b5a263605de5ce8e967266dfb tracked_dirty=26
+  rm rc=0 exists_after=no
+DELETE exec_land_stack_20260913T085514Z size_kb=984464 head=918559f903b9c73b5a263605de5ce8e967266dfb tracked_dirty=40
+  rm rc=0 exists_after=no
+DELETE exec_land_stack_20260913T100613Z size_kb=984700 head=918559f903b9c73b5a263605de5ce8e967266dfb tracked_dirty=41
+  rm rc=0 exists_after=no
+DELETE exec_land_stack_20260913T102842Z size_kb=984760 head=918559f903b9c73b5a263605de5ce8e967266dfb tracked_dirty=41
+  rm rc=0 exists_after=no
+DELETE exec_land_test size_kb=972652 head=918559f903b9c73b5a263605de5ce8e967266dfb tracked_dirty=31
+  rm rc=0 exists_after=no
+DELETE exec_w1 size_kb=975960 head=918559f903b9c73b5a263605de5ce8e967266dfb tracked_dirty=26
+  rm rc=0 exists_after=no
+DELETE exec_w2 size_kb=975012 head=918559f903b9c73b5a263605de5ce8e967266dfb tracked_dirty=31
+  rm rc=0 exists_after=no
+DELETE exec_w2_prev size_kb=682528 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE exec_w2_prev3 size_kb=244544 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE exec_w2_prev4 size_kb=244600 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE exec_w6_ledger_918559f size_kb=382560 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE exec_w6_ledger_final size_kb=387164 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE exec_w6_ledger_final2 size_kb=387236 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE exec_w6_ledger_final3 size_kb=387240 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE exec_w9 size_kb=450160 head=e8651a3c85f99f64db5847e920a7c9d32fcc3829 tracked_dirty=0
+  rm rc=0 exists_after=no
+DELETE exec_b681_acceptance size_kb=969768 head=77d9bafcaaff5ef0bb7133dcd0a80c4c10ab530f tracked_dirty=24
+  rm rc=0 exists_after=no
+DELETE exec_d040c74_old size_kb=967044 head=d040c7444c24f945d14b14803143771146886c4b tracked_dirty=22
+  rm rc=0 exists_after=no
+DELETE lead_bind_bf581eb size_kb=690792 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE w8_ledger_918559f size_kb=453408 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE w8_ledger_fe97e46 size_kb=701872 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE w8_mut_wt size_kb=381220 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE w8_old_c4ec464 size_kb=386380 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+DELETE audit_infer size_kb=272784 head=nogit tracked_dirty=-
+  rm rc=0 exists_after=no
+--- after
+/dev/disk1s2   466Gi   418Gi    25Gi    95%    4.0M  258M    2%   /System/Volumes/Data

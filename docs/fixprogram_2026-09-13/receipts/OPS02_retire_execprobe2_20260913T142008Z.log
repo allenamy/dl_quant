@@ -1,0 +1,30 @@
+OPS-02 apply 20260913T142008Z (lead; AUDIT_EXEC OPS-02 action 'Unload and move the plist out of ~/Library/LaunchAgents'; STATE §1 执行探针已 KILL(勿复活); memory probe_flattened_book_positions)
+--- BEFORE
+Sun Sep 13 14:20:08 UTC 2026
+-rw-r--r--@ 1 haosiyu  staff  721 Aug 22 08:43 /Users/haosiyu/Library/LaunchAgents/com.hsy.execprobe2.plist
+plist_sha256 58a776ec09b6b217320ceb895cf57b7434077fab0941ad9dd3920276b23efeb8 721
+	state = not running
+	runs = 1
+	last exit code = 3
+		state = active
+		state = active
+KILL files: /Users/haosiyu/exec_probe/KILL /Users/haosiyu/exec_probe/v2/KILL 
+no exec_probe.py process
+--- APPLY
+bootout rc=0
+disable rc=0
+move rc=0
+--- AFTER
+Bad request.
+Could not find service "com.hsy.execprobe2" in domain for user gui: 501
+		"com.hsy.execprobe2" => disabled
+		"com.hsy.sigma_ladder" => disabled
+total 16
+drwxr-xr-x@   4 haosiyu  staff   128 Sep 13 22:20 .
+drwx------@ 124 haosiyu  staff  3968 Sep 13 22:00 ..
+-rw-r--r--@   1 haosiyu  staff   721 Aug 22 08:43 com.hsy.execprobe2.plist.retired_20260913T142008Z
+-rw-r--r--@   1 haosiyu  staff  1318 Sep  4 17:35 com.hsy.sigma_ladder.plist.retired_20260913T140050Z
+retired_sha256 58a776ec09b6b217320ceb895cf57b7434077fab0941ad9dd3920276b23efeb8
+repo_copy_sha256 58a776ec09b6b217320ceb895cf57b7434077fab0941ad9dd3920276b23efeb8
+KILL files kept: /Users/haosiyu/exec_probe/KILL /Users/haosiyu/exec_probe/v2/KILL 
+live daemons unchanged: combolive=30944 shadowloop=10900 sidecar=30943

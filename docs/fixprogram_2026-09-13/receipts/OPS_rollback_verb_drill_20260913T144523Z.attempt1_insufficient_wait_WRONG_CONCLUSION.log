@@ -1,0 +1,20 @@
+DRILL start 2026-09-13T14:45:23Z; live combolive before:  pid = 30944
+1) bootstrap dummy
+  rc=0
+  [14:45:26Z] launchctl:  state = running; runs = 1; pid = 20239; last exit code = (never exited); state = active; state = active; pidfile=20239 live_proc=20239,
+2) kill $(cat pidfile) = kill 20239  (the documented rollback verb)
+  rc=0
+  [14:45:29Z] launchctl:  state = spawn scheduled; runs = 1; state = active; state = active; pidfile=20239 live_proc=
+  RESULT kill: not respawned
+3) launchctl bootout gui/501/com.hsy.test_rollback_verb_20260913 (candidate rollback verb)
+  rc=0
+  [14:45:34Z] launchctl:  pidfile=20239 live_proc=
+  RESULT bootout: unloaded
+  RESULT bootout: no process, no respawn after 5s
+4) restore verb: launchctl bootstrap gui/501 <plist>
+  rc=0
+  [14:45:36Z] launchctl:  state = running; runs = 1; pid = 20329; last exit code = (never exited); state = active; state = active; pidfile=20329 live_proc=20329,
+5) cleanup: bootout + remove dummy plist
+  rc=0
+  [14:45:38Z] launchctl:  pidfile=20329 live_proc=
+DRILL end 2026-09-13T14:45:39Z; live combolive after:  pid = 30944
