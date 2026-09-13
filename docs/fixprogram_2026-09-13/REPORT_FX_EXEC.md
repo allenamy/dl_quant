@@ -274,3 +274,26 @@ Three alarm and doc texts that did not match the code (clamp-alarm source, stop-
 **BOUNDARIES**: a future untradable source added without a label will show as 来源未记录; alarm_policy's rule name for that page still reads "held name withheld by venue" (policy table left alone); the 25 in the per_name_stop texts is a copy, caught by B1 if the constant changes (STOP_EXIT_POLICY and the carried page read the constant directly); coordination: per_name_stop.py L6–9 and L130 rewritten, hunks sent to fx-exec2.
 
 **NEXT**: E7, then the stacked diff and the full battery.
+
+## E7 · two W2-registered reader defects (clone d4ed6b6, parent 719d8e7; 原文英文, lead 逐字转录)
+Diff: docs/receipts/fx_exec_E7.diff sha256 f33b38fec64a16714c604dac5e7e46f670a34726f35bf0f35832f15b56fd9eb8. Receipts: research commit 43bf3430 (FX_EXEC/receipts/E7; t6 check 0 mismatches). Nothing is deployed.
+
+**FACTS** (read-only census, e7_fact_census.log)
+- (a) daily_summary.main set `nav = [rows with nav_ts >= since] or nav_all[-1:]`. When the window held no nav row, the account section printed the ledger's newest row, whatever its age, and the header counted it as "1 nav row(s)". Old-code red output: wallet 5,080 / equity 5,100 shown for a window that began 58 minutes after that row. The live ledger has 259 nav rows with a max gap of 8.13 h, so under the default 24 h window this happens only on stale state copies or short custom windows.
+- (b) first_anchor_review §3b summed target_w only where `target_w is not None`. A name with None dropped out silently, and a NaN printed as nan. The partial sum was printed as "INTENT net … over the N names that got rows", and VENUE minus INTENT was computed from it. Old-code red output: "INTENT net +90.00 … over the 1 names" with a difference of −190; for NaN "+nan USDT". The live ledger has 77,874 order rows and none has a None or non-finite target_w. The schema allows it: target_w is required but not in not_null.
+
+**FIX**
+- (a) Only nav rows inside the window are used. With none, `account_facts` reports NOT OBSERVABLE, and the header prints "★ 窗口内没有 daily_nav 行: 账本最新一行 nav_ts=<UTC> 在窗口之前(<h>), 未使用 …".
+- (b) A name counts as known if any of its rows has a finite target_w. If any name has none, the block prints "INTENT net UNKNOWN — k of n name(s) have no finite target_w: [names]"; the partial sum is shown but labelled NOT the intent net, and VENUE minus INTENT is not formed. The all-finite output is byte-identical to before; the REVERSE cell still passes.
+- gate_coverage: blind spots (h) and (i) are marked FIXED by E7.
+
+**TESTS**
+- tests_daily_summary [E7-a], running the entry point on a temp ledger with --since 09:00Z against nav rows at 08:01/08:02Z: E7-a0 runs; E7-a1 (old red) account NOT OBSERVABLE, no equity line, header shows 0 nav rows; E7-a2 (old red) the page names the 08:02Z row as before the window and not used; E7-a3 neighbour: a window containing nav rows prints its account with no out-of-window line.
+- Consequence: four existing [B3] cells — Q1, Q3, the sight-boundary line and the rotation line — used to pass only because of the stale-row fallback (the clone's state has no nav row within 24 h). After the fix they failed on correct behaviour. They were made conditional the same way as Q2 already in that file: the check calls are unchanged (AST-verified), and on 0 nav rows they print a declared SKIP. Added cell E7-a4 asserts the NOT OBSERVABLE account in that case. In the battery with a real state copy they will be exercised.
+- tests_readers_three_bucket [E7-b], using the round-4 temp-ledger harness through first_anchor_review: E7-b1 (old red) target_w None gives UNKNOWN, "1 of 2", names FFFUSDT, no difference; E7-b2 (old red) NaN gives the same, and no "nan" appears; E7-b3 neighbour: a name whose maker row carries target_w while its second row has None counts as known; output is the all-finite block.
+
+**RESULTS**: red on 719d8e7: tests_daily_summary fails exactly E7-a1 and E7-a2; tests_readers_three_bucket fails exactly E7-b1 and E7-b2; 0 tracebacks. Green at head: tests_daily_summary ALL PASS (102 checks, 10 declared SKIP, ledger-dependent); tests_readers_three_bucket ALL PASS (75 checks, 3 SKIP). AST: tests_daily_summary 108 → 113 check sites, 0 lost; tests_readers_three_bucket 73 → 76, 0 lost. Mutants 4/4 killed (fallback restored, out-of-window line dropped, NaN counted as known, partial sum printed as intent). Neighbours rc 0: tests_review_anchor_scoping, tests_rehearsal_anchor, tests_fills_supersede, tests_imports, tests_static_names, gate_coverage. tests_reject_topup rc 1, identical cell-for-cell on ef60f85 (ledger-dependent in the clone, already known).
+
+**BOUNDARIES**: both are capability fixes; neither shape occurs in the live ledger today. The [B3] account-text promises are proven only where the window holds a nav row. 〔lead 注: [B3] 四格改为条件 SKIP 是对既有测试的执行条件改动(检查调用逐字未变), 列入复审关注项。〕
+
+**QUEUE** (lead 裁定): NEW-02 attempt_idx + gate_coverage 重复条目 → 完整电池(BATTERY.lock, 19:15Z 前启动)→ EXE-04 (Q6) 作为单独项, 其后再跑电池。
