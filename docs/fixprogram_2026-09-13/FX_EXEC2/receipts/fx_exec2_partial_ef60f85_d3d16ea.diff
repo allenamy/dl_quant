@@ -244,7 +244,7 @@ index 0c3fd58..30d0ca7 100644
 +            by.setdefault(str(o.get("rebalance_id")), []).append(o)
 +    return {rid: flatten_cost(rows, fills_rows) for rid, rows in sorted(by.items())}
 diff --git a/live/pilot_log.py b/live/pilot_log.py
-index cb37fdd..4e78a79 100644
+index cb37fdd..8d941f7 100644
 --- a/live/pilot_log.py
 +++ b/live/pilot_log.py
 @@ -31,7 +31,7 @@ crash-safe line-by-line).
@@ -266,7 +266,98 @@ index cb37fdd..4e78a79 100644
      "anchors": {
          "required": ["anchor_ts", "target_vector_hash", "realized_gross", "target_gross",
                       "n_names_skipped", "regime_at_anchor", "mid_at_anchor_vector",
-@@ -449,33 +452,184 @@ class PilotLogger:
+@@ -422,6 +425,11 @@ class PilotLogger:
+         self.dir = os.path.join(root, self.day)
+         os.makedirs(self.dir, exist_ok=True)
+         self._fh: Dict[str, Any] = {}
++        # LED-01 write-time guard state (see `fill`)
++        self.fill_quarantined: List[Dict[str, Any]] = []
++        self.fill_guard_errors: List[str] = []
++        self._fill_index: Optional[Dict[Any, Dict[str, Any]]] = None
++        self._fill_offset = 0
+         meta = os.path.join(self.dir, "_schema.json")
+         if not os.path.exists(meta):
+             json.dump({"schema_version": SCHEMA_VERSION, "tables": {k: v["required"]
+@@ -437,7 +445,77 @@ class PilotLogger:
+         self._fh[table].flush()
+ 
+     def order(self, **row):             self._w("orders", row)
+-    def fill(self, **row):              self._w("fills", row)
++
++    def _refresh_fill_index(self) -> None:
++        """Index (symbol, trade_id) -> original facts over every COMPLETE line of this day's fills.jsonl, read
++        incrementally from the last offset, so rows appended by another writer since the last call are seen too."""
++        p = os.path.join(self.dir, "fills.jsonl")
++        if "fills" in self._fh:
++            self._fh["fills"].flush()
++        if self._fill_index is None or (os.path.exists(p) and os.path.getsize(p) < self._fill_offset):
++            self._fill_index, self._fill_offset = {}, 0
++        if not os.path.exists(p):
++            return
++        with open(p, "rb") as f:
++            f.seek(self._fill_offset)
++            chunk = f.read()
++        end = chunk.rfind(b"\n")
++        if end < 0:
++            return
++        for line in chunk[:end + 1].splitlines():
++            if not line.strip():
++                continue
++            try:
++                r = json.loads(line)
++            except ValueError:
++                continue                       # a corrupt line is not this guard's subject
++            k = fill_key(r)
++            if k is not None and k not in self._fill_index:
++                self._fill_index[k] = _fill_facts(r)
++        self._fill_offset += end + 1
++
++    def fill(self, **row) -> bool:
++        """Append one fills row under the write contract. Returns True if written to fills.jsonl, False if refused.
++
++        ★★★ LED-01 (FX-EXEC2, 2026-09-13; lead ruling B, req. 2): A ROW THAT BREAKS THE CONTRACT IS REFUSED, NEVER
++            RAISED. The schema check (`validate`) still raises as before. A contract violation (a second original for
++            an existing (symbol, trade_id), a supersede without an original, a supersede whose id or fact columns
++            disagree) is written to `<day>/fills_quarantine.jsonl` with its kind, appended to `fill_quarantined`, and
++            the call returns False: the ledger keeps one original per execution and the anchor or settlement path
++            carries on. The caller owns the ONE alarm (anchor_loop counts `fill_quarantined` per anchor).
++        ★ THE GUARD MAY NOT COST A FACT. If the guard itself errors, the row is written exactly as before and the
++          error is kept in `fill_guard_errors`; if the quarantine file cannot be written, the refusal is still
++          recorded in `fill_quarantined` with `quarantine_write_failed` and the row itself in the record.
++        """
++        validate("fills", row)
++        k, kind, why = None, None, None
++        try:
++            self._refresh_fill_index()
++            k = fill_key(row)
++            if k is not None:
++                kind, why = fill_contract_check(row, self._fill_index.get(k))
++        except Exception as e:
++            kind = None
++            self.fill_guard_errors.append(f"{type(e).__name__}: {str(e)[:200]}")
++        if kind is not None:
++            rec = {"quarantined_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "kind": kind,
++                   "detail": why, "key": [k[0], k[1]], "row": row}
++            try:
++                with open(os.path.join(self.dir, "fills_quarantine.jsonl"), "a") as qf:
++                    qf.write(json.dumps(rec, default=str) + "\n")
++                self.fill_quarantined.append({k_: rec[k_] for k_ in ("kind", "detail", "key")})
++            except Exception as e:
++                self.fill_quarantined.append({"kind": kind, "detail": why, "key": rec["key"], "row": row,
++                                              "quarantine_write_failed": f"{type(e).__name__}: {str(e)[:120]}"})
++            return False
++        self._w("fills", row)
++        try:
++            if k is not None and self._fill_index is not None and k not in self._fill_index:
++                self._fill_index[k] = _fill_facts(row)
++        except Exception as e:
++            self.fill_guard_errors.append(f"{type(e).__name__}: {str(e)[:200]}")
++        return True
++
+     def anchor(self, **row):            self._w("anchors", row)
+     def funding(self, **row):           self._w("funding", row)
+     def position_readback(self, **row): self._w("position_readback", row)
+@@ -449,33 +527,184 @@ class PilotLogger:
          self._fh = {}
  
  
@@ -1084,6 +1175,225 @@ index fd1d289..285e4cd 100644
  check("M1 injection target matches exactly once", SRC.count(FIND) == 1, SRC.count(FIND))
  if SRC.count(FIND) == 1:
      ns = {"__file__": os.path.join(REPO, "live", "pilot_log.py"), "__name__": "pl_mutant"}
+diff --git a/live/tests_fills_write_guard.py b/live/tests_fills_write_guard.py
+new file mode 100644
+index 0000000..ace2be1
+--- /dev/null
++++ b/live/tests_fills_write_guard.py
+@@ -0,0 +1,213 @@
++"""LED-01 (FX-EXEC2, 2026-09-13; lead ruling B, req. 2-3): the fills write contract is ENFORCED AT WRITE TIME without ever
++breaking an anchor — a violating row is refused into <day>/fills_quarantine.jsonl, counted, alarmed once per anchor.
++
++*** NO NETWORK (socket.connect raises for the whole suite), temp pilot_log trees only, DRY_RUN, LIVE_ALARM_SUPPRESS=1.
++    Real row shapes: the verbatim 09-12 PAXGUSDT fills lines of tests_fixtures/led01_fills_contract. ***
++
++ASSERTED HERE:
++  [G] PilotLogger.fill: the real PAXG chain writes through unchanged (every row True, same JSON line for line);
++      a second original ⇒ False + quarantine record; a supersede that changes a fact column ⇒ False; a markout
++      supersede ⇒ True; a row appended by ANOTHER logger/process is seen (the index reads the file incrementally);
++      the guard erroring ⇒ the row is written as before and the error kept; the quarantine file unwritable ⇒ False
++      with `quarantine_write_failed` and the row in the record; a schema error still raises. ★ RED on ef60f85: every
++      call returns None and both duplicates land in fills.jsonl.
++  [A] ★★★ THE ANCHOR COMPLETES: AnchorLoop.complete_anchor (DRY_RUN broker and executor, the settlement's venue calls
++      replaced by in-process fakes) with a real PilotLogger whose day already holds the original of one of the two
++      fill rows the settlement builds: complete_anchor returns; built 2 / persisted 1 / quarantined 1; exactly ONE
++      alarm, the contract one, and no "persisted" alarm; fills.jsonl holds one row per execution. ★ RED on ef60f85:
++      persisted 2, the duplicate original in the ledger, no alarm.
++  [B] ops/backfill_fills: another symbol's execution with the same trade id is not "already present".
++      ★ RED on ef60f85: skipped.
++  [M] ops/import_markout_marks: a mark whose archive names another symbol is not applied to this fill.
++      ★ RED on ef60f85: applied.
++
++NOT asserted: two processes appending in the same instant (the index is refreshed before each write, not locked);
++the phase-C and markout-backfill alarm sites beyond their counters (run_anchor's page is a one-line use of them).
++Exit 0 = all pass.
++"""
++import copy
++import gzip
++import json
++import os
++import socket
++import sys
++import tempfile
++import types
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++for _d in ("live", "ops", "scheduler", "signal"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++os.environ["LIVE_MODE"] = "DRY_RUN"
++os.environ["LIVE_ALARM_SUPPRESS"] = "1"
++
++
++def _no_net(*a, **k):
++    raise RuntimeError("NETWORK ATTEMPT inside tests_fills_write_guard")
++
++
++socket.socket.connect = _no_net
++import pilot_log as PL   # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(detail)[:400]) if detail != '' else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++FIX = os.path.join(HERE, "tests_fixtures", "led01_fills_contract")
++RAW12 = gzip.open(os.path.join(FIX, "20260912_PAXGUSDT_fills.jsonl.gz"), "rb").read()
++R12 = [json.loads(l) for l in RAW12.splitlines() if l.strip()]
++DAY = "20260912"
++
++
++def day_rows(root, name="fills.jsonl"):
++    p = os.path.join(root, DAY, name)
++    return [json.loads(l) for l in open(p) if l.strip()] if os.path.exists(p) else []
++
++
++print("[G] PilotLogger.fill under the contract")
++root = tempfile.mkdtemp(prefix="led01g_")
++lg = PL.PilotLogger(root, day=DAY)
++rets = [lg.fill(**copy.deepcopy(r)) for r in R12]
++check("G1 the real PAXG chain (7 rows: maker/topup O,S pairs + an E1 original) writes through: every call True, "
++      "the file equals the ledger row for row", rets == [True] * 7 and day_rows(root) == R12, rets)
++orig = [r for r in R12 if r.get("supersedes_trade_id") is None and r["order_type"] == "maker"][0]
++r_dup = lg.fill(**copy.deepcopy(orig))
++q = day_rows(root, "fills_quarantine.jsonl")
++check("★★★ G2 a second original for an existing (symbol, trade_id) ⇒ False, quarantined with its kind, the ledger "
++      "unchanged (old tree: returns None and the duplicate is in fills.jsonl)",
++      r_dup is False and len(day_rows(root)) == 7 and len(q) == 1 and q[0]["kind"] == "duplicate_original"
++      and q[0]["row"]["trade_id"] == orig["trade_id"] and len(getattr(lg, "fill_quarantined", [])) == 1,
++      (r_dup, len(day_rows(root)), [x.get("kind") for x in q]))
++bad_sup = dict(orig, supersedes_trade_id=orig["trade_id"], mid_at_fill_plus_60s=1.0, fill_notional=123456.0)
++check("G3 a supersede that changes a fact column ⇒ False, kind supersede_changes_fact_columns",
++      lg.fill(**bad_sup) is False and day_rows(root, "fills_quarantine.jsonl")[-1]["kind"] == "supersede_changes_fact_columns")
++fl = [r for r in R12 if r["order_type"] == "protective_flatten"][0]
++good_sup = dict(fl, mid_at_fill_plus_60s=2500.0, mark_source="aggTrades", mark_ts_actual=1.0, mark_lag_s=0.2,
++                mark_window_s=60.0, backfilled_utc="2026-09-14T00:00:00Z", supersedes_trade_id=fl["trade_id"])
++good_sup.pop("mid_at_fill_plus_60s_note", None)
++check("G4 a markout supersede of the E1 original (backfill_markout `_complete` shape) ⇒ True, appended",
++      lg.fill(**good_sup) is True and day_rows(root)[-1]["mid_at_fill_plus_60s"] == 2500.0)
++lg.close()
++lg2 = PL.PilotLogger(root, day=DAY)
++check("G5 a NEW logger (another process) sees the file's originals: a duplicate original ⇒ False",
++      lg2.fill(**copy.deepcopy(orig)) is False)
++extra = dict(orig, symbol="ZZZUSDT", trade_id=99999001)
++with open(os.path.join(root, DAY, "fills.jsonl"), "a") as fh:      # an append by somebody else, after lg2 indexed
++    fh.write(json.dumps(extra) + "\n")
++check("G6 a row appended by another writer AFTER this logger indexed is seen before the next write",
++      lg2.fill(**copy.deepcopy(extra)) is False)
++_real = PL.fill_contract_check if hasattr(PL, "fill_contract_check") else None
++n_before = len(day_rows(root))
++if _real is not None:
++    PL.fill_contract_check = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("guard broke"))
++    ok7 = lg2.fill(**dict(orig, symbol="YYYUSDT", trade_id=99999002)) is True
++    PL.fill_contract_check = _real
++    check("G7 the guard itself erroring ⇒ the row is written as before and the error kept (never a raise, never a lost fact)",
++          ok7 and len(day_rows(root)) == n_before + 1 and lg2.fill_guard_errors and "guard broke" in lg2.fill_guard_errors[-1],
++          getattr(lg2, "fill_guard_errors", None))
++else:
++    check("G7 the guard itself erroring ⇒ the row is written as before and the error kept", False, "no guard in this tree")
++lg2.close()
++root3 = tempfile.mkdtemp(prefix="led01g3_")
++lg3 = PL.PilotLogger(root3, day=DAY)
++lg3.fill(**copy.deepcopy(orig))
++os.makedirs(os.path.join(root3, DAY, "fills_quarantine.jsonl"))     # the quarantine path cannot be a file
++r8 = lg3.fill(**copy.deepcopy(orig))
++check("G8 quarantine unwritable ⇒ False, `quarantine_write_failed` recorded with the row, ledger still one original",
++      r8 is False and len(day_rows(root3)) == 1 and (getattr(lg3, "fill_quarantined", None) or [{}])[-1].get("quarantine_write_failed")
++      and lg3.fill_quarantined[-1].get("row", {}).get("trade_id") == orig["trade_id"], getattr(lg3, "fill_quarantined", None))
++try:
++    bad = dict(orig); bad.pop("fill_ts")
++    lg3.fill(**bad)
++    raised = False
++except PL.SchemaError:
++    raised = True
++check("G9 a SCHEMA error still raises SchemaError (the guard changes only the contract path)", raised)
++lg3.close()
++
++print("\n[A] ★★★ the anchor completes with a violation injected")
++import anchor_loop as AL          # noqa: E402
++import binance_broker as BB       # noqa: E402
++import binance_executor as EX     # noqa: E402
++import venue_fills as VF          # noqa: E402
++tmp = tempfile.mkdtemp(prefix="led01a_")
++os.environ["LIVE_FEE_BASELINE"] = os.path.join(tmp, "fee_baseline.json")
++_old_state = AL.STATE_PATH
++AL.STATE_PATH = os.path.join(tmp, "state.json")
++rootA = os.path.join(tmp, "pilot_log")
++seed = PL.PilotLogger(rootA, day=DAY)
++seed_orig = copy.deepcopy(orig)
++seed.fill(**seed_orig)
++seed.close()
++legit = dict(orig, trade_id=int(orig["trade_id"]) + 1000000, fill_ts=float(orig["fill_ts"]) + 1.0)
++alarms = []
++lgA = PL.PilotLogger(rootA, day=DAY)
++b = BB.BinanceBroker()
++ex = EX.RebalanceExecutor(b)
++loop = AL.AnchorLoop(b, ex, gross_usdt=1000.0, log=lgA, alarm=lambda s, m: alarms.append((s, m)))
++loop.src = types.SimpleNamespace(book_mids=lambda: {})
++_saved = (VF.user_trades_for, VF.submitted_order_legs, VF.attribute_trades, VF.fill_rows_from_trades)
++VF.user_trades_for = lambda *a, **k: {}
++VF.submitted_order_legs = lambda *a, **k: {}
++VF.attribute_trades = lambda *a, **k: {"n_unattributed": 0, "by_symbol": {}, "attributed_trades": {}}
++VF.fill_rows_from_trades = lambda *a, **k: [copy.deepcopy(seed_orig), copy.deepcopy(legit)]
++res, err = None, None
++try:
++    res = loop.complete_anchor({"live": [], "target": {}}, float(orig["anchor_ts"]), orig["rebalance_id"])
++except Exception as e:           # a raise here IS the failure under test
++    err = f"{type(e).__name__}: {e}"
++finally:
++    VF.user_trades_for, VF.submitted_order_legs, VF.attribute_trades, VF.fill_rows_from_trades = _saved
++    AL.STATE_PATH = _old_state
++    lgA.close()
++fr = day_rows(rootA)
++contract_alarms = [m for s, m in alarms if "fills 写入合同违例" in m]
++persist_alarms = [m for s, m in alarms if m.startswith("fill rows: built")]
++check("★★★ A1 complete_anchor RETURNS with the violation injected", res is not None and err is None, err)
++check("★★★ A2 built 2 / persisted 1 / quarantined 1 (old tree: persisted 2)",
++      res is not None and res.get("fill_rows_built") == 2 and res.get("fill_rows_persisted") == 1
++      and res.get("fill_rows_quarantined") == 1, {k: (res or {}).get(k) for k in ("fill_rows_built", "fill_rows_persisted", "fill_rows_quarantined")})
++check("★★★ A3 exactly ONE alarm, the contract one, naming the count and kind; no 'persisted' alarm (old tree: none)",
++      len(contract_alarms) == 1 and "1 行" in contract_alarms[0] and "duplicate_original" in contract_alarms[0]
++      and not persist_alarms, [m[:120] for _, m in alarms])
++check("★★★ A4 the ledger holds one row per execution (seed original + the legitimate row); the duplicate is quarantined",
++      len(fr) == 2 and len({(r["symbol"], r["trade_id"]) for r in fr}) == 2
++      and len(day_rows(rootA, "fills_quarantine.jsonl")) == 1, (len(fr), len(day_rows(rootA, "fills_quarantine.jsonl"))))
++
++print("\n[B] ops/backfill_fills presence check keys on (symbol, trade_id)")
++import backfill_fills as BF   # noqa: E402
++present = BF.existing_trade_ids({"fills": [dict(orig)]})
++cand = dict(orig, symbol="OTHERUSDT")
++check("★★ B1 another symbol's execution with the same trade id is not 'already present' (old tree: skipped)",
++      (cand.get("symbol"), cand.get("trade_id")) not in present and cand.get("trade_id") not in present, sorted(present)[:2])
++
++print("\n[M] ops/import_markout_marks refuses a mark from another symbol's archive")
++import import_markout_marks as IMM   # noqa: E402
++rootM = tempfile.mkdtemp(prefix="led01m_")
++lm = PL.PilotLogger(rootM, day=DAY)
++f0 = dict(orig, mid_at_fill_plus_60s=None)
++lm.fill(**f0)
++lm.close()
++marks = {str(orig["trade_id"]): {"status": "ok", "mark_px": 9.9, "mark_ts": 1_000_061_000, "mark_lag_s": 1.0,
++                                 "source": "BTCUSDT-aggTrades-2026-09-12.zip", "file_sha256": "ab"}}
++tot = IMM.import_marks(rootM, marks, "sha", dry_run=False, log=lambda *a, **k: None)
++rowsM = [json.loads(l) for l in open(os.path.join(rootM, DAY, "fills.jsonl")) if l.strip()]
++check("★★ M1 a mark whose archive is another symbol's is not applied and is counted (old tree: applied)",
++      len(rowsM) == 1 and tot.get("n_symbol_mismatch") == 1 and tot.get("n_marked") == 0, (len(rowsM), tot.get("n_symbol_mismatch"), tot.get("n_marked")))
++marks_ok = {str(orig["trade_id"]): dict(marks[str(orig["trade_id"])], source=f"{orig['symbol']}-aggTrades-2026-09-12.zip")}
++tot2 = IMM.import_marks(rootM, marks_ok, "sha", dry_run=False, log=lambda *a, **k: None)
++rowsM2 = [json.loads(l) for l in open(os.path.join(rootM, DAY, "fills.jsonl")) if l.strip()]
++check("M2 the same mark from this symbol's archive is applied as a supersede row that the contract accepts",
++      tot2.get("n_marked") == 1 and len(rowsM2) == 2 and PL.fills_contract_violations(rowsM2) == [], tot2)
++
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  ")
++    sys.exit(1)
++print("ALL PASS")
 diff --git a/live/tests_fixtures/led01_fills_contract/20260826_1000RATSUSDT_fills.jsonl.gz b/live/tests_fixtures/led01_fills_contract/20260826_1000RATSUSDT_fills.jsonl.gz
 new file mode 100644
 index 0000000000000000000000000000000000000000..947c77e8199b3c6055458535f1ac71233a54bd16
@@ -11579,6 +11889,76 @@ index e44b073..6de4811 100644
      with open(f"{REPO}/state/anchor_report_last.json", "w") as f:
          json.dump(out, f, ensure_ascii=False, indent=1)
      print(text)
+diff --git a/ops/backfill_fills.py b/ops/backfill_fills.py
+index bcec0b0..51331ec 100644
+--- a/ops/backfill_fills.py
++++ b/ops/backfill_fills.py
+@@ -93,7 +93,9 @@ def find_gaps(day_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+ 
+ 
+ def existing_trade_ids(day_data: Dict[str, Any]) -> set:
+-    return {f.get("trade_id") for f in day_data.get("fills", []) if f.get("trade_id") is not None}
++    """(symbol, trade_id) of every fills row already in the day. ★ LED-01 (2026-09-13): keyed on the pair — Binance
++    trade ids are per-symbol, so the id alone would call another symbol's execution "already present" and skip it."""
++    return {(f.get("symbol"), f.get("trade_id")) for f in day_data.get("fills", []) if f.get("trade_id") is not None}
+ 
+ 
+ def backfill_batch(broker, root: str, day: str, gap: Dict[str, Any],
+@@ -120,7 +122,7 @@ def backfill_batch(broker, root: str, day: str, gap: Dict[str, Any],
+     rows = VF.fill_rows_from_trades(att["attributed_trades"], gap["anchor_ts"],
+                                     gap["rebalance_id"])
+     seen = existing_trade_ids(PL.read_day(root, day))
+-    fresh = [r for r in rows if r.get("trade_id") not in seen]
++    fresh = [r for r in rows if (r.get("symbol"), r.get("trade_id")) not in seen]
+     out = {
+         "rebalance_id": gap["rebalance_id"],
+         "kind": gap.get("kind", "rebalance"),
+@@ -154,8 +156,10 @@ def backfill_batch(broker, root: str, day: str, gap: Dict[str, Any],
+         try:
+             for r in fresh:
+                 r["backfilled_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+-                lg.fill(**r)
+-                out["n_rows_written"] += 1
++                if lg.fill(**r) is False:          # LED-01: refused by the write contract, quarantined
++                    out["n_rows_quarantined"] = out.get("n_rows_quarantined", 0) + 1
++                else:
++                    out["n_rows_written"] += 1
+         finally:
+             lg.close()
+     return out
+diff --git a/ops/backfill_markout.py b/ops/backfill_markout.py
+index 4760a46..9501ad9 100644
+--- a/ops/backfill_markout.py
++++ b/ops/backfill_markout.py
+@@ -378,7 +378,12 @@ def backfill(root: str, day: str, broker, log=print, now: Optional[float] = None
+     finally:
+         lg.close()
+     out["n_written"] = _wrote
++    # ★ LED-01 (2026-09-13): rows the logger refused under the fills write contract (quarantined, never raised)
++    out["n_quarantined"] = len(lg.fill_quarantined)
++    if lg.fill_quarantined:
++        out["quarantined"] = lg.fill_quarantined[:5]
+     log(f"markout_backfill: day={day} pending={out['n_pending']} written={out['n_written']} "
++        f"quarantined={out['n_quarantined']} "
+         f"no_trade={out['n_no_trade']} terminal={out['n_terminal']} expired={out['n_expired']} requests={out['n_requests']}"
+         f"{' CAPPED(' + str(budget.stopped_by) + ')' if out['capped'] else ''}")
+     return out
+@@ -411,6 +416,7 @@ def run(broker, log=print, root: Optional[str] = None, days: Optional[List[str]]
+     deadline = (time.time() + max_seconds) if max_seconds is not None else None
+     budget = _Budget(max_requests, deadline)
+     tot = {"n_pending": 0, "n_written": 0, "n_no_trade": 0, "n_terminal": 0, "n_expired": 0, "n_requests": 0,
++           "n_quarantined": 0,
+            "days": [], "max_requests": max_requests,
+            "pace_s": PACE_S, "budget_unit": "venue REQUESTS (aggTrades, weight 20 each) — not rows: a window with "
+                           "no trade costs a request and must pay for it",
+@@ -457,6 +463,7 @@ def run(broker, log=print, root: Optional[str] = None, days: Optional[List[str]]
+                     _prev["n_pending"] = r["n_pending"]
+                 for k in ("n_written", "n_no_trade", "n_terminal", "n_expired", "n_requests"):
+                     tot[k] += r[k]
++                tot["n_quarantined"] += r.get("n_quarantined", 0)
+                 if _pass == 1:
+                     tot["n_pending"] += r["n_pending"]
+     tot["n_requests_spent"] = budget.spent
 diff --git a/ops/check_funding_span.py b/ops/check_funding_span.py
 index 6cf5c08..9cde33f 100644
 --- a/ops/check_funding_span.py
@@ -11748,10 +12128,10 @@ index b9b2065..a1a6bb0 100644
      # ★ SAME DAY-BOUNDARY TRAP AS ABOVE, and here it was worse: differencing across 00:00Z made
      #   a counter reset look like a loss, in the line whose whole job is to explain P&L.
 diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
-index 5e52407..c43318a 100644
+index 5e52407..9c1eadd 100644
 --- a/ops/gate_coverage.py
 +++ b/ops/gate_coverage.py
-@@ -349,6 +349,12 @@ SUITE_SCOPE = {
+@@ -349,6 +349,13 @@ SUITE_SCOPE = {
      "tests_avgpx_backfill": "whether the CHILD FILLS themselves are complete — it proves both forms of the write-back (the rebalance leg's missing price, the flatten leg's missing amount) reproduce the venue's own Σnotional/Σqty identity, stay signed, and leave a null where the join is not exact; it takes the orderId attribution as the truth about which fills belong to a leg, so an unattributed child yields a figure over a SUBSET and the suite cannot tell that from the whole. It also cannot prove the flatten half against real recorded fills: flatten children are not written to any table of ours, so the fixture SUPPLIES them (constrained to the venue's own position change, and run at two price splits to show the §4-5b verdict is price-independent). And it says nothing about the third form of the same omission, still open: `executedQty` is read on both paths and never written, so `filled_qty` — the column `reconcile._exec_qty` prefers — has no producer at all",
      "tests_guard_coverage": "whether the coverage FLOOR is the right floor, and whether the mark itself is right — it proves §4-3 reports DEGRADED/BLIND instead of a bare pass when it cannot see its own input, that a breach still fires through a thin measurement, that the exit's fee is None rather than 0 when nothing was read, that the backfill's budget is spent in requests and its days served oldest-first with a share each, and that a readable quantity with an unreadable amount reaches the top-up as UNKNOWN. It does NOT establish that 0.50 is the correct coverage floor (adopted 2026-07-28 as the line below which the mark PRODUCER is considered broken — not as a sample-size argument — and frozen for the window), nor that the marked subset is representative — the suite measures how MUCH is marked and can say nothing about the bias of WHICH fills are marked, which is the thing a low coverage actually endangers. Its backfill fixtures also serve aggTrades from a mock, so they cannot show the real venue's truncation or empty-window rates, only that both branches behave when they occur",
      "tests_rehearsal_anchor": "whether a rehearsal ACHIEVES its declared target — it enforces the R prefix, the three refusals and the counting exclusions, and never asks whether the never-executed path actually got executed. It also cannot prove the BOOK-derived gates are unaffected, because they must be affected (constraint 5)",
@@ -11761,9 +12141,39 @@ index 5e52407..c43318a 100644
 +    "tests_pns_expiry_tier": "that a stop the operator must know about still reaches the phone in every wording — it proves that the eight real 09-12/09-13 cooldown-expiry bodies from the audit and the exact string per_name_stop.evaluate emits (bare and with the notifier's severity head) are classed by alarm_policy as the tier-B rule 'per-name stop cooldown expired' (DAILY), while the real trigger body, the real exit-into-cooldown body and a profile-config error keep PUSH, and that '冷却期满' without the `per_name_stop: <SYM>` head is not caught. Three blind spots: (a) classification is by TEXT — a future generator reword that keeps the head but changes the phrase escapes to UNRECOGNISED (pushes again, the safe direction) and a reword that moves a trigger under this pattern would be silenced; C3 pins today's trigger only; (b) the notifier's delivery path and the daily summary's count are other suites' subjects; (c) anchor_loop still hands the expiry to the notifier at HIGH — the recorded row's severity is demoted by the notifier's tier-B path, not by the call site",
 +    "tests_funding_span_alarm": "that the span table is RIGHT or that the venue says what the synthetic map says — with the venue call and the episode store replaced in-process, it proves on the real 140-name table and the real 15 recorded stale names that findings carry the record's own hours (not 'None->None'), that an interval change on an already-stale name opens a new episode, that book_source=external pages tier B with a sentence naming the internal DL panel while internal and unreadable config keep HIGH with the consequence sentence, that absent non-default table names are counted and named as possibly stale, and that a RECORDED_NOT_PUSHED disposition records the episode while FAILED does not. Three blind spots: (a) whether an absent name is on the default interval or delisted is not knowable offline; (b) the venue map is synthetic — fundingInfo's real shape is exercised only by the live anchor; (c) the first run after deployment re-fingerprints the stored 'None->None' episode and raises one tier-B record, by design",
 +    "tests_fills_contract": "that the fills LEDGER is complete or that its supersede rows carry correct marks — it proves the write contract as code (pilot_log.fills_contract_violations: one original per (symbol, trade_id), supersede rows declaring supersedes_trade_id == trade_id and differing only in the mark columns taken from the three supersede writers), with 0 violations on three verbatim real chains (08-26 O,S,S with the aggtrades_window_expired terminal row then the import row; 09-09 B26b late originals; 09-12 E1 flatten original plus maker/topup pairs) and on the live ledger when present, each violation kind firing on its cell, the E1 single original followed by a markout supersede legal, collapse returning the LAST written row per key, and a synthetic cross-symbol trade-id collision kept as two executions by collapse_supersedes, the FROZEN dedupe_fills and m2_markout. Three blind spots: (a) the identity of history before/after the key change (M2 per day, stress subset, watchdog cond3 detail; 44 days) is a receipt (FX_EXEC2 LED01_identity_*), not re-run here; (b) the mark-column set is fixed from today's writers — a new writer adding a mark column reads as a fact-column change until the set is extended; (c) chains are judged within one day file — a key split across two day files (0 in history) is not seen",
++    "tests_fills_write_guard": "that the ledger never gets a contract-breaking row from two processes writing in the same instant — it proves PilotLogger.fill refuses (returns False, never raises) a second original and a fact-changing supersede into <day>/fills_quarantine.jsonl while the real 09-12 PAXG chain and a markout supersede write through unchanged, that another logger's or another writer's appended rows are seen before the next write, that a guard error writes the row as before and keeps the error, that an unwritable quarantine keeps the refusal and the row in memory, that schema errors still raise; that AnchorLoop.complete_anchor (DRY_RUN broker/executor, settlement venue calls faked in-process, socket.connect raising) RETURNS with a duplicate original injected, reports built 2 / persisted 1 / quarantined 1, raises exactly one contract alarm and no persisted alarm, and leaves one row per execution; and that backfill_fills' presence set and import_markout_marks' mark join key on the symbol. Three blind spots: (a) the index is refreshed before each write but not locked, so two processes appending the same original in the same instant can both pass; (b) run_anchor's markout-backfill page and the ops tools' counters are one-line uses of the counter and are not driven end to end here; (c) phase C and the real venue settlement are not exercised — only the persistence block of complete_anchor sees the injected rows",
  }
  
  
+diff --git a/ops/import_markout_marks.py b/ops/import_markout_marks.py
+index 27d4215..d2ea88b 100644
+--- a/ops/import_markout_marks.py
++++ b/ops/import_markout_marks.py
+@@ -54,6 +54,13 @@ def import_marks(root: str, marks: Dict[str, Any], marks_sha: str, dry_run: bool
+                 if m is None:
+                     tot["n_not_in_marks"] += 1
+                     continue
++                # ★ LED-01 (2026-09-13): the marks file is keyed by trade id alone, and Binance trade ids are
++                #   per-symbol. When the mark names its archive (`<SYMBOL>-aggTrades-<date>.zip`) and that symbol is
++                #   not this fill's, the mark belongs to another execution: skipped and counted, never applied.
++                _src = os.path.basename(str(m.get("source") or ""))
++                if "-aggTrades-" in _src and _src.split("-aggTrades-", 1)[0] != str(f.get("symbol")):
++                    tot["n_symbol_mismatch"] = tot.get("n_symbol_mismatch", 0) + 1
++                    continue
+                 if f.get("mid_at_fill_plus_60s") is not None:
+                     d["n_already_marked"] += 1
+                     continue
+@@ -89,7 +96,9 @@ def import_marks(root: str, marks: Dict[str, Any], marks_sha: str, dry_run: bool
+                 else:
+                     d["n_missing"] += 1
+         finally:
+-            if lg: lg.close()
++            if lg:
++                tot["n_quarantined"] = tot.get("n_quarantined", 0) + len(lg.fill_quarantined)
++                lg.close()
+         for k in ("n_marked", "n_no_trade", "n_already_marked", "n_missing"):
+             tot[k] += d[k]
+         if any(d[k] for k in ("n_marked", "n_no_trade", "n_missing")):
 diff --git a/ops/score_post_fix.py b/ops/score_post_fix.py
 index 4e51549..596d89f 100644
 --- a/ops/score_post_fix.py
@@ -11794,7 +12204,7 @@ index 4e51549..596d89f 100644
          "protective_flatten_fee_disagrees_with_m1": (
              _pfc.get("n_measured_fee") is not None
 diff --git a/run_acceptance.sh b/run_acceptance.sh
-index f7fd32c..443b4fa 100644
+index f7fd32c..5f289ae 100644
 --- a/run_acceptance.sh
 +++ b/run_acceptance.sh
 @@ -44,6 +44,8 @@ SUITES=(
@@ -11806,16 +12216,17 @@ index f7fd32c..443b4fa 100644
    "tests_signal_and_loop:$_SELF/live/tests_signal_and_loop.py"
    "tests_entrypoint_wiring:$_SELF/live/tests_entrypoint_wiring.py"
    "tests_telegram_notify:$_SELF/live/tests_telegram_notify.py"
-@@ -184,6 +186,8 @@ SUITES=(
+@@ -184,6 +186,9 @@ SUITES=(
    "tests_param_encoding:$_SELF/live/tests_param_encoding.py"
    "tests_sheet_subject:$_SELF/live/tests_sheet_subject.py"
    "tests_fills_supersede:$_SELF/live/tests_fills_supersede.py"
 +  # LED-01 (FX-EXEC2 2026-09-13, ruling B): the fills write contract as code; (symbol, trade_id) collapse key.
 +  "tests_fills_contract:$_SELF/live/tests_fills_contract.py"
++  "tests_fills_write_guard:$_SELF/live/tests_fills_write_guard.py"
    "tests_neutrality_check:$_SELF/live/tests_neutrality_check.py"
    "tests_book_reshape:$_SELF/live/tests_book_reshape.py"
    "tests_reduce_only_reject:$_SELF/live/tests_reduce_only_reject.py"
-@@ -200,6 +204,12 @@ SUITES=(
+@@ -200,6 +205,12 @@ SUITES=(
    #   buckets through the live/cost_buckets module, pinned equal to anchor_loop.neutrality_price key by key.
    #   (no `.py` suffix in this comment: tests_imports' script scan would read it as an invocation)
    "tests_readers_three_bucket:$_SELF/live/tests_readers_three_bucket.py"
@@ -11828,7 +12239,7 @@ index f7fd32c..443b4fa 100644
    # ★ TWO suites for one feature, deliberately. `chase_policy` proves the rule decides correctly
    #   given a residual set; `chase_experiment_wiring` proves topup() ever ASKS it and that a
    #   withheld name leaves a row. Every defect this repo has paid for lived in the second gap.
-@@ -234,6 +244,10 @@ SUITES=(
+@@ -234,6 +245,10 @@ SUITES=(
    # 场外死人开关 ping 守卫 (healthchecks, 用户提供 URL 2026-08-11; 无门版曾在电池 DRY 运行里发 ping)
    "tests_deadman_ping:$_SELF/live/tests_deadman_ping.py"
    "tests_per_name_stop:$_SELF/live/tests_per_name_stop.py"
@@ -11839,3 +12250,69 @@ index f7fd32c..443b4fa 100644
    # ε-赌博机挂单深度实验 (PREREG f657efde, 用户批准 2026-08-12; 反事实唯一路径)
    "tests_placement_bandit:$_SELF/live/tests_placement_bandit.py"
    # ★ 守卫口径性质测试 (DESIGN_optimization_path_2026-08-21 §2.2; ERROR_LEDGER E-0821-A): 每个 §4 守卫量
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index 294a245..2fb9227 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -2519,15 +2519,35 @@ class AnchorLoop:
+         # Same emitted-vs-persisted discipline as the orders above, for the same reason: the
+         # count that matters is the one produced at the FAR end of the path.
+         n_fill_rows, n_fill_persisted, fill_rejects = len(fill_rows), 0, []
++        # ★★ LED-01 (2026-09-13): the logger REFUSES a row that breaks the fills write contract (a second original
++        #    for an existing (symbol, trade_id), a supersede that changes fact columns) — it returns False, writes the
++        #    row to <day>/fills_quarantine.jsonl and never raises. Counted apart from rejects, one alarm per anchor.
++        _q0 = len(getattr(self.log, "fill_quarantined", None) or [])
++        _g0 = len(getattr(self.log, "fill_guard_errors", None) or [])
++        n_fill_quarantined = 0
+         if self.log is not None:
+             for row in fill_rows:
+                 try:
+-                    self.log.fill(**row)
+-                    n_fill_persisted += 1
++                    if self.log.fill(**row) is False:
++                        n_fill_quarantined += 1
++                    else:
++                        n_fill_persisted += 1
+                 except Exception as e:
+                     fill_rejects.append(f"{row.get('symbol')}/{row.get('order_type')}: "
+                                         f"{type(e).__name__}: {str(e)[:120]}")
+-        if n_fill_persisted != n_fill_rows:
++        _qnew = (getattr(self.log, "fill_quarantined", None) or [])[_q0:]
++        _gnew = (getattr(self.log, "fill_guard_errors", None) or [])[_g0:]
++        if n_fill_quarantined or _gnew:
++            import collections as _collections
++            _kinds = dict(_collections.Counter(q.get("kind") for q in _qnew))
++            self.alarm("HIGH", f"fills 写入合同违例: 本锚 {n_fill_quarantined} 行被拒入 fills.jsonl, 已隔离到 "
++                               f"<日目录>/fills_quarantine.jsonl (类型 {_kinds}; 首个键 "
++                               f"{[q.get('key') for q in _qnew[:3]]})"
++                               + (f"; 其中隔离写入失败 {sum(1 for q in _qnew if q.get('quarantine_write_failed'))} 行"
++                                  if any(q.get('quarantine_write_failed') for q in _qnew) else "")
++                               + (f"; 合同守卫自身出错 {len(_gnew)} 次(这些行已按原行为写入): {_gnew[:2]}" if _gnew else "")
++                               + " — 一笔成交一行原件 + 声明的 supersede 行; 锚照常完成, 隔离行待人工核对")
++        if n_fill_persisted + n_fill_quarantined != n_fill_rows:
+             self.alarm("HIGH", f"fill rows: built {n_fill_rows}, persisted {n_fill_persisted}"
+                                f"{' (no logger attached)' if self.log is None else ''}. "
+                                f"{('first rejects: ' + '; '.join(fill_rejects[:3])) if fill_rejects else ''} "
+@@ -2536,6 +2556,7 @@ class AnchorLoop:
+                 **_book_report,
+                 "rows_persisted": n_persisted,
+                 "fill_rows_built": n_fill_rows, "fill_rows_persisted": n_fill_persisted,
++                **({"fill_rows_quarantined": n_fill_quarantined} if n_fill_quarantined else {}),
+                 **({"fill_rows_rejected": fill_rejects[:5]} if fill_rejects else {}),
+                 **({"n_trades_unattributed": n_unattributed}
+                    if n_unattributed is not None else {}),
+diff --git a/scheduler/run_anchor.py b/scheduler/run_anchor.py
+index f66c0a3..78877e4 100644
+--- a/scheduler/run_anchor.py
++++ b/scheduler/run_anchor.py
+@@ -889,6 +889,10 @@ def main() -> int:
+         import backfill_markout as BMK
+         _left = max(0.0, _cap - (time.time() - _T_START) - 90.0)
+         _bf = BMK.run(b, log=log, max_seconds=_left)
++        if _bf.get("n_quarantined"):
++            # ★ LED-01 (2026-09-13): one page for the run — a markout row refused by the fills write contract
++            notifier.alarm("HIGH", f"fills 写入合同违例(markout 回填): {_bf['n_quarantined']} 行被拒入 fills.jsonl, "
++                                   f"已隔离到 <日目录>/fills_quarantine.jsonl — 回填照常完成, 隔离行待人工核对")
+         if _bf["n_pending"]:
+             log(f"markout_backfill: pending={_bf['n_pending']} written={_bf['n_written']} "
+                 f"no_trade={_bf['n_no_trade']} requests={_bf.get('n_requests')} "

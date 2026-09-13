@@ -1,0 +1,26 @@
+[G] PilotLogger.fill under the contract
+  OK    G1 the real PAXG chain (7 rows: maker/topup O,S pairs + an E1 original) writes through: every call True, the file equals the ledger row for row  — [True, True, True, True, True, True, True]
+  OK    ★★★ G2 a second original for an existing (symbol, trade_id) ⇒ False, quarantined with its kind, the ledger unchanged (old tree: returns None and the duplicate is in fills.jsonl)  — (False, 7, ['duplicate_original'])
+  OK    G3 a supersede that changes a fact column ⇒ False, kind supersede_changes_fact_columns
+  OK    G4 a markout supersede of the E1 original (backfill_markout `_complete` shape) ⇒ True, appended
+  OK    G5 a NEW logger (another process) sees the file's originals: a duplicate original ⇒ False
+  OK    G6 a row appended by another writer AFTER this logger indexed is seen before the next write
+  OK    G7 the guard itself erroring ⇒ the row is written as before and the error kept (never a raise, never a lost fact)  — ['RuntimeError: guard broke']
+  OK    G8 quarantine unwritable ⇒ False, `quarantine_write_failed` recorded with the row, ledger still one original  — [{'kind': 'duplicate_original', 'detail': 'a second original row for an existing (symbol, trade_id)', 'key': ['PAXGUSDT', 131771915], 'row': {'anchor_ts': 1789215841.923763, 'symbol': 'PAXGUSDT', 'side': 'buy', 'order_type': 'maker', 'attempt_idx': 1, 'fill_ts': 1789216710.021, 'fill_px': 4352.06, 'fill_notional': 52.22472, 'mid_at_fill_plus_60s': None, 'rebalance_id': 'A1789215839', 'trade_id': 1
+  OK    G9 a SCHEMA error still raises SchemaError (the guard changes only the contract path)
+
+[A] ★★★ the anchor completes with a violation injected
+  OK    ★★★ A1 complete_anchor RETURNS with the violation injected  — None
+  OK    ★★★ A2 built 2 / persisted 1 / quarantined 1 (old tree: persisted 2)  — {'fill_rows_built': 2, 'fill_rows_persisted': 1, 'fill_rows_quarantined': 1}
+  OK    ★★★ A3 exactly ONE alarm, the contract one, naming the count and kind; no 'persisted' alarm (old tree: none)  — ["fills 写入合同违例: 本锚 1 行被拒入 fills.jsonl, 已隔离到 <日目录>/fills_quarantine.jsonl (类型 {'duplicate_original': 1}; 首个键 [['PAXGUSDT', "]
+  OK    ★★★ A4 the ledger holds one row per execution (seed original + the legitimate row); the duplicate is quarantined  — (2, 1)
+
+[B] ops/backfill_fills presence check keys on (symbol, trade_id)
+  OK    ★★ B1 another symbol's execution with the same trade id is not 'already present' (old tree: skipped)  — [('PAXGUSDT', 131771915)]
+
+[M] ops/import_markout_marks refuses a mark from another symbol's archive
+  OK    ★★ M1 a mark whose archive is another symbol's is not applied and is counted (old tree: applied)  — (1, 1, 0)
+  OK    M2 the same mark from this symbol's archive is applied as a supersede row that the contract accepts  — {'days': [{'day': '20260912', 'n_marked': 1, 'n_no_trade': 0, 'n_already_marked': 0, 'n_missing': 0}], 'n_marked': 1, 'n_no_trade': 0, 'n_already_marked': 0, 'n_missing': 0, 'n_not_in_marks': 0, 'dry_run': False, 'marks_sha256': 'sha', 'n_quarantined': 0}
+
+16/16 checks passed
+ALL PASS

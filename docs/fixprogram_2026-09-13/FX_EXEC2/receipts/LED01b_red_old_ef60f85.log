@@ -1,0 +1,42 @@
+tree ef60f85 pilot_log.py f02baa69756ffe1d anchor_loop.py 95e72cb059ff1d5b
+[G] PilotLogger.fill under the contract
+  FAIL  G1 the real PAXG chain (7 rows: maker/topup O,S pairs + an E1 original) writes through: every call True, the file equals the ledger row for row  — [None, None, None, None, None, None, None]
+  FAIL  ★★★ G2 a second original for an existing (symbol, trade_id) ⇒ False, quarantined with its kind, the ledger unchanged (old tree: returns None and the duplicate is in fills.jsonl)  — (None, 8, [])
+  FAIL  G3 a supersede that changes a fact column ⇒ False, kind supersede_changes_fact_columns
+  FAIL  G4 a markout supersede of the E1 original (backfill_markout `_complete` shape) ⇒ True, appended
+  FAIL  G5 a NEW logger (another process) sees the file's originals: a duplicate original ⇒ False
+  FAIL  G6 a row appended by another writer AFTER this logger indexed is seen before the next write
+  FAIL  G7 the guard itself erroring ⇒ the row is written as before and the error kept  — no guard in this tree
+  FAIL  G8 quarantine unwritable ⇒ False, `quarantine_write_failed` recorded with the row, ledger still one original  — None
+  OK    G9 a SCHEMA error still raises SchemaError (the guard changes only the contract path)
+
+[A] ★★★ the anchor completes with a violation injected
+  OK    ★★★ A1 complete_anchor RETURNS with the violation injected  — None
+  FAIL  ★★★ A2 built 2 / persisted 1 / quarantined 1 (old tree: persisted 2)  — {'fill_rows_built': 2, 'fill_rows_persisted': 2, 'fill_rows_quarantined': None}
+  FAIL  ★★★ A3 exactly ONE alarm, the contract one, naming the count and kind; no 'persisted' alarm (old tree: none)  — []
+  FAIL  ★★★ A4 the ledger holds one row per execution (seed original + the legitimate row); the duplicate is quarantined  — (3, 0)
+
+[B] ops/backfill_fills presence check keys on (symbol, trade_id)
+  FAIL  ★★ B1 another symbol's execution with the same trade id is not 'already present' (old tree: skipped)  — [131771915]
+
+[M] ops/import_markout_marks refuses a mark from another symbol's archive
+  FAIL  ★★ M1 a mark whose archive is another symbol's is not applied and is counted (old tree: applied)  — (2, None, 1)
+  FAIL  M2 the same mark from this symbol's archive is applied as a supersede row that the contract accepts  — {'days': [], 'n_marked': 0, 'n_no_trade': 0, 'n_already_marked': 1, 'n_missing': 0, 'n_not_in_marks': 0, 'dry_run': False, 'marks_sha256': 'sha'}
+
+2/16 checks passed
+FAILED:
+  G1 the real PAXG chain (7 rows: maker/topup O,S pairs + an E1 original) writes through: every call True, the file equals the ledger row for row
+  ★★★ G2 a second original for an existing (symbol, trade_id) ⇒ False, quarantined with its kind, the ledger unchanged (old tree: returns None and the duplicate is in fills.jsonl)
+  G3 a supersede that changes a fact column ⇒ False, kind supersede_changes_fact_columns
+  G4 a markout supersede of the E1 original (backfill_markout `_complete` shape) ⇒ True, appended
+  G5 a NEW logger (another process) sees the file's originals: a duplicate original ⇒ False
+  G6 a row appended by another writer AFTER this logger indexed is seen before the next write
+  G7 the guard itself erroring ⇒ the row is written as before and the error kept
+  G8 quarantine unwritable ⇒ False, `quarantine_write_failed` recorded with the row, ledger still one original
+  ★★★ A2 built 2 / persisted 1 / quarantined 1 (old tree: persisted 2)
+  ★★★ A3 exactly ONE alarm, the contract one, naming the count and kind; no 'persisted' alarm (old tree: none)
+  ★★★ A4 the ledger holds one row per execution (seed original + the legitimate row); the duplicate is quarantined
+  ★★ B1 another symbol's execution with the same trade id is not 'already present' (old tree: skipped)
+  ★★ M1 a mark whose archive is another symbol's is not applied and is counted (old tree: applied)
+  M2 the same mark from this symbol's archive is applied as a supersede row that the contract accepts
+rc=1
