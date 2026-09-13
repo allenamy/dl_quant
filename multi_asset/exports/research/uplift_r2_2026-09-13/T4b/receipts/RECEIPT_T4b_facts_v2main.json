@@ -1,0 +1,117 @@
+{
+ "self_sha256": "f63b8d6f562cbf7ff0965fe58ae760b74341e88d4a70b31c4a38fff8478a3607",
+ "inputs": {
+  "/workspace/dlw_ext/data/dlw_targets.npz": "31d043e8f160a1d4475d5992a069c4b602419d78c7916f710d1e56ae8915caf9",
+  "/workspace/dlw_ext/data/dlw_fea82.npz": "9bc111a47cee54fc26193165258a83eb11f59df79bebcd69452532bb4c59678e",
+  "/workspace/f8_ext/data/f8_fea89.npz": "bebf2720315499707e54b53c26d889cbf6f2d2d3184a42455284636c0c5e4d67",
+  "/workspace/f8_ext/models/f10_live_s42_np.npz": "351ae26bd6b4a203431a280427fc0bbc968c66e903532168765d654e7e57b3a4",
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/uplift_r2_2026-09-13/T4b/private_inputs/bundle_config.json": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e"
+ },
+ "torch": "2.11.0+cu128",
+ "numpy": "2.4.6",
+ "result": {
+  "F1_served_model_normalisation": {
+   "n_rows": 101654,
+   "n_anchors_tr1": 8675,
+   "trained_through_model": 1788120000,
+   "targets_last_ts": 1788120000,
+   "mu_relmax_all171": 5.97251448832473e-06,
+   "sd_relmax_all171": 1.1310170104958379e-07,
+   "mu_relmax_ex80_81": 5.97251448832473e-06,
+   "sd_relmax_ex80_81": 1.1310170104958379e-07,
+   "col80": {
+    "model_mu": 1.147316288552247e-05,
+    "model_sd": 0.0002316222817171365,
+    "stored_mu": 1.1473165614006575e-05,
+    "stored_sd": 0.00023162229626905173,
+    "v1_alt_mu": -6.120513717178255e-06,
+    "v1_alt_sd": 0.000562467728741467,
+    "rows_recast": 69836,
+    "stored_vs_model_rel": [
+     2.3781446603200857e-07,
+     6.282605939500264e-08
+    ],
+    "v1alt_vs_model_rel": [
+     1.5334635076872734,
+     1.4283835068526267
+    ]
+   },
+   "col81": {
+    "model_mu": 1.2747969776683021e-05,
+    "model_sd": 0.00043638338684104383,
+    "stored_mu": 1.2747971595672425e-05,
+    "stored_sd": 0.0004363834159448743
+   },
+   "verdict_col80_caliber": "stored (v0 with zeros)"
+  },
+  "F2_stored_zeros": {
+   "col80": {
+    "n_pairs": 2745557,
+    "zero_share": 0.26840418902248253,
+    "zero_cells_in_live450_share": 0.0032839430113757416,
+    "nonzero_cells_in_live450_share": 0.9999596741672716,
+    "zero_cells_with_panel_v0_nonzero_share": 0.9875956516252126,
+    "zero_share_among_live450_cells": 0.001203395165633421,
+    "zero_share_among_nonlive_cells": 0.9998897329086008,
+    "zero_share_by_year": {
+     "2022": 0.3458417716091325,
+     "2023": 0.3396083419843161,
+     "2024": 0.3363435017276183,
+     "2025": 0.24732911200255114,
+     "2026": 0.13815943526170799
+    },
+    "zero_share_live450_by_year": {
+     "2022": 0.010042876894894205,
+     "2023": 0.00022135565582146927,
+     "2024": 9.51987273433292e-05,
+     "2025": 0.0002547706985562473,
+     "2026": 0.00029363413187168786
+    }
+   },
+   "col81": {
+    "n_pairs": 2745557,
+    "zero_share": 0.27031673354441377,
+    "zero_cells_in_live450_share": 0.010261799857175579,
+    "nonzero_cells_in_live450_share": 0.9999870219782798,
+    "zero_cells_with_panel_v0_nonzero_share": 0.9875783176361211,
+    "zero_share_among_live450_cells": 0.003787213876638072,
+    "zero_share_among_nonlive_cells": 0.999964605624983,
+    "zero_share_by_year": {
+     "2022": 0.34928524780494885,
+     "2023": 0.3419818792371539,
+     "2024": 0.3382623385865788,
+     "2025": 0.2488823985568556,
+     "2026": 0.13946625344352617
+    },
+    "zero_share_live450_by_year": {
+     "2022": 0.01525399194373593,
+     "2023": 0.0038146958019899873,
+     "2024": 0.002986233762980221,
+     "2025": 0.002317944453735673,
+     "2026": 0.001699881947093921
+    }
+   }
+  }
+ },
+ "env": {
+  "whitelist": [
+   "HOME",
+   "LC_CTYPE",
+   "MKL_NUM_THREADS",
+   "OMP_NUM_THREADS",
+   "OPENBLAS_NUM_THREADS",
+   "PATH"
+  ],
+  "actual": {
+   "HOME": "/root",
+   "LC_CTYPE": "C.UTF-8",
+   "MKL_NUM_THREADS": "16",
+   "OMP_NUM_THREADS": "16",
+   "OPENBLAS_NUM_THREADS": "16",
+   "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  }
+ },
+ "built_utc": "2026-09-13T07:57:47Z",
+ "wall_s": 5.5
+}
