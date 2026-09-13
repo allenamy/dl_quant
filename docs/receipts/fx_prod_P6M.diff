@@ -1,0 +1,153 @@
+diff --git a/migrations/fund_label_ema_correction.py b/migrations/fund_label_ema_correction.py
+new file mode 100644
+index 0000000..5da995a
+--- /dev/null
++++ b/migrations/fund_label_ema_correction.py
+@@ -0,0 +1,147 @@
++#!/usr/bin/env python3
++"""fund_label_ema_correction.py — OFFLINE migration for FIXPROGRAM 2026-09-13 P6-M (D17 seed-origin labels) and P9-M (producer-appended labels).
++Reads a COPY of a producer state (aux.json); NEVER writes into the input directory; writes <out>/aux.corrected.json + receipt.
++Every settlement the producer's v1 EMA absorbed (union of the input aux ledger and every frozen producer ledger; stored labels must agree
++across sources) is checked against the exchange-declared interval: data.binance.vision zip funding_interval_hours when the settlement is in
++ledger_full.npz with a zip label (exact), otherwise the code-under-test's declared_interval_exact() (rules equal to the zip on every scored
++row of full history); unresolved rows are left untouched and listed. Because the EMA is linear in its inputs the correction is exact:
++    acc_true = acc_live + sum_k a_k * rate_k * (8/iv_declared_k - 8/iv_stored_k) * 0.5 ** ((t_last - t_k) / 3d),
++    a_k = 1 - 0.5 ** (max(t_k - t_prev, 1) / 3d) with t_prev the previous settlement the EMA absorbed; a_k = 1 for the row that created the
++    EMA of a name the producer cold-started (not a bundle name; earliest row of every producer ledger).
++Labels of rows still in the input ledger tail are rewritten; rows that already left the tail only contribute to acc.
++Classes: D17 = the row has the same stored label in the 08-16 bundle seed (b233a072); P9 = any other (producer-appended) row.
++v0 (P1) does not depend on the interval and is not touched.
++Positive control (--control): the corrected acc is compared with an independent rebuild over full history (pod2 zip U API U frozen producer
++ledgers) using the same labels, started where the live EMA started. With --classes NONE the rebuild must reproduce the live acc.
++Usage: python3 -B fund_label_ema_correction.py --state <dir with aux.json> --code <dir with shadow_loop_v3.py> --out <dir> [--classes D17,P9|NONE] [--control]"""
++import os, sys, json, time, hashlib, importlib.util, argparse
++import numpy as np
++
++HL = 3 * 86400.0
++FX = "/Users/haosiyu/cc_tmp/fx_prod"
++ap = argparse.ArgumentParser()
++ap.add_argument("--state", required=True); ap.add_argument("--code", required=True); ap.add_argument("--out", required=True)
++ap.add_argument("--classes", default="D17,P9"); ap.add_argument("--control", action="store_true")
++ap.add_argument("--seed-aug", default="/Users/haosiyu/wide_shadow/shadow_bundle.aug20260816_backup/funding_ledger_seed.json")
++args = ap.parse_args()
++CLASSES = set(args.classes.split(","))
++assert os.path.abspath(args.out) != os.path.abspath(args.state), "refuse to write into the input state directory"
++sys.path.insert(0, FX + "/fx")
++import fx_harness as FH
++import fx_state as FS
++
++
++def T(t): return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
++
++
++def main():
++    t0 = time.time(); os.makedirs(args.out, exist_ok=True)
++    aux_p = os.path.join(args.state, "aux.json"); code_p = os.path.join(args.code, "shadow_loop_v3.py")
++    inputs = {"aux": {"path": aux_p, "sha256": FH.gsha(aux_p)}, "code": {"path": code_p, "sha256": FH.gsha(code_p)}, "seed_aug": {"path": args.seed_aug, "sha256": FH.gsha(args.seed_aug)}}
++    os.environ.setdefault("WIDE_SHADOW_HOME", args.out + "/_unused_home"); os.environ.setdefault("WIDE_SHADOW_BUNDLE", args.out + "/_unused_bundle")
++    spec = importlib.util.spec_from_file_location("slp_under_test", code_p); SL = importlib.util.module_from_spec(spec); spec.loader.exec_module(SL)
++    assert hasattr(SL, "declared_interval_exact"), "code lacks declared_interval_exact (needs the P6 commit)"
++    aux = json.load(open(aux_p)); led = aux["ledger_tail"]; ema = aux["ema"]
++    assert set(led) == set(ema), "ledger/ema name sets differ"
++    bad_inv = [s for s in ema if not led[s] or int(led[s][-1][0]) != int(ema[s]["last_ts"])]
++    assert not bad_inv, ("ema.last_ts != ledger last row", bad_inv[:5])
++    # full history (zip U API U every Mac ledger) with zip labels, and the producer's own stored labels
++    rows_full, audit, shas = FS.full_rows(); inputs["full_history_sources_sha256"] = shas
++    z = np.load(FH.WORK + "/pod2_inputs/ledger_full.npz"); zs = [str(x) for x in z["symbols"]]; off = z["off"]
++    zipiv = {}
++    for j, s in enumerate(zs):
++        a, b = int(off[j]), int(off[j + 1])
++        zipiv[s] = {int(t): float(v) for t, v in zip(z["ft"][a:b].tolist(), z["zip_iv"][a:b].tolist()) if v == v}
++    prod_src, prod_shas = FH.frozen_ledger_sources(include=("pre_m1", "snap_1789200000", "snap_1789214400", "snap_1789228800", "snap_1789243200", "t4snap_1789272000", "live_1789300800"))
++    prod_src = prod_src + [("input_state", led)]
++    stored = {}; label_conflicts = []
++    for tag, L in prod_src:
++        for s, rr in L.items():
++            d = stored.setdefault(s, {})
++            for r in rr:
++                ft = int(r[0]); key = (float(r[1]), float(r[2]))
++                if ft in d and d[ft] != key: label_conflicts.append([s, T(ft), d[ft], key, tag])
++                d.setdefault(ft, key)
++    seed8 = json.load(open(args.seed_aug))
++    seed8_lab = {s: {int(r[0]): float(r[2]) for r in rows} for s, rows in seed8.items()}
++    corr = []; unresolved = []; per_name = {}; new_label = {}
++    for s, est in ema.items():
++        t_last = int(est["last_ts"]); fts_full = [t for t, _ in rows_full.get(s, [])]
++        prow = sorted(t for t in stored.get(s, {}) if t <= t_last)
++        origin = None if s in seed8 else (prow[0] if prow else None)          # producer cold start
++        dacc = 0.0
++        for ft in prow:
++            rate, iv_st = stored[s][ft]
++            i = int(np.searchsorted(fts_full, ft)); assert i < len(fts_full) and fts_full[i] == ft, (s, ft, "row missing from full history")
++            prev = fts_full[i - 1] if i > 0 else None; nxt = fts_full[i + 1] if i + 1 < len(fts_full) else None
++            if ft in zipiv.get(s, {}):
++                dec, src = zipiv[s][ft], "zip"
++            else:
++                dec, src = SL.declared_interval_exact(prev, ft, nxt, rate)
++            if dec is None:
++                if prev is not None and iv_st != SL._snap_iv((ft - prev) / 3600.0):
++                    unresolved.append([s, T(ft), iv_st, SL._snap_iv((ft - prev) / 3600.0), src])
++                continue
++            if dec == iv_st:
++                continue
++            cls = "D17" if seed8_lab.get(s, {}).get(ft) == iv_st else "P9"
++            if ft == origin:
++                a_k = 1.0
++            elif prev is None:
++                corr.append([s, T(ft), iv_st, dec, src, cls, None, "SKIPPED_no_previous_settlement"]); continue
++            else:
++                a_k = 1 - 0.5 ** (max(ft - prev, 1) / HL)
++            contrib = a_k * rate * (8.0 / dec - 8.0 / iv_st) * 0.5 ** ((t_last - ft) / HL)
++            applied = cls in CLASSES
++            in_tail = any(int(r[0]) == ft for r in led[s])
++            corr.append([s, T(ft), iv_st, dec, src, cls, contrib, ("APPLIED" if applied else "not_in_classes"), in_tail])
++            if applied:
++                dacc += contrib; new_label[(s, ft)] = dec
++        if dacc != 0.0:
++            per_name[s] = dict(acc_before=float(est["acc"]), dacc=dacc, rel=abs(dacc) / max(abs(float(est["acc"])), 1e-12))
++    out_led = {s: [[int(r[0]), float(r[1]), new_label.get((s, int(r[0])), float(r[2]))] for r in rows] for s, rows in led.items()}
++    out_ema = {s: {"acc": float(e["acc"]) + (per_name[s]["dacc"] if s in per_name else 0.0), "last_ts": int(e["last_ts"])} for s, e in ema.items()}
++    new_aux = dict(aux); new_aux["ledger_tail"] = out_led; new_aux["ema"] = out_ema
++    op = os.path.join(args.out, "aux.corrected.json"); json.dump(new_aux, open(op, "w"))
++    rc = dict(tool_sha256=FH.gsha(os.path.abspath(__file__)), inputs=inputs, frozen_producer_ledgers_sha256=prod_shas, classes=sorted(CLASSES),
++              state_last_anchor=int(aux["last_anchor"]), output=op, output_sha256=FH.gsha(op), stored_label_conflicts_across_sources=label_conflicts[:20],
++              n_stored_label_conflicts=len(label_conflicts),
++              n_corrections={c: sum(1 for x in corr if x[5] == c and x[7] == "APPLIED") for c in ("D17", "P9")},
++              n_corrections_outside_tail={c: sum(1 for x in corr if x[5] == c and x[7] == "APPLIED" and not x[8]) for c in ("D17", "P9")},
++              corrections=corr, per_name_dacc=dict(sorted(per_name.items(), key=lambda x: -x[1]["rel"])), unresolved_rows_kept=unresolved)
++    if args.control:
++        rc["control"] = control(out_ema, stored, new_label, zipiv, rows_full, seed8)
++    rc["runtime_s"] = round(time.time() - t0, 1); rc["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
++    json.dump(rc, open(os.path.join(args.out, "RECEIPT_fund_label_ema_correction.json"), "w"), indent=1, default=str)
++    print(json.dumps({k: rc[k] for k in ("classes", "n_corrections", "n_corrections_outside_tail", "n_stored_label_conflicts", "output_sha256")}, default=str))
++    if "control" in rc: print("control", json.dumps({k: rc["control"][k] for k in ("n", "max_abs", "n_gt_1e12", "n_gt_1e9")}), rc["control"]["worst"][:3])
++    print("per_name_dacc top:", json.dumps({k: (round(v["dacc"], 12), round(v["rel"], 6)) for k, v in list(rc["per_name_dacc"].items())[:12]}))
++    print("SUMMARY fund_label_ema_correction applied=%s outside_tail=%s unresolved_kept=%d" % (rc["n_corrections"], rc["n_corrections_outside_tail"], len(unresolved)))
++
++
++def control(out_ema, stored, new_label, zipiv, rows_full, seed8):
++    diffs = {}
++    for s, est in out_ema.items():
++        t_last = int(est["last_ts"]); prow = sorted(stored.get(s, {}))
++        start = None if s in seed8 else (prow[0] if prow else None)
++        acc = None; prev = None
++        for ft, rate in rows_full.get(s, []):
++            if ft > t_last: break
++            if start is not None and ft < start: continue
++            if (s, ft) in new_label: iv = new_label[(s, ft)]
++            elif ft in stored.get(s, {}): iv = stored[s][ft][1]
++            elif ft in zipiv.get(s, {}): iv = zipiv[s][ft]
++            else: iv = float(min([1.0, 2.0, 4.0, 6.0, 8.0], key=lambda a_: abs(a_ - ((((ft - prev) / 3600.0) if prev is not None and 0 < (ft - prev) / 3600.0 <= 24 else 8.0)))))
++            rn = rate * (8.0 / iv)
++            if acc is None: acc = rn
++            else:
++                a = 1 - 0.5 ** (max(ft - prev, 1) / HL); acc = acc + a * (rn - acc)
++            prev = ft
++        diffs[s] = None if acc is None else abs(acc - float(est["acc"]))
++    vals = np.array([d for d in diffs.values() if d is not None])
++    worst = sorted(((d, s) for s, d in diffs.items() if d is not None), reverse=True)[:25]
++    return dict(n=int(len(vals)), max_abs=float(vals.max()), p99=float(np.percentile(vals, 99)), n_gt_1e9=int((vals > 1e-9).sum()), n_gt_1e12=int((vals > 1e-12).sum()), worst=[(s, d) for d, s in worst])
++
++
++if __name__ == "__main__":
++    main()

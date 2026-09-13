@@ -1,0 +1,435 @@
+diff --git a/fea171/combo_stage.py b/fea171/combo_stage.py
+index 5389fe4..5e12111 100644
+--- a/fea171/combo_stage.py
++++ b/fea171/combo_stage.py
+@@ -9,6 +9,8 @@ from scipy.stats import rankdata
+ HOME = os.path.expanduser("~"); WS = f"{HOME}/wide_shadow"; HERE = f"{WS}/fea171"
+ T0 = time.time()
+ def log(*a): print(f"[{time.time()-T0:6.1f}s]", *a, flush=True)
++V2MAIN_FUND_COL80_V0 = True     # P2(FIXPROGRAM 2026-09-13): V2MAIN 面板 f_fund_ema 按训练口径 = aux["ema_v0"](与 v1 同 last_ts 才用, 缺 = 0); 无 ema_v0 ⇒ 回落 v1 并记录
++V2MAIN_FUND_FRESH_12H = True    # P2-N1: 面板两列按训练面板 12h 新鲜度(最近结算 >12h ⇒ 0; 服务侧此前无掩码)
+ cfg = json.load(open(f"{WS}/shadow_bundle/config.json")); P = cfg["params"]
+ aux = json.load(open(f"{WS}/state/aux.json")); pr = aux["prev_rec"]
+ A = int(pr["anchor_ts"]); pm = np.array(pr["members"], np.int64)
+@@ -115,6 +117,16 @@ need = True
+ if os.path.exists(f89p):
+     T9 = np.load(f"{MINI}/data/dlw_targets.npz", allow_pickle=True)
+     if int(T9["E_ts"].astype(np.int64)[-1]) >= A: need = False
++_FUND_CAL_WANT = {"col80": ("v0" if isinstance(aux.get("ema_v0"), dict) else "v1_fallback") if V2MAIN_FUND_COL80_V0 else "v1",   # P2-N2: mini 缓存(侧车/combo 共用)须带本锚口径标签
++                  "fresh12h": bool(V2MAIN_FUND_FRESH_12H)}
++if not need:
++    try:
++        _cal_have = json.load(open(f"{MINI}/data/fund_caliber.json"))
++        _cal_ok = int(_cal_have.get("anchor", -1)) == A and all(_cal_have.get(k) == v for k, v in _FUND_CAL_WANT.items())
++    except Exception:
++        _cal_ok = False
++    if not _cal_ok:
++        need = True; log(f"② mini 缓存无本锚口径标签或口径不符(需 {_FUND_CAL_WANT}) ⇒ 重跑 171 管线")
+ if need:
+     log("② 触发 171 管线重跑(全尾)")
+     # 构造 targets: 全尾 4h 锚, 成员=当前 pm(近似, 训练一致性>成员漂移)
+@@ -143,13 +155,33 @@ if need:
+         j = scol_of.get(s_)
+         if j is not None and rows_:
+             fn[-1, j] = float(rows_[-1][1])
++    _fund_cal = dict(_FUND_CAL_WANT, n_v0_missing=0, n_stale=0)                                   # P2
++    if _FUND_CAL_WANT["col80"] == "v0":
++        fe[-1] = 0.0
++        for s_, est in aux["ema"].items():
++            j = scol_of.get(s_)
++            if j is None or not (isinstance(est, dict) and "acc" in est): continue
++            e0 = aux["ema_v0"].get(s_)
++            if isinstance(e0, dict) and e0.get("last_ts") == est.get("last_ts"): fe[-1, j] = float(e0["acc"])
++            else: _fund_cal["n_v0_missing"] += 1
++    elif _FUND_CAL_WANT["col80"] == "v1_fallback":
++        log("⚠ P2: aux 无 ema_v0 ⇒ V2MAIN 第 80 列回落 v1(生产者未维护训练口径 v0 态)")
++    if V2MAIN_FUND_FRESH_12H:                                                                       # P2-N1: 训练面板 stale(>12h) ⇒ NaN ⇒ 0
++        for s_ in set(aux["ema"]) | set(aux["ledger_tail"]):
++            j = scol_of.get(s_); rows_ = aux["ledger_tail"].get(s_)
++            if j is not None and (not rows_ or A - int(rows_[-1][0]) > 12 * 3600):
++                if fe[-1, j] != 0.0 or fn[-1, j] != 0.0: _fund_cal["n_stale"] += 1
++                fe[-1, j] = 0.0; fn[-1, j] = 0.0
+     np.savez(f"{HERE}/xfer_panel_live.npz", ts=rts[e_rows], f_fund_ema=fe, f_fund_now=fn)
+     PY = f"{WS}/venv/bin/python"
+     r1 = subprocess.run([PY, f"{HERE}/dlw_features.py"], env=env, capture_output=True, text=True, cwd=HERE)
+     assert r1.returncode == 0, r1.stderr[-500:]
+     r2 = subprocess.run([PY, "-c", f"import os,sys; sys.path.insert(0,'{HERE}'); os.chdir('{HERE}'); import f8_higher_order_features as m; m.build()"], env=env, capture_output=True, text=True)
+     assert r2.returncode == 0, r2.stderr[-500:]
++    json.dump(dict(_fund_cal, anchor=A), open(f"{MINI}/data/fund_caliber.json", "w"))              # P2-N2: 本锚 mini 缓存的资金费列口径标签
+ F82 = np.load(f"{MINI}/data/dlw_fea82.npz", allow_pickle=True)
++_fund_cal_used = json.load(open(f"{MINI}/data/fund_caliber.json")) if os.path.exists(f"{MINI}/data/fund_caliber.json") else None   # P2
++log(f"② V2MAIN 资金费列口径 {_fund_cal_used}")
+ F89 = np.load(f"{MINI}/data/f8_fea89.npz", allow_pickle=True)
+ T9 = np.load(f"{MINI}/data/dlw_targets.npz", allow_pickle=True)
+ ets = T9["E_ts"].astype(np.int64); a_i = int(np.where(ets == A)[0][0])
+@@ -279,6 +311,11 @@ json.dump({"schema": "wide_target_combo_v1_execcal", "anchor_ts": A, "phi": 0.45
+            "rho_kc_fc": round(float(np.corrcoef(sm_kc[np.abs(sm_kc)+np.abs(sm_fc)>1e-9], sm_fc[np.abs(sm_kc)+np.abs(sm_fc)>1e-9])[0,1]), 4) if (np.abs(sm_kc)+np.abs(sm_fc)>1e-9).sum()>10 else None,
+            "n_f10_scored": int(okf.sum()), "ftrim": ftrim_rec},
+           open(f"{WS}/state/target_combo/{A}.json", "w"), indent=1)
++try:                                                                                                # P2: target_combo 记录本锚 V2MAIN 资金费列口径
++    _tc = json.load(open(f"{WS}/state/target_combo/{A}.json")); _tc["fund_caliber"] = _fund_cal_used
++    json.dump(_tc, open(f"{WS}/state/target_combo/{A}.json", "w"), indent=1)
++except Exception as _e_fc:
++    log("P2 fund_caliber 记录失败", repr(_e_fc)[:120])
+ log(f"④ COMBO 落盘 n={len(cnz)} gross={float(np.abs(combo).sum()):.4f} kc_src={kc_src} fc_src={fc_src} w3m={np.round(w3m,4).tolist()}")
+ 
+ # ═══ COMBO_LIVE(2026-08-26, 用户令"现在切"): 把候选书写为执行器读取的 target_live ═══
+@@ -292,6 +329,7 @@ log(f"④ COMBO 落盘 n={len(cnz)} gross={float(np.abs(combo).sum()):.4f} kc_sr
+ if os.environ.get("COMBO_LIVE", "0") == "1":
+     _now0 = time.time()
+     _status = {"anchor": A, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(_now0)), "ok": False, "step": "start"}
++    _status["fund_caliber"] = _fund_cal_used                                                          # P2
+     def _page(sev, msg):
+         try:
+             sys.path.insert(0, f"{HOME}/dl_quant_live/live")
+diff --git a/fea171/sidecar_blend.py b/fea171/sidecar_blend.py
+index 05c1cb9..b882837 100644
+--- a/fea171/sidecar_blend.py
++++ b/fea171/sidecar_blend.py
+@@ -6,6 +6,8 @@ from scipy.stats import rankdata
+ HOME = os.path.expanduser("~"); WS = f"{HOME}/wide_shadow"; HERE = f"{WS}/fea171"
+ T0 = time.time()
+ def log(*a): print(f"[{time.time()-T0:6.1f}s]", *a, flush=True)
++V2MAIN_FUND_COL80_V0 = True     # P2(FIXPROGRAM 2026-09-13): V2MAIN 面板 f_fund_ema 按训练口径 = aux["ema_v0"](与 v1 同 last_ts 才用, 缺 = 0); 无 ema_v0 ⇒ 回落 v1 并记录
++V2MAIN_FUND_FRESH_12H = True    # P2-N1: 面板两列按训练面板 12h 新鲜度(最近结算 >12h ⇒ 0; 服务侧此前无掩码)
+ cfg = json.load(open(f"{WS}/shadow_bundle/config.json")); P = cfg["params"]
+ aux = json.load(open(f"{WS}/state/aux.json")); pr = aux["prev_rec"]
+ A = int(pr["anchor_ts"]); pm = np.array(pr["members"], np.int64)
+@@ -112,6 +114,16 @@ need = True
+ if os.path.exists(f89p):
+     T9 = np.load(f"{MINI}/data/dlw_targets.npz", allow_pickle=True)
+     if int(T9["E_ts"].astype(np.int64)[-1]) >= A: need = False
++_FUND_CAL_WANT = {"col80": ("v0" if isinstance(aux.get("ema_v0"), dict) else "v1_fallback") if V2MAIN_FUND_COL80_V0 else "v1",   # P2-N2: mini 缓存(侧车/combo 共用)须带本锚口径标签
++                  "fresh12h": bool(V2MAIN_FUND_FRESH_12H)}
++if not need:
++    try:
++        _cal_have = json.load(open(f"{MINI}/data/fund_caliber.json"))
++        _cal_ok = int(_cal_have.get("anchor", -1)) == A and all(_cal_have.get(k) == v for k, v in _FUND_CAL_WANT.items())
++    except Exception:
++        _cal_ok = False
++    if not _cal_ok:
++        need = True; log(f"② mini 缓存无本锚口径标签或口径不符(需 {_FUND_CAL_WANT}) ⇒ 重跑 171 管线")
+ if need:
+     log("② 触发 171 管线重跑(全尾)")
+     # 构造 targets: 全尾 4h 锚, 成员=当前 pm(近似, 训练一致性>成员漂移)
+@@ -140,13 +152,33 @@ if need:
+         j = scol_of.get(s_)
+         if j is not None and rows_:
+             fn[-1, j] = float(rows_[-1][1])
++    _fund_cal = dict(_FUND_CAL_WANT, n_v0_missing=0, n_stale=0)                                   # P2
++    if _FUND_CAL_WANT["col80"] == "v0":
++        fe[-1] = 0.0
++        for s_, est in aux["ema"].items():
++            j = scol_of.get(s_)
++            if j is None or not (isinstance(est, dict) and "acc" in est): continue
++            e0 = aux["ema_v0"].get(s_)
++            if isinstance(e0, dict) and e0.get("last_ts") == est.get("last_ts"): fe[-1, j] = float(e0["acc"])
++            else: _fund_cal["n_v0_missing"] += 1
++    elif _FUND_CAL_WANT["col80"] == "v1_fallback":
++        log("⚠ P2: aux 无 ema_v0 ⇒ V2MAIN 第 80 列回落 v1(生产者未维护训练口径 v0 态)")
++    if V2MAIN_FUND_FRESH_12H:                                                                       # P2-N1: 训练面板 stale(>12h) ⇒ NaN ⇒ 0
++        for s_ in set(aux["ema"]) | set(aux["ledger_tail"]):
++            j = scol_of.get(s_); rows_ = aux["ledger_tail"].get(s_)
++            if j is not None and (not rows_ or A - int(rows_[-1][0]) > 12 * 3600):
++                if fe[-1, j] != 0.0 or fn[-1, j] != 0.0: _fund_cal["n_stale"] += 1
++                fe[-1, j] = 0.0; fn[-1, j] = 0.0
+     np.savez(f"{HERE}/xfer_panel_live.npz", ts=rts[e_rows], f_fund_ema=fe, f_fund_now=fn)
+     PY = f"{WS}/venv/bin/python"
+     r1 = subprocess.run([PY, f"{HERE}/dlw_features.py"], env=env, capture_output=True, text=True, cwd=HERE)
+     assert r1.returncode == 0, r1.stderr[-500:]
+     r2 = subprocess.run([PY, "-c", f"import os,sys; sys.path.insert(0,'{HERE}'); os.chdir('{HERE}'); import f8_higher_order_features as m; m.build()"], env=env, capture_output=True, text=True)
+     assert r2.returncode == 0, r2.stderr[-500:]
++    json.dump(dict(_fund_cal, anchor=A), open(f"{MINI}/data/fund_caliber.json", "w"))              # P2-N2: 本锚 mini 缓存的资金费列口径标签
+ F82 = np.load(f"{MINI}/data/dlw_fea82.npz", allow_pickle=True)
++_fund_cal_used = json.load(open(f"{MINI}/data/fund_caliber.json")) if os.path.exists(f"{MINI}/data/fund_caliber.json") else None   # P2
++log(f"② V2MAIN 资金费列口径 {_fund_cal_used}")
+ F89 = np.load(f"{MINI}/data/f8_fea89.npz", allow_pickle=True)
+ T9 = np.load(f"{MINI}/data/dlw_targets.npz", allow_pickle=True)
+ ets = T9["E_ts"].astype(np.int64); a_i = int(np.where(ets == A)[0][0])
+@@ -215,5 +247,10 @@ json.dump({"schema": "wide_target_blend_v2_execcal", "anchor_ts": A, "phi": 0.45
+            "self_parity_maxdw": self_par, "n_f10_scored": int(okf.sum()),
+            "rho_f10_vs_king": round(float(np.corrcoef(zf[okf & np.isfinite(legz['king'])], legz["king"][okf & np.isfinite(legz['king'])])[0, 1]), 4)},
+           open(f"{WS}/state/target_blend/{A}.json", "w"), indent=1)
++try:                                                                                                # P2: target_blend 记录本锚 V2MAIN 资金费列口径
++    _tb = json.load(open(f"{WS}/state/target_blend/{A}.json")); _tb["fund_caliber"] = _fund_cal_used
++    json.dump(_tb, open(f"{WS}/state/target_blend/{A}.json", "w"), indent=1)
++except Exception as _e_fc:
++    log("P2 fund_caliber 记录失败", repr(_e_fc)[:120])
+ log(f"③ blend 落盘 n={len(wnz)} gross={float(np.abs(blend).sum()):.4f} net={float(blend.sum()):+.5f} ρ(f10,king)={np.corrcoef(zf[okf], legz['king'][okf])[0,1]:.3f}")
+ log(f"SIDECAR_DRYRUN {'PASS' if self_par < 1e-6 else 'SELF_PARITY_' + ('SOFT' if self_par < 1e-3 else 'FAIL')}")
+diff --git a/fx/fx_harness.py b/fx/fx_harness.py
+index ea4c38a..ea55cb9 100644
+--- a/fx/fx_harness.py
++++ b/fx/fx_harness.py
+@@ -136,3 +136,17 @@ def frozen_ledger_sources(include=("seed_aug", "seed_v3", "pre_m1", "snap_178920
+         p = paths[k]; shas[k] = gsha(p); J = json.load(open(p))
+         out.append((k, J["ledger_tail"] if "ledger_tail" in J else J))
+     return out, shas
++
++
++def gen_sidecar_device(src_path, out_path, extra_repl=()):
++    """Replay device for fea171/sidecar_blend.py: the two combo-generator replacements that apply to the sidecar text (WS root from env,
++    cache view truncated to <= A); the sidecar has no pager and no live writer. Strings are the Phase-1 combo generator's literals."""
++    src = open(src_path, encoding="utf-8").read(); sha = hashlib.sha256(src.encode()).hexdigest(); out = src
++    a = 'HOME = os.path.expanduser("~"); WS = f"{HOME}/wide_shadow"; HERE = f"{WS}/fea171"'
++    assert out.count(a) == 1; out = out.replace(a, 'HOME = os.path.expanduser("~"); WS = os.environ["WIDE_SHADOW_HOME"]; HERE = f"{WS}/fea171"   # REPLAY')
++    b = 'ai = int(np.searchsorted(rts, A, side="right")) - 1\nassert rts[ai] <= A < rts[ai] + 300, "锚未对齐滚动缓存"\n'
++    assert out.count(b) == 1
++    out = out.replace(b, b + 'if os.environ.get("REPLAY_TRUNCATE_CACHE") == "1":   # REPLAY: the live process at time A had no rows after A\n    rts = rts[:ai + 1]; RD = RD[:ai + 1]\n')
++    out = f"# REPLAY DEVICE (sidecar) from sidecar_blend.py sha256 {sha}; 2 replacements\n" + out
++    open(out_path, "w", encoding="utf-8").write(out)
++    return _apply_extra(out_path, dict(production_sha256=sha, device=out_path), extra_repl)
+diff --git a/fx/fx_state.py b/fx/fx_state.py
+index 37d2e78..5c57519 100644
+--- a/fx/fx_state.py
++++ b/fx/fx_state.py
+@@ -66,3 +66,84 @@ def v0_state_matching(ema, rows):
+             bad.append(s); continue
+         out[s] = v
+     return out, bad
++
++
++# ---------------------------------------------------------------- combo stage (fea171/combo_stage.py) replay from frozen inputs
++FEA_MODEL_FILES = ("f10_live_s42_np.npz", "xfer_ref.npz", "xfer_syms.npz")
++
++
++def combo_home(home, A, aux_obj, lr_path, rolling_path, prev_weights_path, king_target_path, fea_state_dir, code_dir, keep_mini=False):
++    """Replay home for one combo-stage run at anchor A (Phase-1 run_combo_stage semantics with frozen inputs). Model/reference files are
++    read-only copies from ~/wide_shadow/fea171; the 171 feature builders come from the code under test; state files are copies."""
++    import shutil
++    fe = home + "/fea171"; st = home + "/state"
++    if not keep_mini:
++        shutil.rmtree(home, ignore_errors=True)
++    for d in (fe, st + "/weights", st + "/target_live", st + "/target_live_combo"):
++        os.makedirs(d, exist_ok=True)
++    for f in FEA_MODEL_FILES:
++        if not os.path.exists(fe + "/" + f): shutil.copy2(H.WS + "/fea171/" + f, fe + "/" + f)
++    for f in ("dlw_features.py", "f8_higher_order_features.py"):
++        shutil.copy2(os.path.join(code_dir, "fea171", f), fe + "/" + f)
++    for tag in ("f10", "kc", "fc"):
++        src = f"{fea_state_dir}/state_H_{tag}_{A - 14400}.npz"
++        if os.path.exists(src): shutil.copy2(src, f"{fe}/state_H_{tag}_{A - 14400}.npz")
++    shutil.copy2(prev_weights_path, f"{st}/weights/{A - 14400}.npz")
++    shutil.copy2(king_target_path, f"{st}/target_live/{A}.json"); shutil.copy2(king_target_path + ".sha256", f"{st}/target_live/{A}.json.sha256")
++    json.dump(aux_obj, open(st + "/aux.json", "w"))
++    shutil.copy2(lr_path, st + "/leg_returns_live.json")
++    for link, target in ((st + "/rolling.npz", rolling_path), (home + "/shadow_bundle", H.WS + "/shadow_bundle"), (home + "/venv", H.WS + "/venv")):
++        if os.path.islink(link) or os.path.exists(link): os.remove(link)
++        os.symlink(target, link)
++    return home
++
++
++def run_combo(device_path, home, timeout=900):
++    import subprocess
++    env = {"PATH": "/usr/bin:/bin", "HOME": H.HOME, "WIDE_SHADOW_HOME": home, "COMBO_LIVE": "1", "COMBO_LIVE_DIR": home + "/state/target_live_combo",
++           "REPLAY_TRUNCATE_CACHE": "1", "PYTHONDONTWRITEBYTECODE": "1"}
++    t0 = time.time()
++    p = subprocess.run([H.WS + "/venv/bin/python", "-B", device_path], cwd=home + "/fea171", env=env, capture_output=True, text=True, timeout=timeout)
++    return dict(rc=p.returncode, runtime_s=round(time.time() - t0, 1), stdout=p.stdout, stderr=p.stderr[-2000:])
++
++
++def weights_json(p):
++    return json.load(open(p))["weights"]
++
++
++def linf(w1, w2):
++    keys = set(w1) | set(w2)
++    return max(abs(w1.get(k, 0.0) - w2.get(k, 0.0)) for k in keys) if keys else 0.0
++
++
++_V1_CACHE = {}
++
++
++def v1_state_after(sym, t_cut, bundle_names=None):
++    """Producer v1 EMA state after all settlements <= t_cut, rebuilt from full history with the producer's stored labels (every frozen
++    producer ledger), zip labels for older rows, and the producer's cold start for names outside the 08-16 bundle. The same rebuild
++    reproduces the frozen live v1 EMA bitwise for 525/525 names (migrations/fund_label_ema_correction.py --classes NONE --control)."""
++    if not _V1_CACHE:
++        rows, _, _ = full_rows()
++        src, _ = H.frozen_ledger_sources(include=("pre_m1", "snap_1789200000", "snap_1789214400", "snap_1789228800", "snap_1789243200", "t4snap_1789272000", "live_1789300800"))
++        stored = {}
++        for tag, L in src:
++            for s, rr in L.items():
++                d = stored.setdefault(s, {})
++                for r in rr: d.setdefault(int(r[0]), float(r[2]))
++        z = np.load(H.WORK + "/pod2_inputs/ledger_full.npz"); zs = [str(x) for x in z["symbols"]]; off = z["off"]
++        zipiv = {s: {int(t): float(v) for t, v in zip(z["ft"][int(off[j]):int(off[j + 1])].tolist(), z["zip_iv"][int(off[j]):int(off[j + 1])].tolist()) if v == v} for j, s in enumerate(zs)}
++        seed8 = json.load(open(H.WS + "/shadow_bundle.aug20260816_backup/funding_ledger_seed.json"))
++        _V1_CACHE.update(rows=rows, stored=stored, zipiv=zipiv, bundle=set(seed8))
++    C = _V1_CACHE; st = C["stored"].get(sym, {}); start = None if sym in C["bundle"] else (min(st) if st else None)
++    acc = None; prev = None
++    for ft, rate in C["rows"].get(sym, []):
++        if ft > t_cut: break
++        if start is not None and ft < start: continue
++        if ft in st: iv = st[ft]
++        elif ft in C["zipiv"].get(sym, {}): iv = C["zipiv"][sym][ft]
++        else: iv = float(min([1.0, 2.0, 4.0, 6.0, 8.0], key=lambda a_: abs(a_ - ((((ft - prev) / 3600.0) if prev is not None and 0 < (ft - prev) / 3600.0 <= 24 else 8.0)))))
++        rn = rate * (8.0 / iv)
++        acc = rn if acc is None else acc + (1 - 0.5 ** (max(ft - prev, 1) / (3 * 86400.0))) * (rn - acc)
++        prev = ft
++    return None if acc is None else {"acc": acc, "last_ts": prev}
+diff --git a/tests_fx_prod.py b/tests_fx_prod.py
+index 468fcf7..969f227 100644
+--- a/tests_fx_prod.py
++++ b/tests_fx_prod.py
+@@ -13,7 +13,7 @@ argv = sys.argv[1:]
+ CODE = HERE
+ if "--code" in argv:
+     i = argv.index("--code"); CODE = os.path.abspath(argv[i + 1]); del argv[i:i + 2]
+-CELLS = set(argv) or {"P1", "P2", "P6"}
++CELLS = set(argv) or {"P1", "P2", "P6", "P6M"}
+ sys.path.insert(0, HERE + "/fx")
+ import numpy as np
+ import fx_harness as H
+@@ -280,10 +280,150 @@ def p6():
+         badv0 = [sname for sname, rows in seed_v3.items() if st.ema_v0.get(sname) != H.v0_state_after(rows_full[sname], int(rows[-1][0]))]
+         cell("NEW", "P6-N4 bundle v0 state caught up to the seed end == training v0 oracle for all names (bitwise)", not badv0, dict(bad=badv0[:5], n=len(seed_v3)))
+ 
++# ======================================================================================== P2
++def p2():
++    """combo stage at 09-12 12Z from the producer's close-of-anchor state (snapshot 1789214400 = the state combo_stage read live), the live
++    king file, the live F10 model and the live fea171 chain states; the device is generated from the code under test."""
++    print("[P2] V2MAIN funding panel: column 80 caliber, 12h freshness, shared mini cache", flush=True)
++    A = 1789214400; SN = FZ + "/snap_1789214400"; LIVE = FZ + "/live_1789300800"
++    src_c = os.path.join(CODE, "fea171", "combo_stage.py"); src_s = os.path.join(CODE, "fea171", "sidecar_blend.py")
++    fixed = "V2MAIN_FUND_COL80_V0 = " in open(src_c, encoding="utf-8").read()
++    rows, _, _ = S.full_rows()
++    aux0 = json.load(open(SN + "/aux.json")); assert int(aux0["prev_rec"]["anchor_ts"]) == A
++    v0A, bad = S.v0_state_matching(aux0["ema"], rows); assert not bad
++    cfg = json.load(open(BUNDLE + "/config.json")); syms = [str(x) for x in np.load(WS + "/fea171/xfer_ref.npz", allow_pickle=True)["symbols"]]
++    pm = np.array(aux0["prev_rec"]["members"], np.int64)
++    D = f"{T_ROOT}/p2"; os.makedirs(D, exist_ok=True)
++    dev_old = D + "/combo_old.py"; H.gen_combo_device(H.FX + "/work/code_live_b8917484/fea171/combo_stage.py", dev_old)
++    dev_new = D + "/combo_cut.py"; H.gen_combo_device(src_c, dev_new)
++
++    def home_for(tag, aux_obj, keep=False):
++        return S.combo_home(f"{D}/home_{tag}", A, aux_obj, SN + "/leg_returns_live.json", SN + "/rolling.npz", LIVE + f"/state/weights/{A - 14400}.npz",
++                            LIVE + f"/state/target_live_king/{A}.json", LIVE + "/fea171", CODE, keep_mini=keep)
++
++    def panel_and_f82(home):
++        P = np.load(home + "/fea171/xfer_panel_live.npz"); F82 = np.load(home + "/fea171/mini/data/dlw_fea82.npz", allow_pickle=True)
++        T9 = np.load(home + "/fea171/mini/data/dlw_targets.npz", allow_pickle=True); a_i = int(np.where(T9["E_ts"].astype(np.int64) == A)[0][0])
++        rowm = F82["pair_a"].astype(np.int64) == a_i
++        return P["f_fund_ema"][-1].astype(np.float32), P["f_fund_now"][-1].astype(np.float32), F82["X"][rowm], F82["pair_s"].astype(np.int64)[rowm]
++
++    def expected(aux_obj):
++        led = aux_obj["ledger_tail"]; fe = np.zeros(len(syms), np.float32); fn = np.zeros(len(syms), np.float32)
++        for sname, est in aux_obj["ema"].items():
++            j = syms.index(sname) if sname in syms else None
++            if j is None: continue
++            r = led.get(sname)
++            if not r or A - int(r[-1][0]) > 12 * 3600: continue
++            fe[j] = np.float32(H.v0_state_after(rows[sname], int(est["last_ts"]))["acc"]); fn[j] = np.float32(float(r[-1][1]))
++        return fe, fn
++
++    # ---- R0 (KEEP) old device, live inputs: the harness reproduces the live combo files exactly
++    h0 = home_for("old", aux0); r0 = S.run_combo(dev_old, h0)
++    tl = S.linf(S.weights_json(h0 + f"/state/target_live_combo/{A}.json"), S.weights_json(LIVE + f"/state/target_live/{A}.json")) if r0["rc"] == 0 else None
++    tc = S.linf(S.weights_json(h0 + f"/state/target_combo/{A}.json"), S.weights_json(LIVE + f"/state/target_combo/{A}.json")) if r0["rc"] == 0 else None
++    cell("KEEP", "P2-R0 live-identical combo device reproduces live target_live and target_combo at 09-12 12Z (L∞ == 0)", r0["rc"] == 0 and tl == 0.0 and tc == 0.0, dict(rc=r0["rc"], target_live_Linf=tl, target_combo_Linf=tc, err=r0["stderr"][-200:]))
++    # ---- R1 (RED) code under test, producer state WITH ema_v0 (what the P1 producer writes): panel col 80 == training v0 on fresh names
++    aux1 = dict(aux0, ema_v0=v0A)
++    h1 = home_for("r1", aux1); r1 = S.run_combo(dev_new, h1)
++    fe_exp, fn_exp = expected(aux1)
++    if r1["rc"] != 0:
++        cell("RED", "P2-R1 V2MAIN panel f_fund_ema (last row) == float32(training v0) for fresh names, 0 otherwise; F82 column 80 rows == float16 of it", False, dict(rc=r1["rc"], err=r1["stderr"][-300:]))
++    else:
++        fe, fn, X82, ps = panel_and_f82(h1)
++        m_pm = np.zeros(len(syms), bool); m_pm[pm] = True
++        mis = int((fe[m_pm] != fe_exp[m_pm]).sum()); col80 = X82[:, 80].astype(np.float32); exp80 = fe_exp[ps].astype(np.float16).astype(np.float32)
++        ratio = float(np.median(fe[m_pm & (fe_exp != 0)] / fe_exp[m_pm & (fe_exp != 0)]))
++        cell("RED", "P2-R1 V2MAIN panel f_fund_ema (last row) == float32(training v0) for fresh names, 0 otherwise; F82 column 80 rows == float16 of it",
++             mis == 0 and np.array_equal(col80, exp80), dict(members=int(m_pm.sum()), panel_mismatch=mis, f82_col80_mismatch=int((col80 != exp80).sum()), median_panel_over_v0=ratio))
++    # ---- R2 (RED) a real member made stale (ledger truncated to rows <= A-13h, v1/v0 states rebuilt at that row): both columns must be 0
++    vic = syms[int(pm[0])]; cut = A - 13 * 3600
++    aux2 = json.loads(json.dumps(aux1)); rr = [r for r in aux2["ledger_tail"][vic] if int(r[0]) <= cut]; aux2["ledger_tail"][vic] = rr
++    t_new = int(rr[-1][0])
++    chk = S.v1_state_after(vic, int(aux0["ema"][vic]["last_ts"]))
++    assert chk == {"acc": float(aux0["ema"][vic]["acc"]), "last_ts": int(aux0["ema"][vic]["last_ts"])}, ("v1 rebuild does not reproduce the snapshot state", vic)
++    aux2["ema"][vic] = S.v1_state_after(vic, t_new); aux2["ema_v0"][vic] = H.v0_state_after(rows[vic], t_new)
++    h2 = home_for("r2", aux2); r2 = S.run_combo(dev_new, h2)
++    if r2["rc"] != 0:
++        cell("RED", "P2-R2 stale member (last settlement > 12h before A): panel f_fund_ema and f_fund_now == 0 (training panel stale -> NaN -> 0)", False, dict(rc=r2["rc"], err=r2["stderr"][-300:]))
++    else:
++        fe2, fn2, _, _ = panel_and_f82(h2); j = syms.index(vic)
++        cell("RED", "P2-R2 stale member %s (last settlement %s, > 12h before A): panel f_fund_ema and f_fund_now == 0 (training panel stale -> NaN -> 0)" % (vic, time.strftime('%m-%d %HZ', time.gmtime(t_new))),
++             fe2[j] == 0.0 and fn2[j] == 0.0, dict(f_fund_ema=float(fe2[j]), f_fund_now=float(fn2[j])))
++    # ---- R3 (RED) shared mini cache: a pipeline run by the live-identical code (v1 panel) for the same anchor must not be reused
++    h3 = home_for("r3", aux0); r3a = S.run_combo(dev_old, h3)
++    home_for("r3", aux1, keep=True); r3b = S.run_combo(dev_new, h3)
++    if r3a["rc"] != 0 or r3b["rc"] != 0:
++        cell("RED", "P2-R3 mini cache written by v1 code for this anchor is not reused: panel/F82 column 80 == training v0", False, dict(rc=(r3a["rc"], r3b["rc"]), err=r3b["stderr"][-300:]))
++    else:
++        fe3, _, X3, ps3 = panel_and_f82(h3)
++        cell("RED", "P2-R3 mini cache written by v1 code for this anchor is not reused: F82 column 80 == float16(training v0)",
++             np.array_equal(X3[:, 80].astype(np.float32), fe_exp[ps3].astype(np.float16).astype(np.float32)), dict(recomputed="② 触发 171 管线重跑" in r3b["stdout"] or "口径标签" in r3b["stdout"]))
++    # ---- K1 (KEEP) FTRIM (ledger last-row iv) unchanged
++    if r1["rc"] == 0:
++        f_new = json.load(open(h1 + f"/state/target_combo/{A}.json"))["ftrim"]; f_live = json.load(open(LIVE + f"/state/target_combo/{A}.json"))["ftrim"]
++        cell("KEEP", "P2-K1 FTRIM record (names_kc/names_fc/n) identical to live", f_new == f_live, dict(n=(f_new["n_kc"], f_live["n_kc"])))
++    if not fixed:
++        cell("NEW", "P2-N1..N4 caliber tag / fallback / one-column proof / sidecar (mechanism absent in this code)", False, "V2MAIN_FUND_COL80_V0 not defined")
++        return
++    tc1 = json.load(open(h1 + f"/state/target_combo/{A}.json")); tag1 = json.load(open(h1 + "/fea171/mini/data/fund_caliber.json"))
++    cell("NEW", "P2-N1 target_combo records fund_caliber {col80: v0, fresh12h: true, n_v0_missing: 0} and the mini cache carries the anchor tag",
++         tc1.get("fund_caliber", {}).get("col80") == "v0" and tc1["fund_caliber"]["n_v0_missing"] == 0 and tag1.get("anchor") == A and tag1.get("col80") == "v0", dict(target_combo=tc1.get("fund_caliber"), tag=tag1))
++    hN2 = home_for("n2", aux0); rN2 = S.run_combo(dev_new, hN2)
++    feN2 = panel_and_f82(hN2)[0] if rN2["rc"] == 0 else None
++    fe_v1 = np.zeros(len(syms), np.float32)
++    for sname, est in aux0["ema"].items():
++        if sname in syms and aux0["ledger_tail"].get(sname) and A - int(aux0["ledger_tail"][sname][-1][0]) <= 12 * 3600: fe_v1[syms.index(sname)] = np.float32(est["acc"])
++    tcN2 = json.load(open(hN2 + f"/state/target_combo/{A}.json")) if rN2["rc"] == 0 else {}
++    cell("NEW", "P2-N2 producer state without ema_v0: combo does not abort, column 80 falls back to v1 and records col80 = v1_fallback",
++         rN2["rc"] == 0 and np.array_equal(feN2, fe_v1) and tcN2.get("fund_caliber", {}).get("col80") == "v1_fallback", dict(rc=rN2["rc"], caliber=tcN2.get("fund_caliber")))
++    # N3: one-place proof between the fallback run (v1) and the v0 run: only F82 column 80 differs; F89 identical; members identical
++    if rN2["rc"] == 0 and r1["rc"] == 0:
++        _, _, Xa, psa = panel_and_f82(hN2); _, _, Xb, psb = panel_and_f82(h1)
++        F89a = np.load(hN2 + "/fea171/mini/data/f8_fea89.npz", allow_pickle=True)["X"]; F89b = np.load(h1 + "/fea171/mini/data/f8_fea89.npz", allow_pickle=True)["X"]
++        oth = [c for c in range(82) if c != 80]
++        cell("NEW", "P2-N3 v1-fallback vs v0 run: F82 columns != 80 bitwise identical, F89 bitwise identical, pair axis identical",
++             np.array_equal(psa, psb) and np.array_equal(Xa[:, oth], Xb[:, oth]) and np.array_equal(F89a, F89b), dict(col80_rows_differ=int((Xa[:, 80] != Xb[:, 80]).sum()), rows=int(len(psa))))
++    # N4: the sidecar computes the same panel and tag from the same state (shared cache stays caliber-consistent)
++    dev_side = D + "/sidecar_cut.py"; H.gen_sidecar_device(src_s, dev_side)
++    hN4 = home_for("n4", aux1); rN4 = S.run_combo(dev_side, hN4)
++    if rN4["rc"] == 0:
++        feN4 = panel_and_f82(hN4)[0]; tagN4 = json.load(open(hN4 + "/fea171/mini/data/fund_caliber.json"))
++        fe1 = panel_and_f82(h1)[0]
++        cell("NEW", "P2-N4 sidecar_blend writes the same V2MAIN panel (bitwise) and the same caliber tag as combo_stage", np.array_equal(feN4, fe1) and tagN4 == tag1, dict(tag=tagN4))
++    else:
++        cell("NEW", "P2-N4 sidecar_blend writes the same V2MAIN panel (bitwise) and the same caliber tag as combo_stage", False, dict(rc=rN4["rc"], err=rN4["stderr"][-300:]))
++
++# ======================================================================================== P6M / P9M (offline state migration, exact)
++def p6m():
++    """migrations/fund_label_ema_correction.py on the frozen live state (09-13 12Z). Red evidence = the live v1 EMA differs from the
++    declared-label rebuild by the returned dacc; green = the corrected state equals an independent full-history rebuild with the same labels."""
++    print("[P6M/P9M] exact live v1 EMA correction for mislabelled settlements (offline, frozen state)", flush=True)
++    tool = os.path.join(CODE, "migrations", "fund_label_ema_correction.py")
++    if not os.path.exists(tool):
++        cell("NEW", "P6M tool present in this code", False, "migrations/fund_label_ema_correction.py absent"); return
++    res = {}
++    for C in ("NONE", "D17", "P9"):
++        out = f"{T_ROOT}/p6m_{C}"; shutil.rmtree(out, ignore_errors=True)
++        p = subprocess.run([WS + "/venv/bin/python", "-B", tool, "--state", FZ + "/live_1789300800/state", "--code", CODE, "--out", out, "--classes", C, "--control"],
++                           capture_output=True, text=True, env={"PATH": "/usr/bin:/bin", "HOME": H.HOME, "PYTHONDONTWRITEBYTECODE": "1"}, timeout=1800)
++        r = json.load(open(out + "/RECEIPT_fund_label_ema_correction.json")) if p.returncode == 0 else {"rc": p.returncode, "err": p.stderr[-400:]}
++        res[C] = r
++    n0 = res["NONE"]
++    cell("KEEP", "P6M-K0 no correction: the independent full-history rebuild with the stored labels reproduces the live v1 EMA bitwise (525 names) and the output equals the input",
++         n0.get("control", {}).get("max_abs") == 0.0 and n0.get("output_sha256") == n0.get("inputs", {}).get("aux", {}).get("sha256"), dict(control=n0.get("control", {}).get("max_abs"), n=n0.get("control", {}).get("n")))
++    d = res["D17"]; names = sorted(d.get("per_name_dacc", {}))
++    cell("RED", "P6M-R1 D17 (seed-origin fund_aug-dict labels): live v1 EMA is off the declared-label state; 533 rows / 5 names, PROM dacc -4.10e-06 (5.1% of acc)",
++         names == ["ACEUSDT", "BANKUSDT", "DEXEUSDT", "ERAUSDT", "PROMUSDT"] and d["n_corrections"]["D17"] == 533 and abs(d["per_name_dacc"]["PROMUSDT"]["dacc"] + 4.0958e-06) < 1e-9,
++         dict(n=d.get("n_corrections"), dacc={k: v["dacc"] for k, v in d.get("per_name_dacc", {}).items()}))
++    cell("NEW", "P6M-G1 corrected D17 state == independent rebuild with the corrected labels (max |d| <= 1e-15 over 525 names)", d.get("control", {}).get("max_abs", 1.0) <= 1e-15, d.get("control", {}).get("max_abs"))
++    q = res["P9"]
++    cell("NEW", "P9M-G1 exact producer-appended mislabels (ONG 08-25 08Z interest signature; 61 cold-start first rows 07-26 08Z and GRVT 07-31 12Z, zip-declared 4 vs default 8): corrected == rebuild (<= 1e-15)",
++         q.get("n_corrections", {}).get("P9") == 63 and q.get("control", {}).get("max_abs", 1.0) <= 1e-15, dict(n=q.get("n_corrections"), outside_tail=q.get("n_corrections_outside_tail"), control=q.get("control", {}).get("max_abs")))
++
+ # ======================================================================================== main
+ if __name__ == "__main__":
+     print(f"tests_fx_prod code={CODE} shadow_loop_v3.py={code_sha('shadow_loop_v3.py')[:16]} combo_stage.py={code_sha('fea171/combo_stage.py')[:16]} cells={sorted(CELLS)} utc={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}", flush=True)
+-    for name, fn in (("P1", p1), ("P6", p6)):
++    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m)):
+         if name in CELLS:
+             try:
+                 fn()

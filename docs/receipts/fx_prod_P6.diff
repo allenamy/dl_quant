@@ -1,0 +1,267 @@
+diff --git a/shadow_loop_v3.py b/shadow_loop_v3.py
+index e19a73f..14a9ba2 100644
+--- a/shadow_loop_v3.py
++++ b/shadow_loop_v3.py
+@@ -191,6 +191,102 @@ def ema_v0_problems(ema, ema_v0):
+         if isinstance(e0, dict) and (not isinstance(e, dict) or int(e0.get("last_ts", -1)) != int(e.get("last_ts", -2))):
+             out.append((s, "last_ts"))
+     return out
++
++SEED_IV_EMA_TOL = 1e-9     # P6(FIXPROGRAM 2026-09-13): 种子标签修复对 bundle EMA 态的精确线性影响上限; 超过 ⇒ EMA 态与种子标签不自洽, 拒启
++
++
++def _snap_iv(g):
++    """第 4 步追加规则同式: 时间差(h)吸附 {1,2,4,6,8}, 不在 (0,24] 取 8。"""
++    return float(min([1.0, 2.0, 4.0, 6.0, 8.0], key=lambda a: abs(a - (g if 0 < g <= 24 else 8.0))))
++
++
++def declared_interval_exact(t_prev, t, t_next, rate):
++    """P6: 只用在 2020-01..2026-07 全部 zip 申报行(funding_interval_hours)上逐行相等的规则判一次结算的申报间隔
++    (fx_prod p9_declared_interval_table.py V1): steady(前后时间差吸附相同, 2,521,513/2,521,515) / cap(|rate|=0.02, 前 4h|8h 后 1h ⇒ 前段,
++    194/194) / 1h 行后接 2-3h 间隔 ⇒ 1h(92/92) / 利息腿签名(rate == 1.25e-5×iv 唯一候选, 1,111/1,111)。
++    返回 (iv, 规则) 或 (None, "unresolved"|"conflict"); 切换边界其余行的申报值由结算时刻的配置决定, 时间与费率判不出, 不猜。"""
++    gb = None if t_prev is None else round((t - t_prev) / 3600.0, 6)
++    gf = None if t_next is None else round((t_next - t) / 3600.0, 6)
++    ib = None if gb is None else _snap_iv(gb)
++    ifw = None if gf is None else _snap_iv(gf)
++    rules = []
++    if ib is not None and ifw is not None and ib == ifw:
++        rules.append((ib, "steady"))
++    else:
++        if gb in (4.0, 8.0) and gf == 1.0 and abs(abs(rate) - 0.02) < 1e-12:
++            rules.append((ib, "cap_signature"))
++        if gb == 1.0 and gf in (2.0, 3.0):
++            rules.append((1.0, "last_1h_before_gap"))
++        sig = [c for c in sorted({x for x in (ib, ifw) if x is not None}) if abs(rate - 1.25e-5 * c) < 1e-12]
++        if len(sig) == 1:
++            rules.append((float(sig[0]), "interest_signature"))
++    vals = {v for v, _ in rules}
++    if len(vals) == 1:
++        return rules[0][0], "+".join(r for _, r in rules)
++    return None, ("conflict" if len(vals) > 1 else "unresolved")
++
++
++def seed_rederive(seed, ema, ema_v0=None, tol=SEED_IV_EMA_TOL):
++    """P6: bundle 种子引导时逐行重判间隔标签并对齐 EMA 态。
++    (1) 精确规则判出的申报间隔 != 存储值 ⇒ 修复并点名(repaired); 判不出而存储值 != 时间差 ⇒ 保留存储值并点名(kept_unresolved, 如 zip 申报的切换行);
++    (2) 修复对 bundle EMA 态的精确线性影响 sum a_k*drn_k*0.5**((t_end-t_k)/3d)(只计 EMA 已吸收的行)> tol ⇒ 拒启(需重导 bundle);
++    (3) EMA 态 last_ts 必须是种子行, 其后的种子行按第 4 步递推补齐(v1 用修复后标签, v0 用原始费率); 否则拒启。
++    返回 (ledger_tail, ema, ema_v0, report, refuse)。"""
++    HL = 3 * 86400.0
++    rep = {"repaired": [], "kept_unresolved": [], "n_caught_up_v1": 0, "n_caught_up_v0": 0, "max_abs_repair_impact": 0.0}
++    refuse = []; led_out = {}; ema_out = {}; v0_out = None if ema_v0 is None else {}
++    if set(ema) != set(seed):
++        refuse.append(("ema_seed_name_sets_differ", sorted(set(ema) ^ set(seed))[:20]))
++    if ema_v0 is not None and set(ema_v0) != set(seed):
++        refuse.append(("ema_v0_seed_name_sets_differ", sorted(set(ema_v0) ^ set(seed))[:20]))
++    for s, rows0 in seed.items():
++        rows = [[int(r[0]), float(r[1]), float(r[2])] for r in rows0]
++        if not rows:
++            continue
++        ts = [r[0] for r in rows]
++        if any(ts[k] >= ts[k + 1] for k in range(len(ts) - 1)):
++            refuse.append((s, "seed_rows_not_strictly_increasing")); continue
++        fixed = {}
++        for k in range(len(rows)):
++            iv_x, rule = declared_interval_exact(ts[k - 1] if k else None, ts[k], ts[k + 1] if k + 1 < len(ts) else None, rows[k][1])
++            if iv_x is not None and iv_x != rows[k][2]:
++                if k == 0:
++                    refuse.append((s, "first_seed_row_needs_repair", ts[k], rows[k][2], iv_x)); continue
++                fixed[k] = rows[k][2]
++                rep["repaired"].append([s, ts[k], rows[k][2], iv_x, rule]); rows[k][2] = iv_x
++            elif iv_x is None and k and rows[k][2] != _snap_iv((ts[k] - ts[k - 1]) / 3600.0):
++                rep["kept_unresolved"].append([s, ts[k], rows[k][2], _snap_iv((ts[k] - ts[k - 1]) / 3600.0), rule])
++        est = ema.get(s)
++        if not isinstance(est, dict):
++            continue
++        lt = int(est["last_ts"])
++        if lt not in ts:
++            refuse.append((s, "ema_last_ts_not_a_seed_row", lt)); continue
++        i0 = ts.index(lt)
++        impact = sum((1 - 0.5 ** (max(ts[k] - ts[k - 1], 1) / HL)) * rows[k][1] * (8.0 / rows[k][2] - 8.0 / old) * 0.5 ** ((ts[-1] - ts[k]) / HL)
++                     for k, old in fixed.items() if k <= i0)
++        rep["max_abs_repair_impact"] = max(rep["max_abs_repair_impact"], abs(impact))
++        if abs(impact) > tol:
++            refuse.append((s, "repair_impact_on_bundle_ema", impact))
++        acc = float(est["acc"]); last = lt
++        for r in rows[i0 + 1:]:
++            a = 1 - 0.5 ** (max(r[0] - last, 1) / HL)
++            acc = acc + a * (r[1] * (8.0 / r[2]) - acc); last = r[0]
++        rep["n_caught_up_v1"] += int(i0 < len(rows) - 1)
++        ema_out[s] = {"acc": acc, "last_ts": last}
++        if ema_v0 is not None and isinstance(ema_v0.get(s), dict):
++            l0 = int(ema_v0[s]["last_ts"])
++            if l0 not in ts:
++                refuse.append((s, "ema_v0_last_ts_not_a_seed_row", l0))
++            else:
++                j0 = ts.index(l0); acc0 = float(ema_v0[s]["acc"]); last0 = l0
++                for r in rows[j0 + 1:]:
++                    a = 1 - 0.5 ** (max(r[0] - last0, 1) / HL)
++                    acc0 = acc0 + a * (r[1] - acc0); last0 = r[0]
++                rep["n_caught_up_v0"] += int(j0 < len(rows) - 1)
++                v0_out[s] = {"acc": acc0, "last_ts": last0}
++        led_out[s] = rows[-400:]
++    return led_out, ema_out, v0_out, rep, refuse
+ WINS = (48, 288, 864, 2016, 8640)
+ CACHE_ROWS = 11520  # 40d
+ 
+@@ -217,6 +313,15 @@ class ShadowState:
+             _p0 = f"{BUNDLE}/fund_ema_v0_state.json"   # P1: bundle 自带训练口径 v0 态才可用(须列于 MANIFEST, load_bundle 已验 sha)
+             if os.path.exists(_p0) and "fund_ema_v0_state.json" in json.load(open(f"{BUNDLE}/MANIFEST.json")):
+                 aux["ema_v0"] = json.load(open(_p0))
++            _led6, _ema6, _v06, _rep6, _ref6 = seed_rederive(lg, aux["ema"], aux.get("ema_v0"))   # P6: 种子标签重判 + EMA 对齐; 不自洽拒启
++            if _ref6:
++                print(f"REFUSE_TO_START: bundle seed/EMA inconsistent ({len(_ref6)}): {_ref6[:50]}", flush=True); sys.exit(2)
++            aux["ledger_tail"] = _led6; aux["ema"] = _ema6
++            if _v06 is not None:
++                aux["ema_v0"] = _v06
++            append_log({"e": "seed_iv_rederived", "n_repaired": len(_rep6["repaired"]), "repaired": _rep6["repaired"][:200],
++                        "n_kept_unresolved": len(_rep6["kept_unresolved"]), "kept_unresolved": _rep6["kept_unresolved"][:200],
++                        "n_caught_up_v1": _rep6["n_caught_up_v1"], "n_caught_up_v0": _rep6["n_caught_up_v0"], "max_abs_repair_impact": _rep6["max_abs_repair_impact"]})
+             # H bootstrap: bundle 平价信号最末锚的持仓 = 离线轨迹接力点(否则冷启 H=0 偏离 ~30 锚)
+             try:
+                 sig = json.load(open(f"{BUNDLE}/parity_signals_aug.json"))
+diff --git a/tests_fx_prod.py b/tests_fx_prod.py
+index 993c507..468fcf7 100644
+--- a/tests_fx_prod.py
++++ b/tests_fx_prod.py
+@@ -152,10 +152,138 @@ def p1():
+         dev.STATE_DIR = old
+ 
+ 
++# ======================================================================================== P6
++def p6():
++    """Bundle bootstrap (state reset) from real bundles: the 08-16 backup (seed b233a072: 545 rows labelled by the fund_aug current-interval
++    dict, EMA exported with the same labels) and the in-service v3 bundle (seed 85f1a1db: EMA state at 08-31 00Z for 448/450 names while the
++    seed runs to 09-01 00Z). The producer module is imported from the code under test; nothing is fetched."""
++    print("[P6] bundle bootstrap: seed interval labels and EMA/seed alignment", flush=True)
++    import importlib.util, io, contextlib
++    AUG = WS + "/shadow_bundle.aug20260816_backup"; V3 = WS + "/shadow_bundle"
++    src = os.path.join(CODE, "shadow_loop_v3.py"); flagged = "def seed_rederive(" in open(src, encoding="utf-8").read()   # P6 mechanism marker
++    rows_full, _, _ = S.full_rows()
++    zipv = {}
++    zz = np.load(H.WORK + "/pod2_inputs/ledger_full.npz"); zs = [str(x) for x in zz["symbols"]]
++    for j, sname in enumerate(zs):
++        a, b = int(zz["off"][j]), int(zz["off"][j + 1])
++        zipv[sname] = {int(t): float(v) for t, v in zip(zz["ft"][a:b], zz["zip_iv"][a:b]) if v == v}
++
++    def mkbundle(tag, base, mutate=None, add_v0=True):
++        d = f"{T_ROOT}/p6_bundle_{tag}"; shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
++        man = json.load(open(base + "/MANIFEST.json"))
++        for fn in man:
++            os.symlink(base + "/" + fn, d + "/" + fn)
++        seed = json.load(open(base + "/funding_ledger_seed.json")); ema = json.load(open(base + "/fund_ema_v1_state.json"))
++        if mutate:
++            seed, ema = mutate(seed, ema)
++            for fn, obj in (("funding_ledger_seed.json", seed), ("fund_ema_v1_state.json", ema)):
++                os.remove(d + "/" + fn); json.dump(obj, open(d + "/" + fn, "w")); man[fn] = H.gsha(d + "/" + fn)
++        if add_v0:
++            v0 = {}
++            for sname, est in ema.items():
++                v = H.v0_state_after(rows_full.get(sname, []), int(est["last_ts"]))
++                if v is not None: v0[sname] = v
++            json.dump(v0, open(d + "/fund_ema_v0_state.json", "w")); man["fund_ema_v0_state.json"] = H.gsha(d + "/fund_ema_v0_state.json")
++        json.dump(man, open(d + "/MANIFEST.json.tmp", "w")); os.replace(d + "/MANIFEST.json.tmp", d + "/MANIFEST.json") if not os.path.islink(d + "/MANIFEST.json") else (os.remove(d + "/MANIFEST.json"), os.replace(d + "/MANIFEST.json.tmp", d + "/MANIFEST.json"))
++        return d, seed, ema
++
++    def boot(tag, bundle):
++        home = f"{T_ROOT}/p6_home_{tag}"; shutil.rmtree(home, ignore_errors=True); os.makedirs(home + "/state")
++        spec = importlib.util.spec_from_file_location("fx_p6_" + tag, src); mod = importlib.util.module_from_spec(spec)
++        os.environ["WIDE_SHADOW_HOME"] = home; os.environ["WIDE_SHADOW_BUNDLE"] = bundle
++        spec.loader.exec_module(mod)
++        assert mod.STATE_DIR == home + "/state" and mod.BUNDLE == bundle
++        cfg = json.load(open(bundle + "/config.json")); buf = io.StringIO()
++        try:
++            with contextlib.redirect_stdout(buf):
++                st = mod.ShadowState(cfg)
++            out = ("loaded", st)
++        except SystemExit as e:
++            out = ("exit%s" % e.code, None)
++        log = [json.loads(l) for l in open(home + "/shadow_log.jsonl")] if os.path.exists(home + "/shadow_log.jsonl") else []
++        return out[0], out[1], buf.getvalue(), log
++
++    # ---- R1: 08-16 bundle must be refused (repairs of dict-labelled steady rows move the exported EMA state by up to 2.7e-3)
++    d_aug, seed_aug, ema_aug = mkbundle("aug", AUG)
++    res, st, out, log = boot("aug", d_aug)
++    named = [n for n in ("PROMUSDT", "ACEUSDT", "DEXEUSDT", "ERAUSDT", "BANKUSDT") if n in out]
++    cell("RED", "P6-R1 bootstrap from the 08-16 bundle is REFUSED (exact EMA impact of label repairs > 1e-9) and names PROM/ACE/DEXE/ERA/BANK",
++         res == "exit2" and "REFUSE_TO_START" in out and len(named) == 5, dict(result=res, named=named, stdout=out[-300:]))
++    # ---- R2: v3 bundle with its one exchange-evidenced label corrected (ONG 08-25 08Z: rate 5.000e-05 = the 4h interest leg, stored 2.0 from
++    #      the 3h gap) so that the only remaining defect is the EMA/seed misalignment: bootstrap must end every EMA at the seed's last row
++    ONG_T = 1787644800
++    def mut_ong(seed, ema):
++        seed = json.loads(json.dumps(seed))
++        for r in seed["ONGUSDT"]:
++            if int(r[0]) == ONG_T: assert float(r[2]) == 2.0 and abs(float(r[1]) - 5e-05) < 1e-15; r[2] = 4.0
++        return seed, ema
++    d_v3, seed_v3, ema_v3 = mkbundle("v3ong", V3, mutate=mut_ong)
++    res, st, out, log = boot("v3ong", d_v3)
++    if res != "loaded":
++        cell("RED", "P6-R2 v3 bundle (ONG 08-25 08Z label corrected): bootstrap loads and catches every EMA up to the seed end from seed rows", False, dict(result=res, stdout=out[-400:]))
++    else:
++        bad_ts = [sname for sname, rows in seed_v3.items() if int(st.ema[sname]["last_ts"]) != int(rows[-1][0])]
++        worst = 0.0
++        for sname, rows in seed_v3.items():
++            est = dict(ema_v3[sname]); ts = [int(r[0]) for r in rows]
++            if int(est["last_ts"]) in ts:
++                for r in rows[ts.index(int(est["last_ts"])) + 1:]:
++                    a = 1 - 0.5 ** (max(int(r[0]) - est["last_ts"], 1) / (3 * 86400.0)); rn = float(r[1]) * (8.0 / float(r[2]))
++                    est = {"acc": est["acc"] + a * (rn - est["acc"]), "last_ts": int(r[0])}
++                if sname in st.ema: worst = max(worst, abs(st.ema[sname]["acc"] - est["acc"]))
++        cell("RED", "P6-R2 v3 bundle (ONG 08-25 08Z label corrected): after bootstrap ema[s].last_ts == seed last row for all 450 names and acc == producer recursion over the missing seed rows",
++             not bad_ts and worst == 0.0, dict(names_not_at_seed_end=len(bad_ts), example=bad_ts[:3], worst_abs_diff=worst))
++        # ---- K1: the v3 seed's two switch rows (declared 4 by the zip) keep 4.0
++        keep = {("ESPORTSUSDT", 1785355200): 4.0, ("TUSDT", 1784952000): 4.0}
++        got = {k: [float(r[2]) for r in st.ledger[k[0]] if int(r[0]) == k[1]] for k in keep}
++        zip_ok = all(zipv[k[0]].get(k[1]) == v for k, v in keep.items())
++        cell("KEEP", "P6-K1 v3 seed switch rows ESPORTS 07-29 20Z / T 07-25 04Z (zip-declared 4) keep iv 4.0 after bootstrap", zip_ok and all(g == [4.0] for g in got.values()), dict(got=got, zip_declared_4=zip_ok))
++    # ---- R3: the in-service v3 bundle as exported is refused: its seed labels ONG 08-25 08Z 2.0 against the interest-signature 4, and its EMA
++    #      state absorbed that row (exact impact 6.0e-7 at the seed end)
++    d_v3r, _, _ = mkbundle("v3", V3)
++    res_r, _, out_r, _ = boot("v3", d_v3r)
++    cell("RED", "P6-R3 in-service v3 bundle as exported is REFUSED and names ONGUSDT (seed label 2.0 vs declared 4, EMA impact > 1e-9)",
++         res_r == "exit2" and "REFUSE_TO_START" in out_r and "ONGUSDT" in out_r, dict(result=res_r, stdout=out_r[-240:]))
++    if not flagged:
++        cell("NEW", "P6-N1..N4 repair log / tolerance pass / catch-up refusal / v0 catch-up (mechanism absent in this code)", False, "no seed re-derivation in this code")
++        return
++    ev = [r for r in log if r.get("e") == "seed_iv_rederived"]
++    cell("NEW", "P6-N1 v3 bootstrap logs seed_iv_rederived with repaired rows, kept-unresolved rows (ESPORTS/T switch rows) and caught-up EMA counts",
++         bool(ev) and ev[-1]["n_repaired"] == 0 and sorted(r[0] for r in ev[-1]["kept_unresolved"]) == ["ESPORTSUSDT", "TUSDT"] and ev[-1].get("n_caught_up_v1", 0) >= 448, ev[-1] if ev else None)
++    # N2: a real steady 4h row relabelled 1.0 early enough in the seed that its exact impact at the seed end is <= 1e-9: loads, repaired, named
++    cand = None; HLs = 3 * 86400.0
++    for sname in sorted(seed_v3):
++        rows = seed_v3[sname]; ts = [int(r[0]) for r in rows]
++        if int(ema_v3[sname]["last_ts"]) not in ts: continue
++        for k in range(2, len(rows) - 2):
++            if float(rows[k][2]) == 4.0 and ts[k] - ts[k - 1] == 14400 and ts[k + 1] - ts[k] == 14400 and abs(abs(float(rows[k][1])) - 0.02) > 1e-9 and ts[k] <= int(ema_v3[sname]["last_ts"]):
++                imp = abs((1 - 0.5 ** (14400 / HLs)) * float(rows[k][1]) * (8.0 / 4.0 - 8.0 / 1.0) * 0.5 ** ((ts[-1] - ts[k]) / HLs))
++                if 0 < imp <= 1e-9:
++                    cand = (sname, k, imp); break
++        if cand: break
++    def mut_n2(seed, ema):
++        seed, ema = mut_ong(seed, ema); seed[cand[0]][cand[1]][2] = 1.0; return seed, ema
++    d_n2, _, _ = mkbundle("n2", V3, mutate=mut_n2)
++    res2, st2, out2, log2 = boot("n2", d_n2)
++    rep = [r for r in (log2[-1].get("repaired", []) if log2 else []) if r[0] == cand[0]]
++    t_c = int(seed_v3[cand[0]][cand[1]][0])
++    cell("NEW", "P6-N2 real 4h steady row %s %s relabelled 1.0: exact impact %.2e <= 1e-9 ⇒ loads, row repaired to 4.0 (if still in the 400-row tail) and named" % (cand[0], time.strftime('%m-%d %HZ', time.gmtime(t_c)), cand[2]),
++         res2 == "loaded" and [float(r[2]) for r in st2.ledger[cand[0]] if int(r[0]) == t_c] in ([4.0], []) and bool(rep) and rep[0][3] == 4.0, dict(result=res2, repaired=rep[:2], stdout=out2[-200:]))
++    # N3: an EMA state whose last_ts is not a seed row is refused (catch-up only from a seed row)
++    def mut_n3(seed, ema):
++        seed, ema = mut_ong(seed, ema); ema = json.loads(json.dumps(ema)); k0 = sorted(ema)[0]; ema[k0]["last_ts"] = int(ema[k0]["last_ts"]) + 7; return seed, ema
++    d_n3, _, _ = mkbundle("n3", V3, mutate=mut_n3)
++    res3, _, out3, _ = boot("n3", d_n3)
++    cell("NEW", "P6-N3 EMA last_ts that is not a seed row ⇒ REFUSE_TO_START (catch-up only from a seed row)", res3 == "exit2" and "REFUSE_TO_START" in out3, dict(result=res3, stdout=out3[-200:]))
++    # N4: v0 state (P1) is caught up with the same rows (raw rate) and equals the training oracle at the seed end
++    if res == "loaded":
++        badv0 = [sname for sname, rows in seed_v3.items() if st.ema_v0.get(sname) != H.v0_state_after(rows_full[sname], int(rows[-1][0]))]
++        cell("NEW", "P6-N4 bundle v0 state caught up to the seed end == training v0 oracle for all names (bitwise)", not badv0, dict(bad=badv0[:5], n=len(seed_v3)))
++
+ # ======================================================================================== main
+ if __name__ == "__main__":
+     print(f"tests_fx_prod code={CODE} shadow_loop_v3.py={code_sha('shadow_loop_v3.py')[:16]} combo_stage.py={code_sha('fea171/combo_stage.py')[:16]} cells={sorted(CELLS)} utc={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}", flush=True)
+-    for name, fn in (("P1", p1),):
++    for name, fn in (("P1", p1), ("P6", p6)):
+         if name in CELLS:
+             try:
+                 fn()

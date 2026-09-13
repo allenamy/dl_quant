@@ -1,0 +1,362 @@
+diff --git a/fx/p9_declared_interval_table.py b/fx/p9_declared_interval_table.py
+new file mode 100644
+index 0000000..f1ba427
+--- /dev/null
++++ b/fx/p9_declared_interval_table.py
+@@ -0,0 +1,186 @@
++#!/usr/bin/env python3
++"""p9_declared_interval_table.py — FIXPROGRAM 2026-09-13 P9 shared evidence: the declared settlement interval of every funding settlement.
++READ-ONLY inputs (sha-pinned in the receipt): pod2 ledger_full.npz (data.binance.vision zip U fund_aug API rows, zip `funding_interval_hours`,
++2020-01 -> 2026-09-01 02:00Z); every frozen producer ledger (aux ledger_tail) and both bundle seeds; the executor's own settlement records
++~/dl_quant_live/state/live/pilot_log/<day>/funding.jsonl (`funding_interval_h` = /fapi/v1/fundingInfo read at PULL time, applied to every
++settlement of that pull; positive control only).
++One row per (symbol, settlement second) in [LO, HI]:
++  iv_producer   stored iv in the producer ledger (union of frozen producer ledgers; rows only in a seed carry the seed's stored iv, flagged)
++  iv_zip        exchange-declared funding_interval_hours from the monthly zip (rows <= 2026-07-31 only; August/September zips absent)
++  iv_exec       executor fundingInfo label for that settlement (held names only); several differing labels are joined with '|'
++  gap_back_h / gap_fwd_h  raw hours to the previous / next settlement of the same symbol (union of all row sources)
++  iv_gap_back / iv_gap_fwd  the producer's snap rule (shadow_loop_v3.py L341-342) applied to those gaps
++  regime        steady (snap back == snap fwd) | transition (snap back != snap fwd) | edge (no back or no fwd neighbour)
++  iv_best, iv_best_source  zip if present; else only rules that equal the zip on EVERY scored row of the full history (receipt V1):
++                structure_steady (2,521,513/2,521,515), interest_signature (rate == 1.25e-5*iv for exactly one candidate; 1,111/1,111),
++                cap_signature_{4,8}h_to_1h (|rate| == 0.02, back 4h/8h, fwd 1h; 194/194), structure_last_1h_before_gap{2,3} (92/92);
++                otherwise NULL with 'unresolved_<regime>' (the declared interval of a transition row is the schedule in force AT the settlement,
++                which neither the backward gap nor a fundingInfo read after the settlement determines; see p9_rule_eval.py)
++  iv_likely, iv_likely_support  below-100% rules for unresolved rows: gap3_into_longer 40/41, gap2_into_longer 52/62
++  iv_candidates  for transition rows: 'back|fwd' candidate ivs
++  producer_vs_best  match | mismatch | unresolved | not_in_producer_ledger
++Validation written to the receipt: (V1) the structural iv_best rule against the zip column on every zip row in [ZLO, 2026-07-31] of the same
++symbols (rule accuracy where truth exists); (V2) executor labels at switch_up rows (fundingInfo read after the switch must equal iv_best)."""
++import os, sys, json, glob, gzip, time, hashlib, csv, io
++import numpy as np
++sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
++import fx_harness as H
++
++LO = 1782864000   # 2026-07-01 00:00Z
++HI = 1789300800   # 2026-09-13 12:00Z (close of the frozen live state)
++ZLO = 1577836800  # 2020-01-01 00:00Z: V1 scores every resolution rule over the full zip history
++OUT = H.WORK + "/p9"
++ALLOWED = [1.0, 2.0, 4.0, 6.0, 8.0]
++
++
++def snap(g):
++    return float(min(ALLOWED, key=lambda a: abs(a - (g if 0 < g <= 24 else 8.0))))
++
++
++def T(t): return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
++
++
++def main():
++    t0 = time.time(); shas = {}
++    p = H.WORK + "/pod2_inputs/ledger_full.npz"; shas["pod2_ledger_full"] = H.gsha(p)
++    assert shas["pod2_ledger_full"] == "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
++    z = np.load(p); syms = [str(s) for s in z["symbols"]]; off = z["off"]; FT = z["ft"]; RT = z["rate"]; SRC = z["src"]; ZIV = z["zip_iv"]
++    rows = {}   # sym -> {ft: dict}
++    for j, s in enumerate(syms):
++        a, b = int(off[j]), int(off[j + 1])
++        d = rows.setdefault(s, {})
++        for ft, rt, sr, zi in zip(FT[a:b].tolist(), RT[a:b].tolist(), SRC[a:b].tolist(), ZIV[a:b].tolist()):
++            d[int(ft)] = {"rate": rt, "pod2_src": int(sr), "iv_zip": (None if zi != zi else float(zi))}
++    src, s2 = H.frozen_ledger_sources(); shas.update(s2)
++    conflicts = 0
++    for tag, led in src:
++        seed = tag.startswith("seed")
++        for s, rr in led.items():
++            d = rows.setdefault(s, {})
++            for r in rr:
++                ft = int(r[0]); rt = float(r[1]); iv = float(r[2])
++                e = d.setdefault(ft, {"rate": rt, "pod2_src": 0, "iv_zip": None})
++                if e["rate"] != rt: conflicts += 1
++                key = "iv_seed_" + tag.split("_", 1)[1] if seed else "iv_producer"
++                if key in e and e[key] != iv:
++                    e.setdefault("iv_conflicts", []).append((tag, iv))
++                e[key] = iv
++    # executor records
++    ex_files = sorted(glob.glob(H.HOME + "/dl_quant_live/state/live/pilot_log/2026*/funding.jsonl"))
++    shas["executor_funding_jsonl"] = {f.split("pilot_log/")[1]: H.gsha(f) for f in ex_files}
++    n_ex = 0; n_ex_shifted = 0; n_ex_unmatched = 0; n_ex_rate_mismatch = 0
++    for f in ex_files:
++        for l in open(f):
++            r = json.loads(l); n_ex += 1
++            s = r["symbol"]; t = float(r["settlement_ts"]); d = rows.setdefault(s, {})
++            # executor income timestamps are the settlement second or one second later (223 of 36,280): match the ledger row within 60 s
++            cands = [ft for ft in (int(t), int(t) - 1, int(t) + 1) if ft in d] or [ft for ft in d if abs(ft - t) <= 60]
++            if cands:
++                ft = min(cands, key=lambda x: abs(x - t)); n_ex_shifted += int(ft != int(round(t)))
++                if abs(d[ft]["rate"] - float(r["funding_rate"])) > 1e-12: n_ex_rate_mismatch += 1
++            else:
++                ft = int(round(t)); n_ex_unmatched += 1
++                d[ft] = {"rate": float(r["funding_rate"]), "pod2_src": 0, "iv_zip": None, "exec_only": True}
++            d[ft].setdefault("iv_exec", set()).add(r.get("funding_interval_h"))
++    # per symbol pass
++    header = ["symbol", "ft", "utc", "rate", "pod2_src", "in_producer_ledger", "iv_producer", "iv_seed_aug", "iv_seed_v3", "iv_zip", "iv_exec",
++              "gap_back_h", "gap_fwd_h", "iv_gap_back", "iv_gap_fwd", "regime", "iv_candidates", "iv_best", "iv_best_source", "iv_likely", "iv_likely_support", "producer_vs_best"]
++    out_rows = []; v1 = {}; v2 = {"switch_up_rows_with_exec": 0, "exec_equals_best": 0, "disagree": []}
++    cls_counts = {}; mism = []
++    for s in sorted(rows):
++        d = rows[s]; ts = sorted(d)
++        n = len(ts)
++        for k, ft in enumerate(ts):
++            if ft < ZLO or ft > HI: continue
++            e = d[ft]
++            gb = (ft - ts[k - 1]) / 3600.0 if k > 0 else None
++            gf = (ts[k + 1] - ft) / 3600.0 if k + 1 < n else None
++            gf2 = (ts[k + 2] - ts[k + 1]) / 3600.0 if k + 2 < n else None
++            gbb = (ts[k - 1] - ts[k - 2]) / 3600.0 if k > 1 else None
++            ib = snap(gb) if gb is not None else None; ifw = snap(gf) if gf is not None else None
++            if gb is None or gf is None:
++                reg = "edge"
++            elif ib == ifw:
++                reg = "steady"
++            else:
++                reg = "transition"
++            cand = [c for c in (ib, ifw) if c is not None]
++            sig = [c for c in sorted(set(cand)) if abs(e["rate"] - 1.25e-5 * c) < 1e-12]
++            gb_r = None if gb is None else round(gb, 6)
++            gf_r = None if gf is None else round(gf, 6)
++            # resolution rules, in priority order; each is scored against the zip over full history in V1 (only rules at 100% are used)
++            rules = []
++            if reg == "steady":
++                rules.append(("structure_steady", ib))
++            if reg == "transition" and gb_r in (2.0, 3.0) and ifw is not None and ifw > gb_r:
++                rules.append(("structure_gap%g_into_longer" % gb_r, ifw))
++            if reg == "transition" and gb_r == 1.0 and gf_r in (2.0, 3.0):
++                rules.append(("structure_last_1h_before_gap%g" % gf_r, ib))
++            if reg == "transition" and gb_r in (4.0, 8.0) and gf_r == 1.0 and abs(abs(e["rate"]) - 0.02) < 1e-12:
++                rules.append(("cap_signature_%gh_to_1h" % gb_r, ib))
++            if reg in ("transition", "edge") and len(sig) == 1:
++                rules.append(("interest_signature", float(sig[0])))
++            if e.get("iv_zip") is not None:
++                for nm, val in rules:
++                    v = v1.setdefault(nm + ("" if reg != "edge" else "_edge"), [0, 0]); v[0] += 1; v[1] += int(val == e["iv_zip"])
++                if reg == "transition":
++                    v = v1.setdefault("transition_zip_equals_back", [0, 0]); v[0] += 1; v[1] += int(ib == e["iv_zip"])
++                    v = v1.setdefault("transition_zip_equals_fwd", [0, 0]); v[0] += 1; v[1] += int(ifw == e["iv_zip"])
++            # EXACT = rules that equal the zip on every scored row of the full history (V1; steady has 2 exchange anomalies in 2.52M);
++            # LIKELY = rules below 100% (support written into the row)
++            EXACT = {"structure_steady", "structure_last_1h_before_gap2", "structure_last_1h_before_gap3", "cap_signature_4h_to_1h",
++                     "cap_signature_8h_to_1h", "interest_signature"}
++            LIKELY = {"structure_gap3_into_longer": "40/41", "structure_gap2_into_longer": "52/62"}
++            likely = ""; likely_sup = ""
++            if e.get("iv_zip") is not None:
++                best, bsrc = e["iv_zip"], "zip"
++            else:
++                usable = [(nm, val) for nm, val in rules if nm in EXACT]
++                vals = {val for nm, val in usable}
++                if len(vals) == 1:
++                    best, bsrc = usable[0][1], "+".join(nm for nm, _ in usable)
++                elif len(vals) > 1:
++                    best, bsrc = None, "conflicting_rules:" + ",".join(f"{nm}={val:g}" for nm, val in usable)
++                else:
++                    best, bsrc = None, "unresolved_" + reg
++                lk = [(nm, val) for nm, val in rules if nm in LIKELY]
++                if best is None and lk:
++                    likely = lk[0][1]; likely_sup = f"{lk[0][0]} {LIKELY[lk[0][0]]}"
++            if ft < LO: continue
++            inprod = "iv_producer" in e
++            pv = e.get("iv_producer")
++            if not inprod: pvb = "not_in_producer_ledger"
++            elif best is None: pvb = "unresolved"
++            else: pvb = "match" if pv == best else "mismatch"
++            ivx = e.get("iv_exec")
++            if reg == "transition" and ivx:
++                v2["switch_up_rows_with_exec"] += 1
++                if best is not None and ivx == {best}: v2["exec_equals_best"] += 1
++                else: v2["disagree"].append((s, T(ft), sorted(x for x in ivx if x is not None), best, bsrc))
++            cls_counts[(reg, pvb)] = cls_counts.get((reg, pvb), 0) + 1
++            if pvb == "mismatch": mism.append((s, T(ft), pv, best, bsrc, reg, e["rate"]))
++            out_rows.append([s, ft, T(ft), repr(e["rate"]), e.get("pod2_src", 0), int(inprod), pv, e.get("iv_seed_aug"), e.get("iv_seed_v3"), e.get("iv_zip"),
++                             "|".join(str(x) for x in sorted(ivx, key=lambda x: (x is None, x))) if ivx else "", None if gb is None else round(gb, 6),
++                             None if gf is None else round(gf, 6), ib, ifw, reg, ("|".join("%g" % c for c in cand) if reg == "transition" else ""), best, bsrc, likely, likely_sup, pvb])
++    os.makedirs(OUT, exist_ok=True)
++    fn = OUT + f"/P9_declared_interval_table_{T(LO)[:10]}_{T(HI)[:13]}Z.csv.gz"
++    buf = io.StringIO(); w = csv.writer(buf, lineterminator="\n"); w.writerow(header)
++    for r in out_rows: w.writerow(["" if x is None else x for x in r])
++    raw = buf.getvalue().encode()
++    with open(fn, "wb") as f:
++        f.write(gzip.compress(raw, mtime=0))
++    rc = dict(self_sha256=H.gsha(os.path.abspath(__file__)), harness_sha256=H.gsha(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fx_harness.py")),
++              window=[T(LO), T(HI)], output=fn, output_sha256=H.gsha(fn), csv_sha256=hashlib.sha256(raw).hexdigest(), n_rows=len(out_rows),
++              n_symbols=len({r[0] for r in out_rows}), inputs_sha256=shas, rate_conflicts_across_sources=conflicts, n_executor_records=n_ex, executor_matched_with_1s_shift=n_ex_shifted, executor_unmatched_rows=n_ex_unmatched, executor_rate_mismatch=n_ex_rate_mismatch,
++              regime_x_producer_counts={f"{a}|{b}": c for (a, b), c in sorted(cls_counts.items())},
++              V1_rules_vs_zip_2026_01_01_to_07_31={k: dict(rows=v[0], equal=v[1], share=round(v[1] / v[0], 6) if v[0] else None) for k, v in v1.items()},
++              V2_exec_labels_at_transition_rows=dict(rows=v2["switch_up_rows_with_exec"], exec_equals_best=v2["exec_equals_best"], other=v2["disagree"][:60], note="executor labels are fundingInfo read AFTER the settlement (pull time) and are not per-settlement truth"),
++              producer_mismatch_rows=len(mism), producer_mismatches=mism[:400], runtime_s=round(time.time() - t0, 1),
++              built_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
++    json.dump(rc, open(OUT + "/RECEIPT_P9_declared_interval_table.json", "w"), indent=1, default=str)
++    print(json.dumps({k: v for k, v in rc.items() if k not in ("producer_mismatches", "inputs_sha256")}, indent=1, default=str))
++    print("SUMMARY p9_declared_interval_table rows=%d mismatches=%d" % (len(out_rows), len(mism)))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/fx/p9_rule_eval.py b/fx/p9_rule_eval.py
+new file mode 100644
+index 0000000..b37e9e4
+--- /dev/null
++++ b/fx/p9_rule_eval.py
+@@ -0,0 +1,164 @@
++#!/usr/bin/env python3
++"""p9_rule_eval.py — FIXPROGRAM 2026-09-13 P9: settlement-interval labelling rules scored against the exchange-declared zip column
++(data.binance.vision `funding_interval_hours`) over full history, with the exact v1-EMA and FTRIM impact of every mislabel.
++Input: ledger_full.npz (zip U API rows; zip_iv = declared interval, NaN for API-only rows). READ-ONLY. CPU only.
++Producer timing model: anchors on the 4h UTC grid; the producer reads funding at A + 16 min and appends every settlement in (A-4h, A];
++the latest row of a batch is the last settlement <= A. fundingInfo model (validated separately on the executor's pull-time records):
++fundingInfo read at time P reports the declared interval of the first settlement strictly after P.
++Rules (label of each row as finally recorded; 'at_anchor' = the label in force when that row is the latest row at its anchor):
++  R1  back        snap(backward gap)  [today: shadow_loop_v3.py L341-342; tie 3h -> 2h]
++  R1u back_tieup  snap with ties rounded up
++  R2  maxbf       max(snap back, snap fwd), retroactive exact correction (at_anchor = R1 for the latest row)
++  R3  fi_last     latest row of the batch <- fundingInfo(A+16m); other rows <- snap(back)
++  R3a fi_all      every row of the batch <- fundingInfo(A+16m)   [executor pilot_log semantics]
++  R4  max_fi      latest row <- max(snap back, fundingInfo(A+16m)); other rows <- snap(back)
++  R5  exec_med3   dl_quant_live signal/funding_panel.py derive_interval_h (k=3 median of rounded backward diffs; retroactive; at_anchor = the
++                  same function on rows <= A with interval_now = fundingInfo(A+16m))
++  ZIP truth: zip_iv.
++Metrics per rule and year: rows scored, final mislabels, at-anchor mislabels; EMA error D(A) over fresh (<=12h) anchor x symbol cells
++(D = exact linear effect of the label errors on acc, v1 recursion rn = rate*8/iv, HL 3d); FTRIM flips = cells where the latest row is fresh,
++rate < 0 and (rate*8/iv_at_anchor <= -1e-3) != (rate*8/iv_zip <= -1e-3)."""
++import os, sys, json, time, hashlib
++import numpy as np
++
++HL = 3 * 86400.0
++ALLOWED = np.array([1.0, 2.0, 4.0, 6.0, 8.0])
++INP = sys.argv[1]; OUTP = sys.argv[2]
++
++
++def snap_down(g):
++    g = np.where((g > 0) & (g <= 24), g, 8.0)
++    return ALLOWED[np.argmin(np.abs(g[:, None] - ALLOWED[None, :]), axis=1)]      # argmin -> first minimum = lower tie
++
++
++def snap_up(g):
++    g = np.where((g > 0) & (g <= 24), g, 8.0)
++    d = np.abs(g[:, None] - ALLOWED[None, :])
++    return ALLOWED[(d.shape[1] - 1) - np.argmin(d[:, ::-1], axis=1)]               # last minimum = upper tie
++
++
++def exec_med3(ft_s, interval_now=None):
++    """verbatim port of dl_quant_live signal/funding_panel.py derive_interval_h (d91303e7) with ms->s."""
++    f = np.asarray(ft_s, np.float64) * 1000.0; n = len(f)
++    if n == 0: return np.zeros(0)
++    if n == 1: return np.array([interval_now if interval_now else 8.0])
++    dt = np.round(np.diff(f) / 3_600_000.0)
++    b = np.empty(n); b[0] = dt[0]; b[1:] = dt
++    b = np.where((b > 0) & (b <= 24), b, 8.0)
++    bp = np.pad(b, (1, 1), mode="edge")
++    win = np.lib.stride_tricks.sliding_window_view(bp, 3)
++    med = np.median(win, axis=1)
++    med = ALLOWED[np.argmin(np.abs(med[:, None] - ALLOWED[None, :]), axis=1)]
++    if interval_now:
++        j = n - 1
++        while j > 0 and med[j - 1] == med[-1]:
++            j -= 1
++        med[j:] = float(interval_now)
++    return med
++
++
++def main():
++    t0 = time.time()
++    h = hashlib.sha256(open(INP, "rb").read()).hexdigest()
++    z = np.load(INP); syms = [str(s) for s in z["symbols"]]; off = z["off"]; FT = z["ft"]; RT = z["rate"]; ZIV = z["zip_iv"]
++    RULES = ["R1_back", "R1u_back_tieup", "R2_maxbf", "R3_fi_last", "R3a_fi_all", "R4_max_fi", "R5_exec_med3"]
++    acc = {}      # (rule, year) -> metrics
++    ex = {r: [] for r in RULES}
++    amb = {}      # class stats of transition rows vs zip
++    def M(rule, yr):
++        return acc.setdefault((rule, yr), dict(rows=0, mis_final=0, mis_at_anchor=0, cells=0, ema_gt_1e9=0, ema_gt_1e7=0, ema_rel_gt_1pct=0, ema_max=0.0, ftrim_flip=0, ftrim_false_trim=0, ftrim_missed_trim=0))
++    for j, s in enumerate(syms):
++        a, b = int(off[j]), int(off[j + 1])
++        ft = FT[a:b].astype(np.int64); rt = RT[a:b].astype(np.float64); zi = ZIV[a:b].astype(np.float64)
++        n = len(ft)
++        if n < 3: continue
++        gb = np.empty(n); gb[0] = np.nan; gb[1:] = np.diff(ft) / 3600.0
++        gf = np.empty(n); gf[-1] = np.nan; gf[:-1] = np.diff(ft) / 3600.0
++        back = snap_down(np.nan_to_num(gb, nan=8.0)); back[0] = 8.0
++        backu = snap_up(np.nan_to_num(gb, nan=8.0)); backu[0] = 8.0
++        fwd = snap_down(np.nan_to_num(gf, nan=-1.0)); fwd[-1] = back[-1]
++        # batches: anchor of each row = ceil to 4h grid (row exactly on the grid belongs to that anchor)
++        anc = ((ft + 14399) // 14400) * 14400
++        latest = np.ones(n, bool); latest[:-1] = anc[:-1] != anc[1:]
++        P = anc + 960
++        nxt = np.searchsorted(ft, P, side="right")                                 # first settlement strictly after the pull
++        fi = np.where(nxt < n, zi[np.minimum(nxt, n - 1)], np.nan)                 # fundingInfo model
++        fi_ok = np.isfinite(fi)
++        lab = {}; lab_anchor = {}
++        lab["R1_back"] = back; lab_anchor["R1_back"] = back
++        lab["R1u_back_tieup"] = backu; lab_anchor["R1u_back_tieup"] = backu
++        mx = np.maximum(back, fwd); lab["R2_maxbf"] = mx; lab_anchor["R2_maxbf"] = np.where(latest, back, mx)
++        r3 = np.where(latest & fi_ok, fi, back); lab["R3_fi_last"] = r3; lab_anchor["R3_fi_last"] = r3
++        # R3a: every row of the batch takes the fundingInfo value read for its batch
++        r3a = np.where(fi_ok, fi, back); lab["R3a_fi_all"] = r3a; lab_anchor["R3a_fi_all"] = r3a
++        r4 = np.where(latest & fi_ok, np.maximum(back, np.nan_to_num(fi, nan=0.0)), back); lab["R4_max_fi"] = r4; lab_anchor["R4_max_fi"] = r4
++        med = exec_med3(ft); lab["R5_exec_med3"] = med
++        # at-anchor label for R5: derive on rows <= A with interval_now = fundingInfo(A+16m), evaluated only for latest rows (cost: one call per latest row)
++        # closed form (the trailing run always contains the last row, so interval_now labels it; without interval_now the edge-padded
++        # window (b[k-1], b[k], b[k]) has median b[k]); verified against the function itself on sampled rows below
++        rb = snap_down(np.where(np.isfinite(gb), np.round(gb), 8.0)); rb[0] = 8.0
++        r5a = np.where(latest, np.where(fi_ok, fi, rb), med)
++        rng = np.random.default_rng(j)
++        for k in rng.choice(np.where(latest)[0], size=min(20, int(latest.sum())), replace=False):
++            lo = max(0, k - 400)
++            v = exec_med3(ft[lo:k + 1], fi[k] if np.isfinite(fi[k]) else None)
++            assert v[-1] == r5a[k], (s, int(ft[k]), v[-1], r5a[k])
++        lab_anchor["R5_exec_med3"] = r5a
++        yrs = (1970 + (ft // 86400 + 0.5) / 365.2425).astype(int)
++        scored = np.isfinite(zi)
++        truth = np.where(scored, zi, np.nan)
++        # transition-row census against zip
++        for k in np.where(scored & np.isfinite(gb) & np.isfinite(gf))[0]:
++            if back[k] != fwd[k]:
++                key = f"back{back[k]:g}_fwd{fwd[k]:g}_gapback{round(gb[k], 2):g}_zip{zi[k]:g}"
++                amb[key] = amb.get(key, 0) + 1
++        # anchors where this symbol's latest row is fresh: evaluate on each latest row (the row is the one in force for its anchor ... next anchor)
++        a_k = np.empty(n); a_k[0] = 1.0; a_k[1:] = 1 - 0.5 ** (np.maximum(np.diff(ft), 1) / HL)
++        rn_true = np.where(scored, rt * 8.0 / np.where(scored, zi, 1.0), np.nan)
++        # true acc along rows (loop; needed for relative error); rows before the first scored row are skipped from metrics
++        acc_true = np.empty(n); cur = None
++        for k in range(n):
++            rnk = rn_true[k] if np.isfinite(rn_true[k]) else rt[k] * 8.0 / back[k]
++            cur = rnk if cur is None else cur + a_k[k] * (rnk - cur); acc_true[k] = cur
++        for rule in RULES:
++            L = lab[rule]; LA = lab_anchor[rule]
++            dfinal = np.where(scored, L != truth, False)
++            drn_final = np.where(scored, rt * 8.0 * (1.0 / L - 1.0 / np.where(scored, zi, 1.0)), 0.0)
++            # D at each row index k (final labels): D_k = (1-a_k) D_{k-1} + a_k drn_k
++            D = np.empty(n); cur = 0.0
++            for k in range(n):
++                cur = (1 - a_k[k]) * cur + a_k[k] * drn_final[k] if k else a_k[0] * drn_final[0]; D[k] = cur
++            # at-anchor: the latest row may carry a provisional label -> extra error a_k * (drn_anchor - drn_final) on that row only
++            drn_anchor = np.where(scored, rt * 8.0 * (1.0 / LA - 1.0 / np.where(scored, zi, 1.0)), 0.0)
++            D_anchor = D + np.where(latest, a_k * (drn_anchor - drn_final), 0.0)
++            for yr in np.unique(yrs[scored]):
++                sel = scored & (yrs == yr)
++                m = M(rule, int(yr))
++                m["rows"] += int(sel.sum()); m["mis_final"] += int((dfinal & sel).sum())
++                m["mis_at_anchor"] += int(((LA != truth) & sel & latest).sum())
++                cs = sel & latest
++                m["cells"] += int(cs.sum())
++                dd = np.abs(D_anchor[cs])
++                m["ema_gt_1e9"] += int((dd > 1e-9).sum()); m["ema_gt_1e7"] += int((dd > 1e-7).sum())
++                m["ema_rel_gt_1pct"] += int((dd > 0.01 * np.maximum(np.abs(acc_true[cs]), 1e-12)).sum())
++                if dd.size: m["ema_max"] = max(m["ema_max"], float(dd.max()))
++                neg = cs & (rt < 0)
++                tr_rule = (rt * 8.0 / LA) <= -1e-3; tr_true = (rt * 8.0 / np.where(scored, zi, 1.0)) <= -1e-3
++                flip = neg & (tr_rule != tr_true)
++                m["ftrim_flip"] += int(flip.sum()); m["ftrim_false_trim"] += int((flip & tr_rule).sum()); m["ftrim_missed_trim"] += int((flip & tr_true).sum())
++            bad = np.where(dfinal)[0]
++            for k in bad[:3]:
++                if len(ex[rule]) < 60:
++                    ex[rule].append((s, time.strftime("%Y-%m-%d %H:%M", time.gmtime(int(ft[k]))), float(gb[k]) if np.isfinite(gb[k]) else None, float(gf[k]) if np.isfinite(gf[k]) else None, float(L[k]), float(zi[k]), float(rt[k])))
++    out = dict(input=INP, input_sha256=h, self_sha256=hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(),
++               per_rule_year={f"{r}|{y}": v for (r, y), v in sorted(acc.items())},
++               totals={r: {k: sum(v[k] for (rr, y), v in acc.items() if rr == r) if k != "ema_max" else max(v[k] for (rr, y), v in acc.items() if rr == r)
++                           for k in ("rows", "mis_final", "mis_at_anchor", "cells", "ema_gt_1e9", "ema_gt_1e7", "ema_rel_gt_1pct", "ema_max", "ftrim_flip", "ftrim_false_trim", "ftrim_missed_trim")} for r in RULES},
++               transition_census_vs_zip=dict(sorted(amb.items(), key=lambda x: -x[1])), examples=ex, runtime_s=round(time.time() - t0, 1),
++               python=sys.version.split()[0], numpy=np.__version__, utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
++    json.dump(out, open(OUTP, "w"), indent=1)
++    print(json.dumps(out["totals"], indent=1)); print("SUMMARY p9_rule_eval rules=%d runtime_s=%.1f" % (len(RULES), out["runtime_s"]))
++
++
++if __name__ == "__main__":
++    main()

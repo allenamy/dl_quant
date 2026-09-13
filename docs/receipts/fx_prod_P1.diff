@@ -1,0 +1,514 @@
+diff --git a/fx/fx_harness.py b/fx/fx_harness.py
+new file mode 100644
+index 0000000..ea4c38a
+--- /dev/null
++++ b/fx/fx_harness.py
+@@ -0,0 +1,138 @@
++#!/usr/bin/env python3
++"""fx_harness.py — offline harness for FIXPROGRAM 2026-09-13 FX-PROD (P1 P2 P5 P6). READ-ONLY on ~/wide_shadow and ~/dl_quant_live.
++(1) Replay devices are generated from the producer code under test (a file path, normally this repo's working tree or a git blob) by
++    EXECUTING the Phase-1 generators themselves (parity_replay_2026-09-12/devices/mk_replay_device.py 5b0f1e45…,
++    mk_combo_replay_device.py e29a2a89…) with only their input path and timestamp substituted; self-test: fed the live production files and
++    the Phase-1 timestamps they must reproduce the Phase-1 devices byte-for-byte (4d3bc157… / f5ba9a82…).
++(2) Training-definition v0 oracle = pod_panel_ext.py (db7f0474…) L124-133 recursion on the raw rate, value at anchor = state after the last
++    row with ft <= anchor, stale (anchor - last ft > 12h) => no value (panel L160-162).
++(3) Funding-row union across frozen sources with exact conflict accounting."""
++import os, sys, io, json, time, hashlib, stat, subprocess
++import numpy as np
++
++HOME = os.path.expanduser("~")
++WS = HOME + "/wide_shadow"
++FX = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))          # repo root (/Users/haosiyu/cc_tmp/fx_prod)
++WORK = FX + "/work"
++FROZEN = WORK + "/frozen"
++RES = "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research"
++PH1 = RES + "/parity_replay_2026-09-12/devices"
++PH1_KING_GEN_SHA = "5b0f1e4592f890e560c03e4cc54d1ee570c31f158748ad4d72549279fc6c9f74"
++PH1_COMBO_GEN_SHA = "e29a2a8970efbaa2689bdaed9012f5ae724472c64696661315b5cfc46eba2e37"
++PH1_KING_DEV_SHA = "4d3bc157f03e3462a69e64f817b3fd4cd51be4c03d72650304b7d0c1a0089d42"
++PH1_COMBO_DEV_SHA = "f5ba9a8234ef0c01ee1aa5bdb0ebd87e8e7093c10b164e37f4fc10f97bc7f77b"
++PH1_KING_TS = "2026-09-12T09:23:24Z"; PH1_COMBO_TS = "2026-09-12T09:39:08Z"
++HL = 3 * 86400.0
++SF_DATALESS = 0x40000000
++
++
++def gsha(p):
++    """sha256 that refuses APFS dataless files and short reads (T6 guard rule)."""
++    st = os.stat(p)
++    if st.st_flags & SF_DATALESS:
++        raise SystemExit("REFUSE %s: dataless" % p)
++    h = hashlib.sha256(); n = 0
++    with open(p, "rb") as f:
++        for b in iter(lambda: f.read(1 << 22), b""):
++            h.update(b); n += len(b)
++    if n != st.st_size:
++        raise SystemExit("REFUSE %s: short read" % p)
++    return h.hexdigest()
++
++
++def _exec_generator(gen_path, gen_sha, live_src_literal, src_path, out_path, ts):
++    code = open(gen_path, encoding="utf-8").read()
++    assert hashlib.sha256(code.encode()).hexdigest() == gen_sha, ("Phase-1 generator changed", gen_path)
++    assert code.count(live_src_literal) == 1, (gen_path, live_src_literal)
++    code = code.replace(live_src_literal, repr(src_path))
++    tsx = 'time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())'
++    assert code.count(tsx) == 1, gen_path
++    code = code.replace(tsx, repr(ts))
++    g = {"__name__": "__fx_gen__", "__file__": gen_path}
++    old_argv = sys.argv; old_out = sys.stdout
++    sys.argv = [gen_path, out_path]; sys.stdout = io.StringIO()
++    try:
++        exec(compile(code, gen_path, "exec"), g)
++        printed = sys.stdout.getvalue()
++    finally:
++        sys.argv = old_argv; sys.stdout = old_out
++    return json.loads(printed.strip().splitlines()[-1])
++
++
++def gen_king_device(src_path, out_path, ts=PH1_KING_TS, extra_repl=()):
++    """Phase-1 king device from src_path; extra_repl = ((old, new), ...) once-only replacements applied AFTER the generator (arm flags)."""
++    rc = _exec_generator(PH1 + "/mk_replay_device.py", PH1_KING_GEN_SHA, 'os.path.expanduser("~/wide_shadow/shadow_loop_v3.py")', src_path, out_path, ts)
++    return _apply_extra(out_path, rc, extra_repl)
++
++
++def gen_combo_device(src_path, out_path, ts=PH1_COMBO_TS, extra_repl=()):
++    rc = _exec_generator(PH1 + "/mk_combo_replay_device.py", PH1_COMBO_GEN_SHA, 'os.path.expanduser("~/wide_shadow/fea171/combo_stage.py")', src_path, out_path, ts)
++    return _apply_extra(out_path, rc, extra_repl)
++
++
++def _apply_extra(out_path, rc, extra_repl):
++    txt = open(out_path, encoding="utf-8").read()
++    for old, new in extra_repl:
++        assert txt.count(old) == 1, ("extra replacement not unique", old, txt.count(old))
++        txt = txt.replace(old, new)
++    if extra_repl:
++        open(out_path, "w", encoding="utf-8").write(txt)
++    rc = dict(rc); rc["device_sha256"] = hashlib.sha256(txt.encode()).hexdigest(); rc["extra_replacements"] = [list(x) for x in extra_repl]
++    return rc
++
++
++def selftest_generators(tmpdir):
++    """Fed the LIVE production files with the Phase-1 timestamps, the generators must reproduce the Phase-1 devices byte-for-byte."""
++    os.makedirs(tmpdir, exist_ok=True)
++    k = gen_king_device(WS + "/shadow_loop_v3.py", tmpdir + "/k.py")
++    c = gen_combo_device(WS + "/fea171/combo_stage.py", tmpdir + "/c.py")
++    return dict(king_ok=k["device_sha256"] == PH1_KING_DEV_SHA == gsha(PH1 + "/shadow_loop_v3_replay.py"),
++                combo_ok=c["device_sha256"] == PH1_COMBO_DEV_SHA == gsha(PH1 + "/combo_stage_replay.py"), king=k, combo=c)
++
++
++# ---------------------------------------------------------------- funding rows / v0 oracle
++def rows_union(sources):
++    """sources: list of (tag, {sym: [[ft, rate, iv], ...]}). Returns ({sym: [(ft, rate)] strictly increasing}, audit).
++    A second that appears in several sources must carry the same rate in all of them (conflicts are counted and listed)."""
++    out = {}; conflicts = []; nrows = 0
++    for tag, led in sources:
++        for s, rows in led.items():
++            d = out.setdefault(s, {})
++            for r in rows:
++                ft = int(r[0]); rate = float(r[1]); nrows += 1
++                if ft in d and d[ft][0] != rate:
++                    conflicts.append((s, ft, d[ft][0], rate, d[ft][1], tag))
++                    continue
++                if ft not in d:
++                    d[ft] = (rate, tag)
++    res = {s: [(t, d[t][0]) for t in sorted(d)] for s, d in out.items()}
++    return res, dict(n_input_rows=nrows, n_names=len(res), conflicts=conflicts[:50], n_conflicts=len(conflicts))
++
++
++def v0_state_after(rows, t_cut):
++    """Training v0 (pod_panel_ext.py L124-133) after all rows with ft <= t_cut: acc = first rate; acc += a*(rate-acc), a = 1-0.5**(max(dt,1)/3d)."""
++    acc = None; prev = None
++    for ft, rate in rows:
++        if ft > t_cut:
++            break
++        if acc is None:
++            acc = rate
++        else:
++            a = 1 - 0.5 ** (max(ft - prev, 1) / HL)
++            acc = acc + a * (rate - acc)
++        prev = ft
++    return (None if acc is None else {"acc": acc, "last_ts": prev})
++
++
++def frozen_ledger_sources(include=("seed_aug", "seed_v3", "pre_m1", "snap_1789200000", "snap_1789214400", "snap_1789228800", "snap_1789243200", "t4snap_1789272000", "live_1789300800")):
++    paths = {"seed_aug": WS + "/shadow_bundle.aug20260816_backup/funding_ledger_seed.json",
++             "seed_v3": WS + "/shadow_bundle/funding_ledger_seed.json",
++             "pre_m1": FROZEN + "/live_1789300800/state/aux_pre_m1_20260904.json",
++             "snap_1789200000": FROZEN + "/snap_1789200000/aux.json", "snap_1789214400": FROZEN + "/snap_1789214400/aux.json",
++             "snap_1789228800": FROZEN + "/snap_1789228800/aux.json", "snap_1789243200": FROZEN + "/snap_1789243200/aux.json",
++             "t4snap_1789272000": FROZEN + "/t4snap_1789272000/state/aux.json", "live_1789300800": FROZEN + "/live_1789300800/state/aux.json"}
++    out = []; shas = {}
++    for k in include:
++        p = paths[k]; shas[k] = gsha(p); J = json.load(open(p))
++        out.append((k, J["ledger_tail"] if "ledger_tail" in J else J))
++    return out, shas
+diff --git a/fx/fx_state.py b/fx/fx_state.py
+new file mode 100644
+index 0000000..37d2e78
+--- /dev/null
++++ b/fx/fx_state.py
+@@ -0,0 +1,68 @@
++#!/usr/bin/env python3
++"""fx_state.py — producer state from frozen snapshots for FX-PROD tests and devices (READ-ONLY inputs).
++Mirrors parity_replay_2026-09-12/devices/replay_driver.py build_state_from_snapshot (G-P3 forward mode): the float64 state saved at the
++close of anchor S, the cache frozen after anchor A (rows <= A are what the live process held after its own fetch at A), and the ledger
++rows served for (S, A] from the ledger frozen after A."""
++import os, sys, json, importlib.util, time
++import numpy as np
++sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
++import fx_harness as H
++
++
++def import_device(path, modname, home, bundle):
++    os.environ["WIDE_SHADOW_HOME"] = home; os.environ["WIDE_SHADOW_BUNDLE"] = bundle
++    os.makedirs(home + "/state", exist_ok=True)
++    spec = importlib.util.spec_from_file_location(modname, path); mod = importlib.util.module_from_spec(spec)
++    sys.modules[modname] = mod; spec.loader.exec_module(mod)
++    assert mod.STATE_DIR == home + "/state" and mod.BUNDLE == bundle, (mod.STATE_DIR, mod.BUNDLE)
++    mod.ShadowState.save = lambda self: None
++    return mod
++
++
++class RecBooster:
++    """Records the exact matrix the device feeds the booster and the returned scores; delegates unchanged (T4 driver RecBooster)."""
++    def __init__(self, b): self.b = b; self.last = None
++    def predict(self, X):
++        p = self.b.predict(X); self.last = (np.array(X, dtype=np.float32, copy=True), np.array(p, dtype=np.float64, copy=True)); return p
++
++
++def state_from_snapshot(dev, cfg, snap_aux_path, snap_lr_path, rolling_path, bundle):
++    st = dev.ShadowState.__new__(dev.ShadowState)
++    st.syms = cfg["symbols_panel"]; st.live = cfg["symbols_live"]; st.NW = len(st.syms)
++    st.sym_idx = {s: j for j, s in enumerate(st.syms)}
++    st.live_mask = np.zeros(st.NW, bool); st.live_mask[[st.sym_idx[s] for s in st.live if s in st.sym_idx]] = True
++    z = np.load(rolling_path, allow_pickle=True); st.cts = z["ts"].astype(np.int64); st.cd = z["data"].astype(np.float16)
++    aux = json.load(open(snap_aux_path))
++    st.prev_close = {k: float(v) for k, v in aux["prev_close"].items()}
++    st.H = np.zeros(st.NW)
++    for k, v in aux["H"].items(): st.H[int(k)] = float(v)
++    st.last_anchor = int(aux["last_anchor"]); st.ema = aux["ema"]; st.ledger = {s: [list(r) for r in rows] for s, rows in aux["ledger_tail"].items()}
++    st.prev_rec = aux.get("prev_rec"); st.base = list(aux.get("base_syms") or st.live)
++    lr = np.load(bundle + "/leg_returns.npz"); extra = json.load(open(snap_lr_path))
++    st.LR = {leg: list(lr[leg]) + list(extra[leg]) for leg in ("king", "rev24", "fund")}
++    return st, aux
++
++
++def full_rows(include_pod2=True):
++    """{sym: [(ft, rate)]} = pod2 ledger_full (zip ∪ API, <= 09-01 02:00Z) ∪ every frozen Mac ledger source; rates must agree exactly."""
++    src, shas = H.frozen_ledger_sources()
++    if include_pod2:
++        p = H.WORK + "/pod2_inputs/ledger_full.npz"; shas["pod2_ledger_full"] = H.gsha(p)
++        assert shas["pod2_ledger_full"] == "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
++        z = np.load(p); syms = [str(s) for s in z["symbols"]]; off = z["off"]; ft = z["ft"]; rate = z["rate"]
++        led = {s: [[int(t), float(r), 0.0] for t, r in zip(ft[off[j]:off[j + 1]], rate[off[j]:off[j + 1]])] for j, s in enumerate(syms)}
++        src = [("pod2_ledger_full", led)] + src
++    rows, audit = H.rows_union(src)
++    assert audit["n_conflicts"] == 0, audit["conflicts"][:5]
++    return rows, audit, shas
++
++
++def v0_state_matching(ema, rows):
++    """ema_v0 for every name in ema: training v0 after all rows with ft <= that name's ema last_ts (so last_ts matches by construction)."""
++    out = {}; bad = []
++    for s, est in ema.items():
++        v = H.v0_state_after(rows.get(s, []), int(est["last_ts"]))
++        if v is None or v["last_ts"] != int(est["last_ts"]):
++            bad.append(s); continue
++        out[s] = v
++    return out, bad
+diff --git a/shadow_loop_v3.py b/shadow_loop_v3.py
+index e7c3f60..e19a73f 100644
+--- a/shadow_loop_v3.py
++++ b/shadow_loop_v3.py
+@@ -174,12 +174,23 @@ def score_tail_positions(fx, syms, idx_w, T, fetch=None):
+ EXIT_ON_LEAVE = True       # (b) 出宇宙即平: 数据宇宙(symbols_live)之外的名权重归零, 强制交易不受带约束, 计入换手/成本
+ EXIT_NON_MEMBERS = True    # v3 (lead 2026-08-22): 离开 K400 成员集的名也即平 ⇒ 纸面书 ≡ 可执行书(目标文件只含宇宙内成员); WA 提案默认 False
+ FORCED_EXIT_COST_BPS = 4.7 # 强制平仓按最差档(tier2)成本计: 0.55×2.0 + 0.45×8.0
++FUND_COL80_V0 = True       # P1(FIXPROGRAM 2026-09-13): king 第 80 列按训练口径服务 v0 = 原始费率墙钟 HL3d EMA(pod_panel_ext.py L124-133);
++                           #   fund 腿 / 秩基 / carry / FTRIM 仍用 v1(rate×8/iv)。v0 态与 v1 同行同 a 递推, 同 aux.json 原子写。
+ 
+ def exit_out_of_universe(sm, H, keep_mask):
+     """把 keep_mask 为 False 的名的目标持仓置 0(强制, 不受带约束). 返回 (sm_new, forced_trade_abs_sum, n_forced)."""
+     leave = (~keep_mask) & (np.abs(sm) > 1e-12)
+     forced = float(np.abs(sm[leave]).sum()); sm2 = np.where(leave, 0.0, sm)
+     return sm2, forced, int(leave.sum())
++
++def ema_v0_problems(ema, ema_v0):
++    """P1: v0 态与 v1 态必须同名集且逐名 last_ts 相同(同一批结算行递推的必要条件); 返回 [(name, reason)]。"""
++    out = [(s, "v0_missing") for s in ema if s not in ema_v0] + [(s, "v1_missing") for s in ema_v0 if s not in ema]
++    for s, e in ema.items():
++        e0 = ema_v0.get(s)
++        if isinstance(e0, dict) and (not isinstance(e, dict) or int(e0.get("last_ts", -1)) != int(e.get("last_ts", -2))):
++            out.append((s, "last_ts"))
++    return out
+ WINS = (48, 288, 864, 2016, 8640)
+ CACHE_ROWS = 11520  # 40d
+ 
+@@ -203,6 +214,9 @@ class ShadowState:
+                    "ledger_tail": {}, "prev_rec": None}
+             lg = json.load(open(f"{BUNDLE}/funding_ledger_seed.json"))
+             aux["ledger_tail"] = {s: rows[-400:] for s, rows in lg.items()}
++            _p0 = f"{BUNDLE}/fund_ema_v0_state.json"   # P1: bundle 自带训练口径 v0 态才可用(须列于 MANIFEST, load_bundle 已验 sha)
++            if os.path.exists(_p0) and "fund_ema_v0_state.json" in json.load(open(f"{BUNDLE}/MANIFEST.json")):
++                aux["ema_v0"] = json.load(open(_p0))
+             # H bootstrap: bundle 平价信号最末锚的持仓 = 离线轨迹接力点(否则冷启 H=0 偏离 ~30 锚)
+             try:
+                 sig = json.load(open(f"{BUNDLE}/parity_signals_aug.json"))
+@@ -218,6 +232,12 @@ class ShadowState:
+             self.H[int(k)] = float(v)
+         self.last_anchor = int(aux["last_anchor"])
+         self.ema = aux["ema"]; self.ledger = aux["ledger_tail"]
++        self.ema_v0 = aux.get("ema_v0")                                                    # P1
++        if FUND_COL80_V0 and self.ema_v0 is None:
++            print("REFUSE_TO_START: FUND_COL80_V0 but state has no ema_v0 (build offline: migrations/p1_build_ema_v0.py)", flush=True); sys.exit(2)
++        if self.ema_v0 is not None and ema_v0_problems(self.ema, self.ema_v0):
++            _pb = ema_v0_problems(self.ema, self.ema_v0)
++            print(f"REFUSE_TO_START: ema_v0 inconsistent with ema ({len(_pb)}): {_pb[:10]}", flush=True); sys.exit(2)
+         self.prev_rec = aux.get("prev_rec")
+         self.base = list(aux.get("base_syms") or self.live)   # M1: 秩基名单(上锚 exchangeInfo 结果), 缺省 = live
+         lr = np.load(f"{BUNDLE}/leg_returns.npz")
+@@ -233,6 +253,7 @@ class ShadowState:
+             "prev_close": self.prev_close, "H": {str(int(j)): float(self.H[j]) for j in np.where(np.abs(self.H) > 1e-9)[0]},
+             "last_anchor": self.last_anchor, "ema": self.ema, "ledger_tail": {s: r[-400:] for s, r in self.ledger.items()},
+             "base_syms": list(getattr(self, "base", self.live)),   # M1
++            **({"ema_v0": self.ema_v0} if getattr(self, "ema_v0", None) is not None else {}),   # P1: 与 ema 同一次原子写
+             "prev_rec": self.prev_rec})
+         n_keep = 900 + 50
+         atomic_json(f"{STATE_DIR}/leg_returns_live.json",
+@@ -334,6 +355,9 @@ def run_anchor(st, fx, cfg, booster, anchor):
+                                             "endTime": anchor * 1000 + 999, "limit": 100}, weight=1)
+         if isinstance(r, dict): continue
+         est = st.ema.get(s)
++        _v0 = getattr(st, "ema_v0", None)                                                   # P1: 训练口径 v0 态(同行同 a, 原始 rate)
++        est0 = _v0.get(s) if _v0 is not None else None
++        _v0_new = _v0 is not None and est is None and est0 is None                          # P1: 只随 v1 同时冷启动(新名); v1 已有而 v0 缺 ⇒ 不补建, 服务时记缺
+         for row in r:
+             ft = int(row["fundingTime"]) // 1000
+             if ft > anchor: continue
+@@ -347,10 +371,17 @@ def run_anchor(st, fx, cfg, booster, anchor):
+             else:
+                 a = 1 - 0.5 ** (max(ft - est["last_ts"], 1) / (3 * 86400.0))
+                 est = {"acc": est["acc"] + a * (rn - est["acc"]), "last_ts": ft}
++            if est0 is not None or _v0_new:                                                 # P1
++                if est0 is None:
++                    est0 = {"acc": rate, "last_ts": ft}
++                else:
++                    a0 = 1 - 0.5 ** (max(ft - est0["last_ts"], 1) / (3 * 86400.0))
++                    est0 = {"acc": est0["acc"] + a0 * (rate - est0["acc"]), "last_ts": ft}
+             if s in _live_set: fund_updates += 1
+             else: fund_updates_base += 1
+         st.ledger[s] = led[-400:]
+         if est: st.ema[s] = est
++        if est0 is not None: _v0[s] = est0                                                  # P1
+     # ── 5. 特征(与 pod_fea_wide 同公式, 单锚) ──
+     CDf = st.cd.astype(np.float32)
+     ai = row_of[anchor]
+@@ -403,6 +434,7 @@ def run_anchor(st, fx, cfg, booster, anchor):
+             rr[okx] = rankdata(x[okx]) / max(okx.sum() - 1, 1) - 0.5
+         FE_ANCH[:, col] = rr; col += 1
+     fe_v = np.full(st.NW, np.nan); fn_v = np.full(st.NW, np.nan); iv_v = np.full(st.NW, np.nan)
++    fe_v0 = np.full(st.NW, np.nan); _v0 = getattr(st, "ema_v0", None); v0_missing = []     # P1
+     for s in st.live:
+         j = st.sym_idx.get(s)
+         if j is None: continue
+@@ -410,6 +442,9 @@ def run_anchor(st, fx, cfg, booster, anchor):
+         if led and anchor - led[-1][0] <= 12 * 3600:
+             fn_v[j] = led[-1][1]; iv_v[j] = led[-1][2]
+             if est: fe_v[j] = est["acc"]
++            _e0 = _v0.get(s) if (est and _v0 is not None) else None                           # P1: 同一新鲜度; v0 须与 v1 同 last_ts
++            if est and _e0 is not None and _e0.get("last_ts") == est["last_ts"]: fe_v0[j] = _e0["acc"]
++            elif est: v0_missing.append(s)
+     # M1: fund 腿秩基 = 基名单中 ≤12h 有结算且 EMA 存在者(与 fe_v 同新鲜度条件; NaN 不入秩, 不填 0)
+     base_vals = {}
+     for s in base:
+@@ -417,6 +452,8 @@ def run_anchor(st, fx, cfg, booster, anchor):
+         if led and est and anchor - led[-1][0] <= 12 * 3600: base_vals[s] = float(est["acc"])
+     FE_ANCH[:, 80] = np.nan_to_num(fe_v[m], nan=0)
+     FE_ANCH[:, 81] = np.nan_to_num(fn_v[m], nan=0)
++    if FUND_COL80_V0:                                                                        # P1: 第 80 列 = 训练口径 v0(缺 v0 的名 = 0, 同训练缺值约定); 其余列与 fund 腿不变
++        FE_ANCH[:, 80] = np.nan_to_num(fe_v0[m], nan=0)
+     keep = cfg["keep_idx"]
+     X = FE_ANCH[:, keep]
+     pred = booster.predict(X)
+@@ -558,6 +595,9 @@ def run_anchor(st, fx, cfg, booster, anchor):
+                 "runtime_s": round(time.time() - t0, 1),
+                 "base_n": len(base), "fund_base_n": len(base_vals), "fund_updates_base": fund_updates_base, "exinfo_ok": exinfo_ok,   # M1
+                 "booster_sha": cfg.get("_booster_sha", "")[:12]})
++    _mset = {st.syms[int(jj)] for jj in m}                                                   # P1: 第 80 列口径与 v0 缺失名(正常恒 0)
++    append_log({"e": "fund_col80", "anchor_ts": anchor, "caliber": "v0" if FUND_COL80_V0 else "v1", "v0_state": _v0 is not None,
++                "n_fresh_missing_v0": len(v0_missing), "n_members_missing_v0": sum(1 for s_ in v0_missing if s_ in _mset), "missing_v0": v0_missing[:20]})
+     st.save()
+     atomic_json(HEART, {"last_anchor": anchor, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                         "coverage": round(coverage, 4), "status": status})
+diff --git a/tests_fx_prod.py b/tests_fx_prod.py
+new file mode 100644
+index 0000000..993c507
+--- /dev/null
++++ b/tests_fx_prod.py
+@@ -0,0 +1,166 @@
++#!/usr/bin/env python3
++"""tests_fx_prod.py — FIXPROGRAM 2026-09-13 FX-PROD red/green battery (P1 king col 80, P2 V2MAIN col 80 + neighbours, P6 seed loader).
++Real shapes only: frozen producer snapshots (work/frozen, SHA256SUMS), the in-service bundle and booster (read-only), real anchors, real ledger rows.
++Replay devices are generated from THE CODE UNDER TEST (--code <dir>, default = this file's directory) by the Phase-1 generators (fx/fx_harness.py).
++Cell kinds:  RED  = primary evidence, must fail on the live-identical code for the stated numeric reason and pass after the fix;
++             KEEP = must pass before and after (harness sanity / unchanged neighbours);  NEW = mechanism added by the fix (fails before by absence).
++Run: env -i PATH=/usr/bin:/bin HOME=$HOME PYTHONDONTWRITEBYTECODE=1 ~/wide_shadow/venv/bin/python -B tests_fx_prod.py [--code DIR] [P1|P2|P6 ...]
++READ-ONLY on ~/wide_shadow and ~/dl_quant_live; writes only under work/tests/."""
++import os, sys, json, time, shutil, subprocess, hashlib, traceback
++sys.dont_write_bytecode = True
++HERE = os.path.dirname(os.path.abspath(__file__))
++argv = sys.argv[1:]
++CODE = HERE
++if "--code" in argv:
++    i = argv.index("--code"); CODE = os.path.abspath(argv[i + 1]); del argv[i:i + 2]
++CELLS = set(argv) or {"P1", "P2", "P6"}
++sys.path.insert(0, HERE + "/fx")
++import numpy as np
++import fx_harness as H
++import fx_state as S
++
++WS = H.WS; BUNDLE = WS + "/shadow_bundle"; FZ = H.FROZEN
++T_ROOT = H.WORK + "/tests"; os.makedirs(T_ROOT, exist_ok=True)
++RESULTS = []
++
++
++def cell(kind, name, ok, detail=""):
++    RESULTS.append((kind, name, bool(ok)))
++    print(f"  {'OK  ' if ok else 'FAIL'} [{kind}] {name}{(' — ' + str(detail)) if detail != '' else ''}", flush=True)
++
++
++def code_sha(rel):
++    return H.gsha(os.path.join(CODE, rel))
++
++
++def has_flag(rel, flag):
++    return (flag + " = ") in open(os.path.join(CODE, rel), encoding="utf-8").read()
++
++
++# ======================================================================================== P1
++def p1():
++    print("[P1] king column 80: training v0 vs served (snapshot-forward replay at 09-12 12Z; state = close of 08Z)", flush=True)
++    A = 1789214400; SNAP = FZ + "/snap_1789200000"; AFTER = FZ + "/snap_1789214400"; LIVE = FZ + "/live_1789300800"
++    src = os.path.join(CODE, "shadow_loop_v3.py"); flagged = has_flag("shadow_loop_v3.py", "FUND_COL80_V0")
++    rows, audit, shas = S.full_rows()
++    cfg0 = json.load(open(BUNDLE + "/config.json")); KEEP = cfg0["keep_idx"]; assert KEEP.index(80) == 76
++
++    def run(arm, flag_value, ema_v0_mut=None):
++        d = f"{T_ROOT}/p1_{arm}"; shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
++        extra = (("FUND_COL80_V0 = True", "FUND_COL80_V0 = %s" % flag_value),) if (flagged and flag_value is not None) else ()
++        rc = H.gen_king_device(src, d + "/dev.py", extra_repl=extra)
++        dev = S.import_device(d + "/dev.py", "fxdev_p1_" + arm, d + "/home", BUNDLE)
++        cfg, booster, man = dev.load_bundle(); cfg["_booster_sha"] = man.get("slow2026.txt", "")
++        st, aux = S.state_from_snapshot(dev, cfg, SNAP + "/aux.json", SNAP + "/leg_returns_live.json", AFTER + "/rolling.npz", BUNDLE)
++        v0, bad = S.v0_state_matching(st.ema, rows); assert not bad, bad[:5]
++        if ema_v0_mut: ema_v0_mut(v0)
++        st.ema_v0 = v0
++        led_after = {s: [list(r) for r in rr] for s, rr in json.load(open(AFTER + "/aux.json"))["ledger_tail"].items()}
++        fx = dev.ReplayFetcher(st.base, led_after); rb = S.RecBooster(booster)
++        dev.run_anchor(st, fx, cfg, rb, A)
++        log = [json.loads(l) for l in open(d + "/home/shadow_log.jsonl")]
++        return dict(dev=dev, st=st, X=rb.last[0], pred=rb.last[1], log=log, home=d + "/home", rc=rc, cfg=cfg)
++
++    base = run("base", None if not flagged else "True")
++    st = base["st"]; m = np.array(st.prev_rec["members"], np.int64)
++    # --- KEEP R0: the harness reproduces live at A (bitwise content) — so any red below is not a harness artefact
++    rep = np.load(base["home"] + f"/state/weights/{A}.npz"); liv = np.load(LIVE + f"/state/weights/{A}.npz")
++    same = np.array_equal(rep["idx"], liv["idx"]) and np.array_equal(rep["val"], liv["val"]) and np.array_equal(rep["members"], liv["members"])
++    if flagged:
++        # with the fix ON the weights legitimately differ; the sanity is re-run on the flag-OFF arm below
++        pass
++    else:
++        cell("KEEP", "P1-R0 old code: replay king weights at 09-12 12Z == live weights file (idx/val/members bitwise)", same,
++             dict(n_idx=(len(rep["idx"]), len(liv["idx"]))))
++    # --- expected training v0 per member
++    led_after = json.load(open(AFTER + "/aux.json"))["ledger_tail"]
++    fresh = np.array([bool(led_after.get(st.syms[j])) and A - int(led_after[st.syms[j]][-1][0]) <= 12 * 3600 and isinstance(st.ema.get(st.syms[j]), dict) for j in m])
++    exp = np.zeros(len(m), np.float32)
++    for k, j in enumerate(m):
++        if fresh[k]:
++            v = H.v0_state_after(rows[st.syms[j]], A); exp[k] = np.float32(np.nan_to_num(v["acc"], nan=0))
++    served = base["X"][:, 76]
++    mis = served != exp
++    ivl = np.array([float(led_after[st.syms[j]][-1][2]) if led_after.get(st.syms[j]) else np.nan for j in m])
++    ratio = {c: float(np.median((served[(ivl == c) & fresh & (exp != 0)] / exp[(ivl == c) & fresh & (exp != 0)]))) if ((ivl == c) & fresh & (exp != 0)).any() else None for c in (1.0, 4.0, 8.0)}
++    cell("RED", "P1-R1 served X[:,76] (king col 80) == float32(training v0 = pod_panel_ext.py L124-133 on raw rate) for fresh members, 0 otherwise",
++         not mis.any(), dict(members=int(len(m)), fresh=int(fresh.sum()), mismatching_cells=int(mis.sum()), median_served_over_v0_by_iv=ratio))
++    # --- KEEP N1: the fund leg / rank base / old fund z are exactly the live prev_rec of anchor A (fund leg stays v1)
++    live_pr = json.load(open(AFTER + "/aux.json"))["prev_rec"]
++    ok = (st.prev_rec["legz"]["fund"] == live_pr["legz"]["fund"] and st.prev_rec["fund_z_old"] == live_pr["fund_z_old"]
++          and st.prev_rec["fund_base_n"] == live_pr["fund_base_n"] and st.prev_rec["base_n"] == live_pr["base_n"] and st.prev_rec["members"] == live_pr["members"])
++    cell("KEEP", "P1-N1 fund leg z / fund_z_old / base_n / fund_base_n / members == live prev_rec at A (fund leg remains v1)", ok)
++    if not flagged:
++        cell("NEW", "P1-N2..N6 flag / invariants / refusal / save (mechanism absent in this code)", False, "FUND_COL80_V0 not defined")
++        return
++    off = run("off", "False")
++    rep = np.load(off["home"] + f"/state/weights/{A}.npz")
++    same_off = np.array_equal(rep["idx"], liv["idx"]) and np.array_equal(rep["val"], liv["val"]) and np.array_equal(rep["members"], liv["members"])
++    cell("KEEP", "P1-R0 flag OFF: replay king weights at 09-12 12Z == live weights file (idx/val/members bitwise)", same_off)
++    oth = [c for c in range(78) if c != 76]
++    eq76 = off["X"][:, 76] == base["X"][:, 76]
++    cell("NEW", "P1-N2 ON vs OFF: members equal; X columns != 76 bitwise equal; pred bitwise equal on rows whose col 76 is equal",
++         np.array_equal(off["st"].prev_rec["members"], base["st"].prev_rec["members"]) and np.array_equal(off["X"][:, oth], base["X"][:, oth]) and np.array_equal(off["pred"][eq76], base["pred"][eq76]),
++         dict(rows_col76_equal=int(eq76.sum()), rows=int(len(eq76))))
++    cell("NEW", "P1-N2b flag OFF served col 76 == v1 (fe_v) ⇒ OFF is the old serving", bool(np.array_equal(off["X"][:, 76], np.float32(np.nan_to_num(np.array([off["st"].ema[st.syms[j]]["acc"] if fresh[k] else np.nan for k, j in enumerate(m)]), nan=0)))))
++    # N3: ema_v0 after the anchor == oracle for every name (bitwise float64) and last_ts == ema last_ts
++    bad = [s for s, est in base["st"].ema.items() if base["st"].ema_v0.get(s) != H.v0_state_after(rows[s], int(est["last_ts"]))]
++    cell("NEW", "P1-N3 ema_v0 carried by the producer recursion == training oracle for all names after the anchor (bitwise), last_ts == ema", not bad, dict(n=len(base["st"].ema), bad=bad[:5]))
++    # N4: a fresh member whose v0 entry is missing is served 0, counted, and NOT cold-started
++    victim = st.syms[int(m[np.where(fresh)[0][0]])]
++    mut = run("miss", "True", ema_v0_mut=lambda v0: v0.pop(victim))
++    kv = int(np.where(np.array([st.syms[j] for j in m]) == victim)[0][0])
++    ev = [r for r in mut["log"] if r.get("e") == "fund_col80"]
++    cell("NEW", "P1-N4 missing v0 entry: served 0, not cold-started, counted in the fund_col80 log event", mut["X"][kv, 76] == 0.0 and victim not in mut["st"].ema_v0 and ev and ev[-1]["n_fresh_missing_v0"] >= 1 and victim in ev[-1]["missing_v0"],
++         dict(victim=victim, served=float(mut["X"][kv, 76]), event=ev[-1] if ev else None))
++    # N5: load refusal (flag on, aux without ema_v0) and inconsistent last_ts
++    dev = base["dev"]; tdir = T_ROOT + "/p1_load"; shutil.rmtree(tdir, ignore_errors=True); os.makedirs(tdir + "/state")
++    os.symlink(AFTER + "/rolling.npz", tdir + "/state/rolling.npz"); os.symlink(AFTER + "/leg_returns_live.json", tdir + "/state/leg_returns_live.json")
++    auxA = json.load(open(AFTER + "/aux.json"))
++    def load_with(aux_obj):
++        json.dump(aux_obj, open(tdir + "/state/aux.json", "w")); old = dev.STATE_DIR; dev.STATE_DIR = tdir + "/state"
++        import io, contextlib
++        buf = io.StringIO()
++        try:
++            with contextlib.redirect_stdout(buf):
++                s2 = dev.ShadowState(base["cfg"])
++            return ("loaded", s2, buf.getvalue())
++        except SystemExit as e:
++            return ("exit%s" % e.code, None, buf.getvalue())
++        finally:
++            dev.STATE_DIR = old
++    r1 = load_with(auxA)
++    v0A, _ = S.v0_state_matching(auxA["ema"], rows)
++    auxB = dict(auxA, ema_v0=dict(v0A)); k0 = sorted(v0A)[0]; auxB["ema_v0"][k0] = dict(v0A[k0], last_ts=v0A[k0]["last_ts"] - 1)
++    r2 = load_with(auxB)
++    auxC = dict(auxA, ema_v0=v0A); r3 = load_with(auxC)
++    cell("NEW", "P1-N5 load: no ema_v0 ⇒ REFUSE_TO_START exit 2; inconsistent last_ts ⇒ exit 2; consistent ⇒ loads with ema_v0",
++         r1[0] == "exit2" and "REFUSE_TO_START" in r1[2] and r2[0] == "exit2" and "REFUSE_TO_START" in r2[2] and r3[0] == "loaded" and r3[1].ema_v0 == v0A,
++         dict(no_v0=r1[0], inconsistent=r2[0], consistent=r3[0]))
++    # N6: save writes ema_v0 in the same aux.json write and it round-trips
++    s2 = r3[1]; old = dev.STATE_DIR; dev.STATE_DIR = tdir + "/state"
++    os.remove(tdir + "/state/rolling.npz"); shutil.copy2(AFTER + "/rolling.npz", tdir + "/state/rolling.npz"); os.remove(tdir + "/state/leg_returns_live.json")
++    try:
++        src_txt = open(os.path.join(CODE, "shadow_loop_v3.py"), encoding="utf-8").read()
++        g = {"__name__": "fx_exec_save"}
++        exec(compile(src_txt, "shadow_loop_v3.py", "exec"), g)
++        g["STATE_DIR"] = tdir + "/state"
++        g["ShadowState"].save(s2)
++        J = json.load(open(tdir + "/state/aux.json"))
++        cell("NEW", "P1-N6 ShadowState.save writes ema_v0 into aux.json (single atomic write) and it round-trips", J.get("ema_v0") == v0A and list(J).index("ema_v0") < list(J).index("prev_rec"))
++    finally:
++        dev.STATE_DIR = old
++
++
++# ======================================================================================== main
++if __name__ == "__main__":
++    print(f"tests_fx_prod code={CODE} shadow_loop_v3.py={code_sha('shadow_loop_v3.py')[:16]} combo_stage.py={code_sha('fea171/combo_stage.py')[:16]} cells={sorted(CELLS)} utc={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}", flush=True)
++    for name, fn in (("P1", p1),):
++        if name in CELLS:
++            try:
++                fn()
++            except Exception as e:
++                cell("CRASH", name, False, repr(e)[:300]); traceback.print_exc()
++    nf = [r for r in RESULTS if not r[2]]
++    print("SUMMARY tests_fx_prod: %d cells, %d fail (RED fail %d, KEEP fail %d, NEW fail %d, CRASH %d)" % (len(RESULTS), len(nf), sum(1 for r in nf if r[0] == "RED"), sum(1 for r in nf if r[0] == "KEEP"), sum(1 for r in nf if r[0] == "NEW"), sum(1 for r in nf if r[0] == "CRASH")), flush=True)
++    sys.exit(1 if nf else 0)
