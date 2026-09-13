@@ -214,3 +214,37 @@ Diff: docs/receipts/fx_exec_OPS01b.diff sha256 8be588e1514d1f5719e1c924480609d63
 Unrelated observation: pyflakes reports `undefined name 'List'` at anchor_loop L2390, pre-existing at ef60f85 L2381, harmless under `from __future__ import annotations`, not touched.
 
 NEXT: E5 = EXE-07.
+
+## E5 = EXE-07 · origQty reasons (clone b8581f5 + 4058b85 text follow-up, parent a12a78a; 原文英文, lead 逐字转录)
+Not deployed. Diff: docs/receipts/fx_exec_E5.diff = `git diff a12a78a 4058b85`, sha256 90a2cd3ea806f91fd64a4455ad654f61b4b69edbd7ada269618b6165bd17d501. Receipts staged in FX_EXEC/receipts/E5, committed together with E10, ALM-03 and OPS-01b after the E10 mutant re-run. Spec: take every origQty reason, fail closed on any inconsistency, add red tests.
+
+**FACTS** (ef60f85 = a12a78a for these files)
+- F1. `_clamp_rederived` checks that every ";"-separated reason is the origQty kind (C6), then takes both numbers from the first pair in the whole string (`_ORIGQTY_PAIR.search`). The disposition ruler's `_clamp_known` does the same.
+- F2. Measured on the old code: the writer's own "; " joiner fails closed only by accident. The `ours` group `(\S+)` swallows the ";", so "1933986.0;" does not parse. The accident does not cover a " ; " joiner (the joiner the C6 fixture itself uses) or two comparisons with no ";" between them. In both cases the old code re-derives from the first pair and ignores a second reason naming a different accepted capacity (the R3-A1/E2 conflict); the verdict then depends on reason order.
+- F3. `_rederive_ledger` drops every origQty-kind row-level entry whose client id was re-derived, whatever the entry says. The ruler's `_row_rejudged` does the same.
+- F4. Same-family defect found while writing E5: the writer copies each request string into the row as `str(inconsistent)[:120]` (binance_executor L194). If a single reason is longer than 120 characters, the copy loses "differs from ours"; the old kind test then leaves the writer's own copy of a re-derived request standing, and the row reads as a false "unquantifiable" that depends only on string length (the protective-false-positive family of E-0912-A). Real strings today are 105 characters (MEME) and shorter (POPCAT); none has crossed 120.
+- F5. Census, read-only across 44 days (e5_fact_census.log): 949 rows carry a request ledger; 2 request-level contradiction strings (the E-0912-A MEME and POPCAT rows), both single-reason with one pair each, both row-level entries equal their request's `[:120]` copy; no multi-pair string exists. Conclusion: no real row changes verdict.
+
+**FIX** (conservative; never widens re-derivation beyond the validated single-reason shape)
+- `reconcile._origqty_pairs(why)` parses each reason on its own, so no joiner can leak into a number. It returns a pair only when every reason is the origQty kind and holds exactly one finite pair; otherwise None.
+- `_clamp_rederived` G1: re-derive only when the string is exactly one reason with exactly one pair. Several comparisons stand, whether agreeing or conflicting, in any order or joiner, glued or not.
+- `_rederive_ledger`: a row-level entry is dropped iff its client id was re-derived and `why == str(request.inconsistent)[:120]`. No kind test is applied to the copy (fixes F4).
+- Ruler (tests_disposition_matrix): the same two rules, written in-body in `_clamp_known` and `_row_rejudged`; no new module-level names (respects the independent researcher's `pure()` probe).
+- ops/rejudge_ledger_rows.py: `evidence.string_pairs` lists every pair parsed per reason; string_Qv and string_Qs named only when exactly one pair; new cross_check field `string_has_exactly_one_pair` feeds `all`.
+- gate_coverage: E5 sentence added to the tests_reduce_only_clamp and tests_disposition_matrix entries. 4058b85 only removes a doubled period.
+
+**TESTS**
+- tests_reduce_only_clamp [T14], 11 cells, on the real 12Z MEME row with one reason added: F fixture; E5-1 neighbour ("; " conflict stands on both versions; the old code stands only because of the ";" accident); red on old code: E5-2 " ; " conflict stands; E5-3 both orders give the same verdict; E5-4 glued comparisons stand; E5-5 a repeated comparison stands with either joiner; E5-6 a row-level entry naming a different contradiction stands and names itself; E5-7 a single reason over 120 characters re-derives and its truncated row copy is dropped; E5-9 the rejudge tool lists both pairs, string_Qv None, has_exactly_one_pair False, `all` False, row unquantifiable; neighbours E5-8 (C6 foreign join and a lone non-origQty reason still stand), E5-10 (the real day through the tool still gives both rows known with every cross-check true).
+- tests_disposition_matrix [G7-E5], 5 cells: red on old E5-R1 (the ruler re-judges none of 6 multi-comparison shapes), E5-R3 (row entry with a different string), E5-R3b (long single reason); neighbours E5-R2 (single real comparison, −1015.1883), E5-R4 (ruler equals runtime-final on all 7 shapes, including single and single_long).
+
+**RED / GREEN / AST / MUTANTS / NEIGHBOURS**
+- Red on a12a78a: tests_reduce_only_clamp 127/134, exactly E5-2/3/4/5/6/7/9 fail, 0 tracebacks. tests_disposition_matrix with the OLD ruler plus the new E5 cells: 3 fail (R1/R3/R3b), 0 tracebacks; old detail `{'conflict_spaced': True, 'glued': True, 'duplicate_spaced': True, …}` re-judged.
+- Green: tests_reduce_only_clamp 134/134 at head 4058b85, dirty 0.
+- tests_disposition_matrix on a real-ledger copy (fx_exec_ledger state, 83M pilot_log): a12a78a 72/72; 4058b85 77/77; every non-E5 cell identical. The clone's tiny tracked state gives 10 ledger-dependent failures, not E5 cells.
+- AST: tests_reduce_only_clamp 114 → 125 sites, lost 0; tests_disposition_matrix 60 → 65, lost 0 (the ruler's function bodies changed, as that suite's code under test).
+- Mutants 8 of 8 killed: runtime M1–M5 (several pairs accepted, whole-string first pair, row equality dropped, kind test restored, rejudge first pair); ruler M6–M8. The first ruler-mutant run crashed on an empty ledger in the temp tree before reaching the E5 cells; re-run with only the subtrees the suite reads (pilot_log orders/anchors plus watchdog events, copied from the ledger worktree, not live): all 3 killed (e5_mutants_dm.log).
+- Neighbours all rc 0: gate_coverage, tests_reconcile_qty_caliber, tests_request_identity_unknown, tests_residual_vector, tests_ghost_rows, tests_watchdog.
+
+**BOUNDARIES**: not proven that the writer never emits a multi-comparison or over-120-character string, only that none exists and that none would be re-derived, respectively that the long one is no longer misread. A legitimate multi-record clamp with agreeing capacities now stands (deliberate, conservative; the current writer records clamps as the fourth state and writes no string for them). The ruler and the runtime are still two implementations; E5-R4 pins parity only on the E5 shapes.
+
+**NEXT**: E10 mutant re-run at head; ALM-03 tests_entrypoint_wiring neighbour (DRY_RUN run_anchor; battery window rule applies); research-repo receipts commit for E10, ALM-03, OPS-01b and E5; then E6.
