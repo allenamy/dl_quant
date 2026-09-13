@@ -153,3 +153,72 @@ A naive per-anchor statistic therefore counts targets that were never traded and
 - A MAD of 0 makes the line equal to the median (declared, not smoothed).
 - The daemon, shadow_log, combo and twin checks are unchanged logic, exercised only through fake files.
 - `gather` now reads 10 days of anchors.jsonl and orders.jsonl per report; the runtime cost at N+55 was not timed on the live tree.
+
+## STA-02 · per-name-stop paging tier (commit 8354c5a)
+
+**Problem.** anchor_loop.py:2600-2602 sends every per_name_stop event at HIGH. alarm_policy has no rule for any of them, so each is classified UNRECOGNISED ⇒ DECIDE ⇒ PUSH. On 09-13 between 12:45:49 and 12:45:55Z, seven routine cooldown expiries produced seven phone pages (DASH also paged at 09-12 20:39Z).
+
+**Facts** (FACT_TABLE_EXEC2 §STA-02)
+- The push decision is `alarm_policy.classify` on the message TEXT. Severity does not decide it.
+- The audit rows record policy_tier A_DECIDE and policy_rule UNRECOGNISED.
+- per_name_stop.py event kinds: L102 exit into cooldown, L109 expiry, L129 trigger, L164 profile error.
+- Expiry is evaluated in phase C, so an expired name still sits out the running anchor. That is behaviour and was not changed.
+
+**Red evidence.** receipts/STA02_red_old_ef60f85.log: 6/8, 2 FAIL. The 8 real expiry bodies and the generator's own string both give PUSH UNRECOGNISED. No crash.
+
+**Fix**
+- One tier-B rule in alarm_policy.py: "per-name stop cooldown expired", pattern r"per_name_stop: \S+ 冷却期满" ⇒ DAILY.
+- The trigger, exit-into-cooldown and profile-error messages keep PUSH.
+- per_name_stop.py and anchor_loop.py are untouched. fx-exec owns the per_name_stop text at L6-9 and L130.
+- tests_alarm_digest [E] checks the REAL audit: "nothing pushed in the last 24h that the rules do not class DECIDE". It read misclassed=8 after the rule because the rows were pushed under the older table.
+  - It now exempts only rows recorded as A_DECIDE/UNRECOGNISED whose CURRENT rule is one of the named later demotions.
+  - That exemption is itself a tested predicate. The same message recorded under the new rule is not exempt.
+
+**Tests.** live/tests_pns_expiry_tier.py: 8/8.
+- The 8 real bodies (verbatim, with send ts) ⇒ DAILY.
+- The real LSK trigger and the real IOST exit ⇒ PUSH; a profile error ⇒ PUSH.
+- "冷却期满" without the per_name_stop head is not caught.
+- The string `per_name_stop.evaluate` emits, bare and with the notifier's "⚠️ HIGH\n" head ⇒ DAILY; its trigger string ⇒ PUSH.
+- Neighbours green: tests_alarm_digest 34, tests_alert_tiers_live, tests_daily_summary.
+
+**Not proven**
+- Classification is by text. A generator reword that drops the phrase goes back to PUSH, which is the safe direction. A reword that moves a trigger under this pattern would be silenced; only today's trigger string is pinned.
+- anchor_loop still hands expiries to the notifier at HIGH. The recorded row's severity is demoted by the notifier's tier-B path.
+
+## ALM-01 · funding_span alarm (commit c2e9bdc)
+
+**Problem**
+- The fingerprint read x.get('ours') / x.get('venue'), but the record's keys are ours_h / venue_h. Stored findings were "SYM:None->None" ×15, so an interval change on an already-stale name could never open an episode.
+- The HIGH text says these names' funding leg is EMA-smoothed over the wrong settlements. In external mode that is false for the traded book: the table feeds only the executor's internal DL panel (signal/live_panel.py:55).
+- DEFAULT_INTERVAL_H was defined and never used.
+
+**Facts** (FACT_TABLE_EXEC2 §ALM-01)
+- The table has 140 names (99 × 8h, 41 × 4h), built 07-25.
+- 12Z log: stale=15, absent_from_venue=13, venue=782.
+- The caller is run_anchor.py:793-797, every anchor.
+
+**Red evidence.** receipts/ALM01_red_old_ef60f85.log: 5/14, 9 FAIL, no crash. The first red run crashed on a test-side `CFS.book_source()` call; that attempt is invalid. It was fixed to read config directly and rerun.
+- 'None->None' findings.
+- The same finding set after ANKR changes 4h→1h.
+- HIGH plus the EMA sentence; PUSH UNRECOGNISED.
+- No `source` parameter, no book_source, no absent-nondefault count, no record on RECORDED_NOT_PUSHED.
+
+**Fix**
+- Findings are "SYM:<ours_h>-><venue_h>", plus "SYM:<ours_h>->absent" for table names that are absent from the venue list and not on 8h.
+- Absent names are counted in n_absent_nondefault and named as possibly stale, never asserted. Default interval versus delisted is not knowable offline.
+- Tier and sentence follow config book_source:
+  - external ⇒ INFO, with a sentence naming the internal DL panel, plus the tier-B alarm_policy rule "funding-span table stale, external book";
+  - internal or unreadable config ⇒ HIGH with the consequence sentence (unreadable adds a note).
+- A RECORDED_NOT_PUSHED disposition now records the episode. Without that, the unchanged finding re-alarmed every anchor.
+- First run after deployment: the stored 'None->None' episode re-fingerprints, which raises one tier-B record and no page.
+
+**Tests.** live/tests_funding_span_alarm.py: 14/14.
+- Venue call and episode store are replaced in-process.
+- Uses the real table and the real 15 recorded stale names.
+- The venue map is synthetic: 13 absent names, 782 listed.
+- Neighbours green: tests_alarm_digest, tests_pns_expiry_tier, tests_imports, tests_static_names, tests_frozen_inputs, tests_universe_tripwire.
+
+**Not proven**
+- Which absent names are delisted (needs exchangeInfo).
+- fundingInfo's real response shape.
+- Rebuilding the table.
