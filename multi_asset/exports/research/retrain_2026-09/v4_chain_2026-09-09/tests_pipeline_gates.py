@@ -1419,11 +1419,32 @@ with tempfile.TemporaryDirectory() as d:
     _DRV = open(f"{HERE}/chain_v4_monthly.sh").read()
     check("★★★ [T] D1 call site: chain_v4_monthly.sh has exactly one prereq_refit_sidecar call and it passes the loop seed $SD and $D/pod_f10_refit_v4.py (a helper that fails closed is only useful if the driver actually binds it)",
           _DRV.count("prereq_refit_sidecar") == 1 and 'prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"' in _DRV)
-    _RF = open(f"{HERE}/pod_f10_refit_v4.py").read()
-    check("★★★ [T] D1 no-drift: every key and path the gate now REQUIRES is one pod_f10_refit_v4.py actually writes (the four input roles, the {DLW}/{OUT} layout, models/f10_live_s{SEED}.pt, best_ep_kept, env_given.SEED, self_sha256) — a gate may not demand a field the writer never emits",
-          all(f'"{k}"' in _RF for k in ("seed", "best_ep_rule", "best_ep_kept", "env_given", "inputs", "inputs_sha256", "self_sha256", "targets", "fea82", "fea89", "legs", "SEED"))
-          and all(p in _RF for p in ('f"{DLW}/data/dlw_targets.npz"', 'f"{DLW}/data/dlw_fea82.npz"', 'f"{OUT}/data/f8_fea89.npz"', 'f"{OUT}/data/f10v2_legs.npz"', 'f"{OUT}/models/f10_live_s{SEED}.pt"'))
-          and 'meta["pt"]' in _RF and 'meta["pt_sha256"]' in _RF)
+    # ── D1 no-drift, by AST rather than by grep: a gate may not require a field the writer emits only SOMETIMES (lead's condition, round 3) ──
+    import ast as _ast
+    _RT = _ast.parse(open(f"{HERE}/pod_f10_refit_v4.py").read()); _emit = set(); _egk = []; _roles = []; _rpaths = []; _req = []; _cond = []
+    for _n in _ast.walk(_RT):
+        if isinstance(_n, _ast.Assign) and any(getattr(_t, "id", "") == "meta" for _t in _n.targets) and isinstance(_n.value, _ast.Dict):
+            for _k, _v in zip(_n.value.keys, _n.value.values):
+                _emit.add(_k.value)
+                if _k.value == "env_given": _egk = [e.value for c in _ast.walk(_v) if isinstance(c, _ast.Tuple) for e in c.elts]
+                if _k.value == "inputs" and isinstance(_v, _ast.Dict): _roles = [e.value for e in _v.keys]; _rpaths = [_ast.unparse(e) for e in _v.values]
+        if isinstance(_n, _ast.Assign):
+            for _t in _n.targets:
+                if isinstance(_t, _ast.Subscript) and getattr(_t.value, "id", "") == "meta" and isinstance(_t.slice, _ast.Constant): _emit.add(_t.slice.value)
+        if isinstance(_n, _ast.Assign) and any(getattr(_t, "id", "") == "_REQ" for _t in _n.targets): _req = [e.value for e in _n.value.elts]
+    for _b in _ast.walk(_RT):
+        if isinstance(_b, (_ast.If, _ast.Try, _ast.For, _ast.While)):
+            _cond += [_ast.unparse(_a)[:60] for _a in _ast.walk(_b) if isinstance(_a, _ast.Assign)
+                      and any((isinstance(_t, _ast.Subscript) and getattr(_t.value, "id", "") == "meta") or getattr(_t, "id", "") == "meta" for _t in _a.targets)]
+    _GTOP = {"seed", "best_ep_rule", "best_ep_kept", "env_given", "inputs", "inputs_sha256", "pt", "pt_sha256", "self_sha256"}; _GENV = {"F10_DLW", "F10_OUT", "SEED", "BEST_EP_FIX"}
+    check("★★★ [T] D1 no-drift (AST, not grep): every one of the 9 top-level keys the gate REQUIRES is in pod_f10_refit_v4.py's single unconditional `meta` literal (or the two later meta[...] assignments), and NO meta assignment sits inside an if/try/loop ⇒ nothing the gate requires is ever conditionally emitted",
+          _GTOP <= _emit and _cond == [], (sorted(_GTOP - _emit), _cond[:3]))
+    check("★★★ [T] D1 no-drift: the four env_given keys the gate requires are EXACTLY the writer's own _REQ tuple — the four it refuses to run without (rc 2), so in any sidecar that exists at all their values are non-empty; the three that CAN legitimately be None (EMBARGO, V4_MONTH, V4_MONTH_ENV) are exactly the ones the gate does NOT require",
+          _GENV == set(_req) and set(_egk) - _GENV == {"EMBARGO", "V4_MONTH", "V4_MONTH_ENV"}, (sorted(_req), sorted(set(_egk) - _GENV)))
+    check("★★★ [T] D1 no-drift: the gate's four expected input paths and the .pt path are the writer's own path expressions verbatim (roles targets/fea82/fea89/legs under {DLW}/data and {OUT}/data; weights {OUT}/models/f10_live_s{SEED}.pt)",
+          _roles == ["targets", "fea82", "fea89", "legs"]
+          and [p.strip("f'\"") for p in _rpaths] == ["{DLW}/data/dlw_targets.npz", "{DLW}/data/dlw_fea82.npz", "{OUT}/data/f8_fea89.npz", "{OUT}/data/f10v2_legs.npz"]
+          and 'f"{OUT}/models/f10_live_s{SEED}.pt"' in open(f"{HERE}/pod_f10_refit_v4.py").read(), (_roles, _rpaths))
     # ── D2: the new-tail member index is validated STRUCTURALLY FIRST, then the finite-fraction floor ───────────────────────────────────────
     _bT = _base(1, _NA_NEW); _write_month(f"{d}/T1", _bT, _NA_NEW, "new"); _write_month(f"{d}/T0", _bT, _NA_REF, "ref")
     _MFT = f"{d}/T1/king_meta.npz"; _MT = {k: v.copy() for k, v in np.load(_MFT, allow_pickle=True).items()}

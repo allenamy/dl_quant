@@ -240,6 +240,6 @@
 - 真合同 `REQUIRE_FAIL … b2f9cfd40b9e is not an APPROVED source`(预期: 批准 = 用户字, 且新 sha 取代 0fe5ec55 后仍需增补)。合同 sha 事后仍 `1188267adf42`。
 - GPU `0 %, 2 MiB` 事前事后; PID 333197/339489 `Tl` 事前事后; `review_scratch` ls 事前==事后。
 
-**自检**: `tests_pipeline_gates.py` **ALL PASS (352 checks)**(修前基线 328, 新节 [T] 24 格; 另有 3 格旧断言因本轮改动而更新: [R] G0 保存的 diff、[S] 侧车正控的夹具与参数、[S] 尾质量的整字典比对)。`make_sha_manifest.py` rc 0。日志与全部收据: `receipts/round3_2026-09-13/`。
+**自检**: `tests_pipeline_gates.py` **ALL PASS (354 checks)**(修前基线 328, 新节 [T] 26 格 —— 首交付 352/24, lead 附加条件把 1 格 grep 式不漂移换成 3 格 AST 式; 另有 3 格旧断言因本轮改动而更新: [R] G0 保存的 diff、[S] 侧车正控的夹具与参数、[S] 尾质量的整字典比对)。`make_sha_manifest.py` rc 0。日志与全部收据: `receipts/round3_2026-09-13/`。
 
 **仍开**: 合同 approved 增补 = 用户字(STEP1_m `79950786…` / STEP2_m `b2f9cfd4…`); 公共轴上的成员索引不查(AMENDMENT 2 末条); DESIGN §7 (ii) 真数据全链未跑, 原样仍开。

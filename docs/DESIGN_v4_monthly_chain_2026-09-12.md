@@ -152,11 +152,12 @@
 - **旧行为(三个被接受的坏状态, 研究员夹具 rc 0)**: (a) 权重字节已改 + **删掉** `pt_sha256` 键 ⇒ 过(`elif m.get("pt_sha256") and …` 把缺键当成「没什么要查的」); (b) 四个声明输入缩成一个 ⇒ 过(循环只走侧车恰好列出的那些); (c) 完整的 **seed-42** 侧车放进 **seed-2027** 槽位 ⇒ 过(函数没有期望种子, 也不读 `m.seed` / `env_given.SEED` / `.pt` 路径; `name=refit_s2027` 只进日志)。此门在 **arms dispatch 之前**跑。
 - **★ 影响边界(必须与结论同寿命地引用)**: **没有任何证据表明错误的 `.pt` 被用于真实预测。** arms 消费的是月度预测 `.npy`(`run_v4_arms.sh` L11–15), `build_dev_v4.py` 也不加载这个 `.pt`。所以这是一条**没兑现的 resume-gate 承诺**(报文里「refit 侧车/输入/weights 身份已验证」的保证过强), **不是**一次被证明的坏训练, 也不是「跳过了 refit 训练」。
 - **新行为**(`chain_lib.sh` `prereq_refit_sidecar`, 7 个参数全必填): ① **期望种子**——`seed`、`env_given.SEED`、`.pt` 路径里的 `s<seed>`、侧车文件名 `f10_live_s<seed>.json` 四者都要等于驱动正在核的那个种子; ② **完整键集**——`seed/best_ep_rule/best_ep_kept/env_given/inputs/inputs_sha256/pt/pt_sha256/self_sha256` 与 `env_given` 的四键, **缺一即拒**, 永不「缺了就跳过」; ③ **期望路径**——四个输入必须是本月合同的 `$DLW_RAW/data/{dlw_targets,dlw_fea82}.npz`、`$F8/data/{f8_fea89,f10v2_legs}.npz`, `.pt` 必须是 `$F8/models/f10_live_s<seed>.pt`(逐字节相同但放在别的树下的副本 ⇒ 拒); ④ **实际工件 sha**——`.pt` 与每个声明输入都**当场重算**并比对, 记录值为空本身就是拒绝理由; ⑤ (超出 lead 点名的四项, 研究员建议)**哪个程序写的**——侧车 `self_sha256` 必须等于驱动这次调度的 `pod_f10_refit_v4.py` 现值, 与 `require_gate` 对门收据的 `self_sha=` 同律。参数本身也 fail-closed: 用旧的五参数形式调用 ⇒ rc 3 点名。
-- **不漂移**: [T] 有一格静态断言「门现在要求的每个键与每条路径, 都是 `pod_f10_refit_v4.py` 真的会写的」——门不许要求写手从不产出的字段。另一格是**干预式**的: 把「refit 源」参数指向一个唯一语句是写标记文件的脚本, 门拒绝且标记文件**不存在** ⇒ 该参数只被 hash, 从不被执行。
+- **不漂移(按 AST, 不按 grep; lead 2026-09-13 的附加条件)**: 门不许要求写手「有时才写」的字段。[T] 三格用 AST 证: ① 要求的 9 个顶层键全在 `pod_f10_refit_v4.py` 那**一个无条件的 `meta` 字典字面量**(加后面两行 `meta["pt"]/["pt_sha256"]`)里, 且**没有任何 `meta` 赋值落在 if/try/循环内** ⇒ 无一是条件发出的; ② 要求的 4 个 `env_given` 键**恰好等于**写手自己的 `_REQ` 元组(缺任一它自己 rc 2 拒跑), 所以只要侧车存在, 这四个值就不可能为空; 而**真会是 None 的三个**(`EMBARGO` `V4_MONTH` `V4_MONTH_ENV`)**正是门不要求的那三个**; ③ 四条输入路径与 `.pt` 路径逐字取自写手自己的路径表达式。另一格是**干预式**的: 把「refit 源」参数指向一个唯一语句是写标记文件的脚本, 门拒绝且标记文件**不存在** ⇒ 该参数只被 hash, 从不被执行。
+- **研究员正控 `sidecar_complete_identity_positive` 翻 rc 3 的定性(lead 要求必须无歧义)**: 是**夹具缺口**, 不是「新门拒绝合法输入」。收据 `receipts/round3_2026-09-13/corrected_positive_control.json` 三栏并排: (A) 真写手 AST 的字段与路径 + 上面的「无一可选」判定; (B) 研究员夹具缺的是 **2 个顶层键**(`best_ep_kept` `self_sha256`)+ **1 个 `env_given` 键**(`SEED`), 且四个输入放在 `<F>/<role>.bin`、权重放在 `<f8>/model.pt`(都不是写手会用的位置), 调用用的还是旧五参数形式; (C) **同一批字节**跑两次 —— 研究员布局 rc 3, 写手正典布局 rc 0。**每个文件都没问题、每个记录的 sha 都对得上**; 缺的是那三个写手必写的字段与正典位置。即: 该夹具建模的是旧门, 不是真侧车。
 
 ### 9.2 D2 新尾成员索引 / 9.3 D3 合同值绑定
 - D2 见 `docs/PREREG_v4_gates_monthly_2026-09-12.md` **AMENDMENT 2 + §3.7**(先结构后比例; 0.90 的射程 = 有限格门, 不是因果/预测有效性门)。
-- D3 `load_month_env`: 46 键「在文件里」不等于「值来自文件」——`SEEDS=$UNLISTED_SEEDS` 是文件的一行, 但 `unset` 只清合同键, 于是 source 时由父环境填入(研究员实测 rc 0、SEEDS=2027)。新规则: **值里的变量引用只许指向本文件更早定义过的合同键**; 其余(非合同名、前向引用、`${...}` 指向外部名、裸 `$`)一律 rc 4 点名。**与 lead 字面指示的偏差(明写)**: lead 说「值里含 `$`/反引号/命令替换一律拒」; 直接照做会拒掉**两份已交付的合同**(九月 5 个 `$R/...`、十月模板 12 个), 所以取研究员给的窄规则。反引号与 `$(` 仍由 round-2 的行文法拒(rc 4 `month_env_malformed`), 两层互不依赖, [T] 各有一格。
+- D3 `load_month_env`: 46 键「在文件里」不等于「值来自文件」——`SEEDS=$UNLISTED_SEEDS` 是文件的一行, 但 `unset` 只清合同键, 于是 source 时由父环境填入(研究员实测 rc 0、SEEDS=2027)。新规则: **值里的变量引用只许指向本文件更早定义过的合同键**; 其余(非合同名、前向引用、`${...}` 指向外部名、裸 `$`)一律 rc 4 点名。**与 lead 字面指示的偏差 → 已由 lead 裁定采纳(2026-09-13)**: lead 原指示是「值里含 `$`/反引号/命令替换一律拒」; 直接照做会拒掉**两份已交付的合同**(九月 5 个 `$R/...`、十月模板 12 个), 我改用研究员给的窄规则并上报。**lead 裁定原文**:「D3 deviation ACCEPTED. 你的窄规则(值只许引用本文件更早定义过的合同键)是对的, 我的是错的: 一刀切禁 `$` 会拒掉两份已交付的合同。把我的裁定记进 DESIGN。反引号与 `$(` 保持拒绝。」—— 故窄规则为准; 反引号与 `$(` 仍由 round-2 的行文法拒(rc 4 `month_env_malformed`), 两层互不依赖, [T] 各有一格。
 
 ### 9.4 D4 判官定位器: **本轮不动行为**, 只把闭合条件写死(待 lead 裁定)
 - **机制(已复现)**: `v4_gate_common.py` L222–224 —— `for k in rec: if k in inputs: continue`。caller 已声明的名字**直接跳过**「从收据 `inputs_path` 定位」这一步, 之后只核 caller 给的路径。于是: 收据记 `femat=/fixture/femat.npy` 的旧 sha → 存一份同字节 backup → 改原 femat → caller 显式传 `femat=<backup>` ⇒ `eligibility.ok=true`, 而**实际会被读的那个文件已经变了**。省略 locator 或传原路径都已正确拒绝(round 8 已修)。
@@ -170,12 +171,14 @@
 | `chain_lib.sh` | `3cd82956833e9c06…` | `a331f0351b3eca9ac2e64636e94a906045deb209f25888f38a8ab07e4d715a40` |
 | `chain_v4_monthly.sh` | `c6ea34fa0131d3a0…` | `e8e688d58512a9395ac0b3d59b603be4b09c63ff08bc5d5d7b4726b8ab188d3b` |
 | `v4_gate_step2_m.py` | `0fe5ec5573f34696…` | `b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9` |
-| `tests_pipeline_gates.py` | `7181045d157758ae…` | `b56bdc60a86c5f0fde97efc83432a0e34c4b6cef07f2fe32ad902fbd85a79abb` |
+| `tests_pipeline_gates.py` | `7181045d157758ae…` | `cfa8f6dbe2aab1aec8e24a7ae4d4ca761a2a6359147830d84705a1f505fa277d`(lead 附加条件后; 首交付 `b56bdc60…`) |
 | `w7_gates/v4_gate_step2_m.diff` | 88 行 | `833c9a420d0e5ed977aaa86a95d656d7a2493c69e70f82dcda0d29feb0e9c034`(105 行) |
 | `chain_lib.r1_3cd82956.sh` **新** | — | `3cd82956833e9c06f0f241316e6fa210d3895df05aaf952fd41e6a4345805464`(红控) |
 | `v4_gate_step2_m.r1_0fe5ec55.py` **新** | — | `0fe5ec5573f346969d9d3448c3e424f2ebc8b7c192cefe4313a05cdf84c09007`(红控) |
 
 两个 `.r1_` 快照 = 研究员 `RESULT.md` 关键源表里的那两个 sha, 逐位; `v4_gate_step1_m.py` 不变(`79950786…`)。
+
+**★ 合同批准对象变更(lead 2026-09-13 指示记入)**: 呈用户裁定的 STEP2 月通用门批准对象**现为 `b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9`**, **不再是** `0fe5ec5573f3…`(后者已是红控快照 `v4_gate_step2_m.r1_0fe5ec55.py`, 带 F-R3 缺陷)。STEP1 月通用门批准对象不变 `79950786271e…`。`ELIGIBILITY_CONTRACT.json` 仍 `1188267a…`, 未编辑; 由 lead 呈用户。
 - **冻结零改动(事前事后各实测一次)**: `v4_gate_step1.py` `278fdce6…`、`v4_gate_step2.py` `db7ab356…`、`ELIGIBILITY_CONTRACT.json` `1188267a…`、`v4e_gate_export_v2.py` `d63f4ec3…`、`v4_gate_common.py` `24e813f1…`、`judge_v4.py` `c2a81c48…`、`make_sha_manifest.py`、`tests_judge_dynamic_deps.py`。
 - 收据: `receipts/round3_2026-09-13/`(自检修前/修后全跑日志、研究员 23+16 探针修前/修后结果与翻转表、被修正的正控、`SHA256SUMS`)。
 - **未验(诚实)**: 本轮全部在 mac 本地合成夹具上; **pod2 未跑**, 真数据未跑; §7 (ii) 原样仍开。

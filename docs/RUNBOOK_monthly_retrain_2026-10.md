@@ -88,7 +88,7 @@ PREV_CLAMP_BUILDER_SHA256=b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b36240
 3. **月合同的值现在也绑在文件里**: 46 键「出现在文件里」不等于值来自文件 —— `SEEDS=$UNLISTED_SEEDS` 是文件的一行, 但由父环境填入(实测旧版 rc 0、SEEDS=2027)。新规则: **值里的变量引用只许指向本文件更早定义过的合同键**, 其余(非合同名 / 前向引用 / `${外部名}` / 裸 `$`)rc 4 点名。**写十月合同时注意**: `$R/...` 照旧可用(R 必须在该行之前定义, 模板已如此); 不要引用任何不在 `V4_MONTH_KEYS` 里的名字。
 4. **判官定位器(`JUDGE_ELIGIBILITY`)本轮不动行为**: caller 显式给出同字节备份路径时, 已变的原路径仍可能被跳过。**月度 export 路线不受影响**(驱动把收据自己的全量 `inputs_path` 原样交判官), 反例只在手写 caller 时成立。闭包条件与最小绑定提案见 DESIGN §9.4, **待用户/lead 裁定**; 在裁定之前, 不得声称「判官 ≡ standalone gate 的全闭包」。
 
-**门源码 sha 变更(合同批准增补时用新值)**: `v4_gate_step2_m.py` `0fe5ec5573f3…` → **`b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9`**; `v4_gate_step1_m.py` **不变** `79950786271e…`。合同 `ELIGIBILITY_CONTRACT.json` 仍是 `1188267a…`(未编辑, 批准 = 用户字)。自检全套 **ALL PASS (352 checks)**; `make_sha_manifest.py` rc 0。
+**门源码 sha 变更(合同批准增补时用新值)**: `v4_gate_step2_m.py` `0fe5ec5573f3…` → **`b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9`**; `v4_gate_step1_m.py` **不变** `79950786271e…`。合同 `ELIGIBILITY_CONTRACT.json` 仍是 `1188267a…`(未编辑, 批准 = 用户字)。自检全套 **ALL PASS (354 checks)**; `make_sha_manifest.py` rc 0。
 
 ## §0 原则(不变式)
 

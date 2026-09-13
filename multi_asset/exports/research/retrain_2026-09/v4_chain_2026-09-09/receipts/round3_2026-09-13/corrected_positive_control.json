@@ -1,12 +1,139 @@
 {
- "researcher_layout_as_written": {
-  "rc": 3,
-  "stderr": "prereq arms/refit_s42: expected seed and refit source are MANDATORY arguments of prereq_refit_sidecar (an unbound call verifies nothing)\nFAIL_arms_prereq_refit_s42",
-  "chain_log": "[2026-09-13T01:55:39Z] FAIL_arms_prereq_refit_s42"
+ "A_real_writer": {
+  "writer": "pod_f10_refit_v4.py",
+  "writer_sha256": "6c0666f4eef2c664bf77aa436b3427e651c0cd79e58ae416c1edbd88294b3b86",
+  "meta_keys_emitted": [
+   "alpha",
+   "best_ep_kept",
+   "best_ep_rule",
+   "best_va",
+   "data_axis_end_utc",
+   "device",
+   "env_given",
+   "epochs_computed",
+   "finished_utc",
+   "inputs",
+   "inputs_sha256",
+   "n_cols",
+   "n_tbptt_windows",
+   "n_train_anchors_tr1",
+   "n_val_anchors_va1",
+   "pt",
+   "pt_sha256",
+   "recipe",
+   "seed",
+   "self_sha256",
+   "torch",
+   "trained_through",
+   "trained_through_label_end_utc",
+   "trained_through_label_idx",
+   "trained_through_label_utc",
+   "trained_through_meaning",
+   "trained_through_pool_end_utc",
+   "trained_through_tr1_end_utc",
+   "va_curve",
+   "validation_span_utc"
+  ],
+  "meta_assignments_inside_if_try_loop": "NONE (nothing is conditionally emitted)",
+  "env_given_keys_always_present": [
+   "F10_DLW",
+   "F10_OUT",
+   "SEED",
+   "BEST_EP_FIX",
+   "EMBARGO",
+   "V4_MONTH",
+   "V4_MONTH_ENV"
+  ],
+  "writer_REQ_refuses_rc2_without": [
+   "F10_DLW",
+   "F10_OUT",
+   "SEED",
+   "BEST_EP_FIX"
+  ],
+  "inputs_roles": [
+   "targets",
+   "fea82",
+   "fea89",
+   "legs"
+  ],
+  "inputs_path_expressions": [
+   "f'{DLW}/data/dlw_targets.npz'",
+   "f'{DLW}/data/dlw_fea82.npz'",
+   "f'{OUT}/data/f8_fea89.npz'",
+   "f'{OUT}/data/f10v2_legs.npz'"
+  ],
+  "VERDICT_gate_requires_only_unconditional_fields": {
+   "top_level_required_subset_of_emitted": [
+    "best_ep_kept",
+    "best_ep_rule",
+    "env_given",
+    "inputs",
+    "inputs_sha256",
+    "pt",
+    "pt_sha256",
+    "seed",
+    "self_sha256"
+   ],
+   "env_required_equals_writer_REQ": true,
+   "env_keys_that_may_legitimately_be_None_and_are_NOT_required": [
+    "EMBARGO",
+    "V4_MONTH",
+    "V4_MONTH_ENV"
+   ],
+   "conclusion": "no field the gate requires is optional in the real writer's output: the meta dict is one unconditional literal, and the four env_given keys required are the four the writer itself refuses to run without"
+  }
  },
- "same_bytes_at_canonical_paths": {
-  "rc": 0,
-  "stderr": "",
-  "chain_log": "[2026-09-13T01:55:39Z] prereq arms/refit_s42: ok seed 42 fix7, 4 inputs + weights verified against the bytes on disk, written by pod_f10_refit_v4.py 6c0666f4eef2"
+ "B_researcher_fixture_vs_real_writer": {
+  "researcher_fixture": "probe_followup.py L66-77 (codex_followup_code_review_2026-09-13/retrain)",
+  "top_level_fields_present": [
+   "best_ep_rule",
+   "env_given",
+   "inputs",
+   "inputs_sha256",
+   "pt",
+   "pt_sha256",
+   "seed"
+  ],
+  "top_level_fields_the_REAL_WRITER_emits_but_this_lacks": [
+   "best_ep_kept",
+   "self_sha256"
+  ],
+  "env_given_present": [
+   "BEST_EP_FIX",
+   "F10_DLW",
+   "F10_OUT"
+  ],
+  "env_given_the_REAL_WRITER_emits_but_this_lacks": [
+   "SEED"
+  ],
+  "input_paths": {
+   "targets": "targets.bin",
+   "fea82": "fea82.bin",
+   "fea89": "fea89.bin",
+   "legs": "legs.bin"
+  },
+  "input_paths_the_REAL_WRITER_would_use": {
+   "targets": "dlw/data/dlw_targets.npz",
+   "fea82": "dlw/data/dlw_fea82.npz",
+   "fea89": "f8/data/f8_fea89.npz",
+   "legs": "f8/data/f10v2_legs.npz"
+  },
+  "pt_path": "model.pt",
+  "pt_path_the_REAL_WRITER_would_use": "f8/models/f10_live_s42.pt",
+  "helper_call_form": "5 arguments (round-2 form): no expected seed, no refit source",
+  "note": "every FILE is fine and every recorded sha matches its file; what is missing is the three fields the writer always emits and the canonical LOCATIONS \u2014 i.e. the fixture never modelled a real sidecar, it modelled the old gate"
+ },
+ "C_same_bytes_both_layouts": {
+  "researcher_layout_as_written": {
+   "rc": 3,
+   "stderr": "prereq arms/refit_s42: expected seed and refit source are MANDATORY arguments of prereq_refit_sidecar (an unbound call verifies nothing)\nFAIL_arms_prereq_refit_s42",
+   "chain_log": "[2026-09-13T02:17:36Z] FAIL_arms_prereq_refit_s42"
+  },
+  "same_bytes_at_canonical_paths": {
+   "rc": 0,
+   "stderr": "",
+   "chain_log": "[2026-09-13T02:17:37Z] prereq arms/refit_s42: ok seed 42 fix7, 4 inputs + weights verified against the bytes on disk, written by pod_f10_refit_v4.py 6c0666f4eef2"
+  },
+  "reading": "Same bytes, same recorded shas. rc 3 at the researcher's layout and rc 0 at the writer's canonical layout \u21d2 the flip is a FIXTURE GAP. The gate rejects a sidecar that is not ABOUT this month's artefacts; it does not reject a real one."
  }
 }
