@@ -1,0 +1,82 @@
+[4a] the predicate — one implementation, and a conservative answer on junk
+  OK    an R-prefixed id is a rehearsal
+  OK    an A-prefixed id is not
+  OK    a ladder id is not
+  OK    ★★ None is NOT a rehearsal — an unreadable id must keep the row IN the count  — excluding on unreadable input would let a write bug quietly shrink a denominator
+  OK    ...and neither is a non-string
+  OK    the writer mints both prefixes from ONE call site  — ('R1785000000', 'A1785000000')
+
+[4b] ★★ constraint 2: under LIVE the switch does not EXIST — not 'defaults to off'
+  OK    ★★ LIVE + REHEARSAL=1 is REFUSED  — REHEARSAL cannot be enabled under LIVE. §2.5.9 constraint 2 is 'the switch must 
+  OK    ...and the refusal says it is unreachable, not merely disabled  — REHEARSAL cannot be enabled under LIVE. §2.5.9 constraint 2 is 'the switch must not exist', not 'it defaults t
+  OK    ★ TESTNET + REHEARSAL=1 + declared target is granted
+  OK    ★ ...and DRY_RUN is refused too (only TESTNET may rehearse)  — refused
+
+[4c] ★★ constraint 1: the clock disables it BY MACHINE, not by memory
+  OK    ★★ a started clock REFUSES rehearsal mode  — the certification clock started at 2026-07-28: rehearsal mode is disabled by machine, not 
+  OK    ★ ...and an UNREADABLE clock refuses too (fail-closed, not fail-open)
+
+[4d] ★ constraint 6: an undeclared rehearsal is a trade with no hypothesis
+  OK    ★ REHEARSAL=1 without a declared target is REFUSED
+  OK    not asking for it at all is simply a normal anchor (no exception)
+
+[4g] ★★ THE g-STYLE FIXTURE: injecting an R anchor moves no ROW-COUNTED figure
+  OK    PRE-ASSERT: the fixture really injected the R rows (otherwise this proves nothing)  — 6 -> 9
+  OK    ★ and they really carry the R prefix in the DATA
+  OK    ★★ row-counted output unchanged: cond1_per_day_EXCL_R  — [52.0] vs [52.0]
+  OK    ★★ row-counted output unchanged: conditions_blind  — ['cond4b_leverage', 'cond7_ops'] vs ['cond4b_leverage', 'cond7_ops']
+  OK    ★ PRE-ASSERT: the rehearsal really did trade (so the next check is not vacuous)
+  OK    ★★ the BOOK-derived figure DOES move — constraint 5 working, not a leak in the exclusion  — [-15.6667] vs [-32.3333]
+  OK    ★★ ...and no §2.5 COUNT reads a book-derived figure (which is why that is safe)  — the completion ledger counts anchors from the run log; it never reads a weight
+
+[4e] ★★ the excluded COUNT is printed — 'none ran' must differ from 'it did not fire'
+  OK    ★★ a day with no R rows reports 0 (the zero is PRINTED, not omitted)  — [0]
+  OK    ★★ a day WITH R rows reports how many  — [3]
+  OK    ★★ ⇒ two equal ±R figures are only trustworthy BECAUSE the count is beside them  — without the count, [4g]'s 'unchanged' would be indistinguishable from 'no R rows exist'
+
+[4f] ★ §2.5 completion: an R run never matches a slot, however close it lands
+  OK    PRE-ASSERT: both runs parsed  — 2
+  OK    ★ the R run is flagged from its rebalance_id, not from its time  — [('04:00:00', True), ('08:00:00', False)]
+  OK    ★★ §2.5 figure bit-identical with and without the rehearsal: expected  — 4 vs 4
+  OK    ★★ §2.5 figure bit-identical with and without the rehearsal: completed  — 1 vs 1
+  OK    ★★ §2.5 figure bit-identical with and without the rehearsal: traded  — 1 vs 1
+  OK    ★★ §2.5 figure bit-identical with and without the rehearsal: completion  — 0.25 vs 0.25
+  OK    ★★ §2.5 figure bit-identical with and without the rehearsal: days_traded  — 1 vs 1
+  OK    ★★ ...and ONLY the excluded count distinguishes the two runs  — 1 vs 0
+  OK    ★★ the 04:00Z slot is MISSED — the rehearsal did not complete it  — [{'anchor': '2026-07-28T04:00Z', 'status': 'MISSED', 'action': None, 'ran_at': None, 'traded': None, 'n_live': None, 'halted': None}]
+  OK    ★ ...and the 08:00Z scheduled anchor still counts  — [('2026-07-28T00:00Z', 'MISSED'), ('2026-07-28T04:00Z', 'MISSED'), ('2026-07-28T08:00Z', 'OK'), ('2026-07-28T12:00Z', 'MISSED')]
+  OK    ★★ the excluded count is reported, with its per-day breakdown  — 1 {'2026-07-28': 1}
+  OK    ★ a rehearsal is NOT quietly folded into 'manual invocations' either
+
+[4h] ★★ what must NOT be excluded: the ledger, and the stop-losses
+  OK    ★★ constraint 5: the rehearsal wrote its orders
+  OK    ★★ ...and its position_readback — or §4-5b would call the position unexplained
+  OK    ★★ reconciliation CONSUMES the rehearsal's fills (no self-manufactured anomaly)
+  OK    ★★ §2.5.9 three: three days of REHEARSAL-only anchors leaving the book far from target TRIP §4-6 (protection is account-level and has nothing to do with counting)  — {'per_day': [-32.3, -32.3, -32.3], 'triggered': True}
+  OK    ★ ...while the §2.5.8 reading of those same days excludes them  — [None, None, None]
+
+[4i] ★★ CLOSED-WORLD census: every file that touches rebalance_id has a DECISION
+  OK    ★ every excluded directory carries a reason (an exclusion without one is a blind spot)
+  OK    PRE-ASSERT: the population is non-empty and was COMPUTED, not typed  — 36 non-test files mention rebalance_id
+  OK    ★★ every file touching rebalance_id is declared either a counting site or exempt  — UNDECLARED: [] — a new counting site must be a decision, not a default
+  OK    ★ ...and no declaration is stale (a list that outlives its file stops being a census)
+  OK    ★ counting site live/rebalance_id.py (the predicate itself) imports the shared predicate  — an inlined equivalent is a defect even when it agrees today
+  OK    ★ counting site live/watchdog.py (§2.5.9 dual issuance for cond1 / cond6) imports the shared predicate  — an inlined equivalent is a defect even when it agrees today
+  OK    ★ counting site ops/dryrun_ledger.py (§2.5 completion / traded / by_day) imports the shared predicate  — an inlined equivalent is a defect even when it agrees today
+  OK    ★ counting site ops/score_post_fix.py (§2.5.8 E-subject selection) imports the shared predicate  — an inlined equivalent is a defect even when it agrees today
+  OK    ★ counting site ops/verify_reshape_anchor.py (selects WHICH anchor to judge; a rehea) imports the shared predicate  — an inlined equivalent is a defect even when it agrees today
+  OK    ★ counting site scheduler/anchor_loop.py (mints the prefix and holds the off-sch) imports the shared predicate  — an inlined equivalent is a defect even when it agrees today
+  OK    ★★ every exemption carries a REASON, not just a name
+
+[4i-v4] ★★ BEHAVIOUR: a rehearsal row does not enter each counting site's count
+  OK    ★★ every declared counting site has a BEHAVIOURAL assertion (v3 is a net, not a promise)  — missing: [] | stale: []
+  OK    ★★ v4 [live/rebalance_id.py] — the rehearsal does not reach this site's count  — R yes; A no; FLATTEN no
+  OK    ★★ v4 [live/watchdog.py] — the rehearsal does not reach this site's count  — per_day=[-32.3333] excl=[-32.3334] n_R=[3]
+  OK    ★★ v4 [ops/dryrun_ledger.py] — the rehearsal does not reach this site's count  — {k: (a,b)} = {'expected': (4, 4), 'completed': (1, 1), 'traded': (1, 1), 'completion': (0.25, 0.25), 'days_traded': (1, 1)}
+  OK    ★★ v4 [ops/score_post_fix.py] — the rehearsal does not reach this site's count  — selected 'A1785283200' (the R batch is NEWER and must lose)
+  OK    ★★ v4 [ops/verify_reshape_anchor.py] — the rehearsal does not reach this site's count  — default picked 'A1785283200' (R is NEWER and must lose), excluded 1; explicit request for R still returns R
+  OK    ★★ v4 [scheduler/anchor_loop.py] — the rehearsal does not reach this site's count  — rehearsal on_schedule=True scheduled on_schedule=False wired=True
+
+  59 checks run
+
+ALL PASS

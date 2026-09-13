@@ -1,0 +1,28 @@
+accessor under test: pilot_log.anchor_series
+[0] fixture integrity
+  OK    projection bytes hash to MANIFEST and carry 257 rows
+
+[A] ★★★ REAL anchors rows 08-01..09-13 12Z
+  OK    PRE (re-derived): 130 external / 127 internal / 12 external halted / 118 traded  — (130, 127, 12, 118)
+  OK    PRE (re-derived): missing slots and rebuild slots are the ledger's  — (['08-25 16Z', '08-29 20Z', '09-02 00Z', '09-09 12Z'], ['08-22 12Z', '08-26 20Z', '09-07 04Z', '09-10 00Z', '09-13 12Z'])
+  OK    ★★★ series = the 118 traded external slots in slot order (old tree: the raw table, 257 rows)  — (118, [1787400000, 1787414400, 1787428800])
+  OK    ★★★ no halted row and no internal-era row inside the series
+  OK    ★★ exclusions counted by reason: internal 127, halted 12, off-grid 0, duplicates 0  — {'internal_era': 127, 'off_grid_nominal': 0, 'halted': 12, 'duplicate_nominal_superseded': 0}
+  OK    ★★ missing slots named (a crash is a gap, not a zero)  — [1787673600, 1788033600, 1788307200, 1788955200]
+  OK    ★★ rebuild slots flagged; prev-unknown slots are the four after a missing slot, never read as flat  — ['08-25 20Z', '08-30 00Z', '09-02 04Z', '09-09 16Z']
+
+[B] ★★ neighbour cells
+  OK    B1 duplicate slot: the LAST row by position wins and the slot is named
+  OK    B2 an off-grid nominal slot is excluded and named
+  OK    B3 halted-but-holding is excluded from the traded series; the next slot is not a rebuild (prev held)
+  OK    B4 previous slot realized None / NaN ⇒ prev_unknown, never flat  — ([1789286400, 1789300800], [1789286400, 1789300800])
+  OK    B5 nominal_ts as text is read as the slot
+  OK    B6 external_book None / absent ⇒ internal era
+  OK    B7 input rows are not mutated; a flat previous slot makes a rebuild
+  OK    B8 empty input ⇒ empty series, no missing slots
+
+[C] ★ capture time vs slot on the real external series
+  OK    anchor_ts − nominal_ts within 1,380..1,548 s on every traded row  — (1380.975282907486, 1473.4672009944916)
+
+17/17 checks passed
+ALL PASS

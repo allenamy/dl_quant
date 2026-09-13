@@ -1,0 +1,33 @@
+tree ef60f85 anchor_report.py 9e448836d3fc398d (note: [P2] reads tests_fixtures/led07_anchor_series, copied from the new tree)
+[0] fixture integrity
+  OK    every extract hashes to its MANIFEST sha
+
+[S1] ★★★ REAL 09-12 12Z (A1789215839): measured-only fee, unknown fills named
+  OK    PRE: 496 rows, 4 unknown-fill rows, re-derived measured fee bps 2.47  — (496, 4, 2.468687906703511)
+  OK    the report ran (rc 0) without .env and without sending  — (0, '')
+  FAIL  ★★★ the printed fee is the MEASURED-only bps (old tree: 2.74 over a denominator with the unknown fills as 0)  — ('fee 2.74bps', 2.4687)
+  FAIL  ★★ the 4 unknown-fill rows are named on the line  — ['age 151.0s n 261 | 单 496 拒 44 | 换手 7.9% 成交 11308U taker 16% fee 2.74bps']
+
+[S2] ★★★ REAL 09-13 08Z: settlement anchor, halted, previous slot flat
+  OK    the report ran (rc 0)
+  FAIL  ★★★ no `funding.jsonl 缺` warning (old tree: ⚠️ funding.jsonl 缺 on a flat book)  — ['funding.jsonl 缺']
+  FAIL  ★★ the line says no position at settlement  — ['⚠️ funding.jsonl 缺']
+  FAIL  ★★ the halted anchor's intent is labelled unsent, not called turnover (old tree: no halted label, `换手`)  — ['age 146.1s n 255 | 单 0 拒 0 | 换手 0.0% 成交 0U taker 0% fee 0.00bps']
+
+[S3] ★★★ neighbour: REAL 08-05 12Z raw-BNB-fee rows under an external anchors row
+  OK    PRE: 211 rows, every filled row's fee is a raw mixed-asset slice  — (None, 0)
+  FAIL  ★★★ fee prints n/a(未测, 非 0) (old tree: fee 0.00bps)  — ['age 151.0s n 261 | 单 211 拒 19 | 换手 2.5% 成交 4256U taker 23% fee 0.00bps']
+
+[P] pure builder cells (no network)
+  FAIL  ★★★ the builder is a pure function (build_report/order_facts/history_facts/robust_band)  — absent in this tree — the report is one I/O-bound main()
+
+5/12 checks passed
+FAILED:
+  ★★★ the printed fee is the MEASURED-only bps (old tree: 2.74 over a denominator with the unknown fills as 0)
+  ★★ the 4 unknown-fill rows are named on the line
+  ★★★ no `funding.jsonl 缺` warning (old tree: ⚠️ funding.jsonl 缺 on a flat book)
+  ★★ the line says no position at settlement
+  ★★ the halted anchor's intent is labelled unsent, not called turnover (old tree: no halted label, `换手`)
+  ★★★ fee prints n/a(未测, 非 0) (old tree: fee 0.00bps)
+  ★★★ the builder is a pure function (build_report/order_facts/history_facts/robust_band)
+rc=1

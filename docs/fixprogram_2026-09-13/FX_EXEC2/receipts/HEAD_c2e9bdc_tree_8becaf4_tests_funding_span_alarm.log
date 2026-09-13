@@ -1,0 +1,32 @@
+[PRE]
+  OK    the real table: 140 names; the 15 recorded stale names are 8h in it; config book_source is external  — (140, 'external')
+
+[A] ★★★ fingerprint values
+  OK    PRE: 782 venue names, 15 stale  — (782, 15)
+  OK    ★★★ every stale finding carries its hours (old tree: 'SYM:None->None')  — ['1000BONKUSDT:4.0->absent', '1000RATSUSDT:4.0->absent', 'ANKRUSDT:8.0->4.0']
+
+[B] ★★★ an interval change on an already-stale name is news
+  OK    ★★★ ANKR 4h → 1h changes the finding set, so a new episode opens (old tree: identical set, no page)  — (['1000BONKUSDT:4.0->absent', '1000RATSUSDT:4.0->absent'], 1)
+
+[C] ★★★ external book: consequence-true text, tier B
+  OK    ★★★ tier INFO and the text names the internal DL panel and book_source=external (old tree: HIGH + the EMA sentence)  — ('INFO', 'funding span 表(执行器内部 DL 面板专用)已过期: 15 个 symbol 的结算间隔与交易所不符 (ANKRUSDT, AXSUSDT, ENJUSDT, FLOWUSDT, GMTUSDT, IOSTUSDT, KAVA')
+  OK    ★★★ alarm_policy classes that text tier B ⇒ DAILY (old tree: PUSH UNRECOGNISED)  — funding-span table stale, external book
+
+[D] ★★ internal book and unreadable config keep HIGH
+  OK    D1 internal ⇒ HIGH with the consequence sentence ⇒ PUSH  — [('HIGH', 'funding span 表已过期: 15 个 symbol 的结算间隔与交易所不符 (ANKRUSDT, AXSUSDT, ENJUSDT, FLOWUSDT, GMTUSDT, IOSTUSDT, KAVAUSDT, MASKUSDT...). 这些名字的 funding 腿在按错误的结算次数做 EMA —— 数是真的, 常数是错的。 另 2 个表内非 8h 的名字不在交易所列表(默认间隔或已下架, 离线不可分辨)。')]
+  OK    D2 an unreadable config keeps HIGH and says so  — [('HIGH', 'funding span 表已过期: 15 个 symbol 的结算间隔与交易所不符 (ANKRUSDT, AXSUSDT, ENJUSDT, FLOWUSDT, GMTUSDT, IOSTUSDT, KAVAUSDT, MASKUSDT...). 这些名字的 funding 腿在按错误的结算次数做 EMA —— 数是真的, 常数是错的。 另 2 个表内非 8h 的名字不在交易所列表(默认间隔或已下架, 离线不可分辨)。 (book_source 不可读, 按内部书告警)')]
+
+[E] ★★ absent from the venue list and not on the default interval
+  OK    E1 the two absent 4h table names are counted and named; the eleven absent 8h names are not  — (2, 13)
+  OK    E2 they enter the finding set under their own shape ('SYM:4.0->absent'), not as stale  — ['1000BONKUSDT:4.0->absent', '1000RATSUSDT:4.0->absent']
+
+[F] ★★ recording the episode
+  OK    F1 RECORDED_NOT_PUSHED (a policy decision) records the episode  — ['e8000bfaa7d07648']
+  OK    F2 FAILED does not record (the next run tries again)  — []
+
+[G] ★ unchanged paths
+  OK    G1 venue unreachable ⇒ ok None, nobody paged
+  OK    G2 no stale name ⇒ the episode closes (decide([])) and nobody is paged  — [[]]
+
+14/14 checks passed
+ALL PASS

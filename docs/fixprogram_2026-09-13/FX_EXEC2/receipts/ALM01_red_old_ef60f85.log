@@ -1,0 +1,43 @@
+tree ef60f85 check_funding_span.py 2c9e5e5ee316b6bb alarm_policy.py 4f2750262c585378
+[PRE]
+  OK    the real table: 140 names; the 15 recorded stale names are 8h in it; config book_source is external  — (140, 'external')
+
+[A] ★★★ fingerprint values
+  OK    PRE: 782 venue names, 15 stale  — (782, 15)
+  FAIL  ★★★ every stale finding carries its hours (old tree: 'SYM:None->None')  — ['ANKRUSDT:None->None', 'AXSUSDT:None->None', 'ENJUSDT:None->None']
+
+[B] ★★★ an interval change on an already-stale name is news
+  FAIL  ★★★ ANKR 4h → 1h changes the finding set, so a new episode opens (old tree: identical set, no page)  — (['ANKRUSDT:None->None', 'AXSUSDT:None->None'], 0)
+
+[C] ★★★ external book: consequence-true text, tier B
+  FAIL  ★★★ tier INFO and the text names the internal DL panel and book_source=external (old tree: HIGH + the EMA sentence)  — ('HIGH', 'funding span 表已过期: 15 个 symbol 的结算间隔与交易所不符 (ANKRUSDT, AXSUSDT, ENJUSDT, FLOWUSDT, GMTUSDT, IOSTUSDT, KAVAUSDT, MASKUSDT.')
+  FAIL  ★★★ alarm_policy classes that text tier B ⇒ DAILY (old tree: PUSH UNRECOGNISED)  — UNRECOGNISED
+
+[D] ★★ internal book and unreadable config keep HIGH
+  FAIL  D1 internal ⇒ HIGH with the consequence sentence ⇒ PUSH  — run() takes no source in this tree
+  FAIL  D2 an unreadable config keeps HIGH and says so  — no book_source() in this tree
+
+[E] ★★ absent from the venue list and not on the default interval
+  FAIL  E1 the two absent 4h table names are counted and named; the eleven absent 8h names are not  — (None, 13)
+  FAIL  E2 they enter the finding set under their own shape ('SYM:4.0->absent'), not as stale  — []
+
+[F] ★★ recording the episode
+  FAIL  F1 RECORDED_NOT_PUSHED (a policy decision) records the episode  — []
+  OK    F2 FAILED does not record (the next run tries again)  — []
+
+[G] ★ unchanged paths
+  OK    G1 venue unreachable ⇒ ok None, nobody paged
+  OK    G2 no stale name ⇒ the episode closes (decide([])) and nobody is paged  — [[]]
+
+5/14 checks passed
+FAILED:
+  ★★★ every stale finding carries its hours (old tree: 'SYM:None->None')
+  ★★★ ANKR 4h → 1h changes the finding set, so a new episode opens (old tree: identical set, no page)
+  ★★★ tier INFO and the text names the internal DL panel and book_source=external (old tree: HIGH + the EMA sentence)
+  ★★★ alarm_policy classes that text tier B ⇒ DAILY (old tree: PUSH UNRECOGNISED)
+  D1 internal ⇒ HIGH with the consequence sentence ⇒ PUSH
+  D2 an unreadable config keeps HIGH and says so
+  E1 the two absent 4h table names are counted and named; the eleven absent 8h names are not
+  E2 they enter the finding set under their own shape ('SYM:4.0->absent'), not as stale
+  F1 RECORDED_NOT_PUSHED (a policy decision) records the episode
+rc=1

@@ -1,0 +1,30 @@
+tree ef60f85 pilot_log.py f02baa69756ffe1d
+accessor under test: raw table (no accessor in this tree)
+[0] fixture integrity
+  OK    projection bytes hash to MANIFEST and carry 257 rows
+
+[A] ★★★ REAL anchors rows 08-01..09-13 12Z
+  OK    PRE (re-derived): 130 external / 127 internal / 12 external halted / 118 traded  — (130, 127, 12, 118)
+  OK    PRE (re-derived): missing slots and rebuild slots are the ledger's  — (['08-25 16Z', '08-29 20Z', '09-02 00Z', '09-09 12Z'], ['08-22 12Z', '08-26 20Z', '09-07 04Z', '09-10 00Z', '09-13 12Z'])
+  FAIL  ★★★ series = the 118 traded external slots in slot order (old tree: the raw table, 257 rows)  — (257, [None, None, None])
+  FAIL  ★★★ no halted row and no internal-era row inside the series
+  FAIL  ★★ exclusions counted by reason: internal 127, halted 12, off-grid 0, duplicates 0  — None
+  FAIL  ★★ missing slots named (a crash is a gap, not a zero)  — None
+  FAIL  ★★ rebuild slots flagged; prev-unknown slots are the four after a missing slot, never read as flat  — []
+
+[B] ★★ neighbour cells
+  FAIL  ★★ neighbour cells need the accessor (absent in this tree)  — attribute absent
+
+[C] ★ capture time vs slot on the real external series
+  FAIL  capture-time check needs the series (absent in this tree)  — attribute absent
+
+3/10 checks passed
+FAILED:
+  ★★★ series = the 118 traded external slots in slot order (old tree: the raw table, 257 rows)
+  ★★★ no halted row and no internal-era row inside the series
+  ★★ exclusions counted by reason: internal 127, halted 12, off-grid 0, duplicates 0
+  ★★ missing slots named (a crash is a gap, not a zero)
+  ★★ rebuild slots flagged; prev-unknown slots are the four after a missing slot, never read as flat
+  ★★ neighbour cells need the accessor (absent in this tree)
+  capture-time check needs the series (absent in this tree)
+rc=1

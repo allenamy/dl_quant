@@ -1,0 +1,49 @@
+reader under test: flatten_cost
+[0] fixture integrity
+  OK    every extract's decompressed bytes hash to its MANIFEST sha and carry its line count
+
+[A] ★★★ REAL 2026-09-12 12:47Z batch (post-E1 fills)
+  OK    PRE: 255 order rows, all protective_flatten, mid_at_anchor None on all, mid_at_submit and avg_fill_px on all
+  OK    PRE: 3,656 fills rows, one per trade, all USDT commission, order attempt_idx 1 vs fills attempt_idx 2
+  OK    ★★★ all 255 legs MEASURED (old tree: the anchor-mid reader measures 0 and calls all 255 unpriced)  — {'n_measured': 255, 'n_unpriced': 0, 'n_fee_unknown': 0, 'bps_measured': 10.391147066517345}
+  OK    ★★★ fee = Σ commission of the fills rows, re-derived independently (117.69126836 USDT)  — (117.69126836, 117.69126836000002)
+  OK    ★★ bps re-derived: fee bps and adverse bps vs mid_at_submit over 235,382.55 USDT  — (4.999999643619935, 5.39114742289741, 235382.5535)
+  OK    ★★ complete; price reference is mid_at_submit; every fee came from the fills rows  — {'measurement_complete': True, 'price_reference': 'mid_at_submit', 'fee_source_counts': {'fills_rows': 255}}
+
+[B] ★★★ REAL 2026-09-09 16:45Z batch: supersede duplicates + one BNB commission
+  OK    PRE: 243 legs; 6,190 fills rows = 3,095 trades × 2; exactly one BNB commission (BOMEUSDT, 0.0)
+  OK    ★★★ 242 measured, BOMEUSDT fee-unknown for its unconverted BNB commission, measurement incomplete  — {'n_measured': 242, 'n_fee_unknown': 1, 'reasons_not_measured': {'commission_non_usdt_unconverted': 1}}
+  OK    ★★★ the fee is the COLLAPSED sum (115.902218 USDT), not the naive 2× sum over supersede rows  — (115.90221836, 115.90221836000006, 231.8044367199998)
+
+[C] ★★ REAL 2026-09-06 08:46Z batch: priced, no fills rows at all
+  OK    268 legs fee-unknown `no_fills_rows`; 0 measured; bps None (not 0); 162,665.94 USDT in the fee-unknown bucket  — {'n_fee_unknown': 268, 'n_measured': 0, 'bps_measured': None, 'reasons_not_measured': {'no_fills_rows': 268}}
+
+[D] ★★ REAL 2026-08-05 12:18Z batch: raw mixed-asset fee rows are not free
+  OK    PRE: exactly 4 rows carry fee_paid 0.0 with fee_all_usdt False and no conversion
+  OK    those 4 read fee-unknown by name, the other 98 `no_fills_rows`; nothing measured as a zero fee  — {'no_fills_rows': 98, 'order_row_fee_not_known_usdt': 4}
+
+[E] ★★ neighbour cells (synthetic rows in the real shape)
+  OK    PRE: the template leg is a real 09-12 leg with at least 3 fills rows  — ('BCHUSDT', 3)
+  OK    E0 the template leg alone is measured (positive control for the cells below)  — {}
+  OK    E1 fills that do not close to the order's notional (one trade missing) ⇒ fee-unknown `fills_do_not_close`  — {'fills_do_not_close': 1}
+  OK    E2 two filled order rows for one symbol in one batch ⇒ both fee-unknown `ambiguous_join`  — {'ambiguous_join': 2}
+  OK    E3 a joined fills row without trade_id ⇒ `fills_row_without_trade_id`  — {'fills_row_without_trade_id': 1}
+  OK    E4 unknown fill ⇒ n_unknown_fill 1, measurement_complete False, nothing measured  — {'n_rows': 1, 'n_batches': 1, 'n_fills': 0, 'n_unknown_fill': 1, 'n_measured': 0, 'n_fee_unknown': 0, 'n_unpriced': 0, 'notional_usdt': 0, 'notional_measured_usdt': 0, 'fee_unknown_notional_usdt': 0, 'unpriced_notional_usdt': 0, 'fee_measured_usdt': 0.0, 'adverse_measured_usdt': 0.0, 'abs_slip_measured_usdt': 0.0, 'bps_measured': None, 'fee_bps_measured': None, 'adverse_bps_measured': None, 'abs_b
+  OK    E5 no mid_at_submit ⇒ unpriced `no_mid_at_submit`  — {'no_mid_at_submit': 1}
+  OK    E6 a NaN commission ⇒ `commission_missing`  — {'commission_missing': 1}
+  OK    E7 fills rows of ANOTHER flatten batch (same symbol) are not joined ⇒ `no_fills_rows`  — {'no_fills_rows': 1}
+  OK    E8 a non-flatten row passed in is ignored (n_rows counts flatten rows only)  — {'n_rows': 1, 'n_measured': 1}
+  OK    E9 attempt_idx is not part of the join (fills attempt 7 still joins attempt-1 order row)  — {}
+
+[F] ★★ the anchor-mid rule itself is unchanged
+  OK    bucket_fills on the 255 flatten rows still reads 255 unpriced / 0 measured (W2 rule untouched)  — 255
+
+[G] ★★★ reader wiring: score_post_fix E6 and daily_summary
+  OK    ★★★ E6 carries protective_flatten_exit_cost over the batch: 255 measured, fee = the fills' 117.69126836  — {'n_measured': 255, 'fee_measured_usdt': 117.69126836}
+  OK    ★★ ...and keeps the pre-existing anchor-mid key verbatim (255 unpriced)
+  OK    ★★★ the 09-12 batch is listed for a window that contains its fills, costed 255/255  — [('FLATTEN-20260912T124737Z', 255)]
+  OK    ★★ a window opening after the row-write time lists nothing; one opening at the last fill still lists it
+
+29/29 checks passed
+ALL PASS
+rc=0

@@ -1,0 +1,16 @@
+[A] ★★★ the eight REAL expiry pages
+  OK    ★★★ every real expiry body ⇒ DAILY by the cooldown-expiry rule (old tree: PUSH, UNRECOGNISED)  — [('DAILY', 'per-name stop cooldown expired'), ('DAILY', 'per-name stop cooldown expired'), ('DAILY', 'per-name stop cooldown expired'), ('DAILY', 'per-name stop cooldown expired'), ('DAILY', 'per-name stop cooldown expired'), ('DAILY', 'per-name stop cooldown expired'), ('DAILY', 'per-name stop cooldown expired'), ('DAILY', 'per-name stop cooldown expired')]
+
+[B] ★★ neighbours keep their push
+  OK    B1 the REAL trigger body ⇒ PUSH (the decision is made when the stop fires)  — UNRECOGNISED
+  OK    B2 the REAL exit-into-cooldown body ⇒ PUSH (unchanged by this item)  — UNRECOGNISED
+  OK    B3 a profile configuration error ⇒ PUSH
+  OK    B4 '冷却期满' without the per_name_stop head is not this rule
+
+[C] ★★ the generator's own string
+  OK    C1 evaluate emits one expiry event for a cooldown that ran out, and drops the name from cooldown  — ['per_name_stop: ZZZUSDT 冷却期满, 恢复可入']
+  OK    C2 that exact string, bare and with the notifier's '⚠️ HIGH\n' head, ⇒ DAILY by the expiry rule  — ['per_name_stop: ZZZUSDT 冷却期满, 恢复可入']
+  OK    C3 evaluate's trigger string for a 2nd consecutive −40% readback ⇒ PUSH  — ['★ per_name_stop 触发: YYYUSDT 深度 -40.0% 连续 2 个终锚读回 ≤ -30% ⇒ flatten_only(maker 出场, 不追), 出场后 7 天禁入 — 条款 cf40ea21, 30 天反事实对照待回填']
+
+8/8 checks passed
+ALL PASS

@@ -1,0 +1,29 @@
+[0] fixture integrity
+  OK    every extract hashes to its MANIFEST sha
+
+[S1] ★★★ REAL 09-12 12Z (A1789215839): measured-only fee, unknown fills named
+  OK    PRE: 496 rows, 4 unknown-fill rows, re-derived measured fee bps 2.47  — (496, 4, 2.468687906703511)
+  OK    the report ran (rc 0) without .env and without sending  — (0, '')
+  OK    ★★★ the printed fee is the MEASURED-only bps (old tree: 2.74 over a denominator with the unknown fills as 0)  — ('fee 2.47bps', 2.4687)
+  OK    ★★ the 4 unknown-fill rows are named on the line  — ['age 151.0s n 261 | 单 496 拒 44 | 换手 7.9%(意图未知 2 行) 成交 11308U 成交未知 4 行 taker ≥16%(成交未知行) fee 2.47bps']
+
+[S2] ★★★ REAL 09-13 08Z: settlement anchor, halted, previous slot flat
+  OK    the report ran (rc 0)
+  OK    ★★★ no `funding.jsonl 缺` warning (old tree: ⚠️ funding.jsonl 缺 on a flat book)  — []
+  OK    ★★ the line says no position at settlement  — ['funding 结算时无持仓(上一锚空仓), 无结算行']
+  OK    ★★ the halted anchor's intent is labelled unsent, not called turnover (old tree: no halted label, `换手`)  — ['停开仓 | age 146.1s n 255 | 单 0 拒 0 | 意图(未发送) 0.0% 成交 0U taker n/a fee n/a(未测, 非 0)']
+
+[S3] ★★★ neighbour: REAL 08-05 12Z raw-BNB-fee rows under an external anchors row
+  OK    PRE: 211 rows, every filled row's fee is a raw mixed-asset slice  — (None, 0)
+  OK    ★★★ fee prints n/a(未测, 非 0) (old tree: fee 0.00bps)  — ['age 151.0s n 261 | 单 211 拒 19 | 换手 2.5% 成交 4256U taker 23% fee n/a(未测, 非 0) [已测 0/103, 覆盖 0%]']
+
+[P] pure builder cells (no network)
+  OK    P1 fewer than 12 values ⇒ no threshold; None is not a value  — ({'n': 11, 'median': None, 'mad': None, 'threshold': None}, {'n': 12, 'median': 0.1, 'mad': 0.0, 'threshold': 0.1})
+  OK    P2 baseline slots: strictly before A, ≤42, no rebuild and no halted slot; the rebuild A is marked  — (42, True)
+  OK    P3a taker 60% above the band warns on a normal anchor; not on a rebuild; not on a halted anchor  — (['taker 占比 60% > 近40锚 中位 20% + 3MAD = 42%'], [], [])
+  OK    P3b |net/gross| 6% warns on the hard line with no baseline; None neither warns nor prints a number  — (['守护缺 prod', '守护缺 sidecar', '守护缺 combo', 'shadow_log 无本锚行', 'combo状态 None/None', 'target_combo 缺/无 w3m', '净敞口越硬线 6.00% (>|5%|)', 'taker 占比 60% > 近40锚 中位 20% + 3MAD = 42%'], ['守护缺 prod', '守护缺 sidecar', '守护缺 combo', 'shadow_log 无本锚行', 'combo状态 None/None', 'target_combo 缺/无 w3m', 'taker 占比 60% > 近40锚 中位 20% + 3MAD = 42%'])
+  OK    P3c missing funding file: previous slot holding ⇒ warn (持仓中); unknown ⇒ warn (未知); flat ⇒ no warn  — (['funding.jsonl 缺(结算时持仓中)'], ['funding.jsonl 缺(上一锚持仓未知)'], [])
+  OK    P4 no cell above touched the network (urlopen raises in this process)
+
+17/17 checks passed
+ALL PASS
