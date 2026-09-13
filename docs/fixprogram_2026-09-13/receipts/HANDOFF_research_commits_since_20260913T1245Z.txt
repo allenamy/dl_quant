@@ -123,3 +123,32 @@ b5803abe 09-14T00:07Z ATTR AMENDMENT 3 + Stage D 装置 p2_attr_chain_asof.py(�
 18cabe06 09-14T00:08Z 修复纲领 §8: EXE-01 交付登记(未部署, 范围宽于 R-14 交复审)· 新登记 W6C-B13 全书读回缺失不判盲(lead 前提错)/ W6C-I6 非计划运行平意图暴露 / 平仓行时间戳 / attempt_idx / gate_coverage 重复 · 电池公开行情 GET 条件许可 + 共用锁 · LED-08 漂移缺口退回 · pod2 配额用尽处置(删 11.4 GB 陈旧特征缓存, 收据)
 1227c445 09-14T00:09Z REPORT_FX_EXEC2 §LED-01 fills 写入合同(裁定 B; lead 逐字转录): (symbol,trade_id) 键 + 写入守卫隔离不抛 + 唯一读者与闭世界普查; 44 日零违例正控; 冻结指标重冻结且 44 日恒等证明前后 sha 同 4d00f6c7; 研究侧 70 个 fills 读者静态分类(28 个朴素形态未修)
 da1a9389 09-14T00:10Z FX-EXEC2 LED-04 devices (committed before running): amendment ledger apply/rehearsal device (C1-C4 checks, atomic write, idempotent, watchdog before/after on a symlinked temp root) + fixture builder
+28f06dbf 09-14T00:11Z FX-EXEC2 LED-03 device (committed before running): offline flatten-fee proxy from guard_twin COMMISSION rows by batch window, with a leg-by-leg positive control on the 09-09/09-12 exact fills commissions
+e4c3ccef 09-14T00:11Z FX-EXEC2 LED-03 device: index order fill times by symbol (same rule, O(n) instead of O(legs x rows)); committed before running
+bdccc9fe 09-14T00:12Z FX-EXEC2 LED-05 device (committed before running): offline write-back of the 52 round-3 reconstructed rows (A1788956640) with C1-C4 checks vs schema and collapsed fills, verbatim append, idempotent, rehearsal with watchdog before/after on a temp root
+0eb616f4 09-14T00:12Z FX-EXEC2 LED-05 device fix (before re-running): fall back to collapse_supersedes(read_day) when the executor tree predates read_fills — first check run on the ef60f85 tree raised AttributeError (invalid attempt, no receipt kept)
+3eb901ee 09-14T00:12Z 修复纲领全面交接 v3(用户字: 用量将尽, 全面记录结论/进度/思考/文档/完整代码提交链交独立研究员): 交接文档重写 + STATE 指针 + 四个克隆分支头与提交链清单 + 离线 git 捆绑包(执行器三包以 ef60f85 为前置, 生产者全量)+ 研究仓 125 条提交清单
+3d941a10 09-14T00:12Z FX-EXEC2 LED-05 check-mode receipts on the 14:27Z ledger copy (C1-C4 pass on ef60f85 and new tree: 52 rows, 69 fill trades, 2,536.209446 USDT, fee 0.50724168; target ABSENT) + negative control (the pre-round-3 cc_tmp rows are refused: sha, maker identity, doubled fees) + LED-04 red log
+7c0b1d0d 09-14T00:14Z P2 AMENDMENT 9: G2-B 原门在 P6-M 迁移上线后的复判计划(只写不跑): R0 逐字复现收据 2 / R1 历史反事实恒等式与应见不应见 / R2 上线后窗口与最早转绿日期公式; 原 RED 永久保留
+96e5db5b 09-14T00:14Z ATTR Stage C 收据(rc=0, d4c4625b): H-d CONFIRMED —— V0 三锚 king/target_combo/target_live 精确 0.0; 删头 1920 行 target_live 1.127e-4 / 1.025e-6 / 2.005e-6(kc 状态 0.0, 只在 f10/fc); 删 48/288 行 3/3 精确, 960 行 ≤1e-6; 死名置 NaN 三锚全 0.0(不触及 F10 截面)
+dacccf39 09-14T00:15Z FX-DATA STATE_PAUSE 追记: fx-prod 八月 zip 版 P9 声明间隔表到位(本地核 sha 366763a4 / 2,008,476 字节), 恢复后 FND 面板改钉此表
+51451749 09-14T00:15Z FX-EXEC2 receipts: LED-04 green (e05c45a chain), ALM-05 red (2/5 on ef60f85) and green (5/5), partial diff ef60f85..63e116c (sha256 33b302b584ebf9a91a6853512b0465b477a0db7574440b368faee8bc7795dda3)
+de937526 09-14T00:16Z ATTR §4 核对装置(先于运行): S2 六臂逐锚 combo 耗时与触发文本 —— H-d 是否触及 S2 的 F10 分数路径(I2 注入跳过 171 管线)
+fa1e8685 09-14T00:16Z ATTR §4 收据(rc=0): S2 六臂 combo 逐锚耗时最大 1.215 s、>5 s 0 锚、触发文本 0 ⇒ 171 管线在 S2 从未运行, H-d 不作用于 S2 的 F10 分数路径
+44cbcfc6 09-14T00:17Z FX-EXEC2 LED-04 consequence: watchdog §4-4 cum return prices transfer days with pre-fix realised_pnl — re-implementation reproduces live last_eval -1.3136% exactly; with amended realised -1.5749% (understated 0.2613 pp; 08-02 and 08-05 carry most)
+a3f1762a 09-14T00:18Z P2 AMENDMENT 10: S2 偏差表增补 D21 死合约(TRD-01/02/03 数字引审计收据; 不重跑 S2; 生产窗口 41 锚死名 2 个、不触及 F10 截面, 不外推历史); 三处修订头注时刻勘误(按提交时刻标注, 内容未改)
+b376880d 09-14T00:18Z 修复纲领 §9: LED-04 更正审计(看门狗 cond4 在修前转账日读低记 realised, 回撤低估 0.26 pp)+ 裁定 (a) 分工 FX-EXEC2/FX-W6C · ALM-03 方案 A · E10 克隆 6523440 · P9 八月 zip 新表 sha 366763a4
+eebae7c3 09-14T00:18Z REPORT_FX_EXEC2 §ALM-05 arm() A7 保证金诊断改按外部书已验证目标 ∪ 持仓定范围(lead 逐字转录)
+32b4f039 09-14T00:19Z P2 收据 9–14 · S2(门/链/因果审计/G2-C-BIND/D20 探针/表+K2 判词)入预注册, 全部带「未认证」标签; 数字引已提交收据, 不新算
+24b6e083 09-14T00:21Z ALM-06 (FX-EXEC2): guard_twin compares DAY over the same two time points and CUM through the arithmetic twin of the watchdog chain; history-worst day named — package for operator deploy (guard_twin is not a git repo)
+6a791720 09-14T00:22Z REPORT_FX_EXEC2 §ALM-06 guard_twin 日口径对齐(lead 逐字转录)+ lead 退回: CUM 须保留独立收入账本输入告警(否则双生失去独立性)
+e7a6f73f 09-14T00:22Z FX-PROD swap plan DRAFT (not executed): files+shas, migration order P5->P1->correction(+zips)->compose check, operator procedure S0-S6, first-anchor acceptance, rollback, monthly reconciliation; dry run pending after 16:50Z
+bda8ea44 09-14T00:25Z REPORT_FX_PROD P9 (c): monthly zip reconciliation run on August — COTI 08-31 20Z and DOS 08-11 16Z corrected, D17 533/533 confirmed by zip + ERA 08-06 16Z; receipts
+adc6f332 09-14T00:25Z FX-EXEC2 receipts: partial diff ef60f85..e808697 (LED-01 drift-manifest follow-up, STA-03, CFG-02, CFG-07, DOC-01; sha256 93579890acfebb74019a204f7c8468248520dc636fbecf316e4badf6b995f7f9) + tests_drift_gate log at e808697 (only the drift-itself cell red until the research copy is re-vendored at deploy)
+3012a6af 09-14T00:25Z REPORT_FX_PROD P9 (c): correct the DOS 08-11 16Z description — first settlement cold-started at M1 with first-row default 8 (checked against the zip, 08-16 seed and pre-M1/snapshot ledgers)
+6d07d47f 09-14T00:26Z REPORT_FX_EXEC2 §LED-01 跟进(重冻结 pilot_metrics 的部署耦合; lead 裁定部署同窗替换研究仓 vendored 副本)· §STA-03 · §CFG-02 · §CFG-07 · §DOC-01(lead 逐字转录)
+ad5a0375 09-14T00:26Z FX-DATA STATE_PAUSE 更正转述: DOS 08-11 16Z 属冷启动首行默认 8 族(非种子行), 依 fx-prod 3012a6af; 数值与表 sha 不变
+9add9bd5 09-14T00:27Z OPS-03 (FX-EXEC2): fact table + design, NOT coded, for lead ruling — 99% is the fixed-window shaper's own peak with waits=0; venue peaks <=67.5% of 2,400; sliding-60s emission reached 1,941 (08-26 12Z); rejects all -5022; replay of recorded timelines through a sliding shaper: +5.6..80 s, mostly settlement reads at ~N+44
+3a5cce44 09-14T00:28Z FX-PROD handoff: stack diff b891748..f289fc0 (sha 17a16f6e), commit chain, P9 exact-vs-likely answer, column-80 ruling recorded, P5 status (device committed, not run), queue state, unproven boundaries
+cb9e8ded 09-14T00:28Z FX-DATA STATE_PAUSE 追记: fx-prod P9 精确/可能判据按列(iv_best 非空=精确; iv_likely 仅最佳猜测不作更正标签), 依 3a5cce44
+1826d219 09-14T00:28Z FX-EXEC2 fact table addendum (append-only): LED-01 positive control / identity / other trade-id keys / drift pin / research readers; LED-04 records + WITHDRAWS row #2 (watchdog cond4 prices transfer days with pre-fix realised: -1.3136% reproduced, -1.5749% amended); LED-05 checks; ALM-06 replay; OPS-03 burst location; ENV-01 battery public GETs

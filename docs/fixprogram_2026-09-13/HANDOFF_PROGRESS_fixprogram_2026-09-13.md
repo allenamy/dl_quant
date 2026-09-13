@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13 15:3xZ | **更新:** v3 2026-09-13 16:1xZ(用量将尽前全面交接) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME · https://claude.ai/code/session_01HLaR7r1Tyg5CoEsNgnNFkY | **状态:** 活文档; 修复纲领进行中, **本纲领代码修复一律未部署** | **作废条件:** 由最终合并复审包取代(FIXPROGRAM §5)
+> **创建:** 2026-09-13 15:3xZ | **更新:** v3.1 2026-09-13 16:3xZ(用量将尽前全面交接; 分支头与捆绑包刷新) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME · https://claude.ai/code/session_01HLaR7r1Tyg5CoEsNgnNFkY | **状态:** 活文档; 修复纲领进行中, **本纲领代码修复一律未部署** | **作废条件:** 由最终合并复审包取代(FIXPROGRAM §5)
 
 # 修复纲领 · 全面交接(给独立研究员接续与复审)
 
@@ -8,8 +8,8 @@
 ## 0 怎么接手(按顺序)
 1. 读 `STATE.md` 顶部 3 条 → `FIXPROGRAM_2026-09-13.md` §0(规程)§3(main/secondary 定义与 71 项归属)§4–§8(逐批裁定)。
 2. 读本文件 §2(结论与思考)与 §4(逐项状态)。
-3. 代码: 四个克隆分支的提交链见 `receipts/HANDOFF_clone_heads_20260913T160954Z.txt`; **可离线复原**: `receipts/bundles/*.bundle`(执行器三包以 ef60f85 为前置, 在 `~/dl_quant_live` 或任一含 ef60f85 的克隆里 `git fetch <bundle> <branch>`; 生产者包为全量分支, 可 `git clone`)。
-4. 研究仓本纲领提交全表: `receipts/HANDOFF_research_commits_since_20260913T1245Z.txt`(125 条)。
+3. 代码: 四个克隆分支的提交链见 `receipts/HANDOFF_clone_heads_20260913T162850Z.txt`(最新; 16:09Z 版保留); **可离线复原**: `receipts/bundles/*.bundle`(执行器三包以 ef60f85 为前置, 在 `~/dl_quant_live` 或任一含 ef60f85 的克隆里 `git fetch <bundle> <branch>`; 生产者包为全量分支, 可 `git clone`)。
+4. 研究仓本纲领提交全表: `receipts/HANDOFF_research_commits_since_20260913T1245Z.txt`(16:28Z 刷新, 154 条)。
 5. 各工作者报告: `REPORT_E1.md` · `REPORT_FX_EXEC.md` · `REPORT_FX_EXEC2.md` · `REPORT_FX_W6C.md` · `REPORT_FX_PROD.md` · `REPORT_FX_EVAL.md` · `REPORT_FX_TRAIN.md`; 暂停者状态: `FX_{TRAIN,DATA,MODEL,EXEC2}/STATE_PAUSE.md` · `X_COST/STATE_PAUSE.md`。审计: `docs/audit_pipeline_2026-09-13/AUDIT_{EXEC,TRAIN,DATA,PROD}.md` + `AUDIT_KB_PARTIAL.md`。
 
 ---
@@ -110,3 +110,13 @@ OPS-01 · OPS-02 · 回滚动词双演练 · Mac 盘满清理 23 个陈旧克隆
 - 在跑工作者: FX-EXEC · FX-EXEC2 · FX-W6C · FX-PROD · P2(均已要求立即提交全部并报在飞状态)。暂停: FX-TRAIN · FX-DATA · FX-MODEL · aud-exec(X-COST 完成)· aud-kb。
 - secondary 挂起: L2(重启核对清单 fb180666)· T7(S1 装置 1aec37c0 未运行)· T5d-R · L3 · L4 家族 3 · T6 §11 · T1 carry 更正。
 - 估时(工作者小时, 约 5 并发): 执行器余项 6–10 h · 看门狗 B13/I6 3–5 h · 生产者 8–12 h · P2 残差 2–8 h · 账本告警余项 6–8 h · 知识库 3 h · 数据层 1–2 天 · 十月链 2–3 天 · 模型输入(含 GPU)2–3 天 · 书行为 P7/P8 1–2 天(P2 认证后)。**main 全部约 4–6 天。**
+
+---
+## 8 v3.1 增量(16:1xZ → 16:3xZ)
+**分支头**(`receipts/HANDOFF_clone_heads_20260913T162850Z.txt`; 捆绑包已按新头重建): fx_exec **39a0055** · fx_exec2 **e808697** · fx_w6c **3f85c0e** · fx_prod **f289fc0**(`docs/receipts/fx_prod_stack.diff` = b891748..f289fc0, 17 文件 +2608/−0, sha 17a16f6e)。
+- **FX-PROD 交接完成**(报告 `REPORT_FX_PROD.md` 全部段落, 研究仓 3a5cce44): P1 迁移干跑 PASS(525 名 0 冲突)· 平价 (a) 开关关 = 实盘逐位(链 41/41、快照 3/3)· (b) 只 king 第 76 列与 V2MAIN F82 第 80 列变 · (c) king Spearman 中位 0.9950、combo L1 中位 0.011 · V0P 门 PASS · P6′ 种子加载器(v3 bundle 在 ONG 08-25 08Z 拒绝)· P2 9/9 · P6-M 离线精确修正(正控 6.9e-18)· P9 H2 混合规则最终误标 1047→100、EMA >1% 格 73,484→8,205(31/31, 旧电池 65)· P5 装置已提交未运行 · 换装计划草稿 `FX_PROD/SWAP_PLAN_FX_PROD.md`(未干跑; 下一步 `migrations/swap_dryrun_frozen_20260913.sh` 于锚窗外, 约 30 min, 必须沙箱)· 八月 zip 832/832 完成于配额事件前, 680 文件 Mac 复核无需重拉 · PROD-27 未开始。
+- **FX-EXEC2 新增**: ALM-05 63e116c(A7 保证金诊断改按外部书范围)· ALM-06 guard_twin 包 24b6e083(**lead 退回**: CUM 须保留独立收入账本输入告警)· LED-01 跟进 df57077(重冻结 pilot_metrics ⇒ 研究仓 vendored 副本须在部署同窗替换; lead 裁定照此)· STA-03 / CFG-02 / CFG-07 / DOC-01 文档项 · LED-04 e05c45a + 修订记录 250 条 + 应用装置 da1a9389(演练未跑)· OPS-03 设计 9add9bd5(**lead 裁定 A + C**: 滑动窗口权重限速同上限 + 更正 `_gross_mult_note` 的「速率风暴」错误归因; 不做分阶段重建)。
+- **FX-W6C 新增**: ALM-02 933e7c5 · M2-33 3f85c0e(cond2 判最新有权益日, 未定价则 BLIND)· 队列: B13 → I6 → cond4 修前转账日定价(LED-04 裁定 (a))→ 平仓行时间戳 · 3f85c0e 电池未跑(17:05Z 后, BATTERY.lock)。
+- **FX-EXEC 新增**: E10 公证器 6523440 · ALM-03 方案 A 裁定(新账本消费者 + 旧路径 RETIRED 保留断言逐字)· 头 39a0055(报告段待到)。
+- **新登记 W6C-C4**(FIXPROGRAM §9): 看门狗 cond4 在修前转账日读低记 realised ⇒ §4-4 回撤低估 0.26 pp(−1.3136% vs −1.5749%)。
+- **新增待用户裁定**: 无(转账日口径仍为 §5 第 3 项)。
