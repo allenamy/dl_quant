@@ -1,0 +1,22 @@
+# mutation run2 start 2026-09-13T14:10:26Z module ab651754208e62a947bbfcad4a2f6cbbb41dc9cc3b7673869a6e4de77e0b8f04 tests 0491f9b131dc66ca31efba28b4aa0331c4ace95b80274ad6b9e47d632625b65f rules 8771e4f39a2241ba3fb2f310a119869b056cacc7e93fba40fc5b2c40b953889c
+CONTROL_no_mutation                                  rc=0 SUMMARY impl=module checks=84 pass=84 fail=0 error=0 | failing: 
+M-a_equivalence_closed_boundary                      rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M04_strict_boundaries
+M-b_equivalence_ignores_lo                           rc=1 SUMMARY impl=module checks=84 pass=80 fail=4 error=0 | failing: X05n3_T5add_not_negligible_negative,X06n3_T2_reject_like,M04_strict_boundaries,M08_v4_label_direction_unchanged_and_C_split
+M-c_not_equivalent_against_zero                      rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M04_strict_boundaries
+M-d_one_sided_upper_reads_point                      rc=1 SUMMARY impl=module checks=84 pass=79 fail=5 error=0 | failing: X03_T5b_point_below_line_CI_crosses__MISFIRE,X04n3_T5b_exec_wide__MISFIRE,X11_T8_FAIL_usefulness_not_excluded__MISFIRE,M06_one_sided,M19_t8_usefulness_excluded_needs_k0_and_k9
+M-e_aggregate_takes_first_member                     rc=1 SUMMARY impl=module checks=84 pass=79 fail=5 error=0 | failing: X01n4_T4_seeds_disagree__MISFIRE,X13n3_v4_one_seed_significant_other_wide,M07_aggregate,M13_one_sided_seed_conflict,M16_single_seed_can_not_turn_C_into_equivalent_when_the_other_is_wide
+M-f_shared_loss_ignores_sign                         rc=1 SUMMARY impl=module checks=84 pass=82 fail=2 error=0 | failing: X02_T5c_both_profitable_identical__MISFIRE,M09_loss_requires_negative_realised_means
+M-g_direction_drops_point_condition                  rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M17_direction_A_requires_point_positive_as_judge_v4
+M-h_short_justification_accepted                     rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M02_margin_rejects_bad_values
+M-i_interval_level_defaults                          rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M03_interval_validation
+M-j_equivalence_overrides_direction                  rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M08_v4_label_direction_unchanged_and_C_split
+M-k_loss_guard_always_true                           rc=1 SUMMARY impl=module checks=84 pass=82 fail=2 error=0 | failing: M10_loss_label_guard,M14_loss_guard_empty_or_nonfinite_means
+R-a_t4_material_needs_both_legs                      rc=1 SUMMARY impl=module checks=84 pass=82 fail=2 error=0 | failing: X01n2_T4_large_significant,X01n5_T4_book_tight_IC_beyond_band
+R-b_t1h1_band_from_point_not_least_extreme_drop      rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M18_t1h1_band_uses_least_extreme_drop
+R-c_t8_usefulness_k0_only                            rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M19_t8_usefulness_excluded_needs_k0_and_k9
+R-d_t5b_absent_reads_below_line                      rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: X04_T5b_exec_statistic_absent__MISFIRE
+R-e_t1h5_band_from_reference_point                   rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M20_t1h5_band_uses_least_extreme_reference
+R-f_t5addendum_not_negligible_single_seed            rc=1 SUMMARY impl=module checks=84 pass=83 fail=1 error=0 | failing: M21_t5addendum_not_negligible_needs_every_seed
+SUMMARY k2_mutation_run control_pass=True mutants=17 killed=17 survivors=[]
+rc=0
+# end 2026-09-13T14:12:49Z

@@ -1,0 +1,37 @@
+# C3 AST retention start 2026-09-13T14:13:12Z | ab651754208e62a9 module | 0491f9b131dc66ca tests | 8771e4f39a2241ba rules | 57b5d7281fbac45b legacy | HEAD 5146689c
+{
+ "c2": "efc2412a",
+ "file": "multi_asset/exports/research/common/tests_equivalence_labels.py",
+ "changed": {
+  "top:FunctionDef module_cat": "--- \n+++ \n@@ -2 +2 @@\n-    if label.startswith(\"NOT A SHARED LOSS\"): return GAP if \"gap detected\" in label else NOT_SHARED\n+    if label.startswith(\"NOT A SHARED LOSS\"): return GAP if \"; gap detected\" in label else NOT_SHARED",
+  "module:check M06_one_sided": "--- \n+++ \n@@ -3 +3 @@\n-                                     EL.one_sided(iv(-0.3, -0.05), margin=mg, material_side=\"lower\")[\"label\"], EL.one_sided(iv(0.95, 1.2), margin=mg, material_side=\"lower\", center=1.0)[\"label\"])\n+                                     EL.one_sided(iv(-0.3, -0.05), margin=mg, material_side=\"lower\")[\"label\"], EL.one_sided(iv(0.96, 1.2), margin=mg, material_side=\"lower\", center=1.0)[\"label\"])"
+ },
+ "expected_changed": {
+  "top:FunctionDef module_cat": "test-author error found at the first green run: 'gap detected' also matched 'no gap detected' (module-mode classifier only)",
+  "module:check M06_one_sided": "test-author error found at the first green run: last case put lo exactly on the line; strict boundary makes INCONCLUSIVE correct (module-only check)"
+ },
+ "added": [
+  "top:x01 X01n5_T4_book_tight_IC_beyond_band",
+  "top:x02 X02n4_T5c_replay_lost_deployed_won_gap",
+  "top:x04 X04n4_T5b_exec_lower_end_on_the_line_is_material",
+  "top:x12 X12n2_L2_boundary_z_equal_q05_holds",
+  "top:x12 X12n3_L2_boundary_G_upper_just_below_zero_holds",
+  "top:x13 X13n3_v4_one_seed_significant_other_wide",
+  "module:check M12_aggregate_rejects_mixing_two_sided_and_one_sided",
+  "module:check M13_one_sided_seed_conflict",
+  "module:check M14_loss_guard_empty_or_nonfinite_means",
+  "module:check M15_v4_label_and_shared_loss_need_margin",
+  "module:check M16_single_seed_can_not_turn_C_into_equivalent_when_the_other_is_wide",
+  "module:check M17_direction_A_requires_point_positive_as_judge_v4",
+  "module:check M18_t1h1_band_uses_least_extreme_drop",
+  "module:check M19_t8_usefulness_excluded_needs_k0_and_k9",
+  "module:Assign T1H5_SIX_SMALL",
+  "module:check M20_t1h5_band_uses_least_extreme_reference",
+  "module:check M21_t5addendum_not_negligible_needs_every_seed"
+ ],
+ "retained_top": 123,
+ "retained_module_block": 21,
+ "PASS": true
+}
+SUMMARY k2_ast_retention_check changed=2 expected=2 added=17 PASS=True
+rc=0

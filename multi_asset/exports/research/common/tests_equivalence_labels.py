@@ -75,7 +75,7 @@ MODULE_CAT = {
 
 
 def module_cat(label):
-    if label.startswith("NOT A SHARED LOSS"): return GAP if "gap detected" in label else NOT_SHARED
+    if label.startswith("NOT A SHARED LOSS"): return GAP if "; gap detected" in label else NOT_SHARED
     if label.endswith("NOT ESTABLISHED (failed gate; no absence margin declared)"): return INCONCLUSIVE_C
     return MODULE_CAT[label]
 
@@ -138,6 +138,7 @@ x01("X01n1_T4_tight_inside_band", NO_DIFFERENCE, [(0.001, -0.010, 0.012), (0.000
 x01("X01n2_T4_large_significant", MATERIAL, [(0.30, 0.20, 0.40), (0.28, 0.18, 0.38)], (0.0, -0.001, 0.001))
 x01("X01n3_T4_significant_but_negligible__CONVERSE_MISFIRE", NO_DIFFERENCE, [(0.010, 0.004, 0.016), (0.011, 0.005, 0.017)], (0.0, -0.001, 0.001))
 x01("X01n4_T4_seeds_disagree__MISFIRE", INCONCLUSIVE_C, [(0.20, 0.10, 0.30), (0.000, -0.010, 0.010)], (0.0, -0.001, 0.001))
+x01("X01n5_T4_book_tight_IC_beyond_band", MATERIAL, [(0.001, -0.010, 0.012), (0.000, -0.011, 0.010)], (0.006, 0.004, 0.008))   # added at C3 (neighbour)
 
 
 # ---------------------------------------------------------------------------------------------- X02 T5c shared loss
@@ -163,6 +164,7 @@ x02("X02_T5c_both_profitable_identical__MISFIRE", NOT_SHARED, 10 + 10 * BASE, 10
 x02("X02n1_T5c_both_lose_identical", SHARED_LOSS_SAME, -10 - 10 * BASE, -10 - 10 * BASE)
 x02("X02n2_T5c_both_lose_noisy_difference__MISFIRE", SHARED_LOSS_OPEN, -10 + 15 * RNG.standard_normal(61), -9 + 15 * RNG.standard_normal(61))
 x02("X02n3_T5c_deployed_lost_replay_won_gap", GAP, -15 - 5 * BASE, 15 + 5 * BASE)
+x02("X02n4_T5c_replay_lost_deployed_won_gap", GAP, 15 + 5 * BASE, -15 - 5 * BASE)   # added at C3 (neighbour)
 
 
 # ---------------------------------------------------------------------------------------------- X03/X04 T5b one-sided line
@@ -188,6 +190,7 @@ x04("X04_T5b_exec_statistic_absent__MISFIRE", ABSENT_STAT, None, None)
 x04("X04n1_T5b_exec_material", MATERIAL, 0.2, (0.1, 0.3))
 x04("X04n2_T5b_exec_below", BELOW_LINE, 0.01, (-0.02, 0.03))
 x04("X04n3_T5b_exec_wide__MISFIRE", INCONCLUSIVE_C, 0.04, (-0.2, 0.3))
+x04("X04n4_T5b_exec_lower_end_on_the_line_is_material", MATERIAL, 0.08, (0.05, 0.11))   # added at C3 (neighbour, boundary lo == line)
 
 
 # ---------------------------------------------------------------------------------------------- X05 T5 addendum share
@@ -364,6 +367,8 @@ def LEG_L2_CONDS(cell):
 x12("X12_L2_direction_absent_from_CI_upper_just_above_zero__MISFIRE", INCONCLUSIVE_C, l2_cell(-0.4, (-0.9, 0.05), -0.3, -0.2, (-0.4, -0.05)))
 x12("X12b_L2_not_beyond_funding_from_CI_containing_zero__MISFIRE", INCONCLUSIVE_C, l2_cell(-0.4, (-0.7, -0.1), -0.3, -0.05, (-0.3, 0.2)))
 x12("X12n1_L2_all_conditions_hold", EFFECT, l2_cell(-0.4, (-0.7, -0.1), -0.3, -0.2, (-0.4, -0.05)))
+x12("X12n2_L2_boundary_z_equal_q05_holds", EFFECT, l2_cell(-0.4, (-0.7, -0.1), -0.3, -0.2, (-0.4, -0.05), z=-2.0, q05=-2.0))   # added at C3 (neighbour)
+x12("X12n3_L2_boundary_G_upper_just_below_zero_holds", EFFECT, l2_cell(-0.4, (-0.7, -1e-9), -0.3, -0.2, (-0.4, -1e-9)))   # added at C3 (neighbour)
 
 
 # ---------------------------------------------------------------------------------------------- X13 judge_v4 device label (honest) on a wide CI
@@ -375,6 +380,7 @@ def x13(cid, truth, cells):
 x13("X13_v4_C_on_wide_CI_device_is_honest", INCONCLUSIVE_C, [(0.05, -0.20, 0.30), (0.04, -0.21, 0.29)])
 x13("X13n1_v4_A", DIR_A, [(0.3, 0.1, 0.5), (0.3, 0.1, 0.5)])
 x13("X13n2_v4_B", DIR_B, [(-0.3, -0.5, -0.1), (-0.3, -0.5, -0.1)])
+x13("X13n3_v4_one_seed_significant_other_wide", INCONCLUSIVE_C, [(0.3, 0.1, 0.5), (0.1, -0.3, 0.5)])   # added at C3 (neighbour)
 
 EXPECTED_LEGACY_RED = {
     "X01_T4_wide_CI_straddling_zero__MISFIRE", "X01n3_T4_significant_but_negligible__CONVERSE_MISFIRE", "X01n4_T4_seeds_disagree__MISFIRE",
@@ -416,7 +422,7 @@ if IMPL == "module":
                                                                        and r["justification"] == good["justification"] and r["source"] == "tests", str({k: r[k] for k in ("alpha_per_side", "delta", "unit")})))(EL.equivalence(iv(-0.01, 0.01), margin=mg)))
     check("M06_one_sided", lambda: ((EL.one_sided(iv(-0.1, 0.049), margin=mg, material_side="upper")["label"], EL.one_sided(iv(0.05, 0.1), margin=mg, material_side="upper")["label"],
                                      EL.one_sided(iv(0.0, 0.05), margin=mg, material_side="upper")["label"], EL.one_sided(iv(-0.049, 0.3), margin=mg, material_side="lower")["label"],
-                                     EL.one_sided(iv(-0.3, -0.05), margin=mg, material_side="lower")["label"], EL.one_sided(iv(0.95, 1.2), margin=mg, material_side="lower", center=1.0)["label"])
+                                     EL.one_sided(iv(-0.3, -0.05), margin=mg, material_side="lower")["label"], EL.one_sided(iv(0.96, 1.2), margin=mg, material_side="lower", center=1.0)["label"])
                                     == (EL.WITHIN_MARGIN, EL.BEYOND_MARGIN, EL.INCONCLUSIVE, EL.WITHIN_MARGIN, EL.BEYOND_MARGIN, EL.WITHIN_MARGIN)
                                     and raises(EL.LabelError, lambda: EL.one_sided(iv(0, 1), margin=mg, material_side="both")), "upper: hi<L within, lo>=L beyond; lower mirrors; center shifts; bad side rejected"))
     check("M07_aggregate", lambda: ((EL.aggregate([EL.equivalence(iv(-0.01, 0.01), margin=mg)] * 2)["label"], EL.aggregate([EL.equivalence(iv(0.1, 0.2), margin=mg)] * 2)["label"],
@@ -436,6 +442,24 @@ if IMPL == "module":
                                            == (False, True, True, True), "a LOSS label with a non-negative mean is inadmissible"))
     check("M11_no_point_only_api", lambda: (raises(TypeError, lambda: EL.equivalence(0.01, margin=mg)) and raises(TypeError, lambda: EL.equivalence((0.0, 0.01), margin=mg))
                                             and raises(TypeError, lambda: EL.equivalence(iv(-0.01, 0.01))), "floats / tuples / missing margin rejected"))
+
+    # added at C3 (after the first green run; the checks above are unchanged — see k2_ast_retention_check.py)
+    check("M12_aggregate_rejects_mixing_two_sided_and_one_sided", lambda: (raises(EL.LabelError, lambda: EL.aggregate([EL.equivalence(iv(-0.01, 0.01), margin=mg), EL.one_sided(iv(-0.01, 0.01), margin=mg, material_side="upper")])), "mixed kinds rejected"))
+    check("M13_one_sided_seed_conflict", lambda: ((lambda a: (a["label"], a["seed_conflict"]))(EL.aggregate([EL.one_sided(iv(-0.1, 0.0), margin=mg, material_side="upper"), EL.one_sided(iv(0.1, 0.2), margin=mg, material_side="upper")])) == (EL.INCONCLUSIVE, True), "WITHIN + BEYOND => INCONCLUSIVE with seed_conflict"))
+    check("M14_loss_guard_empty_or_nonfinite_means", lambda: ((EL.loss_label_admissible("SHARED LOSS, DIFFERENCE EQUIVALENT WITHIN ±δ", []), EL.loss_label_admissible("SHARED LOSS, DIFFERENCE EQUIVALENT WITHIN ±δ", [float("nan")])) == (False, False), "no means / NaN => inadmissible"))
+    check("M15_v4_label_and_shared_loss_need_margin", lambda: (raises(TypeError, lambda: EL.v4_label([iv(0.1, 0.2)])) and raises(TypeError, lambda: EL.shared_loss_reading(deployed_means=[-1.0], replay_means=[-1.0], differences=[iv(-0.01, 0.01)])), "no margin => TypeError"))
+    check("M16_single_seed_can_not_turn_C_into_equivalent_when_the_other_is_wide", lambda: (EL.v4_label([iv(-0.01, 0.01), iv(-0.3, 0.3)], margin=mg)["label"] == "(C) INCONCLUSIVE", "(C) EQUIVALENT needs every seed inside the band"))
+
+    # added at C3 after mutation run 1 (k2_mutation_run.py): each check below kills one surviving mutant
+    check("M17_direction_A_requires_point_positive_as_judge_v4", lambda: (EL.direction_v4([EL.Interval(point=-0.01, lo=0.001, hi=0.2, level=0.95)] * 2) == "(C)", "point <= 0 with lo > 0 is (C) in judge_v4; kills M-g"))
+    check("M18_t1h1_band_uses_least_extreme_drop", lambda: (KR.rule_t1h1_cell((-4.0, -6.0, -1.0), (-0.1, -0.5, 0.3), fraction=0.25, level=0.95) == "UNDECIDED", "a mix of -0.5 can be 50% of a drop of 1; kills R-b"))
+    check("M19_t8_usefulness_excluded_needs_k0_and_k9", lambda: (KR.rule_t8_reading("FAIL", {"R_NET_s42": dict(point=0.0, ci_k0=(-0.02, 0.02), ci_k9=(-0.03, 0.035))}, margin=M(0.03, unit="pooled OOS Pearson r"), level=0.95)
+                                                              == "FAIL: failed to detect; usefulness not excluded", "k9 upper 0.035 >= 0.03; kills R-c"))
+    T1H5_SIX_SMALL = {n: (0.0, -0.1, 0.1) for n in ("dpD", "dsD", "dpR", "dsR", "dpRs", "dsRs")}
+    check("M20_t1h5_band_uses_least_extreme_reference", lambda: ((KR.rule_t1h5(0.1, T1H5_SIX_SMALL, (1.0, 0.2, 1.8), (2.0, 1.5, 2.5), fraction=0.25, level=0.95),
+                                                                  KR.rule_t1h5(0.1, T1H5_SIX_SMALL, (1.0, -0.2, 2.2), (2.0, 1.5, 2.5), fraction=0.25, level=0.95)) == ("NOT DECIDABLE", "NOT DECIDABLE"),
+                                                                 "band 0.25*0.2 = 0.05 < 0.1; a reference CI containing 0 gives no band; kills R-e"))
+    check("M21_t5addendum_not_negligible_needs_every_seed", lambda: (KR.rule_t5_addendum([(0.5, 0.3, 0.7), (0.1, -0.1, 0.3)], margin=M(0.05, unit="share of gap"), not_negligible_line=0.20, level=0.95) == "INCONCLUSIVE", "one seed beyond 0.20, the other not; kills R-f"))
 
     # ------------------------------------------------------------------------------------------ Group P: direction labels unchanged (properties)
     import k2_legacy_predicates as KLP
