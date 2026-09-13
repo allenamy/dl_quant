@@ -1,6 +1,7 @@
 > **创建:** 2026-09-13 ~08:35Z | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (teammate T5, 任务 T5c) | **状态:** 完成; 判据冻结于 `PREREG_T5c_september_replay_vs_deployed_2026-09-13.md` sha256 `a669c627…6a48`(2026-09-13 08:05:22Z, 先于任何 T5c 结果数字); 冻结后未改窗/组/读法; 未经 lead 复跑 | **作废条件:** 部署书存档被改写; x0910 延展产物、T1 回放臂或 KA 数组被替换; 用户改比较层
 > **口径:** 目标文件层; king 链; 价格用 x0910 记账元 RAW y4(= RAW 补丁 DL 目标, 逐位核对), carry 同 T1/T5, 成本用 `costb_PWR_G230k`, 净额 = 价格 − carry − 成本; bps / 4h 锚 / 该书单位 gross。全部数字由 `devices/t5c_tables.py` 从收据渲染到 `receipts/TABLES_T5c.md`; §6.3 的逐日表来自事后装置 `devices/t5c_posthoc_days.py`。
 > **实盘零接触(VERIFIED):** `~/dl_quant_live` 与 `~/wide_shadow` 只读; 部署文件拷到 `T5c/private/`(gitignored, 739 个文件, `private/COPY_SHA256.txt`); 无任何 API 调用。pod2 只用 CPU, 全部装置在 `nice -n 10` 下运行, 并行 ≤ 16 核, 前后 `nvidia-smi` 0 % / 2 MiB, PID 333197 / 339489 全程 `Tl` 未触碰。未写 T4b / T5b / T6 / T7 / `parity_replay_2026-09-12/phase2`。未提交。
+> **后续指针(T5d, 2026-09-13):** 本文延展段的回放读了错误的结算间隔; 用真实间隔重跑、两个差(固定权重 / 重生成权重)与修正后的标签谓词见 `../T5d/RESULT_T5d_iv_corrected_replay_2026-09-13.md`。本文其余内容未改。
 
 # RESULT · T5c · 九月同锚: 回放书是否也亏
 
