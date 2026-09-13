@@ -397,7 +397,7 @@ for h in PF:
                                      stopped=(plan.get("stopped") if plan else None), nostop=(plan.get("nostop") if plan else None),
                                      gap_h=(round((h["exit_ts"] - plan["tau_stop"]) / 3600, 1) if plan and plan.get("tau_stop") else None),
                                      b2_exit_bps=fl(B2[gi[h["exit_ts"]], h["k"]] * 1e4), b1_exit_bps=fl(B1[gi[h["exit_ts"]], h["k"]] * 1e4),
-                                     exec_exit={v: (rec_v[v]["exit_prices"] if rec_v[v] else None) for v in VARIANTS},
+                                     exec_exit={v: (rec_v[v].get("exit_prices") if rec_v[v] else None) for v in VARIANTS},
                                      blowout=iso(bo) if bo else None, peak_abs_basis_bps=round(peak * 1e4, 1), prem_1m_longest_identical_run_last7d=prem_frozen_run(h),
                                      discontinuities=discontinuity(h), mark_index_present=bool(h["sym"] in MIN and np.isfinite(ms_for(h["sym"])["index_close"]).any()),
                                      announcement="PENDING L3", arms={}))
@@ -462,7 +462,7 @@ R3_flag = {a["id"]: {sp: float(build_series(a, "EXEC", "X1s1", zero_flagged=flag
 
 REC.update(population=dict(P_F=len(PF), P_C=len(PC), unique_events=len(events)), events=list(events.values()), controls=ctl, R2=R2, R3=R3, F2_survival=SURV,
            F2_statement=("no arm survives" if not surv else "surviving arms: " + ", ".join(surv)), R3_flagged_zeroed=R3_flag, N_F2=8, cumulative_ledger=20,
-           F3="NOT RUN at this step (conditional on L3 census; separate device)", elapsed_s=round(time.time() - T_START, 1))
+           F3="NOT RUN at this step (conditional on L3 census; separate device)", entry_fallback_uses=NFALLBACK[0], elapsed_s=round(time.time() - T_START, 1))
 ser = dict(TSW=TSW)
 for a in ARMS:
     for v in VARIANTS:
