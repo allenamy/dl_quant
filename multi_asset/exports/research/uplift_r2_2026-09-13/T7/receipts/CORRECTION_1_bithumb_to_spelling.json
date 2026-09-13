@@ -1,0 +1,72 @@
+{
+ "device": "t7_correction_1_bithumb_to.py",
+ "original_probe": [
+  {
+   "utc": "2026-09-13T07:46:58.739Z",
+   "tag": "bithumb_to_iso_Z",
+   "url": "https://api.bithumb.com/v1/candles/minutes/60?market=KRW-BTC&count=2&to=2026-09-01T00%3A00%3A00Z",
+   "status": 200,
+   "body_len": 76,
+   "body_sha256": "2fa56dff2940892108e2794eaf01a657df464f12d95e6a00963299048a121fb4",
+   "body": "ERROR_BODY: {\"error\": {\"name\": 400, \"message\": \"Invalid parameter. Check the given value!\"}}"
+  },
+  {
+   "utc": "2026-09-13T07:46:59.019Z",
+   "tag": "bithumb_to_naive_T",
+   "url": "https://api.bithumb.com/v1/candles/minutes/60?market=KRW-BTC&count=2&to=2026-09-01T00%3A00%3A00",
+   "status": 200,
+   "body_len": 644,
+   "body_sha256": "5ad0c50e7a695cb751c98c329d3bc75acd97003738ccf72c7bab218cdb857c63",
+   "body": "LIST_OR_UNSAVED_BODY(body_len=644)"
+  },
+  {
+   "utc": "2026-09-13T07:46:59.271Z",
+   "tag": "bithumb_to_naive_space",
+   "url": "https://api.bithumb.com/v1/candles/minutes/60?market=KRW-BTC&count=2&to=2026-09-01%2000%3A00%3A00",
+   "status": 200,
+   "body_len": 644,
+   "body_sha256": "5ad0c50e7a695cb751c98c329d3bc75acd97003738ccf72c7bab218cdb857c63",
+   "body": "LIST_OR_UNSAVED_BODY(body_len=644)"
+  },
+  {
+   "utc": "2026-09-13T07:46:59.552Z",
+   "tag": "bithumb_to_kst_offset",
+   "url": "https://api.bithumb.com/v1/candles/minutes/60?market=KRW-BTC&count=2&to=2026-09-01T09%3A00%3A00%2B09%3A00",
+   "status": 200,
+   "body_len": 76,
+   "body_sha256": "2fa56dff2940892108e2794eaf01a657df464f12d95e6a00963299048a121fb4",
+   "body": "ERROR_BODY: {\"error\": {\"name\": 400, \"message\": \"Invalid parameter. Check the given value!\"}}"
+  },
+  {
+   "utc": "2026-09-13T07:46:59.802Z",
+   "tag": "bithumb_to_iso_Z_plus1s",
+   "url": "https://api.bithumb.com/v1/candles/minutes/60?market=KRW-BTC&count=2&to=2026-09-01T00%3A00%3A01Z",
+   "status": 200,
+   "body_len": 76,
+   "body_sha256": "2fa56dff2940892108e2794eaf01a657df464f12d95e6a00963299048a121fb4",
+   "body": "ERROR_BODY: {\"error\": {\"name\": 400, \"message\": \"Invalid parameter. Check the given value!\"}}"
+  }
+ ],
+ "recheck_pull_control": [
+  {
+   "utc": "2026-09-13T09:18:18.921Z",
+   "url": "https://api.bithumb.com/v1/candles/minutes/60?market=KRW-BTC&count=200&to=2026-09-01T00%3A00%3A00Z",
+   "status": 200,
+   "body_len": 76,
+   "body_sha256": "2fa56dff2940892108e2794eaf01a657df464f12d95e6a00963299048a121fb4",
+   "body": "ERROR_BODY (sha256 identical to the original probe's error body); control record body_head: {\"error\":{\"name\":400,\"message\":\"Invalid parameter. Check the given value!\"}}"
+  }
+ ],
+ "finding": {
+  "n_error_body_responses": 4,
+  "distinct_error_bodies": [
+   "ERROR_BODY (sha256 identical to the original probe's error body); control record body_head: {\"error\":{\"name\":400,\"message\":\"Invalid parameter. Check the given value!\"}}",
+   "ERROR_BODY: {\"error\": {\"name\": 400, \"message\": \"Invalid parameter. Check the given value!\"}}"
+  ],
+  "distinct_error_body_sha256": [
+   "2fa56dff2940892108e2794eaf01a657df464f12d95e6a00963299048a121fb4"
+  ],
+  "corrected_fact": "Bithumb v1 candles: a `to` spelled with 'Z' or '+09:00' returns HTTP 200 + {\"error\":{\"name\":400,\"message\":\"Invalid parameter. Check the given value!\"}} (an error body, NOT an empty list); the naive KST spelling works",
+  "wrong_fact_as_committed": "HTTP 200 + empty list (silent empty)"
+ }
+}

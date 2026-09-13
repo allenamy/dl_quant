@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13 ~09:3xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (teammate T7) | **状态:** 可行性结果(数据工程; **不含任何收益相关数字**); 全量拉取**未启动** | **作废条件:** 任一场所改变 K 线 API 行为(`to` 语义 / count 上限 / 下市可查性 / 错误体格式); 回放合格规则(A0 C0)或 `receipts/pod2/T7_universe_elig.npz`(sha256 `a530e123…`)被替换; 映射守卫收据 `MAPPING_guard_r2.json` 被推翻
+> **创建:** 2026-09-13 ~09:3xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (teammate T7) | **状态:** 可行性结果(数据工程; **不含任何收益相关数字**); 全量拉取**未启动**(本文写成时); **更正 1**(09:2xZ, Bithumb `Z` 字面的返回, 见 §13-9) | **作废条件:** 任一场所改变 K 线 API 行为(`to` 语义 / count 上限 / 下市可查性 / 错误体格式); 回放合格规则(A0 C0)或 `receipts/pod2/T7_universe_elig.npz`(sha256 `a530e123…`)被替换; 映射守卫收据 `MAPPING_guard_r2.json` 被推翻
 > **上游:** `../PROGRAM_uplift_r2_2026-09-13.md` AMENDMENT 5(T7 定义)| 数据地雷来源(记忆): `ma_v3_track2_oi_positioning_closed`(吞掉的列表失败 / 分页静默截断)、`new_info_campaign_round1_2026_08_11`(命中率 + 偏移谱双守卫)、`f7_multiangle_sources_and_free_bookdepth`、`f2_basis_leg_judged_negative`、`young_listings_carry_fund_alpha` | **S1 草案:** `PREREG_T7_S1_DRAFT.md`(DRAFT, lead 冻结)
 
 # T7 · 韩元市场溢价 · 数据可行性
@@ -7,7 +7,7 @@
 1. **可行, 但带三道硬约束。** (a) 两所官方 K 线 API 公开免 key, 当前在市市场的 60m 与 1m 历史完整回到开市(Upbit 2017-09-25, Bithumb 2013-12-27)。(b) **已下市市场查不到**: 两所官方 API 与 Upbit 网页 CDN 都返回与「从未存在的代码」逐字相同的 `Code not found`; CryptoCompare 免 key 通道已关(401)⇒ 历史样本是**幸存者子集**。(c) 对回放合格宇宙的覆盖**结构性低于 80%**: 两所并集按名 52.6%(2022)→ 64.5%(2026), 全期 58.5%; 实盘书按毛权重 59.2%。
 2. **幸存者偏差已量化**(27 个网页存档快照): 快照时点「当时在该所 KRW 上市、今天查不到」的合格名占合格集: Upbit 0.5–5.0%, Bithumb 4.5–6.8%。市场层面: 2022H2 快照里 Upbit 20–25%、Bithumb 33–35% 的 KRW 市场今天查不到。
 3. **对齐守卫在样本上全绿, 负控全红**: 因果断言 0 违例(负控 bar=N 全部违例); 命中率 1.000(两定义、两所); 偏移谱峰在 lag 0(BTC/ETH/XRP、两所; 负控 KST 当 UTC ⇒ +9、收盘时刻标签 ⇒ +1)。
-4. **会静默造假的场所地雷**(全部有收据, 见 §2): Bithumb `to` 只认无时区的 KST 字面, 带 `Z`/`+09:00` 返回 **HTTP 200 + 空列表**; Bithumb 的错误是 **HTTP 200 + error 体**; `count>200` 静默截成 200; 无成交小时不出 bar; Bithumb 240m/日 K 按 KST 对齐(Upbit 按 UTC); 场所改名后换代码且**保留历史**(MATIC→POL、EOS→A、FTM→S、STPT→AWE 等, 价格同一性 R≈1.00 已验); **Upbit KRW-STRAX(现名 Xertra)历史价被整体改了约 10 倍面额**(R = 0.0999); 场所停机(2026-07-05 17–20Z Upbit 全市场无 bar); 研究仓位于 iCloud 同步桌面, 文件会被驱逐成 dataless(读一次数秒)。
+4. **会静默造假的场所地雷**(全部有收据, 见 §2): Bithumb `to` 只认无时区的 KST 字面, 带 `Z`/`+09:00` 返回 **HTTP 200 + error 体 `Invalid parameter`**(**更正 1**: 原文误写为「空列表」, §13-9); Bithumb 的错误一律是 **HTTP 200 + error 体**; `count>200` 静默截成 200; 无成交小时不出 bar; Bithumb 240m/日 K 按 KST 对齐(Upbit 按 UTC); 场所改名后换代码且**保留历史**(MATIC→POL、EOS→A、FTM→S、STPT→AWE 等, 价格同一性 R≈1.00 已验); **Upbit KRW-STRAX(现名 Xertra)历史价被整体改了约 10 倍面额**(R = 0.0999); 场所停机(2026-07-05 17–20Z Upbit 全市场无 bar); 研究仓位于 iCloud 同步桌面, 文件会被驱逐成 dataless(读一次数秒)。
 5. **全量拉取计划**(未启动): 全部在市 KRW 市场全史 + 币安指数价参照, 每主机 5 req/s、主机并行约 **3.5 小时墙钟**(Bithumb 62,639 / Upbit 40,300 / vision 11,330 请求, 均为上界), gz CSV ≤ 约 730 MB。
 6. **S1 预注册草案** `PREREG_T7_S1_DRAFT.md`: 家族 N = 4(K1 溢价水平 / K2 24h 变化 / K3 KRW 成交集中度 / K4 溢价 × 高费率), 增量秩 IC 对 king+fund 复合、对 rev24 残差化、逐年同号; S2 以 ρ-to-A0 为主筛选; 覆盖冲突(80% 规则)给出三选一待 lead 冻结。
 
@@ -25,7 +25,7 @@
 | F1 | K 线端点(已实测的单位) | `GET https://api.upbit.com/v1/candles/minutes/{1,60,240}`、`/days`、`/months`; 参数 `market`、`to`、`count` | `GET https://api.bithumb.com/v1/candles/minutes/{1,60,240}`、`/days`、`/months`(字段与 Upbit 同构) | `receipts/http_log_explore.jsonl`、`PROBE_A_conventions.json` |
 | F2 | 字段 | market, candle_date_time_utc, candle_date_time_kst, opening/high/low/trade_price, timestamp, candle_acc_trade_price(KRW 成交额), candle_acc_trade_volume | 同 | explore |
 | F3 | 每请求上限 | 200(201/1000 静默截成 200, HTTP 200) | 同 | T-1 |
-| F4 | `to` 语义 | 按 bar 开盘时刻**排他**; 无时区字面按 **UTC**; `Z`、`+09:00` 均被正确解析 | 排他; 无时区字面按 **KST**; **`Z` / `+09:00` 字面返回 HTTP 200 + 空列表** | T-1 |
+| F4 | `to` 语义 | 按 bar 开盘时刻**排他**; 无时区字面按 **UTC**; `Z`、`+09:00` 均被正确解析 | 排他; 无时区字面按 **KST**; **`Z` / `+09:00` 字面返回 HTTP 200 + error 体 `Invalid parameter`**(更正 1, 原误写为空列表) | T-1、`receipts/CORRECTION_1_bithumb_to_spelling.json` |
 | F5 | bar 标签 | **开盘时刻**; 返回进行中的 bar(最新标签 = 请求时刻向下取整) | 同 | T-1 |
 | F6 | KST 标签 | = UTC + 9h(每根) | 同 | T-1 |
 | F7 | `timestamp` 字段 | 最后更新毫秒; 1.5–3% 的 60m bar 超出收盘 ≤ 0.054 s(推断为处理延迟, 见 §11) | 始终在 [open, open+unit) 内 | T-1、`PROBE_A2_tsfield.json` |
@@ -101,7 +101,7 @@
 - **范围建议**: S-ALL/H-FULL(全部在市 KRW 市场, 全史)。理由: K3(KRW 成交集中度)的分母需要全所成交额; 全史给 2022-01-31 首锚之前足够暖机。墙钟 = 各主机并行 ≈ max(Bithumb 3.48 h, Upbit 2.24 h, vision 0.63 h) ≈ **3.5 h @ 5 req/s**(4 req/s 下 4.35 h)。请求数是上界(无成交小时不出 bar, 实际页数更少)。
 - **断点续拉**: 每市场一个目录, 每页一个文件(文件名含游标 `to`), 写临时文件后原子改名; 追加式清单 JSONL(url、游标、行数、最新/最老 bar、body sha256); 重启时从清单里该市场最老游标继续; 同一页重复拉取须 body sha 相同, 否则记「事后改写」并停。
 - **文件 = 应有范围的核验**(针对 OI 拉数的「列表与文件同时被截断」地雷, 不能只比文件数): (1) 该市场最老 bar 的开盘日 = 普查首日(普查是独立的月 K/日 K 路径); (2) 页缝: 每页最新 bar < 上一页最老 bar; (3) **V4 日量恒等式逐市场逐日**(独立的日 K 路径), 不等 ⇒ 该日重拉; (4) 最新 bar ≥ 拉取开始时刻 − 1h(在市市场); (5) 普查 `n_months_present` 与小时数据覆盖的月份集合一致。
-- **HTTP 错误 ≠ 真空结果**: 非 200 或 body 非列表(含 Bithumb 的 200 + error 体)= 错误 ⇒ 退避重试, 超限记入错误清单, **从不写空文件**; 空列表只在「游标已早于普查首日」时被接受为真空, 其余空列表 = 错误(抓 Bithumb 时区字面静默空)。每次运行开头: 正控(已知窗口必须非空)+ 负控(`Z` 字面必须空), 两者之一变化 ⇒ API 行为变了 ⇒ 停。
+- **HTTP 错误 ≠ 真空结果**: 非 200 或 body 非列表(含 Bithumb 的 200 + error 体)= 错误 ⇒ 退避重试, 超限记入错误清单, **从不写空文件**; 空列表只在「游标已早于普查首日」时被接受为真空, 其余空列表 = 错误(防任何未预期的空列表; Bithumb 时区字面实为 200 + error 体, 本就按错误处理, 更正 1)。每次运行开头: 正控(已知窗口必须非空)+ 负控(Upbit: 开市前的 `to` 必须是空列表; Bithumb: `Z` 字面必须是 error 体; 两所: 不存在的代码必须是 Code not found), 任一变化 ⇒ API 行为变了 ⇒ 停。
 - **同一性与改面额**: 全史逐对 30 日滚动 |pB| 中位 ≤ ln 1.25, 越界的对×月剔除并列表(STRAX/Xertra 类)。
 - **存储位置**: **不要放在 iCloud 同步目录**(本研究仓在 `~/Desktop`, 本轮已观察到 `T1/private/target_live` 文件被驱逐成 `compressed,dataless`, Python 读每文件数秒); 建议本机非同步目录或 jpline, 完成后清单 sha 入研究仓。币安 vision 大批量从本机拉(记忆: jpline 到 vision 慢 35×)。
 - **前向采集(建议, 非本步)**: `market_event.caution.GLOBAL_PRICE_DIFFERENCES` 等场所标记只有当下快照, 若将来要用须从现在起每锚存档。
@@ -178,3 +178,4 @@ python3 devices/t7_assemble_result.py
 6. **我自己的记忆错了一处**: 我以为 Upbit 有过 KRW-LUNA, 存档 2021-04 起所有快照里都没有; 幸存者事实只引用存档确认过的代码。
 7. **装置在运行之间被修改**: `t7_http.py` 在 PROBE_A/A2/B 之后改过(白名单扩充、禁词范围、限速实现从持锁睡眠改为按主机预约时隙), 请求语义未变; 覆盖率首版(r1 映射)输出保留为 `COVERAGE_T7_r1mapping_superseded.json`, 本文只用 r2 版。
 8. **qvk 不能当上市时间**: 首版映射检查时刻计划用 qvk 首末有限行, 发现 829 名全窗有限后改为「最后 C0 合格锚」, 在任何价格读取之前。
+9. **更正 1 —— 我把 Bithumb `Z` / `+09:00` 字面的返回写成了「空列表」**(本文 fbf36ffd 版 §0.4、F4、T-1、§9 均如此)。事实: **HTTP 200 + `{"error":{"name":400,"message":"Invalid parameter. Check the given value!"}}`**(76 字节)。原因: PROBE_A 装置在 status 200 时不存 body, 把「非列表 body」与「空列表」都记成 `newest_open_utc = None`; 我在数表生成器里把 None 渲染成「空列表」, 没有打开同一请求的 HTTP 日志(日志里 76 字节的 error 体一直在)——「字段缺了就当某个值」缺陷族。发现者: 全量拉取的负 `to` 控制在测试运行中期望 `[]` 得到 error 体, 测试进程在任何数据请求前以 exit 2 中止。证据: `receipts/CORRECTION_1_bithumb_to_spelling.json`(原探针 3 条 + 拉取运行开头控制 1 条, body sha256 同为 `2fa56dff…`)。影响: 该地雷比原文说的**轻**(列表类型检查即可识别, 不与真空结果混淆); 其余事实不受影响; 数表 T-1 改为从 HTTP 日志读 body 类型。

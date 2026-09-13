@@ -14,9 +14,16 @@ for k in ("A1_m60", "A1_m1", "A1_m240"):
     L.append(f"| {k} 最新 bar 标签 = 请求时刻向下取整 | {u['newest_is_request_floor']} | {b['newest_is_request_floor']} |")
     L.append(f"| {k} 标签对齐到单位整点(UTC) | {u['open_aligned_to_unit']} | {b['open_aligned_to_unit']} |")
     L.append(f"| {k} KST−UTC 标签差(秒) | {u['kst_minus_utc_label_seconds']} | {b['kst_minus_utc_label_seconds']} |")
+LOGA = {json.loads(l)["tag"]: json.loads(l) for l in open(os.path.join(R, "http_log_probe_a.jsonl"))}   # CORRECTION 1: body kind read from the HTTP log, not inferred from newest_open_utc
+def to_cell(v, k, rec):
+    if rec["newest_open_utc"]: return rec["newest_open_utc"]
+    lg = LOGA.get("%s_to_%s" % (v, k), {}); head = lg.get("body_head")
+    if head is None: return "**无 bar 且 body 未存 (HTTP %s)**" % rec["status"]
+    js = json.loads(head)
+    return ("**HTTP %s + 空列表**" % rec["status"]) if isinstance(js, list) else ("**HTTP %s + error 体** `%s`" % (rec["status"], js.get("error", {}).get("message")))
 for k in ("iso_Z", "naive_T", "naive_space", "kst_offset", "iso_Z_plus1s"):
     u, b = A["venues"]["upbit"]["A2_to_" + k], A["venues"]["bithumb"]["A2_to_" + k]
-    L.append(f"| `to={u['to']}` ⇒ 最新 bar open(UTC) | {u['newest_open_utc']} | {b['newest_open_utc'] or '**空列表 (HTTP ' + str(b['status']) + ')**'} |")
+    L.append(f"| `to={u['to']}` ⇒ 最新 bar open(UTC) | {to_cell('upbit', k, u)} | {to_cell('bithumb', k, b)} |")
 L.append(f"| 日 K 标签(UTC) | {A['venues']['upbit']['A3_days']['rows'][0]['candle_date_time_utc']} | {A['venues']['bithumb']['A3_days']['rows'][0]['candle_date_time_utc']} |")
 for c in (200, 201, 1000):
     L.append(f"| count={c} 实得行数 | {A['venues']['upbit']['A4_count_%d' % c]['n']} | {A['venues']['bithumb']['A4_count_%d' % c]['n']} |")

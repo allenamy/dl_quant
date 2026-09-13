@@ -10,11 +10,11 @@
 | A1_m240 最新 bar 标签 = 请求时刻向下取整 | True | False |
 | A1_m240 标签对齐到单位整点(UTC) | True | False |
 | A1_m240 KST−UTC 标签差(秒) | [32400] | [32400] |
-| `to=2026-09-01T00:00:00Z` ⇒ 最新 bar open(UTC) | 2026-08-31T23:00:00 | **空列表 (HTTP 200)** |
+| `to=2026-09-01T00:00:00Z` ⇒ 最新 bar open(UTC) | 2026-08-31T23:00:00 | **HTTP 200 + error 体** `Invalid parameter. Check the given value!` |
 | `to=2026-09-01T00:00:00` ⇒ 最新 bar open(UTC) | 2026-08-31T23:00:00 | 2026-08-31T14:00:00 |
 | `to=2026-09-01 00:00:00` ⇒ 最新 bar open(UTC) | 2026-08-31T23:00:00 | 2026-08-31T14:00:00 |
-| `to=2026-09-01T09:00:00+09:00` ⇒ 最新 bar open(UTC) | 2026-08-31T23:00:00 | **空列表 (HTTP 200)** |
-| `to=2026-09-01T00:00:01Z` ⇒ 最新 bar open(UTC) | 2026-09-01T00:00:00 | **空列表 (HTTP 200)** |
+| `to=2026-09-01T09:00:00+09:00` ⇒ 最新 bar open(UTC) | 2026-08-31T23:00:00 | **HTTP 200 + error 体** `Invalid parameter. Check the given value!` |
+| `to=2026-09-01T00:00:01Z` ⇒ 最新 bar open(UTC) | 2026-09-01T00:00:00 | **HTTP 200 + error 体** `Invalid parameter. Check the given value!` |
 | 日 K 标签(UTC) | 2026-09-13T00:00:00 | 2026-09-12T15:00:00 |
 | count=200 实得行数 | 200 | 200 |
 | count=201 实得行数 | 200 | 200 |
