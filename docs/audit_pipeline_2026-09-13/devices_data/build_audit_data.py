@@ -121,13 +121,14 @@ add(id="TRD-02", layer="fund leg rank base (replay FZB and P2 base proxy)",
     what=("w10 m1 scope ranks each member's funding EMA among every finite value on the panel row; dead contracts with continuing funding records sit in that base. "
           f"Dead names in the base, mean per anchor {' / '.join(f(h3[y]['base_DEAD_mean'], 1) for y in YRS)} (max {' / '.join(str(h3[y]['base_DEAD_max']) for y in YRS)}) of a base of {' / '.join(f(h3[y]['base_mean'], 0) for y in YRS)} names (2022..2026). "
           f"P2's settlement-based TRADING proxy has the same contamination: {' / '.join(f(p2b[y]['base_proxy_DEAD_mean'], 1) for y in YRS)} dead names per anchor (max {' / '.join(str(p2b[y]['base_proxy_DEAD_max']) for y in YRS)}). "
-          "Relative order among live names is unchanged, but rank positions and therefore z levels and demeaned weights shift. The book-level effect was not measured."),
+          "Relative order among live names is unchanged, but rank positions and therefore z levels and demeaned weights shift. Production's base is exchangeInfo TRADING perpetuals plus the pinned live list, so it excludes dead contracts unless they are still pinned. The book-level effect was not measured."),
     evidence=[
         {"source": "uplift_2026-09-11/r18_foundation/devices/w10_sleeve_r18.py:149", "quote": "def FZB(j, m): # ... fund z = rank position of each member among ALL finite fund-EMA values of the 829 base on panel row j"},
         {"source": "devices_data/receipts/AD_H_tradability.json H3", "quote": json.dumps({y: {k: h3[y][k] for k in ("base_mean", "base_DEAD_mean", "base_DEAD_max", "base_Z24_mean")} for y in YRS})},
         {"source": "AD_H_tradability.json H5.P2_base_proxy_on_king_axis", "quote": json.dumps({y: {k: p2b[y][k] for k in ("base_proxy_mean", "base_proxy_DEAD_mean", "base_proxy_DEAD_max")} for y in YRS})},
         {"source": "AD_H_tradability.json H6 fund_now_finite_on_DEAD (v2ext cells)", "quote": yline(h6, "fund_now_finite_on_DEAD")},
-        {"source": "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md:75", "quote": "D3 基名单: exchangeInfo 历史不可得 ⇒ (A−24h, A] 有结算的名作 TRADING 代理"}],
+        {"source": "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md:75", "quote": "D3 基名单: exchangeInfo 历史不可得 ⇒ (A−24h, A] 有结算的名作 TRADING 代理"},
+        {"source": "~/wide_shadow/shadow_loop_v3.py:315-317 (e9c98374)", "quote": "_b = [x[\"symbol\"] for x in _xi[\"symbols\"] if x.get(\"contractType\") == \"PERPETUAL\" and x.get(\"quoteAsset\") == \"USDT\" and x.get(\"status\") == \"TRADING\"] ... st.base = sorted(set(_b) | set(st.live))"}],
     status="OPEN_NOT_MEASURED", affects=["future_eval"], severity="P2",
     severity_reason=f"Systematic {BASE_RNG} contamination of the rank base (yearly mean) behind the book's dominant leg in every replay and in P2's production-path claim; effect on levels not measured but paired contrasts mostly cancel.",
     action="Drop from the base any name with no trade in the trailing 24 h (TRD-01 flag) in w10 FZB and in P2's base proxy; report the paired A0 and P2 differences.",
