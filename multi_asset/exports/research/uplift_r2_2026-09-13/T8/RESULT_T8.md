@@ -1,7 +1,7 @@
 > **创建:** 2026-09-13 ~10:45Z | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (teammate T8) | **状态:** 已判 —— 冻结读法 **T8 = FAIL**; 判据冻结于 `PREREG_T8.md` sha256 `53da0bcc…84f8a`(2026-09-13 09:59:27Z)+ `PREREG_AMENDMENT_1_T8.md` sha256 `d5928ee3…0be56`(10:20:22Z, 由 build 首跑 G2a 失败触发, 先于任何预测数字); 数字产生后未改阈值 / 窗口 / 读法; **未经 lead 复跑** | **作废条件:** r18 C0 臂、T1 C0 臂、v4 记账元、v2ext 面板或 UPIT_CRYPTO 掩码被替换; 预注册或修订 sha 变化
 > **口径:** v4; 目标 = A0(= r18 `C0_s{42,2027}`, 逐位 = 归档 A0)逐锚 `net_ex/gross_total`, 及多头价格 / 空头价格(T1 臂 `T1AGG`)/ carry; bps / 4h 锚 / 单位 gross; 特征收益一律取记账元 RAW y4 = Π(1+r)−1, **未从 5m 缓存 `ret5` 或面板 `f_rev_*` 取任何收益**。全部数字由 `devices/t8_tables.py` 从收据渲染到 `receipts/TABLES_T8.md`, 本文数字都在那里有出处。
 > **实盘零接触(VERIFIED):** 未读 `~/wide_shadow` / `~/dl_quant_live`; 无任何 API 调用。pod2 只用 CPU: 每次运行都在 `env -i` 白名单、`nice -n 10`、`taskset -c 40-47`(8 核)下前台运行, 装置断言亲和核 ≤ 8; `nvidia-smi` 前后 `0 %, 2 MiB`; PID 333197 / 339489 前后均为 `Tl`, 未触碰; pod2 写入共 14 MB。未写 P2 / T6 / T7 目录。
-> **提交:** `844cd412`(预注册 + 冻结收据)· `de42037f`(装置, 运行前)· `7ef2786f`(AMENDMENT 1 + 装置更新, 运行前)· `1e3c01b1`(表格装置, 运行前)· 本文所在提交(结果、收据、校验和)
+> **提交:** `844cd412`(预注册 + 冻结收据)· `de42037f`(装置, 运行前)· `7ef2786f`(AMENDMENT 1 + 装置更新, 运行前)· `1e3c01b1`(表格装置, 运行前)· `db99f6b9`(结果、收据、校验和)· `304f8529`(§8.6 事后披露)· `548c6bef`(§12 POST-FREEZE 描述装置, 运行前)· 本节所在提交(§12 与校验和改由 T6 防 dataless 装置生成)
 
 # RESULT · T8 · 书层收益可感知门(多变量)
 
@@ -128,4 +128,33 @@ env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu /usr/bin/python3 devices/t8_tables
 - 装置: `devices/t8_common.py`、`t8_selftest.py`、`t8_build.py`、`t8_null.py`、`t8_fit.py`、`t8_judge.py`、`t8_tables.py`、`run_t8.sh`
 - 收据(pod2 原件的逐位拷贝): `receipts/pod2/RECEIPT_T8_{selftest,build,null_0_40,null_40_190,null_190_340,null_340_500,fit,judge}.json`、各 `*_stdout.log` 与 `RC_*.txt`、`receipts/pod2/failed_first_runs/`; 渲染表 `receipts/TABLES_T8.md`
 - **只在 pod2**(不入库; Mac 副本在 `/Users/haosiyu/cc_tmp/t8/`): `out/T8_data.npz` sha256 `ff8d4e5779d6c7f96e95349582f3cf39371dbf3d1fcb53f03f4d6d3b3def9207`(4.5 MB, 目标与 24 列特征)、`out/T8_oos.npz` sha256 `fc0139137e81fa688d43621b846554822d5a2de4ccdf10605fe11ee112cbc0f3`(16 个格的样本外预测)
-- 校验和: `SHA256SUMS.txt`
+- POST-FREEZE 描述: `devices/t8_postfreeze_calendar.py`、`receipts/POSTFREEZE_calendar_T8.json`、`receipts/POSTFREEZE_calendar_T8.md`
+- 校验和: `SHA256SUMS.txt`(由 `../T6/devices/t6_sha_guard.py write` 在写入时计算; 该装置拒绝 APFS dataless 文件与短读; 另见 §12 末的完整性核查)
+
+## §12 POST-FREEZE DESCRIPTIVE · 只看日历年 2023–2026 的同号读数(lead 于结果之后要求; 不是门, **不改变 T8 = FAIL**)
+**理由(lead)**: F1 的训练行是暖机行, 书构造不同(强制席位、F10 恒 0 的前缀)。所以另报「只用日历测试年、4 年中至少 3 年同号」。
+**来源**: 装置 `devices/t8_postfreeze_calendar.py`(先提交 `548c6bef` 后运行, rc=0), 只读 `receipts/pod2/RECEIPT_T8_fit.json` 与 judge 收据(受保护读取并对 `SHA256SUMS.txt` 校验), 输出 `receipts/POSTFREEZE_calendar_T8.{json,md}`; 逐格表见该 md。
+
+| 模型 × 目标 | 2023 / 2024 / 2025 / 2026 的 r(s42) | 两种子都 ≥3/4 为正 | 两种子都 ≥3/4 为负 | 2023–26 合并 r(s42 / s2027) | 冻结判决 |
+|---|---|---|---|---|---|
+| Ridge NET | −.025 / +.009 / +.028 / −.070(2 正 2 负) | 否 | 否 | −0.0107 / −0.0073 | FAIL |
+| LGBM NET | −.018 / −.012 / +.045 / −.040 | 否 | **是(同为负)** | −0.0052 / −0.0087 | FAIL |
+| Ridge LONG | −.021 / +.060 / +.032 / +.007 | 是 | 否 | +0.0098 / +0.0101 | FAIL |
+| LGBM LONG | +.019 / +.028 / +.030 / +.036 | 是(两种子 4/4) | 否 | +0.0213 / +0.0255 | FAIL |
+| Ridge SHORT | −.042 / +.058 / +.015 / +.027 | 是 | 否 | −0.0070 / −0.0068 | FAIL |
+| LGBM SHORT | +.012 / +.033 / +.026 / +.015 | 是(两种子 4/4) | 否 | +0.0126 / +0.0163 | FAIL |
+| CARRY(正控, 两模型) | 全部 > +0.49 | 是 | 否 | +0.81 / +0.89 | 正控 |
+
+**读数(描述)**:
+- 日历读法对 NET 更不利。LGBM 在 3/4 个日历年反号, Ridge 两正两负, 2023–26 合并 r 全为负。
+- LONG 与 SHORT 在日历读法下满足「≥3/4 同号为正」, 但 2023–26 合并 r 最大 +0.026, 仍低于 0.03。Ridge SHORT 甚至三年为正、合并为负(2023 年 −0.042 拉低)。本节没有计算新的 CI 或零分布。
+- 结论: 放宽成日历年同号, 不会让任何实质格接近冻结门槛。T8 = FAIL 不变。
+
+**完整性核查(Mac 盘 97% 满, iCloud 会把文件逐出成 dataless, lead 警告 `shasum` 可能静默记下 sha256(空) = e3b0c442…)**:
+- 本目录全部校验记录里没有 `e3b0c442…`。
+- 用 `t6_sha_guard.py check` 核查旧 `SHA256SUMS.txt` 的 44 条: 0 不一致, rc=0。
+- T8 目录 45 个文件没有一个带 dataless 标志。
+- git HEAD 里 45 个 blob 大小都与工作区文件相同且非空。
+- 两份预注册 sha(`53da0bcc…` / `d5928ee3…`)上传时已由 pod2 的 `sha256sum` 独立得到同值。
+- 本次起, `SHA256SUMS.txt` 改由 `t6_sha_guard.py write` 在写入时生成(只含仓库文件; pod2 独有输出的 sha 见 §11)。
+
