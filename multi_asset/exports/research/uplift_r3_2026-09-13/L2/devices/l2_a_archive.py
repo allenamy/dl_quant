@@ -64,6 +64,14 @@ def run_listing():
     with ThreadPoolExecutor(8) as ex:
         return dict(zip(SYMS, ex.map(lambda s: N.list_symbol(cli, s), SYMS)))
 LA = run_listing(); LB = run_listing()
+RETRIES = {}
+for _pass in (LA, LB):   # a failed page is retried (fresh listing of that symbol, up to 3 times); never read as 'no data'
+    for _s in SYMS:
+        _k = 0
+        while not _pass[_s]["ok"] and _k < 3:
+            time.sleep(5.0); _pass[_s] = N.list_symbol(cli, _s); _k += 1
+        if _k:
+            RETRIES[_s] = RETRIES.get(_s, 0) + _k
 lst_fail = sorted(s for s in SYMS if not (LA[s]["ok"] and LB[s]["ok"]))
 lst_mismatch = sorted(s for s in SYMS if LA[s]["ok"] and LB[s]["ok"] and (LA[s]["zip_dates"] != LB[s]["zip_dates"] or LA[s]["checksum_dates"] != LB[s]["checksum_dates"]))
 assert not lst_fail, ("listing incomplete for", lst_fail[:20], len(lst_fail))
@@ -73,7 +81,7 @@ chk_missing = {s: sorted(set(LA[s]["zip_dates"]) - set(LA[s]["checksum_dates"]))
 lp = os.path.join(C.L2, "out", "L2_A_listing.json")
 C.jdump({s: dict(zip_dates=LA[s]["zip_dates"], checksum_dates=LA[s]["checksum_dates"], pages=LA[s]["pages"]) for s in SYMS}, lp)
 first_dates = [LA[s]["zip_dates"][0] for s in SYMS if LA[s]["zip_dates"]]
-rep["listing"] = dict(symbols=len(SYMS), passes_identical=True, symbols_with_no_keys=sorted(s for s in SYMS if not LA[s]["zip_dates"]),
+rep["listing"] = dict(symbols=len(SYMS), passes_identical=True, listing_retries=RETRIES, symbols_with_no_keys=sorted(s for s in SYMS if not LA[s]["zip_dates"]),
                       zip_keys_total=int(sum(len(LA[s]["zip_dates"]) for s in SYMS)), symbols_zip_without_checksum=len(chk_missing),
                       zip_without_checksum_examples=dict(list(chk_missing.items())[:10]), pages_total=int(sum(LA[s]["pages"] + LB[s]["pages"] for s in SYMS)),
                       earliest_date=min(first_dates) if first_dates else None, out=lp, out_sha256=C.sha256(lp))
