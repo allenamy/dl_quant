@@ -1,0 +1,31 @@
+Pre-freeze synthetic smoke outputs (transcribed verbatim from the pod2 runs of the scripts in this directory; SYNTHETIC y4 only).
+
+[calib_smoke.py on L2_smoke2, seed-42 R scores, 120 synthetic target draws]
+A all anchors 7309 true SD(G) over draws 0.690 mean -0.032 day-block boot SE (5 draws) [0.774 0.741 0.702 0.791 0.734]
+B all anchors 7309 true SD(G) over draws 3.731 mean 0.366 day-block boot SE (5 draws) [3.106 2.939 2.68  2.842 2.392]
+B only00 anchors 1218 true SD(G) over draws 4.409 mean 0.585 day-block boot SE (5 draws) [4.369 4.247 4.336 4.463 4.439]
+
+[calib2_smoke.py on L2_smoke2]
+A block 1d boot SE 0.774
+A block 2d boot SE 0.762
+A block 3d boot SE 0.888
+A circular day-shift null SD 0.930 mean -0.127 (100 shifts)
+B block 1d boot SE 3.106
+B block 2d boot SE 3.341
+B block 3d boot SE 3.985
+B circular day-shift null SD 4.123 mean -1.348 (100 shifts)
+
+[diag_smoke.py: within-anchor Spearman (mean, SE over sampled anchors) of each feature vs SYNTHETIC targets]
+L2_smoke2 A {'DOI1H': (0.1313, 0.1183), 'DOI24H': (-0.0848, 0.0659), 'LSDIV': (-0.204, 0.196), 'TKR24': (0.0008, 0.0035), 'R3D': (-0.0059, 0.0035), 'DD7': (-0.006, 0.0033), 'AGE': (-0.0004, 0.0033), 'FZ': (0.0042, 0.0034), 'RN8': (0.0004, 0.0034), 'DRN8': (0.0029, 0.0035)}
+L2_smoke2 B {'DOI1H': (0.196, 0.063), 'DOI24H': (-0.099, 0.1431), 'LSDIV': (0.1111, 0.1036), 'TKR24': (-0.0015, 0.0034), 'R3D': (-0.0059, 0.0036), 'DD7': (-0.0038, 0.0035), 'AGE': (-0.0014, 0.0033), 'FZ': (0.0024, 0.0035), 'RN8': (-0.0046, 0.0034), 'DRN8': (-0.0037, 0.0035)}
+L2_smoke3 A {'DOI1H': (-0.1475, 0.0736), 'DOI24H': (-0.0707, 0.0955), 'LSDIV': (-0.0707, 0.1408), 'TKR24': (0.0, 0.0034), 'R3D': (0.0037, 0.0034), 'DD7': (0.0037, 0.0035), 'AGE': (0.0017, 0.0033), 'FZ': (-0.001, 0.0034), 'RN8': (0.0009, 0.0034), 'DRN8': (-0.0044, 0.0035)}
+L2_smoke3 B {'DOI1H': (0.1535, 0.1557), 'DOI24H': (0.1717, 0.0873), 'LSDIV': (-0.1273, 0.1104), 'TKR24': (-0.0003, 0.0035), 'R3D': (-0.0002, 0.0035), 'DD7': (0.0015, 0.0036), 'AGE': (-0.0053, 0.0034), 'FZ': (-0.0035, 0.0034), 'RN8': (0.0036, 0.0033), 'DRN8': (-0.0021, 0.0032)}
+
+[smoke chain judge lines, synthetic seed 12345 (smoke2: day blocks + key-permutation null) — G for the 4 gate cells]
+s42 R_A G 1.694 [0.315, 3.004] z 2.19 | R_B G 8.319 [2.141, 14.069] z 4.44 | L_A G 1.394 [-0.182, 2.662] z 2.78 | L_B G 5.357 [-0.311, 10.524] z 2.53
+s2027 R_A G 1.633 [0.445, 2.71] z 2.82 | R_B G 7.335 [1.966, 12.001] z 3.61 | L_A G 0.839 [-0.375, 2.067] z 1.28 | L_B G 6.100 [1.07, 11.498] z 3.58
+[synthetic seed 999 (smoke3), same settings]
+s42 R_A 0.334 [-1.033, 1.755] | R_B 5.668 [-0.558, 10.807] | L_A 0.424 [-0.963, 1.923] | L_B -1.423 [-7.283, 4.081]
+s2027 R_A 0.934 [-0.274, 2.218] | R_B 6.031 [0.533, 11.162] | L_A 0.025 [-1.589, 1.535] | L_B -0.368 [-5.337, 4.376]
+[selftest G-PC on smoke2] direction G -20.91 [-22.37, -19.46] C1-C4 pass (rank IC 0.0578); variance G 0.84 [-1.72, 3.54] DIRECTION-ABSENT; noise G -0.18 [-1.56, 1.21] DIRECTION-ABSENT
+[G-SF on smoke2] identical 60/60; negative controls R3D 60/60, DOI1H 52/52, TKR24 60/60, RN8 60/60

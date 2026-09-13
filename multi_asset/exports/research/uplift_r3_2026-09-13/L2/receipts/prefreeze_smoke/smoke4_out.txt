@@ -1,0 +1,21 @@
+SMOKE l2_b_build.py rc=0
+SMOKE l2_b_selftest.py rc=0
+SMOKE l2_b_fit.py rc=0
+SMOKE l2_b_null.py rc=0
+SMOKE l2_b_judge.py rc=0
+SMOKE_CHAIN_DONE
+seed 42 null 0/20 2s
+seed 42 q05 -2.213 z_obs {"R_A": 1.856, "R_B": 2.868, "L_A": 1.665, "L_B": 1.582}
+seed 2027 null 0/20 8s
+seed 2027 q05 -2.012 z_obs {"R_A": 2.216, "R_B": 2.275, "L_A": 1.003, "L_B": 1.572}
+SUMMARY l2_b_null OK replicates=20 wall=12s
+seed 42 R_A G 1.694 [0.315, 3.004] dG 1.428 [-0.228, 3.265] TB_ci [-0.808, 3.634] H 0.191 [-1.115, 1.783] Gmed 2.547 years {'2023': 3.8, '2024': 0.12, '2025': 3.06, '2026': -0.48} z 1.86 q05 -2.21 spec0 False -> {"C1": false, "C2": false, "C3": false, "C4": fa
+seed 42 R_B G 8.319 [2.091, 15.022] dG 7.039 [-0.008, 15.923] TB_ci [-1.094, 15.717] H 0.809 [-4.083, 6.937] Gmed 7.049 years {'2023': 14.91, '2024': 8.79, '2025': 0.93, '2026': 5.15} z 2.87 q05 -2.21 spec0 False -> {"C1": false, "C2": false, "C3": false, "C4"
+seed 42 L_A G 1.394 [-0.182, 2.662] dG 1.470 [-0.124, 3.002] TB_ci [-0.091, 4.043] H -0.889 [-2.369, 0.762] Gmed 2.398 years {'2023': 3.91, '2024': 0.33, '2025': 0.33, '2026': 0.28} z 1.67 q05 -2.21 spec0 False -> {"C1": false, "C2": false, "C3": false, "C4": 
+seed 42 L_B G 5.357 [-0.847, 11.49] dG 0.718 [-5.711, 7.363] TB_ci [-4.131, 12.858] H 1.770 [-4.364, 8.062] Gmed 6.706 years {'2023': 11.08, '2024': 7.41, '2025': 1.88, '2026': -2.85} z 1.58 q05 -2.21 spec0 False -> {"C1": false, "C2": false, "C3": false, "C4"
+seed 2027 R_A G 1.633 [0.445, 2.71] dG 0.996 [-0.356, 2.269] TB_ci [-0.961, 2.879] H 0.492 [-1.047, 1.803] Gmed 2.275 years {'2023': 4.2, '2024': -0.09, '2025': 0.87, '2026': 1.26} z 2.22 q05 -2.01 spec0 False -> {"C1": false, "C2": false, "C3": false, "C4": f
+seed 2027 R_B G 7.335 [1.852, 13.423] dG 5.367 [-1.598, 10.829] TB_ci [-2.787, 14.254] H 1.572 [-3.411, 7.116] Gmed 6.814 years {'2023': 15.1, '2024': 4.66, '2025': 0.14, '2026': 8.13} z 2.28 q05 -2.01 spec0 False -> {"C1": false, "C2": false, "C3": false, "C4
+seed 2027 L_A G 0.839 [-0.375, 2.067] dG 1.694 [0.073, 3.289] TB_ci [-0.636, 3.131] H -0.225 [-1.41, 1.015] Gmed 1.205 years {'2023': 3.76, '2024': -1.91, '2025': 0.96, '2026': 0.45} z 1.00 q05 -2.01 spec0 False -> {"C1": false, "C2": false, "C3": false, "C4":
+seed 2027 L_B G 6.100 [0.998, 12.237] dG 4.159 [-2.419, 10.482] TB_ci [-4.937, 11.174] H 2.556 [-2.131, 7.973] Gmed 5.714 years {'2023': 10.3, '2024': 5.54, '2025': 2.33, '2026': 5.06} z 1.57 q05 -2.01 spec0 False -> {"C1": false, "C2": false, "C3": false, "C4
+SUMMARY l2_b_judge verdict=FAIL label=DIRECTION-ABSENT passing=[] closest=R_A wall=64s
+progress 40/618 symbols, requests 18682, http {"200": 18671}, dns {"hits": 14, "lookups": 2, "gaierror_retries": 0}, rate 20, wall 959s
