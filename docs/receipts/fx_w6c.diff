@@ -1,0 +1,1792 @@
+diff --git a/config/book.json b/config/book.json
+index 47bbc97..1f81b7f 100644
+--- a/config/book.json
++++ b/config/book.json
+@@ -171,5 +171,10 @@
+   "_on_unavailable_redteam_note": "hold (2026-08-22 redteam R3): the design (DESIGN_wide_live_deployment §1) and the user's pre-authorisation say 'keep current positions + HIGH alarm'; the staged ladder (DERISK 24h / FLATTEN 48h) is a book-behaviour choice that needs the user's word — offered, not defaulted.",
+   "_gross_mult_note": "1.75(2026-08-27 01:0xZ 爬坡第二档; 20Z重建69%+00Z补齐99%连续两锚干净无触发; 步长+3.8k在已证包络内; 下一档2.0×待本档锚干净) 1.5(2026-08-26 13:3xZ 分级爬坡恢复第一步; 12:47Z §4-5e 触发根因=2.0×一步建仓的提交风暴撞速率顶(peak weight 1005/自限1000, 157张null-submit拒单)⇒ 疑似未记账成交越过逐名min_notional线。爬坡: 16Z@1.5"
+  },
+- "_anchor_max_seconds_redteam_note": "★ 3000→3600 (2026-08-22 redteam R1): at N+23 read + poll 5 + phaseA 1 + k 15 + phaseB/C + reports the 50-min cap left 2–5 min of slack < poll_grace; a 2–3 min late producer would os._exit the anchor mid-submission WITHOUT cancelling resting orders (run_anchor.py:190-206) ⇒ next anchor §4-5b. 60 min keeps ≥12 min slack; next anchor is 240 min away."
++ "_anchor_max_seconds_redteam_note": "★ 3000→3600 (2026-08-22 redteam R1): at N+23 read + poll 5 + phaseA 1 + k 15 + phaseB/C + reports the 50-min cap left 2–5 min of slack < poll_grace; a 2–3 min late producer would os._exit the anchor mid-submission WITHOUT cancelling resting orders (run_anchor.py:190-206) ⇒ next anchor §4-5b. 60 min keeps ≥12 min slack; next anchor is 240 min away.",
++ "watchdog_proportional_response": {
++  "enabled": true,
++  "_basis": "EXE-01 (P1, audit 2026-09-13 AUDIT_EXEC): R-14 read as option A with the switch ON; user rules 2026-09-12 (instrument doubt must never trigger a book-level response; a book-level response must pass a proportionality gate) and 2026-09-13 (fix every known issue without waiting for a ruling). Fact table quant_research docs/fixprogram_2026-09-13/FX_W6C/FACT_TABLE_W6C.md; report REPORT_FX_W6C.md.",
++  "_semantics": "true: when EVERY trigger of an evaluation is name-scoped (§4-5b, §4-5e split_unauth per-name clause alone, §4-7 drift), the names number <= 5 and their doubt is <= 2% of gross (watchdog.PROPORTIONAL_MAX_NAMES / PROPORTIONAL_MAX_FRAC_OF_GROSS — code constants, deliberately NOT keys here), the response is LOCAL: halt opening, cancel and flatten THOSE names only, page; otherwise the full ladder. false: every trip runs the full ladder (the behaviour before this key). Missing / unreadable / non-boolean => ON (watchdog.proportional_switch)."
++ }
+ }
+\ No newline at end of file
+diff --git a/live/position_break.py b/live/position_break.py
+index d83ba3f..fa8d781 100644
+--- a/live/position_break.py
++++ b/live/position_break.py
+@@ -280,9 +280,18 @@ def _intended_by_anchor(orders, anchors, carry_gross: Optional[float]
+         per[ats][o["symbol"]] = float(w) * gross[ats]
+     out: Dict[float, Dict[str, Any]] = {}
+     submitted_at = {float(o["anchor_ts"]) for o in orders if o.get("submit_ts") is not None}
++    # ★★ EXE-01: an anchor halted by a PROPORTIONAL LOCAL response holds its book on purpose — the watchdog flattened a
++    #    few named names and halted opening, it did not flatten the book. Judging such an anchor against intent ZERO
++    #    (below) reads the whole held book as a break and trips the ladder one anchor after the proportional response
++    #    (measured: 99% of gross, flat_intent_legacy). The row's own `halt_kind` (anchor_loop) says which halt it is;
++    #    absent — every trip halt and every row written before it existed — the flat-intent rule stands unchanged.
++    held_halt = {float(a["anchor_ts"]) for a in anchors
++                 if a.get("halt_kind") == "proportional_local" and a.get("anchor_ts") is not None}
+     for ats, g in gross.items():
+         if ats in submitted_at:
+             out[ats] = {"intended": dict(per.get(ats, {})), "gross": g, "kind": "rebalance"}
++        elif ats in held_halt:
++            out[ats] = {"intended": dict(per.get(ats, {})), "gross": g, "kind": "halted_book_held"}
+         else:
+             # halted: nothing left the process, so the book we hold is not a book we are building
+             out[ats] = {"intended": {}, "gross": g, "kind": "halted_intent_flat"}
+diff --git a/live/reconcile.py b/live/reconcile.py
+index 004a188..0089bf0 100644
+--- a/live/reconcile.py
++++ b/live/reconcile.py
+@@ -572,6 +572,26 @@ def _usable_mark(*candidates) -> Optional[float]:
+     return None
+ 
+ 
++def _doubt_of_unknown_rows(rows: List[Dict[str, Any]]) -> Tuple[Optional[float], int, int]:
++    """(Σ|intended notional| over EVERY unquantifiable row of one name in one interval, n rows, n rows whose intended is
++    unreadable). The sum is None when any row's intended notional is not a finite number — a partial sum would be a
++    lower bound read as a size.
++
++    ★ EXE-01: this is the size of what an `execution of unknown size` leaves IN DOUBT, in the measure R-14 froze
++      (Σ|intended|: what we asked for bounds what the venue could have executed for us), taken over the WHOLE set of the
++      name's unquantifiable rows in the interval — never the first row only (review C9: a size read from the first row
++      changes when two rows swap order). `intended_full` is preferred because `intended_notional` is the part left after
++      a cap/clamp and can understate what was sent."""
++    total, n_bad = 0.0, 0
++    for r in rows:
++        v = _fin(r.get("intended_full") if r.get("intended_full") is not None else r.get("intended_notional"))
++        if v is None:
++            n_bad += 1
++        else:
++            total += abs(v)
++    return (None if n_bad else total), len(rows), n_bad
++
++
+ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+               tol: float = 0.10,
+               dust_abs: float = DUST_ABS_USDT,
+@@ -630,15 +650,22 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+ 
+     def _between(t_lo: Optional[float], t_hi: float):
+         """(sum dq per symbol, {symbol: (why, row)} for unquantifiable, {symbol: last fill px},
+-        {symbol: signed authorised band USDT} for bounded legs in the interval)."""
++        {symbol: signed authorised band USDT} for bounded legs in the interval,
++        {symbol: [every unquantifiable row]} — the whole set, in time order)."""
+         agg: Dict[str, float] = defaultdict(float)
+         unknown: Dict[str, Tuple[str, Dict[str, Any]]] = {}
++        # ★ EXE-01 (review C9): `unknown` keeps the FIRST row per symbol, which is right for the anomaly's
++        #   descriptive fields and wrong for any SIZE read from it — two rows of one name in one interval then
++        #   answer "how much is in doubt" differently depending on which was written first. The set is kept
++        #   beside it so a size is a sum over every row, which no ordering can change.
++        unknown_all: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+         px: Dict[str, float] = {}
+         band: Dict[str, List[float]] = defaultdict(lambda: [0.0, 0.0])      # Minkowski sum [lo, hi]
+         for t, sym, dq, why, p, row in _exec:
+             if (t_lo is None or t > t_lo) and t <= t_hi:
+                 if dq is None:
+                     unknown.setdefault(sym, (why, row))
++                    unknown_all[sym].append(row)
+                 else:
+                     agg[sym] += dq
+                 if p:
+@@ -646,7 +673,7 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+         for t, sym, lo, hi in _bands:
+             if (t_lo is None or t > t_lo) and t <= t_hi:
+                 band[sym][0] += lo; band[sym][1] += hi
+-        return agg, unknown, px, band
++        return agg, unknown, px, band, unknown_all
+ 
+     _mn, _mn_report = _min_notional_lookup(min_notional_by_symbol)
+     anomalies: List[Dict[str, Any]] = []
+@@ -666,6 +693,7 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+     prev_rb: Optional[Dict[str, Tuple[float, Optional[float], str]]] = None
+     prev_t: Optional[float] = None
+     last_ats: Optional[float] = None
++    _last_rb_gross: Optional[float] = None
+     n_reconciled = 0
+     for _day, one in days_data:
+         rb_by_anchor: Dict[float, Dict[str, Tuple[float, Optional[float], str]]] = defaultdict(dict)
+@@ -682,7 +710,7 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+             t_cur = rb_time.get(ats, ats)
+             if prev_rb is not None:
+                 n_reconciled += 1
+-                _win, _win_unknown, _win_px, _win_band = _between(prev_t, t_cur)
++                _win, _win_unknown, _win_px, _win_band, _win_unknown_all = _between(prev_t, t_cur)
+                 _rv: Dict[str, Any] = {"by_symbol": {}, "unmeasurable": {},
+                                        "n_in_readback": len(cur)}
+                 resid_by_anchor[ats] = _rv
+@@ -695,6 +723,7 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+                     # of the two — a defect classified by whichever branch is written first.
+                     if sym in _win_unknown:
+                         _why, _row = _win_unknown[sym]
++                        _dbt, _n_rows, _n_bad = _doubt_of_unknown_rows(_win_unknown_all.get(sym) or [_row])
+                         anomalies.append({
+                             "anchor_ts": ats, "symbol": sym,
+                             "kind": "execution_of_unknown_size",
+@@ -702,6 +731,13 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+                             "order_type": _row.get("order_type"),
+                             "terminal_reason": _row.get("terminal_reason"),
+                             "rebalance_id": _row.get("rebalance_id"),
++                            # ★ EXE-01: how much this anomaly leaves in doubt — see `_doubt_of_unknown_rows`. The
++                            #   descriptive fields above come from the first row; this one from EVERY row, so the
++                            #   watchdog's proportional gate reads a size that no row order can change (review C9).
++                            "doubt_usdt": _dbt,
++                            "doubt_caliber": ("Σ|intended notional| over every unquantifiable row of this name in the "
++                                              "interval (None if any is unreadable)"),
++                            "n_unquantifiable_rows": _n_rows, "n_rows_intended_unreadable": _n_bad,
+                             # the residual is genuinely not computable, and a number here would be
+                             # an assumption about the leg's size — the exact fold this refuses
+                             "expected_qty": None, "observed_qty": q2, "residual_qty": None,
+@@ -794,8 +830,20 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+                                           "authorised_band_qty": [round(_lo, 8), round(_hi, 8)],
+                                           "mark_used": mark, "mark_source": msrc,
+                                           "dust_floor_usdt": floor,
+-                                          "unexplained_frac": round(residual_usdt / scale, 4)})
++                                          "unexplained_frac": round(residual_usdt / scale, 4),
++                                          # ★ EXE-01: the doubt is the unexplained part itself (after the
++                                          #   authorised band), unrounded — the same number `residual_usdt`
++                                          #   rounds for display
++                                          "doubt_usdt": float(residual_usdt),
++                                          "doubt_caliber": ("|residual_qty| × mark(T2): the position change "
++                                                            "our orders do not explain, after the authorised band")})
+                 last_ats = ats
++                # ★ EXE-01: the venue's own gross at the anchor the state gate reads — the fallback denominator of the
++                #   proportional gate when that anchor has no usable `anchors.target_gross`. None when any row's
++                #   notional is not finite: a partial sum is not the book's gross.
++                _rb_vals = [_fin(_n) for (_n, _q, _w) in cur.values()]
++                _last_rb_gross = (sum(abs(v) for v in _rb_vals)
++                                  if _rb_vals and all(v is not None for v in _rb_vals) else None)
+             prev_rb = cur
+             prev_t = t_cur
+     for _ats, _v in resid_by_anchor.items():
+@@ -825,6 +873,8 @@ def reconcile(days_data: List[Tuple[str, Dict[str, Any]]],
+                 "read as zero. A zero residual that could not be priced is MEASURED, not a hole."),
+             "last_reconciled_ats": last_ats,
+             "latest": [a for a in anomalies if a["anchor_ts"] == last_ats],
++            # ★ EXE-01: Σ|venue_position_notional| over the readback at `last_reconciled_ats` (None if any is not finite)
++            "latest_readback_gross_usdt": _last_rb_gross,
+             "unreconcilable": unreconcilable,
+             "latest_unreconcilable": [u for u in unreconcilable if u["anchor_ts"] == last_ats],
+             "n_unreconcilable": len(unreconcilable),
+diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
+index cbab973..2fabf5a 100644
+--- a/live/tests_disposition_matrix.py
++++ b/live/tests_disposition_matrix.py
+@@ -828,6 +828,67 @@ _flat_actions = _flatten_action_orders()
+ # ★ R3-A2: population FIRST (event side), THEN the existing per-batch exact reconciliation over event ∪ ledger batches —
+ #   a batch the events require and the ledger lacks is LEDGER_BATCH_MISSING, named in the cell's detail and red.
+ _flat_required, _flat_missing, _flat_no_orders = _flatten_population(_flat_actions, _flat_batches)
++
++
++# ★ 2026-09-13 EXE-01 — A PROPORTIONAL LOCAL FLATTEN IS ITS OWN SUB-CLASS. The watchdog's `_local_response` writes
++#   `protective_flatten` rows for the few NAMED names it closes and marks them in their own column (`flatten_scope:
++#   "local"`; absent on the ladder's rows), and its event record says `local_response: true` with those `names`. Three
++#   cells below read `_flat_facts` as the LADDER's whole-book close — "the exit COMPLETED", "SECONDARY PLAUSIBILITY:
++#   Σ|filled| within 10% of the anchor's realized gross — the ladder closed about the whole book" and the fee states — and a
++#   two-name local batch reads red on the second BY DESIGN. So the class is split by what the ROWS say; those cells keep
++#   their conditions verbatim over the ladder batches; local batches get their own cells, plus a synthetic proof in [G7]
++#   because the 2026-09-13 ledger holds none. Completeness (the exact reconciliation above) still covers EVERY batch.
++def _flat_scope_split(batches):
++    """(local, mixed): batch ids whose rows ALL carry flatten_scope 'local', and ids where only SOME do."""
++    local, mixed = set(), set()
++    for b, rr in batches.items():
++        n_loc = sum(1 for r in rr if r.get("flatten_scope") == "local")
++        if rr and n_loc == len(rr):
++            local.add(b)
++        elif n_loc:
++            mixed.add(b)
++    return local, mixed
++
++
++def _local_flatten_events(path=_FLAT_EVENTS):
++    """{FLATTEN-<trip_key>: set(names)} for every event record flagged `local_response`; None when there is no log."""
++    if not os.path.exists(path):
++        return None
++    out = {}
++    for line in open(path):
++        line = line.strip()
++        if not line:
++            continue
++        try:
++            ev = json.loads(line)
++            key = time.strftime("%Y%m%dT%H%M%SZ", time.strptime(str(ev.get("ts")), "%Y-%m-%dT%H:%M:%SZ"))
++        except (ValueError, TypeError):
++            continue
++        if isinstance(ev, dict) and ev.get("local_response") is True:
++            out.setdefault("FLATTEN-" + key, set()).update(ev.get("names") or [])
++    return out
++
++
++def _local_batch_problems(rows, event_names):
++    """Everything wrong with one LOCAL batch: no local event record, a closed symbol the record did not name, an exit
++    that did not complete (a row not `filled` with a non-zero notional)."""
++    p = []
++    if event_names is None:
++        p.append("no local_response event record names this batch")
++    else:
++        extra = sorted({r.get("symbol") for r in rows} - set(event_names))
++        if extra:
++            p.append(f"closed name(s) the local response did not name: {extra}")
++    bad = [r.get("symbol") for r in rows
++           if str(r.get("terminal_reason")) != "filled" or not float(r.get("filled_notional") or 0.0)]
++    if bad:
++        p.append(f"exit not completed on {bad}")
++    return p
++
++
++_flat_local, _flat_mixed = _flat_scope_split(_flat_batches)
++_local_events = _local_flatten_events()
++_local_facts = {b: _flat_facts.pop(b) for b in list(_flat_facts) if b in _flat_local}
+ _flat_state, _flat_detail, _flat_join = {}, {}, {}
+ # ledger batches in their own order (as before R3-A2), then the event-only ones — no sort over the keys: a corrupted row
+ # without a rebalance_id (key None) must reach its NOT OBSERVABLE state below, not crash a sort of mixed keys
+@@ -901,6 +962,17 @@ check("★★★ ...and the flatten's FEE is reported UNMEASURED, never summed a
+           and f["n_unmeasured"] + f["n_measured"] == f["n_rows"] for f in _flat_facts.values()),
+       {b: (f["n_rows"], "rows /", f["n_unmeasured"], "fee-unmeasured / fee_usdt", f["fee_usdt"])
+        for b, f in _flat_facts.items()})
++check("★★★ EXE-01: a protective_flatten batch is LOCAL only by its rows' OWN column, never partly, and the event log "
++      "agrees both ways — every local batch has a `local_response` record, no ladder batch does",
++      not _flat_mixed and all(b in (_local_events or {}) for b in _flat_local)
++      and not any(b in (_local_events or {}) for b in _flat_batches if b not in _flat_local),
++      {"local_batches": sorted(_flat_local), "mixed": sorted(_flat_mixed),
++       "local_event_records": sorted(_local_events or {}), "ladder_batches": len(_flat_facts)})
++check("★★★ EXE-01: every LOCAL batch closed ONLY the names its record named, and its exit completed "
++      "(the whole-book band above is the ladder's claim and does not apply to it)",
++      all(not _local_batch_problems(_flat_batches[b], (_local_events or {}).get(b)) for b in _flat_local),
++      {b: _local_batch_problems(_flat_batches[b], (_local_events or {}).get(b)) for b in sorted(_flat_local)}
++      or "no local batch on this ledger")
+ check("★★★ ...and the class is selected by WHAT THE ROWS ARE (`order_type == protective_flatten`), "
+       "not by what the rebalance_id is CALLED — E-0825-H. The three readings (structural / name "
+       "prefix / absent from anchors.jsonl) agree on every batch in the ledger. If a batch is one day "
+@@ -1281,6 +1353,27 @@ check("★★★ ...and `fee_paid` None and 0.0 are DIFFERENT facts inside that
+       and _fee_states(_fee_fx[1:]) == {"n_unmeasured": 0, "n_measured": 2, "fee_usdt": 0.5},
+       (_fee_states(_fee_fx), _fee_states(_fee_fx[1:])))
+ 
++_lb = {"FLATTEN-20260914T004700Z": [
++          {"symbol": "AAAUSDT", "flatten_scope": "local", "terminal_reason": "filled", "filled_notional": -20.0},
++          {"symbol": "BBBUSDT", "flatten_scope": "local", "terminal_reason": "filled", "filled_notional": 10.0}],
++      "FLATTEN-20260914T084700Z": [
++          {"symbol": "CCCUSDT", "flatten_scope": "local", "terminal_reason": "filled", "filled_notional": -5.0},
++          {"symbol": "DDDUSDT", "terminal_reason": "filled", "filled_notional": -5.0}],
++      "FLATTEN-20260914T124700Z": [{"symbol": "EEEUSDT", "terminal_reason": "filled", "filled_notional": -100.0}]}
++_lb_rows = _lb["FLATTEN-20260914T004700Z"]
++check("★★★ EXE-01 synthetic (the ledger holds no local batch yet): the split reads the rows' column — a two-name local "
++      "batch is LOCAL, a half-marked batch is MIXED, an unmarked batch stays with the ladder; a local batch whose record "
++      "names both closes clean, one that closed an unnamed symbol or did not fill is named, a batch with no record is "
++      "named; and the whole-book band WOULD read the two-name batch red against a 100,000 USDT anchor — why the split exists",
++      _flat_scope_split(_lb) == ({"FLATTEN-20260914T004700Z"}, {"FLATTEN-20260914T084700Z"})
++      and _local_batch_problems(_lb_rows, {"AAAUSDT", "BBBUSDT"}) == []
++      and len(_local_batch_problems(_lb_rows, {"AAAUSDT"})) == 1
++      and len(_local_batch_problems([dict(_lb_rows[0], terminal_reason="submitted_rejected"), _lb_rows[1]],
++                                    {"AAAUSDT", "BBBUSDT"})) == 1
++      and len(_local_batch_problems(_lb_rows, None)) == 1
++      and abs(sum(abs(r["filled_notional"]) for r in _lb_rows) - 100000.0) > 0.10 * 100000.0,
++      (_flat_scope_split(_lb), _local_batch_problems(_lb_rows, {"AAAUSDT"})))
++
+ print("\n[F] red capability — mutate ANY cell and this file fails")
+ _orig = copy.deepcopy(OD.DISPOSITION)
+ _broken = []
+diff --git a/live/tests_proportional_response.py b/live/tests_proportional_response.py
+new file mode 100644
+index 0000000..5e758db
+--- /dev/null
++++ b/live/tests_proportional_response.py
+@@ -0,0 +1,769 @@
++"""EXE-01: a book-level response only for book-level evidence — the watchdog's PROPORTIONALITY GATE (R-14 read as A, ON).
++
++*** MOCK ONLY: MockBroker, temp state dirs, pilot_log trees built in tmp. No venue, no credentials, no network, nothing
++    written under state/. ***
++
++THE DEFECT (quant_research docs/fixprogram_2026-09-13/FX_W6C/FACT_TABLE_W6C.md): every trip ran the same ladder — halt,
++cancel, flatten EVERY position — whatever fired. On the live record 5 of 10 whole-book flattens came from triggers whose
++evidence was a handful of named symbols; 4 of those were two-name events at 0.42–1.84% of gross (08-01 and 09-12 our own
++instruments, 08-21 and 08-26 real two-name venue changes). The user's rules (2026-09-12: instrument doubt must never
++trigger a book-level response, a book-level response must pass a proportionality gate; 2026-09-13: fix known issues
++without waiting) settle the ruling R-14 as option A, switch ON, with the frozen 2% / 5-name thresholds.
++
++WHAT THIS SUITE PROVES, on this tree:
++  [A]  the headline and its neighbours, through `watchdog.run` on a held MockBroker book — a single-name §4-5b/§4-5e/§4-7
++       set flattens THAT name only (the base ef60f85 flattens all 100 names — red for the right reason); 4/5/6 names;
++       1.999 / 2.000 / 2.001% of gross; the union across classes; book-level triggers beside a named set; unknown doubt
++       and unknown gross; the real 2026-09-12 12Z rows re-shaped so (a)(b) keeps the contradiction; the config switch off.
++  [N]  negative controls: §4-2 day loss, §4-4b leverage, §4-5a outage and §4-5c account-side anomaly on the same held
++       book still flatten EVERY name and set reduce-only (green on both trees by design).
++  [B]  the local action itself (cancel-before-flatten on the named names only, re-read + retry, unreadable positions,
++       refused flatten, a standing trip not overwritten), the EMA reset exemption, the page composition and its tier,
++       reconcile's order-independent doubt (review C9), the kind-agnostic source pins, the unreadable-book equality probe,
++       the 09-09 receipt's name sets.
++WHAT IT DOES NOT PROVE: the venue's behaviour for reduce-only market exits during -4400 / price protection (MockBroker);
++that the off-box page is DELIVERED (run_anchor's wiring is pinned statically here, delivery is the anchor's receipt);
++`ops/resume_from_trip.sh` / `ops/unseed_rehearsal_halt.py` end to end (both run a public network probe — their refusal
++branches are pinned statically, the EMA keep/remove snippet is executed verbatim); that 2% / 5 are the right numbers
++(policy, set after the incident, frozen).
++
++Old-code proof: this file on ef60f85 (`/Users/haosiyu/cc_tmp/fx_w6c_base`) must reach its summary line — every new name
++is looked up with getattr — and fail the [A]/[B] cells for the right reason (the whole book flattened / no local response).
++
++Exit 0 = all pass.
++"""
++import copy
++import json
++import math
++import os
++import shutil
++import subprocess
++import sys
++import tempfile
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++REPO = os.path.dirname(HERE)
++sys.path.insert(0, HERE)
++for _d in ("scheduler", "ops", "signal"):
++    sys.path.insert(0, os.path.join(REPO, _d))
++
++import book_config as BC               # noqa: E402
++import pilot_log as PL                 # noqa: E402
++import reconcile as RC                 # noqa: E402
++import watchdog as WD                  # noqa: E402
++import watchdog_inputs as WI           # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(detail)[:500]) if detail != '' else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++def _safe(fn, default=None):
++    try:
++        return fn()
++    except Exception as e:                                   # noqa: BLE001 — a missing API on the old tree is a FAIL, not a crash
++        return {"_raised": f"{type(e).__name__}: {str(e)[:160]}"} if default is None else default
++
++
++T1, T2 = 1789000000.0, 1789014400.0
++NAMES = [f"S{i:03d}USDT" for i in range(100)]
++EACH = 1000.0
++
++
++def build(resid=None, n=100, target_gross=None, nav_change_pct=0.0, readback_nan=(), anchors=True, nav_override=None,
++          extra_orders_t2=()):
++    """A 100-name held book, two anchors (T1 baseline, T2 compared). `resid` {symbol: contracts added at T2} makes the
++    T2 readback differ from what the orders explain (mark 1.0, so USDT == contracts). Every order is submitted and fills
++    nothing, so both anchors are REBALANCE anchors (§4-5e tracks a real intent: target_w × target_gross = the held 1000)."""
++    resid = dict(resid or {})
++    root = tempfile.mkdtemp(prefix="exe01_fx_")
++    names = NAMES[:n]
++    tg = float(target_gross if target_gross is not None else n * EACH)
++    for day, ts, second in (("20260910", T1, False), ("20260911", T2, True)):
++        lg = PL.PilotLogger(root, day)
++        if anchors:
++            lg.anchor(anchor_ts=ts, target_vector_hash="h", realized_gross=n * EACH, target_gross=tg, n_names_skipped=0,
++                      regime_at_anchor="calm", mid_at_anchor_vector={s: 1.0 for s in names}, factor_version="f",
++                      panel_hash="p")
++        for s in names:
++            lg.order(anchor_ts=ts, symbol=s, side="buy", target_w=EACH / tg, prev_w=EACH / tg, intended_notional=0.0,
++                     order_type="maker", submit_ts=ts + 1, price_submit=1.0, mid_at_submit=1.0, mid_at_anchor=1.0,
++                     filled_notional=0.0, avg_fill_px=None, first_fill_ts=None, last_fill_ts=None, cancel_ts=ts + 5,
++                     fee_paid=0.0, rebalance_id=f"A{int(ts)}", attempt_idx=1, terminal_reason="partial_expired",
++                     notional_currency="USDT")
++            q = EACH + (resid.get(s, 0.0) if second else 0.0)
++            lg.position_readback(anchor_ts=ts, symbol=s, venue_position_notional=q, venue_position_qty=q, source="mock",
++                                 read_ts=ts + 10)
++        nav0 = tg / 2.0
++        lg.daily_nav(day=int(day), target_gross=tg, nav=(nav_override if (second and nav_override) else
++                                                          (nav0 * (1 + nav_change_pct / 100.0) if second else nav0)),
++                     sizing_policy="constant_leverage_2.00", realised_pnl=0.0, unrealised_pnl=0.0)
++        lg.close()
++    d2 = os.path.join(root, "20260911")
++    if readback_nan:
++        p = os.path.join(d2, "position_readback.jsonl")
++        rows = [json.loads(l) for l in open(p) if l.strip()]
++        for r in rows:
++            if r["symbol"] in readback_nan:
++                r["venue_position_notional"] = float("nan")
++        open(p, "w").write("".join(json.dumps(r) + "\n" for r in rows))
++    if extra_orders_t2:
++        with open(os.path.join(d2, "orders.jsonl"), "a") as f:
++            for r in extra_orders_t2:
++                f.write(json.dumps(r) + "\n")
++    return root
++
++
++def unknown_leg(sym, intended, t):
++    """A submitted T2 leg whose amount was never read: `execution_of_unknown_size` in reconcile (raw row; the logger's
++    not-null rule would refuse a NaN intended, which is exactly the unreadable case this must represent)."""
++    return {"anchor_ts": T2, "symbol": sym, "side": "buy", "target_w": 0.01, "prev_w": 0.01, "intended_notional": intended,
++            "order_type": "topup_taker", "submit_ts": t, "price_submit": None, "mid_at_submit": 1.0, "mid_at_anchor": 1.0,
++            "filled_notional": None, "avg_fill_px": None, "first_fill_ts": t, "last_fill_ts": t, "cancel_ts": None,
++            "fee_paid": None, "rebalance_id": f"A{int(T2)}", "attempt_idx": 2, "terminal_reason": "filled_amount_unknown",
++            "notional_currency": "USDT"}
++
++
++def held_broker(resid=None, n=100, fail_submit=False, resting=None):
++    pos = {s: EACH + float((resid or {}).get(s, 0.0)) for s in NAMES[:n]}
++    b = WD.MockBroker(positions=dict(pos), fail_submit=fail_submit, resting=resting)
++    b._notional = dict(pos)
++    return b
++
++
++def run(root, broker, venue_events=(), switch=None, state_seed=None):
++    ops = WI.derive_ops_stats(root)
++    sdir = tempfile.mkdtemp(prefix="exe01_state_")
++    if state_seed is not None:
++        json.dump(state_seed, open(os.path.join(sdir, "state.json"), "w"))
++    if switch is None:
++        ev, brk, st = WD.run(root, broker=broker, venue_events=list(venue_events), ops_stats=ops, verbose=False,
++                             state_dir=sdir)
++    else:
++        cfg = json.load(open(BC.path()))
++        cfg["watchdog_proportional_response"] = {"enabled": bool(switch)}
++        tmpb = os.path.join(tempfile.mkdtemp(prefix="exe01_book_"), "book.json")
++        json.dump(cfg, open(tmpb, "w"))
++        with BC._using(tmpb):
++            ev, brk, st = WD.run(root, broker=broker, venue_events=list(venue_events), ops_stats=ops, verbose=False,
++                                 state_dir=sdir)
++    return ev, brk, st, sdir, ops
++
++
++def acts(brk, kind):
++    return [a for a in brk.actions if a.get("action") == kind]
++
++
++def flattened_symbols(brk):
++    return sorted({o["symbol"] for a in acts(brk, "flatten_all") for o in (a.get("orders") or [])})
++
++
++def ladder_whole_book(ev, brk, st, n=100):
++    """The full response: tripped, reduce-only set, a degradation record, and EVERY held name in a flatten order."""
++    return (ev.get("tripped") is True and brk.reduce_only is True and isinstance(st.get("degradation"), dict)
++            and flattened_symbols(brk) == sorted(NAMES[:n]))
++
++
++def local_only(ev, brk, st, names):
++    """The proportional response: NOT tripped, one local response naming exactly `names`, opening halted, the reduce-only
++    key NOT set, no degradation, and every flattened symbol is one of `names`."""
++    lrs = ev.get("local_responses") or []
++    return (ev.get("tripped") is False and len(lrs) == 1 and sorted(lrs[0].get("names") or []) == sorted(names)
++            and brk.open_orders_halted is True and brk.reduce_only is False and "degradation" not in st
++            and set(flattened_symbols(brk)) <= set(names) and st.get("kind") == "proportional_local")
++
++
++def rm(*paths):
++    for p in paths:
++        shutil.rmtree(p, ignore_errors=True)
++
++
++# ════════════════════════════ [A] the headline and its neighbours ════════════════════════════════════════════════════
++print("[A0] control: the clean held book does not trip and asks for no local response")
++r = build()
++ev, brk, st, sd, ops = run(r, held_broker())
++check("★ A0 no anomaly ⇒ not tripped, no local response, nothing flattened",
++      ev["tripped"] is False and not ev.get("local_responses") and acts(brk, "flatten_all") == [], ev["triggers"])
++rm(r, sd)
++
++print("\n[A1] ★★★ HEADLINE: one name's position moved 300 USDT that no order explains, on a 100-name 100,000 USDT held book")
++R1 = {"S007USDT": 300.0}
++r = build(R1)
++ev, brk, st, sd, ops = run(r, held_broker(R1))
++check("★★★ A1 the whole book is NOT flattened: only S007USDT is sent, opening halted, reduce-only key NOT set, not a trip "
++      "(ef60f85: tripped, all 100 names flattened)",
++      local_only(ev, brk, st, ["S007USDT"]) and flattened_symbols(brk) == ["S007USDT"],
++      {"tripped": ev.get("tripped"), "triggers": [t[:60] for t in ev.get("triggers") or []],
++       "flattened": len(flattened_symbols(brk)), "reduce_only": brk.reduce_only,
++       "local": [lr.get("names") for lr in ev.get("local_responses") or []]})
++_fa = acts(brk, "flatten_all")
++check("★★ A1 the flatten is the WHOLE venue position of that name, reduce-only: sell 1,300 contracts (not held − expected 300)",
++      len(_fa) == 1 and [(o["symbol"], o["side"], o["quantity"], o["reduce_only"]) for o in _fa[0]["orders"]]
++      == [("S007USDT", "sell", 1300.0, True)], [(o["symbol"], o["side"], o["quantity"]) for a in _fa for o in a["orders"]])
++_pr = ev.get("proportional_response") or {}
++check("★★ A1 the gate record: route local, the three classes all name S007USDT (§4-5b, §4-5e per-name, §4-7 drift), "
++      "doubt 300.00 = 0.30% of the anchors row's 100,000, no book-level trigger, no unknown input",
++      _pr.get("route") == "local" and _pr.get("names") == ["S007USDT"] and abs((_pr.get("sum_doubt_usdt_known") or 0) - 300.0) < 1e-9
++      and _pr.get("gross_ref_usdt") == 100000.0 and _pr.get("book_triggers") == [] and _pr.get("unknown_inputs") == []
++      and sorted((_pr.get("per_name") or {}).get("S007USDT", {}).get("classes") or [])
++      == sorted(["§4-5b", "§4-5e split_unauth per-name", "§4-7 drift"]),
++      {k: _pr.get(k) for k in ("route", "names", "sum_doubt_usdt_known", "gross_ref_usdt", "per_name", "why")})
++check("★★ A1 detection is UNCHANGED: §4-5b, §4-5e and §4-7 still report triggered (facts), only the ACTION changed",
++      ev["conditions"]["cond5_venue_event"]["5b_liquidation_anomaly"]["triggered"] is True
++      and ev["conditions"]["cond5_venue_event"].get("5e_position_break", {}).get("triggered") is True
++      and ev["conditions"]["cond7_ops"]["triggered"] is True
++      and len((ev.get("local_responses") or [{}])[0].get("triggers") or []) == 3)
++check("★★ A1 state.json: kind proportional_local, book_flattened False, tripped_at set (the anchor's 0b halt re-applies), "
++      "reduce_only False, no degradation",
++      st.get("kind") == "proportional_local" and st.get("book_flattened") is False and st.get("tripped_at")
++      and st.get("reduce_only") is False and "degradation" not in st,
++      {k: st.get(k) for k in ("kind", "book_flattened", "tripped_at", "reduce_only")})
++_al = [json.loads(l) for l in open(os.path.join(sd, "ALARM.log"))] if os.path.exists(os.path.join(sd, "ALARM.log")) else []
++check("★ A1 ALARM.log: one HIGH line (S007USDT reads flat after the flatten), book_flattened False, human action required",
++      len(_al) == 1 and _al[0].get("severity") == "HIGH" and _al[0].get("names") == ["S007USDT"]
++      and _al[0].get("book_flattened") is False and _al[0].get("human_action_required") is True, _al[:1])
++_evl = [json.loads(l) for l in open(os.path.join(sd, "events.jsonl"))] if os.path.exists(os.path.join(sd, "events.jsonl")) else []
++_rows = []
++_rr = os.path.join(sd, "pilot_log")
++for _dd in (os.listdir(_rr) if os.path.isdir(_rr) else []):
++    _p = os.path.join(_rr, _dd, "orders.jsonl")
++    if os.path.exists(_p):
++        _rows += [json.loads(l) for l in open(_p) if l.strip()]
++check("★ A1 events.jsonl flags local_response with its names and the broker's actions; the protective_flatten row carries "
++      "flatten_scope 'local' and a FLATTEN-<evaluated_utc> rebalance id",
++      len(_evl) == 1 and _evl[0].get("local_response") is True and _evl[0].get("names") == ["S007USDT"]
++      and any(a.get("action") == "flatten_all" for a in _evl[0].get("actions") or [])
++      and len(_rows) == 1 and _rows[0].get("flatten_scope") == "local" and _rows[0]["order_type"] == "protective_flatten"
++      and str(_rows[0].get("rebalance_id")).startswith("FLATTEN-"), (_evl[:1] and {k: _evl[0].get(k) for k in ("local_response", "names")}, _rows[:1]))
++_pg = _safe(lambda: WD.local_response_page(ev.get("local_response") or {}, ev))
++check("★★ A1 the page composition: HIGH, names S007USDT, says the book was NOT flattened and opening is halted, carries "
++      "the evaluation time",
++      isinstance(_pg, dict) and _pg.get("severity") == "HIGH" and _pg.get("names") == ["S007USDT"]
++      and "全书未平" in _pg.get("message", "") and "开仓已停" in _pg.get("message", "")
++      and str(ev.get("evaluated_utc")) in _pg.get("message", ""), _pg)
++_A1 = (r, ev)
++
++print("\n[A1n] neighbours of the headline: 4 / 5 / 6 names (≤ 5 is inclusive), each 300 USDT")
++for k, want_local in ((4, True), (5, True), (6, False)):
++    Rk = {NAMES[10 + i]: 300.0 for i in range(k)}
++    r = build(Rk)
++    ev, brk, st, sd, ops = run(r, held_broker(Rk))
++    ok = local_only(ev, brk, st, sorted(Rk)) if want_local else ladder_whole_book(ev, brk, st)
++    check(f"★★★ A1n {k} names × 300 USDT ({k * 0.3:.1f}% of gross) ⇒ {'LOCAL on exactly those names' if want_local else 'the whole-book LADDER (6 > 5)'}",
++          ok, {"tripped": ev.get("tripped"), "flattened": len(flattened_symbols(brk)),
++               "route": (ev.get("proportional_response") or {}).get("route"), "why": (ev.get("proportional_response") or {}).get("why")})
++    rm(r, sd)
++
++print("\n[A2] the 2% line: 1,999 / 2,000 / 2,001 USDT on one name of a 100,000 USDT target gross (≤ 2% is inclusive)")
++for usd, want_local in ((1999.0, True), (2000.0, True), (2001.0, False)):
++    Rk = {"S020USDT": usd}
++    r = build(Rk)
++    ev, brk, st, sd, ops = run(r, held_broker(Rk))
++    ok = local_only(ev, brk, st, ["S020USDT"]) if want_local else ladder_whole_book(ev, brk, st)
++    _p = ev.get("proportional_response") or {}
++    check(f"★★★ A2 doubt {usd:,.0f} USDT = {usd / 1000:.3f}% ⇒ {'LOCAL' if want_local else 'the whole-book LADDER'}",
++          ok and (abs((_p.get("sum_doubt_usdt_known") or 0) - usd) < 1e-9),
++          {"tripped": ev.get("tripped"), "flattened": len(flattened_symbols(brk)), "sum": _p.get("sum_doubt_usdt_known"),
++           "why": _p.get("why")})
++    rm(r, sd)
++
++print("\n[A3] the union across classes: §4-5b + §4-5e names are counted together")
++# 300 USDT on 1,000 ⇒ §4-5b (above 10% of scale) AND §4-5e per-name; 50 USDT ⇒ below §4-5b's tolerance, §4-5e per-name only
++for n_big, n_small, want_local in ((2, 3, True), (3, 3, False)):
++    Rk = {**{NAMES[30 + i]: 300.0 for i in range(n_big)}, **{NAMES[40 + i]: 50.0 for i in range(n_small)}}
++    r = build(Rk)
++    ev, brk, st, sd, ops = run(r, held_broker(Rk))
++    _p = ev.get("proportional_response") or {}
++    _cls = {s: sorted(v.get("classes") or []) for s, v in (_p.get("per_name") or {}).items()}
++    check(f"★★★ A3 {n_big} names in §4-5b+§4-5e and {n_small} names in §4-5e only ⇒ union {n_big + n_small} ⇒ "
++          f"{'LOCAL on all five' if want_local else 'the LADDER'}",
++          (local_only(ev, brk, st, sorted(Rk)) if want_local else ladder_whole_book(ev, brk, st))
++          and (not want_local or all(("§4-5b" in _cls.get(s, [])) == (Rk[s] == 300.0) for s in Rk)),
++          {"tripped": ev.get("tripped"), "names": _p.get("names"), "classes": _cls, "why": _p.get("why")})
++    rm(r, sd)
++
++print("\n[A4] a book-level trigger beside the named set wins (multi-class trips)")
++R4 = {"S050USDT": 300.0}
++r = build(R4, nav_change_pct=-5.0)
++ev, brk, st, sd, ops = run(r, held_broker(R4))
++check("★★★ A4 §4-2 day loss −5% beside a one-name named set ⇒ tripped, the WHOLE book flattened, reduce-only set",
++      ladder_whole_book(ev, brk, st) and any("§4-2" in t for t in ev["triggers"]) and any("§4-5b" in t for t in ev["triggers"]),
++      {"triggers": [t[:50] for t in ev["triggers"]], "flattened": len(flattened_symbols(brk)),
++       "why": (ev.get("proportional_response") or {}).get("why")})
++rm(r, sd)
++r = build(R4)
++ev, brk, st, sd, ops = run(r, held_broker(R4), venue_events=[{"kind": "outage", "severity": "stop"}])
++check("★★★ A4 §4-5a venue outage beside a one-name named set ⇒ the whole-book ladder (the named triggers are listed, not acted on separately)",
++      ladder_whole_book(ev, brk, st) and any("§4-5a" in t for t in ev["triggers"]) and "local_response" not in ev,
++      {"triggers": [t[:50] for t in ev["triggers"]], "flattened": len(flattened_symbols(brk))})
++rm(r, sd)
++
++print("\n[A5] unknown gate inputs: never a book-level response on their own; a KNOWN part over 2% still is")
++r = build(extra_orders_t2=[unknown_leg("S060USDT", float("nan"), T2 + 3)])
++_rec = RC.reconcile([(d, PL.read_day(r, d)) for d in PL.available_days(r)])
++_an = [a for a in _rec["latest"] if a["symbol"] == "S060USDT"]
++ev, brk, st, sd, ops = run(r, held_broker())
++_p = ev.get("proportional_response") or {}
++check("★★★ A5 a leg of unknown size whose intended notional is unreadable (doubt UNKNOWN) on one name ⇒ LOCAL on that name, "
++      "the unknown NAMED in the record (never folded to 0, never a book-level flatten)",
++      len(_an) == 1 and _an[0].get("kind") == "execution_of_unknown_size" and _an[0].get("doubt_usdt", "absent") is None
++      and local_only(ev, brk, st, ["S060USDT"]) and _p.get("names_doubt_unknown") == ["S060USDT"]
++      and any("doubt unknown" in u for u in _p.get("unknown_inputs") or []),
++      {"anomaly": _an[:1] and {k: _an[0].get(k) for k in ("kind", "doubt_usdt")}, "tripped": ev.get("tripped"),
++       "flattened": len(flattened_symbols(brk)), "unknown": _p.get("unknown_inputs"), "why": _p.get("why")})
++rm(r, sd)
++R5 = {"S061USDT": 300.0}
++r = build(R5, anchors=False, readback_nan=("S099USDT",))
++ev, brk, st, sd, ops = run(r, held_broker(R5))
++_p = ev.get("proportional_response") or {}
++check("★★★ A5 NO anchors row and a NaN readback notional ⇒ gross UNKNOWN ⇒ LOCAL on the named name, 'gross unknown' named "
++      "(W6(c) as written sent this to the whole-book ladder: our missing row decided a book-level flatten)",
++      local_only(ev, brk, st, ["S061USDT"]) and _p.get("gross_ref_usdt") is None
++      and any("gross unknown" in u for u in _p.get("unknown_inputs") or []),
++      {"tripped": ev.get("tripped"), "triggers": [t[:40] for t in ev.get("triggers") or []], "gross": _p.get("gross_ref_usdt"),
++       "unknown": _p.get("unknown_inputs"), "flattened": len(flattened_symbols(brk))})
++rm(r, sd)
++R5b = {"S062USDT": 300.0}
++r = build(R5b, anchors=False)
++ev, brk, st, sd, ops = run(r, held_broker(R5b))
++_p = ev.get("proportional_response") or {}
++check("★★ A5 neighbour: NO anchors row but a finite readback ⇒ gross falls back to Σ|readback notional| (100,300) — a "
++      "definite answer, not an unknown",
++      local_only(ev, brk, st, ["S062USDT"]) and _p.get("gross_ref_usdt") == 100300.0 and _p.get("unknown_inputs") == []
++      and "venue_position_notional" in str(_p.get("gross_source")), {k: _p.get(k) for k in ("gross_ref_usdt", "gross_source", "unknown_inputs")})
++rm(r, sd)
++R5c = {"S063USDT": 2500.0}
++r = build(R5c, extra_orders_t2=[unknown_leg("S064USDT", float("nan"), T2 + 3)])
++ev, brk, st, sd, ops = run(r, held_broker(R5c))
++_p = ev.get("proportional_response") or {}
++check("★★★ A5 neighbour: a KNOWN 2,500 USDT (2.5%) beside another name of unknown doubt ⇒ the known part alone proves "
++      "'large' ⇒ the whole-book ladder",
++      ladder_whole_book(ev, brk, st) and _p.get("route") == "ladder" and "S064USDT" in (_p.get("names_doubt_unknown") or []),
++      {"tripped": ev.get("tripped"), "why": _p.get("why"), "unknown": _p.get("names_doubt_unknown")})
++rm(r, sd)
++
++print("\n[A6] the real 2026-09-12 12Z rows (re-shaped so (a)(b) keeps the contradiction: venue origQty above ours)")
++FIX = os.path.join(HERE, "tests_fixtures", "e0912a_12z")
++
++
++def _jsonl(name):
++    return [json.loads(l) for l in open(os.path.join(FIX, name), encoding="utf-8") if l.strip()]
++
++
++ORD_REAL, RB, ANC = _jsonl("orders_12z.jsonl"), _jsonl("position_readback_08z_12z.jsonl"), _jsonl("anchors_12z.jsonl")
++
++
++def _unclamped(rows):
++    out = []
++    for x in rows:
++        x = copy.deepcopy(x)
++        if x.get("ledger_inconsistent") and x.get("request_ledger"):
++            q0 = x["request_ledger"][0]
++            ours = abs(float(q0["qty"]))
++            venue = float(f"{ours * 1.001:.0f}")
++            q0["inconsistent"] = f"{q0['client_id']}: identity: submit response: submit response origQty {venue:.1f} differs from ours {ours:.1f}"
++            x["ledger_inconsistent"] = [{"client_id": q0["client_id"], "why": q0["inconsistent"]}]
++        out.append(x)
++    return out
++
++
++def _tree(orders, readback, anchors):
++    root = tempfile.mkdtemp(prefix="exe01_12z_")
++    d = os.path.join(root, "20260912")
++    os.makedirs(d)
++    for name, rows in (("orders", orders), ("position_readback", readback), ("anchors", anchors)):
++        with open(os.path.join(d, f"{name}.jsonl"), "w") as f:
++            for x in rows:
++                f.write(json.dumps(x) + "\n")
++    return root
++
++
++_rec0 = RC.reconcile([("20260912", {"orders": ORD_REAL, "position_readback": RB, "anchors": ANC})])
++check("★ A6 control: the PRISTINE real rows on this tree ⇒ 0 anomalies ((a)(b) re-derives the clamp; nothing to respond to)",
++      _rec0["n_anomalies_by_kind"] == {}, _rec0["n_anomalies_by_kind"])
++r = _tree(_unclamped(ORD_REAL), RB, ANC)
++b = WD.MockBroker(positions={"OTHER1USDT": 5000.0, "OTHER2USDT": -3000.0})
++b._notional = {"OTHER1USDT": 5000.0, "OTHER2USDT": -3000.0}
++ev, brk, st, sd, ops = run(r, b)
++_p = ev.get("proportional_response") or {}
++check("★★★ A6 re-shaped 12Z rows: 2 names, doubt = joint Σ|intended| 1,524.32117076 USDT = 0.6473% of 235,497.44 ⇒ LOCAL; "
++      "MEME/POPCAT read flat so nothing is sent, and the unrelated held OTHER1/OTHER2 are untouched "
++      "(ef60f85: tripped, the ladder flattens OTHER1 and OTHER2)",
++      local_only(ev, brk, st, ["MEMEUSDT", "POPCATUSDT"]) and acts(brk, "flatten_all") == []
++      and abs((_p.get("sum_doubt_usdt_known") or 0) - 1524.32117076) < 1e-6
++      and abs((_p.get("gross_ref_usdt") or 0) - float(ANC[0]["target_gross"])) < 1e-6,
++      {"tripped": ev.get("tripped"), "flattened": flattened_symbols(brk), "sum": _p.get("sum_doubt_usdt_known"),
++       "gross": _p.get("gross_ref_usdt"), "why": _p.get("why")})
++rm(r, sd)
++
++print("\n[A7] the config switch: false restores the ladder for every trip (today's behaviour on ef60f85)")
++r = build(R1)
++ev, brk, st, sd, ops = run(r, held_broker(R1), switch=False)
++check("★★ A7 watchdog_proportional_response.enabled = false ⇒ the headline set runs the whole-book ladder, and the record says why",
++      ladder_whole_book(ev, brk, st), {"tripped": ev.get("tripped"), "why": (ev.get("proportional_response") or {}).get("why")})
++rm(r, sd)
++ev, brk, st, sd, ops = run(build(R1), held_broker(R1), switch=True)
++check("★ A7 …and true ⇒ local", local_only(ev, brk, st, ["S007USDT"]))
++rm(sd)
++
++# ════════════════════════════ [N] negative controls: book-level evidence still flattens everything ═══════════════════
++print("\n[N] book-level conditions on the same held book still run the full ladder (green on both trees by design)")
++r = build(nav_change_pct=-5.0)
++ev, brk, st, sd, ops = run(r, held_broker())
++check("★★★ N1 §4-2 daily loss line (−5% equity day) ⇒ tripped, every one of 100 names flattened, reduce-only set",
++      ladder_whole_book(ev, brk, st) and ev["triggers"] and all("§4-2" in t for t in ev["triggers"]), ev["triggers"])
++rm(r, sd)
++r = build(nav_override=10000.0)
++ev, brk, st, sd, ops = run(r, held_broker())
++check("★★★ N2 account-level equity break via §4-4b (target_gross/nav = 10× > 5×) ⇒ the whole-book ladder",
++      ladder_whole_book(ev, brk, st) and any("§4-4b" in t for t in ev["triggers"]), [t[:60] for t in ev["triggers"]])
++rm(r, sd)
++r = build()
++ev, brk, st, sd, ops = run(r, held_broker(), venue_events=[{"kind": "outage", "severity": "stop"}])
++check("★★★ N3 §4-5a venue outage ⇒ the whole-book ladder", ladder_whole_book(ev, brk, st), ev["triggers"])
++rm(r, sd)
++r = build()
++ev, brk, st, sd, ops = run(r, held_broker(), venue_events=[{"kind": "account_side_anomaly", "severity": "stop",
++                                                           "reasoning": "public path alive, our submissions failing"}])
++check("★★★ N4 §4-5c account-side anomaly ⇒ the whole-book ladder", ladder_whole_book(ev, brk, st), ev["triggers"])
++rm(r, sd)
++
++# ════════════════════════════ [B] the local action, its state, its readers ═══════════════════════════════════════════
++print("\n[B1] resting orders on the NAMED name are cancelled BEFORE the flatten; another symbol's resting order is untouched")
++r = build(R1)
++b = held_broker(R1, resting=[{"symbol": "S007USDT", "side": "SELL", "clientOrderId": "x1"},
++                             {"symbol": "S050USDT", "side": "BUY", "clientOrderId": "x2"}])
++ev, brk, st, sd, ops = run(r, b)
++_seq = [a["action"] + ":" + str(a.get("symbol") or "") for a in brk.actions if a["action"] in ("halt_opening_orders", "cancel_all", "flatten_all")]
++check("★★★ B1 actions in order halt → cancel_all(S007USDT) → flatten_all; S050USDT's resting order still resting",
++      _seq == ["halt_opening_orders:", "cancel_all:S007USDT", "flatten_all:"] and [o["symbol"] for o in brk._resting] == ["S050USDT"],
++      (_seq, [o["symbol"] for o in brk._resting]))
++rm(r, sd)
++
++
++class StickyBroker(WD.MockBroker):
++    """A venue that acknowledges the flatten and still holds the position (partial fill / race)."""
++    def flatten_all(self, positions, reason):
++        keep = dict(self._contracts)
++        out = super().flatten_all(positions, reason)
++        self._contracts = keep
++        return out
++
++
++class UnreadableBroker(WD.MockBroker):
++    def positions(self):
++        raise RuntimeError("account read failed (simulated)")
++
++
++print("\n[B2] the venue still holds the named name after every attempt ⇒ re-read, retry ×3, CRITICAL, still local")
++r = build(R1)
++sb = StickyBroker(positions={s: EACH + R1.get(s, 0.0) for s in NAMES})
++sb._notional = dict(sb._contracts)
++ev, brk, st, sd, ops = run(r, sb)
++_lr = ev.get("local_response") or {}
++check("★★★ B2 three flatten attempts on S007USDT only, named_flat False, residual names S007USDT, severity CRITICAL, "
++      "the page says the name could not be verified flat",
++      len(acts(brk, "flatten_all")) == 3 and flattened_symbols(brk) == ["S007USDT"] and _lr.get("named_flat") is False
++      and sorted((_lr.get("residual_named") or {}).keys()) == ["S007USDT"] and _lr.get("severity") == "CRITICAL"
++      and (_safe(lambda: WD.local_response_page(_lr, ev)) or {}).get("severity") == "CRITICAL",
++      {k: _lr.get(k) for k in ("flatten_attempts", "named_flat", "residual_named", "severity")})
++rm(r, sd)
++
++print("\n[B3] positions unreadable when the local response acts ⇒ NOTHING is sent (no stale sizes), CRITICAL")
++r = build(R1)
++ub = UnreadableBroker()
++ub._notional = {}
++ev, brk, st, sd, ops = run(r, ub)
++_lr = ev.get("local_response") or {}
++check("★★★ B3 no flatten_all, positions_unreadable True, named_flat False, CRITICAL, opening still halted",
++      acts(brk, "flatten_all") == [] and _lr.get("positions_unreadable") is True and _lr.get("named_flat") is False
++      and _lr.get("severity") == "CRITICAL" and brk.open_orders_halted is True,
++      {k: _lr.get(k) for k in ("positions_unreadable", "named_flat", "severity", "errors")})
++rm(r, sd)
++
++print("\n[B4] the venue refuses the flatten (V4 −2022 / V6 −4400 / V7 shapes) ⇒ recorded, CRITICAL, no other symbol attempted")
++r = build(R1)
++ev, brk, st, sd, ops = run(r, held_broker(R1, fail_submit=True))
++_lr = ev.get("local_response") or {}
++check("★★★ B4 every attempt names S007USDT only, the error is recorded, named_flat False, CRITICAL, still not a trip",
++      flattened_symbols(brk) == ["S007USDT"] and ev.get("tripped") is False and _lr.get("named_flat") is False
++      and _lr.get("severity") == "CRITICAL" and any("flatten attempt" in e for e in _lr.get("errors") or []),
++      {k: _lr.get(k) for k in ("flatten_attempts", "named_flat", "severity", "errors")})
++rm(r, sd)
++
++print("\n[B5] a local response on top of a STANDING TRIP never overwrites the trip's record")
++r = build(R1)
++seed = {"reduce_only": True, "tripped_at": "2026-09-11T00:00:00Z", "degradation": {"stage1_ok": True},
++        "reason": "§4-2 earlier trip", "open_orders_halted": True}
++ev, brk, st, sd, ops = run(r, held_broker(R1), state_seed=seed)
++check("★★★ B5 state keeps reduce_only True, the degradation record, the original tripped_at; the local response is appended",
++      st.get("reduce_only") is True and st.get("degradation") == {"stage1_ok": True} and st.get("tripped_at") == "2026-09-11T00:00:00Z"
++      and len(st.get("local_responses_while_tripped") or []) == 1 and st.get("kind") != "proportional_local",
++      {k: st.get(k) for k in ("reduce_only", "tripped_at", "kind", "local_responses_while_tripped")})
++rm(r, sd)
++
++print("\n[B6] the harvest-EMA reset: a held book after a local response keeps its memory; every flattened book does not")
++try:
++    import legs as LG
++    _hr = LG.harvest_reset_required
++    _loc = {"kind": "proportional_local", "book_flattened": False, "reduce_only": False, "tripped_at": "2026-09-13T12:00:00Z"}
++    check("★★★ B6 proportional_local, book_flattened False, no reduce-only ⇒ NO reset (W6(c) G5: it reset at every halted anchor)",
++          _hr(_loc, None, True)["reset"] is False, _hr(_loc, None, True))
++    check("★★ B6 neighbours: a trip (tripped_at) ⇒ reset; local + reduce_only True ⇒ reset; local with book_flattened MISSING ⇒ reset; "
++          "local with book_flattened True ⇒ reset",
++          _hr({"tripped_at": "x"}, None, True)["reset"] is True and _hr(dict(_loc, reduce_only=True), None, True)["reset"] is True
++          and _hr({k: v for k, v in _loc.items() if k != "book_flattened"}, None, True)["reset"] is True
++          and _hr(dict(_loc, book_flattened=True), None, True)["reset"] is True)
++except Exception as e:                                       # noqa: BLE001
++    check("★★★ B6 harvest_reset_required importable", False, f"{type(e).__name__}: {e}")
++
++print("\n[B7] resume_from_trip.sh — refusal pinned STATICALLY (its gate runs a public network probe); EMA keep/remove EXECUTED")
++_rs = open(os.path.join(REPO, "ops", "resume_from_trip.sh")).read()
++_gate = _rs.split("── 1/4")[1].split("GATE=$?")[0] if "── 1/4" in _rs else ""
++check("★★ B7 STATIC: the hard gate refuses (exit 1) when `local_responses` is non-empty, AFTER the tripped check and BEFORE "
++      "the success line",
++      'if ev.get("local_responses"):' in _gate and _gate.index('if ev.get("tripped"):') < _gate.index('if ev.get("local_responses"):')
++      < _gate.index("✓ no condition currently fires") and "sys.exit(1)" in _gate.split('if ev.get("local_responses"):')[1].split("✓ no condition")[0])
++_snip = ""
++if "KEEP_EMA=$(" in _rs:
++    _snip = _rs.split("KEEP_EMA=$(")[1].split("<<'PYEOF'\n", 1)[1].split("\nPYEOF\n", 1)[0]
++
++
++def _keep(state):
++    p = os.path.join(tempfile.mkdtemp(prefix="exe01_rs_"), "state.json")
++    json.dump(state, open(p, "w"))
++    out = subprocess.run([sys.executable, "-B", "-c", _snip], capture_output=True, text=True,
++                         env=dict(os.environ, STATE_P=p, REPO_D=REPO, PYTHONDONTWRITEBYTECODE="1"))
++    return out.stdout.strip() or out.stderr.strip()[-200:]
++
++
++check("★★★ B7 EXECUTED (the script's own snippet): a proportional_local state ⇒ KEEP; a ladder trip ⇒ REMOVE; local with "
++      "reduce_only True ⇒ REMOVE; unreadable ⇒ REMOVE",
++      bool(_snip) and _keep({"kind": "proportional_local", "book_flattened": False, "reduce_only": False, "tripped_at": "t"}) == "KEEP"
++      and _keep({"reduce_only": True, "tripped_at": "t", "degradation": {}}) == "REMOVE"
++      and _keep({"kind": "proportional_local", "book_flattened": False, "reduce_only": True, "tripped_at": "t"}) == "REMOVE",
++      (_keep({"kind": "proportional_local", "book_flattened": False, "reduce_only": False, "tripped_at": "t"}) if _snip else "snippet absent"))
++check("★ B7 STATIC: the existing EMA-removal pin still holds (quarantine + rm on the non-local path)",
++      'rm "$HARVEST"' in _rs and 'cp "$HARVEST"' in _rs and "harvest_ema.json" in _rs)
++
++print("\n[B8] the other readers that decide on `tripped` — STATIC pins")
++_us = open(os.path.join(REPO, "ops", "unseed_rehearsal_halt.py")).read()
++_ra = open(os.path.join(REPO, "scheduler", "run_anchor.py")).read()
++_aa = open(os.path.join(REPO, "ops", "assert_anchor_artifacts.py")).read()
++check("★★ B8 STATIC unseed_rehearsal_halt refuses while a local response would fire",
++      'ev.get("local_responses")' in _us and "a proportional local response would fire" in _us)
++_ra_blk = _ra.split('elif ev.get("local_response"):')[1].split("except Exception as e:")[0] if 'elif ev.get("local_response"):' in _ra else ""
++check("★★★ B8 STATIC run_anchor pages a local response OFF-BOX from the one composition and persists a receipt "
++      "(W6(c) G4: no page left the machine)",
++      "WD.local_response_page(" in _ra_blk and 'notifier.alarm(_lp["severity"], _lp["message"])' in _ra_blk
++      and "local_response_receipt.json" in _ra_blk)
++check("★★ B8 STATIC assert_anchor_artifacts #7 requires a delivered receipt for a local response too",
++      'local_resp = bool(_le.get("local_response"))' in _aa and "if tripped or local_resp:" in _aa)
++try:
++    import alarm_policy as AP
++    _pg1 = WD.local_response_page({"named_flat": True, "names": ["S007USDT"]},
++                                  {"evaluated_utc": "2026-09-13T12:47:00Z", "local_responses": [{"triggers": ["§4-5b x"], "evidence": {"gross_ref_usdt": 1e5, "sum_doubt_usdt_known": 300.0, "frac": 0.003}}]})
++    _pg2 = WD.local_response_page({"named_flat": True, "names": ["S007USDT"]},
++                                  {"evaluated_utc": "2026-09-13T16:47:00Z", "local_responses": [{"triggers": ["§4-5b x"], "evidence": {"gross_ref_usdt": 1e5, "sum_doubt_usdt_known": 300.0, "frac": 0.003}}]})
++    check("★★★ B8 the page is tier A (PUSH, a human must decide), and two distinct evaluations never compose the same body",
++          AP.classify(_pg1["message"])[0] == AP.DECIDE and _pg1["message"] != _pg2["message"], (AP.classify(_pg1["message"]), _pg1["message"][:120]))
++except Exception as e:                                       # noqa: BLE001
++    check("★★★ B8 the page is tier A and distinct per evaluation", False, f"{type(e).__name__}: {e}")
++
++print("\n[B9] review C9: the doubt of a name with TWO legs of unknown size does not depend on which was written first")
++
++
++def _two_leg_tree(t_small, t_big):
++    return build({"S070USDT": 300.0}, extra_orders_t2=[unknown_leg("S071USDT", 10.0, t_small),
++                                                       unknown_leg("S071USDT", 1000.0, t_big)])
++
++
++_v = []
++for ts_small, ts_big in ((T2 + 2, T2 + 3), (T2 + 3, T2 + 2)):
++    r = _two_leg_tree(ts_small, ts_big)
++    rec = RC.reconcile([(d, PL.read_day(r, d)) for d in PL.available_days(r)])
++    a71 = [a for a in rec["latest"] if a["symbol"] == "S071USDT"]
++    ev, brk, st, sd, ops = run(r, held_broker({"S070USDT": 300.0}))
++    _v.append(((a71[0].get("doubt_usdt"), a71[0].get("n_unquantifiable_rows")) if a71 else None,
++               (ev.get("proportional_response") or {}).get("route"), (ev.get("proportional_response") or {}).get("sum_doubt_usdt_known")))
++    rm(r, sd)
++check("★★★ B9 both orders: S071USDT doubt = 1,010 over 2 rows, the same route, the same Σ (first-row-only would read 10 or 1,000)",
++      len(_v) == 2 and _v[0] == _v[1] and _v[0][0] == (1010.0, 2) and _v[0][1] == "local" and abs((_v[0][2] or 0) - 1310.0) < 1e-9, _v)
++
++print("\n[B10] reconcile's doubt fields and the readback gross")
++r = build({"S080USDT": 400.0}, readback_nan=())
++rec = RC.reconcile([(d, PL.read_day(r, d)) for d in PL.available_days(r)])
++a80 = [a for a in rec["latest"] if a["symbol"] == "S080USDT"]
++check("★★ B10 quantity_residual: doubt_usdt == |residual| (400.0, unrounded); latest_readback_gross_usdt == 100,400",
++      len(a80) == 1 and a80[0].get("doubt_usdt") == 400.0 and rec.get("latest_readback_gross_usdt") == 100400.0,
++      (a80[:1] and {k: a80[0].get(k) for k in ("kind", "doubt_usdt", "residual_usdt")}, rec.get("latest_readback_gross_usdt")))
++rm(r)
++r = build({"S080USDT": 400.0}, readback_nan=("S090USDT",))
++rec = RC.reconcile([(d, PL.read_day(r, d)) for d in PL.available_days(r)])
++check("★★ B10 one NaN readback notional ⇒ latest_readback_gross_usdt None (a partial sum is not the book's gross)",
++      "latest_readback_gross_usdt" in rec and rec.get("latest_readback_gross_usdt") is None, rec.get("latest_readback_gross_usdt", "absent"))
++rm(r)
++
++print("\n[B11] source and config pins")
++_wd_src = open(os.path.join(HERE, "watchdog.py")).read()
++check("★★★ B11 the gate is KIND-AGNOSTIC: watchdog.py names no anomaly kind (the original blind-spot pin, and why W6(c)'s "
++      "restatement is no longer needed)", "execution_of_unknown_size" not in _wd_src and "if _latest:" in _wd_src)
++check("★★ B11 thresholds are frozen CODE constants 5 / 0.02, and config/book.json carries the switch but NOT the thresholds",
++      getattr(WD, "PROPORTIONAL_MAX_NAMES", None) == 5 and getattr(WD, "PROPORTIONAL_MAX_FRAC_OF_GROSS", None) == 0.02
++      and (json.load(open(BC.path())).get("watchdog_proportional_response") or {}).get("enabled") is True
++      and not any(k for k in (json.load(open(BC.path())).get("watchdog_proportional_response") or {})
++                  if not k.startswith("_") and k != "enabled"),
++      json.load(open(BC.path())).get("watchdog_proportional_response", {}).get("enabled", "absent"))
++_sw = _safe(lambda: WD.proportional_switch())
++check("★★ B11 the switch reads true from config; a broken config reads ON with the source named (never a silent revert)",
++      isinstance(_sw, dict) and _sw.get("enabled") is True and "config/book.json" in str(_sw.get("source")), _sw)
++_tmpb = os.path.join(tempfile.mkdtemp(prefix="exe01_badbook_"), "book.json")
++open(_tmpb, "w").write("{ not json")
++with BC._using(_tmpb):
++    _swb = _safe(lambda: WD.proportional_switch())
++check("★ B11 …unreadable config ⇒ enabled True, source 'unreadable'",
++      isinstance(_swb, dict) and _swb.get("enabled") is True and "unreadable" in str(_swb.get("source")), _swb)
++
++print("\n[B12] a trigger nobody scoped is book-level; the 09-09 receipt's name sets stay on the ladder")
++_g = getattr(WD, "proportional_gate", None)
++if callable(_g):
++    _sw_on = {"enabled": True, "source": "test"}
++    check("★★★ B12 an unscoped trigger (a future class) ⇒ ladder, even when every other trigger is named and tiny",
++          _g(["§4-9 some new class", "§4-5b x"], {1: {"class": "§4-5b", "names": {"A": 1.0}}}, 1e5, None, _sw_on)["route"] == "ladder")
++    check("★★ B12 a name-scoped trigger with NO names ⇒ ladder ('a scope nobody stated is not a scope')",
++          _g(["§4-7 un-recovered position drift"], {0: {"class": "§4-7 drift", "names": {}}}, 1e5, None, _sw_on)["route"] == "ladder")
++    _5b_909 = ["ARKMUSDT", "BLUAIUSDT", "BTRUSDT", "CAKEUSDT", "DOGSUSDT", "DYDXUSDT", "ENSUSDT", "FIDAUSDT", "HUMAUSDT"]
++    _5e_909 = ["DOGSUSDT", "BLUAIUSDT", "BTRUSDT", "FIDAUSDT", "CHILLGUYUSDT", "CLOUSDT", "BRUSDT", "BUSDT", "ATOMUSDT",
++               "HUMAUSDT", "CFGUSDT", "AEROUSDT", "ARKMUSDT", "KASUSDT", "BERAUSDT", "DYDXUSDT", "ADAUSDT", "KAVAUSDT",
++               "EPICUSDT", "COMPUSDT", "FILUSDT", "GIGGLEUSDT", "CAKEUSDT", "AIOUSDT", "ENSUSDT", "EIGENUSDT", "ARUSDT",
++               "GRASSUSDT", "BEATUSDT", "GWEIUSDT", "COTIUSDT", "CATIUSDT", "FORMUSDT", "ENAUSDT", "BANKUSDT", "JASMYUSDT",
++               "0GUSDT", "BLESSUSDT", "BOMEUSDT", "4USDT", "BBUSDT", "1000BONKUSDT", "ANKRUSDT", "DOODUSDT", "APEUSDT",
++               "FARTCOINUSDT", "IOTAUSDT", "IOUSDT", "EDGEUSDT", "JTOUSDT", "CHZUSDT", "HEIUSDT"]
++    _v909 = _g(["§4-5b 9", "§4-5e 52", "§4-7 drift"],
++               {0: {"class": "§4-5b", "names": {s: 50.0 for s in _5b_909}},
++                1: {"class": "§4-5e split_unauth per-name", "names": {s: 50.0 for s in _5e_909}},
++                2: {"class": "§4-7 drift", "names": {s: 50.0 for s in _5b_909}}}, 232746.08069063578, None, _sw_on)
++    check("★★★ B12 the 2026-09-09 16:45:36Z receipt's name sets (9 §4-5b, 52 §4-5e, verbatim from events.jsonl) ⇒ 52 names > 5 ⇒ "
++          "LADDER — the frozen gate does not reclassify 09-09, and that is asserted, not tuned away",
++          _v909["route"] == "ladder" and _v909["n_names"] == 52 and any("52 names > 5" in w for w in _v909["why"]),
++          {k: _v909.get(k) for k in ("route", "n_names", "why")})
++else:
++    check("★★★ B12 proportional_gate exists", False, "absent on this tree")
++
++print("\n[B13] unreadable positions across the book: this change leaves that path exactly as the base (equality control)")
++_probe = {}
++for shape in ("U1", "U2", "U3"):
++    root = tempfile.mkdtemp(prefix="exe01_unread_")
++    names = NAMES[:8]
++    for di, day in enumerate(("20260910", "20260911", "20260912")):
++        lg = PL.PilotLogger(root, day)
++        ats = T1 + di * 86400
++        lg.anchor(anchor_ts=ats, target_vector_hash="h", realized_gross=8000.0, target_gross=8000.0, n_names_skipped=0,
++                  regime_at_anchor="calm", mid_at_anchor_vector={s: 1.0 for s in names}, factor_version="f", panel_hash="p")
++        for s in names:
++            lg.order(anchor_ts=ats, symbol=s, side="buy", target_w=0.125, prev_w=0.125, intended_notional=0.0,
++                     order_type="maker", submit_ts=ats + 1, price_submit=1.0, mid_at_submit=1.0, mid_at_anchor=1.0,
++                     filled_notional=0.0, avg_fill_px=None, first_fill_ts=None, last_fill_ts=None, cancel_ts=ats + 5,
++                     fee_paid=0.0, rebalance_id=f"r{di}", attempt_idx=1, terminal_reason="partial_expired", notional_currency="USDT")
++            if not ((shape == "U1" and di == 2) or shape == "U2"):
++                lg.position_readback(anchor_ts=ats, symbol=s, venue_position_notional=1000.0, venue_position_qty=1000.0,
++                                     source="mock", read_ts=ats + 10)
++        lg.daily_nav(day=int(day), target_gross=8000.0, nav=4000.0, sizing_policy="constant_leverage_2.00", realised_pnl=0.0, unrealised_pnl=0.0)
++        lg.close()
++    if shape == "U3":
++        p = os.path.join(root, "20260912", "position_readback.jsonl")
++        rows = [json.loads(l) for l in open(p) if l.strip()]
++        open(p, "w").write("".join(json.dumps(dict(x, venue_position_notional=float("nan"))) + "\n" for x in rows))
++    bb = WD.MockBroker(positions={s: 1000.0 for s in names})
++    bb._notional = {s: 1000.0 for s in names}
++    ev, brk, st, sd, ops = run(root, bb)
++    # cond1 is blind in every shape (these fixtures fill nothing, so no day is priced) — not the property under test
++    _probe[shape] = (ev["tripped"], bool(ev.get("local_responses")),
++                     sorted(c for c in (ev.get("conditions_blind") or []) if c != "cond1_c_persist"),
++                     acts(brk, "flatten_all") == [])
++    rm(root, sd)
++check("★★★ B13 U1 (newest anchor wrote no readback) ⇒ not tripped, no local response, not blind; U2 (no readback at all) ⇒ "
++      "not tripped, blind [cond5, cond7] (the resume gate refuses); U3 (NaN notionals) ⇒ not tripped — unreadable positions "
++      "never reached the ladder on ef60f85 either (FACT_TABLE §5), and nothing here changes that",
++      _probe.get("U1") == (False, False, [], True) and _probe.get("U2") == (False, False, ["cond5_venue_event", "cond7_ops"], True)
++      and _probe.get("U3") == (False, False, [], True), _probe)
++
++print("\n[B14] the CHAIN after a local response, on the production path (rows and readback written into the evaluated tree)")
++
++
++class VenueMock(WD.MockBroker):
++    """account_snapshot reflects the flatten (the plain mock keeps pre-flatten notionals, which the ladder tests tolerate
++    but a second evaluation cannot)."""
++    def account_snapshot(self):
++        c = dict(self._contracts)
++        return {"positions_notional": dict(c), "positions_contracts": dict(c), "contracts_caliber": "mark 1", "read_ts": 0}
++
++
++def _next_halted_anchor(root, broker, halt_kind):
++    """The anchor after the response: opening halted, nothing submitted (blocked / below minimum), readback = the venue."""
++    t3 = 1789330000.0
++    lg = PL.PilotLogger(root, "20260914")
++    _extra = {"halt_kind": halt_kind} if halt_kind else {}
++    lg.anchor(anchor_ts=t3, target_vector_hash="h", realized_gross=99000.0, target_gross=100000.0, n_names_skipped=0,
++              regime_at_anchor="calm", mid_at_anchor_vector={x: 1.0 for x in NAMES}, factor_version="f", panel_hash="p",
++              opening_halted=True, **_extra)
++    for x in NAMES:
++        lg.order(anchor_ts=t3, symbol=x, side="buy", target_w=0.01, prev_w=0.01,
++                 intended_notional=(1000.0 if x == "S007USDT" else 0.0), order_type="maker", submit_ts=None,
++                 price_submit=None, mid_at_submit=1.0, mid_at_anchor=1.0, filled_notional=None, avg_fill_px=None,
++                 first_fill_ts=None, last_fill_ts=None, cancel_ts=None, fee_paid=None, rebalance_id=f"A{int(t3)}",
++                 attempt_idx=1, terminal_reason=("blocked_by_halt" if x == "S007USDT" else "skipped_min_notional"),
++                 notional_currency="USDT")
++        q = float(broker._contracts.get(x, 0.0))
++        lg.position_readback(anchor_ts=t3, symbol=x, venue_position_notional=q, venue_position_qty=q, source="mock",
++                             read_ts=t3 + 10)
++    lg.daily_nav(day=20260914, target_gross=100000.0, nav=50000.0, sizing_policy="constant_leverage_2.00",
++                 realised_pnl=0.0, unrealised_pnl=0.0)
++    lg.close()
++
++
++_chain = {}
++for _hk in ("proportional_local", None):
++    r = build(R1)
++    vb = VenueMock(positions={x: EACH + R1.get(x, 0.0) for x in NAMES})
++    sd = tempfile.mkdtemp(prefix="exe01_chain_")
++    ev1, _b1, _st1 = WD.run(r, broker=vb, venue_events=[], ops_stats=WI.derive_ops_stats(r), verbose=False,
++                            state_dir=sd, rows_root=r)
++    ev2 = WD.evaluate(r, venue_events=[], ops_stats=WI.derive_ops_stats(r))
++    _next_halted_anchor(r, vb, _hk)
++    ev3 = WD.evaluate(r, venue_events=[], ops_stats=WI.derive_ops_stats(r))
++    _pb3 = ev3["conditions"]["cond5_venue_event"].get("5e_position_break") or {}
++    _chain[_hk] = {"ev1_local": [lr.get("names") for lr in ev1.get("local_responses") or []],
++                   "ev2_5b": ev2["conditions"]["cond5_venue_event"]["5b_liquidation_anomaly"]["state"],
++                   "ev3_tripped": ev3["tripped"], "ev3_triggers": [t[:60] for t in ev3["triggers"]],
++                   "ev3_5e_kind": (_pb3.get("latest") or {}).get("anchor_kind"), "ev3_5e_state": _pb3.get("state")}
++    rm(r, sd)
++_c = _chain.get("proportional_local") or {}
++check("★★★ B14 after the local response the next evaluation reconciles S007USDT CLEAN (its protective_flatten rows and "
++      "readback explain the move); the NEXT halted anchor, marked halt_kind proportional_local by anchor_loop, is judged "
++      "as a HELD book — not tripped, §4-5e not a break",
++      _c.get("ev1_local") == [["S007USDT"]] and _c.get("ev2_5b") == "CLEAN" and _c.get("ev3_tripped") is False
++      and _c.get("ev3_5e_kind") == "halted_book_held" and _c.get("ev3_5e_state") != "BREAK", _c)
++_t = _chain.get(None) or {}
++check("★★★ B14 neighbour — the SAME halted anchor WITHOUT the marker (every trip halt, every row written before it existed) "
++      "is still judged against intent ZERO: the held book reads as a 99% break and trips the ladder. This is the failure "
++      "the marker exists for (measured before the fix: probe_third_anchor), and the 07-29 ghost-book rule it keeps",
++      _t.get("ev3_tripped") is True and _t.get("ev3_5e_kind") == "halted_intent_flat"
++      and any("flat_intent_legacy" in x for x in _t.get("ev3_triggers") or []), _t)
++_al_src = open(os.path.join(REPO, "scheduler", "anchor_loop.py")).read()
++check("★★ B14 STATIC anchor_loop carries the halt's kind: 0b records state_kind/book_flattened, and the anchors row writes "
++      "halt_kind only for a proportional local state that did not flatten the book",
++      '"state_kind": wd.get("kind"), "book_flattened": wd.get("book_flattened")' in _al_src
++      and '_wh.get("state_kind") == "proportional_local" and _wh.get("book_flattened") is False' in _al_src
++      and 'row["halt_kind"] = "proportional_local"' in _al_src)
++
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  ")
++    sys.exit(1)
++print("ALL PASS")
+diff --git a/live/watchdog.py b/live/watchdog.py
+index 0cc57ae..eccc511 100644
+--- a/live/watchdog.py
++++ b/live/watchdog.py
+@@ -368,6 +368,158 @@ class OpeningHalted(RuntimeError):
+ #                            filling. The rule must not assume the benign cause (rounding).
+ SUBMISSION_IMPAIRED_CONDITIONS = ("§4-5", "§4-6", "§4-7")
+ 
++# ★★★ EXE-01 — A BOOK-LEVEL RESPONSE MUST PASS A PROPORTIONALITY GATE (user rules 2026-09-12 / 2026-09-13; R-14 read as A).
++#   Every trip used to run the same ladder — halt, cancel, flatten EVERY position — whatever fired. The live record
++#   (quant_research docs/fixprogram_2026-09-13/FX_W6C/FACT_TABLE_W6C.md §3, events.jsonl replayed at each trip instant):
++#   5 of the 10 whole-book flattens came from triggers whose evidence is a handful of NAMED symbols (§4-5b, §4-5e's
++#   per-name clause, §4-7 drift), and 4 of those 5 were TWO-name events at 0.42–1.84% of gross — our own instruments on
++#   08-01 (universe exits missing from the ledger) and 09-12 (identity gate vs a reduce-only clamp), real two-name venue
++#   changes on 08-21 (a probe on the shared account) and 08-26 (delisting settlement). ≈0.18–0.21% NAV per flatten.
++#   ⇒ A trigger now carries a SCOPE. When every trigger of an evaluation is name-scoped, the names number ≤ 5 and the doubt
++#     they carry is ≤ 2% of gross, the response is LOCAL (`_local_response`): halt opening, cancel and flatten THOSE names
++#     only, page. Any book-level trigger, a sixth name or more doubt ⇒ the ladder, byte for byte as before.
++#   ★ POLICY NUMBERS SET AFTER THE 09-12 INCIDENT (review 563e3470 C3), frozen by R-14 — not calibrated on a distribution.
++#     Module constants ON PURPOSE, not config keys: a retune must be a reviewed code change. Only the switch is config.
++PROPORTIONAL_MAX_NAMES = 5
++PROPORTIONAL_MAX_FRAC_OF_GROSS = 0.02
++
++
++def _finite(x) -> Optional[float]:
++    try:
++        v = float(x)
++    except (TypeError, ValueError):
++        return None
++    return v if (v == v and v not in (float("inf"), float("-inf"))) else None
++
++
++def proportional_switch() -> Dict[str, Any]:
++    """{"enabled", "source"} — `config/book.json` `watchdog_proportional_response.enabled`, read through `book_config`.
++
++    ★ DEFAULT ON, AND UNREADABLE MEANS ON. R-14 was ruled as option A with the switch on. If a missing key or a broken
++      file reverted to the ladder, a defect in OUR config would decide a whole-book flatten — the case the 09-12 rule
++      forbids. Only an explicit boolean `false` turns it off, and the source always travels with the value."""
++    try:
++        import book_config as _BCp
++        cfg = (_BCp.load() or {}).get("watchdog_proportional_response")
++    except Exception as e:                                   # noqa: BLE001 — reported, never silent
++        return {"enabled": True, "source": f"config unreadable ({type(e).__name__}) — default ON"}
++    if not isinstance(cfg, dict) or "enabled" not in cfg:
++        return {"enabled": True, "source": "watchdog_proportional_response.enabled absent from config — default ON"}
++    if cfg.get("enabled") is False:
++        return {"enabled": False, "source": "config/book.json watchdog_proportional_response.enabled = false"}
++    if cfg.get("enabled") is True:
++        return {"enabled": True, "source": "config/book.json watchdog_proportional_response.enabled = true"}
++    return {"enabled": True, "source": f"watchdog_proportional_response.enabled = {cfg.get('enabled')!r} is not a boolean — default ON"}
++
++
++def _target_gross_at(days_data, ats) -> Optional[float]:
++    """The newest `anchors.target_gross` at or before `ats` that is a finite positive number, else None (R-14's denominator)."""
++    if _finite(ats) is None:
++        return None
++    best, best_t = None, None
++    for _d, one in days_data or ():
++        for a in one.get("anchors", []) or ():
++            t, g = _finite(a.get("anchor_ts")), _finite(a.get("target_gross"))
++            if t is None or g is None or g <= 0 or t > float(ats) + 1e-9:
++                continue
++            if best_t is None or t >= best_t:
++                best, best_t = g, t
++    return best
++
++
++def _names_doubt(anomalies) -> Dict[str, Optional[float]]:
++    """{symbol: the largest finite |doubt_usdt| among its anomalies, or None} — reconcile states the size per kind."""
++    out: Dict[str, Optional[float]] = {}
++    for a in anomalies or ():
++        s = a.get("symbol")
++        if not s:
++            continue
++        v = _finite(a.get("doubt_usdt"))
++        v = None if v is None else abs(v)
++        out[s] = v if s not in out else (v if out[s] is None else (out[s] if v is None else max(out[s], v)))
++    return out
++
++
++def proportional_gate(triggers, named_scope, target_gross=None, readback_gross=None, switch=None,
++                      max_names=PROPORTIONAL_MAX_NAMES, max_frac=PROPORTIONAL_MAX_FRAC_OF_GROSS) -> Dict[str, Any]:
++    """★★★ EXE-01: "local" or "ladder" for ONE evaluation. Pure; every number behind the verdict is returned.
++
++    `named_scope` maps an index into `triggers` to {"class", "names": {symbol: doubt_usdt or None}}. A trigger with no
++    entry is BOOK-LEVEL — including any trigger class added later — so nothing unscoped can ever be routed locally.
++      ladder  switch off · any book-level trigger · a name-scoped trigger with no names · names > `max_names` ·
++              Σ known doubt > `max_frac` × gross, with gross known
++      local   otherwise, with every unknown input named. An unknown doubt or gross cannot prove the set large, and an
++              unknown term is by construction our own record failing to state a size: the 09-12 rule forbids a
++              book-level response to instrument doubt. The local action does NOT use these numbers — it flattens the whole
++              venue position of every named name, sized from `broker.positions()` when it acts.
++    gross = `target_gross` (the anchors row: R-14's frozen denominator); `readback_gross` ONLY when that is unusable.
++    Per name the doubt is the max over the classes that name it (§4-5b's residual and §4-5e's unauth measure one thing).
++    Inclusive at both limits (5 names, 2.00%), as frozen."""
++    sw = switch if isinstance(switch, dict) else proportional_switch()
++    tg, rg = _finite(target_gross), _finite(readback_gross)
++    tg = tg if (tg is not None and tg > 0) else None
++    rg = rg if (rg is not None and rg > 0) else None
++    out: Dict[str, Any] = {"route": "none", "switch": bool(sw.get("enabled")), "switch_source": sw.get("source"),
++                           "max_names": max_names, "max_frac": max_frac, "n_triggers": len(triggers or []),
++                           "book_triggers": [], "named_triggers": [], "names": [], "n_names": 0, "per_name": {},
++                           "sum_doubt_usdt_known": 0.0, "names_doubt_unknown": [],
++                           "target_gross_usdt": tg, "readback_gross_usdt": rg, "gross_ref_usdt": None,
++                           "gross_source": None, "frac": None, "unknown_inputs": [], "why": []}
++    if not triggers:
++        out["why"].append("nothing fired")
++        return out
++    per: Dict[str, Dict[str, Any]] = {}
++    empty_named = []
++    for i, t in enumerate(triggers):
++        sc = (named_scope or {}).get(i)
++        if not isinstance(sc, dict):
++            out["book_triggers"].append(t)
++            continue
++        out["named_triggers"].append(t)
++        _nm = sc.get("names") if isinstance(sc.get("names"), dict) else {}
++        if not _nm:
++            empty_named.append(sc.get("class"))
++        for sym, d in _nm.items():
++            e = per.setdefault(sym, {"doubt_usdt": None, "classes": []})
++            e["classes"].append(sc.get("class"))
++            v = _finite(d)
++            if v is not None:
++                e["doubt_usdt"] = abs(v) if e["doubt_usdt"] is None else max(e["doubt_usdt"], abs(v))
++    names = sorted(per)
++    out.update(names=names, n_names=len(names), per_name=per)
++    out["sum_doubt_usdt_known"] = float(sum(e["doubt_usdt"] for e in per.values() if e["doubt_usdt"] is not None))
++    out["names_doubt_unknown"] = sorted(sym for sym, e in per.items() if e["doubt_usdt"] is None)
++    if tg is not None:
++        out["gross_ref_usdt"], out["gross_source"] = tg, "anchors.target_gross at/before the reconciled anchor"
++    elif rg is not None:
++        out["gross_ref_usdt"], out["gross_source"] = rg, ("Σ|venue_position_notional| at the reconciled anchor "
++                                                          "(no usable anchors.target_gross)")
++    g = out["gross_ref_usdt"]
++    if g is not None:
++        out["frac"] = out["sum_doubt_usdt_known"] / g
++    if out["names_doubt_unknown"]:
++        out["unknown_inputs"].append(f"doubt unknown for {out['names_doubt_unknown']}")
++    if g is None:
++        out["unknown_inputs"].append("gross unknown: no usable anchors.target_gross and no finite readback gross")
++    if not out["switch"]:
++        out["route"] = "ladder"; out["why"].append(f"switch off ({sw.get('source')})")
++    elif out["book_triggers"]:
++        out["route"] = "ladder"; out["why"].append(f"{len(out['book_triggers'])} book-level trigger(s)")
++    elif empty_named or not names:
++        out["route"] = "ladder"; out["why"].append(f"a name-scoped trigger carries no names ({empty_named}) — "
++                                                   f"a scope nobody stated is not a scope")
++    elif len(names) > max_names:
++        out["route"] = "ladder"; out["why"].append(f"{len(names)} names > {max_names}")
++    elif g is not None and out["sum_doubt_usdt_known"] > max_frac * g:
++        out["route"] = "ladder"; out["why"].append(
++            f"Σ doubt {out['sum_doubt_usdt_known']:.2f} USDT = {out['frac']:.4%} of gross {g:.2f} > {max_frac:.0%}")
++    else:
++        out["route"] = "local"; out["why"].append(
++            f"{len(names)} name(s) ≤ {max_names}, Σ doubt {out['sum_doubt_usdt_known']:.2f} USDT"
++            + (f" = {out['frac']:.4%} of gross {g:.2f} ≤ {max_frac:.0%}" if g is not None else "")
++            + (f"; UNKNOWN: {out['unknown_inputs']}" if out["unknown_inputs"] else ""))
++    return out
++
+ 
+ def trip_page(ladder, triggers, eval_detail=None):
+     """★★ [j] THE ONE COMPOSITION OF A TRIP'S HUMAN-FACING FACTS. ALARM.log and the off-box page
+@@ -981,6 +1133,9 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+     import venue_error_codes as VEC
+     days = PL.available_days(root)
+     triggers, detail = [], {}
++    # ★ EXE-01: index into `triggers` → the NAMES that trigger's evidence is about. Filled only at the name-scoped append
++    #   sites (§4-5b, §4-5e per-name, §4-7 drift); every other trigger is book-level by absence (`proportional_gate`).
++    _named_scope: Dict[int, Dict[str, Any]] = {}
+ 
+     # Per-day metrics for the persistence-based conditions (1, 6, 7). Computed day-by-day rather
+     # than over the pooled window: "5 CONSECUTIVE days" is a statement about the daily sequence,
+@@ -1866,6 +2021,7 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+         # reader cannot mistake "47 anomalies ever" for "47 unexplained positions right now"
+         triggers.append(f"§4-5b liquidation/position anomaly on {len(_latest)} name(s) at the "
+                         f"latest reconciled anchor ({len(anomalies)} in this window's history)")
++        _named_scope[len(triggers) - 1] = {"class": "§4-5b", "names": _names_doubt(_latest)}
+     if _pb_hit:
+         _l = _pb["latest"]
+         _sv = _l.get("split_verdict") or {}
+@@ -1891,6 +2047,13 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+             + f"; worst raw {_l['worst_symbol']} {_l['worst_symbol_dev_usdt']:.0f} USDT. "
+             + f"WHY: {_l.get('trip_gate_caliber')} "
+             + f"PROVENANCE (read from the record, not composed here): {_prov}")
++        # ★ EXE-01: name-scoped ONLY when the split's per-name clause alone fired. The portfolio clause (> 5% of gross),
++        #   the flat-intent 1% rule and the undecomposable legacy rule measure the book — they stay book-level.
++        if (_l.get("trip_gate") == "split_unauth" and _sv.get("unauth_per_name_hit") is True
++                and _sv.get("unauth_portfolio_hit") is False):
++            _named_scope[len(triggers) - 1] = {"class": "§4-5e split_unauth per-name",
++                                               "names": {b.get("symbol"): b.get("unauth_usdt")
++                                                         for b in (_sv.get("unauth_breaches") or []) if b.get("symbol")}}
+     if code_hits:
+         triggers.append(f"§4-5c account restriction (error code {code_hits[0]['error_code']})")
+     if behav_hit or attempt_hit:
+@@ -2130,6 +2293,30 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+         triggers.append("§4-7 rebalance failure rate > 5% for 3 days")
+     if drift:
+         triggers.append("§4-7 un-recovered position drift")
++        # ★ EXE-01: drift IS the reconcile's latest set (watchdog_inputs publishes its names). A caller that hands in
++        #   ops_stats without them has not stated a scope, and the trigger stays book-level.
++        _dn = ops[-1].get("drift_names") if ops else None
++        if isinstance(_dn, list):
++            _dd = _names_doubt(_latest)
++            _named_scope[len(triggers) - 1] = {"class": "§4-7 drift", "names": {s: _dd.get(s) for s in _dn}}
++
++    # ★★★ EXE-01: THE RESPONSE'S SCOPE. Detection above is unchanged — every condition's `triggered` is still the fact of
++    #   what fired. What this decides is the ACTION: the ladder (trip) or a local response on the named names.
++    _prop = proportional_gate(triggers, _named_scope,
++                              target_gross=_target_gross_at(_days_data, last_reconciled_ats),
++                              readback_gross=(_rec or {}).get("latest_readback_gross_usdt"))
++    local_responses: List[Dict[str, Any]] = []
++    if _prop["route"] == "local":
++        local_responses.append({
++            "kind": "proportional_local", "names": list(_prop["names"]), "triggers": list(triggers),
++            "reason": ("§4 proportional response — " + "; ".join(t[:160] for t in triggers)
++                       + f" — {_prop['n_names']} name(s) {_prop['names']}, doubt {_prop['sum_doubt_usdt_known']:.2f} USDT"
++                       + (f" = {_prop['frac']:.2%} of gross {_prop['gross_ref_usdt']:.2f}"
++                          if _prop.get("gross_ref_usdt") else " (gross unknown)")
++                       + (f"; UNKNOWN {_prop['unknown_inputs']}" if _prop["unknown_inputs"] else "")
++                       + " — opening halted, THOSE names flattened reduce-only, the book NOT flattened"),
++            "evidence": _prop})
++        triggers = []
+ 
+     return {"evaluated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+             "n_days": len(days), "days": days, "triggers": triggers,
+@@ -2153,7 +2340,183 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+             # which is precisely what a nearly-blind stop-loss must not inherit.
+             "conditions_degraded": sorted(k for k, v in detail.items()
+                                           if isinstance(v, dict) and v.get("degraded")),
+-            "tripped": bool(triggers), "conditions": detail}
++            "tripped": bool(triggers), "conditions": detail,
++            # ★ EXE-01: the gate's verdict on every evaluation, and the local response it asks for (never in `triggers`:
++            #   a local response is not a trip, and not silence either — `run` acts on it when nothing tripped)
++            "proportional_response": _prop, "local_responses": local_responses}
++
++
++def _local_response(broker, ev, reason, alarm_path, rows_root, verbose=True, max_attempts=3):
++    """★★★ EXE-01: THE PROPORTIONAL RESPONSE — the ladder's rungs, in the ladder's order and isolation, on the NAMED
++    names only (`ev["local_responses"][*]["names"]`):
++      1. halt opening                (zero-dependency, first)
++      2. cancel resting orders on THOSE names only (a resting order survives a flatten and re-opens it — 07-29)
++      3. flatten THOSE names' WHOLE venue positions, reduce-only, sized from `broker.positions()` and re-read after every
++         attempt (≤ `max_attempts`). Never another symbol; never the account reduce-only key. The size is the venue's own
++         contracts, NOT held − expected: `expected` is the ledger number whose doubt started this (W6(c) G6), and a
++         reduce-only order sized from the position can neither overshoot nor open the other side.
++      4. recover unreadable legs from userTrades (the ladder's rung 2b), write protective_flatten rows + a readback
++      5. ALARM.log — HIGH when every named name reads flat, CRITICAL when one is still held or could not be read
++    The off-box page is the anchor's (`local_response_page`, run_anchor). Never raises."""
++    t0 = time.time()
++    names = sorted({n for lr in (ev.get("local_responses") or ()) for n in (lr.get("names") or ())})
++    out: Dict[str, Any] = {"kind": "proportional_local", "names": names,
++                           "order": ["halt_opening", "cancel_named", "flatten_named", "alert"],
++                           "open_halted": False, "cancel_state": None, "cancelled_symbols": [], "cancel_failed": [],
++                           "flatten_attempts": 0, "flatten_orders": [], "held_before": None, "residual_named": None,
++                           "named_flat": False, "positions_unreadable": False, "rows_written": 0,
++                           "readback_rows_written": 0, "exec_recovery": None, "alert_local_write_ok": False,
++                           "severity": None, "errors": [], "book_flattened": False, "reduce_only_key_set": False,
++                           "caliber": ("the named names' WHOLE venue positions (broker.positions(), contracts), "
++                                       "flattened reduce-only; nothing else touched")}
++    try:
++        broker.halt_opening_orders(reason)
++        out["open_halted"] = True
++    except Exception as e:                                   # noqa: BLE001 — every rung isolated
++        out["errors"].append(f"halt_opening: {type(e).__name__}: {str(e)[:80]}")
++    try:
++        _oo = getattr(broker, "open_orders", None)
++        # (named `_named_resting`, not `_resting`: tests_flatten_cancels_first mutates the ladder's rung-1b read by its
++        #  exact source line, which must stay unique in this file)
++        _named_resting = _oo() if callable(_oo) else None
++        if _named_resting is None:
++            out["cancel_state"] = ("UNKNOWN — open orders unreadable; a resting order on a named name may survive the "
++                                   "flatten and re-open it")
++            out["errors"].append("cancel_named: open orders unreadable")
++        else:
++            _hit = sorted({o.get("symbol") for o in _named_resting if o.get("symbol") in names})
++            _ca = getattr(broker, "cancel_all_open_orders", None)
++            for _sym in _hit:
++                try:
++                    if not callable(_ca):
++                        raise RuntimeError("broker has no cancel_all_open_orders")
++                    _ca(_sym, reason)
++                    out["cancelled_symbols"].append(_sym)
++                except Exception as e:                       # noqa: BLE001 — one symbol must not cost the rest
++                    out["cancel_failed"].append(_sym)
++                    out["errors"].append(f"cancel {_sym}: {type(e).__name__}: {str(e)[:60]}")
++            out["cancel_state"] = ("SWEPT" if not out["cancel_failed"] else
++                                   f"PARTIAL — resting orders may survive on {out['cancel_failed']}")
++    except Exception as e:                                   # noqa: BLE001
++        out["cancel_state"] = f"FAILED — {type(e).__name__}: {str(e)[:80]}"
++        out["errors"].append(f"cancel_named: {type(e).__name__}: {str(e)[:80]}")
++    for i in range(max_attempts):
++        try:
++            _pos = broker.positions() or {}
++        except Exception as e:                               # noqa: BLE001 — unreadable is NOT flat
++            out["positions_unreadable"] = True
++            out["errors"].append(f"positions read before attempt {i + 1} FAILED ({type(e).__name__}): {str(e)[:60]} — "
++                                 f"NOT sending")
++            continue
++        out["positions_unreadable"] = False
++        held = {n: float(_pos[n]) for n in names if _finite(_pos.get(n)) is not None and abs(float(_pos[n])) > 1e-12}
++        if out["held_before"] is None:
++            out["held_before"] = dict(held)
++        if not held:
++            out["named_flat"], out["residual_named"] = True, {}
++            break
++        out["flatten_attempts"] += 1
++        _n_actions_before = len(getattr(broker, "actions", []) or [])
++        try:
++            try:
++                setattr(broker, "flatten_client_prefix",
++                        flatten_client_prefix(time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())))
++            except Exception:                                # noqa: BLE001 — a fake may refuse attrs
++                pass
++            _got = broker.flatten_all(held, reason) or []
++            for _x in _got:
++                _x.setdefault("attempt_idx", out["flatten_attempts"])
++            out["flatten_orders"].extend(_got)
++        except Exception as e:                               # noqa: BLE001 — the attempt's orders are still recorded
++            out["errors"].append(f"flatten attempt {out['flatten_attempts']}: {type(e).__name__}: {str(e)[:80]}")
++            # only an action THIS attempt appended — never an earlier attempt's orders recorded twice
++            for _a in reversed((getattr(broker, "actions", []) or [])[_n_actions_before:]):
++                if _a.get("action") == "flatten_all":
++                    for _x in (_a.get("orders") or []):
++                        _x.setdefault("attempt_idx", out["flatten_attempts"])
++                    out["flatten_orders"].extend(_a.get("orders") or [])
++                    break
++        try:
++            _after = broker.positions() or {}
++            out["residual_named"] = {n: float(_after[n]) for n in names
++                                     if _finite(_after.get(n)) is not None and abs(float(_after[n])) > 1e-12}
++            if not out["residual_named"]:
++                out["named_flat"] = True
++                break
++            out["errors"].append(f"after attempt {out['flatten_attempts']} the venue still holds "
++                                 f"{sorted(out['residual_named'])}")
++        except Exception as e:                               # noqa: BLE001 — unread is not flat
++            out["positions_unreadable"] = True
++            out["errors"].append(f"verify read after attempt {out['flatten_attempts']}: {type(e).__name__}: {str(e)[:60]}")
++    try:
++        import venue_fills as _VF
++        out["exec_recovery"] = _VF.flatten_exec_from_trades(broker, out["flatten_orders"],
++                                                            since_ms=int((t0 - 300) * 1000))
++    except Exception as e:                                   # noqa: BLE001
++        out["errors"].append(f"exec recovery: {type(e).__name__}: {str(e)[:80]}")
++    if out["flatten_orders"]:
++        try:
++            out["rows_written"] = _write_flatten_rows(rows_root, out["flatten_orders"], ev["evaluated_utc"], reason,
++                                                      flatten_scope="local")
++        except Exception as e:                               # noqa: BLE001
++            out["errors"].append(f"flatten rows NOT written: {type(e).__name__}: {str(e)[:80]}")
++        try:
++            _snap = getattr(broker, "account_snapshot", None)
++            _s2 = _snap() if callable(_snap) else None
++            out["readback_rows_written"] = write_flatten_readback(
++                rows_root, (_s2 or {}).get("positions_notional") if _s2 is not None else None,
++                {o.get("symbol"): 1 for o in out["flatten_orders"]}, time.time(), reason,
++                venue_qty=(_s2 or {}).get("positions_contracts") if _s2 is not None else None)
++            if last_readback_refusal() is not None:
++                out["readback_refusal"] = last_readback_refusal()
++        except Exception as e:                               # noqa: BLE001
++            out["errors"].append(f"flatten readback NOT written: {type(e).__name__}: {str(e)[:80]}")
++    out["severity"] = "HIGH" if out["named_flat"] else "CRITICAL"
++    try:
++        os.makedirs(os.path.dirname(alarm_path), exist_ok=True)
++        with open(alarm_path, "a") as f:
++            f.write(json.dumps({"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "severity": out["severity"],
++                                "msg": local_response_page(out, ev)["headline"], "reason": reason, "names": names,
++                                "named_flat": out["named_flat"], "flatten_orders": len(out["flatten_orders"]),
++                                "errors": out["errors"], "open_orders_halted": out["open_halted"],
++                                "book_flattened": False, "human_action_required": True}, default=str) + "\n")
++        out["alert_local_write_ok"] = True
++    except Exception as e:                                   # noqa: BLE001
++        out["errors"].append(f"alert_write: {type(e).__name__}: {str(e)[:80]}")
++    if verbose:
++        print(f"  ★★ proportional local response: names={names} halt={out['open_halted']} "
++              f"flattened_orders={len(out['flatten_orders'])} named_flat={out['named_flat']} ({out['severity']})",
++              flush=True)
++    return out
++
++
++def local_response_page(lr, ev=None) -> Dict[str, Any]:
++    """★★ EXE-01: the ONE composition of a local response's human-facing facts (ALARM.log and the off-box page), the
++    same two properties as `trip_page`: every field from the record, and a severity that discriminates — HIGH when the
++    named names read flat, CRITICAL when one is still held or could not be read. The body carries this evaluation's
++    facts (evaluated_utc, names, doubt, gross) so two distinct events can never compose the same sha."""
++    lr = lr or {}
++    ev = ev or {}
++    lrs = ev.get("local_responses") or [{}]
++    evd = (lrs[0] or {}).get("evidence") or {}
++    ok = bool(lr.get("named_flat"))
++    names = list(lr.get("names") or evd.get("names") or [])
++    resid = sorted((lr.get("residual_named") or {}).keys())
++    head = ("局部止损触发(比例门): 仅所涉名已平, 全书未平, 开仓已停" if ok else
++            "局部止损触发(比例门): ★ 所涉名未能核实已平 — 仓位可能仍在场所上, 开仓已停")
++    trig = "; ".join(t[:120] for lr0 in lrs for t in ((lr0 or {}).get("triggers") or []))
++    g = evd.get("gross_ref_usdt")
++    facts = (f"【评估 {ev.get('evaluated_utc')}; 名 {names}; 疑问名义 Σ {float(evd.get('sum_doubt_usdt_known') or 0.0):.2f} USDT"
++             + (f" = {float(evd.get('frac') or 0.0):.2%} of gross {float(g):.2f}" if g else " (gross 未知)")
++             + f" ≤ {PROPORTIONAL_MAX_NAMES} 名 / {PROPORTIONAL_MAX_FRAC_OF_GROSS:.0%}"
++             + (f"; 未知输入 {evd.get('unknown_inputs')}" if evd.get("unknown_inputs") else "") + "】")
++    body = (f"{head}。触发: {trig} — 仅对 {len(names)} 个名 reduce-only 平仓"
++            + (f"(已核实平)" if ok else f"(★ 仍持有或读不到: {resid if resid else '见 state.json'}; 需人工确认敞口)")
++            + f"; 其余持仓不动; 下一个锚点起停止开仓(state.json tripped_at, kind proportional_local)。"
++              f"恢复: bash ops/resume_from_trip.sh —— 任一条件或局部响应仍成立时它拒绝。{facts}")
++    return {"severity": "HIGH" if ok else "CRITICAL", "flattened_named": ok, "book_flattened": False,
++            "headline": head, "message": body, "names": names, "stuck_named": ([] if ok else resid),
++            "source": "watchdog.local_response_page (one composition; ALARM.log and the off-box page share it)"}
+ 
+ 
+ def _clip(text, limit):
+@@ -2287,7 +2650,7 @@ def write_flatten_readback(root, venue_positions, attempted, ts, reason="", venu
+     return n
+ 
+ 
+-def _write_flatten_rows(root, orders, evaluated_utc, reason):
++def _write_flatten_rows(root, orders, evaluated_utc, reason, flatten_scope=None):
+     """Write the ladder's flatten as `protective_flatten` order rows. Returns rows written.
+ 
+     ★ WHY IT WRITES INTO THE ORDERS TABLE RATHER THAN A NEW STREAM: §4-5b reconciles the book
+@@ -2393,7 +2756,12 @@ def _write_flatten_rows(root, orders, evaluated_utc, reason):
+                      # ★ [B25] the reason used to be cut at a fixed 120 chars, landing mid-word
+                      # ("…§4-7 un") — our own justification for the most drastic action we take,
+                      # recorded incomprehensibly. Cut on a word boundary and SAY it was cut.
+-                     note=f"degradation ladder flatten: {_clip(str(reason), 400)}",
++                     note=(f"degradation ladder flatten: {_clip(str(reason), 400)}" if not flatten_scope else
++                           f"proportional local flatten ({flatten_scope}): {_clip(str(reason), 400)}"),
++                     # ★ EXE-01: a LOCAL response's rows say so in their own column — a reader of the ledger must
++                     #   not have to know the event log to tell "the ladder closed the book" from "two names were
++                     #   closed". Absent on the ladder's rows, which stay byte-identical.
++                     **({"flatten_scope": flatten_scope} if flatten_scope else {}),
+                      flatten_error=ex.get("error"))
+             n += 1
+     finally:
+@@ -2538,6 +2906,38 @@ def run(root, *, broker=None, venue_events, ops_stats, verbose=True, state_dir=N
+         with open(os.path.join(sdir, "events.jsonl"), "a") as f:
+             f.write(json.dumps({"ts": ev["evaluated_utc"], "triggers": ev["triggers"],
+                                 "actions": broker.actions}, default=str) + "\n")
++    elif ev.get("local_responses"):
++        # ★★★ EXE-01: nothing tripped, and the proportional gate asked for a LOCAL response. A trip always outranks it
++        #   (the `if` above): the ladder flattens the named names with everything else.
++        reason = "; ".join(lr.get("reason") or "" for lr in ev["local_responses"])
++        _lr = _local_response(broker, ev, reason, os.path.join(sdir, "ALARM.log"),
++                              rows_root or os.path.join(sdir, "pilot_log"), verbose=verbose)
++        ev["local_response"] = _lr
++        # ★ A local response never replaces a standing TRIP's record (that record says the book was flattened and
++        #   reduce-only engaged; overwriting it would make the EMA reset and the resume path read "not flattened").
++        if bool(state.get("reduce_only")) or isinstance(state.get("degradation"), dict):
++            state = dict(state)
++            state["local_responses_while_tripped"] = list(state.get("local_responses_while_tripped") or []) + [
++                {"evaluated_utc": ev["evaluated_utc"], "names": _lr.get("names"), "named_flat": _lr.get("named_flat"),
++                 "errors": _lr.get("errors"), "reason": _clip(reason, 400)}]
++            state["last_action_utc"] = ev["evaluated_utc"]
++        else:
++            state = {"kind": "proportional_local", "book_flattened": False, "reduce_only": False,
++                     "local_response": _lr, "open_orders_halted": getattr(broker, "open_orders_halted", False),
++                     # ★ `tripped_at` is what every halt reader already reads (anchor 0b re-applies the opening halt
++                     #   from it); `kind` + `book_flattened` are what the EMA reset and the resume path read.
++                     "tripped_at": state.get("tripped_at") or ev["evaluated_utc"],
++                     "last_action_utc": ev["evaluated_utc"], "reason": reason, "flatten_ok": _lr.get("named_flat"),
++                     "resume_requires": ("a deliberate manual action — opening orders are HALTED (the anchor re-applies "
++                                         "it from `tripped_at`); only the named name(s) were flattened, the book was NOT. "
++                                         "ops/resume_from_trip.sh refuses while any trip or local response would still "
++                                         "fire, and keeps the harvest EMA memory for this kind. Per §9-F7 no protocol "
++                                         "v2 may be drafted for >=72h.")}
++        with open(os.path.join(sdir, "events.jsonl"), "a") as f:
++            f.write(json.dumps({"ts": ev["evaluated_utc"],
++                                "triggers": [t for lr in ev["local_responses"] for t in (lr.get("triggers") or [])],
++                                "local_response": True, "names": _lr.get("names"),
++                                "actions": broker.actions}, default=str) + "\n")
+     # ★★ B19: ARCHIVE THE OUTGOING STATE BEFORE OVERWRITING IT.
+     # Measured on the real incident: the 00:17Z trip wrote a state saying "47 name-anchors" with
+     # `errors: ["flatten attempt 1: BrokerUnavailable: order submission failed for 53/54"]` and
+@@ -2604,6 +3004,9 @@ def run(root, *, broker=None, venue_events, ops_stats, verbose=True, state_dir=N
+         if ev["tripped"]:
+             print(f"  ★ TRIPPED: {ev['triggers']}", flush=True)
+             print(f"  ★ MOCK actions: flatten + reduce_only={broker.reduce_only}", flush=True)
++        elif ev.get("local_response"):
++            print(f"  ★ LOCAL RESPONSE: {ev['local_response'].get('names')} "
++                  f"(proportional_response: {ev.get('proportional_response', {}).get('why')})", flush=True)
+     return ev, broker, state
+ 
+ 
+diff --git a/live/watchdog_inputs.py b/live/watchdog_inputs.py
+index 54f6951..dcfeff2 100644
+--- a/live/watchdog_inputs.py
++++ b/live/watchdog_inputs.py
+@@ -119,6 +119,9 @@ def derive_ops_stats(root, days=None):
+                                     "(shared with §4-5b); history is not accumulated")
+         out[-1]["drift_last_reconciled_ats"] = _rec["last_reconciled_ats"]
+         out[-1]["drift_n_historical"] = len(_rec["anomalies"])
++        # ★ EXE-01: WHICH names drifted — the scope of §4-7's drift trigger for the watchdog's proportional gate. The
++        #   boolean above is unchanged; a caller that builds ops_stats without this list leaves the trigger book-level.
++        out[-1]["drift_names"] = sorted({a["symbol"] for a in _rec["latest"] if a.get("symbol")})
+         # ★ [B30] the same distinction §4-5b makes: `False` here means "compared, no drift", and
+         # a comparison that could not be made must not hide inside that False. Reported on the
+         # same row rather than folded into the boolean, because §4-7 acts on the boolean.
+diff --git a/ops/assert_anchor_artifacts.py b/ops/assert_anchor_artifacts.py
+index cc29f65..1edad3a 100644
+--- a/ops/assert_anchor_artifacts.py
++++ b/ops/assert_anchor_artifacts.py
+@@ -258,16 +258,22 @@ def check_artifacts(rebalance_id: Optional[str], emitted: Optional[int],
+     add("no gate reports a value without a denominator", not fabricated, f"suspect={fabricated}")
+     # 7 — a trip must be accompanied by a DELIVERED off-box notification
+     tripped = False
++    local_resp = False
+     if os.path.exists(le):
+         try:
+-            tripped = bool(json.load(open(le)).get("tripped"))
++            _le = json.load(open(le))
++            tripped = bool(_le.get("tripped"))
++            # ★ EXE-01: a proportional LOCAL response halts opening and flattens named names — the same class of event
++            #   for a human, and the same rule: it is not notified until something left the machine.
++            local_resp = bool(_le.get("local_response"))
+         except Exception:
+             pass
+-    if tripped:
++    if tripped or local_resp:
+         recent = [r for r in _jsonl(notify_audit)
+                   if r.get("delivered_offbox") and (time.time() - float(r.get("ts", 0) or 0))
+                   < _cfg("anchor_max_seconds", 1500)]
+-        add("a trip left the machine (delivered_offbox receipt exists)", bool(recent),
++        add("a trip left the machine (delivered_offbox receipt exists)" if tripped else
++            "a proportional local response left the machine (delivered_offbox receipt exists)", bool(recent),
+             f"delivered_receipts_in_window={len(recent)}")
+     # 8 — a maker that rested must end cancelled or filled
+     resting = [o for o in mine if o.get("order_type") == "maker" and o.get("submit_ts")]
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 5e52407..291c679 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -213,6 +213,7 @@ SUITE_SCOPE = {
+     "tests_request_identity_unknown": "that the venue will ever produce these sequences — every outcome is injected. It proves, against the real submit/requote/top-up/attribution/reconcile code, that a -2013×2 'absent' is carried as ambiguous and never re-sent this anchor, that every venue request has its own client id (-1/-2/-3/-3cN) and the resolver refuses a record under another id, that an UNKNOWN request survives a later refusal and a partial attribution, that reconcile consumes the unknown as an authorised band instead of a hole, that 408/-1007/-1006 are execution-unknown, and that the cap clamp validates and applies atomically; round 4 (review 62ebf9f8): that the top-up keeps a per-request ledger in which a rejected or never-sent request contributes NOTHING to the unknown bound, that the known part keeps its sign when child fills settle it, that attribution shrinks the unknown by request identity (orderId join) and closes the leg only when no request is left unknown, that reconcile sums per-request QUANTITY intervals (Minkowski, mixed directions do not cancel, mark-independent) and treats non-finite or side-less rows as unquantifiable, that an ambiguous maker absent from a FULL allOrders page stays UNKNOWN and is settled only by its own order query (-2013 ⇒ absent), that an UNKNOWN symbol gets a bounded maker row instead of a hole, that flatten retries mint distinct ids, that legs are keyed by (symbol, orderId), and that an id over 36 chars is refused rather than truncated. round 5 (review cfaf1bbe): that the row's quantity comes from each request's own executedQty on every path (two prices ⇒ 100, never 150/2), that a child fill raises a request's confirmed quantity without ending it (band = what it may still fill; the leg closes only when every request is terminal), that contradictions (over-fill, wrong side, non-finite) are checked before any classification and keep the leg open, that child fills are de-duplicated by trade id and confirmed quantity is monotone, that an order the venue shows OPEN is cancelled and re-queried and stays UNKNOWN if still open, that cancel-unresolved symbols are UNKNOWN, that the breaker records the maker leg before refusing the top-up, that target/held are validated for every name before the cap logic, and that flatten recovery keys by (symbol, orderId) with a process-wide id counter. It does NOT prove phase B's allOrders/order reads (mocked here) resolve every leg on the real venue, nor that the venue's -2013 after the k-window is final (a stated venue-consistency assumption), nor that two PROCESSES in the same UTC second cannot mint the same flatten id, nor that the latest-only reconcile baseline carries an unexplained residual forward (registered for pre-registration, not implemented). Round 6 (review ce7b3cf4): that a later terminal fact for a request (cancel + re-query in settlement) supersedes the k-cancel's unresolved set by request and clears its pin, that a terminal request with a trusted executed quantity has no remainder whether or not its USDT amount was readable (C = Q with an unknown amount is a KNOWN quantity), that a missing executedQty is not a measured zero, that a ledger row is quantified by its ledger only (no amount-over-subset-price fallback), that the bounded reader validates its price, that a conflicting duplicate trade id is a contradiction, that an open order's executed-so-far reaches the row when its cancel fails, and that the pre-flight uses the plan's real chunk count. Round 7 (review a99c447e, from the fact table docs/DESIGN_request_fact_model): that the ORIGINAL complete_anchor chain (real broker over a scripted transport → cancel → allOrders → order query → top-up → attribution → rows) keeps a readable executedQty when the amount is unreadable (CANCELED 4 ⇒ filled_qty 4, position 10 ⇒ anomaly 6), that three explicit refusals at an unchanged position (0 and 1) leave a determined filled_qty 0 and no anomaly (the round-6 false trigger), that the decoder and the allOrders fold record contradictions (negative executedQty, explicit 0 beside a positive amount) instead of zeros, that an allOrders-terminal request resolves the k-cancel's unresolved set and pin, and that the ledger reader owns the row's columns at emission (a branch cannot clear them). Round 8 (review 82cbe018): that the submit response and the amount re-query are MERGED per field (a record lacking executedQty never revokes an earlier 20; an explicit terminal 0 read at the GET entry is a measured zero; a falling executedQty or NEW after terminal is a contradiction), that an allOrders match resolves the k-cancel's unresolved set only with an explicit terminal status AND our identity (no status ⇒ exact query; origQty/symbol/side mismatch ⇒ UNKNOWN), that a fold contradiction makes the name UNKNOWN end to end (no top-up, reader refuses), and that with a ledger the row's amount and price are the reader's (an unclosed ledger writes None and relabels). It does NOT run phase C or the watchdog itself (reconcile is called on the emitted rows), its venue is FakeNet. Round 9 (review b92e9479, DESIGN §3c): that a derived quantity or amount comes from ONE record (an amount 40 in one snapshot and a price 3 in another derive nothing — C unknown, 40 a lower bound, the row a band), that a terminal executedQty is CONSTANT (20 then 30 is a contradiction end to end; a terminal record without a C may still learn it; child fills beyond a terminal C are a contradiction), that the k-cancel's DELETE body is a record of the request (CANCELED 4 survives a sparse terminal query ⇒ top-up 6; a differing terminal 6 ⇒ contradiction, no top-up; an unreached symbol's UNKNOWN row carries the 4; -2013 after a cancel with facts is a contradiction, not absent), that a sparse terminal record (no executedQty, no cumQuote) is unreadable rather than 0, that the identity gate governs FACTS (a record failing it makes the request unmeasurable instead of entering the ledger as C 4 / terminal; a missing side, a non-finite origQty and an orderId other than the acknowledged one fail it; a side-less fill is never read as SELL), that contradictions travel with the facts on the partial path (query and page agree), and that the amount re-query's record must be OUR request (client id / symbol / orderId / origQty / side compared when the record carries them; a mismatch makes the request unmeasurable). Round 10 (review 38808cbd, DESIGN §3d): that a quantity carries its COMPLETENESS TYPE (an open snapshot's 20 followed by a terminal record without a quantity is a lower bound — [20, Q], known 70 / band 30 beside a second leg of 50, legal 70–100 CLEAN, 60 and 110 anomalies — while a terminal snapshot's 20 is final; a child-fill subset raises the lower bound and never proves the total; a child set that reaches Q does), that every UNKNOWN exit first folds the records already held (a CANCELED 4 survives an exhausted or -2013 query — the latter as a contradiction; a settlement cancel that answered CANCELED 6 survives a failed re-query; the submit response's own PARTIALLY_FILLED 4 is the first record; a status-only DELETE body proves existence and terminality, so -2013 after it is a contradiction, not absent), and that two final snapshots with different amounts contradict. Round 11 (review f79dc8cd, DESIGN §3e): that a final amount is never divided by a lower-bound quantity to make a price, that a maker leg the venue told us about carries a request ledger so its quantity is the reader's band (open 4 / final amount 6 ⇒ known 4 / band 6, total [8, 14] beside a top-up of 4), that a non-object query answer still folds the records already held, that a child subset's amount is a lower bound (the amount closes only with the set; reconcile reads a ledger row's band whether or not its amount closed), that a missing or None finality key is NOT final (no legacy fallback) while a lower bound reaching Q is final by capacity, that a top-up response without a status proves no finality, and that the submit record is bound by the client id WE sent (a response naming another id lends no orderId and fails the present-field gate). Round 12 (review 83fcbbcc, DESIGN §3f / §5 field-by-reader table): that the submit response's direct reader checks the body against the order we sent before reading a number (a body naming another client id is a contradiction, and no re-query is made under that id), that a merged record whose quantity 0 is a LOWER BOUND is compatible with a positive final amount (NEW 0 → fills → cancel with an amount-only terminal read ⇒ known 0 / band 10 / amount 4, total [6, 16] beside a top-up of 6) while a raw same-snapshot 0-beside-amount stays a contradiction, that a final amount is constant against child fills and a subset's amount may not exceed it, that a duplicate trade id without a quote never erases a recorded quote, that a child subset's vwap goes to its own column and never becomes the row's price, that an amount known beside an unknown quantity is the interval [0, Q] (known 0 + band, on the UNKNOWN row and the normal maker ledger alike — a contract choice registered in DESIGN §3f.6), and that explicit zeros carry the amount's finality. Round 13 (review ec2fe835, DESIGN §3g): that the child-fill amount LOWER BOUND (Σ over the children that carry a quote) is compared against a final amount without waiting for the others (5/N50 + 5/N-missing against a final 40 is a contradiction), that a non-finite ledger amount is flagged even when the quantity is missing, that every identity gate reads a present-but-malformed field (empty side, non-finite origQty) as a contradiction and an absent one as no evidence (one `identity_field` for the submit gate, the re-query gate and the settlement's present-field gate), and that the two cost diagnostics (neutrality_price, chase_readout.collect) measure bps over PRICED fills only and report the unpriced count / notional / fee beside it (no priced fill ⇒ None, never 0). Round 14 (review d51cb731): that an order id is a LOSSLESS integer everywhere it is read (a fraction is never truncated, ±Inf never raises through complete_anchor, text is malformed even without an acknowledged id to compare with; the child-fill joins skip and count such ids), and that the two cost diagnostics count a fill as MEASURED only with a usable price AND a known fee (fee_paid None ⇒ fee-unknown bucket, never a free fill; NaN / negative prices ⇒ unpriced), with the bps key's denominator explicitly documented as the measured fills, and that a fee written as a raw non-USDT sum without a completed conversion (fee_all_usdt False, no fee_conversion) is fee-unknown, not a known fee. Round 15 (review 1ef6ce8c): that an order id is read as EXACT text or exact value — a digit string is parsed with arbitrary precision (never through float: '9007199254740993' stays itself, two ids near 2^53 never merge, the stored value never changes), a float at or beyond 2^53 or any fractional text is malformed — through the gates, the acknowledged-id lookup and the child-fill joins (an outside fill with a neighbouring id is not attributed and does not close our open request), that the reshape report's neutrality section cites the MEASURED count and notional and explains a None price by its bucket, and that the fee value, currency flag and conversion marker on a row come from the same write (a re-stamp clears the earlier marker). It does NOT prove the venue's DELETE body always carries the final executedQty (documented, assumed), nor that two differing terminal readings can never both be genuine (a venue-side correction would need its own evidence type).",
+     "tests_reduce_only_clamp": "that the venue always CLAMPS a reduceOnly order that exceeds the position rather than refusing it — observed on 2026-09-12 12Z (MEMEUSDT/POPCATUSDT, origQty = the position to the contract, no error) and documented, assumed general; and that the allOrders record of a clamped request has the shape this suite rebuilds from the submit response + the child fills (the live record was not logged). It proves, against the real gates (`submit_identity_mismatch`, `last_fill_details`, `venue_fills.settle_ambiguous_legs`) driven by the REAL 12Z submit responses and the REAL 08Z/12Z readbacks, that a reduceOnly record whose origQty is BELOW ours is the fourth state `clamped` (recorded, orig_qty = the position, no `inconsistent`), that an origQty ABOVE ours, a non-reduceOnly difference and a wrong side are still contradictions at every gate (the 1e-6 tolerance is untouched), that `plan()` sizes a full exit as −held_qty from the same account snapshot (F2 removed at the source; no quantity ⇒ the old path, labelled `notional_over_mid`), and end to end through the unmodified plan→submit_maker→complete_anchor chain over a scripted transport that the maker rows close on the venue's capacity (`qty_venue`) and `reconcile` measures both names at residual 0 where the old code produced 2 × execution_of_unknown_size (the incident, reproduced from the live rows as a control; the origQty-above-ours mutation of the same chain still produces the 2 anomalies). It does NOT run the watchdog (the proportional response is (c), a separate ruling), nor prove that mark ≠ mid is the ONLY way ours can exceed the position.",
+     "tests_flatten_fee_backfill": "that the venue's allOrders still lists the flatten's orders when the runner is invoked (limit 500 / startTime — an unreached symbol is named, not fabricated), or that the LIVE run was ever performed (`LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 --apply` is the operator's step, with credentials; this suite drives the runner over an in-process fake). It proves, on the REAL 2026-09-12 day, that the flatten batch is detected as the one gap with its 255 own client ids and 255 fee-unmeasured order rows, and on a synthetic population that the legs are rebuilt by EXACT client id (never by the rebalance-id prefix a flatten does not carry), that --apply writes one fills row per child fill with order_type protective_flatten and the venue's commission, that a second apply writes nothing (idempotent by trade id), that a foreign trade is counted unattributed and never written, that a batch the venue does not list fails closed, and that the classic rebalance path and its maker/topup_taker buckets are untouched. The ORDER rows' fee_paid stays None by the ledger's append-only rule — the measurement lands on the fills rows, and a consumer that sums fees from order rows alone still under-reads the flatten.",
++    "tests_proportional_response": "that 2% of gross and 5 names are the right lines (policy set after the 09-12 incident, frozen by R-14), that the venue behaves for reduce-only market exits during -4400 or price protection as it does in MockBroker, that the off-box page is DELIVERED (run_anchor's call is pinned statically; delivery is the anchor's receipt), and that ops/resume_from_trip.sh and ops/unseed_rehearsal_halt.py refuse end to end (both run a public network probe; their refusal branches are pinned statically and the EMA keep/remove snippet is executed verbatim). It proves, through watchdog.run on a held 100-name MockBroker book and on the real 2026-09-12 12Z rows re-shaped so (a)(b) keeps the contradiction, that a name-scoped trigger set (§4-5b, §4-5e split_unauth per-name clause alone, §4-7 drift) of <= 5 names whose doubt is <= 2% of the anchors row's target gross gets a LOCAL response — opening halted, resting orders cancelled and the WHOLE venue position flattened reduce-only for THOSE names only, the reduce-only key not set, state kind proportional_local — at 4/5/6 names and 1,999/2,000/2,001 USDT of 100,000, across the §4-5b/§4-5e union; that any book-level trigger beside it (§4-2, §4-5a) and the negative controls alone (§4-2, §4-4b, §4-5a, §4-5c) still flatten every name; that an unknown doubt or gross is named and never becomes a book-level flatten on its own while a KNOWN part over 2% still does; that a trigger nobody scoped is book-level; that the doubt of a name is a sum over every leg of unknown size (review C9: row order cannot change the route); that a local response never overwrites a standing trip's record and does not reset the harvest EMA; that the config switch false restores the ladder and an unreadable config reads ON; that unreadable positions across the book never reached the ladder before this change and still do not; and that the 2026-09-09 receipt's name sets (9 + 52) stay on the ladder.",
+     "tests_income_twin_rows": "that the venue keys income rows the way the fixture does — it proves, against an in-process fake of /fapi/v1/income, that a trade's COMMISSION and REALIZED_PNL twins (same tranId) are BOTH summed, that a row re-served across a page boundary is still counted once, and that the old tranId-only key would have dropped exactly one twin per trade (positive control). Whether the venue also shares tranIds across OTHER pairs of types, or emits a third row per trade in some product, is a fact about the venue that only the live ledger reconciliation (income vs fills) can keep proving.",
+     "tests_transport_resilience": "that the VENUE will be reachable on the resend — it proves, against an in-process fake of urlopen, that a request-phase failure on GET/DELETE is resent a bounded number of times while an order POST is NEVER resent under any failure — transport in either phase, HTTP 5xx, 200 non-JSON — but settled only by the venue's own order record (found ⇒ adopted, -2013 twice ⇒ recorded as not sent, else ambiguous), that the requote carries ambiguity as rested and the top-up keeps a confirmed chunk and writes UNKNOWN never zero, that a still-unresolvable POST is carried as possibly-resting, that the executor records transport rows and trips its circuit breaker, and that an exception escaping the submit loop cancels what rested, writes rows and pages before re-raising. It cannot see whether the venue actually processed a request whose answer we lost when the query ALSO fails (that order is handed to phase B as possibly-resting and to the next sweep), nor whether a 0.5 s pause is long enough for the venue to have decided before we ask it, nor whether Telegram delivers the page",
+     "tests_stale_order_sweep": "that the VENUE lists an order we left behind — the whole sweep rests on openOrders returning it. If the venue omitted a resting order, or if a fill landed between the query and the cancel, this would look identical and the stale order would survive. It closes the gap between anchors, not the gap inside one",
+diff --git a/ops/resume_from_trip.sh b/ops/resume_from_trip.sh
+index a80ef23..761f769 100644
+--- a/ops/resume_from_trip.sh
++++ b/ops/resume_from_trip.sh
+@@ -236,7 +236,15 @@ if ev.get("tripped"):
+     print("   ✗ STILL TRIPPING: " + "; ".join(ev.get("triggers", [])))
+     print("   refusing to clear the stop-loss. Fix the cause first, then re-run.")
+     sys.exit(1)
+-print("   ✓ no condition currently fires, and none was blind")
++# ★ EXE-01: a PROPORTIONAL LOCAL response is not a trip (`tripped` is False) and it is still a condition that fires —
++#   resuming over it would re-halt at the next anchor, and "the gate passed" would have been the wrong sentence.
++if ev.get("local_responses"):
++    _lr = ev["local_responses"][0]
++    print("   ✗ A LOCAL RESPONSE WOULD STILL FIRE on " + str(_lr.get("names")) + ": "
++          + "; ".join((_lr.get("triggers") or [])[:3]))
++    print("   refusing to clear. Fix the cause (or wait until those names reconcile clean), then re-run.")
++    sys.exit(1)
++print("   ✓ no condition currently fires, no local response would fire, and none was blind")
+ PYEOF
+ GATE=$?
+ if [ "$GATE" -ne 0 ]; then
+@@ -262,7 +270,8 @@ if [ "$CHECK" -eq 1 ]; then
+   echo "     2/4 copy   $STATE"
+   echo "          ->    $WDIR/quarantine/state_<stamp>_resumed.json  (+ _resume_reason)"
+   echo "     3/4 remove $STATE"
+-  echo "          + quarantine & remove $HARVEST  (EMA memory — see PREREG_harvest_speed reset rule)"
++  echo "          + quarantine & remove $HARVEST  (EMA memory — see PREREG_harvest_speed reset rule;"
++  echo "            KEPT instead when the state is a proportional local response: the book was not flattened)"
+   echo "     4/4 verify no halt/reduce-only state remains"
+   echo
+   echo "   to actually resume:  bash ops/resume_from_trip.sh \"<why you are resuming>\""
+@@ -285,6 +294,24 @@ else
+ fi
+ 
+ echo "── 3/4  clear the trip state"
++# ★ EXE-01: decide the EMA memory's fate from the state BEFORE it is removed, through the SAME predicate the anchor uses
++#   (signal/legs.harvest_reset_required): a proportional local response flattened only its named names, so the book is
++#   still held and the memory is kept; every other halt (a real ladder flatten) clears it exactly as before.
++KEEP_EMA="REMOVE"
++if [ -f "$STATE" ]; then
++  KEEP_EMA=$(STATE_P="$STATE" REPO_D="$REPO" "$PY" - <<'PYEOF'
++import json, os, sys
++sys.path.insert(0, os.path.join(os.environ["REPO_D"], "signal"))
++try:
++    d = json.load(open(os.environ["STATE_P"])) or {}
++    import legs as LG
++    keep = d.get("kind") == "proportional_local" and LG.harvest_reset_required(d, None, True)["reset"] is False
++except Exception:
++    keep = False                       # unreadable / import failure => the conservative old path (clear it)
++print("KEEP" if keep else "REMOVE")
++PYEOF
++)
++fi
+ if [ -f "$STATE" ]; then
+   rm "$STATE" || exit 1
+   echo "   removed $STATE"
+@@ -293,7 +320,11 @@ fi
+ #   清仓把这个前提杀死了。锚点内的重置只在【触发期间锚点还在跑】时生效 —— 若触发后循环被停
+ #   (检修/关机), 状态文件里躺着触发前的目标, 而本脚本删掉 watchdog 状态后, 下一锚会把它们
+ #   拖过断点。⇒ 恢复即清除, 与 watchdog 状态同一步骤、同一保管箱。
+-if [ -f "$HARVEST" ]; then
++if [ -f "$HARVEST" ] && [ "$KEEP_EMA" = "KEEP" ]; then
++  mkdir -p "$WDIR/quarantine" || exit 1
++  cp "$HARVEST" "$WDIR/quarantine/harvest_${STAMP}_resumed_kept.json" || exit 1
++  echo "   KEPT $HARVEST (proportional local response: the book was not flattened; a copy is quarantined as evidence)"
++elif [ -f "$HARVEST" ]; then
+   mkdir -p "$WDIR/quarantine" || exit 1
+   cp "$HARVEST" "$WDIR/quarantine/harvest_${STAMP}_resumed.json" || exit 1
+   rm "$HARVEST" || exit 1
+diff --git a/ops/unseed_rehearsal_halt.py b/ops/unseed_rehearsal_halt.py
+index 81c91b0..a00e55d 100755
+--- a/ops/unseed_rehearsal_halt.py
++++ b/ops/unseed_rehearsal_halt.py
+@@ -272,6 +272,14 @@ def judge(mode: str, paths: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+         out["refusals"].append(
+             "a watchdog condition fires on the current tree: " + "; ".join(out["triggers"]) +
+             " — that is not the seeded halt, it is a live verdict, and it stands.")
++    # ★ EXE-01: a proportional LOCAL response is not a trip, and it is a condition firing now all the same.
++    out["local_responses"] = [{"names": lr.get("names"), "triggers": lr.get("triggers")}
++                              for lr in (ev.get("local_responses") or [])]
++    if out["local_responses"]:
++        out["refusals"].append(
++            "a proportional local response would fire on the current tree for "
++            + str([lr["names"] for lr in out["local_responses"]])
++            + " — a live verdict, not the seeded halt, and it stands.")
+ 
+     # ── 3. a metric that CRASHED is not an absent input ───────────────────────────────────────
+     if out["metric_errors"]:
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index f7fd32c..1b9d73b 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -168,6 +168,10 @@ SUITES=(
+   # E-0912-A (b) fee population: the protective flatten's executions get fills rows + measured commission via the B26b
+   # backfill (legs joined by the rows' own client ids); real-day gap cell + synthetic population + fail-closed control.
+   "tests_flatten_fee_backfill:$_SELF/live/tests_flatten_fee_backfill.py"
++  # EXE-01: the watchdog's PROPORTIONALITY GATE (R-14 read as A, switch ON in config/book.json): a name-scoped set of
++  # <= 5 names and <= 2% of gross gets a LOCAL response (halt opening + those names flattened), never the whole-book ladder;
++  # book-level evidence still runs the ladder (negative controls on the same held book).
++  "tests_proportional_response:$_SELF/live/tests_proportional_response.py"
+   "tests_venue_rate_authority:$_SELF/live/tests_venue_rate_authority.py"
+   "tests_filters_cache_per_mode:$_SELF/live/tests_filters_cache_per_mode.py"
+   "tests_rate_backstop_window:$_SELF/live/tests_rate_backstop_window.py"
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index 294a245..0c187ca 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -1025,7 +1025,12 @@ class AnchorLoop:
+                 "resume": _rt["route"],
+                 "resume_kind": _rt["kind"],
+                 "resume_claimed_by_state": _rt["claimed"],
+-                "resume_claim_stale": _rt["mismatch"]}
++                "resume_claim_stale": _rt["mismatch"],
++                # ★ EXE-01: WHAT KIND of halt, from the state's own fields — a proportional local response halts
++                #   opening on a book that is still HELD; a trip halts a book the ladder flattened. The anchors row
++                #   carries this forward (`halt_kind`) because §4-5e judges a no-submission anchor against intent
++                #   ZERO only when the book was flattened.
++                "state_kind": wd.get("kind"), "book_flattened": wd.get("book_flattened")}
+             try:
+                 self.broker.halt_opening_orders(
+                     f"watchdog trip persisted at {wd.get('tripped_at')}"
+@@ -2673,6 +2678,15 @@ class AnchorLoop:
+                 row["regime_source"] = ctx.get("regime_source")
+                 row["opening_halted"] = bool(outA.get("off_schedule_halt")
+                                              or outA.get("watchdog_halt"))
++                # ★★ EXE-01: a halt that did NOT flatten the book (a proportional local response) is named on the row.
++                #   Measured before this line existed (quant_research FX_W6C receipts, probe_third_anchor): after a local
++                #   response the next halted anchor submitted nothing, position_break read it as `halted_intent_flat`
++                #   (intent ZERO), the still-held book was a 99% "deviation", and §4-5e tripped the whole-book ladder —
++                #   the proportional response undone one anchor later. Written only for that halt, so every other row
++                #   is byte-identical.
++                _wh = outA.get("watchdog_halt") or {}
++                if _wh.get("state_kind") == "proportional_local" and _wh.get("book_flattened") is False:
++                    row["halt_kind"] = "proportional_local"
+                 row["rows_persisted"] = (outB or {}).get("rows_persisted")
+                 # ★ the mixture travels with the row, not with the run log
+                 row["weights"] = ctx.get("weights")
+diff --git a/scheduler/run_anchor.py b/scheduler/run_anchor.py
+index f66c0a3..3ea3efd 100644
+--- a/scheduler/run_anchor.py
++++ b/scheduler/run_anchor.py
+@@ -705,6 +705,25 @@ def main() -> int:
+             except Exception as _e:
+                 log(f"could not persist the trip receipt ({_e}) — the run log is now its only "
+                     f"record, and state.json will read as 'delivery unknown'")
++        elif ev.get("local_response"):
++            # ★★★ EXE-01: A PROPORTIONAL LOCAL RESPONSE MUST LEAVE THE MACHINE TOO. It halted opening and flattened
++            # named names; `tripped` is False on purpose (it is not a trip), which is exactly why the block above would
++            # never page it — the W6(c) design text said "the anchor pages off-box from state.json's tripped_at" and no
++            # code did. Same two properties as the trip page: the words and the severity come from the record
++            # (`watchdog.local_response_page`), and the receipt is persisted beside the state.
++            _lp = WD.local_response_page(ev.get("local_response") or {}, ev)
++            _lrc = notifier.alarm(_lp["severity"], _lp["message"])
++            log(f"watchdog LOCAL RESPONSE: names={_lp.get('names')} severity={_lp['severity']} "
++                f"receipt={json.dumps(_lrc, default=str, ensure_ascii=False)[:300]}")
++            try:
++                _lrp = os.path.join(_paths["watchdog_dir"], "local_response_receipt.json")
++                json.dump({"evaluated_utc": ev.get("evaluated_utc"), "names": _lp.get("names"),
++                           "severity": _lp["severity"], "receipt": _lrc,
++                           "proportional_response": ev.get("proportional_response"),
++                           "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
++                          open(_lrp, "w"), indent=1, default=str)
++            except Exception as _e:
++                log(f"could not persist the local response receipt ({_e}) — the run log is now its only record")
+     except Exception as e:
+         # A watchdog that cannot evaluate must SAY SO loudly. Swallowing this would recreate
+         # exactly the failure it exists to prevent: protection that looks present and is not.
+diff --git a/signal/legs.py b/signal/legs.py
+index 103398c..1925079 100644
+--- a/signal/legs.py
++++ b/signal/legs.py
+@@ -327,6 +327,14 @@ def harvest_reset_required(wd_state: Optional[Dict[str, Any]],
+         return {"reset": False, "reason": None}
+     if wd_state is None:
+         return {"reset": True, "reason": "watchdog state present but unreadable (fail-closed)"}
++    # ★ EXE-01: a PROPORTIONAL LOCAL response halts opening (it sets `tripped_at`, which every halt reader must keep
++    #   reading) but flattens only a handful of named names — the book is still HELD. This reset exists because "after a
++    #   flatten we hold zero"; for this state that premise is false, and discarding ~3.3 days of α=0.05 memory at every
++    #   halted anchor would turn a proportional response into a turnover burst on the whole book. Only the exact shape
++    #   the watchdog writes is exempt: kind, book_flattened False (not merely absent) and no reduce-only.
++    if (wd_state.get("kind") == "proportional_local" and wd_state.get("book_flattened") is False
++            and not wd_state.get("reduce_only")):
++        return {"reset": False, "reason": None}
+     # ★ 谓词照抄 ops/resume_from_trip.sh:124 `bool(tripped_at or reduce_only)` —— 仓库里已有
+     #   规范答案时不得自创第二个, 否则两个读者会对同一状态给出不同结论(本仓已有此类事故档案:
+     #   resume_from_trip.sh 第 83-85 行, 一个脚本读 DRY_RUN 树而 trip 在 TESTNET 树)。

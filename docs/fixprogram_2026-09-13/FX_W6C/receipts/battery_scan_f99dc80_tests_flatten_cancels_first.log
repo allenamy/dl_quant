@@ -1,0 +1,29 @@
+[A] the sweep happens, and it happens BEFORE the flatten
+  OK   ★★ resting orders were read and swept — ['BTCUSDT', 'CELOUSDT', 'SANDUSDT']
+  OK   ★★ nothing is left resting at the venue after the ladder — []
+  OK   ★★★ EVERY cancel precedes the flatten — the fix IS the order, not the presence. Flatten-then-cancel leaves a window in which a resting order fills; on 07-29 that window was four hours — ['halt_opening_orders', 'cancel_all', 'cancel_all', 'cancel_all', 'submit', 'submit', 'flatten_all']
+  OK   ★ and the opening halt still comes first of all (rung 1 unchanged)
+
+[B] the 07-29 shape: orders resting on names that are NOT held
+  OK   ★★ names with NO position are still swept — the sweep is keyed on OPEN ORDERS, not on holdings, because that is precisely where the ghosts lived — ['CELOUSDT', 'PORTALUSDT', 'STRKUSDT']
+
+[C] unreadable is not empty — the trace that was missing on 07-29
+  OK   ★★ an unreadable open-orders list yields UNKNOWN, never a silent clean sweep — UNKNOWN — the venue's open orders could not be read, so we cannot say whether anything is still resting. A resting order survives a flatten and re-opens the book; treat the book as NOT provably flat until this is checked by hand.
+  OK   ★★ and it says the book is NOT provably flat — the words a 4am reader needs
+  OK   ★★ the flatten STILL RAN — an unswept order is bad, an unflattened book is worse — ['halt_opening_orders', 'submit', 'flatten_all']
+  OK   ★ and the refusal is in `errors`, where the trip record carries it — ['stage1b: open orders unreadable — resting orders may survive this flatten']
+
+[D] a partial sweep NAMES the symbols it could not clear
+  OK   ★★ the failing symbol is named, not counted — ['CELOUSDT']
+  OK   ★★ the state says PARTIAL and spells out the consequence — PARTIAL — these symbols may still have resting orders that will re-open the book: CELOUSDT
+  OK   ★★ one symbol's failure does not cost the rest of the sweep — ['SANDUSDT']
+  OK   ★ and the flatten still ran
+
+[E] nothing resting is its own state, and it is quiet
+  OK   ★★ SWEPT with zero symbols — and `open_orders_before` records the 0 as a VALUE, so 'we checked and found none' cannot print the same as 'we never checked' — ('SWEPT', 0)
+
+[F] ★★ red capability — remove the sweep and the incident reproduces
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/fx_w6c/live/tests_flatten_cancels_first.py", line 140, in <module>
+    raise AssertionError(f"injection matched {_src.count(_FIND)} times, not 1")
+AssertionError: injection matched 2 times, not 1

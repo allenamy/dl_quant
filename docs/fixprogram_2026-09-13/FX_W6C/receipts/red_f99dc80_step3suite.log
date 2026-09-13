@@ -1,0 +1,111 @@
+[A0] control: the clean held book does not trip and asks for no local response
+  OK    ★ A0 no anomaly ⇒ not tripped, no local response, nothing flattened  — []
+
+[A1] ★★★ HEADLINE: one name's position moved 300 USDT that no order explains, on a 100-name 100,000 USDT held book
+  OK    ★★★ A1 the whole book is NOT flattened: only S007USDT is sent, opening halted, reduce-only key NOT set, not a trip (ef60f85: tripped, all 100 names flattened)  — {'tripped': False, 'triggers': [], 'flattened': 1, 'reduce_only': False, 'local': [['S007USDT']]}
+  OK    ★★ A1 the flatten is the WHOLE venue position of that name, reduce-only: sell 1,300 contracts (not held − expected 300)  — [('S007USDT', 'sell', 1300.0)]
+  OK    ★★ A1 the gate record: route local, the three classes all name S007USDT (§4-5b, §4-5e per-name, §4-7 drift), doubt 300.00 = 0.30% of the anchors row's 100,000, no book-level trigger, no unknown input  — {'route': 'local', 'names': ['S007USDT'], 'sum_doubt_usdt_known': 300.0, 'gross_ref_usdt': 100000.0, 'per_name': {'S007USDT': {'doubt_usdt': 300.0, 'classes': ['§4-5b', '§4-5e split_unauth per-name', '§4-7 drift']}}, 'why': ['1 name(s) ≤ 5, Σ doubt 300.00 USDT = 0.3000% of gross 100000.00 ≤ 2%']}
+  OK    ★★ A1 detection is UNCHANGED: §4-5b, §4-5e and §4-7 still report triggered (facts), only the ACTION changed
+  OK    ★★ A1 state.json: kind proportional_local, book_flattened False, tripped_at set (the anchor's 0b halt re-applies), reduce_only False, no degradation  — {'kind': 'proportional_local', 'book_flattened': False, 'tripped_at': '2026-09-13T15:40:58Z', 'reduce_only': False}
+  OK    ★ A1 ALARM.log: one HIGH line (S007USDT reads flat after the flatten), book_flattened False, human action required  — [{'ts': '2026-09-13T15:40:58Z', 'severity': 'HIGH', 'msg': '局部止损触发(比例门): 仅所涉名已平, 全书未平, 开仓已停', 'reason': "§4 proportional response — §4-5b liquidation/position anomaly on 1 name(s) at the latest reconciled anchor (1 in this window's history); §4-5e position break [split_unauth]: 300 USDT of raw deviation (0.3% of a 100000 USDT target gross), of which UNAUTHORIZED 0.30% vs a 0.05 line; name(s) at/over; §4-7 un-recovered position drift — 1 name(s) ['S007USDT'], doubt 300.00 USDT = 0.30% of gross 10
+  OK    ★ A1 events.jsonl flags local_response with its names and the broker's actions; the protective_flatten row carries flatten_scope 'local' and a FLATTEN-<evaluated_utc> rebalance id  — ({'local_response': True, 'names': ['S007USDT']}, [{'anchor_ts': 1789314058.7830982, 'symbol': 'S007USDT', 'side': 'sell', 'target_w': 0.0, 'prev_w': None, 'intended_notional': -1300.0, 'order_type': 'protective_flatten', 'submit_ts': 1789314058.7830982, 'price_submit': None, 'mid_at_submit': 1.0, 'mid_at_anchor': None, 'filled_notional': -1300.0, 'avg_fill_px': 1.0, 'first_fill_ts': 1789314058.767083, 'last_fill_ts': 1789314058.767083, 'cancel_ts': None, 'fee_paid': None, 'rebalance_id': 'FLATT
+  OK    ★★ A1 the page composition: HIGH, names S007USDT, says the book was NOT flattened and opening is halted, carries the evaluation time  — {'severity': 'HIGH', 'flattened_named': True, 'book_flattened': False, 'headline': '局部止损触发(比例门): 仅所涉名已平, 全书未平, 开仓已停', 'message': "局部止损触发(比例门): 仅所涉名已平, 全书未平, 开仓已停。触发: §4-5b liquidation/position anomaly on 1 name(s) at the latest reconciled anchor (1 in this window's history); §4-5e position break [split_unauth]: 300 USDT of raw deviation (0.3% of a 100000 USDT target gross), of which UNAUTHORIZ; §4-7 un-recovered position drift — 仅对 1 个名 reduce-only 平仓(已核实平); 其余持仓不动; 下一个锚点起停止开仓(state.json tripped
+
+[A1n] neighbours of the headline: 4 / 5 / 6 names (≤ 5 is inclusive), each 300 USDT
+  OK    ★★★ A1n 4 names × 300 USDT (1.2% of gross) ⇒ LOCAL on exactly those names  — {'tripped': False, 'flattened': 4, 'route': 'local', 'why': ['4 name(s) ≤ 5, Σ doubt 1200.00 USDT = 1.2000% of gross 100000.00 ≤ 2%']}
+  OK    ★★★ A1n 5 names × 300 USDT (1.5% of gross) ⇒ LOCAL on exactly those names  — {'tripped': False, 'flattened': 5, 'route': 'local', 'why': ['5 name(s) ≤ 5, Σ doubt 1500.00 USDT = 1.5000% of gross 100000.00 ≤ 2%']}
+  OK    ★★★ A1n 6 names × 300 USDT (1.8% of gross) ⇒ the whole-book LADDER (6 > 5)  — {'tripped': True, 'flattened': 100, 'route': 'ladder', 'why': ['6 names > 5']}
+
+[A2] the 2% line: 1,999 / 2,000 / 2,001 USDT on one name of a 100,000 USDT target gross (≤ 2% is inclusive)
+  OK    ★★★ A2 doubt 1,999 USDT = 1.999% ⇒ LOCAL  — {'tripped': False, 'flattened': 1, 'sum': 1999.0, 'why': ['1 name(s) ≤ 5, Σ doubt 1999.00 USDT = 1.9990% of gross 100000.00 ≤ 2%']}
+  OK    ★★★ A2 doubt 2,000 USDT = 2.000% ⇒ LOCAL  — {'tripped': False, 'flattened': 1, 'sum': 2000.0, 'why': ['1 name(s) ≤ 5, Σ doubt 2000.00 USDT = 2.0000% of gross 100000.00 ≤ 2%']}
+  OK    ★★★ A2 doubt 2,001 USDT = 2.001% ⇒ the whole-book LADDER  — {'tripped': True, 'flattened': 100, 'sum': 2001.0, 'why': ['Σ doubt 2001.00 USDT = 2.0010% of gross 100000.00 > 2%']}
+
+[A3] the union across classes: §4-5b + §4-5e names are counted together
+  OK    ★★★ A3 2 names in §4-5b+§4-5e and 3 names in §4-5e only ⇒ union 5 ⇒ LOCAL on all five  — {'tripped': False, 'names': ['S030USDT', 'S031USDT', 'S040USDT', 'S041USDT', 'S042USDT'], 'classes': {'S030USDT': ['§4-5b', '§4-5e split_unauth per-name', '§4-7 drift'], 'S031USDT': ['§4-5b', '§4-5e split_unauth per-name', '§4-7 drift'], 'S040USDT': ['§4-5e split_unauth per-name'], 'S041USDT': ['§4-5e split_unauth per-name'], 'S042USDT': ['§4-5e split_unauth per-name']}, 'why': ['5 name(s) ≤ 5, Σ doubt 750.00 USDT = 0.7500% of gross 100000.00 ≤ 2%']}
+  OK    ★★★ A3 3 names in §4-5b+§4-5e and 3 names in §4-5e only ⇒ union 6 ⇒ the LADDER  — {'tripped': True, 'names': ['S030USDT', 'S031USDT', 'S032USDT', 'S040USDT', 'S041USDT', 'S042USDT'], 'classes': {'S030USDT': ['§4-5b', '§4-5e split_unauth per-name', '§4-7 drift'], 'S031USDT': ['§4-5b', '§4-5e split_unauth per-name', '§4-7 drift'], 'S032USDT': ['§4-5b', '§4-5e split_unauth per-name', '§4-7 drift'], 'S040USDT': ['§4-5e split_unauth per-name'], 'S041USDT': ['§4-5e split_unauth per-name'], 'S042USDT': ['§4-5e split_unauth per-name']}, 'why': ['6 names > 5']}
+
+[A4] a book-level trigger beside the named set wins (multi-class trips)
+  OK    ★★★ A4 §4-2 day loss −5% beside a one-name named set ⇒ tripped, the WHOLE book flattened, reduce-only set  — {'triggers': ['§4-2 single-day loss -5.00% of EQUITY, worse than ', '§4-5b liquidation/position anomaly on 1 name(s) at', '§4-5e position break [split_unauth]: 300 USDT of r', '§4-7 un-recovered position drift'], 'flattened': 100, 'why': ['1 book-level trigger(s)']}
+  OK    ★★★ A4 §4-5a venue outage beside a one-name named set ⇒ the whole-book ladder (the named triggers are listed, not acted on separately)  — {'triggers': ['§4-5a venue outage: outage', '§4-5b liquidation/position anomaly on 1 name(s) at', '§4-5e position break [split_unauth]: 300 USDT of r', '§4-7 un-recovered position drift'], 'flattened': 100}
+
+[A5] unknown gate inputs: never a book-level response on their own; a KNOWN part over 2% still is
+  OK    ★★★ A5 a leg of unknown size whose intended notional is unreadable (doubt UNKNOWN) on one name ⇒ LOCAL on that name, the unknown NAMED in the record (never folded to 0, never a book-level flatten)  — {'anomaly': {'kind': 'execution_of_unknown_size', 'doubt_usdt': None}, 'tripped': False, 'flattened': 1, 'unknown': ["doubt unknown for ['S060USDT']"], 'why': ['1 name(s) ≤ 5, Σ doubt 0.00 USDT = 0.0000% of gross 100000.00 ≤ 2%; UNKNOWN: ["doubt unknown for [\'S060USDT\']"]']}
+  OK    ★★★ A5 NO anchors row and a NaN readback notional ⇒ gross UNKNOWN ⇒ LOCAL on the named name, 'gross unknown' named (W6(c) as written sent this to the whole-book ladder: our missing row decided a book-level flatten)  — {'tripped': False, 'triggers': [], 'gross': None, 'unknown': ['gross unknown: no usable anchors.target_gross and no finite readback gross'], 'flattened': 1}
+  OK    ★★ A5 neighbour: NO anchors row but a finite readback ⇒ gross falls back to Σ|readback notional| (100,300) — a definite answer, not an unknown  — {'gross_ref_usdt': 100300.0, 'gross_source': 'Σ|venue_position_notional| at the reconciled anchor (no usable anchors.target_gross)', 'unknown_inputs': []}
+  OK    ★★★ A5 neighbour: a KNOWN 2,500 USDT (2.5%) beside another name of unknown doubt ⇒ the known part alone proves 'large' ⇒ the whole-book ladder  — {'tripped': True, 'why': ['Σ doubt 2500.00 USDT = 2.5000% of gross 100000.00 > 2%'], 'unknown': ['S064USDT']}
+
+[A6] the real 2026-09-12 12Z rows (re-shaped so (a)(b) keeps the contradiction: venue origQty above ours)
+  OK    ★ A6 control: the PRISTINE real rows on this tree ⇒ 0 anomalies ((a)(b) re-derives the clamp; nothing to respond to)  — {}
+  OK    ★★★ A6 re-shaped 12Z rows: 2 names, doubt = joint Σ|intended| 1,524.32117076 USDT = 0.6473% of 235,497.44 ⇒ LOCAL; MEME/POPCAT read flat so nothing is sent, and the unrelated held OTHER1/OTHER2 are untouched (ef60f85: tripped, the ladder flattens OTHER1 and OTHER2)  — {'tripped': False, 'flattened': [], 'sum': 1524.32117076, 'gross': 235497.44337835, 'why': ['2 name(s) ≤ 5, Σ doubt 1524.32 USDT = 0.6473% of gross 235497.44 ≤ 2%']}
+
+[A7] the config switch: false restores the ladder for every trip (today's behaviour on ef60f85)
+  OK    ★★ A7 watchdog_proportional_response.enabled = false ⇒ the headline set runs the whole-book ladder, and the record says why  — {'tripped': True, 'why': ['switch off (config/book.json watchdog_proportional_response.enabled = false)']}
+  OK    ★ A7 …and true ⇒ local
+
+[N] book-level conditions on the same held book still run the full ladder (green on both trees by design)
+  OK    ★★★ N1 §4-2 daily loss line (−5% equity day) ⇒ tripped, every one of 100 names flattened, reduce-only set  — ['§4-2 single-day loss -5.00% of EQUITY, worse than -4.0%']
+  OK    ★★★ N2 account-level equity break via §4-4b (target_gross/nav = 10× > 5×) ⇒ the whole-book ladder  — ['§4-2 single-day loss -80.00% of EQUITY, worse than -4.0%', '§4-4 cumulative return from STARTING equity -80.00% (limit -', '§4-4b effective leverage 10.00x exceeds 5.0x — the sizing st']
+  OK    ★★★ N3 §4-5a venue outage ⇒ the whole-book ladder  — ['§4-5a venue outage: outage']
+  OK    ★★★ N4 §4-5c account-side anomaly ⇒ the whole-book ladder  — ['§4-5c account-side anomaly: public path alive, our submissions failing']
+
+[B1] resting orders on the NAMED name are cancelled BEFORE the flatten; another symbol's resting order is untouched
+  OK    ★★★ B1 actions in order halt → cancel_all(S007USDT) → flatten_all; S050USDT's resting order still resting  — (['halt_opening_orders:', 'cancel_all:S007USDT', 'flatten_all:'], ['S050USDT'])
+
+[B2] the venue still holds the named name after every attempt ⇒ re-read, retry ×3, CRITICAL, still local
+  OK    ★★★ B2 three flatten attempts on S007USDT only, named_flat False, residual names S007USDT, severity CRITICAL, the page says the name could not be verified flat  — {'flatten_attempts': 3, 'named_flat': False, 'residual_named': {'S007USDT': 1300.0}, 'severity': 'CRITICAL'}
+
+[B3] positions unreadable when the local response acts ⇒ NOTHING is sent (no stale sizes), CRITICAL
+  OK    ★★★ B3 no flatten_all, positions_unreadable True, named_flat False, CRITICAL, opening still halted  — {'positions_unreadable': True, 'named_flat': False, 'severity': 'CRITICAL', 'errors': ['positions read before attempt 1 FAILED (RuntimeError): account read failed (simulated) — NOT sending', 'positions read before attempt 2 FAILED (RuntimeError): account read failed (simulated) — NOT sending', 'positions read before attempt 3 FAILED (RuntimeError): account read failed (simulated) — NOT sending']}
+
+[B4] the venue refuses the flatten (V4 −2022 / V6 −4400 / V7 shapes) ⇒ recorded, CRITICAL, no other symbol attempted
+  OK    ★★★ B4 every attempt names S007USDT only, the error is recorded, named_flat False, CRITICAL, still not a trip  — {'flatten_attempts': 3, 'named_flat': False, 'severity': 'CRITICAL', 'errors': ['flatten attempt 1: BrokerUnavailable: order submission failed (simulated)', "after attempt 1 the venue still holds ['S007USDT']", 'flatten attempt 2: BrokerUnavailable: order submission failed (simulated)', "after attempt 2 the venue still holds ['S007USDT']", 'flatten attempt 3: BrokerUnavailable: order submission failed (simulated)', "after attempt 3 the venue still holds ['S007USDT']"]}
+
+[B5] a local response on top of a STANDING TRIP never overwrites the trip's record
+  OK    ★★★ B5 state keeps reduce_only True, the degradation record, the original tripped_at; the local response is appended  — {'reduce_only': True, 'tripped_at': '2026-09-11T00:00:00Z', 'kind': None, 'local_responses_while_tripped': [{'evaluated_utc': '2026-09-13T15:41:02Z', 'names': ['S007USDT'], 'named_flat': True, 'errors': [], 'reason': "§4 proportional response — §4-5b liquidation/position anomaly on 1 name(s) at the latest reconciled anchor (1 in this window's history); §4-5e position break [split_unauth]: 300 USDT of raw deviation (0.3% of a 100000 USDT target gross), of which UNAUTHORIZED 0.30% vs a 0.05 line; 
+
+[B6] the harvest-EMA reset: a held book after a local response keeps its memory; every flattened book does not
+  OK    ★★★ B6 proportional_local, book_flattened False, no reduce-only ⇒ NO reset (W6(c) G5: it reset at every halted anchor)  — {'reset': False, 'reason': None}
+  OK    ★★ B6 neighbours: a trip (tripped_at) ⇒ reset; local + reduce_only True ⇒ reset; local with book_flattened MISSING ⇒ reset; local with book_flattened True ⇒ reset
+
+[B7] resume_from_trip.sh — refusal pinned STATICALLY (its gate runs a public network probe); EMA keep/remove EXECUTED
+  OK    ★★ B7 STATIC: the hard gate refuses (exit 1) when `local_responses` is non-empty, AFTER the tripped check and BEFORE the success line
+  OK    ★★★ B7 EXECUTED (the script's own snippet): a proportional_local state ⇒ KEEP; a ladder trip ⇒ REMOVE; local with reduce_only True ⇒ REMOVE; unreadable ⇒ REMOVE  — KEEP
+  OK    ★ B7 STATIC: the existing EMA-removal pin still holds (quarantine + rm on the non-local path)
+
+[B8] the other readers that decide on `tripped` — STATIC pins
+  OK    ★★ B8 STATIC unseed_rehearsal_halt refuses while a local response would fire
+  OK    ★★★ B8 STATIC run_anchor pages a local response OFF-BOX from the one composition and persists a receipt (W6(c) G4: no page left the machine)
+  OK    ★★ B8 STATIC assert_anchor_artifacts #7 requires a delivered receipt for a local response too
+  OK    ★★★ B8 the page is tier A (PUSH, a human must decide), and two distinct evaluations never compose the same body  — (('A_DECIDE', 'stop-loss tripped', "a guard fired and money moved or stopped moving. Always a decision, even when the decision turns out to be 'nothing'"), '局部止损触发(比例门): 仅所涉名已平, 全书未平, 开仓已停。触发: §4-5b x — 仅对 1 个名 reduce-only 平仓(已核实平); 其余持仓不动; 下一个锚点起停止开仓(state.json tripped_at, ki')
+
+[B9] review C9: the doubt of a name with TWO legs of unknown size does not depend on which was written first
+  OK    ★★★ B9 both orders: S071USDT doubt = 1,010 over 2 rows, the same route, the same Σ (first-row-only would read 10 or 1,000)  — [((1010.0, 2), 'local', 1310.0), ((1010.0, 2), 'local', 1310.0)]
+
+[B10] reconcile's doubt fields and the readback gross
+  OK    ★★ B10 quantity_residual: doubt_usdt == |residual| (400.0, unrounded); latest_readback_gross_usdt == 100,400  — ({'kind': 'quantity_residual', 'doubt_usdt': 400.0, 'residual_usdt': 400.0}, 100400.0)
+  OK    ★★ B10 one NaN readback notional ⇒ latest_readback_gross_usdt None (a partial sum is not the book's gross)  — None
+
+[B11] source and config pins
+  OK    ★★★ B11 the gate is KIND-AGNOSTIC: watchdog.py names no anomaly kind (the original blind-spot pin, and why W6(c)'s restatement is no longer needed)
+  OK    ★★ B11 thresholds are frozen CODE constants 5 / 0.02, and config/book.json carries the switch but NOT the thresholds  — True
+  OK    ★★ B11 the switch reads true from config; a broken config reads ON with the source named (never a silent revert)  — {'enabled': True, 'source': 'config/book.json watchdog_proportional_response.enabled = true'}
+  OK    ★ B11 …unreadable config ⇒ enabled True, source 'unreadable'  — {'enabled': True, 'source': 'config unreadable (JSONDecodeError) — default ON'}
+
+[B12] a trigger nobody scoped is book-level; the 09-09 receipt's name sets stay on the ladder
+  OK    ★★★ B12 an unscoped trigger (a future class) ⇒ ladder, even when every other trigger is named and tiny
+  OK    ★★ B12 a name-scoped trigger with NO names ⇒ ladder ('a scope nobody stated is not a scope')
+  OK    ★★★ B12 the 2026-09-09 16:45:36Z receipt's name sets (9 §4-5b, 52 §4-5e, verbatim from events.jsonl) ⇒ 52 names > 5 ⇒ LADDER — the frozen gate does not reclassify 09-09, and that is asserted, not tuned away  — {'route': 'ladder', 'n_names': 52, 'why': ['52 names > 5']}
+
+[B13] unreadable positions across the book: this change leaves that path exactly as the base (equality control)
+  OK    ★★★ B13 U1 (newest anchor wrote no readback) ⇒ not tripped, no local response, not blind; U2 (no readback at all) ⇒ not tripped, blind [cond5, cond7] (the resume gate refuses); U3 (NaN notionals) ⇒ not tripped — unreadable positions never reached the ladder on ef60f85 either (FACT_TABLE §5), and nothing here changes that  — {'U1': (False, False, [], True), 'U2': (False, False, ['cond5_venue_event', 'cond7_ops'], True), 'U3': (False, False, [], True)}
+
+[B14] the CHAIN after a local response, on the production path (rows and readback written into the evaluated tree)
+  FAIL  ★★★ B14 after the local response the next evaluation reconciles S007USDT CLEAN (its protective_flatten rows and readback explain the move); the NEXT halted anchor, marked halt_kind proportional_local by anchor_loop, is judged as a HELD book — not tripped, §4-5e not a break  — {'ev1_local': [['S007USDT']], 'ev2_5b': 'CLEAN', 'ev3_tripped': True, 'ev3_triggers': ['§4-5e position break [flat_intent_legacy]: 99000 USDT of raw'], 'ev3_5e_kind': 'halted_intent_flat', 'ev3_5e_state': 'BREAK'}
+  OK    ★★★ B14 neighbour — the SAME halted anchor WITHOUT the marker (every trip halt, every row written before it existed) is still judged against intent ZERO: the held book reads as a 99% break and trips the ladder. This is the failure the marker exists for (measured before the fix: probe_third_anchor), and the 07-29 ghost-book rule it keeps  — {'ev1_local': [['S007USDT']], 'ev2_5b': 'CLEAN', 'ev3_tripped': True, 'ev3_triggers': ['§4-5e position break [flat_intent_legacy]: 99000 USDT of raw'], 'ev3_5e_kind': 'halted_intent_flat', 'ev3_5e_state': 'BREAK'}
+  FAIL  ★★ B14 STATIC anchor_loop carries the halt's kind: 0b records state_kind/book_flattened, and the anchors row writes halt_kind only for a proportional local state that did not flatten the book
+
+57/59 checks passed
+FAILED:
+  ★★★ B14 after the local response the next evaluation reconciles S007USDT CLEAN (its protective_flatten rows and readback explain the move); the NEXT halted anchor, marked halt_kind proportional_local by anchor_loop, is judged as a HELD book — not tripped, §4-5e not a break
+  ★★ B14 STATIC anchor_loop carries the halt's kind: 0b records state_kind/book_flattened, and the anchors row writes halt_kind only for a proportional local state that did not flatten the book
