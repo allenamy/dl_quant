@@ -653,10 +653,10 @@ index e8fee1b..004a188 100644
  
  
 diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
-index 3142562..b9e9186 100644
+index 3142562..cc5c9c9 100644
 --- a/live/tests_disposition_matrix.py
 +++ b/live/tests_disposition_matrix.py
-@@ -31,12 +31,32 @@
+@@ -31,13 +31,35 @@
     每条新尺都带一条「在真账本上是承重的」断言([G]): 类空 ⇒ 稳态断言红; 分母换回 realized ⇒ 09-10 00Z 红;
     表法 vs 行法在 >20 名的锚上必须不同。
  
@@ -673,7 +673,7 @@ index 3142562..b9e9186 100644
 +     Σ|filled_notional| = 235,382.55 USDT, 全部 filled, 255 行 fee_paid 未测。全账本这样的平仓有
 +     10 批 / 1,708 行 / 73.8 万 USDT 的真实执行, 而本文件【一条断言都读不到】(它们的 rebalance_id
 +     不在 anchors.jsonl 里, 又被 _traded 的名字前缀过滤器挑掉)。这是盲区, 不是红: 独立成类, 按
-+     order_type 结构选取(不按名字, E-0825-H), 断言批次三格(事实 / 费用三态 / 选取方式), 并用「拿掉这 1,708 行, [E] 的每
++     order_type 结构选取(不按名字, E-0825-H), 批次行与看门狗自己的 flatten_all 动作记录【逐行精确对账】, 并用「拿掉这 1,708 行, [E] 的每
 +     一个数一位不变」把盲区本身证出来。
 +   ③ HALTED-NO-SUBMIT: 停机锚此前只被断言「整书缺口 > 1000U」—— 一条几乎什么都没说的绝对界。
 +     16 个停机锚的真实形态是: 终态只有 blocked_by_halt / skipped_min_notional, 0 次提交, 0 笔成交,
@@ -683,15 +683,18 @@ index 3142562..b9e9186 100644
 +     同一条 200U 尺约束), ②③ 是净增断言。
 +
 +Exit 0 = all pass."""
++import collections
  import copy
  import glob
  import json
  import os
 +import re
  import sys
++import time
  
  _HERE = os.path.dirname(os.path.abspath(__file__))
-@@ -158,6 +178,147 @@ check("★★ residual is intended MINUS filled, so a partially-covered gap coun
+ _REPO = os.path.dirname(_HERE)
+@@ -158,6 +180,147 @@ check("★★ residual is intended MINUS filled, so a partially-covered gap coun
  check("★★ rows from another rebalance are excluded",
        OD.gaps([{**row("blocked_by_halt"), "rebalance_id": "OTHER"}], "RID")["n_named"] == 0)
  
@@ -839,7 +842,7 @@ index 3142562..b9e9186 100644
  print("\n[E] the REAL ledger — what each anchor would now declare")
  _all_anchor_rows = []
  for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.jsonl"))):
-@@ -165,10 +326,11 @@ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.j
+@@ -165,10 +328,11 @@ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.j
          _l = _l.strip()
          if _l:
              _all_anchor_rows.append(json.loads(_l))
@@ -853,7 +856,7 @@ index 3142562..b9e9186 100644
  # ★★★ THIS ASSERTION WAS `len(_halted) == 2` AND IT EXPIRED WITHIN THE HOUR — third instance
  #     today of the family this repo keeps paying for, and the third one in MY OWN tests. A count
  #     of a LIVE, GROWING population is pinned-to-transient-state wearing a different hat: the
-@@ -179,15 +341,67 @@ for _A in sorted({r["anchor_ts"] for r in _all}):
+@@ -179,15 +343,67 @@ for _A in sorted({r["anchor_ts"] for r in _all}):
  #       worth making was never "there are two" — it is "a halted anchor declares its whole book,
  #       a trading anchor declares far less", and that survives every future anchor.
  _halt_flag = {}
@@ -922,7 +925,7 @@ index 3142562..b9e9186 100644
  # ★★ 2026-08-04: `< 200` FAILED on A1785859279 (229.5) and the failure was CORRECT ARITHMETIC on
  #   a WRONG QUANTITY. 6 of that anchor's 7 gap rows were `skipped_no_chase_arm` — the chase
  #   experiment's no_chase arm, residuals that were sendable and DELIBERATELY not sent so the
-@@ -236,6 +450,14 @@ def _split(rid):
+@@ -236,6 +452,14 @@ def _split(rid):
      return d, g["gross_usdt"] - d - cap
  
  
@@ -937,7 +940,7 @@ index 3142562..b9e9186 100644
  _tr_split = {r: _split(r) for r in _traded}
  _tr_cap = {r: float(_by[r].get("venue_cap_usdt") or 0.0) for r in _traded}
  # ★ 2026-08-27 尺子第三次重标定(与 08-18 resize 案同一修复家族, 一层更深): E-0826-F 停机清除后的
-@@ -252,7 +474,6 @@ _rebuild = {r for i, r in enumerate(_all_ids)
+@@ -252,7 +476,6 @@ _rebuild = {r for i, r in enumerate(_all_ids)
  #   A1787819040(1.75→2.0 收官步)非自愿 798 是建仓未完成部分, 前提(意图≈稳态换手)失效,
  #   分离性质未失效。修复同法: 独立成类, 界=自身整书 realized_gross 的 5%(同代书尺,
  #   比稳态 200U 松 ~10×, 仍能抓住真正的建仓卡死); 其后首个稳态锚必须回 200U 线内。
@@ -945,7 +948,7 @@ index 3142562..b9e9186 100644
  def _resize_sig(rid):
      row = _row_by_rid.get(rid) or {}
      eb = row.get("external_book") or {}
-@@ -378,6 +599,74 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
+@@ -378,6 +601,242 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
            for rb in _rebuild) if _rebuild else True,
        {rb: (_next_traded_after(rb), round(_tr_split[_next_traded_after(rb)][1])
              if _next_traded_after(rb) else None) for rb in _rebuild})
@@ -986,11 +989,176 @@ index 3142562..b9e9186 100644
 +        anchor_traded=(_ca.get("rebalance_id") in _traded),
 +        anchor_realized=round(float(_ca.get("realized_gross") or 0.0), 4),
 +        **_fee_states(_rr))
-+check("★★★ a TRIP-FLATTENED interval (the degradation ladder flattened the book INSIDE this "
-+      "anchor's interval) is its own class — every `protective_flatten` row ended `filled`, the "
-+      "batch sits inside a TRADING anchor's interval, and what it sold is the WHOLE book (within "
-+      "10% of that anchor's own realized gross). A flatten that does not complete leaves "
-+      "book-scale exposure that no anchor's gap ledger would ever name",
++# ★ 2026-09-13 lead 裁定 1: 完整性改为【对账】, 不再用 ±10% 名义带。研究员反例: 100 条各 1U 的完整平仓删掉 5 条,
++#   95U 仍在 100U 的 10% 带内 —— 带证明不了逐笔齐全。平仓批次有它自己的动作记录: `watchdog` 把
++#   `{"ts": evaluated_utc, "actions": broker.actions}` 追加进 state/live/watchdog/events.jsonl, 其中 `flatten_all`
++#   动作的 `orders` 列表就是写这些行的来源(`_write_flatten_rows` 读累积的 stage1_orders)。于是可以逐行精确对账。
++#   事实(2026-09-13 快照): 10 批全部有动作记录, 行数与 orders 长度逐批相等; 只有 09-12 那批的 orders 带 client_id
++#   (唯一 client id 在 09-10 d73b1b0 之后才发), 其余 9 批按 (symbol, side, attempt_idx) 对 —— 该键在每批内唯一。
++_FLAT_EVENTS = os.path.join(_REPO, "state", "live", "watchdog", "events.jsonl")
++
++
++def _flatten_row_class(ex):
++    """一张平仓单的终态类, 由它自己的 `_exec` 记录决定 —— 复述 `watchdog` 平仓行写者的规则(第二实现):
++    未提交 ⇒ never_submitted; execution_unknown ⇒ filled_amount_unknown; rejected 或 error ⇒ submitted_rejected;
++    没有 filled_notional ⇒ filled_amount_unknown; 否则 filled。"""
++    ex = ex or {}
++    if not ex.get("submitted"):
++        return "never_submitted"
++    if ex.get("execution_unknown"):
++        return "filled_amount_unknown"
++    if ex.get("rejected") or ex.get("error"):
++        return "submitted_rejected"
++    if ex.get("filled_notional") is None:
++        return "filled_amount_unknown"
++    return "filled"
++
++
++def _flatten_action_orders(path=_FLAT_EVENTS):
++    """{FLATTEN-<trip_key>: [该批全部 flatten_all 动作的 orders]}; 事件日志不存在 ⇒ None。
++
++    联接用的是【写者自己的推导】, 不是名字相像: `watchdog` 取 trip_key = strftime("%Y%m%dT%H%M%SZ",
++    strptime(evaluated_utc, "%Y-%m-%dT%H:%M:%SZ")), 行写成 `FLATTEN-{trip_key}`, 事件记录的 "ts" 就是那个
++    evaluated_utc。同一记录里的多次 flatten_all(第二次尝试)归同一批, 由 attempt_idx 区分。
++    ts 解析不了的记录跳过 ⇒ 对应批次没有记录 ⇒ NOT OBSERVABLE(失败关向「不可观测」, 不是通过)。"""
++    if not os.path.exists(path):
++        return None
++    out = {}
++    for line in open(path):
++        line = line.strip()
++        if not line:
++            continue
++        try:
++            ev = json.loads(line)
++            key = time.strftime("%Y%m%dT%H%M%SZ", time.strptime(str(ev.get("ts")), "%Y-%m-%dT%H:%M:%SZ"))
++        except (ValueError, TypeError):
++            continue
++        for a in (ev.get("actions") or ()):
++            if isinstance(a, dict) and a.get("action") == "flatten_all":
++                out.setdefault("FLATTEN-" + key, []).extend(_mark_recorded_failures(a))
++    return out
++
++
++def _mark_recorded_failures(action):
++    """The action's `orders`, each marked `_recorded_failure` when the SAME action also lists it in `failed`.
++
++    ★ Matched by KEY, not by object: in the broker `failed[i]["order"]` IS the dict in `orders`, but after the
++      JSON round-trip through events.jsonl they are two separate dicts — marking the `failed` copy would reach
++      nothing, and the "listed as failed but written filled" check would be vacuous on every real record."""
++    orders = [dict(o) for o in (action.get("orders") or ()) if isinstance(o, dict)]
++    fk = {}
++    for f in (action.get("failed") or ()):
++        fo = f.get("order") if isinstance(f, dict) else None
++        if isinstance(fo, dict):
++            err = str(f.get("err") or "")
++            if fo.get("client_id"):
++                fk[("client_id", str(fo["client_id"]))] = err
++            fk[_flat_key(fo)] = err
++    for o in orders:
++        hit = fk.get(("client_id", str(o["client_id"]))) if o.get("client_id") else None
++        if hit is None:
++            hit = fk.get(_flat_key(o))
++        if hit is not None:
++            o["_recorded_failure"] = hit
++    return orders
++
++
++def _flat_key(d):
++    return (str(d.get("symbol")), str(d.get("side") or "").lower(), int(d.get("attempt_idx") or 1))
++
++
++def _flat_cents(x):
++    f = _fin(x)
++    return None if f is None else round(f * 100)
++
++
++def _reconcile_flatten(rows, orders):
++    """一批账本行 vs 该批动作记录的 orders, 【逐行精确】对账 ⇒ (不符清单, 联接身份)。清单空 = 精确相等。
++
++    联接键: 动作的每张单都带 client_id ⇒ 按 client_id(lead 指定的键, 也是场所认得的每单身份), 并要求
++    (symbol, side, attempt_idx) 同样一致; 否则按 (symbol, side, attempt_idx)(写者使其在批内唯一), 此时身份
++    NOT OBSERVABLE(返回 None, 调用方必须点名)。逐行: filled_notional 到分相等; 终态 == 动作 `_exec` 推出的类;
++    动作 `failed` 里登记的失败单, 其行终态必须不是 filled。批级: 行数相等, Σ(有符号)与 Σ|·| 到分相等。"""
++    mm = []
++    use_cid = bool(orders) and all(o.get("client_id") for o in orders)
++    kf = (lambda d: ("client_id", str(d.get("client_id")))) if use_cid else _flat_key
++    if len(rows) != len(orders):
++        mm.append(f"count: ledger {len(rows)} vs action {len(orders)}")
++    rk, ok_ = collections.Counter(kf(r) for r in rows), collections.Counter(kf(o) for o in orders)
++    dup = [k for k, v in list(rk.items()) + list(ok_.items()) if v > 1]
++    if dup:
++        mm.append(f"join key not unique: {dup[:3]}")
++    only_r, only_o = sorted(set(rk) - set(ok_)), sorted(set(ok_) - set(rk))
++    if only_r:
++        mm.append(f"{len(only_r)} ledger row(s) with no action order, e.g. {only_r[:2]}")
++    if only_o:
++        mm.append(f"{len(only_o)} action order(s) with no ledger row, e.g. {only_o[:2]}")
++    rmap = {kf(r): r for r in rows}
++    for o in orders:
++        r = rmap.get(kf(o))
++        if r is None:
++            continue
++        ex = o.get("_exec") or {}
++        if use_cid and _flat_key(r) != _flat_key(o):
++            mm.append(f"{kf(o)}: same client_id, different (symbol, side, attempt): {_flat_key(r)} vs {_flat_key(o)}")
++        if _flat_cents(r.get("filled_notional")) != _flat_cents(ex.get("filled_notional")):
++            mm.append(f"{kf(o)}: filled_notional ledger {r.get('filled_notional')} vs action {ex.get('filled_notional')}")
++        want = _flatten_row_class(ex)
++        if str(r.get("terminal_reason")) != want:
++            mm.append(f"{kf(o)}: terminal ledger {r.get('terminal_reason')} vs action-derived {want}")
++        if o.get("_recorded_failure") is not None and str(r.get("terminal_reason")) == "filled":
++            mm.append(f"{kf(o)}: the action lists this order as FAILED but the ledger row says filled")
++    for label, fn in (("Σ filled (signed)", lambda v: v), ("Σ|filled|", abs)):
++        sr = round(sum(fn(_fin(r.get("filled_notional")) or 0.0) for r in rows) * 100)
++        so = round(sum(fn(_fin((o.get("_exec") or {}).get("filled_notional")) or 0.0) for o in orders) * 100)
++        if sr != so:
++            mm.append(f"{label}: ledger {sr / 100:.2f} vs action {so / 100:.2f}")
++    return mm, ("client_id" if use_cid else None)
++
++
++def _batch_ts(b):
++    return float((_flat_batches.get(b) or [{}])[0].get("anchor_ts") or 0.0)
++
++
++_flat_actions = _flatten_action_orders()
++_flat_recon, _flat_no_record, _flat_identity = {}, [], {}
++for _b, _rr in _flat_batches.items():
++    if _flat_actions is None or _b not in _flat_actions:
++        _flat_no_record.append(_b)
++        continue
++    _flat_recon[_b], _flat_identity[_b] = _reconcile_flatten(_rr, _flat_actions[_b])
++check("★★★ a TRIP-FLATTENED batch's ledger rows are EXACTLY the ladder's own `flatten_all` orders (the "
++      "watchdog's action record in its event log): the same set — joined on client_id where the orders "
++      "carry one, else on (symbol, side, attempt_idx), unique per batch — the same count, every row's "
++      "filled_notional and the batch's Σ (signed and absolute) equal to the CENT, and every row's terminal "
++      "state the class its own action record implies (filled, or an explicitly recorded rejection / "
++      "unknown). A batch with NO action record is NOT OBSERVABLE: it is named and it FAILS this cell — a "
++      "completeness claim the record cannot back is never made",
++      _flat_actions is not None and bool(_flat_recon) and not _flat_no_record
++      and all(not mm for mm in _flat_recon.values()),
++      ("NOT OBSERVABLE: no watchdog event log at state/live/watchdog/events.jsonl" if _flat_actions is None else
++       {"reconciled_exactly": len([b for b, mm in _flat_recon.items() if not mm]),
++        "rows_reconciled": sum(len(_flat_batches[b]) for b, mm in _flat_recon.items() if not mm),
++        "mismatched": {b: mm[:3] for b, mm in _flat_recon.items() if mm},
++        "NOT_OBSERVABLE_no_action_record": sorted(_flat_no_record)}))
++_cid_batches = sorted((b for b, k in _flat_identity.items() if k == "client_id"), key=_batch_ts)
++_nocid_batches = sorted((b for b, k in _flat_identity.items() if k is None), key=_batch_ts)
++_first_cid_ts = min((_batch_ts(b) for b in _cid_batches), default=None)
++check("★★★ ...and the join is on the order's own IDENTITY (client_id) wherever the ladder minted one. The "
++      "batches whose action records carry NO client_id (the ladder sent none before the unique-client-id "
++      "change) are reconciled on (symbol, side, attempt_idx) and are named IDENTITY NOT OBSERVABLE — not "
++      "counted as identity-reconciled. That population is CLOSED: every such batch precedes the first batch "
++      "whose record carries client ids, so a NEW flatten written without client ids goes red here",
++      bool(_cid_batches) and _first_cid_ts is not None
++      and all(_batch_ts(b) < _first_cid_ts for b in _nocid_batches),
++      {"identity_reconciled_on_client_id": _cid_batches,
++       "IDENTITY_NOT_OBSERVABLE__content_reconciled": _nocid_batches})
++check("★★★ ...and the exit COVERED the book and COMPLETED: every `protective_flatten` row ended `filled`, the "
++      "batch sits inside a TRADING anchor's interval, and Σ|filled_notional| is within 10% of that anchor's "
++      "own realized gross. This is a COVERAGE and OUTCOME relation, NOT a completeness proof (5 of 100 equal "
++      "rows deleted would still sit inside the band — completeness is the exact reconciliation above). A "
++      "recorded rejection is ACCOUNTED FOR by that reconciliation, and it still goes red here, because an "
++      "exit with a refused order did not close the book",
 +      bool(_flat_facts) and all(
 +          f["n_rows"] > 0 and f["all_filled"] and f["filled_usdt"] > 0 and f["anchor_traded"]
 +          and abs(f["filled_usdt"] - f["anchor_realized"]) <= 0.10 * max(f["anchor_realized"], 1.0)
@@ -1009,8 +1177,11 @@ index 3142562..b9e9186 100644
 +       for b, f in _flat_facts.items()})
 +check("★★★ ...and the class is selected by WHAT THE ROWS ARE (`order_type == protective_flatten`), "
 +      "not by what the rebalance_id is CALLED — E-0825-H. The three readings (structural / name "
-+      "prefix / absent from anchors.jsonl) agree on every batch in the ledger, so a batch that is "
-+      "one day named differently still lands in this class instead of the steady population",
++      "prefix / absent from anchors.jsonl) agree on every batch in the ledger. If a batch is one day "
++      "written under a different name, the three readings part and THIS CELL GOES RED — conservatively: "
++      "the batch still stays out of the steady population (it has no anchors row), but the suite stops "
++      "and a person has to look. (Corrected 2026-09-13: an earlier wording claimed a renamed batch would "
++      "be absorbed silently; the assertion never did that.)",
 +      bool(_flat_rids)
 +      and _flat_rids == {r for r in _by if str(r).startswith("FLATTEN")}
 +      and _flat_rids == {r for r in _by if r not in _halt_flag}
@@ -1020,7 +1191,7 @@ index 3142562..b9e9186 100644
  # ★ 2026-08-18 尺子重标定: 原断言在 TOTAL(自愿+非自愿)上执行, 隐含前提"没有合法的大额
  #   自愿弃单"。当日 04:00Z 入金 resize(2×NAV, 目标增量 2.6×)被 no-chase 政策正确弃单
  #   1424 USDT(全部 deliberate, involuntary=0), 打破了按无大额重整时代标定的 0.25 界 ——
-@@ -429,6 +718,221 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
+@@ -429,6 +888,270 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
        and all(abs(_old_d[r] - _tr_split[r][0]) < 1e-2 for r in _traded if r not in _gt20),
        {r: (round(_old_d[r]), round(_tr_split[r][0])) for r in _gt20 if abs(_old_d[r] - _tr_split[r][0]) > 1.0})
  
@@ -1231,6 +1402,55 @@ index 3142562..b9e9186 100644
 +      (len(_flat_rows), "rows", _flat_total_usdt, "USDT executed",
 +       sum(f["n_unmeasured"] for f in _flat_facts.values()), "fee-unmeasured; [E] unchanged:",
 +       _blind_same))
++def _band_ok(rows, b):
++    f = _flat_facts[b]
++    tot = sum(abs(_fin(r.get("filled_notional")) or 0.0) for r in rows)
++    return abs(tot - f["anchor_realized"]) <= 0.10 * max(f["anchor_realized"], 1.0)
++
++
++_flat_mut = {}
++for _b in ([_cid_batches[-1]] if _cid_batches else []) + ([_nocid_batches[-1]] if _nocid_batches else []):
++    _rows0 = [dict(r) for r in _flat_batches[_b]]
++    _del = _rows0[1:]
++    _alt = [dict(r) for r in _rows0]
++    _alt[0]["filled_notional"] = float(_alt[0]["filled_notional"]) + 0.01
++    _flat_mut[_b] = {"identity": _flat_identity.get(_b),
++                     "untouched": _reconcile_flatten(_rows0, _flat_actions[_b])[0],
++                     "delete_one_row": _reconcile_flatten(_del, _flat_actions[_b])[0],
++                     "move_one_row_by_one_cent": _reconcile_flatten(_alt, _flat_actions[_b])[0],
++                     "band_passes_both_mutants": _band_ok(_del, _b) and _band_ok(_alt, _b)}
++check("★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client-id batch AND on a real "
++      "content-key batch: DELETE ONE ledger row ⇒ red; MOVE ONE row's filled_notional by ONE CENT ⇒ red; "
++      "the untouched batch ⇒ clean. And the ±10% band it replaced as the completeness proof PASSES both "
++      "mutants — which is exactly why it could not be that proof",
++      len(_flat_mut) == 2
++      and {v["identity"] for v in _flat_mut.values()} == {"client_id", None}
++      and all(not v["untouched"] and v["delete_one_row"] and v["move_one_row_by_one_cent"]
++              and v["band_passes_both_mutants"] for v in _flat_mut.values()),
++      {b: {"identity": v["identity"], "untouched": len(v["untouched"]),
++           "delete_one_row": v["delete_one_row"][:2], "move_one_row_by_one_cent": v["move_one_row_by_one_cent"][:2],
++           "band_passes_both_mutants": v["band_passes_both_mutants"]} for b, v in _flat_mut.items()})
++_fail_act = {"action": "flatten_all", "orders": [
++    {"symbol": "AAAUSDT", "side": "sell", "attempt_idx": 1, "quantity": 1.0,
++     "_exec": {"submitted": True, "error": None, "filled_notional": -10.0}},
++    {"symbol": "BBBUSDT", "side": "buy", "attempt_idx": 1, "quantity": 1.0,
++     "_exec": {"submitted": True, "rejected": True, "error": "VenueError: -2019 margin", "filled_notional": None}}],
++    "failed": [{"order": {"symbol": "BBBUSDT", "side": "buy", "attempt_idx": 1, "quantity": 1.0},
++                "err": "VenueError: -2019 margin"}]}
++_fail_orders = _mark_recorded_failures(json.loads(json.dumps(_fail_act)))    # through a JSON round-trip, like the log
++_fail_rows_ok = [{"symbol": "AAAUSDT", "side": "sell", "attempt_idx": 1, "filled_notional": -10.0, "terminal_reason": "filled"},
++                 {"symbol": "BBBUSDT", "side": "buy", "attempt_idx": 1, "filled_notional": None,
++                  "terminal_reason": "submitted_rejected"}]
++_fail_rows_hidden = [dict(_fail_rows_ok[0]), dict(_fail_rows_ok[1], terminal_reason="filled")]
++check("★★ ...and \"filled or an EXPLICITLY RECORDED failure\" is live, not decoration: a batch whose refused order "
++      "is written `submitted_rejected` reconciles clean; the same refusal written `filled` goes red twice — once "
++      "because its own `_exec` implies `submitted_rejected`, once because the action lists it in `failed` (matched "
++      "by key through a JSON round-trip, as the event log stores it)",
++      not _reconcile_flatten(_fail_rows_ok, _fail_orders)[0]
++      and len([m for m in _reconcile_flatten(_fail_rows_hidden, _fail_orders)[0]
++               if "BBBUSDT" in m]) == 2
++      and sum(1 for o in _fail_orders if o.get("_recorded_failure")) == 1,
++      (_reconcile_flatten(_fail_rows_ok, _fail_orders)[0], _reconcile_flatten(_fail_rows_hidden, _fail_orders)[0]))
 +_fee_fx = [{"fee_paid": None}, {"fee_paid": 0.0}, {"fee_paid": 0.5}]
 +check("★★★ ...and `fee_paid` None and 0.0 are DIFFERENT facts inside that class — one unmeasured "
 +      "row makes the batch's fee UNMEASURED (None); with every row measured it reports the sum. "
