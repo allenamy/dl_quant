@@ -1,0 +1,42 @@
+# runtime_processes 2026-09-13T15:01:14Z (read-only: launchctl list, ps -o lstart, stat)
+-	0	com.hsy.markout_backfill
+-	0	com.hsy.regime_weekly
+-	0	com.hsy.c2shadow
+30944	0	com.hsy.combolive
+30943	0	com.hsy.sidecar
+-	0	com.hsy.stopoverlay
+-	0	com.hsy.regime_dash
+10900	-15	com.hsy.shadowloop
+-	0	com.hsy.anchor_report
+-	0	com.hsy.universe_shadow
+-	1	com.hsy.notary
+-	0	com.hsy.depthwatch
+-	0	com.hsy.guardtwin
+1225	0	com.hsy.w4liqcapture
+## ps
+10900 Sat Sep  5 20:47:33 2026     /usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python shadow_loop_v3.py run
+27675 Sun Sep 13 22:56:26 2026     /bin/zsh -c source /Users/haosiyu/.claude/shell-snapshots/snapshot-zsh-1788913408385-ztoyrj.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='b9646a9e-31a1-4eb3-a08b-e8ea13fd
+30943 Sun Aug 30 13:03:31 2026     /bin/bash /Users/haosiyu/wide_shadow/fea171/sidecar_daemon.sh
+30944 Sun Aug 30 13:03:31 2026     /bin/bash /Users/haosiyu/wide_shadow/fea171/combo_live_daemon.sh
+32033 Sun Sep 13 23:01:14 2026     /bin/zsh -c source /Users/haosiyu/.claude/shell-snapshots/snapshot-zsh-1788913408385-ztoyrj.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='b9646a9e-31a1-4eb3-a08b-e8ea13fd
+32040 Sun Sep 13 23:01:14 2026     /bin/zsh -c source /Users/haosiyu/.claude/shell-snapshots/snapshot-zsh-1788913408385-ztoyrj.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='b9646a9e-31a1-4eb3-a08b-e8ea13fd
+50689 Sun Sep  6 20:58:03 2026     /usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python /Users/haosiyu/cc_tmp/exec_n6_sandbox/shadow_loop_v3.py run
+## file mtimes (UTC)
+2026-09-04T00:53:42Z e9c9837412130884 /Users/haosiyu/wide_shadow/shadow_loop_v3.py
+2026-09-02T08:59:54Z b5c698f9d1ee9acb /Users/haosiyu/wide_shadow/fea171/combo_stage.py
+2026-08-26T02:25:09Z 72f78d1e6be51b2b /Users/haosiyu/wide_shadow/fea171/combo_live_daemon.sh
+2026-08-24T10:48:26Z 01d75619183da425 /Users/haosiyu/wide_shadow/fea171/sidecar_daemon.sh
+2026-08-26T02:22:06Z 6140790e55b70cff /Users/haosiyu/wide_shadow/fea171/sidecar_blend.py
+2026-08-24T08:33:44Z d6619801b73fb167 /Users/haosiyu/wide_shadow/fea171/f10_live_s42.pt
+2026-09-01T08:42:11Z 351ae26bd6b4a203 /Users/haosiyu/wide_shadow/fea171/f10_live_s42_np.npz
+## sidecar/combo daemon scripts
+2:# 侧车守护: 影子写出新 target_live 文件后自动跑 sidecar_blend(只读侧车, blend 目录 live 不读)
+8:    sleep 120   # 等影子状态文件(aux/weights)落定
+9:    "$HOME/wide_shadow/venv/bin/python" -u sidecar_blend.py >> sidecar_daemon.log 2>&1
+13:  sleep 180
+## exec_n6 sandbox env
+/Users/haosiyu/cc_tmp/exec_n6_sandbox/shadow_loop_v3.py
+WIDE_SHADOW_HOME=/Users/haosiyu/cc_tmp/exec_n6_sandbox
+SHADOW_OFFSET_MIN=1
+## stop_overlay consumers in executor tree (grep -rl stop_overlay live scheduler signal ops config)
+/Users/haosiyu/dl_quant_live/config/book.json
