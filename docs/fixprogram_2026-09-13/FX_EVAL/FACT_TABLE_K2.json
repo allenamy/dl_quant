@@ -1,0 +1,1456 @@
+{
+ "tool": "k2_fact_table.py",
+ "self_sha256": "fd267dd8dc0954e8eeb51e3fad2b008f81dfafbffad33d07ce402cde7df9d621",
+ "head": "d9be5cb43bebca69bd560ff2cb8dfdefc60ff7d1",
+ "built_utc": "2026-09-13T13:15:52Z",
+ "classes": {
+  "SIG-ONLY-NULL": "a no-difference label issued because a CI contains 0 (or a significance gate failed); no equivalence band",
+  "POINT-IN-BAND": "a no-difference label issued because a POINT estimate lies inside a band; the band exists but the CI is ignored",
+  "POINT-ONLY-LINE": "a one-sided 'not material' label issued because a POINT estimate is below a materiality line; the CI is ignored",
+  "CI-OVERLAP-SAME": "a 'same' label issued because one book's point estimate lies inside the other's CI; no band, not a test of the difference",
+  "LOSS-WITHOUT-SIGN": "a 'loss' label that does not require the realised mean of the book(s) named to be negative (K1 family)",
+  "BAND-NOT-GATING": "an equivalence band exists and is computed, but the label it should gate is issued without it",
+  "PRECEDENCE": "the no-difference branch is evaluated before the direction branches, so it can override a significant (A)/(B)",
+  "ABSENT-AS-NULL": "a missing statistic (None / no rows) falls through to the 'not material' branch",
+  "FAILED-GATE-AS-ABSENCE": "a failed detection/admission gate is written up as absence of the effect, without an upper bound below a usefulness line",
+  "PROSE-EQUIVALENCE": "the device label is honest (UNDECIDED), but a decision document restates it as 'indistinguishable'",
+  "COMPLIANT": "the label is CI-based against an explicit band or economic line in the direction of the claim",
+  "OUT-OF-SCOPE": "deterministic tolerance, percentile position, set overlap, admission or descriptive output: not a sampling-based no-difference claim"
+ },
+ "rows": [
+  {
+   "id": "F01",
+   "line": "T4",
+   "title": "king col80 v0/v1 book+IC verdict",
+   "classes": [
+    "SIG-ONLY-NULL"
+   ],
+   "labels": [
+    "MATERIAL",
+    "NOT MATERIAL (at this resolution)"
+   ],
+   "statistic": "(A) book Δg(K1−K0) mean, C0 base, KING_LIVE window, seeds 42 & 2027; (B) ΔIC(K1−K0) mean, KING_LIVE",
+   "ci": "CI95 UTC-day block bootstrap NB 2000 (r18 boot)",
+   "band": "none (the CI half-width is reported as 'resolution')",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4/receipts/RECEIPT_T4_judge.json"
+   ],
+   "relabel": "yes: D1 on (A), D4 on (B), joint rule R-T4",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T4/devices/t4_judge.py",
+     "line": 67,
+     "source": "def excl0(ci): return bool(ci[0] > 0 or ci[1] < 0)",
+     "file_sha256": "658835d70b46b6c19c17c4884d25bf121dcb37ed7dfaeb43303c540c3cfe23b8",
+     "head_blob": "2204261a75c2632a9f846f933767ede2964113bc"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T4/devices/t4_judge.py",
+     "line": 144,
+     "source": "condA = bool(all(x[\"ci95_excl0\"] for x in A_c0) and (np.sign(A_c0[0][\"dg\"]) == np.sign(A_c0[1][\"dg\"])))",
+     "file_sha256": "658835d70b46b6c19c17c4884d25bf121dcb37ed7dfaeb43303c540c3cfe23b8",
+     "head_blob": "2204261a75c2632a9f846f933767ede2964113bc"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T4/devices/t4_judge.py",
+     "line": 147,
+     "source": "B_ic = SCORE[\"KING_LIVE\"][\"dIC_K1_minus_K0\"]; condB = bool(B_ic[\"ci95_excl0\"])",
+     "file_sha256": "658835d70b46b6c19c17c4884d25bf121dcb37ed7dfaeb43303c540c3cfe23b8",
+     "head_blob": "2204261a75c2632a9f846f933767ede2964113bc"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T4/devices/t4_judge.py",
+     "line": 150,
+     "source": "verdict = \"MATERIAL\" if (condA or condB) else \"NOT MATERIAL (at this resolution)\"",
+     "file_sha256": "658835d70b46b6c19c17c4884d25bf121dcb37ed7dfaeb43303c540c3cfe23b8",
+     "head_blob": "2204261a75c2632a9f846f933767ede2964113bc"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T4/PREREG_T4_king_feature_skew_2026-09-13.md",
+     "line": 59,
+     "source": "- 否则 **NOT MATERIAL(在本分辨率下)**, 并写出分辨率 = (A) 两种子 Δg 的 CI95 半宽、(B) ΔIC 的 CI95 半宽。",
+     "file_sha256": "0f94b754c9ca4c6e65c3f2a63146dab7036f37862abd2210cbbfcef661aab4dd",
+     "head_blob": "113731a656e4cca06a7714d3f8b6669047977fd4"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T4/receipts/RECEIPT_T4_judge.json",
+     "head_blob": "2f11c0fbb678f0cf604b658cecad9a2f8942f524"
+    }
+   ]
+  },
+  {
+   "id": "F02",
+   "line": "T5c",
+   "title": "September replay vs deployed readings",
+   "classes": [
+    "CI-OVERLAP-SAME",
+    "LOSS-WITHOUT-SIGN"
+   ],
+   "labels": [
+    "STRATEGY'S OWN LOSS (king chain)",
+    "DEPLOYMENT DIFFERENCE",
+    "SAME DIRECTION WITH A GAP",
+    "UNDECIDABLE"
+   ],
+   "statistic": "D_K, R_K window means and paired mean(D_K − R_K), per outcome (price/carry/cost/net), per seed",
+   "ci": "CI95 UTC-day block bootstrap B 2000 (k 81 levels, k 87 diff)",
+   "band": "none; no sign requirement for 'LOSS'",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c/receipts/pod2/RECEIPT_T5c_bridge.json"
+   ],
+   "relabel": "yes: shared-loss rule R-LOSS with D1",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5c/devices/t5c_bridge.py",
+     "line": 206,
+     "source": "same = bool(mean_dk[1] <= mean_rk[0] <= mean_dk[2]); gap = bool(diff[1] > 0 or diff[2] < 0)",
+     "file_sha256": "e401f48ef68235a74b257e9a1ed712e9457f25384b80629c8273fa5099b7178a",
+     "head_blob": "7c1964b6676a1a0e92566b00e3a4c20e82d72a8b"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5c/devices/t5c_bridge.py",
+     "line": 207,
+     "source": "label = {(True, False): \"STRATEGY'S OWN LOSS (king chain)\", (False, True): \"DEPLOYMENT DIFFERENCE\", (True, True): \"SAME DIRECTION WITH A GAP\", (False, False): \"UNDECIDABLE\"}[(same, gap)]",
+     "file_sha256": "e401f48ef68235a74b257e9a1ed712e9457f25384b80629c8273fa5099b7178a",
+     "head_blob": "7c1964b6676a1a0e92566b00e3a4c20e82d72a8b"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5c/PREREG_T5c_september_replay_vs_deployed_2026-09-13.md",
+     "line": 69,
+     "source": "- **SAME-LOSS(价格)** ⇔ 窗内 R_K 价格均值落在 D_K 价格均值的 CI95 内。",
+     "file_sha256": "a669c62782c58d424eed17cf3c7b2a8ad78050c059f43cb2e6496737eaf56a48",
+     "head_blob": "a45e007a011f6f14608042fed1fdc734e4769bb3"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5c/receipts/pod2/RECEIPT_T5c_bridge.json",
+     "head_blob": "b122505c14d31ec998c9f20fa8beb99bd4a637c0"
+    }
+   ]
+  },
+  {
+   "id": "F03",
+   "line": "T5d (in flight, K1 owner)",
+   "title": "IV-corrected T5c readings",
+   "classes": [
+    "BAND-NOT-GATING"
+   ],
+   "labels": [
+    "STRATEGY'S OWN LOSS (king chain, target layer)",
+    "BOTH LOST, DEPLOYMENT GAP",
+    "BOTH LOST, UNDECIDABLE",
+    "NOT A SHARED LOSS (...)",
+    "SAME LEVEL"
+   ],
+   "statistic": "as F02 on three calibers (T5C / FIX / REG)",
+   "ci": "CI95 UTC-day block bootstrap B 2000",
+   "band": "δ = 0.25 bps/anchor (PREREG_T5d §6.2), computed as `equiv` but the OWN-LOSS / SAME LEVEL labels are gated by `same` (CI overlap), not by `equiv`",
+   "result": [],
+   "relabel": "no (no complete committed result; K1 owner) — reported to lead",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5d/devices/t5d_bridge.py",
+     "line": 69,
+     "source": "same = bool(mean_dk[1] <= mean_rk[0] <= mean_dk[2]); gap = bool(diff[1] > 0 or diff[2] < 0); equiv = bool(-DELTA_EQ <= diff[1] and diff[2] <= DELTA_EQ)",
+     "file_sha256": "b99b870c70950f78074e2a025da3c8c4ed25738227ba635e98c892e540bd296e",
+     "head_blob": null
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5d/devices/t5d_bridge.py",
+     "line": 73,
+     "source": "label = \"BOTH LOST, DEPLOYMENT GAP\" if gap else (\"STRATEGY'S OWN LOSS (king chain, target layer)\" if same else \"BOTH LOST, UNDECIDABLE\")",
+     "file_sha256": "b99b870c70950f78074e2a025da3c8c4ed25738227ba635e98c892e540bd296e",
+     "head_blob": null
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5d/devices/t5d_bridge.py",
+     "line": 77,
+     "source": "loss_d = loss_r = None; label = \"DEPLOYMENT GAP\" if gap else (\"SAME LEVEL\" if same else \"UNDECIDABLE\")",
+     "file_sha256": "b99b870c70950f78074e2a025da3c8c4ed25738227ba635e98c892e540bd296e",
+     "head_blob": null
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5d/PREREG_T5d_iv_corrected_replay_2026-09-13.md",
+     "line": 54,
+     "source": "- **经济等价带** δ = 0.25 bps/锚(A0 全周期净额 +0.6342 的约 40%; 更大的差对这本书有经济意义)。",
+     "file_sha256": "a1ef16cdba5e95def27f77b180cba3f1ac954ad04c7b0a17f59c24e1a0c85a4f",
+     "head_blob": "7eea36f29b4108d8fc746ecb8b256128c021fa3a"
+    }
+   ],
+   "result_files": []
+  },
+  {
+   "id": "F04",
+   "line": "T5b Q1",
+   "title": "FTRIM frozen-residual carry reading",
+   "classes": [
+    "POINT-ONLY-LINE"
+   ],
+   "labels": [
+    "FROZEN-RESIDUAL-MATERIAL",
+    "NOT MATERIAL"
+   ],
+   "statistic": "mean over W1 of C_FROZ carry (positive = paid), bps/anchor/unit gross",
+   "ci": "CI95 UTC-day block (k 501) reported, not used by the label",
+   "band": "one-sided line 0.05 applied to the point estimate",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5b/receipts/RECEIPT_T5b_q1.json"
+   ],
+   "relabel": "yes: one-sided rule R-LINE with D8",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5b/devices/t5b_q1.py",
+     "line": 248,
+     "source": "reading=(\"FROZEN-RESIDUAL-MATERIAL\" if x.mean() >= 0.05 else \"NOT MATERIAL\"), role=(\"PRIMARY\" if name.startswith(\"PRIMARY\") else \"secondary\"),",
+     "file_sha256": "3c956b23ec353a14227f614f4ac4145b17f5229cabf9668da6ade8067aedac19",
+     "head_blob": "9a460bee30ff1354de3eb4033985f086d356f658"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5b/SPEC_T5b.md",
+     "line": 62,
+     "source": "- **FROZEN-RESIDUAL-MATERIAL ⇔ X̄ ≥ 0.05; 否则 NOT MATERIAL。**",
+     "file_sha256": "92d901034b14eea09fea221fe4ca88b96b649d81e9955caf1dfa0aea570e5b87",
+     "head_blob": "02a57b24279f9c830671b347450c4d80138a7340"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5b/receipts/RECEIPT_T5b_q1.json",
+     "head_blob": "fe0988bee511d3d902cd4088efb0e32424f31b8e"
+    }
+   ]
+  },
+  {
+   "id": "F05",
+   "line": "T5b Q3",
+   "title": "executor-added freeze carry reading",
+   "classes": [
+    "POINT-ONLY-LINE",
+    "ABSENT-AS-NULL"
+   ],
+   "labels": [
+    "EXECUTOR-ADDED-FREEZE-MATERIAL",
+    "NOT MATERIAL"
+   ],
+   "statistic": "mean of GAP_EXECFREEZE over W1 ∩ NORMAL anchors, bps/anchor/unit gross",
+   "ci": "CI95 UTC-day block (k 601) reported, not used by the label",
+   "band": "one-sided line 0.05 on the point estimate; mean None ⇒ NOT MATERIAL",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5b/receipts/RECEIPT_T5b_exec.json"
+   ],
+   "relabel": "yes: R-LINE with D8",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5b/devices/t5b_exec.py",
+     "line": 332,
+     "source": "p = READ3[\"PRIMARY_GAP_EXECFREEZE\"]; READ3[\"PRIMARY_GAP_EXECFREEZE\"][\"reading\"] = (\"EXECUTOR-ADDED-FREEZE-MATERIAL\" if (p[\"mean\"] is not None and p[\"mean\"] >= 0.05) else \"NOT MATERIAL\")",
+     "file_sha256": "35c57228cdeffa7e29631ad8f23457725c95213fa0e39776d555e4b2fd958d66",
+     "head_blob": "a8a7122374b48e9b43b679188e2bb7f731cbd8fe"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5b/SPEC_T5b.md",
+     "line": 122,
+     "source": "- **Ȳ = W1 ∩ NORMAL 锚上 `GAP_EXECFREEZE(A)` 的均值。EXECUTOR-ADDED-FREEZE-MATERIAL ⇔ Ȳ ≥ 0.05 bps / 锚 / 单位 gross; 否则 NOT MATERIAL。** CI k = 601。",
+     "file_sha256": "92d901034b14eea09fea221fe4ca88b96b649d81e9955caf1dfa0aea570e5b87",
+     "head_blob": "02a57b24279f9c830671b347450c4d80138a7340"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5b/receipts/RECEIPT_T5b_exec.json",
+     "head_blob": "df72b4f9c7f93eecf850ef3a53195370164feab7"
+    }
+   ]
+  },
+  {
+   "id": "F06",
+   "line": "T5 ADDENDUM 1",
+   "title": "H2b proxy share reading",
+   "classes": [
+    "POINT-IN-BAND"
+   ],
+   "labels": [
+    "NEGLIGIBLE",
+    "SMALL",
+    "NOT NEGLIGIBLE"
+   ],
+   "statistic": "Shapley φ_K1 share of the deployed−replay carry gap, per seed",
+   "ci": "CI95 (boot_ratio k 58) stored beside the point; label reads the point only",
+   "band": "|share| ≤ 0.05 (ADDENDUM_1_SPEC L9) on the point",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5/receipts/pod2/RECEIPT_T5_addendum1_h2b.json"
+   ],
+   "relabel": "yes: R-EQ with D5",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5/devices/t5_addendum_h2b.py",
+     "line": 93,
+     "source": "sh_ = OUT[s][\"phi_K1\"][\"share\"][0]",
+     "file_sha256": "3bab9a87cf2db625af7e82c1cfcefe2326c80286f4282740b25458aad95594b7",
+     "head_blob": "ec58a79d1f52a796a6fc562b62871af983a989b2"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5/devices/t5_addendum_h2b.py",
+     "line": 94,
+     "source": "OUT[s][\"reading\"] = (\"NEGLIGIBLE\" if abs(sh_) <= 0.05 else (\"NOT NEGLIGIBLE\" if abs(sh_) >= 0.20 else \"SMALL\"))",
+     "file_sha256": "3bab9a87cf2db625af7e82c1cfcefe2326c80286f4282740b25458aad95594b7",
+     "head_blob": "ec58a79d1f52a796a6fc562b62871af983a989b2"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5/ADDENDUM_1_SPEC_T5_2026-09-13.md",
+     "line": 9,
+     "source": "- **读法(描述)**: |φ_K1 占比| ≤ 0.05 ⇒「H2b 对本窗建模 carry 差的代理贡献可忽略」; ≥ 0.20 ⇒「不可忽略」; 其余「小」。**限定**: 这是回放 king 模型(2026 年 = 8d79186b)在 v1 馈入下的变化, 不是窗内实际服务的 29ffaf58; 不能替代主表 (e)。",
+     "file_sha256": "54c4d8fb6e021b510f97095ea4996c4e8d300b81d0ce243c9e69176d2a9d88ae",
+     "head_blob": "e02a202350e7e54a85f4480eba2ab82cc5fdc820"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5/receipts/pod2/RECEIPT_T5_addendum1_h2b.json",
+     "head_blob": "331399a5ee6870b7381309c3740b9f5d672bf9c5"
+    }
+   ]
+  },
+  {
+   "id": "F07",
+   "line": "T2",
+   "title": "carry-net sizing judge",
+   "classes": [
+    "POINT-IN-BAND"
+   ],
+   "labels": [
+    "PROMOTE-candidate",
+    "REJECT",
+    "UNDECIDED (fails: ...)",
+    "flag BELOW-RESOLUTION",
+    "maxDD/HALT 'not worse' (point, declared decision rule)"
+   ],
+   "statistic": "paired Δg(arm − A0/NW) W_ALPHA mean per seed; tail maxDD/HALT single-path points",
+   "ci": "CI95 UTC-day block (and CI99-K)",
+   "band": "verdict: none needed (UNDECIDED is not an equivalence claim); flag BELOW-RESOLUTION = |Δg| < 0.23 on the point",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2/receipts/RECEIPT_T2_judge.json"
+   ],
+   "relabel": "yes: equivalence axis R-EQ with D1 beside the unchanged verdict; BELOW-RESOLUTION re-read",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T2/devices/t2_judge.py",
+     "line": 82,
+     "source": "o[\"ci95_excl0\"] = bool(o[\"ci95\"][0] > 0 or o[\"ci95\"][1] < 0); o[\"ci99K_excl0\"] = bool(o[\"ci99K\"][0] > 0 or o[\"ci99K\"][1] < 0); o[\"below_resolution\"] = bool(abs(o[\"dg\"]) < RES_BPS)",
+     "file_sha256": "02d889849cffb69b061d881674befd2cfb733c4f8b87ab0b2d0ba16e50f77c8f",
+     "head_blob": "093c194c2798fc22fb1aaf5d82195e0c8c2468f0"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T2/devices/t2_judge.py",
+     "line": 163,
+     "source": "if any(blk[s][\"below_resolution\"] for s in s_): flags.append(\"BELOW-RESOLUTION\")",
+     "file_sha256": "02d889849cffb69b061d881674befd2cfb733c4f8b87ab0b2d0ba16e50f77c8f",
+     "head_blob": "093c194c2798fc22fb1aaf5d82195e0c8c2468f0"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T2/devices/t2_judge.py",
+     "line": 160,
+     "source": "v = \"UNDECIDED (fails: %s)\" % \", \".join(fail)",
+     "file_sha256": "02d889849cffb69b061d881674befd2cfb733c4f8b87ab0b2d0ba16e50f77c8f",
+     "head_blob": "093c194c2798fc22fb1aaf5d82195e0c8c2468f0"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T2/PREREG_T2_carry_net_sizing_2026-09-13.md",
+     "line": 127,
+     "source": "- Flags that never change the verdict: `MULTIPLICITY-FRAGILE` (a PROMOTE-candidate whose CI99-K includes 0); `BELOW-RESOLUTION` (|Δg| < 0.23).",
+     "file_sha256": "981293b02b2ddae6574fa6dcf8db9b09a65cfa9f122a8b72d7e604ad5ec87eca",
+     "head_blob": "2eb35d46b14e97dd5fc57307631f56b031396e3a"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T2/receipts/RECEIPT_T2_judge.json",
+     "head_blob": "26266d53be0b4596993cc7c10a802a5b67232af8"
+    }
+   ]
+  },
+  {
+   "id": "F08",
+   "line": "T3",
+   "title": "passive reversal cost judge",
+   "classes": [
+    "COMPLIANT"
+   ],
+   "labels": [
+    "PASS",
+    "FAIL",
+    "UNDECIDABLE"
+   ],
+   "statistic": "c_eff bps per unit turnover",
+   "ci": "CI95 day block",
+   "band": "economic line 1.6 bps: PASS ⇔ CI upper < 1.6, FAIL ⇔ CI lower > 1.6",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T3/receipts/PASSIVE_REV.json"
+   ],
+   "relabel": "no label change possible (CI-based threshold test; UNDECIDABLE ≡ INCONCLUSIVE); value checked mechanically",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_passive_rev.py",
+     "line": 263,
+     "source": "if hi < GATE_BPS: v = \"PASS\"",
+     "file_sha256": "47acea7b4d5d3b48de6a5645fff1d3413c9e2a2489ea50083fa421f3a9627729",
+     "head_blob": "dea78c8e567e4b822c39d200458ab7de6582f82b"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_passive_rev.py",
+     "line": 265,
+     "source": "else: v = \"UNDECIDABLE\"",
+     "file_sha256": "47acea7b4d5d3b48de6a5645fff1d3413c9e2a2489ea50083fa421f3a9627729",
+     "head_blob": "dea78c8e567e4b822c39d200458ab7de6582f82b"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T3/receipts/PASSIVE_REV.json",
+     "head_blob": "496c94106e99461e298ea1813ef70209da054dc0"
+    }
+   ]
+  },
+  {
+   "id": "F09",
+   "line": "T1 H1/H1fuel",
+   "title": "state-mix cell verdict",
+   "classes": [
+    "SIG-ONLY-NULL",
+    "POINT-IN-BAND"
+   ],
+   "labels": [
+    "EXPLAINS",
+    "DOES-NOT-EXPLAIN",
+    "UNDECIDED",
+    "aggregate SURVIVES / FALSIFIED / NOT DECIDABLE"
+   ],
+   "statistic": "MIX (mix term) and D_T (price drop), bps/anchor; ratio MIX/D_T point",
+   "ci": "Bonferroni verdict interval vci (family K)",
+   "band": "DOES-NOT-EXPLAIN ⇔ D_T vci_hi < 0 ∧ (MIX vci ∋ 0 ∨ MIX/D_T < 0.25 on points)",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json"
+   ],
+   "relabel": "yes: R-T1H1 with D6",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_judge.py",
+     "line": 304,
+     "source": "elif sd_[\"vci_hi\"] < 0 and (sm_[\"vci_lo\"] <= 0 <= sm_[\"vci_hi\"] or ratio < 0.25): v = \"DOES-NOT-EXPLAIN\"",
+     "file_sha256": "9f6842ec0da80772a91f902096208dc6708c9448fdccfbad0e9012655527c0f0",
+     "head_blob": "c39ff9c2dcc729b4f94925007a60f142f116ff52"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_judge.py",
+     "line": 310,
+     "source": "if all(c == \"DOES-NOT-EXPLAIN\" for c in cells): return \"FALSIFIED\"",
+     "file_sha256": "9f6842ec0da80772a91f902096208dc6708c9448fdccfbad0e9012655527c0f0",
+     "head_blob": "c39ff9c2dcc729b4f94925007a60f142f116ff52"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/PREREG_T1_edge_diagnosis_2026-09-13.md",
+     "line": 110,
+     "source": "- 单格判定(S, T): **EXPLAINS** ⇔ D_T 判决区间上界 < 0 且 MIX 判决区间上界 < 0 且 MIX/D_T ≥ 0.5; **DOES-NOT-EXPLAIN** ⇔ D_T 判决区间上界 < 0 且(MIX 判决区间含 0 或 MIX/D_T < 0.25); 其余(含 D_T 不显著为负)= UNDECIDED。",
+     "file_sha256": "9548214267b5a44900ba90fee6b2fb2bbeb77964d562628b77678b16c56777f6",
+     "head_blob": "d15e8bdeb0cc4296ef266e1bc0e6390019660380"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json",
+     "head_blob": "95e8a020bcfa631e723d5e932d910592ee3721d3"
+    }
+   ]
+  },
+  {
+   "id": "F10",
+   "line": "T1 H3",
+   "title": "half-life cell verdict",
+   "classes": [
+    "POINT-IN-BAND"
+   ],
+   "labels": [
+    "HALF-LIFE",
+    "LEVEL",
+    "NO-DROP",
+    "UNDECIDED",
+    "aggregate SURVIVES / FALSIFIED / NOT DECIDABLE"
+   ],
+   "statistic": "ΔE1 (late-lag edge change) against 0.25·|E1_H1|",
+   "ci": "verdict interval vci (unused by NO-DROP)",
+   "band": "NO-DROP ⇔ ΔE1 point ≥ −0.25·|E1_H1|",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json"
+   ],
+   "relabel": "yes: R-T1H3 with D6",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_judge.py",
+     "line": 419,
+     "source": "elif dE1[\"point\"] >= -0.25 * abs(E1H): v = \"NO-DROP\"",
+     "file_sha256": "9f6842ec0da80772a91f902096208dc6708c9448fdccfbad0e9012655527c0f0",
+     "head_blob": "c39ff9c2dcc729b4f94925007a60f142f116ff52"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_judge.py",
+     "line": 426,
+     "source": "H3[\"verdict\"] = \"SURVIVES\" if \"HALF-LIFE\" in fcells else (\"FALSIFIED\" if all(c in (\"LEVEL\", \"NO-DROP\") for c in fcells) else \"NOT DECIDABLE\")",
+     "file_sha256": "9f6842ec0da80772a91f902096208dc6708c9448fdccfbad0e9012655527c0f0",
+     "head_blob": "c39ff9c2dcc729b4f94925007a60f142f116ff52"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/PREREG_T1_edge_diagnosis_2026-09-13.md",
+     "line": 132,
+     "source": "- 单格: **HALF-LIFE** ⇔ ΔE1 判决区间上界 < 0 且 E0_T ≥ 0.75·E0_H1 且 ΔE0 判决区间含 0(晚段边没了、早段边还在)。**LEVEL** ⇔ ΔE0 判决区间上界 < 0 且 (E0_T/E0_H1) ≤ (E1_T/E1_H1) + 0.25(早段跌得不比晚段少 = 整体水平下移, 不是半衰期)。**NO-DROP** ⇔ ΔE1 点估计 ≥ −0.25·|E1_H1|。其余 UNDECIDED。",
+     "file_sha256": "9548214267b5a44900ba90fee6b2fb2bbeb77964d562628b77678b16c56777f6",
+     "head_blob": "d15e8bdeb0cc4296ef266e1bc0e6390019660380"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json",
+     "head_blob": "95e8a020bcfa631e723d5e932d910592ee3721d3"
+    }
+   ]
+  },
+  {
+   "id": "F11",
+   "line": "T1 H5",
+   "title": "same-mechanism verdict",
+   "classes": [
+    "SIG-ONLY-NULL",
+    "POINT-IN-BAND"
+   ],
+   "labels": [
+    "SURVIVES (different mechanisms)",
+    "FALSIFIED (same mechanism)",
+    "NOT DECIDABLE"
+   ],
+   "statistic": "Δπ and Δσs (LIVE − 2023) on D2 / REAL / REAL scaled; |c1 difference|",
+   "ci": "verdict interval vci",
+   "band": "FALSIFIED ⇔ |c1d| ≤ 0.20 ∧ all six vci ∋ 0 ∧ |points| ≤ 0.25·|reference points|",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json"
+   ],
+   "relabel": "yes: R-T1H5 with D6",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_judge.py",
+     "line": 360,
+     "source": "elif c1d <= 0.20 and not any(excl(x) for x in (dpD, dsD, dpR, dsR, dpRs, dsRs)) and abs(dpD[\"point\"]) <= 0.25 * abs(pi23) and abs(dpR[\"point\"]) <= 0.25 * abs(pi23) and abs(dsD[\"point\"]) <= 0.25 * abs(ss23) and abs(dsR[\"point\"]) <= 0.25 * abs(ss23): v = \"FALSIFIED (same mechanism)\"",
+     "file_sha256": "9f6842ec0da80772a91f902096208dc6708c9448fdccfbad0e9012655527c0f0",
+     "head_blob": "c39ff9c2dcc729b4f94925007a60f142f116ff52"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/PREREG_T1_edge_diagnosis_2026-09-13.md",
+     "line": 146,
+     "source": "- **H5 存活(不同)** ⇔ |c1 差| ≥ 0.50 且(Δπ 在 D2 与 REAL 上判决区间都不含 0, 或 Δσs 在 D2 与 REAL 上判决区间都不含 0)。**H5 证伪(相同)** ⇔ |c1 差| ≤ 0.20 且四个判决区间都含 0 且 |Δπ| ≤ 0.25|π_2023|、|Δσs| ≤ 0.25|σs_2023|(D2 与 REAL 点估计)。其余不可判。F_H5 的 K = 4。",
+     "file_sha256": "9548214267b5a44900ba90fee6b2fb2bbeb77964d562628b77678b16c56777f6",
+     "head_blob": "d15e8bdeb0cc4296ef266e1bc0e6390019660380"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json",
+     "head_blob": "95e8a020bcfa631e723d5e932d910592ee3721d3"
+    }
+   ]
+  },
+  {
+   "id": "F12",
+   "line": "T1 H4",
+   "title": "compensation-ratio verdict",
+   "classes": [
+    "COMPLIANT"
+   ],
+   "labels": [
+    "SURVIVES",
+    "FALSIFIED",
+    "NOT DECIDABLE"
+   ],
+   "statistic": "ρ = price/carry compensation ratio vs half the H1 ratio",
+   "ci": "verdict interval vci",
+   "band": "FALSIFIED ⇔ vci_lo ≥ 0.5·ρ_H1 on all three live instruments (one-sided, CI-based)",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json"
+   ],
+   "relabel": "no (compliant; reference ρ_H1 at its point — declared boundary)",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_judge.py",
+     "line": 324,
+     "source": "elif H4[\"rho_LIVE_D2\"][\"vci_lo\"] >= half and H4[\"rho_LIVE_REAL\"][\"vci_lo\"] >= half and H4[\"rho_LIVE_REAL_scaled\"][\"vci_lo\"] >= half: v = \"FALSIFIED\"",
+     "file_sha256": "9f6842ec0da80772a91f902096208dc6708c9448fdccfbad0e9012655527c0f0",
+     "head_blob": "c39ff9c2dcc729b4f94925007a60f142f116ff52"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json",
+     "head_blob": "95e8a020bcfa631e723d5e932d910592ee3721d3"
+    }
+   ]
+  },
+  {
+   "id": "F13",
+   "line": "T1 H2",
+   "title": "settlement-interval engineering check",
+   "classes": [
+    "OUT-OF-SCOPE"
+   ],
+   "labels": [
+    "FALSIFIED",
+    "SURVIVES",
+    "NOT DECIDABLE"
+   ],
+   "statistic": "row-level equality of recorded vs snapped intervals",
+   "ci": "none (deterministic)",
+   "band": "explicit tolerance (all mismatches zero; relative diff ≤ 1e-3)",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/RECEIPT_T1_h2.json"
+   ],
+   "relabel": "no (deterministic tolerance)",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_h2.py",
+     "line": 110,
+     "source": "\"FALSIFIED\" if (H2[\"all_mismatch_live_zero\"] and H2[\"all_rel_diff_recorded_le_1e-3\"]) else",
+     "file_sha256": "b12bb8957423f685a39e7f8a5ce64071888f1e80b4bad0138c68195b2c52e3ed",
+     "head_blob": "25b95c8e27bcc3b61d805eb0d11ff0a4740011fc"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/RECEIPT_T1_h2.json",
+     "head_blob": "b02abffee9728866d8e6d1c7494a9a1645cdadbc"
+    }
+   ]
+  },
+  {
+   "id": "F14",
+   "line": "T1 position / addendum",
+   "title": "live window percentile readings",
+   "classes": [
+    "OUT-OF-SCOPE"
+   ],
+   "labels": [
+    "ANOMALOUS",
+    "WITHIN RANGE GIVEN STATE",
+    "INTERMEDIATE",
+    "ANOMALOUS-LOW",
+    "WITHIN RANGE"
+   ],
+   "statistic": "percentile of the live-window mean among historical window means",
+   "ci": "none (position in a reference distribution)",
+   "band": "explicit percentile cut-offs 0.025 / 0.10",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json",
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_addendum1.json"
+   ],
+   "relabel": "no (not a two-sample contrast; the reading already carries window-sampling variability)",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_judge.py",
+     "line": 402,
+     "source": "POS[\"reading\"] = (\"ANOMALOUS\" if all(cp[k] < 0.025 for k in (\"REAL\", \"REAL_scaled\", \"D2\")) else \"WITHIN RANGE GIVEN STATE\" if all(cp[k] >= 0.10 for k in (\"REAL\", \"REAL_scaled\", \"D2\")) else \"INTERMEDIATE\")",
+     "file_sha256": "9f6842ec0da80772a91f902096208dc6708c9448fdccfbad0e9012655527c0f0",
+     "head_blob": "c39ff9c2dcc729b4f94925007a60f142f116ff52"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/devices/t1_add_pod.py",
+     "line": 228,
+     "source": "res[\"price_reading\"] = \"ANOMALOUS-LOW\" if all(x < 0.025 for x in pps) else (\"WITHIN RANGE\" if all(x >= 0.10 for x in pps) else \"INTERMEDIATE\")",
+     "file_sha256": "ff6aa93967ade58edc683522814708c3761e3fea8d10722bd518226c8287b3bf",
+     "head_blob": "22b88ffd0da0d31272593d13875da7cead5e6acb"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_judge.json",
+     "head_blob": "95e8a020bcfa631e723d5e932d910592ee3721d3"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T1/receipts/pod2/RECEIPT_T1_addendum1.json",
+     "head_blob": "e3a7f8cfddb048b004f4a92ad850dd4829733fec"
+    }
+   ]
+  },
+  {
+   "id": "F15",
+   "line": "T5",
+   "title": "TC2 name overlap reading",
+   "classes": [
+    "OUT-OF-SCOPE"
+   ],
+   "labels": [
+    "SAME NAMES",
+    "PARTIAL",
+    "DIFFERENT NAMES"
+   ],
+   "statistic": "M1 = loss share of August cohort names (full population, no resampling)",
+   "ci": "none",
+   "band": "explicit cut-offs 0.5 / 0.2 on a deterministic ratio",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5/receipts/pod2/RECEIPT_T5_bridge.json"
+   ],
+   "relabel": "no (deterministic descriptor)",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5/devices/t5_bridge.py",
+     "line": 426,
+     "source": "TC2 = dict(n_E2a=len(E2), n_0906=int(d0906.sum()), n_C_Aug=int(CAug.sum()), M1=M1, M2=M2, M3=M3, reading=(\"SAME NAMES\" if M1 >= 0.5 else (\"DIFFERENT NAMES\" if M1 <= 0.2 else \"PARTIAL\")),",
+     "file_sha256": "d5e84953e24f523125b831a1908731ed19953e744230619efa8d41a873d58f38",
+     "head_blob": "c30173a992780d05cd99634bec1f372cfa9f5f4f"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T5/receipts/pod2/RECEIPT_T5_bridge.json",
+     "head_blob": "839968331d14f5f89a6de925c44fa56ff8253dd0"
+    }
+   ]
+  },
+  {
+   "id": "F16",
+   "line": "T8",
+   "title": "book-perception gate: FAIL written as 'cannot predict'",
+   "classes": [
+    "FAILED-GATE-AS-ABSENCE"
+   ],
+   "labels": [
+    "PASS",
+    "UNDECIDED",
+    "FAIL",
+    "INVALID"
+   ],
+   "statistic": "pooled OOS r per model × target × seed (NET / LONG / SHORT)",
+   "ci": "CI95 k=0 and k=9 per cell (C3)",
+   "band": "usefulness line r ≥ 0.03 (C1) is required to PASS; FAIL does not require r's CI upper < 0.03",
+   "result": [
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T8/receipts/pod2/RECEIPT_T8_judge.json",
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T8/receipts/pod2/RECEIPT_T8_fit.json"
+   ],
+   "relabel": "yes: one-sided R-LINE with D7 (per cell), aggregated by T8 §8 shape",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T8/devices/t8_judge.py",
+     "line": 33,
+     "source": "c1 = bool(FIN(r) and r >= 0.03)",
+     "file_sha256": "57d8f019bb7e4a22893b9938e01145f2c28781777ae10354c6c68232d8375fb6",
+     "head_blob": "f811d70c8cf4460dabfad24318fd8e4640fa9fd0"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T8/devices/t8_judge.py",
+     "line": 96,
+     "source": "overall = \"FAIL\"",
+     "file_sha256": "57d8f019bb7e4a22893b9938e01145f2c28781777ae10354c6c68232d8375fb6",
+     "head_blob": "f811d70c8cf4460dabfad24318fd8e4640fa9fd0"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T8/PREREG_T8.md",
+     "line": 195,
+     "source": "**后果(冻结)**: FAIL ⇒ 「在本分辨率下, 这组锚时状态(§4)与这个模型家族(§5)不能预测下一锚书收益; 建立在这组状态上的监控 / 调节层是装饰」—— 限定于本状态集、本家族、本分辨率, 不是普遍不可能。PASS ⇒ 只开 S2 预注册, 范围限于过门的目标; 不产生书行为提案; S2 必须处理 §9 第 1–2 条。UNDECIDED ⇒ 报告缺哪一条, 不开 S2。",
+     "file_sha256": "53da0bcc948b2ed417ec505888f95c96c615e201ad2c57bdf549ea4ece884f8a",
+     "head_blob": "c7f582f0ad8a0fbeab41dcd8aa1c1f8dfcc85324"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T8/receipts/pod2/RECEIPT_T8_judge.json",
+     "head_blob": "4f38d2c2ca0e233b3dac87138bbe11a18b894d2f"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T8/receipts/pod2/RECEIPT_T8_fit.json",
+     "head_blob": "e71aaa92d25801a6f7fab1b2d3cfb1bdef5cb148"
+    }
+   ]
+  },
+  {
+   "id": "F17",
+   "line": "T4 live / T4b",
+   "title": "live-window descriptive judges and parity gates",
+   "classes": [
+    "OUT-OF-SCOPE"
+   ],
+   "labels": [
+    "(descriptive only)",
+    "gate PASS/FAIL (bitwise / tolerance)"
+   ],
+   "statistic": "per-anchor deltas; bitwise equality",
+   "ci": "descriptive / none",
+   "band": "n/a",
+   "result": [],
+   "relabel": "no",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T4/devices/t4_live_judge.py",
+     "line": 3,
+     "source": "live-window deltas of arm v0 versus arm served (41 chained anchors 2026-09-05 16Z .. 09-12 08Z). Descriptive only; no verdict.",
+     "file_sha256": "08b611294325216d8ea6b4903167a651cc2e2952de8eda59ae946da6c7aa2993",
+     "head_blob": "eda1eec5fdba06eda28d0a767c02f056619b8e88"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T4b/devices/t4b_live_judge.py",
+     "line": 4,
+     "source": "feed), seatK1 (parity devices; seat history with the 09-05 seeded king rows re-scored with column 80 = v1). Descriptive only.",
+     "file_sha256": "5d886127177b9e566f1ea6e21a14f43641e20fc176bce4db3368f26578f4f225",
+     "head_blob": "9f59dd4951f3326da93244a227849f2ab1420d0a"
+    }
+   ],
+   "result_files": []
+  },
+  {
+   "id": "F18",
+   "line": "L2",
+   "title": "squeeze-direction gate fail labels",
+   "classes": [
+    "FAILED-GATE-AS-ABSENCE"
+   ],
+   "labels": [
+    "PASS",
+    "FAIL + fail_label DIRECTION-ABSENT / UNSTABLE / NOT-BEYOND-FUNDING / VARIANCE / NULL / SHIFT / PRECONDITION"
+   ],
+   "statistic": "G (top-decile minus population), dG vs BASE, per model × target × seed",
+   "ci": "CI (boot_ci) per statistic",
+   "band": "none: DIRECTION-ABSENT ⇐ ¬(G < 0 ∧ G_ci upper < 0); NOT-BEYOND-FUNDING ⇐ ¬(dG < 0 ∧ dG_ci upper < 0)",
+   "result": [],
+   "relabel": "no committed judge result yet — red test + adoption before the L2 judge runs",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L2/devices/l2_b_common.py",
+     "line": 292,
+     "source": "c1 = cell[\"G\"] < 0 and cell[\"G_ci\"][1] < 0",
+     "file_sha256": "cd9cd129b520d4e4c4238750c1380b7626d8927a509220cc2c56e4db6bb9d9df",
+     "head_blob": "53f8833555d6e8bca9f5fc215b6467f414a2e849"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L2/devices/l2_b_common.py",
+     "line": 294,
+     "source": "c3 = cell[\"dG\"] < 0 and cell[\"dG_ci\"][1] < 0",
+     "file_sha256": "cd9cd129b520d4e4c4238750c1380b7626d8927a509220cc2c56e4db6bb9d9df",
+     "head_blob": "53f8833555d6e8bca9f5fc215b6467f414a2e849"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L2/devices/l2_b_judge.py",
+     "line": 133,
+     "source": "fail_label = None if verdict == \"PASS\" else (\"PRECONDITION\" if not pre_ok else labels[order[depth(best)]])",
+     "file_sha256": "ed6b3cb89b3f6aad28fd260e689e759438c2dacf243db0875da9a8ad8452ff3c",
+     "head_blob": "f4849fc52c8f4770239dd1ce8cb9aa5460a9a844"
+    }
+   ],
+   "result_files": []
+  },
+  {
+   "id": "F19",
+   "line": "L4",
+   "title": "carry-sleeve hysteresis study verdict",
+   "classes": [
+    "OUT-OF-SCOPE"
+   ],
+   "labels": [
+    "PASS",
+    "FAIL",
+    "NOT PASS (multiplicity)"
+   ],
+   "statistic": "admission rule P0–P3 per arm; nested selection",
+   "ci": "circular 30-day block CI (P2a/P2b)",
+   "band": "admission: FAIL = no arm PASS_unadj (not an equivalence claim); P3 ρ ≤ 0.30 applied to point estimates (adjacent family)",
+   "result": [
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L4/receipts/pod2/RECEIPT_L4_run.json"
+   ],
+   "relabel": "labels: no; RESULT prose checked for equivalence wording after the δ freeze (D2/D3)",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L4/devices/l4_run.py",
+     "line": 477,
+     "source": "elif not unadj: verdict = \"FAIL\"",
+     "file_sha256": "cfa2517120979a46881eae42e4968a34a8d529e8fc817a0a54e16e45a0fc8a22",
+     "head_blob": "ae4f6f772df58569da552f7b99497e8078da62a0"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L4/devices/l4_run.py",
+     "line": 391,
+     "source": "P3 = all(v is not None and math.isfinite(v) and v <= 0.30 for v in rh)",
+     "file_sha256": "cfa2517120979a46881eae42e4968a34a8d529e8fc817a0a54e16e45a0fc8a22",
+     "head_blob": "ae4f6f772df58569da552f7b99497e8078da62a0"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L4/receipts/pod2/RECEIPT_L4_run.json",
+     "head_blob": "96e55e87ca3522e47db7e3b9788b68c2bc921d8a"
+    }
+   ]
+  },
+  {
+   "id": "F20",
+   "line": "L4b",
+   "title": "executable-marks survival",
+   "classes": [
+    "OUT-OF-SCOPE"
+   ],
+   "labels": [
+    "survives / no arm survives"
+   ],
+   "statistic": "admission rule per arm",
+   "ci": "circular block CI",
+   "band": "admission; P3 ρ ≤ 0.30 on points (adjacent)",
+   "result": [
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L4b/receipts/pod2/RECEIPT_L4b_marks.json"
+   ],
+   "relabel": "labels: no; prose checked after the δ freeze",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L4b/devices/l4b_marks.py",
+     "line": 464,
+     "source": "F2_statement=(\"no arm survives\" if not surv else \"surviving arms: \" + \", \".join(surv)), R3_flagged_zeroed=R3_flag, N_F2=8, cumulative_ledger=20,",
+     "file_sha256": "19b8595d3be927a86f01c97797d736b4ce240fcc2636ca19c084f5f6d4a18988",
+     "head_blob": "5c7232a2a23da3ce78df51cf5bb6865f0e974e8b"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L4b/devices/l4b_marks.py",
+     "line": 453,
+     "source": "P3 = all(math.isfinite(x) and x <= 0.30 for s in rho.values() for x in s.values())",
+     "file_sha256": "19b8595d3be927a86f01c97797d736b4ce240fcc2636ca19c084f5f6d4a18988",
+     "head_blob": "5c7232a2a23da3ce78df51cf5bb6865f0e974e8b"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/uplift_r3_2026-09-13/L4b/receipts/pod2/RECEIPT_L4b_marks.json",
+     "head_blob": "2008ee0091219d2f939068fb5d822a6b42886528"
+    }
+   ]
+  },
+  {
+   "id": "F21",
+   "line": "v4 chain",
+   "title": "judge_v4 verdicts and their restatement in decision documents",
+   "classes": [
+    "PROSE-EQUIVALENCE"
+   ],
+   "labels": [
+    "(A) PROMOTE / (A) INFO",
+    "(B) REJECT",
+    "(C) UNDECIDED (device) → '(C) 不可区分' (documents)"
+   ],
+   "statistic": "paired Δg(arm − base), frozen window, per seat × seed",
+   "ci": "CI95 UTC-day block bootstrap 2000",
+   "band": "device: none needed ((C) never 'non-inferior'); documents: none (read as indistinguishable)",
+   "result": [
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/JUDGE_v4.json",
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/JUDGE_v4_g3_s2027.json",
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/JUDGE_v4e_hardened.json",
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/JUDGE_v4e_informational.json"
+   ],
+   "relabel": "yes: equivalence axis R-EQ with D1 on every contrast; document readings re-stated",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py",
+     "line": 346,
+     "source": "v = \"(A) PROMOTE\" if all(x[\"delta\"] > 0 and x[\"ci95\"][0] > 0 for x in r) else (\"(B) REJECT\" if all(x[\"ci95\"][1] < 0 for x in r) else \"(C) UNDECIDED\")",
+     "file_sha256": "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba",
+     "head_blob": "7a7d36fa0c37712babf075d1aeb2eb8f17ecf47d"
+    },
+    {
+     "file": "docs/RESULT_v4_chain_retrain_quantify_2026-09-09.md",
+     "line": 10,
+     "source": "5. **主判 A1−A0 双种子(07:05Z, legs v4b): 动态 +0.061 [−0.168, +0.287] / +0.048 [−0.171, +0.270]; 固定 +0.005 [−0.076, +0.087] / −0.010 [−0.102, +0.088] ⇒ (C) UNDECIDED 两席位** — 全量重训(正确数据/特征/口径)的书与在役形态统计上不可区分。按 §3 (C)+门绿 ⇒ 呈候选(口径纠正措辞), V4 跨机门因 jpline 不可达未做; 换装归用户对 bundle 给字。(§3d)",
+     "file_sha256": "542c2d93d3e291aa074b65f5399f240549e2d9776dc70430c40bd9804ee8c7de",
+     "head_blob": "02268af22552a979ccd6e53ff5d857e848edba60"
+    },
+    {
+     "file": "docs/STATUS_three_questions_2026-09-12.md",
+     "line": 128,
+     "source": "- **模型**(king v3 LGBM + F10/V2MAIN DL, 09-01 bundle): 训练在旧链(2022 缺洞 49 名×5 天 / king 特征 E−w 未 clamp 回绕 138 锚 / DL 标签裁剪复利 / epoch 无约束 argmax)。每处缺陷都量化过, 书层影响 ±0.1–0.3 bps/锚, 且 v4 全量重训 vs 在役 (C) 不可区分(+0.061 [−0.168, +0.287]) ⇒ 裁定不换。**十月按 §v4 重训, 前提是先把 RUNBOOK_2026-10 §2–§4 的 v3 原文标作废、只留 §v4 步骤单, 并裁定出口门(PROPOSED2 v2 门)。**",
+     "file_sha256": "e06a5b1d43dcbc7c931a9670012814ee0276184d43ca142adb94cc774bc75452",
+     "head_blob": "7d69be70552c68bbbcf16e5ad75e3cdae818082f"
+    },
+    {
+     "file": "docs/RULINGS_requested_2026-09-12.md",
+     "line": 14,
+     "source": "| R-8 | **十月重训**(G3) | §0★ 修订 2: 三处代码改动完成前不得开始; W3 在做 | A 改完并经研究员复核后按 §0★ 执行; B 十月跳过, 影子继续 09-01 bundle | B 的代价: 模型再旧一个月(正确口径下 (C) 不可区分) | A 若 W3 收据 + 复核在 9-30 前完成, 否则 B |",
+     "file_sha256": "987d8eb5664b7e93b8bb56bcb3c12e78215b5a4011dfa1d80be7c26d3013151d",
+     "head_blob": "4fdaa90e4873cd940c4555f1ab38aa8a507ee8bc"
+    },
+    {
+     "file": "docs/RUNBOOK_monthly_retrain_2026-10.md",
+     "line": 45,
+     "source": "- 完成前, 十月重训的正确姿势 = **不做**; 若届时未完成, 影子继续跑 09-01 bundle(在役模型腿在正确口径下 (C) 不可区分, 见 CALIBER_STATUS 09-09)。",
+     "file_sha256": "01c0767375b681d4b18c5f8f76c2a4287d238f00620b63dfc2dac182cefdafbf",
+     "head_blob": "5edfe98db3596c1fc7d7945985d68407143cda40"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/JUDGE_v4.json",
+     "head_blob": "c46944bd7c0d98b6a5680d239ddce536eabe895d"
+    },
+    {
+     "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/JUDGE_v4_g3_s2027.json",
+     "head_blob": "cb881e1802843a88f4a153c28957965cdbb38a60"
+    },
+    {
+     "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/JUDGE_v4e_hardened.json",
+     "head_blob": "ffdf9a02eb245967961590a2da5c0d22cc88456f"
+    },
+    {
+     "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/JUDGE_v4e_informational.json",
+     "head_blob": "69ff299515c90b49f2b93026adba1c1bcfc7b845"
+    }
+   ]
+  },
+  {
+   "id": "F22",
+   "line": "P2 S2 (in flight)",
+   "title": "gate library A6.7 verdict: '(C) indistinguishable'",
+   "classes": [
+    "POINT-IN-BAND",
+    "PRECEDENCE"
+   ],
+   "labels": [
+    "(C) indistinguishable (|Δg| < 0.23)",
+    "(A)",
+    "(B)",
+    "(C) UNDECIDED"
+   ],
+   "statistic": "paired Δg per contrast × window, both seeds",
+   "ci": "CI95 k=0 (k=9 re-read)",
+   "band": "|Δg| < 0.23 on the POINT of either seed, evaluated before (A)/(B); 0.23 is the r15/r18 bootstrap resolution, not an economic band",
+   "result": [],
+   "relabel": "no committed S2 table yet — red test + adoption before p2_s2_tables runs",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/parity_replay_2026-09-12/phase2/devices/p2_s2_lib.py",
+     "line": 375,
+     "source": "if any(abs(x) < RES_BPS for x in dg): return \"(C) indistinguishable (|Δg| < 0.23)\"",
+     "file_sha256": "c53f5c495036727fcd7115bad6838229923c91f6b76bed955ebdb0f25d57c831",
+     "head_blob": "a2f44e602fa734203c1a82413610a71af0a3c8d3"
+    },
+    {
+     "file": "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md",
+     "line": 271,
+     "source": "- 判词只在双种子对照上下、且只用于 P2-CMB 对照。规则(v4 同 + 原 §3 分辨率): 对每个(对照, 窗), **任一种子 |Δg| < 0.23 bps/锚/gross ⇒「(C) 不可区分」**; 否则两种子均 Δg > 0 且 CI95(k = 0)下界 > 0 ⇒ **(A)**(Δ > 0 可分辨); 两种子 CI95 上界 < 0 ⇒ **(B)**(Δ < 0 可分辨); 其余 ⇒ **(C) UNDECIDED**。k = 9 按同规则另判; 与 k = 0 的词不同 ⇒ 列入「矛盾」, 判词仍取 k = 0。ΔSharpe 只报 CI 不下词。(A) / (B) 只表示差的符号可分辨, 不是任何改动的晋级 / 否决。",
+     "file_sha256": "bc57266e5abf103926b2231facb4b12b28137565760ea34b4e8fc49c2cf15769",
+     "head_blob": "c3a111777b71b2ffd77663c79da3233370288458"
+    },
+    {
+     "file": "multi_asset/exports/research/uplift_r2_2026-09-13/T2/PREREG_T2_carry_net_sizing_2026-09-13.md",
+     "line": 10,
+     "source": "**Ceiling, frozen before any number (program P5).** Uncompensated carry ≈ 0.480 × 0.23 ≈ **0.11 bps/anchor/unit gross ⇒ ≤ +0.2 Sharpe**. A Δg point estimate above **1.5 × 0.11 = 0.165** is treated as a leakage suspect first (§7), not as a win. The bootstrap resolution of this window is 0.23 bps/anchor (r15 §6): the ceiling sits below it, so a PROMOTE-candidate here needs a tight paired CI, not a l",
+     "file_sha256": "981293b02b2ddae6574fa6dcf8db9b09a65cfa9f122a8b72d7e604ad5ec87eca",
+     "head_blob": "2eb35d46b14e97dd5fc57307631f56b031396e3a"
+    }
+   ],
+   "result_files": []
+  },
+  {
+   "id": "F23",
+   "line": "R22 v1 (superseded)",
+   "title": "materiality FIT verdict",
+   "classes": [
+    "COMPLIANT"
+   ],
+   "labels": [
+    "FIT-STRICT",
+    "FIT",
+    "PARTIALLY-FIT",
+    "UNFIT"
+   ],
+   "statistic": "U_mean = |mean| + CI half-width",
+   "ci": "CI95 day block",
+   "band": "explicit (0.002 / 0.00667 / 0.2); defect in the CI bound (|m|+half-width) already corrected by v2 (reviewer 0158f5d1)",
+   "result": [],
+   "relabel": "no (superseded; retained byte-identical)",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/parity_replay_2026-09-12/devices/materiality_probe.py",
+     "line": 307,
+     "source": "if U_mean <= FIT_STRICT_MEAN and U_max <= FIT_STRICT_MAX:",
+     "file_sha256": "371c3b7bddbd66925a26a95ab89359d5e46a7bf01c8a491b67a3bc551fc05cf7",
+     "head_blob": "26a0292d95790b39cb7a1f522fb5e6ecb9b99409"
+    }
+   ],
+   "result_files": []
+  },
+  {
+   "id": "F24",
+   "line": "R22 v2",
+   "title": "baseline-residual scale statement",
+   "classes": [
+    "COMPLIANT"
+   ],
+   "labels": [
+    "BASELINE-RESIDUAL-FAR-BELOW-0.02-0.6-SCALE",
+    "…-COMPARABLE-TO-…",
+    "…-ABOVE-…"
+   ],
+   "statistic": "mean Δg, U_endpoint = max(|lo|, |hi|)",
+   "ci": "CI95 day block",
+   "band": "U ≤ 0.02/3 (closed boundary) — a TOST-shaped statement",
+   "result": [
+    "multi_asset/exports/research/parity_replay_2026-09-12/RESULT_materiality_2026-09-13.md"
+   ],
+   "relabel": "no (compliant); boundary convention noted (closed ≤ vs module strict <)",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/parity_replay_2026-09-12/devices/materiality_probe_v2.py",
+     "line": 253,
+     "source": "if U <= SCALE_FAR:",
+     "file_sha256": "ffa290aa92990d7d191c5bdda24acbddbaec87c8f7f5240fb59383c867157d36",
+     "head_blob": "eee9cacd4baab2eacb4de8ac4e37d8be53f38957"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/parity_replay_2026-09-12/RESULT_materiality_2026-09-13.md",
+     "head_blob": "f37027b4392807ae7cb6322a5b3f40dd37f72d39"
+    }
+   ]
+  },
+  {
+   "id": "F25",
+   "line": "P2 G2 gates",
+   "title": "producer parity gates",
+   "classes": [
+    "OUT-OF-SCOPE"
+   ],
+   "labels": [
+    "gate PASS / RED"
+   ],
+   "statistic": "L∞ of weights / targets",
+   "ci": "none (deterministic)",
+   "band": "explicit tolerance 1e-6",
+   "result": [
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2/receipts/G2C_verdict.json"
+   ],
+   "relabel": "no (deterministic; K3 owns its anchor binding)",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/parity_replay_2026-09-12/phase2/devices/p2_g2c_judge.py",
+     "line": 41,
+     "source": "combo_ok = all(v[\"combo_rc\"] == 0 and v[\"target_live_Linf\"] is not None and v[\"target_live_Linf\"] <= 1e-6 and v[\"rc_line\"] == \"rc=0\" for v in snap.values())",
+     "file_sha256": "4951caf1526bc73b6483f9aca887d4d11c6e847c6f31c54f39a5c1899f3469ca",
+     "head_blob": "b388d24e944a0b027ec8109acd4c9469ba58c298"
+    }
+   ],
+   "result_files": [
+    {
+     "file": "multi_asset/exports/research/parity_replay_2026-09-12/phase2/receipts/G2C_verdict.json",
+     "head_blob": "bcdf27be1da97b1cd5325665dbb11a8aae242bba"
+    }
+   ]
+  },
+  {
+   "id": "F26",
+   "line": "v4 chain tests",
+   "title": "consumer of the (C) UNDECIDED string",
+   "classes": [
+    "OUT-OF-SCOPE"
+   ],
+   "labels": [
+    "assertion on '(C) UNDECIDED'"
+   ],
+   "statistic": "n/a",
+   "ci": "n/a",
+   "band": "n/a",
+   "result": [],
+   "relabel": "no; any adoption that renames (C) must update this assertion in the same change",
+   "anchors": [
+    {
+     "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/tests_pipeline_gates.py",
+     "line": 545,
+     "source": "and all(v == \"(C) UNDECIDED\" for k, v in j[\"verdicts\"].items() if not k.startswith(\"A1e\")), (rc, j and j[\"eligible_arms\"], j and sorted(set(j[\"verdicts\"].values()))))",
+     "file_sha256": "a3af858dd76d5a09ef570aea4ef02fcc1ee295532fedf6ea3195cc9d4421fd2b",
+     "head_blob": "83eacdc664dc87f953b6f7c450c6caacd0132166"
+    }
+   ],
+   "result_files": []
+  }
+ ],
+ "scanned_no_family": {
+  "multi_asset/exports/research/uplift_r2_2026-09-13/T6/devices": {
+   "reason": "PBO / DSR / nested statistics; no no-difference label (reviewer R4-R2..R4-R4 cover its reading issues)",
+   "vocabulary_hits": []
+  },
+  "multi_asset/exports/research/uplift_r2_2026-09-13/T7/devices": {
+   "reason": "data feasibility only; no return statistic",
+   "vocabulary_hits": []
+  },
+  "multi_asset/exports/research/uplift_r3_2026-09-13/L3/devices": {
+   "reason": "data feasibility only; no return statistic",
+   "vocabulary_hits": []
+  }
+ },
+ "vocabulary_regex": "NOT.?MATERIAL|INDISTINGUISH|indistinguish|NEGLIGIBLE|negligible|NON.?INFERIOR|non.?inferior|NOT.?WORSE|not.?worse|SAME.?LOSS|OWN LOSS|SAME LEVEL|SAME NAMES|DOES-NOT-EXPLAIN|NO-DROP|WITHIN RANGE|DIRECTION-ABSENT|NOT-BEYOND|\\\"CLOSES\\\"|不可区分|不劣|追平|持平|可忽略",
+ "tier2_closed_program_hits": [
+  {
+   "file": "multi_asset/exports/research/uplift_2026-09-11/infra2/judge_v4.PROPOSED.py",
+   "line": 5,
+   "text": "(A) point>0 and CI lower>0 on both; (B) CI upper<0 on both; (C) otherwise UNDECIDED (never 'non-inferior'). Levels: full-cycle yearly table (negative years explicit,"
+  },
+  {
+   "file": "multi_asset/exports/research/uplift_2026-09-11/infra2/judge_v4.PROPOSED.py",
+   "line": 325,
+   "text": "print(\"\\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==\")"
+  },
+  {
+   "file": "multi_asset/exports/research/uplift_2026-09-11/r14_estimand/devices/r14_flip.py",
+   "line": 110,
+   "text": "\"drift is measured separately in RECEIPT_r14_intent and is indistinguishable from zero.\"}"
+  },
+  {
+   "file": "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing/devices/r17_judge.py",
+   "line": 229,
+   "text": "elif all(abs(c[s][\"dg\"]) < RES_BPS for s in SEEDS): v = \"CLOSES\""
+  },
+  {
+   "file": "multi_asset/exports/research/uplift_2026-09-11/r11_costtruth/scripts/r11_reprice.py",
+   "line": 81,
+   "text": "print(f\"  Sharpe in SE units: {SR_NEW/SE_SR:.3f}  -> {'INDISTINGUISHABLE FROM ZERO' if SR_NEW < 2*SE_SR else 'still > 2 SE'}\")"
+  },
+  {
+   "file": "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band/devices/analyze16.py",
+   "line": 224,
+   "text": "V[xm] = {\"a_dg_pos_both\": ca, \"b_bonf_s42_and_ci_s2027\": cb, \"c_beats_3_nulls_both\": cc, \"d_tail_not_worse\": cd, \"e_lambda_sign_stable\": ce, \"f_construction_X4_lt_X0\": constr, \"verdict\": verdict}"
+  },
+  {
+   "file": "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge/devices/r21_bridge.py",
+   "line": 380,
+   "text": "ruling = \"REPLAY_OVERCHARGES_vs_OWN_REFERENCE\" if lo > 0 else (\"REPLAY_UNDERCHARGES_vs_OWN_REFERENCE\" if hi < 0 else \"INDISTINGUISHABLE\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/jp_regime_arms_judge.py",
+   "line": 1,
+   "text": "\"\"\"跨regime战役统一判官 @jpline: 各臂(seat_*/band_*) vs 基线 canonpred_s42(msharpe, 无trim): 2023+ ΔNet 块自举CI / 分年净&夏普 / ES5 / 最坏五分位 / 急跌锚净 / 换手变化。判据(冻结见 PREREG_xregime_2026-09-02): ΔNet CI下界>0 且 逐年无 <-0.3 且 ES5 "
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/jp_universe_judge.py",
+   "line": 1,
+   "text": "\"\"\"宇宙 A/B 判官 @jpline(PREREG addendum §B 判据逐字): U1/U2 vs U0 — ΔNet CI>0 双种子 / ES5 不劣化>10% / 负档空头暴露增幅<=50%; 另报最坏五分位与 U∞ 参照。\"\"\""
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/w10_ftrim_band.py",
+   "line": 33,
+   "text": "_CFG = {\"FTRIM_MODE\": FTRIM_MODE, \"FTRIM_LO\": FTRIM_LO, \"FTRIM_HI\": FTRIM_HI, \"FTRIM_STAGE\": FTRIM_STAGE,  # E-0902-B: 频带键此前缺席自报, 臂产物与基线 config 不可区分"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/w10_side_band.py",
+   "line": 36,
+   "text": "_CFG = {\"W3FIX\": W3FIX, \"SIDE_KAPPA\": SIDE_KAPPA, \"FTRIM_MODE\": FTRIM_MODE, \"FTRIM_LO\": FTRIM_LO, \"FTRIM_HI\": FTRIM_HI, \"FTRIM_STAGE\": FTRIM_STAGE,  # E-0902-B: 频带键此前缺席自报, 臂产物与基线 config 不可区分"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_trainfrac_2026-09-07/scripts/judge_trainfrac.py",
+   "line": 108,
+   "text": "# ── §4.3 non-inferiority leg, CORRECT form (E-0907-F): judge CI lower > -delta ──"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_trainfrac_2026-09-07/scripts/judge_trainfrac.py",
+   "line": 109,
+   "text": "p(f\"\\n## TF-5 · §4.3 non-inferiority vs yearly_s42 — **proper test at δ={DELTA} (E-0907-F): pass ⇔ CI lower > −δ**\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_trainfrac_2026-09-07/scripts/judge_trainfrac.py",
+   "line": 120,
+   "text": "O[\"reading\"][\"non_inferiority\"] = ni"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/seat_round2_2026-09-05/judge_seat2.py",
+   "line": 15,
+   "text": "else 不变差 (not-worse) iff all four cells CI95 upper > 0 AND (#cells with point estimate >= 0) >= 3 AND all four cells maxDD(2025->26) <= 1.10 × maxDD_B0(2025->26);"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/seat_round2_2026-09-05/judge_seat2.py",
+   "line": 269,
+   "text": "notworse = all(c[\"CI_upper>0\"] for c in cs) and sum(c[\"point>=0\"] for c in cs) >= 3 and all(c[\"maxDD<=B0*1.10\"] for c in cs)"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/seat_round2_2026-09-05/judge_seat2.py",
+   "line": 270,
+   "text": "v = \"REJECT\" if reject else (\"ADMIT-candidate\" if admit else (\"不变差\" if notworse else \"UNDECIDED\"))"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/seat_round2_2026-09-05/judge_seat2.py",
+   "line": 292,
+   "text": "OUT[\"best\"] = {\"arm\": None, \"rule\": \"no ADMIT candidate; 不变差 arms listed in mechanism (PREREG table) order, NOT recommended for deployment\", \"notworse_arms\": nw}"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_costdose_2026-09-08/scripts/judge_costdose.py",
+   "line": 156,
+   "text": "O[\"reading\"][\"non_inferiority\"]=ni"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_monthly_wf_2026-09-05/judge_dl.py",
+   "line": 9,
+   "text": "Frozen comparison (lead): \"monthly not worse than yearly\" ⇔ 2025->26 CI95 upper of Δg > 0 AND ΔIC (2025->26<=cut, ic_monthly.py) ≥ 0. No admission decision."
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_monthly_wf_2026-09-05/judge_dl.py",
+   "line": 90,
+   "text": "c[\"monthly_not_worse_than_yearly\"] = bool(c[\"book_CI95_upper>0\"] and c[\"ic_delta>=0\"]) if (d and ic) else None"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_monthly_wf_2026-09-05/judge_dl.py",
+   "line": 92,
+   "text": "print(f\"\\n===== FROZEN COMPARISON [{T}] 'monthly not worse than yearly' = 2025->26 CI95 upper > 0 AND ΔIC >= 0: \" + (f\"book Δg {d['mean']:+.4f} [{d['lo']:+.4f},{d['hi']:+.4f}] upper>0={c['book_CI95_up"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_monthly_wf_2026-09-05/judge_dl.py",
+   "line": 93,
+   "text": "+ (f\"ΔIC {ic['mean']:+.4f} ± {ic['se_anchor']:.4f} CI [{ic['ci95_dayblock'][0]:+.4f},{ic['ci95_dayblock'][1]:+.4f}] >=0={c['ic_delta>=0']}; \" if ic else \"IC n/a; \") + f\"⇒ {c['monthly_not_worse_than_ye"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_monthly_wf_2026-09-05/render_report.py",
+   "line": 93,
+   "text": "P(\"\\n## T8 · Frozen comparison (lead's rule: 'monthly not worse than yearly' ⇔ 2025→26 CI95 upper of Δ(net_ex per gross) > 0 AND ΔIC ≥ 0; no admission decision)\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_monthly_wf_2026-09-05/render_report.py",
+   "line": 94,
+   "text": "P(\"| variant | book Δg 2025→26 [CI95] (spliced, primary) | upper>0 | pure-file sensitivity Δg [CI95] | ΔIC 2025→26 ± s.e. [CI95] | ΔIC≥0 | not worse |\"); P(\"|---|---|---|---|---|---|---|\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/dl_monthly_wf_2026-09-05/render_report.py",
+   "line": 100,
+   "text": "P(f\"| {t} | {sd} | {c['book_CI95_upper>0']} | {sdp} | {sic} | {c['ic_delta>=0']} | **{c['monthly_not_worse_than_yearly']}** |\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py",
+   "line": 5,
+   "text": "(A) point>0 and CI lower>0 on both; (B) CI upper<0 on both; (C) otherwise UNDECIDED (never 'non-inferior'). Levels: full-cycle yearly table (negative years explicit,"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py",
+   "line": 335,
+   "text": "print(\"\\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r1_23c2cda7.py",
+   "line": 5,
+   "text": "(A) point>0 and CI lower>0 on both; (B) CI upper<0 on both; (C) otherwise UNDECIDED (never 'non-inferior'). Levels: full-cycle yearly table (negative years explicit,"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r1_23c2cda7.py",
+   "line": 82,
+   "text": "print(\"\\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r2_17b562fd.py",
+   "line": 5,
+   "text": "(A) point>0 and CI lower>0 on both; (B) CI upper<0 on both; (C) otherwise UNDECIDED (never 'non-inferior'). Levels: full-cycle yearly table (negative years explicit,"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r2_17b562fd.py",
+   "line": 82,
+   "text": "print(\"\\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r3_8b2c13b7.py",
+   "line": 5,
+   "text": "(A) point>0 and CI lower>0 on both; (B) CI upper<0 on both; (C) otherwise UNDECIDED (never 'non-inferior'). Levels: full-cycle yearly table (negative years explicit,"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r3_8b2c13b7.py",
+   "line": 94,
+   "text": "print(\"\\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r4_7f1aa5d6.py",
+   "line": 5,
+   "text": "(A) point>0 and CI lower>0 on both; (B) CI upper<0 on both; (C) otherwise UNDECIDED (never 'non-inferior'). Levels: full-cycle yearly table (negative years explicit,"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r4_7f1aa5d6.py",
+   "line": 315,
+   "text": "print(\"\\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==\")"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r5_f6850dc3.py",
+   "line": 5,
+   "text": "(A) point>0 and CI lower>0 on both; (B) CI upper<0 on both; (C) otherwise UNDECIDED (never 'non-inferior'). Levels: full-cycle yearly table (negative years explicit,"
+  },
+  {
+   "file": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.r5_f6850dc3.py",
+   "line": 322,
+   "text": "print(\"\\n== VERDICTS (frozen §4: (A) both seeds point>0 & CI lower>0; (B) both CI upper<0; (C) otherwise UNDECIDED = '未过否决线', never '不劣') ==\")"
+  }
+ ],
+ "prose_vocabulary_counts": {
+  "docs/2026-06-28_FINAL_y600_deliverable.md": 12,
+  "docs/2026-07-02_fable_regime_breakthrough.md": 3,
+  "docs/2026-07-02_phase1_findings_appendix.md": 5,
+  "docs/2026-07-14_crossasset_dualarm_technical_design.md": 1,
+  "docs/2026-07-15_PROJECT_COMPLETE_PRIMER.md": 1,
+  "docs/2026-07-27_FACTOR_MINING_COMPLETE_SPEC.md": 3,
+  "docs/AUDIT_live_vs_replay_2026-09-04.md": 2,
+  "docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md": 1,
+  "docs/DESIGN_L3_conformer_2026-08-24.md": 1,
+  "docs/DESIGN_integrated_and_shorthorizon_2026-08-15.md": 3,
+  "docs/DESIGN_optimization_path_2026-08-21.md": 2,
+  "docs/DESIGN_rolling_retrain_2026-08-14.md": 1,
+  "docs/DESIGN_wide_replay_P3_2026-08-16.md": 3,
+  "docs/ERROR_LEDGER_2026-08-20.md": 8,
+  "docs/FACTOR_MINING_COMPLETE_SPEC.md": 3,
+  "docs/HANDOFF_round3_b0a573a1_closure_2026-09-10.md": 1,
+  "docs/HANDOFF_round4_review_request_2026-09-13.md": 2,
+  "docs/HANDOFF_v4_and_live_diag_for_codex_review_2026-09-09.md": 1,
+  "docs/HANDOFF_v4_pipeline_code_review_2026-09-09.md": 1,
+  "docs/INCIDENT_daily_loss_trip_2026-08-21.md": 1,
+  "docs/MULTI_ASSET_Y180_CONCLUDED_MILESTONE_2026_06_15.md": 1,
+  "docs/ONBOARDING_independent_researcher_2026-09-06.md": 6,
+  "docs/PREREG_blend_recompute_2026-08-25.md": 1,
+  "docs/PREREG_caliber_program_king_clamp_raw_target_2026-09-09.md": 1,
+  "docs/PREREG_demean_fix_2026-08-25.md": 1,
+  "docs/PREREG_deploy_dl_recipe_2026-10.md": 1,
+  "docs/PREREG_deploy_modulation_2026-09-04.md": 1,
+  "docs/PREREG_deploy_rolling_king_2026-09-05.md": 1,
+  "docs/PREREG_deploy_seat_seed_oos_2026-09-04.md": 2,
+  "docs/PREREG_deploy_universe_2026-09-04.md": 1,
+  "docs/PREREG_fusion_2026-09-04.md": 1,
+  "docs/PREREG_holefix_and_window_extension_2026-09-08.md": 1,
+  "docs/PREREG_king_clip_label_ablation_2026-09-08.md": 1,
+  "docs/PREREG_king_convexity_2026-09-04.md": 1,
+  "docs/PREREG_king_window_ftrim_cap_2026-09-07.md": 1,
+  "docs/PREREG_l1_softmin_2026-09-02.md": 1,
+  "docs/PREREG_l1ss_shortside_objective_2026-09-02.md": 1,
+  "docs/PREREG_legs_factors_2026-09-04.md": 1,
+  "docs/PREREG_legweight_2026-08-25.md": 1,
+  "docs/PREREG_parity_materiality_2026-09-13.md": 1,
+  "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md": 4,
+  "docs/PREREG_retrain_addendum_v2main_2026-09-01.md": 2,
+  "docs/PREREG_seat_round2_dl_seat_and_net_2026-09-05.md": 1,
+  "docs/PREREG_universe_dyn_2026-09-04.md": 1,
+  "docs/PREREG_v4_chain_retrain_quantify_2026-09-09.md": 1,
+  "docs/PREREG_watchdog_cond2_resume_semantics_2026-09-06.md": 5,
+  "docs/PREREG_xregime_2026-09-02.md": 6,
+  "docs/REPORT_code_and_research_2026-09-13.md": 1,
+  "docs/RESULT_dl_full_gradient_window_2026-09-07.md": 1,
+  "docs/RESULT_dl_monthly_gate_2026-09-05.md": 4,
+  "docs/RESULT_dl_monthly_walkforward_2026-09-05.md": 6,
+  "docs/RESULT_giveback_attribution_live_2026-09-06.md": 2,
+  "docs/RESULT_king_clip_label_ablation_2026-09-08.md": 2,
+  "docs/RESULT_king_window_ftrim_cap_2026-09-07.md": 4,
+  "docs/RESULT_live_form_health_check_2026-09-05.md": 1,
+  "docs/RESULT_rolling_king_monthly_2026-09-05.md": 1,
+  "docs/RESULT_v4_chain_retrain_quantify_2026-09-09.md": 2,
+  "docs/REVIEW_caliber_final_2026-09-04.md": 2,
+  "docs/REVIEW_codex_early_batch_2026-09-08.md": 1,
+  "docs/REVIEW_codex_onboarding_2026-09-07.md": 3,
+  "docs/REVIEW_f10_blend_deployment_2026-08-23.md": 1,
+  "docs/REVIEW_next_edge_brief_2026-09-02.md": 1,
+  "docs/RULINGS_requested_2026-09-12.md": 1,
+  "docs/RUNBOOK_deploy_batch1_2026-08-04.md": 1,
+  "docs/RUNBOOK_monthly_retrain_2026-10.md": 1,
+  "docs/STATUS_three_questions_2026-09-12.md": 2,
+  "docs/SURVEY_arch_modules_2026-08-24.md": 2,
+  "docs/SURVEY_frontier_dl_xsec_2026-08-22.md": 1,
+  "docs/TEAM_PROTOCOL.md": 1,
+  "docs/Y600_V5_SINGH_ALPHA0_HUBER_DESIGN.md": 1,
+  "docs/v2_autonomous_overnight_2026_06_24.md": 1,
+  "STATE.md": 10
+ },
+ "note": "opens code, preregistrations and decision documents only; no receipt is opened and no result number is printed"
+}
