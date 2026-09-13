@@ -7,10 +7,14 @@
 (3) stratified sample: per year 200 population (symbol, day d) pairs + their day d−1, zip + CHECKSUM → hit rates: create_time on the
     5-min grid; rows per day; day-window labelling (00:00..23:55 vs 00:05..24:00); per-column finite / positive shares; CHECKSUM match;
     anchor hits (stamp E−10min and E−5min present) for the sampled population anchors;
-(4) alignment spectra on NON-RETURN relations (lag 0 ≡ identical 5-min label: 5m-cache bar open ts == metrics create_time):
-    S1: pooled within-file Pearson of log(taker buy/sell vol ratio) vs logit(cache tbf) at cache offset s ∈ {−3..+3} bars (identical pair set);
+(4) alignment spectra on NON-RETURN relations. RUN 2 convention (run 1 failed its S1 gate because I took cache ts as bar OPEN time;
+    l2_a_semantics/semantics2/switch receipts then pinned, with explicit-open_time public klines: cache ts = bar CLOSE time (K1 0.9999/1.0);
+    archive labels = window END up to 2024-03-03 and window START from 2024-03-04 (BTC and ETH switch the same UTC day; OI snapshot at T
+    vs T+5min flips the same day)). Window lag ℓ = cache offset s − s0, s0 = 0 before 2024-03-04 (cache bar closing at T = [T−5m,T)),
+    s0 = +1 from 2024-03-04 (bar closing at T+5m = [T,T+5m)); ℓ = 0 ≡ the 5-minute window the label denotes.
+    S1: pooled within-file Pearson of log(taker buy/sell vol ratio) vs logit(cache tbf) at ℓ ∈ {−3..+3} (identical pair set), per regime and per year;
     S2: pooled within-(symbol,day) Pearson of the metrics 24h taker buy share over labels [E−24h, E) vs panel f_tbf_24h at row j(E)+a,
-        a ∈ {−3..+3} (identical anchor set). Gates: argmax S1 ∈ {0, −1} (the two archive readings on record; which one is reported) and
+        a ∈ {−3..+3} (identical anchor set). Gates (asserted after the receipt is written): argmax_ℓ S1 == 0 in BOTH regimes;
         argmax S2 == 0; grid hit rate ≥ 0.99;
 (5) the empty-population anchors explained from rec (w3_fund, gross_total, nsel) and the T1SMR fund component.
 Never reads META y4, PANEL Y4/Y24/f_rev*/f_mom*, or cache channel ret5 (only channel 'tbf' is kept; asserted by name)."""
@@ -26,6 +30,10 @@ envrep = C.check_env(sys.argv)
 st0 = C.sysstate(); st0["collector_333197"] = N.collector_state()
 assert st0["gpu"].replace(" ", "") == "0%,2MiB", ("GPU not idle before run", st0["gpu"])
 DEV = ("l2_common.py", "l2_net.py", "l2_a_archive.py", "run_l2.sh")
+SEM2 = os.path.join(C.L2, "receipts", "RECEIPT_L2_A_semantics2.json"); SEM2_SHA = "7e006bc70d732a65d1a92f1c98dadacc38a70084b71217e12f31d55ed39c3bb8"
+SWITCH = os.path.join(C.L2, "receipts", "RECEIPT_L2_A_switch.json"); SWITCH_SHA = "ea9f0230e819b2d17787a682eb86e0d1e73344149129b1508d1886c8ae5f641c"
+assert C.sha256(SEM2) == SEM2_SHA and C.sha256(SWITCH) == SWITCH_SHA, "semantics receipts changed"
+SWITCH_DAY = calendar.timegm((2024, 3, 4, 0, 0, 0)) // 86400   # first UTC day with window-START labels (RECEIPT_L2_A_switch days rows)
 dev_sha = {f: C.sha256(os.path.join(C.L2, "devices", f)) for f in DEV}
 inputs = C.input_shas(check=True)
 POP_RECEIPT = os.path.join(C.L2, "receipts", "RECEIPT_L2_A_population.json")
@@ -42,6 +50,7 @@ SIDX = {s: k for k, s in enumerate(D["SYM"])}
 YEARS = (2022, 2023, 2024, 2025, 2026); DAY = 86400
 rep = dict(device="l2_a_archive.py", device_sha256=dev_sha, env=envrep, sys_before=st0, inputs=inputs,
            population_receipt=dict(path=POP_RECEIPT, sha256=C.sha256(POP_RECEIPT)), cache=dict(path=CACHE),
+           semantics_receipts=dict(semantics2=SEM2_SHA, switch=SWITCH_SHA, switch_day="2024-03-04"),
            rate_rule="<=20 req/s global, 10 req/s while PID 333197 not stopped (lead AMENDMENT 1); hosts " + ",".join(sorted(N.HOSTS)))
 lim = N.Limiter(); cli = N.Client(lim)
 
@@ -117,10 +126,12 @@ for s in C.SEEDS:
     emp[s] = dict(n=int(e.size), by_year={str(y): int((yr[e] == y).sum()) for y in YEARS},
                   runs=[[C.utc(A["ts"][a]), C.utc(A["ts"][b]), int(b - a + 1)] for a, b in runs],
                   w3_fund_zero=int((rec[e, c.index("w3_fund")] == 0).sum()), gross_total_positive=int((rec[e, c.index("gross_total")] > 0).sum()),
-                  fund_component_identically_zero=int((fund_abs == 0).sum()), nsel_min=float(rec[e, c.index("nsel")].min()) if e.size else None)
+                  fund_component_identically_zero=int((fund_abs == 0).sum()), nsel_min=float(rec[e, c.index("nsel")].min()) if e.size else None,
+                  rows_all_fund_component_below_dust=int((np.abs(A["SMRC"][e, C.FUND, :].astype(np.float64)).max(axis=1) <= C.DUST).sum()) if e.size else 0,
+                  max_abs_fund_component=float(np.abs(A["SMRC"][e, C.FUND, :].astype(np.float64)).max()) if e.size else None)
     del A
 rep["empty_population_rows"] = emp
-print("empty population rows: %s" % json.dumps({s: {k: emp[s][k] for k in ("n", "w3_fund_zero", "gross_total_positive", "fund_component_identically_zero")} for s in C.SEEDS}), flush=True)
+print("empty population rows: %s" % json.dumps({s: {k: emp[s][k] for k in ("n", "w3_fund_zero", "gross_total_positive", "fund_component_identically_zero", "rows_all_fund_component_below_dust", "max_abs_fund_component")} for s in C.SEEDS}), flush=True)
 
 # ---------------------------------------------------------------- (3) stratified sample + hit rates
 Z42 = np.load(pop_files["42"]); P42 = Z42["P"]; ts42 = Z42["ts"]
@@ -165,7 +176,7 @@ for y in YEARS:
     X = np.concatenate([f["parsed"]["X"] for f in ok]) if ok else np.zeros((0, 6))
     colstat = {c: dict(finite=float(np.isfinite(X[:, q]).mean()) if len(X) else None, positive=float((X[:, q] > 0).mean()) if len(X) else None)
                for q, c in enumerate(N.COLS)}
-    anc_hit10 = anc_hit5 = anc_n = 0
+    anc_hit10 = anc_hit5 = anc_hit15 = anc_datatime10 = anc_n = 0
     for (sym, d) in sample[y]:
         f = G[(sym, d)]
         if f["status"] != 200 or f["parsed"]["ts"] is None:
@@ -176,7 +187,8 @@ for y in YEARS:
         n = SIDX[sym]
         for i in np.nonzero((ts42 // DAY) == d)[0]:
             if P42[i, n]:
-                anc_n += 1; anc_hit10 += int(int(ts42[i]) - 600 in S); anc_hit5 += int(int(ts42[i]) - 300 in S)
+                anc_n += 1; anc_hit10 += int(int(ts42[i]) - 600 in S); anc_hit5 += int(int(ts42[i]) - 300 in S); anc_hit15 += int(int(ts42[i]) - 900 in S)
+                anc_datatime10 += int((int(ts42[i]) - (600 if d < SWITCH_DAY else 900)) in S)   # label whose data time is E-10min under its regime
     hr[str(y)] = dict(pairs=len(sample[y]), files=len(files), status={str(k): sum(1 for f in files if f["status"] == k) for k in set(f["status"] for f in files)},
                       checksum_ok=sum(1 for f in files if f["checksum_ok"] is True), checksum_bad=[(f["sym"], dstr(f["day"]), f["checksum_ok"]) for f in files if f["status"] == 200 and f["checksum_ok"] is not True][:10],
                       member_ok=sum(1 for f in ok if f["parsed"]["member_ok"]), crc_ok=sum(1 for f in ok if f["parsed"]["crc_ok"]),
@@ -184,12 +196,13 @@ for y in YEARS:
                       rows=nrow, grid_hit_rate=float(grid / max(nrow, 1)), same_day_rate=float(same_day / max(nrow, 1)), duplicate_rows=dup,
                       complete_days_label_0000_2355=labA, complete_days_label_0005_2400=labB, first_label_offset_s=first_off, last_label_offset_s=last_off,
                       columns=colstat, anchor_rows=anc_n, anchor_hit_rate_Eminus10min=float(anc_hit10 / max(anc_n, 1)),
-                      anchor_hit_rate_Eminus5min=float(anc_hit5 / max(anc_n, 1)))
+                      anchor_hit_rate_Eminus5min=float(anc_hit5 / max(anc_n, 1)), anchor_hit_rate_Eminus15min=float(anc_hit15 / max(anc_n, 1)),
+                      anchor_hit_rate_datatime_Eminus10min=float(anc_datatime10 / max(anc_n, 1)))
     print("sample %d: files %d grid %.5f labA %d labB %d anchor_hit10 %.4f" % (y, len(files), hr[str(y)]["grid_hit_rate"], labA, labB, hr[str(y)]["anchor_hit_rate_Eminus10min"]), flush=True)
 all_rows = sum(hr[str(y)]["rows"] for y in YEARS)
 grid_all = sum(hr[str(y)]["grid_hit_rate"] * hr[str(y)]["rows"] for y in YEARS) / max(all_rows, 1)
 rep["sample_hit_rates"] = dict(by_year=hr, grid_hit_rate_all=grid_all, http=dict(cli.counts), requests=cli.n_requests, bytes=cli.bytes)
-assert grid_all >= 0.99, ("GATE HIT: create_time grid hit rate below 0.99", grid_all)
+GATES = dict(hit_grid_ge_0p99=bool(grid_all >= 0.99))
 
 # ---------------------------------------------------------------- (4) spectra
 t0 = time.time()
@@ -201,7 +214,8 @@ TBF = np.array(Zc["data"][:, :, 6], dtype=np.float32)
 rep["cache"].update(sha256=C.sha256(CACHE), channels=ch, used_channel="tbf", rows=int(cts.size), first=C.utc(cts[0]), last=C.utc(cts[-1]),
                     load_s=round(time.time() - t0, 1))
 SH = list(range(-3, 4))
-num = {s: 0.0 for s in SH}; den_x = {s: 0.0 for s in SH}; den_y = {s: 0.0 for s in SH}; npair = 0; nfile = 0
+REG = ("END_pre_2024-03-04", "START_from_2024-03-04")
+acc1 = {g: {s: [0.0, 0.0, 0.0] for s in SH} for g in REG}; npair = {g: 0 for g in REG}; nfile = {g: 0 for g in REG}
 s1_year = {str(y): {s: [0.0, 0.0, 0.0] for s in SH} for y in YEARS}
 for y in YEARS:
     for (sym, d) in sample[y]:
@@ -209,7 +223,8 @@ for y in YEARS:
         if f["status"] != 200 or f["parsed"]["ts"] is None or f["parsed"]["n_rows"] < 50:
             continue
         T = f["parsed"]["ts"]; r = f["parsed"]["X"][:, 5]; n = SIDX[sym]
-        idx0 = (T - cts[0]) // 300
+        g = REG[0] if d < SWITCH_DAY else REG[1]; s0 = 0 if d < SWITCH_DAY else 1
+        idx0 = (T - cts[0]) // 300 + s0
         valid = np.isfinite(r) & (r > 0) & (T % 300 == 0)
         ys = {}
         for s in SH:
@@ -219,13 +234,13 @@ for y in YEARS:
         if valid.sum() < 50:
             continue
         x = np.log(r[valid]); x = (x - x.mean()) / (x.std() + 1e-300)
-        nfile += 1; npair += int(valid.sum())
+        nfile[g] += 1; npair[g] += int(valid.sum())
         for s in SH:
             v = ys[s][valid]; v = np.log(v / (1 - v)); v = (v - v.mean()) / (v.std() + 1e-300)
-            num[s] += float((x * v).sum()); den_x[s] += float((x * x).sum()); den_y[s] += float((v * v).sum())
+            q = acc1[g][s]; q[0] += float((x * v).sum()); q[1] += float((x * x).sum()); q[2] += float((v * v).sum())
             q = s1_year[str(y)][s]; q[0] += float((x * v).sum()); q[1] += float((x * x).sum()); q[2] += float((v * v).sum())
-S1 = {s: num[s] / np.sqrt(den_x[s] * den_y[s]) for s in SH}
-s1_peak = max(SH, key=lambda s: S1[s])
+S1 = {g: {s: (acc1[g][s][0] / np.sqrt(acc1[g][s][1] * acc1[g][s][2]) if acc1[g][s][1] > 0 else float("nan")) for s in SH} for g in REG}
+s1_peak = {g: max(SH, key=lambda s: S1[g][s] if np.isfinite(S1[g][s]) else -9) for g in REG}
 S1y = {y: {s: (q[0] / np.sqrt(q[1] * q[2]) if q[1] > 0 else None) for s, q in v.items()} for y, v in s1_year.items()}
 # S2 anchor-level vs panel f_tbf_24h
 P = readers["PANEL"]; TB24 = np.asarray(P["f_tbf_24h"], np.float64); prow = {int(t): j for j, t in enumerate(D["PTS"])}
@@ -258,17 +273,20 @@ for y in YEARS:
             num2[a] += float((m * v).sum()); dx2[a] += float((m * m).sum()); dy2[a] += float((v * v).sum())
 S2 = {a: (num2[a] / np.sqrt(dx2[a] * dy2[a]) if dx2[a] > 0 and dy2[a] > 0 else float("nan")) for a in SH}
 s2_peak = max(SH, key=lambda a: S2[a] if np.isfinite(S2[a]) else -9)
-rep["spectra"] = dict(lag_convention="lag 0 = identical 5-min label (cache bar open ts == metrics create_time); S1 lag -1 = create_time labels the window END",
-                      S1=dict(pairs=npair, files=nfile, corr_by_shift={str(s): S1[s] for s in SH}, peak=s1_peak, by_year=S1y),
+rep["spectra"] = dict(lag_convention="window lag l = cache offset - s0; s0 = 0 before 2024-03-04 (label = window END), s0 = +1 from 2024-03-04 (label = window START); cache ts = bar CLOSE",
+                      S1=dict(pairs=npair, files=nfile, corr_by_lag={g: {str(s): S1[g][s] for s in SH} for g in REG}, peak=s1_peak, by_year_lag=S1y),
                       S2=dict(anchors=n2, symbol_days=groups2, corr_by_shift={str(a): S2[a] for a in SH}, peak=s2_peak))
-print("S1 %s peak %d | S2 %s peak %d" % ({s: round(S1[s], 4) for s in SH}, s1_peak, {a: round(S2[a], 4) for a in SH}, s2_peak), flush=True)
+for g in REG:
+    print("S1 %s lag corr %s peak %d (files %d pairs %d)" % (g, {s: round(S1[g][s], 4) for s in SH}, s1_peak[g], nfile[g], npair[g]), flush=True)
+print("S1 by year (window lag): %s" % json.dumps({y: {s: (round(v, 4) if v is not None else None) for s, v in d.items()} for y, d in S1y.items()}), flush=True)
+print("S2 %s peak %d" % ({a: round(S2[a], 4) for a in SH}, s2_peak), flush=True)
 rep["arrays_read"] = C.assert_no_returns_read(readers)
-assert s1_peak in (0, -1), ("GATE S1: 5m spectrum peak outside the two archive readings", s1_peak)
-assert s2_peak == 0, ("GATE S2: anchor spectrum peak not at 0", s2_peak)
+GATES.update(S1_peak_lag0_END=bool(s1_peak[REG[0]] == 0), S1_peak_lag0_START=bool(s1_peak[REG[1]] == 0), S2_peak_0=bool(s2_peak == 0))
 st1 = C.sysstate(); st1["collector_333197"] = N.collector_state()
-assert st1["gpu"].replace(" ", "") == "0%,2MiB", ("GPU not idle after run", st1["gpu"])
-rep["limiter_collector_states"] = lim.states; rep["sys_after"] = st1; rep["wall_s"] = round(time.time() - T_START, 1)
+GATES["gpu_idle_after"] = bool(st1["gpu"].replace(" ", "") == "0%,2MiB")
+rep["gates"] = GATES; rep["limiter_collector_states"] = lim.states; rep["sys_after"] = st1; rep["wall_s"] = round(time.time() - T_START, 1)
 rep["http_final"] = dict(counts=dict(cli.counts), requests=cli.n_requests, bytes=cli.bytes)
 C.jdump(rep, os.path.join(C.L2, "receipts", "RECEIPT_L2_A_archive.json"))
-print("SUMMARY l2_a_archive OK listing=%d syms grid=%.5f S1peak=%d S2peak=%d cov_years_ge50(s42)=%s requests=%d wall=%.0fs" % (
-    len(SYMS), grid_all, s1_peak, s2_peak, cov["42"]["years_share_gross_ge_0p5_P_all"], cli.n_requests, rep["wall_s"]), flush=True)
+assert all(GATES.values()), ("STAGE A GATE FAILED", GATES)
+print("SUMMARY l2_a_archive OK gates=%s listing=%d syms grid=%.5f cov_years_ge50(s42)=%s requests=%d wall=%.0fs" % (
+    json.dumps(GATES), len(SYMS), grid_all, cov["42"]["years_share_gross_ge_0p5_P_all"], cli.n_requests, rep["wall_s"]), flush=True)
