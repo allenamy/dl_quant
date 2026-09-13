@@ -34,7 +34,12 @@
 7. RET-02 scan; UNI-03 September mask row (T1 `t1_states.py:78-81` carries the mask forward too); EVL-01: 33 HEAD files carry `os.environ.get("CAL", "simple")` (list at pause, `git grep` over HEAD). Then the D2/D3 closures, and the report.
 
 ## Coordination state
-- **fx-prod:** asked (msg 919c1b20) about P9 table tiers (exact vs likely `iv_best_source`), whether an August-zip version is coming, and coverage of r6_fund_sep rows. **No reply yet.** My own read of the table: 372 rows have no `iv_best`, most of them edge rows at the source ends; transition rows carry `iv_candidates`. Planned rule for unresolved rows: keep the incumbent value, flag it, and publish candidate-bound EMA columns. Never guess.
+- **fx-prod (replied after the pause, received 15:4xZ):**
+  - **New table.** A version with the August monthly zips folded in arrives after 18Z (roughly 2.5-3h). Same columns, iv_zip filled for 08-01..08-31, same directory under a new filename; sha to follow. ⇒ Build the FND panels on it, not on b797c85f.
+  - **EXACT tiers:** `zip`, `structure_steady` (2 exchange anomalies: XAG/XAU 2026-01-30 16Z), `interest_signature`, `cap_signature_4h_to_1h`, `cap_signature_8h_to_1h`, `structure_last_1h_before_gap2`, `structure_last_1h_before_gap3`, and any '+' combination of these.
+  - **LIKELY only (not truth):** the `iv_likely` column (`structure_gap3_into_longer` 40/41, `structure_gap2_into_longer` 52/62).
+  - **Unresolved:** `unresolved_transition`, `unresolved_edge` (also marks each symbol's last row at the window end), `conflicting_rules:*`. My plan (keep incumbent value, flag, bound columns) is confirmed.
+  - **Coverage:** pod2 ledger_full (zip ∪ fund_aug to 2026-09-01 02Z) ∪ frozen producer ledgers (live 450 + base, to 09-13 12Z) ∪ executor records, 687 symbols. It does **not** read r6_fund_sep. ⇒ For non-producer symbols, 09-01 02Z..09-10 settlement rows are absent from the table and will be counted as `not_in_P9` (flagged, not guessed).
 - **p2-oos-replay (replied):**
   - Sites: `p2_driver.py:153-154, 293`; `p2_prep_inputs.py:99/103` (universe.npz 6322b573); `p2_s2_lib.py:99-106`.
   - Historical S2 keeps the proxy, with the deviation sized from my per-anchor `base_proxy ∧ ¬tradable` on the 10,039 axis (owed by me).
@@ -42,4 +47,5 @@
 - **fx-model (asked):**
   - (1) The mask. Answer: the artifact is on the 4h grid (10,285 anchors × 829) plus 5m bits, defined per the SPEC with the window (E−24h, E] inclusive of bar E. Flag only: no new cache and no NaN rewrite of ret5. The path and sha come after run 2.
   - (2) Funding panels. Answer: yes, FND/HOL rebuilds are planned as new files, and the v1 450-name cells stay bitwise unless an interval fix touches them (only 2026-08 API rows, which were 138 cells for 5 names in the v1 prefix, FND-03). No objection to its fill-from-v2ext plan in principle, but the v2ext August funding rows carry the FND-02 spacing mislabels until my rebuild lands.
+  - fx-model follow-up (15:4xZ): the W24H flag (A−24h, A] lines up with its serve-clock member stats; no window change needed. Its funding-panel question crossed with my answer (msg 09b4dc82).
 - **fx-train:** no reply yet (panel paths for the October template; r6 builder overlap with TRN-01).
