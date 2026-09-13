@@ -1,3 +1,12 @@
+d49f1ef9808678115300d6860e8d33f9e1230285 P9 table generator: fold in pulled monthly zips (--zip-dir, manifest sha per file, rate/label conflict counts); committed before the August run
+38223d8fd017bb21b015037a729599065644bc41 P1 migration: offline builder of the v0 funding EMA state for a copy of the producer state (gated)
+d620f6e40463d12bb0202ebc73f8d603588c6ac0 devices fix: fx_replay_driver snapshot mode — absolute --snapshot/--after paths (relative symlink target broke rolling.npz) and skip a sums file's self-entry
+b90f1b84c7e9182c333d5e7403246f6293996838 P9: live append path re-resolves settlement intervals with exact rules and corrects the v1 EMA exactly (hybrid (a)); first-row default fixed
+3e4d78f64fe07fcc6a919aaac8c1a3be1553716d tests(P9): red battery for the live append-path interval labels (six live transition rows, neighbours, cold-start first row)
+85e02ce446a42ff98086abb90cc587dff4397c44 P9 rule evaluation v4: add H2 (hybrid + forward regime for impossible labels); committed before the run
+76b4aedb94aecd8303ca4bb3a264c1d3c777b108 P9 rule evaluation v3: append label of the latest row = snap(back) (H) or fundingInfo with signature tie-break (Hfi)
+26b8dd8928343c032f8fdf3ba7a51eeb4370eb9f P9 rule evaluation: add hybrid H (append signature, exact re-resolution with retroactive correction) and Hfi (fundingInfo append label)
+86a52e3916b30341cadb0a146f5b5f7ed83dbfd3 P9 device: data.binance.vision monthly fundingRate pull for pod2 (<=5 req/s, in-memory sha, write probe, no overwrite)
 69e8e22652c83a50a714254ee777bcbd8afc1c99 P6-M / P9-M: offline exact correction of mislabelled settlements in a copy of the producer state (live v1 EMA + ledger labels)
 c2cdfa7afcc0aaac15ff6f450f4fcc371606e51b devices: FX parity replay driver and judge (P1/P2 proofs (a)(b)(c) + V0P)
 15921c0a14a24ff2b8953ad6552203649a437cad P2: V2MAIN funding panel serves column 80 with the training definition (v0), applies the training 12h freshness, and keys the shared mini cache by caliber

@@ -15,8 +15,8 @@
 **Red (b8917484, `RED_P1_on_b8917484.log`, rc 1).** Snapshot-forward replay at 09-12 12Z: KEEP P1-R0 king weights == live weights file bitwise; RED P1-R1 served X[:,76] ≠ float32(training v0) on 311/400 members, median served/v0 = 2.0 (4h), 5.89 (1h), 1.0 (8h); KEEP P1-N1 fund leg == live prev_rec.
 **Fix (633d44b, +40/−0).** `FUND_COL80_V0 = True`; a v0 state carried beside v1 on the same rows with the same `a` (raw rate), cold-started only together with v1; served under the same 12h freshness and only when `v0.last_ts == v1.last_ts` (else 0, counted); `REFUSE_TO_START` when the flag is on and the state has no v0, or v0 is inconsistent with v1; bundle bootstrap reads `fund_ema_v0_state.json` only if listed in MANIFEST; `ema_v0` saved in the same atomic aux.json write; log event `fund_col80`. Fund leg / rank base / carry / FTRIM untouched.
 **Tests (`GREEN_P1P6_at_d7df9a5.log`).** P1 9/9: R1 0/400 mismatching cells; R0 flag OFF == live bitwise; N2 ON vs OFF only column 76 differs (pred equal on the 89 rows where it is equal); N3 v0 recursion == training oracle for 525 names (bitwise); N4 missing v0 entry served 0 and not cold-started; N5 refusal paths; N6 save round-trip. Old battery ALL PASS (65).
-**Migration.** `migrations/p1_build_ema_v0.py` (written; not yet run/committed) adds `ema_v0` to a copy of the state with gates G1 invariant, G2 completeness (v1 rebuild over the same rows reproduces the state), G3 state rows ⊆ union.
-**Parity proofs (a)(b)(c) and V0P:** running (see §Parity).
+**Migration (38223d8).** `migrations/p1_build_ema_v0.py` adds `ema_v0` to a copy of the state; gates G1 `ema_v0_problems == []`, G2 an independent v1 rebuild over the same rows with the stored labels reproduces the state's v1 (≤1e-12), G3 state rows ⊆ union. Dry run on the frozen live state 09-13 12Z: PASS, 525 names, 0 rate conflicts over 4,232,313 input rows, G2 0 bad (`receipts/p1m/`). Run again on the swap-time copy.
+**Parity proofs:** see §Parity (all PASS).
 **Unproven.** Book value (not claimed). King training f16 vs serving f32 on all 78 columns (P10, aud-prod).
 
 ## P6 — bundle bootstrap: seed labels and EMA alignment
@@ -34,11 +34,39 @@
 **Tests (`GREEN_P2_try1.log`).** P2 9/9 incl. N3: v1-fallback vs v0 runs differ only in F82 column 80 (311/400 rows), F82 other columns and F89 bitwise equal; N4 sidecar writes the same panel and tag.
 
 ## P6-M / P9-M — exact correction of mislabelled settlements in the live state (offline)
+**Fund-leg effect of D17 correction at 09-13 12Z (`receipts/p6m/P6M_fundz_impact_09-13T12Z.log`):** fund z Spearman 0.9999927, 12 of 400 members change rank (PROM −0.0192, ERA −0.0038, ten names by one rank step 0.0019), 2 decile changes. P9 exact rows: no rank change.
 **Tool (69e8e22)** `migrations/fund_label_ema_correction.py`; tests P6M 4/4 (`GREEN_P6M_worktree.log`). Control NONE: an independent full-history rebuild with the stored labels reproduces the frozen live v1 EMA bitwise for 525/525 names. D17 class: 533 rows / 5 names, dacc PROM −4.096e-06 (5.12% of acc), ERA −3.00e-07, BANK −1.72e-07, DEXE −5.14e-07, ACE −7.57e-07; corrected == rebuild (1.3e-18). P9 exact producer-appended class: 63 rows (ONG 08-25 08Z; 61 cold-start first rows 07-26 08Z; GRVT 07-31 12Z), dacc ≤ 3.7e-9; corrected == rebuild (6.9e-18). Receipts `FX_PROD/receipts/p6m/`. Fund-leg effect of applying it is to be measured as a separate replay arm, not mixed into the P1/P2 one-place proof.
 
-## P9 — evidence so far (fix pending; rulings 15:1xZ: August zips approved, direction hybrid (a) + monthly zip reconciliation (c), pre-settlement recorder (b) candidate only)
-- Table `P9_declared_interval_table_2026-07-01_2026-09-13T12Z.csv.gz` (sha256 b797c85f…, 243,989 settlements, location `FX_PROD/receipts/p9/TABLE_LOCATION.txt`), generator e0e34ea, receipt `receipts/p9/RECEIPT_P9_declared_interval_table.json`.
-- Rule evaluation (pod2, `receipts/p9/P9_rule_eval.json` 5865c62c…): no rule using only post-settlement information is exact on the zip column (FACT 9.1–9.3). Six live transition rows: ONG exact 4; ZKC/SOPH likely 4 (40/41), stored 2.0 impossible; COTI/T/SKR unresolved (74:50 history).
+## P9 — live append-path interval labels (rulings 15:1xZ: August zips approved; direction (a) hybrid + (c) monthly zip reconciliation; (b) recorder candidate only)
+**Problem.** Step 4 labels each appended settlement by its backward gap (L341–342; a ledger's first row 8.0). The declared interval is the schedule in force at the settlement (FACT 9.1), so schedule transitions and cold-start first rows are mislabelled, inflating or deflating rn = rate×8/iv in the v1 EMA (fund leg) and, while the row is the latest, FTRIM rn8.
+**Evidence.**
+- Table (`receipts/p9/TABLE_LOCATION.txt`): August monthly zips pulled on pod2 by the committed device 86a52e3 (≤5 req/s, in-memory sha, 680 files, 152 × 404, 0 checksum mismatches; manifest 02647116…) and folded in (d49f1ef): 103,649 August rows, 0 rate and 0 label conflicts with the existing sources; exact rules stay 100% with August added (steady 2,625,081/2,625,083; interest signature 694/694 + 423/423 edge; cap 174/174 + 27/27; last 1h before 2–3h gap 53/53 + 44/44). Table sha 366763a4….
+- August verdict on the producer's own rows (≥ 08-16): exactly 2 mismatches — ONG 08-25 08Z (stored 2.0, zip 4) and COTI 08-31 20Z (stored 1.0, zip 4). The other 535 August mismatches are the D17 seed rows (P6-M). T 09-06 00Z, SKR 09-07 20Z unresolved until the September zip; ZKC 09-02 20Z / SOPH 09-11 12Z likely 4.
+- Rule evaluation on 2.52M zip rows 2020–2026-07 (pod2, `receipts/p9/P9_rule_eval_v4.json` 7c907c09…; devices committed before each run: v2 26b8dd8, v3 76b4aed, v4 85e02ce):
 
-## Parity (pending)
-Chain arms off/on (41 anchors, driver c2cdfa7 sha 0f8c744a, code export 15921c0) launched 15:09Z; snapshot anchors and the judge follow; producer-window STOP/CONT guard armed (`work/replay/guard_stop_1610Z.log`).
+| rule | final mislabels | at-anchor mislabels | FTRIM flips | anchor×name cells with EMA error >1% |
+|---|---|---|---|---|
+| (i) backward gap (today) | 1047 | 1032 | 58 | 73,484 |
+| (iii) fundingInfo for the latest row | 491 | 476 | 16 | 47,656 |
+| executor `derive_interval_h` (3-point median, retro) | 283 | 476 | 16 | 10,814 |
+| H (hybrid (a)) | 350 | 1032 | 58 | 16,310 |
+| **H2 (hybrid (a) + adjacent-schedule rule) — implemented** | **100** | 1032 | 58 | **8,205** |
+| Hfi (hybrid + fundingInfo append label) — candidate | 193 | 372 | 16 | 10,228 |
+
+  v2 showed an append-time interest signature over all intervals is not exact (543/1,473,912 wrong), so it is not used. Hfi needs a new live fundingInfo read; registered with (b) as a candidate pending a positive control.
+**Red (`logs/RED_P9_on_85e02ce.log`, rc 1; producer funding step replayed on the real append anchors and the next anchor with the spliced real cache).** ONG 08-25 08Z label 2.0; ZKC 09-02 20Z and SOPH 09-11 12Z label 2.0 = snap(3h), not an adjacent schedule; cold start ILVUSDT at 09-04 00Z first row 8.0 (zip 4); neighbours and the ONG 08-26 20Z cap row KEEP OK; COTI/T/SKR not logged (NEW absent).
+**Fix (b90f1b8, +45/−0).** `FUND_IV_RERESOLVE = True`; `resolve_appended_intervals`: rows that just gained a forward neighbour are judged by `declared_interval_exact`; resolved and different ⇒ relabel and `acc += a_k·rate·(8/new−8/old)·0.5^((t_last−t_k)/3d)` (exact); unresolved with a label that is not an adjacent schedule ⇒ forward schedule (tagged `likely_forward_schedule`); other unresolved transitions kept and logged with candidates; cold-start first row by steady forward gap with a_0 = 1. The latest row keeps its gap label at the anchor, so at-anchor behaviour and FTRIM equal today by construction. Log event `fund_iv_resolved`.
+**Tests (`logs/GREEN_P9P1P6_at_b90f1b8.log`).** P9 14/14 (ONG, ZKC, SOPH → 4.0 and ILV first row → 4.0, each with v1 EMA equal to a rebuild using the ledger labels to 1e-15; COTI/T/SKR logged unresolved [1, 4]; neighbours and cap row unchanged), P1 9/9, P6 8/8 (31 cells); old battery ALL PASS (65).
+**(c) Monthly reconciliation.** The exact correction tool (69e8e22) applies zip labels where present; with the August zips as an extra label source it corrects COTI 08-31 20Z (and re-confirms ONG). The `--zip-dir` input for that tool is the next commit; the first run is August.
+**Unproven.** At-anchor labels and FTRIM for transition rows (58 flips over 6.6 years under today's and H2's append label); Hfi and the pre-settlement recorder are not implemented.
+
+## Parity — P1/P2 on the Phase-1 device (driver c2cdfa7 + fix d620f6e; code export 15921c0; judge `receipts/replay/FX_PARITY_JUDGE.json`)
+Chain: 41 anchors 09-05 16Z → 09-12 08Z, start state inverted from the frozen T4 snapshot as Phase 1; ema_v0 seeded from full history in both arms. Snapshot: 09-12 12Z / 16Z / 20Z from the producer's close-of-anchor snapshots. Arms: OFF = FUND_COL80_V0, V2MAIN_FUND_COL80_V0, V2MAIN_FUND_FRESH_12H flipped False by once-only replacements; ON = as committed. Receipts `receipts/replay/` (rec .npy files not committed; sha in `REC_NPY_SHA256_not_committed.txt`).
+- **(a) OFF reproduces production — PASS.** Chain 41/41: king X, pred and weights npz bitwise equal to the production-code device run of T4 (recs 942d20a9…, receipt 7c8e2e8f…, device 4d3bc157…); king L∞ vs live ≤ 9.31e-10 (Phase-1 envelope), step-6 leg-return entries equal, combo target_live L∞ equal to the production run at every anchor (max 1.1254e-4 = the known historical combo residual). Snapshot 3/3: king L∞ 0.0 with content sha equal, combo target_live 0.0, target_combo 0.0.
+- **(b) one place — PASS.** Chain 41/41 and snapshot 3/3: members equal; king X columns ≠ 76 bitwise; pred equal on rows whose column 76 is equal; F82 columns ≠ 80 bitwise (column 81 included); F89 bitwise; pair axis equal. Column 76 / F82 column 80 differ on 12,787 of 16,400 chain rows.
+- **(c) deltas ON − OFF.** Chain: king score Spearman median 0.9950 (min 0.9864); combo target_live L∞ median 3.5e-4 (max 4.8e-4), normalised L1 median 0.0110 (max 0.0155), correlation median 0.99986 (min 0.99976), gross ratio 1.0007; V2MAIN f10 Spearman median 0.9992; king target normalised L1 median 0.0116; masked king seat at 09-12 08Z 0.367556 vs 0.367264. Snapshot (one step from live state): combo L1 ≈ 0.002, L∞ ≈ 1.5e-4, correlation 0.99998. No book value is claimed.
+- **V0P — PASS, no exceptions.** Served v0 (ON king column 76 on fresh members) vs the training panel `f_fund_ema` (x0910, fa284e5b…) on 27 anchors / 10,800 cells: median relative difference 0.0, 100% ≤ 1e-3, 99.94% ≤ 1e-6, max 9.95e-6. T4's exceptions (DEXE/GWEI/EPIC) came from its short-history v0 feed and vanish with the full-history bootstrap.
+- Producer window: runs ended 15:43Z (chain) and 15:51Z (snapshot); STOP/CONT guards armed and exited unused (`receipts/replay/guard_*.log`). First snapshot attempt failed on two driver bugs (relative symlink target; sums self-entry), fixed in d620f6e and rerun; attempt logs kept.
+
+## P5 — pending (next: Mac after 16:50Z)
+

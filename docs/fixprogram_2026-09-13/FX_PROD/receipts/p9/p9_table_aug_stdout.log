@@ -1,0 +1,188 @@
+{
+ "self_sha256": "9b3e92dc0c2311fed23ef65d3ea0b2cea7d2419a6394054a18d5af56f312a734",
+ "harness_sha256": "bdaf8477c80f8d01de7b1e1fd3e9b033f43e8d6f0b1efcb7ef5f79c0e8209dd8",
+ "window": [
+  "2026-07-01T00:00:00Z",
+  "2026-09-13T12:00:00Z"
+ ],
+ "output": "/Users/haosiyu/cc_tmp/fx_prod/work/p9/P9_declared_interval_table_2026-07-01_2026-09-13T12Z_zipszips_2026-08.csv.gz",
+ "output_sha256": "366763a4aae854b2415fb461334efe95c1a74f93fc9e81c112c6138b16ec3197",
+ "csv_sha256": "6a55827345e67ccd9a09054aa0ce5104dd45fe89119ebf4168b7be76d7c29f44",
+ "n_rows": 243989,
+ "n_symbols": 687,
+ "rate_conflicts_across_sources": 0,
+ "zip_extra": {
+  "files": 680,
+  "rows": 103649,
+  "new_rows": 122,
+  "rate_conflicts": 0,
+  "label_conflicts": 0
+ },
+ "n_executor_records": 36280,
+ "executor_matched_with_1s_shift": 223,
+ "executor_unmatched_rows": 0,
+ "executor_rate_mismatch": 0,
+ "regime_x_producer_counts": {
+  "edge|match": 375,
+  "edge|mismatch": 2,
+  "edge|not_in_producer_ledger": 203,
+  "edge|unresolved": 152,
+  "steady|match": 183889,
+  "steady|mismatch": 590,
+  "steady|not_in_producer_ledger": 58612,
+  "transition|match": 32,
+  "transition|mismatch": 7,
+  "transition|not_in_producer_ledger": 123,
+  "transition|unresolved": 4
+ },
+ "V1_rules_vs_zip_2026_01_01_to_07_31": {
+  "interest_signature_edge": {
+   "rows": 423,
+   "equal": 423,
+   "share": 1.0
+  },
+  "structure_steady": {
+   "rows": 2625083,
+   "equal": 2625081,
+   "share": 0.999999
+  },
+  "cap_signature_4h_to_1h": {
+   "rows": 174,
+   "equal": 174,
+   "share": 1.0
+  },
+  "transition_zip_equals_back": {
+   "rows": 1611,
+   "equal": 934,
+   "share": 0.579764
+  },
+  "transition_zip_equals_fwd": {
+   "rows": 1611,
+   "equal": 675,
+   "share": 0.418994
+  },
+  "interest_signature": {
+   "rows": 694,
+   "equal": 694,
+   "share": 1.0
+  },
+  "structure_last_1h_before_gap2": {
+   "rows": 53,
+   "equal": 53,
+   "share": 1.0
+  },
+  "structure_gap2_into_longer": {
+   "rows": 65,
+   "equal": 55,
+   "share": 0.846154
+  },
+  "cap_signature_8h_to_1h": {
+   "rows": 27,
+   "equal": 27,
+   "share": 1.0
+  },
+  "structure_last_1h_before_gap3": {
+   "rows": 44,
+   "equal": 44,
+   "share": 1.0
+  },
+  "structure_gap3_into_longer": {
+   "rows": 43,
+   "equal": 42,
+   "share": 0.976744
+  }
+ },
+ "V2_exec_labels_at_transition_rows": {
+  "rows": 11,
+  "exec_equals_best": 2,
+  "other": [
+   [
+    "ONGUSDT",
+    "2026-08-25T05:00:00Z",
+    [
+     4
+    ],
+    1.0,
+    "zip"
+   ],
+   [
+    "SKRUSDT",
+    "2026-08-31T00:00:00Z",
+    [
+     1
+    ],
+    4.0,
+    "zip"
+   ],
+   [
+    "SKRUSDT",
+    "2026-09-07T20:00:00Z",
+    [
+     4
+    ],
+    null,
+    "unresolved_transition"
+   ],
+   [
+    "SOPHUSDT",
+    "2026-09-08T12:00:00Z",
+    [
+     1
+    ],
+    4.0,
+    "cap_signature_4h_to_1h"
+   ],
+   [
+    "SOPHUSDT",
+    "2026-09-11T09:00:00Z",
+    [
+     4
+    ],
+    1.0,
+    "structure_last_1h_before_gap3"
+   ],
+   [
+    "SOPHUSDT",
+    "2026-09-11T12:00:00Z",
+    [
+     4
+    ],
+    null,
+    "unresolved_transition"
+   ],
+   [
+    "TUSDT",
+    "2026-09-06T00:00:00Z",
+    [
+     4
+    ],
+    null,
+    "unresolved_transition"
+   ],
+   [
+    "ZKCUSDT",
+    "2026-09-02T17:00:00Z",
+    [
+     4
+    ],
+    1.0,
+    "structure_last_1h_before_gap3"
+   ],
+   [
+    "ZKCUSDT",
+    "2026-09-02T20:00:00Z",
+    [
+     4
+    ],
+    null,
+    "unresolved_transition"
+   ]
+  ],
+  "note": "executor labels are fundingInfo read AFTER the settlement (pull time) and are not per-settlement truth"
+ },
+ "producer_mismatch_rows": 599,
+ "runtime_s": 41.2,
+ "built_utc": "2026-09-13T16:02:29Z"
+}
+SUMMARY p9_declared_interval_table rows=243989 mismatches=599
+rc=0

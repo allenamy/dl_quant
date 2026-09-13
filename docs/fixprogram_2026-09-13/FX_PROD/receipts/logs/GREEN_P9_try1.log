@@ -1,0 +1,18 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod shadow_loop_v3.py=d401930df30e7d51 combo_stage.py=1c6a491d30606312 cells=['P9'] utc=2026-09-13T15:44:22Z
+[P9] live append path: interval labels re-resolved with exact rules, exact EMA correction
+  OK   [RED] P9-R ONGUSDT 08-25 08Z: label 4.0 after the next anchor and v1 EMA == rebuild with the ledger's labels — interest signature (rate 5.000e-05 = 4h interest leg; August zip declares 4) — {'label': 4.0, 'acc': -0.007570904086279062, 'rebuild': -0.007570904086279062}
+  OK   [KEEP] P9-K ONGUSDT: neighbour rows before/after the transition keep the producer's labels — {'neighbours': [(1787634000, 1.0), (1787659200, 4.0)]}
+  OK   [NEW] P9-N COTIUSDT 08-31 20Z: label kept 1.0 and logged unresolved with candidates [1, 4] — back 1h / fwd 4h, no signature: unresolved at the append path (August zip declares 4; monthly reconciliation fixes it) — {'label': 1.0, 'logged': [['COTIUSDT', 1788206400, 1.0, [1.0, 4.0], 'unresolved']]}
+  OK   [KEEP] P9-K COTIUSDT: neighbour rows before/after the transition keep the producer's labels — {'neighbours': [(1788202800, 1.0), (1788220800, 4.0)]}
+  OK   [RED] P9-R ZKCUSDT 09-02 20Z: label is an adjacent schedule (forward 4.0, likely 40/41) and v1 EMA == rebuild with the ledger's labels — 3h gap between a 1h and a 4h schedule: stored 2.0 is not an adjacent schedule — {'label': 4.0}
+  OK   [KEEP] P9-K ZKCUSDT: neighbour rows before/after the transition keep the producer's labels — {'neighbours': [(1788368400, 1.0), (1788393600, 4.0)]}
+  OK   [NEW] P9-N TUSDT 09-06 00Z: label kept 1.0 and logged unresolved with candidates [1, 4] — back 1h / fwd 4h, no signature: unresolved (September zip not published) — {'label': 1.0, 'logged': [['TUSDT', 1788652800, 1.0, [1.0, 4.0], 'unresolved']]}
+  OK   [KEEP] P9-K TUSDT: neighbour rows before/after the transition keep the producer's labels — {'neighbours': [(1788649200, 1.0), (1788667200, 4.0)]}
+  OK   [NEW] P9-N SKRUSDT 09-07 20Z: label kept 1.0 and logged unresolved with candidates [1, 4] — back 1h / fwd 4h, no signature: unresolved (September zip not published) — {'label': 1.0, 'logged': [['SKRUSDT', 1788811200, 1.0, [1.0, 4.0], 'unresolved']]}
+  OK   [KEEP] P9-K SKRUSDT: neighbour rows before/after the transition keep the producer's labels — {'neighbours': [(1788807600, 1.0), (1788825600, 4.0)]}
+  OK   [RED] P9-R SOPHUSDT 09-11 12Z: label is an adjacent schedule (forward 4.0, likely 40/41) and v1 EMA == rebuild with the ledger's labels — 3h gap between a 1h and a 4h schedule: stored 2.0 is not an adjacent schedule — {'label': 4.0}
+  OK   [KEEP] P9-K SOPHUSDT: neighbour rows before/after the transition keep the producer's labels — {'neighbours': [(1789117200, 1.0), (1789142400, 4.0)]}
+  OK   [KEEP] P9-K ONG 08-26 20Z long->short at the cap (rate -0.02): label stays 4.0
+  OK   [RED] P9-R cold start ILVUSDT at 09-04 00Z: first row 07-26 08Z labelled like the zip (4.0), not the 8.0 default; v1 EMA == rebuild with the ledger labels — {'first': [1785052800, 5e-05, 4.0]}
+SUMMARY tests_fx_prod: 14 cells, 0 fail (RED fail 0, KEEP fail 0, NEW fail 0, CRASH 0)
+rc=0

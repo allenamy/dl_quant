@@ -1,0 +1,88 @@
+diff --git a/migrations/p1_build_ema_v0.py b/migrations/p1_build_ema_v0.py
+new file mode 100644
+index 0000000..dc09eab
+--- /dev/null
++++ b/migrations/p1_build_ema_v0.py
+@@ -0,0 +1,82 @@
++#!/usr/bin/env python3
++"""p1_build_ema_v0.py — OFFLINE state migration for FIXPROGRAM 2026-09-13 P1: add the training-definition v0 funding EMA to a COPY of a
++producer state. NEVER writes into the input directory. Output: <out>/aux.with_ema_v0.json + receipt.
++v0 (pod_panel_ext.py db7f0474 L124-133): raw rate, wall-clock HL 3d, cold start at the name's first settlement in full history;
++ema_v0[s] = state after every settlement <= ema[s].last_ts (so the P1 invariant name set / last_ts == v1 holds by construction).
++Rows: pod2 ledger_full.npz (zip U fund_aug API) U both bundle seeds U every frozen producer ledger U the input state's ledger; the same second
++must carry the same rate in every source (conflicts => refuse). Gates (all must pass, else rc 2 and no output):
++  G1 the code under test's ema_v0_problems(ema, ema_v0) == []
++  G2 completeness: an independent v1 rebuild over the same row union with the producer's stored labels reproduces the input state's v1 acc
++     for every name (|d| <= 1e-12) — a missing or extra settlement in the union would break this
++  G3 the input state's ledger rows are all present in the union with equal rate
++Usage: python3 -B p1_build_ema_v0.py --state DIR --code DIR --out DIR"""
++import os, sys, json, time, argparse, importlib.util
++import numpy as np
++FX = "/Users/haosiyu/cc_tmp/fx_prod"; sys.path.insert(0, FX + "/fx")
++import fx_harness as FH
++HL = 3 * 86400.0
++ap = argparse.ArgumentParser(); ap.add_argument("--state", required=True); ap.add_argument("--code", required=True); ap.add_argument("--out", required=True); args = ap.parse_args()
++assert os.path.abspath(args.out) != os.path.abspath(args.state)
++T = lambda t: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t)))
++
++
++def main():
++    t0 = time.time(); os.makedirs(args.out, exist_ok=True)
++    aux_p = args.state + "/aux.json"; code_p = args.code + "/shadow_loop_v3.py"
++    os.environ.setdefault("WIDE_SHADOW_HOME", args.out + "/_unused"); os.environ.setdefault("WIDE_SHADOW_BUNDLE", args.out + "/_unused_b")
++    spec = importlib.util.spec_from_file_location("slp_cut", code_p); SL = importlib.util.module_from_spec(spec); spec.loader.exec_module(SL)
++    assert hasattr(SL, "ema_v0_problems"), "code lacks the P1 commit"
++    aux = json.load(open(aux_p)); ema = aux["ema"]; led = aux["ledger_tail"]
++    src, shas = FH.frozen_ledger_sources()
++    p = FH.WORK + "/pod2_inputs/ledger_full.npz"; shas["pod2_ledger_full"] = FH.gsha(p)
++    z = np.load(p); zs = [str(x) for x in z["symbols"]]; off = z["off"]
++    pod = {s: [[int(t), float(r), 0.0] for t, r in zip(z["ft"][int(off[j]):int(off[j + 1])].tolist(), z["rate"][int(off[j]):int(off[j + 1])].tolist())] for j, s in enumerate(zs)}
++    src = [("pod2_ledger_full", pod)] + src + [("input_state", led)]
++    rows, audit = FH.rows_union(src)
++    if audit["n_conflicts"]:
++        print("REFUSE rate conflicts", audit["conflicts"][:5]); sys.exit(2)
++    g3 = [s for s, rr in led.items() if any((int(r[0]), float(r[1])) not in set(map(tuple, rows.get(s, []))) for r in rr)]
++    ema_v0 = {}; missing = []
++    for s, est in ema.items():
++        v = FH.v0_state_after(rows.get(s, []), int(est["last_ts"]))
++        if v is None or v["last_ts"] != int(est["last_ts"]): missing.append(s); continue
++        ema_v0[s] = v
++    g1 = SL.ema_v0_problems(ema, ema_v0)
++    # G2: v1 rebuild with stored labels (producer ledgers), zip labels for older rows, producer cold start for non-bundle names
++    stored = {}
++    for tag, L in src[1:]:
++        if tag.startswith("seed"): continue
++        for s, rr in L.items():
++            d = stored.setdefault(s, {})
++            for r in rr: d.setdefault(int(r[0]), float(r[2]))
++    zipiv = {s: {int(t): float(v) for t, v in zip(z["ft"][int(off[j]):int(off[j + 1])].tolist(), z["zip_iv"][int(off[j]):int(off[j + 1])].tolist()) if v == v} for j, s in enumerate(zs)}
++    bundle_names = set(json.load(open(FH.WS + "/shadow_bundle.aug20260816_backup/funding_ledger_seed.json")))
++    g2_bad = {}
++    for s, est in ema.items():
++        st = stored.get(s, {}); start = None if s in bundle_names else (min(st) if st else None)
++        acc = None; prev = None
++        for ft, rate in rows.get(s, []):
++            if ft > int(est["last_ts"]): break
++            if start is not None and ft < start: continue
++            iv = st.get(ft) or zipiv.get(s, {}).get(ft) or float(min([1.0, 2.0, 4.0, 6.0, 8.0], key=lambda a_: abs(a_ - ((((ft - prev) / 3600.0) if prev is not None and 0 < (ft - prev) / 3600.0 <= 24 else 8.0)))))
++            rn = rate * (8.0 / iv); acc = rn if acc is None else acc + (1 - 0.5 ** (max(ft - prev, 1) / HL)) * (rn - acc); prev = ft
++        if acc is None or abs(acc - float(est["acc"])) > 1e-12: g2_bad[s] = None if acc is None else abs(acc - float(est["acc"]))
++    ok = not (missing or g1 or g2_bad or g3)
++    rc = dict(tool_sha256=FH.gsha(os.path.abspath(__file__)), code_sha256=FH.gsha(code_p), input_aux_sha256=FH.gsha(aux_p), state_last_anchor=int(aux["last_anchor"]), sources_sha256=shas,
++              union=dict(n_names=audit["n_names"], n_input_rows=audit["n_input_rows"], n_conflicts=audit["n_conflicts"]), n_ema=len(ema), n_ema_v0=len(ema_v0),
++              G1_ema_v0_problems=g1[:20], G2_v1_rebuild_bad=dict(list(g2_bad.items())[:20]), G2_n_bad=len(g2_bad), G3_state_rows_missing_from_union=g3[:20], names_without_v0=missing[:20], PASS=ok)
++    if ok:
++        new = dict(aux); new["ema_v0"] = ema_v0
++        # key order as ShadowState.save writes it (ema_v0 just before prev_rec)
++        order = [k for k in aux if k != "prev_rec"] + ["ema_v0", "prev_rec"]
++        new = {k: new[k] for k in order if k in new}
++        op = args.out + "/aux.with_ema_v0.json"; json.dump(new, open(op, "w")); rc.update(output=op, output_sha256=FH.gsha(op))
++    rc["runtime_s"] = round(time.time() - t0, 1); rc["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
++    json.dump(rc, open(args.out + "/RECEIPT_p1_build_ema_v0.json", "w"), indent=1, default=str)
++    print(json.dumps({k: rc[k] for k in ("union", "n_ema", "n_ema_v0", "G2_n_bad", "PASS")}, default=str))
++    print("SUMMARY p1_build_ema_v0 PASS=%s names=%d" % (ok, len(ema_v0)))
++    sys.exit(0 if ok else 2)
++
++
++if __name__ == "__main__":
++    main()

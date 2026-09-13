@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/fx_prod/fx/fx_replay_driver.py", line 48, in <module>
+    VERIFIED = {d: _verify_sums(d) for d in ([SNAP, LIVE] + ([SNAPDIR, AFTER] if SNAPDIR else []))}
+                   ~~~~~~~~~~~~^^^
+  File "/Users/haosiyu/cc_tmp/fx_prod/fx/fx_replay_driver.py", line 46, in _verify_sums
+    g = FH.gsha(p); assert g.startswith(h), ("FROZEN INPUT CHANGED", p); n += 1
+                           ~~~~~~~~~~~~^^^
+AssertionError: ('FROZEN INPUT CHANGED', 'work/frozen/snap_1789200000/SHA256SUMS.txt')
+lane on A=1789214400 rc=1
+{"anchor": 1789228800, "king_Linf": 0.0002592862583696842, "content_sha_equal": false, "lr_diff": null, "combo_rc": 1, "target_combo_Linf": null, "target_live_Linf": null, "combo_s": 1.8, "err": ["    fid = stack.enter_context(open(os.fspath(file), \"rb\"))", "                              ~~~~^^^^^^^^^^^^^^^^^^^^^^^", "FileNotFoundError: [Errno 2] No such file or directory: '/Users/haosiyu/cc_tmp/fx_prod/work/replay/snapshot/home_on/state/rolling.npz'"]}
+SUMMARY fx_replay_driver arm=on mode=snapshot anchors=1 king_Linf_max=0.000259 combo_rc_nonzero=1
+lane on A=1789228800 rc=0
+{"anchor": 1789243200, "king_Linf": 0.000312258955091238, "content_sha_equal": false, "lr_diff": null, "combo_rc": 1, "target_combo_Linf": null, "target_live_Linf": null, "combo_s": 1.9, "err": ["    fid = stack.enter_context(open(os.fspath(file), \"rb\"))", "                              ~~~~^^^^^^^^^^^^^^^^^^^^^^^", "FileNotFoundError: [Errno 2] No such file or directory: '/Users/haosiyu/cc_tmp/fx_prod/work/replay/snapshot/home_on/state/rolling.npz'"]}
+SUMMARY fx_replay_driver arm=on mode=snapshot anchors=1 king_Linf_max=0.000312 combo_rc_nonzero=1
+lane on A=1789243200 rc=0

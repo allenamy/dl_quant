@@ -1,0 +1,401 @@
+diff --git a/fx/fx_state.py b/fx/fx_state.py
+index 5c57519..61ae8bd 100644
+--- a/fx/fx_state.py
++++ b/fx/fx_state.py
+@@ -147,3 +147,50 @@ def v1_state_after(sym, t_cut, bundle_names=None):
+         acc = rn if acc is None else acc + (1 - 0.5 ** (max(ft - prev, 1) / (3 * 86400.0))) * (rn - acc)
+         prev = ft
+     return None if acc is None else {"acc": acc, "last_ts": prev}
++
++
++_SPLICE = {}
++
++
++def splice_cache(live_state_dir=None):
++    """Producer 5m cache as held over 07-07..09-13: 08-16 bundle tail for rows before the 09-12 08Z snapshot's first row (equal to the producer
++    cache on their overlap: 0 support / 0 value differences on live450), the 09-12 08Z snapshot, then the frozen live cache."""
++    if not _SPLICE:
++        live_state_dir = live_state_dir or (H.FROZEN + "/live_1789300800/state")
++        cb = np.load(H.WS + "/shadow_bundle.aug20260816_backup/cache_tail_40d.npz", allow_pickle=True)
++        cs = np.load(H.FROZEN + "/snap_1789200000/rolling.npz", allow_pickle=True); cl = np.load(live_state_dir + "/rolling.npz", allow_pickle=True)
++        c1 = int(cs["ts"][0]); c2 = int(cs["ts"][-1])
++        ts = np.concatenate([cb["ts"].astype(np.int64)[cb["ts"] < c1], cs["ts"].astype(np.int64), cl["ts"].astype(np.int64)[cl["ts"] > c2]])
++        d = np.concatenate([cb["data"][cb["ts"] < c1], cs["data"], cl["data"][cl["ts"] > c2]]).astype(np.float16)
++        assert np.all(np.diff(ts) == 300)
++        _SPLICE.update(ts=ts, data=d)
++    return _SPLICE["ts"], _SPLICE["data"]
++
++
++def producer_ledger_union():
++    """{sym: [[ft, rate, stored iv], ...]} from every frozen producer ledger (labels agree across sources)."""
++    src, _ = H.frozen_ledger_sources(include=("seed_aug", "seed_v3", "pre_m1", "snap_1789200000", "snap_1789214400", "snap_1789228800", "snap_1789243200", "t4snap_1789272000", "live_1789300800"))
++    out = {}
++    for tag, L in src[2:] + src[:2]:          # producer ledgers first: their stored labels win over seed labels for the same second
++        for s, rr in L.items():
++            d = out.setdefault(s, {})
++            for r in rr: d.setdefault(int(r[0]), [int(r[0]), float(r[1]), float(r[2])])
++    return {s: [d[t] for t in sorted(d)] for s, d in out.items()}
++
++
++def v1_rebuild_with(sym, t_cut, override):
++    """v1_state_after with label overrides {ft: iv} (same recursion)."""
++    v1_state_after(sym, 0)
++    C = _V1_CACHE; st = C["stored"].get(sym, {}); start = None if sym in C["bundle"] else (min(st) if st else None)
++    acc = None; prev = None
++    for ft, rate in C["rows"].get(sym, []):
++        if ft > t_cut: break
++        if start is not None and ft < start: continue
++        if ft in override: iv = override[ft]
++        elif ft in st: iv = st[ft]
++        elif ft in C["zipiv"].get(sym, {}): iv = C["zipiv"][sym][ft]
++        else: iv = float(min([1.0, 2.0, 4.0, 6.0, 8.0], key=lambda a_: abs(a_ - ((((ft - prev) / 3600.0) if prev is not None and 0 < (ft - prev) / 3600.0 <= 24 else 8.0)))))
++        rn = rate * (8.0 / iv)
++        acc = rn if acc is None else acc + (1 - 0.5 ** (max(ft - prev, 1) / (3 * 86400.0))) * (rn - acc)
++        prev = ft
++    return None if acc is None else {"acc": acc, "last_ts": prev}
+diff --git a/fx/p9_pull_monthly_funding_zips.py b/fx/p9_pull_monthly_funding_zips.py
+new file mode 100644
+index 0000000..da5473c
+--- /dev/null
++++ b/fx/p9_pull_monthly_funding_zips.py
+@@ -0,0 +1,65 @@
++#!/usr/bin/env python3
++"""p9_pull_monthly_funding_zips.py — pod2 device (FIXPROGRAM 2026-09-13 P9; lead ruling 15:1xZ: August monthly funding zips approved; user
++09-05 exemption for static CDN bulk pulls). Anonymous GET of data.binance.vision monthly fundingRate archives only; no trading/account API.
++Rules: sequential, <= 5 requests/s (sleep 0.21 s after every request); sha256 of the IN-MEMORY bytes (and the .CHECKSUM file when served)
++before any write; write-probe of the output directory before the first write; never overwrites an existing file; 404 recorded, not retried.
++Output: <out>/<SYM>-fundingRate-<MONTH>.zip, <out>/MANIFEST_<MONTH>.json {symbol: {status, bytes, sha256, checksum_file_sha256_field, rows,
++iv_counts}}. Usage: python3 -B p9_pull_monthly_funding_zips.py <month YYYY-MM> <symbols file, one per line> <out dir>"""
++import os, sys, io, json, time, hashlib, zipfile, csv, urllib.request, urllib.error
++MONTH, SYMF, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
++assert len(MONTH) == 7 and MONTH[4] == "-"
++BASE = "https://data.binance.vision/data/futures/um/monthly/fundingRate"
++syms = [l.strip() for l in open(SYMF) if l.strip()]
++os.makedirs(OUT, exist_ok=True)
++probe = OUT + "/.write_probe"
++with open(probe, "wb") as f:
++    f.write(os.urandom(8 << 20)); f.flush(); os.fsync(f.fileno())
++os.remove(probe)
++t_last = [0.0]
++
++
++def get(url):
++    dt = time.time() - t_last[0]
++    if dt < 0.21: time.sleep(0.21 - dt)
++    try:
++        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "research/1.0"}), timeout=40) as r:
++            b = r.read()
++        return 200, b
++    except urllib.error.HTTPError as e:
++        return e.code, b""
++    except Exception as e:
++        return -1, repr(e)[:120].encode()
++    finally:
++        t_last[0] = time.time()
++
++
++man = {}; t0 = time.time()
++for i, s in enumerate(syms):
++    fn = f"{OUT}/{s}-fundingRate-{MONTH}.zip"
++    if os.path.exists(fn):
++        man[s] = {"status": "exists_not_refetched", "sha256": hashlib.sha256(open(fn, "rb").read()).hexdigest()}; continue
++    code, b = get(f"{BASE}/{s}/{s}-fundingRate-{MONTH}.zip")
++    if code != 200:
++        man[s] = {"status": code, "detail": b.decode(errors="ignore")[:120] if code == -1 else ""}; continue
++    h = hashlib.sha256(b).hexdigest()
++    c_code, c_b = get(f"{BASE}/{s}/{s}-fundingRate-{MONTH}.zip.CHECKSUM")
++    c_field = c_b.decode(errors="ignore").split()[0] if c_code == 200 and c_b else None
++    z = zipfile.ZipFile(io.BytesIO(b)); name = z.namelist()[0]
++    rows = [r for r in csv.reader(io.TextIOWrapper(io.BytesIO(z.read(name)), encoding="utf-8")) if r and r[0].strip().isdigit()]
++    ivc = {}
++    for r in rows: ivc[r[1]] = ivc.get(r[1], 0) + 1
++    with open(fn + ".part", "wb") as f:
++        f.write(b)
++    assert hashlib.sha256(open(fn + ".part", "rb").read()).hexdigest() == h
++    os.replace(fn + ".part", fn)
++    man[s] = {"status": 200, "bytes": len(b), "sha256": h, "checksum_file_sha256_field": c_field, "checksum_match": (c_field == h) if c_field else None, "member": name, "rows": len(rows), "iv_counts": ivc}
++    if i % 50 == 0: print(f"{i}/{len(syms)} {s} {man[s]['status']} {time.time() - t0:.0f}s", flush=True)
++mp = f"{OUT}/MANIFEST_{MONTH}.json"
++json.dump(dict(month=MONTH, base=BASE, n_symbols=len(syms), self_sha256=hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(),
++               symbols_file_sha256=hashlib.sha256(open(SYMF, "rb").read()).hexdigest(), started_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)),
++               finished_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), files=man), open(mp, "w"), indent=1)
++st = {}
++for v in man.values(): st[str(v["status"])] = st.get(str(v["status"]), 0) + 1
++bad = sum(1 for v in man.values() if v.get("checksum_match") is False)
++print(f"SUMMARY p9_pull_monthly_funding_zips month={MONTH} status={st} checksum_mismatch={bad} manifest_sha256={hashlib.sha256(open(mp, 'rb').read()).hexdigest()}", flush=True)
++sys.exit(1 if bad else 0)
+diff --git a/fx/p9_rule_eval.py b/fx/p9_rule_eval.py
+index b37e9e4..fef2f2e 100644
+--- a/fx/p9_rule_eval.py
++++ b/fx/p9_rule_eval.py
+@@ -14,6 +14,11 @@ Rules (label of each row as finally recorded; 'at_anchor' = the label in force w
+   R4  max_fi      latest row <- max(snap back, fundingInfo(A+16m)); other rows <- snap(back)
+   R5  exec_med3   dl_quant_live signal/funding_panel.py derive_interval_h (k=3 median of rounded backward diffs; retroactive; at_anchor = the
+                   same function on rows <= A with interval_now = fundingInfo(A+16m))
++  H   hybrid (lead ruling 15:1xZ, direction (a)): at append the latest row of a batch gets snap(back); every row that has a forward neighbour (earlier batch rows at once, the latest row at the next
++      anchor) is re-resolved with the exact rules (steady / cap 4h|8h->1h at |rate| 0.02 / last 1h before a 2-3h gap / interest signature over
++      {snap back, snap fwd}; first row of a series: steady-forward) and corrected exactly; unresolved rows keep their append label
++  Hfi hybrid with the append label of the latest row = fundingInfo(A+16m), unless the interest signature picks snap(back) over it
++  H2  H, and an unresolved row whose label is not an adjacent schedule (e.g. snap(3h)=2 between 1h and 4h) takes the forward regime
+   ZIP truth: zip_iv.
+ Metrics per rule and year: rows scored, final mislabels, at-anchor mislabels; EMA error D(A) over fresh (<=12h) anchor x symbol cells
+ (D = exact linear effect of the label errors on acc, v1 recursion rn = rate*8/iv, HL 3d); FTRIM flips = cells where the latest row is fresh,
+@@ -61,7 +66,7 @@ def main():
+     t0 = time.time()
+     h = hashlib.sha256(open(INP, "rb").read()).hexdigest()
+     z = np.load(INP); syms = [str(s) for s in z["symbols"]]; off = z["off"]; FT = z["ft"]; RT = z["rate"]; ZIV = z["zip_iv"]
+-    RULES = ["R1_back", "R1u_back_tieup", "R2_maxbf", "R3_fi_last", "R3a_fi_all", "R4_max_fi", "R5_exec_med3"]
++    RULES = ["R1_back", "R1u_back_tieup", "R2_maxbf", "R3_fi_last", "R3a_fi_all", "R4_max_fi", "R5_exec_med3", "H_hybrid", "Hfi_hybrid", "H2_hybrid"]
+     acc = {}      # (rule, year) -> metrics
+     ex = {r: [] for r in RULES}
+     amb = {}      # class stats of transition rows vs zip
+@@ -104,6 +109,49 @@ def main():
+             v = exec_med3(ft[lo:k + 1], fi[k] if np.isfinite(fi[k]) else None)
+             assert v[-1] == r5a[k], (s, int(ft[k]), v[-1], r5a[k])
+         lab_anchor["R5_exec_med3"] = r5a
++        # ---- hybrid rules
++        gbr = np.round(np.nan_to_num(gb, nan=-1.0), 6); gfr = np.round(np.nan_to_num(gf, nan=-1.0), 6)
++        fwd_ok = np.isfinite(gf); back_ok = np.isfinite(gb)
++        steady = back_ok & fwd_ok & (back == fwd)
++        exact = np.full(n, np.nan)
++        exact[steady] = back[steady]
++        tr = back_ok & fwd_ok & ~steady
++        cap = tr & np.isin(gbr, (4.0, 8.0)) & (gfr == 1.0) & (np.abs(np.abs(rt) - 0.02) < 1e-12)
++        l1 = tr & (gbr == 1.0) & np.isin(gfr, (2.0, 3.0))
++        sig_b = tr & (np.abs(rt - 1.25e-5 * back) < 1e-12); sig_f = tr & (np.abs(rt - 1.25e-5 * fwd) < 1e-12)
++        sig_u = (sig_b ^ sig_f)
++        sig_val = np.where(sig_b, back, fwd)
++        cand = [(cap, back), (l1, np.ones(n)), (sig_u, sig_val)]
++        vals = np.full((3, n), np.nan)
++        for i_, (msk, v_) in enumerate(cand): vals[i_, msk] = v_[msk]
++        vmin = np.nanmin(np.where(np.isnan(vals), np.inf, vals), axis=0); vmax = np.nanmax(np.where(np.isnan(vals), -np.inf, vals), axis=0)
++        one = tr & np.isfinite(vmin) & (vmin == vmax)
++        exact[one] = vmin[one]
++        if n > 2 and np.isfinite(gf[0]) and np.isfinite(gf[1]):
++            if snap_down(np.array([gf[0]]))[0] == snap_down(np.array([gf[1]]))[0]: exact[0] = snap_down(np.array([gf[0]]))[0]
++        sig_any = np.full(n, np.nan)
++        for c in (1.0, 2.0, 4.0, 8.0):
++            hit = np.abs(rt - 1.25e-5 * c) < 1e-12
++            sig_any = np.where(hit & np.isnan(sig_any), c, np.where(hit & np.isfinite(sig_any), -1.0, sig_any))
++        sig_any = np.where(sig_any == -1.0, np.nan, sig_any)
++        # append labels: the any-interval signature is NOT exact (v2 run: 543 of 1,473,912 latest rows wrong, e.g. a 4h row at 1e-4 = 8h
++        # interest), so the append label uses the signature only to choose between the live candidates {snap back, fundingInfo}
++        prov = back.copy()
++        fi_c = np.where(fi_ok, fi, back)
++        sb_ = np.abs(rt - 1.25e-5 * back) < 1e-12; sf_ = np.abs(rt - 1.25e-5 * fi_c) < 1e-12
++        prov_fi = np.where(sb_ & ~sf_, back, fi_c)
++        for nm_, pv_ in (("H_hybrid", prov), ("Hfi_hybrid", prov_fi)):
++            fin_ = np.where(np.isfinite(exact), exact, np.where(latest, pv_, back))
++            lab[nm_] = fin_
++            lab_anchor[nm_] = np.where(latest, pv_, fin_)
++        # H2: H, but an unresolved row whose append label is not an adjacent schedule (neither the previous row's back regime nor the
++        # forward regime, e.g. snap(3h) = 2 between a 1h and a 4h schedule) takes the forward regime at re-resolution
++        prev_back = np.empty(n); prev_back[0] = np.nan; prev_back[1:] = back[:-1]
++        impossible = ~np.isfinite(exact) & fwd_ok & (back != fwd) & (back != prev_back)
++        fin2 = np.where(np.isfinite(exact), exact, np.where(impossible, fwd, back))
++        lab["H2_hybrid"] = fin2; lab_anchor["H2_hybrid"] = np.where(latest, back, fin2)
++        if not hasattr(main, "_sig_any_stats"): main._sig_any_stats = [0, 0]
++        m_ = latest & np.isfinite(sig_any) & np.isfinite(zi); main._sig_any_stats[0] += int(m_.sum()); main._sig_any_stats[1] += int((sig_any[m_] == zi[m_]).sum())
+         yrs = (1970 + (ft // 86400 + 0.5) / 365.2425).astype(int)
+         scored = np.isfinite(zi)
+         truth = np.where(scored, zi, np.nan)
+@@ -154,7 +202,7 @@ def main():
+                per_rule_year={f"{r}|{y}": v for (r, y), v in sorted(acc.items())},
+                totals={r: {k: sum(v[k] for (rr, y), v in acc.items() if rr == r) if k != "ema_max" else max(v[k] for (rr, y), v in acc.items() if rr == r)
+                            for k in ("rows", "mis_final", "mis_at_anchor", "cells", "ema_gt_1e9", "ema_gt_1e7", "ema_rel_gt_1pct", "ema_max", "ftrim_flip", "ftrim_false_trim", "ftrim_missed_trim")} for r in RULES},
+-               transition_census_vs_zip=dict(sorted(amb.items(), key=lambda x: -x[1])), examples=ex, runtime_s=round(time.time() - t0, 1),
++               transition_census_vs_zip=dict(sorted(amb.items(), key=lambda x: -x[1])), examples=ex, append_time_signature_any_interval_vs_zip=dict(rows=getattr(main, '_sig_any_stats', [0, 0])[0], equal=getattr(main, '_sig_any_stats', [0, 0])[1]), runtime_s=round(time.time() - t0, 1),
+                python=sys.version.split()[0], numpy=np.__version__, utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+     json.dump(out, open(OUTP, "w"), indent=1)
+     print(json.dumps(out["totals"], indent=1)); print("SUMMARY p9_rule_eval rules=%d runtime_s=%.1f" % (len(RULES), out["runtime_s"]))
+diff --git a/shadow_loop_v3.py b/shadow_loop_v3.py
+index 14a9ba2..2af4672 100644
+--- a/shadow_loop_v3.py
++++ b/shadow_loop_v3.py
+@@ -192,6 +192,7 @@ def ema_v0_problems(ema, ema_v0):
+             out.append((s, "last_ts"))
+     return out
+ 
++FUND_IV_RERESOLVE = True   # P9(FIXPROGRAM 2026-09-13): 追加后按精确规则复判结算间隔并精确修正 v1 EMA; False = 原第 4 步行为(逐位)
+ SEED_IV_EMA_TOL = 1e-9     # P6(FIXPROGRAM 2026-09-13): 种子标签修复对 bundle EMA 态的精确线性影响上限; 超过 ⇒ EMA 态与种子标签不自洽, 拒启
+ 
+ 
+@@ -287,6 +288,44 @@ def seed_rederive(seed, ema, ema_v0=None, tol=SEED_IV_EMA_TOL):
+                 v0_out[s] = {"acc": acc0, "last_ts": last0}
+         led_out[s] = rows[-400:]
+     return led_out, ema_out, v0_out, rep, refuse
++
++
++def resolve_appended_intervals(rows, n_new, est, origin_first):
++    """P9(FIXPROGRAM 2026-09-13, lead ruling 15:1xZ direction (a)): 追加后逐行复判结算间隔并精确回溯修正 v1 EMA。
++    追加时各行按时间差标注(第 4 步原文, 最新行 = 临时标注, FTRIM/exp_iv 读它); 本锚新行到达后, 所有刚获得后邻行的行
++    (上锚最新行 + 本批非最新行) 用 declared_interval_exact 判定; 判出且 != 存储 ⇒ 改标注并 acc += a_k*rate*(8/新-8/旧)*0.5**((t_last-t_k)/3d)
++    (EMA 线性, 精确); 判不出且存储值不是相邻两段之一(前一行标注 / 后段 snap(后间隔), 如 3h 间隔吸附成 2) ⇒ 取后段(历史 zip 40/41 与 52/62, 标 likely);
++    其余判不出者保留并按名列候选。origin_first: rows[0] 创建了本 EMA(冷启动), 其判定用后向稳态(前两个后间隔吸附相同)且 a_0 = 1。
++    rows 与 est 就地修改; 返回 (relabelled, unresolved)。"""
++    relab, unres = [], []
++    if not rows or est is None or n_new <= 0:
++        return relab, unres
++    HL = 3 * 86400.0; t_last = int(est["last_ts"]); n = len(rows)
++    for k in range(max(n - n_new - 1, 0), n - 1):
++        t, rate, old = int(rows[k][0]), float(rows[k][1]), float(rows[k][2])
++        nxt = int(rows[k + 1][0])
++        if k == 0 and origin_first:
++            iv_x, rule = None, "unresolved"
++            if n > 2 and _snap_iv((nxt - t) / 3600.0) == _snap_iv((int(rows[2][0]) - nxt) / 3600.0):
++                iv_x, rule = _snap_iv((nxt - t) / 3600.0), "first_row_steady_forward"
++            a_k = 1.0
++        elif k == 0:
++            continue
++        else:
++            prev = int(rows[k - 1][0])
++            iv_x, rule = declared_interval_exact(prev, t, nxt, rate)
++            if iv_x is None:
++                fwd = _snap_iv((nxt - t) / 3600.0)
++                if old not in (float(rows[k - 1][2]), fwd):
++                    iv_x, rule = fwd, "likely_forward_schedule"
++                elif _snap_iv((t - prev) / 3600.0) != fwd:
++                    unres.append([t, old, sorted({old, fwd}), rule])
++            a_k = 1 - 0.5 ** (max(t - prev, 1) / HL)
++        if iv_x is not None and iv_x != old:
++            dacc = a_k * rate * (8.0 / iv_x - 8.0 / old) * 0.5 ** ((t_last - t) / HL)
++            est["acc"] = est["acc"] + dacc; rows[k][2] = iv_x
++            relab.append([t, old, iv_x, rule, dacc])
++    return relab, unres
+ WINS = (48, 288, 864, 2016, 8640)
+ CACHE_ROWS = 11520  # 40d
+ 
+@@ -444,6 +483,7 @@ def run_anchor(st, fx, cfg, booster, anchor):
+     base = list(st.base); _live_set = set(st.live)
+     # ── 4. funding 增量(V12: fundingTime<=anchor) ── M1: 遍历基名单; fund_updates 语义不变(live 名), 基外名计 fund_updates_base
+     fund_updates = 0; fund_updates_base = 0
++    _ivres = {"relabelled": [], "unresolved": []}                                              # P9
+     for s in base:
+         led = st.ledger.get(s, [])
+         last_ts = led[-1][0] if led else anchor - 40 * 86400
+@@ -460,6 +500,7 @@ def run_anchor(st, fx, cfg, booster, anchor):
+                                             "endTime": anchor * 1000 + 999, "limit": 100}, weight=1)
+         if isinstance(r, dict): continue
+         est = st.ema.get(s)
++        _L0 = len(led)                                                                        # P9: 本批之前的账本行数
+         _v0 = getattr(st, "ema_v0", None)                                                   # P1: 训练口径 v0 态(同行同 a, 原始 rate)
+         est0 = _v0.get(s) if _v0 is not None else None
+         _v0_new = _v0 is not None and est is None and est0 is None                          # P1: 只随 v1 同时冷启动(新名); v1 已有而 v0 缺 ⇒ 不补建, 服务时记缺
+@@ -487,6 +528,8 @@ def run_anchor(st, fx, cfg, booster, anchor):
+         st.ledger[s] = led[-400:]
+         if est: st.ema[s] = est
+         if est0 is not None: _v0[s] = est0                                                  # P1
++        _rl, _ur = resolve_appended_intervals(st.ledger.get(s), len(led) - _L0, st.ema.get(s), _L0 <= 1) if FUND_IV_RERESOLVE else ([], [])   # P9: 复判刚获得后邻行的行, 精确修正 v1
++        _ivres["relabelled"] += [[s] + x for x in _rl]; _ivres["unresolved"] += [[s] + x for x in _ur]
+     # ── 5. 特征(与 pod_fea_wide 同公式, 单锚) ──
+     CDf = st.cd.astype(np.float32)
+     ai = row_of[anchor]
+@@ -703,6 +746,8 @@ def run_anchor(st, fx, cfg, booster, anchor):
+     _mset = {st.syms[int(jj)] for jj in m}                                                   # P1: 第 80 列口径与 v0 缺失名(正常恒 0)
+     append_log({"e": "fund_col80", "anchor_ts": anchor, "caliber": "v0" if FUND_COL80_V0 else "v1", "v0_state": _v0 is not None,
+                 "n_fresh_missing_v0": len(v0_missing), "n_members_missing_v0": sum(1 for s_ in v0_missing if s_ in _mset), "missing_v0": v0_missing[:20]})
++    append_log({"e": "fund_iv_resolved", "anchor_ts": anchor, "n_relabelled": len(_ivres["relabelled"]), "relabelled": _ivres["relabelled"][:100],   # P9
++                "n_unresolved": len(_ivres["unresolved"]), "unresolved": _ivres["unresolved"][:100]})
+     st.save()
+     atomic_json(HEART, {"last_anchor": anchor, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                         "coverage": round(coverage, 4), "status": status})
+diff --git a/tests_fx_prod.py b/tests_fx_prod.py
+index 969f227..34bb8f4 100644
+--- a/tests_fx_prod.py
++++ b/tests_fx_prod.py
+@@ -420,10 +420,94 @@ def p6m():
+     cell("NEW", "P9M-G1 exact producer-appended mislabels (ONG 08-25 08Z interest signature; 61 cold-start first rows 07-26 08Z and GRVT 07-31 12Z, zip-declared 4 vs default 8): corrected == rebuild (<= 1e-15)",
+          q.get("n_corrections", {}).get("P9") == 63 and q.get("control", {}).get("max_abs", 1.0) <= 1e-15, dict(n=q.get("n_corrections"), outside_tail=q.get("n_corrections_outside_tail"), control=q.get("control", {}).get("max_abs")))
+ 
++# ======================================================================================== P9 (live append-path interval labels)
++def p9():
++    """Producer funding step on the real anchors where the six live transition rows were appended, plus the next anchor (re-resolution),
++    and a cold start of a real base name; spliced real cache, producer ledger rows, v1 rebuilt with the stored labels."""
++    print("[P9] live append path: interval labels re-resolved with exact rules, exact EMA correction", flush=True)
++    src = os.path.join(CODE, "shadow_loop_v3.py"); fixed = "def resolve_appended_intervals(" in open(src, encoding="utf-8").read()
++    CTS, CD = S.splice_cache(); LEDU = S.producer_ledger_union(); rows_full, _, _ = S.full_rows()
++    d = f"{T_ROOT}/p9"; shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
++    has_p1 = "FUND_COL80_V0 = " in open(src, encoding="utf-8").read()
++    rc = H.gen_king_device(src, d + "/dev.py"); dev = S.import_device(d + "/dev.py", "fxdev_p9", d + "/home", BUNDLE)
++    cfg, booster, man = dev.load_bundle(); cfg["_booster_sha"] = man.get("slow2026.txt", "")
++    LIVE = FZ + "/live_1789300800"; aux_live = json.load(open(LIVE + "/state/aux.json")); M1 = 1788480000   # 09-04 12Z: first anchor with the M1 base list
++
++    def run_two(A, names, base_extra=(), drop=()):
++        """state at close of A-4h for every producer-ledger name, then run_anchor(A) and run_anchor(A+4h)."""
++        st = dev.ShadowState.__new__(dev.ShadowState)
++        st.syms = cfg["symbols_panel"]; st.live = cfg["symbols_live"]; st.NW = len(st.syms); st.sym_idx = {x: j for j, x in enumerate(st.syms)}
++        st.live_mask = np.zeros(st.NW, bool); st.live_mask[[st.sym_idx[x] for x in st.live if x in st.sym_idx]] = True
++        st.prev_close = {}; st.H = np.zeros(st.NW)
++        w = np.load(f"{LIVE}/state/weights/{A - 14400}.npz"); st.H[w["idx"].astype(np.int64)] = w["val"].astype(np.float64)
++        st.last_anchor = A - 14400; st.prev_rec = None
++        st.base = sorted(set(aux_live["base_syms"]) if A >= M1 else set(st.live)) + [x for x in base_extra]
++        st.ledger = {}; st.ema = {}; st.ema_v0 = {}
++        for x, rr in LEDU.items():
++            if x in drop: continue
++            keep = [list(r) for r in rr if r[0] <= A - 14400][-400:]
++            if not keep: continue
++            v1 = S.v1_state_after(x, keep[-1][0])
++            if v1 is None or v1["last_ts"] != keep[-1][0]: continue
++            st.ledger[x] = keep; st.ema[x] = v1; st.ema_v0[x] = H.v0_state_after(rows_full[x], v1["last_ts"])
++        lr_b = np.load(BUNDLE + "/leg_returns.npz"); st.LR = {leg: list(lr_b[leg]) for leg in ("king", "rev24", "fund")}
++        fx = dev.ReplayFetcher(st.base, {x: [list(r) for r in rr] for x, rr in LEDU.items()})
++        logs = []
++        for AA in (A, A + 14400):
++            hi = int(np.searchsorted(CTS, AA, side="right")); st.cts = CTS[max(0, hi - 11520):hi].copy(); st.cd = CD[max(0, hi - 11520):hi].copy()
++            if os.path.exists(d + "/home/shadow_log.jsonl"): os.remove(d + "/home/shadow_log.jsonl")
++            dev.run_anchor(st, fx, cfg, S.RecBooster(booster), AA)
++            logs.append([json.loads(l) for l in open(d + "/home/shadow_log.jsonl")])
++        return st, logs
++
++    cases = [("ONGUSDT", 1787644800, 1787644800, 4.0, "interest signature (rate 5.000e-05 = 4h interest leg; August zip declares 4)"),
++             ("COTIUSDT", 1788206400, 1788206400, None, "back 1h / fwd 4h, no signature: unresolved at the append path (August zip declares 4; monthly reconciliation fixes it)"),
++             ("ZKCUSDT", 1788379200, 1788379200, "adj4", "3h gap between a 1h and a 4h schedule: stored 2.0 is not an adjacent schedule"),
++             ("TUSDT", 1788652800, 1788652800, None, "back 1h / fwd 4h, no signature: unresolved (September zip not published)"),
++             ("SKRUSDT", 1788811200, 1788811200, None, "back 1h / fwd 4h, no signature: unresolved (September zip not published)"),
++             ("SOPHUSDT", 1789128000, 1789128000, "adj4", "3h gap between a 1h and a 4h schedule: stored 2.0 is not an adjacent schedule")]
++    for sym, t_row, A, expect, why in cases:
++        st, logs = run_two(A, [sym])
++        lab = {int(r[0]): float(r[2]) for r in st.ledger[sym]}
++        got = lab.get(t_row)
++        if expect == 4.0:
++            reb = S.v1_rebuild_with(sym, st.ema[sym]["last_ts"], lab)
++            ok = got == 4.0 and reb is not None and abs(st.ema[sym]["acc"] - reb["acc"]) <= 1e-15 and reb["last_ts"] == st.ema[sym]["last_ts"]
++            cell("RED", f"P9-R {sym} {time.strftime('%m-%d %HZ', time.gmtime(t_row))}: label 4.0 after the next anchor and v1 EMA == rebuild with the ledger's labels — {why}", ok,
++                 dict(label=got, acc=st.ema[sym]["acc"], rebuild=(reb or {}).get("acc")))
++        elif expect == "adj4":
++            reb = S.v1_rebuild_with(sym, st.ema[sym]["last_ts"], lab)
++            ok = got == 4.0 and reb is not None and abs(st.ema[sym]["acc"] - reb["acc"]) <= 1e-15
++            cell("RED", f"P9-R {sym} {time.strftime('%m-%d %HZ', time.gmtime(t_row))}: label is an adjacent schedule (forward 4.0, likely 40/41) and v1 EMA == rebuild with the ledger's labels — {why}", ok, dict(label=got))
++        else:
++            ev = [r for r in logs[-1] if r.get("e") == "fund_iv_resolved"]
++            un = [u for u in (ev[-1]["unresolved"] if ev else []) if u[0] == sym and u[1] == t_row]
++            ok = got == 1.0 and bool(un) and un[0][3] == [1.0, 4.0]
++            cell("NEW" if not fixed else "NEW", f"P9-N {sym} {time.strftime('%m-%d %HZ', time.gmtime(t_row))}: label kept 1.0 and logged unresolved with candidates [1, 4] — {why}", ok, dict(label=got, logged=un[:1]))
++        # neighbour: the row after the transition (steady 4h) and the row before (steady 1h) keep their labels
++        ts_sorted = sorted(lab); i = ts_sorted.index(t_row)
++        nb = [(ts_sorted[i - 1], lab[ts_sorted[i - 1]]), (ts_sorted[i + 1], lab[ts_sorted[i + 1]])] if i + 1 < len(ts_sorted) else []
++        stored = {int(r[0]): float(r[2]) for r in LEDU[sym]}
++        cell("KEEP", f"P9-K {sym}: neighbour rows before/after the transition keep the producer's labels", all(v == stored.get(t) for t, v in nb), dict(neighbours=nb))
++    # long->short switch at the cap (ONG 08-26 20Z: rate -0.02, back 4h, fwd 1h): exact cap signature = 4, stored 4 -> unchanged
++    st, logs = run_two(1787774400, ["ONGUSDT"])
++    cell("KEEP", "P9-K ONG 08-26 20Z long->short at the cap (rate -0.02): label stays 4.0", {int(r[0]): float(r[2]) for r in st.ledger["ONGUSDT"]}.get(1787774400) == 4.0)
++    # first-row default: cold start of a real base name at the M1 anchor (ILVUSDT; first fetched row 07-26 08Z, zip-declared 4)
++    A = 1788480000; nm = "ILVUSDT"
++    st, logs = run_two(A, [nm], drop=(nm,))
++    first = st.ledger[nm][0]
++    z = np.load(H.WORK + "/pod2_inputs/ledger_full.npz"); zs = [str(x) for x in z["symbols"]]; j = zs.index(nm); a_, b_ = int(z["off"][j]), int(z["off"][j + 1])
++    zipl = {int(t): float(v) for t, v in zip(z["ft"][a_:b_], z["zip_iv"][a_:b_]) if v == v}
++    acc = None; prev = None
++    for r in st.ledger[nm]:                      # the cold-started EMA over exactly the rows the replay applied, with the ledger's final labels
++        rn = float(r[1]) * (8.0 / float(r[2])); acc = rn if acc is None else acc + (1 - 0.5 ** (max(int(r[0]) - prev, 1) / (3 * 86400.0))) * (rn - acc); prev = int(r[0])
++    ok = first[2] == zipl.get(int(first[0])) and nm in st.ema and abs(st.ema[nm]["acc"] - acc) <= 1e-15 and st.ema[nm]["last_ts"] == prev
++    cell("RED", f"P9-R cold start {nm} at 09-04 00Z: first row {time.strftime('%m-%d %HZ', time.gmtime(int(first[0])))} labelled like the zip ({zipl.get(int(first[0]))}), not the 8.0 default; v1 EMA == rebuild with the ledger labels", ok, dict(first=first))
++
+ # ======================================================================================== main
+ if __name__ == "__main__":
+     print(f"tests_fx_prod code={CODE} shadow_loop_v3.py={code_sha('shadow_loop_v3.py')[:16]} combo_stage.py={code_sha('fea171/combo_stage.py')[:16]} cells={sorted(CELLS)} utc={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}", flush=True)
+-    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m)):
++    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m), ("P9", p9)):
+         if name in CELLS:
+             try:
+                 fn()
