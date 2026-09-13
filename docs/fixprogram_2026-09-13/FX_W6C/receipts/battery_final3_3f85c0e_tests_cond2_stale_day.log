@@ -1,0 +1,21 @@
+[1] ★ headline: the resume day after a −4.20% trip carries a +5,000 transfer
+  OK    ★★★ 1 NOT tripped; cond2 BLIND on the transfer day 2026-09-13; the −4.20% of 2026-09-12 is reported as the last priced day and NOT judged (ef60f85: tripped again on 2026-09-12's −4.20%)  — {'triggered': False, 'blind': True, 'recent_day': None, 'recent_day_pct': None, 'latest_equity_day': '20260913', 'last_priced_day': '20260912', 'last_priced_day_pct': -4.2, 'judged_on': 'latest equity day (2026-09-13) is unpriced (transfer day) — BLIND; the last priced day (2026-09-12) is history and is NOT judged; worst_day_pct is history', 'triggers': []}
+  OK    ★★ 1 the record says WHY it is blind and names both days  — latest equity day (2026-09-13) is unpriced (transfer day) — BLIND; the last priced day (2026-09-12) is history and is NOT judged; worst_day_pct is history
+
+[2] neighbour: the resume day's income ledger is truncated instead
+  OK    ★★★ 2 truncated latest day ⇒ not tripped, blind, the older −4.20% not judged (ef60f85: tripped on it)  — {'triggered': False, 'blind': True, 'judged_on': 'latest equity day (2026-09-13) is unpriced (truncated income ledger) — BLIND; the last priced day (2026-09-12) is history and is NOT judged; worst_day_pct is history'}
+
+[3] neighbour — STA-01's window: the fallback day was positive (+0.22%), today a transfer
+  OK    ★★ 3 not tripped on either tree; on this one cond2 is blind on the transfer day instead of quietly judging yesterday  — {'triggered': False, 'blind': True, 'last_priced_day': '20260912', 'last_priced_day_pct': 0.22}
+
+[4] control: an ordinary −0.5% day after the trip day is judged and quiet
+  OK    ★ 4 judged on 2026-09-13 (−0.50%), not tripped, not blind  — {'recent_day': '20260913', 'recent_day_pct': -0.49999999999999617, 'triggered': False, 'blind': False}
+
+[5] control: an ordinary −4.5% latest day still trips
+  OK    ★★ 5 judged on 2026-09-13 (−4.50%), tripped, the trigger names that day  — ['§4-2 single-day loss -4.50% of EQUITY on 2026-09-13, worse than -4.0%']
+
+[6] control: a newer day with NO equity rows (a UTC day before its first anchor) is skipped
+  OK    ★ 6 the latest EQUITY day is still 2026-09-12 and it is judged (−4.20%, tripped) — no equity rows is not an unpriced equity day  — {'recent_day': '20260912', 'recent_day_pct': -4.2, 'triggered': True, 'blind': False}
+
+7/7 checks passed
+ALL PASS

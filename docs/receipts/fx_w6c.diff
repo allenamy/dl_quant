@@ -172,6 +172,257 @@ index 004a188..0089bf0 100644
              "unreconcilable": unreconcilable,
              "latest_unreconcilable": [u for u in unreconcilable if u["anchor_ts"] == last_ats],
              "n_unreconcilable": len(unreconcilable),
+diff --git a/live/tests_cond2_judged_text.py b/live/tests_cond2_judged_text.py
+new file mode 100644
+index 0000000..484b567
+--- /dev/null
++++ b/live/tests_cond2_judged_text.py
+@@ -0,0 +1,111 @@
++"""ALM-02: §4-2's record must name the day it JUDGED, and its trigger must print the number that TRIPPED.
++
++*** MOCK ONLY: pilot_log trees in tmp, `watchdog.evaluate`. No venue, no network. ***
++
++THE DEFECT (AUDIT_EXEC ALM-02, ef60f85): `cond2_day_loss.judged_on` is the literal "most recent priced day (2026-09-06);
++…" whatever day was judged — the live last_eval.json at 2026-09-13T12:46:53Z carried it beside recent_day 20260913. Its
++twin one screen below: the §4-2 trigger string prints `worst` (the window's historical minimum) while the trip is decided
++on `recent` (the most recent priced day, since 2026-09-06). On that same live record worst_day_pct was −4.2755 (09-06), so
++a new day tripping at −4.05% would have written "single-day loss -4.28%" into the trigger, the trip page, ALARM.log, the
++state reason and every protective_flatten row's note — the number of a day that did not trip. The same family as the
++research-side flow-day text fixed in 74b2acb5: a written fact that goes stale.
++
++Cells: [1] headline — an older −5.00% day stays in the window, the latest day trips at −4.11%: the trigger prints −4.11 and
++names its day, judged_on names that day (ef60f85: prints −5.00, judged_on 2026-09-06). [2] neighbour — one losing day, worst
++== recent: the same number either way. [3] neighbour — nothing trips: judged_on still names the judged day. [4] neighbour —
++no priced day: judged_on says so instead of naming a date. [5] source pin: no hard-coded date in the record's wording.
++
++Exit 0 = all pass.
++"""
++import json
++import os
++import shutil
++import sys
++import tempfile
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++sys.path.insert(0, HERE)
++import pilot_log as PL                 # noqa: E402
++import watchdog as WD                  # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(detail)[:400]) if detail != '' else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++def tree(navs, nav_rows=True):
++    """One day per entry of `navs` (last nav of the day), a flat consistent book so nothing but §4-2 can speak."""
++    root = tempfile.mkdtemp(prefix="alm02_")
++    for i, nav in enumerate(navs):
++        day = f"202609{11 + i:02d}"
++        ats = 1789100000.0 + i * 86400
++        lg = PL.PilotLogger(root, day)
++        lg.anchor(anchor_ts=ats, target_vector_hash="h", realized_gross=0.0, target_gross=2.0 * nav, n_names_skipped=0,
++                  regime_at_anchor="calm", mid_at_anchor_vector={"AAAUSDT": 1.0}, factor_version="f", panel_hash="p")
++        lg.order(anchor_ts=ats, symbol="AAAUSDT", side="buy", target_w=0.0, prev_w=0.0, intended_notional=0.0,
++                 order_type="maker", submit_ts=None, price_submit=None, mid_at_submit=1.0, mid_at_anchor=1.0,
++                 filled_notional=None, avg_fill_px=None, first_fill_ts=None, last_fill_ts=None, cancel_ts=None,
++                 fee_paid=None, rebalance_id=f"A{int(ats)}", attempt_idx=1, terminal_reason="skipped_min_notional",
++                 notional_currency="USDT")
++        lg.position_readback(anchor_ts=ats, symbol="AAAUSDT", venue_position_notional=0.0, venue_position_qty=0.0,
++                             source="mock", read_ts=ats + 10)
++        if nav_rows:
++            lg.daily_nav(day=int(day), target_gross=2.0 * nav, nav=nav, sizing_policy="constant_leverage_2.00",
++                         realised_pnl=0.0, unrealised_pnl=0.0)
++        lg.close()
++    return root
++
++
++def c2(navs, nav_rows=True):
++    r = tree(navs, nav_rows)
++    try:
++        ev = WD.evaluate(r, venue_events=[], ops_stats=[])
++    finally:
++        shutil.rmtree(r, ignore_errors=True)
++    return ev, ev["conditions"]["cond2_day_loss"]
++
++
++print("[1] headline: an older −5.00% day in the window, the latest day trips at −4.11%")
++ev, c = c2([10000.0, 9500.0, 9500.0, 9110.0])
++_t = [t for t in ev["triggers"] if t.startswith("§4-2")]
++check("★★★ 1 the trip is decided on the latest day (−4.105%) and the trigger PRINTS that number and names 2026-09-14, "
++      "not the window's worst day (−5.00% on 2026-09-12) — ef60f85 prints -5.00",
++      c["triggered"] is True and c["recent_day"] == "20260914" and abs(c["recent_day_pct"] - (-4.105263157894737)) < 1e-9
++      and abs(c["worst_day_pct"] - (-5.0)) < 1e-9 and len(_t) == 1 and "-4.11%" in _t[0] and "2026-09-14" in _t[0]
++      and "-5.00%" not in _t[0], (_t, c["recent_day_pct"], c["worst_day_pct"]))
++check("★★★ 1 judged_on names the judged day 2026-09-14 (ef60f85: the literal 2026-09-06)",
++      "2026-09-14" in c["judged_on"] and "2026-09-06" not in c["judged_on"], c["judged_on"])
++
++print("\n[2] neighbour: one losing day — worst == recent, the same number either way")
++ev, c = c2([10000.0, 10000.0, 9580.0])
++_t = [t for t in ev["triggers"] if t.startswith("§4-2")]
++check("★★ 2 −4.20% on the only losing day: the trigger prints -4.20% and names 2026-09-13",
++      c["triggered"] is True and len(_t) == 1 and "-4.20%" in _t[0] and "2026-09-13" in _t[0], _t)
++
++print("\n[3] neighbour: nothing trips — the record still names the day it judged")
++ev, c = c2([10000.0, 9500.0, 9550.0])
++check("★★ 3 latest day +0.53% (an older −5.00% in the window): not triggered, judged_on names 2026-09-13",
++      c["triggered"] is False and not [t for t in ev["triggers"] if t.startswith("§4-2")]
++      and "2026-09-13" in c["judged_on"] and "2026-09-06" not in c["judged_on"], c["judged_on"])
++
++print("\n[4] neighbour: no priced day — the record says so instead of naming a date")
++ev, c = c2([10000.0], nav_rows=False)
++check("★★ 4 no daily_nav at all: blind, recent_day None, judged_on names no date",
++      c["blind"] is True and c["recent_day"] is None and "2026-" not in c["judged_on"] and "no priced day" in c["judged_on"],
++      c["judged_on"])
++
++print("\n[5] source pin")
++_src = open(os.path.join(HERE, "watchdog.py")).read()
++check("★ 5 the §4-2 record's wording carries no hard-coded date and the trigger reads `recent`",
++      '"judged_on": "most recent priced day (2026-09-06)' not in _src and 'single-day loss {worst:.2f}%' not in _src)
++
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  ")
++    sys.exit(1)
++print("ALL PASS")
+diff --git a/live/tests_cond2_stale_day.py b/live/tests_cond2_stale_day.py
+new file mode 100644
+index 0000000..20ea18a
+--- /dev/null
++++ b/live/tests_cond2_stale_day.py
+@@ -0,0 +1,128 @@
++"""M2-33 (aud-kb, P1): §4-2 must never judge a STALE day because the latest equity day could not be priced.
++
++*** MOCK ONLY: pilot_log trees in tmp, `watchdog.evaluate`. No venue, no network. ***
++
++THE DEFECT (ef60f85 live/watchdog.py L1103–1112, L1252): a day whose daily_nav rows carry external_flow_usdt ≠ 0 (a transfer)
++or whose income ledger was truncated is UNKNOWN — by the B32 caliber, kept — and cond2 then judged "the most recent PRICED
++day" with no staleness bound. On a resume day after a day-loss trip, a wallet transfer made cond2 fall back to the losing day
++and trip again: an instrument gap (today cannot be priced) deciding a book-level flatten. The research commit 74b2acb5 fixed
++only a research tool's text; the executor kept the rule, so "no transfers on a resume day" stayed an operating rule.
++AUDIT_EXEC STA-01 ("a transfer today would not re-trip") is the SAME mechanism measured on a window whose fallback day
++(09-12, +0.22%) was positive — no contradiction.
++
++THE RULE HERE: cond2 judges the LATEST day that carries equity rows. If that day is unpriced (transfer / truncated / terms
++missing), cond2 is BLIND — named, paged as blind, and the resume gate refuses — and the older priced day is reported as
++history, never judged. A day with no equity rows at all (e.g. a new UTC day before its first anchor) says nothing about
++equity and is skipped, exactly as before. The transfer-day caliber itself (UNKNOWN, B32) is NOT changed.
++
++Cells: [1] headline — D2 −4.2% (the trip day), D3 resume day with a +5,000 transfer: not tripped, blind, D2 reported not
++judged (ef60f85: trips on D2). [2] neighbour — D3 truncated instead of a transfer: same. [3] neighbour (STA-01's window) —
++D2 +0.22%, D3 transfer: not tripped either way, now blind. [4] control — D3 ordinary −0.5%: judged on D3, quiet (both trees).
++[5] control — D3 ordinary −4.5%: trips on D3 (both trees). [6] control — a day with NO equity rows after D2: D2 is still
++the latest equity day and is judged (both trees).
++
++Exit 0 = all pass.
++"""
++import os
++import shutil
++import sys
++import tempfile
++
++HERE = os.path.dirname(os.path.abspath(__file__))
++sys.path.insert(0, HERE)
++import pilot_log as PL                 # noqa: E402
++import watchdog as WD                  # noqa: E402
++
++FAILS, N = [], [0]
++
++
++def check(name, cond, detail=""):
++    N[0] += 1
++    print(f"  {'OK  ' if cond else 'FAIL'}  {name}{('  — ' + str(detail)[:400]) if detail != '' else ''}", flush=True)
++    if not cond:
++        FAILS.append(name)
++
++
++def tree(days):
++    """days: [(nav or None for no equity rows, flow_usdt, truncated)] — one flat, consistent anchor per day."""
++    root = tempfile.mkdtemp(prefix="m233_")
++    for i, (nav, flow, trunc) in enumerate(days):
++        day = f"202609{11 + i:02d}"
++        ats = 1789100000.0 + i * 86400
++        lg = PL.PilotLogger(root, day)
++        lg.anchor(anchor_ts=ats, target_vector_hash="h", realized_gross=0.0, target_gross=20000.0, n_names_skipped=0,
++                  regime_at_anchor="calm", mid_at_anchor_vector={"AAAUSDT": 1.0}, factor_version="f", panel_hash="p")
++        lg.order(anchor_ts=ats, symbol="AAAUSDT", side="buy", target_w=0.0, prev_w=0.0, intended_notional=0.0,
++                 order_type="maker", submit_ts=None, price_submit=None, mid_at_submit=1.0, mid_at_anchor=1.0,
++                 filled_notional=None, avg_fill_px=None, first_fill_ts=None, last_fill_ts=None, cancel_ts=None,
++                 fee_paid=None, rebalance_id=f"A{int(ats)}", attempt_idx=1, terminal_reason="skipped_min_notional",
++                 notional_currency="USDT")
++        lg.position_readback(anchor_ts=ats, symbol="AAAUSDT", venue_position_notional=0.0, venue_position_qty=0.0,
++                             source="mock", read_ts=ats + 10)
++        if nav is not None:
++            lg.daily_nav(day=int(day), target_gross=2.0 * nav, nav=nav, sizing_policy="constant_leverage_2.00",
++                         realised_pnl=0.0, unrealised_pnl=0.0, external_flow_usdt=flow, realised_truncated=trunc)
++        lg.close()
++    return root
++
++
++def c2(days):
++    r = tree(days)
++    try:
++        ev = WD.evaluate(r, venue_events=[], ops_stats=[])
++    finally:
++        shutil.rmtree(r, ignore_errors=True)
++    return ev, ev["conditions"]["cond2_day_loss"]
++
++
++D1 = (10000.0, 0.0, False)
++D2_LOSS = (9580.0, 0.0, False)          # −4.20%: the trip day
++
++print("[1] ★ headline: the resume day after a −4.20% trip carries a +5,000 transfer")
++ev, c = c2([D1, D2_LOSS, (14580.0, 5000.0, False)])
++check("★★★ 1 NOT tripped; cond2 BLIND on the transfer day 2026-09-13; the −4.20% of 2026-09-12 is reported as the last "
++      "priced day and NOT judged (ef60f85: tripped again on 2026-09-12's −4.20%)",
++      ev["tripped"] is False and c["triggered"] is False and c["blind"] is True and c["recent_day"] is None
++      and c.get("latest_equity_day") == "20260913" and c.get("last_priced_day") == "20260912"
++      and abs((c.get("last_priced_day_pct") or 0.0) - (-4.2)) < 1e-9 and "cond2_day_loss" in ev["conditions_blind"],
++      {k: c.get(k) for k in ("triggered", "blind", "recent_day", "recent_day_pct", "latest_equity_day",
++                             "last_priced_day", "last_priced_day_pct", "judged_on")} | {"triggers": ev["triggers"]})
++check("★★ 1 the record says WHY it is blind and names both days", "transfer" in str(c.get("judged_on")) and
++      "2026-09-13" in str(c.get("judged_on")) and "2026-09-12" in str(c.get("judged_on")), c.get("judged_on"))
++
++print("\n[2] neighbour: the resume day's income ledger is truncated instead")
++ev, c = c2([D1, D2_LOSS, (9600.0, 0.0, True)])
++check("★★★ 2 truncated latest day ⇒ not tripped, blind, the older −4.20% not judged (ef60f85: tripped on it)",
++      ev["tripped"] is False and c["blind"] is True and c.get("last_priced_day") == "20260912"
++      and "truncated" in str(c.get("judged_on")), {k: c.get(k) for k in ("triggered", "blind", "judged_on")})
++
++print("\n[3] neighbour — STA-01's window: the fallback day was positive (+0.22%), today a transfer")
++ev, c = c2([D1, (10022.0, 0.0, False), (15022.0, 5000.0, False)])
++check("★★ 3 not tripped on either tree; on this one cond2 is blind on the transfer day instead of quietly judging yesterday",
++      ev["tripped"] is False and c["blind"] is True and c.get("last_priced_day") == "20260912",
++      {k: c.get(k) for k in ("triggered", "blind", "last_priced_day", "last_priced_day_pct")})
++
++print("\n[4] control: an ordinary −0.5% day after the trip day is judged and quiet")
++ev, c = c2([D1, D2_LOSS, (9532.1, 0.0, False)])
++check("★ 4 judged on 2026-09-13 (−0.50%), not tripped, not blind",
++      c["recent_day"] == "20260913" and c["triggered"] is False and c["blind"] is False and abs(c["recent_day_pct"] - (-0.5)) < 1e-6,
++      {k: c.get(k) for k in ("recent_day", "recent_day_pct", "triggered", "blind")})
++
++print("\n[5] control: an ordinary −4.5% latest day still trips")
++ev, c = c2([D1, (10000.0, 0.0, False), (9550.0, 0.0, False)])
++check("★★ 5 judged on 2026-09-13 (−4.50%), tripped, the trigger names that day",
++      c["triggered"] is True and c["recent_day"] == "20260913" and any(t.startswith("§4-2") for t in ev["triggers"]),
++      ev["triggers"])
++
++print("\n[6] control: a newer day with NO equity rows (a UTC day before its first anchor) is skipped")
++ev, c = c2([D1, D2_LOSS, (None, 0.0, False)])
++check("★ 6 the latest EQUITY day is still 2026-09-12 and it is judged (−4.20%, tripped) — no equity rows is not an "
++      "unpriced equity day",
++      c["recent_day"] == "20260912" and c["triggered"] is True and c["blind"] is False,
++      {k: c.get(k) for k in ("recent_day", "recent_day_pct", "triggered", "blind")})
++
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  ")
++    sys.exit(1)
++print("ALL PASS")
 diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
 index cbab973..2fabf5a 100644
 --- a/live/tests_disposition_matrix.py
@@ -1066,7 +1317,7 @@ index 0000000..5e758db
 +    sys.exit(1)
 +print("ALL PASS")
 diff --git a/live/watchdog.py b/live/watchdog.py
-index 0cc57ae..eccc511 100644
+index 0cc57ae..ea14723 100644
 --- a/live/watchdog.py
 +++ b/live/watchdog.py
 @@ -368,6 +368,158 @@ class OpeningHalted(RuntimeError):
@@ -1238,7 +1489,97 @@ index 0cc57ae..eccc511 100644
  
      # Per-day metrics for the persistence-based conditions (1, 6, 7). Computed day-by-day rather
      # than over the pooled window: "5 CONSECUTIVE days" is a statement about the daily sequence,
-@@ -1866,6 +2021,7 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+@@ -990,6 +1145,7 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+     _loss_truncated_days = []     # [numerator] days whose realised P&L is a LOWER BOUND
+     _prev_day_nav = None          # [B32] cond2 caliber = EQUITY DAY CHANGE: last nav of day vs last nav of previous day
+     _loss_flow_days = []          # [B32] transfer days: nav delta ≠ P&L ⇒ UNKNOWN, named
++    per_day_equity_state = []     # [M2-33] per day: None = no equity rows; "priced"; or why the equity day is unpriced
+     per_day_loss_gross = []       # deprecated companion, one round only
+     per_day_wcorr_n = []          # the DENOMINATOR: how many comparisons each day had
+     per_day_traded = []           # [cond6] did any order leave the process at any ELIGIBLE anchor
+@@ -1123,6 +1279,8 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+                 per_day_loss.append((float(_navv) - _n0v) / _n0v * 100.0 if _n0v else None)
+             else:
+                 per_day_loss.append(None)
++            per_day_equity_state.append("truncated income ledger" if _trunc else "transfer day" if _flow_day else
++                                        "priced" if per_day_loss[-1] is not None else "equity terms missing")
+             if _navv is not None:
+                 _prev_day_nav = float(_navv)
+             # deprecated gross companion (old caliber, one round): only when both terms exist
+@@ -1130,6 +1288,7 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+                 per_day_loss_gross.append((float(real) + float(unreal)) / g * 100.0)
+         else:
+             per_day_loss.append(None)
++            per_day_equity_state.append(None)
+         # ★★ THIS LINE USED TO FABRICATE A GREEN, AND IT WAS THE WORST DEFECT IN THE FILE.
+         # `pilot_metrics` is honest: with no position_readback rows it returns
+         #     {"mean_abs_weight_error": None, "n_comparisons": 0}
+@@ -1249,9 +1408,29 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+     #   judged number is reported under its own name (`recent_day_pct` / `recent_day`), so the
+     #   quantity that decides and the quantity that is printed can never again share one label.
+     # ⇒ Fail-closed is unchanged: no priced day at all => `recent is None` => blind (as before).
+-    _recent_i = next((i for i in range(len(per_day_loss) - 1, -1, -1) if per_day_loss[i] is not None), None)
++    # ★★★ M2-33 (aud-kb P1; research HEALTHCHECK_pre_resume_2026-09-06 §8.2): "the most recent PRICED day" had no staleness
++    #     bound. A transfer (B32: UNKNOWN) or a truncated income ledger on the LATEST equity day made cond2 fall back to an
++    #     older priced day — on a resume day, the losing day that tripped — and trip again: our own inability to price today
++    #     deciding a whole-book flatten. Measured on ef60f85 (tests_cond2_stale_day [1]): −4.20% day, then a +5,000 transfer
++    #     day ⇒ tripped on the −4.20%. So cond2 judges the LATEST day that carries equity rows; if that day is unpriced the
++    #     condition is BLIND (named below; the resume gate refuses on blind) and the older day is history, never the verdict.
++    #     A day with no equity rows at all says nothing about equity and is skipped, as before. The B32 transfer-day caliber
++    #     itself is unchanged.
++    _eq_days = [i for i, st in enumerate(per_day_equity_state) if st is not None]
++    _latest_eq_i = _eq_days[-1] if _eq_days else None
++    _last_priced_i = next((i for i in range(len(per_day_loss) - 1, -1, -1) if per_day_loss[i] is not None), None)
++    _recent_i = (_latest_eq_i if (_latest_eq_i is not None and per_day_loss[_latest_eq_i] is not None) else None)
+     recent = per_day_loss[_recent_i] if _recent_i is not None else None
+     recent_day = days[_recent_i] if (_recent_i is not None and _recent_i < len(days)) else None
++    # ★ ALM-02 (AUDIT_EXEC, 2026-09-13): the record's wording is RENDERED from the day it judged. It was the literal
++    #   "(2026-09-06)" for a week while `recent_day` moved on — a written fact that went stale (74b2acb5's family).
++    def _day_txt(_dd):
++        return (f"{_dd[:4]}-{_dd[4:6]}-{_dd[6:]}" if (isinstance(_dd, str) and len(_dd) == 8 and _dd.isdigit())
++                else (None if _dd is None else str(_dd)))
++    _recent_day_txt = _day_txt(recent_day)
++    _latest_eq_day = days[_latest_eq_i] if (_latest_eq_i is not None and _latest_eq_i < len(days)) else None
++    _last_priced_day = days[_last_priced_i] if (_last_priced_i is not None and _last_priced_i < len(days)) else None
++    _unpriced_latest = (per_day_equity_state[_latest_eq_i] if (_latest_eq_i is not None and recent is None) else None)
+     # ★ THE SAME DAYS, ON THE OTHER DENOMINATOR. (Comment corrected 2026-08-10, ruler audit #61:
+     # the previous text here said "gross is a CONSTANT (25,000)… only the gross one is judged" —
+     # BOTH claims went stale on 2026-07-29 when constant leverage replaced constant gross. The
+@@ -1299,7 +1478,20 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+                                 "worst_day_pct": worst, "triggered": hit,
+                                 # the number the gate actually judges, under its own name
+                                 "recent_day_pct": recent, "recent_day": recent_day,
+-                                "judged_on": "most recent priced day (2026-09-06); worst_day_pct is history",
++                                "judged_on": (f"most recent priced day ({_recent_day_txt}); worst_day_pct is history"
++                                              if _recent_day_txt else
++                                              (f"latest equity day ({_day_txt(_latest_eq_day)}) is unpriced "
++                                               f"({_unpriced_latest}) — BLIND; the last priced day "
++                                               f"({_day_txt(_last_priced_day)}) is history and is NOT judged; "
++                                               f"worst_day_pct is history")
++                                              if _unpriced_latest else
++                                              "no priced day in the window (blind); worst_day_pct is history"),
++                                # [M2-33] the day cond2 is about, why it could not be priced, and the older value it
++                                # no longer falls back to
++                                "latest_equity_day": _latest_eq_day,
++                                "latest_equity_day_unpriced_reason": _unpriced_latest,
++                                "last_priced_day": _last_priced_day,
++                                "last_priced_day_pct": (per_day_loss[_last_priced_i] if _last_priced_i is not None else None),
+                                 "n_priced_days": len(_priced), "n_days": len(per_day_loss),
+                                 "blind": recent is None,
+                                 "partial": 0 < len(_priced) < len(per_day_loss),
+@@ -1351,7 +1543,10 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+                                                     "guess feeding a stop-loss"),
+                                 "n_rehearsal_rows_per_day": per_day_n_R}
+     if hit:
+-        triggers.append(f"§4-2 single-day loss {worst:.2f}% of EQUITY, worse than "
++        # ★ ALM-02 twin: the trip is decided on `recent` (since 2026-09-06), so the trigger prints `recent` and its day.
++        #   It printed `worst` — the window's minimum — which on the live record of 2026-09-13 was 09-06's −4.28%: a new
++        #   day tripping at −4.05% would have written another day's number into the page, the state and the flatten rows.
++        triggers.append(f"§4-2 single-day loss {recent:.2f}% of EQUITY on {_recent_day_txt}, worse than "
+                         f"{DAY_LOSS_LIMIT_PCT}%")
+ 
+     # --- 3. crash-day markout tail worse than -25 bps ("crash day" := regime == stress) ---
+@@ -1866,6 +2061,7 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
          # reader cannot mistake "47 anomalies ever" for "47 unexplained positions right now"
          triggers.append(f"§4-5b liquidation/position anomaly on {len(_latest)} name(s) at the "
                          f"latest reconciled anchor ({len(anomalies)} in this window's history)")
@@ -1246,7 +1587,7 @@ index 0cc57ae..eccc511 100644
      if _pb_hit:
          _l = _pb["latest"]
          _sv = _l.get("split_verdict") or {}
-@@ -1891,6 +2047,13 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+@@ -1891,6 +2087,13 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
              + f"; worst raw {_l['worst_symbol']} {_l['worst_symbol_dev_usdt']:.0f} USDT. "
              + f"WHY: {_l.get('trip_gate_caliber')} "
              + f"PROVENANCE (read from the record, not composed here): {_prov}")
@@ -1260,7 +1601,7 @@ index 0cc57ae..eccc511 100644
      if code_hits:
          triggers.append(f"§4-5c account restriction (error code {code_hits[0]['error_code']})")
      if behav_hit or attempt_hit:
-@@ -2130,6 +2293,30 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+@@ -2130,6 +2333,30 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
          triggers.append("§4-7 rebalance failure rate > 5% for 3 days")
      if drift:
          triggers.append("§4-7 un-recovered position drift")
@@ -1291,7 +1632,7 @@ index 0cc57ae..eccc511 100644
  
      return {"evaluated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
              "n_days": len(days), "days": days, "triggers": triggers,
-@@ -2153,7 +2340,183 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
+@@ -2153,7 +2380,183 @@ def evaluate(root: str, venue_events=None, ops_stats=None):
              # which is precisely what a nearly-blind stop-loss must not inherit.
              "conditions_degraded": sorted(k for k, v in detail.items()
                                            if isinstance(v, dict) and v.get("degraded")),
@@ -1476,7 +1817,7 @@ index 0cc57ae..eccc511 100644
  
  
  def _clip(text, limit):
-@@ -2287,7 +2650,7 @@ def write_flatten_readback(root, venue_positions, attempted, ts, reason="", venu
+@@ -2287,7 +2690,7 @@ def write_flatten_readback(root, venue_positions, attempted, ts, reason="", venu
      return n
  
  
@@ -1485,7 +1826,7 @@ index 0cc57ae..eccc511 100644
      """Write the ladder's flatten as `protective_flatten` order rows. Returns rows written.
  
      ★ WHY IT WRITES INTO THE ORDERS TABLE RATHER THAN A NEW STREAM: §4-5b reconciles the book
-@@ -2393,7 +2756,12 @@ def _write_flatten_rows(root, orders, evaluated_utc, reason):
+@@ -2393,7 +2796,12 @@ def _write_flatten_rows(root, orders, evaluated_utc, reason):
                       # ★ [B25] the reason used to be cut at a fixed 120 chars, landing mid-word
                       # ("…§4-7 un") — our own justification for the most drastic action we take,
                       # recorded incomprehensibly. Cut on a word boundary and SAY it was cut.
@@ -1499,7 +1840,7 @@ index 0cc57ae..eccc511 100644
                       flatten_error=ex.get("error"))
              n += 1
      finally:
-@@ -2538,6 +2906,38 @@ def run(root, *, broker=None, venue_events, ops_stats, verbose=True, state_dir=N
+@@ -2538,6 +2946,38 @@ def run(root, *, broker=None, venue_events, ops_stats, verbose=True, state_dir=N
          with open(os.path.join(sdir, "events.jsonl"), "a") as f:
              f.write(json.dumps({"ts": ev["evaluated_utc"], "triggers": ev["triggers"],
                                  "actions": broker.actions}, default=str) + "\n")
@@ -1538,7 +1879,7 @@ index 0cc57ae..eccc511 100644
      # ★★ B19: ARCHIVE THE OUTGOING STATE BEFORE OVERWRITING IT.
      # Measured on the real incident: the 00:17Z trip wrote a state saying "47 name-anchors" with
      # `errors: ["flatten attempt 1: BrokerUnavailable: order submission failed for 53/54"]` and
-@@ -2604,6 +3004,9 @@ def run(root, *, broker=None, venue_events, ops_stats, verbose=True, state_dir=N
+@@ -2604,6 +3044,9 @@ def run(root, *, broker=None, venue_events, ops_stats, verbose=True, state_dir=N
          if ev["tripped"]:
              print(f"  ★ TRIPPED: {ev['triggers']}", flush=True)
              print(f"  ★ MOCK actions: flatten + reduce_only={broker.reduce_only}", flush=True)
@@ -1593,13 +1934,15 @@ index cc29f65..1edad3a 100644
      # 8 — a maker that rested must end cancelled or filled
      resting = [o for o in mine if o.get("order_type") == "maker" and o.get("submit_ts")]
 diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
-index 5e52407..291c679 100644
+index 5e52407..7967807 100644
 --- a/ops/gate_coverage.py
 +++ b/ops/gate_coverage.py
-@@ -213,6 +213,7 @@ SUITE_SCOPE = {
+@@ -213,6 +213,9 @@ SUITE_SCOPE = {
      "tests_request_identity_unknown": "that the venue will ever produce these sequences — every outcome is injected. It proves, against the real submit/requote/top-up/attribution/reconcile code, that a -2013×2 'absent' is carried as ambiguous and never re-sent this anchor, that every venue request has its own client id (-1/-2/-3/-3cN) and the resolver refuses a record under another id, that an UNKNOWN request survives a later refusal and a partial attribution, that reconcile consumes the unknown as an authorised band instead of a hole, that 408/-1007/-1006 are execution-unknown, and that the cap clamp validates and applies atomically; round 4 (review 62ebf9f8): that the top-up keeps a per-request ledger in which a rejected or never-sent request contributes NOTHING to the unknown bound, that the known part keeps its sign when child fills settle it, that attribution shrinks the unknown by request identity (orderId join) and closes the leg only when no request is left unknown, that reconcile sums per-request QUANTITY intervals (Minkowski, mixed directions do not cancel, mark-independent) and treats non-finite or side-less rows as unquantifiable, that an ambiguous maker absent from a FULL allOrders page stays UNKNOWN and is settled only by its own order query (-2013 ⇒ absent), that an UNKNOWN symbol gets a bounded maker row instead of a hole, that flatten retries mint distinct ids, that legs are keyed by (symbol, orderId), and that an id over 36 chars is refused rather than truncated. round 5 (review cfaf1bbe): that the row's quantity comes from each request's own executedQty on every path (two prices ⇒ 100, never 150/2), that a child fill raises a request's confirmed quantity without ending it (band = what it may still fill; the leg closes only when every request is terminal), that contradictions (over-fill, wrong side, non-finite) are checked before any classification and keep the leg open, that child fills are de-duplicated by trade id and confirmed quantity is monotone, that an order the venue shows OPEN is cancelled and re-queried and stays UNKNOWN if still open, that cancel-unresolved symbols are UNKNOWN, that the breaker records the maker leg before refusing the top-up, that target/held are validated for every name before the cap logic, and that flatten recovery keys by (symbol, orderId) with a process-wide id counter. It does NOT prove phase B's allOrders/order reads (mocked here) resolve every leg on the real venue, nor that the venue's -2013 after the k-window is final (a stated venue-consistency assumption), nor that two PROCESSES in the same UTC second cannot mint the same flatten id, nor that the latest-only reconcile baseline carries an unexplained residual forward (registered for pre-registration, not implemented). Round 6 (review ce7b3cf4): that a later terminal fact for a request (cancel + re-query in settlement) supersedes the k-cancel's unresolved set by request and clears its pin, that a terminal request with a trusted executed quantity has no remainder whether or not its USDT amount was readable (C = Q with an unknown amount is a KNOWN quantity), that a missing executedQty is not a measured zero, that a ledger row is quantified by its ledger only (no amount-over-subset-price fallback), that the bounded reader validates its price, that a conflicting duplicate trade id is a contradiction, that an open order's executed-so-far reaches the row when its cancel fails, and that the pre-flight uses the plan's real chunk count. Round 7 (review a99c447e, from the fact table docs/DESIGN_request_fact_model): that the ORIGINAL complete_anchor chain (real broker over a scripted transport → cancel → allOrders → order query → top-up → attribution → rows) keeps a readable executedQty when the amount is unreadable (CANCELED 4 ⇒ filled_qty 4, position 10 ⇒ anomaly 6), that three explicit refusals at an unchanged position (0 and 1) leave a determined filled_qty 0 and no anomaly (the round-6 false trigger), that the decoder and the allOrders fold record contradictions (negative executedQty, explicit 0 beside a positive amount) instead of zeros, that an allOrders-terminal request resolves the k-cancel's unresolved set and pin, and that the ledger reader owns the row's columns at emission (a branch cannot clear them). Round 8 (review 82cbe018): that the submit response and the amount re-query are MERGED per field (a record lacking executedQty never revokes an earlier 20; an explicit terminal 0 read at the GET entry is a measured zero; a falling executedQty or NEW after terminal is a contradiction), that an allOrders match resolves the k-cancel's unresolved set only with an explicit terminal status AND our identity (no status ⇒ exact query; origQty/symbol/side mismatch ⇒ UNKNOWN), that a fold contradiction makes the name UNKNOWN end to end (no top-up, reader refuses), and that with a ledger the row's amount and price are the reader's (an unclosed ledger writes None and relabels). It does NOT run phase C or the watchdog itself (reconcile is called on the emitted rows), its venue is FakeNet. Round 9 (review b92e9479, DESIGN §3c): that a derived quantity or amount comes from ONE record (an amount 40 in one snapshot and a price 3 in another derive nothing — C unknown, 40 a lower bound, the row a band), that a terminal executedQty is CONSTANT (20 then 30 is a contradiction end to end; a terminal record without a C may still learn it; child fills beyond a terminal C are a contradiction), that the k-cancel's DELETE body is a record of the request (CANCELED 4 survives a sparse terminal query ⇒ top-up 6; a differing terminal 6 ⇒ contradiction, no top-up; an unreached symbol's UNKNOWN row carries the 4; -2013 after a cancel with facts is a contradiction, not absent), that a sparse terminal record (no executedQty, no cumQuote) is unreadable rather than 0, that the identity gate governs FACTS (a record failing it makes the request unmeasurable instead of entering the ledger as C 4 / terminal; a missing side, a non-finite origQty and an orderId other than the acknowledged one fail it; a side-less fill is never read as SELL), that contradictions travel with the facts on the partial path (query and page agree), and that the amount re-query's record must be OUR request (client id / symbol / orderId / origQty / side compared when the record carries them; a mismatch makes the request unmeasurable). Round 10 (review 38808cbd, DESIGN §3d): that a quantity carries its COMPLETENESS TYPE (an open snapshot's 20 followed by a terminal record without a quantity is a lower bound — [20, Q], known 70 / band 30 beside a second leg of 50, legal 70–100 CLEAN, 60 and 110 anomalies — while a terminal snapshot's 20 is final; a child-fill subset raises the lower bound and never proves the total; a child set that reaches Q does), that every UNKNOWN exit first folds the records already held (a CANCELED 4 survives an exhausted or -2013 query — the latter as a contradiction; a settlement cancel that answered CANCELED 6 survives a failed re-query; the submit response's own PARTIALLY_FILLED 4 is the first record; a status-only DELETE body proves existence and terminality, so -2013 after it is a contradiction, not absent), and that two final snapshots with different amounts contradict. Round 11 (review f79dc8cd, DESIGN §3e): that a final amount is never divided by a lower-bound quantity to make a price, that a maker leg the venue told us about carries a request ledger so its quantity is the reader's band (open 4 / final amount 6 ⇒ known 4 / band 6, total [8, 14] beside a top-up of 4), that a non-object query answer still folds the records already held, that a child subset's amount is a lower bound (the amount closes only with the set; reconcile reads a ledger row's band whether or not its amount closed), that a missing or None finality key is NOT final (no legacy fallback) while a lower bound reaching Q is final by capacity, that a top-up response without a status proves no finality, and that the submit record is bound by the client id WE sent (a response naming another id lends no orderId and fails the present-field gate). Round 12 (review 83fcbbcc, DESIGN §3f / §5 field-by-reader table): that the submit response's direct reader checks the body against the order we sent before reading a number (a body naming another client id is a contradiction, and no re-query is made under that id), that a merged record whose quantity 0 is a LOWER BOUND is compatible with a positive final amount (NEW 0 → fills → cancel with an amount-only terminal read ⇒ known 0 / band 10 / amount 4, total [6, 16] beside a top-up of 6) while a raw same-snapshot 0-beside-amount stays a contradiction, that a final amount is constant against child fills and a subset's amount may not exceed it, that a duplicate trade id without a quote never erases a recorded quote, that a child subset's vwap goes to its own column and never becomes the row's price, that an amount known beside an unknown quantity is the interval [0, Q] (known 0 + band, on the UNKNOWN row and the normal maker ledger alike — a contract choice registered in DESIGN §3f.6), and that explicit zeros carry the amount's finality. Round 13 (review ec2fe835, DESIGN §3g): that the child-fill amount LOWER BOUND (Σ over the children that carry a quote) is compared against a final amount without waiting for the others (5/N50 + 5/N-missing against a final 40 is a contradiction), that a non-finite ledger amount is flagged even when the quantity is missing, that every identity gate reads a present-but-malformed field (empty side, non-finite origQty) as a contradiction and an absent one as no evidence (one `identity_field` for the submit gate, the re-query gate and the settlement's present-field gate), and that the two cost diagnostics (neutrality_price, chase_readout.collect) measure bps over PRICED fills only and report the unpriced count / notional / fee beside it (no priced fill ⇒ None, never 0). Round 14 (review d51cb731): that an order id is a LOSSLESS integer everywhere it is read (a fraction is never truncated, ±Inf never raises through complete_anchor, text is malformed even without an acknowledged id to compare with; the child-fill joins skip and count such ids), and that the two cost diagnostics count a fill as MEASURED only with a usable price AND a known fee (fee_paid None ⇒ fee-unknown bucket, never a free fill; NaN / negative prices ⇒ unpriced), with the bps key's denominator explicitly documented as the measured fills, and that a fee written as a raw non-USDT sum without a completed conversion (fee_all_usdt False, no fee_conversion) is fee-unknown, not a known fee. Round 15 (review 1ef6ce8c): that an order id is read as EXACT text or exact value — a digit string is parsed with arbitrary precision (never through float: '9007199254740993' stays itself, two ids near 2^53 never merge, the stored value never changes), a float at or beyond 2^53 or any fractional text is malformed — through the gates, the acknowledged-id lookup and the child-fill joins (an outside fill with a neighbouring id is not attributed and does not close our open request), that the reshape report's neutrality section cites the MEASURED count and notional and explains a None price by its bucket, and that the fee value, currency flag and conversion marker on a row come from the same write (a re-stamp clears the earlier marker). It does NOT prove the venue's DELETE body always carries the final executedQty (documented, assumed), nor that two differing terminal readings can never both be genuine (a venue-side correction would need its own evidence type).",
      "tests_reduce_only_clamp": "that the venue always CLAMPS a reduceOnly order that exceeds the position rather than refusing it — observed on 2026-09-12 12Z (MEMEUSDT/POPCATUSDT, origQty = the position to the contract, no error) and documented, assumed general; and that the allOrders record of a clamped request has the shape this suite rebuilds from the submit response + the child fills (the live record was not logged). It proves, against the real gates (`submit_identity_mismatch`, `last_fill_details`, `venue_fills.settle_ambiguous_legs`) driven by the REAL 12Z submit responses and the REAL 08Z/12Z readbacks, that a reduceOnly record whose origQty is BELOW ours is the fourth state `clamped` (recorded, orig_qty = the position, no `inconsistent`), that an origQty ABOVE ours, a non-reduceOnly difference and a wrong side are still contradictions at every gate (the 1e-6 tolerance is untouched), that `plan()` sizes a full exit as −held_qty from the same account snapshot (F2 removed at the source; no quantity ⇒ the old path, labelled `notional_over_mid`), and end to end through the unmodified plan→submit_maker→complete_anchor chain over a scripted transport that the maker rows close on the venue's capacity (`qty_venue`) and `reconcile` measures both names at residual 0 where the old code produced 2 × execution_of_unknown_size (the incident, reproduced from the live rows as a control; the origQty-above-ours mutation of the same chain still produces the 2 anomalies). It does NOT run the watchdog (the proportional response is (c), a separate ruling), nor prove that mark ≠ mid is the ONLY way ours can exceed the position.",
      "tests_flatten_fee_backfill": "that the venue's allOrders still lists the flatten's orders when the runner is invoked (limit 500 / startTime — an unreached symbol is named, not fabricated), or that the LIVE run was ever performed (`LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 --apply` is the operator's step, with credentials; this suite drives the runner over an in-process fake). It proves, on the REAL 2026-09-12 day, that the flatten batch is detected as the one gap with its 255 own client ids and 255 fee-unmeasured order rows, and on a synthetic population that the legs are rebuilt by EXACT client id (never by the rebalance-id prefix a flatten does not carry), that --apply writes one fills row per child fill with order_type protective_flatten and the venue's commission, that a second apply writes nothing (idempotent by trade id), that a foreign trade is counted unattributed and never written, that a batch the venue does not list fails closed, and that the classic rebalance path and its maker/topup_taker buckets are untouched. The ORDER rows' fee_paid stays None by the ledger's append-only rule — the measurement lands on the fills rows, and a consumer that sums fees from order rows alone still under-reads the flatten.",
++    "tests_cond2_stale_day": "that BLIND on a transfer day is the right operating trade-off (the resume gate now refuses on such a day and run_anchor pages the blind condition), and anything about pricing a transfer day (the B32 caliber, UNKNOWN, is unchanged; pricing it is a caliber decision left open). It proves, on pilot_log trees built in tmp, that after a -4.20% day a latest equity day that carries a transfer, or a truncated income ledger, leaves cond2 BLIND and not triggered with the older day reported as last_priced_day and not judged (ef60f85 tripped on it), that STA-01's window (positive fallback day) is blind instead of quietly judging yesterday, and that ordinary latest days (-0.5%, -4.5%) and a newer day with no equity rows behave exactly as before.",
++    "tests_cond2_judged_text": "that any reader of the §4-2 record or trigger text acts correctly on it (none in this repo parses either; guard_twin outside the repo is not checked). It proves, on pilot_log trees built in tmp, that the trigger prints the MOST RECENT priced day's loss and names that day while an older, worse day stays in the window (the window's minimum is no longer printed as the tripping number), that judged_on is rendered from recent_day on a tripping, a quiet and a no-priced-day window, and that watchdog.py carries no hard-coded date in that wording.",
 +    "tests_proportional_response": "that 2% of gross and 5 names are the right lines (policy set after the 09-12 incident, frozen by R-14), that the venue behaves for reduce-only market exits during -4400 or price protection as it does in MockBroker, that the off-box page is DELIVERED (run_anchor's call is pinned statically; delivery is the anchor's receipt), and that ops/resume_from_trip.sh and ops/unseed_rehearsal_halt.py refuse end to end (both run a public network probe; their refusal branches are pinned statically and the EMA keep/remove snippet is executed verbatim). It proves, through watchdog.run on a held 100-name MockBroker book and on the real 2026-09-12 12Z rows re-shaped so (a)(b) keeps the contradiction, that a name-scoped trigger set (§4-5b, §4-5e split_unauth per-name clause alone, §4-7 drift) of <= 5 names whose doubt is <= 2% of the anchors row's target gross gets a LOCAL response — opening halted, resting orders cancelled and the WHOLE venue position flattened reduce-only for THOSE names only, the reduce-only key not set, state kind proportional_local — at 4/5/6 names and 1,999/2,000/2,001 USDT of 100,000, across the §4-5b/§4-5e union; that any book-level trigger beside it (§4-2, §4-5a) and the negative controls alone (§4-2, §4-4b, §4-5a, §4-5c) still flatten every name; that an unknown doubt or gross is named and never becomes a book-level flatten on its own while a KNOWN part over 2% still does; that a trigger nobody scoped is book-level; that the doubt of a name is a sum over every leg of unknown size (review C9: row order cannot change the route); that a local response never overwrites a standing trip's record and does not reset the harvest EMA; that the config switch false restores the ladder and an unreadable config reads ON; that unreadable positions across the book never reached the ladder before this change and still do not; and that the 2026-09-09 receipt's name sets (9 + 52) stay on the ladder.",
      "tests_income_twin_rows": "that the venue keys income rows the way the fixture does — it proves, against an in-process fake of /fapi/v1/income, that a trade's COMMISSION and REALIZED_PNL twins (same tranId) are BOTH summed, that a row re-served across a page boundary is still counted once, and that the old tranId-only key would have dropped exactly one twin per trade (positive control). Whether the venue also shares tranIds across OTHER pairs of types, or emits a third row per trade in some product, is a fact about the venue that only the live ledger reconciliation (income vs fills) can keep proving.",
      "tests_transport_resilience": "that the VENUE will be reachable on the resend — it proves, against an in-process fake of urlopen, that a request-phase failure on GET/DELETE is resent a bounded number of times while an order POST is NEVER resent under any failure — transport in either phase, HTTP 5xx, 200 non-JSON — but settled only by the venue's own order record (found ⇒ adopted, -2013 twice ⇒ recorded as not sent, else ambiguous), that the requote carries ambiguity as rested and the top-up keeps a confirmed chunk and writes UNKNOWN never zero, that a still-unresolvable POST is carried as possibly-resting, that the executor records transport rows and trips its circuit breaker, and that an exception escaping the submit loop cancels what rested, writes rows and pages before re-raising. It cannot see whether the venue actually processed a request whose answer we lost when the query ALSO fails (that order is handed to phase B as possibly-resting and to the next sweep), nor whether a 0.5 s pause is long enough for the venue to have decided before we ask it, nor whether Telegram delivers the page",
@@ -1693,10 +2036,10 @@ index 81c91b0..a00e55d 100755
      # ── 3. a metric that CRASHED is not an absent input ───────────────────────────────────────
      if out["metric_errors"]:
 diff --git a/run_acceptance.sh b/run_acceptance.sh
-index f7fd32c..1b9d73b 100644
+index f7fd32c..2884d0b 100644
 --- a/run_acceptance.sh
 +++ b/run_acceptance.sh
-@@ -168,6 +168,10 @@ SUITES=(
+@@ -168,6 +168,14 @@ SUITES=(
    # E-0912-A (b) fee population: the protective flatten's executions get fills rows + measured commission via the B26b
    # backfill (legs joined by the rows' own client ids); real-day gap cell + synthetic population + fail-closed control.
    "tests_flatten_fee_backfill:$_SELF/live/tests_flatten_fee_backfill.py"
@@ -1704,6 +2047,10 @@ index f7fd32c..1b9d73b 100644
 +  # <= 5 names and <= 2% of gross gets a LOCAL response (halt opening + those names flattened), never the whole-book ladder;
 +  # book-level evidence still runs the ladder (negative controls on the same held book).
 +  "tests_proportional_response:$_SELF/live/tests_proportional_response.py"
++  # ALM-02: §4-2's record names the day it judged and its trigger prints the number that tripped (not the window's worst).
++  "tests_cond2_judged_text:$_SELF/live/tests_cond2_judged_text.py"
++  # M2-33: §4-2 judges the latest equity day; an unpriced latest day (transfer / truncated) is BLIND, never a stale re-trip.
++  "tests_cond2_stale_day:$_SELF/live/tests_cond2_stale_day.py"
    "tests_venue_rate_authority:$_SELF/live/tests_venue_rate_authority.py"
    "tests_filters_cache_per_mode:$_SELF/live/tests_filters_cache_per_mode.py"
    "tests_rate_backstop_window:$_SELF/live/tests_rate_backstop_window.py"
