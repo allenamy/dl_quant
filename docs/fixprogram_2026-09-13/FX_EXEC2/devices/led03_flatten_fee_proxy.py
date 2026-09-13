@@ -25,15 +25,15 @@ for d, rows in orders_by_day.items():
     for o in rows:
         if str(o.get("rebalance_id", "")).startswith("FLATTEN-"):
             batches[o["rebalance_id"]].append((d, o))
+fill_ts_by_sym = collections.defaultdict(list)          # symbol -> [(fill ts, rebalance_id)] over every order row
+for d, rows in orders_by_day.items():
+    for o in rows:
+        for k in ("first_fill_ts", "last_fill_ts"):
+            v = o.get(k)
+            if v is not None:
+                fill_ts_by_sym[o.get("symbol")].append((float(v), o.get("rebalance_id")))
 def other_fill_ts(sym, rid, t0, t1):
-    hits = []
-    for d, rows in orders_by_day.items():
-        for o in rows:
-            if o.get("symbol") != sym or o.get("rebalance_id") == rid: continue
-            for k in ("first_fill_ts", "last_fill_ts"):
-                v = o.get(k)
-                if v is not None and t0 <= float(v) <= t1: hits.append(o.get("rebalance_id"))
-    return hits
+    return [r for t, r in fill_ts_by_sym.get(sym, []) if r != rid and t0 <= t <= t1]
 res = {"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "income_sha256": hashlib.sha256(raw).hexdigest(),
        "income_rows": len(inc), "rule": "COMMISSION rows of the leg's symbol in [trip time, batch write time + 5 s]", "batches": {}}
 for rid, items in sorted(batches.items()):
