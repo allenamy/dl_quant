@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ATTR Stage C -- docs/PREREG_combo_chain_residual_attribution_2026-09-13.md (sha 63c335d6..., commit efda139f) §2/§3 + AMENDMENT 1.
+"""ATTR Stage C -- docs/PREREG_combo_chain_residual_attribution_2026-09-13.md (sha 63c335d6..., commit efda139f) §2/§3 + AMENDMENT 1 + AMENDMENT 2 (sequential lanes, quota probe).
 Interventions at the three snapshot-seeded anchors whose G2-C baseline is exact (s12/s16/s20 -> 1789214400/1789228800/1789243200). Each variant gets a fresh
 tree built from the G2-C tree (same files, same symlink targets); ONLY the fake-HOME `state/rolling.npz` differs. The byte-identical Phase 1 driver (f2ced820...)
 runs the anchor in snapshot mode with REPLAY_COMBO=1 against snapshot A-4h, as G2-C did:
@@ -12,7 +12,6 @@ Verdict (§3): V0 exact at 3/3 (king, target_combo, target_live all 0.0) else ST
 with kc state L-inf == 0.0 on those anchors. Writes only under P2/work/attr_C and P2/receipts/ATTR_stageC.json.
 usage: env -i PATH=/usr/bin:/bin HOME=/root /workspace/venv/bin/python -B p2_attr_stageC.py PATH,HOME,LC_CTYPE"""
 import os, sys, json, time, hashlib, shutil, subprocess
-from concurrent.futures import ThreadPoolExecutor
 WL = set(sys.argv[1].split(",")) if len(sys.argv) > 1 else set()
 assert WL, "env whitelist (argv[1]) must be non-empty"
 extra = sorted(set(os.environ) - WL); assert not extra, f"env outside whitelist: {extra}"
@@ -83,7 +82,23 @@ def build(slot, variant):
     info.update(rows=int(len(ts)), first_ts=iso(ts[0]), last_ts=iso(ts[-1]), rolling_sha256=sha(f"{ws}/state/rolling.npz"))
     return dst, info
 
+def probe(mb=300):
+    """AMENDMENT 2: disk-quota probe before every variant (pod2 /workspace quota exhausted at 15:51Z killed attempt 1)."""
+    pp = under(f"{OUTD}/_quota_probe.bin")
+    try:
+        with open(pp, "wb") as f:
+            for _ in range(mb): f.write(b"\0" * (1 << 20))
+            f.flush(); os.fsync(f.fileno())
+        ok = os.path.getsize(pp) == mb << 20
+    except OSError as e:
+        ok = False; print("QUOTA_PROBE_FAIL", repr(e)[:160], flush=True)
+    try: os.remove(pp)
+    except OSError: pass
+    return ok
+
 def run(slot, variant):
+    if not probe():
+        print("ATTR_STAGE_C ABORT quota probe failed before", slot, variant, flush=True); sys.exit(4)
     A, cores = SLOTS[slot]; dst, info = build(slot, variant); tag = f"ATTR_{variant}"
     env = {"PATH": "/usr/bin:/bin", "HOME": dst + "/home", "REPLAY_COMBO": "1", "REPLAY_RECEIPT_TAG": tag}
     cmd = ["taskset", "-c", cores, "nice", "-n", "10", "/workspace/venv/bin/python", "-B", f"{dst}/dev/replay_driver.py", "--snapshot", f"{W}/snapshots/{A - 14400}", str(A)]
@@ -130,8 +145,7 @@ def lane(slot):
         r = run(slot, v); res.append(r)
         print(json.dumps({k: r.get(k) for k in ("slot", "variant", "rc", "secs", "rows", "king_weights_Linf", "target_combo_Linf", "target_live_Linf", "target_live_names_gt_1e6", "n_dead_live_names")}), flush=True)
     return res
-with ThreadPoolExecutor(max_workers=3) as ex:
-    RES = [r for lane_res in ex.map(lane, list(SLOTS)) for r in lane_res]
+RES = [r for slot in SLOTS for r in lane(slot)]     # AMENDMENT 2: one lane at a time (peak disk ~250 MB)
 BY = {(r["slot"], r["variant"]): r for r in RES}
 failed = [f"{r['variant']}_{r['slot']}" for r in RES if r.get("FAIL") or r.get("combo_rc") != 0 or r.get("compare_error")]
 def exact0(r): return (not r.get("FAIL")) and r.get("king_weights_Linf") == 0.0 and r.get("target_combo_Linf") == 0.0 and r.get("target_live_Linf") == 0.0 and r.get("driver_saw_variant_rolling")

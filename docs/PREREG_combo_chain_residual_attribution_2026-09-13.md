@@ -50,3 +50,8 @@
 - **A1.4 绑定**: V0 的 rolling 逐字节复制 G2-C 树文件(sha 须 = `G2C_prep.json` 的 hybrid_sha256); 每个变体的驱动收据 `rolling_sha256` 须 = 该变体文件 sha, 否则该变体记失败(V0 失败 ⇒ 停)。
 - **A1.5 中间件清理**: 每个变体跑完、sha 入收据后删除变体 rolling.npz、`replay_home/fea171/mini/` 与两份 ref_fea89.npz 副本(避免累计多 GB 写入); 驱动收据、日志、state_H 输出与目标文件保留。
 - **A1.6 描述量增补(无门)**: Stage C 另报 target_live 差最大的 5 个名、V2 死名中在生产者该锚 target_live 与 aux `prev_rec.members` 中的名数。
+
+## AMENDMENT 2 — 2026-09-13 16:0xZ(Stage C 第 1 次运行无任何数字; 只改运行方式, 判据 §3 一字不改)
+- **事实**: 15:51Z pod2 `/workspace` 共享配额耗尽(15:55Z 1 MB dd 探针 "Disk quota exceeded"), Stage C 第 1 次运行三道并行 V0 被杀, 驱动收据与日志均 0 字节, 无数字产生; 证据 `phase2/receipts/ATTR_stageC.attempt1_quota.log`(提交 8ca083a8)。本人残树(约 757 MB)已删。
+- **A2.1** Stage C 三锚改为**逐道串行**(同一时刻只有一棵变体树, 峰值约 250 MB); 每个变体建树前写 300 MB 探针文件并 fsync 后删除, 探针失败 ⇒ 立即退出 4(不产生判定)。车道核绑定、驱动环境、绑定与清理规则同 AMENDMENT 1。
+- **A2.2** 运行日志经 `tee` 同时进 pod2 收据与本机会话输出(配额再耗尽时日志写失败不再静默), rc 取 `PIPESTATUS[0]`。
