@@ -300,3 +300,36 @@ Five of six requirements are done; req. 6 (E10) is waiting on fx-exec's reply.
 - The census cannot see paths built without spelling the file name.
 - Option (A), the format change, is registered as a design candidate only; no work was done on it.
 - One process slip: my f935b085 commit deleted the ec88424 partial diff (it appears as a rename to the d3d16ea diff). The deleted diff is still in d9699cf5 at sha256 bbb31514…; later partial diffs are kept.
+
+## ALM-05 · scope of the arm() A7 margin/tier-1 diagnostic (commit 63e116c)
+
+**Problem.** A7 took its universe from LIVE_PREDS_PATH. That file is preds_latest.json, the executor's own internal DL panel: 110 names in the 09-13 12Z arm record. The traded external book at that anchor had 244 names out of a 450-name universe. So the worst-case maintenance margin, the tier-1 thin list and the risk floors describe names the book does not trade. A7 is record-only: nothing gates on it.
+
+**Facts** (FACT_TABLE_EXEC2 §ALM-05)
+- The scope code is binance_broker.py:1361-1378 (ef60f85). It never refuses arming (L1337).
+- The target directory comes from config external_book.path. external_book provides config / newest_verified_anchor_ts / verify_file.
+- arm() runs before this anchor's target file lands. So the newest verified target is the previous anchor's book.
+- fx-exec's E2 hunks in this file are L379-481 and L1652-1686. My hunk is the A7 block and does not overlap.
+
+**Red evidence.** receipts/ALM05_red_old_ef60f85.log: 2/5 pass, 3 FAIL, no crash. In external mode the scope reads "scoring universe from preds.json (3 names)", including when the external scope is empty or unreadable.
+
+**Fix.**
+- When external_book.config(book.json) resolves to source=external, the A7 scope is the newest verified target file's weight names UNION the currently held non-zero positions (from account_snapshot).
+- The preds path is used only for the internal book.
+- An empty or unreadable external scope is written into the scope text, then falls back to every configured symbol (same rule as before).
+- The account snapshot taken for the scope is reused for A7's equity probe, so A7 makes one account read, not two.
+
+**Tests.** live/tests_arm_margin_scope.py: 5/5. It uses a TESTNET broker stub answering the GETs in-process, a temp target tree with a real sha256 sidecar, and a temp preds file.
+- [X1] Scope is verified target ∪ held, 2 names; the preds file is ignored.
+- [X2] External book with nothing to scope: says so and falls back.
+- [X3] Internal book: preds scope unchanged.
+- [X4] One account read.
+- [X5] Unreadable scope: stated, falls back, still armed.
+- Neighbours green: tests_binance_broker (existing A7 cells), tests_external_book, tests_readiness_filters_path, tests_a2_withdrawal_gate, tests_live_install_ritual, tests_static_names, tests_imports.
+
+**Battery.** Not yet run (lead ruling on the battery's public GETs: allowed under the window + BATTERY.lock rule).
+
+**Not proven.**
+- The scope is the previous anchor's book plus current holdings, so names entering this anchor are not in it.
+- The real target directory and account payload shapes are not read by this suite.
+- The floors are still diagnostics that no gate consumes.
