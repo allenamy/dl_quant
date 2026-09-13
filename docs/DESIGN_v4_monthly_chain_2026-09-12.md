@@ -184,3 +184,55 @@
 - **未验(诚实)**: 本轮全部在 mac 本地合成夹具上; **pod2 未跑**, 真数据未跑; §7 (ii) 原样仍开。
 
 > **勘误(2026-09-12 15:1xZ, lead)**: 本文 §3/§5 写的「41 键」是 W3 交付时的数; W7 随后加入 `PREV_DLW_CLIP / PREV_F8 / PREV_KING_FEA / PREV_KING_FEA_UNCLAMPED / PREV_CLAMP_BUILDER_SHA256` ⇒ 现为 **46 键**(`chain_lib.sh` V4_MONTH_KEYS; 自检 [P] 键数格已同步)。键的语义见 `docs/PREREG_v4_gates_monthly_2026-09-12.md` §2。
+
+## §10 ROUND 4(2026-09-13, X3; 受据 = 独立研究员 `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round3_code_and_research_2026-09-13.md` §4 + `.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_round3_code_review_2026-09-13/retrain/RESULT.md`; 追加前本文 sha = `2575a5f7d8e7e35c03f23ad16f89a29af9eeadb8c1382760d72b82e188af4ebd`)
+
+三项全部改码。研究员的**原反例**在新节 [U] 里各有格子, 每格在同一次运行里同时跑归档的修前源(`chain_lib.r2_a331f035.sh` / `v4_gate_step2_m.r2_b2f9cfd4.py`, 即 RESULT.md 关键源表里的 sha)与现源。收据目录 `receipts/round4_2026-09-13/`。
+
+### 10.1 R3-D1 `prereq_refit_sidecar`: 键齐全不等于值有效
+- **旧行为**: round 3 只比较 `inputs` / `inputs_sha256` 的**键集合**。路径比较只在 `p is not None` 时跑, 哈希循环遇 `p is None` 直接 `continue`, 最后照常打印 "4 inputs + weights verified"。研究员实测: 四个输入任一改字节并把其 locator 置 null ⇒ rc 0; 四个全置 null ⇒ rc 0; 删掉 targets 文件并置 null ⇒ rc 0。
+- **新行为**: (i) 四个输入与 `pt` 的 locator 必须是**非空字符串**, 且 realpath 等于本月期望路径; null、非字符串、空串一律拒, 永不跳过。同一对象的 symlink 仍通过(研究员正控 `D1_same_object_symlink_positive` 不变)。(ii) **与 locator 写了什么、是否存在无关**, 在本月期望路径上无条件检查文件存在且实测 sha 等于记录值; 记录值必须是 64 位小写 hex(写手用 `hexdigest()`, 恒满足)。(iii) ok 行只由**实际跑过并通过**的检查拼出; 任一必需检查(`locator:*` `sha:*` `seed` `self_sha256`)没跑, 本身就是拒绝。
+- **影响边界(沿用 §9.1)**: 真写手不产 null; 没有证据表明坏 `.pt` 被真实消费(arms 读月度 `.npy`)。修的是资格门的承诺, 不是一次被证明的坏训练。
+- **未动**: 侧车 `seed` 为 42.0 时仍等于 42 而通过(研究员记为 VERIFIED / 收窄, 不是缺陷)。
+
+### 10.2 R3-D3 `load_month_env`: 合同是数据, 不再被 source
+- **旧行为**: grep/awk 按物理行检查, 然后让 Bash `source` 原文件, 两套文法。研究员在真实驱动的 shell 选项下(pipefail on, errexit/nounset off, `load_month_env "$ENVF" || exit 4`)实测: 续行把 `BUNDLE_OUT=$R\` 与下一行拼成 `$RBUNDLE_TAR`, 合同 sha 不变而父变量决定 BUNDLE_OUT(A/B 两值都 MONTH_ENV_OK rc 0); 46 键齐全后追加 `X="` 让 source 报错, 仍 MONTH_ENV_OK; `SEEDS=42 : > marker` 执行了重定向; `~/king` 随父 HOME 变。
+- **新行为(没有扩字符黑名单)**: Python 解析、从不执行的**白名单文法**。`line := blank | comment | KEY=VALUE`; KEY 必须在 V4_MONTH_KEYS 里、每键**至多一次**、顶格。`VALUE := (LITERAL | $NAME | ${NAME})*`, LITERAL 字符只有 `A-Z a-z 0-9 _ . / , : @ % + = -`; 引号、反斜杠、空白、`~`、glob、`; & | < > ( )`、反引号、`#` 都不在文法里。NAME 必须是**本文件更早定义过**的键, 由解析器自己代入其已解析值。解析器 rc 被检查: 拒绝按类 die, 其它非 0 rc ⇒ `month_env_parser_failed_rc_<rc>`。rc 0 也不单独信任: bash 侧逐行复验「已注册键、恰一次、非空、只含 LITERAL 字符」并要求 46 键齐全, 然后才 `unset` 全部合同键, **只 export 这 46 对**。die 类名保留 round 2/3 的四类(`missing` / `malformed` / `key_missing_<K>` / `unbound_reference`), 新增 `duplicate_key_<K>` / `parser_failed_rc_<rc>` / `parser_output`; 同一行既重复又非法时 malformed 优先。
+- **两份已交付合同照旧加载(证明)**: [U] 在被污染的父环境(R / SEEDS / UNLISTED_SEEDS / RBUNDLE_TAR / HOME)下分别跑修前 source 加载器与新解析器。九月合同与十月模板**导出的全部环境变量逐项相等**, MONTH_ENV_OK 行相同(本地 bash 3.2.57)。pod2 bash 5.1.16 上真九月合同同样 81 个变量逐字节相同(PREREG §7.11 E1)。两份合同字节未动(`563efdef…` / `dc94784e…`)。
+- **有意收紧、研究员当时记为「符合预期」的接受态, 现在拒绝**: `"$R/raw"` / `'$R/raw'` / `\$R/raw` 三种引号或转义形式(旧加载器下看起来一样的 `$R/raw` 得出两种值); 未注册键的行; 重复键。
+- **新前提(明写)**: 解析器用加载时的 `$PY`(chain_lib 默认 `/workspace/venv/bin/python`, pod2 上存在); 合同自己的 PY 在加载之后接管各阶段。mac 上没有这个默认路径, 所以自检的 `_bash` 助手改为「调用方与父环境都没给 PY 时, 默认用本解释器」。[U] 另有一格证明 `$PY` 不存在 ⇒ rc 4 `month_env_parser_failed_rc_127`。
+
+### 10.3 R3-D2 `v4_gate_step2_m.py`: 门验证的对象必须就是消费者下标的对象
+- 规则全文见 `docs/PREREG_v4_gates_monthly_2026-09-12.md` **AMENDMENT 3 + §7.11**。一句话: 持久化成员索引的 dtype kind 必须是有符号或无符号整数(bool / float / object / 字符串一律拒), 然后才是 1-D / 范围 / 唯一, 通过后才转 int64 作下标。[U] 用 AST 取出导出器自己的 `y4[i, m]` 表达式(导出器程序本体从不 import 或运行): 放到新门拒绝的每个数组上都 IndexError; 放到新门接受的整数数组(int64 置换 / int32 / uint16)上都正常。
+- **九月真数据(pod2 直接测量, 不是由写手代码推断)**: `wide_fea_v4_meta.npz` 的 10182 个成员数组全部是 int64; 6 个新尾锚各有 400 个合法且唯一的索引。新门 PASS rc 0, 与 round-3 收据 38 个判决字段全等、0 差。
+- **★ 批准对象(lead 呈用户时引用)**: STEP2 月通用门 **`d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d`**, 取代 `b2f9cfd4…`(后者成为红控快照)。STEP1 月通用门不变 `79950786…`。合同 `1188267a…` 未编辑。
+
+### 10.4 本轮的 sha 与收据
+| 文件 | 修前 sha256 | 修后 sha256 |
+|---|---|---|
+| `chain_lib.sh` | `a331f0351b3e…` | `4ee217e1d761fa13abf34d16222f1dede79ceade3d44547e171aa7477a30288d` |
+| `v4_gate_step2_m.py` | `b2f9cfd40b9e…` | `d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d` |
+| `tests_pipeline_gates.py` | `cfa8f6dbe2aa…` | `6e535ad47e2a2c2609ca9bcb1373f0b01671dbbd49cad44f936cfceb57dcea9a` |
+| `receipts/monthly_chain_2026-09-12/w7_gates/v4_gate_step2_m.diff` | `833c9a420d0e…`(105 行) | `e0a3c515387904dbfe58cb7c186826810776f8bf06d7be23a23e2a51fa552da6`(112 行) |
+| `chain_lib.r2_a331f035.sh` **新** | — | `a331f035…`(红控, 等于修前 chain_lib 逐位) |
+| `v4_gate_step2_m.r2_b2f9cfd4.py` **新** | — | `b2f9cfd4…`(红控, 等于修前 STEP2_m 逐位) |
+| `chain_v4_monthly.sh` / `v4_gate_step1_m.py` / 两份月合同 | 不变 | `e8e688d5…` / `79950786…` / `563efdef…` / `dc94784e…` |
+
+- **冻结与禁动文件零改动(事前事后实测)**: `v4_gate_step1.py` `278fdce6…`、`v4_gate_step2.py` `db7ab356…`、`ELIGIBILITY_CONTRACT.json` `1188267a…`、`v4e_gate_export_v2.py` `d63f4ec3…`、`v4_gate_common.py` `24e813f1…`、`judge_v4.py` `c2a81c48…`、`make_sha_manifest.py` `ba521004…`、`tests_judge_dynamic_deps.py` `4dfee3fd…`([U] G0 格)。
+- **自检**: ALL PASS (386 checks), rc=0(`receipts/round4_2026-09-13/tests_pipeline_gates_round4_mac.log`, 前后记录同一源码 sha 前缀)= 修前 354 + [U] 32。[U] 块(sha `5e4dbfce…`, 与套件内逐字节相同)在修前源码上 22 FAIL / 10 OK(`tests_U_section_on_PRE_round4_sources_RED.log`)。`make_sha_manifest.py` rc 0(103 文件)。
+- **研究员探针复跑**(副本只改源目录路径, 见 `researcher_probes_PATCH_MANIFEST.json`): 修前 23 / 16 / 83 项全部复现研究员的观察。修后 boundary 翻 26 格: D1 六格 null-locator 全部 rc 3; D3 十七格(续行 ×6、未闭引号 ×2、前缀命令 ×2、`~` ×4、引号/转义 ×3)全部 rc 4, 值不再由父变量决定, 标记文件不再被创建; D2 三格(bool ×2、整值 float)全部 FAIL。W7 16 格零翻; core 23 格行为零翻(`BR3_CLIP_ambient_isolation_closed` 只差夹具目录名)。见 `researcher_probe_flips_round4.json`。
+- **pod2 正控**: PREREG §7.11 的 E1–E6 全部成立(转录 `receipts/round4_2026-09-13/run_x3_round4_control.sh`, 收据 `receipts/round4_2026-09-13/pod2_root/`)。
+
+### 10.5 仍开, 以及本轮自己被咬的
+- **★ 未修(不在本轮归属)**: `chain_v4_monthly_dryrun.sh` L20 仍用 `( set -a; . "$SRC"; set +a; …)` 直接 source 源合同来派生负控 env, 属同一 D3 缺陷族。它只是负控: 派生出的 env 还要过驱动的新解析器, 而空月根上 preflight 必然拒绝, 驱动不会启动任何东西。但含命令的合同会在派生子 shell 里**先被执行**, 这一点新解析器管不到。最小修法: 子 shell 里改为 `. "$D/chain_lib.sh"; load_month_env "$SRC"`。待 lead 派归属。
+- **陈旧注释(未改, 为保两份合同字节不变)**: 十月模板注释仍写 `v4_gate_step2_m.py 0fe5ec55…` 是待批准 sha, round 3 起即已过时, 现应为 `d99a9109…`。模板 sha `dc94784e…` 被 w7 收据钉住, 所以批准对象只写在本节与 PREREG AMENDMENT 3。
+- **合同文件被读两次**: 解析器只读一次字节; preflight 的 `month_env_sha256` 是另一次读取。两次之间文件若被替换, 收据绑定的 sha 与已导出的值可能不一致(修前代码读 4 次, 同类窗口更宽)。本轮未加比较。
+- **沿用未决**: §9.4 D4 判官定位器、R2 `_done`/merge 身份、§7 (ii) 真数据全链, 原样仍开。
+- **被咬 1**: 首次全跑 385/386。我的解析器先判重复键、再看值, 于是追加的 `SEEDS=42; rm -rf /` 被判为 duplicate 而非 malformed, 现有 [P] 格抓到了。改为重复行也做文法检查、malformed 优先; 失败日志原样归档为 `tests_pipeline_gates_round4_mac_run1_FAIL_385of386_duplicate_precedence.log`。
+- **被咬 2**: 第一次复跑研究员探针时, 我用了会话共享 scratchpad 里另一代理 09:27 用过的 `probes_pre/` 目录, 覆盖了其中两份探针脚本和两份结果 JSON, 并新建了若干文件。那是 W7b 的工作副本; 规范版本早已提交在 `receipts/round3_2026-09-13/researcher_probes_{pre,post}/`, 未受影响。之后改用独占目录, 本轮收据只来自独占目录。
+- **★ 跟进已修(2026-09-13, lead 指示; 上面「★ 未修」一条由此关闭)**: `chain_v4_monthly_dryrun.sh` `6239a691…` → **`407aa438f31171921746be2378314472db4e36b7664f4bca90712919038d710b`**。派生子 shell 不再 `set -a` 后 source 源合同, 改为先 source chain_lib, 再 `load_month_env "$SRC"`(round-4 数据文法解析器, 从不执行; 解析器 rc 与每个导出的键值对都在 chain_lib 里检查)。加载被拒 ⇒ 子 shell rc 4 ⇒ dryrun rc 2 `dryrun env derivation failed`, 不跑驱动。派生用的 Python 另外要求 46 个注册键全部非空到达, 否则 rc 3。解析器用 dryrun 自己选的解释器(`PY=$PYX`)。收据新增 `source_env_load`(加载器的 MONTH_ENV_OK 行)。派生 env 的其余逻辑不变。红控快照 `chain_v4_monthly_dryrun.r2_6239a691.sh` 等于修前已提交版本逐位。
+  - [U] 新增 6 格, 用研究员的 D3 合同形状在 dryrun 路径上修前修后并跑。前缀命令 `SEEDS=42 : > <marker>`: 修前 dryrun 真的执行了重定向, 标记文件出现, 仍报 DRYRUN_PASS rc 0; 修后 rc 2 + `FAIL_month_env_malformed`, 无派生 env, 无驱动, 标记不存在。未闭引号 `X="`: 修前打印 bash 的 unexpected EOF 却仍 PASS; 修后 rc 2。续行 `BUNDLE_OUT=$R\`: 修前同一份合同字节在父变量 `RBUNDLE_TAR`=A/B 下派生出两份 env, 唯一的差行正是 `BUNDLE_OUT=<ROOT>/root/dry_parent_bundle_A=stage`; 修后两次都 rc 2。正控: 九月合同与十月模板在修前修后都 PASS, 派生 env 在把各自 scratch 根替换成 `<ROOT>` 后逐字相同。另两格是快照身份与静态检查(代码行无 `. "$SRC"`、无 `set -a`, 有 `load_month_env "$SRC"`)。
+  - 同一 [U] 块(sha `5074b022…`, 与套件内逐字节相同)在修前 dryrun 上 38 格 4 FAIL(前缀命令、未闭引号、续行、静态), 其余 34 格 OK(`receipts/round4_2026-09-13/tests_U_section_v2_dryrun_cells_on_PRE_fix_dryrun_RED.log`)。
+  - **自检**: `tests_pipeline_gates.py` **`a3af858dd76d5a09ef570aea4ef02fcc1ee295532fedf6ea3195cc9d4421fd2b`**(取代 §10.4 表里的修后 sha `6e535ad4…`)**ALL PASS (392 checks), rc=0**(`receipts/round4_2026-09-13/tests_pipeline_gates_round4b_dryrun_mac.log`, START 08:58:48Z / END 09:03:47Z, 前后 tests / chain_lib / driver / dryrun / step2m 的 sha 前缀相同)。`make_sha_manifest.py` rc 0(104 文件)。
+- **被咬 2 的精确清单(lead 要求)**: 目录是 `/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/probes_pre/`, 即 W7b 在本地 09:27:18 从研究员 `codex_followup_code_review_2026-09-13/retrain/` 复制来的工作目录。我在本地 15:17:27–15:18:25(07:17–07:18Z)向其中写了 161 个文件。顶层被覆盖的是 `probe_followup.py`、`probe_w7_followup.py`、`PROBE_CORE_RESULTS.json`、`PROBE_W7_RESULTS.json`(由 W7b 的 `core_pre.log` / `w7_pre.log` 与来源目录推断为原先存在); 顶层新建的是 `probe_boundaries.py`、`PATCH_MANIFEST.json`、`PROBE_BOUNDARY_RESULTS.json` 与三份 `.log`。`fixtures/core/` 45 个、`fixtures/w7/` 37 个文件被原地改写或新建, `fixtures/boundaries/` 69 个是新建。未动的是其余 12 个顶层文件、`sources/`、`fixtures/core/` 5 个、`fixtures/w7/` 1 个; `probes_post/` 未动。我还在 scratchpad 顶层写了 `patch_probes.py`, 没有写前清单, 不知道是否覆盖了同名文件。
+  - **对已提交收据的影响**: W7b 的 `receipts/round3_2026-09-13/researcher_probes_pre/PROBE_W7_RESULTS.json` 记录了 13 个 `fixtures/w7/*.json` 夹具收据的 sha256, 其中 12 个现在对不上, 只有 `tail_invalid_negative_member_index_ACCEPTED.json` 仍一致。`researcher_probes_pre/PROBE_CORE_RESULTS.json` 点名的 6 个 `fixtures/core/` 文件被改写(该文件不记它们的 sha)。git 里的 JSON 本身完好, 其中的判决字段仍是那次运行的记录; 但这些夹具 sha 已经无法从 scratchpad 复核。被覆盖的两份脚本原件大概率是研究员目录里的 `probe_followup.py` `948bac37…` 与 `probe_w7_followup.py` `1e0b00c4…`, 未证实。逐文件清单见 `receipts/round4_2026-09-13/scratchpad_probes_pre_overwrite_inventory.json`。

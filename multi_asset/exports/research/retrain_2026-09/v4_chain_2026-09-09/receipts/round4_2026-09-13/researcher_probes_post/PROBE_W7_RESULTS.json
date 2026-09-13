@@ -1,0 +1,350 @@
+{
+  "utc": "2026-09-13T07:50:57Z",
+  "scope": "small synthetic CPU only; NONE passes are not real contract approval",
+  "cases": {
+    "STEP1_extension_positive": {
+      "PASS": true,
+      "returncode": 0,
+      "expected_observation": true,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/s1_positive.json",
+      "receipt_sha256": "f35f07c9f70314374c047b7f95e5dc89e03451ac43c9191c64ee4363e71a622a",
+      "tail_quality": null,
+      "clamp_checks": null,
+      "refused": null
+    },
+    "STEP2_extension_positive": {
+      "PASS": true,
+      "returncode": 0,
+      "expected_observation": true,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/s2_positive.json",
+      "receipt_sha256": "a605c30d90a6d31e516c2fc0bf60473398eb945a81a532edad66b3d1ca53bd26",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 1.0,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 6,
+        "floor": 0.9,
+        "ok": true
+      },
+      "clamp_checks": null,
+      "refused": null
+    },
+    "NONE_old_no_builder_pin_now_rejected": {
+      "PASS": false,
+      "returncode": 3,
+      "expected_observation": false,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/none_missing.json",
+      "receipt_sha256": "faf10fdb3cfab1a147a02c4ff7c02b084aa9d876e1cf9feaa41f30774d2c534c",
+      "tail_quality": null,
+      "clamp_checks": null,
+      "refused": {
+        "clamp_builder_identity": {
+          "why": [
+            "PREV_CLAMP_BUILDER_SHA256 unset (the contract must pin the September-verified builder sha)",
+            "R unset (month root: the preflight deps receipt cannot be located)"
+          ],
+          "pinned_sha256": null,
+          "preflight_pinned_sha256": null,
+          "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac"
+        }
+      }
+    },
+    "NONE_three_identities_positive": {
+      "PASS": true,
+      "returncode": 0,
+      "expected_observation": true,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/none_positive.json",
+      "receipt_sha256": "e7ee81eb2f61da92ca273367be811778339f5b5fe0ee384f9bce5023934ac60c",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 1.0,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 6,
+        "floor": 0.9,
+        "ok": true
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "NONE_preflight_pin_mismatch_rejected": {
+      "PASS": false,
+      "returncode": 3,
+      "expected_observation": false,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/none_mismatch.json",
+      "receipt_sha256": "c238225852bf9974e4ed64d7717b05f4aec59e6bf3979d393b2aa28ff14acfa1",
+      "tail_quality": null,
+      "clamp_checks": null,
+      "refused": {
+        "clamp_builder_identity": {
+          "why": [
+            "preflight-pinned builder 111111111111 != contract pin b9f9c7281624"
+          ],
+          "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+          "preflight_pinned_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac"
+        }
+      }
+    },
+    "NONE_unapproved_builder_repin_all_three_ACCEPTED": {
+      "PASS": true,
+      "returncode": 0,
+      "expected_observation": true,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/none_all_wrong.json",
+      "receipt_sha256": "b69c9b8560fefd15d5f0a25069d446f54215f96ebe9a8e0112c36d31206f3837",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 1.0,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 6,
+        "floor": 0.9,
+        "ok": true
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "ac0fcbd8e6c98d0eea47f24f7fb9903a963e48dbabfc859e52ca17d6d21ed480",
+        "preflight_pinned_sha256": "ac0fcbd8e6c98d0eea47f24f7fb9903a963e48dbabfc859e52ca17d6d21ed480",
+        "device_file_sha256": "ac0fcbd8e6c98d0eea47f24f7fb9903a963e48dbabfc859e52ca17d6d21ed480",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "tail_all_NaN_old_counterexample_now_rejected": {
+      "PASS": false,
+      "returncode": 3,
+      "expected_observation": false,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/tail_all_NaN_old_counterexample_now_rejected.json",
+      "receipt_sha256": "decd4dcccaa6e5c321ac1466430330b25c22ccae35b4d19db595bfa26dcea1c6",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 0.0,
+        "member_finite_frac_median": 0.0,
+        "n_members_min": 6,
+        "floor": 0.9,
+        "ok": false
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "tail_exactly_0p90_accepted": {
+      "PASS": true,
+      "returncode": 0,
+      "expected_observation": true,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/tail_exactly_0p90_accepted.json",
+      "receipt_sha256": "066cb9f2b41b1781abfa87f0defacfdca3458e0b72145ed5f61801b459ebb64e",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 0.9,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 6,
+        "floor": 0.9,
+        "ok": true
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "tail_0p8833_below_floor_rejected": {
+      "PASS": false,
+      "returncode": 3,
+      "expected_observation": false,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/tail_0p8833_below_floor_rejected.json",
+      "receipt_sha256": "cbd821761c96b3d31cf1ee5f374a9384144e8cb697f4102c22a6ac011a8ec84b",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 0.8833333333333333,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 6,
+        "floor": 0.9,
+        "ok": false
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "changed_common_outside_neighbourhood_rejected": {
+      "PASS": false,
+      "returncode": 3,
+      "expected_observation": false,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/changed_common_outside_neighbourhood_rejected.json",
+      "receipt_sha256": "08453da2614fd48df6f7b88f6675f56258cd7f0e5c7e4a8055b54600002feff1",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 1.0,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 6,
+        "floor": 0.9,
+        "ok": true
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "tail_zero_members_rejected": {
+      "PASS": false,
+      "returncode": 3,
+      "expected_observation": false,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/tail_zero_members_rejected.json",
+      "receipt_sha256": "637734db69f404446cbc37b98c2679ad6929243431af1a9a87d785a5c7021042",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 0.0,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 0,
+        "floor": 0.9,
+        "ok": false
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "tail_invalid_negative_member_index_now_rejected": {
+      "PASS": false,
+      "returncode": 3,
+      "expected_observation": false,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/tail_invalid_negative_member_index_now_rejected.json",
+      "receipt_sha256": "033cb97a9019138b317e0b9e489993d6b8bad7ee152f190b0ef955aaa1d10266",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": false,
+        "member_finite_frac_min": 0.0,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 1,
+        "floor": 0.9,
+        "ok": false,
+        "member_index_bad": [
+          {
+            "anchor_utc": "2023-12-25T06:13:20Z",
+            "i": 200,
+            "members": [
+              -1
+            ],
+            "why": [
+              "index range [-1, -1] outside [0, 6)"
+            ]
+          }
+        ]
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "real_contract_rejects_new_STEP1": {
+      "ok": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "why": "gate source 79950786271e is not an APPROVED source of gate 'STEP1' in the frozen contract (approved: ['278fdce611e9']); a program that re-ran and signed its own receipt is not the reviewed program"
+    },
+    "real_contract_rejects_new_STEP2": {
+      "ok": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "why": "gate source d99a910951e0 is not an APPROVED source of gate 'STEP2' in the frozen contract (approved: ['db7ab3561f97']); a program that re-ran and signed its own receipt is not the reviewed program"
+    },
+    "NONE_before_consumer_identity_probe": {
+      "PASS": true,
+      "returncode": 0,
+      "expected_observation": true,
+      "as_expected": true,
+      "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/none_fresh.json",
+      "receipt_sha256": "3a2ea67b4d1cdab92517df7aaf29c63721a7cd6d3aee3970eff96e5fc7998ee2",
+      "tail_quality": {
+        "n_tail_anchors": 30,
+        "member_index_ok": true,
+        "member_finite_frac_min": 1.0,
+        "member_finite_frac_median": 1.0,
+        "n_members_min": 6,
+        "floor": 0.9,
+        "ok": true
+      },
+      "clamp_checks": {
+        "mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)",
+        "builder": "pod_fea_ext_clamp.py",
+        "pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_pinned_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "device_file_sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+        "preflight_deps_receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/w7/root/v4_gates/deps_preflight_device.json"
+      },
+      "refused": null
+    },
+    "SIMULATION_downstream_STEP2_require_ignores_changed_builder": {
+      "ok": true,
+      "expected_observation": true,
+      "as_expected": true,
+      "why": "PASS (STEP2, 2026-09-13T07:51:09Z, self d99a910951e0 approved, 2 inputs verified, registered floor STEP2=2)",
+      "scope": "SIMULATION gate approval only; real contract unchanged in C and MAIN"
+    }
+  },
+  "source_sha256": {
+    "v4_gate_step1_m.py": "79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163",
+    "v4_gate_step2_m.py": "d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d",
+    "v4_gate_common.py": "24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1",
+    "ELIGIBILITY_CONTRACT.json": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+    "pod_fea_ext_clamp.py": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac"
+  },
+  "all_expected_observations": true
+}

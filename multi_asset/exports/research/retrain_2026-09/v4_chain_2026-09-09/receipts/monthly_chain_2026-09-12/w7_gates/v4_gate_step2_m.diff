@@ -1,6 +1,6 @@
 --- v4_gate_step2.py
 +++ v4_gate_step2_m.py
-@@ -4,0 +5,8 @@
+@@ -4,0 +5,10 @@
 +# [M] MONTH-GENERIC (W7 2026-09-12, docs/PREREG_v4_gates_monthly_2026-09-12.md): every path comes from the month contract env (chain_lib.load_month_env exports it);
 +# [M] the reference is the PREVIOUS month's contract-pinned king build (PREV_KING_FEA / PREV_META; September = v2ext_clamp / v2ext_meta); PREV_KING_FEA_UNCLAMPED is the unclamped
 +# [M] build on the reference axis (September: v2ext) or the literal NONE (clamp checks v4_vs_ext / clamp_vs_ext NOT evaluated, recorded in the receipt, §3.3); thresholds/statistics verbatim;
@@ -9,7 +9,9 @@
 +# [M] must have >= 1 member and a member-cell finite fraction >= 0.90 (tail_quality, always present when a tail exists, part of PASS).
 +# [M] AMENDMENT 2 (2026-09-13, researcher F-R3): the new-tail member index is validated STRUCTURALLY FIRST (1-D, integer, in [0, NW), no duplicates) and an invalid index is
 +# [M] never used as a subscript; only then does the 0.90 floor apply. The floor is a FINITE-CELL gate on the tail — it is not a causal or predictive-validity gate (§3.7).
-@@ -8 +16,35 @@
++# [M] AMENDMENT 3 (2026-09-13, round 4, researcher R3-D2): the index is validated AS PERSISTED, not as its int64 cast — its dtype must be a signed/unsigned INTEGER kind
++# [M] (bool, float, object and string are refused outright even when their values look like indices), because the exporter subscripts y4[i, m] with the stored array.
+@@ -8 +18,35 @@
 -H = np.load("/workspace/review_scratch/holefix2_cells.npz", allow_pickle=True); NEIGH = H["neigh_rows"]; RUNS = H["fill_runs"]
 +sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from v4_gate_common import finalize, sha256_file   # [M] refusal receipts go through finalize BEFORE any load
 +_OUT = os.environ.get("STEP2_OUT")   # [M] required, no September default
@@ -46,27 +48,27 @@
 +    else: _CLAMP_CHECKS = {"mode": "NOT_EVALUATED: PREV_KING_FEA_UNCLAMPED=NONE (v4_vs_ext / clamp_vs_ext not computed)", "builder": "pod_fea_ext_clamp.py", "pinned_sha256": _pin, "preflight_pinned_sha256": _pf, "device_file_sha256": _dv, "preflight_deps_receipt": _deps}   # [M] identity verified (AMENDMENT 1)
 +if _refused: print("STEP2_REFUSED", json.dumps(_refused), flush=True); finalize("STEP2", {"PASS": False, "REFUSED": _refused}, _OUT, INPUTS)   # [M] rc 3; receipt PASS=false; missing shas None
 +H = np.load(INPUTS["hole_cells"], allow_pickle=True); NEIGH = H["neigh_rows"]; RUNS = H["fill_runs"]   # [M] $HOLE_CELLS
-@@ -14,2 +56,2 @@
+@@ -14,2 +58,2 @@
 -CTS = np.load("/workspace/data/dlnative_5m_wide829_f16_holefix2.npz")["ts"].astype(np.int64)
 -M4 = np.load("/workspace/data/wide_fea_v4_meta.npz", allow_pickle=True); ME = np.load("/workspace/data/wide_fea_v2ext_meta.npz", allow_pickle=True)
 +CTS = np.load(INPUTS["cache"])["ts"].astype(np.int64)   # [M] $CACHE
 +M4 = np.load(INPUTS["wide_fea_v4_meta"], allow_pickle=True); ME = np.load(INPUTS["wide_fea_v2ext_meta"], allow_pickle=True)   # [M] $KING_META vs $PREV_META (the previous month's meta; September: v2ext)
-@@ -22 +64,3 @@
+@@ -22 +66,3 @@
 -R["anchors_only_v4_outside_neigh"] = int((neigh_of(rows_of(x4)) < 0).sum()) if len(x4) else 0; R["anchors_only_v2ext_outside_neigh"] = int((neigh_of(rows_of(xE)) < 0).sum()) if len(xE) else 0
 +_o4 = (neigh_of(rows_of(x4)) < 0) if len(x4) else np.zeros(0, bool); _t4 = x4 > int(EE.max())   # [M] extension tail (PREREG §3.4): only-in-new anchors AFTER the reference axis end
 +R["anchors_only_v4_outside_neigh"] = int((_o4 & ~_t4).sum()); R["anchors_only_v2ext_outside_neigh"] = int((neigh_of(rows_of(xE)) < 0).sum()) if len(xE) else 0   # [M] tail not counted
 +if int((_o4 & _t4).sum()): R["anchors_only_v4_tail_exempt"] = int((_o4 & _t4).sum()); R["ref_axis_end_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(EE.max())))   # [M] conditional: present iff the tail rule was load-bearing
-@@ -27,2 +71,2 @@
+@@ -27,2 +73,2 @@
 -F4 = np.load("/workspace/data/wide_fea_v4.npy", mmap_mode="r"); FC = np.load("/workspace/data/wide_fea_v2ext_clamp.npy", mmap_mode="r"); FE = np.load("/workspace/data/wide_fea_v2ext.npy", mmap_mode="r")
 -assert F4.shape[1:] == FC.shape[1:] == FE.shape[1:] and F4.shape[0] == len(E4) and FC.shape[0] == len(EE) == FE.shape[0], (F4.shape, FC.shape, FE.shape)
 +F4 = np.load(INPUTS["wide_fea_v4"], mmap_mode="r"); FC = np.load(INPUTS["wide_fea_v2ext_clamp"], mmap_mode="r"); FE = None if NO_UNCLAMPED else np.load(INPUTS["wide_fea_v2ext"], mmap_mode="r")   # [M] $KING_FEA / $PREV_KING_FEA / $PREV_KING_FEA_UNCLAMPED (NONE allowed, §3.3)
 +assert F4.shape[1:] == FC.shape[1:] and F4.shape[0] == len(E4) and FC.shape[0] == len(EE) and (NO_UNCLAMPED or (FE.shape[1:] == FC.shape[1:] and FE.shape[0] == len(EE))), (F4.shape, FC.shape, None if NO_UNCLAMPED else FE.shape)   # [M]
-@@ -33,0 +78 @@
+@@ -33,0 +80 @@
 +if NO_UNCLAMPED: del S["v4_vs_ext"], S["clamp_vs_ext"]; R["clamp_checks"] = _CLAMP_CHECKS   # [M] conditional: present iff NONE; the builder identity was verified above (AMENDMENT 1)
-@@ -36 +81 @@
+@@ -36 +83 @@
 -    idx = np.arange(s, min(s + CH, nA)); a = np.asarray(F4[I4[idx]]); c = np.asarray(FC[IE[idx]]); e = np.asarray(FE[IE[idx]])
 +    idx = np.arange(s, min(s + CH, nA)); a = np.asarray(F4[I4[idx]]); c = np.asarray(FC[IE[idx]]); e = None if NO_UNCLAMPED else np.asarray(FE[IE[idx]])   # [M]
-@@ -48,3 +93,4 @@
+@@ -48,3 +95,4 @@
 -    d2 = cmp(a, e).any((1, 2))
 -    S["v4_vs_ext"]["anchors"] += int(d2.sum()); S["v4_vs_ext"]["outside_138_and_neigh"] += int((d2 & ~f138[idx] & (nn[idx] < 0)).sum()); S["v4_vs_ext"]["in_first138"] += int((d2 & f138[idx]).sum())
 -    d3 = cmp(c, e).any((1, 2)); S["clamp_vs_ext"]["anchors"] += int(d3.sum()); S["clamp_vs_ext"]["outside_138"] += int((d3 & ~f138[idx]).sum())
@@ -74,31 +76,36 @@
 +        d2 = cmp(a, e).any((1, 2))   # [M] (frozen L48, indented)
 +        S["v4_vs_ext"]["anchors"] += int(d2.sum()); S["v4_vs_ext"]["outside_138_and_neigh"] += int((d2 & ~f138[idx] & (nn[idx] < 0)).sum()); S["v4_vs_ext"]["in_first138"] += int((d2 & f138[idx]).sum())   # [M] (frozen L49, indented)
 +        d3 = cmp(c, e).any((1, 2)); S["clamp_vs_ext"]["anchors"] += int(d3.sum()); S["clamp_vs_ext"]["outside_138"] += int((d3 & ~f138[idx]).sum())   # [M] (frozen L50, indented)
-@@ -52,0 +99,20 @@
+@@ -52,0 +101,25 @@
 +_tail_idx = np.searchsorted(E4, x4[_t4]) if len(x4) else np.zeros(0, np.int64)   # [M] AMENDMENT 1 (B-R4): new-tail anchors = only-in-new AND after the reference axis end (§3.4)
 +if len(_tail_idx):   # [M] tail quality gate: every tail anchor needs a STRUCTURALLY VALID member index, >= 1 member and a member-cell finite fraction >= 0.90 (floor pre-registered from the September calibration: min 0.9756, median 1.0)
 +    # [M] ★ AMENDMENT 2 (2026-09-13, review §3.D / researcher probe tail_invalid_negative_member_index_ACCEPTED): the index was fed straight to numpy, so members=[-1]
 +    # [M]   read the LAST column, scored finite fraction 1.0 and PASSed. A member index is a symbol index: it must be a 1-D vector of integers in [0, NW) without
 +    # [M]   duplicates. Validity is decided FIRST and an invalid index is NEVER used to read features; only then does the finite-fraction floor apply (PREREG §3.7).
 +    _ffs = []; _nms = []; _mbad = []   # [M]
++    # [M] ★ AMENDMENT 3 (2026-09-13, round 4, review REVIEW_round3 §4 R3-D2 / probes D2_tail_boolean, D2_tail_bool_one, D2_tail_float_integral): AMENDMENT 2 cast FIRST and
++    # [M]   validated the cast, so [False, True] became [0, 1] and [0., 1., 2.] became [0, 1, 2] and both PASSed, while pod_export_bundle_v4.py indexes y4[i, m] with the
++    # [M]   PERSISTED array and raises IndexError on either. The dtype KIND is now checked first and on the stored object: signed/unsigned integer only; then 1-D, range, unique.
 +    for _i in _tail_idx:   # [M]
-+        _raw = np.asarray(M4m[_i]); _why = []   # [M]
-+        try: _m = _raw.astype(np.int64)   # [M] a member index that cannot even be read as integers is a clean FAIL receipt, not an uncaught cast (rc 1, no receipt)
-+        except Exception as _e: _m = np.zeros(0, np.int64); _why.append(f"not castable to an integer index ({type(_e).__name__})")   # [M]
++        _why = []   # [M]
++        try: _raw = np.asarray(M4m[_i])   # [M] an entry that is not even an array (e.g. a ragged nested list) is a clean FAIL receipt, not an uncaught exception (rc 1, no receipt)
++        except Exception as _e: _raw = None; _why.append(f"not an array ({type(_e).__name__})")   # [M]
 +        if _why: pass   # [M]
++        elif _raw.dtype.kind not in "iu": _why.append(f"dtype {_raw.dtype} is not a signed/unsigned integer index (AMENDMENT 3: refused outright whatever its values; the exporter subscripts y4[i, m] with the persisted array)")   # [M]
 +        elif _raw.ndim != 1: _why.append(f"ndim {_raw.ndim} != 1 (a member index is a vector)")   # [M]
-+        elif _raw.size and _raw.dtype.kind not in "iu" and not np.array_equal(_m, _raw): _why.append(f"dtype {_raw.dtype} is not an integer index")   # [M]
-+        elif _m.size and (int(_m.min()) < 0 or int(_m.max()) >= NW): _why.append(f"index range [{int(_m.min())}, {int(_m.max())}] outside [0, {NW})")   # [M]
-+        elif _m.size != int(np.unique(_m).size): _why.append(f"{_m.size - int(np.unique(_m).size)} duplicate index(es)")   # [M]
-+        if _why: _mbad.append({"anchor_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(E4[_i]))), "i": int(_i), "members": _raw.reshape(-1).tolist()[:8], "why": _why})   # [M]
-+        _nms.append(int(_m.size)); _ffs.append(float(np.isfinite(np.asarray(F4[_i])[_m]).mean()) if (_m.size and not _why) else 0.0)   # [M] an invalid index is never used as a subscript
++        elif _raw.size and (int(_raw.min()) < 0 or int(_raw.max()) >= NW): _why.append(f"index range [{int(_raw.min())}, {int(_raw.max())}] outside [0, {NW})")   # [M]
++        elif _raw.size != int(np.unique(_raw).size): _why.append(f"{_raw.size - int(np.unique(_raw).size)} duplicate index(es)")   # [M]
++        if _why: _mbad.append({"anchor_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(E4[_i]))), "i": int(_i),   # [M]
++                               "members": [x if (x is None or isinstance(x, (bool, int, float, str))) else repr(x)[:40] for x in _raw.reshape(-1).tolist()[:8]] if _raw is not None else repr(M4m[_i])[:80], "why": _why})   # [M] JSON-safe preview of the stored values
++        _m = None if _why else _raw.astype(np.int64)   # [M] converted only AFTER it is known to be a valid integer index; an invalid index is never a subscript
++        _nms.append(int(_raw.size) if _raw is not None else 0); _ffs.append(float(np.isfinite(np.asarray(F4[_i])[_m]).mean()) if (_m is not None and _m.size) else 0.0)   # [M] an invalid index is never used as a subscript
 +    _ffs = np.array(_ffs); R["tail_quality"] = {"n_tail_anchors": int(len(_tail_idx)), "member_index_ok": not _mbad, "member_finite_frac_min": float(_ffs.min()), "member_finite_frac_median": float(np.median(_ffs)), "n_members_min": int(min(_nms)), "floor": 0.90,   # [M]
 +                                                "ok": bool(not _mbad and (_ffs >= 0.90).all() and min(_nms) >= 1)}   # [M]
 +    if _mbad: R["tail_quality"]["member_index_bad"] = _mbad   # [M] conditional: present iff the structural rule was load-bearing
-@@ -58 +124 @@
+@@ -58 +131 @@
 -R["PASS"] = bool(S["v4_vs_clamp"]["outside"] == 0 and S["v4_vs_clamp"]["val_sym_bad"] == 0 and S["v4_vs_ext"]["outside_138_and_neigh"] == 0 and S["clamp_vs_ext"]["outside_138"] == 0
 +R["PASS"] = bool(S["v4_vs_clamp"]["outside"] == 0 and S["v4_vs_clamp"]["val_sym_bad"] == 0 and (NO_UNCLAMPED or (S["v4_vs_ext"]["outside_138_and_neigh"] == 0 and S["clamp_vs_ext"]["outside_138"] == 0)) and ("tail_quality" not in R or R["tail_quality"]["ok"])   # [M] clamp checks not evaluated under NONE (§3.3); tail quality (AMENDMENT 1); the rest verbatim
-@@ -64,3 +130 @@
+@@ -64,3 +137 @@
 -finalize("STEP2", R, os.environ.get("STEP2_OUT", "/workspace/review_scratch/v4_gates/step2.json"),
 -         {"wide_fea_v4": "/workspace/data/wide_fea_v4.npy", "wide_fea_v4_meta": "/workspace/data/wide_fea_v4_meta.npz", "wide_fea_v2ext_clamp": "/workspace/data/wide_fea_v2ext_clamp.npy",
 -          "wide_fea_v2ext": "/workspace/data/wide_fea_v2ext.npy", "wide_fea_v2ext_meta": "/workspace/data/wide_fea_v2ext_meta.npz", "hole_cells": "/workspace/review_scratch/holefix2_cells.npz"})

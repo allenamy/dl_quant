@@ -1,0 +1,207 @@
+{
+ "utc": "2026-09-13T07:51:36Z",
+ "what": "independent researcher round-3 retrain probes (codex_round3_code_review_2026-09-13/retrain: 23 core + 16 W7 + 83 boundary), copies with C pointed at the device dir, run BEFORE and AFTER round 4 with /usr/bin/python3",
+ "probe_sha256_original": {
+  "probe_followup.py": "28f8094e86e0815c472cac84c82802e12c2f1f45e7dc100a9f2a8a16079b5fe0",
+  "probe_w7_followup.py": "8459d49326459aa37adc78b62c68ac73c46ee66dcea8a2f646c304d62abe848b",
+  "probe_boundaries.py": "7679befa8ba9f0df23ae3e7d443dd765fe44df24f9beb1c21b8c7402d782fc2f"
+ },
+ "patch": "only the source dir C (and in probe_boundaries the worktree/branch asserts) changed; see PATCH_MANIFEST.json",
+ "device_before": [
+  "a331f0351b3eca9ac2e64636e94a906045deb209f25888f38a8ab07e4d715a40  /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/chain_lib.sh",
+  "e8e688d58512a9395ac0b3d59b603be4b09c63ff08bc5d5d7b4726b8ab188d3b  /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/chain_v4_monthly.sh",
+  "b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9  /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/v4_gate_step2_m.py",
+  "cfa8f6dbe2aab1aec8e24a7ae4d4ca761a2a6359147830d84705a1f505fa277d  /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/tests_pipeline_gates.py",
+  ""
+ ],
+ "device_after": [
+  "4ee217e1d761fa13abf34d16222f1dede79ceade3d44547e171aa7477a30288d  /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/chain_lib.sh",
+  "e8e688d58512a9395ac0b3d59b603be4b09c63ff08bc5d5d7b4726b8ab188d3b  /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/chain_v4_monthly.sh",
+  "d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d  /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/v4_gate_step2_m.py",
+  "6e535ad47e2a2c2609ca9bcb1373f0b01671dbbd49cad44f936cfceb57dcea9a  /Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/tests_pipeline_gates.py",
+  ""
+ ],
+ "probe_process_rc": {
+  "before": [
+   0,
+   0,
+   0
+  ],
+  "after": [
+   0,
+   0,
+   0
+  ]
+ },
+ "suites": {
+  "PROBE_CORE_RESULTS.json": {
+   "n_cases": 23,
+   "pre_all_expected_observations": true,
+   "n_flipped": 1,
+   "flipped": {
+    "BR3_CLIP_ambient_isolation_closed": {
+     "pre": {
+      "DLWT_RAW_PATCH": "",
+      "DLWT_OUT": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_prefix/fixtures/core/clip",
+      "F171_CACHE": null,
+      "F8_DLW": null
+     },
+     "post": {
+      "DLWT_RAW_PATCH": "",
+      "DLWT_OUT": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/clip",
+      "F171_CACHE": null,
+      "F8_DLW": null
+     }
+    }
+   },
+   "post_unexpected_vs_researcher_expectation": []
+  },
+  "PROBE_W7_RESULTS.json": {
+   "n_cases": 16,
+   "pre_all_expected_observations": true,
+   "n_flipped": 0,
+   "flipped": {},
+   "post_unexpected_vs_researcher_expectation": []
+  },
+  "PROBE_BOUNDARY_RESULTS.json": {
+   "n_cases": 83,
+   "pre_all_expected_observations": true,
+   "n_flipped": 26,
+   "flipped": {
+    "D1_changed_targets_null_locator_ACCEPTED": {
+     "pre": 0,
+     "post": 3
+    },
+    "D1_changed_fea82_null_locator_ACCEPTED": {
+     "pre": 0,
+     "post": 3
+    },
+    "D1_changed_fea89_null_locator_ACCEPTED": {
+     "pre": 0,
+     "post": 3
+    },
+    "D1_changed_legs_null_locator_ACCEPTED": {
+     "pre": 0,
+     "post": 3
+    },
+    "D1_all_four_null_locators_ACCEPTED": {
+     "pre": 0,
+     "post": 3
+    },
+    "D1_missing_target_null_locator_ACCEPTED": {
+     "pre": 0,
+     "post": 3
+    },
+    "D3_earlier_double_quoted": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_earlier_single_quoted": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_earlier_escaped": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_parent_tilde_parent_A": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_parent_tilde_value_parent_A": {
+     "pre": true,
+     "post": false
+    },
+    "D3_parent_tilde_parent_B": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_parent_tilde_value_parent_B": {
+     "pre": true,
+     "post": false
+    },
+    "D3_assignment_prefixed_builtin_can_execute": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_assignment_prefixed_command_marker_written": {
+     "pre": true,
+     "post": false
+    },
+    "D3_continuation_forms_external_reference": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_continuation_parent_value": {
+     "pre": true,
+     "post": false
+    },
+    "D3_bundle_continuation_A": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_bundle_continuation_path_A": {
+     "pre": true,
+     "post": false
+    },
+    "D3_bundle_continuation_B": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_bundle_continuation_path_B": {
+     "pre": true,
+     "post": false
+    },
+    "D3_unmatched_quote_after_complete_keys": {
+     "pre": 0,
+     "post": 4
+    },
+    "D3_source_parse_error_ignored": {
+     "pre": true,
+     "post": false
+    },
+    "D2_tail_float_integral": {
+     "pre": true,
+     "post": false
+    },
+    "D2_tail_boolean": {
+     "pre": true,
+     "post": false
+    },
+    "D2_tail_bool_one": {
+     "pre": true,
+     "post": false
+    }
+   },
+   "post_unexpected_vs_researcher_expectation": [
+    "D1_all_four_null_locators_ACCEPTED",
+    "D1_changed_fea82_null_locator_ACCEPTED",
+    "D1_changed_fea89_null_locator_ACCEPTED",
+    "D1_changed_legs_null_locator_ACCEPTED",
+    "D1_changed_targets_null_locator_ACCEPTED",
+    "D1_missing_target_null_locator_ACCEPTED",
+    "D2_tail_bool_one",
+    "D2_tail_boolean",
+    "D2_tail_float_integral",
+    "D3_assignment_prefixed_builtin_can_execute",
+    "D3_assignment_prefixed_command_marker_written",
+    "D3_bundle_continuation_A",
+    "D3_bundle_continuation_B",
+    "D3_bundle_continuation_path_A",
+    "D3_bundle_continuation_path_B",
+    "D3_continuation_forms_external_reference",
+    "D3_continuation_parent_value",
+    "D3_earlier_double_quoted",
+    "D3_earlier_escaped",
+    "D3_earlier_single_quoted",
+    "D3_parent_tilde_parent_A",
+    "D3_parent_tilde_parent_B",
+    "D3_parent_tilde_value_parent_A",
+    "D3_parent_tilde_value_parent_B",
+    "D3_source_parse_error_ignored",
+    "D3_unmatched_quote_after_complete_keys"
+   ]
+  }
+ },
+ "note": "A flip to a refusal is the intended closure. BR3_CLIP_ambient_isolation_closed differs only in the fixture directory of the two runs (behaviour identical). post_unexpected lists cells whose observation now differs from the researcher's pre-fix expectation = the same set as the flips (the probes encode the defect as expected)."
+}

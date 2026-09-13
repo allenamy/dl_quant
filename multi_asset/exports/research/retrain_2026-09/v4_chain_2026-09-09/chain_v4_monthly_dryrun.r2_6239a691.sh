@@ -6,7 +6,6 @@
 #   · a derived env <scratch>/v4_month_dryrun.env is written: labels/lists copied from the source (V4_MONTH, MONTHS_ALL, SEEDS, MWF_ROOT,
 #     BUNDLE_GENERATION, EXPORT_ARM, GATE_STEP1/2), PY = the interpreter running this script (or $PY), EVERY other key = a path UNDER the empty root
 #     (so no real input is reachable, whatever the source env says);
-#   · round 4: the source env is READ through chain_lib load_month_env (the data-grammar parser), never sourced; a refused source contract is rc 2, no driver run;
 #   · the driver runs with V4_DRYRUN=1 (belt and braces: even if a gate were passed, every later stage dies before launching);
 #   · receipt <scratch>/dryrun_receipt.json: rc, the first FAIL_ line, training_launched (CMD[ lines under the root: must be 0), GPU state if
 #     nvidia-smi exists; PASS iff rc == 3 AND a preflight receipt with PASS=false and named failures exists AND stopped_at starts with FAIL_preflight
@@ -17,19 +16,11 @@ D=$(cd "$(dirname "$0")" && pwd -P); SRC=$1; PARENT=${2:-${TMPDIR:-/tmp}}
 [ -n "$SRC" ] && [ -f "$SRC" ] || { echo "usage: chain_v4_monthly_dryrun.sh <month env> [scratch parent]" >&2; exit 2; }
 PYX=${PY:-$(command -v python3)}; [ -x "$PYX" ] || { echo "no python interpreter (set PY)" >&2; exit 2; }
 ROOT=$(mktemp -d "$PARENT/v4_dryrun_XXXXXX") || exit 2; mkdir -p "$ROOT/root" || exit 2
-# derive the dryrun env in a subshell (loading the source contract must not leak into this shell)
-# ★ ROUND 4 (2026-09-13, X3; lead follow-up to review REVIEW_round3_code_and_research_2026-09-13 §4 R3-D3): this derivation used to SOURCE the source contract
-#   (set -a, then the dot builtin on $SRC): a command line in it RAN here, a trailing backslash let a PARENT variable into a derived value, and a syntax error
-#   was ignored while the control still said DRYRUN_PASS. The contract is now read ONLY through chain_lib load_month_env, the round-4 data-grammar parser that is
-#   never executed and whose rc and every emitted pair are checked there (a refusal exits this subshell rc 4); the derivation itself refuses (rc 3) unless every
-#   registered key arrived non-empty. Nothing else about the derived env changed.
-( PY=$PYX; CHAIN_DEVICE_DIR=$D; L=/dev/null; R=$ROOT/root; . "$D/chain_lib.sh"
-  load_month_env "$SRC" > "$ROOT/source_env_load.txt" || exit 4
+# derive the dryrun env in a subshell (sourcing the source env must not leak into this shell)
+( set -a; . "$SRC"; set +a; L=/dev/null; R=$ROOT/root; . "$D/chain_lib.sh"
   "$PYX" - "$ROOT" "$V4_MONTH_KEYS" "$PYX" > "$ROOT/v4_month_dryrun.env" <<'PYEOF'
 import os, sys
 root, keys, py = sys.argv[1], sys.argv[2].split(), sys.argv[3]
-absent = [k for k in keys if not os.environ.get(k)]
-if absent: print(f"DERIVATION_REFUSED registered key(s) absent or empty after load_month_env: {absent}", file=sys.stderr); sys.exit(3)
 COPY = {"V4_MONTH", "MONTHS_ALL", "SEEDS", "MWF_ROOT", "BUNDLE_GENERATION", "EXPORT_ARM", "GATE_STEP1", "GATE_STEP2"}
 print(f"# derived by chain_v4_monthly_dryrun.sh: every path under the EMPTY root {root}/root; labels copied from the source env")
 for k in keys:
@@ -39,7 +30,7 @@ for k in keys:
     elif k not in COPY: v = f"{root}/root/{os.path.basename(v.rstrip('/')) or k.lower()}"
     print(f"{k}={v}")
 PYEOF
-) || { echo "dryrun env derivation failed (the source contract was refused by load_month_env, or a registered key did not arrive)" >&2; exit 2; }
+) || { echo "dryrun env derivation failed" >&2; exit 2; }
 T0=$(date -u +%FT%TZ)
 V4_DRYRUN=1 V4_STAGES=all PY=$PYX bash "$D/chain_v4_monthly.sh" "$ROOT/v4_month_dryrun.env" > "$ROOT/driver.out" 2>&1; rc=$?
 "$PYX" - "$ROOT" "$rc" "$T0" "$D" "$SRC" <<'PYEOF'; ok=$?
@@ -62,7 +53,7 @@ pf = f"{root}/root/v4_gates/preflight.json"; pfr = json.load(open(pf)) if os.pat
 PASS = (rc == 3) and bool(stopped) and stopped.startswith("FAIL_preflight") and launched == 0 and pfr is not None and pfr.get("PASS") is False and bool(pfr.get("fails"))
 rec = {"control": "chain_v4_monthly_dryrun (NEGATIVE: empty month root must stop at preflight, launch nothing)", "PASS": PASS, "driver_rc": rc, "stopped_at": stopped,
        "fail_lines": fails, "training_launched": launched, "gpu": gpu, "root_entries_after": entries, "preflight_fails": (pfr or {}).get("fails"), "preflight_PASS": (pfr or {}).get("PASS"),
-       "driver_sha256": sha(f"{D}/chain_v4_monthly.sh"), "chain_lib_sha256": sha(f"{D}/chain_lib.sh"), "source_env": src, "source_env_sha256": sha(src), "source_env_load": open(f"{root}/source_env_load.txt").read().strip(), "dryrun_env_sha256": sha(f"{root}/v4_month_dryrun.env"),
+       "driver_sha256": sha(f"{D}/chain_v4_monthly.sh"), "chain_lib_sha256": sha(f"{D}/chain_lib.sh"), "source_env": src, "source_env_sha256": sha(src), "dryrun_env_sha256": sha(f"{root}/v4_month_dryrun.env"),
        "driver_out_tail": open(f"{root}/driver.out").read()[-1500:], "started_utc": t0, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "scratch": root}
 json.dump(rec, open(f"{root}/dryrun_receipt.json", "w"), indent=1)
 print(f"DRYRUN_{'PASS' if PASS else 'FAIL'} driver_rc={rc} stopped_at={stopped} training_launched={launched} gpu={gpu} receipt={root}/dryrun_receipt.json")

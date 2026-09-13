@@ -22,139 +22,35 @@ say(){ echo "[$(date -u +%FT%TZ)] $*" >> "$L"; }
 die(){ say "FAIL_$1"; echo "FAIL_$1" >&2; exit "${2:-1}"; }
 # the month configuration contract: every key MUST be present and non-empty (schema documented in v4_month_2026-09.env and DESIGN_v4_monthly_chain_2026-09-12.md)
 V4_MONTH_KEYS="V4_MONTH R PY CACHE PANEL_SPLICE PANEL_KING RAW_PATCH HOLE_CELLS DLW_RAW DLW_CLIP F8 KING_FEA KING_META MONTHS_ALL SEEDS MWF_ROOT BUNDLE_OUT BUNDLE_TAR BUNDLE_GENERATION BUNDLE_BASE EXPORT_PANEL EMA_STATE_JSON LIVE_PINS FUND_AUG FUNDING_DIR LEGS_OLD LEGS_PANEL DLW_EXT F8_EXT HC KING_DIR EXPORT_ARM SIGNAL_RECEIPT BUILDER_FEA82 BUILDER_FEA89 BASE_TRAINER GATE_STEP1 GATE_STEP2 PREV_BUNDLE PREV_META REF_META PREV_DLW_CLIP PREV_F8 PREV_KING_FEA PREV_KING_FEA_UNCLAMPED PREV_CLAMP_BUILDER_SHA256"   # 46 keys (W7 2026-09-12: +4 reference keys of the month-generic data gates, PREREG_v4_gates_monthly_2026-09-12 §2; +1 builder identity pin, PREREG AMENDMENT 1 / researcher B-R4)
-load_month_env(){  # load_month_env <v4_month.env> — PARSES the contract as DATA (round 4: the file is never sourced) and exports exactly the parsed pairs; rc 4 on any defect
-  # ★ ROUND 4 (2026-09-13, independent review REVIEW_round3_code_and_research_2026-09-13 §4 R3-D3; probes D3_bundle_continuation_A/B, D3_source_parse_error_ignored,
-  #   D3_assignment_prefixed_command_marker_written, D3_parent_tilde_parent_A/B): rounds 2-3 checked PHYSICAL LINES with grep/awk and then let Bash source the file,
-  #   i.e. two different grammars. A trailing backslash joined `BUNDLE_OUT=$R\` with the next line into `$RBUNDLE_TAR`, a PARENT variable, under an unchanged
-  #   contract sha; an unclosed quote made the source fail while the loader still printed MONTH_ENV_OK; `SEEDS=42 : > file` ran a command; `~/king` followed the
-  #   parent HOME. A longer character blacklist only moves that boundary, so there is now ONE grammar, parsed by Python and never executed:
-  #     line    := blank | comment | KEY=VALUE      blank = spaces/tabs only; comment = optional spaces/tabs then #, free text
-  #     KEY     := a key of V4_MONTH_KEYS, at most ONCE per file, starting in column 1
-  #     VALUE   := ( LITERAL | $NAME | ${NAME} )*   LITERAL characters: A-Z a-z 0-9 _ . / , : @ % + = -   and nothing else (no quote, backslash, space, tab,
-  #                                                  tilde, glob, ; & | < > parenthesis, backtick, #)
-  #     NAME    := a key DEFINED EARLIER IN THIS FILE; the parser substitutes that key's already-resolved value (the parent shell never fills anything in)
-  #   The parser's rc is checked, and its output is re-validated here (registered key names, each exactly once, non-empty LITERAL values) before anything is
-  #   exported. Refusal names: month_env_missing / _malformed / _key_missing_<K> / _unbound_reference (the round-2/3 classes, kept) + _duplicate_key_<K> /
-  #   _parser_failed_rc_<rc> / _parser_output. Interpreter = the pre-contract $PY (chain_lib default /workspace/venv/bin/python); the contract's PY takes over after.
-  local f=$1 k v line out rc py=$PY got=" " first rest
+load_month_env(){  # load_month_env <v4_month.env> — sources the contract (KEY=value lines only; later keys may reference earlier ones as $R/...) and exports it; rc 4 on any defect
+  local f=$1 k bad
   [ -n "$f" ] && [ -f "$f" ] || die "month_env_missing_${f:-<none>}" 4
-  out=$("$py" - "$f" "$V4_MONTH_KEYS" <<'PYEOF'
-import re, sys
-path, keys = sys.argv[1], sys.argv[2].split()
-REG = set(keys)
-LIT = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./,:@%+=-")
-NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-ASSIGN = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(.*)", re.S)
-BLANK = re.compile(r"[ \t]*")
-COMMENT = re.compile(r"[ \t]*#.*", re.S)
-SAY = {chr(92): "a backslash: line continuation or escape", chr(34): "a double quote", chr(39): "a single quote", chr(32): "a space", chr(9): "a tab",
-       chr(126): "a tilde: expands to the parent HOME", chr(96): "a backtick: command substitution", chr(13): "a carriage return"}
-def refuse(cls, arg, why):
-    print("REFUSED " + cls + ((" " + arg) if arg else ""))
-    for w in why[:12]: print("  " + w)
-    if len(why) > 12: print("  ... and " + str(len(why) - 12) + " more")
-    sys.exit(4)
-try:
-    raw = open(path, "rb").read()
-except OSError as e:
-    refuse("malformed", "", ["unreadable: " + str(e)])
-try:
-    text = raw.decode("utf-8")
-except UnicodeDecodeError as e:
-    refuse("malformed", "", ["not UTF-8 text: " + str(e)])
-lines = text.split(chr(10))
-if lines and lines[-1] == "":
-    lines.pop()
-malformed, duplicate, unbound = [], [], []
-first_line, resolved = {}, {}
-for no, line in enumerate(lines, 1):
-    if BLANK.fullmatch(line) or COMMENT.fullmatch(line):
-        continue
-    m = ASSIGN.fullmatch(line)
-    if not m:
-        malformed.append(f"line {no}: not KEY=VALUE, a # comment or a blank line: {line[:80]!r}")
-        continue
-    key, val = m.group(1), m.group(2)
-    if key not in REG:
-        malformed.append(f"line {no}: {key} is not a registered contract key of V4_MONTH_KEYS")
-        continue
-    dup = key in first_line
-    if dup:
-        duplicate.append((key, f"line {no}: {key} is defined a second time, first at line {first_line[key]}: a contract names each key once"))
-    else:
-        first_line[key] = no
-    parts, i, bad = [], 0, False
-    while i < len(val):
-        c = val[i]
-        if c in LIT:
-            j = i
-            while j < len(val) and val[j] in LIT:
-                j += 1
-            parts.append(val[i:j]); i = j
-            continue
-        if c == "$":
-            nx = val[i + 1:i + 2]
-            if nx == chr(40):
-                malformed.append(f"line {no}: {key}: a command or arithmetic substitution at column {len(key) + 2 + i} is not part of the value grammar"); bad = True; break
-            if nx == "{":
-                mm = NAME.match(val, i + 2)
-                if not (mm and val[mm.end():mm.end() + 1] == "}"):
-                    unbound.append(f"{key}: malformed ${{...}} reference at column {len(key) + 2 + i}: only ${{NAME}} is allowed"); bad = True; break
-                name, nxt = mm.group(0), mm.end() + 1
-            else:
-                mm = NAME.match(val, i + 1)
-                if not mm:
-                    unbound.append(f"{key}: a bare $ / command substitution is not allowed in a contract value, column {len(key) + 2 + i}"); bad = True; break
-                name, nxt = mm.group(0), mm.end()
-            if name not in REG:
-                unbound.append(f"{key}: ${name} is not a contract key (the parent shell would fill it in)"); bad = True; break
-            if name not in resolved:
-                unbound.append(f"{key}: ${name} is referenced before it is defined in this file"); bad = True; break
-            parts.append(resolved[name]); i = nxt
-            continue
-        malformed.append(f"line {no}: {key}: {SAY.get(c, repr(c))} at column {len(key) + 2 + i} is not part of the value grammar"); bad = True; break
-    if not dup:
-        resolved[key] = "" if bad else "".join(parts)
-if malformed:
-    refuse("malformed", "", malformed + [d for _, d in duplicate])
-if duplicate:
-    refuse("duplicate_key", duplicate[0][0], [d for _, d in duplicate])
-absent = [k for k in keys if k not in first_line]
-if absent:
-    refuse("key_missing", absent[0], [f"key {k} is not a line of the file (an inherited environment value does not count)" for k in absent])
-if unbound:
-    refuse("unbound_reference", "", ["unbound reference: " + u for u in unbound])
-empty = [k for k in keys if resolved[k] == ""]
-if empty:
-    refuse("key_missing", empty[0], [f"key {k} is present but EMPTY" for k in empty])
-for k in keys:
-    print(k + "=" + resolved[k])
-PYEOF
-); rc=$?
-  if [ $rc -ne 0 ]; then
-    first=${out%%$'\n'*}; rest=""; [ "$first" = "$out" ] || rest=${out#*$'\n'}
-    echo "month env $f: parser rc=$rc: ${first}${rest:+ | }${rest}" >&2
-    case $first in
-      "REFUSED malformed") die "month_env_malformed_$(basename "$f")" 4 ;;
-      "REFUSED unbound_reference") die "month_env_unbound_reference_$(basename "$f")" 4 ;;
-      "REFUSED key_missing "*) k=${first#REFUSED key_missing }; case " $V4_MONTH_KEYS " in *" $k "*) die "month_env_key_missing_$k" 4 ;; esac ;;
-      "REFUSED duplicate_key "*) k=${first#REFUSED duplicate_key }; case " $V4_MONTH_KEYS " in *" $k "*) die "month_env_duplicate_key_$k" 4 ;; esac ;;
-    esac
-    die "month_env_parser_failed_rc_${rc}_$(basename "$f")" 4
-  fi
-  # rc 0 is not trusted on its own: every output line must be a registered KEY, once, with a non-empty value made of LITERAL characters only
-  while IFS= read -r line; do
-    k=${line%%=*}; v=${line#*=}
-    case $k in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_]*) echo "month env $f: parser output line is not KEY=VALUE: ${line:0:80}" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
-    case " $V4_MONTH_KEYS " in *" $k "*) ;; *) echo "month env $f: parser emitted an unregistered key $k" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
-    case $got in *" $k "*) echo "month env $f: parser emitted $k twice" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
-    case $v in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./,:@%+=-]*) echo "month env $f: parser emitted a value for $k outside the LITERAL grammar" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
-    got="$got$k "
-  done <<< "$out"
-  for k in $V4_MONTH_KEYS; do case $got in *" $k "*) ;; *) echo "month env $f: parser output lacks key $k" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac; done
-  # B-R3 (kept): nothing the caller exported survives — every contract key is UNSET, then EXACTLY the parsed pairs are exported
+  bad=$(grep -vE '^[[:space:]]*(#|$)' "$f" | grep -vE '^[A-Z_][A-Z0-9_]*=[^;&|`]*$'; grep -vE '^[[:space:]]*#' "$f" | grep -E '\$\(')   # comments are free text; every other line is KEY=value without ; & | ` $(
+  [ -z "$bad" ] || { echo "month env $f: malformed line(s): $bad" >&2; die "month_env_malformed_$(basename "$f")" 4; }
+  # B-R3 (independent review 2026-09-12): a key must be PRESENT IN THE FILE — a value inherited from the parent shell is not the contract's value.
+  #   (1) every key must appear as a `KEY=` line of the file; (2) all contract keys are UNSET before sourcing, so nothing the caller exported survives.
+  local present; present=" $(grep -oE '^[A-Z_][A-Z0-9_]*=' "$f" | tr -d '=' | tr '\n' ' ') "
+  for k in $V4_MONTH_KEYS; do case "$present" in *" $k "*) ;; *) echo "month env $f: key $k is not a line of the file (an inherited environment value does not count)" >&2; die "month_env_key_missing_$k" 4 ;; esac; done
+  # ★ ROUND 3 (2026-09-13, review §3.D / researcher probe BR3_file_key_indirect_ambient_reference_ACCEPTED): the presence check above proves the KEY is in the file,
+  #   not that its VALUE is. `SEEDS=$UNLISTED_SEEDS` is a line of the file, survives the unset below (only CONTRACT keys are unset) and is filled in by the parent
+  #   shell at `. "$f"` — so a 46-key contract could still be steered from outside. A blanket "no $ in a value" would reject both delivered contracts (the September
+  #   one has 5 `$R/...` values, the October template 12), so the rule is the narrow one the reviewer proposed: a value may reference ONLY a CONTRACT key that is
+  #   already DEFINED EARLIER IN THIS FILE. Command substitution and backticks stay rejected by the grep above and are re-rejected here (defence in depth).
+  local unbound; unbound=$(awk -v KEYS="$V4_MONTH_KEYS" '
+    BEGIN{ n = split(KEYS, a, " "); for (i = 1; i <= n; i++) contract[a[i]] = 1 }
+    /^[[:space:]]*(#|$)/ { next }
+    { e = index($0, "="); if (e == 0) next; key = substr($0, 1, e - 1); s = substr($0, e + 1)
+      while ((p = index(s, "$")) > 0) { rest = substr(s, p + 1); brace = 0
+        if (substr(rest, 1, 1) == "{") { brace = 1; rest = substr(rest, 2) }
+        if (match(rest, /^[A-Za-z_][A-Za-z0-9_]*/)) { name = substr(rest, 1, RLENGTH); s = substr(rest, RLENGTH + 1)
+          if (brace) { if (substr(s, 1, 1) != "}") printf "%s: malformed ${...} reference; ", key; else s = substr(s, 2) }
+          if (!(name in contract)) printf "%s: $%s is not a contract key (the parent shell would fill it in); ", key, name
+          else if (!(name in defined)) printf "%s: $%s is referenced before it is defined in this file; ", key, name
+        } else { printf "%s: a bare $ / command substitution is not allowed in a contract value; ", key; s = rest } }
+      defined[key] = 1 }' "$f")
+  [ -z "$unbound" ] || { echo "month env $f: unbound reference(s): $unbound" >&2; die "month_env_unbound_reference_$(basename "$f")" 4; }
   unset $V4_MONTH_KEYS V4_MONTH_ENV
-  while IFS= read -r line; do export "${line%%=*}=${line#*=}" || die "month_env_export_${line%%=*}" 4; done <<< "$out"
+  set -a; . "$f"; set +a
   for k in $V4_MONTH_KEYS; do [ -n "${!k:-}" ] || die "month_env_key_missing_$k" 4; done
   V4_MONTH_ENV=$f; export V4_MONTH_ENV
   # the names the child programs read (trainer whitelist, launcher, merge, arms, build_dev): derived from the contract, never from their defaults
@@ -276,18 +172,11 @@ PYEOF
 #   Scope of the defect (DESIGN §9.1): arms consume the monthly prediction .npy, so there is NO evidence a wrong .pt was ever used for a real prediction; what was
 #   broken is the PROMISE that the refit artefacts were verified, not a proven bad training. Now: expected seed, COMPLETE key set (a missing required key is a
 #   refusal — never "absent ⇒ skip"), the expected paths of this month's contract, and the ACTUAL sha256 of the .pt and of every declared input, unconditionally.
-# ★ ROUND 4 (2026-09-13, independent review REVIEW_round3_code_and_research_2026-09-13 §4 R3-D1; probes D1_changed_{targets,fea82,fea89,legs}_null_locator_ACCEPTED,
-#   D1_all_four_null_locators_ACCEPTED, D1_missing_target_null_locator_ACCEPTED, all rc 0): round 3 compared the KEY SET, but a key may hold null. The path
-#   comparison ran only `if p is not None`, the hash loop said `if p is None: continue`, and the helper still printed "4 inputs + weights verified". So a changed,
-#   or even DELETED, input passed as soon as its locator was nulled. "The real writer never emits null" is no exemption: this gate exists to refuse damaged or
-#   mismatched sidecars. Now: (i) every required locator (four inputs + pt) must be a NON-EMPTY STRING resolving to this month's expected path; (ii) INDEPENDENTLY
-#   of whatever the locator says, each expected file must exist at the expected path and hash to the recorded sha256 (a 64-hex digest, as the writer's
-#   hexdigest emits), unconditionally; (iii) the ok line is assembled only from checks that ran and passed, and a check that did not run is itself a refusal.
 prereq_refit_sidecar(){  # prereq_refit_sidecar <stage> <name> <sidecar.json> <DLW_RAW> <F8> <expected seed> <refit source .py> — every argument is mandatory
   local stage=$1 name=$2 sc=$3 dlw=$4 f8=$5 seed=$6 src=$7 out rc
   [ -n "$seed" ] && [ -n "$src" ] || { echo "prereq $stage/$name: expected seed and refit source are MANDATORY arguments of prereq_refit_sidecar (an unbound call verifies nothing)" >&2; die "${stage}_prereq_${name}" 3; }
   out=$($PY - "$sc" "$dlw" "$f8" "$seed" "$src" 2>&1 <<'PYEOF'
-import hashlib, json, os, re, sys
+import hashlib, json, os, sys
 sc, dlw, f8, seed_s, src = sys.argv[1:6]
 if not os.path.isfile(sc): print(f"refit sidecar missing: {sc}"); sys.exit(3)
 try: m = json.load(open(sc))
@@ -295,16 +184,13 @@ except Exception as e: print(f"refit sidecar unreadable: {e}"); sys.exit(3)
 if not isinstance(m, dict): print(f"refit sidecar is not a JSON object: {sc}"); sys.exit(3)
 try: seed = int(seed_s)
 except ValueError: print(f"expected seed {seed_s!r} is not an integer"); sys.exit(3)
-bad = []; ran = {}                                                               # ran[check] = evidence of a check that RAN and PASSED; the ok line reads only this
+bad = []
 def sha(p):
     h = hashlib.sha256()
     with open(p, "rb") as f:
         for ch in iter(lambda: f.read(1 << 24), b""): h.update(ch)
     return h.hexdigest()
 def _empty(v): return v is None or (isinstance(v, (str, dict, list, tuple)) and len(v) == 0)
-def _locator(v): return isinstance(v, str) and v != ""                        # round 4: null / non-string / empty is NOT a locator
-_HEX = re.compile(r"[0-9a-f]{64}")
-def _digest(v): return isinstance(v, str) and _HEX.fullmatch(v) is not None
 # (1) COMPLETE KEY SET — pod_f10_refit_v4.py writes every one of these; a missing key is a REFUSAL, never a skipped check (researcher F-R1 (a))
 _TOP = ("seed", "best_ep_rule", "best_ep_kept", "env_given", "inputs", "inputs_sha256", "pt", "pt_sha256", "self_sha256")
 _miss = [k for k in _TOP if k not in m or _empty(m[k])]
@@ -317,60 +203,44 @@ shas = m.get("inputs_sha256") if isinstance(m.get("inputs_sha256"), dict) else {
 _WANT = {"targets": f"{dlw}/data/dlw_targets.npz", "fea82": f"{dlw}/data/dlw_fea82.npz", "fea89": f"{f8}/data/f8_fea89.npz", "legs": f"{f8}/data/f10v2_legs.npz"}
 if set(ins) != set(_WANT): bad.append(f"inputs names {sorted(ins)} != the four artefacts the refit consumes {sorted(_WANT)} (researcher F-R1 (b): a shrunk set used to pass)")
 if set(shas) != set(_WANT): bad.append(f"inputs_sha256 names {sorted(shas)} != {sorted(_WANT)}")
-# (2) EXPECTED LOCATORS — every required locator is a non-empty path STRING naming this month's artefact (round 4, R3-D1: a null locator used to skip BOTH checks)
+# (2) EXPECTED PATHS — the sidecar must be about THIS month's contract directories, not merely about four files that happen to exist
 for k in sorted(_WANT):
     p = ins.get(k)
-    if not _locator(p): bad.append(f"input {k} locator is {p!r}: a required locator must be a non-empty path string naming this month's {_WANT[k]!r} (a null locator is a refusal, never a skipped check)")
-    elif os.path.realpath(p) != os.path.realpath(_WANT[k]): bad.append(f"input {k} path {p!r} != this month's {_WANT[k]!r}")
-    else: ran[f"locator:{k}"] = p
-_ptw = f"{f8}/models/f10_live_s{seed}.pt"; _ptl = m.get("pt")
-if not _locator(_ptl): bad.append(f"pt locator is {_ptl!r}: a required locator must be a non-empty path string naming this month's {_ptw!r}")
-elif os.path.realpath(_ptl) != os.path.realpath(_ptw): bad.append(f"pt path {_ptl!r} != this month's {_ptw!r}")
-else: ran["locator:pt"] = _ptl
+    if p is not None and os.path.realpath(str(p)) != os.path.realpath(_WANT[k]): bad.append(f"input {k} path {p!r} != this month's {_WANT[k]!r}")
+_ptw = f"{f8}/models/f10_live_s{seed}.pt"
+if m.get("pt") is not None and os.path.realpath(str(m["pt"])) != os.path.realpath(_ptw): bad.append(f"pt path {m.get('pt')!r} != this month's {_ptw!r}")
 # (3) EXPECTED SEED — all four seed carriers must agree with the seed the driver is verifying (researcher F-R1 (c))
-_sb = len(bad)
 if m.get("seed") != seed: bad.append(f"seed={m.get('seed')!r} != expected {seed}")
 if str(eg.get("SEED")) != str(seed): bad.append(f"env_given.SEED={eg.get('SEED')!r} != expected {seed}")
 if os.path.basename(sc) != f"f10_live_s{seed}.json": bad.append(f"sidecar file {os.path.basename(sc)!r} is not the seed-{seed} slot f10_live_s{seed}.json")
-if len(bad) == _sb: ran["seed"] = seed
 # recipe + month binding (round 2 checks, kept verbatim in meaning)
 if m.get("best_ep_rule") != "fix7": bad.append(f"best_ep_rule={m.get('best_ep_rule')!r}")
 if str(eg.get("BEST_EP_FIX")) != "7": bad.append(f"env_given.BEST_EP_FIX={eg.get('BEST_EP_FIX')!r}")
 if m.get("best_ep_kept") != 7: bad.append(f"best_ep_kept={m.get('best_ep_kept')!r} != 7 (the fix7 rule keeps exactly epoch 7)")
 if eg.get("F10_DLW") != dlw: bad.append(f"env_given.F10_DLW={eg.get('F10_DLW')!r} != {dlw!r}")
 if eg.get("F10_OUT") != f8: bad.append(f"env_given.F10_OUT={eg.get('F10_OUT')!r} != {f8!r}")
-# (4) ACTUAL ARTEFACT SHAs — hashed at THIS MONTH'S EXPECTED PATH, UNCONDITIONALLY: whatever (or whether) the locator says, the expected file must exist and match
+# (4) ACTUAL ARTEFACT SHAs — every declared input AND the weights, verified against the bytes on disk; an absent recorded sha is its own refusal
 for k in sorted(_WANT):
-    rec = shas.get(k)
-    if _empty(rec): bad.append(f"input {k} has NO recorded sha256 in the sidecar: its identity is unverifiable"); continue
-    if not _digest(rec): bad.append(f"input {k} recorded sha256 {rec!r} is not a 64-hex digest: its identity is unverifiable"); continue
-    if not os.path.isfile(_WANT[k]): bad.append(f"input {k} missing on disk at this month's path: {_WANT[k]}"); continue
-    cur = sha(_WANT[k])
-    if cur != rec: bad.append(f"input {k} changed since refit: {cur[:12]} != {rec[:12]} ({_WANT[k]})")
-    else: ran[f"sha:{k}"] = cur
-_rp = m.get("pt_sha256")
-if _empty(_rp): bad.append("sidecar records NO pt_sha256: the weights identity is unverifiable (this used to be treated as 'nothing to check')")
-elif not _digest(_rp): bad.append(f"pt_sha256 {_rp!r} is not a 64-hex digest: the weights identity is unverifiable")
-elif not os.path.isfile(_ptw): bad.append(f"weights missing at this month's path: {_ptw}")
+    p = ins.get(k)
+    if p is None: continue                                                       # already named by the key-set refusal above
+    if not os.path.isfile(p): bad.append(f"input {k} missing on disk: {p}"); continue
+    if _empty(shas.get(k)): bad.append(f"input {k} has NO recorded sha256 in the sidecar: its identity is unverifiable"); continue
+    cur = sha(p)
+    if cur != shas[k]: bad.append(f"input {k} changed since refit: {cur[:12]} != {str(shas[k])[:12]}")
+pt = m.get("pt")
+if pt is None: pass                                                              # already named by the key-set refusal
+elif not os.path.isfile(str(pt)): bad.append(f"weights missing: {pt}")
+elif _empty(m.get("pt_sha256")): bad.append("sidecar records NO pt_sha256: the weights identity is unverifiable (this used to be treated as 'nothing to check')")
 else:
-    cur = sha(_ptw)
-    if cur != _rp: bad.append(f"weights changed since refit: {cur[:12]} != {_rp[:12]} ({_ptw})")
-    else: ran["sha:pt"] = cur
+    cur = sha(str(pt))
+    if cur != m["pt_sha256"]: bad.append(f"weights changed since refit: {cur[:12]} != {str(m['pt_sha256'])[:12]}")
 # (5) WHICH PROGRAM WROTE IT — the same discipline require_gate applies to gate receipts (self_sha computed at run time from the source this chain invokes)
-_rs = m.get("self_sha256")
 if not os.path.isfile(src): bad.append(f"refit source missing beside the driver: {src}")
-elif not _digest(_rs): bad.append(f"self_sha256 {_rs!r} is not a 64-hex digest: which program wrote the sidecar is unverifiable")
-else:
+elif not _empty(m.get("self_sha256")):
     _ss = sha(src)
-    if _ss != _rs: bad.append(f"sidecar was written by a different program: self_sha256 {_rs[:12]} != {os.path.basename(src)} {_ss[:12]}")
-    else: ran["self_sha256"] = _ss
+    if _ss != m["self_sha256"]: bad.append(f"sidecar was written by a different program: self_sha256 {str(m['self_sha256'])[:12]} != {os.path.basename(src)} {_ss[:12]}")
 if bad: print("; ".join(bad)); sys.exit(3)
-# (6) round 4: "verified" is printed ONLY for checks that ran — a check that silently did not run is a refusal, not a pass
-_NEED = {f"locator:{k}" for k in _WANT} | {f"sha:{k}" for k in _WANT} | {"locator:pt", "sha:pt", "seed", "self_sha256"}
-_notrun = sorted(_NEED - set(ran))
-if _notrun: print(f"refusing to report verification: check(s) {_notrun} did not run"); sys.exit(3)
-_n = sum(1 for k in ran if k.startswith("sha:") and k != "sha:pt")
-print(f"ok seed {seed} fix7, {_n} inputs + weights verified against the bytes on disk, written by {os.path.basename(src)} {ran['self_sha256'][:12]}")
+print(f"ok seed {seed} fix7, {len(ins)} inputs + weights verified against the bytes on disk, written by {os.path.basename(src)} {str(m['self_sha256'])[:12]}")
 PYEOF
 ); rc=$?
   say "prereq $stage/$name: $out"; [ $rc -eq 0 ] || { echo "prereq $stage/$name: $out" >&2; die "${stage}_prereq_${name}" 3; }

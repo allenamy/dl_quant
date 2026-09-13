@@ -1,0 +1,18 @@
+[2026-09-13T07:54:28Z] X3 round 4 control start (this script: 82e8d328cde93c06bb63f49ac54fe1e24ec54e7b46062dc59bcee0fa2d28e9be)
+[2026-09-13T07:54:29Z] gpu before: 0 %, 2 MiB | paused pids:  333197 Tl    1-16:47:32  339489 Tl    1-15:50:50  | load: 0.70 1.09 0.87 nproc 1
+[2026-09-13T07:54:29Z] device verified: 9 pinned shas (the two replaced files + the round-3 loader kept as chain_lib.r2_a331f035.sh + the 6 unchanged W7b files)
+[2026-09-13T07:54:29Z] E1 loader chain_lib.r2_a331f035.sh rc=0 MONTH_ENV_OK /workspace/x3_round4_2026-09-13/device/v4_month_2026-09.env V4_MONTH=2026-09 R=/workspace/review_scratch D=/workspace/x3_round4_2026-09-13/device M
+[2026-09-13T07:54:29Z] E1 loader chain_lib.sh rc=0 MONTH_ENV_OK /workspace/x3_round4_2026-09-13/device/v4_month_2026-09.env V4_MONTH=2026-09 R=/workspace/review_scratch D=/workspace/x3_round4_2026-09-13/device M
+[2026-09-13T07:54:29Z] E1 exported environment IDENTICAL (81 variables; MONTH_ENV_OK lines identical: yes)
+MONTH_ENV_OK /workspace/x3_round4_2026-09-13/device/v4_month_2026-09.env V4_MONTH=2026-09 R=/workspace/review_scratch D=/workspace/x3_round4_2026-09-13/device MONTHS_ALL=202501,202502,202503,202504,202505,202506,202507,202508,202509,202510,202511,202512,202601,202602,202603,202604,202605,202606,202607,202608 SEEDS=42,2027 BUNDLE_GENERATION=v3_2026-09
+[2026-09-13T07:54:29Z] round-4 load_month_env on the shipped September contract: rc 0; R=/workspace/review_scratch D=/workspace/x3_round4_2026-09-13/device KING_META=/workspace/data/wide_fea_v4_meta.npz PREV_META=/workspace/data/wide_fea_v2ext_meta.npz PREV_KING_FEA_UNCLAMPED=/workspace/data/wide_fea_v2ext.npy
+E2 container object [10182] ndarray | tail dtypes ['int64'] sizes [400] | axis element dtypes {'<i8': 10182} | E2 holds: True
+[2026-09-13T07:55:01Z] E3 gate ran: STEP2 rc=0 (expected 0)
+[2026-09-13T07:55:01Z] runtime self sha: STEP2_m d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d
+E3 PASS True | tail_quality {"floor": 0.9, "member_finite_frac_median": 0.975609756097561, "member_finite_frac_min": 0.975609756097561, "member_index_ok": true, "n_members_min": 400, "n_tail_anchors": 6, "ok": true} | byte-equal to round 3: True
+[2026-09-13T07:55:02Z] E4 parity vs round-3 receipt: GATE_RECEIPT_PARITY OK : 38 verdict fields equal, 0 differ; PASS archived=True rerun=True
+[2026-09-13T07:55:02Z] E5 require REAL contract STEP2 rc=3 REQUIRE_FAIL gate source d99a910951e0 is not an APPROVED source of gate 'STEP2' in the frozen contract (approved: ['db7ab3561f97']); a program that re-ran and signed its 
+[2026-09-13T07:55:02Z] E5 contract sha after (must still be 1188267a…): 1188267adf42
+[2026-09-13T07:55:02Z] E6 gpu after: 0 %, 2 MiB | paused pids:  333197 Tl    1-16:48:05  339489 Tl    1-15:51:23 
+[2026-09-13T07:55:02Z] E6 review_scratch untouched (ls before == after)
+[2026-09-13T07:55:02Z] X3 round 4 control end: STEP2 rc=0 receipt /workspace/x3_round4_2026-09-13/root/v4_gates/step2.json

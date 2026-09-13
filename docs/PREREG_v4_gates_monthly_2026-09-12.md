@@ -101,6 +101,7 @@
 - **先结构, 后比例**: `members(a)` 是**符号索引向量**。取特征前必须依次成立: ① 1-D; ② 整数(dtype 为整型, 或浮点值逐位等于其 int64 取整); ③ 每个值在 `[0, NW)`; ④ 无重复。任一不成立 ⇒ 该锚记入 `tail_quality.member_index_bad`(点名锚 UTC、前 8 个成员值、原因), `member_index_ok=false`, **`ok=false` ⇒ PASS=false, rc 3**; 且**绝不**用这个索引去下标特征(负值会静默环绕到末列, 越界会崩成 rc 1 无收据 — 两者都不是判决)。
 - **0.90 的射程(明写, 防止被引用成别的东西)**: 它只说「这个尾锚的成员格里有 ≥90% 是有限数」。它**不是**因果性门、**不是**预测有效性门、**不是**成员身份正确性门、**不是**经济意义门。成员是不是**对的**币、特征值是不是**对的**数, 本门一概不知道; 那由 A 部分(RAW vs CLIP)、`F10_GATE_*` 身份收据与下游判官负责。地板通过只等于「尾部不是一片 NaN, 且索引本身是合法索引」。
 - 收据字段: `member_index_ok`(有尾即出现, 布尔)与 `member_index_bad`(仅当非空时出现, 条件字段)。`tail_quality` 其余字段与 AMENDMENT 1 逐字相同; 无尾时整个 `tail_quality` 仍不出现(§0 的字段集合不变量不受影响)。
+> **AMENDMENT 3(2026-09-13)指针**: 上面第 ② 条的「或浮点值逐位等于其 int64 取整」**作废** —— 成员索引的 dtype 以**持久化原件**为准, 必须是有符号/无符号整数 kind(bool / float / object / 字符串一律拒)。原文不改, 以 AMENDMENT 3 为准。
 
 ## §4 阈值与统计(逐字, 不变)
 - 邻域: `holefix2_cells.npz` 的 `neigh_rows`(上游按 `[run_start−48, run_end+8640]` 生成)与 `fill_runs`/`row`/`col`(被填补币集合按 run)。
@@ -165,6 +166,18 @@
 - **新增收据字段**: `tail_quality.member_index_ok`(有尾即出现)、`tail_quality.member_index_bad`(仅非空时出现)。九月正控受影响面: 九月 6 个尾锚的成员索引合法(`n_members_min=400`), 故 `member_index_ok=true`、无 `member_index_bad` ⇒ 对 G1 的预期从「31 全等 + 恰 1 差(`tail_quality`)」变为「31 全等 + 恰 1 差(`tail_quality`, 其内部多 `member_index_ok`)」, **PASS 与 rc 不变**。真数据复跑见 §7.10(未跑则明写未跑)。
 - **射程声明(用户/读者引用时必须带)**: 0.90 是**有限格门**, 不是因果性或预测有效性门(§3.7 第二条)。
 - **未覆盖(明写)**: 只校验**新尾**锚的成员索引; 公共轴上的成员由 `members_diff_rows_outside_neigh` 逐位对参照负责, 参照本身若带非法索引, 两边一致就不会红 —— 若要覆盖公共轴需新预注册(本轮不做)。
+
+## AMENDMENT 3(2026-09-13, X3 round 4; 独立研究员 `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round3_code_and_research_2026-09-13.md` §4 R3-D2 + `.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_round3_code_review_2026-09-13/retrain/RESULT.md`; 追加前本文 sha = `00511ada61d9fa1771f6116b9f4be4da1cfc9e1418af5b39d08fde0bb1981d9d`)
+
+> **诚实的次序声明(不冒充预注册)**: ① 研究员给出反例: 新尾成员索引为 bool `[False, True]` / `[True]` 或整值 float `[0., 1., 2.]` 时门 PASS, 而导出器的 `y4[i, m]` 在同一数组上 IndexError; ② lead 派工时把规则定死为「持久化索引数组的 dtype 必须是有符号/无符号整数 kind(bool 与 float 直接拒), 然后才是既有的 1-D / 范围 / 唯一」; ③ 我先在归档的 `v4_gate_step2_m.r2_b2f9cfd4.py` 上复现(自检 [U] 红格, 同一次运行里新源绿), 再改码; ④ pod2 九月正控的预期先于运行写进转录 `receipts/round4_2026-09-13/run_x3_round4_control.sh`; ⑤ 然后写本节。**无阈值、无可调参数**: 0.90、`>= 1 member`、有限比例定义逐字不动。
+
+**触发(机制)**: AMENDMENT 2 的实现**先转 int64 再验证转换后的临时值**(`_m = _raw.astype(np.int64)`; 非整型只要 `np.array_equal(_m, _raw)` 即放行)。消费者不转换: `pod_export_bundle_v4.py` L42/L54–55 `m = members[i]; yv = y4[i, m]`, `v4e_gate_export_v2.py` L195–200 同样直接下标。于是 bool `[False, True]` 在门里是 `[0, 1]`(合法)、在导出器里是长度 2 的布尔掩码(IndexError); 整值 float 在导出器里 IndexError(`arrays used as indices must be of integer (or boolean) type`)。**门验证的对象与消费者使用的对象不是同一个**, 这是缺陷本体。
+
+- **规则(替换 §3.7 第 ② 条)**: 对每个新尾锚, 先 `np.asarray(members[a])`(不是数组 ⇒ `not an array`, 干净 FAIL 收据); 然后依次: **① dtype kind ∈ {`i`, `u`}**(bool / float / object / 字符串 / 时间类型一律拒, 不看数值); ② 1-D; ③ 每个值在 `[0, NW)`; ④ 无重复。全部成立才转 int64 并作下标; 任一不成立 ⇒ `member_index_bad` 点名(锚 UTC、前 8 个持久化值、原因), `member_index_ok=false`, PASS=false, rc 3。
+- **邻格(不是研究员原例, 同一机制)**: object 数组装 Python int —— 这正是写手 `np.array(MS, dtype=object)` 在「所有锚成员数相等」时会产生的形状 —— 旧门放行、导出器 IndexError、新门拒。九月真数据不是这个形状(见 §7.11 E2: 10182 个元素全部是 int64 ndarray)。
+- **收据字段集合不变**: `tail_quality` 七字段与条件字段 `member_index_bad` 同 AMENDMENT 2。只在 FAIL 收据的边角有差: `why` 文本; `members` 预览对非 JSON 原生元素存 `repr`(bytes 等不再让 finalize 崩成 rc 1 无收据); 非数组条目的 `n_members` 计 0(其余按持久化条目数计, 与 AMENDMENT 2 相同)。
+- **射程声明不变**: 0.90 仍是**有限格门**, 不是因果性 / 预测有效性 / 成员身份正确性门; 公共轴上的成员索引仍不查(AMENDMENT 2 末条, 需新预注册)。
+- **★ 批准对象再次变更(引用本节时必须带)**: 呈用户裁定的 STEP2 月通用门源码**现为 `d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d`**。`b2f9cfd40b9e…`(AMENDMENT 2)与 `0fe5ec5573f3…`(AMENDMENT 1)**都不再是批准对象**, 各留作红控快照 `v4_gate_step2_m.r2_b2f9cfd4.py` / `v4_gate_step2_m.r1_0fe5ec55.py`。STEP1 月通用门不变 `79950786271e…`。`ELIGIBILITY_CONTRACT.json` 仍 `1188267a…`, 未编辑; 增补 = 用户字, 由 lead 呈上。
 
 ## §7 RESULT(2026-09-12 事后追加; 追加前(§0–§6 冻结时)本文 sha = `2290f191c59e11b33576d8cfe5b4b2bdef776c731f5dcea17914582a0b298f8f`, 先于任何门运行实测)
 
@@ -243,3 +256,18 @@
 **自检**: `tests_pipeline_gates.py` **ALL PASS (354 checks)**(修前基线 328, 新节 [T] 26 格 —— 首交付 352/24, lead 附加条件把 1 格 grep 式不漂移换成 3 格 AST 式; 另有 3 格旧断言因本轮改动而更新: [R] G0 保存的 diff、[S] 侧车正控的夹具与参数、[S] 尾质量的整字典比对)。`make_sha_manifest.py` rc 0。日志与全部收据: `receipts/round3_2026-09-13/`。
 
 **仍开**: 合同 approved 增补 = 用户字(STEP1_m `79950786…` / STEP2_m `b2f9cfd4…`); 公共轴上的成员索引不查(AMENDMENT 2 末条); DESIGN §7 (ii) 真数据全链未跑, 原样仍开。
+
+### 7.11 AMENDMENT 3 收口(2026-09-13, X3 round 4; 受据 = `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round3_code_and_research_2026-09-13.md` §4 + `.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_round3_code_review_2026-09-13/retrain/`; 收据 = `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/receipts/round4_2026-09-13/`)
+**改动**: `v4_gate_step2_m.py` `b2f9cfd40b9e…` → **`d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d`**, 只改 AMENDMENT 1/2 加的尾质量块(加行全带 `# [M]`; 冻结源删行集合仍是 §1.2 的 14 行白名单; 阈值字面量计数不变 —— [R] G0 三格复验)。保存的 `w7_gates/v4_gate_step2_m.diff` 重生成为 `e0a3c515387904db…`(112 行, 原 `833c9a42…` 105 行; 先验证同一 difflib 调用在 `.r2_b2f9cfd4` 快照上逐字节重现旧 diff, 再写新 diff)。红控快照 `v4_gate_step2_m.r2_b2f9cfd4.py` 留在装置目录。
+
+**pod2 正控(CPU, `nice -n 10`, 单线程 BLAS; 隔离 `/workspace/x3_round4_2026-09-13/`, `/workspace/review_scratch` 只读; 转录 `receipts/round4_2026-09-13/run_x3_round4_control.sh` sha `82e8d328cde9…`; 2026-09-13T07:54:28Z→07:55:02Z)**。装置 = W7b round-3 pod2 装置逐位(common `f8f4fc0e…`、合同 `1188267a…`、clamp 构建器 `b9f9c728…`、STEP1_m `79950786…`、九月合同 `563efdef…`、比较器 `fbf69781…` 六件事前断言), 只换 `v4_gate_step2_m.py`(→`d99a9109`)与 `chain_lib.sh`(→ round-4 `4ee217e1`)。预注册六条, 全部成立:
+- **E1** round-4 解析器加载器与 round-3 source 加载器在同一父环境下加载真九月合同: 两者 rc 0, **加载后导出的全部 81 个环境变量逐字节相同**(未脱敏 dump 两份 sha 同为 `b1fe81965039…`; 本地副本只脱敏 `SSH_CLIENT` / `SSH_CONNECTION` 两值), MONTH_ENV_OK 行相同。平台 = pod2 bash 5.1.16 + `/workspace/venv/bin/python` 3.11.10 / numpy 2.4.6(本地自检是 bash 3.2.57 + python 3.9.6 / numpy 1.26.4)。
+- **E2(直接测量, 不是推断)**: `KING_META=/workspace/data/wide_fea_v4_meta.npz` 的 `members` 容器 = object `[10182]`, **全部 10182 个元素的 dtype 都是 `<i8`**; 按门自己的尾定义取出的 6 个新尾锚, 每个 int64、1-D、400 个、min 0 / max 827(< 829)、400 个唯一。**即新的 dtype 规则不误伤九月真数据**(`tail_member_dtype.json`)。
+- **E3** STEP2_m `d99a9109` **PASS rc 0**; `tail_quality` 与 round-3 收据**逐字节相同**(`n_tail_anchors 6, member_index_ok true, member_finite_frac_min = median = 0.975609756097561, n_members_min 400, floor 0.9, ok true`), 无 `member_index_bad`。
+- **E4** `compare_gate_receipts.py` vs round-3 收据(`10eaadce…`): **PARITY OK, 38 个判决字段全等, 0 差**(`parity_STEP2_round4_vs_round3.json`)。新收据 `v4_gates/step2.json` sha `43a50d2bac03…`。
+- **E5** 真合同 `REQUIRE_FAIL … d99a910951e0 is not an APPROVED source`(预期); 合同 sha 事后仍 `1188267adf42`。
+- **E6** GPU `0 %, 2 MiB` 事前事后; PID 333197 / 339489 `Tl` 事前事后(未发任何信号); `review_scratch` ls 事前 == 事后。(转录里 `nproc 1` 是因为 GNU nproc 服从本脚本设的 `OMP_NUM_THREADS=1`; 机器实为 64 核, 运行时另有他人一个单核 CPU 作业, GPU 空闲。)
+
+**自检**: `tests_pipeline_gates.py` **ALL PASS (386 checks), rc=0**(`receipts/round4_2026-09-13/tests_pipeline_gates_round4_mac.log`, START 07:44:55Z / END 07:49:52Z, 前后同源码 sha 前缀)。新节 [U] 32 格; 同一 [U] 块在修前源码上 22 FAIL / 10 OK(`tests_U_section_on_PRE_round4_sources_RED.log`)。首次全跑 385/386(一格 [P] 格因我的解析器把「重复键 + 非法字符」判成 duplicate 而非 malformed; 修优先级后通过; 失败日志原样归档)。研究员 23+16+83 探针修前全部复现, 修后翻 26 格、W7 16 格零翻(`researcher_probe_flips_round4.json`)。
+
+**仍开**: 合同 approved 增补 = 用户字(STEP1_m `79950786…` / STEP2_m **`d99a9109…`**); 公共轴成员索引不查; DESIGN §7 (ii) 真数据全链未跑, 原样仍开。

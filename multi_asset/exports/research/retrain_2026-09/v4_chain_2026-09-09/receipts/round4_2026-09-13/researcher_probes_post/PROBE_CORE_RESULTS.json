@@ -1,0 +1,683 @@
+{
+  "utc": "2026-09-13T07:50:53Z",
+  "scope": "synthetic validation; expected observations include accepted invalid states",
+  "cases": {
+    "F9_missing_caller_contract_positive": {
+      "actual": true,
+      "expected_observation": true,
+      "as_expected": true,
+      "detail": {
+        "ok": true,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [],
+        "recorded_extras_paths": {},
+        "why": "PASS (BUNDLE_export, 2026-09-13T07:50:53Z, self d63f4ec3f9e6 approved, 28 inputs verified (0 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)"
+      }
+    },
+    "F9_missing_receipt_contract_negative": {
+      "actual": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "detail": {
+        "ok": false,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [],
+        "recorded_extras_paths": {},
+        "why": "receipt has no sha for input 'eligibility_contract'"
+      }
+    },
+    "F9_foreign_receipt_contract_negative": {
+      "actual": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "detail": {
+        "ok": false,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "caller_contract_path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/foreign.json",
+        "recorded_extras": [],
+        "recorded_extras_paths": {},
+        "why": "input 'eligibility_contract' changed since the receipt: 1188267adf42 != 44136fa355b3"
+      }
+    },
+    "static28_missing_shipped_pred_negative": {
+      "actual": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "detail": {
+        "ok": false,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [
+          "bundle/slow_pred_pinned.npy"
+        ],
+        "recorded_extras_paths": {
+          "bundle/slow_pred_pinned.npy": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/inputs/bundle/slow_pred_pinned.npy"
+        },
+        "why": "caller omitted registered input(s) ['bundle/slow_pred_pinned.npy'] for BUNDLE_export: the stage would run unbound from them (REQUIRED_INPUTS['BUNDLE_export'] = ['wide_fea_v4', 'wide_fea_v4_meta', 'bundle_base', 'export_panel', 'bundle_cache', 'fund_aug', 'live_pins', 'book_dyn_s42', 'book_dyn_s2027', 'book_fix_s42', 'book_fix_s2027', 'base_dyn_s42', 'base_dyn_s2027', 'base_fix_s42', 'base_fix_s2027', 'bundle_manifest', 'bundle/slow_pred_pinned.npy', 'bundle/slow2026.txt', 'bundle/config.json', 'bundle/cache_tail_40d.npz', 'bundle/fund_ema_v1_state.json', 'bundle/funding_ledger_seed.json', 'bundle/leg_returns.npz', 'bundle/parity_signals_aug.json', 'costb_json', 'umask_npz', 'slow_npy', 'eligibility_contract'])"
+      }
+    },
+    "static28_changed_shipped_pred_negative": {
+      "actual": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "detail": {
+        "ok": false,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [],
+        "recorded_extras_paths": {},
+        "why": "input 'bundle/slow_pred_pinned.npy' changed since the receipt: d67e2e944994 != e6dcdbeefeae"
+      }
+    },
+    "BR2_unchanged_extra_omitted_positive": {
+      "actual": true,
+      "expected_observation": true,
+      "as_expected": true,
+      "detail": {
+        "ok": true,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "femat",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [
+          "femat"
+        ],
+        "recorded_extras_paths": {
+          "femat": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/femat.npy"
+        },
+        "why": "PASS (BUNDLE_export, 2026-09-13T07:50:53Z, self d63f4ec3f9e6 approved, 29 inputs verified (1 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)"
+      }
+    },
+    "BR2_old_changed_extra_omitted_now_rejected": {
+      "actual": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "detail": {
+        "ok": false,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "femat",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [
+          "femat"
+        ],
+        "recorded_extras_paths": {
+          "femat": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/femat.npy"
+        },
+        "why": "input 'femat' changed since the receipt: 3e4687f7344d != 87955b8a8e53"
+      }
+    },
+    "BR2_changed_extra_declared_rejected": {
+      "actual": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "detail": {
+        "ok": false,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "femat",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [],
+        "recorded_extras_paths": {},
+        "why": "input 'femat' changed since the receipt: 3e4687f7344d != 87955b8a8e53"
+      }
+    },
+    "BR2_changed_recorded_path_caller_shadows_with_backup_ACCEPTED": {
+      "actual": true,
+      "expected_observation": true,
+      "as_expected": true,
+      "detail": {
+        "ok": true,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "femat",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [],
+        "recorded_extras_paths": {},
+        "why": "PASS (BUNDLE_export, 2026-09-13T07:50:53Z, self d63f4ec3f9e6 approved, 29 inputs verified (0 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)"
+      }
+    },
+    "BR2_extra_missing_locator_rejected": {
+      "actual": false,
+      "expected_observation": false,
+      "as_expected": true,
+      "detail": {
+        "ok": false,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "femat",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [
+          "femat"
+        ],
+        "recorded_extras_paths": {
+          "femat": null
+        },
+        "why": "receipt recorded conditional input 'femat' but no locatable path (inputs_path lacks it): what the gate hashed cannot be re-verified"
+      }
+    },
+    "BR2_unchanged_extra_bytecopy_locator_positive": {
+      "actual": true,
+      "expected_observation": true,
+      "as_expected": true,
+      "detail": {
+        "ok": true,
+        "receipt": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/receipt.json",
+        "contract_gate": "BUNDLE_export",
+        "receipt_gate": "BUNDLE_export",
+        "receipt_arm": "A1",
+        "receipt_self_sha": "d63f4ec3f9e657259c2d4826f95552007f34eb63eab1d67357d8ad5b54cd5c1e",
+        "inputs": [
+          "base_dyn_s2027",
+          "base_dyn_s42",
+          "base_fix_s2027",
+          "base_fix_s42",
+          "book_dyn_s2027",
+          "book_dyn_s42",
+          "book_fix_s2027",
+          "book_fix_s42",
+          "bundle/cache_tail_40d.npz",
+          "bundle/config.json",
+          "bundle/fund_ema_v1_state.json",
+          "bundle/funding_ledger_seed.json",
+          "bundle/leg_returns.npz",
+          "bundle/parity_signals_aug.json",
+          "bundle/slow2026.txt",
+          "bundle/slow_pred_pinned.npy",
+          "bundle_base",
+          "bundle_cache",
+          "bundle_manifest",
+          "costb_json",
+          "eligibility_contract",
+          "export_panel",
+          "femat",
+          "fund_aug",
+          "live_pins",
+          "slow_npy",
+          "umask_npz",
+          "wide_fea_v4",
+          "wide_fea_v4_meta"
+        ],
+        "caller_supplied": {},
+        "contract_profile": null,
+        "recorded_extras": [],
+        "recorded_extras_paths": {},
+        "why": "PASS (BUNDLE_export, 2026-09-13T07:50:53Z, self d63f4ec3f9e6 approved, 29 inputs verified (0 recorded beyond the caller's declaration, located from the receipt's inputs_path), registered floor BUNDLE_export=28)"
+      }
+    },
+    "BR3_46_keys_positive": {
+      "actual": 0,
+      "expected_observation": 0,
+      "as_expected": true,
+      "detail": {
+        "stdout": "MONTH_ENV_OK /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/month.cfg V4_MONTH=2026-10 R=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/root D=/workspace/review_scratch MONTHS_ALL=202501,202502,202503,202504 SEEDS=42 BUNDLE_GENERATION=v4_2026-10\n",
+        "stderr": ""
+      }
+    },
+    "BR3_omitted_seed_even_if_inherited_now_rejected": {
+      "actual": 4,
+      "expected_observation": 4,
+      "as_expected": true,
+      "detail": {
+        "stdout": "",
+        "stderr": "month env /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/no_seed.cfg: parser rc=4: REFUSED key_missing SEEDS |   key SEEDS is not a line of the file (an inherited environment value does not count)\nFAIL_month_env_key_missing_SEEDS\n"
+      }
+    },
+    "BR3_file_key_indirect_ambient_reference_now_rejected": {
+      "actual": 4,
+      "expected_observation": 4,
+      "as_expected": true,
+      "detail": {
+        "stdout": "",
+        "stderr": "month env /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/indirect_seed.cfg: parser rc=4: REFUSED unbound_reference |   unbound reference: SEEDS: $UNLISTED_SEEDS is not a contract key (the parent shell would fill it in)\nFAIL_month_env_unbound_reference_indirect_seed.cfg\n"
+      }
+    },
+    "BR1_refit_empty_root_now_blocked": {
+      "actual": 3,
+      "expected_observation": 3,
+      "as_expected": true,
+      "detail": {
+        "stdout": "MONTH_ENV_OK /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/month.cfg V4_MONTH=2026-10 R=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/root D=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09 MONTHS_ALL=202501,202502,202503,202504 SEEDS=42 BUNDLE_GENERATION=v4_2026-10\n[2026-09-13T07:50:54Z] chain_v4_monthly start month=2026-10 env=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/month.cfg sha=07bfafc19afcad38f09f29a046474f69aec783eac6ff037e2dfc513dd91cef2f device=/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09 root=/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/root stages=refit dryrun=1\n",
+        "stderr": "prereq refit/preflight: receipt missing: /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/root/v4_gates/preflight.json\nFAIL_refit_prereq_preflight\n",
+        "business_execution_impossible": "V4_DRYRUN=1"
+      }
+    },
+    "sidecar_complete_identity_positive": {
+      "actual": 0,
+      "expected_observation": 0,
+      "as_expected": true,
+      "detail": {
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    "sidecar_changed_weights_with_sha_rejected": {
+      "actual": 3,
+      "expected_observation": 3,
+      "as_expected": true,
+      "detail": {
+        "stdout": "",
+        "stderr": "prereq arms/refit_s42: weights changed since refit: 245bd7d138d2 != ab995e6965ea (/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/f8/models/f10_live_s42.pt)\nFAIL_arms_prereq_refit_s42\n"
+      }
+    },
+    "sidecar_changed_weights_missing_hash_now_rejected": {
+      "actual": 3,
+      "expected_observation": 3,
+      "as_expected": true,
+      "detail": {
+        "stdout": "",
+        "stderr": "prereq arms/refit_s42: sidecar key(s) missing or empty: ['pt_sha256'] (the refit writer emits all of ['seed', 'best_ep_rule', 'best_ep_kept', 'env_given', 'inputs', 'inputs_sha256', 'pt', 'pt_sha256', 'self_sha256']); sidecar records NO pt_sha256: the weights identity is unverifiable (this used to be treated as 'nothing to check')\nFAIL_arms_prereq_refit_s42\n"
+      }
+    },
+    "sidecar_omits_three_required_input_identities_now_rejected": {
+      "actual": 3,
+      "expected_observation": 3,
+      "as_expected": true,
+      "detail": {
+        "stdout": "",
+        "stderr": "prereq arms/refit_s42: inputs names ['targets'] != the four artefacts the refit consumes ['fea82', 'fea89', 'legs', 'targets'] (researcher F-R1 (b): a shrunk set used to pass); inputs_sha256 names ['targets'] != ['fea82', 'fea89', 'legs', 'targets']; input fea82 locator is None: a required locator must be a non-empty path string naming this month's '/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/dlw/data/dlw_fea82.npz' (a null locator is a refusal, never a skipped check); input fea89 locator is None: a required locator must be a non-empty path string naming this month's '/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/f8/data/f8_fea89.npz' (a null locator is a refusal, never a skipped check); input legs locator is None: a required locator must be a non-empty path string naming this month's '/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/f8/data/f10v2_legs.npz' (a null locator is a refusal, never a skipped check); input fea82 has NO recorded sha256 in the sidecar: its identity is unverifiable; input fea89 has NO recorded sha256 in the sidecar: its identity is unverifiable; input legs has NO recorded sha256 in the sidecar: its identity is unverifiable\nFAIL_arms_prereq_refit_s42\n"
+      }
+    },
+    "sidecar_seed42_submitted_for_seed2027_now_rejected": {
+      "actual": 3,
+      "expected_observation": 3,
+      "as_expected": true,
+      "detail": {
+        "stdout": "",
+        "stderr": "prereq arms/refit_s2027: pt path '/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/f8/models/f10_live_s42.pt' != this month's '/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/f8/models/f10_live_s2027.pt'; seed=42 != expected 2027; env_given.SEED='42' != expected 2027; weights missing at this month's path: /Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/f8/models/f10_live_s2027.pt\nFAIL_arms_prereq_refit_s2027\n"
+      }
+    },
+    "BR3_CLIP_clean_command_runs_safely": {
+      "actual": 0,
+      "expected_observation": 0,
+      "as_expected": true,
+      "detail": {
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    "BR3_CLIP_ambient_isolation_closed": {
+      "actual": {
+        "DLWT_RAW_PATCH": "",
+        "DLWT_OUT": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/clip",
+        "F171_CACHE": null,
+        "F8_DLW": null
+      },
+      "expected_observation": {
+        "DLWT_RAW_PATCH": "",
+        "DLWT_OUT": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/x3_round4/probes_final/fixtures/core/clip",
+        "F171_CACHE": null,
+        "F8_DLW": null
+      },
+      "as_expected": true,
+      "detail": "Exact frozen CLIP command + clean_env, dummy interpreter"
+    },
+    "E0912B_missing_output_guard_before_imports": {
+      "actual": 2,
+      "expected_observation": 2,
+      "as_expected": true,
+      "detail": {
+        "stdout": "BUNDLE_FAIL bundle_out_env_missing: BUNDLE_OUT is REQUIRED \u2014 the exporter has no default output directory any more (2026-09-12; the September default /workspace/shadow_bundle_v4 is the r20 receipt's object)\n",
+        "stderr": "",
+        "executed": "AST prefix only, line20-27"
+      }
+    }
+  },
+  "source_sha256": {
+    "chain_lib.sh": "4ee217e1d761fa13abf34d16222f1dede79ceade3d44547e171aa7477a30288d",
+    "chain_v4_monthly.sh": "e8e688d58512a9395ac0b3d59b603be4b09c63ff08bc5d5d7b4726b8ab188d3b",
+    "judge_v4.py": "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba",
+    "v4_gate_common.py": "24e813f145c35033552ee54ae166092a8204490ff52c011a87217a8e81a187a1",
+    "ELIGIBILITY_CONTRACT.json": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732",
+    "pod_export_bundle_v4.py": "42555a37c0cd3a7e128ac8823a8bec3e2f77a1230d205707b046aca20eed5118"
+  },
+  "all_expected_observations": true
+}

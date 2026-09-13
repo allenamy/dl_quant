@@ -10,8 +10,6 @@
 # [M] must have >= 1 member and a member-cell finite fraction >= 0.90 (tail_quality, always present when a tail exists, part of PASS).
 # [M] AMENDMENT 2 (2026-09-13, researcher F-R3): the new-tail member index is validated STRUCTURALLY FIRST (1-D, integer, in [0, NW), no duplicates) and an invalid index is
 # [M] never used as a subscript; only then does the 0.90 floor apply. The floor is a FINITE-CELL gate on the tail — it is not a causal or predictive-validity gate (§3.7).
-# [M] AMENDMENT 3 (2026-09-13, round 4, researcher R3-D2): the index is validated AS PERSISTED, not as its int64 cast — its dtype must be a signed/unsigned INTEGER kind
-# [M] (bool, float, object and string are refused outright even when their values look like indices), because the exporter subscripts y4[i, m] with the stored array.
 import numpy as np, json, time, os, sys
 t0 = time.time()
 def log(*a): print(f"[{time.time()-t0:7.1f}s]", *a, flush=True)
@@ -104,22 +102,17 @@ if len(_tail_idx):   # [M] tail quality gate: every tail anchor needs a STRUCTUR
     # [M]   read the LAST column, scored finite fraction 1.0 and PASSed. A member index is a symbol index: it must be a 1-D vector of integers in [0, NW) without
     # [M]   duplicates. Validity is decided FIRST and an invalid index is NEVER used to read features; only then does the finite-fraction floor apply (PREREG §3.7).
     _ffs = []; _nms = []; _mbad = []   # [M]
-    # [M] ★ AMENDMENT 3 (2026-09-13, round 4, review REVIEW_round3 §4 R3-D2 / probes D2_tail_boolean, D2_tail_bool_one, D2_tail_float_integral): AMENDMENT 2 cast FIRST and
-    # [M]   validated the cast, so [False, True] became [0, 1] and [0., 1., 2.] became [0, 1, 2] and both PASSed, while pod_export_bundle_v4.py indexes y4[i, m] with the
-    # [M]   PERSISTED array and raises IndexError on either. The dtype KIND is now checked first and on the stored object: signed/unsigned integer only; then 1-D, range, unique.
     for _i in _tail_idx:   # [M]
-        _why = []   # [M]
-        try: _raw = np.asarray(M4m[_i])   # [M] an entry that is not even an array (e.g. a ragged nested list) is a clean FAIL receipt, not an uncaught exception (rc 1, no receipt)
-        except Exception as _e: _raw = None; _why.append(f"not an array ({type(_e).__name__})")   # [M]
+        _raw = np.asarray(M4m[_i]); _why = []   # [M]
+        try: _m = _raw.astype(np.int64)   # [M] a member index that cannot even be read as integers is a clean FAIL receipt, not an uncaught cast (rc 1, no receipt)
+        except Exception as _e: _m = np.zeros(0, np.int64); _why.append(f"not castable to an integer index ({type(_e).__name__})")   # [M]
         if _why: pass   # [M]
-        elif _raw.dtype.kind not in "iu": _why.append(f"dtype {_raw.dtype} is not a signed/unsigned integer index (AMENDMENT 3: refused outright whatever its values; the exporter subscripts y4[i, m] with the persisted array)")   # [M]
         elif _raw.ndim != 1: _why.append(f"ndim {_raw.ndim} != 1 (a member index is a vector)")   # [M]
-        elif _raw.size and (int(_raw.min()) < 0 or int(_raw.max()) >= NW): _why.append(f"index range [{int(_raw.min())}, {int(_raw.max())}] outside [0, {NW})")   # [M]
-        elif _raw.size != int(np.unique(_raw).size): _why.append(f"{_raw.size - int(np.unique(_raw).size)} duplicate index(es)")   # [M]
-        if _why: _mbad.append({"anchor_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(E4[_i]))), "i": int(_i),   # [M]
-                               "members": [x if (x is None or isinstance(x, (bool, int, float, str))) else repr(x)[:40] for x in _raw.reshape(-1).tolist()[:8]] if _raw is not None else repr(M4m[_i])[:80], "why": _why})   # [M] JSON-safe preview of the stored values
-        _m = None if _why else _raw.astype(np.int64)   # [M] converted only AFTER it is known to be a valid integer index; an invalid index is never a subscript
-        _nms.append(int(_raw.size) if _raw is not None else 0); _ffs.append(float(np.isfinite(np.asarray(F4[_i])[_m]).mean()) if (_m is not None and _m.size) else 0.0)   # [M] an invalid index is never used as a subscript
+        elif _raw.size and _raw.dtype.kind not in "iu" and not np.array_equal(_m, _raw): _why.append(f"dtype {_raw.dtype} is not an integer index")   # [M]
+        elif _m.size and (int(_m.min()) < 0 or int(_m.max()) >= NW): _why.append(f"index range [{int(_m.min())}, {int(_m.max())}] outside [0, {NW})")   # [M]
+        elif _m.size != int(np.unique(_m).size): _why.append(f"{_m.size - int(np.unique(_m).size)} duplicate index(es)")   # [M]
+        if _why: _mbad.append({"anchor_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(E4[_i]))), "i": int(_i), "members": _raw.reshape(-1).tolist()[:8], "why": _why})   # [M]
+        _nms.append(int(_m.size)); _ffs.append(float(np.isfinite(np.asarray(F4[_i])[_m]).mean()) if (_m.size and not _why) else 0.0)   # [M] an invalid index is never used as a subscript
     _ffs = np.array(_ffs); R["tail_quality"] = {"n_tail_anchors": int(len(_tail_idx)), "member_index_ok": not _mbad, "member_finite_frac_min": float(_ffs.min()), "member_finite_frac_median": float(np.median(_ffs)), "n_members_min": int(min(_nms)), "floor": 0.90,   # [M]
                                                 "ok": bool(not _mbad and (_ffs >= 0.90).all() and min(_nms) >= 1)}   # [M]
     if _mbad: R["tail_quality"]["member_index_bad"] = _mbad   # [M] conditional: present iff the structural rule was load-bearing
