@@ -405,7 +405,8 @@ ST = ["FIXED_DEPLOYED", "VERIFIED_IMMATERIAL", "OPEN_MEASURED_MATERIAL", "OPEN_N
 by_status = {s: sum(1 for it in items if it["status"] == s) for s in ST}
 by_sev = {p: sum(1 for it in items if it["severity"] == p) for p in ("P0", "P1", "P2", "P3")}
 ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
-items.sort(key=lambda it: (ORDER[it["severity"]], [x["id"] for x in items].index(it["id"])))
+POS = {it["id"]: k for k, it in enumerate(items)}
+items.sort(key=lambda it: (ORDER[it["severity"]], POS[it["id"]]))
 
 # ------------------------------------------------------------------ inventory rows
 INV = [("5m cache (canonical)", "data/dlnative_5m_wide829_f16_holefix2.npz", "holefix2 chain (caliber_program holefix2_daily.py) on _ext", "v4 chain, P2, A0/NW, r12, r14, r21, audits"),
