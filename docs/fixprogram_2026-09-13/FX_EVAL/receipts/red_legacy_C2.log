@@ -1,0 +1,60 @@
+# C2 red run 2026-09-13T13:30:24Z | tests sha256 b5369109a89cca304d4a724689bdc3df5da4c87f62dba6cb6db560f912575aab | k2_legacy_predicates sha256 57b5d7281fbac45b894de7fed36d04b4b9e417dfcd2601f1448204d99de7db3b | HEAD 842bbffa | python Python 3.14.4 numpy 2.4.4
+FAIL  X01_T4_wide_CI_straddling_zero__MISFIRE — impl=legacy label='NOT MATERIAL (at this resolution)' category=NO_DIFFERENCE truth=INCONCLUSIVE
+PASS  X01n1_T4_tight_inside_band — impl=legacy label='NOT MATERIAL (at this resolution)' category=NO_DIFFERENCE truth=NO_DIFFERENCE
+PASS  X01n2_T4_large_significant — impl=legacy label='MATERIAL' category=MATERIAL truth=MATERIAL
+FAIL  X01n3_T4_significant_but_negligible__CONVERSE_MISFIRE — impl=legacy label='MATERIAL' category=MATERIAL truth=NO_DIFFERENCE
+FAIL  X01n4_T4_seeds_disagree__MISFIRE — impl=legacy label='NOT MATERIAL (at this resolution)' category=NO_DIFFERENCE truth=INCONCLUSIVE
+FAIL  X02_T5c_both_profitable_identical__MISFIRE — impl=legacy label="STRATEGY'S OWN LOSS (king chain)" category=SHARED_LOSS_SAME truth=NOT_SHARED_LOSS
+PASS  X02n1_T5c_both_lose_identical — impl=legacy label="STRATEGY'S OWN LOSS (king chain)" category=SHARED_LOSS_SAME truth=SHARED_LOSS_SAME
+FAIL  X02n2_T5c_both_lose_noisy_difference__MISFIRE — impl=legacy label="STRATEGY'S OWN LOSS (king chain)" category=SHARED_LOSS_SAME truth=SHARED_LOSS_OPEN
+PASS  X02n3_T5c_deployed_lost_replay_won_gap — impl=legacy label='DEPLOYMENT DIFFERENCE' category=GAP_DETECTED truth=GAP_DETECTED
+FAIL  X03_T5b_point_below_line_CI_crosses__MISFIRE — impl=legacy label='NOT MATERIAL' category=BELOW_LINE truth=INCONCLUSIVE
+PASS  X03n1_T5b_clearly_material — impl=legacy label='FROZEN-RESIDUAL-MATERIAL' category=MATERIAL truth=MATERIAL
+PASS  X03n2_T5b_clearly_below_line — impl=legacy label='NOT MATERIAL' category=BELOW_LINE truth=BELOW_LINE
+PASS  X03n3_T5b_near_zero_tight — impl=legacy label='NOT MATERIAL' category=BELOW_LINE truth=BELOW_LINE
+FAIL  X04_T5b_exec_statistic_absent__MISFIRE — impl=legacy label='NOT MATERIAL' category=BELOW_LINE truth=NOT_RELABELLABLE
+PASS  X04n1_T5b_exec_material — impl=legacy label='EXECUTOR-ADDED-FREEZE-MATERIAL' category=MATERIAL truth=MATERIAL
+PASS  X04n2_T5b_exec_below — impl=legacy label='NOT MATERIAL' category=BELOW_LINE truth=BELOW_LINE
+FAIL  X04n3_T5b_exec_wide__MISFIRE — impl=legacy label='NOT MATERIAL' category=BELOW_LINE truth=INCONCLUSIVE
+FAIL  X05_T5add_point_negligible_CI_wide__MISFIRE — impl=legacy label='NEGLIGIBLE' category=NO_DIFFERENCE truth=INCONCLUSIVE
+PASS  X05n1_T5add_negligible_tight — impl=legacy label='NEGLIGIBLE' category=NO_DIFFERENCE truth=NO_DIFFERENCE
+PASS  X05n2_T5add_not_negligible — impl=legacy label='NOT NEGLIGIBLE' category=MATERIAL truth=MATERIAL
+PASS  X05n3_T5add_not_negligible_negative — impl=legacy label='NOT NEGLIGIBLE' category=MATERIAL truth=MATERIAL
+FAIL  X06_T2_below_resolution_wide_CI__MISFIRE — impl=legacy label="UNDECIDED (fails: CI95 lower > 0) ['BELOW-RESOLUTION']" claims_no_difference=True truth=False
+PASS  X06n1_T2_promote_like — impl=legacy label='PROMOTE-candidate []' claims_no_difference=False truth=False
+PASS  X06n2_T2_tight_inside_band — impl=legacy label="UNDECIDED (fails: CI95 lower > 0) ['BELOW-RESOLUTION']" claims_no_difference=True truth=True
+PASS  X06n3_T2_reject_like — impl=legacy label='REJECT []' claims_no_difference=False truth=False
+FAIL  X07_P2_significant_positive_below_0p23__MISFIRE — impl=legacy label='(C) indistinguishable (|Δg| < 0.23)' category=NO_DIFFERENCE truth=DIRECTION_A
+FAIL  X07b_P2_wide_CI_small_point__MISFIRE — impl=legacy label='(C) indistinguishable (|Δg| < 0.23)' category=NO_DIFFERENCE truth=INCONCLUSIVE
+PASS  X07n1_P2_clear_A — impl=legacy label='(A)' category=DIRECTION_A truth=DIRECTION_A
+PASS  X07n2_P2_clear_B — impl=legacy label='(B)' category=DIRECTION_B truth=DIRECTION_B
+PASS  X07n3_P2_undecided_large_point — impl=legacy label='(C) UNDECIDED' category=INCONCLUSIVE truth=INCONCLUSIVE
+PASS  X07n4_P2_tight_inside_band — impl=legacy label='(C) indistinguishable (|Δg| < 0.23)' category=NO_DIFFERENCE truth=NO_DIFFERENCE
+FAIL  X08_T1H1_mix_CI_contains_zero__MISFIRE — impl=legacy label='DOES-NOT-EXPLAIN' category=NO_EFFECT truth=INCONCLUSIVE
+PASS  X08n1_T1H1_explains — impl=legacy label='EXPLAINS' category=EFFECT truth=EFFECT
+PASS  X08n2_T1H1_does_not_explain_tight — impl=legacy label='DOES-NOT-EXPLAIN' category=NO_EFFECT truth=NO_EFFECT
+PASS  X08n3_T1H1_drop_not_significant — impl=legacy label='UNDECIDED' category=INCONCLUSIVE truth=INCONCLUSIVE
+FAIL  X08agg_T1H1_FALSIFIED_from_CIs_containing_zero__MISFIRE — impl=legacy label='FALSIFIED' category=NO_EFFECT truth=INCONCLUSIVE
+PASS  X08aggn1_T1H1_FALSIFIED_tight — impl=legacy label='FALSIFIED' category=NO_EFFECT truth=NO_EFFECT
+FAIL  X09_T1H3_no_drop_from_point__MISFIRE — impl=legacy label='FALSIFIED' category=NO_EFFECT truth=INCONCLUSIVE
+PASS  X09n1_T1H3_half_life — impl=legacy label='SURVIVES' category=EFFECT truth=EFFECT
+PASS  X09n2_T1H3_no_drop_tight — impl=legacy label='FALSIFIED' category=NO_EFFECT truth=NO_EFFECT
+PASS  X09n3_T1H3_level_is_a_CI_established_falsification — impl=legacy label='FALSIFIED' category=NO_EFFECT truth=NO_EFFECT
+FAIL  X10_T1H5_same_mechanism_from_wide_CIs__MISFIRE — impl=legacy label='FALSIFIED (same mechanism)' category=NO_DIFFERENCE truth=INCONCLUSIVE
+PASS  X10n1_T1H5_same_mechanism_tight — impl=legacy label='FALSIFIED (same mechanism)' category=NO_DIFFERENCE truth=NO_DIFFERENCE
+PASS  X10n2_T1H5_different_mechanisms — impl=legacy label='SURVIVES (different mechanisms)' category=EFFECT truth=EFFECT
+PASS  X10n3_T1H5_share_difference_middling — impl=legacy label='NOT DECIDABLE' category=INCONCLUSIVE truth=INCONCLUSIVE
+FAIL  X11_T8_FAIL_usefulness_not_excluded__MISFIRE — impl=legacy label='FAIL' category=NO_EFFECT truth=INCONCLUSIVE
+PASS  X11n1_T8_FAIL_usefulness_excluded — impl=legacy label='FAIL' category=NO_EFFECT truth=NO_EFFECT
+PASS  X11n2_T8_PASS — impl=legacy label='PASS' category=EFFECT truth=EFFECT
+PASS  X11n3_T8_UNDECIDED_spectrum_peak_not_zero — impl=legacy label='UNDECIDED' category=INCONCLUSIVE truth=INCONCLUSIVE
+FAIL  X12_L2_direction_absent_from_CI_upper_just_above_zero__MISFIRE — impl=legacy label='DIRECTION-ABSENT' category=NO_EFFECT truth=INCONCLUSIVE
+FAIL  X12b_L2_not_beyond_funding_from_CI_containing_zero__MISFIRE — impl=legacy label='NOT-BEYOND-FUNDING' category=NO_EFFECT truth=INCONCLUSIVE
+PASS  X12n1_L2_all_conditions_hold — impl=legacy label='PASS' category=EFFECT truth=EFFECT
+PASS  X13_v4_C_on_wide_CI_device_is_honest — impl=legacy label='(C) UNDECIDED' category=INCONCLUSIVE truth=INCONCLUSIVE
+PASS  X13n1_v4_A — impl=legacy label='(A) PROMOTE' category=DIRECTION_A truth=DIRECTION_A
+PASS  X13n2_v4_B — impl=legacy label='(B) REJECT' category=DIRECTION_B truth=DIRECTION_B
+LEGACY RED SET == EXPECTED MISFIRE SET: True (failing 19, expected 19, unexpected red [], expected-but-green [], errors 0)
+SUMMARY impl=legacy checks=55 pass=36 fail=19 error=0
+rc=1
+# end 2026-09-13T13:30:25Z tests sha256 b5369109a89cca304d4a724689bdc3df5da4c87f62dba6cb6db560f912575aab
