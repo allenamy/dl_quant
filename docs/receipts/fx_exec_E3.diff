@@ -1,0 +1,371 @@
+diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
+index cbab973..667f04a 100644
+--- a/live/tests_disposition_matrix.py
++++ b/live/tests_disposition_matrix.py
+@@ -675,23 +675,82 @@ def _flatten_action_orders(path=_FLAT_EVENTS):
+     联接用的是【写者自己的推导】, 不是名字相像: `watchdog` 取 trip_key = strftime("%Y%m%dT%H%M%SZ",
+     strptime(evaluated_utc, "%Y-%m-%dT%H:%M:%SZ")), 行写成 `FLATTEN-{trip_key}`, 事件记录的 "ts" 就是那个
+     evaluated_utc。同一记录里的多次 flatten_all(第二次尝试)归同一批, 由 attempt_idx 区分。
+-    ts 解析不了的记录跳过 ⇒ 对应批次没有记录 ⇒ NOT OBSERVABLE(失败关向「不可观测」, 不是通过)。"""
++    ts 解析不了的记录跳过 ⇒ 对应批次没有记录 ⇒ NOT OBSERVABLE(失败关向「不可观测」, 不是通过)。
++    ★ E3(FX-EXEC 2026-09-13): 读取交给 `_flatten_event_log`(同一次读出可读动作与不可读行); 本函数只返回前者,
++      合同不变 —— 但它不再因损坏行抛异常, 也不再「静默跳过」: 不可读行由调用处点名为 NOT OBSERVABLE。"""
++    return _flatten_event_log(path)[0]
++
++
++def _flatten_event_log(path=_FLAT_EVENTS):
++    """★ E3 (FX-EXEC 2026-09-13; independent review round 4 §2.2, the last cell of its R3-A2 table): ONE read of the event log ⇒
++    (actions, unreadable).
++      actions     {FLATTEN-<trip_key>: [orders of every flatten_all action in that record]}; None when the log does not exist.
++      unreadable  [(line_no, why)] — every non-blank line that is not the writer's record (`watchdog`: `{"ts": evaluated_utc,
++                  "triggers": [...], "actions": broker.actions}`): not JSON; a top level that is not an object (a JSON array /
++                  scalar / null used to raise AttributeError out of this reader and END THE SUITE by exception — red, but never a
++                  named finding); a ts that does not parse as evaluated_utc; `actions` absent or not a list, or holding a
++                  non-object; a flatten_all action whose `orders` / `failed` is not a list, or whose order is not an object or
++                  carries a non-object `_exec`; anything else the reading raises on (named with the exception).
++    An unreadable line contributes NOTHING to `actions` — no part of a record that cannot be read is trusted — and the caller
++    names it NOT OBSERVABLE: the event side IS the population (R3-A2), so a record nobody can read is a batch nobody can rule
++    out. Before E3 a JSON-error / bad-ts line was skipped in silence: that failed closed only while the ledger still held the
++    batch's rows; with both sides gone the batch vanished from both sets and the completeness cell stayed green."""
+     if not os.path.exists(path):
+-        return None
+-    out = {}
+-    for line in open(path):
++        return None, []
++    out, bad = {}, []
++    for n, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
+         line = line.strip()
+         if not line:
+             continue
+         try:
+             ev = json.loads(line)
++        except ValueError as e:
++            bad.append((n, f"not JSON ({type(e).__name__}: {str(e)[:60]})"))
++            continue
++        if not isinstance(ev, dict):
++            bad.append((n, f"top level is a JSON {type(ev).__name__}, not the writer's object"))
++            continue
++        try:
+             key = time.strftime("%Y%m%dT%H%M%SZ", time.strptime(str(ev.get("ts")), "%Y-%m-%dT%H:%M:%SZ"))
+-        except (ValueError, TypeError):
++        except (ValueError, TypeError, OverflowError):
++            bad.append((n, f"ts {str(ev.get('ts'))[:40]!r} does not parse as evaluated_utc"))
++            continue
++        acts, why, got = ev.get("actions"), None, []
++        if not isinstance(acts, list):
++            bad.append((n, f"actions is {type(acts).__name__}, not a list"))
+             continue
+-        for a in (ev.get("actions") or ()):
+-            if isinstance(a, dict) and a.get("action") == "flatten_all":
+-                out.setdefault("FLATTEN-" + key, []).extend(_mark_recorded_failures(a))
+-    return out
++        try:
++            for a in acts:
++                if not isinstance(a, dict):
++                    why = f"an action is a JSON {type(a).__name__}, not an object"
++                    break
++                if a.get("action") != "flatten_all":
++                    continue
++                oo, ff = a.get("orders"), a.get("failed")
++                if not isinstance(oo, list) or not (ff is None or isinstance(ff, list)):
++                    why = (f"a flatten_all action whose orders is {type(oo).__name__} / failed is {type(ff).__name__} "
++                           f"(the writer records lists)")
++                    break
++                if any(not isinstance(o, dict) or not (o.get("_exec") is None or isinstance(o.get("_exec"), dict)) for o in oo):
++                    why = "a flatten_all order that is not an object, or whose _exec is not an object"
++                    break
++                got.append(_mark_recorded_failures(a))
++        except Exception as e:                                   # noqa: BLE001 — a corrupted record is a named finding, never an exit
++            why = f"reading the record raised {type(e).__name__}: {str(e)[:80]}"
++        if why:
++            bad.append((n, why))
++            continue
++        for orders in got:
++            out.setdefault("FLATTEN-" + key, []).extend(orders)
++    return out, bad
++
++
++def _flatten_unreadable_states(unreadable):
++    """★ E3: {name: [detail]} — one NOT OBSERVABLE entry per unreadable event line, named by its line number and reason, for the
++    completeness cell's state table (so `_flat_notobs` is non-empty and the cell fails, naming the line)."""
++    return {f"events.jsonl line {n}": [f"UNREADABLE EVENT RECORD — {why}: the event side is the population (R3-A2), so a "
++                                       f"record that cannot be read is a batch that cannot be ruled out"]
++            for n, why in (unreadable or ())}
+ 
+ 
+ def _mark_recorded_failures(action):
+@@ -824,7 +883,7 @@ def _batch_ts(b):
+     return float((_flat_batches.get(b) or [{}])[0].get("anchor_ts") or 0.0)
+ 
+ 
+-_flat_actions = _flatten_action_orders()
++_flat_actions, _flat_unreadable = _flatten_event_log()          # E3: one read; unreadable lines are NAMED below
+ # ★ R3-A2: population FIRST (event side), THEN the existing per-batch exact reconciliation over event ∪ ledger batches —
+ #   a batch the events require and the ledger lacks is LEDGER_BATCH_MISSING, named in the cell's detail and red.
+ _flat_required, _flat_missing, _flat_no_orders = _flatten_population(_flat_actions, _flat_batches)
+@@ -840,7 +899,14 @@ for _b in list(_flat_batches) + [b for b in _flat_missing if b not in _flat_batc
+     elif _b not in _flat_actions:
+         _flat_state[_b], _flat_detail[_b], _flat_join[_b] = "NOT_OBSERVABLE", ["no flatten_all action record"], None
+     else:
+-        _flat_state[_b], _flat_detail[_b], _flat_join[_b] = _reconcile_flatten(_rr, _flat_actions[_b])
++        try:
++            _flat_state[_b], _flat_detail[_b], _flat_join[_b] = _reconcile_flatten(_rr, _flat_actions[_b])
++        except Exception as _e:                                  # noqa: BLE001 — E3: a record that breaks the reading is NAMED, never an exit
++            _flat_state[_b], _flat_detail[_b], _flat_join[_b] = (
++                "NOT_OBSERVABLE", [f"reconciling this batch raised {type(_e).__name__}: {str(_e)[:80]}"], None)
++# ★ E3: every unreadable event line is its own NOT OBSERVABLE entry — the completeness cell below then FAILS and names it
++for _k, _v in _flatten_unreadable_states(_flat_unreadable).items():
++    _flat_state[_k], _flat_detail[_k], _flat_join[_k] = "NOT_OBSERVABLE", _v, None
+ _flat_exact = sorted((b for b, v in _flat_state.items() if v == "EXACT"), key=_batch_ts)
+ _flat_notobs = {b: _flat_detail[b] for b, v in _flat_state.items() if v == "NOT_OBSERVABLE"}
+ _flat_mism = {b: _flat_detail[b][:3] for b, v in _flat_state.items() if v == "MISMATCH"}
+@@ -1216,8 +1282,10 @@ for _b in ([_cid_batches[-1]] if _cid_batches else []) + ([_nocid_batches[-1]] i
+         "named_LEDGER_BATCH_MISSING": sorted(_miss_m) == [_b],
+         "event_set_equals_ledger_set": set(_kept) == _req_m,
+         # the pre-R3-A2 population (ledger batches only): every remaining batch still EXACT ⇒ the old cell passed it
+-        "ledger_only_population_all_exact": all(_reconcile_flatten(rr, _flat_actions[b])[0] == "EXACT"
+-                                                for b, rr in _kept.items())}
++        # E3: the per-batch verdicts ALREADY computed above (same rows, same records) — re-reconciling here raised on a record the
++        #     reader accepted but the join could not key (attempt_idx 'x' beside a failed-by-client-id order), and a batch with no
++        #     readable record was a KeyError; a batch that is not EXACT above is not EXACT here
++        "ledger_only_population_all_exact": all(_flat_state.get(b) == "EXACT" for b in _kept)}
+ check("★★★ R3-A2 the POPULATION is LOAD-BEARING, on the real ledger: drop ONE WHOLE batch of `protective_flatten` rows "
+       "(the latest client_id-joined batch, and the latest (symbol, side, attempt_idx)-joined batch) and keep every event "
+       "⇒ the event population names exactly that batch LEDGER_BATCH_MISSING and the two batch sets differ — while every "
+@@ -1240,6 +1308,83 @@ check("★★ ...and the population's other edges are named, not guessed: a batc
+                                "terminal_reason": "filled"}], _pop_fx["FLATTEN-B"])[0] == "MISMATCH"
+       and _flatten_population(None, {"FLATTEN-A": [{}]}) == (None, {}, []),
+       (_flatten_population(_pop_fx, {"FLATTEN-A": [{}]}), _flatten_population(_pop_fx, {})[1]))
++# ── ★ E3 (FX-EXEC 2026-09-13; independent review round 4 §2.2, last row of its R3-A2 table): the EVENT LOG is read line by line —
++#    a corrupted record is a NAMED NOT OBSERVABLE finding that fails closed; never an exception exit, never a silent skip ──
++import tempfile                         # noqa: E402
++check("★★★ E3 THE REAL EVENT LOG IS READABLE, LINE BY LINE — every non-blank line of state/live/watchdog/events.jsonl is the "
++      "writer's record (a JSON object; ts = evaluated_utc; a list of object actions; flatten_all orders / failed are lists, each "
++      "order an object with an object _exec). A line that is not is NAMED NOT OBSERVABLE here AND in the completeness cell above, "
++      "which then fails; no line is skipped in silence and none ends this suite by exception. A missing log is not 'readable'",
++      _flat_actions is not None and not _flat_unreadable,
++      {"n_unreadable": len(_flat_unreadable), "unreadable": _flat_unreadable[:5],
++       "n_flatten_batches_read": (len(_flat_actions) if _flat_actions is not None else None)})
++
++
++def _e3_log(lines):
++    _p = os.path.join(tempfile.mkdtemp(prefix="e3_events_"), "events.jsonl")
++    with open(_p, "w", encoding="utf-8") as _fh:
++        _fh.write("\n".join(lines) + "\n")
++    return _p
++
++
++_e3_ok = {"ts": "2026-09-12T12:47:37Z", "triggers": ["cond5b"], "actions": [
++    {"action": "halt_opening"},
++    {"action": "flatten_all", "orders": [
++        {"symbol": "AAAUSDT", "side": "sell", "quantity": 1.0, "client_id": "F1-AAAUSDT-1",
++         "_exec": {"submitted": True, "error": None, "filled_notional": -10.0}},
++        {"symbol": "BBBUSDT", "side": "buy", "quantity": 2.0, "client_id": "F1-BBBUSDT-2",
++         "_exec": {"submitted": True, "error": None, "filled_notional": 5.0}}], "failed": []}]}
++_e3_other = {"ts": "2026-09-12T16:47:37Z", "triggers": [], "actions": [{"action": "halt_opening"}]}
++_E3_FLAT = _e3_ok["actions"][1]
++_E3_CASES = (
++    ("top-level JSON array", "[]", "JSON list"),
++    ("top-level JSON number", "5", "JSON int"),
++    ("top-level JSON null", "null", "JSON NoneType"),
++    ("not JSON", json.dumps(_e3_other)[:-9], "not JSON"),
++    ("ts not evaluated_utc", json.dumps(dict(_e3_other, ts="not-a-time")), "does not parse"),
++    ("actions not a list", json.dumps(dict(_e3_other, actions=5)), "actions is int"),
++    ("an action not an object", json.dumps(dict(_e3_other, actions=[{"action": "halt_opening"}, "garbage"])), "not an object"),
++    ("flatten_all orders not a list", json.dumps(dict(_e3_ok, actions=[dict(_E3_FLAT, orders=7)])), "orders is int"),
++    ("an order with a list _exec", json.dumps(dict(_e3_ok, actions=[dict(_E3_FLAT, orders=[dict(_E3_FLAT["orders"][0], _exec=[1])])])),
++     "_exec is not an object"),
++    ("an order whose attempt_idx cannot be read", json.dumps(dict(_e3_ok, actions=[dict(_E3_FLAT, orders=[
++        {k: v for k, v in _E3_FLAT["orders"][0].items() if k != "client_id"} | {"attempt_idx": "x"}])])), "raised ValueError"),
++)
++_e3_res = {}
++for _name, _bad_line, _why_part in _E3_CASES:
++    try:
++        _acts3, _unr3 = _flatten_event_log(_e3_log([json.dumps(_e3_ok), _bad_line, json.dumps(_e3_other)]))
++        _e3_res[_name] = {"raised": None, "lines": [n for n, _ in _unr3], "why_named": any(_why_part in w for _, w in _unr3),
++                          "states": sorted(_flatten_unreadable_states(_unr3)),
++                          "good_record_still_read": sorted(_acts3 or {}) == ["FLATTEN-20260912T124737Z"]
++                          and len((_acts3 or {}).get("FLATTEN-20260912T124737Z") or []) == 2}
++    except Exception as _e:                                      # noqa: BLE001 — an exception IS the defect this cell exists for
++        _e3_res[_name] = {"raised": f"{type(_e).__name__}: {str(_e)[:80]}"}
++check("★★★ E3 red capability, ten corruption shapes written as line 2 between two good records (top-level JSON array / number / "
++      "null; a non-JSON line; a ts that is not evaluated_utc; actions not a list; a non-object action; flatten_all orders not a "
++      "list; an order with a list _exec; an order whose attempt_idx cannot be read): the reader RAISES NOTHING, names exactly "
++      "line 2 with its reason, turns it into ONE NOT OBSERVABLE state entry, and still reads the good flatten record beside it. "
++      "Before E3 the top-level shapes raised AttributeError out of the suite and the non-JSON / bad-ts lines were skipped in silence",
++      len(_e3_res) == 10 and all(v.get("raised") is None and v["lines"] == [2] and v["why_named"]
++                                 and v["states"] == ["events.jsonl line 2"] and v["good_record_still_read"] for v in _e3_res.values()),
++      _e3_res)
++_e3_acts_ok, _e3_unr_ok = _flatten_event_log(_e3_log([json.dumps(_e3_ok), "", json.dumps(_e3_other)]))
++check("★★ E3 positive control: the writer's own shape (a flatten_all record with two orders, a blank line, a record without a "
++      "flatten) reads with NO unreadable line and exactly one batch of two orders — the reader is not 'refuse everything'; "
++      "`_flatten_action_orders` still returns exactly that dict; a missing log is (None, [])",
++      _e3_unr_ok == [] and sorted(_e3_acts_ok) == ["FLATTEN-20260912T124737Z"] and len(_e3_acts_ok["FLATTEN-20260912T124737Z"]) == 2
++      and _flatten_action_orders(_e3_log([json.dumps(_e3_ok), json.dumps(_e3_other)])) == _e3_acts_ok
++      and _flatten_event_log(os.path.join(tempfile.mkdtemp(prefix="e3_none_"), "events.jsonl")) == (None, []),
++      (_e3_unr_ok, sorted(_e3_acts_ok or {})))
++_e3_acts_f, _e3_unr_f = _flatten_event_log(_e3_log(["[]", json.dumps(_e3_other)]))
++_e3_req_f, _e3_miss_f, _ = _flatten_population(_e3_acts_f, {})
++check("★★★ E3 the case silence used to lose: the FLATTEN record itself is the corrupted line and the ledger holds none of its rows "
++      "(both sides gone) ⇒ the population can require nothing and the ledger has nothing to miss — the two sets are equal and "
++      "empty — so the ONLY evidence left is the unreadable line, and it is named NOT OBSERVABLE (before E3: a JSON array here "
++      "raised; a non-JSON line here was skipped and nothing at all was said)",
++      _e3_req_f == set() and not _e3_miss_f and [n for n, _ in _e3_unr_f] == [1]
++      and list(_flatten_unreadable_states(_e3_unr_f)) == ["events.jsonl line 1"],
++      (_e3_req_f, _e3_miss_f, _e3_unr_f))
+ _fail_act = {"action": "flatten_all", "orders": [
+     {"symbol": "AAAUSDT", "side": "sell", "attempt_idx": 1, "quantity": 1.0,
+      "_exec": {"submitted": True, "error": None, "filled_notional": -10.0}},
+diff --git a/live/tests_reduce_only_clamp.py b/live/tests_reduce_only_clamp.py
+index 69caec3..b7426a9 100644
+--- a/live/tests_reduce_only_clamp.py
++++ b/live/tests_reduce_only_clamp.py
+@@ -558,6 +558,38 @@ check("★★ T10 ctl: a POST record whose origQty disagrees with the persisted
+       {r["symbol"]: r["requests"][0]["cross_check"]["all"] for r in _rep2["rows"]} == {MEME: False, POP: True}
+       and _rep2["rows"][0]["requests"][0]["cross_check"]["string_Qv_equals_post_origQty"] is False, {r["symbol"]: r["requests"][0]["cross_check"] for r in _rep2["rows"]})
+ 
++# ── ★ E3 (FX-EXEC 2026-09-13): the receipt tool reads the SAME event log — a corrupted line is named, never an exception exit ──
++_evp3 = os.path.join(tempfile.mkdtemp(prefix="e0912a_t10e3_"), "events.jsonl")
++open(_evp3, "w").write(json.dumps({"ts": "2026-09-12T12:47:37Z", "triggers": [], "actions": [ACTS[MEME], ACTS[POP]]}) + "\n[]\n")
++try:
++    _rep3, _raised3 = RJ.rejudge_day(os.path.join(FIX, "pilot_log"), "20260912", _evp3), None
++except Exception as _e3x:                                         # noqa: BLE001 — the exception IS the defect under test
++    _rep3, _raised3 = None, f"{type(_e3x).__name__}: {_e3x}"
++check("★★★ T10-E3 a corrupted event log (the real POST line, then a line that is a top-level JSON array): the tool RAISES NOTHING and "
++      "writes its receipt — both rows still re-judged KNOWN by the read-time rule, the unreadable line NAMED (line 2), the event "
++      "evidence marked not fully readable, and NO request's cross-check reads all-true on a half-readable log (OLD CODE: AttributeError "
++      "out of submit_records — no receipt at all)",
++      _raised3 is None and _rep3 is not None and _rep3["n_rows_rejudged_known"] == 2
++      and [x.get("line") for x in ((_rep3.get("events_unreadable") or {}).get("lines") or [])] == [2]
++      and _rep3.get("events_fully_readable") is False and _rep3["n_requests_cross_check_all_true"] == 0
++      and all(q["evidence"]["post_response_found"] for r in _rep3["rows"] for q in r["requests"]),
++      _raised3 or {k: _rep3.get(k) for k in ("events_unreadable", "events_fully_readable", "n_requests_cross_check_all_true", "n_rows_rejudged_known")})
++check("★★ T10-E3 neighbour: the clean log above (T10) is fully readable — events_fully_readable True, nothing named, its two cross-checks "
++      "still all-true (the new clause is not 'refuse everything')",
++      _rep.get("events_fully_readable") is True and (_rep.get("events_unreadable") or {}).get("n") == 0 and _rep["n_requests_cross_check_all_true"] == 2,
++      {k: _rep.get(k) for k in ("events_unreadable", "events_fully_readable", "n_requests_cross_check_all_true")})
++_ok3, _bad3 = (RJ._event_lines(_evp3) if hasattr(RJ, "_event_lines") else ([], [(0, "HELPER ABSENT (old code)")]))
++_evp4 = os.path.join(tempfile.mkdtemp(prefix="e0912a_t10e3b_"), "events.jsonl")
++open(_evp4, "w").write("\n".join(["5", "null", json.dumps({"ts": "x"})[:-2], json.dumps({"ts": "x", "actions": 7}),
++                                  json.dumps({"ts": "x", "actions": ["s"]}), json.dumps({"ts": "x", "actions": [dict(ACTS[MEME], order="s")]}),
++                                  json.dumps({"ts": "x", "actions": [ACTS[POP]]})]) + "\n")
++_ok4, _bad4 = (RJ._event_lines(_evp4) if hasattr(RJ, "_event_lines") else ([], []))
++check("★★ T10-E3 the reader's shapes: top-level number / null, a non-JSON line, actions not a list, a non-object action, a submit whose "
++      "order is not an object ⇒ lines 1–6 named; the last good line (POPCAT's POST) still read — the one-line array case above reads 1 good, "
++      "1 named",
++      [n for n, _ in _bad4] == [1, 2, 3, 4, 5, 6] and len(_ok4) == 1 and [n for n, _ in _bad3] == [2] and len(_ok3) == 1,
++      (_bad4, len(_ok4), _bad3, len(_ok3)))
++
+ # ════════════════════════════════════════════════════════════════════════════════════════════════════════════
+ print("\n[T11] C4–C8 (independent review 0158f5d1): C IS A LOWER BOUND, F IS THE QUANTITY — and the re-judgment "
+       "must rest on the STRUCTURED request/response, never on a regex over the diagnostic string")
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index e2930c0..6ceade9 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -187,7 +187,12 @@ SUITE_SCOPE = {
+     "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent. Round 3 (2026-09-13, researcher REVIEW §3.C): E6 may PASS only when its verdict's population and the number it publishes come from the SAME rows — the bucket counts and notional mass against m1's own `n_filled_orders`/`filled_notional_total`, pooled AND per regime, plus agreement of both bps calibers inside a stated tolerance — and the screen now publishes the bucket figure (`cost_bps_displayed`) beside m1's. Blind spots this adds: (e) the population identity is asserted on COUNTS AND MASS each carrier reports for itself, not on row identities, so two different row sets agreeing in count and notional (pooled and in every regime) would still pass; (f) the gate makes E6 refuse to certify a mismatch — it does not FIX m1, which stays frozen, so the number the pre-registration names (`c_bps_overall`) is still m1's; (g) the frozen `watchdog` §4-1 consumer still reads `m1.c_bps_net_overall` directly and treats a NaN cost as priced and not a breach, so 'all consumers are on the three buckets' is FALSE and must not be written anywhere. Round 4 (2026-09-13): first_anchor_review reads every numeric field it prints — readback notional and quantity, equity, target_gross, fill amount, intended notional, exchange floor filters, anchor mid — as a finite number or NOT OBSERVABLE, with a finite 0 kept as a value; a NaN readback notional or a NaN equity used to print the band '★★ ABOVE 15%' on the stop-decision block, and pre-fix readers fail 11 of the [D-R4] cells. Blind spots it adds: (h) the [D-R4] trees write NaN through the validating writer but None only where the schema allows it, so a None in a not_null column (nav, target_gross, venue_position_notional) is covered by the shared finite-number reader, not by a fixture row; (i) target_w keeps its is-not-None skip — a NaN weight prints a visible nan — registered, not changed",
+     "tests_redelivery_settles": "that every alarm reaches a human — it proves the QUEUE stops asking once one has, which is a different guarantee. Four blind spots: (a) it settles on an explicit key, so a redelivery path that forgets to pass `settles` regresses silently and only the repeat count would show it, days later; (b) it does not retroactively settle the six already sent — the seventh redelivery closes the loop, so the ledger keeps six rows that look like a live defect; (c) `SUPPRESSED` counts as settled, which is right for a test harness and wrong if anyone ever suppresses in production; (d) it says nothing about whether the redelivered TEXT is still meaningful — a stale alarm replayed hours later is delivered, settled, and possibly misleading",
+     "tests_alarm_digest": "that the right things get read — it proves the classifier separates and never demotes an undelivered alarm, not that the tiers match what a human would choose. Four blind spots: (a) the rules are REGEX over message text, so rewording an alarm silently reclassifies it and nothing here would notice; (b) `UNRECOGNISED -> DECIDE` is safe but means the tool degrades toward noise exactly as the system produces novel shapes — i.e. during an incident; (c) tier B asserts 'already decided', which is a claim about a RULING that lives outside the code — if a ruling is reversed, the tier is silently wrong; (d) it measures compression on the last 24h and reports the historical ratio ungraded, so a slow drift toward everything-is-A across weeks would not fail anything",
+-    "tests_disposition_matrix": "that no name will evaporate again — it proves every terminal state HAS a declared destination and that the ledger sizes the ones we abandon, not that the destinations are the right ones. Four blind spots: (a) the matrix is closed over `TERMINAL_REASONS`, so a leg that ends WITHOUT writing a row at all is invisible to it — and that is precisely how -5022 vanished, by never reaching a disposition; (b) it is RECORD-ONLY, so a gap being named changes nothing about whether a guard forgives it — the ledger could be perfect and §4-5e would still flatten the book; (c) the two code-dependent cells resolve on a substring of `note`, so a venue that reworded its errors would silently reclassify -5022 as a gap and -4164 as a real one; (d) `blocked_by_halt` dominating a halted anchor at ~4200 USDT is arithmetically right and operationally noisy — nothing here establishes that a halted anchor SHOULD report its whole book as gap",
++    "tests_disposition_matrix": "that no name will evaporate again — it proves every terminal state HAS a declared destination and that the ledger sizes the ones we abandon, not that the destinations are the right ones. Four blind spots: (a) the matrix is closed over `TERMINAL_REASONS`, so a leg that ends WITHOUT writing a row at all is invisible to it — and that is precisely how -5022 vanished, by never reaching a disposition; (b) it is RECORD-ONLY, so a gap being named changes nothing about whether a guard forgives it — the ledger could be perfect and §4-5e would still flatten the book; (c) the two code-dependent cells resolve on a substring of `note`, so a venue that reworded its errors would silently reclassify -5022 as a gap and -4164 as a real one; (d) `blocked_by_halt` dominating a halted anchor at ~4200 USDT is arithmetically right and operationally noisy — nothing here establishes that a halted anchor SHOULD report its whole book as gap"
++        " E3 (FX-EXEC 2026-09-13): the watchdog event log is read line by line; a record that is not the writer's shape (a top-level"
++        " JSON array / scalar / null, non-JSON, a bad ts, non-list actions or orders, a non-object _exec, a key that cannot be read)"
++        " is NAMED NOT OBSERVABLE and fails the completeness cell instead of ending the suite by exception or being skipped. It does"
++        " NOT recover what such a line said: a flatten record lost to corruption with its ledger rows also gone is named only as an"
++        " unreadable line, never reconstructed, and a log that loses whole lines on disk (no line left to read) is still invisible.",
+     "tests_reject_topup": "that the book will reach its target — it recovers ONE refusal class (-5022) and makes the rest audible, and those are different guarantees. Four blind spots: (a) the recovered residual is now taken as a TAKER at a moment the market has just moved THROUGH our resting price, which is by definition the expensive moment — this suite asserts the order exists, never that the price was good, and the cost of the fix is unmeasured here; (b) -1111/-4164/-1102 clusters can still open the identical hole and by design cannot be auto-retried, so the only thing between them and another 4-5e flatten is an alarm a human must read; (c) it does not establish that 5% is the right alarm threshold — one anchor at 15.6% is not a distribution; (d) the top-up itself can fail, and a refused top-up of a refused maker leaves the same hole with two rows instead of none — better forensics, same exposure",
+     "tests_ops_flag_safety": "that an operator cannot change production state by accident — it closes ONE tool's flag handling and enforces the class for shell scripts only. Four blind spots: (a) the closed-world scan covers `ops/*.sh` and NOT the python tools, which are safe today only because they happen to use argparse — a future `sys.argv[1]` in a state-changing python tool would not be caught here; (b) it cannot see the inverse error, a flag that IS recognised but does the wrong thing; (c) `KILL.sh` reads no arguments at all, so `KILL.sh --check` silently fires the real kill — for an emergency stop firing is the safe direction, so it is left alone, but the expectation gap that caused this incident is still present there and this suite does not close it; (d) it asserts refusal, not comprehension: nothing here checks that the usage text an operator then reads is accurate",
+     "tests_exit_ledger": "that every position change will be explicable — it closes ONE unrecorded path (the universe exit) and proves that path end to end, from the emitted row to the real reconciler. It does not enumerate the others: any future code that moves the book without writing an order row reproduces 2026-08-01 exactly, and nothing here would notice. Three further blind spots: (a) it asserts the row EXPLAINS the change, not that the exit was the RIGHT action — a wrongly-classified name would be flattened and cleanly explained, and this suite would be green; (b) the fills.jsonl half is reachable only because the exit now carries a client id, but venue-side attribution itself is `venue_fills`' job and is not exercised here — an id that the venue never echoes back would still leave fills unattributed; (c) the fill facts come from `last_fill_details()` read one order at a time, so a broker that returned a stale answer would be recorded faithfully and wrongly, and no assertion here can tell those apart",
+diff --git a/ops/rejudge_ledger_rows.py b/ops/rejudge_ledger_rows.py
+index 1fcf2ac..3b8ced4 100644
+--- a/ops/rejudge_ledger_rows.py
++++ b/ops/rejudge_ledger_rows.py
+@@ -51,9 +51,40 @@ for _d in ("live", "ops", "signal", "scheduler"):
+ 
+ 
+ def _rows(path: str) -> List[dict]:
++    """The readable records of an event log (see `_event_lines`; the unreadable ones are reported there, never raised)."""
++    return _event_lines(path)[0]
++
++
++def _event_lines(path: str):
++    """★ E3 (FX-EXEC 2026-09-13; independent review round 4 §2.2): ([records], [(line_no, why)]) from ONE read of the watchdog's
++    events.jsonl. A line that is not the writer's record — not JSON, a top level that is not an object (a JSON array used to raise
++    AttributeError out of `submit_records` and end this tool with no receipt at all), `actions` that is not a list, an action that is
++    not an object, a submit action whose `order` is not an object — is NAMED with its line number and contributes nothing; the
++    receipt then says the event evidence is not fully readable, and no request's cross-check can come out all-true on it."""
+     if not path or not os.path.exists(path):
+-        return []
+-    return [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
++        return [], []
++    ok, bad = [], []
++    for n, l in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
++        if not l.strip():
++            continue
++        try:
++            ev = json.loads(l)
++        except ValueError as e:
++            bad.append((n, f"not JSON ({type(e).__name__})"))
++            continue
++        if not isinstance(ev, dict):
++            bad.append((n, f"top level is a JSON {type(ev).__name__}, not an object"))
++            continue
++        acts = ev.get("actions")
++        if acts is not None and not isinstance(acts, list):
++            bad.append((n, f"actions is {type(acts).__name__}, not a list"))
++            continue
++        if any(not isinstance(a, dict) or (a.get("action") == "submit" and a.get("order") is not None
++                                           and not isinstance(a.get("order"), dict)) for a in (acts or ())):
++            bad.append((n, "an action that is not an object, or a submit action whose order is not an object"))
++            continue
++        ok.append(ev)
++    return ok, bad
+ 
+ 
+ def _fin(x) -> Optional[float]:
+@@ -69,7 +100,8 @@ def submit_records(events_path: str) -> Dict[str, dict]:
+     The LAST record for an id wins (a re-submit under the same id would be its own defect, and is counted)."""
+     out: Dict[str, dict] = {}
+     dup = 0
+-    for ev in _rows(events_path):
++    _recs, _bad = _event_lines(events_path)
++    for ev in _recs:
+         for a in ev.get("actions") or ():
+             if a.get("action") != "submit" or not isinstance(a.get("resp"), dict):
+                 continue
+@@ -80,6 +112,7 @@ def submit_records(events_path: str) -> Dict[str, dict]:
+                 dup += 1
+             out[str(cid)] = {"order": a.get("order") or {}, "resp": a["resp"], "ts": a.get("ts")}
+     out["__duplicates__"] = {"n": dup}          # bookkeeping entry beside the client-id keys (read by the receipt only)
++    out["__unreadable__"] = {"n": len(_bad), "lines": [{"line": n, "why": w} for n, w in _bad[:20]]}   # E3: named, never raised
+     return out
+ 
+ 
+@@ -89,6 +122,9 @@ def rejudge_day(root: str, day: str, events_path: Optional[str]) -> Dict[str, An
+ 
+     data = PL.read_day(root, day)
+     subs = submit_records(events_path) if events_path else {}
++    # ★ E3: the POST evidence is only as complete as the log it came from — a missing log or ANY unreadable line keeps every
++    #   request's cross-check from reading all-true (a later re-submit, say, may sit in the line nobody could read)
++    _ev_ok = bool(events_path) and os.path.exists(events_path) and not (subs.get("__unreadable__") or {}).get("n")
+     fills_by = {}
+     for f in data.get("fills", []):
+         fills_by.setdefault((f.get("rebalance_id"), f.get("symbol")), {})[str(f.get("trade_id"))] = f
+@@ -156,6 +192,7 @@ def rejudge_day(root: str, day: str, events_path: Optional[str]) -> Dict[str, An
+                 "readback_after_equals_before_plus_C": (rb_prev is not None and rb_at is not None and c is not None
+                                                         and abs(float(rb_prev.get("venue_position_qty") or 0.0) + c - float(rb_at.get("venue_position_qty") or 0.0)) <= 1e-9),
+             }
++            entry["cross_check"]["events_fully_readable"] = _ev_ok                     # E3
+             entry["cross_check"]["all"] = all(bool(v) for v in entry["cross_check"].values())
+             reqs.append(entry)
+         rejudged.append({
+@@ -199,6 +236,8 @@ def rejudge_day(root: str, day: str, events_path: Optional[str]) -> Dict[str, An
+         "n_rows_still_unquantifiable": sum(1 for r in rejudged if r["read_time_verdict"]["kind"] != "known"),
+         "n_requests_cross_check_all_true": sum(1 for r in rejudged for q in r["requests"] if q["cross_check"]["all"]),
+         "submit_records_duplicates": subs.get("__duplicates__"),
++        "events_unreadable": subs.get("__unreadable__"),                              # E3: named NOT OBSERVABLE lines
++        "events_fully_readable": _ev_ok,
+         "rows": rejudged,
+         "watchdog_derivation_on_copy": wd,
+         "not_done_here": [

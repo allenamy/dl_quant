@@ -1,0 +1,39 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_chase_experiment_wiring.py head=82fcc160c7d2c5242ea9f4654ec38710b242ee35 dirty=6 start=2026-09-13T14:38:09Z py=Python 3.9.6
+# suite_sha256=0a319f49e65b77c0b976359838848c10ff77e80d5dcdde1ad72c15992d772bc9
+[A] topup() actually consults the policy, and does so BEFORE it sends anything
+  OK    ★★★ the executor produced an experiment record at all (the wiring exists)  — dict
+  OK    the record covers every from_partial name in the population  — ['AAAUSDT', 'BBBUSDT', 'CCCUSDT', 'DDDUSDT', 'EEEUSDT', 'FFFUSDT']
+  OK    it names the basis of the tilt it decided against, and that basis says it is NOT a venue snapshot — the readback happens after this leg  — prev_notional readback over the planned universe + this anch
+  OK    the record re-derives from its own seed  — {'ok': True, 'n': 6, 'mismatch': [], 'note': "recomputed from the record's own seed and weights; chase_forced checked against C's recorded fill set"}
+
+[B] ★★★ a withheld name LEAVES A ROW, and that row is in the gap ledger
+  OK    the fixture actually exercised the treatment (otherwise everything below is vacuous)  — no_chase = ['CCCUSDT', 'DDDUSDT', 'EEEUSDT', 'FFFUSDT']
+  OK    ★★★ every withheld name has a top-up row — the residual is written down, not evaporated. This is the exact shape that liquidated the book twice on 08-02
+  OK    ...with the terminal state that says WHY, not one borrowed from a constraint that did not apply  — {'CCCUSDT': 'skipped_no_chase_arm', 'DDDUSDT': 'skipped_no_chase_arm', 'EEEUSDT': 'skipped_no_chase_arm', 'FFFUSDT': 'skipped_no_chase_arm'}
+  OK    ...and it carries the residual as `intended_notional`, so the gap has a size
+  OK    ...and `submitted` is false, so no fee or fill is implied
+  OK    ★★ the new terminal state is declared in the schema — an undeclared one raises SchemaError at the writer and the withheld rows would never reach disk
+  OK    ★★ ...and has a disposition cell, so `unknown_reasons()` stays green for the right reason
+  OK    ★★★ a DELIBERATE gap is still a gap — the withheld names appear in the known-gap ledger. Filing an intended gap as COMPLETE is how a withheld position becomes indistinguishable from a satisfied one, and §4-5e reads that difference
+
+[C] the arm reaches the row, and no other leg is touched
+  OK    every top-up row carries its arm, so a per-name analysis need not re-derive the coin
+  OK    ★ the maker rows carry NO arm — the experiment acts on the top-up leg only, and a field on the maker row would invite averaging across legs
+  OK    ★★★ nothing was sent for a withheld name — the row is not a fiction over a real order
+  OK    ...and C's fill set WAS sent: neutrality is never traded for statistical power  — fill=['AAAUSDT'], sent=['AAAUSDT', 'BBBUSDT']
+
+[D] ★★ the gate is LAST — dust is never recorded as an experimental withholding
+  OK    ★★★ a sub-floor residual is `skipped_min_notional` whatever arm it drew — it was never sendable by ANY policy, so filing it as a withholding would put a guaranteed-zero opportunity cost into the treatment average  — {'DDDUSDT': 'skipped_min_notional', 'EEEUSDT': 'skipped_min_notional'}
+  NOTE  those two names still drew arms (no_chase/no_chase); the assignment is recorded and the ROW is what decides the population, which is why the gate's position in the sequence is the assertion and not the assignment.
+
+[E] ★★ from_reject is the OTHER candidate's population and is never withheld
+  OK    ★★★ no from_reject name is ever assigned an arm — mixing the populations would make each candidate the other's confound, and from_reject is measured at -6.74bps against from_partial's +48.84
+  OK    ...and every one of them was sent  — ['AAAUSDT', 'BBBUSDT', 'CCCUSDT', 'DDDUSDT', 'EEEUSDT']
+  OK    the record still says which population it governs, so an empty arm map cannot be read as 'the experiment covered everything and chose nothing'
+
+[F] an unreadable maker fill keeps the name out of the experiment entirely
+  OK    ★ a name whose maker fill we could not read has no residual to reason about, so it draws no arm — sizing an experiment from an assumed zero is the input that produced the 2.00x doubling  — ['BBBUSDT', 'CCCUSDT', 'DDDUSDT', 'EEEUSDT', 'FFFUSDT']
+  OK    ...and its row is still the unknown-fill row, not an experimental one
+
+ALL PASS   (22 checks)
+# end=2026-09-13T14:38:10Z rc=0

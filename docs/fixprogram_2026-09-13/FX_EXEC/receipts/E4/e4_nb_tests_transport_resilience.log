@@ -1,0 +1,136 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_transport_resilience.py head=82fcc160c7d2c5242ea9f4654ec38710b242ee35 dirty=6 start=2026-09-13T14:39:55Z py=Python 3.9.6
+# suite_sha256=77768058361b84cada63f0e837d56796e752996609a7a0fb61b15bfb779c6f93
+  OK   ★ the fake is installed where the broker looks (module attribute, resolved at call time)
+[A] REQUEST-phase failure (the 12:00Z shape) on a GET: resent, bounded, budgeted
+  OK   ★★★ two handshake timeouts then an answer ⇒ the caller gets the answer
+  OK   ★★ exactly three sends — [('GET', '/fapi/v1/openOrders'), ('GET', '/fapi/v1/openOrders'), ('GET', '/fapi/v1/openOrders')]
+  OK   ★★ the backoff between attempts is the declared one, and there is no sleep after success — [0.5, 1.5]
+  OK   ★★★ EVERY attempt spent the rate budget — a resend is a request the venue counts — ['/fapi/v1/openOrders', '/fapi/v1/openOrders', '/fapi/v1/openOrders']
+  OK   ★ the streak is reset by the success
+  OK   ★ each attempt left an action row the operator can read
+
+[B] persistent REQUEST-phase failure: a CLASSIFIED error, not a bare URLError
+  OK   ★★★ raises VenueTransportError — <class 'binance_broker.VenueTransportError'>
+  OK   ★★★ ...which IS a VenueError — every existing `except VenueError` now catches the 12:00Z failure class
+  OK   ★★ bounded: exactly TRANSPORT_RETRY_MAX sends — 3
+  OK   ★ phase=request, attempts recorded, not ambiguous
+  OK   ★★ classify() names it `transport` — neither a refusal nor a >=500 outage verdict
+  OK   ★ it is not read as rate-limited (code None, http None)
+
+[C] REQUEST-phase failure on the ORDER POST: NEVER resent — settled by the venue's record
+  OK   ★★★ submit() succeeds — via the QUERY, not a resend (review b0a573a1 P1: the exception's position is not the remote transaction state)
+  OK   ★★★ exactly ONE POST; the second scripted POST answer was never consumed — [('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order')]
+  OK   ★★ the response is the venue's order record (marked resolved_by_query)
+
+[D] RESPONSE-phase failure on the ORDER POST, order EXISTS: resolved by query, NOT resent
+  OK   ★★★ submit() reports success
+  OK   ★★★ ONE POST only — the order that exists was never placed a second time — [('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order')]
+  OK   ★★ the query asked for OUR client id
+  OK   ★★ the submit action carries the queried order as its response, marked as such
+  OK   ★ a pause precedes the query (the venue must have decided before we ask) — [1.0]
+
+[E] RESPONSE-phase failure, venue says -2013 twice: ABSENT is evidence, carried as AMBIGUOUS, NOT resent (round 3)
+  OK   ★★★ raises VenueTransportError(resolved='absent', ambiguous=True) — two negative snapshots are not a proof of non-delivery (round 3, review 31fa3e4e P1-1) — [None] POST /fapi/v1/order: timeout: The read operation timed out
+  OK   ★★★ exactly ONE POST — the venue's 'never took it' is recorded, never acted on by resending (a missed delta for one anchor is the price of never placing an order twice) — [('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order'), ('GET', '/fapi/v1/order')]
+  OK   ★★ two queries, each after a pause — [1.0, 1.0, 1.0]
+  OK   ★★★ -2013 then FOUND on the second query (the venue was still deciding) ⇒ the order exists, success, still ONE POST — [('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order'), ('GET', '/fapi/v1/order')]
+
+[F] RESPONSE-phase failure and the query ALSO fails: AMBIGUOUS, never blindly resent
+  OK   ★★★ raises VenueTransportError(ambiguous=True) — [None] POST /fapi/v1/order: timeout: The read operation timed out
+  OK   ★★★ ONE POST only — an order that may exist is never placed again on a guess — [('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order'), ('GET', '/fapi/v1/order'), ('GET', '/fapi/v1/order')]
+  OK   ★ the query itself was retried (bounded)
+  OK   ★ submit() counted it as a failure with classification `transport`
+
+[G] RESPONSE-phase failures on idempotent verbs are resent
+  OK   ★★ DELETE: a lost answer is resent (a second cancel of a gone order is -2011 = terminal) — [('DELETE', '/fapi/v1/order'), ('DELETE', '/fapi/v1/order')]
+  OK   ★★ GET: same — [('GET', '/fapi/v1/openOrders'), ('GET', '/fapi/v1/openOrders')]
+
+[H] a DEAD venue fails fast: after the streak threshold, one attempt per call
+  OK   ★★★ with the streak at threshold a failing call is NOT retried (110 orders × 3 × 8 s would outlive the anchor) — [('GET', '/fapi/v1/openOrders')]
+  OK   ★ a success resets the streak
+  OK   ★★ ...and retries return
+
+[I] REGRESSION: an ANSWERED refusal is untouched — classified, not retried
+  OK   ★★★ -5022 is a plain VenueError with its code, ONE send, classify=benign_rejection — ('VenueError', -5022, [('POST', '/fapi/v1/order')])
+  OK   ★ a 5xx is still `venue_unavailable`, one send
+
+[J] submit_maker: transport failures become ROWS, ambiguous ones stay in `live`
+  OK   ★★★ the loop SURVIVES a transport failure and continues to the next plan — ['AUSDT', 'BUSDT', 'CUSDT', 'DUSDT']
+  OK   ★★★ the failed one has a `transport_error` row (a gap, recorded), NOT in `live` — [('BUSDT', 'transport_error')]
+  OK   ★★★ the AMBIGUOUS one is in `live` (= may be resting: phase B cancels + reads fills), tagged, and has NO row yet (phase B writes it)
+  OK   ★★ the successful two are in `live` as before — ['AUSDT', 'CUSDT', 'DUSDT']
+  OK   ★★★ `_live_inflight` IS the returned list object — the cleanup reads what rested
+  OK   ★★ the transport report tallies both kinds and did not trip — {'n_transport_error': 1, 'n_ambiguous': 1, 'n_skipped_outage': 0, 'aborted': False, 'abort_n': 5}
+  OK   ★ the row is a never-sent row (submit_ts None, filled 0.0) with the transport note — transport (request): POST /fapi/v1/order: URLError: handshake timed out (3 attempts)
+
+[K] the circuit breaker: after N consecutive failures the venue is down for this loop
+  OK   ★★★ exactly SUBMIT_TRANSPORT_ABORT_N sends were attempted, then no more — 5
+  OK   ★★★ the remaining plans are `skipped_transport_outage` rows — recorded, not spent on — ['transport_error', 'transport_error', 'transport_error', 'transport_error', 'transport_error', 'skipped_transport_outage', 'skipped_transport_outage', 'skipped_transport_outage', 'skipped_transport_outage']
+  OK   ★★ every plan has exactly one row (nothing evaporated)
+  OK   ★ report says aborted — {'n_transport_error': 5, 'n_ambiguous': 0, 'n_skipped_outage': 4, 'aborted': True, 'abort_n': 5}
+  OK   ★ `live` is empty (nothing rested)
+  OK   ★★ alternating fail/ok never trips (the streak is CONSECUTIVE) — (9, 4)
+
+[L] the new terminal states are in the writer's schema AND the disposition matrix
+  OK   ★★ `transport_error` ∈ TERMINAL_REASONS and DISPOSITION -> GAP
+  OK   ★★ `skipped_transport_outage` ∈ TERMINAL_REASONS and DISPOSITION -> GAP
+
+[M] submit_with_cleanup: whatever escapes the loop → cancel, rows, page, re-raise
+  OK   ★★★ the ORIGINAL exception is re-raised, unchanged (the anchor must still fail rc≠0) — KeyError('new experiment branch')
+  OK   ★★★ the two rested orders AND the mid-send one are cancelled by client id — nothing is left resting for the next sweep to find — [['AUSDT', 'BUSDT', 'CUSDT']]
+  OK   ★★★ rested + mid-send → `filled_amount_unknown` with filled_notional declared unknown (they left; phase B will not read their fills; the residual is a gap of UNKNOWN size) — {'AUSDT': 'filled_amount_unknown', 'BUSDT': 'filled_amount_unknown', 'CUSDT': 'filled_amount_unknown'}
+  OK   ★★★ the plan the loop never reached → `never_submitted`
+  OK   ★★ the skipped plan's row (written by the loop before the crash) is NOT duplicated
+  OK   ★★ a skip plan the loop never REACHED gets the row the loop would have written
+  OK   ★★ one row per plan, no more — 6
+  OK   ★★★ exactly one CRITICAL page, naming the exception and the counts — [('CRITICAL', "下单阶段异常中断 (KeyError: 'new experiment branch'); 在飞 2 张挂单 + 1 张发送中已尝试撤销 (撤 3/已终态 0/未决 0); 补写账本行 5。本锚点不进阶段 B, 进程按失败退出; 下一锚开场扫单兜底。")]
+  OK   ★ the report is attached to the executor for the run log — {'error': "KeyError: 'new experiment branch'", 'n_inflight': 2, 'n_midsend': 1, 'cancel': {'cancelled': 3, 'already_terminal': 0, 'unresolved': []}, 'cancel_error': None, 'rows_written': 5, 'rows_error': None, 'rows_failed': []}
+  OK   ★★★ a cancel that ITSELF fails does not mask the original exception, and rows + page still happen with the failure named — ("KeyError('new experiment branch')", 3, [('CRITICAL', "下单阶段异常中断 (KeyError: 'new experiment branch'); 在飞 1 张挂单 + 1 张发送中已尝试撤销 (撤 ?/已终态 ?/未决 0, 撤单本身失败: RuntimeError: cancel died); 补写账本行 3。本锚点不进阶段 B, 进程按失败退出; 下一锚开场扫单兜底。")])
+  OK   ★★ a page that fails still re-raises the ORIGINAL exception (never the alarm's)
+  OK   ★★ the happy path is a pass-through: same `live`, no cancel, no page
+
+[N] the process pages before it dies (run_anchor._page_phase_crash), and the wiring
+  OK   ★ _page_phase_crash is defined at module level in run_anchor
+  OK   ★★★ a phase crash pages CRITICAL with the exception text in the body (dedup-proof) — [('CRITICAL', '锚点阶段 A (run_anchor)异常退出: URLError: <urlopen error handshake timed out>\n进程即将以非零码退出。若发生在下单之后, 在飞单已由 submit_with_cleanup 处理(见同一时刻的告警); 否则下一锚开场扫单兜底。请核对 openOrders 与账本。')]
+  OK   ★★ a notifier that dies is swallowed — the page can never change the crash's propagation
+  OK   ★★★ WIRED: phase A and phase B are each inside a try that pages then re-raises
+  OK   ★★★ WIRED: _trade submits THROUGH submit_with_cleanup and nowhere calls submit_maker bare
+  OK   ★★ WIRED: `_request_once` is called from exactly one place (the retry wrapper)
+  OK   ★★ the URLError branch precedes the OSError branch (URLError ⊂ OSError; order is the phase)
+  OK   ★★ in submit_maker `except VenueTransportError` precedes `except VenueError` (it IS one)
+
+[P1] the reviewer's fixture: REAL do_open, a connection that ACCEPTS the POST then raises on send
+  OK   ★★★ the venue accepted ONCE: the failure was settled by a GET of our client id, never by a second POST (reviewer scenario: previously POST→POST, 2 acceptances) — ([1], ['POST', 'GET'])
+
+[P2] HTTP 5xx / 200-non-JSON on the ORDER POST = execution-UNKNOWN, never a refusal
+  OK   ★★★ 503 → query → the order EXISTS ⇒ submit() succeeds with the venue's record (previously venue_reject / filled 0 / not in live) — [('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order')]
+  OK   ★★★ 503 → -2013 twice ⇒ the leg is carried in `live` as AMBIGUOUS (phase B settles it from allOrders), no row yet, not `venue_reject`; ONE POST (round 3: absent is not 'not sent') — ([('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order'), ('GET', '/fapi/v1/order')], [])
+  OK   ★★★ 503 and the query fails too ⇒ AMBIGUOUS: in `live` (cancel + fills read own it), no row yet, ONE POST — [('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order'), ('GET', '/fapi/v1/order'), ('GET', '/fapi/v1/order')]
+  OK   ★★ a 200 with a non-JSON body on the order POST is settled by query too — [('POST', '/fapi/v1/order'), ('GET', '/fapi/v1/order')]
+  OK   ★★ a 429 / definitive 4xx is still a plain refusal: no query, one send
+
+[P3] the requote leg: ambiguity is the OPPOSITE of a refusal
+  OK   ★★★ an AMBIGUOUS requote is carried as RESTED (attempt 2, cancel_resting cancels the -2 id), leaves the top-up population, writes no row yet (previously: venue_reject + still topped up) — ([{'symbol': 'HUSDT', 'side': 'buy', 'qty': 10.0, 'mid_at_anchor': 1.0, 'delta_notional': 10.0, 'target_w': 0.01, 'prev_w': 0.0, '_requote_arm': 'requote', 'submit_ts': 1789310396.624535, 'price_submit': 1.0, 'mid_at_submit': 1.0, 'spread_at_submit_bps': 200.00000000000017, 'attempt_idx': 2, 'submitted': True, 'submit_ambiguous': 'requote response: POST /fapi/v1/order: timeout: read timed out (1 attempts, venue: unknown)'}], [], [])
+  OK   ★ the requote report counts it as transport, not refusal
+  OK   ★★ a requote the venue says it never took (-2013 twice) is carried as RESTED too (round 3 P1-1): leaves the top-up population, no row yet — the -2 order MAY exist and a top-up on top of it would double the intent; phase B settles it — ([{'symbol': 'HUSDT', 'side': 'buy', 'qty': 10.0, 'mid_at_anchor': 1.0, 'delta_notional': 10.0, 'target_w': 0.01, 'prev_w': 0.0, '_requote_arm': 'requote', 'submit_ts': 1789310396.624714, 'price_submit': 1.0, 'mid_at_submit': 1.0, 'spread_at_submit_bps': 200.00000000000017, 'attempt_idx': 2, 'submitted': True, 'submit_ambiguous': 'requote request: POST: URLError (1 attempts, venue: absent)'}], [], [])
+  OK   ★★ a requote that was NOT SENT (transport fast-fail, no resolution) ⇒ `transport_error` row (attempt 2), not rested, still owed its top-up (stays from_reject) — [('transport_error', 2)]
+
+[P4] the top-up leg: UNKNOWN is never zero, and a confirmed chunk is never wiped
+  OK   ★★★ single top-up ambiguous ⇒ `filled_amount_unknown`, submitted, filled_notional None (previously abandoned_max_attempts / not submitted / filled 0) — {'terminal_reason': 'filled_amount_unknown', 'submit_ts': 1789310396.624932, 'filled_notional': None, 'filled_known_notional': 0.0, 'filled_unknown_residual': 10.0}
+  OK   ★★★ two chunks, first CONFIRMED 5 USDT then ambiguous ⇒ amount UNKNOWN, and the confirmed 5 is KEPT as filled_known_notional (previously the whole leg was written 0) — {'terminal_reason': 'filled_amount_unknown', 'filled_notional': None, 'filled_known_notional': 5.0, 'filled_unknown_residual': 5.0}
+  OK   ★★★ two chunks, first confirmed then a plain REFUSAL ⇒ abandoned_max_attempts with filled_notional 5.0 — the confirmed part survives a refusal too — {'terminal_reason': 'abandoned_max_attempts', 'filled_notional': 5.0, 'filled_known_notional': 5.0}
+  OK   ★★ two chunks, first confirmed then -2013 twice on the second ⇒ UNKNOWN remainder kept (round 3 P1-1: absent is evidence, not 'not sent'): filled None, known 5.0, unknown 5.0 — {'terminal_reason': 'filled_amount_unknown', 'filled_notional': None, 'filled_known_notional': 5.0, 'filled_unknown_residual': 5.0}
+  OK   ★★ single top-up answered -2013 twice ⇒ `filled_amount_unknown`, submitted, known 0.0 / unknown 10.0 (round 3: the venue's two snapshots do not prove it never took it) — {'terminal_reason': 'filled_amount_unknown', 'filled_notional': None, 'submit_ts': 1789310396.625807, 'filled_unknown_residual': 10.0}
+  OK   ★★ two chunks, first confirmed then NOT SENT (fast-fail) ⇒ abandoned_max_attempts with filled 5.0 and the remainder named as not sent (the one transport case where 'not sent' IS the truth) — topup transport (request, not sent) after 1 confirmed chunk(s) = 5.0000 USDT; remainder 0.0000 not sent
+  OK   ★★ single top-up NOT SENT ⇒ `transport_error`, not submitted, filled 0.0 — {'terminal_reason': 'transport_error', 'filled_notional': 0.0, 'submit_ts': None}
+
+[P5] cleanup: one row fault does not silence the other plans
+  OK   ★★★ the other two plans still get their rows; the failed one is NAMED; the original exception and the single CRITICAL page survive (previously: 0 rows) — (2, [{'symbol': 'AUSDT', 'error': 'ValueError: synthetic one-row serialization fault'}], [('CRITICAL', "下单阶段异常中断 (KeyError: 'new experiment branch'); 在飞 1 张挂单 + 1 张发送中已尝试撤销 (撤 2/已终态 0/未决 0); 补写账本行 2 (写行失败: 1 row(s) failed: AUSDT (ValueError: synthetic one-row serializat))。本锚点不进阶段 B, 进程按失败退出; 下一锚开场扫单兜底。")])
+
+[P6] WIRING of the settlement protocol
+  OK   ★★★ no resend branch survives for the order POST
+  OK   ★★ the order POST gets ONE attempt regardless of the streak
+  OK   ★★ all three submit sites (maker / requote / top-up) catch VenueTransportError before VenueError
+
+ALL PASS  (92 checks)
+# end=2026-09-13T14:39:56Z rc=0

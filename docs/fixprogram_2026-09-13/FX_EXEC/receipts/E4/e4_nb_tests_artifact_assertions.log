@@ -1,0 +1,20 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_artifact_assertions.py head=82fcc160c7d2c5242ea9f4654ec38710b242ee35 dirty=6 start=2026-09-13T14:43:22Z py=Python 3.9.6
+# suite_sha256=2fbd5400cb58f36993fbd63fec819b003031877993cfd672a5eafda348be4155
+[A] ★★ structural constancy is UNDETERMINED; a producer-less column is still NO_PRODUCER
+  OK   ★ with no second value anywhere in the tree, the question stays open (NO_PRODUCER) — {'value': '1', 'state': 'NO_PRODUCER'}
+  OK   a per-anchor identifier is UNDETERMINED, and says why — {'value': '"R1"', 'state': 'UNDETERMINED', 'why': 'one value per anchor by definition'}
+  OK   ★★ a column constant for NO structural reason is still NO_PRODUCER (not an escape clause) — {'value': '"buy"', 'state': 'NO_PRODUCER'}
+  OK   notional_currency stays a documented REAL_CONSTANT — {'value': '"USDT"', 'state': 'REAL_CONSTANT'}
+
+[B] ★★ history decides it — a proven producer turns constancy into EVENT_NOT_YET
+  OK   ★★ with a second value in the tree's history, today's constancy is EVENT_NOT_YET — {'value': '1', 'state': 'EVENT_NOT_YET', 'why': "a producer is proven (2 distinct values in this tree's history); constant today because a second attempt (retry / top-up leg) did not occur"}
+  OK   ★ order_type likewise — {'value': '"maker"', 'state': 'EVENT_NOT_YET', 'why': "a producer is proven (2 distinct values in this tree's history); constant today because a top-up leg did not occur"}
+  OK   ...and it names the event that did not occur, not a generic excuse — a producer is proven (2 distinct values in this tree's history); constant today because a top-up leg did not occur
+  OK   ★ and EVENT_NOT_YET is NOT counted as a producer gap (this is what reached a phone) — ['avg_fill_px', 'cancel_ts', 'filled_notional', 'first_fill_ts', 'last_fill_ts', 'mid_at_anchor', 'mid_at_submit', 'pric
+
+[C] ★ a REGRESSION line carries what was SEEN, not a restatement of the rule
+  OK   the summary line exists — ["artifacts: REGRESSION (4/10 hold; REGRESSIONS: the artefact checker is reading THIS mode's tree → reading=/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/aa_dnce3w6z mode=TESTNET expected=/Users/haosiyu/cc_tmp/fx_exec/state/testnet/pilot_log; anchors row written for this anchor → anchors_rows_today=0; position_readback rows written → readback_rows_today=0; daily_nav has at least one row today → nav_rows_today=0 (one per anchor; consumers read the last); watchdog evaluated within this anchor window → last_eval_age_s=None; no orders column is constant for want of a producer → NO_PRODUCER=['avg_fill_px', 'cancel_ts', 'filled_notional', 'first_fill_ts', 'last_fill_ts', 'mid_at_anchor', 'mid_at_submit', 'price_submit', 'side', 'submit_ts', 'target_w', 'terminal_reason']; even)"]
+  OK   ★ the failing line includes its detail, not just the assertion's name — 'filled_notional', 'first_fill_ts', 'last_fill_ts', 'mid_at_anchor', 'mid_at_submit', 'price_submit', 'side', 'submit_ts', 'target_w', 'terminal_reason']; even)
+
+  ALL PASS
+# end=2026-09-13T14:43:23Z rc=0

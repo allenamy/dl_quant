@@ -1,0 +1,3699 @@
+diff --git a/live/binance_executor.py b/live/binance_executor.py
+index 187e644..e06ef6f 100644
+--- a/live/binance_executor.py
++++ b/live/binance_executor.py
+@@ -57,6 +57,10 @@ SUBMIT_TRANSPORT_ABORT_N = 5
+ #   reduce-only orders are still accepted. The breaker stops sending opening orders after the
+ #   first -4400 and records the rest as `skipped_venue_lock`.
+ VENUE_LOCK_CODE = -4400
++# ★ E4 (FX-EXEC 2026-09-13; ruling R2′): the per-name stop clause's exit policy, stated once — cf40ea21 §1 "目标归零, maker-only
++#   出场, 政策 A 不追". Written on every row and record that applies it, so the reason a residual was not chased is never inferred.
++STOP_EXIT_POLICY = ("stopped names exit maker-only, never chased (per-name stop cf40ea21; ruling R2' 2026-09-13) — "
++                    "a from_reject conversion is unchanged")
+ 
+ 
+ def client_id_for(*parts) -> str:
+@@ -1579,7 +1583,7 @@ class RebalanceExecutor:
+             n += 1
+         return n
+ 
+-    def _plan_chase_experiment(self, live, filled, unknown_fills, rebalance_id):
++    def _plan_chase_experiment(self, live, filled, unknown_fills, rebalance_id, stop_names=None):
+         """Decide C's fill/skip split and the arm for every `from_partial` residual. Pure-ish:
+         reads plans and fills, writes nothing, sends nothing.
+ 
+@@ -1620,6 +1624,9 @@ class RebalanceExecutor:
+         return CP.plan_experiment(
+             pop, rebalance_id,
+             book_net_usdt=(pos_now + others), book_gross_usdt=gross_now,
++            # ★ E4 (ruling R2′): a stopped name's from_partial residual is not sent by ANY chase path, so it is not in the
++            #   experiment's population and not in `others` (nothing is about to fill it); its position is already in the book
++            exclude={s_: STOP_EXIT_POLICY for s_ in (stop_names or ())},
+             net_basis=("prev_notional readback over the planned universe + this anchor's maker "
+                        "fills + the from_reject residuals about to be converted by this same "
+                        "loop. NOT a venue snapshot: the position readback happens after this "
+@@ -1627,11 +1634,18 @@ class RebalanceExecutor:
+ 
+     def topup(self, live: List[Dict[str, Any]], filled: Dict[str, float], anchor_ts: float,
+               rebalance_id: str, spreads_bps: Optional[Dict[str, float]] = None,
+-              unknown_fills: Optional[set] = None):
++              unknown_fills: Optional[set] = None, stop_names: Optional[set] = None):
+         """★ MANDATORY. Skipping this to save fees costs ~27pp/yr — the lagging position is worth
+-        far less than the fee saved. This is a protocol requirement, not a judgement call."""
++        far less than the fee saved. This is a protocol requirement, not a judgement call.
++
++        ★ E4 (FX-EXEC 2026-09-13; ruling R2′ on the per-name stop clause cf40ea21 — "maker-only 出场, 政策 A 不追"): `stop_names`
++          = the names under the stop AT PLAN TIME (anchor_loop `_pns_sets["stop"]`). Their `from_partial` residual is never
++          chased — not by either randomised arm, not as `chase_forced`, not by an everyone-chases fallback: it is written
++          `skipped_stop_maker_only` and carried to the next anchor's maker exit. Their `from_reject` conversion is unchanged.
++          `stop_exit_report` names every stopped name whose top-up leg sent nothing this anchor (the caller pages it)."""
+         spreads_bps = spreads_bps or {}
+         unknown_fills = unknown_fills or set()
++        _stop = set(stop_names or ())
+ 
+         def _freeze(i, d):
+             """Make further writes to this plan raise — for the object the CALLER still holds.
+@@ -1656,7 +1670,7 @@ class RebalanceExecutor:
+         # up front, exactly as this does. See live/chase_policy.py for why C is the frame and the
+         # randomised arms live inside its skip set.
+         self._chase_experiment = self._plan_chase_experiment(live, filled, unknown_fills,
+-                                                             rebalance_id)
++                                                             rebalance_id, stop_names=_stop)
+         _c = self._chase_experiment or {}
+         _arm = _c.get("arm_assigned") or _c.get("arm") or {}
+         _venue_lock, _n_venue_lock = None, 0                     # E-0910-A (top-up phase)
+@@ -1860,6 +1874,18 @@ class RebalanceExecutor:
+             # Ordering the gate last means the row always carries the reason that actually
+             # decided it, and the treatment population is exactly the names that would otherwise
+             # have traded.
++            if p.get("_topup_source") != "from_reject" and p["symbol"] in _stop:
++                # ★★ E4 (FX-EXEC 2026-09-13; ruling R2′): THE STOP CLAUSE'S OWN EXIT POLICY OUTRANKS THE EXPERIMENT. cf40ea21 names
++                #    it — flatten_only, maker-only exit, policy A, no chase — and the 09-01 chase restart changed the ARM WEIGHTS of the
++                #    general population without a word about stopped names. So this residual is sent by NO chase path: it was never in
++                #    the experiment's population (`plan_experiment(exclude=…)`), it is not C's to force, and no fallback reaches it. The
++                #    gate sits where the arm gate sits — after the spread and the floor — so a residual that could not have been sent
++                #    anyway keeps the reason that actually decided it. A refused maker's conversion (`from_reject`) is not this branch.
++                self._order_row(p, anchor_ts, rebalance_id, 2, "topup_taker",
++                                "skipped_stop_maker_only", submitted=False, intended=residual,
++                                note=f"per-name stop (cf40ea21): {STOP_EXIT_POLICY} — the residual is carried to the next "
++                                     f"anchor's reduce-only maker exit; nothing was sent")
++                continue
+             if _arm.get(p["symbol"]) == "no_chase":
+                 self._order_row(p, anchor_ts, rebalance_id, 2, "topup_taker",
+                                 "skipped_no_chase_arm", submitted=False, intended=residual,
+@@ -2071,6 +2097,17 @@ class RebalanceExecutor:
+ 
+         self.venue_lock_report = {"phase": "topup", "first_refused": _venue_lock,
+                                   "n_skipped": _n_venue_lock}          # E-0910-A
++        # ★ E4: a stopped name whose top-up leg sent NOTHING this anchor still holds what the maker exit did not close — a
++        #   stuck stop exit must be visible every anchor it lasts, not only when the clause first fired. Dust below the floor
++        #   (`skipped_min_notional`) is not carried: the clause itself calls a position under its floor exited.
++        _carried = [{"symbol": r["symbol"], "terminal_reason": r.get("terminal_reason"),
++                     "residual_usdt": r.get("intended_notional")}
++                    for r in self.rows_orders
++                    if r.get("rebalance_id") == rebalance_id and r.get("order_type") == "topup_taker"
++                    and r.get("symbol") in _stop and r.get("submit_ts") is None
++                    and r.get("terminal_reason") != "skipped_min_notional"]
++        self.stop_exit_report = {"stop_names": sorted(_stop), "carried": _carried,
++                                 "policy": STOP_EXIT_POLICY}
+ 
+     def _settle_leg_by_identity(self, r, trades, out):
+         """Round 4/5: raise a request's confirmed quantity from child fills joined on orderId.
+diff --git a/live/chase_policy.py b/live/chase_policy.py
+index 53b9d40..40914b9 100644
+--- a/live/chase_policy.py
++++ b/live/chase_policy.py
+@@ -287,13 +287,23 @@ def plan_experiment(residuals: Sequence[Tuple[str, float]],
+                     weights: Optional[Dict[str, float]] = None,
+                     band: float = NEUTRAL_BAND,
+                     min_eligible: int = MIN_ELIGIBLE,
+-                    abort_frac: float = ARM_TILT_ABORT_FRAC) -> Dict[str, Any]:
++                    abort_frac: float = ARM_TILT_ABORT_FRAC,
++                    exclude: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+     """The whole per-anchor decision, as one record. `residuals` is `from_partial` ONLY.
+ 
+     Returns a dict with `arm` (symbol -> arm, what the executor obeys), the shadow
+     `neutral_only` decision over ALL names, and every reason an anchor was excluded.
+-    """
++
++    ★ E4 (FX-EXEC 2026-09-13; ruling R2′): `exclude` = {symbol: reason} for names that are NOT in this experiment's
++      population at all — today the names under the per-name stop clause (cf40ea21: a stopped name exits maker-only, policy
++      A, never chased). They leave BEFORE C decides and before any coin is drawn, so they can be neither `chase_forced`, nor
++      randomised, nor swept up by an everyone-chases fallback; the record names every one actually removed
++      (`excluded_before_assignment`). The draw of every other name is untouched (`_u01` hashes the name alone), and C's own
++      scan is unchanged whenever the removed name was not in C's fill set."""
+     residuals = [(s, float(r)) for s, r in residuals]
++    _excl = {str(k): str(v) for k, v in (exclude or {}).items()}
++    _excluded = {s: _excl[s] for s, _ in residuals if s in _excl}
++    residuals = [(s, r) for s, r in residuals if s not in _excl]
+     syms = sorted(s for s, _ in residuals)
+     gross_book = float(book_gross_usdt or 0.0)
+     resid_gross = sum(abs(r) for _, r in residuals)
+@@ -386,6 +396,9 @@ def plan_experiment(residuals: Sequence[Tuple[str, float]],
+         "no_chase_arm_tilt_frac": (round(arm_tilt, 6) if arm_tilt is not None else None),
+         "in_sample": not excluded,
+         "excluded_because": excluded,
++        # ★ E4: names removed from the POPULATION before C and before the coin (not an anchor-level exclusion) — the
++        #   population change is on the record, so a reader never has to ask why a stopped name has no arm
++        "excluded_before_assignment": dict(sorted(_excluded.items())),
+         # ★ WHICH BOOK. The tilt used by the shadow decision is not a venue readback — the position
+         #   snapshot happens AFTER the top-up leg — it is reconstructed, and the reconstruction is
+         #   named here so a reader never has to guess which quantity was thresholded.
+diff --git a/live/order_disposition.py b/live/order_disposition.py
+index 5d09b97..e3ed7f0 100644
+--- a/live/order_disposition.py
++++ b/live/order_disposition.py
+@@ -143,6 +143,12 @@ DISPOSITION: Dict[str, Dict[str, Any]] = {
+                                     "sendable and was deliberately not sent, so that the alpha "
+                                     "foregone can be measured. Intended, recorded, and still a "
+                                     "gap — the book did not reach its target"},
++    # ★ E4 (2026-09-13, ruling R2′): a DELIBERATE gap of another kind — the per-name stop clause's own exit policy, not the
++    #   chase experiment. The stopped name keeps its target 0 and its reduce-only maker exit is placed again next anchor.
++    "skipped_stop_maker_only": {"disposition": GAP, "recoverable": False,
++                                "why": "a stopped name's from_partial residual (per-name stop cf40ea21: maker-only exit, "
++                                       "never chased — ruling R2'): sendable, deliberately not sent, carried to the next "
++                                       "anchor's maker exit. Intended, recorded, paged while it lasts, and still a gap"},
+     "skipped_unknown_fill": {"disposition": GAP, "recoverable": False,
+                              "why": "we could not read what the maker filled, so sizing a top-up "
+                                     "would risk doubling a position. Skipping is right; the "
+diff --git a/live/pilot_log.py b/live/pilot_log.py
+index cb37fdd..19e39f6 100644
+--- a/live/pilot_log.py
++++ b/live/pilot_log.py
+@@ -102,7 +102,18 @@ TERMINAL_REASONS = {"filled", "partial_expired", "abandoned_spread_gt_25bps",
+                     #   reconcile._exec_qty            reads filled_notional/submit_ts, never the
+                     #                                  reason -> a never-submitted leg with no
+                     #                                  fill, same as every other skipped_*
+-                    "skipped_no_chase_arm"}
++                    "skipped_no_chase_arm",
++                    # ★★ `skipped_stop_maker_only` added 2026-09-13 (E4, ruling R2′). A stopped name's from_partial residual,
++                    # carried to the next anchor's maker exit because the per-name stop clause (cf40ea21) exits maker-only and
++                    # never chases. It must NOT reuse `skipped_no_chase_arm`: that state IS the chase experiment's treatment
++                    # population (chase_readout / check_chase_first_anchor count it), and a stopped name was never in it.
++                    # ★ CONSUMER CENSUS (grep over live/ ops/ scheduler/, run before adding):
++                    #   order_disposition.DISPOSITION  new GAP cell in the same commit (`unknown_reasons()` guards it)
++                    #   chase_readout / check_chase_first_anchor  read `skipped_no_chase_arm` only — unaffected, by design
++                    #   pilot_metrics.m3_fill_rate     reads `order_type == "maker"` only
++                    #   watchdog cond5c                reads `venue_reject` only
++                    #   reconcile._exec_qty            submit_ts None, no fill -> structural zero, like every skipped_*
++                    "skipped_stop_maker_only"}
+ # ★ CONSUMER CENSUS for these two, run 2026-07-27 (grep over live/ ops/ scheduler/ signal/):
+ #   pilot_metrics.m3_fill_rate      guarded — reads only `order_type == "maker"` rows
+ #   ops/score_post_fix (E1/E3/E5)   guarded — filters on the scored `rebalance_id`; ladder rows
+diff --git a/live/tests_fixtures/e4_stop_exit/MANIFEST.json b/live/tests_fixtures/e4_stop_exit/MANIFEST.json
+new file mode 100644
+index 0000000..f5cd145
+--- /dev/null
++++ b/live/tests_fixtures/e4_stop_exit/MANIFEST.json
+@@ -0,0 +1,15 @@
++{
++ "built_by": "live/tests_fixtures/e4_stop_exit/build_fixture.py",
++ "files": {
++  "anchor_A1789215839.json": "9b758babb06e3abbd20ac8b476b58cd6bc7b00f2ca617fed0b16ea2140b2cf47",
++  "from_reject_A1787703780_PROMUSDT.json": "634ea52d1e2ba02b84e6bb2c92c71bedbfdd194528751469dcb1d15fabe75124",
++  "from_reject_A1788193439_BTRUSDT.json": "12f0287115a1e00eb8647bf74e6597d04f880c87e1f66c455f0b3a3549f092b9"
++ },
++ "sources": {
++  "anchor_runs.log": "b8405ce6df7e3737878c3129af14cacd1c50fd345f768dc03572a415dc538d78",
++  "pilot_log/20260826/orders.jsonl": "29e34f64819ddf83c4ea7585c17bdc632f31dc086e91e9554cd98fada05277da",
++  "pilot_log/20260831/orders.jsonl": "7a6ab114a002118f5f7d5c910c613ec30500e634fa7e0c730b83034ea558ca1e",
++  "pilot_log/20260912/anchors.jsonl": "70a289a1d19400e218562231e8a3d83178e812e57dd9085832fb316b9629a621",
++  "pilot_log/20260912/orders.jsonl": "86f3ef58c9968de3c8e3204df0f9692dcaa8500be1a7f4d1b83bf120b0714d15"
++ }
++}
+diff --git a/live/tests_fixtures/e4_stop_exit/anchor_A1789215839.json b/live/tests_fixtures/e4_stop_exit/anchor_A1789215839.json
+new file mode 100644
+index 0000000..ba555ba
+--- /dev/null
++++ b/live/tests_fixtures/e4_stop_exit/anchor_A1789215839.json
+@@ -0,0 +1,2887 @@
++{
++ "LSKUSDT_rows": [
++  {
++   "anchor_ts": 1789215841.923763,
++   "attempt_idx": 1,
++   "avg_fill_px": null,
++   "cancel_ts": 1789216905.2400792,
++   "fee_all_usdt": true,
++   "fee_assets": [],
++   "fee_paid": 0.0,
++   "fee_source": "measured zero — symbol queried, no fills on this leg",
++   "filled_known_notional": 0.0,
++   "filled_known_qty": 0.0,
++   "filled_notional": 0.0,
++   "filled_qty": 0.0,
++   "filled_unknown_qty": null,
++   "filled_unknown_residual": null,
++   "first_fill_ts": null,
++   "intended_full": 85.77049032,
++   "intended_notional": 85.77049032,
++   "last_fill_ts": null,
++   "mid_at_anchor": 0.209985,
++   "mid_at_submit": 0.209985,
++   "notional_currency": "USDT",
++   "order_type": "maker",
++   "placement_arm": "exempt",
++   "placement_eps": 0.5,
++   "prev_w": -0.0003642098576085227,
++   "price_submit": 0.20998,
++   "rebalance_id": "A1789215839",
++   "request_ledger": [
++    {
++     "client_id": "A1789215839-LSKUSDT-1",
++     "confirmed_notional": 0.0,
++     "confirmed_notional_final": true,
++     "confirmed_qty": 0.0,
++     "confirmed_qty_final": true,
++     "notional_est": 85.77049032,
++     "order_id": 2164339387,
++     "qty": 408.0,
++     "state": "confirmed",
++     "terminal": true
++    }
++   ],
++   "requote_arm": null,
++   "requote_p": 0.5,
++   "side": "buy",
++   "spread_at_submit_bps": 3.333571445580136,
++   "submit_ts": 1789215875.018662,
++   "symbol": "LSKUSDT",
++   "target_w": 0.0,
++   "terminal_reason": "partial_expired"
++  },
++  {
++   "anchor_ts": 1789215841.923763,
++   "attempt_idx": 2,
++   "avg_fill_px": 0.21530754901960783,
++   "cancel_ts": 1789216905.2400792,
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "fee_all_usdt": true,
++   "fee_assets": [
++    "USDT"
++   ],
++   "fee_paid": 0.04392274,
++   "fee_source": "/fapi/v1/userTrades, 3 child fill(s), topup_taker",
++   "filled_known_notional": 87.84548,
++   "filled_known_qty": 408.0,
++   "filled_notional": 87.84548,
++   "filled_notional_source": "every request terminal and settled by identity (orderId join on userTrades)",
++   "filled_qty": 408.0,
++   "filled_unknown_qty": null,
++   "filled_unknown_residual": null,
++   "first_fill_ts": 1789217049.613,
++   "intended_limit_px": 0.20998,
++   "intended_notional": 85.77049032,
++   "intended_residual": 85.77049032,
++   "last_fill_ts": 1789217049.613,
++   "mid_at_anchor": 0.209985,
++   "mid_at_submit": 0.209985,
++   "notional_currency": "USDT",
++   "order_type": "topup_taker",
++   "placement_arm": "exempt",
++   "placement_eps": 0.5,
++   "prev_w": -0.0003642098576085227,
++   "price_submit": 0.20998,
++   "rebalance_id": "A1789215839",
++   "request_ledger": [
++    {
++     "client_id": "A1789215839-LSKUSDT-3",
++     "confirmed_notional": 87.84548,
++     "confirmed_notional_final": true,
++     "confirmed_qty": 408.0,
++     "confirmed_qty_final": true,
++     "notional_est": 85.77049032,
++     "order_id": 2165572038,
++     "qty": 408.0,
++     "settled_by": "userTrades child fills joined on orderId (de-duplicated by trade id)",
++     "state": "confirmed",
++     "status": "FILLED",
++     "terminal": true,
++     "trade_qty": {
++      "118259125": 67.0,
++      "118259126": 33.0,
++      "118259127": 308.0
++     },
++     "trade_quote": {
++      "118259125": 14.4251,
++      "118259126": 7.1049,
++      "118259127": 66.31548
++     }
++    }
++   ],
++   "requote_arm": null,
++   "requote_p": 0.5,
++   "side": "buy",
++   "spread_at_submit_bps": 3.333571445580136,
++   "submit_ts": 1789217049.507838,
++   "symbol": "LSKUSDT",
++   "target_w": 0.0,
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  }
++ ],
++ "anchor_ts": 1789215841.923763,
++ "chase_experiment": {
++  "arm": {
++   "0GUSDT": "no_chase",
++   "1000BONKUSDT": "chase",
++   "1000FLOKIUSDT": "chase",
++   "1000LUNCUSDT": "no_chase",
++   "1000PEPEUSDT": "no_chase",
++   "1000RATSUSDT": "no_chase",
++   "1000SHIBUSDT": "chase",
++   "1INCHUSDT": "chase",
++   "4USDT": "chase",
++   "ACEUSDT": "no_chase",
++   "ACUUSDT": "no_chase",
++   "ADAUSDT": "no_chase",
++   "AEROUSDT": "no_chase",
++   "AIAUSDT": "no_chase",
++   "AIOUSDT": "chase",
++   "AIXBTUSDT": "no_chase",
++   "AKEUSDT": "chase",
++   "ALLOUSDT": "no_chase",
++   "APEUSDT": "no_chase",
++   "APRUSDT": "chase",
++   "ARBUSDT": "no_chase",
++   "ARKMUSDT": "chase",
++   "ARUSDT": "no_chase",
++   "ATOMUSDT": "no_chase",
++   "AVAAIUSDT": "chase",
++   "AVAXUSDT": "chase",
++   "AVNTUSDT": "chase",
++   "AXSUSDT": "no_chase",
++   "BANKUSDT": "chase",
++   "BASEDUSDT": "no_chase",
++   "BBUSDT": "no_chase",
++   "BEATUSDT": "no_chase",
++   "BERAUSDT": "chase",
++   "BICOUSDT": "no_chase",
++   "BILLUSDT": "chase",
++   "BIOUSDT": "chase",
++   "BIRBUSDT": "no_chase",
++   "BLESSUSDT": "chase",
++   "BLUAIUSDT": "chase",
++   "BLURUSDT": "chase",
++   "BMTUSDT": "no_chase",
++   "BOMEUSDT": "chase",
++   "BROCCOLI714USDT": "chase",
++   "BRUSDT": "no_chase",
++   "BSBUSDT": "chase",
++   "BTRUSDT": "no_chase",
++   "BULLAUSDT": "no_chase",
++   "BUSDT": "no_chase",
++   "CATIUSDT": "no_chase",
++   "CCUSDT": "no_chase",
++   "CFGUSDT": "chase",
++   "CFXUSDT": "chase",
++   "CHILLGUYUSDT": "no_chase",
++   "CHIPUSDT": "chase",
++   "CHZUSDT": "chase",
++   "CLOUSDT": "chase",
++   "COMPUSDT": "no_chase",
++   "DEXEUSDT": "no_chase",
++   "DOGEUSDT": "no_chase",
++   "DOGSUSDT": "no_chase",
++   "DOODUSDT": "no_chase",
++   "DUSKUSDT": "chase",
++   "DYDXUSDT": "no_chase",
++   "EDENUSDT": "no_chase",
++   "EDGEUSDT": "chase",
++   "EGLDUSDT": "chase",
++   "EIGENUSDT": "no_chase",
++   "ENAUSDT": "no_chase",
++   "ENJUSDT": "chase",
++   "ENSOUSDT": "chase",
++   "ERAUSDT": "chase",
++   "ESPORTSUSDT": "no_chase",
++   "ESPUSDT": "no_chase",
++   "ETCUSDT": "chase",
++   "ETHFIUSDT": "chase",
++   "FETUSDT": "no_chase",
++   "FFUSDT": "chase",
++   "FIDAUSDT": "no_chase",
++   "FILUSDT": "no_chase",
++   "GIGGLEUSDT": "chase",
++   "GPSUSDT": "no_chase",
++   "GWEIUSDT": "chase",
++   "HBARUSDT": "no_chase",
++   "HOLOUSDT": "no_chase",
++   "HOMEUSDT": "no_chase",
++   "HUMAUSDT": "no_chase",
++   "HUSDT": "chase",
++   "IDUSDT": "chase",
++   "INJUSDT": "chase",
++   "IOTAUSDT": "chase",
++   "IOUSDT": "no_chase",
++   "JSTUSDT": "chase",
++   "JTOUSDT": "no_chase",
++   "KAITOUSDT": "chase",
++   "KASUSDT": "chase",
++   "KATUSDT": "no_chase",
++   "KAVAUSDT": "chase",
++   "KITEUSDT": "chase",
++   "KOMAUSDT": "chase",
++   "KSMUSDT": "chase",
++   "LABUSDT": "no_chase",
++   "LAYERUSDT": "no_chase",
++   "LINKUSDT": "no_chase",
++   "LPTUSDT": "no_chase",
++   "LSKUSDT": "chase",
++   "MANTRAUSDT": "chase",
++   "MEGAUSDT": "chase",
++   "METUSDT": "chase",
++   "MINAUSDT": "no_chase",
++   "MONUSDT": "no_chase",
++   "MOODENGUSDT": "chase",
++   "MORPHOUSDT": "no_chase",
++   "MOVEUSDT": "chase",
++   "MOVRUSDT": "chase",
++   "NAORISUSDT": "no_chase",
++   "NEARUSDT": "chase",
++   "NEIROUSDT": "no_chase",
++   "NIGHTUSDT": "chase",
++   "NILUSDT": "no_chase",
++   "NOMUSDT": "no_chase",
++   "NOTUSDT": "chase",
++   "ONDOUSDT": "no_chase",
++   "ONEUSDT": "no_chase",
++   "ONGUSDT": "chase",
++   "ONTUSDT": "chase",
++   "ONUSDT": "no_chase",
++   "ORCAUSDT": "no_chase",
++   "ORDIUSDT": "chase",
++   "PAXGUSDT": "chase",
++   "PENDLEUSDT": "chase",
++   "PIPPINUSDT": "no_chase",
++   "PLUMEUSDT": "chase",
++   "PNUTUSDT": "no_chase",
++   "POLUSDT": "chase",
++   "PORTALUSDT": "no_chase",
++   "PRLUSDT": "chase",
++   "PROMUSDT": "no_chase",
++   "PYTHUSDT": "chase",
++   "QNTUSDT": "chase",
++   "RAVEUSDT": "chase",
++   "RENDERUSDT": "no_chase",
++   "REZUSDT": "no_chase",
++   "RIFUSDT": "no_chase",
++   "ROBOUSDT": "no_chase",
++   "ROSEUSDT": "no_chase",
++   "RUNEUSDT": "chase",
++   "SAGAUSDT": "no_chase",
++   "SAHARAUSDT": "chase",
++   "SANDUSDT": "no_chase",
++   "SEIUSDT": "chase",
++   "SENTUSDT": "no_chase",
++   "SIGNUSDT": "no_chase",
++   "SIRENUSDT": "chase",
++   "SOLVUSDT": "no_chase",
++   "SOPHUSDT": "chase",
++   "SPKUSDT": "chase",
++   "SPXUSDT": "chase",
++   "STRKUSDT": "no_chase",
++   "STXUSDT": "no_chase",
++   "SUSDT": "chase",
++   "SUSHIUSDT": "no_chase",
++   "SYRUPUSDT": "chase",
++   "TACUSDT": "no_chase",
++   "TAOUSDT": "no_chase",
++   "THETAUSDT": "chase",
++   "TIAUSDT": "no_chase",
++   "TRADOORUSDT": "chase",
++   "TRBUSDT": "chase",
++   "TURBOUSDT": "chase",
++   "TUSDT": "no_chase",
++   "TUTUSDT": "chase",
++   "UAIUSDT": "chase",
++   "UBUSDT": "chase",
++   "USUSDT": "chase",
++   "VELVETUSDT": "chase",
++   "WALUSDT": "chase",
++   "WIFUSDT": "no_chase",
++   "WLDUSDT": "no_chase",
++   "WLFIUSDT": "chase",
++   "WUSDT": "chase",
++   "XLMUSDT": "chase",
++   "XMRUSDT": "chase",
++   "XPLUSDT": "no_chase",
++   "XTZUSDT": "chase",
++   "XVGUSDT": "chase",
++   "ZBTUSDT": "chase",
++   "ZECUSDT": "chase",
++   "ZENUSDT": "no_chase",
++   "ZKCUSDT": "chase",
++   "ZKPUSDT": "no_chase",
++   "ZORAUSDT": "no_chase",
++   "ZROUSDT": "no_chase"
++  },
++  "arm_assigned": {
++   "0GUSDT": "no_chase",
++   "1000BONKUSDT": "chase",
++   "1000FLOKIUSDT": "chase",
++   "1000LUNCUSDT": "no_chase",
++   "1000PEPEUSDT": "no_chase",
++   "1000RATSUSDT": "no_chase",
++   "1000SHIBUSDT": "chase",
++   "1INCHUSDT": "chase",
++   "4USDT": "chase",
++   "ACEUSDT": "no_chase",
++   "ACUUSDT": "no_chase",
++   "ADAUSDT": "no_chase",
++   "AEROUSDT": "no_chase",
++   "AIAUSDT": "no_chase",
++   "AIOUSDT": "chase",
++   "AIXBTUSDT": "no_chase",
++   "AKEUSDT": "chase",
++   "ALLOUSDT": "no_chase",
++   "APEUSDT": "no_chase",
++   "APRUSDT": "chase",
++   "ARBUSDT": "no_chase",
++   "ARKMUSDT": "chase",
++   "ARUSDT": "no_chase",
++   "ATOMUSDT": "no_chase",
++   "AVAAIUSDT": "chase",
++   "AVAXUSDT": "chase",
++   "AVNTUSDT": "chase",
++   "AXSUSDT": "no_chase",
++   "BANKUSDT": "chase",
++   "BASEDUSDT": "no_chase",
++   "BBUSDT": "no_chase",
++   "BEATUSDT": "no_chase",
++   "BERAUSDT": "chase",
++   "BICOUSDT": "no_chase",
++   "BILLUSDT": "chase",
++   "BIOUSDT": "chase",
++   "BIRBUSDT": "no_chase",
++   "BLESSUSDT": "chase",
++   "BLUAIUSDT": "chase",
++   "BLURUSDT": "chase",
++   "BMTUSDT": "no_chase",
++   "BOMEUSDT": "chase",
++   "BROCCOLI714USDT": "chase",
++   "BRUSDT": "no_chase",
++   "BSBUSDT": "chase",
++   "BTRUSDT": "no_chase",
++   "BULLAUSDT": "no_chase",
++   "BUSDT": "no_chase",
++   "CATIUSDT": "no_chase",
++   "CCUSDT": "no_chase",
++   "CFGUSDT": "chase",
++   "CFXUSDT": "chase",
++   "CHILLGUYUSDT": "no_chase",
++   "CHIPUSDT": "chase",
++   "CHZUSDT": "chase",
++   "CLOUSDT": "chase",
++   "COMPUSDT": "no_chase",
++   "DEXEUSDT": "no_chase",
++   "DOGEUSDT": "no_chase",
++   "DOGSUSDT": "no_chase",
++   "DOODUSDT": "no_chase",
++   "DUSKUSDT": "chase",
++   "DYDXUSDT": "no_chase",
++   "EDENUSDT": "no_chase",
++   "EDGEUSDT": "chase",
++   "EGLDUSDT": "chase",
++   "EIGENUSDT": "no_chase",
++   "ENAUSDT": "no_chase",
++   "ENJUSDT": "chase",
++   "ENSOUSDT": "chase",
++   "ERAUSDT": "chase",
++   "ESPORTSUSDT": "no_chase",
++   "ESPUSDT": "no_chase",
++   "ETCUSDT": "chase",
++   "ETHFIUSDT": "chase",
++   "FETUSDT": "no_chase",
++   "FFUSDT": "chase",
++   "FIDAUSDT": "no_chase",
++   "FILUSDT": "no_chase",
++   "GIGGLEUSDT": "chase",
++   "GPSUSDT": "no_chase",
++   "GWEIUSDT": "chase",
++   "HBARUSDT": "no_chase",
++   "HOLOUSDT": "no_chase",
++   "HOMEUSDT": "no_chase",
++   "HUMAUSDT": "no_chase",
++   "HUSDT": "chase",
++   "IDUSDT": "chase",
++   "INJUSDT": "chase",
++   "IOTAUSDT": "chase",
++   "IOUSDT": "no_chase",
++   "JSTUSDT": "chase",
++   "JTOUSDT": "no_chase",
++   "KAITOUSDT": "chase",
++   "KASUSDT": "chase",
++   "KATUSDT": "no_chase",
++   "KAVAUSDT": "chase",
++   "KITEUSDT": "chase",
++   "KOMAUSDT": "chase",
++   "KSMUSDT": "chase",
++   "LABUSDT": "no_chase",
++   "LAYERUSDT": "no_chase",
++   "LINKUSDT": "no_chase",
++   "LPTUSDT": "no_chase",
++   "LSKUSDT": "chase",
++   "MANTRAUSDT": "chase",
++   "MEGAUSDT": "chase",
++   "METUSDT": "chase",
++   "MINAUSDT": "no_chase",
++   "MONUSDT": "no_chase",
++   "MOODENGUSDT": "chase",
++   "MORPHOUSDT": "no_chase",
++   "MOVEUSDT": "chase",
++   "MOVRUSDT": "chase",
++   "NAORISUSDT": "no_chase",
++   "NEARUSDT": "chase",
++   "NEIROUSDT": "no_chase",
++   "NIGHTUSDT": "chase",
++   "NILUSDT": "no_chase",
++   "NOMUSDT": "no_chase",
++   "NOTUSDT": "chase",
++   "ONDOUSDT": "no_chase",
++   "ONEUSDT": "no_chase",
++   "ONGUSDT": "chase",
++   "ONTUSDT": "chase",
++   "ONUSDT": "no_chase",
++   "ORCAUSDT": "no_chase",
++   "ORDIUSDT": "chase",
++   "PAXGUSDT": "chase",
++   "PENDLEUSDT": "chase",
++   "PIPPINUSDT": "no_chase",
++   "PLUMEUSDT": "chase",
++   "PNUTUSDT": "no_chase",
++   "POLUSDT": "chase",
++   "PORTALUSDT": "no_chase",
++   "PRLUSDT": "chase",
++   "PROMUSDT": "no_chase",
++   "PYTHUSDT": "chase",
++   "QNTUSDT": "chase",
++   "RAVEUSDT": "chase",
++   "RENDERUSDT": "no_chase",
++   "REZUSDT": "no_chase",
++   "RIFUSDT": "no_chase",
++   "ROBOUSDT": "no_chase",
++   "ROSEUSDT": "no_chase",
++   "RUNEUSDT": "chase",
++   "SAGAUSDT": "no_chase",
++   "SAHARAUSDT": "chase",
++   "SANDUSDT": "no_chase",
++   "SEIUSDT": "chase",
++   "SENTUSDT": "no_chase",
++   "SIGNUSDT": "no_chase",
++   "SIRENUSDT": "chase",
++   "SOLVUSDT": "no_chase",
++   "SOPHUSDT": "chase",
++   "SPKUSDT": "chase",
++   "SPXUSDT": "chase",
++   "STRKUSDT": "no_chase",
++   "STXUSDT": "no_chase",
++   "SUSDT": "chase",
++   "SUSHIUSDT": "no_chase",
++   "SYRUPUSDT": "chase",
++   "TACUSDT": "no_chase",
++   "TAOUSDT": "no_chase",
++   "THETAUSDT": "chase",
++   "TIAUSDT": "no_chase",
++   "TRADOORUSDT": "chase",
++   "TRBUSDT": "chase",
++   "TURBOUSDT": "chase",
++   "TUSDT": "no_chase",
++   "TUTUSDT": "chase",
++   "UAIUSDT": "chase",
++   "UBUSDT": "chase",
++   "USUSDT": "chase",
++   "VELVETUSDT": "chase",
++   "WALUSDT": "chase",
++   "WIFUSDT": "no_chase",
++   "WLDUSDT": "no_chase",
++   "WLFIUSDT": "chase",
++   "WUSDT": "chase",
++   "XLMUSDT": "chase",
++   "XMRUSDT": "chase",
++   "XPLUSDT": "no_chase",
++   "XTZUSDT": "chase",
++   "XVGUSDT": "chase",
++   "ZBTUSDT": "chase",
++   "ZECUSDT": "chase",
++   "ZENUSDT": "no_chase",
++   "ZKCUSDT": "chase",
++   "ZKPUSDT": "no_chase",
++   "ZORAUSDT": "no_chase",
++   "ZROUSDT": "no_chase"
++  },
++  "arm_caliber": "arm_assigned = the arm this name DREW, over the whole from_partial population. It is NOT what happened to the name: a name that exits at min_notional or a wide spread never reaches the arm gate and is treated by nothing. The TREATED set is the order rows whose terminal_reason == 'skipped_no_chase_arm'. Never compute a rate over arm_assigned and call it a treatment effect.",
++  "arm_counts": {
++   "chase": 98,
++   "no_chase": 94
++  },
++  "arm_notional_usdt": {
++   "chase": 900.8691,
++   "no_chase": 1035.8158
++  },
++  "assign_rule": "sha256('{seed}|chase_arm_v2|{symbol}') -> first 16 hex / 2**64 -> cumulative weights over sorted(arm)",
++  "book_gross_usdt": 235823.1577,
++  "book_net_basis": "prev_notional readback over the planned universe + this anchor's maker fills + the from_reject residuals about to be converted by this same loop. NOT a venue snapshot: the position readback happens after this leg. Excludes any held name absent from the plan set.",
++  "book_net_usdt": -167.5247,
++  "design_note": "C (neutral_only) DECIDES FIRST, over 100% of the names, and its fill set is executed unconditionally — neutrality is never traded for statistical power. The randomised arms live inside C's SKIP set, which is exactly the population whose opportunity cost is the open question. `chase_forced` is C's fill set: size-selected, therefore NOT exchangeable with the randomised `chase` arm and never to be pooled with it.",
++  "excluded_because": [],
++  "in_sample": true,
++  "n_forced_by_neutrality": 0,
++  "n_in_population": 192,
++  "n_randomised": 192,
++  "neutral_only": {
++   "band": 0.015,
++   "band_reached": true,
++   "book_gross_usdt": 235823.1577,
++   "book_net_usdt": -167.5247,
++   "caliber": "signed residual = target - position, so sum(residual) = -net. Fills the tilt-reducing names in decreasing |residual| and stops at the first one that brings projected |net| inside band*gross; gross is held constant through the scan (error bounded by gross_uncertainty_usdt). BINDING: `fill` is sent as chase_forced; `skip` is the randomised population.",
++   "fill": [],
++   "filled_notional_usdt": 0,
++   "gross_uncertainty_usdt": 1936.6849,
++   "n_worsening_skipped": 54,
++   "net_over_gross_before": -0.00071,
++   "projected_net_over_gross": -0.00071,
++   "projected_net_usdt": -167.5247,
++   "residual_gross_usdt": 1936.6849,
++   "skip": [
++    "0GUSDT",
++    "1000BONKUSDT",
++    "1000FLOKIUSDT",
++    "1000LUNCUSDT",
++    "1000PEPEUSDT",
++    "1000RATSUSDT",
++    "1000SHIBUSDT",
++    "1INCHUSDT",
++    "4USDT",
++    "ACEUSDT",
++    "ACUUSDT",
++    "ADAUSDT",
++    "AEROUSDT",
++    "AIAUSDT",
++    "AIOUSDT",
++    "AIXBTUSDT",
++    "AKEUSDT",
++    "ALLOUSDT",
++    "APEUSDT",
++    "APRUSDT",
++    "ARBUSDT",
++    "ARKMUSDT",
++    "ARUSDT",
++    "ATOMUSDT",
++    "AVAAIUSDT",
++    "AVAXUSDT",
++    "AVNTUSDT",
++    "AXSUSDT",
++    "BANKUSDT",
++    "BASEDUSDT",
++    "BBUSDT",
++    "BEATUSDT",
++    "BERAUSDT",
++    "BICOUSDT",
++    "BILLUSDT",
++    "BIOUSDT",
++    "BIRBUSDT",
++    "BLESSUSDT",
++    "BLUAIUSDT",
++    "BLURUSDT",
++    "BMTUSDT",
++    "BOMEUSDT",
++    "BROCCOLI714USDT",
++    "BRUSDT",
++    "BSBUSDT",
++    "BTRUSDT",
++    "BULLAUSDT",
++    "BUSDT",
++    "CATIUSDT",
++    "CCUSDT",
++    "CFGUSDT",
++    "CFXUSDT",
++    "CHILLGUYUSDT",
++    "CHIPUSDT",
++    "CHZUSDT",
++    "CLOUSDT",
++    "COMPUSDT",
++    "DEXEUSDT",
++    "DOGEUSDT",
++    "DOGSUSDT",
++    "DOODUSDT",
++    "DUSKUSDT",
++    "DYDXUSDT",
++    "EDENUSDT",
++    "EDGEUSDT",
++    "EGLDUSDT",
++    "EIGENUSDT",
++    "ENAUSDT",
++    "ENJUSDT",
++    "ENSOUSDT",
++    "ERAUSDT",
++    "ESPORTSUSDT",
++    "ESPUSDT",
++    "ETCUSDT",
++    "ETHFIUSDT",
++    "FETUSDT",
++    "FFUSDT",
++    "FIDAUSDT",
++    "FILUSDT",
++    "GIGGLEUSDT",
++    "GPSUSDT",
++    "GWEIUSDT",
++    "HBARUSDT",
++    "HOLOUSDT",
++    "HOMEUSDT",
++    "HUMAUSDT",
++    "HUSDT",
++    "IDUSDT",
++    "INJUSDT",
++    "IOTAUSDT",
++    "IOUSDT",
++    "JSTUSDT",
++    "JTOUSDT",
++    "KAITOUSDT",
++    "KASUSDT",
++    "KATUSDT",
++    "KAVAUSDT",
++    "KITEUSDT",
++    "KOMAUSDT",
++    "KSMUSDT",
++    "LABUSDT",
++    "LAYERUSDT",
++    "LINKUSDT",
++    "LPTUSDT",
++    "LSKUSDT",
++    "MANTRAUSDT",
++    "MEGAUSDT",
++    "METUSDT",
++    "MINAUSDT",
++    "MONUSDT",
++    "MOODENGUSDT",
++    "MORPHOUSDT",
++    "MOVEUSDT",
++    "MOVRUSDT",
++    "NAORISUSDT",
++    "NEARUSDT",
++    "NEIROUSDT",
++    "NIGHTUSDT",
++    "NILUSDT",
++    "NOMUSDT",
++    "NOTUSDT",
++    "ONDOUSDT",
++    "ONEUSDT",
++    "ONGUSDT",
++    "ONTUSDT",
++    "ONUSDT",
++    "ORCAUSDT",
++    "ORDIUSDT",
++    "PAXGUSDT",
++    "PENDLEUSDT",
++    "PIPPINUSDT",
++    "PLUMEUSDT",
++    "PNUTUSDT",
++    "POLUSDT",
++    "PORTALUSDT",
++    "PRLUSDT",
++    "PROMUSDT",
++    "PYTHUSDT",
++    "QNTUSDT",
++    "RAVEUSDT",
++    "RENDERUSDT",
++    "REZUSDT",
++    "RIFUSDT",
++    "ROBOUSDT",
++    "ROSEUSDT",
++    "RUNEUSDT",
++    "SAGAUSDT",
++    "SAHARAUSDT",
++    "SANDUSDT",
++    "SEIUSDT",
++    "SENTUSDT",
++    "SIGNUSDT",
++    "SIRENUSDT",
++    "SOLVUSDT",
++    "SOPHUSDT",
++    "SPKUSDT",
++    "SPXUSDT",
++    "STRKUSDT",
++    "STXUSDT",
++    "SUSDT",
++    "SUSHIUSDT",
++    "SYRUPUSDT",
++    "TACUSDT",
++    "TAOUSDT",
++    "THETAUSDT",
++    "TIAUSDT",
++    "TRADOORUSDT",
++    "TRBUSDT",
++    "TURBOUSDT",
++    "TUSDT",
++    "TUTUSDT",
++    "UAIUSDT",
++    "UBUSDT",
++    "USUSDT",
++    "VELVETUSDT",
++    "WALUSDT",
++    "WIFUSDT",
++    "WLDUSDT",
++    "WLFIUSDT",
++    "WUSDT",
++    "XLMUSDT",
++    "XMRUSDT",
++    "XPLUSDT",
++    "XTZUSDT",
++    "XVGUSDT",
++    "ZBTUSDT",
++    "ZECUSDT",
++    "ZENUSDT",
++    "ZKCUSDT",
++    "ZKPUSDT",
++    "ZORAUSDT",
++    "ZROUSDT"
++   ],
++   "skipped_notional_usdt": 1936.6849,
++   "tolerance_usdt": 3537.3474
++  },
++  "no_chase_arm_net_usdt": 645.4987,
++  "no_chase_arm_tilt_frac": 0.002737,
++  "population": "from_partial",
++  "randomised_over": [
++   "0GUSDT",
++   "1000BONKUSDT",
++   "1000FLOKIUSDT",
++   "1000LUNCUSDT",
++   "1000PEPEUSDT",
++   "1000RATSUSDT",
++   "1000SHIBUSDT",
++   "1INCHUSDT",
++   "4USDT",
++   "ACEUSDT",
++   "ACUUSDT",
++   "ADAUSDT",
++   "AEROUSDT",
++   "AIAUSDT",
++   "AIOUSDT",
++   "AIXBTUSDT",
++   "AKEUSDT",
++   "ALLOUSDT",
++   "APEUSDT",
++   "APRUSDT",
++   "ARBUSDT",
++   "ARKMUSDT",
++   "ARUSDT",
++   "ATOMUSDT",
++   "AVAAIUSDT",
++   "AVAXUSDT",
++   "AVNTUSDT",
++   "AXSUSDT",
++   "BANKUSDT",
++   "BASEDUSDT",
++   "BBUSDT",
++   "BEATUSDT",
++   "BERAUSDT",
++   "BICOUSDT",
++   "BILLUSDT",
++   "BIOUSDT",
++   "BIRBUSDT",
++   "BLESSUSDT",
++   "BLUAIUSDT",
++   "BLURUSDT",
++   "BMTUSDT",
++   "BOMEUSDT",
++   "BROCCOLI714USDT",
++   "BRUSDT",
++   "BSBUSDT",
++   "BTRUSDT",
++   "BULLAUSDT",
++   "BUSDT",
++   "CATIUSDT",
++   "CCUSDT",
++   "CFGUSDT",
++   "CFXUSDT",
++   "CHILLGUYUSDT",
++   "CHIPUSDT",
++   "CHZUSDT",
++   "CLOUSDT",
++   "COMPUSDT",
++   "DEXEUSDT",
++   "DOGEUSDT",
++   "DOGSUSDT",
++   "DOODUSDT",
++   "DUSKUSDT",
++   "DYDXUSDT",
++   "EDENUSDT",
++   "EDGEUSDT",
++   "EGLDUSDT",
++   "EIGENUSDT",
++   "ENAUSDT",
++   "ENJUSDT",
++   "ENSOUSDT",
++   "ERAUSDT",
++   "ESPORTSUSDT",
++   "ESPUSDT",
++   "ETCUSDT",
++   "ETHFIUSDT",
++   "FETUSDT",
++   "FFUSDT",
++   "FIDAUSDT",
++   "FILUSDT",
++   "GIGGLEUSDT",
++   "GPSUSDT",
++   "GWEIUSDT",
++   "HBARUSDT",
++   "HOLOUSDT",
++   "HOMEUSDT",
++   "HUMAUSDT",
++   "HUSDT",
++   "IDUSDT",
++   "INJUSDT",
++   "IOTAUSDT",
++   "IOUSDT",
++   "JSTUSDT",
++   "JTOUSDT",
++   "KAITOUSDT",
++   "KASUSDT",
++   "KATUSDT",
++   "KAVAUSDT",
++   "KITEUSDT",
++   "KOMAUSDT",
++   "KSMUSDT",
++   "LABUSDT",
++   "LAYERUSDT",
++   "LINKUSDT",
++   "LPTUSDT",
++   "LSKUSDT",
++   "MANTRAUSDT",
++   "MEGAUSDT",
++   "METUSDT",
++   "MINAUSDT",
++   "MONUSDT",
++   "MOODENGUSDT",
++   "MORPHOUSDT",
++   "MOVEUSDT",
++   "MOVRUSDT",
++   "NAORISUSDT",
++   "NEARUSDT",
++   "NEIROUSDT",
++   "NIGHTUSDT",
++   "NILUSDT",
++   "NOMUSDT",
++   "NOTUSDT",
++   "ONDOUSDT",
++   "ONEUSDT",
++   "ONGUSDT",
++   "ONTUSDT",
++   "ONUSDT",
++   "ORCAUSDT",
++   "ORDIUSDT",
++   "PAXGUSDT",
++   "PENDLEUSDT",
++   "PIPPINUSDT",
++   "PLUMEUSDT",
++   "PNUTUSDT",
++   "POLUSDT",
++   "PORTALUSDT",
++   "PRLUSDT",
++   "PROMUSDT",
++   "PYTHUSDT",
++   "QNTUSDT",
++   "RAVEUSDT",
++   "RENDERUSDT",
++   "REZUSDT",
++   "RIFUSDT",
++   "ROBOUSDT",
++   "ROSEUSDT",
++   "RUNEUSDT",
++   "SAGAUSDT",
++   "SAHARAUSDT",
++   "SANDUSDT",
++   "SEIUSDT",
++   "SENTUSDT",
++   "SIGNUSDT",
++   "SIRENUSDT",
++   "SOLVUSDT",
++   "SOPHUSDT",
++   "SPKUSDT",
++   "SPXUSDT",
++   "STRKUSDT",
++   "STXUSDT",
++   "SUSDT",
++   "SUSHIUSDT",
++   "SYRUPUSDT",
++   "TACUSDT",
++   "TAOUSDT",
++   "THETAUSDT",
++   "TIAUSDT",
++   "TRADOORUSDT",
++   "TRBUSDT",
++   "TURBOUSDT",
++   "TUSDT",
++   "TUTUSDT",
++   "UAIUSDT",
++   "UBUSDT",
++   "USUSDT",
++   "VELVETUSDT",
++   "WALUSDT",
++   "WIFUSDT",
++   "WLDUSDT",
++   "WLFIUSDT",
++   "WUSDT",
++   "XLMUSDT",
++   "XMRUSDT",
++   "XPLUSDT",
++   "XTZUSDT",
++   "XVGUSDT",
++   "ZBTUSDT",
++   "ZECUSDT",
++   "ZENUSDT",
++   "ZKCUSDT",
++   "ZKPUSDT",
++   "ZORAUSDT",
++   "ZROUSDT"
++  ],
++  "recompute": {
++   "mismatch": [],
++   "n": 192,
++   "note": "recomputed from the record's own seed and weights; chase_forced checked against C's recorded fill set",
++   "ok": true
++  },
++  "residual_gross_usdt": 1936.6849,
++  "residual_net_usdt": 1363.117,
++  "seed": "A1789215839",
++  "weights": {
++   "chase": 0.5,
++   "no_chase": 0.5
++  }
++ },
++ "from_partial_topup_rows": [
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.17582706025085315,
++   "side": "buy",
++   "symbol": "0GUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0057048335542049244,
++   "side": "sell",
++   "symbol": "1000BONKUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.013046495306721084,
++   "side": "buy",
++   "symbol": "1000FLOKIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.01005053504057507,
++   "side": "buy",
++   "symbol": "1000LUNCUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.00229478842089037,
++   "side": "sell",
++   "symbol": "1000PEPEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 46.48111057074925,
++   "side": "buy",
++   "symbol": "1000RATSUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.006406018398322999,
++   "side": "sell",
++   "symbol": "1000SHIBUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.05616791327394122,
++   "side": "buy",
++   "symbol": "1INCHUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0031160602255511094,
++   "side": "buy",
++   "symbol": "4USDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.08234709806391294,
++   "side": "buy",
++   "symbol": "ACEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.06091457367259778,
++   "side": "sell",
++   "symbol": "ADAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.03128788367926205,
++   "side": "sell",
++   "symbol": "AEROUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.032330417297032454,
++   "side": "buy",
++   "symbol": "AIAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.012795455076449969,
++   "side": "sell",
++   "symbol": "AIOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 95.50853363467365,
++   "side": "buy",
++   "symbol": "AIXBTUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.03725006243854878,
++   "side": "buy",
++   "symbol": "AKEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.010278670551073787,
++   "side": "buy",
++   "symbol": "ALLOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.02852083286128959,
++   "side": "buy",
++   "symbol": "APEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.039968932592827855,
++   "side": "buy",
++   "symbol": "APRUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.02372335362227318,
++   "side": "buy",
++   "symbol": "ARBUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.10456408554949803,
++   "side": "buy",
++   "symbol": "ARKMUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.019140741175924347,
++   "side": "buy",
++   "symbol": "ARUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.005958115847853662,
++   "side": "sell",
++   "symbol": "ATOMUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.011478964684329185,
++   "side": "buy",
++   "symbol": "AVAAIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -3.564716144329978,
++   "side": "sell",
++   "symbol": "AVAXUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.018079574615118332,
++   "side": "buy",
++   "symbol": "AVNTUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.16963510298355544,
++   "side": "buy",
++   "symbol": "AXSUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.006822177027942189,
++   "side": "sell",
++   "symbol": "BANKUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.015691237308253392,
++   "side": "buy",
++   "symbol": "BASEDUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.01156803311696919,
++   "side": "sell",
++   "symbol": "BBUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.1944763652681587,
++   "side": "buy",
++   "symbol": "BEATUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.002707645465108044,
++   "side": "sell",
++   "symbol": "BERAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.02090391464650665,
++   "side": "buy",
++   "symbol": "BICOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.042144348324235636,
++   "side": "buy",
++   "symbol": "BILLUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.00493931227014599,
++   "side": "sell",
++   "symbol": "BIOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.02040629650875303,
++   "side": "sell",
++   "symbol": "BIRBUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.01161475430800607,
++   "side": "buy",
++   "symbol": "BLESSUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0035364239562021282,
++   "side": "buy",
++   "symbol": "BLUAIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.16889837402675312,
++   "side": "sell",
++   "symbol": "BLURUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.013367517066228629,
++   "side": "buy",
++   "symbol": "BMTUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.00419260979544589,
++   "side": "buy",
++   "symbol": "BOMEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": -50.22336,
++   "intended_notional": -50.655138521429336,
++   "side": "sell",
++   "symbol": "BROCCOLI714USDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 63.62086008430265,
++   "side": "buy",
++   "symbol": "BRUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.07962805011447571,
++   "side": "sell",
++   "symbol": "BSBUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 81.79994809312495,
++   "side": "buy",
++   "symbol": "BTRUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.013109072308015612,
++   "side": "buy",
++   "symbol": "BULLAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.1734787414015848,
++   "side": "buy",
++   "symbol": "BUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 64.52732632019377,
++   "side": "buy",
++   "symbol": "CATIUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.08511498847962429,
++   "side": "buy",
++   "symbol": "CCUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 42.6258,
++   "intended_notional": 42.588206869087344,
++   "side": "buy",
++   "symbol": "CFGUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.027403817191826718,
++   "side": "buy",
++   "symbol": "CFXUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.00932839018085474,
++   "side": "buy",
++   "symbol": "CHILLGUYUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.052236072655610144,
++   "side": "buy",
++   "symbol": "CHIPUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.012557100847510938,
++   "side": "buy",
++   "symbol": "CHZUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.07866529054996363,
++   "side": "buy",
++   "symbol": "CLOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.011293577548348921,
++   "side": "buy",
++   "symbol": "COMPUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -60.630862871777026,
++   "side": "sell",
++   "symbol": "DEXEUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.052254551281180284,
++   "side": "sell",
++   "symbol": "DOGEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0019335039325341086,
++   "side": "sell",
++   "symbol": "DOGSUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.02061994176868609,
++   "side": "buy",
++   "symbol": "DOODUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.041152912601354785,
++   "side": "buy",
++   "symbol": "DUSKUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.007147084252746794,
++   "side": "buy",
++   "symbol": "DYDXUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.04707996661043978,
++   "side": "buy",
++   "symbol": "EDENUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.04423369709757452,
++   "side": "sell",
++   "symbol": "EDGEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.23241597532927472,
++   "side": "sell",
++   "symbol": "EGLDUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.019248742311061662,
++   "side": "buy",
++   "symbol": "EIGENUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.006320730219680826,
++   "side": "sell",
++   "symbol": "ENAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.018321472069498412,
++   "side": "buy",
++   "symbol": "ENJUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 6.68394,
++   "intended_notional": 6.6684340057324505,
++   "side": "buy",
++   "symbol": "ENSOUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.010461725077774986,
++   "side": "sell",
++   "symbol": "ERAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 57.04750044549155,
++   "side": "buy",
++   "symbol": "ESPORTSUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.01605276399229183,
++   "side": "buy",
++   "symbol": "ESPUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.03350734842622671,
++   "side": "sell",
++   "symbol": "ETCUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.016538630455439574,
++   "side": "sell",
++   "symbol": "ETHFIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.07692609926777116,
++   "side": "sell",
++   "symbol": "FETUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.03706809534759259,
++   "side": "sell",
++   "symbol": "FFUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.004839865467038962,
++   "side": "sell",
++   "symbol": "FIDAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 7.537424612233906,
++   "side": "buy",
++   "symbol": "FILUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.18271262158339852,
++   "side": "sell",
++   "symbol": "GIGGLEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.004078842688642226,
++   "side": "sell",
++   "symbol": "GPSUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.02858652533889483,
++   "side": "buy",
++   "symbol": "GWEIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.02709378978585253,
++   "side": "buy",
++   "symbol": "HBARUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.014899357241333178,
++   "side": "buy",
++   "symbol": "HOLOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.006115529848951695,
++   "side": "buy",
++   "symbol": "HOMEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.019215847209887116,
++   "side": "buy",
++   "symbol": "HUMAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.034663866959675715,
++   "side": "buy",
++   "symbol": "HUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.017228882410464053,
++   "side": "buy",
++   "symbol": "IDUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.5569182757579441,
++   "side": "sell",
++   "symbol": "INJUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 68.14689,
++   "intended_notional": 68.0454524744822,
++   "side": "buy",
++   "symbol": "IOTAUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 105.04067194816037,
++   "side": "buy",
++   "symbol": "IOUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.01315120269995873,
++   "side": "buy",
++   "symbol": "JSTUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.19760590440087,
++   "side": "buy",
++   "symbol": "JTOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.06098619269083372,
++   "side": "buy",
++   "symbol": "KAITOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 25.19064,
++   "intended_notional": 25.1742964893391,
++   "side": "buy",
++   "symbol": "KASUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.026493694222821773,
++   "side": "sell",
++   "symbol": "KATUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.020500559455683742,
++   "side": "buy",
++   "symbol": "KAVAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 35.09443,
++   "intended_notional": 34.95537424278132,
++   "side": "buy",
++   "symbol": "KITEUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.008290717819960491,
++   "side": "buy",
++   "symbol": "KOMAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": -33.66,
++   "intended_notional": -34.0953481162946,
++   "side": "sell",
++   "symbol": "KSMUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.03050925567126228,
++   "side": "sell",
++   "symbol": "LABUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 13.498456739793482,
++   "side": "buy",
++   "symbol": "LAYERUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.10346955084600751,
++   "side": "sell",
++   "symbol": "LINKUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 87.84548,
++   "intended_notional": 85.77049032,
++   "side": "buy",
++   "symbol": "LSKUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.015610351339290673,
++   "side": "buy",
++   "symbol": "MANTRAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.0005655065039906759,
++   "side": "sell",
++   "symbol": "MEGAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.16183851663463855,
++   "side": "sell",
++   "symbol": "METUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.03740053519958053,
++   "side": "buy",
++   "symbol": "MINAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 53.892011395649895,
++   "side": "buy",
++   "symbol": "MONUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.03244774108880222,
++   "side": "buy",
++   "symbol": "MOODENGUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.1585471887970229,
++   "side": "buy",
++   "symbol": "MORPHOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.007555734005586068,
++   "side": "sell",
++   "symbol": "MOVEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.0014750820794660058,
++   "side": "sell",
++   "symbol": "MOVRUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.03363094166375191,
++   "side": "buy",
++   "symbol": "NAORISUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.580411081699431,
++   "side": "sell",
++   "symbol": "NEARUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.003914681409398213,
++   "side": "sell",
++   "symbol": "NEIROUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 109.87184,
++   "intended_notional": 109.90824363842637,
++   "side": "buy",
++   "symbol": "NIGHTUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0033548144817894254,
++   "side": "buy",
++   "symbol": "NILUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.02076117518743459,
++   "side": "buy",
++   "symbol": "NOMUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0021474419499352138,
++   "side": "buy",
++   "symbol": "NOTUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.009184202668137686,
++   "side": "sell",
++   "symbol": "ONDOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.004438201167808131,
++   "side": "buy",
++   "symbol": "ONEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.05528705412993773,
++   "side": "buy",
++   "symbol": "ONGUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.006530308030244569,
++   "side": "buy",
++   "symbol": "ONTUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.014052786669246586,
++   "side": "buy",
++   "symbol": "ONUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.05330050448654333,
++   "side": "sell",
++   "symbol": "ORCAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.009342399605120733,
++   "side": "sell",
++   "symbol": "ORDIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 3.89292087393644,
++   "side": "buy",
++   "symbol": "PAXGUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 2.0158389402678436,
++   "side": "buy",
++   "symbol": "PENDLEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.03319091503975358,
++   "side": "buy",
++   "symbol": "PIPPINUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 61.59078,
++   "intended_notional": 61.385927008298495,
++   "side": "buy",
++   "symbol": "PLUMEUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.013410714173094362,
++   "side": "buy",
++   "symbol": "PNUTUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.051834888523970335,
++   "side": "buy",
++   "symbol": "POLUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 47.29632746396919,
++   "side": "buy",
++   "symbol": "PORTALUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 40.656,
++   "intended_notional": 40.66767530203492,
++   "side": "buy",
++   "symbol": "PRLUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.2765115783413705,
++   "side": "buy",
++   "symbol": "PROMUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.0017056330668872022,
++   "side": "sell",
++   "symbol": "PYTHUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 6.443,
++   "intended_notional": 11.477067405709846,
++   "side": "buy",
++   "symbol": "QNTUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.16343852749852772,
++   "side": "buy",
++   "symbol": "RAVEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0025316495321803245,
++   "side": "sell",
++   "symbol": "RENDERUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -91.63677922545412,
++   "side": "sell",
++   "symbol": "REZUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.015164902103656175,
++   "side": "buy",
++   "symbol": "RIFUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 55.594285418609616,
++   "side": "buy",
++   "symbol": "ROBOUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0017356485519428588,
++   "side": "buy",
++   "symbol": "ROSEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.11526004197201356,
++   "side": "buy",
++   "symbol": "RUNEUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.014597756170580567,
++   "side": "buy",
++   "symbol": "SAGAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0029446295209325513,
++   "side": "sell",
++   "symbol": "SAHARAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.020038802927352606,
++   "side": "sell",
++   "symbol": "SANDUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.012963712733977673,
++   "side": "sell",
++   "symbol": "SEIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 87.3440928111649,
++   "side": "buy",
++   "symbol": "SENTUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.007115744116056533,
++   "side": "sell",
++   "symbol": "SIGNUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.029031650442092882,
++   "side": "buy",
++   "symbol": "SIRENUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 29.54096384035188,
++   "side": "buy",
++   "symbol": "SOLVUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.011477407300148457,
++   "side": "buy",
++   "symbol": "SOPHUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.0012948487513746443,
++   "side": "sell",
++   "symbol": "SPKUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.05046147196870976,
++   "side": "sell",
++   "symbol": "SPXUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.003432049995893749,
++   "side": "buy",
++   "symbol": "STRKUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.14906443101389755,
++   "side": "sell",
++   "symbol": "STXUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.021338354233947143,
++   "side": "buy",
++   "symbol": "SUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.0659221909261376,
++   "side": "sell",
++   "symbol": "SUSHIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.0495631691448466,
++   "side": "sell",
++   "symbol": "SYRUPUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -41.23894917685311,
++   "side": "sell",
++   "symbol": "TACUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.003231419281213732,
++   "side": "sell",
++   "symbol": "TAOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.06571207426058834,
++   "side": "sell",
++   "symbol": "THETAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.12137164396364675,
++   "side": "sell",
++   "symbol": "TIAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.5738569647150111,
++   "side": "buy",
++   "symbol": "TRADOORUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.9200955439006613,
++   "side": "buy",
++   "symbol": "TRBUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.013456853374890443,
++   "side": "buy",
++   "symbol": "TURBOUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.016925339882540413,
++   "side": "sell",
++   "symbol": "TUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.021480150163171174,
++   "side": "sell",
++   "symbol": "TUTUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.4162149571215892,
++   "side": "sell",
++   "symbol": "UAIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.01731420677794482,
++   "side": "buy",
++   "symbol": "UBUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.010376152980825282,
++   "side": "buy",
++   "symbol": "USUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.15955326588169783,
++   "side": "sell",
++   "symbol": "VELVETUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.016358760907840164,
++   "side": "buy",
++   "symbol": "WALUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 29.339359570153874,
++   "side": "buy",
++   "symbol": "WIFUSDT",
++   "terminal_reason": "skipped_no_chase_arm",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.17879466517402598,
++   "side": "sell",
++   "symbol": "WLDUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.028950149943376857,
++   "side": "buy",
++   "symbol": "WLFIUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -8.610659754104688e-05,
++   "side": "sell",
++   "symbol": "WUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.05015097782986899,
++   "side": "sell",
++   "symbol": "XLMUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 129.4852,
++   "intended_notional": 128.70461879041295,
++   "side": "buy",
++   "symbol": "XMRUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.06297886448689916,
++   "side": "sell",
++   "symbol": "XPLUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.006280861846224894,
++   "side": "sell",
++   "symbol": "XTZUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.009279327799520232,
++   "side": "buy",
++   "symbol": "XVGUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 152.14182,
++   "intended_notional": 151.02852204217106,
++   "side": "buy",
++   "symbol": "ZBTUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.7260917424180278,
++   "side": "sell",
++   "symbol": "ZECUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.5131805932952656,
++   "side": "sell",
++   "symbol": "ZENUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "chase",
++   "chase_arm_assigned": "chase",
++   "filled_notional": 33.696,
++   "intended_notional": 33.69041264155837,
++   "side": "buy",
++   "symbol": "ZKCUSDT",
++   "terminal_reason": "filled",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.04031832152137582,
++   "side": "buy",
++   "symbol": "ZKPUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.0037016233216675687,
++   "side": "sell",
++   "symbol": "ZORAUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": -0.07413514235347662,
++   "side": "sell",
++   "symbol": "ZROUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.025979999999890424,
++   "side": "sell",
++   "symbol": "ACUUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  },
++  {
++   "chase_arm": "no_chase",
++   "chase_arm_assigned": "no_chase",
++   "filled_notional": 0.0,
++   "intended_notional": 0.3554402999999411,
++   "side": "buy",
++   "symbol": "LPTUSDT",
++   "terminal_reason": "skipped_min_notional",
++   "topup_source": "from_partial"
++  }
++ ],
++ "plan_time_stop_set": {
++  "log_block_start_utc": "2026-09-12T08:00:00Z",
++  "read_from": "anchor_runs.log phase_C of A1789201439",
++  "stopped": [
++   "IOSTUSDT",
++   "LSKUSDT"
++  ]
++ },
++ "rebalance_id": "A1789215839"
++}
+diff --git a/live/tests_fixtures/e4_stop_exit/build_fixture.py b/live/tests_fixtures/e4_stop_exit/build_fixture.py
+new file mode 100644
+index 0000000..cc7b0a3
+--- /dev/null
++++ b/live/tests_fixtures/e4_stop_exit/build_fixture.py
+@@ -0,0 +1,98 @@
++#!/usr/bin/python3
++"""E4 fixture builder (FX-EXEC 2026-09-13; ruling R2′). READ-ONLY over a COPY of the executor state; writes only this directory.
++
++    /usr/bin/python3 live/tests_fixtures/e4_stop_exit/build_fixture.py <pilot_log_root> <anchor_runs.log> <out_dir>
++
++Extracts, VERBATIM from the ledger rows and the anchor log (nothing recomputed):
++  anchor_A1789215839.json  2026-09-12 12Z: the anchors row's `chase_experiment` record; every top-up row of that rebalance with
++                           topup_source == from_partial (symbol, intended_notional = the residual, chase_arm_assigned,
++                           terminal_reason, side) — the chase planner's population; LSKUSDT's maker + top-up rows; and the stop set
++                           the PLAN used = the previous LIVE anchor's (A1789201439, 08Z) phase_C per_name_stop.stopped
++  from_reject_A1787703780_PROMUSDT.json / from_reject_A1788193439_BTRUSDT.json: the maker rows and the from_reject top-up row of a
++                           stopped name, with the plan-time stop set read the same way
++and MANIFEST.json: sha256 of every source file read and of every file written."""
++import hashlib, json, os, re, sys
++
++ROOT, LOG, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
++PAT = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) (.*)$")
++
++
++def sha(p):
++    h = hashlib.sha256()
++    with open(p, "rb") as f:
++        for b in iter(lambda: f.read(1 << 20), b""):
++            h.update(b)
++    return h.hexdigest()
++
++
++def rows(day, fn):
++    return [json.loads(l) for l in open(os.path.join(ROOT, day, fn), encoding="utf-8") if l.strip()]
++
++
++def phase(rid, tag):
++    cur, hit = None, None
++    for ln in open(LOG, encoding="utf-8", errors="replace"):
++        m = PAT.match(ln.rstrip("\n"))
++        if not m:
++            continue
++        ts, rest = m.groups()
++        if rest.startswith("anchor start mode="):
++            cur = {"mode": rest.split("=", 1)[1].strip(), "start": ts, "ph": {}}
++            continue
++        if cur is None:
++            continue
++        for t in ("phase_A", "phase_C"):
++            if rest.startswith(t + ": "):
++                try:
++                    cur["ph"][t] = json.loads(rest[len(t) + 2:])
++                except ValueError:
++                    pass
++        if cur["mode"] == "LIVE" and (cur["ph"].get("phase_A") or {}).get("rebalance_id") == rid and tag in cur["ph"]:
++            hit = {"log_block_start_utc": cur["start"], tag: cur["ph"][tag]}
++    return hit
++
++
++src = set()
++written = []
++
++
++def dump(name, obj):
++    p = os.path.join(OUT, name)
++    with open(p, "w", encoding="utf-8") as f:
++        json.dump(obj, f, indent=1, sort_keys=True, ensure_ascii=False)
++        f.write("\n")
++    written.append(name)
++
++
++# 2026-09-12 12Z
++RID, PREV = "A1789215839", "A1789201439"
++an = [r for r in rows("20260912", "anchors.jsonl") if r.get("rebalance_id") == RID]
++od = [r for r in rows("20260912", "orders.jsonl") if r.get("rebalance_id") == RID]
++src |= {os.path.join(ROOT, "20260912", "anchors.jsonl"), os.path.join(ROOT, "20260912", "orders.jsonl"), LOG}
++pc = phase(PREV, "phase_C")
++dump(f"anchor_{RID}.json", {
++    "rebalance_id": RID, "anchor_ts": an[0]["anchor_ts"], "chase_experiment": an[0]["chase_experiment"],
++    "from_partial_topup_rows": [{k: r.get(k) for k in ("symbol", "side", "intended_notional", "chase_arm_assigned", "chase_arm",
++                                                        "terminal_reason", "topup_source", "filled_notional")}
++                                for r in od if r.get("order_type") == "topup_taker" and r.get("topup_source") == "from_partial"],
++    "LSKUSDT_rows": [r for r in od if r.get("symbol") == "LSKUSDT"],
++    "plan_time_stop_set": {"stopped": pc["phase_C"]["per_name_stop"]["stopped"], "read_from": f"anchor_runs.log phase_C of {PREV}",
++                           "log_block_start_utc": pc["log_block_start_utc"]}})
++
++for day, rid, prev_rid, sym in (("20260826", "A1787703780", "A1787689380", "PROMUSDT"),
++                                ("20260831", "A1788193439", "A1788179039", "BTRUSDT")):
++    od = [r for r in rows(day, "orders.jsonl") if r.get("rebalance_id") == rid and r.get("symbol") == sym]
++    src.add(os.path.join(ROOT, day, "orders.jsonl"))
++    pc = phase(prev_rid, "phase_C")
++    dump(f"from_reject_{rid}_{sym}.json", {
++        "rebalance_id": rid, "symbol": sym, "rows": od,
++        "plan_time_stop_set": {"stopped": pc["phase_C"]["per_name_stop"]["stopped"], "read_from": f"anchor_runs.log phase_C of {prev_rid}",
++                               "log_block_start_utc": pc["log_block_start_utc"]}})
++
++man = {"built_by": "live/tests_fixtures/e4_stop_exit/build_fixture.py",
++       "sources": {os.path.relpath(p, os.path.dirname(ROOT)) if p != LOG else "anchor_runs.log": sha(p) for p in sorted(src)},
++       "files": {n: sha(os.path.join(OUT, n)) for n in written}}
++with open(os.path.join(OUT, "MANIFEST.json"), "w", encoding="utf-8") as f:
++    json.dump(man, f, indent=1, sort_keys=True)
++    f.write("\n")
++print(json.dumps(man, indent=1))
+diff --git a/live/tests_fixtures/e4_stop_exit/from_reject_A1787703780_PROMUSDT.json b/live/tests_fixtures/e4_stop_exit/from_reject_A1787703780_PROMUSDT.json
+new file mode 100644
+index 0000000..3c8d4af
+--- /dev/null
++++ b/live/tests_fixtures/e4_stop_exit/from_reject_A1787703780_PROMUSDT.json
+@@ -0,0 +1,117 @@
++{
++ "plan_time_stop_set": {
++  "log_block_start_utc": "2026-08-25T20:00:00Z",
++  "read_from": "anchor_runs.log phase_C of A1787689380",
++  "stopped": [
++   "PROMUSDT",
++   "SKYAIUSDT"
++  ]
++ },
++ "rebalance_id": "A1787703780",
++ "rows": [
++  {
++   "anchor_ts": 1787703781.903148,
++   "attempt_idx": 1,
++   "avg_fill_px": null,
++   "cancel_ts": null,
++   "fee_all_usdt": null,
++   "fee_assets": [],
++   "fee_paid": 0.0,
++   "fee_source": "no order was sent on this leg (venue_reject) — zero by construction, not by measurement",
++   "filled_notional": 0.0,
++   "first_fill_ts": null,
++   "intended_full": 164.64,
++   "intended_notional": 164.64,
++   "last_fill_ts": null,
++   "mid_at_anchor": 4.1145,
++   "mid_at_submit": null,
++   "note": "[-5022] Due to the order could not be executed as maker, the Post Only order will be rejected. The order will not be recorded in the order history",
++   "notional_currency": "USDT",
++   "order_type": "maker",
++   "placement_arm": "exempt",
++   "placement_eps": 0.35,
++   "prev_w": -0.007404560575596176,
++   "price_submit": null,
++   "rebalance_id": "A1787703780",
++   "side": "buy",
++   "spread_at_submit_bps": null,
++   "submit_ts": null,
++   "symbol": "PROMUSDT",
++   "target_w": 0.0,
++   "terminal_reason": "venue_reject"
++  },
++  {
++   "anchor_ts": 1787703781.903148,
++   "attempt_idx": 2,
++   "avg_fill_px": null,
++   "cancel_ts": null,
++   "fee_all_usdt": null,
++   "fee_assets": [],
++   "fee_paid": 0.0,
++   "fee_source": "no order was sent on this leg (venue_reject) — zero by construction, not by measurement",
++   "filled_notional": 0.0,
++   "first_fill_ts": null,
++   "intended_full": 164.64,
++   "intended_notional": 164.64,
++   "last_fill_ts": null,
++   "mid_at_anchor": 4.1145,
++   "mid_at_submit": null,
++   "note": "requote [-5022] Due to the order could not be executed as maker, the Post Only order will be rejected. The order will not be recorded in the order history",
++   "notional_currency": "USDT",
++   "order_type": "maker",
++   "placement_arm": "exempt",
++   "placement_eps": 0.35,
++   "prev_w": -0.007404560575596176,
++   "price_submit": null,
++   "rebalance_id": "A1787703780",
++   "side": "buy",
++   "spread_at_submit_bps": null,
++   "submit_ts": null,
++   "symbol": "PROMUSDT",
++   "target_w": 0.0,
++   "terminal_reason": "venue_reject"
++  },
++  {
++   "anchor_ts": 1787703781.903148,
++   "attempt_idx": 2,
++   "avg_fill_px": 4.171,
++   "cancel_ts": null,
++   "fee_all_usdt": false,
++   "fee_assets": [
++    "BNB"
++   ],
++   "fee_conversion": {
++    "BNB": {
++     "px": 692.705,
++     "qty": 0.0001084,
++     "src": "bookTicker mid @collect"
++    }
++   },
++   "fee_paid": 0.07508922200000001,
++   "fee_source": "/fapi/v1/userTrades, 3 child fill(s), topup_taker",
++   "filled_notional": 166.84,
++   "first_fill_ts": 1787704788.396,
++   "intended_limit_px": 4.107,
++   "intended_notional": 164.64,
++   "intended_residual": 164.64,
++   "last_fill_ts": 1787704788.396,
++   "mid_at_anchor": 4.1145,
++   "mid_at_submit": 4.1075,
++   "notional_currency": "USDT",
++   "order_type": "topup_taker",
++   "placement_arm": "exempt",
++   "placement_eps": 0.35,
++   "prev_w": -0.007404560575596176,
++   "price_submit": 4.107,
++   "rebalance_id": "A1787703780",
++   "side": "buy",
++   "spread_at_submit_bps": 2.4345709068763135,
++   "submit_ts": 1787704788.2608142,
++   "symbol": "PROMUSDT",
++   "target_w": 0.0,
++   "terminal_reason": "filled",
++   "topup_source": "from_reject"
++  }
++ ],
++ "symbol": "PROMUSDT"
++}
+diff --git a/live/tests_fixtures/e4_stop_exit/from_reject_A1788193439_BTRUSDT.json b/live/tests_fixtures/e4_stop_exit/from_reject_A1788193439_BTRUSDT.json
+new file mode 100644
+index 0000000..db76eef
+--- /dev/null
++++ b/live/tests_fixtures/e4_stop_exit/from_reject_A1788193439_BTRUSDT.json
+@@ -0,0 +1,117 @@
++{
++ "plan_time_stop_set": {
++  "log_block_start_utc": "2026-08-31T12:00:00Z",
++  "read_from": "anchor_runs.log phase_C of A1788179039",
++  "stopped": [
++   "BTRUSDT",
++   "MAGMAUSDT"
++  ]
++ },
++ "rebalance_id": "A1788193439",
++ "rows": [
++  {
++   "anchor_ts": 1788193442.8342028,
++   "attempt_idx": 1,
++   "avg_fill_px": null,
++   "cancel_ts": null,
++   "fee_all_usdt": null,
++   "fee_assets": [],
++   "fee_paid": 0.0,
++   "fee_source": "no order was sent on this leg (venue_reject) — zero by construction, not by measurement",
++   "filled_notional": 0.0,
++   "first_fill_ts": null,
++   "intended_full": -450.87966973614857,
++   "intended_notional": -450.87966973614857,
++   "last_fill_ts": null,
++   "mid_at_anchor": 0.09959,
++   "mid_at_submit": null,
++   "note": "[-5022] Due to the order could not be executed as maker, the Post Only order will be rejected. The order will not be recorded in the order history",
++   "notional_currency": "USDT",
++   "order_type": "maker",
++   "placement_arm": "exempt",
++   "placement_eps": 0.35,
++   "prev_w": 0.011373802513390811,
++   "price_submit": null,
++   "rebalance_id": "A1788193439",
++   "side": "sell",
++   "spread_at_submit_bps": null,
++   "submit_ts": null,
++   "symbol": "BTRUSDT",
++   "target_w": 0.000384292953941975,
++   "terminal_reason": "venue_reject"
++  },
++  {
++   "anchor_ts": 1788193442.8342028,
++   "attempt_idx": 2,
++   "avg_fill_px": null,
++   "cancel_ts": null,
++   "fee_all_usdt": null,
++   "fee_assets": [],
++   "fee_paid": 0.0,
++   "fee_source": "no order was sent on this leg (venue_reject) — zero by construction, not by measurement",
++   "filled_notional": 0.0,
++   "first_fill_ts": null,
++   "intended_full": -450.87966973614857,
++   "intended_notional": -450.87966973614857,
++   "last_fill_ts": null,
++   "mid_at_anchor": 0.09959,
++   "mid_at_submit": null,
++   "note": "requote [-5022] Due to the order could not be executed as maker, the Post Only order will be rejected. The order will not be recorded in the order history",
++   "notional_currency": "USDT",
++   "order_type": "maker",
++   "placement_arm": "exempt",
++   "placement_eps": 0.35,
++   "prev_w": 0.011373802513390811,
++   "price_submit": null,
++   "rebalance_id": "A1788193439",
++   "side": "sell",
++   "spread_at_submit_bps": null,
++   "submit_ts": null,
++   "symbol": "BTRUSDT",
++   "target_w": 0.000384292953941975,
++   "terminal_reason": "venue_reject"
++  },
++  {
++   "anchor_ts": 1788193442.8342028,
++   "attempt_idx": 2,
++   "avg_fill_px": 0.0992188,
++   "cancel_ts": null,
++   "fee_all_usdt": false,
++   "fee_assets": [
++    "BNB"
++   ],
++   "fee_conversion": {
++    "BNB": {
++     "px": 689.695,
++     "qty": 0.00029322,
++     "src": "bookTicker mid @collect"
++    }
++   },
++   "fee_paid": 0.20223236790000002,
++   "fee_source": "/fapi/v1/userTrades, 8 child fill(s), topup_taker",
++   "filled_notional": -449.16346,
++   "first_fill_ts": 1788194535.847,
++   "intended_limit_px": 0.0997,
++   "intended_notional": -450.87966973614857,
++   "intended_residual": -450.87966973614857,
++   "last_fill_ts": 1788194535.847,
++   "mid_at_anchor": 0.09959,
++   "mid_at_submit": 0.099695,
++   "notional_currency": "USDT",
++   "order_type": "topup_taker",
++   "placement_arm": "exempt",
++   "placement_eps": 0.35,
++   "prev_w": 0.011373802513390811,
++   "price_submit": 0.0997,
++   "rebalance_id": "A1788193439",
++   "side": "sell",
++   "spread_at_submit_bps": 1.0030593309590374,
++   "submit_ts": 1788194535.696074,
++   "symbol": "BTRUSDT",
++   "target_w": 0.000384292953941975,
++   "terminal_reason": "filled",
++   "topup_source": "from_reject"
++  }
++ ],
++ "symbol": "BTRUSDT"
++}
+diff --git a/live/tests_per_name_stop.py b/live/tests_per_name_stop.py
+index 2bb3447..a626c0e 100644
+--- a/live/tests_per_name_stop.py
++++ b/live/tests_per_name_stop.py
+@@ -388,5 +388,194 @@ _call = _call[:_call.find(")\n") + 1]
+ check("RS 静态: run_anchor 的 withhold 调用语句把 stop 集以 force_flat= 传入(只看这一条语句, 不做全文件子串)",
+       "force_flat=" in _call and "_pns_sets" in _call, _call[:200])
+ 
++# ══ [E4] FX-EXEC 2026-09-13 — 裁定 R2′: 已停名的出场是 maker-only、不追; from_reject 转换不变 ═══════════════════════════════════
++# 条款原文(cf40ea21 §1): 「该名置 flatten_only(既有 disposition 机制): 目标归零, maker-only 出场, 政策 A 不追」。在 ef60f85 上, 已停名的
++# from_partial 残差照样进追单实验(随机臂 / C 强制 / 人人都追的回退)并以 MARKET reduce-only 补单发出 —— 实盘 09-12 12Z LSKUSDT(08Z 刚触发的
++# 已停空头)抽到 chase 臂, 87.85 USDT 补单成交价比原 maker 限价差 +253.7 bps。夹具 = 该锚的真 chase_experiment 记录 + 192 行 from_partial
++# 补单行(live/tests_fixtures/e4_stop_exit, build_fixture.py / MANIFEST.json), 以及 PROMUSDT 08-26 00Z / BTRUSDT 08-31 16Z 的真 from_reject 行。
++print("\n[E4] 裁定 R2′ — 已停名的 from_partial 残差不进任何追单路径; from_reject 转换保留; 残差留到下锚时有告警")
++import chase_policy as CPm            # noqa: E402
++import order_disposition as ODm       # noqa: E402
++import pilot_log as PLm               # noqa: E402
++
++_E4 = os.path.join(REPO, "live", "tests_fixtures", "e4_stop_exit")
++_A12 = json.load(open(os.path.join(_E4, "anchor_A1789215839.json"), encoding="utf-8"))
++_CE12 = _A12["chase_experiment"]
++_POP12 = [(r["symbol"], float(r["intended_notional"])) for r in _A12["from_partial_topup_rows"]]
++_STOP12 = set(_A12["plan_time_stop_set"]["stopped"])
++_HAS_EXCL = "exclude" in inspect.signature(CPm.plan_experiment).parameters
++_HAS_STOPARG = "stop_names" in inspect.signature(EX.RebalanceExecutor.topup).parameters
++_W_SAVED = dict(CPm.ARM_WEIGHTS)
++
++
++def _e4_plan(e_rec):
++    return CPm.plan_experiment(_POP12, _CE12["seed"], _CE12["book_net_usdt"], _CE12["book_gross_usdt"], "E4 fixture",
++                               weights=_CE12["weights"], **({"exclude": e_rec} if (e_rec is not None and _HAS_EXCL) else {}))
++
++
++_rec0 = _e4_plan(None)
++check("E4-F 夹具有效性(新旧代码皆绿): 真锚 09-12 12Z 的 192 行 from_partial 残差 + 记录的 seed/weights/书净额/书毛额 重跑 plan_experiment ⇒ "
++      "arm_assigned 逐名等于记录(LSKUSDT = chase), C 的 fill 集等于记录; 计划期止损集 = 08Z phase_C 的 {IOSTUSDT, LSKUSDT}",
++      _rec0["arm_assigned"] == _CE12["arm_assigned"] and _rec0["n_in_population"] == 192 and _CE12["arm_assigned"].get("LSKUSDT") == "chase"
++      and sorted(_rec0["neutral_only"]["fill"]) == sorted(_CE12["neutral_only"]["fill"]) and _STOP12 == {"IOSTUSDT", "LSKUSDT"},
++      (_rec0["n_in_population"], _CE12["arm_assigned"].get("LSKUSDT"), sorted(_STOP12)))
++_rec1 = _e4_plan({s: "per_name_stop" for s in _STOP12})
++check("E4-1 策略层: 止损集在 C 与抽签之前离开人口 —— LSKUSDT 不在任何臂(非 chase / no_chase / chase_forced), 记录 excluded_before_assignment "
++      "恰为 {LSKUSDT}(IOST 本锚无 from_partial 残差, 不在人口里), 人口 192 → 191(旧码: 无此参数, LSKUSDT 仍 chase)",
++      "LSKUSDT" not in (_rec1.get("arm_assigned") or {}) and list(_rec1.get("excluded_before_assignment") or {}) == ["LSKUSDT"]
++      and _rec1["n_in_population"] == 191, ((_rec1.get("arm_assigned") or {}).get("LSKUSDT"), _rec1.get("excluded_before_assignment"), _rec1["n_in_population"]))
++_same_others = {s: a for s, a in (_rec1.get("arm_assigned") or {}).items() if s != "LSKUSDT"} == {s: a for s, a in _CE12["arm_assigned"].items() if s != "LSKUSDT"}
++check("E4-2 邻格(新旧皆绿): 同一 seed 下其余 191 名的臂逐位不变(抽签只哈希名字; LSK 在 C 的 skip 集里, C 的 fill 集不变), no_chase 臂净额不变, "
++      "新记录按自身 seed 复算通过(recompute_check)",
++      _same_others and _rec1["no_chase_arm_net_usdt"] == _rec0["no_chase_arm_net_usdt"] and CPm.recompute_check(_rec1)["ok"],
++      (_same_others, _rec1["no_chase_arm_net_usdt"], _rec0["no_chase_arm_net_usdt"], CPm.recompute_check(_rec1)))
++
++
++def _e4_executor(plans, book_plans=()):
++    e = EX.RebalanceExecutor.__new__(EX.RebalanceExecutor)
++    e.rows_orders, e.reduce_only_rejects, e._pending_exit_rows, e.benign_rejected = [], [], [], []
++    e.band_bps = 0.0
++    e._last_plans = list(plans) + list(book_plans)
++    e.filters = type("F", (), {"f": {}, "round_px": staticmethod(lambda s, p, side: p), "round_qty": staticmethod(lambda s, q: q)})()
++    sent = []
++    e.broker = type("B", (), {"mode": "TESTNET", "base": "x", "actions": [],
++                              "submit": lambda self, o, r: sent.append(dict(o)),
++                              "last_fill_details": lambda self: {"filled_notional": None, "avg_fill_px": None, "fill_ts": 2.0,
++                                                                 "status": None, "executed_qty": None, "executed_qty_final": False},
++                              "last_fill_notional": lambda self: None})()
++    return e, sent
++
++
++def _e4_topup(e, live, ats, rid, stop):
++    if _HAS_STOPARG:
++        e.topup(live, {}, ats, rid, stop_names=set(stop))
++    else:
++        e.topup(live, {}, ats, rid)                     # ef60f85: no such argument — the stop set never reaches the top-up
++    return e
++
++
++_N12, _G12 = float(_CE12["book_net_usdt"]), float(_CE12["book_gross_usdt"])
++_BOOK12 = [{"symbol": "BOOK+", "prev_notional": (_G12 + _N12) / 2.0}, {"symbol": "BOOK-", "prev_notional": -(_G12 - _N12) / 2.0}]
++
++
++def _live12():
++    return [{"symbol": s, "delta_notional": r, "qty": r / 10.0, "side": "buy" if r > 0 else "sell", "mid_at_anchor": 10.0,
++             "prev_notional": 0.0, "target_w": 0.0, "prev_w": 0.0, "reduce_only": s in _STOP12} for s, r in _POP12]
++
++
++CPm.ARM_WEIGHTS = dict(_CE12["weights"])
++try:
++    _eA, _sentA = _e4_executor(_live12(), _BOOK12)
++    _e4_topup(_eA, _eA._last_plans[:len(_POP12)], _A12["anchor_ts"], _A12["rebalance_id"], set())
++    _eB, _sentB = _e4_executor(_live12(), _BOOK12)
++    _e4_topup(_eB, _eB._last_plans[:len(_POP12)], _A12["anchor_ts"], _A12["rebalance_id"], _STOP12)
++finally:
++    CPm.ARM_WEIGHTS = _W_SAVED
++_rowsA = {r["symbol"]: r for r in _eA.rows_orders if r["order_type"] == "topup_taker"}
++_rowsB = {r["symbol"]: r for r in _eB.rows_orders if r["order_type"] == "topup_taker"}
++check("E4-3a 执行器层夹具有效性(新旧皆绿): 真 192 名残差 + 记录的书净额/毛额驱动真 topup() 且不传止损集 ⇒ 执行器自己的实验记录 arm_assigned "
++      "逐名等于实盘记录, LSKUSDT 在 chase 臂并被发出(补单行 intended = 85.77049032)",
++      ((_eA._chase_experiment or {}).get("arm_assigned") or {}) == _CE12["arm_assigned"] and "LSKUSDT" in {o["symbol"] for o in _sentA}
++      and abs(float(_rowsA["LSKUSDT"]["intended_notional"]) - 85.77049032) < 1e-9,
++      ((_eA._chase_experiment or {}).get("arm_assigned") or {}).get("LSKUSDT"))
++check("★★★ E4-3 红格(旧码红): 同一真锚、同一 topup(), 带上计划期止损集 ⇒ LSKUSDT 的 from_partial 残差被拒绝追单 —— 不发任何单, 补单行 "
++      "skipped_stop_maker_only、intended 85.77049032 USDT、无 chase_arm; 旧码: 止损集到不了补单, LSK 抽 chase 并以 MARKET reduce-only 发出(实盘 +253.7 bps)",
++      "LSKUSDT" not in {o["symbol"] for o in _sentB} and _rowsB.get("LSKUSDT", {}).get("terminal_reason") == "skipped_stop_maker_only"
++      and abs(float(_rowsB.get("LSKUSDT", {}).get("intended_notional") or 0.0) - 85.77049032) < 1e-9 and _rowsB.get("LSKUSDT", {}).get("chase_arm") is None
++      and _rowsB.get("LSKUSDT", {}).get("submit_ts") is None,
++      ({k: _rowsB.get("LSKUSDT", {}).get(k) for k in ("terminal_reason", "intended_notional", "chase_arm", "submit_ts")}, sorted(o["symbol"] for o in _sentB if o["symbol"] == "LSKUSDT")))
++_diff = sorted(s for s in set(_rowsA) | set(_rowsB) if s != "LSKUSDT"
++               and ((_rowsA.get(s) or {}).get("terminal_reason"), (_rowsA.get(s) or {}).get("chase_arm"))
++               != ((_rowsB.get(s) or {}).get("terminal_reason"), (_rowsB.get(s) or {}).get("chase_arm")))
++check("E4-4 邻格(新旧皆绿): 其余 191 名的补单行(终态 + 臂)与发出集合在两次运行里逐名相同 —— 豁免只动已停名",
++      not _diff and ({o["symbol"] for o in _sentA} - {"LSKUSDT"}) == ({o["symbol"] for o in _sentB} - {"LSKUSDT"}), _diff[:8])
++check("★★ E4-5 残差留到下一锚时可见(旧码红): 执行器 stop_exit_report 点名 LSKUSDT(skipped_stop_maker_only, +85.77049032U), 条款政策写在报告里",
++      [(c.get("symbol"), c.get("terminal_reason"), c.get("residual_usdt")) for c in ((getattr(_eB, "stop_exit_report", None) or {}).get("carried") or [])]
++      == [("LSKUSDT", "skipped_stop_maker_only", 85.77049032)] and "maker-only" in str((getattr(_eB, "stop_exit_report", None) or {}).get("policy")),
++      getattr(_eB, "stop_exit_report", None))
++check("E4-6 新终态有 schema 与处置格: skipped_stop_maker_only ∈ TERMINAL_REASONS, DISPOSITION = GAP 且带理由; 这些行 unknown_reasons 为空, "
++      "且缺口账本点名 LSKUSDT(故意的缺口仍是缺口)",
++      "skipped_stop_maker_only" in PLm.TERMINAL_REASONS and (ODm.DISPOSITION.get("skipped_stop_maker_only") or {}).get("disposition") == ODm.GAP
++      and not ODm.unknown_reasons(_eB.rows_orders)
++      and "LSKUSDT" in {g["symbol"] for g in (ODm.gaps(_eB.rows_orders, _A12["rebalance_id"])["names"])},
++      (ODm.unknown_reasons(_eB.rows_orders), (ODm.DISPOSITION.get("skipped_stop_maker_only") or {}).get("disposition")))
++# ── 保留: 已停名的 from_reject 转换不变(PROMUSDT 08-26 00Z 买 164.64U / BTRUSDT 08-31 16Z 卖 −450.88U, 真行) ──
++_keep = {}
++for _fn in ("from_reject_A1787703780_PROMUSDT.json", "from_reject_A1788193439_BTRUSDT.json"):
++    _fx = json.load(open(os.path.join(_E4, _fn), encoding="utf-8"))
++    _tr = [r for r in _fx["rows"] if r["order_type"] == "topup_taker"][0]
++    _sym = _fx["symbol"]
++    _p = {"symbol": _sym, "delta_notional": float(_tr["intended_notional"]), "qty": float(_tr["intended_notional"]) / float(_tr["mid_at_anchor"]),
++          "side": _tr["side"], "mid_at_anchor": float(_tr["mid_at_anchor"]), "prev_notional": 0.0, "target_w": _tr.get("target_w"),
++          "prev_w": _tr.get("prev_w"), "reduce_only": True, "_topup_source": "from_reject"}
++    _eK, _sentK = _e4_executor([_p])
++    _e4_topup(_eK, [_p], float(_tr["anchor_ts"]), _fx["rebalance_id"], set(_fx["plan_time_stop_set"]["stopped"]))
++    _rk = [r for r in _eK.rows_orders if r["order_type"] == "topup_taker" and r["symbol"] == _sym]
++    _keep[_sym] = {"in_stop_set": _sym in _fx["plan_time_stop_set"]["stopped"], "sent": [o.get("reduce_only") for o in _sentK if o["symbol"] == _sym],
++                   "row": (_rk[0]["terminal_reason"] if _rk else None), "carried": (getattr(_eK, "stop_exit_report", None) or {}).get("carried")}
++check("E4-7 保留(新旧皆绿): 已停名的 from_reject 转换照旧 —— PROMUSDT 08-26 00Z 与 BTRUSDT 08-31 16Z(各自在计划期止损集里)各发出一张 reduce-only 补单, "
++      "不写 skipped_stop_maker_only, 也不进『残差留到下锚』报告",
++      all(v["in_stop_set"] and v["sent"] == [True] and v["row"] != "skipped_stop_maker_only" and not v["carried"] for v in _keep.values()) and len(_keep) == 2,
++      _keep)
++# ── 邻格: 冷却名不受影响 —— 豁免只读止损集 ──
++_cool = [{"symbol": "SSSUSDT", "delta_notional": -60.0, "qty": -6.0, "side": "sell", "mid_at_anchor": 10.0, "prev_notional": 60.0, "target_w": 0.0, "prev_w": 0.006, "reduce_only": True},
++         {"symbol": "QQQUSDT", "delta_notional": -40.0, "qty": -4.0, "side": "sell", "mid_at_anchor": 10.0, "prev_notional": 40.0, "target_w": 0.0, "prev_w": 0.004, "reduce_only": True},
++         {"symbol": "RRRUSDT", "delta_notional": 30.0, "qty": 3.0, "side": "buy", "mid_at_anchor": 10.0, "prev_notional": -500.0, "target_w": -0.047, "prev_w": -0.05, "reduce_only": False}]
++CPm.ARM_WEIGHTS = {CPm.ARM_CHASE: 1.0, CPm.ARM_NO_CHASE: 0.0}
++try:
++    _eC0, _sC0 = _e4_executor([dict(p) for p in _cool]); _e4_topup(_eC0, _eC0._last_plans, 1.0, "A1789999999", set())
++    _eC1, _sC1 = _e4_executor([dict(p) for p in _cool]); _e4_topup(_eC1, _eC1._last_plans, 1.0, "A1789999999", {"SSSUSDT"})
++finally:
++    CPm.ARM_WEIGHTS = _W_SAVED
++_rC0 = {r["symbol"]: (r["terminal_reason"], r.get("chase_arm")) for r in _eC0.rows_orders if r["order_type"] == "topup_taker"}
++_rC1 = {r["symbol"]: (r["terminal_reason"], r.get("chase_arm")) for r in _eC1.rows_orders if r["order_type"] == "topup_taker"}
++check("E4-8 邻格: 止损集 {SSS} 时, 冷却名 QQQ 与普通名 RRR 的补单(终态 + 臂 + 是否发出)与不带止损集时逐名相同; 只有 SSS 变为 skipped_stop_maker_only "
++      "(旧码: SSS 照追 —— 本格在旧码上红在 SSS, 不在 QQQ/RRR)",
++      _rC1.get("QQQUSDT") == _rC0.get("QQQUSDT") and _rC1.get("RRRUSDT") == _rC0.get("RRRUSDT")
++      and ({o["symbol"] for o in _sC1} - {"SSSUSDT"}) == ({o["symbol"] for o in _sC0} - {"SSSUSDT"})
++      and (_rC1.get("SSSUSDT") or (None,))[0] == "skipped_stop_maker_only" and "SSSUSDT" not in {o["symbol"] for o in _sC1},
++      (_rC0, _rC1))
++# ── 原链: DRY_RUN run_anchor → complete_anchor(外部书), 计划期止损集 {SSS}, 冷却 {QQQ}: 已停持仓多头 SSS 的出场残差不追, 且告警 ──
++_saved = (ALM.PNS.cfg_enabled, ALM.PNS.load_state)
++_now = time.time()
++ALM.PNS.cfg_enabled = lambda *a, **k: True
++ALM.PNS.load_state = lambda *a, **k: {"counters": {}, "stopped": {"SSSUSDT": _now - 3600}, "cooldown": {"QQQUSDT": _now + 86400}}
++CPm.ARM_WEIGHTS = {CPm.ARM_CHASE: 1.0, CPm.ARM_NO_CHASE: 0.0}     # every chase path open: on old code SSS is chased for certain
++_ch = {}
++try:
++    with BC._using(_bp):
++        ALM._save(os.environ["LIVE_LOOP_STATE"], {"positions": {"SSSUSDT": 40.0}, "stale_ref_positions": None, "alarmed_stages": []})
++        _b4 = _W9DryBroker(); _ex4 = EX.RebalanceExecutor(_b4)
++        _ex4.filters.f = {s: {"tick": 0.01, "step": 0.001, "min_notional": 5.0} for s in _WC}
++        _ex4.capture_anchor = lambda syms: (time.time(), {s: 100.0 for s in syms})
++        _al4 = []
++        _loop4 = ALM.AnchorLoop(_b4, _ex4, gross_usdt=0.0, alarm=lambda s, m: _al4.append((s, m)))
++        _loop4._equity = 10_000.0
++        _o4 = _loop4.run_anchor()
++        _b4_topups_before = len([a for a in _b4.actions if a.get("action") == "submit_dry_run"])
++        _ob4 = _loop4.complete_anchor(_o4["_pending"], _o4["anchor_ts"], _o4["rebalance_id"]) if "_pending" in _o4 else {}
++        _tu4 = {r["symbol"]: r for r in _ex4.rows_orders if r.get("order_type") == "topup_taker"}
++        _ch = {"action": _o4.get("action"), "SSS_topup": {k: (_tu4.get("SSSUSDT") or {}).get(k) for k in ("terminal_reason", "submit_ts", "intended_notional")},
++               "SSS_topup_sent": [a for a in _b4.actions[_b4_topups_before:] if a.get("action") == "submit_dry_run"
++                                  and (a.get("order") or {}).get("symbol") == "SSSUSDT"],
++               "alarms": [m for s, m in _al4 if "逐名止损出场未完成" in m], "out": (_ob4 or {}).get("stop_exit_carried"),
++               "n_topup_rows": len(_tu4)}
++finally:
++    ALM.PNS.cfg_enabled, ALM.PNS.load_state = _saved
++    CPm.ARM_WEIGHTS = _W_SAVED
++check("★★★ E4-C1 原链(旧码红): 同一 DRY_RUN 锚走到阶段 B —— 已停持仓多头 SSS 的 from_partial 出场残差不发补单, 行 skipped_stop_maker_only "
++      "(旧码: 所有追单路径打开时 SSS 被当作普通残差发出 submit_dry_run)",
++      _ch.get("action") == "TRADE" and (_ch.get("SSS_topup") or {}).get("terminal_reason") == "skipped_stop_maker_only" and not _ch.get("SSS_topup_sent"),
++      {k: _ch.get(k) for k in ("action", "SSS_topup", "n_topup_rows")} | {"n_sent_SSS": len(_ch.get("SSS_topup_sent") or [])})
++check("★★ E4-C2 原链: 残差留到下一锚时 HIGH 告警点名 SSS 与条款政策, 阶段 B 输出 stop_exit_carried 记录它(旧码: 无告警、无字段)",
++      len(_ch.get("alarms") or []) == 1 and "SSSUSDT" in _ch["alarms"][0] and "maker-only" in _ch["alarms"][0]
++      and [c.get("symbol") for c in (_ch.get("out") or [])] == ["SSSUSDT"], (_ch.get("alarms"), _ch.get("out")))
++_tcall = AL[AL.find("self.executor.topup(_topup_plans"):]
++_tcall = _tcall[:_tcall.find(")\n") + 1]
++_tpre = AL[:AL.find("self.executor.topup(_topup_plans")]
++check("E4-S 静态: complete_anchor 的 topup 调用语句只把【止损】集以 stop_names= 传入, 取自计划期 _pns_sets[\"stop\"], 冷却集不进(只看这一条语句及其紧前赋值)",
++      "stop_names=_stop_now" in _tcall and '_stop_now = set((getattr(self, "_pns_sets", None) or {}).get("stop") or ())' in _tpre[-400:]
++      and "cooldown" not in _tcall, _tcall[:200])
++
+ print(f"\n{'ALL PASS' if not fails else 'FAILURES: ' + ', '.join(fails)}")
+ sys.exit(1 if fails else 0)
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 6ceade9..62f15e7 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -157,7 +157,13 @@ SUITE_SCOPE = {
+         'next end-of-anchor read then moves the name to cooldown (venue side, never exercised here); the real '
+         'fixtures are one book era (external book, shift a > 0) plus a mirror, not a real a < 0 anchor; and '
+         "the exit's top-up follows the executor's normal chase frame, not the clause text's 'no chase' "
+-        "(DESIGN F12); (c) the depth numerator is the venue's unrealizedProfit snapshot — a venue semantic "
++        "(DESIGN F12) — CLOSED for from_partial residuals by E4 (FX-EXEC 2026-09-13, ruling R2'): a stopped "
++        "name leaves the chase experiment's population before C and the coin, its residual is written "
++        "skipped_stop_maker_only and paged while carried (real 09-12 12Z anchor: LSKUSDT, 192 names; real "
++        "PROMUSDT / BTRUSDT from_reject conversions kept; a DRY_RUN run_anchor+complete_anchor chain). Still "
++        "NOT proven by E4: that the carried maker exit ever FILLS (a stop exit can stay open anchor after "
++        "anchor, paged, never chased), and the from_reject conversion stays a MARKET reduce-only order at "
++        "top-up time, not an order at the original limit; (c) the depth numerator is the venue's unrealizedProfit snapshot — a venue semantic "
+         'change (e.g. folding funding into it) or a snapshot/notional caliber drift distorts depth with '
+         'everything here green, W1 only proves the KEY exists; (d) cooldown is honoured via untradable->pop — '
+         'a refactor that stops consuming _untradable lets a cooled name re-enter unnoticed; (e) the ECONOMICS '
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index 294a245..88b75ac 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -2364,8 +2364,20 @@ class AnchorLoop:
+                        f"{len(_rejected_syms)} 个 maker 被 -5022 拒(post-only 会立刻成交), "
+                        f"其残差按全额进入 taker 补单: {sorted(_rejected_syms)[:8]}。"
+                        f"这些名字此前会整个从本锚消失 —— 04:00Z 那次占了 §4-5e 缺口的 93%。")
++        # ★ E4 (ruling R2′): the stop set the PLAN used — a stopped name's from_partial residual is never chased
++        _stop_now = set((getattr(self, "_pns_sets", None) or {}).get("stop") or ())
+         self.executor.topup(_topup_plans, filled, anchor_ts, rebalance_id,
+-                            spreads_bps=spreads, unknown_fills=unknown)
++                            spreads_bps=spreads, unknown_fills=unknown, stop_names=_stop_now)
++        _sx = getattr(self.executor, "stop_exit_report", None) or {}
++        if _sx.get("carried"):
++            # ★ E4: a stop exit that did not close this anchor is paged EVERY anchor it lasts — the trigger page fires once;
++            #   a maker exit that keeps not filling would otherwise be as silent as the pinned longs W9 found
++            self.alarm("HIGH",
++                       f"逐名止损出场未完成 {len(_sx['carried'])} 名, 残差留待下一锚 maker 出场(条款 cf40ea21: maker-only、不追; "
++                       f"R2′): " + ", ".join(f"{c['symbol']} {c['terminal_reason']} "
++                                              f"{float(c['residual_usdt']):+.2f}U" if c.get("residual_usdt") is not None
++                                              else f"{c['symbol']} {c['terminal_reason']} residual=UNKNOWN"
++                                              for c in _sx["carried"][:8]))
+ 
+         # ── COMMISSION AND THE CHILD FILLS — one query, AFTER both legs have executed ────────
+         # ★ WHY AFTER, AND WHY IT USED TO BE BEFORE. `userTrades` is the only endpoint carrying
+@@ -2545,6 +2557,8 @@ class AnchorLoop:
+                 **({"requote": getattr(self.executor, "requote_report", None)}
+                    if getattr(self.executor, "requote_report", None) else {}),
+                 **({"rows_rejected": rejects[:5]} if rejects else {}),
++                **({"stop_exit_carried": (getattr(self.executor, "stop_exit_report", None) or {}).get("carried")}
++                   if (getattr(self.executor, "stop_exit_report", None) or {}).get("carried") else {}),     # E4
+                   "n_topped_up": sum(1 for r in self.executor.rows_orders
+                                      if r["rebalance_id"] == rebalance_id
+                                      and r["order_type"] == "topup_taker")}

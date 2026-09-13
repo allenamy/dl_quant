@@ -1,0 +1,26 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_entrypoint_wiring.py head=82fcc160c7d2c5242ea9f4654ec38710b242ee35 dirty=6 start=2026-09-13T14:40:21Z py=Python 3.9.6
+# suite_sha256=c216887b01c90d2e5354994652789164e1ca1c2b92da849ac97f0c461ba0864e
+[A] the entry point references every protection layer
+  OK    watchdog is CALLED, not merely mentioned  — WD.run(
+  OK    watchdog inputs is CALLED, not merely mentioned  — WI.collect(
+  OK    kill switch (via loop) is CALLED, not merely mentioned  — run_anchor
+  OK    telegram is CALLED, not merely mentioned  — TelegramNotifier
+  OK    phase B top-up is CALLED, not merely mentioned  — complete_anchor(
+
+[B] a watchdog that cannot evaluate must alarm, never be swallowed
+  OK    evaluation is wrapped and failure raises a CRITICAL alarm
+
+[C] real run: the entry point executes end to end and the watchdog leaves state
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/fx_exec/live/tests_entrypoint_wiring.py", line 72, in <module>
+    r = subprocess.run([sys.executable, os.path.join(REPO, "scheduler", "run_anchor.py")],
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 507, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 1134, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 1980, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 1178, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['/Applications/Xcode.app/Contents/Developer/usr/bin/python3', '/Users/haosiyu/cc_tmp/fx_exec/scheduler/run_anchor.py']' timed out after 180 seconds
+# end=2026-09-13T14:43:22Z rc=1

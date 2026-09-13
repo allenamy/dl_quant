@@ -1,0 +1,54 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_flatten_record.py head=ef60f85ad93e49f2e0f190bc6e8a15d04073f193 dirty=3 start=2026-09-13T13:19:31Z py=Python 3.9.6
+# suite_sha256=1c8b5cea3faa462f5266ad0ed4a4bb768cc6d5725a8fad44545d3a2a4196ebae
+[B24] a settlement after an inter-anchor flatten must not be priced off the stale book
+  OK    PRE-ASSERT: without a ladder readback the stale book PASSES both bounds (this is the defect, not a mis-set fixture)  — age 3600.0s, BTC 12000.0
+  OK    ★★ the ladder WRITES a readback for what it flattened  — 3 rows for 3 names
+  OK    ★★ the settlement is now priced off the POST-FLATTEN book, not the stale one  — BTC 0.0 (12000.0 = the stale book)
+  OK    ★★ ...and 'we hold nothing' is recorded as ZERO ROWS-WITH-ZEROES, never as absent rows  — ['BTCUSDT', 'DOGEUSDT', 'ETHUSDT'] vs ['BTCUSDT', 'DOGEUSDT', 'ETHUSDT']
+  OK    ★ the row is attributable to the ladder, not to an anchor that never ran  — source must name the producer
+
+[B24-b] a venue we CANNOT read writes NOTHING — a refusal beats a fabricated zero
+  OK    ★★ an unreadable venue writes NO rows (a fabricated flat book is worse than the gap)
+  OK    ★ ...and the stale book is then still what we have — visible, not hidden  — the blind spot remains where we genuinely cannot see; it is not papered over
+
+[B24-b2] ★★ the SAME refusal for the QUANTITY — and it was only ever a comment
+  OK    ★★ `venue_qty=None` writes ZERO rows (before: 2 rows, both claiming 0 contracts)
+  OK    ★ ...and it says WHY, so 'nothing to write' and 'refused to write' are different  — the venue's QUANTITIES could not be read; no rows written. A notional-only row would record every real position as 0 contracts — §4-5b compares contracts, so that row manufactures a residual against the previous readback and another against the next.
+  OK    ★★ CONTROL: an EMPTY (but present) map still writes — absence there means genuinely flat  — [('AAAUSDT', 0.0, 0.0), ('BBBUSDT', 0.0, 0.0)]
+  OK    ★ ...and a normal map writes the venue's real contracts
+  OK    ★★ a non-zero notional missing from the quantity map SKIPS that row, never writes 0  — (1, "1 name(s) had a non-zero notional and no entry in the quantity map, which is not 'flat' but an inconsistent pair: ['BBBUSDT']. Those rows were skipped rather than written as 0 contracts; the remaining 1 row(s) were written.")
+
+[B24-c] a PARTIAL flatten records what is still held, not a wish
+  OK    ★★ a name the flatten did NOT clear keeps its real remaining size  — 4000.0
+  OK    ★ ...while the ones that did clear read zero
+
+[B25] every flatten row can answer 'what did the venue say, or did we never ask?'
+  OK    PRE-ASSERT: all three rows were written  — ['AUSDT', 'BUSDT', 'CUSDT']
+  OK    ★ AUSDT: classed filled — `venue_reject` is unreachable for a flatten (the [b] fix)  — filled
+  OK    ★ BUSDT: classed submitted_rejected — `venue_reject` is unreachable for a flatten (the [b] fix)  — submitted_rejected
+  OK    ★ CUSDT: classed never_submitted — `venue_reject` is unreachable for a flatten (the [b] fix)  — never_submitted
+  OK    ★★ a row that says the venue REFUSED us carries the venue's own words  — [-4005] Quantity greater than max
+  OK    ★★ ...and a real submit_ts, so 'refused' is distinguishable from 'never sent'  — rejected=1789305572.769016 never_sent=None
+  OK    ★★ B25: a SUBMITTED flatten row records the mid we saw when we sent it  — 55.25 — without it, how far through the book our exit had to reach is unmeasurable for the one action that only happens in a crisis
+  OK    ★ ...and a row that never left the process has no mid to record (None, not a borrowed one)
+  OK    ★★ the reason is recorded WHOLE, or the truncation is declared — never a silent mid-word cut  — " this window's history) and §4-7 un-recovered position drift"
+  OK    ★ ...and a genuinely over-long reason DOES get cut, with the marker and the true length  — xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx …[truncated, 900 chars total]
+
+[B24-d] ★★ the WIRING: run() must call it, not just the function existing
+  OK    PRE-ASSERT: the run actually tripped (otherwise the ladder never ran)  — ['§4-5a venue outage: outage']
+  OK    ★★ run() — the production entry point — produced ladder position_readback rows  — 2 rows; ladder reported 2
+  OK    ★★ ...including a ZERO row for the name that was cleared (flat recorded, not absent)  — [('BTCUSDT', 0.0), ('ETHUSDT', -400.0)]
+  OK    ★ ...and the real remaining size for the one still held  — [('BTCUSDT', 0.0), ('ETHUSDT', -400.0)]
+  OK    ★ the ladder reports the count AND the source, so zero is visible rather than assumed  — {'stage1_readback_rows_written': 2, 'stage1_readback_source': 'venue (account_snapshot: notional AND contracts from one read)'}
+
+[B25-b] ★★ the ladder's own fills must EXPLAIN the book it moved
+  OK    PRE-ASSERT: the ladder actually wrote flatten rows into the tree  — 3 rows
+  OK    PRE-ASSERT: at least one row actually EXECUTED (else the next check is vacuous — it was)  — ['filled', 'filled', 'filled']
+  OK    ★★ every flatten row that EXECUTED carries a fill amount, not a zero  — [('BTCUSDT', 'filled', -12000.0), ('ETHUSDT', 'filled', 8000.0), ('DOGEUSDT', 'filled', -3000.0)]
+  OK    ★★ ...and the reconciliation finds NOTHING unexplained after the ladder ran
+  OK    ★ ...having actually compared them (an empty `latest` from a refused comparison is not a pass)
+
+  34 checks run
+
+ALL PASS
+# end=2026-09-13T13:19:32Z rc=0

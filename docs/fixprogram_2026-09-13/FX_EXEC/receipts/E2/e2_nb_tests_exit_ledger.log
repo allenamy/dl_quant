@@ -1,0 +1,48 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_exit_ledger.py head=ef60f85ad93e49f2e0f190bc6e8a15d04073f193 dirty=3 start=2026-09-13T13:19:24Z py=Python 3.9.6
+# suite_sha256=ef9f30a86069d16ae03ac8f42d34f0fd8c5e5623401923be8c293db5443047d3
+[A] ★ WITHOUT the rows, tonight reproduces exactly — on the REAL reconciler
+  OK    ★★★ two names report `quantity_residual` — this IS the 20:18Z trip, rebuilt from the incident's own shape  — [('ALTUSDT', 1.0), ('RVNUSDT', 1.0)]
+  OK    ★★★ ...and `unexplained_frac` is 1.0 on both, because NOTHING in our books explains a position that went to zero  — [1.0, 1.0]
+  OK    ★★ the guard was RIGHT: it expected the old position and observed flat  — [('ALTUSDT', -1646.0, 0.0), ('RVNUSDT', 2413.0, 0.0)]
+
+[B] ★ WITH the rows, the same reconciler calls it explained
+  OK    ★★★ zero anomalies — the exit is now an explanation instead of a mystery
+  OK    ★★ and nothing became `unreconcilable` either (a row that cannot be read is not an explanation, it is a different kind of blindness)
+
+[C] which fields actually carry the explanation — measured, not assumed
+  OK    ★★★ without `avg_fill_px` the exit explains nothing and becomes its own finding — a filled_notional with no price yields no contract count  — 2 finding(s): ['execution_of_unknown_size', 'execution_of_unknown_size']
+  OK    ★★★ without `filled_notional` the exit explains nothing and becomes its own finding — submitted, and its size was never read  — 2 finding(s): ['execution_of_unknown_size', 'execution_of_unknown_size']
+  OK    ★★ `submit_ts` is NOT load-bearing for the explanation — with filled_notional present the row still explains the change. (I asserted the opposite first; this is the measurement.)
+  OK    ★★★ a row with NEITHER filled_notional NOR submit_ts is read as 'the leg never left this process' — it contributes 0, so the residual returns as `quantity_residual`. That is tonight again, wearing a row: a present record that explains nothing  — ['quantity_residual', 'quantity_residual']
+
+[D] the row is produced by production code, with a client id that can be matched back
+  OK    ★★★ `exit_orders` accepts the rebalance id — without it the order carries no client id, and `venue_fills` matches by `{rebalance_id}-` PREFIX, so its fills could never be attributed to any leg  — ['exit_only_held', 'rebalance_id']
+  OK    ★★★ the emitted exit order carries that client id  — [{'symbol': 'ALTUSDT', 'side': 'buy', 'quantity': 1646.0, 'reduce_only': True, '_reason': 'symbol no longer TRADING — price-free full exit', 'client_id': 'A1785614443-ALTUSDT-X'}]
+  OK    ★★ it is still reduce-only and still price-free (a limit order in a contract heading for settlement is a limit order that never fills)  — [{'symbol': 'ALTUSDT', 'side': 'buy', 'quantity': 1646.0, 'reduce_only': True, '_reason': 'symbol no longer TRADING — price-free full exit', 'client_id': 'A1785614443-ALTUSDT-X'}]
+
+[E] the id may be minted early — asserted, not assumed
+  OK    ★★★ minting the same anchor twice gives the identical id — the property that makes the early mint safe  — A1785614443
+  OK    ★★ and the rehearsal prefix still separates the two batches
+  OK    ★★★ the mint happens BEFORE the universe gate in production — otherwise the exit has no id to stamp at the moment it is sent  — mint@1102 gate@11804
+
+[F] it must NOT leak into the cost statistics
+  OK    ★★★ `pilot_metrics` filters by a positive allow-list `order_type in ("maker", "topup_taker")`, so `exit_only` can never join the cost denominator by accident — a passive exit is not a cost of our trading policy
+  OK    ★★ ...while `reconcile.signed_fills_by_anchor` applies NO order_type filter, so the same row DOES enter the explanation set. The two requirements sit on opposite sides of the fence by construction, not by anyone remembering
+
+[G] ★ the loop closed: the row PRODUCTION emits is the one the reconciler explains
+  OK    ★★★ both exits produced a row  — 2
+  OK    ★★★ the SIGN is right on both sides — a BUY-to-cover is positive, a SELL-to-close is negative. Get this wrong and the exit explains the change in the wrong direction, which DOUBLES the residual instead of clearing it  — {'ALTUSDT': 9.56, 'RVNUSDT': -8.62}
+  OK    ★★★ each emitted row passes the ORDERS schema — `terminal_reason` is enum-checked at write time, so a row that validates here is a row that will actually land in the ledger
+  OK    ★★ ...and is labelled `exit_only`, which is what keeps it out of the cost stats and inside the explanation set
+  OK    ★★★ ⇒ feeding PRODUCTION'S OWN ROWS to the real reconciler: zero anomalies. This is the assertion that would have prevented tonight, and the only one here that spans both sides
+  OK    ★★★ a FAILED exit is recorded as `venue_reject` with a null fill — so the residual stays unexplained and the guard still fires. Recording the attempt must never launder a failure into an explanation  — ('venue_reject', None)
+  OK    ★★★ ...and the reconciler agrees: with only that row the residual is STILL an anomaly  — ['execution_of_unknown_size', 'quantity_residual']
+
+[H] the SECOND half of the same defect: the cached book was stale too
+  OK    ★★★ after the exit rows, the cached book for both names is FLAT — the sign convention is what makes this work: +9.56 buy-to-cover against a -9.56 short is 0, not -19.12  — {'ALTUSDT': 0.0, 'RVNUSDT': 0.0, 'BTCUSDT': 100.0}
+  OK    ★★ an untouched name is untouched
+  OK    ★★★ WITHOUT the rows the cache keeps the dead positions — which is how the NEXT anchor would plan against a position that no longer exists
+  OK    ★★ a FAILED exit leaves the symbol at its previous value and NAMES it in `unknown`, rather than crediting a flat we never achieved  — ['ALTUSDT/exit_only']
+
+ALL PASS  (28 checks)
+# end=2026-09-13T13:19:26Z rc=0

@@ -1,0 +1,24 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_topup_leg_fill.py head=ef60f85ad93e49f2e0f190bc6e8a15d04073f193 dirty=3 start=2026-09-13T13:19:30Z py=Python 3.9.6
+# suite_sha256=04071dc9baa9b89ccfd37ed2aa40fa8470849562e8301768626418cff784a266
+[a] case 1: a top-up that never traded must not report the maker's fill
+  OK    both legs emitted a row
+  OK    the fixture really took the never-submitted path  — skipped_min_notional
+  OK    the maker leg reports ITS OWN fill  — 999.95
+  OK    ★★ the top-up row does NOT carry the maker's filled_notional
+  OK    ★ a leg that was never submitted filled NOTHING — 0.0, a known fact, not None
+  OK    ★★ nor the maker's avg_fill_px (the same seed, one field over)
+  OK    ★★ nor the maker's fill timestamps  — (None, None)
+  OK    the top-up's submit_ts stays absent — it never left the process
+
+[a] case 2: submitted but unreadable is UNKNOWN, not zero and not the sibling's
+  OK    the fixture really took the submitted path  — (1789305570.88292, 'filled_amount_unknown')
+  OK    ★★ an unreadable top-up fill is None, not the maker's 1000.0
+  OK    ★★ ...and not 0.0 either — absence must not collapse to the benign value
+
+[a] known-answer shape from 2026-07-26 12:00Z
+  OK    ★★ a never-traded top-up and its maker sibling never report the same nonzero fill  — maker=999.95 topup=0.0
+
+  12 checks run
+
+ALL PASS
+# end=2026-09-13T13:19:30Z rc=0

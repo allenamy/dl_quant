@@ -1,0 +1,36 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_chase_release_check.py head=82fcc160c7d2c5242ea9f4654ec38710b242ee35 dirty=6 start=2026-09-13T14:38:10Z py=Python 3.9.6
+# suite_sha256=6450020ddec8e2c1b9a3c646cca99c84953bc0038692bf6aef469d3bc075b708
+[1] a well-formed anchor PASSES, and the fixture actually withholds something
+  OK    the fixture actually WITHHELD at least one name (otherwise every check below is vacuous — and the first version of this fixture wrote no order rows at all, so the treated set was empty and the suite proved nothing about it)  — assigned ['EEEUSDT'], treated ['EEEUSDT']
+  OK    ★ exit 0 = PASS  — exit 0
+  OK    ...and it says so, distinguishing ACTUALLY WITHHELD from merely assigned  — ['PASS — 9 checks. 1 name(s) actually withheld and verified end to end; 1 assigned no_chase in total (0 exited earlier at a floor or spread check and were withheld by nothing).']
+
+[2] ★★★ a TAMPERED arm is condemned — the gate can go red
+  OK    ★★★ exit 1 = FAIL when an arm does not follow from the recorded seed  — exit 1
+  OK    ...and it names the offending symbol rather than only failing  — ["  FAIL  ★★★ `arm_assigned` and its deprecated alias `arm` agree — while both exist they are one fact in two places, and a tamper on either is a tamper on the record  — ['EEEUSDT']", 'FAIL (1 of 7): ★★★ `arm_assigned` and its deprecated alias `arm` agree — while both exist they are one fact in two places, and a tamper on either is a tamper on the record']
+  OK    ...and it states the action, so the reader does not have to decide what red means
+
+[3] ★★★ a withheld name MISSING from the gap ledger is condemned
+  OK    ★★★ exit 1 = FAIL — a residual we chose not to build must be written down, or it is indistinguishable from an unexplained position break  — exit 1
+  OK    ...and the missing name is printed  — EEEUSDT
+
+[4] ★★ a gap filed under a BORROWED reason is condemned
+  OK    ★★ exit 1 = FAIL — the ledger must say the experiment withheld it, not that a spread did. A wrong terminal state is worse than a missing one  — exit 1
+
+[4b] ★★★ THE 00:01Z REGRESSION — assigned is not treated, in both directions
+  OK    ★★★ a name that drew no_chase but exited at the venue FLOOR is not a failure — it was withheld by nothing, and the floor is the floor. This is the false red that disabled the arm  — exit 0, assigned 3, treated 2
+  OK    ★★ ...and the tool SAYS the two populations differ rather than quietly using one  — ["  ....  assigned 3, actually withheld 2; the rest exited earlier: {'skipped_min_notional': 1, 'skipped_no_chase_arm': 2}", 'PASS — 9 checks. 2 name(s) actually withheld and verified end to end; 3 assigned no_chase in total (1 exited earlier at a floor or spread check and were withheld by nothing).']
+  OK    ★★★ ...but a name that leaves NO ROW AT ALL is still condemned — this is the property the original assertion was protecting, and relaxing the wrong half would have thrown it away. The 08-02 liquidations were exactly this shape  — ["  FAIL  ★★★ every one of the 1 name(s) assigned no_chase left AT LEAST ONE row — a name that ends with no row at all is the shape that liquidated the book twice on 08-02, and no later check can see it  — ['EEEUSDT']"]
+  OK    ★★ ...and the failure names the evaporation specifically, not the ledger  — ["  FAIL  ★★★ every one of the 1 name(s) assigned no_chase left AT LEAST ONE row — a name that ends with no row at all is the shape that liquidated the book twice on 08-02, and no later check can see it  — ['EEEUSDT']", 'FAIL (2 of 6): ★★★ every one of the 1 name(s) assigned no_chase left AT LEAST ONE row — a name that ends with no row at all is the shape that liquidated the book twice on 08-02, and no later check can see it; ★★ ...']
+
+[5] ★★★ an anchor that withheld NOTHING is NOT_EXERCISED, never PASS
+  OK    ★★★ exit 2 = NOT_EXERCISED, distinct from PASS — 'nothing to check' reported as a pass is how a release gate approves an untested change  — exit 2
+  OK    ...and it says the requirement that matters most is untested
+  OK    ...while the structural checks it COULD run still ran (an excluded anchor must put no name on the treatment arm)
+
+[6] ★★ the two derivations police each other
+  OK    the tool re-derives inline AND cross-checks chase_policy — duplication with an equality assertion is a different object from duplication without one
+  OK    ★ and it selects the anchor STRUCTURALLY (the newest row CARRYING the block), not the newest row — a halted anchor one row later would otherwise mask a real experimental anchor as NOT_EXERCISED
+
+ALL PASS   (18 checks)
+# end=2026-09-13T14:38:13Z rc=0

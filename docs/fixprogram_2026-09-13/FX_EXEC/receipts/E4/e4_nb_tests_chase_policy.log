@@ -1,0 +1,66 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_chase_policy.py head=82fcc160c7d2c5242ea9f4654ec38710b242ee35 dirty=6 start=2026-09-13T14:38:09Z py=Python 3.9.6
+# suite_sha256=17cc3788e25dd42d0e0fe9c5ba7bee190c8b2800ba89b230fd07cc12e35f395e
+
+§1  assignment is reproducible from the seed alone
+  OK    two independent calls with the same seed agree on every name (an unseeded random.random() cannot pass this)  — 200 names
+  OK    both arms actually appear, near the configured 50/50 (a constant-arm implementation passes §1a and fails here)  — no_chase 100/200 = 50.0%
+  OK    a different anchor's seed produces a different split — a symbol does not sit in one arm for ever, which is what would let a per-symbol effect masquerade as a treatment effect  — 110/200 names moved
+  OK    assign_arms draws only the two randomised arms; chase_forced is assigned by C's rule, never by the coin  — arms present: ['chase', 'no_chase']
+
+§2  population and caliber are stated, never implied
+  OK    the record names its population  — from_partial
+  OK    the record names WHICH book its tilt came from, rather than leaving a reader to assume it was a venue readback (the readback happens after the top-up leg)  — prev readback + this anchor's maker fills
+  OK    the assignment rule is recorded verbatim, so the artefact is self-deriving
+
+§3  the artefact checker goes red on a tampered record
+  OK    the tamper fixture is in sample with a randomised set worth tampering with — otherwise the check below exercises the excluded-anchor branch instead  — {'chase_forced': 3, 'no_chase': 3}
+  OK    an untouched record verifies  — {'chase_forced': 3, 'no_chase': 3}
+  OK    one flipped arm is caught and NAMED (a checker that has never been seen red is an unverified claim about a checker)  — {'ok': False, 'n': 6, 'mismatch': ['DDDUSDT'], 'note': '`arm_assigned` and its deprecated alias `arm` DISAGREE — one of the two has been altered. While both names exist they are one fact in two places, and nothing else compares them.'}
+
+§4  exclusion rules — and the negative fact about them
+  OK    a single-name anchor is out of sample  — ["C's skip set holds 0 name(s) < min_eligible 2; a within-anchor comparison needs at least two names in the same anchor, otherwise a coin decides the anchor"]
+  OK    and NO name is on the treatment arm — an excluded anchor must not quietly withhold an order anyway. (Not 'every arm reads chase': C's fill rule applies whether or not the experiment runs, so chase_forced here is correct and the old form asserted the wrong relation)  — {'AAAUSDT': 'chase_forced'}
+  OK    the exclusion states its own reason rather than being inferable only from the arms  — ["C's skip set holds 0 name(s) < min_eligible 2; a within-anchor comparison needs at least two names in the same anchor, otherwise a coin decides the anchor"]
+  NOTE  negative fact: on a one-name anchor an implementation WITHOUT the exclusion rule agrees with this one half the time, by coin. The assertion above is on `excluded_because` — a structural field — precisely because the ARM alone is not evidence.
+  OK    an excluded anchor still verifies under recompute_check (the override is not a mismatch)  — {'ok': True, 'n': 1, 'mismatch': [], 'note': 'excluded anchor: every randomised name must be on the control arm'}
+
+§5  a perfectly one-sided residual set (the measured shape: -100% on 2 of 3 anchors)
+  OK    the whole set is one-sided: nothing to skip on the 'other side'  — worsening=0
+  OK    ★ it fills a NON-EMPTY set — the 'only fill the opposite side' implementation fills zero here and leaves the entire +164 tilt standing  — ['AAAUSDT', 'BBBUSDT']
+  OK    ★ and a STRICT subset — filling everything is the status quo, i.e. no saving at all  — 2 of 5
+  OK    the projected tilt lands inside the band  — projected +54.33 vs tol 64.50
+  OK    it fills the LARGEST residuals first — the fill set is exactly a prefix of the size-ordered names, so the tilt is closed in the fewest orders  — ['AAAUSDT', 'BBBUSDT'] vs order ['AAAUSDT', 'BBBUSDT', 'CCCUSDT', 'DDDUSDT', 'EEEUSDT']
+  OK    the saving is real and material on this shape  — skipped 54.33 of 164.33 = 33.1%
+  NOTE  the saving comes from the BAND, not from cancellation: gross-minus-net on this anchor is exactly $0.00, and the skipped amount is $54.33.
+
+§6  the side that would make the tilt worse
+  OK    names whose fill would increase |net| are never in the fill set  — ['AAAUSDT']
+  OK    they are counted, not silently dropped  — {'band': 0.015, 'tolerance_usdt': 64.5, 'book_net_usdt': 68.0, 'book_gross_usdt': 4300.0, 'net_over_gross_before': 0.015814, 'fill': ['AAAUSDT'], 'skip': ['BBBUSDT', 'WWWUSDT', 'XXXUSDT'], 'n_worsening_skipped': 2, 'filled_notional_usdt': 70.0, 'skipped_notional_usdt': 82.0, 'residual_gross_usdt': 152.0, 'projected_net_usdt': -2.0, 'projected_net_over_gross': -0.000465, 'band_reached': True, 'gross_uncertainty_usdt': 152.0, 'caliber': 'signed residual = target - position, so sum(residual) = -net. Fills the tilt-reducing names in decreasing |residual| and stops at the first one that brings projected |net| inside band*gross; gross is held constant through the scan (error bounded by gross_uncertainty_usdt). BINDING: `fill` is sent as chase_forced; `skip` is the randomised population.'}
+
+§7  the two boundary states
+  OK    a book already inside the band fills NOTHING (18 USDT < 64.50 tolerance)  — 18.0
+  OK    when the residual set cannot reach the band even in full, it fills all of the helpful side and SAYS the band was not reached  — projected +880.00 vs tol 64.50
+
+§8  the no_chase arm's own tilt abort
+  OK    an anomalous residual population aborts the treatment arm  — arms {'chase': 6}, excluded=["the no_chase arm's own residual net -800.00 USDT is 18.60% of book gross > abort 3%; this anchor's residual population is far outside the 1.3-2.9% the experiment was sized against, so the arm is overridden"]
+  OK    and the abort reports the measured fraction, not just the fact  — ["the no_chase arm's own residual net -800.00 USDT is 18.60% of book gross > abort 3%; this anchor's residual population is far outside the 1.3-2.9% the experiment was sized against, so the arm is overridden"]
+  OK    a normal-sized population is NOT aborted (the guard is not simply always-on — the shape where a guard passes by refusing everything)
+
+§9  the shadow decision is over ALL names, and the arms are over the live ones
+  OK    C ranges over every name in the population, not over one arm's share  — 3+3 vs 6
+  OK    C's fill set carries its own label and is not pooled into the randomised control  — {'chase_forced': 3, 'no_chase': 3}
+  OK    the record states that C decides first and that chase_forced must not be pooled
+
+§10  an unknown book net is not a neutral book
+  OK    the fixture keeps the tilt abort out of it, so the fallback is what decides the arms  — ['no book net was available, so C could not decide and no name may be withheld: a name skipped without knowing the tilt could be the one holding the book flat']
+  OK    with no book net C is None, not a decision computed from an assumed 0.0 (a 0.0 there reads as 'already neutral' and would recommend filling NOTHING — the treatment, applied by accident, in the one state where we cannot tell if it is safe)
+  OK    ★ and the fallback is the STATUS QUO, not the treatment: every name is chased and the anchor is out of sample. Falling back to no_chase would withhold a name that might be the one holding the book flat  — {'chase': 6}
+
+§11  C decides first, and the experiment lives strictly inside its skip set
+  OK    ★ every name C keeps for neutrality is executed — none of them can land on the treatment arm, whatever the coin says. This is the property that makes the experiment safe to run at all: the book's neutrality is never the thing being risked  — {'AAAUSDT': 'chase_forced', 'BBBUSDT': 'chase_forced', 'CCCUSDT': 'chase_forced'}
+  OK    the randomised population is EXACTLY C's skip set — no name is experimented on that C would have filled, and none that C would have skipped is left out  — ['DDDUSDT', 'EEEUSDT', 'FFFUSDT'] vs ['DDDUSDT', 'EEEUSDT', 'FFFUSDT']
+  OK    the record reports both denominators separately, so a rate cannot be computed over the wrong one  — population 6, randomised 3
+  OK    ★ a name PARKED on chase_forced to escape the coin is caught — the forced set is checked against C's own recorded fill set, not merely skipped as un-derivable  — {'ok': False, 'n': 6, 'mismatch': ['DDDUSDT'], 'note': '`arm_assigned` and its deprecated alias `arm` DISAGREE — one of the two has been altered. While both names exist they are one fact in two places, and nothing else compares them.'}
+
+ALL PASS   (37 checks)
+# end=2026-09-13T14:38:09Z rc=0

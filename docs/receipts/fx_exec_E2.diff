@@ -1,0 +1,388 @@
+diff --git a/live/binance_broker.py b/live/binance_broker.py
+index f3de2aa..4197bff 100644
+--- a/live/binance_broker.py
++++ b/live/binance_broker.py
+@@ -376,6 +376,38 @@ def reduce_only_clamp(rec, expected, reduce_only) -> Optional[Dict[str, Any]]:
+     return {"ours": ours, "venue": venue, "why": "reduceOnly clamped to position"}
+ 
+ 
++# ★ E2 (FX-EXEC 2026-09-13): the reason text is the settlement merge's (`venue_fills._merged`), verbatim — one request, one name for
++#   the finding, whichever reader found it (pinned equal by tests_reduce_only_clamp [T13] PARITY).
++CAPACITY_CONFLICT_WHY = ("capacity conflict: records of this request name different venue-accepted origQty and this "
++                         "executor never modifies an order — capacity UNKNOWN, bounded by the quantity sent")
++_CAPACITY_IDENT = ("clientOrderId", "symbol", "orderId", "origQty", "side")
++
++
++def capacity_conflict(records, sent=None) -> Optional[Dict[str, Any]]:
++    """★ E2 (FX-EXEC 2026-09-13; independent review round 4 §2.2 — the broker's direct GET re-query read capacity by its own rule).
++    CAPACITY IS A FACT OF THE REQUEST, FOR EVERY READER. `records` = [(tag, record)] of ONE request, each already judged OURS by that
++    reader's identity gate; `sent` = Qs, the quantity we sent (None when the order carries none).
++    Every record that carries an identity field AND an origQty VALUE is one reading; all readings must name the same capacity within
++    the identity gates' 1e-6 tolerance, each compared with the FIRST — the settlement merge's rule (`venue_fills._merged`, R3-A1),
++    restated here so the direct reader applies it and pinned equal to it cell by cell ([T13] PARITY). This executor never modifies
++    an order (no modify verb exists — [T12] premise cell), so two readings that disagree are not two versions: the capacity is
++    UNKNOWN, bounded by Qs. Returns None when the readings agree (or fewer than two exist), else the named finding
++    {"why", "sent", "records": [{"record", "origQty"}]} — never an identity contradiction: it withholds the capacity, nothing else."""
++    readings = []
++    for tag, r in records or ():
++        if not isinstance(r, dict) or not any(r.get(k) is not None for k in _CAPACITY_IDENT):
++            continue                                              # a body with no identity field carries no capacity
++        st, v = identity_field(r, "origQty")
++        if st == "value":
++            readings.append((tag, float(v)))
++    if not readings:
++        return None
++    v0 = readings[0][1]
++    if all(abs(v - v0) <= max(1e-9, 1e-6 * max(abs(v), abs(v0))) for _, v in readings):
++        return None
++    return {"why": CAPACITY_CONFLICT_WHY, "sent": sent, "records": [{"record": t, "origQty": v} for t, v in readings]}
++
++
+ def _ident_check(rec, key, expected, what, reduce_only=False, clamp_out=None) -> Optional[str]:
+     """None when `rec[key]` is absent or agrees with `expected`; the reason otherwise.
+     ★ E-0912-A: for an origQty/quantity key on a reduce-only order, a venue value BELOW ours on a reduceOnly record is
+@@ -430,16 +462,23 @@ def requery_identity_mismatch(resp, order, o, clamp_out=None) -> Optional[str]:
+     CARRIES THE FIELD: clientOrderId, symbol, orderId, origQty, side. ★ Round 13: the same four-state reading
+     as every other gate — a malformed present field is a contradiction, an absent one is not evidence.
+     ★ E-0912-A: the origQty expected here is the submit response's (already the venue's clamped value when it
+-    clamped), else our quantity — in the second case a clamped record is the fourth state, `reduce_only_clamp`."""
++    clamped), else our quantity — in the second case a clamped record is the fourth state, `reduce_only_clamp`.
++    ★ E2 (FX-EXEC 2026-09-13) SUPERSEDES THE LINE ABOVE: the origQty expected is OUR quantity Qs whenever the order carries one —
++    each record is judged on its own against what we SENT, exactly as the settlement's `_valid` judges allOrders / query records
++    (equal, or a legal clamp below Qs). Comparing the record with the submit response's origQty made "do the two records agree"
++    an IDENTITY question: GET 6 below POST 8 passed as a clamp of a clamp (and the POST's 8 stayed the capacity), GET 8 above
++    POST 6 became a contradiction — the chain calls both a capacity conflict. Whether readings agree is now asked by the request-
++    level rule `capacity_conflict`, in `last_fill_details`. Only an order WITHOUT a quantity (there is no Qs to judge a clamp
++    against) still falls back to the submit response's origQty; a record above what we sent is still a mismatch."""
+     if not isinstance(o, dict):
+         return "re-query answered with a non-object"
+     order = order or {}
+     _cid = order.get("client_id") if order.get("client_id") is not None else resp.get("clientOrderId")
+     _sym = resp.get("symbol") if resp.get("symbol") is not None else order.get("symbol")
+     _oid = identity_field(resp, "orderId")
+-    _oq = identity_field(resp, "origQty")
++    _oq = identity_field(order, "quantity")                # E2: what we SENT (Qs) is the reference
+     if _oq[0] != "value":
+-        _oq = identity_field(order, "quantity")
++        _oq = identity_field(resp, "origQty")               # no Qs on the order: the submit response's is the only one there is
+     _side = str(order.get("side") or "").upper() or None
+     for key, exp in (("clientOrderId", _cid), ("symbol", _sym), ("orderId", _oid[1] if _oid[0] == "value" else None),
+                      ("origQty", _oq[1] if _oq[0] == "value" else None), ("side", _side)):
+@@ -1610,7 +1649,18 @@ class BinanceBroker:
+                     if _idb:
+                         out["inconsistent"] = f"re-query identity: {_idb}"
+                         return out
+-                    if _clamp.get("clamped") and "clamped" not in out:
++                    # ★★ E2 (FX-EXEC 2026-09-13): the two records are OURS one by one; whether they AGREE on the capacity is the
++                    #    request-level rule the settlement merge applies (R3-A1). Disagreement ⇒ capacity UNKNOWN: no `clamped`
++                    #    travels (not the POST's, not the GET's), the named `capacity_conflict` does, `orig_qty` is the bound Qs,
++                    #    and the quantity read beside it is not a PROVEN final total (below) — the top-up leg consumes that flag.
++                    _qs = identity_field(_order, "quantity")
++                    _cf = capacity_conflict((("submit response", resp), ("re-query", o)),
++                                            abs(float(_qs[1])) if _qs[0] == "value" else None)
++                    if _cf is not None:
++                        out.pop("clamped", None)
++                        out["capacity_conflict"] = _cf
++                        out["orig_qty"] = _cf["sent"]
++                    elif _clamp.get("clamped") and "clamped" not in out:
+                         out["clamped"] = dict(_clamp["clamped"])       # E-0912-A: the re-query showed the clamp
+                 # ★★ Round 8 (review R7-A): the re-query is a SECOND record of the SAME request, not
+                 #    a replacement. Facts are merged per field: a record that lacks a field cannot
+@@ -1632,6 +1682,8 @@ class BinanceBroker:
+                     out["status"] = merged["status"]
+                 _term = bool(merged.get("terminal"))
+                 out["executed_qty_final"] = bool(merged.get("executed_qty_final"))   # round 10: final total vs open lower bound
++                if out.get("capacity_conflict"):
++                    out["executed_qty_final"] = False            # E2: beside a capacity conflict no snapshot proves the total (R3-A1)
+                 if merged.get("executed_qty_derived"):
+                     out["executed_qty_source"] = "cumQuote/avgPrice of the same record (executedQty missing)"
+                 if cq is None and merged.get("cum_quote_lower") is not None:
+diff --git a/live/binance_executor.py b/live/binance_executor.py
+index b410e62..187e644 100644
+--- a/live/binance_executor.py
++++ b/live/binance_executor.py
+@@ -1936,6 +1936,11 @@ class RebalanceExecutor:
+                     _ex1 = _fin(_d1.get("executed_qty"))
+                     if _d1.get("inconsistent"):
+                         _r["inconsistent"] = str(_d1["inconsistent"])     # round 7 (R6-QB)
++                    if _d1.get("capacity_conflict"):
++                        # ★ E2 (FX-EXEC 2026-09-13): the request's records disagreed on the venue-accepted origQty — named on the
++                        #   request ledger exactly as the settlement chain names it (`_clamp_cols`), so `_req_qty` bounds it by Qs and
++                        #   `_final_known` accepts no producer flag for it (a quantity derived from amount / price below included)
++                        _r["capacity_conflict"] = dict(_d1["capacity_conflict"])
+                     _answered = (_one is not None) or (_ex1 is not None) or bool(_st1)   # round 9: a status read IS an answer
+                     # ★ round 11 (review R10 self-report 2): terminal only from an EXPLICIT status — the wire order is
+                     #   MARKET + RESULT and a body without a status proves nothing about finality, whatever the
+diff --git a/live/tests_reduce_only_clamp.py b/live/tests_reduce_only_clamp.py
+index 289fc28..69caec3 100644
+--- a/live/tests_reduce_only_clamp.py
++++ b/live/tests_reduce_only_clamp.py
+@@ -40,6 +40,11 @@ verbatim from the run tree; see its README):
+       UNKNOWN with a named `capacity_conflict`, no `qty_venue`, never proven final, band [C, Qs] — settlement merge,
+       the full plan → submit_maker → complete_anchor chain and `reconcile`; consistent 8/8 keeps its clamp and its
+       closure; a foreign orderId stays rejected; the no-order-modify premise is pinned.       [OLD CODE: RED]
++  T13 E2 (FX-EXEC 2026-09-13; independent review round 4 §2.2): the broker's DIRECT GET re-query (`last_fill_details`)
++      obeys the SAME request-level capacity rule — the reviewer's POST cap8/C4 → GET cap6/C6/CANCELED case verbatim and its
++      reverse ⇒ a named `capacity_conflict`, no clamp, never final; the same pairs on the REAL 12Z MEME bodies (and their
++      agreeing positive control); the 1e-6 edge; neighbours (above Qs / non-reduce-only / absent origQty / identity-less body
++      unchanged); a PARITY grid against the settlement merge; the top-up leg end to end through `reconcile`.  [OLD CODE: RED]
+ 
+ WHAT IS NOT: that the venue always clamps a reduceOnly order rather than refusing it (documented behaviour; -2022
+ is raised with no position / the wrong side — observed on 2026-09-12, assumed general); the allOrders record used
+@@ -863,6 +868,236 @@ check("★★ T12 the premise is pinned, not assumed: no runtime module (live/ s
+       "goes red: records after a modify are a new VERSION of the request, and capacity versions must then be designed, not assumed",
+       bool(_verbs) and _verbs <= {"GET", "POST", "DELETE"} and not _puts, (sorted(map(str, _verbs)), _puts))
+ 
++# ════════════════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[T13] E2 (FX-EXEC 2026-09-13; independent review round 4 §2.2): the broker's DIRECT GET re-query obeys the SAME "
++      "request-level capacity contract as the settlement chain — two records of one request that name different origQty "
++      "leave the capacity UNKNOWN, named, never the first record's clamp and never an identity contradiction")
++# The reviewer ran the ORIGINAL `last_fill_details` (pure AST copy; the one GET answered by an in-memory mock) on: we sent Qs 10
++# BUY reduce-only; the POST answered origQty 8, executedQty 4, cumQuote null, PARTIALLY_FILLED (so the method re-queries); the
++# GET answered origQty 6, executedQty 6, cumQuote 6, avgPrice 1, CANCELED. Output: `clamped` venue 8, executed_qty 6,
++# executed_qty_final True, no capacity_conflict — the defect T12 closed in the settlement merge still lived on this reader, and the
++# top-up leg CONSUMES `executed_qty_final` (binance_executor `_fin1` ⇒ `confirmed_qty_final`). The reverse order (6 then 8) was an
++# IDENTITY contradiction here and a capacity conflict in the chain: one request, two readers, two verdicts. Receipt:
++# .../codex_round4_code_review_2026-09-13/incident/COUNTEREXAMPLES.json, case "disclosed unchanged direct broker GET capacity path".
++_E2_CID = "SYNTH-1"
++
++
++def _e2_post(orig, c, **over):
++    """The reviewer's POST body, field for field (COUNTEREXAMPLES.json): cumQuote null ⇒ the method must re-query."""
++    r = {"clientOrderId": _E2_CID, "symbol": "SYNTH", "orderId": 7, "side": "BUY", "reduceOnly": True,
++         "origQty": orig, "executedQty": c, "cumQuote": None, "status": "PARTIALLY_FILLED"}
++    r.update(over)
++    return r
++
++
++def _e2_get(orig, c, status="CANCELED", **over):
++    """The reviewer's GET body, field for field: C with its own amount (price 1)."""
++    r = {"clientOrderId": _E2_CID, "symbol": "SYNTH", "orderId": 7, "side": "BUY", "reduceOnly": True,
++         "origQty": orig, "executedQty": c, "cumQuote": c, "status": status, "avgPrice": 1.0}
++    r.update(over)
++    return r
++
++
++def _e2_direct(post, get, qty=10.0, reduce_only=True, side="buy", sym="SYNTH", cid=_E2_CID):
++    """`last_fill_details` exactly as the top-up leg / flatten / exit readers call it: ONE submit action (our order), the ONE
++    GET /fapi/v1/order answered by `get` over the sealed FakeNet. Returns (details, number of GETs sent)."""
++    b = broker()
++    NET.on("GET", "/fapi/v1/order", dict(get))
++    order = {"symbol": sym, "side": side, "client_id": cid, "reduce_only": reduce_only}
++    if qty is not None:
++        order["quantity"] = qty
++    b.actions.append({"action": "submit", "order": order, "resp": dict(post)})
++    return b.last_fill_details(), NET.n("GET", "/fapi/v1/order")
++
++
++def _e2_verdict(d):
++    """What a reader may conclude about CAPACITY from one output: ('conflict', readings) / ('clamp', Qv) / ('identity', why) / ('none',)."""
++    if d.get("capacity_conflict"):
++        return ("conflict", sorted(x.get("origQty") for x in (d["capacity_conflict"].get("records") or ())))
++    if d.get("inconsistent"):
++        return ("identity", "re-query identity" in str(d["inconsistent"]))
++    if d.get("clamped"):
++        return ("clamp", d["clamped"].get("venue"))
++    return ("none",)
++
++
++_KEYS13 = ("clamped", "capacity_conflict", "executed_qty", "executed_qty_final", "filled_notional", "status", "inconsistent", "orig_qty")
++_d13, _ng13 = _e2_direct(_e2_post(8.0, 4.0), _e2_get(6.0, 6.0))
++_cf13 = _d13.get("capacity_conflict") or {}
++check("★★★ T13 the reviewer's case, verbatim — POST origQty 8 / C 4 / cumQuote null (PARTIALLY_FILLED) then GET origQty 6 / C 6 / "
++      "CANCELED ⇒ capacity UNKNOWN: NO `clamped`, a named `capacity_conflict` {sent 10; submit response 8, re-query 6}, C 6 read but "
++      "NOT final, the amount 6 and CANCELED kept, nothing called a contradiction (OLD CODE: `clamped` venue 8 beside a PROVEN final 6)",
++      _ng13 == 1 and "clamped" not in _d13 and _cf13.get("sent") == 10.0
++      and _cf13.get("records") == [{"record": "submit response", "origQty": 8.0}, {"record": "re-query", "origQty": 6.0}]
++      and "capacity" in str(_cf13.get("why")) and _d13.get("executed_qty") == 6.0 and _d13.get("executed_qty_final") is False
++      and _d13.get("filled_notional") == 6.0 and _d13.get("status") == "CANCELED" and not _d13.get("inconsistent"),
++      {k: _d13.get(k) for k in _KEYS13})
++check("★★ T13 …and the capacity it reports is the one bound every record respected — `orig_qty` is Qs 10 (the settlement canon's "
++      "origQty under a conflict), not either record's reading (OLD CODE: 8, the POST's)",
++      _d13.get("orig_qty") == 10.0, _d13.get("orig_qty"))
++_d13, _ng13 = _e2_direct(_e2_post(6.0, 4.0), _e2_get(8.0, 6.0))
++_cf13 = _d13.get("capacity_conflict") or {}
++check("★★★ T13 the reverse order — POST origQty 6 then GET origQty 8 (C 6, CANCELED), both legal on their own below Qs 10 ⇒ the same "
++      "named `capacity_conflict` {6, 8}, not final, no `clamped`, NOT an identity contradiction (OLD CODE: inconsistent 're-query "
++      "identity: record origQty 8.0 differs from ours 6.0' — the chain called the same two records a capacity conflict)",
++      _ng13 == 1 and not _d13.get("inconsistent") and "clamped" not in _d13
++      and _cf13.get("records") == [{"record": "submit response", "origQty": 6.0}, {"record": "re-query", "origQty": 8.0}]
++      and _d13.get("executed_qty") == 6.0 and _d13.get("executed_qty_final") is False,
++      {k: _d13.get(k) for k in _KEYS13})
++# ── the same two defects on the REAL 12Z MEMEUSDT bodies (mutated only as named: the real POST said NEW / executedQty "0", which
++#    returns before any GET — so it is given the FIRST real child 560266 as PARTIALLY_FILLED; the GET is the real body's identity with
++#    the real first two children as C and their real quotes as the amount) ──
++_lg13 = MK[MEME]["request_ledger"][0]
++_c2 = _lg13["trade_qty"]["376472584"] + _lg13["trade_qty"]["376472585"]
++_n2 = _lg13["trade_quote"]["376472584"] + _lg13["trade_quote"]["376472585"]
++_mpost = dict(ACTS[MEME]["resp"], status="PARTIALLY_FILLED", executedQty="560266", cumQty="560266")
++
++
++def _mget(orig):
++    return dict(ACTS[MEME]["resp"], status="CANCELED", origQty=orig, executedQty=f"{_c2:.0f}", cumQty=f"{_c2:.0f}",
++                cumQuote=f"{_n2:.5f}", avgPrice=f"{_n2 / _c2:.10f}", updateTime=1789216052692)
++
++
++def _mdirect(orig):
++    return _e2_direct(_mpost, _mget(orig), qty=OURS[MEME], reduce_only=True, side="sell", sym=MEME, cid=ACTS[MEME]["order"]["client_id"])
++
++
++_d13, _ng13 = _mdirect("1933600")
++check("★★★ T13 real MEME bodies, forward — POST origQty 1933692 (the real clamp) then GET origQty 1933600 (CANCELED, C 1343072) ⇒ "
++      "capacity_conflict {1933692, 1933600}, sent 1933986, no `clamped`, C −1343072 NOT final (OLD CODE: `clamped` venue 1933692 and a "
++      "PROVEN final −1343072)",
++      _ng13 == 1 and _e2_verdict(_d13) == ("conflict", [1933600.0, 1933692.0]) and (_d13.get("capacity_conflict") or {}).get("sent") == OURS[MEME]
++      and "clamped" not in _d13 and _d13.get("executed_qty") == -_c2 and _d13.get("executed_qty_final") is False,
++      {k: _d13.get(k) for k in _KEYS13})
++_d13, _ng13 = _mdirect("1933986")
++check("★★★ T13 real MEME bodies, reverse — POST origQty 1933692 then GET origQty 1933986 (= what we sent) ⇒ capacity_conflict "
++      "{1933692, 1933986}, not an identity contradiction (OLD CODE: 're-query identity: record origQty 1933986.0 differs from ours 1933692.0')",
++      _ng13 == 1 and _e2_verdict(_d13) == ("conflict", [1933692.0, 1933986.0]) and not _d13.get("inconsistent")
++      and _d13.get("executed_qty_final") is False, {k: _d13.get(k) for k in _KEYS13})
++_d13, _ng13 = _mdirect("1933692")
++check("★★★ T13 real MEME bodies, POSITIVE CONTROL — POST and GET both origQty 1933692 ⇒ ONE capacity: `clamped` {ours 1933986, venue "
++      "1933692}, no `capacity_conflict`, C −1343072 final, amount −(real quotes) — unchanged by this fix",
++      _ng13 == 1 and _d13.get("clamped") == {"ours": OURS[MEME], "venue": POSN[MEME], "why": "reduceOnly clamped to position"}
++      and "capacity_conflict" not in _d13 and _d13.get("executed_qty") == -_c2 and _d13.get("executed_qty_final") is True
++      and abs(float(_d13.get("filled_notional") or 0.0) + _n2) < 1e-6 and not _d13.get("inconsistent"),
++      {k: _d13.get(k) for k in _KEYS13})
++# ── neighbours: nothing that was a contradiction becomes a fact, nothing that was a fact becomes a conflict ──
++_d13, _ = _e2_direct(_e2_post(8.0, 4.0), _e2_get(8.0, 6.0))
++check("★★ T13 neighbour: POST 8 and GET 8 agree ⇒ `clamped` {10, 8}, no `capacity_conflict`, C 6 final (both versions)",
++      _d13.get("clamped") == {"ours": 10.0, "venue": 8.0, "why": "reduceOnly clamped to position"} and "capacity_conflict" not in _d13
++      and _d13.get("executed_qty") == 6.0 and _d13.get("executed_qty_final") is True, {k: _d13.get(k) for k in _KEYS13})
++_d13, _ = _e2_direct(_e2_post(8.0, 4.0), _e2_get(12.0, 6.0))
++check("★★ T13 neighbour: GET origQty 12 ABOVE what we sent (10) ⇒ still an identity contradiction, no quantity, no amount, no conflict "
++      "named (the reference is what we SENT, so nothing above it is ever a legal capacity)",
++      "re-query identity" in str(_d13.get("inconsistent")) and _d13.get("executed_qty") is None and _d13.get("filled_notional") is None
++      and "capacity_conflict" not in _d13, {k: _d13.get(k) for k in _KEYS13})
++_d13, _ = _e2_direct(_e2_post(10.0, 4.0, reduceOnly=False), _e2_get(8.0, 6.0, reduceOnly=False), reduce_only=False)
++check("★★ T13 neighbour: our order NOT reduce-only, POST 10 then GET 8 (record not reduceOnly) ⇒ still an identity contradiction — "
++      "a smaller origQty is a clamp only on a reduce-only request",
++      "re-query identity" in str(_d13.get("inconsistent")) and "capacity_conflict" not in _d13 and _d13.get("executed_qty") is None,
++      {k: _d13.get(k) for k in _KEYS13})
++_d13, _ = _e2_direct(_e2_post(8.0, 4.0), {k: v for k, v in _e2_get(6.0, 6.0).items() if k != "origQty"})
++check("★★ T13 neighbour: a GET that carries its identity but NO origQty is not a capacity reading ⇒ no conflict, the POST's clamp "
++      "{10, 8} stands, C 6 final (absent is not evidence — round 13's four-state reading, unchanged)",
++      "capacity_conflict" not in _d13 and (_d13.get("clamped") or {}).get("venue") == 8.0 and _d13.get("executed_qty") == 6.0
++      and _d13.get("executed_qty_final") is True and not _d13.get("inconsistent"), {k: _d13.get(k) for k in _KEYS13})
++_d13, _ = _e2_direct({k: v for k, v in _e2_post(8.0, 4.0).items() if k != "origQty"}, _e2_get(8.0, 6.0))
++check("★★ T13 neighbour: a POST without origQty, then a GET origQty 8 reduceOnly ⇒ one reading ⇒ the re-query's clamp {10, 8}, no "
++      "conflict (both versions)",
++      "capacity_conflict" not in _d13 and _d13.get("clamped") == {"ours": 10.0, "venue": 8.0, "why": "reduceOnly clamped to position"}
++      and _d13.get("executed_qty_final") is True, {k: _d13.get(k) for k in _KEYS13})
++_d13, _ = _e2_direct(_e2_post(8.0, 4.0), {"status": "CANCELED", "executedQty": 6.0, "cumQuote": 6.0, "avgPrice": 1.0})
++check("★ T13 neighbour: a GET body with NO identity field at all contributes facts, never a capacity ⇒ no conflict, clamp {10, 8} "
++      "stands (round 9b: compared when present)",
++      "capacity_conflict" not in _d13 and (_d13.get("clamped") or {}).get("venue") == 8.0 and _d13.get("executed_qty") == 6.0,
++      {k: _d13.get(k) for k in _KEYS13})
++_d13a, _ = _e2_direct(_e2_post(8.0, 4.0), _e2_get(8.0 * (1 + 0.9e-6), 6.0))
++_d13b, _ = _e2_direct(_e2_post(8.0, 4.0), _e2_get(8.0 * (1 + 1.5e-6), 6.0))
++check("★★ T13 tolerance is the identity gates' own 1e-6: 8 vs 8·(1+0.9e-6) agree (clamp, no conflict); 8 vs 8·(1+1.5e-6) is a named "
++      "conflict (OLD CODE: the second is an identity contradiction against the POST's 8)",
++      _e2_verdict(_d13a) == ("clamp", 8.0) and _e2_verdict(_d13b)[0] == "conflict",
++      (_e2_verdict(_d13a), _e2_verdict(_d13b)))
++check("★★ T13 the gate on its own: a re-query record whose origQty is a legal clamp against what we SENT is OUR record (identity), "
++      "whatever the submit response said — agreement between records is the capacity rule's question, not identity's (OLD CODE: "
++      "POST 8 / GET 10 = 'differs from ours 8.0'); above what we sent stays a mismatch",
++      BB.requery_identity_mismatch(_e2_post(8.0, 4.0), {"symbol": "SYNTH", "side": "buy", "quantity": 10.0, "client_id": _E2_CID, "reduce_only": True},
++                                   _e2_get(10.0, 6.0)) is None
++      and BB.requery_identity_mismatch(_e2_post(8.0, 4.0), {"symbol": "SYNTH", "side": "buy", "quantity": 10.0, "client_id": _E2_CID, "reduce_only": True},
++                                       _e2_get(10.5, 6.0)) is not None,
++      (BB.requery_identity_mismatch(_e2_post(8.0, 4.0), {"symbol": "SYNTH", "side": "buy", "quantity": 10.0, "client_id": _E2_CID, "reduce_only": True}, _e2_get(10.0, 6.0))))
++# ── PARITY: the direct reader and the settlement chain give ONE capacity verdict for the SAME two records ──
++_par, _why_d, _why_c = [], None, None
++for _f, _s in ((8.0, 6.0), (6.0, 8.0), (8.0, 8.0), (10.0, 8.0), (8.0, 10.0), (10.0, 10.0),
++               (8.0, 8.0 * (1 + 0.9e-6)), (8.0, 8.0 * (1 + 1.5e-6)), (6.0, 6.0)):
++    _dd, _ = _e2_direct(_e2_post(_f, 4.0), _e2_get(_s, 4.0, status="PARTIALLY_FILLED"))
++    _rc13 = _x_settle(_x_rec(_f, 4.0, origQty=repr(_f)), _x_rec(_s, 4.0, origQty=repr(_s)))
++    _pt13 = (_rc13.get("partial") or {}).get(_XS) or {}
++    _vc = (("conflict", sorted(set(x.get("origQty") for x in (_pt13["capacity_conflict"].get("records") or ()))))
++           if _pt13.get("capacity_conflict") else (("clamp", _pt13["clamped"].get("venue")) if _pt13.get("clamped") else ("none",)))
++    _vd = _e2_verdict(_dd)
++    if _vd[0] == "conflict":
++        _vd = ("conflict", sorted(set(_vd[1])))
++        _why_d = (_dd.get("capacity_conflict") or {}).get("why")
++    if _vc[0] == "conflict":
++        _why_c = (_pt13.get("capacity_conflict") or {}).get("why")
++    _par.append(((_f, _s), _vd, _vc))
++check("★★★ T13 PARITY: for the same pair of records (POST then GET / allOrders+re-query) the direct reader and the settlement merge "
++      "reach the SAME capacity verdict on every cell — agree ⇒ the same clamp, disagree ⇒ a conflict over the same readings, the "
++      "1e-6 edge on the same side — and name it with the SAME reason text (OLD CODE: 8→6 clamp vs conflict, 6→8 identity vs conflict)",
++      all(v[1] == v[2] for v in _par) and _why_d is not None and _why_d == _why_c,
++      [v for v in _par if v[1] != v[2]] or (_why_d == _why_c))
++# ── the ORIGINAL CHAIN: the top-up leg that consumes this reader (binance_executor.topup → `_d1`) ──
++
++
++def _e2_topup(post, get):
++    """The unmodified top-up leg on one reduce-only BUY residual of 10 @ 10 (a refused maker's conversion, so no chase arm decides):
++    POST answers `post` (no amount ⇒ the leg's reader re-queries), GET answers `get`. Returns (the top-up row, its request, calls)."""
++    e = _ex(); b = e.broker
++    cid = f"{RID}-{_XS}-3"
++    NET.on("POST", "/fapi/v1/order", dict(post, clientOrderId=cid, symbol=_XS))
++    # the leg reads `last_fill_details` TWICE — per request (`_d1`, quantity/amount/finality) and once after the loop (`_d`, fill time)
++    NET.on("GET", "/fapi/v1/order", dict(get, clientOrderId=cid, symbol=_XS), dict(get, clientOrderId=cid, symbol=_XS))
++    p = {"symbol": _XS, "side": "buy", "qty": 10.0, "mid_at_anchor": 10.0, "delta_notional": 100.0, "target_w": 0.0, "prev_w": -0.1,
++         "reduce_only": True, "_topup_source": "from_reject", "submit_ts": 1.0, "price_submit": 10.0}
++    e.topup([p], {}, A12, RID)
++    tu = [r for r in e.rows_orders if r["order_type"] == "topup_taker" and r["symbol"] == _XS]
++    assert len(tu) == 1, [(r["order_type"], r["terminal_reason"]) for r in e.rows_orders]
++    return tu[0], (tu[0].get("request_ledger") or [{}])[0], (NET.n("POST", "/fapi/v1/order"), NET.n("GET", "/fapi/v1/order")), list(e.rows_orders)
++
++
++_TPOST = {"orderId": 7, "side": "BUY", "reduceOnly": True, "origQty": "8", "executedQty": "4", "status": "PARTIALLY_FILLED", "updateTime": _X_T0}
++_TGET = {"orderId": 7, "side": "BUY", "reduceOnly": True, "origQty": "6", "executedQty": "6", "cumQuote": "60", "avgPrice": "10",
++         "status": "CANCELED", "updateTime": _X_T0}
++_tu, _tq, _calls, _trows = _e2_topup(_TPOST, _TGET)
++check("★★★ T13 CHAIN — the top-up leg on the reviewer's shape (POST 8 / C 4, GET 6 / C 6 CANCELED): its request ledger carries the named "
++      "`capacity_conflict`, C 6 NOT final, and the row keeps the band Qs − C = 4 with filled_qty undetermined (OLD CODE: "
++      "confirmed_qty_final True ⇒ filled_qty 6, no band — a PROVEN 6 from a capacity nobody agreed on)",
++      _calls == (1, 2) and {x.get("origQty") for x in ((_tq.get("capacity_conflict") or {}).get("records") or ())} == {8.0, 6.0}
++      and _tq.get("confirmed_qty") == 6.0 and _tq.get("confirmed_qty_final") is False and _tq.get("qty") == 10.0
++      and _tu.get("filled_qty") is None and _tu.get("filled_known_qty") == 6.0 and _tu.get("filled_unknown_qty") == 4.0,
++      ({k: _tq.get(k) for k in ("qty", "state", "terminal", "confirmed_qty", "confirmed_qty_final", "capacity_conflict", "inconsistent")},
++       {k: _tu.get(k) for k in ("terminal_reason", "filled_qty", "filled_known_qty", "filled_unknown_qty", "filled_notional")}))
++_rc13a, _rc13b = _x_reconcile(_trows, -2.0), _x_reconcile(_trows, 1.0)
++check("★★★ T13 CHAIN ⇒ reconcile: short 10 → short 2 (the POST's capacity 8 filled) is INSIDE [C 6, Qs 10] ⇒ 0 anomalies (OLD CODE: the "
++      "proven 6 reads it as a 2-contract / 20 USDT residual ⇒ an anomaly); short 10 → long 1 (beyond what we SENT) is still an anomaly",
++      len(_rc13a["latest"]) == 0 and len(_rc13b["latest"]) == 1, (_rc13a["n_anomalies_by_kind"], _rc13b["n_anomalies_by_kind"]))
++_tu, _tq, _calls, _trows = _e2_topup(_TPOST, dict(_TGET, origQty="8"))
++check("★★ T13 CHAIN positive control: POST 8 / GET 8 agree ⇒ no `capacity_conflict` on the request, C 6 final from the CANCELED "
++      "snapshot, filled_qty 6 (unchanged by this fix)",
++      "capacity_conflict" not in _tq and _tq.get("confirmed_qty_final") is True and _tu.get("filled_qty") == 6.0,
++      ({k: _tq.get(k) for k in ("confirmed_qty", "confirmed_qty_final", "capacity_conflict")}, _tu.get("filled_qty")))
++# ── the other two readers of `last_fill_details` read amount / price / time only: a capacity conflict changes none of them ──
++_b13 = broker()
++NET.on("GET", "/fapi/v1/ticker/bookTicker", [{"symbol": "SYNTH", "bidPrice": "0.99", "askPrice": "1.01"}])
++NET.on("POST", "/fapi/v1/order", _e2_post(8.0, 4.0, updateTime=_X_T0))
++NET.on("GET", "/fapi/v1/order", _e2_get(6.0, 6.0, updateTime=_X_T0))
++_fo13 = _b13.flatten_all({"SYNTH": -10.0}, "t13 neighbour")
++_ex13 = (_fo13[0].get("_exec") if _fo13 else None) or {}
++check("★ T13 neighbour: `flatten_all` records the same amount / price / venue time for its order under the conflict (6.0 / 1.0 / "
++      "updateTime) — its `_exec` never read capacity or finality (both versions)",
++      len(_fo13) == 1 and _ex13.get("filled_notional") == 6.0 and _ex13.get("avg_fill_px") == 1.0 and _ex13.get("fill_ts") == _X_T0 / 1000.0,
++      _ex13)
++
+ print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
+ if FAILS:
+     print("FAILED:", *FAILS, sep="\n  ")
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 5e52407..e2930c0 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -211,7 +211,14 @@ SUITE_SCOPE = {
+     "tests_venue_rate_authority": "that the 80% backstop is ENOUGH — we still do not know what banned us on 07-30, only that it was not any counter we kept. The backstop makes the venue's own number authoritative and the out-of-band gap measurable; whether 80% of a published weight limit is the binding constraint at all is a question the next incident answers, and this time the record will contain the answer",
+     "tests_venue_cap_clamp": "that the venue's cap is the number symbolConfig reports — it proves the pure clamp (shrink-only, sign-preserving, cap 0 and missing config untouched, over-cap positions reduced to the limit, PIEVERSE replica) and the wiring order pop→reshape→held-clamp→cap-clamp→plan. It cannot see whether the venue evaluates -2027 on mark price or on order price (the 2% margin is a policy number, not a measurement), nor whether a cap changes between arm and submit, nor whether the book's net shift from the clamp is worth hedging",
+     "tests_request_identity_unknown": "that the venue will ever produce these sequences — every outcome is injected. It proves, against the real submit/requote/top-up/attribution/reconcile code, that a -2013×2 'absent' is carried as ambiguous and never re-sent this anchor, that every venue request has its own client id (-1/-2/-3/-3cN) and the resolver refuses a record under another id, that an UNKNOWN request survives a later refusal and a partial attribution, that reconcile consumes the unknown as an authorised band instead of a hole, that 408/-1007/-1006 are execution-unknown, and that the cap clamp validates and applies atomically; round 4 (review 62ebf9f8): that the top-up keeps a per-request ledger in which a rejected or never-sent request contributes NOTHING to the unknown bound, that the known part keeps its sign when child fills settle it, that attribution shrinks the unknown by request identity (orderId join) and closes the leg only when no request is left unknown, that reconcile sums per-request QUANTITY intervals (Minkowski, mixed directions do not cancel, mark-independent) and treats non-finite or side-less rows as unquantifiable, that an ambiguous maker absent from a FULL allOrders page stays UNKNOWN and is settled only by its own order query (-2013 ⇒ absent), that an UNKNOWN symbol gets a bounded maker row instead of a hole, that flatten retries mint distinct ids, that legs are keyed by (symbol, orderId), and that an id over 36 chars is refused rather than truncated. round 5 (review cfaf1bbe): that the row's quantity comes from each request's own executedQty on every path (two prices ⇒ 100, never 150/2), that a child fill raises a request's confirmed quantity without ending it (band = what it may still fill; the leg closes only when every request is terminal), that contradictions (over-fill, wrong side, non-finite) are checked before any classification and keep the leg open, that child fills are de-duplicated by trade id and confirmed quantity is monotone, that an order the venue shows OPEN is cancelled and re-queried and stays UNKNOWN if still open, that cancel-unresolved symbols are UNKNOWN, that the breaker records the maker leg before refusing the top-up, that target/held are validated for every name before the cap logic, and that flatten recovery keys by (symbol, orderId) with a process-wide id counter. It does NOT prove phase B's allOrders/order reads (mocked here) resolve every leg on the real venue, nor that the venue's -2013 after the k-window is final (a stated venue-consistency assumption), nor that two PROCESSES in the same UTC second cannot mint the same flatten id, nor that the latest-only reconcile baseline carries an unexplained residual forward (registered for pre-registration, not implemented). Round 6 (review ce7b3cf4): that a later terminal fact for a request (cancel + re-query in settlement) supersedes the k-cancel's unresolved set by request and clears its pin, that a terminal request with a trusted executed quantity has no remainder whether or not its USDT amount was readable (C = Q with an unknown amount is a KNOWN quantity), that a missing executedQty is not a measured zero, that a ledger row is quantified by its ledger only (no amount-over-subset-price fallback), that the bounded reader validates its price, that a conflicting duplicate trade id is a contradiction, that an open order's executed-so-far reaches the row when its cancel fails, and that the pre-flight uses the plan's real chunk count. Round 7 (review a99c447e, from the fact table docs/DESIGN_request_fact_model): that the ORIGINAL complete_anchor chain (real broker over a scripted transport → cancel → allOrders → order query → top-up → attribution → rows) keeps a readable executedQty when the amount is unreadable (CANCELED 4 ⇒ filled_qty 4, position 10 ⇒ anomaly 6), that three explicit refusals at an unchanged position (0 and 1) leave a determined filled_qty 0 and no anomaly (the round-6 false trigger), that the decoder and the allOrders fold record contradictions (negative executedQty, explicit 0 beside a positive amount) instead of zeros, that an allOrders-terminal request resolves the k-cancel's unresolved set and pin, and that the ledger reader owns the row's columns at emission (a branch cannot clear them). Round 8 (review 82cbe018): that the submit response and the amount re-query are MERGED per field (a record lacking executedQty never revokes an earlier 20; an explicit terminal 0 read at the GET entry is a measured zero; a falling executedQty or NEW after terminal is a contradiction), that an allOrders match resolves the k-cancel's unresolved set only with an explicit terminal status AND our identity (no status ⇒ exact query; origQty/symbol/side mismatch ⇒ UNKNOWN), that a fold contradiction makes the name UNKNOWN end to end (no top-up, reader refuses), and that with a ledger the row's amount and price are the reader's (an unclosed ledger writes None and relabels). It does NOT run phase C or the watchdog itself (reconcile is called on the emitted rows), its venue is FakeNet. Round 9 (review b92e9479, DESIGN §3c): that a derived quantity or amount comes from ONE record (an amount 40 in one snapshot and a price 3 in another derive nothing — C unknown, 40 a lower bound, the row a band), that a terminal executedQty is CONSTANT (20 then 30 is a contradiction end to end; a terminal record without a C may still learn it; child fills beyond a terminal C are a contradiction), that the k-cancel's DELETE body is a record of the request (CANCELED 4 survives a sparse terminal query ⇒ top-up 6; a differing terminal 6 ⇒ contradiction, no top-up; an unreached symbol's UNKNOWN row carries the 4; -2013 after a cancel with facts is a contradiction, not absent), that a sparse terminal record (no executedQty, no cumQuote) is unreadable rather than 0, that the identity gate governs FACTS (a record failing it makes the request unmeasurable instead of entering the ledger as C 4 / terminal; a missing side, a non-finite origQty and an orderId other than the acknowledged one fail it; a side-less fill is never read as SELL), that contradictions travel with the facts on the partial path (query and page agree), and that the amount re-query's record must be OUR request (client id / symbol / orderId / origQty / side compared when the record carries them; a mismatch makes the request unmeasurable). Round 10 (review 38808cbd, DESIGN §3d): that a quantity carries its COMPLETENESS TYPE (an open snapshot's 20 followed by a terminal record without a quantity is a lower bound — [20, Q], known 70 / band 30 beside a second leg of 50, legal 70–100 CLEAN, 60 and 110 anomalies — while a terminal snapshot's 20 is final; a child-fill subset raises the lower bound and never proves the total; a child set that reaches Q does), that every UNKNOWN exit first folds the records already held (a CANCELED 4 survives an exhausted or -2013 query — the latter as a contradiction; a settlement cancel that answered CANCELED 6 survives a failed re-query; the submit response's own PARTIALLY_FILLED 4 is the first record; a status-only DELETE body proves existence and terminality, so -2013 after it is a contradiction, not absent), and that two final snapshots with different amounts contradict. Round 11 (review f79dc8cd, DESIGN §3e): that a final amount is never divided by a lower-bound quantity to make a price, that a maker leg the venue told us about carries a request ledger so its quantity is the reader's band (open 4 / final amount 6 ⇒ known 4 / band 6, total [8, 14] beside a top-up of 4), that a non-object query answer still folds the records already held, that a child subset's amount is a lower bound (the amount closes only with the set; reconcile reads a ledger row's band whether or not its amount closed), that a missing or None finality key is NOT final (no legacy fallback) while a lower bound reaching Q is final by capacity, that a top-up response without a status proves no finality, and that the submit record is bound by the client id WE sent (a response naming another id lends no orderId and fails the present-field gate). Round 12 (review 83fcbbcc, DESIGN §3f / §5 field-by-reader table): that the submit response's direct reader checks the body against the order we sent before reading a number (a body naming another client id is a contradiction, and no re-query is made under that id), that a merged record whose quantity 0 is a LOWER BOUND is compatible with a positive final amount (NEW 0 → fills → cancel with an amount-only terminal read ⇒ known 0 / band 10 / amount 4, total [6, 16] beside a top-up of 6) while a raw same-snapshot 0-beside-amount stays a contradiction, that a final amount is constant against child fills and a subset's amount may not exceed it, that a duplicate trade id without a quote never erases a recorded quote, that a child subset's vwap goes to its own column and never becomes the row's price, that an amount known beside an unknown quantity is the interval [0, Q] (known 0 + band, on the UNKNOWN row and the normal maker ledger alike — a contract choice registered in DESIGN §3f.6), and that explicit zeros carry the amount's finality. Round 13 (review ec2fe835, DESIGN §3g): that the child-fill amount LOWER BOUND (Σ over the children that carry a quote) is compared against a final amount without waiting for the others (5/N50 + 5/N-missing against a final 40 is a contradiction), that a non-finite ledger amount is flagged even when the quantity is missing, that every identity gate reads a present-but-malformed field (empty side, non-finite origQty) as a contradiction and an absent one as no evidence (one `identity_field` for the submit gate, the re-query gate and the settlement's present-field gate), and that the two cost diagnostics (neutrality_price, chase_readout.collect) measure bps over PRICED fills only and report the unpriced count / notional / fee beside it (no priced fill ⇒ None, never 0). Round 14 (review d51cb731): that an order id is a LOSSLESS integer everywhere it is read (a fraction is never truncated, ±Inf never raises through complete_anchor, text is malformed even without an acknowledged id to compare with; the child-fill joins skip and count such ids), and that the two cost diagnostics count a fill as MEASURED only with a usable price AND a known fee (fee_paid None ⇒ fee-unknown bucket, never a free fill; NaN / negative prices ⇒ unpriced), with the bps key's denominator explicitly documented as the measured fills, and that a fee written as a raw non-USDT sum without a completed conversion (fee_all_usdt False, no fee_conversion) is fee-unknown, not a known fee. Round 15 (review 1ef6ce8c): that an order id is read as EXACT text or exact value — a digit string is parsed with arbitrary precision (never through float: '9007199254740993' stays itself, two ids near 2^53 never merge, the stored value never changes), a float at or beyond 2^53 or any fractional text is malformed — through the gates, the acknowledged-id lookup and the child-fill joins (an outside fill with a neighbouring id is not attributed and does not close our open request), that the reshape report's neutrality section cites the MEASURED count and notional and explains a None price by its bucket, and that the fee value, currency flag and conversion marker on a row come from the same write (a re-stamp clears the earlier marker). It does NOT prove the venue's DELETE body always carries the final executedQty (documented, assumed), nor that two differing terminal readings can never both be genuine (a venue-side correction would need its own evidence type).",
+-    "tests_reduce_only_clamp": "that the venue always CLAMPS a reduceOnly order that exceeds the position rather than refusing it — observed on 2026-09-12 12Z (MEMEUSDT/POPCATUSDT, origQty = the position to the contract, no error) and documented, assumed general; and that the allOrders record of a clamped request has the shape this suite rebuilds from the submit response + the child fills (the live record was not logged). It proves, against the real gates (`submit_identity_mismatch`, `last_fill_details`, `venue_fills.settle_ambiguous_legs`) driven by the REAL 12Z submit responses and the REAL 08Z/12Z readbacks, that a reduceOnly record whose origQty is BELOW ours is the fourth state `clamped` (recorded, orig_qty = the position, no `inconsistent`), that an origQty ABOVE ours, a non-reduceOnly difference and a wrong side are still contradictions at every gate (the 1e-6 tolerance is untouched), that `plan()` sizes a full exit as −held_qty from the same account snapshot (F2 removed at the source; no quantity ⇒ the old path, labelled `notional_over_mid`), and end to end through the unmodified plan→submit_maker→complete_anchor chain over a scripted transport that the maker rows close on the venue's capacity (`qty_venue`) and `reconcile` measures both names at residual 0 where the old code produced 2 × execution_of_unknown_size (the incident, reproduced from the live rows as a control; the origQty-above-ours mutation of the same chain still produces the 2 anomalies). It does NOT run the watchdog (the proportional response is (c), a separate ruling), nor prove that mark ≠ mid is the ONLY way ours can exceed the position.",
++    "tests_reduce_only_clamp": "that the venue always CLAMPS a reduceOnly order that exceeds the position rather than refusing it — observed on 2026-09-12 12Z (MEMEUSDT/POPCATUSDT, origQty = the position to the contract, no error) and documented, assumed general; and that the allOrders record of a clamped request has the shape this suite rebuilds from the submit response + the child fills (the live record was not logged). It proves, against the real gates (`submit_identity_mismatch`, `last_fill_details`, `venue_fills.settle_ambiguous_legs`) driven by the REAL 12Z submit responses and the REAL 08Z/12Z readbacks, that a reduceOnly record whose origQty is BELOW ours is the fourth state `clamped` (recorded, orig_qty = the position, no `inconsistent`), that an origQty ABOVE ours, a non-reduceOnly difference and a wrong side are still contradictions at every gate (the 1e-6 tolerance is untouched), that `plan()` sizes a full exit as −held_qty from the same account snapshot (F2 removed at the source; no quantity ⇒ the old path, labelled `notional_over_mid`), and end to end through the unmodified plan→submit_maker→complete_anchor chain over a scripted transport that the maker rows close on the venue's capacity (`qty_venue`) and `reconcile` measures both names at residual 0 where the old code produced 2 × execution_of_unknown_size (the incident, reproduced from the live rows as a control; the origQty-above-ours mutation of the same chain still produces the 2 anomalies). It does NOT run the watchdog (the proportional response is (c), a separate ruling), nor prove that mark ≠ mid is the ONLY way ours can exceed the position."
++        " E2 [T13] (FX-EXEC 2026-09-13): the broker's DIRECT GET re-query (`last_fill_details`) applies the settlement merge's"
++        " request-level capacity rule (`binance_broker.capacity_conflict`, pinned cell by cell to `venue_fills._merged`): two records"
++        " naming different origQty => a named capacity_conflict, no clamp, not final, orig_qty = Qs, and the top-up leg names it on its"
++        " request ledger. It does NOT prove that the venue ever sends such a pair (never observed; the old reader left no trace of the"
++        " 8->6 direction), that exit rows or flatten_all record the conflict (they read amount, price and time only), that an AGREED"
++        " clamp on a top-up narrows its band to Qv (the top-up ledger still carries no qty_venue: fail-wide), nor that the direct gate"
++        " is as strict as the settlement `_valid` on ABSENT fields (it compares present fields; `_valid` requires orderId, side, origQty).",
+     "tests_flatten_fee_backfill": "that the venue's allOrders still lists the flatten's orders when the runner is invoked (limit 500 / startTime — an unreached symbol is named, not fabricated), or that the LIVE run was ever performed (`LIVE_MODE=LIVE python3 ops/backfill_fills.py --day 20260912 --apply` is the operator's step, with credentials; this suite drives the runner over an in-process fake). It proves, on the REAL 2026-09-12 day, that the flatten batch is detected as the one gap with its 255 own client ids and 255 fee-unmeasured order rows, and on a synthetic population that the legs are rebuilt by EXACT client id (never by the rebalance-id prefix a flatten does not carry), that --apply writes one fills row per child fill with order_type protective_flatten and the venue's commission, that a second apply writes nothing (idempotent by trade id), that a foreign trade is counted unattributed and never written, that a batch the venue does not list fails closed, and that the classic rebalance path and its maker/topup_taker buckets are untouched. The ORDER rows' fee_paid stays None by the ledger's append-only rule — the measurement lands on the fills rows, and a consumer that sums fees from order rows alone still under-reads the flatten.",
+     "tests_income_twin_rows": "that the venue keys income rows the way the fixture does — it proves, against an in-process fake of /fapi/v1/income, that a trade's COMMISSION and REALIZED_PNL twins (same tranId) are BOTH summed, that a row re-served across a page boundary is still counted once, and that the old tranId-only key would have dropped exactly one twin per trade (positive control). Whether the venue also shares tranIds across OTHER pairs of types, or emits a third row per trade in some product, is a fact about the venue that only the live ledger reconciliation (income vs fills) can keep proving.",
+     "tests_transport_resilience": "that the VENUE will be reachable on the resend — it proves, against an in-process fake of urlopen, that a request-phase failure on GET/DELETE is resent a bounded number of times while an order POST is NEVER resent under any failure — transport in either phase, HTTP 5xx, 200 non-JSON — but settled only by the venue's own order record (found ⇒ adopted, -2013 twice ⇒ recorded as not sent, else ambiguous), that the requote carries ambiguity as rested and the top-up keeps a confirmed chunk and writes UNKNOWN never zero, that a still-unresolvable POST is carried as possibly-resting, that the executor records transport rows and trips its circuit breaker, and that an exception escaping the submit loop cancels what rested, writes rows and pages before re-raising. It cannot see whether the venue actually processed a request whose answer we lost when the query ALSO fails (that order is handed to phase B as possibly-resting and to the next sweep), nor whether a 0.5 s pause is long enough for the venue to have decided before we ask it, nor whether Telegram delivers the page",
