@@ -432,3 +432,33 @@ daily_nav realised_by_type was wrong on every pre-fix row; fixed by amendment re
 **0.26 pp watchdog cond4 finding** (ruled (a), see FIXPROGRAM §9): the watchdog cond4 §4-4 TWR prices transfer days with the pre-fix realised_pnl. Re-implementation reproduces the live last_eval cum −1.3136%; with amended values −1.5749%, an understatement of 0.2613 pp over 7 transfer days (receipt LED04_cond4_transfer_day_effect.json). watchdog.py not edited.
 
 **Not checked.** Rows written after the 14:27Z copy. Any reader of daily_nav other than daily_summary and the watchdog (the census was of fills readers, not daily_nav readers). Fact table row #2 was withdrawn by the append-only addendum (1826d219).
+
+## LED-05 · 52 reconstructed order rows for the 09-09 12Z crash anchor A1788956640 (lead 逐字转录)
+Ready to write back. Rehearsal passed on both trees; the live apply is the lead's.
+
+**Defect.** The 09-09 12Z anchor died mid-run (E-0909-D/G). 52 filled orders have fills rows but no orders rows. Order-based readers under-count that anchor, and the watchdog's reconciliation of the next anchor (09-09 16:24Z) still sees those 52 names as unauthorised.
+
+**Rows.** Built 09-10 02:35Z from allOrders plus the backfilled fills: pilot_journal/e0909g_reconstructed_orders_12Z_DRYRUN.jsonl, sha256 328933ea6ab16156fa8d8669b2cae37e2bbb5da7bc82ff468d04e32b06a160f5. They are appended verbatim; no executor code change is needed.
+
+**Device** (devices/led05_writeback_reconstructed.py; bdccc9fe, plus fallback fix 0eb616f4 made before any rerun).
+- C1: sha; 52 lines; rid, order_type=reconstructed, filled, unique venue_order_id.
+- C2: every row passes pilot_log.validate("orders").
+- C3: the day holds none of the rid (append) or exactly these 52 lines (ALREADY_APPLIED); anything else REFUSE.
+- C4: per symbol, against the fills collapsed on (symbol, trade_id): Σ|notional| within 0.01 USDT, Σ fee within 1e-8 USDT, identical symbol sets.
+- Apply is one append with fsync, and it checks the prefix is preserved.
+
+**Checks on the 14:27Z ledger copy** (3d941a10): CHECKS_PASS on both ef60f85 and the fix tree. 52 rows, 52 symbols, 69 fill trades. 2,536.209446 USDT; fee 0.50724168 USDT. Negative control: the older cc_tmp/e0909g_sim rows (order_type maker, doubled fees) are REFUSED on C1 and C4 (fee exactly 2x on each name).
+
+**Rehearsal** (temp root, 20260909 copied, other days symlinked; commit 3c4e6b15): PASS on both trees. ef60f85 tree: LED05_rehearsal_ef60f85tree.json. Fix tree: LED05_rehearsal_newtree.json. apply_1 WRITTEN 52; prefix preserved; orders.jsonl sha 70e5c606… → f75b72ce…. apply_2 ALREADY_APPLIED, written 0. Watchdog tripped False before and after. The given root's day files are unchanged.
+
+**The watchdog conditions changed (without tripping); each change explained** (device led05_watchdog_delta.py, bd23cc00, committed before running). The changed leaves are identical on both trees, and every change is in the healing direction:
+- 5e position break at the 09-09 16:24Z anchor: BREAK → CLEAN. Unauth gross 2,525.56 → 0.02 USDT, unauth names 52 → 0, action flatten → none. n_breaks_in_window 4 → 3.
+- 5b n_historical_anomalies 15 → 6. History-only counter; the gate state and the latest-anchor n are unchanged.
+- 5c n_submitted_orders 24,682 → 24,734 (+52, the rows carry submit_ts). No reject flag changed.
+- cond6 09-09 corr_unauth 0.998878 → 1.0.
+
+**Side result for LED-01.** The rehearsal printed different conditions shas on the two trees, so a leaf-by-leaf parity check ran (device led01_watchdog_tree_parity.py, 8417f55d). Watchdog.evaluate on the same ledger copy gives 171,584 leaves per tree, and exactly one differs: dust_floor.n_symbols_with_own_minimum, 658 vs 654. That value comes from the DRY_RUN exchange_info_cache.json each tree reads (the ef60f85 worktree's cache holds 4 more symbols: MARSCOINUSDT, PONSUSDT, 哈基米USDT, 牛来USDT), not from code (LED01_wdparity.log). The two tree caches differ because tests_entrypoint_wiring rewrote the copy's top-level DRY_RUN files at ~15:57Z through the old worktree's state symlink. Files under the copy's live/ were not modified after 14:30Z (count 0).
+
+**Live apply (lead).** `/usr/bin/python3 devices/led05_writeback_reconstructed.py --root ~/dl_quant_live/state/live --rows multi_asset/exports/live/pilot_journal/e0909g_reconstructed_orders_12Z_DRYRUN.jsonl --rows-sha 328933ea6ab16156fa8d8669b2cae37e2bbb5da7bc82ff468d04e32b06a160f5 --executor-tree ~/dl_quant_live --receipt <out> --apply` — no venue, no credentials; outside anchor windows; suggested `--rehearse` on the live root first (writes only a temp copy). **〔lead 裁定 17:0xZ: 实盘写回改变看门狗历史条件叶(虽为愈合方向且不触发), 交接期不在本会话执行; 随复审包由接手者先 --rehearse 于实盘根再 --apply, 锚窗外。09-10 用户裁定「写回等实盘分支部署(现网 schema 不认)」的前提已满足: C2 在 ef60f85 上通过。〕**
+
+**Not checked.** Live-ledger changes to 20260909 after 14:27Z (C3 and C4 re-prove them at apply time). Readers that cache per-day order counts (daily_summary is recomputed each run).
