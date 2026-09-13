@@ -1,0 +1,77 @@
+{
+ "device": "t7_pull_fill_daily.py",
+ "device_sha256": "98b7e0b10c1afc6f53fcc31cb352820311e638ddf4dac1e7933a35898f78b15f",
+ "run_id": "20260913T125027Z_76132",
+ "utc_end": "2026-09-13T12:58:56.387Z",
+ "n_targets": 979,
+ "targets_sha256": "97eb9fe864a9c32dce801e9659ce54398aeb646afc14128a45fd42add95cf22d",
+ "status_counts": {
+  "OK": 785,
+  "NOT_FOUND": 194
+ },
+ "unresolved": [],
+ "format_counts": {
+  "format_ok": 780,
+  "header": 564,
+  "no_header": 221,
+  "format_fail": 5
+ },
+ "format_fail_list": [
+  "CTKUSDT 2025-04-30",
+  "CVCUSDT 2025-05-16",
+  "LITUSDT 2025-07-10",
+  "LITUSDT 2026-01-15",
+  "PUMPUSDT 2025-07-14"
+ ],
+ "seam_and_overlap_counts": {
+  "seam_prev_OK": 782,
+  "seam_next_OK": 784,
+  "days_with_overlap_mismatch": 0,
+  "overlap_hours": 56,
+  "seam_prev_PRICE_JUMP": 1,
+  "seam_next_NEIGHBOUR_MISSING": 1,
+  "seam_prev_NEIGHBOUR_MISSING": 2
+ },
+ "seam_failures": [
+  {
+   "symbol": "CTKUSDT",
+   "date": "2025-04-30",
+   "overlap_hours": 13,
+   "overlap_ohlc_mismatch": 0,
+   "seam_prev": "PRICE_JUMP",
+   "seam_next": "OK"
+  }
+ ],
+ "neighbour_missing": [
+  {
+   "symbol": "LITUSDT",
+   "date": "2025-07-10",
+   "overlap_hours": 12,
+   "overlap_ohlc_mismatch": 0,
+   "seam_prev": "OK",
+   "seam_next": "NEIGHBOUR_MISSING"
+  },
+  {
+   "symbol": "LITUSDT",
+   "date": "2026-01-15",
+   "overlap_hours": 9,
+   "overlap_ohlc_mismatch": 0,
+   "seam_prev": "NEIGHBOUR_MISSING",
+   "seam_next": "OK"
+  },
+  {
+   "symbol": "PUMPUSDT",
+   "date": "2025-07-14",
+   "overlap_hours": 7,
+   "overlap_ohlc_mismatch": 0,
+   "seam_prev": "NEIGHBOUR_MISSING",
+   "seam_next": "OK"
+  }
+ ],
+ "http_log": "http_binance_daily.jsonl",
+ "rate": {
+  "max_in_window": 2,
+  "min_gap_s": 0.5
+ },
+ "free_GiB_end": 27.86
+}

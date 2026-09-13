@@ -90,6 +90,31 @@ L.append("\n## P-11 C6 旗标拆因(BINANCE_FORMAT_BREAKDOWN)\n| 项 | 值 |\n|-
 L.append(f"| OK zip / FORMAT_FAIL(任一子项) | {BF['n_ok_zips']} / {BF['format_fail_any']} |")
 L.append(f"| 子项失败计数 | {BF['sub_check_failures']} |"); L.append(f"| 子项按年 | {BF['sub_check_failures_by_year']} |")
 L.append(f"| 既无表头又不连续 | {BF['both_no_header_and_not_contiguous']} |"); L.append(f"| PARTIAL_MONTH: 上市/下市边界月 vs 内部月 | {BF['partial_months']} |")
+FD = J("checks/FILL_DAILY_RECEIPT.json"); G2 = J("checks/G2_HITRATE.json")
+L.append("\n## P-12 币安指数价日 zip 补填(FILL_DAILY_RECEIPT; lead 决定, 12:50Z 后开始, ≤ 2 req/s)\n| 项 | 值 |\n|---|---|")
+L.append(f"| 目标(符号, UTC 日) / 冻结目标 sha256 | {FD['n_targets']} / `{FD['targets_sha256']}` |")
+L.append(f"| 装置 sha256 / 运行 | `{FD['device_sha256']}` / `{FD['run_id']}` |")
+L.append(f"| 状态计数 / 未解决 | {FD['status_counts']} / {FD['unresolved']} |")
+L.append(f"| 格式计数 | {FD['format_counts']} |"); L.append(f"| 格式不过(均为非整日边界) | {FD['format_fail_list']} |")
+L.append(f"| 接缝与重叠计数 | {FD['seam_and_overlap_counts']} |")
+L.append(f"| 价格跳变接缝 | {[(x['symbol'], x['date'], x['seam_prev'], x['seam_next'], x['overlap_hours'], x['overlap_ohlc_mismatch']) for x in FD['seam_failures']]} |")
+L.append(f"| 邻接小时缺失 | {[(x['symbol'], x['date'], x['seam_prev'], x['seam_next']) for x in FD['neighbour_missing']]} |")
+L.append(f"| 限速设置 / 结束时剩余磁盘 | {FD['rate']} / {FD['free_GiB_end']} GiB |")
+L.append("\n## P-13 G2 命中率全史(G2_HITRATE; 锚 %s .. %s, %d 个; 小时粒度)" % tuple(G2["anchors"]))
+L.append("| 视图 | 所 | 年 | 定义 | 格数(补后) | 命中率 补前 → 补后 | 补后且 G4 剔除 | 新鲜率(补后) | 补后无效原因 | ≥0.99 |\n|---|---|---|---|---|---|---|---|---|---|")
+ix = {(r["venue"], r["year"], r["def"], r["view"], r["index"], r["g4"]): r for r in G2["rows"]}
+for view in ("U", "E"):
+    for v in ("upbit", "bithumb"):
+        for dfn in ("A", "B"):
+            for y in range(2021, 2027):
+                a = ix.get((v, y, dfn, view, "AFTER", "noG4"))
+                if not a: continue
+                b = ix.get((v, y, dfn, view, "BEFORE", "noG4")); g = ix.get((v, y, dfn, view, "AFTER", "G4"))
+                rs = {k: a[k] for k in ("NO_KRW_BAR", "NO_INDEX_BAR", "NO_BTC_BAR", "NO_USDT_BAR") if a.get(k)}
+                L.append(f"| {view} | {v} | {y} | {dfn} | {a['cells']} | {b['hit_rate'] if b else None} → {a['hit_rate']} | {g['hit_rate'] if g else None} | {a['fresh_frac_of_valid']} | {rs} | {'是' if a['hit_rate'] >= 0.99 else '否'} |")
+L.append(f"\n判据表(视图 U, 补后): {len(G2['pass_table'])} 格, 不过 {[x for x in G2['pass_table'] if not x['PASS']]}")
+L.append(f"\nG4 剔除月份: {G2['G4_exclusion_months']}")
+L.append(f"\nG4 剔除格数(视图 U, 补后): { {k: v for k, v in G2['G4_excluded_cells_viewU'].items() if v['cellsA'] or v['cellsB']} }")
 L.append("\n## P-8 入库的小件(COLLECT_RECEIPT)\n| 项 | 值 |\n|---|---|")
 L.append(f"| 复制文件数 / 字节 | {len(CO['files'])} / {sum(x['bytes'] for x in CO['files'])} |"); L.append(f"| 页清单 | {CO['page_manifests']}(gz 合计 {CO['page_manifest_gz_total_bytes']} 字节) |")
 L.append("\n| 清单文件(数据在 cc_tmp) | sha256 | 字节 | 行 |\n|---|---|---|---|")

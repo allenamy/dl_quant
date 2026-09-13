@@ -13,9 +13,23 @@ def sha(p):
         for b in iter(lambda: f.read(1 << 20), b""): h.update(b)
     return h.hexdigest()
 rec = {"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "root": A.root, "files": []}
+import stat as _stat
+SF_DATALESS = getattr(_stat, "SF_DATALESS", 0x40000000); EMPTY = hashlib.sha256(b"").hexdigest()
+def guarded_read(p):   # hash hazard (lead 2026-09-13): refuse dataless files and short reads
+    st = os.stat(p)
+    if st.st_flags & SF_DATALESS: raise SystemExit("REFUSE %s: dataless" % p)
+    b = open(p, "rb").read()
+    if len(b) != st.st_size: raise SystemExit("REFUSE %s: read %d != st_size %d" % (p, len(b), st.st_size))
+    return b
 def cp(src, rel):
-    dst = os.path.join(DST, rel); os.makedirs(os.path.dirname(dst), exist_ok=True); shutil.copy2(src, dst)
-    s1, s2 = sha(src), sha(dst); assert s1 == s2, (src, dst); rec["files"].append({"src": src, "dst": os.path.relpath(dst, T7), "sha256": s1, "bytes": os.path.getsize(dst)})
+    dst = os.path.join(DST, rel); os.makedirs(os.path.dirname(dst), exist_ok=True)
+    data = guarded_read(src); digest = hashlib.sha256(data).hexdigest()   # sha from the in-memory bytes that are written
+    if data and digest == EMPTY: raise SystemExit("ABORT sha256(empty) for non-empty %s" % src)
+    tmp = dst + ".tmp.%d" % os.getpid()
+    with open(tmp, "wb") as f: f.write(data); f.flush(); os.fsync(f.fileno())
+    os.replace(tmp, dst)
+    back = guarded_read(dst); assert hashlib.sha256(back).hexdigest() == digest, ("post-write verify", dst)
+    rec["files"].append({"src": src, "dst": os.path.relpath(dst, T7), "sha256": digest, "bytes": len(data)})
 R = A.root
 for f in sorted(os.listdir(R + "/plan")): cp(R + "/plan/" + f, "plan/" + f)
 for f in sorted(os.listdir(R + "/run")):
@@ -30,9 +44,12 @@ for f in pages:
 gz_total = sum(len(b) for b in tmp.values()); rec["page_manifest_gz_total_bytes"] = gz_total
 if gz_total <= 8 * 1024 ** 2:
     for f, b in tmp.items():
-        dst = DST + "/manifest/" + f + ".gz"; open(dst, "wb").write(b)
-        assert gzip.decompress(open(dst, "rb").read()) == open(R + "/manifest/" + f, "rb").read()
-        rec["files"].append({"src": R + "/manifest/" + f, "dst": os.path.relpath(dst, T7), "sha256_uncompressed": sha(R + "/manifest/" + f), "sha256": sha(dst), "bytes": len(b)})
+        dst = DST + "/manifest/" + f + ".gz"; src_bytes = guarded_read(R + "/manifest/" + f)
+        tmp = dst + ".tmp.%d" % os.getpid()
+        with open(tmp, "wb") as fh: fh.write(b); fh.flush(); os.fsync(fh.fileno())
+        os.replace(tmp, dst)
+        assert gzip.decompress(guarded_read(dst)) == src_bytes
+        rec["files"].append({"src": R + "/manifest/" + f, "dst": os.path.relpath(dst, T7), "sha256_uncompressed": hashlib.sha256(src_bytes).hexdigest(), "sha256": hashlib.sha256(b).hexdigest(), "bytes": len(b)})
     rec["page_manifests"] = "committed as gzip (decompression asserted byte-identical to source)"
 else:
     rec["page_manifests"] = "NOT copied (gz total above 8 MiB); sha256/bytes/lines in checks/MANIFEST_DIGEST.json"

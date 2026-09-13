@@ -22,16 +22,17 @@
 | 目录 | 文件数 | 字节 |
 |---|---|---|
 | binance | 10686 | 184759187 |
+| binance_daily | 785 | 677956 |
 | bithumb | 38662 | 354538802 |
-| checks | 9 | 1138047 |
-| derived | 948 | 212700657 |
-| devices | 12 | 79345 |
-| logs | 6 | 41064006 |
-| manifest | 5 | 34230900 |
-| plan | 9 | 494511 |
-| run | 19 | 9477 |
+| checks | 15 | 1632506 |
+| derived | 1310 | 286577021 |
+| devices | 15 | 103821 |
+| logs | 7 | 41632249 |
+| manifest | 6 | 34758792 |
+| plan | 11 | 533468 |
+| run | 22 | 19213 |
 | upbit | 24522 | 220910830 |
-| **合计** | 74878 | 1049925762(0.978 GiB) |
+| **合计** | 76041 | 1126143845(1.049 GiB) |
 
 | 页文件 | 数 |
 |---|---|
@@ -166,16 +167,76 @@ FLAG_MISSING_INDEX(5): LITUSDT 2025-08, LITUSDT 2025-09, LITUSDT 2025-10, LITUSD
 | 既无表头又不连续 | 3 |
 | PARTIAL_MONTH: 上市/下市边界月 vs 内部月 | {'boundary_month': 271, 'internal_month': 631} |
 
+## P-12 币安指数价日 zip 补填(FILL_DAILY_RECEIPT; lead 决定, 12:50Z 后开始, ≤ 2 req/s)
+| 项 | 值 |
+|---|---|
+| 目标(符号, UTC 日) / 冻结目标 sha256 | 979 / `97eb9fe864a9c32dce801e9659ce54398aeb646afc14128a45fd42add95cf22d` |
+| 装置 sha256 / 运行 | `98b7e0b10c1afc6f53fcc31cb352820311e638ddf4dac1e7933a35898f78b15f` / `20260913T125027Z_76132` |
+| 状态计数 / 未解决 | {'OK': 785, 'NOT_FOUND': 194} / [] |
+| 格式计数 | {'format_ok': 780, 'header': 564, 'no_header': 221, 'format_fail': 5} |
+| 格式不过(均为非整日边界) | ['CTKUSDT 2025-04-30', 'CVCUSDT 2025-05-16', 'LITUSDT 2025-07-10', 'LITUSDT 2026-01-15', 'PUMPUSDT 2025-07-14'] |
+| 接缝与重叠计数 | {'seam_prev_OK': 782, 'seam_next_OK': 784, 'days_with_overlap_mismatch': 0, 'overlap_hours': 56, 'seam_prev_PRICE_JUMP': 1, 'seam_next_NEIGHBOUR_MISSING': 1, 'seam_prev_NEIGHBOUR_MISSING': 2} |
+| 价格跳变接缝 | [('CTKUSDT', '2025-04-30', 'PRICE_JUMP', 'OK', 13, 0)] |
+| 邻接小时缺失 | [('LITUSDT', '2025-07-10', 'OK', 'NEIGHBOUR_MISSING'), ('LITUSDT', '2026-01-15', 'NEIGHBOUR_MISSING', 'OK'), ('PUMPUSDT', '2025-07-14', 'NEIGHBOUR_MISSING', 'OK')] |
+| 限速设置 / 结束时剩余磁盘 | {'max_in_window': 2, 'min_gap_s': 0.5} / 27.86 GiB |
+
+## P-13 G2 命中率全史(G2_HITRATE; 锚 2021-12-01T04:00Z .. 2026-08-30T20:00Z, 10403 个; 小时粒度)
+| 视图 | 所 | 年 | 定义 | 格数(补后) | 命中率 补前 → 补后 | 补后且 G4 剔除 | 新鲜率(补后) | 补后无效原因 | ≥0.99 |
+|---|---|---|---|---|---|---|---|---|---|
+| U | upbit | 2021 | A | 8051 | 1.0 → 1.0 | 1.0 | 0.994535 | {} | 是 |
+| U | upbit | 2022 | A | 102142 | 0.977365 → 0.999863 | 0.999863 | 0.998688 | {'NO_BTC_BAR': 14} | 是 |
+| U | upbit | 2023 | A | 124858 | 0.989476 → 0.999279 | 0.999273 | 0.997596 | {'NO_KRW_BAR': 71, 'NO_BTC_BAR': 19} | 是 |
+| U | upbit | 2024 | A | 178888 | 1.0 → 1.0 | 1.0 | 0.997948 | {} | 是 |
+| U | upbit | 2025 | A | 296218 | 0.99999 → 0.99999 | 0.99999 | 0.997215 | {'NO_KRW_BAR': 1, 'NO_INDEX_BAR': 2} | 是 |
+| U | upbit | 2026 | A | 281005 | 0.995626 → 0.999897 | 0.999897 | 0.990519 | {'NO_KRW_BAR': 29} | 是 |
+| U | upbit | 2024 | B | 108354 | 1.0 → 1.0 | 1.0 | 0.997333 | {} | 是 |
+| U | upbit | 2025 | B | 298408 | 0.99999 → 0.99999 | 0.99999 | 0.997222 | {'NO_KRW_BAR': 1, 'NO_INDEX_BAR': 2} | 是 |
+| U | upbit | 2026 | B | 282457 | 0.995628 → 0.999897 | 0.999897 | 0.99056 | {'NO_KRW_BAR': 29} | 是 |
+| U | bithumb | 2021 | A | 10233 | 1.0 → 1.0 | 1.0 | 0.982703 | {} | 是 |
+| U | bithumb | 2022 | A | 139462 | 0.974215 → 0.996867 | 0.996867 | 0.985298 | {'NO_KRW_BAR': 433, 'NO_BTC_BAR': 4} | 是 |
+| U | bithumb | 2023 | A | 204234 | 0.986912 → 0.995427 | 0.995415 | 0.951131 | {'NO_KRW_BAR': 887, 'NO_INDEX_BAR': 12, 'NO_BTC_BAR': 35} | 是 |
+| U | bithumb | 2024 | A | 341717 | 0.998452 → 0.998452 | 0.998452 | 0.981731 | {'NO_KRW_BAR': 527, 'NO_BTC_BAR': 2} | 是 |
+| U | bithumb | 2025 | A | 531688 | 0.997149 → 0.997149 | 0.997149 | 0.974088 | {'NO_KRW_BAR': 1511, 'NO_INDEX_BAR': 4, 'NO_BTC_BAR': 1} | 是 |
+| U | bithumb | 2026 | A | 423416 | 0.99202 → 0.996134 | 0.996131 | 0.951337 | {'NO_KRW_BAR': 1591, 'NO_BTC_BAR': 46} | 是 |
+| U | bithumb | 2023 | B | 19048 | 1.0 → 1.0 | 1.0 | 0.997008 | {} | 是 |
+| U | bithumb | 2024 | B | 343913 | 0.998462 → 0.998462 | 0.998462 | 0.981837 | {'NO_KRW_BAR': 529} | 是 |
+| U | bithumb | 2025 | B | 533878 | 0.997159 → 0.997159 | 0.997159 | 0.974185 | {'NO_KRW_BAR': 1513, 'NO_INDEX_BAR': 4} | 是 |
+| U | bithumb | 2026 | B | 424868 | 0.992139 → 0.996253 | 0.99625 | 0.951401 | {'NO_KRW_BAR': 1592} | 是 |
+| E | upbit | 2022 | A | 92645 | 0.975627 → 0.999849 | 0.999849 | 0.998597 | {'NO_BTC_BAR': 14} | 是 |
+| E | upbit | 2023 | A | 118014 | 0.989425 → 0.999288 | 0.999282 | 0.997617 | {'NO_KRW_BAR': 66, 'NO_BTC_BAR': 18} | 是 |
+| E | upbit | 2024 | A | 169834 | 1.0 → 1.0 | 1.0 | 0.99801 | {} | 是 |
+| E | upbit | 2025 | A | 253165 | 0.999996 → 0.999996 | 0.999996 | 0.997745 | {'NO_KRW_BAR': 1} | 是 |
+| E | upbit | 2026 | A | 181632 | 0.996069 → 0.999961 | 0.999961 | 0.995182 | {'NO_KRW_BAR': 7} | 是 |
+| E | upbit | 2024 | B | 101618 | 1.0 → 1.0 | 1.0 | 0.997402 | {} | 是 |
+| E | upbit | 2025 | B | 255355 | 0.999996 → 0.999996 | 0.999996 | 0.997748 | {'NO_KRW_BAR': 1} | 是 |
+| E | upbit | 2026 | B | 183084 | 0.996067 → 0.999962 | 0.999962 | 0.99521 | {'NO_KRW_BAR': 7} | 是 |
+| E | bithumb | 2022 | A | 128016 | 0.972113 → 0.996602 | 0.996602 | 0.984222 | {'NO_KRW_BAR': 431, 'NO_BTC_BAR': 4} | 是 |
+| E | bithumb | 2023 | A | 195914 | 0.986754 → 0.995386 | 0.995374 | 0.95009 | {'NO_KRW_BAR': 871, 'NO_BTC_BAR': 33} | 是 |
+| E | bithumb | 2024 | A | 322906 | 0.998483 → 0.998483 | 0.998483 | 0.982278 | {'NO_KRW_BAR': 488, 'NO_BTC_BAR': 2} | 是 |
+| E | bithumb | 2025 | A | 450397 | 0.997318 → 0.997318 | 0.997318 | 0.979138 | {'NO_KRW_BAR': 1207, 'NO_BTC_BAR': 1} | 是 |
+| E | bithumb | 2026 | A | 259707 | 0.994116 → 0.997851 | 0.997851 | 0.97165 | {'NO_KRW_BAR': 523, 'NO_BTC_BAR': 35} | 是 |
+| E | bithumb | 2023 | B | 17958 | 1.0 → 1.0 | 1.0 | 0.996937 | {} | 是 |
+| E | bithumb | 2024 | B | 325102 | 0.998493 → 0.998493 | 0.998493 | 0.982385 | {'NO_KRW_BAR': 490} | 是 |
+| E | bithumb | 2025 | B | 452587 | 0.997329 → 0.997329 | 0.997329 | 0.979228 | {'NO_KRW_BAR': 1209} | 是 |
+| E | bithumb | 2026 | B | 261159 | 0.994256 → 0.997994 | 0.997994 | 0.971677 | {'NO_KRW_BAR': 524} | 是 |
+
+判据表(视图 U, 补后): 38 格, 不过 []
+
+G4 剔除月份: [{'venue': 'bithumb', 'symbol': 'CRVUSDT', 'market': 'KRW-CRV', 'months': ['2023-08', '2023-09']}, {'venue': 'bithumb', 'symbol': 'ENJUSDT', 'market': 'KRW-ENJ', 'months': ['2023-10', '2023-11']}, {'venue': 'bithumb', 'symbol': 'SOLVUSDT', 'market': 'KRW-SOLV', 'months': ['2026-04', '2026-05']}, {'venue': 'bithumb', 'symbol': 'TAIKOUSDT', 'market': 'KRW-TAIKO', 'months': ['2026-07']}, {'venue': 'upbit', 'symbol': 'KAVAUSDT', 'market': 'KRW-KAVA', 'months': ['2022-12', '2023-01', '2023-02', '2023-03', '2023-04', '2023-05', '2023-06']}]
+
+G4 剔除格数(视图 U, 补后): {'upbit KAVAUSDT': {'cellsA': 1272, 'cellsB': 0}, 'bithumb CRVUSDT': {'cellsA': 366, 'cellsB': 0}, 'bithumb ENJUSDT': {'cellsA': 366, 'cellsB': 0}, 'bithumb SOLVUSDT': {'cellsA': 366, 'cellsB': 366}, 'bithumb TAIKOUSDT': {'cellsA': 186, 'cellsB': 186}}
+
 ## P-8 入库的小件(COLLECT_RECEIPT)
 | 项 | 值 |
 |---|---|
-| 复制文件数 / 字节 | 65 / 9589746 |
-| 页清单 | committed as gzip (decompression asserted byte-identical to source)(gz 合计 7396087 字节) |
+| 复制文件数 / 字节 | 73 / 9858972 |
+| 页清单 | committed as gzip (decompression asserted byte-identical to source)(gz 合计 7454141 字节) |
 
 | 清单文件(数据在 cc_tmp) | sha256 | 字节 | 行 |
 |---|---|---|---|
 | done_bithumb.jsonl | `ebe93311c866f2ed…` | 108011 | 704 |
 | done_upbit.jsonl | `d46d390a52040102…` | 70664 | 468 |
 | pages_binance.jsonl | `3112e5cef70726e4…` | 6651861 | 10937 |
+| pages_binance_daily.jsonl | `49c60b9be629f4dc…` | 527892 | 979 |
 | pages_bithumb.jsonl | `df6a68ecf696e7d6…` | 16825986 | 38662 |
 | pages_upbit.jsonl | `1846ef08f62e0f46…` | 10574378 | 24522 |

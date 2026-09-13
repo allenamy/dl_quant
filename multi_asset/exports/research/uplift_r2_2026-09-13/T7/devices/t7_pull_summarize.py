@@ -12,7 +12,7 @@ def fsha(p):
         for b in iter(lambda: f.read(1 << 20), b""): h.update(b)
     return h.hexdigest()
 counts = collections.Counter(); sizes = collections.Counter()
-for top in ("upbit", "bithumb", "binance", "manifest", "logs", "run", "plan", "devices", "derived", "checks"):
+for top in ("upbit", "bithumb", "binance", "binance_daily", "manifest", "logs", "run", "plan", "devices", "derived", "checks"):
     base = os.path.join(ROOT, top)
     for dp, dn, fn in os.walk(base):
         for f in fn:
