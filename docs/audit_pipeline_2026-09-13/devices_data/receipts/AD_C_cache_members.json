@@ -1,0 +1,826 @@
+{
+ "device": "ad_cache_members.py",
+ "self_sha256": "0e8bc8fdcfae1b6dd63cf30f5f13e1de80e12584f07c9e110b1144cd2a2ba09c",
+ "numpy": "2.4.6",
+ "inputs": {
+  "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz": "1d7f459dee434ec49e7714a2a612807f2e38e97f35c6c39471a8a4aaa7452488",
+  "/workspace/review_scratch/raw_patch.npz": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+  "/workspace/uplift_2026-09-11/r6/out/raw_patch_x0910.npz": "94e8e8c119ea719a4ed1544813d433d00c39148a8e916018435ac10402a6f149",
+  "/workspace/data/wide_fea_v4_meta.npz": "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51",
+  "/workspace/dlw_v4raw/data/dlw_targets.npz": "d1976cf6246cdc25054d21b1a9fa7f8fd02ee43278720d81ce2a35686d63c6f8",
+  "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3",
+  "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+  "devices/venue_class_20260908.json": "fa9196a34ce920287041604af4c9c4b1be37468ac75339ef100e42607c71f2ae",
+  "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s42.npz": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339",
+  "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s2027.npz": "aa44e18fb6bcfa7ef54f1708d070b0a2a7d5333f6cea63dfca94fecf59be1c7b",
+  "/workspace/review_scratch/king_v4/SLOW_v4.npy": "dde19142d017c37dd9bae564ab4a32a4b9b068f6aef8acc91e7ea329f4f1c8a6",
+  "/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy": "647673183e6af44ac5b2570b856692c9d2d51ab9f17194bfebb7a0d3dbbd9009",
+  "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s42.npy": "58d64a6ff968458924f53193d2dac20c4541be65d267e108bb43445032bfbdcd",
+  "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s2027.npy": "47046ccd6dc7937ce39d9d9a880a34984ad4b6f966889505af0255da8adc136d",
+  "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s42.npy": "ff109711f5526c68cebb23599e299041a2310caa7857b5ff9aa50464d2e6077b",
+  "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s2027.npy": "98bfe779261b550f15bbd511dc4637403b7341b25ccc2d4ee15521cb33787f18"
+ },
+ "C1_clip_bound_vs_patch": {
+  "bound_value": 0.300048828125,
+  "bound_cells": 953,
+  "cells_beyond_bound": 0,
+  "patch_rows": 952,
+  "bound_cells_in_patch": 952,
+  "bound_cells_NOT_in_patch": 1,
+  "patch_cells_not_on_bound": 0,
+  "not_in_patch_list": [
+   {
+    "ts": "2025-10-10T21:35Z",
+    "symbol": "NMRUSDT",
+    "clip16": 0.300048828125
+   }
+  ],
+  "bound_cells_by_year": {
+   "2022": 33,
+   "2023": 6,
+   "2024": 13,
+   "2025": 833,
+   "2026": 68
+  },
+  "x0910": {
+   "cache_shape": [
+    493633,
+    829,
+    7
+   ],
+   "tail_rows": 2880,
+   "tail_first": "2026-09-01T00:05Z",
+   "tail_last": "2026-09-11T00:00Z",
+   "tail_bound_cells": 3,
+   "patch_x0910_rows": 955,
+   "patch_x0910_prefix_equals_incumbent_patch": true,
+   "tail_bound_cells_in_patch": 3,
+   "tail_bound_cells_NOT_in_patch": 0,
+   "tail_bound_list": [
+    {
+     "ts": "2026-09-02T21:45Z",
+     "symbol": "AKEUSDT",
+     "in_patch": true
+    },
+    {
+     "ts": "2026-09-05T03:00Z",
+     "symbol": "BULLAUSDT",
+     "in_patch": true
+    },
+    {
+     "ts": "2026-09-06T01:35Z",
+     "symbol": "WOOUSDT",
+     "in_patch": true
+    }
+   ]
+  }
+ },
+ "C2_axis_survivorship": {
+  "n_symbols": 829,
+  "no_finite_bar": [
+   "BZRXUSDT",
+   "DOTECOUSDT",
+   "LENDUSDT"
+  ],
+  "last_bar_before_2026-08-01_n": 28,
+  "last_bar_before_2026-08-01_by_year": {
+   "2022": 9,
+   "2023": 0,
+   "2024": 14,
+   "2025": 1,
+   "2026": 4
+  },
+  "last_bar_before_2026-08-01_head": [
+   [
+    "BTTUSDT",
+    "2022-01-26T11:35Z"
+   ],
+   [
+    "KEEPUSDT",
+    "2022-02-15T02:05Z"
+   ],
+   [
+    "NUUSDT",
+    "2022-02-15T02:05Z"
+   ],
+   [
+    "1000BTTCUSDT",
+    "2022-04-11T09:05Z"
+   ],
+   [
+    "YFIIUSDT",
+    "2022-04-12T09:05Z"
+   ],
+   [
+    "ANCUSDT",
+    "2022-05-13T06:45Z"
+   ],
+   [
+    "LUNAUSDT",
+    "2022-05-13T06:50Z"
+   ],
+   [
+    "AKROUSDT",
+    "2022-05-27T09:20Z"
+   ],
+   [
+    "DODOUSDT",
+    "2022-05-27T09:20Z"
+   ],
+   [
+    "ANTUSDT",
+    "2024-05-28T07:10Z"
+   ],
+   [
+    "BLUEBIRDUSDT",
+    "2024-05-28T07:10Z"
+   ],
+   [
+    "BTSUSDT",
+    "2024-05-28T07:10Z"
+   ],
+   [
+    "FOOTBALLUSDT",
+    "2024-05-28T07:10Z"
+   ],
+   [
+    "HNTUSDT",
+    "2024-05-28T07:15Z"
+   ],
+   [
+    "SRMUSDT",
+    "2024-05-28T07:15Z"
+   ],
+   [
+    "TOMOUSDT",
+    "2024-05-28T07:15Z"
+   ],
+   [
+    "AUDIOUSDT",
+    "2024-05-28T07:20Z"
+   ],
+   [
+    "COCOSUSDT",
+    "2024-05-28T07:20Z"
+   ],
+   [
+    "MBLUSDT",
+    "2024-05-28T07:20Z"
+   ],
+   [
+    "GALUSDT",
+    "2024-07-30T06:20Z"
+   ],
+   [
+    "RNDRUSDT",
+    "2024-07-30T06:20Z"
+   ],
+   [
+    "MATICUSDT",
+    "2024-09-11T09:45Z"
+   ],
+   [
+    "FRONTUSDT",
+    "2024-09-11T09:50Z"
+   ],
+   [
+    "EOSUSDT",
+    "2025-05-21T09:05Z"
+   ],
+   [
+    "BDXNUSDT",
+    "2026-04-01T00:00Z"
+   ],
+   [
+    "SXPUSDT",
+    "2026-06-01T00:00Z"
+   ],
+   [
+    "AERGOUSDT",
+    "2026-07-01T00:00Z"
+   ],
+   [
+    "BTCSTUSDT",
+    "2026-07-01T00:00Z"
+   ]
+  ],
+  "first_bar_after_2022-01-02_n": 689
+ },
+ "C3_positive_control": {
+  "king": {
+   "axis_equal": true,
+   "n_derived": 10182,
+   "n_file": 10182,
+   "member_lists_unequal": 0,
+   "unequal_first": [],
+   "y4_finite_pattern_equal": true,
+   "y4_maxabs_window_rows_E_to_E+47": 0.0
+  },
+  "dl": {
+   "axis_equal": true,
+   "n_derived": 10212,
+   "n_file": 10212,
+   "member_lists_unequal": 0,
+   "unequal_first": [],
+   "y4s_finite_pattern_equal_rule_count_ge_46": true
+  },
+  "PASS": true
+ },
+ "C3_forward_predicate": {
+  "king_meta_rule": {
+   "2022": {
+    "anchors_no_predicate": 2148,
+    "anchors_with_predicate": 2148,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 304467,
+    "pairs_removed_forward_nonfinite": 33,
+    "pairs_backfilled": 0,
+    "removed_y4n_zero": 22,
+    "removed_y4n_partial": 11,
+    "removed_name_never_trades_again": 24,
+    "removed_inside_crypto_mask": 30,
+    "share_removed_of_no_predicate_pairs": 0.000108
+   },
+   "2023": {
+    "anchors_no_predicate": 2190,
+    "anchors_with_predicate": 2190,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 410361,
+    "pairs_removed_forward_nonfinite": 3,
+    "pairs_backfilled": 0,
+    "removed_y4n_zero": 2,
+    "removed_y4n_partial": 1,
+    "removed_name_never_trades_again": 0,
+    "removed_inside_crypto_mask": 3,
+    "share_removed_of_no_predicate_pairs": 7e-06
+   },
+   "2024": {
+    "anchors_no_predicate": 2196,
+    "anchors_with_predicate": 2196,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 601407,
+    "pairs_removed_forward_nonfinite": 1,
+    "pairs_backfilled": 0,
+    "removed_y4n_zero": 0,
+    "removed_y4n_partial": 1,
+    "removed_name_never_trades_again": 1,
+    "removed_inside_crypto_mask": 1,
+    "share_removed_of_no_predicate_pairs": 2e-06
+   },
+   "2025": {
+    "anchors_no_predicate": 2190,
+    "anchors_with_predicate": 2190,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 849811,
+    "pairs_removed_forward_nonfinite": 3,
+    "pairs_backfilled": 3,
+    "removed_y4n_zero": 2,
+    "removed_y4n_partial": 1,
+    "removed_name_never_trades_again": 3,
+    "removed_inside_crypto_mask": 3,
+    "share_removed_of_no_predicate_pairs": 4e-06
+   },
+   "2026": {
+    "anchors_no_predicate": 1458,
+    "anchors_with_predicate": 1458,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 583200,
+    "pairs_removed_forward_nonfinite": 3,
+    "pairs_backfilled": 3,
+    "removed_y4n_zero": 2,
+    "removed_y4n_partial": 1,
+    "removed_name_never_trades_again": 3,
+    "removed_inside_crypto_mask": 3,
+    "share_removed_of_no_predicate_pairs": 5e-06
+   }
+  },
+  "dl_targets_rule": {
+   "2022": {
+    "anchors_no_predicate": 2178,
+    "anchors_with_predicate": 2178,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 308547,
+    "pairs_removed_forward_nonfinite": 33,
+    "pairs_backfilled": 0,
+    "removed_y4n_zero": 25,
+    "removed_y4n_partial": 8,
+    "removed_name_never_trades_again": 24,
+    "removed_inside_crypto_mask": 30,
+    "share_removed_of_no_predicate_pairs": 0.000107
+   },
+   "2023": {
+    "anchors_no_predicate": 2190,
+    "anchors_with_predicate": 2190,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 410361,
+    "pairs_removed_forward_nonfinite": 3,
+    "pairs_backfilled": 0,
+    "removed_y4n_zero": 3,
+    "removed_y4n_partial": 0,
+    "removed_name_never_trades_again": 0,
+    "removed_inside_crypto_mask": 3,
+    "share_removed_of_no_predicate_pairs": 7e-06
+   },
+   "2024": {
+    "anchors_no_predicate": 2196,
+    "anchors_with_predicate": 2196,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 601407,
+    "pairs_removed_forward_nonfinite": 1,
+    "pairs_backfilled": 0,
+    "removed_y4n_zero": 0,
+    "removed_y4n_partial": 1,
+    "removed_name_never_trades_again": 1,
+    "removed_inside_crypto_mask": 1,
+    "share_removed_of_no_predicate_pairs": 2e-06
+   },
+   "2025": {
+    "anchors_no_predicate": 2190,
+    "anchors_with_predicate": 2190,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 849811,
+    "pairs_removed_forward_nonfinite": 3,
+    "pairs_backfilled": 3,
+    "removed_y4n_zero": 2,
+    "removed_y4n_partial": 1,
+    "removed_name_never_trades_again": 3,
+    "removed_inside_crypto_mask": 3,
+    "share_removed_of_no_predicate_pairs": 4e-06
+   },
+   "2026": {
+    "anchors_no_predicate": 1458,
+    "anchors_with_predicate": 1458,
+    "anchors_only_without_predicate": 0,
+    "pairs_no_predicate": 583200,
+    "pairs_removed_forward_nonfinite": 3,
+    "pairs_backfilled": 3,
+    "removed_y4n_zero": 3,
+    "removed_y4n_partial": 0,
+    "removed_name_never_trades_again": 3,
+    "removed_inside_crypto_mask": 3,
+    "share_removed_of_no_predicate_pairs": 5e-06
+   }
+  },
+  "note": "removed = in the top-400 without the predicate but excluded because < 46 finite bars in the forward 4h window; backfilled = entered the top-400 because of the vacancy"
+ },
+ "C4_A0_forward_nonfinite_exits": {
+  "42": {
+   "config": {
+    "MEMBERS_TOPN": 829,
+    "UMASK_SCOPE": "m1",
+    "SLOW_NPY": "/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+    "PHI": 0.45,
+    "CAL": "log",
+    "LEGS": "101",
+    "FTRIM": "zero"
+   },
+   "R18_ELIG_in_config": null,
+   "axis_n": 10039,
+   "axis_first": "2022-01-31T00:00Z",
+   "axis_last": "2026-08-31T00:00Z",
+   "by_year": {
+    "2022": {
+     "anchors": 2009,
+     "anchors_with_dump": 7,
+     "dumped_pairs": 10,
+     "dumped_abs_weight_prev": 0.04106994689209387,
+     "dumped_pairs_name_never_trades_again": 8,
+     "dumped_abs_weight_never_trades_again": 0.029905769450124353,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1671.5690522663992,
+     "dumped_share_of_gross_prev_sum": 2.456969805489586e-05
+    },
+    "2023": {
+     "anchors": 2190,
+     "anchors_with_dump": 1,
+     "dumped_pairs": 1,
+     "dumped_abs_weight_prev": 0.009416750632226467,
+     "dumped_pairs_name_never_trades_again": 0,
+     "dumped_abs_weight_never_trades_again": 0.0,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1830.13997613188,
+     "dumped_share_of_gross_prev_sum": 5.1453718049093616e-06
+    },
+    "2024": {
+     "anchors": 2196,
+     "anchors_with_dump": 0,
+     "dumped_pairs": 0,
+     "dumped_abs_weight_prev": 0.0,
+     "dumped_pairs_name_never_trades_again": 0,
+     "dumped_abs_weight_never_trades_again": 0.0,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1251.7970190506828,
+     "dumped_share_of_gross_prev_sum": 0.0
+    },
+    "2025": {
+     "anchors": 2190,
+     "anchors_with_dump": 1,
+     "dumped_pairs": 1,
+     "dumped_abs_weight_prev": 0.0001812294649425894,
+     "dumped_pairs_name_never_trades_again": 1,
+     "dumped_abs_weight_never_trades_again": 0.0001812294649425894,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1118.7053626909615,
+     "dumped_share_of_gross_prev_sum": 1.619992814789549e-07
+    },
+    "2026": {
+     "anchors": 1453,
+     "anchors_with_dump": 0,
+     "dumped_pairs": 0,
+     "dumped_abs_weight_prev": 0.0,
+     "dumped_pairs_name_never_trades_again": 0,
+     "dumped_abs_weight_never_trades_again": 0.0,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1149.435523992192,
+     "dumped_share_of_gross_prev_sum": 0.0
+    }
+   },
+   "largest_examples": [
+    {
+     "anchor": "2022-02-15T00:00Z",
+     "symbol": "KEEPUSDT",
+     "w_prev": -0.00622703367844224,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-02-15T00:00Z",
+     "symbol": "NUUSDT",
+     "w_prev": -0.005293950438499451,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-04-11T08:00Z",
+     "symbol": "1000BTTCUSDT",
+     "w_prev": -0.005503843072801828,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-04-12T08:00Z",
+     "symbol": "YFIIUSDT",
+     "w_prev": 0.0005758925690315664,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-05-13T04:00Z",
+     "symbol": "ANCUSDT",
+     "w_prev": -0.0028652965556830168,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-05-13T04:00Z",
+     "symbol": "LUNAUSDT",
+     "w_prev": -0.00200134189799428,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-05-27T08:00Z",
+     "symbol": "DODOUSDT",
+     "w_prev": -0.0068092807196080685,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-05-27T08:00Z",
+     "symbol": "AKROUSDT",
+     "w_prev": 0.0006291305180639029,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-06-09T00:00Z",
+     "symbol": "BNXUSDT",
+     "w_prev": -0.00892441626638174,
+     "never_trades_again": false
+    },
+    {
+     "anchor": "2022-08-10T00:00Z",
+     "symbol": "BNXUSDT",
+     "w_prev": 0.0022397611755877733,
+     "never_trades_again": false
+    },
+    {
+     "anchor": "2023-02-01T00:00Z",
+     "symbol": "BNXUSDT",
+     "w_prev": 0.009416750632226467,
+     "never_trades_again": false
+    },
+    {
+     "anchor": "2025-05-21T08:00Z",
+     "symbol": "EOSUSDT",
+     "w_prev": -0.0001812294649425894,
+     "never_trades_again": true
+    }
+   ]
+  },
+  "2027": {
+   "config": {
+    "MEMBERS_TOPN": 829,
+    "UMASK_SCOPE": "m1",
+    "SLOW_NPY": "/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+    "PHI": 0.45,
+    "CAL": "log",
+    "LEGS": "101",
+    "FTRIM": "zero"
+   },
+   "R18_ELIG_in_config": null,
+   "axis_n": 10039,
+   "axis_first": "2022-01-31T00:00Z",
+   "axis_last": "2026-08-31T00:00Z",
+   "by_year": {
+    "2022": {
+     "anchors": 2009,
+     "anchors_with_dump": 7,
+     "dumped_pairs": 10,
+     "dumped_abs_weight_prev": 0.04106994689209387,
+     "dumped_pairs_name_never_trades_again": 8,
+     "dumped_abs_weight_never_trades_again": 0.029905769450124353,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1671.5690522663992,
+     "dumped_share_of_gross_prev_sum": 2.456969805489586e-05
+    },
+    "2023": {
+     "anchors": 2190,
+     "anchors_with_dump": 1,
+     "dumped_pairs": 1,
+     "dumped_abs_weight_prev": 0.009357587434351444,
+     "dumped_pairs_name_never_trades_again": 0,
+     "dumped_abs_weight_never_trades_again": 0.0,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1832.7083714738023,
+     "dumped_share_of_gross_prev_sum": 5.105879134947361e-06
+    },
+    "2024": {
+     "anchors": 2196,
+     "anchors_with_dump": 0,
+     "dumped_pairs": 0,
+     "dumped_abs_weight_prev": 0.0,
+     "dumped_pairs_name_never_trades_again": 0,
+     "dumped_abs_weight_never_trades_again": 0.0,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1232.4114132629484,
+     "dumped_share_of_gross_prev_sum": 0.0
+    },
+    "2025": {
+     "anchors": 2190,
+     "anchors_with_dump": 1,
+     "dumped_pairs": 1,
+     "dumped_abs_weight_prev": 0.0007638356182724237,
+     "dumped_pairs_name_never_trades_again": 1,
+     "dumped_abs_weight_never_trades_again": 0.0007638356182724237,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1113.3544119098142,
+     "dumped_share_of_gross_prev_sum": 6.860669074478839e-07
+    },
+    "2026": {
+     "anchors": 1453,
+     "anchors_with_dump": 0,
+     "dumped_pairs": 0,
+     "dumped_abs_weight_prev": 0.0,
+     "dumped_pairs_name_never_trades_again": 0,
+     "dumped_abs_weight_never_trades_again": 0.0,
+     "abs_weight_at_anchor_on_dumped": 0.0,
+     "gross_prev_sum": 1153.0148215084212,
+     "dumped_share_of_gross_prev_sum": 0.0
+    }
+   },
+   "largest_examples": [
+    {
+     "anchor": "2022-02-15T00:00Z",
+     "symbol": "KEEPUSDT",
+     "w_prev": -0.00622703367844224,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-02-15T00:00Z",
+     "symbol": "NUUSDT",
+     "w_prev": -0.005293950438499451,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-04-11T08:00Z",
+     "symbol": "1000BTTCUSDT",
+     "w_prev": -0.005503843072801828,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-04-12T08:00Z",
+     "symbol": "YFIIUSDT",
+     "w_prev": 0.0005758925690315664,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-05-13T04:00Z",
+     "symbol": "ANCUSDT",
+     "w_prev": -0.0028652965556830168,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-05-13T04:00Z",
+     "symbol": "LUNAUSDT",
+     "w_prev": -0.00200134189799428,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-05-27T08:00Z",
+     "symbol": "DODOUSDT",
+     "w_prev": -0.0068092807196080685,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-05-27T08:00Z",
+     "symbol": "AKROUSDT",
+     "w_prev": 0.0006291305180639029,
+     "never_trades_again": true
+    },
+    {
+     "anchor": "2022-06-09T00:00Z",
+     "symbol": "BNXUSDT",
+     "w_prev": -0.00892441626638174,
+     "never_trades_again": false
+    },
+    {
+     "anchor": "2022-08-10T00:00Z",
+     "symbol": "BNXUSDT",
+     "w_prev": 0.0022397611755877733,
+     "never_trades_again": false
+    },
+    {
+     "anchor": "2023-02-01T00:00Z",
+     "symbol": "BNXUSDT",
+     "w_prev": 0.009357587434351444,
+     "never_trades_again": false
+    },
+    {
+     "anchor": "2025-05-21T08:00Z",
+     "symbol": "EOSUSDT",
+     "w_prev": -0.0007638356182724237,
+     "never_trades_again": true
+    }
+   ]
+  }
+ },
+ "C5_oof_masks": {
+  "SLOW_v4": {
+   "axis": "king meta (10182)",
+   "anchors_with_any_pred": 5844,
+   "first_pred_anchor": "2024-01-01T00:00Z",
+   "pred_cells_outside_members": 0,
+   "member_cells_without_pred_on_pred_anchors": 0,
+   "pred_cells_with_nonfinite_forward_y4": 0
+  },
+  "SLOW_v3_on_v4axis": {
+   "axis": "king meta (10182)",
+   "anchors_with_any_pred": 5838,
+   "first_pred_anchor": "2024-01-01T00:00Z",
+   "pred_cells_outside_members": 8365,
+   "member_cells_without_pred_on_pred_anchors": 8365,
+   "pred_cells_with_nonfinite_forward_y4": 0
+  },
+  "f10_v4RAW_s42": {
+   "axis": "dlw_v4raw targets (10212)",
+   "anchors_with_any_pred": 8034,
+   "first_pred_anchor": "2023-01-01T00:00Z",
+   "last_pred_anchor": "2026-08-31T20:00Z",
+   "pred_cells_outside_dlw_v4raw_members": 0,
+   "dlw_v4raw_member_cells_without_pred_on_pred_anchors": 0,
+   "pred_cells_with_nonfinite_forward_y4s": 0
+  },
+  "f10_v4RAW_s2027": {
+   "axis": "dlw_v4raw targets (10212)",
+   "anchors_with_any_pred": 8034,
+   "first_pred_anchor": "2023-01-01T00:00Z",
+   "last_pred_anchor": "2026-08-31T20:00Z",
+   "pred_cells_outside_dlw_v4raw_members": 0,
+   "dlw_v4raw_member_cells_without_pred_on_pred_anchors": 0,
+   "pred_cells_with_nonfinite_forward_y4s": 0
+  },
+  "f10_A0_s42": {
+   "axis": "dlw_v4raw targets (10212)",
+   "anchors_with_any_pred": 8028,
+   "first_pred_anchor": "2023-01-01T00:00Z",
+   "last_pred_anchor": "2026-08-30T20:00Z",
+   "pred_cells_outside_dlw_v4raw_members": 8365,
+   "dlw_v4raw_member_cells_without_pred_on_pred_anchors": 8365,
+   "pred_cells_with_nonfinite_forward_y4s": 0
+  },
+  "f10_A0_s2027": {
+   "axis": "dlw_v4raw targets (10212)",
+   "anchors_with_any_pred": 8028,
+   "first_pred_anchor": "2023-01-01T00:00Z",
+   "last_pred_anchor": "2026-08-30T20:00Z",
+   "pred_cells_outside_dlw_v4raw_members": 8365,
+   "dlw_v4raw_member_cells_without_pred_on_pred_anchors": 8365,
+   "pred_cells_with_nonfinite_forward_y4s": 0
+  }
+ },
+ "C6_universe_class_in_training_members": {
+  "venue_class_symbols": 897,
+  "noncrypto_symbols_on_axis": 149,
+  "unknown_symbols_on_axis": 31,
+  "noncrypto_examples": [
+   "AAOIUSDT",
+   "AAPLUSDT",
+   "ADBEUSDT",
+   "ALABUSDT",
+   "AMATUSDT",
+   "AMDUSDT",
+   "AMZNUSDT",
+   "ANTHROPICUSDT",
+   "APPUSDT",
+   "ARMUSDT",
+   "ASMLUSDT",
+   "ASTSUSDT",
+   "AVGOUSDT",
+   "AXTIUSDT",
+   "BABAUSDT",
+   "BBXUSDT",
+   "BEUSDT",
+   "BITOUSDT",
+   "BMNRUSDT",
+   "BNCUSDT",
+   "BOTUSDT",
+   "BRKBUSDT",
+   "BSPUSDT",
+   "BXUSDT",
+   "BZUSDT",
+   "CATUSDT",
+   "CBRSUSDT",
+   "CIENUSDT",
+   "CLUSDT",
+   "COHRUSDT"
+  ],
+  "king_meta_members": {
+   "2022": {
+    "pairs": 304434,
+    "noncrypto_pairs": 0,
+    "unknown_class_pairs": 25024,
+    "anchors_with_noncrypto": 0,
+    "noncrypto_share": 0.0
+   },
+   "2023": {
+    "pairs": 410358,
+    "noncrypto_pairs": 0,
+    "unknown_class_pairs": 23296,
+    "anchors_with_noncrypto": 0,
+    "noncrypto_share": 0.0
+   },
+   "2024": {
+    "pairs": 601406,
+    "noncrypto_pairs": 0,
+    "unknown_class_pairs": 13836,
+    "anchors_with_noncrypto": 0,
+    "noncrypto_share": 0.0
+   },
+   "2025": {
+    "pairs": 849811,
+    "noncrypto_pairs": 24,
+    "unknown_class_pairs": 5051,
+    "anchors_with_noncrypto": 24,
+    "noncrypto_share": 2.8e-05
+   },
+   "2026": {
+    "pairs": 583200,
+    "noncrypto_pairs": 42363,
+    "unknown_class_pairs": 344,
+    "anchors_with_noncrypto": 1458,
+    "noncrypto_share": 0.072639
+   }
+  },
+  "dl_targets_members": {
+   "2022": {
+    "pairs": 308514,
+    "noncrypto_pairs": 0,
+    "unknown_class_pairs": 25504,
+    "anchors_with_noncrypto": 0,
+    "noncrypto_share": 0.0
+   },
+   "2023": {
+    "pairs": 410358,
+    "noncrypto_pairs": 0,
+    "unknown_class_pairs": 23296,
+    "anchors_with_noncrypto": 0,
+    "noncrypto_share": 0.0
+   },
+   "2024": {
+    "pairs": 601406,
+    "noncrypto_pairs": 0,
+    "unknown_class_pairs": 13836,
+    "anchors_with_noncrypto": 0,
+    "noncrypto_share": 0.0
+   },
+   "2025": {
+    "pairs": 849811,
+    "noncrypto_pairs": 24,
+    "unknown_class_pairs": 5051,
+    "anchors_with_noncrypto": 24,
+    "noncrypto_share": 2.8e-05
+   },
+   "2026": {
+    "pairs": 583200,
+    "noncrypto_pairs": 42363,
+    "unknown_class_pairs": 344,
+    "anchors_with_noncrypto": 1458,
+    "noncrypto_share": 0.072639
+   }
+  }
+ },
+ "elapsed_s": 88.3
+}

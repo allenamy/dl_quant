@@ -1,0 +1,718 @@
+{
+ "device": "ad_batch2.py",
+ "self_sha256": "941ba72363a7e8284f99e083050fc14033c4046459311c24d0127f1d51a0de8a",
+ "inputs": {
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/data/wide_panel_4h_v3splice.npz": "c5d10f6ae31fa3f97006a8678c78382479a5380ae9d7f7af8386d2284ae3e90d",
+  "/workspace/data/wide_panel_4h_v1.npz": "f14bc33d78b2492994e793b494c2ff330958351abf5e6acbb1fe0364f032bc4a",
+  "/workspace/dlw_v4raw/data/dlw_targets.npz": "d1976cf6246cdc25054d21b1a9fa7f8fd02ee43278720d81ce2a35686d63c6f8",
+  "/workspace/dlw_v4raw/data/dlw_fea82.npz": "40608701cad1aea1d72936eb91e31cee4f10cd37fccf48d6b6f4a4b1c7d9389d",
+  "/workspace/f8_v4/data/f10v2_legs.npz": "c535decd6524b091ea7285b263b6447d47b6447b90f69ee958fd2b9ed8437dad",
+  "/workspace/review_scratch/raw_patch.npz": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+  "/workspace/uplift_2026-09-11/r6/out/raw_patch_x0910.npz": "94e8e8c119ea719a4ed1544813d433d00c39148a8e916018435ac10402a6f149"
+ },
+ "numpy": "2.4.6",
+ "F1_splice_vs_v2ext_funding_coverage": {
+  "v1_last_anchor": "2026-08-15T00:00Z",
+  "v3splice_first": "2020-01-31T00:00Z",
+  "common_anchors": 10039,
+  "v1_symbols_with_any_finite_f_fund_ema": 450,
+  "v2ext_symbols_with_any_finite_f_fund_ema": 825,
+  "keys": {
+   "f_fund_now": {
+    "by_year": {
+     "2022": {
+      "finite_v2ext_nan_v3splice": 104374,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 293382
+     },
+     "2023": {
+      "finite_v2ext_nan_v3splice": 160652,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 435821
+     },
+     "2024": {
+      "finite_v2ext_nan_v3splice": 245209,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 651046
+     },
+     "2025": {
+      "finite_v2ext_nan_v3splice": 316990,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 1016678
+     },
+     "2026": {
+      "finite_v2ext_nan_v3splice": 202688,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 867022
+     }
+    },
+    "symbols_with_finite_v2ext_nan_v3splice": 381,
+    "top_symbols": [
+     [
+      "ZRXUSDT",
+      9943
+     ],
+     [
+      "EOSUSDT",
+      9943
+     ],
+     [
+      "ICXUSDT",
+      9943
+     ],
+     [
+      "SFPUSDT",
+      9943
+     ],
+     [
+      "CELRUSDT",
+      9943
+     ],
+     [
+      "MTLUSDT",
+      9943
+     ],
+     [
+      "BANDUSDT",
+      9943
+     ],
+     [
+      "CVCUSDT",
+      9943
+     ],
+     [
+      "MATICUSDT",
+      9943
+     ],
+     [
+      "MASKUSDT",
+      9943
+     ],
+     [
+      "CTKUSDT",
+      9943
+     ],
+     [
+      "KNCUSDT",
+      9943
+     ],
+     [
+      "BTCSTUSDT",
+      9851
+     ],
+     [
+      "ATAUSDT",
+      9420
+     ],
+     [
+      "DENTUSDT",
+      9252
+     ],
+     [
+      "LRCUSDT",
+      9084
+     ],
+     [
+      "SXPUSDT",
+      8873
+     ],
+     [
+      "NKNUSDT",
+      8808
+     ],
+     [
+      "FLMUSDT",
+      8346
+     ],
+     [
+      "BAKEUSDT",
+      8052
+     ],
+     [
+      "ALPHAUSDT",
+      7992
+     ],
+     [
+      "MKRUSDT",
+      7902
+     ],
+     [
+      "DEFIUSDT",
+      7734
+     ],
+     [
+      "ASTRUSDT",
+      7673
+     ],
+     [
+      "CKBUSDT",
+      7583
+     ]
+    ]
+   },
+   "f_fund_iv": {
+    "by_year": {
+     "2022": {
+      "finite_v2ext_nan_v3splice": 104374,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 293382
+     },
+     "2023": {
+      "finite_v2ext_nan_v3splice": 160652,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 435821
+     },
+     "2024": {
+      "finite_v2ext_nan_v3splice": 245209,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 651046
+     },
+     "2025": {
+      "finite_v2ext_nan_v3splice": 316990,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 1016678
+     },
+     "2026": {
+      "finite_v2ext_nan_v3splice": 202688,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 867022
+     }
+    },
+    "symbols_with_finite_v2ext_nan_v3splice": 381,
+    "top_symbols": [
+     [
+      "ZRXUSDT",
+      9943
+     ],
+     [
+      "EOSUSDT",
+      9943
+     ],
+     [
+      "ICXUSDT",
+      9943
+     ],
+     [
+      "SFPUSDT",
+      9943
+     ],
+     [
+      "CELRUSDT",
+      9943
+     ],
+     [
+      "MTLUSDT",
+      9943
+     ],
+     [
+      "BANDUSDT",
+      9943
+     ],
+     [
+      "CVCUSDT",
+      9943
+     ],
+     [
+      "MATICUSDT",
+      9943
+     ],
+     [
+      "MASKUSDT",
+      9943
+     ],
+     [
+      "CTKUSDT",
+      9943
+     ],
+     [
+      "KNCUSDT",
+      9943
+     ],
+     [
+      "BTCSTUSDT",
+      9851
+     ],
+     [
+      "ATAUSDT",
+      9420
+     ],
+     [
+      "DENTUSDT",
+      9252
+     ],
+     [
+      "LRCUSDT",
+      9084
+     ],
+     [
+      "SXPUSDT",
+      8873
+     ],
+     [
+      "NKNUSDT",
+      8808
+     ],
+     [
+      "FLMUSDT",
+      8346
+     ],
+     [
+      "BAKEUSDT",
+      8052
+     ],
+     [
+      "ALPHAUSDT",
+      7992
+     ],
+     [
+      "MKRUSDT",
+      7902
+     ],
+     [
+      "DEFIUSDT",
+      7734
+     ],
+     [
+      "ASTRUSDT",
+      7673
+     ],
+     [
+      "CKBUSDT",
+      7583
+     ]
+    ]
+   },
+   "f_fund_ema": {
+    "by_year": {
+     "2022": {
+      "finite_v2ext_nan_v3splice": 104374,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 293382
+     },
+     "2023": {
+      "finite_v2ext_nan_v3splice": 160652,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 435821
+     },
+     "2024": {
+      "finite_v2ext_nan_v3splice": 245209,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 651046
+     },
+     "2025": {
+      "finite_v2ext_nan_v3splice": 316990,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 1016678
+     },
+     "2026": {
+      "finite_v2ext_nan_v3splice": 202688,
+      "nan_v2ext_finite_v3splice": 50,
+      "finite_v2ext_cells": 867022
+     }
+    },
+    "symbols_with_finite_v2ext_nan_v3splice": 381,
+    "top_symbols": [
+     [
+      "ZRXUSDT",
+      9943
+     ],
+     [
+      "EOSUSDT",
+      9943
+     ],
+     [
+      "ICXUSDT",
+      9943
+     ],
+     [
+      "SFPUSDT",
+      9943
+     ],
+     [
+      "CELRUSDT",
+      9943
+     ],
+     [
+      "MTLUSDT",
+      9943
+     ],
+     [
+      "BANDUSDT",
+      9943
+     ],
+     [
+      "CVCUSDT",
+      9943
+     ],
+     [
+      "MATICUSDT",
+      9943
+     ],
+     [
+      "MASKUSDT",
+      9943
+     ],
+     [
+      "CTKUSDT",
+      9943
+     ],
+     [
+      "KNCUSDT",
+      9943
+     ],
+     [
+      "BTCSTUSDT",
+      9851
+     ],
+     [
+      "ATAUSDT",
+      9420
+     ],
+     [
+      "DENTUSDT",
+      9252
+     ],
+     [
+      "LRCUSDT",
+      9084
+     ],
+     [
+      "SXPUSDT",
+      8873
+     ],
+     [
+      "NKNUSDT",
+      8808
+     ],
+     [
+      "FLMUSDT",
+      8346
+     ],
+     [
+      "BAKEUSDT",
+      8052
+     ],
+     [
+      "ALPHAUSDT",
+      7992
+     ],
+     [
+      "MKRUSDT",
+      7902
+     ],
+     [
+      "DEFIUSDT",
+      7734
+     ],
+     [
+      "ASTRUSDT",
+      7673
+     ],
+     [
+      "CKBUSDT",
+      7583
+     ]
+    ]
+   },
+   "f_fund_ema_v1": {
+    "by_year": {
+     "2022": {
+      "finite_v2ext_nan_v3splice": 104374,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 293382
+     },
+     "2023": {
+      "finite_v2ext_nan_v3splice": 160652,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 435821
+     },
+     "2024": {
+      "finite_v2ext_nan_v3splice": 245209,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 651046
+     },
+     "2025": {
+      "finite_v2ext_nan_v3splice": 316990,
+      "nan_v2ext_finite_v3splice": 0,
+      "finite_v2ext_cells": 1016678
+     },
+     "2026": {
+      "finite_v2ext_nan_v3splice": 202688,
+      "nan_v2ext_finite_v3splice": 50,
+      "finite_v2ext_cells": 867022
+     }
+    },
+    "symbols_with_finite_v2ext_nan_v3splice": 381,
+    "top_symbols": [
+     [
+      "ZRXUSDT",
+      9943
+     ],
+     [
+      "EOSUSDT",
+      9943
+     ],
+     [
+      "ICXUSDT",
+      9943
+     ],
+     [
+      "SFPUSDT",
+      9943
+     ],
+     [
+      "CELRUSDT",
+      9943
+     ],
+     [
+      "MTLUSDT",
+      9943
+     ],
+     [
+      "BANDUSDT",
+      9943
+     ],
+     [
+      "CVCUSDT",
+      9943
+     ],
+     [
+      "MATICUSDT",
+      9943
+     ],
+     [
+      "MASKUSDT",
+      9943
+     ],
+     [
+      "CTKUSDT",
+      9943
+     ],
+     [
+      "KNCUSDT",
+      9943
+     ],
+     [
+      "BTCSTUSDT",
+      9851
+     ],
+     [
+      "ATAUSDT",
+      9420
+     ],
+     [
+      "DENTUSDT",
+      9252
+     ],
+     [
+      "LRCUSDT",
+      9084
+     ],
+     [
+      "SXPUSDT",
+      8873
+     ],
+     [
+      "NKNUSDT",
+      8808
+     ],
+     [
+      "FLMUSDT",
+      8346
+     ],
+     [
+      "BAKEUSDT",
+      8052
+     ],
+     [
+      "ALPHAUSDT",
+      7992
+     ],
+     [
+      "MKRUSDT",
+      7902
+     ],
+     [
+      "DEFIUSDT",
+      7734
+     ],
+     [
+      "ASTRUSDT",
+      7673
+     ],
+     [
+      "CKBUSDT",
+      7583
+     ]
+    ]
+   }
+  }
+ },
+ "F2_fea82_fund_columns": {
+  "pairs": 2753289,
+  "names": [
+   "fund_ema",
+   "fund_now"
+  ],
+  "by_year": {
+   "2022": {
+    "pairs": 308514,
+    "pairs_with_v2ext_row": 285622,
+    "fund_ema_zero": 106393,
+    "fund_ema_zero_while_v2ext_finite": 97546,
+    "fund_now_zero_while_v2ext_finite": 98524,
+    "share_fund_ema_zero_while_v2ext_finite": 0.341521
+   },
+   "2023": {
+    "pairs": 410358,
+    "pairs_with_v2ext_row": 410358,
+    "fund_ema_zero": 139361,
+    "fund_ema_zero_while_v2ext_finite": 139361,
+    "fund_now_zero_while_v2ext_finite": 140335,
+    "share_fund_ema_zero_while_v2ext_finite": 0.339608
+   },
+   "2024": {
+    "pairs": 601406,
+    "pairs_with_v2ext_row": 601406,
+    "fund_ema_zero": 202279,
+    "fund_ema_zero_while_v2ext_finite": 202279,
+    "fund_now_zero_while_v2ext_finite": 203433,
+    "share_fund_ema_zero_while_v2ext_finite": 0.336344
+   },
+   "2025": {
+    "pairs": 849811,
+    "pairs_with_v2ext_row": 849811,
+    "fund_ema_zero": 210183,
+    "fund_ema_zero_while_v2ext_finite": 210066,
+    "fund_now_zero_while_v2ext_finite": 211386,
+    "share_fund_ema_zero_while_v2ext_finite": 0.247225
+   },
+   "2026": {
+    "pairs": 583200,
+    "pairs_with_v2ext_row": 581200,
+    "fund_ema_zero": 83147,
+    "fund_ema_zero_while_v2ext_finite": 80970,
+    "fund_now_zero_while_v2ext_finite": 85780,
+    "share_fund_ema_zero_while_v2ext_finite": 0.139359
+   }
+  }
+ },
+ "F3_legs_ZFD": {
+  "2022": {
+   "member_pairs": 308514,
+   "zfd_nonfinite": 5355,
+   "zfd_nonfinite_while_v2ext_finite": 5332
+  },
+  "2023": {
+   "member_pairs": 410358,
+   "zfd_nonfinite": 0,
+   "zfd_nonfinite_while_v2ext_finite": 0
+  },
+  "2024": {
+   "member_pairs": 601406,
+   "zfd_nonfinite": 0,
+   "zfd_nonfinite_while_v2ext_finite": 0
+  },
+  "2025": {
+   "member_pairs": 849811,
+   "zfd_nonfinite": 0,
+   "zfd_nonfinite_while_v2ext_finite": 0
+  },
+  "2026": {
+   "member_pairs": 583200,
+   "zfd_nonfinite": 11236,
+   "zfd_nonfinite_while_v2ext_finite": 9236
+  }
+ },
+ "F4_patch_bars_by_month": {
+  "raw_patch": {
+   "bars": 952,
+   "by_month": {
+    "2022-05": 20,
+    "2022-06": 7,
+    "2022-07": 1,
+    "2022-08": 3,
+    "2022-11": 2,
+    "2023-01": 1,
+    "2023-02": 1,
+    "2023-05": 1,
+    "2023-08": 2,
+    "2023-12": 1,
+    "2024-01": 3,
+    "2024-02": 1,
+    "2024-05": 2,
+    "2024-09": 1,
+    "2024-10": 2,
+    "2024-11": 1,
+    "2024-12": 3,
+    "2025-01": 2,
+    "2025-02": 4,
+    "2025-03": 8,
+    "2025-04": 15,
+    "2025-05": 6,
+    "2025-06": 7,
+    "2025-07": 10,
+    "2025-08": 7,
+    "2025-09": 14,
+    "2025-10": 703,
+    "2025-11": 39,
+    "2025-12": 17,
+    "2026-01": 4,
+    "2026-02": 7,
+    "2026-03": 11,
+    "2026-04": 16,
+    "2026-05": 5,
+    "2026-06": 6,
+    "2026-07": 10,
+    "2026-08": 9
+   },
+   "months_with_bars_2026": 8
+  },
+  "raw_patch_x0910": {
+   "bars": 955,
+   "by_month": {
+    "2022-05": 20,
+    "2022-06": 7,
+    "2022-07": 1,
+    "2022-08": 3,
+    "2022-11": 2,
+    "2023-01": 1,
+    "2023-02": 1,
+    "2023-05": 1,
+    "2023-08": 2,
+    "2023-12": 1,
+    "2024-01": 3,
+    "2024-02": 1,
+    "2024-05": 2,
+    "2024-09": 1,
+    "2024-10": 2,
+    "2024-11": 1,
+    "2024-12": 3,
+    "2025-01": 2,
+    "2025-02": 4,
+    "2025-03": 8,
+    "2025-04": 15,
+    "2025-05": 6,
+    "2025-06": 7,
+    "2025-07": 10,
+    "2025-08": 7,
+    "2025-09": 14,
+    "2025-10": 703,
+    "2025-11": 39,
+    "2025-12": 17,
+    "2026-01": 4,
+    "2026-02": 7,
+    "2026-03": 11,
+    "2026-04": 16,
+    "2026-05": 5,
+    "2026-06": 6,
+    "2026-07": 10,
+    "2026-08": 9,
+    "2026-09": 3
+   },
+   "months_with_bars_2026": 9
+  }
+ },
+ "elapsed_s": 5.5
+}

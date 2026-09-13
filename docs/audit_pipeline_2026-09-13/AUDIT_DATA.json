@@ -1,0 +1,2568 @@
+{
+ "meta": {
+  "created_utc": "2026-09-13T14:3xZ",
+  "session": "https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (auditor teammate aud-data of team-lead; read-only)",
+  "scope": "data lineage and return / funding / timestamp / universe / tradability calibers of every panel, cache, meta, target, OOF and mask read by research, evaluation and retrain devices committed since 2026-09-09",
+  "frozen": {
+   "research_repo_branch": "research/book-uplift-2026-09-11",
+   "device_commits_before_runs": [
+    "feb7747e (A-E)",
+    "deb8a47b (F, E v2)",
+    "36633520 (G)",
+    "60461e1a (H)"
+   ],
+   "consumer_scan_head": "deb8a47bb5a42eefe570e5c87de2fff5d142873e",
+   "pod2_data": {
+    "5m cache (canonical)": "1d7f459dee434ec4",
+    "5m cache (Sept extension)": "8115299410cd5e8d",
+    "5m cache (pre-fix)": "72eb784949e90a09",
+    "raw-return patch": "adecf276bcfd89f4",
+    "raw-return patch (Sept)": "94e8e8c119ea719a",
+    "hole cells": "6156f97a0709f073",
+    "4h panel v1 canonical": "f14bc33d78b24929",
+    "4h panel v2ext": "5e67c0559daa904d",
+    "4h panel v3splice": "c5d10f6ae31fa3f9",
+    "4h panel v2ext x0910": "042478f7d8e9f947",
+    "4h panel v3splice x0910": "df847cd7ac4201a0",
+    "EMA state": "c1dbb41f7c9120d5",
+    "funding API pull": "8a9e771577602dd1",
+    "funding Sept pull": "bfd9bc65c24916ac",
+    "P2 settlement ledger": "bea6f5752772d54e",
+    "king features v4": "268f6c9c247cdf1f",
+    "king meta v4": "12ea42c4557093f1",
+    "king features v2ext (in-service)": "f88b07205bf19870",
+    "accounting meta v4": "0e3c09ac86c727ac",
+    "accounting meta x0910": "a8eb359701c71acf",
+    "DL targets RAW": "d1976cf6246cdc25",
+    "DL targets CLIP": "720f03a447278b4b",
+    "DL targets in-service": "31d043e8f160a1d4",
+    "DL fea82": "40608701cad1aea1",
+    "DL fea89": "f7363889fa823a97",
+    "F10 legs v4": "c535decd6524b091",
+    "king OOF v4": "dde19142d017c37d",
+    "king OOF v3 on v4 axis": "647673183e6af44a",
+    "F10 OOF A0": "ff109711f5526c68",
+    "F10 OOF v4RAW": "58d64a6ff9684589",
+    "universe mask CRYPTO": "47d87b5165b695a7",
+    "A0 reference book": "352ac36fb3195327"
+   },
+   "receipts": {
+    "AD_A_inventory.json": "191d4a36f6c71d20",
+    "AD_B_funding_iv.json": "f6d58b2b730e326b",
+    "AD_C_cache_members.json": "0e8bc8fdcfae1b6d",
+    "AD_D_panel_holes.json": "a62a9d481a6b038a",
+    "AD_E_consumers_matrix.json": "e6d9a68694a43902",
+    "AD_F_batch2.json": "941ba72363a7e828",
+    "AD_G_batch3.json": "f1e9b714df6499dd",
+    "AD_H_tradability.json": "4c065c1714f4b91f"
+   }
+  },
+  "constraints_kept": [
+   "every dataset opened read-only (np.load / zipfile streaming); no dataset written, moved or rewritten",
+   "pod2 CPU only, nice 19, env -i with OMP=1; at most 6 worker processes; no GPU; PIDs 333197/339489 and P2 S2 processes untouched",
+   "no exchange or venue API call; no network download",
+   "hashes guarded (bytes read == st_size)",
+   "every device committed before it ran; every receipt's self_sha256 equals the committed device"
+  ],
+  "status_legend": {
+   "FIXED_DEPLOYED": "fixed in the data or code that current consumers read",
+   "VERIFIED_IMMATERIAL": "checked; no effect on the named layers (resolution given)",
+   "OPEN_MEASURED_MATERIAL": "defect confirmed with numbers; real effect on the named layer, even if small",
+   "OPEN_NOT_MEASURED": "mechanism confirmed, size of effect not measured",
+   "PENDING_USER_DECISION": "needs a user ruling",
+   "DOC_STALE": "data and code are right, a document or memory note is wrong"
+  }
+ },
+ "counts": {
+  "by_status": {
+   "FIXED_DEPLOYED": 2,
+   "VERIFIED_IMMATERIAL": 13,
+   "OPEN_MEASURED_MATERIAL": 5,
+   "OPEN_NOT_MEASURED": 8,
+   "PENDING_USER_DECISION": 0,
+   "DOC_STALE": 1
+  },
+  "by_severity": {
+   "P0": 0,
+   "P1": 3,
+   "P2": 9,
+   "P3": 17
+  },
+  "n_items": 29
+ },
+ "items": [
+  {
+   "id": "TRD-01",
+   "layer": "data layer / tradability definition (all panels, caches, metas, masks)",
+   "title": "Dead perpetuals keep writing untraded rows with a frozen close and keep funding records; every eligibility rule in research reads them as live",
+   "what": "No research panel, cache, meta, mask or replay defines tradability by trades. After a perp stops trading the archive keeps writing 5m rows with zero trades and one frozen close; in the canonical 5m cache 156 contracts stopped trading inside the cache and still carry 13,770,575 such rows, every one with ret5 exactly 0, log_qv exactly 0 and cpos/tbf NaN (129 of them still write frozen rows through the x0910 tail to 2026-09-11). Per year: 140,532 / 685,399 / 1,420,707 / 4,298,273 / 7,225,664 rows over 11 / 8 / 38 / 71 / 131 symbols (2022..2026). Zero-trade runs of 24 h or longer: 158, of which 147 never resume. The eligibility rules all pass such rows: panel elig and king/DL member screens use the share of finite ret5 bars (coverage) plus 7-day volatility and a finite forward return (a frozen close gives a finite 0); the replay universe is 'finite qvk' (the 7-day mean of log1p(quote volume), which is a finite 0 on frozen rows) intersected with U-PIT, whose monthly rule keeps any name with positive 30-day volume, i.e. up to about two months after death; the replay trade set uses a 7-day log-volume mean that decays only gradually after the stop (TRD-03 counts the dead pairs it still admits); P2 uses 'a settlement in the last 24 h' as its TRADING proxy. Funding archives keep records for dead contracts: 60 of the 156 dead contracts have 60,438 settlement events after their last trade (zips 58,509, fund_aug 60,188, r6 September pull 328), e.g. RAYUSDT last trade 2022-11-15, funding until 2025-06-19. My own survivorship reading C2 (28 names with last finite bar before 2026-08-01) was fooled by the same rows; by trades the number is 156. The book-level size on A0 is small (TRD-03) and the rank-base and statistics contamination is systematic (TRD-02, TRD-04); L4 already had its verdict decided by this failure (L4b).",
+   "evidence": [
+    {
+     "source": "retrain_2026-09/pod_merge_cache_ext.py:24,27-32 (git HEAD; = pod2 /workspace copy de7a0661)",
+     "quote": "k['ts'] = pd.to_datetime(k.open_time...) + pd.Timedelta('5min') ... A[:,0] = np.clip(k.c.pct_change(fill_method=None), -0.3, 0.3) ... A[:,4] = np.log1p(k.cnt).clip(0, 20)"
+    },
+    {
+     "source": "devices_data/receipts/AD_H_tradability.json H1_cache (ad_tradability.py 4c065c17, commit 60461e1a before run)",
+     "quote": "{\"post_death_untraded_rows\": 13770575, \"ret5_exactly_0\": 13770575, \"log_qv_exactly_0\": 13770575, \"cpos_nan\": 13770575, \"tbf_nan\": 13770575}; top: SCUSDT last trade 2022-06-17T09:00Z (1536.6 d frozen), FTTUSDT last trade 2022-11-14T04:05Z (1386.8 d frozen), RAYUSDT last trade 2022-11-15T04:05Z (1385.8 d frozen), STRAXUSDT last trade 2024-03-15T09:00Z (899.6 d frozen), DGBUSDT last trade 2024-04-01T09:05Z (882.6 d frozen), SNTUSDT last trade 2024-05-13T09:00Z (840.6 d frozen)"
+    },
+    {
+     "source": "AD_H_tradability.json H1_x0910_tail",
+     "quote": "{\"tail_rows\": 2880, \"symbols_dead_before_2026-09-01_still_writing_untraded_rows\": 129, \"untraded_rows_of_those\": 371520, \"ret5_exactly_0_of_those\": 371520}"
+    },
+    {
+     "source": "retrain_2026-09/pod_panel_ext.py:40; v4_chain_2026-09-09/pod_fea_ext_clamp.py:37; pod_dlw_targets_raw.py:107",
+     "quote": "elig = (covr >= 0.95) & (v7 >= 1e-4) | ok = (covr[i] >= 0.95) & (v7[i] >= 1e-4) & np.isfinite(y4[i]) | ok = (covr[i] >= 0.95) & (vstd[i] >= 1e-4) & np.isfinite(y4s[i])"
+    },
+    {
+     "source": "uplift_2026-09-11/r18_foundation/devices/w10_sleeve_r18.py:81,244,267 (A0 config MEMBERS_TOPN=829)",
+     "quote": "_mem2[_i] = np.sort(_ord[:MEMBERS_TOPN]) (all finite qvk) ... ok = ... np.isfinite(y4[i, m]); qv4h = np.expm1(np.clip(qvk[i, m], 0, 30)) * 48 ... _nonsel[m[~sel]] = True"
+    },
+    {
+     "source": "retrain_2026-09/health_check_2026-09-05/build_umask.py:46 (U-PIT, monthly refresh)",
+     "quote": "elig = has & (age >= 30) & (vol30 > 0)"
+    },
+    {
+     "source": "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md:75 (P2 D3)",
+     "quote": "exchangeInfo 历史不可得 ⇒ (A−24h, A] 有结算的名作 TRADING 代理"
+    },
+    {
+     "source": "AD_H_tradability.json H5_funding_after_death",
+     "quote": "{\"events\": 60438, \"zip\": 58509, \"aug\": 60188, \"sep\": 328}; RAYUSDT 3414 events after last trade 2022-11-15 (last 2025-06-19), SCUSDT 3294 events after last trade 2022-06-17 (last 2025-06-19), FTTUSDT 2845 events after last trade 2022-11-14 (last 2025-06-19), STRAXUSDT 2766 events after last trade 2024-03-15 (last 2025-06-19), SNTUSDT 2412 events after last trade 2024-05-13 (last 2025-06-19)"
+    },
+    {
+     "source": "uplift_r3_2026-09-13/L4b/RESULT_L4b.md:46-47 (commit 30dc6eb2)",
+     "quote": "After a perp stops trading, the archive keeps writing untraded 1m rows with one frozen close ... fund_aug keeps recording funding for some stopped perps (MDT 1,197 events ...)"
+    },
+    {
+     "source": "AD_C_cache_members.json C2_axis_survivorship (my earlier close-based reading)",
+     "quote": "last_bar_before_2026-08-01_n 28 vs AD_H symbols_dead_inside_cache 156"
+    }
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "future_eval",
+    "future_retrain",
+    "reporting"
+   ],
+   "severity": "P1",
+   "severity_reason": "A verified, systematic defect with no guard anywhere in research: dead contracts enter universes, rank bases and statistics with zero returns and phantom funding; it already decided one research verdict (L4) and sits directly under the next ones (L3 delisting events, carry sleeves).",
+   "action": "Add a trades-based flag to the data layer (for each name and 5m row: traded = number_of_trades > 0 from log_cnt; untradable_since = first row after the last trade) and a causal version for decisions (no trade in the trailing 24 h). Apply it to U-PIT, the replay universe and trade set, the fund rank base, P2's base proxy, the king/DL member screens and state-variable member sets; set post-death returns to NaN, not 0, and treat funding records after the last trade as not paid. Re-run A0/NW and P2 S2 once, paired, to size the change.",
+   "method": "VERIFIED",
+   "dependents": [
+    "uplift_r3 L4 carry sleeve (corrected by L4b)",
+    "P2 S2 historical replay (running; base proxy = settlement presence)",
+    "every w10_sleeve arm with MEMBERS_TOPN=829 / UMASK m1 (A0, NW, C0, T1 C0, T2, T5, T5c)",
+    "T1 H3 / T8 state variables over finite-qvk ∩ m1",
+    "r12 / r19 sig_fund and dispersion labels",
+    "my own C2 survivorship reading (corrected here)"
+   ]
+  },
+  {
+   "id": "FEA-01",
+   "layer": "DL training features / funding columns (fea82 via wide_panel_4h_v3splice)",
+   "title": "DL training features carry funding only for the 450 names of the 2026-08 live list; for every other name the funding inputs are 0.0 back to 2022, and that flag carries forward-return information",
+   "what": "The DL feature builder takes fund_ema and fund_now from the splice panel (F171_PANEL = PANEL_SPLICE in the chain) and writes nan_to_num(value, 0.0). The splice panel's prefix up to 2026-08-15 is the v1 canonical panel, whose funding covers exactly the 450 symbols of live_pins symbols_live (identical sets), while the 829-name panel the replay reads has funding for 825. So among DL member pairs that do have funding in the 829-name panel, the training feature is 0.0 on 34.2% / 34.0% / 33.6% / 24.7% / 13.9% of pairs (2022..2026). Membership of a 2026-08 list is future information for 2022-2025 rows. The flag 'funding feature present' is informative about the next 4 h: restricted to pairs with real funding, the demeaned forward return of flagged minus unflagged names is +0.77 / +0.46 / +1.07 / +2.78 / +3.19 bps per 4 h (naive t 0.9 / 0.7 / 1.8 / 3.3 / 1.8; autocorrelated, descriptive). The in-service F10 (dlw_ext / f8_ext, built from the same splice), the v4 F10 and every F10 OOF used in replays (f10_A0, f10_v4RAW, P2's injection) were trained on this. Production scores only live names; how its own funding inputs are filled is a production-path question (T4b found historical-anchor fund rows back-filled with 0; AUDIT_PROD), so train and serve distributions of these two columns differ in an unmeasured way. The October template keeps PANEL_SPLICE, so the zero prefix persists. The size of the effect on F10 predictions and books was not measured.",
+   "evidence": [
+    {
+     "source": "retrain_2026-09/pod_dlw_features_ext.py:73,94",
+     "quote": "FUND = [PW[\"f_fund_ema\"]..., PW[\"f_fund_now\"]...] ... X[sl, col] = 0.0 if j is None else np.nan_to_num(fv[j, m], nan=0.0)"
+    },
+    {
+     "source": "pod2 dlw_ext/results/dlw_features_report.json and dlw_v4raw/results/dlw_features_report.json (read-only)",
+     "quote": "panel_sha256 c5d10f6ae31fa3f9... (= wide_panel_4h_v3splice.npz) in both; cache 72eb7849 (in-service, _ext) and 1d7f459d (v4, holefix2)"
+    },
+    {
+     "source": "retrain_2026-09/v4_chain_2026-09-09/chain_v4_monthly.sh:139",
+     "quote": "env -i ... F171_CACHE=$CACHE F171_PANEL=$PANEL_SPLICE F171_OUT=$DLW_CLIP \"$PY\" \"$BUILDER_FEA82\""
+    },
+    {
+     "source": "retrain_2026-09/pod_panel_splice.py:11-12 (CAN = v1 canonical, EXT = v2ext)",
+     "quote": "CAN = np.load(\"/workspace/data/wide_panel_4h_v1.npz\") ... EXT = np.load(\"/workspace/data/wide_panel_4h_v2ext.npz\")"
+    },
+    {
+     "source": "devices_data/receipts/AD_G_batch3.json G1 (ad_batch3.py f1e9b714, commit 36633520 before run)",
+     "quote": "{\"v1_funding_symbols\": 450, \"live_pins_symbols\": 450, \"identical\": true, \"in_v1_not_live\": [], \"live_not_in_v1\": []}"
+    },
+    {
+     "source": "AD_F_batch2.json F1 (ad_batch2.py 941ba723, commit deb8a47b)",
+     "quote": "v1_symbols_with_any_finite_f_fund_ema 450; v2ext 825; f_fund_ema finite in v2ext but NaN in v3splice by year: 104,374 / 160,652 / 245,209 / 316,990 / 202,688"
+    },
+    {
+     "source": "AD_F_batch2.json F2 (dlw_v4raw dlw_fea82.npz 40608701, 2,753,289 member pairs)",
+     "quote": "2022: 97,546 of 285,622 pairs zero while v2ext finite; 2023: 139,361 of 410,358 pairs zero while v2ext finite; 2024: 202,279 of 601,406 pairs zero while v2ext finite; 2025: 210,066 of 849,811 pairs zero while v2ext finite; 2026: 80,970 of 581,200 pairs zero while v2ext finite"
+    },
+    {
+     "source": "AD_G_batch3.json G2",
+     "quote": "2022: anchors 2010, gap +0.77 bps (t 0.9), spearman -0.0031; 2023: anchors 2190, gap +0.46 bps (t 0.7), spearman +0.0018; 2024: anchors 2196, gap +1.07 bps (t 1.8), spearman -0.0041; 2025: anchors 2190, gap +2.78 bps (t 3.3), spearman +0.0059; 2026: anchors 1357, gap +3.19 bps (t 1.8), spearman -0.0079"
+    },
+    {
+     "source": "retrain_2026-09/second_instrument_rebuild_2026-09-05/REPORT.md:59",
+     "quote": "the 08-21 instrument (v1 = wide_panel_4h_hist_v2.npz) used 450-symbol funding coverage ... The two instrument families therefore differed in funding coverage"
+    },
+    {
+     "source": "v4_chain_2026-09-09/v4_month_2026-10.env.template:10",
+     "quote": "PANEL_SPLICE=/workspace/data/TODO_wide_panel_4h_v3splice_2026-10.npz"
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "live_trading",
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P1",
+   "severity_reason": "A future-derived availability flag sits in the training inputs of a live model leg and of every F10 out-of-fold series used to judge candidates; the October retrain would re-bake it, and no document records it as a defect.",
+   "action": "Rebuild fea82 funding columns from the 829-name panel (or from the settlement stream with the declared interval) and keep NaN semantics explicit (a separate availability bit built from trades, TRD-01); measure on one monthly fold pair (current vs rebuilt features, same seed and recipe) the F10 OOF IC and the A1 book difference before October; until then label F10 OOF readings as carrying this flag.",
+   "method": "VERIFIED",
+   "dependents": [
+    "in-service F10 f10_live_s42_np (dlw_ext / f8_ext)",
+    "RESULT_v4_chain_retrain_quantify_2026-09-09 (A1 vs A0, both affected)",
+    "every replay F10 leg: f10_A0_s*, f10_v4RAW_s*",
+    "P2 F10 OOF injection (D2)",
+    "none re-run"
+   ]
+  },
+  {
+   "id": "TIM-01",
+   "layer": "king features and labels / clock (train vs serve)",
+   "title": "King training uses windows ending one bar before the anchor and labels starting one bar before it; the live producer serves windows that include the anchor bar; the October chain rebuilds the same way and no register carries it",
+   "what": "pod_fea_ext_clamp.py builds every window as rows [E-w, E-1] and the label as the sum over rows [E, E+47]; shadow_loop_v3.py serves rows [ai+1-w, ai] where ai is the bar closing at the anchor; the accounting return is rows [E+1, E+48]. E-0909-F measured the skew on six anchors: prediction Spearman 0.976-0.990 between the training clock and the serving clock, top-decile overlap 78-93%, largest |Δpred| 1.2-1.9 times the score's sd. The clock-aligned builder (v4e) passed its parity gate but failed the export guard by rule (Sharpe 2.260 < 2.27, a guard whose sampling error is about ±0.6); book-level readings were (C). The in-service booster and the v4 candidate both carry the skew; the October chain calls pod_fea_ext_clamp.py again. RUNBOOK_2026-10, CALIBER_STATUS and FIXPROGRAM do not list it.",
+   "evidence": [
+    {
+     "source": "~/wide_shadow/shadow_loop_v3.py:280,285-286,356,358 (sha256 e9c98374...)",
+     "quote": "\"endTime\": anchor * 1000 - 1 ... close_s = (int(k[0]) + 300000) // 1000 ... if close_s > anchor ... ai = row_of[anchor] ... seg = CDf[max(ai + 1 - w, 0):ai + 1, :, ch]"
+    },
+    {
+     "source": "v4_chain_2026-09-09/pod_fea_ext_clamp.py:33-34,48,51 (sha b9f9c728, = pod2 review_scratch copy)",
+     "quote": "y4 = (CS[\"ret5\"][0][E + 48] - CS[\"ret5\"][0][E]) ... Ew = np.maximum(E - w, 0) ... VAL.append(((s_[E] - s_[Ew])))"
+    },
+    {
+     "source": "devices_data/receipts/AD_C_cache_members.json C3_positive_control.king",
+     "quote": "member lists unequal 0; y4 maxabs vs Σ rows [E, E+47] = 0.0"
+    },
+    {
+     "source": "docs/HANDOFF_round2_b0a573a1_closure_2026-09-09.md:40,42,68",
+     "quote": "离线特征窗 [E−w, E−1] vs 生产 [E−w+1, E] ... Spearman 0.976–0.990, 顶十分位重叠 78–93% ... G2 导出门 = FAIL ... 守卫 Sharpe 2.260 < 2.27"
+    },
+    {
+     "source": "v4_chain_2026-09-09/chain_v4_monthly.sh:148",
+     "quote": "env -i ... CACHE_IN=$CACHE PANEL_IN=$PANEL_KING FEA_OUT=$KING_FEA META_OUT=$KING_META \"$PY\" \"$D/pod_fea_ext_clamp.py\""
+    },
+    {
+     "source": "grep 'E-0909-F|v4e|king_clock|时钟' RUNBOOK_monthly_retrain_2026-10.md, CALIBER_STATUS_2026-09-09.md, git show HEAD:docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md",
+     "quote": "no entry for the king clock; RUNBOOK mentions v4e only as the export gate file v4e_gate_export_v2.py; FIXPROGRAM's only 时钟 hit is D2 (metrics archive)"
+    }
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "live_trading",
+    "future_retrain",
+    "future_eval"
+   ],
+   "severity": "P1",
+   "severity_reason": "A measured train/serve skew in a live model leg (7-22% of the top decile changes), with a ready fix blocked by a low-resolution guard, silently re-baked by the next retrain because it fell out of every register.",
+   "action": "Add E-0909-F to FIXPROGRAM; decide the clock-aligned builder with a CI-based book judge instead of the ±0.6-noise guard band; until decided, state in RUNBOOK_2026-10 that October keeps the old clock.",
+   "method": "VERIFIED",
+   "dependents": [
+    "in-service king booster 8d79186b",
+    "v4 king SLOW_v4 (A1x, P2 king OOF)",
+    "RESULT_king_clip_label_ablation / guard band 2.27-2.57 (computed on the same early-window label)",
+    "none re-run"
+   ]
+  },
+  {
+   "id": "TRD-02",
+   "layer": "fund leg rank base (replay FZB and P2 base proxy)",
+   "title": "The fund leg's rank base in research includes dead contracts that still have funding records; production's base (exchangeInfo TRADING) does not",
+   "what": "w10 m1 scope ranks each member's funding EMA among every finite value on the panel row; dead contracts with continuing funding records sit in that base. Dead names in the base, mean per anchor 1.4 / 6.5 / 15.8 / 17.5 / 4.3 (max 5 / 8 / 26 / 41 / 10) of a base of 146 / 199 / 296 / 464 / 597 names (2022..2026). P2's settlement-based TRADING proxy has the same contamination: 1.4 / 6.5 / 15.8 / 17.6 / 4.4 dead names per anchor (max 5 / 8 / 26 / 41 / 10). Relative order among live names is unchanged, but rank positions and therefore z levels and demeaned weights shift. Production's base is exchangeInfo TRADING perpetuals plus the pinned live list, so it excludes dead contracts unless they are still pinned. The book-level effect was not measured.",
+   "evidence": [
+    {
+     "source": "uplift_2026-09-11/r18_foundation/devices/w10_sleeve_r18.py:149",
+     "quote": "def FZB(j, m): # ... fund z = rank position of each member among ALL finite fund-EMA values of the 829 base on panel row j"
+    },
+    {
+     "source": "devices_data/receipts/AD_H_tradability.json H3",
+     "quote": "{\"2022\": {\"base_mean\": 145.96119402985076, \"base_DEAD_mean\": 1.4432835820895522, \"base_DEAD_max\": 5, \"base_Z24_mean\": 3.3049751243781094}, \"2023\": {\"base_mean\": 199.00502283105024, \"base_DEAD_mean\": 6.519178082191781, \"base_DEAD_max\": 8, \"base_Z24_mean\": 8.675342465753424}, \"2024\": {\"base_mean\": 296.4690346083789, \"base_DEAD_mean\": 15.824681238615664, \"base_DEAD_max\": 26, \"base_Z24_mean\": 17.469945355191257}, \"2025\": {\"base_mean\": 464.2365296803653, \"base_DEAD_mean\": 17.497260273972604, \"base_DEAD_max\": 41, \"base_Z24_mean\": 18.110045662100458}, \"2026\": {\"base_mean\": 596.7116311080523, \"base_DEAD_mean\": 4.263592567102546, \"base_DEAD_max\": 10, \"base_Z24_mean\": 0.7522367515485203}}"
+    },
+    {
+     "source": "AD_H_tradability.json H5.P2_base_proxy_on_king_axis",
+     "quote": "{\"2022\": {\"base_proxy_mean\": 145.40130353817506, \"base_proxy_DEAD_mean\": 1.4003724394785848, \"base_proxy_DEAD_max\": 5}, \"2023\": {\"base_proxy_mean\": 199.0068493150685, \"base_proxy_DEAD_mean\": 6.519178082191781, \"base_proxy_DEAD_max\": 8}, \"2024\": {\"base_proxy_mean\": 296.4799635701275, \"base_proxy_DEAD_mean\": 15.835610200364298, \"base_proxy_DEAD_max\": 26}, \"2025\": {\"base_proxy_mean\": 464.3054794520548, \"base_proxy_DEAD_mean\": 17.561643835616437, \"base_proxy_DEAD_max\": 41}, \"2026\": {\"base_proxy_mean\": 597.0672153635117, \"base_proxy_DEAD_mean\": 4.3532235939643344, \"base_proxy_DEAD_max\": 10}}"
+    },
+    {
+     "source": "AD_H_tradability.json H6 fund_now_finite_on_DEAD (v2ext cells)",
+     "quote": "2,901 / 14,277 / 34,751 / 38,319 / 6,195"
+    },
+    {
+     "source": "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md:75",
+     "quote": "D3 基名单: exchangeInfo 历史不可得 ⇒ (A−24h, A] 有结算的名作 TRADING 代理"
+    },
+    {
+     "source": "~/wide_shadow/shadow_loop_v3.py:315-317 (e9c98374)",
+     "quote": "_b = [x[\"symbol\"] for x in _xi[\"symbols\"] if x.get(\"contractType\") == \"PERPETUAL\" and x.get(\"quoteAsset\") == \"USDT\" and x.get(\"status\") == \"TRADING\"] ... st.base = sorted(set(_b) | set(st.live))"
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "Systematic 0.7-5.3% contamination of the rank base (yearly mean) behind the book's dominant leg in every replay and in P2's production-path claim; effect on levels not measured but paired contrasts mostly cancel.",
+   "action": "Drop from the base any name with no trade in the trailing 24 h (TRD-01 flag) in w10 FZB and in P2's base proxy; report the paired A0 and P2 differences.",
+   "method": "VERIFIED",
+   "dependents": [
+    "A0/NW/C0 and all m1-scope arms",
+    "P2 S2 (running)",
+    "none re-run"
+   ]
+  },
+  {
+   "id": "TRD-04",
+   "layer": "state variables and member-set statistics",
+   "title": "Cross-sectional statistics over 'finite qvk ∩ CRYPTO mask' include dead contracts with zero returns and phantom funding",
+   "what": "T1 (AMENDMENT 2) and the w10 state instruments define the member set as finite qvk ∩ m1 mask, which is exactly the universe that contains the dead member-anchors counted in TRD-03 (1.30% / 0.19% / 1.19% / 1.20% / 1.48% of pairs per year) and, for funding statistics, the base contamination of TRD-02. Breadth (share of positive returns), return dispersion and funding dispersion (sig_fund) are therefore computed with zero-return rows and stale default funding rates; the direction is toward lower breadth and lower dispersion. Size on T1/T8/r12/r19 readings not measured.",
+   "evidence": [
+    {
+     "source": "uplift_r2_2026-09-13/T1/PREREG_AMENDMENT_2_T1_2026-09-13.md:9",
+     "quote": "成员集改为 m_k = { n : qvk[k, n] 有限 } ∩ CRYPTO m1 掩码行(= 装置 MEMBERS_TOPN=829 语义"
+    },
+    {
+     "source": "devices_data/receipts/AD_H_tradability.json H2 U_pairs / U_DEAD / U_Z24",
+     "quote": "{\"2022\": {\"U_pairs\": 283632, \"U_DEAD\": 3689, \"U_Z24\": 2150}, \"2023\": {\"U_pairs\": 391716, \"U_DEAD\": 753, \"U_Z24\": 735}, \"2024\": {\"U_pairs\": 583698, \"U_DEAD\": 6948, \"U_Z24\": 6568}, \"2025\": {\"U_pairs\": 883752, \"U_DEAD\": 10564, \"U_Z24\": 11015}, \"2026\": {\"U_pairs\": 618259, \"U_DEAD\": 9165, \"U_Z24\": 8905}}"
+    },
+    {
+     "source": "uplift_2026-09-11/r19_trackF_reindex/RESULT_r19_trackF_reindex_2026-09-12.md:14",
+     "quote": "更正后 sig_fund 对 ... R6M 臂(meta 成员 ∩ m1, x0910 轴)共同 10039 锚 maxabs 3.78e-6"
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "future_eval",
+    "reporting"
+   ],
+   "severity": "P2",
+   "severity_reason": "0.2-1.5% of member pairs per year are dead; state-conditioned readings (all nulls so far) are unlikely to flip but the bias is one-directional and undocumented.",
+   "action": "Recompute the T1/T8 state columns and r19 sig_fund with the trades flag once; if nothing moves beyond resolution, record VERIFIED_IMMATERIAL.",
+   "method": "VERIFIED",
+   "dependents": [
+    "T1 H3 states",
+    "T8 24 state columns",
+    "r12 REGIME12 / causal primitives",
+    "r19 sig_fund / disp24 labels",
+    "none re-run"
+   ]
+  },
+  {
+   "id": "FND-01",
+   "layer": "4h panel / x0910 funding tail",
+   "title": "x0910 panels apply one pull-time settlement interval to every September API row of a symbol (builder located and reproduced)",
+   "what": "r6_fetch_funding.py read fundingIntervalHours from /fapi/v1/fundingInfo once at 2026-09-11 and stored it as intervals; r6_panel_splice.py appends every September row with that value and prefers it to the settlement spacing. Re-deriving the r6 rule reproduces the panel tail exactly (iv cells not reproduced 0, EMA maxabs 0.0). Against settlement truth the tail has 547 wrong interval cells over 23 symbols (IOST 1h for true 8h; SKR, T, SOPH, ZKC, COTI 4h for true 1h; six tokenized stock perps 4h for 8h). Corrected f_fund_ema_v1 differs by up to 0.0115 (IOST), 844 cells above 1e-6, per-anchor Spearman ≥ 0.9911, 47 FTRIM class flips on 38 anchors. The incumbent prefix is correct (0 mismatches). Caveat: settlement spacing itself mislabels the first long-interval settlement after a short-to-long switch (FIXPROGRAM P9); four of the counted cells fall exactly on the switch rows P9 lists (COTI 08-31 20Z, ZKC 09-02 20Z, T 09-06 00Z, SKR 09-07 20Z), where the pull-time value is probably the declared one and spacing is wrong, so the true count is 543-547. T5d re-ran T5c with corrected intervals (not yet re-run by the lead); T1 D2 September carry and the other September readings were not re-run. Recurrence in October is AUDIT_TRAIN TRN-07.",
+   "evidence": [
+    {
+     "source": "pod2 /workspace/uplift_2026-09-11/r6/r6_fetch_funding.py:33-34,69 (sha 298927ad, not in git)",
+     "quote": "INFO = {d[\"symbol\"]: float(d[\"fundingIntervalHours\"]) for d in get(\".../fapi/v1/fundingInfo\") ...} ... \"intervals\": {k: v for k, v in INFO.items() if k in rates}"
+    },
+    {
+     "source": "pod2 /workspace/uplift_2026-09-11/r6/r6_panel_splice.py:82,90 (sha cccc5b6b, not in git)",
+     "quote": "rows.append((int(t_ms)//1000, float(rate), SEP_IV.get(s, np.nan))) ... iv_full = np.where(np.isfinite(fiv), fiv, dv)"
+    },
+    {
+     "source": "devices_data/receipts/AD_B_funding_iv.json panels.v2ext_x0910 (ad_funding_iv.py f6d58b2b, commit feb7747e before run)",
+     "quote": "{\"iv_mismatch_cells\": {\"prefix\": 0, \"tail\": 547}, \"symbols\": 23, \"PC2\": {\"tail_iv_cells_not_reproduced\": 0, \"tail_ema_v1_cells_compared\": 40560, \"tail_ema_v1_maxabs_replica_vs_panel\": 0.0, \"PASS\": true}, \"flips\": 47}"
+    },
+    {
+     "source": "AD_B_funding_iv.json top_symbols",
+     "quote": "HK0700USDT panel [4.0] true [8.0] last 2026-09-10T00:00Z; HK1810USDT panel [4.0] true [8.0] last 2026-09-10T00:00Z; IOSTUSDT panel [1.0] true [8.0] last 2026-09-10T00:00Z; MINIMAXUSDT panel [4.0] true [8.0] last 2026-09-10T00:00Z; POPMARTUSDT panel [4.0] true [8.0] last 2026-09-10T00:00Z; TENCENTUSDT panel [4.0] true [8.0] last 2026-09-10T00:00Z; ZHIPUUSDT panel [4.0] true [8.0] last 2026-09-10T00:00Z; SKRUSDT panel [4.0] true [1.0] last 2026-09-07T20:00Z; TUSDT panel [4.0] true [1.0] last 2026-09-06T00:00Z; ZKCUSDT panel [4.0] true [1.0, 2.0] last 2026-09-02T20:00Z; SOPHUSDT panel [4.0] true [1.0] last 2026-09-10T00:00Z; COTIUSDT panel [4.0] true [1.0] last 2026-08-31T20:00Z"
+    },
+    {
+     "source": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:46 (P9)",
+     "quote": "短→长间隔切换时, 新制度首次结算按长间隔申报而时间差是短, 被标成短 ... COTI 08-31 20Z / ZKC 09-02 20Z / T 09-06 00Z / SKR 09-07 20Z"
+    },
+    {
+     "source": "git e73f50e6 (T5d)",
+     "quote": "研究 T5d 入库(结算间隔真值修正后重生成仓位复算 T5c; 未经 lead 复跑) ... 部署 king 链九月 carry 被低估 +0.253"
+    }
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "future_eval",
+    "reporting"
+   ],
+   "severity": "P2",
+   "severity_reason": "Confined to 60 September anchors and 23 names, already flagged PROVISIONAL and partly re-run; it can still move September carry and FTRIM readings by up to 2.4 bps per anchor for single names.",
+   "action": "Rebuild the x0910 funding tail with the declared interval where available and spacing otherwise (P9-aware), then re-run T1 D2 and any September carry reading; retire the r6 splice for future extensions (TRN-07).",
+   "method": "VERIFIED",
+   "dependents": [
+    "T1 D2 September carry (PROVISIONAL, not re-run)",
+    "T5c (re-run as T5d e73f50e6, lead re-run pending)",
+    "T2 live addendum d4",
+    "r6 JUDGE-1/2 September anchors",
+    "r9 x0910 replays",
+    "r12/r19 September sig_fund"
+   ]
+  },
+  {
+   "id": "FND-02",
+   "layer": "funding source (fund_aug) / interval rule for API rows",
+   "title": "API funding rows get their interval from settlement spacing; the canonical panels match that rule exactly, but spacing mislabels switch rows and nobody has measured them in the research panels",
+   "what": "fund_aug.json.gz was written with an empty intervals map, so pod_panel_ext.py, pod_panel_splice.py and the bundle exporter derive API-row intervals from spacing; zip rows use the archive's own column. On the canonical v2ext panel the interval matches (zip column, else spacing) on all 3,263,922 compared cells. Spacing agrees with the archive column on 2,522,533 of 2,523,179 zip rows; the 646 disagreements are consistent with the switch rows FIXPROGRAM P9 describes (not classified row by row). The same mislabel therefore exists, unmeasured, wherever panel rows came from the API instead of a zip: 2026-08 rows of v2ext/v3splice (the August zip was not published at build time) and all x0910 September rows. The precedence rule (explicit interval over spacing) is a latent trap for any fund pull that fills intervals (TRN-07).",
+   "evidence": [
+    {
+     "source": "retrain_2026-09/fund_pull_pod.py:28 (= pod2 copy fa665810)",
+     "quote": "out = {\"rates\": rates, \"intervals\": {}}"
+    },
+    {
+     "source": "retrain_2026-09/pod_panel_ext.py:66,105,120",
+     "quote": "AUG_IV = {k: float(v) for k, v in (AUG.get(\"intervals\") or {}).items() if v} ... AUG_IV.get(s, np.nan) ... iv_full = np.where(np.isfinite(fiv), fiv, dv)"
+    },
+    {
+     "source": "devices_data/receipts/AD_A_inventory.json fund_aug.json.gz (8a9e7715)",
+     "quote": "{\"n_symbols\": 827, \"n_rows\": 2474251, \"min_utc\": \"2021-12-01T00:00:00Z\", \"max_utc\": \"2026-09-01T02:00:00Z\", \"intervals_type\": \"dict\", \"intervals_n\": 0, \"intervals_head\": {}, \"meta\": null}"
+    },
+    {
+     "source": "devices_data/receipts/AD_B_funding_iv.json PC1 and panels.v2ext",
+     "quote": "{\"PC1\": {\"zip_rows_with_col\": 2524020, \"both_defined\": 2523179, \"col_ne_spacing\": 646, \"rate_conflicts_between_sources\": 0}, \"v2ext\": {\"compared\": {\"prefix\": 3263922, \"tail\": 0}, \"mismatch\": {\"prefix\": 0, \"tail\": 0}}}"
+    },
+    {
+     "source": "pod2 /workspace/wide_multisrc/funding (AD_A dirs)",
+     "quote": "{\"2025-12\": 8, \"2026-01\": 9, \"2026-02\": 7, \"2026-03\": 9, \"2026-04\": 18, \"2026-05\": 4, \"2026-06\": 8, \"2026-07\": 680} (latest zip month per symbol; 2026-08 zips are .404 placeholders)"
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P2",
+   "severity_reason": "Switch rows scale one settlement by 2-4x in the normalised EMA and can flip FTRIM for one anchor; rare (646 rows in the whole zip history) but concentrated in the live window where intervals changed.",
+   "action": "Download the now-published 2026-08 (and later 2026-09) fundingRate zips read-only and rebuild the August/September intervals from the declared column; make every builder use declared > spacing and never a pull-time map.",
+   "method": "VERIFIED",
+   "dependents": [
+    "v2ext/v3splice August 2026 funding cells",
+    "x0910 September funding cells",
+    "bundle funding_ledger_seed / EMA state for October"
+   ]
+  },
+  {
+   "id": "HOL-01",
+   "layer": "4h panels / hole residuals",
+   "title": "The panels every replay and the v4 chain read were built on the pre-holefix cache and still carry the filled holes in their kline columns",
+   "what": "Same builder, same code, pre-fix cache versus hole-fixed cache: 393,475 kline cells differ on 522 anchors near the four fill runs and 0 cells elsewhere (the positive control). Examples: elig 28,183 cells, Y4 25,941, f_mom_30d 42,916, f_amihud_24h up to 302.9; funding keys identical. v3splice carries the same cells (its v1 prefix has the 2022 holes too) and the x0910 panels copy both prefixes verbatim. Consumers: rev24 z in the F10 legs (old rows verbatim), the pinned 2022 warm-up seat of A0, amihud/XIB candidates, and state variables on anchors within 30 days after a fill run (2022-02-25..2022-05-03 and 2026-08-11 to the panel end). October: a fresh PANEL_KING build on the rolled cache would be clean, but PANEL_SPLICE rolls the prefix and LEGS_OLD rows are copied verbatim, so the residual persists there. Book-level effect not measured.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_D_panel_holes.json comparisons.v2ext (ad_panel_holes.py a62a9d48, commit feb7747e before run)",
+     "quote": "{\"common_anchors\": 10039, \"anchors_near_hole\": 522, \"kline_diff_cells_near_hole_total\": 393475, \"kline_diff_cells_away_from_hole_total\": 0, \"positive_control_kline_equal_away_from_holes\": true}"
+    },
+    {
+     "source": "AD_D_panel_holes.json holes.fill_runs_utc (holefix2_cells.npz 6156f97a)",
+     "quote": "[[\"2022-02-26T00:05Z\", \"2022-03-01T00:00Z\"], [\"2022-04-01T00:05Z\", \"2022-04-03T00:00Z\"], [\"2026-08-12T00:05Z\", \"2026-08-24T04:00Z\"], [\"2026-08-31T00:05Z\", \"2026-09-01T00:00Z\"]]"
+    },
+    {
+     "source": "AD_A_inventory.json",
+     "quote": "wide_panel_4h_v2ext.npz 5e67c0559daa904d mtime 2026-09-01T05:30:25Z (holefix2 cache mtime 2026-09-09T02:27:16Z); reference rawbuild_x0910 92a870a79cfaf130"
+    },
+    {
+     "source": "uplift_2026-09-11/RESULT_r6_coverage_extension_2026-09-11.md:249,254",
+     "quote": "incumbent 面板里最大 302.9 ... 回放装置消费的面板就是 wide_panel_4h_v2ext.npz"
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P2",
+   "severity_reason": "Confined to about 5% of anchors, but those include the 2026-08 live window that current diagnostics study and the legs every F10 retrain copies forward.",
+   "action": "Rebuild v2ext-type and splice panels (and the legs Z24/ZFD old rows) on holefix2; re-run the diagnostics that use panel kline columns near 2026-08.",
+   "method": "VERIFIED",
+   "dependents": [
+    "XIB/amihud candidates (r5, r6 X3)",
+    "T1/T8 states near 2026-08",
+    "F10 legs Z24",
+    "A0 warm-up 2022 rev24",
+    "none re-run"
+   ]
+  },
+  {
+   "id": "UNI-01",
+   "layer": "universe / training member sets",
+   "title": "Tokenized stock and commodity perps are 7.3% of 2026 training member pairs; evaluation masks them, training does not",
+   "what": "Using the venue class snapshot, non-crypto names are 42,363 of 583,200 king-meta member pairs in 2026 (7.26%, present at all 1458 anchors), and identical in the DL targets; 2025 has 24 pairs. The replay and judge use the CRYPTO mask, but the F10 2026 folds, the F10 refit and the king fold-2026 gates (ic26, guard) include these names, and October adds September rows. Effect on models not measured.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_C_cache_members.json C6 (venue_class_20260908.json fa9196a3)",
+     "quote": "{\"king\": {\"2022\": {\"pairs\": 304434, \"noncrypto_pairs\": 0, \"unknown_class_pairs\": 25024, \"anchors_with_noncrypto\": 0, \"noncrypto_share\": 0.0}, \"2023\": {\"pairs\": 410358, \"noncrypto_pairs\": 0, \"unknown_class_pairs\": 23296, \"anchors_with_noncrypto\": 0, \"noncrypto_share\": 0.0}, \"2024\": {\"pairs\": 601406, \"noncrypto_pairs\": 0, \"unknown_class_pairs\": 13836, \"anchors_with_noncrypto\": 0, \"noncrypto_share\": 0.0}, \"2025\": {\"pairs\": 849811, \"noncrypto_pairs\": 24, \"unknown_class_pairs\": 5051, \"anchors_with_noncrypto\": 24, \"noncrypto_share\": 2.8e-05}, \"2026\": {\"pairs\": 583200, \"noncrypto_pairs\": 42363, \"unknown_class_pairs\": 344, \"anchors_with_noncrypto\": 1458, \"noncrypto_share\": 0.072639}}, \"noncrypto_symbols_on_axis\": 149}"
+    },
+    {
+     "source": "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md D10",
+     "quote": "缺口 = 研究侧 top-400 取自全 829 名含股票永续, 生产-PIT 取自 PIT 名"
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "future_retrain",
+    "live_trading"
+   ],
+   "severity": "P2",
+   "severity_reason": "A growing share of the newest training rows are names production never scores; it shifts the rank labels and the monthly folds that decide the swap.",
+   "action": "Apply the CRYPTO class filter to the king/DL member screens (or report the fold gates on both member sets) before the October folds.",
+   "method": "VERIFIED",
+   "dependents": [
+    "F10 monthly folds 202601-202608 and refit",
+    "king ic26 gate",
+    "P2 D10 coverage gap"
+   ]
+  },
+  {
+   "id": "OOF-01",
+   "layer": "OOF predictions / reference book coverage",
+   "title": "Replay model legs exist only from 2023 (F10) and 2024 (king), and A0's legs are on v3-lineage member lists; full-history numbers are not the in-service book",
+   "what": "King OOF SLOW_v4 starts 2024-01-01T00:00Z (5844 anchors), F10 OOF starts 2023-01-01T00:00Z; A0's legs (SLOW_v3_on_v4axis, f10_A0) sit on member lists that differ from the v4 meta in 8,365 cells. So 2022 rows run without the F10 leg and 2022-2023 rows without the king leg, and A0 is built from the v3 lineage; the uplift error ledger (★1/★3) records that the cross-regime Sharpe used as a planning number is measured on a book that is not the in-service form for 36% of the sample.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_C_cache_members.json C5_oof_masks",
+     "quote": "{\"SLOW_v4\": {\"anchors_with_any_pred\": 5844, \"first_pred_anchor\": \"2024-01-01T00:00Z\", \"pred_cells_outside_members\": 0, \"member_cells_without_pred_on_pred_anchors\": 0, \"pred_cells_with_nonfinite_forward_y4\": 0}, \"SLOW_v3_on_v4axis\": {\"anchors_with_any_pred\": 5838, \"first_pred_anchor\": \"2024-01-01T00:00Z\", \"pred_cells_outside_members\": 8365, \"member_cells_without_pred_on_pred_anchors\": 8365, \"pred_cells_with_nonfinite_forward_y4\": 0}, \"f10_v4RAW_s42\": {\"anchors_with_any_pred\": 8034, \"first_pred_anchor\": \"2023-01-01T00:00Z\", \"last_pred_anchor\": \"2026-08-31T20:00Z\", \"pred_cells_outside_dlw_v4raw_members\": 0, \"dlw_v4raw_member_cells_without_pred_on_pred_anchors\": 0, \"pred_cells_with_nonfinite_forward_y4s\": 0}, \"f10_v4RAW_s2027\": {\"anchors_with_any_pred\": 8034, \"first_pred_anchor\": \"2023-01-01T00:00Z\", \"last_pred_anchor\": \"2026-08-31T20:00Z\", \"pred_cells_outside_dlw_v4raw_members\": 0, \"dlw_v4raw_member_cells_without_pred_on_pred_anchors\": 0, \"pred_cells_with_nonfinite_forward_y4s\": 0}, \"f10_A0_s42\": {\"anchors_with_any_pred\": 8028, \"first_pred_anchor\": \"2023-01-01T00:00Z\", \"last_pred_anchor\": \"2026-08-30T20:00Z\", \"pred_cells_outside_dlw_v4raw_members\": 8365, \"dlw_v4raw_member_cells_without_pred_on_pred_anchors\": 8365, \"pred_cells_with_nonfinite_forward_y4s\": 0}, \"f10_A0_s2027\": {\"anchors_with_any_pred\": 8028, \"first_pred_anchor\": \"2023-01-01T00:00Z\", \"last_pred_anchor\": \"2026-08-30T20:00Z\", \"pred_cells_outside_dlw_v4raw_members\": 8365, \"dlw_v4raw_member_cells_without_pred_on_pred_anchors\": 8365, \"pred_cells_with_nonfinite_forward_y4s\": 0}}"
+    },
+    {
+     "source": "uplift_2026-09-11/handoff_audit/errors/ERROR_LEDGER_uplift_2026-09-12.md:18,132,161",
+     "quote": "归档基线 A0 的 2022 与 2023 两行, 是缺腿的书 ... ★1 归档基线 A0 本身建在被 PIN 明令禁止的 v3 谱系上 ... ★3 1110 锚 F10 死前缀 + 3300 锚 king 死前缀"
+    }
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "future_eval",
+    "reporting"
+   ],
+   "severity": "P2",
+   "severity_reason": "Any full-history or 2022-2023 level quoted for the in-service form measures a different book; reference choice (A0 vs A1x) is still open.",
+   "action": "Quote the in-service form only on windows where both legs exist; decide the reference (A1x v4-native vs A0) and restate the yearly table with SE.",
+   "method": "VERIFIED",
+   "dependents": [
+    "CALIBER_PIN_v4 yearly table",
+    "CLOSEOUT uplift",
+    "~300 paired verdicts against A0"
+   ]
+  },
+  {
+   "id": "LIN-01",
+   "layer": "lineage hygiene / x0910 builders",
+   "title": "The x0910 extension builders exist only on pod2, while committed devices consume their products",
+   "what": "None of the 20 r6 builders and chain scripts (merge cache, panel splice, funding fetch, raw patch extension, king prediction, legs, dev tree, gates) is in git; the RESULT cites them by name only. Committed devices since 09-09 that read x0910 products: accounting meta 22, panel 19, cache 8, DL 14, king OOF 8 (overlapping). One of the unarchived builders carries FND-01.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_A_inventory.json (pod2 r6 scripts)",
+     "quote": "r6_bw1_gate.py 121e82a822ae6b3b; r6_bw345_fix.py 6fc58fc28ec35732; r6_bw345_gate.py 924737ec567254b8; r6_dev_tree.py faffd7268d75261a; r6_fetch_funding.py 298927ad16af7c03; r6_fetch_klines.py 2e52f81a64faf6d2; r6_incumbent.py 9a96db6ed07a9a88; r6_king_pred.py f8aba90458f23f7a; r6_legs_repair5.py 26b66fbc3b98a086; r6_legs_x0910.py 031b06b03a75e73d; r6_manifest.py d8dad04e419243b5; r6_merge_cache.py 3227e4f5be49cf54; r6_panel_splice.py cccc5b6be9248671; r6_raw_patch_ext.py 808d2f666f0c0be8; r6_xking.py a8fc225433eb3c08; r6_chain.sh acd39ebe0ca936a6; r6_chain_resume.sh 7eff9d2a523068d6; r6_chain_resume2.sh 728afae738cf4192; r6_finish.sh 72c47c4d1b24ec82; r6_super.sh ff15de651c25cfc1"
+    },
+    {
+     "source": "git ls-files | grep r6_",
+     "quote": "receipts and RESULT only; no r6_*.py or r6_*.sh"
+    },
+    {
+     "source": "devices_data/receipts/AD_E_consumers_matrix.json (ad_consumers_scan.py e6d9a686, HEAD deb8a47b)",
+     "quote": "{\"acct_meta_v4_x0910\": {\"multi_asset/exports/research/uplift_2026-09-11/r12_intervene\": 6, \"multi_asset/exports/research/uplift_r2_2026-09-13/T1\": 5, \"multi_asset/exports/research/uplift_r2_2026-09-13/T5c\": 3, \"multi_asset/exports/research/uplift_r2_2026-09-13/T2\": 2, \"multi_asset/exports/research/uplift_2026-09-11/handoff_audit\": 1, \"multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge\": 1, \"multi_asset/exports/research/uplift_2026-09-11/r9_coverage\": 1, \"multi_asset/exports/research/uplift_r2_2026-09-13/T3\": 1, \"multi_asset/exports/research/uplift_r2_2026-09-13/T4\": 1, \"multi_asset/exports/research/uplift_r2_2026-09-13/T5\": 1}, \"panel_v2ext_x0910\": {\"multi_asset/exports/research/uplift_r2_2026-09-13/T1\": 4, \"multi_asset/exports/research/uplift_2026-09-11/r12_intervene\": 3, \"multi_asset/exports/research/uplift_r2_2026-09-13/T2\": 2, \"multi_asset/exports/research/uplift_r2_2026-09-13/T5\": 2, \"multi_asset/exports/research/uplift_r2_2026-09-13/T5c\": 2, \"multi_asset/exports/research/uplift_2026-09-11/handoff_audit\": 1, \"multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge\": 1, \"multi_asset/exports/research/uplift_2026-09-11/r9_coverage\": 1, \"multi_asset/exports/research/uplift_r2_2026-09-13/T3\": 1, \"multi_asset/exports/research/uplift_r2_2026-09-13/T4\": 1, \"multi_asset/exports/research/uplift_r2_2026-09-13/T5d\": 1}}"
+    }
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "reporting",
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "Conclusions outlive their devices (project rule 5); a pod loss would make every September reading irreproducible, and the defective splice would be re-used from memory.",
+   "action": "Copy the r6 builders with their shas into the research repo next to r6_MANIFEST; mark r6_panel_splice.py as defective (FND-01).",
+   "method": "VERIFIED",
+   "dependents": [
+    "all x0910 consumers"
+   ]
+  },
+  {
+   "id": "DOC-01",
+   "layer": "docs and memory",
+   "title": "Caliber documents and memory notes miss or misstate several data-lineage facts",
+   "what": "CALIBER_STATUS_2026-09-09 still lists E-0908-C as 'full-history size not measured' (measured here, FWD-01) and has no rows for the king clock (TIM-01), DL funding coverage (FEA-01), dead contracts (TRD-01), hole residuals in panels (HOL-01) or non-crypto training members (UNI-01). RUNBOOK_2026-10 says the raw patch 'travels with the cache' with no extension step. The P2 prereg says F10 OOF availability is 'not checked' (C5 shows it has the same mask). crypto_mask_note.json says underlyingType=='COIN' while the builder keeps {COIN, INDEX}. The clip-compound memory note calls E-0908-C 'mild survivorship' without numbers.",
+   "evidence": [
+    {
+     "source": "docs/CALIBER_STATUS_2026-09-09.md:15",
+     "quote": "E-0908-C | 成员集含未来标签谓词 | 研究员 C 臂: 单窗每锚 +0.0025/+0.0009 | 我方回放同样继承; 全史量级未测"
+    },
+    {
+     "source": "docs/RUNBOOK_monthly_retrain_2026-10.md:15,193",
+     "quote": "原始收益补丁 raw_patch.npz 随缓存走 ... 原始收益补丁 raw_patch.npz(952 bar)随缓存走"
+    },
+    {
+     "source": "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md:329",
+     "quote": "S2 不修正, 列为继承偏差; F10 OOF 的可得性掩码未核"
+    },
+    {
+     "source": "universe_crypto_2026-09-08/scripts/build_crypto_mask.py:11,44",
+     "quote": "(CLS[s][\"underlyingType\"] in (\"COIN\",\"INDEX\")) ... \"definition\":\"UPIT & underlyingType=='COIN' (unknown -> kept)\""
+    }
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "reporting",
+    "future_retrain"
+   ],
+   "severity": "P2",
+   "severity_reason": "The October runbook and the caliber ledger are what an operator will read; three P1 facts are absent from both.",
+   "action": "Add rows for TIM-01, FEA-01, TRD-01, HOL-01, UNI-01 to CALIBER_STATUS; add the patch-extension and trades-flag steps to RUNBOOK_2026-10; update the P2 prereg D20 note and the mask note string.",
+   "method": "VERIFIED",
+   "dependents": []
+  },
+  {
+   "id": "TRD-03",
+   "layer": "replay book (A0) / positions in dead contracts",
+   "title": "A0 holds dead contracts in the days right after their last trade, books a 0 return on them and charges carry from records that were not paid; the size is small",
+   "what": "On the A0 axis the replay universe contains dead member-anchors 3,689 / 753 / 6,948 / 10,564 / 9,165 per year (2022..2026, 1.30% / 0.19% / 1.19% / 1.20% / 1.48% of universe pairs); the trade set keeps 58 / 33 / 220 / 290 / 134 of them and all of those are held (|W| sum 0.413 / 0.151 / 0.612 / 0.408 / 0.303, share of annual |W| 2.5e-04 / 8.3e-05 / 4.9e-04 / 3.6e-04 / 2.6e-04). Every held dead cell has accounting return exactly 0; the carry booked on them is +1.68 / -0.45 / +0.51 / +2.24 / +3.54 bps summed over each year (s42; s2027 +1.68 / -0.45 / +0.50 / +3.25 / +3.52). The exit loss of a dead contract is not in the data. At this size the replay's level and Sharpe do not change within resolution; the separate forward-return exit (FWD-02) is smaller still.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_H_tradability.json H2_A0_population (A0_PWR230k_s42 352ac36f, s2027 aa44e18f)",
+     "quote": "{\"2022\": {\"U_pairs\": 283632, \"U_DEAD\": 3689, \"U_DEAD_sel\": 58, \"held_DEAD\": 58, \"absW_DEAD\": 0.4128885488025844, \"absW_DEAD_share\": 0.0002468700497636465, \"held_DEAD_y4_exactly0\": 58, \"carry_bps_booked_on_DEAD\": 1.6841929405466933}, \"2023\": {\"U_pairs\": 391716, \"U_DEAD\": 753, \"U_DEAD_sel\": 33, \"held_DEAD\": 33, \"absW_DEAD\": 0.1511420781898778, \"absW_DEAD_share\": 8.259326731883982e-05, \"held_DEAD_y4_exactly0\": 33, \"carry_bps_booked_on_DEAD\": -0.44815621486495155}, \"2024\": {\"U_pairs\": 583698, \"U_DEAD\": 6948, \"U_DEAD_sel\": 220, \"held_DEAD\": 220, \"absW_DEAD\": 0.6124279987598129, \"absW_DEAD_share\": 0.0004893531958731533, \"held_DEAD_y4_exactly0\": 220, \"carry_bps_booked_on_DEAD\": 0.5135642590723974}, \"2025\": {\"U_pairs\": 883752, \"U_DEAD\": 10564, \"U_DEAD_sel\": 290, \"held_DEAD\": 290, \"absW_DEAD\": 0.40751904986882437, \"absW_DEAD_share\": 0.00036415127689178874, \"held_DEAD_y4_exactly0\": 290, \"carry_bps_booked_on_DEAD\": 2.2360928163956664}, \"2026\": {\"U_pairs\": 618259, \"U_DEAD\": 9165, \"U_DEAD_sel\": 134, \"held_DEAD\": 134, \"absW_DEAD\": 0.3033953535104956, \"absW_DEAD_share\": 0.0002639636916705671, \"held_DEAD_y4_exactly0\": 134, \"carry_bps_booked_on_DEAD\": 3.5363017476887553}}"
+    },
+    {
+     "source": "AD_H_tradability.json H2 positive-control field held_outside_U (smoothing carry-over outside the universe)",
+     "quote": "0 / 0 / 0 / 366 / 186"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Held dead exposure is at most 4.9e-4 of annual gross and the booked carry about 0.002 bps per anchor; far below the 0.23 bps resolution.",
+   "action": "None for A0; include the trades flag (TRD-01) before any sleeve that holds illiquid or deeply negative-funding names is judged.",
+   "method": "VERIFIED",
+   "dependents": [
+    "A0 / NW (immaterial)"
+   ]
+  },
+  {
+   "id": "TRD-05",
+   "layer": "training rows (king meta, DL targets)",
+   "title": "King and DL training members include dead contracts with labels exactly 0 in the first days after death",
+   "what": "King meta members that are dead: 255 / 126 / 1,250 / 762 / 304 pairs per year (2022..2026), all with accounting y4 exactly 0; DL members 255 / 126 / 1,250 / 762 / 304, all y4s exactly 0 (largest share 0.21%). The 7-day volatility screen removes them after about a week; before that they are training rows with a zero label.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_H_tradability.json H4_training_rows",
+     "quote": "{\"king_meta\": {\"2022\": {\"king_member_pairs\": 304434, \"Z24\": 324, \"DEAD\": 255, \"DEAD_y4_exactly0\": 255, \"Z24_y4_exactly0\": 324}, \"2023\": {\"king_member_pairs\": 410358, \"Z24\": 108, \"DEAD\": 126, \"DEAD_y4_exactly0\": 126, \"Z24_y4_exactly0\": 108}, \"2024\": {\"king_member_pairs\": 601406, \"Z24\": 1214, \"DEAD\": 1250, \"DEAD_y4_exactly0\": 1250, \"Z24_y4_exactly0\": 1214}, \"2025\": {\"king_member_pairs\": 849811, \"Z24\": 650, \"DEAD\": 762, \"DEAD_y4_exactly0\": 762, \"Z24_y4_exactly0\": 650}, \"2026\": {\"king_member_pairs\": 583200, \"Z24\": 81, \"DEAD\": 304, \"DEAD_y4_exactly0\": 304, \"Z24_y4_exactly0\": 81}}, \"dl_targets\": {\"2022\": {\"dl_member_pairs\": 308514, \"DEAD\": 255, \"DEAD_y4s_exactly0\": 255, \"anchors_off_king_axis\": 30}, \"2023\": {\"dl_member_pairs\": 410358, \"DEAD\": 126, \"DEAD_y4s_exactly0\": 126, \"anchors_off_king_axis\": 0}, \"2024\": {\"dl_member_pairs\": 601406, \"DEAD\": 1250, \"DEAD_y4s_exactly0\": 1250, \"anchors_off_king_axis\": 0}, \"2025\": {\"dl_member_pairs\": 849811, \"DEAD\": 762, \"DEAD_y4s_exactly0\": 762, \"anchors_off_king_axis\": 0}, \"2026\": {\"dl_member_pairs\": 583200, \"DEAD\": 304, \"DEAD_y4s_exactly0\": 304, \"anchors_off_king_axis\": 0}}}"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "At most 0.21% of member pairs; rank labels place them mid-distribution.",
+   "action": "Exclude with the trades flag when the member screens are next edited; not worth a retrain by itself.",
+   "method": "VERIFIED",
+   "dependents": [
+    "king v3/v4 boosters, F10 v3/v4 (immaterial)"
+   ]
+  },
+  {
+   "id": "RET-01",
+   "layer": "accounting returns / clip patch (data-side TRN-02 check)",
+   "title": "Every clipped bar in the research caches through 2026-09-11 00:00Z has a patch entry; no research cache or panel exists after that",
+   "what": "Canonical cache: 953 cells sit exactly on the float16 ±0.30 bound, 0 beyond it; 952 are in raw_patch.npz and the remaining one (NMRUSDT 2025-10-10T21:35Z) is a true return inside ±0.30 that float16 rounds onto the bound (make_raw_patch 'not clipped'), so no clipped bar is unpatched. x0910 tail: 3 bound cells (AKEUSDT 2026-09-02T21:45Z, BULLAUSDT 2026-09-05T03:00Z, WOOUSDT 2026-09-06T01:35Z), all in raw_patch_x0910; its first 952 rows equal raw_patch.npz. Clipped bars per month in 2026: 01 4, 02 7, 03 11, 04 16, 05 5, 06 6, 07 10, 08 9, 09 3. No research cache, panel or meta has rows after 2026-09-11 00:00Z, so September 11-30 is not present and must be checked when the month is rolled (the gate itself is AUDIT_TRAIN TRN-02, P1).",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_C_cache_members.json C1_clip_bound_vs_patch (ad_cache_members.py 0e8bc8fd, commit feb7747e before run)",
+     "quote": "{\"bound_value\": 0.300048828125, \"bound_cells\": 953, \"cells_beyond_bound\": 0, \"patch_rows\": 952, \"bound_cells_in_patch\": 952, \"bound_cells_NOT_in_patch\": 1, \"not_in_patch_list\": [{\"ts\": \"2025-10-10T21:35Z\", \"symbol\": \"NMRUSDT\", \"clip16\": 0.300048828125}], \"bound_cells_by_year\": {\"2022\": 33, \"2023\": 6, \"2024\": 13, \"2025\": 833, \"2026\": 68}}"
+    },
+    {
+     "source": "AD_C_cache_members.json C1.x0910",
+     "quote": "{\"tail_first\": \"2026-09-01T00:05Z\", \"tail_last\": \"2026-09-11T00:00Z\", \"tail_bound_cells\": 3, \"tail_bound_cells_in_patch\": 3, \"patch_x0910_prefix_equals_incumbent_patch\": true}"
+    },
+    {
+     "source": "retrain_2026-09/caliber_program_2026-09-09/make_raw_patch.py:30",
+     "quote": "if abs(rv) <= 0.3: notclip += 1; continue"
+    },
+    {
+     "source": "AD_A_inventory.json",
+     "quote": "holefix2_x0910 cache last row 2026-09-11T00:00:00Z; meta_newprod_v4_x0910 last anchor 2026-09-10T20:00:00Z"
+    }
+   ],
+   "status": "FIXED_DEPLOYED",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "The evaluation data in use are correct; the open risk is the October roll, registered as TRN-02.",
+   "action": "None for current data; implement TRN-02's coverage assertion in the roll.",
+   "method": "VERIFIED",
+   "dependents": [
+    "meta_newprod_v4 / x0910 accounting y4",
+    "dlw_v4raw RAW targets"
+   ]
+  },
+  {
+   "id": "RET-02",
+   "layer": "devices / returns recomputed from the clipped cache channel",
+   "title": "Several devices written after the 09-12 rule still compound or sum returns from the clipped ret5 channel",
+   "what": "r14 (estimand drift), r21 (cost bridge), r12_mon (y4 monitors), event_state build_sett_v4 (settlement-window drift), s12 (target direction), smooth_latency_core (latency P&L), materiality_probe_v2 (rolling.npz, acknowledged) and r13/beta estimation read ret5 for returns. Only windows containing a bound bar are wrong; 2026 had 68 such bars before September and the live window 3. Per-device exposure was not measured; T3 uses the channel only to back-project up to 5 bars and is guarded.",
+   "evidence": [
+    {
+     "source": "uplift_2026-09-11/r14_estimand/devices/r14_gap.py:68,93",
+     "quote": "RET = np.asarray(CD[:, :, 0], np.float64) ... CL = np.concatenate([...np.cumsum(np.where(fin, np.log1p(np.clip(RET, -0.99, None)), 0.0), 0)])"
+    },
+    {
+     "source": "uplift_2026-09-11/r12_intervene/devices/r12_mon.py:36,51",
+     "quote": "y4 = prod(1+ret5[E+1 .. E+48]) - 1 ... cp=np.cumprod(1.0+blk,0)-1.0"
+    },
+    {
+     "source": "uplift_2026-09-11/event_state/devices/build_sett_v4.py:48",
+     "quote": "dr=float(np.prod(1.0+w[ok])-1.0) if ok.any() else np.nan"
+    },
+    {
+     "source": "memory cache_ret5_channel_clipped_at_0p30_2026_09_12",
+     "quote": "never rebuild 4h/24h returns, price-available flags, or regime primitives from the cache ret5 on extreme bars"
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Diagnostics over short windows; wrong only where a bound bar falls inside the window.",
+   "action": "Swap to raw_patch-corrected returns or assert no bound bar in the window, per device, when each is next reused.",
+   "method": "VERIFIED",
+   "dependents": [
+    "r12 monitors",
+    "r14",
+    "r21",
+    "event_state",
+    "r10 s12"
+   ]
+  },
+  {
+   "id": "LBL-01",
+   "layer": "king labels",
+   "title": "King labels are ranks of the clipped 5m sum over rows [E, E+47]; the export guard books P&L on the same label",
+   "what": "The king meta y4 is Σ clipped ret5 over rows [E, E+47] (reproduced exactly, maxabs 0.0), i.e. from the close before the anchor to five minutes before the accounting window ends; the exporter ranks it for training and uses it for the guard band P&L. Both parts were measured at book level: the clip part on an upper-bound arm (four cells undecided) and the window part (-0.051 [-0.115, +0.016] bps per anchor per gross, 2024-26). October keeps both.",
+   "evidence": [
+    {
+     "source": "v4_chain_2026-09-09/pod_export_bundle_v4.py:42,55-59,166",
+     "quote": "y4 = MT[\"y4\"] ... rr = rankdata(yv[ok]) ... rows_y.append(rr) ... yv = np.nan_to_num(y4[i, m], nan=0.0)"
+    },
+    {
+     "source": "docs/RESULT_king_clip_label_ablation_2026-09-08.md:52",
+     "quote": "裁剪不构成 king 的重训理由(上界臂实测, 四格 UNDECIDED)"
+    },
+    {
+     "source": "docs/RESULT_f10_caliber_sensitivity_2026-09-05.md:28",
+     "quote": "king 窗口项 2024→26 -0.051 [-0.115,+0.016](小, CI 含 0)"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "Both parts measured inside resolution; the window part is fixed together with TIM-01.",
+   "action": "Fold into the TIM-01 decision (the clock-aligned builder also moves the label to [E+1, E+48]).",
+   "method": "VERIFIED",
+   "dependents": [
+    "king boosters",
+    "export guard band"
+   ]
+  },
+  {
+   "id": "FWD-01",
+   "layer": "member screens / OOF availability (D20, E-0908-C)",
+   "title": "The forward-return member predicate removes almost nothing, because dead contracts keep finite frozen returns; king and F10 OOF carry the same mask",
+   "what": "Rebuilding both member rules exactly (positive control: axes and every member list equal) and dropping only the forward predicate: king rule removes 33 / 3 / 1 / 3 / 3 pairs per year (2022..2026), DL rule 33 / 3 / 1 / 3 / 3; no anchor exists only without it; 24 of the 33 2022 removals never trade again. King OOF (SLOW_v4) and F10 OOF (f10_v4RAW) are written exactly on those member lists (0 predictions outside, 0 members without prediction, 0 predictions on non-finite forward returns). The predicate cannot see most deaths because the archive's frozen rows keep the forward return finite at 0 (TRD-01); the real survivorship channel is inclusion, not exclusion. AUDIT_TRAIN TRN-06's 'wider than recorded' reading should be read with these counts.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_C_cache_members.json C3_positive_control",
+     "quote": "{\"king\": {\"axis_equal\": true, \"n_derived\": 10182, \"n_file\": 10182, \"member_lists_unequal\": 0, \"unequal_first\": [], \"y4_finite_pattern_equal\": true, \"y4_maxabs_window_rows_E_to_E+47\": 0.0}, \"dl\": {\"axis_equal\": true, \"n_derived\": 10212, \"n_file\": 10212, \"member_lists_unequal\": 0, \"unequal_first\": [], \"y4s_finite_pattern_equal_rule_count_ge_46\": true}, \"PASS\": true}"
+    },
+    {
+     "source": "AD_C_cache_members.json C3_forward_predicate.king_meta_rule",
+     "quote": "{\"2022\": {\"anchors_no_predicate\": 2148, \"anchors_with_predicate\": 2148, \"anchors_only_without_predicate\": 0, \"pairs_no_predicate\": 304467, \"pairs_removed_forward_nonfinite\": 33, \"pairs_backfilled\": 0, \"removed_y4n_zero\": 22, \"removed_y4n_partial\": 11, \"removed_name_never_trades_again\": 24, \"removed_inside_crypto_mask\": 30, \"share_removed_of_no_predicate_pairs\": 0.000108}, \"2023\": {\"anchors_no_predicate\": 2190, \"anchors_with_predicate\": 2190, \"anchors_only_without_predicate\": 0, \"pairs_no_predicate\": 410361, \"pairs_removed_forward_nonfinite\": 3, \"pairs_backfilled\": 0, \"removed_y4n_zero\": 2, \"removed_y4n_partial\": 1, \"removed_name_never_trades_again\": 0, \"removed_inside_crypto_mask\": 3, \"share_removed_of_no_predicate_pairs\": 7e-06}, \"2024\": {\"anchors_no_predicate\": 2196, \"anchors_with_predicate\": 2196, \"anchors_only_without_predicate\": 0, \"pairs_no_predicate\": 601407, \"pairs_removed_forward_nonfinite\": 1, \"pairs_backfilled\": 0, \"removed_y4n_zero\": 0, \"removed_y4n_partial\": 1, \"removed_name_never_trades_again\": 1, \"removed_inside_crypto_mask\": 1, \"share_removed_of_no_predicate_pairs\": 2e-06}, \"2025\": {\"anchors_no_predicate\": 2190, \"anchors_with_predicate\": 2190, \"anchors_only_without_predicate\": 0, \"pairs_no_predicate\": 849811, \"pairs_removed_forward_nonfinite\": 3, \"pairs_backfilled\": 3, \"removed_y4n_zero\": 2, \"removed_y4n_partial\": 1, \"removed_name_never_trades_again\": 3, \"removed_inside_crypto_mask\": 3, \"share_removed_of_no_predicate_pairs\": 4e-06}, \"2026\": {\"anchors_no_predicate\": 1458, \"anchors_with_predicate\": 1458, \"anchors_only_without_predicate\": 0, \"pairs_no_predicate\": 583200, \"pairs_removed_forward_nonfinite\": 3, \"pairs_backfilled\": 3, \"removed_y4n_zero\": 2, \"removed_y4n_partial\": 1, \"removed_name_never_trades_again\": 3, \"removed_inside_crypto_mask\": 3, \"share_removed_of_no_predicate_pairs\": 5e-06}}"
+    },
+    {
+     "source": "AD_C_cache_members.json C5_oof_masks (SLOW_v4, f10_v4RAW_s42)",
+     "quote": "{\"SLOW_v4\": {\"axis\": \"king meta (10182)\", \"anchors_with_any_pred\": 5844, \"first_pred_anchor\": \"2024-01-01T00:00Z\", \"pred_cells_outside_members\": 0, \"member_cells_without_pred_on_pred_anchors\": 0, \"pred_cells_with_nonfinite_forward_y4\": 0}, \"f10_v4RAW_s42\": {\"axis\": \"dlw_v4raw targets (10212)\", \"anchors_with_any_pred\": 8034, \"first_pred_anchor\": \"2023-01-01T00:00Z\", \"last_pred_anchor\": \"2026-08-31T20:00Z\", \"pred_cells_outside_dlw_v4raw_members\": 0, \"dlw_v4raw_member_cells_without_pred_on_pred_anchors\": 0, \"pred_cells_with_nonfinite_forward_y4s\": 0}}"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "At most 1.1e-4 of member pairs per year.",
+   "action": "None beyond TRD-01; replace the predicate by the causal trades flag when the screens are edited.",
+   "method": "VERIFIED",
+   "dependents": [
+    "P2 D20",
+    "FIXPROGRAM D3",
+    "AUDIT_TRAIN TRN-06"
+   ]
+  },
+  {
+   "id": "FWD-02",
+   "layer": "replay accounting / non-finite forward returns",
+   "title": "The replay exits positions whose next accounting return is non-finite and books 0 for them; 13 pairs in the whole A0 history",
+   "what": "A0 positions dumped because the next 4 h accounting return is non-finite: 10 / 1 / 0 / 1 / 0 pairs per year (2022..2026), |W| 0.0411 / 0.0094 / 0.0000 / 0.0002 / 0.0000, 9 of 13 in contracts that never trade again (KEEP, NU, 1000BTTC, YFII, ANC, LUNA, DODO, AKRO, EOS). The exit P&L at those delistings is not in the data (L4b measured such exits for the carry sleeve).",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_C_cache_members.json C4_A0_forward_nonfinite_exits.42",
+     "quote": "{\"2022\": {\"anchors\": 2009, \"anchors_with_dump\": 7, \"dumped_pairs\": 10, \"dumped_abs_weight_prev\": 0.04106994689209387, \"dumped_pairs_name_never_trades_again\": 8, \"dumped_abs_weight_never_trades_again\": 0.029905769450124353, \"abs_weight_at_anchor_on_dumped\": 0.0, \"gross_prev_sum\": 1671.5690522663992, \"dumped_share_of_gross_prev_sum\": 2.456969805489586e-05}, \"2023\": {\"anchors\": 2190, \"anchors_with_dump\": 1, \"dumped_pairs\": 1, \"dumped_abs_weight_prev\": 0.009416750632226467, \"dumped_pairs_name_never_trades_again\": 0, \"dumped_abs_weight_never_trades_again\": 0.0, \"abs_weight_at_anchor_on_dumped\": 0.0, \"gross_prev_sum\": 1830.13997613188, \"dumped_share_of_gross_prev_sum\": 5.1453718049093616e-06}, \"2024\": {\"anchors\": 2196, \"anchors_with_dump\": 0, \"dumped_pairs\": 0, \"dumped_abs_weight_prev\": 0.0, \"dumped_pairs_name_never_trades_again\": 0, \"dumped_abs_weight_never_trades_again\": 0.0, \"abs_weight_at_anchor_on_dumped\": 0.0, \"gross_prev_sum\": 1251.7970190506828, \"dumped_share_of_gross_prev_sum\": 0.0}, \"2025\": {\"anchors\": 2190, \"anchors_with_dump\": 1, \"dumped_pairs\": 1, \"dumped_abs_weight_prev\": 0.0001812294649425894, \"dumped_pairs_name_never_trades_again\": 1, \"dumped_abs_weight_never_trades_again\": 0.0001812294649425894, \"abs_weight_at_anchor_on_dumped\": 0.0, \"gross_prev_sum\": 1118.7053626909615, \"dumped_share_of_gross_prev_sum\": 1.619992814789549e-07}, \"2026\": {\"anchors\": 1453, \"anchors_with_dump\": 0, \"dumped_pairs\": 0, \"dumped_abs_weight_prev\": 0.0, \"dumped_pairs_name_never_trades_again\": 0, \"dumped_abs_weight_never_trades_again\": 0.0, \"abs_weight_at_anchor_on_dumped\": 0.0, \"gross_prev_sum\": 1149.435523992192, \"dumped_share_of_gross_prev_sum\": 0.0}}"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Largest yearly share 2.5e-5 of gross.",
+   "action": "None.",
+   "method": "VERIFIED",
+   "dependents": [
+    "r18 N2 (consistent: 15 cells)"
+   ]
+  },
+  {
+   "id": "FND-03",
+   "layer": "v1 canonical panel / API tail intervals",
+   "title": "The v1 canonical panel's August 2026 API tail stored one interval per symbol; 138 cells for five names, the same rows as the 08-16 bundle seed",
+   "what": "On the splice prefix (v1 canonical) 138 cells differ from settlement truth, all in 2026-08-01..08-14 for DEXE, ERA, BANK, PROM and ACE (stored 4 h, true 1-2 h); nothing earlier differs. These are the D17 rows P2 traced to the 08-16 bundle seed; their residual in live EMA is decaying and was measured small. Builder on jpline (unverifiable).",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_B_funding_iv.json panels.v3splice",
+     "quote": "{\"mismatch\": {\"prefix\": 138, \"tail\": 0}, \"by_month\": {\"2026-08\": 138}, \"symbols\": [\"DEXEUSDT\", \"ERAUSDT\", \"BANKUSDT\", \"PROMUSDT\", \"ACEUSDT\"]}"
+    },
+    {
+     "source": "retrain_2026-09/second_instrument_rebuild_2026-09-05/REPORT.md:55",
+     "quote": "rebuilt interval 1 h / 2 h (per-settlement column of the 2026-08 monthly zip) vs v1 4 h (the 08-21 API tail's single per-symbol interval)"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "138 cells in two weeks for five names; live residual measured by P2 D17 and FIXPROGRAM P6'.",
+   "action": "Covered by FIXPROGRAM P6'; rebuild the splice prefix funding from zips when HOL-01/FEA-01 are rebuilt.",
+   "method": "VERIFIED",
+   "dependents": [
+    "legs ZFD for five names in 2026-08",
+    "fund_state_canoncont seeds"
+   ]
+  },
+  {
+   "id": "UNI-02",
+   "layer": "universe / symbol axis",
+   "title": "The 829-name axis is an S3 listing from 2026-08-21 that keeps delisted names; it is frozen at that date",
+   "what": "The axis includes contracts that died before and inside the window (by trades 156 died inside the cache; 3 names have no bar at all). No 2022+ survivorship is visible in the axis. The CRYPTO mask keeps the 31 names absent from today's exchangeInfo. Names listed after 2026-08-21 never enter research data; production pins are also frozen, so the two agree.",
+   "evidence": [
+    {
+     "source": "retrain_2026-09/jpline_lineage_2026-09-05.md:26",
+     "quote": "宇宙符号轴 ... S3 列 data/futures/um/monthly/klines/ 前缀 ... panel_symbols_wide.txt ... 829"
+    },
+    {
+     "source": "devices_data/receipts/AD_C_cache_members.json C2 + AD_H H1",
+     "quote": "no_finite_bar ['BZRXUSDT', 'DOTECOUSDT', 'LENDUSDT']; dead inside cache by trades 156"
+    },
+    {
+     "source": "universe_crypto_2026-09-08/scripts/build_crypto_mask.py:11",
+     "quote": "if s in CLS else True for s in syms])  # 未知 ⇒ 保留"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "No survivorship in the axis for the evaluation window.",
+   "action": "Refresh the axis when the universe is refreshed (separate event).",
+   "method": "VERIFIED",
+   "dependents": []
+  },
+  {
+   "id": "TIM-02",
+   "layer": "metrics archive label switch (2024-03-04)",
+   "title": "Only L2 reads the metrics archive and it applies the label regime by date",
+   "what": "The 2024-03-04 switch (window END labels before, START after) matters only to consumers of data.binance.vision metrics; since 09-09 those are the L2 devices, which encode the regime explicitly. No panel, cache or retrain builder reads the archive (AUDIT_TRAIN TRN-08).",
+   "evidence": [
+    {
+     "source": "uplift_r3_2026-09-13/L2/devices/l2_a_archive.py:12-14,225",
+     "quote": "archive labels = window END up to 2024-03-03 and window START from 2024-03-04 ... REG = (\"END_pre_2024-03-04\", \"START_from_2024-03-04\")"
+    },
+    {
+     "source": "devices_data/receipts/AD_E_consumers_matrix.json metrics_archive",
+     "quote": "{\"multi_asset/exports/research/uplift_r3_2026-09-13/L2\": 2}"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Handled at the only consumer.",
+   "action": "None.",
+   "method": "VERIFIED",
+   "dependents": [
+    "FIXPROGRAM D2"
+   ]
+  },
+  {
+   "id": "TIM-03",
+   "layer": "5m cache timestamps",
+   "title": "The cache labels bars by close time; panel features end one bar before the anchor, DL features include the anchor bar",
+   "what": "ts = open_time + 5 min in the cache builder and the producer; panel windows are rows [E-w, E-1] (one bar staler than production), DL windows [E-w+1, E] with targets from E+1. The rev24 panel factor is out of the combo book; research factors from the panel are one bar stale, which is conservative.",
+   "evidence": [
+    {
+     "source": "retrain_2026-09/pod_merge_cache_ext.py:24",
+     "quote": "k['ts'] = pd.to_datetime(k.open_time.astype(np.int64), unit='ms') + pd.Timedelta('5min')"
+    },
+    {
+     "source": "retrain_2026-09/pod_dlw_features_ext.py:3",
+     "quote": "窗端点对齐为 rows [E−w+1, E+1)(含收盘于 N 的那根 bar; 目标从 E+1 起 ⇒ 零重叠零间隙)"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Consistent within each lineage; the king case is TIM-01.",
+   "action": "None.",
+   "method": "VERIFIED",
+   "dependents": []
+  },
+  {
+   "id": "HOL-02",
+   "layer": "5m cache / holes",
+   "title": "Cache holes E-0908-D and E-0909-B are filled in holefix2 and in its extension",
+   "what": "holefix2 filled 1,422,720 (row, symbol) pairs in four runs; the coverage gate passes on holefix2 and on the x0910 extension, and the r6 extension is bitwise equal to holefix2 on the common prefix. The residual lives in the panels built earlier (HOL-01).",
+   "evidence": [
+    {
+     "source": "AD_D_panel_holes.json holes",
+     "quote": "[[\"2022-02-26T00:05Z\", \"2022-03-01T00:00Z\"], [\"2022-04-01T00:05Z\", \"2022-04-03T00:00Z\"], [\"2026-08-12T00:05Z\", \"2026-08-24T04:00Z\"], [\"2026-08-31T00:05Z\", \"2026-09-01T00:00Z\"]]"
+    },
+    {
+     "source": "uplift_2026-09-11/RESULT_r6_coverage_extension_2026-09-11.md (X1, BW-1)",
+     "quote": "COVERAGE_GATE_V2 PASS (hole symbol-days 0 in multi-symbol runs; wide-gap days 0) ... bitwise_diff 0"
+    }
+   ],
+   "status": "FIXED_DEPLOYED",
+   "affects": [
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "Fixed at the cache.",
+   "action": "None.",
+   "method": "VERIFIED",
+   "dependents": []
+  },
+  {
+   "id": "LIN-02",
+   "layer": "lineage / write incident",
+   "title": "A 09-12 test run rewrote dlw_v4raw/data/dlw_targets.npz on pod2; the bytes are identical",
+   "what": "tests_pipeline_gates [S] R5 ran the untranslated legacy chain_v4_data.sh on pod2 at 15:12Z; the 60 s timeout killed bash but the python child finished at 15:17:54Z and rewrote the RAW targets, their report and chain_v4_data.log. The file's sha is still d1976cf6 (the 09-09 value) and the test was switched to a translated copy in 942b3e73.",
+   "evidence": [
+    {
+     "source": "retrain_2026-09/v4_chain_2026-09-09/receipts/monthly_chain_2026-09-12/tests_pipeline_gates_pod2_final3.log:380-381",
+     "quote": "subprocess.TimeoutExpired: Command '['bash', '/workspace/w3_monthly_chain_2026-09-12/device/chain_v4_data.sh']' timed out after 60 seconds"
+    },
+    {
+     "source": "devices_data/receipts/AD_A_inventory.json dlw_v4raw/data/dlw_targets.npz",
+     "quote": "sha d1976cf6246cdc25 mtime 2026-09-12T15:17:54Z"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "No content change; same family as E-0912-B.",
+   "action": "Record the incident next to E-0912-B.",
+   "method": "VERIFIED",
+   "dependents": []
+  },
+  {
+   "id": "LIN-03",
+   "layer": "lineage / builder identity",
+   "title": "Builder copies on pod2 match git; all audit receipts are bound to the committed devices",
+   "what": "16 builder copies on pod2 equal git HEAD byte for byte; build_dev_v4.py, pod_legs_v4b.py and pod_export_bundle_v4.py on pod2 equal earlier commits (5749a821, 3f058a7c, 5d214260). Every AD receipt's self_sha256 equals the committed device.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_A_inventory.json (pod2 builder shas) vs git show HEAD:<path> | shasum",
+     "quote": "fund_pull_pod fa665810, pod_panel_ext db7f0474, pod_panel_splice a9c29141, pod_fea_ext_clamp b9f9c728, pod_dlw_targets_raw d7c52823, make_raw_patch 7716e7d3 ... equal"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "Traceable lineage.",
+   "action": "None.",
+   "method": "VERIFIED",
+   "dependents": []
+  },
+  {
+   "id": "EVL-01",
+   "layer": "replay device default",
+   "title": "w10 sleeve devices still default CAL to 'simple' (expm1 on an already simple return); every committed run since 09-09 sets CAL=log",
+   "what": "21 sleeve device files committed since 09-09 read os.environ.get(\"CAL\", \"simple\"); among receipt/log files committed since then, 39 record \"CAL\": \"log\" and none \"CAL\": \"simple\". A run that forgets the variable would apply expm1 to RAW y4.",
+   "evidence": [
+    {
+     "source": "uplift_2026-09-11/r18_foundation/devices/w10_sleeve_r18.py:17",
+     "quote": "CAL = os.environ.get(\"CAL\", \"simple\")                 # simple = 交易所记账(y -> expm1)"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Latent trap (E-0826-C family); no affected run found.",
+   "action": "Make CAL required or default to log.",
+   "method": "VERIFIED",
+   "dependents": []
+  },
+  {
+   "id": "LED-01",
+   "layer": "research readers of daily_nav (AUDIT_EXEC LED-04)",
+   "title": "Research tools that read daily_nav.realised_by_type COMMISSION/REALIZED_PNL inside 07-29..09-12 print wrong fee columns; their conclusions do not use them",
+   "what": "live_root_cause_2026-09-09.py and live_root_cause_part3_flatten_funding.py print COMMISSION next to NAV, TRANSFER and FUNDING_FEE; three August probes (attr_2day, inrole_simple_return_rerun, phase_alignment_audit) and build_viz.py read COMMISSION/REALIZED_PNL. LED-04 affects COMMISSION and REALIZED_PNL (shared tranIds, BNB amounts); FUNDING_FEE and TRANSFER rows share no tranId. The 09-09 root cause rests on the position-times-mid decomposition, not on the fee column.",
+   "evidence": [
+    {
+     "source": "multi_asset/exports/live/pilot_journal/tools/live_root_cause_2026-09-09.py:80,82",
+     "quote": "cm = float(bt.get(\"COMMISSION\") or 0) ... print(f\"... funding {ff:+7,.0f} comm {cm:+6,.0f} | pos×mid {pm:+8,.0f}\")"
+    },
+    {
+     "source": "multi_asset/exports/live/pilot_journal/tools/live_root_cause_part3_flatten_funding.py:43,47",
+     "quote": "cm=float(bt.get(\"COMMISSION\") or 0) ... tot_cm = sum(v[\"cm\"] for d, v in daily.items() if d >= \"20260827\")"
+    },
+    {
+     "source": "docs/audit_pipeline_2026-09-13/AUDIT_EXEC.json LED-04",
+     "quote": "24,723 tranIds shared by a COMMISSION and a REALIZED_PNL row of the same symbol; FUNDING_FEE rows share none"
+    }
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "Printed columns only; no decision depends on them.",
+   "action": "Annotate those outputs; take fees from guard_twin income.jsonl if they are reused.",
+   "method": "VERIFIED",
+   "dependents": [
+    "journal tables printed by the two 09-09 tools",
+    "build_viz daily split chart"
+   ]
+  },
+  {
+   "id": "UNI-03",
+   "layer": "universe mask frontier",
+   "title": "September anchors use the last August mask row carried forward",
+   "what": "umask_UPIT_CRYPTO ends 2026-08-31 00Z; x0910 September readings carry that row forward (declared in T2/T5c). A September listing, delisting or monthly refresh is therefore not reflected; not measured.",
+   "evidence": [
+    {
+     "source": "devices_data/receipts/AD_A_inventory.json",
+     "quote": "umask_UPIT_CRYPTO last 2026-08-31T00:00:00Z; T5c umask_UPIT_CRYPTO_cf_x0910 last 2026-09-10T00:00:00Z"
+    },
+    {
+     "source": "uplift_r2_2026-09-13/T2/PREREG_T2_carry_net_sizing_2026-09-13.md:73",
+     "quote": "the incumbent umask ends 2026-08-31 00Z, so its last row is carried forward for September — an approximation, labelled"
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Declared approximation over 60 anchors.",
+   "action": "Build a September mask row with the same monthly rule when September is rolled.",
+   "method": "VERIFIED",
+   "dependents": [
+    "T2 d4",
+    "T5c/T5d"
+   ]
+  }
+ ],
+ "inventory": [
+  {
+   "dataset": "5m cache (canonical)",
+   "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2.npz",
+   "sha256_16": "1d7f459dee434ec4",
+   "bytes": 2087655898,
+   "mtime_utc": "2026-09-09T02:27:16Z",
+   "axis": {
+    "n": 490753,
+    "first": "2022-01-01T00:00:00Z",
+    "last": "2026-09-01T00:00:00Z"
+   },
+   "shape": [
+    490753,
+    829,
+    7
+   ],
+   "builder": "holefix2 chain (caliber_program holefix2_daily.py) on _ext",
+   "consumers": "v4 chain, P2, A0/NW, r12, r14, r21, audits"
+  },
+  {
+   "dataset": "5m cache (Sept extension)",
+   "path": "/workspace/data/dlnative_5m_wide829_f16_holefix2_x0910.npz",
+   "sha256_16": "8115299410cd5e8d",
+   "bytes": 2112181760,
+   "mtime_utc": "2026-09-11T15:07:25Z",
+   "axis": {
+    "n": 493633,
+    "first": "2022-01-01T00:00:00Z",
+    "last": "2026-09-11T00:00:00Z"
+   },
+   "shape": [
+    493633,
+    829,
+    7
+   ],
+   "builder": "r6_merge_cache.py 3227e4f5 (pod2 only)",
+   "consumers": "T3, r12, r21"
+  },
+  {
+   "dataset": "5m cache (pre-fix)",
+   "path": "/workspace/data/dlnative_5m_wide829_f16_ext.npz",
+   "sha256_16": "72eb784949e90a09",
+   "bytes": 2076379100,
+   "mtime_utc": "2026-09-01T01:52:56Z",
+   "axis": {
+    "n": 490753,
+    "first": "2022-01-01T00:00:00Z",
+    "last": "2026-09-01T00:00:00Z"
+   },
+   "shape": [
+    490753,
+    829,
+    7
+   ],
+   "builder": "pod_merge_cache_ext.py de7a0661",
+   "consumers": "L2 alignment spectra, L4 symbol axis, gates"
+  },
+  {
+   "dataset": "raw-return patch",
+   "path": "/workspace/review_scratch/raw_patch.npz",
+   "sha256_16": "adecf276bcfd89f4",
+   "bytes": 11961,
+   "mtime_utc": "2026-09-09T02:23:25Z",
+   "axis": {
+    "n": 952,
+    "first": "2022-05-11T13:10:00Z",
+    "last": "2026-08-24T13:00:00Z"
+   },
+   "shape": [
+    952
+   ],
+   "builder": "make_raw_patch.py 7716e7d3",
+   "consumers": "dlw_v4raw RAW targets, STEP1 gate"
+  },
+  {
+   "dataset": "raw-return patch (Sept)",
+   "path": "/workspace/uplift_2026-09-11/r6/out/raw_patch_x0910.npz",
+   "sha256_16": "94e8e8c119ea719a",
+   "bytes": 12005,
+   "mtime_utc": "2026-09-11T15:51:08Z",
+   "axis": {
+    "n": 955,
+    "first": "2022-05-11T13:10:00Z",
+    "last": "2026-09-06T01:35:00Z"
+   },
+   "shape": [
+    955
+   ],
+   "builder": "r6_raw_patch_ext.py 808d2f66 (pod2 only)",
+   "consumers": "dlw_v4raw_x0910"
+  },
+  {
+   "dataset": "hole cells",
+   "path": "/workspace/review_scratch/holefix2_cells.npz",
+   "sha256_16": "6156f97a0709f073",
+   "bytes": 22815370,
+   "mtime_utc": "2026-09-09T03:03:50Z",
+   "axis": {
+    "n": 1422720,
+    "first": "2022-02-26T00:05:00Z",
+    "last": "2026-09-01T00:00:00Z"
+   },
+   "shape": [
+    1422720
+   ],
+   "builder": "v4_hole_cells.py / holefix2 chain",
+   "consumers": "STEP1, build_dev_v4"
+  },
+  {
+   "dataset": "4h panel v1 canonical",
+   "path": "/workspace/data/wide_panel_4h_v1.npz",
+   "sha256_16": "f14bc33d78b24929",
+   "bytes": 247363525,
+   "mtime_utc": "2026-09-01T03:14:34Z",
+   "axis": {
+    "n": 14329,
+    "first": "2020-01-31T00:00:00Z",
+    "last": "2026-08-15T00:00:00Z"
+   },
+   "shape": [
+    14329,
+    829
+   ],
+   "builder": "jpline (UNVERIFIABLE)",
+   "consumers": "splice prefix, panel_ext self-check"
+  },
+  {
+   "dataset": "4h panel v2ext",
+   "path": "/workspace/data/wide_panel_4h_v2ext.npz",
+   "sha256_16": "5e67c0559daa904d",
+   "bytes": 232319980,
+   "mtime_utc": "2026-09-01T05:30:25Z",
+   "axis": {
+    "n": 10039,
+    "first": "2022-01-31T00:00:00Z",
+    "last": "2026-08-31T00:00:00Z"
+   },
+   "shape": [
+    10039,
+    829
+   ],
+   "builder": "pod_panel_ext.py db7f0474 on _ext",
+   "consumers": "every w10 replay (alias hist_v2), king PANEL_IN, T-series"
+  },
+  {
+   "dataset": "4h panel v3splice",
+   "path": "/workspace/data/wide_panel_4h_v3splice.npz",
+   "sha256_16": "c5d10f6ae31fa3f9",
+   "bytes": 251172282,
+   "mtime_utc": "2026-09-01T05:55:35Z",
+   "axis": {
+    "n": 14425,
+    "first": "2020-01-31T00:00:00Z",
+    "last": "2026-08-31T00:00:00Z"
+   },
+   "shape": [
+    14425,
+    829
+   ],
+   "builder": "pod_panel_splice.py a9c29141",
+   "consumers": "DL targets/fea82, legs, bundle export"
+  },
+  {
+   "dataset": "4h panel v2ext x0910",
+   "path": "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_v2ext_x0910.npz",
+   "sha256_16": "042478f7d8e9f947",
+   "bytes": 234986177,
+   "mtime_utc": "2026-09-11T15:33:20Z",
+   "axis": {
+    "n": 10099,
+    "first": "2022-01-31T00:00:00Z",
+    "last": "2026-09-10T00:00:00Z"
+   },
+   "shape": [
+    10099,
+    829
+   ],
+   "builder": "r6_panel_splice.py cccc5b6b (pod2 only)",
+   "consumers": "T1, T2, T5, T5c, T5d, r12"
+  },
+  {
+   "dataset": "4h panel v3splice x0910",
+   "path": "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_v3splice_x0910.npz",
+   "sha256_16": "df847cd7ac4201a0",
+   "bytes": 253838475,
+   "mtime_utc": "2026-09-11T15:46:48Z",
+   "axis": {
+    "n": 14485,
+    "first": "2020-01-31T00:00:00Z",
+    "last": "2026-09-10T00:00:00Z"
+   },
+   "shape": [
+    14485,
+    829
+   ],
+   "builder": "r6_panel_splice.py cccc5b6b (pod2 only)",
+   "consumers": "none since 09-09"
+  },
+  {
+   "dataset": "EMA state",
+   "path": "/workspace/fund_state_canoncont.json",
+   "sha256_16": "c1dbb41f7c9120d5",
+   "bytes": 31162,
+   "mtime_utc": "2026-09-01T05:55:11Z",
+   "axis": null,
+   "shape": null,
+   "builder": "pod_panel_splice.py a9c29141",
+   "consumers": "bundle export EMA_STATE_JSON"
+  },
+  {
+   "dataset": "funding API pull",
+   "path": "/workspace/fund_aug.json.gz",
+   "sha256_16": "8a9e771577602dd1",
+   "bytes": 13533436,
+   "mtime_utc": "2026-09-01T02:30:33Z",
+   "axis": null,
+   "shape": null,
+   "builder": "fund_pull_pod.py fa665810",
+   "consumers": "panels, exporter, P2 ledger, L4/L4b"
+  },
+  {
+   "dataset": "funding Sept pull",
+   "path": "/workspace/uplift_2026-09-11/r6/dl/r6_fund_sep.json.gz",
+   "sha256_16": "bfd9bc65c24916ac",
+   "bytes": 105031,
+   "mtime_utc": "2026-09-11T15:04:34Z",
+   "axis": null,
+   "shape": null,
+   "builder": "r6_fetch_funding.py 298927ad (pod2 only)",
+   "consumers": "x0910 panels, T5d"
+  },
+  {
+   "dataset": "P2 settlement ledger",
+   "path": "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz",
+   "sha256_16": "bea6f5752772d54e",
+   "bytes": 55352734,
+   "mtime_utc": "2026-09-13T08:08:22Z",
+   "axis": null,
+   "shape": [
+    2633090
+   ],
+   "builder": "p2_prep_inputs.py",
+   "consumers": "P2 S1/S2"
+  },
+  {
+   "dataset": "king features v4",
+   "path": "/workspace/data/wide_fea_v4.npy",
+   "sha256_16": "268f6c9c247cdf1f",
+   "bytes": 1384304120,
+   "mtime_utc": "2026-09-09T03:05:46Z",
+   "axis": null,
+   "shape": [
+    10182,
+    829,
+    82
+   ],
+   "builder": "pod_fea_ext_clamp.py b9f9c728",
+   "consumers": "v4 king export, STEP2"
+  },
+  {
+   "dataset": "king meta v4",
+   "path": "/workspace/data/wide_fea_v4_meta.npz",
+   "sha256_16": "12ea42c4557093f1",
+   "bytes": 25477849,
+   "mtime_utc": "2026-09-09T03:05:49Z",
+   "axis": {
+    "n": 10182,
+    "first": "2022-01-08T00:00:00Z",
+    "last": "2026-08-31T20:00:00Z"
+   },
+   "shape": [
+    10182,
+    829
+   ],
+   "builder": "pod_fea_ext_clamp.py b9f9c728",
+   "consumers": "exporter, legs, build_dev_v4"
+  },
+  {
+   "dataset": "king features v2ext (in-service)",
+   "path": "/workspace/data/wide_fea_v2ext.npy",
+   "sha256_16": "f88b07205bf19870",
+   "bytes": 1383488384,
+   "mtime_utc": "2026-09-01T05:33:05Z",
+   "axis": null,
+   "shape": [
+    10176,
+    829,
+    82
+   ],
+   "builder": "pod_fea_ext.py 02157bda",
+   "consumers": "in-service booster lineage, STEP2 reference"
+  },
+  {
+   "dataset": "accounting meta v4",
+   "path": "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz",
+   "sha256_16": "0e3c09ac86c727ac",
+   "bytes": 27497999,
+   "mtime_utc": "2026-09-09T03:29:49Z",
+   "axis": {
+    "n": 10182,
+    "first": "2022-01-08T00:00:00Z",
+    "last": "2026-08-31T20:00:00Z"
+   },
+   "shape": [
+    10182,
+    829
+   ],
+   "builder": "build_dev_v4.py 0dbc2f60 (git 5749a821)",
+   "consumers": "every w10 replay (alias wide_fea_hist_meta), P2 accounting"
+  },
+  {
+   "dataset": "accounting meta x0910",
+   "path": "/workspace/uplift_2026-09-11/r6/out/meta_newprod_v4_x0910.npz",
+   "sha256_16": "a8eb359701c71acf",
+   "bytes": 27811753,
+   "mtime_utc": "2026-09-11T16:21:28Z",
+   "axis": {
+    "n": 10242,
+    "first": "2022-01-08T00:00:00Z",
+    "last": "2026-09-10T20:00:00Z"
+   },
+   "shape": [
+    10242,
+    829
+   ],
+   "builder": "r6_dev_tree.py faffd726 (pod2 only)",
+   "consumers": "T1, T2, T3, T5c, r12"
+  },
+  {
+   "dataset": "DL targets RAW",
+   "path": "/workspace/dlw_v4raw/data/dlw_targets.npz",
+   "sha256_16": "d1976cf6246cdc25",
+   "bytes": 192038760,
+   "mtime_utc": "2026-09-12T15:17:54Z",
+   "axis": {
+    "n": 10212,
+    "first": "2022-01-03T00:00:00Z",
+    "last": "2026-08-31T20:00:00Z"
+   },
+   "shape": [
+    10212,
+    829
+   ],
+   "builder": "pod_dlw_targets_raw.py d7c52823",
+   "consumers": "F10 v4 training, legs, F10 alignment in replays"
+  },
+  {
+   "dataset": "DL targets CLIP",
+   "path": "/workspace/dlw_hf3/data/dlw_targets.npz",
+   "sha256_16": "720f03a447278b4b",
+   "bytes": 192038760,
+   "mtime_utc": "2026-09-09T02:29:01Z",
+   "axis": {
+    "n": 10212,
+    "first": "2022-01-03T00:00:00Z",
+    "last": "2026-08-31T20:00:00Z"
+   },
+   "shape": [
+    10212,
+    829
+   ],
+   "builder": "pod_dlw_targets_raw.py d7c52823 (no patch)",
+   "consumers": "STEP1 reference"
+  },
+  {
+   "dataset": "DL targets in-service",
+   "path": "/workspace/dlw_ext/data/dlw_targets.npz",
+   "sha256_16": "31d043e8f160a1d4",
+   "bytes": 191877017,
+   "mtime_utc": "2026-09-01T05:58:10Z",
+   "axis": {
+    "n": 10206,
+    "first": "2022-01-03T00:00:00Z",
+    "last": "2026-08-30T20:00:00Z"
+   },
+   "shape": [
+    10206,
+    829
+   ],
+   "builder": "pod_dlw_targets_ext.py c21683ee",
+   "consumers": "in-service F10, A0 F10 alignment, P2"
+  },
+  {
+   "dataset": "DL fea82",
+   "path": "/workspace/dlw_v4raw/data/dlw_fea82.npz",
+   "sha256_16": "40608701cad1aea1",
+   "bytes": 468075570,
+   "mtime_utc": "2026-09-09T02:55:15Z",
+   "axis": null,
+   "shape": [
+    2753289,
+    82
+   ],
+   "builder": "pod_dlw_features_ext.py e86725cc",
+   "consumers": "F10 v4"
+  },
+  {
+   "dataset": "DL fea89",
+   "path": "/workspace/f8_v4/data/f8_fea89.npz",
+   "sha256_16": "f7363889fa823a97",
+   "bytes": 996715538,
+   "mtime_utc": "2026-09-09T03:03:03Z",
+   "axis": null,
+   "shape": [
+    2753289,
+    89
+   ],
+   "builder": "pod_f8_build_ext.py f606bffa",
+   "consumers": "F10 v4"
+  },
+  {
+   "dataset": "F10 legs v4",
+   "path": "/workspace/f8_v4/data/f10v2_legs.npz",
+   "sha256_16": "c535decd6524b091",
+   "bytes": 67935760,
+   "mtime_utc": "2026-09-09T05:37:20Z",
+   "axis": {
+    "n": 10212,
+    "first": "2022-01-03T00:00:00Z",
+    "last": "2026-08-31T20:00:00Z"
+   },
+   "shape": null,
+   "builder": "pod_legs_v4b.py 6f0f0095 (git 3f058a7c)",
+   "consumers": "F10 v4 trainer (V2)"
+  },
+  {
+   "dataset": "king OOF v4",
+   "path": "/workspace/review_scratch/king_v4/SLOW_v4.npy",
+   "sha256_16": "dde19142d017c37d",
+   "bytes": 33763640,
+   "mtime_utc": "2026-09-09T03:29:50Z",
+   "axis": null,
+   "shape": [
+    10182,
+    829
+   ],
+   "builder": "pod_export_bundle_v4.py 23b1a5c7 (bundle v4)",
+   "consumers": "A1x, P2 king OOF, r-series"
+  },
+  {
+   "dataset": "king OOF v3 on v4 axis",
+   "path": "/workspace/review_scratch/king_v4/SLOW_v3_on_v4axis.npy",
+   "sha256_16": "647673183e6af44a",
+   "bytes": 33763640,
+   "mtime_utc": "2026-09-09T03:29:50Z",
+   "axis": null,
+   "shape": [
+    10182,
+    829
+   ],
+   "builder": "build_dev_v4.py 0dbc2f60",
+   "consumers": "A0 king leg"
+  },
+  {
+   "dataset": "F10 OOF A0",
+   "path": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_A0_s42.npy",
+   "sha256_16": "ff109711f5526c68",
+   "bytes": 33863120,
+   "mtime_utc": "2026-09-09T03:29:50Z",
+   "axis": null,
+   "shape": [
+    10212,
+    829
+   ],
+   "builder": "build_dev_v4.py (align f8_ext yearly OOF)",
+   "consumers": "A0 F10 leg"
+  },
+  {
+   "dataset": "F10 OOF v4RAW",
+   "path": "/workspace/review_scratch/health_check/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s42.npy",
+   "sha256_16": "58d64a6ff9684589",
+   "bytes": 33863120,
+   "mtime_utc": "2026-09-09T06:22:00Z",
+   "axis": null,
+   "shape": [
+    10212,
+    829
+   ],
+   "builder": "merge_mwf_v4b.py",
+   "consumers": "A1x, P2 F10 injection"
+  },
+  {
+   "dataset": "universe mask CRYPTO",
+   "path": "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz",
+   "sha256_16": "47d87b5165b695a7",
+   "bytes": 100021,
+   "mtime_utc": "2026-09-08T10:42:32Z",
+   "axis": {
+    "n": 10039,
+    "first": "2022-01-31T00:00:00Z",
+    "last": "2026-08-31T00:00:00Z"
+   },
+   "shape": [
+    10039,
+    829
+   ],
+   "builder": "build_crypto_mask.py 43ebca0d on build_umask.py (U-PIT)",
+   "consumers": "every m1 replay, P2 PIT universe"
+  },
+  {
+   "dataset": "A0 reference book",
+   "path": "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s42.npz",
+   "sha256_16": "352ac36fb3195327",
+   "bytes": 7765353,
+   "mtime_utc": "2026-09-11T11:23:09Z",
+   "axis": null,
+   "shape": [
+    10039,
+    829
+   ],
+   "builder": "w10_sleeve.py b88e35a4",
+   "consumers": "~300 paired verdicts, T-series, P2"
+  }
+ ],
+ "october_inheritance": [
+  {
+   "defect": "Clip-compound on new clipped bars (E-0908-B)",
+   "carried_into_october": "Yes unless the roll extends the patch; current data clean through 2026-09-11",
+   "items": "RET-01, AUDIT_TRAIN TRN-02"
+  },
+  {
+   "defect": "Month-roll inputs without a committed builder",
+   "carried_into_october": "Yes",
+   "items": "AUDIT_TRAIN TRN-01, LIN-01, FND-01"
+  },
+  {
+   "defect": "King clock / label window (E-0909-F)",
+   "carried_into_october": "Yes (pod_fea_ext_clamp.py again)",
+   "items": "TIM-01, LBL-01"
+  },
+  {
+   "defect": "DL funding features from the 2026-08 live list",
+   "carried_into_october": "Yes (PANEL_SPLICE keeps the v1 prefix)",
+   "items": "FEA-01"
+  },
+  {
+   "defect": "Dead contracts with frozen rows / funding records",
+   "carried_into_october": "Yes (no trades flag anywhere)",
+   "items": "TRD-01, TRD-02, TRD-05"
+  },
+  {
+   "defect": "Non-crypto names in training members",
+   "carried_into_october": "Yes, larger (September rows)",
+   "items": "UNI-01"
+  },
+  {
+   "defect": "Hole residuals in panels and legs",
+   "carried_into_october": "Partly: a fresh PANEL_KING is clean, PANEL_SPLICE prefix and LEGS_OLD rows are not",
+   "items": "HOL-01"
+  },
+  {
+   "defect": "Pull-time funding interval",
+   "carried_into_october": "Only if the September pull fills intervals",
+   "items": "FND-01, FND-02, AUDIT_TRAIN TRN-07"
+  },
+  {
+   "defect": "Switch-row interval mislabels (spacing rule)",
+   "carried_into_october": "Yes for API-only rows (September, and August if not rebuilt from zips)",
+   "items": "FND-02, FIXPROGRAM P9"
+  },
+  {
+   "defect": "Fund EMA v0 train / v1 serve (H2b)",
+   "carried_into_october": "Yes",
+   "items": "AUDIT_TRAIN TRN-04/TRN-05, FIXPROGRAM P1/R1"
+  },
+  {
+   "defect": "Frontier truncation (E-0911-B)",
+   "carried_into_october": "Yes (tail gate floor calibrated at 0.9756 admits it)",
+   "items": "AUDIT_TRAIN TRN-17"
+  },
+  {
+   "defect": "Forward member predicate (D20)",
+   "carried_into_october": "Yes, but it removes almost nothing",
+   "items": "FWD-01, AUDIT_TRAIN TRN-06"
+  },
+  {
+   "defect": "Cache holes",
+   "carried_into_october": "No (coverage gate in the driver)",
+   "items": "HOL-02"
+  },
+  {
+   "defect": "King window wrap (E-0909-A)",
+   "carried_into_october": "No (clamp builder)",
+   "items": "CALIBER_STATUS"
+  },
+  {
+   "defect": "Metrics label switch",
+   "carried_into_october": "No (no builder reads metrics)",
+   "items": "TIM-02, AUDIT_TRAIN TRN-08"
+  }
+ ],
+ "dependency_matrix": {
+  "cache_holefix2": {
+   "n_devices": 54,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 26,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_horizon": 7,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 5,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/event_state": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r10_screen": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_estimand": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_screen": 1
+   }
+  },
+  "cache_holefix2_x0910": {
+   "n_devices": 8,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 2,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T3": 1
+   }
+  },
+  "cache_holefix_round1": {
+   "n_devices": 11,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 6,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 3,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 2
+   }
+  },
+  "cache_ext_prefix": {
+   "n_devices": 16,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 7,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L2": 4,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 3,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 1,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L4": 1
+   }
+  },
+  "cache_holefix_raw": {
+   "n_devices": 1,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 1
+   }
+  },
+  "producer_rolling_cache": {
+   "n_devices": 48,
+   "by_research_line": {
+    "multi_asset/exports/research/parity_replay_2026-09-12/devices": 8,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 6,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4b": 5,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 4,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_estimand": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 2,
+    "multi_asset/exports/live": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/actual_weight_score.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_book_decay.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_combo_vs_king_paper.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_live_leg_ic.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_live_regime_local.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/beta_neutrality_2026-09-11.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/decompose_b_and_c.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_deploy": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/recon_paper_vs_live.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/refute_r6": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/smooth_latency_core.py": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 1
+   }
+  },
+  "raw_patch": {
+   "n_devices": 10,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 9,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 1
+   }
+  },
+  "raw_patch_x0910": {
+   "n_devices": 0,
+   "by_research_line": {}
+  },
+  "panel_v1": {
+   "n_devices": 2,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 2
+   }
+  },
+  "panel_v2ext": {
+   "n_devices": 133,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 12,
+    "multi_asset/exports/research/uplift_2026-09-11/trackD_v4": 9,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 8,
+    "multi_asset/exports/research/uplift_2026-09-11/r10_screen": 7,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_learned_2026-09-11": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_lob": 5,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 5,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/infra1_cost": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_lob": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 4,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/attack_trackD_newalpha": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_screen": 3,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_placebo": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 2,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_pod_book_track.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_pod_leg_ic.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_fundleg.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_attack_RESID_SHARPE": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_integrate": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_receipts": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/round2_factor_sleeves": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4b": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T7": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T8": 1,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L2": 1
+   }
+  },
+  "panel_alias_hist_v2": {
+   "n_devices": 110,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r19_trackF_reindex": 9,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_horizon": 8,
+    "multi_asset/exports/research/uplift_2026-09-11/event_state": 7,
+    "multi_asset/exports/research/uplift_2026-09-11/round2_factor_sleeves": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_gates": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_regime": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 3,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 3,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 2,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_A_halfscale": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 2,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/attack_trackA_carry": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/judge1_r6": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r10_screen": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_B_withinhalf": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_cleanbase": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_lob": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r6j": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_screen": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackA": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_devices": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackE": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackF": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1
+   }
+  },
+  "panel_v3splice": {
+   "n_devices": 17,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 12,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 2,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_fundleg.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_universe": 1
+   }
+  },
+  "panel_v2ext_x0910": {
+   "n_devices": 19,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 3,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T3": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5d": 1
+   }
+  },
+  "panel_v3splice_x0910": {
+   "n_devices": 0,
+   "by_research_line": {}
+  },
+  "panel_v2holefix": {
+   "n_devices": 3,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_fundleg.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_regime.py": 1
+   }
+  },
+  "king_meta_v4": {
+   "n_devices": 38,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 26,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_fundleg.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_regime.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_stale.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_learned_2026-09-11": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1
+   }
+  },
+  "king_fea_v4": {
+   "n_devices": 23,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 19,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_stale.py": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 1
+   }
+  },
+  "king_meta_v2ext": {
+   "n_devices": 38,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 17,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 5,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 4,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 3,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_pod_book_track.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_pod_leg_ic.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pinned_ic.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_fundleg.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r10_screen": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_verdict": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4b": 1
+   }
+  },
+  "king_v4_x0910": {
+   "n_devices": 1,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 1
+   }
+  },
+  "king_v4e": {
+   "n_devices": 8,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 8
+   }
+  },
+  "meta_alias_hist": {
+   "n_devices": 94,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r19_trackF_reindex": 8,
+    "multi_asset/exports/research/uplift_2026-09-11/event_state": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_gates": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_regime": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 4,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 3,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_A_halfscale": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 2,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/judge1_r6": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_B_withinhalf": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_deploy": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_horizon": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_lob": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r6j": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_screen": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackA": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_devices": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackE": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackF": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1
+   }
+  },
+  "acct_meta_v4": {
+   "n_devices": 83,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r10_screen": 9,
+    "multi_asset/exports/research/uplift_2026-09-11/trackD_v4": 7,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/infra1_cost": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_screen": 4,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/klass_independent_objective_2026-09-12": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 3,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 3,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L2": 3,
+    "multi_asset/exports/research/parity_replay_2026-09-12/devices": 2,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/attack_trackD_newalpha": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r10_combine": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_regime": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_A_halfscale": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_cleanbase": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r19_trackF_reindex": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_lob": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackC": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T7": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T8": 1
+   }
+  },
+  "acct_meta_v4_x0910": {
+   "n_devices": 22,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 6,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 5,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 3,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T3": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 1
+   }
+  },
+  "acct_meta_pre_v4": {
+   "n_devices": 5,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 3,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 1,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 1
+   }
+  },
+  "dl_v4raw": {
+   "n_devices": 102,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 34,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_learned_2026-09-11": 9,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 9,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_gates": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_attack_RESID_SHARPE": 4,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_cleanbase": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_integrate": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_placebo": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_receipts": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 1
+   }
+  },
+  "dl_hf3_clip": {
+   "n_devices": 43,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 41,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1
+   }
+  },
+  "dl_ext": {
+   "n_devices": 45,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 23,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 4,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 2,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_pod_cutoff_uplift.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_f10_ic.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_verdict": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4b": 1
+   }
+  },
+  "dl_x0910": {
+   "n_devices": 14,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 7,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T3": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1
+   }
+  },
+  "fea89": {
+   "n_devices": 54,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 34,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 6,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4b": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_learned_2026-09-11": 3,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 2,
+    "multi_asset/exports/research/parity_replay_2026-09-12/devices": 1,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_f10_ic.py": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1
+   }
+  },
+  "legs": {
+   "n_devices": 22,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 21,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1
+   }
+  },
+  "oof_king_v4": {
+   "n_devices": 55,
+   "by_research_line": {
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/trackD_v4": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 4,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/attack_trackD_newalpha": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/event_state": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra1_cost": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_cleanbase": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_lob": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_placebo": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/round2_factor_sleeves": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_attack_2026-09-11": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_devices": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 1
+   }
+  },
+  "oof_king_v3_on_v4": {
+   "n_devices": 86,
+   "by_research_line": {
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 4,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_learned_2026-09-11": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_gates": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 3,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/attack_trackD_newalpha": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/event_state": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_cleanbase": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_horizon": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_placebo": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_lob": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/round2_factor_sleeves": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/infra1_cost": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_lob": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_attack_RESID_SHARPE": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_integrate": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackA": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_attack_2026-09-11": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackD_v4": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackE": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackF": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T6": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T8": 1,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L2": 1
+   }
+  },
+  "oof_king_x0910": {
+   "n_devices": 8,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 1
+   }
+  },
+  "oof_alias_hist": {
+   "n_devices": 49,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 3,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 2,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_A_halfscale": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackA": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_devices": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackE": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1
+   }
+  },
+  "bundle_pinned": {
+   "n_devices": 31,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 18,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 2,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_pod_book_track.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/axisLEG_pod_leg_ic.py": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pinned_ic.py": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4b": 1
+   }
+  },
+  "oof_f10_A0": {
+   "n_devices": 90,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 6,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 4,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_gates": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/attack_trackD_newalpha": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/event_state": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_cleanbase": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_horizon": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_learned_2026-09-11": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_placebo": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/round2_factor_sleeves": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/trackE": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/infra1_cost": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_lob": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_lob": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r6j": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackA": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackD_v4": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackF": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T6": 1
+   }
+  },
+  "oof_f10_v4RAW": {
+   "n_devices": 20,
+   "by_research_line": {
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 3,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_devices": 1
+   }
+  },
+  "oof_f10_V2MAIN_yearly": {
+   "n_devices": 45,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 13,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 2,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_A_halfscale": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackA": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_devices": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackE": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 1
+   }
+  },
+  "umask_crypto": {
+   "n_devices": 150,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r19_trackF_reindex": 9,
+    "multi_asset/exports/research/uplift_2026-09-11/r8_inbook": 7,
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_basis_receipts": 6,
+    "multi_asset/exports/research/uplift_2026-09-11/trackD_v4": 6,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_gates": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 5,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T1": 5,
+    "multi_asset/exports/research/uplift_2026-09-11/p6_receipts": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r10_screen": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_regime": 4,
+    "multi_asset/exports/research/uplift_2026-09-11/r8b2_receipts": 4,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T2": 4,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/attack_trackD_newalpha": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/event_state": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_intervene": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_horizon": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_angle2": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_lob": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_screen": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r12_smoothing": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r18_foundation": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_learned_2026-09-11": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_lob": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r2_sleeve": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_placebo": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r3k_impact": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r4p3": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_seeds": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r9_coverage": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/round2_factor_sleeves": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/trackF": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/handoff_audit": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra1_cost": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/judge1_r6": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_A_halfscale": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_B_withinhalf": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r13_deploy": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r14_cleanbase": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r15_structural": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r16_asym_band": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r17_fill_pricing": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r21_nulls_costbridge": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_attack_RESID_SHARPE": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r3_integrate": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r4_nondet": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/r6j": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackA": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_attack_2026-09-11": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackB_devices": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/trackE": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5c": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T6": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T7": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T8": 1,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L2": 1
+   }
+  },
+  "umask_upit": {
+   "n_devices": 2,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 2
+   }
+  },
+  "umask_frozen_or_pins": {
+   "n_devices": 24,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 9,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r5_newdata3": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/infra2": 2,
+    "multi_asset/exports/research/retrain_2026-09/caliber_program_2026-09-09": 1,
+    "multi_asset/exports/research/retrain_2026-09/holefix_2026-09-08": 1,
+    "multi_asset/exports/research/uplift_2026-09-11/devices_uplift_pod_stale.py": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T3": 1
+   }
+  },
+  "fund_aug": {
+   "n_devices": 15,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 6,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 2,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L4b": 2,
+    "multi_asset/exports/research/uplift_2026-09-11/event_state": 1,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5d": 1,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L4": 1
+   }
+  },
+  "fund_sep_r6": {
+   "n_devices": 1,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5d": 1
+   }
+  },
+  "ledger_full_p2": {
+   "n_devices": 4,
+   "by_research_line": {
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 4
+   }
+  },
+  "funding_zips": {
+   "n_devices": 6,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 3,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 2,
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L4": 1
+   }
+  },
+  "bundle_funding_seed": {
+   "n_devices": 15,
+   "by_research_line": {
+    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09": 6,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4": 3,
+    "multi_asset/exports/research/uplift_2026-09-11/r20_gate_closure": 2,
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4b": 2,
+    "multi_asset/exports/research/parity_replay_2026-09-12/devices": 1,
+    "multi_asset/exports/research/parity_replay_2026-09-12/phase2": 1
+   }
+  },
+  "metrics_archive": {
+   "n_devices": 2,
+   "by_research_line": {
+    "multi_asset/exports/research/uplift_r3_2026-09-13/L2": 2
+   }
+  }
+ },
+ "not_checked": [
+  "Anything that exists only on jpline (unreachable since 09-04): the v1 canonical panel builder and its 2020-2021 caches, w3lane funding (UNVERIFIABLE); v1 is used here only as data.",
+  "Declared settlement intervals for 2026-08 and 2026-09 API rows (FND-02): the 2026-08 fundingRate zips were not on pod2 and no download was made.",
+  "The size of FEA-01, TRD-02, TRD-04, HOL-01 and UNI-01 on F10 predictions, books or state readings; no model was retrained and no arm re-run.",
+  "fea89 (f8_fea89) column-level lineage, its funding-derived columns and its trend_288 global cumulative sum; legs Z24/ZFD beyond the ZFD finiteness count.",
+  "Production-side live state (rolling.npz, aux ledger, seat seeds, F10 fea171 inputs) beyond reading shadow_loop_v3.py for the clock; owned by AUDIT_PROD.",
+  "Frozen-close rows in the 1m premium index and spot archives used by r5 basis and L4 (only the 5m perp cache was measured).",
+  "September 11-30 data: no research cache or panel contains it.",
+  "Per-device exposure of RET-02 consumers to bound bars.",
+  "Other OOF arrays (v4CLIP, v4sRAW, A0p, SLOW_v4e) for masks and coverage; NW/C0 inputs beyond A0's.",
+  "Whether any committed RESULT quotes numbers built on superseded metas (meta_newprod.npz, _ext-based panels) after 09-09 beyond the device grep; only device references were classified.",
+  "LOB, OI/metrics (L2), KRW (T7) and event (L3) datasets beyond confirming the metrics label handling."
+ ]
+}
