@@ -106,8 +106,10 @@ for tag in TAGS:
     if pid == 0:
         code = 1
         try:
+            # fd 1/2 are re-pointed with dup2 ONLY; sys.stdout/sys.stderr stay the interpreter's own objects (held by sys.__stdout__). Smoke attempt 1
+            # replaced them with os.fdopen(1) objects: run_stage_forked's own `sys.stdout = os.fdopen(1)` then dropped the last reference to that
+            # object in the combo grandchild, whose finaliser closed fd 1 -> empty combo_stage.log and rc=1 (receipts S2_LAUNCH_smoke.attempt1_fdclose.*).
             fd = os.open(logp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644); os.dup2(fd, 1); os.dup2(fd, 2); os.close(fd)
-            sys.stdout = os.fdopen(1, "w", buffering=1); sys.stderr = sys.stdout
             tc = time.time()
             print(json.dumps({"chain": arm["tag"], "arm": arm, "pid": os.getpid(), "n_anchors": len(ANCHORS), "first": D.iso(ANCHORS[0]), "last": D.iso(ANCHORS[-1])}), flush=True)
             recs = D.run_chain(arm, g, ANCHORS, rh, out, record_from=None, log_every=(1 if len(ANCHORS) <= 50 else 200))
