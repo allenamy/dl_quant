@@ -42,3 +42,11 @@
 
 ## §5 不主张
 不主张任何书行为改动; 不注销任何既有 FAIL / RED; 不把快照锚上的精确推广为整链精确(Stage D 才判)。
+
+## AMENDMENT 1 — 2026-09-13 15:5xZ(先于任何本题数字; 只补装置细节, 判据 §3 一字不改)
+- **A1.1 生产者 state_H 来源**: G2-C 树只带 4 个锚的生产者 state_H(s20 的 A = 1789243200 没有)。改为: 本机只读复制 `~/wide_shadow/fea171/state_H_{f10,kc,fc}_<A>.npz` 全部逐锚文件(装置 `phase2/devices/p2_attr_prod_stateH_copy.py`: 复制前后各按 t6_sha_guard 规则哈希一次、暂存副本再哈希一次, 三者须相等; 清单 `phase2/receipts/ATTR_prod_stateH_{SHA256SUMS.txt,manifest.json}`), 送 pod2 `P2/work/live_ro/prod_stateH_attr/`; Stage C / D 每次使用前按清单验 sha。
+- **A1.2 死名规则逐字化**: log_cnt = 通道 4(`['ret5','range','cpos','log_qv','log_cnt','log_avgsz','tbf']`)= log1p(成交笔数)。死名 ⇔ (A−24h, A] 的 288 根 5m 里**没有**一根 log_cnt 有限且 > 0(NaN 与 0 混合也算死)。§2「全非正或全 NaN」按此读, 与 FX-DATA 可交易性规则「≥1 根成交笔数 > 0」互为否定。
+- **A1.3 运行环境**: G2-C 快照运行只记了「pod2 CPU 8 核 taskset」, 线程环境未逐字记录 ⇒ 按冻结 §3, V0 正控是唯一保证。Stage C 三锚各一条车道并行, 每道 `taskset -c {0-7 | 8-15 | 16-23} nice -n 10`, 驱动环境 = `PATH=/usr/bin:/bin`、`HOME=<变体树>/home`、`REPLAY_COMBO=1`、`REPLAY_RECEIPT_TAG=ATTR_<变体>`, 逐字写进收据。
+- **A1.4 绑定**: V0 的 rolling 逐字节复制 G2-C 树文件(sha 须 = `G2C_prep.json` 的 hybrid_sha256); 每个变体的驱动收据 `rolling_sha256` 须 = 该变体文件 sha, 否则该变体记失败(V0 失败 ⇒ 停)。
+- **A1.5 中间件清理**: 每个变体跑完、sha 入收据后删除变体 rolling.npz、`replay_home/fea171/mini/` 与两份 ref_fea89.npz 副本(避免累计多 GB 写入); 驱动收据、日志、state_H 输出与目标文件保留。
+- **A1.6 描述量增补(无门)**: Stage C 另报 target_live 差最大的 5 个名、V2 死名中在生产者该锚 target_live 与 aux `prev_rec.members` 中的名数。
