@@ -368,3 +368,37 @@ guard_twin fix is built and tested (6/6) but not deployed. guard_twin is not a g
 - The new file has not run under launchd.
 
 **〔lead 复核 16:2xZ: 退回补一项〕** CUM 改为只比共享输入的算术双生, 使双生失去独立性(正是 LED-04 那类输入偏差会被隐藏)⇒ 要求保留两路告警: (i) 算术双生 vs 看门狗(紧容差, 抓代码缺陷); (ii) 独立收入账本 TWR vs 看门狗链, 按事实表逐因归因的口径带判(不得为消除 8 行而拟合); 合成 0.5 pp 单转账日输入偏差须触发 (ii) 不触发 (i)。部署在复审后。
+
+## LED-01 follow-up · re-freezing pilot_metrics creates a deploy coupling (df57077)
+Latest partial diff ef60f85..e808697; receipts research commit adc6f332.
+- **What I missed.** Re-freezing pilot_metrics.py (1/3) broke the invariant `manifest[pilot_metrics.py] == freeze sha`. `tests_drift_gate` and the `drift_gate` audit gate both check it, and I only ran them during the config doc work, after the three LED-01 commits.
+- **What I fixed.** `ops/UPSTREAM_MANIFEST.sha256` now pins cd508c3f…, and docs/VENDORED_MAP.md records the re-freeze.
+- **The coupling.** The research repo's vendored copy `multi_asset/engine/live/pilot_metrics.py` (direction production→research) has to be replaced with the executor's bytes in the same window as deploying this chain. Replace it earlier and the running tree's drift gate goes red; replace it later and the new tree's drift gate goes red.
+- **Consequence for a clone battery.** Until the research copy is replaced, `drift_gate` and one `tests_drift_gate` cell ("states its denominator") are red because the research side is behind. That is expected, not a defect. Receipt: `LED01_followup_tests_drift_gate_e808697.log`, rc 1, and only that cell is red.
+- **Proof it clears.** A copy of check_upstream_drift.py pointed at a scratch dir holding the four unchanged research files plus the new pilot_metrics.py prints "no drift across 5 vendored modules", rc 0.
+- **〔lead 裁定 16:2xZ〕** 部署时同窗替换研究仓 vendored 副本(与执行器 safe_commit 同一非锚窗, 先执行器后研究仓, 两侧 drift_gate 均复核); 部署前克隆电池中这两格红按「研究侧落后」预期红登记, 不放宽门。
+
+## STA-03 (2f66d77, doc only)
+- New file `docs/STATE_FILES_EXTERNAL_MODE.md`.
+- `state/live/no_trade_band.json`: written only in anchor_loop's internal-book branch (L1891-1901). Last write was A1787371250 on 08-22 04:00:50Z. Nothing reads it (checked across live/, scheduler/, ops/, signal/, guard_twin and regime_dash).
+- `harvest_ema.json`: internal composer only (L1695-1755). Absent under state/live because resume removes it.
+- Both matter only if `book_source` returns to internal, which needs a user ruling. The EMA memory must be cleared before any such switch.
+- Operator retirement step: rename to `.retired_<utc>`. I did not do it; no code or state changed.
+
+## CFG-02 (15c31a5, doc only)
+- In config/book.json, `per_name_stop.profiles.wide._basis` said "沿用 20 (★待裁)" while the live value is 5.0 (redteam R5, 20→5).
+- The string now states 5.0 and cites that note.
+- A JSON comparison before and after shows only that key changed; nothing reads `_basis`.
+- Config-reading suites green: per_name_stop, external_book, frozen_inputs, manifest_consistency, sizing_policy.
+
+## CFG-07 (4b81443, doc only)
+- `_comment` said "DEPLOYED BOOK = THREE LEGS".
+- It now names the external combo book: read at N+24 from external_book.path, sized as NAV × gross_mult, not composed.
+- It lists the keys that are inert in external mode: weights, signs, harvest_ema, no_trade_band_w, risk_budget, leg_cadence.
+- The three-leg history is kept. Only `_comment` changed (JSON-checked).
+- Green: external_book, frozen_inputs, manifest_consistency, sizing_policy, book_weights_effective, harvest_ema, neutral_band, risk_budget, king_cadence.
+
+## DOC-01, executor side (e808697, doc only)
+- README gains a dated "current deployment facts" table ahead of the 07-25 architecture section. Each row cites its source in code or config: external book since 08-22 08Z; target path; read at N+24 (was N+23 until 08-27); sizing; internal composer inert in external mode; change channel is safe_commit plus run_acceptance.
+- The battery size points at the runner's own output instead of a written number: it was 135 at ef60f85, and it is now 145 on my branch.
+- The STATE.md / CLAUDE.md side stays with the lead (K4).
