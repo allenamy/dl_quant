@@ -1,0 +1,25 @@
+[A] the carrier: the income ledger is paged, and paging does not double-count
+  OK    ★★ every row is retrieved, not just the first page  — 3200 of 3200 in 4 pages (4 calls)
+  OK    ★★ REALIZED_PNL survives — under one request it is what falls off the cap  — {'COMMISSION': -28.800000000001702, 'REALIZED_PNL': -1600.0}
+  OK    ★★ and nothing is counted twice, though timestamps collide 50-deep  — COMMISSION=-28.800000000001702 expected=-28.80
+  OK       a complete read reports truncated=False
+  OK       a single short page still works, pages once, and returns every row  — {'n_pages': 1, 'n_rows': 120, 'truncated': False}
+
+[B] the consumers: §4-2 and §4-4 refuse a lower bound
+  OK    ★★ §4-2 drops the truncated days instead of pricing them  — truncated=2 priced=1
+  OK    ★★ and says so — DEGRADED, and the day is NAMED  — ['20260727', '20260728']
+  OK       the same tree WITHOUT truncation prices every day  — 3
+  OK    ★★ §4-4 withholds them too, counted BY DAY not by row  — ['20260727', '20260728']
+  OK    ★★ and a drawdown over half the window declares itself blind rather than clean  — coverage=0.3333
+  OK    ★ the equity-denominated reading is reported beside the gross one  — day 0.0% / dd 0.0%
+  OK    ★★ the numerator repair is independent of the thresholds — the pre-policy values survive in the deprecated constants  — live limits are now -4.0 / -25.0 of EQUITY
+  OK    ★ a BREACH still fires through thin coverage — only a CLEAN reading is downgraded  — asserted in [C] by mutation
+
+[C] red capability — the production source, mutated in memory, must break these
+  OK    ★★ mutant 'cond2_ignores_truncation' prices the truncated days again (the old defect)  — priced=3 (fixed code gives 1)
+  OK    ★★ mutant 'cond4_ignores_truncation' feeds the lower bound into the drawdown  — withheld=2 coverage=1.0
+  OK    ★★ mutant 'no_paging' (one page only) loses REALIZED_PNL entirely — the measured defect  — by_type=['COMMISSION'] n_rows=1000 truncated=True
+  OK    ★★ mutant 'no_dedupe' double-counts the colliding timestamps  — 3350 rows for a 3200-row ledger
+  OK    ★ and the on-disk sources are unchanged by any of it
+
+ALL PASS  (18 checks)
