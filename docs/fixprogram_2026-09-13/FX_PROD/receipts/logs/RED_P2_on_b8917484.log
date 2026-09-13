@@ -1,0 +1,10 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod/work/code_live_b8917484 shadow_loop_v3.py=e9c9837412130884 combo_stage.py=b5c698f9d1ee9acb cells=['P2'] utc=2026-09-13T14:56:26Z
+[P2] V2MAIN funding panel: column 80 caliber, 12h freshness, shared mini cache
+  OK   [KEEP] P2-R0 live-identical combo device reproduces live target_live and target_combo at 09-12 12Z (L∞ == 0) — {'rc': 0, 'target_live_Linf': 0.0, 'target_combo_Linf': 0.0, 'err': ''}
+  FAIL [RED] P2-R1 V2MAIN panel f_fund_ema (last row) == float32(training v0) for fresh names, 0 otherwise; F82 column 80 rows == float16 of it — {'members': 400, 'panel_mismatch': 311, 'f82_col80_mismatch': 311, 'median_panel_over_v0': 2.0}
+  FAIL [RED] P2-R2 stale member 0GUSDT (last settlement 09-11 20Z, > 12h before A): panel f_fund_ema and f_fund_now == 0 (training panel stale -> NaN -> 0) — {'f_fund_ema': -1.2962917935510632e-05, 'f_fund_now': 4.999999873689376e-05}
+  FAIL [RED] P2-R3 mini cache written by v1 code for this anchor is not reused: F82 column 80 == float16(training v0) — {'recomputed': False}
+  OK   [KEEP] P2-K1 FTRIM record (names_kc/names_fc/n) identical to live — {'n': (7, 7)}
+  FAIL [NEW] P2-N1..N4 caliber tag / fallback / one-column proof / sidecar (mechanism absent in this code) — V2MAIN_FUND_COL80_V0 not defined
+SUMMARY tests_fx_prod: 6 cells, 4 fail (RED fail 3, KEEP fail 0, NEW fail 1, CRASH 0)
+rc=1

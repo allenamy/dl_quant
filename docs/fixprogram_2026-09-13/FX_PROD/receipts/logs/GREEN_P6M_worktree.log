@@ -1,0 +1,7 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod shadow_loop_v3.py=13e815a82d7b5d12 combo_stage.py=1c6a491d30606312 cells=['P6M'] utc=2026-09-13T15:10:03Z
+[P6M/P9M] exact live v1 EMA correction for mislabelled settlements (offline, frozen state)
+  OK   [KEEP] P6M-K0 no correction: the independent full-history rebuild with the stored labels reproduces the live v1 EMA bitwise (525 names) and the output equals the input — {'control': 0.0, 'n': 525}
+  OK   [RED] P6M-R1 D17 (seed-origin fund_aug-dict labels): live v1 EMA is off the declared-label state; 533 rows / 5 names, PROM dacc -4.10e-06 (5.1% of acc) — {'n': {'D17': 533, 'P9': 0}, 'dacc': {'PROMUSDT': -4.0958377141517934e-06, 'ERAUSDT': -3.0014501005005637e-07, 'BANKUSDT': -1.715830025066712e-07, 'DEXEUSDT': -5.139469984278357e-07, 'ACEUSDT': -7.571896798854299e-07}}
+  OK   [NEW] P6M-G1 corrected D17 state == independent rebuild with the corrected labels (max |d| <= 1e-15 over 525 names) — 1.3010426069826053e-18
+  OK   [NEW] P9M-G1 exact producer-appended mislabels (ONG 08-25 08Z interest signature; 61 cold-start first rows 07-26 08Z and GRVT 07-31 12Z, zip-declared 4 vs default 8): corrected == rebuild (<= 1e-15) — {'n': {'D17': 0, 'P9': 63}, 'outside_tail': {'D17': 0, 'P9': 1}, 'control': 6.938893903907228e-18}
+SUMMARY tests_fx_prod: 4 cells, 0 fail (RED fail 0, KEEP fail 0, NEW fail 0, CRASH 0)

@@ -1,0 +1,22 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod shadow_loop_v3.py=13e815a82d7b5d12 combo_stage.py=b5c698f9d1ee9acb cells=['P1', 'P6'] utc=2026-09-13T14:42:07Z
+[P1] king column 80: training v0 vs served (snapshot-forward replay at 09-12 12Z; state = close of 08Z)
+  OK   [RED] P1-R1 served X[:,76] (king col 80) == float32(training v0 = pod_panel_ext.py L124-133 on raw rate) for fresh members, 0 otherwise — {'members': 400, 'fresh': 400, 'mismatching_cells': 0, 'median_served_over_v0_by_iv': {1.0: 1.0, 4.0: 1.0, 8.0: 1.0}}
+  OK   [KEEP] P1-N1 fund leg z / fund_z_old / base_n / fund_base_n / members == live prev_rec at A (fund leg remains v1)
+  OK   [KEEP] P1-R0 flag OFF: replay king weights at 09-12 12Z == live weights file (idx/val/members bitwise)
+  OK   [NEW] P1-N2 ON vs OFF: members equal; X columns != 76 bitwise equal; pred bitwise equal on rows whose col 76 is equal — {'rows_col76_equal': 89, 'rows': 400}
+  OK   [NEW] P1-N2b flag OFF served col 76 == v1 (fe_v) ⇒ OFF is the old serving
+  OK   [NEW] P1-N3 ema_v0 carried by the producer recursion == training oracle for all names after the anchor (bitwise), last_ts == ema — {'n': 525, 'bad': []}
+  OK   [NEW] P1-N4 missing v0 entry: served 0, not cold-started, counted in the fund_col80 log event — {'victim': '0GUSDT', 'served': 0.0, 'event': {'e': 'fund_col80', 'anchor_ts': 1789214400, 'caliber': 'v0', 'v0_state': True, 'n_fresh_missing_v0': 1, 'n_members_missing_v0': 1, 'missing_v0': ['0GUSDT'], 'logged_utc': '2026-09-13T14:42:37Z'}}
+  OK   [NEW] P1-N5 load: no ema_v0 ⇒ REFUSE_TO_START exit 2; inconsistent last_ts ⇒ exit 2; consistent ⇒ loads with ema_v0 — {'no_v0': 'exit2', 'inconsistent': 'exit2', 'consistent': 'loaded'}
+  OK   [NEW] P1-N6 ShadowState.save writes ema_v0 into aux.json (single atomic write) and it round-trips
+[P6] bundle bootstrap: seed interval labels and EMA/seed alignment
+  OK   [RED] P6-R1 bootstrap from the 08-16 bundle is REFUSED (exact EMA impact of label repairs > 1e-9) and names PROM/ACE/DEXE/ERA/BANK — {'result': 'exit2', 'named': ['PROMUSDT', 'ACEUSDT', 'DEXEUSDT', 'ERAUSDT', 'BANKUSDT'], 'stdout': ".0005076236735097126), ('BANKUSDT', 'repair_impact_on_bundle_ema', -0.00011503008606435535), ('DEXEUSDT', 'repair_impact_on_bundle_ema', -0.0003445525873658286), ('ERAUSDT', 'repair_impact_on_bundle_ema', -0.00020121868619534384), ('PROMUSDT', 'repair_impact_on_bundle_ema', -0.0027458696833691032)]\n"}
+  OK   [RED] P6-R2 v3 bundle (ONG 08-25 08Z label corrected): after bootstrap ema[s].last_ts == seed last row for all 450 names and acc == producer recursion over the missing seed rows — {'names_not_at_seed_end': 0, 'example': [], 'worst_abs_diff': 0.0}
+  OK   [KEEP] P6-K1 v3 seed switch rows ESPORTS 07-29 20Z / T 07-25 04Z (zip-declared 4) keep iv 4.0 after bootstrap — {'got': {('ESPORTSUSDT', 1785355200): [4.0], ('TUSDT', 1784952000): [4.0]}, 'zip_declared_4': True}
+  OK   [RED] P6-R3 in-service v3 bundle as exported is REFUSED and names ONGUSDT (seed label 2.0 vs declared 4, EMA impact > 1e-9) — {'result': 'exit2', 'stdout': "REFUSE_TO_START: bundle seed/EMA inconsistent (1): [('ONGUSDT', 'repair_impact_on_bundle_ema', -5.984672158291157e-07)]\n"}
+  OK   [NEW] P6-N1 v3 bootstrap logs seed_iv_rederived with repaired rows, kept-unresolved rows (ESPORTS/T switch rows) and caught-up EMA counts — {'e': 'seed_iv_rederived', 'n_repaired': 0, 'repaired': [], 'n_kept_unresolved': 2, 'kept_unresolved': [['ESPORTSUSDT', 1785355200, 4.0, 1.0, 'unresolved'], ['TUSDT', 1784952000, 4.0, 1.0, 'unresolved']], 'n_caught_up_v1': 448, 'n_caught_up_v0': 448, 'max_abs_repair_impact': 0.0, 'logged_utc': '2026-09-13T14:43:32Z'}
+  OK   [NEW] P6-N2 real 4h steady row 0GUSDT 07-23 12Z relabelled 1.0: exact impact 4.32e-10 <= 1e-9 ⇒ loads, row repaired to 4.0 (if still in the 400-row tail) and named — {'result': 'loaded', 'repaired': [['0GUSDT', 1784808000, 1.0, 4.0, 'steady']], 'stdout': ''}
+  OK   [NEW] P6-N3 EMA last_ts that is not a seed row ⇒ REFUSE_TO_START (catch-up only from a seed row) — {'result': 'exit2', 'stdout': "REFUSE_TO_START: bundle seed/EMA inconsistent (1): [('0GUSDT', 'ema_last_ts_not_a_seed_row', 1788134407)]\n"}
+  OK   [NEW] P6-N4 bundle v0 state caught up to the seed end == training v0 oracle for all names (bitwise) — {'bad': [], 'n': 450}
+SUMMARY tests_fx_prod: 17 cells, 0 fail (RED fail 0, KEEP fail 0, NEW fail 0, CRASH 0)
+rc=0

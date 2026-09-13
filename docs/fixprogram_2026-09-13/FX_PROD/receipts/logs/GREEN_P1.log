@@ -1,0 +1,13 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod shadow_loop_v3.py=a7ededbe721dc574 combo_stage.py=b5c698f9d1ee9acb cells=['P1'] utc=2026-09-13T13:33:56Z
+[P1] king column 80: training v0 vs served (snapshot-forward replay at 09-12 12Z; state = close of 08Z)
+  OK   [RED] P1-R1 served X[:,76] (king col 80) == float32(training v0 = pod_panel_ext.py L124-133 on raw rate) for fresh members, 0 otherwise — {'members': 400, 'fresh': 400, 'mismatching_cells': 0, 'median_served_over_v0_by_iv': {1.0: 1.0, 4.0: 1.0, 8.0: 1.0}}
+  OK   [KEEP] P1-N1 fund leg z / fund_z_old / base_n / fund_base_n / members == live prev_rec at A (fund leg remains v1)
+  OK   [KEEP] P1-R0 flag OFF: replay king weights at 09-12 12Z == live weights file (idx/val/members bitwise)
+  OK   [NEW] P1-N2 ON vs OFF: members equal; X columns != 76 bitwise equal; pred bitwise equal on rows whose col 76 is equal — {'rows_col76_equal': 89, 'rows': 400}
+  OK   [NEW] P1-N2b flag OFF served col 76 == v1 (fe_v) ⇒ OFF is the old serving
+  OK   [NEW] P1-N3 ema_v0 carried by the producer recursion == training oracle for all names after the anchor (bitwise), last_ts == ema — {'n': 525, 'bad': []}
+  OK   [NEW] P1-N4 missing v0 entry: served 0, not cold-started, counted in the fund_col80 log event — {'victim': '0GUSDT', 'served': 0.0, 'event': {'e': 'fund_col80', 'anchor_ts': 1789214400, 'caliber': 'v0', 'v0_state': True, 'n_fresh_missing_v0': 1, 'n_members_missing_v0': 1, 'missing_v0': ['0GUSDT'], 'logged_utc': '2026-09-13T13:34:15Z'}}
+  OK   [NEW] P1-N5 load: no ema_v0 ⇒ REFUSE_TO_START exit 2; inconsistent last_ts ⇒ exit 2; consistent ⇒ loads with ema_v0 — {'no_v0': 'exit2', 'inconsistent': 'exit2', 'consistent': 'loaded'}
+  OK   [NEW] P1-N6 ShadowState.save writes ema_v0 into aux.json (single atomic write) and it round-trips
+SUMMARY tests_fx_prod: 9 cells, 0 fail (RED fail 0, KEEP fail 0, NEW fail 0, CRASH 0)
+rc=0

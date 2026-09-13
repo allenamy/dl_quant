@@ -1,0 +1,9 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod shadow_loop_v3.py=13e815a82d7b5d12 combo_stage.py=b5c698f9d1ee9acb cells=['P6'] utc=2026-09-13T14:37:16Z
+[P6] bundle bootstrap: seed interval labels and EMA/seed alignment
+  OK   [RED] P6-R1 bootstrap from the 08-16 bundle is REFUSED (exact EMA impact of label repairs > 1e-9) and names PROM/ACE/DEXE/ERA/BANK — {'result': 'exit2', 'named': ['PROMUSDT', 'ACEUSDT', 'DEXEUSDT', 'ERAUSDT', 'BANKUSDT'], 'stdout': ".0005076236735097126), ('BANKUSDT', 'repair_impact_on_bundle_ema', -0.00011503008606435535), ('DEXEUSDT', 'repair_impact_on_bundle_ema', -0.0003445525873658286), ('ERAUSDT', 'repair_impact_on_bundle_ema', -0.00020121868619534384), ('PROMUSDT', 'repair_impact_on_bundle_ema', -0.0027458696833691032)]\n"}
+  FAIL [RED] P6-R2 v3 bundle: bootstrap loads and catches the EMA up to the seed end from seed rows — {'result': 'exit2', 'stdout': "REFUSE_TO_START: bundle seed/EMA inconsistent (1): [('ONGUSDT', 'repair_impact_on_bundle_ema', -5.984672158291157e-07)]\n"}
+  FAIL [NEW] P6-N1 v3 bootstrap logs seed_iv_rederived with repaired rows, kept-unresolved rows (names + ts) and caught-up EMA counts — None
+  FAIL [NEW] P6-N2 real 4h steady row mislabelled 1.0 in an old seed position: exact impact 1.33e-09 <= 1e-9 ⇒ loads, row repaired to 4.0 and named — {'result': 'exit2', 'repaired': []}
+  OK   [NEW] P6-N3 EMA last_ts that is not a seed row ⇒ REFUSE_TO_START (catch-up only from a seed row) — {'result': 'exit2', 'stdout': "REFUSE_TO_START: bundle seed/EMA inconsistent (2): [('0GUSDT', 'ema_last_ts_not_a_seed_row', 1788134407), ('ONGUSDT', 'repair_impact_on_bundle_ema', -5.984672158291157e-07)]\n"}
+SUMMARY tests_fx_prod: 5 cells, 3 fail (RED fail 1, KEEP fail 0, NEW fail 2, CRASH 0)
+rc=1

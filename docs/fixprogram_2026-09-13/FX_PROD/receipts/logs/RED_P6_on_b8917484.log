@@ -1,0 +1,8 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod/work/code_live_b8917484 shadow_loop_v3.py=e9c9837412130884 combo_stage.py=b5c698f9d1ee9acb cells=['P6'] utc=2026-09-13T14:34:07Z
+[P6] bundle bootstrap: seed interval labels and EMA/seed alignment
+  FAIL [RED] P6-R1 bootstrap from the 08-16 bundle is REFUSED (exact EMA impact of label repairs > 1e-9) and names PROM/ACE/DEXE/ERA/BANK — {'result': 'loaded', 'named': [], 'stdout': ''}
+  FAIL [RED] P6-R2 v3 bundle: after bootstrap ema[s].last_ts == seed last row for all 450 names and acc == producer recursion over the missing seed rows — {'names_not_at_seed_end': 448, 'example': ['0GUSDT', '1000BONKUSDT', '1000CATUSDT'], 'worst_abs_diff': 0.00661709192003398}
+  OK   [KEEP] P6-K1 v3 seed switch rows ESPORTS 07-29 20Z / T 07-25 04Z (zip-declared 4) keep iv 4.0 after bootstrap — {'got': {('ESPORTSUSDT', 1785355200): [4.0], ('TUSDT', 1784952000): [4.0]}, 'zip_declared_4': True}
+  FAIL [NEW] P6-N1..N4 repair log / tolerance pass / catch-up refusal / v0 catch-up (mechanism absent in this code) — no seed re-derivation in this code
+SUMMARY tests_fx_prod: 4 cells, 3 fail (RED fail 2, KEEP fail 0, NEW fail 1, CRASH 0)
+rc=1

@@ -1,0 +1,13 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod shadow_loop_v3.py=13e815a82d7b5d12 combo_stage.py=1c6a491d30606312 cells=['P2'] utc=2026-09-13T15:02:04Z
+[P2] V2MAIN funding panel: column 80 caliber, 12h freshness, shared mini cache
+  OK   [KEEP] P2-R0 live-identical combo device reproduces live target_live and target_combo at 09-12 12Z (L∞ == 0) — {'rc': 0, 'target_live_Linf': 0.0, 'target_combo_Linf': 0.0, 'err': ''}
+  OK   [RED] P2-R1 V2MAIN panel f_fund_ema (last row) == float32(training v0) for fresh names, 0 otherwise; F82 column 80 rows == float16 of it — {'members': 400, 'panel_mismatch': 0, 'f82_col80_mismatch': 0, 'median_panel_over_v0': 1.0}
+  OK   [RED] P2-R2 stale member 0GUSDT (last settlement 09-11 20Z, > 12h before A): panel f_fund_ema and f_fund_now == 0 (training panel stale -> NaN -> 0) — {'f_fund_ema': 0.0, 'f_fund_now': 0.0}
+  OK   [RED] P2-R3 mini cache written by v1 code for this anchor is not reused: F82 column 80 == float16(training v0) — {'recomputed': True}
+  OK   [KEEP] P2-K1 FTRIM record (names_kc/names_fc/n) identical to live — {'n': (7, 7)}
+  OK   [NEW] P2-N1 target_combo records fund_caliber {col80: v0, fresh12h: true, n_v0_missing: 0} and the mini cache carries the anchor tag — {'target_combo': {'col80': 'v0', 'fresh12h': True, 'n_v0_missing': 0, 'n_stale': 2, 'anchor': 1789214400}, 'tag': {'col80': 'v0', 'fresh12h': True, 'n_v0_missing': 0, 'n_stale': 2, 'anchor': 1789214400}}
+  OK   [NEW] P2-N2 producer state without ema_v0: combo does not abort, column 80 falls back to v1 and records col80 = v1_fallback — {'rc': 0, 'caliber': {'col80': 'v1_fallback', 'fresh12h': True, 'n_v0_missing': 0, 'n_stale': 2, 'anchor': 1789214400}}
+  OK   [NEW] P2-N3 v1-fallback vs v0 run: F82 columns != 80 bitwise identical, F89 bitwise identical, pair axis identical — {'col80_rows_differ': 311, 'rows': 400}
+  OK   [NEW] P2-N4 sidecar_blend writes the same V2MAIN panel (bitwise) and the same caliber tag as combo_stage — {'tag': {'col80': 'v0', 'fresh12h': True, 'n_v0_missing': 0, 'n_stale': 2, 'anchor': 1789214400}}
+SUMMARY tests_fx_prod: 9 cells, 0 fail (RED fail 0, KEEP fail 0, NEW fail 0, CRASH 0)
+rc=0

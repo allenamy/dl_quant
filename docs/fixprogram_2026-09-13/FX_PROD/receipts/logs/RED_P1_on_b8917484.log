@@ -1,0 +1,8 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod/work/code_live_b8917484 shadow_loop_v3.py=e9c9837412130884 combo_stage.py=b5c698f9d1ee9acb cells=['P1'] utc=2026-09-13T13:31:55Z
+[P1] king column 80: training v0 vs served (snapshot-forward replay at 09-12 12Z; state = close of 08Z)
+  OK   [KEEP] P1-R0 old code: replay king weights at 09-12 12Z == live weights file (idx/val/members bitwise) — {'n_idx': (263, 263)}
+  FAIL [RED] P1-R1 served X[:,76] (king col 80) == float32(training v0 = pod_panel_ext.py L124-133 on raw rate) for fresh members, 0 otherwise — {'members': 400, 'fresh': 400, 'mismatching_cells': 311, 'median_served_over_v0_by_iv': {1.0: 5.8858442306518555, 4.0: 2.0, 8.0: 1.0}}
+  OK   [KEEP] P1-N1 fund leg z / fund_z_old / base_n / fund_base_n / members == live prev_rec at A (fund leg remains v1)
+  FAIL [NEW] P1-N2..N6 flag / invariants / refusal / save (mechanism absent in this code) — FUND_COL80_V0 not defined
+SUMMARY tests_fx_prod: 4 cells, 2 fail (RED fail 1, KEEP fail 0, NEW fail 1, CRASH 0)
+rc=1
