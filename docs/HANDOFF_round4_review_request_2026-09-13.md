@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13 09:2xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** 转交独立研究员的第四轮**合并**复审指令(用户转述用); **W9 一节待填, 填完并重跑四件叠加电池后才发出** | **作废条件:** 下文任一 sha 改变 ⇒ 须差异复核
+> **创建:** 2026-09-13 09:2xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** 转交独立研究员的第四轮**合并**复审指令(用户转述用); **已完成, 可发出**(W9 与第六轮四件叠加电池已填) | **作废条件:** 下文任一 sha 改变 ⇒ 须差异复核
 
 # 致独立研究员: 第三轮复审(d1ce0ace)之后的全部修复与研究 —— 第四轮合并复审请求
 
@@ -7,7 +7,7 @@
 - **研究**: 第三轮冻结点之后出了 T1–T5c 共八份结果(均未经 lead 复跑)与 P2 生产策略折外回放的 S0 与 S1 首两门; 其中一处是我在看到红门之后写的预注册修订(P2 AMENDMENT 3), **请你专门核它是否正当**(§6)。
 
 ## 2. 入口与范围
-- 研究仓分支 `research/book-uplift-2026-09-11`, 复审范围 **`57e1a0fa..HEAD_AT_SEND`**(你第三轮冻结点之后; 发送时填 HEAD)。
+- 研究仓分支 `research/book-uplift-2026-09-11`, 复审范围 **`57e1a0fa..` 本文件所在提交**(你第三轮冻结点之后; 提交 sha 见用户转发的指令)。
 - 状态账 `STATE.md` 顶部 09-13 各条; 纲领 `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md` 的 AMENDMENT 3–5 与全部结果指针。
 - 执行器改动都在克隆里, 以 diff 形式入研究仓 `docs/receipts/`; 每份 diff 都能对 `918559f` 干净应用, lead 已从克隆重新生成并逐字节比对。
 
@@ -33,14 +33,21 @@
 
 ### 3.4 W9 —— 实盘逐名止损对多头不平仓(新, 我方发现)
 - **来源**: T5b 审计(提交 `51b93969`, `uplift_r2_2026-09-13/T5b/RESULT_T5b.md` 新风险一节, 收据 `RECEIPT_T5b_exec_posthoc.json`): 止损把目标置零 → `signal/legs.py:124 reshape_after_withhold` 对**全体**(含被置零名)去均值, 给被止损名加 +a(净敞口为负时 +1.5..+62 USDT)→ `scheduler/anchor_loop.py:425 clamp_held_untradable` 把小于 a 的被止损多头钉成 add_blocked、较大的只减到 ≈a; 空头正常进 flatten_only。125 个「已止损且持有」实例: 多头钉住 94 / 多头仅减 23 / 空头 flatten_only 5 / 未上市 3; 拟合位移对记录桶 122/122。例: CYS/TRIA/MAGMA/RIVER 钉到 09-06 08Z 书级平仓, IOST 09-10 16Z..09-12 12Z。每名 6–50 USDT。条款自己的规格(`live/per_name_stop.py` 文件头, PREREG cf40ea21)是「并入 untradable 且 target 置 0 ⇒ 走既有 flatten_only」; `ops/gate_coverage.py` 早已把这个盲区写在 tests_per_name_stop 下。
-- **修法与证据**: 〔待 W9 交付后填: 事实表位置 / diff sha / 修前红格 / 三个邻格 / 电池〕
+- **最终版提交 `73d55602`**(取代 `baf40a41` 中的中间版); diff `docs/receipts/w9_stopped_long_flatten.diff` sha **`f8beb082eee869d87dab339f798fcec4101d307356510244f3402b283c16eacc`**(10 文件; 克隆 exec_w9 = git diff 2230307..e8651a3, lead 重生成逐字节同; 四件对 918559f 依序应用得树 ed2f8819 = tip 树); 事实表先于代码 `docs/DESIGN_stopped_long_flatten_2026-09-13.md` §1。
+- **根因(事实表)**: 止损置零后 withhold 缝对全体目标(含零)去均值, 钳制看到的是位移不是 0; 该路径自 0bcc089 起 21 个版本逐字相同; **不限多头** —— 上线以来 157 个「已止损且持有」实例: 多头钉住 105 / 仅减到 a 39; 外部书之前位移为负时是空头被减。
+- **修法**: 已拥有 pop → reshape → clamp 顺序的 `apply_withhold_and_reshape` 增 `force_flat`: 持有的止损名离开重整人口、以恰 0.0 回来、由钳制归入 flatten_only; 未持有的止损名照旧 pop; 缺省参数逐位旧行为; 删除调用方置零循环, 更正两处与代码相反的注释。**必须在 W6 之后落地**(W6 使其成为按持仓张数的全量 reduce-only 出场)。
+- **测试**: `tests_per_name_stop` **65/65**; 同测试文件在基底 2230307 上 **34 过 / 31 红**, 红格恰为缺陷格(lead 在自己的三件叠加树上用 08Z 格之前的版本带夹具复跑为 33/28, 与 worker 逐行一致; lead 第一次复跑漏拷夹具崩溃 rc=1, 标 INVALID 留档, 不作红证据); 夹具 = T5b 只读副本重建的 3 个真锚 + **实盘 09-13 08Z 撤名缺口锚**(A1789287840: 重放与账本逐位一致 —— net_before −20,475.814437、同 11 名 pop、跨门名单 [1000CATUSDT] 逐字; 情景把 IOST/LSK 设为持有止损名 ⇒ 均恰 0.0 且只落 flatten_only, 可交易书净 0、gross = sizing(1e-6), 撤名残差不变); 邻格不变(被止损空头 ARB、冷却 BTR/EGLD/SKR、其余 28 个持有不可交易名); AST: 18 条原断言逐字且有序 + 23 条新断言; tests_book_reshape / tests_external_book 不变。gate_coverage 盲区 (b) 改写为已证/未证。
+- **仍未证**: 出场真实成交与转入冷却; 真实负位移锚; flatten_only 补单沿用 chase 框架而条款写「不追」; 钳制告警把止损/冷却名称作「被场所扣留」(文案 ≠ 来源)。
+- **待裁设计项(非 W9 引起, 请你与用户看)**: 真实 08Z 书上**仅重整本身**就把 1000CATUSDT 从 −80.88 移到 +3.28(低于 5.0 地板, 账本有告警)—— 把 −8.69% 的撤名缺口按名等额再分配, 会翻转小仓符号。W9 只保证止损名不进入这个跨门集合(旧码为 [1000CAT, IOST, LSK])。是否改再分配方式(例如按侧比例)是书构造问题, 本包不改。
+- **恢复时的实态(lead 08Z 深查)**: 书空仓, 冷却 10 名均未持有 ⇒ 恢复首锚 W9 的新路径不会被触发(未持有的止损名照旧 pop)。
 
 ### 3.5 已知不在包内
 - 平仓费回填(只 09-12, 需凭据)、十月合同批准、落地与恢复 —— 均为用户字。
 
 ### 3.6 叠加电池
 - **第四轮(未含 W9)**: 918559f + W6ab `259f50a6` → W2 `2ad1c272` → W1 `62a3032e`, 真 state 副本(08:55:56Z), 起止 diff sha 相同。**电池自判 `ACCEPTANCE: NOT GREEN`, rc=1: 130 个测试套件 129 过, 唯一红 `tests_env_loading`(14 项中 4 项「导入时填充 TELEGRAM_*」, 克隆按隔离不拷 .env), 5 个审计门(drift_gate / metrics_freeze / gate_coverage / income_callers / guard_reach)全过**; 新改五套件直跑全过(reduce_only_clamp / ic_monitor / readers 75 / daily_summary 107 + 1 SKIP / disposition_matrix 68)。收据 `docs/receipts/stacked_landing_battery_20260913T085514Z.log`、驱动 `stacked_landing_r4.sh` 与其日志(提交 `208b8cc9`)。**不能称全绿。**
-- **第五轮(含 W9)**: 〔待填〕
+- **第五轮(含 W9 中间版 026e872d)**: 同读数(130 套 129 过, 唯一红 tests_env_loading, 5 审计门过, NOT GREEN rc=1)。**⚠ 版本漂移如实记录**: 运行中 worker 把 W9 diff 重生成为最终版 f8beb082(加 08Z 撤名缺口测试格, 只测试与夹具), 驱动 END 行读到新 sha; 该轮结果绑定开始时应用的 026e872d(提交 `c2dbd431`)。
+- **第六轮(最终四件, W9 用冻结副本防漂移)**: 918559f + W6ab `259f50a6` → W2 `2ad1c272` → W1 `62a3032e` → W9 `f8beb082`, 真 state 副本(10:29:27Z), 起止四个 diff sha 相同。**电池自判 `ACCEPTANCE: NOT GREEN`, rc=1: 130 个测试套件 129 过, 唯一红 `tests_env_loading`(14 项中 4 项 TELEGRAM_* 导入时填充, 克隆不拷 .env), 5 个审计门全过**; 直跑 8 套件全过(reduce_only_clamp / ic_monitor / readers 75 / daily_summary 107 + 1 SKIP / disposition_matrix 68 / per_name_stop / book_reshape 38 / external_book 123)。收据 `docs/receipts/stacked_landing_battery_20260913T102842Z.log`、驱动 `stacked_landing_r6.sh` 与日志。**不能称全绿。**
 
 ## 4. 十月月链 —— 你的 D1 / D3 / D2 + dryrun 同类洞
 - 提交 `e7bdd129`; 设计 `docs/DESIGN_v4_monthly_chain_2026-09-12.md` §10.5, 预注册 `docs/PREREG_v4_gates_monthly_2026-09-12.md` AMENDMENT 3 与 §7.11。
@@ -81,7 +88,7 @@ x0910 面板对 API 尾行套用单一拉取时的结算间隔: 九月间隔变�
 - **G2-B 原门 RED**(`de51cd82`): 41 锚 × 21,520 对, 最大 |Δacc| 2.603e-05 > 1e-9; 端口自检过(重建 = 生产公式, 窗内前推 4.77e-18); 违例全部继承自 09-05 16Z 之前(26 名末/首差比 = HL 3d 理论衰减到第 10 位); 两个来源: 7 名在役名 live 账本有「存储 iv ≠ 相邻时间差」行(PROMUSDT 79 行, 自 08-11), 66 名基名单扩展名从首抓窗冷启动。
 - **lead AMENDMENT 3(`e1f341a7`, 写于看到红门之后, 先于其余门任何数字) —— 请你专门核是否正当**: G2-B 原门保留 NOT PASSED AS WRITTEN; 新具名子门 **G2-B″ 窗内递推平价**(41 锚全核, ≤1e-15, 只加严); 新偏差 **D17 = live 资金费 EMA 历史伪迹**(Phase 2 不复现); 必附 fund z 影响测量; 非阻断取证存储 iv 来源与在役链路能否再产生。理由: 原门把「公式对不对」与「live 状态有没有继承伪迹」绑在一个阈值上, 后者不是干净历史回放能也应该复现的。
 - P2 AMENDMENT 4(`4362870a`): D18 执行器逐名止损按目标后叠加层建模(STOP 主臂 / NOSTOP 对照; lead 追加: 须注明 W9 前实盘对多头的钉住行为, 另设 STOP-PINNED 敏感性臂或列未建模)、D19 FTRIM + 带自动复现、资源约束(pod2 容器内存上限 61 GB, 禁多 GB 写)。
-- **G2-B″ = PASS**(`2855e551`): 41 锚最大 8.67e-18; **D17 影响**: 逐锚 fund z Spearman 最小 0.99996, 前十分位 41 锚全不变, 后十分位仅 1 锚换 2 名, PROMUSDT 最大 |Δz| 0.050。其余门 G2-C / G2-C′ / G2-S / G2-D / G2-E 进行中, **全史书层数字尚未产生**。
+- **G2-B″ = PASS**(`2855e551`): 41 锚最大 8.67e-18; **D17 影响**: 逐锚 fund z Spearman 最小 0.99996, 前十分位 41 锚全不变, 后十分位仅 1 锚换 2 名, PROMUSDT 最大 |Δz| 0.050。**S1 其余门全部 PASS**(G2-C king 链 41/41 max 9.31e-10、快照起步 combo 3/3 恰 0.0 / G2-C′ 注入管道 3/3 逐位 / G2-S 分块接缝 301 锚 ≤1.5e-18 / G2-D 10,038 锚因果 0 违例(543 个 1 月 king 锚扣留)/ G2-E 红能力: 故意越界截止使审计读红); P2 AMENDMENT 5(`b3daf84b`, 先于 G2-C 数字)记录生产缓存含 348 个非 live 名的早期引导行被冻结规则掩掉; D17 取证: 存储 iv 不符行全部逐字来自 08-16 bundle 的 `funding_ledger_seed.json`, 在役追加按时间差推断 ⇒ 仅在状态重置并用非时间差规则种子时才会再现(潜在, 非活跃)。**S2 全史书层回放已派**(记账合同先冻结; 主臂 P2a-v4 双种子 + A0pred 模型匹配臂 + 1 月敏感性 + pins; D18 止损 STOP / NOSTOP / STOP-PINNED), **书层数字尚未产生**。
 
 ## 7. 进行中(本轮不审, 列出以免误读)
 T7 韩元溢价(可行性 `fbf36ffd`/`18f803de` 完成, 全量拉取进行中, 不出收益数字; 已下市韩元市场不可取、覆盖 53–65%)· P2 S1 其余门 · 抛物线前向日志只报计数(θ8 P 层已填 43, 距 200 门 157)。
@@ -98,6 +105,8 @@ T7 韩元溢价(可行性 `fbf36ffd`/`18f803de` 完成, 全量拉取进行中, �
 9. P2 在 pod2 写 5.7 GB 抽取撞 /workspace 配额约 2 分钟(已删; 同窗其他写入 lead 逐一核查无损)。
 10. X1 曾因「等监视器」挂起约半小时(队友监视器不会唤醒)。T4b 的生产者窗停机守卫实际未生效(运行在窗外, 无暴露)。
 11. 抛物线日跑读尾部时看到工具输出里两个非 P 层均值字段, 未使用未记录。
+12. 我在 W9 已交付后又追加了一个测试格要求(08Z 撤名缺口), 没有同时下冻结令 ⇒ worker 在我的第五轮电池运行中重生成 W9 diff(026e872d → f8beb082), 电池起止 sha 不同; 结果如实绑定开始版本, 第六轮改用 diff 冻结副本重跑。今后: 送电池前先冻结, 追加要求一律走新版本号。
+13. 我第一次在修前树上复跑 W9 新测试时漏拷夹具, 进程崩溃 rc=1 —— 「停下了」不是「因对的理由停下」; 该日志标 INVALID 留档, 带夹具重跑才作红证据(33/28)。
 
 ## 9. 约束(同前)
 只读; 不调任何交易所 API; 不碰 pod2 GPU 与你的进程; 不在实盘树写任何文件; 复审产物写你自己的工作树。
