@@ -1,0 +1,15 @@
+[X1] ★★★ external book: the target's names ∪ the holdings
+  OK    ★★★ X1 scope = verified target 1789300800 ∪ held positions, 2 names with brackets (old tree: the preds file's 3 names)  — ('external book: verified target 1789300800 (2 names) ∪ held positions (1) = 2 names with brackets', {'n_symbols': 3, 'n_considered': 2, 'min': 0.01, 'median': 0.02, 'max': 0.02, 'mean_blended': 0.015})
+  OK    ★ X4 the account is read once for A7  — 1
+
+[X2] external book with nothing to scope
+  OK    X2 the scope says there is no verified target and no holding, and FELL BACK  — external book: no verified target file names and no held position (newest verified target None) -> FELL BACK to every configured symbol; the floors below are NOT scoped to what we trade
+
+[X3] internal book: unchanged
+  OK    X3 the preds path, exactly as before  — scoring universe from preds.json (3 names)
+
+[X5] the external scope failing to read
+  OK    X5 stated in the scope, FELL BACK, and still armed (A7 cannot refuse)  — external book scope unreadable (RuntimeError) -> FELL BACK to every configured symbol; the floors below are NOT scoped to what we trade
+
+5/5 checks passed
+ALL PASS

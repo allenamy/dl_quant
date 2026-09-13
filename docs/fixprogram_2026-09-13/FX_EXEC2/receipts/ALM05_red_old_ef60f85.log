@@ -1,0 +1,20 @@
+tree ef60f85 binance_broker.py 13be0871cae0e243
+[X1] ★★★ external book: the target's names ∪ the holdings
+  FAIL  ★★★ X1 scope = verified target 1789300800 ∪ held positions, 2 names with brackets (old tree: the preds file's 3 names)  — ('scoring universe from preds.json (3 names)', {'n_symbols': 3, 'n_considered': 3, 'min': 0.01, 'median': 0.02, 'max': 0.05, 'mean_blended': 0.02666666666666667})
+  OK    ★ X4 the account is read once for A7  — 1
+
+[X2] external book with nothing to scope
+  FAIL  X2 the scope says there is no verified target and no holding, and FELL BACK  — scoring universe from preds.json (3 names)
+
+[X3] internal book: unchanged
+  OK    X3 the preds path, exactly as before  — scoring universe from preds.json (3 names)
+
+[X5] the external scope failing to read
+  FAIL  X5 stated in the scope, FELL BACK, and still armed (A7 cannot refuse)  — scoring universe from preds.json (3 names)
+
+2/5 checks passed
+FAILED:
+  ★★★ X1 scope = verified target 1789300800 ∪ held positions, 2 names with brackets (old tree: the preds file's 3 names)
+  X2 the scope says there is no verified target and no holding, and FELL BACK
+  X5 stated in the scope, FELL BACK, and still armed (A7 cannot refuse)
+rc=1

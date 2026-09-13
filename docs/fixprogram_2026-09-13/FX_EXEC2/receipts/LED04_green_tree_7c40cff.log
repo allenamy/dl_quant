@@ -1,0 +1,29 @@
+[0] fixture
+  OK    PRE: 24 daily_nav rows, 20 amendment records (6+6+6 pre-fix days, 2 pre-fix rows on 09-12), all keys matched
+
+[A] ★★★ a real pre-fix row with its record
+  OK    PRE: the row is pre-fix (no realised_by_type_asset) and records COMMISSION −8.891
+  OK    ★★★ A1 caliber amended_from_income_ledger; COMMISSION −18.1413135 USDT; total = the record's USDT total (old tree: legacy caliber with −8.891)  — {'caliber': 'amended_from_income_ledger', 'usdt': 115.47829973, 'by_type_usdt': {'REALIZED_PNL': 215.42859277, 'COMMISSION': -18.1413135, 'FUNDING_FEE': -81.80897954}}
+  OK    ★★ A2 08-30: 0 USDT commission and −0.00509188 BNB listed UNCONVERTED, never added into the USDT total  — [{'type': 'COMMISSION', 'asset': 'BNB', 'amount': -0.00509188}]
+  OK    ★★ A3 09-06 after the 08:46Z flatten: recorded −0.00305 vs amended −16.92422909 USDT + −0.08442802 BNB  — {'REALIZED_PNL': -2446.32099136, 'COMMISSION': -16.92422909, 'FUNDING_FEE': -33.04815869}
+
+[B] account_facts + render
+  OK    ★★ B1 both window ends read their records; the render names the amended caliber  — ['   期货钱包余额 (wallet)        115,996.21   ← 已落袋的一切: 本金 + 累计已实现']
+
+[C] ★★★ a pre-fix row without a record is named unreliable
+  OK    ★★★ C1 legacy value kept, caliber unchanged, but marked unreliable (old tree: no mark)  — E-0909-H: this row was written before the carrier fix (b681ca5, 2026-09-12 06:05Z) — income rows were de-duplicated on tranId alone (one of each COMMISSION/REALIZED_PNL twin dropped) and BNB commission amounts were summed as USDT, so its split and sum are UNRELIABLE; no amendment record was found for it
+  OK    ★★ C2 the render prints the unreliable line  — ['   期货钱包余额 (wallet)        115,996.21   ← 已落袋的一切: 本金 + 累计已实现', '\n   当日已实现   +124.7286 USDT   [口径: 载体原数和, 币种未拆分, **假定**全 USDT (2026-09-12 06:05Z 前的行)]   = 交易 +215.4286  手续费 -8.8910  资金费 -81.8090']
+
+[D] a post-fix row ignores a record
+  OK    D1 the row's own per-asset split wins (caliber usdt_only, COMMISSION −128.846)  — usdt_only
+
+[E] loader
+  OK    E1 an absent file ⇒ {}
+  OK    E2 a key recorded twice with different content is dropped; other kinds and bad lines ignored  — 19
+  OK    E3 a non-finite amended total ⇒ not observable
+
+[F] main() wiring (static)
+  OK    ★ F1 main loads the record ledger from the mode root and passes it to account_facts and the same-day block
+
+13/13 checks passed
+ALL PASS
