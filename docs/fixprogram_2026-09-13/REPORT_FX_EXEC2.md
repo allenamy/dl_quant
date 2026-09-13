@@ -402,3 +402,33 @@ Latest partial diff ef60f85..e808697; receipts research commit adc6f332.
 - README gains a dated "current deployment facts" table ahead of the 07-25 architecture section. Each row cites its source in code or config: external book since 08-22 08Z; target path; read at N+24 (was N+23 until 08-27); sizing; internal composer inert in external mode; change channel is safe_commit plus run_acceptance.
 - The battery size points at the runner's own output instead of a written number: it was 135 at ef60f85, and it is now 145 on my branch.
 - The STATE.md / CLAUDE.md side stays with the lead (K4).
+
+## LED-04 · daily_nav realised_by_type (executor e05c45a; lead 逐字转录)
+daily_nav realised_by_type was wrong on every pre-fix row; fixed by amendment records plus a reader change, no in-place rewrite. The rehearsal passed; the live apply is the lead's.
+
+**Defect.** daily_nav rows written before the realised split fix (07-29 .. 09-12 06:05Z) carry a realised_by_type that does not match the income ledger. Every reader took those values as fact.
+
+**Fix (executor e05c45a, on branch fix/ledger-alarms-2026-09-13).**
+- ops/daily_summary.py reads an append-only record file, `<mode root>/ledger_amendments/daily_nav_realised_split.jsonl`.
+- `load_realised_amendments(path)` loads it. `realised_facts(row, amendment)` uses the amended split, caliber `amended_from_income_ledger`.
+- A pre-fix row with no record keeps its legacy value but is marked "unreliable" and printed as such. It is never silently trusted.
+- `account_facts` and the same-day block take the records. main() loads them from the mode root.
+- No daily_nav byte is rewritten.
+
+**Records (research).**
+- Device: devices/led04_daily_nav_amendment.py, committed before running.
+- Output: receipts/LED04_daily_nav_amendments_20260801_20260912.jsonl, sha256 190dd220147d4edd95dfca7d98b0894ee4b44c3c091bfa9a8c047d2991d20927, 250 records.
+- Each record is keyed by (day, 1-based line, row_sha256 of the verbatim line) and built from guard_twin income.jsonl (sha ffbb1102…, 109,545 rows).
+- Positive control: the same builder on 8 post-fix rows (which carry the correct split) matched 8/8.
+
+**Tests.** live/tests_realised_amendment.py with fixture led04_realised_amendment: ef60f85 3/11, red for the right reason (no loader, no unreliable mark, main not wired); fix tree 13/13 (receipts LED04_red_old_ef60f85.log, LED04_green_tree_7c40cff.log). All 10 new suites are green at HEAD e808697.
+
+**Apply device** (devices/led04_apply_amendments.py, da1a9389, committed before running). It writes one new file and never opens daily_nav for writing. C1: the records sha matches. C2: every record matches its verbatim line, and that line is pre-fix. C3: every pre-fix row has exactly one record. C4: absent means write; same sha means ALREADY_APPLIED; a different sha means REFUSE.
+
+**Rehearsal** (receipts/LED04_rehearsal.json and .log, research commit 3c4e6b15), run on the 14:27Z ledger copy with the fix tree: PASS. 250 records; 250 pre-fix rows; 0 missing. apply_1 WRITTEN (target sha = 190dd220…); apply_2 ALREADY_APPLIED, written 0. Watchdog before == after: tripped False, conditions sha 40c59d45…, blind [cond7_ops] because ops_stats=[] was passed. 250 records load back through daily_summary.load_realised_amendments. daily_nav shas unchanged; the given root was not written.
+
+**Live apply (lead).** `/usr/bin/python3 devices/led04_apply_amendments.py --root ~/dl_quant_live/state/live --records receipts/LED04_daily_nav_amendments_20260801_20260912.jsonl --records-sha 190dd220147d4edd95dfca7d98b0894ee4b44c3c091bfa9a8c047d2991d20927 --receipt <out> --apply` — no venue, no credentials; the file is inert until e05c45a is deployed, so apply order vs deploy does not matter; the target is created mode 0600 by mkstemp; C3 will refuse if a pre-fix row has appeared or changed since 14:27Z. **〔lead 裁定: 实盘应用随复审包执行, 本会话不应用; 看门狗 cond4 读取修订记录 = 裁定 (a), 由 FX-W6C 实现(FIXPROGRAM §9)。〕**
+
+**0.26 pp watchdog cond4 finding** (ruled (a), see FIXPROGRAM §9): the watchdog cond4 §4-4 TWR prices transfer days with the pre-fix realised_pnl. Re-implementation reproduces the live last_eval cum −1.3136%; with amended values −1.5749%, an understatement of 0.2613 pp over 7 transfer days (receipt LED04_cond4_transfer_day_effect.json). watchdog.py not edited.
+
+**Not checked.** Rows written after the 14:27Z copy. Any reader of daily_nav other than daily_summary and the watchdog (the census was of fills readers, not daily_nav readers). Fact table row #2 was withdrawn by the append-only addendum (1826d219).
