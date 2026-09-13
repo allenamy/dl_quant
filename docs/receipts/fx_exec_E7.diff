@@ -1,0 +1,234 @@
+diff --git a/live/tests_daily_summary.py b/live/tests_daily_summary.py
+index 7ca5116..5493e69 100644
+--- a/live/tests_daily_summary.py
++++ b/live/tests_daily_summary.py
+@@ -167,8 +167,21 @@ check("★★★ every quantity assertion above ran against `account_facts` and
+       all(isinstance(l, str) for l in _lines) and len(_lines) > 5, f"{len(_lines)} lines")
+ 
+ print("\n[B3] the rendered text still answers the operator's three questions")
+-check("★★ Q1 names which line the operator is probably looking at",
+-      "浮动" in OUT and "仓位还开着" in OUT)
++# ★ E7(a) (FX-EXEC 2026-09-13): the account text below is owed only when the tool's window HOLDS a nav row. Until E7 the tool filled an
++#   empty window with the ledger's newest row of any age, so Q1 / Q3 / the sight boundary / the rotation line were always exercised —
++#   on a stale row presented as the window's account. With that fallback gone, a window with no nav row renders the account as NOT
++#   OBSERVABLE, and these four promises become PASS / FAIL / NOT EXERCISED exactly like Q2 below: the check calls are unchanged, a
++#   window without a nav row is a declared SKIP, and the cell after them asserts the NOT OBSERVABLE account in that case instead.
++import re as _re_b3                                    # noqa: E402
++_m_nav_b3 = _re_b3.search(r"covered:.*?(\d+) nav row\(s\)", OUT)
++_n_nav_b3 = int(_m_nav_b3.group(1)) if _m_nav_b3 else 0
++_B3_SKIP = (f"the tool's 24h window holds {_n_nav_b3} nav row(s): the account section is NOT OBSERVABLE (E7), so the account text "
++            f"this promise quotes is not owed")
++if _n_nav_b3 >= 1:
++    check("★★ Q1 names which line the operator is probably looking at",
++          "浮动" in OUT and "仓位还开着" in OUT)
++else:
++    skip("★★ Q1 names which line the operator is probably looking at", _B3_SKIP)
+ # ★★★ CONDITIONAL, BECAUSE THE PATH IS NOT ALWAYS EXERCISABLE — and the suite's own declared
+ #     blind spot already said so: "a day with no rotation exercises none of the Q2 path and still
+ #     goes green". It did NOT go green: the assertion was an unconditional substring check, so a
+@@ -197,10 +210,14 @@ else:
+          f"the tool's 24h window holds {len(_same_day)} same-day nav row(s); the rotation "
+          f"explanation cannot be computed without two, and asserting its text would fail on "
+          f"correct behaviour")
+-check("★★ Q3 the exposure arithmetic and the external-flow figure are both rendered",
+-      "目标敞口" in OUT and "TRANSFER" in OUT)
+-check("★★ ...and the sight boundary is stated in the text the operator reads",
+-      "看不见现货" in OUT)
++if _n_nav_b3 >= 1:
++    check("★★ Q3 the exposure arithmetic and the external-flow figure are both rendered",
++          "目标敞口" in OUT and "TRANSFER" in OUT)
++    check("★★ ...and the sight boundary is stated in the text the operator reads",
++          "看不见现货" in OUT)
++else:
++    skip("★★ Q3 the exposure arithmetic and the external-flow figure are both rendered", _B3_SKIP)
++    skip("★★ ...and the sight boundary is stated in the text the operator reads", _B3_SKIP)
+ 
+ print("\n[C] ★ the day-boundary trap — it must refuse rather than compute a wrong number")
+ if _n_nav_win >= 2:
+@@ -212,9 +229,16 @@ else:
+     skip("★★★ the residual is NOT computed across 00:00Z, and it SAYS so",
+          f"the tool's 24h window holds {_n_nav_win} nav row(s); no equity change exists to explain "
+          f"or refuse, so neither sentence is owed")
+-check("★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can "
+-      "check the scope rather than trust it",
+-      "不跨 00:00Z" in OUT or "不足以给出" in OUT)
++if _n_nav_b3 >= 1:
++    check("★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can "
++          "check the scope rather than trust it",
++          "不跨 00:00Z" in OUT or "不足以给出" in OUT)
++else:
++    skip("★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can check the scope rather than trust it",
++         _B3_SKIP)
++    check("★★ E7-a4 …and in that case the page states the account as NOT OBSERVABLE instead (the promise that replaces the four above "
++          "when the window holds no nav row)", "no daily_nav row in the window — NOT OBSERVABLE" in OUT,
++          [l.strip() for l in OUT.split("【账户】", 1)[-1].splitlines()[:3]])
+ _src = open(os.path.join(_REPO, "ops", "daily_summary.py")).read()
+ check("★★★ and the reason is recorded where the next person will edit it: a column name is not "
+       "a caliber, and two rows from different days are two different calibers of `realised_pnl`",
+@@ -911,6 +935,47 @@ check("★★★ E2E-2 end equity NaN through the entry point: exit 0; the equit
+ check("★★★ E2E-2 ...and the residual REFUSES on the page, naming the end row's nav",
+       _ok(lambda: "权益在窗口的一端不可观测" in _acct2 and "末行的 `nav`" in _acct2),
+       _ex(lambda: [l.strip() for l in _acct2.splitlines() if "不计算" in l or "非交易" in l]))
++print("\n[E7-a] E7 (FX-EXEC 2026-09-13; W2 register): a window with NO daily_nav row is NOT OBSERVABLE — the ledger's newest row is "
++      "named as outside the window, never shown in its place")
++# `main` read `nav = [rows in the window] or nav_all[-1:]`: with no nav row inside --since, the account section printed the ledger's
++# newest row — any age — as the window's account, and the header counted it as "1 nav row(s)". Registered, not fixed, by W2
++# (DESIGN_readers_three_bucket_2026-09-12 §9c: 「过期行代替窗口」). Chain: the entry point on a temp ledger whose two nav rows are at
++# 08:01Z / 08:02Z, run with --since 09:00Z.
++
++
++def _e7_run(root, since):
++    code = (
++        "import os, sys\n"
++        f"sys.path.insert(0, {os.path.join(_REPO, 'live')!r})\n"
++        "import state_root as SR\n"
++        f"SR.root_for = lambda m=None: {root!r}\n"
++        f"SR.paths_for = lambda m=None: dict(root={root!r}, pilot_log=os.path.join({root!r}, 'pilot_log'))\n"
++        f"sys.argv = ['daily_summary', '--since', {since!r}, '--mode', 'LIVE']\n"
++        f"exec(compile(open({os.path.join(_REPO, 'ops', 'daily_summary.py')!r}).read(), 'daily_summary', "
++        "'exec'), {'__name__': '__main__', '__file__': "
++        f"{os.path.join(_REPO, 'ops', 'daily_summary.py')!r}}})\n")
++    return subprocess.run(["/usr/bin/python3", "-c", code], capture_output=True, text=True, cwd=_REPO, timeout=120)
++
++
++_e7tree = _r4_tree([dict(nav=5000.0, wallet_balance=4990.0, unrealised_pnl=10.0, external_flow_usdt=0.0),
++                    dict(nav=5100.0, wallet_balance=5080.0, unrealised_pnl=20.0, external_flow_usdt=0.0)], target_gross=200.0)
++_e7 = _e7_run(_e7tree, "2026-09-13T09:00:00Z")
++_o7 = _e7.stdout
++_acct7 = _o7.split("【账户】", 1)[-1].split("【逐锚】", 1)[0]
++_hdr7 = _o7.split("【账户】", 1)[0]
++check("E7-a0 the entry point runs to exit 0 on that tree and window", _ok(lambda: _e7.returncode == 0 and "【账户】" in _o7),
++      _ex(lambda: (_e7.stderr or "")[-300:]))
++check("★★★ E7-a1 (OLD CODE: RED) with no nav row in the window the account section is NOT OBSERVABLE and shows no equity line — the "
++      "ledger's newest row (equity 5,100.00, 58 minutes before the window) is not presented as this window's account; the header "
++      "counts 0 nav rows",
++      _ok(lambda: "NOT OBSERVABLE" in _acct7 and "(equity/nav)" not in _acct7 and "5,100.00" not in _acct7 and "· 0 nav row(s)" in _hdr7),
++      _ex(lambda: ([l.strip() for l in _acct7.splitlines() if l.strip()][:4], [l for l in _hdr7.splitlines() if "nav row" in l])))
++check("★★★ E7-a2 (OLD CODE: RED) …and the page SAYS so: it names the ledger's newest nav row (09-13 08:02Z) as before the window and "
++      "not used",
++      _ok(lambda: "09-13 08:02Z" in _o7 and "窗口之前" in _o7 and "未使用" in _o7),
++      _ex(lambda: [l.strip() for l in _o7.splitlines() if "nav" in l.lower()][:6]))
++check("★★ E7-a3 neighbour (both versions): a window that CONTAINS nav rows (E2E-1 above) carries no out-of-window line and still "
++      "prints its account", _ok(lambda: "窗口之前" not in _o1 and "(equity/nav)" in _acct1), _ex(lambda: _acct1[:200]))
+ for _t in _R4TMP:
+     _shutil.rmtree(_t, ignore_errors=True)
+ if _OK_ERR:
+diff --git a/live/tests_readers_three_bucket.py b/live/tests_readers_three_bucket.py
+index 022faeb..16c987f 100644
+--- a/live/tests_readers_three_bucket.py
++++ b/live/tests_readers_three_bucket.py
+@@ -827,6 +827,44 @@ else:
+                 "★★ 04:00Z A1785888079: 79/79 measured, +7.8069bps, coverage 1.0"):
+         skip(_nm, "this tree has no pilot_log/20260805 day file")
+ 
++print("\n[E7-b] E7 (FX-EXEC 2026-09-13; W2 register): a name with no finite target_w makes the INTENT net UNKNOWN — counted and named")
++# first_anchor_review §3b summed `target_w` over the rows with `target_w is not None` and printed the sum as the INTENT net "over the N
++# names that got rows" — a name whose target_w was None dropped out silently, and a NaN printed nan. A partial sum is not the intent
++# net, and VENUE minus INTENT over it is not the planning residual. Registered, not fixed, by W2 (§9c). The live ledger (44 days) has
++# no such row today (receipt e7_fact_census); the schema allows it (target_w is required but not not_null).
++_d = tempfile.mkdtemp(prefix="rtb_e7_none_"); TMPS.append(_d)
++_r4_tree(_d, orders=[dict(symbol="EEEUSDT", filled_notional=400.0, intended_notional=400.0),
++                     dict(symbol="FFFUSDT", side="sell", filled_notional=-500.0, intended_notional=-500.0, avg_fill_px=99.99, target_w=None)],
++         readbacks=_RB_OK)
++_b7 = _block(run_review(_d), "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★★ E7-b1 (OLD CODE: RED) one of the two names has target_w None ⇒ INTENT net UNKNOWN, the name counted (1 of 2) and named "
++      "(FFFUSDT), the partial sum labelled as NOT the intent net, and no VENUE-minus-INTENT difference (old: 'INTENT net +90.00 … over "
++      "the 1 names that got rows' and a difference)",
++      _ok(lambda: "INTENT net UNKNOWN — 1 of 2 name(s) have no finite target_w: ['FFFUSDT']" in _b7
++      and "⇒ VENUE minus INTENT:" not in _b7 and "is NOT the intent net" in _b7),
++      _ex(lambda: [l.strip() for l in _b7.splitlines() if "INTENT" in l][:4]))
++_d = tempfile.mkdtemp(prefix="rtb_e7_nan_"); TMPS.append(_d)
++_r4_tree(_d, orders=[dict(symbol="EEEUSDT", filled_notional=400.0, intended_notional=400.0),
++                     dict(symbol="FFFUSDT", side="sell", filled_notional=-500.0, intended_notional=-500.0, avg_fill_px=99.99, target_w=_NAN)],
++         readbacks=_RB_OK)
++_b7n = _block(run_review(_d), "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★★ E7-b2 (OLD CODE: RED) a NaN target_w is the same UNKNOWN, not a nan on the page",
++      _ok(lambda: "INTENT net UNKNOWN — 1 of 2 name(s) have no finite target_w: ['FFFUSDT']" in _b7n
++      and "nan" not in _b7n.lower() and "⇒ VENUE minus INTENT:" not in _b7n),
++      _ex(lambda: [l.strip() for l in _b7n.splitlines() if "INTENT" in l][:4]))
++_d = tempfile.mkdtemp(prefix="rtb_e7_two_"); TMPS.append(_d)
++_r4_tree(_d, orders=[dict(symbol="EEEUSDT", filled_notional=400.0, intended_notional=400.0),
++                     dict(symbol="EEEUSDT", order_type="topup_taker", attempt_idx=2, filled_notional=0.0, intended_notional=0.0, target_w=None,
++                          avg_fill_px=None, submit_ts=None, first_fill_ts=None, last_fill_ts=None, fee_paid=None, terminal_reason="skipped_min_notional"),
++                     dict(symbol="FFFUSDT", side="sell", filled_notional=-500.0, intended_notional=-500.0, avg_fill_px=99.99)],
++         readbacks=_RB_OK)
++_b7t = _block(run_review(_d), "3b. NET DIRECTIONAL EXPOSURE", "3c. REALISED COST")
++check("★★ E7-b3 neighbour (both versions): a name whose maker row carries target_w and whose second row does not is KNOWN — the "
++      "block is the all-finite one (INTENT +180 over 2 names, difference -280), with no UNKNOWN note",
++      _ok(lambda: "INTENT net      +180.00 USDT   (+20.00% of target_gross)   over the 2 names" in _b7t
++      and "⇒ VENUE minus INTENT: -280.00 USDT" in _b7t and "no finite target_w" not in _b7t),
++      _ex(lambda: [l.strip() for l in _b7t.splitlines() if "INTENT" in l][:4]))
++
+ for _t in TMPS:
+     shutil.rmtree(_t, ignore_errors=True)
+ print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks"
+diff --git a/ops/daily_summary.py b/ops/daily_summary.py
+index b9b2065..0f5980b 100644
+--- a/ops/daily_summary.py
++++ b/ops/daily_summary.py
+@@ -494,7 +494,13 @@ def main():
+     A = sorted([r for r in rows["anchors"] if float(r.get("anchor_ts") or 0) >= since],
+                key=lambda r: float(r["anchor_ts"]))
+     nav_all = rows["daily_nav"]
+-    nav = [r for r in nav_all if float(r.get("nav_ts") or 0) >= since] or nav_all[-1:]
++    # ★★ E7(a) (FX-EXEC 2026-09-13; registered by W2, DESIGN_readers_three_bucket §9c): this read
++    #    `[rows in the window] or nav_all[-1:]` — with no nav row inside --since, the account section printed the ledger's newest
++    #    row, of ANY age, as the window's account, and the header counted it as a nav row of the window. A stale row standing in for
++    #    the window is the same shape as a defaulted value: it looks like a measurement. ⇒ The window's nav rows are the window's;
++    #    when there are none, the account is NOT OBSERVABLE (account_facts says so) and the page NAMES the newest row as outside.
++    nav = [r for r in nav_all if float(r.get("nav_ts") or 0) >= since]
++    _nav_newest_outside = (max(nav_all, key=lambda r: float(r.get("nav_ts") or 0)) if (nav_all and not nav) else None)
+ 
+     audit = os.path.join(root, "notify_audit.jsonl")
+     if not os.path.exists(audit):
+@@ -516,6 +522,10 @@ def main():
+     print(f"  window read as: {how}")
+     print(f"  covered: {len(A)} anchor(s) · {len(al_win)} alarm row(s) "
+           f"· {len(nav)} nav row(s)   [ledger totals: {len(rows['anchors'])} / {len(al)}]")
++    if _nav_newest_outside is not None:
++        _ts_out = float(_nav_newest_outside.get("nav_ts") or 0)
++        print(f"  ★ 窗口内没有 daily_nav 行: 账本最新一行 nav_ts={utc(_ts_out) if _ts_out else '缺失'} 在窗口之前"
++              f"{f'({(since - _ts_out) / 3600:.1f}h)' if _ts_out else ''}, 未使用 —— 账户段不可观测; 要看它, 把 --since 提前到它之前")
+     print("=" * 78)
+ 
+     # ── 1. the account, DECOMPOSED ────────────────────────────────────────────────────────
+diff --git a/ops/first_anchor_review.py b/ops/first_anchor_review.py
+index c7fb8d8..2c7c5af 100755
+--- a/ops/first_anchor_review.py
++++ b/ops/first_anchor_review.py
+@@ -396,8 +396,19 @@ def main() -> int:
+         elif anchors and mine:
+             tw = {}
+             for o in mine:
+-                if o.get("target_w") is not None:
++                if _fin(o.get("target_w")) is not None:
+                     tw[o["symbol"]] = float(o["target_w"])
++            # ★★ E7(b) (FX-EXEC 2026-09-13; registered by W2 §9c): a name whose rows carry no FINITE target_w used to drop out of the
++            #    sum silently (`is not None`), and a NaN printed nan — the partial sum was printed as the INTENT net "over the N names
++            #    that got rows". A partial sum is not the intent net, and VENUE minus INTENT over it is not the planning residual.
++            #    ⇒ Such names are counted and NAMED, the intent net is UNKNOWN, and no difference is formed from it.
++            _tw_missing = sorted({o["symbol"] for o in mine} - set(tw))
++        if anchors and mine and tg is not None and _tw_missing:
++            _n_all = len({o["symbol"] for o in mine})
++            print(f"   INTENT net UNKNOWN — {len(_tw_missing)} of {_n_all} name(s) have no finite target_w: {_tw_missing[:8]}"
++                  f"{' +' + str(len(_tw_missing) - 8) if len(_tw_missing) > 8 else ''}; the sum over the other {len(tw)} name(s) is "
++                  f"{sum(tw.values()) * tg:+,.2f} USDT and is NOT the intent net, so VENUE minus INTENT is not formed")
++        elif anchors and mine and tg is not None:
+             net_intent = sum(tw.values()) * tg
+             # ★★★ "≈0 BY CONSTRUCTION" IS FALSE WHENEVER A NAME IS POPPED — measured at the first
+             #     live anchor. The book is demeaned over all 110 members, then the universe gate
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index f3470c6..e297db4 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -196,8 +196,8 @@ SUITE_SCOPE = {
+     "tests_cond3_worst_selector": "that §4-3 has anything to judge — over all history the stress-anchor count is 0, so this fix is INERT on current data. It proves the accumulator selects the worst day and that the record carries one caliber; it cannot prove the regime labelling that decides which days are stress days at all",
+     "tests_readiness_filters_path": "that the cached filters are CORRECT — it proves the sheet looks at the file we actually write and counts real symbols. Whether those 653 entries carry the right tick/step/minNotional for LIVE is established by the venue stamp and by arm(), not here",
+     "tests_neutrality_check": "that the book WILL be neutral — it proves only that the realised net is measured from venue truth and spoken when it leaves the band. It changes no order and closes no gap: the 16:00Z anchor would still have ended -6.9% short, we would merely have known within the minute instead of in a post-mortem. Nor does it establish that 3% is the right band — that figure is policy, not calibration, and two anchors is not a distribution",
+-    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it. Round 3 (2026-09-13, researcher REVIEW §3.C): the same-day residual's flow term is now the INTERVAL difference of the day-cumulative `external_flow_usdt` (the old form subtracted a day total from an interval equity change and read -1000 on a window where nothing happened) and refuses when either endpoint is not a finite number. Two further blind spots it does NOT close: (e) the interval form is exact only because the residual is computed same-day, where both endpoints share one 00:00Z origin — nothing here re-derives that the carrier really is cumulative, it is read from `binance_broker.income_since`; (f) a zero residual is not proof the account identity holds — it means the three terms we CAN read cancel, and any movement none of them carries (a fee type outside `realised_components`, a spot transfer) is invisible to it. Round 4 (2026-09-13, researcher round-3 monitoring NAV-R3-1): the equity endpoints (start and end nav, end wallet and unrealised) and each day's closing flow are read with the same three states as realised income — a finite 0 is a value, None / NaN / inf are not observable, and an endpoint is never replaced by 0 or by the other endpoint — so a start equity of 0 no longer turns into the end equity (-100 printed on a deposit into an empty account) and a NaN equity no longer marks the residual computable; an unknown maker intent refuses the fill-rate instead of shrinking its denominator. Pre-fix readers fail 29 of its round-4 cells. Two further blind spots: (g) these are CAPABILITY cells — the ledger copy (251 nav rows, 74,860 order rows) holds no None, NaN or zero equity, so they run on synthetic rows and two temp-ledger runs of main, never on a real day where it happened; (h) when the window holds no nav row the account section still falls back to the ledger's newest row without saying it lies outside the window — staleness, a different family, registered and not fixed here.",
+-    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent. Round 3 (2026-09-13, researcher REVIEW §3.C): E6 may PASS only when its verdict's population and the number it publishes come from the SAME rows — the bucket counts and notional mass against m1's own `n_filled_orders`/`filled_notional_total`, pooled AND per regime, plus agreement of both bps calibers inside a stated tolerance — and the screen now publishes the bucket figure (`cost_bps_displayed`) beside m1's. Blind spots this adds: (e) the population identity is asserted on COUNTS AND MASS each carrier reports for itself, not on row identities, so two different row sets agreeing in count and notional (pooled and in every regime) would still pass; (f) the gate makes E6 refuse to certify a mismatch — it does not FIX m1, which stays frozen, so the number the pre-registration names (`c_bps_overall`) is still m1's; (g) the frozen `watchdog` §4-1 consumer still reads `m1.c_bps_net_overall` directly and treats a NaN cost as priced and not a breach, so 'all consumers are on the three buckets' is FALSE and must not be written anywhere. Round 4 (2026-09-13): first_anchor_review reads every numeric field it prints — readback notional and quantity, equity, target_gross, fill amount, intended notional, exchange floor filters, anchor mid — as a finite number or NOT OBSERVABLE, with a finite 0 kept as a value; a NaN readback notional or a NaN equity used to print the band '★★ ABOVE 15%' on the stop-decision block, and pre-fix readers fail 11 of the [D-R4] cells. Blind spots it adds: (h) the [D-R4] trees write NaN through the validating writer but None only where the schema allows it, so a None in a not_null column (nav, target_gross, venue_position_notional) is covered by the shared finite-number reader, not by a fixture row; (i) target_w keeps its is-not-None skip — a NaN weight prints a visible nan — registered, not changed",
++    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it. Round 3 (2026-09-13, researcher REVIEW §3.C): the same-day residual's flow term is now the INTERVAL difference of the day-cumulative `external_flow_usdt` (the old form subtracted a day total from an interval equity change and read -1000 on a window where nothing happened) and refuses when either endpoint is not a finite number. Two further blind spots it does NOT close: (e) the interval form is exact only because the residual is computed same-day, where both endpoints share one 00:00Z origin — nothing here re-derives that the carrier really is cumulative, it is read from `binance_broker.income_since`; (f) a zero residual is not proof the account identity holds — it means the three terms we CAN read cancel, and any movement none of them carries (a fee type outside `realised_components`, a spot transfer) is invisible to it. Round 4 (2026-09-13, researcher round-3 monitoring NAV-R3-1): the equity endpoints (start and end nav, end wallet and unrealised) and each day's closing flow are read with the same three states as realised income — a finite 0 is a value, None / NaN / inf are not observable, and an endpoint is never replaced by 0 or by the other endpoint — so a start equity of 0 no longer turns into the end equity (-100 printed on a deposit into an empty account) and a NaN equity no longer marks the residual computable; an unknown maker intent refuses the fill-rate instead of shrinking its denominator. Pre-fix readers fail 29 of its round-4 cells. Two further blind spots: (g) these are CAPABILITY cells — the ledger copy (251 nav rows, 74,860 order rows) holds no None, NaN or zero equity, so they run on synthetic rows and two temp-ledger runs of main, never on a real day where it happened; (h) FIXED by E7 (FX-EXEC 2026-09-13): a window with no nav row renders the account as NOT OBSERVABLE and names the ledger's newest row as before the window and not used ([E7-a], the entry point on a temp ledger); the four [B3] account-text promises that were exercised only through the stale-row fallback (Q1, Q3, the sight boundary, the rotation line) are now NOT EXERCISED on a window without a nav row, like Q2, and E7-a4 asserts the NOT OBSERVABLE account in that case.",
++    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent. Round 3 (2026-09-13, researcher REVIEW §3.C): E6 may PASS only when its verdict's population and the number it publishes come from the SAME rows — the bucket counts and notional mass against m1's own `n_filled_orders`/`filled_notional_total`, pooled AND per regime, plus agreement of both bps calibers inside a stated tolerance — and the screen now publishes the bucket figure (`cost_bps_displayed`) beside m1's. Blind spots this adds: (e) the population identity is asserted on COUNTS AND MASS each carrier reports for itself, not on row identities, so two different row sets agreeing in count and notional (pooled and in every regime) would still pass; (f) the gate makes E6 refuse to certify a mismatch — it does not FIX m1, which stays frozen, so the number the pre-registration names (`c_bps_overall`) is still m1's; (g) the frozen `watchdog` §4-1 consumer still reads `m1.c_bps_net_overall` directly and treats a NaN cost as priced and not a breach, so 'all consumers are on the three buckets' is FALSE and must not be written anywhere. Round 4 (2026-09-13): first_anchor_review reads every numeric field it prints — readback notional and quantity, equity, target_gross, fill amount, intended notional, exchange floor filters, anchor mid — as a finite number or NOT OBSERVABLE, with a finite 0 kept as a value; a NaN readback notional or a NaN equity used to print the band '★★ ABOVE 15%' on the stop-decision block, and pre-fix readers fail 11 of the [D-R4] cells. Blind spots it adds: (h) the [D-R4] trees write NaN through the validating writer but None only where the schema allows it, so a None in a not_null column (nav, target_gross, venue_position_notional) is covered by the shared finite-number reader, not by a fixture row; (i) FIXED by E7 (FX-EXEC 2026-09-13): a name with no finite target_w (None or NaN) makes the INTENT net UNKNOWN — counted and named, the partial sum labelled as not the intent net, no VENUE-minus-INTENT formed ([E7-b]); no such row exists in the live ledger today, so this is a capability cell",
+     "tests_redelivery_settles": "that every alarm reaches a human — it proves the QUEUE stops asking once one has, which is a different guarantee. Four blind spots: (a) it settles on an explicit key, so a redelivery path that forgets to pass `settles` regresses silently and only the repeat count would show it, days later; (b) it does not retroactively settle the six already sent — the seventh redelivery closes the loop, so the ledger keeps six rows that look like a live defect; (c) `SUPPRESSED` counts as settled, which is right for a test harness and wrong if anyone ever suppresses in production; (d) it says nothing about whether the redelivered TEXT is still meaningful — a stale alarm replayed hours later is delivered, settled, and possibly misleading",
+     "tests_alarm_digest": "that the right things get read — it proves the classifier separates and never demotes an undelivered alarm, not that the tiers match what a human would choose. Four blind spots: (a) the rules are REGEX over message text, so rewording an alarm silently reclassifies it and nothing here would notice; (b) `UNRECOGNISED -> DECIDE` is safe but means the tool degrades toward noise exactly as the system produces novel shapes — i.e. during an incident; (c) tier B asserts 'already decided', which is a claim about a RULING that lives outside the code — if a ruling is reversed, the tier is silently wrong; (d) it measures compression on the last 24h and reports the historical ratio ungraded, so a slow drift toward everything-is-A across weeks would not fail anything",
+     "tests_disposition_matrix": "that no name will evaporate again — it proves every terminal state HAS a declared destination and that the ledger sizes the ones we abandon, not that the destinations are the right ones. Four blind spots: (a) the matrix is closed over `TERMINAL_REASONS`, so a leg that ends WITHOUT writing a row at all is invisible to it — and that is precisely how -5022 vanished, by never reaching a disposition; (b) it is RECORD-ONLY, so a gap being named changes nothing about whether a guard forgives it — the ledger could be perfect and §4-5e would still flatten the book; (c) the two code-dependent cells resolve on a substring of `note`, so a venue that reworded its errors would silently reclassify -5022 as a gap and -4164 as a real one; (d) `blocked_by_halt` dominating a halted anchor at ~4200 USDT is arithmetically right and operationally noisy — nothing here establishes that a halted anchor SHOULD report its whole book as gap"

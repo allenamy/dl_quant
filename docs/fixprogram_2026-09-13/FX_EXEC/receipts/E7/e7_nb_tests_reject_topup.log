@@ -1,0 +1,63 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_reject_topup.py head=d4ed6b6b28532f52fee8567e02db57e26d207b76 dirty=0 start=2026-09-13T17:37:37Z py=Python 3.9.6
+# suite_sha256=d147d62b0a8131f2d9f59b40c9614827b32caf26b1b9c9de650c11dd3764d27d
+[A] the mechanism, stated exactly — `live` is 'successfully submitted', not 'partial'
+  OK    ★★★ `live.append` happens only inside the try, after `broker.submit` returns — so EVERY failed submit leaves the anchor, not merely -5022. This is broader than the incident and is why the fix must be an allow-list
+
+[B] a benign (-5022) refusal keeps its place in the top-up population
+  OK    ★★★ the refused plan is recorded as benign-rejected, so `complete_anchor` can top it up  — ['AAAUSDT']
+  OK    ★★★ ...and it is NOT in `live` — `live` still means 'may be resting', which is what `cancel_resting` and the venue fills query consume. Overloading it would make us cancel an order that never existed and query fills for it
+  OK    ★★ the maker row is still written as a venue_reject (the refusal is a fact, and topping up later does not un-refuse it)
+
+[C] ★ SELECTIVITY — the half that keeps this from becoming a new defect
+  OK    ★★★ -1111 does NOT enter the top-up population — OUR rounding is wrong; a MARKET retry might SUCCEED, which is worse than failing
+  OK    ★★★ -4164 does NOT enter the top-up population — OUR sizing is below the venue minimum
+  OK    ★★★ -1003 does NOT enter the top-up population — we are rate-limited; retrying now is the opposite of correct
+  OK    ★★★ and `OpeningHalted` cannot reach the benign branch at all — it is a different exception, caught separately. Sweeping it in would OPEN EXPOSURE WHILE HALTED, i.e. a stop-loss defeated by a fix to an execution gap
+  OK    ★★ the predicate is keyed on MECHANISM, not on the literal -5022: ERR_BENIGN_UNCONDITIONAL is exactly {-5022} and means 'the venue refused because OUR rule worked as designed'  — {-5022: 'post-only would have crossed; we chose not to trade'}
+
+[D] the top-up sizes it at the FULL delta, because nothing filled
+  OK    ★★★ a top-up row exists for the refused name  — [('CCCUSDT', 'filled_amount_unknown')]
+  OK    ★★★ ...sized at the whole intended delta (nothing filled, so residual == delta) and on the correct side  — -250.0
+
+[E] ★ the real anchor: 17 refusals were 93% of the break that flattened the book
+  OK    ★★★ every refusal at that anchor was -5022 — a single mechanism, not a mix  — 22 refusals
+  OK    ★★★ BEFORE the fix, NOT ONE of them received a top-up row — the defect, on production data  — 0 of 22 got one
+  OK    ★★★ the top-up population was EXACTLY the partial_expired set — which is the signature of 'only successfully-submitted orders are eligible'  — topup 78 vs partial_expired 78
+  FAIL  ★★★ ...and they account for ~93% of the 1131 USDT break that triggered the flatten  — sum |intended| = 799.18 of 1131
+  FAIL  ★★★ AFTER the fix, the refusals DO receive top-ups  — no post-fix anchor in the tree yet — NOT OBSERVABLE
+
+[F] red capability
+  OK    ★★ the mutant anchor exists exactly once  — 1
+  OK    ★★★ mutant 'drop_the_reject' reproduces 2026-08-02: the refused name leaves the anchor with no maker fill and no top-up, and nothing anywhere goes red until §4-5e counts the hole four minutes later
+
+[G] ★ a refusal CLUSTER now speaks — it did not, and that silence was the whole 18 min
+  OK    ★★★ a venue_reject cluster raises an alarm, at the anchor level, like its rate-limit twin
+  OK    ★★ the threshold is a named policy constant, not a literal buried in the message  — 0.05
+  OK    ★★★ 17/109 (the real anchor) is above it, so this WOULD have fired 18 minutes before the flatten instead of nothing firing at all  — 0.156 vs 0.05
+  OK    ★★★ ...and the message separates RECOVERABLE from NOT — -5022 now goes to the top-up, while -1111/-4164/-1102 have no recovery path and need a human. One number for both would tell the operator nothing about what to do
+  OK    ★★ a clean anchor stays silent (the alarm is a finding, not furniture)
+
+[H] ★ the two populations are RECORDED separately — they have opposite economics
+  OK    ★★★ a refused maker's top-up is tagged `from_reject`  — from_reject
+  OK    ★★★ ...and carries the price we ORIGINALLY ASKED FOR, so the fill can be judged against our own reservation price and not only against the anchor mid  — 10.0
+  OK    ★★★ an expired maker's top-up is tagged `from_partial` — the DEFAULT, so a plan that never passed through the reject branch cannot silently inherit the cheap label  — from_partial
+  OK    ★★ maker rows carry NEITHER field — a maker IS the source, and its own price_submit IS the limit. Emitting them there would invite averaging across legs
+  OK    ★★★ RECORDING ONLY — `topup` treats both sources identically; nothing branches on the tag. Acting on it (converting a reject immediately rather than at the ladder's end) is a behaviour change and is pre-registered, not smuggled in with the measurement
+
+[I] ★ the two defects A introduced, both measured on the 08:00Z anchor
+  OK    ★★★ a refused maker gets EXACTLY ONE maker row — the refusal IS its whole story. It was getting a second one saying `partial_expired`/filled=0/cancel_ts=None, i.e. a claim that an order which never left the process had rested and expired  — [('venue_reject', 0.0)]
+  OK    ★★★ ...and that one row is the `venue_reject`, not a fabricated resting state  — venue_reject
+  OK    ★★ the top-up row is still emitted — we removed a false row, not a real one
+  OK    ★★★ a NORMAL partial maker still gets its `partial_expired` row — the fix removes the row only where the maker never rested, and nowhere else  — ['partial_expired']
+  OK    ★★★ the commission query is widened to live_syms | benign_rejected — their top-ups EXECUTED, so they have userTrades and therefore a fee. `live_syms` alone left all 22 from_reject rows fee-less, so the cost table read 0.00bps against from_partial's 5.00bps
+  OK    ★★★ ...and it is the QUERY that was narrow, not the legs: `submitted_order_legs` reads the broker's own submit records, so widening only the legs would have fetched nothing while looking correct
+  OK    ★★ the k-cancel and the maker-fills query still use `live_syms` ALONE — a refused order has nothing resting to cancel and no maker fill to read, and widening those would make us cancel orders that never existed
+
+[J] ★ an average nobody can support must not be printed as one
+  OK    ★★★ the review tool refuses to print an average when n<5 or one name exceeds 50% of the notional, and says WHY instead
+  OK    ★★★ ...and the SAME gate covers the vs-limit printer. I guarded the cost table and left the identical figure printing four lines below — a guard written for one PRINTER rather than for the QUANTITY is a guard for an instance, not a class  — 3 call sites
+  OK    ★★ the thresholds are named constants, declared as policy rather than calibration
+  OK    ★★ and it still reports the underlying facts (notional, n, the dominant name) — refusing to average is not refusing to inform
+
+FAILURES: ['★★★ ...and they account for ~93% of the 1131 USDT break that triggered the flatten', '★★★ AFTER the fix, the refusals DO receive top-ups']  (39 checks)
+# end=2026-09-13T17:37:38Z rc=1
