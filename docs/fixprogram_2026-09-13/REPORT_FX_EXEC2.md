@@ -45,3 +45,111 @@ The ledger copy is intact. I moved it out of the clone, unchanged, to `/Users/ha
 - That the fills rows are complete beyond the notional-closure identity.
 - The 8 older batches stay fee-unknown in this reader (LED-03).
 - Other readers selecting flatten rows by `anchor_ts`/`submit_ts` are not audited (NEW-01).
+
+## LED-07 · anchors.jsonl as a series (commit 7ca52ac)
+
+**Problem.** The live anchors table has one row per anchor RUN, and no row carries a schema version. It mixes:
+- the internal and external book eras;
+- halted runs that still carry target_gross;
+- in the external era, a capture-time `anchor_ts`, with the actual slot stored in `external_book.nominal_ts`.
+
+A naive per-anchor statistic therefore counts targets that were never traded and mixes two books.
+
+**Facts** (FACT_TABLE_EXEC2 §LED-07, ledger copy; 257 rows, 08-01..09-13 12Z)
+- 130 rows are external era (from 08-22 08Z); 127 are internal.
+- 12 external rows are halted (19 halted rows overall, all with realized_gross 0).
+- 0 duplicate nominal slots.
+- anchor_ts − nominal = 1,381..1,547 s.
+- Missing slots: 08-25 16Z, 08-29 20Z, 09-02 00Z, 09-09 12Z.
+- Rebuild slots (previous slot realized_gross < 1 USDT): 08-22 12Z, 08-26 20Z, 09-07 04Z, 09-10 00Z, 09-13 12Z.
+
+**Red evidence.** `receipts/LED07_red_old_ef60f85.log`. On ef60f85 there is no accessor, so a reader gets the raw table: 3/10 pass, 7 FAIL (a 257-row series with halted and internal rows inside). No crash.
+
+**Fix.** `pilot_log.anchor_series(rows)`, pure, rows not mutated. The series contains external-era, non-halted, on-grid rows, one per nominal slot, sorted. Alongside it, the accessor returns:
+- duplicates resolved by keeping the later row by position, with the superseded slot named;
+- exclusions counted by reason (internal_era / off_grid_nominal / halted / duplicate_nominal_superseded);
+- missing slots;
+- rebuild slots;
+- prev_unknown slots, where the previous slot has no row or no readable realized_gross. These are never read as flat.
+
+`SCHEMA["anchors"]` now carries a comment pointing readers at the accessor. No writer change and no per-row schema version. ops/anchor_report.py is migrated onto it (LED-08).
+
+**Tests.** `live/tests_anchor_series.py`: 17/17.
+- Fixture: a key projection of all 257 rows. Each row carries the sha256 of its verbatim source line, and the MANIFEST pins the projection sha (builder `devices/build_fixture_led07.py`).
+- Every real figure is also re-derived by an independent loop.
+- Neighbour cells: duplicate slot, off-grid, halted-but-holding, previous realized None/NaN ⇒ prev_unknown, nominal_ts as text, external_book None/absent, no mutation, empty input.
+- Capture-time lag stays within 1,380..1,548 s on the traded series.
+
+**Battery.** Not yet run.
+
+**Not proven**
+- No reader is forced to use the accessor. Research-side readers of anchors.jsonl are not migrated; aud-data owns that census.
+- `opening_halted` is trusted as the halted flag.
+- A partial de-risk followed by a rebuild is not flagged as a rebuild.
+- The memory note anchors_jsonl_is_not_a_clean_series.md (external-era capture time) needs a K4 update. I did not edit memory.
+
+## LED-08 · the per-anchor Telegram report, ops/anchor_report.py (commit 469c3f3)
+
+**Problem**
+- The old builder folded missing values to zero: `filled_notional or 0`, `intended_notional or 0`, `fee_paid or 0`.
+- Its fee bps was divided by all filled notional.
+- `rg:.0f` raised on a None realized_gross.
+- The net/gross warning sat at 5%, while the deep-check template says ±1%.
+- The taker-share warning at >10% fired on 51 of 101 reports.
+- It printed "funding.jsonl 缺" on a flat settlement anchor (09-13 08Z).
+
+**Facts** (FACT_TABLE_EXEC2 §LED-08)
+- The fold defect is not latent on the ledger:
+  - A1785931245 (08-05 12Z): 103/103 fills carry a raw BNB fee, so the old builder prints fee 0.00bps.
+  - A1785657675 (08-02): 22/95 fills are fee-unknown; the old builder prints 1.69 bps vs 2.24 measured.
+  - A1789215839 (09-12 12Z): 4 unknown-fill rows; the old builder prints 2.74 bps vs 2.47.
+- |net/gross| exceeded 1% on 22 of the last 42 traded anchors.
+- Taker share over the recent traded non-rebuild anchors: median 22.6%, MAD 6.7 pp.
+- So neither old constant describes the current book. The policy levels themselves belong to K5 / X-COST.
+- launchd com.hsy.anchor_report runs the script with no arguments at N+55. The CLI is unchanged.
+
+**Red evidence** (`receipts/LED08_red_old_ef60f85.log`): 5/12 pass, 7 FAIL, no crash. On ef60f85 the same test runs the tree's own script with `--dry` in a temp repo under a temp HOME. It prints `fee 2.74bps` with no unknown-fill marker, `fee 0.00bps` on the raw-BNB rows, `⚠️ funding.jsonl 缺` with no halted label, and has no pure builder.
+
+**Fix: structure.** The report is now a pure `build_report` over gathered inputs; `gather` does all reads, and only `main` sends.
+
+**Fix: fees and fills.** These go through cost_buckets:
+- bps is computed over measured fills only;
+- None is printed as "n/a(未测, 非 0)" with a [已测 x/y, 覆盖 z%] note;
+- unknown fills are named;
+- taker share is printed as a lower bound (≥) when a fill amount is unknown.
+
+**Fix: warnings.** Taker share and |net/gross| are judged against the book's own trailing distribution.
+- The baseline is the previous ≤42 traded non-rebuild anchors from `pilot_log.anchor_series`, and needs at least 12.
+- The warning line is median + 3×1.4826×MAD, and the baseline is printed.
+- The 5% |net/gross| line stays as an absolute ceiling.
+- Rebuild and halted anchors are labelled and not judged on taker share. A halted anchor's intent is labelled "意图(未发送)", not turnover.
+
+**Fix: missing funding file.**
+- Previous slot flat: the report says no position at settlement.
+- Previous slot holding or unknown: it warns.
+
+**Census.** The tests_rehearsal_anchor text for ops/anchor_report.py now covers the history join.
+
+**Tests** (`live/tests_anchor_report_builder.py`): 17/17.
+- [S1-S3] run this tree's script with `--dry`: HOME is a temp dir with fake wide_shadow/guard_twin, there is no .env, and the ledger lines are verbatim (fixture builder `devices/build_fixture_led08.py`).
+  - 09-12 12Z prints fee 2.47bps and "成交未知 4 行".
+  - 09-13 08Z prints no funding warning, states no position, and labels the anchor halted.
+  - The 08-05 raw-BNB rows print fee n/a.
+- [P1-P4] test the pure builder with urlopen replaced by a raiser:
+  - the band needs at least 12 values;
+  - baseline slots come strictly before A, exclude rebuild and halted slots, and are capped at 42;
+  - taker share warns on a normal anchor but not on a rebuild or a halted one;
+  - the 5% hard net/gross line fires with no baseline;
+  - a None net/gross is printed as n/a;
+  - the three missing-funding cases.
+- A dry run on the real 09-13 12Z/08Z/04Z anchors printed the expected lines.
+- Neighbours green: tests_imports, tests_static_names, tests_rehearsal_anchor 59.
+
+**Battery:** not yet run.
+
+**Not proven**
+- The Telegram transport and the launchd firing.
+- The band is self-calibrating, so a slow drift is absorbed; only the 5% net/gross line is absolute.
+- A MAD of 0 makes the line equal to the median (declared, not smoothed).
+- The daemon, shadow_log, combo and twin checks are unchanged logic, exercised only through fake files.
+- `gather` now reads 10 days of anchors.jsonl and orders.jsonl per report; the runtime cost at N+55 was not timed on the live tree.
