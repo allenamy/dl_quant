@@ -176,3 +176,8 @@ Phase 1 证明"装置 = 线上"(生产代码路径逐锚复现线上权重)。Ph
 - **combo 段(快照起步 3 锚, 真 171 管线 + 在役 F10 模型)**: target_live L∞ **0.0 / 0.0 / 0.0**, target_combo 0.0 ×3, king 段 content sha 相同 ×3 ⇒ **3/3**。
 - **历史链 combo 残差(单列, 不作门)**: 0/41 ≤1e-6, 最大 1.1255e-04 —— **与 Phase 1 收据逐锚逐位相同(41/41)**。⇒ 该残差不来自机器(pod2 vs Mac)、不来自缓存数值来源, 也不受 AMENDMENT 5 所述早段引导行支持差的影响(本链拼接缓存屏蔽了那些格, 残差仍逐位相同)。因此 AMENDMENT 5 的归因子门 G2-C-S **未运行**(无红可归因)。
 - 下一门: G2-C′(A2.5 原文)。
+
+## 收据 5 · G2-C′ 注入管道平价 = **PASS 3/3**(2026-09-13 10:0xZ, pod2 CPU; 装置 `phase2/devices/p2_g2c_prime.py` 5adf6c42…(提交 7b773b8b 先于运行), 用实际 Phase 2 代码 `p2_driver.py` dc4e6c85… 的 `OOFBooster` / `write_f10_injection` / `write_identity_model`; 收据 `phase2/receipts/G2Cprime_injection_plumbing_{s12,s16,s20}.json` 与 `.log`, 均 rc=0)
+- **king**(1789214400 / 1789228800 / 1789243200): 真 booster 记录其对 (锚, 400 名成员) 的输出后, 由 Phase 2 的 OOFBooster 查表回送 ⇒ weights npz idx 与 val **逐位相同**、float64 H 向量**逐位相同**、target_live 权重相同 ×3。
+- **F10**: 对 G2-C 真管线运行留下的 mini 文件执行装置原文算出 f10(400/400 名有分), 经 Phase 2 注入(秩/128 + 恒等模型)重跑逐字节 combo 段 ⇒ state_H_f10 / kc / fc **逐位相同**、target_live_combo / target_combo / target_blend 权重相同、ρ(f10,king) 相同、n_f10_scored 400/400 ×3。
+- 含义: Phase 2 的两处预测注入在生产数据上与真模型路径逐位等价; 这只证明管道, 不证明折外预测等于在役预测(D1/D2)。下一门: G2-S。
