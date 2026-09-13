@@ -10,6 +10,7 @@ Per-file regime check, network-free: corr(log taker ratio, logit cache tbf) at c
 vs +1 (window START label); class END / START if one exceeds the other by >= 0.05 with >= 100 pairs, else UNK.
 Output per symbol: out/metrics/<SYM>.npz (labels int64, X float32 n×6 in l2_net.COLS order, file_day int32, file_status int16,
 file_zip_sha256, file_checksum int8 {1 ok, 0 mismatch, -1 not checked}, file_regime U5, corr0/corr1 float32); manifest with sha256.
+Run 2 (12:23Z) was stopped by me at 10/618 symbols because 8 symbol threads gave ~12 req/s (latency-bound); run 3 uses 16 threads, same cap.
 Resumable: a symbol whose npz sha matches out/metrics/MANIFEST.json and whose files are all 200 or 404 is skipped; a symbol with
 transport / 5xx failures is REPAIRED day by day (rows of good days kept via row_file_day; npz written before row_file_day existed are
 re-pulled whole). Run 1 (12:08–12:21Z) was stopped by me after 56 DNS gaierror / 16 timeouts left 2 of 621 BONK files missing; l2_net now caches
@@ -170,7 +171,8 @@ def do_symbol(sym):
 
 
 done = 0; t_last = time.time()
-with ThreadPoolExecutor(8) as ex:
+NTHREADS = 16   # run 2 (8 symbol threads) reached only ~12 req/s (latency-bound, limiter never binding); the global <= 20 req/s cap is unchanged
+with ThreadPoolExecutor(NTHREADS) as ex:
     for sym, ent, how in ex.map(do_symbol, SYMS):
         man[sym] = ent; done += 1
         if how == "done" and (done % 10 == 0 or time.time() - t_last > 120):
@@ -182,7 +184,7 @@ for rp in range(2):   # up to two repair passes over symbols that still have tra
     todo = [s for s in SYMS if man[s].get("files_failed", man[s]["files_listed"] - man[s]["files_200"]) > 0]
     if not todo:
         break
-    with ThreadPoolExecutor(8) as ex:
+    with ThreadPoolExecutor(NTHREADS) as ex:
         for sym, ent, how in ex.map(do_symbol, todo):
             man[sym] = ent
     C.jdump(man, MAN)
