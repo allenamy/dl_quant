@@ -1,0 +1,98 @@
+[A] identical builds PASS with rc 0 and a receipt bound to input SHAs
+  OK   ★★★ PASS, rc 0 — (0, ' pairs; only-A 0 (outside membership closure 0); only-B 0 (outside 0); columns with outside-closure diffs 0/89\nG2_closure PASS -> /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmpt6b_bjzu/out.json\n')
+  OK   ★★ receipt names every input with a sha256 and records the gate's own sha
+
+[B] a value change OUTSIDE the closure -> FAIL and rc 3 (reviewer: was PASS=false with rc 0)
+  OK   ★★★ FAIL is rc 3 and PASS false — 3
+  OK   ★★ the failing column is named — ['F:c5_48']
+
+[C] axis faults the old gate could not see (reviewer R7): E_ts +300 s and reversed symbols on side B
+  OK   ★★★ E_row unchanged but E_ts shifted + symbols reversed ⇒ FAIL rc 3 on the axis (was PASS=true rc 0) — (3, ['E_ts_equal', 'symbols_equal_same_order'])
+
+[D] duplicate pair key and wrong column count -> FAIL
+  OK   ★★ duplicate pair on B ⇒ FAIL (pairs_unique_B) — ['pairs_unique_B']
+  OK   ★★ expected 90 columns but 89 present ⇒ FAIL (n_cols_ok)
+
+[E] `require`: chains may only dispatch on a fresh PASS receipt OF THE EXPECTED GATE, FROM THE PINNED GATE SOURCE, with declared inputs
+  OK   ★★★ PASS receipt + expected gate + pinned source + the full registered input set, unchanged ⇒ rc 0 — OK PASS (G2_closure, 2026-09-13T14:42:00Z, self 15a03d4a0937 approved, 5 inputs verified, registered floor G2_closure=5)
+  OK   ★★★ an input that changed AFTER the receipt ⇒ rc 3 (stale receipt is not a receipt) — REQUIRE_FAIL input 'fea_A' changed since the receipt: d33c91c92b0c != a2bbf84310c8
+  OK   ★★ a FAIL receipt ⇒ rc 3 — REQUIRE_FAIL receipt says PASS=False (gate G2_closure, None)
+  OK   ★★ a missing receipt ⇒ rc 3
+  OK   ★ an input the receipt never hashed ⇒ rc 3 (no silent pass on an unrecorded dependency)
+  OK   ★★★ [r3] a PASS receipt from ANOTHER gate ⇒ rc 3 (reviewer: wrong gate name used to pass) — REQUIRE_FAIL receipt is from gate 'G2_closure', caller expected 'UNRELATED_GATE'
+  OK   ★★★ [r3] a caller that names NO gate ⇒ rc 3 (no anonymous requires) — REQUIRE_FAIL caller did not declare the gate it expects (gate=<name>); a receipt cannot be required anonymously
+  OK   ★★★ [r3] self_sha256 all-zero ⇒ rc 3 (reviewer: pseudo/absent self sha used to pass) — eipt carries no usable self_sha256 ('0000000000000000000000000000000000000000000000000000000000000000'): the gate's own code is unidentified
+  OK   ★★★ [r3] self_sha256 missing ⇒ rc 3 (reviewer: pseudo/absent self sha used to pass) — REQUIRE_FAIL receipt carries no usable self_sha256 (None): the gate's own code is unidentified
+  OK   ★★★ [r3] self_sha256 garbage ⇒ rc 3 (reviewer: pseudo/absent self sha used to pass) — REQUIRE_FAIL receipt carries no usable self_sha256 ('not-a-sha'): the gate's own code is unidentified
+  OK   ★★ [r3] a pinned gate source that differs from the receipt's ⇒ rc 3 — REQUIRE_FAIL receipt was written by gate source 15a03d4a0937, caller trusts abababababab
+  OK   ★★ [r3] the pinned gate source that MATCHES ⇒ rc 0 — REQUIRE_OK PASS (G2_closure, 2026-09-13T14:42:00Z, self 15a03d4a0937 approved, 5 inputs verified, registered floor G2_closure=5)
+  OK   ★★★ [r3] an EMPTY dependency list ⇒ rc 3 (reviewer: {PASS:true} with no inputs used to pass) — REQUIRE_FAIL caller declared no inputs: nothing would be verified, so nothing is permitted
+  OK   ★★ [r3] a hand-written {PASS:true, gate} with no self sha and no input shas ⇒ rc 3 — REQUIRE_FAIL receipt carries no usable self_sha256 (None): the gate's own code is unidentified
+  OK   ★ [r3] a receipt whose input sha is null (the gate never saw the file) ⇒ rc 3 — REQUIRE_FAIL receipt recorded no sha for input 'fea_A' (the gate did not see that file)
+  OK   ★★★ [r4] a caller that does NOT pin self_sha= ⇒ rc 3 even on a genuine PASS receipt (round 3 accepted any real-looking self sha when unpinned) — REQUIRE_FAIL caller did not pin the gate source (self_sha=<sha256 of the gate script it trusts>); a receipt from an unidentified program is not permission
+  OK   ★★★ [r4] require_valid_wrong_source_unpinned: receipt self sha = the JUDGE's real sha, caller unpinned ⇒ rc 3 (was rc 0) — REQUIRE_FAIL caller did not pin the gate source (self_sha=<sha256 of the gate script it trusts>); a receipt from an unidentified program is not permission
+  OK   ★★★ [r4] the same receipt with the closure gate pinned ⇒ rc 3 'caller trusts' (the judge did not write this gate's receipt) — REQUIRE_FAIL receipt was written by gate source c2a81c48f037, caller trusts 15a03d4a0937
+  OK   ★★ [r4] 'self_sha=' ⇒ rc 3 (a pin must be a real sha256) — e gate source (self_sha=<sha256 of the gate script it trusts>); a receipt from an unidentified program is not permission
+  OK   ★★ [r4] 'self_sha=not-a-sha' ⇒ rc 3 (a pin must be a real sha256) — REQUIRE_FAIL self_sha='not-a-sha' is not a sha256 (64 hex, not all-zero)
+  OK   ★★ [r4] 'self_sha=0000000000000' ⇒ rc 3 (a pin must be a real sha256) — _FAIL self_sha='0000000000000000000000000000000000000000000000000000000000000000' is not a sha256 (64 hex, not all-zero)
+  OK   ★★★ [r4] omitting hole_cells (4 of the 5 registered G2_closure inputs) ⇒ rc 3 naming the omitted input (round 3 verified the subset and passed) — 'hole_cells'] for G2_closure: the stage would run unbound from them (REQUIRED_INPUTS['G2_closure'] = ['fea_A', 'fea_B', 'targets_A', 'targets_B', 'hole_cells'])
+  OK   ★★★ [r4] researcher's exact case: holes changed AND omitted from the declaration ⇒ rc 3 (was rc 0: the change was invisible) — 'hole_cells'] for G2_closure: the stage would run unbound from them (REQUIRED_INPUTS['G2_closure'] = ['fea_A', 'fea_B', 'targets_A', 'targets_B', 'hole_cells'])
+  OK   ★★★ [r4] holes changed and DECLARED ⇒ rc 3 'changed since the receipt' (the change is now visible either way) — REQUIRE_FAIL input 'hole_cells' changed since the receipt: e92e8ff48b31 != 80dc82fb8a5f
+  OK   ★★ [r4] an EXTRA declared input that the receipt did hash is allowed only if recorded — here it is not ⇒ rc 3 'no sha' (extras are checked, never ignored) — REQUIRE_FAIL receipt has no sha for input 'extra_note'
+  OK   ★★★ [r4] STEP1 profile=v4 (gpu3 / post_export) with only the RAW pair ⇒ rc 3: the CLIP targets and fea89 those chains read are registered — f8v4'] for STEP1@v4: the stage would run unbound from them (REQUIRED_INPUTS['STEP1@v4'] = ['dlw_v4raw_targets', 'dlw_hf3_targets', 'fea82_v4raw', 'fea89_f8v4'])
+  OK   ★★ [r4] STEP1 profile=v4 with all four ⇒ rc 0 — REQUIRE_OK PASS (STEP1, None, self 278fdce611e9 approved, 4 inputs verified, registered floor STEP1@v4=4)
+  OK   ★★ [r4] STEP1 profile=v4s (chain_v4s_gpu.sh: RAW only, fea89 bound through G2) with the RAW pair ⇒ rc 0 — REQUIRE_OK PASS (STEP1, None, self 278fdce611e9 approved, 2 inputs verified, registered floor STEP1@v4s=2)
+  OK   ★★ [r4] STEP1 profile=v4s without the RAW targets ⇒ rc 3 — r STEP1@v4s: the stage would run unbound from them (REQUIRED_INPUTS['STEP1@v4s'] = ['dlw_v4raw_targets', 'fea82_v4raw'])
+  OK   ★★ [r4] an unregistered profile ⇒ rc 3 (a stage cannot invent its own subset) — REQUIRE_FAIL profile 'nonexistent' is not registered for gate 'STEP1' (known: ['STEP1@v4', 'STEP1@v4s'])
+  OK   ★★ [r4] bare STEP1 (floor = RAW pair) with four + a recorded extra ⇒ rc 0 (extras allowed when the receipt hashed them) — REQUIRE_OK PASS (STEP1, None, self 278fdce611e9 approved, 5 inputs verified, registered floor STEP1=2)
+  OK   ★ [r4] an unregistered gate has no floor: the caller's own non-empty declaration still binds ⇒ rc 0 with 'registered floor G9_unregistered=none' — RE_OK PASS (G9_unregistered, None, self 278fdce611e9 approved, 1 inputs verified, registered floor G9_unregistered=none)
+  OK   ★ [r5] the edited gate runs and PASSes on its own, signing the receipt with ITS sha — (0, '; only-B 0 (outside 0); columns with outside-closure diffs 0/89\nG2_closure PASS -> /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmpt6b_bjzu/edited_out.json\n')
+  OK   ★★★ [r5] require pinned to the edited gate's OWN runtime sha ⇒ rc 3 'not an APPROVED source' (round 4: pin == receipt ⇒ accepted; the reviewer's drift case) — ate source 24bc4c60a1c6 is not an APPROVED source of gate 'G2_closure' in the frozen contract (approved: ['15a03d4a0937']); a program that re-ran and signed its own receipt is not the reviewed program
+  OK   ★ [r5] the CLI `approved` sub-command answers NOT_APPROVED for it (rc 3) and APPROVED for the archived gate (rc 0) — NOT_APPROVED G2_closure: ['15a03d4a0937095b83108b737be67aeb1110a077d96010b1de9e6609055de262']
+  OK   ★★ [r5] a governed gate required through a v4_gate_common with NO frozen contract beside it ⇒ rc 3 (nothing can be required without the reviewed definition) — var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmpt6b_bjzu/nocontract/ELIGIBILITY_CONTRACT.json: nothing can be required without the frozen research definition
+  OK   ★ [r5] an UNGOVERNED gate (not registered, not in the contract) is unaffected by a missing contract (rc 0) — and confers nothing (arms map only to contract gates) — RE_OK PASS (G9_unregistered, None, self 278fdce611e9 approved, 1 inputs verified, registered floor G9_unregistered=none)
+  OK   ★★★ [r5→r6] the ARCHIVED contract is self-consistent: approved sources of G2/STEP1/STEP2 are exactly the archived gate files' shas; BUNDLE_export approves exactly the archived v2 export gate (v4e_gate_export_v2.py, applied 2026-09-12 on user word after r20 closed N1; was [] while the physical gate did not exist); every candidate arm maps to BUNDLE_export with book binding — {'G2_closure': ['15a03d4a'], 'STEP1': ['278fdce6'], 'STEP2': ['db7ab356'], 'BUNDLE_export': ['d63f4ec3']}
+  OK   ★ [r5] make_sha_manifest.py lists the contract as a reviewed file
+  OK   ★★ [r4] REQUIRED_INPUTS names exactly what the archived chains declare: G2 5 (v4s), STEP1@v4s 2, STEP1@v4 4 (gpu3/post_export), STEP2 2
+  OK   ★★ [r5→r6] REQUIRED_INPUTS[BUNDLE_export] = the 7 export inputs + the arm's 4 judged books at [7:11] + (round 6) the 4 baseline books, manifest, 8 bundle files, costb/umask/slow, the contract = 28 = the v2 export gate's closure (exact list vs the real receipt asserted in [O]) — 28
+
+[F] the judge REFUSES without its required inputs (reviewer R4: used to exit 0 with empty verdicts)
+  OK   ★★★ no arms at all ⇒ rc 3 at the reproduction gate (A0p reproduction absent), no verdict JSON written — (3, "JUDGE_REFUSED reproduction (#20): {'missing_reference': ['A0p_dyn_s42_vs_RAW_M1', 'A0p_dyn_s2027_vs_RAW_M1'], 'paired_maxabs_bad_or_nonfinite': {}}")
+  OK   ★ JUDGE_ALLOW_PARTIAL=1 (exploration only) lets it run through and says so — (0, 'LOW_PARTIAL=1): inputs incomplete — no verdict is issued, nothing can PROMOTE\n   ★ eligibility = informational (no arm has a bound export-gate PASS): an (A) reads as INFO, never PROMOTE\nJUDGE_V4_DONE\n')
+
+[G] G1 stable-trend gate: required booleans decide the exit code
+  OK   ★★ synthetic G1 passes with rc 0 and a receipt (gate/PASS/self sha) — (0, 'ol": {"5": 282}, "c_flips_only_on_flat_symbol": true, "d_deterministic": true}\nG1_SYNTHETIC_DONE\nG1_stable_trend_synthetic PASS -> /var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/tmp4cdftmon/G1.json\n')
+
+[H] generator regeneration is BITWISE (reviewer P1-REGEN: regenerating used to restore the hard-coded v3 BUNDLE_BASE)
+  FAIL ★★★ the regenerated EXPORTER is byte-identical to the archived one (BUNDLE_BASE read from env survives regeneration) — (1, {'pod_export_bundle_v4.py': False, 'pod_f10_train_monthly_v4.py': True, 'pod_f10_refit_v4.py': True}, 'n.get("GEN_EXPORT_BASE", "/workspace/pod_export_bundle_v3.py"); s = open(p).read(); n = s\nFileNotFoundError: [Errno 2] No such file or directory: \'/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/fx_train/pod_export_bundle_v3.py\'\n')
+  OK   ★★ regenerated trainer + refit are byte-identical to the archived ones — {'pod_export_bundle_v4.py': False, 'pod_f10_train_monthly_v4.py': True, 'pod_f10_refit_v4.py': True}
+  FAIL ★ the regenerated exporter reads BUNDLE_BASE from env
+
+[I] chain drivers: a failed shard aborts BEFORE merge; DONE is never written on failure (reviewer P1-PIPE)
+  OK   ★★★ shard 2 exits 7 ⇒ driver exits 1 with FAIL_shards_... naming the rc list, merge NEVER runs, no DONE — (1, ['[2026-09-13T14:42:12Z] shards RAW s42 rc=[0 0 7 0]', '[2026-09-13T14:42:12Z] FAIL_shards_RAW_s42_rc_[0 0 7 0]'])
+  OK   ★★ all shards rc 0 ⇒ merge runs and DONE is written — ['MERGE_RAN', '[2026-09-13T14:42:12Z] CHAIN_TEST_DONE']
+  OK   ★★★ a FAIL receipt stops the driver at require_gate (rc 3), nothing is dispatched — (3, 'IRE_FAIL caller did not declare the gate it expects (gate=<name>); a receipt cannot be required anonymously\n[2026-09-13T14:42:12Z] FAIL_gate_require_failed_gate')
+
+[J] chain_v4s_gpu.sh under fault injection (reviewer: wrong gate / wrong source / changed holes / changed RAW used to dispatch 8 trainings)
+  OK   ★★★ success: both receipts PASS+fresh ⇒ 8 trainings, 2 merges, DONE, deps pinned — {'rc': 0, 'train': 8, 'merge': 2, 'done': True, 'deps': True, 'err': ''}
+  OK   ★★★ wrong_gate: receipt from another gate ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:19Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ wrong_source: all-zero self sha ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:21Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ changed_holes: hole_cells changed after the receipt ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:23Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ changed_RAW: RAW targets changed after the STEP1 receipt ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:25Z] FAIL_gate_require_step1'}
+  OK   ★★★ gate_fail: G2 receipt FAIL ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:27Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ step1_fail: STEP1 receipt FAIL ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:29Z] FAIL_gate_require_step1'}
+  OK   ★★★ changed_explicit_input: fea_A changed ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:31Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★ legs file missing ⇒ rc 3 before any dispatch — {'rc': 3, 'train': 0, 'done': False}
+  OK   ★★★ [r4] chain_valid_wrong_gate_source: G2 receipt self sha = the judge's REAL sha ⇒ rc 3, ZERO trainings, no DONE (researcher: rc 0, 8 trainings, DONE) — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:34Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★★ [r4] STEP1 receipt self sha = the CLOSURE gate's real sha (a real gate, the wrong one) ⇒ rc 3, zero trainings — {'rc': 3, 'train': 0, 'done': False}
+  OK   ★★★ [r4] a driver that declares only 4 of the 5 registered G2 inputs (hole_cells dropped) ⇒ rc 3 'omitted registered input', ZERO trainings (round 3: the subset passed) — {'rc': 3, 'train': 0, 'done': False, 'tail': "'hole_cells'] for G2_closure: the stage would run unbound from them (REQUIRED_INPUTS['G2_closure'] = ['fea_A', 'fea_B', 'targets_A', 'targets_B', 'hole_cells'])"}
+  OK   ★★★ [r5] chain_runtime_gate_sha_accepts_changed_recipe: the closure gate edited after the contract froze its sha, receipt signed by the edited gate, chain pins the runtime sha ⇒ rc 3 'not an APPROVED source', ZERO trainings, no DONE (round 4: rc 0, 8 trainings, DONE) — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:39Z] FAIL_gate_require_G2_closure_stable'}
+  OK   ★★ [r4] the gate script the chain would pin is missing ⇒ rc 3 gate_source_unreadable before any require/dispatch — {'rc': 3, 'train': 0, 'tail': '[2026-09-13T14:42:40Z] FAIL_gate_source_unreadable_v4_gate_closure'}
+  OK   ★★ [r4] the success run's require lines carry the pinned source = sha of the translated gate scripts (pin computed at run time, not typed)
+
+[J2] chain_v4_gpu3.sh / chain_v4_post_export.sh under the same harness (round 4: every require_gate call in the archive pins its gate source)
+  OK   ★★★ [r4] gpu3 success: STEP1 + STEP2 receipts PASS, fresh, from the pinned sources ⇒ 16 trainings, 4 merges, DONE — {'rc': 0, 'train': 16, 'merge': 4, 'done': True, 'err': ''}
+  OK   ★★★ [r4] gpu3 step2_written_by_judge: STEP2 receipt written by the judge ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:47Z] FAIL_gate_require_step2'}
+  OK   ★★★ [r4] gpu3 step1_written_by_closure_gate: STEP1 receipt written by the closure gate ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:49Z] FAIL_gate_require_step1'}
+  OK   ★★★ [r4] gpu3 changed_RAW: RAW targets changed after STEP1 ⇒ rc 3, ZERO trainings, no DONE — {'rc': 3, 'train': 0, 'merge': 0, 'done': False, 'tail': '[2026-09-13T14:42:50Z] FAIL_gate_require_step1'}
+  OK   ★★★ [r4] post_export success: export markers ok, STEP1 receipt (pinned source) passes the wait loop and the dispatch require ⇒ 16 trainings, 4 merges, DONE — {'rc': 0, 'train': 16, 'merge': 4, 'done': True, 'err': ''}
