@@ -1,0 +1,896 @@
+{
+ "meta": {
+  "created_utc": "2026-09-13T15:29:50Z",
+  "session": "https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (aud-prod)",
+  "scope": "producer and model-serving layer (~/wide_shadow shadow_loop_v3, fea171/combo_stage and feature builders, king LGBM 8d79186b, V2MAIN f10_live_s42_np 351ae26b)",
+  "frozen": {
+   "shadow_loop_v3.py": "e9c9837412130884bc72d4bbcb52b33e9dc8660274b76ae68f46639d2d21b36e",
+   "combo_stage.py": "b5c698f9d1ee9acb73c9bf5f3a1e15843d3298e95a810ebf0107a7d68c6ee358",
+   "dlw_features.py": "29ae6a985d891e56340378bb432c0370e914b93709eec44f54592472e4d20a76",
+   "f8_higher_order_features.py": "2c500c7ad2bb0f5ddccf431021df50a106a39f4d228bd6cf2d074c5c12f66a5f",
+   "pod_fea_ext.py": "02157bda4fe0f6cd6f42215a0a5551b819b817249de4d3ffda26a2963e6a0378",
+   "pod_fea_ext_clamp.py": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+   "pod_dlw_features_ext.py": "e86725cc2768bb6265dd8fb2b3580629706166da012298768b1c0788e8f5a624",
+   "pod_f8_build_ext.py": "f606bffa620004f69ace3704ca19d8f3643b764e918f5eea5a4575b40587f07e",
+   "pod_dlw_targets_ext.py": "c21683ee23b775b46d927b9b606418d3039379f9fc279c027119fd36d73bce89",
+   "pod_panel_ext.py": "db7f0474b64fb3098a8d1a6af29f61423d7b99c74c6834eb6424b77d1642b5ac",
+   "pod_export_bundle_v3.py": "c210bac649071e30530147e4b808f662d87e07ad521eaadb307b3453c348dc6a",
+   "pod_f10_refit_ext.py": "ea3675b8012ea266646571f6e1550f248d894cae832b190a8beab27befab9fb7",
+   "slow2026.txt": "8d79186b6380132cb67684acf1ebfcdb2c53261c850f46a4908b06bfa7a81282",
+   "config.json": "3a8422f377519cac77b0c42305d2ba40a4b7a42a830f0542bda844f66647c94e"
+  },
+  "status_legend": {
+   "FIXED_DEPLOYED": "FIXED_DEPLOYED",
+   "VERIFIED_IMMATERIAL": "VERIFIED_IMMATERIAL",
+   "OPEN_MEASURED_MATERIAL": "OPEN_MEASURED_MATERIAL",
+   "OPEN_NOT_MEASURED": "OPEN_NOT_MEASURED",
+   "PENDING_USER_DECISION": "PENDING_USER_DECISION",
+   "DOC_STALE": "DOC_STALE"
+  },
+  "generator": {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/build/build_audit_prod.py",
+   "sha256": "8471b88c010413e7656c1408a5513cb34586627b173799371df6154f207d18cf"
+  },
+  "king_thresholds_vs_float16": {
+   "n_thresholds": 24800,
+   "n_on_f16_midpoint_within_1e-9_step": 24024,
+   "max_distance_on_midpoint_group": 2.2737367544323206e-13,
+   "n_off_midpoint": 776,
+   "off_midpoint_threshold_abs_max": 0.7021484374999999,
+   "off_midpoint_distance_over_step_min": 0.4999999999997726,
+   "off_midpoint_by_feature": {
+    "ret5_sum_864_v": 5,
+    "ret5_sum_864_r": 35,
+    "ret5_sum_2016_v": 7,
+    "ret5_sum_2016_r": 20,
+    "ret5_sum_8640_v": 9,
+    "ret5_sum_8640_r": 8,
+    "range_mean_48_v": 13,
+    "range_mean_48_r": 23,
+    "range_mean_288_r": 1,
+    "range_mean_864_r": 17,
+    "range_mean_2016_v": 7,
+    "range_mean_2016_r": 10,
+    "range_mean_8640_r": 22,
+    "cpos_mean_48_r": 52,
+    "cpos_mean_288_r": 18,
+    "cpos_mean_864_r": 20,
+    "cpos_mean_2016_r": 23,
+    "cpos_mean_8640_r": 29,
+    "log_qv_mean_48_r": 35,
+    "log_qv_mean_288_r": 6,
+    "log_qv_mean_864_r": 10,
+    "log_qv_mean_2016_r": 11,
+    "log_qv_mean_8640_r": 6,
+    "log_cnt_mean_48_r": 14,
+    "log_cnt_mean_288_r": 19,
+    "log_cnt_mean_864_r": 8,
+    "log_cnt_mean_2016_r": 13,
+    "log_cnt_mean_8640_r": 14,
+    "log_avgsz_mean_48_r": 31,
+    "log_avgsz_mean_288_r": 17,
+    "log_avgsz_mean_864_r": 11,
+    "log_avgsz_mean_2016_r": 24,
+    "log_avgsz_mean_8640_r": 10,
+    "tbf_mean_48_r": 29,
+    "tbf_mean_288_r": 28,
+    "tbf_mean_864_v": 1,
+    "tbf_mean_864_r": 29,
+    "tbf_mean_2016_r": 17,
+    "tbf_mean_8640_v": 1,
+    "tbf_mean_8640_r": 14,
+    "vol_48_r": 42,
+    "vol_288_r": 12,
+    "vol_864_r": 3,
+    "vol_2016_r": 12,
+    "vol_8640_v": 4,
+    "vol_8640_r": 14,
+    "fund_now": 22
+   },
+   "n_exactly_f16_representable": 0
+  }
+ },
+ "counts": {
+  "by_status": {
+   "FIXED_DEPLOYED": 0,
+   "VERIFIED_IMMATERIAL": 9,
+   "OPEN_MEASURED_MATERIAL": 11,
+   "OPEN_NOT_MEASURED": 4,
+   "PENDING_USER_DECISION": 3,
+   "DOC_STALE": 4
+  },
+  "by_severity": {
+   "P0": 0,
+   "P1": 0,
+   "P2": 11,
+   "P3": 20
+  },
+  "total": 31
+ },
+ "items": [
+  {
+   "id": "PROD-01",
+   "layer": "MODEL INPUT / king (clock)",
+   "title": "King kline features are trained on rows [E-w, E-1] and served on rows [E-w+1, E]; the October chain keeps the training clock",
+   "what_is_wrong": "All 76 served kline columns are computed one 5-minute bar later at serving than in training (the builder's cumulative sums have a leading zero row, the producer slices through the anchor row). On 32 anchors (2026-09-05 16Z..09-10 20Z), scoring the served names with the training clock (served members, float16 store) against the served input gives king-score Spearman median 0.9843 (min 0.9693), deciles changed median 95 of 400 names, top-decile overlap median 0.900 (min 0.800). Largest single columns (served X with one column swapped to the training clock): cpos_mean_48_r (gain rank 6): score Spearman 0.9967, deciles changed 46; cpos_mean_48_v (gain rank 4): score Spearman 0.9978, deciles changed 27; ret5_sum_864_r (gain rank 2): score Spearman 0.9986, deciles changed 27; tbf_mean_48_v (gain rank 20): score Spearman 0.9994, deciles changed 8; tbf_mean_48_r (gain rank 19): score Spearman 0.9995, deciles changed 8; range_mean_48_r (gain rank 1): score Spearman 0.9995, deciles changed 10. Recorded before as E-0909-F: G4 on the v4 booster (Spearman 0.976-0.990), G3 book A1e-A1 UNDECIDED; the clock-corrected v4e export failed the guard band by 0.007. The October chain still builds king features with the training clock.",
+   "evidence": [
+    "pod_fea_ext.py (02157bda) L50/L52/L56 -- training window rows [E-w, E-1]",
+    "shadow_loop_v3.py (e9c98374) L358 (rows [E-w+1, E]) + L397 float32 -- serving window rows [E-w+1, E]",
+    "receipts_prod/parity_king.json (9dbba68b, device file parity_king.py sha256 fad9f3c2): score_arms.TP, pair_stats.clock_TP_vs_TPE, score_clock_substitution_per_column; gates (all bitwise): G-PRED booster(served X) == recorded pred 47/47; G-SREP production code text L355-404 on the live cache reproduces served members + 76 columns 47/47; G-TREP training-builder formula reproduces the stored x0910 features 1,056,000/1,056,000 cells; G-DATA production code on the pod cache (live 450) == served 32/32",
+    "receipts_prod/pod2_provenance.txt: w3_monthly_chain_2026-09-12/device/pod_fea_ext_clamp.py b9f9c728 (= review_scratch copy used by x0910)",
+    "docs/PREREG_king_clock_E_2026-09-09.md AMENDMENT 2-4; docs/HANDOFF_round2_b0a573a1_closure_2026-09-09.md §3 (G3/G4 tables)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "live_trading",
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P2",
+   "severity_reason": "About a quarter of king deciles move per anchor at the score layer; the book-layer effect was not detectable at ±0.3 bps/anchor (G3 on v4e) and has not been measured for 8d79186b; no export gate checks the clock.",
+   "recommended_action": "Before the October export, put the clock contract to the user: train on the serving clock (pod_fea_ext_e.py, judged with a CI-based book gate rather than the guard band) or serve rows [E-w, E-1]. Add a producer-path raw-feature parity gate to the export (training builder vs producer code on the same anchors, as G-TREP/G-SREP here; cf. AUDIT_TRAIN TRN-18).",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-02",
+   "layer": "MODEL INPUT / king (rank universe)",
+   "title": "King rank columns use a different cross-section in training (all 829 cache names) than at serving (live-450 members); 82 of 400 recent training members are outside the live 450",
+   "what_is_wrong": "On 147 anchors (2026-08-17 04Z..09-10 20Z) production members and king-training members overlap with Jaccard median 0.660; the 82 (median) training-only members are all outside the live 450 (tokenized equities such as AAPLUSDT, AMZNUSDT, ANTHROPICUSDT and non-pinned listings). Restricting the training rule to the live 450 leaves a symmetric difference of median 0 (max 2, the clock); the forward-finite term, the divisor and float32 change 0 names. Ranks of the same names shift (largest median |Δrank|: log_avgsz_mean_2016_r 0.166, log_avgsz_mean_864_r 0.165) while order among common names is kept. Scoring the common names with the two rank sets (training clock on both) gives king-score Spearman median 0.9470 (min 0.8767), deciles changed median 126, top-decile overlap median 0.774. The in-service booster's label years (< 2026) hold 24 non-crypto pairs, all in 2025 (AUDIT_DATA C6), so the live model is served a crypto-only cross-section close to its training years; every 2026 research king score is computed on the stock-inclusive cross-section (7.3% of 2026 member pairs).",
+   "evidence": [
+    "pod_fea_ext.py (02157bda) L75; members L37-39 -- members from every cache name",
+    "shadow_loop_v3.py (e9c98374) L403; members L365-377 -- members among the 450 fetched names",
+    "receipts_prod/members_audit.json (eb8d5da7, device file members_audit.py sha256 7bc0a664): summary.PK, K_not_P_outside_live450, pathK_symdiff_to_P, one_at_a_time_symdiff_vs_P, top_symbols.K_not_P; gates V1/V2/V3 all pass",
+    "receipts_prod/parity_king.json (9dbba68b, device file parity_king.py sha256 fad9f3c2): pair_stats.universe_Trep_vs_TP, score_arms.universe_common",
+    "docs/audit_pipeline_2026-09-13/devices_data/receipts/AD_C_cache_members.json C6_universe_class_in_training_members (king_meta_members 2025 noncrypto_pairs 24; 2026 42,363, share 0.0726)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P2",
+   "severity_reason": "Score-layer change larger than the clock effect; it enters every 2026 research king score and any retrain that includes 2026 anchors; book layer not measured.",
+   "recommended_action": "Use one member universe for training, research replay and serving (the 2026-09-08 CRYPTO-default ruling), applied inside the member rules of pod_fea_ext_clamp.py and pod_dlw_targets_raw.py before the next export; until then label 2026 research king scores 'research cross-section'.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-03",
+   "layer": "MODEL INPUT / king (research vs served, total)",
+   "title": "Research king inputs at 2026 anchors are not the served inputs: on common names the in-service booster's scores agree with Spearman 0.94, not the 0.994 T4 measured for column 80 alone",
+   "what_is_wrong": "The stored x0910 training rows (the representation behind A0's pinned king and P2 S2's injected king) re-scored with 8d79186b against the served inputs on the same names: Spearman median 0.9353 (min 0.7602), deciles changed median 144, top-decile overlap median 0.742 (min 0.258); with the served fund columns swapped in: 0.9411. The gap combines PROD-01 (clock), PROD-02 (rank universe) and column 80 (PROD-04).",
+   "evidence": [
+    "receipts_prod/parity_king.json (9dbba68b, device file parity_king.py sha256 fad9f3c2): score_arms.Tstored_common_as_stored, Tstored_common_fund_from_S; gates (all bitwise): G-PRED booster(served X) == recorded pred 47/47; G-SREP production code text L355-404 on the live cache reproduces served members + 76 columns 47/47; G-TREP training-builder formula reproduces the stored x0910 features 1,056,000/1,056,000 cells; G-DATA production code on the pod cache (live 450) == served 32/32",
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md §3 (column 80 only: per-anchor Spearman 0.9944)",
+    "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md A2.2 D1 (king OOF injected into the production path)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "Every replay contrast that treats the research king as the live king, including P2 S2's production-path history, carries this score gap; its book-layer size is unmeasured.",
+   "recommended_action": "For production-path replays compute king predictions from producer-definition features (serving clock, serving members, v1 column 80) or label the king arm 'research representation'; add this score contrast to P2's G2-C-BIND.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-04",
+   "layer": "MODEL INPUT / king (column 80)",
+   "title": "King column 80 fund EMA trained v0, served v1 (H2b / T4)",
+   "what_is_wrong": "Known (T4). Measured here on common names over 32 anchors: served vs stored training value median relative difference 0.500 (4h names served = 2x training), per-anchor Spearman median 0.846. T4 judged the book effect NOT MATERIAL (Δg +0.018 [-0.030, +0.063] bps/anchor, ΔIC -0.0001 ± 0.00017). The October export reintroduces it (AUDIT_TRAIN TRN-04).",
+   "evidence": [
+    "pod_fea_ext.py (02157bda) L61/L80; panel v0 pod_panel_ext.py (db7f0474) L124-133, stale L160",
+    "shadow_loop_v3.py (e9c98374) L344 v1 EMA; L410 fresh<=12h; L418/L419",
+    "receipts_prod/parity_king.json (9dbba68b, device file parity_king.py sha256 fad9f3c2): pair_stats.total_S_vs_T.fund_ema",
+    "uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md §0/§5"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "live_trading",
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "Book effect below ±0.05 bps/anchor at T4's resolution; the defect itself persists.",
+   "recommended_action": "Decide the column-80 caliber together with PROD-01/PROD-02 before the October export (serve v0 or train v1).",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-05",
+   "layer": "MODEL INPUT / king (precision, P10)",
+   "title": "King trained on float16-stored features and served float32: no decile or selection change on 47 served anchors; 4 of 18,800 row paths change",
+   "what_is_wrong": "Of 24,800 booster thresholds, 24,024 sit on the midpoint of two adjacent float16 values (largest distance 2.3e-13 of a float16 step, the model file's print precision), where a float32 input and its float16 round trip branch differently only when the float32 value lies exactly on the midpoint; 776 (in 47 columns, mostly rank columns; fund_now 22) sit on a float16 grid value (distance 0.500 step), where float32 inputs in the half step above the threshold branch differently. Served inputs, 47 anchors: 275 of 1,466,400 cells lie inside such a risk window. Casting every served input to float16 before predict changes the leaf path of 4 rows (cpos_mean_48_v 1, log_avgsz_mean_48_v 1, tbf_mean_48_v 1, tbf_mean_864_v 1), 30 rank positions (21 on one anchor), 0 deciles, top/bottom-decile overlap 1.00/1.00, max |Δpred| 0.0056 (served score sd ≈ 0.024), king-leg z max change 0.050 on one name (0.0165 after the masked seat). Storage alone (float16 vs float32 at the serving clock) changes no cell by more than 1e-3 in any column; float64 vs float32 window sums change at most 94 rank cells in a column (ties). fund_now shows 280 cells above 1e-3 relative from float16 quantisation of rates near 2e-5, with no leaf change.",
+   "evidence": [
+    "pod_fea_ext.py (02157bda) L65 + L72",
+    "shadow_loop_v3.py (e9c98374) L358 (rows [E-w+1, E]) + L397 float32",
+    "receipts_prod/parity_king.json (9dbba68b, device file parity_king.py sha256 fad9f3c2): P10_f16_cast, thresholds_f16.per_column, pair_stats.store_TPE_vs_TPE32 and reduction_TPE32_vs_S",
+    "devices_prod/build/build_audit_prod.py threshold check (lightgbm dump of slow2026.txt 8d79186b)"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "live_trading"
+   ],
+   "severity": "P3",
+   "severity_reason": "Resolution: decile level over 47 anchors x 400 names; rank level 30 name-anchors.",
+   "recommended_action": "None. Do not add a float16 cast to serving; it buys nothing measurable.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-06",
+   "layer": "MODEL INPUT / V2MAIN (rank universe)",
+   "title": "V2MAIN inputs differ between training and serving almost entirely through the member universe of every cross-sectional rank; score Spearman 0.982",
+   "what_is_wrong": "On 17 anchors (09-05 16Z..09-10 20Z) the served 171 columns vs the stored x0910 training rows on common names give V2MAIN-score Spearman median 0.9824 (min 0.9646), max rank change median 0.179; 130 of 171 columns have cells beyond 1e-3. Holding code and data fixed and changing only the member sets (production-rule members on live450 vs training members on 829 names) reproduces the gap: Spearman 0.9823 (min 0.9640); the same code on training members reproduces the stored training rows (Spearman 1.0000, max score change 0.00012). Score Spearman when one family is swapped to training values: x82_rank 0.9955, F 0.9975, E 0.9983, J 0.9986, fund 0.9988, I 0.9992, B 0.9992, D 0.9993, H 0.9995, A 0.9996, C 0.9997, G 0.9997, x82_value 1.0000. The in-service V2MAIN (trained through 2026-08-30) saw 2026 cross-sections that include tokenized equities (7.3% of 2026 member pairs, AUDIT_DATA C6); it is served crypto-only live-450 cross-sections.",
+   "evidence": [
+    "dlw_features.py (29ae6a98) L44 (rows [E-w+1, E], float16 X); f8_higher_order_features.py (2c500c7a) L112; combo_stage.py (b5c698f9) L123 (scored anchor's members on every history row)",
+    "pod_dlw_features_ext.py (e86725cc) L44 (differs from serving only at L16 default PANEL path); pod_f8_build_ext.py (f606bffa) same statement (differs from serving only in the path constants L17-23); pod_dlw_targets_ext.py (c21683ee) L100 (own members per anchor, 829 names, forward-finite)",
+    "receipts_prod/parity_f10.json (cdaa197e, device file parity_f10.py sha256 fed8b141): score.FS_vs_T171/FH_vs_FD/FD_vs_T171, pair_stats, score_family_substitution_FS_with_T171; gates: G-F10SREP production 40-day cache reproduces served combo_X171/scol/f10 bitwise 6/6 (also the T4b 234-239-row view 6/6); G-MEMBERCODE 3/3; G-F10CODE PASS (training code on training members reproduces the stored rows; trend_288 0.9888, trend_2016 0.9994 bitwise share); G-BOOT bundle tail == pod cache on live450 (0 diffs)",
+    "receipts_prod/members_audit.json (eb8d5da7, device file members_audit.py sha256 7bc0a664): summary.PD (Jaccard median 0.660)",
+    "devices_data/receipts/AD_C_cache_members.json C6 (dl_targets_members 2026 noncrypto share 0.0726)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "live_trading",
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P2",
+   "severity_reason": "Every rank-based V2MAIN input is on a different cross-section from training for the served model and for every 2026 research score; book layer not measured.",
+   "recommended_action": "Same fix as PROD-02: one member universe (CRYPTO default) in pod_dlw_targets_raw.py member selection before the October DL retrain; add a served-vs-builder X171 parity gate at export (this device's G-F10SREP/G-F10CODE pattern).",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-07",
+   "layer": "MODEL INPUT / V2MAIN (history members)",
+   "title": "Serving reuses the scored anchor's member set on every history row; only the 24h rank-change and dispersion columns move, score Spearman 0.9998",
+   "what_is_wrong": "combo_stage writes members = pm for all history anchors ('近似'), while training uses each anchor's own members. Rebuilding the served rows with each history row's production member set changes only 8 columns (J:drank_m7_1d, J:drank_v7_1d, J:drank_r24_1d, H:disp_z, H:r4xdisp, H:r24xdisp, H:m7xdisp, H:v7xdisp): J:drank cells beyond 1e-3 5437/6020/4715 of ~6,800 (max 0.5 where a name was not a member 24h earlier), H:disp_z median relative change 0.063 (max 0.206). V2MAIN score Spearman median 0.99982 (min 0.99960), max rank change median 0.073 (max 0.135). Early rows of the long cache without a full 7-day window reused the first full-window member set (40 rows, outside every scored anchor's windows); anchors without a weights file used the production member code (['2026-08-18 16Z', '2026-08-29 20Z']).",
+   "evidence": [
+    "combo_stage.py (b5c698f9) L123 (scored anchor's members on every history row)",
+    "f8_higher_order_features.py (2c500c7a) L335",
+    "f8_higher_order_features.py (2c500c7a) L350, causal z L354",
+    "receipts_prod/parity_f10.json (cdaa197e, device file parity_f10.py sha256 fed8b141): pair_stats.history_members_FS_vs_FH, score.FS_vs_FH, FH_early_rows_fallback; gates: G-F10SREP production 40-day cache reproduces served combo_X171/scol/f10 bitwise 6/6 (also the T4b 234-239-row view 6/6); G-MEMBERCODE 3/3; G-F10CODE PASS (training code on training members reproduces the stored rows; trend_288 0.9888, trend_2016 0.9994 bitwise share); G-BOOT bundle tail == pod cache on live450 (0 diffs)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "live_trading",
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Real but small at the score layer (Spearman >= 0.9996); confined to 8 columns.",
+   "recommended_action": "Store per-anchor member sets in producer state and pass them to the 171 pipeline (a producer change; bundle with the PROD-06 universe fix).",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-08",
+   "layer": "MODEL INPUT / V2MAIN (btcv)",
+   "title": "btcv is defined differently in training (zero-filled, divisor E-S) and serving (nanstd with back-fill) but the served values are equal",
+   "what_is_wrong": "H:btcv_z: 0 cells beyond 1e-3 between served rows and stored training rows (and between F_H and F_D) on 17 anchors; swapping the btcv family to training values leaves V2MAIN score Spearman 0.99998 (the products carry rank-universe differences). The back-fill matters only in short caches (PROD-36).",
+   "evidence": [
+    "combo_stage.py (b5c698f9) L59 (nanstd rows [i-2016, i), first 7 days back-filled)",
+    "pod_dlw_targets_ext.py (c21683ee) L88 (zero-filled, divisor E-S)",
+    "receipts_prod/parity_f10.json (cdaa197e, device file parity_f10.py sha256 fed8b141): pair_stats.total_FS_vs_T171['H:btcv_z'], universe_btcv_FH_vs_FD['H:btcv_z']"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "live_trading"
+   ],
+   "severity": "P3",
+   "severity_reason": "Resolution 1e-3 relative on every cell of 17 anchors.",
+   "recommended_action": "None for live; see PROD-36 for replays.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-09",
+   "layer": "MODEL INPUT / V2MAIN (trend cumsum length)",
+   "title": "The two trend columns depend on cache length (global cumulative sums); the same code on a 48-day cache differs from the 4.7-year training build in 1.1% / 0.06% of cells",
+   "what_is_wrong": "G-F10CODE: with training members, training btcv and the pod cache, every column reproduces the stored training rows bitwise except C:trend_288 (0.9888 bitwise; 76 cells beyond 1e-3, max 0.0050 rank units) and C:trend_2016 (0.9994; 4 cells, max 0.0025). Serving runs on a 40-day cache, training on the full history, so near-tied trend values rank differently. Swapping the trend columns alone leaves V2MAIN score Spearman 0.99991. Same mechanism AUDIT_TRAIN TRN-16 found in the STEP1 gate.",
+   "evidence": [
+    "f8_higher_order_features.py (2c500c7a) L210",
+    "receipts_prod/parity_f10.json (cdaa197e, device file parity_f10.py sha256 fed8b141): gates.G-F10CODE, pair_stats.code_identity_FD_vs_T171",
+    "AUDIT_TRAIN TRN-16"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "live_trading",
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "Resolution: rank changes <= 0.005 on 1.1% of trend_288 cells; score Spearman 0.9999.",
+   "recommended_action": "Adopt the local-window trend builder (pod_f8_build_stable.py, TRN-16) for training and serving together.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-10",
+   "layer": "MEMBERSHIP / replay universe",
+   "title": "The A0 research replay trades a different member set from production: 373 masked crypto names vs the producer's top-400 of the live 450",
+   "what_is_wrong": "Production rule reproduced exactly (V1 {'anchors': 161, 'exact': 161, 'mismatch': [], 'first': '2026-08-17 04Z', 'last': '2026-09-13 04Z', 'PASS': True}, V2 {'anchors': 148, 'exact': 148, 'mismatch': [], 'PASS': True}; data parity DP {'common_rows': 10896, 'first': '2026-08-04 04:05Z', 'last': '2026-09-11 00:00Z', 'channels': {'ret5': {'cells': 4903200, 'nan_pattern_diff': 0, 'pod_finite_prod_nan': 0, 'prod_finite_pod_nan': 0, 'both_finite': 4903200, 'bitwise_equal': 4903200, 'bitwise_diff': 0}, 'range': {'cells': 4903200, 'nan_pattern_diff': 0, 'pod_finite_prod_nan': 0, 'prod_finite_pod_nan': 0, 'both_finite': 4903200, 'bitwise_equal': 4903200, 'bitwise_diff': 0}, 'cpos': {'cells': 4903200, 'nan_pattern_diff': 0, 'pod_finite_prod_nan': 0, 'prod_finite_pod_nan': 0, 'both_finite': 4889587, 'bitwise_equal': 4889587, 'bitwise_diff': 0}, 'log_qv': {'cells': 4903200, 'nan_pattern_diff': 0, 'pod_finite_prod_nan': 0, 'prod_finite_pod_nan': 0, 'both_finite': 4903200, 'bitwise_equal': 4903200, 'bitwise_diff': 0}, 'log_cnt': {'cells': 4903200, 'nan_pattern_diff': 0, 'pod_finite_prod_nan': 0, 'prod_finite_pod_nan': 0, 'both_finite': 4903200, 'bitwise_equal': 4903200, 'bitwise_diff': 0}, 'log_avgsz': {'cells': 4903200, 'nan_pattern_diff': 0, 'pod_finite_prod_nan': 0, 'prod_finite_pod_nan': 0, 'both_finite': 4894094, 'bitwise_equal': 4894094, 'bitwise_diff': 0}, 'tbf': {'cells': 4903200, 'nan_pattern_diff': 0, 'pod_finite_prod_nan': 0, 'prod_finite_pod_nan': 0, 'both_finite': 4894094, 'bitwise_equal': 4894094, 'bitwise_diff': 0}}, 'snapshot_nonlive_cells_finite': 5071920, 'rows_from_2026-09-01': {'rows': 2881, 'nan_pattern_diff': 0, 'bitwise_diff': 0}, 'PASS': True}). Over 142 anchors the A0 member set (all names with finite meta qvk, masked by umask_UPIT_CRYPTO; no top-400 cut) has 373 names; overlap with production members median 332, production-only 68, A0-only 41 (13 outside the live 450). Liquidity-selected sets: Jaccard median 0.893 (min 0.865); production-selected names missing from A0's selection are almost all not A0 members (2976 of 2984 name-anchors); A0-selected names missing from production are mostly outside the live 450 (992 of 1058). T5 attributes 5.2% / 5.1% of the August carry gap (+0.061 bps/anchor) to the member set; the counts here are consistent with a small, persistent universe share.",
+   "evidence": [
+    "receipts_prod/members_audit.json (eb8d5da7, device file members_audit.py sha256 7bc0a664): summary.R, summary.SEL, summary.T5_window",
+    "multi_asset/exports/research/uplift_r2_2026-09-13/T5/RESULT_T5_deployed_carry_gap_2026-09-13.md L25/L66 (M 成员集 +0.061, 5.2%/5.1%)",
+    "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md A2.2 D4 (P2 uses PIT universe, not pins)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Known replay deviation with a measured ~5% share of one carry gap; not a live defect.",
+   "recommended_action": "Keep A0 vs production universe as a named deviation in every replay-vs-live contrast; P2's production-path replay already runs the producer's own member code.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-11",
+   "layer": "MEMBERSHIP / training rule terms",
+   "title": "The forward-finite member term (D20), the window divisor and float32 change no member in 147 recent anchors; the one-bar clock changes at most 2",
+   "what_is_wrong": "Path from each training rule to the production rule, one factor at a time, on 147 anchors: universe to live 450 changes median 164 names (all of the difference), dropping the forward-finite term 0 (max), serving clock 2 (max; mean 0.095), production divisor 0, float32 0; the DL rule behaves the same (D2 0, D3 2). Median qvm gap at the top-400 cut 0.0044. This bounds AUDIT_TRAIN TRN-06 (D20) to zero member changes in this window; delisting-heavy history was not measured.",
+   "evidence": [
+    "receipts_prod/members_audit.json (eb8d5da7, device file members_audit.py sha256 7bc0a664): summary.pathK_step_symdiff, pathD_step_symdiff, one_at_a_time_symdiff_vs_P, ntop_cut_gap_qvm; gates V3/V4 (K and D rules reproduce the stored x0910 members 147/147)",
+    "pod_dlw_targets_ext.py (c21683ee) L100",
+    "pod_fea_ext.py (02157bda) L75; members L37-39"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "Resolution one name per anchor over 2026-08-17..09-10; periods with delistings not covered.",
+   "recommended_action": "Keep TRN-06 open for history; no action for the recent window.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-12",
+   "layer": "MEMBERSHIP / liquidity gate (P3 qv4h)",
+   "title": "qv4h is the same quantity in production and in the A0 replay; the 0.52 log gap recorded in r17 compares a different formula",
+   "what_is_wrong": "Production qv4h = expm1(mean log1p(qv5m) over 2016 rows) x 48; A0 uses the same expression on meta qvk. On 47,190 name-anchors |Δlog qv4h| median 5.7e-04, p90 1.5e-03, max 5.7e-03; cost-tier agreement 0.99991; 17 name-anchors fall on different sides of the 2.5e5 gate (the two windows differ by one bar and in float precision; not separated). The r17 formula (arithmetic 4h quote volume) differs from both by |Δlog| median 0.497 (tier agreement 0.784): a Jensen gap between two definitions, not a data difference (G2-A' already showed identical 5m channels).",
+   "evidence": [
+    "shadow_loop_v3.py (e9c98374) L473",
+    "pod_export_bundle_v3.py (c210bac6) L130",
+    "receipts_prod/members_audit.json (eb8d5da7, device file members_audit.py sha256 7bc0a664): summary.QV4H",
+    "docs/PREREG_producer_parity_phase2_oos_2026-09-12.md 收据 1 (r17 |Δlog| 0.52) and AMENDMENT 1 (G2-A' live450 PASS)"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Resolution: 17 gate-side disagreements in 47,190 name-anchors.",
+   "recommended_action": "Do not use the arithmetic 4h quote-volume formula for the liquidity gate or cost tiers in any replay.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-20",
+   "layer": "SERVING STATE / seat",
+   "title": "The masked model seat is computed on 819 seeded rows scored with the training representation plus 81 producer rows",
+   "what_is_wrong": "leg_returns_live.json keeps 950 rows; the 900-row msharpe window holds 819 rows seeded on 09-05 from the v3 bundle (8d79186b predictions on training features: v0 column 80, rows [E-w, E-1], training members; labels [E, E+47]; anchors 2026-04-06 04:00Z .. 2026-08-30 20:00Z) and 81 producer rows (2026-08-31 00:00Z .. 2026-09-13 08:00Z; {'29ffaf58bcb7': 8, '8d79186b6380': 73}). w3 recomputed from the file equals the 12Z signal to 4 decimals; masked seat w3m [0.382095, 0.0, 0.617905]. The last seeded row leaves the window after 819 scored anchors (projected 2027-01-28 00:00Z). Measured part (T4b §5): re-scoring the seeded rows with v1 column 80 moves the seat +0.0078 and combo target_live L1 by 0.0066 (6 anchors); PROD-01..03 differences (clock, universe) in the seeded rows are not measured.",
+   "evidence": [
+    "receipts_prod/state_seat_ledger_probe.json (97a02d3c): S1",
+    "shadow_loop_v3.py (e9c98374) L459",
+    "uplift_r2_2026-09-13/T4b/RESULT_T4b_v2main_feature_skew_2026-09-13.md §5",
+    "memory seat_seed_v3_deployed_2026_09_05"
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "live_trading",
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Self-healing over ~4.5 months; the one measured component is small.",
+   "recommended_action": "No live action; any replay that uses the live seat must state the seeded-row mix.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-21",
+   "layer": "RETRAIN PROCEDURE / seat",
+   "title": "The October bundle swap has no seat re-seeding step, and no rule fixes which scoring representation a seed must use",
+   "what_is_wrong": "RUNBOOK_monthly_retrain_2026-10 §0★ step 8 (backup, swap, sidecar A2, acceptance, first-anchor check) never seeds leg_returns_live.json; the producer ignores bundle rows while the file holds >= 900 rows, so after a swap the seat keeps describing 8d79186b and the seeded v3 rows for about 150 days. The 09-05 precedent required a user-approved seed.",
+   "evidence": [
+    "docs/RUNBOOK_monthly_retrain_2026-10.md §0★ step 8 and L187 (grep: no 播种/seed/leg_returns_live other than L187)",
+    "shadow_loop_v3.py (e9c98374) L226",
+    "multi_asset/exports/live/seat_seed_v3_2026-09-05/dryrun_seat_seed.py (not referenced by the runbook)",
+    "AUDIT_TRAIN TRN-12"
+   ],
+   "status": "PENDING_USER_DECISION",
+   "affects": [
+    "future_retrain",
+    "live_trading"
+   ],
+   "severity": "P2",
+   "severity_reason": "A silent seat mismatch at the next swap is the same class as the 0.19 vs 0.30 gap fixed on 09-05.",
+   "recommended_action": "Add an explicit seat step to the swap (seed or not; declared scoring representation and label window; dry run like 09-05) and take the user's word on it with the bundle sha.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-22",
+   "layer": "SERVING STATE / funding EMA (D17)",
+   "title": "D17 funding-EMA artefacts in the live producer state are decaying and do not recur",
+   "what_is_wrong": "12 names carry ledger rows whose stored interval differs from the time gap, all before 09-05 12Z ({'1000XECUSDT': 1, 'ACEUSDT': 67, 'BANKUSDT': 103, 'DEXEUSDT': 152, 'EPICUSDT': 1, 'ERAUSDT': 137, 'ESPORTSUSDT': 1, 'GWEIUSDT': 1, 'LABUSDT': 1, 'PARTIUSDT': 1, 'PROMUSDT': 79, 'TUSDT': 1}); none after, over 179,967 adjacent pairs. They come from the 08-16 bundle seed; the running append path derives intervals from time gaps and the seed loads only when rolling.npz is absent. Inherited EMA residual 2.60e-5 at 09-05 16Z, 5.58e-6 at 09-12 08Z (half-life 3 days); fund-leg z Spearman >= 0.99996, top decile unchanged 41/41 anchors (P2 receipts).",
+   "evidence": [
+    "receipts_prod/state_seat_ledger_probe.json (97a02d3c): S2",
+    "shadow_loop_v3.py (e9c98374) L341",
+    "shadow_loop_v3.py (e9c98374) L205",
+    "parity_replay_2026-09-12/phase2/receipts/G2Bpp_inwindow_recursion.json and D17_forensics.json (PREREG_producer_parity_phase2 收据 3, 附 D17 取证)"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "live_trading",
+    "future_eval"
+   ],
+   "severity": "P3",
+   "severity_reason": "Resolution: fund z Spearman 0.99996, top decile unchanged.",
+   "recommended_action": "None for live; producer-path replays keep the 'clean rebuild != live EMA' label until the residual is below 1e-9 (about mid-October). Note that FX-PROD P9 (PROD-40) is a separate, recurring interval defect in the same append path.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-23",
+   "layer": "BUILDERS / funding interval",
+   "title": "Panel, splice and October exporter still apply one declared interval to every API-tail funding row",
+   "what_is_wrong": "Names whose settlement interval changed inside the API tail get the fetch-time interval on older rows; this fed the D17 rows (08-16 seed) and the x0910 September interval errors, and flows into f_fund_iv, f_fund_ema_v1, rn8/FTRIM and carry in research panels and into any bundle ledger/EMA seed.",
+   "evidence": [
+    "pod_panel_ext.py (db7f0474) L105",
+    "pod_export_bundle_v3.py (c210bac6) L200",
+    "pod_export_bundle_v4.py (42555a37) L220/L230-234, present in pod2 w3_monthly_chain device dir; r6_panel_splice.py (cccc5b6b) L81-91",
+    "uplift_r2_2026-09-13/T5b/RESULT_T5b.md §5.1 (x0910 carry vs ledger, IOST ratio 8.00)",
+    "AUDIT_TRAIN TRN-07; T5d prereg (repairs September cells only)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "future_eval",
+    "future_retrain"
+   ],
+   "severity": "P2",
+   "severity_reason": "The October splice panel and any bundle seed inherit it; live is exposed only through a state reset from a seed.",
+   "recommended_action": "Derive each row's interval from its own settlement history (gap or per-row declared history), validated against executor settlement records as T5b did; relabel x0910-based September carry/FTRIM readings until T5d lands.",
+   "method": "VERIFIED (code) / CITED (T5b numbers)"
+  },
+  {
+   "id": "PROD-24",
+   "layer": "COMBO TARGET / FTRIM as served",
+   "title": "FTRIM is served as a z-layer exclusion before demeaning, not a forced exit; residual shorts decay and freeze under the neutral band",
+   "what_is_wrong": "Rule 'pre_zero_rn8_le_-10bp_8h' in both chains since 2026-09-02 12Z (67 anchors): median 8 names per chain (max 16), rn8 coverage min 1.0. rn8 = latest ledger rate x 8 / stored interval, so FX-PROD P9 interval mislabels reach the classification. T5b (61 anchors 09-02..09-12): frozen residual gross 0.33% [0.24%, 0.40%], max age 41 anchors (ONG); frozen-residual carry -0.120 bps/anchor [-0.245, -0.021] (PROVISIONAL: its carry gate is red, PROD-23); all FTRIM residuals +0.115 [-0.080, +0.334] (secondary); residual shorts pay +0.294 [+0.155, +0.478] (post hoc). The executor adds no band freeze.",
+   "evidence": [
+    "combo_stage.py (b5c698f9) L245",
+    "combo_stage.py (b5c698f9) L243",
+    "combo_stage.py (b5c698f9) L92",
+    "receipts_prod/prod_target_checks.json (f8113efe, device file prod_target_checks.py sha256 2bd626fd): FTRIM_served",
+    "uplift_r2_2026-09-13/T5b/RESULT_T5b.md"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "live_trading",
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "Carry drag of order 0.1-0.3 bps/anchor on residual shorts; not a risk exposure.",
+   "recommended_action": "A forced exit for FTRIM names is a book-behaviour change needing the user's ruling (FX-BOOK P7); re-read after T5d and after FX-PROD P9.",
+   "method": "VERIFIED (code) / CITED (T5b)"
+  },
+  {
+   "id": "PROD-25",
+   "layer": "COMBO TARGET -> EXECUTOR reshape (EXE-03 confirmed)",
+   "title": "EXE-03 confirmed from producer files: 91% of the 12Z 撤名残差 is the producer's own net; the uniform re-demean flips small shorts on 99 of 109 combo anchors",
+   "what_is_wrong": "12Z target_live: net/gross -8.4611%; the 11 popped names +0.7999% (net long); remainder -9.2609% = the alarm's net_before/sizing -9.2609%. Share of net_before from the producer's own net 91.4%, from removing the popped longs 8.6%; the alarm text names only the popped names. Re-executing legs.reshape_after_withhold on the producer vector with the recorded pops reproduces orders target_w in sign for 244/244 names (values x1.0018561 after a later per-name cap on ['PIEVERSEUSDT']). Sign flips short->long 9 (1000CATUSDT, 1000LUNCUSDT, CFXUSDT, ENSOUSDT, NILUSDT, ONGUSDT, SAGAUSDT, SUSDT, ZKUSDT), long->short 0; 8 filled, 376.81 USDT. Across 109 combo anchors the producer book is net short on 107 (median -3.99%, min -9.29%); the re-demean alone (no pops) flips names on 99 anchors (median 3, max 8; flipped unit gross median 2.23e-04).",
+   "evidence": [
+    "receipts_prod/prod_target_checks.json (f8113efe, device file prod_target_checks.py sha256 2bd626fd): EXE03, EXE03_popfree_frequency",
+    "~/dl_quant_live signal/legs.py (7c0665f8) reshape_after_withhold: w = w - w.mean(); w = w / s",
+    "~/dl_quant_live scheduler/anchor_loop.py (95e72cb0) L1854-1861 alarm text",
+    "combo_stage.py (b5c698f9) L270",
+    "AUDIT_EXEC EXE-03"
+   ],
+   "status": "PENDING_USER_DECISION",
+   "affects": [
+    "live_trading",
+    "reporting"
+   ],
+   "severity": "P2",
+   "severity_reason": "Structural every-anchor behaviour: the producer writes an un-neutralised book and the executor's uniform shift reverses small opposite-side intents; the alarm misattributes the cause.",
+   "recommended_action": "Alarm: report producer net and popped-name net separately (FX-EXEC E6). Book: run the side-proportional allocation as a registered experiment (FX-BOOK P8) before any change; measure why the combo book is persistently net short (EMA band freeze, keep-mask exits, cap clipping) before choosing where to neutralise.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-26",
+   "layer": "COMBO TARGET / counterfactual rewrite (CHK-01 confirmed)",
+   "title": "CHK-01 confirmed (11/11 values); the rise from 17% to 27% is the V2MAIN chain moving away from the king book, not FTRIM or rev24 removal",
+   "what_is_wrong": "Σ|w_live - w_king| / Σ|w_king| (inspect_anchor.py L33-38) matches all 11 of 11 values AUDIT_EXEC quotes. Decomposition by the two chains combo_stage mixes (gate: 0.55·kc + 0.45·fc equals target_live to 0.0e+00): R_kc 0.163 -> 0.163 (flat), R_fc 0.255 -> 0.476; rho_kc_fc 0.9726 -> 0.9146; masked model seat 0.199317 -> 0.382095. Across 109 anchors corr(R, R_fc) 0.933, corr(R, rho_kc_fc) -0.893, corr(R, masked seat) 0.558, corr(R, R_kc) 0.408, corr(R, FTRIM count) -0.470. Mechanism (descriptive): the doubled model seat (09-05 seeding, PROD-20) raised V2MAIN's coefficient in the fc chain while the kc chain stays near the king book.",
+   "evidence": [
+    "receipts_prod/prod_target_checks.json (f8113efe, device file prod_target_checks.py sha256 2bd626fd): CHK01_claims_vs_measured_pct, CHK01_change_0903_to_0913, CHK01_descriptive",
+    "multi_asset/exports/live/pilot_journal/tools/inspect_anchor.py (714792e1) L33-38",
+    "docs/CRON_TEMPLATES_2026-09-04.md:13",
+    "AUDIT_EXEC CHK-01"
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "Producer side has no defect; the template's fixed level is stale (AUDIT_EXEC keeps CHK-01 at P2 for the escalation rule).",
+   "recommended_action": "Replace the fixed 19-20% level with a trailing band and report R_kc/R_fc next to R so a real change in the V2MAIN chain is visible.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-27",
+   "layer": "COMBO LIVE / timing",
+   "title": "The combo rewrite lands within 9 s of its hard deadline at worst; a late producer run skips the rewrite with no page",
+   "what_is_wrong": "Since combo went live: 110 anchors, 109 traded the combo target, 1 the king form (2026-08-30 00:00Z, king file written at 1467 s). Combo target written median 1307 s after the anchor, p99 1346 s, max 1351 s against the 1360 s bail; minimum margin 9 s, 59 of 109 anchors within 60 s. A combo run that starts late bails with a HIGH page and the executor trades the king form; if the producer finishes after N+22:35 the daemon skips silently (the 08-30 00Z case). The executor reads at N+24.",
+   "evidence": [
+    "receipts_prod/state_combo_timing_probe.json (67654ea5)",
+    "fea171/combo_live_daemon.sh (72f78d1e) L27-29 silent skip branch",
+    "combo_stage.py (b5c698f9) L321",
+    "receipts_prod/runtime_processes.txt (com.hsy.combolive PID 30944)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "live_trading"
+   ],
+   "severity": "P2",
+   "severity_reason": "A ~10 s slowdown on the slowest observed anchor would switch that anchor's traded book to the king form; one of the two failure paths raises no page.",
+   "recommended_action": "Page on the daemon's late-skip branch; separately (user word) move the producer offset earlier or widen the deadline consistently with the N+24 read; keep heavy Mac jobs out of N+15..N+25.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-28",
+   "layer": "PRODUCER RUNTIME / versions",
+   "title": "The running producer and combo daemon execute the on-disk code, bundle and F10 model (verification record)",
+   "what_is_wrong": "None found. com.hsy.shadowloop PID 10900 started 2026-09-05 12:47:33Z, after shadow_loop_v3.py (e9c98374) was last written 09-04 00:53:42Z; bundle MANIFEST 8/8 matches disk (booster 8d79186b, signal booster_sha on every anchor since 09-01 08Z); combo_stage.py (b5c698f9) is launched fresh each anchor by com.hsy.combolive (PID 30944, started 08-30 05:03Z, daemon file 08-26); fea171/f10_live_s42_np.npz 351ae26b equals the pod2 export; xfer_ref/xfer_syms symbol axes equal config symbols_panel. The pinned feature code runs bitwise equal to the served inputs (G-SREP/G-F10SREP).",
+   "evidence": [
+    "receipts_prod/runtime_processes.txt",
+    "receipts_prod/pod2_provenance.txt (f8_ext/models/f10_live_s42_np.npz 351ae26b)",
+    "receipts_prod/state_seat_ledger_probe.json (97a02d3c): S6",
+    "receipts_prod/parity_king.json (9dbba68b, device file parity_king.py sha256 fad9f3c2): G-SREP",
+    "receipts_prod/parity_f10.json (cdaa197e, device file parity_f10.py sha256 fed8b141): G-F10SREP"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "live_trading"
+   ],
+   "severity": "P3",
+   "severity_reason": "Record only (exact sha, mtime and process start ordering).",
+   "recommended_action": "None.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-29",
+   "layer": "PRODUCER RUNTIME / second writer",
+   "title": "The sidecar daemon is a second, non-atomic writer of the same combo intermediates",
+   "what_is_wrong": "com.hsy.sidecar (PID 30943) runs sidecar_blend.py (6140790e), which repeats combo_stage.py L1-222 and writes mini/cache.npz, mini/data/dlw_targets.npz, xfer_panel_live.npz, state_H_f10_<A>.npz and target_blend/<A>.json with non-atomic np.savez; combo_stage reads the same paths (state_H_f10 is the fc warm-start fallback). Isolation is timing only: the sidecar sleeps 120 s after a new target_live. 0 overlaps observed in 109 anchors; the sidecar last recomputed the 171 pipeline at 08-30 00Z.",
+   "evidence": [
+    "receipts_prod/runtime_processes.txt (sidecar_daemon.sh 01d75619: sleep 120 / 180)",
+    "~/wide_shadow/fea171/sidecar_blend.py (6140790e) L123-124, L143, L194, L211",
+    "combo_stage.py (b5c698f9) L180"
+   ],
+   "status": "VERIFIED_IMMATERIAL",
+   "affects": [
+    "live_trading"
+   ],
+   "severity": "P3",
+   "severity_reason": "Latent; 0 collisions observed; a collision would most likely fail loud (king fallback with page).",
+   "recommended_action": "Retire the sidecar (target_blend has no reader) or give it its own output paths; a production process change needs the user's word.",
+   "method": "VERIFIED (code, process list) / CITED (collision count from the fork's log scan)"
+  },
+  {
+   "id": "PROD-30",
+   "layer": "PRODUCER RUNTIME / sandbox producer",
+   "title": "A modified sandbox producer (exec_n6) has been running at N+1 since 09-06 against the live bundle",
+   "what_is_wrong": "PID 50689 runs ~/cc_tmp/exec_n6_sandbox/shadow_loop_v3.py with WIDE_SHADOW_HOME=~/cc_tmp/exec_n6_sandbox and SHADOW_OFFSET_MIN=1 (own lock and state, live bundle read-only, not launchd-managed). It shares the IP's API budget and writes target files that are not the live chain.",
+   "evidence": [
+    "receipts_prod/runtime_processes.txt (ps lstart Sep 6 20:58:03 SGT; env WIDE_SHADOW_HOME, SHADOW_OFFSET_MIN=1)",
+    "docs/PREREG_deploy_exec_n6_2026-09-06.md; STATE.md (conditional GO, swap needs user word)"
+   ],
+   "status": "PENDING_USER_DECISION",
+   "affects": [
+    "future_eval",
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "Isolated state; risk is mistaking its outputs for live and API-budget sharing.",
+   "recommended_action": "Stop it or label its outputs when the exec_n6 decision is made.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-31",
+   "layer": "MODEL ARTEFACTS / stale copies",
+   "title": "fea171/f10_live_s42.pt next to the served numpy model is the August model, not the checkpoint behind 351ae26b",
+   "what_is_wrong": "~/wide_shadow/fea171/f10_live_s42.pt (d6619801, written 08-24) is the August model (trained_through 08-10 20Z); the served npz 351ae26b comes from pod2 f8_ext/models/f10_live_s42.pt (c983b3e3). combo_stage loads only the npz.",
+   "evidence": [
+    "receipts_prod/runtime_processes.txt (mtimes and sha prefixes)",
+    "combo_stage.py (b5c698f9) L160"
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "future_eval",
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "Wrong-copy risk only.",
+   "recommended_action": "Rename the .pt with an _aug suffix or add a note beside it.",
+   "method": "VERIFIED (sha/mtime) / CITED (trained_through from the fork's read)"
+  },
+  {
+   "id": "PROD-32",
+   "layer": "SERVING / stop overlay",
+   "title": "stop_overlay.py is a reporting shadow on the king-form weights; the served stop is the executor's per_name_stop",
+   "what_is_wrong": "com.hsy.stopoverlay computes its stops on state/weights/<A>.npz (the producer's king-form book), so its held/stopped counts and cf_bps describe a book that is not traded. No executor code reads stop_overlay.json; config/book.json names stop_overlay.py only in the basis note of the wide per-name-stop profile (d30, 2 anchors, 7-day cooloff), which the executor applies after target_live (W9 fix deployed in ef60f85).",
+   "evidence": [
+    "receipts_prod/runtime_processes.txt (grep -rl stop_overlay over live/ scheduler/ signal/ ops/ config/: config/book.json only)",
+    "~/wide_shadow/stop_overlay.py (d54a2e16) L1-37",
+    "AUDIT_EXEC (EXE-08 running tree ef60f85)"
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "Mislabelled reporting only.",
+   "recommended_action": "Label or retire stop_overlay; never cite its depths or cf_bps as live.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-33",
+   "layer": "DOCS",
+   "title": "CLAUDE.md says the executor reads at N+23; the executor reads at N+24",
+   "what_is_wrong": "config/book.json external_book.anchor_offset_min = 24; external_book.py wakes at nominal + offset x 60 s; the 12Z rebalance id A1789302239 started 12:23:59Z.",
+   "evidence": [
+    "receipts_prod/state_combo_timing_probe.json (67654ea5): executor_anchor_offset_min 24",
+    "AUDIT_EXEC DOC-01"
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "reporting"
+   ],
+   "severity": "P3",
+   "severity_reason": "Documentation only.",
+   "recommended_action": "Correct the project identity line in CLAUDE.md.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-34",
+   "layer": "IN-SERVICE MODEL / king training data",
+   "title": "The in-service booster 8d79186b was trained on the unclamped builder: 30-day windows of January-2022 training rows wrap to the cache tail (E-0909-A)",
+   "what_is_wrong": "pod_fea_ext.py (02157bda, the builder of wide_fea_v2ext.npy used by pod_export_bundle_v3.py) takes s_[E - w] with no clamp, so anchors with E < w read the end of the cache (e.g. 2022-01-11 00Z cpos_mean_8640_v -242,695 clipped to -10,000, ranks computed on the garbage). The October builder clamps; the in-service model still contains these rows. Row count and effect on 8d79186b not measured.",
+   "evidence": [
+    "pod_fea_ext.py (02157bda) L48",
+    "October chain builder pod_fea_ext_clamp.py (b9f9c728) L48 (same clock, same float16 store)",
+    "docs/RESULT_holefix_round2_corrected_chain_2026-09-09.md L62 (king_wrap_verify)",
+    "receipts_prod/pod2_provenance.txt (pod_fea_ext.py 02157bda; wide_fea_v2ext_meta.npz 4b1b6047, 09-01 05:33)"
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "live_trading"
+   ],
+   "severity": "P3",
+   "severity_reason": "Early-2022 rows only (anchors before 2022-01-31); fixed for the next export.",
+   "recommended_action": "No live action; the next export with the clamp builder removes it (keep the clamp statistic gate).",
+   "method": "VERIFIED (code) / INFERRED (affected-row range)"
+  },
+  {
+   "id": "PROD-35",
+   "layer": "IN-SERVICE MODEL / V2MAIN training data",
+   "title": "The in-service V2MAIN was trained with fund columns set to 0 for names outside today's live 450, and on the pre-holefix cache",
+   "what_is_wrong": "dlw_ext fea82 (9bc111a4) was built on panel wide_panel_4h_v3splice (c5d10f6a), whose funding columns are empty outside the live 450, so 26.8% of training pairs carry fund_ema = fund_now = 0 (T4b RECEIPT F2); served members always have real values. The same features were built on dlnative_5m_wide829_f16_ext (72eb7849), before the 08-12.. hole repair. Neither effect on the served model is measured.",
+   "evidence": [
+    "receipts_prod/pod2_reports/dlw_ext_results_dlw_features_report.json (panel_sha256 c5d10f6a, cache_sha256 72eb7849, self e86725cc)",
+    "receipts_prod/pod2_provenance.txt (data/wide_panel_4h_v3splice.npz c5d10f6a)",
+    "uplift_r2_2026-09-13/T4b/receipts/RECEIPT_T4b_facts_v2main.json F2_stored_zeros",
+    "AUDIT_DATA batch 2 F2 (devices_data/receipts/AD_F_batch2.json)"
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "live_trading",
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "Training-distribution defect of the served model; size unknown; the October chain rebuilds features.",
+   "recommended_action": "Build DL fund columns from the panel that covers every training name (or mask the loss on names without funding) in the next export, and state it in the export gate.",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-36",
+   "layer": "REPLAY DEVICE / Phase-1 G-P2 residual",
+   "title": "Mechanism of the open Phase-1 G-P2 residual found: replay caches shorter than ~37 days put btcv back-fill into the 180-anchor z window",
+   "what_is_wrong": "Running the production 171 pipeline with the cache truncated at the Phase-1 replay start (2026-08-03 08:05Z) instead of the producer's 40 days changes only H:btcv_z, H:r4xbtcv, H:r24xbtcv, H:m7xbtcv, H:v7xbtcv, and only while the truncated cache holds <= 213 anchor rows: 2026-09-05 16Z (199 rows) max |Δscore| 3.3e-04, max |Δrank| 0.0075; 2026-09-06 16Z (205 rows) max |Δscore| 1.4e-04, max |Δrank| 0.0025; 2026-09-07 08Z (209 rows) max |Δscore| 7.5e-05, max |Δrank| 0.0050; 2026-09-08 00Z (213 rows) max |Δscore| 7.9e-06, max |Δrank| 0.0000; 2026-09-09 08Z (221 rows) max |Δscore| 0.0e+00, max |Δrank| 0.0000; 2026-09-10 00Z (225 rows) max |Δscore| 0.0e+00, max |Δrank| 0.0000; 2026-09-10 20Z (230 rows) max |Δscore| 0.0e+00, max |Δrank| 0.0000; 2026-09-11 20Z (236 rows) max |Δscore| 0.0e+00, max |Δrank| 0.0000. _btcv_series fills the first 2,016 rows with the first full-window value; the causal z uses the previous 180 anchors, which reach those rows when the cache is shorter than about 37 days. The live producer always holds 40 days (239 rows) and is unaffected; replay chain runs started from a later snapshot are affected on their first days, which matches Phase 1's DL-leg-only, decaying residual (target-level link INFERRED: the combo chain was not re-run).",
+   "evidence": [
+    "combo_stage.py (b5c698f9) L59 (nanstd rows [i-2016, i), first 7 days back-filled)",
+    "f8_higher_order_features.py (2c500c7a) L350, causal z L354",
+    "receipts_prod/parity_f10.json (cdaa197e, device file parity_f10.py sha256 fed8b141): score.FT_vs_FS.per_anchor, pair_stats.phase1_truncation_FT_vs_FS, gates.G-F10SREP (a 20-hour truncation, 234 rows, is bitwise inert)",
+    "multi_asset/exports/research/parity_replay_2026-09-12/RESULT_parity_phase1_2026-09-12.md §2-§3 (G-P2 0/41, residual only in the DL leg, latest anchor exact)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "Explains an open gate of the production-path replay that P2 (now main priority) must close; affects any chain replay that truncates the producer cache.",
+   "recommended_action": "In the replay device, give every scored anchor a full 40-day cache (prepend rows from the bundle tail or pod cache, verified equal on live450 as here) and re-run the Phase-1 chain; G-P2 at 1e-6 should then pass or show a second mechanism.",
+   "method": "VERIFIED (feature and score layers) / INFERRED (target layer)"
+  },
+  {
+   "id": "PROD-37",
+   "layer": "MODEL INPUT / V2MAIN (columns 80-81)",
+   "title": "V2MAIN column 80 trained v0 / served v1 and column 81 fill rules (T4b), measured on 17 anchors",
+   "what_is_wrong": "fund_ema served vs training: median relative difference 0.500, per-anchor Spearman 0.847. fund_now is equal (0 cells beyond 1e-3) on every anchor except 2026-09-10 08Z, 2026-09-10 16Z, 2026-09-10 20Z, where all training rows are 0 because the x0910 splice panel ends at 2026-09-10 00Z (the TRN-17 pattern); zero shares otherwise equal on both sides (max 0.006). Serving takes columns 80/81 for every name in the producer's EMA state with no 12h freshness mask; only members reach the model and all members were fresh (T4b). Swapping both fund columns to training values: V2MAIN score Spearman 0.9988 (min 0.9915). Historical book effect NOT MEASURED (T4b: no fold checkpoints).",
+   "evidence": [
+    "combo_stage.py (b5c698f9) L141/L145 (v1 EMA, raw rate, all names, no freshness mask)",
+    "panel wide_panel_4h_v3splice (c5d10f6a, receipts_prod/pod2_reports dlw_ext features report) f_fund_ema v0 / f_fund_now; names outside live450 = 0 (T4b RECEIPT F2)",
+    "receipts_prod/parity_f10.json (cdaa197e, device file parity_f10.py sha256 fed8b141): pair_stats.total_FS_vs_T171 fund_ema/fund_now, score_family_substitution fund",
+    "f10_arrays.npz check in this builder (sha 45ae872026c0)",
+    "uplift_r2_2026-09-13/T4b/RESULT_T4b_v2main_feature_skew_2026-09-13.md §0-§4; AUDIT_TRAIN TRN-05, TRN-17"
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "live_trading",
+    "future_retrain"
+   ],
+   "severity": "P3",
+   "severity_reason": "Score-layer effect small (Spearman 0.999); book effect unmeasured; the October export reintroduces the split (TRN-05, P2 there).",
+   "recommended_action": "Decide the column-80 caliber for both models at once (PROD-04); give the monthly panel a row for every training anchor (TRN-17).",
+   "method": "VERIFIED"
+  },
+  {
+   "id": "PROD-40",
+   "layer": "PRODUCER / funding append (cross-reference)",
+   "title": "FX-PROD P9: the producer labels short-to-long interval-switch rows by the backward gap and inflates rn 2-4x",
+   "what_is_wrong": "Owned by FX-PROD (fix in progress, not re-derived here). It reaches every served consumer of rn: king and V2MAIN column 80 (v1 EMA), the fund leg's base-distribution rank, FTRIM's rn8 classification (PROD-24) and the carry estimate.",
+   "evidence": [
+    "shadow_loop_v3.py (e9c98374) L342",
+    "shadow_loop_v3.py (e9c98374) L344",
+    "combo_stage.py (b5c698f9) L243",
+    "FX-PROD P9 (lead message; docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md)"
+   ],
+   "status": "OPEN_MEASURED_MATERIAL",
+   "affects": [
+    "live_trading",
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "As assessed by FX-PROD; cross-referenced so the served-input register is complete.",
+   "recommended_action": "Follow FX-PROD P9; after its fix, re-read PROD-24 FTRIM counts and the column-80 contrast.",
+   "method": "CITED (FX-PROD P9)"
+  }
+ ],
+ "not_checked": [
+  "Book layer (P&L) of every model-input item: PROD-01/02/03 for 8d79186b and PROD-06/07/08/09 for V2MAIN are measured at the feature and score layers only.",
+  "Parity before 2026-09-05 16Z: served king inputs exist for 47 anchors (09-05 16Z..09-13 08Z) and served V2MAIN inputs are reproduced for 17 overlap anchors (09-05 16Z..09-10 20Z) plus 6 bitwise anchors; one regime, no crash anchors; the 29ffaf58 era (08-16..09-01) not covered.",
+  "V2MAIN column parity against the in-service model's own training rows (dlw_ext / f8_ext, pre-holefix cache, trained through 08-30): the x0910 rows built by the same builders on the holefix2 cache stand in; the ext rows were not compared.",
+  "The fund leg's served inputs (xz_in_base over the exchange base list) against any research panel; the rev24 leg (computed, masked out of combo); the king-form fallback path's parity.",
+  "The row count and model effect of E-0909-A in 8d79186b's training rows (PROD-34) and of the zero fund columns / pre-holefix cache in V2MAIN's (PROD-35).",
+  "FX-PROD P9's truth table (cross-referenced, not re-derived); T5d; T5b numbers (cited).",
+  "Other launchd jobs (c2shadow, universe_shadow, w4liqcapture, depthwatch, regime_dash) beyond confirming they do not write target_live/target_combo; the Telegram paths inside combo_stage.",
+  "Executor internals beyond reading the 12Z anchors/orders rows and legs.py/anchor_loop.py for EXE-03 (aud-exec scope); why PIEVERSEUSDT was capped after the reshape.",
+  "Why the combo book is persistently net short (EMA band freeze, keep-mask exits, cap clipping): the net is measured, its cause is not.",
+  "jpline (not accessed); pod2 GPU (not used)."
+ ],
+ "devices": [
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/members/members_stage.py",
+   "sha256": "95c82ec9a9c11b5b1dac07be8da2191e64ca57b1af0baadd975330964b9b3472",
+   "commits_newest_first": [
+    "84e7aa56",
+    "d9be5cb4"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/members/members_stage.sh",
+   "sha256": "89a0a9a4ca226d9158571630dc57aae3b7becf2dfc420d061bcf8caec3c9da98",
+   "commits_newest_first": [
+    "84e7aa56",
+    "d9be5cb4"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/members/members_audit.py",
+   "sha256": "7bc0a664158004ed351e0da300604d7b2c24d5a82788a65a39d990eb1a59cf3e",
+   "commits_newest_first": [
+    "fbab3d22",
+    "d9be5cb4"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/members/members_run_pod2.sh",
+   "sha256": "6500cbcd7e8c13b293fc22060faada530159b4639f29f3e9b246fa846153648d",
+   "commits_newest_first": [
+    "6ce1b9d5",
+    "d9be5cb4"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/state/state_seat_ledger_probe.py",
+   "sha256": "892582a7ac0c5f74ee06525429eeeba296e8d9aaa1d86c51175047537b9c4c2e",
+   "commits_newest_first": [
+    "ebf1ceaa"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/state/state_combo_timing_probe.py",
+   "sha256": "494354cdf1ef7e617a26338d26a3fcaa081b555a3acec942b9bc781f90502bc1",
+   "commits_newest_first": [
+    "a9c22ac4"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/parity/parity_x0910_extract.py",
+   "sha256": "d410a3eb7e567c1d7919e6731e188cebc57515cdc7df550540ab2de70043fd71",
+   "commits_newest_first": [
+    "c52af4ce"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/parity/parity_run_pod2.sh",
+   "sha256": "2e612aa01ec6c31e24dac438e1dd03f7cd83b793522157705562e1286452924f",
+   "commits_newest_first": [
+    "c52af4ce"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/parity/parity_king.py",
+   "sha256": "fad9f3c217041b02aa8df9f6a3a4e5dd00ceaef799cf836ca4e5aba59888b925",
+   "commits_newest_first": [
+    "3e71e0de"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/parity/parity_f10.py",
+   "sha256": "fed8b14187cfea2984e40ae33d0987ab9874b81d59cd3261737d2a8e01fc9101",
+   "commits_newest_first": [
+    "1127261e",
+    "a0222c39",
+    "d76ed216"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/parity/prod_target_checks.py",
+   "sha256": "2bd626fd7b17aeb9a687c1848d056da4cacdeff461339dc56883c215001bb120",
+   "commits_newest_first": [
+    "1b02c837",
+    "b59fb791"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/parity/parity_run_mac.sh",
+   "sha256": "0b15ccbb9b206a1a62eaec4668165478ace66b21cfcebf2f9c9ed5230a2786cb",
+   "commits_newest_first": [
+    "3e71e0de"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/parity/pod2_provenance.sh",
+   "sha256": "3fbed0bb6b8a17fc379775018d39e4cd6da8c4feac17bc1c30a5ed61e7d765b2",
+   "commits_newest_first": [
+    "e9debe97"
+   ]
+  },
+  {
+   "path": "docs/audit_pipeline_2026-09-13/devices_prod/build/build_audit_prod.py",
+   "sha256": "8471b88c010413e7656c1408a5513cb34586627b173799371df6154f207d18cf",
+   "commits_newest_first": [
+    "b3b34e8d"
+   ]
+  }
+ ],
+ "receipts_sha256": {
+  "parity_king.json": "9dbba68bab9b3142a091f0ef9f4eda6f03400e1f10d0da1a55fed76cd1447ebb",
+  "parity_king_columns.csv": "ef57d271c94e818e3bc7250c87658724a5c76c7618cce5a36f1d35dfe48155ec",
+  "parity_f10.json": "cdaa197ed78e1798553ca3dc8d83e943c993fa0710e04921465a4fcc08f0c1fd",
+  "parity_f10_columns.csv": "dee1047f4e3792b485e3e5a444814f27edb20c3c21ea1d76d45b89fc2d3ff70e",
+  "members_audit.json": "eb8d5da70fd90d12ba9571c827fe41610d5018501903a6315707ce1469bbfb88",
+  "prod_target_checks.json": "f8113efe3e20a8f5d5ab0514e8e94a97ef4fd8f49262d9358e975b708d77a76f",
+  "state_seat_ledger_probe.json": "97a02d3cb1bc63264a99c96c1e69a75a755a69a6ed361b1aacec1745a8849469",
+  "state_combo_timing_probe.json": "67654ea56ae3a3f7f631b886f28d4c2b1b4b4e20767d783cbb6de7862a6648af",
+  "parity_x0910_extract.json": "00cc505a057cf4ebc51519c70cd1337fe836d389e658532759ba1a297d57c57b",
+  "pod2_provenance.txt": "a7b8a4ad8fed1d7ff4b94d34a5f2b482dd72ecef8a6cb3e1307a24276182d9ad"
+ },
+ "column_table": {
+  "path": "docs/audit_pipeline_2026-09-13/AUDIT_PROD_columns.csv",
+  "rows": 253,
+  "classification_counts": {
+   "v2main_f10_351ae26b": {
+    "EQUIVALENT_FORMULA": 2,
+    "DIFFERENT": 129,
+    "IDENTICAL_CODE": 40,
+    "NOT_SERVED_TO_KING": 0
+   },
+   "king_lgbm_8d79186b": {
+    "EQUIVALENT_FORMULA": 1,
+    "DIFFERENT": 77,
+    "IDENTICAL_CODE": 0,
+    "NOT_SERVED_TO_KING": 4
+   }
+  }
+ }
+}
