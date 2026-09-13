@@ -354,40 +354,53 @@ lead 的 (ii) 写的是「TRIP-FLATTENED 是**那个锚**的新类, 因为看门
 | 20260909 | — | 无缺口(fills 已有 3,095 笔唯一成交) | 0 | 无事可做 |
 | 20260912 | `FLATTEN-20260912T124737Z` | 255/255 | **255** | **可归属**(若场所仍回得出) |
 
-**提案命令**(在运行树跑, 那里有凭据; 解释器与电池同一个 `/usr/bin/python3`):
+> **★ lead 裁定(2026-09-13)**: 三件事都**不挡落地**; 都属于操作员步骤, 因为它们**读场所、写账本**, 所以都要**用户字**。
+> ① 不捆绑: 第一次操作员运行**只做 09-12**(报告 → `--apply` → 复核报告); ② 8 批老平仓的 orderId 联接是**后续工单**, 不在本次落地;
+> ③ 09-09 fills 行重复写入记为**具名风险**。下面按裁定改写; 原「全历史一次跑完」的提案作废(见本节末的原因, 保留不删)。
+
+**建议的第一步操作员运行 —— 只做 09-12(需用户字; 在运行树跑, 那里有凭据; 解释器与电池同一个 `/usr/bin/python3`)**:
 
 ```bash
-# 第 1 步 —— 全历史报告(会用凭据读场所, 不写盘)。先读报告, 再决定第 2 步。
 cd ~/dl_quant_live
 mkdir -p ~/backfill_reports_20260913
-for d in 20260801 20260802 20260805 20260821 20260826 20260906 20260909 20260912; do
-  LIVE_MODE=LIVE /usr/bin/python3 ops/backfill_fills.py --day "$d" \
-    > ~/backfill_reports_20260913/report_"$d".json
-done
 
-# 第 2 步 —— 只对报告里「n_legs_rebuilt_from_venue > 0、无 warning、symbols_unreached 为空」的日子 --apply。
-# 按离线预判, 这只会是 09-12:
+# 1) 报告(会用凭据读场所, 不写盘)。读 n_gaps 与 results[0] 的 warning / n_legs_rebuilt_from_venue /
+#    n_trades_seen / n_trades_unattributed / n_rows_recoverable / symbols_unreached / read_failures。
+#    只有「n_legs_rebuilt_from_venue > 0、无 warning、symbols_unreached 为空」才进第 2 步。
+LIVE_MODE=LIVE /usr/bin/python3 ops/backfill_fills.py --day 20260912 \
+  > ~/backfill_reports_20260913/report_20260912.json
+
+# 2) 写入: 把测得的逐笔佣金补进 20260912 的 fills 行(订单行不改, append-only)。
 LIVE_MODE=LIVE /usr/bin/python3 ops/backfill_fills.py --day 20260912 --apply \
   > ~/backfill_reports_20260913/apply_20260912.json
 
-# 第 3 步 —— 幂等复核: 再报告一次 09-12, 应得 n_rows_written 0 且 n_rows_already_present == n_rows_recoverable。
+# 3) 复核报告: 应得 n_rows_written 0 且 n_rows_already_present == n_rows_recoverable(按 trade_id 幂等)。
 LIVE_MODE=LIVE /usr/bin/python3 ops/backfill_fills.py --day 20260912 \
   > ~/backfill_reports_20260913/recheck_20260912.json
 ```
 
-**每份报告要读的字段**: `n_gaps`; 每个 result 的 `warning`(拒写原因)、`n_legs_rebuilt_from_venue`、`n_trades_seen`、
-`n_trades_unattributed`、`n_rows_recoverable`、`symbols_unreached`、`read_failures`。
+**后续操作员工单(不在本次落地, 各自先报告再说)**:
 
-**需要 lead 另行裁定的三件事**:
-1. **`--day 20260802 --apply` 会连带写普通调仓批 `A1785657675` 的补回 fills 行**(不是平仓) —— 是否要它, 单独裁。
-2. **8 批补不回的平仓要不要改工具**: `state/live/watchdog/events.jsonl` 保留了每个跳闸日的平仓下单回包。按平仓形状
-   (`submit` 动作 ∧ `reduce_only` ∧ `tif=IOC`)逐日数「带回包 orderId 的动作」: 08-01 **105** · 08-02 **83** · 08-05 **210** ·
-   08-21 **210** · 08-26 **334** · 09-06 **268** · 09-09 **243** —— **与当日平仓订单行数逐日完全相等**(另各有 1–2 条无 orderId 的动作,
-   即下单失败那几条); 09-12 为 256 对 255 行。`userTrades` 本身按 orderId 归属, 所以按 events 里的 orderId 联接**在原则上能覆盖
-   全部历史平仓行**。但那是**工具改动**(新联接源 + 测试 + 旧码红), 不是命令; 且场所对只带 `startTime` 的查询能回溯到 08-01 与否未知。
-   不改的话, 这 1,210 行的费用只能标成「未测」或用 5 bps 这类**标明为估计**的数, 不能写成测得。
-3. **09-09 那批的 fills 行在账本里写了两遍**(6,190 = 2 × 3,095; 一遍 `rebuilt_from_venue`, 一遍 `backfilled_utc`, 无 `supersedes`)。
-   `collapse_supersedes` 读出 3,095; 任何不经它直接求和的费用读者会**翻倍**。佣金币种 BNB + USDT 混合, 换算要走现有 `fee_conversion`。
+| 工单 | 内容 | 为什么单列 |
+|---|---|---|
+| T-A `--day 20260802` | 先只报告; 该日的运行会**连带**查普通调仓批 `A1785657675`(缺 22 名 fills), `--apply` 会写它的补回 fills 行 —— 那不是平仓 | lead 裁定不捆绑: 副作用落在另一个人口上, 要自己的报告与用户字 |
+| T-B 8 批老平仓按 orderId 归属 | **工具改动**, 不是命令: `state/live/watchdog/events.jsonl` 里每个老跳闸日的平仓回包都带 orderId, 数量与当日平仓订单行**逐日相等**(08-01 105 · 08-02 83 · 08-05 210 · 08-21 210 · 08-26 334 · 09-06 268 · 09-09 243); `userTrades` 按 orderId 归属 ⇒ 在原则上能覆盖全部 1,210 行(09-09 那批 fills 层已测, 不在内)。需新联接源 + 测试 + 旧码红; 场所对只带 `startTime` 的查询能否回溯到 08-01 未知 | lead 裁定为后续工单 |
+
+**具名风险 R-FILLS-DUP(09-09 平仓批 fills 行写了两遍)**: `FLATTEN-20260909T164536Z` 在 `fills.jsonl` 里 6,190 行 = 3,095 笔唯一成交 × 2
+(一遍 `rebuilt_from_venue`, 一遍 `backfilled_utc`), 没有 `supersedes` 字段。`pilot_log.collapse_supersedes` 是**按裸 `trade_id` 后写覆盖**,
+所以它读出 3,095(注意: 同一裸 id 若跨 symbol 撞号也会被它合并 —— 研究员指出的继承边界)。
+**本次落地的读者不受影响**(lead 09-13 所述, 我方在 W2 克隆**只读核过**, 分支 `fix/readers-three-bucket` 工作树、文件尚未提交):
+W2 的 `live/cost_buckets.py` 读的是**订单行**的 `fee_paid`(L62 `f = o.get("fee_paid")`), 不读 fills 的 `commission`;
+`ops/first_anchor_review.py` 在求和前先折叠(L223 `_uf = PL.collapse_supersedes(fills)`)。
+**规则**: 以后任何对 `fills.jsonl` 的 `commission` 求和的读者, **必须先经 `collapse_supersedes`**, 否则 09-09 这批费用**翻倍**;
+佣金币种 BNB + USDT 混合, 求 USDT 还要走现有的费用换算(`fee_all_usdt` / `fee_conversion`)。
+
+<details><summary>原「全历史一次跑完」提案(已被上面的裁定取代, 保留原文)</summary>
+
+原提案对 8 个日目录(20260801 / 0802 / 0805 / 0821 / 0826 / 0906 / 0909 / 0912)循环跑报告, 再对报告合格的日子 `--apply`。
+按离线预判它只会真正补回 09-12; 其余 8 批 0 条腿拒写, 09-09 无缺口, 08-02 会连带一个普通调仓批。lead 裁定不捆绑, 故作废。
+
+</details>
 
 **即使三步都做完**: 订单层 `fee_paid` 为 None 的计数仍是 **1,704**(append-only), 尺子 `[E]` 费用格照报未测;
 研究员另指出的两处继承边界仍在 —— `find_gaps` 按 (批, 名) 有任一 fill 即不算缺口(部分成功后的重跑看不出缺),

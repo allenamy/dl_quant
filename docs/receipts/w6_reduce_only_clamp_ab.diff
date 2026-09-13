@@ -653,7 +653,7 @@ index e8fee1b..004a188 100644
  
  
 diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
-index 3142562..cc5c9c9 100644
+index 3142562..2f24cc0 100644
 --- a/live/tests_disposition_matrix.py
 +++ b/live/tests_disposition_matrix.py
 @@ -31,13 +31,35 @@
@@ -948,7 +948,7 @@ index 3142562..cc5c9c9 100644
  def _resize_sig(rid):
      row = _row_by_rid.get(rid) or {}
      eb = row.get("external_book") or {}
-@@ -378,6 +601,242 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
+@@ -378,6 +601,277 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
            for rb in _rebuild) if _rebuild else True,
        {rb: (_next_traded_after(rb), round(_tr_split[_next_traded_after(rb)][1])
              if _next_traded_after(rb) else None) for rb in _rebuild})
@@ -994,7 +994,10 @@ index 3142562..cc5c9c9 100644
 +#   `{"ts": evaluated_utc, "actions": broker.actions}` 追加进 state/live/watchdog/events.jsonl, 其中 `flatten_all`
 +#   动作的 `orders` 列表就是写这些行的来源(`_write_flatten_rows` 读累积的 stage1_orders)。于是可以逐行精确对账。
 +#   事实(2026-09-13 快照): 10 批全部有动作记录, 行数与 orders 长度逐批相等; 只有 09-12 那批的 orders 带 client_id
-+#   (唯一 client id 在 09-10 d73b1b0 之后才发), 其余 9 批按 (symbol, side, attempt_idx) 对 —— 该键在每批内唯一。
++#   (唯一 client id 在 09-10 d73b1b0 之后才发)。其余 9 批: 行上没有 order id(orderId 只在动作一侧), 但 (symbol, side,
++#   attempt_idx) 在两侧都批内唯一 ⇒ 确定性联接; 联上之后, 写者从 `_exec` 抄到行上的每个字段 —— filled_notional、
++#   avg_fill_px、first/last_fill_ts(= 场所成交时间, 毫秒)、mid_at_submit、intended_notional(= ±quantity × avg_fill_px)——
++#   10 批 1,708 行【逐位相等】。所以联接不是「看起来像」: 每一行就是那张单的记录。
 +_FLAT_EVENTS = os.path.join(_REPO, "state", "live", "watchdog", "events.jsonl")
 +
 +
@@ -1072,23 +1075,42 @@ index 3142562..cc5c9c9 100644
 +    return None if f is None else round(f * 100)
 +
 +
-+def _reconcile_flatten(rows, orders):
-+    """一批账本行 vs 该批动作记录的 orders, 【逐行精确】对账 ⇒ (不符清单, 联接身份)。清单空 = 精确相等。
++def _flat_intended(o):
++    """写者给平仓行的 intended_notional: ±quantity × avg_fill_px(无价 ⇒ None)。"""
++    ex = o.get("_exec") or {}
++    px, q = _fin(ex.get("avg_fill_px")), _fin(o.get("quantity"))
++    if not px or q is None:
++        return None
++    v = q * px
++    return -v if str(o.get("side") or "").lower() == "sell" else v
 +
-+    联接键: 动作的每张单都带 client_id ⇒ 按 client_id(lead 指定的键, 也是场所认得的每单身份), 并要求
-+    (symbol, side, attempt_idx) 同样一致; 否则按 (symbol, side, attempt_idx)(写者使其在批内唯一), 此时身份
-+    NOT OBSERVABLE(返回 None, 调用方必须点名)。逐行: filled_notional 到分相等; 终态 == 动作 `_exec` 推出的类;
-+    动作 `failed` 里登记的失败单, 其行终态必须不是 filled。批级: 行数相等, Σ(有符号)与 Σ|·| 到分相等。"""
++
++def _reconcile_flatten(rows, orders):
++    """一批账本行 vs 该批动作记录的 orders, 【逐行精确】对账 ⇒ (状态, 明细, 联接键)。
++
++    状态: "EXACT" / "MISMATCH" / "NOT_OBSERVABLE"。
++    联接键: 动作的每张单都带 client_id 且两侧唯一 ⇒ "client_id"; 否则 (symbol, side, attempt_idx) 在两侧都唯一 ⇒
++    "symbol_side_attempt"; 两者都不成立 ⇒ 没有确定性联接 ⇒ NOT_OBSERVABLE(不是不符, 也绝不是通过)。
++    联上之后逐行【逐位】比写者从单与 `_exec` 抄到行上的每个字段(filled_notional / avg_fill_px / first_fill_ts /
++    last_fill_ts / mid_at_submit / intended_notional), 两侧都带 client_id 时也比 client_id, 终态必须等于 `_exec` 推出的类,
++    `failed` 里登记的单不得写成 filled; 批级: 行数相等, Σ(有符号)与 Σ|·| 到分相等。"""
++    def uniq(keyf, xs):
++        c = collections.Counter(keyf(x) for x in xs)
++        return all(v == 1 for v in c.values())
++    cid_all = bool(orders) and all(o.get("client_id") for o in orders)
++    cidf = lambda d: ("client_id", str(d.get("client_id")))                      # noqa: E731
++    if cid_all and uniq(cidf, orders) and uniq(cidf, rows):
++        kf, how = cidf, "client_id"
++    elif uniq(_flat_key, orders) and uniq(_flat_key, rows):
++        kf, how = _flat_key, "symbol_side_attempt"
++    else:
++        return "NOT_OBSERVABLE", ["no deterministic join: neither client_id nor (symbol, side, attempt_idx) is "
++                                  "unique on both sides"], None
 +    mm = []
-+    use_cid = bool(orders) and all(o.get("client_id") for o in orders)
-+    kf = (lambda d: ("client_id", str(d.get("client_id")))) if use_cid else _flat_key
 +    if len(rows) != len(orders):
 +        mm.append(f"count: ledger {len(rows)} vs action {len(orders)}")
-+    rk, ok_ = collections.Counter(kf(r) for r in rows), collections.Counter(kf(o) for o in orders)
-+    dup = [k for k, v in list(rk.items()) + list(ok_.items()) if v > 1]
-+    if dup:
-+        mm.append(f"join key not unique: {dup[:3]}")
-+    only_r, only_o = sorted(set(rk) - set(ok_)), sorted(set(ok_) - set(rk))
++    rk, ok_ = {kf(r) for r in rows}, {kf(o) for o in orders}
++    only_r, only_o = sorted(rk - ok_), sorted(ok_ - rk)
 +    if only_r:
 +        mm.append(f"{len(only_r)} ledger row(s) with no action order, e.g. {only_r[:2]}")
 +    if only_o:
@@ -1099,21 +1121,27 @@ index 3142562..cc5c9c9 100644
 +        if r is None:
 +            continue
 +        ex = o.get("_exec") or {}
-+        if use_cid and _flat_key(r) != _flat_key(o):
-+            mm.append(f"{kf(o)}: same client_id, different (symbol, side, attempt): {_flat_key(r)} vs {_flat_key(o)}")
-+        if _flat_cents(r.get("filled_notional")) != _flat_cents(ex.get("filled_notional")):
-+            mm.append(f"{kf(o)}: filled_notional ledger {r.get('filled_notional')} vs action {ex.get('filled_notional')}")
-+        want = _flatten_row_class(ex)
-+        if str(r.get("terminal_reason")) != want:
-+            mm.append(f"{kf(o)}: terminal ledger {r.get('terminal_reason')} vs action-derived {want}")
++        k = kf(o)
++        if _flat_key(r) != _flat_key(o):
++            mm.append(f"{k}: (symbol, side, attempt) ledger {_flat_key(r)} vs action {_flat_key(o)}")
++        if (r.get("client_id") or o.get("client_id")) and r.get("client_id") != o.get("client_id"):
++            mm.append(f"{k}: client_id ledger {r.get('client_id')} vs action {o.get('client_id')}")
++        for field, want in (("filled_notional", ex.get("filled_notional")), ("avg_fill_px", ex.get("avg_fill_px")),
++                            ("first_fill_ts", ex.get("fill_ts")), ("last_fill_ts", ex.get("fill_ts")),
++                            ("mid_at_submit", ex.get("mid_at_submit")), ("intended_notional", _flat_intended(o))):
++            if r.get(field) != want:
++                mm.append(f"{k}: {field} ledger {r.get(field)!r} vs action {want!r}")
++        cls = _flatten_row_class(ex)
++        if str(r.get("terminal_reason")) != cls:
++            mm.append(f"{k}: terminal ledger {r.get('terminal_reason')} vs action-derived {cls}")
 +        if o.get("_recorded_failure") is not None and str(r.get("terminal_reason")) == "filled":
-+            mm.append(f"{kf(o)}: the action lists this order as FAILED but the ledger row says filled")
++            mm.append(f"{k}: the action lists this order as FAILED but the ledger row says filled")
 +    for label, fn in (("Σ filled (signed)", lambda v: v), ("Σ|filled|", abs)):
 +        sr = round(sum(fn(_fin(r.get("filled_notional")) or 0.0) for r in rows) * 100)
 +        so = round(sum(fn(_fin((o.get("_exec") or {}).get("filled_notional")) or 0.0) for o in orders) * 100)
 +        if sr != so:
 +            mm.append(f"{label}: ledger {sr / 100:.2f} vs action {so / 100:.2f}")
-+    return mm, ("client_id" if use_cid else None)
++    return ("MISMATCH" if mm else "EXACT"), mm, how
 +
 +
 +def _batch_ts(b):
@@ -1121,50 +1149,57 @@ index 3142562..cc5c9c9 100644
 +
 +
 +_flat_actions = _flatten_action_orders()
-+_flat_recon, _flat_no_record, _flat_identity = {}, [], {}
++_flat_state, _flat_detail, _flat_join = {}, {}, {}
 +for _b, _rr in _flat_batches.items():
-+    if _flat_actions is None or _b not in _flat_actions:
-+        _flat_no_record.append(_b)
-+        continue
-+    _flat_recon[_b], _flat_identity[_b] = _reconcile_flatten(_rr, _flat_actions[_b])
-+check("★★★ a TRIP-FLATTENED batch's ledger rows are EXACTLY the ladder's own `flatten_all` orders (the "
-+      "watchdog's action record in its event log): the same set — joined on client_id where the orders "
-+      "carry one, else on (symbol, side, attempt_idx), unique per batch — the same count, every row's "
-+      "filled_notional and the batch's Σ (signed and absolute) equal to the CENT, and every row's terminal "
-+      "state the class its own action record implies (filled, or an explicitly recorded rejection / "
-+      "unknown). A batch with NO action record is NOT OBSERVABLE: it is named and it FAILS this cell — a "
-+      "completeness claim the record cannot back is never made",
-+      _flat_actions is not None and bool(_flat_recon) and not _flat_no_record
-+      and all(not mm for mm in _flat_recon.values()),
-+      ("NOT OBSERVABLE: no watchdog event log at state/live/watchdog/events.jsonl" if _flat_actions is None else
-+       {"reconciled_exactly": len([b for b, mm in _flat_recon.items() if not mm]),
-+        "rows_reconciled": sum(len(_flat_batches[b]) for b, mm in _flat_recon.items() if not mm),
-+        "mismatched": {b: mm[:3] for b, mm in _flat_recon.items() if mm},
-+        "NOT_OBSERVABLE_no_action_record": sorted(_flat_no_record)}))
-+_cid_batches = sorted((b for b, k in _flat_identity.items() if k == "client_id"), key=_batch_ts)
-+_nocid_batches = sorted((b for b, k in _flat_identity.items() if k is None), key=_batch_ts)
++    if _flat_actions is None:
++        _flat_state[_b], _flat_detail[_b], _flat_join[_b] = "NOT_OBSERVABLE", ["no watchdog event log"], None
++    elif _b not in _flat_actions:
++        _flat_state[_b], _flat_detail[_b], _flat_join[_b] = "NOT_OBSERVABLE", ["no flatten_all action record"], None
++    else:
++        _flat_state[_b], _flat_detail[_b], _flat_join[_b] = _reconcile_flatten(_rr, _flat_actions[_b])
++_flat_exact = sorted((b for b, v in _flat_state.items() if v == "EXACT"), key=_batch_ts)
++_flat_notobs = {b: _flat_detail[b] for b, v in _flat_state.items() if v == "NOT_OBSERVABLE"}
++_flat_mism = {b: _flat_detail[b][:3] for b, v in _flat_state.items() if v == "MISMATCH"}
++check("★★★ COMPLETENESS of a TRIP-FLATTENED batch is an EXACT reconciliation against the ladder's OWN action "
++      "record (the `flatten_all` action in state/live/watchdog/events.jsonl): joined on client_id where the "
++      "orders carry one, else on (symbol, side, attempt_idx) when that is unique on both sides; the same "
++      "set, the same count, every field the writer copies from the order and its `_exec` identical row by "
++      "row (filled_notional, fill price, venue fill time, mid at submit, intended notional), Σ|filled| and "
++      "Σ signed equal to the cent, and every row's terminal state the class its `_exec` implies — filled, or "
++      "an explicitly recorded failure. A batch with no action record, or with no deterministic join, is "
++      "NOT OBSERVABLE: it is NAMED and this cell FAILS — completeness the record cannot back is never passed",
++      bool(_flat_state) and not _flat_notobs and not _flat_mism and len(_flat_exact) == len(_flat_state),
++      {"EXACT": len(_flat_exact),
++       "rows_reconciled": sum(len(_flat_batches[b]) for b in _flat_exact),
++       "join": dict(collections.Counter(_flat_join[b] for b in _flat_exact)),
++       "MISMATCH": _flat_mism,
++       "NOT_OBSERVABLE": _flat_notobs})
++_cid_batches = sorted((b for b in _flat_exact if _flat_join[b] == "client_id"), key=_batch_ts)
++_nocid_batches = sorted((b for b in _flat_exact if _flat_join[b] == "symbol_side_attempt"), key=_batch_ts)
 +_first_cid_ts = min((_batch_ts(b) for b in _cid_batches), default=None)
-+check("★★★ ...and the join is on the order's own IDENTITY (client_id) wherever the ladder minted one. The "
-+      "batches whose action records carry NO client_id (the ladder sent none before the unique-client-id "
-+      "change) are reconciled on (symbol, side, attempt_idx) and are named IDENTITY NOT OBSERVABLE — not "
-+      "counted as identity-reconciled. That population is CLOSED: every such batch precedes the first batch "
-+      "whose record carries client ids, so a NEW flatten written without client ids goes red here",
++check("★★★ ...and which JOIN carried each batch is itself asserted: client_id wherever the ladder minted one; the "
++      "batches joined on (symbol, side, attempt_idx) are exactly the ones written before the ladder sent client "
++      "ids (their rows carry no order id — the orderIds exist only on the action side), and that population is "
++      "CLOSED: every one of them precedes the first batch whose record carries client ids, so a NEW flatten "
++      "written without client ids goes red here even though it would still reconcile",
 +      bool(_cid_batches) and _first_cid_ts is not None
 +      and all(_batch_ts(b) < _first_cid_ts for b in _nocid_batches),
-+      {"identity_reconciled_on_client_id": _cid_batches,
-+       "IDENTITY_NOT_OBSERVABLE__content_reconciled": _nocid_batches})
-+check("★★★ ...and the exit COVERED the book and COMPLETED: every `protective_flatten` row ended `filled`, the "
-+      "batch sits inside a TRADING anchor's interval, and Σ|filled_notional| is within 10% of that anchor's "
-+      "own realized gross. This is a COVERAGE and OUTCOME relation, NOT a completeness proof (5 of 100 equal "
-+      "rows deleted would still sit inside the band — completeness is the exact reconciliation above). A "
-+      "recorded rejection is ACCOUNTED FOR by that reconciliation, and it still goes red here, because an "
-+      "exit with a refused order did not close the book",
++      {"joined_on_client_id": _cid_batches, "joined_on_symbol_side_attempt": _nocid_batches})
++check("★★★ ...and the exit COMPLETED: every `protective_flatten` row ended `filled` with a non-zero notional. "
++      "An explicitly recorded rejection is ACCOUNTED FOR by the reconciliation above — and it still goes red "
++      "HERE, because an exit with a refused order did not close the book",
++      bool(_flat_facts) and all(f["n_rows"] > 0 and f["all_filled"] and f["filled_usdt"] > 0
++                                for f in _flat_facts.values()),
++      {b: (f["n_rows"], "rows, all filled:", f["all_filled"]) for b, f in _flat_facts.items()})
++check("★★ SECONDARY PLAUSIBILITY ONLY — NOT the completeness proof: the batch sits inside a TRADING anchor's "
++      "interval and its Σ|filled_notional| is within 10% of that anchor's own realized gross (the ladder closed "
++      "about the whole book, not a sliver of it). This band passes with 5 of 100 equal rows deleted; "
++      "completeness is the exact reconciliation above",
 +      bool(_flat_facts) and all(
-+          f["n_rows"] > 0 and f["all_filled"] and f["filled_usdt"] > 0 and f["anchor_traded"]
++          f["anchor_traded"]
 +          and abs(f["filled_usdt"] - f["anchor_realized"]) <= 0.10 * max(f["anchor_realized"], 1.0)
 +          for f in _flat_facts.values()),
-+      {b: (f["n_rows"], f["filled_usdt"], "vs realized of", f["anchor"], f["anchor_realized"])
-+       for b, f in _flat_facts.items()})
++      {b: (f["filled_usdt"], "vs realized of", f["anchor"], f["anchor_realized"]) for b, f in _flat_facts.items()})
 +check("★★★ ...and the flatten's FEE is reported UNMEASURED, never summed as zero — the ladder "
 +      "writes `fee_paid` None on rows it never priced, and a batch holding any such row reports "
 +      "its fee as None. `fee or 0` would print 0.00 USDT of cost for a whole book of IOC taker "
@@ -1191,7 +1226,7 @@ index 3142562..cc5c9c9 100644
  # ★ 2026-08-18 尺子重标定: 原断言在 TOTAL(自愿+非自愿)上执行, 隐含前提"没有合法的大额
  #   自愿弃单"。当日 04:00Z 入金 resize(2×NAV, 目标增量 2.6×)被 no-chase 政策正确弃单
  #   1424 USDT(全部 deliberate, involuntary=0), 打破了按无大额重整时代标定的 0.25 界 ——
-@@ -429,6 +888,270 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
+@@ -429,6 +923,289 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
        and all(abs(_old_d[r] - _tr_split[r][0]) < 1e-2 for r in _traded if r not in _gt20),
        {r: (round(_old_d[r]), round(_tr_split[r][0])) for r in _gt20 if abs(_old_d[r] - _tr_split[r][0]) > 1.0})
  
@@ -1410,26 +1445,33 @@ index 3142562..cc5c9c9 100644
 +
 +_flat_mut = {}
 +for _b in ([_cid_batches[-1]] if _cid_batches else []) + ([_nocid_batches[-1]] if _nocid_batches else []):
-+    _rows0 = [dict(r) for r in _flat_batches[_b]]
-+    _del = _rows0[1:]
++    _rows0, _acts0 = [dict(r) for r in _flat_batches[_b]], _flat_actions[_b]
 +    _alt = [dict(r) for r in _rows0]
 +    _alt[0]["filled_notional"] = float(_alt[0]["filled_notional"]) + 0.01
-+    _flat_mut[_b] = {"identity": _flat_identity.get(_b),
-+                     "untouched": _reconcile_flatten(_rows0, _flat_actions[_b])[0],
-+                     "delete_one_row": _reconcile_flatten(_del, _flat_actions[_b])[0],
-+                     "move_one_row_by_one_cent": _reconcile_flatten(_alt, _flat_actions[_b])[0],
-+                     "band_passes_both_mutants": _band_ok(_del, _b) and _band_ok(_alt, _b)}
-+check("★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client-id batch AND on a real "
-+      "content-key batch: DELETE ONE ledger row ⇒ red; MOVE ONE row's filled_notional by ONE CENT ⇒ red; "
-+      "the untouched batch ⇒ clean. And the ±10% band it replaced as the completeness proof PASSES both "
-+      "mutants — which is exactly why it could not be that proof",
++    _ts = [dict(r) for r in _rows0]
++    _ts[0]["first_fill_ts"] = float(_ts[0]["first_fill_ts"]) + 0.001
++    _flat_mut[_b] = {
++        "join": _flat_join.get(_b),
++        "untouched": _reconcile_flatten(_rows0, _acts0)[0],
++        "delete_one_ledger_row": _reconcile_flatten(_rows0[1:], _acts0)[0],
++        "alter_one_row_filled_notional_by_one_cent": _reconcile_flatten(_alt, _acts0)[0],
++        "drop_one_order_from_the_action_record": _reconcile_flatten(_rows0, _acts0[1:])[0],
++        "alter_one_row_venue_fill_time_by_1ms": _reconcile_flatten(_ts, _acts0)[0],
++        "band_passes_the_two_ledger_mutants": _band_ok(_rows0[1:], _b) and _band_ok(_alt, _b)}
++_MUTS = ("delete_one_ledger_row", "alter_one_row_filled_notional_by_one_cent",
++         "drop_one_order_from_the_action_record", "alter_one_row_venue_fill_time_by_1ms")
++check("★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client_id-joined batch AND on a real "
++      "(symbol, side, attempt_idx)-joined batch: DELETE ONE ledger row ⇒ red; ALTER ONE row's filled_notional "
++      "(by one cent) ⇒ red; DROP ONE ORDER from the action record ⇒ red; move one row's venue fill time by 1 ms ⇒ "
++      "red (the per-row field equality is live, not decoration); the untouched batch ⇒ EXACT. And the ±10% band "
++      "passes both ledger-side mutants — which is exactly why it cannot be the completeness proof",
 +      len(_flat_mut) == 2
-+      and {v["identity"] for v in _flat_mut.values()} == {"client_id", None}
-+      and all(not v["untouched"] and v["delete_one_row"] and v["move_one_row_by_one_cent"]
-+              and v["band_passes_both_mutants"] for v in _flat_mut.values()),
-+      {b: {"identity": v["identity"], "untouched": len(v["untouched"]),
-+           "delete_one_row": v["delete_one_row"][:2], "move_one_row_by_one_cent": v["move_one_row_by_one_cent"][:2],
-+           "band_passes_both_mutants": v["band_passes_both_mutants"]} for b, v in _flat_mut.items()})
++      and {v["join"] for v in _flat_mut.values()} == {"client_id", "symbol_side_attempt"}
++      and all(v["untouched"] == "EXACT" and all(v[m] == "MISMATCH" for m in _MUTS)
++              and v["band_passes_the_two_ledger_mutants"] for v in _flat_mut.values()),
++      {b: {"join": v["join"], "untouched": v["untouched"], **{m: v[m] for m in _MUTS},
++           "band_passes_the_two_ledger_mutants": v["band_passes_the_two_ledger_mutants"]}
++       for b, v in _flat_mut.items()})
 +_fail_act = {"action": "flatten_all", "orders": [
 +    {"symbol": "AAAUSDT", "side": "sell", "attempt_idx": 1, "quantity": 1.0,
 +     "_exec": {"submitted": True, "error": None, "filled_notional": -10.0}},
@@ -1446,11 +1488,23 @@ index 3142562..cc5c9c9 100644
 +      "is written `submitted_rejected` reconciles clean; the same refusal written `filled` goes red twice — once "
 +      "because its own `_exec` implies `submitted_rejected`, once because the action lists it in `failed` (matched "
 +      "by key through a JSON round-trip, as the event log stores it)",
-+      not _reconcile_flatten(_fail_rows_ok, _fail_orders)[0]
-+      and len([m for m in _reconcile_flatten(_fail_rows_hidden, _fail_orders)[0]
-+               if "BBBUSDT" in m]) == 2
++      _reconcile_flatten(_fail_rows_ok, _fail_orders)[0] == "EXACT"
++      and _reconcile_flatten(_fail_rows_hidden, _fail_orders)[0] == "MISMATCH"
++      and len([m for m in _reconcile_flatten(_fail_rows_hidden, _fail_orders)[1]
++               if "BBBUSDT" in m and ("terminal" in m or "FAILED" in m)]) == 2
 +      and sum(1 for o in _fail_orders if o.get("_recorded_failure")) == 1,
-+      (_reconcile_flatten(_fail_rows_ok, _fail_orders)[0], _reconcile_flatten(_fail_rows_hidden, _fail_orders)[0]))
++      (_reconcile_flatten(_fail_rows_ok, _fail_orders)[:2], _reconcile_flatten(_fail_rows_hidden, _fail_orders)[:2]))
++_nj_orders = [{"symbol": "CCCUSDT", "side": "sell", "attempt_idx": 1, "quantity": 1.0,
++               "_exec": {"submitted": True, "error": None, "filled_notional": -5.0, "avg_fill_px": 5.0}},
++              {"symbol": "CCCUSDT", "side": "sell", "attempt_idx": 1, "quantity": 2.0,
++               "_exec": {"submitted": True, "error": None, "filled_notional": -10.0, "avg_fill_px": 5.0}}]
++_nj_rows = [{"symbol": "CCCUSDT", "side": "sell", "attempt_idx": 1, "filled_notional": -5.0, "terminal_reason": "filled"},
++            {"symbol": "CCCUSDT", "side": "sell", "attempt_idx": 1, "filled_notional": -10.0, "terminal_reason": "filled"}]
++_nj = _reconcile_flatten(_nj_rows, _nj_orders)
++check("★★ ...and where NO deterministic join exists — no client ids, and (symbol, side, attempt_idx) repeated inside "
++      "the batch — the batch is NOT_OBSERVABLE with that reason, never EXACT and never a silent MISMATCH: a "
++      "reconciliation that cannot tell two orders apart does not get to call their rows complete",
++      _nj[0] == "NOT_OBSERVABLE" and _nj[2] is None and "no deterministic join" in _nj[1][0], _nj)
 +_fee_fx = [{"fee_paid": None}, {"fee_paid": 0.0}, {"fee_paid": 0.5}]
 +check("★★★ ...and `fee_paid` None and 0.0 are DIFFERENT facts inside that class — one unmeasured "
 +      "row makes the batch's fee UNMEASURED (None); with every row measured it reports the sum. "
