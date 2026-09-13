@@ -1,0 +1,37 @@
+tree ef60f85 daily_summary.py bf4151a8365c3c82
+[0] fixture
+  OK    PRE: 24 daily_nav rows, 20 amendment records (6+6+6 pre-fix days, 2 pre-fix rows on 09-12), all keys matched
+
+[A] ★★★ a real pre-fix row with its record
+  OK    PRE: the row is pre-fix (no realised_by_type_asset) and records COMMISSION −8.891
+  FAIL  ★★★ A1 caliber amended_from_income_ledger; COMMISSION −18.1413135 USDT; total = the record's USDT total (old tree: legacy caliber with −8.891)  — {'caliber': 'legacy_carrier_sum_usdt_assumed', 'usdt': 124.72862885999982, 'by_type_usdt': {'REALIZED_PNL': 215.42859276999985, 'COMMISSION': -8.890984370000002, 'FUNDING_FEE': -81.80897954000002}}
+  FAIL  ★★ A2 08-30: 0 USDT commission and −0.00509188 BNB listed UNCONVERTED, never added into the USDT total  — []
+  FAIL  ★★ A3 09-06 after the 08:46Z flatten: recorded −0.00305 vs amended −16.92422909 USDT + −0.08442802 BNB  — {'REALIZED_PNL': -2446.320991359999, 'COMMISSION': -0.0030549600000000015, 'FUNDING_FEE': -33.048158690000015}
+
+[B] account_facts + render
+  FAIL  ★★ B1 account_facts accepts amendment records  — no amendments parameter in this tree
+
+[C] ★★★ a pre-fix row without a record is named unreliable
+  FAIL  ★★★ C1 legacy value kept, caliber unchanged, but marked unreliable (old tree: no mark)  — None
+  FAIL  ★★ C2 the render prints the unreliable line  — ['   期货钱包余额 (wallet)        115,996.21   ← 已落袋的一切: 本金 + 累计已实现', '\n   当日已实现   +124.7286 USDT   [口径: 载体原数和, 币种未拆分, **假定**全 USDT (2026-09-12 06:05Z 前的行)]   = 交易 +215.4286  手续费 -8.8910  资金费 -81.8090']
+
+[D] a post-fix row ignores a record
+  OK    D1 the row's own per-asset split wins (caliber usdt_only, COMMISSION −128.846)  — usdt_only
+
+[E] loader
+  FAIL  E0 load_realised_amendments exists  — absent in this tree
+
+[F] main() wiring (static)
+  FAIL  ★ F1 main loads the record ledger from the mode root and passes it to account_facts and the same-day block
+
+3/11 checks passed
+FAILED:
+  ★★★ A1 caliber amended_from_income_ledger; COMMISSION −18.1413135 USDT; total = the record's USDT total (old tree: legacy caliber with −8.891)
+  ★★ A2 08-30: 0 USDT commission and −0.00509188 BNB listed UNCONVERTED, never added into the USDT total
+  ★★ A3 09-06 after the 08:46Z flatten: recorded −0.00305 vs amended −16.92422909 USDT + −0.08442802 BNB
+  ★★ B1 account_facts accepts amendment records
+  ★★★ C1 legacy value kept, caliber unchanged, but marked unreliable (old tree: no mark)
+  ★★ C2 the render prints the unreliable line
+  E0 load_realised_amendments exists
+  ★ F1 main loads the record ledger from the mode root and passes it to account_facts and the same-day block
+rc=1
