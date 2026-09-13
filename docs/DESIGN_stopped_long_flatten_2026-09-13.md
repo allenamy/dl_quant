@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13 09:3xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (teammate X1, 派工 W9) | **状态:** §1 事实表 + §2 设计先于代码 → §3 测试计划 → **§4 结果: W9 尖端 `2f2a63b`(栈基底 `2230307`), diff sha `026e872d…`, 4-diff 栈电池 rc 1(唯一红 tests_env_loading, 无 .env); 未部署** | **作废条件:** 执行器 `apply_withhold_and_reshape` / `clamp_held_untradable` / `reshape_after_withhold` / 逐名止损接线改动; 或用户裁定条款动作改为别的形态
+> **创建:** 2026-09-13 09:3xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (teammate X1, 派工 W9) | **状态:** §1 事实表 + §2 设计先于代码 → §3 测试计划 → **§4 结果 + §4.5 实盘 08Z 缺口 [R10] + §4.6 终版收据: W9 尖端 `e8651a3`(栈基底 `2230307`), diff sha `f8beb082…`, 4-diff 栈电池 rc 1(唯一红 tests_env_loading, 无 .env); 未部署** | **作废条件:** 执行器 `apply_withhold_and_reshape` / `clamp_held_untradable` / `reshape_after_withhold` / 逐名止损接线改动; 或用户裁定条款动作改为别的形态
 
 # DESIGN W9: 已停名(逐名止损)的目标被 reshape 平移, 多头停不到 0
 
@@ -78,3 +78,26 @@
 3. **F12 具名差异不改**: 条款原文「政策 A 不追」, 现 flatten_only 通道的补单腿走执行器的追单框架(已停空头早有 `topup_taker:filled`)。W9 不改, 交 lead / 用户裁。
 4. **告警文案**: anchor_loop 对 clamp 桶的 HIGH 告警写「withheld by the venue (maxNotionalValue=0)」, 对已停 / 冷却名同样这么写(既有文案, 未改)。
 5. 旧码下 W9 修复会让已停多头变成全退出; **不得先于 W6 落地**(F11)。
+
+### 4.5 追加 [R10]: 实盘 09-13 08Z 撤名缺口(lead 08Z 只读深查事实, 10:0x–10:3xZ)
+| # | 事实 | 在哪测的 |
+|---|---|---|
+| F15 | 锚 1789286400(rid A1789287840): 撤名 11 名(COLLECT / CYS / FLOCK / HEMI / IOST / LSK / MAGMA / PAXG / RIVER / TRIA / XAN), `reshape.net_before` **−20,475.814437** USDT = sizing gross 235,542.59 的 **−8.69%**(目标 gross 截断后 235,111.02); 空仓、`opening_halted` True, 订单行 243 `blocked_by_halt` + 1 `skipped_min_notional`; `per_name_stop.json` cooldown 10 / stopped 0 | 运行树只读: anchors.jsonl / orders.jsonl / anchor_runs.log phase_A / `~/wide_shadow/state/target_live/1789286400.json`(sha == phase_A json_sha)/ `state/live/exchange_info_cache.json`; `w9_fact_reconstruct_0913_08z.{py,log}` |
+| F16 | 重建精确: net_before 逐位、`names_crossed_floor` ['1000CATUSDT'] 逐字、244 个记录目标 243 个 ≤ 1e-6(PIEVERSE 差 431.57 = 其后的 E-0909-E 场所上限截断); 平移 a = +90.68 USDT, 标度 b = 1.3099 | 同上 |
+| F17 | **派工原句「no non-stopped name crosses the min_notional threshold solely because of the re-distribution」在真账本上不成立, 且与 W9 无关**: 本锚没有任何已停名, reshape 自己就把 **1000CATUSDT 从 −80.88 平移到 +3.28**(门槛 5.0), 账本记着, 该锚告警按接缝设计「只报告不迭代」 | 同上 |
+| F18 | 场景: 11 名中 IOST(09-12 12Z 实持已停多头 +37.986624)与 LSK(实持已停空头 −85.77049)改为「已停且持仓」—— 在 W9 下它们与真锚里被撤一样**不进重整人口**, 所以缺口、平移、跨门槛集合与真锚逐位相同 | `anchor_1789286400.json` scenario 字段 |
+
+格(`tests_per_name_stop` [R10], 4 个检查点): R10a 夹具有效性(F16); R10b IOST / LSK 恰 0.0 且只落 flatten_only; R10c 可交易书净 0、gross = sizing(≤ 1e-6), 撤名残差仍 −20,475.81; R10d 跨门槛集合 == 账本 ['1000CATUSDT'] 且不含已停名(W9 可归因的那一半), 并在格名中点名 1000CAT 是缺口本身造成的。
+旧码(2230307): R10a 绿; R10b 红(IOST add_blocked 37.99); R10c 红(非止损书净额 −179.74); R10d 红(旧码报告跨门槛 ['1000CATUSDT', 'IOSTUSDT', 'LSKUSDT'] —— 已停名本身从 0 被平移过门槛, 会触发一条把已停名当「重整改变可交易性」的 HIGH 告警)。全文件: 旧码 **34 PASS / 31 FAIL rc 1**, 新码 **65/65**。
+
+### 4.6 收据(终版, 取代 4.1 / 4.3 中 2f2a63b 的数)
+| 件 | 值 |
+|---|---|
+| **W9 尖端** | **`e8651a3c85f99f64db5847e920a7c9d32fcc3829`** = `2f2a63b` + [R10](测试与夹具 only); 基底 `2230307` 不变 |
+| `w9_stopped_long_flatten.diff` | `git diff 2230307 e8651a3`; 10 文件 +9,747 −9; sha256 **`f8beb082eee869d87dab339f798fcec4101d307356510244f3402b283c16eacc`**(cc_tmp 生成件与 Desktop 副本均经 t6_sha_guard: 非 dataless 且读入字节 == st_size) |
+| 顺序可用性 | 新 918559f 工作树依次 apply 四份 diff(每份先过 guard), 结果树 `ed2f8819…` == e8651a3 的树(`w9_apply_check.log`) |
+| 旧码红 / AST | `w9_oldcode_red_2230307.log`(34 / 31 rc 1); `w9_ast_check.log`(原 18 个检查点逐字同序, 新增 23 个; tests_book_reshape 40 / tests_external_book 100 未改) |
+| 与 lead 独立旧码跑对账 | lead 的 `w9_lead_oldcode_red_on_r4stack.log`(lead 栈克隆 `exec_land_stack_20260913T085514Z`, 跑的是加 [R10] 之前的测试文件, 61 个检查点): **33 PASS / 28 FAIL**; 与 `w9_oldcode_red_2230307.log` 去掉 R10a–d 后逐条判决序列**完全相同**(我方多出的 4 条 = R10a 绿 + R10b/c/d 红, 合计 34 / 31)。同目录 `w9_lead_oldcode_red_on_r4stack_INVALID_missing_fixtures.log` 是夹具未放入时在 `_fixture` 处 FileNotFoundError 崩溃的跑, 不是判决 |
+| 电池 | `/Users/haosiyu/cc_tmp/w9_battery` @ `e8651a3`, 同一工作树内 `rm -rf state` 后重新 `cp -R ~/dl_quant_live/state`(10:13:44Z), 未复制 `.env`; 10:13:50Z 开跑(避开 HH:20–45)、10:31:08Z 结束, 起止 HEAD 均 `e8651a3`, 状态外追踪改动 0。**电池自报**: 135 行 = 130 个 tests_* 套件 + 5 个门; **134 行 rc 0; 1 行红 = `tests_env_loading`(rc 1, 四格 TELEGRAM_* on import, 克隆无 `.env`)**; 末行 `ACCEPTANCE: NOT GREEN — at least one suite failed (see table above)`; **battery rc = 1**, 不是全绿; `tests_per_name_stop` 65/65 rc 0。收据 `w9_battery_e8651a3.log`; 逐套日志另存 `/Users/haosiyu/cc_tmp/x1_w9_battery_archive/` |
+| 已被取代 | 2f2a63b 的 diff `026e872d…` 与电池 `w9_battery_2f2a63b.log`(同一 worktree 刷新 state 时其逐套日志已删, 表与 meta 留在收据里) |
+| 哈希复核(lead 10:0xZ 规则) | 本会话报过的 diff sha 在 cc_tmp 重新生成后经 guard 复核全部一致: W6ab 259f50a6 / W6c 15d29d99 / W9(2f2a63b)026e872d; `docs/receipts/w6_proportional_response_c.diff` 与 T5b `private/COPY_SHA256.txt` 此刻为 dataless, 未读(内容可由 git 重生成, 已核) |
