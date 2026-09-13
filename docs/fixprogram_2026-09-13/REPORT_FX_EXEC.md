@@ -105,3 +105,56 @@ Committed, receipts committed, not deployed.
 
 ## 队列
 E10(LED-06)→ ALM-03 → OPS-01b → E5(EXE-07)→ E6(含 EXE-03 告警归因、止损 docstring/告警改写)→ E7 → 全电池(最终头、真 state 副本、非锚窗)→ 叠加 diff fx_exec_stack.diff。
+
+## E10 = LED-06 · ledger notary (clone 6523440, parent a21797d; 原文英文, lead 逐字转录 16:3xZ)
+Committed in the clone as 6523440, 58 paths, checked with `git show --name-only`. Not deployed. Research-repo receipts staged, committed after 16:50Z. Diff: docs/receipts/fx_exec_E10.diff = `git diff --binary a21797d 6523440`, sha256 5cb3d56fdc2b46b0d3c2f5744839319f7a4f561a6d00aeef0e009d04f990632f.
+
+**FACTS** (read-only census of ~/dl_quant_live/state/live/pilot_log against all 43 manifests in ~/Desktop/quant_research/ledger_notary; receipt e10_live_census.log)
+- F1 (a) The old contract was one whole-file sha256 per file. 301 files: 259 unchanged, 42 grown. Every grown file is fills.jsonl, and every growth is a pure append at a newline boundary, with 0 bytes changed inside the notarized bytes. All appended lines parse. Appended rows carry backfilled_utc, except on 09-09: 3,095 of 6,199 rows have none, carry rebuilt_from_venue (FLATTEN-20260909T164536Z, the 09-09 repair), and none duplicates a notarized (trade_id, symbol, rid). Under the old contract, 42 of 43 days read as "altered".
+- F2 (b) notary.log shows 13 runs (08-31..09-12). Each printed "7 files notarized", then `git add` failed with rc 128 "fatal: Unable to read current working directory: Operation not permitted" and a traceback.
+- F3 Chain census: 08-01 is GENESIS, 08-02..08-30 are LINKED (29), and 08-31..09-12 are 13 BREAKs, each with prev=GENESIS although a predecessor exists. All 13 are untracked in the research repo. Mechanism: `glob` swallows the listing error, so it returns [] and the code writes GENESIS, while creating a file by its full path still succeeds. Reproduced in a sandbox: on a mode-0300 directory, glob returns [], os.listdir raises PermissionError, and a create succeeds. The launchd/TCC refusal itself is not reproduced: loading a launchd job is out of bounds. `log show` for 09-13 00:11:58–00:12:10Z returned no entries.
+- F4 (c) The commit went to whichever branch was checked out, and the push was hardcoded to `origin multi-asset-v2` with check=False, printing "committed+pushed" regardless. The research repo is currently on research/book-uplift-2026-09-11.
+- F5 (d) `glob("*")` notarized every file in the day directory. `git add ledger_notary` plus a commit with no pathspec would sweep any unrelated staged research file into a "notary:" commit.
+- F6 Two more same-family defects: the old code hashed a file, then called getsize, so bytes and sha could describe different byte ranges under a concurrent append; `open(out,"w")` silently rewrote an existing manifest, chaining it to itself.
+- F7 The E1 receipt checkpoints are notarized 1,357,906 → pre_e1 1,364,944 → post_e1 3,504,070. The live 09-12 fills.jsonl is currently 3,504,070 bytes.
+
+**FIX** (ops/notarize_ledgers.py; config/ledger_notary.json)
+- Manifest v2 records only pilot_log.SCHEMA tables, as `{bytes, sha256, tail_excluded_bytes}`; bytes and sha cover one read cut at the last newline; other files are listed in not_notarized; missing tables in absent_tables.
+- Listing failure (notary directory or day directory) means rc 2, a HIGH alarm, and no manifest written.
+- GENESIS is written only with `--genesis` into an empty directory. An existing manifest is never rewritten: existence check plus an O_EXCL write. A day earlier than the chain tip is refused.
+- Append checkpoints: each run records `appends` (day, file, before = last checkpoint, after = current, n_lines, reason, device sha256) for every earlier day that grew. A changed prefix, truncation or partial-line append is recorded in integrity_findings, still committed, and gives rc 2 plus an alarm.
+- git: refuses if no branch is configured, or if the checked-out branch differs from the configured one; `add -- <paths>`, `commit -- <paths>`, then verifies HEAD names exactly those paths; pushes `<remote> <branch>` only if push_remote is set; every rc is checked, and every failure raises a HIGH alarm carrying git's own line; .env is loaded at import except for `verify` (tests_env_loading population).
+- verify_tree (`notarize_ledgers.py verify`) is read-only. File verdicts: EXACT / APPENDED (segments with n_lines and attested_by) / TAMPERED / TRUNCATED / MISSING / PARTIAL_LINE_APPEND. Amendment verdicts: VERIFIED / MISMATCH / ORPHAN / UNREADABLE; reads both the new `append_amendment` record and the legacy E1 shape. Chain verdicts: GENESIS / LINKED / BREAK. rc: 0 all good; 1 a file or amendment is bad; 3 files and amendments good but chain broken; 2 unreadable.
+- Amendment API: `amendment_record` / `write_amendment` (day, table, before/after bytes+sha, reason, device path+sha).
+- Config keeps the original author's intent explicit: branch multi-asset-v2, push_remote origin. **Deployment decision:** with the repo on another branch, and TCC blocking git under launchd, the deployed job will page HIGH every day until one of these happens: the repo is on that branch and TCC is resolved, the notary moves out of the Desktop repo, or the config changes.
+- The 13 existing GENESIS manifests are not rewritten. Committing them as they are is a research-side decision; their only timestamp would be the commit date.
+
+**VERIFIER ON THE LIVE TREE** (read-only; e10_verify_live_readonly.json at head 6523440)
+- rc 3: files_ok and amendments_ok true, 259 EXACT and 42 APPENDED. Per-day segment line counts match the independent census exactly.
+- 09-12 fills.jsonl splits into two segments, both attested by the E1 receipt (VERIFIED): 1,357,906→1,364,944 (12 rows) and 1,364,944→3,504,070 (3,656 rows).
+- The 13 chain breaks are named. So the verifier accepts today's 09-12 state plus the amendment receipt, and it does not hide the history.
+
+**TESTS**: live/tests_ledger_notary.py, 36 cells. Sandbox: temp ledger, temp git repo plus a local bare remote, and a fake git that fails exactly as logged; alarms go to a temp audit with LIVE_ALARM_SUPPRESS. The old code runs as a byte copy with only its two path constants rewritten (the harness checks each rewrite matches exactly once). The research repo's ledger_notary is untouched: still 43 files, 13 untracked, same mtimes.
+- Writer cells: W0 neighbour normal run; W1 unlistable directory gives no GENESIS, rc≠0, alarm; W2 git fails like launchd, the alarm carries the fatal line and 未提交; W2b the manifest is still written; W3 push failure alarms and never prints "pushed"; W4 branch mismatch means no commit; W5 pathspec only, another staged file stays staged; W6/W6b SCHEMA-only with not_notarized and absent_tables; W7 no rewrite; W7b the write is exclusive under a race; W8 GENESIS only with the flag; W9 append checkpoint; W10 past-day tamper is recorded and alarms; W11 a mid-append file is notarized to its newline and later verifies as APPENDED; W12 every alarm is tier A (policy PUSH).
+- Verifier cells: V1 markout-style append via PilotLogger is consistent; V2–V5 neighbours (prefix change, change plus append, truncation, partial line) none accepted; V6/V6b/V6c amendment VERIFIED / MISMATCH / ORPHAN; V7 chain BREAK named, rc 3.
+- Real-data cells (fixture live/tests_fixtures/e10_notary: the seven real 09-12 files gzipped, all 43 real manifests, the E1 receipt, byte copies with sha in MANIFEST.json): R-F fixture validity; R1 accepted with the two E1-attested segments; R2 the 13 breaks named, rc 3; R3 without the receipt, still APPENDED, one unattested segment of 3,668 rows; R4 one hex digit of post_e1 changed gives MISMATCH; R5 neighbour one byte changed at offset 1,000 is not accepted.
+
+**RED / GREEN / MUTANTS / NEIGHBOURS**
+- Old code: the same suite at a21797d and at ef60f85 gives rc 1, 23 FAIL = exactly the 23 OLD-CODE-RED cells, and 13 OK = H0–H3, W0, W2b, W6a, V2–V5, R-F, R5. No traceback in the harness. W1 old: rc 0, prev GENESIS, "nothing to commit" plus "warning: could not open directory" — the launchd failure, silent. W2 old: CalledProcessError traceback, no alarm.
+- Green: ALL PASS at the worktree and at head 6523440 (dirty 0), 36/36.
+- Mutants, 15, one property each: before W7b existed, 14 killed; M11 (manifest opened "w") survived, because the existence check already refuses and the O_EXCL write was untested; W7b added, M11 then killed by W7b. A full 15-mutant re-run at head goes into the receipts after 16:50Z.
+- pyflakes clean on both new files.
+- Neighbours at the worktree: gate_coverage, tests_static_names, tests_imports, tests_markout_import, tests_pilot_log, tests_ops_flag_safety all rc 0.
+- tests_env_loading is rc 1 on both a21797d and head (known clone red, no .env). Head adds exactly one red cell of the same kind, "ops/notarize_ledgers.py populates TELEGRAM_*". e10_env_probe with a FAKE .env in a temp tree: notarize_ledgers populates TELEGRAM_* on import (1), matching the ic_monitor control (1); it does not for `verify` (0), nor with no .env (0).
+
+**INCIDENT (FX-EXEC's own, recorded)**
+- tests_acceptance_entrypoints was launched as a neighbour without reading it first; it runs the whole battery. It ran 82 suites on the dirty clone from 15:53:53Z until its process tree was killed at ~16:04Z, before the 16:15 window. Its results are not used anywhere. The tracked state/ files it modified were restored with `git checkout -- state`, and its 82 state/acceptance logs were deleted. The full battery at the end covers that suite. 〔lead 注: 该次运行含 DRY_RUN 公开行情 GET, 发生在电池窗口规则发布之前(规则 16:0xZ)。〕
+
+**BOUNDARIES / NOT PROVEN**
+- The TCC refusal is not fixed and not reproduced; the new code only makes it loud.
+- An unattested append is accepted by construction. The verifier names it but cannot say the rows are true.
+- The last manifest in the chain has no successor, so it is protected only by its git commit. verify does not check commit or remote state, so it does not flag untracked manifests.
+- The first deployed run will write one large `appends` list: 42 files have grown since their manifest entries.
+- The job reads all notarized days each run: about 150 MB today, about 2 s measured.
+
+**NEXT**: ALM-03 (39a0055) and OPS-01b (a12a78a) also committed in the clone; report sections follow. Receipts for all three go to the research repo after 16:50Z.
