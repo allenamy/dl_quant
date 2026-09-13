@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13 15:3xZ | **更新:** v3.2 2026-09-13 17:0xZ(P2 回放装置认证闭合; 实盘写回类操作一律随复审包) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME · https://claude.ai/code/session_01HLaR7r1Tyg5CoEsNgnNFkY | **状态:** 活文档; 修复纲领进行中, **本纲领代码修复一律未部署** | **作废条件:** 由最终合并复审包取代(FIXPROGRAM §5)
+> **创建:** 2026-09-13 15:3xZ | **更新:** v3.3 2026-09-13 17:1xZ(工作者停止状态; 分支头与捆绑包再刷新) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME · https://claude.ai/code/session_01HLaR7r1Tyg5CoEsNgnNFkY | **状态:** 活文档; 修复纲领进行中, **本纲领代码修复一律未部署** | **作废条件:** 由最终合并复审包取代(FIXPROGRAM §5)
 
 # 修复纲领 · 全面交接(给独立研究员接续与复审)
 
@@ -8,7 +8,7 @@
 ## 0 怎么接手(按顺序)
 1. 读 `STATE.md` 顶部 3 条 → `FIXPROGRAM_2026-09-13.md` §0(规程)§3(main/secondary 定义与 71 项归属)§4–§8(逐批裁定)。
 2. 读本文件 §2(结论与思考)与 §4(逐项状态)。
-3. 代码: 四个克隆分支的提交链见 `receipts/HANDOFF_clone_heads_20260913T162850Z.txt`(最新; 16:09Z 版保留); **可离线复原**: `receipts/bundles/*.bundle`(执行器三包以 ef60f85 为前置, 在 `~/dl_quant_live` 或任一含 ef60f85 的克隆里 `git fetch <bundle> <branch>`; 生产者包为全量分支, 可 `git clone`)。
+3. 代码: 四个克隆分支的提交链见 `receipts/HANDOFF_clone_heads_20260913T170721Z.txt`(最新; 早期版本保留); **可离线复原**: `receipts/bundles/*.bundle`(执行器三包以 ef60f85 为前置, 在 `~/dl_quant_live` 或任一含 ef60f85 的克隆里 `git fetch <bundle> <branch>`; 生产者包为全量分支, 可 `git clone`)。
 4. 研究仓本纲领提交全表: `receipts/HANDOFF_research_commits_since_20260913T1245Z.txt`(16:28Z 刷新, 154 条)。
 5. 各工作者报告: `REPORT_E1.md` · `REPORT_FX_EXEC.md` · `REPORT_FX_EXEC2.md` · `REPORT_FX_W6C.md` · `REPORT_FX_PROD.md` · `REPORT_FX_EVAL.md` · `REPORT_FX_TRAIN.md`; 暂停者状态: `FX_{TRAIN,DATA,MODEL,EXEC2}/STATE_PAUSE.md` · `X_COST/STATE_PAUSE.md`。审计: `docs/audit_pipeline_2026-09-13/AUDIT_{EXEC,TRAIN,DATA,PROD}.md` + `AUDIT_KB_PARTIAL.md`。
 
@@ -126,3 +126,9 @@ OPS-01 · OPS-02 · 回滚动词双演练 · Mac 盘满清理 23 个陈旧克隆
 - **FX-PROD 头更新 afd94a2**(捆绑包已重建): 换装干跑驱动加时间守卫(锚时 HH:15–HH:50 与 HH+1:05 之前拒跑)与 `~/wide_shadow/shadow_bundle*` 只读前后 mtime/size 核对(打印 LIVE_RO unchanged/CHANGED); 读码沙箱审计: 写全在 `work/swapdry`, 对 `~/wide_shadow` 只读, 无场所调用(ReplayFetcher 拒绝录制外请求), 无 launchctl, 不向在役 PID 发信号。**干跑未运行**; 接手者于 17:05Z 后、锚窗外在克隆内执行 `/bin/bash migrations/swap_dryrun_frozen_20260913.sh`, 日志 `work/swapdry/run_dry.log`, 结束后提交收据。
 - **16:52Z lead 中止 FX-W6C 电池 `final2_3f85c0e`**(16:51:10Z 启动, 违反电池窗口 / 锁规则与「交接期不跑电池」指令, 且 16Z 实盘锚尚未 anchor done): 只杀电池驱动、run_acceptance 与其 python 子进程; 收据 `receipts/INFRA_stop_battery_in_anchor_window_20260913T165202Z.log`(第 1 次 kill 因 zsh 不分词未生效且进程树匹配到 lead 自身 shell, 已记入收据; 第 2 次按显式 PID 数组成功)。**fx_w6c 3f85c0e 的全电池仍未跑**, 接手者在 17:05–19:15Z 或 21:05–23:15Z 取锁运行。
 - **17:0xZ 增量**: P2 链残差闭合(见 §2.1 第 5 条、§4.3)· FX-EXEC2 LED-03(八个旧平仓批费用: 离线代理 22.76 USDT + 0.14 BNB, 498/498 正控; 精确回填装置需凭据, 待复审后运行; **BNB 换算口径裁定 = BNBUSDT 现货 1m 收盘 `bnb_spot_1m_close_at_fill`**)· LED-04(250 条修订记录, 演练 PASS)· LED-05(09-09 12Z 崩溃锚 52 行重建订单, 两树演练 PASS, 看门狗条件变化均为愈合方向)—— **三项实盘写回本会话均未执行, 随复审包由接手者先 --rehearse 于实盘根再 --apply, 锚窗外**; 命令逐字在 `REPORT_FX_EXEC2.md`。16Z 实盘锚 anchor done rc=0(16:58:30Z)。
+
+- **17:1xZ 工作者停止状态**:
+  - **FX-EXEC2 已停**(克隆 e808697, 研究仓 ff5c9e6c, 无未提交)。**注意: 其 15:37–16:28Z 收到的 7 条 lead 消息在其上下文压缩中丢失, 17:05Z 才从会话日志找回** ⇒ 接手者一律以 `FIXPROGRAM` §8–§10 与各 REPORT 内的「lead 裁定」为准, 不以工作者自述为准。未开始: LED-08 冻结参照窗漂移检查 · ALM-06 独立收入账本 CUM 告警 (ii) 与逐因口径带 · LED-04 看门狗红格(−1.3136 / −1.5749)与 FX-W6C 接口 · OPS-03 A(滑动窗口限速)+ C(文档更正)· 加锁全电池 · 最终 `docs/receipts/fx_exec2.diff` · 部署 runbook 行(复制 pilot_metrics.py, 核 sha cd508c3f, 两侧 drift 检查)· BNB 换算实现。
+  - **P2 已停**(最新 5f66eb83; pod2 `attr_D` 约 400 MB 保留至收据核实入库后删除)。第 3 项 AMENDMENT 9 未运行。
+  - **FX-PROD 已停**(头 afd94a2)。未开始: PROD-27 · P12(state_H_f10 第二写者)· P5 迁移运行 · 换装干跑。
+  - **FX-EXEC 仍在 E5**(停止时以其最后提交为准); **FX-W6C** 电池被 lead 中止后未回报, B13 / I6 / cond4 / 平仓时间戳 状态以其克隆提交为准。

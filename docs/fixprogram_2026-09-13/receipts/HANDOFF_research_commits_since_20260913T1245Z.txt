@@ -152,3 +152,25 @@ ad5a0375 09-14T00:26Z FX-DATA STATE_PAUSE 更正转述: DOS 08-11 16Z 属冷启�
 3a5cce44 09-14T00:28Z FX-PROD handoff: stack diff b891748..f289fc0 (sha 17a16f6e), commit chain, P9 exact-vs-likely answer, column-80 ruling recorded, P5 status (device committed, not run), queue state, unproven boundaries
 cb9e8ded 09-14T00:28Z FX-DATA STATE_PAUSE 追记: fx-prod P9 精确/可能判据按列(iv_best 非空=精确; iv_likely 仅最佳猜测不作更正标签), 依 3a5cce44
 1826d219 09-14T00:28Z FX-EXEC2 fact table addendum (append-only): LED-01 positive control / identity / other trade-id keys / drift pin / research readers; LED-04 records + WITHDRAWS row #2 (watchdog cond4 prices transfer days with pre-fix realised: -1.3136% reproduced, -1.5749% amended); LED-05 checks; ALM-06 replay; OPS-03 burst location; ENV-01 battery public GETs
+f5f68897 09-14T00:29Z FX-EXEC2 state note: resume progress (chain ef60f85..e808697, research commits, pending rulings, remaining steps)
+0cd21594 09-14T00:29Z 交接文档 v3.1: 四个克隆分支头刷新(fx_exec 39a0055 / fx_exec2 e808697 / fx_w6c 3f85c0e / fx_prod f289fc0)+ 捆绑包重建 + 研究仓提交清单 154 条 + 16:1x–16:3xZ 增量(FX-PROD 交接完成; OPS-03 裁定 A+C; ALM-06 退回; W6C-C4)
+647a8904 09-14T00:29Z FX-EXEC2 receipt: all 10 new suites green at executor HEAD e808697
+19a532c7 09-14T00:30Z 交接文档: FX-PROD 头 afd94a2(换装干跑驱动时间守卫 + 在役只读核对; 沙箱审计; 干跑未运行)+ 捆绑包重建
+3dfd23ac 09-14T00:30Z FX-PROD: stack diff refreshed to afd94a2 (dry-run driver window refusal + live read-only listing)
+18577be5 09-14T00:30Z FX-EXEC2 LED-03 credentialed EXACT backfill device for the eight older flatten batches (committed before any run; for the lead): attribution by (symbol, side, batch window) with per-leg notional closure, report / rehearse (temp root, watchdog before/after, twice idempotent) / apply (backup, prefix check); never run by FX-EXEC2
+09b0d2d7 09-14T00:34Z ATTR Stage D 中间收据: D-id 逐锚逐位复现 G2-C 链收据 41/41(rc=0, 1586 s; 长源缓存末 11520 行与 G2-C 拼接缓存逐字节相等)⇒ 包装器可信, D-asof 运行中
+6e86ba14 09-14T00:35Z REPORT_FX_EXEC §E10 账本公证器(前缀验证 + 追加检查点 + 列目录/git 失败必告警 + 显式分支与 pathspec; 实盘只读验证 259 EXACT / 42 APPENDED / 13 断链具名; lead 逐字转录)+ 交接文档待裁定第 6 项(公证器落点与 13 份断链清单)
+953ce0d1 09-14T00:36Z REPORT_FX_EXEC §ALM-03(第 9 步改读 #55 评估账本, 产物断言 #9 不再空过; 19 格, 变异 11/11)+ §OPS-01b(执行器不再读 σ_fund 阶梯文件; 旧码 g=0.5 使 gross 减半)(lead 逐字转录)
+6557402d 09-14T00:52Z 基建: 16:52Z 中止 FX-W6C 在锚窗内启动的电池(违反窗口/锁规则, 16Z 锚未完成)+ 收据(含第 1 次 kill 未生效的过程)+ 交接文档记录
+bd23cc00 09-14T00:53Z FX-EXEC2 LED-05 diagnostic device (committed before any run): names every watchdog condition leaf that changes when the 52 reconstructed rows are appended to a day copy
+8417f55d 09-14T00:57Z FX-EXEC2 LED-01 diagnostic device (committed before any run): leaf-by-leaf watchdog conditions parity between the ef60f85 tree and the fix tree on one ledger copy
+3c4e6b15 09-14T01:00Z FX-EXEC2 receipts: LED-04 rehearsal PASS (250 records, apply twice idempotent, watchdog equal, daily_nav sha unchanged); LED-05 rehearsal PASS on both trees (52 rows, prefix preserved, second apply 0; watchdog not tripped, changes all healing: 09-09 16:24Z 5e BREAK->CLEAN, unauth 2525.56->0.02 USDT); LED-01 watchdog parity ef60f85 vs fix tree: 171,584 leaves, 1 differs = DRY_RUN exchange_info_cache (4 symbols), not code
+6ef22a72 09-14T01:02Z REPORT_FX_EXEC2 §LED-04 daily_nav 已实现拆分修订记录(250 条, 正控 8/8, 演练 PASS; 实盘应用随复审包)(lead 逐字转录)
+e0eda451 09-14T01:02Z REPORT_FX_EXEC2 §LED-05 09-09 12Z 崩溃锚 52 行重建订单写回(两树演练 PASS, 看门狗条件变化逐项解释为愈合方向; 实盘写回随复审包)(lead 逐字转录)
+d34e4275 09-14T01:03Z FX-EXEC2 LED-03 before-state census device (committed before any run): LED-02 flatten_cost per protective_flatten batch over a ledger copy; the lead's exact backfill after-state must be this same census
+09c08058 09-14T01:03Z ATTR Stage D 收据(rc=0, 10b30695): G2-C-ASOF PASS —— D-id 41/41 逐位复现 G2-C 链; D-asof(逐锚 11520 行以 A 结尾)41/41 锚 target_live 与 target_combo 精确 0.0、king ≤9.3e-10、kc/fc 状态 41/41 精确; f10 旁路书状态 40/41 精确, 末锚 1789200000 差 2.63e-8(96 名; 生产该文件 mtime 晚 kc/fc 约 2 分钟, 疑为第二写者, INFERRED, 不在门内)
+ff5c9e6c 09-14T01:03Z FX-EXEC2 LED-03 receipts: offline proxy positive control 498/498 legs exact within 1e-8 (09-09 243/243, 09-12 255/255); proxy fees for the eight older batches per asset (USDT and BNB, unconverted); before-state census: the eight batches 0 measured, 1,210 legs fee_unknown (no_fills_rows 1,206, order_row_fee_not_known_usdt 4)
+f8abf062 09-14T01:04Z ATTR 结果节 + P2 AMENDMENT 11: 连续 combo 链残差归因 = 回放装置缓存左边界缺陷(H-d CONFIRMED + G2-C-ASOF PASS 41/41 精确 0.0); H-a/H-b/H-c 读法; 认证范围; 原 G-P2 FAIL 与原标签逐字保留, 增补一行; S2 标签待 lead 裁定
+5f66eb83 09-14T01:05Z ATTR: 结果节 / AMENDMENT 11 头注时刻更正为 17:0xZ(实际提交 17:04Z); 本地 guard SHA256SUMS(18 份)与 pod2 sha256sum(7 份, 含长源缓存)入库
+dd196d5f 09-14T01:05Z REPORT_FX_EXEC2 §LED-03 八个旧平仓批费用(离线代理 498/498 正控; 精确回填装置待凭据运行)+ lead 裁定 BNB 换算口径 = BNBUSDT 现货 1m 收盘(lead 逐字转录)
+21b6fddb 09-14T01:06Z P2 回放装置认证闭合(G-P2 连续 combo 链残差 = 我方回放缓存窗口缺陷; 新门 G2-C-ASOF 41/41 恰 0.0; S2 未认证标签维持)+ 新登记 P12 生产者 state_H_f10 疑似第二写者 + LED-03 BNB 口径裁定 + 实盘写回随复审包; 交接文档 v3.2 与修复纲领 §10
