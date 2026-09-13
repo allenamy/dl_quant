@@ -329,3 +329,29 @@ requote(phase_B): candidates 19 → requoted 19 → 落单 17 / 再拒 2 转 tak
 - **平价前向**: 16Z 生产者快照 1789228800(16:42:17Z, 4 文件); 回填探针 12Z→16Z **0/0/0**(11,472 行 × 829 名)⇒ 快照对 **2/3**; 快照种子平价(12Z 种子 → 16Z)运行中。
 - **处置**: 无。恢复交易 = W6 复审 → 用户字部署 → 用户手动 `resume_from_trip.sh`。
 
+## 2026-09-12 20:00Z 锚 · 全深度深查(停开仓第二锚; 只读, 实盘零接触)
+**锚**: canonical 1789243200 / 执行器 anchor_ts 1789244641.115767(20:24Z)/ rid **A1789244640** / 运行树 918559f(代码与 918559f 逐字节相同)。**结论: 无处置; 开仓停按设计生效(零下单); 平价前向序列 3/3 完成。**
+### ① 三守护 全绿(句柄为准): shadow.lock **10900** ✓ / sidecar **30943** ✓ / combo_live_daemon.pid **30944** ✓。
+### ② 信号六项 全在带
+status **OK** / coverage **1.0** / members **400** / sel **259** / **fund_updates 355**(4h 整点稳态 ~353 ✓)/ forced_exit_n **4**(gross 0.0065)/ runtime **243.5 s** / fetched 450 missing 0 / future_dropped 0 / exinfo_ok true / data_max_ts == 锚。w3 **[0.3254, 0.1130, 0.5616]** ⇒ 掩码算术 0.3254/(0.3254+0.5616) = **0.366855** vs target_combo `w3_masked[0]` **0.366832** ✓(1e-5 内)。combo_live_status: anchor 匹配 / ok / done / reader_ok / n **257** / gross **0.8390** / 20:20:50Z。kc_state_source **own** / fc_state_source **own** ✓; n_f10_scored **400** ✓; rho_kc_fc **0.9271**; phi **0.45**; book_form combo_v2main_norev24; net_after_reshape −0.0; kc_gross 0.8748 / fc_gross 0.8264。生产者 turnover **3.119%**(稳态 2–5.5% ✓), carry 1.176 bps, cost 0.117 bps。**反事实改写 26.58%**(序列 24.52 → 24.4 → 24.9 → 25.36 → **26.58**; 连续第三锚增量 >+0.2pp ⇒ **按判据达到升级条件**, 但书处于空仓/停开仓态, 该量只描述生产者目标书与 king 形态的差, 与实际持仓无关 ⇒ 记为**待验证**, 恢复交易后首两锚复判)。
+### ③ 执行漏斗(按 anchor_ts 归属)
+orders **245** = **243 `blocked_by_halt` + 2 `skipped_min_notional`**; **submit_ts 行 0, fills 0** ⇒ 零下单; Σ|intended| **235,286.5U**(= 目标 gross, 全被挡)。maker 占比/换手/费 bps/分臂/behind 占比: **本锚不适用**(无成交)。
+### ④ 记账
+anchors 行 6(00/04/08/12/16/20Z), phase_C anchors_row ✓ / readback **245 行 Σ|名义| 0.00** ✓ / per_name_stop 无触发(cooldown 11); `opening_halted` **true**; target_gross 235,286U, venue_gross —(空仓), net/gross —; **NAV 117,779.56**(16Z 117,787.02, **−7.47U**; 空仓期唯一变动项, 待验证来源); 当日 realised **+1,781.69**(12Z 平仓把未实现变现后不变); **20Z 非 8h 结算锚 ⇒ funding 行 0** ✓; `anchor done rc=0` **20:41:09Z**; 看门狗 20:39:49Z 评估 **tripped=False**(最新对账锚无异常)但 state 仍 reduce_only/halted(设计: 需人工恢复); 告警 raised 4 / delivered 2。
+### ⑤ 执行质量 — 无成交, 三项(尺寸梯度/markout/chase)本锚不适用。
+### ⑥ 异常处置 — **无**。回滚/重启/整体回滚均未触发; 生产者未触。
+### ⑦ 与 16Z 对比(增量)
+| 指标 | 16Z | **20Z** | 向 |
+|---|---|---|---|
+| 订单行 | 245(243 挡 + 2 小额) | 245(同) | → |
+| fills | 0 | 0 | → |
+| NAV | 117,787.02 | **117,779.56** | −7.47U |
+| sel / n | 260 | 259 / 257 | → |
+| fund_updates | (16Z 结算锚) | 355(4h 稳态) | ✓ |
+| 反事实改写 | 25.36% | **26.58%** | ↑ +1.22pp(连续第三锚 >+0.2pp) |
+| 看门狗评估 | tripped=False | tripped=False | → |
+### 待验证 / 推断
+**已验证**: ①–④ 全部读数; 平价 3/3。**待验证**: (a) 空仓期 NAV −7.47U 的来源(无持仓、无成交、非结算锚; 可能为标记/权益读数口径, 需 API 才能确证); (b) 反事实改写达到升级判据但书空仓 —— 恢复后首两锚复判; (c) 撤名残差/尺寸梯度等成交类指标自 12Z 起无观测。**推断**: 零下单与 `opening_halted` 一致, 与看门狗 state 一致。
+### 平价前向序列完成(研究线, 不影响实盘)
+回填探针三对 08Z→12Z / 12Z→16Z / 16Z→20Z **全部 0/0/0**; 快照种子平价 12Z / 16Z / 20Z **全部逐位精确**(king L∞ 0.0, combo target_live L∞ 0.0)⇒ AMENDMENT 3 裁定: 支持「起点状态差」候选, 未排除历史缓存/辅助文件/左边界三因子(见 PREREG)。
+
