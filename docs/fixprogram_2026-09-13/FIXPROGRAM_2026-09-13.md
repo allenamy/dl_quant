@@ -166,3 +166,12 @@
 - **TRN-06 预注册归 FX-MODEL**(FX-TRAIN 同意); FX-TRAIN 保留 TRN-10 / TRN-11 与十月链接线。
 - **r6 构建器入 git 归 FX-DATA(LIN-01)**; FX-TRAIN 月滚阶段消费 FX-DATA 的副本(提交与逐文件 sha)。
 - **REPORT_FX_EXEC**: 子代理工具约定「以文本交回、不写报告文件」⇒ lead 逐字转录落盘(dce59600), 非权限绕行。
+
+## §8 第五批(2026-09-13 16:1xZ, lead)
+- **EXE-01 交付(FX-W6C, 未部署)**: 克隆 `fix/exe01-proportional-response` f0d4eac → f99dc80 → b3c5fc2; diff `docs/receipts/fx_w6c.diff` sha d4a6d103; 研究仓 49fea5f2 / b750a5d4 / ff77d8ed; 报告 `REPORT_FX_W6C.md`(lead 逐字转录 22708e83)。最终电池(树 057449db)136 套件 135 rc 0, 唯一红 tests_env_loading(克隆无 .env)。**范围宽于 R-14 文字**(按触发器作用域而非只 W6(c) 自洽类; 实盘 10 次整书平仓中 5 次为具名作用域, 4 次为两名事件 0.42–1.84% gross)—— 交复审确认。
+- **新登记 W6C-B13(P1, 在役)**: 全书读回缺失不进入全阶梯 —— ef60f85 上无最新读回 ⇒ 不触发且不判盲(基于陈旧状态判); lead 早前「全书不可读回会走全阶梯」的表述**错误**(记入 lead 错误清单)。修复方向: 最新读回缺失 / 陈旧 ⇒ 具名盲态 ⇒ 停开仓 + 页报, **不整书平仓**(仪器疑问不得触发全书级响应)。负责 FX-W6C, 排在 ALM-02 之前。
+- **新登记 W6C-I6(P1 待测)**: 非计划时刻运行 + 持仓书 + 无下单 ⇒ §4-5e 平意图暴露可能整书平仓; 先测可达性。负责 FX-W6C。
+- **新登记 W6C-I5 / NEW-01**: 平仓行 anchor_ts / submit_ts 为写行时刻(晚于全部成交), 与平仓后读回 anchor_ts 不同 ⇒ §4-5e 永不评判平仓锚; 负责 FX-W6C(watchdog.py)。**NEW-02** `venue_fills.py:1179` 平仓 fills attempt_idx 2 对订单行 1 · `ops/gate_coverage.py` 重复登记 tests_external_book(首条被静默忽略)—— 负责 FX-EXEC。
+- **电池公开行情 GET 裁定**: `run_acceptance.sh` 含 tests_entrypoint_wiring(DRY_RUN run_anchor ⇒ 对 fapi 的无凭据公开行情 GET), 部署门 safe_commit 同此 ⇒ **允许**, 条件: 仅在 N+65min..N+3h15m 启动; 三个执行器工作者共用 `/Users/haosiyu/cc_tmp/BATTERY.lock` 一次一个; 断言无 .env 与 DRY_RUN; 收据记请求权重; 事后还原 state; 不对证据账本副本运行。FX-EXEC2 15:52Z / 15:57Z 邻格运行已发生此类 GET 并追加其 14:27Z 账本副本的 anchor_runs.log(账本文件不变), 记入其报告。
+- **LED-08 设计缺口(已退回 FX-EXEC2)**: 自校准带(滚动 ≤42 锚 中位 + 3×1.4826×MAD)会在约 7 天内吸收阶跃漂移(X-COST 的 93.1% → 73.9% 正是此形态)⇒ 须加冻结参照窗漂移检查(配置命名、日报一次、红测合成阶跃)。
+- **pod2 配额(基建)**: /workspace 配额 15:51Z 用尽 ⇒ P2 Stage C 第 1 跑被杀(零数字)、P9 八月 zip 拉取与 L2 metrics 拉取停止。lead 16:07Z 删除 `uplift_2026-09-11/r2_sleeve/feat/*.npy` 7 个原始特征缓存(约 11.4 GB, 09-11 08:36Z, 第一轮已关闭线; 引用扫描: 该目录外无引用; r2_new_feats.npz 与全部装置 / 收据保留; 可由 holefix 缓存重建), 2 GiB 探针通过; 收据 `receipts/INFRA_pod2_quota_relief_*.log`。未触碰 bookdepth_raw(188 GB)/ lob_npz / review_scratch / data / 另一研究员目录。P2 与 FX-PROD 恢复, 一次一条、先探针。
