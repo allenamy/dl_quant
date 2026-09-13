@@ -46,6 +46,12 @@
   - **Producer labels contradicted by the zip:** COTI 08-31 20Z (1→4) and ONG 08-25 08Z (2→4). ERA 08-06 16Z (4→1) is a seed row. DOS 08-11 16Z (8→4) is **not** a seed row; fx-prod corrected this in commit 3012a6af. It is DOS's first settlement, which the producer cold-started at M1 (09-04) with the first-row default label 8. That places it in the cold-start first-row family, with 07-26 08Z ×61 and ILV 09-04. The values and the table sha are unchanged. The other 533 D17 rows (ACE, BANK, DEXE, ERA, PROM; 08-01..08-14) are confirmed row by row.
   - **Caveat:** 16 August TradFi rows have calc_time 1 s past the hour; they are keyed to the nearest settlement hour (tolerance 60 s). T and SKR stay unresolved until the September zip exists.
   - **Still true:** the table does not read r6_fund_sep. ⇒ FND panels on resume use this table: 366763a4 replaces b797c85f.
+- **fx-prod: tier rule written down** (`FX_PROD/receipts/p9/EXACT_VS_LIKELY.md`, commit 3a5cce44). Read by column:
+  - **exact** ⇔ `iv_best` non-null (`zip`, or '+'-joined exact rules);
+  - **likely** ⇔ `iv_best` null and `iv_likely` non-null: a best guess only, never a correction label;
+  - **no usable label** ⇔ both null.
+  - `producer_vs_best` compares against exact rows only.
+  - ⇒ The FND builder will select on these columns, not on the source strings.
 - **p2-oos-replay (replied):**
   - Sites: `p2_driver.py:153-154, 293`; `p2_prep_inputs.py:99/103` (universe.npz 6322b573); `p2_s2_lib.py:99-106`.
   - Historical S2 keeps the proxy, with the deviation sized from my per-anchor `base_proxy ∧ ¬tradable` on the 10,039 axis (owed by me).
