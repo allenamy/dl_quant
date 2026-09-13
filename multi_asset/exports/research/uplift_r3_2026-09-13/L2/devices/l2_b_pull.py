@@ -10,7 +10,10 @@ Per-file regime check, network-free: corr(log taker ratio, logit cache tbf) at c
 vs +1 (window START label); class END / START if one exceeds the other by >= 0.05 with >= 100 pairs, else UNK.
 Output per symbol: out/metrics/<SYM>.npz (labels int64, X float32 n×6 in l2_net.COLS order, file_day int32, file_status int16,
 file_zip_sha256, file_checksum int8 {1 ok, 0 mismatch, -1 not checked}, file_regime U5, corr0/corr1 float32); manifest with sha256.
-Resumable: a symbol whose npz sha matches out/metrics/MANIFEST.json is skipped. dd probe (1600 MB) before the first write."""
+Resumable: a symbol whose npz sha matches out/metrics/MANIFEST.json and whose files are all 200 or 404 is skipped; a symbol with
+transport / 5xx failures is REPAIRED day by day (rows of good days kept via row_file_day; npz written before row_file_day existed are
+re-pulled whole). Run 1 (12:08–12:21Z) was stopped by me after 56 DNS gaierror / 16 timeouts left 2 of 621 BONK files missing; l2_net now caches
+DNS (10 min) and retries transport errors 6× with back-off. dd probe (1600 MB) before the first write."""
 import os, sys, time, json, calendar, hashlib, subprocess
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
@@ -95,13 +98,24 @@ def regime_corr(sym, T, R):
 
 
 def do_symbol(sym):
-    days = sorted(need[sym] & listed.get(sym, set()))
+    days = sorted(need[sym] & listed.get(sym, set())); n_listed = len(days)
     out_p = os.path.join(OUTD, sym + ".npz")
+    labs, Xs, rfd, fday, fstat, fsha, fck, freg, fc0, fc1 = [], [], [], [], [], [], [], [], [], []
+    anomalies = {}; mismatch = False; repaired = 0
     if sym in man and os.path.exists(out_p) and C.sha256(out_p) == man[sym]["sha256"]:
-        return sym, man[sym], "skipped"
-    labs, Xs, fday, fstat, fsha, fck, freg, fc0, fc1 = [], [], [], [], [], [], [], [], []
-    anomalies = {}; mismatch = False
-    bodies_ck = []
+        Zo = np.load(out_p, allow_pickle=False)
+        st_o = Zo["file_status"].astype(int)
+        if bool(np.all((st_o == 200) | (st_o == 404))):
+            return sym, man[sym], "skipped"
+        if "row_file_day" in Zo.files:   # keep good days, re-fetch the rest
+            good = {int(d) for d, st in zip(Zo["file_day"], st_o) if st in (200, 404)}
+            keep_rows = np.isin(Zo["row_file_day"], np.array(sorted(good), np.int32))
+            labs.append(Zo["labels"][keep_rows]); Xs.append(Zo["X"][keep_rows]); rfd.append(Zo["row_file_day"][keep_rows])
+            for q, d in enumerate(Zo["file_day"]):
+                if int(d) in good:
+                    fday.append(int(d)); fstat.append(int(st_o[q])); fsha.append(str(Zo["file_zip_sha256"][q])); fck.append(int(Zo["file_checksum"][q]))
+                    freg.append(str(Zo["file_regime"][q])); fc0.append(float(Zo["corr0"][q])); fc1.append(float(Zo["corr1"][q]))
+            days = [d for d in days if d not in good]; repaired = len(days)
     for d in days:
         f = N.fetch_day(cli, sym, dstr(d), with_checksum=False)
         fday.append(d)
@@ -125,7 +139,7 @@ def do_symbol(sym):
             c0, c1, npairs = regime_corr(sym, p["ts"], p["X"][:, 5])
             freg.append("END" if (np.isfinite(c0) and c0 >= c1 + 0.05) else ("START" if (np.isfinite(c1) and c1 >= c0 + 0.05) else "UNK"))
             fc0.append(c0); fc1.append(c1)
-            labs.append(p["ts"]); Xs.append(p["X"].astype(np.float32))
+            labs.append(p["ts"]); Xs.append(p["X"].astype(np.float32)); rfd.append(np.full(p["ts"].size, d, np.int32))
         else:
             freg.append("NA"); fc0.append(np.nan); fc1.append(np.nan)
         if bad:
@@ -136,17 +150,22 @@ def do_symbol(sym):
                 g = N.fetch_day(cli, sym, dstr(d), with_checksum=True)
                 fck[q] = 1 if (g["checksum_ok"] is True and g["zip_sha256"] == fsha[q]) else 0
     L = np.concatenate(labs) if labs else np.zeros(0, np.int64); X = np.concatenate(Xs) if Xs else np.zeros((0, 6), np.float32)
-    o = np.argsort(L, kind="stable"); L = L[o]; X = X[o]
+    RF = np.concatenate(rfd) if rfd else np.zeros(0, np.int32)
+    o = np.argsort(L, kind="stable"); L = L[o]; X = X[o]; RF = RF[o]
+    fo = np.argsort(np.array(fday, np.int64), kind="stable")
+    fday = [fday[q] for q in fo]; fstat = [fstat[q] for q in fo]; fsha = [fsha[q] for q in fo]; fck = [fck[q] for q in fo]
+    freg = [freg[q] for q in fo]; fc0 = [fc0[q] for q in fo]; fc1 = [fc1[q] for q in fo]
     tmp = out_p + ".tmp.npz"
-    np.savez_compressed(tmp, labels=L, X=X, cols=np.array(N.COLS), file_day=np.array(fday, np.int32), file_status=np.array(fstat, np.int16),
+    np.savez_compressed(tmp, labels=L, X=X, row_file_day=RF, cols=np.array(N.COLS), file_day=np.array(fday, np.int32), file_status=np.array(fstat, np.int16),
                         file_zip_sha256=np.array(fsha), file_checksum=np.array(fck, np.int8), file_regime=np.array(freg), corr0=np.array(fc0, np.float32),
                         corr1=np.array(fc1, np.float32))
     os.replace(tmp, out_p)
-    ent = dict(sha256=C.sha256(out_p), size=os.path.getsize(out_p), files_needed=len(need[sym]), files_listed=len(days), files_200=int(sum(1 for x in fstat if x == 200)),
+    ent = dict(sha256=C.sha256(out_p), size=os.path.getsize(out_p), files_needed=len(need[sym]), files_listed=n_listed, files_200=int(sum(1 for x in fstat if x == 200)),
                checksum_checked=int(sum(1 for x in fck if x != -1)), checksum_mismatch=int(sum(1 for x in fck if x == 0)), rows=int(L.size),
                regime_counts={k: int(sum(1 for q, x in enumerate(freg) if x == k)) for k in ("END", "START", "UNK", "NA")},
                regime_violations=int(sum(1 for q, x in enumerate(freg) if (x == "END" and fday[q] >= SWITCH_DAY) or (x == "START" and fday[q] < SWITCH_DAY))),
-               anomalies=anomalies)
+               anomalies=anomalies, repaired_days=repaired, files_404=int(sum(1 for x in fstat if x == 404)),
+               files_failed=int(sum(1 for x in fstat if x not in (200, 404))))
     return sym, ent, "done"
 
 
@@ -156,17 +175,30 @@ with ThreadPoolExecutor(8) as ex:
         man[sym] = ent; done += 1
         if how == "done" and (done % 10 == 0 or time.time() - t_last > 120):
             C.jdump(man, MAN); t_last = time.time()
-            print("progress %d/%d symbols, requests %d, http %s, rate %.0f, wall %.0fs" % (done, len(SYMS), cli.n_requests, json.dumps(cli.counts), lim.rate, time.time() - T_START), flush=True)
+            print("progress %d/%d symbols, requests %d, http %s, dns %s, rate %.0f, wall %.0fs" % (done, len(SYMS), cli.n_requests, json.dumps(cli.counts), json.dumps(N.DNS_STATS), lim.rate, time.time() - T_START), flush=True)
 C.jdump(man, MAN)
+repair_passes = []
+for rp in range(2):   # up to two repair passes over symbols that still have transport / 5xx failures
+    todo = [s for s in SYMS if man[s].get("files_failed", man[s]["files_listed"] - man[s]["files_200"]) > 0]
+    if not todo:
+        break
+    with ThreadPoolExecutor(8) as ex:
+        for sym, ent, how in ex.map(do_symbol, todo):
+            man[sym] = ent
+    C.jdump(man, MAN)
+    repair_passes.append(dict(pass_no=rp + 1, symbols=len(todo), still_failed=int(sum(man[s].get("files_failed", 0) for s in todo))))
+    print("repair pass %d: %s" % (rp + 1, json.dumps(repair_passes[-1])), flush=True)
 tot = dict(symbols=len(SYMS), symbol_days_needed=req_total, not_in_listing=sum(len(v) for v in not_listed.values()),
-           files_200=sum(man[s]["files_200"] for s in SYMS), checksum_checked=sum(man[s]["checksum_checked"] for s in SYMS),
+           files_200=sum(man[s]["files_200"] for s in SYMS), files_404=sum(man[s].get("files_404", 0) for s in SYMS),
+           files_failed=sum(man[s].get("files_failed", man[s]["files_listed"] - man[s]["files_200"]) for s in SYMS), checksum_checked=sum(man[s]["checksum_checked"] for s in SYMS),
            checksum_mismatch=sum(man[s]["checksum_mismatch"] for s in SYMS), rows=sum(man[s]["rows"] for s in SYMS),
            bytes_out=sum(man[s]["size"] for s in SYMS), regime_violations=sum(man[s]["regime_violations"] for s in SYMS),
            regime_counts={k: sum(man[s]["regime_counts"][k] for s in SYMS) for k in ("END", "START", "UNK", "NA")})
 st1 = C.sysstate(); st1["collector_333197"] = N.collector_state()
 rep = dict(device="l2_b_pull.py", device_sha256=dev_sha, env=envrep, sys_before=st0, sys_after=st1, archive_receipt_sha256=ARCH_SHA,
-           listing_sha256=ar["listing"]["out_sha256"], dd_probe_mb=1600, totals=tot, not_in_listing=not_listed, manifest=dict(path=MAN, sha256=C.sha256(MAN)),
-           http=dict(counts=dict(cli.counts), requests=cli.n_requests, bytes=cli.bytes), limiter_collector_states=lim.states, wall_s=round(time.time() - T_START, 1))
+           listing_sha256=ar["listing"]["out_sha256"], dd_probe_mb=1600, totals=tot, repair_passes=repair_passes, not_in_listing=not_listed, manifest=dict(path=MAN, sha256=C.sha256(MAN)),
+           http=dict(counts=dict(cli.counts), requests=cli.n_requests, bytes=cli.bytes), dns=dict(N.DNS_STATS), limiter_collector_states=lim.states,
+           wall_s=round(time.time() - T_START, 1))
 C.jdump(rep, os.path.join(C.L2, "receipts", "RECEIPT_L2_B_pull.json"))
 assert st1["gpu"].replace(" ", "") == "0%,2MiB", ("GPU not idle after run", st1["gpu"])
 print("SUMMARY l2_b_pull OK %s wall=%.0fs" % (json.dumps(tot), rep["wall_s"]), flush=True)

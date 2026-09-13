@@ -3,7 +3,7 @@ User ruling 2026-09-05 01:5xZ (STATE.md): bulk pulls from the data.binance.visio
 exchange-API rate rule; lead AMENDMENT 1 (PROGRAM_uplift_r3 §AMENDMENT 1) caps this line at <= 20 req/s, halved to 10 req/s
 whenever pod2 PID 333197 (another researcher's paused collector) is not in a stopped state. No exchange API host is ever contacted
 (asserted per request). Every request outcome is counted; 404 is recorded as 'missing', never retried and never read as 'no trading'."""
-import http.client, threading, time, re, ssl, subprocess, hashlib, io, zipfile, csv, calendar
+import http.client, threading, time, re, ssl, subprocess, hashlib, io, zipfile, csv, calendar, socket
 import numpy as np
 from urllib.parse import quote
 
@@ -12,6 +12,37 @@ PREFIX = "data/futures/um/daily/metrics/"
 MAX_RATE = 20.0
 COLS = ["sum_open_interest", "sum_open_interest_value", "count_toptrader_long_short_ratio", "sum_toptrader_long_short_ratio",
         "count_long_short_ratio", "sum_taker_long_short_vol_ratio"]
+
+
+_ORIG_GAI = socket.getaddrinfo
+_DNS = {}; _DNS_LOCK = threading.Lock(); DNS_TTL = 600.0; DNS_STATS = dict(hits=0, lookups=0, gaierror_retries=0)
+
+
+def _cached_getaddrinfo(host, port, *a, **k):
+    """pod2 DNS is Docker's embedded resolver (127.0.0.11); pull run 1 saw 56 gaierror in 6k requests. Cache answers for 10 min and retry
+    a failed lookup up to 5 times with back-off. Only resolution is cached; TLS still verifies the certificate for the hostname."""
+    key = (host, port, a, tuple(sorted(k.items())))
+    now = time.monotonic()
+    with _DNS_LOCK:
+        hit = _DNS.get(key)
+        if hit is not None and now - hit[0] < DNS_TTL:
+            DNS_STATS["hits"] += 1
+            return hit[1]
+    for attempt in range(5):
+        try:
+            res = _ORIG_GAI(host, port, *a, **k); break
+        except socket.gaierror:
+            with _DNS_LOCK:
+                DNS_STATS["gaierror_retries"] += 1
+            if attempt == 4:
+                raise
+            time.sleep(1.0 + 2.0 * attempt)
+    with _DNS_LOCK:
+        _DNS[key] = (time.monotonic(), res); DNS_STATS["lookups"] += 1
+    return res
+
+
+socket.getaddrinfo = _cached_getaddrinfo
 
 
 def collector_state():
@@ -63,7 +94,7 @@ class Client:
                 c.close()
             except Exception:
                 pass
-    def get(self, host, path, tries=3):
+    def get(self, host, path, tries=6):
         """Returns (status, body_bytes or None). status None = transport failure after all tries."""
         assert host in HOSTS, ("host not allowed", host)
         last = None
@@ -85,9 +116,9 @@ class Client:
                 self._count(str(st)); last = st
                 if 400 <= st < 500:
                     return st, None
-                time.sleep(1.0 + a)
+                time.sleep(min(20.0, 1.0 + 2.0 ** a))
             except Exception as e:
-                self._count("EXC " + type(e).__name__); self._drop(host); last = None; time.sleep(1.0 + a)
+                self._count("EXC " + type(e).__name__); self._drop(host); last = None; time.sleep(min(20.0, 1.0 + 2.0 ** a))
         return last, None
 
 
