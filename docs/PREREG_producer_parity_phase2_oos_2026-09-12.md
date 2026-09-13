@@ -207,3 +207,134 @@ Phase 1 证明"装置 = 线上"(生产代码路径逐锚复现线上权重)。Ph
 
 ## 附 · 本地哈希复核(2026-09-13 11:3xZ; 受 lead 告警: Mac 卷 97% 满, iCloud 把 Desktop 下文件驱逐为 dataless, `shasum` 可能静默记下 sha256(空)= e3b0c442…)
 - 本 worker 在 SHA256SUMS_S0 / S1 记录的 **56 条哈希全部复核通过, 0 条为空串哈希**: 本地逐条先查 APFS dataless 标志且「读到字节数 = st_size」才哈希, dataless 的改读 git 已提交对象(字节数 = `git cat-file -s`); 另在 pod2 副本上独立 `sha256sum -c` **56/56 OK, rc=0**(pod2 不受 Mac 驱逐影响)。复核时已有若干本地文件为 dataless(如 `devices/p2_driver.py`、`receipts/G2B_funding_parity.json`), 其记录值由 git 对象与 pod2 副本双重核实。收据(提交 4a6e8dd3): `phase2/receipts/HASH_REVERIFY_local_2026-09-13.jsonl`(ab2b1714…)、`HASH_REVERIFY_pod2_2026-09-13.txt`(feb61c2d…)与其输入清单(dfa13506…), 装置 `phase2/devices/p2_hash_reverify.py`(b4fa12a3…); 另附 pod2 端生成的 P2 全量清单 `phase2/SHA256SUMS_pod2_P2_2026-09-13.txt`(86 条, 6aaf937a…, 以后以此为准)。G2-C 本地暂存 `g2c_stage/` 在 cc_tmp, 不在 Desktop。
+
+## AMENDMENT 6 · S2 记账合同(2026-09-13 11:4xZ, P2 worker, 受 lead「P2 S2 go」; **写于任何 S2 数字之前**: 本节提交后才写 S2 装置、才跑任何 S2 链 / 门 / 表; 不改 S0 / S1 的任何门、阈值、标签与读数)
+- 编号: A2.6 / A4.1 / A4.1a 所说「S2 记账合同另立修订」= 本节(AMENDMENT 5 之后顺延为 6)。本节与 A2.6、A4.1 骨架、A4.1a 不一致处以本节为准, 逐条列在 A6.10。
+- 为定合同读过的**既有**档案属性(均非 S2 数字)列在 A6.11。
+
+### A6.1 臂(全部预声明; 事后不选臂; 全部报告)
+| 臂 tag | king OOF | F10 OOF | 宇宙 | 供给 | 读法 |
+|---|---|---|---|---|---|
+| `S2_v4_s42` / `S2_v4_s2027` = P2a-v4-s42 / -s2027 | `SLOW_v4` dde19142… | `f10_v4RAW_s42` 58d64a6f… / `f10_v4RAW_s2027` 47046ccd… | PIT | withhold | **主对** |
+| `S2_A0pred_s42` / `S2_A0pred_s2027` = P2a-A0pred-s42 / -s2027 | `SLOW_v3_on_v4axis` 64767318… | `f10_A0_s42` ff109711… / `f10_A0_s2027` 98bfe779… | PIT | withhold | 与 A0 模型匹配: 隔离「生产路径 vs 研究回放」 |
+| `S2_v4_s42_serveall` = P2a-v4-s42-serve_all | SLOW_v4 | v4RAW_s42 | PIT | serve_all | 1 月敏感性(单种子, 无判词) |
+| `S2_v4_s42_pins` = P2a-v4-s42-pins | SLOW_v4 | v4RAW_s42 | pins | withhold | 只在 D12 可行域报(单种子, 无判词) |
+- 每臂 = 一条串行链: 2022-01-31 00Z → 2026-08-31 00Z 共 10,039 锚(= A0 rec 轴 = `universe.npz` 轴, 严格 4h 网格), 首锚冷启动(A2.1 I7), 全部锚记录; 驱动 `p2_driver.py` dc4e6c85… 与装置 4d3bc157… / f5ba9a82… 原样(sha 断言); 臂间差别只经 `arm` 字典与折表输入。
+- **A0pred 的 F10 折表**(输入折表, 不改驱动): `f10_A0_s{seed}` = `f8_ext/preds/f10_V2MAIN_s{seed}.npy` 按 E_ts 对齐(`build_dev_v4.py` L50–51), 由 `pod_f10_train_ext.py` 逐年折 YV ∈ {2023, 2024, 2025, 2026} 产出(L266–271: train i < first_te − 60 且 year < YV)⇒ **四年全按逐年规则**: label_end(Y) = E_ext[first_te(Y) − 61] + 4h(dlw_ext 轴, 31d043e8…), 可送入 ⇔ label_end < E 所在月首。启动器在 `Globals` 构造后把该臂 `ft` 换成此表(`splice_boundary` 置 2⁶², 模型名 `F10_V2MAIN_s{seed}:fold{Y}`), 折表随 RUN 收据落盘。v4 臂 = 驱动原表(月折 202501..202608 + 逐年 2023/2024)。**king 折表**: 两种 OOF 同一规则(v3 导出器 `pod_export_bundle_v3.py` L48–52 / L55–58 与 v4 导出器同构: fold Y 拟合 anchor-year < Y), label_end 由 `wide_fea_v4_meta` 实算(驱动 `king_fold_table`), 30 天规则 ⇒ 每年 1-01 00Z..1-31 00Z 扣留。
+- 收据 6(G2-S)只证明 2024-02→2025-03 段暖机; P-A 无接缝, 不依赖该门。
+
+### A6.2 书(同一条链多读; 层级一律 = 持仓书层 / 目标权重)
+- **P2-CMB(主)**: W_t = c·1[|c| > 1e-9], c = 0.55·kc_t + 0.45·fc_t, kc / fc = combo 段该锚写出的 float64 状态 `state_H_{kc,fc}_A`(= COMBO_LIVE 写者 `_weights` 的公式 L319 / L339; 差别只在状态文件按 |v| > 1e-9 截存, 逐名 |Δw| ≤ 2e-9)。**不看** COMBO_LIVE 飞前断言(D11)是否通过。该锚无状态(已知生产崩溃 `none_target_all_zero_z` 或生产者跳锚)⇒ W_t = W_{t−1}(持有不动); 链上首个状态之前 W = 0。
+- **P2-LIT**(只报, 一律标注「受 D10 混杂」): traded_file = combo ⇒ W_t 同 P2-CMB 式; = king ⇒ W_t = king H_t(记录的 |H| > 1e-12 向量); = none(producer_skip) ⇒ W_t = W_{t−1}。
+- **P2-KING**(只报水平与对 CMB 的差): W_t = king H_t, 跳锚持有。
+- 逐臂逐年报: traded_file 三形态占比、已知崩溃锚数、跳锚数、COMBO_LIVE 失败原因计数。
+
+### A6.3 D18 覆盖层(只作用于主对 `S2_v4_s{42,2027}` 的 P2-CMB; 三读 STOP / STOP-PINNED / NOSTOP)
+- **执行器原文**: 从 dl_quant_live@918559f 的只读 git 对象复制到 pod2 `P2/work/exec_ro_918559f/`(文件 sha 断言: `live/per_name_stop.py` 8fb79dd8…, `scheduler/anchor_loop.py` 3c665b4e…, `signal/legs.py` 7c0665f8…, `config/book.json` f6fd6d0e…), 按 AST 抽取函数原文执行、不改一字: `resolve_profile` L25–42, `evaluate` L77–141, `active_sets` L144–148(per_name_stop.py); `withhold_pop` L314–331, `apply_withhold_and_reshape` L334–422, `clamp_held_untradable` L425–449, 常量 `RESHAPE_REDEMEAN = RESHAPE_RESCALE = True`(anchor_loop.py); `reshape_after_withhold` L124–198(legs.py, 作为 `LG.reshape_after_withhold` 注入)。conf = `resolve_profile(book.json["per_name_stop"])`, 断言 enabled / depth_pct −0.30 / consecutive_anchors 2 / cooloff_days 7 / min_notional_usdt 5.0。
+- **单位**: NAV 取常数 **NAV_REF = 117,976.93 USDT**(STATE.md 09-12 13:3xZ 条「平仓前 NAV」), 执行 gross G = 2.0 × NAV_REF; 目标名义 = (W_t / Σ|W_t|) × G, 只列 |W_t / Σ|W_t|| > 1e-12 的名(= `EXT.target_vector` + `LG.to_notional`); 记账权重 X_t = 执行名义 / G × Σ|W_t|(与研究 `_ex` 同尺度; 无止损事件时 X_t = smr(W_t) 至浮点)。
+- **价格与入场价**: 每名价格指数起点 1, P_{t+1} = P_t·(1 + y4_t), y4 = meta_newprod_v4 RAW(NaN ⇒ 价格不变); **不从 5m 缓存 ret5 重算**。份额 q = 名义 / P_t; 入场均价按交易所规则(同向加仓数量加权; 减仓不变; 归零或翻向重置为 P_t), 与研究 d30 成本基 L347–357 同构。
+- **时钟**: 计划与终锚读回的 now 都取 E_t(§1 / D15: E 收盘 100% 成交)。
+- **逐锚顺序**:
+  1. held_t = {s: q_s·P_t[s] : q_s ≠ 0}(上一锚份额按 y4 漂移到 E_t 收盘)。
+  2. sets = `active_sets(state, E_t)`; U = sets.stop ∪ sets.cooldown ∪ {held_t 中不在目标名单的名}(在役 `held_not_in_target` → `_ext_held_exit` 并入 untradable 的语义)。
+  3. target = 上述目标名义字典。
+  4. **STOP-PINNED(W9 前在役行为)**: sets.stop 中在 target 的名置 0.0(anchor_loop L1805–1809 `_pns_zero_targets`), 再 `apply_withhold_and_reshape(target, held_t, U, G, floors_usdt=None)`。**STOP(条款语义 = W9 后预期)**: 先把 sets.stop ∪ sets.cooldown 的名从 target 中 **pop**(不进入重整集), 再同一调用 ⇒ 持有的被停名经 clamp 的 flatten_only 分支到 0, 其余名按执行器重整(去均值 + L1 复原)。**NOSTOP(对照)**: X_t = smr(W_t)(研究 `_ex` 变换 L324–330), 不经执行器函数。
+  5. 执行名义 N_t = 调用后的 target(不在字典的名 = 0), 于 P_t 成交: 更新份额与入场均价。
+  6. 终锚读回快照: positions_notional = {s: N_t[s] ≠ 0}, positions_unrealized = {s: q_s·(P_t[s] − avg_s)}; state = `evaluate(snapshot, state, conf, E_t)`。
+  7. X_t = N_t / G × Σ|W_t|。
+- **做不到的(叠加 A4.1 / A4.1a 原列)**: 执行器其余 withhold(场所可交易名单、exchangeInfo 元数据排除、2× 最小名义资格、known-gap 上限)与 floors 跨越检查; 真实时钟(读回晚于 E、计划在 N+23 ⇒ 冷却可能晚一锚结束); NAV 随时间变化; W9 最终实现若不是「从重整集 pop」, 与 STOP 的差为每个被停名 O(平移 a)。
+
+### A6.4 记账(v4 钉; 逐式同 `w10_sleeve_r18.py` 9b8a6323… L324–339 / L362–365 / L386–389)
+对任一权重序列 X_t(829 轴, 符号 sha 381b7f01…; X_{首锚−1} = 0):
+- i = meta 行(`meta_newprod_v4.npz` 0e3c09ac…), j = 面板行(`wide_panel_4h_v2ext.npz` 5e67c055…)。y = nan_to_num(y4[i], 0)(**float32 RAW**, Π(1+r)−1 谱系; 禁 ret5); fnow = nan_to_num(f_fund_now[j], 0); iv = f_fund_iv[j](有限且 > 0, 否则 8.0); qv4h = expm1(clip(qvk[i], 0, 30))·48(float32); tier = 0 若 qv4h ≥ 5e6, 1 若 ≥ 1e6, 否则 2(NaN ⇒ 2); rate = fr·mk + (1 − fr)·tk, (mk, tk, fr) = `costb_PWR_G230k.json` 295b4e7b… 三档。
+- pnl_ex = 1e4·Σ_S X_t·y; carry_ex = 1e4·Σ_S X_t·fnow·(4 / iv); cost_ex = Σ_S |X_t − X_{t−1}|·rate; net_ex = pnl_ex − carry_ex − cost_ex; gross_total = Σ_{全 829}|book|; **g = net_ex / gross_total**(bps / 锚 / 单位 gross)。
+- **求和集 S**: 「members」= 研究成员集 m_i = members[i] ∩ UMASK_ROW[j](只用于 GATE S2-P-acc 复现研究存档); 「full」= 全 829 名(**全部 P2 书**)。理由: 生产成员集 ≠ 研究 m(D10), P2 持有研究 m 之外的名。
+- **NOSTOP**: nz = |W_t| > 1e-12; smr = W_t, smr[nz] −= mean(smr[nz]), 若 Σ|smr| > 1e-9 则 smr ×= Σ|W_t| / Σ|smr|; X_t = smr; gross_total = Σ|W_t|。**覆盖层**: X_t 取 A6.3, gross_total = Σ|X_t|。
+- **空书**: gross_total = 0 且 Σ|X_t − X_{t−1}| = 0 ⇒ g = 0(逐年计「空仓锚」); gross_total = 0 而有交易 ⇒ RED(停并报)。
+- **研究参照**(同锚配对; g 直接取存档 rec 的 net_ex / gross_total, 不重算): **A0** = r18 C0 存档 `C0_s{seed}.npz`(d6298deb… / fa5ed19a…; 其 `d30_n2_c42_rec/W` 与 r3k A0 存档 352ac36f… / aa44e18f… 逐位相同 = RECEIPT_r18_drive_gateP 的 GATE P), 取两条: **A0_d30**(研究目标层止损 d30_n2_c42 = 发布件, s42 W_ALPHA 0.6341957)与 **A0_S0**(同装置同跑的无止损版本 = A4.1 所说「A0 的无止损版本」); **NW** = r18 `NW_s{seed}.npz`(afbcd92e… / 89d28a31…)的 S0 / d30; **A1-NW** = GATE S2-P-NW 通过后新跑的 S0 / d30。诊断(无判词): A0 存档 float32 W 按 full 口径重记账与存档之差 Δ_set, 逐窗报。
+- 执行 = 100% 于 E 收盘(D15)。§1 的 exec 口径敏感性臂(E+24m)**S2 不跑**(A6.10-5)。
+
+### A6.5 窗口
+- W_FULL = A0 轴 ts ≤ 2026-08-30 20Z(n = 10,038); W_ALPHA = W_FULL ∧ 行 ≥ 900(n = 9,138, 首锚 2022-06-30 00Z); FROZEN = 2025-03-01 00Z ≤ ts ≤ 2026-08-10 20Z(n = 3,168)。各窗 n 由装置断言。
+- pins 臂: 只报 D12 可行域 ts ≥ 2025-09-19 12Z 与各窗之交(n 由装置报)。serve_all 臂两读: (i) 全部锚; (ii) 剔除 `S2_v4_s42` 的 543 个 king 扣留锚(配对两侧同剔)。
+- 逐年表: W_FULL 按 UTC 自然年 2022(01-31 起)… 2026(至 08-30 20Z)。
+
+### A6.6 统计(全部冻结)
+- **水平**(每 臂 × 书 × 覆盖层 与每条参照, 每窗): n, 均值 g, Sharpe = mean / sd(ddof=1)·√2190, g 的 CI95(自举同下, k = 0 与 k = 9), pnl / carry / cost 各自除 gross_total 的均值, gross_total 均值, 换手 Σ|X_t − X_{t−1}| / gross_total 均值, 年化 %/gross = 均值·2190 / 100。
+- **逐年**(W_FULL): n, g, Sharpe(n > 30 才报), 年化 %/gross, **NEG = 均值 g < 0(显式标)**, 年内 2.0× 复利 maxDD(含年初起点), 最差 UTC 日(2.0× 日收益)与日期; 配对对照另报逐年 Δg(无 CI)。
+- **maxDD(固定 2.0×)**: 窗内每 UTC 日(ts // 86400)r_d = Π_{t∈d}(1 + 2.0·g_t·1e-4) − 1; NAV = [1, cumprod(1 + r_d)](含窗起点, E-0909-C); maxDD = min(NAV / cummax − 1), 报峰 / 谷日期与最差日。
+- **配对**(同锚): d_t = g_arm,t − g_ref,t; Δg = mean(d); ΔSharpe = SR(arm) − SR(ref); 另报 Δpnl / Δcarry / Δcost(/gross)与 d 非零锚数。
+- **自举** = `judge_v4.py`(retrain_2026-09/v4_chain_2026-09-09, c2a81c48…)的 `boot()` **按 AST 抽取原文执行**: days = ts // 86400; S = bincount(v), N = bincount; idx = rng.integers(0, nd, size=(2000, nd)); mn = S[idx].sum(1) / N[idx].sum(1); CI95 = percentile 2.5 / 97.5; P>0 = mean(mn > 0)。**rng = np.random.default_rng([20260905, k])**, 每个(对照, 种子, 窗)新建生成器, **k = 0 主读、k = 9 复核**(不用 r18_judge / T6 的「每次抽样一条流」形式)。ΔSharpe CI: 以同一 (20260905, k) 重建同一 idx, 按 `t6_compute.py` `boot_sr_pair` 的式子由日和与日平方和算两侧 SR 之差, CI95 同分位。
+- **DSR**(只对主臂 = `S2_v4` P2-CMB STOP, 每种子): `t6_compute.py`(103974f3…)的 `psr` / `sr0` 按 AST 抽取原文执行(γ = 0.5772156649015329; N < 2 按 2 计并标旗); T = 窗内锚数; g3 = skew(bias=False), g4 = kurtosis(fisher=False, bias=False) 取本臂窗内 g; **V_SR_pp 与 N_eff 取 `RECEIPT_T6_compute.json`(7c41281a…)RESULTS 同种子同窗的 F1 块**(W_FULL、FROZEN 两种子; W_ALPHA 只有 s42 块 ⇒ s2027 的 W_ALPHA 不报); N ∈ {N_eff, 300}; 报 SR_annual、SR0_annual、P(真 SR > 0)、P(真 SR > 3)。
+
+### A6.7 对照清单与判词
+- 判词只在双种子对照上下、且只用于 P2-CMB 对照。规则(v4 同 + 原 §3 分辨率): 对每个(对照, 窗), **任一种子 |Δg| < 0.23 bps/锚/gross ⇒「(C) 不可区分」**; 否则两种子均 Δg > 0 且 CI95(k = 0)下界 > 0 ⇒ **(A)**(Δ > 0 可分辨); 两种子 CI95 上界 < 0 ⇒ **(B)**(Δ < 0 可分辨); 其余 ⇒ **(C) UNDECIDED**。k = 9 按同规则另判; 与 k = 0 的词不同 ⇒ 列入「矛盾」, 判词仍取 k = 0。ΔSharpe 只报 CI 不下词。(A) / (B) 只表示差的符号可分辨, 不是任何改动的晋级 / 否决。
+
+| id | 对照(同锚配对) | 判词 |
+|---|---|---|
+| K1 | v4 CMB-NOSTOP − A0_S0 【**「生产路径 vs 研究回放」主差**(含 v4 模型换代), 两侧均无止损层, A4.1】 | 是 |
+| K2 | v4 CMB-STOP − A0_d30 【两侧各带自己的止损层; A0 = 发布件】 | 是 |
+| K3 | K2 − K1 = (STOP − NOSTOP)_P2 − (d30 − S0)_A0 【止损层分量, A4.1 单列】 | 是(无 ΔSharpe) |
+| K4 / K5 | v4 CMB-NOSTOP − NW_S0 / v4 CMB-STOP − NW_d30 | 是 |
+| K6 / K7 | v4 CMB-NOSTOP − A1NW_S0 / v4 CMB-STOP − A1NW_d30 【同模型(v4): 生产路径 vs 研究回放】 | 是 |
+| K8 | v4 CMB-STOP − v4 CMB-NOSTOP 【执行器止损覆盖层效果】 | 是 |
+| K9 | v4 CMB-STOP-PINNED − v4 CMB-STOP 【钉住效应】 | 是 |
+| K10 | v4 CMB-STOP-PINNED − A0_d30 | 否(只报) |
+| M1 | A0pred CMB-NOSTOP − A0_S0 【**同模型(A0 模型): 生产路径 vs 研究回放**】 | 是 |
+| M2 | A0pred CMB-NOSTOP − NW_S0 | 是 |
+| M3 | v4 CMB-NOSTOP − A0pred CMB-NOSTOP 【生产路径内的模型换代】 | 是 |
+| S1 / S2 | serve_all CMB-NOSTOP − v4_s42 CMB-NOSTOP / − A0_S0(s42), 读法 (i)(ii) | 否(单种子) |
+| P1 / P2 | pins CMB-NOSTOP − v4_s42 CMB-NOSTOP / − A0_S0(s42), 只 D12 域 | 否(单种子) |
+| L1–L4 | LIT(v4) − A0_S0; LIT(v4) − CMB-NOSTOP(v4); LIT(A0pred) − A0_S0; LIT(A0pred) − CMB-NOSTOP(A0pred) 【受 D10 混杂】 | 否 |
+| G1 / G2 | KING(v4) − CMB-NOSTOP(v4); KING(A0pred) − CMB-NOSTOP(A0pred) | 否 |
+| R1–R3 | 研究侧语境: A1NW_S0 − A0_S0; A1NW_d30 − A0_d30; NW_d30 − A0_d30 | 否 |
+- 水平读数主行 = v4 CMB-STOP(A4.1: 一切尾部 / 回撤读数只从 STOP 出); NOSTOP 与 STOP-PINNED 并列。
+
+### A6.8 门(冻结; 阻断门红 ⇒ S2 停止并上报, 不出表; 阈值不改)
+| 门 | 内容 | 通过 |
+|---|---|---|
+| S2-FN | 执行器三个源文件与 book.json 的 sha = A6.3; AST 抽到的函数行号 = A6.3; conf 值 = A6.3 | 全等 |
+| S2-P-acc | members 口径记账作用于存档 float32 W, 复现存档 rec 的 pnl_ex / carry_ex / cost_ex / net_ex 与 gross_total: r3k A0 两种子、C0 S0 / d30 两种子、NW S0 / d30 两种子(共 10 条序列, 全锚) | 逐锚 max|Δ| ≤ **1e-4 bps**(四列), |Δgross_total| ≤ 1e-6; 另 full − members = m 外名贡献的独立求和(≤ 1e-9) |
+| S2-P-NW | 新 runner 在 P2 根下原样跑 r18 装置(9b8a6323…)NW 旋钮两种子 | S0_rec / S0_W / d30_n2_c42_rec / d30_n2_c42_W / cols / symbols 与 NW 存档**逐位相同**; 过后才跑 A1-NW(环境差恰为 SLOW_NPY 与 FPRED 两键, 装置断言) |
+| S2-BOOT | (i) 自举函数 = judge_v4.py 抽取原文(源 sha 入收据); (ii) ΔSharpe 例程重建的 idx 所得 Δg CI 与 boot() 输出逐位相同(A0_S0 vs A0_d30, 两种子三窗, k = 0 与 9); (iv) ΔSharpe 向量式与逐次显式重抽(20 次)相等 | (i)(ii) 逐位; (iv) ≤ 1e-9 |
+| S2-BOOT-iii(**非阻断**) | 复现 JUDGE_v4.json(efb51ef0…)A1−A0 dyn s42 与 s2027(k = 0)、A2−A0 dyn s42(k = 1)的 delta / ci95 / p_gt0(dev_v4 臂文件 sha 入收据) | ≤ 1e-12 且 p 相等; 不过只列入矛盾 |
+| S2-DSR | 以 r3k A0 存档 g 与 T6 收据的 V_SR_pp / N_eff / T 复现 T6 收据 A0 条目(F1_s42 W_FULL / FROZEN / W_ALPHA, F1_s2027 W_FULL / FROZEN)的 SR_annual、skew、kurt、SR0_annual(N_eff / N_300)、P_true_SR_gt_0 与 gt_3(N_eff / N_300) | 每项 ≤ 1e-9 |
+| S2-OVL-RED | A6.9 合成场景结果全部等于预写值 | 全等(浮点 ≤ 1e-12) |
+| S2-RUN | 6 条链 rc = 0 且父进程汇总行在; 每条 RUN 收据 n_records = 10,039、锚 = A0 轴、fatal = None、驱动 / 装置 sha 同上、arm 字段 = A6.1; 非已知崩溃的 combo 非 0 / 3 返回码 = 0; 有 `combo_file_vs_states_Linf` 的锚 ≤ 1e-8 | 全满足 |
+| S2-D | 新审计装置按臂独立重推规则(king: SLOW_v4 与 SLOW_v3_on_v4axis 同一 30 天规则; F10: v4RAW_s{seed} = `RAW_s{seed}` 月折配置 + 逐年 2023/24, A0_s{seed} = 四年逐年)审计全部 S2 记录: withhold 臂「送入却不合规」= 0; 记录旗标 / 模型名 = 重推; king 扣留锚集 = 2024/25/26 各 1-01 00Z..1-31 00Z(OOF 有值者); serve_all 臂送入的不合规锚 ⊆ 该集且 F10 = 0(设计内, 标红只报) | 全满足 |
+| S2-OVL-ID | 真 P2-CMB 两种子: conf enabled = False 时 STOP 与 STOP-PINNED 逐锚复现 NOSTOP | |Δg| ≤ 1e-9 bps 且 ‖ΔX‖∞ ≤ 1e-12 |
+
+### A6.9 覆盖层合成红控(S2-OVL-RED 预写结果; 6 名, 目标恒为 W = [+0.20, +0.15, +0.15, −0.20, −0.15, −0.15], 61 锚, NAV_REF / conf 同 A6.3)
+- **场景 A(多头止损)**: 名 0 的 y4 在锚 2 为 −0.40, 其余全 0。预写: 锚 3、4 读回深度 −0.40(锚 3 再平衡把入场均价摊到 0.84), **锚 4 触发 stopped**。STOP: X[0] 在锚 5..46 **恰为 0**, 锚 47 再入(冷却 until = E_5 + 7 天 = E_47; `active_sets` 用 `>` ⇒ 锚 47 已不在冷却); 锚 5..46 其余五名 X = [0.25, 0.25, −4/19, −11/76, −11/76]。STOP-PINNED: 锚 5 起 X[0] = **1/24**(去均值平移 1/30 后 L1 复原, clamp 判 reduced), 此后一直钉住、从不进入冷却, 其余五名 X = [11/48, 11/48, −5/24, −7/48, −7/48]。NOSTOP: X 恒 = W。
+- **场景 B(单锚越线后回升)**: 名 0 的 y4 在锚 2 为 −0.40、锚 3 为 +1.00。预写: 锚 3 计数 1, 锚 4 深度 +0.30 复位, 全程无 stopped; 三读逐锚相同。
+- **场景 C(dust 不计)**: 场景 A 价格, 目标换为 W = [+1e-5, +0.35 − 1e-5, +0.15, −0.20, −0.15, −0.15](名 0 名义 ≈ 2.36 USDT < 5)。预写: 名 0 从不计数、从不 stopped; 三读逐锚相同。
+- **场景 D(关闭)**: 场景 A 价格 + enabled = False ⇒ 三读逐锚相同。
+- 预写值在装置里写成常数, 并由独立的逐步手算实现交叉核对; 任一不符 ⇒ 门红。
+
+### A6.10 与此前文本的差异(逐条)
+1. A4.1 骨架「min_notional 5 USDT 按该臂固定 2.0× 复利 NAV 路径换算」→ 常数 NAV_REF。理由: 该量只决定 dust 门槛; 复利路径需要任意起点 NAV, 并让门槛依赖覆盖层自身已实现路径; T5b 观察到的钉住发生在 ≈ 11.8 万 NAV 量级。
+2. STOP 精确化为「被停 / 冷却名从重整集 pop, 持有者经 clamp flatten_only 到 0」(A4.1a「按执行器 withhold → reshape 剔除, 不经 clamp 回钉」的实现形式)。
+3. A2.6「UTC 日块自举 2000 次, default_rng([20260905, k]), k = 0 主 / k = 9 复核」钉为 judge_v4 `boot()` 形式(每个对照一个生成器)。
+4. 判词只下在 P2-CMB 的双种子对照; P2-LIT / P2-KING / 单种子臂只报数(A2.6 未限定)。
+5. §1 的 exec 口径(E+24m)敏感性臂 S2 不跑。
+6. P2 书的记账求和集 = 全 829 名(研究为 m)。
+7. serve_all 两读 (i)(ii)(D14 原文只有 (ii))。
+8. A0 的无止损版本 = C0 存档 S0(A4.1 未指明来源)。
+9. P2-CMB 在崩溃 / 跳锚锚持有不动(A2.6 未定义)。
+10. DSR: s2027 的 W_ALPHA 无 T6 块, 不报。
+
+### A6.11 设计期只读事实(非 S2 数字)
+- OOF 逐年有值行: SLOW_v4 与 SLOW_v3_on_v4axis 只有 2024–2026(2026: 1,458 / 1,452 行); f10_v4RAW 与 f10_A0 2023–2026(2026 A0: 1,452 行); 2022 均无。
+- 829 符号轴(381b7f01…)在缓存 / 面板 / umask / r18 存档间相同; A0 轴 = universe 轴、严格 4h、⊂ meta 与面板时间轴; meta 的 y4 / qvk 为 float32。
+- **新偏差 D20(读码 VERIFIED)**: king OOF 只在「该锚前向 4h 标签有限」的成员上有值(v3 导出器 L66–67 / L77–78, v4 导出器 L80–81 / L91–92: `PRED[a, m[isfinite(y4[a, m])]]`), 有限标签 < 50 的锚整行无值 —— 可得性掩码依赖未来收益是否存在; 生产 booster 给全部成员打分。A0 用同一数组(同掩码); C0 另有前向 y4 资格规则(r18 N2, NW 已修), P2 生产路径没有该规则。S2 不修正, 列为继承偏差; F10 OOF 的可得性掩码未核。
+- S1 链记录: 1 月 king 扣留锚上出现 `combo_known_crash = none_target_all_zero_z`(seamX 181 锚 = 2025-01 扣留锚; 该段席位 fund 腿权重为 0 ⇒ kc 链 z 全 0 ⇒ chain() 返回 None)。S2 按 A6.2 持有不动并逐年计数; serve_all 臂即其敏感性。
+- S1 seamX 2,131 锚每锚均 1.143 s(2 链并行)⇒ S2 每链估 3.2–4.5 h; r18 装置单跑 ≈ 27 s(RECEIPT_r18_drive_gateP); pod2 /workspace = MooseFS fuse。
+
+### A6.12 执行计划 P-A 与资源(A4.3 R1–R3 继续有效)
+- 装置(全部先提交再跑; 本地 `phase2/devices/` 与 pod2 `P2/devices/` sha 一致): `p2_s2_lib.py`(记账 / 覆盖层 / 抽取 / 统计)、`p2_s2_launch.py`(父进程载缓存一次, fork 6 条链, 每链 OMP = 1, nice 10)、`p2_r18_runner.py`(S2-P-NW → A1-NW)、`p2_s2_gates.py`(S2-FN / P-acc / BOOT / DSR / OVL-RED)、`p2_s2_audit.py`(S2-D)、`p2_s2_tables.py`(S2-RUN、S2-OVL-ID 之后出全部表)。
+- 顺序: 提交本修订 → 提交装置 → pod2 预检(只读查看受保护 PID 333197 / 339489 状态; 有非 lead 重负载则排队; cgroup memory.current; loadavg)→ 后台启动链父进程(只写 P2 根)→ 链运行期间前台跑 runner 与 gates(rc + 汇总行入收据)→ 链完成后前台跑 S2-D → tables → 收据入库。等待一律前台 until 循环, 不用监视器。
+- 资源: 6 链 + runner(≤ 2 × 3 线程)+ gates 1 核 ⇒ ≤ 13 核 ≤ 32; 内存预计 ≤ 25 GB(缓存 5.7 GB 共享页 + 每链约 1.5–2 GB, 估计), 每次加任务前读 memory.current, > 45 GB 不再加; 回放 HOME 在 `P2/work/runs/<tag>/`(每锚覆盖写 rolling.npz ≈ 23 MB 与小文件; 无多 GB 写入, 无单次 > 500 MB 写入)。不 pkill / killall, 不向受保护进程发信号。
+- 收据: pod2 `sha256sum`; 取回本地的收据用 `t6_sha_guard.py` 哈希; 提交一律显式 pathspec, 提交后 `git show --stat HEAD` 核对。
+
+### A6.13 不主张
+不提出任何书行为改动; (A) / (B) 不是晋级或否决; 覆盖层读数只主张「生产目标 + A6.3 近似」, 不主张尾部行为的生产路径保真(A4.1); 水平不代表在役月度重训(D1 / D2)、不代表 pins 宇宙(D4)、不修正 D20。
