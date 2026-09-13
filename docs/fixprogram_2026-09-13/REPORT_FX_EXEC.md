@@ -158,3 +158,59 @@ Committed in the clone as 6523440, 58 paths, checked with `git show --name-only`
 - The job reads all notarized days each run: about 150 MB today, about 2 s measured.
 
 **NEXT**: ALM-03 (39a0055) and OPS-01b (a12a78a) also committed in the clone; report sections follow. Receipts for all three go to the research repo after 16:50Z.
+
+## ALM-03 = W5, option A · commit 39a0055 (parent 6523440), 13 paths (原文英文, lead 逐字转录)
+Not deployed; receipts committed after 16:50Z. Diff: docs/receipts/fx_exec_ALM03.diff = `git diff --binary 6523440 39a0055`, sha256 326b052d705a273e767cf36d06d8a881b03934b22a3b2897c2f619efd249d031
+
+**FACTS**
+1. Step 9 (run_anchor L772–787) called check_factor_health.run(). That function ssh-reads the jpline report, retired since 08-06. The live factor_health_last.json says report_unreachable, decay_judged false. Its episode has been open since 09-04 12:45Z.
+2. Assertion #9 was `decay_judged or _fh_absent`. Since 08-06 it has passed on every anchor.
+3. #55 ic_monitor has written ic_monitor_evals.jsonl since W1, which is ef60f85 (commit time 2026-09-13T12:04:14Z). The live evals ledger did not exist when the fixture was built; its first row is due 09-14 01:30Z. W1's census already carries newest_row_anchor_ts separately from frontier_ts, so §5-2 needed no change to #55.
+4. #55's own check() on the real ic_monitor.jsonl (228 rows, last anchor 09-12T08Z): 09-14 01:30Z INCOMPLETE (r24 missing 9 anchors because of the 09-12 flatten); 09-05 01:30Z OK, judged. Scanning 08-15..09-14 at 01:30Z gives no ALERT or DECIDE. The live log's 09-09/09-10 DECIDE lines came from code before W1's freshness gate.
+
+**FIX**
+- New ops/check_rank_monitor_input.py, named per §5-3. It checks the input health of the position-rank monitor and issues no decay verdict. 10 states — ok: JUDGED; NOT_JUDGED (INCOMPLETE with census windows); INFO known gap, not paged: LEDGER_ABSENT_IN_GRACE; HIGH: LEDGER_ABSENT (after the fixed grace 2026-09-14T18:04:14Z), LEDGER_UNREADABLE, SHAPE, EVAL_STALE (>26 h), UNSTAMPED, DATA_LAG_CONTRADICTION (judged but newest anchor lags frontier by more than 2 anchors), NOT_JUDGED_WITHOUT_CENSUS.
+- Only HIGH states page, per §5-5. The episode key is a stable sentence naming the evaluation, never an age. The text is tier A and matches no alarm_policy rule (an earlier state name "…UNEXPLAINED" matched the book/venue-disagreement rule, so it was renamed).
+- Step 9 now calls RMI.run. The failure branch is HIGH (used to be INFO; that ruling was about a research box and this check reads a local file).
+- #9 evaluates #55's ledger at check time using the same evaluator (not step 9's state file, because #9 runs before step 9 in the same anchor). Pass: JUDGED; NOT_JUDGED with census; absence before the fixed grace (named gap). Everything else fails.
+- check_factor_health.py: RETIRED paragraph added and __main__ refuses to run (exit 2, no ssh). All other bytes unchanged.
+- tests_imports production list: check_factor_health replaced by check_rank_monitor_input (drift check required this; a data list, not an assertion).
+- gate_coverage: tests_factor_health and tests_frontier_staleness entries now say they pin a retired evaluator. New entry for tests_rank_monitor_input.
+
+**TESTS** · live/tests_rank_monitor_input.py, 19 cells
+- Harness: each behavioural cell drives the module that run_anchor's step 9 actually imports (read from its source), in a sandbox, then runs #9 on the same sandbox. On old code, `fetch` returns None (the observed state); nothing is contacted. Eval rows come from #55's own check() plus append_eval on the real ledger. Fixture live/tests_fixtures/alm03_rank_monitor holds byte copies with sha of ic_monitor.jsonl, factor_health_last.json, the factor_health episode, and the live head/time.
+- F0–F2 fixture and facts. Red on old code: A1 real situation after grace → #9 fails naming LEDGER_ABSENT (old #9 passed); A2 real 09-14 INCOMPLETE → NOT_JUDGED with "r24: 9 expected anchors missing", no page, #9 passes; A3 real 09-05 OK → JUDGED, frontier 09-04T20Z, observed 09-04T20Z, lag 0; A4 EVAL_STALE pages once, next anchor does not re-page; A5 fixed grace (same grace_until at 09-13 16Z and 09-14 18:00Z; at 18:05Z LEDGER_ABSENT); A6 DECIDE (R24_P1 moved to 0.5) → JUDGED, not paged; A7 / A7b INCOMPLETE without census, or with empty windows → HIGH; A8 truncated last row → UNREADABLE; A9 UNSTAMPED (R24_P5=None); A10 lag 3 → contradiction; A11 all 7 pages are tier A with no rule matched; A12 no subprocess ran, step-9 module imports nothing networked; S1 constants equal #55's (EVALS, GRID_S, MAX_MISSING r24); S2 W1 time equals ef60f85 +08:00 converted to Z; S3 step 9 imports the new module, no runtime importer of check_factor_health remains.
+
+**RED / GREEN / MUTANTS / NEIGHBOURS**
+- Old code (6523440 and ef60f85): 16 FAIL, exactly the old-red cells; 3 OK (F0–F2); 0 tracebacks. A1 old detail: #9 {ok True, "upstream ABSENT by ruling… not a regression"}. Other old cells: no source field; the only page is INFO UNREACHABLE.
+- Green: 19/19, at head dirty 0.
+- Mutants: 11 of 11 killed in the final run (alm03_mutants.log). First run, disclosed: M1 (grace reset each run) and M10 (step 9 back to CFH): expectation lists wrongly included A1; they were killed by A5 and by A2/A12/S3; A1 is about #9, independent of step 9; lists corrected. M5 was an equivalent mutant (a redundant clause) and survived; replaced with "drop the non-empty-windows clause", cell A7b added, killed.
+- Neighbours, all rc 0: tests_factor_health, tests_frontier_staleness, tests_book_weights_effective, tests_alert_tiers_live, tests_artifact_assertions, tests_imports, tests_static_names, gate_coverage, tests_ic_monitor. Existing suites' check() and assert statements unchanged; tests_imports has none (list diff on file).
+- tests_entrypoint_wiring actually runs step 9; heavy, runs after 16:50Z or in the battery.
+
+**OPTION A COST, AS DECLARED**: the retired evaluator stays under test (4 suites plus red_capability mutants 6/7). 〔lead: 删除 RETIRED 路径并改指四个套件 = 登记为需复审给 §0 例外的后续项。〕
+
+**BOUNDARIES**: the eval rows are check() run by the suite, not rows #55 wrote under launchd; ALERT/DECIDE/UNSTAMPED shapes need one #55 constant moved; it cannot see whether #55's launchd job is loaded, only whether its ledger moves; the grace is anchored on W1's commit time, not the actual deploy time.
+
+## OPS-01b · commit a12a78a (parent 39a0055), 5 paths (原文英文, lead 逐字转录)
+Diff: docs/receipts/fx_exec_OPS01b.diff sha256 8be588e1514d1f5719e1c924480609d63044a9d0bb872f1222ceae93f4c1840e
+
+**FACTS**
+- anchor_loop (L1762–1780 at ef60f85) imported sigma_ladder in external mode. When the file was accepted with g=0.5, it sized at NAV×gross_mult×0.5 and raised only an INFO alarm. A rejected file also raised INFO.
+- sigma_ladder.DEFAULT_PATH falls back to ~/dl_quant_live/state when LIVE_STATE_ROOT is unset, so test processes were sized by the live tree's file. No such file exists on live now.
+- tests_sigma_ladder pins only the module (evaluate/load), not the wiring.
+
+**FIX**
+- External sizing is always `_size_book(target_leverage=(external["gross_mult"] if _is_ext else None), …)` (already the default call; the S4 static text in tests_external_book is unchanged).
+- `_bw["gross_ladder"]` records reason "retired_not_read (OPS-01b…)".
+- anchor_loop no longer imports sigma_ladder. live/sigma_ladder.py stays.
+- tests_imports: sigma_ladder removed from the production list (drift check).
+- gate_coverage: tests_sigma_ladder entry says it pins a retired evaluator. New entry for tests_gross_ladder_retired.
+
+**TESTS** · live/tests_gross_ladder_retired.py, 6 cells. Harness: a real external-book DRY_RUN anchor (the tests_external_book [L] harness, copied), with LIVE_STATE_ROOT set before any import. F0 the ladder path is inside the sandbox; F1 the fixture file is ACCEPTED at g=0.5 by the ladder's own load(); O1 neighbour no file → gross 10,000; O2 (red on old) a fresh accepted g=0.5 file → gross still 10,000, target W8×10,000 bitwise, no σ_fund alarm, record says retired_not_read; O3 (red on old) a rejected file raises no "被拒" INFO; S1 (red on old) no runtime module imports sigma_ladder.
+
+**RESULTS**: old code (39a0055 and ef60f85): O2 gross 5000.0 with leverage_source "external_book.gross_mult×ladder(0.5)" and INFO "σ_fund 阶梯低档"; O3 INFO "被拒(sha_mismatch)"; S1 names scheduler/anchor_loop.py; 3 FAIL, 3 OK, 0 tracebacks. Green: 6/6 at head. Mutant "record line dropped" → O2 red; a full revert is the old code itself. Neighbours, all rc 0: gate_coverage, tests_imports, tests_static_names, tests_sigma_ladder, tests_external_book, tests_signal_and_loop, tests_per_name_stop, tests_guard_calibers. Boundaries: the internal path never read the ladder and is not exercised here; another future exposure multiplier would not be caught; the launchd state is OPS-01's receipt.
+
+Unrelated observation: pyflakes reports `undefined name 'List'` at anchor_loop L2390, pre-existing at ef60f85 L2381, harmless under `from __future__ import annotations`, not touched.
+
+NEXT: E5 = EXE-07.
