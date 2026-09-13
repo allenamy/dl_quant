@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13T15:04:14Z | **Session:** aud-kb (team audit, read-only) | **状态:** 审计登记(只读; 不改任何源文件与记忆; 更正由 lead 复核后应用) | **作废条件:** 被登记的源文件或记忆条目改动后对应行需复核; 新收据推翻本登记的任一 superseding 证据
+> **创建:** 2026-09-13T15:04:56Z | **Session:** aud-kb (team audit, read-only) | **状态:** 审计登记(只读; 不改任何源文件与记忆; 更正由 lead 复核后应用) | **作废条件:** 被登记的源文件或记忆条目改动后对应行需复核; 新收据推翻本登记的任一 superseding 证据
 
 # AUDIT_KB_PARTIAL · 评估装置与知识库陈旧结论审计(2026-09-13)
 
@@ -32,7 +32,7 @@
 |---|---|---|---|---|---|---|
 | 1 | KB-09 | P0 | DOC_STALE | `STATE.md:146 (text before lead commit b63a0144)` | **回滚**: `kill $(cat ~/wide_shadow/fea171/combo_live_daemon.pid)` ⇒ 下一锚起 king 三腿形态 | **回滚**: combo 守护自 2026-08-30 起由 launchd `com.hsy.combolive` 管理(KeepAlive: 非 0 退出即拉起, 演练受据 30942→30977), 直接 `kill` PID 会被重启, **不构成回滚**。回滚动词 = `launchctl bootout gui/$(id -u)/com.hsy.combolive`(必要时先 `launchctl disable gui/$(id -u)/com.hsy.combolive` 防重登复活), 随后核  |
 | 2 | CRON-01 | P0 | DOC_STALE | `docs/CRON_TEMPLATES_2026-09-04.md:13` | 整体回滚=kill combo_live_daemon.pid 内 PID | ⑥ 异常处置: 回滚缺省=king 形态; 生产者重启动词 = `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`; **整体回滚(临时)= `launchctl bootout gui/$(id -u)/com.hsy.combolive`**(08-30 起 launchd KeepAlive, kill PID 会 1 s 内被拉起, 不是回滚; 同形哑任务演练收据 `docs/fixprogram_2026-09-13/receipts/OPS_ |
-| 3 | M3-35 | P0 | DOC_STALE | `memory/review_b0a573a1_closure_and_merge_deploy_protocol_2026_09_09.md:13` | 运行树 = origin/main = **77d9baf**, 电池 **132/132**, safe_commit 门畅通(见 [[disposition_matrix_ruler_recalibration_and_names_truncation_2026_09_12]]); 52 行写回(RUNBOOK §4)另裁; 回滚 = §5 revert | [在第一个「状态」段之前插入] **状态 2026-09-13 12:0xZ(最新, 先读这段; 覆盖以下两段)**: 运行树 = origin/main = **ef60f85**(918559f + W6ab 259f50a6 → W2 2ad1c272 → W1 62a3032e → W9 f8beb082, 一次 safe_commit, 电池 ALL GREEN 135/135), 12Z 复场首锚验收通过(STATE.md 顶部)。下文 77d9baf/132 与「回滚 = §5 revert 链」均已 |
+| 3 | M3-35 | P0 | DOC_STALE | `memory/review_b0a573a1_closure_and_merge_deploy_protocol_2026_09_09.md:11` | 运行树 = origin/main = **77d9baf**, 电池 **132/132**, safe_commit 门畅通(见 [[disposition_matrix_ruler_recalibration_and_names_truncation_2026_09_12]]); 52 行写回(RUNBOOK §4)另裁; 回滚 = §5 revert | [在第一个「状态」段之前插入] **状态 2026-09-13 12:0xZ(最新, 先读这段; 覆盖以下两段)**: 运行树 = origin/main = **ef60f85**(918559f + W6ab 259f50a6 → W2 2ad1c272 → W1 62a3032e → W9 f8beb082, 一次 safe_commit, 电池 ALL GREEN 135/135), 12Z 复场首锚验收通过(STATE.md 顶部)。下文 77d9baf/132 与「回滚 = §5 revert 链」均已 |
 | 4 | KB-16 | P1 | DOC_STALE | `STATE.md:199` | 杠杆升级(候选 2.0× 历史不触 −25% 线) | 杠杆: 2.0× 已于 08-27 生效; v4 口径固定 2× 逐锚复利 NAV maxDD: 2023 −28.92%, 2024 −23.62%, W_ALPHA 全窗 −42.12%(r18 表勘误 3), 旧「2.0× 历史不触 −25% 线」为 CAL=simple 作废口径; 尾部为下界(E-0908-B) |
 | 5 | KB-06 | P1 | DOC_STALE | `CLAUDE.md:42` | \| 在役书证据/杠杆/局限 \| `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md` \| | \| 在役书证据/杠杆/局限 \| 在役形态水平与逐年/回撤 = `uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md`(含勘误: 固定 2× 复利 NAV maxDD); combo 选型在正确口径下的复测 = `retrain_2026-09/review_caliber_wf/combo_recheck/REPORT.md`; `docs/CANDIDATE_wide_v2main_norev24_20 |
 | 6 | KB-37 | P1 | DOC_STALE | `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:6` | **部署差不是主因**(T4/T4b/T5/T5c) | **部署差未检出也未排除**(T4 NOT MATERIAL 仅显著性门、无等价带; T5 八月 carry 差 = 构造差; T5d 九月价格部署/模型差 −4.15..+1.71 bps/锚不可排除, 为 A0 全周期净额 1.6–3.2 倍; V2MAIN 与执行器层未测) |
@@ -836,7 +836,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 
 | id | sev | status | affects | source | claim (abridged) |
 |---|---|---|---|---|---|
-| M3-35 | P0 | DOC_STALE | live_trading | `memory/review_b0a573a1_closure_and_merge_deploy_protocol_2026_09_09.md:13` | 运行树 = origin/main = **77d9baf**, 电池 **132/132**, safe_commit 门畅通(见 [[disposition_matrix_ruler_recalibration_and_names_truncation_2026_09_12] |
+| M3-35 | P0 | DOC_STALE | live_trading | `memory/review_b0a573a1_closure_and_merge_deploy_protocol_2026_09_09.md:11` | 运行树 = origin/main = **77d9baf**, 电池 **132/132**, safe_commit 门畅通(见 [[disposition_matrix_ruler_recalibration_and_names_truncation_2026_09_12] |
 | M1-01 | P1 | DOC_STALE | future_eval, future_retrain | `memory/king_fund_ema_feature_train_v0_serve_v1_2026_09_13.md:22` | do not cite this skew as a cause of live underperformance — the measured effect is below ±0.05 bps/anchor and its point estimate favours the |
 | M1-02 | P1 | DOC_STALE | future_retrain, future_eval | `memory/v4_chain_retrain_2026_09_09.md:15` | CALIBER_STATUS 更新: 线上模型腿不需为口径换装 |
 | M1-03 | P1 | DOC_STALE | future_retrain | `memory/v4_monthly_chain_driver_2026_09_12.md:15` | (i) STEP1/STEP2 门源码被 ELIGIBILITY_CONTRACT 冻结(278fdce6/db7ab356)且写死九月比对对象 ⇒ 十月需新门源码+复核+合同批准(用户字) |
@@ -1000,7 +1000,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 | MK-07 | P3 | DOC_STALE | reporting, future_eval | `memory/book_is_dominance_premium.md:3` | 该暴露≈书收益78%(截面alpha仅0.29bps/锚 夏普0.59); 对冲它=毁收益(h=1β夏普0.59) |
 
 ### M3-35 · P0 · DOC_STALE
-- **Source:** `memory/review_b0a573a1_closure_and_merge_deploy_protocol_2026_09_09.md:13`
+- **Source:** `memory/review_b0a573a1_closure_and_merge_deploy_protocol_2026_09_09.md:11`
+- **Resolution:** APPLIED by lead (note annotated as historical, with running tree ef60f85 and the R-13 no-rollback ruling).
 - **Quote:** 「运行树 = origin/main = **77d9baf**, 电池 **132/132**, safe_commit 门畅通(见 [[disposition_matrix_ruler_recalibration_and_names_truncation_2026_09_12]]); 52 行写回(RUNBOOK §4)另裁; 回滚 = §5 revert 链(禁 reset/force)。」
 - **Superseding evidence:**
   - `STATE.md:5` — 「⇒ **运行树电池 ACCEPTANCE: ALL GREEN 135/135(130 套件 + 5 审计门, tests_env_loading 14/14)** ⇒ 提交 **`ef60f85`** 并推送(origin/main = ef60f85)」
@@ -1009,7 +1010,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **A reader could wrongly conclude:** In an incident, a reader follows the stale rollback (revert chain to pre-b681ca5) in ~/dl_quant_live and reintroduces the false-positive whole-book flatten and other defects fixed by W6ab/W2/W1/W9. Or the reader reports the wrong deployed commit.
 - **Affects:** live_trading · **Severity reason:** In a section marked "latest, read first", the note gives the running tree as 77d9baf and a b681ca5-era revert chain as the rollback procedure. Applied to today's ef60f85 tree during an incident, that procedure would revert executor code under running anchors and bring back the fixed E-0912-A defects. The user has ruled fix-forward, not rollback.
 - **Proposed correction (exact text):** [在第一个「状态」段之前插入] **状态 2026-09-13 12:0xZ(最新, 先读这段; 覆盖以下两段)**: 运行树 = origin/main = **ef60f85**(918559f + W6ab 259f50a6 → W2 2ad1c272 → W1 62a3032e → W9 f8beb082, 一次 safe_commit, 电池 ALL GREEN 135/135), 12Z 复场首锚验收通过(STATE.md 顶部)。下文 77d9baf/132 与「回滚 = §5 revert 链」均已过时: 用户 R-13 裁定「彻底修复, 不回滚」(09-12), 回滚会带回 E-0912-A 等已修缺陷; 事故处置按 feedback_no_book_level_response_to_instrument_doubt, 恢复只由用户手动。
-- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 11->13)
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** applied-but-quote-still-present (exact)
 
 ### M1-01 · P1 · DOC_STALE
 - **Source:** `memory/king_fund_ema_feature_train_v0_serve_v1_2026_09_13.md:22`
