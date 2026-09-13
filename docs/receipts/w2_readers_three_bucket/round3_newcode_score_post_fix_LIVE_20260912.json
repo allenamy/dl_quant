@@ -1,0 +1,220 @@
+{
+ "selection": {
+  "rule": "the newest batch, by anchor_ts, that has an `anchors` row (i.e. is a scheduled rebalance) and submitted at least one order; rehearsal (R*) batches are excluded from automatic selection and can only be scored by being named",
+  "n_batches_with_submissions": 3,
+  "n_batches_excluded_not_rebalance": 0,
+  "n_batches_excluded_rehearsal": 0,
+  "candidates": {
+   "A1789172639": 1789172641.106866,
+   "A1789187040": 1789187043.614244,
+   "A1789201439": 1789201442.562113
+  }
+ },
+ "rebalance_id": "A1789201439",
+ "day": "20260912",
+ "n_rows": 477,
+ "E1_topup_residual": {
+  "verdict": "PASS",
+  "topup_intended_on_maker_filled_names": 192.53,
+  "maker_intended_gross": 14951.91,
+  "fraction": 0.0129,
+  "limit": "< 0.20 (tonight 1.00)",
+  "n_names_with_maker_fill": 137,
+  "note": "UNDETERMINED if no maker leg filled — nothing to have sized a residual from"
+ },
+ "readback_used": {
+  "anchor_ts": 1789201442.562113,
+  "rule": "the first reconciliation at or after the scored anchor"
+ },
+ "E2_net_exposure": {
+  "verdict": "PASS",
+  "net": 416.82,
+  "gross": 236243.47,
+  "net_over_gross": 0.00176,
+  "limit": "|net/gross| <= 0.05 (tonight +0.2658)"
+ },
+ "E3_venue_reject": {
+  "verdict": "PASS",
+  "reject_frac": 0.0,
+  "n_submitted": 207,
+  "n_venue_reject": 0,
+  "n_err_1111": 0,
+  "n_err_5022": 61,
+  "err_5022_sell_to_buy": 0.38636363636363635,
+  "limit": "reject_frac < 0.15 (47.7%), -1111 == 0 (34), -5022 sell:buy not ~16:1"
+ },
+ "E4_row_self_consistency": {
+  "verdict": "PASS",
+  "n_contradictory_rows": 0,
+  "n_price_without_fill": 0,
+  "n_fill_without_submit": 0,
+  "n_filled_but_notional_none": 0,
+  "n_fill_before_submit": 0,
+  "twin_limit": "0 rows with filled_notional set and submit_ts None (tonight 77)",
+  "limit": "0 rows with avg_fill_px set and filled_notional == 0 (tonight 47)",
+  "q3_limit": "0 rows with terminal_reason=='filled' and filled_notional None (day-wide: 1)",
+  "q4_limit": "0 rows with last_fill_ts < submit_ts. THE EXAM'S SUBJECT CANNOT CONTAIN THIS: all 204 measured instances are `protective_flatten` rows and the selector excludes ladder batches, so a 0 here is structural, not evidence. Read `day_wide` for the population that has it.",
+  "day_wide": {
+   "n_rows": 1424,
+   "n_price_without_fill": 0,
+   "n_fill_without_submit": 0,
+   "n_filled_but_notional_none": 0,
+   "n_fill_before_submit": 0,
+   "n_rows_with_both_timestamps": 550,
+   "by_order_type_fill_before_submit": {
+    "maker": 0,
+    "topup_taker": 0
+   }
+  },
+  "day_wide_caliber": "every order row in the day, ALL batches including the ladder's — reported without a verdict, because the exam's verdict is defined over its selected subject and must not silently change population",
+  "examples": []
+ },
+ "E5_position_equals_intent": {
+  "verdict": "PASS",
+  "median_abs_pos_over_intent": 1.0001,
+  "n_names": 185,
+  "median_POOLED_incl_untraded": 0.9998,
+  "n_names_pooled": 254,
+  "denominator": "target_w x this anchor's own anchors.target_gross (a STOCK: what we meant to HOLD). NOT intended_notional, which is the anchor's DELTA and only equals the target when the book starts flat.",
+  "target_gross": 235972.03934492124,
+  "population": "judged on names that TRADED; a name the venue refused has ratio 0 and is E3's subject — pooling makes E5 fail whenever E3 does and stops it being an independent question. Pooled figure reported, not judged on.",
+  "caliber": "computed from position_readback and the orders' intended_notional — INDEPENDENT of §4-5b's implementation, which changed on 2026-07-26",
+  "limit": "median in [0.9, 1.1] (the doubling reads ~2.0 — and so did every REBALANCING anchor under the old flow denominator, which is why that reading alone is not evidence of a doubling)"
+ },
+ "E5b_5b_silent": {
+  "verdict": "PASS",
+  "n_latest": 0,
+  "state": "CLEAN",
+  "blind": false,
+  "role": "CORROBORATION for E5, not the criterion itself"
+ },
+ "E6_cost_comparable": {
+  "verdict": "PASS",
+  "measurement_complete": true,
+  "measurement_complete_source": "cost_buckets.bucket_fills over the rebalance legs: every fill known, priced, and fee-known (finite; all-USDT or converted). NOT pilot_metrics.m1's bit — see `m1_measurement_complete`.",
+  "m1_measurement_complete": true,
+  "completeness_disagrees_with_m1": false,
+  "counters": {
+   "n_excluded_unknown_fill": 0,
+   "n_excluded_no_anchor_mid": 0,
+   "n_unmeasured_fee": 0,
+   "n_unmeasured_slippage": 0
+  },
+  "cost_bps_displayed": 11.7945,
+  "cost_bps_net_displayed": 1.4917,
+  "cost_bps_displayed_source": "cost_buckets over the rebalance legs — the SAME rows and the SAME rule that produced `measurement_complete`, hence the same population the verdict rests on. `abs_bps_measured` is m1's `c_bps_overall` caliber (fee + |slip|); `bps_measured` is `c_bps_net_overall`'s (fee + SIGNED slip). Rounded to 4 decimals — m1's own precision — so the two figures on this page are comparable digit by digit; the unrounded values are in `buckets`. None = nothing was measured, which is not 0.",
+  "carrier_consistency": {
+   "consistent": true,
+   "why_not": [],
+   "population": {
+    "buckets_n_fills": 185,
+    "m1_n_filled_orders": 185,
+    "buckets_notional_usdt": 11883.468,
+    "m1_filled_notional_total": 11883.47,
+    "buckets_n_unknown_fill": 0,
+    "n_rows_considered": 477,
+    "same_count": true,
+    "same_notional": true,
+    "by_regime": {
+     "normal": {
+      "buckets_n_fills": 185,
+      "m1_n_filled_orders": 185,
+      "buckets_notional_usdt": 11883.468,
+      "m1_filled_notional": 11883.47,
+      "same": true
+     }
+    },
+    "by_regime_all_same": true
+   },
+   "values": {
+    "buckets_abs_bps_measured": 11.794527851493065,
+    "m1_c_bps_overall": 11.7945,
+    "abs_caliber_agrees": true,
+    "buckets_bps_measured": 1.491695638239944,
+    "m1_c_bps_net_overall": 1.4917,
+    "net_caliber_agrees": true
+   },
+   "tolerance": {
+    "bps": 0.0005,
+    "notional_usdt": 0.01,
+    "notional_relative": 1e-09
+   },
+   "rule": "round 3, 2026-09-13 (researcher REVIEW §3.C): E6 may PASS only when the bucket population and m1's population are the SAME SET — asserted on the counts and the notional mass each carrier reports for itself, pooled AND per regime, not on a flag — and the two bps figures agree within the stated tolerance in BOTH calibers. Otherwise this criterion is NOT a PASS and the disagreement is named in `why_not`. m1 is frozen (ops/check_metrics_freeze); nothing here edits or re-implements it."
+  },
+  "c_bps_overall": 11.7945,
+  "c_bps_overall_is_finite": true,
+  "c_bps_overall_source": "pilot_metrics.m1 (FROZEN), over M1'S OWN population — it drops rows whose `side`, anchor mid or fill price it cannot read and keeps fee-unknown rows in its denominator at fee 0. Comparable with `cost_bps_displayed` only when `carrier_consistency.consistent` is True.",
+  "caliber": "per-DAY aggregate: (sum fee + sum |slippage|) / sum filled_notional, in bps, over every filled order of the day; NOT a per-fill figure",
+  "protective_flatten_cost": {
+   "n_rows": 0,
+   "filled_notional": 0,
+   "n_unknown_fill": 0,
+   "fee_paid": null,
+   "n_measured_fee": 0,
+   "n_unmeasured_fee": 0,
+   "measurement_complete": null,
+   "caliber": "event-driven exit cost, EXCLUDED from c (which measures rebalance execution quality, the quantity §4-1's limit was set for). Reported, not discarded. `fee_paid` is the sum over the rows whose fee we ACTUALLY read — never a zero standing in for rows we did not."
+  },
+  "protective_flatten_buckets": {
+   "n_rows": 0,
+   "n_fills": 0,
+   "n_unknown_fill": 0,
+   "n_measured": 0,
+   "n_fee_unknown": 0,
+   "n_unpriced": 0,
+   "notional_usdt": 0,
+   "notional_measured_usdt": 0,
+   "fee_unknown_notional_usdt": 0,
+   "unpriced_notional_usdt": 0,
+   "fee_measured_usdt": 0,
+   "adverse_measured_usdt": 0.0,
+   "abs_slip_measured_usdt": 0.0,
+   "bps_measured": null,
+   "fee_bps_measured": null,
+   "adverse_bps_measured": null,
+   "abs_slip_bps_measured": null,
+   "abs_bps_measured": null,
+   "coverage_measured_notional": null,
+   "coverage_measured_count": null,
+   "measurement_complete": null,
+   "measured_over": "MEASURED fills only — a fill with a usable price (finite positive avg_fill_px AND mid_at_anchor) AND a known fee (fee_paid not None and finite; a raw mixed-asset fee with fee_all_usdt=False and no fee_conversion is NOT known). An unpriced or fee-unknown fill is excluded from numerator AND denominator; it is not a zero-cost fill. bps is None when nothing was measured."
+  },
+  "protective_flatten_fee_known_by_buckets": 0,
+  "protective_flatten_fee_disagrees_with_m1": false,
+  "rule": "if measurement_complete is not True, c is a LOWER BOUND and MUST NOT be compared against the 9.0bps limit — the rule is unchanged from the pre-registration; only the prediction was amended (and, W2-R1, the completeness bit is now derived from the three buckets, since m1 is frozen). Round 3: a complete measurement is NECESSARY and no longer SUFFICIENT — the verdict also requires `carrier_consistency.consistent`, because a bit derived from one population cannot certify a number computed over another",
+  "buckets": {
+   "n_rows": 477,
+   "n_fills": 185,
+   "n_unknown_fill": 0,
+   "n_measured": 185,
+   "n_fee_unknown": 0,
+   "n_unpriced": 0,
+   "notional_usdt": 11883.468,
+   "notional_measured_usdt": 11883.468,
+   "fee_unknown_notional_usdt": 0,
+   "unpriced_notional_usdt": 0,
+   "fee_measured_usdt": 3.19343128,
+   "adverse_measured_usdt": -1.42077953,
+   "abs_slip_measured_usdt": 10.8225582,
+   "bps_measured": 1.491695638239944,
+   "fee_bps_measured": 2.6872889864963767,
+   "adverse_bps_measured": -1.1955933482564325,
+   "abs_slip_bps_measured": 9.107238864996688,
+   "abs_bps_measured": 11.794527851493065,
+   "coverage_measured_notional": 1.0,
+   "coverage_measured_count": 1.0,
+   "measurement_complete": true,
+   "measured_over": "MEASURED fills only — a fill with a usable price (finite positive avg_fill_px AND mid_at_anchor) AND a known fee (fee_paid not None and finite; a raw mixed-asset fee with fee_all_usdt=False and no fee_conversion is NOT known). An unpriced or fee-unknown fill is excluded from numerator AND denominator; it is not a zero-cost fill. bps is None when nothing was measured."
+  },
+  "bucket_rule": "W2 2026-09-12: the rebalance legs (maker + topup_taker) under the three-bucket rule of anchor_loop.neutrality_price. `bps_measured` is over MEASURED fills only and is None when none was measured; it equals m1's `c_bps_net_overall` exactly when every fill is measured, and diverges when m1 keeps fee-unknown notional in its denominator at fee 0. The verdict keys on `measurement_complete` (bucket-derived); `c_bps_overall` stays m1's figure and may be non-finite — see `c_bps_overall_is_finite`."
+ },
+ "overall": {
+  "E1_topup_residual": "PASS",
+  "E2_net_exposure": "PASS",
+  "E3_venue_reject": "PASS",
+  "E4_row_self_consistency": "PASS",
+  "E5_position_equals_intent": "PASS",
+  "E5b_5b_silent": "PASS",
+  "E6_cost_comparable": "PASS"
+ }
+}

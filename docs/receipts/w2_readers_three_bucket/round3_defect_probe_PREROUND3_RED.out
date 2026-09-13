@@ -1,0 +1,56 @@
+REPO = /Users/haosiyu/cc_tmp/exec_w2_prev3
+
+====================================================================================================
+DEFECT 1 — score_post_fix E6: the verdict's population vs the published number's population
+====================================================================================================
+
+  single row, side=None
+    verdict                PASS
+    measurement_complete   True (bucket-derived) | m1 bit None
+    c_bps_overall (m1)     None
+    cost_bps_displayed     <key absent: pre-round-3>
+    carrier consistent     <key absent: pre-round-3>
+
+  normal + side=None (bigger slip)
+    verdict                PASS
+    measurement_complete   True (bucket-derived) | m1 bit False
+    c_bps_overall (m1)     3.0
+    cost_bps_displayed     <key absent: pre-round-3>
+    carrier consistent     <key absent: pre-round-3>
+
+  clean control (all sides readable)
+    verdict                PASS
+    measurement_complete   True (bucket-derived) | m1 bit True
+    c_bps_overall (m1)     52.5
+    cost_bps_displayed     <key absent: pre-round-3>
+    carrier consistent     <key absent: pre-round-3>
+
+====================================================================================================
+DEFECT 2 — first_anchor_review §3c: completeness computed after the unknown rows are dropped
+====================================================================================================
+  rows in the anchor: 3 (1 with an UNKNOWN fill amount)
+  bucket completeness over the FULL population : False
+  bucket completeness after the `ex` filter    : True
+  what the screen PRINTS:
+       ex-filtered    filled       200.00   measured       200.00 (100% of notional, 2/2 fills; measurement complete: yes)
+                      fee   2.00bps   slip(adverse)  +1.00bps   slip(|.|)   1.00bps   — over the MEASURED set
+                      TOTAL adverse  +3.00bps   |.|   3.00bps
+       full rows      filled       200.00   measured       200.00 (100% of notional, 2/2 fills; measurement complete: NO)
+                      fee   2.00bps   slip(adverse)  +1.00bps   slip(|.|)   1.00bps   — over the MEASURED set
+                      TOTAL adverse  +3.00bps   |.|   3.00bps
+
+====================================================================================================
+DEFECT 3 — daily_summary: a DAY-CUMULATIVE flow subtracted from an INTERVAL equity change
+====================================================================================================
+
+  transfer landed BEFORE the window (both ends 1000)
+    equity_change            0.0
+    external_flow_usdt (day) 1000.0
+    interval flow            <key absent: pre-round-3>
+    unexplained_equity_change -1000.0   [computable: True]
+
+  transfer landed INSIDE the window (0 -> 1000, equity +1000)
+    equity_change            1000.0
+    external_flow_usdt (day) 1000.0
+    interval flow            <key absent: pre-round-3>
+    unexplained_equity_change 0.0   [computable: True]

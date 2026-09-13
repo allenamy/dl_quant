@@ -1,5 +1,5 @@
 diff --git a/live/tests_ic_monitor.py b/live/tests_ic_monitor.py
-index ee52582..78d530e 100644
+index ee52582..a059deb 100644
 --- a/live/tests_ic_monitor.py
 +++ b/live/tests_ic_monitor.py
 @@ -2,20 +2,51 @@
@@ -129,7 +129,7 @@ index ee52582..78d530e 100644
  i_ic = src.find("ic = _spear(pos, ret)")
  i_push = src.find("# push history AFTER computing")
  check("T4 beta history pushed AFTER ic computation", 0 < i_ic < i_push,
-@@ -70,6 +121,654 @@ if os.path.exists(_pl):
+@@ -70,6 +121,866 @@ if os.path.exists(_pl):
  rows6 = M.compute_rows({W: {"A": (100.0, 1.0), "B": (-100.0, 2.0)}}, known_ts={W})
  check("T6 known anchors skipped", rows6 == [], str(rows6))
  
@@ -759,7 +759,7 @@ index ee52582..78d530e 100644
 +    _M12 = _load(_m12, "m12")
 +    check("M12 ignore the triggering windows in the recovery condition ⇒ T12a (partial-OK recovers) "
 +          "goes red", t12a(_M12) is False)
-+_m13 = mutant('        if ev is None or now - float((ev.get("delivered") or {}).get(level, 0.0) or 0.0) >= COOLDOWN_S:',
++_m13 = mutant('        if ev is None or _breach_due(ev, level, now):',
 +              '        if now - float(st.get(f"last_{level}", 0.0) or 0.0) >= COOLDOWN_S:', "M13")
 +if _m13:
 +    check("M13 cooldown keyed on the old last_<LEVEL> instead of the open event ⇒ T13a goes red",
@@ -780,12 +780,224 @@ index ee52582..78d530e 100644
 +    check("M15 short-ledger branch stops flagging INCOMPLETE ⇒ T15a and T15c go red",
 +          t15a(_M15) is False and t15c(_M15) is False)
 +
++# ══ 第三轮(独立复审 REVIEW_2026-09-13 §3.B, 01:25Z): 观测≠投递 / 级别不降 / NaN 不可测 ═════════
++# 输入集 = 专项 probe_causal_events.py 的两组完整输入(逐字转抄构造器): 4h 网格, 历史行逐步不变,
++# IC 全在 [-1,1]。T17b 就地自证这三条, 免得「用了研究员的输入集」变成一句无收据的话。
++def _researcher_initial(r24sum, r48sum, first36):
++    """专项 probe_causal_events.py `initial()` 逐字转抄。四个较早的洞 {18,19,20,21} 落在 r48 窗内,
++    恰在容忍上限 4 内 —— 再缺一个锚就把 r48 变成不可判, 这正是两组反例的机关。"""
++    rows = []
++    older = [i for i in range(8, 36) if i not in {18, 19, 20, 21}]
++    assert len(older) == 24
++    for i in range(60):
++        if i in {18, 19, 20, 21}:
++            continue
++        value = .05 if i < 8 else (.1 if i == 8 else (r48sum - r24sum - .1) / 23) if i < 36 \
++            else (first36 if i == 36 else (r24sum - first36) / 23)
++        rows.append({"anchor_ts": W + i * G, "rank_ic": value})
++    return rows
++
++
++_NOWR = W + 60 * G + M.MATURE_LAG_S + 60
++_A0 = _researcher_initial(-1.08, -.72, -.6)
++_A1 = _A0 + [{"anchor_ts": W + 60 * G, "rank_ic": 0.}]
++_SET_A = [("r24 DECIDE delivered", _A0, _NOWR),
++          ("new r48 DECIDE during same-level cooldown", _A1, _NOWR + G),
++          ("anchor 61 missing; r48 unavailable, r24 healthy", _A1, _NOWR + 2 * G)]
++_B0 = _researcher_initial(-.504, -.816, .1)
++_B1 = _B0 + [{"anchor_ts": W + 61 * G, "rank_ic": -.1}]
++_B2 = _B1 + [{"anchor_ts": W + 62 * G, "rank_ic": -1.}]
++_SET_B = [("r48 DECIDE delivered", _B0, _NOWR),
++          ("anchor 60 missing; r24 ALERT, r48 unavailable", _B1, _NOWR + 2 * G),
++          ("r24 now DECIDE; old DECIDE cooldown active", _B2, _NOWR + 3 * G)]
++
++
++def _play(mod, steps, state=None):
++    """逐步 check→deliver(注入桩, 每页都成功离机), 返回每步 (verdict, 投出的页, 落盘状态)。"""
++    sp = _state_file(dict(state or {}))
++    out = []
++    for _label, rows, t in steps:
++        v = mod.check(rows, now=t)
++        res = mod.deliver(v, now=t, state_path=sp, sender=stub_ok)
++        out.append((v, [x["kind"] for x in res], json.load(open(sp))))
++    return out
++
++
++def _set_contract_ok(steps):
++    for i, (_l, rows, _t) in enumerate(steps):
++        if not all(-1 <= r["rank_ic"] <= 1 for r in rows):
++            return False
++        if not all((r["anchor_ts"] - W) % G == 0 for r in rows):
++            return False
++        if i and rows[:len(steps[i - 1][1])] != steps[i - 1][1]:
++            return False
++    return True
++
++
++check("T17b the two researcher input sets meet the contract they are claimed under: every anchor on "
++      "the 4h grid, every step append-only (earlier rows byte-identical), every IC inside [-1,1] "
++      "— no past IC is rewritten to manufacture either counter-example",
++      _set_contract_ok(_SET_A) and _set_contract_ok(_SET_B))
++
++
++def t17a(mod):
++    """[N1] 研究员输入集 A。② 的 r48 DECIDE 被同级冷却扣住 —— 页可以不发, 但「r48 越线发生过」
++    这件事实必须进事件; 否则 ③ 的 r24 一健康就把整个事件当成恢复。"""
++    (v1, k1, s1), (v2, k2, s2), (v3, k3, s3) = _play(mod, _SET_A)
++    return (v1["trigger"] == ["r24<R24_P1"] and v1["r24"] == -0.045 and v1["r48"] == -0.015
++            and k1 == ["DECIDE"] and s1["event"]["trigger_windows"] == ["r24"]
++            and v2["trigger"] == ["r48<R48_P1"] and v2["r24"] == -0.02 and v2["r48"] == -0.01708
++            and k2 == [] and s2["event"]["trigger_windows"] == ["r24", "r48"]
++            and v3["level"] == "OK" and v3["judged_windows"] == ["r24"]
++            and k3 == ["INCOMPLETE"] and s3["event"]["open"] is True
++            and mod.last_delivered_level(s3) == "DECIDE")
++
++
++check("T17a [N1] set A: an r48 DECIDE observed during the same-level cooldown enters the event's "
++      "trigger windows although NO page is sent; the later r24-healthy/r48-unjudgeable step pages "
++      "INCOMPLETE only — no RECOVERED, event still open, last delivered level still DECIDE", t17a(M))
++
++
++def t18a(mod):
++    """[N2] 研究员输入集 B。② 发出去的页是 ALERT, 但原触发窗 r48 还没重新可判 ⇒ 事件的风险级别
++    不许降。③ 相对【手机上最后那一页】(ALERT)是升级 ⇒ 不许被开事件时的那只 DECIDE 时钟吞掉。"""
++    (v1, k1, s1), (v2, k2, s2), (v3, k3, s3) = _play(mod, _SET_B)
++    return (v1["trigger"] == ["r48<R48_P1"] and v1["r24"] == -0.021 and v1["r48"] == -0.017
++            and k1 == ["DECIDE"] and s1["event"]["level"] == "DECIDE"
++            and v2["level"] == "ALERT" and v2["judged_windows"] == ["r24"]
++            and v2["r24"] == -0.02933 and v2["r48"] == -0.02117
++            and k2 == ["INCOMPLETE", "ALERT"] and s2["event"]["level"] == "DECIDE"
++            and mod.last_delivered_level(s2) == "ALERT"
++            and v3["level"] == "DECIDE" and v3["r24"] == -0.06991
++            and k3 == ["DECIDE"] and s3["event"]["level"] == "DECIDE"
++            and mod.last_delivered_level(s3) == "DECIDE")
++
++
++check("T18a [N2] set B: paging ALERT while the triggering r48 window is unjudgeable does NOT lower "
++      "the event's risk level (stays DECIDE), and the re-escalation to DECIDE 12h later is delivered "
++      "— the old DECIDE clock no longer swallows an upgrade over the last level actually delivered",
++      t18a(M))
++
++_NAN = float("nan")
++_NAN_ROWS = [{"anchor_ts": W + i * G, "rank_ic": _NAN} for i in range(60)]
++
++
++def t19a(mod):
++    """[N3] 研究员夹具: 24+ 个【新鲜网格】行, rank_ic 全 NaN。修前 check() 说两窗可判 / r24=r48=NaN /
++    level=OK —— 健康是从「所有越线比较都不成立」推出来的。NaN = 不可测, 该锚算缺。"""
++    v = mod.check(_NAN_ROWS, now=now_for(_NAN_ROWS))
++    return (v["level"] == "INCOMPLETE" and v["judged"] is False and v["judged_windows"] == []
++            and v["n_post_deploy"] == 0 and v["census"]["r24"]["missing"] == 24)
++
++
++check("T19a [N3] a fresh full grid of NaN rank_ic is UNMEASURABLE ⇒ INCOMPLETE, not judged, the NaN "
++      "anchors counted missing (was: both windows judgeable, r24/r48=NaN, level OK)", t19a(M))
++
++
++def t19b(mod):
++    v = mod.check(_NAN_ROWS, now=now_for(_NAN_ROWS))
++    t = now_for(_NAN_ROWS)
++    sp = _state_file({"event": {"open": True, "level": "DECIDE", "trigger_windows": ["r48"],
++                                "opened_at": t - 3 * 86400, "delivered": {"DECIDE": t - 3 * 86400}}})
++    kinds = [x["kind"] for x in mod.deliver(v, now=t, state_path=sp, sender=stub_ok)]
++    st = json.load(open(sp))
++    return (kinds == ["INCOMPLETE"] and st["event"]["open"] is True
++            and mod.last_delivered_level(st) == "DECIDE")
++
++
++check("T19b [N3] the same NaN ledger under an open DECIDE(r48) event delivers NO RECOVERED — health "
++      "is never inferred from 'every threshold comparison is False'", t19b(M))
++
++
++def t19c(mod):
++    """部分 NaN: 尾 24 里 3 行不可测 ⇒ r24 窗缺 3 > 2 不判, 而 r48 窗缺 3 ≤ 4 仍判;
++    r24 的【数值】仍是最后 24 个可测行的均值 —— 统计量定义(可用行的均值)不变。"""
++    rows = [mk(i, 0.05) for i in range(60)]
++    for i in (57, 58, 59):
++        rows[i] = {"anchor_ts": W + i * G, "rank_ic": _NAN}
++    v = mod.check(rows, now=now_for(rows))
++    fin = [r["rank_ic"] for r in rows if r["rank_ic"] == r["rank_ic"]]
++    return (v["census"]["r24"]["missing"] == 3 and v["incomplete_windows"] == ["r24"]
++            and v["judged_windows"] == ["r48"] and v["level"] == "OK"
++            and v["r24"] == round(sum(fin[-24:]) / 24.0, 5)
++            and v["census"]["r24"]["missing_anchors"] == [mod.iso(W + i * G) for i in (57, 58, 59)])
++
++
++check("T19c [N3] 3 NaN rows inside the trailing 24 make the r24 window unjudgeable (r48 still judges) "
++      "and r24 is still the mean of the last 24 MEASURABLE rows — the statistic is unchanged", t19c(M))
++
++
++def t19d(mod):
++    inf = [{"anchor_ts": W + i * G, "rank_ic": (float("inf") if i % 2 else float("-inf"))}
++           for i in range(60)]
++    v = mod.check(inf, now=now_for(inf))
++    return (v["level"] == "INCOMPLETE" and v["n_post_deploy"] == 0
++            and mod._measurable(_NAN) is False and mod._measurable(float("inf")) is False
++            and mod._measurable(None) is False and mod._measurable(True) is False
++            and mod._measurable(0.0) is True and mod._measurable(-1) is True)
++
++
++check("T19d [N3] ±Inf is unmeasurable too, and the predicate refuses None/bool while accepting any "
++      "finite real", t19d(M))
++
++
++def t20(mod):
++    """观测会在【投递失败】时也开事件(第三轮 D14 的直接后果)。这样的事件一页也没送达过 ⇒ 恢复时
++    不能发 RECOVERED(收件人从没收到过越线页), 而是静默关闭, 不留一个永远开着的僵尸事件。"""
++    t = now_for(rows_(60))
++    dec = mod.check([mk(i, -0.05) for i in range(60)], now=t)
++    ok = mod.check(rows_(60), now=t)
++    sp = _state_file({})
++    k1 = [x["kind"] for x in mod.deliver(dec, now=t, state_path=sp, sender=stub_fail)]
++    s1 = json.load(open(sp))
++    k2 = [x["kind"] for x in mod.deliver(ok, now=t + 3600, state_path=sp, sender=stub_ok)]
++    s2 = json.load(open(sp))
++    return (k1 == ["DECIDE"] and s1["event"]["open"] is True
++            and s1["event"]["trigger_windows"] == ["r24", "r48"]
++            and mod.last_delivered_level(s1) is None
++            and k2 == [] and s2["event"]["open"] is False
++            and s2["event"].get("closed_silently") is True)
++
++
++check("T20 an event opened by OBSERVATION whose page never left the box records the breach but has no "
++      "delivered level; when it clears it is closed silently — no RECOVERED to someone who was never "
++      "told about the breach, and no zombie event", t20(M))
++
++# 第三轮红能力
++_M16_FIND = ('    ev["trigger_windows"] = sorted(set(ev.get("trigger_windows") or [])\n'
++             '                                   | set(_trigger_windows(verdict)))')
++_m16 = mutant(_M16_FIND, '    ev["trigger_windows"] = sorted(set(ev.get("trigger_windows") or []))', "M16")
++if _m16:
++    check("M16 observation stops merging the breach windows it just saw ⇒ T17a goes red (the "
++          "cooled-down r48 vanishes and the event wrongly recovers)", t17a(_load(_m16, "m16")) is False)
++_m17 = mutant('    if _rank(level) > _rank(ev.get("level")):\n        ev["level"] = level',
++              '    if True:\n        ev["level"] = level', "M17")
++if _m17:
++    check("M17 event level overwritten on every observation instead of monotone max ⇒ T18a goes red "
++          "(the event downgrades to ALERT while its trigger window is unjudgeable)",
++          t18a(_load(_m17, "m17")) is False)
++_m18 = mutant('    if last is None or _rank(level) > _rank(last):\n        return True',
++              '    if last is None:\n        return True', "M18")
++if _m18:
++    check("M18 drop the 'escalation over the last DELIVERED level' rule ⇒ T18a goes red (the DECIDE "
++          "re-escalation is swallowed by the old higher-level clock)", t18a(_load(_m18, "m18")) is False)
++_m19 = mutant("    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)",
++              "    return x is not None", "M19")
++if _m19:
++    _M19 = _load(_m19, "m19")
++    check("M19 measurability back to 'is not None' ⇒ T19a and T19b go red (NaN judged healthy again)",
++          t19a(_M19) is False and t19b(_M19) is False)
++_m20 = mutant("        if delivered_level_of(ev) is not None:", "        if True:", "M20")
++if _m20:
++    check("M20 RECOVERED no longer requires the event to have delivered anything ⇒ T20 goes red",
++          t20(_load(_m20, "m20")) is False)
++
 +shutil.rmtree(_TMP, ignore_errors=True)
  n = len(FAIL)
  print(f"\ntests_ic_monitor: {'ALL PASS' if n == 0 else f'{n} FAIL: {FAIL}'}")
  sys.exit(1 if n else 0)
 diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
-index 46528dc..a47a3b6 100644
+index 46528dc..6e56de7 100644
 --- a/ops/gate_coverage.py
 +++ b/ops/gate_coverage.py
 @@ -147,7 +147,7 @@ SUITE_SCOPE = {
@@ -793,12 +1005,12 @@ index 46528dc..a47a3b6 100644
      "tests_placement_bandit": "that the PLACEMENT BANDIT RANDOMIZES EXACTLY AS PRE-REGISTERED AND NOTHING ELSE — eps=0 and every malformed config are the bitwise identity (dormant-trap discipline), assignment is a deterministic hash of (rebalance_id, symbol) so audits and replays reconstruct every draw, behind moves AWAY from the touch on both sides (a sign error would only ever produce a benign -5022 because GTX is untouched — asserted, not relied upon), shifted prices stay on the tick grid at legal decimals (the -1111 float-residue family), reduce_only rows are exempt, the behind share at eps=0.10 lands in [8,12]%, and the arm is recorded from the EXECUTOR-LEVEL experiment record never stamped on the shared plan row (the chase top-up contamination that bit three times). Blind spots: (a) no real order is sent — the actual behind fill-rate difference is what the experiment itself measures; (b) T8 is a static grep and a refactor rename goes invisible; (c) top-up rows carry the drawn arm but their price is re-quoted without the shift — analysis must filter attempt_idx==1 exactly as the prereg scopes it",
      "tests_deadman_ping": "that the OFF-BOX DEADMAN PING FIRES ONLY FROM THE LIVE MODE — it pins the user-provided hc-ping URL, the guard expression being byte-identical to main()'s canonical LIVE_MODE read (a second spelling is a second mode tree), every LIVE_MODE read defaulting to DRY_RUN, and the ping living inside __main__ so module-loading tests cannot ping. Exists because the ungated first version pinged from the battery's own DRY pass at 14:00Z on deploy day — a battery run would have reset the off-box clock and masked a genuinely dead anchor. Blind spots: (a) static greps pin today's spellings — a refactor that renames the guard goes invisible (green-battery-on-old-defects shape); (b) nothing here proves healthchecks actually ALERTS on silence — the check's period/grace live on the user's account, outside this repo; (c) a ping that fails silently in LIVE (network up for trading but hc-ping.com down) looks identical to a dead anchor from off-box, which errs toward false alarm, the safe direction",
 -    "tests_ic_monitor": "that the #55 REALIZED-IC MONITOR JUDGES WHAT WAS PRE-REGISTERED — it proves the thresholds are stamped (from the alpha=0.05+band offline distribution, DECIDE rarer than ALERT, both below zero), the spearman math on known-sign fixtures, the judgment ladder (insufficient<24 records-only, healthy OK, r24<p5 ALERT, r24<p1 DECIDE, pre-window rows excluded), beta causality by source order (history pushed after computation), idempotent append, and that the launchd plist exists and points at the script. Four blind spots: (a) it never reads real position_readback — a schema change upstream leaves this green while the monitor silently computes on nothing; (b) telegram delivery is untested (the import lives in a try, so a dead notifier degrades to a printed line no one reads — the silent-watcher form, partially mitigated by the DELIVERY FAILED print landing in the launchd log); (c) the thresholds' CORRECTNESS rests entirely on the offline calibration file — if the live book diverges structurally from the replay (different floors, different universe), p5/p1 stop meaning 5%/1% and nothing here notices; (d) launchd actually FIRING daily is asserted nowhere — the plist existing and the job running are different facts, and the first missed day looks identical to a healthy quiet day",
-+    "tests_ic_monitor": "that the #55 REALIZED-IC MONITOR JUDGES WHAT WAS PRE-REGISTERED AND SAYS WHAT IT IS — it proves the thresholds are stamped and unchanged (from the alpha=0.05+band=0.002 offline distribution, DECIDE rarer than ALERT, both below zero), the spearman math on known-sign fixtures, the judgment ladder (insufficient<24 records-only, healthy OK, r24<p5 ALERT, r24<p1 DECIDE, pre-window rows excluded), beta causality by source order, idempotent append, the launchd plist pointing at the script; and since 2026-09-12 the ALERT CONTRACT: every page body and the state file carry the object line (book-level realised rank-IC of venue positions vs next-anchor return — not a model-score IC, not net P&L) and the calibration-identity line (thresholds calibrated on alpha=0.05/band=0.002, in-service book is alpha=0.1/band=0.00025, so 5%/1% do not apply), the breach body names the gate that fired and prints R48_P1; breach pages open or update an EVENT {level, trigger windows, per-level delivery times}; a RECOVERED INFO page is delivered exactly once when EVERY trigger window of the open event is judgeable again and clear (a partial-OK with the triggering window unjudged neither recovers nor lowers the level and says only 可判窗口未越线/其余窗口未判; the title says 24/48 only when both windows were judged), the same-level cooldown is scoped to the open event so a recurrence after RECOVERED is a new event and pages at once, legacy state with only last_ALERT/last_DECIDE migrates to an open event with both windows as triggers, an undelivered RECOVERED is retried; the freshness gate counts expected anchors on the 4h grid in the trailing 24/48 ending at the maturity frontier vs usable rows, refuses to judge a window missing >2/>4, reports INCOMPLETE with the missing anchors (one INFO per 24h), keeps the statistic itself unchanged, and is replayed on the real frozen ledger at the 2026-09-12 01:30Z run (r24=+0.00472/r48=-0.01104 reproduced, r24 missing exactly the four 09-09 flatten anchors); `--check`/`--dry` are read-only in a subprocess on the real readbacks (no .env at import, telegram_notify never imported, ledger/state/evals sha unchanged) while the flagless launchd invocation still loads .env, the parser is allow_abbrev=False and is consulted BEFORE any credential import so an abbreviation like --che neither loads .env nor runs (exit 2), a ledger with <24 rows or no rows is censused too (frozen/empty ⇒ INCOMPLETE, young ⇒ OK-not-judged); all four bodies classify as tier-A PUSH under alarm_policy; and nine mutations go red (OBJECT removed from the tail, recovery transition deleted, gate disabled, argv gate removed, recovery ignoring trigger windows, cooldown keyed on the old last_<LEVEL>, allow_abbrev restored, unknown args not treated read-only, short-ledger INCOMPLETE disabled). Four blind spots: (a) it never asserts the SHAPE of real position_readback — main(--check) runs on the real readbacks only to prove no side effect, so a schema change upstream leaves this green while the monitor computes on nothing; (b) the telegram TRANSPORT is untested here — delivery decisions are proven with an injected sender, the wire is tests_telegram_notify's subject, and a dead notifier still degrades to a printed line in the launchd log; (c) the thresholds' CORRECTNESS is not established anywhere — they are known NOT to be calibrated on the in-service form, this suite only pins that the fact is printed on every page, and recalibration waits on the producer parity replay; (d) launchd actually FIRING daily is asserted nowhere — the freshness gate turns a frozen ledger into INCOMPLETE only when the job runs, and the job that stops running also stops paging",
++    "tests_ic_monitor": "that the #55 REALIZED-IC MONITOR JUDGES WHAT WAS PRE-REGISTERED AND SAYS WHAT IT IS — it proves the thresholds are stamped and unchanged (from the alpha=0.05+band=0.002 offline distribution, DECIDE rarer than ALERT, both below zero), the spearman math on known-sign fixtures, the judgment ladder (insufficient<24 records-only, healthy OK, r24<p5 ALERT, r24<p1 DECIDE, pre-window rows excluded), beta causality by source order, idempotent append, the launchd plist pointing at the script; and since 2026-09-12 the ALERT CONTRACT: every page body and the state file carry the object line (book-level realised rank-IC of venue positions vs next-anchor return — not a model-score IC, not net P&L) and the calibration-identity line (thresholds calibrated on alpha=0.05/band=0.002, in-service book is alpha=0.1/band=0.00025, so 5%/1% do not apply), the breach body names the gate that fired and prints R48_P1; a breach OBSERVED opens or updates an EVENT {current unrecovered risk level, every observed trigger window, per-level observation and delivery times} whether or not a page is sent — the cooldown decides only delivery, never whether the breach happened, so an r48 DECIDE throttled by the same-level clock still enters the windows recovery must clear; the event's risk level is monotone inside the event and is distinct from the last level actually DELIVERED, so paging ALERT while the triggering r48 window is unjudgeable does not lower it and the later re-escalation to DECIDE is not swallowed by the old DECIDE clock; a NaN/±Inf rank_ic is UNMEASURABLE (counted missing, never judged healthy — every threshold comparison against NaN is False, which used to read as OK and could page RECOVERED); a RECOVERED INFO page is delivered exactly once when EVERY trigger window of the open event is judgeable again and clear AND that event actually delivered a page (an event whose page never left the box is closed silently instead) (a partial-OK with the triggering window unjudged neither recovers nor lowers the level and says only 可判窗口未越线/其余窗口未判; the title says 24/48 only when both windows were judged), the same-level cooldown is scoped to the open event so a recurrence after RECOVERED is a new event and pages at once, legacy state with only last_ALERT/last_DECIDE migrates to an open event with both windows as triggers, an undelivered RECOVERED is retried; the freshness gate counts expected anchors on the 4h grid in the trailing 24/48 ending at the maturity frontier vs usable rows, refuses to judge a window missing >2/>4, reports INCOMPLETE with the missing anchors (one INFO per 24h), keeps the statistic itself unchanged, and is replayed on the real frozen ledger at the 2026-09-12 01:30Z run (r24=+0.00472/r48=-0.01104 reproduced, r24 missing exactly the four 09-09 flatten anchors); `--check`/`--dry` are read-only in a subprocess on the real readbacks (no .env at import, telegram_notify never imported, ledger/state/evals sha unchanged) while the flagless launchd invocation still loads .env, the parser is allow_abbrev=False and is consulted BEFORE any credential import so an abbreviation like --che neither loads .env nor runs (exit 2), a ledger with <24 rows or no rows is censused too (frozen/empty ⇒ INCOMPLETE, young ⇒ OK-not-judged); all four bodies classify as tier-A PUSH under alarm_policy; and fourteen mutations go red (OBJECT removed from the tail, recovery transition deleted, gate disabled, argv gate removed, recovery ignoring trigger windows, cooldown keyed on the old last_<LEVEL>, allow_abbrev restored, unknown args not treated read-only, short-ledger INCOMPLETE disabled, observation not merging the windows it just saw, event level overwritten instead of monotone, the escalation-over-last-delivered-level rule dropped, measurability back to 'is not None', RECOVERED no longer requiring a delivered page). Four blind spots: (a) it never asserts the SHAPE of real position_readback — main(--check) runs on the real readbacks only to prove no side effect, so a schema change upstream leaves this green while the monitor computes on nothing; (b) the telegram TRANSPORT is untested here — delivery decisions are proven with an injected sender, the wire is tests_telegram_notify's subject, and a dead notifier still degrades to a printed line in the launchd log; (c) the thresholds' CORRECTNESS is not established anywhere — they are STILL the old alpha=0.05/band=0.002 calibration object and the 2026-09-13 round did NOT recalibrate them, this suite only pins that the mismatch is printed on every page, and recalibration waits on the producer parity replay; (d) launchd actually FIRING daily is asserted nowhere — the freshness gate turns a frozen ledger into INCOMPLETE only when the job runs, and the job that stops running also stops paging",
      "tests_break_split_wiring": "that ANYTHING ASKS the split and that the answer moves the book — it replays both directions on the real live tree (the 04:00Z anchor cleared, the 08-01T20:00Z exits newly stopped), proves three classes the guard must still stop for (the 93.46% break whose rows cannot be decomposed, the halted-but-holding anchor, the ghost book), and mutates the firing-order premise to show §4-6 re-arms itself. Four blind spots: (a) the production replays are READ-ONLY over two trees that between them contain ONE unauthorized event and ONE undecomposable break — every claim about how often either happens is outside it; (b) it never places an order or runs the ladder, so 'the halt is decided' is proven and 'the book is actually flattened' is not; (c) the alarm assertions stop at the watchdog's output — that `run_anchor` pages them, and that the page leaves the box, is asserted elsewhere or not at all; (d) the three-day underfill ledger is synthetic and coherent by construction, which is what makes it usable and also what stops it from saying anything about the incoherent ledgers production actually produces",
      "tests_chase_release_check": "that the chase experiment is SAFE — it proves the first-anchor release gate can go red (a tampered arm, a withheld name missing from the gap ledger, a gap filed under a borrowed reason), green, and NOT_EXERCISED, and that the third verdict is distinct from a pass. Four blind spots: (a) the fixtures are synthetic artefacts written by this suite, so nothing here proves the ANCHOR writes a block of that shape — only the wiring suite touches that, and it uses a stub broker; (b) the gate reads one anchor, so an experiment that behaves correctly once and drifts later is outside it entirely; (c) it checks that withheld names are RECORDED, never that withholding them was right — the opportunity cost the experiment exists to measure is not visible to any assertion here; (d) the inline re-derivation and chase_policy are asserted equal, which catches drift between them but cannot catch both being wrong in the same way, since one was written by reading the other",
      "tests_residual_vector": "that the unauth bucket is RIGHT — it proves reconcile publishes a per-name residual for every name in the readback (not only those above `tol`), signed, with a coverage denominator that can drop below 1. Four blind spots: (a) it proves the vector is PUBLISHED, never that the consumer takes it — since 2026-08-03 a halt gate reads it, and a consumer that took the anomaly list instead would leave this suite green while flooring every sub-tolerance name to zero; (b) it proves the vector reports what the anomaly list omits, never that `residual_qty = qty(T2) - (qty(T1) + sum dq_fills)` is the right definition of unauthorized — that is inherited from B30 and not re-litigated here; (c) the fixtures are two-anchor ledgers, so nothing exercises the interaction with real dq attribution across a 4-hour window, where the `_between` interval and the fill timestamps do the real work; (d) it says nothing about `underfill`, which is the OTHER half of the decomposition and does not exist yet",
 diff --git a/ops/ic_monitor.py b/ops/ic_monitor.py
-index f632d90..6ffe159 100644
+index f632d90..55c0a0a 100644
 --- a/ops/ic_monitor.py
 +++ b/ops/ic_monitor.py
 @@ -1,10 +1,11 @@
@@ -816,7 +1028,7 @@ index f632d90..6ffe159 100644
    · β 调整残差 IC 双轨: β=锚间收益 vs 宇宙等权, 滚动窗(min 20 锚), 严格因果。
      实盘病史(2026-08 空头侧)证明: 不拆 β, regime 保费会被误读成模型失效。
  
-@@ -13,10 +14,31 @@
+@@ -13,10 +14,41 @@
    ALERT : 滚动24锚均值 < R24_P5   (离线分布 5% 分位)
    DECIDE: 滚动24锚均值 < R24_P1 或 滚动48锚均值 < R48_P1
    判读起点: 账本 ≥24 个 2026-08-10T12:00Z(新配置窗口首锚)之后的锚; 之前只记不判。
@@ -831,17 +1043,27 @@ index f632d90..6ffe159 100644
 +  · 投递: 越线即 telegram(正文由本次 eval 事实组装 —— 复发的越线正文不同, 不会被去重吞掉);
 +    同级 24h 内不重发(state 里记 last_<LEVEL>)。正文必含: 触发门、r24/r48 与三个阈值、数据前沿、
 +    两窗普查、OBJECT、CALIB_IDENTITY。
-+  · 事件与恢复(复审 W1-R1/R2 后): state["event"] = 一次越线事件 {level, trigger_windows, opened_at,
-+    delivered{级:时刻}}; 页成功离机才开/更新事件。恢复 = 事件的【每个触发窗】重新可判且未越线时投且只投
-+    一页 INFO "RECOVERED …不等于 alpha 恢复"(两窗皆判才说 24/48; 否则按触发窗说, 其余窗口未判), 关事件;
++  · 事件与恢复(复审 W1-R1/R2 + 第三轮 N1/N2 后): state["event"] = 一次越线事件
++    {level, trigger_windows, opened_at, observed{级:观测时刻}, delivered{级:成功离机时刻}}。
++    ★ 观测与投递是两件事: 事件记录【每一个已观测到的越线窗】(observed_event), 冷却只决定【页发不发】,
++      不决定这件事实有没有发生过 —— 被冷却扣住的 r48 越线照样进 trigger_windows(旧码丢掉它, 于是
++      r24 一健康就误报 RECOVERED)。
++    ★ 事件的 level = 当前未恢复的【已观测】风险级别, 事件内【只升不降】; 与「最后送达级别」
++      (delivered 表里时刻最大的那一级, last_delivered_level)是两个量。
++    恢复 = 事件的【每个触发窗】重新可判且未越线, 且该事件确实送达过页时, 投且只投一页 INFO
++    "RECOVERED …不等于 alpha 恢复"(两窗皆判才说 24/48; 否则按触发窗说, 其余窗口未判), 关事件;
 +    触发窗未判 ⇒ 不恢复不降级, INCOMPLETE 页写「可判窗口未越线, 其余窗口未判; 事件仍开」。
-+    冷却只在同一开事件内计(同级 24h); 恢复后同级复发 = 新事件, 立即投。
++    冷却: 同一开事件内同级 24h; 相对【最后送达级别】升级 ⇒ 立即投(降级发过 ALERT 之后风险回到
++    DECIDE, 不许被旧 DECIDE 时钟吞掉); 恢复后同级复发 = 新事件, 立即投。
 +    遗留 state(只有 last_ALERT/last_DECIDE)合成遗留事件: level = 时间戳更大者, 触发窗 = r48
 +    (lead 裁定, 依据 09-09/09-10 两次 DECIDE 的日志数值: r24 未过 DECIDE 线, r48 过 R48_P1)。
 +  · 新鲜度门: 以 now 推数据前沿 frontier=floor((now−4h−1h)/4h)·4h, 数 4h 网格上尾部 24/48 个
 +    期望锚里账本实有几个; 缺 > MAX_MISSING(r24:2, r48:4)⇒ 该窗不判 ALERT/DECIDE; 两窗都不可判 ⇒
 +    level=INCOMPLETE; 普查写进 verdict/state/evals 账本; 24h 内至多一页 INFO 列出缺的锚。
-+    统计量本身(最后 24/48 行均值)、阈值常量、判读起点一字不动。
++    统计量本身(最后 24/48 个【可用】行的均值)、阈值常量、判读起点一字不动。
++  · 可测性(第三轮 N3): 行的 rank_ic 必须是【有限实数】才算可用 —— None(没有行)与 NaN/±Inf(有行
++    但读数不可用)一律算【缺】。NaN 与任何阈值的比较都是 False, 旧码据此把 NaN 账本判成 OK 并发
++    RECOVERED; 健康必须是测出来的, 不能是「所有越线比较都不成立」推出来的。
 +  · --check / --dry 严格只读: import 期(任何凭据加载之前)按 argv 判门 —— 精确旗标或【任何未知参数
 +    (含缩写 --che)】都不加载 .env; main() 用 allow_abbrev=False 严格解析, 未知参数 exit 2。
 +    只读路径不写账本/状态/evals, 不 import telegram。
@@ -851,7 +1073,7 @@ index f632d90..6ffe159 100644
  """
  import argparse
  import glob
-@@ -28,19 +50,52 @@ import time
+@@ -28,19 +60,52 @@ import time
  from collections import defaultdict
  
  _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -909,7 +1131,7 @@ index f632d90..6ffe159 100644
  
  # ── 预注册阈值, 2026-08-10 盖章。标定 = α0.05+带.002 书全史 9821 锚离线分布
  #    (逐锚 IC mean +0.03684 sd 0.21388, 43.6% 负锚 ⇒ 逐锚不可判, 只判滚动均值)。
-@@ -50,6 +105,42 @@ R24_P1 = -0.04425
+@@ -50,6 +115,56 @@ R24_P1 = -0.04425
  R48_P1 = -0.01656
  CALIB_SRC = "jpline:/mnt/storage/private/work_hsy/probe_artifacts/ic_calib_a005.json (2026-08-10)"
  
@@ -949,10 +1171,24 @@ index f632d90..6ffe159 100644
 +                                    "present; missing above max => that window is not judged")},
 +    }
 +
++
++def _measurable(x):
++    """可测 = 有限实数。None(该锚没有行)与 NaN/±Inf(有行但读数不可用)都【不是】健康证据。
++
++    ★ 复审 W1-N3: 旧码只排除 None, 于是一账本的 NaN 被当成新鲜可判 —— NaN 与任何阈值的比较
++      都是 False, 于是「健康」是从「所有越线比较都不成立」【推】出来的, 还能据此发 RECOVERED。
++      健康必须是【测出来】的: 不可测 ⇒ 该锚算缺 ⇒ 缺超上限 ⇒ 该窗不判。"""
++    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
++
++
++def _rank(level):
++    """级别严重度序: OK(0) < ALERT(1) < DECIDE(2)。用于事件风险级别取 max 与「相对最后送达级别是否升级」。"""
++    return {"ALERT": 1, "DECIDE": 2}.get(level or "OK", 0)
++
  
  def _rankdata(x):
      idx = sorted(range(len(x)), key=lambda i: x[i])
-@@ -163,18 +254,66 @@ def compute_rows(anchors, known_ts):
+@@ -163,70 +278,438 @@ def compute_rows(anchors, known_ts):
      return rows
  
  
@@ -998,7 +1234,7 @@ index f632d90..6ffe159 100644
 +    """判级。统计量 = 最后 24/48 行均值(不变); 新鲜度普查决定【哪扇窗可以据以判级】。"""
 +    now = time.time() if now is None else float(now)
 +    post = sorted((r for r in ledger_rows
-+                   if r["anchor_ts"] >= WINDOW_START_TS and r.get("rank_ic") is not None),
++                   if r["anchor_ts"] >= WINDOW_START_TS and _measurable(r.get("rank_ic"))),
 +                  key=lambda r: r["anchor_ts"])
 +    out = {"n_post_deploy": len(post), "judged": False, "level": "OK", "contract": contract()}
      if any(v is None for v in (R24_P5, R24_P1, R48_P1)):
@@ -1025,15 +1261,18 @@ index f632d90..6ffe159 100644
      ics = [r["rank_ic"] for r in post]
      r24 = sum(ics[-24:]) / 24.0
      out["r24"] = round(r24, 5)
-@@ -182,51 +321,292 @@ def check(ledger_rows):
+     r48 = sum(ics[-48:]) / 48.0 if len(ics) >= 48 else None
      out["r48"] = None if r48 is None else round(r48, 5)
-     resid = [r["rank_ic_beta_resid"] for r in post if r.get("rank_ic_beta_resid") is not None]
+-    resid = [r["rank_ic_beta_resid"] for r in post if r.get("rank_ic_beta_resid") is not None]
++    resid = [r["rank_ic_beta_resid"] for r in post if _measurable(r.get("rank_ic_beta_resid"))]
      out["r24_beta_resid"] = round(sum(resid[-24:]) / min(24, len(resid)), 5) if resid else None
 -    if r24 < R24_P1 or (r48 is not None and r48 < R48_P1):
 +    cz = census(post, now)
 +    out["census"] = cz
-+    j24 = cz["r24"]["complete"]
-+    j48 = cz["r48"]["complete"] and r48 is not None
++    # 纵深(D17): 窗完整【且】窗均值本身可测, 才允许据以判级。行过滤已挡住非有限行, 这一道防
++    # 「统计量在别处变成非有限」—— 健康不能由「越线比较全 False」推出。
++    j24 = cz["r24"]["complete"] and _measurable(r24)
++    j48 = cz["r48"]["complete"] and _measurable(r48)
 +    out["incomplete_windows"] = [k for k in ("r24", "r48") if not cz[k]["complete"]]
 +    out["incomplete"] = bool(out["incomplete_windows"])
 +    out["judged_windows"] = [k for k, f in (("r24", j24), ("r48", j48)) if f]
@@ -1090,20 +1329,26 @@ index f632d90..6ffe159 100644
 +    return f"\n{OBJECT}\n{CALIB_IDENTITY}"
 +
 +
-+def _event_line(event):
++def _event_line(event, now=None):
 +    if not event:
 +        return "事件: 新开"
 +    tw = ",".join(event.get("trigger_windows") or []) or "?"
 +    legacy = "(遗留状态迁移: 09-09/09-10 DECIDE 皆由 r48 门触发)" if event.get("legacy") else ""
++    if now is not None and event.get("opened_at") == now:
++        return f"事件: 新开, 触发窗 {tw}"
++    # 已观测 vs 最后送达是两件事(复审 W1-N2): 被冷却扣住的越线【观测到了】, 只是没发页。
++    seen = ", ".join(f"{k} 于 {iso(float(v))}"
++                     for k, v in sorted((event.get("observed") or {}).items()))
 +    return (f"事件: {event.get('level')} 自 {iso(float(event.get('opened_at') or 0))} 已开, "
-+            f"触发窗 {tw}{legacy}")
++            f"触发窗 {tw}{legacy}, 最后送达级别 {delivered_level_of(event) or '无'}"
++            + (f", 已观测 {seen}" if seen else ""))
 +
 +
-+def body_breach(v, event=None):
++def body_breach(v, event=None, now=None):
 +    return (f"[ic_monitor #55] {v['level']}: 触发门={','.join(v.get('trigger') or [])}. "
 +            f"r24={_fmt(v.get('r24'))}, r48={_fmt(v.get('r48'))}, "
 +            f"β-resid r24={_fmt(v.get('r24_beta_resid'))}, n={v['n_post_deploy']}. "
-+            f"{_thresholds_line()}. {_window_line(v)}. {_event_line(event)}. "
++            f"{_thresholds_line()}. {_window_line(v)}. {_event_line(event, now)}. "
 +            f"书级实现 rank-IC 越线 — 深平滑书响应慢, 本仪器直读场所, 请按 #55 预注册处置."
 +            + _contract_tail())
 +
@@ -1224,13 +1469,71 @@ index f632d90..6ffe159 100644
 +            "opened_at": min(delivered.values()), "delivered": delivered, "legacy": True}
 +
 +
++def delivered_level_of(ev):
++    """事件内最后一次【成功离机】的级别 = delivered 表里时刻最大的那一级; 从未送达 ⇒ None。
++    刻意不落新字段: 遗留合成事件与已在盘上的旧状态逐位兼容。"""
++    d = {}
++    for k, v in ((ev or {}).get("delivered") or {}).items():
++        try:
++            t = float(v)
++        except (TypeError, ValueError):
++            continue
++        if t > 0:
++            d[k] = t
++    return max(d, key=d.get) if d else None
++
++
 +def last_delivered_level(st):
-+    """最后一次【成功离机】的级别: 开事件 ⇒ 其 level; 已关事件 ⇒ OK; 无事件 ⇒ None。"""
++    """最后一次【成功离机】的级别: 已关事件 ⇒ OK; 开事件 ⇒ 事件内投递时刻最大的那一级(从未送达
++    ⇒ None); 无事件 ⇒ None。
++    ★ 与 event["level"](当前未恢复的【已观测】风险级别)是两个量 —— 复审 W1-N2 的「降级」正是
++      把这两者混成一个字段: 页发出去的是 ALERT, 而风险其实还是 DECIDE。"""
 +    ev = st.get("event")
 +    if isinstance(ev, dict) and not ev.get("open"):
 +        return "OK"
++    return delivered_level_of(open_event(st))
++
++
++def observed_event(st, verdict, now):
++    """本次观测【之后】的事件(纯函数: 不改 st, 由调用方决定落不落盘)。
++
++    ★ 原则(复审 REVIEW_2026-09-13 §3.B): 事件记录【每一个已观测到的越线窗】; 冷却只决定页发不发,
++      不决定这件事实有没有发生过。旧码只在页成功离机时才并入触发窗(:563)并抬级(:565), 于是被同级
++      冷却扣住的 r48 越线从未进入「恢复所需的事实集」, 随后 r24 一健康就误报 RECOVERED(W1-N1)。
++    ★ 风险级别在事件内【只升不降】(_rank 取 max): 唯一的下降路径是每个触发窗重新可判且未越线
++      ⇒ RECOVERED 关事件。旧码每次投递覆写 level, 把「r48 未判 + r24 只到 ALERT」写成事件降级(W1-N2)。
++    """
 +    ev = open_event(st)
-+    return None if ev is None else ev.get("level")
++    level = verdict.get("level")
++    if level not in ("ALERT", "DECIDE"):
++        return ev
++    if ev is None:
++        ev = {"open": True, "level": level, "trigger_windows": [], "opened_at": now,
++              "delivered": {}, "observed": {}}
++    else:
++        ev = dict(ev)                                   # 纯函数: 可变部分逐个复制
++        ev["delivered"] = dict(ev.get("delivered") or {})
++        ev["observed"] = dict(ev.get("observed") or {})
++    ev["open"] = True
++    if _rank(level) > _rank(ev.get("level")):
++        ev["level"] = level
++    ev["trigger_windows"] = sorted(set(ev.get("trigger_windows") or [])
++                                   | set(_trigger_windows(verdict)))
++    ev["observed"][level] = now
++    return ev
++
++
++def _breach_due(ev, level, now):
++    """本级页该不该投。冷却【只】决定投不投, 不决定越线有没有发生。
++    ① 本事件内还没有任何一页成功离机(新事件, 或上次投递失败)⇒ 投;
++    ② 相对【手机上最后那一页的级别】是升级 ⇒ 投 —— 不受旧的、更高级别的时钟约束(复审 W1-N2:
++       降级发过 ALERT 之后风险回到 DECIDE, 曾被开事件时那只 DECIDE 时钟吞掉, 手机永远停在 ALERT);
++    ③ 否则按【本级自己的】送达时钟 24h ⇒ 同级复发仍被扣住。页数上界: 每级每 24h 至多一页。"""
++    last = delivered_level_of(ev)
++    if last is None or _rank(level) > _rank(last):
++        return True
++    clock = (ev.get("delivered") or {}).get(level)
++    return clock is None or now - float(clock) >= COOLDOWN_S
 +
 +
 +def _event_recoverable(ev, verdict):
@@ -1242,22 +1545,26 @@ index f632d90..6ffe159 100644
 +    """纯函数: 本次 verdict + 状态 ⇒ 要投的页(0..2 页)。不碰网络, 不改 st。"""
 +    plans = []
 +    level = verdict.get("level")
-+    ev = open_event(st)
++    ev = observed_event(st, verdict, now)    # ★ 先把【本次观测到的越线】记进事件, 再谈投不投
 +    if verdict.get("incomplete"):
 +        if now - float(st.get("last_INCOMPLETE", 0.0) or 0.0) >= COOLDOWN_S:
 +            plans.append({"kind": "INCOMPLETE", "severity": "INFO",
 +                          "body": body_incomplete(verdict, ev),
 +                          "state_ts_key": "last_INCOMPLETE", "sets_level": None})
 +    if level in ("ALERT", "DECIDE"):
-+        # 冷却只在同一开事件内计(复审 W1-R2): 无开事件 ⇒ 新事件, 立即投; 事件内同级 ⇒ 24h。
-+        if ev is None or now - float((ev.get("delivered") or {}).get(level, 0.0) or 0.0) >= COOLDOWN_S:
++        # 冷却只在同一开事件内计(复审 W1-R2)且只决定【投不投】(复审 W1-N1/N2): 见 _breach_due。
++        if ev is None or _breach_due(ev, level, now):
 +            plans.append({"kind": level, "severity": "HIGH" if level == "ALERT" else "CRITICAL",
-+                          "body": body_breach(verdict, ev),
++                          "body": body_breach(verdict, ev, now),
 +                          "state_ts_key": f"last_{level}", "sets_level": level})
 +    elif level == "OK" and verdict.get("judged") and ev is not None and _event_recoverable(ev, verdict):
-+        plans.append({"kind": "RECOVERED", "severity": "INFO",
-+                      "body": body_recovered(verdict, ev),
-+                      "state_ts_key": "last_RECOVERED", "sets_level": "OK"})
++        # ★ 观测会在【投递失败 / 被冷却扣住】时也开事件(D14), 所以可能存在「从未成功投出过任何页」
++        #   的事件。对它发 RECOVERED = 告诉一个从没收到过越线页的人「恢复了」。不发; 由 deliver()
++        #   静默关闭该事件, 不留僵尸。
++        if delivered_level_of(ev) is not None:
++            plans.append({"kind": "RECOVERED", "severity": "INFO",
++                          "body": body_recovered(verdict, ev),
++                          "state_ts_key": "last_RECOVERED", "sets_level": "OK"})
 +    return plans
 +
 +
@@ -1274,9 +1581,11 @@ index f632d90..6ffe159 100644
 +    state 总是补写 contract + last_eval(含普查)。sender 可注入(测试用桩), 默认 telegram。"""
 +    now = time.time() if now is None else float(now)
 +    st = load_state(state_path)
-+    ev = open_event(st)
-+    if ev is not None and st.get("event") is not ev:
-+        st["event"] = ev                    # 遗留事件物化: 派生只读 ⇒ 显式落盘
++    # ★ 观测先于投递(D14): 越线发生过就记进事件 —— 页发没发出去是另一回事。这一步也把遗留事件
++    #   (只有 last_ALERT/last_DECIDE 的老状态)物化进 st["event"]。
++    ev = observed_event(st, verdict, now)
++    if ev is not None:
++        st["event"] = ev
 +    plans = plan_delivery(verdict, st, now)
 +    send = _telegram_sender if sender is None else sender
 +    results = []
@@ -1290,13 +1599,11 @@ index f632d90..6ffe159 100644
 +            # ★ 事件先于遗留键: open_event() 在无 `event` 键时会从 last_ALERT/last_DECIDE 派生遗留事件,
 +            #   所以本页的 last_<LEVEL> 必须在事件更新【之后】写, 否则首次投递会把自己派生成「遗留」。
 +            if p["kind"] in ("ALERT", "DECIDE"):
-+                # 开新事件 / 更新已开事件: level = 本页级, 触发窗并入, 记该级成功离机时刻
++                # 事件本身(开、风险级别、触发窗)已由 observed_event 记完 —— 这里【只】记「该级页
++                # 成功离机的时刻」, 即冷却时钟。两个概念不再共用一个更新条件(复审 §3.B 的一句话根因)。
 +                ev = open_event(st) or {"open": True, "level": p["kind"], "trigger_windows": [],
-+                                        "opened_at": now, "delivered": {}}
++                                        "opened_at": now, "delivered": {}, "observed": {}}
 +                ev["open"] = True
-+                ev["level"] = p["kind"]
-+                ev["trigger_windows"] = sorted(set(ev.get("trigger_windows") or [])
-+                                               | set(_trigger_windows(verdict)))
 +                ev.setdefault("delivered", {})[p["kind"]] = now
 +                st["event"] = ev
 +                st["last_delivered_level"] = p["kind"]
@@ -1317,6 +1624,15 @@ index f632d90..6ffe159 100644
 +            print(f"DELIVERY NOT OFFBOX ({r.get('status')}): {p['body']}")
 +        results.append({"kind": p["kind"], "severity": p["severity"],
 +                        "delivered_offbox": ok, "status": r.get("status")})
++    # 从未成功投出过任何页的事件(投递一直失败 / 一直被扣住), 在触发窗重新可判且未越线时【静默关闭】:
++    # 不发 RECOVERED(见 plan_delivery 的同名注释), 也不留一个永远开着的僵尸事件。
++    _ev = open_event(st)
++    if (_ev is not None and verdict.get("level") == "OK" and verdict.get("judged")
++            and _event_recoverable(_ev, verdict) and delivered_level_of(_ev) is None):
++        _ev["open"] = False
++        _ev["closed_at"] = now
++        _ev["closed_silently"] = True
++        st["event"] = _ev
 +    st["contract"] = contract()
 +    st["last_eval"] = {"at": now, "at_iso": iso(now), "level": verdict.get("level"),
 +                       "judged": verdict.get("judged"), "r24": verdict.get("r24"),
@@ -1353,7 +1669,7 @@ index f632d90..6ffe159 100644
      known = set()
      rows = []
      if os.path.exists(LEDGER) and not args.backfill:
-@@ -239,16 +619,26 @@ def main():
+@@ -239,16 +722,26 @@ def main():
                  continue
      anchors = load_anchors()
      fresh = compute_rows(anchors, known if not args.backfill else set())

@@ -199,7 +199,7 @@ index 0000000..0c3fd58
 +        parts.append("bps UNMEASURED (not 0)")
 +    return "; ".join(parts)
 diff --git a/live/tests_daily_summary.py b/live/tests_daily_summary.py
-index 9a619ca..3c17c1c 100644
+index 9a619ca..610abd2 100644
 --- a/live/tests_daily_summary.py
 +++ b/live/tests_daily_summary.py
 @@ -25,7 +25,7 @@ import sys
@@ -283,7 +283,7 @@ index 9a619ca..3c17c1c 100644
  check("★★★ the rotation line is scoped to ONE day — it prints the day it used, so a reader can "
        "check the scope rather than trust it",
        "不跨 00:00Z" in OUT or "不足以给出" in OUT)
-@@ -216,10 +232,287 @@ check("★★★ the suppressed (tier-B/C) classes are listed with counts — ot
+@@ -216,10 +232,346 @@ check("★★★ the suppressed (tier-B/C) classes are listed with counts — ot
        "被记录但未推送" in OUT)
  check("★★ tier-A is re-listed too, so a page that arrived while nobody was watching is not lost",
        "需要决定的" in OUT)
@@ -435,6 +435,65 @@ index 9a619ca..3c17c1c 100644
 +      str(DS.account_facts([_LEG, _ALL])["realised_increment_caliber"]).startswith("MIXED"),
 +      DS.account_facts([_LEG, _ALL])["realised_increment_caliber"])
 +
++# ── round 3 (2026-09-13): an INTERVAL change minus a DAY-CUMULATIVE is not a residual ──────────
++# ★★★ INHERITED DEFECT (researcher REVIEW_code_and_research_2026-09-13 §3.C / W2-N3; it predates
++#     the three-bucket work and is not a regression of it). `external_flow_usdt` is a cumulative
++#     since 00:00Z — the SAME paged income read that produces `realised_pnl`, so the truncation
++#     flag already covers it — and the residual subtracted the DAY TOTAL from an INTERVAL equity
++#     change. Two endpoints of one day, both carrying 1000 because the transfer landed before the
++#     window opened, equity and realised unchanged: -1000 of "money nobody can attribute".
++print("\n[R3] ★★★ the residual's flow term is the flow INSIDE the window, not the day's total")
++_C0 = dict(_ALL, external_flow_usdt=1000.0)
++_C1 = dict(_ALL, external_flow_usdt=1000.0)
++_FC = DS.account_facts([_C0, _C1])
++_naive_flow = round(_FC["equity_change"] - 0.0 - (_FC["external_flow_usdt"] or 0.0), 6)
++check("★★★ R3-a the researcher's counterexample: same day, equity and realised unchanged, the "
++      "day-cumulative 1000 present at BOTH endpoints ⇒ the residual is 0, not -1000",
++      _FC["unexplained_computable"] is True and _FC["unexplained_equity_change"] == 0.0
++      and _FC["external_flow_interval_usdt"] == 0.0,
++      (_FC["unexplained_equity_change"], _FC["external_flow_interval_usdt"]))
++check("★★★ MUTATION R3-a: the pre-round-3 arithmetic (interval Δequity − realised increment − the "
++      "DAY TOTAL) gives -1000.00 on this very pair — a spurious unattributed loss on a window in "
++      "which nothing happened",
++      _naive_flow == -1000.0 and _FC["unexplained_equity_change"] == 0.0,
++      f"naive {_naive_flow} vs fixed {_FC['unexplained_equity_change']}")
++check("★★ ...and the WINDOW figure the operator reads is unchanged — the day total is still "
++      "reported with its day coverage (P0 2026-08-03), the interval figure is a SECOND fact "
++      "beside it, and the carrier's shape is stated on the record",
++      _FC["external_flow_usdt"] == 1000.0 and _FC["external_flow_days"] == ["20260912"]
++      and "cumulative" in _FC["external_flow_carrier"]
++      and any("区间" in l for l in DS.render_account(_FC)),
++      [l for l in DS.render_account(_FC) if "区间" in l])
++_D0 = dict(_ALL, external_flow_usdt=0.0)
++_D1 = dict(_ALL, external_flow_usdt=1000.0, nav=2000.0, wallet_balance=2000.0)
++_FD = DS.account_facts([_D0, _D1])
++check("★★★ R3-b REVERSE CONTROL: a deposit that really lands INSIDE the window (0 → 1000 with "
++      "equity up 1000) still nets to a 0 residual — the fix does not break the case the day "
++      "total happened to get right",
++      _FD["external_flow_interval_usdt"] == 1000.0 and _FD["unexplained_equity_change"] == 0.0,
++      (_FD["equity_change"], _FD["external_flow_interval_usdt"],
++       _FD["unexplained_equity_change"]))
++check("★★★ R3-b (ii) ...and a genuine unattributed movement is still CAUGHT: the same window with "
++      "equity up 1500 against a 1000 transfer leaves +500 on the line",
++      DS.account_facts([_D0, dict(_D1, nav=2500.0, wallet_balance=2500.0)]
++                       )["unexplained_equity_change"] == 500.0)
++_FU = DS.account_facts([dict(_ALL, external_flow_usdt=None), _C1])
++check("★★★ R3-c an endpoint whose flow is not a finite number ⇒ the interval flow is UNKNOWN and "
++      "the residual REFUSES with that reason, rather than falling back to the day total",
++      _FU["unexplained_computable"] is False and _FU["unexplained_equity_change"] is None
++      and _FU["external_flow_interval_computable"] is False
++      and "当日累计" in str(_FU["unexplained_why_not"])
++      and any("UNKNOWN" in l for l in DS.render_account(_FU)),
++      _FU["unexplained_why_not"])
++check("★★ R3-c (ii) neighbour: a NaN endpoint is treated the same as an unreadable one",
++      DS.account_facts([dict(_ALL, external_flow_usdt=float("nan")), _C1]
++                       )["external_flow_interval_computable"] is False)
++check("★★ R3-d across 00:00Z there is no interval flow either — the two cumulatives have "
++      "different origins — and the cross-midnight refusal still names the realised reset",
++      DS.account_facts([dict(_C0, day="20260911"), _C1])["external_flow_interval_usdt"] is None
++      and "跨越 00:00Z" in str(DS.account_facts([dict(_C0, day="20260911"),
++                                                _C1])["unexplained_why_not"]))
++
 +_split = [r for r in _NAV_ROWS if isinstance(r.get("realised_by_type_asset"), dict)]
 +if _split:
 +    _r = _split[-1]
@@ -576,10 +635,10 @@ index 9a619ca..3c17c1c 100644
  sys.exit(1 if FAILS else 0)
 diff --git a/live/tests_readers_three_bucket.py b/live/tests_readers_three_bucket.py
 new file mode 100644
-index 0000000..b4f78a6
+index 0000000..0cc729a
 --- /dev/null
 +++ b/live/tests_readers_three_bucket.py
-@@ -0,0 +1,459 @@
+@@ -0,0 +1,622 @@
 +"""The READ-ONLY cost readers inherit the three buckets: cost_buckets / first_anchor_review §3c /
 +score_post_fix E6. A fill that could not be measured is NOT a free fill, and None is never 0.
 +
@@ -799,8 +858,12 @@ index 0000000..b4f78a6
 +DAY, T0 = "20260805", 1785931247.0
 +
 +
-+def build_review_tree(root, legs, unknown_maker=False):
-+    """One anchor; `legs` = (sym, filled, px, mid, fee, all_usdt, conv, otype, source)."""
++def build_review_tree(root, legs, unknown_maker=False, sides=None):
++    """One anchor; `legs` = (sym, filled, px, mid, fee, all_usdt, conv, otype, source).
++
++    `sides` overrides the `side` cell per symbol — including with None, which the orders schema
++    ACCEPTS (`side` is in `required` and not in `not_null`) and which pilot_metrics.m1 drops.
++    """
 +    lg = PL.PilotLogger(root, DAY)
 +    rid = f"A{int(T0)}"
 +    lg.anchor(anchor_ts=T0, target_vector_hash="h", realized_gross=0,
@@ -812,7 +875,8 @@ index 0000000..b4f78a6
 +        kw = {}
 +        if src:
 +            kw["topup_source"] = src
-+        lg.order(anchor_ts=T0, symbol=s, side="buy" if (v or 1) > 0 else "sell",
++        lg.order(anchor_ts=T0, symbol=s,
++                 side=((sides or {}).get(s, "buy" if (v or 1) > 0 else "sell")),
 +                 target_w=0.1, prev_w=0.0, intended_notional=abs(v) if v else 100.0,
 +                 order_type=otype, submit_ts=T0 + 1, price_submit=mid, mid_at_submit=mid,
 +                 mid_at_anchor=mid, filled_notional=v, avg_fill_px=px, first_fill_ts=T0 + 2,
@@ -822,12 +886,14 @@ index 0000000..b4f78a6
 +        lg.position_readback(anchor_ts=T0, symbol=s, venue_position_notional=v or 0.0,
 +                             venue_position_qty=(v or 0.0) / (mid or 1.0), source="fixture")
 +    if unknown_maker:
++        _kw = ({"order_type": "topup_taker", "topup_source": unknown_maker}
++               if isinstance(unknown_maker, str) else {"order_type": "maker"})
 +        lg.order(anchor_ts=T0, symbol="NNNUSDT", side="buy", target_w=0.1, prev_w=0.0,
-+                 intended_notional=100.0, order_type="maker", submit_ts=T0 + 1,
++                 intended_notional=100.0, submit_ts=T0 + 1,
 +                 price_submit=100.0, mid_at_submit=100.0, mid_at_anchor=100.0,
 +                 filled_notional=None, avg_fill_px=None, first_fill_ts=None, last_fill_ts=None,
 +                 cancel_ts=None, fee_paid=None, rebalance_id=rid, attempt_idx=1,
-+                 terminal_reason="filled_amount_unknown", notional_currency="USDT")
++                 terminal_reason="filled_amount_unknown", notional_currency="USDT", **_kw)
 +    lg.daily_nav(day=DAY, target_gross=1000.0, nav=10000.0, realised_pnl=0.0,
 +                 unrealised_pnl=0.0, sizing_policy="constant_leverage_2.00", nav_ts=T0 + 60)
 +    lg.close()
@@ -917,6 +983,53 @@ index 0000000..b4f78a6
 +      "order rows with UNKNOWN fill      1" in o3 and "maker fill-rate (notional) >= " in o3
 +      and "1 leg(s) with UNKNOWN fill amount excluded — lower bound" in o3,
 +      [l.strip() for l in o3.splitlines() if "UNKNOWN" in l][:4])
++# ── round 3 (2026-09-13): completeness is computed over the FULL population, then displayed ────
++# ★★★ researcher REVIEW §3.C, `first_anchor_review.py:368`: the screen filtered the unknown-fill
++#     rows out of the population BEFORE the cost reader computed completeness, so two measured
++#     fills beside one `filled_notional: None` printed "100% of notional, 2/2 fills; measurement
++#     complete: yes" about a population that was not complete. The counts were elsewhere on the
++#     screen; the LABEL was about a different set than the daily summary's and E6's.
++d3b = tempfile.mkdtemp(prefix="rtb_unkfill_")
++TMPS.append(d3b)
++build_review_tree(os.path.join(d3b, "pilot_log"), _MEAS, unknown_maker=True)
++o3b = run_review(d3b)
++check("★★★ (iv) two measured fills + ONE unknown-fill row: the maker leg's measured figures are "
++      "unchanged (100% of the KNOWN notional, 2/2 fills) and the completeness label is now NO, "
++      "with the unknown row named as the reason",
++      "(100% of notional, 2/2 fills; measurement complete: NO)" in o3b
++      and "1 row(s) with UNKNOWN fill amount — in NO bucket" in o3b
++      and "TOTAL adverse  +3.00bps" in o3b,
++      [l.strip() for l in o3b.splitlines() if "measurement complete" in l][:4])
++_full_rows = [dict(r) for r in PL.read_day(os.path.join(d3b, "pilot_log"), DAY)["orders"]]
++_ex_rows = [r for r in _full_rows if CB.filled_abs(r)]
++check("★★★ MUTATION R3 (iii): the pre-round-3 selection (`ex = [o for o in mine if "
++      "CB.filled_abs(o)]`) fed to the SAME reader reports measurement_complete True on these very "
++      "rows — the filter, not the rule, was the defect",
++      CB.bucket_fills(_ex_rows)["measurement_complete"] is True
++      and CB.bucket_fills(_full_rows)["measurement_complete"] is False
++      and len(_full_rows) - len(_ex_rows) == 1,
++      (len(_full_rows), len(_ex_rows)))
++check("★★ ...and 'measurement complete: yes' appears NOWHERE on this screen any more, while the "
++      "clean tree still says yes (the label still distinguishes the two populations)",
++      "measurement complete: yes" not in o3b and "measurement complete: yes" in o2)
++# the same defect one level down: the taker SPLIT prints its own completeness label
++_SPLIT = [(f"P{i}USDT", 100.0, 100.01, 100.0, 0.02, True, None, "topup_taker", "from_partial")
++          for i in range(5)]
++d3c = tempfile.mkdtemp(prefix="rtb_split_")
++TMPS.append(d3c)
++build_review_tree(os.path.join(d3c, "pilot_log"), _SPLIT, unknown_maker="from_partial")
++o3c = run_review(d3c)
++_pl = [l for l in o3c.splitlines() if "from_partial" in l and "filled" in l]
++check("★★★ (v) the from_partial SPLIT is estimable on its 5 known fills and its completeness "
++      "label now covers the 6th row whose fill amount is unknown — the estimability population "
++      "and the measurement population are two populations, each named",
++      bool(_pl) and "measurement complete: NO" in _pl[0]
++      and "1 row(s) with UNKNOWN fill amount — in NO bucket" in o3c
++      and "NOT ESTIMABLE" not in o3c, _pl[:2])
++check("★★ ...and the measured figures of that split are unchanged by the unknown row (5/5 fills, "
++      "100% of the KNOWN notional)",
++      "(100% of notional, 5/5 fills; measurement complete: NO)" in o3c,
++      [l.strip() for l in o3c.splitlines() if "5/5" in l][:2])
 +check("★★ the tokens other suites pin are untouched (estimability gate, unique-execution line)",
 +      all(t in open(os.path.join(REPO, "ops", "first_anchor_review.py")).read()
 +          for t in ("NOT ESTIMABLE", "_MIN_N, _MAX_SHARE = 5, 0.50", "largest is",
@@ -996,6 +1109,115 @@ index 0000000..b4f78a6
 +check("★★ ...while the rebalance verdict is untouched by the flatten row (maker legs all measured ⇒ PASS)",
 +      e6x["verdict"] == "PASS" and e6x["measurement_complete"] is True)
 +
++# ── round 3 (2026-09-13): a PASS may not certify a number computed over another population ─────
++print("\n[E-R3] ★★★ E6 carrier consistency: the verdict's population and the published number's "
++      "population must be the SAME SET")
++# ★★★ THE RESEARCHER'S TWO COUNTEREXAMPLES (REVIEW_code_and_research_2026-09-13 §3.C), rebuilt
++#     through the real writer. `side: None` is a row this repo's own schema ACCEPTS — it is in
++#     `orders.required` and NOT in `orders.not_null`, and binance_executor writes the cell with
++#     `p.get('side')`. cost_buckets never reads `side` (it signs by filled_notional), so such a
++#     row is MEASURED and the bucket completeness reads True; pilot_metrics.m1 DROPS it
++#     (L143: an unreadable side has no measurable signed slip). Two populations, one verdict.
++_NOSIDE = [("SSSUSDT", 100.0, 100.01, 100.0, 0.02, True, None, "maker", None)]
++d6 = tempfile.mkdtemp(prefix="rtb_noside_")
++TMPS.append(d6)
++build_review_tree(os.path.join(d6, "pilot_log"), _NOSIDE, sides={"SSSUSDT": None})
++e6s = SPF.score(root=os.path.join(d6, "pilot_log"), day=DAY)["E6_cost_comparable"]
++_cc = e6s["carrier_consistency"]
++check("★★★ PRE-ASSERT (frozen m1, sha 5ac7b16d…): ONE row with side=None empties m1's population "
++      "(n_filled_orders 0, c_bps_overall None) while the buckets measure it at 3.0bps — the "
++      "counterexample is real on this tree",
++      _cc["population"]["m1_n_filled_orders"] == 0 and e6s["c_bps_overall"] is None
++      and _cc["population"]["buckets_n_fills"] == 1
++      and abs(e6s["cost_bps_displayed"] - 3.0) < 1e-9,
++      (_cc["population"], e6s["c_bps_overall"], e6s["cost_bps_displayed"]))
++check("★★★ E6 REFUSES: verdict FAIL although the bucket measurement IS complete — the two "
++      "carriers do not describe the same rows, so the criterion cannot certify the number",
++      e6s["verdict"] == "FAIL" and e6s["measurement_complete"] is True
++      and _cc["consistent"] is False and any("population COUNT differs" in w
++                                             for w in _cc["why_not"]),
++      (e6s["verdict"], _cc["why_not"][:1]))
++check("★★★ MUTATION R3 (i): the round-2 rule (verdict = the bucket completeness bit alone) reads "
++      "PASS on this very tree — PASS beside c_bps_overall None, the researcher's single-row case",
++      SPF._verdict(e6s["measurement_complete"]) == "PASS" and e6s["verdict"] == "FAIL")
++check("★★ ...and a bare 'is the number finite' check would ALSO have passed the mixed case below, "
++      "which is why the gate is population identity and not a finiteness test",
++      e6s["c_bps_overall_is_finite"] is False)
++
++# the mixed case: m1 measures ONE row and reports 3bps; the buckets measure BOTH and report 52.5
++_MIXSIDE = [("SSSUSDT", 100.0, 100.01, 100.0, 0.02, True, None, "maker", None),
++            ("TTTUSDT", 100.0, 101.0, 100.0, 0.02, True, None, "maker", None)]
++d7 = tempfile.mkdtemp(prefix="rtb_mixside_")
++TMPS.append(d7)
++build_review_tree(os.path.join(d7, "pilot_log"), _MIXSIDE, sides={"TTTUSDT": None})
++e6x2 = SPF.score(root=os.path.join(d7, "pilot_log"), day=DAY)["E6_cost_comparable"]
++_cc2 = e6x2["carrier_consistency"]
++check("★★★ the researcher's mixed counterexample REPRODUCES: m1 measures 1 of 2 fills and reports "
++      "3.0bps; the buckets measure both and report 52.5bps over the SAME anchor",
++      abs(e6x2["c_bps_overall"] - 3.0) < 1e-9 and abs(e6x2["cost_bps_displayed"] - 52.5) < 1e-3
++      and _cc2["population"]["m1_n_filled_orders"] == 1
++      and _cc2["population"]["buckets_n_fills"] == 2,
++      (e6x2["c_bps_overall"], e6x2["cost_bps_displayed"]))
++check("★★★ ...and E6 is NOT a PASS, the DISPLAYED figure is the bucket one (same population as "
++      "the verdict), and the disagreement is NAMED — not merely recorded as a flag",
++      e6x2["verdict"] == "FAIL" and abs(e6x2["cost_bps_displayed"] - 52.5) < 1e-3
++      and any("52.5" in w for w in _cc2["why_not"])
++      and "cost_buckets" in e6x2["cost_bps_displayed_source"]
++      and "m1" in e6x2["c_bps_overall_source"],
++      _cc2["why_not"])
++check("★★★ MUTATION R3 (ii): the round-2 rule reads PASS here too — PASS beside a published 3.0 "
++      "while the population the verdict was computed over costs 52.5",
++      SPF._verdict(e6x2["measurement_complete"]) == "PASS" and e6x2["verdict"] == "FAIL"
++      and e6x2["measurement_complete"] is True)
++check("★★ ...and the round-2 record already carried `completeness_disagrees_with_m1` True on this "
++      "tree: recording the disagreement did not stop the PASS, which is why the gate exists",
++      e6x2["completeness_disagrees_with_m1"] is True
++      and e6x2["m1_measurement_complete"] is False)
++
++# a row whose `side` CONTRADICTS the sign of filled_notional: the populations are IDENTICAL and the
++# signed figures are not — so the value half of the gate is load-bearing, not implied by the counts
++_SIGNC = [("SSSUSDT", 100.0, 100.01, 100.0, 0.02, True, None, "maker", None)]
++d8 = tempfile.mkdtemp(prefix="rtb_signc_")
++TMPS.append(d8)
++build_review_tree(os.path.join(d8, "pilot_log"), _SIGNC, sides={"SSSUSDT": "sell"})
++e6c = SPF.score(root=os.path.join(d8, "pilot_log"), day=DAY)["E6_cost_comparable"]
++_cc3 = e6c["carrier_consistency"]
++check("★★★ same population (1 fill / $100.00 on both carriers, per regime too) and the SIGNED "
++      "figures still disagree (+3.0 vs +1.0) because m1 signs by `side` and the buckets by the "
++      "sign of filled_notional ⇒ still not a PASS. The value check is not implied by the counts",
++      _cc3["population"]["same_count"] and _cc3["population"]["same_notional"]
++      and _cc3["population"]["by_regime_all_same"] is True
++      and _cc3["values"]["abs_caliber_agrees"] is True
++      and _cc3["values"]["net_caliber_agrees"] is False
++      and e6c["verdict"] == "FAIL",
++      (_cc3["values"]["buckets_bps_measured"], _cc3["values"]["m1_c_bps_net_overall"]))
++
++# reverse control: on the clean tree the two carriers agree and the PASS is unchanged
++_cm = e6m["carrier_consistency"]
++check("★★★ REVERSE CONTROL: on the fully measured tree the populations match (2 fills / $200.00 "
++      "on both, per regime) and both calibers agree inside the stated tolerance ⇒ verdict is "
++      "still PASS. The gate tightens the verdict; it does not condemn a clean anchor",
++      e6m["verdict"] == "PASS" and _cm["consistent"] is True
++      and _cm["population"]["same_count"] and _cm["population"]["same_notional"]
++      and _cm["values"]["abs_caliber_agrees"] and _cm["values"]["net_caliber_agrees"]
++      and abs(e6m["cost_bps_displayed"] - e6m["c_bps_overall"]) <= SPF.E6_CARRIER_BPS_TOL_BPS,
++      (e6m["cost_bps_displayed"], e6m["c_bps_overall"], _cm["population"]))
++check("★★ the tolerance is a STATED constant on the record, and it is four orders of magnitude "
++      "below the disagreement it must catch (52.5 vs 3.0)",
++      _cm["tolerance"]["bps"] == SPF.E6_CARRIER_BPS_TOL_BPS == 5e-4
++      and _cm["tolerance"]["notional_usdt"] == SPF.E6_CARRIER_NOTIONAL_TOL_USDT == 0.01
++      and abs(52.5 - 3.0) > 1e4 * SPF.E6_CARRIER_BPS_TOL_BPS, _cm["tolerance"])
++check("★★ the population is asserted on COUNTS AND NOTIONAL MASS that each carrier reports for "
++      "itself — pooled and per regime — never on a flag; and m1 is never re-implemented here",
++      set(_cm["population"]) >= {"buckets_n_fills", "m1_n_filled_orders", "buckets_notional_usdt",
++                                 "m1_filled_notional_total", "by_regime"}
++      and _cm["population"]["by_regime"]["calm"]["m1_n_filled_orders"] == 2)
++check("★★ ...and nothing in this round edited the frozen metrics file (its own suite would go red; "
++      "asserted here too, at the point of use)",
++      __import__("hashlib").sha256(open(os.path.join(REPO, "live", "pilot_metrics.py"), "rb")
++                                   .read()).hexdigest()
++      == "5ac7b16d0f97f2f8013da728ab18f4f3787bc17c2192c1dba63e64e637c08f1f")
++
 +# ═══ [F] the real ledger, read-only ════════════════════════════════════════════════════════════
 +print("\n[F] the real ledger copy (read-only): the 2026-08-05 anchors under the rule")
 +
@@ -1040,7 +1262,7 @@ index 0000000..b4f78a6
 +      f"{', ' + str(len(SKIPS)) + ' SKIP (ledger-dependent, declared)' if SKIPS else ''})")
 +sys.exit(1 if FAILS else 0)
 diff --git a/ops/daily_summary.py b/ops/daily_summary.py
-index f4a845c..20ddb10 100644
+index f4a845c..2a9a83e 100644
 --- a/ops/daily_summary.py
 +++ b/ops/daily_summary.py
 @@ -39,6 +39,115 @@ for _d in ("live", "scheduler", "signal", "ops"):
@@ -1173,7 +1395,37 @@ index f4a845c..20ddb10 100644
      # ★★★ P0, 2026-08-03. `external_flow_usdt` IS A SINCE-MIDNIGHT CUMULATIVE, PER DAY — reading
      #     it off the LAST row reports only the CURRENT day's flow, and a window that spans two days
      #     silently drops everything that happened before midnight.
-@@ -107,8 +221,17 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+@@ -101,14 +215,47 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+     ext = ext_f
+     same_day = n0.get("day") == n1.get("day")
+     d_eq = eq - float(n0.get("nav") or eq)
++    # ★★★ ROUND 3, 2026-09-13 — INHERITED DEFECT, NOT INTRODUCED BY THE THREE-BUCKET WORK
++    #     (researcher REVIEW_code_and_research_2026-09-13 §3.C, W2-N3). The residual below
++    #     subtracted `ext_f` — a DAY-CUMULATIVE — from `d_eq`, an INTERVAL change between the
++    #     window's two endpoints. Counterexample, reproduced: one day, two nav rows, equity and
++    #     realised identical on both, `external_flow_usdt` = 1000 on BOTH (the transfer landed
++    #     BEFORE the window opened, so both endpoints report the same since-midnight cumulative).
++    #     The old arithmetic read 0 - 0 - 1000 = **-1000 of "money nobody can attribute"** on a
++    #     window in which nothing whatsoever happened. Two ends of complete income reads do not
++    #     make an interval identity correct — they are different properties.
++    #   ⇒ The flow INSIDE the window is the DIFFERENCE of the two cumulatives. The residual is
++    #     only ever computed same-day (`unexplained_computable` requires it), and within one day
++    #     both endpoints are cumulative from the same 00:00Z origin, so `e1 - e0` is exact.
++    #   ⇒ If either endpoint does not carry a finite figure, the interval flow is UNKNOWN and the
++    #     residual is REFUSED with that reason — never computed from the day total instead.
++    #   ★ The two ends' income reads being COMPLETE is already required (review W2-R2) and it
++    #     covers this carrier too: `external_flow` and `realised_pnl` come out of the same paged
++    #     `binance_broker.income_since` call and share its one `truncated` flag.
++    _e0, _e1 = _finite(n0.get("external_flow_usdt")), _finite(n1.get("external_flow_usdt"))
++    _ext_iv = (round(_e1 - _e0, 6) if (same_day and _e0 is not None and _e1 is not None) else None)
++    _ext_iv_why = (None if _ext_iv is not None else
++                   ("窗口跨越 00:00Z, 而 external_flow_usdt 是当日累计, 两端不同源, 差值没有定义"
++                    if not same_day else
++                    "窗口某一端的 external_flow_usdt 不是有限数(读取失败/None/NaN), "
++                    "区间资金流未知"))
+     f = {
+         "observable": True,
+         # (a) the equity identity
          "wallet": wal, "unrealised": unr, "equity": eq,
          "equity_identity_residual": round(eq - (wal + unr), 6),
          "equity_identity_holds": abs(eq - (wal + unr)) < 0.01,
@@ -1192,13 +1444,27 @@ index f4a845c..20ddb10 100644
          # (b) the target-exposure arithmetic
          "leverage": leverage,
          "target_exposure": round(eq * leverage, 6),
-@@ -129,16 +252,33 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+@@ -125,20 +272,54 @@ def account_facts(nav_rows, leverage: float = LEVERAGE) -> dict:
+         "external_flow_state": ("not_observable" if ext_f is None else
+                                 "zero" if abs(ext_f) < 1e-9 else
+                                 "inflow" if ext_f > 0 else "outflow"),
++        # ★ the carrier's SHAPE, stated on the record: a reader who differences two rows must know
++        #   that each row is a running total, not that row's own movement.
++        "external_flow_carrier": "cumulative_since_00Z_per_day (binance_broker.income_since)",
++        # ★ the flow INSIDE [first row, last row] — the only flow figure the residual may use
++        "external_flow_interval_usdt": _ext_iv,
++        "external_flow_interval_computable": _ext_iv is not None,
++        "external_flow_interval_why_not": _ext_iv_why,
+         "spot_visible": False,
          "flow_query_scope": "futures income endpoint (incomeType=TRANSFER) only",
          # (d) the residual, or a refusal to compute it
          "equity_change": round(d_eq, 6),
 -        "unexplained_computable": bool(same_day),
 +        "unexplained_computable": bool(same_day and real_f["observable"] and real0_f["observable"]
-+                                       and real_f["complete"] is True and real0_f["complete"] is True),
++                                       and real_f["complete"] is True and real0_f["complete"] is True
++                                       # round 3: and the flow term must be an INTERVAL, not a
++                                       # day-cumulative subtracted from an interval change
++                                       and _ext_iv is not None),
      }
 -    if same_day:
 -        f["unexplained_equity_change"] = round(
@@ -1225,14 +1491,21 @@ index f4a845c..20ddb10 100644
 +                                    + ("不完整(income 分页截断, 只是已读部分)" if False in (_c0, _c1)
 +                                       else "完整性未知(行上没有 realised_truncated 标记)")
 +                                    + ", 已实现增量没有定义, 所以权益残差不计算")
++    elif _ext_iv is None:
++        # ★ round 3: the flow carrier is a DAY-CUMULATIVE. Without both endpoints we cannot form
++        #   the window's own flow, and substituting the day total is the -1000 counterexample.
++        f["unexplained_equity_change"] = None
++        f["unexplained_why_not"] = ("外部资金流载体是**当日累计**, " + str(_ext_iv_why)
++                                    + ", 所以权益残差不计算(用当日累计去减区间权益变动会凭空"
++                                      "造出一笔无法归因的钱)")
 +    else:
 +        f["unexplained_equity_change"] = round(
-+            d_eq - (real - real0_f["usdt"]) - (ext_f or 0.0), 6)
++            d_eq - (real - real0_f["usdt"]) - _ext_iv, 6)
 +        f["unexplained_why_not"] = None
      return f
  
  
-@@ -163,11 +303,26 @@ def render_account(f: dict) -> list:
+@@ -163,11 +344,26 @@ def render_account(f: dict) -> list:
      if not f["equity_identity_holds"]:
          out.append(f"   ★★ wallet + unrealised 与 equity 差 {f['equity_identity_residual']:+.4f} "
                     f"—— 这个恒等式不该被破坏, 破了说明有一项我们读错了。")
@@ -1264,7 +1537,27 @@ index f4a845c..20ddb10 100644
      out.append(f"\n   ★ 目标敞口 = 权益 × 杠杆 = {f['equity']:,.2f} × {f['leverage']:.2f} "
                 f"= {f['target_exposure']:,.2f}")
      st = f["external_flow_state"]
-@@ -251,24 +406,19 @@ def main():
+@@ -184,10 +380,18 @@ def render_account(f: dict) -> list:
+                    f"   [覆盖 {len(f['external_flow_days'])} 天: {f['external_flow_by_day']}]")
+         out.append(f"   ⇒ 本窗口期货账户有资金{_w}, 已计入上面的权益与目标敞口。"
+                    f"本系统只查期货, 看不见现货。")
++    # ★ round 3: the window's OWN flow, beside the day total, because they are different
++    #   quantities and only the first one belongs in the residual below.
++    if f.get("external_flow_interval_computable"):
++        out.append(f"   ⇒ 其中**本窗口区间内**的资金流 {f['external_flow_interval_usdt']:+,.2f} "
++                   f"(= 末行当日累计 − 首行当日累计; 载体是当日累计, 不是每行各自的流量)")
++    elif f.get("external_flow_interval_why_not"):
++        out.append(f"   ⇒ 本窗口区间内的资金流 UNKNOWN —— {f['external_flow_interval_why_not']}")
+     if f["unexplained_computable"]:
+         if abs(f["unexplained_equity_change"] or 0) > 0.5:
+             out.append(f"   ★★ 非交易原因的权益变化 {f['unexplained_equity_change']:+.4f} —— "
+-                       f"同日内权益变动 {f['equity_change']:+.4f} 减去已实现增量与外部流入之后"
++                       f"同日内权益变动 {f['equity_change']:+.4f} 减去已实现增量与"
++                       f"**区间**外部资金流 {f['external_flow_interval_usdt']:+.4f} 之后"
+                        f"的余额。这个数不该非零; 非零意味着有一笔我们没有归因的钱。")
+     else:
+         out.append(f"   ({f['unexplained_why_not']} —— 不计算, 而不是算一个错的。)")
+@@ -251,24 +455,19 @@ def main():
  
      # ── 2. per-anchor table: the trend, one row each ──────────────────────────────────────
      print("\n【逐锚】 —— 用户要的是趋势, 所以一锚一行")
@@ -1299,7 +1592,7 @@ index f4a845c..20ddb10 100644
          kg = (r.get("known_gaps") or {}).get("gross_usdt")
          nog = r.get("net_over_gross")
          note = []
-@@ -276,12 +426,23 @@ def main():
+@@ -276,12 +475,23 @@ def main():
              note.append("停机")
          if (r.get("reshape") or {}).get("n_popped"):
              note.append(f"撤{r['reshape']['n_popped']}")
@@ -1324,7 +1617,7 @@ index f4a845c..20ddb10 100644
  
      # ── the rotation question: banked vs entry cost ───────────────────────────────────────
      # ★ SAME DAY-BOUNDARY TRAP AS ABOVE, and here it was worse: differencing across 00:00Z made
-@@ -289,10 +450,25 @@ def main():
+@@ -289,10 +499,25 @@ def main():
      _today = [r for r in nav if r.get("day") == nav[-1].get("day")] if nav else []
      if len(_today) >= 2:
          r0, r1 = _today[0], _today[-1]
@@ -1354,7 +1647,7 @@ index f4a845c..20ddb10 100644
                f"{float(r1.get('unrealised_pnl') or 0):+.4f}  —— 新仓位的账面")
          print(f"     入场成本见上表'成本bps'一列。落袋 + 入场成本两个数一出来, '降'就自解释了。")
 diff --git a/ops/first_anchor_review.py b/ops/first_anchor_review.py
-index bb9a1b3..72de3b8 100755
+index bb9a1b3..221a85b 100755
 --- a/ops/first_anchor_review.py
 +++ b/ops/first_anchor_review.py
 @@ -213,6 +213,12 @@ def main() -> int:
@@ -1370,7 +1663,7 @@ index bb9a1b3..72de3b8 100755
      # ★ the number that misled 0C: raw rows double-count markout backfills. Both shown.
      _uf = PL.collapse_supersedes(fills)
      print(f"   fills: unique executions          {len(_uf)}"
-@@ -348,43 +354,55 @@ def main() -> int:
+@@ -348,47 +354,90 @@ def main() -> int:
  
      # ── 3c. REALISED COST — the number P0 exists for ────────────────────────────────────────
      hdr("3c. REALISED COST (bps) vs the shadow model's assumptions")
@@ -1386,23 +1679,47 @@ index bb9a1b3..72de3b8 100755
 +    #     0.00bps and a TOTAL of -3.70bps with no warning at all. Now: bps over the MEASURED set,
 +    #     the two other buckets named with count and notional, and "0 measured" prints
 +    #     UNMEASURED rather than a number.
++    # ★★★ ROUND 3, 2026-09-13 (researcher REVIEW_code_and_research_2026-09-13 §3.C, this file
++    #     :368): THE COMPLETENESS LABEL IS COMPUTED OVER THE FULL POPULATION, AND ONLY THEN
++    #     DISPLAYED. `ex` drops every row whose fill amount is UNKNOWN (`filled_notional: None`,
++    #     a round-7 shape with a known part and an unknown residual) — and `ex` was what the cost
++    #     reader below received. So a leg of two measured fills beside one unknown-fill row
++    #     printed "100% of notional, 2/2 fills; measurement complete: yes" about a population
++    #     that was NOT complete: the denominator had been shrunk before the label was computed.
++    #     The count was printed further up the screen, so nothing was hidden — but "complete" is
++    #     a claim about a population, and it was being made about a different one than the daily
++    #     summary and E6 make it about.
++    #   ⇒ `_leg` now receives the FULL rows. `cost_buckets.bucket_fills` already partitions them:
++    #     an unknown-fill row enters NEITHER the numerator nor the denominator (so every figure
++    #     below is numerically unchanged) and it is counted in `n_unknown_fill`, which is what
++    #     turns `measurement_complete` to False. The screen names it beside the label.
 +    import cost_buckets as CB
 +    ex = [o for o in mine if CB.filled_abs(o)]        # known, non-zero fills — any bucket
++    _unk_rows = [o for o in mine if CB.filled_abs(o) is None]
      if not ex:
 -        miss("no row carries filled_notional + avg_fill_px + mid_at_anchor together — "
+-             "cost is UNMEASURED, which is not the same as zero")
 +        miss("no row carries a known non-zero filled_notional — "
-              "cost is UNMEASURED, which is not the same as zero")
++             "cost is UNMEASURED, which is not the same as zero"
++             + (f" (and {len(_unk_rows)} row(s) carry an UNKNOWN fill amount — not a zero fill)"
++                if _unk_rows else ""))
      else:
          def _leg(rows, label):
 -            notl = sum(abs(float(r["filled_notional"])) for r in rows)
 -            if notl <= 0:
-+            b = CB.bucket_fills(rows)
+-                print(f"   {label:14s} no filled notional — UNMEASURED, not 0")
++            b = CB.bucket_fills(rows)          # ← the FULL leg, unknown-fill rows included
 +            notl = b["notional_usdt"]
++            _unk = b["n_unknown_fill"]
++            # ★ the unknown-fill rows are in NO bucket: their amount is not known, so they are in
++            #   neither figure. They are the reason `measurement_complete` can be NO beside a
++            #   100% coverage of the notional we DO know.
++            _unks = (f"   ★ {_unk} row(s) with UNKNOWN fill amount — in NO bucket (the amount is "
++                     f"not known), which is why completeness is NO over the full population"
++                     if _unk else "")
 +            if b["n_fills"] == 0 or notl <= 0:
-                 print(f"   {label:14s} no filled notional — UNMEASURED, not 0")
-                 return
--            fee = sum(float(r.get("fee_paid") or 0.0) for r in rows)
--            n_nofee = sum(1 for r in rows if r.get("fee_paid") is None)
++                print(f"   {label:14s} no filled notional — UNMEASURED, not 0{_unks}")
++                return
 +            _excl = (f"   ★ excluded from numerator AND denominator: "
 +                     f"fee-unknown {b['n_fee_unknown']} / ${b['fee_unknown_notional_usdt']:,.2f}, "
 +                     f"unpriced {b['n_unpriced']} / ${b['unpriced_notional_usdt']:,.2f} "
@@ -1411,8 +1728,10 @@ index bb9a1b3..72de3b8 100755
 +            if b["n_measured"] == 0:
 +                print(f"   {label:14s} filled {notl:12,.2f}   cost UNMEASURED — 0 of "
 +                      f"{b['n_fills']} fills measured (fee-unknown {b['n_fee_unknown']}, "
-+                      f"unpriced {b['n_unpriced']}); no bps is printed because none exists")
-+                return
++                      f"unpriced {b['n_unpriced']}); no bps is printed because none exists{_unks}")
+                 return
+-            fee = sum(float(r.get("fee_paid") or 0.0) for r in rows)
+-            n_nofee = sum(1 for r in rows if r.get("fee_paid") is None)
              # ★ SIGNED-ADVERSE, and the absolute version beside it. A buy above the anchor mid and
              #   a sell below it are costs; the opposite is price IMPROVEMENT, and |slippage| would
 -            #   book that as a cost too. The spec asked for |.|; both are printed so the choice is
@@ -1437,13 +1756,20 @@ index bb9a1b3..72de3b8 100755
 -                  f"   |.| {(fee + abs_) * 1e4 / notl:6.2f}bps"
 -                  + (f"   ★ {n_nofee} row(s) carry NO fee — excluded from the numerator, "
 -                     f"so this UNDERSTATES" if n_nofee else ""))
+-
+-        _leg([r for r in ex if r.get("order_type") == "maker"], "maker")
+-        _leg([r for r in ex if r.get("order_type") == "topup_taker"], "taker")
+-        _leg(ex, "both")
 +            #   book that as a cost too. Both are printed so the choice is visible. The sign is
 +            #   taken from the SIGN OF filled_notional, as the production diagnostics do.
 +            # ★ coverage is FLOORED for display (review W2-R2): 99.996% prints 99%, never 100%
++            # ★ the coverage percentage is over the notional we KNOW; the completeness bit is over
++            #   the FULL population (round 3). When they disagree, the unknown rows are why, and
++            #   `_unks` says so on the same line.
 +            print(f"   {label:14s} filled {notl:12,.2f}   measured {b['notional_measured_usdt']:12,.2f}"
 +                  f" ({CB.pct_floor(b['coverage_measured_notional'])}% of notional, "
 +                  f"{b['n_measured']}/{b['n_fills']} fills; measurement complete: "
-+                  f"{'yes' if b['measurement_complete'] is True else 'NO'})")
++                  f"{'yes' if b['measurement_complete'] is True else 'NO'}){_unks}")
 +            print(f"   {'':14s} fee {b['fee_bps_measured']:6.2f}bps"
 +                  f"   slip(adverse) {b['adverse_bps_measured']:+6.2f}bps"
 +                  f"   slip(|.|) {b['abs_slip_bps_measured']:6.2f}bps   — over the MEASURED set")
@@ -1452,10 +1778,44 @@ index bb9a1b3..72de3b8 100755
 +            #   TOTAL -4843bps beside a slip of -1.75bps.
 +            print(f"   {'':14s} TOTAL adverse {b['bps_measured']:+6.2f}bps"
 +                  f"   |.| {b['abs_bps_measured']:6.2f}bps{_excl}")
++
++        # ★ the FULL rows per leg, not `ex` — see the round-3 note above. The populations are
++        #   otherwise identical to `ex`'s (a known ZERO fill is in no bucket either way), so every
++        #   printed number is unchanged; what changes is that a row whose amount we could not read
++        #   is now inside the population the completeness label describes.
++        _leg([r for r in mine if r.get("order_type") == "maker"], "maker")
++        _leg([r for r in mine if r.get("order_type") == "topup_taker"], "taker")
++        _leg(mine, "both")
+         # ★★★ THE TAKER LEG IS TWO POPULATIONS WITH OPPOSITE ECONOMICS (2026-08-02).
+         #   from_partial — the maker rested and the price RAN AWAY. Topping up is chasing.
+         #   from_reject  — the venue refused the maker with -5022, i.e. the price CROSSED our
+@@ -418,14 +467,24 @@ def main() -> int:
+             return True, ""
  
-         _leg([r for r in ex if r.get("order_type") == "maker"], "maker")
-         _leg([r for r in ex if r.get("order_type") == "topup_taker"], "taker")
-@@ -459,27 +477,40 @@ def main() -> int:
+         _tk = [r for r in ex if r.get("order_type") == "topup_taker"]
++        # ★ round 3: the SPLIT needs the full sub-population for its completeness label, exactly as
++        #   the three legs above — but `_estimable` reads `float(r["filled_notional"])` on every
++        #   row, so the estimability question keeps its known-fill population. Two populations,
++        #   each named: `_sub` decides whether an average may be printed at all, `_sub_full` is
++        #   what the average (and its completeness label) is computed over.
++        _tk_full = [r for r in mine if r.get("order_type") == "topup_taker"]
+         if any(r.get("topup_source") for r in _tk):
+             for _src in ("from_partial", "from_reject"):
+                 _sub = [r for r in _tk if r.get("topup_source") == _src]
++                _sub_full = [r for r in _tk_full if r.get("topup_source") == _src]
+                 if not _sub:
++                    if _sub_full:
++                        print(f"     {_src:14s} all {len(_sub_full)} row(s) carry an UNKNOWN fill "
++                              f"amount — UNMEASURED, not 0, and not estimable either")
+                     continue
+                 _ok, _why = _estimable(_sub)
+                 if _ok:
+-                    _leg(_sub, f"  {_src}")
++                    _leg(_sub_full, f"  {_src}")
+                 else:
+                     _n = sum(abs(float(r["filled_notional"])) for r in _sub)
+                     _big = max(_sub, key=lambda r: abs(float(r["filled_notional"])))
+@@ -459,27 +518,40 @@ def main() -> int:
                  if not _ok2:
                      print(f"   {_src:14s} NOT ESTIMABLE — {_why2} (same two fills as above)")
                      continue
@@ -1506,7 +1866,7 @@ index bb9a1b3..72de3b8 100755
              miss("no maker leg was submitted — fill-rate UNMEASURED")
          print("   ── the shadow model assumes: maker fill-rate 0.51, cost 1.9bps (calm regime) ──")
 diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
-index 46528dc..ddc2531 100644
+index 46528dc..433ff34 100644
 --- a/ops/gate_coverage.py
 +++ b/ops/gate_coverage.py
 @@ -156,7 +156,8 @@ SUITE_SCOPE = {
@@ -1514,16 +1874,64 @@ index 46528dc..ddc2531 100644
      "tests_readiness_filters_path": "that the cached filters are CORRECT — it proves the sheet looks at the file we actually write and counts real symbols. Whether those 653 entries carry the right tick/step/minNotional for LIVE is established by the venue stamp and by arm(), not here",
      "tests_neutrality_check": "that the book WILL be neutral — it proves only that the realised net is measured from venue truth and spoken when it leaves the band. It changes no order and closes no gap: the 16:00Z anchor would still have ended -6.9% short, we would merely have known within the minute instead of in a post-mortem. Nor does it establish that 3% is the right band — that figure is policy, not calibration, and two anchors is not a distribution",
 -    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines.",
-+    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it.",
-+    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent",
++    "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it. Round 3 (2026-09-13, researcher REVIEW §3.C): the same-day residual's flow term is now the INTERVAL difference of the day-cumulative `external_flow_usdt` (the old form subtracted a day total from an interval equity change and read -1000 on a window where nothing happened) and refuses when either endpoint is not a finite number. Two further blind spots it does NOT close: (e) the interval form is exact only because the residual is computed same-day, where both endpoints share one 00:00Z origin — nothing here re-derives that the carrier really is cumulative, it is read from `binance_broker.income_since`; (f) a zero residual is not proof the account identity holds — it means the three terms we CAN read cancel, and any movement none of them carries (a fee type outside `realised_components`, a spot transfer) is invisible to it.",
++    "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent. Round 3 (2026-09-13, researcher REVIEW §3.C): E6 may PASS only when its verdict's population and the number it publishes come from the SAME rows — the bucket counts and notional mass against m1's own `n_filled_orders`/`filled_notional_total`, pooled AND per regime, plus agreement of both bps calibers inside a stated tolerance — and the screen now publishes the bucket figure (`cost_bps_displayed`) beside m1's. Blind spots this adds: (e) the population identity is asserted on COUNTS AND MASS each carrier reports for itself, not on row identities, so two different row sets agreeing in count and notional (pooled and in every regime) would still pass; (f) the gate makes E6 refuse to certify a mismatch — it does not FIX m1, which stays frozen, so the number the pre-registration names (`c_bps_overall`) is still m1's; (g) the frozen `watchdog` §4-1 consumer still reads `m1.c_bps_net_overall` directly and treats a NaN cost as priced and not a breach, so 'all consumers are on the three buckets' is FALSE and must not be written anywhere",
      "tests_redelivery_settles": "that every alarm reaches a human — it proves the QUEUE stops asking once one has, which is a different guarantee. Four blind spots: (a) it settles on an explicit key, so a redelivery path that forgets to pass `settles` regresses silently and only the repeat count would show it, days later; (b) it does not retroactively settle the six already sent — the seventh redelivery closes the loop, so the ledger keeps six rows that look like a live defect; (c) `SUPPRESSED` counts as settled, which is right for a test harness and wrong if anyone ever suppresses in production; (d) it says nothing about whether the redelivered TEXT is still meaningful — a stale alarm replayed hours later is delivered, settled, and possibly misleading",
      "tests_alarm_digest": "that the right things get read — it proves the classifier separates and never demotes an undelivered alarm, not that the tiers match what a human would choose. Four blind spots: (a) the rules are REGEX over message text, so rewording an alarm silently reclassifies it and nothing here would notice; (b) `UNRECOGNISED -> DECIDE` is safe but means the tool degrades toward noise exactly as the system produces novel shapes — i.e. during an incident; (c) tier B asserts 'already decided', which is a claim about a RULING that lives outside the code — if a ruling is reversed, the tier is silently wrong; (d) it measures compression on the last 24h and reports the historical ratio ungraded, so a slow drift toward everything-is-A across weeks would not fail anything",
      "tests_disposition_matrix": "that no name will evaporate again — it proves every terminal state HAS a declared destination and that the ledger sizes the ones we abandon, not that the destinations are the right ones. Four blind spots: (a) the matrix is closed over `TERMINAL_REASONS`, so a leg that ends WITHOUT writing a row at all is invisible to it — and that is precisely how -5022 vanished, by never reaching a disposition; (b) it is RECORD-ONLY, so a gap being named changes nothing about whether a guard forgives it — the ledger could be perfect and §4-5e would still flatten the book; (c) the two code-dependent cells resolve on a substring of `note`, so a venue that reworded its errors would silently reclassify -5022 as a gap and -4164 as a real one; (d) `blocked_by_halt` dominating a halted anchor at ~4200 USDT is arithmetically right and operationally noisy — nothing here establishes that a halted anchor SHOULD report its whole book as gap",
 diff --git a/ops/score_post_fix.py b/ops/score_post_fix.py
-index e266775..67b1d82 100644
+index e266775..4e51549 100644
 --- a/ops/score_post_fix.py
 +++ b/ops/score_post_fix.py
-@@ -374,14 +374,64 @@ def score(root: Optional[str] = None, day: Optional[str] = None,
+@@ -31,6 +31,47 @@ def _verdict(ok: Optional[bool]) -> str:
+     return "UNDETERMINED" if ok is None else ("PASS" if ok else "FAIL")
+ 
+ 
++# ★★★ E6 CARRIER-CONSISTENCY TOLERANCES — STATED, NOT IMPLIED (round 3, 2026-09-13; researcher
++#     REVIEW_code_and_research_2026-09-13 §3.C "W2 的 PASS 不能认证另一套分母上的数字").
++#     E6's verdict is derived from `cost_buckets`, while the number it publishes as
++#     `c_bps_overall` comes from the FROZEN `pilot_metrics.m1`. Those two read DIFFERENT
++#     populations of the same rows, so a PASS could certify a figure computed over a different
++#     denominator. The gate below refuses to PASS unless the two carriers are reading the same
++#     rows and arriving at the same number — and these are the two tolerances that "the same
++#     number" means.
++#   · BPS: m1 rounds its bps to 4 decimals (`round(..., 4)`) and divides in a different order
++#     (`(fee+slip)/den*1e4` vs `1e4*(fee+adverse)/den`), so two readings of the identical rows can
++#     differ in the last ulp plus half of m1's rounding step (5e-5). 5e-4 bps is ten times that
++#     and still four orders of magnitude below the smallest disagreement anyone would act on
++#     (the researcher's counterexample is 3.0 vs 52.5).
++#   · NOTIONAL: m1 rounds its denominator to 2 decimals, cost_buckets to 4. 0.01 USDT is m1's
++#     rounding step; the relative term covers large books where 1e-9 of the sum exceeds it.
++E6_CARRIER_BPS_TOL_BPS = 5e-4
++E6_CARRIER_NOTIONAL_TOL_USDT = 0.01
++E6_CARRIER_NOTIONAL_TOL_REL = 1e-9
++
++
++def _fin(x: Any) -> Optional[float]:
++    """The value as a finite float, or None. A NaN is NOT a number this file will compare."""
++    if x is None or isinstance(x, bool):
++        return None
++    try:
++        v = float(x)
++    except (TypeError, ValueError):
++        return None
++    return v if (v == v and v not in (float("inf"), float("-inf"))) else None
++
++
++def _agree(a: Any, b: Any, tol: float, rel: float = 0.0) -> bool:
++    """True only when BOTH are finite and within tolerance. None/NaN never 'agree' with anything —
++    `None == None` would have read as agreement between two carriers that both measured nothing,
++    and that is the single-row counterexample (PASS beside `c_bps_overall: None`)."""
++    fa, fb = _fin(a), _fin(b)
++    if fa is None or fb is None:
++        return False
++    return abs(fa - fb) <= max(tol, rel * max(abs(fa), abs(fb)))
++
++
+ def score(root: Optional[str] = None, day: Optional[str] = None,
+           rebalance_id: Optional[str] = None) -> Dict[str, Any]:
+     import pilot_log as PL
+@@ -374,14 +415,185 @@ def score(root: Optional[str] = None, day: Optional[str] = None,
      counters = {k: m1.get(k) for k in ("n_excluded_unknown_fill", "n_excluded_no_anchor_mid",
                                         "n_unmeasured_fee", "n_unmeasured_slippage")}
      complete = m1.get("measurement_complete")
@@ -1536,7 +1944,9 @@ index e266775..67b1d82 100644
 +    #   only, None when nothing was measured), so a reader can see how far the two calibers are
 +    #   apart on this anchor instead of inheriting the lower bound as a number.
 +    import cost_buckets as _CB
-+    _bk = _CB.bucket_fills([o for o in mine if o.get("order_type") in ("maker", "topup_taker")])
++    # the rebalance legs — the same universe pilot_metrics.m1 takes (pilot_metrics L102)
++    _legs = [o for o in mine if o.get("order_type") in ("maker", "topup_taker")]
++    _bk = _CB.bucket_fills(_legs)
 +    # ★★ review W2-R1 (2026-09-12): m1's completeness bit can read True beside a NaN cost
 +    #    (fee_paid=NaN passes its `is None` test) and its flatten block counts a raw mixed-asset
 +    #    fee (fee_paid=0, fee_all_usdt=False, no conversion) as a measured fee. pilot_metrics.py
@@ -1552,14 +1962,87 @@ index e266775..67b1d82 100644
 +    _flat_fee_known_b = sum(1 for o in _flat_rows if _CB.known_fee(o) is not None)
 +    _pfc = m1.get("protective_flatten_cost") or {}
 +    _c_m1 = m1.get("c_bps_overall")
++    _c_m1_net = m1.get("c_bps_net_overall")
 +    _c_m1_finite = (_c_m1 is not None and _c_m1 == _c_m1
 +                    and _c_m1 not in (float("inf"), float("-inf")))
++    # ★★★ ROUND 3 (2026-09-13) — THE CARRIER-CONSISTENCY GATE: A PASS MAY NOT CERTIFY A NUMBER
++    #     COMPUTED OVER A DIFFERENT POPULATION. Round 2 moved the completeness BIT to the buckets
++    #     (m1 is frozen and reads True beside a NaN fee) but left the published NUMBER as m1's.
++    #     The two read different row sets, and the researcher demonstrated the gap with rows this
++    #     repo's own schema accepts (`side` is in orders.required and NOT in orders.not_null, so a
++    #     row with `side: None` validates; `binance_executor` writes it with `p.get('side')`):
++    #       · ONE row, every field finite, `side: None`. cost_buckets takes its sign from
++    #         filled_notional, so the row is MEASURED and complete ⇒ old E6 said PASS. m1 drops
++    #         the row (pilot_metrics L143: an unreadable side has no measurable signed slip), so
++    #         its population is EMPTY and `c_bps_overall` is None ⇒ **PASS beside no cost at all**.
++    #       · TWO rows, one normal and one `side: None` carrying the larger slip. Buckets measure
++    #         both: 52.5 bps. m1 measures only the normal one: 3.0 bps ⇒ **PASS beside 3.0 while
++    #         the population the verdict was computed over costs 52.5**.
++    #     A "is it finite" check stops the first and not the second. So the gate is IDENTITY OF
++    #     POPULATION plus AGREEMENT OF VALUE, and the number this criterion PUBLISHES
++    #     (`cost_bps_displayed`) now comes from the same population as its verdict.
++    # ★★ THE POPULATION IS COMPARED ON COUNTS AND MASS THE TWO CARRIERS REPORT THEMSELVES —
++    #    m1's `n_filled_orders` / `filled_notional_total` against the buckets' `n_fills` /
++    #    `notional_usdt` — AND per regime, because m1 publishes `by_regime` and a compensating
++    #    swap (one row lost here, one gained there) would survive a pooled count. Nothing here
++    #    re-implements m1's row filter: a second copy of a frozen rule is a second thing to drift.
++    _m1_n, _m1_den = m1.get("n_filled_orders"), m1.get("filled_notional_total")
++    _pop_n_match = (_m1_n is not None and int(_m1_n) == _bk["n_fills"])
++    _pop_den_match = _agree(_m1_den, _bk["notional_usdt"],
++                            E6_CARRIER_NOTIONAL_TOL_USDT, E6_CARRIER_NOTIONAL_TOL_REL) or (
++                                (_fin(_m1_den) == 0.0) and _bk["notional_usdt"] == 0.0)
++    _bk_by_reg = {}
++    for _o in _legs:
++        _bk_by_reg.setdefault(regimes.get(_o.get("anchor_ts"), "unknown"), []).append(_o)
++    _m1_by_reg = m1.get("by_regime") or {}
++    _reg_cells, _reg_match = {}, True
++    for _r in sorted(set(_bk_by_reg) | set(_m1_by_reg)):
++        _rb = _CB.bucket_fills(_bk_by_reg.get(_r, []))
++        _rm = _m1_by_reg.get(_r) or {}
++        _ok = (_rm.get("n_filled_orders") == _rb["n_fills"]
++               and (_agree(_rm.get("filled_notional"), _rb["notional_usdt"],
++                           E6_CARRIER_NOTIONAL_TOL_USDT, E6_CARRIER_NOTIONAL_TOL_REL)
++                    or (_rb["n_fills"] == 0 and not _rm)))
++        _reg_cells[_r] = {"buckets_n_fills": _rb["n_fills"],
++                          "m1_n_filled_orders": _rm.get("n_filled_orders"),
++                          "buckets_notional_usdt": _rb["notional_usdt"],
++                          "m1_filled_notional": _rm.get("filled_notional"), "same": bool(_ok)}
++        _reg_match = _reg_match and bool(_ok)
++    _abs_match = _agree(_bk["abs_bps_measured"], _c_m1, E6_CARRIER_BPS_TOL_BPS)
++    _net_match = _agree(_bk["bps_measured"], _c_m1_net, E6_CARRIER_BPS_TOL_BPS)
++    _why_not = []
++    if not _pop_n_match:
++        _why_not.append(f"population COUNT differs: cost_buckets {_bk['n_fills']} fill(s), "
++                        f"pilot_metrics.m1 {_m1_n} — m1 drops a row whose `side` it cannot read "
++                        f"and one whose anchor mid or fill price it cannot read; the buckets "
++                        f"keep every known non-zero fill and name its bucket")
++    if not _pop_den_match:
++        _why_not.append(f"population NOTIONAL differs: cost_buckets {_bk['notional_usdt']}, "
++                        f"pilot_metrics.m1 {_m1_den} (tolerance "
++                        f"{E6_CARRIER_NOTIONAL_TOL_USDT} USDT)")
++    if not _reg_match:
++        _why_not.append(f"population differs WITHIN a regime even where the pooled figures could "
++                        f"agree: {_reg_cells}")
++    if not _abs_match:
++        _why_not.append(f"the |slip| caliber disagrees: cost_buckets abs_bps_measured "
++                        f"{_bk['abs_bps_measured']} vs m1 c_bps_overall {_c_m1} (tolerance "
++                        f"{E6_CARRIER_BPS_TOL_BPS} bps; None/NaN never agrees)")
++    if not _net_match:
++        _why_not.append(f"the signed caliber disagrees: cost_buckets bps_measured "
++                        f"{_bk['bps_measured']} vs m1 c_bps_net_overall {_c_m1_net} (tolerance "
++                        f"{E6_CARRIER_BPS_TOL_BPS} bps; the two take the slip SIGN from different "
++                        f"fields — m1 from `side`, the buckets from the sign of filled_notional)")
++    # None = nothing to measure at all (both carriers empty): a vacuous consistency, not a pass.
++    _carrier_ok = (None if _complete_b is None else
++                   bool(_pop_n_match and _pop_den_match and _reg_match
++                        and _abs_match and _net_match))
      out["E6_cost_comparable"] = {
 -        "verdict": _verdict(None if complete is None else bool(complete)),
 -        "measurement_complete": complete, "counters": counters,
 -        "c_bps_overall": m1.get("c_bps_overall"), "caliber": m1.get("caliber"),
 -        "protective_flatten_cost": m1.get("protective_flatten_cost"),
-+        "verdict": _verdict(None if _complete_b is None else bool(_complete_b)),
++        "verdict": _verdict(None if _complete_b is None else
++                            bool(_complete_b) and bool(_carrier_ok)),
 +        "measurement_complete": _complete_b,
 +        "measurement_complete_source": ("cost_buckets.bucket_fills over the rebalance legs: every "
 +                                        "fill known, priced, and fee-known (finite; all-USDT or "
@@ -1568,7 +2051,50 @@ index e266775..67b1d82 100644
 +        "m1_measurement_complete": complete,
 +        "completeness_disagrees_with_m1": (complete != _complete_b),
 +        "counters": counters,
++        # ★★★ THE NUMBER THIS CRITERION PUBLISHES, over the SAME population as its verdict.
++        #     `c_bps_overall` below is kept because the pre-registration names it, but it is
++        #     m1's, over m1's population, and it is now gated — read THIS one.
++        "cost_bps_displayed": (None if _bk["abs_bps_measured"] is None
++                               else round(_bk["abs_bps_measured"], 4)),
++        "cost_bps_net_displayed": (None if _bk["bps_measured"] is None
++                                   else round(_bk["bps_measured"], 4)),
++        "cost_bps_displayed_source": (
++            "cost_buckets over the rebalance legs — the SAME rows and the SAME rule that produced "
++            "`measurement_complete`, hence the same population the verdict rests on. "
++            "`abs_bps_measured` is m1's `c_bps_overall` caliber (fee + |slip|); "
++            "`bps_measured` is `c_bps_net_overall`'s (fee + SIGNED slip). Rounded to 4 decimals — "
++            "m1's own precision — so the two figures on this page are comparable digit by digit; "
++            "the unrounded values are in `buckets`. None = nothing was measured, which is not 0."),
++        "carrier_consistency": {
++            "consistent": _carrier_ok,
++            "why_not": _why_not,
++            "population": {"buckets_n_fills": _bk["n_fills"], "m1_n_filled_orders": _m1_n,
++                           "buckets_notional_usdt": _bk["notional_usdt"],
++                           "m1_filled_notional_total": _m1_den,
++                           "buckets_n_unknown_fill": _bk["n_unknown_fill"],
++                           "n_rows_considered": _bk["n_rows"],
++                           "same_count": _pop_n_match, "same_notional": _pop_den_match,
++                           "by_regime": _reg_cells, "by_regime_all_same": _reg_match},
++            "values": {"buckets_abs_bps_measured": _bk["abs_bps_measured"],
++                       "m1_c_bps_overall": _c_m1, "abs_caliber_agrees": _abs_match,
++                       "buckets_bps_measured": _bk["bps_measured"],
++                       "m1_c_bps_net_overall": _c_m1_net, "net_caliber_agrees": _net_match},
++            "tolerance": {"bps": E6_CARRIER_BPS_TOL_BPS,
++                          "notional_usdt": E6_CARRIER_NOTIONAL_TOL_USDT,
++                          "notional_relative": E6_CARRIER_NOTIONAL_TOL_REL},
++            "rule": ("round 3, 2026-09-13 (researcher REVIEW §3.C): E6 may PASS only when the "
++                     "bucket population and m1's population are the SAME SET — asserted on the "
++                     "counts and the notional mass each carrier reports for itself, pooled AND "
++                     "per regime, not on a flag — and the two bps figures agree within the "
++                     "stated tolerance in BOTH calibers. Otherwise this criterion is NOT a PASS "
++                     "and the disagreement is named in `why_not`. m1 is frozen "
++                     "(ops/check_metrics_freeze); nothing here edits or re-implements it.")},
 +        "c_bps_overall": _c_m1, "c_bps_overall_is_finite": _c_m1_finite,
++        "c_bps_overall_source": ("pilot_metrics.m1 (FROZEN), over M1'S OWN population — it drops "
++                                 "rows whose `side`, anchor mid or fill price it cannot read and "
++                                 "keeps fee-unknown rows in its denominator at fee 0. Comparable "
++                                 "with `cost_bps_displayed` only when "
++                                 "`carrier_consistency.consistent` is True."),
 +        "caliber": m1.get("caliber"),
 +        "protective_flatten_cost": _pfc,
 +        "protective_flatten_buckets": _flat_bk,
@@ -1580,7 +2106,10 @@ index e266775..67b1d82 100644
                   "compared against the 9.0bps limit — the rule is unchanged from the "
 -                 "pre-registration; only the prediction was amended")}
 +                 "pre-registration; only the prediction was amended (and, W2-R1, the completeness "
-+                 "bit is now derived from the three buckets, since m1 is frozen)"),
++                 "bit is now derived from the three buckets, since m1 is frozen). Round 3: a "
++                 "complete measurement is NECESSARY and no longer SUFFICIENT — the verdict also "
++                 "requires `carrier_consistency.consistent`, because a bit derived from one "
++                 "population cannot certify a number computed over another"),
 +        "buckets": _bk,
 +        "bucket_rule": ("W2 2026-09-12: the rebalance legs (maker + topup_taker) under the "
 +                        "three-bucket rule of anchor_loop.neutrality_price. `bps_measured` is "

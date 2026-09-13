@@ -1,0 +1,22 @@
+==================================================================================================
+frozen_round2_00921bc7 <- /Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_followup_code_review_2026-09-13/monitoring/private/inputs/w1/ops/ic_monitor.py
+   sha256 00921bc754e4927b333c20b663e2d819a146496867d68a76a17ab13ec4cf1f00
+   HOLDS  A1 trigger == ['r24<R24_P1']              (非缺陷断言)   actual=['r24<R24_P1']
+   HOLDS  A2 trigger == ['r48<R48_P1']              (非缺陷断言)   actual=['r48<R48_P1']
+   HOLDS  A2 deliveries == []   冷却仍扣住页        (非缺陷断言)   actual=[]
+   HOLDS  A2 event.trigger_windows == ['r24']       *N1 缺陷断言   actual=['r24']
+   HOLDS  A3 deliveries == [INCOMPLETE,RECOVERED]   *N1 缺陷断言   actual=['INCOMPLETE', 'RECOVERED']
+   HOLDS  B2 event.level == 'ALERT'                 *N2 缺陷断言   actual=ALERT
+   HOLDS  B3 verdict.level == 'DECIDE'              (非缺陷断言)   actual=DECIDE
+   HOLDS  B3 deliveries == []    升级被旧时钟吞     *N2 缺陷断言   actual=[]
+==================================================================================================
+R3_fixed_worktree <- /Users/haosiyu/cc_tmp/exec_w1/ops/ic_monitor.py
+   sha256 a085d47182f5033c54f38e7471433c35250b94bba4e9db20a9b2c14d47e32589
+   HOLDS  A1 trigger == ['r24<R24_P1']              (非缺陷断言)   actual=['r24<R24_P1']
+   HOLDS  A2 trigger == ['r48<R48_P1']              (非缺陷断言)   actual=['r48<R48_P1']
+   HOLDS  A2 deliveries == []   冷却仍扣住页        (非缺陷断言)   actual=[]
+   FAILS  A2 event.trigger_windows == ['r24']       *N1 缺陷断言   actual=['r24', 'r48']
+   FAILS  A3 deliveries == [INCOMPLETE,RECOVERED]   *N1 缺陷断言   actual=['INCOMPLETE']
+   FAILS  B2 event.level == 'ALERT'                 *N2 缺陷断言   actual=DECIDE
+   HOLDS  B3 verdict.level == 'DECIDE'              (非缺陷断言)   actual=DECIDE
+   FAILS  B3 deliveries == []    升级被旧时钟吞     *N2 缺陷断言   actual=['DECIDE']

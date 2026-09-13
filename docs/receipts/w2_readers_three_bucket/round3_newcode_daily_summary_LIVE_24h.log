@@ -1,0 +1,46 @@
+==============================================================================
+DAILY SUMMARY   mode=LIVE   09-12 01:36Z -> 09-13 01:36Z
+  window read as: duration 24h before now
+  covered: 2 anchor(s) · 13 alarm row(s) · 2 nav row(s)   [ledger totals: 250 / 1825]
+==============================================================================
+
+【账户】 —— 权益是三样东西, 不是一个数
+   期货钱包余额 (wallet)        116,213.24   ← 已落袋的一切: 本金 + 累计已实现
+   浮动盈亏     (unrealised)     +2,030.20   ← 还在仓位里, 没落袋, 会随价格跳
+   ────────────────────────────────────────
+   权益         (equity/nav)    118,243.44   = wallet + unrealised
+   ★ 用户看到的'盈亏'通常是**浮动**那一行。它跳, 是因为仓位还开着。
+
+   当日已实现   +218.4401 USDT   [口径: USDT]   = 交易 +258.6889  手续费 -8.0588  资金费 -32.1901
+
+   ★ 目标敞口 = 权益 × 杠杆 = 118,243.44 × 2.00 = 236,486.88
+   期货账户外部资金流入(TRANSFER)  0.00   [覆盖 1 天: ['20260912']]
+   ⇒ 本窗口**期货账户没有任何资金进出**。本系统只查期货, **看不见现货** —— 若你刚操作过资金, 它无法替你确认那笔钱在哪。
+   ⇒ 其中**本窗口区间内**的资金流 +0.00 (= 末行当日累计 − 首行当日累计; 载体是当日累计, 不是每行各自的流量)
+   ★★ 非交易原因的权益变化 +705.2366 —— 同日内权益变动 +791.0856 减去已实现增量与**区间**外部资金流 +0.0000 之后的余额。这个数不该非零; 非零意味着有一笔我们没有归因的钱。
+
+【逐锚】 —— 用户要的是趋势, 所以一锚一行
+   anchor       成本bps    覆盖     成交率       缺口     中性%     gross  备注
+   09-12 04:24Z   +16.99  100%     53%     3094   -1.12   234,516  撤10
+   09-12 08:24Z    +1.49  100%     61%      820   +0.18   235,972  撤11
+
+   ★ 「一换手就降」(当日 20260912, 不跨 00:00Z):
+     已实现 +132.5911 → +218.4401 USDT  (增量 +85.8490) —— 轮换把浮盈**落袋**   ★ 两端口径不同 (legacy_carrier_sum_usdt_assumed → usdt_only), 增量只是近似
+     浮动   +1322.3750 → +2030.1955  —— 新仓位的账面
+     入场成本见上表'成本bps'一列。落袋 + 入场成本两个数一出来, '降'就自解释了。
+
+【被记录但未推送】 —— 降噪压掉的东西, 这里是它们的出口
+     2x  min-notional floor crossing
+     2x  known uncapped name withheld
+     2x  -5022 refusals recovered
+     1x  reshape residual
+
+【需要决定的(A 层)】 —— 已经推送过, 这里重列标题以免遗漏
+   09-12 04:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 10 name(s) differ from the venue
+   09-12 04:24Z  order construction rejected        ⚠️ HIGH 撤名残差 -11024.37 USDT = 目标 gross 的 -4.70% (>2%), 由 10 
+   09-12 04:25Z  UNRECOGNISED                       ⚠️ HIGH 场所仓位上限拒单 (-2027 venue_position_limit): PIEVERSEUSDT 
+   09-12 08:24Z  ★ reconcile divergence with NO halt before it ⚠️ HIGH position reconcile: 8 name(s) differ from the venue 
+   09-12 08:24Z  UNRECOGNISED                       ℹ️ 场所上限截断 1 名 (Σ|Δ| 157U = gross 0.07%): PIEVERSEUSDT +2,117
+   09-12 08:45Z  UNRECOGNISED                       ⚠️ HIGH ★ per_name_stop 触发: LSKUSDT 深度 -32.3% 连续 2 个终锚读回 ≤ -
+
+==============================================================================

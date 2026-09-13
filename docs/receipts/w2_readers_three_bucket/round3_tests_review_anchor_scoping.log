@@ -1,0 +1,15 @@
+[A] two anchors in one day file — the shape one anchor cannot reveal
+  OK   ★★ the review runs at all on the fixture
+  OK   ★★★ it reports the LATER anchor's book (net -100, gross 900), NOT the day's sum (net +900, gross 4400) — the sum is a book that never existed — ['VENUE  net      -100.00 USDT   gross       900.00   long 1 / short 1']
+  OK   ★★★ and it PRINTS which anchor it selected, with the row count it kept vs the day's — a tool that picked the wrong anchor looks identical to one that picked the right one unless it says which it took — ['SCOPE: anchor_ts 1785571268.0  rebalance_id RB', 'readback rows 2 of 6 in the day file   |   fill rows 0 of 0']
+  OK   ★★ it names the rows it excluded rather than dropping them silently
+
+[B] red capability — put the day-wide sum back
+  OK   M1 injection target matches exactly once — 1
+  OK   ★★★ M1 unfiltered readback => the two anchors are summed into one book (net +900 over 6 names) and [A] goes red — this is the number that was on the screen an hour ago — ['VENUE  net      +900.00 USDT   gross     4,900.00   long 3 / short 3']
+
+[C] the one-anchor case: correct, but for a reason a single anchor cannot establish
+  OK   ★★★ with ONE anchor the answer is right — and it is right under the BROKEN code too, which is exactly why the first live anchor could not have caught this
+  OK   ★★★ ...proved: the MUTANT gives the same -100.00 on a one-anchor tree. A fixture with one anchor would have passed the defect through, and the LIVE tree has exactly one
+
+8/8 passed

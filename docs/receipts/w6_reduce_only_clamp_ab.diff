@@ -519,6 +519,465 @@ index e8fee1b..380a060 100644
      q = o.get("filled_qty")
      if q is not None:
          # ★ Round 5 (review Q1): the QUANTITY is the authority when the producer wrote one (Σ of
+diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
+index 3142562..3fa1a23 100644
+--- a/live/tests_disposition_matrix.py
++++ b/live/tests_disposition_matrix.py
+@@ -31,12 +31,32 @@
+    每条新尺都带一条「在真账本上是承重的」断言([G]): 类空 ⇒ 稳态断言红; 分母换回 realized ⇒ 09-10 00Z 红;
+    表法 vs 行法在 >20 名的锚上必须不同。
+ 
+-Exit 0 = all pass.
+-"""
++★ 2026-09-13 尺子第七次重标定(同一修复家族: 拆开事实, 独立成类, 断言关系; 三件事实, 全部第一手):
++   ① E-0912-A 重判: 12Z 锚 A1789215839 的 MEMEUSDT / POPCATUSDT 两行写着 filled_amount_unknown,
++     Σ|intended| = 1,524 USDT, 被尺子读成稳态交易锚的非自愿缺口 —— 但场所记录里这两笔完全可知
++     (回执 origQty = 持仓, Σ 子成交 trade_qty == |confirmed_qty|, 本锚读回 0)。身份门的 1e-6 相对
++     容差把「场所比我们更准」读成「场所在撒谎」。失效的是【「未知」= 真读不出】这个前提, 不是
++     【稳态缺口小】这条性质 ⇒ 把量按事实重判为已知(残差 = intended − Σ 子成交报价: MEME −0.058U,
++     POPCAT 恰 0), 阈值不动。判据独立实现并与 reconcile._rederive_ledger 逐行对账, 另有六条反控(六道门各一条)。
++   ② TRIP-FLATTENED: 12:47:37Z 看门狗阶梯在 12Z 锚的【区间内】平了全书 —— 255 行 protective_flatten,
++     Σ|filled_notional| = 235,382.55 USDT, 全部 filled, 255 行 fee_paid 未测。全账本这样的平仓有
++     10 批 / 1,708 行 / 73.8 万 USDT 的真实执行, 而本文件【一条断言都读不到】(它们的 rebalance_id
++     不在 anchors.jsonl 里, 又被 _traded 的名字前缀过滤器挑掉)。这是盲区, 不是红: 独立成类, 按
++     order_type 结构选取(不按名字, E-0825-H), 断言批次三格(事实 / 费用三态 / 选取方式), 并用「拿掉这 1,708 行, [E] 的每
++     一个数一位不变」把盲区本身证出来。
++   ③ HALTED-NO-SUBMIT: 停机锚此前只被断言「整书缺口 > 1000U」—— 一条几乎什么都没说的绝对界。
++     16 个停机锚的真实形态是: 终态只有 blocked_by_halt / skipped_min_notional, 0 次提交, 0 笔成交,
++     且 Σ|intended| == anchors 行的 target_gross(到分)。按形态成类并断言这条恒等式; 承重证明 =
++     把它们当交易锚读, 非自愿缺口 4,169–235,320 USDT, 稳态尺当场红。
++   ★ 本次不放宽任何阈值, 不把任何锚移出稳态人口, 不删任何既有断言: ① 是行级的【量】重判(锚仍受
++     同一条 200U 尺约束), ②③ 是净增断言。
++
++Exit 0 = all pass."""
+ import copy
+ import glob
+ import json
+ import os
++import re
+ import sys
+ 
+ _HERE = os.path.dirname(os.path.abspath(__file__))
+@@ -158,6 +178,118 @@ check("★★ residual is intended MINUS filled, so a partially-covered gap coun
+ check("★★ rows from another rebalance are excluded",
+       OD.gaps([{**row("blocked_by_halt"), "rebalance_id": "OTHER"}], "RID")["n_named"] == 0)
+ 
++# ══════════════════════════════════════════════════════════════════════════════════════════
++# ★ 2026-09-13 尺子第七次重标定 ① —— E-0912-A: 被场所截量的 reduce-only 平仓单, 成交量是【已知】的
++#   12Z 锚 A1789215839 的 MEMEUSDT / POPCATUSDT 两行写着 `filled_amount_unknown`, Σ|intended| =
++#   1,524 USDT, 尺子把它读成稳态交易锚上的非自愿缺口。但场所记录里这两笔完全可知: 回执 origQty
++#   (= 持仓)、Σ 子成交 trade_qty == |confirmed_qty|、本锚读回为 0。身份门的 1e-6 相对容差把
++#   「场所比我们更准」读成了「场所在撒谎」(E-0912-A 事实链 ④)。
++#   失效的是【「未知」= 真的读不出】这个前提, 不是【稳态缺口小】这条性质 ⇒ 按事实把量重判为已知,
++#   残差 = intended − Σ 子成交报价; 阈值一个都不动, 锚一个都不移出稳态人口。
++#   ★ 这条规则只会把「未知」变成「已知」, 也就是只会【让缺口变小】—— 所以它每一个口子都必须有反例格,
++#     见 [G7] 的六条反控(下面六道门各一条)。判据与 `reconcile._clamp_rederived` 是同一条,
++#     这里【独立实现】并逐行对账。
++_ORIGQTY_PAIR = re.compile(r"origQty\s+(\S+?)\s+differs from ours\s+(\S+)")
++
++
++def _fin(x):
++    """有限浮点, 否则 None(±Inf / NaN / 非数一律 None —— 读不出就是读不出)。"""
++    try:
++        v = float(x)
++    except (TypeError, ValueError):
++        return None
++    return v if v == v and v not in (float("inf"), float("-inf")) else None
++
++
++def _clamp_known(req):
++    """这个请求是不是【场所把 reduceOnly 单截到持仓】? 是 ⇒ (已知张数, 已知成交额); 否则 None。
++
++    判据(全部必须成立):
++      ① `inconsistent` 是身份门 origQty 的【值比较】文本(含 "origQty" 与 "differs from ours");
++         畸形 / 方向 / id / 「confirmed more than requested」是别的种类, 永远是矛盾。
++      ② 串内两数 0 < Qv < Qs —— 场所要得【更少】。Qv > Qs 是场所要得更多, 仍是矛盾。
++      ③ 串里的 Qs 就是这个请求自己的 qty —— 否则这串说的不是这张单。
++      ④ 同侧(sign(confirmed) == sign(qty)), 且 |confirmed| ≤ min(Qv, |qty|)。
++      ⑤ 子成交 Σ trade_qty == |confirmed_qty| —— 子成交把这个量【定死】了, 这才是「已知」。
++      ⑥ 子成交报价 trade_quote 齐全且有限 —— 说得出张数说不出金额, 仍算读不出(缺口不能重判)。
++    """
++    if not isinstance(req, dict):
++        return None
++    m = _ORIGQTY_PAIR.search(str(req.get("inconsistent") or ""))
++    if not m:
++        return None
++    qv, qs = _fin(m.group(1)), _fin(m.group(2))
++    if qv is None or qs is None or not (0 < qv < qs):
++        return None
++    c, q = _fin(req.get("confirmed_qty")), _fin(req.get("qty"))
++    if c is None or q is None or q == 0:
++        return None
++    if abs(abs(q) - qs) > max(1e-9, 1e-6 * qs):
++        return None                                   # 串说的不是这张单
++    if abs(c) > abs(q) + 1e-9 or abs(c) > qv + 1e-9:
++        return None
++    if c != 0 and c * q < 0:
++        return None                                   # 反侧
++    tq, tqt = req.get("trade_qty"), req.get("trade_quote")
++    if not isinstance(tq, dict) or not tq or not isinstance(tqt, dict) or not tqt:
++        return None
++    sq = [_fin(v) for v in tq.values()]
++    sv = [_fin(v) for v in tqt.values()]
++    if any(v is None for v in sq) or any(v is None for v in sv) or set(tq) != set(tqt):
++        return None
++    if abs(sum(sq) - abs(c)) > 1e-9:
++        return None                                   # 子成交没有定下这个量
++    return c, (sum(sv) if c > 0 else -sum(sv))
++
++
++def _is_origqty_kind(why):
++    s = str(why or "")
++    return "origQty" in s and "differs from ours" in s
++
++
++def _row_rejudged(o):
++    """整行重判 ⇒ (已知成交额, [已重判的 client_id]); 不能重判 ⇒ None。
++
++    只处理写着 `filled_amount_unknown` 且 `filled_notional` 未写的行。行内【每一个】请求都必须被
++    _clamp_known 解释(不带 `inconsistent` 的请求也算解释不了 —— 它的成交额没有独立证据), 行级
++    `ledger_inconsistent` 的每一条也必须是 origQty 种类且指向一个已重判的 client_id。
++    有一条解释不了 ⇒ 整行不重判(失败一律关向「未知」)。
++    """
++    if (str(o.get("terminal_reason")) != "filled_amount_unknown"
++            or o.get("filled_notional") is not None):
++        return None
++    reqs = [r for r in (o.get("request_ledger") or ()) if isinstance(r, dict)
++            and r.get("state") not in ("rejected", "not_sent")]
++    if not reqs:
++        return None
++    total, cids = 0.0, []
++    for r in reqs:
++        got = _clamp_known(r)
++        if got is None:
++            return None
++        total += got[1]
++        cids.append(r.get("client_id"))
++    for e in (o.get("ledger_inconsistent") or ()):
++        cid, why = (e.get("client_id"), e.get("why")) if isinstance(e, dict) else (None, e)
++        if not (_is_origqty_kind(why) and cid in cids):
++            return None
++    return total, cids
++
++
++_rejudged = []          # (rebalance_id, symbol, leg, intended, raw_residual, new_residual)
++_all_rj = []
++for _o in _all:
++    _got = _row_rejudged(_o)
++    if _got is None:
++        _all_rj.append(_o)
++        continue
++    _o2 = dict(_o)
++    _o2["filled_notional"] = _got[0]
++    _all_rj.append(_o2)
++    _it = float(_o.get("intended_notional") or 0.0)
++    _rejudged.append((_o.get("rebalance_id"), _o.get("symbol"), _o.get("order_type"),
++                      _it, _it, _it - _got[0]))
++
+ print("\n[E] the REAL ledger — what each anchor would now declare")
+ _all_anchor_rows = []
+ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.jsonl"))):
+@@ -165,10 +297,11 @@ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.j
+         _l = _l.strip()
+         if _l:
+             _all_anchor_rows.append(json.loads(_l))
+-_by = {}
++_by, _by_raw = {}, {}
+ for _A in sorted({r["anchor_ts"] for r in _all}):
+     _rid = [r["rebalance_id"] for r in _all if r["anchor_ts"] == _A][0]
+-    _by[_rid] = OD.gaps(_all, _rid)
++    _by[_rid] = OD.gaps(_all_rj, _rid)      # ★ 07 ①: 截量行的量已重判为已知
++    _by_raw[_rid] = OD.gaps(_all, _rid)     # 重判【之前】的同一算术 —— [G] 的承重对照
+ # ★★★ THIS ASSERTION WAS `len(_halted) == 2` AND IT EXPIRED WITHIN THE HOUR — third instance
+ #     today of the family this repo keeps paying for, and the third one in MY OWN tests. A count
+ #     of a LIVE, GROWING population is pinned-to-transient-state wearing a different hat: the
+@@ -179,15 +312,67 @@ for _A in sorted({r["anchor_ts"] for r in _all}):
+ #       worth making was never "there are two" — it is "a halted anchor declares its whole book,
+ #       a trading anchor declares far less", and that survives every future anchor.
+ _halt_flag = {}
++_row_by_rid = {}
+ for _r in _all_anchor_rows:
+     _halt_flag[_r.get("rebalance_id")] = bool(_r.get("opening_halted"))
++    _row_by_rid[_r.get("rebalance_id")] = _r
+ _halted = {r: g for r, g in _by.items() if _halt_flag.get(r)}
++# ★ 07 ②: 保护性平仓批次按【行是什么】选取(order_type == protective_flatten), 不按 rebalance_id
++#   【叫什么】(E-0825-H: 按名字推断语义)。三个选择器今天在账本上重合, 下面断言它们必须重合。
++_flat_rows = [r for r in _all if r.get("order_type") == "protective_flatten"]
++_flat_rids = {r.get("rebalance_id") for r in _flat_rows}
+ _traded = {r: g for r, g in _by.items()
+-           if _halt_flag.get(r) is False and not str(r).startswith("FLATTEN")}
++           if _halt_flag.get(r) is False and r not in _flat_rids
++           and not str(r).startswith("FLATTEN")}
+ check("★★★ EVERY halted anchor declares essentially its whole book as gap — an anchor that was "
+       "blocked built nothing, and that is a gap of the entire book rather than a quiet no-op",
+       _halted and all(g["gross_usdt"] > 1000 for g in _halted.values()),
+       {r: round(g["gross_usdt"]) for r, g in _halted.items()})
++# ★ 2026-09-13 ③ HALTED-NO-SUBMIT: 上面那条是【绝对界】, 一个交易得很差的锚也能过。停机锚真正的
++#   形态在账本里写得很清楚(16/16): 终态词汇只有 blocked_by_halt / skipped_min_notional, submit_ts
++#   一个没有, 成交一笔没有, 且 Σ|intended| 恰等于 anchors 行自己的 target_gross。恒等式可证伪, 界不能。
++_HALT_REASONS = {"blocked_by_halt", "skipped_min_notional"}
++
++
++def _halt_shape(rid):
++    rr = [r for r in _all if r.get("rebalance_id") == rid]
++    return {"n": len(rr),
++            "reasons": sorted({str(r.get("terminal_reason")) for r in rr}),
++            "n_submits": sum(1 for r in rr if r.get("submit_ts") is not None),
++            "n_fills": sum(1 for r in rr if (r.get("filled_notional") or 0) != 0
++                           or r.get("filled_qty") is not None),
++            "intended_usdt": round(sum(abs(float(r.get("intended_notional") or 0.0))
++                                       for r in rr), 4)}
++
++
++_halt_shapes = {r: _halt_shape(r) for r in _halted}
++check("★★★ ...and EVERY halted anchor has the HALTED-NO-SUBMIT SHAPE — its whole terminal "
++      "vocabulary is `blocked_by_halt` / `skipped_min_notional`, it made ZERO submits and took "
++      "ZERO fills. `gross > 1000` would also pass an anchor that traded and traded badly; the "
++      "shape is what makes \"a blocked anchor built nothing\" a fact a reader can re-derive",
++      bool(_halted) and all(not (set(v["reasons"]) - _HALT_REASONS)
++                            and v["n_submits"] == 0 and v["n_fills"] == 0
++                            for v in _halt_shapes.values()),
++      {r: (v["n"], v["reasons"], v["n_submits"], v["n_fills"])
++       for r, v in _halt_shapes.items()
++       if (set(v["reasons"]) - _HALT_REASONS) or v["n_submits"] or v["n_fills"]}
++      or f"{len(_halted)} halted anchors — 0 submits, 0 fills, "
++         f"{sorted(set().union(*[set(v['reasons']) for v in _halt_shapes.values()]))}")
++check("★★★ ...and a halted anchor DECLARES THE WHOLE PLANNED BOOK TO THE CENT — Σ|intended| over "
++      "its rows equals the anchors row's OWN `target_gross`, so the gap it reports is the book it "
++      "was going to hold. This is the identity the absolute bound above was standing in for",
++      bool(_halted) and all(
++          abs(v["intended_usdt"]
++              - float((_row_by_rid.get(r) or {}).get("target_gross") or -1.0))
++          <= max(0.01, 1e-6 * max(v["intended_usdt"], 1.0))
++          for r, v in _halt_shapes.items()),
++      {r: (v["intended_usdt"],
++           round(float((_row_by_rid.get(r) or {}).get("target_gross") or 0.0), 4))
++       for r, v in _halt_shapes.items()
++       if abs(v["intended_usdt"]
++              - float((_row_by_rid.get(r) or {}).get("target_gross") or -1.0))
++       > max(0.01, 1e-6 * max(v["intended_usdt"], 1.0))}
++      or f"{len(_halted)} anchors, Σ|intended| == target_gross")
+ # ★★ 2026-08-04: `< 200` FAILED on A1785859279 (229.5) and the failure was CORRECT ARITHMETIC on
+ #   a WRONG QUANTITY. 6 of that anchor's 7 gap rows were `skipped_no_chase_arm` — the chase
+ #   experiment's no_chase arm, residuals that were sendable and DELIBERATELY not sent so the
+@@ -236,6 +421,14 @@ def _split(rid):
+     return d, g["gross_usdt"] - d - cap
+ 
+ 
++def _split_raw(rid):
++    """同一拆分, 但用【重判之前】的账本 —— ① 的承重对照(没有重判这条尺会读到什么)。"""
++    g = _by_raw[rid]
++    d = float(OD.gaps([r for r in _all if r.get("rebalance_id") == rid
++                       and str(r.get("terminal_reason")) in _DELIBERATE], rid)["gross_usdt"])
++    return d, g["gross_usdt"] - d - float(g.get("venue_cap_usdt") or 0.0)
++
++
+ _tr_split = {r: _split(r) for r in _traded}
+ _tr_cap = {r: float(_by[r].get("venue_cap_usdt") or 0.0) for r in _traded}
+ # ★ 2026-08-27 尺子第三次重标定(与 08-18 resize 案同一修复家族, 一层更深): E-0826-F 停机清除后的
+@@ -252,7 +445,6 @@ _rebuild = {r for i, r in enumerate(_all_ids)
+ #   A1787819040(1.75→2.0 收官步)非自愿 798 是建仓未完成部分, 前提(意图≈稳态换手)失效,
+ #   分离性质未失效。修复同法: 独立成类, 界=自身整书 realized_gross 的 5%(同代书尺,
+ #   比稳态 200U 松 ~10×, 仍能抓住真正的建仓卡死); 其后首个稳态锚必须回 200U 线内。
+-_row_by_rid = {r.get("rebalance_id"): r for r in _all_anchor_rows}
+ def _resize_sig(rid):
+     row = _row_by_rid.get(rid) or {}
+     eb = row.get("external_book") or {}
+@@ -378,6 +570,72 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
+           for rb in _rebuild) if _rebuild else True,
+       {rb: (_next_traded_after(rb), round(_tr_split[_next_traded_after(rb)][1])
+             if _next_traded_after(rb) else None) for rb in _rebuild})
++# ★ 2026-09-13 ② TRIP-FLATTENED —— 看门狗阶梯在某个锚的【区间内】平掉全书。
++#   2026-09-12 12:47:37Z 那次(E-0912-A 的下游): 255 行 protective_flatten, Σ|filled_notional| =
++#   235,382.55 USDT, 全部成交, 255 行 fee_paid 未测。全账本 10 批 / 1,708 行 / 73.8 万 USDT。
++#   这些行的 rebalance_id 不在 anchors.jsonl 里, 所以既不是停机锚也不是交易锚 —— 本文件此前
++#   【没有一条断言读到它们】(证明见 [G])。独立成类, 按 order_type 结构选取, 断言批次自己的事实。
++#   ★ 平仓批次【不是锚】: 它不进稳态人口, 也不把它所在的锚移出稳态人口 —— 那个锚自己的单确实成交了
++#     (① 重判后非自愿 0.058U), 把它豁免掉会是放宽而不是重标定。
++def _containing_anchor(ts):
++    """批次落在哪个锚的区间里 = anchor_ts ≤ 批次 ts 的最后一个 anchors 行。"""
++    cand = [a for a in _all_anchor_rows if float(a.get("anchor_ts") or 0.0) <= ts]
++    return max(cand, key=lambda a: float(a["anchor_ts"])) if cand else {}
++
++
++def _fee_states(rows):
++    """费用三态(与 fee_paid / filled_notional 同一条纪律): 未测(None) 与 已测 分开计数;
++    任一行未测 ⇒ 本批 fee_usdt = None。**永远不把 None 当 0 求和** —— 在 235k 的 taker 执行上
++    那会打印出 0.00 USDT 的手续费。"""
++    unm = [r for r in rows if r.get("fee_paid") is None]
++    mea = [r for r in rows if r.get("fee_paid") is not None]
++    return {"n_unmeasured": len(unm), "n_measured": len(mea),
++            "fee_usdt": (None if unm else round(sum(float(r["fee_paid"]) for r in mea), 6))}
++
++
++_flat_batches = {}
++for _fr in _flat_rows:
++    _flat_batches.setdefault(_fr.get("rebalance_id"), []).append(_fr)
++_flat_facts = {}
++for _b, _rr in sorted(_flat_batches.items(), key=lambda kv: float(kv[1][0].get("anchor_ts") or 0)):
++    _ca = _containing_anchor(float(_rr[0].get("anchor_ts") or 0.0))
++    _flat_facts[_b] = dict(
++        n_rows=len(_rr),
++        all_filled=all(str(r.get("terminal_reason")) == "filled" for r in _rr),
++        filled_usdt=round(sum(abs(float(r.get("filled_notional") or 0.0)) for r in _rr), 4),
++        anchor=_ca.get("rebalance_id"),
++        anchor_traded=(_ca.get("rebalance_id") in _traded),
++        anchor_realized=round(float(_ca.get("realized_gross") or 0.0), 4),
++        **_fee_states(_rr))
++check("★★★ a TRIP-FLATTENED interval (the degradation ladder flattened the book INSIDE this "
++      "anchor's interval) is its own class — every `protective_flatten` row ended `filled`, the "
++      "batch sits inside a TRADING anchor's interval, and what it sold is the WHOLE book (within "
++      "10% of that anchor's own realized gross). A flatten that does not complete leaves "
++      "book-scale exposure that no anchor's gap ledger would ever name",
++      bool(_flat_facts) and all(
++          f["n_rows"] > 0 and f["all_filled"] and f["filled_usdt"] > 0 and f["anchor_traded"]
++          and abs(f["filled_usdt"] - f["anchor_realized"]) <= 0.10 * max(f["anchor_realized"], 1.0)
++          for f in _flat_facts.values()),
++      {b: (f["n_rows"], f["filled_usdt"], "vs realized of", f["anchor"], f["anchor_realized"])
++       for b, f in _flat_facts.items()})
++check("★★★ ...and the flatten's FEE is reported UNMEASURED, never summed as zero — the ladder "
++      "writes `fee_paid` None on rows it never priced, and a batch holding any such row reports "
++      "its fee as None. `fee or 0` would print 0.00 USDT of cost for 235,382.55 USDT of IOC taker "
++      "execution. Closing it is an OPERATOR step (`ops/backfill_fills.py --day <d>`), still open",
++      all((f["fee_usdt"] is None) == (f["n_unmeasured"] > 0)
++          and f["n_unmeasured"] + f["n_measured"] == f["n_rows"] for f in _flat_facts.values()),
++      {b: (f["n_rows"], "rows /", f["n_unmeasured"], "fee-unmeasured / fee_usdt", f["fee_usdt"])
++       for b, f in _flat_facts.items()})
++check("★★★ ...and the class is selected by WHAT THE ROWS ARE (`order_type == protective_flatten`), "
++      "not by what the rebalance_id is CALLED — E-0825-H. The three readings (structural / name "
++      "prefix / absent from anchors.jsonl) agree on every batch in the ledger, so a batch that is "
++      "one day named differently still lands in this class instead of the steady population",
++      bool(_flat_rids)
++      and _flat_rids == {r for r in _by if str(r).startswith("FLATTEN")}
++      and _flat_rids == {r for r in _by if r not in _halt_flag}
++      and all(all(x.get("order_type") == "protective_flatten" for x in _rr)
++              for _rr in _flat_batches.values()),
++      (len(_flat_rids), sorted(_flat_rids)[-1]))
+ # ★ 2026-08-18 尺子重标定: 原断言在 TOTAL(自愿+非自愿)上执行, 隐含前提"没有合法的大额
+ #   自愿弃单"。当日 04:00Z 入金 resize(2×NAV, 目标增量 2.6×)被 no-chase 政策正确弃单
+ #   1424 USDT(全部 deliberate, involuntary=0), 打破了按无大额重整时代标定的 0.25 界 ——
+@@ -429,6 +687,121 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
+       and all(abs(_old_d[r] - _tr_split[r][0]) < 1e-2 for r in _traded if r not in _gt20),
+       {r: (round(_old_d[r]), round(_tr_split[r][0])) for r in _gt20 if abs(_old_d[r] - _tr_split[r][0]) > 1.0})
+ 
++# ── [G7] 的装置(全部在这里算好, 断言只做比较) ─────────────────────────────────────────────
++import reconcile as RC                      # noqa: E402  运行时的读时重推, 作为第二实现来对账
++_rc_disagree, _rc_checked, _rc_known_n = [], 0, 0
++for _o in _all:
++    _reqs = [r for r in (_o.get("request_ledger") or ()) if isinstance(r, dict)
++             and r.get("state") not in ("rejected", "not_sent")]
++    if not _reqs:
++        continue
++    _rc_checked += 1
++    _mine = sorted(str(r.get("client_id")) for r in _reqs if _clamp_known(r) is not None)
++    _theirs = sorted(str(c) for c in ((RC._rederive_ledger(_o) or {}).get("known") or {}))
++    _rc_known_n += len(_mine)
++    if _mine != _theirs:
++        _rc_disagree.append((_o.get("rebalance_id"), _o.get("symbol"), _mine, _theirs))
++
++# 截量判据的正控 = 12Z MEMEUSDT 的真请求(逐字), 六条反控各打掉一道门。
++_REQ_OK = {
++    "client_id": "A1789215839-MEMEUSDT-1", "state": "confirmed",
++    "qty": -1933986.0, "confirmed_qty": -1933692.0,
++    "inconsistent": ("A1789215839-MEMEUSDT-1: identity: submit response: submit response "
++                     "origQty 1933692.0 differs from ours 1933986.0"),
++    "trade_qty": {"376472584": 560266.0, "376472585": 782806.0, "376472586": 590620.0},
++    "trade_quote": {"376472584": 294.13965, "376472585": 410.97315, "376472586": 310.0755},
++}
++_NEG = [
++    ("venue asked for MORE (origQty above ours)",
++     {**_REQ_OK, "inconsistent": _REQ_OK["inconsistent"]
++      .replace("origQty 1933692.0 differs from ours 1933986.0",
++               "origQty 1933986.0 differs from ours 1933692.0")}),
++    ("opposite side (confirmed against our own sign)", {**_REQ_OK, "confirmed_qty": 1933692.0}),
++    ("children do not sum to the confirmed qty",
++     {**_REQ_OK, "trade_qty": {**_REQ_OK["trade_qty"], "376472586": 590619.0}}),
++    ("a contradiction of another kind (not the origQty value gate)",
++     {**_REQ_OK, "inconsistent": "A1789215839-MEMEUSDT-1: confirmed more than requested"}),
++    ("the string is about ANOTHER request (its `ours` is not this request's qty)",
++     {**_REQ_OK, "qty": -1900000.0}),
++    ("child quantities readable but no child QUOTE — the size is known, the notional is not",
++     {**_REQ_OK, "trade_quote": {}}),
++]
++
++
++def _as_traded(rid):
++    """把一个停机锚【当交易锚】读会得到什么 —— HALTED 类的承重对照(同一拆分算术)。"""
++    g = _by[rid]
++    d = _deliberate_usdt(rid)
++    return g["gross_usdt"] - d - float(g.get("venue_cap_usdt") or 0.0)
++
++
++# 盲区证明: 把全部 protective_flatten 行从账本里拿掉, 重算 [E] 读到的每一个 gross。
++_flat_total_usdt = round(sum(f["filled_usdt"] for f in _flat_facts.values()), 2)
++_no_flat = [r for r in _all_rj if r.get("order_type") != "protective_flatten"]
++_by_nf = {}
++for _A in sorted({r["anchor_ts"] for r in _no_flat}):
++    _rid = [r["rebalance_id"] for r in _no_flat if r["anchor_ts"] == _A][0]
++    _by_nf[_rid] = OD.gaps(_no_flat, _rid)
++_blind_same = (sorted(_by_nf) == sorted(set(_halted) | set(_traded))
++               and all(_by_nf[r]["gross_usdt"] == _by[r]["gross_usdt"]
++                       and _by_nf[r]["n_named"] == _by[r]["n_named"]
++                       for r in set(_halted) | set(_traded)))
++
++print("\n[G7] 2026-09-13 recalibration #7 — the three new readings, proved on the real ledger")
++_rj_anchors = sorted({t[0] for t in _rejudged}, key=lambda r: int(str(r)[1:]))
++check("★★★ the E-0912-A re-judgment is LOAD-BEARING IN BOTH DIRECTIONS, and it re-classifies a "
++      "QUANTITY rather than loosening a threshold: read AS WRITTEN the venue-clamped rows put "
++      "their anchor's involuntary gap at exactly their own intent (1,524U ⇒ ≥ 200U ⇒ the steady "
++      "ruler goes red and names it); read from the VENUE'S OWN RECORD every re-judged anchor is "
++      "inside the SAME 200U line — and it stays in the steady population, exempted from nothing",
++      bool(_rj_anchors)
++      and all(r in _tr_split for r in _rj_anchors)
++      and all(r in _steady_ids for r in _rj_anchors)
++      and any(_split_raw(r)[1] >= 200 for r in _rj_anchors)
++      and all(_tr_split[r][1] < 200 for r in _rj_anchors)
++      and all(abs(_split_raw(r)[1] - sum(abs(t[3]) for t in _rejudged if t[0] == r)) < 1.0
++              for r in _rj_anchors),
++      {r: ("as written", round(_split_raw(r)[1], 4),
++           "= Σ|intended| of", len([t for t in _rejudged if t[0] == r]), "clamped rows",
++           round(sum(abs(t[3]) for t in _rejudged if t[0] == r), 4),
++           "-> re-judged", round(_tr_split[r][1], 4)) for r in _rj_anchors})
++check("★★★ ...and the ruler re-judges the SAME requests the RUNTIME now re-derives — this file's "
++      "clamp rule is written independently of `reconcile._clamp_rederived`, and the two agree on "
++      "every request in the whole production ledger. Two instruments, one fact (and if they ever "
++      "part, the ruler and the book have stopped meaning the same thing by \"known\")",
++      not _rc_disagree, _rc_disagree or f"{_rc_checked} rows cross-checked, {_rc_known_n} clamped")
++check("★★★ ...and the rule accepts ONLY the clamp shape — a rule that turns UNKNOWN into KNOWN can "
++      "only ever SHRINK a gap, so each of its six gates has a counter-example that must stay "
++      "unknown: venue asked for MORE / opposite side / children do not sum to the confirmed qty / "
++      "a non-origQty contradiction / the string is about another request / no readable child quote",
++      _clamp_known(_REQ_OK) is not None
++      and abs(_clamp_known(_REQ_OK)[1] - (-1015.1883)) < 1e-9
++      and all(_clamp_known(q) is None for _, q in _NEG),
++      [n for n, q in _NEG if _clamp_known(q) is not None]
++      or f"positive control -1015.1883 USDT; {len(_NEG)} counter-examples all UNKNOWN")
++check("★★★ the HALTED class is LOAD-BEARING: read as trading anchors — which is all they are until "
++      "the `opening_halted` flag is consulted — every halted anchor shows an involuntary gap far "
++      "outside the steady 200U ruler, so the class is what keeps a blocked anchor from being read "
++      "as an evaporation",
++      bool(_halted) and all(_as_traded(r) >= 200 for r in _halted),
++      {r: round(_as_traded(r)) for r in _halted})
++check("★★★ the TRIP-FLATTENED class closes a BLIND SPOT rather than repairing a red — and the "
++      "blind spot is MEASURED, not asserted: delete every `protective_flatten` row from the "
++      "ledger and not one number in [E] changes, while this much executed notional and this many "
++      "unmeasured fees vanish without a single assertion noticing",
++      bool(_flat_rows) and _blind_same and _flat_total_usdt > 0
++      and sum(f["n_unmeasured"] for f in _flat_facts.values()) > 0,
++      (len(_flat_rows), "rows", _flat_total_usdt, "USDT executed",
++       sum(f["n_unmeasured"] for f in _flat_facts.values()), "fee-unmeasured; [E] unchanged:",
++       _blind_same))
++_fee_fx = [{"fee_paid": None}, {"fee_paid": 0.0}, {"fee_paid": 0.5}]
++check("★★★ ...and `fee_paid` None and 0.0 are DIFFERENT facts inside that class — one unmeasured "
++      "row makes the batch's fee UNMEASURED (None); with every row measured it reports the sum. "
++      "A `fee or 0` reading would have merged the two and called an unpriced flatten free",
++      _fee_states(_fee_fx) == {"n_unmeasured": 1, "n_measured": 2, "fee_usdt": None}
++      and _fee_states(_fee_fx[1:]) == {"n_unmeasured": 0, "n_measured": 2, "fee_usdt": 0.5},
++      (_fee_states(_fee_fx), _fee_states(_fee_fx[1:])))
++
+ print("\n[F] red capability — mutate ANY cell and this file fails")
+ _orig = copy.deepcopy(OD.DISPOSITION)
+ _broken = []
 diff --git a/live/tests_fixtures/e0912a_12z/README.md b/live/tests_fixtures/e0912a_12z/README.md
 new file mode 100644
 index 0000000..ffbd542

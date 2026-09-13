@@ -1,4 +1,4 @@
-> **创建:** 2026-09-12 10:10 UTC | **Session:** W1(team, lead=main; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w1`, 分支 `fix/ic-monitor-contract`, 基线 918559f=origin/main) | **状态:** FINAL r2 15:55Z — 第一轮 §1-§5(10:10Z 事实表先于码; 单跑 52/52; 电池 131/132) + 第二轮 §7(独立复审 W1-R1/R2/R3 修正: 14:30Z 事实表先于码; 单跑 76/76; 老码 918559f 与修前 8b2c218c 皆红; 最终树电池 131/132, 唯一红 = 克隆无 .env 的 tests_env_loading); 代码只在克隆, **未部署**(lead 经 safe_commit 落地) | **作废条件:** `ops/ic_monitor.py` 再改; 或阈值按在役形态重标(生产者平价回放 Phase 2)落地; 或 launchd 调度/数据源变更
+> **创建:** 2026-09-12 10:10 UTC | **Session:** W1(team, lead=main; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w1`, 分支 `fix/ic-monitor-contract`, 基线 918559f=origin/main) | **状态:** FINAL r3 2026-09-13 01:5xZ(§8: 复审 REVIEW_2026-09-13 §3.B 两条缺陷已闭, 单跑 94/94, 修前源逐格红, 研究员探针四条缺陷断言全翻红; 代码仍只在克隆, **未部署**) | r2 15:55Z — 第一轮 §1-§5(10:10Z 事实表先于码; 单跑 52/52; 电池 131/132) + 第二轮 §7(独立复审 W1-R1/R2/R3 修正: 14:30Z 事实表先于码; 单跑 76/76; 老码 918559f 与修前 8b2c218c 皆红; 最终树电池 131/132, 唯一红 = 克隆无 .env 的 tests_env_loading); 代码只在克隆, **未部署**(lead 经 safe_commit 落地) | **作废条件:** `ops/ic_monitor.py` 再改; 或阈值按在役形态重标(生产者平价回放 Phase 2)落地; 或 launchd 调度/数据源变更
 
 # #55 实现 rank-IC 监视器 — 告警合同修正(设计 + 事实表 + 收据)
 
@@ -250,3 +250,180 @@ cd /Users/haosiyu/cc_tmp/exec_w1/live && . ../ops/pyenv.sh && /usr/bin/python3 t
 - **最早 RECOVERED 日期**: 09-16 01:30Z 运行(不是本人第二轮第 11 条所说的 09-14 —— 该说法错, 见 R8 更正)。
 - 全电池未重跑(lead: 落地时在新克隆跑 W6→W2→W1 叠加电池); 本轮改动 = 一个常量 + 两处注释/文字 + 一条测试断言, 无行为面之外的改动。
 - **16:26Z 补丁(lead: 新克隆叠加落地测试 T9g 红)**: T9g 依赖运行树的真实账本 `state/live/ic_monitor.jsonl`(state/ 不入库, 新克隆无此文件)—— 与 `.env` 同类的环境依赖, 非代码缺陷。改为: 账本缺失时打印一行 `  SKIP T9g SKIPPED: no real ledger in this tree (clone) — passes only in the run tree (expected <path>)`, 不计 FAIL; 账本在时断言原样。收据: 有账本 76 PASS / 0 SKIP / exit 0(单跑日志 sha 不变 `06427458…fd949`); 无账本(scratch 复刻新克隆形状) 75 PASS / 1 SKIP / 0 FAIL / exit 0。`live/tests_ic_monitor.py` sha `44662f02775d59d7a3e6aa429549687e43d96745c74960b57aed4a7ca31c2cf9`(774 行); `ops/ic_monitor.py` 不变 `00921bc7…1f00`; diff 重生成 1385 行 sha `863244656db370c542ac12a8695dece95d5d24269895f592e0a1b6eea9aa7449`。
+
+---
+
+## §8 第三轮: 独立复审 REVIEW_2026-09-13 §3.B 的两条缺陷(01:25Z 事实表先于码)
+
+复审来源: `/Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/docs/REVIEW_code_and_research_2026-09-13.md` §3.B(裁定「未关闭」)+ 专项
+`.../multi_asset/exports/research/codex_followup_code_review_2026-09-13/monitoring/RESULT.md` §3(W1-N1/N2/N3)。
+执行人 = W1b(接手 W1, 后者触模型用量上限)。克隆 `/Users/haosiyu/cc_tmp/exec_w1` 分支 `fix/ic-monitor-contract`, 基线 918559f, **未部署**。
+
+**本轮不重标阈值。** `R24_P5/R24_P1/R48_P1` 与 `WINDOW_START_TS` 仍是 **α=0.05/band=0.002 的旧标定对象**(2026-08-10, 9821 锚离线书);
+在役书 α=0.1/band=0.00025。每一页仍逐字打印 `CALIB_IDENTITY` 说明这一错配。重标依旧是 OUT OF SCOPE(生产者平价回放 Phase 2)。
+
+### §8.1 事实表(第三轮; 每条: 事实 · 出处 · 我如何核)
+
+| # | 事实 | 出处(逐位路径:行) | 核法 |
+|---|---|---|---|
+| F29 | 研究员冻结的 W1 快照 `private/inputs/w1/ops/ic_monitor.py` sha256 `00921bc7…1f00` 与克隆工作树**逐位相同**(= §7.6 第二轮终版) ⇒ 复审读的就是我要改的那份码 | `shasum -a 256` 两路径 | 命令 |
+| F30 | 复审点名的两处在克隆里的**实际行号**: 冷却门 `ops/ic_monitor.py:518`(复审写 519), 触发窗并入 `:563`(复审写 570); 恢复条件 `:501`/`:522`; None 过滤 `:295`; 普查 present 集合 `:272` | 克隆源 | `grep -n` |
+| F31 | **N1 复现(修前码, 研究员输入集 A `initial(-1.08,-.72,-.6)`)**: ① now: r24=−0.045 r48=−0.015 ⇒ DECIDE(触发 r24), 投, event.tw=['r24'] ② now+4h(追加 ic=0 一行): r24=−0.020 r48=−0.01708 ⇒ DECIDE(**触发 r48**), 同级冷却**零投递**, **event.tw 仍 ['r24']** ③ now+8h(下一锚缺): r24 缺1可判且健康, r48 缺5不判 ⇒ **投 INCOMPLETE + RECOVERED**, 事件关闭, last=OK | 本人脚本 `scratchpad/w1r3/repro_before.py` 跑克隆修前码 | 计算(数值与专项 §3 W1-N1 表逐位相同) |
+| F32 | **N2 复现(输入集 B `initial(-.504,-.816,.1)`)**: ① r24=−0.021 r48=−0.017 ⇒ DECIDE(触发 r48), 投 ② now+8h(锚 60 缺, 追加 ic=−0.1): r24=−0.02933 可判 ALERT, r48=−0.02117 缺5**不可判** ⇒ 投 INCOMPLETE+ALERT, **event.level 被覆写成 ALERT**(原触发窗 r48 尚未重新可判) ③ now+12h(追加 ic=−1.0): r24=−0.06991 ⇒ DECIDE, **零投递**(旧 DECIDE 时钟 12h<24h), event.level 仍 ALERT | 同上 | 计算(与专项 §3 W1-N2 表逐位相同) |
+| F33 | **N3 复现**: 60 行 `rank_ic=NaN` 的新鲜网格 ⇒ `check()` 给 level=OK, judged=True, judged_windows=['r24','r48'], r24=r48=**nan**, 普查缺 0 ⇒ 在已开 DECIDE(r48)事件上**投 RECOVERED**, last=OK。根因: `:295` 只排除 None; `:272` 把 NaN 行算作实有; NaN 与阈值的一切比较为 False ⇒ 「健康」是从「所有越线比较都不成立」**推**出来的 | 同上 | 计算 |
+| F34 | 修前码的两个概念**共用一个更新条件**: `deliver()` 只在 `delivered_offbox` 为真时才 `:563` 并入触发窗、`:565` 覆写 `event.level`。于是「越线发生过」这件事实被「页发出去了没有」门控 —— 正是复审 §3.B 的一句话根因 | 克隆 `:555-570` | 读源 |
+| F35 | 冻结真实账本 `state/live/ic_monitor.jsonl` 225 行: `rank_ic` **None 0 个, 非有限 0 个**; `value_ic`/`rank_ic_beta_resid` 同为 0 ⇒ **有限值门对真实数据零改动**(不改任何已发布数字) | 本人扫描 | 计算 |
+| F36 | 研究员探针 `probe_causal_events.py` 读的是**冻结快照** `OUT/private/inputs/w1/ops/ic_monitor.py`(`probe_followup.py:18` `W1=OUT/'private/inputs/w1'`), **不是**克隆工作树 ⇒ 逐字重跑它只能证明「研究员的冻结证据没被我动过」, 不能测我的修改。且它的三条 assert **断言缺陷存在**(`a[1]['state']['event']['trigger_windows']==['r24']`、`a[2]` 投 `['INCOMPLETE','RECOVERED']`、`b[1]...['level']=='ALERT' and b[2]['deliveries']==[]`) ⇒ 指向修后码时**必须**在这些 assert 上失败, 这就是它的红能力 | `probe_followup.py:14-18`; `probe_causal_events.py` 末段 | 读源 |
+| F37 | `probe_followup.py:15-17` 断言 `OUT` 在 codex worktree 内且该 worktree 当前分支 = `agent/codex/QNT-2026-0907/onboarding-audit` ⇒ 探针**只能在原地跑**, 不能整目录搬到 scratch | `probe_followup.py:15-17` | 读源 |
+| F38 | 既有 76 格里被本轮改动波及的: M13 的注入靶行(冷却门原文)会消失 ⇒ 必须重新指靶, 否则「注入点恰一次」为 0 而红。其余 75 格的断言不需要改(T13c 的遗留事件精确字典**不加新键**即可保持) | 克隆测试 `live/tests_ic_monitor.py:733-736` | 读源 + 设计 |
+
+### §8.2 设计决策(第三轮)
+
+**D14 观测与投递分离(修 N1 + N2 的事实面).** 新纯函数 `observed_event(st, verdict, now)`: 本次 verdict 若 level ∈ {ALERT, DECIDE},
+把**已观测的越线事实**写进事件 —— 触发窗取并集、`observed[level]=now`、必要时开新事件 —— **与页发没发出去无关**。
+`plan_delivery` 与 `deliver` 都以它为准(前者只读不落盘, 保持纯函数; 后者把结果落 `st["event"]`)。
+于是 N1 的第②步: 页被冷却扣住, 但 r48 进了 `trigger_windows`; 第③步 `_event_recoverable` 见 r48 ∉ judged_windows ⇒ **不恢复**。
+- 被拒替代: 「冷却时也发页」—— 复审明写「这不要求实际多发消息」; 拒。
+- 被拒替代: 「把 trigger_windows 的并集挪进 `plan_delivery`」—— 它是纯函数不落盘, 事实会在下一次 `open_event` 时丢失; 拒。
+
+**D15 风险级别单调, 只由恢复降级(修 N2 的降级面).** 事件的 `level` = **当前未恢复的【已观测】风险级别**, 事件内**只升不降**;
+唯一的下降路径是每个触发窗重新可判且未越线 ⇒ RECOVERED 关事件。旧码在每次成功投递时 `ev["level"] = p["kind"]`, 于是
+「r48 未判、r24 只到 ALERT」被写成事件降级到 ALERT。新码在 `observed_event` 里按 `_rank`(OK0/ALERT1/DECIDE2)取 max。
+
+**D16 冷却按「最后送达的级别」判升级(修 N2 的吞没面).** 新增 `delivered_level_of(ev)` = `ev["delivered"]` 里**时刻最大**的级别
+(不落新字段 ⇒ 遗留事件/旧盘面状态逐位兼容, T13c 的精确字典不变)。`_breach_due(ev, level, now)`:
+① 事件内还没有任何一页成功离机(新事件, 或上次投递失败)⇒ 投; ② `_rank(level) > _rank(delivered_level_of(ev))` ⇒ **相对手机上最后那页是升级** ⇒ 投, **不受旧的更高级别时钟约束**; ③ 否则按**本级自己的**送达时钟 24h。
+- N2 第③步: 手机最后一页是 ALERT, 现在是 DECIDE ⇒ ②命中 ⇒ **投**。同级复发仍被 ③ 扣住(T8h/T13a 第四步不变)。
+- 页数上界不变坏: 每级每 24h 至多一页 ⇒ 一个事件 24h 内至多 ALERT+DECIDE 两页。
+- R-10(86,398 s 秒级抖动)仍是**同级**的已知开口, 本轮不动。
+
+**D17 NaN/±Inf = 不可测, 不是健康(修 N3).** 新谓词 `_measurable(x)` = 有限实数(`bool` 排除)。
+① `check()` 的行过滤由 `is not None` 改为 `_measurable` ⇒ 非有限行**不进 post**, 于是自动进普查的「缺」⇒ 缺超上限即该窗不判;
+② 窗均值本身再过一道 `_measurable` 作纵深(`j24/j48`); ③ `r24_beta_resid` 同。
+- 后果: 全 NaN 账本 ⇒ post 空 ⇒ `len(post)<24` 分支 ⇒ **INCOMPLETE**(不再 OK, 不再 RECOVERED)。
+- 真实数据零改动(F35)。已知性质(明列, 非缺陷): 一行 NaN 会因 `known_ts` 幂等而**永不重算**, 成为永久普查洞 ⇒ 持续 INCOMPLETE —— 这是**响亮**的失败模式, 优于静默健康。
+- 顺带闭一个**我自己这轮引入**的口: 观测会在投递失败/被冷却时也开事件, 于是可能出现「从未成功投出过任何页」的事件; 它若恢复, 旧逻辑会发一页 RECOVERED 给**从没听说过这次越线**的操作员。规则: RECOVERED 页要求 `delivered_level_of(ev) is not None`; 不满足则**静默关闭**事件(`closed_silently`), 不留僵尸。
+
+**D18 不动的东西(明列):** 三个阈值常量、`WINDOW_START_TS`、`MAX_MISSING`、`LEGACY_TRIGGER_WINDOWS`、`COOLDOWN_S`、
+`GRID_S`/`MATURE_LAG_S`; 五个数值函数 `_rankdata/_corr/_spear/load_anchors/compute_rows`(与线上 AST 相同, 一字不动);
+统计量定义(最后 24/48 个**可用**行的均值 —— 「可用」的含义由 None 扩到「非有限」, 真实数据上是同一集合)。
+
+### §8.3 测试矩阵(第三轮; 每条先红后绿 + 突变再红)
+
+| 行为 | 绿断言(新格) | 突变(必须红) |
+|---|---|---|
+| D14 观测入事件 | T17a 研究员输入集 A 三步全跑 `deliver`: ①投 DECIDE/tw=['r24'] ②**零投递**但 **tw 变 ['r24','r48']** ③只投 INCOMPLETE、**无 RECOVERED**、事件仍开、last 仍 DECIDE; 数值逐位 (−0.045/−0.015, −0.020/−0.01708) | M16 `observed_event` 不并入本次触发窗 ⇒ T17a 红 |
+| D14/D15/D16 | T18a 输入集 B 三步: ①投 DECIDE(r48) ②投 ALERT 但 **event.level 仍 DECIDE** ③ **投 DECIDE**(不被旧时钟吞), 数值逐位 (−0.021/−0.017, −0.02933/−0.02117, −0.06991) | M17 级别改回无条件覆写 ⇒ T18a 的 level 断言红; M18 去掉「相对最后送达级别升级」分支 ⇒ T18a 的第③步投递断言红 |
+| D17 NaN | T19a 全 NaN 新鲜网格 ⇒ INCOMPLETE 且 judged=False(修前: OK/judged/两窗可判); T19b 同一夹具 + 已开 DECIDE(r48)事件 ⇒ **零 RECOVERED**; T19c 尾 24 里 3 行 NaN ⇒ r24 窗缺 3>2 不判, 且 r24 = 最后 24 个**有限**行的均值; T19d ±Inf 同 | M19 `_measurable` 退回 `x is not None` ⇒ T19a/T19b 红 |
+| D17 附带口 | T20 观测开的事件(投递失败, 从未送达)恢复时 **不发 RECOVERED** 且事件被静默关闭 | M20 去掉 `delivered_level_of(ev) is not None` 前提 ⇒ T20 红 |
+| 输入集自证 | T17b 两组输入集满足专项声明的合同: 4h 网格、逐步只追加(历史行逐位不变)、IC ∈ [−1,1] | — |
+| 既有 76 格 | 全保留; **只改 M13 的注入靶**(靶行被 D16 改写, 语义不变: 冷却回旧全局键 `last_<LEVEL>` ⇒ T13a 红) | — |
+
+### §8.4 收据(第三轮, 回填 01:5xZ)
+
+**R11 修前复现(红).** 装置 `docs/receipts/w1_r3_repro_device.py`(sha `b48abd4a…6ff8`): 以研究员输入集
+A/B + NaN 夹具跑**修前**克隆码, 逐位得到 §8.1 F31/F32/F33 的三张表 —— 与专项 RESULT.md §3 的
+W1-N1/N2/N3 表**数值全同**(−0.045/−0.015 · −0.020/−0.01708 · −0.021/−0.017 · −0.02933/−0.02117 · −0.06991)。
+
+**R12 套件单跑(修后).** `docs/receipts/w1_r3_ic_monitor_suite_standalone.log`(sha `f61ff692…9b6c`):
+**94 项全 PASS / 0 FAIL / 0 SKIP**, exit 0(= 第二轮 76 + 第三轮 18: T17a/T17b/T18a/T19a-d/T20 共 8 绿格 +
+M16-M20 各「注入点恰一次」+「突变红」共 10)。命令逐字:
+```
+cd /Users/haosiyu/cc_tmp/exec_w1/live && . ../ops/pyenv.sh && /usr/bin/python3 tests_ic_monitor.py
+```
+
+**R13 逐格红能力(修前源).** 装置 `docs/receipts/w1_r3_red_runner_device.py`(sha `3455bd5e…bfd3`): 把测试文件
+每一处 `check(...)` 包进 try/except(崩溃也记 FAIL 而不中断), 再以**镜像树**(符号链接 live/state, 只换
+`ops/ic_monitor.py`)跑整套 —— 克隆一个字节没动。
+- 修前源 = 研究员冻结快照 `private/inputs/w1/ops/ic_monitor.py` sha `00921bc7…1f00`(与克隆修前逐位同, F29):
+  日志 `w1_r3_suite_on_PREFIX_code_00921bc7.log`(sha `e82f50d6…d7dc`), **75 PASS / 13 FAIL**。
+  13 红 = **7 个新绿格全红**(T17a · T18a · T19a · T19b · T19c · T19d · T20「CRASHED: KeyError: 'event'」)
+  + 6 个突变注入靶 count=0(M13 靶行被本轮改写; M16-M20 的靶是本轮新码)。
+  **T17b 在两侧都绿** —— 它断言的是研究员输入集自身的性质(4h 网格 / 只追加 / IC∈[−1,1]), 不是我的码, 应当如此。
+- origin/main `918559f`(`ops/ic_monitor.py` sha `ba89bf68…162f`): 日志 `w1_r3_suite_on_OLD_code_918559f.log`
+  (sha `854cde61…cb8d`), 7 PASS 后在 `tests_ic_monitor.py:90` 崩 `AttributeError: MATURE_LAG_S` —— 旧码连新格都到不了。
+
+**R14 研究员探针(他们的装置, 他们的输入集).**
+- **逐字重跑(在原地, 未改一字节)**: `cd <monitoring> && /usr/bin/python3 -B probe_causal_events.py` ⇒ **exit 0**;
+  日志 `w1_r3_researcher_probe_verbatim.log`(sha `b7509455…ac98`)。运行前后该目录 6 个 json 收据
+  **sha 逐位不变**(`causal_event_receipt.json` 被确定性重写为同样字节)。
+  ★ 注意(F36): 它读的是**冻结快照** `private/inputs/w1/`, **不是**克隆工作树 —— 所以 exit 0 只证明
+  「研究员的冻结证据没被我动过」, **不**证明我的修改。
+- **指向修后树**: 同一探针只改两行路径(`newpath` → 克隆工作树; 收据写到 scratch), 其余逐字节不动 ⇒ **exit 1**,
+  在 `assert a[1]['state']['event']['trigger_windows']==['r24']` 上失败 —— 这正是它编码 N1 的那一行。
+- **逐条断言矩阵**(装置 `w1_r3_probe_assertion_matrix_device.py` sha `20cd9250…5c54`; 日志
+  `w1_r3_researcher_probe_assertion_matrix.log` sha `6e24c150…e263`):
+
+| 探针里的断言 | 冻结 round-2 `00921bc7` | 修后 `a085d471` |
+|---|---|---|
+| A1 `trigger==['r24<R24_P1']` (非缺陷断言) | HOLDS | HOLDS |
+| A2 `trigger==['r48<R48_P1']` (非缺陷断言) | HOLDS | HOLDS |
+| A2 `deliveries==[]` 同级冷却仍扣住页 (非缺陷断言) | HOLDS | HOLDS |
+| A2 `event.trigger_windows==['r24']` **★N1** | HOLDS | **FAILS** → 实际 `['r24','r48']` |
+| A3 `deliveries==['INCOMPLETE','RECOVERED']` **★N1** | HOLDS | **FAILS** → 实际 `['INCOMPLETE']` |
+| B2 `event.level=='ALERT'` **★N2** | HOLDS | **FAILS** → 实际 `DECIDE` |
+| B3 `verdict.level=='DECIDE'` (非缺陷断言) | HOLDS | HOLDS |
+| B3 `deliveries==[]` 升级被旧时钟吞 **★N2** | HOLDS | **FAILS** → 实际 `['DECIDE']` |
+
+⇒ **四条缺陷断言全部翻红, 四条非缺陷断言全部不动**(统计量、触发门、同级冷却对页的抑制都原样)。
+
+**R15 不动量的直接复核.**
+- 五个数值函数 `_rankdata/_corr/_spear/load_anchors/compute_rows` 与**运行树** `~/dl_quant_live/ops/ic_monitor.py`
+  (sha `ba89bf68…162f`, 只读打开)**逐个 `ast.dump` 相等**: 5/5 True。
+- 阈值三常量、`WINDOW_START_TS=1786363200.0`、`MAX_MISSING`、`LEGACY_TRIGGER_WINDOWS`、`COOLDOWN_S`、
+  `GRID_S`、`MATURE_LAG_S` 一字未动(T1d/T9/T13c 在套件内钉)。
+- 冻结真实账本 225 行 `rank_ic` 非有限 **0 个**(F35)⇒ 有限值门在真实数据上是恒等变换; T9g(09-12 01:30Z
+  回放 r24=+0.00472/r48=−0.01104/n=176)**仍绿**。
+- `ops/gate_coverage.py verify` exit 0; `tests_static_names`(pyflakes)exit 0。
+- 只读门未退化: T10a/T10b/T10c/T14 全绿; 另在克隆真实回读上直跑 `ops/ic_monitor.py --check` ⇒
+  账本/状态 sha 前后相等, evals 文件从未创建, 输出 `INCOMPLETE`(克隆快照前沿 09-12 20Z vs 实际最新行
+  09-12 04Z, 缺 8/13 —— 这是**克隆快照**的陈旧度, 不是对在役状态的陈述)。
+
+**R16 diff 与 sha(第三轮最终树).**
+- `docs/receipts/w1_ic_monitor_contract.diff`: **1701 行, 3 个 `diff --git`**(只含 `ops/ic_monitor.py`、
+  `live/tests_ic_monitor.py`、`ops/gate_coverage.py`), sha256
+  **`62a3032e1b9c9d80e0a799e06bae925c3e416b56e2cd701b5cd280db45808392`**。生成命令逐字:
+  `git -C /Users/haosiyu/cc_tmp/exec_w1 diff origin/main -- ops/ic_monitor.py live/tests_ic_monitor.py ops/gate_coverage.py`
+- 克隆代码(第三轮修后): `ops/ic_monitor.py` `a085d47182f5033c54f38e7471433c35250b94bba4e9db20a9b2c14d47e32589`(748 行,
+  第二轮 645)· `live/tests_ic_monitor.py` `983726eccc5a77be177786a32724a542a5c570d750d80bf756e12816f68b9493`(986 行,
+  第二轮 774)· `ops/gate_coverage.py` `dc60d57e2b3f3d4fc4c858d495135f56cfaec3d61e4fa0ff903ff4593862dd33`(401 行)。
+- **未做**: 全电池未跑(lead: 落地时跑叠加电池); 克隆不提交不推送; 运行树 `~/dl_quant_live` 与生产者
+  `~/wide_shadow` **零写入**(只 `ast` 读过运行树那一个文件); 零网络/Telegram/.env; 研究仓只写
+  `docs/DESIGN_…md` 与 `docs/receipts/`(均未提交)。
+
+### §8.5 RESULT(第三轮)
+
+**改了什么(`ops/ic_monitor.py` 645 → 748 行):**
+- `_measurable()` / `_rank()` 两个新谓词, 置于五个数值函数**之前**(那五个一字未动)。
+- `check()`: 行过滤 `is not None` → `_measurable`; `resid` 同; `j24/j48` 增加「窗均值本身可测」一道纵深。
+- `observed_event(st, verdict, now)`(纯函数): 把**本次观测到的越线**记进事件 —— 触发窗并集、`observed[级]=now`、
+  必要时开新事件; 风险级别取 `max`(事件内只升不降)。`plan_delivery` 与 `deliver` 都以它为准。
+- `delivered_level_of(ev)`: 最后一次成功离机的级别 = `delivered` 表里时刻最大者(**不落新字段**, 遗留/旧盘面兼容)。
+  `last_delivered_level(st)` 改用它 —— 与 `event["level"]` 正式分家。
+- `_breach_due(ev, level, now)`: ①事件内未送达过 ⇒ 投 ②相对**最后送达级别**升级 ⇒ 投(不受旧高级别时钟约束)
+  ③否则本级自己的 24h 时钟。`plan_delivery` 的冷却门改调它。
+- `plan_delivery` 的 RECOVERED 分支加前提「该事件确实送达过页」; `deliver` 对「从未送达过」的事件在恢复条件
+  成立时**静默关闭**(`closed_silently`), 不发页也不留僵尸。
+- `deliver`: 观测**先于**计划并落盘; 成功离机**只**推进 `delivered[级]` 时钟(不再覆写 level/并触发窗)。
+- `_event_line(event, now)` / `body_breach(v, event, now)`: 新开事件说「新开」, 否则多打「最后送达级别」与
+  「已观测 {级} 于 {时刻}」—— 被冷却扣住的越线在页面上**看得见**。
+- 模块 docstring 的告警合同段按上述重写。
+
+**每条缺陷的关闭证据(红→绿→再红):**
+| 缺陷 | 绿格 | 修前红 | 突变再红 |
+|---|---|---|---|
+| N1 冷却中的新触发窗丢失 ⇒ 误恢复 | T17a(输入集 A 三步全跑 deliver) | PREFIX 日志 T17a FAIL | M16(观测不并入本次触发窗) |
+| N2 触发窗未判仍降级 | T18a(输入集 B, `event.level` 断言) | PREFIX 日志 T18a FAIL | M17(级别无条件覆写) |
+| N2 再升级被旧时钟吞 | T18a(第③步投递断言) | 同上 | M18(去掉「相对最后送达级别升级」) |
+| N3 NaN 当新鲜可判并发恢复 | T19a/T19b/T19c/T19d | PREFIX 日志四格全 FAIL | M19(可测性退回 `is not None`) |
+| (本轮自带口)从未送达的事件发 RECOVERED | T20 | PREFIX 崩 `KeyError: 'event'` | M20(去掉「送达过」前提) |
+
+**阈值声明(lead 点名要写明):** 本轮**没有**重标阈值。`R24_P5/R24_P1/R48_P1` 仍是 **α=0.05/band=0.002 的旧标定对象**
+(2026-08-10, 9821 锚离线书), 在役书是 α=0.1/band=0.00025; 每页仍逐字打印这一错配。重标 = OUT OF SCOPE,
+等生产者平价回放 Phase 2。
+
+**未关(明列):** ① 事件内**同级** 24h 严格冷却 vs 01:30Z 秒级抖动(R-10)仍是已知开口 —— 本轮只让「相对最后
+送达级别的升级」不再被吞; ② 一行 NaN 会因 `known_ts` 幂等而永不重算, 成为永久普查洞 ⇒ 持续 INCOMPLETE
+(响亮失败, 非静默健康 —— 明列为**性质**而非缺陷); ③ launchd 实际每日触发无断言; ④ 数学路径的口径保留项
+(下一快照有仓才入样、显式零仓丢弃、隐含价非固定 E 时刻、无费用/资金费)不在本单, 不宣布关闭;
+⑤ 复审 §3.B 末句「本次没有证实线上真实发过这两组序列」—— 我也**没有**证实; 两组都是合成可达序列。
