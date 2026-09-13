@@ -1,0 +1,57 @@
+[0] the ledger is the real one, and we only read it
+  OK    the production ledger is present  — /Users/haosiyu/dl_quant_live/state/testnet/pilot_log
+  OK    it has the anchor this suite is about  — 2026-07-27T00:01:07Z
+
+[A] the blind spot is now SEEN
+  OK    ★★ the halted-but-holding anchor is JUDGED  — BREAK
+  OK       its intent is recorded as FLAT, not the target vector  — halted_intent_flat
+  OK       nothing had left the process there — it is genuinely a halted anchor
+  OK    ★★ and it is a BREACH  — BREAK
+  OK    ★ ...for EXPOSURE STANDING WHILE HALTED — not for the record collapse. The deviation is the whole book being held, and the book itself was close to intent; see the header  — the claim is bounded to what was measured
+  OK       the number is the book that was standing  — 21424.01 USDT = 86.2% of 24864
+  OK       with margin over the limit, not on top of it  — 0.862 vs limit 0.01
+
+[B] and the self-lock did NOT come back
+  OK    there are several genuinely flat halted anchors to check  — 14
+  OK    ★★ every halted anchor whose book was genuinely EMPTY reads CLEAN — the self-lock is still gone, which is what this section is about  — {'07-25 21:51Z': 'CLEAN', '07-26 04:00Z': 'CLEAN', '07-26 08:01Z': 'CLEAN', '07-26 16:01Z': 'CLEAN', '07-26 20:00Z': 'CLEAN', '07-27 04:00Z': 'CLEAN', '07-27 20:00Z': 'CLEAN', '07-28 00:01Z': 'CLEAN', '07-28 12:00Z': 'CLEAN', '07-29 16:01Z': 'BREAK', '07-29 16:25Z': 'CLEAN', '07-29 20:00Z': 'CLEAN', '07-31 12:00Z': 'BREAK', '08-01 00:01Z': 'CLEAN'}
+  OK       and each was actually LOOKED AT, not skipped (an affirmative clean, not a refusal)
+  OK    ★★ the self-lock is still gone: every GENUINELY flat halted anchor reads CLEAN at exactly zero deviation  — 11
+  OK    ★★ STATE 1/3 — the ghost event TRIPS now. Under the inherited 25% band it measured 1,219.75 USDT and returned CLEAN: the gate was never blind, the band swallowed it  — {'07-29 16:01Z': '1219.75 USDT = 13.81% -> BREAK', '07-31 12:00Z': '8783.07 USDT = 99.16% -> BREAK'}
+  OK    ★★ STATE 2/3 — a small residual is NAMED but does NOT halt (DYDXUSDT, 24.38 USDT). A halt is not the only way to be told something  — {'07-29 16:25Z': '24.38 -> CLEAN, named=1'}
+  OK    ★★ STATE 3/3 — a genuinely flat halted anchor is CLEAN and names nobody
+  OK    ★★ the separation is not a line drawn against the data: the two real readings sit 13.8x inside and 3.6x outside the limit  — 13.81% vs 0.28% vs limit 1.0%
+  OK    ★ and the row says WHICH caliber judged it, so no reader needs to know the rule
+  OK    ★ the gate is not stuck: the newest verdict is clean, so a resume is possible  — CLEAN
+  OK    ★ and the healthy TRADING anchors are unaffected by the change  — {'07-26 00:01Z': 'BREAK', '07-26 12:00Z': 'CLEAN', '07-27 08:01Z': 'CLEAN', '07-27 12:00Z': 'CLEAN', '07-27 16:01Z': 'CLEAN', '07-28 04:00Z': 'CLEAN', '07-28 08:01Z': 'CLEAN', '07-28 16:01Z': 'CLEAN', '07-28 20:00Z': 'CLEAN', '07-29 00:01Z': 'CLEAN', '07-29 04:00Z': 'CLEAN', '07-29 08:01Z': 'CLEAN', '07-29 12:00Z': 'CLEAN', '07-30 00:01Z': 'CLEAN', '07-30 04:00Z': 'CLEAN', '07-30 08:01Z': 'CLEAN', '07-30 12:00Z': 'CLEAN', '07-30 16:01Z': 'CLEAN', '07-30 20:00Z': 'CLEAN', '07-31 00:01Z': 'CLEAN', '07-31 04:00Z': 'CLEAN', '07-31 08:01Z': 'CLEAN', '07-31 16:01Z': 'CLEAN', '07-31 20:00Z': 'CLEAN', '08-01 04:00Z': 'CLEAN', '08-01 08:01Z': 'CLEAN'}
+
+[C] the two mutants — the old rule, and the fix a reasonable person writes first
+  OK    ★★ mutant 'old_predicate' (halted anchors never judged) puts the blind spot BACK  — the 21,424 USDT book is absent from the report entirely
+  OK    ★★ mutant 'naive_fix' (judge halted anchors against the TARGET VECTOR) breaks on the genuinely flat anchors — the self-lock, reinstated  — 14 of 14 flat halted anchors would trip
+  OK    ★★ ...and the decisive half stands: the naive fix reinstates the self-lock on every genuinely flat anchor, which is fatal regardless of what it does to the dangerous one  — naive-fix trips 14 flat halted anchors; dangerous anchor under naive fix = 13.9% vs limit 1.0% (it now trips too — that arm of the old argument lapsed with the 25%->1% ruling)
+  OK    ★ so the fix is WHICH INTENT, not WHETHER TO JUDGE — the old rule cannot see the dangerous anchor at all, and the naive one cannot leave the flat ones alone
+
+[D] WIRED — as a gate BESIDE §4-5b, and §4-5b's own semantics are untouched
+  OK    ★★ §4-5e is wired (an unread producer is the shape this repo punishes)
+  OK    ★★ and it can actually HALT — it is in hit5, and §4-5 already routes to the ladder
+  OK    ★★ §4-5b's trigger is UNCHANGED: still the full `_latest`, not a filtered subset  — the refuted downgrade must not come back through this door
+  OK    ★ §4-5b counts every anomaly kind; the ONE carve-out (E-0912-A (c)) is the reconcile partition behind the named switch — DEFAULT OFF (review 563e3470 blocked ON), policy thresholds 2% / 5 names  — (4, False)
+  OK    ★ on the REAL ledger the newly-armed gate is quiet (arming it does not itself trip us; §4-2's own equity-caliber reading excluded)
+  OK       and 5e reports through the production path  — CLEAN
+  OK    ★ and the ledger was not modified by running this suite
+
+[E] the self-lock moved, and its new position is BOUNDED — pinned here so the bound
+    goes red if it stops holding, instead of quietly ceasing to be true
+  OK    the fixture is the real book  — N=109 at 20260731
+  OK    ★★ ONE stuck name can never lock the gate — the largest weight is far under the limit  — max |w| = 0.0302 vs limit 0.25 (8.3x under)
+  OK    ★★ it takes ~10+ names even if the BIGGEST ones are the stuck ones  — worst-case k = 11
+  OK       and ~28 at equal weight  — equal-weight k = 28 of N=109
+  OK    ★★ the stuck position we ACTUALLY had (656.34 USDT on a 25k book) is nowhere near it  — 2.63% of gross = 11% of the limit
+  OK    ★★★ ONE unflattenable name now LOCKS the gate at the flat-intent limit — measured, and flagged: under the previous 25% it took ~10  — largest weight 3.02% of gross vs flat-intent limit 1.0%
+  OK    ★★ and so does the case we have ACTUALLY LIVED (two stuck names) — under 25% it did not  — 6.04% of gross, limit 1.0%
+  OK    ★★ the TARGET-TRACKING bound is untouched — the ruling changed one intent's caliber, not both, and the ~10-name bound still holds where it was calibrated  — target-tracking: max |w| 3.02% vs 25%, k=11
+  OK    ★★ THIRTY unflattenable names DO trigger — and that is CORRECT, not a false positive: a quarter of the book cannot be exited, and staying stopped is the right outcome  — 55.05% of gross
+  OK    ★ the transition is MONOTONE — once enough is stuck it stays stuck, so the bound is a single crossing rather than a band the book can wander in and out of  — first k that triggers = 1, then 30/30 consecutive
+  OK    ★ and the crossing sits where the arithmetic says — against the FLAT-INTENT limit, which is the one these halted fixtures are judged by (`_k_worst` is the target-tracking bound and belongs to the other caliber)  — measured 1 vs derived 1 at 1.0%; target-tracking would be 11 at 25%
+  OK    ★ THE BOUND IS N-DEPENDENT AND THE MODULE SAYS SO IN WRITING. A bound that lives only in a reviewer's head is the shape §4-6 already paid for once (its '~18 names' is a comment asking a future reader to remember)
+
+ALL PASS  (43 checks)

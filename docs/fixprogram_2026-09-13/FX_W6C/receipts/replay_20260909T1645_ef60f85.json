@@ -1,0 +1,2026 @@
+{
+ "device": "/Users/haosiyu/cc_tmp/fx_w6c_receipts/trip_gate_replay.py",
+ "device_sha256": "38e027228182be1472dbe1f1ced619543d33fbc265170c0cfc1956de048cf85d",
+ "trip_utc": "2026-09-09T16:45:36Z",
+ "trip_ts": 1788972336.0,
+ "snapshot": "/Users/haosiyu/cc_tmp/fx_w6c_state_snapshot/live/pilot_log",
+ "code_tree": "/Users/haosiyu/cc_tmp/fx_w6c_base",
+ "rows_kept_by_table_trip_day": {
+  "20260909/anchors": [
+   5,
+   4
+  ],
+  "20260909/daily_nav": [
+   5,
+   4
+  ],
+  "20260909/fills": [
+   8518,
+   1946
+  ],
+  "20260909/funding": [
+   852,
+   852
+  ],
+  "20260909/orders": [
+   2310,
+   1831
+  ],
+  "20260909/position_readback": [
+   1446,
+   967
+  ]
+ },
+ "evaluation": {
+  "code_tree": "/Users/haosiyu/cc_tmp/fx_w6c_base",
+  "days": [
+   "20260801",
+   "20260909"
+  ],
+  "n_days": 40,
+  "tripped": true,
+  "triggers": [
+   "\u00a74-5b liquidation/position anomaly on 9 name(s) at the latest reconciled anchor (15 in this window's history)",
+   "\u00a74-5e position break [split_unauth]: 3951 USDT of raw deviation (1.7% of a 232746 USDT target gross), of which UNAUTHORIZED 1.09% vs a 0.05 line; name(s) at/over their own min_notional: DOGSUSDT, BLUAIUSDT, BTRUSDT, FIDAUSDT, CHILLGUYUSDT, CLOUSDT, BRUSDT, BUSDT, ATOMUSDT, HUMAUSDT, CFGUSDT, AEROUSDT, ARKMUSDT, KASUSDT, BERAUSDT, DYDXUSDT, ADAUSDT, KAVAUSDT, EPICUSDT, COMPUSDT, FILUSDT, GIGGLEUSDT, CAKEUSDT, AIOUSDT, ENSUSDT, EIGENUSDT, ARUSDT, GRASSUSDT, BEATUSDT, GWEIUSDT, COTIUSDT, CATIUSDT, FORMUSDT, ENAUSDT, BANKUSDT, JASMYUSDT, 0GUSDT, BLESSUSDT, BOMEUSDT, 4USDT, BBUSDT, 1000BONKUSDT, ANKRUSDT, DOODUSDT, APEUSDT, FARTCOINUSDT, IOTAUSDT, IOUSDT, EDGEUSDT, JTOUSDT, CHZUSDT, HEIUSDT; worst raw PIEVERSEUSDT -500 USDT. WHY: split_unauth: the halt is the UNAUTHORIZED bucket only; underfill alarms and is re-targeted by the next anchor PROVENANCE (read from the record, not composed here): unauth is NOT computed here: it is reconcile's per-name residual, expected_qty = qty(T1) + sum dq_fills. If that upstream quantity is wrong the error passes through undetected and BOTH buckets are wrong together \u2014 this split is exactly as trustworthy as B30 and no more. expected_qty has no independent cross-check today.",
+   "\u00a74-7 un-recovered position drift"
+  ],
+  "conditions_blind": [],
+  "5b": {
+   "state": "ANOMALOUS",
+   "n": 9,
+   "last_reconciled_anchor_ts": 1788971042.8167958,
+   "n_historical_anomalies": 15
+  },
+  "rec_latest": [
+   {
+    "symbol": "ARKMUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 65.69,
+    "residual_qty": 609.0,
+    "observed_qty": 6059.0,
+    "expected_qty": 5450.0,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   },
+   {
+    "symbol": "BLUAIUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 171.52,
+    "residual_qty": 15230.0,
+    "observed_qty": 127713.0,
+    "expected_qty": 112483.0,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   },
+   {
+    "symbol": "BTRUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 166.99,
+    "residual_qty": -3039.0,
+    "observed_qty": -641.0,
+    "expected_qty": 2398.0,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   },
+   {
+    "symbol": "CAKEUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 38.44,
+    "residual_qty": -17.0,
+    "observed_qty": -133.0,
+    "expected_qty": -116.0,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   },
+   {
+    "symbol": "DOGSUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 177.33,
+    "residual_qty": -3670718.222406296,
+    "observed_qty": -14640964.0,
+    "expected_qty": -10970245.777593704,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   },
+   {
+    "symbol": "DYDXUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 48.45,
+    "residual_qty": -404.5999999999999,
+    "observed_qty": 2975.6,
+    "expected_qty": 3380.2,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   },
+   {
+    "symbol": "ENSUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 32.29,
+    "residual_qty": -5.3999999999999995,
+    "observed_qty": -0.4,
+    "expected_qty": 4.999999999999999,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   },
+   {
+    "symbol": "FIDAUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 165.33,
+    "residual_qty": -8172.999999999999,
+    "observed_qty": -14793.0,
+    "expected_qty": -6620.000000000001,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   },
+   {
+    "symbol": "HUMAUSDT",
+    "kind": "quantity_residual",
+    "residual_usdt": 71.06,
+    "residual_qty": -3011.0,
+    "observed_qty": 21207.0,
+    "expected_qty": 24218.0,
+    "why": null,
+    "rebalance_id": null,
+    "order_type": null,
+    "terminal_reason": null
+   }
+  ],
+  "rec_last_reconciled_ats": 1788971042.8167958,
+  "prev_readback_ats": 1788942242.494147,
+  "t_prev": 1788943456.431147,
+  "t_cur": 1788972245.856354,
+  "readback_at_last": {
+   "0GUSDT": {
+    "notional": -2094.391,
+    "qty": -10394.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "1000BONKUSDT": {
+    "notional": -1249.520859,
+    "qty": -417350.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "1000CATUSDT": {
+    "notional": -654.79437132,
+    "qty": -313098.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "1000FLOKIUSDT": {
+    "notional": -10.45044,
+    "qty": -406.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "1000LUNCUSDT": {
+    "notional": 59.23863,
+    "qty": 1129.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "1000PEPEUSDT": {
+    "notional": 350.33357304,
+    "qty": 96932.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "1000SHIBUSDT": {
+    "notional": 12.25219736,
+    "qty": 2273.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "1INCHUSDT": {
+    "notional": -41.7196485,
+    "qty": -450.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "4USDT": {
+    "notional": 2505.99297,
+    "qty": 118263.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "AAVEUSDT": {
+    "notional": -557.89026309,
+    "qty": -4.3,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ACEUSDT": {
+    "notional": 8.4688758,
+    "qty": 48.51,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ACUUSDT": {
+    "notional": 994.2955,
+    "qty": 7325.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ADAUSDT": {
+    "notional": -619.54628832,
+    "qty": -2844.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "AEROUSDT": {
+    "notional": -1338.96072,
+    "qty": -2326.2,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "AIOUSDT": {
+    "notional": 1645.49570262,
+    "qty": 33082.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "AIXBTUSDT": {
+    "notional": 130.61626912,
+    "qty": 5833.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "AKEUSDT": {
+    "notional": -158.78715,
+    "qty": -10481.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ALGOUSDT": {
+    "notional": -640.06495875,
+    "qty": -6408.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ALLOUSDT": {
+    "notional": -194.76173484,
+    "qty": -834.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ANKRUSDT": {
+    "notional": -1772.29413528,
+    "qty": -404907.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "APEUSDT": {
+    "notional": -575.78176306,
+    "qty": -3983.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "APRUSDT": {
+    "notional": 1999.7592,
+    "qty": 13096.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "APTUSDT": {
+    "notional": -1149.51056,
+    "qty": -1760.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ARKMUSDT": {
+    "notional": 653.55554975,
+    "qty": 6059.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ARUSDT": {
+    "notional": 854.40213232,
+    "qty": 304.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ASTERUSDT": {
+    "notional": 81.576,
+    "qty": 110.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ATOMUSDT": {
+    "notional": -1489.66940276,
+    "qty": -788.43,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "AVAXUSDT": {
+    "notional": -254.35244288,
+    "qty": -32.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "AVNTUSDT": {
+    "notional": 603.75644,
+    "qty": 5782.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "AXSUSDT": {
+    "notional": 496.3567,
+    "qty": 521.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BANKUSDT": {
+    "notional": 1947.1749,
+    "qty": 58038.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BBUSDT": {
+    "notional": 825.5729,
+    "qty": 92761.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BCHUSDT": {
+    "notional": -511.23702409,
+    "qty": -1.978,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BEATUSDT": {
+    "notional": 1928.59414096,
+    "qty": 15536.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BERAUSDT": {
+    "notional": 911.30137,
+    "qty": 4881.1,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BICOUSDT": {
+    "notional": -1869.76556,
+    "qty": -83621.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BILLUSDT": {
+    "notional": 1980.55484,
+    "qty": 141772.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BIOUSDT": {
+    "notional": 853.99590609,
+    "qty": 31793.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BLESSUSDT": {
+    "notional": 1773.645727,
+    "qty": 205831.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BLUAIUSDT": {
+    "notional": 1438.303806,
+    "qty": 127713.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BMTUSDT": {
+    "notional": -1763.56472,
+    "qty": -95638.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BNBUSDT": {
+    "notional": -474.54649745,
+    "qty": -0.64,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BOMEUSDT": {
+    "notional": -952.61105667,
+    "qty": -1074927.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BROCCOLI714USDT": {
+    "notional": -127.44474896,
+    "qty": -7114.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BRUSDT": {
+    "notional": 2180.80455,
+    "qty": 6865.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BSBUSDT": {
+    "notional": 2165.61674,
+    "qty": 21161.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BTRUSDT": {
+    "notional": -35.22295,
+    "qty": -641.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BULLAUSDT": {
+    "notional": 2382.16942824,
+    "qty": 27084.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "BUSDT": {
+    "notional": 1450.33037604,
+    "qty": 7254.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CAKEUSDT": {
+    "notional": -300.713,
+    "qty": -133.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CATIUSDT": {
+    "notional": -1104.0326,
+    "qty": -17764.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CCUSDT": {
+    "notional": 293.01335,
+    "qty": 2815.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CFGUSDT": {
+    "notional": -1478.47512225,
+    "qty": -12401.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CFXUSDT": {
+    "notional": 290.83628,
+    "qty": 5866.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CHILLGUYUSDT": {
+    "notional": 1377.939816,
+    "qty": 102168.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CHIPUSDT": {
+    "notional": -290.26918,
+    "qty": -5123.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CHZUSDT": {
+    "notional": 616.38864,
+    "qty": 42924.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CLOUSDT": {
+    "notional": 2514.62663,
+    "qty": 23761.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "COMPUSDT": {
+    "notional": 469.57482524,
+    "qty": 23.15,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "COTIUSDT": {
+    "notional": -2041.81616496,
+    "qty": -102693.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "CRVUSDT": {
+    "notional": -973.8007,
+    "qty": -2703.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "DEXEUSDT": {
+    "notional": -1593.44459777,
+    "qty": -830.67,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "DOGEUSDT": {
+    "notional": 142.92348,
+    "qty": 1603.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "DOGSUSDT": {
+    "notional": -707.30497084,
+    "qty": -14640964.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "DOODUSDT": {
+    "notional": 994.64279301,
+    "qty": 583269.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "DOTUSDT": {
+    "notional": -574.66505,
+    "qty": -509.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "DUSKUSDT": {
+    "notional": 207.7812264,
+    "qty": 2640.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "DYDXUSDT": {
+    "notional": 356.3137576,
+    "qty": 2975.6,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "EDENUSDT": {
+    "notional": -1645.85904,
+    "qty": -30856.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "EDGEUSDT": {
+    "notional": 2234.37801,
+    "qty": 3720.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "EDUUSDT": {
+    "notional": 1643.98319136,
+    "qty": 32632.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "EIGENUSDT": {
+    "notional": 390.34872,
+    "qty": 1837.8,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ENAUSDT": {
+    "notional": -1146.95208485,
+    "qty": -7345.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ENJUSDT": {
+    "notional": 766.16432,
+    "qty": 27952.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ENSOUSDT": {
+    "notional": -450.07996,
+    "qty": -500.2,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ENSUSDT": {
+    "notional": -2.3916,
+    "qty": -0.4,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "EPICUSDT": {
+    "notional": -1572.36462989,
+    "qty": -3936.7,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ERAUSDT": {
+    "notional": -0.36387426,
+    "qty": -6.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ESPORTSUSDT": {
+    "notional": 2482.34886,
+    "qty": 194237.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ESPUSDT": {
+    "notional": -332.41942412,
+    "qty": -3626.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ETCUSDT": {
+    "notional": 266.26074,
+    "qty": 32.38,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ETHFIUSDT": {
+    "notional": -183.359129,
+    "qty": -300.7,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ETHUSDT": {
+    "notional": -267.17126365,
+    "qty": -0.107,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "EULUSDT": {
+    "notional": 463.81407745,
+    "qty": 369.9,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "FARTCOINUSDT": {
+    "notional": 1997.65122447,
+    "qty": 12331.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "FETUSDT": {
+    "notional": -868.6932,
+    "qty": -4947.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "FFUSDT": {
+    "notional": 1461.3182,
+    "qty": 9668.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "FIDAUSDT": {
+    "notional": -299.2402005,
+    "qty": -14793.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "FILUSDT": {
+    "notional": -783.26943291,
+    "qty": -929.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "FORMUSDT": {
+    "notional": 452.91813032,
+    "qty": 1532.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "GALAUSDT": {
+    "notional": -394.760972,
+    "qty": -210764.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "GIGGLEUSDT": {
+    "notional": -751.4434,
+    "qty": -20.26,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "GPSUSDT": {
+    "notional": 563.50436775,
+    "qty": 48057.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "GRASSUSDT": {
+    "notional": 1518.64160707,
+    "qty": 4073.4,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "GRTUSDT": {
+    "notional": -783.18692244,
+    "qty": -40846.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "GWEIUSDT": {
+    "notional": -1305.8892768,
+    "qty": -53952.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "HBARUSDT": {
+    "notional": 69.13932944,
+    "qty": 881.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "HEIUSDT": {
+    "notional": -1083.39222,
+    "qty": -7799.8,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "HOMEUSDT": {
+    "notional": -1853.9408424,
+    "qty": -310008.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "HUMAUSDT": {
+    "notional": 500.50980012,
+    "qty": 21207.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "HUSDT": {
+    "notional": 2222.12584966,
+    "qty": 27673.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "HYPEUSDT": {
+    "notional": 179.739,
+    "qty": 2.1,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ICPUSDT": {
+    "notional": -1137.73161595,
+    "qty": -401.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "IDUSDT": {
+    "notional": 340.22619338,
+    "qty": 9943.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "INJUSDT": {
+    "notional": -1579.4433,
+    "qty": -257.7,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "IOSTUSDT": {
+    "notional": 1045.388448,
+    "qty": 585455.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "IOTAUSDT": {
+    "notional": 646.34952557,
+    "qty": 15108.9,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "IOUSDT": {
+    "notional": 421.46685,
+    "qty": 2995.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "JASMYUSDT": {
+    "notional": -1340.330838,
+    "qty": -325402.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "JSTUSDT": {
+    "notional": -1211.2835189,
+    "qty": -11830.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "JTOUSDT": {
+    "notional": -1157.6864931,
+    "qty": -2615.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "JUPUSDT": {
+    "notional": -626.500875,
+    "qty": -2500.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "KAITOUSDT": {
+    "notional": -1730.69647558,
+    "qty": -5275.9,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "KASUSDT": {
+    "notional": 1192.98009266,
+    "qty": 33377.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "KAVAUSDT": {
+    "notional": 501.335848,
+    "qty": 8275.6,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "KITEUSDT": {
+    "notional": 1497.80358,
+    "qty": 13063.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "KOMAUSDT": {
+    "notional": 1901.31668924,
+    "qty": 132172.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LABUSDT": {
+    "notional": 2034.21266106,
+    "qty": 31002.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LAUSDT": {
+    "notional": -1267.932693,
+    "qty": -19964.3,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LDOUSDT": {
+    "notional": -600.456,
+    "qty": -1576.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LIGHTUSDT": {
+    "notional": 0.5043,
+    "qty": 3.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LINKUSDT": {
+    "notional": -413.96054948,
+    "qty": -34.43,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LISTAUSDT": {
+    "notional": 464.03175,
+    "qty": 5915.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LITUSDT": {
+    "notional": -1109.27444308,
+    "qty": -221.9,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LPTUSDT": {
+    "notional": -1100.7217,
+    "qty": -749.3,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "LTCUSDT": {
+    "notional": -299.44716,
+    "qty": -5.532,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MANAUSDT": {
+    "notional": -17.18844227,
+    "qty": -227.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MANTRAUSDT": {
+    "notional": -1419.562086,
+    "qty": -332139.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MEGAUSDT": {
+    "notional": -648.58669447,
+    "qty": -15457.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MEMEUSDT": {
+    "notional": 643.94342688,
+    "qty": 1152224.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "METUSDT": {
+    "notional": -237.12019764,
+    "qty": -1164.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MINAUSDT": {
+    "notional": -1569.26016,
+    "qty": -17648.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MIRAUSDT": {
+    "notional": -1090.31178672,
+    "qty": -21818.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MITOUSDT": {
+    "notional": -367.3593,
+    "qty": -26334.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MMTUSDT": {
+    "notional": -361.89294728,
+    "qty": -2153.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MONUSDT": {
+    "notional": -1370.2122,
+    "qty": -53109.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MOODENGUSDT": {
+    "notional": 1446.76925295,
+    "qty": 32937.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MORPHOUSDT": {
+    "notional": -1179.99997811,
+    "qty": -498.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MOVEUSDT": {
+    "notional": -1480.83285888,
+    "qty": -168669.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MOVRUSDT": {
+    "notional": -736.31260245,
+    "qty": -886.6,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "MUBARAKUSDT": {
+    "notional": 1324.85095,
+    "qty": 44683.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "NAORISUSDT": {
+    "notional": 974.62662,
+    "qty": 27602.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "NEARUSDT": {
+    "notional": -1134.27230328,
+    "qty": -436.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "NEIROUSDT": {
+    "notional": 709.48866803,
+    "qty": 8081657.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "NIGHTUSDT": {
+    "notional": 473.84134402,
+    "qty": 20339.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "NILUSDT": {
+    "notional": -854.80489728,
+    "qty": -17639.1,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "NOMUSDT": {
+    "notional": 1377.33637545,
+    "qty": 784445.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "NOTUSDT": {
+    "notional": -281.3822473,
+    "qty": -617134.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ONDOUSDT": {
+    "notional": -239.21271,
+    "qty": -645.3,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ONEUSDT": {
+    "notional": -1144.22262955,
+    "qty": -1691261.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ONGUSDT": {
+    "notional": -14.99578,
+    "qty": -158.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ONTUSDT": {
+    "notional": -1878.54578596,
+    "qty": -33854.4,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ONUSDT": {
+    "notional": 2190.04977618,
+    "qty": 12411.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "OPENUSDT": {
+    "notional": 1374.47486925,
+    "qty": 10533.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "OPNUSDT": {
+    "notional": 136.3908,
+    "qty": 2498.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "OPUSDT": {
+    "notional": -1305.49645187,
+    "qty": -12765.8,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ORCAUSDT": {
+    "notional": -641.30112082,
+    "qty": -434.2,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ORDIUSDT": {
+    "notional": -277.7705,
+    "qty": -66.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PARTIUSDT": {
+    "notional": 283.78248318,
+    "qty": 11663.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PAXGUSDT": {
+    "notional": -691.86818237,
+    "qty": -0.157,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PENDLEUSDT": {
+    "notional": -355.9196,
+    "qty": -172.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PENGUUSDT": {
+    "notional": -425.870544,
+    "qty": -53394.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PEOPLEUSDT": {
+    "notional": -696.4066249,
+    "qty": -86338.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PIEVERSEUSDT": {
+    "notional": 1804.46808717,
+    "qty": 1407.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PIPPINUSDT": {
+    "notional": 2230.34744759,
+    "qty": 115879.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PLUMEUSDT": {
+    "notional": 281.298495,
+    "qty": 20100.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PNUTUSDT": {
+    "notional": 302.83056211,
+    "qty": 5983.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "POLUSDT": {
+    "notional": -1260.6272134,
+    "qty": -13165.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PORTALUSDT": {
+    "notional": -2041.25996744,
+    "qty": -120365.4,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PRLUSDT": {
+    "notional": -1626.54963275,
+    "qty": -13639.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PROMUSDT": {
+    "notional": -1632.4506,
+    "qty": -284.3,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PUMPUSDT": {
+    "notional": -865.197593,
+    "qty": -180739.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "PYTHUSDT": {
+    "notional": -659.61500684,
+    "qty": -11801.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "QNTUSDT": {
+    "notional": -254.98100855,
+    "qty": -3.8,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "QUSDT": {
+    "notional": 1903.3391664,
+    "qty": 74520.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "RAVEUSDT": {
+    "notional": 2159.8822908,
+    "qty": 8802.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "RENDERUSDT": {
+    "notional": 247.57193175,
+    "qty": 162.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "RIFUSDT": {
+    "notional": -570.65048265,
+    "qty": -7395.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ROBOUSDT": {
+    "notional": -1246.05997,
+    "qty": -118054.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ROSEUSDT": {
+    "notional": -529.38431355,
+    "qty": -75147.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "RUNEUSDT": {
+    "notional": 341.92005795,
+    "qty": 705.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SAHARAUSDT": {
+    "notional": 1533.22824186,
+    "qty": 151973.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SANDUSDT": {
+    "notional": -1657.7701,
+    "qty": -43454.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SEIUSDT": {
+    "notional": -294.47163603,
+    "qty": -6021.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SIGNUSDT": {
+    "notional": -1808.573832,
+    "qty": -164177.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SIRENUSDT": {
+    "notional": 320.91864,
+    "qty": 11292.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SKRUSDT": {
+    "notional": -1704.3264,
+    "qty": -78904.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SKYAIUSDT": {
+    "notional": 1842.96546,
+    "qty": 32046.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SKYUSDT": {
+    "notional": 1413.03141,
+    "qty": 22207.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SOLUSDT": {
+    "notional": -597.01351877,
+    "qty": -5.78,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SOLVUSDT": {
+    "notional": 412.54446023,
+    "qty": 100933.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SOPHUSDT": {
+    "notional": 58.05566881,
+    "qty": 11581.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SPKUSDT": {
+    "notional": 460.7850912,
+    "qty": 22816.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SPXUSDT": {
+    "notional": 1419.63331552,
+    "qty": 2744.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "STARUSDT": {
+    "notional": 2472.33817092,
+    "qty": 40402.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "STRKUSDT": {
+    "notional": 529.581028,
+    "qty": 16009.1,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "STXUSDT": {
+    "notional": -1619.172,
+    "qty": -5904.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SUIUSDT": {
+    "notional": -376.22015359,
+    "qty": -472.6,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SUSDT": {
+    "notional": -10.92577495,
+    "qty": -365.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SUSHIUSDT": {
+    "notional": -1399.296117,
+    "qty": -6060.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "SYRUPUSDT": {
+    "notional": 851.2915232,
+    "qty": 3760.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TACUSDT": {
+    "notional": 1926.687693,
+    "qty": 1072169.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TAOUSDT": {
+    "notional": -873.78315657,
+    "qty": -3.386,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TIAUSDT": {
+    "notional": -837.00642146,
+    "qty": -2134.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TNSRUSDT": {
+    "notional": -0.092,
+    "qty": -2.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TRADOORUSDT": {
+    "notional": 1709.202,
+    "qty": 2585.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TRBUSDT": {
+    "notional": 508.1922,
+    "qty": 28.2,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TREEUSDT": {
+    "notional": -0.2191592,
+    "qty": -5.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TRUMPUSDT": {
+    "notional": -1359.129,
+    "qty": -625.75,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TRXUSDT": {
+    "notional": -1068.1953754,
+    "qty": -3140.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TSTUSDT": {
+    "notional": 2217.73259864,
+    "qty": 132322.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TURBOUSDT": {
+    "notional": 136.96726016,
+    "qty": 135536.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TUSDT": {
+    "notional": -354.422628,
+    "qty": -80514.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TUTUSDT": {
+    "notional": -1675.9491843,
+    "qty": -71558.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "TWTUSDT": {
+    "notional": -191.882925,
+    "qty": -333.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "UAIUSDT": {
+    "notional": 2416.4773378,
+    "qty": 3140.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "UBUSDT": {
+    "notional": -394.35779708,
+    "qty": -3071.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "UNIUSDT": {
+    "notional": -435.04712592,
+    "qty": -66.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "VELVETUSDT": {
+    "notional": 1883.9586,
+    "qty": 25086.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "VETUSDT": {
+    "notional": -183.74315736,
+    "qty": -24234.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "VIRTUALUSDT": {
+    "notional": -985.58935995,
+    "qty": -1419.4,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "VVVUSDT": {
+    "notional": 2217.08922313,
+    "qty": 90.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "WALUSDT": {
+    "notional": -872.10684201,
+    "qty": -31431.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "WIFUSDT": {
+    "notional": 880.59178998,
+    "qty": 4168.5,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "WLDUSDT": {
+    "notional": -1165.15710241,
+    "qty": -2677.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "WLFIUSDT": {
+    "notional": 1012.16978076,
+    "qty": 18222.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "WUSDT": {
+    "notional": -766.6505016,
+    "qty": -75279.9,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "XANUSDT": {
+    "notional": 45.080532,
+    "qty": 4046.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "XAUTUSDT": {
+    "notional": -752.82289264,
+    "qty": -0.171,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "XLMUSDT": {
+    "notional": 12.20198166,
+    "qty": 66.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "XMRUSDT": {
+    "notional": 2484.48186969,
+    "qty": 4.892,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "XPLUSDT": {
+    "notional": -509.14365327,
+    "qty": -5271.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "XRPUSDT": {
+    "notional": -520.87018853,
+    "qty": -366.7,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "XTZUSDT": {
+    "notional": -254.604,
+    "qty": -980.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "XVGUSDT": {
+    "notional": 1432.26034263,
+    "qty": 430443.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZAMAUSDT": {
+    "notional": -913.64528,
+    "qty": -17476.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZBTUSDT": {
+    "notional": 0.0,
+    "qty": 0.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZECUSDT": {
+    "notional": -870.72244,
+    "qty": -0.679,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZENUSDT": {
+    "notional": -641.691,
+    "qty": -84.6,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZKCUSDT": {
+    "notional": -1983.42249,
+    "qty": -40719.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZKPUSDT": {
+    "notional": -2022.327615,
+    "qty": -43500.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZKUSDT": {
+    "notional": -411.35803962,
+    "qty": -38841.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZORAUSDT": {
+    "notional": -1716.038296,
+    "qty": -205366.0,
+    "source": "fapi/v3/account@post_anchor"
+   },
+   "ZROUSDT": {
+    "notional": -334.6269788,
+    "qty": -296.0,
+    "source": "fapi/v3/account@post_anchor"
+   }
+  },
+  "joint_unquantifiable": {},
+  "5e": {
+   "trip_gate": "split_unauth",
+   "anchor_ts": 1788971042.8167958,
+   "triggered": true,
+   "unauth_portfolio_hit": false,
+   "unauth_per_name_hit": true,
+   "unauth_frac": 0.010851130942810384,
+   "unauth_gross_usdt": 2525.558198,
+   "target_gross": 232746.08069063578,
+   "unauth_breaches": [
+    {
+     "symbol": "DOGSUSDT",
+     "unauth_usdt": -177.332397,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BLUAIUSDT",
+     "unauth_usdt": 171.52026,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BTRUSDT",
+     "unauth_usdt": -166.99305,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "FIDAUSDT",
+     "unauth_usdt": -165.32753,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "CHILLGUYUSDT",
+     "unauth_usdt": 135.73346,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "CLOUSDT",
+     "unauth_usdt": 132.60499,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BRUSDT",
+     "unauth_usdt": -128.97402,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BUSDT",
+     "unauth_usdt": 120.560962,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "ATOMUSDT",
+     "unauth_usdt": -80.810167,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "HUMAUSDT",
+     "unauth_usdt": -71.063093,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "CFGUSDT",
+     "unauth_usdt": -70.937239,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "AEROUSDT",
+     "unauth_usdt": -66.4818,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "ARKMUSDT",
+     "unauth_usdt": 65.689937,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "KASUSDT",
+     "unauth_usdt": -54.793375,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BERAUSDT",
+     "unauth_usdt": 50.68905,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "DYDXUSDT",
+     "unauth_usdt": -48.4489,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "ADAUSDT",
+     "unauth_usdt": -46.836305,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "KAVAUSDT",
+     "unauth_usdt": 46.604194,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "EPICUSDT",
+     "unauth_usdt": 45.213421,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "COMPUSDT",
+     "unauth_usdt": 43.225225,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "FILUSDT",
+     "unauth_usdt": -42.662469,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "GIGGLEUSDT",
+     "unauth_usdt": -40.0572,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "CAKEUSDT",
+     "unauth_usdt": -38.437,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "AIOUSDT",
+     "unauth_usdt": 35.016897,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "ENSUSDT",
+     "unauth_usdt": -32.2866,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "EIGENUSDT",
+     "unauth_usdt": -32.24232,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "ARUSDT",
+     "unauth_usdt": -31.477973,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "GRASSUSDT",
+     "unauth_usdt": -30.049225,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BEATUSDT",
+     "unauth_usdt": 29.668769,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "GWEIUSDT",
+     "unauth_usdt": -27.762734,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "COTIUSDT",
+     "unauth_usdt": 27.438154,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "CATIUSDT",
+     "unauth_usdt": -27.2217,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "FORMUSDT",
+     "unauth_usdt": -23.259156,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "ENAUSDT",
+     "unauth_usdt": -22.642349,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BANKUSDT",
+     "unauth_usdt": 20.801,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "JASMYUSDT",
+     "unauth_usdt": -18.519024,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "0GUSDT",
+     "unauth_usdt": 15.314,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BLESSUSDT",
+     "unauth_usdt": 14.071561,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BOMEUSDT",
+     "unauth_usdt": -11.711265,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "4USDT",
+     "unauth_usdt": 11.56974,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "BBUSDT",
+     "unauth_usdt": 11.2318,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "1000BONKUSDT",
+     "unauth_usdt": -10.523699,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "ANKRUSDT",
+     "unauth_usdt": 10.487388,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "DOODUSDT",
+     "unauth_usdt": -10.298246,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "APEUSDT",
+     "unauth_usdt": 9.974628,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "FARTCOINUSDT",
+     "unauth_usdt": 8.86153,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "IOTAUSDT",
+     "unauth_usdt": 8.825388,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "IOUSDT",
+     "unauth_usdt": -7.30233,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "EDGEUSDT",
+     "unauth_usdt": 7.207671,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "JTOUSDT",
+     "unauth_usdt": -7.083359,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "CHZUSDT",
+     "unauth_usdt": 6.40456,
+     "floor_usdt": 5.0
+    },
+    {
+     "symbol": "HEIUSDT",
+     "unauth_usdt": -5.30598,
+     "floor_usdt": 5.0
+    }
+   ],
+   "n_unauth_names": 52
+  },
+  "readback_at_5e": {
+   "0GUSDT": -2094.391,
+   "1000BONKUSDT": -1249.520859,
+   "1000CATUSDT": -654.79437132,
+   "1000FLOKIUSDT": -10.45044,
+   "1000LUNCUSDT": 59.23863,
+   "1000PEPEUSDT": 350.33357304,
+   "1000SHIBUSDT": 12.25219736,
+   "1INCHUSDT": -41.7196485,
+   "4USDT": 2505.99297,
+   "AAVEUSDT": -557.89026309,
+   "ACEUSDT": 8.4688758,
+   "ACUUSDT": 994.2955,
+   "ADAUSDT": -619.54628832,
+   "AEROUSDT": -1338.96072,
+   "AIOUSDT": 1645.49570262,
+   "AIXBTUSDT": 130.61626912,
+   "AKEUSDT": -158.78715,
+   "ALGOUSDT": -640.06495875,
+   "ALLOUSDT": -194.76173484,
+   "ANKRUSDT": -1772.29413528,
+   "APEUSDT": -575.78176306,
+   "APRUSDT": 1999.7592,
+   "APTUSDT": -1149.51056,
+   "ARKMUSDT": 653.55554975,
+   "ARUSDT": 854.40213232,
+   "ASTERUSDT": 81.576,
+   "ATOMUSDT": -1489.66940276,
+   "AVAXUSDT": -254.35244288,
+   "AVNTUSDT": 603.75644,
+   "AXSUSDT": 496.3567,
+   "BANKUSDT": 1947.1749,
+   "BBUSDT": 825.5729,
+   "BCHUSDT": -511.23702409,
+   "BEATUSDT": 1928.59414096,
+   "BERAUSDT": 911.30137,
+   "BICOUSDT": -1869.76556,
+   "BILLUSDT": 1980.55484,
+   "BIOUSDT": 853.99590609,
+   "BLESSUSDT": 1773.645727,
+   "BLUAIUSDT": 1438.303806,
+   "BMTUSDT": -1763.56472,
+   "BNBUSDT": -474.54649745,
+   "BOMEUSDT": -952.61105667,
+   "BROCCOLI714USDT": -127.44474896,
+   "BRUSDT": 2180.80455,
+   "BSBUSDT": 2165.61674,
+   "BTRUSDT": -35.22295,
+   "BULLAUSDT": 2382.16942824,
+   "BUSDT": 1450.33037604,
+   "CAKEUSDT": -300.713,
+   "CATIUSDT": -1104.0326,
+   "CCUSDT": 293.01335,
+   "CFGUSDT": -1478.47512225,
+   "CFXUSDT": 290.83628,
+   "CHILLGUYUSDT": 1377.939816,
+   "CHIPUSDT": -290.26918,
+   "CHZUSDT": 616.38864,
+   "CLOUSDT": 2514.62663,
+   "COMPUSDT": 469.57482524,
+   "COTIUSDT": -2041.81616496,
+   "CRVUSDT": -973.8007,
+   "DEXEUSDT": -1593.44459777,
+   "DOGEUSDT": 142.92348,
+   "DOGSUSDT": -707.30497084,
+   "DOODUSDT": 994.64279301,
+   "DOTUSDT": -574.66505,
+   "DUSKUSDT": 207.7812264,
+   "DYDXUSDT": 356.3137576,
+   "EDENUSDT": -1645.85904,
+   "EDGEUSDT": 2234.37801,
+   "EDUUSDT": 1643.98319136,
+   "EIGENUSDT": 390.34872,
+   "ENAUSDT": -1146.95208485,
+   "ENJUSDT": 766.16432,
+   "ENSOUSDT": -450.07996,
+   "ENSUSDT": -2.3916,
+   "EPICUSDT": -1572.36462989,
+   "ERAUSDT": -0.36387426,
+   "ESPORTSUSDT": 2482.34886,
+   "ESPUSDT": -332.41942412,
+   "ETCUSDT": 266.26074,
+   "ETHFIUSDT": -183.359129,
+   "ETHUSDT": -267.17126365,
+   "EULUSDT": 463.81407745,
+   "FARTCOINUSDT": 1997.65122447,
+   "FETUSDT": -868.6932,
+   "FFUSDT": 1461.3182,
+   "FIDAUSDT": -299.2402005,
+   "FILUSDT": -783.26943291,
+   "FORMUSDT": 452.91813032,
+   "GALAUSDT": -394.760972,
+   "GIGGLEUSDT": -751.4434,
+   "GPSUSDT": 563.50436775,
+   "GRASSUSDT": 1518.64160707,
+   "GRTUSDT": -783.18692244,
+   "GWEIUSDT": -1305.8892768,
+   "HBARUSDT": 69.13932944,
+   "HEIUSDT": -1083.39222,
+   "HOMEUSDT": -1853.9408424,
+   "HUMAUSDT": 500.50980012,
+   "HUSDT": 2222.12584966,
+   "HYPEUSDT": 179.739,
+   "ICPUSDT": -1137.73161595,
+   "IDUSDT": 340.22619338,
+   "INJUSDT": -1579.4433,
+   "IOSTUSDT": 1045.388448,
+   "IOTAUSDT": 646.34952557,
+   "IOUSDT": 421.46685,
+   "JASMYUSDT": -1340.330838,
+   "JSTUSDT": -1211.2835189,
+   "JTOUSDT": -1157.6864931,
+   "JUPUSDT": -626.500875,
+   "KAITOUSDT": -1730.69647558,
+   "KASUSDT": 1192.98009266,
+   "KAVAUSDT": 501.335848,
+   "KITEUSDT": 1497.80358,
+   "KOMAUSDT": 1901.31668924,
+   "LABUSDT": 2034.21266106,
+   "LAUSDT": -1267.932693,
+   "LDOUSDT": -600.456,
+   "LIGHTUSDT": 0.5043,
+   "LINKUSDT": -413.96054948,
+   "LISTAUSDT": 464.03175,
+   "LITUSDT": -1109.27444308,
+   "LPTUSDT": -1100.7217,
+   "LTCUSDT": -299.44716,
+   "MANAUSDT": -17.18844227,
+   "MANTRAUSDT": -1419.562086,
+   "MEGAUSDT": -648.58669447,
+   "MEMEUSDT": 643.94342688,
+   "METUSDT": -237.12019764,
+   "MINAUSDT": -1569.26016,
+   "MIRAUSDT": -1090.31178672,
+   "MITOUSDT": -367.3593,
+   "MMTUSDT": -361.89294728,
+   "MONUSDT": -1370.2122,
+   "MOODENGUSDT": 1446.76925295,
+   "MORPHOUSDT": -1179.99997811,
+   "MOVEUSDT": -1480.83285888,
+   "MOVRUSDT": -736.31260245,
+   "MUBARAKUSDT": 1324.85095,
+   "NAORISUSDT": 974.62662,
+   "NEARUSDT": -1134.27230328,
+   "NEIROUSDT": 709.48866803,
+   "NIGHTUSDT": 473.84134402,
+   "NILUSDT": -854.80489728,
+   "NOMUSDT": 1377.33637545,
+   "NOTUSDT": -281.3822473,
+   "ONDOUSDT": -239.21271,
+   "ONEUSDT": -1144.22262955,
+   "ONGUSDT": -14.99578,
+   "ONTUSDT": -1878.54578596,
+   "ONUSDT": 2190.04977618,
+   "OPENUSDT": 1374.47486925,
+   "OPNUSDT": 136.3908,
+   "OPUSDT": -1305.49645187,
+   "ORCAUSDT": -641.30112082,
+   "ORDIUSDT": -277.7705,
+   "PARTIUSDT": 283.78248318,
+   "PAXGUSDT": -691.86818237,
+   "PENDLEUSDT": -355.9196,
+   "PENGUUSDT": -425.870544,
+   "PEOPLEUSDT": -696.4066249,
+   "PIEVERSEUSDT": 1804.46808717,
+   "PIPPINUSDT": 2230.34744759,
+   "PLUMEUSDT": 281.298495,
+   "PNUTUSDT": 302.83056211,
+   "POLUSDT": -1260.6272134,
+   "PORTALUSDT": -2041.25996744,
+   "PRLUSDT": -1626.54963275,
+   "PROMUSDT": -1632.4506,
+   "PUMPUSDT": -865.197593,
+   "PYTHUSDT": -659.61500684,
+   "QNTUSDT": -254.98100855,
+   "QUSDT": 1903.3391664,
+   "RAVEUSDT": 2159.8822908,
+   "RENDERUSDT": 247.57193175,
+   "RIFUSDT": -570.65048265,
+   "ROBOUSDT": -1246.05997,
+   "ROSEUSDT": -529.38431355,
+   "RUNEUSDT": 341.92005795,
+   "SAHARAUSDT": 1533.22824186,
+   "SANDUSDT": -1657.7701,
+   "SEIUSDT": -294.47163603,
+   "SIGNUSDT": -1808.573832,
+   "SIRENUSDT": 320.91864,
+   "SKRUSDT": -1704.3264,
+   "SKYAIUSDT": 1842.96546,
+   "SKYUSDT": 1413.03141,
+   "SOLUSDT": -597.01351877,
+   "SOLVUSDT": 412.54446023,
+   "SOPHUSDT": 58.05566881,
+   "SPKUSDT": 460.7850912,
+   "SPXUSDT": 1419.63331552,
+   "STARUSDT": 2472.33817092,
+   "STRKUSDT": 529.581028,
+   "STXUSDT": -1619.172,
+   "SUIUSDT": -376.22015359,
+   "SUSDT": -10.92577495,
+   "SUSHIUSDT": -1399.296117,
+   "SYRUPUSDT": 851.2915232,
+   "TACUSDT": 1926.687693,
+   "TAOUSDT": -873.78315657,
+   "TIAUSDT": -837.00642146,
+   "TNSRUSDT": -0.092,
+   "TRADOORUSDT": 1709.202,
+   "TRBUSDT": 508.1922,
+   "TREEUSDT": -0.2191592,
+   "TRUMPUSDT": -1359.129,
+   "TRXUSDT": -1068.1953754,
+   "TSTUSDT": 2217.73259864,
+   "TURBOUSDT": 136.96726016,
+   "TUSDT": -354.422628,
+   "TUTUSDT": -1675.9491843,
+   "TWTUSDT": -191.882925,
+   "UAIUSDT": 2416.4773378,
+   "UBUSDT": -394.35779708,
+   "UNIUSDT": -435.04712592,
+   "VELVETUSDT": 1883.9586,
+   "VETUSDT": -183.74315736,
+   "VIRTUALUSDT": -985.58935995,
+   "VVVUSDT": 2217.08922313,
+   "WALUSDT": -872.10684201,
+   "WIFUSDT": 880.59178998,
+   "WLDUSDT": -1165.15710241,
+   "WLFIUSDT": 1012.16978076,
+   "WUSDT": -766.6505016,
+   "XANUSDT": 45.080532,
+   "XAUTUSDT": -752.82289264,
+   "XLMUSDT": 12.20198166,
+   "XMRUSDT": 2484.48186969,
+   "XPLUSDT": -509.14365327,
+   "XRPUSDT": -520.87018853,
+   "XTZUSDT": -254.604,
+   "XVGUSDT": 1432.26034263,
+   "ZAMAUSDT": -913.64528,
+   "ZBTUSDT": 0.0,
+   "ZECUSDT": -870.72244,
+   "ZENUSDT": -641.691,
+   "ZKCUSDT": -1983.42249,
+   "ZKPUSDT": -2022.327615,
+   "ZKUSDT": -411.35803962,
+   "ZORAUSDT": -1716.038296,
+   "ZROUSDT": -334.6269788
+  },
+  "cond7": {
+   "unrecovered_drift": true,
+   "drift_state": "DRIFT",
+   "triggered": true
+  },
+  "ops_last": {
+   "unrecovered_position_drift": true,
+   "drift_names": null,
+   "drift_last_reconciled_ats": 1788971042.8167958
+  },
+  "anchors_tail": [
+   {
+    "anchor_ts": 1788884642.5577018,
+    "target_gross": 234151.25514828973,
+    "rebalance_id": "A1788884640"
+   },
+   {
+    "anchor_ts": 1788899041.316442,
+    "target_gross": 233958.66373671062,
+    "rebalance_id": "A1788899040"
+   },
+   {
+    "anchor_ts": 1788913441.481489,
+    "target_gross": 233721.96467152206,
+    "rebalance_id": "A1788913440"
+   },
+   {
+    "anchor_ts": 1788927841.29871,
+    "target_gross": 233083.32734504892,
+    "rebalance_id": "A1788927840"
+   },
+   {
+    "anchor_ts": 1788942242.494147,
+    "target_gross": 233039.97353729478,
+    "rebalance_id": "A1788942240"
+   },
+   {
+    "anchor_ts": 1788971042.8167958,
+    "target_gross": 232746.08069063578,
+    "rebalance_id": "A1788971040"
+   }
+  ],
+  "proportional_response_prod": null,
+  "local_responses_prod": null
+ },
+ "gate_prototype": {
+  "verdict": "LADDER",
+  "why": [
+   "52 names > 5"
+  ],
+  "n_names": 52,
+  "names": [
+   "0GUSDT",
+   "1000BONKUSDT",
+   "4USDT",
+   "ADAUSDT",
+   "AEROUSDT",
+   "AIOUSDT",
+   "ANKRUSDT",
+   "APEUSDT",
+   "ARKMUSDT",
+   "ARUSDT",
+   "ATOMUSDT",
+   "BANKUSDT",
+   "BBUSDT",
+   "BEATUSDT",
+   "BERAUSDT",
+   "BLESSUSDT",
+   "BLUAIUSDT",
+   "BOMEUSDT",
+   "BRUSDT",
+   "BTRUSDT",
+   "BUSDT",
+   "CAKEUSDT",
+   "CATIUSDT",
+   "CFGUSDT",
+   "CHILLGUYUSDT",
+   "CHZUSDT",
+   "CLOUSDT",
+   "COMPUSDT",
+   "COTIUSDT",
+   "DOGSUSDT",
+   "DOODUSDT",
+   "DYDXUSDT",
+   "EDGEUSDT",
+   "EIGENUSDT",
+   "ENAUSDT",
+   "ENSUSDT",
+   "EPICUSDT",
+   "FARTCOINUSDT",
+   "FIDAUSDT",
+   "FILUSDT",
+   "FORMUSDT",
+   "GIGGLEUSDT",
+   "GRASSUSDT",
+   "GWEIUSDT",
+   "HEIUSDT",
+   "HUMAUSDT",
+   "IOTAUSDT",
+   "IOUSDT",
+   "JASMYUSDT",
+   "JTOUSDT",
+   "KASUSDT",
+   "KAVAUSDT"
+  ],
+  "per_name": {
+   "_n": 52
+  },
+  "sum_at_stake_usdt_known": 2525.565123000001,
+  "gross_target": 232746.08069063578,
+  "gross_realized_readback": 232732.8567895301,
+  "gross_ref": 232746.08069063578,
+  "frac": 0.010851160696265223,
+  "unknown_inputs": [],
+  "book_triggers": []
+ }
+}
