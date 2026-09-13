@@ -1,0 +1,83 @@
+# W9 OLD-CODE RED: live/tests_per_name_stop.py + fixtures from 2f2a63b, run on a clean worktree at the stack base 2230307 (runtime without W9), 2026-09-13T09:34:55Z
+# runtime HEAD 2230307e0725ecfe7a6c3c6180c9406fef0d2ad6; test file sha256 7aba416f7d013620c03293617949de61bdd7b7545cceb310d54cc052afead184
+PASS T1a 第 1 锚只计数不触发
+PASS T1b 第 2 连续锚触发进 stopped
+PASS T2 回浅复位, 三锚不触发
+PASS T3 缺读回打断连续性
+PASS T4 dust 名不计数
+PASS T5a 平仓名转入冷却
+PASS T5b 冷却期内 active_sets 含禁入名
+PASS T5c 期满自动恢复
+PASS T6 停中未平保持原状
+PASS T7 enabled=false 恒等
+PASS T8 快照缺失恒等
+PASS T9 盈利名不计数
+PASS W1 broker 快照携带逐名 unrealized
+PASS W2 终锚钩子在位(update_from_snapshot)
+PASS W3 plan 钩子在位(active_sets 并入 untradable)
+PASS W4 stop 名 target 置零在 apply_withhold 之前
+PASS W6 终锚写入被正典 LIVE 判别式看门(fixture 快照防线, 02:23Z 洞)
+PASS W5 config 参数与条款冻结值一致
+
+[R0] 夹具有效性 — 旧序列在三个真锚上逐名复现账本(新旧代码皆绿)
+PASS R0a 1788451200 旧序列(置零 → withhold/reshape/clamp)复现本锚全部 253 个名的记录目标 ≤ 1e-6 USDT, 账本推出的桶无无法解释的名
+PASS R0b 1788451200 复现的桶与 phase_A 记录桶一致(记录每桶截 12 名 ⇒ 记录 ⊆ 复现)
+PASS R0a 1789041600 旧序列(置零 → withhold/reshape/clamp)复现本锚全部 244 个名的记录目标 ≤ 1e-6 USDT, 账本推出的桶无无法解释的名
+PASS R0b 1789041600 复现的桶与 phase_A 记录桶一致(记录每桶截 12 名 ⇒ 记录 ⊆ 复现)
+PASS R0a 1789056000 旧序列(置零 → withhold/reshape/clamp)复现本锚全部 244 个名的记录目标 ≤ 1e-6 USDT, 账本推出的桶无无法解释的名
+PASS R0b 1789056000 复现的桶与 phase_A 记录桶一致(记录每桶截 12 名 ⇒ 记录 ⊆ 复现)
+PASS R0c 缺陷在夹具里是真的: 09-03 16Z CYS/MAGMA/RIVER/TRIA(多头)旧序列判 add_blocked 且目标 = 持仓; 09-10 12Z IOST reduced(持仓 → a), 16Z IOST add_blocked
+
+[R1–R3] 修复 — 生产调用(force_flat = stop 集)在三个真锚上: 每个持仓已停名 flatten_only、目标恰为 0.0、带 reduce-only
+PASS R1 1788451200 ARBUSDT(持仓 -168.71)落 flatten_only 且只落这一桶
+PASS R2 1788451200 ARBUSDT 目标恰为 0.0(不是 a, 不是持仓)
+PASS R3 1788451200 ARBUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+FAIL R1 1788451200 CYSUSDT(持仓 +7.06)落 flatten_only 且只落这一桶 — ['add_blocked']
+FAIL R2 1788451200 CYSUSDT 目标恰为 0.0(不是 a, 不是持仓) — 7.05918954
+FAIL R3 1788451200 CYSUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+FAIL R1 1788451200 MAGMAUSDT(持仓 +13.19)落 flatten_only 且只落这一桶 — ['add_blocked']
+FAIL R2 1788451200 MAGMAUSDT 目标恰为 0.0(不是 a, 不是持仓) — 13.1916253
+FAIL R3 1788451200 MAGMAUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+FAIL R1 1788451200 RIVERUSDT(持仓 +16.06)落 flatten_only 且只落这一桶 — ['add_blocked']
+FAIL R2 1788451200 RIVERUSDT 目标恰为 0.0(不是 a, 不是持仓) — 16.058
+FAIL R3 1788451200 RIVERUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+FAIL R1 1788451200 TRIAUSDT(持仓 +13.86)落 flatten_only 且只落这一桶 — ['add_blocked']
+FAIL R2 1788451200 TRIAUSDT 目标恰为 0.0(不是 a, 不是持仓) — 13.863415
+FAIL R3 1788451200 TRIAUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+FAIL R1 1789041600 IOSTUSDT(持仓 +960.72)落 flatten_only 且只落这一桶 — ['reduced']
+FAIL R2 1789041600 IOSTUSDT 目标恰为 0.0(不是 a, 不是持仓) — 49.61492058671857
+PASS R3 1789041600 IOSTUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+FAIL R1 1789056000 IOSTUSDT(持仓 +45.42)落 flatten_only 且只落这一桶 — ['add_blocked']
+FAIL R2 1789056000 IOSTUSDT 目标恰为 0.0(不是 a, 不是持仓) — 45.416878
+FAIL R3 1789056000 IOSTUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only)
+
+[R4–R6] 邻格 — 同一真锚上三类邻居的处置不变
+PASS R4 已停空头 ARB @09-03 16Z: 桶 flatten_only、目标 0.0, 与旧序列和账本相同
+PASS R5 冷却持仓 ['BTRUSDT', 'EGLDUSDT', 'SKRUSDT'] @09-03 16Z: 桶与旧序列相同, 目标逐位 == 账本记录(add_blocked = 持仓)
+PASS R6 非止损 untradable 持仓 28 名 @09-03 16Z(含 KMNO/PYTH add_blocked 与持有退出名 flatten_only): 桶与目标都不变
+
+[R7] 其余书在【去掉已停名的人口】上中性, 且逐名等于独立算术
+FAIL R7 1788451200 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 217 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6) — {'net_after': 0.0, 'forced': None, 'worst': 3.9656405550495037}
+FAIL R7 1789041600 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 243 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6) — {'net_after': -1.601073301715772e-12, 'forced': None, 'worst': 0.7873175095528495}
+FAIL R7 1789056000 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 243 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6) — {'net_after': 9.588250610148563e-12, 'forced': None, 'worst': 0.8045670782043999}
+
+[R8] POP 语义不变 + 默认参数逐位旧行为
+FAIL R8a 未持有的已停名仍在 POP 里被撤并记入 popped(读者口径不变); 持仓但不在 target 的已停名 flatten_only 0.0 — ({}, {})
+FAIL R8b force_flat 为空 ⇒ 与不传该参数逐位相同(三个真锚的 target 与桶字典全等)
+
+[R9] 符号对称 — 09-03 16Z 夹具镜像(权重与持仓取负 ⇒ a < 0, 即内部书时代的形态)
+FAIL R9 镜像里旧序列钉住已停【空头】(与 a 同号), 修后全部已停名 flatten_only 0.0 —— 修法不依赖 a 的符号 — {'ARBUSDT': (['flatten_only'], ['flatten_only'], 0.0), 'CYSUSDT': (['add_blocked'], ['add_blocked'], -7.05918954), 'MAGMAUSDT': (['add_blocked'], ['add_blocked'], -13.1916253), 'RIVERUSDT': (['add_blocked'], ['add_blocked'], -16.058), 'TRIAUSDT': (['add_blocked'], ['add_blocked'], -13.863415)}
+
+[RC] 原链 — DRY_RUN run_anchor(外部书): 生产者仍给已停持仓多头正权重, 冷却名被撤使 net_before < 0
+[A1789292097] 拒单率 post-only 穿价(-5022) 首次尝试 0/8 = 0.0% (升级线 40%; 分母 = 场所应答的首次 maker 单 = 首次拒 0 + 首次落单 8); 重报价落单 0, 二次拒 0 转 taker 补单。旧口径(拒/已写行) 0/1 = 0.0% 不含已落单 maker, 仅供跨切换对照。
+PASS RC1 链跑通: action TRADE, 冷却名 QQQ 被撤(popped), 已停持仓多头 SSS 被处置
+FAIL RC2 锚 target 里 SSS 恰为 0.0(旧码: net_before<0 ⇒ a>0 > 持仓 40 ⇒ add_blocked 钉在 40.0) — 40.0
+FAIL RC3 SSS 在 untradable_names.flatten_only, 不在 add_blocked / reduced — {'add_blocked': ['SSSUSDT'], 'popped': ['QQQUSDT']}
+FAIL RC4 plan 行 SSS 带 reduce_only=True(卖出平多) — {'reduce_only': False, 'target_w': 0.004040748961356782, 'side': None}
+FAIL RC5 其余书中性且满 gross: Σ 非止损目标 ≈ 0、Σ| | = 10,000 — (-140.8450704225353, 9859.154929577462)
+FAIL RS 静态: run_anchor 的 withhold 调用语句把 stop 集以 force_flat= 传入(只看这一条语句, 不做全文件子串) — _clamp, _rs = apply_withhold_and_reshape(
+            target, _held_book, getattr(self, "_untradable", ()), self.gross,
+            floors_usdt=_fl, floors_source=_fl_src)
+
+FAILURES: R1 1788451200 CYSUSDT(持仓 +7.06)落 flatten_only 且只落这一桶, R2 1788451200 CYSUSDT 目标恰为 0.0(不是 a, 不是持仓), R3 1788451200 CYSUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only), R1 1788451200 MAGMAUSDT(持仓 +13.19)落 flatten_only 且只落这一桶, R2 1788451200 MAGMAUSDT 目标恰为 0.0(不是 a, 不是持仓), R3 1788451200 MAGMAUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only), R1 1788451200 RIVERUSDT(持仓 +16.06)落 flatten_only 且只落这一桶, R2 1788451200 RIVERUSDT 目标恰为 0.0(不是 a, 不是持仓), R3 1788451200 RIVERUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only), R1 1788451200 TRIAUSDT(持仓 +13.86)落 flatten_only 且只落这一桶, R2 1788451200 TRIAUSDT 目标恰为 0.0(不是 a, 不是持仓), R3 1788451200 TRIAUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only), R1 1789041600 IOSTUSDT(持仓 +960.72)落 flatten_only 且只落这一桶, R2 1789041600 IOSTUSDT 目标恰为 0.0(不是 a, 不是持仓), R1 1789056000 IOSTUSDT(持仓 +45.42)落 flatten_only 且只落这一桶, R2 1789056000 IOSTUSDT 目标恰为 0.0(不是 a, 不是持仓), R3 1789056000 IOSTUSDT 在 plan 的 reduce_only 集合内(reduced ∪ flatten_only), R7 1788451200 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 217 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6), R7 1789041600 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 243 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6), R7 1789056000 重整报告: 人口净额 ≈ 0、gross = sizing, forced_flat_names == 持仓已停名; 243 个未钉名逐名 == 在 P∖stop 上的独立 demean+L1(≤ 1e-6), R8a 未持有的已停名仍在 POP 里被撤并记入 popped(读者口径不变); 持仓但不在 target 的已停名 flatten_only 0.0, R8b force_flat 为空 ⇒ 与不传该参数逐位相同(三个真锚的 target 与桶字典全等), R9 镜像里旧序列钉住已停【空头】(与 a 同号), 修后全部已停名 flatten_only 0.0 —— 修法不依赖 a 的符号, RC2 锚 target 里 SSS 恰为 0.0(旧码: net_before<0 ⇒ a>0 > 持仓 40 ⇒ add_blocked 钉在 40.0), RC3 SSS 在 untradable_names.flatten_only, 不在 add_blocked / reduced, RC4 plan 行 SSS 带 reduce_only=True(卖出平多), RC5 其余书中性且满 gross: Σ 非止损目标 ≈ 0、Σ| | = 10,000, RS 静态: run_anchor 的 withhold 调用语句把 stop 集以 force_flat= 传入(只看这一条语句, 不做全文件子串)
+# exit code: 1
