@@ -1,0 +1,93 @@
+{
+ "self_sha256": "1d94aee80206739abd216433f7a35150b0fdcac35df471f0ba4a8df2810cad53",
+ "label": "ADDENDUM 1 X1.1",
+ "checks": [
+  {
+   "file": "../../uplift_2026-09-11/r18_foundation/devices/w10_sleeve_r18.py",
+   "sha256": "9b8a6323e8f0ac31ecb4046f6759dce09ba89645cbfc356db71f51c662b2c5c4",
+   "line": [
+    363
+   ],
+   "text": "car_r = float((smr[m] * fnow * (4.0 / ivv)).sum() * 1e4)",
+   "meaning": "replay executor-caliber carry: position x current settled rate x 4/interval, bps, positive = paid"
+  },
+  {
+   "file": "../../uplift_2026-09-11/r18_foundation/devices/w10_sleeve_r18.py",
+   "sha256": "9b8a6323e8f0ac31ecb4046f6759dce09ba89645cbfc356db71f51c662b2c5c4",
+   "line": [
+    386
+   ],
+   "text": "gt = float(np.abs(sm).sum())",
+   "meaning": "replay gross_total = sum |position| (unit gross denominator)"
+  },
+  {
+   "file": "../../uplift_2026-09-11/r18_foundation/devices/w10_sleeve_r18.py",
+   "sha256": "9b8a6323e8f0ac31ecb4046f6759dce09ba89645cbfc356db71f51c662b2c5c4",
+   "line": [
+    337
+   ],
+   "text": "fnow = np.nan_to_num(FN[j, m], nan=0.0); ivv = IV[j, m]; ivv = np.where(np.isfinite(ivv) & (ivv > 0), ivv, 8.0)",
+   "meaning": "fnow = panel f_fund_now (per-settlement rate), iv = f_fund_iv hours"
+  },
+  {
+   "file": "../../uplift_2026-09-11/judge1_r6/j1_realized.py",
+   "sha256": "4096fbbc91e6488ca5508341ffefe5e5b668d5d5742a443356ea545c09f8c231",
+   "line": [
+    140
+   ],
+   "text": "fund = float(fpd[(fts > g) & (fts <= g2)].sum())",
+   "meaning": "ledger funding: settlements in (E, E+4h], venue P&L sign (negative = paid)"
+  },
+  {
+   "file": "../../uplift_2026-09-11/judge1_r6/j1_realized.py",
+   "sha256": "4096fbbc91e6488ca5508341ffefe5e5b668d5d5742a443356ea545c09f8c231",
+   "line": [
+    169
+   ],
+   "text": "gross = A[g]['gross'] or cov",
+   "meaning": "ledger denominator: anchors.jsonl realized_gross (USD), fallback covered notional"
+  },
+  {
+   "file": "../../uplift_2026-09-11/judge1_r6/j1_realized.py",
+   "sha256": "4096fbbc91e6488ca5508341ffefe5e5b668d5d5742a443356ea545c09f8c231",
+   "line": [
+    178
+   ],
+   "text": "fund_bps=fund / gross * 1e4",
+   "meaning": "ledger funding in bps of gross per 4h anchor"
+  },
+  {
+   "file": "devices/t1_realized.py",
+   "sha256": "bffecee22c60141dfe75a7d0538c8f515ba0f971d1f74fdec20df8bd366cc530",
+   "line": [
+    124
+   ],
+   "text": "tot = dict(price=0.0, fund=float(fpd[sel].sum()), fee=0.0, timing=0.0, cov=0.0, unc=0.0)",
+   "meaning": "T1 re-extraction uses the same settlement window"
+  }
+ ],
+ "reading": "both are bps per 4h anchor per unit gross; replay carry is MODELLED (rate at E x 4/iv on target positions, positive = paid), ledger funding is REALIZED (settlements in (E,E+4h] on read-back positions, negative = paid)",
+ "env": {
+  "whitelist": [
+   "CPATH",
+   "HOME",
+   "LC_CTYPE",
+   "LIBRARY_PATH",
+   "MANPATH",
+   "PATH",
+   "SDKROOT",
+   "__CF_USER_TEXT_ENCODING"
+  ],
+  "actual": {
+   "CPATH": "/usr/local/include",
+   "HOME": "/Users/haosiyu",
+   "LC_CTYPE": "C.UTF-8",
+   "LIBRARY_PATH": "/usr/local/lib",
+   "MANPATH": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/share/man:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/usr/share/man:/Applications/Xcode.app/Contents/Developer/usr/share/man:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/man:",
+   "PATH": "/usr/bin:/bin",
+   "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+   "__CF_USER_TEXT_ENCODING": "0x1F5:0x19:0x34"
+  }
+ },
+ "built_utc": "2026-09-13T06:26:02Z"
+}
