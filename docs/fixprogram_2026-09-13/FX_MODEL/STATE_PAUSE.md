@@ -93,3 +93,38 @@ aud-prod findings:
 
 - Mac free disk fell from 37 to 24 GiB during this session (cause not attributed). A recursive grep of mine over `multi_asset/exports/research` may have triggered iCloud downloads before I stopped it (task byll9bpvz). I will not run recursive greps over the repo again; I will search only named files.
 - pod2 cgroup memory was 49 GB used at 14:51Z while P2 S2 ran (6 × 6.5 GB). Builders that load the 5.7 GB cache must check the cgroup first.
+
+## 6. Coordination answers received after the pause (15:3xZ; recorded only, nothing acted on)
+
+### fx-prod
+
+**Col 80: training stays v0 for king and V2MAIN.** Serving is being changed to match training, not the reverse. v0 = raw per-settlement rate, wall-clock HL 3d EMA, stale >12 h → 0.
+- Decision record:
+  - fx_prod clone commits 633d44b (P1) and 15921c0 (P2);
+  - research e0e49f8e `FX_PROD/FACT_TABLE_PROD.md` §P1/§P2.
+- Status: committed and tested, not deployed.
+- For my retrains: col 80 = panel `f_fund_ema` (v0).
+
+**Col 81:** raw per-settlement rate on both sides. T4 C81 gate: relative difference 0 on 10,786 cells.
+
+**P9** changes interval labels only: f_fund_iv, and anything using rate·8/iv (f_fund_ema_v1, carry, FTRIM rn8). It does **not** change f_fund_now or v0 f_fund_ema.
+- Therefore the v0 / now fill from v2ext is unaffected by P9.
+
+### fx-data
+
+**Mask:**
+- tradable(E) ⇔ ≥ 1 traded bar (log_cnt > 0) with close in (E−24h, E], bar E included.
+- Artifact: 4h grid of 10,285 anchors × 829, plus 5m bits; a flag only (no new cache, no NaN rewrite of ret5).
+- Run 1 had a writer bug (rc=1, artifact invalid). Its checks passed: dual implementation 0/123,820 mismatches; T7 1h-count control 100% over 7.64M hours.
+- Run 2 is pending resume. Path and sha will come by message.
+- The label-bar rule "traded, not finite" fits the definition.
+
+**Funding panels:** FND/HOL rebuilds are planned as new files.
+- v1 450-name cells stay bitwise, except the FND-03 interval cells: 138 cells, 5 names, 2026-08 API rows.
+- These interval cells matter for v1 only. They do not matter for the v0 / now columns that I fill.
+- v2ext's August 2026 funding rows carry FND-02 spacing mislabels until the rebuild. This affects the interval / v1 only, per fx-prod's P9 scope. It does not affect the v0 / now fill.
+
+### Remaining open questions
+
+- fx-train: TRN-06 prereg ownership.
+- fx-data: artifact sha.
