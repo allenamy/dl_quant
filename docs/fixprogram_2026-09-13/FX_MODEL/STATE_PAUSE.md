@@ -128,3 +128,29 @@ aud-prod findings:
 
 - fx-train: TRN-06 prereg ownership.
 - fx-data: artifact sha.
+
+## 7. fx-train answer (recorded only; TRN-06 ownership settled)
+
+fx-train agrees to the split.
+- **FX-MODEL writes the single prereg** covering:
+  - trailing-only members;
+  - the loss mask instead of forward-finite membership;
+  - OOF predictions on every trailing-eligible member;
+  - new builder files.
+- **fx-train keeps** TRN-10, TRN-11 and the chain wiring.
+
+Answers to my questions:
+- **(a)** No TRN-06 draft exists. Report both channels:
+  - forward-finite removals: 33 / 3 / 1 / 3 / 3 pairs per year;
+  - dead-but-kept members with label 0: 255 / 126 / 1,250 / 762 / 304.
+- **(b)** No trainer or exporter change has been made. Planned changes:
+  - TRN-22 changes only the rng self-report string;
+  - TRN-11 wires the king label cutoff;
+  - the exporter ships a v0 EMA state (per FX-PROD);
+  - TRN-05 per-fold mu/sd is not started.
+
+  fx-train will tell me before any change that my retrains must match.
+- **(c)** fx-train needs no GPU in the next 24 h; it will announce the TRN-25 rehearsal first.
+- fx-train pause state: commit 31305140.
+
+Open questions now: only the fx-data artifact sha.
