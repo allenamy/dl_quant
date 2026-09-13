@@ -32,3 +32,23 @@ status OK / coverage 1.0 / members 400 / sel 254 / **fund_updates 355**(4h 稳�
 ### 待验证 / 推断
 **待验证**: (a) 空仓四锚 NAV 累计 −10.60U 的来源(无持仓、无成交; 可能是费用币 BNB 余额按市价重估或钱包计息, 需 API 确证); (b) 反事实改写连升 + 两腿相关下行, 恢复后首两锚复判; (c) 成交类指标自 09-12 12Z 起无观测。**推断**: 零下单与 `opening_halted` 及看门狗 state 一致。**空仓已约 16 小时 / 4 个锚**; 按生产者自报 carry(本锚 1.196 bps)估每锚机会成本约 28U(非已实现)。
 
+
+## 08:00Z 锚 · 停开仓第五锚(8h 结算锚)· 全深度深查(只读, 实盘零接触; 查于 09:4xZ)
+**锚** canonical 1789286400 / rid **A1789287840** / 运行树 918559f。**结论: 无处置。**
+### ① 三守护 全绿(句柄为准): shadow.lock **10900**(shadow_loop_v3 进程在)/ sidecar **30943** / combo_live_daemon.pid **30944**(进程在)。
+### ② 信号六项 全在带
+coverage 1.0 / members 400 / sel 255 / **fund_updates 454**(8h 结算锚稳态 ~453 ✓)/ forced_exit_n 1 / runtime 260.5 s / fetched 450 missing 0 / anchor_skip 0。w3 **[0.3409, 0.0987, 0.5604]** ⇒ 掩码算术 **0.378232** vs `w3_masked[0]` **0.378225**(差 7e-6, 4 位小数舍入内 ✓)。combo_live_status 锚匹配 / ok / reader_ok / n 255 / gross 0.8250(combo 落盘 08:21:34Z, rc=0)。kc **own** / fc **own** / f10 打分 **400** ✓ / rho_kc_fc **0.9191** / FTRIM kc 5 名 fc 5 名(rn8 覆盖 1.0)/ net_after_reshape 0.0。生产者自评上一锚(04Z→08Z, 纸面目标书, 非实现): gross −15.99 / net −17.37 bps/gross, carry 1.196, cost 0.176。
+**反事实改写 27.2%**(04Z 27.46 → 08Z 27.2, −0.26pp)⇒ 连升中断, 不升级; rho_kc_fc 继续小幅下行(0.9202 → 0.9191)。
+### ③ 执行漏斗 orders **244** = **243 `blocked_by_halt` + 1 `skipped_min_notional`**, submit 0, fills 0 ⇒ 零下单; placement 臂标签 join 116 / behind 128(behind 0.525, 标签照发但无下单); 成交类指标不适用。
+### ④ 记账 anchors 3 行(00/04/08Z), `opening_halted` true, target_gross 235,111U 全被挡; position_readback 244 行 Σ|名义| **0.00**, held 0; **NAV 117,768.77**(04Z 117,776.42, **−7.65**); 08Z 是 8h 结算锚但 income 行 0(空仓即无 carry ✓); `anchor done rc=0` **08:41:17Z**; 看门狗 last_eval 08:39:53Z tripped=False, state `reduce_only true` / `stage3_open_halted true`; 告警 raised 3 / delivered_offbox 1 / recorded_only 2 / undelivered 0; per_name_stop 冷却 10 / stopped 0; markout 回填 09-12 写 1 条; metrics_freeze FROZEN_MATCH; funding_span STALE 旧事件未重复告警。**guard_twin**: anchor_runs.log 全文件(36,893 行)无该字样 ⇒ 按此名不可核(待查新名)。
+### ⑤ 执行质量 不适用。⑥ 异常处置 无。
+### ⑦ 空仓期累计(自 09-12 12:47Z 平仓)
+| 锚 | 订单行(挡/小额) | NAV | Δ | rho_kc_fc | 反事实改写 |
+|---|---|---|---|---|---|
+| 16Z | 243/2 | 117,787.02 | — | — | 25.36%(12Z) |
+| 20Z | 243/2 | 117,779.56 | −7.47 | 0.9271 | 26.58% |
+| 00Z | 240/3 | 117,780.40 | +0.84 | — | — |
+| 04Z | 240/1 | 117,776.42 | −3.98 | 0.9202 | 27.46% |
+| **08Z** | **243/1** | **117,768.77** | **−7.65** | **0.9191** | **27.2%** |
+### 待验证 / 推断
+**待验证**: (a) 空仓五锚 NAV 累计 **−18.25U**(16Z→08Z)来源仍无 API 确证(无持仓无成交; 推断费用币重估或计息); (b) **撤名残差 −20,475.81U = 目标 gross −8.69%**(11 名撤下, 含冷却 10 名; 09-12 12Z 为 −5.80%)—— 恢复交易时去均值要围绕这个洞做, 与 W9(止损多头被钉住)同一路径, 已把实态交 W9 作为测试格; (c) 场所上限截断 PIEVERSE +2,392→+1,960(cap 2,000)与 1000CAT 因重整跨 min_notional 两条 INFO 告警, 空仓下仅描述。**推断**: 生产者纸面书本锚 −17 bps/gross(按 2× 约 −0.35% NAV)被空仓避开; 该量是目标书自评, 不是可交易净额证据。**空仓约 20 小时 / 5 个锚。**
