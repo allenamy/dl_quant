@@ -34,7 +34,7 @@ def git(*a): return subprocess.run(["git", "-C", REPO] + list(a), capture_output
 devs = sorted({l for l in git("log", "--since=" + SINCE, "--name-only", "--pretty=format:").splitlines() if l.endswith((".py", ".sh"))})
 head = git("rev-parse", "HEAD").strip()
 present = set(git("ls-tree", "-r", "--name-only", "HEAD").splitlines())
-devs = [d for d in devs if d in present]
+devs = [d for d in devs if d in present and not d.startswith("docs/audit_pipeline_2026-09-13/")]   # v2: audit devices are not research consumers
 matrix = {}
 for name, pat in TOKENS.items():
     hits = {}
