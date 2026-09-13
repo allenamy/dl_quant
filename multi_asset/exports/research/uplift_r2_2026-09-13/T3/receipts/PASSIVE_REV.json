@@ -1,0 +1,2595 @@
+{
+ "device": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_passive_rev.py",
+ "self_sha256": "47acea7b4d5d3b48de6a5645fff1d3413c9e2a2489ea50083fa421f3a9627729",
+ "prereg_sha256": "c7be850055160d7eeafe10fb859470f442d3f0552333ba290d9496357be8f8f6",
+ "env_whitelist": [],
+ "python": "3.9.6",
+ "numpy": "1.26.4",
+ "utc": "2026-09-13T05:36:16Z",
+ "inputs": {
+  "ledger_manifest_sha256": "9ba1c85a7c92574e4e284f00d82a21b65b60296c07a6474ef25c367e42bb4183",
+  "slice_sha256": "951fb883daf5d64cff8442dfe49d752ab766b81a51c1c72954b316683eef6c82",
+  "costb_sha256": "295b4e7b462373e495fe995ca993fd7a96ab64d050a66ada0d670acf7e9b3d53"
+ },
+ "ledger_counts": {
+  "raw_fill_rows": 87580,
+  "collapsed_fills": 36507,
+  "order_rows": 76585
+ },
+ "gates": {
+  "G4": {
+   "mid_equal_share": 1.0,
+   "n": 14698,
+   "maker_leg_fill_notional_ledger_vs_orders_rel_diff": 0.0,
+   "ledger_fill_notional_usdt": 869267.1811687916,
+   "orders_filled_notional_usdt": 869267.1811687916,
+   "PASS": true
+  },
+  "G5": {
+   "guard_excluded_intended_usdt_all_eras": 0.0,
+   "share_vs_R1_plus_excluded_upper_bound": 0.0,
+   "limitation_flag_gt_5pct": false
+  },
+  "G6": {
+   "identity_maxabs_fraction": 3.0162504438546733e-16,
+   "PASS": true
+  }
+ },
+ "counts": {
+  "ERA2_plans": 14698,
+  "ERA1_plans": 5281,
+  "ERA2_unclassified": 606,
+  "ERA2_R1": 7663,
+  "ERA2_R2": 3803,
+  "ERA2_R1c": 6411,
+  "ERA2_status": {
+   "requote": 2513,
+   "refused_no_requote": 1595,
+   "first_send": 10590
+  },
+  "ERA2_arm": {
+   "join": 8134,
+   "behind": 6205,
+   "exempt": 359
+  },
+  "ERA2_requote_arm": {
+   "None": 13250,
+   "direct": 738,
+   "requote": 698,
+   "exempt": 12
+  },
+  "ERA2_tier": {
+   "0": 1971,
+   "2": 8518,
+   "1": 4209
+  },
+  "R1_intended_usdt": 615068.8,
+  "excluded_counts": {
+   "not_sent:blocked_by_halt": 3356,
+   "not_sent:skipped_min_notional": 23151,
+   "not_sent:venue_reject": 61,
+   "E_after_meta_end": 2071
+  },
+  "excluded_intended_usdt": {
+   "E_after_meta_end": 123432.4
+  },
+  "G5_guard_excluded": {
+   "K_round": 1
+  },
+  "intended_disagreement_groups": 0,
+  "overfill_gt_1p02": 0,
+  "bnb_fallback_max_anchor_gap_s": 0.0,
+  "size_tercile_edges_usdt": [
+   12.333813785463008,
+   36.21038795507917
+  ],
+  "maker_fill_groups_without_any_order_row": {
+   "n_groups": 52,
+   "notional_usdt": 2536.2
+  },
+  "ERA2_plans_with_zero_maker_fill": 2860,
+  "ERA2_K_floor_values": {
+   "4": 14698
+  },
+  "ERA2_K_round_values": {
+   "5": 14698
+  }
+ },
+ "results": {
+  "R1_primary": {
+   "n_plans": 7663,
+   "kseed": 201,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 615068.8,
+   "maker_filled_usdt": 443033.0,
+   "c_eff_bps": {
+    "point": 1.1288,
+    "ci95": [
+     -15.866,
+     24.7446
+    ],
+    "se_boot": 10.1815
+   },
+   "c_eff_exact_bps": {
+    "point": 1.5689,
+    "ci95": [
+     -15.1418,
+     24.5426
+    ],
+    "se_boot": 10.0136
+   },
+   "fill_rate": {
+    "point": 0.7203,
+    "ci95": [
+     0.698,
+     0.7766
+    ],
+    "se_boot": 0.0201
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3848,
+    "ci95": [
+     1.3652,
+     1.4311
+    ],
+    "se_boot": 0.0173
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -5.8654,
+    "ci95": [
+     -11.7151,
+     2.1138
+    ],
+    "se_boot": 3.4893
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.0523,
+    "ci95": [
+     -4.8382,
+     -3.1069
+    ],
+    "se_boot": 0.4712
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -1.8203,
+    "ci95": [
+     -7.3079,
+     5.9105
+    ],
+    "se_boot": 3.3192
+   },
+   "  of_which_cross": {
+    "point": 0.0072,
+    "ci95": [
+     -0.0111,
+     0.0312
+    ],
+    "se_boot": 0.0106
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 5.6094,
+    "ci95": [
+     -7.0746,
+     21.7656
+    ],
+    "se_boot": 7.2351
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -3.4329,
+    "ci95": [
+     -10.5146,
+     0.7251
+    ],
+    "se_boot": 2.9978
+   },
+   "  of_which_run_clock": {
+    "point": 8.9588,
+    "ci95": [
+     -5.2188,
+     31.5628
+    ],
+    "se_boot": 9.4177
+   },
+   "  of_which_cross ": {
+    "point": 0.0835,
+    "ci95": [
+     -0.4997,
+     0.7231
+    ],
+    "se_boot": 0.3015
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -20.0457,
+    "ci95": [
+     -49.5123,
+     11.4253
+    ],
+    "se_boot": 16.0684
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9225,
+    "ci95": [
+     1.8159,
+     1.9697
+    ],
+    "se_boot": 0.0371
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -8.143,
+    "ci95": [
+     -16.1295,
+     2.8511
+    ],
+    "se_boot": 4.788
+   },
+   "second_order_term_bps": 0.44014,
+   "judgement": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 1.1288,
+    "ci95": [
+     -15.866,
+     24.7446
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 35872.0
+   }
+  },
+  "R0_all": {
+   "n_plans": 14698,
+   "kseed": 202,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 1219818.9,
+   "maker_filled_usdt": 869267.2,
+   "c_eff_bps": {
+    "point": -4.7827,
+    "ci95": [
+     -10.8402,
+     4.7904
+    ],
+    "se_boot": 3.9177
+   },
+   "c_eff_exact_bps": {
+    "point": -4.6615,
+    "ci95": [
+     -10.5865,
+     4.1933
+    ],
+    "se_boot": 3.723
+   },
+   "fill_rate": {
+    "point": 0.7126,
+    "ci95": [
+     0.6876,
+     0.7721
+    ],
+    "se_boot": 0.0216
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3681,
+    "ci95": [
+     1.343,
+     1.4269
+    ],
+    "se_boot": 0.021
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -6.4772,
+    "ci95": [
+     -9.8415,
+     -1.7196
+    ],
+    "se_boot": 2.0295
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -3.4478,
+    "ci95": [
+     -3.928,
+     -2.8605
+    ],
+    "se_boot": 0.289
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -3.0292,
+    "ci95": [
+     -6.5668,
+     1.795
+    ],
+    "se_boot": 2.0608
+   },
+   "  of_which_cross": {
+    "point": -0.0002,
+    "ci95": [
+     -0.0144,
+     0.0142
+    ],
+    "se_boot": 0.0072
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 0.3264,
+    "ci95": [
+     -3.8842,
+     5.7391
+    ],
+    "se_boot": 2.3507
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -3.95,
+    "ci95": [
+     -9.8331,
+     0.8928
+    ],
+    "se_boot": 2.8528
+   },
+   "  of_which_run_clock": {
+    "point": 4.1917,
+    "ci95": [
+     -2.3679,
+     14.562
+    ],
+    "se_boot": 4.3854
+   },
+   "  of_which_cross ": {
+    "point": 0.0847,
+    "ci95": [
+     -0.1626,
+     0.3648
+    ],
+    "se_boot": 0.1325
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -16.4817,
+    "ci95": [
+     -31.5914,
+     -5.8797
+    ],
+    "se_boot": 6.4641
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9198,
+    "ci95": [
+     1.8201,
+     1.9659
+    ],
+    "se_boot": 0.0366
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -9.0892,
+    "ci95": [
+     -13.512,
+     -2.2931
+    ],
+    "se_boot": 2.8514
+   },
+   "second_order_term_bps": 0.1212,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": -4.7827,
+    "ci95": [
+     -10.8402,
+     4.7904
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 28.9
+   }
+  },
+  "R2_extreme": {
+   "n_plans": 3803,
+   "kseed": 203,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 336545.3,
+   "maker_filled_usdt": 249724.6,
+   "c_eff_bps": {
+    "point": -12.1291,
+    "ci95": [
+     -34.209,
+     16.1694
+    ],
+    "se_boot": 13.0725
+   },
+   "c_eff_exact_bps": {
+    "point": -11.3811,
+    "ci95": [
+     -33.1476,
+     15.9623
+    ],
+    "se_boot": 12.7114
+   },
+   "fill_rate": {
+    "point": 0.742,
+    "ci95": [
+     0.7244,
+     0.7792
+    ],
+    "se_boot": 0.0143
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.429,
+    "ci95": [
+     1.3821,
+     1.4653
+    ],
+    "se_boot": 0.0206
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -10.5349,
+    "ci95": [
+     -17.9735,
+     -0.5545
+    ],
+    "se_boot": 4.4517
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.8239,
+    "ci95": [
+     -6.2804,
+     -3.198
+    ],
+    "se_boot": 0.8799
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -5.7121,
+    "ci95": [
+     -12.8096,
+     3.3748
+    ],
+    "se_boot": 4.0065
+   },
+   "  of_which_cross": {
+    "point": 0.0011,
+    "ci95": [
+     -0.0238,
+     0.0332
+    ],
+    "se_boot": 0.0141
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": -3.0232,
+    "ci95": [
+     -19.6779,
+     17.2844
+    ],
+    "se_boot": 9.7491
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -5.7163,
+    "ci95": [
+     -14.3996,
+     0.5044
+    ],
+    "se_boot": 3.7648
+   },
+   "  of_which_run_clock": {
+    "point": 2.1556,
+    "ci95": [
+     -13.9904,
+     24.0082
+    ],
+    "se_boot": 9.9668
+   },
+   "  of_which_cross ": {
+    "point": 0.5375,
+    "ci95": [
+     -0.0093,
+     1.3943
+    ],
+    "se_boot": 0.3549
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -39.4718,
+    "ci95": [
+     -84.5063,
+     19.0915
+    ],
+    "se_boot": 28.1942
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9258,
+    "ci95": [
+     1.8205,
+     1.9693
+    ],
+    "se_boot": 0.0369
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -14.1975,
+    "ci95": [
+     -23.7688,
+     -0.7065
+    ],
+    "se_boot": 5.9119
+   },
+   "second_order_term_bps": 0.74805,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": -12.1291,
+    "ci95": [
+     -34.209,
+     16.1694
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 69.7
+   }
+  }
+ },
+ "sensitivities": {
+  "204_R1_excl_opening_halted_anchors": {
+   "n_plans": 7663,
+   "kseed": 204,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 615068.8,
+   "maker_filled_usdt": 443033.0,
+   "c_eff_bps": {
+    "point": 1.1288,
+    "ci95": [
+     -15.9892,
+     21.9863
+    ],
+    "se_boot": 10.1319
+   },
+   "c_eff_exact_bps": {
+    "point": 1.5689,
+    "ci95": [
+     -15.3193,
+     22.0257
+    ],
+    "se_boot": 9.9791
+   },
+   "fill_rate": {
+    "point": 0.7203,
+    "ci95": [
+     0.6989,
+     0.7762
+    ],
+    "se_boot": 0.02
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3848,
+    "ci95": [
+     1.3647,
+     1.4308
+    ],
+    "se_boot": 0.017
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -5.8654,
+    "ci95": [
+     -11.89,
+     1.163
+    ],
+    "se_boot": 3.3707
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.0523,
+    "ci95": [
+     -4.8089,
+     -3.1333
+    ],
+    "se_boot": 0.4549
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -1.8203,
+    "ci95": [
+     -7.5997,
+     4.9576
+    ],
+    "se_boot": 3.2077
+   },
+   "  of_which_cross": {
+    "point": 0.0072,
+    "ci95": [
+     -0.0109,
+     0.0295
+    ],
+    "se_boot": 0.0102
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 5.6094,
+    "ci95": [
+     -7.0572,
+     20.6152
+    ],
+    "se_boot": 7.3038
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -3.4329,
+    "ci95": [
+     -10.6147,
+     0.7988
+    ],
+    "se_boot": 3.0561
+   },
+   "  of_which_run_clock": {
+    "point": 8.9588,
+    "ci95": [
+     -5.3147,
+     30.2531
+    ],
+    "se_boot": 9.4875
+   },
+   "  of_which_cross ": {
+    "point": 0.0835,
+    "ci95": [
+     -0.4921,
+     0.6914
+    ],
+    "se_boot": 0.2966
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -20.0457,
+    "ci95": [
+     -49.5127,
+     12.0028
+    ],
+    "se_boot": 16.3786
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9225,
+    "ci95": [
+     1.8166,
+     1.9694
+    ],
+    "se_boot": 0.0373
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -8.143,
+    "ci95": [
+     -16.1012,
+     1.5803
+    ],
+    "se_boot": 4.6167
+   },
+   "second_order_term_bps": 0.44014,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 1.1288,
+    "ci95": [
+     -15.9892,
+     21.9863
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 35523.3
+   }
+  },
+  "205_R1_excl_requote_arm_direct": {
+   "n_plans": 7261,
+   "kseed": 205,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 556728.3,
+   "maker_filled_usdt": 443033.0,
+   "c_eff_bps": {
+    "point": 5.2675,
+    "ci95": [
+     -10.4231,
+     27.0352
+    ],
+    "se_boot": 9.8861
+   },
+   "c_eff_exact_bps": {
+    "point": 5.7538,
+    "ci95": [
+     -9.5091,
+     26.9611
+    ],
+    "se_boot": 9.6394
+   },
+   "fill_rate": {
+    "point": 0.7958,
+    "ci95": [
+     0.7765,
+     0.8223
+    ],
+    "se_boot": 0.0118
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.5299,
+    "ci95": [
+     1.4438,
+     1.5827
+    ],
+    "se_boot": 0.0364
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -6.48,
+    "ci95": [
+     -13.2917,
+     1.756
+    ],
+    "se_boot": 3.8785
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.4769,
+    "ci95": [
+     -5.4108,
+     -3.4214
+    ],
+    "se_boot": 0.5621
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -2.0111,
+    "ci95": [
+     -8.5193,
+     5.6721
+    ],
+    "se_boot": 3.6048
+   },
+   "  of_which_cross": {
+    "point": 0.008,
+    "ci95": [
+     -0.0126,
+     0.0318
+    ],
+    "se_boot": 0.011
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 10.2177,
+    "ci95": [
+     0.1695,
+     24.5527
+    ],
+    "se_boot": 6.4401
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -3.3987,
+    "ci95": [
+     -10.5525,
+     1.2723
+    ],
+    "se_boot": 3.083
+   },
+   "  of_which_run_clock": {
+    "point": 13.6472,
+    "ci95": [
+     -0.6153,
+     35.0662
+    ],
+    "se_boot": 9.425
+   },
+   "  of_which_cross ": {
+    "point": -0.0309,
+    "ci95": [
+     -0.5597,
+     0.3833
+    ],
+    "se_boot": 0.2491
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -18.1258,
+    "ci95": [
+     -48.9522,
+     15.8522
+    ],
+    "se_boot": 17.285
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9225,
+    "ci95": [
+     1.8235,
+     1.9711
+    ],
+    "se_boot": 0.0366
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -8.143,
+    "ci95": [
+     -16.2187,
+     2.2607
+    ],
+    "se_boot": 4.7861
+   },
+   "second_order_term_bps": 0.48626,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 5.2675,
+    "ci95": [
+     -10.4231,
+     27.0352
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 558.3
+   }
+  },
+  "206_R1_join": {
+   "n_plans": 4299,
+   "kseed": 206,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 319876.4,
+   "maker_filled_usdt": 223668.1,
+   "c_eff_bps": {
+    "point": -3.9558,
+    "ci95": [
+     -25.7982,
+     13.6618
+    ],
+    "se_boot": 9.7781
+   },
+   "c_eff_exact_bps": {
+    "point": -3.3287,
+    "ci95": [
+     -25.7242,
+     13.6961
+    ],
+    "se_boot": 9.7609
+   },
+   "fill_rate": {
+    "point": 0.6992,
+    "ci95": [
+     0.6499,
+     0.7822
+    ],
+    "se_boot": 0.0335
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3387,
+    "ci95": [
+     1.2586,
+     1.4325
+    ],
+    "se_boot": 0.0455
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -10.5576,
+    "ci95": [
+     -17.3924,
+     -3.4283
+    ],
+    "se_boot": 3.5889
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -3.292,
+    "ci95": [
+     -4.5313,
+     -1.9831
+    ],
+    "se_boot": 0.7151
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -7.2782,
+    "ci95": [
+     -13.8816,
+     -0.7947
+    ],
+    "se_boot": 3.312
+   },
+   "  of_which_cross": {
+    "point": 0.0126,
+    "ci95": [
+     -0.0064,
+     0.0479
+    ],
+    "se_boot": 0.0143
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 5.2631,
+    "ci95": [
+     -14.0223,
+     19.2808
+    ],
+    "se_boot": 8.2067
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -2.289,
+    "ci95": [
+     -9.0603,
+     1.2239
+    ],
+    "se_boot": 2.6375
+   },
+   "  of_which_run_clock": {
+    "point": 7.2961,
+    "ci95": [
+     -6.1427,
+     18.5791
+    ],
+    "se_boot": 6.1006
+   },
+   "  of_which_cross ": {
+    "point": 0.256,
+    "ci95": [
+     -0.1002,
+     0.8402
+    ],
+    "se_boot": 0.2421
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -32.61,
+    "ci95": [
+     -76.9845,
+     11.9839
+    ],
+    "se_boot": 23.1748
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9145,
+    "ci95": [
+     1.8135,
+     1.9619
+    ],
+    "se_boot": 0.0367
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -15.0989,
+    "ci95": [
+     -23.962,
+     -4.6624
+    ],
+    "se_boot": 4.9671
+   },
+   "second_order_term_bps": 0.6271,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": -3.9558,
+    "ci95": [
+     -25.7982,
+     13.6618
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 238.0
+   }
+  },
+  "207_R1_behind": {
+   "n_plans": 3306,
+   "kseed": 207,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 289607.0,
+   "maker_filled_usdt": 214042.8,
+   "c_eff_bps": {
+    "point": 5.0917,
+    "ci95": [
+     -16.9424,
+     39.6689
+    ],
+    "se_boot": 14.9552
+   },
+   "c_eff_exact_bps": {
+    "point": 5.2168,
+    "ci95": [
+     -16.6194,
+     39.3183
+    ],
+    "se_boot": 14.8756
+   },
+   "fill_rate": {
+    "point": 0.7391,
+    "ci95": [
+     0.7042,
+     0.7905
+    ],
+    "se_boot": 0.0227
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.4286,
+    "ci95": [
+     1.3485,
+     1.5259
+    ],
+    "se_boot": 0.0453
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -2.7301,
+    "ci95": [
+     -13.5291,
+     6.1328
+    ],
+    "se_boot": 4.8672
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.936,
+    "ci95": [
+     -5.8283,
+     -4.2516
+    ],
+    "se_boot": 0.4074
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": 2.2051,
+    "ci95": [
+     -8.4618,
+     11.0198
+    ],
+    "se_boot": 4.7673
+   },
+   "  of_which_cross": {
+    "point": 0.0009,
+    "ci95": [
+     -0.0414,
+     0.0227
+    ],
+    "se_boot": 0.0164
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 6.3933,
+    "ci95": [
+     -10.1665,
+     33.6399
+    ],
+    "se_boot": 11.6682
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -4.748,
+    "ci95": [
+     -19.521,
+     3.1085
+    ],
+    "se_boot": 6.1798
+   },
+   "  of_which_run_clock": {
+    "point": 11.2443,
+    "ci95": [
+     -13.0737,
+     53.7035
+    ],
+    "se_boot": 17.9492
+   },
+   "  of_which_cross ": {
+    "point": -0.1031,
+    "ci95": [
+     -1.2789,
+     0.9855
+    ],
+    "se_boot": 0.5691
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -11.1406,
+    "ci95": [
+     -46.9071,
+     15.0702
+    ],
+    "se_boot": 16.0757
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9329,
+    "ci95": [
+     1.8306,
+     1.9761
+    ],
+    "se_boot": 0.037
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -3.6939,
+    "ci95": [
+     -17.7959,
+     8.3972
+    ],
+    "se_boot": 6.4499
+   },
+   "second_order_term_bps": 0.12501,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 5.0917,
+    "ci95": [
+     -16.9424,
+     39.6689
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 1409.5
+   }
+  },
+  "208_R1_tier0plus1": {
+   "n_plans": 3111,
+   "kseed": 208,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 267570.9,
+   "maker_filled_usdt": 189711.1,
+   "c_eff_bps": {
+    "point": -5.098,
+    "ci95": [
+     -31.6388,
+     24.6342
+    ],
+    "se_boot": 14.0288
+   },
+   "c_eff_exact_bps": {
+    "point": -3.8511,
+    "ci95": [
+     -29.984,
+     24.7803
+    ],
+    "se_boot": 13.9204
+   },
+   "fill_rate": {
+    "point": 0.709,
+    "ci95": [
+     0.6786,
+     0.7725
+    ],
+    "se_boot": 0.0235
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3604,
+    "ci95": [
+     1.3078,
+     1.435
+    ],
+    "se_boot": 0.0322
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -9.4476,
+    "ci95": [
+     -18.4327,
+     3.3246
+    ],
+    "se_boot": 5.3611
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.6973,
+    "ci95": [
+     -6.3584,
+     -2.6753
+    ],
+    "se_boot": 0.9737
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -4.7652,
+    "ci95": [
+     -14.3882,
+     7.8166
+    ],
+    "se_boot": 5.4826
+   },
+   "  of_which_cross": {
+    "point": 0.015,
+    "ci95": [
+     -0.0253,
+     0.0652
+    ],
+    "se_boot": 0.0221
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 2.9891,
+    "ci95": [
+     -17.6953,
+     21.4837
+    ],
+    "se_boot": 9.8065
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -9.8199,
+    "ci95": [
+     -22.466,
+     -2.4589
+    ],
+    "se_boot": 5.229
+   },
+   "  of_which_run_clock": {
+    "point": 12.717,
+    "ci95": [
+     -12.9786,
+     44.1136
+    ],
+    "se_boot": 14.4125
+   },
+   "  of_which_cross ": {
+    "point": 0.092,
+    "ci95": [
+     -1.3609,
+     1.5714
+    ],
+    "se_boot": 0.7063
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -31.3195,
+    "ci95": [
+     -73.126,
+     7.6345
+    ],
+    "se_boot": 20.7419
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9187,
+    "ci95": [
+     1.8161,
+     1.9668
+    ],
+    "se_boot": 0.0368
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -13.3249,
+    "ci95": [
+     -25.6214,
+     4.4996
+    ],
+    "se_boot": 7.4614
+   },
+   "second_order_term_bps": 1.24693,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": -5.098,
+    "ci95": [
+     -31.6388,
+     24.6342
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 337.0
+   }
+  },
+  "209_R1_tier2": {
+   "n_plans": 4552,
+   "kseed": 209,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 347497.9,
+   "maker_filled_usdt": 253321.8,
+   "c_eff_bps": {
+    "point": 5.9234,
+    "ci95": [
+     -15.3804,
+     31.9781
+    ],
+    "se_boot": 12.5995
+   },
+   "c_eff_exact_bps": {
+    "point": 5.7423,
+    "ci95": [
+     -15.4608,
+     31.9253
+    ],
+    "se_boot": 12.6078
+   },
+   "fill_rate": {
+    "point": 0.729,
+    "ci95": [
+     0.6999,
+     0.7857
+    ],
+    "se_boot": 0.0221
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.4036,
+    "ci95": [
+     1.3694,
+     1.4518
+    ],
+    "se_boot": 0.0221
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -3.1072,
+    "ci95": [
+     -9.8283,
+     5.241
+    ],
+    "se_boot": 3.9817
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -3.5557,
+    "ci95": [
+     -3.8304,
+     -3.0711
+    ],
+    "se_boot": 0.1897
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": 0.4473,
+    "ci95": [
+     -6.1963,
+     8.8672
+    ],
+    "se_boot": 4.0021
+   },
+   "  of_which_cross": {
+    "point": 0.0012,
+    "ci95": [
+     -0.0065,
+     0.0076
+    ],
+    "se_boot": 0.0037
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 7.627,
+    "ci95": [
+     -8.6031,
+     26.3563
+    ],
+    "se_boot": 9.0942
+   },
+   "  of_which_latency_E_to_run": {
+    "point": 1.485,
+    "ci95": [
+     -5.6721,
+     4.8179
+    ],
+    "se_boot": 2.6529
+   },
+   "  of_which_run_clock": {
+    "point": 6.0651,
+    "ci95": [
+     -10.3597,
+     23.9377
+    ],
+    "se_boot": 9.2832
+   },
+   "  of_which_cross ": {
+    "point": 0.0769,
+    "ci95": [
+     -0.064,
+     0.2658
+    ],
+    "se_boot": 0.0823
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -11.3649,
+    "ci95": [
+     -39.6002,
+     24.8597
+    ],
+    "se_boot": 17.9975
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9254,
+    "ci95": [
+     1.8252,
+     1.9692
+    ],
+    "se_boot": 0.0364
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -4.2623,
+    "ci95": [
+     -13.5582,
+     7.0217
+    ],
+    "se_boot": 5.4649
+   },
+   "second_order_term_bps": -0.18108,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 5.9234,
+    "ci95": [
+     -15.3804,
+     31.9781
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 652.5
+   }
+  },
+  "210_R1_buy": {
+   "n_plans": 4143,
+   "kseed": 210,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 341111.7,
+   "maker_filled_usdt": 238941.7,
+   "c_eff_bps": {
+    "point": -9.0972,
+    "ci95": [
+     -44.1368,
+     37.6278
+    ],
+    "se_boot": 22.0839
+   },
+   "c_eff_exact_bps": {
+    "point": -8.1998,
+    "ci95": [
+     -42.801,
+     37.8998
+    ],
+    "se_boot": 21.6833
+   },
+   "fill_rate": {
+    "point": 0.7005,
+    "ci95": [
+     0.6743,
+     0.7609
+    ],
+    "se_boot": 0.0224
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3479,
+    "ci95": [
+     1.286,
+     1.4209
+    ],
+    "se_boot": 0.0325
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -10.266,
+    "ci95": [
+     -22.011,
+     7.257
+    ],
+    "se_boot": 7.7973
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.5912,
+    "ci95": [
+     -5.9782,
+     -2.7591
+    ],
+    "se_boot": 0.9492
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -5.6826,
+    "ci95": [
+     -16.9737,
+     10.8193
+    ],
+    "se_boot": 7.3119
+   },
+   "  of_which_cross": {
+    "point": 0.0078,
+    "ci95": [
+     -0.0012,
+     0.0259
+    ],
+    "se_boot": 0.0069
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": -0.1791,
+    "ci95": [
+     -28.3933,
+     42.9264
+    ],
+    "se_boot": 18.3999
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -10.6826,
+    "ci95": [
+     -25.1859,
+     -1.0257
+    ],
+    "se_boot": 6.2478
+   },
+   "  of_which_run_clock": {
+    "point": 10.5903,
+    "ci95": [
+     -18.7135,
+     65.5004
+    ],
+    "se_boot": 22.2391
+   },
+   "  of_which_cross ": {
+    "point": -0.0867,
+    "ci95": [
+     -1.2389,
+     0.6454
+    ],
+    "se_boot": 0.4785
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -34.6891,
+    "ci95": [
+     -102.7065,
+     48.7971
+    ],
+    "se_boot": 43.585
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9242,
+    "ci95": [
+     1.8156,
+     1.9684
+    ],
+    "se_boot": 0.0379
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -14.6557,
+    "ci95": [
+     -31.3127,
+     10.2467
+    ],
+    "se_boot": 11.0665
+   },
+   "second_order_term_bps": 0.8974,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": -9.0972,
+    "ci95": [
+     -44.1368,
+     37.6278
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 327.5
+   }
+  },
+  "211_R1_sell": {
+   "n_plans": 3520,
+   "kseed": 211,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 273957.1,
+   "maker_filled_usdt": 204091.3,
+   "c_eff_bps": {
+    "point": 13.8615,
+    "ci95": [
+     -20.5502,
+     39.843
+    ],
+    "se_boot": 15.4291
+   },
+   "c_eff_exact_bps": {
+    "point": 13.7322,
+    "ci95": [
+     -20.8875,
+     39.7432
+    ],
+    "se_boot": 15.5053
+   },
+   "fill_rate": {
+    "point": 0.745,
+    "ci95": [
+     0.7112,
+     0.8044
+    ],
+    "se_boot": 0.0242
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.4308,
+    "ci95": [
+     1.3858,
+     1.4825
+    ],
+    "se_boot": 0.0258
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -0.3861,
+    "ci95": [
+     -24.1163,
+     21.9763
+    ],
+    "se_boot": 11.6146
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -3.3813,
+    "ci95": [
+     -5.0715,
+     -2.4919
+    ],
+    "se_boot": 0.6613
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": 2.9888,
+    "ci95": [
+     -20.3344,
+     25.7282
+    ],
+    "se_boot": 11.6617
+   },
+   "  of_which_cross": {
+    "point": 0.0065,
+    "ci95": [
+     -0.0317,
+     0.0425
+    ],
+    "se_boot": 0.0179
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 12.8167,
+    "ci95": [
+     -4.3907,
+     29.3724
+    ],
+    "se_boot": 8.9708
+   },
+   "  of_which_latency_E_to_run": {
+    "point": 5.5939,
+    "ci95": [
+     -3.4137,
+     12.2098
+    ],
+    "se_boot": 4.0918
+   },
+   "  of_which_run_clock": {
+    "point": 6.9275,
+    "ci95": [
+     -8.6882,
+     19.4725
+    ],
+    "se_boot": 7.026
+   },
+   "  of_which_cross ": {
+    "point": 0.2953,
+    "ci95": [
+     -0.0993,
+     1.1699
+    ],
+    "se_boot": 0.3229
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -1.8127,
+    "ci95": [
+     -78.2037,
+     51.0176
+    ],
+    "se_boot": 33.7228
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9206,
+    "ci95": [
+     1.8192,
+     1.9697
+    ],
+    "se_boot": 0.037
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -0.5182,
+    "ci95": [
+     -31.5421,
+     28.3533
+    ],
+    "se_boot": 15.2479
+   },
+   "second_order_term_bps": -0.12921,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 13.8615,
+    "ci95": [
+     -20.5502,
+     39.843
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 121.7
+   }
+  },
+  "212_ERA1_R1": {
+   "n_plans": 2431,
+   "kseed": 212,
+   "n_days": 21,
+   "days_first_last": [
+    "2026-08-01",
+    "2026-08-21"
+   ],
+   "intended_usdt": 105613.5,
+   "maker_filled_usdt": 78865.3,
+   "c_eff_bps": {
+    "point": 4.9722,
+    "ci95": [
+     2.1793,
+     7.8502
+    ],
+    "se_boot": 1.4029
+   },
+   "c_eff_exact_bps": {
+    "point": 4.9785,
+    "ci95": [
+     2.1846,
+     7.864
+    ],
+    "se_boot": 1.4051
+   },
+   "fill_rate": {
+    "point": 0.7467,
+    "ci95": [
+     0.6796,
+     0.8135
+    ],
+    "se_boot": 0.0347
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3856,
+    "ci95": [
+     1.2911,
+     1.4808
+    ],
+    "se_boot": 0.0495
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -1.8814,
+    "ci95": [
+     -2.4121,
+     -1.3874
+    ],
+    "se_boot": 0.2717
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -1.8814,
+    "ci95": [
+     -2.4121,
+     -1.3874
+    ],
+    "se_boot": 0.2717
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "se_boot": 0.0
+   },
+   "  of_which_cross": {
+    "point": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "se_boot": 0.0
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 5.4679,
+    "ci95": [
+     2.4211,
+     8.4658
+    ],
+    "se_boot": 1.5137
+   },
+   "  of_which_latency_E_to_run": {
+    "point": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "se_boot": 0.0
+   },
+   "  of_which_run_clock": {
+    "point": 5.4679,
+    "ci95": [
+     2.4211,
+     8.4658
+    ],
+    "se_boot": 1.5137
+   },
+   "  of_which_cross ": {
+    "point": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "se_boot": 0.0
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": 17.2385,
+    "ci95": [
+     -0.8524,
+     35.7976
+    ],
+    "se_boot": 9.7266
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.8555,
+    "ci95": [
+     1.8135,
+     1.9086
+    ],
+    "se_boot": 0.0245
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -2.5194,
+    "ci95": [
+     -3.0079,
+     -2.0026
+    ],
+    "se_boot": 0.2686
+   },
+   "second_order_term_bps": 0.00637,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "FAIL",
+    "c_eff_point": 4.9722,
+    "ci95": [
+     2.1793,
+     7.8502
+    ],
+    "gate_bps": 1.6
+   }
+  },
+  "213_R1c_anti_aligned": {
+   "n_plans": 6411,
+   "kseed": 213,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 546879.2,
+   "maker_filled_usdt": 380578.2,
+   "c_eff_bps": {
+    "point": -9.4884,
+    "ci95": [
+     -21.61,
+     3.4975
+    ],
+    "se_boot": 6.6352
+   },
+   "c_eff_exact_bps": {
+    "point": -9.5805,
+    "ci95": [
+     -22.125,
+     3.722
+    ],
+    "se_boot": 6.7112
+   },
+   "fill_rate": {
+    "point": 0.6959,
+    "ci95": [
+     0.6666,
+     0.7671
+    ],
+    "se_boot": 0.0259
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3395,
+    "ci95": [
+     1.3096,
+     1.4108
+    ],
+    "se_boot": 0.0264
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -5.0207,
+    "ci95": [
+     -10.3841,
+     0.1231
+    ],
+    "se_boot": 2.8145
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -2.8649,
+    "ci95": [
+     -3.6876,
+     -2.4121
+    ],
+    "se_boot": 0.317
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -2.1475,
+    "ci95": [
+     -7.8756,
+     3.484
+    ],
+    "se_boot": 3.0522
+   },
+   "  of_which_cross": {
+    "point": -0.0083,
+    "ci95": [
+     -0.0379,
+     0.0037
+    ],
+    "se_boot": 0.0105
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": -5.8071,
+    "ci95": [
+     -15.1802,
+     4.2042
+    ],
+    "se_boot": 5.0163
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -4.4369,
+    "ci95": [
+     -12.5872,
+     3.082
+    ],
+    "se_boot": 4.2366
+   },
+   "  of_which_run_clock": {
+    "point": -1.4639,
+    "ci95": [
+     -6.1039,
+     4.509
+    ],
+    "se_boot": 2.6996
+   },
+   "  of_which_cross ": {
+    "point": 0.0937,
+    "ci95": [
+     -0.1063,
+     0.291
+    ],
+    "se_boot": 0.1042
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -11.2973,
+    "ci95": [
+     -34.2611,
+     9.3258
+    ],
+    "se_boot": 11.7182
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9248,
+    "ci95": [
+     1.8193,
+     1.9731
+    ],
+    "se_boot": 0.0389
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -7.2146,
+    "ci95": [
+     -14.9645,
+     0.1584
+    ],
+    "se_boot": 4.0486
+   },
+   "second_order_term_bps": -0.09211,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": -9.4884,
+    "ci95": [
+     -21.61,
+     3.4975
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 27.5
+   }
+  },
+  "214_R1_K_round": {
+   "n_plans": 7663,
+   "kseed": 214,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 615068.8,
+   "maker_filled_usdt": 443033.0,
+   "c_eff_bps": {
+    "point": 0.8682,
+    "ci95": [
+     -18.7494,
+     25.4466
+    ],
+    "se_boot": 11.5216
+   },
+   "c_eff_exact_bps": {
+    "point": 0.9218,
+    "ci95": [
+     -18.3915,
+     24.9714
+    ],
+    "se_boot": 11.323
+   },
+   "fill_rate": {
+    "point": 0.7203,
+    "ci95": [
+     0.698,
+     0.7732
+    ],
+    "se_boot": 0.0198
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3848,
+    "ci95": [
+     1.3647,
+     1.4297
+    ],
+    "se_boot": 0.0171
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -6.126,
+    "ci95": [
+     -15.6387,
+     4.1065
+    ],
+    "se_boot": 5.1388
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.0523,
+    "ci95": [
+     -4.8323,
+     -3.1322
+    ],
+    "se_boot": 0.4632
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -2.1262,
+    "ci95": [
+     -11.0393,
+     7.5575
+    ],
+    "se_boot": 4.842
+   },
+   "  of_which_cross": {
+    "point": 0.0525,
+    "ci95": [
+     0.006,
+     0.0944
+    ],
+    "se_boot": 0.0243
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 5.6094,
+    "ci95": [
+     -6.9674,
+     21.6148
+    ],
+    "se_boot": 7.4048
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -5.9992,
+    "ci95": [
+     -14.4304,
+     -1.1351
+    ],
+    "se_boot": 3.4053
+   },
+   "  of_which_run_clock": {
+    "point": 11.7284,
+    "ci95": [
+     -2.4506,
+     34.4593
+    ],
+    "se_boot": 9.7533
+   },
+   "  of_which_cross ": {
+    "point": -0.1198,
+    "ci95": [
+     -0.7434,
+     0.3493
+    ],
+    "se_boot": 0.2758
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -20.0457,
+    "ci95": [
+     -50.5647,
+     11.9969
+    ],
+    "se_boot": 16.5601
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9225,
+    "ci95": [
+     1.8261,
+     1.969
+    ],
+    "se_boot": 0.0365
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -8.5048,
+    "ci95": [
+     -21.5185,
+     5.6345
+    ],
+    "se_boot": 7.0713
+   },
+   "second_order_term_bps": 0.05358,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 0.8682,
+    "ci95": [
+     -18.7494,
+     25.4466
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 19045.1
+   }
+  },
+  "215_R1_intent_size_tercile_low": {
+   "n_plans": 2555,
+   "kseed": 215,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 20589.6,
+   "maker_filled_usdt": 17027.6,
+   "c_eff_bps": {
+    "point": 2.5002,
+    "ci95": [
+     -7.2657,
+     10.65
+    ],
+    "se_boot": 4.5677
+   },
+   "c_eff_exact_bps": {
+    "point": 2.5791,
+    "ci95": [
+     -7.2137,
+     10.6862
+    ],
+    "se_boot": 4.561
+   },
+   "fill_rate": {
+    "point": 0.827,
+    "ci95": [
+     0.7985,
+     0.8497
+    ],
+    "se_boot": 0.0131
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.5049,
+    "ci95": [
+     1.4675,
+     1.5368
+    ],
+    "se_boot": 0.0179
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -0.711,
+    "ci95": [
+     -5.0502,
+     3.5435
+    ],
+    "se_boot": 2.1929
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -3.3312,
+    "ci95": [
+     -3.8903,
+     -2.9308
+    ],
+    "se_boot": 0.2528
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": 2.6187,
+    "ci95": [
+     -1.4552,
+     6.6078
+    ],
+    "se_boot": 2.0901
+   },
+   "  of_which_cross": {
+    "point": 0.0015,
+    "ci95": [
+     -0.006,
+     0.0111
+    ],
+    "se_boot": 0.0045
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 1.7063,
+    "ci95": [
+     -6.1059,
+     8.9319
+    ],
+    "se_boot": 3.8243
+   },
+   "  of_which_latency_E_to_run": {
+    "point": 1.7828,
+    "ci95": [
+     -0.1014,
+     3.5467
+    ],
+    "se_boot": 0.9136
+   },
+   "  of_which_run_clock": {
+    "point": -0.0845,
+    "ci95": [
+     -7.6233,
+     6.9321
+    ],
+    "se_boot": 3.73
+   },
+   "  of_which_cross ": {
+    "point": 0.008,
+    "ci95": [
+     -0.1021,
+     0.1095
+    ],
+    "se_boot": 0.0539
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -1.6939,
+    "ci95": [
+     -16.5256,
+     11.5777
+    ],
+    "se_boot": 7.062
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.8197,
+    "ci95": [
+     1.8,
+     1.847
+    ],
+    "se_boot": 0.0124
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -0.8597,
+    "ci95": [
+     -5.9311,
+     4.3597
+    ],
+    "se_boot": 2.65
+   },
+   "second_order_term_bps": 0.07891,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 2.5002,
+    "ci95": [
+     -7.2657,
+     10.65
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 1978.2
+   }
+  },
+  "216_R1_intent_size_tercile_mid": {
+   "n_plans": 2554,
+   "kseed": 216,
+   "n_days": 20,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 56765.1,
+   "maker_filled_usdt": 45659.8,
+   "c_eff_bps": {
+    "point": -1.0491,
+    "ci95": [
+     -12.0399,
+     8.0029
+    ],
+    "se_boot": 4.9441
+   },
+   "c_eff_exact_bps": {
+    "point": -1.4347,
+    "ci95": [
+     -12.2743,
+     7.5701
+    ],
+    "se_boot": 4.9707
+   },
+   "fill_rate": {
+    "point": 0.8044,
+    "ci95": [
+     0.7783,
+     0.8317
+    ],
+    "se_boot": 0.0137
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.4844,
+    "ci95": [
+     1.4456,
+     1.5245
+    ],
+    "se_boot": 0.0204
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -5.9981,
+    "ci95": [
+     -11.7257,
+     -1.8418
+    ],
+    "se_boot": 2.5722
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -3.437,
+    "ci95": [
+     -4.0067,
+     -3.0741
+    ],
+    "se_boot": 0.2379
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -2.5624,
+    "ci95": [
+     -7.8681,
+     1.4857
+    ],
+    "se_boot": 2.4516
+   },
+   "  of_which_cross": {
+    "point": 0.0012,
+    "ci95": [
+     -0.005,
+     0.0104
+    ],
+    "se_boot": 0.0039
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 3.4645,
+    "ci95": [
+     -4.904,
+     10.631
+    ],
+    "se_boot": 3.9432
+   },
+   "  of_which_latency_E_to_run": {
+    "point": 2.074,
+    "ci95": [
+     0.4481,
+     3.8384
+    ],
+    "se_boot": 0.8654
+   },
+   "  of_which_run_clock": {
+    "point": 1.362,
+    "ci95": [
+     -7.5784,
+     8.8332
+    ],
+    "se_boot": 4.1451
+   },
+   "  of_which_cross ": {
+    "point": 0.0286,
+    "ci95": [
+     -0.0392,
+     0.0992
+    ],
+    "se_boot": 0.0356
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -3.6163,
+    "ci95": [
+     -21.8931,
+     12.3113
+    ],
+    "se_boot": 8.7922
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.8455,
+    "ci95": [
+     1.8081,
+     1.8902
+    ],
+    "se_boot": 0.0211
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -7.457,
+    "ci95": [
+     -14.5012,
+     -2.255
+    ],
+    "se_boot": 3.1789
+   },
+   "second_order_term_bps": -0.38556,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": -1.0491,
+    "ci95": [
+     -12.0399,
+     8.0029
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 267.6
+   }
+  },
+  "217_R1_intent_size_tercile_high": {
+   "n_plans": 2554,
+   "kseed": 217,
+   "n_days": 19,
+   "days_first_last": [
+    "2026-08-22",
+    "2026-09-10"
+   ],
+   "intended_usdt": 537714.1,
+   "maker_filled_usdt": 380345.5,
+   "c_eff_bps": {
+    "point": 1.3062,
+    "ci95": [
+     -19.1493,
+     28.8008
+    ],
+    "se_boot": 12.3292
+   },
+   "c_eff_exact_bps": {
+    "point": 1.8473,
+    "ci95": [
+     -18.5528,
+     29.0886
+    ],
+    "se_boot": 12.1418
+   },
+   "fill_rate": {
+    "point": 0.7073,
+    "ci95": [
+     0.6895,
+     0.7589
+    ],
+    "se_boot": 0.0175
+   },
+   "fee_bps_per_unit_intended": {
+    "point": 1.3697,
+    "ci95": [
+     1.3493,
+     1.4073
+    ],
+    "se_boot": 0.0149
+   },
+   "filled_shortfall_vs_E_bps_per_unit_intended": {
+    "point": -6.0488,
+    "ci95": [
+     -13.3926,
+     3.4179
+    ],
+    "se_boot": 4.2703
+   },
+   "  of_which_vs_run_mid_a": {
+    "point": -4.1449,
+    "ci95": [
+     -5.0495,
+     -3.0601
+    ],
+    "se_boot": 0.5391
+   },
+   "  of_which_latency_E_to_run_b": {
+    "point": -1.912,
+    "ci95": [
+     -8.9543,
+     7.069
+    ],
+    "se_boot": 4.0826
+   },
+   "  of_which_cross": {
+    "point": 0.0081,
+    "ci95": [
+     -0.0125,
+     0.0376
+    ],
+    "se_boot": 0.0124
+   },
+   "unfilled_opportunity_bps_per_unit_intended": {
+    "point": 5.9853,
+    "ci95": [
+     -9.5786,
+     25.2391
+    ],
+    "se_boot": 8.8512
+   },
+   "  of_which_latency_E_to_run": {
+    "point": -4.214,
+    "ci95": [
+     -14.4308,
+     0.5376
+    ],
+    "se_boot": 3.8244
+   },
+   "  of_which_run_clock": {
+    "point": 10.1071,
+    "ci95": [
+     -6.0677,
+     38.0885
+    ],
+    "se_boot": 11.5688
+   },
+   "  of_which_cross ": {
+    "point": 0.0921,
+    "ci95": [
+     -0.5878,
+     0.8724
+    ],
+    "se_boot": 0.366
+   },
+   "subset_replay_gross_bps_per_unit_intended": {
+    "point": -22.4828,
+    "ci95": [
+     -58.6321,
+     14.9206
+    ],
+    "se_boot": 19.6584
+   },
+   "fee_bps_per_unit_filled": {
+    "point": 1.9364,
+    "ci95": [
+     1.8219,
+     1.9813
+    ],
+    "se_boot": 0.0383
+   },
+   "filled_shortfall_vs_E_bps_per_unit_filled": {
+    "point": -8.5514,
+    "ci95": [
+     -18.7021,
+     4.6649
+    ],
+    "se_boot": 5.9354
+   },
+   "second_order_term_bps": 0.54114,
+   "judgement_reported_only": {
+    "rule": "CI upper < 1.6 => PASS; CI lower > 1.6 => FAIL; else UNDECIDABLE (PROGRAM \u00a72 T3 / AMENDMENT 1 item 3)",
+    "verdict": "UNDECIDABLE",
+    "c_eff_point": 1.3062,
+    "ci95": [
+     -19.1493,
+     28.8008
+    ],
+    "gate_bps": 1.6,
+    "n_days_required": 128538.1
+   }
+  }
+ },
+ "transfer_diagnostics": {
+  "rev_short_raw_book_window": {
+   "anchors": 107,
+   "mean_turnover_per_anchor": 1.3298,
+   "mean_gross_bps_per_anchor": 5.2274,
+   "gross_per_unit_turnover_bps": 3.9311,
+   "note": "raw a=1 rank book, sum|w|=1, eligible = member & finite(y4[E-4h]) & qv4h>=2.5e5, first anchor of window uses previous meta anchor weights"
+  },
+  "turnover_share_rev_short": {
+   "aligned": 0.8969,
+   "anti_aligned": 0.0996,
+   "exit_of_now_unranked_name": 0.0035,
+   "by_abs_rank_bin(0..4 = |r|<0.1 .. >=0.4)": {
+    "0": 0.13057013631379513,
+    "1": 0.15079555447594278,
+    "2": 0.18669901600053856,
+    "3": 0.2374179052749729,
+    "4": 0.29100699997990276,
+    "exit_unranked": 0.0035103879548481435
+   },
+   "by_tier": {
+    "0": 0.18714758271315302,
+    "1": 0.3089673427601876,
+    "2": 0.5003746865718116,
+    "na": 0.0035103879548481435
+   }
+  },
+  "intended_share_ours_classified": {
+   "aligned": 0.528,
+   "by_abs_rank_bin": {
+    "0": 0.1721379108901186,
+    "1": 0.15909336382383876,
+    "2": 0.16277927203698864,
+    "3": 0.20364667504023926,
+    "4": 0.30234277820881506
+   },
+   "by_tier": {
+    "0": 0.13959533661807816,
+    "1": 0.3037233885988802,
+    "2": 0.5566812747830419
+   }
+  },
+  "total_variation_distance_all_cells": 0.3816,
+  "total_variation_distance_aligned_cells_R1_vs_revshort_aligned": 0.1243,
+  "posthoc_mixture_not_gating": {
+   "weight_aligned": 0.9001,
+   "c_eff_mixture_point": 0.0677,
+   "note": "point only; CI not computed (not pre-registered as an estimator)"
+  }
+ },
+ "topup_leg_descriptive": {
+  "topup_filled_usdt": 167238.8,
+  "fee_bps_per_unit_topup": 4.7876,
+  "shortfall_vs_E_bps_per_unit_topup": -7.4439,
+  "all_in_vs_E_bps_per_unit_topup": -2.6563,
+  "note": "descriptive, no CI; ERA2 plans only; compares with the opportunity cost the passive policy would bear instead"
+ },
+ "T_A1_in_service": {
+  "k_seconds": 900,
+  "placement_bandit_eps": 0.5,
+  "requote_experiment_p": 0.5,
+  "book_json_sha256": "f6fd6d0e0f10039a7c61267a72d448cc86920b85b7ff97bc44ee9bb9a55bc454"
+ }
+}

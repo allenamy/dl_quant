@@ -1,0 +1,98 @@
+{
+ "device": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_r2_2026-09-13/T3/devices/t3_gate_repro.py",
+ "self_sha256": "f5f809353cf565be7553230318cfb90d0e96ce0a74c6ea6de22cc8c6c76d953d",
+ "prereg_sha256": "c7be850055160d7eeafe10fb859470f442d3f0552333ba290d9496357be8f8f6",
+ "env_whitelist": [],
+ "python": "3.9.6",
+ "utc": "2026-09-13T05:28:01Z",
+ "inputs": {
+  "ledger_snapshot": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_r2_2026-09-13/T3/private/ledger_snap_20260913T0455Z",
+  "ledger_manifest_sha256": "9ba1c85a7c92574e4e284f00d82a21b65b60296c07a6474ef25c367e42bb4183",
+  "trackB_rows": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/trackB_realized_cost_rows.json",
+   "sha256": "8ae867eb3c1e47cffa1c5514ad28bb76b8aa9add45d59bbeecf82d2103d29f05"
+  },
+  "trackB_script": {
+   "path": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/uplift_2026-09-11/trackB_realized_cost_2026-09-11.py",
+   "sha256": "9eb531f4269ed2ae4bc246ff5ad55b97f156facd021c51fd2cf13c2f4bab4406"
+  }
+ },
+ "T_cut": "2026-09-11T07:32:03Z",
+ "G1": {
+  "rule": "rows ts-set equal; per-row |d| <= 1e-6 USDT (traded, fee, adv) and <= 1e-9 (mo_cov); aggregates -2.6573 and 27.5",
+  "raw_fill_rows_in_cut": 81161,
+  "deduped_trackB_rule": 33886,
+  "dupes_identical_payload": 47275,
+  "dupes_differing_payload": 0,
+  "rows_ts_set_equal": true,
+  "n_rows_reference": 243,
+  "n_rows_rebuild": 243,
+  "worst_abs_diff": {
+   "traded_notional": 0.0,
+   "fee_usdt": 0.0,
+   "adv_cost_usdt": 0.0,
+   "mo_cov": 0.0
+  },
+  "n_bad": 0,
+  "bad_rows_first20": [],
+  "critic_from_reference_rows": {
+   "n_anchor_rows": 243,
+   "n_rows_with_finite_markout60": 229,
+   "traded_notional_usdt": 1265349.43,
+   "fee_bps_of_traded": 2.3848,
+   "markout60_bps_notional_weighted": -2.6573,
+   "anchors_with_favourable_markout_pct": 27.5,
+   "anchors_adverse_pct_strict_lt0": 72.5,
+   "markout60_bps_raw": -2.6573155466505884
+  },
+  "critic_from_rebuild": {
+   "n_anchor_rows": 243,
+   "n_rows_with_finite_markout60": 229,
+   "traded_notional_usdt": 1265349.43,
+   "fee_bps_of_traded": 2.3848,
+   "markout60_bps_notional_weighted": -2.6573,
+   "anchors_with_favourable_markout_pct": 27.5,
+   "anchors_adverse_pct_strict_lt0": 72.5,
+   "markout60_bps_raw": -2.6573155466505884
+  },
+  "PASS": true
+ },
+ "G2": {
+  "cut_state": {
+   "trade_ids_differing_between_rules": {
+    "mid_at_fill_plus_60s": 0,
+    "fill_notional": 0,
+    "commission": 0
+   },
+   "trade_ids_shared_by_two_symbols": 0,
+   "critic_under_executor_collapse": {
+    "n_anchor_rows": 243,
+    "n_rows_with_finite_markout60": 229,
+    "traded_notional_usdt": 1265349.43,
+    "fee_bps_of_traded": 2.3848,
+    "markout60_bps_notional_weighted": -2.6573,
+    "anchors_with_favourable_markout_pct": 27.5,
+    "anchors_adverse_pct_strict_lt0": 72.5,
+    "markout60_bps_raw": -2.657315546650588
+   }
+  },
+  "full_snapshot_no_cut": {
+   "raw_fill_rows": 87580,
+   "collapsed_by_trade_id": 36507,
+   "collapsed_by_order_type_and_maker_flag": {
+    "('maker', True)": {
+     "n": 26016,
+     "notional_usdt": 1134600.56
+    },
+    "('protective_flatten', False)": {
+     "n": 3095,
+     "notional_usdt": 232756.97
+    },
+    "('topup_taker', False)": {
+     "n": 7396,
+     "notional_usdt": 226523.85
+    }
+   }
+  }
+ }
+}
