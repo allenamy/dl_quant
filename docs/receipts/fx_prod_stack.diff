@@ -1884,17 +1884,23 @@ index 0000000..807d131
 +    main()
 diff --git a/migrations/swap_dryrun_frozen_20260913.sh b/migrations/swap_dryrun_frozen_20260913.sh
 new file mode 100755
-index 0000000..c7b057e
+index 0000000..07f2678
 --- /dev/null
 +++ b/migrations/swap_dryrun_frozen_20260913.sh
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,46 @@
 +#!/bin/bash
 +# FX-PROD swap dry run on the frozen live state 09-13 12Z (read-only inputs). Starts after 16:50:30Z; pauses children 19:55Z-20:50Z.
 +set -u
 +cd /Users/haosiyu/cc_tmp/fx_prod
 +PY="env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu PYTHONDONTWRITEBYTECODE=1 /Users/haosiyu/wide_shadow/venv/bin/python -B"
 +CODE=work/code_b90f1b8; ST=work/frozen/live_1789300800/state; M=work/swapdry
-+while [ "$(date -u +%H%M)" -lt 1651 ]; do sleep 20; done
++# lead 09-13: heavy local work only from 17:05Z (16Z executor anchor finishes ~N+58); never inside HH:15-HH:50 of 00/04/08/12/16/20Z
++hm=$(date -u +%H%M); h=$((10#${hm:0:2})); m=$((10#${hm:2:2}))
++if [ $((h % 4)) -eq 0 ] && [ $m -ge 15 ] && [ $m -lt 50 ]; then echo "REFUSE: anchor window"; exit 3; fi
++if [ $((h % 4)) -eq 0 ] && [ $m -lt 15 ] || { [ $((h % 4)) -eq 0 ] && [ $m -ge 50 ]; } || { [ $((h % 4)) -eq 1 ] && [ $m -lt 5 ]; }; then echo "REFUSE: executor settlement tail (start >= HH+1:05)"; exit 3; fi
++# sandbox: outputs only under work/swapdry; ~/wide_shadow is read (bundle, aug backup, venv) and must be unchanged -> before/after listing
++LIVE_RO="/Users/haosiyu/wide_shadow/shadow_bundle /Users/haosiyu/wide_shadow/shadow_bundle.aug20260816_backup"
++find $LIVE_RO -type f -exec stat -f "%m %z %N" {} \; | sort > $M/live_ro_before.txt
 +guard() {   # pause this driver's direct children during the 20Z producer window (bash 3.2: no BASHPID, so read the subshell pid via PPID)
 +  SELF=$(exec /bin/sh -c 'echo $PPID')
 +  echo "guard self $SELF" >> $M/guard.log
@@ -1923,6 +1929,8 @@ index 0000000..c7b057e
 +step LOAD_old_staged $PY migrations/swap_load_test.py --code work/code_live_b8917484 --aux $S/aux.json --lr $S/leg_returns_live.json --rolling $ST/rolling.npz --home $M/load_old_staged --expect load
 +step LOAD_new_original $PY migrations/swap_load_test.py --code $CODE --aux $ST/aux.json --lr $ST/leg_returns_live.json --rolling $ST/rolling.npz --home $M/load_new_original --expect refuse
 +step LOAD_old_original $PY migrations/swap_load_test.py --code work/code_live_b8917484 --aux $ST/aux.json --lr $ST/leg_returns_live.json --rolling $ST/rolling.npz --home $M/load_old_original --expect load
++find $LIVE_RO -type f -exec stat -f "%m %z %N" {} \; | sort > $M/live_ro_after.txt
++cmp -s $M/live_ro_before.txt $M/live_ro_after.txt && echo "LIVE_RO unchanged" || echo "LIVE_RO CHANGED"
 +echo "=== DONE $(date -u +%T)"
 +} > $M/run_dry.log 2>&1
 +kill $GP 2>/dev/null
