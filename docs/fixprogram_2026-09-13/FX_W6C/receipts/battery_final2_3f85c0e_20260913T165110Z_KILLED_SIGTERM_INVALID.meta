@@ -4,3 +4,4 @@ tree_at_start f0572129f921c32bf3d644dcc51e1a578fe78f3e
 tracked_changes_outside_state_at_start 0
 env_file_present no
 killed at ~16:51-16:52Z after 3 suites; driver exit 143 (SIGTERM, sender unknown); no END line
+correction 2026-09-13T17:2xZ: the SIGTERM at 16:52:24Z was sent by the lead (receipt docs/fixprogram_2026-09-13/receipts/INFRA_stop_battery_in_anchor_window_20260913T165202Z.log) because this run started 16:51:10Z inside the anchor window without BATTERY.lock; 'sender unknown' above is superseded. The later final3 run (17:01:50Z) also started before the 17:05Z window, without BATTERY.lock, after the lead's instruction not to restart; the lead keeps its result as a receipt and records the deviation.
