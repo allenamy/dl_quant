@@ -1,6 +1,6 @@
 # DESIGN · 下游读者三桶迁移: daily_summary / first_anchor_review / score_post_fix (事实表先于代码)
 
-> **创建:** 2026-09-12 10:1xZ | **Session:** W2 (team lead 派单; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w2`, 分支 `fix/readers-three-bucket`, 基线 `origin/main` = 918559f) | **状态:** 完成 + 研究员复审 W2-R1/R2 收口(§7; 裁定项 R-12b 待裁); 码在克隆分支 `fix/readers-three-bucket`, 未提交/未推送/未部署; 两轮电池各 132/133, 唯一红 = 克隆无 .env | **作废条件:** 收入载体(`binance_broker.income_since`)改变 `by_type_asset` / `non_usdt_assets` 合同, 或 `anchor_loop.neutrality_price` 的三桶规则改变(本文 §3.2 的相等断言会先红)
+> **创建:** 2026-09-12 10:1xZ | **Session:** W2 (team lead 派单; 隔离克隆 `/Users/haosiyu/cc_tmp/exec_w2`, 分支 `fix/readers-three-bucket`, 基线 `origin/main` = 918559f) | **状态:** 第三轮(研究员 REVIEW_code_and_research_2026-09-13 §3.C 三缺陷)收口, 见 §8; 码在克隆分支, 未提交/未推送/未部署; 本轮未跑全电池(lead 跑叠层) | **作废条件:** 收入载体(`binance_broker.income_since`)改变 `by_type_asset` / `non_usdt_assets` / `truncated` 合同, 或 `external_flow_usdt` 不再是当日累计, 或 `anchor_loop.neutrality_price` 的三桶规则改变, 或 `pilot_metrics.py` 解冻(§8 的载体一致门会先红)
 
 ## 0. 范围与硬约束
 - **只改读者, 不改生产者与守卫**: `ops/daily_summary.py` / `ops/first_anchor_review.py` / `ops/score_post_fix.py` + 一个新的纯函数模块 `live/cost_buckets.py` + 测试 + 注册(`run_acceptance.sh` SUITES, `ops/gate_coverage.py` SUITE_SCOPE)。
@@ -197,3 +197,114 @@ c59971d33ce0697dd912553021fb9f370367a4c53d499f47ebe14c99c5bd2d71  live/tests_dai
 - `ops/first_real_anchor.py:81` 仍打印 `realised_by_type` 原数 —— 未派单, 登记。
 - 非 USDT 换算不在读者层; 读者只列原币种数量。
 - 旧码红收据里 `tests_daily_summary` 是 KeyError 中止(rc=1), 不是逐条 FAIL 列表; 逐条数字对照由套件内联 MUTATION check 承担(旧公式在同夹具上的值: −0.31 / 0.0 / −1.00 / +6.50 / −3.70)。
+
+## 8. ROUND 3 — 独立研究员 2026-09-13 §3.C 三缺陷收口 (W2b; 事实表先于代码)
+
+> **命名对账**: §6g 的「第三轮」= 同日早些时候的 **SKIP 改造**(只动两个测试文件, 读者码 sha 不变)。本节 = 派单口径的 **round 3**, 即研究员 `REVIEW_code_and_research_2026-09-13` §3.C + 专项 `codex_followup_code_review_2026-09-13/monitoring/RESULT.md`(W2-N1/N2/N3)三条缺陷的收口。两者互不覆盖。
+> **入口**: 复现装置 `docs/receipts/w2_readers_three_bucket/round3_defect_probe.py`(同一批夹具跑任意树, 自身不断言), 修前输出 `round3_defect_probe_PREROUND3_RED.out`, 修后 `round3_defect_probe_FIXED.out`。
+
+### 8a. 事实表补格 (每格: 复现 → 新读法 → 测试 → 修前红)
+
+| # | 研究员反例 | 我方复现(克隆, 冻结 m1 sha 5ac7b16d…) | 新读法 | 测试 / 修前红 |
+|---|---|---|---|---|
+| N1-a | `score_post_fix.py:404/414` —— 一行 `side=None`(schema 合法: `orders.required` 有 `side`, `not_null` 没有): 桶判完整 ⇒ **PASS**, 而 m1 因读不出 side 排空人口 ⇒ `c_bps_overall=None`。**PASS 旁边没有成本** | 复现: verdict PASS / complete True / m1 bit None / c None(`round3_defect_probe_PREROUND3_RED.out` DEFECT 1) | E6 新增**载体一致门**: PASS 必须同时满足 ① 人口同集 ② 两个口径的 bps 在**明写容差**内一致。此例 ①② 皆破 ⇒ **FAIL**, `why_not` 逐条点名 | RTB [E-R3] 4 格 + MUTATION R3(i): 轮二规则 `_verdict(complete_b)` 在同一棵树读 PASS。修前读者 KeyError `carrier_consistency` ⇒ rc 1 |
+| N1-b | 再加一行正常行, 缺 side 那行滑点更大: m1 只测 1 行报 **3.0bps**, 同人口桶 **52.5bps**, E6 仍 **PASS** | 复现: 逐位相同的 3.0 / 52.5(同上) | 同上 ⇒ FAIL; 且**页面展示的数字换成桶的** `cost_bps_displayed`(与判决同人口), m1 的数留在 `c_bps_overall` 并标 `c_bps_overall_source` | RTB [E-R3]: 3.0/52.5 双数复现 + 展示位断言 + MUTATION R3(ii) |
+| N1-c | 「加 finite 检查」不够 | 复现: 单行例 `c_bps_overall_is_finite=False`(finite 门能挡), 混合例 c=3.0 有限(挡不住) | 门 = **人口同集 + 值一致**, 不是 finite 检查 | RTB [E-R3] 显式断言这一点 |
+| N1-d | (我方补) 人口相同而**符号约定**不同也不该 PASS: m1 按 `side` 定号, 桶按 `filled_notional` 符号 | 构造 `side='sell'` 而 `filled_notional>0`: 计数/名义/逐 regime 全同, `abs` 口径全同, **net 口径 +3.0 vs +1.0** | 值一致门对**两个口径**分别判 ⇒ FAIL | RTB [E-R3]: 证明值门不是人口门的推论 |
+| N2 | `first_anchor_review.py:368` —— `ex` 先删掉未知成交行, `_leg` 再算完整性 ⇒ 屏上 **100% / 1/1 / measurement complete: yes**, 而全人口不完整 | 复现: 全人口桶 complete **False**, `ex` 过滤后 **True**; 屏幕逐字打 `measurement complete: yes`(`round3_defect_probe_PREROUND3_RED.out` DEFECT 2) | `_leg` 改收**全量行**(`mine`, 不是 `ex`)。`bucket_fills` 本就把未知成交行放在**任何桶之外**(分子分母都不进), 所以**已测数字逐位不变**, 变的只是 `n_unknown_fill` ⇒ `measurement_complete` False, 且同一行点名未知行 | RTB [D](iv) + MUTATION R3(iii): 同一批行在 `ex` 过滤下 complete True / 全量下 False。修前读者 2 格红 |
+| N2-b | (我方补, 同形态低一层) taker `from_partial/from_reject` **分裂**也用 `ex`, 各自打自己的完整性标签 | 复现: 5 已测 + 1 未知成交 ⇒ 旧屏 `5/5 … complete: yes` | 分裂保留**两个人口且各自具名**: `_estimable` 仍吃已知成交行(它 `float(filled_notional)`, 吃不了 None), `_leg` 吃全量子人口 | RTB [D](v) 2 格; 修前读者 2 格红 |
+| N3 | `daily_summary` —— 末日**当日累计**外部流直接去减**区间**权益变动: 同日两行, 权益/已实现未变, 两端 `external_flow_usdt` 都 1000(转账发生在窗口开始前) ⇒ 残差 **−1000** | 复现: `unexplained_computable=True`, 残差 −1000.0(`round3_defect_probe_PREROUND3_RED.out` DEFECT 3) | 残差的资金流项改为**区间差** `e1 − e0`。残差本就只在**同日**计算, 同日两端同一个 00:00Z 原点 ⇒ 差值精确。任一端非有限 ⇒ 区间流 UNKNOWN, **拒算**并说明。窗口口径(P0 的当日总额 + 覆盖天数)原样保留为**另一个事实** | DS [R3] 8 格: R3-a 反例(0.0 而非 −1000)+ MUTATION R3-a(旧式 −1000)+ R3-b 正控(真在窗口内的入金仍净 0, 且真有 +500 未归因时仍抓到)+ R3-c 非有限端拒算 + R3-d 跨日。修前读者 KeyError `external_flow_interval_usdt` ⇒ rc 1 |
+
+**为什么两端 income 完整就够管住流的完整性**: `external_flow` 与 `realised_pnl` 出自同一次分页 `binance_broker.income_since`(L1996 `by_type.get("TRANSFER")`), 共用同一个 `truncated` 标记 —— 复审 W2-R2 已经要求两端 `complete is True`, 这一条同时覆盖本载体。**这不是「账户恒等式已证」**: 残差为 0 只说明我们能读的三项互相抵消, 任何这三项都不承载的movement(不在 `realised_components` 里的收入类型 / 现货划转)对它不可见。
+
+### 8b. 载体一致门的定义(明写, 可复算)
+
+`ops/score_post_fix.py` 模块级常量: `E6_CARRIER_BPS_TOL_BPS = 5e-4`, `E6_CARRIER_NOTIONAL_TOL_USDT = 0.01`, `E6_CARRIER_NOTIONAL_TOL_REL = 1e-9`。
+
+| 门 | 断言 | 为什么是这个数 |
+|---|---|---|
+| 人口·计数 | `buckets.n_fills == m1.n_filled_orders` | 两个载体各自**自报**的人口大小; 不在读者层重写 m1 的筛选(冻结规则的第二份拷贝 = 第二个会漂移的东西) |
+| 人口·质量 | `|buckets.notional_usdt − m1.filled_notional_total| ≤ max(0.01, 1e-9·max)` | m1 的分母 `round(...,2)`, 桶 `round(...,4)`; 0.01 = m1 的舍入步长 |
+| 人口·逐 regime | 对 `m1.by_regime ∪ 桶分组` 的每个 regime 断言计数与名义 | 一进一出的**补偿性互换**能骗过池化计数, 骗不过逐 regime |
+| 值·`abs` 口径 | `|buckets.abs_bps_measured − m1.c_bps_overall| ≤ 5e-4` | m1 的 bps `round(...,4)`(最大 5e-5) + 除法顺序差的 ulp; 5e-4 = 10×, 且比要抓的分歧(52.5 vs 3.0)小四个数量级 |
+| 值·`net` 口径 | `|buckets.bps_measured − m1.c_bps_net_overall| ≤ 5e-4` | 符号约定分歧只在 net 口径显形(N1-d) |
+| 三态 | 桶 `measurement_complete is None`(无成交)⇒ 一致性 = None ⇒ verdict UNDETERMINED, **不是 PASS** | 「两边都没测到」不是一致 |
+
+`None`/`NaN` **永不**与任何值「一致」(`_agree` 先过 `_fin`) —— `None == None` 读成一致正是单行反例。判据本身没变(complete ⇒ 可比; 不 complete ⇒ 下界, 不比 9.0bps): 完整性从**必要且充分**降为**必要**, 这是**收紧**, 只能把 PASS 变成非 PASS。
+
+### 8c. 真账本正控(最强的反向对照)
+
+`ops/score_post_fix.score(root=state/live/pilot_log, day=20260912)` on A1789201439(收据 `round3_newcode_score_post_fix_LIVE_20260912.json`):
+
+| 量 | cost_buckets | pilot_metrics.m1 | 判 |
+|---|---|---|---|
+| 成交笔数 | 185 | 185 | 同 |
+| 名义 USDT | 11,883.468 | 11,883.47 | 差 0.002, 在 0.01 容差内 |
+| `abs` 口径 bps | 11.794527851 | 11.7945 | 一致 |
+| `net` 口径 bps | 1.491695638 | 1.4917 | 一致 |
+| verdict | — | — | **PASS**(`consistent: True`, `why_not: []`) |
+
+即: 在役形态的干净锚上, 新门**不改判**, 且真实舍入差(0.002 USDT)确实落在容差内 —— 容差是按真数据校准的, 不是猜的。`ops/first_anchor_review.py` 在同一锚上成本段**逐字不变**(diff 0 行; 该锚 0 个未知成交行); `ops/daily_summary.py --since 24h` 同窗残差 **+705.2366 与修前逐位相同**(该日当日累计 = 0, 区间 = 0), 新增的只是「区间内资金流」那一行。
+
+### 8d. 变更 (file:line, 克隆内)
+
+| 文件 | 变更 |
+|---|---|
+| `ops/score_post_fix.py` 33-72 | 新: `E6_CARRIER_*` 三个容差常量 + `_fin()` + `_agree()`(None/NaN 永不一致) |
+| 同 428-517 | E6: `_legs` 具名; 载体一致门(人口计数/名义/逐 regime + 两口径值); `why_not` 逐条文案 |
+| 同 输出键 | verdict 加与门; 新 `cost_bps_displayed` / `cost_bps_net_displayed` / `cost_bps_displayed_source` / `carrier_consistency{consistent,why_not,population,values,tolerance,rule}` / `c_bps_overall_source`; 旧键与 `rule` 文案更新(**预注册键一个没删**) |
+| `ops/first_anchor_review.py` 367-386 | 全人口注释 + `_unk_rows`; 无已知成交时也点名未知成交行 |
+| 同 `_leg` | 收全量行; `_unks` 文案; 未知行在三条打印路径上都点名 |
+| 同 438-440 | 三条腿改从 `mine` 取(数字不变) |
+| 同 474-492 | taker 分裂: `_tk_full` 与 `_tk` 两个人口各自具名; 子人口全未知时明说 |
+| `ops/daily_summary.py` 218-239 | `_e0/_e1/_ext_iv/_ext_iv_why`(区间资金流) |
+| 同 facts | 新 `external_flow_carrier` / `external_flow_interval_usdt` / `external_flow_interval_computable` / `external_flow_interval_why_not`; `unexplained_computable` 加区间可算条件; 残差改用区间流; 新拒算分支 |
+| 同 `render_account` | 区间流一行(可算/UNKNOWN 两种); 残差句点名**区间**外部资金流 |
+| `ops/gate_coverage.py` | 两个套件盲区各加 round 3 段(含 (g) 冻结 watchdog 未迁移) |
+| `live/tests_readers_three_bucket.py` | 42 → **60** checks: [D](iv)(v) 5 格 + [E-R3] 13 格; `build_review_tree` 加 `sides=` 与未知 taker 腿 |
+| `live/tests_daily_summary.py` | 64 → **73** checks(本树): [R3] 8 格 |
+| `live/cost_buckets.py` | **未改**(规则没动; sha 与轮二相同) |
+| `live/pilot_metrics.py` | **未改**, `check_metrics_freeze` = FROZEN_MATCH |
+
+### 8e. 收据与计数
+
+| 项 | 值 |
+|---|---|
+| 有真账本(克隆 `exec_w2`) | `tests_daily_summary` **73 checks / 0 SKIP** rc 0; `tests_readers_three_bucket` **60 checks / 0 SKIP** rc 0 |
+| 无真账本(新鲜克隆形态 `exec_w2_noledger`) | DS **66 checks + 6 SKIP** rc 0; RTB **57 checks + 3 SKIP** rc 0(SKIP 机制原样保留, 2 check ↔ 1 SKIP 的条件格是差值来源) |
+| 修前读者 × 新测试(`exec_w2_prev3` = 轮二 sha, 同一份账本副本) | RTB **rc 1**, 4 条 FAIL(全部 N2/N2-b 的屏幕文案)后 KeyError `carrier_consistency`; DS **rc 1**, KeyError `external_flow_interval_usdt`。收据 `round3_prereaders_tests_*_RED.log` |
+| 邻格套件(新码) | `tests_review_anchor_scoping` 8/8 · `tests_reject_topup` 40 · `tests_fills_supersede` 19/19 · `tests_score_anchor_selection` ALL PASS · `tests_rehearsal_anchor` ALL PASS · `tests_static_names` ALL PASS · `tests_imports` ALL PASS · `gate_coverage` 133 套件全部有边界自述 · `check_metrics_freeze` FROZEN_MATCH |
+| 研究员探针(回归; 跑在**他们的冻结副本**上, 看不到本轮改动) | `probe_followup.py` **rc 0** · `probe_causal_events.py` **rc 0**。二者仍断言旧行为(`no_side` PASS / `'measurement complete: yes'` / 残差 −1000), 因为它们读 `private/inputs/w2` 的冻结快照; 跑完把 `probe_results.json` 的时间戳还原(`git checkout --`), 研究员工作树净 |
+| 全电池 | **未跑**(派单明说 lead 跑叠层电池) |
+
+### 8f. sha256 (最终)
+```
+0d31d10a1353f4ba36702b22b8d0db94551f81dc884055ceb7b52e5e2375dfda  live/cost_buckets.py            (未改, = 轮二)
+d0295d41dca149866fa785d0b3f9b5049ac85decbe0132c15985903b866c9d6e  live/tests_readers_three_bucket.py
+79554aa9620e73a141bfe2c861417867280e6cf8182236c6910e644e40e8d13e  live/tests_daily_summary.py
+e39689b56d1d79ead7415e1002529b1433c9d84790badfc2330fe22eed17371f  ops/daily_summary.py
+9b51db9e5f6659e0040b8fde8ed58cfed5a6bd9e89456ffa5a572fd63f59dc43  ops/first_anchor_review.py
+3c307356e8c6eeecec5ac3b21546fe5abf124839a36d3047aac71e51c0341277  ops/score_post_fix.py
+1e8b0077fa428fe8b932b85338b955aa7a2fd8b35cbb1a06234cf2748c3b5965  ops/gate_coverage.py
+4a0e7ec0d9851b52ea22815c016c974dc865967cf0b8a58ec0213437af3b7ce1  run_acceptance.sh               (未改)
+5ac7b16d0f97f2f8013da728ab18f4f3787bc17c2192c1dba63e64e637c08f1f  live/pilot_metrics.py           (未改; FROZEN_MATCH)
+6b9e5e86381a22bc43df40bf38b595b372424edeabbf91fbeea530ad8a0439fd  docs/receipts/w2_readers_three_bucket.diff  (ops/ live/ run_acceptance.sh only)
+```
+
+### 8g. R-12b 现状 —— **不得**写成「所有消费者已统一」
+
+| 消费者 | 路径 | 本轮后 |
+|---|---|---|
+| `daily_summary` 成本列 | 全量行 → 桶 | 已迁移(轮一/轮二) |
+| `first_anchor_review` §3c + taker 分裂 | 全量行 → 桶 | **本轮关闭**(N2 / N2-b) |
+| `score_post_fix` E6 | 桶判位 + 桶展示数 + 对 m1 的载体一致门 | **本轮关闭**(N1): 不一致 ⇒ 不 PASS 且点名 |
+| `watchdog` §4-1 | 直接吃 `m1.c_bps_net_overall` | **未迁移, 本轮未改, 且我方一手复现**: `watchdog.py:1188` 的 priced 掩码是 `[c is not None …]`, 阈值比较是 `c > C_LIMIT_BPS` —— `NaN is not None` 为真、`NaN > 9.0` 为假, 所以一个 NaN 成本被算作**已定价且未越线**, `blind` 仍是 False。改它 = 改 §4-1 判据输入 ⇒ 需预注册 + 用户裁定 |
+| `check_prewindow_state` / `first_real_anchor` | 直接展示 `m1.c_bps_overall` / 完整性位 | **未迁移**(未派单, 登记) |
+
+⇒ R-12b 的正确表述: **「入判的三个读者已绕开冻结 m1 的完整性位, 并且 E6 现在拒绝为不同人口的数字背书」**; 冻结看门狗与两个遗留入口**仍直接吃 m1**。
+
+### 8h. 本轮明写不做 / 未闭合
+- `pilot_metrics.m1` 的两处「已测」语义错(NaN 费 / 退出块混币费)与分母含费未知行: **未改**(冻结 + 判据)。
+- `live/pilot_log.py` 的 orders schema 允许 `side: None`(`required` 有、`not_null` 无), `binance_executor.py:2148` 用 `p.get('side')` 写它 —— 这是 N1 反例的**生产者侧**成因。本轮**未改生产者**(改 schema = 改写入合同, 需另行派单); 读者层现在会因此拒绝 PASS 并点名。**没有证据说明真实计划产生过缺 side 的行**(研究员同结论)。
+- 载体人口同集是按**两个载体各自自报的计数与名义质量**(池化 + 逐 regime)断言的, 不是按行 id: 计数与名义在每个 regime 都相等的两个不同行集合仍会通过。
+- 区间资金流的正确性依赖「`external_flow_usdt` 是当日累计」这一载体事实(`anchor_loop.py:2822` ← `binance_broker.income_since` L1996); 读者层不重新推导它, 载体一改本文首行的作废条件生效。
