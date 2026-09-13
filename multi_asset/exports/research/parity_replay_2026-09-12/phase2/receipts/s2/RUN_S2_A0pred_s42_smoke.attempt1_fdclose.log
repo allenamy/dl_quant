@@ -1,0 +1,8 @@
+{"chain": "S2_A0pred_s42_smoke", "arm": {"king_oof": "SLOW_v3_on_v4axis", "f10_oof": "A0_s42", "f10_seed": "42", "universe": "pit", "serve_policy": "withhold", "f10_table": "yearly_all", "tag": "S2_A0pred_s42_smoke", "start": "2025-03-01T00:00:00Z", "end": "2025-03-01T08:00:00Z", "n_anchors": 3, "record_from": null, "combo_launch": "fork", "contract": "PREREG AMENDMENT 6 sha256 bc57266e5abf103926b2231facb4b12b28137565760ea34b4e8fc49c2cf15769", "launcher_sha256": "e8e4b7540f8ff509a317f01cb73eccf6496a97271fd38f70da7b22cc18bb125a"}, "pid": 593057, "n_anchors": 3, "first": "2025-03-01T00:00:00Z", "last": "2025-03-01T08:00:00Z"}
+Traceback (most recent call last):
+  File "/workspace/uplift_r2_2026-09-13/P2/devices/p2_s2_launch.py", line 113, in <module>
+    recs = D.run_chain(arm, g, ANCHORS, rh, out, record_from=None, log_every=(1 if len(ANCHORS) <= 50 else 200))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/uplift_r2_2026-09-13/P2/devices/p2_driver.py", line 345, in run_chain
+    raise RuntimeError(f"combo_stage rc={rc_} at {iso(A)}: {out_[-6:]}")
+RuntimeError: combo_stage rc=1 at 2025-03-01T00:00:00Z: []

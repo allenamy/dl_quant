@@ -1,0 +1,788 @@
+{
+ "device": "p2_g2c_bind.py",
+ "self_sha256": "b1830137cf3c7eb7a409f76186cfc896a35a8e2b674c39ce5aeb23c2317ea077",
+ "prereg_sha256": "35ea8761dba442d153b1e0af6268c3fc25c1190157fcebb13c9d75d5936af588",
+ "argv": [
+  "p2_g2c_bind.py",
+  "PATH,HOME,LC_CTYPE"
+ ],
+ "env": {
+  "PATH": "/usr/bin:/bin",
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8"
+ },
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "frozen_slots": {
+  "s12": 1789214400,
+  "s16": 1789228800,
+  "s20": 1789243200
+ },
+ "chain_anchors": [
+  1788624000,
+  1789200000,
+  41
+ ],
+ "real_bundle": {
+  "verdict": "/workspace/uplift_r2_2026-09-13/P2/receipts/G2C_verdict.json",
+  "prep": "/workspace/uplift_r2_2026-09-13/P2/receipts/G2C_prep.json",
+  "chain": {
+   "receipt": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_chain/receipts/PARITY_G2C_chain_1788624000_1789200000.json",
+   "root": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_chain",
+   "log": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_chain/receipts/G2C_chain.log"
+  },
+  "slots": {
+   "s12": {
+    "receipt": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s12/receipts/PARITY_G2C_snapshot_12Z_1789214400_1789214400.json",
+    "root": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s12",
+    "log": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s12/receipts/G2C_snapshot_12Z.log",
+    "override": {}
+   },
+   "s16": {
+    "receipt": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s16/receipts/PARITY_G2C_snapshot_16Z_1789228800_1789228800.json",
+    "root": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s16",
+    "log": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s16/receipts/G2C_snapshot_16Z.log",
+    "override": {}
+   },
+   "s20": {
+    "receipt": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s20/receipts/PARITY_G2C_snapshot_20Z_1789243200_1789243200.json",
+    "root": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s20",
+    "log": "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s20/receipts/G2C_snapshot_20Z.log",
+    "override": {}
+   }
+  }
+ },
+ "real_files_sha256_before": {
+  "/workspace/uplift_r2_2026-09-13/P2/receipts/G2C_verdict.json": "aa108c09aefe700e99abcbc81cbbfe5051d251f49af9e125da789d3a2ee08b32",
+  "/workspace/uplift_r2_2026-09-13/P2/receipts/G2C_prep.json": "a11ead38ab4fe529794d53481eb882ad524f477c8b5155a70e6aeb4bd359fdbb",
+  "/workspace/uplift_r2_2026-09-13/P2/work/g2c_chain/receipts/PARITY_G2C_chain_1788624000_1789200000.json": "a857a817d510a826caa082522874020f167b7041b1cdb50803b7c87f8643d8aa",
+  "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s12/receipts/PARITY_G2C_snapshot_12Z_1789214400_1789214400.json": "ee3366ea3892a7bc80231883cf1e78953db6105fc7db5f31e14be5a243849cd2",
+  "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s16/receipts/PARITY_G2C_snapshot_16Z_1789228800_1789228800.json": "575e80275af946a9fde78e638a8f96fbc977b86fc5d37021589fb159bc8d65ca",
+  "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s20/receipts/PARITY_G2C_snapshot_20Z_1789243200_1789243200.json": "bbc34a51cb874e3db05f7113301748285fe54f87b682ba2e61775a151bd04784",
+  "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s12/replay_home/state/target_live_combo/1789214400.json": "8dfac7e94f3c4ae074913353b8d38fa5c4a75bbd130f19703f3bf5ae3c7ba9f4",
+  "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s16/replay_home/state/target_live_combo/1789228800.json": "24819865d71b8d95c00ad8c4082632de9b7fe62d4cd2890edbfefeda1decc1c0",
+  "/workspace/uplift_r2_2026-09-13/P2/work/g2c_s20/replay_home/state/target_live_combo/1789243200.json": "e6104cc74ec4de094c29d1c2a08f667b420f0865be9024138899663e5c3f8c42"
+ },
+ "real_files_unchanged_after": true,
+ "real": {
+  "PASS": false,
+  "n_fails": 3,
+  "fired": [
+   "B4.sums"
+  ],
+  "fails_first40": [
+   [
+    "B4.sums",
+    "s12: aux.json sha != SHA256SUMS"
+   ],
+   [
+    "B4.sums",
+    "s12: leg_returns_live.json sha != SHA256SUMS"
+   ],
+   [
+    "B4.sums",
+    "s12: rolling.npz sha != SHA256SUMS"
+   ]
+  ],
+  "info": {
+   "snapshot_sums": {
+    "s12": {
+     "covered": [
+      "aux.json",
+      "leg_returns_live.json",
+      "rolling.npz"
+     ],
+     "listed_not_present": [
+      "multi_asset/exports/live/producer_state_snapshots/1789200000/combo_live_status.json"
+     ]
+    },
+    "s16": {
+     "covered": [
+      "aux.json",
+      "leg_returns_live.json",
+      "rolling.npz"
+     ],
+     "listed_not_present": [
+      "combo_live_status.json"
+     ]
+    },
+    "s20": {
+     "covered": [
+      "aux.json",
+      "leg_returns_live.json",
+      "rolling.npz"
+     ],
+     "listed_not_present": [
+      "combo_live_status.json"
+     ]
+    }
+   },
+   "king_chain_le_1e-6": 41,
+   "combo_chain_name_sets_equal_descriptive": 41
+  }
+ },
+ "mutants": {
+  "M1_wrong_anchor": {
+   "PASS": false,
+   "n_fails": 6,
+   "fired": [
+    "B1.anchor",
+    "B1.distinct",
+    "B2.anchor",
+    "B4.sums"
+   ],
+   "fails_first40": [
+    [
+     "B4.sums",
+     "s12: aux.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: leg_returns_live.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: rolling.npz sha != SHA256SUMS"
+    ],
+    [
+     "B1.anchor",
+     "s16: judge anchor 1789243200 != 1789228800"
+    ],
+    [
+     "B2.anchor",
+     "s16: receipt anchor 1789243200 != 1789228800"
+    ],
+    [
+     "B1.distinct",
+     "anchors [1789214400, 1789243200, 1789243200]"
+    ]
+   ],
+   "info": {
+    "snapshot_sums": {
+     "s12": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "multi_asset/exports/live/producer_state_snapshots/1789200000/combo_live_status.json"
+      ]
+     },
+     "s16": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     },
+     "s20": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     }
+    },
+    "king_chain_le_1e-6": 41,
+    "combo_chain_name_sets_equal_descriptive": 41
+   },
+   "expected_checks": [
+    "B1.anchor",
+    "B2.anchor"
+   ],
+   "RED": true,
+   "red_for_named_reason": true,
+   "mutant_files": [
+    "/workspace/uplift_r2_2026-09-13/P2/work/g2c_bind_mutants/M1_wrong_anchor/G2C_verdict.json",
+    "/workspace/uplift_r2_2026-09-13/P2/work/g2c_bind_mutants/M1_wrong_anchor/PARITY_s16.json"
+   ]
+  },
+  "M2_dropped_name": {
+   "PASS": false,
+   "n_fails": 6,
+   "fired": [
+    "B4.sums",
+    "B6.combo_count",
+    "B6.combo_linf",
+    "B6.combo_names"
+   ],
+   "fails_first40": [
+    [
+     "B4.sums",
+     "s12: aux.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: leg_returns_live.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: rolling.npz sha != SHA256SUMS"
+    ],
+    [
+     "B6.combo_names",
+     "s16 target_live: replay-only [] producer-only ['HOLOUSDT']"
+    ],
+    [
+     "B6.combo_count",
+     "s16 target_live: receipt n [260, 260] vs files [259, 260]"
+    ],
+    [
+     "B6.combo_linf",
+     "s16 target_live: recomputed 2.8251030925100316e-06 vs receipt 0.0"
+    ]
+   ],
+   "info": {
+    "snapshot_sums": {
+     "s12": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "multi_asset/exports/live/producer_state_snapshots/1789200000/combo_live_status.json"
+      ]
+     },
+     "s16": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     },
+     "s20": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     }
+    },
+    "king_chain_le_1e-6": 41,
+    "combo_chain_name_sets_equal_descriptive": 41
+   },
+   "expected_checks": [
+    "B6.combo_names"
+   ],
+   "RED": true,
+   "red_for_named_reason": true,
+   "mutant_files": [
+    "/workspace/uplift_r2_2026-09-13/P2/work/g2c_bind_mutants/M2_dropped_name/target_live_combo_1789228800.json"
+   ]
+  },
+  "M3_sha_mismatch": {
+   "PASS": false,
+   "n_fails": 4,
+   "fired": [
+    "B1.sha",
+    "B4.sums"
+   ],
+   "fails_first40": [
+    [
+     "B4.sums",
+     "s12: aux.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: leg_returns_live.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: rolling.npz sha != SHA256SUMS"
+    ],
+    [
+     "B1.sha",
+     "s20: judge receipt sha != file read"
+    ]
+   ],
+   "info": {
+    "snapshot_sums": {
+     "s12": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "multi_asset/exports/live/producer_state_snapshots/1789200000/combo_live_status.json"
+      ]
+     },
+     "s16": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     },
+     "s20": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     }
+    },
+    "king_chain_le_1e-6": 41,
+    "combo_chain_name_sets_equal_descriptive": 41
+   },
+   "expected_checks": [
+    "B1.sha"
+   ],
+   "RED": true,
+   "red_for_named_reason": true,
+   "mutant_files": [
+    "/workspace/uplift_r2_2026-09-13/P2/work/g2c_bind_mutants/M3_sha_mismatch/PARITY_s20.json"
+   ]
+  },
+  "M4_same_receipt_three_slots": {
+   "PASS": false,
+   "n_fails": 24,
+   "fired": [
+    "B1.anchor",
+    "B1.distinct",
+    "B1.path",
+    "B2.anchor",
+    "B2.mode",
+    "B3.aux",
+    "B3.rolling",
+    "B4.sums",
+    "B6.combo_count",
+    "B6.king_count",
+    "B6.king_json_names"
+   ],
+   "fails_first40": [
+    [
+     "B4.sums",
+     "s12: aux.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: leg_returns_live.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: rolling.npz sha != SHA256SUMS"
+    ],
+    [
+     "B1.anchor",
+     "s16: judge anchor 1789214400 != 1789228800"
+    ],
+    [
+     "B1.path",
+     "s16: judge receipt path /workspace/uplift_r2_2026-09-13/P2/work/g2c_s12/receipts/PARITY_G2C_snapshot_12Z_1789214400_1789214400.json"
+    ],
+    [
+     "B2.anchor",
+     "s16: receipt anchor 1789214400 != 1789228800"
+    ],
+    [
+     "B2.mode",
+     "s16: mode snapshot snapshot /workspace/uplift_r2_2026-09-13/P2/work/snapshots/1789200000"
+    ],
+    [
+     "B3.rolling",
+     "s16: rolling sha receipt/prep/disk differ"
+    ],
+    [
+     "B3.aux",
+     "s16: aux sha receipt/disk/prep differ"
+    ],
+    [
+     "B6.combo_count",
+     "s16 target_live: receipt n [261, 261] vs files [260, 260]"
+    ],
+    [
+     "B6.combo_count",
+     "s16 target_combo: receipt n [261, 261] vs files [260, 260]"
+    ],
+    [
+     "B6.king_count",
+     "s16: king counts 263/263 vs 262/262"
+    ],
+    [
+     "B6.king_json_names",
+     "s16: king target_live names/counts"
+    ],
+    [
+     "B1.anchor",
+     "s20: judge anchor 1789214400 != 1789243200"
+    ],
+    [
+     "B1.path",
+     "s20: judge receipt path /workspace/uplift_r2_2026-09-13/P2/work/g2c_s12/receipts/PARITY_G2C_snapshot_12Z_1789214400_1789214400.json"
+    ],
+    [
+     "B2.anchor",
+     "s20: receipt anchor 1789214400 != 1789243200"
+    ],
+    [
+     "B2.mode",
+     "s20: mode snapshot snapshot /workspace/uplift_r2_2026-09-13/P2/work/snapshots/1789200000"
+    ],
+    [
+     "B3.rolling",
+     "s20: rolling sha receipt/prep/disk differ"
+    ],
+    [
+     "B3.aux",
+     "s20: aux sha receipt/disk/prep differ"
+    ],
+    [
+     "B6.combo_count",
+     "s20 target_live: receipt n [261, 261] vs files [257, 257]"
+    ],
+    [
+     "B6.combo_count",
+     "s20 target_combo: receipt n [261, 261] vs files [257, 257]"
+    ],
+    [
+     "B6.king_count",
+     "s20: king counts 263/263 vs 259/259"
+    ],
+    [
+     "B6.king_json_names",
+     "s20: king target_live names/counts"
+    ],
+    [
+     "B1.distinct",
+     "anchors [1789214400, 1789214400, 1789214400]"
+    ]
+   ],
+   "info": {
+    "snapshot_sums": {
+     "s12": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "multi_asset/exports/live/producer_state_snapshots/1789200000/combo_live_status.json"
+      ]
+     },
+     "s16": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     },
+     "s20": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     }
+    },
+    "king_chain_le_1e-6": 41,
+    "combo_chain_name_sets_equal_descriptive": 41
+   },
+   "expected_checks": [
+    "B1.anchor",
+    "B1.distinct",
+    "B2.anchor"
+   ],
+   "RED": true,
+   "red_for_named_reason": true,
+   "mutant_files": [
+    "/workspace/uplift_r2_2026-09-13/P2/work/g2c_bind_mutants/M4_same_receipt_three_slots/G2C_verdict.json"
+   ]
+  },
+  "M5_appended_failing_anchor": {
+   "PASS": false,
+   "n_fails": 4,
+   "fired": [
+    "B2.one",
+    "B4.sums"
+   ],
+   "fails_first40": [
+    [
+     "B2.one",
+     "s12: 2 anchors in receipt"
+    ],
+    [
+     "B4.sums",
+     "s12: aux.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: leg_returns_live.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: rolling.npz sha != SHA256SUMS"
+    ]
+   ],
+   "info": {
+    "snapshot_sums": {
+     "s12": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "multi_asset/exports/live/producer_state_snapshots/1789200000/combo_live_status.json"
+      ]
+     },
+     "s16": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     },
+     "s20": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     }
+    },
+    "king_chain_le_1e-6": 41,
+    "combo_chain_name_sets_equal_descriptive": 41
+   },
+   "expected_checks": [
+    "B2.one"
+   ],
+   "RED": true,
+   "red_for_named_reason": true,
+   "mutant_files": [
+    "/workspace/uplift_r2_2026-09-13/P2/work/g2c_bind_mutants/M5_appended_failing_anchor/G2C_verdict.json",
+    "/workspace/uplift_r2_2026-09-13/P2/work/g2c_bind_mutants/M5_appended_failing_anchor/PARITY_s12.json"
+   ]
+  },
+  "M6_rotated_slots": {
+   "PASS": false,
+   "n_fails": 33,
+   "fired": [
+    "B1.anchor",
+    "B1.path",
+    "B2.anchor",
+    "B2.mode",
+    "B3.aux",
+    "B3.rolling",
+    "B4.sums",
+    "B6.combo_count",
+    "B6.king_count",
+    "B6.king_json_names"
+   ],
+   "fails_first40": [
+    [
+     "B1.anchor",
+     "s12: judge anchor 1789228800 != 1789214400"
+    ],
+    [
+     "B1.path",
+     "s12: judge receipt path /workspace/uplift_r2_2026-09-13/P2/work/g2c_s16/receipts/PARITY_G2C_snapshot_16Z_1789228800_1789228800.json"
+    ],
+    [
+     "B2.anchor",
+     "s12: receipt anchor 1789228800 != 1789214400"
+    ],
+    [
+     "B2.mode",
+     "s12: mode snapshot snapshot /workspace/uplift_r2_2026-09-13/P2/work/snapshots/1789214400"
+    ],
+    [
+     "B3.rolling",
+     "s12: rolling sha receipt/prep/disk differ"
+    ],
+    [
+     "B3.aux",
+     "s12: aux sha receipt/disk/prep differ"
+    ],
+    [
+     "B4.sums",
+     "s12: aux.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: leg_returns_live.json sha != SHA256SUMS"
+    ],
+    [
+     "B4.sums",
+     "s12: rolling.npz sha != SHA256SUMS"
+    ],
+    [
+     "B6.combo_count",
+     "s12 target_live: receipt n [260, 260] vs files [261, 261]"
+    ],
+    [
+     "B6.combo_count",
+     "s12 target_combo: receipt n [260, 260] vs files [261, 261]"
+    ],
+    [
+     "B6.king_count",
+     "s12: king counts 262/262 vs 263/263"
+    ],
+    [
+     "B6.king_json_names",
+     "s12: king target_live names/counts"
+    ],
+    [
+     "B1.anchor",
+     "s16: judge anchor 1789243200 != 1789228800"
+    ],
+    [
+     "B1.path",
+     "s16: judge receipt path /workspace/uplift_r2_2026-09-13/P2/work/g2c_s20/receipts/PARITY_G2C_snapshot_20Z_1789243200_1789243200.json"
+    ],
+    [
+     "B2.anchor",
+     "s16: receipt anchor 1789243200 != 1789228800"
+    ],
+    [
+     "B2.mode",
+     "s16: mode snapshot snapshot /workspace/uplift_r2_2026-09-13/P2/work/snapshots/1789228800"
+    ],
+    [
+     "B3.rolling",
+     "s16: rolling sha receipt/prep/disk differ"
+    ],
+    [
+     "B3.aux",
+     "s16: aux sha receipt/disk/prep differ"
+    ],
+    [
+     "B6.combo_count",
+     "s16 target_live: receipt n [257, 257] vs files [260, 260]"
+    ],
+    [
+     "B6.combo_count",
+     "s16 target_combo: receipt n [257, 257] vs files [260, 260]"
+    ],
+    [
+     "B6.king_count",
+     "s16: king counts 259/259 vs 262/262"
+    ],
+    [
+     "B6.king_json_names",
+     "s16: king target_live names/counts"
+    ],
+    [
+     "B1.anchor",
+     "s20: judge anchor 1789214400 != 1789243200"
+    ],
+    [
+     "B1.path",
+     "s20: judge receipt path /workspace/uplift_r2_2026-09-13/P2/work/g2c_s12/receipts/PARITY_G2C_snapshot_12Z_1789214400_1789214400.json"
+    ],
+    [
+     "B2.anchor",
+     "s20: receipt anchor 1789214400 != 1789243200"
+    ],
+    [
+     "B2.mode",
+     "s20: mode snapshot snapshot /workspace/uplift_r2_2026-09-13/P2/work/snapshots/1789200000"
+    ],
+    [
+     "B3.rolling",
+     "s20: rolling sha receipt/prep/disk differ"
+    ],
+    [
+     "B3.aux",
+     "s20: aux sha receipt/disk/prep differ"
+    ],
+    [
+     "B6.combo_count",
+     "s20 target_live: receipt n [261, 261] vs files [257, 257]"
+    ],
+    [
+     "B6.combo_count",
+     "s20 target_combo: receipt n [261, 261] vs files [257, 257]"
+    ],
+    [
+     "B6.king_count",
+     "s20: king counts 263/263 vs 259/259"
+    ],
+    [
+     "B6.king_json_names",
+     "s20: king target_live names/counts"
+    ]
+   ],
+   "info": {
+    "snapshot_sums": {
+     "s12": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "multi_asset/exports/live/producer_state_snapshots/1789200000/combo_live_status.json"
+      ]
+     },
+     "s16": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     },
+     "s20": {
+      "covered": [
+       "aux.json",
+       "leg_returns_live.json",
+       "rolling.npz"
+      ],
+      "listed_not_present": [
+       "combo_live_status.json"
+      ]
+     }
+    },
+    "king_chain_le_1e-6": 41,
+    "combo_chain_name_sets_equal_descriptive": 41
+   },
+   "expected_checks": [
+    "B1.anchor",
+    "B2.anchor"
+   ],
+   "RED": true,
+   "red_for_named_reason": true,
+   "mutant_files": [
+    "/workspace/uplift_r2_2026-09-13/P2/work/g2c_bind_mutants/M6_rotated_slots/G2C_verdict.json"
+   ]
+  }
+ },
+ "verdict": "RED",
+ "runtime_s": 13.0,
+ "utc": "2026-09-13T14:15:24Z"
+}
