@@ -170,7 +170,7 @@ index b3db98a..f3de2aa 100644
                  #    a replacement. Facts are merged per field: a record that lacks a field cannot
                  #    revoke what the other established (the POST's executedQty 20 survives a GET
 diff --git a/live/binance_executor.py b/live/binance_executor.py
-index 83b9e07..1d70b2b 100644
+index 83b9e07..b410e62 100644
 --- a/live/binance_executor.py
 +++ b/live/binance_executor.py
 @@ -44,6 +44,7 @@ import sys
@@ -181,7 +181,7 @@ index 83b9e07..1d70b2b 100644
  from watchdog import OpeningHalted                                            # noqa: E402
  import reduce_only_reject as RO                                               # noqa: E402
  
-@@ -88,6 +89,17 @@ def _fin(x):
+@@ -88,6 +89,22 @@ def _fin(x):
      return v if (v == v and v not in (float("inf"), float("-inf"))) else None
  
  
@@ -191,7 +191,12 @@ index 83b9e07..1d70b2b 100644
 +    (Qv is what the venue accepted for this request — on 2026-09-12 it equalled the position twice; that is an
 +    observation, not what Qv means.) ONE accessor for every capacity rule: finality by capacity (`_final_known`), the remaining band
 +    (`request_remaining`), the over-fill contradiction (`ledger_inconsistencies`) and the child-fold closure
-+    (`_settle_leg_by_identity`). `qty` itself is never rewritten: it stays "what we sent" for the record."""
++    (`_settle_leg_by_identity`). `qty` itself is never rewritten: it stays "what we sent" for the record.
++    ★ R3-A1 (independent review round 3 §2.1): a request whose venue records DISAGREE on the accepted origQty
++    (`capacity_conflict`, from the settlement merge) has no capacity to trust — it is bounded by Qs, whatever else
++    sits beside it."""
++    if r.get("capacity_conflict"):
++        return r.get("qty")
 +    v = r.get("qty_venue")
 +    return v if v is not None else r.get("qty")
 +
@@ -199,16 +204,23 @@ index 83b9e07..1d70b2b 100644
  def _final_known(r) -> bool:
      """★ Round 10/11 (review R9-QFINAL; R10 self-report 1): is this request's FINAL total proven? True only when
      the producer said so (`confirmed_qty_final`) or when the lower bound reached the request quantity (capacity:
-@@ -98,7 +110,7 @@ def _final_known(r) -> bool:
-     defect."""
-     if r.get("confirmed_qty_final"):
+@@ -95,10 +112,12 @@ def _final_known(r) -> bool:
+     protect in the window observed (the researcher's census of the 40 completed days 2026-08-01..09-09, 67,588
+     physical order rows, found no `request_ledger` row — this supports dropping the default for that window; it is
+     not a claim about every possible source), and a reader that infers finality from `terminal` was the round-9
+-    defect."""
+-    if r.get("confirmed_qty_final"):
++    defect.
++    ★ R3-A1: beside a `capacity_conflict` no producer flag proves the total — only C reaching Qs does (the interval
++    [C, Qs] is then a point)."""
++    if r.get("confirmed_qty_final") and not r.get("capacity_conflict"):
          return True
 -    c, q = _fin(r.get("confirmed_qty")), _fin(r.get("qty"))
 +    c, q = _fin(r.get("confirmed_qty")), _fin(_req_qty(r))          # E-0912-A: capacity = the venue's origQty when clamped
      return c is not None and q is not None and abs(q) > 0 and abs(c) >= abs(q) - 1e-9
  
  
-@@ -112,7 +124,7 @@ def request_remaining(r) -> float:
+@@ -112,7 +131,7 @@ def request_remaining(r) -> float:
      st = r.get("state")
      if st in ("rejected", "not_sent"):
          return 0.0
@@ -217,7 +229,7 @@ index 83b9e07..1d70b2b 100644
      c = _fin(r.get("confirmed_qty"))
      if c is not None:
          # ★ Round 6 (review R5-QA): a PROVEN final C is the interval [C, C] whether or not its USDT
-@@ -136,7 +148,7 @@ def ledger_totals(reqs):
+@@ -136,7 +155,7 @@ def ledger_totals(reqs):
          rem = request_remaining(r)
          if rem > 0:
              uq += rem
@@ -226,7 +238,7 @@ index 83b9e07..1d70b2b 100644
              un += abs(float(r.get("notional_est") or 0.0)) * rem / q
      return known, uq, un
  
-@@ -169,7 +181,7 @@ def ledger_inconsistencies(reqs, tol=1e-6):
+@@ -169,7 +188,7 @@ def ledger_inconsistencies(reqs, tol=1e-6):
              continue
          if r.get("inconsistent"):
              bad.append({"client_id": r.get("client_id"), "why": str(r["inconsistent"])[:120]})
@@ -235,13 +247,18 @@ index 83b9e07..1d70b2b 100644
          n = r.get("confirmed_notional")
          if n is not None and _fin(n) is None:
              # ★ round 13 (review R12-N-FINITE): a bad value is never excused by a missing neighbour
-@@ -252,6 +264,19 @@ def ledger_row_columns(reqs) -> dict:
+@@ -252,6 +271,24 @@ def ledger_row_columns(reqs) -> dict:
              "closed": closed, "qty_closed": qty_closed}
  
  
 +def _clamp_cols(p, signed_qty) -> dict:
 +    """★ E-0912-A (a): the request-ledger columns of a venue clamp — `clamped` (the record: ours / venue / why) and
-+    `qty_venue` (the venue's origQty, signed like `qty`), read by `_req_qty`. Empty when the plan carries no clamp."""
++    `qty_venue` (the venue's origQty, signed like `qty`), read by `_req_qty`. Empty when the plan carries no clamp.
++    ★ R3-A1: when the settlement found the request's records disagreeing on the capacity, the request carries the named
++    `capacity_conflict` and NO `qty_venue` / `clamped` — its capacity is unknown and `_req_qty` bounds it by Qs."""
++    cf = p.get("venue_capacity_conflict")
++    if cf:
++        return {"capacity_conflict": dict(cf)}
 +    cl = p.get("venue_clamped")
 +    if not cl:
 +        return {}
@@ -255,7 +272,7 @@ index 83b9e07..1d70b2b 100644
  def apply_ledger_to_plan(p, reqs) -> dict:
      """Write the ledger's columns onto the leg dict (the row copies them). Returns the columns."""
      cols = ledger_row_columns(reqs)
-@@ -722,9 +747,22 @@ class RebalanceExecutor:
+@@ -722,9 +759,22 @@ class RebalanceExecutor:
      # ── phase 1: plan ────────────────────────────────────────────────────────────────────────
      def plan(self, target_notional: Dict[str, float], current_notional: Dict[str, float],
               mids: Dict[str, float],
@@ -279,7 +296,7 @@ index 83b9e07..1d70b2b 100644
          ★★★ `reduce_only_syms` (2026-08-01): names the venue has WITHHELD but which we HOLD. Their
          orders are reductions BY CONSTRUCTION — the clamp in `anchor_loop` guarantees it, sizing
          them at most to the current position and never past flat. Tagging writes that fact where
-@@ -771,7 +809,25 @@ class RebalanceExecutor:
+@@ -771,7 +821,25 @@ class RebalanceExecutor:
                  row["skip"] = "skipped_no_mid"         # no book => cannot price; labelled, not dropped
                  plans.append(row); continue
  
@@ -306,7 +323,7 @@ index 83b9e07..1d70b2b 100644
              if qty == 0:
                  row["skip"] = "skipped_min_notional"
                  plans.append(row); continue
-@@ -1024,6 +1080,18 @@ class RebalanceExecutor:
+@@ -1024,6 +1092,18 @@ class RebalanceExecutor:
                  p["submitted"] = True
                  live.append(p)
                  _tstreak = 0
@@ -325,16 +342,21 @@ index 83b9e07..1d70b2b 100644
              except OpeningHalted:
                  # The halt is doing exactly its job: no NEW exposure while protection is engaged.
                  # NOT `venue_reject` — nothing was sent, so the venue refused nothing. Calling it
-@@ -1489,6 +1557,8 @@ class RebalanceExecutor:
+@@ -1489,6 +1569,13 @@ class RebalanceExecutor:
                  p["venue_terminal"] = (not d.get("non_terminal")) and not d.get("partial")
              if d.get("inconsistent"):
                  p["venue_inconsistent"] = list(d["inconsistent"])       # round 7: the fold's contradictions
 +            if d.get("clamped"):
 +                p["venue_clamped"] = dict(d["clamped"])                 # E-0912-A (a): the settlement saw the clamp
++            if d.get("capacity_conflict"):
++                # ★ R3-A1: the settlement found this request's records disagreeing on the venue-accepted origQty. The
++                #   submit-time stamp (`submit_maker`, read from ONE record) must not outlive that finding.
++                p.pop("venue_clamped", None)
++                p["venue_capacity_conflict"] = dict(d["capacity_conflict"])
              n += 1
          return n
  
-@@ -1607,6 +1677,7 @@ class RebalanceExecutor:
+@@ -1607,6 +1694,7 @@ class RebalanceExecutor:
                               "confirmed_qty_final": (bool(p.get("venue_terminal")) and bool(p.get("venue_executed_qty_final"))) if _mc is not None else False,
                               "confirmed_notional_final": bool(p.get("venue_notional_final")) if _mn is not None else False,   # round 11/12
                               **({"inconsistent": "; ".join(p["venue_inconsistent"])} if p.get("venue_inconsistent") else {}),
@@ -342,7 +364,7 @@ index 83b9e07..1d70b2b 100644
                               "order_id": _order_id_for(self.broker, _mcid)}
                      _mleg = dict(p, request_ledger=[_mreq])
                      apply_ledger_to_plan(_mleg, [_mreq])
-@@ -1712,6 +1783,7 @@ class RebalanceExecutor:
+@@ -1712,6 +1800,7 @@ class RebalanceExecutor:
                            "confirmed_qty_final": (bool(p.get("venue_terminal")) and bool(p.get("venue_executed_qty_final"))) if _mkc is not None else False,
                            "confirmed_notional_final": bool(p.get("venue_notional_final")),
                            **({"inconsistent": "; ".join(p["venue_inconsistent"])} if p.get("venue_inconsistent") else {}),
@@ -350,7 +372,7 @@ index 83b9e07..1d70b2b 100644
                            "order_id": _order_id_for(self.broker, _mkcid)}
                  maker_leg["request_ledger"] = [_mkreq]
                  apply_ledger_to_plan(maker_leg, [_mkreq])
-@@ -2055,7 +2127,7 @@ class RebalanceExecutor:
+@@ -2055,7 +2144,7 @@ class RebalanceExecutor:
                      # ★ round 10 (review R9-CHILD-SUPPORT): a child set is a SUBSET until it reaches Q — it
                      #   raises the lower bound, it never proves the final total (terminal or not)
                      _complete = ((_was_final and abs(abs(c_child) - abs(prev_c)) <= 1e-12)
@@ -359,7 +381,7 @@ index 83b9e07..1d70b2b 100644
                      if not _complete:
                          q["confirmed_qty_final"] = False
                      # ★ round 11 (review R10-CHILD-CONSUMER): the subset's AMOUNT is a lower bound too — it closes
-@@ -2084,7 +2156,7 @@ class RebalanceExecutor:
+@@ -2084,7 +2173,7 @@ class RebalanceExecutor:
                  q["state"] = "confirmed"
                  if bad:
                      q["inconsistent"] = bad
@@ -368,7 +390,7 @@ index 83b9e07..1d70b2b 100644
                      if not q.get("terminal"):
                          q["terminal"] = True; q["terminal_by"] = "fills reached the request quantity"
                      q["confirmed_qty_final"] = True                 # capacity: the final total can only be Q
-@@ -2207,6 +2279,9 @@ class RebalanceExecutor:
+@@ -2207,6 +2296,9 @@ class RebalanceExecutor:
                                                               and _lc["filled_notional"] is None) else terminal_reason)),
              "notional_currency": "USDT",
              **({"note": note} if note else {}),
@@ -653,10 +675,10 @@ index e8fee1b..004a188 100644
  
  
 diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
-index 3142562..2f24cc0 100644
+index 3142562..cbab973 100644
 --- a/live/tests_disposition_matrix.py
 +++ b/live/tests_disposition_matrix.py
-@@ -31,13 +31,35 @@
+@@ -31,13 +31,38 @@
     每条新尺都带一条「在真账本上是承重的」断言([G]): 类空 ⇒ 稳态断言红; 分母换回 realized ⇒ 09-10 00Z 红;
     表法 vs 行法在 >20 名的锚上必须不同。
  
@@ -675,6 +697,9 @@ index 3142562..2f24cc0 100644
 +     不在 anchors.jsonl 里, 又被 _traded 的名字前缀过滤器挑掉)。这是盲区, 不是红: 独立成类, 按
 +     order_type 结构选取(不按名字, E-0825-H), 批次行与看门狗自己的 flatten_all 动作记录【逐行精确对账】, 并用「拿掉这 1,708 行, [E] 的每
 +     一个数一位不变」把盲区本身证出来。
++     ★ R3-A2(独立复审第三轮 §2.2): 对账【人口】先从看门狗事件侧定 —— 列出过单的 flatten_all 批次集合必须 == 账本
++     批次集合, 缺整批 = LEDGER_BATCH_MISSING(点名, 红); 之后才逐批精确对账。此前人口取自订单行, 删整批订单行、
++     保留全部事件, 其余批次逐批仍 EXACT, 该格照绿。
 +   ③ HALTED-NO-SUBMIT: 停机锚此前只被断言「整书缺口 > 1000U」—— 一条几乎什么都没说的绝对界。
 +     16 个停机锚的真实形态是: 终态只有 blocked_by_halt / skipped_min_notional, 0 次提交, 0 笔成交,
 +     且 Σ|intended| == anchors 行的 target_gross(到分)。按形态成类并断言这条恒等式; 承重证明 =
@@ -694,7 +719,7 @@ index 3142562..2f24cc0 100644
  
  _HERE = os.path.dirname(os.path.abspath(__file__))
  _REPO = os.path.dirname(_HERE)
-@@ -158,6 +180,147 @@ check("★★ residual is intended MINUS filled, so a partially-covered gap coun
+@@ -158,6 +183,147 @@ check("★★ residual is intended MINUS filled, so a partially-covered gap coun
  check("★★ rows from another rebalance are excluded",
        OD.gaps([{**row("blocked_by_halt"), "rebalance_id": "OTHER"}], "RID")["n_named"] == 0)
  
@@ -842,7 +867,7 @@ index 3142562..2f24cc0 100644
  print("\n[E] the REAL ledger — what each anchor would now declare")
  _all_anchor_rows = []
  for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.jsonl"))):
-@@ -165,10 +328,11 @@ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.j
+@@ -165,10 +331,11 @@ for _f in sorted(glob.glob(os.path.join(_REPO, "state/live/pilot_log/*/anchors.j
          _l = _l.strip()
          if _l:
              _all_anchor_rows.append(json.loads(_l))
@@ -856,7 +881,7 @@ index 3142562..2f24cc0 100644
  # ★★★ THIS ASSERTION WAS `len(_halted) == 2` AND IT EXPIRED WITHIN THE HOUR — third instance
  #     today of the family this repo keeps paying for, and the third one in MY OWN tests. A count
  #     of a LIVE, GROWING population is pinned-to-transient-state wearing a different hat: the
-@@ -179,15 +343,67 @@ for _A in sorted({r["anchor_ts"] for r in _all}):
+@@ -179,15 +346,67 @@ for _A in sorted({r["anchor_ts"] for r in _all}):
  #       worth making was never "there are two" — it is "a halted anchor declares its whole book,
  #       a trading anchor declares far less", and that survives every future anchor.
  _halt_flag = {}
@@ -925,7 +950,7 @@ index 3142562..2f24cc0 100644
  # ★★ 2026-08-04: `< 200` FAILED on A1785859279 (229.5) and the failure was CORRECT ARITHMETIC on
  #   a WRONG QUANTITY. 6 of that anchor's 7 gap rows were `skipped_no_chase_arm` — the chase
  #   experiment's no_chase arm, residuals that were sendable and DELIBERATELY not sent so the
-@@ -236,6 +452,14 @@ def _split(rid):
+@@ -236,6 +455,14 @@ def _split(rid):
      return d, g["gross_usdt"] - d - cap
  
  
@@ -940,7 +965,7 @@ index 3142562..2f24cc0 100644
  _tr_split = {r: _split(r) for r in _traded}
  _tr_cap = {r: float(_by[r].get("venue_cap_usdt") or 0.0) for r in _traded}
  # ★ 2026-08-27 尺子第三次重标定(与 08-18 resize 案同一修复家族, 一层更深): E-0826-F 停机清除后的
-@@ -252,7 +476,6 @@ _rebuild = {r for i, r in enumerate(_all_ids)
+@@ -252,7 +479,6 @@ _rebuild = {r for i, r in enumerate(_all_ids)
  #   A1787819040(1.75→2.0 收官步)非自愿 798 是建仓未完成部分, 前提(意图≈稳态换手)失效,
  #   分离性质未失效。修复同法: 独立成类, 界=自身整书 realized_gross 的 5%(同代书尺,
  #   比稳态 200U 松 ~10×, 仍能抓住真正的建仓卡死); 其后首个稳态锚必须回 200U 线内。
@@ -948,7 +973,7 @@ index 3142562..2f24cc0 100644
  def _resize_sig(rid):
      row = _row_by_rid.get(rid) or {}
      eb = row.get("external_book") or {}
-@@ -378,6 +601,277 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
+@@ -378,6 +604,316 @@ check("★★★ ...and the anchor AFTER a rebuild is back inside the steady lin
            for rb in _rebuild) if _rebuild else True,
        {rb: (_next_traded_after(rb), round(_tr_split[_next_traded_after(rb)][1])
              if _next_traded_after(rb) else None) for rb in _rebuild})
@@ -1144,15 +1169,47 @@ index 3142562..2f24cc0 100644
 +    return ("MISMATCH" if mm else "EXACT"), mm, how
 +
 +
++def _flatten_population(actions, ledger_batches):
++    """★ R3-A2 (independent review round 3 §2.2, 2026-09-13): THE AUDIT POPULATION COMES FROM THE EVENT SIDE.
++
++    The completeness cell used to iterate `_flat_batches` — built from the ORDER rows — so the side that may be missing
++    defined the population: delete ONE WHOLE batch of `protective_flatten` rows, keep every event, and the remaining
++    batches still reconcile EXACT one by one; the cell stayed green. The ladder's own record is the population instead:
++    `watchdog` appends `{"ts": evaluated_utc, "actions": broker.actions}` to events.jsonl, and `_write_flatten_rows`
++    writes exactly ONE row per order it is handed and nothing for an empty list (`if not orders: return 0`).
++    Returns (required, missing, no_orders):
++      required   {batch} whose `flatten_all` actions list at least one order — each MUST have ledger rows;
++                 None when there is no event log (nothing can be required; the caller names it NOT OBSERVABLE);
++      missing    {batch: [reason]} — required, and the ledger holds no row of it: LEDGER_BATCH_MISSING (red, named);
++      no_orders  [batch] whose actions listed no order at all — no rows by construction; named, not required.
++    A ledger batch with no action record is not decided here: the caller keeps it NOT OBSERVABLE (red, named); a
++    ledger batch whose actions listed no order reconciles as a count MISMATCH (red)."""
++    if actions is None:
++        return None, {}, []
++    required = {b for b, oo in actions.items() if oo}
++    missing = {b: [f"the ladder's flatten_all record lists {len(actions[b])} order(s) and the ledger holds NO row of "
++                   f"this batch — `_write_flatten_rows` writes one row per order, so the WHOLE batch is missing"]
++               for b in sorted(required - set(ledger_batches))}
++    return required, missing, sorted(b for b, oo in actions.items() if not oo)
++
++
 +def _batch_ts(b):
 +    return float((_flat_batches.get(b) or [{}])[0].get("anchor_ts") or 0.0)
 +
 +
 +_flat_actions = _flatten_action_orders()
++# ★ R3-A2: population FIRST (event side), THEN the existing per-batch exact reconciliation over event ∪ ledger batches —
++#   a batch the events require and the ledger lacks is LEDGER_BATCH_MISSING, named in the cell's detail and red.
++_flat_required, _flat_missing, _flat_no_orders = _flatten_population(_flat_actions, _flat_batches)
 +_flat_state, _flat_detail, _flat_join = {}, {}, {}
-+for _b, _rr in _flat_batches.items():
++# ledger batches in their own order (as before R3-A2), then the event-only ones — no sort over the keys: a corrupted row
++# without a rebalance_id (key None) must reach its NOT OBSERVABLE state below, not crash a sort of mixed keys
++for _b in list(_flat_batches) + [b for b in _flat_missing if b not in _flat_batches]:
++    _rr = _flat_batches.get(_b)
 +    if _flat_actions is None:
 +        _flat_state[_b], _flat_detail[_b], _flat_join[_b] = "NOT_OBSERVABLE", ["no watchdog event log"], None
++    elif _b in _flat_missing:
++        _flat_state[_b], _flat_detail[_b], _flat_join[_b] = "LEDGER_BATCH_MISSING", _flat_missing[_b], None
 +    elif _b not in _flat_actions:
 +        _flat_state[_b], _flat_detail[_b], _flat_join[_b] = "NOT_OBSERVABLE", ["no flatten_all action record"], None
 +    else:
@@ -1167,13 +1224,20 @@ index 3142562..2f24cc0 100644
 +      "row (filled_notional, fill price, venue fill time, mid at submit, intended notional), Σ|filled| and "
 +      "Σ signed equal to the cent, and every row's terminal state the class its `_exec` implies — filled, or "
 +      "an explicitly recorded failure. A batch with no action record, or with no deterministic join, is "
-+      "NOT OBSERVABLE: it is NAMED and this cell FAILS — completeness the record cannot back is never passed",
-+      bool(_flat_state) and not _flat_notobs and not _flat_mism and len(_flat_exact) == len(_flat_state),
++      "NOT OBSERVABLE: it is NAMED and this cell FAILS — completeness the record cannot back is never passed. "
++      "★ R3-A2: the POPULATION is the event side's — every batch whose `flatten_all` actions list an order must "
++      "be present in the ledger (event-batch set == ledger-batch set), a required batch with no row is NAMED "
++      "LEDGER_BATCH_MISSING and this cell FAILS; an action that listed no order is named, never required",
++      _flat_required is not None and set(_flat_batches) == _flat_required and not _flat_missing
++      and bool(_flat_state) and not _flat_notobs and not _flat_mism and len(_flat_exact) == len(_flat_state),
 +      {"EXACT": len(_flat_exact),
 +       "rows_reconciled": sum(len(_flat_batches[b]) for b in _flat_exact),
 +       "join": dict(collections.Counter(_flat_join[b] for b in _flat_exact)),
 +       "MISMATCH": _flat_mism,
-+       "NOT_OBSERVABLE": _flat_notobs})
++       "NOT_OBSERVABLE": _flat_notobs,
++       "population": {"event_batches_requiring_rows": (len(_flat_required) if _flat_required is not None else None),
++                      "ledger_batches": len(_flat_batches), "LEDGER_BATCH_MISSING": _flat_missing,
++                      "actions_listing_no_orders": _flat_no_orders}})
 +_cid_batches = sorted((b for b in _flat_exact if _flat_join[b] == "client_id"), key=_batch_ts)
 +_nocid_batches = sorted((b for b in _flat_exact if _flat_join[b] == "symbol_side_attempt"), key=_batch_ts)
 +_first_cid_ts = min((_batch_ts(b) for b in _cid_batches), default=None)
@@ -1226,7 +1290,7 @@ index 3142562..2f24cc0 100644
  # ★ 2026-08-18 尺子重标定: 原断言在 TOTAL(自愿+非自愿)上执行, 隐含前提"没有合法的大额
  #   自愿弃单"。当日 04:00Z 入金 resize(2×NAV, 目标增量 2.6×)被 no-chase 政策正确弃单
  #   1424 USDT(全部 deliberate, involuntary=0), 打破了按无大额重整时代标定的 0.25 界 ——
-@@ -429,6 +923,289 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
+@@ -429,6 +965,322 @@ check("★★★ deliberate is summed from the ROWS, not from gaps()['names'] (t
        and all(abs(_old_d[r] - _tr_split[r][0]) < 1e-2 for r in _traded if r not in _gt20),
        {r: (round(_old_d[r]), round(_tr_split[r][0])) for r in _gt20 if abs(_old_d[r] - _tr_split[r][0]) > 1.0})
  
@@ -1472,6 +1536,39 @@ index 3142562..2f24cc0 100644
 +      {b: {"join": v["join"], "untouched": v["untouched"], **{m: v[m] for m in _MUTS},
 +           "band_passes_the_two_ledger_mutants": v["band_passes_the_two_ledger_mutants"]}
 +       for b, v in _flat_mut.items()})
++_pop_mut = {}
++for _b in ([_cid_batches[-1]] if _cid_batches else []) + ([_nocid_batches[-1]] if _nocid_batches else []):
++    _kept = {b: rr for b, rr in _flat_batches.items() if b != _b}
++    _req_m, _miss_m, _ = _flatten_population(_flat_actions, _kept)
++    _pop_mut[_b] = {
++        "join": _flat_join.get(_b), "rows_dropped": len(_flat_batches[_b]),
++        "named_LEDGER_BATCH_MISSING": sorted(_miss_m) == [_b],
++        "event_set_equals_ledger_set": set(_kept) == _req_m,
++        # the pre-R3-A2 population (ledger batches only): every remaining batch still EXACT ⇒ the old cell passed it
++        "ledger_only_population_all_exact": all(_reconcile_flatten(rr, _flat_actions[b])[0] == "EXACT"
++                                                for b, rr in _kept.items())}
++check("★★★ R3-A2 the POPULATION is LOAD-BEARING, on the real ledger: drop ONE WHOLE batch of `protective_flatten` rows "
++      "(the latest client_id-joined batch, and the latest (symbol, side, attempt_idx)-joined batch) and keep every event "
++      "⇒ the event population names exactly that batch LEDGER_BATCH_MISSING and the two batch sets differ — while every "
++      "remaining batch still reconciles EXACT on its own, which is precisely why a population drawn from the ledger "
++      "rows let a whole missing batch through",
++      len(_pop_mut) == 2 and {v["join"] for v in _pop_mut.values()} == {"client_id", "symbol_side_attempt"}
++      and all(v["named_LEDGER_BATCH_MISSING"] and not v["event_set_equals_ledger_set"]
++              and v["ledger_only_population_all_exact"] for v in _pop_mut.values()),
++      _pop_mut)
++_pop_fx = {"FLATTEN-A": [{"symbol": "AAAUSDT", "side": "sell", "attempt_idx": 1, "quantity": 1.0,
++                          "_exec": {"submitted": True, "error": None, "filled_notional": -10.0}}],
++           "FLATTEN-B": []}
++check("★★ ...and the population's other edges are named, not guessed: a batch whose actions listed NO order has no rows by "
++      "construction (`_write_flatten_rows` returns 0 on an empty list) ⇒ named, not required; the same batch WITH rows is a "
++      "count MISMATCH; a required batch with no rows is LEDGER_BATCH_MISSING; no event log requires nothing (the cell "
++      "then names every ledger batch NOT OBSERVABLE)",
++      _flatten_population(_pop_fx, {"FLATTEN-A": [{}]}) == ({"FLATTEN-A"}, {}, ["FLATTEN-B"])
++      and list(_flatten_population(_pop_fx, {})[1]) == ["FLATTEN-A"]
++      and _reconcile_flatten([{"symbol": "BBBUSDT", "side": "buy", "attempt_idx": 1, "filled_notional": 5.0,
++                               "terminal_reason": "filled"}], _pop_fx["FLATTEN-B"])[0] == "MISMATCH"
++      and _flatten_population(None, {"FLATTEN-A": [{}]}) == (None, {}, []),
++      (_flatten_population(_pop_fx, {"FLATTEN-A": [{}]}), _flatten_population(_pop_fx, {})[1]))
 +_fail_act = {"action": "flatten_all", "orders": [
 +    {"symbol": "AAAUSDT", "side": "sell", "attempt_idx": 1, "quantity": 1.0,
 +     "_exec": {"submitted": True, "error": None, "filled_notional": -10.0}},
@@ -8705,10 +8802,10 @@ index 0000000..8250bbf
 +print("ALL PASS")
 diff --git a/live/tests_reduce_only_clamp.py b/live/tests_reduce_only_clamp.py
 new file mode 100644
-index 0000000..0e813f1
+index 0000000..289fc28
 --- /dev/null
 +++ b/live/tests_reduce_only_clamp.py
-@@ -0,0 +1,672 @@
+@@ -0,0 +1,870 @@
 +"""E-0912-A: a reduce-only exit CLAMPED BY THE VENUE to the position is a KNOWN quantity, not a contradiction.
 +
 +*** MOCK ONLY: `urllib.request.urlopen` is replaced in-process (the transport suite's FakeNet). No account, no
@@ -8746,6 +8843,11 @@ index 0000000..0e813f1
 +      the venue's capacity; OLD: 2 × execution_of_unknown_size (the incident).                [OLD CODE: RED]
 +  +   fixture validity: the copied rows say what the ledger entry says (quantities, origQty, child sums, the old
 +      verdict), and `reconcile` on the REAL live rows still reproduces the 2 anomalies (the incident as recorded).
++  T12 R3-A1 (independent review round 3 §2.1): CAPACITY IS A FACT OF THE REQUEST. Two records of one request naming
++      different venue-accepted origQty (8 then 6, 6 then 8; the false-closure case 6 then 8 with C == 6) ⇒ capacity
++      UNKNOWN with a named `capacity_conflict`, no `qty_venue`, never proven final, band [C, Qs] — settlement merge,
++      the full plan → submit_maker → complete_anchor chain and `reconcile`; consistent 8/8 keeps its clamp and its
++      closure; a foreign orderId stays rejected; the no-order-modify premise is pinned.       [OLD CODE: RED]
 +
 +WHAT IS NOT: that the venue always clamps a reduceOnly order rather than refusing it (documented behaviour; -2022
 +is raised with no position / the wrong side — observed on 2026-09-12, assumed general); the allOrders record used
@@ -8757,6 +8859,7 @@ index 0000000..0e813f1
 +
 +Exit 0 = all pass.
 +"""
++import ast
 +import contextlib
 +import inspect
 +import io
@@ -9376,6 +9479,198 @@ index 0000000..0e813f1
 +           if r.get("terminal_reason") == "filled_amount_unknown"} == {MEME: "known", POP: "known"},
 +      {k: list(v.values()) for k, v in _real_ev.items()})
 +
++# ════════════════════════════════════════════════════════════════════════════════════════════════════════════
++print("\n[T12] R3-A1 (independent review round 3 §2.1): CAPACITY IS A FACT OF THE REQUEST — every record of one request "
++      "must name the SAME venue-accepted origQty; records that disagree leave the capacity UNKNOWN, never a first pick")
++# The reviewer's counterexample, through the real settlement merge: we sent Qs 10 (BUY, reduce-only); two snapshots of
++# the SAME request (same client id / symbol / orderId, both PARTIALLY_FILLED with C 4) name origQty 8 and then 6. Each
++# passes the identity gate ON ITS OWN (each is a legal clamp below 10); `_merged` took the FIRST clamp and `break` ⇒
++# Qv 8, no contradiction. The reverse order with C == 6 is the false CLOSURE: Qv 6 == C, so the capacity rule wrote an
++# OPEN order as a PROVEN FINAL 6, and a later legal fill up to the other record's 8 became a position residual — the
++# E-0912-A family, pointing at the book. Receipt: .../codex_round3_code_review_2026-09-13/incident/RESULT.md (R3-I1).
++# This executor never modifies an order, so no record can be a later VERSION of the request: every disagreement is a
++# conflict. Capacity then stays UNKNOWN — the request is bounded by what we SENT, [C, Qs], and nothing about the
++# capacity may prove it final — with the reason named on the facts and on the request ledger.
++_XS = "XUSDT"
++_XCID = f"{RID}-{_XS}-1"
++_X_T0 = 1789215900000                     # ms; inside (A08 readback, A12 + 658 s readback] below
++
++
++def _x_rec(orig, c=4.0, status="PARTIALLY_FILLED", **over):
++    """A venue record of OUR request: BUY reduce-only, orderId 7, price 10, cumulative executed C."""
++    r = {"clientOrderId": _XCID, "symbol": _XS, "orderId": 7, "side": "BUY", "reduceOnly": True, "type": "LIMIT",
++         "timeInForce": "GTX", "price": "10", "origQty": f"{orig:g}", "executedQty": f"{c:g}",
++         "cumQuote": f"{10.0 * c:g}", "avgPrice": ("10" if c else "0"), "status": status, "updateTime": _X_T0}
++    r.update(over)
++    return r
++
++
++def _x_settle(first, second):
++    """`settle_ambiguous_legs` as complete_anchor calls it for a request allOrders showed OPEN: the submit response
++    (first record) and the allOrders row (second) ⇒ `_resolve_open` ⇒ the settlement cancel answers -2011 ⇒ the re-query
++    answers the second record again (still open) ⇒ the facts read so far are kept as a partial; the name stays UNKNOWN."""
++    b = broker()
++    b.actions.append({"action": "submit", "order": {"symbol": _XS, "side": "buy", "quantity": 10.0, "price": 10.0,
++                                                    "client_id": _XCID, "reduce_only": True}, "resp": dict(first)})
++    NET.on("DELETE", "/fapi/v1/order", http_error(400, {"code": -2011, "msg": "Unknown order sent."}))
++    NET.on("GET", "/fapi/v1/order", dict(second))
++    p = {"symbol": _XS, "side": "buy", "qty": 10.0, "reduce_only": True, "attempt_idx": 1}
++    return VF.settle_ambiguous_legs(b, RID, [p], {}, matched={_XCID}, full_pages=set(), reached={_XS},
++                                    non_terminal={_XS: [_XCID]}, matched_rows={_XCID: dict(second)})
++
++
++for _f, _s, _c in ((8.0, 6.0, 4.0), (6.0, 8.0, 4.0), (6.0, 8.0, 6.0)):
++    _r12 = _x_settle(_x_rec(_f, _c), _x_rec(_s, _c))
++    _pt = (_r12.get("partial") or {}).get(_XS) or {}
++    _cf = _pt.get("capacity_conflict") or {}
++    check(f"★★★ T12 settlement: submit origQty {_f:g} then allOrders/re-query origQty {_s:g} (C {_c:g}, still open) ⇒ "
++          f"capacity UNKNOWN — NO `clamped`, a named `capacity_conflict` listing every reading, the quantity not final, "
++          f"the name UNKNOWN as before and nothing called a contradiction (OLD CODE: `clamped` venue {_f:g}, the first record wins)",
++          "clamped" not in _pt and _cf.get("sent") == 10.0 and {x.get("origQty") for x in (_cf.get("records") or [])} == {_f, _s}
++          and len(_cf.get("records") or []) == 3 and "capacity" in str(_cf.get("why"))
++          and _pt.get("executed_qty") == _c and _pt.get("executed_qty_final") is False
++          and _XS in _r12["unknown"] and not _pt.get("inconsistent") and not (_r12.get("updates") or {}).get(_XS),
++          {k: _pt.get(k) for k in ("clamped", "capacity_conflict", "executed_qty", "executed_qty_final", "inconsistent")})
++_r12 = _x_settle(_x_rec(8.0), _x_rec(8.0))
++_pt = (_r12.get("partial") or {}).get(_XS) or {}
++check("★★★ T12 positive control: submit origQty 8 and allOrders/re-query origQty 8 — ONE capacity ⇒ `clamped` {ours 10, venue 8}, "
++      "no `capacity_conflict`, C 4 open (unchanged by this fix)",
++      _pt.get("clamped") == {"ours": 10.0, "venue": 8.0, "why": "reduceOnly clamped to position"}
++      and "capacity_conflict" not in _pt and _pt.get("executed_qty") == 4.0 and _pt.get("executed_qty_final") is False,
++      {k: _pt.get(k) for k in ("clamped", "capacity_conflict", "executed_qty", "executed_qty_final")})
++_r12 = _x_settle(_x_rec(8.0), _x_rec(8.0, orderId=9))
++_u12 = (_r12.get("updates") or {}).get(_XS) or {}
++check("★★★ T12 negative control: the second record carries ANOTHER orderId (9, the venue acknowledged 7) ⇒ still not ours — "
++      "UNKNOWN and unmeasurable, named 'acknowledged'; a capacity rule is never reached by a record that is not ours",
++      _XS in _r12["unknown"] and "acknowledged" in str(_u12.get("inconsistent")) and "capacity_conflict" not in _u12,
++      _u12.get("inconsistent"))
++_b12 = broker()
++_b12.actions.append({"action": "submit", "order": {"symbol": _XS, "side": "buy", "quantity": 10.0, "price": 10.0,
++                                                   "client_id": _XCID, "reduce_only": True}, "resp": _x_rec(8.0, 4.0)})
++_r12 = VF.settle_ambiguous_legs(_b12, RID, [{"symbol": _XS, "side": "buy", "qty": 10.0, "reduce_only": True, "attempt_idx": 1}],
++                                {}, matched={_XCID}, full_pages=set(), reached={_XS}, non_terminal={},
++                                matched_rows={_XCID: _x_rec(6.0, 6.0, status="CANCELED")})
++_u12 = (_r12.get("updates") or {}).get(_XS) or {}
++check("★★★ T12 a TERMINAL record does not rescue a capacity conflict: submit origQty 8 (C 4, open) then a CANCELED allOrders "
++      "record origQty 6 (C 6) ⇒ found terminal, C 6, but `executed_qty_final` False and `capacity_conflict` named — the "
++      "request stays in [C, Qs] (OLD CODE: `clamped` venue 8 and a PROVEN final 6)",
++      _XS in (_r12.get("terminal_matched") or []) and _u12.get("executed_qty") == 6.0 and _u12.get("executed_qty_final") is False
++      and "clamped" not in _u12 and {x.get("origQty") for x in ((_u12.get("capacity_conflict") or {}).get("records") or [])} == {8.0, 6.0},
++      {k: _u12.get(k) for k in ("executed_qty", "executed_qty_final", "clamped", "capacity_conflict")})
++
++
++def _x_trades(c):
++    return [{"id": 9000 + i, "orderId": 7, "symbol": _XS, "side": "BUY", "price": "10", "qty": "1", "quoteQty": "10",
++             "commission": "0.004", "commissionAsset": "USDT", "time": _X_T0 + i, "maker": True, "buyer": True,
++             "realizedPnl": "0", "positionSide": "BOTH"} for i in range(int(c))]
++
++
++def _x_chain(first, second, c):
++    """The unmodified production chain on one synthetic reduce-only exit (short 10 @ 10 → target 0): plan → submit_maker
++    (POST answers `first`) → complete_anchor (k-cancel -2011; allOrders shows `second`; an OPEN `second` is cancelled again
++    (-2011) and re-queried (`second`); userTrades returns C child fills of 1) ⇒ the maker row with its request ledger."""
++    e = _ex(); b = e.broker
++    plans = e.plan({_XS: 0.0}, {_XS: -100.0}, {_XS: 10.0}, reduce_only_syms={_XS})
++    assert [p_["qty"] for p_ in plans] == [10.0] and plans[0]["reduce_only"] is True, plans
++    NET.on("POST", "/fapi/v1/order", dict(first))
++    assert len(e.submit_maker(plans, A12, RID)) == 1
++    e._last_plans = plans
++    _2011 = lambda: http_error(400, {"code": -2011, "msg": "Unknown order sent."})      # noqa: E731
++    NET.on("DELETE", "/fapi/v1/order", _2011(), _2011())
++    NET.on("GET", "/fapi/v1/allOrders", [dict(second)])
++    NET.on("GET", "/fapi/v1/order", dict(second))
++    NET.on("GET", "/fapi/v1/userTrades", _x_trades(c))
++    d = tempfile.mkdtemp(prefix="r3a1_chain_")
++    _old_state, _old_fb, _old_mode = AL.STATE_PATH, os.environ.get("LIVE_FEE_BASELINE"), os.environ.get("LIVE_MODE")
++    AL.STATE_PATH = os.path.join(d, "state.json"); open(AL.STATE_PATH, "w").write(json.dumps({"positions": {_XS: -100.0}}) + "\n")
++    os.environ["LIVE_FEE_BASELINE"] = os.path.join(d, "fee_baseline.json"); os.environ["LIVE_MODE"] = "DRY_RUN"
++    alarms = []
++    loop = AL.AnchorLoop.__new__(AL.AnchorLoop)
++    loop.executor, loop.broker, loop.log, loop.gross = e, b, None, 1000.0
++    loop.alarm = lambda sev, msg: alarms.append((sev, msg)); loop.fills = lambda *a, **k: {}
++    loop.src = types.SimpleNamespace(book_mids=lambda: {})
++    try:
++        loop.complete_anchor({"live": [_XS], "target": {_XS: 0.0}}, A12, RID)
++    finally:
++        AL.STATE_PATH = _old_state
++        if _old_fb is None: os.environ.pop("LIVE_FEE_BASELINE", None)
++        else: os.environ["LIVE_FEE_BASELINE"] = _old_fb
++        if _old_mode is None: os.environ.pop("LIVE_MODE", None)
++        else: os.environ["LIVE_MODE"] = _old_mode
++    mk = [r for r in e.rows_orders if r["order_type"] == "maker" and r["symbol"] == _XS]
++    assert len(mk) == 1, [(r["order_type"], r["terminal_reason"]) for r in e.rows_orders]
++    return mk[0], list(e.rows_orders)
++
++
++def _x_reconcile(rows, after_qty):
++    """The FULL reconcile: held short 10 at the 08Z readback; `after_qty` at a readback taken after the fills."""
++    rb = [{"symbol": _XS, "anchor_ts": A08, "read_ts": A08, "venue_position_qty": -10.0, "venue_position_notional": 100.0},
++          {"symbol": _XS, "anchor_ts": A12, "read_ts": A12 + 658.0, "venue_position_qty": after_qty,
++           "venue_position_notional": 10.0 * abs(after_qty)}]
++    return RC.reconcile([("SYN", {"orders": copy.deepcopy(rows), "position_readback": rb,
++                                  "anchors": [{"anchor_ts": A12, "target_gross": 1000.0}]})], min_notional_by_symbol={})
++
++
++_mk, _rows = _x_chain(_x_rec(6.0, 6.0), _x_rec(8.0, 6.0), 6.0)
++_lg = (_mk.get("request_ledger") or [{}])[0]
++check("★★★ T12 CHAIN, the false-closure case — POST origQty 6 (C 6), allOrders/re-query origQty 8 (C 6, still open): the request "
++      "ledger carries NO `qty_venue` / `clamped`, a named `capacity_conflict`, C 6 NOT final, and the row keeps the band "
++      "Qs − C = 4 (OLD CODE: qty_venue 6, the child fold calls C 6 == Qv 6 'fills reached the request quantity' ⇒ final, filled 6)",
++      "qty_venue" not in _lg and "clamped" not in _lg and {x.get("origQty") for x in ((_lg.get("capacity_conflict") or {}).get("records") or [])} == {6.0, 8.0}
++      and _lg.get("qty") == 10.0 and _lg.get("confirmed_qty") == 6.0 and _lg.get("confirmed_qty_final") is False
++      and _mk.get("filled_qty") is None and _mk.get("filled_unknown_qty") == 4.0 and _mk.get("filled_known_qty") == 6.0,
++      ({k: _lg.get(k) for k in ("qty", "qty_venue", "clamped", "capacity_conflict", "confirmed_qty", "confirmed_qty_final", "terminal", "terminal_by")},
++       {k: _mk.get(k) for k in ("terminal_reason", "filled_qty", "filled_known_qty", "filled_unknown_qty")}))
++_rc8, _rc11 = _x_reconcile(_rows, -2.0), _x_reconcile(_rows, 1.0)
++check("★★★ T12 CHAIN ⇒ reconcile: the other record's capacity 8 filling (short 10 → short 2) is INSIDE [C 6, Qs 10] ⇒ 0 anomalies "
++      "(OLD CODE: the manufactured final 6 reads it as a 2-contract / 20 USDT position residual ⇒ an anomaly at the latest anchor); "
++      "an execution beyond what we SENT (short 10 → long 1) is still an anomaly — the band ends at Qs, it is not removed",
++      len(_rc8["latest"]) == 0 and len(_rc11["latest"]) == 1,
++      (_rc8["n_anomalies_by_kind"], _rc11["n_anomalies_by_kind"]))
++for _f, _s, _band_new in ((8.0, 6.0, 6.0), (6.0, 8.0, 6.0)):
++    _mk, _rows = _x_chain(_x_rec(_f, 4.0), _x_rec(_s, 4.0), 4.0)
++    _lg = (_mk.get("request_ledger") or [{}])[0]
++    check(f"★★★ T12 CHAIN, both orders — POST origQty {_f:g} then allOrders/re-query origQty {_s:g} (C 4, open): no `qty_venue`, "
++          f"`capacity_conflict` named, band Qs − C = {_band_new:g} (OLD CODE: qty_venue {_f:g}, band {_f - 4.0:g} — the first record's capacity)",
++          "qty_venue" not in _lg and "clamped" not in _lg and (_lg.get("capacity_conflict") or {}).get("sent") == 10.0
++          and _lg.get("confirmed_qty_final") is False and _mk.get("filled_unknown_qty") == _band_new,
++          ({k: _lg.get(k) for k in ("qty_venue", "clamped", "capacity_conflict", "confirmed_qty_final")}, _mk.get("filled_unknown_qty")))
++_mk, _rows = _x_chain(_x_rec(8.0, 4.0), _x_rec(8.0, 4.0), 4.0)
++_lg = (_mk.get("request_ledger") or [{}])[0]
++check("★★★ T12 CHAIN positive control, consistent 8/8 (C 4, open): qty_venue 8, `clamped` venue 8, no `capacity_conflict`, "
++      "band Qv − C = 4 — one agreed capacity still bounds the request by what the venue accepted",
++      _lg.get("qty_venue") == 8.0 and (_lg.get("clamped") or {}).get("venue") == 8.0 and "capacity_conflict" not in _lg
++      and _mk.get("filled_unknown_qty") == 4.0,
++      ({k: _lg.get(k) for k in ("qty_venue", "clamped", "capacity_conflict")}, _mk.get("filled_unknown_qty")))
++_mk, _rows = _x_chain(_x_rec(8.0, 4.0), _x_rec(8.0, 8.0, status="FILLED"), 8.0)
++_lg = (_mk.get("request_ledger") or [{}])[0]
++check("★★★ T12 CHAIN positive control, consistent 8/8 closing (POST C 4 open, allOrders FILLED C 8): capacity closure still "
++      "holds on one agreed capacity — C 8 == Qv 8 final, filled_qty 8, and reconcile short 10 → short 2 has 0 anomalies",
++      _lg.get("qty_venue") == 8.0 and _lg.get("confirmed_qty") == 8.0 and _lg.get("confirmed_qty_final") is True
++      and _mk.get("filled_qty") == 8.0 and len(_x_reconcile(_rows, -2.0)["latest"]) == 0,
++      ({k: _lg.get(k) for k in ("qty_venue", "confirmed_qty", "confirmed_qty_final")}, _mk.get("filled_qty"), _mk.get("terminal_reason")))
++_lg0 = {"qty": 10.0, "qty_venue": 6.0, "confirmed_qty": 6.0, "confirmed_qty_final": True,
++        "capacity_conflict": {"why": "capacity conflict", "sent": 10.0}}
++check("★★ T12 the ledger accessors read the conflict FIRST: a request row carrying `capacity_conflict` is bounded by Qs even if a "
++      "`qty_venue` / `confirmed_qty_final` sits beside it (fail wide, never closed by a capacity it cannot trust); C reaching Qs "
++      "still closes it ([Qs, Qs] is inside the band)",
++      BE._req_qty(_lg0) == 10.0 and BE._final_known(_lg0) is False and BE.request_remaining(dict(_lg0, state="confirmed")) == 4.0
++      and BE._final_known(dict(_lg0, confirmed_qty=10.0)) is True,
++      (BE._req_qty(_lg0), BE._final_known(_lg0), BE.request_remaining(dict(_lg0, state="confirmed"))))
++_verbs, _puts = set(), []
++for _dir in ("live", "scheduler", "ops"):
++    for _fn in sorted(os.listdir(os.path.join(REPO, _dir))):
++        if _fn.endswith(".py") and not _fn.startswith("tests_"):
++            for _n in ast.walk(ast.parse(open(os.path.join(REPO, _dir, _fn), encoding="utf-8").read())):
++                if isinstance(_n, ast.Call) and getattr(_n.func, "attr", None) == "_request":
++                    _verbs.add(_n.args[0].value if (_n.args and isinstance(_n.args[0], ast.Constant)) else f"non-constant@{_dir}/{_fn}:{_n.lineno}")
++                if isinstance(_n, ast.Constant) and _n.value == "PUT":
++                    _puts.append(f"{_dir}/{_fn}:{_n.lineno}")
++check("★★ T12 the premise is pinned, not assumed: no runtime module (live/ scheduler/ ops/, tests excluded) sends an order-MODIFY — "
++      "every `_request` verb is a constant in {GET, POST, DELETE} and no 'PUT' literal exists. If a modify path is ever added this "
++      "goes red: records after a modify are a new VERSION of the request, and capacity versions must then be designed, not assumed",
++      bool(_verbs) and _verbs <= {"GET", "POST", "DELETE"} and not _puts, (sorted(map(str, _verbs)), _puts))
++
 +print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
 +if FAILS:
 +    print("FAILED:", *FAILS, sep="\n  ")
@@ -9396,7 +9691,7 @@ index db9e701..ce06540 100644
                                    "deterministic requote/direct arm (PREREG_requote_randomised_2026-09-05). "
                                    "Pure function of the string: sends nothing, stores nothing, counts "
 diff --git a/live/venue_fills.py b/live/venue_fills.py
-index 6c260c1..7b84ee1 100644
+index 6c260c1..5f2accf 100644
 --- a/live/venue_fills.py
 +++ b/live/venue_fills.py
 @@ -164,8 +164,13 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
@@ -9425,32 +9720,59 @@ index 6c260c1..7b84ee1 100644
              if bad:
                  return bad
          return None
-@@ -235,6 +241,14 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
+@@ -235,6 +241,37 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
          canon = {"clientOrderId": cid, "symbol": sym,
                   "side": ("BUY" if str(p.get("side", "")).lower() == "buy" else "SELL"),
                   "origQty": abs(float(p.get("qty") or 0.0))}
 +        # ★ E-0912-A (a): when the venue accepted less than we sent (Qv < Qs) for our reduce-only exit, the request's
 +        #   capacity IS Qv — the canon carries it (and the clamp) so the fold and the row bound executedQty / child
 +        #   fills by Qv, not by our larger Qs (DESIGN §2a "后续 executedQty / 子成交按 origQty 为界").
-+        for _, r in recs:
-+            _cl = _BB.reduce_only_clamp(r, canon["origQty"], p.get("reduce_only"))
++        # ★★ R3-A1 (independent review round 3 §2.1, 2026-09-13): CAPACITY IS A FACT OF THE REQUEST, NOT OF ONE RECORD.
++        #   The gates above judged every record ON ITS OWN (its origQty equals Qs, or is a legal clamp below it): that
++        #   proves each record is OURS, not that the records AGREE. This loop used to take the FIRST clamp and `break`:
++        #   submit origQty 8 then allOrders origQty 6 (same cid / symbol / orderId, both PARTIALLY_FILLED 4) merged to
++        #   Qv 8 with no contradiction, and the reverse order with C == 6 let capacity closure (C == Qv) write an OPEN
++        #   order as a PROVEN final 6. This executor never MODIFIES an order (no order-modify verb exists; pinned by
++        #   tests_reduce_only_clamp T12), so no record can be a later VERSION of the request: every disagreement is a
++        #   conflict. Every record that CARRIES an origQty value must name the same one (the gates' own 1e-6 tolerance);
++        #   otherwise the capacity is UNKNOWN — the canon keeps Qs (the one bound every record respected), no `clamped`,
++        #   and a named `capacityConflict` travels to the facts and the request ledger. It is not an identity
++        #   contradiction and it does not make the name UNKNOWN: it only withholds the capacity, so the request stays
++        #   in [C, Qs] and nothing about its capacity can prove the quantity final.
++        _caps = []
++        for _tag, r in recs:
++            if not any(r.get(k) is not None for k in _IDENT):
++                continue                                          # a status-only body carries no capacity
++            _cst, _cv = _BB.identity_field(r, "origQty")
++            if _cst == "value":
++                _caps.append((_tag, float(_cv), r))
++        if _caps and all(abs(v - _caps[0][1]) <= max(1e-9, 1e-6 * max(abs(v), abs(_caps[0][1]))) for _, v, _ in _caps):
++            _cl = _BB.reduce_only_clamp(_caps[0][2], canon["origQty"], p.get("reduce_only"))
 +            if _cl is not None:
 +                canon["origQty"] = _cl["venue"]; canon["clamped"] = _cl
-+                break
++        elif _caps:
++            canon["capacityConflict"] = {
++                "why": ("capacity conflict: records of this request name different venue-accepted origQty and this "
++                        "executor never modifies an order — capacity UNKNOWN, bounded by the quantity sent"),
++                "sent": canon["origQty"], "records": [{"record": _tag, "origQty": v} for _tag, v, _ in _caps]}
          for _, r in reversed(recs):
              if r.get("orderId") is not None and "orderId" not in canon:
                  canon["orderId"] = r["orderId"]
-@@ -264,6 +278,9 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
+@@ -264,6 +301,13 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
                  "non_terminal": ([] if str(status or "").upper() in TERMINAL_STATUSES else [cid]),
                  "settled": "the records of this request contradict each other or are not ours: unmeasurable"}
  
 +    def _clamp_of(canon):
++        if canon.get("capacityConflict"):
++            # ★ R3-A1: the capacity is UNKNOWN — no clamp travels, and a quantity read beside a capacity conflict is not a
++            #   PROVEN final total (terminal or not); the named reason travels with the facts to the request ledger
++            return {"capacity_conflict": dict(canon["capacityConflict"]), "executed_qty_final": False}
 +        return {"clamped": dict(canon["clamped"])} if canon.get("clamped") else {}        # E-0912-A: travels with the facts
 +
      def _facts(canon, sym, cid, why):
          if canon.get("inconsistent"):
              return _unmeasurable(cid, canon["inconsistent"], canon.get("status"))
-@@ -271,8 +288,9 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
+@@ -271,8 +315,9 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
          d = _scan_orders([canon] + others, rebalance_id, record=False)
          if d is None:
              return {"filled_notional": 0.0, "filled_notional_final": True, "executed_qty": 0.0, "executed_qty_final": True, "avg_fill_px": None,
@@ -9462,7 +9784,7 @@ index 6c260c1..7b84ee1 100644
  
      def _keep_partial(p, sym, cid, recs):
          """★ Round 6 (review R5-E2): what the venue already SHOWED (executed so far) is a fact even
-@@ -289,7 +307,7 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
+@@ -289,7 +334,7 @@ def settle_ambiguous_legs(broker, rebalance_id: str, plans, details: Dict[str, d
          d = _scan_orders([canon], rebalance_id, record=False) or {}
          partial[sym] = dict(d, executed_qty=d.get("executed_qty", 0.0), filled_notional=d.get("filled_notional"),
                              avg_fill_px=d.get("avg_fill_px"), non_terminal=[cid], partial=True,
@@ -9471,7 +9793,7 @@ index 6c260c1..7b84ee1 100644
  
      def _carry(p, sym, cid, recs, why):
          """★ Round 10 (review R9-FACT-EXIT): EVERY exit that leaves the symbol UNKNOWN first folds the records
-@@ -939,7 +957,8 @@ def attribute_trades(trades: Dict[str, dict],
+@@ -939,7 +984,8 @@ def attribute_trades(trades: Dict[str, dict],
              leg = info["leg"]
              row = dict(t); row["leg"] = leg
              mine.append(row)
@@ -9481,7 +9803,7 @@ index 6c260c1..7b84ee1 100644
              bucket["trades"].append(row)
              c = abs(float(t.get("commission") or 0.0))
              asset = str(t.get("commission_asset") or "USDT").upper()
-@@ -1116,7 +1135,7 @@ def fill_rows_from_trades(trades: Dict[str, dict], anchor_ts: float, rebalance_i
+@@ -1116,7 +1162,7 @@ def fill_rows_from_trades(trades: Dict[str, dict], anchor_ts: float, rebalance_i
              # leg is known (an unattributed trade) the flag is the only evidence there is.
              leg = t.get("leg")
              venue_maker = bool(t.get("maker"))
@@ -9490,7 +9812,7 @@ index 6c260c1..7b84ee1 100644
                  "maker" if venue_maker else "topup_taker")
              # ★ R19: these four are the VENUE's account of the fill, and an absent one must read as
              # absent. Before this they were `str(...or "").lower()` and `float(... or 0.0)`, so a
-@@ -1215,7 +1234,8 @@ def make_provider(broker, since_ms: Optional[int] = None) -> Callable[[str, List
+@@ -1215,7 +1261,8 @@ def make_provider(broker, since_ms: Optional[int] = None) -> Callable[[str, List
  
  
  def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
@@ -9500,7 +9822,7 @@ index 6c260c1..7b84ee1 100644
      """[B26b] The SAME map as `submitted_order_legs`, rebuilt from the VENUE instead of memory.
  
      ★ WHY A SECOND SOURCE FOR ONE MAP, WHICH IS NORMALLY THE MISTAKE. `submitted_order_legs` reads
-@@ -1233,11 +1253,19 @@ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
+@@ -1233,11 +1280,19 @@ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
      GTX can only make and IOC can only take, so the TIF is the leg by construction. `allOrders`
      returns `timeInForce`, so this is the thing itself and not a convention. The `-1`/`-2` client
      id suffix is the fallback, used only when the venue's row carries no TIF.
@@ -9520,7 +9842,7 @@ index 6c260c1..7b84ee1 100644
      for sym in symbols:
          rows, ok = _read_symbol(broker, "/fapi/v1/allOrders",
                                  {"symbol": sym, "startTime": int(since_ms), "limit": 500}, sym)
-@@ -1245,18 +1273,22 @@ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
+@@ -1245,18 +1300,22 @@ def order_legs_from_venue(broker, rebalance_id: str, symbols: List[str],
              continue
          for r in rows:
              cid = str(r.get("clientOrderId") or "")

@@ -1,0 +1,48 @@
+# X1 R3 REGRESSION: the independent reviewer's round-3 incident probe (probe_round3.py) re-run against the FINAL heads
+# 2026-09-13T08:10:12Z · source probe: /Users/haosiyu/Desktop/quant_research/.claude/worktrees/codex-independent-20260907/multi_asset/exports/research/codex_round3_code_review_2026-09-13/incident/probe_round3.py sha256 8119c9cdd9470f53a5d3feb434d384f8cfacc5ce90137bea41a1b8de32722957
+# Method: the probe dir (probe + SOURCE_MANIFEST.json + private/) copied to scratch, so nothing is written into the reviewer's tree.
+#   ONE line changed in both copies (the ROOT-under-B location assertion):
+#     46c46
+#     <     assert ROOT.is_relative_to(B)
+#     ---
+#     >     pass  # X1 regression copy: ROOT is a scratch copy outside B (the only line changed)
+#   CONTROL copy: frozen snapshots untouched.  NEW copy: private/git/ab/* <- git show 8113eed (final (a)(b) head),
+#   private/git/c/* <- git show 2310bfe (final tip); manifest sha256 re-hashed for exactly those entries. Effect of the swap:
+#     private/git/ab/live/reconcile.py: byte-identical to the frozen snapshot
+#     private/git/ab/live/binance_broker.py: byte-identical to the frozen snapshot
+#     private/git/ab/live/binance_executor.py: CHANGED 1df005f48880 -> 655839b5e9b2
+#     private/git/ab/live/tests_disposition_matrix.py: CHANGED 141bc98a062a -> 874b354a5330
+#     private/git/ab/live/watchdog.py: byte-identical to the frozen snapshot
+#     private/git/ab/live/venue_fills.py: CHANGED 70c0e1989ed1 -> 884f2238d21f
+#     private/git/ab/ops/rejudge_ledger_rows.py: byte-identical to the frozen snapshot
+#     private/git/ab/run_acceptance.sh: byte-identical to the frozen snapshot
+#     private/git/c/live/reconcile.py: byte-identical to the frozen snapshot
+#     private/git/c/live/binance_broker.py: byte-identical to the frozen snapshot
+#     private/git/c/live/binance_executor.py: CHANGED 1df005f48880 -> 655839b5e9b2
+#     private/git/c/live/tests_disposition_matrix.py: CHANGED 141bc98a062a -> 874b354a5330
+#     private/git/c/live/watchdog.py: byte-identical to the frozen snapshot
+#     private/git/c/live/venue_fills.py: CHANGED 70c0e1989ed1 -> 884f2238d21f
+#     private/git/c/ops/rejudge_ledger_rows.py: byte-identical to the frozen snapshot
+#     private/git/c/run_acceptance.sh: byte-identical to the frozen snapshot
+
+## CONTROL (frozen snapshots) — plain process: python3 probe_round3.py
+{"passed": 87, "total": 87, "failed": []}
+# exit code: 0
+
+## NEW (final heads) — plain process: python3 probe_round3.py
+Traceback (most recent call last):
+  File "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/probe_r3_new/incident/probe_round3.py", line 233, in <module>
+    if __name__=='__main__':main()
+  File "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/probe_r3_new/incident/probe_round3.py", line 222, in main
+    passed=eval(compile(ast.Expression(complete.args[1]),'<frozen W8 completeness predicate>','eval'),en)
+  File "<frozen W8 completeness predicate>", line 858, in <module>
+NameError: name '_flat_required' is not defined
+# exit code: 1
+
+## Cell by cell: x1_probe_round3_regression_cells_wrapper.py runs the same main() and reads the recorded checks, also when main() raises
+CONTROL: raised=None cells_recorded=87 pass=87 fail=0
+NEW:     raised=NameError: name '_flat_required' is not defined at ['<module>:8', 'main:222', '<module>:858'] cells_recorded=86 pass=85 fail=1
+(cell names used more than once by the probe: ['real 12Z capacity final and W8 accepts'] — compared position by position)
+FLIPPED (position, name, control -> new): [(29, 'producer merge different capacity selects first8 without inconsistent', 'pass -> fail')]
+NOT EVALUABLE on the new heads (main raised inside this cell, position 87 of 87): ['NEW whole legacy batch deletion escapes completeness population gate']
+UNCHANGED pass, selected cells the review names: ['real 12Z capacity final and W8 accepts', 'real 12Z capacity final and W8 accepts', 'real complete day latest remains clean', 'NEW multiple origQty reasons disagree but first capacity wins', 'producer merge same capacity selects first8 without inconsistent', 'producer foreign acknowledged order still rejected', 'c defaults OFF', 'all ledger/event batch sets equal on real frozen inputs']

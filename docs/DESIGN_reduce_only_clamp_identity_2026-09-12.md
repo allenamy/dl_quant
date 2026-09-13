@@ -1,4 +1,4 @@
-> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(§5)· 01:5xZ(§6)· 03:xxZ(§6.6–6.7, lead 裁定入 §5.5)· 03:5xZ(§7)· 04:2xZ(§8 + §6.7 按费用裁定改写) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 重标定 #7(研究仓 4442f6d5)** → **§6 C4–C8(1d607665)+ §6.6 `[G7]`#2 C/F 合同(176bafdf)+ §6.7 回填: 按 lead 裁定只做 09-12 三步, 08-02 与老 8 批为后续工单, 09-09 fills 重复为具名风险(均需用户字)** → **§7 平仓对账草稿 `e22a222`(f43e81b3, 已被 §8 取代)** → **§8 平仓完整性对账终版。当前链: (a)(b) = `bf581eb`(父 `5feea3e`), (c) = `27b28db`(= 原 (c) cherry-pick 到其上, 内容逐字未变); 分支 `fix/e0912a-reduce-only-clamp` → `27b28db`; 备份分支 `w8-backup-pre-recal7` = `3308cbc`, `w8-backup-pre-c4fix` = `8e8510c`, `w8-backup-e22a222-superseded` = `4614d88`。§4–§7 正文里的 sha 都是当时的头, 保留不改写; **部署动词请用 §8.4 的 sha**。未部署; 部署、恢复与回填 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
+> **创建:** 2026-09-12 13:2xZ | **更新:** 2026-09-13 00:3xZ(§5)· 01:5xZ(§6)· 03:xxZ(§6.6–6.7, lead 裁定入 §5.5)· 03:5xZ(§7)· 04:2xZ(§8 + §6.7 按费用裁定改写)· 08:4xZ(§9 R3-A1/R3-A2, X1) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME | **状态:** §1–3 事实表+方案 → **§4 RESULT: (a)(b)+(1)(2)(3)(6), (c) 默认关 + C1/C2/C3** → **§5 重标定 #7(研究仓 4442f6d5)** → **§6 C4–C8(1d607665)+ §6.6 `[G7]`#2 C/F 合同(176bafdf)+ §6.7 回填: 按 lead 裁定只做 09-12 三步, 08-02 与老 8 批为后续工单, 09-09 fills 重复为具名风险(均需用户字)** → **§7 平仓对账草稿 `e22a222`(f43e81b3, 已被 §8 取代)** → **§8 平仓完整性对账终版(`bf581eb` / `27b28db`, 已被 §9 取代)** → **§9 R3-A1 容量来源冲突 + R3-A2 批次人口(X1)。当前链: (a)(b) = `8113eed`(父 `225d02d` ← `15a81ba` ← `bf581eb`), (c) = `2310bfe`(= 原 (c) cherry-pick 到其上, 补丁逐字节相同); 分支 `fix/e0912a-reduce-only-clamp` → `2310bfe`; 备份分支 `x1-backup-pre-r3-27b28db` = `27b28db`, `w8-backup-pre-recal7` = `3308cbc`, `w8-backup-pre-c4fix` = `8e8510c`, `w8-backup-e22a222-superseded` = `4614d88`。§4–§8 正文里的 sha 都是当时的头, 保留不改写; **部署动词请用 §9.5 的 sha**。未部署; 部署、恢复与回填 = 用户字** | **作废条件:** 落地后转收据; 或用户裁定回滚 d040c74
 
 # DESIGN W6: E-0912-A 修复 —— reduce-only 截量不是矛盾, 全退出按持仓张数下单, 局部「未知」不平全书
 
@@ -491,6 +491,8 @@ W2 的 `live/cost_buckets.py` 读的是**订单行**的 `fee_paid`(L62 `f = o.ge
 
 ## §8 平仓完整性对账终版: 按 lead 02:37Z 裁定 (1)–(4) 在 `5feea3e` 上直接提交 `bf581eb`, 取代 §7 的 `e22a222`(W8, 2026-09-13; **测试文件 only, 零运行时改动**)
 
+> **已被 §9 取代(2026-09-13 08:4xZ, X1)**: (a)(b) 头改为 `8113eed`(R3-A1 运行时 + R3-A2 测试), 分支尖端改为 `2310bfe`; 本节正文保留原样。
+
 > **为什么有 §8**: lead 的裁定与我 §7 那一轮(`e22a222`)**两次交叉** —— lead 读的是 `5feea3e`, 裁定写着「在 `5feea3e` 上新提交」, 并比 §7 多要三件事:
 > 逐单比对 `_exec`、确定性联接不成立时点名 NOT_OBSERVABLE、从动作记录删一张单的突变、带明写为次级合理性。§7(研究仓 `f43e81b3` 已入库)**保留不改写**;
 > 本节的 `bf581eb` 父提交就是 `5feea3e`, 内容是 §7 的全部加上这三件事。`e22a222` 留在备份分支 `w8-backup-e22a222-superseded`, **不用于部署**。
@@ -546,3 +548,73 @@ W2 的 `live/cost_buckets.py` 读的是**订单行**的 `fee_paid`(L62 `f = o.ge
 | 外部突变 | `w8_flatten_recon2_ext_mutants.log`(E0–E5 + E2b, 含驱动) |
 | **唯一一次电池** | @ `bf581eb`, stamp `20260913T040251Z`(04:19:30Z 结束; 接线套件约 04:05Z 跑完, 早于 04:22Z 生产者落盘): **134 套 / 133 绿 / 1 红** = `tests_env_loading`(克隆无 `.env`)。`w8_flatten_recon2_battery_bf581eb_ledger.log` |
 | 运行时 | 零运行时文件; 运行树 `~/dl_quant_live` HEAD 仍 `918559f` 且只读; 突变只改副本; 回填命令未以任何模式执行; 无网络、无场所/Telegram 调用; 未提交研究仓 |
+
+## §9 R3-A1 容量来源冲突 + R3-A2 批次人口: 两处窄修(X1, 2026-09-13; 独立复审第三轮 `REVIEW_round3_code_and_research_2026-09-13.md` §2.1 / §2.2 + 专项 `codex_round3_code_review_2026-09-13/incident/RESULT.md`)
+
+> **一句话**: C/F 规则(§6)与逐行对账(§8)都成立 —— 缺的是它们的**前提**。R3-A1: `C == Qv` 只有在 Qv 是**这一个请求**的一致事实时才能证明终局, 合并器却逐条放行后取第一条; R3-A2: 逐批精确对账只对**出现在账本里的批次**做, 人口却由可能缺失的那一侧(订单行)给出。
+> 两处都按「先定人口/来源的一致性, 再用既有规则」修; 不放宽任何既有断言, 不改 reconcile, 不改 (c)。**未部署**; 运行树 `~/dl_quant_live` HEAD 仍 `918559f`, 全程只读。
+
+### 9.1 事实表(全部第一手; 行号 = 新 (a)(b) 头 `8113eed`, 另注明者除外)
+
+| # | 事实 | 在哪测的 | 后果 | 改法 | 断言 |
+|---|---|---|---|---|---|
+| V1 | `_merged` 的旧循环(`bf581eb` `live/venue_fills.py` L247–251)对每条记录单独调 `reduce_only_clamp`, 取**第一条** clamp 后 `break`; 每条记录此前已各自通过身份门(`_valid` / `_valid_present`), 而 `merge_order_records`(`binance_broker.py` L199)只核累计量/金额/状态, **不核 origQty 跨记录恒定** | 源码 + 研究员探针 `probe_round3.py` 的原函数抽取 | submit origQty 8 → allOrders origQty 6(同 cid/symbol/orderId, 均 PARTIALLY_FILLED 4)⇒ 旧码 canon `origQty 8`, `clamped {10→8}`, 无 bad、无 inconsistent(我方用研究员自己的抽取在冻结 `bf581eb` 快照上复现) | R3-A1 | T12 settlement 三格 |
+| V2 | 反序 6→8 且 C == 6 是**假闭合**: 旧码真链(plan → submit_maker → complete_anchor)里请求账本 `qty_venue 6`, `_settle_leg_by_identity` 子成交折叠判「fills reached the request quantity」⇒ `terminal True / confirmed_qty_final True`, 行写成 `filled` 6; 另一条记录容量 8 下合法的成交 8 ⇒ `reconcile` 报 `quantity_residual` 1 条(20 USDT @ mark 10) | 旧运行时跑新测试文件: `x1_r3a1_oldcode_red_bf581eb.log` | 与 E-0912-A 同族的**保护性误报**, 指向整书 | R3-A1 | T12 CHAIN 假闭合 + reconcile 两格 |
+| V3 | `submit_maker`(L1104)在提交时就从**单条** submit 记录盖 `venue_clamped`; 结算若只在 facts 上标冲突、不撤这枚章, `_clamp_cols` 仍写 `qty_venue` = 第一条记录的容量 | 源码 | 只修 `_merged` 不修执行器 ⇒ 假闭合原样落账本 | `apply_fill_details` 见冲突撤章(L1578) | T12 CHAIN 三格 |
+| V4 | 本执行器**没有改单动词**: `live/` `scheduler/` `ops/`(测试除外)所有 `_request` 调用的动词都是常量 ∈ {GET, POST, DELETE}, 全树无 `"PUT"` 字面量 | AST 普查(T12 静态格在每次电池里重做) | 同一请求不可能有「改单后的新版本」 ⇒ 任何不一致都是冲突, 不是版本 | 规则依赖该前提 ⇒ 钉成测试 | T12 前提格(加改单即红) |
+| V5 | **相邻路径, 同形但未消费**: broker `last_fill_details` 的 re-query 门(`requery_identity_mismatch`, L427 / L1609)拿 re-query 的 origQty 与 submit 回执的 origQty 比, 更小者按 clamp 放行, `out["clamped"]` 保留 submit 的(L1613)。它的 `clamped` / `orig_qty` **没有任何读者当容量用**: 补单请求账本不写 `qty_venue`(executor L1909–1919 建请求, L1928 读 `last_fill_details`), 平仓 `_exec` 不抄(broker L1806), 退出行不抄(executor L959); `apply_fill_details` 读的 `clamped` 来自结算 facts, 不来自这里 | grep + 读源码 | 现在不产生容量后果; 反向(re-query 更大)仍按旧规则是矛盾 | **未改**(不在 lead 的两处窄修内; 具名边界) | — |
+| V6 | **相邻读者, 未改**: `reconcile._clamp_rederived`(L167/L200)从持久化串里取**第一个** `origQty X differs from ours Y`; 手造的「两条纯 clamp 理由、容量不同」取第一个(研究员探针格 `NEW multiple origQty reasons…`)。写者每请求至多写一条 origQty 理由(`_merged` 在第一条坏记录处返回; `_unmeasurable` 单理由), 本修复后容量冲突**不写任何 `inconsistent` 串** | 源码 + 研究员自己的降级(RESULT.md 「防御附件」) | 只影响手造/损坏行 | **未改**(研究员降级, lead 未列) | — |
+| B1 | 完整性格(`bf581eb` L802)遍历 `_flat_batches`, 而 `_flat_batches` 由**订单行**建(L627–629); `_flat_actions` 读了事件全集却从不作集合比较 | 源码 | 删一整批订单行、保留全部事件 ⇒ 其余批次逐批 EXACT ⇒ 格绿 | R3-A2 | 完整性格 + 两新格 |
+| B2 | 写者: `watchdog._write_flatten_rows` 对**每张单写一行**, 空列表 `if not orders: return 0`(L2290 / L2301 / L2349); 事件记录 `{"ts", "triggers", "actions": broker.actions}`(L2540) | 源码 | 「动作列出过单的批次必须有行; 未列单的批次按构造无行」是写者自己的规则 | `_flatten_population`(L799) | 边界合成格 |
+| B3 | 真事件日志(运行树只读普查 07:1xZ; 三份副本 07:20:11Z / 07:45:33Z / 07:59:24Z 的 events.jsonl sha256 `9db1bb6c…` 与运行树相同): 15 行, `flatten_all` 动作恰 10 条、一批一条、无空单列表; 单数 105/83/108/102/108/102/334/268/243/255, 与账本 10 批逐批相等 | 只读普查 | 真人口 10 == 10 | — | 完整性格明细 `population` |
+| B4 | 外部突变(副本): 删 `FLATTEN-20260801T201827Z` 全部 105 行 ⇒ **`bf581eb` 文件 66/66 全绿**; 删 `FLATTEN-20260912T124737Z` 全部 255 行 ⇒ `bf581eb` 完整性格**仍绿**(另两格红: 联接格与承重突变格都需要一个 client_id 批) | `x1_r3a2_ext_mutants.log` | 缺口在真测试文件上复现 | — | — |
+
+### 9.2 改了什么
+
+| 环 | 位置 | 改动 |
+|---|---|---|
+| R3-A1 合并 | `live/venue_fills.py` `_merged`(L259–274), `_clamp_of`(L304) | 收集每条**携带 origQty 值**的身份记录的读数(状态体不算); 全部在身份门同一 1e-6 容差内一致 ⇒ 按原规则取 clamp; 不一致 ⇒ canon 保留 Qs、不带 `clamped`、带具名 `capacityConflict {why, sent, records[{record, origQty}]}`; `_clamp_of` 把它作为 `capacity_conflict` 送进 facts 并置 `executed_qty_final False`。**不是身份矛盾**: 不改名字的 FOUND/UNKNOWN/partial 判定, 不产生 `inconsistent`。新逻辑只用 `_BB.identity_field` / `_BB.reduce_only_clamp` 与 `_IDENT` —— 研究员探针按名抽取的三个嵌套函数仍可独立运行 |
+| R3-A1 账本 | `live/binance_executor.py` `_req_qty`(L92), `_final_known`(L108), `_clamp_cols`(L274), `apply_fill_details`(L1578) | 见 `capacity_conflict` ⇒ 撤 submit 时盖的 `venue_clamped`, 请求写 `capacity_conflict` 且**不写** `qty_venue`; `_req_qty` 取 Qs(即便旁边有 `qty_venue`); `_final_known` 不认 `confirmed_qty_final`, 只有 C 达到 Qs 才终局(区间 [Qs, Qs] 仍在带内)。子成交折叠闭合、余带、超量矛盾全经这两个访问器, 自动跟随 |
+| R3-A2 人口 | `live/tests_disposition_matrix.py` `_flatten_population`(L799), 人口/遍历(L830–834), 完整性格(L847) | 人口 = 动作列出 ≥1 单的批次(必须有行); 缺整批 ⇒ `LEDGER_BATCH_MISSING`(点名); 未列单的动作 ⇒ 点名不要求; 无事件日志 ⇒ 不要求任何批次(各账本批次仍 NOT OBSERVABLE)。遍历 = 账本批次按原顺序, 再接事件侧独有批次(不排序: 跟进提交 `8113eed` 自查修掉了 `225d02d` 里对混合键排序、缺 `rebalance_id` 的损坏行会抛 TypeError 而非点名的问题), 之后才逐批精确对账。完整性格条件 = **原条件逐字** + 前置合取「事件批次集合 == 账本批次集合 ∧ 无缺批」; 标签原文保留为前缀, 追加人口一句; 明细加 `population` |
+| R3-A2 承重 | 同文件 L1210 / L1230(两新格, 66 → 68) | 真账本: 各删最新的 client_id 批与 (symbol, side, attempt_idx) 批, 保留事件 ⇒ 恰点名该批、两集合不等, 而剩余批次逐批仍 EXACT(= 旧人口放过它的原因); 合成边界: 未列单 ⇒ 不要求; 同批带行 ⇒ MISMATCH; 缺行 ⇒ 缺批; 无日志 ⇒ 不要求 |
+
+**选择与代价(明示)**: ① 冲突时带宽回到 [C, Qs] 而不是 [C, max(Qv_i)] —— lead 的规则原文; 代价是在一个从未观测到的冲突形态上, 超出「两条记录都承认的容量」但不超过 Qs 的成交不再报异常(超过 Qs 仍报, T12 reconcile 格的反向)。② 终态记录也不救冲突(T12 终态格): 按「永不证明终局」字面执行; 名字的补单判定不变(金额仍取终态快照的最终金额)。③ 冲突只写账本字段, 不单独分页。
+
+### 9.3 测试与红能力
+
+| 件 | 新码 | 旧码 |
+|---|---|---|
+| `tests_reduce_only_clamp` [T12] 14 格(静态调用点 75 → 86; 原 87 格标签与条件逐字不变; 该文件在 `15a81ba` / `225d02d` / `8113eed` 三个头上字节相同) | **101/101**; 真 12Z MEME/POPCAT 仍按容量闭合精确、T7 真链 0 异常、T9a/T9b cond5b CLEAN | 同一测试文件放进 `bf581eb` 干净工作树: **92/101, rc 1**, 红的恰是 9 个缺陷格(8→6、6→8、6→8 且 C=6 假闭合、终态不救冲突、全链两序、假闭合 reconcile、账本访问器); 5 个控制格两版皆绿(结算 8/8 保留 clamp、外来 orderId 仍拒、全链 8/8 保留 qty_venue、全链 8/8 闭合仍终局、无改单前提) |
+| `tests_disposition_matrix`(真账本副本 07:20:11Z 于 `225d02d` 文件; 07:59:24Z 于终版 `8113eed` 文件) | **68/68**(两份快照各一次); 人口 10 == 10, EXACT 10 / 1,708 行, `LEDGER_BATCH_MISSING {}` | 外部突变 M1/M2(见 B4; 终版 `8113eed` 文件, 副本 07:45:33Z; `225d02d` 文件在 07:20:11Z 副本上结果相同): 旧文件完整性格绿; 新文件完整性格红并点名该批; 还原 `cmp` 一致后 68/68; events.jsonl 前后 sha 相同 |
+| 标签机械核对 | matrix 静态调用点 54 → 56: 1 个标签改写(原文为前缀; 旧条件为新条件的逐字后缀, 只前置合取项), 2 个新标签, 其余逐字; clamp: 0 改写, 11 个新调用点 | `x1_check_label_compare.log` |
+| (c) 在终版尖端 `2310bfe` | `tests_unknown_size_local_response` 50/50, `tests_position_break_blindspot` 43/43, `tests_reduce_only_clamp` 101/101, 三套 exit 0(克隆, 无账本; 这三套不读账本)。中间尖端 `2c744ae` 上同样三个数 | `x1_tip_2310bfe_c_suites.log` |
+| **研究员探针回归**(`probe_round3.py`, 拷到 scratch; 只改 ROOT 位置断言一行) | 对照副本(冻结快照): **87/87, exit 0**。新头副本(ab ← `8113eed`, c ← `2310bfe`; 快照换过后只有 `binance_executor.py` / `venue_fills.py` / `tests_disposition_matrix.py` 三个文件字节变化): **exit 1**; 记录到 86 格, 85 过; **翻转 1 格** = `producer merge different capacity selects first8 without inconsistent`(新 canon `origQty 10`, `capacityConflict {8, 6}`); **不可评估 1 格** = `NEW whole legacy batch deletion escapes completeness population gate`: 探针在自建环境(只有由订单行派生的 `_flat_state/_flat_notobs/_flat_mism/_flat_exact`)里 eval 冻结的完整性条件, 新条件引用事件侧人口 `_flat_required` ⇒ `NameError`, 该格无法给出真假, 其结论由 B4 外部突变给出; **未翻转**: `NEW multiple origQty reasons disagree but first capacity wins`(V6, 未改) | `x1_probe_round3_regression.log` + `_cells.json` + 包装器 |
+
+### 9.4 电池
+
+| 头 | 工作树 / 账本快照 | 电池自报(原样) |
+|---|---|---|
+| **终版 (a)(b) `8113eed`** | `/Users/haosiyu/cc_tmp/x1_ledger2`; `rm -rf state` 后 `cp -R ~/dl_quant_live/state`(07:58:44–07:59:24Z, 早于 08:00Z 锚写盘), **未复制 `.env`**; stamp `20260913T080300Z`, 08:03:00–08:20:53Z; 起止 HEAD 均 `8113eed0dd15f06a4ba6cb08eadb52a50f0836b5`(起: 运行前写入 meta; 止: 运行后 `git rev-parse`, 状态外追踪改动 0) | **134 行 = 129 个 tests_* 套件 + 5 个门; 133 行 rc 0; 1 行红 = `tests_env_loading`(rc 1, 格: `ops/unseed_rehearsal_halt.py` / `scheduler/run_anchor.py` populates TELEGRAM_* on import —— 克隆无 `.env`)**; 末行 `ACCEPTANCE: NOT GREEN — at least one suite failed (see table above)`; **battery rc = 1**。`tests_reduce_only_clamp` rc 0(101/101)· `tests_disposition_matrix` rc 0(68 checks)· `tests_venue_fills` / `tests_binance_executor` / `tests_watchdog` / `tests_signal_and_loop` / `tests_entrypoint_wiring` / `tests_transport_resilience` / `tests_reject_topup` 均 rc 0。`x1_battery_8113eed_ledger.log` |
+| 中间 (a)(b) `225d02d` | `/Users/haosiyu/cc_tmp/x1_ledger`; 同法复制(07:44:56–07:45:33Z), 未复制 `.env`; stamp `20260913T074538Z`, 07:45:38–08:02:48Z; 起止 HEAD 均 `225d02d` | 同一 134 个套件名、同一顺序; **133 rc 0, 1 红 = `tests_env_loading`(rc 1)**; 末行同上; **battery rc = 1**。`x1_battery_225d02d_ledger.log` |
+
+**不是全绿, 不写全绿**: 两次电池都是 rc 1。唯一红格是克隆里没有 `.env` 的环境红(与 §6.4 / §6.8 / §8.4 各轮同一格); 本修复的两个套件与所有读账本 / 执行器 / 看门狗的套件在两次电池里都是 rc 0。运行树 `run_acceptance` 实测仍是部署步骤(用户字)。
+
+### 9.5 收据(**部署动词请用这里的 sha**)
+
+| 件 | 值 |
+|---|---|
+| (a)(b) 头 | **`8113eed0dd15f06a4ba6cb08eadb52a50f0836b5`** = `bf581eb` → `15a81ba6461146179496e3995ef281c85bc3469b`(R3-A1, 3 文件)→ `225d02d96c79fef3b0b33bda2a9e51fc19bcc4f8`(R3-A2, 测试文件 only)→ `8113eed`(R3-A2 跟进: 遍历不排序, 测试文件 1 行)。全是新提交, 未 amend |
+| 分支尖端 | **`2310bfe256c10becb828c43d8d577fbb80cab917`** = 原 (c) `27b28db` cherry-pick 到 `8113eed` 上, 无冲突; `git diff bf581eb 27b28db` 与 `git diff 8113eed 2310bfe` **补丁文本逐字节相同**(中间一版尖端 `2c744ae` 在 `225d02d` 上, 已被取代) |
+| 分支 | `fix/e0912a-reduce-only-clamp` → `2310bfe`; 备份 `x1-backup-pre-r3-27b28db` = `27b28db` |
+| `w6_reduce_only_clamp_ab.diff` | `git diff 918559f 8113eed`; **26 文件 / +9,625 −48**; sha256 **`259f50a6bad47518a4bc71e3f1b64b772e0b4978f972e90b8e35b718a6aa0003`**(上一版 `637b2859…`; 生成法先在旧头上复现出 `637b2859…` 与 `15d29d99…` 再用) |
+| `w6_proportional_response_c.diff` | `git diff 8113eed 2310bfe`; 7 文件 / +859 −6; sha256 **`15d29d99faad2f1ad5597a89da1c1686ca94d2d94adc24c6ab1a4e4327912d5c`** —— 与前几版**逐字节相同** |
+| 收据文件 | `x1_r3a1_oldcode_red_bf581eb.log` · `x1_r3a2_ext_mutants.log` + `.sh` · `x1_check_label_compare.log` · `x1_probe_round3_regression.log` + `_cells.json` + `_cells_wrapper.py` · `x1_battery_225d02d_ledger.log`(中间头) · `x1_battery_8113eed_ledger.log`(终版头) · `x1_tip_2310bfe_c_suites.log` |
+| 运行时 | 运行树 `~/dl_quant_live` HEAD `918559f`、全程只读(只 `cp -R state`, 未复制 `.env`); 突变只改副本; 无网络、无场所/Telegram 调用; 未提交研究仓 |
+
+### 9.6 边界(未做 / 未证)
+
+1. **V5/V6 两处同形读法未改**(见 9.1): broker 直读的 re-query 容量不被消费; reconcile 的多理由串不可由写者产生。若日后有读者把 `last_fill_details()["clamped"]` 当容量, 必须先套同一条请求级一致规则。
+2. **「没有改单」是被钉住的前提, 不是场所公理**: 场所提供改单接口; 一旦本执行器加改单, T12 前提格变红, 需设计「请求版本」, 不能沿用本规则。
+3. 冲突没有单独分页; 研究员说「对出现的容量变化拒绝自动认定」—— 本修复做到「不认定容量」, 未做「告警」。
+4. 事件侧人口的前提是**写者**(`_write_flatten_rows` 一单一行、空列表 0 行)与**事件追加**(`broker.actions` 整体入日志)。若写行抛异常(`flatten rows NOT written`), 事件在而行不在 ⇒ 本格红并点名 —— 这是想要的; 但 events.jsonl 本身丢行(磁盘故障)时, 该批对本格不可见, 这一层没有第二来源。
+5. 研究员探针那一格(整批删除)在新头上**不可评估**而非「翻转」: 它的环境模型是旧人口; 本节不改研究员的探针。

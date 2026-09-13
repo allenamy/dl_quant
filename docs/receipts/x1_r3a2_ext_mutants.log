@@ -1,0 +1,32 @@
+# worktree /Users/haosiyu/cc_tmp/x1_ledger HEAD 225d02d96c79fef3b0b33bda2a9e51fc19bcc4f8; ledger copy of ~/dl_quant_live/state taken 2026-09-13T07:45:33Z (copy end; the 225d02d battery ran in this worktree before these mutants, events.jsonl sha printed below)
+# NEW file sha256 874b354a5330b74659dfd9a8d9773d096efb8d16d59ab8eae0af7f7979ac9a06   OLD file (bf581eb) sha256 141bc98a062a8ceac53b38e574535373d8e09cdc66ac9fe5fe1a9ed0ba70bce8
+# events.jsonl sha256 before: 9db1bb6cc002706904aaceca112337892c7d5c6f45aac626803037d98331b83a
+== M1: deleted every order row of FLATTEN-20260801T201827Z from pilot_log/20260801/orders.jsonl (105 of      764 lines; now      659); events.jsonl untouched: 9db1bb6cc002706904aaceca112337892c7d5c6f45aac626803037d98331b83a
+  [M1 NEW] rc=1  (68 checks)  FAIL lines: 2
+        FAIL  ★★★ COMPLETENESS of a TRIP-FLATTENED batch is an EXACT reconciliation against the ladder's OWN action 
+        FAIL  ★★★ R3-A2 the POPULATION is LOAD-BEARING, on the real ledger: drop ONE WHOLE batch of `protective_flat
+      completeness cell:   FAIL  ★★★ CO
+      completeness cell: FAILURES: ["★★
+      'LEDGER_BATCH_MISSING': {'FLATTEN-20260801T201827Z': ["the ladder's flatten_all record lists 105 order(s) and the ledger holds NO row of this batch — `_write_flatten_rows` writes one row per order, so the WHOLE batch is missing"]}
+  [M1 OLD bf581eb] rc=0  (66 checks)  FAIL lines: 0
+      completeness cell:   OK    ★★★ CO
+   restored 20260801 (cmp identical)
+== M2: deleted every order row of FLATTEN-20260912T124737Z from pilot_log/20260912/orders.jsonl (255 of     2665 lines; now     2410); events.jsonl untouched: 9db1bb6cc002706904aaceca112337892c7d5c6f45aac626803037d98331b83a
+  [M2 NEW] rc=1  (68 checks)  FAIL lines: 4
+        FAIL  ★★★ COMPLETENESS of a TRIP-FLATTENED batch is an EXACT reconciliation against the ladder's OWN action 
+        FAIL  ★★★ ...and which JOIN carried each batch is itself asserted: client_id wherever the ladder minted one;
+        FAIL  ★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client_id-joined batch AND on a real (
+        FAIL  ★★★ R3-A2 the POPULATION is LOAD-BEARING, on the real ledger: drop ONE WHOLE batch of `protective_flat
+      completeness cell:   FAIL  ★★★ CO
+      completeness cell: FAILURES: ["★★
+      'LEDGER_BATCH_MISSING': {'FLATTEN-20260912T124737Z': ["the ladder's flatten_all record lists 255 order(s) and the ledger holds NO row of this batch — `_write_flatten_rows` writes one row per order, so the WHOLE batch is missing"]}
+  [M2 OLD bf581eb] rc=1  (66 checks)  FAIL lines: 2
+        FAIL  ★★★ ...and which JOIN carried each batch is itself asserted: client_id wherever the ladder minted one;
+        FAIL  ★★★ the exact flatten reconciliation is LOAD-BEARING, on a real client_id-joined batch AND on a real (
+      completeness cell:   OK    ★★★ CO
+   restored 20260912 (cmp identical)
+== M0 restored ledger:
+  [M0 NEW] rc=0  (68 checks)  FAIL lines: 0
+      completeness cell:   OK    ★★★ CO
+      'LEDGER_BATCH_MISSING': {}
+# events.jsonl sha256 after: 9db1bb6cc002706904aaceca112337892c7d5c6f45aac626803037d98331b83a
