@@ -1,4 +1,5 @@
 > **创建:** 2026-09-13 06:0xZ | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME (subagent T2) | **状态:** 已判 — criteria frozen in `PREREG_T2_carry_net_sizing_2026-09-13.md` sha256 **981293b02b2ddae6574fa6dcf8db9b09a65cfa9f122a8b72d7e604ad5ec87eca** (`receipts/PREREG_FREEZE_sha.txt`, frozen 05:16:41Z before any κ estimate or arm run); no amendment; no arm, threshold or reading changed after any number | **作废条件:** a chain newer than v4 passing its gates; replacement of the archived A0 / NW / r15 ARM-S artifacts; a change of the pinned device b88e35a4… or the r18 device 9b8a6323… | **口径:** v4 (`CALIBER_PIN_v4_2026-09-11.md`), RAW accounting y4 from `meta_newprod_v4.npz`, cost `costb_PWR_G230k.json` λ=1.0; every table below is copied from `receipts/TABLES_T2.md`, rendered from receipts by `devices/t2_tables.py`
+> **纲领 AMENDMENT 2 (commit 83579437):** its reading (carry is a designed cost; T2 targets only the uncompensated part) and its requested addition (live-window Δg separately; did κ*(t) react to the live regime) are in §6b, added after the verdicts; the frozen rule and every verdict are unchanged
 > **仪器:** single instrument pod2, CPU only; `nvidia-smi` 0 % / 2 MiB before and after every step; PIDs 333197 / 339489 `Tl` throughout, never signalled | **实盘零接触:** `~/dl_quant_live` and `~/wide_shadow` not opened; no API call; not committed
 
 # RESULT T2 · Sizing the funding leg on expected net return (price edge − uncompensated carry)
@@ -19,7 +20,7 @@
 5. **The ceiling tripwire fired for ARM-Nσ and the §7 investigation failed.** Its point estimate exceeded 0.165 on both seeds. With a one-month-stale κ path the gain falls to +0.041 / +0.049 (24–26 % of itself); with a 4h-stale carry input it vanishes (−0.017 / −0.003); with look-ahead it roughly triples (path +0.54, carry +0.32). By the frozen rule that is the leak signature, so the +0.17 is not reported as an effect. The standing causality gates did pass (C1: the estimator never reads future rows; C2: positions up to T* are bitwise unchanged when every future return value and every future funding row is garbled), so the cause is not a future-row read by the estimator or the device; it is unresolved (§5).
 6. **Even ignoring the tripwire, ARM-Nσ does not help where it matters.** Its gain is 2022 +0.76, 2023 +0.61 / +0.57, 2024 +0.54 / +0.52; it loses in 2025 (−0.59 / −0.48), in 2026 (−0.37 / −0.33), on KING_LIVE (−0.11 / −0.07) and in the replayed live window (−8.1 / −6.6 bps/anchor over 30 anchors). ARM-N has the same shape with larger 2025–2026 losses (2026 −3.24 / −3.23).
 7. **The ceiling's premise did not describe what the name arms did.** P5 bounds an arm that stops paying the uncompensated part of 0.48 bps of carry (≤ 0.11). Both name arms instead flipped the book to receiving carry (Δcarry −1.29 / −1.24, about 11× the ceiling's premise) and paid for it in price (Δpnl −1.46 / −0.88) and turnover. The seat arm moved carry by only −0.07.
-8. **Live window.** The replay covers only 2026-08-26 00Z → 08-30 20Z (30 anchors): ARM-N −0.93 / +0.08, ARM-Nσ −8.09 / −6.64, ARM-SK −0.017 / −0.0004 (5 day-clusters, CIs meaningless). September cannot be replayed for any PHI>0 book (F10 predictions end 2026-08-30 20Z). The per-name regression on 2026-08-26 → 09-10 (r6 extension, 91 anchors) reads b̂ 1.35, κ_raw −0.35 [−1.65, +0.95], λ̂ −11 bps per rank unit (SE 11 bps): price compensation of carry did not visibly break in the live window, while the fund score's own edge was negative; 16 clusters make both readings descriptive only.
+8. **Live window.** The replay covers only 2026-08-26 00Z → 08-30 20Z (30 anchors): ARM-N −0.93 / +0.08, ARM-Nσ −8.09 / −6.64, ARM-SK −0.017 / −0.0004 (5 day-clusters, CIs meaningless). September cannot be replayed for any PHI>0 book (F10 predictions end 2026-08-30 20Z). The per-name regression on 2026-08-26 → 09-10 (r6 extension, 91 anchors) reads b̂ 1.35, κ_raw −0.35 [−1.65, +0.95], λ̂ −11 bps per rank unit (SE 11 bps): price compensation of carry did not visibly break in the live window, while the fund score's own edge was negative; 16 clusters make both readings descriptive only. **κ*(t) did not react to the live regime** (§6b, per Program AMENDMENT 2): the arms used a refit that predates the window; refits that include it move κ_raw from 0.226 to 0.208, of which the window itself contributes −0.006 because it holds about 1 % of the carry-variance moment; and the window's own estimate is ordinary for this estimand (32nd percentile of earlier same-length blocks). On the replayed days the executed-book carry was 2.1× its full-cycle mean while the replayed price component was positive.
 9. **NW base changes nothing:** every Δg moves by ≤ 0.012 and every verdict is identical (§4). **Deployability:** none; every arm is a book-behaviour change and this round only measured.
 
 ## §1 Gates (positive controls first; `receipts/RECEIPT_T2_drive.json`, `RECEIPT_T2_kappa_main.json`)
@@ -146,6 +147,40 @@ Every arm gains in 2023 and 2024 (the name arms also in 2022; ARM-SK's 2022 Δg 
 - **Not replayable:** 2026-09-01 → 09-11. The r6 extension has no F10/V2MAIN predictions after 2026-08-30 20Z (every PHI>0 book, A0 included), and 2026-08-31 is contaminated (E-0911-B).
 - **Estimand on the live window (diagnostic d4, r6 extension tree, prefix bitwise equal to the incumbent meta and panel, September umask = the 2026-08-31 00Z row carried forward):** 91 anchors, 21,789 name-anchors, 16 day clusters: b̂ 1.348, κ_raw −0.348, CI95 [−1.651, +0.955] (SE_day 0.665, SE_week 0.222); λ̂ −1.11e-03 (SE 1.09e-03); per side κ⁺_raw 3.43 (SE b⁺ 2.90), κ⁻_raw −0.39 (SE b⁻ 0.66). Descriptive: the point estimates say price kept compensating carry and the fund score's own edge was negative, the opposite of "compensation broke" (T1's H4). The day-clustered interval excludes κ = 1, but with 16 clusters it is not a reliable interval (the week-clustered SE of b̂ is 0.22 against 0.66 by day, a sign the clustering itself is unstable); this does not settle H4.
 
+## §6b Addendum per Program AMENDMENT 2 (commit 83579437) — reporting only; frozen rule and verdicts unchanged
+
+`receipts/RECEIPT_T2_live_addendum.json` (device `devices/t2_live_addendum.py`, POST-HOC DESCRIPTIVE, requested by the amendment). Before reporting anything new, the §2 estimator re-run on the r6 extension tree reproduced the registered 2026-07-01 and 2026-08-01 refits **bitwise** (scalar, σ cut points, σ bins).
+
+**Reading.** AMENDMENT 2: paying carry is by design (dominance-premium book, full-cycle carry_ex 0.4797 bps/anchor/unit gross), so T2 tests whether the *uncompensated* part can be avoided by sizing, not whether to stop paying carry. Against that reading ARM-SK stays inside the target (book carry −0.07). The two name arms do not: with λ⁺ floored at 0 on half of W_ALPHA they ranked the fund leg on carry alone and flipped the book to receiving carry (Δcarry ≈ −1.25), which is "stop paying carry" and more — the territory r15's κ=1 rejection already covers. Their results say little about the uncompensated part itself.
+
+**Arms' live-window Δg** (replayable part 2026-08-26 00Z → 08-30 20Z, 30 anchors, A0 base; 5 day-clusters, no inference):
+
+| arm | seed | g arm / A0 | Δg | Δpnl | Δcarry | Δcost | book carry arm / A0 |
+|---|---|---|---|---|---|---|---|
+| ARM-N | s42 | +3.697 / +4.623 | −0.927 | −2.895 | −2.137 | +0.168 | −1.124 / +1.013 |
+| ARM-N | s2027 | +4.597 / +4.514 | +0.082 | −1.893 | −2.143 | +0.168 | −1.124 / +1.019 |
+| ARM-Nσ | s42 | −3.471 / +4.623 | −8.094 | −10.975 | −3.303 | +0.422 | −2.290 / +1.013 |
+| ARM-Nσ | s2027 | −2.127 / +4.514 | −6.641 | −9.523 | −3.303 | +0.421 | −2.285 / +1.019 |
+| ARM-SK | s42 | +4.607 / +4.623 | −0.017 | −0.015 | +0.001 | +0.001 | +1.013 / +1.013 |
+| ARM-SK | s2027 | +4.514 / +4.514 | −0.000 | +0.000 | +0.000 | +0.000 | +1.019 / +1.019 |
+
+On these 30 anchors A0's executed-book carry was **2.11× (s42) / 2.16× (s2027)** its W_ALPHA mean, the same direction as the amendment's 2.86× on the live ledger over the longer 08-26 → 09-11 window. The replayed price component, however, was **+5.76 / +5.66** bps/anchor, not zero: the zero price edge the amendment cites is not visible in the part of the window the replay can reach. The fund leg's unit-gross rank book (the SEATNET quantity, first reproduced bitwise against ARM-SK's stored series on all 10039 anchors) carried **1.54×** its W_ALPHA mean over 2026-08-26 → 09-10.
+
+**Did the estimated κ*(t) react to that regime? No.**
+
+| estimate | last anchor used | live anchors inside | κ*_raw [CI95, day clusters] | live share of the carry-variance moment | σ-bin κ_raw low / mid / high |
+|---|---|---|---|---|---|
+| used by the arms in the live window: refit 2026-08-01 | 2026-07-31 16Z | 0 | 0.2263 [−0.008, +0.460] | 0 | 1.454 / 0.101 / 0.234 |
+| refit 2026-09-01, extension axis | 2026-08-31 16Z | 35 | 0.2070 [−0.023, +0.437] | 0.74 % | 1.490 / 0.118 / 0.213 |
+| refit through 2026-09-10, extension axis | 2026-09-10 00Z | 91 | 0.2078 [−0.022, +0.437] | 1.05 % | 1.415 / 0.107 / 0.215 |
+| same, live window left out | 2026-08-25 20Z | 0 | 0.2134 [−0.018, +0.445] | 0 | 1.411 / 0.121 / 0.220 |
+| live window alone (diagnostic d4) | 2026-09-10 00Z | 91 | −0.348 [−1.651, +0.955] | 100 % | — |
+
+1. **By construction it could not.** The κ the arms used on the live anchors comes from the 2026-08-01 refit (monthly refit, 8h embargo), which contains no live-window data; ARM-Nσ ran on the mid-σ bin (κ 0.101, 18 anchors) and the high-σ bin (κ 0.234, 12 anchors).
+2. **When the window is added, κ_raw moves down, toward more compensation, not up.** The window's own marginal effect is −0.006 (0.2078 with it, 0.2134 without), because an expanding estimate gives it about 1 % of the carry-variance moment; a monthly expanding estimator cannot react inside a 16-day window even to a large change.
+3. **There was no large change in this estimand to react to.** The window's own κ_raw −0.35 sits at the 32nd percentile of the 109 earlier non-overlapping 91-anchor blocks (32nd of the 63 since 2024; 2024-on block quantiles 5 / 25 / 50 / 75 / 95 % = −2.44 / −0.47 / +0.02 / +0.63 / +1.80). Its mean σ_fund 9.71 bps is at the 65th percentile (49th since 2024) and none of its anchors fall in the low-σ bin of the 2026-08-01 cut points (0 low / 53 mid / 38 high). The fund score's own edge λ̂ was low (12th / 14th percentile) but not extreme.
+4. **Reading, consistent with the amendment's "two things at once":** at the name level the live window shows a higher carry level (executed book 2.1× on the replayed days, fund rank book 1.5× through 09-10) and a weak fund-score edge, not a broken carry–price compensation slope. Whether the book's carry or its compensation was anomalous against same-state history is T1's measurement; block estimates this noisy (interquartile range about 1.1 in κ) could not establish it here.
+
 ## §7 Could not verify, limitations, incidents
 
 1. **The cause of the ARM-Nσ §7 failure** (§5). Its verdict is LEAK-SUSPECT under the frozen rule, not a demonstrated leak.
@@ -160,7 +195,7 @@ Every arm gains in 2023 and 2024 (the name arms also in 2022; ARM-SK's 2022 Δg 
 ## §8 Receipts and verbatim commands
 
 - Prereg: `PREREG_T2_carry_net_sizing_2026-09-13.md` (981293b0…), `receipts/PREREG_FREEZE_sha.txt`.
-- Devices (`devices/`, identical sha on the Mac and pod2): `mk_t2_device.py` e843a7bc…, `w10_sleeve_t2.py` 380d6265… (+ `.diff`), `t2_kappa.py` 23b5af6b…, `t2_drive.py` 9847229e…, `t2_judge.py` 02d88984…, `t2_tripwire.py` 5578d4ea…, `t2_tables.py`, `t2_posthoc_hour_split.py` (post-hoc).
+- Devices (`devices/`, identical sha on the Mac and pod2): `mk_t2_device.py` e843a7bc…, `w10_sleeve_t2.py` 380d6265… (+ `.diff`), `t2_kappa.py` 23b5af6b…, `t2_drive.py` 9847229e…, `t2_judge.py` 02d88984…, `t2_tripwire.py` 5578d4ea…, `t2_tables.py`, `t2_posthoc_hour_split.py` (post-hoc), `t2_live_addendum.py` 7f5d8595… (AMENDMENT 2 addendum, post-hoc; receipt `RECEIPT_T2_live_addendum.json`, run on pod2 as `env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/root /workspace/venv/bin/python devices/t2_live_addendum.py PATH,HOME,LC_CTYPE`).
 - Receipts (`receipts/`): `RECEIPT_T2_kappa_main.json` (refits, C1, d1–d4), `RECEIPT_T2_kappa_garbled.json`, `RECEIPT_T2_drive.json` (gates, env dicts, input realpaths + sha, C2), `RECEIPT_T2_judge.json`, `RECEIPT_T2_judge_pre_tripwire.json`, `RECEIPT_T2_tripwire.json`, `POSTHOC_T2_settlement_hour_split.json`, `TABLES_T2.md`, `kpath/` (main, stale1, lookahead1, garbled κ paths), `arms_rec/` (rec + T2 aux + config for the 4 baselines and 12 arms, `SHA256_arms_rec.json`), `logs/` (every device, estimator, driver, judge and tripwire log). Full artifacts with W: pod2 `/workspace/uplift_r2_2026-09-13/T2/arms/` (765 MB), garbled tree `dev_garbled/` (217 MB).
 - Commands (pod2, cwd `/workspace/uplift_r2_2026-09-13/T2`):
 ```
@@ -179,4 +214,4 @@ env -i PATH=/usr/local/bin:/usr/bin:/bin HOME=$HOME /usr/bin/python3 devices/t2_
 - `SHA256SUMS.txt` covers every file in this directory.
 
 ## §9 Number labels
-§1–§6 numbers: **VERIFIED** (computed this round on pod2 from the archived inputs, rendered from receipts). The hour split in §5 and the panel-builder reading are **VERIFIED as facts** but **POST-HOC** (not pre-registered, no verdict weight). The explanation of the §7 failure is **not established**. Program facts P1/P4/P5 and trackA/r15 numbers are **INFERRED** here (quoted from their receipts).
+§1–§6 numbers: **VERIFIED** (computed this round on pod2 from the archived inputs, rendered from receipts). The hour split in §5, the panel-builder reading and every §6b number are **VERIFIED as facts** but **POST-HOC** (not pre-registered, no verdict weight). The explanation of the §7 failure is **not established**. Program facts P1/P4/P5 and trackA/r15 numbers are **INFERRED** here (quoted from their receipts).
