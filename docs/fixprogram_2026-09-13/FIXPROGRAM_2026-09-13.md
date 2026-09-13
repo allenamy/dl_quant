@@ -187,3 +187,7 @@
 - **新登记 P12(待测)**: 生产者 `state_H_f10_{A}.npz` 在每锚 kc/fc 写出后约 2 分钟被再写, 09-12 08Z 与 combo 段自身计算差 2.63e-8(96 名)—— 疑似第二写者(sidecar?); 负责 FX-PROD(读码 + 逐锚 mtime 与内容普查, 只读)。
 - **LED-03 BNB 换算口径裁定**: `bnb_spot_1m_close_at_fill` = BNBUSDT 现货 1m K 线(data.binance.vision 静态存档)含成交时刻那根的收盘; 逐行记换算价 / 来源 zip / sha / 口径名; 永续 BNB 标记价只作敏感性; 缺分钟 ⇒ fee_unknown 具名不插补。
 - **实盘写回类操作(LED-03 精确回填 / LED-04 修订记录 / LED-05 52 行重建订单)**: 装置与演练均已提交; 本会话交接期一律不执行, 随复审包由接手者执行(先 --rehearse 于实盘根再 --apply, 锚窗外)。
+
+## §11 引用更正(2026-09-13 17:1xZ, lead)
+- **AUDIT_PROD 的提交是 `ee2a8c4d`, 不是 `57f7e2be`**(P2 指出, lead `git show` 核实: 57f7e2be = P2 装置 p2_s2_relabel.py; ee2a8c4d = AUDIT_PROD.json / .md / _columns.csv)。§7 标题与 §7.1 表头及交接文档中的「57f7e2be」均指 ee2a8c4d; 原文不改, 以本条为准。审计工作者自报的提交号与实际不符, 属「完成体动词须有收据」同族 —— 我方转引时未 `git show` 核对。
+- **P2 最终**: AMENDMENT 12 cfc38847(combo_live_status.json 只在仓内快照目录、从未进入 pod2 副本; 无回放步骤读取生产者副本, 读者验收读的是回放自己刚写的 target_live_combo ⇒ B4 PASS 按冻结成立)· D22 = PROD-03 入 S2 偏差表 · 最新 a4173c84 · 指针 `docs/PREREG_combo_chain_residual_attribution_2026-09-13.md` 结果段 + P2 预注册 AMENDMENT 9–12 与收据 9–14。仍开: G2-B R0/R1/R2(P6-M 部署后)· FX-DATA 可交易性掩码 sha 钉入(对方暂停)· pod2 attr_D 删除(lead 已准, 收据核实后)· S2 标签维持「未认证 / 仅信息」(lead 已裁)。
