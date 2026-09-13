@@ -43,3 +43,85 @@ Phase 1 证明"装置 = 线上"(生产代码路径逐锚复现线上权重)。Ph
 - **新具名子门 G2-A′「当前 live450 精确通道平价」= PASS**(研究员从 pod2 原数组独立复算): 8,256 × 450 × 7, NaN 支持差 0, 有限值差 0, 生产独有有限格 0, 无 Inf 代 NaN。此结果**保留并准确命名**; 它不推出 829 名历史成员可用同一支持。
 - **G2-A 原门保留为开**(生产滚动缓存只有 ~40 日尾, ≥40 天在当前装置上不可达 ⇒ 需换用历史面板宇宙时再判); **G2-C(换数据源但同预测/同状态/同资格 ⇒ 目标相同)仍是必须门, 本轮未跑**。
 - G2-E 红能力改法(研究员建议, 采纳): 用明确越界的训练截止使 G2-D 必红, 不以「泄漏模型必须显著提高 g」作红能力。
+
+## AMENDMENT 2(2026-09-13 08:5xZ, P2 worker「p2-oos-replay」受 lead 派 S0/S1; **写于任何 S1 门数字之前**; 本节只定计划/偏差/门程序/输出规格, 不含门读数)
+
+### A2.0 本节改了原文哪几句(先列, 再给理由)
+| 原文 | 改为 | 理由(证据在 A2.1–A2.4) |
+|---|---|---|
+| §1「king 预测 … 每个预测锚 E 只能用训练末锚 < E − 1 月的模型」+ §3 G2-D「任何锚违反 ⇒ 该锚不计入」 | 装置**按 §1 规则供给**: 规则不成立的模型预测一律不送入(置 NaN, king 腿为空), G2-D 改为审计「无任何被送入的预测违反规则」 | 逐年折 SLOW_v4 的 fold Y 训练到 Y−1 年末 ⇒ 每年 1 月 1 日 00Z–1 月 31 日 00Z(181 锚/年, 2024/25/26 共 543 锚)违反 30 天规则; 两句原文在这 543 锚上互相矛盾。「不送入」比「送入后不计入」严格(违规模型的输出不进入任何后续状态: H/LR/席位)。原「送入+不计入」保留为敏感性臂(A2.6) |
+| §1「基名单 / 宇宙 = 面板有数据的名 ∩ live_pins」 | 主臂 = **时点宇宙 PIT**(umask_UPIT_CRYPTO); live_pins 臂降为敏感性臂 | lead S0(c): 今日 pins 投到历史 = 幸存者偏差; 且按生产代码的覆盖门(exp_n = 450)pins 臂在 2025-09-19 前**结构性不可跑**(A2.3) |
+| §2「前 900 锚席位 [1/3]*3 经 combo 掩码 = [0.5,0,0.5]」 | 成立于 **combo 链状态**; 但执行器读的文件在 COMBO_LIVE 飞前断言失败时是 king 文件 ⇒ 分列 **P2-CMB**(combo 链) 与 **P2-LIT**(字面被交易文件) | A2.2 D10/D11: F10 覆盖地板 380 在 2022–2024 恒失败(成员 < 380), 2025–26 因折外覆盖缺口也多失败 |
+| §1「资金费账本 / EMA = 面板 f_fund_now / 结算历史重建」 | **结算历史 = data-vision 月 zip ∪ API 拉取(fund_aug)按秒并集**; iv 推断与 EMA 由生产代码自己算 | 面板是 4h 采样, 不是逐结算行; 生产公式需要逐结算时间差 |
+| §1「代码 … 零新替换; 装置 sha 与 Phase 1 相同」 | **不变且已满足**: 两个装置文件逐字节 = Phase 1(sha 断言), 全部替换发生在**输入**(A2.1) | — |
+
+### A2.1 S0(b) 注入点(生产文件行号 = `shadow_loop_v3.py` e9c98374… / `fea171/combo_stage.py` b5c698f9…; 装置文件前后 sha 不变: `shadow_loop_v3_replay.py` 4d3bc157… → 4d3bc157…, `combo_stage_replay.py` f5ba9a82… → f5ba9a82…)
+| # | 生产位置 | Phase 2 输入 | 一句理由 |
+|---|---|---|---|
+| I1 king 分 | L421–422 `X = FE_ANCH[:, keep]; pred = booster.predict(X)` | `booster` 参数换成 OOFBooster: predict 从调用帧读 `anchor`/`m`(成员), 返回 OOF 数组 (anchor, m) 行(float64; 无值或规则不允许 ⇒ NaN); X 只核形状 | booster 本就是 run_anchor 的入参; 折外 = 换输入不换代码。**因此本臂不含 H2b 特征错配**(OOF 由研究侧 v0 特征算出; L418 的 v1 EMA 列根本不进模型) |
+| I2 F10 分 | L112–118 `need`(已有 `mini/data/f8_fea89.npz` 且 `dlw_targets.E_ts[-1] ≥ A` 则跳过 171 管线); L152–167 读 F82/F89/T9 + 模型 M 前向 | 每锚写 3 个 mini 文件(每个有 OOF 分的成员一行, 第 0 列 = 该分的平均秩/128, 其余 170 列 0)+ 恒等模型文件(mu 0, sd 1, w0=e0, b0=13, w1=1, b1=0, w2=1, b2=−13) | 该段对 f10 只取 `rankdata`(L174–175); 秩/128 是 1/256 的整数倍 ≤3.2, z≥13 时 gelu(z)=z 精确(erf 饱和 1.0), (x+13)−13=x ⇒ **zf 与 OOF 秩逐位相同**; 自检 `selftest_identity_model` 每条链启动时断言 |
+| I3 5m 缓存 | L262–270 扩网格/截 40 日; combo L18–25 读 `rolling.npz` | king 段 `st.cts/st.cd` = holefix2 截至 A 的 11520 行, 不在 symbols_live(A) 的名置 NaN; combo 段 `rolling.npz` = 同样的末 2016 行 | 生产者只抓 symbols_live; 管线被跳过时 combo 只读 ai 与 2016 行 qv4h 窗 |
+| I4 宇宙 | L189 `self.live`; L307 覆盖门 `exp_n = len(st.live)`; L406–412 fe_v; L500 `keep = st.live_mask`; L61–91 目标文件 universe | 每锚设 `st.live / st.live_mask / cfg["symbols_live"]` = symbols_live(A) | 配置常量随时点变化是本臂定义(A2.3) |
+| I5 基名单 | L313–317 exchangeInfo(≥300 名才更新 `st.base`) | `fx.base` = (A−24h, A] 内有结算的名; 锚前把 `st.base` 预置为 sorted(该集 ∪ symbols_live(A)) | **偏差 D3**(A2.2) |
+| I6 资金费行 | L321–353(API `fundingRate`, startTime = last_ts+1, limit 100; iv 由相邻结算时间差推断并吸附 {1,2,4,6,8}; EMA HL 3d) | `fx.ledger[s]` = 结算史中 (last_ts, A] 的前 100 行(与全账本 ReplayFetcher 等价) | iv / EMA 仍由生产代码 L341–349 自己算 |
+| I7 链状态 | L193–226 启动(rolling/aux/bundle leg_returns) | 首锚冷启动: H=0, LR=[], prev_rec=None, ema={}, ledger={}; 之后内存逐锚携带 | 历史上不存在 bundle 腿收益; 冷启动的 40 日首抓窗与 limit 100 是生产行为 |
+| I8 combo 其余输入 | L13 aux.json; L29 leg_returns_live.json; L24 weights/{A−4h}; L243 FTRIM rn8 = ledger_tail 末行; L258–262 state_H; L370–379 读者自校验 import `~/dl_quant_live/live/external_book` | aux.json(ledger_tail 只写末行 —— 该段只取 `rows[-1]`)/ LR[-950:] / 链自己的 weights 与 state_H; 读者模块 = dl_quant_live@918559f `live/external_book.py` f875fe54… + `book_config.py` a724406e… 的只读副本, 放在回放 HOME 下 | 均为文件输入 |
+
+驱动层的其它两处(非装置代码, 均受据): ① `ShadowState.save` 以子类覆盖为空(同 Phase 1, 驱动自己写 combo 需要的文件); ② combo 段在**已导入 numpy/scipy 的 fork 子进程**里 `runpy` 执行同一脚本(环境变量整体替换为 combo 环境): 与 `subprocess` 模式 **12/12 锚 king/kc/fc 向量逐位相同**(`RUN_timing12…_fork.vec.npz` 与 `RUN_timing12….vec.npz` 同 sha 75b800f7…), 每锚 4.7 s → 1.03 s。已知生产崩溃路径(chain() 在 z 全 0 时返回 None ⇒ L268 `np.abs(_sm)` TypeError, 如冷启动首锚 king 腿空且资金费未新鲜)按生产语义记录(该锚无 combo 文件, 下锚 kc/fc 暖启动), 其它任何非 0/3 返回码致命停链。
+
+### A2.2 偏差清单(与在役生产路径的全部已知差异; 每条带数)
+- **D1 king 模型** = SLOW_v4(v4 特征/配方逐年折: 2024 折 fit 年<2024、2025 折 <2025、2026 折 = v4 slow2026)≠ 在役 v3 booster(8d79186b…, v2ext 特征)。2022–2023 **无 king 预测**(全 NaN)。2026 折比「月度重训」更旧(保守, 原 §1 已写)。不含 H2b(I1)。模型匹配臂 A0pred 用 SLOW_v3_on_v4axis(= 在役 v3 bundle pinned 按 E_ts 对齐, 逐位核过)。
+- **D2 F10 模型** = f10_v4RAW_s{42,2027}: 2025-01..2026-08 月折 mE1cX7 FIX7(20 折, 每折 max_train_label_end = 上月末 20:00Z)+ 2023–2024 在役逐年 V2MAIN(embargo 60, 验证片 argmax)拼接, 拼接边界 2025-01-01 00Z(逐位核过: 前段 = 逐年对齐, 后段 = 月折拼接)。≠ 在役全史重训 f10_live_s42_np(351ae26b…, 「全史重训件不参与历史评估」)。**2022 无 F10 预测**。
+- **D3 基名单**: exchangeInfo 历史不可得 ⇒ (A−24h, A] 有结算的名作 TRADING 代理; 该代理 ≥300 的锚占比 2022 0% / 2023 0% / 2024 31.9% / 2025 100% / 2026 100% ⇒ 字面生产代码会把基名单冻结在链起点值, 故锚前预置 `st.base`(= 守门通过时生产代码会写的值)。
+- **D4 宇宙**: PIT = umask_UPIT_CRYPTO(每月首锚: 上市 ≥30 日且 30 日成交额 >0 的名按 30 日成交额取前 449, 并 COIN 底层), 年均名数 2022 141 / 2023 179 / 2024 266 / 2025 404 / 2026 426; 缓存按**当锚** symbols_live 对全部行打 NaN(= 一直在抓这些名的生产者)。pins 臂 = 今日 450 名(幸存者偏差)。
+- **D5 资金费行** = 2,633,090 行(2020-01 → 2026-09-01 02:00Z): 双源同秒 2,365,163 行且**利率冲突 0**; 仅 API 109,070; 仅 zip 158,857; 生产者自己的 API 行历史上不存在。29 对相隔 1 s 的双行(26 名, 2026-06-30..09-01, 多数为新上市股票永续, 全部**从未进入** PIT_CRYPTO 宇宙)是场所侧真实双行(18 对只在 API、11 对 API 与 zip 同有), 按生产语义保留。
+- **D6 冷启动**: LR 空 ⇒ 前 900 锚 w3 = [1/3]*3(king 文件含 rev24 腿; combo 掩码后 [0.5,0,0.5]); 资金费首抓 40 日窗、每锚至多 100 行(1h 名约 10 锚追平)。
+- **D7 combo 输入瘦身**: rolling.npz 只写末 2016 行; aux ledger_tail 只写末行; fork 执行(A2.1)。
+- **D8 读者自校验**用 918559f 读者模块副本(A2.1 I8)。
+- **D9 已知生产崩溃**按生产语义记录不停链(A2.1)。
+- **D10 折外覆盖缺口(实测, 周采样 239 锚/宇宙, `S0_coverage_probe.json`)**: 生产成员中有 OOF 分的比例 —— PIT 2023 F10 100% / 2024 king·F10 100% / **2025 95.7%** / **2026 86.8%**; 有 OOF 分的生产成员 100% 属于研究 meta 成员集(缺口 = 研究侧 top-400 取自全 829 名含股票永续, 生产-PIT 取自 PIT 名)。缺分成员在模型腿为中性(NaN 不入秩)。生产上 DL 管线给**全部**成员打分, 故这是 OOF 注入的保真度缺口, 不是生产行为。
+- **D11 COMBO_LIVE 飞前断言**: F10 打分 ≥380 / combo gross ∈[0.4,1.2] / 名数 ≥150 / 读者 n_in_universe ≥150 且 gross_in >0.4。历史上 F10 ≥380 的锚占比(PIT)2022–2024 **0%**、2025 17.3%、2026 5.9% ⇒ 字面路径几乎全程 fail-open 交易 king 文件; 其中 2025–26 主要由 D10 造成 ⇒ **P2-LIT 受 D10 混杂**, 只报不作主判。
+- **D12 pins 臂可行域**: 覆盖门 exp_n = 450 ⇒ 结算代理下 ≥80% pins 在交易首次出现于 **2025-09-19 12Z**, 仅占 W_FULL 20.65% 锚; 周采样 pins 臂在 2025-09-15 前全部 SKIP。
+- **D13 跨机**: pod2 python 3.11.10 / numpy 2.4.6 / scipy 1.17.1 / lightgbm 4.7.0 x86(AMD EPYC 9354)vs 生产 Mac 3.14.4 / 2.5.2 / 1.18.0 / 4.7.0 ARM。
+- **D14 1 月 king**: 主臂不送入(A2.0); 敏感性臂 serve_all 送入并在统计上排除这 543 锚 + 标红。
+- **D15 执行层**: 仍为 §1「100% 成交于 E 收盘」; 执行器 gross_in 归一/withheld/场所过滤/停机不模拟(S2 记账合同另立, A2.6)。
+- **D16 G2-A**: 829×40 日原门仍开; Phase 2 历史 PIT 名的通道值无生产者对照(只有 live450 子门 G2-A′ PASS)。
+
+### A2.3 S0(a)/(c) 盘点(全部 sha 在 `phase2/receipts/S0a_inventory.json` 9d10c22f… 与 `P2_prep_inputs.json` b0d17891…)
+| 件 | 路径(pod2) | sha256 前 16 | 事实 |
+|---|---|---|---|
+| 5m 缓存 | `/workspace/data/dlnative_5m_wide829_f16_holefix2.npz` | 1d7f459dee434ec4 | 490,753 行 × 829 × 7 f16, **2022-01-01 00:00Z → 2026-09-01 00:00Z**, 符号 sha 381b7f01…(= 生产 symbols_panel) |
+| 结算史 | `P2/work/ledger_full.npz`(由 `wide_multisrc/funding/*/*.zip` 19,609 个 + `fund_aug.json.gz` 8a9e7715… 构建) | bea6f5752772d54e | D5 |
+| 宇宙 | `P2/work/universe.npz`(umask_UPIT_CRYPTO 47d87b51… + 结算代理 + live_pins fd27fe48…) | 6322b57366078ed0 | 轴 = A0 rec 轴 10,039 锚 2022-01-31 → 2026-08-31 00Z |
+| king OOF | `/workspace/review_scratch/king_v4/SLOW_v4.npy` | dde19142d017c37d | 2024-01-01 → 2026-08-31 20Z 有值; = shadow_bundle_v4 pinned(该文件 09-12 被测试重写但**内容逐位相同**, MANIFEST 相符); 同目录 SLOW_v3_on_v4axis 64767318…、SLOW_v4e 83dce630… |
+| 逐折 booster | 仅 `shadow_bundle_v3/v4/v4e/slow2026.txt` | — | **2024/2025 折 booster 从未落盘**(导出器 L63–65 训练后只取预测)。可行性: 同导出器训练段加一行 `save_model` 即可重出(研究脚本, 非生产); 耗时估计 ≤15 min/折(09-01 首次重训 king 全流程 15 min 的记录, 未在 pod2 CPU 实测); LightGBM 多线程重训能否逐位复现 SLOW_v4 未验证 ⇒ 未做, 仅可行性 |
+| F10 OOF | `…/dev_v4/f8_2026-08-22/preds/f10_v4RAW_s42.npy` / `_s2027` | 58d64a6ff9684589 / 47046ccd6dc7937c | D2; 月折收据 `/workspace/f8_v4/mwf_v4b/RAW_s{42,2027}/results/merge.json`(训练器 2147a7dd…, 20 折 causality_ok); A0 臂 F10 = `f10_A0_s{42,2027}` ff109711… / 98bfe779… |
+| A0 | `/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s{42,2027}.npz` | 352ac36fb3195327 / aa44e18fb6bcfa7e | rec 10039×23(2022-01-31 → 2026-08-31 00Z)+ W 10039×829; 装置 w10_sleeve.py b88e35a4…, NW = r18 `arms/NW_s{42,2027}.npz` afbcd92e… / 89d28a31… |
+| 记账元 | `/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz` | 0e3c09ac86c727ac | y4 RAW(Π(1+r)−1), 10,182 锚 |
+| 在役 bundle | `/workspace/shadow_bundle_v3/` | config 3a8422f3… | 与 Mac 在役 bundle 逐文件 sha 相同 |
+
+**宇宙裁定**: PIT 为主臂(数据支持: 829 轴含已退市名如 LUNAUSDT/SRMUSDT/BTCSTUSDT; umask 按月时点、严格因果)。pins 臂只作敏感性且只在可行域报(D12)。
+
+### A2.4 S0(d) 运行时与分块计划
+- **实测**(pod2 CPU, nice 10, OMP=1; `RUN_timing12_2025-03_pit_v4_s42_fork.json` 55c2c0a4…): 12 连续锚 2025-03-01 00Z 起, 稳态每锚 **1.03 s**(缓存 0.105 / king 段 0.44 / combo 输入 0.17 / combo 段 0.28), 首锚 +2.4 s 导入; 全局输入载入 18–21 s; 进程内存 ≈ 缓存 5.7 GB + 约 1 GB(估计, 未测)。另 3 条功能冒烟链(2022-02 无模型 / 2024-01 king 1 月扣留边界 / 2026-03 满规模)均 rc=0。
+- **串行全史**: W_FULL 10,038 锚 × 1.05 s ≈ **2.9 h / 条链**。容器内存上限 **61 GB**(cgroup memory.max, 非 `free` 的 247 GB); /workspace 有配额(本轮 08:02Z 一次 5.7 GB 写入触顶, 已删并报 lead)⇒ **不落盘缓存副本**, 一个父进程载入缓存后 fork 各链共享页。
+- **计划 P-A(推荐, 无接缝)**: 每臂一条串行链, 臂间并行(≤8 链 ≤8 核), 墙钟 ≈ 3 h, 算力 = 2.9 h × 臂数。
+- **计划 P-B(分块, 需过接缝门)**: 每臂 K 块, 每块 = 暖机 W 锚 + 记录 L 锚; K=4 时每块约 4,340 锚 ≈ 76 min, 6 臂 24 块并行(≤32 核)墙钟 ≈ 76 min, 算力约为 P-A 的 1.7 倍。
+- **暖机长度 W 的数值理由**(先验, 由接缝门实测验证): ① 资金费 EMA 半衰期 3 日 = 18 锚, 初值差 ≤ |rn| ≈ 0.03 衰到 1e-13 需 3·log2(0.03/1e-13) = 114 日 ≈ **686 锚**; ② 席位窗 900 锚的 LR 条目依赖 fund 腿秩(依赖 EMA) ⇒ ① 之后再 **900 锚**; ③ 平滑 H(king/f10/kc/fc)α=0.1: 差 ≤ cap ≈ 0.01 收缩到 1e-12 需 log(1e-10)/log(0.9) ≈ **219 锚**(中性带 2.5e-4 可使在带内的名更久不收敛 —— 这是接缝门要实测的风险)。合计 **W = 1,830 锚(305 日)**。
+- **接缝门 G2-S(冻结)**: 链 X 自 2024-02-01 00Z 起, 链 Y 自 X 起点 + 300 锚起; 二者均 PIT / SLOW_v4 / v4RAW_s42 / withhold; 均跑到 Y 起点 + W + 300 锚。对 A ∈ [Y 起点 + W, 终点] 每锚: king H(float64 全向量)、kc、fc 状态向量 **L∞ ≤ 1e-9**, 且 w3、traded_file、combo 状态码逐锚相同 ⇒ PASS。另报 A ≥ Y 起点的逐锚 L∞ 曲线与「此后恒 ≤1e-9」的首锚(W 的实测值)。红 ⇒ S2 只用 P-A。
+
+### A2.5 S1 门程序(冻结; 顺序执行, 红即停; 阈值不改)
+- **G2-B 资金费状态平价**: 参照 = 对 41 个 Phase 1 锚 A ∈ {1788624000 + 14400k, k=0..40}, 用 `devices/replay_driver.py`(f2ced820…)中 `ema_state_before` 的**原文**(AST 抽取执行)从快照 `producer_state_snapshots/1789200000/aux.json`(5e825c2f… = Phase 1 chain_full 收据 aux_sha256)逆推。重建 = 生产公式(L341–349: iv = 与上一行时间差(h)吸附 {1,2,4,6,8}, 首行或差 ∉ (0,24] 取 8.0; rn = rate·8/iv; 首行 acc = rn, 否则 acc += a(rn − acc), a = 1 − 0.5^(max(ft − last_ts,1)/259200))从每名**最早一行**冷启动, 行集 = `ledger_full.npz` ∪ 快照 ledger_tail(按秒并集; 同秒利率冲突取快照行并计数), 取 ft ≤ A − 14400。**端口自检**(读门前必须过, 否则重建装置无效): (i) 快照 ledger_tail 中 ft > 1788624000 − 14400 的每一行(均为生产者 09-05 之后追加), 按与前一行的时间差重算的 iv == 生产者存的 iv; (ii) 从 ref(1788624000) 出发沿快照行递推到 1789200000 与快照 ema 逐名 |Δacc| ≤ 1e-15 且 last_ts 相同。**门**: 全部 (A, s) 中参照为有效状态者(非 None、非 MISMATCH)|acc_rb − acc_ref| ≤ 1e-9, 且参照有而重建无的名计为违例; 违例数 = 0 ⇒ PASS。归因(只报不改判): 违例名的 live 账本首行日期、重建与 live 的 iv 序列是否不同、差值是否随 HL 3d 衰减。
+- **G2-C 换缓存不换预测 = Phase 1**: pod 正典缓存止于 09-01 00:00Z, 41 锚与 3 个快照锚都在其后 ⇒ 缓存 = **拼接**: holefix2 行(≤ 09-01 00:00Z, 非 live450 名置 NaN)+ 快照 1789243200 `rolling.npz` 的行(> 09-01 00:00Z)。king 段: 41 锚链(起点状态按 Phase 1 `build_state` 同法: 快照 aux 逆推 EMA、账本截到 ≤A0−4h、H = 生产者 weights/{A0−4h}.npz、LR = bundle + 快照 leg_returns_live 按 Phase 1 规则截断、base = aux base_syms), 真 booster(shadow_bundle_v3/slow2026.txt), 宇宙 = 在役 450; 门 = 每锚 weights 与生产者 weights/{A}.npz **L∞ ≤ 1e-6, 41/41**。combo 段: 快照起步锚 1789214400/1789228800/1789243200(状态 = 该快照前一锚的 aux/leg_returns + 生产者 fea171 state_H_{f10,kc,fc}_{A−4h} 与 weights/{A−4h} 的只读副本), 真 171 管线 + 在役 F10 模型; 门 = target_live_combo 与生产者 target_live/{A}.json **L∞ ≤ 1e-6, 3/3**。41 锚历史链 combo 残差**单列报告, 不改标签**(Phase 1 为 0/41 ≤1e-6)。
+- **G2-C′ 注入管道平价(新增, 只加严)**: 在 3 个快照锚上, (i) king: OOFBooster 的查表由真 booster 在同锚同成员上的输出填充 ⇒ 权重与真 booster 模式**逐位相同**; (ii) F10: 由真管线同锚产出的 f10 分(对该锚 mini 文件执行生产 L152–167 对应的装置原文)填 I2 注入文件 ⇒ state_H_{f10,kc,fc}_{A} 与真管线模式**逐位相同**。
+- **G2-S 接缝门**: A2.4。
+- **G2-D 因果审计**: king 规则 label_end < E − 30·86400(label_end = fold Y 训练集最后一个 ≥50 标签锚 + 4h, 由 wide_fea_v4_meta 实算); F10 规则 label_end < E 所在月首 00:00Z(月折取折配置 max_train_label_end; 逐年折取 dlw_ext 轴 E[first_te − 61] + 4h, 未扣 ≥50 行过滤 ⇒ 偏保守)。审计两层: (a) 全 W_FULL 轴按折表与 OOF 数组可得性逐锚列出「会送入的模型 / label_end / 是否合规」, 断言 withhold 策略下**无违规被送入**, 并列出被扣留锚(预期 king 543 锚 = 2024/25/26 各 1-01 00Z..1-31 00Z, F10 0 锚); (b) S1 期间每条链的逐锚记录(served 标志与规则一致)。任一违规被送入或记录不一致 ⇒ RED。
+- **G2-E 红能力**(AMENDMENT 1 口径): 伪造折表 —— F10 fold 202503 的 label_end := 2025-03-15 00:00Z、king fold 2025 := 2025-02-15 00:00Z —— 以 serve_all 在 2025-03-16 00Z..20Z 6 锚上跑装置; G2-D 审计**必须**对 king 与 F10 各报 ≥1 违规(RED)⇒ 红能力 PASS。
+
+### A2.6 S2 输出规格(本轮不跑; 记账合同在 S2 前另立 AMENDMENT 3, 冻结后才算数)
+- **臂**(S2 由 lead 定跑哪些; 两种子才下判词): P2a-v4-s42/s2027(PIT, withhold, **主**)· P2a-A0pred-s42/s2027(PIT, withhold; 与 A0 模型匹配, 用于隔离「生产路径 vs 研究回放」)· P2a-v4-s42-serve_all(1 月敏感性)· P2a-v4-s42-pins(只在 D12 可行域)。研究侧匹配参照「A1-NW」= w10_sleeve_r18.py NW 旋钮 + SLOW_v4 + f10_v4RAW(未存档, S2 需先跑并过其 GATE P 类门)。
+- **书**(同一条链三读): **P2-CMB** = 0.55·kc + 0.45·fc(combo 段 float64 状态; 主读数)· P2-KING = king 文件 · P2-LIT = 执行器字面会读的文件(combo 写者成功 ⇒ combo, 否则 king, 生产者跳锚 ⇒ 持有不动), 逐年报三种形态占比。层级标注: 均为**持仓书层**(目标权重), 非模型分数层/复合目标层。
+- **表**: 逐年表(2022..2026, 负年显式)· W_ALPHA(A0 轴 rows ≥900 ∧ ts ≤ 2026-08-30 20Z, n = 9,138)/ W_FULL(n = 10,038)/ 冻结窗(2025-03-01 → 2026-08-10 20Z)三窗并报 · 对 A0(C0 存档)、NW、A1-NW 的配对 Δg 与 ΔSharpe(同锚; UTC 日块自举 2000 次, `default_rng([20260905, k])`, k=0 主 / k=9 复核)· 固定 2.0× 复利 NAV maxDD · G2-D 被扣留锚与 D10 覆盖缺口的逐年计数。判词只用 (A)/(B)/(C), 0.23 bps/锚/gross 以下不可区分(原 §3)。
+
+### A2.7 本节不主张
+不主张任何历史水平或 Sharpe(本轮零书层数字); 不主张 P2a 等于在役月度重训(D1/D2); 不主张 PIT 宇宙等于在役 pins; 不主张 D10 缺口对书层无影响(未测); 不注销 G2-A 原门(D16)与 Phase 1 历史 G-P2 FAIL。
