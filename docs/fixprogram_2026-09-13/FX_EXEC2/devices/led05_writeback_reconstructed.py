@@ -53,7 +53,11 @@ def checks(root):
     mine = [l for l in day_orders if l.strip() and json.loads(l).get("rebalance_id") == RID]
     state = "ABSENT" if not mine else ("PRESENT_VERBATIM" if mine == lines else "PRESENT_DIFFERENT")
     if state == "PRESENT_DIFFERENT": f.append(f"C3 day already holds {len(mine)} other row(s) of {RID}")
-    fills = [x for x in PL.read_fills(os.path.join(root, "pilot_log"), DAY) if x.get("rebalance_id") == RID]
+    _pl = os.path.join(root, "pilot_log")
+    # the canonical reader when the executor tree has it (LED-01 3/3); on an older deployed tree, the same collapse
+    # (collapse_supersedes over read_day) — identical on this ledger, which has 0 cross-symbol trade-id collisions
+    _all = PL.read_fills(_pl, DAY) if hasattr(PL, "read_fills") else PL.collapse_supersedes(PL.read_day(_pl, DAY)["fills"])
+    fills = [x for x in _all if x.get("rebalance_id") == RID]
     by_f, by_o = {}, {}
     for x in fills:
         s = by_f.setdefault(x["symbol"], [0.0, 0.0, set()])
