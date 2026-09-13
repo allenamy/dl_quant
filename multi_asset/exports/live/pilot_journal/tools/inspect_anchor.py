@@ -39,11 +39,19 @@ if os.path.exists(tk_p):
 # ③ executor funnel by anchor_ts
 day = datetime.fromtimestamp(A, tz=timezone.utc).strftime("%Y%m%d"); days = sorted(set([day, datetime.fromtimestamp(A + 14400, tz=timezone.utc).strftime("%Y%m%d")]))
 orders = [r for d in days for r in jl(f"{L}/state/live/pilot_log/{d}/orders.jsonl") if A <= (r.get("anchor_ts") or 0) < A + 14400]
-fills = {}
+# ★ 2026-09-13 LED-01 (FX-EXEC2, lead ruling B): fills.jsonl is append-only with supersede rows (the +60s markout arrives as a
+#   second row for the same execution). One execution = (symbol, trade_id) — Binance trade ids are per-SYMBOL, so the old
+#   key `trade_id` alone could merge two symbols' executions. Last row in write order wins (it carries the mark), exactly
+#   pilot_log.collapse_supersedes / read_fills in the executor. Rows without a trade id are kept apart (never merged).
+fills, _no_tid = {}, []
 for d in days:
     for r in jl(f"{L}/state/live/pilot_log/{d}/fills.jsonl"):
-        if A <= (r.get("anchor_ts") or 0) < A + 14400: fills[r.get("trade_id") or (r["symbol"], r["fill_ts"])] = r
-fills = list(fills.values())
+        if A <= (r.get("anchor_ts") or 0) < A + 14400:
+            if r.get("trade_id") is None:
+                _no_tid.append(r)
+            else:
+                fills[(r.get("symbol"), r.get("trade_id"))] = r
+fills = list(fills.values()) + _no_tid
 term = collections.Counter(r.get("terminal_reason") for r in orders); print("orders n", len(orders), "terminal:", dict(term.most_common(8)))
 n5022_1 = sum(1 for r in orders if r.get("attempt_idx") == 1 and r.get("terminal_reason") == "venue_reject" and "-5022" in (r.get("note") or ""))
 rested1 = sum(1 for r in orders if r.get("order_type") == "maker" and r.get("attempt_idx") == 1 and r.get("submit_ts") is not None and r.get("mid_at_submit") == r.get("mid_at_anchor"))
