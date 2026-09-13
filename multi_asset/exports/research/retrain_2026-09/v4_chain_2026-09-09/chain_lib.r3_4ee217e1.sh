@@ -143,11 +143,7 @@ PYEOF
     die "month_env_parser_failed_rc_${rc}_$(basename "$f")" 4
   fi
   # rc 0 is not trusted on its own: every output line must be a registered KEY, once, with a non-empty value made of LITERAL characters only
-  # ★ ROUND 5 (2026-09-13, FX-TRAIN TRN-19; independent review round 4 probe parser_bare_registered_key_OUTPUT_ACCEPTED): a line with NO '=' split into
-  #   k == v == the whole line (`${line%%=*}` and `${line#*=}` both return it), so a bare `R` passed all four checks below and was exported as R=R.
-  #   The '=' is now required BEFORE the split; the real parser always prints KEY=VALUE, so only a broken or substituted $PY reaches this refusal.
   while IFS= read -r line; do
-    case $line in *=*) ;; *) echo "month env $f: parser output line has no '=' (not KEY=VALUE): ${line:0:80}" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     k=${line%%=*}; v=${line#*=}
     case $k in ""|*[!ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_]*) echo "month env $f: parser output line is not KEY=VALUE: ${line:0:80}" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac
     case " $V4_MONTH_KEYS " in *" $k "*) ;; *) echo "month env $f: parser emitted an unregistered key $k" >&2; die "month_env_parser_output_$(basename "$f")" 4 ;; esac

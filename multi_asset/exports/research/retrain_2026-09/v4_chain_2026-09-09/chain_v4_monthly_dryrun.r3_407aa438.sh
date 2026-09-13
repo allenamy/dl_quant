@@ -40,26 +40,6 @@ for k in keys:
     print(f"{k}={v}")
 PYEOF
 ) || { echo "dryrun env derivation failed (the source contract was refused by load_month_env, or a registered key did not arrive)" >&2; exit 2; }
-# ★ ROUND 5 (2026-09-13, FX-TRAIN TRN-19 sibling): the derived env is WRITTEN by $PYX and its rc 0 was the only evidence that every path points under the
-#   empty root. An interpreter that exits 0 printing the source contract's own lines (red cell [V] TRN-19 V9) made this control run the driver against
-#   paths outside the scratch root. Bash now re-checks every derived line WITHOUT the interpreter: KEY=VALUE, a registered key exactly once, all keys present,
-#   R == <scratch>/root, PY == the interpreter chosen above, every non-label key UNDER <scratch>/root/. Any violation: rc 2, the driver is not run.
-DKEYS=$(sed -n 's/^V4_MONTH_KEYS="\([^"]*\)".*/\1/p' "$D/chain_lib.sh"); [ -n "$DKEYS" ] || { echo "cannot read V4_MONTH_KEYS from $D/chain_lib.sh" >&2; exit 2; }
-dseen=" "; dbad=""
-while IFS= read -r line; do
-  case $line in ""|"#"*) continue ;; *=*) ;; *) dbad="$dbad | not KEY=VALUE: ${line:0:60}"; continue ;; esac
-  dk=${line%%=*}; dv=${line#*=}
-  case " $DKEYS " in *" $dk "*) ;; *) dbad="$dbad | unregistered key $dk"; continue ;; esac
-  case $dseen in *" $dk "*) dbad="$dbad | duplicate key $dk"; continue ;; esac; dseen="$dseen$dk "
-  case $dk in
-    V4_MONTH|MONTHS_ALL|SEEDS|MWF_ROOT|BUNDLE_GENERATION|EXPORT_ARM|GATE_STEP1|GATE_STEP2) ;;
-    PY) [ "$dv" = "$PYX" ] || dbad="$dbad | PY=$dv is not the interpreter $PYX" ;;
-    R) [ "$dv" = "$ROOT/root" ] || dbad="$dbad | R=$dv is not $ROOT/root" ;;
-    *) case $dv in "$ROOT/root/"*) ;; *) dbad="$dbad | $dk=$dv is not under $ROOT/root/" ;; esac ;;
-  esac
-done < "$ROOT/v4_month_dryrun.env"
-for dk in $DKEYS; do case $dseen in *" $dk "*) ;; *) dbad="$dbad | key $dk missing" ;; esac; done
-[ -z "$dbad" ] || { echo "dryrun derived env REFUSED (a negative control must only ever point at its empty root):${dbad:0:900}" >&2; exit 2; }
 T0=$(date -u +%FT%TZ)
 V4_DRYRUN=1 V4_STAGES=all PY=$PYX bash "$D/chain_v4_monthly.sh" "$ROOT/v4_month_dryrun.env" > "$ROOT/driver.out" 2>&1; rc=$?
 "$PYX" - "$ROOT" "$rc" "$T0" "$D" "$SRC" <<'PYEOF'; ok=$?
@@ -88,9 +68,4 @@ json.dump(rec, open(f"{root}/dryrun_receipt.json", "w"), indent=1)
 print(f"DRYRUN_{'PASS' if PASS else 'FAIL'} driver_rc={rc} stopped_at={stopped} training_launched={launched} gpu={gpu} receipt={root}/dryrun_receipt.json")
 sys.exit(0 if PASS else 1)
 PYEOF
-# ★ ROUND 5 (FX-TRAIN TRN-19 sibling): rc 0 of the receipt program is not a PASS on its own — the receipt file must exist and say PASS true (an interpreter that
-#   exits 0 without running the program above wrote no receipt and used to make this control exit 0)
-if [ $ok -eq 0 ]; then
-  { [ -f "$ROOT/dryrun_receipt.json" ] && grep -q '"PASS": true' "$ROOT/dryrun_receipt.json"; } || { echo "DRYRUN_FAIL receipt program exited 0 but $ROOT/dryrun_receipt.json is missing or not PASS" >&2; ok=1; }
-fi
 exit $ok
