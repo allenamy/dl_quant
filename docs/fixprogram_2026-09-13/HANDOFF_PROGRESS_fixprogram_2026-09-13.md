@@ -132,3 +132,4 @@ OPS-01 · OPS-02 · 回滚动词双演练 · Mac 盘满清理 23 个陈旧克隆
   - **P2 已停**(最新 5f66eb83; pod2 `attr_D` 约 400 MB 保留至收据核实入库后删除)。第 3 项 AMENDMENT 9 未运行。
   - **FX-PROD 已停**(头 afd94a2)。未开始: PROD-27 · P12(state_H_f10 第二写者)· P5 迁移运行 · 换装干跑。
   - **FX-EXEC 仍在 E5**(停止时以其最后提交为准); **FX-W6C** 电池被 lead 中止后未回报, B13 / I6 / cond4 / 平仓时间戳 状态以其克隆提交为准。
+  - **P2 补充**: K2 采纳 AMENDMENT 8 + 重标表 S2_TABLES_K2 10c98387(36 格全部 (C) INCONCLUSIVE; 旧判词未引用)· 归因预注册 AMENDMENT 1/2/3(7bcbbb31 / 2561950e / b5803abe)先于数字 · 结果段 f8abf062 · PROD-36 读数吻合(剩 11,232 行 = 233 锚行 ⇒ 0.0; 10,560 行 ≤1e-6; 9,600 行 至 1.127e-4)· **偏差自述**: lead 的暂停 / 放行消息晚到, Stage C 15:57Z 已开跑(每变体前 300 MB 探针), Stage D 16:07Z 与 Stage C 并行约 7 分钟, 均 rc=0 无配额错误 · 余: combo_live_status.json 缺失说明、PROD-03 作 S2 偏差 D22、pod2 attr_D 删除(lead 已准, 收据入库核实后)。
