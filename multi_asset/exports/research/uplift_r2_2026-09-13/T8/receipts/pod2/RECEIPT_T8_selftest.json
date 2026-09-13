@@ -1,0 +1,90 @@
+{
+ "device": "t8_selftest.py",
+ "self_sha256": "6dc64ad12581034d828ff5c807b4e900571dacb0e1d8d47916da64c51e3abadc",
+ "common_sha256": "0bbfb5acf9b8163fb4b431db23e704b6c138d0d5ff52c6b318edcdaf304a18cd",
+ "prereg_sha256": {
+  "prereg": "53da0bcc948b2ed417ec505888f95c96c615e201ad2c57bdf549ea4ece884f8a",
+  "amendment_1": "d5928ee3272c30b1ceb64a9c675b3d0d900cea7160e474d9538f6f266340be56"
+ },
+ "env": {
+  "env_whitelist": [
+   "HOME",
+   "LC_CTYPE",
+   "MKL_NUM_THREADS",
+   "OMP_NUM_THREADS",
+   "OPENBLAS_NUM_THREADS",
+   "PATH"
+  ],
+  "env_actual": {
+   "HOME": "/root",
+   "LC_CTYPE": "C.UTF-8",
+   "MKL_NUM_THREADS": "8",
+   "OMP_NUM_THREADS": "8",
+   "OPENBLAS_NUM_THREADS": "8",
+   "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  },
+  "launch_cmdline": "devices/t8_selftest.py PATH,HOME,LC_CTYPE,OMP_NUM_THREADS,OPENBLAS_NUM_THREADS,MKL_NUM_THREADS",
+  "affinity": [
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   46,
+   47
+  ],
+  "python": "3.11.10",
+  "numpy": "2.4.6"
+ },
+ "synthetic_only": true,
+ "checks": {
+  "features_vs_brute": {
+   "max_rel_diff": 1.1100997027899745e-15,
+   "nan_mismatch": 0,
+   "n_finite_cols_last_row": 23,
+   "PASS": true
+  },
+  "reshape_vs_device_lines": {
+   "max_abs": 0.0,
+   "PASS": true
+  },
+  "shuffle_future_synthetic": {
+   "bitwise_equal": 34,
+   "total": 34,
+   "planted_leak_caught": 17,
+   "planted_leak_tests": 17,
+   "PASS": true
+  },
+  "bootstrap": {
+   "max_abs_direct_vs_moments": 1.6653345369377348e-16,
+   "k9_stream_ok": true,
+   "PASS": true
+  },
+  "foldprep": {
+   "n_drop": 81,
+   "n_imp": 13,
+   "zero": [
+    5
+   ],
+   "test_all_finite": true,
+   "mean0": true,
+   "sd1": true,
+   "PASS": true
+  },
+  "ridge_vs_sklearn": {
+   "max_abs_pred": 1.6653345369377348e-16,
+   "PASS": true
+  },
+  "lgbm_determinism": {
+   "bitwise": true,
+   "PASS": true
+  },
+  "day_perm_mapping": {
+   "PASS": true
+  }
+ },
+ "ALL_PASS": true,
+ "wall_s": 6.5,
+ "utc": "2026-09-13T10:21:49Z"
+}

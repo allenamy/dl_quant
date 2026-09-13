@@ -1,0 +1,1 @@
+failed_first_runs/: RECEIPT_T8_build.json + t8_build_stdout.log + RC_t8_build.txt = first build run 10:13:43Z, rc=3, G2a FAIL (c_N(0)<0 condition; see PREREG_AMENDMENT_1_T8.md). *_pre_amendment1 selftest files = PASSED run with the pre-amendment t8_common.py (sha dbd20981...), superseded because t8_common.py changed (check_prereg only).
