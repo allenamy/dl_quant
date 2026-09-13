@@ -222,3 +222,81 @@ A naive per-anchor statistic therefore counts targets that were never traded and
 - Which absent names are delisted (needs exchangeInfo).
 - fundingInfo's real response shape.
 - Rebuilding the table.
+
+## LED-01 · the fills.jsonl write contract, ruling B (commits ec88424 1/3, d3d16ea 2/3, 0d27a52 3/3)
+Five of six requirements are done; req. 6 (E10) is waiting on fx-exec's reply.
+
+**Where it lives.** Executor commits ec88424 (1/3), d3d16ea (2/3), 0d27a52 (3/3) on branch fix/ledger-alarms-2026-09-13. Research repo: inspect_anchor.py fix 5a866f0c; receipts d9699cf5, f935b085, 43a5adba. Partial diff ef60f85..0d27a52 has sha256 046f4a88…
+
+**Problem (as re-scoped by the ruling).** Every trade has two rows (three before 09-03), and that is the designed markout supersede. The actual defects:
+1. Both collapsers key on trade_id alone. Binance trade ids are per-symbol, so two executions on different symbols can share an id.
+2. The contract is not enforced when rows are written.
+3. There is no single canonical reader.
+
+**Facts** (receipt LED01_contract_positive_control.json, run over the full 44-day guarded copy)
+- 93,739 rows, 41,940 (symbol, trade_id) keys.
+- Contract violations: 0. Keys spanning more than one day file: 0.
+- Chain shapes: O 4,709; OS 22,663; OSS 14,568.
+- The mark-column set was taken from the three supersede writers (backfill_markout `_complete`/`_terminal` and import_markout_marks), not fitted to the data.
+- A trade_id-only key also existed in two more places: backfill_fills' already-present set, and import_markout_marks' marks join (the marks file is keyed by trade id).
+
+**Frozen-metric note and identity proof (req. 1)**
+- live/pilot_metrics.py is FROZEN. `dedupe_fills` now keys on (symbol, trade_id), and I re-froze it deliberately: config/metrics_freeze.json sha cd508c3f…; its `why` names LED-01 and the proof.
+- `devices/led01_identity_proof.py` ran once on ef60f85 and once on the new tree, over all 44 days of the copy. It covered per-day `collapse_supersedes` kept-row indices, `dedupe_fills` output order, `m2_markout` per day, `m2_markout` over the stress-anchor subset, and `watchdog.evaluate`'s cond3_crash_markout detail over the whole copy.
+- Canonical sha256 before = after = 4d00f6c76604a74421276470d857ca047755226f3985929a6dd1b3efce8de855 (LED01_identity_before_ef60f85.json and _after_keychange.json).
+- tests_readers_three_bucket's frozen-sha pin now reads the freeze record, and accepts a change only when the record's `why` names LED-01. tests_fills_supersede's mutation target follows the renamed keep-last line; the mutation itself is unchanged.
+
+**Red evidence** (no crash on any of the three)
+- 1/3: 6/12, 6 FAIL. A synthetic cross-symbol collision is merged to ONE row by `collapse_supersedes`, by `dedupe_fills`, and in M2's n_fills. No validator exists.
+- 2/3: 2/16. `fill()` returns None, both duplicate originals land in fills.jsonl, the anchor reports persisted 2 with no alarm, another symbol's trade is skipped as already present, and a foreign-symbol mark is applied.
+- 3/3: 5/9. No read_fills. ops/assert_anchor_artifacts.py:162 builds the fills.jsonl path itself.
+
+**Fix**
+- **1/3 (contract).** New in pilot_log: FILLS_MARK_COLUMNS, fill_key, fill_contract_check, fills_contract_violations. The four violation kinds are duplicate_original, orphan_supersede, supersede_id_mismatch and supersede_changes_fact_columns. `collapse_supersedes` and `dedupe_fills` key on (symbol, trade_id); the last row in write order wins.
+- **2/3 (write guard, req. 2-3).** `PilotLogger.fill` enforces the contract and never raises on a contract violation:
+  - it writes the refused row to `<day>/fills_quarantine.jsonl` with its kind, records it in `fill_quarantined`, and returns False;
+  - the index of originals is read incrementally from the day file before each write, so rows from another logger or process are seen;
+  - if the guard itself errors, the row is written as before and the error is kept;
+  - if the quarantine file cannot be written, the refusal and the row are kept in memory;
+  - schema errors still raise.
+- **2/3 (callers).**
+  - anchor_loop counts quarantined rows apart and raises ONE HIGH alarm per anchor with count, kinds and first keys; the phase-B record gains fill_rows_quarantined.
+  - backfill_markout reports n_quarantined, and run_anchor pages once when it is non-zero.
+  - backfill_fills counts quarantines; its already-present set uses (symbol, trade_id).
+  - import_markout_marks counts quarantines, and skips a mark whose archive file names another symbol.
+- **3/3 (req. 5).** `pilot_log.read_fills(root, day, raw=False, strict=True)` is the canonical reader. assert_anchor_artifacts now reads through it with raw=True, strict=False, so its behaviour is unchanged. A closed-world census (details under Tests) goes red on any direct read.
+
+**Tests** (live suite name, then result on the new tree)
+- tests_fills_contract: 18/18. Collision cells; each violation kind; the real O,S,S, B26b and E1 chains are legal; collapse returns the last written row; live-ledger check when present.
+- tests_fills_write_guard: 16/16.
+  - The real 09-12 PAXG chain writes through unchanged.
+  - Guard cells G2-G9.
+  - **Anchor completes with a violation injected** (req. 2): `AnchorLoop.complete_anchor` in DRY_RUN with settlement venue calls faked, socket.connect raising, and a day that already holds the original. It returns with built 2 / persisted 1 / quarantined 1, exactly one contract alarm, and no "persisted" alarm.
+  - Symbol-key cells for backfill_fills and import_markout_marks.
+- tests_fills_reader_census: 11/11.
+  - read_fills semantics.
+  - No non-docstring constant naming the fills.jsonl path outside pilot_log.py.
+  - Every module that reads the fills table is declared COLLAPSES (the named function must occur in its source) or RAW (with a reason); undeclared or stale entries are red.
+  - Synthetic mutations are caught.
+- Neighbour suites green: tests_fill_backfill, tests_flatten_fee_backfill, tests_markout_pacing/window/import, tests_topup_leg_fill, tests_pilot_log, tests_fills_supersede 19/19, tests_readers_three_bucket, tests_watchdog, tests_artifact_assertions, tests_request_identity_unknown, tests_reduce_only_clamp, tests_static_names, tests_imports, tests_rehearsal_anchor. metrics_freeze reads FROZEN_MATCH.
+- tests_entrypoint_wiring: 1 FAIL, identical on ef60f85 and the new tree (nosleep log_verified=False, environmental). This suite makes public venue GETs (lead ruling: allowed under the battery window + lock rule; the 15:52Z / 15:57Z neighbour runs made such GETs and appended to anchor_runs.log in the 14:27Z ledger copy, ledger files unchanged).
+
+**Research repo (req. 5)**
+- pilot_journal/tools/inspect_anchor.py is fixed (5a866f0c): the collapse is keyed on (symbol, trade_id), and rows without a trade id are kept apart.
+- Identity device: original and fixed scripts, pointed at the ledger copy, print identical ledger-derived lines for 09-13 12Z, 09-12 12Z and 09-12 08Z. The synthetic collision counts 1 execution under the old key and 2 under the new.
+- Side fact about the same tool, not caused by this change: it assigns rows to an anchor window by `anchor_ts`. The 09-12 flatten rows' `anchor_ts` is the time they were written (12:50Z), so the 12Z funnel includes the flatten and prints maker share 0.045 (NEW-01).
+- The list of other readers is `receipts/LED01_research_fills_readers.txt`: 70 .py files name fills.jsonl.
+  - 4 call a canonical collapse.
+  - 38 mention trade_id without a collapse call; they may dedupe by trade id alone.
+  - 28 have neither, which is the naive-reader shape (e.g. eda/audit_fills_ledger_gap*.py, migrate_fill_sign*.py, probes/judges_2026-08-11/cost_postswap.py and replay_both.py, retrain_2026-09/…/canon_reconcile.py).
+  - This is a static classification and none of them are fixed.
+
+**Req. 6.** On 16:0xZ I sent fx-exec an E10 proposal: notarized bytes must be an exact prefix of the current file; the appended suffix must produce no contract violation; classify as LEGITIMATE_APPEND and record an amendment entry; the quarantine file is prefix-only; five cells, including the real 09-12 prefix f18ef301… with 12 markout lines and 3,656 E1 lines. No reply yet. fx-w6c was told the key change landed.
+
+**Not proven**
+- Two processes appending the same original in the same instant: the index is refreshed before each write but not locked.
+- A new supersede writer that adds a mark column reads as a fact-column change until FILLS_MARK_COLUMNS is extended.
+- Chains are judged within one day file (0 cross-day keys in history).
+- The census cannot see paths built without spelling the file name.
+- Option (A), the format change, is registered as a design candidate only; no work was done on it.
+- One process slip: my f935b085 commit deleted the ec88424 partial diff (it appears as a rename to the d3d16ea diff). The deleted diff is still in d9699cf5 at sha256 bbb31514…; later partial diffs are kept.
