@@ -1,0 +1,37 @@
+[    1.5s] inputs verified, production feature code copied
+[    3.3s] G-BOOT_info {'rows': 3024, 'first': '2026-07-25 00Z', 'last': '2026-08-04 12Z', 'nan_pattern_diff': 0, 'bitwise_diff': 0, 'cells': 9525600}
+[  232.4s] G-F10SREP {'full40d': {'anchors': 6, 'X171_bitwise': 6, 'scol_equal': 6, 'f10_bitwise': 6, 'max_abs_X171': 0.0, 'n_e_rows': {'2026-09-12 12Z': 239, '2026-09-12 16Z': 239, '2026-09-12 20Z': 239, '2026-09-13 00Z': 239, '2026-09-13 04Z': 239, '2026-09-13 08Z': 239}, 'PASS': True}, 't4b_view': {'anchors': 6, 'X171_bitwise': 6, 'scol_equal': 6, 'f10_bitwise': 6, 'max_abs_X171': 0.0, 'n_e_rows': {'2026-09-12 12Z': 234, '2026-09-12 16Z': 235, '2026-09-12 20Z': 236, '2026-09-13 00Z': 237, '2026-09-13 04Z': 238, '2026-09-13 08Z': 239}, 'PASS': True}}
+[  586.3s] F_S overlap done 17
+[  586.9s] G-MEMBERCODE {'checked_anchors': 3, 'equal': 3, 'PASS': True}
+[  647.2s] F_H done {'n_e_rows': 262, 'first': '2026-07-29 00Z', 'last': '2026-09-10 20Z'}
+[  701.4s] F_D done {'n_e_rows': 286, 'first': '2026-07-25 00Z', 'last': '2026-09-10 20Z'}
+Traceback (most recent call last):
+  File "/Users/haosiyu/Desktop/quant_research/docs/audit_pipeline_2026-09-13/devices_prod/parity/parity_f10.py", line 243, in <module>
+    for A, XT_, scT, XS_, scS, repT, repS in ex.map(FT_job, PH1):
+                                             ~~~~~~^^^^^^^^^^^^^
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/_base.py", line 639, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/_base.py", line 311, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/_base.py", line 395, in __get_result
+    raise self._exception
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/Users/haosiyu/Desktop/quant_research/docs/audit_pipeline_2026-09-13/devices_prod/parity/parity_f10.py", line 235, in FT_job
+    A = int(A); pm = np.asarray(REC[A]["members"], np.int64) if A in REC else weights_members(A)
+                                                                              ~~~~~~~~~~~~~~~^^^
+  File "/Users/haosiyu/Desktop/quant_research/docs/audit_pipeline_2026-09-13/devices_prod/parity/parity_f10.py", line 115, in weights_members
+    p = f"{WS}/state/weights/{int(A)}.npz"; z = np.load(p); return np.asarray(z["members"], np.int64)
+                                                ~~~~~~~^^^
+  File "/Users/haosiyu/wide_shadow/venv/lib/python3.14/site-packages/numpy/lib/_npyio_impl.py", line 454, in load
+    fid = stack.enter_context(open(os.fspath(file), "rb"))
+                              ~~~~^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/haosiyu/wide_shadow/state/weights/1789195200.npz'
+EXIT rc=1 2026-09-13T15:07:19Z

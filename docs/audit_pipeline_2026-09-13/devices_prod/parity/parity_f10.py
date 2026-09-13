@@ -229,7 +229,8 @@ for A in OVL:
 FD_out, FD_rep = run_pipeline("FD", rts_d, RD_d, lambda i, t: DMEM[t], lambda e_rows: np.array([DBT[int(rts_d[i])] for i in e_rows], np.float32), fund_D, OVL); RC["FD_run"] = FD_rep
 log("F_D done", FD_rep)
 # ---- F_T: Phase-1 truncated cache vs F_S
-PH1 = [1788624000, 1788710400, 1788768000, 1788825600, 1788940800, 1788998400, 1789070400, 1789195200]
+PH1 = [1788624000, 1788710400, 1788768000, 1788825600, 1788940800, 1788998400, 1789070400, 1789156800]
+assert all(a % 14400 == 0 and a in REC for a in PH1 + OVL + T4B), "anchor list error"
 PH1_START = TS(2026, 8, 3, 8, 5)
 def FT_job(A):
     A = int(A); pm = np.asarray(REC[A]["members"], np.int64) if A in REC else weights_members(A)
