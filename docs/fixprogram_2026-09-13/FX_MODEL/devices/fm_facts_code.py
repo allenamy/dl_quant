@@ -67,7 +67,7 @@ ROWS = [
          anchors=[(RT + "/pod_panel_splice.py", 'CAN = np.load("/workspace/data/wide_panel_4h_v1.npz", allow_pickle=True)'),
                   (RT + "/pod_panel_splice.py", "out[k] = np.concatenate([a, b[tail_idx]])"),
                   (RT + "/pod_panel_splice.py", "continue  # 尾部保持 ext 原值(新上市名, 无正典口径可续)")]),
-    dict(id="C-FEA-4", item="FEA-01 (same family, new site)", claim="the DL training book loss composes the model rank with fixed legs Z24/ZFD; ZFD is the member rank of the splice panel's f_fund_ema_v1 (NaN -> 0 in the trainer and in the refit), and the v4b legs copy the in-service legs rows verbatim, which were built from the same splice panel",
+    dict(id="C-FEA-4", item="FEA-01 (same family, latent site)", claim="LATENT code path (corrected 15:1xZ after FACTS_DATA F3; attempt-1 claim overstated): the DL training book loss composes the model rank with fixed legs Z24/ZFD (NaN -> 0 in trainer and refit); a NEW legs row is built from the splice panel's f_fund_ema_v1 (450-name prefix), but every stored row up to 2026-08-31 00Z is a verbatim copy of an older legs file (v4b <- f8_ext <- /workspace/data/f10v2_legs.npz of 08-23) whose ZFD has full funding coverage; the realised coverage is measured in FACTS_DATA F3, not asserted here",
          anchors=[(V4 + "/pod_legs_v4b.py", 'PANP = os.environ.get("LEGS_PANEL", "/workspace/data/wide_panel_4h_v3splice.npz")'),
                   (V4 + "/pod_legs_v4b.py", 'R24 = PW["f_rev_24h"]; FE = PW["f_fund_ema_v1"]'),
                   (V4 + "/pod_legs_v4b.py", 'OLDP = os.environ.get("LEGS_OLD", "/workspace/f8_ext/data/f10v2_legs.npz")'),
