@@ -1,0 +1,117 @@
+{
+ "device": "fx_evl01_guard_control.py",
+ "self_sha256": "633849382b1278cd89ab9daf9759dfb978fc8f6990d40ff12363916b6d381dfc",
+ "guard_sha256": "ca20c40d3e14760b3c04d79450c0e7a3c166ee66d4b205c8d74991e2fce7c405",
+ "a0_device": "/workspace/uplift_2026-09-11/w10_sleeve.py",
+ "a0_device_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
+ "archived_arm": "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s42.npz",
+ "archived_arm_sha256": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339",
+ "numpy": "2.4.6",
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "utc_start": "2026-09-16T05:15Z",
+ "manifest_sha256": "a416ce3054adda6fc9970111d2fc528da4b5c8d990e9ef2bd28975cf2cd5894f",
+ "refusal_message": "REFUSING TO LAUNCH w10_sleeve.py (sha b88e35a46b93d712): it reads CAL with a non-log default, so a launch without CAL would apply expm1 to an already-simple y4. CAL is not set in the environment being passed to the device. Ruling: FIXPROGRAM EVL-01 (a)+(c) \u2014 the device is frozen, the launcher must declare CAL.",
+ "run": {
+  "rc": 0,
+  "seconds": 28.8,
+  "tail": "DONE 22.5 s"
+ },
+ "config_CAL": "log",
+ "checks": [
+  {
+   "check": "G0.a0_device_is_pinned_by_the_manifest",
+   "ok": true,
+   "detail": {
+    "sha": "b88e35a46b93d712"
+   }
+  },
+  {
+   "check": "G1.refuses_the_launch_without_CAL",
+   "ok": true
+  },
+  {
+   "check": "G1b.refusal_names_the_device",
+   "ok": true,
+   "detail": {
+    "message": "REFUSING TO LAUNCH w10_sleeve.py (sha b88e35a46b93d712): it reads CAL with a non-log default, so a launch without CAL would apply expm1 to an already-simple y4. CAL is not set in the environment being passed to the device. Ruling: FIXPROGRA"
+   }
+  },
+  {
+   "check": "G1c.refusal_names_the_ruling",
+   "ok": true
+  },
+  {
+   "check": "G2.refuses_when_CAL_is_not_in_the_whitelist",
+   "ok": true,
+   "detail": {
+    "message": "REFUSING TO LAUNCH w10_sleeve.py (sha b88e35a46b93d712): it reads CAL with a non-log default, so a launch without CAL would apply expm1 to an already-simple y4. CAL is not in the launcher's enumerated"
+   }
+  },
+  {
+   "check": "G3.allows_the_launch_with_CAL_log",
+   "ok": true,
+   "detail": {
+    "device": "/workspace/uplift_2026-09-11/w10_sleeve.py",
+    "device_sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
+    "requires_cal": true,
+    "ok": true,
+    "cal": "log",
+    "whitelist": [
+     "CAL",
+     "COSTB_JSON",
+     "FPRED",
+     "FSEED",
+     "FTRIM",
+     "HOME",
+     "LEGS",
+     "LOOK",
+     "MEMBERS_TOPN",
+     "MKL_NUM_THREADS",
+     "OMP_NUM_THREADS",
+     "OPENBLAS_NUM_THREADS",
+     "OUT_TAG",
+     "PATH",
+     "PHI",
+     "SLOW_NPY",
+     "UMASK_NPZ",
+     "UMASK_SCOPE",
+     "WRULE"
+    ]
+   }
+  },
+  {
+   "check": "G4.the_allowed_run_exits_0",
+   "ok": true,
+   "detail": {
+    "rc": 0,
+    "stderr": ""
+   }
+  },
+  {
+   "check": "G5.rec_bitwise_equals_the_archived_A0",
+   "ok": true
+  },
+  {
+   "check": "G6.W_bitwise_equals_the_archived_A0",
+   "ok": true
+  },
+  {
+   "check": "G7.the_run_recorded_CAL_log",
+   "ok": true,
+   "detail": {
+    "CAL": "log"
+   }
+  }
+ ],
+ "n_failed": 0,
+ "failed": [],
+ "utc_end": "2026-09-16T05:15Z"
+}
