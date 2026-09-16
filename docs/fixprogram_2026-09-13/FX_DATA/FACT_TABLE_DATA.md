@@ -176,3 +176,44 @@ AUDIT_DATA UNI-03's action is "build a September mask row with the same monthly 
 | J7 | **Outputs**, on the x0910 panel axis (10,099 anchors), prefix bitwise identical to the committed mask: `umask_UPIT_x0910_sep.npz` **`66e21c8957a04ea853fa8e87e96262df31ce9d4928aac923bf083c40772914a6`**, `umask_UPIT_CRYPTO_x0910_sep.npz` **`de7c34d79d7047e34f577abd2ef825554e064193fda757f6857e352596e0e77b`**. Both committed under `FX_DATA/artifacts/` | `outputs`, check `W.august_prefix_unchanged` |
 
 **Status.** The row exists and the approximation is sized. **UNI-03 is not closed by this**: no existing September reading has been re-run on the real row, and that is the owners' call — T2 d4, T5c/T5d and `t1_states.py` (which carries the mask forward in the same way, `t1_states.py:78-81`). October's roll should use the same device rather than carrying August or September forward again.
+
+## §FND — the settlement-interval family (FND-01 / FND-02 / FND-03), facts before code
+
+The audit already **measured** FND-01 (`AD_B_funding_iv.json`, device `f6d58b2b`, committed before its run); this section adds what the register does not yet have: the code shape shared by all three, the full site census in git, and the boundary between what FX-DATA rebuilds and what belongs to a suspended secondary axis. No number below is new — every one is either read off committed code or cited from the audit receipt.
+
+### FND-A. One resolver, three failure modes
+
+Every funding builder in this lineage resolves a row's settlement interval the same way (`pod_panel_ext.py` L104-120, `pod_panel_splice.py` L60-73, `r6_panel_splice.py` L82-91):
+
+```
+iv_full = declared-if-present  ->  else spacing (round(diff(ft)/3600), kept only if 0 < dt <= 24)
+        ->  else 8.0           ->  then snapped to ALLOWED = {1, 2, 4, 6, 8}
+rate_nf = fr * (8.0 / iv_full)                      # the v1 EMA input
+```
+
+| # | Fact | Source |
+|---|---|---|
+| K1 | The precedence is **explicit-over-spacing**, and "explicit" is read from a **per-symbol** map, not a per-settlement column: `rows.append((ts, rate, AUG_IV.get(s, np.nan)))` / `SEP_IV.get(s, np.nan)`. One symbol therefore gets one interval for its whole API segment | `pod_panel_ext.py:105`, `pod_panel_splice.py:60-61`, `r6_devices/r6_panel_splice.py:82` |
+| K2 | **FND-01 fires only in r6 because only r6's source fills the map.** `fund_aug.json.gz` was written with `"intervals": {}` (`fund_pull_pod.py:28`; AD_A confirms `intervals_n: 0`), so `AUG_IV` is empty and the August API rows fall through to spacing. `r6_fund_sep.json.gz` was written by `r6_fetch_funding.py` from a single `/fapi/v1/fundingInfo` read at 2026-09-11, so `SEP_IV` is full and wins over spacing for every September row. **Same code, different data** — which is why the audit calls the pattern a latent trap for any future pull that fills `intervals` | `fund_pull_pod.py:28`; `AD_A_inventory.json`; `r6_devices/r6_fetch_funding.py:33-34,69` |
+| K3 | `r6_panel_splice.py`'s own header (L13) says the block is "copied VERBATIM from `pod_panel_splice.py` L83-L102". **Checked, not assumed**: the git copy of `pod_panel_splice.py` is byte-identical to the pod2 copy (sha `a9c29141985f11ad…` both sides) and carries the same `AUG_IV.get(s)` + explicit-over-spacing shape. The claim holds structurally | both files, hashed this session |
+| K4 | **The site census in git is 14 files, not the "three `AUG_IV.get` sites" FIXPROGRAM §4.2 records**: `pod_panel_ext.py` (`db7f0474`), `pod_panel_splice.py` (`a9c29141`), `pod_export_bundle_v3.py` (`c210bac6`), `pod_femat_build.py` (`1709bd25`), `v4_chain_2026-09-09/pod_export_bundle_v4.py` (`42555a37`) and its `.r1_23b1a5c7` variant, `second_instrument_rebuild_2026-09-05/patched/pod_panel_ext.py` (`1a2614a6`), `runpod_scripts/workspace_mirror/pod_panel_ext.py` (same blob as the canonical, `db7f0474`), `runpod_scripts/workspace_mirror/pod_export_shadow_bundle.py` (`b3c2a3aa`), `r6_devices/r6_panel_splice.py` (`cccc5b6b`), plus the four T5d devices that implement the **correction** rather than the defect. Any fix must cover the whole family, and the mirrors mean one blob appears at two paths | `git grep -l 'AUG_IV\.get\|SEP_IV\.get'` over `multi_asset/` |
+| K5 | The first settlement row of every symbol has no predecessor, so `dv[0]` is NaN and the resolver falls to the **8.0 default** — the same cold-start first-row-default-8 family FIXPROGRAM P9/P6′ describes (07-26 08Z ×61, DOS 08-11 16Z, ILV 09-04) | `pod_panel_ext.py:118-119` and the same lines in the other two |
+
+### FND-B. What is already measured, and by whom
+
+| # | Fact | Source |
+|---|---|---|
+| K6 | FND-01's size is **not** an open question: the x0910 tail has **547 wrong interval cells over 23 symbols** (IOST 1h for true 8h; SKR/T/SOPH/ZKC/COTI 4h for true 1h; six tokenised-stock perps 4h for 8h), corrected `f_fund_ema_v1` differs by up to **0.0115** with **844 cells above 1e-6**, per-anchor Spearman ≥ **0.9911**, and **47 FTRIM class flips on 38 anchors**. The incumbent prefix is clean (0 mismatches), and the audit's replica of the r6 rule reproduced the panel tail exactly (iv cells not reproduced 0, EMA maxabs 0.0) | `AD_B_funding_iv.json` `panels.v2ext_x0910`, `PC2` |
+| K7 | **4 of those 547 sit exactly on P9's switch rows** (COTI 08-31 20Z, ZKC 09-02 20Z, T 09-06 00Z, SKR 09-07 20Z), where the pull-time value is probably the declared one and *spacing* is the wrong reference — so the true count is **543-547**, and a rebuild that uses spacing as truth would re-introduce an error on exactly those rows | AUDIT_DATA FND-01 caveat + FIXPROGRAM P9 |
+| K8 | **A corrected panel already exists**: `T5d/devices/t5d_ivfix_panel.py` (`63c16a68`) rebuilds the event stream with r6's own code, requires pass 1 to equal the x0910 panel **bitwise** (gate G-R6), then replaces `iv_full` with `iv_true` = producer-ledger interval where the settlement is in the ledger, else the timestamp gap snapped to ALLOWED. Its `iv_true` is therefore **not** P9-aware: on K7's switch rows it still falls back to spacing | `t5d_ivfix_panel.py` header and L26-33 |
+| K9 | FND-02 is the same resolver on the **canonical** panel: interval matches (zip column, else spacing) on all **3,263,922** compared cells, and spacing agrees with the archive column on **2,522,533 of 2,523,179** zip rows — the **646** disagreements are consistent with P9 switch rows but were **not classified row by row**. So the mislabel exists unmeasured wherever a panel row came from the API rather than a zip: the 2026-08 rows of v2ext/v3splice and every x0910 September row | `AD_B_funding_iv.json` `PC1`, `panels.v2ext` |
+| K10 | FND-03 is **138 cells**, all 2026-08-01..08-14, five names (DEXE, ERA, BANK, PROM, ACE), stored 4h against a true 1-2h — the same rows P2 traced to the 08-16 bundle seed (D17). Its builder is on jpline and unverifiable from here | `AD_B_funding_iv.json` `panels.v3splice`; AUDIT_DATA FND-03 |
+
+### FND-C. Scope boundary — what FX-DATA will and will not do
+
+FND-01's registered action has two halves and they sit on different sides of the main/secondary line the user drew.
+
+- **Mine (main)**: build one shared, P9-aware interval resolver and rebuild the x0910 funding tail with it, as a **new** artifact beside the old, with the G-R6-style bitwise positive control first (reproduce the incumbent tail with the incumbent rule before changing anything). Precedence: **zip-declared per settlement row > P9 exact label > spacing, switch-row-aware > flagged `unresolved`, never a pull-time per-symbol map.** K7 is the reason the P9 tier must sit above spacing rather than beside it.
+- **Not mine (secondary, suspended by the user's 14:13Z ruling)**: re-running T1 D2, the September carry readings, or T5c/T5d on the corrected panel. That is T5d-R and T1 LIVE_D2.
+- **Not mine (FX-TRAIN, TRN-07)**: retiring the `AUG_IV`/`SEP_IV` pattern in the October chain. K4 says the family is 14 files, not 3; FX-TRAIN needs that count.
+- **Blocked**: the rebuild consumes FX-PROD's P9 declared-interval table (`366763a4`), and I will not build on a table whose status I have not re-confirmed with its owner. Asked 2026-09-16; unanswered at the time of writing.
