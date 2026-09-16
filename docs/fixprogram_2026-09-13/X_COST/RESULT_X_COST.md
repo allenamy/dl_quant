@@ -6,11 +6,17 @@
 
 The drop is real and it is almost entirely **two running experiments plus a scale effect**. It is not rebuilds, not a gross-multiplier change, and not visibly the placement eps change.
 
+> **★ 更正 2026-09-16(独立复审 FXR-DOC-2, Codex 9f6384fb · FIXPROGRAM §12; 原句保留字节)。** 三处措辞过强, 以本框为准:
+> 1. **下界写 0 是错的。** requote direct 臂的 11.3831 pp 依赖「历史转单率可搬到当前人口」这一**可交换性假设**; 不作该假设时**原模型自报 [−0.4178, +15.5642] pp**(本文 §4 行内即为 [−0.42, 15.56], 下面表格的「bounds 0 to +15.6」把下界截到 0, 作废)。
+> 2. **chase 4.3531 / chase_forced 2.4401 pp 是「已成交桶份额」, 不是「关掉实验后的反事实」。** 桶恒等分解成立(93.1253% → 73.9049%, 降 19.2204 pp, 13 个成交桶), 但**政策的因果效应没有被识别**。
+> 3. **约 5.14 USDT/日只在「成交额固定 + 5 bps 换 2 bps」两个假设下成立。**
+> 4. **「执行成本侧没有隐藏缺陷」这一结论不被接受**: 首次 −5022 拒单率 **14.3% → 23.0% 的原因尚未测**; 价格、冲击、机会成本与分母变化**没有被该桶恒等式排除**。可保留的表述只有: **「已观测成交按当前规则无未分配余项; 实验桶增长解释了记账分类的变化」**。
+
 On trading anchors, excluding rebuilds, maker share fell from **93.1% (S1a, 08-28 → 09-01 12Z) to 73.9% (S3, 09-08 → 09-13 12Z)**. That is +19.22 pp of taker share, decomposed exactly:
 
 | Item | pp of D | Class | Status |
 |---|---:|---|---|
-| Requote experiment, direct arm (rejected makers go straight to IOC top-up) | **+11.4** (bounds 0 to +15.6; +9.7 under the log-share convention) | designed experiment cost, ends at readout (≥09-19 00Z) | component VERIFIED; the counterfactual split is INFERRED |
+| Requote experiment, direct arm (rejected makers go straight to IOC top-up) | **+11.4** (bounds 0 to +15.6; +9.7 under the log-share convention) ← **下界作废, 见 §0 更正框: [−0.4178, +15.5642]** | designed experiment cost, ends at readout (≥09-19 00Z) | component VERIFIED; the counterfactual split is INFERRED |
 | Chase experiment, chase arm on in-sample anchors | **+4.4** | designed experiment cost, ends at the chase stop rule | VERIFIED |
 | Neutrality-forced chases (chase_forced) | **+2.4** | standing policy; appears only after the 09-03 deposit (scale) | VERIFIED component; scale mechanism INFERRED |
 | Other from_reject growth: bigger post-only reject pool, requote-arm and exempt IOC, net of the pre-experiment IOC share | **+1.0** | the reject-rate rise has a known root-cause family (single snapshot pricing × sequential submit), a fixable execution-engineering target; cause of the rise not measured | component VERIFIED; cause INFERRED |
