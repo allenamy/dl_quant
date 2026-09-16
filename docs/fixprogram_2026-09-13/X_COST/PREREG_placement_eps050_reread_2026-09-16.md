@@ -1,0 +1,86 @@
+> **创建:** 2026-09-16 03:4xZ | **Session:** lead(修复纲领 CFG-06) | **状态:** **FROZEN**(本文入库的 sha 即冻结点; 冻结先于任何读数) | **作废条件:** 窗内 placement eps 或动作集改变(§1 SL4)· 零控制不过(§2.5)· 用户另行裁定 · 由带日期的后继预注册取代
+
+# PREREG(冻结版) · placement bandit eps 0.50 全覆盖复读 — AUDIT_EXEC CFG-06
+
+**本文取代** `DRAFT_PREREG_placement_eps050_reread_2026-09-13.md`(DRAFT, 未冻结)。草案原字节保留不改; 两处实质变更在 §0.5(已读数声明 ⇒ W0 移位)与 §2.5(强制零控制 + 随机化检验作主推断), 其余条款沿用草案, 差异逐条标注。裁定依据 = FIXPROGRAM §12.4 与独立复审 9f6384fb §8-2。
+
+## 0. 背景与已知(沿用草案 §0)
+- **历史**: `config/book.json` `placement_bandit.eps` 自 2026-09-01 16Z 起 = 0.50, 依据是一次性主读 `RESULT_placement_bandit_read_2026-09-01.md`(ΔV +1.658 [+1.102, +2.280] **且**「不毒」: markout60 behind −1.67±2.43 vs join −1.24±1.25, 该 markout 建立在 **15% 覆盖率**上)。
+- **作废**: `docs/RESULT_requote_and_behind_live_causal_2026-09-05.md` §3(PREREG sha 5ed36216, 装置 sha256 f36d0155…, 数据 08-12..09-05)在覆盖 0.95 上测得 配对 ITT 全包成本 behind−join **−4.84 [−20.68, +1.88]** bps/单位意图名义, markout60 behind **−7.69** vs join **−2.40**, **Δ −5.28 [−14.19, −0.33]** ⇒ 作废了 09-01 的「不毒」句, 维持 eps 0.50 不扩大, 并要求本次全覆盖复读。
+- **原设计仍然约束**(PREREG_placement_bandit_2026-08-12, sha256 f657efde…): 动作集 {join, behind-1-tick}; 仅 attempt-1 主 maker; reduce_only 豁免; 确定性分配 `sha1(f"{rebalance_id}:{symbol}")` 末字节 < round(eps×256) ⇒ behind(`live/placement_bandit.py:8`); fail-closed eps 0; 死亡条款 §4-2「behind 的 markout 显著更毒 ⇒ 关闭」。
+
+## 0.5 ★ 已读数声明(本冻结版新增; 草案 §0 要求的 lead 声明, 结论是**声明不成立**)
+草案要求 lead 在冻结时声明「2026-09-05 12:00Z 之后无人计算过按臂 placement 结果」, 否则 **W0 移到冻结时刻**。lead 于 2026-09-16 03:1xZ 只读自查(`grep placement_arm` 全仓 + 逐装置读码), 确认**该声明不成立**, 至少三处已读:
+
+| 装置 | 日期 | 读到的分臂量 | 数值 |
+|---|---|---|---|
+| `r14_estimand/devices/r14_intent.py:234-236` `by_placement_arm_ERA2` | 09-12(独立研究员轮次) | 意图加权 drift(bps) | join **−7.7574** [−18.1223, −0.1554] n=19,513 · behind **+3.3603** [+0.2337, +5.9691] n=13,476 · exempt +7.5752 · None +2.622 |
+| `r17_fill_pricing/devices/r17_fillmodel.py:195` `by_placement_arm` | 09-12 | 成交率与成交构成 | join f_w **0.8424**(n=9,652) · behind **0.8279**(n=7,080) · None 0.9410; maker 成交份额 join 0.8388 / behind 0.8462 |
+| `uplift_r2_2026-09-13/T3` `RESULT_T3_markout_curve_2026-09-13.md` 行 206/207 | 09-13(我方) | 首发 markout(与本文 E 同族) | R1 join **−3.96** [−25.80, +13.66] n=4,299 · R1 behind **+5.09** [−16.94, +39.67] n=3,306(两条 CI 均含 0) |
+
+**读法**: r14 的那一组是**零控制**而非结果读数 —— r14 RESULT 自证「臂在目标形成之后分配, 只动一个 tick 的挂单价, 不可能改动 [E,E+25m] 的价格路径 ⇒ join 与 behind 的 drift 之差**恒为零**」。因此其 ≈11.1 bps 的臂间差是**分臂读数噪声的实测值**, 与 r14 另一条结论(锚内诚实分辨率 5.25 bps; 日块 CI 偏窄)一致。r17 与 T3 则是**真结果读数**, 且 T3 与本文的 E 同族。
+
+**后果(按草案自身条款执行)**: **W0 移到冻结时刻**。独立复审 §7.4 亦独立指出「需与 CFG-06『没有看过分臂结果』声明对齐」。
+
+## 1. 窗(冻结)
+- **W0** = 本文 sha 入库后的**第一个名义锚**(≥ 2026-09-16 04:00Z)。
+- **W1** = W0 起第 28 个日历日的最后一个名义锚(≈ 2026-10-14)。停机不延长窗。**D2 裁定 = 28 天**(14 天会使规则 4 近乎必然, 见 §5)。
+- **排除的锚**(读数里逐个列出, 永不推断): `opening_halted == true`; REBUILD(未停机且 ρ_pre < 0.50, 定义与 `DRAFT_AMENDMENT_chase_restart_population_2026-09-13.md` §1 X-A3 逐字相同); 任何 `rebalance_id` 非本锚自身的行(FLATTEN 批)。
+- **eps 变更**: 窗内任一 attempt-1 maker 行的 `placement_eps` ≠ 0.50 ⇒ 窗在其前一个锚结束。
+- 其他政策变更(`requote_p`、chase `weights`、`k_seconds`)**不结束窗**: 分配与它们独立, 对比仍无偏, 读作窗内政策混合下的平均; 分层读数见 §4。
+- **精度(INFERRED, 并标注偏窄风险)**: 草案按 09-05 的 CI 以 √(25/交易日) 缩放得 A ≈ ±11.5 bps / E ≈ ±7.0 bps(24 交易日)。**本冻结版标注: 该外推用的是日块自举 CI, 而日块自举 CI 在分臂对比上已被 r14 实测为偏窄(真差为零的量上给出 11.1 bps 的臂间差)** ⇒ 真实半宽应以 §2.5 的置换零分布为准, 上表只作参考。UNDECIDED 是大概率结局, 故 §3 的 UNDECIDED 默认是最关键条款。
+
+## 2. 人口与口径(逐字沿用草案 §2)
+**Plan** = (锚, 名), 其 attempt-1 maker 行带 `placement_arm ∈ {join, behind}`; `exempt` 排除。
+**A — 配对 ITT 全包成本**(bps/单位意图名义, 负 = behind 更便宜): 每个 plan 对其全部成交行(attempt-1 maker、重挂 attempt-2 maker、同 `rebalance_id` 同名的每个 `topup_taker`)求 Σ |成交名义| × (按方向取号的 (avg_fill_px − mid_at_anchor)/mid_at_anchor × 1e4 + 费 bps), 除以 attempt-1 行的 |intended_notional|; 未成交余额计 0 并逐臂报其占比。
+- **费(修 F1)**: 仅当 `fee_paid` 有限且非(`fee_all_usdt is False` 且无 `fee_conversion`)时用 `fee_paid`/|名义|; 否则按行类型用名义费率(maker 2.00 bps, top-up 5.00 bps, 取自 X-COST S3 实测 USDT 费率), 并逐臂报被插补的名义占比。**09-05 装置把未知费折成 0, 本次不重复该做法。**
+- **配对**(同 09-05): 每锚按名义加权各臂均值; 锚权 w = min(Σ join 意图, Σ behind 意图); Δ = Σ w(m_behind − m_join) / Σ w; 缺一臂的锚丢弃并计数。
+**E — maker 成交的 markout60**(bps, 正 = 成交后价格对我方有利):
+- 成交行 = 该 plan 的 `rebalance_id` 与名下 `order_type == "maker"` 行, 按 **(symbol, trade_id) 去重, 末行为准**(修 F2; 09-05 装置只按 trade_id)。
+- **已标记** iff `mid_at_fill_plus_60s` 有限且 > 0 且 `mark_window_s == 60`。按 `ops/backfill_markout.py:295-320`, 该值是 fill_ts+60s 之后 60 s 内第一笔 aggTrade 价格, **不是中价**; `no_trade_within_window` / `aggtrades_window_expired` 为未标记。
+- markout = 方向 × (mark − fill_px)/fill_px × 1e4, 按成交名义加权, 只在已标记成交上。
+- **覆盖率规则(冻结)**: 逐臂覆盖 = 已标记名义 / maker 成交名义。**E 可读 iff 两臂覆盖 ≥ 0.90 且 |cov_behind − cov_join| ≤ 0.03**; 否则 E 不可读, §3 中一切 E 条件取假, 读数里写明。
+
+## 2.5 ★ 零控制与主推断(本冻结版新增, 承重)
+**主推断改为随机化检验(randomisation test)**, 日块自举 CI 降为并报的次级读数:
+- **P1 置换零分布**: 重抽 2,000 次臂标签, 每次用 `sha1(f"{salt}:{rebalance_id}:{symbol}")` 末字节 < 128 重新分配(salt = 1..2000), **保持与生产完全相同的分配机制与边际概率**, 逐次重算 A 与 E 的配对 Δ ⇒ 得零分布。**判据带 = 该零分布的 2.5/97.5 分位**; p 值 = 双侧。
+- **N1 零控制(臂不可能影响的量)**: 对同一人口计算 r14 口径的 **drift over [E, E+25m]** 的分臂配对 Δ 及其 P1 置换 p 值。**真值恒为零**。
+- **N2 零控制(装置自证)**: A 与 E 的置换零分布必须以 0 为中心(|均值| ≤ 0.1 × 零分布 sd)。
+- **作废规则**: 若 N1 的 |Δ| 落在其自身判据带之外(即零控制"显著"), 或 N2 不成立 ⇒ **本次读数作废**, 不得进入 §3, 须先修装置。
+- 日块自举(2,000 次, **seed 20260916**, CI95 = 2.5/97.5 分位)仍照报, 并在读数里与置换带并列, 注明「r14 实测该法在分臂对比上偏窄」。
+- **一次性**: W1 之后只做一次主读。
+
+**次级读数**(照报, 永不决定): 实现/意图比; maker 腿成交份额; 首次 −5022 拒单率; 条件于成交的 maker 成交价 vs 锚中价; top-up 名义占比(from_partial / from_reject); 全部逐臂。
+
+## 3. 判则(冻结; 按序评估; 输出是**给用户的提案**, 因为任何 eps 变更都是书行为)
+A_lo/A_hi 与 E_lo/E_hi = **§2.5 置换判据带**的端点(不是日块 CI)。
+
+| # | 条件 | 提案 |
+|---|---|---|
+| 0 | §2.5 零控制不过 | **读数作废**, 无提案, 修装置后按新预注册重来 |
+| 1 | A_lo > 0(behind 显著更贵) | **停 behind: eps → 0** |
+| 2 | E 可读 ∧ E_hi < −1.0 ∧ A_hi ≥ 0(显著超出 09-05 余量地更毒, 且不显著更便宜) | **停 behind: eps → 0**(原死亡条款 §4-2 + 09-05 余量) |
+| 3 | A_hi < 0 ∧ E 可读 ∧ E_lo > −1.0(显著更便宜且不超余量地更毒) | **维持 eps 0.50**;「不毒」在全覆盖上重新成立 |
+| 4 | 其余, 含混合(A_hi < 0 ∧ E_hi < −1.0)或 E 不可读 | **维持在役 eps 0.50(D1 裁定: 维持, 非回退 0.35)**, 并把「是否缩到 0.35」作为**待用户裁定项**随包上交 |
+
+- −1.0 bps 的毒性余量逐字沿用 09-05 冻结规则。
+- **D1 裁定(与草案不同, 理由写在此处先于数字)**: UNDECIDED ⇒ **维持 0.50**, 不自动回退 0.35。理由: ① 任何 eps 变更是书行为, 须预注册 + 用户裁定(CLAUDE.md 约束 5), 在读数未决时自行改配置本身就是无据的书行为变更; ② 独立复审 9f6384fb §8-2: 「当前包没有可信的净效果证据决定 0.35/0.50、14/28 天、behind 阈值; 建议保留在役已批准配置, 做明确冻结的复读/前向设计; **不能把修 bug 的许可当作这三个参数都已择优的许可**」。
+- **D3 裁定**: 「停 behind」= **eps 0**(原 fail-closed 动作)。eps 0.10 作为用户可选项随包上交。
+- 窗内除 §4 安全线外, **不做任何中途分臂读数**。
+
+## 4. 安全线与分层报告(逐字沿用草案 §4)
+**安全线**(每日 00Z 锚后, 由不读主读数的人评估, 输出只有布尔与触发日):
+- **SL1** 某 UTC 日 behind 计划 ≥100 且 behind 绝对 maker 成交率 < 15% ⇒ eps → 0 并调查(原 §3)。
+- **SL2** 任一交易锚的 attempt-1 maker 行缺 `placement_arm` 或 `placement_eps` ⇒ eps → 0, 修, 重新计窗(原 §4)。
+- **SL3** 连续三个 UTC 日, 每日 behind 计划 ≥100 且当日配对 A > +30 bps ⇒ eps → 0 并调查。
+- **SL4** 任一锚上 `config/book.json` eps ≠ 0.50, 或行上 `placement_eps` ≠ 0.50 ⇒ 窗结束(§1)并报告。
+**分层与敏感性**(具名, 永不决定): 按 plan 行的 `requote_p`; 按锚的 chase `weights`; 仅 rebuild 锚; 锚内配对 E; 剔除插补费行; 与 09-05 combo 期窗(08-26..09-05)合并并标注「REUSES DATA ALREADY READ」。**本冻结版追加**: 与 §0.5 三处已读数同人口的对照必须标注「PEEKED: 见 §0.5」。
+
+## 5. 随包上交用户的裁定项(lead 不代为决定)
+1. UNDECIDED 时是否由 0.50 缩到 0.35(本文默认维持 0.50)。
+2. 「停 behind」用 eps 0 还是 eps 0.10(本文默认 0)。
+3. 窗长 28 天(本文默认)还是 14 天。
+> 独立复审对这三项的建议: 保留在役已批准配置, 做明确冻结的前向设计, 并重新核「未解盲」范围。
+
+## 6. 本文依赖的收据
+PREREG_placement_bandit_2026-08-12(f657efde…)· RESULT_placement_bandit_read_2026-09-01 · RESULT/PREREG_requote_and_behind_live_causal_2026-09-05(5ed36216)及其装置(f36d0155…)· `ops/backfill_markout.py` · X-COST RESULT fdee4894(费率与分期指标, 逐臂量未读)· AUDIT_EXEC 842bbffa CFG-06 · 独立复审 9f6384fb · r14/r17/T3 三处已读数(§0.5)。
