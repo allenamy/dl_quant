@@ -1,0 +1,55 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_alarm_digest.py head=f7e8e3a8734ea96c807b533d760612ccf30ec07b dirty=2 start=2026-09-16T05:37:13Z py=Python 3.9.6
+# suite_sha256=e0bd1a3aaa6a903abbe2b45e5c379edf1991cbc1b1e08d64a1d23b21e420f891
+[A] the tier is the READER'S NEXT ACTION, not the sender's severity
+  OK    ★★★ a real trip is DECIDE
+  OK    ★★★ a known uncapped name is EXPECTED even at HIGH — severity is the sender's opinion, the tier is what the reader must do
+  OK    ★★★ the neutrality alarm is MEASURE, because it was RULED pure observation and drives no automatic action — tiering it higher would ask the reader for a decision nothing acts on
+
+[B] ★ provenance beats content — a replay is not a new event
+  OK    ★★★ a DELIVERED redelivery is EXPECTED, even though its text contains 停机 and would otherwise match the halt rule. Seven replays of one day-old message were presenting as seven decisions  — alarm redelivery (already delivered)
+  OK    ★★★ ...but a redelivery whose OWN delivery failed goes back to DECIDE — it exists because the original never reached anyone, and demoting it for being a repeat would hide exactly what the digest was built to surface  — redelivery that ALSO failed
+
+[C] ★ a mention is not an event
+  OK    ★★★ an alarm that CITES §4-5e while explaining a past trip is not a trip — a bare `§4-\d` pattern filed this as a new incident  — -5022 refusals recovered
+  OK    ★★ ...while the words an actual firing writes still match
+
+[D] the safe default — unrecognised goes UP, never down
+  OK    ★★★ an unmatched alarm is DECIDE, not MEASURE — a pattern matching nothing is indistinguishable from a guard confirming safety, and this repo has paid for that  — ('A_DECIDE', 'UNRECOGNISED')
+  OK    ★★ and it says WHY it is unrecognised rather than silently bucketing it
+  OK    ★★★ EVERY rule carries its reason — the classification lives in code, not in whoever wrote the digest
+
+[F] ★ --since had TWO plausible readings and implemented one silently
+  OK    ★★★ a bare `86400` is read as a DURATION, not as epoch 1970-01-02 — which is what it was, so the filter passed EVERY row and printed '234 of 234'  — (1785613600.0, 'bare number 86400 read as a DURATION in seconds (below the epoch floor 1000000000; as an absolute time it would be 1970 and would select every row)')
+  OK    ★★★ ...and the WRONG answer was the least alarming one: a broken filter that showed nothing would be obvious in a second; showing everything looks exactly like a full audit
+  OK    ★★ `24h` / `90m` / `7d` parse as durations
+  OK    ★★ a real epoch is still absolute
+  OK    ★★ ISO is still absolute
+  OK    ★★★ and it REPORTS which reading it used — a tool with two plausible interpretations of one argument must say which it took, or the operator cannot tell a filter from a bug
+
+[G] ★ context decides meaning — the same sentence is two different facts
+  OK    ★★★ AFTER a halt/flatten it is EXPECTED: we tore the book down, so divergence from intent is arithmetic, not a discovery  — post-halt reconcile
+  OK    ★★★ with NO halt before it, the IDENTICAL text is DECIDE — the book and the venue diverged with nothing to account for it, which is the most serious thing this system can say  — ★ reconcile divergence with NO halt before it
+  OK    ★★★ the halt-lookback window EXCEEDS the 4h anchor interval. At 3h it could never see the cause: a flatten at 20:19Z and the reconcile it explains at 00:01Z are separated by ONE ANCHOR by construction, so it labelled the most routine event with the most serious label  — 5.0h vs 4h cadence
+
+[E] on the REAL audit — it must compress without hiding
+  FAIL  ★★★ last-24h push discipline  — only 0 readable alarms in 24h — NOT OBSERVABLE, not a pass
+       ---- OBSERVATION (not graded): A=321 of 964 over the WHOLE audit. Over a week with two liquidations that is honest, not a compression failure.
+  OK    ★★ every readable alarm lands in exactly one tier (no row is silently dropped)
+  OK    ★★★ ...and the body-less rows are COUNTED rather than classified — feeding them to the classifier would send 83 blank rows to DECIDE and bury the real ones  — 83 body-less rows
+  OK    ★★★ an UNDELIVERED alarm is never demoted to MEASURE — tiering says nothing about delivery, and a digest that hides an alarm nobody received is worse than no digest  — 3 genuinely undelivered (FAILED/NOT_CONFIGURED) in the audit
+  OK    ★★★ ...and a policy-suppressed row is NOT filed as HIGH — the severity half of the 2026-08-02 tiering ruling, which shipped on the push side only. A tier-B routine recorded as HIGH reads, from the ledger, exactly like a page that reached nobody  — 18 pre-fix row(s) predate the demotion and are reported, not asserted — the fix ships FORWARD
+
+[H] ★ ONE rules table, owned by production and READ by the ops tool
+  OK    ★★★ the digest does not define its own RULES — two tables would drift, and a divergence between 'what we page about' and 'what we tier as important' is the worst pair to disagree
+
+[I] ★ SENDING, not just reading — the operator's complaint was 'many were sent before'
+  OK    ★★★ a tier-B routine is RECORDED, never pushed — PORTALUSDT went out ~50 times byte-identical  — DAILY
+  OK    ★★★ a tier-A trip PUSHES
+  OK    ★★★ ...but the IDENTICAL body inside 24h is suppressed even in tier A — repetition is what the operator was complaining about  — DAILY
+  OK    ★★★ ...and ANY change to the text pushes immediately — a change in content is a change in state, so an escalation arrives without anyone writing an escalation rule
+  OK    ★★★ a previous attempt that FAILED does not suppress the repeat — suppression requires that a human actually received it  — PUSH
+  OK    ★★ the notifier fails OPEN: if the policy raises, we page. Too many messages is annoyance; no messages is an unattended incident
+  OK    ★★ and a non-pushed alarm is still AUDITED — not paging is not the same as not recording
+
+FAILURES: ['★★★ last-24h push discipline']  (32 checks)
+# end=2026-09-16T05:37:14Z rc=1

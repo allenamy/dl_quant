@@ -1,0 +1,15 @@
+# interpreter record [before]  2026-09-16T05:05:15Z
+ACCEPT_PY=UNSET
+resolved_PY=/usr/bin/python3
+resolved_PY_realpath=/usr/bin/python3
+resolved_PY_abs=/usr/bin/python3
+sys.version=3.9.6 (default, Apr 17 2026, 18:15:52)  [Clang 21.0.0 (clang-2100.1.1.101)]
+sys.executable=/Applications/Xcode.app/Contents/Developer/usr/bin/python3
+torch=2.2.2
+numpy=1.26.4
+# and what the runner itself would resolve, read from the file rather than assumed:
+#   28:PY="${ACCEPT_PY:-/usr/bin/python3}"
+#   40:#     SUBSTRING OF THIS FILE rather than the interpreter in force — set ACCEPT_PY to another
+#   51:#   and not only on disk. `ACCEPT_PY` is reported as SET/UNSET separately from its value, because
+#   54:  "$STAMP" "$([ -n "${ACCEPT_PY+x}" ] && echo true || echo false)" "${ACCEPT_PY:-}" "$PY" \
+#   57:echo "INTERPRETER  resolved=$PY  sys.executable=$_PY_REAL  version=$_PY_VER  torch=$_PY_TORCH  ACCEPT_PY=$([ -n "${ACCEPT_PY+x}" ] && echo "SET:${ACCEPT_PY}" || echo UNSET)"

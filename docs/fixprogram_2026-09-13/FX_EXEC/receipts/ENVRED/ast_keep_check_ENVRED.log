@@ -1,0 +1,21 @@
+# ast_keep_check ENVRED-1/2  2026-09-16T05:36:12Z
+## live/tests_env_loading.py
+old sites 11 | new sites 11 | lost 1 | added 1 | names ['check']
+  LOST (197, 'call:check', 'check("★★★ M1 remove the loader => the tool no longer populates TELEGRAM_*, so its HIGH page " "about clearing a LIVE halt is composed and never sent — [B] goes red", ok is False)')
+rc=1
+## run_acceptance.sh SUITES list must be unchanged
+   SUITES identical
+
+## the one flagged call — CORRECTED (my first write-up of this was wrong; the check caught it)
+   I first asserted "label + condition are byte-identical". FALSE for the label's SOURCE: moving
+   the call inside the new `else:` re-indented its implicit string concatenation, so the source
+   segment differs. My own assertion failed, which is the check doing its job on me.
+   Measured, argument by argument:
+     arg0 LABEL     source identical : False   (re-indented)
+     arg0 LABEL     VALUE  identical : True    (154 chars both sides)
+     arg1 CONDITION source identical : True    ('ok is False')
+     argc 2 -> 3, added arg2 DETAIL  : f"baseline={_base!r} -> mutant={ok!r} (the pair IS the evidence)"
+   ⇒ What the reader is told and what is tested are unchanged; the call's TEXT changed in two ways
+     (re-indentation, plus a third argument carrying the two values ENVRED-1 requires). ast_keep_check
+     compares whole call source, so it reports lost=1 added=1. The deviation is recorded here rather
+     than avoided by dropping the detail the ruling asked for.

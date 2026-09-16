@@ -1,0 +1,166 @@
+diff --git a/live/tests_env_loading.py b/live/tests_env_loading.py
+index b9d466a..5a19996 100644
+--- a/live/tests_env_loading.py
++++ b/live/tests_env_loading.py
+@@ -44,8 +44,24 @@ for _d in ("live", "ops", "scheduler"):
+     sys.path.insert(0, os.path.join(REPO, _d))
+ 
+ FAILS, N = [], [0]
++NA = []
+ TMPS = []
+ 
++# ★★★ ENVRED-1 (2026-09-16). THIS SUITE HAD A THIRD STATE AND NO WAY TO SAY IT.
++# Everything below asks "does this module populate TELEGRAM_* on import?" — which has an answer
++# only if there IS a `.env` for the loader to load. In a clone there is not, so [B] reported five
++# FAILs for code that is correct, and — the part that actually matters — [E]'s mutation control
++# went on reporting PASS while having no discriminating power at all: it asserts that the MUTATED
++# module fails to populate, and in a clone the UNMUTATED module already fails to populate. Same
++# observation on both sides of the mutation. A control that cannot tell the two apart is worse
++# than a missing control, because it is counted as evidence.
++# ⇒ Two states are now distinguished, following `tests_alarm_digest`'s wording ("NOT OBSERVABLE,
++#   not a pass"): FAIL means the code is wrong; UNAVAILABLE means this tree cannot answer the
++#   question. UNAVAILABLE exits 3, so a reader of the battery table sees a different number and
++#   cannot mistake "we could not ask" for "the answer was no".
++ENV_PATH = os.path.join(REPO, ".env")
++ENV_PRESENT = os.path.exists(ENV_PATH)
++
+ 
+ def check(name, cond, detail=""):
+     N[0] += 1
+@@ -55,6 +71,14 @@ def check(name, cond, detail=""):
+         FAILS.append(name)
+ 
+ 
++def unavailable(name, why, detail=""):
++    """NOT OBSERVABLE in this tree — neither a pass nor a failure of the code under test."""
++    N[0] += 1
++    detail = "" if detail == "" else str(detail)
++    print(f"  N/A  {name} — UNAVAILABLE: {why}{('; ' + detail) if detail else ''}", flush=True)
++    NA.append(name)
++
++
+ # ── the population, computed ──────────────────────────────────────────────────────────────────
+ def alarm_capable():
+     """Every module outside tests_ that can construct a notifier — i.e. can page a human."""
+@@ -98,11 +122,23 @@ def imports_env(module_dir, module_file):
+ 
+ 
+ print("\n[B] ...and every one of them loads .env before it tries")
++print(f"     .env at {ENV_PATH}: {'PRESENT' if ENV_PRESENT else 'ABSENT'} "
++      f"⇒ this block is {'measurable' if ENV_PRESENT else 'NOT OBSERVABLE in this tree'}")
++B_BASELINE = {}
+ for d, f in POP:
+     ok, p = imports_env(d, f)
+-    check(f"★★★ {d}/{f} populates TELEGRAM_* on import — otherwise its page is composed, audited "
+-          f"locally, and never sent", ok,
+-          (p.stderr or "").strip().splitlines()[-1:] if not ok else "")
++    B_BASELINE[f"{d}/{f}"] = ok
++    if ok or ENV_PRESENT:
++        check(f"★★★ {d}/{f} populates TELEGRAM_* on import — otherwise its page is composed, audited "
++              f"locally, and never sent", ok,
++              (p.stderr or "").strip().splitlines()[-1:] if not ok else "")
++    else:
++        # ★ NOT a pass and NOT a failure of this module: with no `.env` on disk there is nothing
++        #   for a correctly-wired loader to populate FROM, so both a wired and an unwired module
++        #   produce the identical observation. Saying FAIL here blames code for the tree's state.
++        unavailable(f"★★★ {d}/{f} populates TELEGRAM_* on import", "no .env in this tree, so a "
++                    "correctly-wired loader and a missing one give the same reading",
++                    "run in a tree with .env (or the lead's ARM-1 fixture) to measure it")
+ 
+ print("\n[C] the loader itself: idempotent, and it never overwrites")
+ import envfile as EF                                                         # noqa: E402
+@@ -194,14 +230,32 @@ if UN_SRC.count(_FIND) == 1:
+         ok, _ = imports_env("ops", "_mutant_unseed.py")
+     finally:
+         os.remove(_mp)
+-    check("★★★ M1 remove the loader => the tool no longer populates TELEGRAM_*, so its HIGH page "
+-          "about clearing a LIVE halt is composed and never sent — [B] goes red",
+-          ok is False)
++    # ★★★ THE BASELINE IS THE CONTROL. Asserting only the post-mutation value is what made this
++    #     check vacuous: `ok is False` is satisfied by a tree that cannot populate at all. The
++    #     discriminating statement is baseline TRUE and mutant FALSE, and BOTH numbers are printed
++    #     — a red-capability claim that shows only the mutated side is not a claim.
++    _base = B_BASELINE.get("ops/unseed_rehearsal_halt.py")
++    if _base is not True:
++        unavailable("★★★ M1 remove the loader => the tool no longer populates TELEGRAM_*",
++                    "the UNMUTATED module already does not populate in this tree "
++                    f"(baseline={_base!r}), so the mutation cannot be distinguished from the "
++                    "background — this control has no discriminating power here",
++                    f"baseline={_base!r} mutant={ok!r} (identical ⇒ nothing was demonstrated)")
++    else:
++        check("★★★ M1 remove the loader => the tool no longer populates TELEGRAM_*, so its HIGH page "
++              "about clearing a LIVE halt is composed and never sent — [B] goes red",
++              ok is False, f"baseline={_base!r} -> mutant={ok!r} (the pair IS the evidence)")
+ 
+ for t in TMPS:
+     shutil.rmtree(t, ignore_errors=True)
+ 
+-print(f"\n{N[0] - len(FAILS)}/{N[0]} passed")
++print(f"\n{N[0] - len(FAILS) - len(NA)}/{N[0]} passed, {len(FAILS)} failed, {len(NA)} UNAVAILABLE")
+ if FAILS:
+     print("FAILED: " + "; ".join(FAILS))
+-sys.exit(1 if FAILS else 0)
++if NA:
++    print("UNAVAILABLE (not a pass, not a failure of the code): " + "; ".join(NA))
++    print("★ this tree cannot answer those questions. A count from this run is NOT comparable with "
++          "a count from a tree in a different state — see the runner's tree-state record.")
++# ★ 1 = the code is wrong. 3 = this tree could not ask. The battery table shows the number, so the
++#   two can never be read as the same outcome.
++sys.exit(1 if FAILS else (3 if NA else 0))
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index 3a21ce8..ade6f57 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -45,16 +45,51 @@ LOGDIR="$_SELF/state/acceptance"
+ _PY_REAL="$("$PY" -c 'import sys;print(sys.executable)' 2>/dev/null || echo UNRESOLVED)"
+ _PY_VER="$("$PY" -c 'import sys;print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null || echo UNKNOWN)"
+ _PY_TORCH="$("$PY" -c 'import torch;print(torch.__version__)' 2>/dev/null || echo none)"
++# ★★★ ENVRED-2: THE TREE-OUTSIDE STATE, RECORDED BESIDE THE INTERPRETER.
++#     A suite count is only comparable with another count taken in the SAME tree state. Measured
++#     2026-09-16: identical code gave 135/135 on the production tree and 137/139 here, and the
++#     whole difference was two suites that depend on things outside the code — `.env` (absent in a
++#     clone, so `tests_env_loading` cannot observe what it asks) and `state/notify_audit.jsonl`
++#     (21 days stale, so `tests_alarm_digest`'s 24h window is empty). Neither is a defect; both
++#     are invisible unless recorded. ⇒ Any cross-tree comparison of counts that does not state
++#     these is void.
++_ENV_PRESENT="$([ -e "$_SELF/.env" ] && echo true || echo false)"
++_NA_PATH="$_SELF/state/notify_audit.jsonl"
++if [ -f "$_NA_PATH" ]; then
++  _NA_LINES="$(wc -l < "$_NA_PATH" | tr -d ' ')"
++  _NA_AGE_H="$("$PY" - "$_NA_PATH" <<'PYEOF' 2>/dev/null || echo null
++import json, sys, time
++ts = []
++for line in open(sys.argv[1], encoding="utf-8", errors="replace"):
++    line = line.strip()
++    if not line:
++        continue
++    try:
++        d = json.loads(line)
++    except ValueError:
++        continue
++    v = d.get("utc") or d.get("ts") or d.get("observed_utc")
++    if isinstance(v, (int, float)):
++        ts.append(float(v))
++print(f"{(time.time() - max(ts)) / 3600.0:.1f}" if ts else "null")
++PYEOF
++)"
++else
++  _NA_LINES=0; _NA_AGE_H=null
++fi
+ mkdir -p "$LOGDIR"
+ STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+ # ★ the record itself: one JSON per run, plus a line on stdout so it is in the run's own transcript
+ #   and not only on disk. `ACCEPT_PY` is reported as SET/UNSET separately from its value, because
+ #   "unset" and "set to the same path" are different facts about how the run was invoked.
+-printf '{"stamp":"%s","accept_py_set":%s,"accept_py":"%s","resolved_py":"%s","sys_executable":"%s","python_version":"%s","torch":"%s","tree_head":"%s"}\n' \
++printf '{"stamp":"%s","accept_py_set":%s,"accept_py":"%s","resolved_py":"%s","sys_executable":"%s","python_version":"%s","torch":"%s","tree_head":"%s","env_file_present":%s,"notify_audit_lines":%s,"notify_audit_newest_age_hours":%s}\n' \
+   "$STAMP" "$([ -n "${ACCEPT_PY+x}" ] && echo true || echo false)" "${ACCEPT_PY:-}" "$PY" \
+   "$_PY_REAL" "$_PY_VER" "$_PY_TORCH" "$(git -C "$_SELF" rev-parse HEAD 2>/dev/null || echo unknown)" \
++  "$_ENV_PRESENT" "$_NA_LINES" "$_NA_AGE_H" \
+   > "$LOGDIR/${STAMP}_interpreter.json"
+ echo "INTERPRETER  resolved=$PY  sys.executable=$_PY_REAL  version=$_PY_VER  torch=$_PY_TORCH  ACCEPT_PY=$([ -n "${ACCEPT_PY+x}" ] && echo "SET:${ACCEPT_PY}" || echo UNSET)"
++echo "TREE-STATE   .env=$_ENV_PRESENT  notify_audit_lines=$_NA_LINES  notify_audit_newest_age_hours=$_NA_AGE_H"
++echo "             ^ a suite count is comparable ONLY with a count taken in the same tree state (ENVRED-2)"
+ 
+ SUITES=(
+   "tests_imports:$_SELF/live/tests_imports.py"

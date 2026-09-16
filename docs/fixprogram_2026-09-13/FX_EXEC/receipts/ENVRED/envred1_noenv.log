@@ -1,0 +1,32 @@
+# run1 tree=/Users/haosiyu/cc_tmp/fx_exec suite=live/tests_env_loading.py head=f7e8e3a8734ea96c807b533d760612ccf30ec07b dirty=1 start=2026-09-16T05:34:48Z py=Python 3.9.6
+# suite_sha256=2bfdced661829874f2c12d53985ce85c83685c3f39c384cbcfe7c57b5d090aa8
+[A] who can page a human at all
+  OK   ★★ the population is non-empty and computed, not typed — a hand list goes stale by one every time someone writes a new tool — ['ops/ic_monitor.py', 'ops/notarize_ledgers.py', 'ops/redeliver_alarms.py', 'ops/unseed_rehearsal_halt.py', 'scheduler/run_anchor.py']
+
+[B] ...and every one of them loads .env before it tries
+     .env at /Users/haosiyu/cc_tmp/fx_exec/.env: ABSENT ⇒ this block is NOT OBSERVABLE in this tree
+  N/A  ★★★ ops/ic_monitor.py populates TELEGRAM_* on import — UNAVAILABLE: no .env in this tree, so a correctly-wired loader and a missing one give the same reading; run in a tree with .env (or the lead's ARM-1 fixture) to measure it
+  N/A  ★★★ ops/notarize_ledgers.py populates TELEGRAM_* on import — UNAVAILABLE: no .env in this tree, so a correctly-wired loader and a missing one give the same reading; run in a tree with .env (or the lead's ARM-1 fixture) to measure it
+  N/A  ★★★ ops/redeliver_alarms.py populates TELEGRAM_* on import — UNAVAILABLE: no .env in this tree, so a correctly-wired loader and a missing one give the same reading; run in a tree with .env (or the lead's ARM-1 fixture) to measure it
+  N/A  ★★★ ops/unseed_rehearsal_halt.py populates TELEGRAM_* on import — UNAVAILABLE: no .env in this tree, so a correctly-wired loader and a missing one give the same reading; run in a tree with .env (or the lead's ARM-1 fixture) to measure it
+  N/A  ★★★ scheduler/run_anchor.py populates TELEGRAM_* on import — UNAVAILABLE: no .env in this tree, so a correctly-wired loader and a missing one give the same reading; run in a tree with .env (or the lead's ARM-1 fixture) to measure it
+
+[C] the loader itself: idempotent, and it never overwrites
+  OK   ★★ an unset key is taken from the file
+  OK   ★★★ a key ALREADY in the environment WINS — launchd's plist and the operator's shell put values there deliberately, and a file on disk must not quietly outrank the plist that decides which book we trade
+  OK   ★★ the report distinguishes 'set by me' from 'already present' — a caller diagnosing an undelivered alarm needs to tell those apart — {'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/envf_jyw1d0jf/.env', 'exists': True, 'n_set': 1, 'n_already': 1}
+  OK   ★★ a second load is a no-op, so entry points may each call it without fighting — {'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/envf_jyw1d0jf/.env', 'exists': True, 'n_set': 0, 'n_already': 2}
+  OK   ★★ an absent file is REPORTED as absent rather than raising — and 'absent' is a different fact from 'read, everything already set'
+
+[D] ★★★ the consequence the incident was measured in: delivery status
+  OK   ★★★ WITHOUT the loader the receipt is NOT_CONFIGURED and delivered_offbox is False — the exact receipt the LIVE unseal produced, reproduced from first principles — {'status': 'NOT_CONFIGURED', 'delivered': False}
+  OK   ★★★ WITH it the page is delivered — so the loader is the whole difference, and the mutation below is measured on the receipt, not on the source text — {'status': 'DELIVERED', 'delivered': True}
+
+[E] red capability — take the loader back out of the tool the incident was about
+  OK   M1 injection target matches exactly once — 1
+  N/A  ★★★ M1 remove the loader => the tool no longer populates TELEGRAM_* — UNAVAILABLE: the UNMUTATED module already does not populate in this tree (baseline=False), so the mutation cannot be distinguished from the background — this control has no discriminating power here; baseline=False mutant=False (identical ⇒ nothing was demonstrated)
+
+9/15 passed, 0 failed, 6 UNAVAILABLE
+UNAVAILABLE (not a pass, not a failure of the code): ★★★ ops/ic_monitor.py populates TELEGRAM_* on import; ★★★ ops/notarize_ledgers.py populates TELEGRAM_* on import; ★★★ ops/redeliver_alarms.py populates TELEGRAM_* on import; ★★★ ops/unseed_rehearsal_halt.py populates TELEGRAM_* on import; ★★★ scheduler/run_anchor.py populates TELEGRAM_* on import; ★★★ M1 remove the loader => the tool no longer populates TELEGRAM_*
+★ this tree cannot answer those questions. A count from this run is NOT comparable with a count from a tree in a different state — see the runner's tree-state record.
+# end=2026-09-16T05:34:51Z rc=3
