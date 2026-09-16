@@ -79,6 +79,7 @@ Columns in scope: **col 80 = `fund_ema`**, **col 81 = `fund_now`** of `dlw_fea82
 | **mask / support** | funding exists for exactly the **450** live_pins names on the splice prefix (≤ 2026-08-15 00Z); everything else is `0.0` | production only ever scores live names, so its own support is the live list by construction | **this is the defect** | VERIFIED — §1.2 |
 | **membership** | DL targets pick members on trailing rows **[E−2016, E−1]**; DL features and the producer use **[E−2015, E]** | producer members include row E | **no** (one bar) | VERIFIED — C-TIM-5; `pod_dlw_targets_raw.py:88` (`d7c528231f009029`). **Shared row with TIM-01; a separate intervention — see §1.6(iii)** |
 | **normalisation** | per-fold `mu`/`sd` recomputed inside the trainer from a subsample of that fold's training rows | `mu`, `sd_` shipped inside `f10_live_s42_np.npz` | operator order same, values fold-specific | VERIFIED — §1.3 |
+| **chain state** | none — training is stateless across anchors | `state_H_f10_<A>.npz`, whose **last writer on 128/129 anchors is the sidecar `sidecar_blend.py`**, not `combo_stage` (FX-PROD P12, ±1.0 s; **79/129** writes land *after* the executor's first read at N+24:00) | **no** | VERIFIED (FX-PROD receipt). **A replay that recomputes this state with `combo_stage` code differs from live BY CONSTRUCTION** (= P2's 96 names at 2.63e-8). For anything touching the F10 chain state, "same code ⇒ same state" is false |
 
 ### §1.2 The support defect, with a full-support account of the difference
 
@@ -219,6 +220,7 @@ VERIFIED three ways, not one: by reading the save lines; by enumerating the keys
 | O3 | `seed_fold = YM + SEED` on every fold | **VERIFIED 2026-09-16** | All 40 fold configs enumerated on pod2: `seed_fold == fold + 42` holds for every one, and the source line is `torch.manual_seed(SEED + YM); np.random.seed(SEED + YM)`. **And a constraint found with it**: `pod_f10_train_monthly.py` (`7bb39f8d`) carries an E-0826-D env whitelist asserting **`SEED == 42`**, so the in-service-lineage trainer cannot run a second seed; `pod_f10_train_monthly_v4.py` (`fd5707bd`) asserts `SEED in (42, 2027)` and uses a **constant** per-fold seed instead. The two recipes therefore differ on both the seed set and the seeding rule — see PREREG §4. |
 | O4 | Arm-B reconstruction control (§1.3(e)) | **NOT CHECKED** | Must pass before any arm-B number is quoted; a failure is reportable, not substitutable |
 | O5 | Effect of the rebuild on F10 predictions and on the book | **NOT MEASURED** | That is the prereg's job, not this table's |
+| O6 | Which export run produced the in-service `f10_live_s42_np.npz`, and whether its V1 gate passed | **NOT CHECKED** | TRN-28: the npz is written before the verdict, so its existence proves nothing. Required before it is any arm's input |
 
 ### §1.6 Narrowings carried from the independent review
 
@@ -281,6 +283,15 @@ VERIFIED three ways, not one: by reading the save lines; by enumerating the keys
 - **The DL monthly trainer has an explicit embargo and a printed causality assert**: `EMBM ∈ {60, 1}` with `assert max_tr < first_te − EMBM and max_label_end <= cutoff`, using `max_label_end = E_ts[max_tr] + 48*300` = A + 4h (`pod_f10_train_monthly_v4.py:324-327`). That bound is **exact for DL** and **conservative for king** (A+4h > A+3h55m).
 - **The exporter's provenance record misstates the king label end by 5 minutes**: it writes `king_train_last_label_end_utc = _king_train_end + 4*3600` (L264, printed at L66), i.e. A + 4h, while the clamp builder's label actually ends at A + 3h55m. Conservative in the safe direction, but it is **not the builder's definition** — another instance of a register carrying the DL clock where the king clock was meant. VERIFIED.
 - **King's gradient stops at label-year < 2026** (L15-16, L63): the monthly export rebuilds the 2026 fold and does not move this cutoff.
+- **★ `trained_through` is none of the three things a reader assumes** (FX-TRAIN TRN-14, folded 2026-09-16). The deployed `f10_live_s42_np.npz` carries `trained_through = 2026-08-30T20:00Z`, and that value is `max(E_ts)` of `dlw_targets.npz` — **the data-axis end**. It is **not** the training-pool end and **not** the label cutoff. The file that ships therefore carries the one of the three that is **furthest from what the optimiser actually saw**. And the in-service checkpoint has **no sidecar**, so it can never be re-bound: **"the in-service DL leg was trained through X" has no file-level evidence today, only refit logs.** Any cutoff statement must name which quantity it means:
+
+| quantity | what it is | where it is recorded |
+|---|---|---|
+| data-axis end | `max(E_ts)` of the targets | `trained_through` in the deployed npz — **this is the one that ships** |
+| training-pool end | last anchor whose row entered the fit | DL: `max_train_idx` in each fold config. King: `_king_train_end` (`pod_export_bundle_v4.py:64`) |
+| label cutoff | when the last training label finished maturing | DL **A+4h**; King **A+3h55m** — and the exporter records A+4h, previous bullet |
+
+- **★ The deployable npz is written BEFORE its own gate verdict** (FX-TRAIN TRN-28, P1 — **verified by me at the line, not taken on report**). `pod_f10_np_export.py` computes `ok = rho >= 0.99999 and mx <= 1e-5` at **L55**, writes `{OUT}/models/f10_live_s{SEED}_np.npz` at **L56-57 unconditionally**, prints PASS/FAIL at L58, and only then exits 0 or 3 at L59. The default `F10_OUT` is the in-service artifact path. **A FAILED gate still leaves a complete, loadable model on the live path, overwriting the previous one.** Consequence: **the existence of `f10_live_s42_np.npz` is not evidence that its parity gate passed** — open row **O6**.
 
 ### §2.5 Same-family sites
 
@@ -360,6 +371,21 @@ Its previous verdict is **not** a verdict on the clock: it passed its parity gat
 | T-O2 | Arm-B reconstruction control for king (reproduce stored `PRED`) | **NOT CHECKED** | Must pass before any king arm-B number |
 | T-O3 | Book-layer effect of the clock | **NOT MEASURED** | The prereg's job; the old ±0.6-noise guard does not count as a verdict |
 | T-O4 | Whether `pod_fea_ext_e.py` reproduces the clamp artifact bitwise under a legacy knob | **NOT CHECKED** | It is currently a separate file, not a knob; queue item 3 turns it into one |
+
+### §2.10 Registered as its own item — the exporter writes the DL clock into a king field
+
+Split out of §2.4 at the lead's instruction, because it is a separate fixable defect with the **same morphology as TIM-01 itself** (a register carrying the wrong clock), not a footnote to it.
+
+| field | id proposed | severity |
+|---|---|---|
+| `king_train_last_label_end_utc` | **FXM-TIM-PROV-1** | P3 — conservative in direction, but it is provenance a reader will trust |
+
+**Fact.** `pod_export_bundle_v4.py:264` writes `king_train_last_label_end_utc = _king_train_end + 4 * 3600`, i.e. **A + 4h**, and L66 prints the same. The clamp builder's king label is rows [E, E+47], which ends at **A + 3h55m**. So the bundle's own provenance states the **DL/accounting** label end in a field named for the **king** label. It is 5 minutes late, i.e. conservative for embargo purposes — but it is not the builder's definition, and a reader reconstructing the king cutoff from the bundle gets the wrong quantity. Compounding it, §2.4 now records that the deployed DL npz's `trained_through` is a **third** quantity again (the data-axis end).
+
+**Red test suggested** (for whoever takes it; it is red on the current code for the right reason, and it is a value assertion, not a crash):
+> Build a bundle from a fixture whose king label window is unambiguous, then assert `meta["king_train_last_label_end_utc"] == _king_train_end + 47 * 300` (A + 3h55m, the clamp builder's actual label end). The current exporter writes `+ 48 * 300` and the assertion fails on a **value**. A stronger variant asserts the field is derived from the **builder's own label window constant** rather than a literal, so the field cannot silently drift again if the clock knob changes — which it will, since `fm_king_fea_asof.py` makes the label window a knob (`FMK_CLOCK`), and under `serve_E` the correct value becomes A + 4h and the current literal would become accidentally right for the wrong reason.
+
+**Not fixed by me**: it is exporter provenance, it belongs with whoever owns the bundle exporter, and changing it is a behaviour change outside my item. Registered here with its fact and its test so it is not rediscovered.
 
 ## §3 PROD-11 — three different member rules, and why "align training to production" is the wrong fix
 
