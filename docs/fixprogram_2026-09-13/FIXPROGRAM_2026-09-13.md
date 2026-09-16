@@ -534,3 +534,17 @@ FX-MODEL 在重审自己引用的每个 sha 时抓到**两个被引文件在它�
 (全部 600–673 提交领先 main, 共享长历史 ⇒ 须两两相差而非只对 main 相差。另有 worktree `agent/codex/QNT-2026-0907/onboarding-audit` 头 d0d82862。)
 **从分支名即可见与我方登记的重叠面**: f10 全轴 / 生命周期四阶段 / 因果生产者生成 / 原始月修复 / 公开资金费证据, 正压在 **FEA-01 · TIM-01 · TRD-01/05 · PROD-11 · F10 导出链(TRN-03/14) · 生产者 col-80 v0/v1 · 资金费间隔表 · P2 连续 combo 认证** 上。
 **处置**: 已派只读通读线 **CODEX-SURVEY**, 交付物 = 分支→主题映射 · 逐项「问了什么 / 测了什么 / 结论 / **他们自己声明没有确立的东西** / 依据的收据 sha」· 与我方登记的**重叠与冲突**两张表 · **对我们全新的发现**。**裁定: 在该通读回来之前, 不得基于「我方自己的结论」去动模型输入族的任何代码**(FX-MODEL 的红测试与新构建器一律等它)。事实表与测量可以继续。
+
+### 20.5 §20.4 的拓扑更正(CODEX-SURVEY 早期映射, 2026-09-16 05:5xZ)
+「十条分支」这个说法**是我的框架错误**。实测拓扑: 十条分支与我们的 `research/book-uplift-2026-09-11` 共同分叉于 **`0c65883b`(09-07 18:05)**; 自那以后**他们 243–244 提交, 我们 728 提交** —— 所谓「600–673 领先 main」里绝大部分是**我们共享的历史**(`main` = 9ffe0082, 落后双方很多)。他们的真实独立产出 = **244 提交 / 09-07..09-15**。
+他们自己的线在 **`1fd02c7f`(09-14 23:03「Bind isolated cash capsule paths and verify actual subprocess completion gates」)** 汇合, 然后分成**三个活头 + 两条停滞侧枝**(祖先关系以 `git merge-base --is-ancestor` 验过):
+| 头 | sha / 时间 | 角色 | 主干之外的 md |
+|---|---|---|---|
+| **A `codex/fullchain-continuation-20260914`** | 8990ebd3 · 09-15 23:57 | **回放 / 经济学**: 当前模型的 **608 天条件回放**; 费用与部署模型分离 | 54, 含唯一的新顶层文档 `docs/RESULT_current_strategy_replay_2026-09-15.md` |
+| **B `codex/public-funding-evidence-20260915`** | 6e6f5dc6 · 09-15 23:54 | **现金 / 资金费证据**: 按标记估值的回放 + 独立记账(含 raw-month-repair) | 72(cash capsule · settlement box · canonical month repair · Dec-2024 恢复) |
+| **C `codex/f10-fullaxis-readback-20260915`** | 4dca09cf · 09-15 20:35 | **F10 生命周期 / 全轴**: 四阶段适配器 · provider controls · King0 seed42 预测桥 | 78(整棵 `f10/`) |
+- 五条 `f10-*` 构成单链止于头 C; `raw-month-repair` 是头 B 的祖先 ⇒ **只有三个 tip 要读**。
+- 停滞侧枝: `known89-data-20260914`(离主干 1 提交)· `causal-producer-generation-20260914`(离 `ec16cbb0` 12 提交: 生产者生成修复 · Mac↔Pod NumPy 服务交叉核 · AERGO 七月资金费/存档缺口审计)。
+- **规模: 自 0c65883b 起新增 1,079 个 markdown, 分布在 68 个 `multi_asset/exports/research/codex_*` 目录**; 09-14/09-15 的工作几乎全在 `codex_causal_fullchain_2026-09-14/{book,data,f10,integration,plans}/` 下。
+- **仅凭文件名即已看出压在我方登记上的件**(尚未读, 只作标记): `data/canonical_month_repair_20260914/ORIGINAL_FULL_AXIS_AUDIT_20260915.md` · `integration/root_missing_four_funding_months_20260915/REVIEW.md`(**缺四个资金费月** → 我方 FND-01/02/03 与 P9 表)· `integration/current_fee_model_clarification_20260915/REPORT.md`(→ X-COST 与 FXR-DOC-2)· `plans/FINDING_executor_sizing_boundary_2026-09-15.md`(→ 执行器三条线)· `f10/strict_production_identity_audit_20260915/REVIEW.md`(→ PROD-28 与训练/服务平价)· `f10/current_rules_oos_candidate_20260915/REPORT.md` 与 `f10/formal_known89_lifecycle_20260914/RESULT.md`(→ TRD-01/05 与 FX-MODEL 成员规则选项表)。
+**读序裁定**: **`docs/RESULT_current_strategy_replay_2026-09-15.md` 先读且单独回报** —— 它是当前模型的 608 天条件回放, 是任何人做出来的、最接近正面回答「为什么回测 3.0+ 而实盘差」的东西。对它要逐项问: 估计量(模型 / 输入 / 宇宙 / 成本面 / 记账口径 / 窗与锚数)· **它自己声明没有确立的东西** · **它的输入是否带着我们已登记的缺陷**(FEA-01 / TIM-01 / UNI-01 / PROD-11)—— 若带着, 则它回放的是「**带缺陷的当前模型**」, 结论须照此限定 · 任何 Sharpe 必须连窗、锚数、成本面、CI 方法一起抄(FXR-DOC-3)。
