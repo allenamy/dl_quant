@@ -91,6 +91,19 @@ def chk(name, ok, detail):
     print(("  OK   " if ok else "  FAIL ") + name + " " + json.dumps(detail, default=str)[:400], flush=True)
 
 
+unevaluated = []
+
+
+def note_unevaluated(name, detail):
+    """★★★ R16-T1 (独立复审 2026-09-16): 「没能评估」不是「通过」。
+    旧码在 ROLL_PREV_SHA_JSON 缺席时调 `chk(name, True, {...NOT_EVALUABLE..., "evaluated": False})` ——
+    一边写着未评估, 一边记 ok=True 从而不进 `fails`, 总判词仍是 PASS。于是可以拿一个
+    「前月工件根本没查」的 PASS 去宣称「前月工件未变」。三态从此分开: PASS / FAIL / UNAVAILABLE。"""
+    checks[name] = dict(detail, ok=None, evaluated=False)
+    unevaluated.append(name)
+    print("  UNAVAIL " + name + " " + json.dumps(detail, default=str)[:400], flush=True)
+
+
 missing_keys = [k for k in ROLLED if k not in cur]
 prev_missing = [k for k in ROLLED if k not in prev]
 if missing_keys or prev_missing:
@@ -120,22 +133,59 @@ chk("P2_no_cross_key_reuse", not p2,
 
 # P3 — rolled products live under this month's root
 root = cur.get("R", "")
+# ★★★ R16-T1: 旧码只做**词法**前缀比较 —— 本月根下挂一个指向上月文件的符号链接就能过,
+#   而它自称保证的是「本月产物不指向上月工件」。复审实跑: 直接引用上月 CACHE 返回 3/FAIL,
+#   把本月根下的 alias 链到同一个上月 CACHE 则返回 0/PASS 且 samefile=True。
+#   ⇒ 前缀比较改在 **realpath 解析后**做(realpath 会展开每一段符号链接与 `..`)。
+def _real(x):
+    try:
+        return os.path.realpath(x)
+    except OSError:
+        return x
+_root_real = _real(root) if root else ""
 p3 = []
 for k in ROLLED:
     if k not in cur or k in ALLOW:
         continue
-    if not root or not (cur[k] == root or cur[k].startswith(root.rstrip("/") + "/")):
-        p3.append({"key": k, "value": cur[k], "R": root or None})
+    _v_real = _real(cur[k])
+    lex_ok = bool(root) and (cur[k] == root or cur[k].startswith(root.rstrip("/") + "/"))
+    real_ok = bool(_root_real) and (_v_real == _root_real or _v_real.startswith(_root_real.rstrip("/") + "/"))
+    if not real_ok:
+        p3.append({"key": k, "value": cur[k], "realpath": _v_real, "R": root or None, "R_realpath": _root_real or None,
+                   "lexically_inside": lex_ok,
+                   "note": ("LEXICALLY inside the month root but its REAL path is not — a symlink/alias points out of "
+                            "the month" if lex_ok else "outside the month root")})
 chk("P3_rolled_under_root", not p3 and bool(root),
-    {"violations": p3, "R": root or None, "declared_exceptions": ALLOW,
-     "why": "the month's products belong inside the month's root; an exception has to be declared by key, and is named here"})
+    {"violations": p3, "R": root or None, "R_realpath": _root_real or None, "declared_exceptions": ALLOW,
+     "why": "the month's products belong inside the month's root; containment is tested on REALPATH, not on the "
+            "string, because a lexical test passes an alias that resolves to last month (R16-T1)"})
+
+# P6 — 别名: 本月的值与上月某个值是**同一个文件**(symlink / hardlink / bind), 词法上看不出来
+p6 = []
+for k in ROLLED:
+    if k not in cur or k in ALLOW:
+        continue
+    for pk, pv in sorted(prev.items()):
+        if not isinstance(pv, str) or not pv:
+            continue
+        try:
+            same = os.path.exists(cur[k]) and os.path.exists(pv) and os.path.samefile(cur[k], pv)
+        except OSError:
+            same = False
+        if same:
+            p6.append({"key": k, "value": cur[k], "previous_key": pk, "previous_value": pv,
+                       "realpath": _real(cur[k]), "samefile": True})
+chk("P6_no_alias_to_previous_month", not p6,
+    {"violations": p6,
+     "why": "a path that differs as a string but is the SAME FILE as a previous-month artifact is the same failure P1/P2 "
+            "name; only os.path.samefile can see it (R16-T1)"})
 
 # P4 — the previous month's artifacts are still what its receipts say they are
 if not PREV_SHA:
-    chk("P4_previous_untouched", True,
+    note_unevaluated("P4_previous_untouched",
         {"NOT_EVALUABLE": "ROLL_PREV_SHA_JSON not supplied: this gate can compare paths, but proving the PREVIOUS month's files "
                           "are unchanged needs the record of what they hashed to. Supply it to turn this into a real check.",
-         "evaluated": False})
+         "why_not_ok": "R16-T1: an unevaluated check is NOT a passed check; the overall verdict is UNAVAILABLE, not PASS"})
 elif not os.path.isfile(PREV_SHA):
     chk("P4_previous_untouched", False, {"why": f"ROLL_PREV_SHA_JSON={PREV_SHA} does not exist", "evaluated": False})
 else:
@@ -164,12 +214,15 @@ p5 = [{"key": k, "value": v} for k, v in sorted(cur.items()) if "/../" in f"/{v}
 chk("P5_no_parent_escape", not p5,
     {"violations": p5, "why": "a '..' component makes every containment test above lexical-only (FXR-TRN-1)"})
 
-res = {"PASS": not fails, "failed_checks": fails, "checks": checks,
+_verdict = "FAIL" if fails else ("UNAVAILABLE" if unevaluated else "PASS")
+res = {"PASS": (_verdict == "PASS"), "VERDICT": _verdict, "unevaluated_checks": unevaluated,
+       "failed_checks": fails, "checks": checks,
        "month_env": E["V4_MONTH_ENV"], "prev_month_env": E["ROLL_PREV_MONTH_ENV"],
        "v4_month": cur.get("V4_MONTH"), "previous_v4_month": prev.get("V4_MONTH"), "R": root or None,
        "rolled_keys": list(ROLLED), "rolled_values": {k: cur.get(k) for k in ROLLED},
        "declared_exceptions_outside_root": ALLOW, "prev_sha_record": PREV_SHA or None,
        "wall_s": round(time.time() - t0, 1), "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
-print("ROLL_PATHS", "PASS" if res["PASS"] else "FAIL",
-      json.dumps({"month": res["v4_month"], "previous": res["previous_v4_month"], "failed": fails}), flush=True)
+print("ROLL_PATHS", _verdict,
+      json.dumps({"month": res["v4_month"], "previous": res["previous_v4_month"],
+                  "failed": fails, "unevaluated": unevaluated}), flush=True)
 finalize("ROLL_PATHS", res, _OUT, INPUTS)
