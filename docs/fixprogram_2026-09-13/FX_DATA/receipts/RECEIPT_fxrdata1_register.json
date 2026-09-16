@@ -1,0 +1,469 @@
+{
+ "device": "fx_fxrdata1_register.py",
+ "self_sha256": "09fea9a417dbc59004a8163a3ef796b3ad1f2a049205a3cfff64846c5f3befb2",
+ "tradability_sha256": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+ "register_module_sha256": "a833dd470c097dd035b66f18c556bd2a0ae0d76e8ddcc7062810128d5514cafd",
+ "spec_v2": "SPEC_TRADABILITY_v2_2026-09-16.md",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/fx_fxrdata1_register.py",
+  "out/trd/tradability_v1.npz",
+  "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302",
+  "out/arms",
+  "out/arms/RECEIPT_fxrdata1_register.json",
+  "out/arms/unresolved_holdings_register.csv"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "inputs": {
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3"
+ },
+ "units": "bps per unit gross, i.e. w * r * 1e4 / gross_total; same unit as pnl_ex and as the D1 delta 0.05",
+ "k_vol": 3.0,
+ "utc_start": "2026-09-16T05:07Z",
+ "artifact_sha256": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302",
+ "register": {
+  "42": {
+   "episodes": 60,
+   "episodes_on_names_that_never_trade_again": 56,
+   "all_episodes": {
+    "TO_ZERO": {
+     "n_episodes_counted": 60,
+     "total_bps_lo": -1291.4387887684848,
+     "total_bps_hi": 1002.6909392039997,
+     "amortised_bps_per_anchor_lo": -0.12864217439670134,
+     "amortised_bps_per_anchor_hi": 0.09987956362227311,
+     "amortisation_note": "a one-off exit loss is not a rate; this is the total divided by the 10039 anchors of the window, given only so it can be set beside a per-anchor delta"
+    },
+    "VOL_MULTIPLE_3": {
+     "n_episodes_counted": 60,
+     "total_bps_lo": -562.9478736252503,
+     "total_bps_hi": 562.9478736252504,
+     "amortised_bps_per_anchor_lo": -0.056076090609149344,
+     "amortised_bps_per_anchor_hi": 0.05607609060914936,
+     "amortisation_note": "a one-off exit loss is not a rate; this is the total divided by the 10039 anchors of the window, given only so it can be set beside a per-anchor delta"
+    }
+   },
+   "never_trades_again_only": {
+    "TO_ZERO": {
+     "n_episodes_counted": 56,
+     "total_bps_lo": -1157.6530268158463,
+     "total_bps_hi": 872.9708532022461,
+     "amortised_bps_per_anchor_lo": -0.11531557195097582,
+     "amortised_bps_per_anchor_hi": 0.08695794931788485,
+     "amortisation_note": "a one-off exit loss is not a rate; this is the total divided by the 10039 anchors of the window, given only so it can be set beside a per-anchor delta"
+    },
+    "VOL_MULTIPLE_3": {
+     "n_episodes_counted": 56,
+     "total_bps_lo": -537.1622053584144,
+     "total_bps_hi": 537.1622053584144,
+     "amortised_bps_per_anchor_lo": -0.05350754112545218,
+     "amortised_bps_per_anchor_hi": 0.05350754112545218,
+     "amortisation_note": "a one-off exit loss is not a rate; this is the total divided by the 10039 anchors of the window, given only so it can be set beside a per-anchor delta"
+    }
+   },
+   "by_year_TO_ZERO_never_trades_again": {
+    "2022": {
+     "n_episodes_counted": 4,
+     "total_bps_lo": -56.91092473273228,
+     "total_bps_hi": 362.912107135683
+    },
+    "2023": {
+     "n_episodes_counted": 3,
+     "total_bps_lo": -41.870537341695254,
+     "total_bps_hi": 98.67310016342479
+    },
+    "2024": {
+     "n_episodes_counted": 16,
+     "total_bps_lo": -519.2869590572665,
+     "total_bps_hi": 226.47742844387562
+    },
+    "2025": {
+     "n_episodes_counted": 25,
+     "total_bps_lo": -460.85601011487574,
+     "total_bps_hi": 113.89754356872848
+    },
+    "2026": {
+     "n_episodes_counted": 8,
+     "total_bps_lo": -78.72859556927625,
+     "total_bps_hi": 71.0106738905339
+    }
+   }
+  },
+  "2027": {
+   "episodes": 60,
+   "episodes_on_names_that_never_trade_again": 56,
+   "all_episodes": {
+    "TO_ZERO": {
+     "n_episodes_counted": 60,
+     "total_bps_lo": -1340.1158033538409,
+     "total_bps_hi": 1010.5714295561104,
+     "amortised_bps_per_anchor_lo": -0.13349096556966242,
+     "amortised_bps_per_anchor_hi": 0.100664551205908,
+     "amortisation_note": "a one-off exit loss is not a rate; this is the total divided by the 10039 anchors of the window, given only so it can be set beside a per-anchor delta"
+    },
+    "VOL_MULTIPLE_3": {
+     "n_episodes_counted": 60,
+     "total_bps_lo": -597.5279243296593,
+     "total_bps_hi": 597.5279243296593,
+     "amortised_bps_per_anchor_lo": -0.05952066185174413,
+     "amortised_bps_per_anchor_hi": 0.05952066185174413,
+     "amortisation_note": "a one-off exit loss is not a rate; this is the total divided by the 10039 anchors of the window, given only so it can be set beside a per-anchor delta"
+    }
+   },
+   "never_trades_again_only": {
+    "TO_ZERO": {
+     "n_episodes_counted": 56,
+     "total_bps_lo": -1199.66571509177,
+     "total_bps_hi": 880.8513435543566,
+     "amortised_bps_per_anchor_lo": -0.11950051948319254,
+     "amortised_bps_per_anchor_hi": 0.08774293690151974,
+     "amortisation_note": "a one-off exit loss is not a rate; this is the total divided by the 10039 anchors of the window, given only so it can be set beside a per-anchor delta"
+    },
+    "VOL_MULTIPLE_3": {
+     "n_episodes_counted": 56,
+     "total_bps_lo": -570.8385027910199,
+     "total_bps_hi": 570.8385027910199,
+     "amortised_bps_per_anchor_lo": -0.05686208813537403,
+     "amortised_bps_per_anchor_hi": 0.05686208813537403,
+     "amortisation_note": "a one-off exit loss is not a rate; this is the total divided by the 10039 anchors of the window, given only so it can be set beside a per-anchor delta"
+    }
+   },
+   "by_year_TO_ZERO_never_trades_again": {
+    "2022": {
+     "n_episodes_counted": 4,
+     "total_bps_lo": -56.91092473273228,
+     "total_bps_hi": 362.912107135683
+    },
+    "2023": {
+     "n_episodes_counted": 3,
+     "total_bps_lo": -42.492737966797904,
+     "total_bps_hi": 98.67978190635253
+    },
+    "2024": {
+     "n_episodes_counted": 16,
+     "total_bps_lo": -441.3364809854862,
+     "total_bps_hi": 223.12390483566833
+    },
+    "2025": {
+     "n_episodes_counted": 25,
+     "total_bps_lo": -580.3823893729168,
+     "total_bps_hi": 110.59652752736085
+    },
+    "2026": {
+     "n_episodes_counted": 8,
+     "total_bps_lo": -78.54318203383632,
+     "total_bps_hi": 85.53902214929198
+    }
+   }
+  }
+ },
+ "per_seed": {
+  "42": {
+   "episodes": 60,
+   "episodes_without_sigma": 0
+  },
+  "2027": {
+   "episodes": 60,
+   "episodes_without_sigma": 0
+  }
+ },
+ "worst_episodes_TO_ZERO_s42": [
+  {
+   "seed": "42",
+   "symbol": "STRAXUSDT",
+   "anchor": "2024-03-16T12:00Z",
+   "year": 2024,
+   "state": "HELD_QUIET",
+   "qty_w": 0.005963715258985758,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -113.5620127342045,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -9.689388808233577,
+   "pnl_bps_VOL3_hi": 9.689388808233577,
+   "sigma24": 0.028440815653475896,
+   "gross_total": 0.5251505424568357
+  },
+  {
+   "seed": "42",
+   "symbol": "XEMUSDT",
+   "anchor": "2024-12-10T12:00Z",
+   "year": 2024,
+   "state": "HELD_QUIET",
+   "qty_w": 0.0029409911949187517,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -71.50285747871571,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -6.931865871439416,
+   "pnl_bps_VOL3_hi": 6.931865871439416,
+   "sigma24": 0.032315099544577994,
+   "gross_total": 0.4113110019126436
+  },
+  {
+   "seed": "42",
+   "symbol": "RENUSDT",
+   "anchor": "2024-12-04T12:00Z",
+   "year": 2024,
+   "state": "HELD_QUIET",
+   "qty_w": 0.002463023876771331,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -61.6331446056753,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -4.69887770665456,
+   "pnl_bps_VOL3_hi": 4.69887770665456,
+   "sigma24": 0.025413153570305193,
+   "gross_total": 0.3996265146829018
+  },
+  {
+   "seed": "42",
+   "symbol": "MATICUSDT",
+   "anchor": "2024-09-05T12:00Z",
+   "year": 2024,
+   "state": "HELD_QUIET",
+   "qty_w": 0.0022907971870154142,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -60.73076610337942,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -1.7295107259291977,
+   "pnl_bps_VOL3_hi": 1.7295107259291977,
+   "sigma24": 0.009492776269747292,
+   "gross_total": 0.37720538270765214
+  },
+  {
+   "seed": "42",
+   "symbol": "ICPUSDT",
+   "anchor": "2022-06-11T12:00Z",
+   "year": 2022,
+   "state": "HELD_QUIET",
+   "qty_w": 0.004426231142133474,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": false,
+   "pnl_bps_TO_ZERO_lo": -58.787457312311304,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -3.6896460721958464,
+   "pnl_bps_VOL3_hi": 3.6896460721958464,
+   "sigma24": 0.020920823595609407,
+   "gross_total": 0.7529210046658252
+  },
+  {
+   "seed": "42",
+   "symbol": "ORBSUSDT",
+   "anchor": "2024-12-10T12:00Z",
+   "year": 2024,
+   "state": "HELD_QUIET",
+   "qty_w": 0.002369401976466179,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -57.606092845758724,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -3.001863175185884,
+   "pnl_bps_VOL3_hi": 3.001863175185891,
+   "sigma24": 0.017370055995196112,
+   "gross_total": 0.4113110019126436
+  },
+  {
+   "seed": "42",
+   "symbol": "KEYUSDT",
+   "anchor": "2024-12-04T12:00Z",
+   "year": 2024,
+   "state": "HELD_QUIET",
+   "qty_w": 0.002283275593072176,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -57.13523775778302,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -2.0046348550077626,
+   "pnl_bps_VOL3_hi": 2.004634855007756,
+   "sigma24": 0.01169526275831233,
+   "gross_total": 0.3996265146829018
+  },
+  {
+   "seed": "42",
+   "symbol": "LEVERUSDT",
+   "anchor": "2025-09-04T12:00Z",
+   "year": 2025,
+   "state": "HELD_QUIET",
+   "qty_w": 0.002695046365261078,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -56.929342417006595,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -47.72609840591533,
+   "pnl_bps_VOL3_hi": 47.72609840591533,
+   "sigma24": 0.27944639430590035,
+   "gross_total": 0.4734019840805297
+  },
+  {
+   "seed": "42",
+   "symbol": "RAYUSDT",
+   "anchor": "2022-11-16T08:00Z",
+   "year": 2022,
+   "state": "HELD_QUIET",
+   "qty_w": 0.004696771502494812,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -56.91092473273228,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -9.254962961505393,
+   "pnl_bps_VOL3_hi": 9.2549629615054,
+   "sigma24": 0.054207301468443776,
+   "gross_total": 0.8252846926230786
+  },
+  {
+   "seed": "42",
+   "symbol": "MAVIAUSDT",
+   "anchor": "2024-12-17T12:00Z",
+   "year": 2024,
+   "state": "HELD_QUIET",
+   "qty_w": 0.0021996465511620045,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": false,
+   "pnl_bps_TO_ZERO_lo": -49.660556899275754,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -2.9962382564771244,
+   "pnl_bps_VOL3_hi": 2.9962382564771297,
+   "sigma24": 0.020111455606873007,
+   "gross_total": 0.4429363439526962
+  },
+  {
+   "seed": "42",
+   "symbol": "HIFIUSDT",
+   "anchor": "2025-10-04T12:00Z",
+   "year": 2025,
+   "state": "HELD_QUIET",
+   "qty_w": 0.0030189023818820715,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -41.5123946701139,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -6.9092334791297745,
+   "pnl_bps_VOL3_hi": 6.90923347912977,
+   "sigma24": 0.055479281421330545,
+   "gross_total": 0.7272291579111132
+  },
+  {
+   "seed": "42",
+   "symbol": "MKRUSDT",
+   "anchor": "2025-09-09T12:00Z",
+   "year": 2025,
+   "state": "HELD_QUIET",
+   "qty_w": 0.0024498009588569403,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -41.011709505729534,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -0.9285003090556158,
+   "pnl_bps_VOL3_hi": 0.9285003090556111,
+   "sigma24": 0.0075466277009325735,
+   "gross_total": 0.5973418295364379
+  },
+  {
+   "seed": "42",
+   "symbol": "HNTUSDT",
+   "anchor": "2023-03-21T12:00Z",
+   "year": 2023,
+   "state": "HELD_QUIET",
+   "qty_w": 0.00357269961386919,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -40.390298546589435,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -6.054401623203561,
+   "pnl_bps_VOL3_hi": 6.054401623203561,
+   "sigma24": 0.04996580731071619,
+   "gross_total": 0.8845439975513302
+  },
+  {
+   "seed": "42",
+   "symbol": "NFPUSDT",
+   "anchor": "2026-07-03T12:00Z",
+   "year": 2026,
+   "state": "HELD_QUIET",
+   "qty_w": 0.0031947821844369173,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -39.41707037416674,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -142.5632596160504,
+   "pnl_bps_VOL3_hi": 142.5632596160504,
+   "sigma24": 1.2055966130305806,
+   "gross_total": 0.8105072635054892
+  },
+  {
+   "seed": "42",
+   "symbol": "BADGERUSDT",
+   "anchor": "2025-04-15T12:00Z",
+   "year": 2025,
+   "state": "HELD_QUIET",
+   "qty_w": 0.0013194156344980001,
+   "exit_price": null,
+   "unknown_flag": true,
+   "never_trades_again": true,
+   "pnl_bps_TO_ZERO_lo": -34.279366641879506,
+   "pnl_bps_TO_ZERO_hi": 0.0,
+   "pnl_bps_VOL3_lo": -2.4946701722586426,
+   "pnl_bps_VOL3_hi": 2.4946701722586426,
+   "sigma24": 0.024258228944938898,
+   "gross_total": 0.3849008204504148
+  }
+ ],
+ "register_csv": {
+  "path": "out/arms/unresolved_holdings_register.csv",
+  "sha256": "050ae0571e7a52169ffd6af305d432d831ded36bce3b5f98dae905f2b08d7894",
+  "rows": 120
+ },
+ "checks": [
+  {
+   "check": "C.s42.no_episode_was_closed_without_evidence",
+   "ok": true,
+   "detail": {
+    "episodes": 60
+   }
+  },
+  {
+   "check": "C.s42.every_episode_has_a_null_exit_price",
+   "ok": true
+  },
+  {
+   "check": "C.s2027.no_episode_was_closed_without_evidence",
+   "ok": true,
+   "detail": {
+    "episodes": 60
+   }
+  },
+  {
+   "check": "C.s2027.every_episode_has_a_null_exit_price",
+   "ok": true
+  }
+ ],
+ "n_failed": 0,
+ "failed": [],
+ "runtime_s": 1.1,
+ "utc_end": "2026-09-16T05:07Z"
+}

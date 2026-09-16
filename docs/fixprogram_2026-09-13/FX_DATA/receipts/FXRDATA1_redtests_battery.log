@@ -31,3 +31,16 @@ The battery then exited rc=1 with NO named red cell (red=[]). rc=1 with no named
 not a caught mutation; reading it as 'caught' would have been the same error family as treating a backgrounded
 job's exit as its result. M5 was rewritten to the real defect shape (report_net quoting a bare point while
 unresolved episodes exist) and then went red on RT6 as intended.
+# FXR-DATA-1 red tests + mutation check — FX-DATA 2026-09-16 (re-run after RT-8 was added)
+RT1_v1_calls_a_halted_name_tradable_for_23h55              [A  ] PASS
+RT1_v2_refuses_to_answer_payability_from_the_proxy         [A  ] PASS
+RT2_identical_marks_different_settlement_v1_books_zero_in_both [A+B] PASS
+RT3_nodata_is_unknown_activity_not_proven_ineligibility    [A  ] PASS
+RT4_no_path_writes_zero_for_an_unpriced_exit               [B  ] PASS
+RT5_no_transition_reads_the_future                         [B  ] PASS
+RT6_net_number_carries_the_register_interval               [B  ] PASS
+RT7_exit_price_window_must_be_free_of_clipped_bars         [C  ] PASS
+RT8_zero_width_vol_band_is_refused                         [B  ] PASS
+RT0_no_default_window_and_no_default_stress_basis          [A+B] PASS
+SUMMARY 10/10 cells pass
+rc=0
