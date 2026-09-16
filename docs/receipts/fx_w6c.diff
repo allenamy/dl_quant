@@ -582,10 +582,10 @@ index 004a188..c66c9e4 100644
              "n_unreconcilable": len(unreconcilable),
 diff --git a/live/tests_book_observability.py b/live/tests_book_observability.py
 new file mode 100644
-index 0000000..43a4bb7
+index 0000000..50ba385
 --- /dev/null
 +++ b/live/tests_book_observability.py
-@@ -0,0 +1,628 @@
+@@ -0,0 +1,633 @@
 +"""W6C-B13: a book we could not look at must not print as a book we looked at — POSITION READBACK
 +OBSERVABILITY, and the non-flattening response to it.
 +
@@ -1169,6 +1169,11 @@ index 0000000..43a4bb7
 +      and _ra_src.index("book_observation=") > _ra_src.index("WD.run("),
 +      "book_observation= not found after WD.run(" if "book_observation=" not in _ra_src else "")
 +_al_src = open(os.path.join(REPO, "scheduler", "anchor_loop.py")).read()
++check("★★★ W2b STATIC the gate reads `last_eval.json` from the directory of gate 0b's OWN state "
++      "path, so the two gates can never be pointed at different trees by an env redirect — "
++      "run_anchor writes both files into the same watchdog_dir",
++      'os.path.join(os.path.dirname(wd_path), "last_eval.json")' in _al_src,
++      "the gate does not derive its path from wd_path")
 +check("★★★ W2 STATIC the gate is CALLED by the anchor, not merely defined (the scanner's own "
 +      "finding: a guard whose only caller is its test)",
 +      "book_unobserved_halt(" in _al_src and _al_src.count("book_unobserved_halt(") >= 2,
@@ -2272,6 +2277,22 @@ index 0000000..f4f56d4
 +    print("FAILED:", *FAILS, sep="\n  ")
 +    sys.exit(1)
 +print("ALL PASS")
+diff --git a/live/tests_imports.py b/live/tests_imports.py
+index 7112581..5342d69 100644
+--- a/live/tests_imports.py
++++ b/live/tests_imports.py
+@@ -90,6 +90,11 @@ PRODUCTION_MODULES = [
+     #   module before a human did.
+     "income_callers",
+     "check_funding_span", "check_metrics_freeze", "alarm_episode", "reconcile", "backfill_markout",
++    # ★ LED-04 ruling (a): §4-4 reads the daily_nav realised-split amendment records through this
++    #   module, so it is reachable from run_anchor and a failure to import it would silently change
++    #   what a TRANSFER day is priced with. (This suite's drift check caught the addition on the
++    #   run after it was written — which is exactly what it is for.)
++    "ledger_amendments",
+     # §4-5e producer: the direct position-break measurement, wired BESIDE §4-5b (never instead
+     # of it). A module that failed to import would disarm a halt-level gate silently.
+     "position_break",
 diff --git a/live/tests_offschedule_held_book.py b/live/tests_offschedule_held_book.py
 new file mode 100644
 index 0000000..99e77e1
@@ -4522,7 +4543,7 @@ index f7fd32c..d793121 100644
    "tests_filters_cache_per_mode:$_SELF/live/tests_filters_cache_per_mode.py"
    "tests_rate_backstop_window:$_SELF/live/tests_rate_backstop_window.py"
 diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
-index 294a245..81f31da 100644
+index 294a245..f51e40a 100644
 --- a/scheduler/anchor_loop.py
 +++ b/scheduler/anchor_loop.py
 @@ -640,6 +640,97 @@ def readback_universe(venue, targeted, prev_nonzero) -> set:
@@ -4637,7 +4658,7 @@ index 294a245..81f31da 100644
              try:
                  self.broker.halt_opening_orders(
                      f"watchdog trip persisted at {wd.get('tripped_at')}"
-@@ -1039,6 +1135,39 @@ class AnchorLoop:
+@@ -1039,6 +1135,45 @@ class AnchorLoop:
              # ladder's DERISK/FLATTEN, universe exits) still run. Opening orders are refused by
              # the broker, per-order and by direction.
  
@@ -4649,6 +4670,12 @@ index 294a245..81f31da 100644
 +        # lesson was a 235k USDT false-positive flatten). So: opening only, same direction and same
 +        # exemption as 0b, and no state of our own — this clears itself the moment an anchor writes
 +        # a readback again, because `finalize_anchor` writes one whatever halt is in force.
++        # ★ THE PATH IS DERIVED FROM 0b's OWN, not read from a second env var. `state_root` does
++        #   publish `LIVE_WATCHDOG_DIR`, and using it would be the "one place owns a path" rule —
++        #   but the property that matters here is stronger: this gate and 0b must never be able to
++        #   read DIFFERENT trees. `run_anchor` writes `last_eval.json` beside `state.json` in the
++        #   same `watchdog_dir`, so taking the directory from `wd_path` binds the two gates to
++        #   whichever tree 0b resolved, however the env redirected it.
 +        try:
 +            _obs_gate = book_unobserved_halt(
 +                os.path.join(os.path.dirname(wd_path), "last_eval.json"),
@@ -4677,7 +4704,7 @@ index 294a245..81f31da 100644
          # ── 0c. OFF-SCHEDULE RUN — a run that is not the scheduled anchor must not OPEN ─────
          # ★ The §2.5 count and this gate must be the same decision. ops/dryrun_ledger excludes a
          # run that started more than `anchor_late_tolerance_min` from its slot ("manual /
-@@ -2580,17 +2709,23 @@ class AnchorLoop:
+@@ -2580,17 +2715,23 @@ class AnchorLoop:
                                 "daily_nav_row": False}
          if self.log is None:
              out["note"] = "no logger attached; nothing written"
@@ -4701,7 +4728,7 @@ index 294a245..81f31da 100644
          # ── 逐名止损条款计数(cf40ea21): 深度=unrealized/|notional| 于终锚读回, 连续 2 锚触发。
          #    snap=None ⇒ evaluate 恒等; ★ 且写入被正典 mode 判别式看门(环境形, 与 tests_deadman
          #    同源写法) — 电池 fixture 的合成快照(非 None!)曾于 02:23Z 写入 live 状态树, mock 的
-@@ -2614,10 +2749,13 @@ class AnchorLoop:
+@@ -2614,10 +2755,13 @@ class AnchorLoop:
          # say where it came from. Names we TARGETED but do not hold are written too, at 0.0: a
          # name missing from the venue's list and a name we never targeted are different facts,
          # and only the union distinguishes them.
@@ -4715,7 +4742,7 @@ index 294a245..81f31da 100644
              # ★★ [i-face2] THE THIRD SOURCE. `venue` holds only NONZERO positions (the venue
              # encodes flat as absence), so a name that leaves the universe AND goes to zero is
              # missing from both sets and drops out of §4-5b's comparison domain entirely — the
-@@ -2645,8 +2783,31 @@ class AnchorLoop:
+@@ -2645,8 +2789,31 @@ class AnchorLoop:
                      out["position_readback_rows"] += 1
                  except Exception as e:
                      self.alarm("HIGH", f"position_readback row rejected for {sym}: {e}")
@@ -4747,7 +4774,7 @@ index 294a245..81f31da 100644
          # ── 3. anchors row: one per REBALANCE (not per wakeup) ──────────────────────────────
          # A HOLD/DERISK/FLATTEN anchor has no target vector, no captured mids and no panel hash —
          # four of the six not_null columns. Writing a row anyway would mean inventing them, so
-@@ -2672,7 +2833,36 @@ class AnchorLoop:
+@@ -2672,7 +2839,36 @@ class AnchorLoop:
                  row["rebalance_id"] = ctx.get("rebalance_id")
                  row["regime_source"] = ctx.get("regime_source")
                  row["opening_halted"] = bool(outA.get("off_schedule_halt")
