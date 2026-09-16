@@ -63,6 +63,12 @@ assert np.array_equal(ets[META_OFF:META_OFF + len(pts)], pts)
 Yp = Y[META_OFF:META_OFF + len(pts)]
 STATE = A._z["state_W24H"][A.rows(pts)]
 ACT = STATE == T.TRADABLE
+# sigma24 must come from the last window WITH TRADES (SPEC v2 section 2.3). The W24H flag is NOT that window: it stays ACTIVE
+# for up to 24 h after the last trade, and a contract's 4h returns are identically 0 the moment it stops trading, so a sigma
+# taken from the anchors just before an episode opens is exactly 0. Run 21 produced exactly that and the zero-width band it
+# implies is now refused by the module (red test RT-8). W4H TRADABLE means "traded inside this anchor's own 4 h", which is
+# the window the spec names.
+ACT4 = A._z["state_W4H"][A.rows(pts)] == T.TRADABLE
 dead = A.dead_after(pts, syms)                   # descriptive only: used to COUNT, never to drive a transition
 yrs = np.array([time.gmtime(int(t)).tm_year for t in pts])
 
@@ -81,16 +87,25 @@ for seed in ("42", "2027"):
     for k in range(len(ri)):
         i, j = int(ri[k]), int(rj[k])
         w = float(Wm[i, j])
-        lo6 = max(0, i - 6)
-        win = Yp[lo6:i, j]; win = win[np.isfinite(win)]
-        sig = float(win.std(ddof=1)) if len(win) >= 3 else None
+        traded_before = np.nonzero(ACT4[:i, j])[0]
+        if len(traded_before) >= 3:
+            kk = traded_before[-6:]
+            win = Yp[kk, j]; win = win[np.isfinite(win)]
+            sig = float(win.std(ddof=1)) if len(win) >= 3 else None
+        else:
+            sig = None
+        if sig is not None and sig <= 0.0:
+            sig = None          # a degenerate sigma is not a zero-risk episode; it leaves the VOL band unavailable
         e = reg.open(syms[j], int(pts[i]), w, 1.0)
         # the last reliable price is the last one with a trade behind it; in return space that is 1.0 at the last ACTIVE anchor
         reg.mark(e, int(pts[i]), activity=H.QUIET, price=1.0, price_evidence="TRADE",
                  sigma24=(sig if sig is not None and np.isfinite(sig) else None))
         if sig is None: n_unpriceable += 1
         lo0, hi0 = e.stress_pnl(stress_basis="TO_ZERO")
-        lov, hiv = (e.stress_pnl(stress_basis="VOL_MULTIPLE_k") if sig is not None else (None, None))
+        try:
+            lov, hiv = e.stress_pnl(stress_basis="VOL_MULTIPLE_k") if sig is not None else (None, None)
+        except H.RegisterError:
+            lov, hiv = None, None          # the module refuses a zero-width band; the episode is reported without one
         g = gt[i] if gt[i] > 1e-12 else np.nan
         rows.append({"seed": seed, "symbol": syms[j], "anchor": utc(pts[i]), "year": int(yrs[i]),
                      "state": e.state, "qty_w": w, "exit_price": e.exit_price, "unknown_flag": e.unknown_flag,

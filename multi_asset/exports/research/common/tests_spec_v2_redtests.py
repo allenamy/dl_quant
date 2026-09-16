@@ -171,6 +171,20 @@ def _rt7():
     assert bb.clean(["BTCUSDT"], LUNA_T - 1, LUNA_T, window="(lo, hi]")
 cell("RT7_exit_price_window_must_be_free_of_clipped_bars", "C", _rt7)
 
+# ---------------------------------------------------------------- RT-8: a zero-width stress band is zero compensation
+def _rt8():
+    """Found by running the register on the real book: after a contract stops trading its 4h returns are identically 0,
+    so a sigma measured on the frozen tail is exactly 0 and VOL_MULTIPLE_k would hand back a zero-width band - which books
+    nothing for an unpriceable exit, the very v1 behaviour v2 forbids. The module must refuse it."""
+    r = H.HoldingsRegister(); e = r.open("XUSDT", 1000, 1.0, 1.0)
+    r.mark(e, 1300, activity=H.QUIET, price=1.0, price_evidence="TRADE", sigma24=0.0)
+    assert e.sigma24 == 0.0
+    raises(H.RegisterError, lambda: e.stress_prices(stress_basis="VOL_MULTIPLE_k"), "zero compensation")
+    raises(H.RegisterError, lambda: e.stress_pnl(stress_basis="VOL_MULTIPLE_k"), "zero compensation")
+    # TO_ZERO is unaffected and still produces a real interval
+    assert e.stress_pnl(stress_basis="TO_ZERO") == (-1.0, 0.0)
+cell("RT8_zero_width_vol_band_is_refused", "B", _rt8)
+
 # ---------------------------------------------------------------- no-default guards carried over
 def _nd():
     raises(H.RegisterError, lambda: H.activity_state(1, 0, 0, window="24h"), "no default")

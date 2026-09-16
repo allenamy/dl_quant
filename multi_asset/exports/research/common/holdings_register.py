@@ -110,6 +110,15 @@ class Episode:
         if stress_basis == "VOL_MULTIPLE_k":
             if self.sigma24 is None or not math.isfinite(self.sigma24):
                 raise RegisterError("VOL_MULTIPLE_k needs sigma24 on the episode")
+            if self.sigma24 <= 0.0:
+                # A zero-width band on an unpriceable exit is zero compensation wearing another hat, which is the exact
+                # failure SPEC v2 exists to forbid. It is also the DEFAULT outcome here if sigma is taken from the frozen
+                # tail: after a contract stops trading its 4h returns are identically 0, so a sigma measured there is 0.
+                # sigma must come from the last window WITH TRADES (SPEC v2 section 2.3), and if none exists the episode
+                # is unpriceable, not zero-risk.
+                raise RegisterError("VOL_MULTIPLE_k refuses sigma24 = %r: a zero-width stress band on an unpriceable exit "
+                                    "is zero compensation. Take sigma from the last window WITH TRADES, or leave the "
+                                    "episode in HELD_UNPRICEABLE." % self.sigma24)
             d = K_VOL * self.sigma24 * p
             return p - d, p + d
         if stress_basis == "OBSERVED_RANGE_k":
