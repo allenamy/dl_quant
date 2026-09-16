@@ -1,0 +1,21 @@
+# PROD-27 red run
+# clone HEAD at run time: afd94a2386909603c2564fb45228770b0a6195d8
+# code under test for this cell = fea171/combo_live_daemon.sh sha256 72f78d1e6be51b2b118cb2be74d3b16729924a43716c883b0fa565e615dd9f46
+# identical in b891748, afd94a2 and the live tree (verified), so this red applies to all three
+# the header line's shadow_loop_v3/combo_stage shas are the clone's P1/P2/P6/P9-fixed files and are NOT exercised by P27
+# rc=1 (4 RED fail, 0 KEEP fail, 0 CRASH)
+
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod shadow_loop_v3.py=55bd89c9adce3999 combo_stage.py=1c6a491d30606312 cells=['P27'] utc=2026-09-16T03:06:35Z
+[P27] combo rewrite skip/fallback observability (sandboxed daemon, fake clock)
+  OK   [KEEP] P27-H0 harness: the daemon under test is the code under test (sha) — 72f78d1e6be51b2b
+  OK   [KEEP] P27-S1a fixture: the late-skip branch actually ran (combo_live_last_anchor advanced to A) — {'last': '1789516800', 'expected': 1789516800, 'stdout': ''}
+  FAIL [RED] P27-S1 producer late (N+23:20): the skip is a NAMED COUNTED event — a page and a record carrying anchor, reason and margin_s. Old code: 0 log lines, 0 pages, 0 stage runs — {'log_lines': 0, 'pages': 0, 'stage_runs': 0, 'last': '1789516800', 'named_event': False}
+  OK   [KEEP] P27-S1b the skip does not rewrite the book (producer file byte-identical, stage not run) — {'stage': 0}
+  OK   [KEEP] P27-S2a fixture: with no producer file the loop body never runs (last_anchor untouched) — {'last': '0'}
+  FAIL [RED] P27-S2 producer wrote NOTHING for this anchor: a named counted event is still required (the executor holds the book for a full anchor). Old code: 0 log lines, 0 pages — {'log_lines': 0, 'pages': 0, 'stage_runs': 0, 'last': '0', 'named_event': False}
+  OK   [KEEP] P27-S3 in-window run still invokes combo_stage exactly once and advances last_anchor — {'log_lines': 1, 'pages': 0, 'stage_runs': 1, 'last': '1789516800', 'named_event': False}
+  OK   [KEEP] P27-S4 aux/rolling never settles: still one HIGH page, still no rewrite, last_anchor advanced — {'log_lines': 1, 'pages': 1, 'stage_runs': 0, 'last': '1789516800', 'named_event': False}
+  FAIL [RED] P27-S4b that page carries the anchor, the reason AND margin_s in seconds (today it carries neither a count nor a margin) — {'page': '=== PAGE sev=HIGH\n--- msg: combo_live 守护: aux/rolling 150s 未落定(锚 1789516800), 跳过重写, 本锚交易 king 形态\n'}
+  OK   [KEEP] P27-S5a fixture: stage ran and exited 3 with an ABORT line, so the daemon suppresses its own page — {'log_lines': 2, 'pages': 0, 'stage_runs': 1, 'last': '1789516800', 'named_event': False}
+  FAIL [RED] P27-S5 after a stage ABORT the producer still writes a per-anchor record naming the form it left in place (king) — today combo_live_status.json keeps the previous anchor's ok:true — {'state_dir': ['aux.json', 'rolling.npz', 'target_live']}
+SUMMARY tests_fx_prod: 11 cells, 4 fail (RED fail 4, KEEP fail 0, NEW fail 0, CRASH 0)

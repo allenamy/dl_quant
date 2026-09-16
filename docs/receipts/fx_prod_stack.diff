@@ -941,6 +941,214 @@ index 0000000..61ae8bd
 +        acc = rn if acc is None else acc + (1 - 0.5 ** (max(ft - prev, 1) / (3 * 86400.0))) * (rn - acc)
 +        prev = ft
 +    return None if acc is None else {"acc": acc, "last_ts": prev}
+diff --git a/fx/p12_state_h_census.py b/fx/p12_state_h_census.py
+new file mode 100644
+index 0000000..6138fa5
+--- /dev/null
++++ b/fx/p12_state_h_census.py
+@@ -0,0 +1,202 @@
++#!/usr/bin/env python3
++"""P12: establish which process last writes fea171/state_H_f10_<A>.npz, per anchor.
++
++READ-ONLY.  Two candidate writers exist in code, both with the same path and both
++with a bare `np.savez` (no tmp + os.replace):
++
++  fea171/combo_stage.py   L180-194   run by com.hsy.combolive once per anchor
++  fea171/sidecar_blend.py L177-194   run by com.hsy.sidecar, which sleeps 120 s
++                                     after a new target_live appears
++  fea171/combo_stage_t3c_candidate.py L180-194  (candidate; checked for runners)
++
++The file is read at the NEXT anchor as `hf_prev` by whichever of them runs first,
++so whoever writes last decides the combo book's F-10 warm start.
++
++Attribution is by interval, not by guessing: each writer's run window is taken from
++its own daemon log (`combo_live.log` gives the finish stamp and the stage's elapsed
++seconds; `sidecar_daemon.log` gives the finish stamp and its elapsed seconds), and
++the file's mtime is placed in one window, the other, both, or neither.  An mtime that
++lands in neither window is reported as UNATTRIBUTED rather than assigned.
++
++Usage:
++  python3 fx/p12_state_h_census.py --ws ~/wide_shadow --out work/p12/P12_CENSUS.json
++"""
++import argparse
++import datetime as dt
++import hashlib
++import json
++import os
++import re
++import sys
++import time
++
++ANCHOR_S = 14400
++RESULT_RE = re.compile(r"^=== combo_live anchor=(\d+) rc=(\d+) (.+)$")
++SIDECAR_RE = re.compile(r"^=== ran for (\d+)\.json rc=(\d+) (.+)$")
++STAMP_RE = re.compile(r"^\[\s*([0-9.]+)s\]")
++
++
++def sha256_file(path):
++    h = hashlib.sha256()
++    with open(path, "rb") as f:
++        for chunk in iter(lambda: f.read(1 << 20), b""):
++            h.update(chunk)
++    d = h.hexdigest()
++    if os.path.getsize(path) > 0 and d.startswith("e3b0c44298fc1c14"):
++        raise SystemExit(f"FATAL empty-file sha on non-empty {path} (T6 guard)")
++    return d
++
++
++def utc(ts):
++    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
++
++
++def pdate(s):
++    return int(dt.datetime.strptime(s.strip(), "%a %b %d %H:%M:%S UTC %Y")
++               .replace(tzinfo=dt.timezone.utc).timestamp())
++
++
++def read_runs(path, result_re, key_is_anchor):
++    """{anchor: {"end": ts, "elapsed": s, "rc": n}} — one run window per anchor."""
++    out = {}
++    block = []
++    with open(path, "r", errors="replace") as f:
++        for raw in f:
++            line = raw.rstrip("\n")
++            m = result_re.match(line)
++            if m:
++                a = int(m.group(1))
++                if not key_is_anchor:
++                    a = a  # sidecar keys by the target_live basename, which IS the anchor
++                last = None
++                for b in block:
++                    ms = STAMP_RE.match(b)
++                    if ms:
++                        last = float(ms.group(1))
++                out[a] = {"end": pdate(m.group(3)), "rc": int(m.group(2)),
++                          "elapsed": last, "lines": len(block)}
++                block = []
++                continue
++            block.append(line)
++    return out
++
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--ws", default=os.path.expanduser("~/wide_shadow"))
++    ap.add_argument("--out", required=True)
++    ap.add_argument("--slack", type=float, default=2.0,
++                    help="seconds of slack on each side of a run window (log stamps are "
++                         "whole seconds and the savez precedes the final log line)")
++    args = ap.parse_args()
++
++    ws = os.path.realpath(os.path.expanduser(args.ws))
++    out = os.path.realpath(os.path.expanduser(args.out))
++    if out.startswith(ws + os.sep) or out == ws:
++        raise SystemExit(f"FATAL --out {out} resolves under --ws {ws}; read-only there")
++
++    fea = os.path.join(ws, "fea171")
++    combo_runs = read_runs(os.path.join(fea, "combo_live.log"), RESULT_RE, True)
++    side_runs = read_runs(os.path.join(fea, "sidecar_daemon.log"), SIDECAR_RE, False)
++
++    files = {}
++    for n in os.listdir(fea):
++        m = re.match(r"^state_H_f10_(\d+)\.npz$", n)
++        if m:
++            files[int(m.group(1))] = os.path.join(fea, n)
++
++    rows = []
++    for a in sorted(files):
++        p = files[a]
++        mt = os.path.getmtime(p)
++        c = combo_runs.get(a)
++        s = side_runs.get(a)
++
++        def inwin(run):
++            if not run or run["elapsed"] is None:
++                return None
++            start = run["end"] - run["elapsed"] - args.slack
++            return start <= mt <= run["end"] + args.slack
++
++        in_c, in_s = inwin(c), inwin(s)
++        if in_c and not in_s:
++            who = "combo_stage"
++        elif in_s and not in_c:
++            who = "sidecar_blend"
++        elif in_c and in_s:
++            who = "AMBIGUOUS_both_windows"
++        elif in_c is None and in_s is None:
++            who = "NO_RUN_RECORD"
++        else:
++            who = "UNATTRIBUTED"
++        rows.append({
++            "anchor": a, "anchor_utc": utc(a),
++            "mtime_s_after_anchor": round(mt - a, 1),
++            "size": os.path.getsize(p), "sha256": sha256_file(p),
++            "combo_end_s": None if not c else round(c["end"] - a, 1),
++            "combo_elapsed": None if not c else c["elapsed"],
++            "sidecar_end_s": None if not s else round(s["end"] - a, 1),
++            "sidecar_elapsed": None if not s else s["elapsed"],
++            "mtime_minus_combo_end": None if not c else round(mt - c["end"], 1),
++            "mtime_minus_sidecar_end": None if not s else round(mt - s["end"], 1),
++            "in_combo_window": in_c, "in_sidecar_window": in_s,
++            "last_writer": who,
++        })
++
++    counts = {}
++    for r in rows:
++        counts[r["last_writer"]] = counts.get(r["last_writer"], 0) + 1
++
++    # does the sidecar ever finish after the executor's first read (N+24:00)?
++    late = [{"anchor_utc": r["anchor_utc"], "sidecar_end_s": r["sidecar_end_s"]}
++            for r in rows if r["sidecar_end_s"] is not None and r["sidecar_end_s"] > 1440]
++
++    result = {
++        "device": os.path.basename(__file__),
++        "device_sha256": sha256_file(os.path.abspath(__file__)),
++        "generated_utc": utc(int(time.time())),
++        "config": {"ws": ws, "out": out, "slack_s": args.slack},
++        "inputs_sha256": {
++            "combo_stage.py": sha256_file(os.path.join(fea, "combo_stage.py")),
++            "sidecar_blend.py": sha256_file(os.path.join(fea, "sidecar_blend.py")),
++            "sidecar_daemon.sh": sha256_file(os.path.join(fea, "sidecar_daemon.sh")),
++            "combo_live.log": sha256_file(os.path.join(fea, "combo_live.log")),
++            "sidecar_daemon.log": sha256_file(os.path.join(fea, "sidecar_daemon.log")),
++        },
++        "summary": {
++            "n_state_H_files": len(rows),
++            "last_writer_counts": counts,
++            "n_combo_runs_logged": len(combo_runs),
++            "n_sidecar_runs_logged": len(side_runs),
++            "anchors_with_combo_but_no_sidecar": [utc(a) for a in sorted(combo_runs)
++                                                  if a not in side_runs],
++            "anchors_with_sidecar_but_no_combo": [utc(a) for a in sorted(side_runs)
++                                                  if a not in combo_runs],
++            "sidecar_finishes_after_exec_read_N24": {
++                "n": len(late), "anchors": late[:20],
++            },
++            "sidecar_end_minus_combo_end_s": sorted(
++                round(r["sidecar_end_s"] - r["combo_end_s"], 1) for r in rows
++                if r["sidecar_end_s"] is not None and r["combo_end_s"] is not None)[:1] +
++            sorted(round(r["sidecar_end_s"] - r["combo_end_s"], 1) for r in rows
++                   if r["sidecar_end_s"] is not None and r["combo_end_s"] is not None)[-1:],
++        },
++        "rows": rows,
++    }
++    os.makedirs(os.path.dirname(out), exist_ok=True)
++    with open(out, "w") as f:
++        json.dump(result, f, indent=1)
++    s = result["summary"]
++    print(f"[p12_census] device_sha={result['device_sha256'][:8]} out={out}")
++    print(f"  state_H_f10 files {s['n_state_H_files']} | combo runs {s['n_combo_runs_logged']} "
++          f"| sidecar runs {s['n_sidecar_runs_logged']}")
++    print(f"  LAST WRITER: {s['last_writer_counts']}")
++    print(f"  sidecar finishing AFTER the executor read (N+24:00): {s['sidecar_finishes_after_exec_read_N24']['n']}")
++    print(f"  sidecar_end - combo_end (min, max) = {s['sidecar_end_minus_combo_end_s']}")
++    print(f"  combo-only anchors: {s['anchors_with_combo_but_no_sidecar']}")
++    print(f"  sidecar-only anchors: {s['anchors_with_sidecar_but_no_combo']}")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
 diff --git a/fx/p9_declared_interval_table.py b/fx/p9_declared_interval_table.py
 new file mode 100644
 index 0000000..01ff960
@@ -1445,6 +1653,654 @@ index 0000000..fef2f2e
 +
 +if __name__ == "__main__":
 +    main()
+diff --git a/fx/prod27_census.py b/fx/prod27_census.py
+new file mode 100644
+index 0000000..747b707
+--- /dev/null
++++ b/fx/prod27_census.py
+@@ -0,0 +1,478 @@
++#!/usr/bin/env python3
++"""PROD-27 fact table, part F-C/F-D/F-E: per-anchor census of the combo rewrite.
++
++READ-ONLY against the live producer tree. The device opens every path under
++--ws with mode 'r'/'rb' only; a guard refuses if --out resolves under --ws.
++
++It reconstructs, for every 4h anchor that has a producer target_live file:
++
++  producer_write_s   seconds after the anchor at which the PRODUCER's king file
++                     was written.  For anchors where combo ran this is the mtime
++                     of state/target_live_king/<A>.json, which combo_stage.py
++                     L340 creates with shutil.copy2 (mtime preserved from the
++                     producer's own file).  For anchors where combo never ran it
++                     is the mtime of state/target_live/<A>.json itself, because
++                     nothing rewrote it.
++  combo_write_s      seconds after the anchor at which the combo rewrite landed
++                     (mtime of state/target_live/<A>.json when a king backup
++                     exists, i.e. when combo_stage got past its backup step).
++  stage_done_s       seconds after the anchor of the daemon's own `date -u`
++                     stamp on the `=== combo_live anchor=... rc=...` line.
++  form_on_disk       combo | king | king_no_combo_run, decided by CONTENT:
++                     target_live/<A>.json byte-equal to target_live_king/<A>.json
++                     => the rollback path restored the king file => king form.
++
++Three different margins are reported, because the three gates are different
++quantities measured at different instants:
++
++  m_gate = 1355 - producer_write_s
++      combo_live_daemon.sh L27.  Governs the SILENT skip.  Evaluated when the
++      daemon first sees the producer file, on a 5 s polling grid.
++  m_bail = 1360 - stage_deadline_check_s
++      combo_stage.py L321-323 (A + 22*60 + 40), evaluated at _now0, the start of
++      the COMBO_LIVE block, i.e. after the 171-feature pipeline has finished.
++      Approximated as stage_done_s - status_elapsed_s; status_elapsed_s is
++      ~0 because the block itself is sub-second (see --status).
++  m_read = 1440 - combo_write_s
++      the executor's FIRST read.  config/book.json external_book.anchor_offset_min
++      = 24 since 2026-08-27 05:2xZ (raised 23 -> 24 precisely because the combo
++      writer's measured landing left only 34 s); poll_grace_min = 5 retries every
++      ~15 s to N+29:00 but only on a RETRYABLE outcome, so a king file that is
++      already valid at N+24:00 is read and the anchor proceeds.  A combo rewrite
++      landing after N+24:00 is on disk but was NOT the book that traded, which is
++      why form_on_disk is only a valid trade record while m_read > 0; the device
++      flags any anchor where it is not.
++      NOTE: CLAUDE.md still says the executor reads at N+23; that was true before
++      2026-08-27 and is stale.  The constant here is read from the executor's own
++      config, and every row is cross-checked against the executor's ledger.
++
++Second instrument (--exec-log): the executor writes, in each anchor's phase_A
++line, `external_book.producer` — "combo_stage_v1(...)" or "shadow_loop_v3" — plus
++attempts, age_s, written_utc, json_sha and the resulting action.  That is an
++independent determination of which form actually traded, taken by a different
++process from different bytes.  The device reports both and names every anchor
++where they disagree rather than preferring one.
++
++Usage:
++  python3 fx/prod27_census.py --ws ~/wide_shadow --out work/prod27/PROD27_CENSUS.json
++"""
++import argparse
++import datetime as dt
++import hashlib
++import json
++import os
++import re
++import sys
++import time
++
++ANCHOR_S = 14400
++DAEMON_SKIP_S = 1355      # combo_live_daemon.sh L27
++STAGE_BAIL_S = 22 * 60 + 40   # combo_stage.py L321
++EXEC_READ_S = 24 * 60     # config/book.json external_book.anchor_offset_min = 24
++EXEC_RETRY_END_S = EXEC_READ_S + 5 * 60   # + poll_grace_min = 5
++
++LOG_RESULT_RE = re.compile(r"^=== combo_live anchor=(\d+) rc=(\d+) (.+)$")
++LOG_SKIP_RE = re.compile(r"^skip aux-not-settled anchor=(\d+) (.+)$")
++LOG_STAMP_RE = re.compile(r"^\[\s*([0-9.]+)s\]\s*(.*)$")
++PHASE_A_RE = re.compile(r"^(\S+) phase_A: (\{.*\})\s*$")
++MODE_RE = re.compile(r"anchor start mode=([A-Z_]+)")
++
++
++def read_exec_log(path, want_mode="LIVE"):
++    """Second instrument: the executor's own per-anchor record of what it read.
++
++    `anchor_runs.log` interleaves LIVE, DRY_RUN and TESTNET runs (the acceptance
++    battery's `tests_entrypoint_wiring` appends DRY_RUN rows), and a dry run at an
++    arbitrary wall time reads whatever target_live file is newest, so it reports
++    `stale` for anchors that traded perfectly well in LIVE.  Keying only on the
++    anchor and letting later rows overwrite earlier ones therefore mixes the two
++    populations and silently reports battery artefacts as live events.  Mode is
++    carried from the preceding `anchor start mode=` line and rows are kept as a
++    list per anchor, so duplicates are reported rather than collapsed.
++
++    Returns ({nominal_anchor_ts: [row, ...]}, counts_by_mode).
++    """
++    out = {}
++    counts = {}
++    mode = None
++    with open(path, "r", errors="replace") as f:
++        for raw in f:
++            ms = MODE_RE.search(raw)
++            if ms:
++                mode = ms.group(1)
++                continue
++            if " phase_A: {" not in raw:
++                continue
++            m = PHASE_A_RE.match(raw.rstrip("\n"))
++            if not m:
++                continue
++            try:
++                d = json.loads(m.group(2))
++            except Exception:
++                continue
++            counts[mode] = counts.get(mode, 0) + 1
++            if want_mode and mode != want_mode:
++                continue
++            eb = d.get("external_book") or {}
++            nom = eb.get("nominal_ts")
++            if nom is None:
++                nom = (d.get("external_wait") or {}).get("nominal_anchor_ts")
++            if nom is None:
++                continue
++            prod = eb.get("producer")
++            if prod is None:
++                form = None
++            elif prod.startswith("combo_stage_v1"):
++                form = "combo"
++            elif prod.startswith("shadow_loop_v3"):
++                form = "king"
++            else:
++                form = "other:" + prod[:40]
++            out.setdefault(int(nom), []).append({
++                "exec_mode": mode,
++                "exec_line_utc": m.group(1),
++                "exec_eb_ok": eb.get("ok"),
++                "exec_eb_reason": eb.get("reason"),
++                "exec_attempts": eb.get("attempts"),
++                "exec_age_s": eb.get("age_s"),
++                "exec_written_utc": eb.get("written_utc"),
++                "exec_json_sha": eb.get("json_sha"),
++                "exec_producer": prod,
++                "exec_form": form,
++                "exec_action": d.get("action"),
++                "exec_n_names": eb.get("n_names"),
++            })
++    return out, counts
++
++
++def sha256_file(path):
++    h = hashlib.sha256()
++    with open(path, "rb") as f:
++        for chunk in iter(lambda: f.read(1 << 20), b""):
++            h.update(chunk)
++    d = h.hexdigest()
++    if os.path.getsize(path) > 0 and d.startswith("e3b0c44298fc1c14"):
++        raise SystemExit(f"FATAL empty-file sha on non-empty {path} (T6 guard)")
++    return d
++
++
++def self_sha():
++    return sha256_file(os.path.abspath(__file__))
++
++
++def utc(ts):
++    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
++
++
++def parse_daemon_date(s):
++    """`date -u` on macOS: 'Wed Sep 16 00:21:08 UTC 2026'."""
++    return int(dt.datetime.strptime(s.strip(), "%a %b %d %H:%M:%S UTC %Y")
++               .replace(tzinfo=dt.timezone.utc).timestamp())
++
++
++def read_log(path):
++    """Return {anchor: {...}} from combo_live.log, plus the unattributable lines.
++
++    Blocks are delimited by the `=== combo_live anchor=` result line, so the
++    `[ Xs]` stamps preceding a result line belong to that anchor's run.
++    """
++    per = {}
++    skips = []
++    block = []
++    orphan_tail = []
++    with open(path, "r", errors="replace") as f:
++        for raw in f:
++            line = raw.rstrip("\n")
++            m = LOG_RESULT_RE.match(line)
++            if m:
++                a, rc, when = int(m.group(1)), int(m.group(2)), m.group(3)
++                stamps = {}
++                for bl in block:
++                    ms = LOG_STAMP_RE.match(bl)
++                    if ms:
++                        stamps.setdefault(ms.group(2)[:2], float(ms.group(1)))
++                final = None
++                for bl in block:
++                    ms = LOG_STAMP_RE.match(bl)
++                    if ms and ms.group(2).startswith("⑤"):
++                        final = float(ms.group(1))
++                per[a] = {
++                    "log_rc": rc,
++                    "log_wall_ts": parse_daemon_date(when),
++                    "log_stage_final_s": final,
++                    "log_abort": any("COMBO_LIVE ABORT" in b for b in block),
++                    "log_rollback": any("已回滚为 king 文件" in b for b in block),
++                    "log_page_lines": [b for b in block if b.startswith("PAGE")],
++                    "log_block_lines": len(block),
++                }
++                block = []
++                continue
++            ms = LOG_SKIP_RE.match(line)
++            if ms:
++                skips.append({"anchor": int(ms.group(1)), "when": ms.group(2)})
++                block = []
++                continue
++            block.append(line)
++    orphan_tail = block
++    return per, skips, orphan_tail
++
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--ws", default=os.path.expanduser("~/wide_shadow"))
++    ap.add_argument("--out", required=True)
++    ap.add_argument("--combo-live-from", type=int, default=1787716800,
++                    help="first anchor the combo daemon ran (2026-08-26 04:00Z; 00Z was the "
++                         "rehearsal, whose output went to state/target_live_REHEARSAL)")
++    ap.add_argument("--exec-log", default=os.path.expanduser(
++        "~/dl_quant_live/state/anchor_runs.log"),
++        help="second instrument: the executor's ledger; '' to skip")
++    ap.add_argument("--exec-mode", default="LIVE",
++                    help="only count executor runs in this mode (LIVE/DRY_RUN/TESTNET)")
++    args = ap.parse_args()
++
++    ws = os.path.realpath(os.path.expanduser(args.ws))
++    out = os.path.realpath(os.path.expanduser(args.out))
++    if out.startswith(ws + os.sep) or out == ws:
++        raise SystemExit(f"FATAL --out {out} resolves under --ws {ws}; this device is read-only there")
++
++    tl_dir = os.path.join(ws, "state", "target_live")
++    king_dir = os.path.join(ws, "state", "target_live_king")
++    log_path = os.path.join(ws, "fea171", "combo_live.log")
++    last_path = os.path.join(ws, "fea171", "combo_live_last_anchor")
++    status_path = os.path.join(ws, "state", "combo_live_status.json")
++
++    per_log, skips, orphan_tail = read_log(log_path)
++    if args.exec_log:
++        per_exec_all, exec_mode_counts = read_exec_log(args.exec_log, args.exec_mode)
++    else:
++        per_exec_all, exec_mode_counts = {}, {}
++    per_exec = {a: v[-1] for a, v in per_exec_all.items()}
++    exec_dupes = {utc(a): len(v) for a, v in per_exec_all.items() if len(v) > 1}
++
++    anchors = sorted(int(n[:-5]) for n in os.listdir(tl_dir)
++                     if n.endswith(".json") and n[:-5].isdigit())
++    kings = {int(n[:-5]) for n in os.listdir(king_dir)
++             if n.endswith(".json") and n[:-5].isdigit()}
++
++    rows = []
++    for a in anchors:
++        tlp = os.path.join(tl_dir, f"{a}.json")
++        kp = os.path.join(king_dir, f"{a}.json")
++        tl_mt = os.path.getmtime(tlp)
++        tl_sha = sha256_file(tlp)
++        try:
++            doc = json.load(open(tlp))
++        except Exception as e:
++            doc = {"_parse_error": f"{type(e).__name__}: {e}"}
++        has_king = a in kings
++        r = {
++            "anchor": a,
++            "anchor_utc": utc(a),
++            "pre_combo": a < args.combo_live_from,
++            "tl_mtime_s": round(tl_mt - a, 1),
++            "tl_sha256": tl_sha,
++            "tl_size": os.path.getsize(tlp),
++            "tl_written_utc": doc.get("written_utc"),
++            "tl_producer": doc.get("producer"),
++            "tl_n_names": doc.get("n_names"),
++            "king_backup_present": has_king,
++        }
++        if has_king:
++            k_mt = os.path.getmtime(kp)
++            k_sha = sha256_file(kp)
++            r["king_mtime_s"] = round(k_mt - a, 1)
++            r["king_sha256"] = k_sha
++            r["producer_write_s"] = round(k_mt - a, 1)
++            r["combo_write_s"] = round(tl_mt - a, 1)
++            r["form_on_disk"] = "king" if k_sha == tl_sha else "combo"
++        else:
++            r["king_mtime_s"] = None
++            r["king_sha256"] = None
++            r["producer_write_s"] = round(tl_mt - a, 1)
++            r["combo_write_s"] = None
++            r["form_on_disk"] = "pre_combo" if r["pre_combo"] else "king_no_combo_run"
++
++        lg = per_log.get(a)
++        if lg:
++            r.update({k: v for k, v in lg.items() if k != "log_wall_ts"})
++            r["stage_done_s"] = round(lg["log_wall_ts"] - a, 1)
++        else:
++            r["log_rc"] = None
++            r["stage_done_s"] = None
++            r["log_stage_final_s"] = None
++
++        r["m_gate_s"] = round(DAEMON_SKIP_S - r["producer_write_s"], 1)
++        r["m_bail_s"] = (None if r["stage_done_s"] is None
++                         else round(STAGE_BAIL_S - r["stage_done_s"], 1))
++        r["m_read_s"] = (None if r["combo_write_s"] is None
++                         else round(EXEC_READ_S - r["combo_write_s"], 1))
++        r["form_record_valid"] = (r["m_read_s"] is None or r["m_read_s"] > 0)
++
++        ex = per_exec.get(a)
++        if ex:
++            r.update(ex)
++            r["form_agrees"] = (
++                None if (ex["exec_form"] is None or r["pre_combo"])
++                else (ex["exec_form"] == ("king" if r["form_on_disk"] in
++                                          ("king", "king_no_combo_run")
++                                          else r["form_on_disk"])))
++        else:
++            r["exec_form"] = None
++            r["form_agrees"] = None
++        rows.append(r)
++
++    # anchor-grid gaps: anchors with no producer file at all
++    gaps = []
++    if anchors:
++        for a in range(anchors[0], anchors[-1] + ANCHOR_S, ANCHOR_S):
++            if a not in set(anchors):
++                gaps.append({"anchor": a, "anchor_utc": utc(a)})
++
++    # log-only anchors: a result line with no target_live file
++    log_only = [a for a in per_log if a not in set(anchors)]
++
++    combo_rows = [r for r in rows if not r["pre_combo"]]
++    traded_combo = [r for r in combo_rows if r["form_on_disk"] == "combo"]
++    traded_king = [r for r in combo_rows if r["form_on_disk"] in ("king", "king_no_combo_run")]
++    silent = [r for r in combo_rows
++              if r["log_rc"] is None and r["form_on_disk"] == "king_no_combo_run"]
++
++    def q(vals, p):
++        vals = sorted(v for v in vals if v is not None)
++        if not vals:
++            return None
++        i = min(len(vals) - 1, max(0, int(round(p * (len(vals) - 1)))))
++        return vals[i]
++
++    pw = [r["producer_write_s"] for r in combo_rows]
++    cw = [r["combo_write_s"] for r in combo_rows if r["combo_write_s"] is not None]
++    mg = [r["m_gate_s"] for r in combo_rows]
++
++    status = None
++    try:
++        status = json.load(open(status_path))
++    except Exception as e:
++        status = {"_read_error": f"{type(e).__name__}: {e}"}
++    try:
++        last_anchor = int(open(last_path).read().strip())
++    except Exception as e:
++        last_anchor = None
++
++    result = {
++        "device": os.path.basename(__file__),
++        "device_sha256": self_sha(),
++        "generated_utc": utc(int(time.time())),
++        "config": {
++            "ws": ws,
++            "out": out,
++            "combo_live_from": args.combo_live_from,
++            "combo_live_from_utc": utc(args.combo_live_from),
++            "DAEMON_SKIP_S": DAEMON_SKIP_S,
++            "STAGE_BAIL_S": STAGE_BAIL_S,
++            "EXEC_READ_S": EXEC_READ_S,
++            "EXEC_RETRY_END_S": EXEC_RETRY_END_S,
++            "exec_log": args.exec_log,
++            "exec_mode": args.exec_mode,
++        },
++        "inputs_sha256": {
++            "combo_live_daemon.sh": sha256_file(os.path.join(ws, "fea171", "combo_live_daemon.sh")),
++            "combo_stage.py": sha256_file(os.path.join(ws, "fea171", "combo_stage.py")),
++            "sidecar_daemon.sh": sha256_file(os.path.join(ws, "fea171", "sidecar_daemon.sh")),
++            "combo_live.log": sha256_file(log_path),
++        },
++        "live_state": {
++            "combo_live_last_anchor": last_anchor,
++            "combo_live_last_anchor_utc": utc(last_anchor) if last_anchor else None,
++            "combo_live_status": status,
++            "status_is_for_latest_anchor": (
++                status.get("anchor") == (anchors[-1] if anchors else None)
++                if isinstance(status, dict) else None),
++        },
++        "summary": {
++            "n_target_live_files": len(anchors),
++            "n_king_backups": len(kings),
++            "n_log_result_lines": len(per_log),
++            "n_log_skip_aux_lines": len(skips),
++            "n_anchors_pre_combo": len(rows) - len(combo_rows),
++            "n_anchors_combo_era": len(combo_rows),
++            "n_traded_combo": len(traded_combo),
++            "n_traded_king": len(traded_king),
++            "king_anchors": [r["anchor_utc"] for r in traded_king],
++            "n_silent_skip": len(silent),
++            "silent_skip_anchors": [r["anchor_utc"] for r in silent],
++            "n_form_record_invalid": sum(1 for r in combo_rows if not r["form_record_valid"]),
++            "producer_write_s": {"min": min(pw) if pw else None, "median": q(pw, 0.5),
++                                 "p99": q(pw, 0.99), "max": max(pw) if pw else None},
++            "combo_write_s": {"min": min(cw) if cw else None, "median": q(cw, 0.5),
++                              "p99": q(cw, 0.99), "max": max(cw) if cw else None},
++            "m_gate_s": {"min": min(mg) if mg else None, "median": q(mg, 0.5),
++                         "p01": q(mg, 0.01)},
++            "m_bail_s_min": min((r["m_bail_s"] for r in combo_rows
++                                 if r["m_bail_s"] is not None), default=None),
++            "m_read_s_min": min((r["m_read_s"] for r in combo_rows
++                                 if r["m_read_s"] is not None), default=None),
++            "anchor_grid_gaps": gaps,
++            "log_only_anchors": sorted(log_only),
++            "log_orphan_tail_lines": len(orphan_tail),
++            "log_skips": skips,
++            "exec_cross_check": {
++                "phaseA_rows_by_mode": exec_mode_counts,
++                "exec_mode_counted": args.exec_mode,
++                "n_anchors_with_multiple_runs": exec_dupes,
++                "n_exec_phaseA_rows": len(per_exec),
++                "n_combo_era_with_exec_row": sum(1 for r in combo_rows if r["exec_form"]),
++                "combo_era_without_exec_form": [
++                    r["anchor_utc"] for r in combo_rows if not r.get("exec_form")],
++                "n_form_disagree": sum(1 for r in combo_rows if r["form_agrees"] is False),
++                "form_disagree_anchors": [
++                    r["anchor_utc"] for r in combo_rows if r["form_agrees"] is False],
++                "exec_form_counts": {
++                    f: sum(1 for r in combo_rows if r.get("exec_form") == f)
++                    for f in sorted({r.get("exec_form") for r in combo_rows
++                                     if r.get("exec_form")})},
++                "exec_king_anchors": [
++                    {"anchor_utc": r["anchor_utc"], "attempts": r.get("exec_attempts"),
++                     "age_s": r.get("exec_age_s"), "action": r.get("exec_action"),
++                     "producer": r.get("exec_producer")}
++                    for r in combo_rows if r.get("exec_form") == "king"],
++                "exec_no_book_anchors": [
++                    {"anchor_utc": utc(a), "reason": e.get("exec_eb_reason"),
++                     "attempts": e.get("exec_attempts"), "action": e.get("exec_action")}
++                    for a, e in sorted(per_exec.items())
++                    if e.get("exec_eb_ok") is False and a >= args.combo_live_from],
++            },
++        },
++        "rows": rows,
++    }
++
++    os.makedirs(os.path.dirname(out), exist_ok=True)
++    with open(out, "w") as f:
++        json.dump(result, f, indent=1)
++    s = result["summary"]
++    print(f"[prod27_census] device_sha={result['device_sha256'][:8]} out={out}")
++    print(f"  target_live files {s['n_target_live_files']} | king backups {s['n_king_backups']} "
++          f"| log result lines {s['n_log_result_lines']} | aux-skip lines {s['n_log_skip_aux_lines']}")
++    print(f"  combo-era anchors {s['n_anchors_combo_era']}: combo {s['n_traded_combo']} "
++          f"/ king {s['n_traded_king']} {s['king_anchors']}")
++    print(f"  SILENT skips (no log line, king form on disk) {s['n_silent_skip']}: {s['silent_skip_anchors']}")
++    print(f"  producer_write_s  min/med/p99/max = {s['producer_write_s']}")
++    print(f"  combo_write_s     min/med/p99/max = {s['combo_write_s']}")
++    print(f"  m_gate_s (1355-producer) min/med/p01 = {s['m_gate_s']}")
++    print(f"  m_bail_s min = {s['m_bail_s_min']} | m_read_s min = {s['m_read_s_min']}")
++    print(f"  anchor grid gaps {len(s['anchor_grid_gaps'])} | log-only anchors {s['log_only_anchors']}")
++    x = s["exec_cross_check"]
++    print(f"  EXEC instrument ({x['exec_mode_counted']} only): phase_A rows by mode {x['phaseA_rows_by_mode']}")
++    print(f"  EXEC anchors {x['n_exec_phaseA_rows']} | combo-era covered "
++          f"{x['n_combo_era_with_exec_row']} | forms {x['exec_form_counts']} | multi-run anchors {x['n_anchors_with_multiple_runs']}")
++    print(f"  EXEC king-form anchors: {x['exec_king_anchors']}")
++    print(f"  EXEC anchors with NO usable book: {x['exec_no_book_anchors']}")
++    print(f"  form disagreements between instruments: {x['n_form_disagree']} {x['form_disagree_anchors']}")
++    print(f"  combo-era anchors with no {x['exec_mode_counted']} form: {x['combo_era_without_exec_form']}")
++    print(f"  status slot anchor={result['live_state']['combo_live_status'].get('anchor') if isinstance(result['live_state']['combo_live_status'], dict) else None} "
++          f"is_latest={result['live_state']['status_is_for_latest_anchor']}")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/fx/prod27_sandbox.py b/fx/prod27_sandbox.py
+new file mode 100644
+index 0000000..375a2d0
+--- /dev/null
++++ b/fx/prod27_sandbox.py
+@@ -0,0 +1,158 @@
++#!/usr/bin/env python3
++"""PROD-27 sandbox: drive combo_live_daemon.sh through a fake clock without editing it.
++
++The daemon is copied BYTE-IDENTICALLY from the code under test and its sha is
++asserted against the source, so a red result cannot come from a doctored script.
++Everything it touches is redirected by environment alone:
++
++  HOME=<sbx>/home        -> the daemon's `cd "$HOME/wide_shadow/fea171"` and WS
++  PATH=<sbx>/bin:...     -> `date` and `sleep` shims (the daemon calls both bare)
++  <WS>/venv/bin/python   -> a stub that records the three call shapes the daemon
++                            makes and never reaches the venue or Telegram:
++                              `-c ...`          the aux.json settle poll  -> real python3
++                              `- SEV MSG`       page()                    -> recorded
++                              `-u combo_stage`  the rewrite               -> recorded, rc from env
++
++Nothing in this module reads or writes `~/wide_shadow` or `~/dl_quant_live`, and
++the stub means a page can never be sent even if a branch fires unexpectedly.
++"""
++import json
++import os
++import shutil
++import subprocess
++import time
++
++ANCHOR_S = 14400
++
++DATE_SHIM = r'''#!/bin/sh
++# Fake clock. FAKE_NOW holds the epoch the daemon should see.
++now=$(cat "$FAKE_NOW_FILE")
++if [ "$1" = "-u" ] && [ "$2" = "+%s" ]; then echo "$now"; exit 0; fi
++if [ "$1" = "-u" ] && [ -z "$2" ]; then exec /bin/date -u -r "$now"; fi
++exec /bin/date "$@"
++'''
++
++SLEEP_SHIM = r'''#!/bin/sh
++# Keep the poll loops from being a hot spin without spending their real seconds.
++exec /bin/sleep 0.02
++'''
++
++PY_STUB = r'''#!/bin/sh
++echo "CALL $*" >> "$P27_OUT/python_calls.txt"
++case "$1" in
++  -c) shift; exec /usr/bin/python3 -c "$@" ;;
++  -)  { echo "=== PAGE sev=$2"; echo "--- msg: $3"; cat >/dev/null; } >> "$P27_OUT/page_calls.txt"
++      exit 0 ;;
++  -u) echo "STAGE_RUN cwd=$(pwd) arg=$2 now=$(cat "$FAKE_NOW_FILE")" >> "$P27_OUT/stage_calls.txt"
++      if [ -n "$P27_STAGE_STDOUT" ]; then printf '%s\n' "$P27_STAGE_STDOUT"; fi
++      exit "${P27_STAGE_RC:-0}" ;;
++esac
++echo "UNEXPECTED $*" >> "$P27_OUT/python_calls.txt"
++exit 99
++'''
++
++
++def _w(path, text, mode=0o644):
++    os.makedirs(os.path.dirname(path), exist_ok=True)
++    with open(path, "w") as f:
++        f.write(text)
++    os.chmod(path, mode)
++
++
++def build(sbx, daemon_src, anchor, now_offset_s, *, king_file=True,
++          aux_anchor="match", rolling_newer=True, last_anchor="0"):
++    """Lay out one scenario.  Returns a dict of the paths the assertions need.
++
++    king_file      write a producer target_live/<A>.json (False = branch (b))
++    aux_anchor     "match" | "stale" — what aux.json prev_rec.anchor_ts says
++    rolling_newer  rolling.npz mtime newer than the target file (the L34 test)
++    """
++    shutil.rmtree(sbx, ignore_errors=True)
++    home = os.path.join(sbx, "home")
++    ws = os.path.join(home, "wide_shadow")
++    fea = os.path.join(ws, "fea171")
++    state = os.path.join(ws, "state")
++    out = os.path.join(sbx, "out")
++    for d in (fea, os.path.join(state, "target_live"), out, os.path.join(sbx, "bin"),
++              os.path.join(ws, "venv", "bin")):
++        os.makedirs(d, exist_ok=True)
++
++    shutil.copyfile(daemon_src, os.path.join(fea, "combo_live_daemon.sh"))
++    os.chmod(os.path.join(fea, "combo_live_daemon.sh"), 0o755)
++    _w(os.path.join(sbx, "bin", "date"), DATE_SHIM, 0o755)
++    _w(os.path.join(sbx, "bin", "sleep"), SLEEP_SHIM, 0o755)
++    _w(os.path.join(ws, "venv", "bin", "python"), PY_STUB, 0o755)
++
++    now = anchor + now_offset_s
++    _w(os.path.join(sbx, "fake_now"), str(int(now)) + "\n")
++    _w(os.path.join(fea, "combo_live_last_anchor"), str(last_anchor) + "\n")
++
++    tl = os.path.join(state, "target_live", f"{anchor}.json")
++    if king_file:
++        doc = {"schema": "wide_target_v1", "anchor_ts": anchor,
++               "weights": {"BTCUSDT": 0.1, "ETHUSDT": -0.1}, "gross_norm": 0.2,
++               "n_names": 2, "universe": ["BTCUSDT", "ETHUSDT"], "universe_sha": "x" * 64,
++               "n_universe": 2, "booster_sha": "y" * 64, "weights_sha": "z" * 64,
++               "written_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now - 60)),
++               "producer": "shadow_loop_v3"}
++        _w(tl, json.dumps(doc))
++        _w(tl + ".sha256", "0" * 64 + f"  {anchor}.json\n")
++
++    _w(os.path.join(state, "aux.json"), json.dumps(
++        {"prev_rec": {"anchor_ts": anchor if aux_anchor == "match" else anchor - ANCHOR_S}}))
++    roll = os.path.join(state, "rolling.npz")
++    _w(roll, "not-a-real-npz\n")
++    if king_file:
++        t_tl = os.path.getmtime(tl)
++        os.utime(roll, (t_tl + 10, t_tl + 10) if rolling_newer else (t_tl - 10, t_tl - 10))
++
++    return {"sbx": sbx, "home": home, "ws": ws, "fea": fea, "state": state, "out": out,
++            "target_live": tl, "last_file": os.path.join(fea, "combo_live_last_anchor"),
++            "log": os.path.join(fea, "combo_live.log"), "anchor": anchor, "now": int(now),
++            "page_calls": os.path.join(out, "page_calls.txt"),
++            "stage_calls": os.path.join(out, "stage_calls.txt"),
++            "python_calls": os.path.join(out, "python_calls.txt")}
++
++
++def run(paths, seconds=3.0, stage_rc="0", stage_stdout=""):
++    """Run the daemon for `seconds` of wall time, then stop it and its children."""
++    env = {
++        "PATH": os.path.join(paths["sbx"], "bin") + ":/usr/bin:/bin",
++        "HOME": paths["home"],
++        "FAKE_NOW_FILE": os.path.join(paths["sbx"], "fake_now"),
++        "P27_OUT": paths["out"],
++        "P27_STAGE_RC": str(stage_rc),
++        "P27_STAGE_STDOUT": stage_stdout,
++        "SHELL": "/bin/bash",
++    }
++    p = subprocess.Popen(["/bin/bash", os.path.join(paths["fea"], "combo_live_daemon.sh")],
++                         env=env, cwd=paths["fea"],
++                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
++    deadline = time.time() + seconds
++    while time.time() < deadline and p.poll() is None:
++        time.sleep(0.05)
++    if p.poll() is None:
++        os.killpg(os.getpgid(p.pid), 15)
++        try:
++            p.wait(timeout=5)
++        except subprocess.TimeoutExpired:
++            os.killpg(os.getpgid(p.pid), 9)
++            p.wait(timeout=5)
++    stdout = p.stdout.read().decode(errors="replace") if p.stdout else ""
++    return {
++        "stdout": stdout,
++        "last": _read(paths["last_file"]).strip(),
++        "log": _read(paths["log"]),
++        "pages": _read(paths["page_calls"]),
++        "stage": _read(paths["stage_calls"]),
++        "python": _read(paths["python_calls"]),
++        "target_live": _read(paths["target_live"]),
++    }
++
++
++def _read(p):
++    try:
++        with open(p, "r", errors="replace") as f:
++            return f.read()
++    except FileNotFoundError:
++        return ""
 diff --git a/migrations/fund_label_ema_correction.py b/migrations/fund_label_ema_correction.py
 new file mode 100644
 index 0000000..d44c1d8
@@ -2351,10 +3207,10 @@ index e7c3f60..2af4672 100644
                          "coverage": round(coverage, 4), "status": status})
 diff --git a/tests_fx_prod.py b/tests_fx_prod.py
 new file mode 100644
-index 0000000..34bb8f4
+index 0000000..5b1be8d
 --- /dev/null
 +++ b/tests_fx_prod.py
-@@ -0,0 +1,518 @@
+@@ -0,0 +1,597 @@
 +#!/usr/bin/env python3
 +"""tests_fx_prod.py — FIXPROGRAM 2026-09-13 FX-PROD red/green battery (P1 king col 80, P2 V2MAIN col 80 + neighbours, P6 seed loader).
 +Real shapes only: frozen producer snapshots (work/frozen, SHA256SUMS), the in-service bundle and booster (read-only), real anchors, real ledger rows.
@@ -2370,7 +3226,7 @@ index 0000000..34bb8f4
 +CODE = HERE
 +if "--code" in argv:
 +    i = argv.index("--code"); CODE = os.path.abspath(argv[i + 1]); del argv[i:i + 2]
-+CELLS = set(argv) or {"P1", "P2", "P6", "P6M"}
++CELLS = set(argv) or {"P1", "P2", "P6", "P6M", "P27"}
 +sys.path.insert(0, HERE + "/fx")
 +import numpy as np
 +import fx_harness as H
@@ -2861,10 +3717,89 @@ index 0000000..34bb8f4
 +    ok = first[2] == zipl.get(int(first[0])) and nm in st.ema and abs(st.ema[nm]["acc"] - acc) <= 1e-15 and st.ema[nm]["last_ts"] == prev
 +    cell("RED", f"P9-R cold start {nm} at 09-04 00Z: first row {time.strftime('%m-%d %HZ', time.gmtime(int(first[0])))} labelled like the zip ({zipl.get(int(first[0]))}), not the 8.0 default; v1 EMA == rebuild with the ledger labels", ok, dict(first=first))
 +
++# ======================================================================================== PROD-27
++def p27():
++    """PROD-27: every skip/fallback of the combo rewrite must be a named, counted HIGH event.
++
++    The daemon under test is copied byte-identically from CODE and driven through a fake clock
++    (fx/prod27_sandbox.py). Nothing here touches ~/wide_shadow or ~/dl_quant_live, and the venv
++    python the daemon calls is a stub, so no page can leave the machine.
++    Census of the live behaviour these scenarios stand for: work/prod27/PROD27_CENSUS.json.
++    """
++    import prod27_sandbox as SB  # noqa
++    print("[P27] combo rewrite skip/fallback observability (sandboxed daemon, fake clock)", flush=True)
++    src = os.path.join(CODE, "fea171", "combo_live_daemon.sh")
++    root = T_ROOT + "/p27"
++    A = 1789516800                                   # 2026-09-16 00:00Z, a real anchor
++    dsha = H.gsha(src)
++    cell("KEEP", "P27-H0 harness: the daemon under test is the code under test (sha)",
++         H.gsha(src) == dsha and os.path.getsize(src) > 0, dsha[:16])
++
++    def ev(res):
++        """What a reader of the producer's own records would see for this anchor."""
++        return {"log_lines": len([x for x in res["log"].splitlines() if x.strip()]),
++                "pages": res["pages"].count("=== PAGE"),
++                "stage_runs": res["stage"].count("STAGE_RUN"),
++                "last": res["last"],
++                "named_event": ("margin_s" in res["log"] or "margin_s" in res["pages"])}
++
++    # ---- S1 RED: producer late past the daemon gate (the 2026-08-30 00Z shape) -------------
++    p = SB.build(root + "/s1", src, A, 1400)          # N+23:20 > N+22:35
++    r1 = SB.run(p, seconds=2.5)
++    e1 = ev(r1)
++    reached = (e1["last"] == str(A))                  # the branch really executed
++    cell("KEEP", "P27-S1a fixture: the late-skip branch actually ran (combo_live_last_anchor advanced to A)",
++         reached, dict(last=e1["last"], expected=A, stdout=r1["stdout"][-200:]))
++    cell("RED", "P27-S1 producer late (N+23:20): the skip is a NAMED COUNTED event — a page and a record "
++                "carrying anchor, reason and margin_s. Old code: %d log lines, %d pages, %d stage runs" %
++                (e1["log_lines"], e1["pages"], e1["stage_runs"]),
++         reached and e1["pages"] >= 1 and e1["named_event"], e1)
++    cell("KEEP", "P27-S1b the skip does not rewrite the book (producer file byte-identical, stage not run)",
++         r1["target_live"] == open(p["target_live"]).read() and e1["stage_runs"] == 0, dict(stage=e1["stage_runs"]))
++
++    # ---- S2 RED: no producer file at all (the 2026-08-29 20Z shape) -------------------------
++    p2s = SB.build(root + "/s2", src, A, 1500, king_file=False)
++    r2 = SB.run(p2s, seconds=2.5)
++    e2 = ev(r2)
++    cell("KEEP", "P27-S2a fixture: with no producer file the loop body never runs (last_anchor untouched)",
++         e2["last"] == "0", dict(last=e2["last"]))
++    cell("RED", "P27-S2 producer wrote NOTHING for this anchor: a named counted event is still required "
++                "(the executor holds the book for a full anchor). Old code: %d log lines, %d pages" %
++                (e2["log_lines"], e2["pages"]),
++         e2["pages"] >= 1 and e2["named_event"], e2)
++
++    # ---- S3 KEEP: the normal path must be untouched by the fix -----------------------------
++    p3 = SB.build(root + "/s3", src, A, 600)
++    r3 = SB.run(p3, seconds=3.0)
++    e3 = ev(r3)
++    cell("KEEP", "P27-S3 in-window run still invokes combo_stage exactly once and advances last_anchor",
++         e3["stage_runs"] == 1 and e3["last"] == str(A), e3)
++
++    # ---- S4 KEEP: the already-named aux/rolling path keeps its page ------------------------
++    p4 = SB.build(root + "/s4", src, A, 600, aux_anchor="stale")
++    r4 = SB.run(p4, seconds=8.0)
++    e4 = ev(r4)
++    cell("KEEP", "P27-S4 aux/rolling never settles: still one HIGH page, still no rewrite, last_anchor advanced",
++         e4["pages"] == 1 and e4["stage_runs"] == 0 and e4["last"] == str(A), e4)
++    cell("RED", "P27-S4b that page carries the anchor, the reason AND margin_s in seconds "
++                "(today it carries neither a count nor a margin)",
++         "margin_s" in r4["pages"], dict(page=r4["pages"][:200]))
++
++    # ---- S5 RED: a bail from combo_stage must leave a per-anchor record of the traded form --
++    p5 = SB.build(root + "/s5", src, A, 600)
++    r5 = SB.run(p5, seconds=3.0, stage_rc="3", stage_stdout="COMBO_LIVE ABORT: synthetic")
++    e5 = ev(r5)
++    cell("KEEP", "P27-S5a fixture: stage ran and exited 3 with an ABORT line, so the daemon suppresses its own page",
++         e5["stage_runs"] == 1 and e5["pages"] == 0, e5)
++    cell("RED", "P27-S5 after a stage ABORT the producer still writes a per-anchor record naming the form it "
++                "left in place (king) — today combo_live_status.json keeps the previous anchor's ok:true",
++         os.path.exists(os.path.join(p5["state"], "combo_anchor_record", f"{A}.json")),
++         dict(state_dir=sorted(os.listdir(p5["state"]))))
++
 +# ======================================================================================== main
 +if __name__ == "__main__":
 +    print(f"tests_fx_prod code={CODE} shadow_loop_v3.py={code_sha('shadow_loop_v3.py')[:16]} combo_stage.py={code_sha('fea171/combo_stage.py')[:16]} cells={sorted(CELLS)} utc={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}", flush=True)
-+    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m), ("P9", p9)):
++    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m), ("P9", p9), ("P27", p27)):
 +        if name in CELLS:
 +            try:
 +                fn()

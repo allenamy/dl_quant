@@ -1,11 +1,13 @@
-afd94a2386909603c2564fb45228770b0a6195d8 swap dry-run driver: refuse inside anchor windows and before HH+1:05 after an anchor (lead 17:05Z rule); before/after listing of the read-only live bundle dirs
+bdb9e1f3214b7f2b6752dd9cfc02953d71611e70 P12 (measure only): the second writer of state_H_f10_<A>.npz is sidecar_blend, 128/129
+d4d211a5c19ca1f788027d6454977199e262ceb5 PROD-27 fact table + red: census device, sandboxed daemon harness, 4 RED cells
+afd94a2386909603c2564fb45228770b0a6195d8 swap dry-run driver: refuse inside anchor windows and before HH+1:05 after an anchor (lead 17:05Z rule); before/after listing of the read-only live bundle dirs; no launchctl, no signals outside its own children, outputs only under work/swapdry
 f289fc097e5a396a47466769af33333296f58654 swap dry-run driver (frozen 09-13 12Z): P5 -> P1 -> correction(D17,P9+Aug zips) -> compose -> 4 load tests; STOP/CONT guard 19:55-20:50Z
 8de133cbda93ca4773cd625302ed0a95f2c67e86 swap plan: load test (real module ShadowState on a scratch home with symlinked state; expect load|refuse)
-bba6b8fca0b247f5141ad382fdd2543f48613b44 swap plan: composed-state checker (P5 -> P1 -> D17,P9+zip correction); refuses unless receipt sha chain closed and every change is exactly the listed one; stag
-5b3a05636b0f5af9d7c6f5361fa4ab37bf3edb06 P5 migration: include the input state's ledger tail (swap-time rows) with a cross-source rate/label consistency assert; replace aux.prev_rec.legz.king by the v
-80cd6aaabc6395b35d359af48b876bbe432290dc P5 migration device (not yet run): rescore the 81 live-appended seat king rows; served arm = live boosters+flags off must reproduce recorded rows bitwise; v0 a
-dfd3b0bc97087171e9d2f3e9c27d666b96aa8b98 correction tool --zip-dir: key calc_time to the nearest settlement hour (16 August rows carry calc_time 1s past the hour, all TradFi names outside the 525-name
-61a55bc540fff399520345b14fea5ed16b51fe05 (c) monthly zip reconciliation: fund_label_ema_correction.py --zip-dir adds the pulled monthly declared labels (manifest sha per file); committed before the Au
+bba6b8fca0b247f5141ad382fdd2543f48613b44 swap plan: composed-state checker (P5 -> P1 -> D17,P9+zip correction); refuses unless receipt sha chain closed and every change is exactly the listed one; stages aux.json + leg_returns_live.json with SHA256SUMS
+5b3a05636b0f5af9d7c6f5361fa4ab37bf3edb06 P5 migration: include the input state's ledger tail (swap-time rows) with a cross-source rate/label consistency assert; replace aux.prev_rec.legz.king by the v0 arm (the first post-swap step-6 row), gated on the served arm reproducing it bitwise; no outputs unless all gates pass (rc 2)
+80cd6aaabc6395b35d359af48b876bbe432290dc P5 migration device (not yet run): rescore the 81 live-appended seat king rows; served arm = live boosters+flags off must reproduce recorded rows bitwise; v0 arm = same booster per anchor (from log booster_sha), column 80 v0; pre-seatseed tail fact check
+dfd3b0bc97087171e9d2f3e9c27d666b96aa8b98 correction tool --zip-dir: key calc_time to the nearest settlement hour (16 August rows carry calc_time 1s past the hour, all TradFi names outside the 525-name state); rows >60s off are listed, not used
+61a55bc540fff399520345b14fea5ed16b51fe05 (c) monthly zip reconciliation: fund_label_ema_correction.py --zip-dir adds the pulled monthly declared labels (manifest sha per file); committed before the August run
 d49f1ef9808678115300d6860e8d33f9e1230285 P9 table generator: fold in pulled monthly zips (--zip-dir, manifest sha per file, rate/label conflict counts); committed before the August run
 38223d8fd017bb21b015037a729599065644bc41 P1 migration: offline builder of the v0 funding EMA state for a copy of the producer state (gated)
 d620f6e40463d12bb0202ebc73f8d603588c6ac0 devices fix: fx_replay_driver snapshot mode — absolute --snapshot/--after paths (relative symlink target broke rolling.npz) and skip a sums file's self-entry
@@ -26,4 +28,3 @@ e0e34ea7be581c9054c91108cc2b823aed1fbddc P9 evidence: per-settlement declared-in
 633d44bfc1895bab32c44004da35e2ebf80e5130 P1: serve king column 80 with the training definition (v0 raw-rate EMA); fund leg stays v1
 1a2c1c1eadac48fa31694ad9b35dc73d4c1ab8ee tests(P1): N6 exec of the code under test needs __name__ in its globals
 e4a1e84226eade0fee66d1fce567392bf2ec5d68 tests(P1): red battery for king column 80 train/serve caliber + offline replay harness
-b8917484a2792863fb6299dc95896e3c70efb5bf live-identical snapshot of the wide_shadow producer stack (read-only copy, 2026-09-13 13:0xZ)
