@@ -95,3 +95,53 @@ Live fix = P1 + P2. King and V2MAIN serve column 80 with the training definition
 - A bundle reset with the new code refuses until the bundle is re-exported with a v0 state and corrected seed labels.
 - King f16 train vs f32 serve (P10) was closed by aud-prod, not by this item.
 
+
+---
+## PROD-27 事实表 + 红测试(克隆 d4d211a; 研究仓 7a4e2848 / 0d5132f8; lead 逐字转录 2026-09-16 03:2xZ)
+
+**更正一个常数(改数字, 先说)**: 执行器**不是** N+23 读。`config/book.json` `external_book.anchor_offset_min = 24`, `poll_grace_min = 5` ⇒ **N+24:00 首读, 每约 15 s 重试至 N+29:00**; 其 `_timing` 注记录 23→24 的变更发生在 **2026-08-27 05:2xZ**, 原因正是 combo 写入只剩 34 s。AUDIT_PROD PROD-27 写 N+24 是对的; **CLAUDE.md 仍写 N+23, 自 08-27 起过时**(K4; lead 已于 01cbbc5a 更正)。工作者首轮普查曾用 1380, 报数前已改为 1440。
+
+**AUDIT_PROD 的「最小余量 9 s」是响的那道门, 不是静默的那道。** 三道门在三个时刻:
+| 门 | 判据 | 位置 | 实测余量 |
+|---|---|---|---|
+| **G1** 守护跳过 | `NOW-A > 1355` | `combo_live_daemon.sh` L27 | **最小 49.1 s**, 中位 108.8(124 个非重启锚)—— **静默的那道** |
+| **G2** stage bail | `A+1360`(在 171 特征管线**之后**评估) | `combo_stage.py` L321-323 | **最小 9 s** ⇒ 复现审计的数字 ⇒ **审计测的是 G2** |
+| **G3** 执行器首读 | N+24:00 | `config/book.json` | 最小 88.3 s |
+⇒「约 10 s 的变慢会把该锚切成 king 形态」这句**对**, 但机制是**会页报**的那条路径; 静默那条由生产者落地时刻决定, 历史上响过一次。另: 守护的 1355 判据在 aux/rolling 落定循环(L32-36, 可烧约 150 s)**之前**评估 ⇒ 1354 s 过门的运行可能在约 1500 s 才启动 `combo_stage`, 于是走「过硬截止」而非跳过。
+
+**新发现 1(登记 PROD-31, P1)· 2026-08-29 20:00Z 根本没有生产者文件**: 生产者 16:21Z 打印 `next 2026-08-29T20:16:00Z in 14061s` 后无输出, 直到 23:28:01Z 重启; 20Z 那次运行从未完成。守护的守卫是 `[ -f "$TL" ]` ⇒ **循环体从不执行: 无页报、无日志行、`combo_live_last_anchor` 都不推进**。执行器 N+24:00→N+29:00 **轮询 21 次全 `{ok:false, reason:"missing"}`**, **整锚 HOLD**(「held existing positions; no orders」, `anchors_row: false`)。FX-EXEC2 的账本扫描(缺槽 08-25 16Z / 08-29 20Z / 09-02 00Z / 09-09 12Z)与 AUDIT_PROD L276 独立佐证。**比本项命名的「静默跳过」更严重: 书冻结了一整锚而两侧都不出声。**
+08-30 00Z 是同一次事故的尾巴: Mac 于 08-29 23:28:01Z 重启(`loop.out.pre_reboot_20260830`; `combo_live_daemon.log` 同秒被截为 0), 重启后的生产者在 **N+24:27.8** 写出(过 G1 112.8 s), 守护静默跳过, 执行器第 3 次尝试在文件 3.3 s 龄时取到 king 文件并交易。
+
+**新发现 2(登记 PROD-32, P1)· 这个守护的全部告警路径在生产中从未被执行过**: 125 个锚的 `combo_live.log` 里 **0 条 PAGE、0 条 `skip aux-not-settled`、0 条 `COMBO_LIVE ABORT`**。有记录的 combo 页报只有 `notify_audit.jsonl` 里 4 行, 全部来自 2026-08-26 开机手工跑, **且第一行返回 `status: NOT_CONFIGURED`**(没有 token 到达通知器), 之后是一次通道自检与一次 `DELIVERED`。所以 `combo_stage._page` 只有一次来自手工跑的投递证明, 守护自己的 `page()`(另一段 heredoc)**一次都没有**。更糟: `_page` 把任何异常吞成一行 `PAGE_FAIL` 后返回, `_bail` 照样退 3, 守护又因在 runlog 里看见 `COMBO_LIVE ABORT` 而**故意不页报**(L43)⇒ **bail 撞上坏通道 = 端到端静默**。
+
+**没有朝截止漂移**: 125 锚 OLS 显示生产者落地 **−0.80 s/锚(−4.8 s/日)**, combo 写入 −0.67 s/锚 ⇒ 余量在**变宽**。G1 周最小值 W35..W38 = **−112.8(那次重启)/ 55.0 / 54.8 / 103.0**。延迟预算: 生产者落地中位 1246.2 / p90 1294.3(主导项与主导方差), 守护 settle+poll 中位 8.4 s(150 s 预算从未接近耗尽), stage 运行中位 32.2 / 最大 74.2。⇒ **余量告警必须是逐锚余量的「水平规则」, 不能做斜率外推**, 否则永远不会在它该抓的事情之前响。
+
+**三条小事实**: (a) `combo_live_status.json` 是**单槽可变文件**, 两条静默分支上都保留上一锚的 `{"ok": true}` ⇒ 读者不比对 `status["anchor"]` 就被告知「上次成功」(登记 PROD-33); (b) 排练模式写进**实盘状态树** —— `combo_stage.py` L340 用 `WS` 而非 `_outdir` 备份, 所以 08-26 00Z 有 king 备份却没有 combo 运行, 「有备份 ⇒ 跑过 combo」的朴素判据误计(登记 PROD-34); (c) 前向写是两步原子(json 后 `.sha256`), 而**回滚路径完全不原子**(两次 `shutil.copy2` 原地覆盖执行器正在读的文件); 两个窗口都在亚秒且被读者重试兜住, 均未观察到, 记录在案。
+
+**一条按指令不动的事实(= PROD-30, 归 lead)**: G1(1355)与 G2(1360)仍按**已退役的 N+23:00** 标定, 08-27 读取改到 N+24:00 时没有同步 ⇒ **G1 比执行器首读早 85 s 关门, G2 早 80 s**。
+
+**方法**: 用任何数字之前先做仪器正控 —— king 备份 mtime 等于生产者自己的 `written_utc` 字段, **124/124** 在该字段 1 s 截断内, 且 124 份备份都带 `producer: shadow_loop_v3`; 第二仪器 = 执行器逐锚的 `phase_A.external_book.producer`, **123 个覆盖锚上 0 处不一致**。**工作者自报一处中途错误**: 首轮交叉核对按锚为键让后到的行覆盖先到的行, 把 **673 条 DRY_RUN 电池行**混进实盘人口, 造出 17 个虚假的 stale/HOLD 锚; 按 mode 过滤后只剩一个真的(08-29 20Z)。该错误的产物没有进入任何报告。
+
+**红测试**: `fx/prod27_sandbox.py` 通过 `date`/`sleep` 的 PATH 垫片与桩 venv python **逐字节驱动** `combo_live_daemon.sh`(sha 72f78d1e, 在 b891748 / afd94a2 / 实盘三处相同), 页报出不了机器, 不读写 `~/wide_shadow` 或 `~/dl_quant_live`。`tests_fx_prod.py P27` rc=1, 日志 `work/prod27/logs/RED_P27_on_afd94a2.log`:
+- **RED S1** 生产者迟到 ⇒ 0 日志行 / 0 页报 / 0 记录(夹具 KEEP 证明分支确实跑了: last_anchor 推进)
+- **RED S2** 无生产者文件 ⇒ 0 日志行 / 0 页报(夹具 KEEP 证明循环体从未执行)
+- **RED S4b** 唯一存在的那条页报不带计数、不带 `margin_s`
+- **RED S5** stage ABORT 之后没有「留在原地的是哪个形态」的逐锚记录
+- **KEEP S3** 正常路径仍恰好调用 combo_stage 一次; **KEEP S4** aux/rolling 页报仍恰好一次; **KEEP S1b** 跳过不重写书
+
+---
+## P12 · `state_H_f10_<A>.npz` 的第二写者(克隆 bdb9e1f; 只测不修, 按裁定; lead 逐字转录)
+
+**写者 = 侧车。** `state_H_f10_<A>.npz` 的**最后写者**是 `sidecar_blend.py`(由 `com.hsy.sidecar` PID 801 运行), **128/129 锚**。归因**按区间**而非按推断: 每个候选写者的运行窗取自它自己的守护日志(完成戳减去该次运行最后一个 `[ Xs]` 戳, ±2 s), 文件 mtime 落在其一、其二、两者皆是或皆非 —— 「皆非」报为 **UNATTRIBUTED, 不分配**。结果: `mtime − sidecar finish` 每个可归因行都在 **±1.0 s** 内; `mtime − combo finish` 为 **+122..+235 s, 中位 +168 s** —— 与 P2 的「kc/fc 之后约 2 分钟」精确吻合。唯一未归因的一份是 2026-08-26 00:00Z, 写于 N+8664 s, 即开机手工跑(与 `notify_audit` 里 now−anchor 8597/8664 s 的行同一次)。
+
+**对链的含义**: `combo_stage` 写这个状态, 侧车约 168 s 后覆写 ⇒ **`combo_stage` 自己的 F-10 链状态每锚都被丢弃**, A+1 的暖启是**侧车的重算**, 不是产出被交易之书的那次运行。**任何用 `combo_stage` 代码重算该状态的回放都按构造与实盘不同** —— 即 P2 测到的 96 名 2.63e-8。且 **129 锚中 79 次侧车写入落在执行器首读 N+24:00 之后**(侧车完成中位 N+24:20)。
+
+**PROD-29 应重定级(lead 已于 4f86635a 执行)**: 审计称侧车为「第二、非原子写者」并评 VERIFIED_IMMATERIAL / P3, 理由是「潜伏; 观察到 0 次碰撞」。**碰撞计数是错的检验: 没有碰撞是因为侧车每锚都赢。** 它也不是「只读」—— 自己的文件头写着「只读侧车」, 而事实上它是该实盘链状态在全部 129 锚上的唯一有效写者。工作者未擅自改他人审计行, 交由 lead。
+
+**缺前驱的代价, 付过一次, 并且接回 PROD-27**: `state_H_f10_1788033600.npz`(2026-08-29 20Z)**不存在**, 因为那个锚什么都没产出(即上文的静默案)。于是 **2026-08-30 00Z 以 `h_source: "king_fallback"` 运行, `self_parity_maxdw` 6.58e-3**, 而其余每个锚是 ~2.3–3.2e-10 ⇒ **136 份 `target_blend` 文件里唯一一次 king_fallback, 且自平价差七个数量级**。**`h_source` 上没有任何页报。** 同一个锚上 `combo_stage` 又静默跳过, 所以那份链状态**只由侧车写成** —— 这也是 08-30 00Z 的链状态得以存在的唯一原因。**08-29 20Z 的生产者失败就这样无形地传进了下一锚的 F-10 状态; 两个静默缺陷是同一次事故的两截。**
+
+**另一条机制, 由重启触发(登记 PROD-35)**: 侧车的 `LAST` 是内存 shell 变量(`sidecar_daemon.sh` L4)⇒ 重启后它按 `ls -t target_live/*.json | head -1` 重新处理一个**过去的**锚, 并在数小时后覆写该锚的链状态。四次: 08-24 08Z(+2.84 h)· 08-29 16Z(+7.50 h, 08-29 23:28Z 重启)· 08-30 04Z(+1.09 h)· 09-14 12Z(+3.79 h, 09-14 15:43Z 重启)。**查过最明显的担忧 —— 重跑是否拉进了锚后市场数据 —— 没有**: 四次都 0.8–2.4 s 且日志无「171 管线」重建, 即各自复用了自己锚的 `mini/cache.npz`(11 次确实重建的慢跑耗时 33–49 s: 十个 combo 之前的开机锚, 加上 08-30 00Z 因 combo 跳过而无缓存)。**不主张该机制在一般情形下安全**(缓存检查只按锚), 只主张它尚未误发。四次里有两次确实把「事后数小时重写的状态文件」喂给了随后的实盘锚: **08-30 04Z → 08-30 08Z**, **09-14 12Z → 09-14 16Z**, 两者 `h_source: own`。
+
+**收据**: `FACT_TABLE_PROD.md` §P12(12.1–12.8); 普查 `FX_PROD/receipts/p12/P12_CENSUS.json`(sha **2bbd9c8c**); 装置 `fx/p12_state_h_census.py`。PROD-27 侧: `receipts/prod27/PROD27_CENSUS.json`(1a35f149)· `receipts/prod27/RED_P27_on_afd94a2.log`(4806474f)。叠加 diff 重生成 `docs/receipts/fx_prod_stack.diff` = `b891748..bdb9e1f`, **0 删除行**, sha `b22fb3a4…`。
+
+**另**: `b891748` 仍与 13 个实盘生产文件及三个在役 plist **逐字节相同**(重启后复核), 但 **AUDIT_PROD PROD-28 已过期** —— 它是对 PID 10900 / 30944 / 30943 验的, 而 09-14 15:43:56Z 重启后三守护为 797 / 801 / 812(15:45:14Z 起)。OPS-01 / OPS-02 挺过重启: `launchctl print-disabled gui/501` 仍显示 `com.hsy.sigma_ladder => disabled` 与 `com.hsy.execprobe2 => disabled`, 两个 plist 都没回到 `~/Library/LaunchAgents/`。
