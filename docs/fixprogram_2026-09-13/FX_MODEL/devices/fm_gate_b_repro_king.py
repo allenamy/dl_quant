@@ -210,7 +210,13 @@ def main():
     #   ⇒ 出口码从此由判词决定。**3 = 判词为 FAIL**(与本纲领 UNAVAILABLE 同用 3 的约定一致:
     #     两者都表示「不得据此放行」), 异常/崩溃仍由 Python 自己给非零, 二者可区分。
     #   历史收据不受影响: mE1/mE60/king 记录的判词都是 PASS, 而 PASS 的正确出口本就是 0。
-    return 0 if rc.get("GATE_B_REPRO") == "PASS" else 3
+    # ★★ R16R-M1 (独立复审第二轮 2026-09-16): 上一轮我把 DL 门那行照抄了过来, 读的是 rc["GATE_B_REPRO"] ——
+    #   而本装置写的是 rc["GATE_B_REPRO_KING"](四态 INVALID / PARTIAL / PASS / FAIL)。键不存在 ⇒ get 返回 None
+    #   ⇒ 真实 PASS 也退 3。我那个「AST 取出口表达式、手喂一个 PASS 字典」的测试恰好喂的是错的键名, 所以没抓到:
+    #   这正是本纲领 GEN-4 说的空转控制 —— 测试从未让本装置自己产生判词。
+    #   ⇒ 出口读本装置**自己**生成的键; 只有 PASS 退 0。INVALID / FAIL / PARTIAL(2026 only) 都不得放行:
+    #     PARTIAL 的 consequence 原文是「2024/2025 refits were not run」, 那是 UNAVAILABLE 不是 PASS。
+    return 0 if rc.get("GATE_B_REPRO_KING") == "PASS" else 3
 
 
 if __name__ == "__main__":
