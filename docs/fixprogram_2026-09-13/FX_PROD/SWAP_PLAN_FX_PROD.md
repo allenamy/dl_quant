@@ -16,7 +16,7 @@ Nothing here has been run against `~/wide_shadow`. Every command below is writte
 
 **Deployment cannot be a code-only swap (lead's ruling, from the independent review's limited acceptance).** With `FUND_COL80_V0` on, the new producer REFUSES TO START on a state without `ema_v0` — measured in the §3 dry run: `REFUSE_TO_START: FUND_COL80_V0 but state has no ema_v0 (build offline: migrations/p1_build_ema_v0.py)`. So the swap must install the **reviewed v0 state and a consistent bundle together with the three .py files**; replacing only the code brings the producer down at its next state load. The same applies to any later bundle re-export (see §6, "bundle reset is not a rollback path").
 
-Checked 16:19Z 09-13, and re-checked 2026-09-16 after the 09-14 reboot: the three live code files are blob-equal to b8917484. Unchanged: the bundle and booster, the executor (`~/dl_quant_live`), the launchd plists, `combo_live_daemon.sh`, `sidecar_daemon.sh`, `fea171/state_H_f10_*`, the weights files.
+Checked 16:19Z 09-13, and re-checked 2026-09-16 after the 09-14 reboot: the three live code files are blob-equal to b8917484. Unchanged **by the swap**: the bundle and booster, the executor (`~/dl_quant_live`), the launchd plists, the weights files. Note `fea171/state_H_f10_*` is "unchanged by the swap" but **rewritten every anchor in normal operation** — by the sidecar, on 128/129 anchors (P12) — so do not treat a changed mtime there as a swap artefact. `combo_live_daemon.sh` IS changed by this swap (PROD-27) and `fea171/combo_anchor_record.py` is a new file it calls; both must be installed with the rest.
 combo_stage.py and sidecar_blend.py are started as fresh Python processes on every anchor by their daemons, so a replaced file is used from the next anchor on without restarting a daemon. The producer holds its state in memory and writes it only inside `run_anchor` (at slot N+16 min). It must be restarted after the state files are replaced.
 
 ## 2. State migrations (offline, on a copy; order fixed)
@@ -40,8 +40,27 @@ Run with `env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu PYTHONDONTWRITEBYTECODE=
    - only the rescored king rows differ in the leg returns.
    On PASS it writes `<M>/compose/STAGED/{aux.json, leg_returns_live.json, SHA256SUMS}`.
 
-## 3. Dry run on the frozen live state 09-13 12Z (pending)
-To be filled with receipts: P5 gates and seat before/after, P1/correction/compose PASS, runtimes, and the load test (the new code's `ShadowState` loads STAGED without REFUSE; the old code b8917484 loads STAGED too, which is the rollback compatibility check).
+## 3. Dry run on the frozen live state 09-13 12Z — RUN 2026-09-16, all steps PASS
+Driver `migrations/swap_dryrun_frozen_20260913.sh`, 03:15:56Z → 03:21:25Z (**5 min 29 s**), outside anchor windows, `h%4=3` at start. Receipts: `receipts/swapdry/{run_dry.log, guard.log, live_ro_before.txt, live_ro_after.txt, RECEIPT_p5_rescore_seat_king.json, FOOTPRINT_swapdry_20260916.txt}`.
+
+| step | rc | result |
+|---|---|---|
+| P5 | 0 | **PASS. SERVED arm reproduces all 81 recorded king rows bitwise, `max_abs_diff 0.0`**; rev24 81/81 bitwise; `prev_rec.legz.king` and `legz.rev24` bitwise equal, members equal. V0 arm changes 320 king entries of `prev_rec`. Seat `w3` 0.342219 → 0.344766, **`w3m` king 0.382095 → 0.384765**; king mean 2.9624 → 3.0031 bps. Splice: bundle 7,872 + snapshot 11,520 + state 336 rows, overlap 11,184, **0 later-filled cells, 0 value diffs**. Booster schedule from the log: 29ffaf58 for 08-31 00Z..09-01 04Z (8 anchors), 8d79186b for 09-01 08Z..09-13 12Z (74). Outputs `leg_returns_live.rescored.json` 820098e2…, `aux.p5.json` e45e147d… |
+| P1 | 0 | PASS. 832 names over 4,232,313 input rows, **0 rate conflicts**; 525 `ema` and 525 `ema_v0`; G2 0 bad |
+| CORR | 0 | PASS. D17 534 + P9 65 applied, 1 outside the tail, **0 stored-label conflicts**, positive control `max_abs 6.938893903907228e-18`, `n_gt_1e12 0`. Largest movers PROM −4.0958e-06 (5.1% of acc), COTI +2.0932e-06, DOS −7.26e-07. Run with `--allow-out-of-tail` (see §2 step 3) |
+| COMPOSE | 0 | PASS, 0 fails. Changed exactly: 70 `ema.acc` names, 598 tail labels, 320 `prev_rec` king entries, 81 rescored king leg-return rows, 525 `ema_v0` names |
+| LOAD new+STAGED | 0 | loads; 525 `ema`, 525 `ema_v0`, `last_anchor` = `prev_rec.anchor` = 1789300800, `lr_len` 11126 |
+| LOAD old+STAGED | 0 | loads (**rollback compatibility**: b8917484 accepts the staged state and ignores `ema_v0`) |
+| LOAD new+ORIGINAL | 0 | **refuses, exit 2**: `REFUSE_TO_START: FUND_COL80_V0 but state has no ema_v0 (build offline: migrations/p1_build_ema_v0.py)` — this is the measured basis for §1's "deployment cannot be a code-only swap" |
+| LOAD old+ORIGINAL | 0 | loads (the unmigrated status quo) |
+
+**Read-only proof.** `live_ro_before.txt` and `live_ro_after.txt` (mtime, size and path of every file under `shadow_bundle` and `shadow_bundle.aug20260816_backup`) have the **same sha256 `708fa25c…`**, and the driver printed `LIVE_RO unchanged`. Independently re-checked mid-run: nothing under `~/wide_shadow` had an mtime newer than the run's start.
+
+**Disk.** Total footprint **24 MB** (p5 9 M, corr 5 M, compose 5 M, p1 4.9 M, logs 16 K); the four load-test homes and the two input dirs are symlinks, 0 B. Measure-before-running remains the rule, but this job is not a disk risk.
+
+**Driver defect found and fixed during this run** (clone `0719874`): the backstop that pauses the driver's children covered only 19:55–20:50Z, so a run that started legally at HH+1:05 and overran by more than ~2.5 h would enter the next anchor window unguarded. It now STOPs throughout any anchor hour (`h%4==0`, minutes 13–51), polls every 10 s instead of 30 s, and logs `targets=N` each tick so "armed but never had a target" is visible in the receipt rather than inferred. `guard.log` shows it armed and holding `targets=1` through the run.
+
+**Not covered by this dry run.** The CORR step is a **first** migration on a fresh state. It does not exercise the repeat-run path, which FXR-PROD-1 fixed separately; its PASS here must not be read as evidence that the tool is safe to re-run (it is, now, but on different evidence — battery FXR1).
 
 ## 4. Swap procedure (operator; outside anchor windows; never `nohup`)
 Window: start ≥ N+1:00 after anchor N, once the producer, combo_live and sidecar for N are done (combo_live.log `=== combo_live anchor=N rc=0`, sidecar_daemon.log `ran for N.json`). Finish S6 before N+3:30. The Mac must be idle during the other teams' anchor windows.
@@ -71,6 +90,9 @@ Combo and sidecar:
 7. `combo_live.log` shows `rc=0` for A1 with no `COMBO_LIVE ABORT`, and target_live was rewritten before N+22:35.
 8. `combo_live_status.json` and `target_combo/A1.json` show `fund_caliber.col80 == "v0"`, `fresh12h` true, `n_v0_missing` 0.
 9. `sidecar_daemon.log` shows `ran for A1.json rc=0`, and `target_blend/A1.json` shows `fund_caliber.col80 == "v0"`.
+9b. **Chain state (P12).** `target_blend/A1.json` shows `h_source == "own"`; `self_parity_maxdw` is of order 1e-10, not 1e-3. `state_H_f10_<A1-4h>.npz` must exist — if it does not, A1 falls back to the king book's H state, which is the 2026-08-30 00Z shape (the only `king_fallback` in 136 anchors, self-parity 6.58e-3). The new per-anchor record `state/combo_anchor_record/A1.json` carries `h_source`, the writer identity of `state_H_f10` and `target_blend`, and `form_written` + the join key; check it against the executor's `phase_A.external_book` rather than reading "traded" off the producer.
+9c. **Expected and not a fault:** A1 warm-starts its F-10 chain from `state_H_f10_<A1-4h>.npz`, which was written **before** the swap by the old code, and by the **sidecar** rather than by combo_stage (P12: the sidecar is the last writer on 128/129 anchors). So A1's chain state is one anchor of old caliber. Record it; do not read A1's deltas as if the chain were fully converted.
+9d. **New observability must be alive:** `state/combo_anchor_events.jsonl` has a row for A1, and a successful rewrite produces a record with **no page**. If A1 pages, read the reason before anything else.
 
 Executor (unchanged code): 10. the normal per-anchor checks, i.e. orders rows for A1, no watchdog trip, no reject spike.
 
