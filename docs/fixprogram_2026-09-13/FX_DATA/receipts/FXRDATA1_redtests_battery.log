@@ -1,0 +1,33 @@
+# FXR-DATA-1 red tests + mutation check — FX-DATA 2026-09-16
+## battery at HEAD
+RT1_v1_calls_a_halted_name_tradable_for_23h55              [A  ] PASS
+RT1_v2_refuses_to_answer_payability_from_the_proxy         [A  ] PASS
+RT2_identical_marks_different_settlement_v1_books_zero_in_both [A+B] PASS
+RT3_nodata_is_unknown_activity_not_proven_ineligibility    [A  ] PASS
+RT4_no_path_writes_zero_for_an_unpriced_exit               [B  ] PASS
+RT5_no_transition_reads_the_future                         [B  ] PASS
+RT6_net_number_carries_the_register_interval               [B  ] PASS
+RT7_exit_price_window_must_be_free_of_clipped_bars         [C  ] PASS
+RT0_no_default_window_and_no_default_stress_basis          [A+B] PASS
+SUMMARY 9/9 cells pass
+rc=0
+
+## mutation check (each guard removed on a scratch copy; the intended cell must go red)
+M1_window_default              rc=1  red=['RT0_no_default_window_and_no_default_stress_basis']
+M2_stress_basis_default        rc=1  red=['RT0_no_default_window_and_no_default_stress_basis']
+M3_unpriceable_books_zero      rc=1  red=['RT4_no_path_writes_zero_for_an_unpriced_exit']
+M4_evidence_without_price      rc=1  red=['RT4_no_path_writes_zero_for_an_unpriced_exit']
+M5b_report_quotes_bare_point   rc=1  red=['RT6_net_number_carries_the_register_interval']
+M6_nodata_claims_inactive      rc=1  red=['RT3_nodata_is_unknown_activity_not_proven_ineligibility']
+M7_payable_answers             rc=1  red=['RT1_v2_refuses_to_answer_payability_from_the_proxy']
+M8_frozen_close_is_reliable    rc=1  red=['RT2_identical_marks_different_settlement_v1_books_zero_in_both']
+M9_transition_reads_future     rc=1  red=['RT5_no_transition_reads_the_future']
+restored rc=0 (SUMMARY 9/9 cells pass)
+ALL 9 MUTATIONS CAUGHT, each by exactly the intended cell
+
+## a discarded first attempt at M5, kept because it is the lesson
+The first M5 inserted a return above 'if not un:' and left that branch with no body -> IndentationError.
+The battery then exited rc=1 with NO named red cell (red=[]). rc=1 with no named cell is a CRASHED battery,
+not a caught mutation; reading it as 'caught' would have been the same error family as treating a backgrounded
+job's exit as its result. M5 was rewritten to the real defect shape (report_net quoting a bare point while
+unresolved episodes exist) and then went red on RT6 as intended.
