@@ -1,0 +1,23 @@
+# EXE-04 red on the REAL reconcile()  2026-09-16T03:50:00Z
+# clone head=a17ff6393a0dffab7e65a493d098b0e5554bb21a  reconcile.py sha256=8f32072038e54569bca2366b8820300374009400662a64a5ace92f73beac4ebe
+# script sha256=3ae12da1aeb3e6562d30c6e2705da1e19e54bbec3c8d8fb23d04be095ce37d03
+==============================================================================
+REAL reconcile() on the reviewer's Q6 fixture
+==============================================================================
+
+window 1 (two legs filled 25 each = 50 explained; venue reads 80)
+  anomalies at this anchor : 1
+     kind=quantity_residual residual_qty=30.0 residual_usdt=30.0
+  residual vector          : {"residual_qty": 30.0, "residual_usdt_signed": 30.0, "residual_qty_raw": 30.0, "authorised_band_qty": [0.0, 0.0], "expected_qty": 50.0, "observed_qty": 80.0, "mark_used": 1.0, "mark_source": "readback(T2) notional / qty"}
+
+window 2 (NOTHING filled; venue still reads 80)
+  anomalies at this anchor : 0
+  residual vector          : {"residual_qty": 0.0, "residual_usdt_signed": 0.0, "residual_qty_raw": 0.0, "authorised_band_qty": [0.0, 0.0], "expected_qty": 80.0, "observed_qty": 80.0, "mark_used": 1.0, "mark_source": "readback(T2) notional / qty"}
+
+==============================================================================
+VERDICT  window 1 anomalies = 1   window 2 anomalies = 0
+RED AS EXPECTED: the 30 that window 1 could not explain is GONE at window 2 — it was
+absorbed into the new baseline (reconcile.py:693-720 takes the previous readback's
+observed qty as `q1`, and :848 sets `prev_rb = cur`). Nothing explained it, nothing
+resolved it, and no gate can see it any more. This is EXE-04 / Q6, unfixed.
+# rc=0

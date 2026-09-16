@@ -1,0 +1,44 @@
+# TEST-01 incidental red — caught during my own dry battery, unplanned
+# captured 2026-09-16T03:53:50Z  clone head=a17ff6393a0dffab7e65a493d098b0e5554bb21a
+
+The dry battery ran live/tests_reduce_only_clamp.py at 03:53:24Z. Immediately after, the
+CLONE's real state root contained a freshly written venue ban:
+
+-rw-r--r--@ 1 haosiyu  staff  658 Sep 16 11:53 state/venue_ban.json
+{
+ "hosts": {
+  "fapi.binance.com": {
+   "until_epoch": 1787806528.651,
+   "observed_utc": "2026-08-27T04:51:31Z",
+   "raw_msg": "Way too many requests; IP(103.252.201.68) banned until 1787806528651. Please use the websocket for live updates to avoid bans.",
+   "n_observed": 1
+  },
+  "testnet.binancefuture.com": {
+   "until_epoch": null,
+   "observed_utc": "2026-09-16T03:53:24Z",
+   "raw_msg": "Too many requests",
+   "n_observed": 1
+  }
+ },
+ "written_utc": "2026-09-16T03:53:24Z",
+ "meaning": "venue rate-ban deadlines per IP x host. Any process may write; every reader takes the MAX of disk and memory, so a stale copy can only ever be more cautious."
+}
+
+Compare the LIVE tree's row (read-only, never touched by me):
+{
+ "testnet.binancefuture.com": {
+  "until_epoch": null,
+  "observed_utc": "2026-09-13T11:58:21Z",
+  "raw_msg": "Too many requests",
+  "n_observed": 1
+ },
+ "written_utc": "2026-09-13T11:58:21Z"
+}
+
+SAME SHAPE: host testnet.binancefuture.com, raw_msg 'Too many requests', until_epoch null.
+The live one is stamped 2026-09-13T11:58:21Z — inside the acceptance battery that ran on the
+RUNNING tree at deployment. The clone one is stamped today, from my own dry run.
+
+The fapi.binance.com row (2026-08-27T04:51:31Z, a REAL ban with a real deadline) is present
+in both and is NOT overwritten: the writer adds a host key. That is why the live file must
+be kept — deleting it to clean up the test row would destroy the genuine ban record.

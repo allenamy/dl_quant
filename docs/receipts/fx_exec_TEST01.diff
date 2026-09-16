@@ -1,0 +1,139 @@
+diff --git a/live/tests_disposition_matrix.py b/live/tests_disposition_matrix.py
+index 02e84af..34c62ed 100644
+--- a/live/tests_disposition_matrix.py
++++ b/live/tests_disposition_matrix.py
+@@ -699,7 +699,15 @@ def _flatten_event_log(path=_FLAT_EVENTS):
+     An unreadable line contributes NOTHING to `actions` — no part of a record that cannot be read is trusted — and the caller
+     names it NOT OBSERVABLE: the event side IS the population (R3-A2), so a record nobody can read is a batch nobody can rule
+     out. Before E3 a JSON-error / bad-ts line was skipped in silence: that failed closed only while the ledger still held the
+-    batch's rows; with both sides gone the batch vanished from both sets and the completeness cell stayed green."""
++    batch's rows; with both sides gone the batch vanished from both sets and the completeness cell stayed green.
++    ★★★ AND THAT LAST CASE IS STILL NOT DETECTED — the past tense above is about the SILENT SKIP, not about the
++    both-sides-gone hole (correction 2026-09-16, independent review REVIEW_fixprogram_progress_2026-09-14 §7.1).
++    E3 turns an UNREADABLE line into a named NOT OBSERVABLE entry; a line that was DELETED OUTRIGHT leaves nothing to be
++    unreadable, so if the ledger rows for that batch are gone too, the batch is absent from both populations and this
++    cell is green for the same reason it was before. There is no second source to contradict it. ⇒ Nothing here licenses
++    "all batches are complete"; that statement needs the independent notarisation / prefix integrity of E10, which is
++    written but NOT yet delivered as evidence over this window. (My own E2/E3 report already listed this as unproven —
++    "事件日志整行丢失仍不可见(无第二来源)" — but this docstring did not say so, and the docstring is what a reader meets.)"""
+     if not os.path.exists(path):
+         return None, []
+     out, bad = {}, []
+diff --git a/live/tests_transport_resilience.py b/live/tests_transport_resilience.py
+index 9cf520d..b8780de 100644
+--- a/live/tests_transport_resilience.py
++++ b/live/tests_transport_resilience.py
+@@ -40,6 +40,50 @@ REPO = os.path.dirname(HERE)
+ for _d in ("live", "ops", "scheduler"):
+     sys.path.insert(0, os.path.join(REPO, _d))
+ 
++# ═══ TEST-01: A TEST MUST NOT BE ABLE TO BAN PRODUCTION ═══════════════════════════════════════
++# ★★★ THIS SUITE FEEDS A REAL 429 / -1003 "Too many requests" INTO `submit()` (see the [E-0909-D]
++#     cells below), and `rate_budget` PERSISTS the ban it observes — `ban_path()` falls back to
++#     `state_root.paths_for(mode)["root"]/venue_ban.json` unless `LIVE_VENUE_BAN_STATE` redirects
++#     it. This file set no redirect, so every run wrote a venue ban into the SHARED state tree.
++#     `live/tests_cancel_ban_resilience.py` already redirects it and states the rule in as many
++#     words ("A test must not be able to ban or unban production"); `rate_budget.ban_path`'s own
++#     docstring calls the redirect "not a convenience, a firebreak". Neither reached this file.
++#
++# ★★ AND IT IS NOT ONE SUITE. This file is EXEC'd as a fixture by `tests_reduce_only_clamp`,
++#    `tests_request_identity_unknown` and `tests_flatten_fee_backfill`, so the redirect belongs
++#    HERE rather than in any one of them — measured 2026-09-16, all four wrote the ban before this
++#    line existed, all four stopped after it (receipts TEST01_probe_RED / _GREEN). A bisect over
++#    suites finds one of the four; the cause is the shared fixture.
++#
++# ★ MEASURED IN PRODUCTION, which is why this is a P1 and not tidiness: `~/dl_quant_live/state/
++#   venue_ban.json` carries `testnet.binancefuture.com` / "Too many requests" / `until_epoch: null`
++#   stamped 2026-09-13T11:58:21Z — inside the acceptance battery run on the RUNNING tree at
++#   deployment. It is inert (no deadline ⇒ not banned; and every reader takes the MAX of disk and
++#   memory, so a stale copy can only be more cautious), and the file is KEPT because the
++#   `fapi.binance.com` row beside it is a genuine 2026-08-27 ban record. The mechanism is the bug.
++os.environ["LIVE_VENUE_BAN_STATE"] = os.path.join(
++    __import__("tempfile").mkdtemp(prefix="t01_ban_"), "venue_ban.json")
++
++
++def _real_ban_state_path():
++    """The path the ban WOULD go to without the redirect above — what this suite must not touch."""
++    import state_root as _SR
++    return os.path.join(_SR.paths_for(os.environ.get("LIVE_MODE", "DRY_RUN"))["root"],
++                        "venue_ban.json")
++
++
++def _ban_fingerprint():
++    """(exists, mtime_ns, sha256) of the real file — None-safe, so 'absent' is a state, not a crash."""
++    import hashlib
++    p = _real_ban_state_path()
++    if not os.path.exists(p):
++        return (False, None, None)
++    with open(p, "rb") as fh:
++        return (True, os.stat(p).st_mtime_ns, hashlib.sha256(fh.read()).hexdigest())
++
++
++_BAN_FINGERPRINT_AT_IMPORT = _ban_fingerprint()
++
+ import binance_broker as BB                 # noqa: E402
+ import binance_executor as BE               # noqa: E402
+ import order_disposition as OD              # noqa: E402
+@@ -830,5 +874,36 @@ _be_src = open(os.path.join(REPO, "live", "binance_executor.py"), encoding="utf-
+ check("★★ all three submit sites (maker / requote / top-up) catch VenueTransportError before VenueError",
+       _be_src.count("except VenueTransportError as e:") == 3)
+ 
++# ═══ [T01] CAPABILITY: this suite cannot ban production ═══════════════════════════════════════
++# ★★★ LAST, SO IT COVERS EVERY CELL ABOVE. The redirect at the top of this file is a claim about
++#     where the ban goes; this is the measurement of where it did NOT go. A test that exercises
++#     rate-limit handling and a test that can WRITE a rate-limit ban into the shared tree are one
++#     line apart, and the difference has no other signature: the ban file is not an output anybody
++#     reads after a suite, so it went unnoticed from 2026-09-13 until FX-W6C bisected for it.
++# ★ It compares (exists, mtime_ns, sha256) — mtime alone would miss a rewrite inside the same
++#   nanosecond tick and a sha alone would miss a touch, and "absent" is a state rather than a
++#   crash, so a clean tree with no ban file at all passes for the right reason.
++print("\n[T01] this suite cannot write a venue ban into the real state tree")
++_ban_now = _ban_fingerprint()
++check("★★★ the REAL state root's venue_ban.json is untouched by this suite — same existence, same "
++      "mtime, same bytes as at import (a test must not be able to ban or unban production)",
++      _ban_now == _BAN_FINGERPRINT_AT_IMPORT,
++      {"at_import": _BAN_FINGERPRINT_AT_IMPORT, "now": _ban_now, "real_path": _real_ban_state_path()})
++check("★★ …and the redirect really is pointing somewhere else (otherwise the cell above would be "
++      "comparing the file with itself and would pass no matter what)",
++      os.environ.get("LIVE_VENUE_BAN_STATE")
++      and os.path.abspath(os.environ["LIVE_VENUE_BAN_STATE"]) != os.path.abspath(_real_ban_state_path()),
++      (os.environ.get("LIVE_VENUE_BAN_STATE"), _real_ban_state_path()))
++import rate_budget as _RB_T01                 # noqa: E402
++check("★★ …and rate_budget agrees that is where it would write (the redirect is read by the WRITER, "
++      "not merely set in this process's environment)",
++      os.path.abspath(_RB_T01.ban_path() or "") == os.path.abspath(os.environ["LIVE_VENUE_BAN_STATE"]),
++      (_RB_T01.ban_path(), os.environ.get("LIVE_VENUE_BAN_STATE")))
++check("★★★ …and the ban this suite DID observe was actually recorded somewhere — the redirect "
++      "silences the write into production WITHOUT silencing the ban itself, which would make the "
++      "429 cells vacuous",
++      os.path.exists(os.environ["LIVE_VENUE_BAN_STATE"]),
++      os.environ.get("LIVE_VENUE_BAN_STATE"))
++
+ print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
+ sys.exit(1 if FAILS else 0)
+diff --git a/signal/legs.py b/signal/legs.py
+index 103398c..fe8797f 100644
+--- a/signal/legs.py
++++ b/signal/legs.py
+@@ -140,6 +140,21 @@ def reshape_after_withhold(w, sizing_gross, redemean=True, rescale=True,
+     ★ TWO SWITCHES, TWO JUSTIFICATIONS, SEPARATELY REVERTIBLE (lead's ruling):
+         redemean — neutrality is the foundation of the risk argument. Order-preserving (a uniform
+                    shift and an L1 rescale both preserve rank), so no alpha is given up.
++                   ★★★ CORRECTION (2026-09-16, independent review REVIEW_fixprogram_progress_
++                   2026-09-14 §7.1; the sentence above is kept VERBATIM and marked false here,
++                   per FIXPROGRAM §11). "so no alpha is given up" DOES NOT FOLLOW. Rank
++                   preservation is not alpha preservation: the book's P&L is a function of the
++                   VALUES and SIGNS of the weights, not of their order. The reviewer re-ran this
++                   very function and got
++                       [+0.40, -0.59, -0.01]  ->  [+0.44586, -0.50, +0.05414]
++                   — the ranking is preserved and the small SHORT becomes a LONG. Measured at
++                   book scale (EXE-03 / PROD-25): of 109 combo anchors, 99 flip the direction of
++                   a small position once names are withheld, and on 09-13 12Z 91.363% of the
++                   remaining net short came from the producer's own net short rather than from
++                   the withheld names. What survives of the original claim: the transform is
++                   order-preserving. What does not: the inference from that to "no alpha lost".
++                   Also unproven either way: producer and executor hold DIFFERENT intents after
++                   reshaping, and a two-sided-scaling alternative has not been measured.
+         rescale  — leverage is a RISK DECISION and must not be a by-product of tradability.
+       They are approved together and must stay independently revertible; welded into one function
+       neither could be rolled back alone.
