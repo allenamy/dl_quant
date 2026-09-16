@@ -110,3 +110,21 @@ Device `fx/p12_state_h_census.py`, product `work/p12/P12_CENSUS.json`; read-only
 | 12.6 | The cost of a missing predecessor is measurable and was paid once. `state_H_f10_1788033600.npz` (2026-08-29 20Z) does not exist because that anchor produced nothing at all (27.5), so 2026-08-30 00Z ran with **`h_source: "king_fallback"`** and `self_parity_maxdw` **6.58e-3** against ~2.3–3.2e-10 on every other anchor — the only `king_fallback` and the worst self-parity in 136 `target_blend` files. Nothing pages on `h_source`, and at that anchor `combo_stage` had silently skipped, so the sidecar wrote the record alone | `state/target_blend/*.json` census; census row | VERIFIED(data) |
 | 12.7 | The sidecar's `LAST` is an in-memory shell variable (`sidecar_daemon.sh` L4), so after a restart it reprocesses `ls -t target_live/*.json | head -1` — a **past** anchor — and overwrites that anchor's chain state hours later. Four occurrences: 08-24 08Z (+2.84 h), 08-29 16Z (+7.50 h, at the 23:28Z reboot), 08-30 04Z (+1.09 h), 09-14 12Z (+3.79 h, at the 15:43Z reboot); three anchors were run twice | `sidecar_daemon.log`; `sidecar_daemon.sh` L4-11 | VERIFIED(code+data) |
 | 12.8 | Those four reruns did **not** pull post-anchor market data: each took 0.8–2.4 s and logged no `171 管线` rebuild, i.e. each reused its own anchor's `mini/cache.npz` (the 11 slow runs that did rebuild took 33–49 s: the ten pre-combo commissioning anchors 08-24 12Z..08-26 00Z, plus 08-30 00Z where combo had skipped so no cache existed). The mechanism is not proven safe in general — the cache check is on the anchor only — but it has not misfired. Two of the four did feed a live combo anchor a state file rewritten hours after its nominal anchor: 08-30 04Z → consumed by 08-30 08Z, 09-14 12Z → consumed by 09-14 16Z, both with `h_source: own` | `sidecar_daemon.log` elapsed and pipeline lines | VERIFIED(data) |
+
+### PROD-27 addendum — warning levels derived before the fix is written
+27.8 establishes that there is no drift toward the deadline, so a "warn before the margin reaches zero" rule has to be a **level** rule whose firing rate is known in advance. Exceedance counts over the 125 combo-era anchors (21 days), and over the last 14 days separately because margins are widening:
+
+| threshold | m_gate < t (125 anchors) | per 30d | m_gate < t (last 14d, n=84) | m_bail < t (125) | per 30d | m_bail < t (last 14d) | m_read < t (125) |
+|---|---|---|---|---|---|---|---|
+| 15 s | 1 | 1.4 | 0 | 3 | 4.3 | 1 | 0 |
+| 20 s | 1 | 1.4 | 0 | 5 | 7.1 | 1 | 0 |
+| 30 s | 1 | 1.4 | 0 | 20 | 28.6 | 6 | 0 |
+| 45 s | 1 | 1.4 | 0 | 39 | 55.7 | 9 | 0 |
+| **50 s** | **2** | **2.9** | **0** | 46 | 65.7 | 12 | 0 |
+| 60 s | 13 | 18.6 | 2 | 61 | 87.1 | 21 | 0 |
+| 90 s | 57 | 81.4 | 16 | 83 | 118.6 | 43 | 1 |
+
+| # | Fact | Evidence | Label |
+|---|---|---|---|
+| 27.17 | **Pre-declared levels for the fix**, chosen from the table above before any code was written: `m_gate < 50 s` ⇒ WARN (would have fired 2 times in 125 anchors, 0 in the last 14 days — and both firings are the two anchors that came closest to the silent skip: 08-30 00Z at −112.8 s and 08-27 16Z at +49.1 s); `m_bail < 20 s` ⇒ WARN (5 in 125, 1 in the last 14 days). 60 s on m_gate (13 firings) and 30 s on m_bail (20 firings) are rejected as too noisy for a page. `m_read` needs no level of its own: 0 firings below 90 s, and it is implied by m_bail | census exceedance table | VERIFIED(data) |
+| 27.18 | Because a single breach carries little information at these rates, the **counted** rate is the signal, not the individual event: each WARN carries its own 30-day count for the same reason, and escalation to HIGH is on two consecutive anchors breaching or a 30-day count above 12 (against an observed full-window rate of 7.1/30 d at the m_bail level and 2.1/30 d in the last 14 days). The levels are config, not literals, so a reviewer can re-derive them from the census | design, pre-declared | PRE-DECLARED(not yet implemented) |
