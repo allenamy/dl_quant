@@ -10,9 +10,6 @@ params.cap_mult) and ~/wide_shadow/state/target_live_king/<A>.json (king-form bo
 
 Cache layout (asserted at run time, verified against shadow_loop_v3.py 2026-09-06): ts = bar CLOSE times (open_time+5min), step 300 s, 40-day tail;
 data (T, 829, 7) float16 with channels [ret5, rng, cpos, lqv, lcnt, lasz, tbf] and clips CHN_CLIPS — identical to the pod ext cache used by the
-
-# ⚠ 更正 DEV-08 · P2 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): 前向日志改读记账口径: 以原始 1m/5m 收盘价(未裁剪, float64)或 v4 记账元重算 onset 与 τ→下一锚收益; 在改之前, 日志与复判读数标注「裁剪缓存口径(E-0908-B 同族), 尾部为下界」并统计 |ret5|=0.30 饱和格数
-
 event study (crash_continuation.py / crash_stratum.py), so the same detection code applies.
 
 Per run: every anchor A with a target file whose interval [A, A+4h] is fully covered by the cache (rows through A+4h) and not yet logged:

@@ -1,0 +1,25 @@
+FX-W6C battery 2026-09-16T05:22:40Z — PUBLIC REQUEST WEIGHT (the §8 ruling's condition)
+
+Source: the rate budget's OWN record, state/rate_timeline/anchor.json, written by the run.
+Its caliber line: "one row per request we made (ts, host, tag, path, weight/request/order flags)
+and one per venue header reading. No probe request is ever sent for this. Nothing decides on it."
+⇒ so 566 rows = 283 requests + 283 header readings. cap 6000, dropped 0.
+
+  host                path                  requests   weight
+  fapi.binance.com    /fapi/v1/klines            140      715   (137 @ w5, 3 @ w10)
+  fapi.binance.com    /fapi/v1/fundingRate       140      140
+  fapi.binance.com    /fapi/v1/exchangeInfo        2        2
+  fapi.binance.com    /fapi/v1/fundingInfo         1        1
+  TOTAL                                          283      858
+  ORDERS PLACED                                    0            (DRY_RUN, no credentials, no .env)
+
+All inside 05:23:18Z..05:24:11Z (53 s), i.e. the DRY_RUN run_anchor that tests_entrypoint_wiring
+drives. Against the budget's own cap of 6000 this is 14.3%.
+
+NOT COVERED BY THIS TABLE, and named rather than left out:
+  · the Hyperliquid public probe watchdog_inputs.public_path_alive makes — a different host, not
+    routed through this budget file. The run log records it as
+    `public_path={'alive': True, 'ms': 127, 'n_markets': 234}`.
+  · tests_signal_and_loop's GET /fapi/v1/ticker/bookTicker (documented weight 5 in
+    binance_broker._WEIGHTS), established by the dead-proxy control earlier today. It does not
+    appear in this file, so the true battery total is at least 858 + 5.

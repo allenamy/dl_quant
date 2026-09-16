@@ -39,9 +39,6 @@ for k, p in snap_p.items():
                "combo_rc": cb.get("rc"), "target_live_Linf": cb.get("target_live_Linf"), "target_combo_Linf": cb.get("target_combo_Linf"), "rc_line": rc[k],
                "rolling_sha256": d["rolling_sha256"], "aux_sha256": d["aux_sha256"]}
 combo_ok = all(v["combo_rc"] == 0 and v["target_live_Linf"] is not None and v["target_live_Linf"] <= 1e-6 and v["rc_line"] == "rc=0" for v in snap.values())
-
-# ⚠ 更正 DEV-11 · P2 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): G2-C 判官冻结 slot→anchor 映射, 断言每份收据恰一锚、集合无重漏, 并核 prep/输入身份与执行收据一致; 修前 G2-C PASS 只作「三份真实收据已人工核对」的描述
-
 V = {"device": os.path.abspath(__file__), "self_sha256": sha(os.path.abspath(__file__)), "env": dict(os.environ), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
      "prep_receipt_sha256": sha(f"{P2}/receipts/G2C_prep.json"), "chain_receipt": chain_p, "chain_receipt_sha256": sha(chain_p), "chain_rc_line": rc["chain"],
      "chain_start_diag": C.get("chain_start_diag"), "phase1_chain_start_diag": P1.get("chain_start_diag"), "chain_rolling_sha256": C.get("rolling_sha256"), "chain_aux_sha256": C.get("aux_sha256"),

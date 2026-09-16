@@ -13,9 +13,6 @@ for s in $SEEDS; do
   [ -f $SL ] || { echo "missing SLOW $SL"; exit 3; }
   bash run_arm.sh V4_${ARM}_dyn_s$s v4 w10_health.py $COMMON SLOW_NPY=$SL FSEED=$s FPRED=$FP > $H/dev_v4/logs/V4_${ARM}_dyn_s$s.out 2>&1 & pids+=($!); names+=("dyn_s$s")
   bash run_arm.sh V4_${ARM}_fix_s$s v4 w10_health.py $COMMON SLOW_NPY=$SL FSEED=$s FPRED=$FP W3FIX=0.21,0,0.79 > $H/dev_v4/logs/V4_${ARM}_fix_s$s.out 2>&1 & pids+=($!); names+=("fix_s$s")
-
-  # ⚠ 更正 DEV-03 · P2 · AUD-KB K4 2026-09-16(原句字节保留, 不改写): 固定席位臂仅作描述(不出 verdict), 或按预注册改为「被判窗动态席位均值」(A0 冻结窗 0.5338); verdict 以动态席位为准
-
 done
 rcs=(); k=0; bad=0
 for p in "${pids[@]}"; do wait $p; rc=$?; rcs+=($rc); [ $rc -eq 0 ] || bad=1; echo "arm V4_${ARM}_${names[$k]} pid $p rc=$rc"; k=$((k + 1)); done
