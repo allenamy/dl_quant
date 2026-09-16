@@ -1,0 +1,493 @@
+diff --git a/live/binance_broker.py b/live/binance_broker.py
+index 6f10dea..2d5ecb8 100644
+--- a/live/binance_broker.py
++++ b/live/binance_broker.py
+@@ -54,6 +54,7 @@ import http.client
+ import json
+ import os
+ import re
++import math
+ import time
+ import itertools
+ import urllib.parse
+@@ -1565,6 +1566,21 @@ class BinanceBroker:
+                                  "reason": reason, "ts": time.time()})
+             raise OpeningHalted("opening-direction order refused: open_orders_halted is set")
+ 
++        # ★ R16RF-E1 (独立复审第三轮 2026-09-17): 数量的最终有限性门, 在每一张单都必经的这一处, 且在 DRY_RUN 分支**之前**
++        #   (DRY_RUN 也不得把 NaN 记成「已提交」)。复审实跑: broker 保留 NaN 后, 陈旧信号 DERISK 的 _scale_to 把 NaN 当数量
++        #   一路送到这里, 183915f 真的 POST 了 quantity='nan' reduceOnly='true'。未知数量永远不上线。
++        #   用 OpeningHalted 的子类: 它就是「进程内、上线前的拒绝」这一类, 每个调用方对它的处理已在生产里跑过。
++        _q = order.get("quantity")
++        try:
++            _q_ok = math.isfinite(float(_q))
++        except (TypeError, ValueError, OverflowError):
++            _q_ok = False
++        if not _q_ok:
++            self.actions.append({"action": "submit_refused_nonfinite_quantity", "order": order, "raw_quantity": repr(_q),
++                                 "reason": reason, "ts": time.time(),
++                                 "why": "order quantity is NOT a finite number — an UNKNOWN size is never sent (R16RF-E1)"})
++            raise QuantityNotFinite(f"order quantity {_q!r} for {order.get('symbol')} is not a finite number — refused before the wire")
++
+         if self.mode == "DRY_RUN" or not self.armed:
+             self.actions.append({"action": "submit_dry_run", "order": order, "reason": reason,
+                                  "ts": time.time()})
+@@ -2234,6 +2250,11 @@ class BinanceBroker:
+             return False
+ 
+ 
++class QuantityNotFinite(OpeningHalted):
++    """An order whose quantity is not a finite number is refused in-process, before the wire (R16RF-E1). It is a
++    subclass of OpeningHalted on purpose: same class of event (our own refusal, not a venue answer), same propagation."""
++
++
+ class VenueError(RuntimeError):
+     def __init__(self, code, msg, http=None):
+         self.code, self.msg, self.http = code, msg, http
+diff --git a/live/tests_broker_nonfinite_positions.py b/live/tests_broker_nonfinite_positions.py
+index 8703747..868d875 100644
+--- a/live/tests_broker_nonfinite_positions.py
++++ b/live/tests_broker_nonfinite_positions.py
+@@ -1,37 +1,58 @@
+ #!/usr/bin/env python3
+-"""R16R-E1 (independent review, second round, 2026-09-16): a position quantity that is not a finite number is UNKNOWN.
++"""R16R-E1 + R16RF-E1 (independent review, rounds 2 and 3, 2026-09-16/17): a quantity that is not a finite number is UNKNOWN,
++at EVERY consumer, and is never sent.
+ 
+-WHY THIS FILE EXISTS. The first-round E1 fix taught `watchdog._local_response` to treat a non-finite quantity as
+-unknown. But the BROKER's `positions()` filtered on `abs(float(x)) > 0`, which is False for NaN — so a NaN
+-`positionAmt` never reached the watchdog: the account looked flat, stage 1 of the degradation ladder reported
+-`stage1_ok=True, flat_on_reread=True`, and `flatten_all` given a non-finite quantity built and SENT an order.
+-"存在但不是有限数 = 仓位未知, 不是仓位为零" has to hold at the first place the number is parsed.
++Round 2 taught `positions()` to keep NaN/±inf (unknown ≠ zero), `flatten_all` to skip them, and stage 1 of the ladder to
++list them as unknown. Round 3 found the consumer that round 2 had NOT covered: the stale-signal DERISK path
++`positions()` → `AnchorLoop._scale_to` → `submit`, which wrote the now-preserved NaN into `stale_ref_contracts`, computed
++`cut = NaN` (`abs(NaN) < 1e-9` is False, so nothing skipped) and POSTed `quantity='nan' reduceOnly='true'` — a downstream
++REGRESSION exposed by the round-2 fix. And `submit` itself had no finiteness gate.
+ 
+-Three behaviours, each pre/post:
+-  [1] BinanceBroker.positions()  — REAL method, only `_request` stubbed — keeps NaN and ±inf, drops exact 0
+-  [2] BinanceBroker.flatten_all() — REAL method — given only non-finite quantities builds NO order, records
+-      `flatten_skip_nonfinite` per symbol, never reaches submission (so no submit stub is needed)
+-  [3] watchdog._degradation_ladder stage 1 — fed what THIS tree's broker returns for a NaN account:
+-      ok is False and the name is listed as unknown; finite and empty books unchanged
+-  [C] control: pre-fix broker+watchdog from git (defect shape: positions() has no non-finite branch) → the
+-      NaN account becomes an empty book and stage 1 passes; flatten_all attempts submission — RED
+-The control is reported UNAVAILABLE (exit 3) if no ancestor carries the pre-fix shape; never faked.
+-DRY_RUN is not used: `positions()` returns {} in DRY_RUN and the parse under test would never run.
++Everything here runs the REAL methods with only the wire replaced: `_request` is a recorder that answers a GET with the
++synthetic account and a POST with a minimal order ack. The probe broker is ARMED and not halted, so a submit reaches the
++recorder exactly as it would reach the venue (the round-2 test's "any exception ⇒ submitted" was not evidence of transport;
++this one counts the POSTs). `_scale_to` is lifted from the anchor_loop source by AST (it uses only self.broker and
++self.alarm), so the consumer under test is the production function, not a re-implementation.
++
++Three sources, pinned by commit and verified by shape:
++  facdf24  broker drops NaN                → DERISK sees no position: 0 POST, silently nothing (wrong, but silent)
++  183915f  broker keeps NaN, DERISK unfixed → 1 POST with quantity 'nan' (the round-3 finding)
++  current  both fixed                      → 0 POST, name listed in derisk_unknown, HIGH alarm; finite names cut as before
++Missing pinned sources ⇒ UNAVAILABLE (exit 3), never faked.
+ """
+-import importlib.util, os, subprocess, sys, tempfile
++import ast, importlib.util, math, os, subprocess, sys, tempfile, types
+ HERE = os.path.dirname(os.path.abspath(__file__)); REPO = os.path.dirname(HERE)
+ for d in ("live", "ops", "scheduler", "signal"): sys.path.insert(0, os.path.join(REPO, d))
++from typing import Dict, Any, List, Optional  # noqa: E402
+ FAILS, N = [], [0]
+ def check(name, ok, detail=None):
+     N[0] += 1
+     if not ok: FAILS.append(name)
+-    print(("  OK   " if ok else "  FAIL ") + name + (("  — " + str(detail)[:240]) if detail is not None else ""), flush=True)
++    print(("  OK   " if ok else "  FAIL ") + name + (("  — " + str(detail)[:260]) if detail is not None else ""), flush=True)
+ def load(path, name):
+     spec = importlib.util.spec_from_file_location(name, path); m = importlib.util.module_from_spec(spec)
+     sys.modules[name] = m; spec.loader.exec_module(m); return m
++def lift_scale_to(src_path):
++    """AnchorLoop._scale_to as a plain function, compiled from the source file (no module import)."""
++    tree = ast.parse(open(src_path, encoding="utf-8").read())
++    for node in ast.walk(tree):
++        if isinstance(node, ast.ClassDef) and node.name == "AnchorLoop":
++            for f in node.body:
++                if isinstance(f, ast.FunctionDef) and f.name == "_scale_to":
++                    mod = ast.Module(body=[f], type_ignores=[]); ast.fix_missing_locations(mod)
++                    ns = {"Dict": Dict, "Any": Any, "List": List, "Optional": Optional, "math": math}
++                    exec(compile(mod, src_path, "exec"), ns); return ns["_scale_to"]
++    raise RuntimeError("AnchorLoop._scale_to not found in " + src_path)
++def fin(x):
++    try: return math.isfinite(float(x))
++    except (TypeError, ValueError, OverflowError): return False
++
+ NAN_ACCT = {"positions": [{"symbol": "NANUSDT", "positionAmt": "nan"}, {"symbol": "ZEROUSDT", "positionAmt": "0"}]}
++MIX_ACCT = {"positions": [{"symbol": "NANUSDT", "positionAmt": "nan"}, {"symbol": "TENUSDT", "positionAmt": "10"}]}
++TEN_ACCT = {"positions": [{"symbol": "TENUSDT", "positionAmt": "10"}]}
+ FULL_ACCT = {"positions": [{"symbol": "NANUSDT", "positionAmt": "nan"}, {"symbol": "INFUSDT", "positionAmt": "1e9999"},
+                            {"symbol": "TENUSDT", "positionAmt": "10"}, {"symbol": "ZEROUSDT", "positionAmt": "0"}]}
++
+ class FakeForLadder:
+     def __init__(self, pos): self._pos = pos; self.actions = []; self.flattened = []
+     def halt_opening_orders(self, r): pass
+@@ -43,64 +64,109 @@ class FakeForLadder:
+         self.flattened.append(dict(held)); self._pos = {k: 0.0 for k in self._pos}
+         self.actions.append({"action": "flatten_all", "orders": []}); return []
+ 
+-def arms(bb_path, wd_path, tag):
+-    BB = load(bb_path, "bb_" + tag); WD = load(wd_path, "wd_" + tag)
+-    class Probe(BB.BinanceBroker):                      # real positions()/flatten_all(); only the wire is replaced
+-        def __init__(self, acct): self.mode = "LIVE"; self.actions = []; self._acct = acct
+-        def _request(self, *a, **k): return self._acct
++def arms(bb_path, wd_path, al_path, tag, mode="LIVE"):
++    BB = load(bb_path, "bb_" + tag); WD = load(wd_path, "wd_" + tag); scale_to = lift_scale_to(al_path)
++    class Probe(BB.BinanceBroker):                     # real positions()/flatten_all()/submit(); only the wire is replaced
++        def __init__(self, acct):
++            self.mode = mode; self.armed = True; self.open_orders_halted = False; self._consecutive_submit_failures = 0
++            self.actions = []; self._acct = acct; self.posts = []
++        def _request(self, method, path, params=None, signed=False, **k):
++            if method == "POST":
++                self.posts.append(dict(params or {}))
++                return {"orderId": len(self.posts), "status": "NEW", "executedQty": "0", "cumQuote": "0",
++                        "origQty": str((params or {}).get("quantity")), "symbol": (params or {}).get("symbol")}
++            return self._acct
+     r = {}
+     pos = Probe(FULL_ACCT).positions()
+     r["pos_keys"] = sorted(pos); r["nan_kept"] = "NANUSDT" in pos; r["inf_kept"] = "INFUSDT" in pos
+     r["ten_kept"] = "TENUSDT" in pos; r["zero_dropped"] = "ZEROUSDT" not in pos
++    # [2] flatten_all with only non-finite quantities — count the POSTs that reached the wire
+     b = Probe(FULL_ACCT)
+     try:
+-        orders = b.flatten_all({"NANUSDT": float("nan"), "INFUSDT": float("inf")}, "test")
+-        r["flat_orders"] = len(orders); r["flat_submitted"] = False
+-        r["flat_skips"] = sorted(a["symbol"] for a in b.actions if a.get("action") == "flatten_skip_nonfinite")
+-    except Exception as e:                                # noqa: BLE001 — pre-fix reaches submission and fails there
+-        r["flat_orders"] = None; r["flat_submitted"] = True; r["flat_skips"] = []; r["flat_exc"] = f"{type(e).__name__}: {e}"
+-    chain = Probe(NAN_ACCT).positions()                   # what the ladder is handed for a NaN account in THIS tree
+-    r["chain_input"] = {k: repr(v) for k, v in chain.items()}
++        b.flatten_all({"NANUSDT": float("nan"), "INFUSDT": float("inf")}, "test"); r["flat_exc"] = None
++    except Exception as e:                                # noqa: BLE001
++        r["flat_exc"] = f"{type(e).__name__}: {e}"
++    r["flat_posts"] = len(b.posts); r["flat_post_qty_nonfinite"] = [not fin(p.get("quantity")) for p in b.posts]
++    r["flat_skips"] = sorted(a["symbol"] for a in b.actions if a.get("action") == "flatten_skip_nonfinite")
++    # [3] stage 1 of the ladder, fed what THIS broker returns for a NaN account
++    chain = Probe(NAN_ACCT).positions(); r["chain_input"] = {k: repr(v) for k, v in chain.items()}
+     for lab, p in (("chain", chain), ("finite", {"TENUSDT": 10.0}), ("empty", {})):
+         f = FakeForLadder(p); d = tempfile.mkdtemp()
+         o = WD._degradation_ladder(f, dict(p), "test", os.path.join(d, "ALARM.log"), verbose=False, max_retries=2)
+         r[lab] = {"ok": o.get("stage1_ok"), "unknown": o.get("stage1_position_unknown_names"),
+                   "flat_on_reread": o.get("stage1_flat_on_reread"), "flatten_calls": len(f.flattened)}
++    # [4] DERISK: the REAL _scale_to over the REAL positions()/submit(), first stale anchor (no reference yet), frac 0.5
++    for lab, acct in (("derisk_nan", NAN_ACCT), ("derisk_mix", MIX_ACCT), ("derisk_ten", TEN_ACCT)):
++        pb = Probe(acct); alarms = []
++        loop = types.SimpleNamespace(broker=pb, alarm=lambda sev, msg, *a, **k: alarms.append((sev, msg)))
++        state = {"positions": {}, "stale_ref_contracts": None, "stale_ref_positions": None}
++        try:
++            out = scale_to(loop, state, 0.5); exc = None
++        except Exception as e:                            # noqa: BLE001
++            out, exc = {}, f"{type(e).__name__}: {e}"
++        r[lab] = {"posts": [{k: p.get(k) for k in ("symbol", "side", "quantity", "reduceOnly")} for p in pb.posts],
++                  "n_post": len(pb.posts), "post_qty_nonfinite": [not fin(p.get("quantity")) for p in pb.posts],
++                  "derisked": out.get("derisked"), "derisk_unknown": out.get("derisk_unknown"),
++                  "ref": {k: repr(v) for k, v in (state.get("stale_ref_contracts") or {}).items()},
++                  "ref_unknown": state.get("stale_ref_unknown"), "alarm_high": [m for s, m in alarms if s == "HIGH"], "exc": exc}
++    # [5] submit itself, handed a NaN quantity directly (reduce-only, so the halt cannot be what stops it)
++    for lab, md in (("submit_live", "LIVE"), ("submit_dry", "DRY_RUN")):
++        BBm = BB
++        class ProbeM(Probe):
++            def __init__(self, acct): super().__init__(acct); self.mode = md
++        pb = ProbeM(TEN_ACCT)
++        try:
++            ok = pb.submit({"symbol": "NANUSDT", "side": "sell", "quantity": float("nan"), "reduce_only": True, "tif": "IOC"}, "test"); exc = None
++        except Exception as e:                            # noqa: BLE001
++            ok, exc = None, e
++        r[lab] = {"returned": ok, "exc_type": type(exc).__name__ if exc else None,
++                  "is_opening_halted_class": isinstance(exc, BB.OpeningHalted) if exc else False, "n_post": len(pb.posts),
++                  "refused_action": any(a.get("action") == "submit_refused_nonfinite_quantity" for a in pb.actions),
++                  "dry_run_action": any(a.get("action") == "submit_dry_run" for a in pb.actions)}
+     return r
+ 
+ print("[A] current tree")
+-a = arms(os.path.join(HERE, "binance_broker.py"), os.path.join(HERE, "watchdog.py"), "cur")
+-check("★★★ A1 positions(): NaN and ±inf are KEPT (unknown), 10 kept, exact 0 dropped",
+-      a["nan_kept"] and a["inf_kept"] and a["ten_kept"] and a["zero_dropped"], a["pos_keys"])
+-check("★★★ A2 flatten_all(non-finite only): 0 orders, never reaches submission, one flatten_skip_nonfinite per symbol",
+-      a["flat_orders"] == 0 and not a["flat_submitted"] and a["flat_skips"] == ["INFUSDT", "NANUSDT"], (a["flat_orders"], a["flat_submitted"], a["flat_skips"]))
+-check("★★★ A3 stage 1 fed a NaN account through THIS broker: ok False, NANUSDT listed unknown, no flatten call",
+-      a["chain"]["ok"] is False and a["chain"]["unknown"] == ["NANUSDT"] and a["chain"]["flatten_calls"] == 0, (a["chain_input"], a["chain"]))
+-check("★★ A4 finite book still flattens (ok True, one call) and empty book still reads flat (ok True, flat_on_reread True)",
+-      a["finite"]["ok"] is True and a["finite"]["flatten_calls"] == 1 and a["empty"]["ok"] is True and a["empty"]["flat_on_reread"] is True, (a["finite"], a["empty"]))
++a = arms(os.path.join(HERE, "binance_broker.py"), os.path.join(HERE, "watchdog.py"), os.path.join(REPO, "scheduler", "anchor_loop.py"), "cur")
++check("★★★ A1 positions(): NaN and ±inf are KEPT (unknown), 10 kept, exact 0 dropped", a["nan_kept"] and a["inf_kept"] and a["ten_kept"] and a["zero_dropped"], a["pos_keys"])
++check("★★★ A2 flatten_all(non-finite only): 0 POSTs reach the wire, one flatten_skip_nonfinite per symbol", a["flat_posts"] == 0 and a["flat_skips"] == ["INFUSDT", "NANUSDT"], (a["flat_posts"], a["flat_skips"], a["flat_exc"]))
++check("★★★ A3 stage 1 fed a NaN account through THIS broker: ok False, NANUSDT listed unknown, no flatten call", a["chain"]["ok"] is False and a["chain"]["unknown"] == ["NANUSDT"] and a["chain"]["flatten_calls"] == 0, (a["chain_input"], a["chain"]))
++check("★★ A4 finite book still flattens; empty book still reads flat", a["finite"]["ok"] is True and a["finite"]["flatten_calls"] == 1 and a["empty"]["ok"] is True and a["empty"]["flat_on_reread"] is True, (a["finite"], a["empty"]))
++d = a["derisk_nan"]
++check("★★★ A5 DERISK (real _scale_to) on a NaN account: 0 POSTs, NANUSDT in derisk_unknown, NOT in the reference, HIGH alarm — R16RF-E1 closed",
++      d["n_post"] == 0 and d["derisk_unknown"] == ["NANUSDT"] and d["ref"] == {} and d["ref_unknown"] == ["NANUSDT"] and d["alarm_high"] and d["exc"] is None, d)
++m = a["derisk_mix"]
++check("★★★ A6 DERISK on a MIXED account (10 + NaN): exactly one POST — TENUSDT sell 5.0 reduceOnly — and NANUSDT listed unknown",
++      m["n_post"] == 1 and m["posts"][0]["symbol"] == "TENUSDT" and m["posts"][0]["side"] == "SELL" and float(m["posts"][0]["quantity"]) == 5.0
++      and m["posts"][0]["reduceOnly"] == "true" and m["derisk_unknown"] == ["NANUSDT"] and m["derisked"] == ["TENUSDT"], m)
++t = a["derisk_ten"]
++check("★★ A7 DERISK on a finite account is UNCHANGED: one POST TENUSDT sell 5.0 reduceOnly, no unknown", t["n_post"] == 1 and float(t["posts"][0]["quantity"]) == 5.0 and not t["derisk_unknown"], t)
++s1, s2 = a["submit_live"], a["submit_dry"]
++check("★★★ A8 submit(quantity=NaN) LIVE: refused before the wire with an OpeningHalted-class exception, 0 POST, submit_refused_nonfinite_quantity recorded",
++      s1["n_post"] == 0 and s1["is_opening_halted_class"] and s1["refused_action"], s1)
++check("★★ A9 submit(quantity=NaN) DRY_RUN: ALSO refused (the gate sits before the dry-run branch), no submit_dry_run action", s2["n_post"] == 0 and s2["is_opening_halted_class"] and not s2["dry_run_action"], s2)
+ 
+-print("\n[C] red capability: pre-fix broker + watchdog from git (defect shape: no non-finite branch in positions())")
+-pre = None
+-for ref in ("HEAD", "HEAD~1", "HEAD~2", "HEAD~3"):
+-    cb = subprocess.run(["git", "-C", REPO, "show", f"{ref}:live/binance_broker.py"], capture_output=True, text=True)
+-    cw = subprocess.run(["git", "-C", REPO, "show", f"{ref}:live/watchdog.py"], capture_output=True, text=True)
+-    if cb.returncode == 0 and cw.returncode == 0 and "flatten_skip_nonfinite" not in cb.stdout and "_unk1" not in cw.stdout:
+-        pre = (ref, cb.stdout, cw.stdout); break
+-if pre is None:
+-    print("  UNAVAIL C  no ancestor within HEAD..HEAD~3 carries the pre-fix shape — control not run, not faked")
++print("\n[C] red capability: pinned pre-fix sources (verified by shape)")
++def pinned(ref, path, must_lack):
++    c = subprocess.run(["git", "-C", REPO, "show", f"{ref}:{path}"], capture_output=True, text=True)
++    if c.returncode != 0 or any(tok in c.stdout for tok in must_lack): return None
++    p = os.path.join(tempfile.mkdtemp(), os.path.basename(path)); open(p, "w").write(c.stdout); return p
++bb0 = pinned("facdf24", "live/binance_broker.py", ["flatten_skip_nonfinite", "QuantityNotFinite"]); wd0 = pinned("facdf24", "live/watchdog.py", ["_unk1"]); al0 = pinned("facdf24", "scheduler/anchor_loop.py", ["derisk_unknown"])
++bb1 = pinned("183915f", "live/binance_broker.py", ["QuantityNotFinite"]); wd1 = pinned("183915f", "live/watchdog.py", []); al1 = pinned("183915f", "scheduler/anchor_loop.py", ["derisk_unknown"])
++if not all((bb0, wd0, al0, bb1, wd1, al1)):
++    print("  UNAVAIL C  a pinned pre-fix source (facdf24 / 183915f) is unreachable or does not carry the expected shape — control not run, not faked")
+     print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed; control UNAVAILABLE"); sys.exit(3 if not FAILS else 1)
+-print(f"  (control source: {pre[0]})")
+-td = tempfile.mkdtemp(); pb = os.path.join(td, "bb_pre.py"); pw = os.path.join(td, "wd_pre.py")
+-open(pb, "w").write(pre[1]); open(pw, "w").write(pre[2])
+-c = arms(pb, pw, "pre")
+-check("★★★ C1 (PRE-FIX: RED) positions() DROPS NaN (abs(nan)>0 is False) — the account looks flat",
+-      not c["nan_kept"], c["pos_keys"])
+-check("★★★ C2 (PRE-FIX: RED) flatten_all(non-finite) builds orders and reaches submission",
+-      c["flat_submitted"] and c["flat_skips"] == [], c.get("flat_exc"))
+-check("★★★ C3 (PRE-FIX: RED) NaN account → empty book → stage 1 passes silently (ok True, flat_on_reread True) — the reviewer's counterexample",
+-      c["chain_input"] == {} and c["chain"]["ok"] is True and c["chain"]["flat_on_reread"] is True, (c["chain_input"], c["chain"]))
+-check("★★ C4 baseline [A] green and control [C] red on the SAME inputs — the pair is the evidence",
+-      a["nan_kept"] and not c["nan_kept"] and a["chain"]["ok"] is False and c["chain"]["ok"] is True)
++c0 = arms(bb0, wd0, al0, "pre0"); c1 = arms(bb1, wd1, al1, "pre1")
++check("★★★ C1 (facdf24: RED, silent) positions() DROPS NaN; DERISK on the NaN account sees nothing: 0 POST, nothing listed — the unknown position is silently treated as absent",
++      not c0["nan_kept"] and c0["derisk_nan"]["n_post"] == 0 and not c0["derisk_nan"]["derisked"] and c0["derisk_nan"]["derisk_unknown"] is None, (c0["pos_keys"], c0["derisk_nan"]))
++check("★★★ C2 (facdf24: RED) flatten_all(non-finite) POSTs 2 orders whose quantities are non-finite — counted at the wire, not inferred from an exception",
++      c0["flat_posts"] == 2 and all(c0["flat_post_qty_nonfinite"]), (c0["flat_posts"], c0["flat_post_qty_nonfinite"]))
++check("★★★ C3 (183915f: RED, the round-3 finding) broker keeps NaN and the unfixed DERISK POSTs quantity 'nan' reduceOnly 'true' — the regression the round-2 fix exposed",
++      c1["nan_kept"] and c1["derisk_nan"]["n_post"] == 1 and c1["derisk_nan"]["post_qty_nonfinite"] == [True] and c1["derisk_nan"]["posts"][0]["reduceOnly"] == "true", c1["derisk_nan"])
++check("★★★ C4 (183915f: RED) submit(quantity=NaN) LIVE reaches the wire: 1 POST, no refusal", c1["submit_live"]["n_post"] == 1 and not c1["submit_live"]["refused_action"], c1["submit_live"])
++check("★★ C5 finite control identical across all three sources: DERISK on {TENUSDT: 10} POSTs exactly one sell 5.0 reduceOnly",
++      all(x["derisk_ten"]["n_post"] == 1 and float(x["derisk_ten"]["posts"][0]["quantity"]) == 5.0 for x in (c0, c1, a)), [x["derisk_ten"]["posts"] for x in (c0, c1, a)])
++check("★★ C6 baseline [A] green and both controls red on the SAME inputs — the triplet is the evidence",
++      a["derisk_nan"]["n_post"] == 0 and c1["derisk_nan"]["n_post"] == 1 and c0["derisk_nan"]["derisk_unknown"] is None and a["derisk_nan"]["derisk_unknown"] == ["NANUSDT"])
+ print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
+ if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
+ print("ALL PASS")
+diff --git a/live/tests_daily_summary_entry.py b/live/tests_daily_summary_entry.py
+index ba14d52..ca0ddac 100644
+--- a/live/tests_daily_summary_entry.py
++++ b/live/tests_daily_summary_entry.py
+@@ -93,7 +93,7 @@ print("\n[B] red capability: the pre-fix entry (root instead of plog) on the SAM
+ # ancestor: before the fix is committed that is HEAD, after it is HEAD~1, and a commit in between may not carry
+ # the amendment root parameter at all. Probing the shape keeps the control pointed at the right bytes either way.
+ old, old_ref = None, None
+-for ref in ("HEAD", "HEAD~1", "HEAD~2", "HEAD~3"):
++for ref in ("facdf24", "HEAD", "HEAD~1", "HEAD~2", "HEAD~3"):      # pinned defect commit first (R16RF §3.1), moving window as fallback
+     try:
+         cand = subprocess.run(["git", "-C", REPO, "show", f"{ref}:ops/daily_summary.py"], capture_output=True, text=True, check=True).stdout
+     except Exception:                                              # noqa: BLE001
+diff --git a/live/tests_ledger_notary.py b/live/tests_ledger_notary.py
+index 2361a94..e307db6 100644
+--- a/live/tests_ledger_notary.py
++++ b/live/tests_ledger_notary.py
+@@ -421,10 +421,23 @@ check("★★ W8 (OLD CODE: RED) GENESIS is never inferred: an empty notary dire
+ sb9 = Sandbox()
+ sb9.day("20260910")
+ sb9.legacy_manifest("20260910")
++# ★ R16RF (独立复审第三轮 2026-09-17) 夹具修正: 旧夹具写 trade_id=100+i 且 supersedes_trade_id=100+i —— 文件里没有这些原始
++#   成交, 183915f 的 PilotLogger.fill 按 LED-01 合同判 orphan_supersede、返回 False 并隔离, 文件一字未追加; 夹具不看返回值,
++#   于是把「什么都没写」当成「追加了 4 行」去对公证器 ⇒ 本格红被误归为「公证 16 日断链」。修正: 修订行 supersede 文件里
++#   真实存在的原始行(Sandbox.day 写的 trade_id 1..3, 同 symbol), 逐行断言 fill 返回 True 且字节真的增长;
++#   写入合同一个字不放宽 —— 孤儿修订必须拒绝的负控见 W9n。
++_orig9 = [dict(FILL, trade_id=i + 1, table="fills", day="20260910") for i in range(3)]   # exactly what Sandbox.day wrote
++_f10_before = os.path.getsize(os.path.join(sb9.pilot, "20260910", "fills.jsonl"))
+ _lg = _PL.PilotLogger(sb9.pilot, day="20260910")
++_ret9 = []
+ for i in range(4):
+-    _lg.fill(**dict(FILL, trade_id=100 + i, mid_at_fill_plus_60s=1.01, supersedes_trade_id=100 + i, backfilled_utc="2026-09-11T00:46:00Z"))
++    _p = _orig9[i % 3]
++    _ret9.append(_lg.fill(**dict(_p, mid_at_fill_plus_60s=1.01, supersedes_trade_id=_p["trade_id"], backfilled_utc="2026-09-11T00:46:00Z")))
+ _lg.close()
++_f10_after = os.path.getsize(os.path.join(sb9.pilot, "20260910", "fills.jsonl"))
++check("★★★ W9-pre the four markout supersede rows were ACCEPTED by the writer (fill returned True x4) and the file grew — "
++      "a fixture that ignores the return value cannot tell 'appended' from 'quarantined' (R16RF)",
++      _ret9 == [True] * 4 and _f10_after > _f10_before and not getattr(_lg, "fill_quarantined", []), (_ret9, _f10_before, _f10_after))
+ sb9.day("20260911")
+ rc9, out9 = sb9.run(["20260911"])
+ man9 = sb9.manifest("20260911") or {}
+@@ -437,6 +450,18 @@ check("★★★ W9 (OLD CODE: RED) the next run CHECKPOINTS an append to a past
+       and _ap9[0]["after"]["bytes"] == os.path.getsize(_f10) and _ap9[0]["after"]["sha256"] == sha_bytes(open(_f10, "rb").read())
+       and _ap9[0].get("n_lines") == 4 and man9.get("integrity_findings") == [], (rc9, man9.get("appends"), out9[-200:]))
+ 
++# W9n negative control (R16RF): an ORPHAN supersede (no original for its (symbol, trade_id) earlier in the file) is REFUSED —
++#      fill returns False, the file does not grow, the row is quarantined as orphan_supersede. The write contract is not loosened.
++sb9n = Sandbox()
++sb9n.day("20260910")
++_f10n = os.path.join(sb9n.pilot, "20260910", "fills.jsonl"); _b9n = open(_f10n, "rb").read()
++_lgn = _PL.PilotLogger(sb9n.pilot, day="20260910")
++_retn = [_lgn.fill(**dict(FILL, trade_id=100 + i, mid_at_fill_plus_60s=1.01, supersedes_trade_id=100 + i, backfilled_utc="2026-09-11T00:46:00Z")) for i in range(2)]
++_lgn.close()
++_qn = [q.get("kind") for q in getattr(_lgn, "fill_quarantined", [])]
++check("★★★ W9n (negative control, R16RF): orphan supersede rows are REFUSED — fill returns False, bytes unchanged, quarantined as orphan_supersede",
++      _retn == [False, False] and open(_f10n, "rb").read() == _b9n and _qn == ["orphan_supersede"] * 2, (_retn, _qn))
++
+ # W10 a past-day change inside what was notarized is caught at notarization time
+ sb10 = Sandbox()
+ sb10.day("20260910")
+@@ -497,10 +522,13 @@ def _v_tree(day="20260910"):
+ 
+ 
+ sbv1 = _v_tree()
++_origv = [dict(FILL, trade_id=i + 1, table="fills", day="20260910") for i in range(3)]   # R16RF: supersede REAL originals (see W9)
++_fv_before = os.path.getsize(os.path.join(sbv1.pilot, "20260910", "fills.jsonl"))
+ _lgv = _PL.PilotLogger(sbv1.pilot, day="20260910")
+-for i in range(3):
+-    _lgv.fill(**dict(FILL, trade_id=200 + i, mid_at_fill_plus_60s=1.02, supersedes_trade_id=200 + i, backfilled_utc="2026-09-11T00:47:00Z"))
++_retv = [_lgv.fill(**dict(_origv[i], mid_at_fill_plus_60s=1.02, supersedes_trade_id=_origv[i]["trade_id"], backfilled_utc="2026-09-11T00:47:00Z")) for i in range(3)]
+ _lgv.close()
++check("★★★ V1-pre the three supersede rows were ACCEPTED (fill True x3) and the file grew (R16RF fixture correction)",
++      _retv == [True] * 3 and os.path.getsize(os.path.join(sbv1.pilot, "20260910", "fills.jsonl")) > _fv_before, _retv)
+ _rv1 = verify(sbv1.notary, sbv1.pilot)
+ _fv1 = fverdict(_rv1, "20260910", "fills.jsonl")
+ check("★★★ V1 (OLD CODE: RED) a markout-style append (superseding rows through PilotLogger) to a notarized day is CONSISTENT: "
+diff --git a/live/tests_proportional_response.py b/live/tests_proportional_response.py
+index 8910eff..79c3716 100644
+--- a/live/tests_proportional_response.py
++++ b/live/tests_proportional_response.py
+@@ -744,6 +744,7 @@ for _hk in ("proportional_local", None):
+     sd = tempfile.mkdtemp(prefix="exe01_chain_")
+     ev1, _b1, _st1 = WD.run(r, broker=vb, venue_events=[], ops_stats=WI.derive_ops_stats(r), verbose=False,
+                             state_dir=sd, rows_root=r)
++    _n_fa1 = len(acts(vb, "flatten_all"))                 # R16RF: the local response's OWN flatten call(s), before ev3
+     ev2 = WD.evaluate(r, venue_events=[], ops_stats=WI.derive_ops_stats(r))
+     _next_halted_anchor(r, vb, _hk)
+     ev3 = WD.evaluate(r, venue_events=[], ops_stats=WI.derive_ops_stats(r))
+@@ -751,14 +752,50 @@ for _hk in ("proportional_local", None):
+     _chain[_hk] = {"ev1_local": [lr.get("names") for lr in ev1.get("local_responses") or []],
+                    "ev2_5b": ev2["conditions"]["cond5_venue_event"]["5b_liquidation_anomaly"]["state"],
+                    "ev3_tripped": ev3["tripped"], "ev3_triggers": [t[:60] for t in ev3["triggers"]],
+-                   "ev3_5e_kind": (_pb3.get("latest") or {}).get("anchor_kind"), "ev3_5e_state": _pb3.get("state")}
++                   "ev3_5e_kind": (_pb3.get("latest") or {}).get("anchor_kind"), "ev3_5e_state": _pb3.get("state"),
++                   # ★ R16RF (2026-09-17): the fields that carry the state↔action CONTRACT (see B14 / B14c below)
++                   "ev3_dev_frac": (_pb3.get("latest") or {}).get("portfolio_dev_frac"),
++                   "ev3_limit_frac": (_pb3.get("latest") or {}).get("portfolio_limit_frac"),
++                   "ev3_port_triggered": (_pb3.get("latest") or {}).get("portfolio_triggered"),
++                   "ev3_trip_gate": (_pb3.get("latest") or {}).get("trip_gate"),
++                   "ev3_unauth_frac": ((_pb3.get("latest") or {}).get("split_verdict") or {}).get("unauth_frac"),
++                   "ev3_local": [lr.get("names") for lr in ev3.get("local_responses") or []],
++                   "ev3_local_kind": [lr.get("kind") for lr in ev3.get("local_responses") or []],
++                   "ev1_flatten_all_calls": _n_fa1, "ev3_flatten_all_calls": len(acts(vb, "flatten_all")),
++                   "flattened_symbols": flattened_symbols(vb)}
+     rm(r, sd)
+ _c = _chain.get("proportional_local") or {}
++# ★★★ R16RF (independent review round 3, 2026-09-17) — B14 rewritten to the state↔action CONTRACT, from the failing cell's
++#     actual fields (dumped on 183915f, every value below is from that dump):
++#       latest.anchor_kind = halted_book_held, portfolio_dev_frac = 0.01 vs portfolio_limit_frac = 0.25 (the held book is
++#       judged against its HELD intent — not the 99% "intent zero" break of the unmarked neighbour), trip_gate = split_unauth,
++#       split.unauth_frac = 0.013 (the R1 residuals this fixture deliberately leaves on the other names), latest.triggered = True,
++#       state = BREAK, cond5.triggered = True — and then ev3.tripped = False, ev3.triggers = [], ev3.local_responses =
++#       [{names: [S007USDT], kind: proportional_local}], no flatten_all.
++#     CONSUMER MAP (position_break.py / watchdog.py): the ACTION path consumes `triggered` + the §4 proportional gate and
++#     decides {book-level trip | local response | nothing}; `state` is derived from `triggered` at the latest judged anchor
++#     (BREAK iff triggered, UNOBSERVED outranking a non-BREAK) and is consumed ONLY by the published conditions block (page /
++#     daily summary) and the split alarm side — no action reads `state`. So `state = BREAK` here means "the judge MEASURED a
++#     named unauthorized deviation beyond the line at this anchor"; the proportional gate then handled it LOCALLY. The old
++#     assertion `state != BREAK` demanded a label the contract does not promise (and FIXPROGRAM §10's "断言 == BREAK 而实际
++#     LOCAL" had the direction backwards). The producer is unchanged; the assertion now states the contract, and B14c pins it.
+ check("★★★ B14 after the local response the next evaluation reconciles S007USDT CLEAN (its protective_flatten rows and "
+       "readback explain the move); the NEXT halted anchor, marked halt_kind proportional_local by anchor_loop, is judged "
+-      "as a HELD book — not tripped, §4-5e not a break",
++      "as a HELD book: dev 1% < limit 25% (not the 99% intent-zero break), NOT tripped, no book-level trigger, no NEW flatten call "
++      "(the only flatten ever made is the local response's, scoped to S007USDT)",
+       _c.get("ev1_local") == [["S007USDT"]] and _c.get("ev2_5b") == "CLEAN" and _c.get("ev3_tripped") is False
+-      and _c.get("ev3_5e_kind") == "halted_book_held" and _c.get("ev3_5e_state") != "BREAK", _c)
++      and _c.get("ev3_triggers") == [] and _c.get("ev3_5e_kind") == "halted_book_held"
++      and _c.get("ev3_port_triggered") is False and _c.get("ev3_dev_frac") is not None and _c.get("ev3_limit_frac") is not None
++      and _c["ev3_dev_frac"] < _c["ev3_limit_frac"]
++      # the ONLY flatten call is the local response's own (ev1), scoped to the named name; ev3 adds none
++      and _c.get("ev3_flatten_all_calls") == _c.get("ev1_flatten_all_calls") and _c.get("flattened_symbols") == ["S007USDT"], _c)
++check("★★★ B14c (R16RF contract cell) the residual the fixture leaves on the other names IS measured — state BREAK via split_unauth "
++      "with a small named unauth fraction — and the response to a MEASURED, NAMED, proportional break is LOCAL, recorded in "
++      "local_responses, never a trip: state is a measurement label, the action is the proportional gate's",
++      _c.get("ev3_5e_state") == "BREAK" and _c.get("ev3_trip_gate") == "split_unauth"
++      and isinstance(_c.get("ev3_unauth_frac"), (int, float)) and 0 < _c["ev3_unauth_frac"] < 0.05
++      and _c.get("ev3_local_kind") == ["proportional_local"] and _c.get("ev3_local") and all(n for n in _c["ev3_local"])
++      and _c.get("ev3_tripped") is False, {k: _c.get(k) for k in ("ev3_5e_state", "ev3_trip_gate", "ev3_unauth_frac", "ev3_local", "ev3_local_kind", "ev3_tripped")})
+ _t = _chain.get(None) or {}
+ check("★★★ B14 neighbour — the SAME halted anchor WITHOUT the marker (every trip halt, every row written before it existed) "
+       "is still judged against intent ZERO: the held book reads as a 99% break and trips the ladder. This is the failure "
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 684a63a..ff38b72 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -223,7 +223,7 @@ SUITE_SCOPE = {
+     "tests_cond3_worst_selector": "that §4-3 has anything to judge — over all history the stress-anchor count is 0, so this fix is INERT on current data. It proves the accumulator selects the worst day and that the record carries one caliber; it cannot prove the regime labelling that decides which days are stress days at all",
+     "tests_readiness_filters_path": "that the cached filters are CORRECT — it proves the sheet looks at the file we actually write and counts real symbols. Whether those 653 entries carry the right tick/step/minNotional for LIVE is established by the venue stamp and by arm(), not here",
+     "tests_neutrality_check": "that the book WILL be neutral — it proves only that the realised net is measured from venue truth and spoken when it leaves the band. It changes no order and closes no gap: the 16:00Z anchor would still have ended -6.9% short, we would merely have known within the minute instead of in a post-mortem. Nor does it establish that 3% is the right band — that figure is policy, not calibration, and two anchors is not a distribution",
+-    "tests_broker_nonfinite_positions": "R16R-E1 (2026-09-16): a non-finite positionAmt is UNKNOWN at the broker parse, not zero — real BinanceBroker.positions()/flatten_all() with only _request stubbed, plus watchdog stage 1 fed what this broker returns; pre-fix control from git shows NaN dropped, order submitted, stage 1 silently green.",
++    "tests_broker_nonfinite_positions": "R16R-E1 + R16RF-E1 (2026-09-16/17): a non-finite quantity is UNKNOWN at every consumer and is never sent — the stale-signal DERISK path (real _scale_to) lists it as unknown, submit() refuses it before the wire in every mode; real BinanceBroker.positions()/flatten_all() with only _request stubbed, plus watchdog stage 1 fed what this broker returns; pre-fix control from git shows NaN dropped, order submitted, stage 1 silently green.",
+     "tests_daily_summary_entry": "R16R-E3 (2026-09-16): drives ops/daily_summary.main() itself on a temp state root of the REAL shape (<root>/pilot_log/<day>/daily_nav.jsonl + <root>/ledger_amendments/…), state_root.paths_for patched, and asserts the rendered account prices the last row from its VALID amendment (101) rather than the carrier (11). Exists because tests_daily_summary tests the functions and stayed green while main() passed root where the verifier needs root/pilot_log. Blind spots: (a) one row, one record, one mode — it does not sweep modes or the rotation line; (b) the pre-fix control reads HEAD~1 from git and is UNAVAILABLE (exit 3), never faked, when that source is not the pre-fix one; (c) it patches paths_for, so a regression INSIDE root_for is out of scope.",
+     "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it. Round 3 (2026-09-13, researcher REVIEW §3.C): the same-day residual's flow term is now the INTERVAL difference of the day-cumulative `external_flow_usdt` (the old form subtracted a day total from an interval equity change and read -1000 on a window where nothing happened) and refuses when either endpoint is not a finite number. Two further blind spots it does NOT close: (e) the interval form is exact only because the residual is computed same-day, where both endpoints share one 00:00Z origin — nothing here re-derives that the carrier really is cumulative, it is read from `binance_broker.income_since`; (f) a zero residual is not proof the account identity holds — it means the three terms we CAN read cancel, and any movement none of them carries (a fee type outside `realised_components`, a spot transfer) is invisible to it. Round 4 (2026-09-13, researcher round-3 monitoring NAV-R3-1): the equity endpoints (start and end nav, end wallet and unrealised) and each day's closing flow are read with the same three states as realised income — a finite 0 is a value, None / NaN / inf are not observable, and an endpoint is never replaced by 0 or by the other endpoint — so a start equity of 0 no longer turns into the end equity (-100 printed on a deposit into an empty account) and a NaN equity no longer marks the residual computable; an unknown maker intent refuses the fill-rate instead of shrinking its denominator. Pre-fix readers fail 29 of its round-4 cells. Two further blind spots: (g) these are CAPABILITY cells — the ledger copy (251 nav rows, 74,860 order rows) holds no None, NaN or zero equity, so they run on synthetic rows and two temp-ledger runs of main, never on a real day where it happened; (h) FIXED by E7 (FX-EXEC 2026-09-13): a window with no nav row renders the account as NOT OBSERVABLE and names the ledger's newest row as before the window and not used ([E7-a], the entry point on a temp ledger); the four [B3] account-text promises that were exercised only through the stale-row fallback (Q1, Q3, the sight boundary, the rotation line) are now NOT EXERCISED on a window without a nav row, like Q2, and E7-a4 asserts the NOT OBSERVABLE account in that case.",
+     "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent. Round 3 (2026-09-13, researcher REVIEW §3.C): E6 may PASS only when its verdict's population and the number it publishes come from the SAME rows — the bucket counts and notional mass against m1's own `n_filled_orders`/`filled_notional_total`, pooled AND per regime, plus agreement of both bps calibers inside a stated tolerance — and the screen now publishes the bucket figure (`cost_bps_displayed`) beside m1's. Blind spots this adds: (e) the population identity is asserted on COUNTS AND MASS each carrier reports for itself, not on row identities, so two different row sets agreeing in count and notional (pooled and in every regime) would still pass; (f) the gate makes E6 refuse to certify a mismatch — it does not FIX m1, which stays frozen, so the number the pre-registration names (`c_bps_overall`) is still m1's; (g) the frozen `watchdog` §4-1 consumer still reads `m1.c_bps_net_overall` directly and treats a NaN cost as priced and not a breach, so 'all consumers are on the three buckets' is FALSE and must not be written anywhere. Round 4 (2026-09-13): first_anchor_review reads every numeric field it prints — readback notional and quantity, equity, target_gross, fill amount, intended notional, exchange floor filters, anchor mid — as a finite number or NOT OBSERVABLE, with a finite 0 kept as a value; a NaN readback notional or a NaN equity used to print the band '★★ ABOVE 15%' on the stop-decision block, and pre-fix readers fail 11 of the [D-R4] cells. Blind spots it adds: (h) the [D-R4] trees write NaN through the validating writer but None only where the schema allows it, so a None in a not_null column (nav, target_gross, venue_position_notional) is covered by the shared finite-number reader, not by a fixture row; (i) FIXED by E7 (FX-EXEC 2026-09-13): a name with no finite target_w (None or NaN) makes the INTENT net UNKNOWN — counted and named, the partial sum labelled as not the intent net, no VENUE-minus-INTENT formed ([E7-b]); no such row exists in the live ledger today, so this is a capability cell",
+diff --git a/scheduler/anchor_loop.py b/scheduler/anchor_loop.py
+index 99e5b1e..f79aea1 100644
+--- a/scheduler/anchor_loop.py
++++ b/scheduler/anchor_loop.py
+@@ -40,6 +40,7 @@ import json
+ import os
+ import re
+ import sys
++import math
+ import time
+ from typing import Any, Dict, Optional
+ 
+@@ -3198,12 +3199,31 @@ class AnchorLoop:
+             except Exception as e:
+                 self.alarm("HIGH", f"DERISK: venue readback failed ({e}); retry next anchor")
+                 return {"derisked": [], "note": "readback failed; no cuts this anchor"}
++            # ★ R16RF-E1 (独立复审第三轮 2026-09-17): broker.positions() 现在把非有限数量原样交上来(未知≠零)。旧码把它
++            #   写进 stale_ref_contracts、算 cut_c=NaN, `abs(NaN) < 1e-9` 为假, 于是 quantity=NaN reduce_only 真的进了 submit。
++            #   规矩与 watchdog 同: 「存在但不是有限数 = 仓位未知」—— 不作参考、不定量、不当零; 具名列出并告警, 有限部分照常。
++            def _fin(v):
++                try:
++                    return math.isfinite(float(v))
++                except (TypeError, ValueError, OverflowError):
++                    return False
++            _unknown_now = sorted(k for k, v in cur_c.items() if not _fin(v))
++            cur_f = {k: float(v) for k, v in cur_c.items() if _fin(v)}
++            if _unknown_now:
++                self.alarm("HIGH", f"DERISK: {len(_unknown_now)} name(s) returned a NON-FINITE quantity {_unknown_now[:5]} — "
++                                   f"position UNKNOWN: not cut, not used as reference, not treated as flat")
+             if state.get("stale_ref_contracts") is None:
+-                state["stale_ref_contracts"] = dict(cur_c)
++                state["stale_ref_contracts"] = dict(cur_f)                    # only KNOWN quantities become the reference
++                state["stale_ref_unknown"] = list(_unknown_now)
+             ref_c = state["stale_ref_contracts"]
++            unknown = list(_unknown_now)
+             for sym, ref_amt in ref_c.items():
+-                cut_c = cur_c.get(sym, 0.0) - ref_amt * frac
+-                if abs(cut_c) < 1e-9:
++                if sym in _unknown_now or not _fin(ref_amt):               # unknown now, or an unknown reference: skip by name
++                    if sym not in unknown:
++                        unknown.append(sym)
++                    continue
++                cut_c = cur_f.get(sym, 0.0) - float(ref_amt) * frac
++                if not _fin(cut_c) or abs(cut_c) < 1e-9:
+                     continue
+                 try:
+                     self.broker.submit({"symbol": sym, "side": "sell" if cut_c > 0 else "buy",
+@@ -3217,7 +3237,9 @@ class AnchorLoop:
+                 ref_n = (state.get("stale_ref_positions") or {}).get(sym)
+                 if ref_n is not None:
+                     state["positions"][sym] = ref_n * frac
+-            return {"derisked": cuts, "note": f"gross scaled toward {frac:.0%} of pre-stale ref"}
++            return {"derisked": cuts, "derisk_unknown": sorted(unknown),
++                    "note": f"gross scaled toward {frac:.0%} of pre-stale ref"
++                            + (f"; {len(unknown)} name(s) UNKNOWN (non-finite) not cut" if unknown else "")}
+ 
+         # DRY_RUN: no venue, notional bookkeeping only (smoke path; live path above)
+         ref = state.get("stale_ref_positions") or {}

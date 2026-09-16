@@ -1456,3 +1456,20 @@ R16-D2 面板装置三处(有限/非有限门、两列自证、写出 payload �
 | E1 | NaN 被丢(inf 却留); flatten_all 为非有限发 2 单; NaN 账户→空书→stage1 ok=True | 保留为未知; 0 单 2 跳过; stage1 ok=False unknown=[…] | tests_broker_nonfinite_positions 8/8 |
 
 **自查**: E3 入口测试第一版被三处静默改道同时骗过(1970 时间戳窗外 / 回退真实告警文件 / 裸子串匹配到 `101 name(s)`), 已改并入记忆; 电池脚本 `TREE_STATE.json` 原是 08:24Z 静态文件, 改为开跑时现算; zsh 不分词吞掉一整轮提交(无半提交)。**未做**: R16R §5 六项、B14(FX-W6C)、`finalize` 标签(冻结装置待裁定)。**全量叠加电池**(17:05Z, head 183915f): 155 绿 / 5 红 / 1 UNAVAILABLE, 红集与 13:48Z 基线逐套件一致(真漂移×2·本机 nosleep·公证断链·B14·无 .env), 六条修复零新红; +2 绿正是本轮两条新测试。收据 `receipts/STACKED_BATTERY_20260916T170510Z.log`。
+
+## §43 R16RF(独立复审第三轮 2026-09-17)六件已处理: 四条 P2 边界 + 公证归因更正 + B14 合同(全文 `HANDOFF_R16RF_RESPONSE_2026-09-17.md`)
+
+**判决更正(我方)**: (1) 上一轮把 `tests_ledger_notary` 红归为「公证 16 日断链/TCC」**是错的** —— 逐格日志红的是 W9/V1, 根因是夹具写的修订行没有原始成交、`PilotLogger.fill` 按 LED-01 合同拒绝返回 False 而夹具不看返回值; W1(TCC 形态)与 R2(断链)本就 OK。教训进记忆: 红套件归因前必须读逐格日志。(2) §41.6/FIXPROGRAM 旧文「B14 断言 == BREAK 而实际 LOCAL」**方向反了**: 断言的是 `!= BREAK`, 实际 BREAK 且路由 LOCAL。(3) 第二轮 E1 让 broker 保留 NaN 是对的, 但**没有普查该返回合同的全部消费者** —— 陈旧信号 DERISK `_scale_to` 把保留下来的 NaN 当数量送进了 submit(183915f 真 POST 了 quantity=nan), 复审抓到的正是修复暴露的回归。
+
+| 条 | 修前(同一输入, 钉死提交) | 修后 | 测试 |
+|---|---|---|---|
+| RF-E1 DERISK | facdf24: NaN 被丢, DERISK 静默 0 单; 183915f: `POST quantity=nan reduceOnly=true` | 0 单, `derisk_unknown=[NANUSDT]`, HIGH 告警; `submit(NaN)` LIVE/DRY_RUN 都拒(`QuantityNotFinite(OpeningHalted)`) | tests_broker_nonfinite_positions 15/15(数 POST, 真实 `_scale_to`) |
+| RF-E2a ±inf | fda1d3ef: +inf 行+记录 `--apply` PASS 落盘 | REFUSE 不落盘(`math.isfinite` 两端) | tests_led04_apply_identity E1 |
+| RF-E2b 检查≠写出 | fda1d3ef: mkstemp 处换文件 ⇒ 写出被换字节, PASS | 字节只捕获一次; 落盘 sha==授权 sha 为成功条件, 否则挪走并 FAIL | F1/F2 + D2/D3, 11/11 |
+| RF-T1 空前月路径 | `CACHE=` ⇒ 7/8 PASS; 8 空 ⇒ n_required=0 PASS | P0b 具名拒绝; P4 覆盖按键计(8), 不再缩小 | Q8/Q8b/Q8c, 478/478 |
+| 公证 W9/V1 | 夹具孤儿修订被拒而不自知 | 修订真实原始行, 断言 fill True + 字节增长; W9n 孤儿负控 | tests_ledger_notary ALL PASS |
+| B14 | 断 `state != BREAK`(合同未承诺) | 断动作合同(不 trip/无书级触发/dev<limit/无新增 flatten/平过集合==[S007USDT]) + B14c 合同格; 生产者不动 | tests_proportional_response 60/60 |
+
+**B14 合同(据 183915f 逐字段 dump 与消费者图谱)**: 动作路径只消费 `triggered` + §4 比例门; `state` 由最新已判锚的 `triggered` 派生, 只进展示与告警侧, 无动作读它 ⇒ `state=BREAK` 是「量到具名超线未授权偏差」的测量标签, 对具名比例破位的动作是局部响应。held 锚 dev 1% < limit 25%, unauth 1.3%(夹具留的 R1), 局部响应 S007USDT, tripped=False。
+
+**提交链**: 叠加树 183915f → `cdfc06b`; 研究仓 758c6e4c → 49d7c214(applier/月份门/King 钉源 + 六份日志)→ (本节与交接文)。**电池**(20Z 窗内, head cdfc06b, 22:42→22:58Z): **157 绿 / 3 红 / 1 UNAVAILABLE**; 相对 17:05Z(155/5/1)转绿 = 公证、proportional(本轮所修两套), 新红 0, 共同套件仅此两处退出码变化; 余红 = 真漂移×2 · 本机 nosleep · 无 .env。收据 `receipts/STACKED_BATTERY_20260916T224235Z.log`。零部署。收益无新测量; 「0.8–1.3」降级为人工保守情景(接受复审)。`HONEST_EXPECTATION` 已改 v4(六处就地划去+附注, 原句字节保留)。**未做**: R16R §5 六项; 月 driver 前月来源闭包; drift 同步方向。
