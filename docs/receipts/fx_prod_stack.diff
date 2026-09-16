@@ -1,9 +1,9 @@
 diff --git a/fea171/combo_anchor_record.py b/fea171/combo_anchor_record.py
 new file mode 100644
-index 0000000..f5454cf
+index 0000000..8b8f92b
 --- /dev/null
 +++ b/fea171/combo_anchor_record.py
-@@ -0,0 +1,529 @@
+@@ -0,0 +1,531 @@
 +#!/usr/bin/env python3
 +"""combo_anchor_record.py — PROD-27 / P12 observability for the combo rewrite.
 +
@@ -82,7 +82,8 @@ index 0000000..f5454cf
 +}
 +
 +SILENT_BRANCHES = {"no_producer_file", "late_producer", "late_daemon_start"}
-+ALWAYS_HIGH = {"no_producer_file", "late_producer", "aux_not_settled", "stage_abort", "stage_crash"}
++ALWAYS_HIGH = {"no_producer_file", "late_producer", "aux_not_settled", "stage_abort", "stage_crash",
++               "rerun_differs"}
 +
 +REC_DIR = f"{WS}/state/combo_anchor_record"
 +EVENTS = f"{WS}/state/combo_anchor_events.jsonl"
@@ -354,7 +355,8 @@ index 0000000..f5454cf
 +    ap = argparse.ArgumentParser()
 +    ap.add_argument("--anchor", type=int)
 +    ap.add_argument("--outcome", choices=["rewritten", "skipped_late", "no_producer_file",
-+                                          "aux_not_settled", "stage_abort", "stage_crash"])
++                                          "aux_not_settled", "stage_abort", "stage_crash",
++                                          "rerun_differs"])
 +    ap.add_argument("--stage-rc", type=int, default=None)
 +    ap.add_argument("--no-page", action="store_true")
 +    ap.add_argument("--selftest-alarm", action="store_true")
@@ -591,7 +593,7 @@ index 319bd3d..8eae10c 100755
        echo "$A" > "$LASTF"
      fi
 diff --git a/fea171/combo_stage.py b/fea171/combo_stage.py
-index 5389fe4..5e12111 100644
+index 5389fe4..3c16cb4 100644
 --- a/fea171/combo_stage.py
 +++ b/fea171/combo_stage.py
 @@ -9,6 +9,8 @@ from scipy.stats import rankdata
@@ -654,7 +656,60 @@ index 5389fe4..5e12111 100644
  F89 = np.load(f"{MINI}/data/f8_fea89.npz", allow_pickle=True)
  T9 = np.load(f"{MINI}/data/dlw_targets.npz", allow_pickle=True)
  ets = T9["E_ts"].astype(np.int64); a_i = int(np.where(ets == A)[0][0])
-@@ -279,6 +311,11 @@ json.dump({"schema": "wide_target_combo_v1_execcal", "anchor_ts": A, "phi": 0.45
+@@ -194,7 +226,51 @@ Hsave = H; H = H_f10_prev
+ sm_f10 = chain(z_f10book)
+ H = Hsave
+ nz = np.where(np.abs(sm_f10) > 1e-9)[0]
+-np.savez(hf_p, anchor=A, idx=nz, val=sm_f10[nz])
++# PROD-35: a rerun for an anchor that already has this artefact must REPRODUCE it, not silently
++# overwrite it. sidecar_daemon.sh keeps LAST in an in-memory shell variable, so a restart re-fires
++# for the producer's current anchor (aux.prev_rec.anchor_ts) hours after that anchor completed --
++# four instances on record (08-24 08Z, 08-29 16Z, 08-30 04Z, 09-14 12Z). Measured (FACT_TABLE 35.2)
++# all three doubly-run anchors reproduced their first run exactly, at the precision the log records.
++# This asserts that invariant rather than assuming it: identical => keep the first artefact and
++# count a no-op; different => KEEP THE FIRST (it was computed with that anchor's own cache, closest
++# to the anchor), write the new one aside as evidence, and page. Nothing changes while the
++# invariant holds, which is every observed case.
++_rerun = None
++if os.path.exists(hf_p):
++    try:
++        _o = np.load(hf_p)
++        _rerun = {"same": bool(int(_o["anchor"]) == A
++                               and np.array_equal(_o["idx"].astype(np.int64), nz.astype(np.int64))
++                               and np.array_equal(np.asarray(_o["val"], np.float32),
++                                                  np.asarray(sm_f10[nz], np.float32))),
++                  "prev_mtime_s": round(os.path.getmtime(hf_p) - A, 1),
++                  "n_prev": int(len(_o["idx"])), "n_new": int(len(nz))}
++    except Exception as _e:
++        _rerun = {"same": False, "unreadable": repr(_e)[:120]}
++if _rerun is None:
++    np.savez(hf_p, anchor=A, idx=nz, val=sm_f10[nz])
++elif _rerun["same"]:
++    log(f"PROD-35 rerun_noop: state_H_f10_{A}.npz already present and identical "
++        f"(first written N+{_rerun['prev_mtime_s']}s, n={_rerun['n_prev']}); not rewritten")
++else:
++    _ev = f"{hf_p}.rerun_{int(time.time())}.npz"
++    np.savez(_ev, anchor=A, idx=nz, val=sm_f10[nz])
++    log(f"PROD-35 RERUN_DIFFERS: state_H_f10_{A}.npz kept as first written; new run saved to "
++        f"{os.path.basename(_ev)}; detail={_rerun}")
++    # A page that fails must be NAMED, not merely attempted: subprocess.run does not raise on a
++    # non-zero exit, so checking only for exceptions would reproduce exactly the defect this
++    # programme is fixing (FACT_TABLE 27.11 -- the old _page swallowed failures and the daemon then
++    # deliberately did not page, so a broken notifier was silent end to end).
++    try:
++        import subprocess as _sp
++        _r35 = _sp.run([sys.executable, f"{HERE}/combo_anchor_record.py", "--anchor", str(A),
++                        "--outcome", "rerun_differs"], timeout=120,
++                       capture_output=True, text=True)
++        if _r35.returncode != 0:
++            log(f"PROD-35 PAGE_UNCONFIRMED rc={_r35.returncode} "
++                f"stderr={(_r35.stderr or '')[-200:]!r}")
++    except Exception as _e2:
++        log("PROD-35 PAGE_UNCONFIRMED exception:", repr(_e2)[:160])
+ # ③ 混合 + E-0825-A 执行器口径 reshape(蓝本 dl_quant_live/signal/legs.py:124 redemean+rescale; 自平价仍文件口径)
+ def exec_reshape(w):
+     nz_ = np.abs(w) > 1e-12
+@@ -279,6 +355,11 @@ json.dump({"schema": "wide_target_combo_v1_execcal", "anchor_ts": A, "phi": 0.45
             "rho_kc_fc": round(float(np.corrcoef(sm_kc[np.abs(sm_kc)+np.abs(sm_fc)>1e-9], sm_fc[np.abs(sm_kc)+np.abs(sm_fc)>1e-9])[0,1]), 4) if (np.abs(sm_kc)+np.abs(sm_fc)>1e-9).sum()>10 else None,
             "n_f10_scored": int(okf.sum()), "ftrim": ftrim_rec},
            open(f"{WS}/state/target_combo/{A}.json", "w"), indent=1)
@@ -666,7 +721,7 @@ index 5389fe4..5e12111 100644
  log(f"④ COMBO 落盘 n={len(cnz)} gross={float(np.abs(combo).sum()):.4f} kc_src={kc_src} fc_src={fc_src} w3m={np.round(w3m,4).tolist()}")
  
  # ═══ COMBO_LIVE(2026-08-26, 用户令"现在切"): 把候选书写为执行器读取的 target_live ═══
-@@ -292,6 +329,7 @@ log(f"④ COMBO 落盘 n={len(cnz)} gross={float(np.abs(combo).sum()):.4f} kc_sr
+@@ -292,6 +373,7 @@ log(f"④ COMBO 落盘 n={len(cnz)} gross={float(np.abs(combo).sum()):.4f} kc_sr
  if os.environ.get("COMBO_LIVE", "0") == "1":
      _now0 = time.time()
      _status = {"anchor": A, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(_now0)), "ok": False, "step": "start"}
@@ -675,7 +730,7 @@ index 5389fe4..5e12111 100644
          try:
              sys.path.insert(0, f"{HOME}/dl_quant_live/live")
 diff --git a/fea171/sidecar_blend.py b/fea171/sidecar_blend.py
-index 05c1cb9..b882837 100644
+index 05c1cb9..b44ff8c 100644
 --- a/fea171/sidecar_blend.py
 +++ b/fea171/sidecar_blend.py
 @@ -6,6 +6,8 @@ from scipy.stats import rankdata
@@ -738,7 +793,60 @@ index 05c1cb9..b882837 100644
  F89 = np.load(f"{MINI}/data/f8_fea89.npz", allow_pickle=True)
  T9 = np.load(f"{MINI}/data/dlw_targets.npz", allow_pickle=True)
  ets = T9["E_ts"].astype(np.int64); a_i = int(np.where(ets == A)[0][0])
-@@ -215,5 +247,10 @@ json.dump({"schema": "wide_target_blend_v2_execcal", "anchor_ts": A, "phi": 0.45
+@@ -191,7 +223,51 @@ Hsave = H; H = H_f10_prev
+ sm_f10 = chain(z_f10book)
+ H = Hsave
+ nz = np.where(np.abs(sm_f10) > 1e-9)[0]
+-np.savez(hf_p, anchor=A, idx=nz, val=sm_f10[nz])
++# PROD-35: a rerun for an anchor that already has this artefact must REPRODUCE it, not silently
++# overwrite it. sidecar_daemon.sh keeps LAST in an in-memory shell variable, so a restart re-fires
++# for the producer's current anchor (aux.prev_rec.anchor_ts) hours after that anchor completed --
++# four instances on record (08-24 08Z, 08-29 16Z, 08-30 04Z, 09-14 12Z). Measured (FACT_TABLE 35.2)
++# all three doubly-run anchors reproduced their first run exactly, at the precision the log records.
++# This asserts that invariant rather than assuming it: identical => keep the first artefact and
++# count a no-op; different => KEEP THE FIRST (it was computed with that anchor's own cache, closest
++# to the anchor), write the new one aside as evidence, and page. Nothing changes while the
++# invariant holds, which is every observed case.
++_rerun = None
++if os.path.exists(hf_p):
++    try:
++        _o = np.load(hf_p)
++        _rerun = {"same": bool(int(_o["anchor"]) == A
++                               and np.array_equal(_o["idx"].astype(np.int64), nz.astype(np.int64))
++                               and np.array_equal(np.asarray(_o["val"], np.float32),
++                                                  np.asarray(sm_f10[nz], np.float32))),
++                  "prev_mtime_s": round(os.path.getmtime(hf_p) - A, 1),
++                  "n_prev": int(len(_o["idx"])), "n_new": int(len(nz))}
++    except Exception as _e:
++        _rerun = {"same": False, "unreadable": repr(_e)[:120]}
++if _rerun is None:
++    np.savez(hf_p, anchor=A, idx=nz, val=sm_f10[nz])
++elif _rerun["same"]:
++    log(f"PROD-35 rerun_noop: state_H_f10_{A}.npz already present and identical "
++        f"(first written N+{_rerun['prev_mtime_s']}s, n={_rerun['n_prev']}); not rewritten")
++else:
++    _ev = f"{hf_p}.rerun_{int(time.time())}.npz"
++    np.savez(_ev, anchor=A, idx=nz, val=sm_f10[nz])
++    log(f"PROD-35 RERUN_DIFFERS: state_H_f10_{A}.npz kept as first written; new run saved to "
++        f"{os.path.basename(_ev)}; detail={_rerun}")
++    # A page that fails must be NAMED, not merely attempted: subprocess.run does not raise on a
++    # non-zero exit, so checking only for exceptions would reproduce exactly the defect this
++    # programme is fixing (FACT_TABLE 27.11 -- the old _page swallowed failures and the daemon then
++    # deliberately did not page, so a broken notifier was silent end to end).
++    try:
++        import subprocess as _sp
++        _r35 = _sp.run([sys.executable, f"{HERE}/combo_anchor_record.py", "--anchor", str(A),
++                        "--outcome", "rerun_differs"], timeout=120,
++                       capture_output=True, text=True)
++        if _r35.returncode != 0:
++            log(f"PROD-35 PAGE_UNCONFIRMED rc={_r35.returncode} "
++                f"stderr={(_r35.stderr or '')[-200:]!r}")
++    except Exception as _e2:
++        log("PROD-35 PAGE_UNCONFIRMED exception:", repr(_e2)[:160])
+ # ③ 混合 + E-0825-A 执行器口径 reshape(蓝本 dl_quant_live/signal/legs.py:124 redemean+rescale; 自平价仍文件口径)
+ def exec_reshape(w):
+     nz_ = np.abs(w) > 1e-12
+@@ -215,5 +291,10 @@ json.dump({"schema": "wide_target_blend_v2_execcal", "anchor_ts": A, "phi": 0.45
             "self_parity_maxdw": self_par, "n_f10_scored": int(okf.sum()),
             "rho_f10_vs_king": round(float(np.corrcoef(zf[okf & np.isfinite(legz['king'])], legz["king"][okf & np.isfinite(legz['king'])])[0, 1]), 4)},
            open(f"{WS}/state/target_blend/{A}.json", "w"), indent=1)
@@ -4147,10 +4255,10 @@ index e7c3f60..2af4672 100644
                          "coverage": round(coverage, 4), "status": status})
 diff --git a/tests_fx_prod.py b/tests_fx_prod.py
 new file mode 100644
-index 0000000..de286d9
+index 0000000..b05b29d
 --- /dev/null
 +++ b/tests_fx_prod.py
-@@ -0,0 +1,747 @@
+@@ -0,0 +1,813 @@
 +#!/usr/bin/env python3
 +"""tests_fx_prod.py — FIXPROGRAM 2026-09-13 FX-PROD red/green battery (P1 king col 80, P2 V2MAIN col 80 + neighbours, P6 seed loader).
 +Real shapes only: frozen producer snapshots (work/frozen, SHA256SUMS), the in-service bundle and booster (read-only), real anchors, real ledger rows.
@@ -4166,7 +4274,7 @@ index 0000000..de286d9
 +CODE = HERE
 +if "--code" in argv:
 +    i = argv.index("--code"); CODE = os.path.abspath(argv[i + 1]); del argv[i:i + 2]
-+CELLS = set(argv) or {"P1", "P2", "P6", "P6M", "P27", "FXR1"}
++CELLS = set(argv) or {"P1", "P2", "P6", "P6M", "P27", "FXR1", "P35"}
 +sys.path.insert(0, HERE + "/fx")
 +import numpy as np
 +import fx_harness as H
@@ -4886,10 +4994,76 @@ index 0000000..de286d9
 +         dict(rc=e["rc"], published=e["published"], victim=victim,
 +              max_abs=(e["rec"].get("control") or {}).get("max_abs")))
 +
++# ======================================================================================== PROD-35
++def p35():
++    """PROD-35: a rerun for an anchor that already has state_H_f10 must reproduce it, not overwrite.
++
++    The guard is inline in two 250-line producer scripts that cannot be run cheaply in isolation, so
++    this cell EXTRACTS THE GUARD BLOCK FROM THE FILE ITSELF (by its marker comment) and execs it in a
++    controlled namespace. It therefore exercises the bytes that ship, not a re-typed copy -- which is
++    the point, since a hand-written copy of the logic would prove nothing about the file.
++    Measured basis: FACT_TABLE 35.2 -- all three doubly-run anchors reproduced their first run exactly.
++    """
++    print("[P35] sidecar/combo rerun must reproduce an existing state_H_f10, not overwrite it", flush=True)
++    for rel in ("fea171/sidecar_blend.py", "fea171/combo_stage.py"):
++        src = open(os.path.join(CODE, rel), encoding="utf-8").read()
++        marker = "# PROD-35: a rerun for an anchor that already has this artefact"
++        if marker not in src:
++            cell("NEW", f"P35 guard present in {rel}", False, "marker absent"); continue
++        blk = src[src.index(marker):]
++        # end the extraction at the guard's last line; keyed on a string the guard must contain,
++        # and asserted rather than assumed so a rename fails loudly instead of truncating silently.
++        tail = 'PAGE_UNCONFIRMED exception:'
++        if tail not in blk:
++            cell("NEW", f"P35 guard extraction marker present in {rel}", False, tail); continue
++        cut = blk.index(tail)
++        blk = blk[:blk.index("\n", cut) + 1]
++        d = f"{T_ROOT}/p35_{os.path.basename(rel)}"; shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
++        A = 1789516800
++        logs = []
++
++        def mk(ns_nz, ns_val):
++            return {"os": os, "np": np, "time": time, "sys": sys, "A": A, "HERE": d,
++                    "hf_p": f"{d}/state_H_f10_{A}.npz", "nz": ns_nz, "sm_f10": ns_val,
++                    "log": lambda *a: logs.append(" ".join(str(x) for x in a))}
++
++        base_nz = np.array([1, 5, 9], np.int64)
++        base_val = np.zeros(20, np.float32); base_val[base_nz] = np.array([0.1, -0.2, 0.3], np.float32)
++        g1 = mk(base_nz, base_val); exec(compile(blk, rel + ":PROD35", "exec"), g1)
++        first_ok = os.path.exists(g1["hf_p"])
++        mt1 = os.path.getmtime(g1["hf_p"]) if first_ok else None
++        cell("NEW", f"P35-A1 [{os.path.basename(rel)}] first write creates state_H_f10 as before",
++             first_ok and not logs, dict(exists=first_ok, logs=logs[:2]))
++        logs.clear(); os.utime(g1["hf_p"], (mt1 - 10, mt1 - 10)); mt_pre = os.path.getmtime(g1["hf_p"])
++        g2 = mk(base_nz, base_val); exec(compile(blk, rel + ":PROD35", "exec"), g2)
++        noop = any("rerun_noop" in x for x in logs)
++        cell("RED", f"P35-R1 [{os.path.basename(rel)}] identical rerun is a counted NO-OP and does not "
++                    f"rewrite the file (old code overwrote it in place, unobserved)",
++             noop and os.path.getmtime(g2["hf_p"]) == mt_pre
++             and not [f for f in os.listdir(d) if ".rerun_" in f],
++             dict(noop=noop, mtime_unchanged=os.path.getmtime(g2["hf_p"]) == mt_pre, logs=logs[:2]))
++        logs.clear()
++        diff_val = base_val.copy(); diff_val[5] = -0.9
++        g3 = mk(base_nz, diff_val); exec(compile(blk, rel + ":PROD35", "exec"), g3)
++        kept = np.load(g3["hf_p"])
++        aside = [f for f in os.listdir(d) if ".rerun_" in f]
++        cell("NEW", f"P35-N1 [{os.path.basename(rel)}] a DIFFERING rerun keeps the first artefact, "
++                    f"saves the new one aside as evidence, and names it RERUN_DIFFERS",
++             any("RERUN_DIFFERS" in x for x in logs) and len(aside) == 1
++             and float(kept["val"][1]) == np.float32(-0.2),
++             dict(named=any("RERUN_DIFFERS" in x for x in logs), aside=aside,
++                  kept_second_value=float(kept["val"][1])))
++        cell("NEW", f"P35-N2 [{os.path.basename(rel)}] a page that does not confirm is NAMED "
++                    f"(subprocess.run does not raise on non-zero exit, so an unchecked call would "
++                    f"repeat the very silence 27.11 describes)",
++             any("PAGE_UNCONFIRMED" in x for x in logs),
++             dict(logs=[x for x in logs if "PAGE" in x][:1]))
++
++
 +# ======================================================================================== main
 +if __name__ == "__main__":
 +    print(f"tests_fx_prod code={CODE} shadow_loop_v3.py={code_sha('shadow_loop_v3.py')[:16]} combo_stage.py={code_sha('fea171/combo_stage.py')[:16]} cells={sorted(CELLS)} utc={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}", flush=True)
-+    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m), ("P9", p9), ("P27", p27), ("FXR1", fxr1)):
++    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m), ("P9", p9), ("P27", p27), ("FXR1", fxr1), ("P35", p35)):
 +        if name in CELLS:
 +            try:
 +                fn()
