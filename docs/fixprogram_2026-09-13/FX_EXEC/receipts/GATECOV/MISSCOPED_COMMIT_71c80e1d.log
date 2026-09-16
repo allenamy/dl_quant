@@ -1,0 +1,42 @@
+# MIS-SCOPED COMMIT — recorded, not rewritten
+# recorded 2026-09-16T03:41:45Z by FX-EXEC
+
+WHAT: research-repo commit 71c80e1d ("FX-EXEC 更正: 电池窗口外误跑的迟到量按秒重算 = 85 s")
+was intended to carry ONE file — my own incident receipt. It carried 18, because I ran
+  git add -- <my file> && git commit -F -
+with a pathspec on the ADD but NOT on the COMMIT. `git commit` with no pathspec commits the
+whole index, and FX-PROD had files staged in this shared checkout at that moment.
+FIXPROGRAM §0.7 says "提交显式 pathspec 并核 git show --name-only" — I did the second half
+(which is how I caught it) and only half of the first.
+
+FOREIGN FILES SWEPT IN (FX-PROD's work, committed under MY message):
+  docs/fixprogram_2026-09-13/FX_PROD/FACT_TABLE_PROD.md
+  docs/fixprogram_2026-09-13/FX_PROD/SWAP_PLAN_FX_PROD.md
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/fx_prod_commit_chain.txt
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/fxr1/GREEN_FXR1_at_fix.log
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/fxr1/GREEN_firstrun_RECEIPT_fixed.json
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/fxr1/GREEN_rerun_REFUSED_RECEIPT_fixed.json
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/fxr1/RED_PREFIX_rerun_RECEIPT_1cbeca90.json
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/fxr1/SHA256SUMS_fxr1_prod28_swapdry.txt
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/p9/P9_declared_interval_table_2026-07-01_2026-09-13T12Z_zipszips_2026-08.csv.gz
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/prod28/PROD28_RUNTIME.json
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/swapdry/FOOTPRINT_swapdry_20260916.txt
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/swapdry/RECEIPT_p5_rescore_seat_king.json
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/swapdry/guard.log
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/swapdry/live_ro_after.txt
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/swapdry/live_ro_before.txt
+  docs/fixprogram_2026-09-13/FX_PROD/receipts/swapdry/run_dry.log
+  docs/receipts/fx_prod_stack.diff
+
+WHY NOT REWRITTEN: three agents commit to research/book-uplift-2026-09-11 in this same
+checkout. A reset --soft + re-commit changes the SHA and would drop any commit another
+worker lands in between. Nothing is lost by leaving it — the content is committed and
+intact — so the cheap, safe repair is this note plus a message to FX-PROD and the lead,
+not surgery on shared history.
+
+CHECKED: my two earlier receipt commits 1764b1c9 (74 files) and f0bb7a60 (25 files) contain
+no foreign paths — every file is under docs/fixprogram_2026-09-13/FX_EXEC/ or
+docs/receipts/fx_exec_*.
+
+CHANGED PRACTICE: pathspec on the commit itself from here on —
+  git commit -F - -- <paths>
