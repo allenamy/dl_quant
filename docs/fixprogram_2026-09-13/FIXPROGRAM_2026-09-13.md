@@ -631,3 +631,25 @@ run 14 rc=0, **5/5**; 收据 `RECEIPT_fx_uni03_sep_mask.json`(`08bf49d4`)。**�
 4. **FEA-01 的 alpha 预算撤销**: 保留其覆盖/前视事实与我方的「可得性位」要求, 但**不再把它列为可回收 alpha 的来源**; 我方 FX-MODEL 的三臂预注册照做, 目的改为**测量而非回收**。
 5. **新增一类数据缺陷进纲领: 采集缺月(acquisition omission)** —— 与 TRD-01(死后仍写行)、E-0908-B(裁剪)都不同。**要求 FX-DATA 增加一项月度清单完整性检查**(逐符号逐月的存档存在性与行数), 并**独立复现**他们点名的三个符号月与那三根幽灵 bar。
 6. **UNI-01 的测量优先级不变且更高了**: 既然他们的回放把这些名带在训练人口里而未处理, 那两对 3× 反向杠杆对**这次 2.52 的结果同样有效**。FX-MODEL 的 ①–⑤ 测量照做。
+
+### 21.5 ★★★ EXE-05 追加(lead 亲测, 五环链条闭合): **一个绿套件在认证生产路径永远到不了的状态**
+承 §21.1。我继续查「为什么这条从来没被发现」, 链条闭合如下, 每一环我都自己读过:
+
+| 环 | 事实 | 证据 |
+|---|---|---|
+| 1 | **配置声明了它** | `~/dl_quant_live/config/book.json` `leverage_deadzone_frac = 0.10` |
+| 2 | **代码正确实现了它** | `scheduler/anchor_loop.py:1340-1363`: `dead` 取自配置; `drift = abs(actual/tgt − 1)`; `resize = (actual is None) or (drift > dead)` |
+| 3 | **测试套件正确认证了它 —— 靠自己注入一个上锚 gross** | `live/tests_sizing_policy.py`: `_in = _L(9216.0, 4700.0)._size_book()` 断言 drift ≤ DEAD 不重定规模; `_out = _L(9216.0, 3686.0)` 断言 drift > DEAD 重定规模; `_edge = _L(4608.0*TGT, 4608.0*TGT/(TGT*(1+DEAD)))` 断言边界恰在 `TGT*(1+DEAD)`; L58 还断言 `DEAD == 0.10` |
+| 4 | **生产入口从不注入那个状态** | `scheduler/run_anchor.py:314` `AnchorLoop(b, ex, gross_usdt=0.0, ...)`; `com.dlquant.live.anchor` 是 `StartCalendarInterval` ⇒ **每锚一个全新进程** |
+| 5 | **实盘记录的算术恒等式** | LIVE **272/272** 锚 `gross == round(nav × target_leverage, 2)`; `gross_previous` 562/562 为 0.0 |
+
+**该套件里唯一在生产上真实发生的那一格, 是 L67-68 的 `_first = _L(0.0, 4608.0)` 「★★ first anchor (no previous gross) sizes from equity」—— 它被当作众多情形之一, 而它是唯一的情形。**
+
+⇒ **通用规矩(新, 全体)**: **一个自己构造被测状态的套件, 必须同时证明「生产入口能够构造出那个状态」。** 否则它认证的是一条生产永远走不到的分支。这与 KB-73(守卫断言源码子串而非有效解释器)、G-1/G-3、以及「门存在但判词不控制写入」是同一族的**第四种形态**: **测试通过构造一个生产构造不出的状态来认证行为。**
+**gate_coverage 必须为此新增一类具名边界**: 凡断言依赖注入状态的格, 需声明「生产可达性」由谁证明。
+
+**对我方既有结论的影响面(要查, 不要假设)**: 研究仓内引用死区的文件 —— `REDTEAM_wide_live_prelaunch_2026-08-22` · `RUNBOOK_wide_live_2026-08-22` · `SURVEY_arch_modules_2026-08-24` · `DESIGN_wide_replay_P3_2026-08-16` · `DESIGN_differentiable_book_loss_2026-08-22`, 以及记忆条目 `deepsmooth_band_deployed` / `turnover_shaping_ema_revalidated` / `adaptive_turnover_family_closed`。**凡把死区当作生效前提的换手整形结论, 其换手基数与生产不同, 须逐条重判**(归 FX-EXEC 出清单, 归 AUD-KB 进 KB 登记)。
+
+### 21.6 另两条对我方生产代码的断言, lead 亦已亲验
+- **`RebalanceExecutor.plan` 在计划 mids 上形成固定张数 —— 成立。** `live/binance_executor.py:760-800` 的 docstring 与代码: 取 `mids`, 走 `delta → band → min-notional → lot rounding`, 逐名 `qty` 由 `delta / mid` 得出并记 `qty_source = "notional_over_mid"`; **全退出优先 `-held_qty`** 并记 `qty_source = "venue_position_qty"`(这正是 E-0912-A (b) 的修复)。⇒ **被控制的量是张数不是名义**; 成交价偏离计划 mid 时, **实际成交名义随之漂移**。**凡假设「名义是被控量」的执行器改动一律按此收窄** —— 已下发三条执行器线。
+- **`gross_outside_frac ≡ 0`(实盘 145 锚)** ⇒ 见 §21.2: 归一在实盘是纯标量, 形状不变。**但独立研究员测得的 ΔL1 由 0.0313 升到 0.0447(≈ +43%)正是这个标量的倒数效应**(1/0.709 ≈ 1.41): **任何不经 `target_vector` 的回放, 其书比实盘小 0.71–0.77 倍, 换手需求相应低约 29–43%。** 这给了我方「部署 carry 是回放 2 倍」一个**可检验的、构造性的**候选来源, 须逐项核 P2 链与换手整形研究是否走了归一步。
