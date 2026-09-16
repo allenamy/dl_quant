@@ -37,3 +37,30 @@ Baseline (before any FX-TRAIN change): pristine copy of C/ at the audited shas (
 **Not proven / boundary.**
 - An interpreter that lies consistently (returns a well-formed foreign contract to the driver's own `load_month_env` and exits 0 from every gate program) can still direct the driver at arbitrary paths; no bash-level check removes that. Interpreter identity is not pinned anywhere in the chain (preflight records `PY` by path only).
 - Not exercised by a real month run through the driver (none is possible before the October inputs exist).
+
+---
+## TRN-27 · 裁定文档点名了被取代的批准对象, 且带一张 6/6 陈旧的装置 sha 表(提交 98cc9f0f, 事实表 bc5d4bf2; 未经独立复审; lead 逐字转录 2026-09-16 04:0xZ)
+
+**问题。** `RUNBOOK_monthly_retrain_2026-10` §0★ 要用户批准 `0fe5ec55…`(修订 4)、随后 `b2f9cfd4…`(修订 5)作为 STEP2_m 对象, 而盘上的文件自 09-13 起已是 `d99a9109…`; 对该文件 `grep -c d99a9109` 返回 **0**。全部八条事实都是今天用 `shasum -a 256` 亲测, 不是从审计搬来的(FACT_TABLE_TRN §TRN-27 行 27.1-27.8)。
+
+**让它不止于「文字瑕疵」的那一点。** 我读的是 `diff v4_gate_step2_m.r2_b2f9cfd4.py v4_gate_step2_m.py`, 不是修订说明。`b2f9cfd4` **先**把成员索引转成 int64 再校验转换结果, 于是 `[False, True]` 变成 `[0, 1]` 并 **PASS** —— 而 `pod_export_bundle_v4.py` 用**持久化的**数组去下标 `y4[i, m]`, 会抛 IndexError。`d99a9109`(AMENDMENT 3)先在存储对象上检查 dtype kind, 直接拒绝 bool/float/object/string, 确认有效之后才转换。**批准 runbook 所点名的那个 sha, 等于批准一个会放行「导出器一碰就崩的输入」的门。**
+
+**其他实测事实。** §0★ 的装置 sha 表 **6/6 陈旧**(声称 ffbb89b8 / ee0af0c0 / 29611dbc / 2563446d / db5839e4 / e1dec02b; 实测 1add6df7 / 2369a87d / 16bfdb7e / dbab81e0 / 683675d1 / c34aace9), 而那一行本身已经写着叫读者别信这张表。STEP1_m 那半是对的(L76 = 实测 79950786), 所以修复不动它。同族站点: `v4_month_2026-10.env.template` L50 重复了同一个陈旧对象。**该缺陷 fail closed** —— 合同两个月度门都没批准, 所以无论文档怎么写, 预检都会拒绝; 代价是**一次被浪费的裁定**和十月被推迟, 不是一个坏 bundle。
+
+**修复。**
+- **RUNBOOK §0★ 修订 6**, 带一个可机检的声明块: 两条 `APPROVAL_OBJECT` 行(一次裁定必须写进合同的**恰好**是什么)与两条 `SUPERSEDED_OBJECT` 行(存在文件的红控快照)。`455e3df4` 在散文里被点名为**没有存档文件因而无法被验证**的历史 —— **说出来而不是悄悄丢掉**。修订 4/5 逐字保留为它们本来的历史。同一节还带上另外三个十月决策(NONE clamp 开关; 导出基线 TRN-15; fea89 builder TRN-16 连同它被迫带来的后果 —— 追加式月滚动, 以及 2026-08-31 那 229,824 个 holefix2 填充格**不得**被现已可得的 vendor 存档替换)。
+- **冻结 sha 表被删除**, 换成测量命令加上已提交的清单。**一张按构造就会过期、而且已经自我免责的表是纯粹的危险品。**
+- **模板注释**现在点名 `d99a9109` 且不再复述任何旧 sha; 修复前的模板存档为 `v4_month_2026-10.env.r1_dc94784e.template`。
+- **新门 `v4_doc_approval_gate.py`**(收据 `DOC_APPROVAL_IDENTITY` 经 `v4_gate_common.finalize`; `DOC` / `DEVICE_DIR` / `CONTRACT` / `DOCGATE_PROFILE` / `DOCGATE_OUT` 全部必填, 无默认)。**A1**: 被声明的批准对象必须等于被测量的文件, 而**截断的 sha 被拒为「一个标签, 不是一个身份」** —— 8-hex 的习惯正是错对象被引用的途径。**A2**: 每一个尚未进入合同的月度通用门, 必须以其实测 sha 恰好声明一次。**A3**: 文档提到的每一个存档快照 sha 都需要一条 `SUPERSEDED_OBJECT` 声明; 点名存档**文件**可豁免, 因为那是无歧义的。**A4**: 一个 sha 若与某个装置文件名之间只隔分隔符, 它就是关于该文件的声明; 再远一点的只报告、永不裁决 —— **门不猜散文的意思**。`DOCGATE_PROFILE` 必须显式给出(`ruling` / `reference`); `reference` 把 A2 记为 `NOT_APPLICABLE` 并附理由, 而不是静默通过。被取代的声明本身还被分类为「有存档可验」与「不可验」两类并计数, 使那条豁免可见。
+
+**红, 且红对了理由。** 修复前的 RUNBOOK 跑出 **rc 3**, A2 + A3 + A4 同时失败: 两个月度通用门未声明、五处裸提被取代的 step2_m sha(L62 / L76 / L80 / L91×2)、六个陈旧装置 sha 以「声称 vs 实测」成对列出。修复前的模板 **rc 3**(L50 上的 A3)。把新 [W] 块跑在一份携带修复前模板的纯净链目录副本上: **W12 单独 FAIL, rc 1**, 13 格中 12 格绿 —— **无崩溃, 无缺失夹具**。收据: `FX_TRAIN/receipts/trn27/RED_prefix_{runbook,template}.{json,log}` · `W_block_on_PREFIX_template_RED.log`。
+
+**绿。** 修复后的 RUNBOOK 在 `ruling` 档 **rc 0 PASS**, 修复后的模板在 `reference` 档 **rc 0 PASS**, 两条被取代声明都对着各自存档验过。新 [W] 块 13/13。**整套 `tests_pipeline_gates.py` ALL PASS(419 项检查), rc 0**(= 406 + 13), 03:23:04Z–03:26:52Z, 起止源码 sha 相同(tests `10b00289`, gate `f3a94cd5`, template `b19495c2`)—— **我读的是汇总行与退出码, 不是「任务完成了」**。对 `31cd958c` 的 AST 保留: **181/181** 旧顶层语句逐字且按序保留, 0 改动, 6 新增。`make_sha_manifest.py` rc 0。
+
+**未证明 / 边界。**
+- 这道门只能对它在装置目录里**量过**的文件说话。匹配不上那里任何文件的 hex 记号(提交 sha、收据 sha、别处的文件 —— runbook 里有 21 个)被记为数据, 不参与裁决。像 `455e3df4` 这样没有存档文件的红控, **永远只能是一条不可验证的声明**。
+- 真正的 RUNBOOK 由已提交的收据检查, 而不是由可移植套件检查: `tests_pipeline_gates.py` 在 pod2 上从一个复制目录运行, 那里 `docs/` 并不存在, 所以套件到处都带着的唯一真实工件是十月模板。若要每次套件运行都检查 runbook, 需要在月合同里加一个 doc 路径键 —— **我没有加这个合同键**([P]/[U] 各格逐字钉住 46 个键)。
+- A4 的邻接规则是关于散文的启发式, **故意偏向少声称**: 它只在「文件名 sha」这种表格形状上触发, 其余一律报告而不失败。**一个写在句子里而不是表格里的陈旧 sha 不会被抓到。**
+
+### 顺带发现(lead 已登记为 **TRN-28, P1**)
+`pod_f10_np_export.py` 在**它自己的 V1 门决定之前**就写出可部署的 npz(`np.savez` 在 L56, 然后才 `sys.exit(0 if ok else 3)`), 而在其默认 `F10_OUT` 下, 那条路径**就是在役工件本身**。所以一次失败的 V1 门仍会在实盘路径上留下一个完整、可加载的模型, 并覆盖原先那个。**这比审计的「产生在所有门之外」更锋利: 门是存在的, 只是它的判词不控制写入。**
