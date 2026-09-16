@@ -1,0 +1,192 @@
+diff --git a/live/ledger_amendments.py b/live/ledger_amendments.py
+index bbdee7a..a09da0b 100644
+--- a/live/ledger_amendments.py
++++ b/live/ledger_amendments.py
+@@ -111,9 +111,46 @@ def _row_sha_ok(pilot_log_root: str, rec: Dict[str, Any]) -> Tuple[bool, str]:
+     got = hashlib.sha256(lines[line_no - 1]).hexdigest()
+     if got != want:
+         return False, f"row_sha256 mismatch (file {got[:12]}… vs record {want[:12]}…)"
++    # ★★★ R16-E2 (独立复审 2026-09-16, P2): 字节对了**不等于**这一行就是这条记录该改的那一行。
++    #   旧码到此为止 —— 它验了「文件第 line_no 行的哈希 == 记录里的 row_sha256」, 却**从不解析那一行**
++    #   看它的 nav_ts 是谁。而 `realised_usdt` 是按 (day, nav_ts) 查表的。于是: 两条记录各自带**正确的**
++    #   day/line/row_sha, 只把 nav_ts 对调 —— 每条的字节校验都过, 但索引键指向了对方的行, 读者把本该属于
++    #   第一/第二行的 100/101 读成 101/100。**准入与消费者都无法独立拒绝错误关联。**
++    #   ⇒ 现在把「被哈希原行的身份」与「记录自称的身份」绑在一起。
++    try:
++        parsed = json.loads(lines[line_no - 1].decode("utf-8", "replace"))
++    except (ValueError, UnicodeDecodeError) as e:
++        return False, f"the hashed line at {line_no} is not readable JSON ({type(e).__name__}) — identity unverifiable"
++    if not isinstance(parsed, dict):
++        return False, f"the hashed line at {line_no} is not a JSON object — identity unverifiable"
++    row_ts, rec_ts = _finite(parsed.get("nav_ts")), _finite(rec.get("nav_ts"))
++    if row_ts is None or rec_ts is None or row_ts != rec_ts:
++        return False, (f"IDENTITY MISMATCH: the hashed line at {line_no} carries nav_ts {parsed.get('nav_ts')!r} "
++                       f"but the record is keyed nav_ts {rec.get('nav_ts')!r} — correct bytes, wrong row")
++    row_day, rec_day = str(parsed.get("day")), str(rec.get("day"))
++    if row_day != rec_day:
++        return False, (f"IDENTITY MISMATCH: the hashed line at {line_no} carries day {row_day!r} "
++                       f"but the record says day {rec_day!r}")
+     return True, ""
+ 
+ 
++def verify_record(rec: Dict[str, Any], pilot_log_root: str) -> Tuple[bool, str]:
++    """★ R16-E3: THE ONE verifier both readers consume. `watchdog` reaches it through `realised_usdt`;
++    `ops/daily_summary.realised_facts` calls it directly. Two readers of one record format, one of
++    which stops the book, must not verify to different depths — that is the defect family this
++    module exists to avoid, and before this function they did: `realised_facts` checked only
++    `kind == KIND` and then reported the amended value with `complete=True`, while `watchdog`
++    already fell back to the recorded value on a bad row_sha.
++    Returns (ok, why). `why` is empty exactly when ok."""
++    if not isinstance(rec, dict):
++        return False, "not an amendment record"
++    if rec.get("kind") != KIND:
++        return False, f"kind is {rec.get('kind')!r}, not {KIND!r}"
++    if not pilot_log_root:
++        return False, "no pilot_log_root given — the record cannot be verified, and unverified is not verified"
++    return _row_sha_ok(pilot_log_root, rec)
++
++
+ def realised_usdt(row: Dict[str, Any], amendments, pilot_log_root: str) -> Dict[str, Any]:
+     """The realised P&L this `daily_nav` row should be priced with, and WHERE it came from.
+ 
+diff --git a/live/watchdog.py b/live/watchdog.py
+index e8306d6..6fe039b 100644
+--- a/live/watchdog.py
++++ b/live/watchdog.py
+@@ -2611,12 +2611,25 @@ def _local_response(broker, ev, reason, alarm_path, rows_root, verbose=True, max
+                                  f"NOT sending")
+             continue
+         out["positions_unreadable"] = False
++        # ★★★ R16-E1 (独立复审 2026-09-16, P1): 一个**存在但不是有限数**的数量是「仓位未知」, 不是「仓位为零」。
++        #   旧写法把非有限的名字从 `held` 里**踢掉**; 若被点名的名字全都非有限, `held` 就空了, 于是这道梯级在
++        #   **零次平仓尝试**之后报告 `named_flat=True`。`positionAmt="1e9999"` 是交易所可以合法返回的字符串,
++        #   `float()` 之后是 inf。紧邻上方 2608 行的注释写着「unreadable is NOT flat」—— 异常路径处理对了,
++        #   **读到一个不是数的值这条路径没有**。能平的照平, 但只要还有未知名字就绝不宣称已平。
++        _unknown = sorted(n for n in names if n in _pos and _finite(_pos.get(n)) is None)
+         held = {n: float(_pos[n]) for n in names if _finite(_pos.get(n)) is not None and abs(float(_pos[n])) > 1e-12}
++        if _unknown:
++            out["positions_unreadable"] = True
++            out["position_unknown_names"] = _unknown
++            out["errors"].append(f"positions read before attempt {i + 1}: {len(_unknown)} named symbol(s) returned a "
++                                 f"NON-FINITE quantity {_unknown[:5]} — position UNKNOWN, NOT flat")
+         if out["held_before"] is None:
+             out["held_before"] = dict(held)
+-        if not held:
++        if not held and not _unknown:
+             out["named_flat"], out["residual_named"] = True, {}
+             break
++        if not held:
++            continue                    # 无可平之物, 但有未知名字 ⇒ 重读, 绝不落到「已平」
+         out["flatten_attempts"] += 1
+         _n_actions_before = len(getattr(broker, "actions", []) or [])
+         try:
+@@ -2640,9 +2653,15 @@ def _local_response(broker, ev, reason, alarm_path, rows_root, verbose=True, max
+                     break
+         try:
+             _after = broker.positions() or {}
++            # ★★★ R16-E1 同族第二处: 平仓后的复查是同一种读法, 同样不能把「非有限」读成「已平」。
++            _unknown_after = sorted(n for n in names if n in _after and _finite(_after.get(n)) is None)
+             out["residual_named"] = {n: float(_after[n]) for n in names
+                                      if _finite(_after.get(n)) is not None and abs(float(_after[n])) > 1e-12}
+-            if not out["residual_named"]:
++            if _unknown_after:
++                out["position_unknown_names"] = _unknown_after
++                out["errors"].append(f"after attempt {out['flatten_attempts']}: {len(_unknown_after)} named symbol(s) "
++                                     f"returned a NON-FINITE quantity {_unknown_after[:5]} — position UNKNOWN, NOT flat")
++            if not out["residual_named"] and not _unknown_after:
+                 out["named_flat"] = True
+                 break
+             out["errors"].append(f"after attempt {out['flatten_attempts']} the venue still holds "
+diff --git a/ops/daily_summary.py b/ops/daily_summary.py
+index 23f5c99..6d99c16 100644
+--- a/ops/daily_summary.py
++++ b/ops/daily_summary.py
+@@ -74,7 +74,7 @@ E0909H_UNRELIABLE = ("E-0909-H: this row was written before the carrier fix (b68
+ load_realised_amendments = _LA.load
+ 
+ 
+-def realised_facts(row, amendment=None) -> dict:
++def realised_facts(row, amendment=None, pilot_log_root=None) -> dict:
+     """The row's realised P&L as a RECORD with its own observability, USDT caliber and completeness.
+ 
+     ★★★ W2 2026-09-12 — two VERIFIED counterexamples from the independent reviewer
+@@ -115,7 +115,18 @@ def realised_facts(row, amendment=None) -> dict:
+     bta = r.get("realised_by_type_asset")
+     trunc = r.get("realised_truncated")
+     complete = None if trunc is None else (not bool(trunc))
+-    if not isinstance(bta, dict) and isinstance(amendment, dict) and amendment.get("kind") == AMENDMENT_KIND:
++    # ★★★ R16-E3 (独立复审 2026-09-16, P2): 旧码这里只查 `kind == AMENDMENT_KIND` 就取值并硬写
++    #   `complete: True` —— **从不调 `_row_sha_ok`**, 而 watchdog 走的 `ledger_amendments.realised_usdt`
++    #   调了。两个读者读同一种记录、验证深度不同, 其中一个会停书。复审的两个反例:
++    #   (1) 坏 row_sha 的修订 999: watchdog 回退原值 10, 日报报 999 **且称完整**;
++    #   (2) 合法修订通过 apply 后账本文件不可读: watchdog 用原 10, 日报仍用 100 **且称完整**。
++    #   ⇒ 现在两个读者消费**同一个** `ledger_amendments.verify_record`。
++    #   验证失败(有 root)⇒ 与 watchdog 一样回退到 carrier; 无 root ⇒ 值仍给出但 complete=False 并写明。
++    _am_ok, _am_why, _am_unverifiable = False, None, False
++    if not isinstance(bta, dict) and isinstance(amendment, dict):
++        _am_ok, _am_why = _LA.verify_record(amendment, pilot_log_root)
++        _am_unverifiable = (not _am_ok) and not pilot_log_root
++    if not isinstance(bta, dict) and isinstance(amendment, dict) and (_am_ok or _am_unverifiable):
+         # ★★ LED-04: a pre-fix row WITH an amendment record reads the income-ledger split, not the carrier's
+         am = amendment.get("amended") or {}
+         am_usdt = _finite(am.get("realised_pnl_usdt"))
+@@ -128,7 +139,9 @@ def realised_facts(row, amendment=None) -> dict:
+                 "unconverted": [{"type": t, "asset": a_, "amount": float(v)}
+                                 for t, av in sorted((am.get("non_usdt_unconverted") or {}).items())
+                                 for a_, v in sorted(av.items())],
+-                "caliber": "amended_from_income_ledger", "complete": True, "carrier_sum": carrier,
++                "caliber": "amended_from_income_ledger", "complete": (True if _am_ok else False),
++                "amendment_verified": bool(_am_ok), "amendment_unverified_why": (None if _am_ok else _am_why),
++                "carrier_sum": carrier,
+                 "carrier_sum_mixes_assets": bool(am.get("non_usdt_unconverted")), "why": None,
+                 "amendment": {"income_sha256": (amendment.get("source") or {}).get("income_sha256"),
+                               "row_sha256": amendment.get("row_sha256"), "reason": amendment.get("reason")}}
+@@ -138,6 +151,8 @@ def realised_facts(row, amendment=None) -> dict:
+                 "by_type_usdt": {t: float(by_type[t]) for t in types if t in by_type},
+                 "unconverted": [], "caliber": "legacy_carrier_sum_usdt_assumed",
+                 "complete": complete, "carrier_sum": carrier, "carrier_sum_mixes_assets": None,
++                "amendment_rejected_why": (_am_why if (isinstance(amendment, dict) and not _am_ok
++                                                       and not _am_unverifiable) else None),
+                 "why": None, "unreliable": E0909H_UNRELIABLE}
+     by_type_usdt, unconverted = {}, []
+     for t in types:
+@@ -225,7 +240,7 @@ def flatten_batches_facts(order_rows, fills_rows, since: float) -> list:
+     return out
+ 
+ 
+-def account_facts(nav_rows, leverage: float = LEVERAGE, amendments=None) -> dict:
++def account_facts(nav_rows, leverage: float = LEVERAGE, amendments=None, pilot_log_root=None) -> dict:
+     """The account section's three key quantities, as DATA. Pure; no printing, no I/O.
+ 
+     ★★★ WHY THIS IS A FUNCTION AND NOT A BLOCK OF PRINTS (lead's ruling, 2026-08-03).
+@@ -292,8 +307,8 @@ def account_facts(nav_rows, leverage: float = LEVERAGE, amendments=None) -> dict
+     #     reviewer's VERIFIED counterexamples; see `realised_facts`.
+     # LED-04: a pre-fix row reads its amendment record when one exists (keyed by day and nav_ts)
+     _am = lambda r_: (amendments or {}).get((r_.get("day"), _finite(r_.get("nav_ts"))))   # noqa: E731
+-    real_f = realised_facts(n1, _am(n1))
+-    real0_f = realised_facts(n0, _am(n0))
++    real_f = realised_facts(n1, _am(n1), pilot_log_root)
++    real0_f = realised_facts(n0, _am(n0), pilot_log_root)
+     real = real_f["usdt"]                         # None when NOT observable — never 0.0
+     # ★★★ P0, 2026-08-03. `external_flow_usdt` IS A SINCE-MIDNIGHT CUMULATIVE, PER DAY — reading
+     #     it off the LAST row reports only the CURRENT day's flow, and a window that spans two days
+@@ -605,7 +620,7 @@ def main():
+ 
+     # ── 1. the account, DECOMPOSED ────────────────────────────────────────────────────────
+     _amendments = load_realised_amendments(os.path.join(root, AMENDMENTS_REL))
+-    for _line in render_account(account_facts(nav, amendments=_amendments)):
++    for _line in render_account(account_facts(nav, amendments=_amendments, pilot_log_root=root)):
+         print(_line)
+ 
+     # ── 2. per-anchor table: the trend, one row each ──────────────────────────────────────
+@@ -724,8 +739,8 @@ def main():
+     _today = [r for r in nav if r.get("day") == nav[-1].get("day")] if nav else []
+     if len(_today) >= 2:
+         r0, r1 = _today[0], _today[-1]
+-        _rf0 = realised_facts(r0, _amendments.get((r0.get("day"), _finite(r0.get("nav_ts")))))
+-        _rf1 = realised_facts(r1, _amendments.get((r1.get("day"), _finite(r1.get("nav_ts")))))
++        _rf0 = realised_facts(r0, _amendments.get((r0.get("day"), _finite(r0.get("nav_ts")))), root)
++        _rf1 = realised_facts(r1, _amendments.get((r1.get("day"), _finite(r1.get("nav_ts")))), root)
+         print(f"\n   ★ 「一换手就降」(当日 {r1.get('day')}, 不跨 00:00Z):")
+         if _rf0["observable"] and _rf1["observable"] and _rf0["complete"] is True \
+                 and _rf1["complete"] is True:
