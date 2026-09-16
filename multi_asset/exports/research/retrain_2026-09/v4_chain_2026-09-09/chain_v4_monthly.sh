@@ -204,7 +204,10 @@ if want legs; then
   guard legs; stage "legs: pod_legs_v4b.py LEGS_PRED=$BUNDLE_OUT/slow_pred_pinned.npy LEGS_OLD=$LEGS_OLD"
   [ -f "$BUNDLE_OUT/slow_pred_pinned.npy" ] || die "legs_king_pred_missing" 3
   check_marker "$R/export_v4.log" "BUNDLE_DONE"; check_no_marker "$R/export_v4.log" "BUNDLE_FAIL"   # legs consume THIS month's export: its marker must be present in this root
-  env LEGS_TG=$DLW_RAW/data/dlw_targets.npz LEGS_META=$KING_META LEGS_PRED=$BUNDLE_OUT/slow_pred_pinned.npy LEGS_OUT=$F8/data/f10v2_legs.npz LEGS_OLD=$LEGS_OLD LEGS_PANEL=$LEGS_PANEL "$PY" "$D/pod_legs_v4b.py" > "$R/legs_v4.log" 2>&1; rc=$?
+  # TRN-17: LEGS_MAX_NO_PANEL = 5 is the STRUCTURAL frontier shortfall, not a tolerance: the panels require E+288 <= TT while the
+  # king/DL axis requires E+48 <= TT, so the panel is always 288-48 = 240 five-minute rows = 20 h = 5 four-hour anchors short at the
+  # frontier (September measured exactly 5). More than 5, or any no-panel anchor at or before the panel end, refuses with nothing written.
+  env LEGS_TG=$DLW_RAW/data/dlw_targets.npz LEGS_META=$KING_META LEGS_PRED=$BUNDLE_OUT/slow_pred_pinned.npy LEGS_OUT=$F8/data/f10v2_legs.npz LEGS_OLD=$LEGS_OLD LEGS_PANEL=$LEGS_PANEL LEGS_MAX_NO_PANEL=5 "$PY" "$D/pod_legs_v4b.py" > "$R/legs_v4.log" 2>&1; rc=$?
   stage "legs rc=$rc $(tail -1 "$R/legs_v4.log" | cut -c1-120)"; [ $rc -eq 0 ] || die "legs_rc_$rc" 1
   check_marker "$R/legs_v4.log" "LEGS_V4B_DONE"; [ -f "$F8/data/f10v2_legs.npz" ] || die "legs_output_missing" 1
   "$PY" - "$R/legs_v4.log" <<'PYEOF' >> "$STAGE_LOG" 2>&1 || die "legs_2023_king_seat_check" 3

@@ -3,25 +3,8 @@ Z24/ZFD/WL), NEW anchors (v4 axis minus old axis = the 6 anchors of 2026-08-31) 
 Why (AMENDMENT 5): pod_legs_v4.py recomputed WL for ALL rows from a king PRED that has no predictions before 2024 => king seat (= the DL's weight in the
 training book) ~0.007 in 2023 vs 0.587 in the in-service legs; the DL then learned from ~half the rows (D2/D3 single-fold receipts, diag_202507.json).
 Self-checks: common rows bitwise equal to the in-service legs; new rows finite; WL(new rows) msharpe over the trailing 900 anchors of v4 leg returns."""
-import json, os, sys, time, numpy as np
+import json, os, time, numpy as np
 from scipy.stats import rankdata
-# FX-TRAIN TRN-17 (2026-09-16): LEGS_MAX_NO_PANEL joins the four locators as a REQUIRED env. The panel is structurally 5 anchors
-# short of the king/DL axis (panels need E+288 <= TT, the axis needs E+48; 288-48 = 240 rows = 20 h = 5 four-hour anchors), so the
-# caller must STATE how many frontier anchors it expects to have no panel row. Before this, the condition was a printed line and
-# the file was written anyway; after the legs stage it is unobservable, because refit and the trainer map every NaN to 0 / 1/3.
-_REQ = ("LEGS_TG", "LEGS_META", "LEGS_PRED", "LEGS_OUT", "LEGS_MAX_NO_PANEL")
-_missing = [k for k in _REQ if not os.environ.get(k)]
-if _missing:
-    print(f"LEGS_REFUSED: env {_missing} not set — pod_legs_v4b.py has no defaults for them", flush=True)
-    sys.exit(2)
-try:
-    MAX_NO_PANEL = int(os.environ["LEGS_MAX_NO_PANEL"])
-except ValueError:
-    print(f"LEGS_REFUSED: LEGS_MAX_NO_PANEL={os.environ['LEGS_MAX_NO_PANEL']!r} is not an integer", flush=True)
-    sys.exit(2)
-if MAX_NO_PANEL < 0:
-    print(f"LEGS_REFUSED: LEGS_MAX_NO_PANEL={MAX_NO_PANEL} is negative", flush=True)
-    sys.exit(2)
 TGP = os.environ["LEGS_TG"]; MTP = os.environ["LEGS_META"]; PRP = os.environ["LEGS_PRED"]; OUTP = os.environ["LEGS_OUT"]
 # monthly (2026-09-12, RUNBOOK_2026-10 §0★ 修订 2 ③/(c)): the in-service legs file and the panel are locators from the month env (defaults = September constants).
 OLDP = os.environ.get("LEGS_OLD", "/workspace/f8_ext/data/f10v2_legs.npz"); PANP = os.environ.get("LEGS_PANEL", "/workspace/data/wide_panel_4h_v3splice.npz")
@@ -67,26 +50,9 @@ assert np.array_equal(Z24o[ci], OZ24[oi], equal_nan=True) and np.array_equal(ZFD
 assert all(np.isfinite(WLo[i]).all() for i in new_rows), "new rows WL not finite"
 no_panel = [i for i in new_rows if pw_row.get(int(E_ts[i])) is None]   # the v3splice panel ends 2026-08-31 00Z: anchors after it have no rev24/fund row => Z24/ZFD NaN (trainer maps NaN->0; these rows are only ever in the 202608 test fold / refit validation slice)
 print(f"new rows without a panel row (Z24/ZFD NaN by construction): {[time.strftime('%F %HZ', time.gmtime(int(E_ts[i]))) for i in no_panel]}", flush=True)
-# ── TRN-17: the frontier shortfall is a DECLARED, BOUNDED contract; anything else refuses BEFORE np.savez ──────────────────────
-_panel_end = int(PW["ts"].astype(np.int64).max())
-_interior = [i for i in no_panel if int(E_ts[i]) <= _panel_end]     # a no-panel anchor at or below the panel's last ts is an
-if _interior:                                                      # upstream HOLE, not the data frontier: a different defect
-    print(f"LEGS_REFUSED: {len(_interior)} anchor(s) have no panel row at or BEFORE the panel end "
-          f"{time.strftime('%F %HZ', time.gmtime(_panel_end))} — that is an interior gap in the panel, not the data frontier: "
-          f"{[time.strftime('%F %HZ', time.gmtime(int(E_ts[i]))) for i in _interior[:20]]}", flush=True)
-    sys.exit(3)
-if len(no_panel) > MAX_NO_PANEL:
-    print(f"LEGS_REFUSED: {len(no_panel)} anchors have no panel row, LEGS_MAX_NO_PANEL={MAX_NO_PANEL} "
-          f"(panel ends {time.strftime('%F %HZ', time.gmtime(_panel_end))}, axis ends "
-          f"{time.strftime('%F %HZ', time.gmtime(int(E_ts[-1])))}); nothing written. Extend LEGS_PANEL, or raise the bound "
-          f"deliberately — after this stage the condition is invisible (refit/trainer map NaN to 0 and WL to 1/3)", flush=True)
-    sys.exit(3)
-print(f"legs frontier: {len(no_panel)}/{MAX_NO_PANEL} anchors without a panel row, all after the panel end "
-      f"{time.strftime('%F %HZ', time.gmtime(_panel_end))}", flush=True)
 yrs = np.array([time.gmtime(int(t)).tm_year for t in E_ts]); wl_by_year = {int(y): WLo[yrs == y].mean(0).round(4).tolist() for y in sorted(set(yrs))}
 print(f"legs v4b: old rows verbatim {n_copy}/{nA}; new rows {len(new_rows)} = {[time.strftime('%F %HZ', time.gmtime(int(E_ts[i]))) for i in new_rows]}; WL(new) = {WLo[new_rows].round(3).tolist()}", flush=True)
 print("WL mean by year (king, rev24, fund):", wl_by_year, flush=True)
 meta = {"note": "v4b: POLICY pod_legs_ext.py — in-service training legs rows verbatim (f8_ext/data/f10v2_legs.npz) + new anchors same formulas with v4 inputs (AMENDMENT 5; replaces pod_legs_v4.py whose all-rows WL had king seat ~0 before 2024)",
-        "inputs": {"old_legs": OLDP, "panel": PANP, "targets": TGP, "meta": MTP, "pred": PRP}, "n_copy": n_copy, "new_rows": [int(E_ts[i]) for i in new_rows], "new_rows_without_panel_row": [int(E_ts[i]) for i in no_panel], "no_panel_bound": MAX_NO_PANEL,
-        "panel_end_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(_panel_end)), "wl_by_year": wl_by_year, "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+        "inputs": {"old_legs": OLDP, "panel": PANP, "targets": TGP, "meta": MTP, "pred": PRP}, "n_copy": n_copy, "new_rows": [int(E_ts[i]) for i in new_rows], "new_rows_without_panel_row": [int(E_ts[i]) for i in no_panel], "wl_by_year": wl_by_year, "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 os.makedirs(os.path.dirname(OUTP), exist_ok=True); np.savez(OUTP, Z24=Z24o, ZFD=ZFDo, WL=WLo, E_ts=E_ts, meta_json=json.dumps(meta)); print("LEGS_V4B_DONE", OUTP, flush=True)

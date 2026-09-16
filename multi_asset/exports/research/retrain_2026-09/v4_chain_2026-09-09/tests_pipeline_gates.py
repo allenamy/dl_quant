@@ -2058,5 +2058,109 @@ with tempfile.TemporaryDirectory() as _xd:
     check("★★ [X] TRN-03 X13: the archived ancestor pod_f10_np_export_v4.r0_3e304c27.py hashes to the September program 3e304c27… (the `.r0_<sha8>` label is a hint; this is the measurement)",
           _sha(_XOLD).startswith(_XOLD_SHA), _sha(_XOLD)[:16])
 
+# ── [Y] FX-TRAIN TRN-17 (2026-09-16; FACT_TABLE_TRN §TRN-17): the panel is structurally 5 anchors short of the king/DL axis at the
+#     frontier, and pod_legs_v4b.py's only response was a printed line — it wrote the legs file whatever the count, and after this
+#     stage the condition is unobservable because refit and the trainer map every NaN to 0 / WL to 1/3. LEGS_MAX_NO_PANEL makes the
+#     shortfall a declared bound, an interior gap a separate refusal, and both refuse before np.savez. Every cell runs the ARCHIVED
+#     pre-fix source and the current one on the SAME synthetic fixture; both go through run_sandboxed (E-0912-B static rule).
+_YOLD = "pod_legs_v4b.r1_8c33a230.py"
+_YNEW = "pod_legs_v4b.py"
+with tempfile.TemporaryDirectory() as _yd:
+    def _ymk(tag, n_axis=20, n_old=14, panel_short=5, hole=None, NW=6):
+        """A small legs fixture with the real shapes: OLD legs cover the first n_old anchors, the panel stops panel_short anchors
+        before the axis end, and `hole` (an axis index) additionally removes one panel row to make an INTERIOR gap."""
+        d = f"{_yd}/{tag}"
+        os.makedirs(d, exist_ok=True)
+        rng = np.random.default_rng(7)
+        E = np.arange(n_axis, dtype=np.int64) * 14400 + 1780000000
+        members = np.empty(n_axis, dtype=object)
+        for i in range(n_axis):
+            members[i] = np.arange(NW, dtype=np.int64)
+        np.savez(f"{d}/tg.npz", E_ts=E, members=members, y4s=rng.normal(0, 0.01, (n_axis, NW)).astype(np.float32))
+        np.savez(f"{d}/meta.npz", E_ts=E)
+        np.save(f"{d}/pred.npy", rng.normal(0, 1, (n_axis, NW)).astype(np.float32))
+        keep = [k for k in range(n_axis - panel_short) if hole is None or k != hole]
+        np.savez(f"{d}/panel.npz", ts=E[keep], f_rev_24h=rng.normal(0, 1, (len(keep), NW)).astype(np.float32),
+                 f_fund_ema_v1=rng.normal(0, 1, (len(keep), NW)).astype(np.float32))
+        np.savez(f"{d}/old.npz", E_ts=E[:n_old], Z24=rng.normal(0, 1, (n_old, NW)).astype(np.float32),
+                 ZFD=rng.normal(0, 1, (n_old, NW)).astype(np.float32), WL=np.full((n_old, 3), 1 / 3, np.float32))
+        return d
+
+    def _yrun(script, d, out, extra=None):
+        env = {"LEGS_TG": f"{d}/tg.npz", "LEGS_META": f"{d}/meta.npz", "LEGS_PRED": f"{d}/pred.npy", "LEGS_OUT": out,
+               "LEGS_OLD": f"{d}/old.npz", "LEGS_PANEL": f"{d}/panel.npz", "LEGS_MAX_NO_PANEL": "5"}
+        env.update(extra or {})
+        rc, o, _ = run_sandboxed(script, env, d)            # E-0912-B: a real writer only ever runs through run_sandboxed
+        return rc, o, os.path.exists(out)
+
+    def _ybits(a, b):
+        za, zb = np.load(a, allow_pickle=True), np.load(b, allow_pickle=True)
+        return all(np.array_equal(za[k], zb[k], equal_nan=True) for k in ("Z24", "ZFD", "WL", "E_ts"))
+
+    # Y1 — the contract HOLDS (5 frontier anchors, bound 5): the fix changes nothing, bit for bit
+    _d = _ymk("y1")
+    _o1, _o2 = f"{_d}/old_out.npz", f"{_d}/new_out.npz"
+    _r1, _r2 = _yrun(_YOLD, _d, _o1), _yrun(_YNEW, _d, _o2)
+    check("★★★ [Y] TRN-17 Y1 (contract holds, 5 frontier anchors, bound 5): pre-fix and fixed both rc 0 and their Z24/ZFD/WL/E_ts are BITWISE identical — the fix adds checks, it does not change what the legs file contains; the fixed run additionally states the frontier as 5/5 with the panel end",
+          _r1[0] == 0 and _r2[0] == 0 and _r1[2] and _r2[2] and _ybits(_o1, _o2)
+          and any(l.startswith("legs frontier: 5/5") for l in _r2[1].splitlines()), (_r1[0], _r2[0], _r2[1][-200:]))
+
+    # Y2 — one anchor over the bound: the defect is that the pre-fix code WRITES
+    _d = _ymk("y2", panel_short=6)
+    _o1, _o2 = f"{_d}/old_out.npz", f"{_d}/new_out.npz"
+    _r1, _r2 = _yrun(_YOLD, _d, _o1), _yrun(_YNEW, _d, _o2)
+    check("★★★ [Y] TRN-17 Y2 (the defect): 6 frontier anchors without a panel row against a declared bound of 5 ⇒ pre-fix rc 0 and the legs file IS WRITTEN (only a printed line marks it); fixed rc 3, nothing written, and the refusal names the count, the bound, the panel end and the axis end",
+          _r1[0] == 0 and _r1[2] and _r2[0] == 3 and not _r2[2] and "LEGS_REFUSED" in _r2[1]
+          and "6 anchors have no panel row" in _r2[1] and "LEGS_MAX_NO_PANEL=5" in _r2[1] and "nothing written" in _r2[1],
+          (_r1[0], _r1[2], _r2[0], _r2[2], _r2[1][-260:]))
+
+    # Y3 — an interior gap is a DIFFERENT defect and must not be absorbed by the bound
+    _d = _ymk("y3", panel_short=4, hole=14)
+    _o1, _o2 = f"{_d}/old_out.npz", f"{_d}/new_out.npz"
+    _r1, _r2 = _yrun(_YOLD, _d, _o1), _yrun(_YNEW, _d, _o2)
+    check("★★★ [Y] TRN-17 Y3: a missing panel row BEFORE the panel end (an interior hole, 5 no-panel anchors so the bound alone would pass) ⇒ pre-fix rc 0, file written, and its printed list does not distinguish it from the frontier ones; fixed rc 3 naming it an interior gap with the panel end, nothing written",
+          _r1[0] == 0 and _r1[2] and _r2[0] == 3 and not _r2[2] and "interior gap in the panel, not the data frontier" in _r2[1]
+          and "1 anchor(s) have no panel row at or BEFORE the panel end" in _r2[1], (_r1[0], _r2[0], _r2[1][-260:]))
+
+    # Y4 — the bound must be stated; it has no default
+    _d = _ymk("y4")
+    _r1, _r2 = _yrun(_YOLD, _d, f"{_d}/old_out.npz", {"LEGS_MAX_NO_PANEL": ""}), _yrun(_YNEW, _d, f"{_d}/new_out.npz", {"LEGS_MAX_NO_PANEL": ""})
+    check("★★★ [Y] TRN-17 Y4: without LEGS_MAX_NO_PANEL the pre-fix source does not notice it and writes as usual; the fixed source refuses rc 2 naming the key — the caller has to STATE how many panel-less frontier anchors it expects, because a default would be a tolerance nobody chose",
+          _r1[0] == 0 and _r1[2] and _r2[0] == 2 and not _r2[2] and "LEGS_REFUSED" in _r2[1] and "LEGS_MAX_NO_PANEL" in _r2[1],
+          (_r1[0], _r2[0], _r2[1][-160:]))
+
+    # Y5 — a malformed bound is refused, not coerced
+    _d = _ymk("y5")
+    _ra = _yrun(_YNEW, _d, f"{_d}/a.npz", {"LEGS_MAX_NO_PANEL": "five"})
+    _rb = _yrun(_YNEW, _d, f"{_d}/b.npz", {"LEGS_MAX_NO_PANEL": "-1"})
+    check("★★★ [Y] TRN-17 Y5: LEGS_MAX_NO_PANEL='five' ⇒ rc 2 'is not an integer'; '-1' ⇒ rc 2 'is negative'. Neither is coerced, and neither writes",
+          _ra[0] == 2 and "not an integer" in _ra[1] and not _ra[2] and _rb[0] == 2 and "is negative" in _rb[1] and not _rb[2],
+          (_ra[0], _rb[0]))
+
+    # Y6 — nothing missing at all: still identical, and the receipt line says 0/5
+    _d = _ymk("y6", panel_short=0)
+    _o1, _o2 = f"{_d}/old_out.npz", f"{_d}/new_out.npz"
+    _r1, _r2 = _yrun(_YOLD, _d, _o1), _yrun(_YNEW, _d, _o2)
+    check("★★★ [Y] TRN-17 Y6 (the other end of the range): with every panel row present, pre-fix and fixed are bitwise identical and the fixed run reports 0/5 — the guard is silent when there is nothing to report, so it cannot be read as a new behaviour",
+          _r1[0] == 0 and _r2[0] == 0 and _ybits(_o1, _o2) and any(l.startswith("legs frontier: 0/5") for l in _r2[1].splitlines()),
+          (_r1[0], _r2[0]))
+
+    # Y7 — STATIC: the refusal is before the write, and the meta records what was declared
+    _ysrc, _yold_src = open(f"{HERE}/{_YNEW}").read(), open(f"{HERE}/{_YOLD}").read()
+    _i_ref, _i_save = _ysrc.find("LEGS_REFUSED: {len(no_panel)} anchors"), _ysrc.find("np.savez(OUTP")
+    check("★★★ [Y] TRN-17 Y7 (STATIC): every refusal stands BEFORE np.savez in the fixed source, the meta gained no_panel_bound and panel_end_utc (so the receipt records what was DECLARED, not only what happened), and the pre-fix source has neither a refusal nor those fields",
+          0 <= _i_ref < _i_save and '"no_panel_bound": MAX_NO_PANEL' in _ysrc and '"panel_end_utc"' in _ysrc
+          and "LEGS_REFUSED" not in _yold_src and "no_panel_bound" not in _yold_src, (_i_ref, _i_save))
+
+    # Y8 — STATIC: the reviewed AMENDMENT 5 self-checks are retained verbatim
+    for _a in ('assert np.array_equal(Z24o[ci], OZ24[oi], equal_nan=True)', 'assert all(np.isfinite(WLo[i]).all() for i in new_rows), "new rows WL not finite"'):
+        check(f"★★ [Y] TRN-17 Y8 (STATIC): the AMENDMENT 5 self-check `{_a[:56]}…` is retained verbatim in the fixed source", _a in _ysrc)
+
+    # Y9 — STATIC: the driver states the bound and derives it, rather than passing a number
+    _ydrv = open(f"{HERE}/chain_v4_monthly.sh").read()
+    _yst = _xsec(_ydrv, "if want legs; then")
+    check("★★★ [Y] TRN-17 Y9 (STATIC): the legs stage passes LEGS_MAX_NO_PANEL=5 and the driver DERIVES that 5 in a comment from 288-48 = 240 rows = 5 four-hour anchors — a bound whose origin is written down is auditable; a bare 5 would be a tolerance",
+          "LEGS_MAX_NO_PANEL=5" in _yst and "288" in _yst and "48" in _yst and "5 four-hour anchors" in _yst)
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)
