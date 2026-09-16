@@ -76,7 +76,8 @@ man = {"tool": "fx_evl01_manifest.py", "self_sha256": hashlib.sha256(open(os.pat
        "ruling": "FIXPROGRAM EVL-01 = (a) archives untouched + (c) launch-side guard; never (b) re-pin the frozen spec",
        "n_paths": len(paths), "n_distinct_blobs": len(rows),
        "devices": sorted(rows.values(), key=lambda r: r["paths"][0]), "extra": [A0_DEVICE]}
-man["requiring_cal_sha256"] = sorted([r["sha256"] for r in man["devices"]] + [A0_DEVICE["sha256"]])
+man["requiring_cal_sha256"] = sorted(set([r["sha256"] for r in man["devices"]] + [A0_DEVICE["sha256"]]))
+man["a0_sha_already_among_the_git_copies"] = A0_DEVICE["sha256"] in {r["sha256"] for r in man["devices"]}
 json.dump(man, open(OUT, "w"), indent=1)
 print("FX_EVL01_MANIFEST_DONE", json.dumps({"paths": len(paths), "distinct_blobs": len(rows),
                                             "shas_requiring_cal": len(man["requiring_cal_sha256"])}), flush=True)
