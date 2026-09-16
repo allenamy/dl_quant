@@ -359,7 +359,7 @@ An episode opens at the anchor where a held name stops being ACTIVE. `w10_sleeve
 
 ## §EVL-01c — the launch-side guard (lead's ruling (a) + (c), never (b))
 
-Manifest device `fx_evl01_manifest.py`, guard `common/cal_guard.py`, unit battery `common/tests_cal_guard.py`, end-to-end control device `fx_evl01_guard_control.py` — each committed before its run. Run 23, rc=0, `receipts/run23_cal_guard_control.sh` (`9d9bad7f`), receipt `RECEIPT_fx_evl01_guard_control.json` (`c3b04640`). **No device byte was changed and no sha moved.**
+Manifest device `fx_evl01_manifest.py`, guard `common/cal_guard.py`, unit battery `common/tests_cal_guard.py`, end-to-end control device `fx_evl01_guard_control.py` — each committed before its run. Run 23, rc=0, `receipts/run23_cal_guard_control.sh` (`9d9bad7f`), receipt `RECEIPT_fx_evl01_guard_control.json` (`16da7a35`). **No device byte was changed and no sha moved.**
 
 | # | Fact | Receipt |
 |---|---|---|
