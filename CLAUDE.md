@@ -11,7 +11,7 @@
 
 ## 项目身份
 **Binance USDT-perp 宽宇宙中频市场中性**: 宇宙 450 币, 4h 锚(00/04/08/12/16/20Z), maker-only, gross 2.0×NAV(2026-09-03 入金后 constant_leverage_2.00; 此前 1.5×)。
-**在役书 = combo**(构成 ≈77% funding 动量 + 13% king LGBM + 10% V2MAIN 书损失 DL): 生产者 `~/wide_shadow`(非 git, 快照入研究仓)写 king 文件 → combo_stage 重写 target_live(五层安全, 失败自动回滚 king 形态)→ 执行器 `~/dl_quant_live`(git, **改动只经 `ops/safe_commit.sh` + 电池全绿**)N+23 读取交易。
+**在役书 = combo**(构成 ≈77% funding 动量 + 13% king LGBM + 10% V2MAIN 书损失 DL): 生产者 `~/wide_shadow`(非 git, 快照入研究仓)写 king 文件 → combo_stage 重写 target_live(五层安全, 失败自动回滚 king 形态)→ 执行器 `~/dl_quant_live`(git, **改动只经 `ops/safe_commit.sh` + 电池全绿**)**N+24:00 读取交易**(`config/book.json external_book.anchor_offset_min=24`, `poll_grace_min=5` ⇒ 重试到 N+29:00; 2026-08-27 05:2xZ 由 N+23 改为 N+24, 原因是 combo 写入只剩 34 s; 本行原写 N+23, 2026-09-16 按实盘配置更正)。
 **数据**: share 面板 READ-ONLY(mode="r"); 宽面板/判官在 jpline `/mnt/storage/private/work_hsy/`; GPU/LOB 在 pod2 `/workspace/`。**★ 面板默认值陷阱: `engine/panel_source.py` 默认=as-trained 脏面板 — 特征类实验必须显式传因果面板。**
 
 ## 不可违反约束 (Core Constraints)
