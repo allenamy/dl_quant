@@ -1,0 +1,128 @@
+{
+ "device": "fx_trd01_inject.py",
+ "self_sha256": "26a60e80714b1734ae0033bd825532ad6acb93d96f4c8fc942d75bd983cc190b",
+ "module_sha256": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+ "spec_sha256": "99ae35e01ec3dd06ba7bf69ea62de8f36cfd2695492ccf53757d985b8a0946b2",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/fx_trd01_inject.py",
+  "out/trd/tradability_v1.npz",
+  "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302",
+  "out/inject",
+  "out/inject/RECEIPT_fx_trd01_inject.json"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "inputs": {
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5"
+ },
+ "utc_start": "2026-09-16T04:25Z",
+ "artifact": {
+  "path": "out/trd/tradability_v1.npz",
+  "sha256": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302"
+ },
+ "axes": {
+  "panel_anchors": 10039,
+  "first": "2022-01-31T00:00Z",
+  "last": "2026-08-31T00:00Z",
+  "symbols": 829
+ },
+ "outputs": {
+  "umask_W24H": {
+   "path": "out/inject/umask_UPIT_CRYPTO_tradable_W24H.npz",
+   "sha256": "3badc4b6a4fcbc5935f66f29c065ffd7ab500cb6876bdf53ce491b2d9056024c",
+   "bytes": 103752
+  },
+  "femat_W24H": {
+   "path": "out/inject/femat_f_fund_ema_v1_tradable_W24H.npz",
+   "sha256": "f53538000d039e081c0564b7cd8fcb3a6ca7f7356763686f6086be1f2c785c2a",
+   "bytes": 10663915
+  },
+  "umask_W4H": {
+   "path": "out/inject/umask_UPIT_CRYPTO_tradable_W4H.npz",
+   "sha256": "40c8354be7a4c3226c56343a44b7c8e1fbf8574251bc2f640ef26ff009506c7e",
+   "bytes": 103677
+  },
+  "femat_W4H": {
+   "path": "out/inject/femat_f_fund_ema_v1_tradable_W4H.npz",
+   "sha256": "0fcfe0bab571875cf654ea5fbaccc52e25e03556dfb2ad342646b547c4428db9",
+   "bytes": 10662713
+  }
+ },
+ "stats": {
+  "W24H": {
+   "umask_true_before": 2761057,
+   "umask_true_after": 2727671,
+   "umask_cells_dropped": 33386,
+   "umask_dropped_share": 0.012092,
+   "femat_finite_before": 3263949,
+   "femat_finite_after": 3140020,
+   "femat_cells_made_nan": 123929,
+   "femat_dropped_share": 0.037969
+  },
+  "W4H": {
+   "umask_true_before": 2761057,
+   "umask_true_after": 2727011,
+   "umask_cells_dropped": 34046,
+   "umask_dropped_share": 0.012331,
+   "femat_finite_before": 3263949,
+   "femat_finite_after": 3139464,
+   "femat_cells_made_nan": 124485,
+   "femat_dropped_share": 0.038139
+  }
+ },
+ "checks": [
+  {
+   "check": "P3.every_panel_anchor_on_the_tradability_grid",
+   "ok": true,
+   "detail": {
+    "panel_anchors": 10039,
+    "missing": [],
+    "n_missing": 0
+   }
+  },
+  {
+   "check": "P1.W24H.mask_is_a_strict_subset",
+   "ok": true,
+   "detail": {
+    "added_cells": 0
+   }
+  },
+  {
+   "check": "P2.W24H.femat_only_loses_cells_never_changes_a_value",
+   "ok": true,
+   "detail": {
+    "value_changed_cells": 0,
+    "cells_made_nan": 123929
+   }
+  },
+  {
+   "check": "P1.W4H.mask_is_a_strict_subset",
+   "ok": true,
+   "detail": {
+    "added_cells": 0
+   }
+  },
+  {
+   "check": "P2.W4H.femat_only_loses_cells_never_changes_a_value",
+   "ok": true,
+   "detail": {
+    "value_changed_cells": 0,
+    "cells_made_nan": 124485
+   }
+  }
+ ],
+ "n_checks": 5,
+ "n_failed": 0,
+ "failed": [],
+ "runtime_s": 2.9,
+ "utc_end": "2026-09-16T04:25Z"
+}
