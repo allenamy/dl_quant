@@ -1,0 +1,19 @@
+# KB-73 red: the pin guard passes under the WRONG interpreter  2026-09-16T04:25:36Z
+# head=3daa9786b3b873508ebf91bd2ff9979271e2f8b9  (guard NOT yet fixed)
+# running tests_acceptance_entrypoints under python3.14 with ACCEPTANCE_INNER=1 (structural half only,
+#  so no battery is spawned and no venue request is made)
+
+[①] exactly one file holds a suite list
+  OK    the authoritative runner holds the list  — 139
+  OK    ★★ the delegating runner holds NO suite entries
+  OK    ★ ...and it delegates by EXEC, not by copying a list  — exec present
+  OK    ★ the interpreter is pinned in the authoritative runner  — ACCEPT_PY pinned
+
+[①] both entry points byte-identical: NOT RUN — nested inside a battery run.
+     (running it here would re-enter the battery; asserted when this file is run directly, and declared as this suite's blind spot)
+  OK    ★ the nesting guard is ACTIVE and was detected  — ACCEPTANCE_INNER=1
+
+  5 checks run
+
+ALL PASS
+# rc=0

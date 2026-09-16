@@ -1,0 +1,79 @@
+diff --git a/live/tests_acceptance_entrypoints.py b/live/tests_acceptance_entrypoints.py
+index eb05226..5ee1813 100644
+--- a/live/tests_acceptance_entrypoints.py
++++ b/live/tests_acceptance_entrypoints.py
+@@ -53,6 +53,41 @@ check("★ ...and it delegates by EXEC, not by copying a list",
+       "exec bash" in open(LIVE_SH).read(), "exec present")
+ check("★ the interpreter is pinned in the authoritative runner",
+       "ACCEPT_PY:-/usr/bin/python3" in open(ROOT_SH).read(), "ACCEPT_PY pinned")
++# ★★★ THE CELL ABOVE ASSERTS A SUBSTRING OF A FILE, WHICH IS NOT THE SAME CLAIM AS "THE PIN WAS
++#     USED" (KB-73, 2026-09-16). `run_acceptance.sh` resolves `PY="${ACCEPT_PY:-/usr/bin/python3}"`
++#     — an OVERRIDABLE DEFAULT — so running the battery with ACCEPT_PY pointed at another version
++#     leaves that substring exactly where it is: measured, the cell above printed OK while this
++#     whole suite ran under Python 3.14 (receipt KB73_red_oldcode.log). The torch-dependent suites
++#     would have gone red in the same run, and this file's own L15 records what that costs: before
++#     2026-07-27 the split doors "produced two fake known failures" by precisely this route.
++#     The substring cell is KEPT — it is a true statement about the text, and it is the thing that
++#     fails if someone deletes the default — but it cannot carry the claim alone.
++# ⇒ The behavioural half: THIS SUITE IS RUN BY THE RUNNER USING $PY, so this process's own
++#   interpreter IS the effective one. Comparing identities rather than paths, because the pin
++#   /usr/bin/python3 is a shim whose sys.executable is the Xcode framework binary — comparing the
++#   two strings would fail for the RIGHT interpreter and teach everyone to ignore the cell.
++import subprocess as _sp                                   # noqa: E402
++_PIN = "/usr/bin/python3"
++try:
++    _pin_id = _sp.run([_PIN, "-c", "import sys;print(sys.executable);print('%d.%d.%d' % sys.version_info[:3])"],
++                      capture_output=True, text=True, timeout=30).stdout.split()
++except Exception as _e:                                    # noqa: BLE001
++    _pin_id = []
++_me_id = [sys.executable, "%d.%d.%d" % sys.version_info[:3]]
++check("★★★ ...and the interpreter ACTUALLY IN FORCE is that pin — this process's own "
++      "(sys.executable, version) equals the pin's, so the claim is about the run and not about the "
++      "text of a file (KB-73: the substring cell alone passes under any interpreter)",
++      len(_pin_id) == 2 and _pin_id == _me_id,
++      {"pin": _pin_id, "this_process": _me_id, "ACCEPT_PY": os.environ.get("ACCEPT_PY", "<unset>")})
++check("★★ ...and ACCEPT_PY, if set at all, names that same pin — a set-but-identical override is a "
++      "different fact about the invocation from an unset one, and both are recorded",
++      "ACCEPT_PY" not in os.environ or os.environ["ACCEPT_PY"] == _PIN,
++      os.environ.get("ACCEPT_PY", "<unset>"))
++check("★★ ...and the runner WRITES the interpreter down, so a past run's numbers can be compared "
++      "with this one's (before 2026-09-16: 38,177 artefacts under state/acceptance, 0 naming a "
++      "Python version)",
++      '_interpreter.json' in open(ROOT_SH).read() and '"python_version"' in open(ROOT_SH).read(),
++      "runner emits <STAMP>_interpreter.json")
+ 
+ # ★★ THE BEHAVIOURAL HALF SPAWNS THE BATTERY, SO IT CANNOT RUN INSIDE THE BATTERY.
+ # Putting this suite into the list made the battery call a suite that calls the battery: 12 nested
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index e2f4fce..3a21ce8 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -33,8 +33,28 @@ PY="${ACCEPT_PY:-/usr/bin/python3}"
+ # export, not an argument, precisely so every descendant sees it however it is invoked.
+ export ACCEPTANCE_INNER=1
+ LOGDIR="$_SELF/state/acceptance"
++# ★★★ KB-73: RECORD THE INTERPRETER THAT WAS ACTUALLY USED. `PY` above is an OVERRIDABLE DEFAULT,
++#     and until 2026-09-16 nothing wrote down which interpreter a run used: 38,177 artefacts under
++#     state/acceptance, 0 of them naming a Python version. So a green battery could not be compared
++#     with any other green battery, and `tests_acceptance_entrypoints`'s pin check asserted a
++#     SUBSTRING OF THIS FILE rather than the interpreter in force — set ACCEPT_PY to another
++#     version and that cell still printed OK while the torch-dependent suites went red. The split
++#     this file already remembers (L15, 2026-07-27) produced "two fake known failures" by exactly
++#     this route. ⇒ The resolved path and version are written BEFORE any suite runs, so every run's
++#     numbers carry the thing that makes them comparable.
++_PY_REAL="$("$PY" -c 'import sys;print(sys.executable)' 2>/dev/null || echo UNRESOLVED)"
++_PY_VER="$("$PY" -c 'import sys;print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null || echo UNKNOWN)"
++_PY_TORCH="$("$PY" -c 'import torch;print(torch.__version__)' 2>/dev/null || echo none)"
+ mkdir -p "$LOGDIR"
+ STAMP=$(date -u +%Y%m%dT%H%M%SZ)
++# ★ the record itself: one JSON per run, plus a line on stdout so it is in the run's own transcript
++#   and not only on disk. `ACCEPT_PY` is reported as SET/UNSET separately from its value, because
++#   "unset" and "set to the same path" are different facts about how the run was invoked.
++printf '{"stamp":"%s","accept_py_set":%s,"accept_py":"%s","resolved_py":"%s","sys_executable":"%s","python_version":"%s","torch":"%s","tree_head":"%s"}\n' \
++  "$STAMP" "$([ -n "${ACCEPT_PY+x}" ] && echo true || echo false)" "${ACCEPT_PY:-}" "$PY" \
++  "$_PY_REAL" "$_PY_VER" "$_PY_TORCH" "$(git -C "$_SELF" rev-parse HEAD 2>/dev/null || echo unknown)" \
++  > "$LOGDIR/${STAMP}_interpreter.json"
++echo "INTERPRETER  resolved=$PY  sys.executable=$_PY_REAL  version=$_PY_VER  torch=$_PY_TORCH  ACCEPT_PY=$([ -n "${ACCEPT_PY+x}" ] && echo "SET:${ACCEPT_PY}" || echo UNSET)"
+ 
+ SUITES=(
+   "tests_imports:$_SELF/live/tests_imports.py"

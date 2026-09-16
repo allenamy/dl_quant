@@ -1,0 +1,16 @@
+[①] exactly one file holds a suite list
+  OK    the authoritative runner holds the list  — 139
+  OK    ★★ the delegating runner holds NO suite entries
+  OK    ★ ...and it delegates by EXEC, not by copying a list  — exec present
+  OK    ★ the interpreter is pinned in the authoritative runner  — ACCEPT_PY pinned
+  FAIL  ★★★ ...and the interpreter ACTUALLY IN FORCE is that pin — this process's own (sys.executable, version) equals the pin's, so the claim is about the run and not about the text of a file (KB-73: the substring cell alone passes under any interpreter)  — {'pin': ['/Applications/Xcode.app/Contents/Developer/usr/bin/python3', '3.9.6'], 'this_process': ['/usr/local/opt/python@3.14/bin/python3.14', '3.14.4'], 'ACCEPT_PY': '/usr/local/bin/python3.14'}
+  FAIL  ★★ ...and ACCEPT_PY, if set at all, names that same pin — a set-but-identical override is a different fact about the invocation from an unset one, and both are recorded  — /usr/local/bin/python3.14
+  OK    ★★ ...and the runner WRITES the interpreter down, so a past run's numbers can be compared with this one's (before 2026-09-16: 38,177 artefacts under state/acceptance, 0 naming a Python version)  — runner emits <STAMP>_interpreter.json
+
+[①] both entry points byte-identical: NOT RUN — nested inside a battery run.
+     (running it here would re-enter the battery; asserted when this file is run directly, and declared as this suite's blind spot)
+  OK    ★ the nesting guard is ACTIVE and was detected  — ACCEPTANCE_INNER=1
+
+  8 checks run
+
+FAILURES: ["★★★ ...and the interpreter ACTUALLY IN FORCE is that pin — this process's own (sys.executable, version) equals the pin's, so the claim is about the run and not about the text of a file (KB-73: the substring cell alone passes under any interpreter)", '★★ ...and ACCEPT_PY, if set at all, names that same pin — a set-but-identical override is a different fact about the invocation from an unset one, and both are recorded']
