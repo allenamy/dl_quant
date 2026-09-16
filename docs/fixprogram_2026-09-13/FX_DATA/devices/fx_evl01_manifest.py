@@ -56,7 +56,9 @@ def reads_cal_with_non_log_default(src):
             return True, dflt
     return False, None
 
-cand = sorted(set(l.strip().split(":", 1)[1] for l in git("grep", "-l", "-F", "CAL", COMMIT, "--", "*.py").splitlines() if l.strip()))
+# -z: NUL-separated and UNQUOTED. Without it git quotes any path containing a space or a non-ASCII byte, and this tree has
+# such paths, so the plain-text form is not a usable path list.
+cand = sorted(set(x.split(":", 1)[1] for x in git("grep", "-l", "-z", "-F", "CAL", COMMIT, "--", "*.py").split("\0") if ":" in x))
 paths, defaults = [], {}
 for p in cand:
     blob = subprocess.run(["git", "show", "%s:%s" % (COMMIT, p)], capture_output=True, check=True).stdout
