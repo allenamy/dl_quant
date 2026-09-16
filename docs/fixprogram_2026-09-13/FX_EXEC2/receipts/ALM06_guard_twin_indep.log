@@ -1,0 +1,35 @@
+[PRE] recorded outputs of the running twin
+  OK    PRE the running twin wrote 37 DAY and 8 CUM disagreement lines  — (37, 8)
+
+[D] DAY over aligned time points
+  OK    ★★★ D1 0 of the recorded DAY lines survive alignment (not alignable, named: ≤2)  — {'fire': 0, 'not_alignable': 2, 'max_abs_diff_pp': 0.204}
+  OK    ★★ D2 a real 1% equity gap at the end reference still fires (and the unperturbed case does not)  — (-0.116, -1.119, {'ref_start_utc': '2026-09-11T20:45:10Z', 'ref_end_utc': '2026-09-12T12:45:47Z', 'twin_start_utc': '2026-09-11T20:37:37Z', 'twin_end_utc': '2026-09-12T12:39:51Z'})
+
+[C] CUM: arithmetic twin of the watchdog chain
+  OK    ★★★ C1 the arithmetic twin reproduces the watchdog's recorded cum at every recorded CUM line ⇒ 0 CUM lines  — [('2026-08-21T16:22:14Z', 0.4853, 0.4853), ('2026-08-21T19:04:37Z', 0.4853, 0.4853), ('2026-08-27T01:11:18Z', -1.8597, -1.8597), ('2026-08-31T01:10:02Z', -0.0194, -0.0194), ('2026-09-03T16:56:14Z', 0.5783, 0.5783), ('2026-09-04T12:57:49Z', -0.6333, -0.6333), ('2026-09-11T20:57:41Z', -1.3563, -1.3563
+  OK    ★★ C2 a final daily_nav close the watchdog did not see (−2%) makes the arithmetic twin disagree  — -3.3814
+
+[F] field names
+  OK    F1 the compare record names the history-worst day and today's day; the shadow block reads recent_day_pct
+
+[I] the independent income-ledger TWR vs the watchdog chain, judged on the residual
+  OK    ★★★ I1 the twin chain reproduces the recorded cum_pct_twin on all 8 recorded CUM rows, exactly  — (8, 8)
+  OK    ★★★ I1 the reconstructed watchdog chain (C2b) reproduces wd_chain_arith_pct on all 8, within 0.01pp  — (8, 8)
+  OK    ★★★ I2 (ii) raises NO drift on any of the 1,655 recorded rows — the 8 CUM lines are EXPLAINED, not silenced  — {'ok': 1507, 'drift': 0, 'undecidable': 148}
+  OK    ★★ I2 every undecidable row names its reason (a quiet independent check must not read as agreement)  — 0
+  OK    ★★ I2 the max judged residual is pinned at the measured 0.0174pp (device ALM06_cum_decomposition.json)  — 0.017307
+  OK    PRE the unbiased row is judged and quiet  — -0.0161664098864569
+  OK    PRE the injected bias moves the watchdog chain by about 0.5pp  — (-1.3136, -0.8165)
+  OK    ★★★ I3 (ii) FIRES on a 0.5pp input bias in one transfer day  — ('drift', -0.5132)
+  OK    ★★★ I3 ...and (i) does NOT — the arithmetic twin reads the same biased row, so it moves with the watchdog  — 0.0
+  OK    ★★ I3 the twin's own number is UNCHANGED by the bias (that is what independence means)  — (-1.5121958117770617, -1.5121958117770617)
+  OK    ★★★ I4 a watchdog declaring amendment_records gets a ZERO allowance  — (0.0, 'declared_amended')
+  OK    ★★ I4 declared recorded_rows and an ABSENT field give the same number but different states  — (-0.007078584536923671, 'declared_recorded', 'inferred_recorded')
+  OK    ★★★ I5 prefix transfer days contribute nothing — only twin-segment days are applied  — ['20260827', '20260903', '20260908']
+  OK    ★★★ I6 evaluating ON the last transfer day is undecidable and says why, never ok  — ('undecidable', 'transfer day 20260908 still open — income-derived realised is incomplete')
+
+20/20 checks passed
+ALL PASS
+real 92.54
+user 88.69
+sys 1.04

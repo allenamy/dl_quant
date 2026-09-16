@@ -1,9 +1,33 @@
---- guard_twin.py.orig_0b299781	2026-09-14 00:19:56
-+++ guard_twin.py	2026-09-14 00:19:56
-@@ -113,6 +113,80 @@
-         if rows: out[d] = rows
+--- /Users/haosiyu/cc_tmp/fx_exec2_guard_twin/guard_twin.py.orig_0b299781	2026-09-14 00:19:56
++++ /Users/haosiyu/Desktop/quant_research/docs/fixprogram_2026-09-13/FX_EXEC2/guard_twin_ALM06/guard_twin.py	2026-09-16 11:49:39
+@@ -99,8 +99,20 @@
+                                  "income": float(r.get("income") or 0.0), "asset": r.get("asset"), "time": int(r.get("time"))})
      return out
  
+-def day_of(ms): return time.strftime("%Y%m%d", time.gmtime(ms / 1000))
++# ★ ALM-06 (ii): memoised on the UTC day index. `day_of` is called once per income row per lookup, and the income
++#   ledger is ~110k rows, so the uncached version spent millions of strftime calls per run — 4.8M in the old chain
++#   alone. POSIX days are exactly 86,400,000 ms, so the key is exact; the returned string is unchanged.
++_DAY_CACHE = {}
+ 
++
++def day_of(ms):
++    k = int(ms) // 86400000
++    d = _DAY_CACHE.get(k)
++    if d is None:
++        d = time.strftime("%Y%m%d", time.gmtime(k * 86400))
++        _DAY_CACHE[k] = d
++    return d
++
+ def daily_nav_rows():
+     out = {}
+     for f in sorted(glob.glob(os.path.join(LIVE, "state", "live", "pilot_log", "*", "daily_nav.jsonl"))):
+@@ -111,8 +123,293 @@
+                 try: rows.append(json.loads(l))
+                 except Exception: pass
+         if rows: out[d] = rows
++    return out
++
 +# ── ALM-06 (FX-EXEC2, 2026-09-13; AUDIT_EXEC 842bbffa): compare the twins over the SAME time points ─────────────
 +# ★ DAY used to compare the twin's change from ITS OWN last snapshot before 00:00Z (e.g. 23:42Z) to NOW with the
 +#   arithmetic twin's change from the previous day's LAST daily_nav row (~20:45Z) to TODAY's last row. An evening move
@@ -78,10 +102,269 @@
 +    return round((cum - 1.0) * 100.0, 4) if n else None
 +
 +
++# ── ALM-06 (ii) (FX-EXEC2, 2026-09-16; lead ruling 16:2xZ sent the first ALM-06 back) ───────────────────────────
++# ★★★ WHY TWO CUM ALERTS AND NOT ONE. The first fix made the CUM line compare the ARITHMETIC twin — the watchdog's
++#     own chain recomputed on daily_nav. That twin reads the SAME inputs as the watchdog, so it can only ever catch
++#     arithmetic bugs; an input bias, which is exactly the LED-04 class, moves both sides together and stays invisible.
++#     The twin's value here is that its chain is built from its OWN equity snapshots and its OWN income ledger, i.e.
++#     from data the watchdog never touches. Throwing that away to remove 8 alert lines would have been trading the
++#     only independent instrument for a quieter log.
++#   ⇒ (i) arithmetic twin vs watchdog, tight tolerance — catches code defects.
++#   ⇒ (ii) the INDEPENDENT income-ledger TWR vs the watchdog chain, judged on what is LEFT after the measured caliber
++#          causes are subtracted — catches input bias.
++# ★★ THE CALIBER CAUSES ARE COMPUTED, NOT ASSUMED. Over the twin segment four chains run on the same days:
++#     T (twin closes, income transfers) · C1 (closes from daily_nav) · C2a (transfer days by the watchdog's formula
++#     with realised from the twin's OWN income) · C2b (same, realised from daily_nav's recorded value).
++#     T−C1 = day-close timing · C1−C2a = transfer-day formula · C2a−C2b = INPUT BIAS. C2b must reproduce
++#     `wd_chain_arith_pct`; when it does not, the decomposition is not trusted and (ii) declines to judge.
++#   Measured on the 1,655 rows the running twin wrote (receipt ALM06_cum_decomposition.json): T reproduces the
++#   recorded cum_pct_twin on 1,655/1,655 exactly, C2b reproduces wd_chain_arith to 4.95e-05 pp, and ALL EIGHT
++#   recorded CUM lines are explained by DAY-CLOSE TIMING alone (residual ≤ 0.017 pp).
++# ★★ THE LED-04 ALLOWANCE IS FROZEN AND COVERS ONLY THE TWIN SEGMENT.
++#     Frozen: if it were recomputed from income every run it would absorb ANY input bias, including a new one, and
++#     (ii) would be blind for a second time — the same mistake in a different disguise.
++#     Twin segment only: days before the twin's first snapshot are priced by daily_nav in BOTH chains identically,
++#     so a bias there cancels out of the gap. The four large pre-fix days (08-02, 08-05, 08-10, 08-18) are all
++#     prefix; only 08-27, 09-03 and 09-08 are inside, and they are 4th-decimal.
++#     State: the allowance applies only while the watchdog is still pricing those days from the RECORDED rows.
++#     cond4 is expected to declare `realised_source` ("amendment_records" | "recorded_rows"); when the field is
++#     absent the state is INFERRED as recorded_rows and the line says so, so we are not silently guessing either way.
++# ★ RESIDUAL_TOL is half the deployed TOL["cum_pct"] — a halving of an existing constant, not a number fitted to the
++#   recorded rows. It sits 14x above the measured noise floor (max judgeable residual 0.017307 pp over 181 rows) and
++#   2x below the 0.5 pp single-transfer-day input bias the ruling requires it to catch.
++RESIDUAL_TOL = TOL["cum_pct"] / 2.0
++
++# (day, watchdog-formula return with the RECORDED realised, with the AMENDED realised) — frozen.
++# Source: receipts/LED04_cond4_transfer_day_effect.json, built by devices/led04_cond4_transfer_day_effect.py from the
++# sha-pinned 250 amendment records (190dd220...). Reproduces the live last_eval cum (-1.3136%) before amendment.
++LED04_TRANSFER_DAYS = {
++    "20260802": (0.01496853890435028, 0.013567953137440452),
++    "20260805": (0.003148061571593677, 0.001943224970592951),
++    "20260810": (0.01449277063297285, 0.014494231447753982),
++    "20260818": (0.008247636558978921, 0.008248879221063012),
++    "20260827": (-0.0041853670902857254, -0.0041848346442902473),
++    "20260903": (-0.005090676345463185, -0.005088592000454177),
++    "20260908": (-0.007231149781055627, -0.007304969634095934),
++}
++LED04_TABLE_SOURCE = ("receipts/LED04_cond4_transfer_day_effect.json (device led04_cond4_transfer_day_effect.py; "
++                      "amendment records sha256 190dd220147d4edd95dfca7d98b0894ee4b44c3c091bfa9a8c047d2991d20927)")
++
++
++def twin_cum_chains(dn, snaps, inc, now_ts):
++    """The twin's TWR chain and its three caliber variants. Pure; no I/O, no clock.
++
++    Returns cum_twin_pct (the twin's own number, unchanged in construction from the inlined version it replaces),
++    the chain list, and C1 / C2a / C2b over the twin segment. See the block comment above for what each isolates.
++    """
++    days = sorted(dn)
++    twin_days = sorted({s["day"] for s in snaps})
++    first_twin_day = twin_days[0] if twin_days else None
++    twr, chain, prev = 1.0, [], None
++    for d in days:
++        if first_twin_day and d >= first_twin_day:
++            break
++        r = dn[d][-1]
++        nav = r.get("nav")
++        if not nav:
++            continue
++        flow = 0.0
++        try:
++            flow = float(r.get("external_flow_usdt") or 0.0)
++        except Exception:
++            pass
++        if prev is not None:
++            if abs(flow) > 1e-9:
++                re_, un = r.get("realised_pnl"), r.get("unrealised_pnl")
++                if re_ is None or un is None or prev[1] is None:
++                    chain.append((d, None, "flow-unpriced"))
++                    prev = (float(nav), r.get("unrealised_pnl"))
++                    continue
++                rd = (float(re_) + float(un) - float(prev[1])) / prev[0]
++            else:
++                rd = float(nav) / prev[0] - 1.0
++            twr *= 1 + rd
++            chain.append((d, rd, "daily_nav"))
++        prev = (float(nav), r.get("unrealised_pnl"))
++    out = {"cum_twin_pct": (twr - 1.0) * 100.0, "chain": chain, "first_twin_day": first_twin_day,
++           "C1": None, "C2a": None, "C2b": None, "n_twin_days": len(twin_days), "incomplete": None,
++           "transfer_days_in_segment": []}
++    if prev is None or not twin_days:
++        out["incomplete"] = "no daily_nav prefix or no twin day"
++        return out
++    by_day = {}
++    for s in snaps:
++        by_day[s["day"]] = s
++
++    # ★ ONE pass over the income ledger, not one per day. The inlined version this replaces re-scanned all ~110k
++    #   income rows for every twin day; adding two more chains would have tripled that on every 1,200 s run and the
++    #   cost grows linearly with the ledger. Same arithmetic, grouped.
++    _tr, _re = {}, {}
++    for _r in inc:
++        _d = day_of(_r["time"])
++        _ty = _r["type"]
++        if _ty == "TRANSFER":
++            _tr[_d] = _tr.get(_d, 0.0) + _r["income"]
++        elif _ty in ("REALIZED_PNL", "COMMISSION", "FUNDING_FEE") and _r.get("asset") == "USDT":
++            _re[_d] = _re.get(_d, 0.0) + _r["income"]
++
++    def transfers(d):
++        return _tr.get(d, 0.0)
++
++    def realised_income(d):
++        return _re.get(d, 0.0)
++
++    p_eq = prev[0]
++    for d in twin_days:                                    # T: the twin's own number
++        e = by_day[d]["equity"]
++        rd = (e - p_eq - transfers(d)) / p_eq
++        twr *= 1 + rd
++        chain.append((d, rd, "twin"))
++        p_eq = e
++    out["cum_twin_pct"] = (twr - 1.0) * 100.0
++    c1 = c2a = c2b = 1.0
++    for x in chain:                                        # the shared prefix, identical in every variant
++        if x[2] == "daily_nav" and x[1] is not None:
++            c1 *= 1 + x[1]; c2a *= 1 + x[1]; c2b *= 1 + x[1]
++    p1 = p2a = p2b = prev[0]
++    p_un = prev[1]
++    for d in twin_days:
++        last = dn[d][-1] if d in dn else None
++        if last is None or not last.get("nav"):
++            out["incomplete"] = f"no daily_nav row for twin day {d}"
++            return out
++        nav = float(last["nav"])
++        any_flow = any(abs(float(x.get("external_flow_usdt") or 0.0)) > 1e-9 for x in dn[d])
++        if any_flow:
++            out["transfer_days_in_segment"].append(d)
++            un, re_rec = last.get("unrealised_pnl"), last.get("realised_pnl")
++            if un is None or re_rec is None or p_un is None:
++                out["incomplete"] = f"transfer day {d} unpriceable for the watchdog formula"
++                return out
++            r2a = (realised_income(d) + float(un) - float(p_un)) / p2a
++            r2b = (float(re_rec) + float(un) - float(p_un)) / p2b
++        else:
++            r2a = nav / p2a - 1.0
++            r2b = nav / p2b - 1.0
++        c1 *= 1 + (nav - p1 - transfers(d)) / p1
++        c2a *= 1 + r2a
++        c2b *= 1 + r2b
++        p1 = p2a = p2b = nav
++        p_un = last.get("unrealised_pnl")
++    out["C1"], out["C2a"], out["C2b"] = (c1 - 1.0) * 100.0, (c2a - 1.0) * 100.0, (c2b - 1.0) * 100.0
+     return out
++
++
++def led04_allowance_pp(c2b_pct, today, first_twin_day, realised_source):
++    """The FROZEN expected size of the input-bias leg, in pp of the cum. 0 once the watchdog reads the records."""
++    if c2b_pct is None:
++        return 0.0, [], "not_applicable"
++    if realised_source == "amendment_records":
++        return 0.0, [], "declared_amended"
++    state = "declared_recorded" if realised_source == "recorded_rows" else "inferred_recorded"
++    ratio, used = 1.0, []
++    for d, (r_rec, r_am) in sorted(LED04_TRANSFER_DAYS.items()):
++        if first_twin_day is not None and d < first_twin_day:
++            continue                                        # prefix days cancel in both chains
++        if d > today:
++            continue
++        ratio *= (1.0 + r_am) / (1.0 + r_rec)
++        used.append(d)
++    return ((1.0 + c2b_pct / 100.0) * ratio - 1.0) * 100.0 - c2b_pct, used, state
++
++
++def cum_indep_facts(cc, wd_pct, wd_arith_pct, today, realised_source):
++    """(ii): the independent TWR vs the watchdog chain, minus the MEASURED caliber causes. Pure.
++
++    `verdict` is one of ok / drift / undecidable; `why` names the reason whenever it is undecidable, so a quiet line
++    is never mistaken for agreement."""
++    f = {"tol_pp": RESIDUAL_TOL, "led04_table_source": LED04_TABLE_SOURCE,
++         "cum_pct_twin": cc.get("cum_twin_pct"), "wd_cum_pct": wd_pct, "wd_chain_arith_pct": wd_arith_pct,
++         "C1": cc.get("C1"), "C2a": cc.get("C2a"), "C2b": cc.get("C2b"),
++         "transfer_days_in_segment": cc.get("transfer_days_in_segment"),
++         "gap_pp": None, "cause_day_close_timing_pp": None, "cause_transfer_day_formula_pp": None,
++         "cause_input_bias_pp": None, "alert_i_leg_pp": None, "identity_pp": None,
++         "led04_allowance_pp": None, "led04_state": None, "led04_days_applied": None,
++         "residual_pp": None, "verdict": "undecidable", "why": None}
++    if cc.get("incomplete"):
++        f["why"] = cc["incomplete"]
++        return f
++    if wd_pct is None or wd_arith_pct is None or cc.get("C2b") is None:
++        f["why"] = "watchdog cum or the reconstructed chain is unreadable"
++        return f
++    if cc.get("transfer_days_in_segment") and cc["transfer_days_in_segment"][-1] == today:
++        # the day's income is only partial until it closes, so the input leg is an as-of artifact, not a disagreement
++        f["why"] = f"transfer day {today} still open — income-derived realised is incomplete"
++        return f
++    ident = cc["C2b"] - wd_arith_pct
++    f["identity_pp"] = ident
++    if abs(ident) > 0.01:
++        f["why"] = f"reconstruction does not reproduce the arithmetic chain (identity {ident:+.4f}pp)"
++        return f
++    allow, days, state = led04_allowance_pp(cc["C2b"], today, cc.get("first_twin_day"), realised_source)
++    gap = cc["cum_twin_pct"] - wd_pct
++    timing = cc["cum_twin_pct"] - cc["C1"]
++    formula = cc["C1"] - cc["C2a"]
++    arith_leg = wd_arith_pct - wd_pct                        # alert (i) owns this leg; not charged to (ii) as well
++    f.update({"gap_pp": gap, "cause_day_close_timing_pp": timing, "cause_transfer_day_formula_pp": formula,
++              "cause_input_bias_pp": cc["C2a"] - cc["C2b"], "alert_i_leg_pp": arith_leg,
++              "led04_allowance_pp": allow, "led04_state": state, "led04_days_applied": days,
++              "residual_pp": gap - timing - formula - arith_leg - allow})
++    f["verdict"] = "drift" if abs(f["residual_pp"]) > RESIDUAL_TOL else "ok"
++    return f
+ 
++
  # ── E-0825-I ② 锚任务存活性: 这是本进程 **唯一** 接 Telegram 的检查项 ───────────────────────
  #   理由: 算术分歧按设计只落文件(第一阶段不接线); 但"锚任务崩了/没跑"这一类失败**按构造无法自己告警**
  #   —— 16:23Z 那次 ArmingRefused 在告警路径之前抛出, launchctl 只留一个 `1`, 无人被通知。
-@@ -301,7 +375,11 @@
+@@ -235,40 +532,13 @@
+     day_pct_twin = None
+     if prev_close:
+         day_pct_twin = (equity - prev_close - transfers_today) / prev_close * 100.0
+-    # cum from start (TWR): backfill from daily_nav day closes (shared) up to the twin's first day, then twin closes
+-    twr = 1.0; chain = []
+-    days = sorted(dn)
+-    twin_days = sorted({s["day"] for s in snaps})
+-    first_twin_day = twin_days[0] if twin_days else None
+-    prev = None
+-    for d in days:
+-        if first_twin_day and d >= first_twin_day: break
+-        r = dn[d][-1]; nav = r.get("nav")
+-        if not nav: continue
+-        flow = 0.0
+-        try: flow = float(r.get("external_flow_usdt") or 0.0)
+-        except Exception: pass
+-        if prev is not None:
+-            if abs(flow) > 1e-9:
+-                # flow day: use P&L delta (realised + d unrealised) / prev
+-                re, un = r.get("realised_pnl"), r.get("unrealised_pnl")
+-                if re is None or un is None or prev[1] is None: chain.append((d, None, "flow-unpriced")); prev = (float(nav), r.get("unrealised_pnl")); continue
+-                rd = (float(re) + float(un) - float(prev[1])) / prev[0]
+-            else:
+-                rd = float(nav) / prev[0] - 1.0
+-            twr *= (1 + rd); chain.append((d, rd, "daily_nav"))
+-        prev = (float(nav), r.get("unrealised_pnl"))
+-    # twin segment: day closes from own snapshots (last per day), transfer-adjusted via income ledger
+-    if prev is not None and twin_days:
+-        by_day = {}
+-        for s in snaps: by_day[s["day"]] = s
+-        p_eq = prev[0]
+-        for d in twin_days:
+-            e = by_day[d]["equity"]
+-            tr = sum(r["income"] for r in inc if r["type"] == "TRANSFER" and day_of(r["time"]) == d)
+-            rd = (e - p_eq - tr) / p_eq
+-            twr *= (1 + rd); chain.append((d, rd, "twin")); p_eq = e
+-    cum_twin_pct = (twr - 1.0) * 100.0
++    # ── ALM-06 (ii): the twin chain and its three caliber variants come from ONE pure function ──────────
++    #   The chain used to be inlined here. It is now `twin_cum_chains`, so the CUM comparison below measures the
++    #   caliber gap with the SAME code that produces the twin's own number — a second implementation of a chain
++    #   whose difference is the thing being judged would be a defect generator, not a check.
++    _cc = twin_cum_chains(dn, snaps, inc, t0)
++    cum_twin_pct = _cc["cum_twin_pct"]
++    chain = _cc["chain"]
+     # independent level check: equity − Σtransfers (all history) should equal Σ(non-transfer income) + upnl
+     closed_account_gap = (ident.get("USDT", {}).get("gap"))          # USDT wallet − Σ USDT income (should be ≈0)
+     if closed_account_gap is None: closed_account_gap = 0.0
+@@ -301,7 +571,11 @@
          if ts: nav_age_min = (t0 - float(ts)) / 60.0
      cmp = {"utc": snap["utc"], "wd_evaluated_utc": wd_eval,
             "equity": equity, "nav_latest": nav_latest, "nav_age_min": None if nav_age_min is None else round(nav_age_min, 1),
@@ -94,7 +377,7 @@
             "prev_close_src": prev_src, "transfers_today": transfers_today,
             "cum_pct_twin": cum_twin_pct, "wd_cum_from_start_pct": c4.get("cum_return_from_start_pct"),
             "closed_account_gap_usdt": closed_account_gap, "ledger_identity_by_asset": ident, "pnl_ledger_usdt": pnl_ledger, "transfers_all": transfers_all,
-@@ -321,10 +399,21 @@
+@@ -321,10 +595,44 @@
      #   A stale row is NOT comparable; the twin's own readings are still recorded as the independent series.
      _fresh = (nav_age_min is not None and nav_age_min <= 30.0)
      cmp["comparable"] = bool(_fresh)
@@ -111,16 +394,39 @@
 +                   f"(both {_day_det['ref_start_utc']}→{_day_det['ref_end_utc']})")
 +    _wd_arith = wd_chain_arith_pct(dn, t0)
 +    cmp["cum_pct_wd_chain_arith"] = _wd_arith
-+    cmp["cum_caliber_note"] = ("cum_pct_twin = the twin's income-ledger TWR (snapshot day closes, transfers from income): "
-+                               "informational, a different caliber from the watchdog's start-equity chain; the CUM line "
-+                               "compares cum_pct_wd_chain_arith (that chain recomputed on daily_nav) with the watchdog")
++    cmp["cum_caliber_note"] = ("TWO CUM checks, deliberately. (i) cum_pct_wd_chain_arith = the watchdog's own chain "
++                               "recomputed on daily_nav: an ARITHMETIC twin, shares the watchdog's inputs, catches "
++                               "code defects only. (ii) cum_pct_twin = the twin's INDEPENDENT income-ledger TWR "
++                               "(own snapshot day closes, transfers from own income): a different caliber, so it is "
++                               "judged on what is LEFT after the measured caliber causes (day-close timing, "
++                               "transfer-day formula) and the frozen LED-04 allowance are subtracted. (ii) is the "
++                               "only one of the two that can see an INPUT bias.")
++    # ── (i) the arithmetic twin: same inputs as the watchdog, so only arithmetic can differ ──
 +    if _fresh and _wd_arith is not None and c4.get("cum_return_from_start_pct") is not None \
 +            and abs(_wd_arith - float(c4["cum_return_from_start_pct"])) > TOL["cum_pct"]:
 +        dis.append(f"CUM daily_nav-arith {_wd_arith:+.3f}% vs wd {float(c4['cum_return_from_start_pct']):+.3f}%")
++    # ── (ii) the INDEPENDENT twin: judged on the residual after the measured caliber causes ──
++    _rs = c4.get("realised_source")
++    _ind = cum_indep_facts(_cc, (None if c4.get("cum_return_from_start_pct") is None
++                                 else float(c4["cum_return_from_start_pct"])),
++                           _wd_arith, today, _rs)
++    _ind["realised_source_declared"] = _rs
++    cmp["cum_independent"] = _ind
++    if _fresh and _ind["verdict"] == "drift":
++        _st = _ind["led04_state"]
++        dis.append(
++            f"CUM-INDEP twin-income-TWR {_ind['cum_pct_twin']:+.3f}% vs wd {_ind['wd_cum_pct']:+.3f}% "
++            f"(gap {_ind['gap_pp']:+.3f}pp = timing {_ind['cause_day_close_timing_pp']:+.3f} "
++            f"+ formula {_ind['cause_transfer_day_formula_pp']:+.3f} "
++            f"+ arith {_ind['alert_i_leg_pp']:+.3f} + LED04 {_ind['led04_allowance_pp']:+.3f}"
++            f"[{_st}] + UNEXPLAINED {_ind['residual_pp']:+.3f}pp > {RESIDUAL_TOL:.2f})")
++    elif _fresh and _ind["verdict"] == "undecidable" and _ind["why"]:
++        # a quiet independent check must never read as agreement
++        cmp["cum_independent_not_judged"] = _ind["why"]
      if abs(closed_account_gap) > max(2.0, 0.0005 * equity):
          dis.append(f"LEDGER USDT wallet {ident['USDT']['wallet']:.2f} vs Σ USDT income {ident['USDT']['sum_income']:.2f} (gap {closed_account_gap:+.2f})")
      _bnb = ident.get("BNB", {})
-@@ -351,7 +440,7 @@
+@@ -351,7 +659,7 @@
      # rule: cross −4.0% ⇒ pending_confirm (halt opening, no flatten); next reading: flatten only if BOTH ledgers
      # read ≤ −4.0% (|gap| ≤ 0.5pp) AND the loss persists; else release. Here: what the rule would say NOW.
      try:
