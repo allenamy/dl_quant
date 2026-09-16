@@ -12,7 +12,7 @@
 
 ## 0. 先说结论(三句)
 
-1. **C1 是这六项里唯一做到"修前状态被行为性证明为坏"的。** 它不是靠断言, 是靠 `repair.py:62` 那条**旧值逐位重放控制** —— 把缺失月重设为 NaN 后重算通道, 要求与冻结缓存**逐字节相同**。这等于用被修对象自己的字节证明了"修前确实是 NaN 洞", 比任何测试断言都强。而且它顺手量出了洞的真实代价: 冻结面板里 2026-03-01 00:05 那一根 5 分钟 bar 的 ret5 是 **−16.87%**(= 整个 2 月的涨跌被压成一根 bar), 真值应为 **−1.83%**。
+1. **C1 是这六项里唯一做到"修前状态被行为性证明为坏"的。** 它不是靠断言, 是靠 `repair.py:62` 那条**旧值逐位重放控制** —— 把缺失月重设为 NaN 后重算通道, 要求与冻结缓存**逐字节相同**。这等于用被修对象自己的字节证明了"修前确实是 NaN 洞", 比任何测试断言都强。代价量级出自它的 committed 收据 `completed/build2/RESULT.json` 字段 `old_next_return_f16`(**不是我读了面板**, 见 C1 §(b)(c)): 2026-03-01 00:05 那一格通道 0 记着 **−0.1687**, 真值 **−0.0183**。
 2. **C7 的缺陷机制成立、修法正确、但红测不存在。** `LOCAL_CONTROLS.json` 断言"旧 11 测 1 failure + 1 error", 但**那次运行的输出在 11 条分支上一份都没有**(`old_actual_chunk: "07cc30"` 这个句柄 `git grep` 全树无对应物)。更要命的是: 它自己在 `test_e60_funding.py:7,12` 留了 `E60_ENGINE_SOURCE` / `E60_RUNNER_SOURCE` 两个**专门用来做变异对照的环境变量钩子**, 全树**零次使用**。修前修后同一套 14 测的对比从未跑过。
 3. **C5 不是"补 4 个点"这么小。** 那 4 个点是 2026-07-24 00:20/00:55/04:20/04:55 UTC 的 AERGO 估值缺失, 而**旧运行正好停在 2026-07-23** —— 我用 `dynamic_cash.py:366-370` 的 `_Unknown(MISSING_HELD_*_MARK)` 路径 + 时间戳算术独立确认了这一点。**608 日里的最后 38 日(含 2026-08 那个 −5.96% / MDD 15.53% 的月份)完全建立在这 4 个数上。** 它自己的尾扫 `tail_candidates1/STDOUT.json` 同时报了全轴还有 **2,943 个**同类缺失格、候选集内 **95 个**, 只修了 4 个 —— **选谁修的判据就是"谁挡住了运行"**。
 
@@ -57,22 +57,69 @@
 `ORIGINAL_FULL_AXIS_AUDIT_20260915.md` 原话:
 > 「The old cache retains previous-month final closed bar at the named month's 00:00 boundary, then lacks all bars from 00:05 through next-month 00:00. These gaps are original raw acquisition/inventory omissions, not economic lifecycle transitions.」
 
-### ★ 机制是否成立 —— 我核实了, **成立, 而且比它自己说的更严重**
+### ★ 机制是否成立 —— 我核实了, **成立**(2026-09-16 lead 追问后重写本节, 把「机制」与「代价量级」分开, 并补全出处)
 
-**修前那段"代码"的错误输入具体是什么**: 冻结面板 `data/canonical3/channels7.npz` 里 1000000BOBUSDT / BMTUSDT 的 2026-02 整月、MTLUSDT 的 2026-04 整月是 NaN。**问题不在 NaN 本身, 在 NaN 之后第一根 bar 的 ret5。**
+#### (a) 机制: 我核实了, 在**生产算术源码**里
 
-我从它自己的单元测试里读出了 `to_channels` 的行为(`test_repair.py:36-37`, 逐字引):
+`multi_asset/exports/research/codex_causal_fullchain_2026-09-14/data/canonical_data.py`(在 `a90dc829` 树里, 35 行), 逐字引:
 ```python
- 36:   self.assertEqual(updated[30,1,0],np.float16(130/129-1))
- 37:   self.assertEqual(old[30,1,0],np.float16(130/119-1))
+ 18:    prior_indices=np.maximum.accumulate(np.where(present,rows,-1),axis=0)
+ 19:    before=np.vstack([np.full((1,r.shape[1]),-1),prior_indices[:-1]])
+ 20:    prev=np.where(before>=0,c[np.maximum(before,0),np.arange(r.shape[1])[None,:]],pc[None,:])
+ 23:        values[:,:,0]=np.where(present&(prev>0),c/prev-1,np.nan)
 ```
-构造是 `raw` 第 i 根 close = 100+i, 洞在 index 20..29。所以**未修版本的 index 30 ret5 = 130/119−1 —— 它把上一根"可见"close(index 19)当作前一根 bar, 跨越了整个洞**。`to_channels` 对 NaN 段做的是 last-observed 前推, 不是产生 NaN。
+`prev` 是**最近一根 present 行的 close 的前缀累积**, 不是"上一根时间行"。⇒ **NaN 段之后第一根 present bar 的通道 0 = close / 洞之前最后一个 close − 1**, 即一整段跨洞收益被写进一根 5 分钟 bar。这不是从单测反推的, 是生产函数本身。(单测 `test_repair.py:37` `assertEqual(old[30,1,0],np.float16(130/119-1))` 与之一致, 作为旁证。)
 
-这个推断被真实产物独立证实。`completed/build2/RESULT.json`(blob `d2851f79`, 24,496 bytes):
-- 1000000BOBUSDT: `previous_close 0.01482`, `last_inserted_close 0.01255`, `next_close 0.01232`, `old_next_return_f16 **-0.168701171875**`, `new_next_return_f16 **-0.0183258056640625**`
-- BMTUSDT: `old -0.1552734375`, `new **+0.0065155029296875**` —— **连符号都反了**
+同文件 `:5` 与 `:32-33`:
+```python
+  5: CLIPS=[(-.3,.3),(0,.5),(0,1),(0,25),(0,20),(-5,15),(0,1)]
+ 32:    for k,(lo,hi) in enumerate(CLIPS):
+ 33:        v=values[:,:,k];good=np.isfinite(v);out[:,:,k][good]=np.clip(v[good],lo,hi).astype(np.float16)
+```
+⇒ **通道 0 的裁剪带确实是 ±0.30**, 这是我在 codex 自己的 `canonical_data.py` 里读到的, **不是从我们 `[[cache_ret5_channel_clipped_at_0p30_2026_09_12]]` 那条记忆搬过来的**(上一版报告写成了后者, 属于把我方事实外推到对方链路, 现更正)。
 
-我自己算: 0.01232/0.01482−1 = −0.16869 ✓ = 旧值; 0.01232/0.01255−1 = −0.01833 ✓ = 新值。**冻结面板里 2026-03-01 00:05 这一根 5 分钟 bar 上写着一个 −16.87% 的收益, 它实际是整个 2 月的涨跌。** 且 −0.1687 落在 ±0.30 裁剪带内(`[[cache_ret5_channel_clipped_at_0p30_2026_09_12]]`), 所以它**没有被裁掉, 直接进了特征面板**。BMT 那一格更糟: 真值 +0.65%, 面板里写 −15.53%。
+#### (b) 代价量级: 出处在这里 —— **committed 收据, 不是我读了面板**
+
+数字的唯一来源:
+**路径** `multi_asset/exports/research/codex_causal_fullchain_2026-09-14/data/canonical_month_repair_20260914/completed/build2/RESULT.json`
+**提交** `a90dc8294575725567d5d4b9621728eaa92f9f92` · **blob** `d2851f79de0396a91eb3a8f86858e1062e09d4bb` (24,496 bytes)
+**字段** `repaired_months[i].old_next_return_f16` / `.new_next_return_f16`
+
+复跑命令(逐字):
+```
+git show a90dc829:multi_asset/exports/research/codex_causal_fullchain_2026-09-14/data/canonical_month_repair_20260914/completed/build2/RESULT.json \
+  | python3 -c "import json,sys;[print({k:m[k] for k in ('symbol','next_recomputed_return_ts','previous_close','last_inserted_close','next_close','old_next_return_f16','new_next_return_f16')}) for m in json.load(sys.stdin)['repaired_months']]"
+```
+输出(逐字):
+```
+{'symbol': '1000000BOBUSDT', 'next_recomputed_return_ts': 1772323500, 'previous_close': 0.01482, 'last_inserted_close': 0.01255, 'next_close': 0.01232, 'old_next_return_f16': -0.168701171875, 'new_next_return_f16': -0.0183258056640625}
+{'symbol': 'BMTUSDT',        'next_recomputed_return_ts': 1772323500, 'previous_close': 0.01829, 'last_inserted_close': 0.01535, 'next_close': 0.01545, 'old_next_return_f16': -0.1552734375,  'new_next_return_f16': 0.0065155029296875}
+{'symbol': 'MTLUSDT',        'next_recomputed_return_ts': 1777593900, 'previous_close': 0.2699,  'last_inserted_close': 0.2946,  'next_close': 0.2951,  'old_next_return_f16': 0.0933837890625, 'new_next_return_f16': 0.001697540283203125}
+```
+> **为什么 grep 没打到**: 字段叫 `old_next_return_f16`(不是 `old_ret5`/`ret5_old`/`first_after_gap`); 值以**分数**存(`-0.168701171875`), 所以 `grep "16\.8|1\.83|15\.53|0\.65"` 无论如何匹配不到。是我在报告里把它们百分号化了才变得不可追溯 —— 这是我的表述问题。
+
+我自己的算术复核(6/6 全中, float16 舍入后逐位相同):
+`0.01232/0.01482−1 = −0.168690958` → `np.float16` = `−0.168701171875` = 收据值 ✓;`0.01232/0.01255−1` → `−0.0183258056640625` ✓;BMT `−0.1552734375` / `+0.0065155029296875` ✓;MTL `+0.0933837890625` / `+0.001697540283203125` ✓。三个旧值 `|x| < 0.30` ⇒ **都不触裁剪**。
+
+#### (c) ★ 这是"读到的"还是"推算的" —— 准确答案: **隔一层的读, 带逐位闸门**
+
+**我没有打开过 `channels7.npz`**(它在 pod2, 本地没有)。收据里的 `old_next_return_f16` 是 codex **自己重放**出来的值 —— `repair.py:150` 写的是 `float(patch['old_channels'][patch['hi'],0])`, 而 `old_channels = to_channels(old_raw)`(L50-51)。
+
+但这个重放值与冻结面板的对应格之间**有一条逐位闸门**, 我把索引映射逐步验过:
+- `prepare_patch` 返回 `first_global=g`、`last_global=g+hi-lo-1` ⇒ 全局行 `last_global+1 = g+hi-lo` 对应局部索引 `lo+(g+hi-lo)-g = **hi**` —— 正是收据取值的那个下标。
+- `patch_chunk` L59 `a=max(row0,first-1); b=min(row0+len(old),last+2)` ⇒ 比对的全局区间是 `[first-1, last+2)`, **含 `last+1`**。
+- L62 `if not same_bits(old[...,j], p['old_channels'][k:k+b-a]):raise` ⇒ 对该区间**全 7 通道**要求与冻结缓存**逐字节相同**, 否则整跑炸。
+- build2 实际 `status = "PASS_RAW_REPAIR_AND_BITWISE_SUPPORT_PROOF"`(同一份 RESULT.json), 执行收据 `completed/build2_execution/EXIT.json`。
+
+⇒ 准确表述: **「该值等于冻结面板对应格, 条件是 build2 那次运行确实执行了 L62 并退出 0」。** 这比"我直接读了面板"弱一格, 比"我按收盘价推算"强很多。**报告任何下游引用都应该用这句话, 不要写成"我在面板里读到"。**
+
+#### (d) 那这个坏值进没进特征 —— **我只核到一半**
+- **进了 `channels7.npz` 的通道 0**: `canonical_data.py:33` 把 clip 后的值写进 `out`, 而 `out` 就是 7 通道数组。✓ 已核。
+- **是否进到 F10/King 实际吃的特征列**: **未核。** `FULL_FEATURES_VERIFIED_INPUTS.json` 把 `data/canonical3/channels7.npz` 列为特征面板、`producer/build_features.py` 列为构建器, 但**我没有打开 `build_features.py` 确认通道 0 被消费**。上一版报告写的"直接进了特征面板"应降级为: **进了面板文件的通道 0; 是否被特征列消费未验。**
+
+#### (e) 分开记账
+- **机制**: 成立, 源码级已证(`canonical_data.py:18-23`)。**这一条我认满分。**
+- **代价量级**: 三名 × 各 1 格通道 0 被写成跨月收益(BOB 真值 −1.83% 写成 −16.87%;BMT 真值 **+0.65%** 写成 **−15.53%**, 符号相反;MTL 真值 +0.17% 写成 +9.34%), 加 519 个锚的标签被 mask 掉。**这是下界。** 理由: `canonical_data.py:20,23` 的前推**对任何 NaN 段一视同仁, 不问成因** —— 无论那段是档案缺失、停牌还是真下市, 重连那根 bar 的通道 0 都会写成跨段收益。`ORIGINAL_FULL_AXIS_AUDIT_SUMMARY.json` 报 `price_gaps: {symbols:162, gaps:163, kinds:{INTERNAL:134, TERMINAL:29}}`(阈值 ≥7 天), ⇒ **至少 134 个内部价格洞各有一个同类重连格, 一个都没修**; 且 <7 天的短洞根本不在这个盘点里。**但要说清: 这 134 个里有多少是"该修的档案缺失"、多少是"合法停牌(重连收益是真实的)", 我没有分。** 所以我只能说"同一算术产物普遍存在", **不能**说"还有 134 个同等严重的缺陷"。
 
 **标签侧同样成立**: `target_values`(L79-86)的 y = close(E+48 bar)/close(E)−1 = close(E+4h)/close(E)−1, 与 CLAUDE.md 的 RAW 口径一致; 洞里 c0/c1 为 NaN ⇒ `label_mask` 为 False ⇒ 那 519 个锚**原本整个被 mask 掉**(不是被写坏)。所以标签侧是"少了 519 个训练样本", 通道侧是"多了 3 个假的极端收益"。两种伤害不同, 报告没区分, 我在此分开记。
 
@@ -90,7 +137,7 @@
 | 写盘是否真写对 | L180 写 → L182 `stream_repair(...,True)` 重开 zip **逐字节比对** → L183 两次收据必须相同 | ✓ 序列化读回, 不是只算 hash |
 | 输入是否中途变 | L126-128 pin before, L184-185 pin after 比对 | ✓ |
 
-**一处欠写(理论)**: L67 只修 `last+1` 的通道 0。若 `to_channels` 里有任何窗口 >1 根的通道, `last+1..last+k` 的其他通道也该变, 而 `allowed` 会禁止写、`delta` 又因为没写而看不到差 —— **支撑区外控制抓不到"欠写"**。我从 `test_repair.py:33-36` 读到 `updated[30,1,1:]` 与旧值 `same_bits`(即通道 1..6 在重连点确实不变), 以及 L37 的 ret5 是纯一阶, **判断 `to_channels` 是逐 bar + 一阶 ret5**, 所以实际不欠写。但 `canonical_data.py` 我**只确认它在树里**(`data/canonical_data.py`), **没打开逐行读**, 所以这条留作"我核实了行为、没核实实现"。
+**曾疑欠写, 现已排除**(2026-09-16 补核): L67 只修 `last+1` 的通道 0。若 `to_channels` 里有任何窗口 >1 根的通道, `last+1..last+k` 的其他通道也该变, 而 `allowed` 会禁止写、`delta` 又因为没写而看不到差 —— **支撑区外控制抓不到"欠写"**。我现在打开了 `data/canonical_data.py`(`a90dc829` 树里, 35 行)逐行读: 通道 1/2 只用本行 `(h-l)/c`、`(c-l)/(h-l)`(`:24-25`), 通道 3/4/5/6 只用本行 `q/n/t`(`:27-31`), **只有通道 0 跨行**(`:20,23` 的 `prev`)。⇒ **确实只有通道 0 需要在 `last+1` 改, 不欠写。** 这条从"核了行为没核实现"升级为"实现已核"。
 
 **一处未解释的残差**: 24,768 bar × 7 通道 + 3 个 ret5 = **173,379** 个允许变的格, 实测 `changed_channel_cells = 173,368`, 少 **11** 格。方向是安全的(变得比允许的少), 但这 11 格为何前后位相同, 报告没说, 我也没能定位。
 
@@ -459,7 +506,7 @@ current_consumer.py:22-23
 
 | 项 | 机制成立? | 修法正确? | 红测 | 逐位控制 | 判决 |
 |---|---|---|---|---|---|
-| **C1** 三月 raw 回填 | ✅ 成立, 且我量化了代价(3 个假极端 ret5, 最大 −16.87% vs 真值 −1.83%) | ✅ 边界逐条对; 1 处理论欠写已用其单测行为排除; 11 格残差未解释 | ✅ **行为级**(`repair.py:62` 旧值逐位重放 + `test_repair.py:39` 变异对照, 基线绿被断言) | ✅ 三处硬 raise(`:75` `:177` `:183`) | **采纳** |
+| **C1** 三月 raw 回填 | ✅ **机制**源码级已证(`canonical_data.py:18-23` 跨洞前推 + `:5` ±0.30 裁剪)。**代价量级**读自收据 `old_next_return_f16`(隔一层, 带 `repair.py:62` 逐位闸门), 且是**下界**(全轴另有 134 个内部价格洞未修) | ✅ 边界逐条对; 曾疑欠写已排除(`canonical_data.py` 只有通道 0 跨行); 11 格残差未解释 | ✅ **行为级**(`repair.py:62` 旧值逐位重放 + `test_repair.py:39` 变异对照, 基线绿被断言) | ✅ 三处硬 raise(`:75` `:177` `:183`) | **采纳** |
 | **C2** 2024-12 档还原 | ✅ 740 档确实缺失 —— 但缺在**它自己的 pod**(磁盘配额), 不是我们的数据 | ✅ 两阶段校验 + fsync + `os.link` 原子不覆盖; 1 处计数语义瑕疵 | n/a(文件搬运) | ✅ 740×(before/after) sha | **不采纳**(对我们无内容; 建议从"真值修复"计数里移出) |
 | **C3** 三名标签重算 | ✅ 成立; 169/169/181 = 519 与 24,768 bar 我独立算术复核一致 | ✅ 支撑集由时间几何定义; NaN 安全字节比较 | ✅ 同 C1(`:159` 旧值重放 + `test_repair.py:41-49` 含负控) | ✅ `:171-178` 回填后整组位等 | **采纳**(但须按"多了 519 个样本"记, 非"数值改正") |
 | **C5** AERGO 4 点 | ✅ 成立; 我用 `dynamic_cash.py:366-370` + 时间戳独立确认它是 570→608 日的唯一闸门; 但选择判据 = "谁挡住了运行", 全轴同类缺口尚余 2,939 | ✅ 实现最严(哨兵拒过修 / `r[6]+1==when` 无前视 / 逐事件 canonical 还原比对 / 少一个就炸) | ⚠ **RED1 是假红**(ModuleNotFoundError); 但 8 条有绿基线的变异对照是真的 | ✅ `mark_valuation.py:60` 逐事件位等; ⚠ GREEN1 跑 17 测而入库 18 测 | **采纳但需改**(改记账口径 + 补第 18 测的绿 + 记 markPrice 混源) |
@@ -472,7 +519,7 @@ current_consumer.py:22-23
 
 ## 我没能回答的
 
-1. **`canonical_data.py` 的 `to_channels` 我没有逐行读**(它在 `data/canonical_data.py`, 在树里)。我对"7 个通道都是逐 bar + 一阶 ret5、没有多 bar 窗口"的判断来自 `test_repair.py:33-37` 的**行为**, 不是实现。若其中有任一通道窗口 >1 根, C1 的 `last+1` 就是欠写, 且支撑区外控制**抓不到**。**这是 C1 里我唯一没关死的格。**
+1. ~~`canonical_data.py` 的 `to_channels` 我没有逐行读~~ —— **2026-09-16 已补读并关闭**(见 C1 §(a) 与"曾疑欠写, 现已排除")。**替代它成为 C1 最弱一环的是**: 我**没有打开过 `channels7.npz`**(pod2, 本地无)。`old_next_return_f16` 是 codex 的重放值, 只靠 `repair.py:62` 的逐位闸门与冻结面板绑定, 而**那次闸门跑没跑, 我只有它自报的 `status=PASS…` 和 `EXIT.json`**。要彻底关死需要在 pod2 直接读 `channels7.npz[last+1, j, 0]`。另: 该坏值是否被 `build_features.py` 的特征列消费, **我没核**(见 C1 §(d))。
 2. **`audit_raw_overlay.py`(63 行, 三份拷贝)我没打开。** 报告自报的「171,752,832 outside-support raw scalar cells were bitwise equal」和「20 个月逻辑 SHA 只替换 4 个」全部出自它。所以 C1 的**第二阶段**我只读了自报。
 3. **`build_targets.py` / `build_funding.py` 不在任何分支**(我逐条查了 11 条)。C6 里"generation/HOLD 目标修复"和"funding 修复"两半, **一个字都无法逐代码验证**。要审必须从 pod2 `/workspace/` 取。
 4. **`tests/` 下另外 10 个文件我没打开**(包括 `test_funding_boundary.py`、`test_generation_runtime.py`)。DESIGN 声称 39 项单测, 我只 grep 到 `test_generation_windows.py` 有 6 个 `def test_`。
@@ -534,3 +581,69 @@ current_consumer.py:22-23
 | C7 | 采纳但需改 | 不变; 「不在 608 日路径上」我已独立证实 |
 | C2 | 不采纳 | 不变 |
 | C6 | 无法判定 | 不变 |
+
+---
+
+## lead 复核 · 第二轮(2026-09-16 12:1xZ) —— C1 量级证据**已补齐并独立复算**
+
+第一轮我拦下了 −16.87% 这个数(追溯不到)。审查员给出了出处, **我自己跑了, 对上了**。
+
+### 出处(可复跑)
+`git show a90dc829:multi_asset/exports/research/codex_causal_fullchain_2026-09-14/data/canonical_month_repair_20260914/completed/build2/RESULT.json`
+字段 `repaired_months[i].old_next_return_f16` / `.new_next_return_f16`。
+
+**我第一轮 grep 打不到的原因已查明, 不是数字不存在**: 值以**分数**存(`-0.168701171875`),
+报告里被百分号化成 `−16.87%`, 于是 `grep "16\.8"` 必然落空。**这是表述问题, 已由审查员更正。**
+
+### 三条原始记录(逐字)
+| symbol | previous_close | last_inserted_close | next_close | `old_next_return_f16` | `new_next_return_f16` |
+|---|---|---|---|---|---|
+| 1000000BOBUSDT | 0.01482 | 0.01255 | 0.01232 | **−0.168701171875** | −0.0183258056640625 |
+| BMTUSDT | 0.01829 | 0.01535 | 0.01545 | **−0.1552734375** | **+0.0065155029296875** |
+| MTLUSDT | 0.2699 | 0.2946 | 0.2951 | +0.0933837890625 | +0.001697540283203125 |
+
+### ★ lead 独立复算: 3/3 逐位相同
+我不看它的收据值, 只用表中的原始收盘价重算:
+- 旧值 = `np.float16(next_close / previous_close − 1)` —— **跨整个 NaN 段**
+- 新值 = `np.float16(next_close / last_inserted_close − 1)` —— 对上一根真实 bar
+
+三行**全部与收据逐位相同**(float16 位级)。
+
+**代价**: −16.87% → −1.83% · **−15.53% → +0.65%(符号翻转)** · +9.34% → +0.17%。
+**冻结面板里有三格, 把整整一个月的涨跌当成一根 5 分钟收益写了进去, 其中一格连符号都是反的。**
+
+### ±0.30 裁剪: 出处已换成对方自己的源码
+`data/canonical_data.py:5` `CLIPS=[(-.3,.3),(0,.5),(0,1),(0,25),(0,20),(-5,15),(0,1)]`
++ `:32-33` `np.clip(v[good],lo,hi).astype(np.float16)`。
+三个旧值 `|x| < 0.30` ⇒ **一格都没被裁掉, 原样进了通道 0**。
+
+⚠ 审查员**主动更正**: 上一版此处引的是**我方**记忆条目 `[[cache_ret5_channel_clipped_at_0p30…]]`,
+那是**把我方事实外推到对方链路**。现引对方自己的生产算术。**这个自我更正是对的, 记一笔。**
+
+### 仍未验(已降级, 不得写成已验)
+「**直接进了特征面板**」→ 降级为「**进了面板文件的通道 0; 是否被 `build_features.py` 的特征列消费, 未验**」。
+
+### 代价是**下界**(依据已核)
+`ORIGINAL_FULL_AXIS_AUDIT_SUMMARY.json` 实测: `price_gaps.kinds.INTERNAL = **134**`
+(另 `TERMINAL 29` · `at_least30days 158` · 涉 162 符号 / 829 全轴)。
+同一条前推**对任何 NaN 段一视同仁、不问成因**, 故每个 INTERNAL 洞各有一个同类重连格, **一个都没修**;
+且 <7 天的短洞根本不在盘点内。
+**但不得说「还有 134 个同等严重的缺陷」** —— 其中多少是"该修的档案缺失"、多少是"合法停牌(跨段收益是真的)",
+无人分过。审查员自己写明了这一点, **这个克制是对的**。
+
+### 顺带关掉一个开放问题
+补读 `canonical_data.py:24-31` 确认通道 1~6 全是**逐行**运算, **只有通道 0 跨行** ⇒
+C1 只在 `last+1` 改通道 0 **确实不欠写**。
+
+### C1 最终判决(修订)
+| | 第一轮 | 第二轮(本节) |
+|---|---|---|
+| 机制成立 | ✅ 源码级 | ✅ 不变 |
+| **代价量级** | **未证, 禁引** | ✅ **已证, 3/3 逐位独立复算** |
+| 是否进特征列 | — | ⚠ **未验** |
+| 判决 | 采纳(机制) | **采纳** |
+
+**C1 最弱的一环现在是**: 没人直接读过 `channels7.npz`(pod2 上也不存在), 那条逐位闸门
+(`repair.py:62`, 对全 7 通道要求与冻结缓存 `same_bits` 否则 raise)**跑没跑只有它自报**。
+准确表述: **「该值等于冻结面板对应格, 条件是 build2 那次运行确实执行了 L62 并退出 0」** ——
+比"我读了面板"弱一格, 比"按收盘价推算"强很多。**引用请用这句话。**
