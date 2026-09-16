@@ -1,0 +1,31 @@
+# RET-02 bound_bars battery + mutation check — FX-DATA 2026-09-16
+## battery at HEAD
+load_requires_expected_sha                 PASS
+load_rejects_short_sha                     PASS
+load_rejects_wrong_sha                     PASS
+index_size_955                             PASS
+index_sha_matches_r6_receipt               PASS
+every_stored_value_is_the_bound            PASS
+both_signs_present                         PASS
+window_is_required                         PASS
+window_rejects_unknown                     PASS
+three_window_conventions_differ            PASS
+hits_finds_the_known_cell                  PASS
+assert_clean_raises_on_a_dirty_window      PASS
+assert_clean_passes_on_a_clean_window      PASS
+clean_is_the_negation_of_hits              PASS
+unknown_symbol_is_clean_not_an_error       PASS
+refuses_past_coverage_end                  PASS
+accepts_up_to_coverage_end                 PASS
+rejects_empty_window                       PASS
+raw_of_returns_the_unclipped_value         PASS
+raw_of_returns_None_off_index              PASS
+SUMMARY 20/20 cells pass
+rc=0
+## mutation check (each guard removed on a scratch copy; the intended cell must go red)
+M1_window_gets_a_default         rc=1  red_cells=['window_is_required']
+M2_expected_sha_gets_a_default   rc=1  red_cells=['load_requires_expected_sha']
+M3_coverage_check_removed        rc=1  red_cells=['refuses_past_coverage_end']
+M4_assert_clean_never_raises     rc=1  red_cells=['assert_clean_raises_on_a_dirty_window']
+M5_wrong_sha_accepted            rc=1  red_cells=['load_rejects_wrong_sha']
+restored rc=0 (SUMMARY 20/20 cells pass)
