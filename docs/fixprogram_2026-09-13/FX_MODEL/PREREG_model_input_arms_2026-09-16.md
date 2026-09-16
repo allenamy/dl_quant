@@ -29,8 +29,10 @@ The CFG-06 precedent (FIXPROGRAM §12.4) is that an unverified "nobody has looke
 | New-builder legacy arms reproduce the bases | bitwise PASS (X 1,308,638 cells; FEA 1,134,880 cells) | input | `NEWBUILDER_CONTROL.json`, `KING_CONTROL.json` |
 | Input-layer effect of the funding fix | **606 cells** changed on the fixture | input | `NEWBUILDER_CONTROL.json` C3 |
 | Input-layer effect of the king knobs | +2 / +0 / +30 anchors | input | `KING_CONTROL.json` K3 |
+| **UNI-01 inverse pairs (run after this section was drafted, 2026-09-16 04:4xZ)** | returns ρ −0.987; **score-rank ρ +0.06 / +0.27**; opposite-leg 0.364 / 0.255 vs null 0.479; gross share ~0.5% | **score / rank-z** | `UNI01_PAIRS.json` |
+| UNI-01 counterfactual: drop non-crypto | normalised rank displacement median 0.0062, p95 0.0445 | rank-z | `UNI01_PAIRS.json` |
 
-**None of these is a model-layer or book-layer number on the contrast this prereg judges.** The two "effect" rows are cell and anchor counts on a synthetic fixture, and both receipts label them as such in the artifact itself. The score-layer row (T1) is a clock contrast on a **fixed** booster with no label — it is not any arm below. I have seen **no** OOF IC, no P&L and no book reading for any arm.
+**None of these is a model-layer or book-layer number on the contrast this prereg judges.** The two UNI-01 rows are score/rank-layer readings on a **different axis** — UNI-01 is held fixed in every arm below (§9), so they are not a reading on any arm. They are listed because they were computed after this section was first drafted, and a freeze declaration that silently excludes later work is the CFG-06 failure. The two "effect" rows are cell and anchor counts on a synthetic fixture, and both receipts label them as such in the artifact itself. The score-layer row (T1) is a clock contrast on a **fixed** booster with no label — it is not any arm below. I have seen **no** OOF IC, no P&L and no book reading for any arm.
 
 Prior beliefs I am **withdrawing** so they cannot act as an unstated hypothesis: my pause note said "a lower OOF IC after FEA-01 is expected, because the flag carries forward information". The review's narrowing (i) shows the evidence does not support predicting a direction — the per-year Spearman of the flag is **sign-inconsistent** (−0.0031 / +0.0018 / −0.0041 / +0.0059 / −0.0079). **This prereg predicts no direction.**
 
@@ -210,6 +212,22 @@ Review narrowing (iii): changing these together with the funding rebuild makes t
 
 ---
 
+## §9.5 A known prior from the independent researcher — declared before the fact, with what would contradict it
+
+Recorded at the lead's instruction so it cannot later be produced as a surprise, and so the reaction to a disagreement is fixed **in advance**.
+
+**Their result** (interventional, their prereg `7fbb57ab` frozen first; 18 models = 3 arms × 3 folds × 2 seeds; 400 trees, 78 inputs, 60-anchor embargo), on the OLD / REPAIRED / ZERO contrast of the funding columns:
+- **Repairing the funding columns buys no stable ranking gain** — 5 of 6 rows have CIs spanning zero, row-wise between **−0.0013 and +0.0006**.
+- **Zeroing both columns entirely costs only about 0.002 IC.**
+
+**Their own scope limitation, carried verbatim rather than paraphrased away**: that is a **King structure run on DLW features, with features that include E and a target at E+4h** — it is **"not a replay of the original exporter's clock/label"**. So it is **not the same contrast** as arms `DA/DB/DC` here, and the two must not be pooled or treated as replications of each other.
+
+**Why it is written here, and what it does NOT license.** It is **not** a target to steer toward. Its purpose is the opposite:
+
+> **If this experiment measures a funding-fix effect far larger than theirs, that is a contradiction between two instruments and is a reason to STOP and reconcile them — not a good-news result to publish.** On such a disagreement the required action is: report both readings and their receipts, state that they are different contrasts, and identify which of (clock, feature support, target window, fold structure, embargo, seed rule) differs, **before** any interpretation is offered.
+
+Equally pre-committed, so the rule cannot be applied only when convenient: a result **consistent** with theirs — a small effect whose interval spans zero — is **not** evidence that the input defect does not matter. It is evidence about ranking gain at the score layer under their configuration. FEA-01's justification was never "it will raise IC"; it is that a future-derived availability flag has no business in training inputs.
+
 ## §10 Stopping and failure rules
 
 - If **GATE B-REPRO** fails for a family, that family's arm B is reported **UNAVAILABLE**, with the failure numbers. No substitute.
@@ -227,3 +245,5 @@ Stated now so it is not claimed later:
 - It cannot establish the strategy's historical level or Sharpe. The review's central finding stands: no evidence chain yet satisfies *point-in-time data ∧ train/serve same definition ∧ per-fold out-of-sample ∧ continuous whole-book production parity ∧ closed exit accounting* simultaneously. This prereg addresses the second of those five, and only for two inputs.
 - It cannot attribute any live P&L. The replay is not the live book.
 - With 20 monthly DL folds and 3 yearly king folds, small book-layer effects will not be resolvable; the δ band, not the p-value, states what counts.
+- **It says nothing about whether the non-crypto names hurt the book, because they are still in it.** §9 holds UNI-01 at its legacy value, so every arm above is measured with the two 3× inverse pairs (SOXL/SOXS, TQQQ/SQQQ) and all 80 non-crypto member names **still in the training population**. That is the right choice for identifiability — one intervention at a time — but it has a cost that must not be lost: **this experiment must never be cited as evidence that the universe is fine.**
+  Note also what the 2026-09-16 measurement did and did not settle. It **refuted** the mechanism I had inferred: the book does *not* hold the inverse pairs on opposite legs (score-rank ρ **+0.06 / +0.27**, opposite-leg rate **0.364 / 0.255**, both *below* the null median **0.479**), even though the pairs really are near-exact return inverses (ρ −0.987). What it leaves open is a **different and unmeasured** concern — the equity-perp cluster is scored *alike* while its returns move *oppositely*, which would damage rank-IC on those names rather than create directional exposure. **Neither the refuted mechanism nor the open one is tested by any arm in this prereg.**
