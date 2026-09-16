@@ -163,6 +163,20 @@ rec["C_difference"] = {"september_anchors_on_x0910_axis": sep_rows,
                        "share_of_the_allowed_set": round((len(add) + len(drop)) / max(int(aug_c.sum()), 1), 4),
                        "upit_only_added": sorted(PSYM[j] for j in np.where(sep & ~aug)[0]),
                        "upit_only_dropped": sorted(PSYM[j] for j in np.where(aug & ~sep)[0])}
+# month-over-month churn of the allowed set, so the September difference can be read against the normal rate
+churn = []
+for n in range(1, len(keys)):
+    a = CRY[mstart[keys[n - 1]]]; b = CRY[mstart[keys[n]]]
+    churn.append({"month": "%d-%02d" % keys[n], "n_allowed": int(b.sum()), "added": int((b & ~a).sum()), "dropped": int((a & ~b).sum())})
+ch12 = churn[-12:]
+rec["C_monthly_churn_for_scale"] = {
+    "definition": "added/dropped in the CRYPTO allowed set at each month's own first anchor, versus the previous month's row",
+    "last_12_months": ch12,
+    "median_added_last_12": float(np.median([c["added"] for c in ch12])),
+    "median_dropped_last_12": float(np.median([c["dropped"] for c in ch12])),
+    "median_added_all": float(np.median([c["added"] for c in churn])),
+    "median_dropped_all": float(np.median([c["dropped"] for c in churn])),
+    "all_months": churn}
 rec["D_unknown_class_among_entrants"] = sorted(s for s in add if s not in CLS)
 rec["D_note"] = ("build_crypto_mask.py keeps a symbol absent from the exchangeInfo snapshot ('unknown => kept'). Entrants in that "
                  "state are named here rather than silently kept; the snapshot is venue_class_20260908.json.")
@@ -195,6 +209,8 @@ rec["checks"] = CHECKS; rec["n_checks"] = len(CHECKS); rec["n_failed"] = len(FAI
 rec["runtime_s"] = round(time.time() - T0, 1); rec["utc_end"] = utc(time.time())
 json.dump(rec, open(OUT, "w"), indent=1)
 print("FX_UNI03_DONE", json.dumps({"failed": len(FAILS), "added": len(add), "dropped": len(drop),
+                                   "median_added_last_12": rec["C_monthly_churn_for_scale"]["median_added_last_12"],
+                                   "median_dropped_last_12": rec["C_monthly_churn_for_scale"]["median_dropped_last_12"],
                                    "september_anchors": sep_rows,
                                    "crypto_sha256": outs["umask_UPIT_CRYPTO_x0910_sep"]["sha256"]}), flush=True)
 sys.exit(1 if FAILS else 0)
