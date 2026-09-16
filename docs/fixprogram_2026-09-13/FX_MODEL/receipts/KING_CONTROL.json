@@ -1,0 +1,298 @@
+{
+ "device": "fm_king_control.py",
+ "self_sha256": "0f28da37102a968033b51dd51bad3a5a978456284b718d16c7abec7c2745e88c",
+ "utc_start": "2026-09-16T04:21:27Z",
+ "python": "3.14.4",
+ "numpy": "2.4.4",
+ "base": {
+  "path": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/pod_fea_ext_clamp.py",
+  "sha256": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac"
+ },
+ "new": {
+  "path": "docs/fixprogram_2026-09-13/FX_MODEL/devices/fm_king_fea_asof.py",
+  "sha256": "25beff11835755e4a1afe84f765ba664c5022f98238c78b29ec10db96a8e147c"
+ },
+ "fixture_device_sha256": "2b76ae355e4ca1f3efa506e72e09b3c546b16cc3ac9d1a0836479e668aa82d1f",
+ "shells_out": false,
+ "network": false,
+ "K1_source_diff": {
+  "n_changed_hunks": 12,
+  "hunks": [
+   {
+    "tag": "replace",
+    "base": [
+     1,
+     1
+    ],
+    "new": [
+     1,
+     37
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     4,
+     5
+    ],
+    "new": [
+     40,
+     40
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     8,
+     8
+    ],
+    "new": [
+     43,
+     67
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     25,
+     26
+    ],
+    "new": [
+     84,
+     94
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     28,
+     34
+    ],
+    "new": [
+     96,
+     112
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     41,
+     41
+    ],
+    "new": [
+     119,
+     119
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     48,
+     49
+    ],
+    "new": [
+     126,
+     127
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     51,
+     51
+    ],
+    "new": [
+     129,
+     129
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     53,
+     53
+    ],
+    "new": [
+     131,
+     131
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     55,
+     58
+    ],
+    "new": [
+     133,
+     136
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     61,
+     61
+    ],
+    "new": [
+     139,
+     139
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     84,
+     87
+    ],
+    "new": [
+     162,
+     167
+    ]
+   }
+  ],
+  "note": "recorded, not gated: identical BEHAVIOUR is the gate (K2)"
+ },
+ "K2_legacy_bitwise": {
+  "outcome": "PASS",
+  "per_array": {
+   "FEA": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 1134880,
+    "as": "uint16 view (true bitwise)"
+   },
+   "E_ts": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 173,
+    "as": "int64"
+   },
+   "members": {
+    "bitwise_equal": true,
+    "differing_rows": 0,
+    "rows_a": 173,
+    "rows_b": 173,
+    "as": "per-row np.array_equal on int64 member lists"
+   },
+   "y4": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 13840,
+    "as": "uint32 view (true bitwise)"
+   },
+   "qvk": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 13840,
+    "as": "uint32 view (true bitwise)"
+   },
+   "names": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 82,
+    "as": "<U21"
+   }
+  },
+  "base_meta_keys_compared": [
+   "E_ts",
+   "members",
+   "y4",
+   "qvk",
+   "names"
+  ],
+  "new_extra_meta_keys_not_compared": [
+   "fm_knobs",
+   "fm_base_sha256"
+  ]
+ },
+ "gate_K2_pass": true,
+ "K3_one_knob_at_a_time": {
+  "note": "anchor/member/label counts only; NOT a model or book claim",
+  "legacy": {
+   "n_anchors": 173,
+   "first_anchor_ts": 1641600000,
+   "last_anchor_ts": 1644076800,
+   "mean_members": 80.0,
+   "fea_shape": [
+    173,
+    80,
+    82
+   ]
+  },
+  "clock_serve_E": {
+   "n_anchors": 172,
+   "first_anchor_ts": 1641600000,
+   "last_anchor_ts": 1644062400,
+   "mean_members": 80.0,
+   "fea_shape": [
+    172,
+    80,
+    82
+   ],
+   "anchors_gained_vs_legacy": 0,
+   "anchors_lost_vs_legacy": 1,
+   "knobs": {
+    "clock": "serve_E",
+    "member_clamp": "legacy_unclamped",
+    "covr_div": "const2016"
+   }
+  },
+  "member_clamped": {
+   "n_anchors": 175,
+   "first_anchor_ts": 1641571200,
+   "last_anchor_ts": 1644076800,
+   "mean_members": 80.0,
+   "fea_shape": [
+    175,
+    80,
+    82
+   ],
+   "anchors_gained_vs_legacy": 2,
+   "anchors_lost_vs_legacy": 0,
+   "knobs": {
+    "clock": "legacy_Em1",
+    "member_clamp": "clamped",
+    "covr_div": "const2016"
+   }
+  },
+  "covr_actual_window": {
+   "n_anchors": 173,
+   "first_anchor_ts": 1641600000,
+   "last_anchor_ts": 1644076800,
+   "mean_members": 80.0,
+   "fea_shape": [
+    173,
+    80,
+    82
+   ],
+   "anchors_gained_vs_legacy": 0,
+   "anchors_lost_vs_legacy": 0,
+   "knobs": {
+    "clock": "legacy_Em1",
+    "member_clamp": "legacy_unclamped",
+    "covr_div": "actual_window"
+   }
+  },
+  "clamped_and_actual_window": {
+   "n_anchors": 203,
+   "first_anchor_ts": 1641168000,
+   "last_anchor_ts": 1644076800,
+   "mean_members": 80.0,
+   "fea_shape": [
+    203,
+    80,
+    82
+   ],
+   "anchors_gained_vs_legacy": 30,
+   "anchors_lost_vs_legacy": 0,
+   "knobs": {
+    "clock": "legacy_Em1",
+    "member_clamp": "clamped",
+    "covr_div": "actual_window"
+   }
+  }
+ },
+ "utc_end": "2026-09-16T04:21:42Z",
+ "wall_s": 15.4
+}
