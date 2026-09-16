@@ -113,9 +113,21 @@ if missing_keys or prev_missing:
 else:
     chk("P0_rolled_keys_present", True, {"n_rolled": len(ROLLED)})
 
+# P0b — a ROLLED key that is present but EMPTY is not a path that can be checked (R16RF-T1, 独立复审第三轮 2026-09-17):
+#   P0 only asked whether the key exists, and P4 built its required set with `if prev.get(k)`, so `CACHE=` in the previous
+#   contract silently shrank "8 artifacts must be verified" to 7 — and 8 blanks to 0, where a record over one unrelated file
+#   PASSED. A blank value is refused BY NAME, in either contract, before any coverage is built; nothing downstream may
+#   shrink the required set.
+_blank_cur = [k for k in ROLLED if k in cur and not str(cur[k]).strip()]
+_blank_prev = [k for k in ROLLED if k in prev and not str(prev[k]).strip()]
+chk("P0b_rolled_values_nonempty", not (_blank_cur or _blank_prev),
+    {"blank_in_month_contract": _blank_cur, "blank_in_previous_contract": _blank_prev,
+     "why": "an empty rolled path cannot be located, hashed or compared; leaving it out of the required set is how a "
+            "7-of-8 (or 0-of-8) check reports PASS (R16RF-T1)"})
+
 # P1 — same key, same path
 p1 = [{"key": k, "value": cur[k], "previous_month_value": prev[k]}
-      for k in ROLLED if k in cur and k in prev and cur[k] == prev[k]]
+      for k in ROLLED if k in cur and k in prev and cur[k] and cur[k] == prev[k]]     # blanks are P0b's finding, not P1's
 chk("P1_rolled_keys_differ", not p1,
     {"violations": p1, "why": "a rolled key still pointing at the previous month's artifact means this month either reads stale "
                               "data or overwrites a file the previous month's receipts hash (E-0912-B)"})
@@ -125,7 +137,7 @@ prev_by_value = {}
 for k, v in prev.items():
     prev_by_value.setdefault(v, []).append(k)
 p2 = [{"key": k, "value": cur[k], "is_previous_month": sorted(prev_by_value[cur[k]])}
-      for k in ROLLED if k in cur and cur[k] in prev_by_value and cur[k] != cur.get("R", object())]
+      for k in ROLLED if k in cur and cur[k] and cur[k] in prev_by_value and cur[k] != cur.get("R", object())]
 p2 = [v for v in p2 if v["is_previous_month"] != [v["key"]]]        # the same-key case is P1's to report, not P2's
 chk("P2_no_cross_key_reuse", not p2,
     {"violations": p2, "why": "the improvisation is not only 'same key, same path': a month whose CACHE is the previous month's "
@@ -145,7 +157,7 @@ def _real(x):
 _root_real = _real(root) if root else ""
 p3 = []
 for k in ROLLED:
-    if k not in cur or k in ALLOW:
+    if k not in cur or k in ALLOW or not cur[k]:      # a blank value is refused by P0b; realpath("") would be the cwd
         continue
     _v_real = _real(cur[k])
     lex_ok = bool(root) and (cur[k] == root or cur[k].startswith(root.rstrip("/") + "/"))
@@ -206,11 +218,18 @@ else:
             _schema_bad.append(f"record is {type(rec).__name__} with {len(rec) if hasattr(rec, '__len__') else '?'} entries — a previous-month record must be a NON-EMPTY {{path: sha256}} map")
         else:
             _schema_bad += [f"{p!r}: value is not a sha256 hex string" for p, w in rec.items() if not (isinstance(w, str) and _hex.match(w))]
-        _need = sorted({prev[k] for k in ROLLED if isinstance(prev.get(k), str) and prev.get(k)})
+        # ★ R16RF-T1: the required set is EVERY rolled key of the previous contract — a blank/missing value stays in it
+        #   (as "") and can never be covered, so a shrunken contract cannot certify itself.
+        #   Coverage is counted BY KEY: every one of the previous contract's rolled keys must carry a non-blank path that is
+        #   in the record. (A set of values would collapse eight blanks to one and mis-state the size of what was skipped.)
+        _need_by_key = {k: (prev.get(k) if isinstance(prev.get(k), str) else "") for k in ROLLED}
+        _need = sorted({v for v in _need_by_key.values() if v})                       # the distinct paths that CAN be hashed
+        _uncovered_keys = sorted(k for k, v in _need_by_key.items() if not v or not (isinstance(rec, dict) and v in rec))
         _uncovered = [p for p in _need if not (isinstance(rec, dict) and p in rec)]
-        if _schema_bad or _uncovered:
+        if _schema_bad or _uncovered or _uncovered_keys:
             chk("P4_previous_untouched", False,
-                {"schema_errors": _schema_bad[:10], "previous_rolled_paths_not_in_record": _uncovered, "n_required": len(_need),
+                {"schema_errors": _schema_bad[:10], "previous_rolled_paths_not_in_record": _uncovered,
+                 "previous_rolled_keys_not_in_record": _uncovered_keys, "n_required_keys": len(ROLLED), "n_required": len(_need),
                  "evaluated": True,
                  "why": "the record cannot certify the previous month: it is empty, malformed, or does not cover the "
                         "previous contract's ROLLED artifacts — a check over zero or unrelated files is not evidence (R16R-T1a)"})

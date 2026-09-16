@@ -1,0 +1,21 @@
+[A] current tree
+  OK   ★★★ A1 positions(): NaN and ±inf are KEPT (unknown), 10 kept, exact 0 dropped  — ['INFUSDT', 'NANUSDT', 'TENUSDT']
+  OK   ★★★ A2 flatten_all(non-finite only): 0 POSTs reach the wire, one flatten_skip_nonfinite per symbol  — (0, ['INFUSDT', 'NANUSDT'], None)
+  OK   ★★★ A3 stage 1 fed a NaN account through THIS broker: ok False, NANUSDT listed unknown, no flatten call  — ({'NANUSDT': 'nan'}, {'ok': False, 'unknown': ['NANUSDT'], 'flat_on_reread': None, 'flatten_calls': 0})
+  OK   ★★ A4 finite book still flattens; empty book still reads flat  — ({'ok': True, 'unknown': None, 'flat_on_reread': None, 'flatten_calls': 1}, {'ok': True, 'unknown': None, 'flat_on_reread': True, 'flatten_calls': 0})
+  OK   ★★★ A5 DERISK (real _scale_to) on a NaN account: 0 POSTs, NANUSDT in derisk_unknown, NOT in the reference, HIGH alarm — R16RF-E1 closed  — {'posts': [], 'n_post': 0, 'post_qty_nonfinite': [], 'derisked': [], 'derisk_unknown': ['NANUSDT'], 'ref': {}, 'ref_unknown': ['NANUSDT'], 'alarm_high': ["DERISK: 1 name(s) returned a NON-FINITE quantity ['NANUSDT'] — position UNKNOWN: not cut, not used as ref
+  OK   ★★★ A6 DERISK on a MIXED account (10 + NaN): exactly one POST — TENUSDT sell 5.0 reduceOnly — and NANUSDT listed unknown  — {'posts': [{'symbol': 'TENUSDT', 'side': 'SELL', 'quantity': 5.0, 'reduceOnly': 'true'}], 'n_post': 1, 'post_qty_nonfinite': [False], 'derisked': ['TENUSDT'], 'derisk_unknown': ['NANUSDT'], 'ref': {'TENUSDT': '10.0'}, 'ref_unknown': ['NANUSDT'], 'alarm_high': 
+  OK   ★★ A7 DERISK on a finite account is UNCHANGED: one POST TENUSDT sell 5.0 reduceOnly, no unknown  — {'posts': [{'symbol': 'TENUSDT', 'side': 'SELL', 'quantity': 5.0, 'reduceOnly': 'true'}], 'n_post': 1, 'post_qty_nonfinite': [False], 'derisked': ['TENUSDT'], 'derisk_unknown': [], 'ref': {'TENUSDT': '10.0'}, 'ref_unknown': [], 'alarm_high': [], 'exc': None}
+  OK   ★★★ A8 submit(quantity=NaN) LIVE: refused before the wire with an OpeningHalted-class exception, 0 POST, submit_refused_nonfinite_quantity recorded  — {'returned': None, 'exc_type': 'QuantityNotFinite', 'is_opening_halted_class': True, 'n_post': 0, 'refused_action': True, 'dry_run_action': False}
+  OK   ★★ A9 submit(quantity=NaN) DRY_RUN: ALSO refused (the gate sits before the dry-run branch), no submit_dry_run action  — {'returned': None, 'exc_type': 'QuantityNotFinite', 'is_opening_halted_class': True, 'n_post': 0, 'refused_action': True, 'dry_run_action': False}
+
+[C] red capability: pinned pre-fix sources (verified by shape)
+  OK   ★★★ C1 (facdf24: RED, silent) positions() DROPS NaN; DERISK on the NaN account sees nothing: 0 POST, nothing listed — the unknown position is silently treated as absent  — (['INFUSDT', 'TENUSDT'], {'posts': [], 'n_post': 0, 'post_qty_nonfinite': [], 'derisked': [], 'derisk_unknown': None, 'ref': {}, 'ref_unknown': None, 'alarm_high': [], 'exc': None})
+  OK   ★★★ C2 (facdf24: RED) flatten_all(non-finite) POSTs 2 orders whose quantities are non-finite — counted at the wire, not inferred from an exception  — (2, [True, True])
+  OK   ★★★ C3 (183915f: RED, the round-3 finding) broker keeps NaN and the unfixed DERISK POSTs quantity 'nan' reduceOnly 'true' — the regression the round-2 fix exposed  — {'posts': [{'symbol': 'NANUSDT', 'side': 'BUY', 'quantity': nan, 'reduceOnly': 'true'}], 'n_post': 1, 'post_qty_nonfinite': [True], 'derisked': ['NANUSDT'], 'derisk_unknown': None, 'ref': {'NANUSDT': 'nan'}, 'ref_unknown': None, 'alarm_high': [], 'exc': None}
+  OK   ★★★ C4 (183915f: RED) submit(quantity=NaN) LIVE reaches the wire: 1 POST, no refusal  — {'returned': True, 'exc_type': None, 'is_opening_halted_class': False, 'n_post': 1, 'refused_action': False, 'dry_run_action': False}
+  OK   ★★ C5 finite control identical across all three sources: DERISK on {TENUSDT: 10} POSTs exactly one sell 5.0 reduceOnly  — [[{'symbol': 'TENUSDT', 'side': 'SELL', 'quantity': 5.0, 'reduceOnly': 'true'}], [{'symbol': 'TENUSDT', 'side': 'SELL', 'quantity': 5.0, 'reduceOnly': 'true'}], [{'symbol': 'TENUSDT', 'side': 'SELL', 'quantity': 5.0, 'reduceOnly': 'true'}]]
+  OK   ★★ C6 baseline [A] green and both controls red on the SAME inputs — the triplet is the evidence
+
+15/15 checks passed
+ALL PASS

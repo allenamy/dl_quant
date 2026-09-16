@@ -2610,6 +2610,36 @@ with tempfile.TemporaryDirectory() as _qd:
           and _rc_l == 3 and "P4_previous_untouched" in _r_l["failed_checks"] and _r_l["checks"]["P4_previous_untouched"]["schema_errors"]
           and _rc_p == 3 and len(_r_p["checks"]["P4_previous_untouched"]["previous_rolled_paths_not_in_record"]) == 7,
           (_rc_e, _rc_l, _rc_p, _r_p and len(_r_p["checks"]["P4_previous_untouched"].get("previous_rolled_paths_not_in_record", []))))
+    # Q8 — R16RF-T1 (独立复审第三轮 2026-09-17): a previous contract whose CACHE is BLANK, with a record covering the other 7
+    #      artifacts, must NOT pass: P0b names CACHE, P4 still requires all 8 (the blank can never be covered).
+    _q8prev_root = f"{_qd}/q8_prev_root"; os.makedirs(_q8prev_root, exist_ok=True)
+    _q8prev = _qmk("q8prev", _q8prev_root, CACHE="")
+    _q8kv = {l.split("=", 1)[0]: l.split("=", 1)[1].strip().replace("$R", _q8prev_root) for l in open(_q8prev) if "=" in l and not l.startswith("#")}
+    _q8paths = [_q8kv[k] for k in ("PANEL_SPLICE", "PANEL_KING", "RAW_PATCH", "HOLE_CELLS", "FUND_AUG", "EMA_STATE_JSON", "EXPORT_PANEL")]
+    for _pp in _q8paths: open(_pp, "wb").write(b"previous " + os.path.basename(_pp).encode())
+    _rec7 = f"{_qd}/prev_seven.json"; json.dump({pp: _sha(pp) for pp in _q8paths}, open(_rec7, "w"))
+    _rc8, _o8, _r8 = _qrun(_qmk("p8", "/workspace/m2026-10"), _q8prev, tag="q8", extra={"ROLL_PREV_SHA_JSON": _rec7})
+    check("★★★ [Q] TRN-01 Q8 (R16RF-T1, the reviewer's counterexample): previous contract with CACHE= (blank) and a record covering the other 7 ⇒ rc 3, P0b names CACHE as blank_in_previous_contract, P4 FAILS with n_required 8 and the blank uncovered — the required set is not shrunk",
+          _rc8 == 3 and _r8["VERDICT"] == "FAIL" and "P0b_rolled_values_nonempty" in _r8["failed_checks"]
+          and _r8["checks"]["P0b_rolled_values_nonempty"]["blank_in_previous_contract"] == ["CACHE"]
+          and "P4_previous_untouched" in _r8["failed_checks"] and _r8["checks"]["P4_previous_untouched"]["n_required_keys"] == 8
+          and _r8["checks"]["P4_previous_untouched"]["previous_rolled_keys_not_in_record"] == ["CACHE"],
+          (_rc8, _r8 and _r8.get("failed_checks"), _r8 and _r8["checks"]["P4_previous_untouched"].get("previous_rolled_keys_not_in_record")))
+    # Q8b — all eight previous values blank + a record over one unrelated (but real, sha-valid) file ⇒ rc 3, P0b names all 8
+    _q8ball = _qmk("q8ball", _q8prev_root, **{k: "" for k in ("CACHE", "PANEL_SPLICE", "PANEL_KING", "RAW_PATCH", "HOLE_CELLS", "FUND_AUG", "EMA_STATE_JSON", "EXPORT_PANEL")})
+    _unrel = f"{_qd}/unrelated.bin"; open(_unrel, "wb").write(b"unrelated")
+    _recu = f"{_qd}/prev_unrelated.json"; json.dump({_unrel: _sha(_unrel)}, open(_recu, "w"))
+    _rc8b, _o8b, _r8b = _qrun(_qmk("p8b", "/workspace/m2026-10"), _q8ball, tag="q8b", extra={"ROLL_PREV_SHA_JSON": _recu})
+    check("★★★ [Q] TRN-01 Q8b (R16RF-T1): eight blank previous values + a valid record over one unrelated file ⇒ rc 3, P0b names all eight, P4 names all eight keys as not in the record (n_required_keys 8, not 0)",
+          _rc8b == 3 and len(_r8b["checks"]["P0b_rolled_values_nonempty"]["blank_in_previous_contract"]) == 8
+          and "P4_previous_untouched" in _r8b["failed_checks"] and _r8b["checks"]["P4_previous_untouched"]["n_required_keys"] == 8
+          and len(_r8b["checks"]["P4_previous_untouched"]["previous_rolled_keys_not_in_record"]) == 8,
+          (_rc8b, _r8b and _r8b.get("failed_checks")))
+    # Q8c — blank in THIS month's contract is refused too (P0b names it in blank_in_month_contract)
+    _rc8c, _o8c, _r8c = _qrun(_qmk("p8c", "/workspace/m2026-10", HOLE_CELLS=""), _qprev, tag="q8c", extra=_QPOS)
+    check("★★ [Q] TRN-01 Q8c (R16RF-T1): a blank rolled value in THIS month's contract ⇒ rc 3, P0b blank_in_month_contract == [HOLE_CELLS]",
+          _rc8c == 3 and _r8c["checks"]["P0b_rolled_values_nonempty"]["blank_in_month_contract"] == ["HOLE_CELLS"], (_rc8c, _r8c and _r8c.get("failed_checks")))
+
     # Q7d — WHERE is not WHOSE (R16R-T1b): an alias under THIS month's root that IS the previous month's CACHE, with the
     #       location exemption switched on for CACHE, must still fail P6 on file identity.
     _q7cur_root = f"{_qd}/q7_cur_root"; os.makedirs(_q7cur_root, exist_ok=True)

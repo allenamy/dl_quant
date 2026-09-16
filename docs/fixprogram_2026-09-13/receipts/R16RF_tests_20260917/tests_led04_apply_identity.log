@@ -1,0 +1,27 @@
+[A] green baseline: correct records through the current applier (check mode)
+  OK   ★★★ A1 correct records: CHECKS_PASS, exit 0, failures []  — (0, 'CHECKS_PASS', [])
+
+[B] nav_ts swapped between the two records (day/line/row_sha all correct — the reviewer's construction)
+  OK   ★★★ B1 admission REFUSES (exit 2) with two C2b IDENTITY failures naming the claimed vs carried nav_ts  — (2, ["C2b IDENTITY: record ('20260901', 1) is keyed nav_ts=2.0 but the hashed row carries nav_ts=1.0", "C2b IDENTITY: record ('20260901', 2) is keyed nav_ts=1.0 but the hashed row carries nav_ts=2.0"])
+  OK   ★★ B2 the refusal is the ONLY difference from [A]: same root shape, same shas, only the identity claim moved  — ["C2b IDENTITY: record ('20260901', 1) is keyed nav_ts=2.0 but the hashed row carries nav_ts=1.0", "C2b IDENTITY: record ('20260901', 2) is keyed nav_ts=1.0 but the hashed row carries nav_ts=2.0"]
+
+[C] record nav_ts is NaN (NaN != NaN must not pass as 'equal')
+  OK   ★★ C1 NaN identity claim is refused (exit 2, one C2b IDENTITY)  — (2, ["C2b IDENTITY: record ('20260901', 1) is keyed nav_ts=nan but the hashed row carries nav_ts=1.0"])
+
+[E] R16RF-E2a: ±inf is NOT a finite value — row AND record both carry the same infinity (day/line/sha all match)
+  OK   ★★★ E1 +inf in row and record: --apply REFUSES (exit 2, C2b IDENTITY), nothing written — the consumer's finite contract, at the writer  — (2, ["C2b IDENTITY: record ('20260901', 1) is keyed nav_ts=inf but the hashed row carries nav_ts=inf"], None)
+  OK   ★★★ E1 -inf in row and record: --apply REFUSES (exit 2, C2b IDENTITY), nothing written — the consumer's finite contract, at the writer  — (2, ["C2b IDENTITY: record ('20260901', 1) is keyed nav_ts=-inf but the hashed row carries nav_ts=-inf"], None)
+
+[F] R16RF-E2b: the records file is REPLACED between the check and the write (audit hook at the applier's mkstemp)
+  OK   ★★★ F1 what lands on disk is the AUTHORISED bytes (persisted sha == --records-sha), verdict PASS — the swapped bytes never reached the target  — (0, 'PASS', True, True)
+  OK   ★★ F2 …and the persisted records are the CORRECT ones (nav_ts not swapped): every record's nav_ts equals its row's  — [1.0, 2.0]
+
+[D] red capability: the pre-fix applier (defect shape: no C2b in checks) on arm [B]'s root
+  (control source: ba247021:docs/fixprogram_2026-09-13/FX_EXEC2/devices/led04_apply_amendments.py)
+  OK   ★★★ D1 (PRE-FIX: RED) the swapped records are ADMITTED: CHECKS_PASS exit 0, failures [] — the reviewer's finding reproduced  — (0, 'CHECKS_PASS', [])
+  (second-round control source: fda1d3ef:docs/fixprogram_2026-09-13/FX_EXEC2/devices/led04_apply_amendments.py)
+  OK   ★★★ D2 (PRE-FIX R16R: RED) +inf row+record is ADMITTED and WRITTEN by the second-round applier (exit 0, PASS, written 1) — R16RF-E2a reproduced  — (0, 'PASS', {'written': 1, 'state': 'WRITTEN', 'target_sha256': '443a1b5a1d201500cf81884aa0afce422603ab6ecf4f0dd647ec54c0ea345079'})
+  OK   ★★★ D3 (PRE-FIX R16R: RED) records swapped after the check: the second-round applier writes the SWAPPED bytes (persisted sha != authorised) and still exits 0 PASS — R16RF-E2b reproduced  — (0, 'PASS', False)
+
+11/11 checks passed
+ALL PASS

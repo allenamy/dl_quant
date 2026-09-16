@@ -95,13 +95,15 @@ check("★★ the verdict key the exit reads is the one the device writes (no 'G
 print("\n[control] the pre-fix device (git HEAD~1) on the SAME PASS arm")
 try:
     old = None
-    for _ref in ("HEAD", "HEAD~1", "HEAD~2", "HEAD~3"):           # find the DEFECT SHAPE, not a fixed ancestor
+    for _ref in ("ba247021", "HEAD", "HEAD~1", "HEAD~2", "HEAD~3"):   # pinned defect commit first (R16RF §3.1), shape-verified; moving window as fallback
         _c = subprocess.run(["git", "-C", HERE, "show", f"{_ref}:docs/fixprogram_2026-09-13/FX_MODEL/devices/fm_gate_b_repro_king.py"],
                             capture_output=True, text=True)
         if _c.returncode == 0 and 'rc.get("GATE_B_REPRO")' in _c.stdout and 'rc.get("GATE_B_REPRO_KING")' not in _c.stdout:
             old = _c.stdout; print(f"  (control source: {_ref})"); break
     if old is None:
-        print("  UNAVAIL no ancestor within HEAD..HEAD~3 reads the DL key in the King device — control not run, not faked")
+        print("  UNAVAIL no pinned/ancestor source reads the DL key in the King device — control not run, not faked")
+        # ★ R16RF §3.1: a missing control is UNAVAILABLE (exit 3), never an ALL PASS — the old fall-through printed ALL PASS
+        print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed; control UNAVAILABLE"); sys.exit(3 if not FAILS else 1)
     else:
         tmp = os.path.join(tempfile.mkdtemp(), "fm_gate_b_repro_king_prefix.py"); open(tmp, "w").write(old)
         DEV_SAVE = DEV; DEV = tmp
