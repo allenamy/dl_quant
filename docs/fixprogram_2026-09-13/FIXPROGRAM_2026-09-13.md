@@ -344,3 +344,45 @@
 3. **FX-MODEL 的自更正确认**: 其暂停note 第五项是 **P10(float16)不是 P11**, 名下无 P11 事实; P11 按纲领定义走。**复现 aud-prod 的 `members_audit.json` 而非照单引用、且不搬运其 `VERIFIED_IMMATERIAL` 标签**(该标签只覆盖 147 个近期锚且无下架)—— 批准且记为正例。
 4. **FEA-01 的交付物本体是「归一化那一行」**: cols 80/81 的 mu/sd 在训练器**哪一行**算、存进**哪个工件**、其 **sha**、服务路径**实际读哪一个** —— 四项缺一不可, **读训练器代码得到, 不从工件反推**。臂 B 若重算 mu/sd 即**另一种干预**, 必须改名。
 5. **dtype 二义性的推论写成要求**: `nan_to_num(…,0.0)` 后存 float16 ⇒「缺失」与「真零」成同一 token ⇒ **重建必须带独立的可得性位**, 而不是换填充值(换填充值只是把二义性搬个地方)。
+
+## §17 ★ W6C-I6 = 已存在的全书平仓路径 + 第五轮登记(2026-09-16 04:4xZ, lead)
+
+### 17.1 I6: 非计划运行持有书时会平掉整本书 —— 真实行上实测 96.39% of gross
+**这不是假设, 也不小。** FX-W6C 按裁定**先测可达性**: `devices/probe_i6_offschedule.py` 扫实盘 `state/anchor_runs.log`(37,611 行, 999 次运行, 2026-07-25…09-16), 把每条 `anchor start mode=` 与其 phase_A 记录配对 ⇒ DRY_RUN 570 次非计划, TESTNET 2 次, **LIVE 3 次**: 2026-08-01 06:29:29Z(−90.06 min)· 2026-08-01 10:03:18Z(−116.36 min)· 2026-08-02 05:31:47Z(+92.02 min)。**可达, 而且已经达到过。**
+
+**机制**: gate 0c 拒绝开仓单**且刻意不返回**(reduce-only 路径必须继续работать)。该锚随后仍然规划、定价、写出一条带**正 `target_gross`** 的 `anchors` 行、**不提交任何单**、且**不带 `halt_kind`**。于是 `position_break._intended_by_anchor` 落到最后一个分支: 意图 **ZERO**, `halted_intent_flat` ⇒ 限额变成 `PB_HALTED_FLAT_PORTFOLIO_FRAC = gross 的 1%`, 且**分边不被允许对平意图发言**(设计如此, 否则会赦免 2026-07-29 的幽灵书), `frac = Σ|readback| / target_gross`。
+
+**三次为何无害 —— 是运气不是设计**: 两次到达 phase_C 的 LIVE 运行都被判 `halted_intent_flat` / `flat_intent_legacy` 并 CLEAN, **唯一原因是书是空的**。08-01 06:29Z 那条记录 `target_gross 4234.690812343863`, **109 条订单行 0 条提交**, 回读 `Σ|venue_position_notional| = 0.00` —— 那是部署的第一个锚; 08-02 05:32Z 紧跟 04:18Z 的保护性平仓。`dev_frac 0.0` 对 `0.01`: **压线靠的是时机, 不是设计**。
+
+**带着书会怎样 —— 实测, 非论证**: 用**同一个锚自己的行**(它的 `anchors` 行, 它那 109 条从未提交的订单行, `target_w` 与 `mid_at_anchor` 原样)重键到该日 20:00Z 锚之后一小时并持有该锚的真实书(回读逐字拷贝, 因为期间没有成交)。在 ef60f85 与修前头上: `halted_intent_flat`, 门 `flat_intent_legacy`, **`dev_frac` 0.9639 对限 0.01**, `triggered=True`, `tripped=True`, **`flatten_all` 105 单 `reduce_only=True`**。平意图的 break **不带名字范围** ⇒ EXE-01 的比例门把它路由为书级, 阶梯拿走整本书, **而且就在同一次运行里**(看门狗紧跟 phase C)。
+> **在任何一个普通交易日, 一次 LIVE 非计划运行都会平掉整本书。至今没发生, 只因为三次都落在空书上。**
+> 这是「我方仪器的假阳性造成全书平仓」这一族的**第三例**(前两例: E-0912-A reduce-only 截量 × 身份核对; 09-09 账本缺行触发逐名门)。
+
+**修复**(与 EXE-01 的比例局部响应、B13 的未观察书同形): `anchors` 行带 `halt_kind=off_schedule`, 该 kind 加入 `position_break.BOOK_HELD_HALT_KINDS`(B13 已把它做成判官里唯一那张表)⇒ 该锚按**持有的书**对目标向量判定, 残差 ≈0(什么都没成交), 分边可以发言, 缺口读作**欠填** —— 它会告警并由下一锚重新瞄准, 这才是正确读法。**清空书的 kind 绝不能进那张表**: 写者带 `and outA.get("action") != "FLATTEN"` —— 阶梯的 FLATTEN 是**故意**在平书, 而看门狗 trip 之后书已经被平; 两者都保持意图 ZERO 与抓幽灵书的 1% 规则。
+**红→绿**: 新套件 `live/tests_offschedule_held_book.py`, ef60f85 **9/13 rc=1**(到达汇总行; 头条红就是上面那次 105 名平仓), 修后 **13/13 rc=0**。反事实自成一格: 在同一棵树上剥掉标记, 同一本被持有的书又被按意图 ZERO 判定并 trip, 书级, 105 名。四个突变体各自红在拥有该性质的格上。
+**未证明**: 非计划运行**是否本就不该可能** —— 那是 gate 0c 的裁定, 未触碰; 1% 是否是平意图的正确限额 —— 政策, 未触碰; 第三次 LIVE 非计划运行(08-01 10:03Z)**没有留下 phase_C 记录**, 其锚如何被判定 NOT CHECKED。
+
+**lead 追查的触发机制(只读)**: `com.dlquant.live.anchor` 的 plist 用 **`StartCalendarInterval`** 六个固定时刻(本地 8/12/16/20/0/4 = 00/04/08/12/16/20Z), **无 `RunAtLoad`**。launchd 对日历作业的语义是**机器在计划时刻睡眠或关机则醒来后补跑** ⇒ **只要 Mac 跨过一个锚分钟睡着或关机, 醒来后就会产生一次迟到的 LIVE 非计划运行**。今天唯一的防线是 `com.dlquant.live.nosleep`(caffeinate, PID 815)—— **单点**。已令 FX-W6C 把三次逐一定性(人手跑 vs launchd 补跑), 判据取 `launchd_out/err.log` 启动行、`pmset -g log` 睡眠-唤醒、`kern.boottime`、以及该次运行的 `mode=` 与父进程线索。**能区分两者才算测完**: 前者可用操作纪律避免, 后者不能。
+
+### 17.2 W6C-B13 交付(同一提交链, 头 5a04f64; B13 = 1483e41, I6 = 5a04f64; 研究仓 f5047ac0)
+- **缺陷在真实 08-01 行上被证明有后果**: 该日最后一个计划锚以一次真正的 §4-5e BREAK 结束(同文件里 20:18Z 的 FLATTEN 批就是对它的响应)。**删掉那一个锚的回读行, 评估就报 CLEAN**, 判在前一个锚上, 什么都不 blind —— **守卫自己的 trip 随回读一起消失, 而且没有任何东西说明原因。**
+- **参照 = 最新 `anchors` 行, 且判在「AT 那个锚」而不是「at-or-after」**: 阶梯自己的平仓后回读是**一本刚被关掉的书**在 18 分钟后的回读, 把它算作覆盖正是那个锚的 BREAK 未被检视的原因。已验证该参照排除全部 10 个 flatten 批, 并在 272 个健康锚上等于被判锚。
+- **生产者陈述原因**: 四个不同事实都会写出零回读行(读抛异常 / DRY_RUN 无账户 / 回读宇宙为空 / 被拒的行截断写循环), 在日志里是**同一个可观测量**。`finalize_anchor` 现返回 `book_observation`(OBSERVED / OBSERVED_EMPTY / READ_FAILED / NO_ACCOUNT / WRITE_TRUNCATED / NO_LOGGER)。**`fin` 现在在其 `try` 之前绑定** —— 否则一次 phase_C 失败会以 NameError 带走整个看门狗块。
+- **响应**: `ev["book_observability"]` **刻意不放在 `conditions` 下**(新条件需要自己的 trip 路由, 而这件事永不得到达阶梯); 5b 增 `UNOBSERVED` 态; 5b/5e/cond7 继承 `blind` ⇒ 经 `conditions_blind` 页报并拒绝 resume, 无需新接线。开仓停用 `anchor_loop.book_unobserved_halt`, 经 mode 戳读者读 `last_eval.json`: **不写状态、不设 `tripped_at`、不碰账户级开关、不关闭任何东西**; **按事实自愈**(下一锚在开仓被停期间仍写回读 ⇒ 下一次评估即 OBSERVED, 门自行停止触发, 无计时器无计数器无需人工清理)。**部署边界**: 本次构建之前写的评估没有该键 ⇒ 返回 halt=False, 具名 `NOT_EVALUATED`, **且不页报**(对它页报会打破 `tests_signal_and_loop` 的「半夜不叫醒任何人做无事」那一格 —— 作者抓到并**去掉页报而不是去掉那一格**)。`anchors` 行带 `halt_kind=book_unobserved`, 使 §4-5e 不把被停的锚按意图 ZERO 判定而在下一锚触发阶梯。
+- **红→绿**: 新套件 `live/tests_book_observability.py`, 夹具建自**真实**已提交日 `state/live/pilot_log/20260801` + 持有该锚真实书的 MockBroker。ef60f85 上 **15/48 rc=1**(到达汇总行; 15 个绿是两棵树都绿的格 = 正控); 修后 **48/48 rc=0**。**六个突变体**各自红在拥有该性质的格上。负控在两棵树都绿: 未动的真实日仍检出 BREAK 并动作; 真实 20:19Z FLATTEN 批不使任何东西 blind; 真实 2026-08-29 HOLD 锚形态不 blind; 从不观察书的树(DRY_RUN)是 `NEVER_OBSERVED` 且不停开仓; 对**正在 blind 的那棵树**做 §4-5a 断供仍然 trip 且仍以 reduce-only 平仓。
+- **AST**: 恰好一格既有断言被改(57 → 57), 即 `tests_proportional_response` 的 B13 等价控制格, 原本钉 U1 的 `blind: []` 为「本移植不改变该路径」并已由 `FACT_TABLE_W6C §10` 登记为 EXE-01 之外的检测缺口; 现断言 `[cond5, cond7]`, 改动与理由写在该格之上。其余每个套件的每条断言逐字节不变。
+- **未证明(不得读作覆盖)**: 一次在写任何行之前就死掉的运行不留任何行, 此处抓不到(2026-09-09 12Z 锚完全不在记录里 —— 那是场外 deadman ping 的问题); HOLD 锚(无 `anchors` 行)且账户读也失败时只对生产者的判词可见; **被截断的回读具名 PARTIAL 且不停开仓** —— 短写是否该停, **无人做过裁定**; EXE-01 比例门的分母仍取自被判锚(`watchdog.py:2346`), 陈旧的被判锚会用更旧的 gross 给 2% 检验定价 —— 已报告, 未重基, 数值 NOT CHECKED。
+
+### 17.3 新登记
+| 编号 | 事实 | 级别 | owner |
+|---|---|---|---|
+| **W6C-I6** | 见 §17.1: 非计划 LIVE 运行 + 有书 ⇒ 全书平仓(真实行实测 dev_frac 0.9639, 105 单); LIVE 已发生 3 次, 全落空书 | **P0 级实盘风险(修复在克隆, 未部署)** | FX-W6C(已交)+ lead(止血与部署优先级) |
+| **TEST-01** | `live/tests_reduce_only_clamp.py` 往仓库真实 state 树写 `state/venue_ban.json`(FX-W6C 在 17 个套件中 bisect 出唯一一个); 而 `live/tests_cancel_ban_resilience.py:69` 自己就把这件事记为缺陷并为自己 scope 到临时目录(「测试不得有能力封禁」)。**lead 核实: 实盘树 `~/dl_quant_live/state/venue_ban.json` 现存**, mtime 09-13 11:58Z, 含 `testnet.binancefuture.com` / `"Too many requests"` / `until_epoch: null` / `observed_utc 2026-09-13T11:58:21Z` —— 时刻落在 09-13 落地时在**运行树**上跑的验收电池窗口内。**当前内容惰性**(fapi 条已过期; testnet 条无 deadline ⇒ `banned` 假; 读者取磁盘与内存 MAX 只会更保守), **文件不得删除**(08-27 那条是真实封禁证据) | **P1** | FX-EXEC |
+| **BAT-01** | `tests_disposition_matrix` 在已提交 state 上**每棵树都 9 红**, 其绿依赖于「有人把实盘账本拷进来」⇒ 合并电池必须显式声明**哪些套件的绿依赖未入库的数据副本** | P2 | lead(合并电池) |
+| **EXEC-RACE-01** | 研究仓是单 worktree ⇒ 三个工作者共享一个 git **索引**。FX-PROD 于 ~03:40:0xZ 暂存 17 份收据, FX-EXEC 于 03:40:51Z **无显式 pathspec** 执行 `git commit` 把它们扫进 `71c80e1d`, FX-PROD 自己的提交随后以 `no changes added to commit` rc 1 失败。**无丢失**(17/17 在索引中已验), 但提交链把 FXR-PROD-1 / PROD-28 / dry-run 的收据记在一条讲电池时间的提交下 —— **复审包正是按该链组装**。两侧各自留更正记录(FX-EXEC `f15e2466` / FX-PROD `7b8963a2`)。**不重写**(共享分支上 `71c80e1d` 已是祖先, reset 会改 SHA 并可能丢掉期间他人提交) | P2 | 双方(已记录) |
+
+### 17.4 裁定
+1. **§0.7 升级为硬规矩(全体)**: **`git commit -F - -- <显式路径>`, 无条件** —— 它完全绕过索引状态; `git add -- <path>` 只对 add 生效, `git commit` 无 pathspec 会提交整个索引。`git show --name-only` **读缺席**。
+2. **电池窗口越界的迟到量按实测更正**: 「70 秒」是估计, 实测 **85 秒**(11,785 s 对限 11,700 s); §14.1 已就地更正。**此类数一律算出来, 不估。**
+3. **`tests_proportional_response` B14 归 FX-W6C, 修的是断言不是行为**: 该格断言 `ev3_5e_state == 'BREAK'` 而实际路由是 LOCAL 且保护成立 ⇒ 它断言的是**状态标签**而非它要保护的性质。改为断言**路由与行为**, 原状态标签断言保留为**数据存在时才生效**的附加格(缺数据具名 SKIP, 不红)。必须在合并电池之前落地。**附带事实**: `run_acceptance.sh:28` 钉 `/usr/bin/python3`(3.9.6), 而裸 `python3` 是 3.14.4 —— 此前所有逐套件数字的可比性都取决于此, 进报告。
+4. **EXE-04 停在核, 不进接线**(重申); 被撤回的区间传播法留在文件里标 UNSOUND 且不被任何做决定的东西调用 —— **否则测试只能查「与解集一致」, 查不了「不是那个被撤回的宽对象」**; 比**集合**不比计数(PREREG 自证: 正确合同与错误合同在单 BUY100 上都恰好接受 5,151 对)。
