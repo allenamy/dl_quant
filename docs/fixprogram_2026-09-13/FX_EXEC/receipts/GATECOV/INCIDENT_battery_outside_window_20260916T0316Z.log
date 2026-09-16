@@ -8,7 +8,10 @@
   I did not check what the suite invoked before running it.
 ## window
   start 2026-09-16T03:16:25Z (from the runner's log stamp); killed 03:18:49Z; elapsed ~2m24s.
-  00Z anchor window permits N+65min..N+3h15m = 01:05Z..03:15Z. Start was ~1m10s AFTER it closed.
+  00Z anchor window permits N+65min..N+3h15m = 01:05Z..03:15:00Z. Start 03:16:25Z = 11,785 s
+  past the anchor against a limit of 11,700 s, i.e. the window had closed 85 SECONDS earlier.
+  (Correction 2026-09-16T03:41Z: first reported as '~1m10s'; recomputed exactly, it is 85 s.
+   The original figure was an estimate, not a measurement; this line is the measurement.)
   /Users/haosiyu/cc_tmp/BATTERY.lock was NOT held: no lock file present
 ## what went out
   Unauthenticated PUBLIC market-data GETs only. Evidence = state files the DRY_RUN run_anchor wrote:

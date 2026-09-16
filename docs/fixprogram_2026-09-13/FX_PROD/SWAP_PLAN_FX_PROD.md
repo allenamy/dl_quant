@@ -14,7 +14,9 @@ Nothing here has been run against `~/wide_shadow`. Every command below is writte
 | `state/aux.json` | swap-time value (recorded in S1) | `STAGED/aux.json` from §2 |
 | `state/leg_returns_live.json` | swap-time value (recorded in S1) | `STAGED/leg_returns_live.json` from §2 |
 
-Checked 16:19Z 09-13: the three live code files are blob-equal to b8917484. Unchanged: the bundle and booster, the executor (`~/dl_quant_live`), the launchd plists, `combo_live_daemon.sh`, `sidecar_daemon.sh`, `fea171/state_H_f10_*`, the weights files.
+**Deployment cannot be a code-only swap (lead's ruling, from the independent review's limited acceptance).** With `FUND_COL80_V0` on, the new producer REFUSES TO START on a state without `ema_v0` — measured in the §3 dry run: `REFUSE_TO_START: FUND_COL80_V0 but state has no ema_v0 (build offline: migrations/p1_build_ema_v0.py)`. So the swap must install the **reviewed v0 state and a consistent bundle together with the three .py files**; replacing only the code brings the producer down at its next state load. The same applies to any later bundle re-export (see §6, "bundle reset is not a rollback path").
+
+Checked 16:19Z 09-13, and re-checked 2026-09-16 after the 09-14 reboot: the three live code files are blob-equal to b8917484. Unchanged: the bundle and booster, the executor (`~/dl_quant_live`), the launchd plists, `combo_live_daemon.sh`, `sidecar_daemon.sh`, `fea171/state_H_f10_*`, the weights files.
 combo_stage.py and sidecar_blend.py are started as fresh Python processes on every anchor by their daemons, so a replaced file is used from the next anchor on without restarting a daemon. The producer holds its state in memory and writes it only inside `run_anchor` (at slot N+16 min). It must be restarted after the state files are replaced.
 
 ## 2. State migrations (offline, on a copy; order fixed)
@@ -28,7 +30,9 @@ Run with `env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu PYTHONDONTWRITEBYTECODE=
    Outputs `leg_returns_live.rescored.json` (only the live-appended king rows change) and `aux.p5.json` (only `prev_rec.legz.king` changes; this vector books the first post-swap step-6 row).
    It runs first because it replays with the stored labels and asserts that they agree across sources.
 2. `migrations/p1_build_ema_v0.py --state <dir holding aux.p5.json as aux.json> --code $CODE --out <M>/p1` adds `ema_v0`. Gates: G1 `ema_v0_problems == []`; G2 an independent v1 rebuild reproduces every acc to 1e-12; G3 all state ledger rows are in the union.
-3. `migrations/fund_label_ema_correction.py --state <dir holding aux.with_ema_v0.json as aux.json> --code $CODE --out <M>/corr --classes D17,P9 --zip-dir <every monthly zip dir pulled so far, e.g. work/pod2_inputs/zips_2026-08> --control`. This is the exact v1 EMA and tail-label correction. On the frozen 09-13 12Z state it corrects 534 D17 rows (5 names) and 65 P9 rows, and the positive control holds at 6.9e-18.
+3. `migrations/fund_label_ema_correction.py --state <dir holding aux.with_ema_v0.json as aux.json> --code $CODE --out <M>/corr --classes D17,P9 --zip-dir <every monthly zip dir pulled so far, e.g. work/pod2_inputs/zips_2026-08> --control --allow-out-of-tail`. This is the exact v1 EMA and tail-label correction. On the frozen 09-13 12Z state it corrects 534 D17 rows (5 names) and 65 P9 rows, and the positive control holds at 6.9e-18.
+   **`--allow-out-of-tail` is required here and forbidden in §7** (FXR-PROD-1). Exactly one correction on this state (a P9 row) falls on a settlement that has already left the ledger tail. Such a row carries no label in the state, and a revision marker cannot help because the producer's `save()` writes a fixed key set and would drop it at the next anchor — so the tool cannot tell whether it was already applied, and refuses by default. The one-time migration is run once by an operator with this receipt; the recurring monthly job must never be given the flag, so it can only ever touch self-identifying in-tail rows.
+   The tool publishes `aux.corrected.json` only after six gates pass (`out_of_tail_corrections_allowed_or_absent`, `no_frozen_vs_frozen_label_conflict`, `no_rate_conflict_between_sources`, `every_input_label_has_provenance`, `positive_control_within_1e12`, `no_applied_correction_implies_output_equals_input`); on any failure it removes its temp file and exits 2, leaving no usable state.
 4. `migrations/swap_state_compose_check.py --orig <C>/state --p5 <M>/p5 --p1 <M>/p1 --corr <M>/corr --code $CODE --out <M>/compose`. It refuses unless all of these hold:
    - the receipt sha chain is closed;
    - the aux changes are exactly {ema acc = orig + receipt dacc on the listed names, APPLIED in-tail labels, ema_v0 added, prev_rec.legz.king};
@@ -84,6 +88,7 @@ Replay: 11. a snapshot replay of A1, from the S1 copy with the STAGED files and 
 ## 7. Recurring: (c) monthly zip reconciliation
 After data.binance.vision publishes month M (normally in the first days of M+1):
 - pull on pod2 with `fx/p9_pull_monthly_funding_zips.py`;
-- run §2 step 3 alone (`--classes P9 --zip-dir <all months>`) on a state copy;
+- run §2 step 3 alone (`--classes P9 --zip-dir <all months>`) on a state copy, **without `--allow-out-of-tail`** (FXR-PROD-1: the flag is only for the one-time migration; here it must be absent so the job can only correct rows whose absorbed label is still in the state);
+- a re-run on an already corrected state is a no-op by construction — the input's own tail labels are authoritative, so every already-absorbed row resolves to "no change" (measured: 598 of 598 on the 09-13 state). If anything is still applied the positive control fails and the job exits 2 without writing a state file;
 - install `aux.corrected.json` with §4 S3–S6 (aux only).
 The September zip resolves T 09-06 00Z and SKR 09-07 20Z, and confirms ZKC 09-02 20Z and SOPH 09-11 12Z.

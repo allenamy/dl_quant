@@ -1,0 +1,10 @@
+tests_fx_prod code=/Users/haosiyu/cc_tmp/fx_prod shadow_loop_v3.py=55bd89c9adce3999 combo_stage.py=1c6a491d30606312 cells=['FXR1'] utc=2026-09-16T03:32:23Z
+[FXR1] funding-label migration: idempotence, conflict refusal, control gates publication
+  OK   [KEEP] FXR1-K1 first migration unchanged by the fix: D17 534 / P9 65 applied, control max_abs 6.94e-18 with n_gt_1e12 == 0, output published — {'rc': 0, 'counts': {'D17': 534, 'P9': 65}, 'max_abs': 6.938893903907228e-18, 'published': True}
+  OK   [KEEP] FXR1-K2 the published state is byte-identical to the pre-fix first-run output (sha fc3125ad…) — fc3125ad282584bf
+  OK   [RED] FXR1-R1 the tool's own corrected state re-entered never publishes a doubly-corrected state: 0 in-tail corrections re-applied, and either a clean no-op or a refusal (pre-fix: 599 re-applied, 598 conflicts, control n_gt_1e12 70, rc 0, 5.1 MB file written) — {'rc': 2, 'applied': 1, 'in_tail_reapplied': 0, 'published': False, 'idempotent': False, 'PASS': False, 'conflicts': 598, 'control_n_gt_1e12': 1}
+  OK   [NEW] FXR1-R1b the 598 in-tail corrections are recognised as already absorbed, not re-applied — {'in_tail_reapplied': 0, 'resolved': 598}
+  OK   [NEW] FXR1-N3 every input label that disagrees with a frozen ledger is explained (equals the declared value or another frozen source), none unexplained — {'resolved': 598, 'unexplained': 0}
+  OK   [NEW] FXR1-N1 an out-of-tail correction (1 P9 row) is REFUSED without --allow-out-of-tail: rc 2 and no state file — {'rc': 2, 'published': False, 'gates': {'out_of_tail_corrections_allowed_or_absent': False, 'no_frozen_vs_frozen_label_conflict': True, 'no_rate_conflict_between_sources': True, 'every_input_label_has_provenance': True, 'positive_control_within_1e12': True, 'no_applied_correction_implies_output_equals_input': True}}
+  OK   [NEW] FXR1-N2 a failing positive control blocks publication: rc 2, no aux.corrected.json, and the receipt names the failed gate (state perturbed by +1e-3 on one name's acc) — {'rc': 2, 'published': False, 'victim': '0GUSDT', 'max_abs': 0.001}
+SUMMARY tests_fx_prod: 7 cells, 0 fail (RED fail 0, KEEP fail 0, NEW fail 0, CRASH 0)

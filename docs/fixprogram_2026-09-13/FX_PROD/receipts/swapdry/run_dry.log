@@ -1,0 +1,115 @@
+=== P5 start 03:15:56
+{
+ "splice": {
+  "bundle_rows": 7872,
+  "snap_rows": 11520,
+  "state_rows": 336,
+  "first": "2026-07-07T00:05:00Z",
+  "last": "2026-09-13T12:00:00Z",
+  "snap_vs_state_overlap_rows": 11184,
+  "later_filled_cells": 0,
+  "value_diffs": 0
+ },
+ "live_appended_scoring_anchors": [
+  "2026-08-31T00:00:00Z",
+  "2026-09-13T08:00:00Z",
+  81
+ ],
+ "booster_schedule_from_log": {
+  "29ffaf58": [
+   "2026-08-31T00:00:00Z",
+   "2026-09-01T04:00:00Z",
+   8
+  ],
+  "8d79186b": [
+   "2026-09-01T08:00:00Z",
+   "2026-09-13T12:00:00Z",
+   74
+  ]
+ },
+ "pre_seatseed_tail_check": {
+  "pre_rows": 950,
+  "tail_rows_equal_to_first_live_rows": 33,
+  "implied_last_pre_seed_scoring_anchor": "2026-09-05T08:00:00Z"
+ },
+ "gate_served_reproduces_recorded": {
+  "n": 81,
+  "bitwise_equal": 81,
+  "max_abs_diff": 0.0,
+  "rev24_bitwise_equal": 81
+ },
+ "gate_prev_rec": {
+  "anchor": "2026-09-13T12:00:00Z",
+  "anchor_equal": true,
+  "members_equal": true,
+  "served_king_legz_bitwise": true,
+  "served_rev24_legz_bitwise": true,
+  "v0_king_legz_changed": 320
+ },
+ "seat_before": {
+  "w3": [
+   0.342219219726399,
+   0.10436090853726594,
+   0.553419871736335
+  ],
+  "w3m": [
+   0.3820950011990831,
+   0.0,
+   0.617904998800917
+  ]
+ },
+ "seat_after": {
+  "w3": [
+   0.3447660405267898,
+   0.10395683997737303,
+   0.5512771194958371
+  ],
+  "w3m": [
+   0.3847649933716181,
+   0.0,
+   0.6152350066283819
+  ]
+ },
+ "king_mean_bps_before": 2.962354430432121,
+ "king_mean_bps_after": 3.003141639009118,
+ "PASS": true,
+ "outputs": {
+  "leg_returns_live": {
+   "path": "work/swapdry/p5/leg_returns_live.rescored.json",
+   "sha256": "820098e28aae79cc22b11d5c019a527525ce7ede19e6f97505c418bef6f821c6"
+  },
+  "aux": {
+   "path": "work/swapdry/p5/aux.p5.json",
+   "sha256": "e45e147df71737aec3024a3b0a3df5d6939a8a0ec8f99b473982fa525df07657"
+  }
+ }
+}
+SUMMARY p5_rescore_seat_king PASS=True rows=81 served_bitwise=81/81 max_abs=0 prev_rec_king_bitwise=True w3m_king 0.382095 -> 0.384765
+=== rc=0 end 03:19:07
+=== P1 start 03:19:07
+{"union": {"n_names": 832, "n_input_rows": 4232313, "n_conflicts": 0}, "n_ema": 525, "n_ema_v0": 525, "G2_n_bad": 0, "PASS": true}
+SUMMARY p1_build_ema_v0 PASS=True names=525
+=== rc=0 end 03:20:16
+=== CORR start 03:20:16
+{"classes": ["D17", "P9"], "n_corrections": {"D17": 534, "P9": 65}, "n_corrections_outside_tail": {"D17": 0, "P9": 1}, "n_stored_label_conflicts": 0, "output_sha256": "fc3125ad282584bfa832be49a12162b54c5d35d76aa378169e0daf77bd0ea882"}
+control {"n": 525, "max_abs": 6.938893903907228e-18, "n_gt_1e12": 0, "n_gt_1e9": 0} [('ONGUSDT', 6.938893903907228e-18), ('ACEUSDT', 1.3010426069826053e-18), ('VTHOUSDT', 8.673617379884035e-19)]
+per_name_dacc top: {"PROMUSDT": [-4.095838e-06, 0.051226], "ERAUSDT": [-3.01435e-07, 0.008883], "DOSUSDT": [-7.26e-07, 0.007014], "BANKUSDT": [-1.71583e-07, 0.004286], "COTIUSDT": [2.093239e-06, 0.004212], "DEXEUSDT": [-5.13947e-07, 0.000976], "ACEUSDT": [-7.5719e-07, 0.000262], "ILVUSDT": [5.83e-10, 3.9e-05], "GLMUSDT": [5.83e-10, 3.1e-05], "MEWUSDT": [-2.377e-09, 2.5e-05], "MAVIAUSDT": [2.799e-09, 2e-05], "CLANKERUSDT": [3.695e-09, 1.5e-05]}
+SUMMARY fund_label_ema_correction applied={'D17': 534, 'P9': 65} outside_tail={'D17': 0, 'P9': 1} unresolved_kept=0
+=== rc=0 end 03:21:19
+=== COMPOSE start 03:21:19
+SUMMARY swap_state_compose_check PASS=True fails=0 changed={"ema_acc_names": 70, "tail_labels": 598, "prev_rec_king_entries": 320, "king_lr_rows_rescored": 81, "ema_v0_names": 525}
+=== rc=0 end 03:21:20
+=== LOAD_new_staged start 03:21:20
+{"code_sha256": "55bd89c9adce39992d485e6a826dc85f9d2e8807ab14c84095f0259ca393a4c9", "aux_sha256": "fc3125ad282584bfa832be49a12162b54c5d35d76aa378169e0daf77bd0ea882", "lr_sha256": "820098e28aae79cc22b11d5c019a527525ce7ede19e6f97505c418bef6f821c6", "expect": "load", "flags": {"FUND_COL80_V0": true, "FUND_IV_RERESOLVE": true}, "result": "load", "n_ema": 525, "n_ema_v0": 525, "last_anchor": 1789300800, "prev_rec_anchor": 1789300800, "lr_len": 11126, "stdout": "", "PASS": true}
+=== rc=0 end 03:21:22
+=== LOAD_old_staged start 03:21:22
+{"code_sha256": "e9c9837412130884bc72d4bbcb52b33e9dc8660274b76ae68f46639d2d21b36e", "aux_sha256": "fc3125ad282584bfa832be49a12162b54c5d35d76aa378169e0daf77bd0ea882", "lr_sha256": "820098e28aae79cc22b11d5c019a527525ce7ede19e6f97505c418bef6f821c6", "expect": "load", "flags": {"FUND_COL80_V0": null, "FUND_IV_RERESOLVE": null}, "result": "load", "n_ema": 525, "n_ema_v0": null, "last_anchor": 1789300800, "prev_rec_anchor": 1789300800, "lr_len": 11126, "stdout": "", "PASS": true}
+=== rc=0 end 03:21:22
+=== LOAD_new_original start 03:21:22
+{"code_sha256": "55bd89c9adce39992d485e6a826dc85f9d2e8807ab14c84095f0259ca393a4c9", "aux_sha256": "ae8a139619698a16b6b5b0eed9a15e5f98a5f0cda286825d2418cb4b8a4012fc", "lr_sha256": "962d65d34858f3191912c4f22b41c2d9f440427e1a228dda5c5076a2e5701119", "expect": "refuse", "flags": {"FUND_COL80_V0": true, "FUND_IV_RERESOLVE": true}, "result": "refuse", "exit_code": 2, "stdout": "REFUSE_TO_START: FUND_COL80_V0 but state has no ema_v0 (build offline: migrations/p1_build_ema_v0.py)\n", "PASS": true}
+=== rc=0 end 03:21:23
+=== LOAD_old_original start 03:21:23
+{"code_sha256": "e9c9837412130884bc72d4bbcb52b33e9dc8660274b76ae68f46639d2d21b36e", "aux_sha256": "ae8a139619698a16b6b5b0eed9a15e5f98a5f0cda286825d2418cb4b8a4012fc", "lr_sha256": "962d65d34858f3191912c4f22b41c2d9f440427e1a228dda5c5076a2e5701119", "expect": "load", "flags": {"FUND_COL80_V0": null, "FUND_IV_RERESOLVE": null}, "result": "load", "n_ema": 525, "n_ema_v0": null, "last_anchor": 1789300800, "prev_rec_anchor": 1789300800, "lr_len": 11126, "stdout": "", "PASS": true}
+=== rc=0 end 03:21:25
+LIVE_RO unchanged
+=== DONE 03:21:25

@@ -2301,12 +2301,262 @@ index 0000000..375a2d0
 +            return f.read()
 +    except FileNotFoundError:
 +        return ""
+diff --git a/fx/prod28_runtime_provenance.py b/fx/prod28_runtime_provenance.py
+new file mode 100644
+index 0000000..a3c5da1
+--- /dev/null
++++ b/fx/prod28_runtime_provenance.py
+@@ -0,0 +1,244 @@
++#!/usr/bin/env python3
++"""PROD-28 re-take: is the code/bundle/model the live producer stack is RUNNING the code on disk?
++
++AUDIT_PROD's PROD-28 verified this against com.hsy.shadowloop PID 10900 / sidecar 30943 /
++combolive 30944.  The Mac rebooted 2026-09-14 15:43:56Z (kern.boottime) and all three daemons
++restarted at 15:45:14Z, so those PIDs no longer exist and that verification is stale.  This device
++re-takes it against the processes that are actually running, without substituting `git HEAD` for
++evidence and without touching the daemons.
++
++macOS has no /proc, so "which bytes is this process executing" is established by an interval
++argument rather than by reading the process's memory:
++
++    if a source file's mtime is EARLIER than the process's start time, the file has not changed
++    since the process loaded it, so the bytes on disk now are the bytes it loaded.
++
++That is the whole claim, and it is falsifiable: any file with mtime >= process start is reported as
++RUNNING_CODE_UNKNOWN, because the process may be executing content that no longer exists on disk
++(the "patch on disk is not the patch running" family).  `lsof -p` is recorded as corroboration for
++the files the process still holds open (a long-lived Python has usually closed its .py sources, so
++absence from lsof is not evidence of anything and is not treated as such).
++
++Two different lifetimes are handled separately:
++  - shadow_loop_v3.py runs inside the long-lived producer process -> compare against ITS start.
++  - combo_stage.py and sidecar_blend.py are launched fresh by their daemons every anchor, so the
++    relevant instant is the last anchor at which each daemon ran, read from its own log.
++
++READ-ONLY: no writes under ~/wide_shadow or ~/dl_quant_live, no signals, no launchctl.
++
++Usage: python3 fx/prod28_runtime_provenance.py --out work/prod28/PROD28_RUNTIME.json
++"""
++import argparse
++import datetime as dt
++import hashlib
++import json
++import os
++import re
++import subprocess
++import sys
++import time
++
++WS = os.path.expanduser("~/wide_shadow")
++
++
++def sh(path):
++    h = hashlib.sha256()
++    with open(path, "rb") as f:
++        for c in iter(lambda: f.read(1 << 20), b""):
++            h.update(c)
++    d = h.hexdigest()
++    if os.path.getsize(path) > 0 and d.startswith("e3b0c44298fc1c14"):
++        raise SystemExit(f"FATAL empty-file sha on non-empty {path}")
++    return d
++
++
++def utc(ts):
++    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
++
++
++def run(cmd):
++    p = subprocess.run(cmd, capture_output=True, text=True)
++    return p.stdout, p.returncode
++
++
++def boottime():
++    out, _ = run(["sysctl", "-n", "kern.boottime"])
++    m = re.search(r"sec\s*=\s*(\d+)", out)
++    return int(m.group(1)) if m else None
++
++
++def proc_start(pid):
++    out, rc = run(["ps", "-p", str(pid), "-o", "lstart="])
++    if rc != 0 or not out.strip():
++        return None
++    return int(dt.datetime.strptime(out.strip(), "%a %b %d %H:%M:%S %Y").timestamp())
++
++
++def proc_cmd(pid):
++    out, _ = run(["ps", "-p", str(pid), "-o", "command="])
++    return out.strip()
++
++
++def lsof_files(pid, under):
++    out, _ = run(["lsof", "-p", str(pid), "-Fn"])
++    names = sorted({ln[1:] for ln in out.splitlines()
++                    if ln.startswith("n/") and ln[1:].startswith(under) and os.path.isfile(ln[1:])})
++    return names
++
++
++def launchd_pid(label):
++    out, rc = run(["launchctl", "list", label])
++    if rc != 0:
++        return None
++    m = re.search(r'"PID"\s*=\s*(\d+)', out)
++    return int(m.group(1)) if m else None
++
++
++def last_log_run(path, pattern):
++    """Latest wall-clock instant this daemon actually ran, from its own log."""
++    last = None
++    try:
++        for ln in open(path, errors="replace"):
++            m = pattern.match(ln.strip())
++            if m:
++                last = m.group(1)
++    except FileNotFoundError:
++        return None
++    if last is None:
++        return None
++    return int(dt.datetime.strptime(last.strip(), "%a %b %d %H:%M:%S UTC %Y")
++               .replace(tzinfo=dt.timezone.utc).timestamp())
++
++
++def verdict(mtime, ref, ref_name):
++    if ref is None:
++        return "REF_UNKNOWN", None
++    d = ref - mtime
++    return ("DISK_IS_RUNNING_CODE" if mtime < ref else "RUNNING_CODE_UNKNOWN"), round(d, 1)
++
++
++def main():
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--out", required=True)
++    args = ap.parse_args()
++    out = os.path.realpath(os.path.expanduser(args.out))
++    if out.startswith(WS + os.sep):
++        raise SystemExit("FATAL --out resolves under ~/wide_shadow; read-only there")
++
++    bt = boottime()
++    labels = {"com.hsy.shadowloop": "shadow_loop_v3.py",
++              "com.hsy.sidecar": "fea171/sidecar_blend.py",
++              "com.hsy.combolive": "fea171/combo_stage.py"}
++    procs = {}
++    for lab in labels:
++        pid = launchd_pid(lab)
++        procs[lab] = {"label": lab, "pid": pid,
++                      "start_utc": utc(proc_start(pid)) if pid and proc_start(pid) else None,
++                      "start_ts": proc_start(pid) if pid else None,
++                      "command": proc_cmd(pid) if pid else None,
++                      "lsof_files_under_ws": lsof_files(pid, WS) if pid else []}
++
++    # last actual run of the per-anchor children, from their own logs
++    combo_last = last_log_run(f"{WS}/fea171/combo_live.log",
++                              re.compile(r"^=== combo_live anchor=\d+ rc=\d+ (.+)$"))
++    side_last = last_log_run(f"{WS}/fea171/sidecar_daemon.log",
++                             re.compile(r"^=== ran for \d+\.json rc=\d+ (.+)$"))
++
++    files = []
++
++    def add(rel, ref, ref_name, note=""):
++        p = os.path.join(WS, rel)
++        if not os.path.exists(p):
++            files.append({"path": rel, "exists": False}); return
++        mt = os.path.getmtime(p)
++        v, lead_s = verdict(mt, ref, ref_name)
++        files.append({"path": rel, "sha256": sh(p), "size": os.path.getsize(p),
++                      "mtime_utc": utc(mt), "reference": ref_name,
++                      "reference_utc": utc(ref) if ref else None,
++                      "seconds_file_predates_reference": lead_s, "verdict": v, "note": note})
++
++    sl_start = procs["com.hsy.shadowloop"]["start_ts"]
++    add("shadow_loop_v3.py", sl_start, "producer process start",
++        "executed inside the long-lived producer process")
++    add("fea171/combo_stage.py", combo_last, "last combo_live.log run",
++        "relaunched by com.hsy.combolive every anchor")
++    add("fea171/sidecar_blend.py", side_last, "last sidecar_daemon.log run",
++        "relaunched by com.hsy.sidecar every anchor")
++    add("fea171/combo_live_daemon.sh", procs["com.hsy.combolive"]["start_ts"], "combolive daemon start")
++    add("fea171/sidecar_daemon.sh", procs["com.hsy.sidecar"]["start_ts"], "sidecar daemon start")
++    add("fea171/dlw_features.py", combo_last, "last combo_live.log run")
++    add("fea171/f8_higher_order_features.py", combo_last, "last combo_live.log run")
++    add("fea171/f10_live_s42_np.npz", combo_last, "last combo_live.log run", "F10 model as served")
++    add("fea171/xfer_ref.npz", combo_last, "last combo_live.log run")
++    add("fea171/xfer_syms.npz", combo_last, "last combo_live.log run")
++
++    # bundle: MANIFEST.json vs the files on disk now.
++    # A missing or unparsable manifest is a HARD FAILURE, not a quiet None: "the field was absent so
++    # the check was skipped" is the defect family this device exists to catch, and an earlier version
++    # of this file reported bundle_mismatch=None simply because it looked for "MANIFEST" and the file
++    # is "MANIFEST.json".
++    bundle = {}
++    man_p = f"{WS}/shadow_bundle/MANIFEST.json"
++    if not os.path.exists(man_p):
++        raise SystemExit(f"FATAL bundle manifest absent at {man_p}; refusing to report a bundle verdict")
++    if True:
++        try:
++            J = json.load(open(man_p))
++        except Exception as e:
++            raise SystemExit(f"FATAL bundle manifest unparsable: {type(e).__name__}: {e}")
++        declared = {k: v for k, v in (J.get("files") or J).items() if isinstance(v, str) and len(v) == 64}
++        if not declared:
++            raise SystemExit(f"FATAL bundle manifest parsed but declared 0 sha entries: keys={sorted(J)[:10]}")
++        rows = []
++        for name, want in sorted(declared.items()):
++            p = os.path.join(WS, "shadow_bundle", os.path.basename(name))
++            if not os.path.exists(p):
++                rows.append({"file": name, "on_disk": False}); continue
++            got = sh(p)
++            rows.append({"file": name, "declared": want, "on_disk_sha256": got,
++                         "match": got == want,
++                         "mtime_utc": utc(os.path.getmtime(p)),
++                         "predates_producer_start": (os.path.getmtime(p) < sl_start) if sl_start else None})
++        bundle = {"manifest_path": man_p, "manifest_sha256": sh(man_p),
++                  "n": len(rows), "n_match": sum(1 for r in rows if r.get("match")),
++                  "n_mismatch": sum(1 for r in rows if r.get("match") is False),
++                  "rows": rows}
++
++    n_unknown = sum(1 for f in files if f.get("verdict") == "RUNNING_CODE_UNKNOWN")
++    res = {
++        "device": os.path.basename(__file__), "device_sha256": sh(os.path.abspath(__file__)),
++        "generated_utc": utc(int(time.time())),
++        "method": ("mtime < process start (or < the last logged run, for per-anchor children) proves the "
++                   "bytes on disk now are the bytes that were loaded; anything else is RUNNING_CODE_UNKNOWN. "
++                   "lsof is corroboration only: a long-lived Python has closed its .py sources, so absence "
++                   "from lsof is not evidence. git HEAD is deliberately not used."),
++        "supersedes": ("AUDIT_PROD PROD-28, verified against shadowloop PID 10900 / sidecar 30943 / "
++                       "combolive 30944, which no longer exist"),
++        "kern_boottime_utc": utc(bt) if bt else None,
++        "processes": procs,
++        "last_runs": {"combo_live.log": utc(combo_last) if combo_last else None,
++                      "sidecar_daemon.log": utc(side_last) if side_last else None},
++        "files": files, "bundle": bundle,
++        "summary": {"n_files": len(files), "n_running_code_unknown": n_unknown,
++                    "bundle_n_mismatch": bundle.get("n_mismatch"),
++                    "all_pids_alive": all(p["pid"] for p in procs.values())},
++    }
++    os.makedirs(os.path.dirname(out), exist_ok=True)
++    json.dump(res, open(out, "w"), indent=1)
++    print(f"[prod28] device_sha={res['device_sha256'][:8]} out={out}")
++    print(f"  boot {res['kern_boottime_utc']}")
++    for lab, p in procs.items():
++        print(f"  {lab:22} pid={p['pid']} start={p['start_utc']} lsof_ws_files={len(p['lsof_files_under_ws'])}")
++    for f in files:
++        if f.get("exists") is False:
++            print(f"  MISSING {f['path']}"); continue
++        print(f"  {f['verdict']:22} {f['path']:38} sha={f['sha256'][:12]} mtime={f['mtime_utc']} (ref {f['reference']})")
++    if bundle:
++        print(f"  bundle MANIFEST {bundle['manifest_sha256'][:12]}: {bundle['n_match']}/{bundle['n']} match, "
++              f"{bundle['n_mismatch']} mismatch")
++    print(f"  SUMMARY running_code_unknown={n_unknown} bundle_mismatch={bundle.get('n_mismatch')}")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
 diff --git a/migrations/fund_label_ema_correction.py b/migrations/fund_label_ema_correction.py
 new file mode 100644
-index 0000000..d44c1d8
+index 0000000..5bfeafa
 --- /dev/null
 +++ b/migrations/fund_label_ema_correction.py
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,231 @@
 +#!/usr/bin/env python3
 +"""fund_label_ema_correction.py — OFFLINE migration for FIXPROGRAM 2026-09-13 P6-M (D17 seed-origin labels) and P9-M (producer-appended labels).
 +Reads a COPY of a producer state (aux.json); NEVER writes into the input directory; writes <out>/aux.corrected.json + receipt.
@@ -2331,6 +2581,13 @@ index 0000000..d44c1d8
 +ap = argparse.ArgumentParser()
 +ap.add_argument("--state", required=True); ap.add_argument("--code", required=True); ap.add_argument("--out", required=True)
 +ap.add_argument("--classes", default="D17,P9"); ap.add_argument("--control", action="store_true")
++ap.add_argument("--allow-out-of-tail", action="store_true",
++                help="FXR-PROD-1: permit corrections to settlements that have already left the input ledger tail. "
++                     "Such a row carries no label in the state, and the producer's save() writes a fixed key set "
++                     "(shadow_loop_v3.py save()), so a revision marker placed in aux.json would be dropped at the "
++                     "next anchor. The tool therefore cannot tell whether an out-of-tail correction was already "
++                     "absorbed and refuses by default; the one-time swap migration passes this flag, the recurring "
++                     "monthly reconciliation must not.")
 +ap.add_argument("--seed-aug", default="/Users/haosiyu/wide_shadow/shadow_bundle.aug20260816_backup/funding_ledger_seed.json")
 +ap.add_argument("--zip-dir", action="append", default=[], help="(c) monthly reconciliation: directory from p9_pull_monthly_funding_zips.py; its declared labels are exact")
 +args = ap.parse_args()
@@ -2376,15 +2633,34 @@ index 0000000..d44c1d8
 +                    if ms != ft_ * 1000 and (ms // 1000) % 3600: zinfo["calc_time_off_hour_rows"].append([s_, ms])
 +                    zipiv.setdefault(s_, {})[ft_] = float(r[1])
 +    prod_src, prod_shas = FH.frozen_ledger_sources(include=("pre_m1", "snap_1789200000", "snap_1789214400", "snap_1789228800", "snap_1789243200", "t4snap_1789272000", "live_1789300800"))
-+    prod_src = prod_src + [("input_state", led)]
-+    stored = {}; label_conflicts = []
++    # FXR-PROD-1(a): the increment must be computed against the labels the INPUT STATE has already
++    # absorbed, not against a frozen ledger that predates any earlier correction. Previously the frozen
++    # sources were loaded first and `setdefault` pinned their labels, so re-running on an already
++    # corrected state recomputed every correction against the stale label and added it a second time.
++    # Frozen sources still supply the rows that have left the input tail; the input wins where both have a row.
++    stored = {}; label_conflicts = []; frozen_ivs = {}; input_overrides = {}
 +    for tag, L in prod_src:
 +        for s, rr in L.items():
 +            d = stored.setdefault(s, {})
 +            for r in rr:
 +                ft = int(r[0]); key = (float(r[1]), float(r[2]))
-+                if ft in d and d[ft] != key: label_conflicts.append([s, T(ft), d[ft], key, tag])
++                frozen_ivs.setdefault((s, ft), set()).add(float(r[2]))
++                if ft in d and d[ft] != key:
++                    label_conflicts.append([s, T(ft), d[ft], key, tag, "frozen_vs_frozen"])
 +                d.setdefault(ft, key)
++    for s, rr in led.items():
++        d = stored.setdefault(s, {})
++        for r in rr:
++            ft = int(r[0]); key = (float(r[1]), float(r[2]))
++            prevkey = d.get(ft)
++            if prevkey is not None and prevkey != key:
++                if prevkey[0] != key[0]:
++                    label_conflicts.append([s, T(ft), prevkey, key, "input_state", "rate_differs"])
++                else:
++                    input_overrides[(s, ft)] = (prevkey[1], key[1])
++                    label_conflicts.append([s, T(ft), prevkey, key, "input_state", "iv_differs"])
++            d[ft] = key
++    resolved_overrides = []; unexplained_overrides = []
 +    seed8 = json.load(open(args.seed_aug))
 +    seed8_lab = {s: {int(r[0]): float(r[2]) for r in rows} for s, rows in seed8.items()}
 +    corr = []; unresolved = []; per_name = {}; new_label = {}
@@ -2401,6 +2677,16 @@ index 0000000..d44c1d8
 +                dec, src = zipiv[s][ft], "zip"
 +            else:
 +                dec, src = SL.declared_interval_exact(prev, ft, nxt, rate)
++            ov = input_overrides.pop((s, ft), None)
++            if ov is not None:
++                # the input's label must have a provenance: the declared value (an earlier run of this
++                # tool, or the producer's own re-resolution), or another frozen source's label.
++                if dec is not None and float(ov[1]) == float(dec):
++                    resolved_overrides.append([s, T(ft), ov[0], ov[1], src, "equals_declared"])
++                elif float(ov[1]) in frozen_ivs.get((s, ft), set()):
++                    resolved_overrides.append([s, T(ft), ov[0], ov[1], src, "equals_another_frozen_source"])
++                else:
++                    unexplained_overrides.append([s, T(ft), ov[0], ov[1], src, dec])
 +            if dec is None:
 +                if prev is not None and iv_st != SL._snap_iv((ft - prev) / 3600.0):
 +                    unresolved.append([s, T(ft), iv_st, SL._snap_iv((ft - prev) / 3600.0), src])
@@ -2425,21 +2711,55 @@ index 0000000..d44c1d8
 +    out_led = {s: [[int(r[0]), float(r[1]), new_label.get((s, int(r[0])), float(r[2]))] for r in rows] for s, rows in led.items()}
 +    out_ema = {s: {"acc": float(e["acc"]) + (per_name[s]["dacc"] if s in per_name else 0.0), "last_ts": int(e["last_ts"])} for s, e in ema.items()}
 +    new_aux = dict(aux); new_aux["ledger_tail"] = out_led; new_aux["ema"] = out_ema
-+    op = os.path.join(args.out, "aux.corrected.json"); json.dump(new_aux, open(op, "w"))
++    # FXR-PROD-1(c): write to a temporary name; the usable filename appears only if every gate passes.
++    op = os.path.join(args.out, "aux.corrected.json"); tmp = op + ".tmp"
++    if os.path.exists(op): os.remove(op)
++    json.dump(new_aux, open(tmp, "w"))
 +    rc = dict(tool_sha256=FH.gsha(os.path.abspath(__file__)), inputs=inputs, frozen_producer_ledgers_sha256=prod_shas, classes=sorted(CLASSES),
-+              state_last_anchor=int(aux["last_anchor"]), output=op, output_sha256=FH.gsha(op), stored_label_conflicts_across_sources=label_conflicts[:20],
++              state_last_anchor=int(aux["last_anchor"]), output=op, output_sha256=FH.gsha(tmp), stored_label_conflicts_across_sources=label_conflicts[:20],
 +              n_stored_label_conflicts=len(label_conflicts),
 +              n_corrections={c: sum(1 for x in corr if x[5] == c and x[7] == "APPLIED") for c in ("D17", "P9")},
 +              n_corrections_outside_tail={c: sum(1 for x in corr if x[5] == c and x[7] == "APPLIED" and not x[8]) for c in ("D17", "P9")},
-+              corrections=corr, per_name_dacc=dict(sorted(per_name.items(), key=lambda x: -x[1]["rel"])), unresolved_rows_kept=unresolved)
-+    if args.control:
-+        rc["control"] = control(out_ema, stored, new_label, zipiv, rows_full, seed8)
++              corrections=corr, per_name_dacc=dict(sorted(per_name.items(), key=lambda x: -x[1]["rel"])), unresolved_rows_kept=unresolved,
++              resolved_input_overrides=resolved_overrides[:50], n_resolved_input_overrides=len(resolved_overrides),
++              unexplained_input_overrides=unexplained_overrides[:50], n_unexplained_input_overrides=len(unexplained_overrides),
++              n_overrides_after_ema_window=len(input_overrides))
++    # FXR-PROD-1(b): the control is no longer optional and no longer advisory. --control is still
++    # accepted so existing call sites keep working, but the control decides whether we publish.
++    rc["control"] = control(out_ema, stored, new_label, zipiv, rows_full, seed8)
++    rc["control_flag_passed"] = bool(args.control); rc["allow_out_of_tail"] = bool(args.allow_out_of_tail)
++    n_applied = sum(rc["n_corrections"].values())
++    # FXR-PROD-1: input identity -> output identity. With no applied correction the state must come
++    # back out unchanged, which is what makes a second run on an already corrected state a no-op.
++    idem = (json.dumps(new_aux, sort_keys=True) == json.dumps(aux, sort_keys=True))
++    rc["idempotent_no_op"] = idem
++    frozen_conf = [c for c in label_conflicts if c[5] == "frozen_vs_frozen"]
++    rate_conf = [c for c in label_conflicts if c[5] == "rate_differs"]
++    n_out = sum(rc["n_corrections_outside_tail"].values())
++    gates = [("out_of_tail_corrections_allowed_or_absent", (n_out == 0) or bool(args.allow_out_of_tail),
++              dict(n_out_of_tail=n_out, allow_out_of_tail=bool(args.allow_out_of_tail))),
++             ("no_frozen_vs_frozen_label_conflict", not frozen_conf, len(frozen_conf)),
++             ("no_rate_conflict_between_sources", not rate_conf, len(rate_conf)),
++             ("every_input_label_has_provenance", not unexplained_overrides, len(unexplained_overrides)),
++             ("positive_control_within_1e12", rc["control"]["n_gt_1e12"] == 0, rc["control"]["max_abs"]),
++             ("no_applied_correction_implies_output_equals_input", (n_applied > 0) or idem, dict(n_applied=n_applied, idempotent=idem))]
++    rc["gates"] = [{"gate": g, "pass": bool(ok), "detail": d} for g, ok, d in gates]
++    rc["PASS"] = all(ok for _, ok, _ in gates)
 +    rc["runtime_s"] = round(time.time() - t0, 1); rc["built_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
++    if rc["PASS"]:
++        os.replace(tmp, op)
++    else:
++        os.remove(tmp); rc["output"] = None; rc["output_sha256"] = None
 +    json.dump(rc, open(os.path.join(args.out, "RECEIPT_fund_label_ema_correction.json"), "w"), indent=1, default=str)
 +    print(json.dumps({k: rc[k] for k in ("classes", "n_corrections", "n_corrections_outside_tail", "n_stored_label_conflicts", "output_sha256")}, default=str))
 +    if "control" in rc: print("control", json.dumps({k: rc["control"][k] for k in ("n", "max_abs", "n_gt_1e12", "n_gt_1e9")}), rc["control"]["worst"][:3])
 +    print("per_name_dacc top:", json.dumps({k: (round(v["dacc"], 12), round(v["rel"], 6)) for k, v in list(rc["per_name_dacc"].items())[:12]}))
-+    print("SUMMARY fund_label_ema_correction applied=%s outside_tail=%s unresolved_kept=%d" % (rc["n_corrections"], rc["n_corrections_outside_tail"], len(unresolved)))
++    print("gates:", json.dumps({g["gate"]: g["pass"] for g in rc["gates"]}))
++    print("SUMMARY fund_label_ema_correction PASS=%s applied=%s outside_tail=%s unresolved_kept=%d conflicts=%d resolved_overrides=%d unexplained=%d idempotent_no_op=%s" % (
++        rc["PASS"], rc["n_corrections"], rc["n_corrections_outside_tail"], len(unresolved), len(label_conflicts), len(resolved_overrides), len(unexplained_overrides), idem))
++    if not rc["PASS"]:
++        print("REFUSED: no usable aux.corrected.json written")
++        sys.exit(2)
 +
 +
 +def control(out_ema, stored, new_label, zipiv, rows_full, seed8):
@@ -2740,12 +3060,15 @@ index 0000000..807d131
 +    main()
 diff --git a/migrations/swap_dryrun_frozen_20260913.sh b/migrations/swap_dryrun_frozen_20260913.sh
 new file mode 100755
-index 0000000..07f2678
+index 0000000..aa0a6cf
 --- /dev/null
 +++ b/migrations/swap_dryrun_frozen_20260913.sh
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,53 @@
 +#!/bin/bash
-+# FX-PROD swap dry run on the frozen live state 09-13 12Z (read-only inputs). Starts after 16:50:30Z; pauses children 19:55Z-20:50Z.
++# FX-PROD swap dry run on the frozen live state 09-13 12Z (read-only inputs).
++# Start window: >= HH+1:05 after an anchor and outside HH:15-HH:50 of 00/04/08/12/16/20Z (refuses otherwise).
++# Backstop: pauses its own children throughout ANY anchor window, not just 20Z (corrected 2026-09-16; the
++# original only covered 19:55-20:50Z, so a run that overran into the next anchor was unguarded).
 +set -u
 +cd /Users/haosiyu/cc_tmp/fx_prod
 +PY="env -i PATH=/usr/bin:/bin HOME=/Users/haosiyu PYTHONDONTWRITEBYTECODE=1 /Users/haosiyu/wide_shadow/venv/bin/python -B"
@@ -2757,17 +3080,21 @@ index 0000000..07f2678
 +# sandbox: outputs only under work/swapdry; ~/wide_shadow is read (bundle, aug backup, venv) and must be unchanged -> before/after listing
 +LIVE_RO="/Users/haosiyu/wide_shadow/shadow_bundle /Users/haosiyu/wide_shadow/shadow_bundle.aug20260816_backup"
 +find $LIVE_RO -type f -exec stat -f "%m %z %N" {} \; | sort > $M/live_ro_before.txt
-+guard() {   # pause this driver's direct children during the 20Z producer window (bash 3.2: no BASHPID, so read the subshell pid via PPID)
++guard() {   # pause this driver's direct children inside ANY anchor window (bash 3.2: no BASHPID, so read the subshell pid via PPID)
 +  SELF=$(exec /bin/sh -c 'echo $PPID')
-+  echo "guard self $SELF" >> $M/guard.log
++  echo "guard self $SELF; covers every anchor hour (h%4==0) minutes 13..51" >> $M/guard.log
 +  while kill -0 $$ 2>/dev/null; do
-+    hm=$(date -u +%H%M)
++    gh=$((10#$(date -u +%H))); gm=$((10#$(date -u +%M)))
++    if [ $((gh % 4)) -eq 0 ] && [ $gm -ge 13 ] && [ $gm -lt 52 ]; then want=STOP; else want=CONT; fi
++    n=0
 +    for p in $(pgrep -P $$); do
 +      [ "$p" = "$SELF" ] && continue
-+      if [ "$hm" -ge 1955 ] && [ "$hm" -lt 2050 ]; then kill -STOP $p && echo "STOP $p $(date -u +%T)" >> $M/guard.log
++      n=$((n+1))
++      if [ "$want" = STOP ]; then kill -STOP $p && echo "STOP $p $(date -u +%T)" >> $M/guard.log
 +      else kill -CONT $p 2>/dev/null; fi
 +    done
-+    sleep 30
++    echo "guard tick $(date -u +%T) want=$want targets=$n" >> $M/guard.log
++    sleep 10
 +  done
 +}
 +guard & GP=$!
@@ -2778,7 +3105,7 @@ index 0000000..07f2678
 +mkdir -p $M/in_p1 && ln -sf ../p5/aux.p5.json $M/in_p1/aux.json
 +step P1 $PY migrations/p1_build_ema_v0.py --state $M/in_p1 --code $CODE --out $M/p1 || exit 2
 +mkdir -p $M/in_corr && ln -sf ../p1/aux.with_ema_v0.json $M/in_corr/aux.json
-+step CORR $PY migrations/fund_label_ema_correction.py --state $M/in_corr --code $CODE --out $M/corr --classes D17,P9 --zip-dir /Users/haosiyu/cc_tmp/fx_prod/work/pod2_inputs/zips_2026-08 --control || exit 2
++step CORR $PY migrations/fund_label_ema_correction.py --state $M/in_corr --code $CODE --out $M/corr --classes D17,P9 --zip-dir /Users/haosiyu/cc_tmp/fx_prod/work/pod2_inputs/zips_2026-08 --control --allow-out-of-tail || exit 2
 +step COMPOSE $PY migrations/swap_state_compose_check.py --orig $ST --p5 $M/p5 --p1 $M/p1 --corr $M/corr --code $CODE --out $M/compose || exit 2
 +S=$M/compose/STAGED
 +step LOAD_new_staged $PY migrations/swap_load_test.py --code $CODE --aux $S/aux.json --lr $S/leg_returns_live.json --rolling $ST/rolling.npz --home $M/load_new_staged --expect load
@@ -3207,10 +3534,10 @@ index e7c3f60..2af4672 100644
                          "coverage": round(coverage, 4), "status": status})
 diff --git a/tests_fx_prod.py b/tests_fx_prod.py
 new file mode 100644
-index 0000000..5b1be8d
+index 0000000..74eea0d
 --- /dev/null
 +++ b/tests_fx_prod.py
-@@ -0,0 +1,597 @@
+@@ -0,0 +1,698 @@
 +#!/usr/bin/env python3
 +"""tests_fx_prod.py — FIXPROGRAM 2026-09-13 FX-PROD red/green battery (P1 king col 80, P2 V2MAIN col 80 + neighbours, P6 seed loader).
 +Real shapes only: frozen producer snapshots (work/frozen, SHA256SUMS), the in-service bundle and booster (read-only), real anchors, real ledger rows.
@@ -3226,7 +3553,7 @@ index 0000000..5b1be8d
 +CODE = HERE
 +if "--code" in argv:
 +    i = argv.index("--code"); CODE = os.path.abspath(argv[i + 1]); del argv[i:i + 2]
-+CELLS = set(argv) or {"P1", "P2", "P6", "P6M", "P27"}
++CELLS = set(argv) or {"P1", "P2", "P6", "P6M", "P27", "FXR1"}
 +sys.path.insert(0, HERE + "/fx")
 +import numpy as np
 +import fx_harness as H
@@ -3796,10 +4123,111 @@ index 0000000..5b1be8d
 +         os.path.exists(os.path.join(p5["state"], "combo_anchor_record", f"{A}.json")),
 +         dict(state_dir=sorted(os.listdir(p5["state"]))))
 +
++# ======================================================================================== FXR-PROD-1
++def fxr1():
++    """FXR-PROD-1 (independent review 9f6384fb / cd3bdb88): the funding-label migration could be run
++    twice, double-counting every correction, and published a usable state file even when its own
++    positive control failed.
++
++    Red evidence is taken on REAL shapes, not a fixture: run the tool on the frozen 09-13 12Z state,
++    then feed its own corrected output back in -- which is exactly what the recurring monthly zip
++    reconciliation (SWAP_PLAN section 7) does to a state copy each month.
++    Pre-fix measurement (work/fxr1/out_rerun, tool sha 1cbeca90): all 599 corrections applied a second
++    time, n_stored_label_conflicts 598, control max_abs 4.0958e-06 with n_gt_1e12 70 / n_gt_1e9 17,
++    rc 0, and a 5.1 MB aux.corrected.json written.
++    """
++    print("[FXR1] funding-label migration: idempotence, conflict refusal, control gates publication", flush=True)
++    tool = os.path.join(CODE, "migrations", "fund_label_ema_correction.py")
++    if not os.path.exists(tool):
++        cell("NEW", "FXR1 tool present in this code", False, "migrations/fund_label_ema_correction.py absent"); return
++    ST0 = H.WORK + "/swapdry/in_corr"          # the P1 output = the first-run input
++    ZIP = H.WORK + "/pod2_inputs/zips_2026-08"
++    if not os.path.exists(ST0 + "/aux.json"):
++        cell("KEEP", "FXR1-H0 fixture: frozen first-run input present", False, ST0); return
++
++    def run(state, out, *extra):
++        d = f"{T_ROOT}/fxr1_{out}"; shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
++        cmd = [os.environ.get("PYBIN", H.WS + "/venv/bin/python"), "-B", tool, "--state", state,
++               "--code", CODE, "--out", d, "--classes", "D17,P9", "--zip-dir", ZIP, "--control"] + list(extra)
++        p_ = subprocess.run(cmd, capture_output=True, text=True,
++                            env={"PATH": "/usr/bin:/bin", "HOME": os.path.expanduser("~"),
++                                 "PYTHONDONTWRITEBYTECODE": "1"})
++        rp = d + "/RECEIPT_fund_label_ema_correction.json"
++        rec = json.load(open(rp)) if os.path.exists(rp) else {}
++        return dict(rc=p_.returncode, rec=rec, out=d, published=os.path.exists(d + "/aux.corrected.json"),
++                    stdout=p_.stdout[-400:], stderr=p_.stderr[-400:])
++
++    # --- KEEP: the fix must not move the one-time migration at all -----------------------------
++    a = run(ST0, "first", "--allow-out-of-tail")
++    same_counts = a["rec"].get("n_corrections") == {"D17": 534, "P9": 65}
++    ctl = a["rec"].get("control", {})
++    cell("KEEP", "FXR1-K1 first migration unchanged by the fix: D17 534 / P9 65 applied, control max_abs "
++                 "6.94e-18 with n_gt_1e12 == 0, output published",
++         a["rc"] == 0 and same_counts and a["published"] and ctl.get("n_gt_1e12") == 0
++         and abs(ctl.get("max_abs", 1.0) - 6.938893903907228e-18) < 1e-24,
++         dict(rc=a["rc"], counts=a["rec"].get("n_corrections"), max_abs=ctl.get("max_abs"), published=a["published"]))
++    cell("KEEP", "FXR1-K2 the published state is byte-identical to the pre-fix first-run output (sha fc3125ad…)",
++         a["published"] and H.gsha(a["out"] + "/aux.corrected.json").startswith("fc3125ad"),
++         H.gsha(a["out"] + "/aux.corrected.json")[:16] if a["published"] else "not published")
++
++    # --- RED: feeding the corrected state back in must be a no-op ------------------------------
++    if a["published"]:
++        rin = f"{T_ROOT}/fxr1_rerun_in"; shutil.rmtree(rin, ignore_errors=True); os.makedirs(rin)
++        shutil.copyfile(a["out"] + "/aux.corrected.json", rin + "/aux.json")
++        b = run(rin, "rerun", "--allow-out-of-tail")
++        napp = sum((b["rec"].get("n_corrections") or {}).values())
++        napp_tail = sum(v for k, v in (b["rec"].get("n_corrections") or {}).items()) - \
++                    sum(v for k, v in (b["rec"].get("n_corrections_outside_tail") or {}).items())
++        # Contract: re-entering a corrected state must NEVER publish a doubly-corrected one. In-tail rows
++        # carry their absorbed label in the state, so they are self-identifying and must drop to 0. A row
++        # that has left the tail carries no label and the producer's save() writes a fixed key set, so no
++        # marker we could add would survive an anchor -- that one is caught by the positive control and the
++        # run refuses. Either outcome (clean no-op, or refusal) satisfies the contract; publishing does not.
++        cell("RED", "FXR1-R1 the tool's own corrected state re-entered never publishes a doubly-corrected state: "
++                    "0 in-tail corrections re-applied, and either a clean no-op or a refusal "
++                    "(pre-fix: 599 re-applied, 598 conflicts, control n_gt_1e12 70, rc 0, 5.1 MB file written)",
++             napp_tail == 0 and ((b["rc"] == 0 and napp == 0 and b["rec"].get("idempotent_no_op") is True
++                                  and b["rec"].get("PASS") is True)
++                                 or (b["rc"] == 2 and not b["published"] and b["rec"].get("PASS") is False)),
++             dict(rc=b["rc"], applied=napp, in_tail_reapplied=napp_tail, published=b["published"],
++                  idempotent=b["rec"].get("idempotent_no_op"), PASS=b["rec"].get("PASS"),
++                  conflicts=b["rec"].get("n_stored_label_conflicts"),
++                  control_n_gt_1e12=(b["rec"].get("control") or {}).get("n_gt_1e12")))
++        cell("NEW", "FXR1-R1b the 598 in-tail corrections are recognised as already absorbed, not re-applied",
++             napp_tail == 0 and b["rec"].get("n_resolved_input_overrides") == 598,
++             dict(in_tail_reapplied=napp_tail, resolved=b["rec"].get("n_resolved_input_overrides")))
++        cell("NEW", "FXR1-N3 every input label that disagrees with a frozen ledger is explained (equals the "
++                    "declared value or another frozen source), none unexplained",
++             b["rec"].get("n_unexplained_input_overrides") == 0 and b["rec"].get("n_resolved_input_overrides", 0) > 0,
++             dict(resolved=b["rec"].get("n_resolved_input_overrides"), unexplained=b["rec"].get("n_unexplained_input_overrides")))
++    else:
++        cell("RED", "FXR1-R1 re-run no-op (first run did not publish, cannot test)", False, a["stdout"])
++        cell("NEW", "FXR1-N3 input-label provenance (first run did not publish)", False, "")
++
++    # --- NEW: out-of-tail correction refused unless explicitly allowed --------------------------
++    c = run(ST0, "nooutflag")
++    g = {x["gate"]: x["pass"] for x in (c["rec"].get("gates") or [])}
++    cell("NEW", "FXR1-N1 an out-of-tail correction (1 P9 row) is REFUSED without --allow-out-of-tail: rc 2 and no state file",
++         c["rc"] == 2 and not c["published"] and g.get("out_of_tail_corrections_allowed_or_absent") is False,
++         dict(rc=c["rc"], published=c["published"], gates=g))
++
++    # --- NEW: a failing positive control must not publish ---------------------------------------
++    bad = f"{T_ROOT}/fxr1_badctl_in"; shutil.rmtree(bad, ignore_errors=True); os.makedirs(bad)
++    J = json.load(open(ST0 + "/aux.json"))
++    victim = sorted(J["ema"])[0]; J["ema"][victim]["acc"] = float(J["ema"][victim]["acc"]) + 1e-3
++    json.dump(J, open(bad + "/aux.json", "w"))
++    e = run(bad, "badctl", "--allow-out-of-tail")
++    g2 = {x["gate"]: x["pass"] for x in (e["rec"].get("gates") or [])}
++    cell("NEW", "FXR1-N2 a failing positive control blocks publication: rc 2, no aux.corrected.json, and the "
++                "receipt names the failed gate (state perturbed by +1e-3 on one name's acc)",
++         e["rc"] == 2 and not e["published"] and g2.get("positive_control_within_1e12") is False,
++         dict(rc=e["rc"], published=e["published"], victim=victim,
++              max_abs=(e["rec"].get("control") or {}).get("max_abs")))
++
 +# ======================================================================================== main
 +if __name__ == "__main__":
 +    print(f"tests_fx_prod code={CODE} shadow_loop_v3.py={code_sha('shadow_loop_v3.py')[:16]} combo_stage.py={code_sha('fea171/combo_stage.py')[:16]} cells={sorted(CELLS)} utc={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}", flush=True)
-+    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m), ("P9", p9), ("P27", p27)):
++    for name, fn in (("P1", p1), ("P2", p2), ("P6", p6), ("P6M", p6m), ("P9", p9), ("P27", p27), ("FXR1", fxr1)):
 +        if name in CELLS:
 +            try:
 +                fn()
