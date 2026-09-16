@@ -52,8 +52,9 @@ MUTANTS = [
      "live/rate_budget.py",
      "                self._w = [(t, w) for t, w in self._w if now - t < 60]",
      "                self._w = [(t, w) for t, w in self._w if now - t < 6]",
-     "prune on a 6 s horizon instead of 60 s, so the window under-counts and the boundary burst is admitted again",
-     "no sliding 60s window of admitted weight"),
+     "prune on a 6 s horizon instead of 60 s, so the window under-counts and a drip spread over a minute is "
+     "admitted in full",
+     "the third must WAIT"),
     # NOT a mutant: "never prune at all" makes the shaper loop forever rather than answer wrongly. With a fake
     # clock the sleep is instantaneous, so it spins, and the first run of this device had to be killed. A mutant
     # has to be something a suite can CATCH, not something that hangs it. Recorded so nobody adds it back.
@@ -62,7 +63,7 @@ MUTANTS = [
      "                        weight_in_window=sum(w for t, w in self._w if _now - t < 60),",
      "                        weight_in_window=self.stats[\"weight_spent\"],",
      "report the lifetime total as the window figure — the exact confusion OPS-03 C is correcting in the log line",
-     "weight_in_window is the SLIDING sum"),
+     "they must not be the same"),
     ("M6_wait_not_counted",
      "live/rate_budget.py",
      "                    self.stats[\"weight_waits\"] += 1",
