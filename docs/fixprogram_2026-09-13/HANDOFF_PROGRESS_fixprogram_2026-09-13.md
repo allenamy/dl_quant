@@ -1,4 +1,4 @@
-> **创建:** 2026-09-13 15:3xZ | **更新:** v3.3 2026-09-13 17:1xZ(工作者停止状态; 分支头与捆绑包再刷新) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME · https://claude.ai/code/session_01HLaR7r1Tyg5CoEsNgnNFkY | **状态:** 活文档; 修复纲领进行中, **本纲领代码修复一律未部署** | **作废条件:** 由最终合并复审包取代(FIXPROGRAM §5)
+> **创建:** 2026-09-13 15:3xZ | **更新:** v3.4 2026-09-16 03:0xZ(重启后复工: 两条 cron 恢复 · 公证清单补提交 · 六条修复线重启) | **Session:** https://claude.ai/code/session_01BzpuBRGZh8oPvpD8NgqsME · https://claude.ai/code/session_01HLaR7r1Tyg5CoEsNgnNFkY | **状态:** 活文档; 修复纲领进行中, **本纲领代码修复一律未部署** | **作废条件:** 由最终合并复审包取代(FIXPROGRAM §5)
 
 # 修复纲领 · 全面交接(给独立研究员接续与复审)
 
