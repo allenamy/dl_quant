@@ -1,0 +1,162 @@
+{
+ "device": "fm_red_builders.py",
+ "self_sha256": "2b76ae355e4ca1f3efa506e72e09b3c546b16cc3ac9d1a0836479e668aa82d1f",
+ "utc_start": "2026-09-16T04:12:11Z",
+ "python": "3.14.4",
+ "numpy": "2.4.4",
+ "builders_under_test": {
+  "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/pod_fea_ext_clamp.py": "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac",
+  "multi_asset/exports/research/retrain_2026-09/pod_dlw_features_ext.py": "e86725cc2768bb6265dd8fb2b3580629706166da012298768b1c0788e8f5a624",
+  "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/pod_dlw_targets_raw.py": "d7c528231f00902964c5244fe8402bbd84688af05c04c2dab8760fe8ad584be2"
+ },
+ "fixture_spec": {
+  "T_rows": 10320,
+  "NW": 80,
+  "bar_s": 300,
+  "anchor_s": 14400,
+  "epoch0": 1640995200,
+  "channels": [
+   "ret5",
+   "range",
+   "cpos",
+   "log_qv",
+   "log_cnt",
+   "log_avgsz",
+   "tbf"
+  ],
+  "cache_dtype": "float16",
+  "n_grid_anchors": 202,
+  "note": "real-shape, synthetic values; BTCUSDT present; panel Y4 derived from the cache"
+ },
+ "shells_out": false,
+ "network": false,
+ "cases": [
+  {
+   "case": "R-TIM-1",
+   "outcome": "RED_CORRECT",
+   "expected": 0.24701207876205444,
+   "observed": -0.0033245086669921875,
+   "why_red": "a +0.25 impulse sits on the anchor bar E of one name. The legacy window sums rows [E-w, E-1] = -0.003325 and misses it; the window the producer serves, [E-w+1, E], = 0.247012.",
+   "builder_stdout_tail": "cumsum ret5 (0s)\ncumsum range (0s)\ncumsum cpos (0s)\ncumsum log_qv (0s)\ncumsum log_cnt (0s)\ncumsum log_avgsz (0s)\ncumsum tbf (0s)\nanchors 173\nNF = 40\u503c + 40\u79e9 + 2funding = 82\nfea 0/173 (0s)\nFEA_EXT_DONE (173, 80, 82)\n",
+   "error": null,
+   "item": "TIM-01",
+   "asserted_correct_behaviour": "king feature window must END AT row E, the bar closing at the anchor, as the producer serves"
+  },
+  {
+   "case": "R-TIM-2",
+   "outcome": "RED_CORRECT",
+   "expected": 0.031658709049224854,
+   "observed": 0.13334614038467407,
+   "why_red": "the independent review's anchor-bar impulse test, as a test: ONLY row E carries +0.10. The legacy label sums rows [E, E+47] = 0.133346, so it READS the anchor bar; the true four hours after E sum to 0.031659. A clock/label definition shift, NOT a peek at future prices.",
+   "builder_stdout_tail": "cumsum ret5 (0s)\ncumsum range (0s)\ncumsum cpos (0s)\ncumsum log_qv (0s)\ncumsum log_cnt (0s)\ncumsum log_avgsz (0s)\ncumsum tbf (0s)\nanchors 173\nNF = 40\u503c + 40\u79e9 + 2funding = 82\nfea 0/173 (0s)\nFEA_EXT_DONE (173, 80, 82)\n",
+   "error": null,
+   "item": "TIM-01",
+   "asserted_correct_behaviour": "king label must be rows [E+1, E+48], the four hours AFTER the anchor, as the book is accounted"
+  },
+  {
+   "case": "R-TIM-3",
+   "outcome": "RED_CORRECT",
+   "expected": 203,
+   "observed": 173,
+   "why_red": "every bar of this fixture is finite and every name volatile, so all 203 grid anchors should clear the member screen. 30 are missing and ALL have E < 2016: rows [576, 624, 672, 720, 768, 816, 864, 912, 960, 1008, 1056, 1104, 1152, 1200, 1248, 1296, 1344, 1392, 1440, 1488, 1536, 1584, 1632, 1680, 1728, 1776, 1824, 1872, 1920, 1968]. Mechanism: n7/qvm/m7/v7 index an UNCLAMPED E-2016, negative for E < 2016, which wraps to the cache tail; the prefix sums are non-decreasing so r2s[E]-r2s[wrapped] <= 0, v7 collapses to 0 and no name clears v7 >= 1e-4. This holds for ANY cache with T+1 > 2016, so the deletion is unconditional, not fixture-specific.",
+   "builder_stdout_tail": "cumsum ret5 (0s)\ncumsum range (0s)\ncumsum cpos (0s)\ncumsum log_qv (0s)\ncumsum log_cnt (0s)\ncumsum log_avgsz (0s)\ncumsum tbf (0s)\nanchors 173\nNF = 40\u503c + 40\u79e9 + 2funding = 82\nfea 0/173 (0s)\nFEA_EXT_DONE (173, 80, 82)\n",
+   "error": null,
+   "item": "TIM-01",
+   "asserted_correct_behaviour": "king builder must emit EVERY grid anchor; the unclamped E-2016 must not delete early anchors"
+  },
+  {
+   "case": "R-FEA-1",
+   "outcome": "RED_CORRECT",
+   "expected": "absent cells carry a value distinguishable from a true zero",
+   "observed": {
+    "absent_cells_written_as_0.0": 606,
+    "genuine_zero_cells_also_0.0": 202
+   },
+   "why_red": "pod_dlw_features_ext.py L94 writes nan_to_num(panel, 0.0) into cols 80/81, so a name with NO funding in the panel and a name whose funding rate really is 0.0 become the SAME float16 token. The availability bit is destroyed at write time and is not recoverable from the artifact -- which is why changing the FILL VALUE would not fix FEA-01; the column needs a separate availability bit.",
+   "builder_stdout_tail": "",
+   "error": null,
+   "item": "FEA-01",
+   "asserted_correct_behaviour": "fea82 funding columns must distinguish ABSENT from a true zero: absent must not be written as 0.0"
+  },
+  {
+   "case": "R-FEA-2",
+   "outcome": "RED_CORRECT",
+   "expected": "unknown (NaN), distinguishable from a real zero rate",
+   "observed": {
+    "cells_written_as_0.0": 631,
+    "anchors_without_a_panel_row": 8
+   },
+   "why_red": "pod_dlw_features_ext.py L94 writes `0.0 if j is None`, so an anchor the panel never covered is indistinguishable from an anchor whose funding really was zero -- the same collapse as R-FEA-1, at anchor granularity rather than name granularity.",
+   "builder_stdout_tail": "",
+   "error": null,
+   "item": "FEA-01",
+   "asserted_correct_behaviour": "fea82 funding must be UNKNOWN, not 0.0, for an anchor that has no panel row at all"
+  },
+  {
+   "case": "R-TRD-1",
+   "outcome": "RED_CORRECT",
+   "expected": "identical member sets (only rows > E differ between the two caches)",
+   "observed": {
+    "symdiff": [
+     11
+    ],
+    "j_member_in_A": true,
+    "j_member_in_B": false
+   },
+   "why_red": "the two caches are bitwise identical on every row <= E and differ ONLY on rows AFTER the anchor, yet the member set changed. Cause: the isfinite(y4s) term in the screen (pod_dlw_targets_raw.py L107) lets a property of the FUTURE decide whether a row is trained on. Production's screen (shadow_loop_v3.py L374) has no forward term at all. Interventional, not correlational: nothing else differs.",
+   "builder_stdout_tail": "xt_row\": 0.0016643225503984998}}\n[    0.0s] sha256 inputs ...\n[    0.0s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.1s] cumsums done\n[    0.1s] anchors 202 \u5e73\u5747\u6210\u5458 79 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.4s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0712\n[    0.6s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 +0.006 @+1 +0.003 (n=82)\n[    0.6s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 79.35643564356435, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 19.096107482910156, \"mean_diff_bps\": -0.020828790962696075, \"spearman_same_row_median\": 0.9999756572541385, \"spearman_prev_row\": 0.005963972736124635, \"spearman_next_row\": 0.0025073028237585205}}\n",
+   "error": null,
+   "item": "TRD-05/TRN-06",
+   "asserted_correct_behaviour": "DL membership must not depend on any cache row AFTER the anchor: no look-ahead term"
+  },
+  {
+   "case": "R-TRD-2",
+   "outcome": "RED_CORRECT",
+   "expected": "the dead name is not a training member",
+   "observed": {
+    "member": true,
+    "label_exactly_zero": true,
+    "label": 0.0
+   },
+   "why_red": "name 12 has no traded bar after the anchor -- its rows are frozen at exactly 0, which is FINITE, not NaN. So coverage stays 1.0 and isfinite(y4s) is TRUE, and the name enters training with a label of exactly 0. This is TRD-05's channel A: the row is kept and teaches the model that a dead contract returns zero. Note it is the opposite direction to R-TRD-1's channel B.",
+   "builder_stdout_tail": "[    0.0s] sha256 inputs ...\n[    0.1s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.3s] cumsums done\n[    0.4s] anchors 202 \u5e73\u5747\u6210\u5458 80 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.8s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0679\n[    0.9s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 +0.028 @+1 +0.028 (n=82)\n[    0.9s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 79.56930693069307, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 18.843318939208984, \"mean_diff_bps\": 0.024463890120387077, \"spearman_same_row_median\": 0.9999765588373184, \"spearman_prev_row\": 0.027555086732301923, \"spearman_next_row\": 0.02790670417252696}}\n",
+   "error": null,
+   "item": "TRD-05/TRN-06",
+   "asserted_correct_behaviour": "a contract with no traded bar after the anchor must not be a member with a label of exactly 0"
+  },
+  {
+   "case": "R-TIM-5",
+   "outcome": "RED_CORRECT",
+   "expected": "row E moves the anchor's own member statistic qvk",
+   "observed": {
+    "qvk_a": 10.1328125,
+    "qvk_b": 10.1328125,
+    "control_next_anchor_a": 10.1328125,
+    "control_next_anchor_b": 10.14018726348877,
+    "control_moved": true
+   },
+   "why_red": "log_qv was raised on the anchor bar E of one name and NOTHING else changed, yet that anchor's own qvk is bit-identical: the legacy member window is rows [E-2016, E-1] (pod_dlw_targets_raw.py L88, S = max(E-TRAIL, 0), half-open at E), so the bar closing AT the anchor -- which the producer does use (shadow_loop_v3.py L365, rows [E-2015, E]) -- is invisible to it. Positive control: the NEXT anchor, whose window contains row E under both definitions, does move.",
+   "builder_stdout_tail": "spearman_next_row\": 0.0002578527894983592}}\n[    0.0s] sha256 inputs ...\n[    0.0s] cache 10320x80x7 ts 1640995200..1644090900\n[    0.1s] cumsums done\n[    0.1s] anchors 202 \u5e73\u5747\u6210\u5458 80 (\u2265360: 0) \u5e74\u4efd {np.int64(2022): np.int64(202)}\n[    0.5s] YR4s \u5b8c\u6210 202/202 \u951a(\u6709\u9762\u677f\u884c 202), \u516d\u56e0\u5b50\u503c\u7a7a\u95f4 R\u00b2 \u4e2d\u4f4d 0.0709\n[    0.6s] \u5bf9\u9f50\u81ea\u68c0(y4s vs \u9762\u677f\u65e7 Y4): @0 +1.000 @-1 -0.000 @+1 +0.000 (n=82)\n[    0.6s] TARGETS_DONE {\"n_anchors\": 202, \"mean_members\": 80.0, \"n_res\": 202, \"years\": {\"2022\": 202}, \"target_vs_old\": {\"median_abs_diff_bps\": 19.207731246948242, \"mean_diff_bps\": -0.018241718411445618, \"spearman_same_row_median\": 0.9999765588373184, \"spearman_prev_row\": -0.0002109772641101308, \"spearman_next_row\": 0.0002578527894983592}}\n",
+   "error": null,
+   "item": "TIM-01",
+   "asserted_correct_behaviour": "DL member statistics must include row E, matching the producer's [E-2015, E] window"
+  }
+ ],
+ "tally": {
+  "RED_CORRECT": 8
+ },
+ "valid_reds": [
+  "R-TIM-1",
+  "R-TIM-2",
+  "R-TIM-3",
+  "R-FEA-1",
+  "R-FEA-2",
+  "R-TRD-1",
+  "R-TRD-2",
+  "R-TIM-5"
+ ],
+ "green": [],
+ "invalid": [],
+ "utc_end": "2026-09-16T04:12:29Z",
+ "wall_s": 17.5
+}
