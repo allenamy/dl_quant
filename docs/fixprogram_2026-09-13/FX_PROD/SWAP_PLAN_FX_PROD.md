@@ -70,7 +70,12 @@ Window: start ≥ N+1:00 after anchor N, once the producer, combo_live and sidec
 - **S3 re-verify.** Recompute the sha of live `state/aux.json` and `state/leg_returns_live.json`. If they differ from S1 (the producer ran), go back to S1.
 - **S4 backup.** `cp -p` each of the five files to `<file>.pre_fxprod_<UTC>` next to it and record the sha.
 - **S5 install.** Copy each new file to `<file>.fxprod_tmp` in the same directory, verify its sha against §1/STAGED, then `mv -f` it over the target (atomic rename). Re-verify all five shas.
-- **S6 restart.** `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`, then verify:
+- **S6 restart — TWO daemons, not one.** `shadow_loop_v3.py` runs inside the long-lived producer, and **`fea171/combo_live_daemon.sh` is itself a long-lived bash process** (PID 812 has been running since the 09-14 reboot), so a changed daemon *script* is **not** picked up per anchor the way `combo_stage.py` / `sidecar_blend.py` / `combo_anchor_record.py` are. Both need a kickstart:
+  - `launchctl kickstart -k gui/$(id -u)/com.hsy.shadowloop`
+  - `launchctl kickstart -k gui/$(id -u)/com.hsy.combolive`  ← **new in this swap (PROD-27)**; without it the old daemon keeps running and none of the new records or pages exist, while every file on disk looks correct.
+  `kill` is **not** a restart verb under launchd KeepAlive (lead's ruling 09-13: kill ⇒ respawn in 1 s; bootout unloads; kickstart is the restart). **`com.hsy.sidecar` needs no restart** — its script is unchanged and `sidecar_blend.py` is relaunched every anchor.
+  Note S5's atomic `mv -f` is load-bearing for the daemon specifically: bash reads a script incrementally by byte offset, so editing `combo_live_daemon.sh` **in place** while it runs can corrupt the running loop. Writing `<file>.fxprod_tmp` and renaming leaves the running process on the old inode until it is kickstarted.
+  After the kickstart, verify:
   - the new PID differs and `ps eww <pid>` shows `SHADOW_OFFSET_MIN=16`;
   - `shadow.lock` holds the new PID;
   - `loop.out` shows a new `next <N+4h+16min>` line and no `REFUSE_TO_START` (the new code refuses when `ema_v0` is missing or inconsistent);
@@ -114,3 +119,24 @@ After data.binance.vision publishes month M (normally in the first days of M+1):
 - a re-run on an already corrected state is a no-op by construction — the input's own tail labels are authoritative, so every already-absorbed row resolves to "no change" (measured: 598 of 598 on the 09-13 state). If anything is still applied the positive control fails and the job exits 2 without writing a state file;
 - install `aux.corrected.json` with §4 S3–S6 (aux only).
 The September zip resolves T 09-06 00Z and SKR 09-07 20Z, and confirms ZKC 09-02 20Z and SOPH 09-11 12Z.
+
+## 8. Deployment order and dependencies against the executor branches (lead's request)
+The producer stack is based on **b891748** (a byte-identical snapshot of the live producer files); the three executor branches are based on **ef60f85**. They are different bases and different repositories, so "which goes first" cannot be read off a merge — it has to come from what each side *reads*.
+
+**The good news, stated first because it bounds everything below:** the producer and the executor are coupled through exactly one artefact, `state/target_live/<A>.json`, whose **schema is unchanged** by this stack (`wide_target_v1`, same fields, same `universe_sha` / `booster_sha` / `weights_sha` / `json_sha` semantics). P1/P2/P9 change the *values* inside it, not its shape. So no executor change is required for the producer swap to land, and no producer change is required for the executor branches to land.
+
+| # | Step | Depends on | Independent of | Rollback verb | Acceptance anchor |
+|---|---|---|---|---|---|
+| D1 | P5 + P1 + correction + compose ⇒ **STAGED state** (`aux.json`, `leg_returns_live.json`) | nothing; offline, on a copy | everything on the executor side | discard the staged files; nothing installed yet | none — offline, gated by §2's compose check |
+| D2 | Install the **five files + the two new ones** (`shadow_loop_v3.py`, `combo_stage.py`, `sidecar_blend.py`, **`combo_live_daemon.sh`**, **`combo_anchor_record.py`**, plus STAGED `aux.json` / `leg_returns_live.json`) | **D1** — the new producer REFUSES TO START without `ema_v0` (measured: `REFUSE_TO_START: FUND_COL80_V0 but state has no ema_v0`). **Code and state must go together**; a `.py`-only swap brings the producer down at its next state load | executor branches | S4 backups + `mv -f` back, then D3's kickstarts | A1 = N+4h, §5 list |
+| D3 | Kickstart **both** `com.hsy.shadowloop` and `com.hsy.combolive` | D2 | executor branches | kickstart again after restoring files | A1 |
+| D4 | Executor branches (fx_exec / fx_exec2 / fx_w6c, stacked on ef60f85) | nothing in the producer stack | D1–D3 | `ops/safe_commit.sh` + battery, per their runbook | their own first anchor |
+| D5 | **PROD-44** — the `anchor_report.py` reader switching to `state/combo_anchor_record/<A>.json` | **D2/D3**, because the record does not exist on the live tree until the producer swap lands | — | revert the reader | first anchor after D3 |
+
+**The only genuine ordering constraint between the two sides is D5.** If FX-EXEC2 lands the new reader before D3, `combo_anchor_record/` is empty on the live tree and it would warn on every anchor. I have told them the safe form: read the new record **when present**, else fall back to the old slot **with the `S["anchor"] == A` comparison added** — that takes the correctness immediately and the better object later, and removes the ordering constraint entirely.
+
+**What is NOT a dependency, despite looking like one.** The executor does not compute features and never reads column 80; it reads weights from `target_live` and validates shas. So the col-80 caliber change (P1/P2) has **no executor-side prerequisite**. The example in the request — "the v0 state migration and a consistent bundle must precede any executor change that reads col-80" — has no executor change to precede, because no executor code reads col-80. The v0/bundle prerequisite is real but it is **internal to the producer** (D1 before D2), which is why the REFUSE_TO_START is the right guard for it.
+
+**A bundle re-export is a separate, later item and is not part of this swap.** With `FUND_COL80_V0` on, a bootstrap from the current v3 bundle refuses: there is no `fund_ema_v0_state.json`, and P6 refuses the ONG 08-25 08Z seed label. So **a bundle reset is not a rollback path for the new code** (§6) — until the bundle is re-exported, a reset needs the old code.
+
+**Order I would run it in:** D1 → D2 → D3 (one producer swap window, outside anchor windows, finishing before N+3:30) → verify A1 against §5 → then D4 and D5 independently on the executor's own schedule. D4 can equally go first; nothing in it blocks or is blocked by the producer.
