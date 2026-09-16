@@ -43,7 +43,7 @@ docs 首行元信息 `> **创建:** … | **Session:** … | **状态:** … | *
 | 换装工程/组件/校验 | `docs/CHECKLIST_combo_switch_2026-08-26.md` |
 | 恢复研究某条轴 / DNR | `docs/MILESTONE_2026-08-26.md` §2/§5(08-11 前的查上期) |
 | 判决翻转案例/装置纪律 | `docs/PREREG_leg_ablation_2026-08-26.md` RECONCILIATION + `docs/ERROR_LEDGER_2026-08-20.md` |
-| 部署/回滚/电池 | `~/dl_quant_live/ops/safe_commit.sh` + `run_acceptance.sh` |
+| 部署/回滚/电池 | `~/dl_quant_live/ops/safe_commit.sh` + **`~/dl_quant_live/run_acceptance.sh`(在仓库根, 不在 `ops/`)**; 其 L28 是 `PY="${ACCEPT_PY:-/usr/bin/python3}"` —— **可覆盖的缺省而非硬钉**, 且认证它的守卫只查源码子串 ⇒ **绿电池认证的是「钉写在文件里」不是「钉被用了」**; 引用任何「逐套件 N/M」必须同时说明解释器(KB-73, 2026-09-16 更正) |
 | 月度重训 | `docs/RUNBOOK_monthly_retrain_2026-09.md` |
 | 长期记忆索引 | `~/.claude/projects/...quant-research/memory/MEMORY.md` |
 
