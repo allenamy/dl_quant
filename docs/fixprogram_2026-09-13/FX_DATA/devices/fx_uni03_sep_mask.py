@@ -15,6 +15,11 @@ No new cache lineage is needed: `dlnative_5m_wide829_f16_ext.npz` — the cache 
 2026-09-01T00:00Z, which IS the first September anchor, and the 30-day window is the 8640 bars strictly before it. The September row
 is therefore the same rule on the same cache, one month further on, not an extrapolation.
 
+Boundary, and runs 12/13 got it wrong. The x0910 panel axis extends past the committed mask by 60 anchors, but five of them
+(2026-08-31 04:00Z .. 20:00Z) are still AUGUST anchors, and the monthly rule assigns a row by calendar month, so they must keep
+the August row. Runs 12 and 13 wrote the September row over those five. Rows are now assigned by the anchor's calendar month and
+an assertion covers the August tail; the true September anchor count is 55, not 60.
+
   A  positive control: rebuild EVERY committed monthly row from that cache and require bitwise equality with the stored
      `umask_UPIT.npz`, and with `umask_UPIT_CRYPTO.npz` after the class filter. If either fails, no September row is written.
   B  the September row at 2026-09-01T00:00Z under the same rule and the same class vector.
@@ -153,9 +158,17 @@ log("B", json.dumps(rec["B_september_row"]))
 # ---------------- C. what the carried-forward row gets wrong ----------------
 add = [PSYM[j] for j in np.where(sep_c & ~aug_c)[0]]
 drop = [PSYM[j] for j in np.where(aug_c & ~sep_c)[0]]
-sep_rows = int((PTSX > PTS[-1]).sum())
+# the monthly rule assigns a row by CALENDAR MONTH of the anchor, so the x0910 tail is not all September:
+# 2026-08-31 04:00Z..20:00Z are August anchors and must keep the August row. Runs 12/13 wrote the September row over them.
+is_sep = np.array([(time.gmtime(int(t)).tm_year, time.gmtime(int(t)).tm_mon) == (2026, 9) for t in PTSX])
+tail = np.zeros(len(PTSX), bool); tail[len(PTS):] = True
+aug_tail = tail & ~is_sep
+sep_rows = int(is_sep.sum())
 rec["C_difference"] = {"september_anchors_on_x0910_axis": sep_rows,
-                       "first_september_anchor": utc(PTSX[len(PTS)]) if sep_rows else None,
+                       "first_september_anchor": utc(PTSX[int(np.argmax(is_sep))]) if sep_rows else None,
+                       "x0910_tail_anchors_beyond_the_committed_mask": int(tail.sum()),
+                       "of_which_still_august": int(aug_tail.sum()),
+                       "still_august_anchors": [utc(t) for t in PTSX[aug_tail]],
                        "last_x0910_anchor": utc(PTSX[-1]),
                        "added_by_the_september_rule": sorted(add), "n_added": len(add),
                        "dropped_by_the_september_rule": sorted(drop), "n_dropped": len(drop),
@@ -193,8 +206,13 @@ def det_npz(path, arrays):
     os.replace(tmp, path)
 os.makedirs(OUT_DIR, exist_ok=True)
 nX = len(PTSX)
-MX_U = np.zeros((nX, NW), bool); MX_U[:len(PTS)] = UPIT; MX_U[len(PTS):] = sep
-MX_C = np.zeros((nX, NW), bool); MX_C[:len(PTS)] = CRY; MX_C[len(PTS):] = sep_c
+MX_U = np.zeros((nX, NW), bool); MX_U[:len(PTS)] = UPIT
+MX_U[aug_tail] = UPIT[aug_j]; MX_U[is_sep] = sep                 # by calendar month, not by "past the old axis"
+MX_C = np.zeros((nX, NW), bool); MX_C[:len(PTS)] = CRY
+MX_C[aug_tail] = CRY[aug_j]; MX_C[is_sep] = sep_c
+check("W.august_tail_anchors_keep_the_august_row",
+      bool(np.array_equal(MX_C[aug_tail], np.tile(CRY[aug_j], (int(aug_tail.sum()), 1)))),
+      {"anchors": int(aug_tail.sum())})
 check("W.august_prefix_unchanged", bool(np.array_equal(MX_C[:len(PTS)], np.asarray(SC["mask"]))), {"rows": int(len(PTS))})
 outs = {}
 for nm, arr in (("umask_UPIT_x0910_sep", MX_U), ("umask_UPIT_CRYPTO_x0910_sep", MX_C)):
