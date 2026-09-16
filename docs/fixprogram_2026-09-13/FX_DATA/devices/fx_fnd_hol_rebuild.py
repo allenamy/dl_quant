@@ -89,6 +89,10 @@ rec["verbatim_ema_block"] = {"source": SPLICE_SRC, "first_line": EMA_STMTS[0].li
                              "n_statements": len(EMA_STMTS), "wrapper": "for _once in (0,): -- so the block's bare `continue` keeps its original meaning",
                              "ast_sha256": hashlib.sha256("".join(ast.dump(n) for n in EMA_STMTS).encode()).hexdigest(),
                              "source_span_sha256": hashlib.sha256("".join(_lines).encode()).hexdigest()}
+_stored = {t_.id for n in EMA_STMTS for x in ast.walk(n) for t_ in ([x] if isinstance(x, ast.Name) and isinstance(x.ctx, ast.Store) else [])}
+_loaded = {x.id for n in EMA_STMTS for x in ast.walk(n) if isinstance(x, ast.Name) and isinstance(x.ctx, ast.Load)}
+FREE_NAMES = sorted(_loaded - _stored - set(dir(__builtins__)) - {"np"})
+rec["verbatim_ema_block_free_names"] = FREE_NAMES     # every one must be supplied, and a missing one is named, never guessed
 EMA_CODE = compile(EMA_SRC, SPLICE_SRC + " [statements %d-%d, wrapped in a 1-iteration loop]" % (EMA_STMTS[0].lineno, EMA_STMTS[-1].end_lineno), "exec")
 log("verbatim EMA block: lines %d-%d, %d statements" % (EMA_STMTS[0].lineno, EMA_STMTS[-1].end_lineno, len(EMA_STMTS)))
 
@@ -106,18 +110,20 @@ log("axes: prefix %d cut %s tail %d" % (nC, U(cut), len(tail_ts)))
 
 # ---------------- C1: HOL control ----------------
 HZ = np.load(HOLES, allow_pickle=True)
-runs = []
-for k in HZ.files:
-    if "run" in k.lower() or "fill" in k.lower():
-        try: runs = np.asarray(HZ[k]).reshape(-1, 2).astype(np.int64).tolist(); break
-        except Exception: pass
-if not runs:   # fall back to the cell list itself
-    tsc = np.asarray(HZ[[k for k in HZ.files if k.lower().startswith("ts")][0]]).astype(np.int64)
-    runs = [[int(tsc.min()), int(tsc.max())]]
+# `fill_runs` and `neigh_rows` are 5m CACHE ROW INDICES, not timestamps -- run 26 read them as ts, which put every anchor in the
+# "away" bucket and inverted C1 (near 0 / away 393,475 against AD_D's 393,475 / 0). The cache grid starts 2022-01-01T00:00Z at
+# 300 s, verified: row 16129 -> 1645833900 = 2022-02-26T00:05Z = the cell list's own minimum. `neigh_rows` is AD_D's OWN
+# precomputed neighbourhood (8,640 rows back, 288 forward), so this device uses it rather than re-deriving the window.
+CACHE_T0, BAR = 1640995200, 300
+_cells_ts = np.asarray(HZ["ts"]).astype(np.int64)
+assert int(_cells_ts.min()) == CACHE_T0 + int(np.asarray(HZ["fill_runs"])[0, 0]) * BAR, "cache grid origin does not check out"
+runs = [(CACHE_T0 + int(a) * BAR, CACHE_T0 + int(b) * BAR) for a, b in np.asarray(HZ["fill_runs"]).tolist()]
+neigh = [(CACHE_T0 + int(a) * BAR, CACHE_T0 + int(b) * BAR) for a, b in np.asarray(HZ["neigh_rows"]).tolist()]
 rec["hole_runs_utc"] = [[U(a), U(b)] for a, b in runs]
+rec["hole_neighbourhoods_utc"] = [[U(a), U(b)] for a, b in neigh]
 near = np.zeros(nC, bool)
-for a, b in runs:                                  # an anchor is "near" if its longest window touches a fill run
-    near |= (ct >= (a - 8640 * 300)) & (ct <= (b + 288 * 300))
+for a, b in neigh:
+    near |= (ct >= a) & (ct <= b)
 c1 = {}
 tot_near = tot_away = 0
 for k in KLINE:
@@ -198,15 +204,20 @@ def stream(s, mode):
 def build_funding(mode):
     out = {c: np.array(INC[c], copy=True) for c in FUND}
     for c in FUND: out[c][:nC] = CAN[c]
-    state = {}; agg = {}
+    state = {}; agg = {}; ncont = [0]
     for j, s in enumerate(syms):
         ft, fr, iv_full, tiers = stream(s, mode)
         for k, v in tiers.items(): agg[k] = agg.get(k, 0) + v
         if ft is None: continue
         rate_nf = fr * (8.0 / iv_full)
         ns = {"np": np, "CAN": CAN, "out": out, "j": j, "s": s, "ft": ft, "fr": fr, "iv_full": iv_full,
-              "rate_nf": rate_nf, "cut": cut, "tail_ts": tail_ts, "nC": nC, "HL": HL, "state": state}
+              "rate_nf": rate_nf, "cut": cut, "tail_ts": tail_ts, "nC": nC, "HL": HL, "state": state,
+              "n_cont": 0}
+        missing = [n for n in FREE_NAMES if n not in ns]
+        assert not missing, ("the verbatim block reads names this device does not supply", missing)
         exec(EMA_CODE, ns)
+        ncont[0] += ns.get("n_cont", 0)
+    agg["_symbols_continued"] = ncont[0]
     return out, agg
 
 FL, agg_l = build_funding("legacy"); log("legacy funding rebuilt", json.dumps(agg_l))
