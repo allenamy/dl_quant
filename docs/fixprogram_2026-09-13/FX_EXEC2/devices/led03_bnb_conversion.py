@@ -40,9 +40,12 @@ sys.path.insert(0, os.path.join(TREE, "live"))
 import bnb_conversion as BC        # noqa: E402  — the caliber, not re-implemented here
 
 BASE = "https://data.binance.vision/data"
-SPOT = BASE + "/spot/monthly/klines/BNBUSDT/1m/BNBUSDT-1m-{m}.zip"
-PERP = BASE + "/futures/um/monthly/klines/BNBUSDT/1m/BNBUSDT-1m-{m}.zip"
-MONTHS = ("2026-08", "2026-09")
+# ★ DAILY files, one per batch DAY, not monthly. The monthly archive for an in-progress month does not exist —
+#   2026-09 returns 404 while 2026-08 returns 200 — so a monthly-only device would have silently had no prices for
+#   the 09-06 batch, which is the largest BNB one. Daily files also make the provenance exact: the receipt names one
+#   archived file per day converted, instead of a month of minutes of which a few were used.
+SPOT = BASE + "/spot/daily/klines/BNBUSDT/1m/BNBUSDT-1m-{d}.zip"
+PERP = BASE + "/futures/um/daily/klines/BNBUSDT/1m/BNBUSDT-1m-{d}.zip"
 
 
 def sha(b):
@@ -84,10 +87,16 @@ def closes_from_zip(raw):
     return out
 
 
+proxy_pre = json.load(open(PROXY))
+DAYS = sorted({b["day"] for b in proxy_pre["batches"].values()
+               if (b.get("proxy_fee_by_asset_unambiguous") or {}).get("BNB") is not None})
+assert DAYS, "no batch carries a BNB proxy fee"
+
 sources, spot_closes, perp_closes = {}, {}, {}
-for m in MONTHS:
+for _d in DAYS:
+    dash = f"{_d[:4]}-{_d[4:6]}-{_d[6:8]}"
     for label, url_t, sink in (("spot", SPOT, spot_closes), ("perp_sensitivity", PERP, perp_closes)):
-        url = url_t.format(m=m)
+        url = url_t.format(d=dash)
         dest = os.path.join(CACHE, label, os.path.basename(url))
         raw, cached = fetch(url, dest)
         our = sha(raw)
@@ -97,13 +106,13 @@ for m in MONTHS:
         except Exception as e:
             published, csum_raw = None, None
         ok = (published is not None and published.lower() == our.lower())
-        sources[f"{label}:{m}"] = {"url": url, "bytes": len(raw), "sha256_ours": our,
+        sources[f"{label}:{dash}"] = {"url": url, "bytes": len(raw), "sha256_ours": our,
                                    "published_checksum": published,
                                    "matches_published_checksum": ok, "served_from_cache": cached}
         assert published is None or ok, f"{url}: published checksum {published} != ours {our}"
         sink.update(closes_from_zip(raw))
 
-proxy = json.load(open(PROXY))
+proxy = proxy_pre
 inc = [json.loads(l) for l in open(INCOME) if l.strip()]
 inc_sha = sha(open(INCOME, "rb").read())
 assert inc_sha == proxy.get("income_sha256", inc_sha), "income ledger is not the one the proxy receipt was built on"
@@ -126,9 +135,9 @@ for rid, b in sorted(proxy["batches"].items()):
     if abs(abs(got) - abs(float(want))) > 1e-8:
         control["mismatch"].append({"rid": rid, "proxy_bnb": want, "selected_bnb": got, "n_rows": len(rows)})
         continue
-    agg = BC.convert_rows(rows, spot_closes, source={"caliber_source": "data.binance.vision spot monthly klines",
-                                                     "months": list(MONTHS)})
-    sens = BC.convert_rows(rows, perp_closes, source={"caliber_source": "futures/um monthly klines (SENSITIVITY)"})
+    agg = BC.convert_rows(rows, spot_closes, source={"caliber_source": "data.binance.vision spot DAILY klines",
+                                                     "days": DAYS})
+    sens = BC.convert_rows(rows, perp_closes, source={"caliber_source": "futures/um DAILY klines (SENSITIVITY ONLY)"})
     out_batches[rid] = {
         "day": b["day"], "trip_utc": b["trip_utc"], "window_s": b["window_s"],
         "proxy_bnb": want, "selected_bnb": got, "n_rows": len(rows),
@@ -151,7 +160,7 @@ rec = {"device": os.path.basename(__file__), "device_sha256": sha(open(os.path.a
        "caliber": BC.CALIBER, "executor_tree": TREE,
        "bnb_conversion_sha256": sha(open(os.path.join(TREE, "live", "bnb_conversion.py"), "rb").read()),
        "income_sha256": inc_sha, "proxy_receipt_sha256": sha(open(PROXY, "rb").read()),
-       "price_sources": sources,
+       "price_days": DAYS, "price_sources": sources,
        "n_spot_minutes": len(spot_closes), "n_perp_minutes": len(perp_closes),
        "positive_control": control,
        "totals": {"bnb_selected": sum(v["selected_bnb"] for v in out_batches.values()),
