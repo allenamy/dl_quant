@@ -29,7 +29,7 @@ MUTANTS = [
      "thr = None if cur.get('mad') is None else k * MAD_TO_SIGMA * float(cur.get('mad'))",
      "scale the threshold by the CURRENT band's dispersion instead of the frozen reference's — i.e. make the drift "
      "check self-calibrating again, which is the very defect being fixed",
-     "the 7%"),
+     "the line came from the FROZEN reference"),
     ("M2_delta_in_trip_condition",
      "live/cost_drift.py",
      '"warn": bool(why is None and d is not None and thr is not None and abs(d) > thr),',
@@ -60,7 +60,7 @@ MUTANTS = [
      "MIN_N = 12",
      "MIN_N = 1",
      "drop the minimum-sample requirement, so a three-anchor band can issue a verdict",
-     "current band gives no verdict"),
+     "thin CURRENT band"),
     ("M7_reference_level_not_printed",
      "live/cost_drift.py",
      'return (f"参照({cfg.get(\'window_name\')}): taker 中位 {_pct(t.get(\'reference_median\'), 1)} "',
@@ -84,11 +84,15 @@ def sha_tree():
 
 def run_suite():
     p = subprocess.run(["/usr/bin/python3", "-B", SUITE], capture_output=True, text=True, cwd=CLONE, timeout=900)
-    failed = []
+    failed, saw_summary = [], False
     for line in p.stdout.splitlines():
         if line.startswith("FAILED: "):
             failed = [x.strip() for x in line[len("FAILED: "):].split(";")]
-    return p.returncode, failed, p.stdout
+        if line.strip().endswith(" pass"):
+            saw_summary = True
+    # ★ rc 1 with NO summary line means the suite CRASHED. A crash is not "the named cell went red"; it is a cell
+    #   that could not run. It is reported separately so a mutant is never scored KILLED by a traceback.
+    return p.returncode, failed, (p.stdout + "\n" + p.stderr) if not saw_summary else p.stdout
 
 
 before, dirty_before = sha_tree()
@@ -105,15 +109,19 @@ try:
         if applied:
             open(path, "w").write(src.replace(old, new, 1))
         try:
-            rc, failed, _ = run_suite() if applied else (None, [], "")
+            rc, failed, sout = run_suite() if applied else (None, [], "")
         finally:
             open(path, "w").write(src)
         hit = [f for f in failed if want in f]
+        crashed = bool(applied and rc == 1 and not failed)
         results.append({
             "id": mid, "file": rel, "applied": applied, "breaks": what,
             "expected_red_cell_contains": want, "rc": rc, "n_failed": len(failed),
             "named_cell_went_red": bool(hit), "which": hit[:2], "failed": failed[:6],
-            "verdict": ("KILLED" if (applied and rc == 1 and hit)
+            "crashed_no_summary": crashed,
+            "tail": (sout[-600:] if crashed else None),
+            "verdict": ("CRASHED — not a red cell" if crashed else
+                        "KILLED" if (applied and rc == 1 and hit)
                         else ("SURVIVED — SUITE HOLE" if applied and rc == 0
                               else ("RED BUT NOT IN THE NAMED CELL" if applied
                                     else "NOT APPLIED — fragment not found, mutant is stale"))),
