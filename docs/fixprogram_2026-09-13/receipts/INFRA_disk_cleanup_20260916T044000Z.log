@@ -1,0 +1,24 @@
+# INFRA 磁盘清理 2026-09-16T03:19:46Z
+# 目标: 已死会话 6737834a 的 scratchpad(最后写入 2026-09-04T12:54Z, 12 天无活动)中的大件派生数据
+# 原则: 只删二进制/派生缓存(npy/csv/备份目录), 全部 .md/.json/.py 保留(其中有未入库草稿)
+# 删除前 df:
+/dev/disk1s2   466Gi   431Gi    17Gi    97%    4.0M  181M    2%   /System/Volumes/Data
+# --- 逐项(大小 / 最后修改 / 路径) ---
+1.3G  2026-09-01T15:43Z  wide_fea_v2ext.npy  (内含 .md/.py 计数: 0)
+1.3G  2026-07-28T18:49Z  rehearsal  (内含 .md/.py 计数: 1508)
+660M  2026-08-23T00:28Z  bookdepth_hourly  (内含 .md/.py 计数: 0)
+653M  2026-08-26T17:27Z  pod_small  (内含 .md/.py 计数: 0)
+567M  2026-08-21T11:34Z  pod_backup  (内含 .md/.py 计数: 0)
+563M  2026-08-22T15:02Z  spot1h_csv  (内含 .md/.py 计数: 0)
+559M  2026-08-22T12:05Z  live_scratch_ext  (内含 .md/.py 计数: 250)
+559M  2026-08-22T12:05Z  live_scratch  (内含 .md/.py 计数: 250)
+# --- 实际删除(只删 .md/.py 计数为 0 的纯数据件; rehearsal / live_scratch* 含代码, 保留) ---
+DELETED 1.3G  wide_fea_v2ext.npy  rc=0
+DELETED 660M  bookdepth_hourly  rc=0
+DELETED 653M  pod_small  rc=0
+DELETED 567M  pod_backup  rc=0
+DELETED 563M  spot1h_csv  rc=0
+# 保留: rehearsal(1508 个 .md/.py) · live_scratch(250) · live_scratch_ext(250) —— 含代码, 不属纯数据
+# 未触碰: 本会话 scratch b9646a9e(工作者在用) · 四个修复克隆 · fx_*_state_* 账本证据副本 · krw_pull(T7 原始拉取)
+# 删除后 df:
+/dev/disk1s2   466Gi   428Gi    21Gi    96%    4.0M  220M    2%   /System/Volumes/Data
