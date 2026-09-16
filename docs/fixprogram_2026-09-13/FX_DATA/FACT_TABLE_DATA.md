@@ -274,3 +274,30 @@ Devices: `fx_trd01_inject.py` (`26a60e80`, committed at the injection commit bef
 | N9 | **The fixed book does not eliminate the exposure, and the receipt's own field name overstates it.** `absW_on_non_tradable_outside_member_set` counts \|W\| held on cells outside the **fixed universe mask**, which is "not in the U-PIT/CRYPTO mask **or** not tradable" — not non-tradable alone. Read correctly, the TF book still holds **0.70 / 2.09 / 5.02 / 10.83 / 9.37 %** of its gross (2022–26) outside that mask, because `w10_sleeve` does not force-exit names that leave `m`; their `sm` decays by EMA (FACT_TABLE B7). Dead name-anchors still inside the fixed universe (the declared ≤24 h lag): 78 / 18 / 180 / 234 / 197 per year, all of them lag anchors | `X_residual_exposure_TF` |
 
 **Verdict per SPEC §7's own reading rule.** TF's label is **INCONCLUSIVE**, not EQUIVALENT, so the rule that was frozen before any number applies: *"the A0 reference is registered for re-basing by the lead. No research RESULT is edited by FX-DATA."* **TRD-03 is therefore not closed**, and TRD-01's effect measurement is complete. What is still owed on TRD-01 is the red-test battery on the legacy rules A1–A11.
+
+## §TRD-E — the red tests on the legacy rules A1–A11
+
+Device `fx_trd01_redtests.py` (`b6b1a137`), committed at `03fd2bd1` before it ran. Run 19, rc=0, `receipts/run19_redtests.sh` (`ccdb9a94`), receipt `RECEIPT_fx_trd01_redtests.json` (`44a03a0c`).
+
+The stated reason a cell is red is one sentence: **the legacy rule admits (anchor, symbol) pairs with no trade in the trailing 24 h.** Every cell is the same count, `|{rule admits ∧ ¬tradable(A, s)}|`, over the real 10,039-anchor A0 axis and the real 829-name universe — on the rule's own artifact or its own expression. Non-zero on the legacy object is RED; zero on the fixed object is GREEN. Rules FX-DATA has fixed are run on **both** and must flip; rules owned elsewhere are run on the legacy object only, recorded RED, and named — a rule with no fixed artifact is an open defect, not a passing test. **9 rules, 9 RED on legacy, 5 flipped to GREEN.**
+
+| rule | site | legacy admitted ∧ untradable | fixed | owner |
+|---|---|---|---|---|
+| A1 replay member set | `w10_sleeve_r18.py:77-81` | **5,181,986** | no fixed artifact (its fix is A2's mask; the bare qvk ranking has no mask at all) | FX-DATA |
+| A2/A5/A6 universe mask | `:163-165, :222-224` · `build_umask.py:46` · `build_crypto_mask.py:11` | **33,386** | **0** | FX-DATA |
+| A3 fund rank base | `:149-150` | **123,929** | **0** | FX-DATA |
+| A4 trade set `sel` | `:244-245` | **272** of 2,415,098 admitted | **0** | FX-DATA |
+| A7 P2 TRADING proxy | `p2_prep_inputs.py:94-99` | **124,048** | **0** | p2-oos-replay decides consumption |
+| A8 panel `elig` | `pod_panel_ext.py:40` | **5,530** | none yet | FX-DATA / FX-TRAIN (panel rebuild) |
+| A9 king member screen | `pod_fea_ext_clamp.py:37` | **2,341** | none yet | FX-MODEL (TRD-05) |
+| A10 DL member screen | `pod_dlw_targets_raw.py:107` | **2,341** | none yet | FX-MODEL (TRD-05) |
+| A11 T1 state member set | `t1_states.py:77-82` | **33,386** | **0** | T1 / T8 / r19 (TRD-04) |
+
+| # | Fact | Receipt |
+|---|---|---|
+| Q1 | **The trade set is nearly clean; the contamination lives in the rank base and the universe.** A4 admits 2,415,098 pairs and only **272** of them are untradable, because the `qv4h ≥ 2.5e5` liquidity floor removes almost every dead name from the *trade* set — while A3's rank base carries **123,929** untradable cells and A2's universe **33,386**. That is why the TB and TU arms decompose the way §TRD-D3 shows | `cells.A4`, `cells.A3`, `cells.A2` |
+| Q2 | **The six named dead contracts stayed in the universe for six to nine weeks after their last trade**: FTTUSDT **286 anchors = 47.7 days** (last trade 2022-11-14T04:05Z, still admitted to 2022-12-31T20:00Z), RAYUSDT 46.7 d, SCUSDT 44.5 d, STRAXUSDT 46.5 d, **DGBUSDT 60.5 d**, SNTUSDT 48.5 d. The mechanism is the monthly mask: U-PIT is recomputed only at each month's first anchor and `vol30 > 0` keeps a name for the month after that | `dead_fixtures` |
+| Q3 | **The declared lag holds.** 707 name-anchors are TRADABLE while already dead, and the largest gap since the last trade is **23.9 h** — inside SPEC §2's declared ≤24 h bound, which the spec required to be counted rather than hidden. Nothing exceeds it | `lag_fixtures_inside_the_declared_24h` |
+| Q4 | **The module does not over-reject the neighbours.** BTCUSDT is tradable on **100%** of the axis; the thinnest live name in the fixed universe at the last anchor (IRYSUSDT) is tradable there | `neighbour_fixtures` |
+
+**What TRD-01 still owes: nothing.** SPEC frozen, module and builder committed, artifact built and reconciled against the audit census, injection artifacts built, red tests red on all nine legacy rules and green on the five with a fixed artifact, A0 effect measured under the frozen estimator and labelled under the frozen δ. **TRD-03 does not close** (label INCONCLUSIVE, §TRD-D3). The four rules with no fixed artifact belong to FX-MODEL (A9/A10), the panel rebuild (A8) and A2's mask (A1).

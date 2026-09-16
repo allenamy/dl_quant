@@ -1,0 +1,280 @@
+{
+ "device": "fx_trd01_redtests.py",
+ "self_sha256": "b6b1a137989f7e6681622f251cdf7f882e8133527d6849614e1033e7b07d183c",
+ "module_sha256": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+ "spec_sha256": "99ae35e01ec3dd06ba7bf69ea62de8f36cfd2695492ccf53757d985b8a0946b2",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/fx_trd01_redtests.py",
+  "out/trd/tradability_v1.npz",
+  "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302",
+  "out/inject",
+  "out/arms",
+  "out/trd/RECEIPT_fx_trd01_redtests.json"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "inputs": {
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3",
+  "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+  "/workspace/dlw_v4raw/data/dlw_targets.npz": "d1976cf6246cdc25054d21b1a9fa7f8fd02ee43278720d81ce2a35686d63c6f8",
+  "/workspace/uplift_r2_2026-09-13/P2/work/ledger_full.npz": "bea6f5752772d54e659a4da5571ca41945a27d1b2316ec0ae52f387074f795ad"
+ },
+ "stated_reason": "each legacy eligibility rule admits (anchor, symbol) pairs with no trade in the trailing 24 h",
+ "utc_start": "2026-09-16T04:40Z",
+ "artifact_sha256": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302",
+ "dead_fixtures": {
+  "FTTUSDT": {
+   "last_traded": "2022-11-14T04:05Z",
+   "anchors_admitted_by_A2_after_its_last_trade": 286,
+   "first_such_anchor": "2022-11-14T08:00Z",
+   "last_such_anchor": "2022-12-31T20:00Z",
+   "days_admitted_after_death": 47.7,
+   "tradable_at_first_such_anchor": true
+  },
+  "RAYUSDT": {
+   "last_traded": "2022-11-15T04:05Z",
+   "anchors_admitted_by_A2_after_its_last_trade": 280,
+   "first_such_anchor": "2022-11-15T08:00Z",
+   "last_such_anchor": "2022-12-31T20:00Z",
+   "days_admitted_after_death": 46.7,
+   "tradable_at_first_such_anchor": true
+  },
+  "SCUSDT": {
+   "last_traded": "2022-06-17T09:00Z",
+   "anchors_admitted_by_A2_after_its_last_trade": 267,
+   "first_such_anchor": "2022-06-17T12:00Z",
+   "last_such_anchor": "2022-07-31T20:00Z",
+   "days_admitted_after_death": 44.5,
+   "tradable_at_first_such_anchor": true
+  },
+  "STRAXUSDT": {
+   "last_traded": "2024-03-15T09:00Z",
+   "anchors_admitted_by_A2_after_its_last_trade": 279,
+   "first_such_anchor": "2024-03-15T12:00Z",
+   "last_such_anchor": "2024-04-30T20:00Z",
+   "days_admitted_after_death": 46.5,
+   "tradable_at_first_such_anchor": true
+  },
+  "DGBUSDT": {
+   "last_traded": "2024-04-01T09:05Z",
+   "anchors_admitted_by_A2_after_its_last_trade": 363,
+   "first_such_anchor": "2024-04-01T12:00Z",
+   "last_such_anchor": "2024-05-31T20:00Z",
+   "days_admitted_after_death": 60.5,
+   "tradable_at_first_such_anchor": true
+  },
+  "SNTUSDT": {
+   "last_traded": "2024-05-13T09:00Z",
+   "anchors_admitted_by_A2_after_its_last_trade": 291,
+   "first_such_anchor": "2024-05-13T12:00Z",
+   "last_such_anchor": "2024-06-30T20:00Z",
+   "days_admitted_after_death": 48.5,
+   "tradable_at_first_such_anchor": true
+  }
+ },
+ "lag_fixtures_inside_the_declared_24h": {
+  "name_anchors": 707,
+  "examples": [
+   {
+    "symbol": "KEEPUSDT",
+    "anchor": "2022-02-15T04:00Z",
+    "hours_since_last_trade": 1.9
+   },
+   {
+    "symbol": "NUUSDT",
+    "anchor": "2022-02-15T04:00Z",
+    "hours_since_last_trade": 1.9
+   },
+   {
+    "symbol": "KEEPUSDT",
+    "anchor": "2022-02-15T08:00Z",
+    "hours_since_last_trade": 5.9
+   },
+   {
+    "symbol": "NUUSDT",
+    "anchor": "2022-02-15T08:00Z",
+    "hours_since_last_trade": 5.9
+   },
+   {
+    "symbol": "KEEPUSDT",
+    "anchor": "2022-02-15T12:00Z",
+    "hours_since_last_trade": 9.9
+   },
+   {
+    "symbol": "NUUSDT",
+    "anchor": "2022-02-15T12:00Z",
+    "hours_since_last_trade": 9.9
+   },
+   {
+    "symbol": "KEEPUSDT",
+    "anchor": "2022-02-15T16:00Z",
+    "hours_since_last_trade": 13.9
+   },
+   {
+    "symbol": "NUUSDT",
+    "anchor": "2022-02-15T16:00Z",
+    "hours_since_last_trade": 13.9
+   }
+  ],
+  "max_hours_since_last_trade": 23.9,
+  "note": "these are admitted BY DESIGN: SPEC section 2 declares a bounded lag of at most 24 h (6 anchors) and requires it to be counted, not hidden"
+ },
+ "neighbour_fixtures": {
+  "BTCUSDT": {
+   "tradable_share_over_the_axis": 1.0,
+   "tradable_at_last_anchor": true,
+   "role": "must not be rejected by the module"
+  },
+  "IRYSUSDT": {
+   "tradable_share_over_the_axis": 0.1658,
+   "tradable_at_last_anchor": true,
+   "role": "must not be rejected by the module"
+  }
+ },
+ "cells": {
+  "A1_replay_member_set": {
+   "rule": "A1_replay_member_set",
+   "where": "w10_sleeve_r18.py:77-81",
+   "owner": "FX-DATA (fixed only jointly with A2 via UMASK_SCOPE=m1)",
+   "legacy_admitted_cells": 8322331,
+   "legacy_admitted_and_untradable": 5181986,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 4868937,
+   "note": "the qvk ranking alone has no mask; the deployed arm applies A2 on top, so A1's own fix is A2's mask",
+   "fixed_admitted_and_untradable": null,
+   "fixed_verdict": "NO_FIXED_ARTIFACT",
+   "flipped_red_to_green": null
+  },
+  "A2_A5_A6_universe_mask": {
+   "rule": "A2_A5_A6_universe_mask",
+   "where": "w10_sleeve_r18.py:163-165,222-224 via build_umask.py:46 + build_crypto_mask.py:11",
+   "owner": "FX-DATA",
+   "legacy_admitted_cells": 2761057,
+   "legacy_admitted_and_untradable": 33386,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 4013,
+   "note": "the fixed artifact is umask_UPIT_CRYPTO_tradable_W24H.npz from fx_trd01_inject.py",
+   "fixed_admitted_cells": 2727671,
+   "fixed_admitted_and_untradable": 0,
+   "fixed_verdict": "GREEN",
+   "flipped_red_to_green": true
+  },
+  "A3_fund_rank_base": {
+   "rule": "A3_fund_rank_base",
+   "where": "w10_sleeve_r18.py:149-150",
+   "owner": "FX-DATA",
+   "legacy_admitted_cells": 3263949,
+   "legacy_admitted_and_untradable": 123929,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 19169,
+   "note": "the fixed artifact is femat_f_fund_ema_v1_tradable_W24H.npz; its book effect is the TB arm",
+   "fixed_admitted_cells": 3140020,
+   "fixed_admitted_and_untradable": 0,
+   "fixed_verdict": "GREEN",
+   "flipped_red_to_green": true
+  },
+  "A4_trade_set_sel": {
+   "rule": "A4_trade_set_sel",
+   "where": "w10_sleeve_r18.py:244-245",
+   "owner": "FX-DATA",
+   "legacy_admitted_cells": 2415098,
+   "legacy_admitted_and_untradable": 272,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 2,
+   "note": "sel inherits the universe; the frozen close keeps y4 finite at 0 so the forward predicate cannot remove a dead name",
+   "fixed_admitted_cells": 2414826,
+   "fixed_admitted_and_untradable": 0,
+   "fixed_verdict": "GREEN",
+   "flipped_red_to_green": true
+  },
+  "A7_p2_trading_proxy": {
+   "rule": "A7_p2_trading_proxy",
+   "where": "p2_prep_inputs.py:94-99",
+   "owner": "p2-oos-replay",
+   "legacy_admitted_cells": 3264266,
+   "legacy_admitted_and_untradable": 124048,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 19201,
+   "note": "the fixed column is the proxy intersected with the flag; P2 decides whether its certified replay consumes it",
+   "fixed_admitted_cells": 3140218,
+   "fixed_admitted_and_untradable": 0,
+   "fixed_verdict": "GREEN",
+   "flipped_red_to_green": true
+  },
+  "A8_panel_elig": {
+   "rule": "A8_panel_elig",
+   "where": "pod_panel_ext.py:40",
+   "owner": "FX-DATA / FX-TRAIN (panel rebuild)",
+   "legacy_admitted_cells": 3082243,
+   "legacy_admitted_and_untradable": 5530,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 0,
+   "note": "elig = (covr >= 0.95) & (v7 >= 1e-4); the frozen ret5 = 0 is finite so covr stays 1",
+   "fixed_admitted_and_untradable": null,
+   "fixed_verdict": "NO_FIXED_ARTIFACT",
+   "flipped_red_to_green": null
+  },
+  "A9_king_member_screen": {
+   "rule": "A9_king_member_screen",
+   "where": "pod_fea_ext_clamp.py:37 (population = META members)",
+   "owner": "FX-MODEL (TRD-05)",
+   "legacy_admitted_cells": 2728397,
+   "legacy_admitted_and_untradable": 2341,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 0,
+   "note": "counted on the META member lists the king features are built on",
+   "fixed_admitted_and_untradable": null,
+   "fixed_verdict": "NO_FIXED_ARTIFACT",
+   "flipped_red_to_green": null
+  },
+  "A10_dl_member_screen": {
+   "rule": "A10_dl_member_screen",
+   "where": "pod_dlw_targets_raw.py:107",
+   "owner": "FX-MODEL (TRD-05)",
+   "legacy_admitted_cells": 2728397,
+   "legacy_admitted_and_untradable": 2341,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 0,
+   "note": "dlw_targets member lists",
+   "fixed_admitted_and_untradable": null,
+   "fixed_verdict": "NO_FIXED_ARTIFACT",
+   "flipped_red_to_green": null
+  },
+  "A11_t1_state_member_set": {
+   "rule": "A11_t1_state_member_set",
+   "where": "t1_states.py:77-82",
+   "owner": "T1 / T8 / r19 (TRD-04)",
+   "legacy_admitted_cells": 2761057,
+   "legacy_admitted_and_untradable": 33386,
+   "legacy_verdict": "RED",
+   "of_which_nodata": 4013,
+   "note": "same population as A1+A2 on this axis; the treated matrices are in trd04_states_series.npz",
+   "fixed_admitted_cells": 2727671,
+   "fixed_admitted_and_untradable": 0,
+   "fixed_verdict": "GREEN",
+   "flipped_red_to_green": true
+  }
+ },
+ "summary": {
+  "rules": 9,
+  "legacy_RED": 9,
+  "flipped_red_to_green": 5,
+  "no_fixed_artifact_yet": [
+   "A10_dl_member_screen",
+   "A1_replay_member_set",
+   "A8_panel_elig",
+   "A9_king_member_screen"
+  ]
+ },
+ "runtime_s": 412.3,
+ "utc_end": "2026-09-16T04:47Z"
+}
