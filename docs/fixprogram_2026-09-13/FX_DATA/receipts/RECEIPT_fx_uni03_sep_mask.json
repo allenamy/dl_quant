@@ -1,0 +1,822 @@
+{
+ "device": "fx_uni03_sep_mask.py",
+ "self_sha256": "e14df41ad3b17cf97012170a619c055a9da3834c274289f618e80e24bc7f8804",
+ "module_sha256": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/fx_uni03_sep_mask.py",
+  "out/uni03",
+  "out/uni03/RECEIPT_fx_uni03_sep_mask.json"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "inputs": {
+  "/workspace/data/dlnative_5m_wide829_f16_ext.npz": "72eb784949e90a099b6fb41eadc034d1833c712af28d050a390be1bc3ee80b4f",
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_v2ext_x0910.npz": "042478f7d8e9f9476341a2acb310828fcf1f5d4a855c2ad0105a08e78f604549",
+  "/workspace/review_scratch/health_check/masks/umask_UPIT.npz": "ccb7a0805be2a106898467b5ffef3a8fd4813a659e044492c0a437b0e5d7aece",
+  "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5",
+  "/workspace/aud_data_2026-09-13/devices/venue_class_20260908.json": "fa9196a34ce920287041604af4c9c4b1be37468ac75339ef100e42607c71f2ae"
+ },
+ "rule": "build_umask.py U-PIT: first panel anchor of each month, top 449 by sum(expm1(log_qv)) over the 8640 bars strictly before it, among listed >= 30 days with positive volume; held for the month",
+ "utc_start": "2026-09-16T04:08Z",
+ "A_monthly_rows": {
+  "n_months": 56,
+  "first": {
+   "anchor": "2022-01-31T00:00Z",
+   "bars_used": 8640,
+   "n_listed": 139,
+   "n_elig": 136,
+   "n_top": 136,
+   "vol30_449th_usd": 285780318.3596802,
+   "month": "2022-01",
+   "n_anchors": 6
+  },
+  "last": {
+   "anchor": "2026-08-01T00:00Z",
+   "bars_used": 8640,
+   "n_listed": 826,
+   "n_elig": 635,
+   "n_top": 449,
+   "vol30_449th_usd": 53191419.22359848,
+   "month": "2026-08",
+   "n_anchors": 181
+  },
+  "n_unknown_class": 31
+ },
+ "B_september_row": {
+  "anchor": "2026-09-01T00:00Z",
+  "bars_used": 8640,
+  "n_listed": 826,
+  "n_elig": 676,
+  "n_top": 449,
+  "vol30_449th_usd": 57533881.52752304,
+  "n_allowed_upit": 449,
+  "n_allowed_crypto": 375,
+  "august_row_anchor": "2026-08-01T00:00Z",
+  "august_n_allowed_upit": 449,
+  "august_n_allowed_crypto": 373
+ },
+ "C_difference": {
+  "september_anchors_on_x0910_axis": 55,
+  "first_september_anchor": "2026-09-01T00:00Z",
+  "x0910_tail_anchors_beyond_the_committed_mask": 60,
+  "of_which_still_august": 5,
+  "still_august_anchors": [
+   "2026-08-31T04:00Z",
+   "2026-08-31T08:00Z",
+   "2026-08-31T12:00Z",
+   "2026-08-31T16:00Z",
+   "2026-08-31T20:00Z"
+  ],
+  "last_x0910_anchor": "2026-09-10T00:00Z",
+  "added_by_the_september_rule": [
+   "1000CATUSDT",
+   "1000SATSUSDT",
+   "2ZUSDT",
+   "ACUUSDT",
+   "AEVOUSDT",
+   "AIXBTUSDT",
+   "AKTUSDT",
+   "ATUSDT",
+   "AUCTIONUSDT",
+   "BBUSDT",
+   "BEAMXUSDT",
+   "BIGTIMEUSDT",
+   "BMTUSDT",
+   "BROCCOLI714USDT",
+   "BRUSDT",
+   "BTRUSDT",
+   "C98USDT",
+   "COOKIEUSDT",
+   "CTSIUSDT",
+   "CVXUSDT",
+   "CYSUSDT",
+   "DOLOUSDT",
+   "DUSKUSDT",
+   "FIDAUSDT",
+   "FOGOUSDT",
+   "GASUSDT",
+   "GRAMUSDT",
+   "GRVTUSDT",
+   "HFTUSDT",
+   "INXUSDT",
+   "IOTXUSDT",
+   "KAIAUSDT",
+   "KAVAUSDT",
+   "KMNOUSDT",
+   "LSKUSDT",
+   "LUNA2USDT",
+   "MAGICUSDT",
+   "MAVUSDT",
+   "MELANIAUSDT",
+   "MERLUSDT",
+   "ONTUSDT",
+   "POWRUSDT",
+   "ROSEUSDT",
+   "SHELLUSDT",
+   "SIGNUSDT",
+   "SKRUSDT",
+   "SOLVUSDT",
+   "SOPHUSDT",
+   "SQDUSDT",
+   "SSVUSDT",
+   "SUPERUSDT",
+   "SWARMSUSDT",
+   "TWTUSDT",
+   "USUALUSDT",
+   "VELODROMEUSDT",
+   "VICUSDT",
+   "WALUSDT",
+   "WAXPUSDT",
+   "XAIUSDT",
+   "XNYUSDT"
+  ],
+  "n_added": 60,
+  "dropped_by_the_september_rule": [
+   "1INCHUSDT",
+   "1MBABYDOGEUSDT",
+   "ACHUSDT",
+   "AGLDUSDT",
+   "AGTUSDT",
+   "ALCHUSDT",
+   "ANKRUSDT",
+   "API3USDT",
+   "ARPAUSDT",
+   "AUSDT",
+   "AWEUSDT",
+   "B2USDT",
+   "BANANAUSDT",
+   "BANUSDT",
+   "BREVUSDT",
+   "BROCCOLIF3BUSDT",
+   "BSVUSDT",
+   "CELOUSDT",
+   "CHRUSDT",
+   "DEEPUSDT",
+   "DOGSUSDT",
+   "FLOCKUSDT",
+   "FOLKSUSDT",
+   "GUSDT",
+   "HOTUSDT",
+   "INUSDT",
+   "IRYSUSDT",
+   "JELLYJELLYUSDT",
+   "KATUSDT",
+   "LAYERUSDT",
+   "LINEAUSDT",
+   "LUMIAUSDT",
+   "LYNUSDT",
+   "MANTAUSDT",
+   "NAORISUSDT",
+   "NFPUSDT",
+   "OGNUSDT",
+   "PHAROSUSDT",
+   "PLAYUSDT",
+   "QTUMUSDT",
+   "REDUSDT",
+   "REZUSDT",
+   "RLCUSDT",
+   "RPLUSDT",
+   "SAFEUSDT",
+   "SKLUSDT",
+   "SOMIUSDT",
+   "SPACEUSDT",
+   "SPELLUSDT",
+   "TAIKOUSDT",
+   "TAUSDT",
+   "TOSHIUSDT",
+   "TRUTHUSDT",
+   "TUSDT",
+   "VANAUSDT",
+   "WETUSDT",
+   "YFIUSDT",
+   "ZETAUSDT"
+  ],
+  "n_dropped": 58,
+  "cells_changed_per_september_anchor": 118,
+  "share_of_the_allowed_set": 0.3164,
+  "upit_only_added": [
+   "1000CATUSDT",
+   "1000SATSUSDT",
+   "2ZUSDT",
+   "ACUUSDT",
+   "AEVOUSDT",
+   "AIXBTUSDT",
+   "AKTUSDT",
+   "ATUSDT",
+   "AUCTIONUSDT",
+   "BBUSDT",
+   "BEAMXUSDT",
+   "BIGTIMEUSDT",
+   "BMTUSDT",
+   "BROCCOLI714USDT",
+   "BRUSDT",
+   "BSPUSDT",
+   "BTRUSDT",
+   "C98USDT",
+   "COOKIEUSDT",
+   "CTSIUSDT",
+   "CVXUSDT",
+   "CYSUSDT",
+   "DOLOUSDT",
+   "DUSKUSDT",
+   "FIDAUSDT",
+   "FOGOUSDT",
+   "GASUSDT",
+   "GRAMUSDT",
+   "GRVTUSDT",
+   "HFTUSDT",
+   "HK1810USDT",
+   "INTWUSDT",
+   "INXUSDT",
+   "IOTXUSDT",
+   "KAIAUSDT",
+   "KAVAUSDT",
+   "KMNOUSDT",
+   "LSKUSDT",
+   "LUNA2USDT",
+   "MAGICUSDT",
+   "MAVUSDT",
+   "MELANIAUSDT",
+   "MERLUSDT",
+   "MINIMAXUSDT",
+   "MUUUSDT",
+   "ONTUSDT",
+   "POWRUSDT",
+   "ROSEUSDT",
+   "SHELLUSDT",
+   "SIGNUSDT",
+   "SKHYUSDT",
+   "SKRUSDT",
+   "SNXXUSDT",
+   "SOLVUSDT",
+   "SOPHUSDT",
+   "SOXSUSDT",
+   "SQDUSDT",
+   "SSVUSDT",
+   "SUPERUSDT",
+   "SWARMSUSDT",
+   "TWTUSDT",
+   "USUALUSDT",
+   "VELODROMEUSDT",
+   "VICUSDT",
+   "WALUSDT",
+   "WAXPUSDT",
+   "XAIUSDT",
+   "XNYUSDT",
+   "ZHIPUUSDT"
+  ],
+  "upit_only_dropped": [
+   "1INCHUSDT",
+   "1MBABYDOGEUSDT",
+   "ACHUSDT",
+   "AGLDUSDT",
+   "AGTUSDT",
+   "ALABUSDT",
+   "ALCHUSDT",
+   "AMATUSDT",
+   "ANKRUSDT",
+   "API3USDT",
+   "ARPAUSDT",
+   "ASMLUSDT",
+   "AUSDT",
+   "AWEUSDT",
+   "B2USDT",
+   "BANANAUSDT",
+   "BANUSDT",
+   "BBXUSDT",
+   "BREVUSDT",
+   "BROCCOLIF3BUSDT",
+   "BSVUSDT",
+   "CELOUSDT",
+   "CHRUSDT",
+   "CRDOUSDT",
+   "DEEPUSDT",
+   "DOGSUSDT",
+   "FLOCKUSDT",
+   "FOLKSUSDT",
+   "GUSDT",
+   "HOTUSDT",
+   "HYUNDAIUSDT",
+   "INUSDT",
+   "IRYSUSDT",
+   "JELLYJELLYUSDT",
+   "KATUSDT",
+   "KLACUSDT",
+   "LAYERUSDT",
+   "LINEAUSDT",
+   "LRCXUSDT",
+   "LUMIAUSDT",
+   "LYNUSDT",
+   "MANTAUSDT",
+   "NAORISUSDT",
+   "NFLXUSDT",
+   "NFPUSDT",
+   "OGNUSDT",
+   "OPENAIUSDT",
+   "PHAROSUSDT",
+   "PLAYUSDT",
+   "QNTXUSDT",
+   "QTUMUSDT",
+   "REDUSDT",
+   "REZUSDT",
+   "RLCUSDT",
+   "RPLUSDT",
+   "SAFEUSDT",
+   "SKLUSDT",
+   "SOMIUSDT",
+   "SPACEUSDT",
+   "SPELLUSDT",
+   "TAIKOUSDT",
+   "TAUSDT",
+   "TOSHIUSDT",
+   "TRUTHUSDT",
+   "TUSDT",
+   "VANAUSDT",
+   "WETUSDT",
+   "YFIUSDT",
+   "ZETAUSDT"
+  ]
+ },
+ "C_monthly_churn_for_scale": {
+  "definition": "added/dropped in the CRYPTO allowed set at each month's own first anchor, versus the previous month's row",
+  "last_12_months": [
+   {
+    "month": "2025-09",
+    "n_allowed": 449,
+    "added": 20,
+    "dropped": 15
+   },
+   {
+    "month": "2025-10",
+    "n_allowed": 449,
+    "added": 24,
+    "dropped": 24
+   },
+   {
+    "month": "2025-11",
+    "n_allowed": 449,
+    "added": 41,
+    "dropped": 41
+   },
+   {
+    "month": "2025-12",
+    "n_allowed": 449,
+    "added": 41,
+    "dropped": 41
+   },
+   {
+    "month": "2026-01",
+    "n_allowed": 449,
+    "added": 39,
+    "dropped": 39
+   },
+   {
+    "month": "2026-02",
+    "n_allowed": 448,
+    "added": 35,
+    "dropped": 36
+   },
+   {
+    "month": "2026-03",
+    "n_allowed": 446,
+    "added": 39,
+    "dropped": 41
+   },
+   {
+    "month": "2026-04",
+    "n_allowed": 437,
+    "added": 41,
+    "dropped": 50
+   },
+   {
+    "month": "2026-05",
+    "n_allowed": 432,
+    "added": 54,
+    "dropped": 59
+   },
+   {
+    "month": "2026-06",
+    "n_allowed": 420,
+    "added": 43,
+    "dropped": 55
+   },
+   {
+    "month": "2026-07",
+    "n_allowed": 400,
+    "added": 34,
+    "dropped": 54
+   },
+   {
+    "month": "2026-08",
+    "n_allowed": 373,
+    "added": 49,
+    "dropped": 76
+   }
+  ],
+  "median_added_last_12": 40.0,
+  "median_dropped_last_12": 41.0,
+  "median_added_all": 8.0,
+  "median_dropped_all": 2.0,
+  "all_months": [
+   {
+    "month": "2022-02",
+    "n_allowed": 136,
+    "added": 0,
+    "dropped": 0
+   },
+   {
+    "month": "2022-03",
+    "n_allowed": 137,
+    "added": 2,
+    "dropped": 1
+   },
+   {
+    "month": "2022-04",
+    "n_allowed": 138,
+    "added": 3,
+    "dropped": 2
+   },
+   {
+    "month": "2022-05",
+    "n_allowed": 141,
+    "added": 3,
+    "dropped": 0
+   },
+   {
+    "month": "2022-06",
+    "n_allowed": 144,
+    "added": 5,
+    "dropped": 2
+   },
+   {
+    "month": "2022-07",
+    "n_allowed": 141,
+    "added": 1,
+    "dropped": 4
+   },
+   {
+    "month": "2022-08",
+    "n_allowed": 139,
+    "added": 1,
+    "dropped": 3
+   },
+   {
+    "month": "2022-09",
+    "n_allowed": 139,
+    "added": 0,
+    "dropped": 0
+   },
+   {
+    "month": "2022-10",
+    "n_allowed": 141,
+    "added": 3,
+    "dropped": 1
+   },
+   {
+    "month": "2022-11",
+    "n_allowed": 147,
+    "added": 6,
+    "dropped": 0
+   },
+   {
+    "month": "2022-12",
+    "n_allowed": 149,
+    "added": 2,
+    "dropped": 0
+   },
+   {
+    "month": "2023-01",
+    "n_allowed": 146,
+    "added": 1,
+    "dropped": 4
+   },
+   {
+    "month": "2023-02",
+    "n_allowed": 146,
+    "added": 0,
+    "dropped": 0
+   },
+   {
+    "month": "2023-03",
+    "n_allowed": 150,
+    "added": 4,
+    "dropped": 0
+   },
+   {
+    "month": "2023-04",
+    "n_allowed": 165,
+    "added": 15,
+    "dropped": 0
+   },
+   {
+    "month": "2023-05",
+    "n_allowed": 173,
+    "added": 9,
+    "dropped": 1
+   },
+   {
+    "month": "2023-06",
+    "n_allowed": 178,
+    "added": 5,
+    "dropped": 0
+   },
+   {
+    "month": "2023-07",
+    "n_allowed": 184,
+    "added": 7,
+    "dropped": 1
+   },
+   {
+    "month": "2023-08",
+    "n_allowed": 188,
+    "added": 4,
+    "dropped": 0
+   },
+   {
+    "month": "2023-09",
+    "n_allowed": 193,
+    "added": 5,
+    "dropped": 0
+   },
+   {
+    "month": "2023-10",
+    "n_allowed": 199,
+    "added": 6,
+    "dropped": 0
+   },
+   {
+    "month": "2023-11",
+    "n_allowed": 204,
+    "added": 5,
+    "dropped": 0
+   },
+   {
+    "month": "2023-12",
+    "n_allowed": 218,
+    "added": 14,
+    "dropped": 0
+   },
+   {
+    "month": "2024-01",
+    "n_allowed": 236,
+    "added": 19,
+    "dropped": 1
+   },
+   {
+    "month": "2024-02",
+    "n_allowed": 243,
+    "added": 7,
+    "dropped": 0
+   },
+   {
+    "month": "2024-03",
+    "n_allowed": 250,
+    "added": 7,
+    "dropped": 0
+   },
+   {
+    "month": "2024-04",
+    "n_allowed": 262,
+    "added": 12,
+    "dropped": 0
+   },
+   {
+    "month": "2024-05",
+    "n_allowed": 265,
+    "added": 6,
+    "dropped": 3
+   },
+   {
+    "month": "2024-06",
+    "n_allowed": 269,
+    "added": 7,
+    "dropped": 3
+   },
+   {
+    "month": "2024-07",
+    "n_allowed": 262,
+    "added": 3,
+    "dropped": 10
+   },
+   {
+    "month": "2024-08",
+    "n_allowed": 264,
+    "added": 5,
+    "dropped": 3
+   },
+   {
+    "month": "2024-09",
+    "n_allowed": 263,
+    "added": 1,
+    "dropped": 2
+   },
+   {
+    "month": "2024-10",
+    "n_allowed": 277,
+    "added": 15,
+    "dropped": 1
+   },
+   {
+    "month": "2024-11",
+    "n_allowed": 296,
+    "added": 20,
+    "dropped": 1
+   },
+   {
+    "month": "2024-12",
+    "n_allowed": 302,
+    "added": 8,
+    "dropped": 2
+   },
+   {
+    "month": "2025-01",
+    "n_allowed": 323,
+    "added": 21,
+    "dropped": 0
+   },
+   {
+    "month": "2025-02",
+    "n_allowed": 340,
+    "added": 26,
+    "dropped": 9
+   },
+   {
+    "month": "2025-03",
+    "n_allowed": 359,
+    "added": 21,
+    "dropped": 2
+   },
+   {
+    "month": "2025-04",
+    "n_allowed": 365,
+    "added": 10,
+    "dropped": 4
+   },
+   {
+    "month": "2025-05",
+    "n_allowed": 385,
+    "added": 23,
+    "dropped": 3
+   },
+   {
+    "month": "2025-06",
+    "n_allowed": 403,
+    "added": 24,
+    "dropped": 6
+   },
+   {
+    "month": "2025-07",
+    "n_allowed": 423,
+    "added": 21,
+    "dropped": 1
+   },
+   {
+    "month": "2025-08",
+    "n_allowed": 444,
+    "added": 21,
+    "dropped": 0
+   },
+   {
+    "month": "2025-09",
+    "n_allowed": 449,
+    "added": 20,
+    "dropped": 15
+   },
+   {
+    "month": "2025-10",
+    "n_allowed": 449,
+    "added": 24,
+    "dropped": 24
+   },
+   {
+    "month": "2025-11",
+    "n_allowed": 449,
+    "added": 41,
+    "dropped": 41
+   },
+   {
+    "month": "2025-12",
+    "n_allowed": 449,
+    "added": 41,
+    "dropped": 41
+   },
+   {
+    "month": "2026-01",
+    "n_allowed": 449,
+    "added": 39,
+    "dropped": 39
+   },
+   {
+    "month": "2026-02",
+    "n_allowed": 448,
+    "added": 35,
+    "dropped": 36
+   },
+   {
+    "month": "2026-03",
+    "n_allowed": 446,
+    "added": 39,
+    "dropped": 41
+   },
+   {
+    "month": "2026-04",
+    "n_allowed": 437,
+    "added": 41,
+    "dropped": 50
+   },
+   {
+    "month": "2026-05",
+    "n_allowed": 432,
+    "added": 54,
+    "dropped": 59
+   },
+   {
+    "month": "2026-06",
+    "n_allowed": 420,
+    "added": 43,
+    "dropped": 55
+   },
+   {
+    "month": "2026-07",
+    "n_allowed": 400,
+    "added": 34,
+    "dropped": 54
+   },
+   {
+    "month": "2026-08",
+    "n_allowed": 373,
+    "added": 49,
+    "dropped": 76
+   }
+  ]
+ },
+ "D_unknown_class_among_entrants": [],
+ "D_note": "build_crypto_mask.py keeps a symbol absent from the exchangeInfo snapshot ('unknown => kept'). Entrants in that state are named here rather than silently kept; the snapshot is venue_class_20260908.json.",
+ "outputs": {
+  "umask_UPIT_x0910_sep": {
+   "path": "out/uni03/umask_UPIT_x0910_sep.npz",
+   "sha256": "66e21c8957a04ea853fa8e87e96262df31ce9d4928aac923bf083c40772914a6",
+   "bytes": 102607
+  },
+  "umask_UPIT_CRYPTO_x0910_sep": {
+   "path": "out/uni03/umask_UPIT_CRYPTO_x0910_sep.npz",
+   "sha256": "de7c34d79d7047e34f577abd2ef825554e064193fda757f6857e352596e0e77b",
+   "bytes": 101188
+  }
+ },
+ "checks": [
+  {
+   "check": "A.upit_rebuilt_bitwise",
+   "ok": true,
+   "detail": {
+    "cells": 8322331,
+    "differing": 0
+   }
+  },
+  {
+   "check": "A.crypto_rebuilt_bitwise",
+   "ok": true,
+   "detail": {
+    "cells": 8322331,
+    "differing": 0,
+    "n_unknown_class": 31
+   }
+  },
+  {
+   "check": "B.september_anchor_is_in_the_cache",
+   "ok": true,
+   "detail": {
+    "anchor": "2026-09-01T00:00Z",
+    "cache_last_bar": "2026-09-01T00:00Z"
+   }
+  },
+  {
+   "check": "W.august_tail_anchors_keep_the_august_row",
+   "ok": true,
+   "detail": {
+    "anchors": 5
+   }
+  },
+  {
+   "check": "W.august_prefix_unchanged",
+   "ok": true,
+   "detail": {
+    "rows": 10039
+   }
+  }
+ ],
+ "n_checks": 5,
+ "n_failed": 0,
+ "failed": [],
+ "runtime_s": 50.9,
+ "utc_end": "2026-09-16T04:08Z"
+}
