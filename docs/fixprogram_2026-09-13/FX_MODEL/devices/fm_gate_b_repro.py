@@ -180,7 +180,14 @@ def main():
     json.dump(rc, open(OUT, "w"), indent=1, default=float)
     print("GATE_B_REPRO=%s  %d/%d folds pass  worst_maxabs=%.3e  tol=%.0e  wall=%.0fs"
           % (rc["GATE_B_REPRO"], n_pass, len(results), worst, TOL, rc["wall_s"]), flush=True)
-    return 0
+    # ★★★ R16-M1 (独立复审 2026-09-16, P2): 这里原本是**无条件** `return 0` —— 判词算出来了、打印了,
+    #   **却不控制出口**。`sys.exit(main())` 于是永远退 0, 写 `GATE_B_REPRO=FAIL` 时也一样。
+    #   调用方写 `if device.py; then 继续; fi` 会在 FAIL 时照样继续。这是本纲领登记过的
+    #   「门存在、判词也算了, 但判词不控制写入」缺陷族, 出在我们自己的门上。
+    #   ⇒ 出口码从此由判词决定。**3 = 判词为 FAIL**(与本纲领 UNAVAILABLE 同用 3 的约定一致:
+    #     两者都表示「不得据此放行」), 异常/崩溃仍由 Python 自己给非零, 二者可区分。
+    #   历史收据不受影响: mE1/mE60/king 记录的判词都是 PASS, 而 PASS 的正确出口本就是 0。
+    return 0 if rc.get("GATE_B_REPRO") == "PASS" else 3
 
 
 if __name__ == "__main__":
