@@ -53,8 +53,23 @@ def checks(root):
         ls = lines_cache[r["day"]]
         if r["line"] > len(ls) or hashlib.sha256(ls[r["line"] - 1]).hexdigest() != r["row_sha256"]:
             fails.append(f"C2 row mismatch {k}")
-        elif "realised_by_type_asset" in json.loads(ls[r["line"] - 1]):
-            fails.append(f"C2 record amends a post-fix row {k}")
+        else:
+            _row = json.loads(ls[r["line"] - 1])
+            if "realised_by_type_asset" in _row:
+                fails.append(f"C2 record amends a post-fix row {k}")
+            # ★ R16R-E2 写入端: 上一轮只修了消费者(ledger_amendments._row_sha_ok 现在核被哈希行的身份),
+            #   准入这里仍只核 line/sha —— 两条记录 day/line/row_sha 各自正确、只把 nav_ts 对调, checks 仍
+            #   failures=[]。消费者能拒绝已写入的坏记录是补救, 不是写入端准入也修好了。
+            #   ⇒ 准入同样绑定「被哈希原行的身份 == 记录自称的身份」: nav_ts(有限数值相等)与 day。
+            try:
+                _row_ts = float(_row.get("nav_ts")); _rec_ts = float(r.get("nav_ts"))
+                _ts_ok = (_row_ts == _rec_ts) and (_row_ts == _row_ts)   # NaN != NaN
+            except (TypeError, ValueError):
+                _ts_ok = False
+            if not _ts_ok:
+                fails.append(f"C2b IDENTITY: record {k} is keyed nav_ts={r.get('nav_ts')!r} but the hashed row carries nav_ts={_row.get('nav_ts')!r}")
+            if str(_row.get("day")) != str(r.get("day")):
+                fails.append(f"C2b IDENTITY: record {k} says day={r.get('day')!r} but the hashed row carries day={_row.get('day')!r}")
     n_prefix = 0; missing = []
     for d in sorted(os.listdir(os.path.join(root, "pilot_log"))):
         p = os.path.join(root, "pilot_log", d, "daily_nav.jsonl")
