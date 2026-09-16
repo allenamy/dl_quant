@@ -60,8 +60,14 @@ R16R 指出的六条(E3 回归 / M1 读错键 / T1a 空记录通过 / T1b 豁免
 | tests_env_loading | 9/15 + 6 UNAVAILABLE | 叠加树按规矩无 `.env`(既有) |
 | tests_pipeline_gates(研究仓) | 475/475 | |
 
-### 3.2 全量叠加电池(窗 17:05Z–19:15Z)
-**待回填。** 脚本 `run_stacked_battery.sh` 本轮两处修正: (a) ENVRED-2 树外状态改为**开跑时刻现算**并记录上次值——之前 `TREE_STATE.json` 是 08:24Z 一次性生成的静态文件, 13:48Z 那次电池实际 audit 年龄 ≈5.4h 而文件写 3.64h; (b) 头部的叠加链从硬编码改为 `git log ef60f85..HEAD` 动态列出。**本轮刻意不重新拷入实盘账本**, 使账本事实与 13:48Z 电池同口径, 只有 audit 年龄随钟走(约 12h)。比对基线 = `receipts/STACKED_BATTERY_20260916T134811Z.log`(153 绿 / 5 红 / 1 UNAVAILABLE: drift_gate·tests_drift_gate(真漂移×2)·tests_entrypoint_wiring(本机 nosleep)·tests_ledger_notary(公证 16 日断链)·tests_proportional_response(B14)·tests_env_loading(.env))。
+### 3.2 全量叠加电池(窗 17:05Z–19:15Z; 实跑 17:05:10Z→17:21:56Z, head 183915f, `/usr/bin/python3` 3.9.6)
+收据 `receipts/STACKED_BATTERY_20260916T170510Z.log`。**155 绿 / 5 红 / 1 UNAVAILABLE, RC=1。**
+
+红/UNAVAILABLE 集合与 13:48Z 基线(`STACKED_BATTERY_20260916T134811Z.log`)**逐套件完全一致**(diff 空):
+`drift_gate`·`tests_drift_gate`(真漂移×2)·`tests_entrypoint_wiring`(本机 nosleep/电源)·`tests_ledger_notary`(公证 16 日断链, launchd TCC)·`tests_proportional_response`(B14, 58/59, 归 FX-W6C)·`tests_env_loading`(3=UNAVAILABLE, 叠加树无 .env)。**六条修复无一引入新红。**
+绿 153→155, 新增的两格正是本轮两条测试 `tests_daily_summary_entry`、`tests_broker_nonfinite_positions`(均绿); `tests_daily_summary`、`tests_disposition_matrix`、`tests_realised_amendment`、`tests_cond4_amended_transfer_day` 等受影响既有套件全绿。
+
+ENVRED-2 树外状态(开跑时现算): env 缺失、notify_audit 1986 行、pilot_log 47 天、watchdog_events 15 —— 账本事实与基线**逐项相同**, 只 audit 最新行年龄随钟从 3.64h 走到 12.32h(本轮刻意不重拷账本, 保同口径; 五条红均不依赖 audit 年龄)。
 
 ## 4. 本轮自查发现(不在复审清单内)
 1. 修前 broker **丢 NaN 却留 ±inf** —— 同一过滤式对两种非有限数行为不同; 修后统一为未知。

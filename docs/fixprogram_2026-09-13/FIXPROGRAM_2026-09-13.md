@@ -1455,4 +1455,4 @@ R16-D2 面板装置三处(有限/非有限门、两列自证、写出 payload �
 | E2 | 对调 nav_ts 的记录被准入 exit 0 | REFUSE 2 + 两条 C2b; NaN 拒 | tests_led04_apply_identity 5/5 |
 | E1 | NaN 被丢(inf 却留); flatten_all 为非有限发 2 单; NaN 账户→空书→stage1 ok=True | 保留为未知; 0 单 2 跳过; stage1 ok=False unknown=[…] | tests_broker_nonfinite_positions 8/8 |
 
-**自查**: E3 入口测试第一版被三处静默改道同时骗过(1970 时间戳窗外 / 回退真实告警文件 / 裸子串匹配到 `101 name(s)`), 已改并入记忆; 电池脚本 `TREE_STATE.json` 原是 08:24Z 静态文件, 改为开跑时现算; zsh 不分词吞掉一整轮提交(无半提交)。**未做**: R16R §5 六项、B14(FX-W6C)、`finalize` 标签(冻结装置待裁定)。电池结果见交接文 §3.2(回填)。
+**自查**: E3 入口测试第一版被三处静默改道同时骗过(1970 时间戳窗外 / 回退真实告警文件 / 裸子串匹配到 `101 name(s)`), 已改并入记忆; 电池脚本 `TREE_STATE.json` 原是 08:24Z 静态文件, 改为开跑时现算; zsh 不分词吞掉一整轮提交(无半提交)。**未做**: R16R §5 六项、B14(FX-W6C)、`finalize` 标签(冻结装置待裁定)。**全量叠加电池**(17:05Z, head 183915f): 155 绿 / 5 红 / 1 UNAVAILABLE, 红集与 13:48Z 基线逐套件一致(真漂移×2·本机 nosleep·公证断链·B14·无 .env), 六条修复零新红; +2 绿正是本轮两条新测试。收据 `receipts/STACKED_BATTERY_20260916T170510Z.log`。
