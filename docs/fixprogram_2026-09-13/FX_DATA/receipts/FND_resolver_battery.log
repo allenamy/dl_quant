@@ -1,0 +1,29 @@
+# FND interval resolver — battery + mutation check, FX-DATA 2026-09-16
+FI1_likely_never_satisfies_a_gate                    PASS
+FI2_reads_the_column_not_the_source_string           PASS
+FI3_switch_row_is_not_spacing_safe                   PASS
+FI3b_safe_spacing_is_usable_only_when_allowed        PASS
+FI4_two_unresolved_kinds_stay_distinguishable        PASS
+FI5_cannot_accept_a_pull_time_per_symbol_map         PASS
+FI6_absent_row_is_flagged_not_guessed                PASS
+FI7_allow_spacing_has_no_default                     PASS
+FI8_zip_column_wins_and_off_grid_iv_is_refused       PASS
+SUMMARY 9/9 cells pass
+rc=0
+
+## mutation check (7 guards, each removed on a scratch copy)
+M1_likely_promoted_to_exact      rc=1  red=['FI1_likely_never_satisfies_a_gate']
+M2_select_on_source_string       rc=1  red=['FI2_reads_the_column_not_the_source_string']   <- SURVIVED the first time; see below
+M3_spacing_used_on_switch_rows   rc=1  red=['FI3_switch_row_is_not_spacing_safe']
+M4_two_unresolved_kinds_merged   rc=1  red=['FI4_two_unresolved_kinds_stay_distinguishable']
+M5_absent_row_guessed_as_8h      rc=1  red=['FI6_absent_row_is_flagged_not_guessed']
+M6_allow_spacing_gets_a_default  rc=1  red=['FI7_allow_spacing_has_no_default']
+M7_off_grid_iv_accepted          rc=1  red=['FI8_zip_column_wins_and_off_grid_iv_is_refused']
+restored rc=0 (SUMMARY 9/9 cells pass) — ALL 7 CAUGHT after FI2 was strengthened
+
+## M2 survived the first run, and the test was the thing at fault
+The first FI2 only had fixtures with a NON-EMPTY iv_best, so a resolver keyed on the source string still passed it.
+The fixture that matters is an EMPTY iv_best with an exact-looking source (structure_steady): a string-keyed resolver
+calls it EXACT with iv None. Asserting only that gate_interval raises would NOT have caught it either, because it still
+raises - on 'not in the allowed set', the wrong reason. FI2 now asserts the TIER. A green battery with a surviving
+mutation is a hole in the battery, not a property of the code.
