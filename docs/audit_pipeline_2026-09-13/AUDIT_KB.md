@@ -1,4 +1,4 @@
-> **创建:** 2026-09-16T04:15:16Z | **Session:** aud-kb (team audit, read-only) | **状态:** 审计登记(只读; 不改任何源文件与记忆; 更正由 lead 复核后应用) | **作废条件:** 被登记的源文件或记忆条目改动后对应行需复核; 新收据推翻本登记的任一 superseding 证据
+> **创建:** 2026-09-16T04:19:14Z | **Session:** aud-kb (team audit, read-only) | **状态:** 审计登记(只读; 不改任何源文件与记忆; 更正由 lead 复核后应用) | **作废条件:** 被登记的源文件或记忆条目改动后对应行需复核; 新收据推翻本登记的任一 superseding 证据
 
 # AUDIT_KB · 评估装置与知识库陈旧结论审计(2026-09-13)
 
@@ -30,7 +30,7 @@
 | 3 | M3-35 | P0 | DOC_STALE | `memory/review_b0a573a1_closure_and_merge_deploy_protocol_2026_09_09.md:11` | 运行树 = origin/main = **77d9baf**, 电池 **132/132**, safe_commit 门畅通(见 [[disposition_matrix_ruler_recalibration_and_names_truncation_2026_09_12]]); 52 行写回(RUNBOOK §4)另裁; 回滚 = §5 revert | [在第一个「状态」段之前插入] **状态 2026-09-13 12:0xZ(最新, 先读这段; 覆盖以下两段)**: 运行树 = origin/main = **ef60f85**(918559f + W6ab 259f50a6 → W2 2ad1c272 → W1 62a3032e → W9 f8beb082, 一次 safe_commit, 电池 ALL GREEN 135/135), 12Z 复场首锚验收通过(STATE.md 顶部)。下文 77d9baf/132 与「回滚 = §5 revert 链」均已 |
 | 4 | KB-69 | P1 | DOC_STALE | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:258` | \| **PROD-30** \| G1(守护跳过 `NOW-A>1355`)与 G2(`combo_stage` bail `A+1360`)**仍按已退役的 N+23:00 标定** | [§13.1 表内原编号字节保留, 在 §13.1 表下插入] ⚠ **2026-09-16 编号更正(aud-kb KB-69)**: 本表的 **PROD-30 / 31 / 32 / 33 / 34 与 `AUDIT_PROD`(ee2a8c4d)已占用的同号项冲突**, 而本表自身又按号引用「AUDIT_PROD PROD-28」⇒ 两表同命名空间。**AUDIT_PROD 已用到 PROD-40, 空号自 PROD-41 起**。按下表重编, 原号保留并标 SUPERSEDED-ID: **PROD-30 |
 | 5 | KB-70 | P1 | DOC_STALE | `STATE.md:144` | 登记为 PROD-30, 待用户裁定, 属书行为 | [替换该句, 原句字节在 FIXPROGRAM §13.1 与本登记内保留] 登记为 **PROD-41**(原写 PROD-30; 与 `AUDIT_PROD` ee2a8c4d 的 PROD-30 = exec_n6 沙箱生产者 撞号, 2026-09-16 按 aud-kb KB-69 重编), 待用户裁定, 属书行为。 |
-| 6 | KB-64 | P1 | DOC_STALE | `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:91` | **A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。** | [在该行后插入] > ⚠ **2026-09-16 更正(独立复审 FXR-DOC-3 + CANONICAL_NUMBERS §0-5/§0-3)**: 本规划数的**窗与成本面必须同时写出** —— **W_ALPHA(2022-06-30 00Z → 2026-08-30 20Z, 9,138 锚)· 拟合成本面 `costb_PWR_G230k.json`(sha 295b4e7b…)**, 夏普 **1.29122344** CI95 **[0.3207, 2.2822]**(探索性 2,000 次 UT |
+| 6 | KB-64 | P1 | DOC_STALE | `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:97` | **A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。** | [在该行后插入] > ⚠ **2026-09-16 更正(独立复审 FXR-DOC-3 + CANONICAL_NUMBERS §0-5/§0-3)**: 本规划数的**窗与成本面必须同时写出** —— **W_ALPHA(2022-06-30 00Z → 2026-08-30 20Z, 9,138 锚)· 拟合成本面 `costb_PWR_G230k.json`(sha 295b4e7b…)**, 夏普 **1.29122344** CI95 **[0.3207, 2.2822]**(探索性 2,000 次 UT |
 | 7 | KB-16 | P1 | DOC_STALE | `STATE.md:201` | 杠杆升级(候选 2.0× 历史不触 −25% 线) | 杠杆: 2.0× 已于 08-27 生效; v4 口径固定 2× 逐锚复利 NAV maxDD: 2023 −28.92%, 2024 −23.62%, W_ALPHA 全窗 −42.12%(r18 表勘误 3), 旧「2.0× 历史不触 −25% 线」为 CAL=simple 作废口径; 尾部为下界(E-0908-B) |
 | 8 | KB-06 | P1 | DOC_STALE | `CLAUDE.md:42` | \| 在役书证据/杠杆/局限 \| `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md` \| | \| 在役书证据/杠杆/局限 \| 在役形态水平与逐年/回撤 = `uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md`(含勘误: 固定 2× 复利 NAV maxDD); combo 选型在正确口径下的复测 = `retrain_2026-09/review_caliber_wf/combo_recheck/REPORT.md`; `docs/CANDIDATE_wide_v2main_norev24_20 |
 | 9 | KB-37 | P1 | DOC_STALE | `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:6` | **部署差不是主因**(T4/T4b/T5/T5c) | **部署差未检出也未排除**(T4 NOT MATERIAL 仅显著性门、无等价带; T5 八月 carry 差 = 构造差; T5d 九月价格部署/模型差 −4.15..+1.71 bps/锚不可排除, 为 A0 全周期净额 1.6–3.2 倍; V2MAIN 与执行器层未测) |
@@ -38,10 +38,10 @@
 | 11 | KB-01 | P1 | DOC_STALE | `CLAUDE.md:14` | 构成 ≈77% funding 动量 + 13% king LGBM + 10% V2MAIN 书损失 DL | 构成随 msharpe 席位逐锚滚动, 不是常数: 08-26 00Z 掩码席位 king 0.232 ⇒ ≈77% fund/13% king/10% V2MAIN; 09-05 播种后 0.300; 2026-09-13 12Z king 0.382 / fund 0.618 ⇒ ≈62% funding 动量 + 21% king LGBM + 17% V2MAIN(读数来源 ~/regime_dash/regime_dash.jsonl(追加式, 按 `anchor_utc` 取 `w3_masked_ki |
 | 12 | KB-21 | P1 | DOC_STALE | `docs/MILESTONE_2026-08-26.md:29` | **fund 腿 = 书本体**(去掉 4/4 年由盈转亏 −3.04 CI[−3.86,−2.20]); **king = 组合内方差压制者**(仅king 单腿书 −2.74 亏钱; 去king ΔSharpe CI 全负) | (CAL=simple 口径, E-0904-F 作废, 腿层判决待重立)fund 腿 = 书本体 … king = 方差压制者。⚠ v4 口径席位阶梯(`uplift_2026-09-11/RESULT_r5_angle1_fixed_seat_2026-09-11.md` §3): 动态 msharpe 席位 king 均权 2024 0.71 / 2025 0.71 / 2026 0.36 / 全周期 0.46; 固定 king 0(纯 fund)全周期 Sharpe 0.63 vs 动态 1.42 ⇒ 书的 |
 | 13 | KB-23 | P1 | DOC_STALE | `docs/MILESTONE_2026-08-26.md:44` | 书=主导率保费(78%)+残差 alpha —— 对冲毁书 | 书=主导率保费(78%)+残差 alpha(08-21 在役书 S1 / 引擎 Y4 仪器)。⚠ T8 §6.1: A0 v4 书同期 corr(净额, 等权山寨−BTC 价差) = +0.05 / +0.04, 逐折 β 为正 ⇒「78%」不适用于在役 combo/v4 形态, 两仪器矛盾待对账; 对冲/中性化提案不得以此句否决。 |
-| 14 | KB-45 | P1 | DOC_STALE | `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:118` | What must be lowered is any planning or target number built on a best-candidate backtest: subtract at least 0.65 SR (full cycle) / 1.56 SR (frozen window). | 在 §8 前插入: ⚠ 复审第四轮(REVIEW_round4 §4.2)与 STATE 2026-09-13 12:1xZ ③ 撤回三处读法: (1) N_eff 参与比是谱维数, 不是已校准的有效试验数; (2) −0.65/−1.56 是本家族在已实现选择路径上的描述, 不是今后任意候选的最低折价下界; (3) 0.30/0.0047 是不同 N 假设下的代入读数, 不是真 Sharpe>3 的概率。仍成立: 候选家族高度相关、冻结窗高水平为全家族共有、A0 冻结窗 CI95 [1.306, 4.565] 不 |
+| 14 | KB-45 | P1 | DOC_STALE | `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:121` | What must be lowered is any planning or target number built on a best-candidate backtest: subtract at least 0.65 SR (full cycle) / 1.56 SR (frozen window). | 在 §8 前插入: ⚠ 复审第四轮(REVIEW_round4 §4.2)与 STATE 2026-09-13 12:1xZ ③ 撤回三处读法: (1) N_eff 参与比是谱维数, 不是已校准的有效试验数; (2) −0.65/−1.56 是本家族在已实现选择路径上的描述, 不是今后任意候选的最低折价下界; (3) 0.30/0.0047 是不同 N 假设下的代入读数, 不是真 Sharpe>3 的概率。仍成立: 候选家族高度相关、冻结窗高水平为全家族共有、A0 冻结窗 CI95 [1.306, 4.565] 不 |
 | 15 | KB-50 | P1 | DOC_STALE | `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:11` | 实盘变差的真因不是执行、不是延迟、不是平滑、不是模型陈旧 | 实盘变差的原因未识别: T1 五假设四条不可判(落差本身不显著, 实盘窗状态对全史不反常); 八月部署书 carry 为回放 2.19 倍 = 构造差(FTRIM 缺席 58% / 暖启动态 27% / 回放止损层 18.5%); 九月部署/模型差 −4.15..+1.71 bps/锚不可排除(T5d); 执行/延迟/平滑未单独排除 |
 | 16 | KB-20 | P1 | DOC_STALE | `docs/MILESTONE_2026-08-26.md:12` | 回放证据: 三种子 Δnet +0.29~+0.43 bps/锚 全显著(基线夏普 2.18 → 2.7-3.0)。 | 回放证据(CAL=simple, 已作废口径): 三种子 Δnet +0.29~+0.43。⚠ 正确口径复测(`review_caliber_wf/combo_recheck/REPORT.md`, 09-04): 方向保住, s42 显著性不保(D−A 2024→26 +0.108 [−0.101,+0.312] CAL=log / +0.203 [−0.022,+0.439] 复利), 归因反转(V2MAIN 单独 ≈0, 唯一 CI 排零的是「去 rev24」), 2025 反转; 「基线 2.18 → 2. |
-| 17 | DEV-01 | P1 | PENDING_USER_DECISION | `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:346` |             v = "(A) PROMOTE" if all(x["delta"] > 0 and x["ci95"][0] > 0 for x in r) else ("(B) REJECT" if all(x["ci95"][1] < 0 for x in r) else "(C) UNDECIDED") | 判官 (A) 追加两个条件(预注册修订, 用户裁定): ① 双种子 CI 下界 > δ(K2 D1 = 0.05 bps/锚/gross, 非 0); ② 全周期逐年(2023–2026)无一年 Δ 的 CI 上界 < −δ, 且 2023(弱年)点估计 ≥ −δ; 冻结窗之外的扩展/逐年读数写入 verdict 旁并在 (A) 时强制打印 |
+| 17 | DEV-01 | P1 | PENDING_USER_DECISION | `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:349` |             v = "(A) PROMOTE" if all(x["delta"] > 0 and x["ci95"][0] > 0 for x in r) else ("(B) REJECT" if all(x["ci95"][1] < 0 for x in r) else "(C) UNDECIDED") | 判官 (A) 追加两个条件(预注册修订, 用户裁定): ① 双种子 CI 下界 > δ(K2 D1 = 0.05 bps/锚/gross, 非 0); ② 全周期逐年(2023–2026)无一年 Δ 的 CI 上界 < −δ, 且 2023(弱年)点估计 ≥ −δ; 冻结窗之外的扩展/逐年读数写入 verdict 旁并在 (A) 时强制打印 |
 | 18 | KB-31 | P1 | DOC_STALE | `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md:28` | **+0.374 [+0.15,+0.60] ★** | 在 §2 表头下插入: ⚠ 本表全部为 CAL=simple(对 Σ简单 y4 做 expm1 的伪凸性口径, E-0904-F), 数字作废。正确口径复测(combo_recheck/REPORT.md): D−A 2024→26 s42 +0.108 [−0.101,+0.312](CAL=log)/ +0.203 [−0.022,+0.439](复利), 仅 s2027 复利口径 CI 排零; V2MAIN 单独 ≈0; 唯一 CI 排零的是「在混 V2MAIN 前提下去 rev24」; 2025 候选劣于在 |
 
 ## §1 How to read a row
@@ -75,10 +75,10 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 | KB-32 | P1 | DOC_STALE | live_trading, reporting | `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md:56` | **2.0× 在候选下历史不触 −25% 线** |
 | KB-34 | P1 | DOC_STALE | live_trading | `docs/CHECKLIST_combo_switch_2026-08-26.md:22` | ③ 整体回滚 = kill 守护 PID(下一锚起自动 king 形态), 不动任何其他组件 |
 | KB-37 | P1 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:6` | **部署差不是主因**(T4/T4b/T5/T5c) |
-| KB-45 | P1 | DOC_STALE | future_eval, reporting | `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:118` | What must be lowered is any planning or target number built on a best-candidate backtest: subtract at least 0.65 SR (full cycle) / 1.56 SR ( |
-| KB-46 | P1 | PENDING_USER_DECISION | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:150` | at least −0.65 SR full cycle and −1.56 SR frozen window from T6, both lower bounds. |
+| KB-45 | P1 | DOC_STALE | future_eval, reporting | `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:121` | What must be lowered is any planning or target number built on a best-candidate backtest: subtract at least 0.65 SR (full cycle) / 1.56 SR ( |
+| KB-46 | P1 | PENDING_USER_DECISION | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:156` | at least −0.65 SR full cycle and −1.56 SR frozen window from T6, both lower bounds. |
 | KB-50 | P1 | DOC_STALE | future_eval, reporting | `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:11` | 实盘变差的真因不是执行、不是延迟、不是平滑、不是模型陈旧 |
-| KB-64 | P1 | DOC_STALE | reporting, future_eval, live_trading | `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:91` | **A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。** |
+| KB-64 | P1 | DOC_STALE | reporting, future_eval, live_trading | `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:97` | **A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。** |
 | KB-69 | P1 | DOC_STALE | reporting, future_eval, live_trading | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:258` | \| **PROD-30** \| G1(守护跳过 `NOW-A>1355`)与 G2(`combo_stage` bail `A+1360`)**仍按已退役的 N+23:00 标定** |
 | KB-70 | P1 | DOC_STALE | live_trading, reporting | `STATE.md:144` | 登记为 PROD-30, 待用户裁定, 属书行为 |
 | KB-02 | P2 | DOC_STALE | reporting, future_eval | `CLAUDE.md:13` | maker-only, gross 2.0×NAV(2026-09-03 入金后 constant_leverage_2.00; 此前 1.5×) |
@@ -96,10 +96,10 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 | KB-30 | P2 | DOC_STALE | reporting | `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md:17` | 最终构成 ≈ **77% fund + 13% king + 10% V2MAIN** |
 | KB-33 | P2 | PENDING_USER_DECISION | future_eval, live_trading | `docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md:73` | DSR 折价适用 ⇒ **前向影子为终审** |
 | KB-35 | P2 | DOC_STALE | live_trading, reporting | `docs/CHECKLIST_combo_switch_2026-08-26.md:34` | \| **combo_live_daemon(PID 72287)** \| |
-| KB-39 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:18` | 零成本收入流 SR 12–44、ρ≈0, 但冻结换仓规则下净额为负(收入 +1.7 vs 换手成本 4.5 bps/锚), 2023 年 71% 锚无合格名; **滞回换仓未评估** |
-| KB-40 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:175` | 问题在策略本身对普涨挤空 / 暴涨回调行情的响应, 不在部署差 |
-| KB-41 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:157` | 冻结规则下 NOT MATERIAL |
-| KB-44 | P2 | DOC_STALE | reporting | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:80` | 据此 900s→180s 已上线 |
+| KB-39 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:24` | 零成本收入流 SR 12–44、ρ≈0, 但冻结换仓规则下净额为负(收入 +1.7 vs 换手成本 4.5 bps/锚), 2023 年 71% 锚无合格名; **滞回换仓未评估** |
+| KB-40 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:193` | 问题在策略本身对普涨挤空 / 暴涨回调行情的响应, 不在部署差 |
+| KB-41 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:172 (+1 more)` | 冻结规则下 NOT MATERIAL |
+| KB-44 | P2 | DOC_STALE | reporting | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:92` | 据此 900s→180s 已上线 |
 | KB-47 | P2 | DOC_STALE | future_eval, live_trading | `multi_asset/exports/research/uplift_r2_2026-09-13/T5/RESULT_T5_deployed_carry_gap_2026-09-13.md:36` | 第三分量是设计差: 回放有逐名止损层, 生产没有 |
 | KB-48 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:9` | **判决(§5 冻结规则): NOT MATERIAL(在本分辨率下)。** |
 | KB-51 | P2 | DOC_STALE | future_eval | `docs/ERROR_LEDGER_2026-08-20.md:416` | **装置 CAL=log 分支 = 原始 y4 = 无偏简单口径**(与真简单差 −0.04 bps/锚), 复验一律用 CAL=log |
@@ -107,10 +107,10 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 | KB-53 | P2 | DOC_STALE | reporting, live_trading | `docs/ERROR_LEDGER_2026-08-20.md:24` | → 政策 A 全不追。**已闭环**。 |
 | KB-54 | P2 | OPEN_NOT_MEASURED | future_eval | `docs/ERROR_LEDGER_2026-08-20.md:17` | 受据: 该保费=历史利润 34%, β中性化毁 1/3 书 → 五臂全负 DO-NOT-RETRY |
 | KB-56 | P2 | DOC_STALE | reporting, future_eval | `STATE.md:159` | 动态席位(规则)2024→26 +1.21 bps/锚/gross, Sharpe 2.2, 2× 年化 +53% / 回撤 23%(2024 +24%, 2025 +28%, 2026 +140%) |
-| KB-59 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:10` | 3. **重新加权到不了**: ~300 候选都进同一个席位, 与在役书 ρ≈0.9, 上限约 +0.8 夏普; 缺口需要**互不相关的书**。 |
-| KB-60 | P2 | DOC_STALE | future_eval, reporting | `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:44` | **它们全都是同一个下注的重新加权。** |
+| KB-59 | P2 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:16` | 3. **重新加权到不了**: ~300 候选都进同一个席位, 与在役书 ρ≈0.9, 上限约 +0.8 夏普; 缺口需要**互不相关的书**。 |
+| KB-60 | P2 | DOC_STALE | future_eval, reporting | `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:47` | **它们全都是同一个下注的重新加权。** |
 | KB-63 | P2 | DOC_STALE | reporting, future_eval | `docs/STATUS_three_questions_2026-09-12.md:28 (+1 more)` | 全周期 1.29 |
-| KB-65 | P2 | DOC_STALE | reporting, future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:9` | 2. **全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举) |
+| KB-65 | P2 | DOC_STALE | reporting, future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:12` | 2. **全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举) |
 | KB-66 | P2 | DOC_STALE | future_eval, reporting | `docs/HANDOFF_round4_review_request_2026-09-13.md:77` | - F1 125 个全书配置 N_eff 1.57(几乎一本书); PBO 0.157 / 0.187 未触发, 但由事后预选线 XIB_LAG50 撑着; r8–T2 家族 F3 PBO 0.508 触发; 选择折价下界 −0.65(全周期)/ −1.56(冻结窗), CI 含 |
 | KB-67 | P2 | DOC_STALE | future_eval, reporting | `multi_asset/exports/research/uplift_2026-09-11/handoff_audit/caliber/CANONICAL_NUMBERS_2026-09-12.md:36` | 5. **Two windows, never mixed.** `W_ALPHA` n=**9138** (drop first 900 warm anchors, E-0911-A; ceiling 2026-08-30 20Z, E-0911-D) for every me |
 | KB-68 | P2 | DOC_STALE | reporting, future_eval | `STATE.md:66` | A0 全周期 post-warm **1.4150** [0.449,2.381] n=9018; 加 E-0911-D 截断 **1.2912** [0.332,2.251] n=9138 |
@@ -124,9 +124,9 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 | KB-12 | P3 | DOC_STALE | reporting | `STATE.md:149` | `~/dl_quant_live/ops/safe_commit.sh` + 电池 123/123 |
 | KB-18 | P3 | DOC_STALE | future_eval | `STATE.md:255` | 无干净 CONST2027 |
 | KB-36 | P3 | DOC_STALE | reporting | `docs/CHECKLIST_combo_switch_2026-08-26.md:45` | 3. fund 构成升至 ~77%(候选结构属性, 已在正典文档 §3 局限声明)。 |
-| KB-38 | P3 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:14` | (未复跑; carry/净额数字 PROVISIONAL, 价格读数不受影响) |
+| KB-38 | P3 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:17` | (未复跑; carry/净额数字 PROVISIONAL, 价格读数不受影响) |
 | KB-42 | P3 | DOC_STALE | reporting, future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:8` | **实盘亏在资金费, 不在价格也不在执行** |
-| KB-43 | P3 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:18` | 回放可用于定位, 幅度按 0.835 折算 |
+| KB-43 | P3 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:27` | 回放可用于定位, 幅度按 0.835 折算 |
 | KB-49 | P3 | DOC_STALE | future_eval | `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:12` | ⇒ **NOT MATERIAL**, 标 **PROVISIONAL** |
 | KB-55 | P3 | DOC_STALE | reporting | `docs/ERROR_LEDGER_2026-08-20.md:6` | 任何 \|单锚\|>2σ(实测 σ≈39U, 即 \|Δ\|>78U)24h 内必须成 entry |
 | KB-57 | P3 | DOC_STALE | reporting, live_trading | `STATE.md:166` | 会话 cron 重建(09-05 14:1xZ; /login 切换清空)**: 每锚深查 47686c87 · jpline 2h 538814c5 · combo 84 锚二读 48a8bb77(09-09) |
@@ -254,8 +254,8 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Source:** `docs/MILESTONE_2026-08-26.md:44`
 - **Quote:** 「书=主导率保费(78%)+残差 alpha —— 对冲毁书」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
 - **A reader could wrongly conclude:** 78% of the in-service book's return is alt−BTC dominance exposure, so hedging it destroys the book.
 - **Affects:** future_eval, reporting · **Severity reason:** Used to reject any hedge or neutralisation proposal without testing; the only measurement on the current book gives the opposite sign.
 - **Proposed correction (exact text):** 书=主导率保费(78%)+残差 alpha(08-21 在役书 S1 / 引擎 Y4 仪器)。⚠ T8 §6.1: A0 v4 书同期 corr(净额, 等权山寨−BTC 价差) = +0.05 / +0.04, 逐折 β 为正 ⇒「78%」不适用于在役 combo/v4 形态, 两仪器矛盾待对账; 对冲/中性化提案不得以此句否决。
@@ -288,7 +288,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Quote:** 「**状态:** 回放证据完备, 前向影子已起跑, **未部署**(书行为改动归用户)」
 - **Superseding evidence:**
   - `STATE.md:154` — 「**★ combo 84 锚前向门二读(09-09 05:0xZ, `pilot_journal/journal_2026-09-09_forward_gate_84.md`): 判据① 不过(候选净累计 −192.3 bps gross=1 ≈ −3.85% NAV@2×), 判据② 过=未否决」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:123` — 「three days later the in-service form's admission document states only 「DSR 折价适用 ⇒ 前向影子为终审」 (CANDIDATE L61) without a DSR number.」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:129` — 「three days later the in-service form's admission document states only 「DSR 折价适用 ⇒ 前向影子为终审」 (CANDIDATE L61) without a DSR number.」
   - `multi_asset/exports/research/retrain_2026-09/review_caliber_wf/combo_recheck/REPORT.md:9` — 「**The attribution reverses**: under CAL=simple the gain was carried by V2MAIN (C−A +0.120, P 0.96; B−A +0.027).」
 - **A reader could wrongly conclude:** The candidate has complete replay evidence, is not yet live, and the forward shadow has not ruled.
 - **Affects:** future_eval, reporting · **Severity reason:** The header says evidence complete and undeployed; the form has been live since 08-26, its replay evidence was re-tested and weakened, and the forward judge it names failed criterion ①.
@@ -346,7 +346,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
 
 ### KB-45 · P1 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:118`
+- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:121`
 - **Quote:** 「What must be lowered is any planning or target number built on a best-candidate backtest: subtract at least 0.65 SR (full cycle) / 1.56 SR (frozen window).」
 - **Superseding evidence:**
   - `STATE.md:6` — 「③ **T6 读法过强**: 参与比 N_eff 是谱维数、不是已校准的极值有效试验数; −0.65/−1.56 不是今后任意候选的最低折价下界; 0.30/0.0047 是不同 N 假设下的代入读数、不是真 Sharpe>3 的概率」
@@ -354,10 +354,10 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** Every future best-candidate backtest must be cut by at least 0.65/1.56 Sharpe, and A0's frozen 2.94 has a 0.30/0.005 probability of exceeding 3.
 - **Affects:** future_eval, reporting · **Severity reason:** T6 §8 is quoted as a calibrated haircut and probability; the lead withdrew both readings (STATE 12:1xZ ③) but the RESULT is unchanged.
 - **Proposed correction (exact text):** 在 §8 前插入: ⚠ 复审第四轮(REVIEW_round4 §4.2)与 STATE 2026-09-13 12:1xZ ③ 撤回三处读法: (1) N_eff 参与比是谱维数, 不是已校准的有效试验数; (2) −0.65/−1.56 是本家族在已实现选择路径上的描述, 不是今后任意候选的最低折价下界; (3) 0.30/0.0047 是不同 N 假设下的代入读数, 不是真 Sharpe>3 的概率。仍成立: 候选家族高度相关、冻结窗高水平为全家族共有、A0 冻结窗 CI95 [1.306, 4.565] 不显著高于 3。
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 118->121)
 
 ### KB-46 · P1 · PENDING_USER_DECISION
-- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:150`
+- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:156`
 - **Quote:** 「at least −0.65 SR full cycle and −1.56 SR frozen window from T6, both lower bounds.」
 - **Superseding evidence:**
   - `STATE.md:6` — 「③ **T6 读法过强**: 参与比 N_eff 是谱维数、不是已校准的极值有效试验数; −0.65/−1.56 不是今后任意候选的最低折价下界; 0.30/0.0047 是不同 N 假设下的代入读数、不是真 Sharpe>3 的概率」
@@ -366,7 +366,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** Admission will require quoting a ≥0.65/1.56 haircut; the increment gate statistic is settled.
 - **Affects:** future_eval · **Severity reason:** The §11 admission protocol is awaiting a user ruling and the third programme already evaluates candidates by it; rule 7 bakes in the withdrawn haircut.
 - **Proposed correction (exact text):** 7. **Quoting rule.** 任何最佳候选回测夏普须同时引用其嵌套前推对应值与本家族实测差(W_FULL −0.652 [−1.735,+0.392] / FROZEN −1.555 [−3.347,+0.200], 描述性, 非普适下界); §11 录取门先冻结统计量(ΔSharpe 或差收益均值)、合法人口、选择时点、主窗、依赖块长与前向验证段后再提交用户裁定
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 150->156)
 
 ### KB-50 · P1 · DOC_STALE
 - **Source:** `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:11`
@@ -381,7 +381,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
 
 ### KB-64 · P1 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:91`
+- **Source:** `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:97`
 - **Quote:** 「**A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。**」
 - **Superseding evidence:**
   - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:217` — 「Sharpe 1.29 引用必须带窗: **W_ALPHA 2022-06-30 00Z→2026-08-30 20Z, 9,138 锚, 1.29122344 [0.3207, 2.2822]**」
@@ -390,7 +390,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** A planning or leverage decision is taken on 1.2912 / +27.8% NAV as if it were the whole history on the costs the book actually pays; both substitutions move the number, in opposite directions, by more than the quantity being planned around.
 - **Affects:** reporting, future_eval, live_trading · **Severity reason:** This is §7 '当前规划数' — the single line the whole programme points at for planning — and it names neither the window (W_ALPHA n=9138) nor the cost plane (fitted costb_PWR_G230k); on the deployed fee-only plane the same book reads 1.4025, and on the full anchor axis 1.1062.
 - **Proposed correction (exact text):** [在该行后插入] > ⚠ **2026-09-16 更正(独立复审 FXR-DOC-3 + CANONICAL_NUMBERS §0-5/§0-3)**: 本规划数的**窗与成本面必须同时写出** —— **W_ALPHA(2022-06-30 00Z → 2026-08-30 20Z, 9,138 锚)· 拟合成本面 `costb_PWR_G230k.json`(sha 295b4e7b…)**, 夏普 **1.29122344** CI95 **[0.3207, 2.2822]**(探索性 2,000 次 UTC 日块自举, 保留日内不保留跨日, **非选择校正区间**)。同一本书在**在役纯费成本面**上读 **0.688853 / SR 1.4025**; 在**全锚轴 W_FULL(10,038 锚)**上读 **SR 1.1062**; 另有 9,139 锚 / 1.2947 版本。**四者不可混用**, 引用时窗与成本面缺一即作废。
-- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 91->97)
 
 ### KB-69 · P1 · DOC_STALE
 - **Source:** `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:258`
@@ -435,7 +435,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Source:** `CLAUDE.md:15`
 - **Quote:** 「宽面板/判官在 jpline `/mnt/storage/private/work_hsy/`」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:60` — 「jpline 自 09-04 起不可达」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:69` — 「jpline 自 09-04 起不可达」
   - `STATE.md:182` — 「**jpline 重连定时已按用户字停止(09-06 05:4xZ)。**」
 - **A reader could wrongly conclude:** Canonical panels and judges live on jpline.
 - **Affects:** future_eval, future_retrain · **Severity reason:** Every judge in current use (v4 chain, T/L series, P2) runs on pod2; a new session following this line looks for panels on a host that has been unreachable since 09-04.
@@ -534,7 +534,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Source:** `docs/MILESTONE_2026-08-26.md:40`
 - **Quote:** 「书自带隐式止损(在役止损≈免费保险)」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:28` — 「**已停的多头仓位不会被平到 0**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:31` — 「**已停的多头仓位不会被平到 0**」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:27` — 「2023 **−28.92%**(近似 −33.54, 误差 4.61pp)」
 - **A reader could wrongly conclude:** Live stops are free insurance that already work as in the replay.
 - **Affects:** live_trading, reporting · **Severity reason:** The live per-name stop did not flatten stopped longs until W9 (deployed 2026-09-13); the 'free insurance' reading is from the replay stop layer, not the live executor.
@@ -582,7 +582,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Quote:** 「DSR 折价适用 ⇒ **前向影子为终审**」
 - **Superseding evidence:**
   - `STATE.md:154` — 「判据① 不过(候选净累计 −192.3 bps gross=1 ≈ −3.85% NAV@2×)」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:123` — 「T6's A0 FROZEN P(true SR > 0) at N_raw is 0.891, above that 0.75 line; P(true SR > 3.0) is not.」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:129` — 「T6's A0 FROZEN P(true SR > 0) at N_raw is 0.891, above that 0.75 line; P(true SR > 3.0) is not.」
 - **A reader could wrongly conclude:** The forward shadow has not yet produced a verdict.
 - **Affects:** future_eval, live_trading · **Severity reason:** The named final judge has reported (① FAIL, ② not vetoed); the next reading window and what ① FAIL means for the form are user decisions.
 - **Proposed correction (exact text):** DSR 折价适用(入选时未算 DSR 数字; T6 事后读数仅描述性)⇒ 前向影子为终审: 84 锚二读(09-09)判据① 不过 / ② 未否决, 按 §6 只记录不改书; 下一读数窗(建议 168 锚)与对① 不过的处置待用户裁定
@@ -601,17 +601,17 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 31->34)
 
 ### KB-39 · P2 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:18`
+- **Source:** `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:24`
 - **Quote:** 「零成本收入流 SR 12–44、ρ≈0, 但冻结换仓规则下净额为负(收入 +1.7 vs 换手成本 4.5 bps/锚), 2023 年 71% 锚无合格名; **滞回换仓未评估**」
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_r3_2026-09-13/L4b/RESULT_L4b.md:10` — 「**No arm survives POST-HOC-FAMILY-2**」
 - **A reader could wrongly conclude:** A delta-neutral carry sleeve is a high-Sharpe independent stream pending only a hysteresis rule.
 - **Affects:** future_eval · **Severity reason:** Fact #8 still invites a carry sleeve; L4 then L4b evaluated hysteresis and found no arm survives executable exit marks.
 - **Proposed correction (exact text):** delta 中性资金费 carry 袖: 滞回换仓已评估(L4 NOT PASS; L4b 原始 1m 可执行退出价下无臂存活, 2025 全臂为负; 强制退出=下架停牌处的标价决定符号); 「SR 12–44」为溢价指数标价的收入流读数, 不可作可交易性证据
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 18->24)
 
 ### KB-40 · P2 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:175`
+- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:193`
 - **Quote:** 「问题在策略本身对普涨挤空 / 暴涨回调行情的响应, 不在部署差」
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T5d/RESULT_T5d_iv_corrected_replay_2026-09-13.md:35` — 「- **不能排除**: 价格上 −4.15 到 +1.71 之间的任何部署或模型差, 包括 −1、−2 bps/锚 这样的差。它们是 A0 全周期净额 +0.63 的 1.6 到 3.2 倍。±0.25 的经济等价在价格、carry、净额上都**没有**成立。」
@@ -619,10 +619,10 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** T8 was justified because deployment differences were excluded.
 - **Affects:** future_eval · **Severity reason:** AMENDMENT 6 rationale is not amended by the closing correction section, which only addresses T5c generically.
 - **Proposed correction (exact text):** 问题至少部分在策略本身对普涨挤空 / 暴涨回调行情的响应(T5c/T5d: 回放同亏); 部署/模型差未排除(T5d −4.15..+1.71 bps/锚)
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 175->193)
 
 ### KB-41 · P2 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:157` · xref K2-F01, RELABEL_TABLE_K2 T4
+- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:172 (+1 more)` · xref K2-F01, RELABEL_TABLE_K2 T4
 - **Resolution:** XREF FIXPROGRAM K2 relabel — CROSS-REF: 'NOT MATERIAL under the frozen rule' → INCONCLUSIVE per K2.
 - **Quote:** 「冻结规则下 NOT MATERIAL」
 - **Superseding evidence:**
@@ -631,10 +631,10 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** The king column-80 train/serve skew is shown immaterial.
 - **Affects:** future_eval · **Severity reason:** The label steers the P1/P2 feature-skew fix priority; CI upper +0.0625 is ≈10% of A0 W_ALPHA net and above the K2 δ 0.05.
 - **Proposed correction (exact text):** 冻结规则下 NOT MATERIAL(仅显著性门)⇒ FX-EVAL K2 重标 **INCONCLUSIVE**: 书层 Δg CI 上界 +0.0625 / +0.0645 越出 δ=0.05, 未排除经济意义差异; IC 轴 EQUIVALENT(ΔIC CI ⊂ ±0.003)
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 157->172)
 
 ### KB-44 · P2 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:80` · xref CFG-03
+- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:92` · xref CFG-03
 - **Resolution:** XREF AUDIT_EXEC CFG-03 — CROSS-REF: same fact as KB-15, different file. Owner AUDIT_EXEC CFG-03; text application is K4's.
 - **Quote:** 「据此 900s→180s 已上线」
 - **Superseding evidence:**
@@ -643,14 +643,14 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** 180 s is live.
 - **Affects:** reporting · **Severity reason:** Same k-window error as KB-15 inside the T3 pointer reading.
 - **Proposed correction (exact text):** 据此曾授权 900s→180s, 但同日在任何锚运行前回滚(在役 900s)
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 80->92)
 
 ### KB-47 · P2 · DOC_STALE
 - **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/T5/RESULT_T5_deployed_carry_gap_2026-09-13.md:36`
 - **Quote:** 「第三分量是设计差: 回放有逐名止损层, 生产没有」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:154` — 「「回放独有的逐名止损层, 生产没有」只在目标文件层成立 —— 执行器有自己的逐名止损」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:17` — 「**执行器逐名止损在役并被逐锚评估**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:169` — 「「回放独有的逐名止损层, 生产没有」只在目标文件层成立 —— 执行器有自己的逐名止损」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:20` — 「**执行器逐名止损在役并被逐锚评估**」
 - **A reader could wrongly conclude:** Production has no per-name stop layer.
 - **Affects:** future_eval, live_trading · **Severity reason:** A reader of T5 alone concludes production has no stop, which would misdirect a stop-layer deployment proposal.
 - **Proposed correction (exact text):** 第三分量是目标文件层的设计差: 回放在目标层有逐名止损, 生产的 target_live 没有; 执行器在 target_live 之后另有逐名止损(`live/per_name_stop.py` wide 档, T5b Q2), 2026-09-13 W9 修复前对多头不平仓
@@ -707,8 +707,8 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Source:** `docs/ERROR_LEDGER_2026-08-20.md:17`
 - **Quote:** 「受据: 该保费=历史利润 34%, β中性化毁 1/3 书 → 五臂全负 DO-NOT-RETRY」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
 - **A reader could wrongly conclude:** Beta or dominance hedges are closed for the current book.
 - **Affects:** future_eval · **Severity reason:** The β-premium DNR is from the pre-combo 08-19/20 instrument; the only current-book measurement (T8) finds no negative dominance exposure.
 - **Proposed correction (exact text):** 受据(08-19/20 在役书旧仪器): 该保费=历史利润 34% … DO-NOT-RETRY。⚠ 未在 combo/A0 v4 复测; T8 §6.1 A0 v4 同期 corr(净额, 山寨−BTC)=+0.05 与之方向相反, 对账前本 DNR 不适用于在役形态
@@ -724,11 +724,11 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
   - `STATE.md:241` — 「**「≤−4% 日 ≈1–2/年」「maxDD 23%」「最差月 −17%」一律改称下界, 不是估计**」
 - **A reader could wrongly conclude:** The live form returns about +53%/yr at 2× with a 23% drawdown, and V2MAIN 2026 runs Sharpe 4.0 / +114%/yr.
 - **Affects:** reporting, future_eval · **Severity reason:** Planning-type annualised returns and drawdowns from the pre-v4, clip-compounded, arithmetic-×2 health check are quoted without CI or selection caveat in the in-flight section.
-- **Proposed correction (exact text):** (09-05 体检, 前 v4 口径: 裁剪复利记账 E-0908-B + 算术 ×2, 无 CI, 已被取代)动态席位 2024→26 +1.21 bps/锚/gross …。⚠ 现行参照 = r18 v4 表: A0 W_ALPHA 全窗 Sharpe 1.29 [0.32, 2.28], 2026 年内 4.53 [2.21, 6.79](年内数, 非跨 regime), 固定 2× 复利 NAV maxDD 2023 −28.92% / W_ALPHA −42.12%; 年化百分比不得作规划数引用
+- **Proposed correction (exact text):** 本行为 2026-09-05 体检读数, 属**前 v4 口径**(裁剪复利记账 E-0908-B + 算术 ×2, 无 CI), 已被取代。⚠ 现行参照 = r18 v4 表: A0 **W_ALPHA 全窗 Sharpe 1.29 [0.32, 2.28]**, 2026 年内 4.53 [2.21, 6.79](**年内数, 非跨 regime**), 固定 2× 逐锚复利 NAV maxDD 2023 −28.92% / W_ALPHA −42.12%(尾部为下界, E-0908-B); **年化百分比不得作规划数引用**。
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 157->159)
 
 ### KB-59 · P2 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:10`
+- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:16`
 - **Quote:** 「3. **重新加权到不了**: ~300 候选都进同一个席位, 与在役书 ρ≈0.9, 上限约 +0.8 夏普; 缺口需要**互不相关的书**。」
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_2026-09-11/handoff_audit/caliber/CANONICAL_NUMBERS_2026-09-12.md:9` — 「① **"~300 条候选全是同一下注的重新加权"这句话撤回** —— 门二实测: 污染与干净基线上都只有 **2/14** 候选 |ρ|≥0.60(中位 |ρ| 0.025 / 0.037)」
@@ -737,10 +737,10 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** All ~300 tested candidates are the same bet (ρ≈0.9) and +0.8 Sharpe is a mathematical ceiling for reweighting.
 - **Affects:** future_eval · **Severity reason:** The second programme's premise repeats a claim withdrawn the day before; T6 supports it only for the 125 A0-lineage configurations, while independent-source candidates were orthogonal but had no net.
 - **Proposed correction (exact text):** 3. **已测候选尚未弥补缺口**: A0 谱系上的 125 个配置几乎是一本书(T6 参与比 1.57, 描述性); 从独立数据源建的候选与书近乎正交(门二 |ρ| 中位 0.025/0.037)但无净额; 「+0.8 夏普上限」是已测最大提升, 不是上界(09-12 撤回)。
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 10->16)
 
 ### KB-60 · P2 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:44`
+- **Source:** `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:47`
 - **Quote:** 「**它们全都是同一个下注的重新加权。**」
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_2026-09-11/handoff_audit/caliber/CANONICAL_NUMBERS_2026-09-12.md:9` — 「① **"~300 条候选全是同一下注的重新加权"这句话撤回**」
@@ -748,7 +748,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** Reweighting mathematically cannot reach the target because every candidate is the same bet.
 - **Affects:** future_eval, reporting · **Severity reason:** The closeout still carries both withdrawn sentences although the response says the full text was changed.
 - **Proposed correction (exact text):** 已测候选(A0 谱系配置)高度相关、独立来源候选正交但无净额; 已测候选尚未弥补缺口(「数学上到不了 +2.55」撤回, 见 RESPONSE_to_independent_review_2026-09-12 §0.6)
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 44->47)
 
 ### KB-63 · P2 · DOC_STALE
 - **Source:** `docs/STATUS_three_questions_2026-09-12.md:28 (+1 more)`
@@ -762,7 +762,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
 
 ### KB-65 · P2 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:9`
+- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:12`
 - **Quote:** 「2. **全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举)」
 - **Superseding evidence:**
   - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:217` — 「T6 的 **W_FULL 2022-01-31 起 10,038 锚 = 1.1062**; 原表另含 08-31 00Z 一锚的 9,139/1.2947 **不可混用**」
@@ -770,13 +770,13 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** A reader treats [0.32, 2.28] as already deflated for selection (it is not), or compares '全周期 1.29' with a later W_FULL number and concludes the book changed.
 - **Affects:** reporting, future_eval · **Severity reason:** The programme's own headline calls W_ALPHA '全周期', while the same programme's T6 publishes 1.1062 for the actual full axis; the CI is also an exploratory day-block bootstrap, not a selection-corrected interval, which matters because the next bullet in this very document is about selection.
 - **Proposed correction (exact text):** [在该行末尾追加] ⚠ **2026-09-16 更正(FXR-DOC-3)**: 此处「全周期」= **W_ALPHA(2022-06-30 00Z → 2026-08-30 20Z, 9,138 锚, 丢 900 暖机锚)**, 点估计 **1.29122344**, CI95 **[0.3207, 2.2822]** 为**探索性** 2,000 次 UTC 日块自举(保留日内不保留跨日), **不是选择校正后的区间**。真全锚轴 W_FULL(2022-01-31 起, 10,038 锚)= **1.1062**; 另有 9,139 锚 / 1.2947 版本; 三者不可混用。
-- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact (line moved 9->12)
 
 ### KB-66 · P2 · DOC_STALE
 - **Source:** `docs/HANDOFF_round4_review_request_2026-09-13.md:77`
 - **Quote:** 「- F1 125 个全书配置 N_eff 1.57(几乎一本书); PBO 0.157 / 0.187 未触发, 但由事后预选线 XIB_LAG50 撑着; r8–T2 家族 F3 PBO 0.508 触发; 选择折价下界 −0.65(全周期)/ −1.56(冻结窗), CI 含 0; A0 冻结窗 2.94 的 P(真 SR > 3) = 0.30(N_eff)/ 0.0047(N = 300)」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:196` — 「T6: 参与比 N_eff 不是已校准的有效试验数; −0.65/−1.56 不是今后候选的统一最低折价; DSR 的 0.30/0.0047 是代入读数不是概率; §11 不能原样成为硬门。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:217` — 「T6: 参与比 N_eff 不是已校准的有效试验数; −0.65/−1.56 不是今后候选的统一最低折价; DSR 的 0.30/0.0047 是代入读数不是概率; §11 不能原样成为硬门。」
   - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:217` — 「N_eff≈1.57 不是有效独立试验数, `.30` 不是「真 Sharpe>3」的后验概率」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:70` — 「The truth for "how many independent looks" lies between, which is exactly why the probabilities span 0.30 → 0.005 for A0's 2.94 exceeding 3.0.」
 - **A reader could wrongly conclude:** A reviewer or a later planning document treats 0.30 as 'a 30% chance the true Sharpe exceeds 3', or applies −0.65 SR as a standing haircut to an unrelated candidate.
@@ -829,7 +829,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** Two battery counts from different dates are compared as if they measured the same thing. A run launched with ACCEPT_PY set to the 3.14 interpreter loses torch/numpy, `tests_inference_parity` and `tests_panel_build` fail for want of them — and `tests_acceptance_entrypoints` still prints OK 「ACCEPT_PY pinned」, because the string is still in the file. The reader takes the red cells for real failures, which is exactly what happened before 2026-07-27.
 - **Affects:** reporting, future_eval · **Severity reason:** Every 「逐套件 N/M」 receipt in the knowledge base is comparable only if the same interpreter produced it, and no acceptance artefact records which one did: the runner resolves `PY="${ACCEPT_PY:-/usr/bin/python3}"` and invokes each suite with "$PY" (L278) without ever echoing the resolved path, and the suite that certifies the pin checks only that the STRING `ACCEPT_PY:-/usr/bin/python3` appears in the file, not which interpreter the run used.
 - **Proposed correction (exact text):** [在该行后插入] > ⚠ **口径项 KB-73(2026-09-16)**: 电池脚本在 **`~/dl_quant_live/run_acceptance.sh`(仓根, 不在 `ops/`)**; `ops/` 下的是 `safe_commit.sh`。**解释器钉在 L28 `PY="${ACCEPT_PY:-/usr/bin/python3}"`** —— 本机三个解释器: `/usr/bin/python3` **3.9.6**(torch 2.2.2 + numpy 1.26.4 + pandas 2.3.3, 唯一能跑推理的)· `/usr/local/bin/python3` **3.14.4**(裸 `python3` 解析到它, **无 torch**)· `/opt/anaconda3` 3.7.6(torch 1.4.0, 过旧)。**⇒ 任何「逐套件 N/M」数字只在同一解释器下可比。** 三条已测边界: ① 该钉是**默认值, 可被环境变量 `ACCEPT_PY` 覆盖**; ② 认证它的断言 (`live/tests_acceptance_entrypoints.py:55`) 是对**源码文本**做子串检查(`"ACCEPT_PY:-/usr/bin/python3" in open(ROOT_SH).read()`), **不断言本次运行实际用的是哪个解释器** ⇒ 覆盖运行时它照样打 OK; ③ `state/acceptance/` **38,177 份工件中 0 份记录解释器版本**(唯一 465 次 `/usr/bin/python3` 出现在 `gate_coverage` 的字节码缓存盲区说明里, 不是运行收据)。**2026-07-27 之前更不可比**: 当时两个入口一钉一裸, 裸 `python3` 让 `tests_inference_parity` 与 `tests_panel_build` 因缺 torch 变红, 二者在钉住的解释器下**全过** —— 源码自述这是「两个假的 known failures」。**引用任何电池计数时须写明解释器**; 建议(提案): 运行器把解析后的 `$PY` 与 `sys.version` 写进日志头与 JSON, 并把断言从子串改为断言**有效解释器**。
-- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** absent
 
 ### KB-74 · P2 · DOC_STALE
 - **Source:** `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:311`
@@ -841,7 +841,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **A reader could wrongly conclude:** One document assigns TRN-28 to two owners (K4 at §3.2, FX-TRAIN at §15.2) with two severities (P2 doc-routing vs P1 live-artefact overwrite). Whoever works the queue by id either fixes a documentation pointer believing they closed a P1, or cannot tell which is meant.
 - **Affects:** future_retrain, reporting · **Severity reason:** The PROD family was renumbered on 2026-09-16 but the same defect survives at TRN-28: §15.2 opens it as a P1 owned by FX-TRAIN (`pod_f10_np_export.py` writes a deployable npz before its own gate verdict), while AUDIT_TRAIN (7e1ecf9a) TRN-28 is 「CLAUDE.md routes 月度重训 to the superseded September runbook」 — and §3.2 of the SAME document already routes TRN-28 to K4 in the AUDIT_TRAIN sense.
 - **Proposed correction (exact text):** [§15.2 表内原编号字节保留, 就地注明] ⚠ **2026-09-16 编号更正(aud-kb KB-74, 与 §17.5 同一把尺子)**: 本行的 **TRN-28 与 `AUDIT_TRAIN`(7e1ecf9a)已占用的 TRN-28 撞号**(原主 = 「CLAUDE.md 把月度重训指向已作废的九月 runbook」), 且**本纲领 §3.2 已按原主义把 TRN-28 派给 K4** ⇒ 同一文件内一号两主两级。**AUDIT_TRAIN 最高号 TRN-29, 空号自 TRN-30 起** ⇒ 本项改为 **TRN-30**(原号标 SUPERSEDED-ID)。§15.2 与 §15.3 内对本项的引用同步改。**其余 §13–§17 新号经逐一查重均不撞**: OPS-04(AUDIT_EXEC 只到 OPS-03)· LED-09(AUDIT_EXEC 只到 LED-08, AUDIT_DATA 只有 LED-01)· RES-01 · TEST-01 · BAT-01 · EXEC-RACE-01 · DATA-COR-1 · W6C-I6 · MON-1..4 · FXR-* 全部为空号。**`PROD-28-STALE` 保留**: 它是对 AUDIT_PROD PROD-28 这条记录的**状态标注**, 不是新发现, 后缀语义正确(与 PROD-36b 不同 —— 那是另一个发现被挂了子项后缀)。
-- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote+receipt opened) · **Quote re-verified at assembly:** absent
 
 ### KB-75 · P2 · DOC_STALE
 - **Source:** `docs/audit_pipeline_2026-09-13/AUDIT_EXEC.md:88`
@@ -926,21 +926,21 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 39->45)
 
 ### KB-38 · P3 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:14`
+- **Source:** `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:17`
 - **Quote:** 「(未复跑; carry/净额数字 PROVISIONAL, 价格读数不受影响)」
 - **Superseding evidence:**
   - `STATE.md:6` — 「IV 经 FTRIM(FN×8/IV ≤ −10bp)改仓位进而改价格, 只有「固定旧 W 再计价」才不受影响」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:202` — 「T5d 以生产者账本间隔为真值, 而 FX-PROD(P9)证明账本在短→长切换行按时间差误标; 已派 T5d-R」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:223` — 「T5d 以生产者账本间隔为真值, 而 FX-PROD(P9)证明账本在短→长切换行按时间差误标; 已派 T5d-R」
 - **A reader could wrongly conclude:** Price readings of T5c are immune to the interval defect.
 - **Affects:** future_eval · **Severity reason:** Corrected in the same file's 12:1xZ section, but the fact-table row still carries the withdrawn clause; T5d's own interval truth is now under T5d-R.
 - **Proposed correction (exact text):** (未复跑; T5d 用真实间隔重生成权重后价格变化 −0.07/−0.09, 标签不变; carry 修正 +0.253 待 T5d-R 对账; 部署/模型差 −4.15..+1.71 不可排除)
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 14->17)
 
 ### KB-42 · P3 · DOC_STALE
 - **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:8`
 - **Quote:** 「**实盘亏在资金费, 不在价格也不在执行**」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:109` — 「**更正 1: AMENDMENT 2 说「实盘窗是 carry 高于常态与价格边归零**同时**发生」—— 错, 是**先后**发生。**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:124` — 「**更正 1: AMENDMENT 2 说「实盘窗是 carry 高于常态与价格边归零**同时**发生」—— 错, 是**先后**发生。**」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:27` — 「**但价格那一半对窗口端点极敏感**」
 - **A reader could wrongly conclude:** Live losses are all funding, price edge is zero.
 - **Affects:** reporting, future_eval · **Severity reason:** Corrected by AMENDMENT 2/3 in the same file, but §0 item 1 is unmarked and is the most quoted line.
@@ -948,16 +948,16 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
 
 ### KB-43 · P3 · DOC_STALE
-- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:18`
+- **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:27`
 - **Quote:** 「回放可用于定位, 幅度按 0.835 折算」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:128` — 「P2 读法改为「基线回放幅度偏大 15–27%, **不得**用于换算候选增量」」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:129` — 「P5 改名为「**量级启发**(非上界)」」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:59` — 「1. **P7 作废**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:143` — 「P2 读法改为「基线回放幅度偏大 15–27%, **不得**用于换算候选增量」」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:144` — 「P5 改名为「**量级启发**(非上界)」」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:71` — 「1. **P7 作废**」
 - **A reader could wrongly conclude:** Candidate increments can be scaled by 0.835; ≤+0.2 Sharpe is a ceiling; slowing reversal is dead; markout makes all cost verdicts 41% cheap.
 - **Affects:** future_eval · **Severity reason:** Fact-table rows P2/P5/P6/P7 carry no inline marker; corrections sit in AMENDMENT 1 and 4 further down.
 - **Proposed correction (exact text):** 在 §1 表 P2/P5/P6/P7 各行末加: P2「(AMENDMENT 4: 只描述基线回放, 不得换算候选增量)」; P5「(AMENDMENT 4: 量级启发, 非上界)」; P6「(AMENDMENT 4: 只证 EMA 三剂量平滑杀反转 alpha, 其他低换手实现未测)」; P7「(AMENDMENT 1: 作废)」
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 18->27)
 
 ### KB-49 · P3 · DOC_STALE
 - **Source:** `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:12` · xref K2-F04, RELABEL_TABLE_K2 T5b Q1
@@ -989,7 +989,7 @@ Rows KB-01..KB-60. Composition, leverage, rollback and evidence claims are repea
   - `STATE.md:182` — 「**jpline 重连定时已按用户字停止(09-06 05:4xZ)。**」
 - **A reader could wrongly conclude:** Deep-check runs under 47686c87 alongside a jpline job.
 - **Affects:** reporting, live_trading · **Severity reason:** Job ids and set are stale; the live deep-check job is 41df7caa (09-09) and expires about 09-16 00:24Z.
-- **Proposed correction (exact text):** 会话 cron(09-09 00:24Z 重建): 每锚深查 41df7caa(会话级, 7 天自动过期 ≈09-16 00:24Z, 须按修订模板重建)· jpline 2h 已于 09-06 按用户字停止 · combo 84 锚二读已于 09-09 完成; 模板 `docs/CRON_TEMPLATES_2026-09-04.md`(待修订, 见 AUDIT_KB CRON-01..09)
+- **Proposed correction (exact text):** 现行会话 cron: 每锚深查 **a84f2bd4**(2026-09-16 重建, 排程 `9 1,5,9,13,17,21`, 含盲态附注; 前身 41df7caa → 46dd536b)· 抛物线起始前向日志(`52 14 * * *`)· 两者均会话级 **7 天自动过期 ≈2026-09-23**, 到期须按修订模板重建。jpline 2h 重连已于 09-06 按用户字停止(且 jpline 自 09-04 不可达); combo 84 锚二读 09-09 已完成。模板与「lead 更正附注」见 `docs/CRON_TEMPLATES_2026-09-04.md` 文末与 `docs/audit_pipeline_2026-09-13/AUDIT_KB.md` §5。
 - **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 164->166)
 
 ### KB-58 · P3 · DOC_STALE
@@ -1268,9 +1268,9 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Quote:** 「do not cite this skew as a cause of live underperformance — the measured effect is below ±0.05 bps/anchor and its point estimate favours the as-served v1.」
 - **Superseding evidence:**
   - `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round4_code_and_research_2026-09-13.md:136` — 「其 `NOT MATERIAL` 标签仍由显著性门生成，未设置经济等价带，不能推广为两代部署 booster 全部窗口都无材料性影响」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:13` — 「**+0.0181 [−0.0299, +0.0625]**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:16` — 「| 分辨率(CI95 半宽) | 书层 ±0.046 / ±0.049 bps/锚; ΔIC ±0.00017 |」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:87` — 「它不说在役 king 在实盘里没有吃亏, 实盘窗的差值见 §6。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:16` — 「**+0.0181 [−0.0299, +0.0625]**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:19` — 「| 分辨率(CI95 半宽) | 书层 ±0.046 / ±0.049 bps/锚; ΔIC ±0.00017 |」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:90` — 「它不说在役 king 在实盘里没有吃亏, 实盘窗的差值见 §6。」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:43` — 「W_ALPHA 基线复现: C0_s42 g +0.6342」
   - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:39` — 「| K2 | 评估 | 「NOT MATERIAL」类标签只由显著性门生成, 无经济等价带 | 复审 R4 §4.3 | FX-EVAL |」
 - **A reader could wrongly conclude:** A reader concludes the col-80 v0/v1 skew is proven economically immaterial (< ±0.05 bps/anchor) for the live book, while CI upper bounds +0.0625/+0.0645 bps/anchor (~10% of A0 W_ALPHA g 0.634) are not excluded, the verdict is replay-only and V2MAIN's historical effect is NOT MEASURED.
@@ -1283,7 +1283,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Resolution:** XREF AUDIT_PROD PROD-01..PROD-06 · AUDIT_TRAIN TRN-04 / TRN-05 — CROSS-REF: 'the live model legs need no caliber swap' is bounded by the AUDIT_PROD train/serve parity family (PROD-01 clock, PROD-02 rank cross-section, PROD-03 Spearman 0.935, PROD-06 V2MAIN member universe).
 - **Quote:** 「CALIBER_STATUS 更新: 线上模型腿不需为口径换装」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:20` — 「**回放 king 与实盘 king 在 4h/1h 名上确实不是同一个分数**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:23` — 「**回放 king 与实盘 king 在 4h/1h 名上确实不是同一个分数**」
   - `STATE.md:5` — 「生产者 king/V2MAIN 第 80 列训练 v0/服务 v1 未修; 面板 qv4h 与生产者定义差中位 |Δlog| 0.52 且全部 78+171 个模型特征从未逐列做训练/服务平价」
   - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:48` — 「king 训练特征以 float16 存储(`pod_fea_ext.py` L66), 服务端 78 列为 float32 —— 精度层训练/服务差, 影响待测」
   - `docs/CALIBER_STATUS_2026-09-09.md:40` — 「与在役形态书层十格对照全 (C)(动态 +0.01~+0.08 bps/锚/gross, 固定 ±0.01, CI 全含 0)⇒ 线上模型腿在正确口径下**不需要**为口径原因换装」
@@ -1339,8 +1339,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/RESULT_r18_foundation_2026-09-12.md:12` — 「maxDD −43.9 % / −44.5 %, worst day 2022-06-07 −6.40 %, halts 5 / 6 (1.09 / 1.31 per yr), alerts 23 / 26, P(1y true maxDD ≥ 25 %) 26.8 % / 33.1 %.」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/RESULT_r18_foundation_2026-09-12.md:94` — 「| 2.50 | 1.0 | −52.0 % (−52.6 %) | −7.99 % | 9 (11) | 47 (50) | 1.97 (2.40) | 41.7 % (42.0 %) |」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:162` — 「`constant_leverage_2.00` 自 2026-09-03 在役, 是按**冻结窗的 2.9357** 设的; 诚实夏普是 **1.2912**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:19` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:171` — 「`constant_leverage_2.00` 自 2026-09-03 在役, 是按**冻结窗的 2.9357** 设的; 诚实夏普是 **1.2912**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:31` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
 - **A reader could wrongly conclude:** A reader treats raising gross from 2.0× to 2.5× as inside an accepted risk band or quotes ~11% probability of a −25% drawdown at 2.0×, while the v4 replay gives P(1y true maxDD ≥25%) 26.8%/33.1% at 2.0× and 41.7%/42.0% at 2.5×, with 5–6 vs 9–11 historical halts.
 - **Affects:** live_trading · **Severity reason:** The standing guidance that 2.0–2.5× gross is acceptable (2.0× touches −25% 10.8%/24%) is an 08-21 single-instrument reading superseded by the v4 r18 ladder, and would mislead a leverage change.
 - **Proposed correction (exact text):** ⚠ 2026-09-13 审计: 本条 08-21 的「宽+止损 gross2.0 触线 10.8%/24%」与「宽书可接受 gross 2.0-2.5」已被 r18(2026-09-12, v4 口径, 修暖机/真 maxDD, 固定杠杆复利 NAV)取代: 2.0× 全史 maxDD −43.9%/−44.5%、停机(≤−4% 日)5/6 次(1.09/1.31 次/年)、P(1 年真 maxDD ≥25%) 26.8%/33.1%; 2.5× maxDD −52.0%/−52.6%、停机 9/11 次(1.97/2.40 次/年)、P 41.7%/42.0%。不得再用本条数字论证杠杆; 在役 constant_leverage_2.00 是按冻结窗夏普 2.9357 设定的, 诚实全周期夏普 1.2912(CLOSEOUT §7); 杠杆改动 = 用户裁定。
@@ -1394,7 +1394,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:29` — 「5. **探索性日块自举 Sharpe CI95**(研究员新增, 2000 次, UTC 日块, 保留日内依赖不保留跨日; rng [20260905,k]): 原钉 W_ALPHA **[0.3207, 2.2822]**(SE 0.4890)」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:27` — 「3. **回撤尺子**: 表中 maxDD 是累计 g 的算术峰谷差(单位 gross), ×2 只是线性近似; 按同一收益流固定 2 倍每锚复利 Π(1+2g·1e−4) 的 NAV maxDD: 2022 **−10.70%**(×2 近似 −11.16) / 2023 **−28.92%**(近似 −33.54, 误差 4.61pp) / 2024 **−23.62%** / 2025 **−15.53%** / 2026 **−15.98%**; W_ALPHA 全窗 C0_s42 **−42.12%**; W_FULL(10038 锚) C0_s42 −46.42% / C0_s2027 −46.89% / NW −43.97%。」
   - `docs/CALIBER_STATUS_2026-09-09.md:26` — 「- 尾部: **一律是下界**(全史最差日 −6.04% → −11.17%, maxDD 41.5% → 44.8%; 最差月 −17%、≤−4% 日 1–2/年 同此)。」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:24` — 「- 回放装置在实盘数据上**方向被验证**(逐锚 ρ **+0.83** [+0.710,+0.899]), 但**幅度是压缩的**: 斜率 0.835 [0.707,0.963], 四组检验的斜率 CI 上界**全部 <1** ⇒ 回放系统性**高估幅度 15–27%**。」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:27` — 「- 回放装置在实盘数据上**方向被验证**(逐锚 ρ **+0.83** [+0.710,+0.899]), 但**幅度是压缩的**: 斜率 0.835 [0.707,0.963], 四组检验的斜率 CI 上界**全部 <1** ⇒ 回放系统性**高估幅度 15–27%**。」
   - `STATE.md:163` — 「掩码 king 席位 0.1878 → **0.2999**(w3 [0.264, 0.1195, 0.6164])」
   - `/Users/haosiyu/regime_dash/regime_dash.jsonl (anchor_utc=2026-09-13T12:00Z)` — 「"anchor_utc": "2026-09-13T12:00Z" … "w3_masked_king": 0.3821, "w3_masked_fund": 0.6179」
 - **A reader could wrongly conclude:** A reader sizes leverage or risk limits from 'maxDD 23%, +53%/yr at 2×', understating drawdown roughly two-fold, and reads the live king seat as ≈0.2 (so today's 0.38 looks abnormal).
@@ -1422,7 +1422,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Superseding evidence:**
   - `STATE.md:163` — 「**16Z 锚验收(巡检)**: 掩码 king ∈ [0.28, 0.32], combo_stage 五层安全通过, 执行器/readback 正常, sidecar 自平价 PASS, FTRIM/M1 PASS; 任一不成立 ⇒ 回滚(备份文件 + kickstart)。**关闭「线上 0.19 vs 装置 0.33」的缝; 此后席位随实盘行滚动; 下次换 bundle 时须按同法播种(否则新模型样本外行永不进窗)。**」
   - `/Users/haosiyu/regime_dash/regime_dash.jsonl (anchor_utc=2026-09-13T12:00Z)` — 「"anchor_utc": "2026-09-13T12:00Z" … "w3_masked_king": 0.3821, "w3_masked_fund": 0.6179」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:40` — 「| 09-05 12:47Z | 在役席位的 king 腿收益历史 917 行由 v3 样本外(v0 打分)行播种, 此后追加行是 v1 打分 | STATE.md L146 | 转引(未测) |」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:43` — 「| 09-05 12:47Z | 在役席位的 king 腿收益历史 917 行由 v3 样本外(v0 打分)行播种, 此后追加行是 v1 打分 | STATE.md L146 | 转引(未测) |」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T4b/RESULT_T4b_v2main_feature_skew_2026-09-13.md:30` — 「**09-05 席位播种对 V2MAIN 链: 在席位权重与目标文件层 MEASURED(描述), 盈亏 NOT MEASURED。** 席位历史里仍有 876 行播种行(04-05 00Z .. 08-30 20Z), 它们是 v0 打分的 king 腿收益。把这 876 行换成同 booster、第 80 列 = v1 的重算值后: 掩码 king 席位 = V2MAIN 分数在 fc 链里的系数, 从 0.3695(中位)**+0.0078**(+0.0072…+0.0089);」
   - `docs/RUNBOOK_monthly_retrain_2026-10.md:213` — 「③ 换装步骤禁止删除/重置 `state/leg_returns_live.json`」
 - **A reader could wrongly conclude:** A reader uses the note's rollback to revert a seat problem and silently rewinds the producer's seat history by 48 anchors, re-seating the obsolete 08-16 king rows; or re-seeds at the October swap without accounting for the v0/v1 scoring mix.
@@ -1529,7 +1529,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py:1664` — 「# ★ THE PRODUCER'S WEIGHTS ARE THE TARGET (design §1): no compose_book, no risk budget,」
   - `/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py:1665` — 「#   no harvest EMA, no neutral band. target_w = w / gross_norm (unit gross), so the」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:10` — 「EMA 0.1 + 带宽 2.5e-4 对 890 个名-锚预测「冻结 / 移动」, 与观测逐一相符, 不符 0。」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:23` — 「外部书分支均跳过中性带与 harvest EMA, `DEFAULT_BAND_BPS = 0.0` 且非测试代码无覆写(G-CODE PASS); `state/live/no_trade_band.json` 最后写于 A1787371250 = 08-22 04:00Z(外部书切换前最后一个内部书锚), 之后未写。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:26` — 「外部书分支均跳过中性带与 harvest EMA, `DEFAULT_BAND_BPS = 0.0` 且非测试代码无覆写(G-CODE PASS); `state/live/no_trade_band.json` 最后写于 A1787371250 = 08-22 04:00Z(外部书切换前最后一个内部书锚), 之后未写。」
 - **A reader could wrongly conclude:** A DECIDE/ALERT gets read as a calibrated 1%/5% signal-failure event and triggers a book-level response, against the no-book-level-response-to-instrument-doubt rule. A reader also believes α=0.05 EMA and b=0.002 band shape the live book.
 - **Affects:** live_trading, reporting · **Severity reason:** Makes ic_monitor the judge of signal failure and reads its thresholds as 5%/1% events. Those thresholds were calibrated on an α=0.05/b=0.002 book, which has not been the live book since 08-22.
 - **Proposed correction (exact text):** [description 末尾追加] 【2026-09-13: 08-22 起外部书(combo)分支不施 harvest EMA/中性带(anchor_loop.py L1664–1666), 在役平滑在生产者 α=0.1/band=0.00025; ic_monitor 阈值(L13 的 ALERT −0.0228 / DECIDE −0.0443)仍按 α=0.05/b=0.002 离线书标定, 5%/1% 概率含义对在役书不成立(ops/ic_monitor.py L17–19)】 [替换 How to apply (a)] (a) ~~深平滑后一切"信号失效"判断以 ic_monitor 为准~~ ic_monitor 只作未重标的描述性告警: 阈值未按在役形态(α=0.1/band=0.00025)重标, DECIDE/ALERT 不是 1%/5% 事件, 不得单独触发书级动作; 重标需生产者平价回放 Phase 2 在役书逐锚分布 + 重盖章。
@@ -1631,7 +1631,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/infra_server_jpline.md:8`
 - **Quote:** 「**重要 (compact 后必读):** training infrastructure 早已从 RunPod 切换到固定 server。绝对不要再称"pod"或用 RunPod-era 的 `ssh -p PORT -i KEY root@IP` 模式。」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:60` — 「jpline 自 09-04 起不可达」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:69` — 「jpline 自 09-04 起不可达」
   - `STATE.md:113` — 「jpline 11:47Z 起不可达。」
   - `STATE.md:182` — 「**jpline 重连定时已按用户字停止(09-06 05:4xZ)。**」
   - `docs/MILESTONE_2026-08-26.md:101` — 「| pod2(RTX PRO 4500) | GPU 训练 + LOB |」
@@ -1649,7 +1649,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `/Users/haosiyu/dl_quant_live/config/book.json:140` — 「"active_profile": "wide",」
   - `/Users/haosiyu/dl_quant_live/config/book.json:144` — 「"depth_pct": -0.3,」
   - `/Users/haosiyu/dl_quant_live/config/book.json:147` — 「"min_notional_usdt": 5.0,」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:28` — 「**已停的多头仓位不会被平到 0**。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:31` — 「**已停的多头仓位不会被平到 0**。」
   - `STATE.md:10` — 「**W9**(实盘逐名止损不把被止损名平到 0; 上线以来 157 例, 不限多头)最终版 `73d55602` diff f8beb082: force_flat 使持有止损名离开重整人口、恰 0.0 走 flatten_only」
   - `STATE.md:7` — 「提交 **`ef60f85`** 并推送」
   - `STATE.md:6` — 「flatten_only 可沿 chase 框架补单而条款写 maker-only 不追(W9 把原被钉住的止损多头接入此通道, 政策待用户裁定)」
@@ -1669,7 +1669,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `docs/RESULT_caliber_revalidation_2026-09-04.md:52` — 「**三项在役改动(M1/FTRIM/T400)在无偏口径下都不显著, 部署依据作废; 也未见可测伤害。**」
   - `docs/RESULT_xregime_2026-09-02.md:61` — 「REJECT(fund 腿构造轴 DNR 再确认)」
   - `docs/STATUS_three_questions_2026-09-12.md:141` — 「**全周期 Δg +0.41 [+0.18, +0.64] / ΔSharpe +0.81(SE 0.23)⇒ 约 2.2 —— "2+" 是这个**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:92` — 「2. **固定 carry 后, fund 腿分数自身没有可辨认的正价格边**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:107` — 「2. **固定 carry 后, fund 腿分数自身没有可辨认的正价格边**」
   - `docs/audit_pipeline_2026-09-13/AUDIT_DATA.md:493` — 「### EVL-01 — w10 sleeve devices still default CAL to 'simple' (expm1 on an already simple return); every committed run since 09-09 sets CAL=log」
 - **A reader could wrongly conclude:** Future proposals to change fund-leg construction (half-life, surprise mix, liquidity re-weighting) are rejected by citing 'HL3d rank is a sufficient statistic / tuned to the main regime', although this was never measured on CAL=log or v4 and XIB_LAG50 shows a CI>0 re-weighting on v4.
 - **Affects:** future_eval · **Severity reason:** The fund leg is the book body; this DNR closes its construction axis on the CAL=simple caliber that carries a fund-leg pseudo-convexity bias and has flipped other relative verdicts, so it would block evaluation of book-behaviour changes.
@@ -1722,7 +1722,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `docs/RESULT_f10_caliber_sensitivity_2026-09-05.md:196` — 「- **今后回放报数一律以 (iii) 交易所窗口口径为主口径**(记账窗 (N, N+4h], 复利), (i) 只作面板对照;」
   - `docs/REVIEW_caliber_final_2026-09-04.md:130` — 「2. **"CAL=log 腿级 0.05 bps 内无偏"被驳**: 同窗 fund 腿 raw−Π = +0.10/+0.11/+0.27(2024on +0.146, se 0.047, t≈3.1; R-C2.1/R-C2.2); rev24 −0.02/−0.07/−0.13; 只对 king(−0.08/−0.01/+0.09)与 F10(−0.00/−0.09/+0.09)成立。名级 Σ−Π 系统性为正(+0.23~+0.73 bps, 窗内负自相关), 腿级只靠零和权重抵消。」
   - `STATE.md:128` — 「> **★ 09-09 v4 口径正典已写入 RUNBOOK_2026-10 §v4(缓存 holefix2+覆盖门 v2 / king clamp 构建器 / 原始收益记账目标 / legs 在役策略禁全行重算 / 导出 env 逐字 / FIX7 / 判官先复现):**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:45` — 「- **口径**: 记账 y4s = Π(1+r)−1(禁从 5m 缓存重算收益, ret5 通道裁剪 ±0.30);」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:57` — 「- **口径**: 记账 y4s = Π(1+r)−1(禁从 5m 缓存重算收益, ret5 通道裁剪 ±0.30);」
 - **A reader could wrongly conclude:** A new researcher handed this doc first validates on CAL=log (panel y4 Σ-simple [E,E+47]) and treats Σ-simple as an unbiased proxy. They miss the v4 RAW accounting canon, the ret5 ±0.30 clip trap, holefix2 and the defects logged since 09-08 (E-0908-B/D, E-0909-A..H, E-0910-A, E-0912-A/B).
 - **Affects:** future_eval, future_retrain · **Severity reason:** The note routes every new researcher first to a doc last edited 09-07 whose caliber rule (validate on CAL=log; Σ-simple as unbiased proxy) was superseded by the (iii)/v4 RAW accounting canon, which would mislead evaluation and retrain work.
 - **Proposed correction (exact text):** ⚠ 过期提示(2026-09-13 审计): 该文档最后修改于 2026-09-07(现 647 行), 未吸收 09-05 起的口径更正与 09-09 v4 正典: 其 §3「复验一律用 CAL=log」「Σ简单是 Π(1+r)−1 的无偏代理」已被 RESULT_f10_caliber_sensitivity L196((iii) 记账窗复利为主口径)、REVIEW_caliber_final L130(fund 腿偏差被驳)与 RUNBOOK_monthly_retrain_2026-10 §v4(记账 y4s = Π(1+r)−1, 禁从 5m 缓存 ret5 重算)取代; §9 缺陷清单截至 09-06。交给新人时必须同时给 STATE.md 最新横幅 + RUNBOOK_2026-10 §v4 + ERROR_LEDGER E-0908 起各条, 并注明本文 §3/§9 已过期, 直到该文档更新。
@@ -1831,7 +1831,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `/Users/haosiyu/regime_dash/regime_dash.jsonl (anchor_utc=2026-09-13T12:00Z)` — 「"anchor_utc": "2026-09-13T12:00Z" … "w3_masked_king": 0.3821, "w3_masked_fund": 0.6179」
   - `docs/RESULT_caliber_revalidation_2026-09-04.md:11` — 「| 2024 | **+0.149** | +0.220 | **0.53** / 0.75 | −363 (04) | 795 / 586 | 0.64 / 0.44 |」
   - `docs/RESULT_caliber_revalidation_2026-09-04.md:50` — 「2024 fund 腿为负时动态席位把 king 提到 0.64」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:80` — 「席位 king 均权 0.6241 → 0.6190」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:83` — 「席位 king 均权 0.6241 → 0.6190」
 - **A reader could wrongly conclude:** A reader treats the short-side king seat multiplier as closed and uses 'reopen only if king seat ≤0.1' as the gate, although the live masked king seat is 0.382 and the rule seat on correct calibers is 0.36–0.67, so the turnover arithmetic behind the closure was never redone.
 - **Affects:** future_eval · **Severity reason:** The E-0904-F flag voids the seat/leg verdicts but the headline still closes the axis on a 'live seat 0.21' premise that no longer holds, and no unbiased/v4 re-measurement of the side-asymmetric κ arms exists (searched docs/ and uplift RESULTs after 09-04).
 - **Proposed correction (exact text):** ⚠ 2026-09-13 审计: 本轴从未在无偏/v4 口径复测(docs 与 uplift 各轮 RESULT 无侧向席位 κ 臂)。前提「实盘席位 0.21」已不成立: 09-05 席位播种后实盘掩码 king 席位 09-13 12Z = 0.382(REGIME_DASH), 无偏口径规则席位 2024/25/26 king 0.64/0.67/0.36, v4 回放 A0 2024+ king 均权 0.62;「重开条件 = king 席位 ≤0.1」基于旧席位。在当前席位路径与 v4 口径重算换手门之前, 不得引用「轴关闭」或「换手 +15%~+128%」作结论。
@@ -1881,7 +1881,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `docs/ERROR_LEDGER_2026-08-20.md:430` — 「E-0905-A · 08-21 已判采纳的"king 训练集前伸至 2020"在 09-01 重训未执行, 无裁定记录(2026-09-05 发现)」
   - `docs/ERROR_LEDGER_2026-08-20.md:431` — 「在役 booster(8d79186b)训练集 = 2022-01→2025-12」
   - `docs/REVIEW_caliber_final_2026-09-04.md:484` — 「2024→ Sharpe 2.83 vs 2.01; 差在 king 来源(E-0905-A)」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:37` — 「| A0 post-warm + E-0911-D 截断(第八轮第一手) | 1.2912 | 9138 | 0.4895 | [0.332, 2.251] |」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:40` — 「| A0 post-warm + E-0911-D 截断(第八轮第一手) | 1.2912 | 9138 | 0.4895 | [0.332, 2.251] |」
 - **A reader could wrongly conclude:** A reader believes the live wide book has had no losing year since 2022, a 2.77–3.06 book Sharpe, and a 2020-extended king in service; the live booster is trained 2022-01→2025-12, 2023 is −13.7%/gross on v4 and the honest full-cycle Sharpe is 1.29 [0.33, 2.25].
 - **Affects:** reporting, future_retrain · **Severity reason:** The description presents an undeployed 08-21 three-leg instrument (2020-trained hist king, rev24) as the wide book's history and an adopted change, while the adoption was never executed and the in-service form has a negative 2023 and full-cycle Sharpe 1.29 on v4.
 - **Proposed correction (exact text):** ⚠ 2026-09-13 审计: 本条是 08-21 三腿宽书(含 rev24、2020 起训练的 hist king)的单仪器读数, 不是在役形态。§28 ADOPT_FOR_V2 在 09-01 重训**未执行**(E-0905-A: 在役 booster 8d79186b 训练集 2022-01→2025-12; 待 jpline 恢复后按正确口径重判); 同口径两仪器 2024→ Sharpe 2.83(hist king)vs 2.01(生产 king)。在役 combo 形态 v4 口径逐年 2023 为负年(−13.7%/gross), 全周期夏普 1.2912 CI95 [0.332, 2.251](CLOSEOUT §2/§7)。「无亏损年 / 书级夏普 2.77 / 止损后 3.06」不得作为在役书历史或规划数引用。
@@ -1921,7 +1921,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:9` — 「**连「价格边下降了」本身都不显著**, 所以任何「为什么下降」的判决都无从成立」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:13` — 「落差本身不显著: 2026-08 相对 2026-H1 价格 −4.85 bps, 判决区间 [−13.38, +3.67]」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:24` — 「**缺口在资金费腿的空头半区的价格上, 不在 carry, 不在 king/V2MAIN 腿。**」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:17` — 「| 价格 alpha | −0.022 | 4.018 | −0.01 | **统计上就是零** |」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:20` — 「| 价格 alpha | −0.022 | 4.018 | −0.01 | **统计上就是零** |」
   - `STATE.md:60` — 「#55: 测的是**持仓排序 vs 下锚价格排序**, 不是模型 IC、不是净收益」
   - `docs/PREREG_deploy_sigma_ladder_2026-09-04.md:27` — 「## 6. 撤回激活(2026-09-04 09:5xZ)— 阶梯转为备用, 执行器代码保留(惰性)」
 - **A reader could wrongly conclude:** A reader treats 'funding-momentum long half lags the index in rallies' as the proven cause of the live giveback and designs C1/C3 book changes on it, or cites ic_monitor DECIDE as mechanism evidence, although the drop is statistically indistinguishable from noise and #55 measures holding rank vs next-anchor price rank.
@@ -1935,7 +1935,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Superseding evidence:**
   - `multi_asset/exports/eda/RESULT_volstructure_family_2026-08-10.md:3` — 「> **作废条件:** 在役 risk_budget(α.5 λ1)变更 ⇒ 全文重测」
   - `multi_asset/exports/eda/RESULT_volstructure_family_2026-08-10.md:19` — 「## 2. M1 全史测量(9821 锚, 在役栈 EMA α.3 + 中性带 b.002 之上)」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。」
   - `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round4_code_and_research_2026-09-13.md:83` — 「或做有符号/止损/上限约束的投影」
 - **A reader could wrongly conclude:** A reader rejects cap / constraint-projection / de-concentration work on the current fund-momentum book (including the reviewer-suggested signed/stop/cap-constrained projection) by citing an instrument built on the retired smaller DL book.
 - **Affects:** future_eval · **Severity reason:** A standing reject-on-sight DNR for de-concentration/de-style/bucket-neutral proposals rests on an 08-10 receipt whose own invalidation clause (in-service risk_budget change) fired with the 08-26 switch to the wide combo book and was never re-measured on A0 v4.
@@ -1946,8 +1946,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/universe_crypto_only_caliber_arm_2026_09_08.md:38`
 - **Quote:** 「@2× 算术 52.82/54.83 → **56.40/59.05**, CAGR 64.77/68.11 → **70.67/75.23**」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:91` — 「**A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:19` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:97` — 「**A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:31` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/RESULT_r18_foundation_2026-09-12.md:12` — 「maxDD −43.9 % / −44.5 %」
   - `docs/RESULT_v4_chain_retrain_quantify_2026-09-09.md:8` — 「**2023 −13.7%(负年)**」
 - **A reader could wrongly conclude:** A reader plans on ~70% CAGR / Sharpe ~2.4 at 2× for the live book; the current v4 planning number is +27.8% NAV/yr at 2.0× with CI95 [+7.1%, +48.6%] and full-cycle Sharpe 1.29.
@@ -1959,9 +1959,9 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/reweighting_cannot_close_the_sharpe_gap_2026_09_12.md:28`
 - **Quote:** 「复测 r17–r21(2026-09-12)全部落地后规划数仍 A1x 0.6602 / 1.2857(历史读数非期望), 无新候选晋级。」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:118` — 「延展后 **A1x: mean g +0.6602, CI95 [+0.1673,+1.1472], Sharpe 1.2857**」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:122` — 「A0 在**新增的 61 个锚**上读 **mean g −3.8739**, CI95 [−12.1883, +3.5265]」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:124` — 「**§7 引用规划数时必须带这一句。**」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:127` — 「延展后 **A1x: mean g +0.6602, CI95 [+0.1673,+1.1472], Sharpe 1.2857**」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:131` — 「A0 在**新增的 61 个锚**上读 **mean g −3.8739**, CI95 [−12.1883, +3.5265]」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:133` — 「**§7 引用规划数时必须带这一句。**」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:21` — 「The 2.94 frozen-window level is mostly shared by the whole family (median member 2.673 on FROZEN vs 1.006 on W_FULL)」
 - **A reader could wrongly conclude:** A reader plans on g 0.66 / Sharpe 1.29 as a stable expectation, missing its CI95 [+0.167, +1.147] and that the only true out-of-sample reading is −3.87 bps/anchor.
 - **Affects:** reporting, future_eval · **Severity reason:** The planning number is quoted without its CI and without the mandatory companion sentence the CLOSEOUT requires (the only out-of-sample reading, on the 61 extension anchors, is negative).
@@ -1975,8 +1975,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:321` — 「M3 **形式成立但幅度可忽略**(低−高 +0.011 [+0.007, +0.014]: 那两年书在任何状态下都是 98–99% fund 腿, king 腿恒 0, 席位没有可加码的余地)」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:321` — 「四臂一致 **DOES NOT FIT**」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:319` — 「| 2024..2026-H1 · 低 / 中 / 高 | 1203 / 1798 / 2471 | 0.15 / 0.30 / 0.62 | −1.66 / +2.67 / +3.26 | 0.43 / 0.36 / 0.52 | 0.33 / 0.27 / 0.43 | +0.71 / +0.91 / +1.59 |」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:116` — 「但书在每个状态都是 98–99% fund 腿, 席位根本没有加码空间」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:116` — 「撤回该读法」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:131` — 「但书在每个状态都是 98–99% fund 腿, 席位根本没有加码空间」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:131` — 「撤回该读法」
 - **A reader could wrongly conclude:** A reader builds a low-dispersion drawdown hedge or seat-rule change around a seat over-weighting mechanism that the book layer does not show (DOES NOT FIT on all four arms).
 - **Affects:** future_eval · **Severity reason:** The note files 'the seat overweights the losing fund leg when dispersion is low' as a known unhedged weakness, but the book-layer check (T1 H5) found the seat has no room to overweight in 2022–23 and the opposite seat pattern in 2024–26-H1; the mechanism reading was withdrawn.
 - **Proposed correction (exact text):** **⚠ 更正(T1 H5 书层核对 + 纲领 r2 AMENDMENT 3 更正 2, 2026-09-13):** 「席位在低离散度给正在亏的腿加权」在书层不成立: 2022H2∪2023(低离散度常见的唯一时期)king 腿恒 0, 书在任何状态都是 98–99% fund 腿, 席位加码幅度可忽略(低−高 +0.011); 2024..2026-H1 低离散度锚名义 w3_fund 0.33 反而低于高档 0.43, 书 g +0.71; H5 四臂 DOES NOT FIT, 该机制读法已撤回。本条只保留「corr −0.036 的描述性事实 + 9/9 倾斜臂零录取」, 不作为风险登记册中的已知弱点引用。
@@ -1987,7 +1987,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Quote:** 「Any added feature or model is a new family (T6 rule).」
 - **Superseding evidence:**
   - `STATE.md:8` — 「**待用户裁定 4 项**: T6 录取规程」
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:52` — 「1. T6 §11 候选录取规程是否采纳为今后录取门(本纲领先按它评估)。」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:61` — 「1. T6 §11 候选录取规程是否采纳为今后录取门(本纲领先按它评估)。」
   - `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round4_code_and_research_2026-09-13.md:130` — 「**§11 的统计量与人口混了。**」
   - `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round4_code_and_research_2026-09-13.md:179` — 「3. T6 §11 先冻结统计量和资格人口；撤回统一最低折价与已校准真值概率的说法。」
 - **A reader could wrongly conclude:** A reader gates or rejects new-information candidates (OI, KRW premium, intra-anchor flow) with T6 §11 statistics as if adopted, including the withdrawn uniform −0.65/−1.56 haircuts and DSR 'probabilities'.
@@ -1999,10 +1999,10 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/v4_chain_retrain_2026_09_09.md:12`
 - **Quote:** 「冻结窗 +1.89, Sharpe 3.0, maxDD 820 bps gross」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:38` — 「| **冻结窗 2025-03..2026-08-10** | **2.9357** | 3168 | 0.8314 | **[1.306, 4.565]** |」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:41` — 「| **冻结窗 2025-03..2026-08-10** | **2.9357** | 3168 | 0.8314 | **[1.306, 4.565]** |」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:21` — 「The 2.94 frozen-window level is mostly shared by the whole family (median member 2.673 on FROZEN vs 1.006 on W_FULL)」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:91` — 「**A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:19` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:97` — 「**A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:31` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
 - **A reader could wrongly conclude:** A reader takes Sharpe ≈3 as the in-service book's backtest level (and sizes leverage or targets on it), when it is not significantly above 3, is shared by the whole candidate family, and the planning number is full-cycle Sharpe 1.29.
 - **Affects:** reporting, future_eval · **Severity reason:** A frozen-window 'Sharpe 3.0' is quoted as the in-service form's reference without its CI95 [1.306, 4.565], without the family-wide/selection caveat, and next to a gross-bps maxDD, which is exactly the number the CLOSEOUT says not to plan on.
 - **Proposed correction (exact text):** 冻结窗 +1.89, Sharpe 3.0(=2.9357, CI95 [1.306, 4.565], 不显著高于 3; 冻结窗高水平为候选全家族共有(T6), 不可作规划; 规划数 = A0 全周期 +0.6342 bps/锚 CI95 [+0.1653, +1.1071] / 夏普 1.2912, 见 CLOSEOUT §7), maxDD 820 bps gross(回撤须按固定 2× 复利 NAV 报)
@@ -2013,8 +2013,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Quote:** 「acceptance 4/4(A2 中位 0.9999)」
 - **Superseding evidence:**
   - `STATE.md:60` — 「② 旧 A2 是单步平价(`acceptance.py` L165 `H=ref`), 合成翻倍反例仍过 ⇒ **接受**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:20` — 「两代在役 booster(08-16 的 29ffaf58、09-01 的 8d79186b)**都是 v0 训练**(数据级识别)。错配在**同一个 bundle 导出器里分叉**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:159` — 「影子验收 A2 比对共享 0.9×H 的平滑权重, 对这类错配几乎无检出力」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:23` — 「两代在役 booster(08-16 的 29ffaf58、09-01 的 8d79186b)**都是 v0 训练**(数据级识别)。错配在**同一个 bundle 导出器里分叉**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:177` — 「影子验收 A2 比对共享 0.9×H 的平滑权重, 对这类错配几乎无检出力」
 - **A reader could wrongly conclude:** A reader treats the RUNBOOK gate set that passed on 09-01 as proof of train/serve consistency and reuses it unchanged for the October export.
 - **Affects:** future_retrain · **Severity reason:** The 09-01 swap is recorded as fully gated ('全门绿', acceptance 4/4), but the A2 acceptance gate is a single-step parity that passes a synthetic doubling and missed that this very bundle trains col 80 on v0 and exports a v1 state.
 - **Proposed correction (exact text):** acceptance 4/4(A2 中位 0.9999; ⚠ 2026-09-12/13: A2 是单步平价(H 每锚重置为参照, 合成翻倍反例仍过), 没抓到本 bundle 训练 v0/导出 v1 的第 80 列错配(4h 名 2×、1h 名 8×; T4)⇒「全门绿」不是训练/服务一致的证据)
@@ -2078,8 +2078,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T5/RESULT_T5_deployed_carry_gap_2026-09-13.md:23` — 「| **H 部署链状态从 king 形态书暖启动**(08-26 00Z 与 08-30 04Z 两次) | +0.321 [+0.147, +0.517] | **27.0% / 26.9%** |」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T5/RESULT_T5_deployed_carry_gap_2026-09-13.md:24` — 「| **P 回放独有的逐名止损层** | +0.220 [+0.048, +0.426] | **18.5% / 18.6%** |」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T5/RESULT_T5_deployed_carry_gap_2026-09-13.md:33` — 「- **高 carry 在部署书对深负费率名的空头上(TC1 = YES)**: 「空头 ∧ 8h 当量现费率 ≤ −10bp」两格占 Δ 的 **98.5% / 98.7%**。该队列是部署书 carry 的 74.8%、回放书的 46.5%; gross 份额 6.4% 对 2.2%。**ONGUSDT 一个名占 Δ 约 41%**(共同名透镜 +0.490 bps/锚)。」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:19` — 「- **ONG 为什么没止**(记录 + 重建深度, 重建只作描述): 执行器 ONG 空头成本 0.07626, 重建深度 08-26 00Z / 04Z / 08Z 为 −21.7% / −24.9% / **−28.5%**(未到 −30%)」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:19` — 「执行器的持仓路径与回放止损层(08-25 20Z 起封锁 ONG)不同。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:22` — 「- **ONG 为什么没止**(记录 + 重建深度, 重建只作描述): 执行器 ONG 空头成本 0.07626, 重建深度 08-26 00Z / 04Z / 08Z 为 −21.7% / −24.9% / **−28.5%**(未到 −30%)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:22` — 「执行器的持仓路径与回放止损层(08-25 20Z 起封锁 ONG)不同。」
   - `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round4_code_and_research_2026-09-13.md:136` — 「T5 的构造桥可描述重建书的差，但 Shapley 是指定干预集合的分摊，不是自然实验因果比例；T×P 交互独立复算非零。」
 - **A reader could wrongly conclude:** A reader cites '+0.73 FTRIM / +0.44 stop' as the settled decomposition, overlooks the warm-start (chain-state inheritance) transient, or assumes the executor's per-name stop had removed ONG.
 - **Affects:** future_eval, reporting · **Severity reason:** T5 (09-13) splits the August deployed-vs-replay carry gap into FTRIM absence 58%, warm start from the king-form book 27% and the replay-only stop layer 18.5%. The 09-05 split has no warm-start component, doubles the stop share and misdates the ONG stop (replay blocked it from 08-25 20Z; the executor never stopped it).
@@ -2132,7 +2132,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Quote:** 「正确口径终读(pod 仪器): 固定席位 0.21 形态 2024 −16.6%/gross, 2024→26 +12.6%/gross/年(2× ⇒ +25% NAV), Sharpe 1.02, 跨年 maxDD 33% gross(2× ⇒ 66% NAV); 动态席位 +24.4%/gross(2× ⇒ +49% NAV), maxDD 12.8%。」
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:27` — 「3. **回撤尺子**: 表中 maxDD 是累计 g 的算术峰谷差(单位 gross), ×2 只是线性近似; 按同一收益流固定 2 倍每锚复利 Π(1+2g·1e−4) 的 NAV maxDD: 2022 **−10.70%**(×2 近似 −11.16) / 2023 **−28.92%**(近似 −33.54, 误差 4.61pp) / 2024 **−23.62%** / 2025 **−15.53%** / 2026 **−15.98%**; W_ALPHA 全窗 C0_s42 **−42.12%**; W_FULL(10038 锚) C0_s42 −46.42% / C0_s2027 −46.89% / NW −43.97%。」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:19` — 「| P3 | 逐年 v4 表与复利回撤(2023 NAV maxDD 28.92%) | `r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md` + 勘误 | 回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2 |」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:31` — 「| P3 | 逐年 v4 表与复利回撤(2023 NAV maxDD 28.92%) | `r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md` + 勘误 | 回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2 |」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:11` — 「| 2023 | 2190 | **−0.649** | **−1.94** | −1.82 | −1.93 | **16.8%** | **34%** |」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:15` — 「| **全窗 2022-06..2026-08** | 9139 | **+0.636** | **1.29** | 1.33 | 1.29 | — | 全史 ≥44%(r18 lev 收据, 下界) |」
 - **A reader could wrongly conclude:** A reader sizes leverage or stop rules from '66% NAV' or '+49% NAV/yr, maxDD 12.8%' instead of the v4 compounded per-year table (2023 Sharpe −1.94; W_ALPHA compounded NAV maxDD −42.12%).
@@ -2316,8 +2316,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/giveback_baserate_replay_2026_09_06.md:10`
 - **Quote:** 「anchor-level big losses are mostly the known "book is structurally short the alt premium" squeeze」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
   - `docs/DIAG_live_giveback_root_cause_2026-09-09.md:5` — 「③ 「β 中性反事实 = 原书」系我误读自己的表(逐年 β 部分 −0.264/+0.199/+0.080; 无成本残差 2024 0.56→0.82, 2025 0.76→0.56, maxDD 1254→989 — 诊断量, 非可交易对冲) ⇒ §3「β 对冲无物可对」撤回;」
 - **A reader could wrongly conclude:** A reader attributes big-loss anchors to a structural short-alt-premium exposure and designs alt−BTC hedges or 'expected squeeze' narratives on an unverified premise.
 - **Affects:** future_eval, reporting · **Severity reason:** 'Book structurally short the alt premium' rests on the 08-21 receipt (β −0.249, corr −0.767) from a different instrument. On the v4 A0 book T8 measures corr(NET, forward alt−BTC spread) at +0.05 and lists the 78% dominance-premium reading as not transferable and unreconciled.
@@ -2344,7 +2344,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:11` — 「| 2023 | 2190 | **−0.649** | **−1.94** | −1.82 | −1.93 | **16.8%** | **34%** |」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:15` — 「| **全窗 2022-06..2026-08** | 9139 | **+0.636** | **1.29** | 1.33 | 1.29 | — | 全史 ≥44%(r18 lev 收据, 下界) |」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:29` — 「5. **探索性日块自举 Sharpe CI95**(研究员新增, 2000 次, UTC 日块, 保留日内依赖不保留跨日; rng [20260905,k]): 原钉 W_ALPHA **[0.3207, 2.2822]**(SE 0.4890)」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:40` — 「(CI95 下界过 3.0)要求点估计 ≈ 3.966。** 距离当前书 **5.18 SE**。」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:43` — 「(CI95 下界过 3.0)要求点估计 ≈ 3.966。** 距离当前书 **5.18 SE**。」
 - **A reader could wrongly conclude:** A reader plans all-weather work assuming the worst live-form year is around Sharpe 1.1 and that a ×2.5 uplift in weak years reaches the target, when the full cycle contains a −1.94 year.
 - **Affects:** future_eval, reporting · **Severity reason:** Frames 2024/2025 (Sharpe 1.24/1.14) as the weak years of the live form. The v4 full-cycle table has 2023 as a loss year (Sharpe −1.94) and full-cycle Sharpe 1.29 [0.32, 2.28], so the 'weak-year net ×2.4-2.6' arithmetic understates the gap; the later closeout gives the target arithmetic.
 - **Proposed correction (exact text):** ⚠ 补(2026-09-13 审计): 「弱年 = 2024/2025(Sharpe 1.24/1.14)」只在 2024→26 窗成立。v4 A0 全周期逐年表: 2022(06-30 起)+0.48、2023 −1.94、全窗 Sharpe 1.29(日块 CI95 [0.32, 2.28])(TABLE_per_year_v4_caliber_2026-09-12.md L10–15/L29)⇒ 最差年是负年, 「弱年 μ ×2.4–2.6」的算术不适用于 2023。目标算术以 uplift_2026-09-11 CLOSEOUT §2 为准(CI95 下界过 3.0 需点估计 ≈3.966, 距现书 5.18 SE)。
@@ -2358,7 +2358,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `multi_asset/exports/research/uplift_r3_2026-09-13/L4/RESULT_L4.md:14` — 「2. **Hysteresis removes the turnover problem.** Break-even all-in cost per unit notional turnover over W is **62.7–109.3 bps** across arms (A01 76.9, A02 96.3), against 13.92 assumed. The frozen top-K rule of 09-05 broke even at 5.4/8.7. Spot at 5 or 15 bps moves S2426 net by only ±0.008–0.020.」
   - `multi_asset/exports/research/uplift_r3_2026-09-13/L4/RESULT_L4.md:22` — 「7. **The two basis markings disagree in sign.** On identical positions, marking with Binance perp/spot closes (B1) instead of the frozen premium index (B2) turns every arm negative. A01 S2426 goes from +0.266 to −0.696 (SR −1.43), W from +0.204 to −0.333.」
   - `multi_asset/exports/research/uplift_r3_2026-09-13/L4b/RESULT_L4b.md:10` — 「1. **No arm survives POST-HOC-FAMILY-2** (N_F2 = 8; cumulative ledger 12 + 8 = 20). Every arm fails **P1**, because 2025 is negative under the primary marks (−0.17…−0.38 bps/anchor).」
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:70` — 「**⇒ 在按原始 1m K 线重建可执行退出价之前, 不得把 carry 袖提交用户裁定**」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:79` — 「**⇒ 在按原始 1m K 线重建可执行退出价之前, 不得把 carry 袖提交用户裁定**」
 - **A reader could wrongly conclude:** A reader queues the hysteresis carry sleeve as an untested new arm, or submits it for a user ruling on premium-index-marked P&L.
 - **Affects:** future_eval · **Severity reason:** Hysteresis was evaluated on 09-13 (L4): it fixes turnover (break-even 62.7-109.3 bps per unit turnover), but the frozen verdict is NOT PASS, the sign flips with forced-exit marks, and under executable 1m exit marks no arm survives (L4b).
 - **Proposed correction (exact text):** ⚠ 更正(2026-09-13 审计): 滞回换仓已评估(uplift_r3 L4): 换手问题解决(break-even 62.7–109.3 bps/单位换手), 冻结判词 NOT PASS(多重比较); 同一仓位改用永续/现货收盘价标价全部臂转负, 差距全在下架/停止结算的强制退出持仓(L4 RESULT L10/L14/L22)。L4b 用原始 1m 可执行退出价重算后「No arm survives」(L4b RESULT L10)。在按原始 1m K 线重建可执行退出价之前不得把 carry 袖提交用户裁定(uplift_r3 PROGRAM L70)。本条「零成本 Sharpe 12–44」只是忽略基差与强制退出标价的上界。
@@ -2458,7 +2458,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `/Users/haosiyu/dl_quant_live/ops/ic_monitor.py:17` — 「★ 标定身份(2026-09-12 独立复核): 阈值标定于 α=0.05/band=0.002 的离线书; 在役书 α=0.1/」
   - `/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py:1665` — 「#   no harvest EMA, no neutral band. target_w = w / gross_norm (unit gross), so the」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/RESULT_r18_foundation_2026-09-12.md:137` — 「| (d) "slower is better" (b/α 0.005 beats the deployed 0.0025) | **survives as a POINT ESTIMATE only** |」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:76` — 「**与 `adaptive_turnover_family_closed`(08-11)一致并扩展**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:79` — 「**与 `adaptive_turnover_family_closed`(08-11)一致并扩展**」
   - `memory/adaptive_turnover_family_closed.md:17` — 「作废条件: 信号栈/成本口径换代 ⇒ 重测」
 - **A reader could wrongly conclude:** A reader treats the live smoothing corner as proven optimal and closes smoothing/band research, while the v4 grid keeps "slower is better" alive as a point estimate.
 - **Affects:** future_eval · **Severity reason:** "In-service = joint optimum" was measured on the old 9821-anchor internal book. Live smoothing is now the producer's α=0.1/b=2.5e-4, so the note's own invalidation condition (signal-stack change) has fired.
@@ -2496,9 +2496,9 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/book_has_implicit_stop.md:10`
 - **Quote:** 「**① 在役逐名止损书级通过**: 净额代价仅 −2.8%, 夏普 +0.02, 尾部 +4%, 逐年=从好年向磨损年转移(2024 +28%)。回放触发173/年 vs 实盘18/年(10×)⇒ 真实代价更小。」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:18` — 「08-20..09-12 执行器止损共触发 25 次, 队列名 0 次;」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:28` — 「**已停的多头仓位不会被平到 0**。执行器先把已停名目标置 0, 随后 reshape 的去均值给所有名同一个平移 a」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:28` — 「W1 ∪ W2 共 125 个「已停且持仓」实例: 多头 add_blocked **94** / reduced **23**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:21` — 「08-20..09-12 执行器止损共触发 25 次, 队列名 0 次;」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:31` — 「**已停的多头仓位不会被平到 0**。执行器先把已停名目标置 0, 随后 reshape 的去均值给所有名同一个平移 a」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:31` — 「W1 ∪ W2 共 125 个「已停且持仓」实例: 多头 add_blocked **94** / reduced **23**」
   - `STATE.md:6` — 「⑤ **W9「157 次止损没平掉」**应为 157 个「锚×名」实例(20 名、59 锚; 146 落非 flatten_only 桶、7 正常、4 未分类), 不是 157 次独立失败平仓」
   - `STATE.md:146` — 「- **止损/风控**: 逐名 wide 档 d30_n2_c42(depth −0.30×2锚×7d)⟺ book_source=external 耦合; 看门狗 cond2 日亏 −4% flatten(口径 0aa6586)/ cond4 −25% 起始权益口径(57cb180);」
 - **A reader could wrongly conclude:** A reader assumes the live per-name stop behaves like the replay stop layer (flatten to zero, ~18 triggers/yr) when sizing tail risk or judging replay-vs-live gaps.
@@ -2511,8 +2511,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Quote:** 「渐进/更深止损 OOS 判负 DO-NOT-RETRY; 在役-25%止损≈免费保险已在最优点;」
 - **Superseding evidence:**
   - `STATE.md:146` — 「- **止损/风控**: 逐名 wide 档 d30_n2_c42(depth −0.30×2锚×7d)⟺ book_source=external 耦合; 看门狗 cond2 日亏 −4% flatten(口径 0aa6586)/ cond4 −25% 起始权益口径(57cb180);」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:17` — 「config `per_name_stop` enabled, profile wide(−30% / 连续 2 锚 / 冷却 7 天 / 5 USDT)」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:28` — 「**已停的多头仓位不会被平到 0**。执行器先把已停名目标置 0, 随后 reshape 的去均值给所有名同一个平移 a」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:20` — 「config `per_name_stop` enabled, profile wide(−30% / 连续 2 锚 / 冷却 7 天 / 5 USDT)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:31` — 「**已停的多头仓位不会被平到 0**。执行器先把已停名目标置 0, 随后 reshape 的去均值给所有名同一个平移 a」
 - **A reader could wrongly conclude:** A reader closes stop-design questions on the belief that the live stop is the tested −25% "free insurance".
 - **Affects:** live_trading, future_eval · **Severity reason:** Calls the "−25% in-service stop" already optimal. The live per-name stop is the wide −30% × 2 anchors × 7-day-cooldown profile, and it failed to flatten stopped longs until W9.
 - **Proposed correction (exact text):** [description 末尾追加] 【2026-09-13: 「在役-25%止损」属旧内部书; 在役外部书逐名止损 = wide 档 d30_n2_c42(−30%×2锚×冷却7天, STATE §1), 且 W9 前被止损多头未平到 0(T5b §5.3)。「免费保险/最优点」未在在役档与 v4 口径上复测】
@@ -2547,9 +2547,9 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/premium_sleeve_budget_refuted_fomc_drift.md:10`
 - **Quote:** 「Verdict: 可预注册上线候选 with conditions — restore form, stop-dilution listed separately and not counted, expectation +0.08~0.10 bps/anchor (+170–210 bps/yr, ΔS +0.05~0.06), FOMC only (no CPI), 2022-23 dominated / 2026 flipped ⇒ watch 09-16/10-28/12-09 forward.」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「该收据的书是 jpline `net_S1.npy`(08-21 在役书 S1, 9,821 锚)、收益是 `engine.replay_fullhist` 的 `src.Y4`」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「该收据的书是 jpline `net_S1.npy`(08-21 在役书 S1, 9,821 锚)、收益是 `engine.replay_fullhist` 的 `src.Y4`」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。」
   - `STATE.md:201` — 「FOMC 16Z 预缩候选」
   - `docs/RESULT_caliber_revalidation_2026-09-04.md:16` — 「**无偏口径下实盘形态并不优于正典**(+0.691 vs +0.730), 旧口径的优势(+1.597 vs +1.216)是伪凸性产物;」
 - **A reader could wrongly conclude:** A reader pre-registers or deploys the FOMC 16Z shrink on the live book using +170–210 bps/yr from a different book and caliber, or cites "72% sits in the premium sleeve" for today's book.
@@ -2561,8 +2561,8 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/shortside_beta_is_paid_premium.md:13`
 - **Quote:** 「**但全史 β 项 = +4,682 bps = 总利润 34%**(2022/2025/2026 下跌段大赚, 2023/24 上涨年小亏), 空头侧全史 +19,485 vs 多头侧 −5,705。」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「该收据的书是 jpline `net_S1.npy`(08-21 在役书 S1, 9,821 锚)、收益是 `engine.replay_fullhist` 的 `src.Y4`」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「该收据的书是 jpline `net_S1.npy`(08-21 在役书 S1, 9,821 锚)、收益是 `engine.replay_fullhist` 的 `src.Y4`」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。」
   - `docs/ERROR_LEDGER_2026-08-20.md:17` — 「**定性: 空头β保费的代价日**(受据: 该保费=历史利润 34%, β中性化毁 1/3 书 → 五臂全负 DO-NOT-RETRY)」
   - `multi_asset/exports/research/uplift_2026-09-11/handoff_audit/caliber/CANONICAL_NUMBERS_2026-09-12.md:12` — 「④ **在役构成 77/13/10 过时**: 09-11 00Z 名义系数 **fund 65.4% / king 19.0% / DL 15.6%**」
 - **A reader could wrongly conclude:** A reader explains current short-side losses as a paid β premium and closes β-related fixes as DO-NOT-RETRY without re-measuring on the live book (T1 places the September gap in the fund leg's short-side price); the ERROR_LEDGER already repeats the 34% figure.
@@ -2579,7 +2579,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
   - `docs/RESULT_caliber_revalidation_2026-09-04.md:52` — 「**三项在役改动(M1/FTRIM/T400)在无偏口径下都不显著, 部署依据作废; 也未见可测伤害。**」
   - `multi_asset/exports/research/uplift_2026-09-11/handoff_audit/caliber/CANONICAL_NUMBERS_2026-09-12.md:13` — 「FTRIM 是分数级 pre_zero, 经 demean 泄漏为小空头, 58 锚均值 68% 标记名仍为负目标、付 A0 carry_ex 的 59.8%(毛节省)。」
   - `multi_asset/exports/research/uplift_2026-09-11/handoff_audit/caliber/CANONICAL_NUMBERS_2026-09-12.md:14` — 「仓位级 FTRIM 净 **+0.018**(省下 carry 的 77% 以放弃的价格还回; 2026 −0.20; 换手 +24%)⇒ **泄漏是真的, 修它是零和**」
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:58` — 「FTRIM 之后, rn8 ≤ −10bp 的名只占 fund 腿空头 gross 的 **1–6%**(且是衰减中的旧仓)」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:67` — 「FTRIM 之后, rn8 ≤ −10bp 的名只占 fund 腿空头 gross 的 **1–6%**(且是衰减中的旧仓)」
 - **A reader could wrongly conclude:** A reader believes deep-negative-funding shorts are untreated in the live book (they are FTRIM-trimmed, with leakage), or re-opens or closes the family from 08-30 CAL=simple numbers.
 - **Affects:** live_trading, future_eval · **Severity reason:** Records the ≤−10bp exclusion family as DNR, but a z-layer version (FTRIM) went live on 09-02. Its basis was later voided under the unbiased caliber, and v4 receipts show FTRIM leaks into small shorts and repairing it is zero-sum.
 - **Proposed correction (exact text):** [L20 后插入] **【2026-09-13 后续】** DNR 之后 09-02 部署了同族 FTRIM(负费率空头 z 层排除 (−∞,−10bp], RESULT_xregime_2026-09-02 候选①)。其后: E-0904-F 无偏口径下 FTRIM 部署依据作废(不显著, 无可测伤害); v4 核查: FTRIM 为分数级 pre_zero, 经去均值泄漏为小空头(58 锚 68% 标记名仍为负目标), 仓位级 FTRIM 净 +0.018 零和(r15); U3: FTRIM 之后 rn8≤−10bp 名只占 fund 腿空头 gross 1–6%。本表名级/书级数字属 08-30 CAL=simple 旧口径, 引用前按 v4 重测; 「帽内≈3.2U/结算」按 08-30 书规模, 09-03 入金后须按当前 gross 重算。
@@ -2629,9 +2629,9 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Source:** `memory/feedback_units_chain_and_caliber_binding.md:10`
 - **Quote:** 「(1) 汇报里的每个 %/NAV 数字只能从脚本(如 pod_units_table.py)复制, 并写出链: bps/锚 → ÷gross_total → ×2190/100 → ×杠杆;」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:19` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:31` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:27` — 「按同一收益流固定 2 倍每锚复利 Π(1+2g·1e−4) 的 NAV maxDD: 2022 **−10.70%**(×2 近似 −11.16) / 2023 **−28.92%**(近似 −33.54, 误差 4.61pp)」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:45` — 「- **口径**: 记账 y4s = Π(1+r)−1(禁从 5m 缓存重算收益, ret5 通道裁剪 ±0.30)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:57` — 「- **口径**: 记账 y4s = Π(1+r)−1(禁从 5m 缓存重算收益, ret5 通道裁剪 ±0.30)」
 - **A reader could wrongly conclude:** A reader reports NAV drawdowns as arithmetic ×leverage, or recomputes returns from the clipped 5m cache while following this chain.
 - **Affects:** reporting · **Severity reason:** The required units chain ends with a linear ×leverage step. Later receipts forbid that for drawdowns (use compounded fixed-2× NAV; ×2 overstated the 2023 maxDD by 4.61pp), and the named script is a pre-v4 device.
 - **Proposed correction (exact text):** [(1) 末尾追加] 【2026-09-13】链中「×杠杆」只适用于均值/年化收益; 回撤、最差日、触线概率一律用逐锚复利 Π(1+L·g·1e−4) 的 NAV 路径计算(U2 PROGRAM P3; v4 逐年表勘误 3: 2023 算术 ×2 −33.54% vs 复利 −28.92%)。g 按 v4 钉 = net_ex/gross_total; 收益只从记账 meta y4(Π(1+r)−1, RAW)读, 禁从 5m 缓存 ret5 重算(裁剪 ±0.30)。pod_units_table.py 为 v3 期装置, 复用前核其输入谱系。
@@ -2719,7 +2719,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Quote:** 「① 任何宽书夏普引用 ≥2026-08-16 版本必须是 carry 修正后的(2.42/2.18 全史), 旧 3.4x 作废留档」
 - **Superseding evidence:**
   - `docs/DESIGN_optimization_path_2026-08-21.md:92` — 「**此前引用的 ≈2.2–2.8 作废, 以 1.67 为准。**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:9` — 「**全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举); 逐年 2022 +0.48 / **2023 −1.94** / 2024 +1.09 / 2025 +1.19 / **2026 至 08-31 +4.53 [2.21, 6.79]**。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:12` — 「**全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举); 逐年 2022 +0.48 / **2023 −1.94** / 2024 +1.09 / 2025 +1.19 / **2026 至 08-31 +4.53 [2.21, 6.79]**。」
 - **A reader could wrongly conclude:** Planning or reporting quotes a full-history wide-book Sharpe of ~2.4 (live 1.3-1.6) instead of the v4 canonical 1.29 [0.32, 2.28] with a -1.94 2023 year.
 - **Affects:** reporting, future_eval · **Severity reason:** The note instructs that wide-book Sharpe citations use 2.42/2.18 (and L11 expects 1.3-1.6 live), numbers voided on 08-22 and replaced by the v4 full-cycle 1.29.
 - **Proposed correction (exact text):** > ⚠ **2026-09-13 更正:** 2.42/2.18(及 L11「实盘预期 1.3-1.6」)已被两次取代: 08-22 独立口径审计 WA 读宽书 d30 夏普 1.67 [0.73, 2.61], 并宣布「此前引用的 ≈2.2–2.8 作废」(DESIGN_optimization_path L92); 现行正典为 v4 口径 A0 全周期诚实夏普 1.29 [0.32, 2.28](2023 −1.94, 2026 至 08-31 +4.53; PROGRAM_uplift_r2 L9)。宽书夏普一律引 v4 口径并声明窗口与形态; 本条只保留「carry 记账 /2 bug」的机制与「复现验证实现不验证规格」的方法论教训。
@@ -2757,7 +2757,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_2026-09-11/RESULT_trackD_sleeves_v4_2026-09-11.md:125-126` — 「   `f_amihud_24h` 正是当年那批"商品化价量因子"之一, 正交化后作站立书 Sharpe 1.83 / 5 年全正 / Bonferroni 干净,
    在书混合双种子 (A)。**⇒ "商品化价量因子零录取"的前提在 v4 书层不成立, 该轴需要重开。**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:182` — 「低 PBO 由一条**事后预选**的线(XIB_LAG50, 取自 78 臂筛选)撑着」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:203` — 「低 PBO 由一条**事后预选**的线(XIB_LAG50, 取自 78 臂筛选)撑着」
 - **A reader could wrongly conclude:** Commoditised price-volume sleeves (e.g. Amihud illiquidity orthogonalised to the fund leg) are rejected by citing this DNR.
 - **Affects:** future_eval · **Severity reason:** The 08-04 zero-admission verdict (in-role engine, ΔIC gate) is presented as a general closure, but the v4 book-level Track D receipt says its premise does not hold and the axis must be reopened.
 - **Proposed correction (exact text):** > ⚠ **2026-09-13 更正:** 本判决只对 08-04 in-role 引擎 × ΔIC 增量腿门成立。v4 口径书层(Track D, 09-11): `f_amihud_24h` 对 fund 腿截面正交化后站立书 Sharpe 1.83、5/5 年正、过 Bonferroni ⇒「商品化价量因子零录取的前提在 v4 书层不成立, 该轴需要重开」(RESULT_trackD_sleeves_v4 §8)。注意该线索与 XIB_LAG50 属事后预选(T6: 低 PBO 由其撑着), 未经录取门, 不可据此改书。另: s2 腿已随 in-role 书退役, 「波动族 sleeve = s2 回声」的约束对现役 combo 不再成立。
@@ -2793,7 +2793,7 @@ Rows from five sub-auditor sweeps: M1/M2 = 当前在役与本期正典, M3 = 硬
 - **Quote:** 「**签名数: 全史(2024-26)3.2-3.4, 扣当日~20变体DSR税后 2.5-3.0, 实盘预期 1.8-2.4 = 在役 1.3-1.6 倍**」
 - **Superseding evidence:**
   - `docs/DESIGN_optimization_path_2026-08-21.md:92` — 「**此前引用的 ≈2.2–2.8 作废, 以 1.67 为准。**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:9` — 「**全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:12` — 「**全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举)」
   - `STATE.md:6` — 「A0 冻结窗自身 CI95 [1.306, 4.565] 不显著高于 3」
 - **A reader could wrongly conclude:** Planning quotes the wide book's 'final form' Sharpe 3-4 as the historical level of the live strategy.
 - **Affects:** reporting, future_eval · **Severity reason:** Glob-family note (wide_book_*) not in any sweep list; its signed Sharpe (3.2-3.4 history, 1.8-2.4 live, description '4.3') was voided on 08-22 and the v4 canonical is 1.29.
@@ -2978,7 +2978,7 @@ under `~/Desktop`.」
 - **Superseding evidence:**
   - `docs/RESULT_caliber_revalidation_2026-09-04.md:9` — 「| 年 | net_ex 无偏(CAL=log) | net_ex 旧口径(expm1) | Sharpe 无偏 / 旧 | 最坏月(无偏, bps gross) | 年内 maxDD 无偏 / 旧 | w3_king 无偏 / 旧 |」
   - `docs/RESULT_caliber_revalidation_2026-09-04.md:13` — 「| 2026(→08-30) | **+2.013** | +4.247 | **3.84** / 7.63 | −294 (08) | 771 / 689 | 0.36 / 0.05 |」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:80` — 「席位 king 均权 0.6241 → 0.6190。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:83` — 「席位 king 均权 0.6241 → 0.6190。」
   - `/Users/haosiyu/regime_dash/regime_dash.jsonl (anchor_utc=2026-09-13T12:00Z)` — 「"anchor_utc": "2026-09-13T12:00Z" … "w3_masked_king": 0.3821, "w3_masked_fund": 0.6179」
   - `STATE.md:255` — 「**在役书两条模型腿的梯度都止于 2025 年底**(king `tr = YRA<2026` 同), 2026 全年未进入任何梯度。」
   - `docs/RESULT_f10_caliber_sensitivity_2026-09-05.md:196` — 「- **今后回放报数一律以 (iii) 交易所窗口口径为主口径**(记账窗 (N, N+4h], 复利), (i) 只作面板对照;」
@@ -3007,7 +3007,7 @@ under `~/Desktop`.」
   - `docs/REVIEW_f10_blend_deployment_2026-08-23.md:128` — 「**结论口径纪律**: 自本节起, 宽书表现一律以 **simple/fixed/const-gross** 报, 引用旧数(1.173/2.42 或更早的 1.316/3.06、2.42、3.59、4.3)必须标注为历史口径。」
   - `docs/REVIEW_f10_blend_deployment_2026-08-23.md:114` — 「装置 jpline /tmp/w3_joint.py(audit-caliber-o 建, 我复核语义: cal=simple ⇒ y→expm1 贯穿盈亏与价格路径;」
   - `docs/RESULT_caliber_revalidation_2026-09-04.md:3` — 「# RESULT · 无偏口径复验(E-0904-F): 回放装置 CAL=log(=原始 y4=Σ5m简单收益) vs CAL=simple(expm1, 伪凸性)」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:91` — 「**A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。**」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:97` — 「**A0 无条件: +0.6342 bps/锚, CI95 [+0.1653, +1.1071], 夏普 1.2912 ⇒ 2.0× gross 下 +27.8% NAV/年, CI95 [+7.1%, +48.6%]。**」
   - `STATE.md:4` — 「实现 gross 227,672U / 目标 235,111U = **96.8%**」
   - `STATE.md:4` — 「NAV 117,566.70(−207U 含佣金)」
 - **A reader could wrongly conclude:** A reader judges a live loss against 'daily sd 125U', Sharpe 2.42 and the z −2.51σ precedent. Those numbers come from NAV 15k at 1.5× and g=1.0; the same document revised them to z −1.91 on an expm1 caliber that E-0904-F later voided. σ should instead come from the v4 per-gross series at NAV ≈117.6k / gross ≈228k.
@@ -3110,7 +3110,7 @@ under `~/Desktop`.」
 - **Quote:** 「H5: 2022-23 low-dispersion mechanism only half supported」
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T1/RESULT_T1_edge_diagnosis_2026-09-13.md:321` — 「**M4 不成立**(每锚亏损高档 −0.86 > 低档 −0.44; 按锚数加权, 低档约占合计亏损的 55%, 高档约 42%)⇒ 四臂一致 **DOES NOT FIT**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:116` — 「撤回该读法」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:131` — 「撤回该读法」
 - **A reader could wrongly conclude:** A reader treats the 2022–23 low-dispersion + seat mechanism as partially confirmed and uses it to motivate a low-dispersion drawdown hedge.
 - **Affects:** future_eval · **Severity reason:** 'Only half supported' softens a pre-registered DOES NOT FIT verdict on all four arms whose mechanism reading the lead withdrew; the bullet's details are right but the label invites reopening a low-dispersion hedge.
 - **Proposed correction (exact text):** Replace "H5: 2022-23 low-dispersion mechanism only half supported" with "H5: 2022-23 low-dispersion mechanism DOES NOT FIT on all four arms under the pre-registered reading (M2 holds — carry paid, uncompensated in low sigma; M3 negligible +0.011 because the book was 98-99% fund with king leg 0; M4 fails — per-anchor loss larger in high sigma); the lead withdrew the low-dispersion + seat-blindness mechanism (PROGRAM r2 AMENDMENT 3, correction 2)".
@@ -3120,8 +3120,8 @@ under `~/Desktop`.」
 - **Source:** `memory/deployed_carry_gap_is_ftrim_warmstart_stop_t5_2026_09_13.md:3`
 - **Quote:** 「replay-only stop layer 18.5%」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:17` — 「**执行器逐名止损在役并被逐锚评估**: config `per_name_stop` enabled, profile wide(−30% / 连续 2 锚 / 冷却 7 天 / 5 USDT)」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:18` — 「**8 个队列名全部 NOT FIRED**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:20` — 「**执行器逐名止损在役并被逐锚评估**: config `per_name_stop` enabled, profile wide(−30% / 连续 2 锚 / 冷却 7 天 / 5 USDT)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:21` — 「**8 个队列名全部 NOT FIRED**」
   - `.claude/worktrees/codex-independent-20260907/docs/REVIEW_round4_code_and_research_2026-09-13.md:136` — 「T5 的构造桥可描述重建书的差，但 Shapley 是指定干预集合的分摊，不是自然实验因果比例；T×P 交互独立复算非零。」
 - **A reader could wrongly conclude:** A reader skimming the index or description concludes production had no per-name stop and that 58/27/18.5% are causal shares of the August carry gap.
 - **Affects:** reporting, future_eval · **Severity reason:** The body carries the lead and T5b corrections, but the description and Why line still say 'replay-only stop layer' / 'production has no per-name stop' and present the Shapley shares as an equation.
@@ -3158,7 +3158,7 @@ under `~/Desktop`.」
 - **Source:** `memory/wide_book_needs_stop_layer.md:3`
 - **Quote:** 「宽书零风控层; 止损在宽书降 maxDD 31-36%(在役书仅13.5%), 换装前必须移植」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:17` — 「**执行器逐名止损在役并被逐锚评估**: config `per_name_stop` enabled, profile wide(−30% / 连续 2 锚 / 冷却 7 天 / 5 USDT)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:20` — 「**执行器逐名止损在役并被逐锚评估**: config `per_name_stop` enabled, profile wide(−30% / 连续 2 锚 / 冷却 7 天 / 5 USDT)」
   - `STATE.md:7` — 「W9 f8beb082」
 - **A reader could wrongly conclude:** A reader thinks the live wide book runs without any per-name stop, or quotes the 31–36% maxDD reduction as the current stop-layer value.
 - **Affects:** reporting, future_eval · **Severity reason:** 'Wide book has zero risk layer' is an 08-20 shadow fact written as a present property; the executor's wide per_name_stop has been live since the switch, and the 31–36% maxDD benefit is an 08-20 pre-clip-fix, pre-warm-up-fix reading never re-measured on v4.
@@ -3218,8 +3218,8 @@ under `~/Desktop`.」
 - **Source:** `memory/carry_net_fund_leg_sizing_t2_2026_09_13.md:3`
 - **Quote:** 「σ-state arm tripped the 0.165 ceiling and failed §7 (LEAK-SUSPECT, cause unresolved)」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:129` — 「我把一个**量级启发**写成了「天花板/上界」, 并据此设泄漏警戒线 —— 超线**不等于**泄漏。」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:129` — 「P5 改名为「**量级启发**(非上界)」; 1.5× 线改为「**调查触发**」, 超线只要求因果/时点调查, 不预判为泄漏; T2 结果里 σ 臂的「LEAK-SUSPECT」保留其**调查结论**(时点敏感、不可执行), 撤回「超天花板即泄漏」的措辞」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:144` — 「我把一个**量级启发**写成了「天花板/上界」, 并据此设泄漏警戒线 —— 超线**不等于**泄漏。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:144` — 「P5 改名为「**量级启发**(非上界)」; 1.5× 线改为「**调查触发**」, 超线只要求因果/时点调查, 不预判为泄漏; T2 结果里 σ 臂的「LEAK-SUSPECT」保留其**调查结论**(时点敏感、不可执行), 撤回「超天花板即泄漏」的措辞」
 - **A reader could wrongly conclude:** A reader treats ≤0.11 bps / ≤+0.2 Sharpe as a hard upper bound for carry-net sizing arms and reads any arm above 0.165 as leaking, instead of as requiring a causal/timing investigation.
 - **Affects:** future_eval · **Severity reason:** The description keeps the 'ceiling' framing that PROGRAM r2 AMENDMENT 4 withdrew (a magnitude heuristic, not an upper bound; exceeding it is an investigation trigger, not a leak signature); the body's Why already half-reflects this, so risk is low.
 - **Proposed correction (exact text):** In the description replace "σ-state arm tripped the 0.165 ceiling and failed §7 (LEAK-SUSPECT, cause unresolved)" with "σ-state arm exceeded the 0.165 investigation trigger (P5 is a magnitude heuristic, not an upper bound — PROGRAM r2 AMENDMENT 4 #2) and failed §7; LEAK-SUSPECT is kept as the investigation conclusion (timing-sensitive, not executable under execution delay), not as a proven leak"; in Why replace "the ceiling P5 (≤0.11)" with "the magnitude heuristic P5 (≤0.11, not an upper bound)".
@@ -3276,7 +3276,7 @@ under `~/Desktop`.」
 - **Quote:** 「Levels frozen: yearly 1.557, R0 (seed per fold) 1.386, CONST 1.442, FLOOR5 1.610 (Sharpe 2.69, maxDD 870), FIX7 1.708 (S 2.87, maxDD 832)」
 - **Superseding evidence:**
   - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:11` — 「冻结窗的高夏普里有 **2.075×** 是 regime 租金」
-  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:38` — 「| **冻结窗 2025-03..2026-08-10** | **2.9357** | 3168 | 0.8314 | **[1.306, 4.565]** |」
+  - `multi_asset/exports/research/uplift_2026-09-11/CLOSEOUT_uplift_program_2026-09-12.md:41` — 「| **冻结窗 2025-03..2026-08-10** | **2.9357** | 3168 | 0.8314 | **[1.306, 4.565]** |」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T6/RESULT_T6.md:21` — 「- The 2.94 frozen-window level is mostly shared by the whole family (median member 2.673 on FROZEN vs 1.006 on W_FULL)」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:15` — 「| **全窗 2022-06..2026-08** | 9139 | **+0.636** | **1.29** | 1.33 | 1.29 | — | 全史 ≥44%(r18 lev 收据, 下界) |」
 - **A reader could wrongly conclude:** A reader quotes 'FIX7 Sharpe 2.87' as the recipe's expected Sharpe rather than a single-regime window level.
@@ -3311,7 +3311,7 @@ under `~/Desktop`.」
 - **Quote:** 「the DL leg enters as φ 0.45 of a model leg that sits on the msharpe seat w_king ≈ 0.65 ⇒ book effect ≤ 0.29× leg effect」
 - **Superseding evidence:**
   - `/Users/haosiyu/regime_dash/regime_dash.jsonl (anchor_utc=2026-09-13T12:00Z)` — 「"anchor_utc": "2026-09-13T12:00Z" … "w3_masked_king": 0.3821, "w3_masked_fund": 0.6179」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:80` — 「C0 s42 KING_LIVE 分解: Δpnl +0.0233 / Δcarry +0.0065 / Δcost −0.0013; 换手 −0.63%; 席位 king 均权 0.6241 → 0.6190。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/RESULT_T4_king_feature_skew_2026-09-13.md:83` — 「C0 s42 KING_LIVE 分解: Δpnl +0.0233 / Δcarry +0.0065 / Δcost −0.0013; 换手 −0.63%; 席位 king 均权 0.6241 → 0.6190。」
 - **A reader could wrongly conclude:** A reader estimates the live-book impact of a V2MAIN change at 0.29× the leg effect, or reopens loss reweighting because the replay seat already exceeds 0.5.
 - **Affects:** future_eval · **Severity reason:** w_king ≈ 0.65 is the replay device seat. The live masked king seat is 0.382 (09-13), so a V2MAIN objective change passes through at about 0.17× in the live book, and the reopen condition 'model-leg seat ≥ 0.5' does not say which seat it means (v4 replay 0.62, live 0.38).
 - **Proposed correction (exact text):** ⚠ Clarification (2026-09-13 audit): 0.65 is the replay device's msharpe seat (v4 A0 KING_LIVE mean 0.624, T4 RESULT L80). The live masked king seat was 0.382 on 09-13 12Z (REGIME_DASH L16), so live pass-through is ≈0.45 × 0.382 ≈ 0.17×. State which seat (replay or live) the reopen condition 'model-leg seat ≥ 0.5' refers to.
@@ -3322,7 +3322,7 @@ under `~/Desktop`.」
 - **Quote:** 「生成代码 `scheduler/anchor_loop.py` L1549-1557 把 `_clamp` 三类(持仓不在目标=退出 / 目标<2×min_notional / 止损 flatten·冷却)一律写成该文案」
 - **Superseding evidence:**
   - `/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py:1868` — 「f"held name(s) are withheld by the venue (maxNotionalValue=0): "」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:28` — 「W1 ∪ W2 共 125 个「已停且持仓」实例: 多头 add_blocked **94** / reduced **23**, 空头 flatten_only 5 / 未列出 3; 用平移 a 预测的桶与记录 **122/122 相符**。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:31` — 「W1 ∪ W2 共 125 个「已停且持仓」实例: 多头 add_blocked **94** / reduced **23**, 空头 flatten_only 5 / 未列出 3; 用平移 a 预测的桶与记录 **122/122 相符**。」
 - **A reader could wrongly conclude:** A reader opens L1549-1557 in the current executor, finds unrelated code and concludes the mislabelled alarm was fixed.
 - **Affects:** live_trading, reporting · **Severity reason:** The code pointer has drifted: in the running tree ef60f85 the mislabelled text is at anchor_loop.py L1868, in the reduced/add_blocked/flatten_only clamp alarm. The lesson stands, and T5b shows the same alarm covers stopped longs pinned as add_blocked.
 - **Proposed correction (exact text):** ⚠ 更正(2026-09-13 审计): 行号已漂移 —— 运行树 ef60f85 中该文案在 `scheduler/anchor_loop.py` L1868(`apply_withhold_and_reshape` 之后, `_clamp` 的 reduced/add_blocked/flatten_only 任一非空即发 HIGH「withheld by the venue (maxNotionalValue=0)」), 文案仍不区分来源。T5b(09-13)实测已停多头 125 例中 94 例被记作 add_blocked(uplift_r2 T5b RESULT L28)。排查时 grep 文案定位, 不按行号。
@@ -3382,7 +3382,7 @@ under `~/Desktop`.」
 - **Quote:** 「提案 PROPOSAL_neutral_band_2026-08-10(8e499dac)待用户裁定; 时序上须在 84 锚窗口起点之前部署(窗口内书变更⇒重起)。」
 - **Superseding evidence:**
   - `/Users/haosiyu/dl_quant_live/config/book.json:105` — 「"no_trade_band_w": 0.002,」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:23` — 「外部书分支均跳过中性带与 harvest EMA, `DEFAULT_BAND_BPS = 0.0` 且非测试代码无覆写(G-CODE PASS); `state/live/no_trade_band.json` 最后写于 A1787371250 = 08-22 04:00Z(外部书切换前最后一个内部书锚), 之后未写。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:26` — 「外部书分支均跳过中性带与 harvest EMA, `DEFAULT_BAND_BPS = 0.0` 且非测试代码无覆写(G-CODE PASS); `state/live/no_trade_band.json` 最后写于 A1787371250 = 08-22 04:00Z(外部书切换前最后一个内部书锚), 之后未写。」
   - `/Users/haosiyu/dl_quant_live/scheduler/anchor_loop.py:1665` — 「#   no harvest EMA, no neutral band. target_w = w / gross_norm (unit gross), so the」
 - **A reader could wrongly conclude:** A reader thinks the explicit neutral band is undecided, or that it currently shapes live trades.
 - **Affects:** reporting · **Severity reason:** "Pending ruling" is out of date: the band was deployed 08-10 and has not been applied since the external book started on 08-22.
@@ -3427,7 +3427,7 @@ under `~/Desktop`.」
 - **Quote:** 「on the single jpline 3090, run NO side GPU jobs while a queue run is training.」
 - **Superseding evidence:**
   - `CLAUDE.md:15` — 「GPU/LOB 在 pod2 `/workspace/`」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:44` — 「- **pod2**: 只用 CPU; `nvidia-smi` 前后 0 % / 2 MiB; 研究员暂停进程 333197 / 339489 不得触碰; GPU 冲突排队不抢。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:56` — 「- **pod2**: 只用 CPU; `nvidia-smi` 前后 0 % / 2 MiB; 研究员暂停进程 333197 / 339489 不得触碰; GPU 冲突排队不抢。」
 - **A reader could wrongly conclude:** A reader thinks the rule does not apply on pod2 and contends with training or touches the researcher's paused processes.
 - **Affects:** future_retrain · **Severity reason:** The rule is scoped to the jpline 3090; GPU work now runs on pod2 under extra constraints (the independent researcher's paused PIDs, CPU-only research lines).
 - **Proposed correction (exact text):** [append after L10] **Scope update (2026-09-13 audit):** GPU work now runs on pod2 (/workspace), not only on the jpline 3090; the rule applies to every shared GPU host. On pod2 also check nvidia-smi before and after, never touch the independent researcher's paused PIDs (e.g. 333197/339489), and queue rather than contend. "Hand to 0B" refers to a retired team role.
@@ -3450,7 +3450,7 @@ under `~/Desktop`.」
 - **Quote:** 「**★ Open, and it is on the deployment path: does the clean model's stronger beta tilt get PAID?**」
 - **Superseding evidence:**
   - `docs/ERROR_LEDGER_2026-08-20.md:17` — 「**定性: 空头β保费的代价日**(受据: 该保费=历史利润 34%, β中性化毁 1/3 书 → 五臂全负 DO-NOT-RETRY)」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。」
 - **A reader could wrongly conclude:** A reader treats beta-tilt payment as an unresolved deployment blocker, or reuses the old answer for the current book.
 - **Affects:** reporting · **Severity reason:** An item still marked "open, on the deployment path" was answered on 08-10 for the retired internal book, and that answer does not transfer to the live book.
 - **Proposed correction (exact text):** [append after L89] **Update (2026-09-13 audit):** this "open" item was answered for the 08-10 internal book by RESULT_shortside_beta (7067113): the β tilt is a paid premium (≈34% of historical profit; five neutralisation arms negative). Both the question and that answer belong to the retired executor DL book; T8 (09-13) shows the related alt−BTC exposure does not transfer to the live A0 v4 book, so re-measure on the live book before reusing either reading.
@@ -3498,8 +3498,8 @@ under `~/Desktop`.」
 - **Source:** `memory/feedback_no_multi_seed_2026_05_15.md:50`
 - **Quote:** 「- **Above ±0.01 → cross-fold evidence decides** (no seed reruns needed).」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:46` — 「- **判决**: 双种子; UTC 日块自举; 结果表先写判据再填数; 每条线交 RESULT + SHA256SUMS; lead 复跑关键数字后才入 STATE。」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:116` — 「2023 单年按种子分裂(s42 PARTIAL / s2027 DOES NOT FIT)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:58` — 「- **判决**: 双种子; UTC 日块自举; 结果表先写判据再填数; 每条线交 RESULT + SHA256SUMS; lead 复跑关键数字后才入 STATE。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:131` — 「2023 单年按种子分裂(s42 PARTIAL / s2027 DOES NOT FIT)」
   - `CLAUDE.md:23` — 「多种子先断言 self_sha256 同」
 - **A reader could wrongly conclude:** A reader skips the second seed on a large-looking multi-asset effect, citing this rule, and misses a seed split like T1 H5's 2023 cell.
 - **Affects:** future_eval, future_retrain · **Severity reason:** The 07-03 guardrail ("above ±0.01 cd, no seed reruns") belongs to the single-asset cd metric. Current multi-asset verdicts are frozen as two-seed, and recent verdicts have split by seed.
@@ -3559,7 +3559,7 @@ under `~/Desktop`.」
    actually collides is outside the repo: `~/dl_quant_live` (launchd run dir, 落盘即上线), the
    single server working copy (`sync_to_server.sh --delete` can wipe engine/), the single RTX 3090」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:60` — 「jpline 自 09-04 起不可达」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:69` — 「jpline 自 09-04 起不可达」
   - `docs/MILESTONE_2026-08-26.md:101` — 「| pod2(RTX PRO 4500) | GPU 训练 + LOB |」
   - `STATE.md:98` — 「worktree `/Users/haosiyu/Desktop/quant_research_wt/b0a573a1`」
   - `STATE.md:264` — 「协作协议(worktree/权限边界/建议切入点)」
@@ -3619,7 +3619,7 @@ under `~/Desktop`.」
 - **Superseding evidence:**
   - `/Users/haosiyu/dl_quant_live/config/book.json:154` — 「不回 internal(在役已 08-22 03:15Z 退役)」
   - `multi_asset/exports/eda/RESULT_conclusion_reaudit_simple_caliber_2026-08-22.md:86` — 「| 引擎正典 0.93(干净替身) | 0.93 | 对数 engine | 同 pnl 行(Σw·Y4)未跑 engine | 重表 |」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:9` — 「**全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:12` — 「**全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举)」
 - **A reader could wrongly conclude:** A reader treats 0.93/-0.43 as the grade of what is trading now.
 - **Affects:** reporting · **Severity reason:** The live model named here was swapped and the in-role book retired; 0.93/-0.43 are log-caliber engine numbers marked for re-tabling. The headline (no clean Sharpe>=5 precedent) still holds against v4 1.29.
 - **Proposed correction (exact text):** > ⚠ **2026-09-13 更正:** 「Live runs that dirty generation」已过时: 08-05 换装后 in-role 书于 2026-08-22 退役, 现役为 combo。0.93/−0.43 为对数口径引擎读数, 08-22 复审标「重表」未重跑(RESULT_conclusion_reaudit_simple_caliber L86)。头条「Sharpe ≥ 5 无干净先例」对照现行正典仍成立: v4 口径 A0 全周期 1.29 [0.32, 2.28](PROGRAM_uplift_r2 L9)。
@@ -3631,7 +3631,7 @@ under `~/Desktop`.」
 - **Superseding evidence:**
   - `/Users/haosiyu/dl_quant_live/config/book.json:154` — 「不回 internal(在役已 08-22 03:15Z 退役)」
   - `multi_asset/exports/eda/RESULT_conclusion_reaudit_simple_caliber_2026-08-22.md:86` — 「| 引擎正典 0.93(干净替身) | 0.93 | 对数 engine | 同 pnl 行(Σw·Y4)未跑 engine | 重表 |」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:9` — 「**全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举)」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:12` — 「**全周期诚实夏普 1.29 [0.32, 2.28]**(v4 口径, 日块自举)」
 - **A reader could wrongly conclude:** A reader believes the dirty in-role generation is still trading.
 - **Affects:** reporting · **Severity reason:** Same stale present-tense live claim as sharpe_461_does_not_survive_clean.
 - **Proposed correction (exact text):** > ⚠ **2026-09-13 更正:** 同 sharpe_461_does_not_survive_clean: in-role 书 2026-08-22 已退役, 0.93/−0.43 为对数口径引擎读数(复审标「重表」); 头条「Sharpe ≥ 5 无干净先例」对照 v4 A0 全周期 1.29 [0.32, 2.28] 仍成立。
@@ -3641,7 +3641,7 @@ under `~/Desktop`.」
 - **Source:** `memory/hybrid_forest_admission.md:13`
 - **Quote:** 「**证据链**(可复现, 脚本 jpline w3lane/jp_hybrid.py + 特征缓存 hyb_fea47.npy)」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:60` — 「jpline 自 09-04 起不可达」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:69` — 「jpline 自 09-04 起不可达」
   - `multi_asset/exports/pod_archive_2026-08-15/MANIFEST.md:8` — 「- jpline w3lane 已另有副本: fast_film2 preds/k2_k2/k2_k3a preds/树 preds/矿分 preds(双备份)」
 - **A reader could wrongly conclude:** A reader believes the admission can be re-derived today.
 - **Affects:** future_eval · **Severity reason:** 'Reproducible' points to a script and feature cache that exist only on jpline, unreachable since 09-04.
@@ -3687,7 +3687,7 @@ under `~/Desktop`.」
 - **Superseding evidence:**
   - `STATE.md:120` — 「pod 撤离收口: 不可再生小件已双份」
   - `docs/MILESTONE_2026-08-26.md:102` — 「| 磁盘档 | 旧 pod 撤离 | `multi_asset/exports/pod_archive_2026-08-15/`(151MB, 不入 git, 有 SHA256SUMS) |」
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:60` — 「jpline 自 09-04 起不可达」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:69` — 「jpline 自 09-04 起不可达」
 - **A reader could wrongly conclude:** A reader assumes the 15-arm judge and arm predictions can be re-read today to re-derive the ceiling numbers.
 - **Affects:** future_eval · **Severity reason:** The judge and prediction artifacts this note pins live on the old pod, which was evacuated 2026-08-26 with only small items double-copied to jpline (unreachable since 09-04) and a 151 MB disk archive that is not in git.
 - **Proposed correction (exact text):** > ⚠ **2026-09-16 更正(STATE 2026-08-26 09:4xZ pod 撤离 + MILESTONE §6):** 本条钉的「pod /workspace(exports_train/arm*_pred_*.npy)」是**旧 pod**; 该实例 08-26 已撤离(不可再生小件双份到 jpline `pod2_evac_2026-08-26/small/`, 其余入磁盘档 `multi_asset/exports/pod_archive_2026-08-15/` 151MB, **不入 git**), 而 jpline 自 09-04 起不可达。⇒ 「装置与结论同寿命」在本条上**未兑现**: 引用 15 臂读数前须先在磁盘档/pod2 找到副本, 否则按「不可复现」引用。现役 GPU 机是 pod2(`/workspace/`)。
@@ -3700,7 +3700,7 @@ under `~/Desktop`.」
 - **Superseding evidence:**
   - `/Users/haosiyu/dl_quant_live/config/book.json:154` — 「不回 internal(在役已 08-22 03:15Z 退役)」
   - `docs/MILESTONE_2026-08-26.md:7` — 「king 腿 55/45 混入 V2MAIN(可微书损失 DL)」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:116` — 「**但书在每个状态都是 98–99% fund 腿, 席位根本没有加码空间**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:131` — 「**但书在每个状态都是 98–99% fund 腿, 席位根本没有加码空间**」
 - **A reader could wrongly conclude:** A reader believes the live book's P&L is driven by a DL residual that decays in bad regimes, and re-opens the y12 horizon as a live fix.
 - **Affects:** future_eval, reporting · **Severity reason:** The 'what is broken in live' premise points at STATE §0-octies and at the in-role DL book's residual-vs-style decomposition; that book was retired 2026-08-22, the STATE section no longer exists, and today's book is 98-99% fund leg in every state.
 - **Proposed correction (exact text):** > ⚠ **2026-09-16 更正(dl_quant_live/config/book.json `_book_source_note` + MILESTONE_2026-08-26 §1 + PROGRAM_uplift_r2 更正 2):** 本段的实盘诊断针对 in-role DL 书(king/s2/funding → compose_book), 该形态 **2026-08-22 03:15Z 已退役**, 引用的 `STATE §0-octies` 在现行 STATE.md 中已不存在。现役 combo 书 = fund 腿 + king LGBM + V2MAIN, 且实测「书在每个状态都是 98–99% fund 腿」⇒ 「残差在坏窗里的增值 = 实盘坏掉的量」不描述现役书, 「在役目标 y4」也不再指本条的 DL 头。y12 视界结论仍只在其自身记账口径内成立(见本文头条更正)。
@@ -3768,7 +3768,7 @@ under `~/Desktop`.」
 - **Source:** `memory/server_only_code_rsync_delete_risk.md:30`
 - **Quote:** 「- 已把 tarball 拉到**机外**(本地), 两侧 sha256 一致 ⇒ 两台机器两份。」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:60` — 「jpline 自 09-04 起不可达」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:69` — 「jpline 自 09-04 起不可达」
   - `STATE.md:182` — 「**jpline 重连定时已按用户字停止(09-06 05:4xZ)。**」
 - **A reader could wrongly conclude:** A reader counts the jpline backup (`_masv2_code_backup_2026-07-25/`) as a live second copy, or plans to restore pilot-stack code from it.
 - **Affects:** future_eval · **Severity reason:** The second of the 'two machines, two copies' is jpline, unreachable since 2026-09-04 with reconnect attempts stopped by the user on 09-06, so the off-machine guarantee is now a single local copy.
@@ -3815,7 +3815,7 @@ under `~/Desktop`.」
 - **Source:** `memory/feedback_verify_cudnn_not_just_cuda.md:22`
 - **Quote:** 「V5 push 训练在 jpline server (RTX 3090, 24GB) 上 1 epoch 41 min, 但 V5 production 同样硬件 3-5 min. 调查发现:」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:60` — 「jpline 自 09-04 起不可达」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:69` — 「jpline 自 09-04 起不可达」
   - `docs/ONBOARDING_independent_researcher_2026-09-06.md:75` — 「| **pod2**(RTX PRO 4500) | GPU 训练 + LOB |」
   - `docs/ONBOARDING_independent_researcher_2026-09-06.md:75` — 「计算实例可停; 网络卷持久。重启自愈 `BOOTSTRAP.sh`」
 - **A reader could wrongly conclude:** A reader applies the check only when 'switching to a new server' and skips it after a pod2 restart/BOOTSTRAP, or tries to reproduce the incident on jpline.
@@ -3828,7 +3828,7 @@ under `~/Desktop`.」
 - **Quote:** 「(1) 引用某个 CI 时, 连"那次判官运行有哪些臂"一起引; 跨运行比 CI 边界无效, 只能比点估计。(2) 新写判官一律**每个比较各自** `default_rng(SEED, spawn_key=(i,))` 或按比较名派生子流, 使 CI 对臂集不变。」
 - **Superseding evidence:**
   - `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:4` — 「per-contrast sub-stream (judge_ci_depends_on_arm_set): rng = default_rng([20260905, contrast_index]).」
-  - `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:315` — 「for ci, (a, b) in enumerate(CON):」
+  - `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:318` — 「for ci, (a, b) in enumerate(CON):」
   - `multi_asset/exports/research/uplift_r2_2026-09-13/T4/devices/t4_judge.py:58` — 「if nd not in _DRAW: _DRAW[nd] = np.stack([np.random.default_rng([20260905, k]).integers(0, nd, nd) for k in range(NB)])」
 - **A reader could wrongly conclude:** A reader treats every cross-run CI comparison as invalid, including r18-boot judges whose draws depend only on replicate k and day count. Or a reader assumes judge_v4's per-contrast stream is arm-set invariant, although its contrast_index is the position in CON.
 - **Affects:** future_eval · **Severity reason:** Low risk: rule (2) has been adopted, and (1) is now overbroad for r18-boot judges but still needed for index-keyed streams.
@@ -3875,8 +3875,8 @@ under `~/Desktop`.」
 - **Source:** `memory/alignment_gate_must_not_carry_book_property_prior.md:8`
 - **Quote:** 「The NET condition failed at +0.051 / +0.043, because the prior came from a different book, return source and universe.」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:84` — 「- 与 08-21 主导率记录的方向相反: 事实已核, 原因未查。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:87` — 「- 与 08-21 主导率记录的方向相反: 事实已核, 原因未查。」
 - **A reader could wrongly conclude:** A reader treats the sign conflict with the 08-21 dominance-premium receipt as explained ('different book/return source/universe') and dismisses one instrument. T8 recorded the cause as not investigated and which instrument is right as pending reconciliation.
 - **Affects:** future_eval · **Severity reason:** Low risk: the note's gate-design lesson stands, but it states as the established cause what T8 recorded as an unreconciled inference.
 - **Proposed correction (exact text):** ⚠ Qualifier (2026-09-13 audit): 'because' is an inference. RESULT_T8 §6.1 verified that the two instruments differ (08-21: S1 net_S1.npy, engine src.Y4, tradable set minus BTC/ETH; T8: A0 v4 RAW accounting, UPIT_CRYPTO minus BTC), but it recorded the cause of the opposite sign as not investigated and which instrument is right as pending reconciliation. Write: 'failed at +0.051 / +0.043; the prior came from a different instrument (book / return source / universe); which one is right is unreconciled'.
@@ -3886,8 +3886,8 @@ under `~/Desktop`.」
 - **Source:** `memory/book_is_dominance_premium.md:3`
 - **Quote:** 「该暴露≈书收益78%(截面alpha仅0.29bps/锚 夏普0.59); 对冲它=毁收益(h=1β夏普0.59)」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:75` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「本线在 A0 v4 上测得同期 corr(NET, 前向等权山寨−BTC 价差) = **+0.0506(s42)/ +0.0434(s2027)**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T8/RESULT_T8.md:78` — 「**[推断]** 「78% 收益来自主导率暴露」不能迁移到 A0 v4 书。哪一个仪器对, 本线不裁定, 列为待对账。」
 - **A reader could wrongly conclude:** 78% of the in-service book's return is dominance exposure.
 - **Affects:** reporting, future_eval · **Severity reason:** The body already carries two T8 caveats (one Chinese, one English, duplicated), but the description line recalled at session start still states 78%.
 - **Proposed correction (exact text):** description 改为: "08-21 在役书 S1 旧仪器: 净额对山寨−BTC 价差 β −0.249 / r −0.767, 暴露≈收益 78%; ⚠ A0 v4(在役 combo 形态)同期 corr +0.05、逐折 β 为正(T8 §6.1), 该结论不迁移, 两仪器待对账"; 删除 L17 重复的英文警示段(与 L14 同义)
@@ -3899,7 +3899,7 @@ Devices in current use or whose labels are still quoted in decisions. The FX-EVA
 
 | id | sev | status | affects | source | claim (abridged) |
 |---|---|---|---|---|---|
-| DEV-01 | P1 | PENDING_USER_DECISION | future_retrain, future_eval | `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:346` |             v = "(A) PROMOTE" if all(x["delta"] > 0 and x["ci95"][0] > 0 for x in r) else ("(B) REJECT" if all(x["ci95"][1] < 0 for x in r)  |
+| DEV-01 | P1 | PENDING_USER_DECISION | future_retrain, future_eval | `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:349` |             v = "(A) PROMOTE" if all(x["delta"] > 0 and x["ci95"][0] > 0 for x in r) else ("(B) REJECT" if all(x["ci95"][1] < 0 for x in r)  |
 | DEV-15 | P1 | VERIFIED_CURRENT | future_eval, live_trading | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507` | **G-1(整类设计否决)**: `ShadowState.save()` 写**固定键集** ⇒ 任何写进 `aux.json` 的额外键都会在**下一个锚**被丢掉 |
 | DEV-17 | P1 | VERIFIED_CURRENT | live_trading, future_eval | `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:509` | **G-3(新)**: **凡失败模式是返回码的调度, 该返回码必须被读取并写进记录。** |
 | DEV-02 | P2 | DOC_STALE | reporting, future_retrain | `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:298` | print("\n== LEVELS (bps/anchor per gross; annual % per gross = mean*2190/1e4; at 2.0x gross multiply by 2) ==") |
@@ -3918,7 +3918,7 @@ Devices in current use or whose labels are still quoted in decisions. The FX-EVA
 | DEV-13 | P3 | DOC_STALE | live_trading, reporting | `docs/ERROR_LEDGER_2026-08-20.md:71` | 空腿聚合 2h −100U+ → Telegram 预警 |
 
 ### DEV-01 · P1 · PENDING_USER_DECISION
-- **Source:** `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:346` · xref TRN-24, K2-F21
+- **Source:** `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:349` · xref TRN-24, K2-F21
 - **Resolution:** XREF AUDIT_TRAIN TRN-24 — CROSS-REF: judge windows ending 2026-08-31 (October's new month never read) is owned by AUDIT_TRAIN TRN-24. This row's own finding — the (A) PROMOTE predicate lacking an equivalence band and per-year condition — remains aud-kb's and is PENDING_USER_DECISION.
 - **Quote:** 「            v = "(A) PROMOTE" if all(x["delta"] > 0 and x["ci95"][0] > 0 for x in r) else ("(B) REJECT" if all(x["ci95"][1] < 0 for x in r) else "(C) UNDECIDED")」
 - **Superseding evidence:**
@@ -3929,7 +3929,7 @@ Devices in current use or whose labels are still quoted in decisions. The FX-EVA
 - **A reader could wrongly conclude:** An (A) PROMOTE means the arm is better across regimes by an economically meaningful amount.
 - **Affects:** future_retrain, future_eval · **Severity reason:** The October chain's judge stage (sha c2a81c48) promotes on significance in one 17-month window; there is no economic floor, no worst-year or regime condition, and yearly levels are print-only.
 - **Proposed correction (exact text):** 判官 (A) 追加两个条件(预注册修订, 用户裁定): ① 双种子 CI 下界 > δ(K2 D1 = 0.05 bps/锚/gross, 非 0); ② 全周期逐年(2023–2026)无一年 Δ 的 CI 上界 < −δ, 且 2023(弱年)点估计 ≥ −δ; 冻结窗之外的扩展/逐年读数写入 verdict 旁并在 (A) 时强制打印
-- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact
+- **Confidence:** VERIFIED (quote and receipt opened) · **Quote re-verified at assembly:** exact (line moved 346->349)
 
 ### DEV-15 · P1 · VERIFIED_CURRENT
 - **Source:** `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:507`
@@ -3958,7 +3958,7 @@ Devices in current use or whose labels are still quoted in decisions. The FX-EVA
 - **Quote:** 「print("\n== LEVELS (bps/anchor per gross; annual % per gross = mean*2190/1e4; at 2.0x gross multiply by 2) ==")」
 - **Superseding evidence:**
   - `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py:111` — 「        v = g[m]; c = np.concatenate([[0.0], np.cumsum(v)]); dd = float(np.max(np.maximum.accumulate(c) - c))」
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:19` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md:31` — 「回撤一律按固定 2× 复利 NAV 报, 不用算术 ×2」
   - `multi_asset/exports/research/uplift_2026-09-11/r18_foundation/receipts/TABLE_per_year_v4_caliber_2026-09-12.md:27` — 「按同一收益流固定 2 倍每锚复利 Π(1+2g·1e−4) 的 NAV maxDD: 2022 **−10.70%**(×2 近似 −11.16) / 2023 **−28.92%**(近似 −33.54, 误差 4.61pp) / 2024 **−23.62%** / 2025 **−15.53%** / 2026 **−15.98%**; W_ALPHA 全窗 C0_s42 **−42.12%**」
 - **A reader could wrongly conclude:** Judge maxDD ×2 is the NAV drawdown at 2.0×.
 - **Affects:** reporting, future_retrain · **Severity reason:** Judge level tables report additive maxDD and tell the reader to double it; the programme rule and r18 errata require compounded fixed-2× NAV (×2 overstates 2023 by 4.61 pp, understates others).
@@ -4015,7 +4015,7 @@ Devices in current use or whose labels are still quoted in decisions. The FX-EVA
 - **Quote:** 「data (T, 829, 7) float16 with channels [ret5, rng, cpos, lqv, lcnt, lasz, tbf] and clips CHN_CLIPS — identical to the pod ext cache used by the」
 - **Superseding evidence:**
   - `~/wide_shadow/shadow_loop_v3.py:150` — 「CHN_CLIPS = [(-0.3, 0.3), (0.0, 0.5), (0.0, 1.0), (0.0, 25.0), (0.0, 20.0), (-5.0, 15.0), (0.0, 1.0)]」
-  - `multi_asset/exports/live/pilot_journal/tools/parabolic_onset_forward_log.py:81` — 「    cum = np.expm1(LC[E + 1: E + 49][:, js] - LC[E, js])   # (48, n) cumulative return from the anchor close」
+  - `multi_asset/exports/live/pilot_journal/tools/parabolic_onset_forward_log.py:84` — 「    cum = np.expm1(LC[E + 1: E + 49][:, js] - LC[E, js])   # (48, n) cumulative return from the anchor close」
   - `memory/cache_ret5_channel_clipped_at_0p30_2026_09_12.md:3 (+1 more: 13)` — 「E-0908-B」
 - **A reader could wrongly conclude:** The forward log's P-layer values are on the accounting caliber.
 - **Affects:** future_eval · **Severity reason:** The daily forward log feeding the only surviving tail lead (re-judgement at ≥200 events) recomputes returns from the ±0.30-clipped float16 ret5 cache; the clip binds exactly on parabolic/crash bars.
@@ -4195,7 +4195,7 @@ Template = `docs/CRON_TEMPLATES_2026-09-04.md` line 13. The live job 41df7caa wa
 - **Resolution:** XREF AUDIT_EXEC CHK-05 — CROSS-REF: 'the template predates several live mechanisms' is owned by AUDIT_EXEC CHK-05. The added checks are carried forward as PROPOSALS (b)–(g) in the 2026-09-16 template, not as adopted policy.
 - **Quote:** 「phase_C anchors_row+readback+per_name_stop」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:28` — 「**已停的多头仓位不会被平到 0**」
+  - `multi_asset/exports/research/uplift_r2_2026-09-13/T5b/RESULT_T5b.md:31` — 「**已停的多头仓位不会被平到 0**」
   - `STATE.md:10` — 「**W9**(实盘逐名止损不把被止损名平到 0; 上线以来 157 例, 不限多头)」
   - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:58` — 「| E4 ⊕ EXE-02 | 执行器 | 追加事实: 自 09-01 起止损 / 全退出残差经 chase 臂发 MARKET reduce-only(9 笔成交约 5,670 USDT); W9 扩大该通道 | P2 |」
   - `STATE.md:79` — 「**每锚深查固定加一项: 运行树 HEAD vs origin/main, 落后 = 未部署, 照常报不动作。**」
@@ -4209,7 +4209,7 @@ Template = `docs/CRON_TEMPLATES_2026-09-04.md` line 13. The live job 41df7caa wa
 - **Source:** `lead transcript b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0.jsonl:20043 (CronCreate 2026-09-09T00:24:21Z, job 4a2f33e3, `52 14 * * *` local, session-only, auto-expires ≈2026-09-16T00:24Z)`
 - **Quote:** 「然后 git add/commit(无新增则不提交)」
 - **Superseding evidence:**
-  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:47` — 「研究仓在 iCloud 桌面, 提交一律显式 pathspec。」
+  - `multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md:56` — 「研究仓在 iCloud 桌面, 提交一律显式 pathspec。」
   - `docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:12` — 「提交显式 pathspec 并核 `git show --name-only`」
 - **A reader could wrongly conclude:** A daily log commit only contains the forward-log files.
 - **Affects:** reporting, future_eval · **Severity reason:** The daily job commits without an explicit pathspec in a repository where many agents stage files concurrently, so it can sweep unrelated staged changes into a 'parabolic_onset_forward' commit.
