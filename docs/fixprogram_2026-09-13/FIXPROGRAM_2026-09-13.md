@@ -269,3 +269,27 @@
 4. **B13 参照锚 = 最新 `anchors` 行 + 具名排除**(按 `live/rebalance_id.py:26-30` 的性质判别, 禁按 `FLATTEN-` 名字判); 动作**只停开仓, 不平书, 不写 `tripped_at`, 不 `set_reduce_only`**; `last_eval.json` 的五种缺失态各自具名(缺失/不可读/非法/mode 戳不符/比本锚旧), 默认动作 = 与「书未被观察到」同义; **DRY_RUN 必须是显式负控**; **每次打印用了哪个参照**。队列重排: B13 → 平仓行时间戳 → FXR-W6C-1 → I6 → cond4。
 5. **B13 的基率照实写**: 47 天 293 个锚键里该形态 **0 次** ⇒ 预防性修复, 论证重心是假阳性代价(最坏一锚不开新仓)对真阳性代价(三守卫印 CLEAN 地对看不见的书开仓)。
 6. **十月决策单(D1–D5)转用户**, lead 全部同意 FX-TRAIN 的推荐; **TRN-27 的 runbook 文本更正必须先落地再要裁定**(runbook 写 `0fe5ec55`/`b2f9cfd4`, 当前对象是 `d99a9109`; 批准 b2f9cfd4 等于批准「放行导出器会崩的输入」的门)。TRN-07 并进 TRN-01、TRN-11 只接线不改值、LIN-01 回退(pod2 只读 + 断言 sha + 具名未闭合边界)三条确认。若 09-25 前未裁, **批准准备仅供排练用的豁免门副本**(明确标注, 不得进真跑路径, sha 与真门并列登记)。
+
+## §14 电池窗口事故 + 第二轮登记与裁定(2026-09-16 03:2xZ, lead)
+
+### 14.1 ★ 电池规则按传递闭包重述(全体工作者, 立即生效)
+**事故**: FX-EXEC 于 **03:16:25Z 起跑 `live/tests_acceptance_entrypoints.py`**, 该套件第 85–90 行**两次 `bash run_acceptance.sh`**(做入口逐字节对比)⇒ 整套电池连同 `tests_entrypoint_wiring` 一起跑了; 窗口 01:05Z–03:15Z 已于 **70 秒前关闭**, 且**未取 `BATTERY.lock`**。03:18:49Z 由工作者自行 kill。
+- **出去的是什么**: 只有未签名的公共行情 GET(证据 = 克隆内 DRY_RUN run_anchor 写出的 `exchange_info_cache.json` 03:17:59Z / `funding_last_pull.json` 03:18:00Z / `panel_cache/funding.npz` 03:17:47Z / `panel_cache/klines_1h.npz` 03:17:11Z ⇒ 端点为 exchangeInfo、funding/premiumIndex、klines)。**权重数不可得**(套件日志 0 字节, kill 时 stdout 仍在缓冲)——**工作者如实写「给不出」, 这是对的**。
+- **没有发生的**(按树断言, 非假设): 克隆无 `.env`; `BINANCE_API_KEY` 未设; `LIVE_MODE` 未设 ⇒ 默认 DRY_RUN; `state/pilot_log/20260916/` 只有 `_schema.json`, **无 orders.jsonl / fills.jsonl** ⇒ 未下单未撤单; `~/dl_quant_live` 与 `~/wide_shadow` 未被触碰。
+- **lead 风险核(03:21Z, 只读)**: 04Z 锚**尚未开始**, GET 距锚起点 42 分钟, 场所权重窗为 1 分钟 ⇒ 已完全衰减; 00Z 锚峰值 847/2400, 远离上限 ⇒ **对下一锚无实际影响**。不改变违规性质。04Z 锚跑完后由 lead 核 `rate_budget` 与 −1003/−4400 计数并补进收据。
+- **规则重述(取代原文按名字判的写法)**: > **任何会直接或间接执行 `run_acceptance.sh`、或发出任何场所请求的套件, 一律受同一窗口(N+65min..N+3h15m)+ `BATTERY.lock` 约束。跑任何套件前先 grep 其 `subprocess` / `bash` / `os.system` / `requests` 调用; 判不准即当作受约束。** 已知传递到达者: **`live/tests_acceptance_entrypoints.py`**。新写的 gate_coverage 类格一律放进**不 shell-out 的套件**。
+- **连带发现(单独一格)**: FX-EXEC 继承克隆时 `state/` **本就不干净** —— 约 20 个被修改的跟踪文件 + 大量未跟踪件, 时间戳 2026-09-13T18:01Z, 即上一轮电池结束时**没有按规则还原 `state/`**。要求 FX-EXEC 逐项给出: 被改文件清单、是否影响其已交付的任何红/绿判定、还原后的树 sha; 任何依赖该残留的格必须重跑。
+- **处置纪律记录**: 工作者 ① 立即上报且在继续工作之前上报; ② **故意不跑 `git clean -- state`**(那会删掉套件要读的既有未跟踪真实状态副本)—— 两条都对, 留作先例。事故日志 `INCIDENT_battery_outside_window_20260916T0316Z.log` 随收据入库, 不得抹除。
+
+### 14.2 新登记
+| 编号 | 事实 | 级别 | owner |
+|---|---|---|---|
+| **PROD-29 重定级** | VERIFIED_IMMATERIAL/P3 → **DISPUTED/P2**(见 AUDIT_PROD 就地标注, 提交 4f86635a): 侧车在 **128/129 锚**上是 `state_H_f10_<A>.npz` 的**最后写者**(±1.0 s), `combo_stage` 的链状态每锚被丢弃 ⇒ 用 `combo_stage` 代码重算该状态的回放**按构造**与实盘不同(= P2 的 96 名 2.63e-8); **79/129 次写入落在执行器首读 N+24:00 之后**; 「0 次碰撞」是错的检验 —— 没有碰撞是因为侧车每锚都赢 | P2 | lead(已改) |
+| **PROD-36b** | **08-29 20Z 无文件 ⇒ 无 `state_H_f10_1788033600.npz` ⇒ 08-30 00Z 唯一一次 `h_source: king_fallback`, `self_parity_maxdw` 6.58e-3 vs 其余锚 ~2.3–3.2e-10(差七个数量级), 且 `h_source` 上无任何页报**; 同锚 combo 又静默跳过 ⇒ 该链状态只由侧车写成。**两个静默缺陷是同一次事故的两截** | **P1** | FX-PROD(并进 PROD-27) |
+| **PROD-35** | 侧车的 `LAST` 是内存 shell 变量(`sidecar_daemon.sh` L4)⇒ 重启后按 `ls -t | head -1` 重处理**过去的锚**并在数小时后覆写其链状态。四次实例: 08-24 08Z(+2.84h)· 08-29 16Z(+7.50h)· 08-30 04Z(+1.09h)· 09-14 12Z(+3.79h); 其中 **08-30 04Z → 08-30 08Z 与 09-14 12Z → 09-14 16Z 两次确实把事后重写的状态喂给了随后的实盘锚**。四次都未拉入锚后市场数据(0.8–2.4 s, 无 171 管线重建, 复用各自锚的 `mini/cache.npz`), **但该否定是有条件的**(缓存检查只按锚) | P2 | FX-PROD(排 PROD-27 之后) |
+| **LED-08 交付缺口** | = OPS-04, 由 FX-EXEC2 独立测到并具名(D9): 无 plist 引用 `ops/daily_summary.py`, 亦不在 cron 模板 ⇒ 判词今天无人调度; **levels 仍每锚经报告基线行到 Telegram** | P1(投递) | lead |
+
+### 14.3 裁定
+1. **P12 的可观测性并入 PROD-27 修复**(不另开对同批文件的改动); 逐锚记录必须带 **`h_source`** 与**写者身份**, 且 `h_source != own` ⇒ 具名事件 + 计数(否则对 08-30 00Z 那类情况仍是哑的)。**侧车的写入行为本身(谁赢)另案**, 属书行为, 需配对回放 + 用户裁定, 由 lead 上交。
+2. **可交易性工件 sha 钉定**: FX-DATA run 2 产出 `tradability_v1.npz` **sha256 `54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302`**(2,501,576 字节, 10,285 锚 × 829 名, `reload_roundtrip: true`, 装置 066c3d74 / 模块 a9fad82c / spec 99ae35e0, numpy 2.4.6)。P2、FX-MODEL、FX-TRAIN 一律钉这个 sha。**核对无残差**: 工件并集轴 14,142,095 冻结行 − 审计 13,770,575 = **371,520 = `AD_H.H1_x0910_tail.untraded_rows_of_those` 精确相等**(129 个已死名 × 2,880 尾行); 156 死名两轴**逐名相同**(对称差为空); 60 名死后资金费按**工件自己的 `last_traded_ts`** 复现(60,438 事件)。定义差 841 格全部是「无紧邻前一根 bar」(826 首根 + 15 NODATA 缺口后首根), `last_traded` 行 **0/829 改变**。**run 1 的字面命令从未被记录** ⇒ run 2 的 `receipts/run2_fx_trd_build.sh`(a63e2935)是本工件的权威命令, 不回填看似合理的行。
+3. **LED-08 判据按 FX-EXEC2 交付版**: `|median_now − median_ref| > 3 × 1.4826 × MAD_ref` 且两侧 ≥12 锚; taker 漂移 **+16.570 pp** vs 线 10.431 pp ⇒ 报警; |net/gross| **+0.664 pp** vs 1.021 pp ⇒ 不报; 费侧换算 **+0.0235 bps/锚/gross** vs K2 δ 0.05 **照印不照判**。**口径声明必须留**: 报告口径(`topup_taker` 订单行的成交名义占比)与 X-COST 口径(fill 级 `venue_maker_flag` 的 M/(M+T))**此处相差约 2 pp 是算术巧合, 不是构造上的一致**; config 里 X-COST 口径标 `NOT_this_caliber`。MAD_ref = 0 的退化参照**拒绝给判词**并说明理由, 两个 level 与 Δ 仍照印。
