@@ -303,6 +303,19 @@ for c in cmp_all:
     arith_gap = (ch["wd_arith"] - float(wd_rec)) if ch["wd_arith"] is not None else None
     allow, allow_days = led04_allowance_pp(ch["C2b"], float(ts), ch["first_twin_day"])
     residual = None if allow is None else gap - timing - formula - allow
+    # ★ (ii)'s OWN residual excludes the alert-(i) leg. (i) compares the arithmetic twin with the watchdog's recorded
+    #   value at a tight tolerance and reports that discrepancy itself; charging it to (ii) as well double-counts it.
+    #   Measured: the worst judgeable residual, 2026-09-13T12:46Z at -0.1858 pp, is -0.1696 of alert (i) and only
+    #   -0.0162 of anything else. An injected input bias does NOT hide here: it moves the recorded value and the
+    #   arithmetic twin together, so the (i) leg stays ~0 and the bias lands in the input leg.
+    residual_ii = (None if (allow is None or arith_gap is None) else gap - timing - formula - arith_gap - allow)
+    # ★ On a transfer day that is still OPEN the twin's income ledger holds only part of the day, so the
+    #   income-derived realised is incomplete by construction and the input leg is noisy intra-day (measured:
+    #   +0.3232 pp at 2026-09-03T20:36Z on the deposit day, against 4th-decimal values once the day closes).
+    #   That is an as-of artifact, not a disagreement, so (ii) declines to judge and says so.
+    _day = (c.get("utc") or "")[:10].replace("-", "")
+    _seg = [d for d in sorted(LED04) if ch["first_twin_day"] and d >= ch["first_twin_day"] and d <= _day]
+    open_transfer_day = bool(_seg and _seg[-1] == _day)
     one = {"utc": c.get("utc"), "ts": ts, "comparable": c.get("comparable"),
            "cum_pct_twin_recorded": twin_rec, "wd_cum_recorded": wd_rec, "gap_pp": gap,
            "T_reproduced": ch["T"], "T_minus_recorded_pp": ch["T"] - float(twin_rec),
@@ -312,7 +325,10 @@ for c in cmp_all:
            "cause_input_bias_pp": inp, "identity_C2b_minus_wd_arith_pp": identity,
            "alert_i_arith_vs_wd_pp": arith_gap,
            "led04_allowance_pp": allow, "led04_days_applied": allow_days,
-           "residual_pp": residual, "incomplete": ch["incomplete"],
+           "residual_pp": residual, "residual_ii_pp": residual_ii,
+           "open_transfer_day": open_transfer_day,
+           "judgeable_ii": bool(c.get("comparable") and not open_transfer_day and residual_ii is not None),
+           "incomplete": ch["incomplete"],
            "prefix_flow_mismatch_days": ch["prefix_flow_mismatch_days"], "n_twin_days": ch["n_twin_days"],
            "first_twin_day": ch["first_twin_day"],
            # per-day detail only where a caliber leg is large, so the receipt stays readable but the outliers are
@@ -321,6 +337,7 @@ for c in cmp_all:
     rows_out.append(one)
 
 fin = [r for r in rows_out if r["residual_pp"] is not None]
+jud = [r for r in rows_out if r["judgeable_ii"]]
 rec = {"device": os.path.basename(__file__),
        "device_sha256": sha(os.path.abspath(__file__)),
        "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -341,7 +358,13 @@ rec = {"device": os.path.basename(__file__),
            "n_rows_timing_leg_over_5pp": sum(1 for r in rows_out if abs(r["cause_day_close_timing_pp"]) > 5.0),
            "n_rows_residual_over_0p50": sum(1 for r in fin if abs(r["residual_pp"]) > 0.50),
            "n_rows_residual_over_0p50_comparable": sum(1 for r in fin if abs(r["residual_pp"]) > 0.50
-                                                       and r.get("comparable"))},
+                                                       and r.get("comparable")),
+           "n_comparable": sum(1 for r in rows_out if r.get("comparable")),
+           "n_judgeable_ii": len(jud),
+           "n_excluded_open_transfer_day": sum(1 for r in rows_out if r.get("comparable") and r["open_transfer_day"]),
+           "max_abs_residual_ii_judgeable_pp": max((abs(r["residual_ii_pp"]) for r in jud), default=None),
+           "n_judgeable_residual_ii_over": {str(t): sum(1 for r in jud if abs(r["residual_ii_pp"]) > t)
+                                            for t in (0.05, 0.10, 0.25, 0.50)}},
        "rows": rows_out}
 json.dump(rec, open(OUT, "w"), ensure_ascii=False, indent=1)
 
@@ -350,5 +373,9 @@ print(f"compare rows {len(cmp_all)} | decomposed {len(rows_out)} | "
 print(f"max |T - recorded twin|      {rec['summary']['max_abs_T_minus_recorded_pp']}")
 print(f"max |identity C2b - wd_arith| {rec['summary']['max_abs_identity_pp']}")
 print(f"max |alert (i) arith - wd|    {rec['summary']['max_abs_alert_i_pp']}")
-print(f"max |residual (ii)|           {rec['summary']['max_abs_residual_pp']}")
+print(f"max |residual (ii) all legs|  {rec['summary']['max_abs_residual_pp']}")
+print(f"judgeable (ii) rows           {rec['summary']['n_judgeable_ii']} of {len(rows_out)} "
+      f"(comparable {rec['summary']['n_comparable']}, open-transfer-day excluded {rec['summary']['n_excluded_open_transfer_day']})")
+print(f"max |residual (ii)| judgeable {rec['summary']['max_abs_residual_ii_judgeable_pp']}")
+print(f"  over thresholds              {rec['summary']['n_judgeable_residual_ii_over']}")
 print(f"receipt -> {OUT}")
