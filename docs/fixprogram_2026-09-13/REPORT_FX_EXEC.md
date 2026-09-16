@@ -297,3 +297,26 @@ Diff: docs/receipts/fx_exec_E7.diff sha256 f33b38fec64a16714c604dac5e7e46f670a34
 **BOUNDARIES**: both are capability fixes; neither shape occurs in the live ledger today. The [B3] account-text promises are proven only where the window holds a nav row. 〔lead 注: [B3] 四格改为条件 SKIP 是对既有测试的执行条件改动(检查调用逐字未变), 列入复审关注项。〕
 
 **QUEUE** (lead 裁定): NEW-02 attempt_idx + gate_coverage 重复条目 → 完整电池(BATTERY.lock, 19:15Z 前启动)→ EXE-04 (Q6) 作为单独项, 其后再跑电池。
+
+---
+## 事故 · 电池在窗口之外运行(2026-09-16 03:16:25–03:18:49Z; FX-EXEC 自报; lead 逐字转录并保留原文)
+
+**什么**: 为做 gate_coverage 那项的邻格, 我跑了 `live/tests_acceptance_entrypoints.py`。该套件在其第 85–90 行 **两次 `bash run_acceptance.sh`** 以逐字节比较两个入口 —— 于是它跑了**整套电池**, 含 `tests_entrypoint_wiring`。**我在运行之前没有读它调用了什么。这是我的错误**: lead 给的电池规则点名的是 `run_acceptance.sh`, 而我没有检查一个套件是否**传递地**到达它。
+
+**窗口**: 起 2026-09-16T03:16:25Z(运行器日志戳), 03:18:49Z 被我 kill, 约 2m24s。00Z 锚允许的窗是 01:05Z..03:15Z ⇒ **我在窗口关闭约 70 秒后开始**。**锁没有被持有。**
+
+**出去了什么**: 只有未签名的公共行情 GET。证据是克隆内 DRY_RUN run_anchor 写出的状态: `exchange_info_cache.json` 03:17:59Z · `funding_last_pull.json` 03:18:00Z · `panel_cache/funding.npz` 03:17:47Z · `panel_cache/klines_1h.npz` 03:17:11Z。**我给不出请求权重数** —— `tests_entrypoint_wiring` 自己的日志是 0 字节(03:17Z 建立, 运行中被 kill, stdout 仍在缓冲)⇒ 该计数在我这侧无上界。由那些文件推出的端点为 exchangeInfo、funding/premiumIndex、klines。我 kill 时**第二次 run_acceptance 也已经启动**。
+
+**没有发生什么**(从树上断言, 非假设): 克隆内无 `.env`; `BINANCE_API_KEY` 未设; `LIVE_MODE` 未设 ⇒ 代码默认 DRY_RUN 生效; `state/pilot_log/20260916/` 只含 `_schema.json` —— **orders.jsonl 与 fills.jsonl 均不存在**, 所以没有下单也没有撤单。`~/dl_quant_live` 与 `~/wide_shadow` 未被触碰。
+
+**清理**: 删除 `state/acceptance/20260916T031625Z_*` 与 `state/pilot_log/20260916/`; `git checkout -- state`(现 0 个被跟踪状态文件为脏)。**我故意没有跑 `git clean -- state`** —— 它会删掉套件要读的既有未跟踪真实状态副本(`state/live/pilot_log/202608*`、rate_timeline、fixtures)。收据: `/Users/haosiyu/cc_tmp/fx_exec_work/new02/INCIDENT_battery_outside_window_20260916T0316Z.log`, 随我的收据一起提交。
+
+**我要做的改变**: 今后不跑任何套件之前, 先 grep 它的 subprocess / bash 调用。具体说, **`tests_acceptance_entrypoints` 与 `run_acceptance.sh` 同属「只在电池窗口内」**, 我建议把这条明确写进电池规则, 因为规则原文只点名了运行器。我正在把新写的 gate_coverage 格移出该套件, 放进不 shell-out 的套件, 以便随时可跑。
+
+**另需单独指出**: 我继承这个克隆时**树并不干净** —— `state/` 有约 20 个被修改的跟踪文件与大量未跟踪件, 时间戳 2026-09-13T18:01Z, 即上一轮电池的残留。现在被跟踪文件已干净。
+
+### lead 处置(FIXPROGRAM §14.1)
+- **风险核(03:21Z, 只读)**: 04Z 锚尚未开始, GET 距锚起点 42 分钟, 场所权重窗为 1 分钟 ⇒ 已完全衰减; 00Z 锚峰值 847/2400 ⇒ **对下一锚无实际影响**。不改变违规性质; 04Z 锚跑完后由 lead 核 `rate_budget` 与 −1003/−4400 计数补进本收据。
+- **规则按传递闭包重述(全体, 立即生效)**: 任何**直接或间接**执行 `run_acceptance.sh` 或发出任何场所请求的套件, 一律受窗口(N+65min..N+3h15m)+ `BATTERY.lock` 约束; 跑套件前先 grep 其 `subprocess` / `bash` / `os.system` / `requests`; 判不准即当作受约束。已知传递到达者: `live/tests_acceptance_entrypoints.py`。新写的 gate_coverage 类格放进不 shell-out 的套件。
+- **两条处置纪律记为先例**: ① 立即上报且在继续工作之前上报; ② **故意不跑 `git clean -- state`**(会删掉套件要读的既有未跟踪真实状态副本)。
+- **继承树不干净单独立格**: 要求给出被改文件清单、是否影响任何已交付的红/绿判定(逐项)、还原后的树 sha; 任何依赖该残留的格必须重跑。
