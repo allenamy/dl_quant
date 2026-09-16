@@ -1,0 +1,37 @@
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 6a9c17f..80b59e9 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -127,6 +127,32 @@ RUNNER_BOUNDARIES = [
+     "covers the second for a few layers only)",
+     "a suite that is green because its subject is absent looks identical to one green because "
+     "its subject works — only a deliberate injection distinguishes them",
++    # ★★★ EXE-05, 2026-09-16. The fourth form of "a green battery certifies what is written, not "
++    # what happens" (after: a gate whose verdict does not control the write; a guard that asserts a
++    # SUBSTRING of source text, KB-73; a declared blind spot that was never closed).
++    "A SUITE THAT INJECTS THE STATE IT TESTS PROVES THE BEHAVIOUR, NOT THAT PRODUCTION EVER "
++    "REACHES IT — and this battery does not require anyone to show that it does. Measured on the "
++    "10% leverage dead zone: config/book.json declares it, scheduler/anchor_loop.py implements it "
++    "correctly, and tests_sizing_policy certifies it across the band, the boundary and outside — "
++    "by constructing `_L(gross, eq)` which assigns `self.gross` directly, bypassing the real "
++    "constructor. Production seeds `AnchorLoop(..., gross_usdt=0.0)` (scheduler/run_anchor.py) and "
++    "com.dlquant.live.anchor is StartCalendarInterval, so every anchor is a FRESH PROCESS with "
++    "prev=0, actual=None and `resize` unconditionally True. Over 563 recorded anchors: "
++    "gross_previous==0.0 563/563, actual_leverage null 563/563, leverage_drift_frac non-null ZERO "
++    "times — the drift was never once computed. The dead zone has never bound in production. The "
++    "one cell that does describe production, 'first anchor (no previous gross) sizes from equity', "
++    "reads as one case among several and is in fact the ONLY case. ⇒ Any cell whose subject is an "
++    "injected state must name who proves production can construct that state; where nobody does, "
++    "the cell establishes the arithmetic and NOT that the arithmetic ever runs.",
++    # ★ PROD-44 (FX-PROD fact table; reader change owned by FX-EXEC2, boundary recorded here):
++    "`combo_live_status.json` is a SINGLE MUTABLE SLOT — only combo_stage writes it, and on either "
++    "silent branch it retains the PREVIOUS anchor's {\"ok\": true}. Its one live consumer "
++    "(ops/anchor_report.py) reads `ok`/`reader_ok` without comparing `S[\"anchor\"]` to the "
++    "report's own A, though the same file compares the anchor everywhere else. A liveness check a "
++    "STALE value can satisfy is not a liveness check. The fix moves the reader to "
++    "state/combo_anchor_record/<A>.json, which is per-anchor by construction so there is no slot "
++    "to go stale; until that lands, nothing in this battery distinguishes 'the combo writer "
++    "succeeded for THIS anchor' from 'it succeeded for some earlier one'.",
+ ]
+ 
+ # ── per suite: the one thing it structurally cannot see ─────────────────────────────────────────
