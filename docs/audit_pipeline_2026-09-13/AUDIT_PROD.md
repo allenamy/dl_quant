@@ -511,6 +511,13 @@ Recommended action: None.
 
 - **Layer:** PRODUCER RUNTIME / second writer  
 - **Status:** VERIFIED_IMMATERIAL · **Severity:** P3 — Latent; 0 collisions observed; a collision would most likely fail loud (king fallback with page).  
+
+> **★ 重定级 2026-09-16(lead; 原字节保留, 以本框为准)。** `VERIFIED_IMMATERIAL / P3` **作废**, 改 **DISPUTED → P2**。理由(FX-PROD P12 逐锚普查, 装置 `fx/p12_state_h_census.py`, 收据 `FX_PROD/receipts/p12/P12_CENSUS.json` sha `2bbd9c8c`, 克隆 bdb9e1f):
+> 1. **「0 次碰撞」是错的检验。** 没有碰撞不是因为隔离有效, 而是因为**侧车每锚都赢**: `state_H_f10_<A>.npz` 在 **128/129 锚**上的**最后写者**是 `sidecar_blend.py`(`mtime − sidecar finish` 每个可归因行都在 ±1.0 s 内; `mtime − combo finish` 为 +122..+235 s, 中位 **+168 s**)。唯一未归因的一份是 08-26 00Z 的开机手工跑。
+> 2. **它不是「第二写者」, 而是某条实盘链状态的唯一有效写者。** `combo_stage` 自己算出的 F-10 链状态**每锚都被丢弃**, A+1 的暖启用的是侧车的重算, 不是产出被交易之书的那一次运行 ⇒ **任何用 `combo_stage` 代码重算该状态的回放都按构造与实盘不同** —— 这正是 P2 测到的 96 名 2.63e-8。
+> 3. **时序更差**: 129 锚中 **79 次侧车写入落在执行器首读 N+24:00 之后**(侧车完成中位 N+24:20), 即多数锚上「给下一锚暖启种子的文件」是在当锚的书**已经交易之后**才写的。
+> 4. 该文件自称「只读侧车」, 与事实不符 —— 文案须按代码改(与 E6 同规)。
+> **未变的部分**: 「侧车写入非原子」与「建议退役或给它自己的输出路径」仍成立; **改变写入行为(谁赢)是书行为**, 需配对回放 + 用户裁定, 已登记由 lead 上交。
 - **Affects:** live_trading · **Method:** VERIFIED (code, process list) / CITED (collision count from the fork's log scan)
 
 com.hsy.sidecar (PID 30943) runs sidecar_blend.py (6140790e), which repeats combo_stage.py L1-222 and writes mini/cache.npz, mini/data/dlw_targets.npz, xfer_panel_live.npz, state_H_f10_<A>.npz and target_blend/<A>.json with non-atomic np.savez; combo_stage reads the same paths (state_H_f10 is the fc warm-start fallback). Isolation is timing only: the sidecar sleeps 120 s after a new target_live. 0 overlaps observed in 109 anchors; the sidecar last recomputed the 171 pipeline at 08-30 00Z.
