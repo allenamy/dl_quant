@@ -112,6 +112,8 @@ The test needs "the newest anchor that happened". Candidates and their verdicts:
 
 **Self-healing by fact, not by decay** (the §4-5b idiom, `watchdog.py:1963-1974`): while opening is halted the next anchor still writes its readback (`:2622` is independent of every halt), so the following evaluation is not stale and the gate stops firing by itself. No timer, no counter, no knob.
 
+**Per-anchor cost, measured not assumed:** the gate parses `last_eval.json`, which on the live tree is **8,310,674 bytes**. Timed against that real file through `anchor_loop.book_unobserved_halt`: **0.078 / 0.084 / 0.089 s** (min / median / max of 5). §2.5.3 clause 3 makes a slower anchor a hard constraint — a slower anchor can turn a completion into a MISSED — and 0.08 s against a ~30-minute anchor clears it by four orders of magnitude.
+
 **False-positive cost, bounded:** one anchor of skipped *opening* trades; the book is held; reduce-only paths (universe exits, the staleness ladder, per-name stops) still run; nothing is sold. This is the user rule 2026-09-12 as applied: instrument doubt gets an instrument-shaped response, never a book-level one.
 
 **Negative controls the cells must pin:** (a) DRY_RUN — P4 must read as "no account", never blind, never halting; (b) the anchor immediately after a flatten must not be blind (P7, all 10 historical batches); (c) a HOLD anchor with a readback (the real 08-29 20Z shape) must not be blind; (d) an anchor with a *partial* readback (P2) must not be read as CLEAN by 5b.

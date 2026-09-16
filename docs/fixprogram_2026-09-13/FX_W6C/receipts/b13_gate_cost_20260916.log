@@ -1,0 +1,15 @@
+W6C-B13 gate cost, measured on the real file (2026-09-16 04:4xZ)
+
+The gate parses state/live/watchdog/last_eval.json once per anchor, in phase A. On the live tree
+that file is 8,310,674 bytes, so "it is only a JSON read" is not an answer — §2.5.3 clause 3 makes
+a slower anchor a hard constraint (a slower anchor can turn a completion into a MISSED).
+
+Measured through anchor_loop.book_unobserved_halt against a copy of the real file, mode-stamped LIVE,
+5 repetitions, /usr/bin/python3:
+    file size            8,310,674 bytes
+    read + decide (s)    min 0.078   median 0.084   max 0.089
+    gate result          {'halt': False, 'state': 'NOT_EVALUATED', 'page': False}
+                         (NOT_EVALUATED because the live evaluation predates this change — the
+                          deploy-boundary case, behaving as designed: no halt, named, not paged)
+
+0.08 s against a ~30-minute anchor. Recorded so the cost is a number rather than an assumption.
