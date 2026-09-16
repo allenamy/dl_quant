@@ -183,8 +183,11 @@ def main():
 
 
 if __name__ == "__main__":
+    # NOTE: `except BaseException` here would swallow the SystemExit(0) raised by sys.exit(main()) and re-exit 1, i.e.
+    # a PASSING run would report failure to anyone reading the exit code. Catch Exception only.
     try:
-        sys.exit(main())
-    except BaseException:
+        rc_ = main()
+    except Exception:
         traceback.print_exc()
-        sys.exit(1)
+        rc_ = 1
+    sys.exit(rc_)

@@ -1,0 +1,156 @@
+{
+ "device": "fm_newbuilder_control.py",
+ "self_sha256": "1b25d7c2d2571112b5d02fc4504467ddc8ff4db944a176f022d8f5488f4d98ad",
+ "utc_start": "2026-09-16T04:17:42Z",
+ "python": "3.14.4",
+ "numpy": "2.4.4",
+ "base": {
+  "path": "multi_asset/exports/research/retrain_2026-09/pod_dlw_features_ext.py",
+  "sha256": "e86725cc2768bb6265dd8fb2b3580629706166da012298768b1c0788e8f5a624"
+ },
+ "new": {
+  "path": "docs/fixprogram_2026-09-13/FX_MODEL/devices/fm_dlw_features_fund.py",
+  "sha256": "3327c007d1199bcf43b92c1a5397b9a95de6972782442af7634a94531c4c2eb4"
+ },
+ "fixture_device": {
+  "path": "docs/fixprogram_2026-09-13/FX_MODEL/devices/fm_red_builders.py",
+  "sha256": "2b76ae355e4ca1f3efa506e72e09b3c546b16cc3ac9d1a0836479e668aa82d1f"
+ },
+ "shells_out": false,
+ "network": false,
+ "C1_source_diff": {
+  "n_changed_hunks": 7,
+  "hunks": [
+   {
+    "tag": "replace",
+    "base_lines": [
+     1,
+     8
+    ],
+    "new_lines": [
+     1,
+     31
+    ]
+   },
+   {
+    "tag": "replace",
+    "base_lines": [
+     14,
+     17
+    ],
+    "new_lines": [
+     37,
+     47
+    ]
+   },
+   {
+    "tag": "insert",
+    "base_lines": [
+     80,
+     79
+    ],
+    "new_lines": [
+     110,
+     110
+    ]
+   },
+   {
+    "tag": "insert",
+    "base_lines": [
+     93,
+     92
+    ],
+    "new_lines": [
+     124,
+     124
+    ]
+   },
+   {
+    "tag": "replace",
+    "base_lines": [
+     94,
+     94
+    ],
+    "new_lines": [
+     126,
+     137
+    ]
+   },
+   {
+    "tag": "insert",
+    "base_lines": [
+     102,
+     101
+    ],
+    "new_lines": [
+     145,
+     150
+    ]
+   },
+   {
+    "tag": "replace",
+    "base_lines": [
+     105,
+     105
+    ],
+    "new_lines": [
+     154,
+     155
+    ]
+   }
+  ],
+  "note": "recorded, not gated: identical BEHAVIOUR is the gate (C2), not a line count"
+ },
+ "C2_legacy_bitwise": {
+  "outcome": "PASS",
+  "per_array": {
+   "X": {
+    "bitwise_equal": true,
+    "differing_cells": 0,
+    "total_cells": 1308638,
+    "compared_as": "uint16 view (true bitwise)"
+   },
+   "pair_a": {
+    "bitwise_equal": true,
+    "differing_cells": 0,
+    "total_cells": 15959,
+    "compared_as": "int32"
+   },
+   "pair_s": {
+    "bitwise_equal": true,
+    "differing_cells": 0,
+    "total_cells": 15959,
+    "compared_as": "int16"
+   },
+   "names": {
+    "bitwise_equal": true,
+    "differing_cells": 0,
+    "total_cells": 82,
+    "compared_as": "<U21"
+   }
+  },
+  "npz_file_sha_base": "a56f8caf3ee0f8c1b3b67b7389716488dded9636ba8b77cc0059f9fd5b96a522",
+  "npz_file_sha_new": "5749bb2c1c12f4d1daea65b7f48eb9fbd479f3f5e360cc3673b3e9901a784190",
+  "file_sha_differs_by_design": true,
+  "why_file_differs": "meta_json carries self_sha256, so the file necessarily names the device that wrote it; only the ARRAYS can be bitwise equal"
+ },
+ "gate_C2_pass": true,
+ "C3_effect_input_layer": {
+  "note": "input-layer cell counts ONLY; not a model effect and not a book effect",
+  "C3a_nan_preserve_same_panel": {
+   "cells_total": 15959,
+   "cells_that_were_hard_zero": 808,
+   "cells_now_nan": 606,
+   "cells_unchanged_bitwise": 15353,
+   "meaning": "unknown funding stops being asserted as 0.0; the trainer will impute it at the column mean"
+  },
+  "C3b_full_coverage_panel": {
+   "cells_total": 15959,
+   "cells_changed_bitwise": 606,
+   "cells_that_were_zero_and_now_carry_a_value": 606,
+   "meaning": "this is the FEA-01 fix at the input layer: the same builder, the same fill rule, a panel whose funding support is not the later live list"
+  }
+ },
+ "utc_end": "2026-09-16T04:17:52Z",
+ "wall_s": 9.7
+}
