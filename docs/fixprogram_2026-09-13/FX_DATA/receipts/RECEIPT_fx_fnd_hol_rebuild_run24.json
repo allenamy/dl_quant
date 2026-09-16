@@ -1,0 +1,339 @@
+{
+ "device": "fx_fnd_hol_rebuild.py",
+ "self_sha256": "346bc15aaefa935e44a55eb4c3e75bb02e5cb4b82ed2ef5144919da314eed86b",
+ "resolver_sha256": "29c29ca406be5e8e8abf85feb076edf232de7bca9d68938117f709827266f37a",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/fx_fnd_hol_rebuild.py",
+  "P9_declared_interval_table_2026-07-01_2026-09-13T12Z_zipszips_2026-08.csv.gz",
+  "366763a4aae854b2415fb461334efe95c1a74f93fc9e81c112c6138b16ec3197",
+  "out/fndhol",
+  "out/fndhol/RECEIPT_fx_fnd_hol_rebuild.json"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "inputs": {
+  "/workspace/fx_data_2026-09-13/devices/r6_panel_splice.py": "cccc5b6be9248671ac9370b6313eaa8a3e9b397414d86db18db2b344e836743d",
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_rawbuild_x0910.npz": "92a870a79cfaf130dacc35daba2ad7a16490ca3a47e1e7d3a8a398a066f96f58",
+  "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_v2ext_x0910.npz": "042478f7d8e9f9476341a2acb310828fcf1f5d4a855c2ad0105a08e78f604549",
+  "/workspace/review_scratch/holefix2_cells.npz": "6156f97a0709f073147e392d5b0cb542f6b6d463cc3be2500f8791a0d1a8dfda",
+  "/workspace/uplift_2026-09-11/r6/dl/r6_fund_sep.json.gz": "bfd9bc65c24916ac7824cd7348a0773f0b7e1dc544797089c020b7742f2e885b",
+  "/workspace/fund_aug.json.gz": "8a9e771577602dd1875a87fb07f982bc2c255e740966f911469420a44a53a8c2",
+  "P9_declared_interval_table_2026-07-01_2026-09-13T12Z_zipszips_2026-08.csv.gz": "366763a4aae854b2415fb461334efe95c1a74f93fc9e81c112c6138b16ec3197"
+ },
+ "utc_start": "2026-09-16 05:33Z",
+ "verbatim_ema_block": {
+  "source": "/workspace/fx_data_2026-09-13/devices/r6_panel_splice.py",
+  "first_line": 101,
+  "last_line": 120,
+  "n_statements": 13,
+  "wrapper": "for _once in (0,): -- so the block's bare `continue` keeps its original meaning",
+  "ast_sha256": "9eb9703c4e2f902b605832ccba93a9a384e111f3a616db6dde4c199bbfb5f606",
+  "source_span_sha256": "cebb9d44785f9a384efbb759a9cb930424ed2b50605151fbde88338b1ef5f050"
+ },
+ "verbatim_ema_block_free_names": [
+  "CAN",
+  "HL",
+  "cut",
+  "fr",
+  "ft",
+  "iv_full",
+  "j",
+  "nC",
+  "out",
+  "rate_nf",
+  "s",
+  "sel",
+  "state",
+  "tail_ts"
+ ],
+ "hole_runs_utc": [
+  [
+   "2022-02-26 00:05Z",
+   "2022-03-01 00:00Z"
+  ],
+  [
+   "2022-04-01 00:05Z",
+   "2022-04-03 00:00Z"
+  ],
+  [
+   "2026-08-12 00:05Z",
+   "2026-08-24 04:00Z"
+  ],
+  [
+   "2026-08-31 00:05Z",
+   "2026-09-01 00:00Z"
+  ]
+ ],
+ "hole_neighbourhoods_utc": [
+  [
+   "2022-02-25 20:05Z",
+   "2022-03-31 00:00Z"
+  ],
+  [
+   "2022-03-31 20:05Z",
+   "2022-05-03 00:00Z"
+  ],
+  [
+   "2026-08-11 20:05Z",
+   "2026-09-23 04:00Z"
+  ],
+  [
+   "2026-08-30 20:05Z",
+   "2026-10-01 00:00Z"
+  ]
+ ],
+ "C1_hol": {
+  "by_key": {
+   "f_rev_4h": {
+    "diff_near_hole": 16638,
+    "diff_away_from_hole": 0
+   },
+   "f_rev_24h": {
+    "diff_near_hole": 18241,
+    "diff_away_from_hole": 0
+   },
+   "f_rev_3d": {
+    "diff_near_hole": 22068,
+    "diff_away_from_hole": 0
+   },
+   "f_mom_7d": {
+    "diff_near_hole": 29530,
+    "diff_away_from_hole": 0
+   },
+   "f_mom_30d": {
+    "diff_near_hole": 42916,
+    "diff_away_from_hole": 0
+   },
+   "f_mom_7d_x24": {
+    "diff_near_hole": 27616,
+    "diff_away_from_hole": 0
+   },
+   "f_vol_7d": {
+    "diff_near_hole": 29407,
+    "diff_away_from_hole": 0
+   },
+   "f_volq_ratio": {
+    "diff_near_hole": 29510,
+    "diff_away_from_hole": 0
+   },
+   "f_amihud_24h": {
+    "diff_near_hole": 18224,
+    "diff_away_from_hole": 0
+   },
+   "f_range_24h": {
+    "diff_near_hole": 18236,
+    "diff_away_from_hole": 0
+   },
+   "f_cpos_24h": {
+    "diff_near_hole": 18270,
+    "diff_away_from_hole": 0
+   },
+   "f_tbf_24h": {
+    "diff_near_hole": 18269,
+    "diff_away_from_hole": 0
+   },
+   "f_asz_24h": {
+    "diff_near_hole": 18270,
+    "diff_away_from_hole": 0
+   },
+   "Y4": {
+    "diff_near_hole": 25941,
+    "diff_away_from_hole": 0
+   },
+   "Y24": {
+    "diff_near_hole": 32156,
+    "diff_away_from_hole": 0
+   },
+   "elig": {
+    "diff_near_hole": 28183,
+    "diff_away_from_hole": 0
+   }
+  },
+  "total_near_hole": 393475,
+  "total_away_from_hole": 0,
+  "anchors_near_hole": 522
+ },
+ "p9_rows": 243989,
+ "C2_fnd_legacy_reproduction": {
+  "f_fund_now": {
+   "nan_equal": true,
+   "bitwise": true,
+   "maxabs": 0.0
+  },
+  "f_fund_iv": {
+   "nan_equal": true,
+   "bitwise": true,
+   "maxabs": 0.0
+  },
+  "f_fund_ema": {
+   "nan_equal": true,
+   "bitwise": true,
+   "maxabs": 0.0
+  },
+  "f_fund_ema_v1": {
+   "nan_equal": true,
+   "bitwise": true,
+   "maxabs": 0.0
+  },
+  "f_fund_ema_v2": {
+   "nan_equal": true,
+   "bitwise": true,
+   "maxabs": 0.0
+  }
+ },
+ "p9_tier_census": {
+  "legacy": {
+   "_fell_through_to_spacing_or_default": 98678,
+   "_symbols_continued": 676
+  },
+  "p9": {
+   "NOT_IN_P9": 2430109,
+   "EXACT": 237868,
+   "_fell_through_to_spacing_or_default": 9209,
+   "UNRESOLVED_EVIDENCE_NOT_AVAILABLE": 152,
+   "LIKELY": 2,
+   "_symbols_continued": 676
+  }
+ },
+ "D_tail_funding_change": {
+  "f_fund_now": {
+   "cells": 49740,
+   "nan_pattern_changed": 0,
+   "value_changed": 0,
+   "maxabs": 0.0
+  },
+  "f_fund_iv": {
+   "cells": 49740,
+   "nan_pattern_changed": 0,
+   "value_changed": 0,
+   "maxabs": 0.0
+  },
+  "f_fund_ema": {
+   "cells": 49740,
+   "nan_pattern_changed": 0,
+   "value_changed": 0,
+   "maxabs": 0.0
+  },
+  "f_fund_ema_v1": {
+   "cells": 49740,
+   "nan_pattern_changed": 0,
+   "value_changed": 930,
+   "maxabs": 0.011509798234328628
+  },
+  "f_fund_ema_v2": {
+   "cells": 49740,
+   "nan_pattern_changed": 0,
+   "value_changed": 856,
+   "maxabs": 0.024536523036658764
+  }
+ },
+ "output": {
+  "path": "out/fndhol/wide_panel_4h_v2ext_x0910_fndhol.npz",
+  "sha256": "94269159d41e74169dccc7815f7d50c78c9e56b626d8bad58252f53156c54054",
+  "bytes": 235564414,
+  "keys": [
+   "Y24",
+   "Y4",
+   "elig",
+   "f_amihud_24h",
+   "f_asz_24h",
+   "f_cpos_24h",
+   "f_fund_ema",
+   "f_fund_ema_v1",
+   "f_fund_ema_v2",
+   "f_fund_iv",
+   "f_fund_now",
+   "f_mom_30d",
+   "f_mom_7d",
+   "f_mom_7d_x24",
+   "f_range_24h",
+   "f_rev_24h",
+   "f_rev_3d",
+   "f_rev_4h",
+   "f_tbf_24h",
+   "f_vol_7d",
+   "f_volq_ratio",
+   "symbols",
+   "ts"
+  ],
+  "anchors": 10099,
+  "first": "2022-01-31 00:00Z",
+  "last": "2026-09-10 00:00Z",
+  "naming": "POPULATION SENSITIVITY under SPEC_TRADABILITY_v2: this panel fixes the hole-carrying kline prefix and the pull-time interval map; it is NOT an economic-truth fix and exit P&L remains unidentified"
+ },
+ "checks": [
+  {
+   "check": "C1.kline_prefix_differs_only_near_hole_runs",
+   "ok": true,
+   "detail": {
+    "away": 0,
+    "near": 393475,
+    "AD_D_reported_near": 393475
+   }
+  },
+  {
+   "check": "C2.legacy_rule_reproduces_the_incumbent_tail_bitwise",
+   "ok": true,
+   "detail": {
+    "f_fund_now": {
+     "nan_equal": true,
+     "bitwise": true,
+     "maxabs": 0.0
+    },
+    "f_fund_iv": {
+     "nan_equal": true,
+     "bitwise": true,
+     "maxabs": 0.0
+    },
+    "f_fund_ema": {
+     "nan_equal": true,
+     "bitwise": true,
+     "maxabs": 0.0
+    },
+    "f_fund_ema_v1": {
+     "nan_equal": true,
+     "bitwise": true,
+     "maxabs": 0.0
+    },
+    "f_fund_ema_v2": {
+     "nan_equal": true,
+     "bitwise": true,
+     "maxabs": 0.0
+    }
+   }
+  },
+  {
+   "check": "C3.cut_row_funding_unchanged_vs_canonical",
+   "ok": true
+  },
+  {
+   "check": "C3.tail_klines_equal_the_rawbuild",
+   "ok": true
+  },
+  {
+   "check": "W.reload_roundtrip_keys",
+   "ok": true,
+   "detail": {
+    "keys": 23
+   }
+  },
+  {
+   "check": "W.reload_roundtrip_axis",
+   "ok": true
+  }
+ ],
+ "n_checks": 6,
+ "n_failed": 0,
+ "failed": [],
+ "runtime_s": 1266.8,
+ "utc_end": "2026-09-16 05:54Z"
+}
