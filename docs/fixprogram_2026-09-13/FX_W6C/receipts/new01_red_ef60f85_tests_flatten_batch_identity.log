@@ -1,0 +1,35 @@
+
+[F] the historical facts, on the REAL committed 2026-08-01 batch — green on BOTH trees
+  ok   ★★ F1 the whole batch carries ONE anchor_ts and ONE submit_ts, and its readback is under a DIFFERENT key a fraction of a second later — so the two never join
+  ok   ★★★ F2 and every filled row of it reports an execution that PRECEDES its own submission — the q4 contradiction ops/score_post_fix.py:238-250 measured at 204/204 and registered for its own change
+  ok   ★★★ F3 §4-5e therefore records that flatten anchor as NO_READBACK and never judges it — 10 of 10 batches on the live record have this shape
+
+[N] the new writer
+  FAIL ★★★★ N1 ONE KEY FOR THE BATCH AND ITS READBACK: the rows and the post-flatten readback carry the SAME anchor_ts, so the two finally join (ef60f85: two clock reads, two keys)   [{'order_ats': [1789531911.4524071], 'readback_ats': [1789531911.4532218]}]
+  FAIL ★★★ N2 and the key is the BATCH'S OWN NAME, not a clock read: it is the instant `evaluated_utc` names, the same instant the rebalance_id is minted from — equal by construction, not by a caller remembering to pass the same value   [{'ats': [1789531911.4524071], 'want': 1789217257.0, 'rid': ['FLATTEN-20260912T124737Z']}]
+  FAIL ★★★★ N3 §4-5e JUDGES the flatten anchor for the first time — it is no longer NO_READBACK   [no row at the batch key]
+  FAIL ★★★ N4 `submit_ts` is the moment WE SUBMITTED, taken by the broker beside the fill it already records — so a row no longer reports an execution that precedes its own submission   [[('AAAUSDT', 1789531911.4524071, 1789217310.0), ('BBBUSDT', 1789531911.4524071, 1789217310.0)]]
+  FAIL ★★★ N5 and the row SAYS which clock stamped it, because after this change a reader cannot tell an old row from a new one by value alone   [[None, None]]
+  FAIL ★★★ N6 when the broker recorded no submit time the row still carries one — the row-write moment, as before — and NAMES it. A fallback that does not say it is a fallback is the defect this item is about   [[(None, 1789531911.463205), (None, 1789531911.463205)]]
+  ok   ★★ N7 `submit_ts is None` STILL means exactly one thing — it never left this process — and such a row carries no source column at all. Classes [b] and [g] of the ladder depend on that meaning and it is not weakened here. Green on BOTH trees
+  FAIL ★★★ N8 the readback's `read_ts` is still the REAL moment the venue was read, not the batch key — they are different facts and the row keeps both   [{'anchor_ts': 1789531911.4532218, 'read_ts': 1789531911.4532218, 'key': 1789217257.0}]
+  ok   ★★ N9 a caller that passes no batch key gets today's behaviour exactly — anchor_ts equals the read moment — so every existing caller of write_flatten_readback is unchanged. Green on BOTH trees
+  FAIL ★★★★ N13 EXE-01's LOCAL response is NOT dragged in by this. Its batch closes the NAMED names and holds the rest on purpose, and its post-flatten readback is the whole remaining account — so judging it against intent ZERO would read the held book as a ~100% break and trip the whole-book ladder one evaluation after the proportional response, which is the exact harm EXE-01 exists to prevent. Its rows carry `flatten_scope`; the ladder's do not   [this tree has no flatten_scope: _write_flatten_rows() got an unexpected keyword argument 'flatten_scope']
+  FAIL ★★ N14 and the local batch's rows do carry the scope that says so, while the ladder's do not   [{'local': [], 'ladder': [None, None]}]
+  FAIL ★★★ N10 STATIC both production call sites hand the readback the batch key — a writer that is right and a caller that does not use it is the wiring gap this repo keeps meeting   [0]
+  FAIL ★★★ N11 STATIC/AST the REAL broker records the submit moment on EVERY `_exec` it builds — the filled path and the refused/lost path both — not only the mock. A fix that lives in the mock is a fix that never reaches production, and a fix on one of two branches is worse: it is silent on the half that still falls back   [{'n_exec_dicts': 2, 'missing_submit_ts': [['filled_notional', 'avg_fill_px', 'fill_ts', 'mid_at_submit', 'order_id', 'submitted', 'error'], ['filled_notional', 'avg_fill_px', 'fill_ts', 'mid_at_submit', 'submitted', 'rejected', 'execution_unknown', 'order_id', 'error']]}]
+  ok   ★★★★ N12 AND NOT ONE HISTORICAL BYTE MOVED. The ledger is append-only; this suite read the real 2026-08-01 batch and the file is byte-identical afterwards
+
+6/17 checks passed
+FAILED:
+  ★★★★ N1 ONE KEY FOR THE BATCH AND ITS READBACK: the rows and the post-flatten readback carry the SAME anchor_ts, so the two finally join (ef60f85: two clock reads, two keys)
+  ★★★ N2 and the key is the BATCH'S OWN NAME, not a clock read: it is the instant `evaluated_utc` names, the same instant the rebalance_id is minted from — equal by construction, not by a caller remembering to pass the same value
+  ★★★★ N3 §4-5e JUDGES the flatten anchor for the first time — it is no longer NO_READBACK
+  ★★★ N4 `submit_ts` is the moment WE SUBMITTED, taken by the broker beside the fill it already records — so a row no longer reports an execution that precedes its own submission
+  ★★★ N5 and the row SAYS which clock stamped it, because after this change a reader cannot tell an old row from a new one by value alone
+  ★★★ N6 when the broker recorded no submit time the row still carries one — the row-write moment, as before — and NAMES it. A fallback that does not say it is a fallback is the defect this item is about
+  ★★★ N8 the readback's `read_ts` is still the REAL moment the venue was read, not the batch key — they are different facts and the row keeps both
+  ★★★★ N13 EXE-01's LOCAL response is NOT dragged in by this. Its batch closes the NAMED names and holds the rest on purpose, and its post-flatten readback is the whole remaining account — so judging it against intent ZERO would read the held book as a ~100% break and trip the whole-book ladder one evaluation after the proportional response, which is the exact harm EXE-01 exists to prevent. Its rows carry `flatten_scope`; the ladder's do not
+  ★★ N14 and the local batch's rows do carry the scope that says so, while the ladder's do not
+  ★★★ N10 STATIC both production call sites hand the readback the batch key — a writer that is right and a caller that does not use it is the wiring gap this repo keeps meeting
+  ★★★ N11 STATIC/AST the REAL broker records the submit moment on EVERY `_exec` it builds — the filled path and the refused/lost path both — not only the mock. A fix that lives in the mock is a fix that never reaches production, and a fix on one of two branches is worse: it is silent on the half that still falls back

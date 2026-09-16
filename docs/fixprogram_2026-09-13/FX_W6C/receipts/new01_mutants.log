@@ -1,0 +1,31 @@
+── control ──
+control  rc=0  17/17 checks passed
+          tests_proportional_response: 58/59 checks passed
+── N-M1: the readback goes back to its own clock read (the two keys diverge again) ──
+N-M1     rc=1  14/17 checks passed
+        red: ★★★★ N1 ONE KEY FOR THE BATCH AND ITS READBACK: the rows and the post-flatten r
+        red: ★★★★ N3 §4-5e JUDGES the flatten anchor for the first time — it is no longer NO
+        red: ★★★ N8 the readback's `read_ts` is still the REAL moment the venue was read, no
+          tests_proportional_response: 58/59 checks passed
+── N-M2: the rows go back to the row-write clock for anchor_ts ──
+N-M2     rc=1  14/17 checks passed
+        red: ★★★★ N1 ONE KEY FOR THE BATCH AND ITS READBACK: the rows and the post-flatten r
+        red: ★★★ N2 and the key is the BATCH'S OWN NAME, not a clock read: it is the instant
+        red: ★★★★ N3 §4-5e JUDGES the flatten anchor for the first time — it is no longer NO
+          tests_proportional_response: 58/59 checks passed
+── N-M3: submit_ts falls back silently (no source column) ──
+N-M3     rc=1  15/17 checks passed
+        red: ★★★ N5 and the row SAYS which clock stamped it, because after this change a rea
+        red: ★★★ N6 when the broker recorded no submit time the row still carries one — the 
+          tests_proportional_response: 58/59 checks passed
+── N-M4: the real broker stops recording the submit moment ──
+N-M4     rc=1  16/17 checks passed
+        red: ★★★ N11 STATIC/AST the REAL broker records the submit moment on EVERY `_exec` i
+          tests_proportional_response: 58/59 checks passed
+── N-M5: a LOCAL response batch is judged like the ladder (EXE-01 undone one evaluation later) ──
+N-M5     rc=1  16/17 checks passed
+        red: ★★★★ N13 EXE-01's LOCAL response is NOT dragged in by this. Its batch closes th
+          tests_proportional_response: 57/59 checks passed
+── restored ──
+control_after rc=0  17/17 checks passed
+          tests_proportional_response: 58/59 checks passed

@@ -1,0 +1,29 @@
+── control ──
+control  rc=0  16/16 checks passed
+── L-M1: the sha check is dropped (a record that no longer describes its row is believed) ──
+L-M1     rc=1  15/16 checks passed
+        red: ★★★ B2 a record whose row_sha256 does NOT match the ledger line it claims to de
+── L-M2: a duplicate key is resolved by position instead of dropped ──
+L-M2     rc=1  15/16 checks passed
+        red: ★★★ B4 the SAME key recorded twice with different content is a conflict and is 
+── L-M3: a post-fix row is silently re-priced from its USDT slice (a second change to a trigger) ──
+L-M3     rc=1  15/16 checks passed
+        red: ★★★ C1 a POST-FIX row (it carries its own per-asset split) is priced exactly as
+── L-M4: a missing record is BLIND instead of named (the correction becomes a way to stop the book) ──
+L-M4     rc=1  10/16 checks passed
+        red: ★★★ B1 NO record file at all (the live tree today: the apply step is deferred):
+        red: ★★★ B2 a record whose row_sha256 does NOT match the ledger line it claims to de
+        red: ★★★ B3 an unparsable line in the record file is skipped, and the row it was mea
+        red: ★★★ B4 the SAME key recorded twice with different content is a conflict and is 
+        red: ★★★ B5 a record whose amended USDT total is not a finite number is refused the 
+        red: ★★★★ B6 NONE of the five failure shapes makes the condition blind or breaks the
+── L-M5: the reader loses its own module and cond4 keeps a private copy of the path ──
+L-M5     rc=1  10/16 checks passed
+        red: ★★★ A1 a pre-fix transfer day with a valid record is priced from the RECORD, no
+        red: ★★★ A2 and the record says which day it amended, with the record's own provenan
+        red: ★★ A3 the delta this correction is worth is on the record, per day, in USDT   [
+        red: ★★★ B2 a record whose row_sha256 does NOT match the ledger line it claims to de
+        red: ★★ C3 the block always exists, including when there is nothing to say, so 'no a
+        red: ★★ D2 its relative path is FX-EXEC2's, character for character — two readers of
+── restored ──
+control_after rc=0  16/16 checks passed

@@ -1,0 +1,39 @@
+
+[A] a valid record prices the day
+  FAIL ★★★ A1 a pre-fix transfer day with a valid record is priced from the RECORD, not from the row: the cumulative equity return is the amended one and differs from the recorded one by exactly the chain's own arithmetic (ef60f85 prices it from the row)   [{'got': 5.6834, 'amended': 5.5331, 'recorded': 5.6834}]
+  FAIL ★★★ A2 and the record says which day it amended, with the record's own provenance   [{}]
+  FAIL ★★ A3 the delta this correction is worth is on the record, per day, in USDT   [{}]
+  ok   ★★ A4 the condition is not blind and the chain is not broken by any of this
+
+[B] the four ways a record fails to cover a row — recorded value, day NAMED
+  FAIL ★★★ B1 NO record file at all (the live tree today: the apply step is deferred): the day is still priced, from the RECORDED value, and named `unamended_prefix_day` with a reason   [{}]
+  FAIL ★★★ B2 a record whose row_sha256 does NOT match the ledger line it claims to describe is refused — the row may have been rewritten under it — and the day is named, not amended   [{}]
+  FAIL ★★★ B3 an unparsable line in the record file is skipped, and the row it was meant to cover reads as unamended rather than as anything invented   [{}]
+  FAIL ★★★ B4 the SAME key recorded twice with different content is a conflict and is DROPPED — never resolved by position — so the day reads as unamended (FX-EXEC2's own rule, kept)   [{}]
+  FAIL ★★★ B5 a record whose amended USDT total is not a finite number is refused the same way — None is not zero and is not a correction   [{}]
+  ok   ★★★★ B6 NONE of the five failure shapes makes the condition blind or breaks the drawdown chain. A bookkeeping correction that could stop the book would be a worse defect than the one it fixes
+
+[C] nothing else moves
+  FAIL ★★★ C1 a POST-FIX row (it carries its own per-asset split) is priced exactly as it is today, from the carrier sum — even with a record present. Its USDT-only slice is REPORTED beside it and not used: switching to it is a second change to what a stop-loss reads and is outside the ruling   [{}]
+  ok   ★★ C2 an ORDINARY day is priced by the nav ratio and never consults a record at all — the amendment path is reachable only where the realised figure actually carries the day
+  FAIL ★★ C3 the block always exists, including when there is nothing to say, so 'no amendment happened' and 'nobody looked' are different observables   [None]
+
+[D] one reader
+  FAIL ★★ D1 the reader is a module both callers can import, not a copy inside one of them   [None]
+  FAIL ★★ D2 its relative path is FX-EXEC2's, character for character — two readers of one record file must not disagree about where the file is   [None]
+  ok   ★★★★ D3 MERGE GATE — exactly ONE definition of the amendment loader in the tree. FX-EXEC2's branch carries its own `ops/daily_summary.load_realised_amendments`; when the two branches are stacked, that one must become an import of this module or this cell goes RED. Two readers of one record format, one of which stops the book, is the defect family this file exists to avoid
+
+4/16 checks passed
+FAILED:
+  ★★★ A1 a pre-fix transfer day with a valid record is priced from the RECORD, not from the row: the cumulative equity return is the amended one and differs from the recorded one by exactly the chain's own arithmetic (ef60f85 prices it from the row)
+  ★★★ A2 and the record says which day it amended, with the record's own provenance
+  ★★ A3 the delta this correction is worth is on the record, per day, in USDT
+  ★★★ B1 NO record file at all (the live tree today: the apply step is deferred): the day is still priced, from the RECORDED value, and named `unamended_prefix_day` with a reason
+  ★★★ B2 a record whose row_sha256 does NOT match the ledger line it claims to describe is refused — the row may have been rewritten under it — and the day is named, not amended
+  ★★★ B3 an unparsable line in the record file is skipped, and the row it was meant to cover reads as unamended rather than as anything invented
+  ★★★ B4 the SAME key recorded twice with different content is a conflict and is DROPPED — never resolved by position — so the day reads as unamended (FX-EXEC2's own rule, kept)
+  ★★★ B5 a record whose amended USDT total is not a finite number is refused the same way — None is not zero and is not a correction
+  ★★★ C1 a POST-FIX row (it carries its own per-asset split) is priced exactly as it is today, from the carrier sum — even with a record present. Its USDT-only slice is REPORTED beside it and not used: switching to it is a second change to what a stop-loss reads and is outside the ruling
+  ★★ C3 the block always exists, including when there is nothing to say, so 'no amendment happened' and 'nobody looked' are different observables
+  ★★ D1 the reader is a module both callers can import, not a copy inside one of them
+  ★★ D2 its relative path is FX-EXEC2's, character for character — two readers of one record file must not disagree about where the file is
