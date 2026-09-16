@@ -108,9 +108,21 @@ def main():
     # Real venue names, taken from the pinned tradability artifact, so the symbol-axis join is a real join and not a
     # stub. BTCUSDT is forced in because the base builder indexes it. The artifact's anchor grid starts 2022-01-01
     # 00:00Z at 14400 s spacing, which is exactly this fixture's grid, so all of its anchors are covered.
+    # The names must actually have been TRADABLE in the fixture's date window, or the screen correctly rejects every
+    # one of them (most of the 829 are later listings: in Jan 2022 their state is NODATA, and the base then crashes on
+    # an empty `keep` with a bare IndexError rather than a named refusal -- observed, recorded, not fixed here).
     _tz = np.load(TRADE_ART, allow_pickle=True)
     _ts_all = [str(s) for s in _tz["symbols"]]
-    _pick = ["BTCUSDT"] + [s for s in _ts_all if s != "BTCUSDT"][:FX.NW - 1]
+    _tanch = _tz["anchor_ts"].astype(np.int64)
+    _tstate = _tz["state_W24H"]
+    _fix_anchors = set(FX.EPOCH0 + FX.BAR_S * r for r in FX.grid_rows())   # ts is not built yet; derive from the spec
+    _rows = [k for k, t in enumerate(_tanch) if int(t) in _fix_anchors]
+    _alive = (_tstate[_rows] == 2).all(0)                      # TRADABLE at every fixture anchor
+    _cands = [s for k, s in enumerate(_ts_all) if _alive[k]]
+    if "BTCUSDT" not in _cands or len(_cands) < FX.NW:
+        raise SystemExit("FM_TCTL_REFUSED: only %d names are TRADABLE across the whole fixture window (need %d, "
+                         "BTCUSDT present=%s)" % (len(_cands), FX.NW, "BTCUSDT" in _cands))
+    _pick = ["BTCUSDT"] + [s for s in _cands if s != "BTCUSDT"][:FX.NW - 1]
     ts, syms, data = FX.make_cache(cache, seed=31, freeze_from=(5000, 17), symbols=_pick)   # one contract dies mid-axis
     panel = os.path.join(d, "panel.npz")
     FX.make_panel(panel, ts, syms, data)
@@ -136,7 +148,22 @@ def main():
         rc["gate_T2_pass"] = allok
         print("T2 legacy bitwise: %s" % ("PASS" if allok else "FAIL"), flush=True)
 
-    rc["T3_one_knob_at_a_time"] = {"note": "member-population counts only; NOT a model or book claim"}
+    rc["T3_one_knob_at_a_time"] = {
+        "note": "member-population counts only; NOT a model or book claim",
+        "FIXTURE_LIMITATION_READ_THIS_BEFORE_THE_NUMBERS": (
+            "This fixture is deliberately HEALTHY: every bar is finite, every name is volatile, and the real names "
+            "were selected BECAUSE they are TRADABLE at every fixture anchor. So the forward-finite term excludes "
+            "nobody, the tradability screen excludes nobody, and a one-bar member-clock shift changes no screen "
+            "outcome. A delta of 0 here means THE FIXTURE CANNOT EXHIBIT THE EFFECT, not that the effect is zero. "
+            "The real population numbers are AUDIT_DATA TRD-05 on real data (dead-but-kept 255/126/1250/762/304 per "
+            "year; forward-finite removals 33/3/1/3/3) -- see FACT_TABLE_MODEL section 5.2. What this control DOES "
+            "establish is that all three arms run and that the legacy arm is bitwise-certified."),
+        "dead_kept_interpretation": (
+            "dead_kept counts members whose forward window is entirely frozen (finite and all zero). The fixture "
+            "kills one contract mid-axis; it stays a member for exactly 2016/48 = 42 anchors, i.e. the 7-day "
+            "volatility window, before v7 drops it. That quantifies AUDIT_DATA TRD-05's 'about a week' exactly. It "
+            "is identical across arms because the tradability artifact is REAL data and does not know about this "
+            "fixture's synthetic freezing.")}
     if rc.get("gate_T2_pass"):
         rc["T3_one_knob_at_a_time"]["legacy"] = popstats(fb, ts, data)
         arms = (("member_clock_serve_E", {"FMT_MEMBER_CLOCK": "serve_E", "FMT_FORWARD_TERM": "legacy_isfinite", "FMT_TRADABLE": "off"}),

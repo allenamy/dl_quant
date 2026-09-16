@@ -1,0 +1,241 @@
+{
+ "device": "fm_targets_control.py",
+ "self_sha256": "3ff479d4033b6ae411e70f2063bea4a4a45c710f5814856ead6ae67f90b08ac7",
+ "utc_start": "2026-09-16T04:32:36Z",
+ "python": "3.14.4",
+ "numpy": "2.4.4",
+ "base": {
+  "path": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/fm_tctl/base_committed.py",
+  "sha256": "d7c528231f00902964c5244fe8402bbd84688af05c04c2dab8760fe8ad584be2",
+  "note": "COMMITTED blob, not the working tree"
+ },
+ "new": {
+  "path": "docs/fixprogram_2026-09-13/FX_MODEL/devices/fm_dlw_targets_asof.py",
+  "sha256": "671d6cb2a08f262113b2a4fa2ba8750cfd06db9f0366a240ea9de39e22e44a00"
+ },
+ "tradability_artifact": {
+  "path": "docs/fixprogram_2026-09-13/FX_DATA/artifacts/tradability_v1.npz",
+  "sha256": "54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302"
+ },
+ "shells_out": false,
+ "network": false,
+ "T1_source_diff": {
+  "n_changed_hunks": 6,
+  "hunks": [
+   {
+    "tag": "replace",
+    "base": [
+     1,
+     1
+    ],
+    "new": [
+     1,
+     32
+    ]
+   },
+   {
+    "tag": "insert",
+    "base": [
+     27,
+     26
+    ],
+    "new": [
+     58,
+     72
+    ]
+   },
+   {
+    "tag": "insert",
+    "base": [
+     66,
+     65
+    ],
+    "new": [
+     112,
+     136
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     88,
+     95
+    ],
+    "new": [
+     159,
+     170
+    ]
+   },
+   {
+    "tag": "replace",
+    "base": [
+     107,
+     107
+    ],
+    "new": [
+     182,
+     197
+    ]
+   },
+   {
+    "tag": "insert",
+    "base": [
+     163,
+     162
+    ],
+    "new": [
+     253,
+     262
+    ]
+   }
+  ],
+  "note": "recorded, not gated: identical BEHAVIOUR is the gate (T2)"
+ },
+ "T2_legacy_bitwise": {
+  "outcome": "PASS",
+  "keys_compared": [
+   "E_ts",
+   "E_row",
+   "members",
+   "y4s",
+   "YR4s",
+   "YRZ",
+   "yrs",
+   "qvk",
+   "btcv",
+   "has_panel",
+   "symbols",
+   "y4old"
+  ],
+  "excluded": [
+   "meta_json (names the writing device by construction)"
+  ],
+  "per_array": {
+   "E_ts": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 202,
+    "as": "int64"
+   },
+   "E_row": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 202,
+    "as": "int64"
+   },
+   "members": {
+    "bitwise_equal": true,
+    "differing_rows": 0,
+    "rows": 202,
+    "as": "per-row array_equal"
+   },
+   "y4s": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 16160,
+    "as": "uint32 view (true bitwise)"
+   },
+   "YR4s": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 16160,
+    "as": "uint32 view (true bitwise)"
+   },
+   "YRZ": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 16160,
+    "as": "uint32 view (true bitwise)"
+   },
+   "yrs": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 202,
+    "as": "int64"
+   },
+   "qvk": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 16160,
+    "as": "uint32 view (true bitwise)"
+   },
+   "btcv": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 202,
+    "as": "uint32 view (true bitwise)"
+   },
+   "has_panel": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 202,
+    "as": "bool"
+   },
+   "symbols": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 80,
+    "as": "<U12"
+   },
+   "y4old": {
+    "bitwise_equal": true,
+    "differing": 0,
+    "total": 16160,
+    "as": "uint32 view (true bitwise)"
+   }
+  }
+ },
+ "gate_T2_pass": true,
+ "T3_one_knob_at_a_time": {
+  "note": "member-population counts only; NOT a model or book claim",
+  "FIXTURE_LIMITATION_READ_THIS_BEFORE_THE_NUMBERS": "This fixture is deliberately HEALTHY: every bar is finite, every name is volatile, and the real names were selected BECAUSE they are TRADABLE at every fixture anchor. So the forward-finite term excludes nobody, the tradability screen excludes nobody, and a one-bar member-clock shift changes no screen outcome. A delta of 0 here means THE FIXTURE CANNOT EXHIBIT THE EFFECT, not that the effect is zero. The real population numbers are AUDIT_DATA TRD-05 on real data (dead-but-kept 255/126/1250/762/304 per year; forward-finite removals 33/3/1/3/3) -- see FACT_TABLE_MODEL section 5.2. What this control DOES establish is that all three arms run and that the legacy arm is bitwise-certified.",
+  "dead_kept_interpretation": "dead_kept counts members whose forward window is entirely frozen (finite and all zero). The fixture kills one contract mid-axis; it stays a member for exactly 2016/48 = 42 anchors, i.e. the 7-day volatility window, before v7 drops it. That quantifies AUDIT_DATA TRD-05's 'about a week' exactly. It is identical across arms because the tradability artifact is REAL data and does not know about this fixture's synthetic freezing.",
+  "legacy": {
+   "n_anchors": 202,
+   "member_pairs": 16093,
+   "mean_members": 79.668,
+   "dead_kept_pairs": 42
+  },
+  "member_clock_serve_E": {
+   "n_anchors": 202,
+   "member_pairs": 16093,
+   "mean_members": 79.668,
+   "dead_kept_pairs": 42,
+   "knobs": {
+    "FMT_MEMBER_CLOCK": "serve_E",
+    "FMT_FORWARD_TERM": "legacy_isfinite",
+    "FMT_TRADABLE": "off"
+   },
+   "delta_member_pairs": 0,
+   "delta_dead_kept_pairs": 0
+  },
+  "T1_trailing_only": {
+   "n_anchors": 202,
+   "member_pairs": 16093,
+   "mean_members": 79.668,
+   "dead_kept_pairs": 42,
+   "knobs": {
+    "FMT_MEMBER_CLOCK": "legacy_Em1",
+    "FMT_FORWARD_TERM": "trailing_only",
+    "FMT_TRADABLE": "off"
+   },
+   "delta_member_pairs": 0,
+   "delta_dead_kept_pairs": 0
+  },
+  "T2_trailing_plus_tradable": {
+   "n_anchors": 202,
+   "member_pairs": 16093,
+   "mean_members": 79.668,
+   "dead_kept_pairs": 42,
+   "knobs": {
+    "FMT_MEMBER_CLOCK": "legacy_Em1",
+    "FMT_FORWARD_TERM": "trailing_only",
+    "FMT_TRADABLE": "tradability_v1.npz"
+   },
+   "delta_member_pairs": 0,
+   "delta_dead_kept_pairs": 0
+  }
+ },
+ "utc_end": "2026-09-16T04:32:42Z",
+ "wall_s": 5.5
+}
