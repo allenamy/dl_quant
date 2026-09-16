@@ -488,7 +488,27 @@ Reading the symbol list rather than the class counter turns up three structures 
 
 **(a) Two leveraged inverse *pairs* on the same underlying.** `SOXLUSDT` / `SOXSUSDT` (3× long / 3× short semiconductors) and `TQQQUSDT` / `SQQQUSDT` (3× long / 3× short Nasdaq-100) are all members. `QQQUSDT` and `SPYUSDT` are members too, so the Nasdaq-100 exposure appears at three different leverages. VERIFIED (symbol list).
 
-Why this matters for **this** model specifically: the book is a cross-sectional rank. Two names whose returns are near-exact negatives of each other sit at opposite ends of the ranking on every anchor where the underlying moves, **by construction and not because of any signal**. A rank-neutral book then systematically holds one long and one short — which is a levered directional bet on semis or on the Nasdaq, not a cross-sectional alpha, and the two legs are each 3× levered so they do not net to zero underlying exposure. **INFERRED — the mechanism is not measured.** Cheap check, named here so it is falsifiable: the per-anchor rank correlation of `SOXL` vs `SOXS` (and `TQQQ` vs `SQQQ`) scores and the realised return correlation of the pairs; if the mechanism is real the score ranks are strongly anti-correlated and the pair appears in opposite book legs at a high rate.
+> **[ORIGINAL TEXT, KEPT VERBATIM — ITS CONSEQUENCE WAS REFUTED BY MEASUREMENT, 2026-09-16 04:4xZ]**
+> Why this matters for **this** model specifically: the book is a cross-sectional rank. Two names whose returns are near-exact negatives of each other sit at opposite ends of the ranking on every anchor where the underlying moves, **by construction and not because of any signal**. A rank-neutral book then systematically holds one long and one short — which is a levered directional bet on semis or on the Nasdaq, not a cross-sectional alpha, and the two legs are each 3× levered so they do not net to zero underlying exposure. **INFERRED — the mechanism is not measured.** Cheap check, named here so it is falsifiable: the per-anchor rank correlation of `SOXL` vs `SOXS` (and `TQQQ` vs `SQQQ`) scores and the realised return correlation of the pairs; if the mechanism is real the score ranks are strongly anti-correlated and the pair appears in opposite book legs at a high rate.
+
+**MEASURED, and the consequence is REFUTED** (device `fm_uni01_inverse_pairs.py` `aea55fd8164c6ab3`, receipt `UNI01_PAIRS.json`, pod2 read-only, rc 0, input shas asserted). The check was pre-named above; it ran, and it went against the hypothesis.
+
+| pair | realised return ρ | **score-rank ρ** | **opposite-leg rate** | gross share (median) | anchors both members |
+|---|---|---|---|---|---|
+| SOXL \| SOXS | **−0.9871** | **+0.0642** | **0.364** | 0.0052 | 239 |
+| TQQQ \| SQQQ | **−0.9862** | **+0.2711** | **0.2548** | 0.0047 | 259 |
+| *null: 40 random CRYPTO pairs* | +0.1695 | −0.0313 [p5 −0.465, p95 +0.268] | **0.4792** [p5 0.337, p95 0.657] | 0.0052 | — |
+| ref QQQ \| SPY (same direction) | +0.8453 | +0.4923 | 0.0777 | 0.0079 | 682 |
+| ref TQQQ \| QQQ (same direction) | +0.9708 | +0.1072 | 0.2029 | 0.0064 | 340 |
+
+**What holds and what does not:**
+- **The premise holds.** The pairs really are near-exact return inverses: ρ = −0.9871 and −0.9862.
+- **The consequence does not.** If the book systematically put one long and the other short, the opposite-leg rate would sit well **above** 0.5 and the score ranks would be strongly **negative**. Both are the other way: score ranks are weakly **positive** (+0.06, +0.27) and the opposite-leg rates (0.364, 0.2548) are **below the null median of 0.4792** — 0.2548 is below the null's 5th percentile. **The model puts these pairs on the SAME leg more often than two random crypto names.**
+- **The reference pairs explain why.** Across all four pairs, whether realised returns are +0.97 or −0.99, the score correlation is weakly **positive** and the names tend to land on the same leg. That is the signature of the model scoring the equity-perp cluster on **shared characteristics** — they are all equity perps with similar microstructure — rather than on a signed directional forecast. The rank construction does not inherit the return anti-correlation, because the score is not a signed return forecast.
+- **So the residual concern changes shape, and is not the one I stated.** It is not a levered offsetting directional bet. It is that a cluster of names is scored **alike** while its returns move **oppositely**, which would damage rank-IC on those names rather than create directional exposure. That is a different, smaller and still **unmeasured** concern; it is not asserted here.
+- **Scope, which the 7.26% headline hides.** These four names are members far less often than the class share suggests: SOXS 239, SQQQ 259, TQQQ 340, SOXL 610, SPY 682, QQQ 844 of 1,458 anchors in 2026. Each pair's gross share is ~0.5%, indistinguishable from the null's 0.0052.
+
+**(a′) Counterfactual, reading (5)** — dropping every non-crypto name from the member sets (mean **29.06** names removed per anchor across all 1,458 anchors of 2026) moves the surviving names' normalised rank position by median **0.0062**, p95 **0.0445**, max **0.1061** over 540,837 cells; median per-anchor max \|Δz\| **0.0163**. **Raw z / rank layer only — must not be quoted as a book-layer effect.**
 
 **(b) Six commodity perps** — `XAUUSDT`, `XAGUSDT`, `CLUSDT`, `BZUSDT`, `COPPERUSDT`, `NATGASUSDT` — and equity/ETF perps whose underlyings trade on **exchange hours, not 24/7**. VERIFIED (symbol list). The 4-hour label for those names during a closed cash session is a structurally different process from a crypto perp's. **NOT MEASURED** — and it is the same family as TRD-01's frozen rows (a return that is near-zero for a reason unrelated to the signal). Cheap check: realised 4h return variance for these names by UTC hour-of-day and by weekday vs weekend, against a crypto control.
 
@@ -509,7 +529,7 @@ This is a **separate intervention** from the funding rebuild and the clock (revi
 
 | # | Row | Status | How it closes |
 |---|---|---|---|
-| U-O1 | The leveraged-inverse-pair mechanism (a) | **INFERRED, not measured** | Rank-correlation and book-leg co-occurrence check on the four names |
+| U-O1 | The leveraged-inverse-pair mechanism (a) | **MEASURED 2026-09-16 — consequence REFUTED** | Premise holds (returns ρ −0.987) but the book does NOT hold them on opposite legs: score ρ +0.06/+0.27, opposite-leg rate 0.364/0.255 vs a null median of 0.479. Receipt `UNI01_PAIRS.json`. The residual concern is different and unmeasured: the cluster is scored alike while its returns move oppositely. |
 | U-O2 | Closed-hours return process for (b) | **NOT MEASURED** | Return variance by hour-of-day and weekday vs weekend, crypto control |
 | U-O3 | Identity of the 31 unknown-class symbols | **NOT CHECKED** | One read of the class snapshot |
 | U-O4 | Whether the class snapshot is PIT-safe per symbol | **NOT CHECKED** | Declare as a later-dated artifact until checked |
