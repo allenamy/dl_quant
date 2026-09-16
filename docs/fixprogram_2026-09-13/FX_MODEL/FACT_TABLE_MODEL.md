@@ -462,8 +462,105 @@ Whichever is chosen, it is a **separate intervention from the funding rebuild** 
 | P-O3 | Whether option (b) or (c) changes the top-400 cut materially in delisting-heavy periods | **NOT MEASURED** | Needs the tradability artifact joined to the member axes |
 | P-O4 | PROD-11's own `VERIFIED_IMMATERIAL` label | **scope-limited, not carried** | Keep as "immaterial on 2026-08-17..09-10, 147 anchors, no delistings" |
 
-## §4 UNI-01 — NOT YET WRITTEN
-## §5 TRD-05 (+ TRN-06 coordination) — NOT YET WRITTEN
+## §4 UNI-01 — the training member screens have no asset-class filter, and the 2026 additions are not just "non-crypto"
+
+**AUDIT_DATA severity P2.** The king and DL member screens are coverage, volatility, forward-label and top-400-by-volume — **no class term anywhere** (`pod_fea_ext_clamp.py:37`, `pod_dlw_targets_raw.py:107`). The replay and the judge do apply a class mask (`build_crypto_mask.py:11` (`43ebca0dff2c0bf2`), C-UNI-2: `underlyingType ∈ {COIN, INDEX}`, unknown class **kept**). So training and evaluation run on different populations, and the gap is growing.
+
+### §4.1 Size of the population gap
+
+From FACTS_DATA U1 (venue class snapshot `fa9196a34ce92028`), member pairs by year — king v4 meta and DL v4raw targets are **identical on this axis**:
+
+| Year | king pairs | non-crypto pairs | share | anchors with non-crypto | unknown-class pairs |
+|---|---|---|---|---|---|
+| 2022 | 304,434 | 0 | 0 | 0 | 25,024 |
+| 2023 | 410,358 | 0 | 0 | 0 | 23,296 |
+| 2024 | 601,406 | 0 | 0 | 0 | 13,836 |
+| 2025 | 849,811 | 24 | 2.8e-05 | 24 | 5,051 |
+| **2026** | 583,200 | **42,363** | **7.2639%** | **1,458 (all of them)** | 344 |
+
+Axis totals: 149 non-crypto symbols and 31 unknown-class symbols on the 829 axis; **80 non-crypto symbols actually appear as members**. `live_pins` is COIN 449 + INDEX 1, so production scores none of them. VERIFIED.
+
+Note the unknown-class column: the CRYPTO mask **keeps** unknown names, so 25,024 pairs in 2022 are admitted by a rule that has not actually classified them. **NOT CHECKED**: what those 31 unknown symbols are.
+
+### §4.2 What the 80 names actually are — this is not only a "class" question
+
+Reading the symbol list rather than the class counter turns up three structures that matter more than the 7.26% headline:
+
+**(a) Two leveraged inverse *pairs* on the same underlying.** `SOXLUSDT` / `SOXSUSDT` (3× long / 3× short semiconductors) and `TQQQUSDT` / `SQQQUSDT` (3× long / 3× short Nasdaq-100) are all members. `QQQUSDT` and `SPYUSDT` are members too, so the Nasdaq-100 exposure appears at three different leverages. VERIFIED (symbol list).
+
+Why this matters for **this** model specifically: the book is a cross-sectional rank. Two names whose returns are near-exact negatives of each other sit at opposite ends of the ranking on every anchor where the underlying moves, **by construction and not because of any signal**. A rank-neutral book then systematically holds one long and one short — which is a levered directional bet on semis or on the Nasdaq, not a cross-sectional alpha, and the two legs are each 3× levered so they do not net to zero underlying exposure. **INFERRED — the mechanism is not measured.** Cheap check, named here so it is falsifiable: the per-anchor rank correlation of `SOXL` vs `SOXS` (and `TQQQ` vs `SQQQ`) scores and the realised return correlation of the pairs; if the mechanism is real the score ranks are strongly anti-correlated and the pair appears in opposite book legs at a high rate.
+
+**(b) Six commodity perps** — `XAUUSDT`, `XAGUSDT`, `CLUSDT`, `BZUSDT`, `COPPERUSDT`, `NATGASUSDT` — and equity/ETF perps whose underlyings trade on **exchange hours, not 24/7**. VERIFIED (symbol list). The 4-hour label for those names during a closed cash session is a structurally different process from a crypto perp's. **NOT MEASURED** — and it is the same family as TRD-01's frozen rows (a return that is near-zero for a reason unrelated to the signal). Cheap check: realised 4h return variance for these names by UTC hour-of-day and by weekday vs weekend, against a crypto control.
+
+**(c) Pre-IPO / private-company perps** — `ANTHROPICUSDT`, `OPENAIUSDT`, `SPCXUSDT`, `MINIMAXUSDT` are members. These have no continuously-traded underlying at all. VERIFIED (symbol list); consequences NOT MEASURED.
+
+`EWYUSDT` (Korea ETF) is also a member — worth a note for whoever picks up the T7 KRW-premium axis later, since it is a same-underlying instrument already inside the training universe.
+
+### §4.3 Why UNI-01 is not simply "apply the CRYPTO mask"
+
+The obvious fix — apply the class filter the replay already uses — is option (b) of §3.4 and is sound on the look-ahead axis (the class snapshot is a property of the instrument, not of a future list). Two cautions to carry into the prereg:
+
+1. The venue class snapshot `fa9196a34ce92028` is **one snapshot dated 2026-09-08**. Using it to classify 2022–2025 rows is defensible because instrument class does not change, but it is still a later-dated artifact and must be declared as such, not assumed PIT. **NOT CHECKED**: whether any symbol's class differs from what it would have been at the time.
+2. The mask keeps unknown-class names, so applying it does **not** remove the 25,024 unknown 2022 pairs. Whoever adopts it should say whether unknown means keep or drop, and that is a choice, not a fact.
+
+This is a **separate intervention** from the funding rebuild and the clock (review narrowing iii).
+
+### §4.4 Open rows for UNI-01
+
+| # | Row | Status | How it closes |
+|---|---|---|---|
+| U-O1 | The leveraged-inverse-pair mechanism (a) | **INFERRED, not measured** | Rank-correlation and book-leg co-occurrence check on the four names |
+| U-O2 | Closed-hours return process for (b) | **NOT MEASURED** | Return variance by hour-of-day and weekday vs weekend, crypto control |
+| U-O3 | Identity of the 31 unknown-class symbols | **NOT CHECKED** | One read of the class snapshot |
+| U-O4 | Whether the class snapshot is PIT-safe per symbol | **NOT CHECKED** | Declare as a later-dated artifact until checked |
+| U-O5 | Model/book effect of excluding them | **NOT MEASURED** | Prereg arm, held separate from the funding rebuild |
+
+## §5 TRD-05 (+ TRN-06) — dead contracts enter training with a label of exactly 0, and the two channels are different
+
+**AUDIT_DATA severity P3** (at most 0.21% of member pairs). Recorded here because it is the population half of TRN-06, whose prereg I own.
+
+### §5.1 Why a dead contract passes the training screens
+
+The screens decide tradability from the **share of finite `ret5` bars**, and a delisted contract's frozen rows are finite `0`, not NaN (AUDIT_DATA TRD-01: 156 dead perps write 13.77M frozen rows with return exactly 0):
+
+| Term | King (`pod_fea_ext_clamp.py`) | DL (`pod_dlw_targets_raw.py`) | Why a dead name passes |
+|---|---|---|---|
+| `covr >= 0.95` | L29 | L90, L107 | frozen rows are finite ⇒ coverage stays 1.0 |
+| `v7 >= 1e-4` | L32, L37 | L93, L107 | only fails once the trailing window is mostly frozen — about 7 days |
+| forward label finite | `isfinite(y4)` L37 | `isfinite(y4s)` L107 | a frozen forward window sums to exactly 0, which **is** finite |
+| top-400 by `qvm` | L39 | L109-110 | trailing volume decays over the same ~7 days |
+
+VERIFIED — C-TRD-1. Production does not have this problem for a different reason, not a better rule: its base is `exchangeInfo … status == "TRADING"` unioned with the pinned live list (`shadow_loop_v3.py:315-317`), so dead contracts are absent from the universe entirely; its member screen itself is trailing-only, with no forward term (`shadow_loop_v3.py:374`, C-TRD-3).
+
+### §5.2 The counts, and the two channels are not the same population
+
+fx-train asked me to report both channels in the TRN-06 prereg; they are different things and must not be summed:
+
+| Channel | 2022 | 2023 | 2024 | 2025 | 2026 | What it is |
+|---|---|---|---|---|---|---|
+| **A. dead-but-kept members, label exactly 0** | 255 | 126 | 1,250 | 762 | 304 | rows that *are* in training, with a label that is zero for a non-signal reason |
+| **B. forward-finite removals** | 33 | 3 | 1 | 3 | 3 | rows *excluded* by the `isfinite(label)` term |
+| Z24 (dead within 24 h), label exactly 0 | 324 | 108 | 1,214 | 650 | 81 | king meta |
+
+Channel A is VERIFIED from AUDIT_DATA TRD-05 (`AD_H_tradability.json H4_training_rows`), and king and DL report **identical** A counts every year. Channel B is fx-train's report, recorded here as received. Largest A share is 0.21% of member pairs.
+
+**They point in opposite directions.** Channel B is the *look-ahead* term — a training row is dropped because of a property of the future, which is the TRN-06 defect proper. Channel A is a *contamination* term — the row is kept and teaches the model that a dead name returns 0. Removing B (to make membership trailing-only, matching production) **increases** A unless a tradability screen is added at the same time. That coupling is the substance of the TRN-06 prereg and is why the two channels get separate arms.
+
+### §5.3 What the loss does with a non-finite label
+
+- DL trainer and refit: `YT = torch.from_numpy(np.nan_to_num(y4s, nan=0.0))` — a non-finite label is booked as a **0 return** inside the book loss (C-TRD-2, `pod_f10_train_monthly_v4.py:131`). So "excluded from membership" and "included with a zero label" are not the same intervention, and the trainer already does the latter for any NaN that survives.
+- King exporter: trains only on finite labels and writes OOF predictions **only** on finite-label members (`pod_export_bundle_v4.py:55-56, 81`) — AUDIT_DATA D3. So the king OOF series carries the look-ahead availability mask in its very support, which is the same shape of defect as FEA-01 and must be declared wherever king OOF is used as an input.
+
+### §5.4 The pinned artifact, and what is still open
+
+The tradability artifact is pinned and verified present (§0.1): `tradability_v1.npz` `54d409d0…`, 10,285 anchors × 829 names, tradable(A) ⇔ at least one traded bar (`log_cnt > 0`) in (A−24h, A]. Its own limitation is registered as **FXR-DATA-1**: past activity is an admissible labelled screen, **not** a settlement truth, and exit P&L stays explicitly unknown. Nothing in §5 treats it as truth.
+
+| # | Row | Status | How it closes |
+|---|---|---|---|
+| D-O1 | Join the pinned artifact to the king/DL member axes — how many member pairs are non-tradable at their own anchor | **NOT MEASURED** | A committed read-only device; the audit used its own H4 definition, so this is a two-instrument cross-check, not a repeat |
+| D-O2 | Whether removing channel B raises channel A, and by how much | **NOT MEASURED** | Prereg arm (TRN-06) |
+| D-O3 | King OOF support carries the look-ahead mask | **VERIFIED**, consequence NOT MEASURED | Declare at every use of king OOF |
+
 
 ### P10 (closed here, no section)
 King training features are stored float16 and cast to float32 at fit (`pod_fea_ext_clamp.py:67`, `b9f9c72816241715`); the producer builds float32 from a float32 view of its float16 cache. **aud-prod measured it**: a float16 cast of served king features changes 0 deciles on 47/47 anchors, min Spearman 0.99996 (`receipts_prod/parity_king.json`, `9dbba68b`; AUDIT_PROD PROD-05). **No fix justified.** I did not re-measure; this row is VERIFIED-by-citation, and the scope limit is theirs: recent anchors, served inputs.
