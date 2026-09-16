@@ -1,0 +1,16 @@
+[A] green baseline: correct records through the current applier (check mode)
+  OK   ★★★ A1 correct records: CHECKS_PASS, exit 0, failures []  — (0, 'CHECKS_PASS', [])
+
+[B] nav_ts swapped between the two records (day/line/row_sha all correct — the reviewer's construction)
+  OK   ★★★ B1 admission REFUSES (exit 2) with two C2b IDENTITY failures naming the claimed vs carried nav_ts  — (2, ["C2b IDENTITY: record ('20260901', 1) is keyed nav_ts=2.0 but the hashed row carries nav_ts=1.0", "C2b IDENTITY: record ('20260901', 2) is keyed nav_ts=1.0 but the hashed row carries nav_ts=2.0"])
+  OK   ★★ B2 the refusal is the ONLY difference from [A]: same root shape, same shas, only the identity claim moved  — ["C2b IDENTITY: record ('20260901', 1) is keyed nav_ts=2.0 but the hashed row carries nav_ts=1.0", "C2b IDENTITY: record ('20260901', 2) is keyed nav_ts=1.0 but the hashed row carries nav_ts=2.0"]
+
+[C] record nav_ts is NaN (NaN != NaN must not pass as 'equal')
+  OK   ★★ C1 NaN identity claim is refused (exit 2, one C2b IDENTITY)  — (2, ["C2b IDENTITY: record ('20260901', 1) is keyed nav_ts=nan but the hashed row carries nav_ts=1.0"])
+
+[D] red capability: the pre-fix applier (defect shape: no C2b in checks) on arm [B]'s root
+  (control source: HEAD~1:docs/fixprogram_2026-09-13/FX_EXEC2/devices/led04_apply_amendments.py)
+  OK   ★★★ D1 (PRE-FIX: RED) the swapped records are ADMITTED: CHECKS_PASS exit 0, failures [] — the reviewer's finding reproduced  — (0, 'CHECKS_PASS', [])
+
+5/5 checks passed
+ALL PASS

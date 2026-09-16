@@ -2518,6 +2518,19 @@ with tempfile.TemporaryDirectory() as _qd:
         open(p, "w").write("# synthetic month contract\n" + "".join(f"{k}={v}\n" for k, v in kv.items()))
         return p
 
+    # ★ R16R-T1a (2026-09-16): P4 is THREE-STATE. A PASS now needs the previous month's rolled artifacts RECORDED
+    #   (ROLL_PREV_SHA_JSON covering all eight) and UNTOUCHED; without the record the verdict is UNAVAILABLE (rc 3), not
+    #   PASS. The positive cells (Q2, Q5b) therefore run against a SYNTHETIC previous month whose eight artifacts are
+    #   real temp files with a matching record — against the REAL September contract (pod paths, absent on this
+    #   machine) P4 cannot be evaluated here and rc 0 is not reachable, which is the intended semantics.
+    _qprev_root = f"{_qd}/qprev_root"; os.makedirs(_qprev_root, exist_ok=True)
+    _qprev = _qmk("qprev", _qprev_root)
+    _qprev_kv = {l.split("=", 1)[0]: l.split("=", 1)[1].strip().replace("$R", _qprev_root) for l in open(_qprev) if "=" in l and not l.startswith("#")}
+    _qprev_paths = [_qprev_kv[k] for k in ("CACHE", "PANEL_SPLICE", "PANEL_KING", "RAW_PATCH", "HOLE_CELLS", "FUND_AUG", "EMA_STATE_JSON", "EXPORT_PANEL")]
+    for _pp in _qprev_paths: open(_pp, "wb").write(b"previous " + os.path.basename(_pp).encode())
+    _qprev_rec = f"{_qd}/qprev_ok.json"; json.dump({pp: _sha(pp) for pp in _qprev_paths}, open(_qprev_rec, "w"))
+    _QPOS = {"ROLL_PREV_SHA_JSON": _qprev_rec}
+
     # Q1 — the two REAL contracts. This is the cell that found the finding, so it asserts the finding.
     _rc_self, _o_self, _r_self = _qrun(_QSEP, _QSEP, tag="q1a")
     _rc_oct, _o_oct, _r_oct = _qrun(_QOCT, _QSEP, tag="q1b")
@@ -2530,8 +2543,8 @@ with tempfile.TemporaryDirectory() as _qd:
           (_rc_self, _r_self and _r_self["failed_checks"], _rc_oct, [v["key"] for v in _p3]))
 
     # Q2 — a contract that honours the isolation the template describes
-    _rc, _o, _r = _qrun(_qmk("ok", "/workspace/m2026-10"), _QSEP, tag="q2")
-    check("★★★ [Q] TRN-01 Q2 (positive): a month whose eight rolled values all live under its own root, none of them September's ⇒ rc 0 PASS, every check OK — the gate is satisfiable by the convention the October template states",
+    _rc, _o, _r = _qrun(_qmk("ok", "/workspace/m2026-10"), _qprev, tag="q2", extra=_QPOS)
+    check("★★★ [Q] TRN-01 Q2 (positive): a month whose eight rolled values all live under its own root, none of them the previous month's, WITH the previous month's sha record supplied (R16R-T1a: P4 is three-state) ⇒ rc 0 PASS, every check OK — the gate is satisfiable by the convention the October template states",
           _rc == 0 and _r["PASS"] is True and all(c["ok"] for c in _r["checks"].values()), (_rc, _r and _r["failed_checks"]))
 
     # Q3 — one key left behind
@@ -2552,8 +2565,8 @@ with tempfile.TemporaryDirectory() as _qd:
 
     # Q5 — an exception is allowed, but only when DECLARED, and it is named in the receipt
     _c5 = _qmk("outside", "/workspace/m2026-10", FUND_AUG="/workspace/fund_aug_2026-10.json.gz")
-    _rc_a, _o_a, _r_a = _qrun(_c5, _QSEP, tag="q5a")
-    _rc_b, _o_b, _r_b = _qrun(_c5, _QSEP, tag="q5b", extra={"ROLL_ALLOW_OUTSIDE_ROOT": "FUND_AUG"})
+    _rc_a, _o_a, _r_a = _qrun(_c5, _qprev, tag="q5a", extra=_QPOS)
+    _rc_b, _o_b, _r_b = _qrun(_c5, _qprev, tag="q5b", extra=dict(_QPOS, ROLL_ALLOW_OUTSIDE_ROOT="FUND_AUG"))
     check("★★★ [Q] TRN-01 Q5 (P3 exceptions): a rolled product outside the month root ⇒ rc 3 naming the key; declaring it in ROLL_ALLOW_OUTSIDE_ROOT ⇒ rc 0, and the receipt records declared_exceptions_outside_root so the exception is visible rather than absent. An undeclared reality becomes a declared one",
           _rc_a == 3 and [v["key"] for v in _r_a["checks"]["P3_rolled_under_root"]["violations"]] == ["FUND_AUG"]
           and _rc_b == 0 and _r_b["declared_exceptions_outside_root"] == ["FUND_AUG"], (_rc_a, _rc_b))
@@ -2564,20 +2577,51 @@ with tempfile.TemporaryDirectory() as _qd:
           _rc == 3 and "P5_no_parent_escape" in _r["failed_checks"]
           and [v["key"] for v in _r["checks"]["P5_no_parent_escape"]["violations"]] == ["CACHE"], (_rc, _r and _r["failed_checks"]))
 
-    # Q7 — P4 is NOT_EVALUABLE without its record, and a real check with it
-    _f7 = f"{_qd}/prev_artifact.bin"
-    open(_f7, "wb").write(b"september artifact")
-    _rec_ok, _rec_bad = f"{_qd}/prev_ok.json", f"{_qd}/prev_moved.json"
-    json.dump({_f7: _sha(_f7)}, open(_rec_ok, "w"))
-    json.dump({_f7: "0" * 64}, open(_rec_bad, "w"))
+    # Q7 — P4 under the THREE-STATE contract (R16R-T1a, 2026-09-16). The previous month is a SYNTHETIC contract whose
+    #      eight rolled artifacts are REAL temp files, because P4 now requires the record to COVER them (a sha of one
+    #      unrelated file is not evidence about the previous contract) and requires each covered file to still exist.
+    _q7prev_root = f"{_qd}/q7_prev_root"; os.makedirs(_q7prev_root, exist_ok=True)
+    _q7prev = _qmk("q7prev", _q7prev_root)
+    _q7prev_kv = {l.split("=", 1)[0]: l.split("=", 1)[1].strip().replace("$R", _q7prev_root) for l in open(_q7prev) if "=" in l and not l.startswith("#")}
+    _q7paths = [_q7prev_kv[k] for k in ("CACHE", "PANEL_SPLICE", "PANEL_KING", "RAW_PATCH", "HOLE_CELLS", "FUND_AUG", "EMA_STATE_JSON", "EXPORT_PANEL")]
+    for _pp in _q7paths: open(_pp, "wb").write(b"september " + os.path.basename(_pp).encode())
+    _rec_ok, _rec_bad, _rec_empty, _rec_list, _rec_partial = (f"{_qd}/prev_ok.json", f"{_qd}/prev_moved.json", f"{_qd}/prev_empty.json",
+                                                             f"{_qd}/prev_list.json", f"{_qd}/prev_partial.json")
+    json.dump({pp: _sha(pp) for pp in _q7paths}, open(_rec_ok, "w"))
+    _moved_rec = {pp: _sha(pp) for pp in _q7paths}; _moved_rec[_q7paths[0]] = "0" * 64
+    json.dump(_moved_rec, open(_rec_bad, "w"))
+    json.dump({}, open(_rec_empty, "w")); json.dump([], open(_rec_list, "w"))
+    json.dump({_q7paths[0]: _sha(_q7paths[0])}, open(_rec_partial, "w"))            # covers 1 of 8
     _c7 = _qmk("p4", "/workspace/m2026-10")
-    _rc_n, _o_n, _r_n = _qrun(_c7, _QSEP, tag="q7n")
-    _rc_g, _o_g, _r_g = _qrun(_c7, _QSEP, tag="q7g", extra={"ROLL_PREV_SHA_JSON": _rec_ok})
-    _rc_m, _o_m, _r_m = _qrun(_c7, _QSEP, tag="q7m", extra={"ROLL_PREV_SHA_JSON": _rec_bad})
-    check("★★★ [Q] TRN-01 Q7 (P4): without ROLL_PREV_SHA_JSON the previous-month check is recorded NOT_EVALUABLE with evaluated=false and its reason — it does not silently count as evidence; with a record that matches, it is a real check that passes with n_checked=1; with a record whose sha has moved, rc 3 naming the path, the recorded sha and the current one",
-          _rc_n == 0 and _r_n["checks"]["P4_previous_untouched"]["evaluated"] is False and "NOT_EVALUABLE" in _r_n["checks"]["P4_previous_untouched"]
-          and _rc_g == 0 and _r_g["checks"]["P4_previous_untouched"]["evaluated"] is True and _r_g["checks"]["P4_previous_untouched"]["n_checked"] == 1
-          and _rc_m == 3 and _r_m["checks"]["P4_previous_untouched"]["moved"][0]["path"] == _f7, (_rc_n, _rc_g, _rc_m))
+    _rc_n, _o_n, _r_n = _qrun(_c7, _q7prev, tag="q7n")
+    _rc_g, _o_g, _r_g = _qrun(_c7, _q7prev, tag="q7g", extra={"ROLL_PREV_SHA_JSON": _rec_ok})
+    _rc_m, _o_m, _r_m = _qrun(_c7, _q7prev, tag="q7m", extra={"ROLL_PREV_SHA_JSON": _rec_bad})
+    check("★★★ [Q] TRN-01 Q7 (P4, three-state): WITHOUT ROLL_PREV_SHA_JSON the check is recorded ok=None / evaluated=false / NOT_EVALUABLE and the gate's verdict is UNAVAILABLE with rc 3 — an unevaluated check is NOT a passed check (R16R-T1a); with a record that matches all eight previous artifacts it is a real check, n_checked=8, verdict PASS rc 0; with one sha moved, rc 3 naming the path, the recorded sha and the current one",
+          _rc_n == 3 and _r_n["VERDICT"] == "UNAVAILABLE" and _r_n["checks"]["P4_previous_untouched"]["ok"] is None
+          and _r_n["checks"]["P4_previous_untouched"]["evaluated"] is False and "NOT_EVALUABLE" in _r_n["checks"]["P4_previous_untouched"]
+          and "P4_previous_untouched" in _r_n["unevaluated_checks"]
+          and _rc_g == 0 and _r_g["VERDICT"] == "PASS" and _r_g["checks"]["P4_previous_untouched"]["evaluated"] is True and _r_g["checks"]["P4_previous_untouched"]["n_checked"] == 8
+          and _rc_m == 3 and _r_m["checks"]["P4_previous_untouched"]["moved"][0]["path"] == _q7paths[0], (_rc_n, _r_n and _r_n.get("VERDICT"), _rc_g, _rc_m))
+    _rc_e, _o_e, _r_e = _qrun(_c7, _q7prev, tag="q7e", extra={"ROLL_PREV_SHA_JSON": _rec_empty})
+    _rc_l, _o_l, _r_l = _qrun(_c7, _q7prev, tag="q7l", extra={"ROLL_PREV_SHA_JSON": _rec_list})
+    _rc_p, _o_p, _r_p = _qrun(_c7, _q7prev, tag="q7p", extra={"ROLL_PREV_SHA_JSON": _rec_partial})
+    check("★★★ [Q] TRN-01 Q7b (R16R-T1a, the reviewer's counterexample): a record that is {} or [] verifies ZERO files and must NOT pass — rc 3, P4 FAILS naming a schema error (empty / non-map), verdict FAIL; and a record covering only 1 of the 8 previous rolled artifacts FAILS naming the 7 it does not cover — a check over unrelated or missing files is not evidence about the previous contract",
+          _rc_e == 3 and "P4_previous_untouched" in _r_e["failed_checks"] and _r_e["checks"]["P4_previous_untouched"]["schema_errors"]
+          and _rc_l == 3 and "P4_previous_untouched" in _r_l["failed_checks"] and _r_l["checks"]["P4_previous_untouched"]["schema_errors"]
+          and _rc_p == 3 and len(_r_p["checks"]["P4_previous_untouched"]["previous_rolled_paths_not_in_record"]) == 7,
+          (_rc_e, _rc_l, _rc_p, _r_p and len(_r_p["checks"]["P4_previous_untouched"].get("previous_rolled_paths_not_in_record", []))))
+    # Q7d — WHERE is not WHOSE (R16R-T1b): an alias under THIS month's root that IS the previous month's CACHE, with the
+    #       location exemption switched on for CACHE, must still fail P6 on file identity.
+    _q7cur_root = f"{_qd}/q7_cur_root"; os.makedirs(_q7cur_root, exist_ok=True)
+    _alias = f"{_q7cur_root}/alias_cache.bin"
+    if os.path.lexists(_alias): os.remove(_alias)
+    os.symlink(_q7prev_kv["CACHE"], _alias)
+    _c7d = _qmk("q7d", _q7cur_root, CACHE=_alias)
+    _rc_d, _o_d, _r_d = _qrun(_c7d, _q7prev, tag="q7d", extra={"ROLL_ALLOW_OUTSIDE_ROOT": "CACHE"})
+    _p6v = (_r_d or {}).get("checks", {}).get("P6_no_alias_to_previous_month", {}).get("violations", [])
+    check("★★★ [Q] TRN-01 Q7d (R16R-T1b): CACHE = <this month root>/alias → symlink to the PREVIOUS month's CACHE, and ROLL_ALLOW_OUTSIDE_ROOT=CACHE ⇒ still rc 3: P6 names the alias with samefile=True and previous_key=CACHE. The location exemption exempts WHERE a product lives, never WHOSE artifact it is (the frozen Q3 wording 'WHERE, never WHOSE'); the pre-fix P6 skipped exempted keys and passed this with rc 0",
+          _rc_d == 3 and "P6_no_alias_to_previous_month" in _r_d["failed_checks"] and _p6v and _p6v[0]["samefile"] is True
+          and _p6v[0]["previous_key"] == "CACHE" and _p6v[0]["key"] == "CACHE", (_rc_d, _p6v[:1]))
 
     # Q8 — refusals name what is missing, and no ROLL_OUT means no verdict at all
     _rc_a, _o_a, _r_a = _qrun("", _QSEP, tag="q8a")

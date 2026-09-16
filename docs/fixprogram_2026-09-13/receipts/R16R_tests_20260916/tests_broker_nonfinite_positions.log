@@ -1,0 +1,15 @@
+[A] current tree
+  OK   ★★★ A1 positions(): NaN and ±inf are KEPT (unknown), 10 kept, exact 0 dropped  — ['INFUSDT', 'NANUSDT', 'TENUSDT']
+  OK   ★★★ A2 flatten_all(non-finite only): 0 orders, never reaches submission, one flatten_skip_nonfinite per symbol  — (0, False, ['INFUSDT', 'NANUSDT'])
+  OK   ★★★ A3 stage 1 fed a NaN account through THIS broker: ok False, NANUSDT listed unknown, no flatten call  — ({'NANUSDT': 'nan'}, {'ok': False, 'unknown': ['NANUSDT'], 'flat_on_reread': None, 'flatten_calls': 0})
+  OK   ★★ A4 finite book still flattens (ok True, one call) and empty book still reads flat (ok True, flat_on_reread True)  — ({'ok': True, 'unknown': None, 'flat_on_reread': None, 'flatten_calls': 1}, {'ok': True, 'unknown': None, 'flat_on_reread': True, 'flatten_calls': 0})
+
+[C] red capability: pre-fix broker + watchdog from git (defect shape: no non-finite branch in positions())
+  (control source: HEAD~1)
+  OK   ★★★ C1 (PRE-FIX: RED) positions() DROPS NaN (abs(nan)>0 is False) — the account looks flat  — ['INFUSDT', 'TENUSDT']
+  OK   ★★★ C2 (PRE-FIX: RED) flatten_all(non-finite) builds orders and reaches submission  — BrokerUnavailable: order submission failed for 2/2
+  OK   ★★★ C3 (PRE-FIX: RED) NaN account → empty book → stage 1 passes silently (ok True, flat_on_reread True) — the reviewer's counterexample  — ({}, {'ok': True, 'unknown': None, 'flat_on_reread': True, 'flatten_calls': 0})
+  OK   ★★ C4 baseline [A] green and control [C] red on the SAME inputs — the pair is the evidence
+
+8/8 checks passed
+ALL PASS

@@ -163,7 +163,11 @@ chk("P3_rolled_under_root", not p3 and bool(root),
 # P6 — 别名: 本月的值与上月某个值是**同一个文件**(symlink / hardlink / bind), 词法上看不出来
 p6 = []
 for k in ROLLED:
-    if k not in cur or k in ALLOW:
+    # ★ R16R-T1b: 上一轮这里也跳过了 ROLL_ALLOW_OUTSIDE_ROOT —— 那份名单豁免的是**位置**(WHERE), 从来不豁免
+    #   **引用上月工件**(WHOSE); 原 Q3 明写「WHERE, never WHOSE」, P1/P2 也没有对应的身份豁免。
+    #   复审实跑: CACHE=新根/alias → 旧月 CACHE, 再设 ROLL_ALLOW_OUTSIDE_ROOT=CACHE, samefile=True 却 PASS 0。
+    #   ⇒ P6 对每一个 ROLLED 键都查, 与 ALLOW 无关。跨月共享若真有需要, 另立具名只读、内容钉住的共享合同。
+    if k not in cur:
         continue
     for pk, pv in sorted(prev.items()):
         if not isinstance(pv, str) or not pv:
@@ -191,21 +195,41 @@ elif not os.path.isfile(PREV_SHA):
 else:
     try:
         rec = json.load(open(PREV_SHA))
-        rec = rec if isinstance(rec, dict) else {}
-        moved, checked, absent = [], 0, []
-        for p, want in sorted(rec.items()):
-            if not isinstance(want, str):
-                continue
-            if not os.path.isfile(p):
-                absent.append(p)
-                continue
-            got = sha256_file(p)
-            checked += 1
-            if got != want:
-                moved.append({"path": p, "recorded": want[:16], "now": got[:16]})
-        chk("P4_previous_untouched", not moved,
-            {"n_checked": checked, "n_absent_now": len(absent), "absent": absent[:20], "moved": moved, "evaluated": True,
-             "why": "a previous-month artifact whose sha moved means something already overwrote it"})
+        # ★ R16R-T1a: 上一轮 `rec if isinstance(rec, dict) else {}` 把 [] 转成 {}, 而 {} 让下面的循环一个文件都不核,
+        #   `moved` 为空 ⇒ `not moved` 为 True ⇒ **n_checked=0 却 PASS rc0**。空文件内容不等于有证据。
+        #   ⇒ 先验记录 schema: 必须是非空 dict, 每个值都是 64 位十六进制 sha; 再验**覆盖**: 上月合同里每个
+        #     ROLLED 工件路径都必须在记录里 —— 一条无关文件的 sha 不能证明上月合同。三者任一不满足 = FAIL
+        #     (给了记录却是废的, 比没给更糟, 不是 UNAVAILABLE)。
+        _hex = re.compile(r"^[0-9a-f]{64}$")
+        _schema_bad = []
+        if not isinstance(rec, dict) or not rec:
+            _schema_bad.append(f"record is {type(rec).__name__} with {len(rec) if hasattr(rec, '__len__') else '?'} entries — a previous-month record must be a NON-EMPTY {{path: sha256}} map")
+        else:
+            _schema_bad += [f"{p!r}: value is not a sha256 hex string" for p, w in rec.items() if not (isinstance(w, str) and _hex.match(w))]
+        _need = sorted({prev[k] for k in ROLLED if isinstance(prev.get(k), str) and prev.get(k)})
+        _uncovered = [p for p in _need if not (isinstance(rec, dict) and p in rec)]
+        if _schema_bad or _uncovered:
+            chk("P4_previous_untouched", False,
+                {"schema_errors": _schema_bad[:10], "previous_rolled_paths_not_in_record": _uncovered, "n_required": len(_need),
+                 "evaluated": True,
+                 "why": "the record cannot certify the previous month: it is empty, malformed, or does not cover the "
+                        "previous contract's ROLLED artifacts — a check over zero or unrelated files is not evidence (R16R-T1a)"})
+        else:
+            moved, checked, absent = [], 0, []
+            for p, want in sorted(rec.items()):
+                if not os.path.isfile(p):
+                    absent.append(p)
+                    continue
+                got = sha256_file(p)
+                checked += 1
+                if got != want:
+                    moved.append({"path": p, "recorded": want[:16], "now": got[:16]})
+            _absent_required = [p for p in _need if p in absent]
+            chk("P4_previous_untouched", not moved and not _absent_required,
+                {"n_checked": checked, "n_required": len(_need), "n_absent_now": len(absent), "absent": absent[:20],
+                 "absent_required": _absent_required, "moved": moved, "evaluated": True,
+                 "why": "a previous-month artifact whose sha moved means something already overwrote it; a required "
+                        "artifact that is now absent cannot be certified either"})
     except Exception as e:                                        # noqa: BLE001
         chk("P4_previous_untouched", False, {"why": f"ROLL_PREV_SHA_JSON unreadable: {type(e).__name__}: {e}", "evaluated": False})
 

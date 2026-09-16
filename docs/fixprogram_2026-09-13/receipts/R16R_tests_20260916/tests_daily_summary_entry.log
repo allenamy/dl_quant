@@ -1,0 +1,12 @@
+[A] current tree, real main(), real state layout
+  OK   ★★★ A1 the account section prices the last nav row from its VALID amendment: `当日已实现 +101.0000 USDT [口径: …修订记录…]`, not the recorded 12.0000  — ['   当日已实现   +101.0000 USDT   [口径: USDT, 修订记录(guard_twin income 账本重算, 该行写于 2026-09-12 06:05Z 修复前)]   = 交易 +0.0000  手续费 +101.0000  资金费 +0.0000']
+  OK   ★★ A2 …and the row is not called unreliable (that label was the symptom of the wrong directory), and the rendered text is the FIXTURE's (no 2026-07/08 alarm lines: the audit fallback did not fire)  — []
+  OK   ★ A3 the same-day increment line reads the two rows through the SAME verifier: 已实现 +11.0000 → +101.0000 with the mixed-caliber note  — ['     已实现 +11.0000 → +101.0000 USDT  (增量 +90.0000) —— 轮换把浮盈**落袋**   ★ 两端口径不同 (legacy_carrier_sum_usdt_assumed → amended_from_income_ledger), 增量只是近似']
+
+[B] red capability: the pre-fix entry (root instead of plog) on the SAME layout
+  (control source: HEAD~1:ops/daily_summary.py)
+  OK   ★★★ B1 (PRE-FIX: RED) the same layout through the pre-fix main() shows the recorded +12.0000, NOT the amended +101.0000 — the reviewer's counterexample, reproduced from the real entry expression  — ['   当日已实现   +12.0000 USDT   [口径: 载体原数和, 币种未拆分, **假定**全 USDT (2026-09-12 06:05Z 前的行)]   = 交易 +0.0000  手续费 +12.0000  资金费 +0.0000']
+  OK   ★★ B2 the two arms differ ONLY in that value — baseline [A] green, control [B] red: the pair is the evidence
+
+5/5 checks passed
+ALL PASS

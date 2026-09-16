@@ -1,0 +1,38 @@
+[arms] full main() with named synthetic stubs
+[    0.0s] input shas asserted
+[    0.0s] K0 feature order/support PASS; kept 5 of 6
+[    0.0s] rows built (480, 5)
+[    0.0s] K-2026 {'year': 2026, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': False}
+[    0.0s] K-2024 {'year': 2024, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': True, 'n_train_rows': 120, 'wall_s': 0.0}
+[    0.0s] K-2025 {'year': 2025, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': True, 'n_train_rows': 240, 'wall_s': 0.0}
+GATE_B_REPRO_KING=PASS  K0=True  2026=True(bitwise True)  refits=True  wall=0s
+  OK   ★★★ PASS arm: main() itself writes GATE_B_REPRO_KING=PASS and the process exit is 0  — ('PASS', 0, {'K0_feature_parity': True, 'K_2026_saved_booster_PASS': True, 'K_2026_bitwise': True, 'refits_PASS': True, 'n_refits': 2})
+[    0.0s] input shas asserted
+[    0.0s] K0 feature order/support PASS; kept 5 of 6
+[    0.0s] rows built (480, 5)
+[    0.0s] K-2026 {'year': 2026, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': False}
+GATE_B_REPRO_KING=PARTIAL (2026 only)  K0=True  2026=True(bitwise True)  refits=None  wall=0s
+  OK   ★★★ PARTIAL arm (FM_GK_REFIT=0): verdict 'PARTIAL (2026 only)' — refits not run is NOT a pass — exit 3  — ('PARTIAL (2026 only)', 3)
+[    0.0s] input shas asserted
+[    0.0s] K0 feature order/support PASS; kept 5 of 6
+[    0.0s] rows built (480, 5)
+[    0.0s] K-2026 {'year': 2026, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 0, 'maxabs': 1.0, 'PASS_bitwise': False, 'PASS_1e-5': False, 'reconstruction_needed': False}
+[    0.0s] K-2024 {'year': 2024, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': True, 'n_train_rows': 120, 'wall_s': 0.0}
+[    0.0s] K-2025 {'year': 2025, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': True, 'n_train_rows': 240, 'wall_s': 0.0}
+GATE_B_REPRO_KING=INVALID  K0=True  2026=False(bitwise False)  refits=True  wall=0s
+  OK   ★★★ INVALID arm (saved booster off by 1.0 > 1e-5): verdict INVALID, exit 3  — ('INVALID', 3, 1.0)
+  OK   ★★ the verdict key the exit reads is the one the device writes (no 'GATE_B_REPRO' key exists in a King receipt)  — ['GATE_B_REPRO_KING']
+
+[control] the pre-fix device (git HEAD~1) on the SAME PASS arm
+  (control source: HEAD~2)
+[    0.0s] input shas asserted
+[    0.0s] K0 feature order/support PASS; kept 5 of 6
+[    0.0s] rows built (480, 5)
+[    0.0s] K-2026 {'year': 2026, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': False}
+[    0.0s] K-2024 {'year': 2024, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': True, 'n_train_rows': 120, 'wall_s': 0.0}
+[    0.0s] K-2025 {'year': 2025, 'nan_pattern_equal': True, 'cells_compared': 120, 'cells_bitwise_equal': 120, 'maxabs': 0.0, 'PASS_bitwise': True, 'PASS_1e-5': True, 'reconstruction_needed': True, 'n_train_rows': 240, 'wall_s': 0.0}
+GATE_B_REPRO_KING=PASS  K0=True  2026=True(bitwise True)  refits=True  wall=0s
+  OK   ★★★ (PRE-FIX: RED) the pre-fix exit reads the DL key: real PASS verdict, exit 3 — the reviewer's finding, reproduced  — ('PASS', 3)
+
+5/5 checks passed
+ALL PASS

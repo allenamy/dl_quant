@@ -1,0 +1,384 @@
+diff --git a/live/binance_broker.py b/live/binance_broker.py
+index 32f0f61..6f10dea 100644
+--- a/live/binance_broker.py
++++ b/live/binance_broker.py
+@@ -1827,6 +1827,13 @@ class BinanceBroker:
+         steps = getattr(self, "qty_steps", None) or {}
+         orders = []
+         for s, v in positions.items():
++            # ★ R16R-E1: `abs(v) <= 1e-9` 对 NaN 为 False, NaN 会一路走到 split_for_market(abs(NaN)) 去定量 ——
++            #   一个数量未知的仓位**绝不**能被换算成一张 reduce-only 单。记一笔动作、跳过, 由 watchdog 按未知处理。
++            if v != v or abs(v) == float("inf"):
++                self.actions.append({"action": "flatten_skip_nonfinite", "symbol": s, "raw": repr(v),
++                                     "reason": reason, "ts": time.time(),
++                                     "why": "position quantity is NOT a finite number — UNKNOWN, not sized, not sent"})
++                continue
+             if abs(v) <= 1e-9:
+                 continue
+             side = "sell" if v > 0 else "buy"
+@@ -2011,8 +2018,19 @@ class BinanceBroker:
+         if self.mode == "DRY_RUN":
+             return {}
+         acct = self._request("GET", "/fapi/v3/account", signed=True)
+-        return {p["symbol"]: float(p["positionAmt"])
+-                for p in acct.get("positions", []) if abs(float(p["positionAmt"])) > 0}
++        # ★★★ R16R-E1 (独立复审第二轮 2026-09-16): 旧写法 `abs(float(positionAmt)) > 0` 对 NaN 求值为 False,
++        #   于是 NaN 在**这里**就被静默删掉, 上游 watchdog 拿到的是空 map ⇒ 零次平仓且 named_flat=True ——
++        #   上一轮我只修了 watchdog 的两处站点, 它们看不到这里已被删除的名字。
++        #   ⇒ 非有限的数量**保留**在返回值里(inf / nan 原样), 让消费者按「仓位未知」处理; 只有**有限且为 0**
++        #     的才算真正无仓位。`flatten_all` 对非有限值绝不定量下单(见其循环头)。
++        out = {}
++        for p in acct.get("positions", []):
++            v = float(p["positionAmt"])
++            if v != v or abs(v) == float("inf"):          # NaN / ±inf: UNKNOWN, kept, never zero
++                out[p["symbol"]] = v
++            elif abs(v) > 0:
++                out[p["symbol"]] = v
++        return out
+ 
+     def positions_notional(self) -> Dict[str, float]:
+         """Venue-side truth in USDT NOTIONAL (signed). Use for bookkeeping/planning — the loop's
+diff --git a/live/tests_broker_nonfinite_positions.py b/live/tests_broker_nonfinite_positions.py
+new file mode 100644
+index 0000000..8703747
+--- /dev/null
++++ b/live/tests_broker_nonfinite_positions.py
+@@ -0,0 +1,106 @@
++#!/usr/bin/env python3
++"""R16R-E1 (independent review, second round, 2026-09-16): a position quantity that is not a finite number is UNKNOWN.
++
++WHY THIS FILE EXISTS. The first-round E1 fix taught `watchdog._local_response` to treat a non-finite quantity as
++unknown. But the BROKER's `positions()` filtered on `abs(float(x)) > 0`, which is False for NaN — so a NaN
++`positionAmt` never reached the watchdog: the account looked flat, stage 1 of the degradation ladder reported
++`stage1_ok=True, flat_on_reread=True`, and `flatten_all` given a non-finite quantity built and SENT an order.
++"存在但不是有限数 = 仓位未知, 不是仓位为零" has to hold at the first place the number is parsed.
++
++Three behaviours, each pre/post:
++  [1] BinanceBroker.positions()  — REAL method, only `_request` stubbed — keeps NaN and ±inf, drops exact 0
++  [2] BinanceBroker.flatten_all() — REAL method — given only non-finite quantities builds NO order, records
++      `flatten_skip_nonfinite` per symbol, never reaches submission (so no submit stub is needed)
++  [3] watchdog._degradation_ladder stage 1 — fed what THIS tree's broker returns for a NaN account:
++      ok is False and the name is listed as unknown; finite and empty books unchanged
++  [C] control: pre-fix broker+watchdog from git (defect shape: positions() has no non-finite branch) → the
++      NaN account becomes an empty book and stage 1 passes; flatten_all attempts submission — RED
++The control is reported UNAVAILABLE (exit 3) if no ancestor carries the pre-fix shape; never faked.
++DRY_RUN is not used: `positions()` returns {} in DRY_RUN and the parse under test would never run.
++"""
++import importlib.util, os, subprocess, sys, tempfile
++HERE = os.path.dirname(os.path.abspath(__file__)); REPO = os.path.dirname(HERE)
++for d in ("live", "ops", "scheduler", "signal"): sys.path.insert(0, os.path.join(REPO, d))
++FAILS, N = [], [0]
++def check(name, ok, detail=None):
++    N[0] += 1
++    if not ok: FAILS.append(name)
++    print(("  OK   " if ok else "  FAIL ") + name + (("  — " + str(detail)[:240]) if detail is not None else ""), flush=True)
++def load(path, name):
++    spec = importlib.util.spec_from_file_location(name, path); m = importlib.util.module_from_spec(spec)
++    sys.modules[name] = m; spec.loader.exec_module(m); return m
++NAN_ACCT = {"positions": [{"symbol": "NANUSDT", "positionAmt": "nan"}, {"symbol": "ZEROUSDT", "positionAmt": "0"}]}
++FULL_ACCT = {"positions": [{"symbol": "NANUSDT", "positionAmt": "nan"}, {"symbol": "INFUSDT", "positionAmt": "1e9999"},
++                           {"symbol": "TENUSDT", "positionAmt": "10"}, {"symbol": "ZEROUSDT", "positionAmt": "0"}]}
++class FakeForLadder:
++    def __init__(self, pos): self._pos = pos; self.actions = []; self.flattened = []
++    def halt_opening_orders(self, r): pass
++    def open_orders(self): return []
++    def cancel_all_open_orders(self, s, r): pass
++    def set_reduce_only(self, *a, **k): return True
++    def positions(self): return dict(self._pos)
++    def flatten_all(self, held, reason):
++        self.flattened.append(dict(held)); self._pos = {k: 0.0 for k in self._pos}
++        self.actions.append({"action": "flatten_all", "orders": []}); return []
++
++def arms(bb_path, wd_path, tag):
++    BB = load(bb_path, "bb_" + tag); WD = load(wd_path, "wd_" + tag)
++    class Probe(BB.BinanceBroker):                      # real positions()/flatten_all(); only the wire is replaced
++        def __init__(self, acct): self.mode = "LIVE"; self.actions = []; self._acct = acct
++        def _request(self, *a, **k): return self._acct
++    r = {}
++    pos = Probe(FULL_ACCT).positions()
++    r["pos_keys"] = sorted(pos); r["nan_kept"] = "NANUSDT" in pos; r["inf_kept"] = "INFUSDT" in pos
++    r["ten_kept"] = "TENUSDT" in pos; r["zero_dropped"] = "ZEROUSDT" not in pos
++    b = Probe(FULL_ACCT)
++    try:
++        orders = b.flatten_all({"NANUSDT": float("nan"), "INFUSDT": float("inf")}, "test")
++        r["flat_orders"] = len(orders); r["flat_submitted"] = False
++        r["flat_skips"] = sorted(a["symbol"] for a in b.actions if a.get("action") == "flatten_skip_nonfinite")
++    except Exception as e:                                # noqa: BLE001 — pre-fix reaches submission and fails there
++        r["flat_orders"] = None; r["flat_submitted"] = True; r["flat_skips"] = []; r["flat_exc"] = f"{type(e).__name__}: {e}"
++    chain = Probe(NAN_ACCT).positions()                   # what the ladder is handed for a NaN account in THIS tree
++    r["chain_input"] = {k: repr(v) for k, v in chain.items()}
++    for lab, p in (("chain", chain), ("finite", {"TENUSDT": 10.0}), ("empty", {})):
++        f = FakeForLadder(p); d = tempfile.mkdtemp()
++        o = WD._degradation_ladder(f, dict(p), "test", os.path.join(d, "ALARM.log"), verbose=False, max_retries=2)
++        r[lab] = {"ok": o.get("stage1_ok"), "unknown": o.get("stage1_position_unknown_names"),
++                  "flat_on_reread": o.get("stage1_flat_on_reread"), "flatten_calls": len(f.flattened)}
++    return r
++
++print("[A] current tree")
++a = arms(os.path.join(HERE, "binance_broker.py"), os.path.join(HERE, "watchdog.py"), "cur")
++check("★★★ A1 positions(): NaN and ±inf are KEPT (unknown), 10 kept, exact 0 dropped",
++      a["nan_kept"] and a["inf_kept"] and a["ten_kept"] and a["zero_dropped"], a["pos_keys"])
++check("★★★ A2 flatten_all(non-finite only): 0 orders, never reaches submission, one flatten_skip_nonfinite per symbol",
++      a["flat_orders"] == 0 and not a["flat_submitted"] and a["flat_skips"] == ["INFUSDT", "NANUSDT"], (a["flat_orders"], a["flat_submitted"], a["flat_skips"]))
++check("★★★ A3 stage 1 fed a NaN account through THIS broker: ok False, NANUSDT listed unknown, no flatten call",
++      a["chain"]["ok"] is False and a["chain"]["unknown"] == ["NANUSDT"] and a["chain"]["flatten_calls"] == 0, (a["chain_input"], a["chain"]))
++check("★★ A4 finite book still flattens (ok True, one call) and empty book still reads flat (ok True, flat_on_reread True)",
++      a["finite"]["ok"] is True and a["finite"]["flatten_calls"] == 1 and a["empty"]["ok"] is True and a["empty"]["flat_on_reread"] is True, (a["finite"], a["empty"]))
++
++print("\n[C] red capability: pre-fix broker + watchdog from git (defect shape: no non-finite branch in positions())")
++pre = None
++for ref in ("HEAD", "HEAD~1", "HEAD~2", "HEAD~3"):
++    cb = subprocess.run(["git", "-C", REPO, "show", f"{ref}:live/binance_broker.py"], capture_output=True, text=True)
++    cw = subprocess.run(["git", "-C", REPO, "show", f"{ref}:live/watchdog.py"], capture_output=True, text=True)
++    if cb.returncode == 0 and cw.returncode == 0 and "flatten_skip_nonfinite" not in cb.stdout and "_unk1" not in cw.stdout:
++        pre = (ref, cb.stdout, cw.stdout); break
++if pre is None:
++    print("  UNAVAIL C  no ancestor within HEAD..HEAD~3 carries the pre-fix shape — control not run, not faked")
++    print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed; control UNAVAILABLE"); sys.exit(3 if not FAILS else 1)
++print(f"  (control source: {pre[0]})")
++td = tempfile.mkdtemp(); pb = os.path.join(td, "bb_pre.py"); pw = os.path.join(td, "wd_pre.py")
++open(pb, "w").write(pre[1]); open(pw, "w").write(pre[2])
++c = arms(pb, pw, "pre")
++check("★★★ C1 (PRE-FIX: RED) positions() DROPS NaN (abs(nan)>0 is False) — the account looks flat",
++      not c["nan_kept"], c["pos_keys"])
++check("★★★ C2 (PRE-FIX: RED) flatten_all(non-finite) builds orders and reaches submission",
++      c["flat_submitted"] and c["flat_skips"] == [], c.get("flat_exc"))
++check("★★★ C3 (PRE-FIX: RED) NaN account → empty book → stage 1 passes silently (ok True, flat_on_reread True) — the reviewer's counterexample",
++      c["chain_input"] == {} and c["chain"]["ok"] is True and c["chain"]["flat_on_reread"] is True, (c["chain_input"], c["chain"]))
++check("★★ C4 baseline [A] green and control [C] red on the SAME inputs — the pair is the evidence",
++      a["nan_kept"] and not c["nan_kept"] and a["chain"]["ok"] is False and c["chain"]["ok"] is True)
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS: print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
++print("ALL PASS")
+diff --git a/live/tests_daily_summary_entry.py b/live/tests_daily_summary_entry.py
+new file mode 100644
+index 0000000..ba14d52
+--- /dev/null
++++ b/live/tests_daily_summary_entry.py
+@@ -0,0 +1,119 @@
++#!/usr/bin/env python3
++"""R16R-E3 (independent review, second round, 2026-09-16): the daily summary's REAL entry point on a REAL state layout.
++
++WHY THIS FILE EXISTS. The first-round fix made `realised_facts` consume the shared amendment verifier — and
++`tests_daily_summary` stayed green twice — while `main()` handed the verifier `root` where it needs
++`plog = root/pilot_log`. One directory level wrong, and a VALID amendment (101) was silently reported as
++the recorded value (11) with the row marked unreliable. The suite never noticed because it calls the
++functions, not the entry. This file drives `main()` itself: same argv parsing, same `state_root.paths_for`
++call (patched to a temp root of the real shape), same three call sites. It asserts on the rendered account
++because that is what the operator reads.
++
++Two arms, pre-registered:
++  [A] current tree       → the amended 101 reaches the account section (rendered `当日已实现 +101.0000 USDT [口径: …修订记录…]`)
++  [B] pre-fix ops/daily_summary.py from git (the root-instead-of-plog version), if reachable → the recorded 12.0000
++Arm [B] is the red-capability control WITH an asserted-green baseline ([A]); if no pre-fix source can be read the
++control is reported UNAVAILABLE (exit 3), never faked.
++
++Fixture details that are NOT incidental (each one was a way this test silently drove the wrong thing on first run):
++  * nav_ts values are real 2026-09-01 epochs — `--since Nh` means "the last N hours", so a 1970 timestamp is outside
++    every window and the account section is simply not rendered;
++  * the temp root carries an EMPTY notify_audit.jsonl — main() falls back to <repo>/state/notify_audit.jsonl when the
++    root has none, which pulled the real alarm log (670 lines) into the "rendered" text;
++  * paths_for is patched by re-rooting the REAL dict, so every key main() may read points into the temp root.
++"""
++import hashlib, importlib.util, io, json, os, subprocess, sys, tempfile, contextlib
++
++HERE = os.path.dirname(os.path.abspath(__file__)); REPO = os.path.dirname(HERE)
++sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(REPO, "ops"))
++KIND = "daily_nav_realised_split_amendment"
++FAILS, N = [], [0]
++
++def check(name, ok, detail=None):
++    N[0] += 1
++    if not ok: FAILS.append(name)
++    print(("  OK   " if ok else "  FAIL ") + name + (("  — " + str(detail)[:220]) if detail is not None else ""), flush=True)
++
++def build_root():
++    """<root>/pilot_log/<day>/daily_nav.jsonl (2 rows) + <root>/ledger_amendments/… (1 VALID record for row 1)."""
++    root = tempfile.mkdtemp(prefix="ds_entry_"); day = "20260901"; T0 = 1788220800.0      # 2026-09-01T00:00:00Z
++    plog = os.path.join(root, "pilot_log", day); os.makedirs(plog)
++    open(os.path.join(root, "notify_audit.jsonl"), "w").close()      # present and empty: no fallback to the repo's real one
++    rows = [{"day": day, "nav_ts": T0 + 60.0, "nav": 1000.0, "prev_nav": 990.0, "wallet_balance": 1000.0, "unrealised_pnl": 0.0,
++             "realised_pnl": 11.0, "realised_by_type": {"COMMISSION": 11.0}, "external_flow_usdt": 0.0, "mode": "LIVE",
++             "realised_pnl_source": "test", "realised_truncated": False},
++            {"day": day, "nav_ts": T0 + 3600.0, "nav": 1001.0, "prev_nav": 990.0, "wallet_balance": 1001.0, "unrealised_pnl": 0.0,
++             "realised_pnl": 12.0, "realised_by_type": {"COMMISSION": 12.0}, "external_flow_usdt": 0.0, "mode": "LIVE",
++             "realised_pnl_source": "test", "realised_truncated": False}]
++    raw = b"".join((json.dumps(r, separators=(",", ":")) + "\n").encode() for r in rows)
++    open(os.path.join(plog, "daily_nav.jsonl"), "wb").write(raw)
++    line1 = raw.splitlines(keepends=True)[1]                       # the LAST row (the one the account reads); recorded 12.0
++    rec = {"kind": KIND, "day": day, "nav_ts": T0 + 3600.0, "line": 2, "row_sha256": hashlib.sha256(line1).hexdigest(),
++           "amended": {"realised_pnl_usdt": 101.0, "realised_usdt_by_type": {"COMMISSION": 101.0}},
++           "source": {"income_sha256": "t"}, "reason": "entry test"}
++    os.makedirs(os.path.join(root, "ledger_amendments"))
++    open(os.path.join(root, "ledger_amendments", "daily_nav_realised_split.jsonl"), "w").write(json.dumps(rec) + "\n")
++    return root
++
++def drive(module_path, root):
++    """Run the module's real main() with state_root.paths_for patched to `root`. Returns captured stdout."""
++    spec = importlib.util.spec_from_file_location("ds_under_test_%d" % abs(hash(module_path)), module_path)
++    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
++    import state_root as SR
++    real = SR.paths_for
++    def _rerooted(mode):                                           # the REAL dict with every path moved under `root`
++        d = dict(real(mode)); rr = d["root"]
++        return {k: (root + v[len(rr):] if isinstance(v, str) and v.startswith(rr) else v) for k, v in d.items()}
++    SR.paths_for = _rerooted
++    buf = io.StringIO(); argv = sys.argv
++    try:
++        sys.argv = ["daily_summary.py", "--since", "100000h", "--mode", "LIVE"]
++        with contextlib.redirect_stdout(buf):
++            try: m.main()
++            except SystemExit: pass
++    finally:
++        SR.paths_for = real; sys.argv = argv
++    return buf.getvalue()
++
++print("[A] current tree, real main(), real state layout")
++root = build_root()
++out_a = drive(os.path.join(REPO, "ops", "daily_summary.py"), root)
++_acct_a = [l for l in out_a.splitlines() if "当日已实现" in l]
++check("★★★ A1 the account section prices the last nav row from its VALID amendment: `当日已实现 +101.0000 USDT [口径: …修订记录…]`, not the recorded 12.0000",
++      any("+101.0000 USDT" in l and "修订记录" in l for l in _acct_a) and not any("+12.0000 USDT" in l for l in _acct_a), _acct_a[:2])
++check("★★ A2 …and the row is not called unreliable (that label was the symptom of the wrong directory), and the rendered text is the FIXTURE's "
++      "(no 2026-07/08 alarm lines: the audit fallback did not fire)",
++      "不可靠" not in out_a and "07-27" not in out_a and "08-01 00:01Z" not in out_a and "20260901" in out_a,
++      [l for l in out_a.splitlines() if "不可靠" in l][:2])
++check("★ A3 the same-day increment line reads the two rows through the SAME verifier: 已实现 +11.0000 → +101.0000 with the mixed-caliber note",
++      any("+11.0000 → +101.0000" in l for l in out_a.splitlines()), [l for l in out_a.splitlines() if "已实现 +" in l][:2])
++
++print("\n[B] red capability: the pre-fix entry (root instead of plog) on the SAME layout")
++# The pre-fix source is identified by its DEFECT SHAPE (it passes `root` where `plog` belongs), not by a fixed
++# ancestor: before the fix is committed that is HEAD, after it is HEAD~1, and a commit in between may not carry
++# the amendment root parameter at all. Probing the shape keeps the control pointed at the right bytes either way.
++old, old_ref = None, None
++for ref in ("HEAD", "HEAD~1", "HEAD~2", "HEAD~3"):
++    try:
++        cand = subprocess.run(["git", "-C", REPO, "show", f"{ref}:ops/daily_summary.py"], capture_output=True, text=True, check=True).stdout
++    except Exception:                                              # noqa: BLE001
++        continue
++    if "pilot_log_root=root)" in cand and "pilot_log_root=plog" not in cand:
++        old, old_ref = cand, ref; break
++if old is None:
++    print("  UNAVAIL B  no ancestor within HEAD..HEAD~3 carries the root-instead-of-plog shape — control not run, not faked")
++    print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed; control UNAVAILABLE")
++    sys.exit(3 if not FAILS else 1)
++print(f"  (control source: {old_ref}:ops/daily_summary.py)")
++tmp_old = os.path.join(tempfile.mkdtemp(), "daily_summary_prefix.py"); open(tmp_old, "w").write(old)
++out_b = drive(tmp_old, build_root())
++_acct_b = [l for l in out_b.splitlines() if "当日已实现" in l]
++check("★★★ B1 (PRE-FIX: RED) the same layout through the pre-fix main() shows the recorded +12.0000, NOT the amended +101.0000 — "
++      "the reviewer's counterexample, reproduced from the real entry expression",
++      any("+12.0000 USDT" in l for l in _acct_b) and not any("+101.0000 USDT" in l for l in _acct_b), _acct_b[:2])
++check("★★ B2 the two arms differ ONLY in that value — baseline [A] green, control [B] red: the pair is the evidence",
++      any("+101.0000 USDT" in l for l in _acct_a) and not any("+101.0000 USDT" in l for l in _acct_b))
++print(f"\n{N[0] - len(FAILS)}/{N[0]} checks passed")
++if FAILS:
++    print("FAILED:", *FAILS, sep="\n  "); sys.exit(1)
++print("ALL PASS")
+diff --git a/live/watchdog.py b/live/watchdog.py
+index 6fe039b..6c5cb5e 100644
+--- a/live/watchdog.py
++++ b/live/watchdog.py
+@@ -824,12 +824,22 @@ def _degradation_ladder(broker, positions, reason, alarm_path, verbose=True, max
+         try:
+             positions = broker.positions()
+             out["stage1_reread_before_retry"] = out.get("stage1_reread_before_retry", 0) + 1
+-            if not positions:
++            # ★ R16R-E1 同族(stage1): broker 现在会把非有限数量原样交上来; 这里同 _local_response 的规矩 ——
++            #   「存在但不是有限数 = 仓位未知」。只对有限的那部分定量平仓, 有未知就绝不宣称无敞口。
++            _unk1 = sorted(k for k, v in (positions or {}).items() if _finite(v) is None)
++            if _unk1:
++                out["stage1_position_unknown_names"] = _unk1
++                out["errors"].append(f"positions read before attempt {i+1}: {len(_unk1)} name(s) returned a NON-FINITE "
++                                     f"quantity {_unk1[:5]} — position UNKNOWN, NOT flat")
++                positions = {k: v for k, v in positions.items() if _finite(v) is not None}
++            if not positions and not _unk1:
+                 # nothing is held: either the previous attempt landed and we never saw the ack,
+                 # or the book was already flat. Both are "no exposure", which is the goal.
+                 out["stage1_ok"] = True
+                 out["stage1_flat_on_reread"] = True
+                 break
++            if not positions:
++                continue                       # 无可平之物但有未知名字 ⇒ 重读, 绝不落到「已平」
+         except Exception as e:
+             out["errors"].append(
+                 f"position read before attempt {i+1} FAILED ({type(e).__name__}): {str(e)[:60]} "
+@@ -875,8 +885,16 @@ def _degradation_ladder(broker, positions, reason, alarm_path, verbose=True, max
+             try:
+                 _after = broker.positions() or {}
+                 out["stage1_reread_after_return"] = out.get("stage1_reread_after_return", 0) + 1
+-                out["stage1_residual"] = {k: float(v) for k, v in _after.items() if abs(float(v)) > 0}
++                _unk_after1 = sorted(k for k, v in _after.items() if _finite(v) is None)
++                out["stage1_residual"] = {k: float(v) for k, v in _after.items()
++                                          if _finite(v) is not None and abs(float(v)) > 0}
+                 out["stage1_readback_ok"] = True
++                if _unk_after1:
++                    # ★ R16R-E1 同族: 平仓后的复查同样不能把非有限读成已平
++                    out["stage1_position_unknown_names"] = _unk_after1
++                    out["errors"].append(f"after attempt {i+1}: {len(_unk_after1)} name(s) returned a NON-FINITE quantity "
++                                         f"{_unk_after1[:5]} — position UNKNOWN, NOT flat")
++                    continue                      # 不置 ok
+                 if out["stage1_residual"]:
+                     out["errors"].append(
+                         f"flatten call returned but venue still shows {len(out['stage1_residual'])} "
+diff --git a/ops/daily_summary.py b/ops/daily_summary.py
+index 6d99c16..e074748 100644
+--- a/ops/daily_summary.py
++++ b/ops/daily_summary.py
+@@ -575,6 +575,10 @@ def main():
+     since, how = AD._ts(a.since)
+     root = SR.paths_for(a.mode)["root"]
+     plog = os.path.join(root, "pilot_log")
++    # ★ R16R-E3 (独立复审第二轮 2026-09-16): 修订校验器从 <plog>/<day>/daily_nav.jsonl 读被修订原行,
++    #   要的是 plog 不是 root。我上一轮把 root 传了进去 —— 目录错一层, 合法修订 101 被静默回退成原值 11
++    #   并标「原值不可靠」, 而 tests_daily_summary 两次都是 0, 说明电池没有覆盖真实 main 入口。
++    #   下面三处一律传 plog; 入口回归测试见 tests_daily_summary_entry.py。
+     days = PL.available_days(plog)
+     rows = {"anchors": [], "orders": [], "daily_nav": []}
+     for d in days:
+@@ -620,7 +624,7 @@ def main():
+ 
+     # ── 1. the account, DECOMPOSED ────────────────────────────────────────────────────────
+     _amendments = load_realised_amendments(os.path.join(root, AMENDMENTS_REL))
+-    for _line in render_account(account_facts(nav, amendments=_amendments, pilot_log_root=root)):
++    for _line in render_account(account_facts(nav, amendments=_amendments, pilot_log_root=plog)):
+         print(_line)
+ 
+     # ── 2. per-anchor table: the trend, one row each ──────────────────────────────────────
+@@ -739,8 +743,8 @@ def main():
+     _today = [r for r in nav if r.get("day") == nav[-1].get("day")] if nav else []
+     if len(_today) >= 2:
+         r0, r1 = _today[0], _today[-1]
+-        _rf0 = realised_facts(r0, _amendments.get((r0.get("day"), _finite(r0.get("nav_ts")))), root)
+-        _rf1 = realised_facts(r1, _amendments.get((r1.get("day"), _finite(r1.get("nav_ts")))), root)
++        _rf0 = realised_facts(r0, _amendments.get((r0.get("day"), _finite(r0.get("nav_ts")))), plog)
++        _rf1 = realised_facts(r1, _amendments.get((r1.get("day"), _finite(r1.get("nav_ts")))), plog)
+         print(f"\n   ★ 「一换手就降」(当日 {r1.get('day')}, 不跨 00:00Z):")
+         if _rf0["observable"] and _rf1["observable"] and _rf0["complete"] is True \
+                 and _rf1["complete"] is True:
+diff --git a/ops/gate_coverage.py b/ops/gate_coverage.py
+index 4266e0f..684a63a 100644
+--- a/ops/gate_coverage.py
++++ b/ops/gate_coverage.py
+@@ -223,6 +223,8 @@ SUITE_SCOPE = {
+     "tests_cond3_worst_selector": "that §4-3 has anything to judge — over all history the stress-anchor count is 0, so this fix is INERT on current data. It proves the accumulator selects the worst day and that the record carries one caliber; it cannot prove the regime labelling that decides which days are stress days at all",
+     "tests_readiness_filters_path": "that the cached filters are CORRECT — it proves the sheet looks at the file we actually write and counts real symbols. Whether those 653 entries carry the right tick/step/minNotional for LIVE is established by the venue stamp and by arm(), not here",
+     "tests_neutrality_check": "that the book WILL be neutral — it proves only that the realised net is measured from venue truth and spoken when it leaves the band. It changes no order and closes no gap: the 16:00Z anchor would still have ended -6.9% short, we would merely have known within the minute instead of in a post-mortem. Nor does it establish that 3% is the right band — that figure is policy, not calibration, and two anchors is not a distribution",
++    "tests_broker_nonfinite_positions": "R16R-E1 (2026-09-16): a non-finite positionAmt is UNKNOWN at the broker parse, not zero — real BinanceBroker.positions()/flatten_all() with only _request stubbed, plus watchdog stage 1 fed what this broker returns; pre-fix control from git shows NaN dropped, order submitted, stage 1 silently green.",
++    "tests_daily_summary_entry": "R16R-E3 (2026-09-16): drives ops/daily_summary.main() itself on a temp state root of the REAL shape (<root>/pilot_log/<day>/daily_nav.jsonl + <root>/ledger_amendments/…), state_root.paths_for patched, and asserts the rendered account prices the last row from its VALID amendment (101) rather than the carrier (11). Exists because tests_daily_summary tests the functions and stayed green while main() passed root where the verifier needs root/pilot_log. Blind spots: (a) one row, one record, one mode — it does not sweep modes or the rotation line; (b) the pre-fix control reads HEAD~1 from git and is UNAVAILABLE (exit 3), never faked, when that source is not the pre-fix one; (c) it patches paths_for, so a regression INSIDE root_for is out of scope.",
+     "tests_daily_summary": "that the operator will UNDERSTAND the summary — it proves the three questions are answered and that the day-boundary residual refuses rather than computes, not that the explanations land. Four blind spots: (a) most checks are substring assertions over the rendered text, so rewording a line silently breaks the guarantee while the tool still runs; (b) it verifies the numbers are PRESENT, never that they are RIGHT — a wrong wallet balance formatted correctly passes every check here; (c) the external-flow line says money is 'probably in spot' when TRANSFER is zero, which is an inference we cannot verify because the system has no spot-wallet access at all; (d) it runs on whatever the ledger currently holds, so a day with no rotation exercises none of the Q2 path and still goes green Its Q2/day-boundary prose checks are conditional on the nav-row count the tool itself reports for its `--since` window (round 5, 2026-09-10): on a state copy older than 24h they print NOT EXERCISED rather than pass or fail — so a green run on a stale copy proves nothing about those two lines. W2 2026-09-12: `account_facts` now reports realised P&L as a RECORD (USDT-only slice; non-USDT amounts listed UNCONVERTED, never summed; `realised_pnl=None` ⇒ not observable and the same-day residual refuses; a truncated income read is labelled incomplete; a pre-split row is passed through under a STATED assumption) and the per-anchor cost column uses the three buckets — both asserted on fields with the reviewer's two counterexamples as inline mutations and on real ledger rows; it still cannot CONVERT a foreign-asset fee, only name it. Round 3 (2026-09-13, researcher REVIEW §3.C): the same-day residual's flow term is now the INTERVAL difference of the day-cumulative `external_flow_usdt` (the old form subtracted a day total from an interval equity change and read -1000 on a window where nothing happened) and refuses when either endpoint is not a finite number. Two further blind spots it does NOT close: (e) the interval form is exact only because the residual is computed same-day, where both endpoints share one 00:00Z origin — nothing here re-derives that the carrier really is cumulative, it is read from `binance_broker.income_since`; (f) a zero residual is not proof the account identity holds — it means the three terms we CAN read cancel, and any movement none of them carries (a fee type outside `realised_components`, a spot transfer) is invisible to it. Round 4 (2026-09-13, researcher round-3 monitoring NAV-R3-1): the equity endpoints (start and end nav, end wallet and unrealised) and each day's closing flow are read with the same three states as realised income — a finite 0 is a value, None / NaN / inf are not observable, and an endpoint is never replaced by 0 or by the other endpoint — so a start equity of 0 no longer turns into the end equity (-100 printed on a deposit into an empty account) and a NaN equity no longer marks the residual computable; an unknown maker intent refuses the fill-rate instead of shrinking its denominator. Pre-fix readers fail 29 of its round-4 cells. Two further blind spots: (g) these are CAPABILITY cells — the ledger copy (251 nav rows, 74,860 order rows) holds no None, NaN or zero equity, so they run on synthetic rows and two temp-ledger runs of main, never on a real day where it happened; (h) FIXED by E7 (FX-EXEC 2026-09-13): a window with no nav row renders the account as NOT OBSERVABLE and names the ledger's newest row as before the window and not used ([E7-a], the entry point on a temp ledger); the four [B3] account-text promises that were exercised only through the stale-row fallback (Q1, Q3, the sight boundary, the rotation line) are now NOT EXERCISED on a window without a nav row, like Q2, and E7-a4 asserts the NOT OBSERVABLE account in that case.",
+     "tests_readers_three_bucket": "that the COST of the book is right — it proves only that three read-only screens (daily_summary per-anchor column, first_anchor_review §3c, score_post_fix E6) now classify every fill as measured / fee-unknown / unpriced under the SAME rule as anchor_loop.neutrality_price (asserted equal key by key on shared fixtures), print a bps over the measured set only, print None with the bucket counts when nothing was measured, count an unknown fill apart from a zero fill, and that the pre-fix formulas give a number on those same rows (2026-08-05 12:00Z real anchor: 103/103 fee-unknown, old -3.70bps). Four blind spots: (a) it does not convert a non-USDT fee — a BNB commission stays UNKNOWN, so a screen can now say less than before, never more; (b) pilot_metrics.m1 (the §4-1 caliber) still keeps fee-unknown notional in its denominator at fee 0 and reads complete beside a NaN fee; it is FROZEN (check_metrics_freeze) and not changed here, so E6 derives its completeness bit from the buckets, carries m1's bit beside it with the disagreement flagged, and keeps m1's c_bps_overall as the pre-registered figure; (c) the equality assertion pins the copy in cost_buckets to neutrality_price, not to chase_readout, whose collect() needs a whole tree — the two production diagnostics are assumed to agree because the review rounds asserted it; (d) the real-ledger checks read the state copy at whatever age it is, and go NOT EXERCISED (not green) when the 2026-08-05 day file is absent. Round 3 (2026-09-13, researcher REVIEW §3.C): E6 may PASS only when its verdict's population and the number it publishes come from the SAME rows — the bucket counts and notional mass against m1's own `n_filled_orders`/`filled_notional_total`, pooled AND per regime, plus agreement of both bps calibers inside a stated tolerance — and the screen now publishes the bucket figure (`cost_bps_displayed`) beside m1's. Blind spots this adds: (e) the population identity is asserted on COUNTS AND MASS each carrier reports for itself, not on row identities, so two different row sets agreeing in count and notional (pooled and in every regime) would still pass; (f) the gate makes E6 refuse to certify a mismatch — it does not FIX m1, which stays frozen, so the number the pre-registration names (`c_bps_overall`) is still m1's; (g) the frozen `watchdog` §4-1 consumer still reads `m1.c_bps_net_overall` directly and treats a NaN cost as priced and not a breach, so 'all consumers are on the three buckets' is FALSE and must not be written anywhere. Round 4 (2026-09-13): first_anchor_review reads every numeric field it prints — readback notional and quantity, equity, target_gross, fill amount, intended notional, exchange floor filters, anchor mid — as a finite number or NOT OBSERVABLE, with a finite 0 kept as a value; a NaN readback notional or a NaN equity used to print the band '★★ ABOVE 15%' on the stop-decision block, and pre-fix readers fail 11 of the [D-R4] cells. Blind spots it adds: (h) the [D-R4] trees write NaN through the validating writer but None only where the schema allows it, so a None in a not_null column (nav, target_gross, venue_position_notional) is covered by the shared finite-number reader, not by a fixture row; (i) FIXED by E7 (FX-EXEC 2026-09-13): a name with no finite target_w (None or NaN) makes the INTENT net UNKNOWN — counted and named, the partial sum labelled as not the intent net, no VENUE-minus-INTENT formed ([E7-b]); no such row exists in the live ledger today, so this is a capability cell",
+     "tests_redelivery_settles": "that every alarm reaches a human — it proves the QUEUE stops asking once one has, which is a different guarantee. Four blind spots: (a) it settles on an explicit key, so a redelivery path that forgets to pass `settles` regresses silently and only the repeat count would show it, days later; (b) it does not retroactively settle the six already sent — the seventh redelivery closes the loop, so the ledger keeps six rows that look like a live defect; (c) `SUPPRESSED` counts as settled, which is right for a test harness and wrong if anyone ever suppresses in production; (d) it says nothing about whether the redelivered TEXT is still meaningful — a stale alarm replayed hours later is delivered, settled, and possibly misleading",
+diff --git a/run_acceptance.sh b/run_acceptance.sh
+index 4599f58..6e614c5 100644
+--- a/run_acceptance.sh
++++ b/run_acceptance.sh
+@@ -283,6 +283,8 @@ SUITES=(
+   "tests_alarm_digest:$_SELF/live/tests_alarm_digest.py"
+   "tests_redelivery_settles:$_SELF/live/tests_redelivery_settles.py"
+   "tests_daily_summary:$_SELF/live/tests_daily_summary.py"
++  "tests_daily_summary_entry:$_SELF/live/tests_daily_summary_entry.py"
++  "tests_broker_nonfinite_positions:$_SELF/live/tests_broker_nonfinite_positions.py"
+   # LED-04 (FX-EXEC2 2026-09-13): pre-fix daily_nav realised split read from amendment records (guard_twin income ledger).
+   "tests_realised_amendment:$_SELF/live/tests_realised_amendment.py"
+   # ★ W2 2026-09-12 (POSTMORTEM_b0a573a1 §5 "下游成本读者未继承三桶"): the read-only cost readers
