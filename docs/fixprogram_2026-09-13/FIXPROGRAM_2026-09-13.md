@@ -1038,3 +1038,94 @@ FX-EXEC 05:05:23Z 的电池写出: `{"accept_py_set": false, "accept_py": "", "r
 > **该门确立的是「缺失的映射是可恢复的」, 不是「它从来没有缺失过」。TRN-14 / TRN-30 的底层缺陷不因此被触及分毫。**
 ⇒ **可以跑那个能回答「输入缺陷到底要不要紧」的配对实验了** —— 这是本纲领第一次让用户的核心问题**在方法上变得可回答**。
 **下一步**: **EVAL-01**(lead 新立: 用只到 2025 的验证段重选 epoch, 其余不变, 再读 2026; 差即选轮通道的量; 同一把 δ)→ 然后才是三臂。GPU 仍未动(两道门都在 CPU 上各跑了不到两分钟), 取用前会宣告。
+
+---
+
+## §34 电池两格红的双臂判决 + 由此挖出的两类装置缺陷(2026-09-16, lead)
+
+受据: `FX_EXEC/PREREG_clone_red_is_environmental_2026-09-16.md`(sha256 `63ae5601…`, 提交 b56636ba,
+**冻结于任何臂运行之前**) → `FX_EXEC/RESULT_clone_red_is_environmental_2026-09-16.md`(提交 7dd994f2)。
+
+### 34.1 判决
+fx-exec 电池(head `f7e8e3a8`, 137 套件)两格红 = **树外前置条件缺失, 与代码无关**。双臂同 head、
+同解释器、代码逐字节同一(唯一 diff 是数据账本与合成 `.env`): ARM-0 无前置条件 → 10/15 +
+FAILURES=['last-24h push discipline']; ARM-1 只补前置条件 → **15/15 + ALL PASS**。
+
+### 34.2 ★ 我自己的证伪条件触发了, 带说明推翻
+预注册第三条写「两臂检查总格数不同 ⇒ INCONCLUSIVE」。`tests_alarm_digest` 是 32 vs 33, **触发**。
+逐格 diff 后该差被**双射**解释: 窗口不可观测时套件发**一格占位**并判 FAIL, 有数据时这一格被它
+**点名的两格**真检查取代, 其余 31 格逐字节相同。不是「换进更容易的检查集」, 故判两臂可比。
+**记为带说明地推翻自己冻结的判据, 不是悄悄放行** —— 且它起了作用, 逼出下面两条。
+
+### 34.3 ★★★ GEN-4 (P1, owner fx-prod): 空转的变异控制
+`tests_env_loading` [E]: 「删掉 loader ⇒ 不再填充 `TELEGRAM_*` ⇒ 变异被杀死」。但 [B] 已记录
+**未变异**的 `unseed_rehearsal_halt.py` 本来就不填充(克隆无 `.env`)。**变异前后同一个观测值** ——
+控制毫无鉴别力却判通过; ARM-1 中 [B] 转绿后它才真有鉴别力。
+
+> **一般形式: 形如「变异 ⇒ 翻红」的红能力检查, 在基线已经是红的时候恒真。**
+> **这比假绿更隐蔽 —— 假的是控制本身, 而控制正是我们给结论盖章用的黄金标准。**
+> 规则: 凡红能力/变异检查**必须先断言基线为绿**, 否则报 UNAVAILABLE; 判词必须同时给出
+> 「基线值」与「变异后值」两个数, 只给后者等于没给。
+
+GEN-4 = 全库普查此形态, **判定要用行为不要用文本**(必须实跑未变异探针拿基线值 —— 本例单看
+[E] 源码看不出来, 是 [B] 碰巧把基线值打进日志才暴露)。
+
+对照范本: 同一次电池的 `tests_alarm_digest` 判词写「only 0 readable alarms in 24h —
+**NOT OBSERVABLE, not a pass**」, 明确区分不可观测与不通过。**保留作范本。**
+
+### 34.4 ENVRED-1 / ENVRED-2 (P2, owner fx-exec)
+- **ENVRED-1**: `tests_env_loading` 在 `.env` 缺失时报 **UNAVAILABLE(独立退出码)**不得报 FAIL;
+  **[E] 必须先断言 [B] 基线为绿**。
+- **ENVRED-2**: 电池 runner 在 KB-73 解释器记录旁追加**树外状态记录**。
+- **KB-73 的推广**: **电池计数只在同一「树外状态」下可比。** 同代码生产树 135/135、临时克隆
+  133/135, 差的两格只因克隆没 `.env` 且 `notify_audit.jsonl` 是 21 天前快照(1047 行停在
+  08-26T02:24Z; 生产 1986 行、最新距今 0.6h、24h 内 44 条 = 15 DELIVERED + 29 RECORDED_NOT_PUSHED)。
+  **任何跨树电池计数比较, 未声明树外状态即作废。**
+
+### 34.5 顺带自证
+生产树 14 格 vs head 15 格**不是手加的检查**, 是 `alarm_capable()` 算出的人口从 4 涨到 5
+(`ops/notarize_ledgers.py` 接上了 `_envfile.load()`)。[A] 的「人口要算不要打」按设计工作。
+
+---
+
+## §35 公证链断 16 天: 独立复核 FX-EXEC LED-06, 并证伪一个顺手的修法(2026-09-16, lead)
+
+### 35.1 复核结论: fx-exec 对, 且比它报的更严重
+| | fx-exec 报(09-13 普查) | lead 独立复核(09-16) |
+|---|---|---|
+| `prev=GENESIS` 的清单 | 13 份(08-31..09-12) | **17 份** = 20260801(合法创世) + **08-31..09-15 连续 16 天** |
+| 真正链上的 | — | 29 份(08-02..08-30), 链断/不匹配 0 |
+差异非 fx-exec 之误, 是普查日期之后又长了 3 天。**登记册须带当前数。**
+
+### 35.2 机制断言实测证实(只读 launchd A/B 诊断)
+fx-exec 称「launchd 下 glob 研究仓返回 `[]`(glob 吞掉列目录错误)」。实测同一刻:
+`glob.glob(NOTARY+"/manifest_*.json")` → `[]`, 而 `os.listdir(NOTARY)` → `PermissionError
+[Errno 1] Operation not permitted`, 且 `stat(NOTARY)` → **OK**。
+**进程能 stat 不能枚举**(macOS 把 Desktop 列为受保护位置; 我的交互 shell 有授权, launchd 下的
+`/usr/bin/python3` 没有 —— 这正是它 16 天没被发现的原因)。空列表与「还没有任何清单」
+不可区分 ⇒ `prev_manifest_sha()` 返回 GENESIS。**这是「字段缺了就跳过」家族的教科书实例。**
+
+### 35.3 ★ 被证伪的顺手修法: 加 `WorkingDirectory` 没用
+设了之后 getcwd 确实从 `/` 变成 `~/dl_quant_live`, 但 **glob 仍 0、listdir 仍拒绝、git 仍 rc=128
+同一句话**。原因: `git -C <path>` **先 chdir 进目标再 getcwd**, chdir 成功(stat 可以)、getcwd 在
+受保护目录内失败。**那句 "Unable to read current working directory" 说的是 `-C` 的目标, 不是启动 cwd。**
+幸好先跑了 A/B 而不是直接改 plist。
+
+### 35.4 ★ 好消息: 台账本身零篡改(第一次被测出来而非假定)
+跑 fx-exec 的只读 `verify` 指向生产台账: **rc=3, files_ok=true, amendments_ok=true,
+chain_ok=false, counts={"EXACT":277, "APPENDED":45}**, 16 个链断点逐个点名。
+所有对已公证文件的变动都是**行边界上的纯追加**(markout 回填; 如 20260912 fills.jsonl 从
+1,357,906 长到 6,049,701 字节 = 公证后追加 7,324 行), 零 TAMPERED/TRUNCATED/MISSING。
+fx-exec 那套(bytes, sha256)前缀验证的设计是对的 —— 旧的整文件合同会把 43 天里的 42 天读成「被改」。
+
+### 35.5 处置
+- 16 份清单已由 lead 用**显式 pathspec** 补提交(511639fc)。
+- **16 个链断点不回填、不改写**: 事后重写清单会摧毁它本要提供的防篡改性(等于倒签链)。
+  留作永久的、被逐个点名的疤; `verify` 已能点名。代码修好后 20260916 起正常回指。
+- **影响面已界定**: 递归扫全部 LaunchAgents 及其引用脚本(14 个文件), **只有 `com.hsy.notary`
+  真访问研究仓**; `ic_monitor.py` 那处命中在**文档字符串**里, `weekly_recon.sh` 不归 launchd 调度。
+  (此结论是**越过第一次 grep 再扫一层**得到的 —— 第一次 grep 只命中 1 个, 若就此收口会漏掉筛查本身。)
+- **TCC 那半归 lead**(fx-exec 已声明「本文件修不了」, 正确)。修法方向: launchd 侧产物落在
+  非受保护位置, git 提交/推送由有授权的上下文做。fx-exec 的 LED-06 已把路径/分支/远端全参数化到
+  `config/ledger_notary.json`, **合并后是纯配置改动**。
+- **不在交易路径上**: 公证器只读台账、写清单, 不影响策略表现。按 P2 走, 不占关键路径。
