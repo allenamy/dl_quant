@@ -264,6 +264,9 @@
 
 ### 13.2 裁定
 1. **PROD-27 严重度按「因 × 果」两维**: `late_producer` ⇒ HIGH; `late_daemon_start` ⇒ 默认 INFO/计数, 但同锚出现 (i) 执行器无可用外部书(HOLD / `ok:false` / 无 LIVE phase_A 行) 或 (ii) 连续 ≥2 锚落静默分支 ⇒ 升 HIGH; **PROD-31(无文件)不进该分裂, 一律 HIGH**。三者都必须具名 + 计数 + 进逐锚记录。
+
+> ⚠ **更正 KB-72 · P2 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 本条裁定里的 **PROD-31 应为 PROD-42** —— 「无文件」项已按 §17.5 由 PROD-31 改号为 **PROD-42**(原号标 SUPERSEDED-ID), 而 `AUDIT_PROD`(ee2a8c4d)的 PROD-31 是「`fea171/f10_live_s42.pt` 是八月模型」, 与本裁定无关。实施 PROD-27 严重度分裂者按 **PROD-42(无文件)不进该分裂, 一律 HIGH** 读。§17.5 的改号只改了 §13.1/§14.2 的登记表与 `STATE.md`, 本条是残留引用。
+
 2. **「哪个形态被交易」不归生产者**: 生产者只记 `form_written` + join key(anchor / json_sha / written_utc); **traded 是执行器的词**(`phase_A.external_book.producer`)。受据: 09-02 00Z 与 09-09 12Z 有 combo 文件却无 LIVE phase_A 行。对账由读者做并给出定义。
 3. **LED-08 不把 δ 折进触发条件**: 检测(离开被刻画的 regime)与实质性(K2 书层 δ 0.05 bps/锚/gross)分层; 经济换算(+0.026 bps/锚/gross)照印不照判。**一个真实的水平位移可以落在书层实质带以下** —— 这句本身是给 K5 的输入。
 4. **B13 参照锚 = 最新 `anchors` 行 + 具名排除**(按 `live/rebalance_id.py:26-30` 的性质判别, 禁按 `FLATTEN-` 名字判); 动作**只停开仓, 不平书, 不写 `tripped_at`, 不 `set_reduce_only`**; `last_eval.json` 的五种缺失态各自具名(缺失/不可读/非法/mode 戳不符/比本锚旧), 默认动作 = 与「书未被观察到」同义; **DRY_RUN 必须是显式负控**; **每次打印用了哪个参照**。队列重排: B13 → 平仓行时间戳 → FXR-W6C-1 → I6 → cond4。

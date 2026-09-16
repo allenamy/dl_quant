@@ -20,6 +20,9 @@
 | A11 | **时序** | 生产者落盘 N+21:12–21:51(实测 8 锚), combo ≈1s(管线已热)/≈40s(冷), 执行器读 N+23:00; **硬截止 N+22:40** 拒绝迟写 | ✅ 截止实测触发(rc=3) | 彩排② |
 | A12 | **告警链路** | 中止/异常/跳过三条路径全部 HIGH 页报; 凭据只从 .env 解析 TELEGRAM 两项(不装 BINANCE 键入环境) | ✅ HIGH 与 INFO 自检均 DELIVERED | notify_audit 末条 |
 | A13 | **回滚** | ① 每锚自动备份 king 原件到 target_live_king/; ② 读者验收不过 ⇒ 当锚自动拷回; ③ 整体回滚 = kill 守护 PID(下一锚起自动 king 形态), 不动任何其他组件 | ✅ 机制在码, 回滚路径彩排未破坏原件 | 彩排②后原件核验 |
+
+> ⚠ **更正 KB-34 · P1 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): ③ 整体回滚 = `launchctl bootout gui/$(id -u)/com.hsy.combolive`(临时; 持久再加 `launchctl disable …`; 恢复 = `launchctl enable …` + `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.hsy.combolive.plist`)。08-30 起 launchd KeepAlive, kill PID 会被 1 s 内拉起, 不再是回滚(哑任务演练收据 OPS_rollback_verb_drill2_20260913T144746Z.log; 见 STATE §1)。不动任何其他组件
+
 | A14 | **失败缺省形态** | 任何失败 ⇒ 执行器读到生产者 king 文件(3 腿在役书)= 已验证的旧形态; 绝无"读不到文件"风险(原文件先在) | ✅ 设计+彩排 | — |
 | A15 | **切换代价** | 首锚一次性换手 ≈2.4% gross(EMA 暖启动使 combo 锚定现仓) | ✅ 实测 | 00:00Z 对比 |
 | A16 | **执行器/实盘仓零改动** | 本次换装 dl_quant_live 零提交; 电池维持 122/122(10063a6 起未动) | ✅ | git log |
@@ -29,6 +32,9 @@
 |---|---|---|
 | shadow_loop_v3(PID 18998) | 数据+king 三腿书生产者, 先写 target_live(=自动回滚缺省) | 未动 |
 | **combo_live_daemon(PID 72287)** | 生产者落盘后等 aux/rolling 落定 → combo_stage COMBO_LIVE=1 重写 target_live | **新** |
+
+> ⚠ **更正 KB-35 · P2 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 组件表(08-26 快照)。⚠ 现状: 三守护 08-30 起 launchd 管理(`com.hsy.shadowloop` / `com.hsy.combolive` / `com.hsy.sidecar`), PID 以 `launchctl print` 为准; 执行器自 08-26 后多次改动(当前 ef60f85, 电池 135/135); 本清单已超过自身作废条件(换装稳定一周), 仅作历史
+
 | combo_stage.py | 候选书计算+五层安全+读者自验收; 亦写 target_combo/(研究记录)与双书状态 | 新(NaN 序修复含) |
 | sidecar_daemon(PID 11380)+sidecar_blend | 独立第二实现: king 自平价+含 rev24 的 blend 记录(交叉核对器) | 未动(NaN 序修复含) |
 | 执行器/看门狗/止损/守护双子 | 全部零改动 | 未动 |
@@ -37,6 +43,9 @@
 1. 宇宙冻结 08-16(450 vs 527)— 新旧同承, 待单独裁定刷新机制。
 2. 实盘模型 f10_live_s42 训练至 2026-08-06/07 ⇒ 09-01 月度重训适用(RUNBOOK_monthly_retrain_2026-09)。
 3. fund 构成升至 ~77%(候选结构属性, 已在正典文档 §3 局限声明)。
+
+> ⚠ **更正 KB-36 · P3 · AUD-KB K4 2026-09-16**(原句字节保留, 不改写): 3. fund 构成 08-26 为 ~77%, 随席位滚动(2026-09-13 12Z fund 席位 0.618)。
+
 4. 前向证据从今日起积累; 首周判据见正典 §6。
 
 ## D. 首锚(04:00Z)验证项(锚后执行)

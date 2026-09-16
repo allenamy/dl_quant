@@ -2,6 +2,12 @@
 
 # AUDIT_KB_PARTIAL · 评估装置与知识库陈旧结论审计(2026-09-13)
 
+> ⚠ **已被取代 · AUD-KB K4 2026-09-16**(本文件原字节全部保留, 未删未改): 终版为 **`docs/audit_pipeline_2026-09-13/AUDIT_KB.md` / `.json`(304 行, 提交 827014d7)**。本文件 248 行仍可引用作历史, 但**两处判词已翻**: 
+> 
+> - 本文 §CRON 的 **「Replacement prompt 1 — 每锚深查」与 CRON-02 / CRON-04 的建议文本判为 NOT ADOPTED**(登记 **CRON-13 / CRON-14**; 受据: 独立复审 **FXR-KB-1** · `PREREG_placement_eps050_reread_2026-09-16.md` AMENDMENT 1 §「收紧」· `docs/AMENDMENT_1_chase_restart_population_2026-09-16.md` §前向盲态)。原因有二: ① 它要求把 maker 成交占比与费 bps **按 chase / requote / placement 臂拆读**, 属 CFG-06 读数产出前被禁的**逐臂结果量**(前向只许报臂平衡); ② 它把用户冻结的升级判据换成**近 42 锚 p5–p95 动态带**与 +0.5pp 步长, 属未获批准的新监控政策。**取代它的 2026-09-16 修订版**在 `AUDIT_KB.md` §5 与 `docs/CRON_TEMPLATES_2026-09-04.md` 文末附注, 结构与在役 cron `a84f2bd4` 同(用户模板逐字 + 更正附注)。
+> - 本文 §0 的一页纸与各行凡引「夏普 1.29」处, 一律按 **FXR-DOC-3** 补窗: W_ALPHA 9,138 锚 1.29122344 [0.3207, 2.2822](探索性日块自举, 非选择校正区间)/ W_FULL 10,038 锚 1.1062 / 9,139 锚 1.2947, **三者不可混用**; 成本面亦须具名。见 `AUDIT_KB.md` KB-63..KB-68。
+
+
 > **⚠ PARTIAL — paused on the lead's order (account usage limit).** Not the final register. Rows are verified individually (quotes re-located on disk at assembly); coverage is incomplete (M4 sweep partial) and cross-register de-duplication is not done.
 
 ## State note (pause)
