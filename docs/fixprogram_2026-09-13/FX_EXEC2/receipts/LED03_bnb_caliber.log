@@ -1,0 +1,46 @@
+[C1] the rate is the close of the CONTAINING minute
+  OK    ★★ C1 first ms of the minute -> 600.0  — (1787746980000, 600.0)
+  OK    ★★ C1 mid-minute -> 600.0  — (1787746980000, 600.0)
+  OK    ★★ C1 last ms of the minute -> 600.0  — (1787746980000, 600.0)
+  OK    ★★ C1 1 ms into the next minute -> 590.0  — (1787747040000, 590.0)
+
+[C2] ★★★ a missing minute is NAMED, and the neighbours are not used
+  OK    ★★★ C2 the gap minute really is absent while both neighbours exist
+  OK    ★★★ C2 usdt is None (never 0) and the reason is named  — {'caliber': 'bnb_spot_1m_close_at_fill', 'commission_bnb': -0.5, 'fill_ts_ms': 1787747100100, 'minute_open_ms': 1787747100000, 'rate_usdt_per_bnb': None, 'usdt': None, 'reason': 'bnb_spot_1m_kline_absent', 'source': {'archive': 'spot/monthly/klines/BNBUSDT/1m/BNBUSDT-1m-2026-08.zip', 'sha256': 'dead
+  OK    ★★★ C2 no neighbouring minute's close leaked in as the rate  — None
+
+[C3] an unusable price is named SEPARATELY from an absent one
+  OK    ★★ C3 a zero close -> reason bnb_spot_1m_close_not_a_positive_number, not bnb_spot_1m_kline_absent  — bnb_spot_1m_close_not_a_positive_number
+  OK    ★★ C3 a negative close -> reason bnb_spot_1m_close_not_a_positive_number, not bnb_spot_1m_kline_absent  — bnb_spot_1m_close_not_a_positive_number
+  OK    ★★ C3 a nan close -> reason bnb_spot_1m_close_not_a_positive_number, not bnb_spot_1m_kline_absent  — bnb_spot_1m_close_not_a_positive_number
+  OK    ★★ C3 a inf close -> reason bnb_spot_1m_close_not_a_positive_number, not bnb_spot_1m_kline_absent  — bnb_spot_1m_close_not_a_positive_number
+  OK    ★★ C3 a text close -> reason bnb_spot_1m_close_not_a_positive_number, not bnb_spot_1m_kline_absent  — bnb_spot_1m_close_not_a_positive_number
+
+[C4] an unreadable amount or timestamp is named, never dropped
+  OK    ★★ C4 a None amount is named
+  OK    ★★ C4 a nan amount is named
+  OK    ★★ C4 a None timestamp is named  — fill_timestamp_not_a_finite_millisecond
+  OK    ★★ C4 a zero timestamp is named  — fill_timestamp_not_a_finite_millisecond
+  OK    ★★ C4 a negative timestamp is named  — fill_timestamp_not_a_finite_millisecond
+  OK    ★★ C4 a nan timestamp is named  — fill_timestamp_not_a_finite_millisecond
+  OK    ★★ C4 a text timestamp is named  — fill_timestamp_not_a_finite_millisecond
+
+[C5] the sign survives
+  OK    ★★ C5 a negative commission stays negative after conversion  — -1.923228
+
+[C6] ★★★ totals are over CONVERTED rows only, with the rest reported beside them
+  OK    ★★★ C6 the total is exactly the two convertible rows, and does NOT include the other two  — -178.0
+  OK    ★★★ C6 the unconverted BNB is reported beside the total, not folded into it  — -0.05
+  OK    ★★ C6 the reasons are counted by name  — {'bnb_spot_1m_kline_absent': 1, 'commission_amount_not_a_finite_number': 1}
+  OK    ★★ C6 per-row fields from the input survive the conversion (the symbol is still there)  — ['AAAUSDT', 'BBBUSDT', 'CCCUSDT', 'DDDUSDT']
+
+[C7] provenance travels with every row
+  OK    ★★★ C7 converted AND unconverted rows both carry the source and the caliber  — [('AAAUSDT', 'bnb_spot_1m_close_at_fill', True), ('BBBUSDT', 'bnb_spot_1m_close_at_fill', True), ('CCCUSDT', 'bnb_spot_1m_close_at_fill', True), ('DDDUSDT', 'bnb_spot_1m_close_at_fill', True)]
+
+[C8] the caliber is the ruled one, and the file says what it is not
+  OK    ★★★ C8 the caliber name is exactly `bnb_spot_1m_close_at_fill`  — bnb_spot_1m_close_at_fill
+  OK    ★★ C8 the module states that the perp mark is a SENSITIVITY column and never a substitute
+  OK    ★★ C8 ...and that a missing minute is never interpolated nor taken from the nearest minute
+
+28/28 checks passed
+ALL PASS
