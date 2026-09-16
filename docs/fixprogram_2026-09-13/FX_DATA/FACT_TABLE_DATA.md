@@ -231,3 +231,26 @@ Device `FX_DATA/devices/fx_hol01_provenance.py` (`19aceb6e`), committed at `0d61
 | L5 | **The only value differences in v3splice's interval column are FND-03's 138 cells**: `f_fund_iv` has exactly **138** value differences with max \|Δ\| **3.0** (stored 4h against a true 1h). That is the same 138 the audit attributes to DEXE / ERA / BANK / PROM / ACE in 2026-08-01..14, arriving here from an independent comparison | same, cross-read against `AD_B_funding_iv.json` `panels.v3splice` |
 
 **Status.** HOL-01's remaining work is **not** "rebuild the panel" — it is a panel that has the rebuild's **kline** columns and the canonical continuation's **funding** columns, because `rawbuild_x0910` rebuilds funding from scratch instead of continuing the canonical EMA, which is the reason `r6_panel_splice.py` exists at all. That artifact is the **same file** FND-01 must produce, so building them separately would leave two panels nobody can reconcile. **HOL-01 and FND-01 are therefore one rebuild, and it is blocked on the same FX-PROD confirmation.** The legs `Z24`/`ZFD` old rows are a third piece and are not rebuilt either.
+
+## §D2 / §D3 — the two closures FIXPROGRAM §4.3 assigns to FX-DATA
+
+### D2 (= TIM-02, metrics archive label switch 2024-03-04)
+The audit closed it as `VERIFIED_IMMATERIAL` on the ground that "only L2 reads the metrics archive and it applies the label regime by date", scanned at commit `deb8a47b`. HEAD has moved since, and EVL-01 showed that an audit census can be narrower than HEAD, so I re-ran it rather than inheriting it.
+
+| # | Fact | Source |
+|---|---|---|
+| M1 | **32 files at HEAD** touch the metrics archive (patterns `data.binance.vision…metrics`, `/metrics/`, `metrics_archive`, `openInterestHist`, `sumOpenInterest`). Of those, **6 were added or last touched on/after 2026-09-09**: the four L2 devices and smoke tests, and the audit's own two scan devices. The other 26 were last touched 2026-06 (2), 07 (4) and 08 (20). **The audit's claim holds at HEAD** | `git grep` + per-file first/last commit dates, this session |
+| M2 | **Zero** metrics references in all eight canonical panel / cache / retrain builders checked one by one: `pod_panel_ext.py`, `pod_panel_splice.py`, `pod_merge_cache_ext.py`, `pod_fea_ext_clamp.py`, `pod_dlw_targets_raw.py`, `r6_merge_cache.py`, `r6_panel_splice.py`, `r6_fetch_klines.py` | same |
+| M3 | **One precision correction to the audit's wording.** "No panel … builder reads the archive" is true of the canonical lineage but not literally true: `runpod_scripts/workspace_mirror/pod_oi_panel.py` parses `wide_multisrc/metrics` daily zips into `wide_oi_v1.npz`. It is off the canonical axis (it reads `wide_fea_v1_meta.npz` / `wide_panel_4h_v1.npz`), its only consumer at HEAD is `pod_bracketB_lgbm_oi.py`, and **both were last touched 2026-08-21** with nothing since. So the label switch does reach one frozen 2026-08-21 OI panel, and no live, retrain or replay path | same |
+
+**D2 closed** on M1–M3, with M3 recorded so the wording is not quoted more broadly than it holds.
+
+### D3 (= FWD-01, the forward-return member predicate)
+The audit closed it as `VERIFIED_IMMATERIAL` with the numbers already in `AD_C_cache_members.json` (positive control: axes and every member list equal; the king rule's forward predicate removes 33 / 3 / 1 / 3 / 3 pairs per year and the DL rule the same; king OOF and F10 OOF written exactly on those lists with 0 predictions outside), and its action is **"None beyond TRD-01; replace the predicate by the causal trades flag when the screens are edited."** FIXPROGRAM §4.3 adds "TRD-01 修后复测".
+
+| # | Fact | Source |
+|---|---|---|
+| M4 | The re-test is **not** runnable by FX-DATA today, and running it on the wrong population would be worse than waiting. FWD-01 is about the **king-meta** and **DL** member rules (`pod_fea_ext_clamp.py:37`, `pod_dlw_targets_raw.py:107`), which are **TRD-05, owned by FX-MODEL**. The A0 member-rule numbers I produced under TRD-02 and TRD-04 are a different population and must not be substituted for them | AUDIT_DATA FWD-01, TRD-05; FIXPROGRAM §4.3 |
+| M5 | What FX-DATA owed is delivered: the causal flag exists as `FX_DATA/artifacts/tradability_v1.npz` sha `54d409d0…`, reconciled against the audit census, on the 4h grid plus 5m rolling bits. When FX-MODEL edits the screens, the re-test is `isfinite(y4)` against `isfinite(y4) ∧ tradable(A)` on the king-meta and dlw axes | §TRD-D2 |
+
+**D3 is not closed by FX-DATA.** Its remaining half is a re-test on FX-MODEL's population after FX-MODEL edits the screens; the input it needs is committed and pinned.
