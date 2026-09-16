@@ -1,6 +1,6 @@
 {
  "meta": {
-  "created_utc": "2026-09-16T04:01:16Z",
+  "created_utc": "2026-09-16T04:08:45Z",
   "auditor": "aud-kb",
   "read_only": true,
   "scope": "Evaluation devices and knowledge base: CLAUDE.md, STATE.md, docs/MILESTONE_2026-08-26.md, docs/CANDIDATE_wide_v2main_norev24_2026-08-26.md, docs/CHECKLIST_combo_switch_2026-08-26.md, docs/ERROR_LEDGER_2026-08-20.md (index + caliber/seat entries), uplift_r2/uplift_r3 programmes and their T/L results, uplift CLOSEOUT 09-12, memory MEMORY.md + all 262 linked notes (5 sub-auditor sweeps), judge_v4.py and label predicates of T/L/P2 devices, per-anchor deep-check cron template.",
@@ -15,28 +15,28 @@
    "multi_asset/exports/research/uplift_r2_2026-09-13/PROGRAM_uplift_r2_2026-09-13.md": "389a00787010ab4a122dc1d7f4d9e21c399c6f790d497ebef2ba3f6434a851b7",
    "multi_asset/exports/research/uplift_r3_2026-09-13/PROGRAM_uplift_r3_2026-09-13.md": "e7c62106c28a7f5c4f0a3d6388f692f460206f629dcdc93c7fe426b28f645f99",
    "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/judge_v4.py": "c2a81c48f037756067b23225b5a6bbee43ce6589898db3230437a17d398956ba",
-   "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md": "d67b946590c160ad13093d65acbc0f23720610ccfb889cfdea047997ea3d0a6b"
+   "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md": "881311eb1b9b2039130738d9a6e76c696f92adc66a82369d6f4f71ac6aef355a"
   }
  },
  "counts": {
-  "rows": 304,
+  "rows": 307,
   "status": {
-   "DOC_STALE": 275,
+   "DOC_STALE": 277,
    "PENDING_USER_DECISION": 5,
-   "OPEN_NOT_MEASURED": 17,
+   "OPEN_NOT_MEASURED": 18,
    "VERIFIED_CURRENT": 7
   },
   "severity": {
    "P0": 3,
    "P1": 61,
-   "P2": 146,
+   "P2": 149,
    "P3": 94
   },
   "by_area_severity": {
    "KB": {
     "P0": 1,
     "P1": 22,
-    "P2": 34,
+    "P2": 37,
     "P3": 14
    },
    "MEM": {
@@ -975,7 +975,7 @@
    "wrong_conclusion_risk": "A reviewer or a later session resolves 'PROD-30' against AUDIT_PROD and gets the exec_n6 sandbox producer instead of the G1/G2 N+23 mis-calibration; 'PROD-33' resolves to the CLAUDE.md N+23 doc item instead of the single-slot combo_live_status.json defect. A book-behaviour ruling could be taken against the wrong evidence, and every cross-reference between the review package and the audit registers becomes ambiguous.",
    "proposed_correction": "[§13.1 表内原编号字节保留, 在 §13.1 表下插入] ⚠ **2026-09-16 编号更正(aud-kb KB-69)**: 本表的 **PROD-30 / 31 / 32 / 33 / 34 与 `AUDIT_PROD`(ee2a8c4d)已占用的同号项冲突**, 而本表自身又按号引用「AUDIT_PROD PROD-28」⇒ 两表同命名空间。**AUDIT_PROD 已用到 PROD-40, 空号自 PROD-41 起**。按下表重编, 原号保留并标 SUPERSEDED-ID: **PROD-30 → PROD-41**(G1/G2 仍按已退役 N+23 标定)· **PROD-31 → PROD-42**(08-29 20Z 生产者未出 king 文件)· **PROD-32 → PROD-43**(守护告警路径在生产中从未执行)· **PROD-33 → PROD-44**(`combo_live_status.json` 单槽可变)· **PROD-34 → PROD-45**(排练模式用 `WS` 备份写进实盘状态树)。冲突对象逐条: AUDIT_PROD PROD-30 = exec_n6 沙箱生产者 · PROD-31 = `fea171/f10_live_s42.pt` 是八月模型 · PROD-32 = `stop_overlay.py` 只是报告影子 · PROD-33 = CLAUDE.md 写 N+23 而执行器读 N+24 · PROD-34 = 在役 booster 8d79186b 训练于未 clamp 构建器。**同时更正 `STATE.md:144` 的「登记为 PROD-30」为「登记为 PROD-41」**(见 KB-70)。",
    "confidence": "VERIFIED (quote+receipt opened)",
-   "resolution": "APPLIED by lead 2026-09-16 05:0xZ (FIXPROGRAM §17.5 「编号冲突更正(AUD-KB 发现, lead 自身错误)」). Scope was WIDER than this row found: seven collisions, not five — the lead also caught PROD-35 (AUDIT_PROD: V2MAIN trained with fund columns zeroed for non-live450 names on the pre-holefix cache) → PROD-46, and PROD-36b (AUDIT_PROD: replay caches shorter than ~37 days put btcv back-fill into the 180-anchor z window) → PROD-47. All seven renumbered in place in §13.1 / §14.2 with 「原登记为 PROD-3x … 原号标 SUPERSEDED-ID」; original bytes retained. A standing rule was added: new ids in this programme must be checked against all four audit registers first, because they share one namespace. ⚠ One residual reference remains at §13.2 ruling 1 — see KB-72.",
+   "resolution": "APPLIED by lead 2026-09-16 05:0xZ, commit **5642fbc2** (FIXPROGRAM §17.5 「编号冲突更正(AUD-KB 发现, lead 自身错误)」). The lead re-verified independently rather than taking the row as read, and the scope was WIDER than this row found: **seven** collisions, not five. The two this row missed were in §14.2, which I had not scanned: PROD-35 (AUDIT_PROD: V2MAIN trained with fund columns zeroed for non-live450 names on the pre-holefix cache) → **PROD-46**, and PROD-36b (AUDIT_PROD: replay caches shorter than ~37 days put btcv back-fill into the 180-anchor z window) → **PROD-47**; the lead notes the `b` suffix was meant to signal 「related to PROD-36」 but reads as a sub-item of a different finding. All seven renumbered in place to PROD-41..47 with 「原登记为 PROD-3x, 与 AUDIT_PROD 撞号, 原号标 SUPERSEDED-ID」, original bytes retained, and a standing rule added: new ids must be checked against all four audit registers first. ⚠ The same ruler, applied to the rest of §13–§17, finds one more collision — TRN-28, see **KB-74** — and two that predate the programme — LED-01 / DOC-01 between AUDIT_EXEC and AUDIT_DATA, see **KB-75**.",
    "xref": [],
    "verification_at_assembly": {
     "source_check": "applied: stale quote no longer present",
@@ -1012,7 +1012,7 @@
    "wrong_conclusion_risk": "The user or a later session looks up PROD-30 to decide the G1/G2 question and reads the exec_n6 sandbox item instead.",
    "proposed_correction": "[替换该句, 原句字节在 FIXPROGRAM §13.1 与本登记内保留] 登记为 **PROD-41**(原写 PROD-30; 与 `AUDIT_PROD` ee2a8c4d 的 PROD-30 = exec_n6 沙箱生产者 撞号, 2026-09-16 按 aud-kb KB-69 重编), 待用户裁定, 属书行为。",
    "confidence": "VERIFIED (quote+receipt opened)",
-   "resolution": "APPLIED by lead 2026-09-16: STATE.md:144 now reads 「登记为 **PROD-41**(原写 PROD-30, 与 AUDIT_PROD 的 exec_n6 沙箱生产者项撞号, 09-16 改号), 待用户裁定, 属书行为」.",
+   "resolution": "APPLIED by lead 2026-09-16, commit **5642fbc2**: STATE.md:144 now reads 「登记为 **PROD-41**(原写 PROD-30, 与 AUDIT_PROD 的 exec_n6 沙箱生产者项撞号, 09-16 改号), 待用户裁定, 属书行为」 — original id and the reason kept in the parenthetical.",
    "xref": [],
    "verification_at_assembly": {
     "source_check": "applied: stale quote no longer present",
@@ -1172,7 +1172,7 @@
    "wrong_conclusion_risk": "A σ_fund gross ladder is active and can halve gross after 84 low-dispersion anchors.",
    "proposed_correction": "~~★ 09-04 09:34Z σ_fund gross 阶梯已上线~~ **已撤回**: 09-04 当日卸载(PREREG_deploy_sigma_ladder §处置, 状态文件移为 `.reserve_20260904`, 执行器读端缺失 ⇒ g=1.0); 其录取受据为 CAL=simple 作废口径(REVIEW_caliber_final #20); 2026-09-13 14:00:50Z `launchctl disable` + plist 移至 `~/Library/LaunchAgents_retired/`(FIXPROGRAM OPS-01)。执行器读端仍在(OPS-01b 待修)。",
    "confidence": "VERIFIED (quote and receipt opened)",
-   "resolution": "XREF AUDIT_EXEC OPS-01 — CROSS-REF: the σ_fund gross ladder re-arming is owned by AUDIT_EXEC OPS-01; the lead disabled and retired the plist 2026-09-13 14:00:50Z (6cc95943).",
+   "resolution": "XREF AUDIT_EXEC OPS-01 — CROSS-REF: the σ_fund gross ladder re-arming is owned by AUDIT_EXEC OPS-01; the lead disabled and retired the plist 2026-09-13 14:00:50Z (6cc95943). ⚠ **口径(KB-73)**: 本行引用的「逐套件 N/M」只在同一解释器下可比 —— 电池 `run_acceptance.sh:28` 的 `PY=\"${ACCEPT_PY:-/usr/bin/python3}\"` 是**可被环境变量覆盖的默认值**, 认证它的断言只对源码做子串检查, 且 `state/acceptance/` 38,177 份工件中 0 份记录解释器版本; 2026-07-27 前两入口一钉一裸, 裸 `python3` 制造过两个假红。引用计数时须写明解释器。",
    "xref": [
     "OPS-01"
    ],
@@ -1611,7 +1611,7 @@
    "wrong_conclusion_risk": "Components run as nohup processes with these PIDs.",
    "proposed_correction": "组件表(08-26 快照)。⚠ 现状: 三守护 08-30 起 launchd 管理(`com.hsy.shadowloop` / `com.hsy.combolive` / `com.hsy.sidecar`), PID 以 `launchctl print` 为准; 执行器自 08-26 后多次改动(当前 ef60f85, 电池 135/135); 本清单已超过自身作废条件(换装稳定一周), 仅作历史",
    "confidence": "VERIFIED (quote and receipt opened)",
-   "resolution": null,
+   "resolution": "⚠ **口径(KB-73)**: 本行引用的「逐套件 N/M」只在同一解释器下可比 —— 电池 `run_acceptance.sh:28` 的 `PY=\"${ACCEPT_PY:-/usr/bin/python3}\"` 是**可被环境变量覆盖的默认值**, 认证它的断言只对源码做子串检查, 且 `state/acceptance/` 38,177 份工件中 0 份记录解释器版本; 2026-07-27 前两入口一钉一裸, 裸 `python3` 制造过两个假红。引用计数时须写明解释器。",
    "xref": [],
    "verification_at_assembly": {
     "source_check": "exact (line moved 31->34)",
@@ -2334,6 +2334,139 @@
    "subauditor_file": "rows_NEW4.jsonl"
   },
   {
+   "id": "KB-73",
+   "area": "KB",
+   "source": "CLAUDE.md:46",
+   "quote": "| 部署/回滚/电池 | `~/dl_quant_live/ops/safe_commit.sh` + `run_acceptance.sh` |",
+   "superseding_evidence": [
+    {
+     "path": "~/dl_quant_live/run_acceptance.sh:28",
+     "quote": "PY=\"${ACCEPT_PY:-/usr/bin/python3}\""
+    },
+    {
+     "path": "~/dl_quant_live/run_acceptance.sh:20",
+     "quote": "# This machine has three: /usr/local/bin/python3 (3.14.4, NO torch — and torch has no 3.14 wheels"
+    },
+    {
+     "path": "~/dl_quant_live/live/run_acceptance.sh:15",
+     "quote": "# the freeze. The same split also manufactured two false \"known failures\": under bare python3"
+    },
+    {
+     "path": "~/dl_quant_live/live/tests_acceptance_entrypoints.py:55",
+     "quote": "\"ACCEPT_PY:-/usr/bin/python3\" in open(ROOT_SH).read(), \"ACCEPT_PY pinned\""
+    }
+   ],
+   "status": "OPEN_NOT_MEASURED",
+   "affects": [
+    "reporting",
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "Every 「逐套件 N/M」 receipt in the knowledge base is comparable only if the same interpreter produced it, and no acceptance artefact records which one did: the runner resolves `PY=\"${ACCEPT_PY:-/usr/bin/python3}\"` and invokes each suite with \"$PY\" (L278) without ever echoing the resolved path, and the suite that certifies the pin checks only that the STRING `ACCEPT_PY:-/usr/bin/python3` appears in the file, not which interpreter the run used.",
+   "wrong_conclusion_risk": "Two battery counts from different dates are compared as if they measured the same thing. A run launched with ACCEPT_PY set to the 3.14 interpreter loses torch/numpy, `tests_inference_parity` and `tests_panel_build` fail for want of them — and `tests_acceptance_entrypoints` still prints OK 「ACCEPT_PY pinned」, because the string is still in the file. The reader takes the red cells for real failures, which is exactly what happened before 2026-07-27.",
+   "proposed_correction": "[在该行后插入] > ⚠ **口径项 KB-73(2026-09-16)**: 电池脚本在 **`~/dl_quant_live/run_acceptance.sh`(仓根, 不在 `ops/`)**; `ops/` 下的是 `safe_commit.sh`。**解释器钉在 L28 `PY=\"${ACCEPT_PY:-/usr/bin/python3}\"`** —— 本机三个解释器: `/usr/bin/python3` **3.9.6**(torch 2.2.2 + numpy 1.26.4 + pandas 2.3.3, 唯一能跑推理的)· `/usr/local/bin/python3` **3.14.4**(裸 `python3` 解析到它, **无 torch**)· `/opt/anaconda3` 3.7.6(torch 1.4.0, 过旧)。**⇒ 任何「逐套件 N/M」数字只在同一解释器下可比。** 三条已测边界: ① 该钉是**默认值, 可被环境变量 `ACCEPT_PY` 覆盖**; ② 认证它的断言 (`live/tests_acceptance_entrypoints.py:55`) 是对**源码文本**做子串检查(`\"ACCEPT_PY:-/usr/bin/python3\" in open(ROOT_SH).read()`), **不断言本次运行实际用的是哪个解释器** ⇒ 覆盖运行时它照样打 OK; ③ `state/acceptance/` **38,177 份工件中 0 份记录解释器版本**(唯一 465 次 `/usr/bin/python3` 出现在 `gate_coverage` 的字节码缓存盲区说明里, 不是运行收据)。**2026-07-27 之前更不可比**: 当时两个入口一钉一裸, 裸 `python3` 让 `tests_inference_parity` 与 `tests_panel_build` 因缺 torch 变红, 二者在钉住的解释器下**全过** —— 源码自述这是「两个假的 known failures」。**引用任何电池计数时须写明解释器**; 建议(提案): 运行器把解析后的 `$PY` 与 `sys.version` 写进日志头与 JSON, 并把断言从子串改为断言**有效解释器**。",
+   "confidence": "VERIFIED (quote+receipt opened)",
+   "resolution": null,
+   "xref": [],
+   "verification_at_assembly": {
+    "source_check": "exact",
+    "evidence_checks": [
+     "exact",
+     "exact",
+     "exact",
+     "exact"
+    ]
+   },
+   "subauditor_file": "rows_NEW5.jsonl"
+  },
+  {
+   "id": "KB-74",
+   "area": "KB",
+   "source": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:311",
+   "quote": "| **TRN-28** | `pod_f10_np_export.py` 在**自己的 V1 门判词之前**就写出可部署 npz",
+   "superseding_evidence": [
+    {
+     "path": "docs/audit_pipeline_2026-09-13/AUDIT_TRAIN.md:3",
+     "quote": "AUDIT_TRAIN"
+    },
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:100",
+     "quote": "| K4(lead) | TRN-13 · TRN-28 · TRN-29 |"
+    },
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:409",
+     "quote": "**规矩(新)**: 本纲领新开的登记号**必须先对四份审计登记"
+    }
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "future_retrain",
+    "reporting"
+   ],
+   "severity": "P2",
+   "severity_reason": "The PROD family was renumbered on 2026-09-16 but the same defect survives at TRN-28: §15.2 opens it as a P1 owned by FX-TRAIN (`pod_f10_np_export.py` writes a deployable npz before its own gate verdict), while AUDIT_TRAIN (7e1ecf9a) TRN-28 is 「CLAUDE.md routes 月度重训 to the superseded September runbook」 — and §3.2 of the SAME document already routes TRN-28 to K4 in the AUDIT_TRAIN sense.",
+   "wrong_conclusion_risk": "One document assigns TRN-28 to two owners (K4 at §3.2, FX-TRAIN at §15.2) with two severities (P2 doc-routing vs P1 live-artefact overwrite). Whoever works the queue by id either fixes a documentation pointer believing they closed a P1, or cannot tell which is meant.",
+   "proposed_correction": "[§15.2 表内原编号字节保留, 就地注明] ⚠ **2026-09-16 编号更正(aud-kb KB-74, 与 §17.5 同一把尺子)**: 本行的 **TRN-28 与 `AUDIT_TRAIN`(7e1ecf9a)已占用的 TRN-28 撞号**(原主 = 「CLAUDE.md 把月度重训指向已作废的九月 runbook」), 且**本纲领 §3.2 已按原主义把 TRN-28 派给 K4** ⇒ 同一文件内一号两主两级。**AUDIT_TRAIN 最高号 TRN-29, 空号自 TRN-30 起** ⇒ 本项改为 **TRN-30**(原号标 SUPERSEDED-ID)。§15.2 与 §15.3 内对本项的引用同步改。**其余 §13–§17 新号经逐一查重均不撞**: OPS-04(AUDIT_EXEC 只到 OPS-03)· LED-09(AUDIT_EXEC 只到 LED-08, AUDIT_DATA 只有 LED-01)· RES-01 · TEST-01 · BAT-01 · EXEC-RACE-01 · DATA-COR-1 · W6C-I6 · MON-1..4 · FXR-* 全部为空号。**`PROD-28-STALE` 保留**: 它是对 AUDIT_PROD PROD-28 这条记录的**状态标注**, 不是新发现, 后缀语义正确(与 PROD-36b 不同 —— 那是另一个发现被挂了子项后缀)。",
+   "confidence": "VERIFIED (quote+receipt opened)",
+   "resolution": null,
+   "xref": [],
+   "verification_at_assembly": {
+    "source_check": "exact",
+    "evidence_checks": [
+     "exact",
+     "exact",
+     "exact"
+    ]
+   },
+   "subauditor_file": "rows_NEW5.jsonl"
+  },
+  {
+   "id": "KB-75",
+   "area": "KB",
+   "source": "docs/audit_pipeline_2026-09-13/AUDIT_EXEC.md:88",
+   "quote": "| LED-01 | ledger / fills.jsonl | fills.jsonl holds every trade exactly twice; in-repo readers collapse the copies, a naive reader double counts |",
+   "superseding_evidence": [
+    {
+     "path": "docs/audit_pipeline_2026-09-13/AUDIT_DATA.md:91",
+     "quote": "| LED-01 | research readers of daily_nav (AUDIT_EXEC LED-04) | Research tools that read daily_nav.realised_by_type COMMISSION/REALIZED_PNL inside 07-29..09-12 print wrong fee columns; their conclusions do not use them |"
+    },
+    {
+     "path": "docs/audit_pipeline_2026-09-13/AUDIT_DATA.md:75",
+     "quote": "| DOC-01 | docs and memory | Caliber documents and memory notes miss or misstate several data-lineage facts |"
+    },
+    {
+     "path": "docs/audit_pipeline_2026-09-13/AUDIT_EXEC.md:96",
+     "quote": "| DOC-01 | docs / STATE and CLAUDE.md | STATE §1 and CLAUDE.md carry stale executor facts |"
+    },
+    {
+     "path": "docs/fixprogram_2026-09-13/FIXPROGRAM_2026-09-13.md:86",
+     "quote": "| FX-EXEC2 | LED-01 · LED-02 · LED-03 · LED-04 · LED-05 · LED-07 · LED-08"
+    }
+   ],
+   "status": "DOC_STALE",
+   "affects": [
+    "reporting",
+    "future_eval"
+   ],
+   "severity": "P2",
+   "severity_reason": "Two of the four audit registers themselves double-book two ids for different findings — AUDIT_EXEC and AUDIT_DATA each define LED-01 and DOC-01 — and the fix programme routes them to different owners, disambiguating only by an optional parenthetical (§86 bare 「LED-01」 → FX-EXEC2 = the EXEC item; §126 「LED-01(研究工具打印错费列)」 → K4 = the DATA item).",
+   "wrong_conclusion_risk": "A bare citation of 「LED-01」 or 「DOC-01」 resolves to whichever register the reader opens first: the fills.jsonl double-write (P3, VERIFIED_IMMATERIAL, owner FX-EXEC2) or the daily_nav fee-column reader defect (P3, owner K4); 「DOC-01」 is either the executor facts in STATE/CLAUDE.md or the data-lineage facts in the caliber documents. The new rule in §17.5 prevents future collisions but does not resolve these two, which predate it.",
+   "proposed_correction": "[两份登记的原编号字节保留, **不建议重编已发布的审计登记**; 改为在引用侧加限定] ⚠ **2026-09-16 补注(aud-kb KB-75)**: **`LED-01` 与 `DOC-01` 在 `AUDIT_EXEC`(842bbffa)与 `AUDIT_DATA`(bb8a2806)中各有一个不同的发现**, 且两者**先于** §17.5 的新规矩存在, 不是本纲领开的号。四条原主: `EXEC:LED-01` = fills.jsonl 每笔成交写两次(P3, VERIFIED_IMMATERIAL)· `DATA:LED-01` = 研究工具读 daily_nav 的 COMMISSION/REALIZED_PNL 在 07-29..09-12 打印错费列(P3)· `EXEC:DOC-01` = STATE §1 与 CLAUDE.md 的执行器事实陈旧(P3)· `DATA:DOC-01` = 口径文档与记忆条目缺漏/写错数据谱系事实(P2)。**处置建议(不重编已发布登记, 因为它们是另两位审计者的已提交产物, 重编会让其全部既有引用悬空)**: 引用时一律带登记前缀 —— **`EXEC:LED-01` / `DATA:LED-01` / `EXEC:DOC-01` / `DATA:DOC-01`**; 纲领 §3.1 L86 的裸 `LED-01` 应读作 `EXEC:LED-01`, §4.3 L126 的两项应读作 `DATA:DOC-01` 与 `DATA:LED-01`, §3.1 L92 的 `DOC-01(STATE/CLAUDE.md 侧)` 应读作 `EXEC:DOC-01`。**§17.5 的新规矩建议补一句**: 查重范围包含四份审计**彼此之间**, 不只是纲领对审计。",
+   "confidence": "VERIFIED (quote+receipt opened)",
+   "resolution": null,
+   "xref": [],
+   "verification_at_assembly": {
+    "source_check": "exact",
+    "evidence_checks": [
+     "exact",
+     "exact",
+     "exact",
+     "exact"
+    ]
+   },
+   "subauditor_file": "rows_NEW5.jsonl"
+  },
+  {
    "id": "KB-03",
    "area": "KB",
    "source": "CLAUDE.md:14",
@@ -2418,7 +2551,7 @@
    "wrong_conclusion_risk": "The live battery has 123 suites.",
    "proposed_correction": "`~/dl_quant_live/ops/safe_commit.sh` + 电池 ALL GREEN 135/135(130 套件 + 5 审计门, 2026-09-13 ef60f85); safe_commit 会 rebase 到 origin/main, 提交前核 `HEAD..origin/main` = 0",
    "confidence": "VERIFIED (quote and receipt opened)",
-   "resolution": null,
+   "resolution": "⚠ **口径(KB-73)**: 本行引用的「逐套件 N/M」只在同一解释器下可比 —— 电池 `run_acceptance.sh:28` 的 `PY=\"${ACCEPT_PY:-/usr/bin/python3}\"` 是**可被环境变量覆盖的默认值**, 认证它的断言只对源码做子串检查, 且 `state/acceptance/` 38,177 份工件中 0 份记录解释器版本; 2026-07-27 前两入口一钉一裸, 裸 `python3` 制造过两个假红。引用计数时须写明解释器。",
    "xref": [],
    "verification_at_assembly": {
     "source_check": "exact (line moved 147->149)",
@@ -2857,7 +2990,7 @@
    "wrong_conclusion_risk": "In an incident, a reader follows the stale rollback (revert chain to pre-b681ca5) in ~/dl_quant_live and reintroduces the false-positive whole-book flatten and other defects fixed by W6ab/W2/W1/W9. Or the reader reports the wrong deployed commit.",
    "proposed_correction": "[在第一个「状态」段之前插入] **状态 2026-09-13 12:0xZ(最新, 先读这段; 覆盖以下两段)**: 运行树 = origin/main = **ef60f85**(918559f + W6ab 259f50a6 → W2 2ad1c272 → W1 62a3032e → W9 f8beb082, 一次 safe_commit, 电池 ALL GREEN 135/135), 12Z 复场首锚验收通过(STATE.md 顶部)。下文 77d9baf/132 与「回滚 = §5 revert 链」均已过时: 用户 R-13 裁定「彻底修复, 不回滚」(09-12), 回滚会带回 E-0912-A 等已修缺陷; 事故处置按 feedback_no_book_level_response_to_instrument_doubt, 恢复只由用户手动。",
    "confidence": "VERIFIED (quote+receipt opened)",
-   "resolution": "APPLIED by lead, CORRECTLY: the note carries the 2026-09-13 annotation (running tree ef60f85, R-13 no-rollback) and the original 「运行树 = 77d9baf」 bytes are deliberately retained per the 'original bytes stay' convention. An assembler label of 'applied-but-quote-still-present' is the expected state for an in-place annotation, not a failure.",
+   "resolution": "APPLIED by lead, CORRECTLY: the note carries the 2026-09-13 annotation (running tree ef60f85, R-13 no-rollback) and the original 「运行树 = 77d9baf」 bytes are deliberately retained per the 'original bytes stay' convention. An assembler label of 'applied-but-quote-still-present' is the expected state for an in-place annotation, not a failure. ⚠ **口径(KB-73)**: 本行引用的「逐套件 N/M」只在同一解释器下可比 —— 电池 `run_acceptance.sh:28` 的 `PY=\"${ACCEPT_PY:-/usr/bin/python3}\"` 是**可被环境变量覆盖的默认值**, 认证它的断言只对源码做子串检查, 且 `state/acceptance/` 38,177 份工件中 0 份记录解释器版本; 2026-07-27 前两入口一钉一裸, 裸 `python3` 制造过两个假红。引用计数时须写明解释器。",
    "xref": [],
    "verification_at_assembly": {
     "source_check": "applied in place: original bytes retained by convention (exact)",
@@ -8827,7 +8960,7 @@
    "wrong_conclusion_risk": "A reader accepts a '123/123' or ~10-minute run as the full acceptance battery, or reports the current run as '135 suites', mixing test suites with audit gates.",
    "proposed_correction": "⚠ 更正(2026-09-13 审计): 电池现为 135 项 = 130 个 live/tests_* 套件 + 5 个 ops 审计门(drift_gate / metrics_freeze / gate_coverage / income_callers / guard_reach); 运行树 ef60f85 读数 `ACCEPTANCE: ALL GREEN (135/135 suites exit 0)`, 报数写「130 套件 + 5 审计门」, 不写「135 套件」(独立复审第四轮 §7)。整轮约 15–17 分钟(09-12 09:36:30→09:51:58Z; 09-13 11:47→12:04Z), 不是 10 分钟。无 .env 的克隆里 tests_env_loading 会红 ⇒ rc=1 NOT GREEN(REV4 §2.1), 不得改写为全绿。run_acceptance.sh 另有注册守卫: live/tests_*.py 未登记即拒跑。",
    "confidence": "VERIFIED (quote+receipt opened; SUITES array counted 135 entries, 5 under ops/; acceptance logs 20260913T114702Z_* span 11:47→12:04Z)",
-   "resolution": null,
+   "resolution": "⚠ **口径(KB-73)**: 本行引用的「逐套件 N/M」只在同一解释器下可比 —— 电池 `run_acceptance.sh:28` 的 `PY=\"${ACCEPT_PY:-/usr/bin/python3}\"` 是**可被环境变量覆盖的默认值**, 认证它的断言只对源码做子串检查, 且 `state/acceptance/` 38,177 份工件中 0 份记录解释器版本; 2026-07-27 前两入口一钉一裸, 裸 `python3` 制造过两个假红。引用计数时须写明解释器。",
    "xref": [],
    "verification_at_assembly": {
     "source_check": "exact",
@@ -11131,7 +11264,7 @@
   {
    "id": "M4-30",
    "area": "MEM",
-   "source": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md:105",
+   "source": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md:107",
    "quote": "- V4/V5/单资产时代(04..05): `v4_*` `v5*` `single_asset_*` `y600_*`; 结论已入 07-06 终版文档",
    "superseding_evidence": [
     {
@@ -11156,7 +11289,7 @@
    "resolution": null,
    "xref": [],
    "verification_at_assembly": {
-    "source_check": "exact (line moved 96->105)",
+    "source_check": "exact (line moved 96->107)",
     "evidence_checks": [
      "exact",
      "exact"
@@ -11167,7 +11300,7 @@
   {
    "id": "M4-31",
    "area": "MEM",
-   "source": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md:101",
+   "source": "/Users/haosiyu/.claude/projects/-Users-haosiyu-Desktop-quant-research/memory/MEMORY.md:103",
    "quote": "[残差第四腿关](wide_book_carry_correction.md)",
    "superseding_evidence": [
     {
@@ -11191,7 +11324,7 @@
    "resolution": null,
    "xref": [],
    "verification_at_assembly": {
-    "source_check": "exact (line moved 92->101)",
+    "source_check": "exact (line moved 92->103)",
     "evidence_checks": [
      "exact",
      "exact"
