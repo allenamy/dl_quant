@@ -8,15 +8,21 @@ frozen spec and 54 reproductions at once. The protection goes on the LAUNCH side
 This device builds the manifest the guard reads. It keys on the device's **sha256**, not its path, for two reasons: the same blob
 appears at two paths (the workspace mirror), and the A0 device that actually runs on pod2 is not a git file at all.
 
+Detection is by AST, not by text. A text match counts every file that merely QUOTES the pattern — the first run of this device
+matched 56 files, two of which were an FX-DATA device whose docstring mentions the default and this manifest builder itself, whose
+`PAT` constant is the pattern. Those are mentions, not readers, and demanding CAL at their launch would be absurd. The predicate is
+therefore: the module contains a call to `os.environ.get` (or `environ.get`) whose first argument is the literal "CAL" and which has
+a second argument that is not "log" — i.e. a reader with a non-log default. Quoting is irrelevant to an AST, so single quotes and
+whitespace variants are caught too.
+
 Sources:
-  * every committed file matching `os.environ.get("CAL", "simple")`, read as a git blob at a pinned commit (never the working tree);
+  * every committed .py whose AST contains such a call, read as a git blob at a pinned commit (never the working tree);
   * the pod2 runtime `w10_sleeve.py` sha b88e35a4, added explicitly because SPEC section 7 pins it and it is the A0 device.
 
 Usage: python3 fx_evl01_manifest.py <commit> <out_manifest.json>
 """
 import os, sys, json, time, hashlib, subprocess
 COMMIT, OUT = sys.argv[1], sys.argv[2]
-PAT = 'os.environ.get("CAL", "simple")'
 A0_DEVICE = {"name": "w10_sleeve.py (pod2 runtime, not a git file)",
              "sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650",
              "why": "SPEC section 7 pins this exact sha as the A0 reference device; it reads CAL with the same default"}
@@ -24,15 +30,47 @@ A0_DEVICE = {"name": "w10_sleeve.py (pod2 runtime, not a git file)",
 def git(*a):
     return subprocess.run(["git"] + list(a), capture_output=True, text=True, check=True).stdout
 
-paths = sorted(set(l.strip() for l in git("grep", "-l", "-F", PAT, COMMIT, "--", "*.py").splitlines() if l.strip()))
-paths = [p.split(":", 1)[1] for p in paths]
+import ast
+
+def reads_cal_with_non_log_default(src):
+    """True iff the module CALLS os.environ.get("CAL", <default != "log">). A string that merely contains the text is not a call."""
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return False, None
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute) or node.func.attr != "get":
+            continue
+        v = node.func.value
+        ok_recv = (isinstance(v, ast.Attribute) and v.attr == "environ") or (isinstance(v, ast.Name) and v.id == "environ")
+        if not ok_recv or not node.args:
+            continue
+        a0 = node.args[0]
+        if not (isinstance(a0, ast.Constant) and a0.value == "CAL"):
+            continue
+        if len(node.args) < 2:
+            return True, None                      # no default at all is fine for a new device, but record it
+        a1 = node.args[1]
+        dflt = a1.value if isinstance(a1, ast.Constant) else "<non-literal>"
+        if dflt != "log":
+            return True, dflt
+    return False, None
+
+cand = sorted(set(l.strip().split(":", 1)[1] for l in git("grep", "-l", "-F", "CAL", COMMIT, "--", "*.py").splitlines() if l.strip()))
+paths, defaults = [], {}
+for p in cand:
+    blob = subprocess.run(["git", "show", "%s:%s" % (COMMIT, p)], capture_output=True, check=True).stdout
+    hit, dflt = reads_cal_with_non_log_default(blob.decode("utf-8", "replace"))
+    if hit:
+        paths.append(p); defaults[p] = dflt
 rows = {}
 for p in paths:
     blob = subprocess.run(["git", "show", "%s:%s" % (COMMIT, p)], capture_output=True, check=True).stdout
     h = hashlib.sha256(blob).hexdigest()
-    rows.setdefault(h, {"sha256": h, "paths": [], "bytes": len(blob)})["paths"].append(p)
+    rows.setdefault(h, {"sha256": h, "paths": [], "bytes": len(blob), "default": defaults[p]})["paths"].append(p)
 man = {"tool": "fx_evl01_manifest.py", "self_sha256": hashlib.sha256(open(os.path.abspath(__file__), "rb").read()).hexdigest(),
-       "commit": COMMIT, "pattern": PAT, "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+       "commit": COMMIT, "detection": "AST: a call to os.environ.get('CAL', <default != log>); text mentions are not counted",
+       "candidate_prefilter": "git grep -l -F CAL", "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
        "ruling": "FIXPROGRAM EVL-01 = (a) archives untouched + (c) launch-side guard; never (b) re-pin the frozen spec",
        "n_paths": len(paths), "n_distinct_blobs": len(rows),
        "devices": sorted(rows.values(), key=lambda r: r["paths"][0]), "extra": [A0_DEVICE]}
