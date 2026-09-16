@@ -8,7 +8,7 @@ Legend, used on every row:
 - **NOT CHECKED** — stated so that nobody reads it as checked.
 
 Conventions:
-- `sha16` = first 16 hex of sha256. Research-repo files are hashed on the working tree at the stated commit; `pod2:` rows are hashed on pod2.
+- `sha16` = first 16 hex of sha256. **Research-repo rows cite the git blob at commit `fc262f79`** (`git show fc262f79:<path> | shasum -a 256`), not the mutable working tree — see §0.4 for why. `pod2:` rows are hashed on pod2, with the sha asserted inside the reading command where one is quoted.
 - This table answers the independent review's input-parity gate (`REVIEW_fixprogram_progress_2026-09-14.md`, commit 9f6384fb, file sha256 `cd3bdb88ac0e759e…`, §9 row "输入平价"): **per column** — clock, unit, dtype, mask, membership, normalisation, and the sha actually consumed; full support or a cell-by-cell account of the difference. A finite-intersection summary, a total correlation, or "same function name" is not accepted and is not used here.
 
 ## §0 Frozen objects
@@ -45,6 +45,20 @@ Conventions:
 | `pod2:/workspace/f8_ext/data/f10v2_legs.npz` | `facf53f7355da98f` | in-service legs (Z24 / ZFD / WL) |
 | `pod2:/workspace/f8_v4/data/f10v2_legs.npz` | `c535decd6524b091` | v4 legs |
 | `~/wide_shadow/fea171/f10_live_s42_np.npz` | `351ae26bd6b4a203` | **in-service DL weights**, carries `mu` / `sd_` |
+
+### §0.4 Citation stability — two cited files are under concurrent edit
+
+Caught by re-auditing every cited sha at 04:3xZ (the check this table's 作废条件 asks for). Two files I cite were **modified in the working tree by FX-TRAIN while I was writing**, after I had hashed them:
+
+| File | sha16 I cite (= blob at `fc262f79`) | worktree sha16 at 04:3xZ | my cited lines still valid? |
+|---|---|---|---|
+| `chain_v4_monthly.sh` | `c80303b55c5aa229` | `b1dcf771e04e3be8` (+4 −1) | **yes** — L139 and L148 re-read verbatim, the edit is elsewhere |
+| `pod_legs_v4b.py` | `8c33a2305c38a148` | `ff6dccad6646058a` (+36 −2) | **no** — line 22 now reads `if MAX_NO_PANEL < 0:`; the ZFD build line has moved |
+
+Consequences, recorded rather than patched over:
+- Every research-repo sha16 in this table is the **committed blob**, and all 21 cited files were re-hashed against it at 04:3xZ with **0 mismatches** once this convention is applied. No cited file is an iCloud-evicted stub.
+- **§1.4(c)'s line citation `pod_legs_v4b.py:22` is valid only for blob `8c33a2305c38a148`.** Against FX-TRAIN's TRN-17 version the latent ZFD site has moved and must be re-located before that row is used as an input to anything.
+- **FX-TRAIN's TRN-17 change corroborates §1.4(b)'s 2,000-cell term and supplies its mechanism.** Their comment states the structural reason the frontier anchors have no panel row: *"the panel is structurally 5 anchors short of the king/DL axis (panels need E+288 <= TT, the axis needs E+48; 288−48 = 240 rows = 20 h = 5 four-hour anchors)"*. **5 anchors × 400 members = 2,000**, exactly the term I decomposed from the receipt counts. Their change turns the builder's printed line into a declared bound (`LEGS_MAX_NO_PANEL`, required env) that refuses **before** `np.savez`, and separately refuses any no-panel anchor at or before the panel end as an interior hole. That closes §1.5's concern that the condition is unobservable after the legs stage; it does not change any count in §1.4.
 
 ---
 
@@ -274,9 +288,31 @@ VERIFIED three ways, not one: by reading the save lines; by enumerating the keys
 
 Measured on the in-service cache axis (`dlnative_5m_wide829_f16_ext.npz`, read-only, `ts` member only): axis 2022-01-01 00:00Z .. 2026-09-01 00:00Z, 490,753 bars, grid spacing uniformly 48 with no gaps, 10,213 anchors at `E ≥ 576`. Anchors with `E < 2016`: **exactly 30**, `E = 576, 624, …, 1968` = **2022-01-03 00:00Z .. 2022-01-07 20:00Z**. VERIFIED (measured this session).
 
-Those 30 anchors' member screen (`v7 >= 1e-4`) and top-400 ranking (`qvm`) are therefore computed from wrapped statistics. **Independent corroboration from my own receipt**: FACTS_DATA T1 records that the clock-aligned builder — which clamps via `LO7 = max(HI−2016, 0)` — *adds exactly two anchors*, **2022-01-07 16:00Z and 2022-01-07 20:00Z** (`E = 1920, 1968`), both inside the wrap window, and removes none. That is the expected signature: clamping repairs the statistics so two more early anchors pass the `len(m) >= 50` screen.
+> **[ORIGINAL TEXT, KEPT VERBATIM — SUPERSEDED BY THE CORRECTION BELOW, 2026-09-16 04:2xZ]**
+> Those 30 anchors' member screen (`v7 >= 1e-4`) and top-400 ranking (`qvm`) are therefore computed from wrapped statistics. **Independent corroboration from my own receipt**: FACTS_DATA T1 records that the clock-aligned builder — which clamps via `LO7 = max(HI−2016, 0)` — *adds exactly two anchors*, **2022-01-07 16:00Z and 2022-01-07 20:00Z** (`E = 1920, 1968`), both inside the wrap window, and removes none. That is the expected signature: clamping repairs the statistics so two more early anchors pass the `len(m) >= 50` screen.
+>
+> Blast radius: 30 of 10,213 anchors = 0.29%, all in the first week of the axis. **NOT CHECKED**: whether those 30 anchors' member sets differ materially, beyond the two added anchors already counted.
 
-Blast radius: 30 of 10,213 anchors = 0.29%, all in the first week of the axis. **NOT CHECKED**: whether those 30 anchors' member sets differ materially, beyond the two added anchors already counted.
+**CORRECTION (2026-09-16 04:2xZ, measured while writing §3; the row above understated the effect).** The wrap does not leave those 30 anchors in the axis with corrupted statistics — it **removes all 30 from the king training axis entirely**. Measured read-only on pod2 with input shas asserted (`wide_fea_v4_meta.npz` `12ea42c4557093f1`, `dlw_v4raw/data/dlw_targets.npz` `d1976cf6246cdc25`, cache `ts` member):
+
+| | anchors | first anchor | anchors with `E < 2016` |
+|---|---|---|---|
+| king meta (`pod_fea_ext_clamp.py`, unclamped) | 10,182 | **2022-01-08 00:00Z (= E 2016 exactly)** | **0** |
+| DL targets (`pod_dlw_targets_raw.py`, clamped) | 10,212 | 2022-01-03 00:00Z (= E 576) | 30 |
+
+In DL and not in king: **exactly 30**, cache rows `E = 576, 624, …, 1968`, i.e. **precisely the wrap window**. In king and not in DL: 0. This is the same 30 that AUDIT_DATA **TRD-05 records as `anchors_off_king_axis: 30`** for DL 2022, from an independent receipt — the two now have a mechanism.
+
+**The three-way behaviour is fully explained, and the deciding term is `covr`'s divisor, not `len(m) >= 50`:**
+
+| Builder | `E−2016` handling | `covr` divisor | Early anchors kept |
+|---|---|---|---|
+| **K** `pod_fea_ext_clamp.py` | **unclamped** ⇒ negative index wraps to the cache tail | constant 2016 | **0 of 30** — wrapped statistics fail the screen |
+| **E-version** `pod_fea_ext_e.py` | clamped `LO7 = max(HI−2016, 0)` | **still the constant 2016** | **2 of 30** |
+| **D** `pod_dlw_targets_raw.py` | clamped `S = max(E−TRAIL, 0)` | **actual window length** `max(E−S, 1)` (L90) | **30 of 30** |
+
+The E-version keeps exactly 2 because with a clamped window of only `E+1` rows and `covr` still divided by the constant 2016, `covr ≤ (E+1)/2016`, so `covr >= 0.95` needs `E >= 1915.2`; the only grid values in [1915, 2016) are **1920 and 1968**. That is arithmetically the two anchors T1 observed — so my original attribution of those two to the `len(m) >= 50` screen was **wrong**; the binding gate is `covr`. D keeps all 30 because it divides by the true window length.
+
+Blast radius, corrected: the king axis is **missing its first 5 days** (2022-01-03 00:00Z .. 2022-01-07 20:00Z), 30 of 10,212 possible anchors = 0.29%; and the king and DL training axes disagree there by construction. **VERIFIED.** Command transcribed in §3.0.
 
 **(b) The DL targets' member clock is a third window.** DL targets choose members on rows **[E−2016, E−1]** while DL features and the producer use **[E−2015, E]** (C-TIM-5, `pod_dlw_targets_raw.py:88`). So within one DL training row the member screen and the features are on different clocks. VERIFIED. This is the row shared with FEA-01 §1.1 and is a **separate intervention**.
 
@@ -325,7 +361,107 @@ Its previous verdict is **not** a verdict on the clock: it passed its parity gat
 | T-O3 | Book-layer effect of the clock | **NOT MEASURED** | The prereg's job; the old ±0.6-noise guard does not count as a verdict |
 | T-O4 | Whether `pod_fea_ext_e.py` reproduces the clamp artifact bitwise under a legacy knob | **NOT CHECKED** | It is currently a separate file, not a knob; queue item 3 turns it into one |
 
-## §3 PROD-11 — NOT YET WRITTEN
+## §3 PROD-11 — three different member rules, and why "align training to production" is the wrong fix
+
+**AUDIT_PROD severity P3, status `VERIFIED_IMMATERIAL` — that label is scoped to 147 recent anchors and I do not carry it to history.** In one sentence: production selects the top 400 of the live 450, king and DL training select the top 400 of all 829 cache names, and the replay selects a third population of 373 — but the live 450 is a 2026-08 object, so "make training match production" would put the FEA-01 look-ahead defect on the membership axis.
+
+### §3.0 Devices, receipts, and the command I ran
+
+aud-prod's device, opened before use (E-0826): `docs/audit_pipeline_2026-09-13/devices_prod/members/members_audit.py` (`7bc0a664158004ed`), 352 lines, receipt `receipts_prod/members_audit.json` (`eb8d5da70fd90d12`). It reproduces the P / K / D / R rules verbatim, asserts an env whitelist and every input sha, and reports six gates — **all six pass**, including `V3` (the K rule reproduces the stored king-meta members) and `V4` (the D rule reproduces the stored DL-target members). Its numbers below are therefore usable; its *scope* is not transferable, see §3.3.
+
+My own read for §2.5(a) and §3.3, run read-only on pod2 2026-09-16 04:2xZ, command transcribed:
+
+```
+ssh pod2 'nice -n 19 python3 -c "
+import numpy as np, hashlib, time
+def sha(p):
+    h=hashlib.sha256()
+    with open(p,\"rb\") as f:
+        for b in iter(lambda: f.read(1<<24), b\"\"): h.update(b)
+    return h.hexdigest()
+KM=\"/workspace/data/wide_fea_v4_meta.npz\"; DT=\"/workspace/dlw_v4raw/data/dlw_targets.npz\"; C=\"/workspace/data/dlnative_5m_wide829_f16_ext.npz\"
+assert sha(KM)==\"12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51\", \"kmeta sha\"
+assert sha(DT)==\"d1976cf6246cdc25054d21b1a9fa7f8fd02ee43278720d81ce2a35686d63c6f8\", \"dlw sha\"
+K=np.load(KM,allow_pickle=True); D=np.load(DT,allow_pickle=True)
+ke=K[\"E_ts\"].astype(np.int64); de=D[\"E_ts\"].astype(np.int64)
+CTS=np.load(C,allow_pickle=True)[\"ts\"].astype(np.int64)
+row={int(t):i for i,t in enumerate(CTS)}
+f=lambda t: time.strftime(\"%Y-%m-%dT%H:%MZ\", time.gmtime(int(t)))
+only_d=np.setdiff1d(de,ke); only_k=np.setdiff1d(ke,de)
+print(\"king anchors\",len(ke),\"first\",f(ke[0]),\"| dl anchors\",len(de),\"first\",f(de[0]))
+print(\"in DL not in king:\",len(only_d),\" in king not in DL:\",len(only_k))
+rd=[row.get(int(t)) for t in only_d]
+print(\"their cache rows E:\",rd[:40])
+print(\"all E<2016?\", all(r is not None and r<2016 for r in rd))
+print(\"first/last:\", f(only_d[0]), f(only_d[-1]) if len(only_d) else None)
+ka=[row[int(t)] for t in ke if int(t) in row]
+print(\"king anchors with E<2016:\", sum(1 for r in ka if r<2016), \"min king E:\", min(ka))
+"'
+```
+Both sha assertions passed (so neither artifact had moved). Cgroup checked first: 40.9 GB used of 56.8 GB. No GPU used.
+
+### §3.1 The three member rules, per column — read from the code, not from prose
+
+| Axis | **P** production `shadow_loop_v3.py:365-377` | **K** king training `pod_fea_ext_clamp.py:28-39` | **D** DL training `pod_dlw_targets_raw.py:88-110` |
+|---|---|---|---|
+| window rows | **[E−2015, E]**, clamped | **[E−2016, E−1]**, `covr` clamped / rest **unclamped** | **[E−2016, E−1]**, clamped (`S = max(E−TRAIL, 0)`) |
+| `covr` divisor | constant **2016** (L367) | constant **2016** (L29) | **actual window length** `max(E−S, 1)` (L90) |
+| `qvm` divisor | finite **lqv** count (L373) | finite **lqv** count `n7` (L28, 30) | finite **ret5** count `nfin` (L89, 91) |
+| `v7` divisor | finite **ret5** count (L369-370) | finite **lqv** count `n7` (L32) — numerator is ret5 sums | finite **ret5** count `nfin` (L93) |
+| forward-label term | **none** | `isfinite(y4)` over rows **[E, E+47]** (L37) | `isfinite(y4s)` over rows **[E+1, E+48]** (L107) |
+| universe | the **450** names the producer fetches | **829** cache names | **829** cache names |
+| dtype | float32 | float64 | float64 |
+| cut | top **400** by `qvm` (L376-377) | top **400** by `qvm` (L39) | top **400** by `qvm` (L109-110) |
+
+So the rules differ on **seven** axes, not one. That the *outcome* differs on only one of them in a recent window is a measured materiality result (§3.2), not a statement that the rules agree.
+
+### §3.2 What aud-prod measured, exactly
+
+147 anchors, 2026-08-17 .. 2026-09-10. Symmetric difference of the 400-name member sets, one factor changed at a time:
+
+| Step | median symdiff | mean | max |
+|---|---|---|---|
+| universe → live 450 (`K1_live450` / `D1_live450`) | **164** | 165.40 | 176 |
+| drop the forward-label term (`K2` / `D2`) | **0** | 0 | **0** |
+| serving clock (`K3` / `D3`) | 0 | 0.0952 | **2** |
+| production divisor (`K4` / `D4`) | **0** | 0 | 0 |
+| float32 (`K5` / `D5`) | **0** | 0 | 0 |
+
+One-at-a-time against P directly gives the same picture (`P_univ829_vs_P` median 164; look-ahead, divisor and float64 all 0; clock max 2). Set overlaps on the same window: P vs K and P vs D both have intersection median **318 / 400**, each side 82 unique, **Jaccard median 0.659751**; and **every one of those 82 names is outside the live 450** (`K_not_P_outside_live450` median 82). K vs D: intersection **400**, symdiff **0** on all 147 anchors. The qvm gap at the top-400 cut has median **0.00444**. The A0 replay is a third population: 373 names, intersection with P median **332**, `P_not_R` median 68.
+
+**So in that window the universe is the entire difference — and the other six axes are individually immaterial there.** That is a real and useful result. It is also the *only* window it covers.
+
+### §3.3 Where that label stops, measured
+
+The audit's own recommendation says "Keep TRN-06 open for history; no action for the recent window", and its severity note says "periods with delistings not covered". Two concrete places where the recent-window conclusion does not hold:
+
+1. **K and D are not the same member rule in history.** `KD` symdiff is 0 on all 147 recent anchors, but the two axes differ by **exactly 30 anchors in 2022**: the king meta starts at 2022-01-08 00:00Z with **zero** anchors at `E < 2016`, while the DL targets start at 2022-01-03 00:00Z and carry all 30. Mechanism and receipts in §2.5(a) — it is the unclamped `E−2016` in K against D's clamped `S` plus D's true-window `covr` divisor. So "king and DL training members are identical sets" is **window-scoped**, and the divisor axis that measures 0 in the recent window is exactly the axis that removes 5 days of king history.
+2. **The forward-label term measures 0 only where nothing dies.** `K2`/`D2` are 0 on 147 anchors with no delistings. AUDIT_TRAIN's TRN-06 channel counts, reported by fx-train, are forward-finite removals of **33 / 3 / 1 / 3 / 3** pairs per year and dead-but-kept members with label exactly 0 of **255 / 126 / 1,250 / 762 / 304** per year (TRD-05). Small, but not zero, and not inside the measured window.
+
+### §3.4 The decision this forces — and the trap in it
+
+**"Production members = top 400 of the live 450" cannot be applied to history.** `live_pins.json` (`fd27fe485417d307`) is a 2026-08 object. Restricting 2022–2025 training rows to those 450 names would make membership a function of a later list — **the FEA-01 defect, moved from the funding columns to the member screen**. A fix that "aligns training to production" by back-applying the live list is therefore not a fix; it is the same error on another axis. This is stated here so that no implementer reads PROD-11's "the whole difference is the universe" as an instruction to adopt the live list.
+
+The genuine choice, which the prereg must make explicitly and which is **PENDING**:
+
+| Option | Rule | Look-ahead? | Notes |
+|---|---|---|---|
+| (a) status quo | top 400 of all 829 | no (the 829 axis is fixed, not future-derived) but includes dead contracts (TRD-02/05) and non-crypto (UNI-01) | today's training |
+| (b) PIT universe | top 400 of `U-PIT ∧ CRYPTO` | no | the mask the replay and judge already use (C-UNI-2, `build_crypto_mask.py`; unknown class kept) |
+| (c) PIT ∧ tradable | (b) further gated by `tradability_v1.npz` `54d409d0…` | no | uses the pinned FX-DATA artifact; note FXR-DATA-1 — tradability is a *past-activity* proxy, admissible as a labelled screen, **not** as a settlement truth |
+| (d) live 450 | top 400 of the live list | **YES — do not do this** | reproduces FEA-01 on the membership axis |
+
+Whichever is chosen, it is a **separate intervention from the funding rebuild** (review narrowing iii) and must be its own arm or held fixed.
+
+### §3.5 Open rows for PROD-11
+
+| # | Row | Status | How it closes |
+|---|---|---|---|
+| P-O1 | Member-rule divergence over full history (not 147 anchors) | **NOT CHECKED** for all axes except the 30-anchor K/D case in §2.5(a) | One read-only pass over the stored metas, batched with TRD-05 |
+| P-O2 | Universe choice (a)/(b)/(c) | **PENDING — prereg decision** | Named in the prereg before any number |
+| P-O3 | Whether option (b) or (c) changes the top-400 cut materially in delisting-heavy periods | **NOT MEASURED** | Needs the tradability artifact joined to the member axes |
+| P-O4 | PROD-11's own `VERIFIED_IMMATERIAL` label | **scope-limited, not carried** | Keep as "immaterial on 2026-08-17..09-10, 147 anchors, no delistings" |
+
 ## §4 UNI-01 — NOT YET WRITTEN
 ## §5 TRD-05 (+ TRN-06 coordination) — NOT YET WRITTEN
 
