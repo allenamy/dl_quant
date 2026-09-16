@@ -320,3 +320,33 @@ Diff: docs/receipts/fx_exec_E7.diff sha256 f33b38fec64a16714c604dac5e7e46f670a34
 - **规则按传递闭包重述(全体, 立即生效)**: 任何**直接或间接**执行 `run_acceptance.sh` 或发出任何场所请求的套件, 一律受窗口(N+65min..N+3h15m)+ `BATTERY.lock` 约束; 跑套件前先 grep 其 `subprocess` / `bash` / `os.system` / `requests`; 判不准即当作受约束。已知传递到达者: `live/tests_acceptance_entrypoints.py`。新写的 gate_coverage 类格放进不 shell-out 的套件。
 - **两条处置纪律记为先例**: ① 立即上报且在继续工作之前上报; ② **故意不跑 `git clean -- state`**(会删掉套件要读的既有未跟踪真实状态副本)。
 - **继承树不干净单独立格**: 要求给出被改文件清单、是否影响任何已交付的红/绿判定(逐项)、还原后的树 sha; 任何依赖该残留的格必须重跑。
+
+---
+## NEW-02 · `venue_fills.py:1179` 平仓成交行的 attempt_idx(克隆 6d11ba38; lead 逐字转录 2026-09-16 04:0xZ)
+
+**哪一侧是对的: 订单侧。** 两张表对该列的定义相同 —— pilot_log SCHEMA 在两边都把 `attempt_idx` 设为 not_null, 因为它是「我们自己的」; 一条阶梯行的含义是**第几次阶梯尝试**(`watchdog.py:2390`、`tests_flatten_rows.py:30`, 在真实的 07-26 触发上断言 103/103/2); 一张被重挂的 maker 带 2 而 `order_type` 仍是 "maker"(`binance_executor.py:1307`)。**成交写者是从腿类型 INFERRED 出来的** —— `1 if otype == "maker" else 2` —— 这个代理在三处失效。
+
+**真实数据**(只读副本, 逐文件 sha 在收据里): 09-12 平仓 = **255 条订单行全为 attempt 1, 7,312 条成交行全为 attempt 2** ⇒ 按 (rebalance_id, symbol, order_type, attempt_idx) 的 orders↔fills 连接 **7,312/7,312 全失败**。09-09 = 243 条订单行 attempt 1, 6,190 条成交行 attempt 1, 0 失败 —— 因为那批来自**另一个写者**(`pilot_journal/tools/backfill_flatten_fills_20260909.py:85` 在调用同一个函数之后把 attempt_idx 覆写为 1)。所以**两个写者都硬编码**; 它们一直看起来对, 只是因为**实盘历史上每一次阶梯都在第一次尝试就成功**(8 个平仓日订单行 1,708/1,708 全在 attempt 1)。
+
+**按 attempt_idx 连接或分桶的读者 —— 完整普查在事实表**。执行器侧: **成交表的读者没有一个用它**(m2_markout 按 order_type 分桶; 去重/collapse 键是 trade_id; `assert_anchor_artifacts` 的逐列恒定性只查 ORDERS, 对 fills 只到表级)。**确实使用它的** —— m3_fill_rate、reject_rate、score_post_fix、`anchor_loop:855`、处置矩阵的 (symbol, side, attempt_idx) 连接 —— **全都读 ORDERS**, 所以都不受影响; 而处置矩阵那条连接**正是修复必须落在成交写者而不是订单侧的原因**。研究侧有两个装置按该键连接 orders→fills 且**确实被咬**: `retrain_2026-09/health_check_2026-09-05/calib/markout_diag.py:16,24`(平仓成交丢 `spread_at_submit_bps`)与 `calib/cost_calib.py:118,120`(平仓成交的 BNB 费变得不可归属, 被计入 `nofee`)。**markout_diag 的已发布窗是 08-26..09-05, 其中不含整书平仓, 所以没有已发布数字会变; 缺陷在代码里。** `export_fills_for_markout.py` 与 `survey_keys.py` 传播该列。
+
+**我差点掉进去的坑, 也是「显然的修法」为什么错**: 一个 REBALANCE client id 以尝试次数结尾, 而一个 FLATTEN id 以 `next(_FLATTEN_SEQ)` 结尾 —— **一个进程级计数器**。在真实的 12Z 批上那些后缀是 **255 个互异值 1..255**, 对应 255 条**全为 attempt 1** 的订单行。**解析后缀会比缺陷本身更糟。** 这条现在是一格对着真实夹具断言的测试。
+
+**修复: attempt 随腿走。** `attempt_from_client_id()` 只解析 `{rebalance_id}-{symbol}-<digits>` 这个精确形状(一个 flatten id 按构造解析失败; 36 字符的 id 被拒, 因为铸造时的 `[:36]` 会把 `-12` 变成 `-1`); `submitted_order_legs` 与 `order_legs_from_venue` 逐腿盖上 attempt_idx; 对平仓批由调用方提供 `{client_id: attempt_idx}`, 从该批**自己的订单行**读出(`find_gaps` 产出它, `backfill_batch` 传递); `attribute_trades` 像带 `leg` 一样带着它; `fill_rows_from_trades` 优先用它。一条解析不出来的平仓腿**仍然得到它的行**(成交是事实), 取树的未知尝试默认值 1, **并在行上带具名的 `attempt_idx_source`** —— 不是 2(那条规则不适用), 也不是静默的 1。这也**按构造**修好了那个潜伏的第二处: 一条被重挂的 maker 腿现在给出 2。该处从未触发过(两天的重挂 maker 行成交量都是 0)。
+
+**证据**: 旧码 11 个红格 / 28 格中 17 格 / **0 个 traceback**; 修后 28/28 rc=0; 突变体 9/9 被抓且逐字节还原; 20 个邻居套件 rc=0; AST 13 处旧检查点逐字保留, 新增 12 处。**一个突变体(去掉 isdigit 守卫)第一轮没被抓到** —— `int(" 12")` 与 `int("+12")` 都是 12, 所以只有 try/except 会吞掉一个不是我们铸造的尾巴; 补了那一格重跑, 现在抓到。
+
+**未做, 交给 lead**: 已落盘的那 7,312 行**没有被重写**。成交表只追加, 重写实盘账本属 LED-04 修订记录同族, 而我对实盘只读。在修订记录存在之前, 按该键连接的读者仍会漏掉那 7,312 行。(**lead 裁定**: 登记 **LED-09**, 与 LED-03/04/05 一同在复审时执行; 两个研究装置另登记为 **RES-01** 另派。)
+
+---
+## gate_coverage 重复键(克隆 4a29646d; lead 逐字转录)
+
+`SUITE_SCOPE` 在**连续两行**上都写了 `"tests_external_book"`。存活的是当前文本(宇宙内归一化、宇宙列表缺陷、shadow_loop_v3、七个盲区); 被丢弃的是它的前宇宙前身(w/gross_norm、shadow_loop_v2、六个)。我删掉了陈旧的那条, 并**证明这次删除是运行期无操作**: `GATE_STEPS`、`RUNNER_BOUNDARIES`、`SUITE_SCOPE` 在删除前后哈希完全相同(SUITE_SCOPE 138 → 138)。**这正是关键 —— 字典字面量里的重复键由解析器消解**, 所以 `len()` 是对的、键是在的、`verify()` 的「每个套件都有边界陈述」通过, 连 `tests_external_book` 自己的 S7(`'"tests_external_book":' in gc`)也通过。**这次损失没有运行期签名; 只有文本能作证。**
+
+所以断言必须在**源码层**: `duplicate_literal_keys()` 用 ast 读文件并扫描**每一个**字典字面量(`GATE_STEPS` 形状相同、同样沉默), 报出每个重复常量键及其**全部**行号; `verify()` 在内容检查之前消费它。`verify(self_path=)` 接受一个夹具路径, 于是**接线**由「指向一个植入了重复键的文件」来断言, 而不是靠 grep 源码 —— **改名不能让它变成哑的**。新格 S7b/S7c/S7d 放在 `tests_external_book` 里, 因为被重复的那条陈述正是该套件自己的, 而且该套件**不 shell-out**。
+
+**写这个检查时发现了检查自己的 bug**: `sorted()` 对混合 int/str 键会抛 TypeError, 即**本该报告问题的东西反而会崩掉门**。S7c 的夹具各植入一个, 抓到了; 用 `key=str` 修好。
+
+**证据**: 重复键在场时门 rc=1 并点名两行, 套件恰好红在 S7b(126 格中 1 格, 0 traceback); 删除后门 rc=0(9 步 / 138 套件), 套件 ALL PASS 126; 突变体 6/6 被抓; 邻居 tests_imports / tests_guard_reach / tests_rehearsal_anchor / tests_harvest_ema 全 rc=0; AST 102 处旧检查点保留, 新增 3 处。
+
+**提交链**: `48e9938 → 6d11ba38`(NEW-02, 3 路径)`→ 4a29646d`(gate_coverage, 2 路径)。研究仓 `1764b1c9`, 74 个文件, 显式 pathspec, 用 `git show --name-only` 核过。差分 `docs/receipts/fx_exec_NEW02.diff` sha256 `0b462a1f…` · `docs/receipts/fx_exec_GATECOV.diff` sha256 `a13dfbb3…`; `fx_exec_SHA256SUMS` 12 行 `shasum -c` 全 OK, 0 FAILED, 无 e3b0c442。
