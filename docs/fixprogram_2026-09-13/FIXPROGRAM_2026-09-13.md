@@ -293,3 +293,25 @@
 1. **P12 的可观测性并入 PROD-27 修复**(不另开对同批文件的改动); 逐锚记录必须带 **`h_source`** 与**写者身份**, 且 `h_source != own` ⇒ 具名事件 + 计数(否则对 08-30 00Z 那类情况仍是哑的)。**侧车的写入行为本身(谁赢)另案**, 属书行为, 需配对回放 + 用户裁定, 由 lead 上交。
 2. **可交易性工件 sha 钉定**: FX-DATA run 2 产出 `tradability_v1.npz` **sha256 `54d409d0ddf695f497d8b27fb5bdee960deda763250d530a16bd7cf506205302`**(2,501,576 字节, 10,285 锚 × 829 名, `reload_roundtrip: true`, 装置 066c3d74 / 模块 a9fad82c / spec 99ae35e0, numpy 2.4.6)。P2、FX-MODEL、FX-TRAIN 一律钉这个 sha。**核对无残差**: 工件并集轴 14,142,095 冻结行 − 审计 13,770,575 = **371,520 = `AD_H.H1_x0910_tail.untraded_rows_of_those` 精确相等**(129 个已死名 × 2,880 尾行); 156 死名两轴**逐名相同**(对称差为空); 60 名死后资金费按**工件自己的 `last_traded_ts`** 复现(60,438 事件)。定义差 841 格全部是「无紧邻前一根 bar」(826 首根 + 15 NODATA 缺口后首根), `last_traded` 行 **0/829 改变**。**run 1 的字面命令从未被记录** ⇒ run 2 的 `receipts/run2_fx_trd_build.sh`(a63e2935)是本工件的权威命令, 不回填看似合理的行。
 3. **LED-08 判据按 FX-EXEC2 交付版**: `|median_now − median_ref| > 3 × 1.4826 × MAD_ref` 且两侧 ≥12 锚; taker 漂移 **+16.570 pp** vs 线 10.431 pp ⇒ 报警; |net/gross| **+0.664 pp** vs 1.021 pp ⇒ 不报; 费侧换算 **+0.0235 bps/锚/gross** vs K2 δ 0.05 **照印不照判**。**口径声明必须留**: 报告口径(`topup_taker` 订单行的成交名义占比)与 X-COST 口径(fill 级 `venue_maker_flag` 的 M/(M+T))**此处相差约 2 pp 是算术巧合, 不是构造上的一致**; config 里 X-COST 口径标 `NOT_this_caliber`。MAD_ref = 0 的退化参照**拒绝给判词**并说明理由, 两个 level 与 Δ 仍照印。
+
+## §15 第三轮登记与裁定(2026-09-16 04:0xZ, lead)
+
+### 15.1 ★ 提交纪律: `.gitignore` 静默吞文件(全体, 立即生效)
+**事实(FX-DATA 自查发现并自报)**: 研究仓 `.gitignore` 含全局 **`*.npz` / `*.csv` / `*.csv.gz`** 与**目录名 `logs/`**。`git add <目录>` 对目录内被忽略的文件**不报错** ⇒ 提交静默少带文件。`d32465c7` 因此只带了收据与日志而**没带工件本身**, 尽管 `git show --name-only` 被读过 —— **读的人只核对了「我期望的文件在不在」, 没核对「我声称的东西有没有缺席」**。已由 `b4d60d73` 用 `git add -f` 修复, 两个 npz 的入库 blob 内容哈希与收据相符(`54d409d0…` / `1e85aaf6…`)。
+- **规则**: 收据类 `.npz` / `.csv` / **任何路径含 `logs/` 段的文件**一律 `git add -f`; **`git show --name-only` 要读「缺席」而非只读「在场」**; 关键收据用 `git ls-files --error-unmatch <path>` 逐条验。
+- **lead 全仓核(04:0xZ)**: 纲领与审计两目录下全部 `.csv` / `.npz` / `.csv.gz` **现已 TRACKED**(`AUDIT_PROD_columns.csv` · `receipts_prod/parity_f10_columns.csv` · `receipts_prod/parity_king_columns.csv` · 两个 FX_DATA npz)⇒ 暴露只此一处且已修。`logs/` 段匹配无法一次扫完, 已要求各线自验并写进报告。
+
+### 15.2 新登记
+| 编号 | 事实 | 级别 | owner |
+|---|---|---|---|
+| **TRN-28** | `pod_f10_np_export.py` 在**自己的 V1 门判词之前**就写出可部署 npz(`np.savez` L56, `sys.exit(0 if ok else 3)` 在其后), 且默认 `F10_OUT` **就是在役工件路径** ⇒ **失败的门仍在实盘路径留下完整可加载模型并覆盖原件**。比审计的「产生在所有门之外」更锋利: **门存在, 只是判词不控制写入**。与 FXR-PROD-1(修正态先于控制落盘)同族 | **P1** | FX-TRAIN(并进 TRN-03) |
+| **LED-09** | NEW-02 修复之后, 实盘 `fills.jsonl` 里**已落盘的 7,312 行**(09-12 平仓批)仍带 `attempt_idx 2` 而其订单行是 1 ⇒ 按 (rebalance_id, symbol, order_type, attempt_idx) 连接的读者仍漏这 7,312 行。账本只追加 ⇒ 走 **LED-04 修订记录同族**, 与 LED-03/04/05 一同由 lead 在复审时执行(先 `--rehearse` 于实盘根, 再 `--apply`, 锚窗外) | P2(实盘写回) | lead |
+| **RES-01** | 两个研究装置按该缺陷键连接 orders→fills, **受影响**: `retrain_2026-09/health_check_2026-09-05/calib/markout_diag.py:16,24`(平仓成交丢 `spread_at_submit_bps`)与 `calib/cost_calib.py:118,120`(平仓成交的 BNB 费变得不可归属, 计入 `nofee`)。**限定句必须保留**: markout_diag 的已发布窗 08-26..09-05 不含整书平仓 ⇒ **没有已发布数字会动, 缺陷在代码里**。`export_fills_for_markout.py` 与 `survey_keys.py` 传播该列 | P2 | 待派(非 FX-EXEC 分支) |
+| **TRD-02 更正** | AUDIT_DATA「秩基 0.7–5.3%」用的是描述性旗标; 因果条件 `¬tradable = UNTRADED ∪ NODATA` 实测 **2.34–6.68%**, 且 **2026 年几乎全是 NODATA**(Z24 看不见)⇒ 原行对 2026 **低估约 7 倍**。已就地标注(bf809ed6) | P2 | lead(已改) |
+
+### 15.3 裁定
+1. **EXE-04 走「核 + 断言, 停在接线之前」**: FX-EXEC 建纯联合可行性核 + 复审的 40 条断言(驱动自 `GRID_SOLUTION_SETS.json`), **停在执行器接线与 41 天回放之前**, 交具名余项(接线四处 · 41 天回放 · PREREG §3.6 要求的逐条重新论证)。理由: 「今天可合并」并不存在(被复审/部署的是三分支叠加树, 另两条未完); 相关性风险几乎全在精确联合可行集里且自包含; 接线那半改书行为, 本来就要先过 41 天回放与独立复审。**`GRID_SOLUTION_SETS.json` 只读取用**: 复制进克隆当外部夹具并记来源路径 + sha256 + 其所在提交号; **禁 fetch / checkout / merge 那条分支**。
+2. **电池锁本轮优先序: FX-EXEC → FX-EXEC2 → FX-W6C**(FX-EXEC 的链已完整)。锁文件写名字 / PID / 树 sha / 起始时间, 跑完即删; 跑套件前按 §14.1 grep 传递调用。
+3. **NEW-02 的做法记为正例**: 「attempt 随腿走」; 并记下那个坑 —— FLATTEN client id 结尾是进程级计数器 `_FLATTEN_SEQ`, 真实 12Z 批上是 **255 个互异值 1..255** 对 255 条全 attempt 1 的订单行 ⇒ **解析后缀比缺陷本身更糟**(已成为对着真实夹具的断言格)。两个写者都硬编码却一直「看起来对」, 是因为**实盘历史上每次阶梯都在第一次尝试成功**(8 个平仓日 1,708/1,708 全在 attempt 1)—— 这解释了此类缺陷为何没有行为签名。
+4. **gate_coverage 重复键的断言必须在源码层**: 重复键由**解析器**消解 ⇒ `len()` 对、键在、`verify()` 过、`tests_external_book` 自己的 S7 也过, **损失没有运行期签名**。故用 ast 扫每个 dict 字面量报出重复常量键的全部行号, 并用 `verify(self_path=)` 指向植入夹具来断言**接线**(改名不能让它失效)。写检查时发现检查自身的 bug(`sorted()` 混合 int/str 键抛 TypeError ⇒ 本该报告问题的东西反而崩掉门)= 「患处再过一行」正例。
+5. **TRN-27 的两条方法论收进纲领**: ① **读 diff 而非修订说明**(因此发现 `b2f9cfd4` 先转 int64 再校验, `[False,True]`→`[0,1]` 过门而导出器用持久化数组下标会 IndexError); ② **删掉按构造就会过期且已被自我免责的冻结 sha 表**, 换成测量命令 + 已提交清单; ③ 新门拒绝**截断 sha**, 判其为「标签而非身份」。
