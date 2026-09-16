@@ -1,0 +1,239 @@
+{
+ "PASS": false,
+ "failed_checks": [
+  "A2_pending_gates_declared",
+  "A3_superseded_tokens_declared",
+  "A4_stated_device_shas_are_current"
+ ],
+ "checks": {
+  "A1_approval_objects_match_measured": {
+   "n_declared": 0,
+   "violations": [],
+   "malformed_declarations": [],
+   "ok": true
+  },
+  "A2_pending_gates_declared": {
+   "month_generic_gates": [
+    "v4_gate_step1_m.py",
+    "v4_gate_step2_m.py"
+   ],
+   "n_awaiting_approval": 2,
+   "violations": [
+    {
+     "file": "v4_gate_step1_m.py",
+     "measured": "79950786271e690a",
+     "n_approval_object_lines": 0,
+     "why": "a gate source awaiting approval must be declared by exactly one APPROVAL_OBJECT line"
+    },
+    {
+     "file": "v4_gate_step2_m.py",
+     "measured": "d99a910951e070f7",
+     "n_approval_object_lines": 0,
+     "why": "a gate source awaiting approval must be declared by exactly one APPROVAL_OBJECT line"
+    }
+   ],
+   "ok": false
+  },
+  "A3_superseded_tokens_declared": {
+   "n_snapshot_mentions": 6,
+   "violations": [
+    {
+     "line": 62,
+     "token": "0fe5ec5573f3",
+     "file": "v4_gate_step2_m.py",
+     "snapshot_sha": "0fe5ec5573f34696",
+     "why": "an earlier version of a device file is named without a SUPERSEDED_OBJECT declaration",
+     "text": "\u4fee\u8ba2 3\u300c\u4ecd\u5f00 (i)\u300d\u7684\u95e8\u6e90\u7801\u5df2\u5199\u6210: `v4_gate_step1_m.py`(sha `79950786271e\u2026`)/ `v4_gate_step2_m.py`(sha `0fe5ec5573f3\u2026`, \u540c\u65e5 AMENDMENT 1 \u540e; \u6b64\u524d `455e3df4c195\u2026` \u7684\u4e5d\u6708\u6b63\u63a7\u89c1 w7_gates/pod2_root), \u88c5\u7f6e\u76ee\u5f55\u5185, = \u51bb\u7ed3\u95e8 `v4_gate_step1.p"
+    },
+    {
+     "line": 76,
+     "token": "0fe5ec5573f346969d9d3448c3e424f2ebc8b7c192cefe4313a05cdf84c09007",
+     "file": "v4_gate_step2_m.py",
+     "snapshot_sha": "0fe5ec5573f34696",
+     "why": "an earlier version of a device file is named without a SUPERSEDED_OBJECT declaration",
+     "text": "- **\u5408\u540c\u6279\u51c6 = \u7528\u6237\u5b57**: `ELIGIBILITY_CONTRACT.json` \u7684 `gates.STEP1.approved_source_sha256` \u987b\u589e\u8865 `79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163`, `gates.STEP2.approved_source_sha256` \u589e\u8865 `0f"
+    },
+    {
+     "line": 80,
+     "token": "0fe5ec55",
+     "file": "v4_gate_step2_m.py",
+     "snapshot_sha": "0fe5ec5573f34696",
+     "why": "an earlier version of a device file is named without a SUPERSEDED_OBJECT declaration",
+     "text": "- \u81ea\u68c0: `tests_pipeline_gates.py` \u65b0\u8282 [R] 50 \u683c + [S] 45 \u683c(\u5168\u5957 328 ALL PASS, `receipts/monthly_chain_2026-09-12/tests_pipeline_gates_w7.log` + `.SHA256SUMS`); \u590d\u8dd1\u6b63\u63a7\u547d\u4ee4\u9010\u5b57 = `receipts/monthly_chain_2026-09-12/"
+    },
+    {
+     "line": 91,
+     "token": "0fe5ec5573f3",
+     "file": "v4_gate_step2_m.py",
+     "snapshot_sha": "0fe5ec5573f34696",
+     "why": "an earlier version of a device file is named without a SUPERSEDED_OBJECT declaration",
+     "text": "**\u95e8\u6e90\u7801 sha \u53d8\u66f4(\u5408\u540c\u6279\u51c6\u589e\u8865\u65f6\u7528\u65b0\u503c)**: `v4_gate_step2_m.py` `0fe5ec5573f3\u2026` \u2192 **`b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9`**; `v4_gate_step1_m.py` **\u4e0d\u53d8** `79950786271e\u2026`\u3002\u5408\u540c `ELIGIBILITY_C"
+    },
+    {
+     "line": 91,
+     "token": "b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9",
+     "file": "v4_gate_step2_m.py",
+     "snapshot_sha": "b2f9cfd40b9e3565",
+     "why": "an earlier version of a device file is named without a SUPERSEDED_OBJECT declaration",
+     "text": "**\u95e8\u6e90\u7801 sha \u53d8\u66f4(\u5408\u540c\u6279\u51c6\u589e\u8865\u65f6\u7528\u65b0\u503c)**: `v4_gate_step2_m.py` `0fe5ec5573f3\u2026` \u2192 **`b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9`**; `v4_gate_step1_m.py` **\u4e0d\u53d8** `79950786271e\u2026`\u3002\u5408\u540c `ELIGIBILITY_C"
+    }
+   ],
+   "n_violations": 5,
+   "ok": false
+  },
+  "A4_stated_device_shas_are_current": {
+   "violations": [
+    {
+     "line": 10,
+     "file": "chain_lib.sh",
+     "claimed": "ffbb89b8",
+     "measured": "1add6df73bd8be70",
+     "text": "> **\u672c\u8282\u53d6\u4ee3 \u00a72\u2013\u00a74(\u90a3\u4e09\u8282\u81ea 2026-09-12 \u8d77\u53ea\u4f5c 09-01 v3 \u9996\u8dd1\u7684\u5386\u53f2\u8bb0\u5f55, \u4e0d\u518d\u6267\u884c)\u3002** \u547d\u4ee4\u9010\u5b57\u6284\u88c5\u7f6e\u76ee\u5f55 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git \u5355\u6e90; pod \u4e0a\u53ea\u653e\u8fd0\u884c\u526f\u672c `R=/workspace/review_scratch`), \u6bcf\u6b65\u5148\u8fc7\u95e8\u518d\u4e0b\u4e00"
+    },
+    {
+     "line": 10,
+     "file": "chain_v4_data.sh",
+     "claimed": "ee0af0c0",
+     "measured": "2369a87ddf092912",
+     "text": "> **\u672c\u8282\u53d6\u4ee3 \u00a72\u2013\u00a74(\u90a3\u4e09\u8282\u81ea 2026-09-12 \u8d77\u53ea\u4f5c 09-01 v3 \u9996\u8dd1\u7684\u5386\u53f2\u8bb0\u5f55, \u4e0d\u518d\u6267\u884c)\u3002** \u547d\u4ee4\u9010\u5b57\u6284\u88c5\u7f6e\u76ee\u5f55 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git \u5355\u6e90; pod \u4e0a\u53ea\u653e\u8fd0\u884c\u526f\u672c `R=/workspace/review_scratch`), \u6bcf\u6b65\u5148\u8fc7\u95e8\u518d\u4e0b\u4e00"
+    },
+    {
+     "line": 10,
+     "file": "chain_v4_gpu3.sh",
+     "claimed": "29611dbc",
+     "measured": "16bfdb7e6a7eba39",
+     "text": "> **\u672c\u8282\u53d6\u4ee3 \u00a72\u2013\u00a74(\u90a3\u4e09\u8282\u81ea 2026-09-12 \u8d77\u53ea\u4f5c 09-01 v3 \u9996\u8dd1\u7684\u5386\u53f2\u8bb0\u5f55, \u4e0d\u518d\u6267\u884c)\u3002** \u547d\u4ee4\u9010\u5b57\u6284\u88c5\u7f6e\u76ee\u5f55 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git \u5355\u6e90; pod \u4e0a\u53ea\u653e\u8fd0\u884c\u526f\u672c `R=/workspace/review_scratch`), \u6bcf\u6b65\u5148\u8fc7\u95e8\u518d\u4e0b\u4e00"
+    },
+    {
+     "line": 10,
+     "file": "chain_v4s_gpu.sh",
+     "claimed": "2563446d",
+     "measured": "dbab81e094ee7b51",
+     "text": "> **\u672c\u8282\u53d6\u4ee3 \u00a72\u2013\u00a74(\u90a3\u4e09\u8282\u81ea 2026-09-12 \u8d77\u53ea\u4f5c 09-01 v3 \u9996\u8dd1\u7684\u5386\u53f2\u8bb0\u5f55, \u4e0d\u518d\u6267\u884c)\u3002** \u547d\u4ee4\u9010\u5b57\u6284\u88c5\u7f6e\u76ee\u5f55 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git \u5355\u6e90; pod \u4e0a\u53ea\u653e\u8fd0\u884c\u526f\u672c `R=/workspace/review_scratch`), \u6bcf\u6b65\u5148\u8fc7\u95e8\u518d\u4e0b\u4e00"
+    },
+    {
+     "line": 10,
+     "file": "chain_king_e.sh",
+     "claimed": "db5839e4",
+     "measured": "683675d117e8eb9f",
+     "text": "> **\u672c\u8282\u53d6\u4ee3 \u00a72\u2013\u00a74(\u90a3\u4e09\u8282\u81ea 2026-09-12 \u8d77\u53ea\u4f5c 09-01 v3 \u9996\u8dd1\u7684\u5386\u53f2\u8bb0\u5f55, \u4e0d\u518d\u6267\u884c)\u3002** \u547d\u4ee4\u9010\u5b57\u6284\u88c5\u7f6e\u76ee\u5f55 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git \u5355\u6e90; pod \u4e0a\u53ea\u653e\u8fd0\u884c\u526f\u672c `R=/workspace/review_scratch`), \u6bcf\u6b65\u5148\u8fc7\u95e8\u518d\u4e0b\u4e00"
+    },
+    {
+     "line": 10,
+     "file": "chain_v4_post_export.sh",
+     "claimed": "e1dec02b",
+     "measured": "c34aace95448b5b5",
+     "text": "> **\u672c\u8282\u53d6\u4ee3 \u00a72\u2013\u00a74(\u90a3\u4e09\u8282\u81ea 2026-09-12 \u8d77\u53ea\u4f5c 09-01 v3 \u9996\u8dd1\u7684\u5386\u53f2\u8bb0\u5f55, \u4e0d\u518d\u6267\u884c)\u3002** \u547d\u4ee4\u9010\u5b57\u6284\u88c5\u7f6e\u76ee\u5f55 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git \u5355\u6e90; pod \u4e0a\u53ea\u653e\u8fd0\u884c\u526f\u672c `R=/workspace/review_scratch`), \u6bcf\u6b65\u5148\u8fc7\u95e8\u518d\u4e0b\u4e00"
+    }
+   ],
+   "n_violations": 6,
+   "n_nonadjacent_pairs_reported": 3,
+   "nonadjacent_pairs_reported": [
+    {
+     "line": 58,
+     "file": "judge_v4.py",
+     "token": "7f1aa5d6",
+     "measured": "c2a81c48f0377560",
+     "note": "same line but not adjacent: reported, not a claim about this file"
+    },
+    {
+     "line": 62,
+     "file": "v4_gate_step2_m.py",
+     "token": "0fe5ec5573f3",
+     "measured": "d99a910951e070f7",
+     "note": "same line but not adjacent: reported, not a claim about this file"
+    },
+    {
+     "line": 76,
+     "file": "ELIGIBILITY_CONTRACT.json",
+     "token": "79950786271e690a24c72bc189b20e65ea",
+     "measured": "1188267adf420c0b",
+     "note": "same line but not adjacent: reported, not a claim about this file"
+    }
+   ],
+   "ok": false
+  }
+ },
+ "doc": "docs/RUNBOOK_monthly_retrain_2026-10.md",
+ "device_dir": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09",
+ "contract": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/ELIGIBILITY_CONTRACT.json",
+ "summary": {
+  "n_device_files": 114,
+  "n_snapshot_files": 33,
+  "n_declarations": 0,
+  "n_tokens_unresolved": 17
+ },
+ "tokens_unresolved": {
+  "0dfc0d87": [
+   28
+  ],
+  "172715ce": [
+   186
+  ],
+  "1d7f459d": [
+   193
+  ],
+  "2563446d": [
+   10
+  ],
+  "29611dbc": [
+   10
+  ],
+  "455e3df4": [
+   76,
+   80
+  ],
+  "455e3df4c195": [
+   62
+  ],
+  "6737834a": [
+   3
+  ],
+  "9f15dea0131f": [
+   155
+  ],
+  "b0a573a1": [
+   195,
+   195
+  ],
+  "c24b8d2f": [
+   4
+  ],
+  "c8e2fc13": [
+   195
+  ],
+  "db5839e4": [
+   10
+  ],
+  "e1dec02b": [
+   10
+  ],
+  "ee0af0c0": [
+   10
+  ],
+  "f14bc33d78b2": [
+   176
+  ],
+  "ffbb89b8": [
+   10
+  ]
+ },
+ "tokens_unresolved_note": "hex tokens in the doc that match no file in DEVICE_DIR (commit shas, receipt shas, files elsewhere). They are data, not a verdict: this gate can only speak about files it measured.",
+ "wall_s": 0.0,
+ "built_utc": "2026-09-16T03:16:51Z",
+ "gate": "DOC_APPROVAL_IDENTITY",
+ "inputs_sha256": {
+  "doc": "01c0767375b681d4b18c5f8f76c2a4287d238f00620b63dfc2dac182cefdafbf",
+  "contract": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732"
+ },
+ "inputs_path": {
+  "doc": "docs/RUNBOOK_monthly_retrain_2026-10.md",
+  "contract": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/ELIGIBILITY_CONTRACT.json"
+ },
+ "utc": "2026-09-16T03:16:51Z",
+ "argv": [
+  "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/v4_doc_approval_gate.py"
+ ],
+ "self_sha256": "205f519a00390c6ba68b2322f5921dc4142eb7fbc894bf3f02124c006e3a07d8",
+ "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"
+}

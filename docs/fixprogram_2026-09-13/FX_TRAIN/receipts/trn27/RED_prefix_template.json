@@ -1,0 +1,90 @@
+{
+ "PASS": false,
+ "failed_checks": [
+  "A2_pending_gates_declared",
+  "A3_superseded_tokens_declared"
+ ],
+ "checks": {
+  "A1_approval_objects_match_measured": {
+   "n_declared": 0,
+   "violations": [],
+   "malformed_declarations": [],
+   "ok": true
+  },
+  "A2_pending_gates_declared": {
+   "month_generic_gates": [
+    "v4_gate_step1_m.py",
+    "v4_gate_step2_m.py"
+   ],
+   "n_awaiting_approval": 2,
+   "violations": [
+    {
+     "file": "v4_gate_step1_m.py",
+     "measured": "79950786271e690a",
+     "n_approval_object_lines": 0,
+     "why": "a gate source awaiting approval must be declared by exactly one APPROVAL_OBJECT line"
+    },
+    {
+     "file": "v4_gate_step2_m.py",
+     "measured": "d99a910951e070f7",
+     "n_approval_object_lines": 0,
+     "why": "a gate source awaiting approval must be declared by exactly one APPROVAL_OBJECT line"
+    }
+   ],
+   "ok": false
+  },
+  "A3_superseded_tokens_declared": {
+   "n_snapshot_mentions": 1,
+   "violations": [
+    {
+     "line": 50,
+     "token": "0fe5ec55",
+     "file": "v4_gate_step2_m.py",
+     "snapshot_sha": "0fe5ec5573f34696",
+     "why": "an earlier version of a device file is named without a SUPERSEDED_OBJECT declaration",
+     "text": "#   (the PREV_* keys below). Their shas (v4_gate_step1_m.py 79950786\u2026 / v4_gate_step2_m.py 0fe5ec55\u2026, AMENDMENT 1) must be ADDED to ELIGIBILITY_CONTRACT.json"
+    }
+   ],
+   "n_violations": 1,
+   "superseded_declarations_verified_against_an_archive": [],
+   "superseded_declarations_unverifiable": [],
+   "note": "an UNVERIFIABLE superseded declaration still exempts the token; it is counted here so the exemption is visible",
+   "ok": false
+  },
+  "A4_stated_device_shas_are_current": {
+   "violations": [],
+   "n_violations": 0,
+   "n_nonadjacent_pairs_reported": 0,
+   "nonadjacent_pairs_reported": [],
+   "ok": true
+  }
+ },
+ "doc": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/v4_month_2026-10.env.template",
+ "device_dir": "/Users/haosiyu/Desktop/quant_research/multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09",
+ "contract": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/ELIGIBILITY_CONTRACT.json",
+ "summary": {
+  "n_device_files": 114,
+  "n_snapshot_files": 33,
+  "n_declarations": 0,
+  "n_tokens_unresolved": 0
+ },
+ "tokens_unresolved": {},
+ "tokens_unresolved_note": "hex tokens in the doc that match no file in DEVICE_DIR (commit shas, receipt shas, files elsewhere). They are data, not a verdict: this gate can only speak about files it measured.",
+ "wall_s": 0.0,
+ "built_utc": "2026-09-16T03:19:06Z",
+ "gate": "DOC_APPROVAL_IDENTITY",
+ "inputs_sha256": {
+  "doc": "dc94784ebc38ee990bae6bc7c5cef37060cebc1cc6cadf1c52fe8715b9ea7615",
+  "contract": "1188267adf420c0b3a39a4b20a8a131ee80ae5d667b5056006465dbaba50a732"
+ },
+ "inputs_path": {
+  "doc": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/v4_month_2026-10.env.template",
+  "contract": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/ELIGIBILITY_CONTRACT.json"
+ },
+ "utc": "2026-09-16T03:19:06Z",
+ "argv": [
+  "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/v4_doc_approval_gate.py"
+ ],
+ "self_sha256": "dbfcdbb7152d8d7c1b9e510d5bd14a54bf6938c38b46d7437d5e484232e3ea99",
+ "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"
+}

@@ -1777,5 +1777,122 @@ with tempfile.TemporaryDirectory() as _vd:
     check("★★★ [V] TRN-19 sibling POSITIVE: with the REAL interpreter both dryruns PASS rc 0 (DRYRUN_PASS, receipt PASS true) — the bash re-check accepts every line the real derivation writes",
           _o[0] == 0 and _n[0] == 0 and "DRYRUN_PASS" in _n[1] and _n[5] and '"PASS": true' in open(f"{_n[2]}/dryrun_receipt.json").read(), (_o[0], _n[0], _n[1][-200:]))
 
+# ── [W] FX-TRAIN TRN-27 (2026-09-16; docs/fixprogram_2026-09-13/FX_TRAIN/FACT_TABLE_TRN.md §TRN-27; AUDIT_TRAIN 7e1ecf9a TRN-27):
+#     the document a user rules from named two SUPERSEDED versions of v4_gate_step2_m.py as the approval object and carried a device
+#     sha table that was 6/6 stale. v4_doc_approval_gate.py turns "the doc says what is on disk" into a program condition. Every cell
+#     below runs the gate on a SYNTHETIC document in a temp dir; the one real-artifact cell reads the shipped October template
+#     (read-only) and writes its receipt to a temp path. The gate itself writes nothing but its receipt.
+_WDG = f"{HERE}/v4_doc_approval_gate.py"
+_WCON = f"{HERE}/ELIGIBILITY_CONTRACT.json"
+_WS1, _WS2 = _sha(f"{HERE}/v4_gate_step1_m.py"), _sha(f"{HERE}/v4_gate_step2_m.py")
+_WR1 = _sha(f"{HERE}/v4_gate_step2_m.r1_0fe5ec55.py")
+_WDECL = (f"APPROVAL_OBJECT v4_gate_step1_m.py {_WS1}\n"
+          f"APPROVAL_OBJECT v4_gate_step2_m.py {_WS2}\n"
+          f"SUPERSEDED_OBJECT v4_gate_step2_m.py {_WR1}\n")
+with tempfile.TemporaryDirectory() as _wd:
+    def _wgate(text, profile="ruling", tag="d", doc=None):
+        """Run the gate on a synthetic (or given) document; returns (rc, stdout, receipt-or-None)."""
+        _p = doc or f"{_wd}/{tag}.md"
+        if doc is None:
+            open(_p, "w").write(text)
+        _o = f"{_wd}/{tag}_receipt.json"
+        env = {"DOC": _p, "DEVICE_DIR": HERE, "CONTRACT": _WCON, "DOCGATE_OUT": _o}
+        if profile is not None:
+            env["DOCGATE_PROFILE"] = profile
+        rc, out = run(["v4_doc_approval_gate.py"], env)
+        return rc, out, (json.load(open(_o)) if os.path.exists(_o) else None)
+
+    # W1 — the pre-fix RUNBOOK shape, reproduced: stale device sha table + the STEP2_m gate named by a superseded snapshot sha + no declaration block
+    _pre = ("# RUNBOOK (pre-fix shape)\n"
+            "装置 sha(2026-09-12 实测): `chain_lib.sh` ffbb89b8 · `chain_v4_data.sh` ee0af0c0\n"
+            "合同批准 = 用户字: gates.STEP1.approved_source_sha256 须增补 " + _WS1 + "\n"
+            "门源码 sha 变更: `v4_gate_step2_m.py` " + _WR1[:12] + "…\n")
+    rc, out, r = _wgate(_pre, tag="w1")
+    _a2 = r["checks"]["A2_pending_gates_declared"]; _a3 = r["checks"]["A3_superseded_tokens_declared"]; _a4 = r["checks"]["A4_stated_device_shas_are_current"]
+    check("★★★ [W] TRN-27 W1 (the real defect shape): a ruling document with a stale device sha table, the STEP2_m gate named by a SUPERSEDED snapshot sha, and no declaration block ⇒ rc 3, PASS=false, A2+A3+A4 all FAIL; A4 names the file with claimed≠measured and A3 names the undeclared snapshot",
+          rc == 3 and r["PASS"] is False and not _a2["ok"] and not _a3["ok"] and not _a4["ok"]
+          and any(v["file"] == "chain_lib.sh" and v["claimed"] == "ffbb89b8" and v["measured"] == _sha(f"{HERE}/chain_lib.sh")[:16] for v in _a4["violations"])
+          and any(v["file"] == "v4_gate_step2_m.py" for v in _a3["violations"])
+          and any(v["file"] == "v4_gate_step2_m.py" and v["n_approval_object_lines"] == 0 for v in _a2["violations"]),
+          (rc, r["failed_checks"], _a4["violations"][:2]))
+
+    # W2 — the fixed shape: declaration block, table gone ⇒ PASS
+    rc, out, r = _wgate("# RUNBOOK (fixed shape)\n\n```\n" + _WDECL + "```\n"
+                        "装置 sha 一律现场实测: `python3 v4_gate_common.py sha <file>`\n", tag="w2")
+    check("★★★ [W] TRN-27 W2 (fixed shape, same gate, same inputs): declaration block + no frozen sha table ⇒ rc 0 PASS, all four checks OK, and the two SUPERSEDED declarations that match an archive are recorded as verified",
+          rc == 0 and r["PASS"] is True and all(c["ok"] for c in r["checks"].values())
+          and any(e["sha"] == _WR1[:16] for e in r["checks"]["A3_superseded_tokens_declared"]["superseded_declarations_verified_against_an_archive"]),
+          (rc, r["summary"]))
+
+    # W3 — A1: a declared approval object that is not the file on disk
+    rc, out, r = _wgate("```\nAPPROVAL_OBJECT v4_gate_step1_m.py " + ("0" * 64) + "\nAPPROVAL_OBJECT v4_gate_step2_m.py " + _WS2 + "\n```\n", tag="w3")
+    check("★★★ [W] TRN-27 W3 (A1): an APPROVAL_OBJECT whose sha is not the measured file ⇒ rc 3, A1 FAIL naming declared vs measured (a declaration is checked against disk, never believed)",
+          rc == 3 and not r["checks"]["A1_approval_objects_match_measured"]["ok"]
+          and any(v["file"] == "v4_gate_step1_m.py" and v["measured"] == _WS1[:16] for v in r["checks"]["A1_approval_objects_match_measured"]["violations"]), (rc, r["failed_checks"]))
+
+    # W4 — A1: a truncated sha is a label, not an identity
+    rc, out, r = _wgate("```\nAPPROVAL_OBJECT v4_gate_step1_m.py " + _WS1[:8] + "\nAPPROVAL_OBJECT v4_gate_step2_m.py " + _WS2 + "\n```\n", tag="w4")
+    check("★★★ [W] TRN-27 W4 (A1): an 8-hex prefix as an APPROVAL_OBJECT ⇒ rc 3, malformed_declarations names it ('a truncated sha is a label, not an identity') — the 8-hex habit is exactly how 0fe5ec55/b2f9cfd4 were quoted",
+          rc == 3 and any(m["file"] == "v4_gate_step1_m.py" and m["sha"] == _WS1[:8] for m in r["checks"]["A1_approval_objects_match_measured"]["malformed_declarations"]), (rc, r["failed_checks"]))
+
+    # W5 — A2: the declaration itself names the OLD object (the TRN-27 defect in its most dangerous form)
+    rc, out, r = _wgate("```\nAPPROVAL_OBJECT v4_gate_step1_m.py " + _WS1 + "\nAPPROVAL_OBJECT v4_gate_step2_m.py " + _WR1 + "\n```\n", tag="w5")
+    check("★★★ [W] TRN-27 W5 (A2, the defect itself): a declaration block that names the SUPERSEDED snapshot as the approval object ⇒ rc 3; A1 FAILs (declared ≠ measured) and A2 FAILs naming 'the declared object is not the source that would run'",
+          rc == 3 and not r["checks"]["A1_approval_objects_match_measured"]["ok"] and not r["checks"]["A2_pending_gates_declared"]["ok"]
+          and any(v.get("declared") == _WR1[:16] and v.get("measured") == _WS2[:16] for v in r["checks"]["A2_pending_gates_declared"]["violations"]), (rc, r["failed_checks"]))
+
+    # W6 — A2: two declarations for the same gate (which one would a reader approve?)
+    rc, out, r = _wgate("```\nAPPROVAL_OBJECT v4_gate_step1_m.py " + _WS1 + "\nAPPROVAL_OBJECT v4_gate_step2_m.py " + _WS2 + "\nAPPROVAL_OBJECT v4_gate_step2_m.py " + _WS2 + "\n```\n", tag="w6")
+    check("★★★ [W] TRN-27 W6 (A2): two APPROVAL_OBJECT lines for the same gate ⇒ rc 3 — 'exactly one' is the point; a document with two answers has none",
+          rc == 3 and any(v.get("n_approval_object_lines") == 2 for v in r["checks"]["A2_pending_gates_declared"]["violations"]), (rc, r["failed_checks"]))
+
+    # W7 — A3: naming the ARCHIVE FILE is self-identifying and needs no declaration; quoting its bare sha does
+    rc, out, r = _wgate("```\n" + _WDECL.replace(f"SUPERSEDED_OBJECT v4_gate_step2_m.py {_WR1}\n", "") + "```\n前身 `v4_gate_step2_m.r1_0fe5ec55.py`\n", tag="w7a")
+    _ok_a = rc == 0 and r["PASS"] is True
+    rc, out, r = _wgate("```\n" + _WDECL.replace(f"SUPERSEDED_OBJECT v4_gate_step2_m.py {_WR1}\n", "") + "```\n前身 " + _WR1[:12] + "…\n", tag="w7b")
+    check("★★★ [W] TRN-27 W7 (A3): naming the archive FILE (`v4_gate_step2_m.r1_0fe5ec55.py`) is unambiguous ⇒ PASS with no declaration; quoting the same version as a BARE sha ⇒ rc 3 A3 'named without a SUPERSEDED_OBJECT declaration'",
+          _ok_a and rc == 3 and not r["checks"]["A3_superseded_tokens_declared"]["ok"], (_ok_a, rc, r["failed_checks"]))
+
+    # W8 — A4 adjacency: a sha right after a filename is a claim; one further along the line is reported, never decisive
+    _m8 = _sha(f"{HERE}/chain_lib.sh")
+    rc, out, r = _wgate("```\n" + _WDECL + "```\n`chain_lib.sh` ffbb89b8\n", tag="w8a")
+    _adj = rc == 3 and any(v["file"] == "chain_lib.sh" and v["claimed"] == "ffbb89b8" for v in r["checks"]["A4_stated_device_shas_are_current"]["violations"])
+    rc, out, r = _wgate("```\n" + _WDECL + "```\n`chain_lib.sh` 读取本月合同并在导出阶段之前核对上游收据的哈希 ffbb89b8\n", tag="w8b")
+    check("★★★ [W] TRN-27 W8 (A4): a sha separated from the filename by nothing but separators is a CLAIM ⇒ rc 3 with claimed/measured; the same token further along the same line is reported in nonadjacent_pairs_reported and does NOT fail — the gate does not guess what prose means",
+          _adj and rc == 0 and r["checks"]["A4_stated_device_shas_are_current"]["n_violations"] == 0
+          and r["checks"]["A4_stated_device_shas_are_current"]["n_nonadjacent_pairs_reported"] >= 1, (_adj, rc, r["checks"]["A4_stated_device_shas_are_current"]))
+
+    # W9 — the profile must be declared, and 'reference' relaxes A2 ONLY, visibly
+    rc, out, r = _wgate("```\n" + _WDECL + "```\n", profile=None, tag="w9a")
+    _noprof = rc == 3 and r is not None and r["PASS"] is False and "DOCGATE_PROFILE" in r["REFUSED"]["missing_env"]
+    rc, out, r = _wgate("```\n" + _WDECL + "```\n", profile="lenient", tag="w9b")
+    _badprof = rc == 3 and r["REFUSED"]["bad_profile"]["given"] == "lenient"
+    rc, out, r = _wgate("# a config template that declares nothing\n", profile="reference", tag="w9c")
+    _refok = rc == 0 and "NOT_APPLICABLE" in r["checks"]["A2_pending_gates_declared"]
+    rc, out, r = _wgate("# a config template quoting an old sha\n`v4_gate_step2_m.py` " + _WR1[:12] + "…\n", profile="reference", tag="w9d")
+    check("★★★ [W] TRN-27 W9 (profile): no DOCGATE_PROFILE ⇒ refusal receipt naming it; an unknown profile ⇒ refusal naming the allowed set; profile=reference records A2 NOT_APPLICABLE (never a silent pass) while A3/A4 still FAIL on a document that quotes a superseded sha",
+          _noprof and _badprof and _refok and rc == 3 and not r["checks"]["A3_superseded_tokens_declared"]["ok"], (_noprof, _badprof, _refok, rc))
+
+    # W10 — refusals write a PASS=false receipt that names what is missing; no DOCGATE_OUT writes nothing at all
+    rc, out, r = _wgate("", tag="w10", doc=f"{_wd}/does_not_exist.md")
+    _miss = rc == 3 and r["PASS"] is False and r["REFUSED"]["missing_files"]["doc"].endswith("does_not_exist.md")
+    rc2, out2 = run(["v4_doc_approval_gate.py"], {"DOC": f"{_wd}/w2.md", "DEVICE_DIR": HERE, "CONTRACT": _WCON, "DOCGATE_PROFILE": "ruling", "DOCGATE_OUT": ""})
+    check("★★★ [W] TRN-27 W10: a missing DOC ⇒ rc 3 and a PASS=false receipt that NAMES it (not a crash, not a skip); a missing DOCGATE_OUT ⇒ rc 3 and nothing written, because a gate with no receipt path has no verdict to give",
+          _miss and rc2 == 3 and "DOCGATE_REFUSED missing DOCGATE_OUT" in out2, (_miss, rc2, out2[-120:]))
+
+    # W11 — an UNVERIFIABLE superseded declaration still exempts, but is counted so the exemption is visible
+    rc, out, r = _wgate("```\n" + _WDECL + "SUPERSEDED_OBJECT v4_gate_step2_m.py " + ("a" * 64) + "\n```\n", tag="w11")
+    check("★★ [W] TRN-27 W11: a SUPERSEDED_OBJECT whose sha matches no file in the device dir (history older than the archives, e.g. 455e3df4) is an EXEMPTION with no evidence — it is accepted but counted in superseded_declarations_unverifiable, so the escape hatch is visible in the receipt",
+          rc == 0 and len(r["checks"]["A3_superseded_tokens_declared"]["superseded_declarations_unverifiable"]) == 1, (rc, r["checks"]["A3_superseded_tokens_declared"]["superseded_declarations_unverifiable"]))
+
+    # W12 — the one REAL artifact this suite can carry everywhere: the shipped October contract template (read-only)
+    rc, out, r = _wgate(None, profile="reference", tag="w12", doc=f"{HERE}/v4_month_2026-10.env.template")
+    check("★★★ [W] TRN-27 W12 (real artifact): the shipped v4_month_2026-10.env.template at profile=reference ⇒ rc 0 PASS — after the fix it quotes no superseded gate sha and no stale device sha (pre-fix it named 0fe5ec55 on its GATE_STEP comment and this cell failed A3)",
+          rc == 0 and r["PASS"] is True, (rc, r["failed_checks"] if r else None))
+
+    # W13 — the gate reads the device directory, not a name: renaming does not create evidence
+    check("★★ [W] TRN-27 W13: the gate's picture of the device dir is measured, not parsed from filenames — every archived snapshot it uses is one whose sha it hashed itself (the `.rN_<sha8>` label is only a hint)",
+          _WR1.startswith("0fe5ec55") and _sha(f"{HERE}/v4_gate_step2_m.r2_b2f9cfd4.py").startswith("b2f9cfd4") and _WS2 != _WR1, (_WS2[:12], _WR1[:12]))
+
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)

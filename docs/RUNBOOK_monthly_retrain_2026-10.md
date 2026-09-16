@@ -7,7 +7,7 @@
 ## §0★ 唯一执行步骤单(v4 口径, 2026-09-12 定稿; 用户字 09-12「既然 v4 已经确定是正确口径, 10 月 runbook 为什么还不修」)
 
 > **★ 修订 3(2026-09-12 W3, 见本节末「§0★ 修订 3」): 下表的逐步手工命令自本修订起由单一驱动 `chain_v4_monthly.sh <v4_month_<YYYY-MM>.env>` 接管**(装置目录 `v4_chain_2026-09-09/`; 月配置合同 `v4_month_2026-09.env` = 九月正控, `v4_month_2026-10.env.template` = 十月模板; 负控 `chain_v4_monthly_dryrun.sh`)。**十月重训只允许经驱动执行**; 下表保留为各阶段的「做什么/门」说明, 表中命令不再单独手抄(修订 2 已证手抄会漏 env)。设计与收据: `docs/DESIGN_v4_monthly_chain_2026-09-12.md`。**仍开(十月前必须裁定)**: STEP1/STEP2 门源码被合同冻结且写死九月比对对象, 十月需新门源码 + 合同批准(用户字); 见 DESIGN §6。
-> **本节取代 §2–§4(那三节自 2026-09-12 起只作 09-01 v3 首跑的历史记录, 不再执行)。** 命令逐字抄装置目录 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git 单源; pod 上只放运行副本 `R=/workspace/review_scratch`), 每步先过门再下一步, 门红即停。装置 sha(2026-09-12 实测): `chain_lib.sh` ffbb89b8 · `chain_v4_data.sh` ee0af0c0 · `chain_v4_gpu3.sh` 29611dbc · `chain_v4s_gpu.sh` 2563446d · `chain_king_e.sh` db5839e4 · `chain_v4_post_export.sh` e1dec02b。复跑前用 `v4_gate_common.py sha <file>` 实测, 不凭本表。
+> **本节取代 §2–§4(那三节自 2026-09-12 起只作 09-01 v3 首跑的历史记录, 不再执行)。** 命令逐字抄装置目录 `multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/`(git 单源; pod 上只放运行副本 `R=/workspace/review_scratch`), 每步先过门再下一步, 门红即停。装置 sha **一律现场实测**(修订 6 删除了原先冻在这里的六个值: 到 2026-09-16 已 6/6 不成立): `python3 v4_gate_common.py sha <file>`; 已提交的清单见装置目录 `SHA256SUMS*`(`make_sha_manifest.py` 生成)。
 
 | 步 | 做什么 | 命令 / 装置(逐字) | 门(红即停) |
 |---|---|---|---|
@@ -89,6 +89,32 @@ PREV_CLAMP_BUILDER_SHA256=b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b36240
 4. **判官定位器(`JUDGE_ELIGIBILITY`)本轮不动行为**: caller 显式给出同字节备份路径时, 已变的原路径仍可能被跳过。**月度 export 路线不受影响**(驱动把收据自己的全量 `inputs_path` 原样交判官), 反例只在手写 caller 时成立。闭包条件与最小绑定提案见 DESIGN §9.4, **待用户/lead 裁定**; 在裁定之前, 不得声称「判官 ≡ standalone gate 的全闭包」。
 
 **门源码 sha 变更(合同批准增补时用新值)**: `v4_gate_step2_m.py` `0fe5ec5573f3…` → **`b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9`**; `v4_gate_step1_m.py` **不变** `79950786271e…`。合同 `ELIGIBILITY_CONTRACT.json` 仍是 `1188267a…`(未编辑, 批准 = 用户字)。自检全套 **ALL PASS (354 checks)**; `make_sha_manifest.py` rc 0。
+
+### §0★ 修订 6(2026-09-16, FX-TRAIN; AUDIT_TRAIN 7e1ecf9a TRN-27 / TRN-15 / TRN-16; 事实表 `docs/fixprogram_2026-09-13/FX_TRAIN/FACT_TABLE_TRN.md` §TRN-27)
+
+**为什么有这一节**: 修订 4 让用户批准 `0fe5ec55…`, 修订 5 改成 `b2f9cfd4…`, 而磁盘上的件从 2026-09-13 起是 `d99a9109…` —— `grep d99a9109` 在本文件里 **0 命中**。按修订 5 的正文下字会批准一个**已被取代的红控快照**: `b2f9cfd4` 先把成员索引转型再校验, `[False, True]` 变 `[0, 1]` 拿 PASS, 而导出器 `pod_export_bundle_v4.py` 用**存储原样**的数组做下标 `y4[i, m]`, 对它会 IndexError。`d99a9109`(AMENDMENT 3)先看 dtype kind 再用, bool/float/object/str 一律拒。**批准对象只以本节的声明块为准**, 上面修订 4/5 的正文自本节起只作历史。
+
+**声明块(机器可核; 门 `v4_doc_approval_gate.py` 逐行对装置目录实测值比对, 不符即 rc 3)**:
+
+```
+APPROVAL_OBJECT v4_gate_step1_m.py 79950786271e690a24c72bc189b20e65eab6271164c1e582dff72b799db00163
+APPROVAL_OBJECT v4_gate_step2_m.py d99a910951e070f70ae3eede1533013e009a62fa617eda55dff546290864329d
+SUPERSEDED_OBJECT v4_gate_step2_m.py 0fe5ec5573f346969d9d3448c3e424f2ebc8b7c192cefe4313a05cdf84c09007
+SUPERSEDED_OBJECT v4_gate_step2_m.py b2f9cfd40b9e356536184a63e202aa9d2a48228be5145bcd81665fb5f7df24e9
+```
+
+- 上面两行 `APPROVAL_OBJECT` = **用户下字时要写进 `ELIGIBILITY_CONTRACT.json` 的全部对象**(`gates.STEP1.approved_source_sha256` 增补第一行的值; `gates.STEP2.approved_source_sha256` 增补第二行的值)。合同现状(实测 `1188267a…`): STEP1 只有 `278fdce6…`, STEP2 只有 `db7ab356…`, 两个月度门都未批准 ⇒ preflight 会拒, 方向是 fail-closed。
+- 两行 `SUPERSEDED_OBJECT` = 红控快照, 装置目录内以 `v4_gate_step2_m.r1_0fe5ec55.py` / `v4_gate_step2_m.r2_b2f9cfd4.py` 存在, 门能对上档案件核实。**另有第三个更早的红控 `455e3df4c195…`(修订 4 正文提到, AMENDMENT 1 之前)在装置目录内没有档案件**, 门只能把它记为无法核实的 token —— 引用它时必须带这句话。
+- `v4_gate_step1_m.py` 的值自修订 4 起**未变**(实测仍是 `79950786271e…`), 本节不动它。
+
+**装置 sha 表(原 §0★ 引言行「装置 sha(2026-09-12 实测)」)已删除**。它把六个值冻在一篇比装置目录更新得慢的文档里, 到今天 **6/6 全部不成立**(原表声称的六个前缀 ffbb89b8 / ee0af0c0 / 29611dbc / 2563446d / db5839e4 / e1dec02b 现已全部不再对应任何在役件), 而同一行本来就写着「不凭本表」。**改法**: 装置 sha 一律现场实测, 命令见引言行; 已提交的清单见装置目录 `SHA256SUMS*`(由 `make_sha_manifest.py` 生成)。
+
+**十月执行前仍需用户下字的其余对象**(与本节声明块一并交裁, 全表与证据见 AUDIT_TRAIN §1.3):
+1. `PREV_KING_FEA_UNCLAMPED=NONE`(修订 4 的六行新键之一; 门把这次「不可评」绑在 clamp 构建器身份 `PREV_CLAMP_BUILDER_SHA256=b9f9c728…` 上, 三者不等即 `REFUSED clamp_builder_identity`)。
+2. **十月出口基线(TRN-15, 此前不在任何待裁表上)**: 出口门 E2b 要求 `LIVE_PINS` / `BUNDLE_BASE` 与合同 `approved_baseline`(`fd27fe48…` / `dce6a228…`)**逐字节相同**, 而本 RUNBOOK §0★ 步 0 要求 pins 每月重抄、基线 json 每月重立 ⇒ **十月导出按构造必败 E2b**。方向(lead §2 已定): 按月合同参数化, 不放宽 —— 批准基线成为**月合同的批准对象**, 门仍要求显式批准的 sha, 不接受「盘上是什么就用什么」。九月的 pins 几乎不可能逐字节复用(宇宙 Phase A M1 已于 09-04 上线)。
+3. **fea89 trend 构建器(TRN-16)**: 十月模板 `BUILDER_FEA89` 仍指全局累积和构建器 `pod_f8_build_ext.py`(pod2 实测 `f606bffa…`); 稳定局部 trend 构建器 `pod_f8_build_stable.py`(git 实测 `59a8127e…`)**在 pod2 上不存在**, 改用它须先上架并重新核验。**若维持全局构建器**, 则有两条随之而定的后果必须同时落墨: 月滚**只许追加**, 且 2026-08-31 那天由 holefix2 合成的 229,824 格**不得**用现已可取的 vendor 归档替换 —— 任一替换都会让 STEP1_m 在洞邻域之外红, 红因与十月数据质量无关。
+
+**本节的可核性**: 新门 `v4_doc_approval_gate.py`(收据 `DOC_APPROVAL_IDENTITY`, env `DOC` / `DEVICE_DIR` / `CONTRACT` / `DOCGATE_OUT` 全必填)对本文件与装置目录实测比对四格 —— A1 声明的批准对象 == 实测件; A2 每个尚未进合同的月度门 `v4_gate_*_m.py` 恰有一行 `APPROVAL_OBJECT` 且值 == 实测; A3 文中出现的每个「档案快照 sha」都有对应 `SUPERSEDED_OBJECT` 声明(直接点名档案文件名的写法免声明, 因为它本身无歧义); A4 紧跟装置文件名后面的 sha 是对该件的**声明**, 必须是实测值的前缀。**修订 6 之前的本文件**: A2 / A3 / A4 三格全红(rc 3), 红因 = 两个月度门无声明 · 五处裸引已取代的 step2_m sha(L62 / L76 / L80 / L91×2)· 六个陈旧装置 sha。
 
 ## §0 原则(不变式)
 
