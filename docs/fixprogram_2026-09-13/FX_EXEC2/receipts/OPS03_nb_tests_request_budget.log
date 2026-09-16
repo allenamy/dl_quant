@@ -1,0 +1,24 @@
+[A] the dimension that was missing
+  OK    ★★ a request cap exists and is under any reading of the venue's 6000  — 600/min; 6000/5min would be 1200/min
+  OK    ★★ 109 weight-1 cancels are 10.9% of the WEIGHT cap but 18.2% of the REQUEST cap  — weight 109/1000, requests 109/600
+  OK    ★★ ...so a weight limiter alone cannot see a cancel storm coming  — the request dimension saturates first, which is what happened
+
+[B] cancels WERE already counted — the original hypothesis, refuted BY BEHAVIOUR
+  OK    ★★ a DELETE on /fapi/v1/order spends an order slot (so cancels were never free)  — {'orders_spent': 1, 'requests_spent': 1, 'weight_spent': 1}
+  OK    ★★ and every request spends a request slot  — {'orders_spent': 1, 'requests_spent': 1, 'weight_spent': 1}
+  OK    ★★★ /fapi/v1/allOpenOrders — the flatten and watchdog ladder's cancel — spends the order dimension too; it did not until 2026-08-01, so the crisis path was the least counted  — {'orders_spent': 1, 'requests_spent': 1, 'weight_spent': 1}
+  OK    ★★ a read spends request and weight but NOT an order slot — the dimensions stay distinct  — {'orders_spent': 0, 'requests_spent': 1, 'weight_spent': 5}
+
+[C] the limiter throttles rather than letting the burst through
+  OK    ★★ a full window makes the next request WAIT rather than proceed  — slept 0.45s
+  OK       and the wait is counted, not silent  — 1
+
+[D] the budget line now shows the quota that banned us
+  OK    ★★ requests appear beside weight and orders, as a PEAK (the caps are per minute)
+  OK    ★ and the line states that the request cap is INFERRED
+
+[E] red capability
+  OK    ★★ mutant 'no_request_cap' lets a full window through without waiting — the 12:00Z shape  — the burst reaches the venue and the venue answers -1003
+  OK    ★ the on-disk source is unchanged
+
+ALL PASS  (13 checks)

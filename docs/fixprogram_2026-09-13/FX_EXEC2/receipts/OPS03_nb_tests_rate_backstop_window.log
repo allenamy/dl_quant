@@ -1,0 +1,30 @@
+[A] ★★★ THE 04:16Z SEQUENCE: burst to 4681 at :59, reset to 1 at :00
+  OK   ★★ the window high-water mark caught the burst
+  OK   ★★★ 4681 is UNDER 80% of 6000, so it correctly does NOT wait — the honest reading is that F1 would not have stopped 04:16Z. The line was never crossed; the RATE was — ([], 4800.0)
+  OK   ★★★ at 4900 the backstop waits on the WINDOW mark — [5.0]
+  OK   ★★★ THE FIX, IN ONE LINE: the next reading is 12, and it STILL waits — because the window's high-water mark is 4900. The old code read 12 and sailed on — (12, 4900)
+  OK   ★★ crossing the boundary resets OUR window mark too — keyed to the venue's own wall-clock minute, which we measured rather than assumed
+  OK   ★★ and in the NEW window it correctly does not wait — the reset is real, not ignored — []
+  OK   ★★★ but the anchor-wide peak REMEMBERS 4681 — the report and the decision are now two quantities that cannot be mistaken for each other
+
+[B] ★★ red capability — decide on the LAST sample again and 04:16Z returns
+  OK   ★★★ mutant 'decide_on_last_sample': the last reading is 1, so a backstop keyed to it would not wait — while the burst that preceded it was 4681. That is exactly the 04:16Z log: peak 4681, waits 0 — 1
+
+[C] the two quantities are NAMED APART in the log
+  OK   ★★★ the decided-on quantity is labelled as such, and the anchor peak is labelled REPORTED_ONLY — printing them side by side unlabelled is what made me read '4681 never reached 4800' from a line where nothing had compared 4681
+
+[D] F2: the burst is paced, so ANY 60s sliding window is bounded
+  OK   ★★ the first call OF THE PROCESS is not paced — there is genuinely no previous emission to be too close to
+  OK   ★★★ a second call arriving immediately is delayed to the floor — 109 cancels at this pace spread over ~2 minutes instead of arriving as fast as the socket allows — 9.999996900558472
+  OK   ★ and the pacer counts what it cost, so the price of the shaping is visible — (1, 10.0)
+  OK   ★★★ and a BRAND NEW pacer is paced against the previous one's last emission — the free first call per instance is gone, which is the 0.11 s path
+  OK   ★★★ k-cancel — where BOTH bans landed — paces every cancel, and each pace immediately precedes the cancel it shapes — ['pace', 'cancel:S0USDT', 'pace', 'cancel:S1USDT', 'pace', 'cancel:S2USDT', 'pace', 'cancel:S3USDT', 'pace', 'cancel:S4USDT']
+  OK   ★★ and the stale-order sweep, the other dense cancel loop, paces too
+  OK   ★★★ pacing is SEPARATE from the quota budget — a quota answers 'have we spent too much in a window', pacing answers 'are we emitting too fast to be safe under ANY window'. Folding them together would make one object answer two questions, which is the 04:16Z defect
+
+[E] F3: the gap may not assert what we cannot prove
+  OK   ★★★ the alarm no longer says the gap IS out-of-band traffic of ours — it says the attribution is undetermined, and names why: the banned IP is a CloudFront edge, not our egress
+  OK   ★★ the old assertion is gone from the alarm text
+  OK   ★★★ and the gap feeds NO decision — it is recorded and reported, nothing more
+
+ALL PASS  (19 checks)

@@ -1,0 +1,44 @@
+[A] ★★ the diff is taken over the ASSERTION's scope, not the traded universe
+  OK   ★★★ the default scope is every symbol symbolConfig returns — `only` is None unless the operator asks otherwise, so tool and guard judge the same set
+  OK   ★★★ and --universe-only SAYS it is not the arming scope — a narrower inspection that did not announce itself would produce a clean report the guard then contradicts
+  OK   ★ and the warning is emitted from that one constant, not re-typed at the call site
+
+[B] a 25x symbol appears in the diff, and --apply removes it
+  OK   ★★★ the off-bracket name is found and NAMED with its actual value — {'S003USDT': 25}
+  OK   ★★ and the account is not called clean while it differs
+  OK   ★★★ after --apply the diff is EMPTY — verified by RE-READING the venue, not by trusting what we sent. A setter that reports its own intent is reporting nothing — []
+  OK   ★ exactly one POST was needed — the tool does not re-set the eleven names already right — [('/fapi/v1/leverage', {'symbol': 'S003USDT', 'leverage': 20})]
+
+[C] idempotence: a second run has nothing to do
+  OK   ★★ a second pass posts nothing — 0
+
+[D] ISOLATED margin and HEDGE mode are both caught and both fixed
+  OK   ★★ HEDGE is reported as needing ONE_WAY — reduceOnly cannot be sent in Hedge Mode, so the protective flatten would be unmarked and the opening-halt would seal our own exit
+  OK   ★★ both ISOLATED names are named
+  OK   ★★★ after apply: ONE_WAY, all CROSSED, and the re-read proves it
+
+[E] a per-symbol failure is NAMED and does not stop the rest
+  OK   ★★★ the failing symbol is named — 'three failed' is not actionable, because arm() will refuse on exactly those and on nothing else — ['S004USDT marginType: RuntimeError: venue refused S004USDT']
+  OK   ★★ and the other two were still set
+  OK   ★★ the residue is exactly the failure — the tool does not claim success it did not have — ['S004USDT']
+
+[F] the bracket is read, never invented
+  OK   ★★★ a missing expected_leverage_bracket is a REFUSAL, not a default — a default here would be a second silent source for the number the whole risk model is derived from
+  OK   ★ and it comes from config/book.json, the same file arm() reads
+
+[G] --apply is the exception, read-only is the default
+  OK   ★★ the flag adds the writing, it does not remove a safety
+  OK   ★★ and rate budget is spent per POST — 730 symbols on a fresh account is a burst in the same dimension that answered -1003 on 07-29
+[F] ★★ 2026-08-22: the wanted leverage is min(expected, the symbol's OWN venue max)
+  OK      a name capped at 10x that sits at 20x is OFF-bracket, wanted 10 (not 20) — ['S001USDT', 'S002USDT']
+  OK      the 4x name likewise, wanted 4
+  OK      a name whose max (50x) is above the expected bracket is CLEAN at 20x
+  OK      the capped names are listed and counted — ['S001USDT', 'S002USDT']
+  OK      --apply posts EACH capped name's own max, not the flat expected value — [('/fapi/v1/leverage', {'symbol': 'S001USDT', 'leverage': 10}), ('/fapi/v1/leverage', {'symbol': 'S002USDT', 'leverage': 4})]
+  OK      and re-reading afterwards is CLEAN (the venue state changed and the diff agrees) — []
+  OK      without readable caps the OLD flat rule applies (stricter) and nothing crashes — {'position_mode': 'ONE_WAY', 'position_mode_ok': True, 'n_symbols': 12, 'isolated': [], 'off_bracket': [], 'off_bracket_detail': {}, 'want_leverage': 20, 'want_for': {'S000USDT': 20, 'S001USDT': 20, 'S002USDT': 20, 'S003USDT': 20, 'S004USDT': 20, 'S005USDT': 20, 'S006USDT': 20, 'S007USDT': 20, 'S008USDT': 20, 'S009USDT': 20, 'S010USDT': 20, 'S011USDT': 20}, 'capped_below_expected': [], 'n_capped_below_expected': 0, 'clean': True}
+  OK   ★★★ [E-0825-E-3] 多档支架下 bracket_caps 取 MAX 档(125), 不是 MIN 档(1) — {'S000USDT': 125, 'S001USDT': 125, 'S002USDT': 125, 'S003USDT': 125, 'S004USDT': 125, 'S005USDT': 125, 'S006USDT': 125, 'S007USDT': 125, 'S008USDT': 125, 'S009USDT': 125, 'S010USDT': 125, 'S011USDT': 125}
+  OK   ★★ 且它是逐符号取自己的档(不是把某一个符号的值摊到所有名字上) — ['S000USDT', 'S001USDT', 'S002USDT', 'S003USDT', 'S004USDT', 'S005USDT', 'S006USDT', 'S007USDT', 'S008USDT', 'S009USDT', 'S010USDT', 'S011USDT'] vs ['S000USDT', 'S001USDT', 'S002USDT', 'S003USDT', 'S004USDT', 'S005USDT', 'S006USDT', 'S007USDT', 'S008USDT', 'S009USDT', 'S010USDT', 'S011USDT']
+  OK   ★★ 端到端: 125x 上限的名字要 20x ⇒ 不算 off-bracket(MIN 档缺陷会让它变成 1x 而全体越界) — 0
+
+ALL PASS  (28 checks)

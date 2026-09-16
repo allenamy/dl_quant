@@ -1,0 +1,63 @@
+[A] contract surface matches MockBroker
+  OK    every MockBroker method exists on BinanceBroker  — complete
+
+[B] ★ MC-1: the opening-halt must never block a reduce-only order
+  OK    halt is set
+  OK    reduce-only order PASSES while halted
+  OK    opening order REFUSED while halted
+
+[C] flatten survives the halt (the ladder puts halt FIRST — this is why that is safe)
+  OK    flatten produced orders while halted  — 2
+  OK    every flatten order is reduce_only
+  OK    flatten uses IOC not post-only (exit must not sit passive)
+
+[D] LIVE cannot be reached by accident
+  OK    LIVE refused without confirmation token  — LIVE requires BINANCE_LIVE_CONFIRM=I_UNDERSTAND
+  OK    LIVE refused without credentials  — LIVE requires credentials in env; none found
+
+[E] error table: doc-derived, and the fallback does not depend on it
+  OK    table is non-empty (anti-vacuous precondition)  — 8 codes
+  OK    every 'observed' row cites how it was observed (no bare claims)  — 8 observed rows: ['-5022', '-1111', '-2022', '-4164', '-4005', '-2027', 'HTTP 502', '-4024']
+  OK    doc-derived rows still declare themselves UNVERIFIED
+  OK    an UNKNOWN code classifies as 'unknown' (fallback territory, never fail-open)
+  OK    -4189 is NOT lumped into account_restricted (reduce-only still works there)
+  OK    with the table EMPTIED, a restriction still classifies as unknown (=> fallback trips)
+
+[F] DRY_RUN really is inert
+  OK    no key loaded
+  OK    no secret loaded
+  OK    submit recorded, not sent
+  OK    positions() returns empty without contacting venue
+
+[G] classification: 'benign' is a tiny whitelist, never an inference
+  OK    -5022 (post-only would cross) is benign — we CHOSE not to trade
+  OK    ★ -2022 (reduceOnly rejected) is NOT benign at this layer — the precondition (are we flat?) is not knowable in submit()
+  OK    ★ HTTP 503 is NOT benign — it IS the outage condition of §4-5a
+  OK    -1111 (our own rounding bug) is NOT benign — every order would fail the same way
+  OK    the table exposes benign as its own axis, not derived from `restricted`
+  OK    no code is both restricted and benign (asserted at import)
+
+[G2] the failure counter exempts ONLY the unconditional benign code
+  OK    code -5022: counted=False (expected False)  — counter=0
+  OK    code -2022: counted=True (expected True)  — counter=1
+  OK    code -1111: counted=True (expected True)  — counter=1
+
+[G3] ★ MC-6: A2 unverifiable must REFUSE in LIVE, and be distinctly marked on TESTNET
+  OK    ★ LIVE + unverifiable A2 -> ArmingRefused (was: armed anyway = fail-OPEN)
+  OK    TESTNET + no /sapi host -> armed, and recorded as ENVIRONMENT_CANNOT_VERIFY  — ENVIRONMENT_CANNOT_VERIFY
+  OK    ★ and the summary still cannot read as all-checks-passed — A2 is in NEITHER the verified list nor the failed list; it has its own  — verified=['A1_position_mode', 'A4_clock_skew'] not_verified=['A5/A6_symbol_config (AssertionError: /fapi/v1/symbolConfig)', 'A7_maintenance_margin (AssertionError: /fapi/v1/leverageBracket)'] env=['A2_no_withdrawal_permission (TESTNET has no /sapi host; a futures-testnet key is not valid on the spot testnet, so the question cannot be asked here at all)']
+  OK    [A7] the tier-1 rate is read and summarised  — {'n_symbols': 2, 'n_considered': 2, 'min': 0.01, 'median': 0.02, 'max': 0.02, 'mean_blended': 0.015}
+  OK    [A7] it takes the LOWEST bracket, not whichever the venue listed first  — 0.025 belongs to bracket 2 and must not appear
+  OK    ★★ [A7, ruling G] the two floors are SEPARATE and structural death comes FIRST  — {'structural_death_initial_margin': 1250.0, 'liquidation_maintenance_margin_worst_case': 500.0, 'liquidation_maintenance_margin_blended': 375.0, 'declared_operating_cap_5x': 5000.0, 'caliber': 'STRUCTURAL DEATH (initial margin) comes FIRST and is irreversible; the liquidation floor is ~4x below it and is not reachable in practice. A halt must sit before the former. Blended assumes equal weights; worst case assumes the whole book in the highest-MMR name.'}
+  OK    [A7] the gross is bound to config, not a literal in the guard  — book.json:target_leverage x nav UNREADABLE -> legacy envelope 25000 (conservative probe)
+  OK    [A7] the universe scope is stated, and says so when it falls back  — external book: no verified target file names and no held position (newest verified target 1789516800) -> FELL BACK to every configured symbol; the floors below are NOT scoped to what we trade
+  OK    ★★ [A7] a broken tier assumption is RECORDED, and still arms  — ['AAAUSDT']
+  OK       and it is NOT counted as a passed check  — ['A1_position_mode', 'A5_margin_mode_cross', 'A6_leverage_and_caps_readable', 'A4_clock_skew']
+  OK    ★★ [A7] a venue failure on the bracket call CANNOT stop the anchor arming  — ['A7_maintenance_margin (VenueError: [-1003] way too many requests)']
+  OK       and the other checks are untouched by it  — ['A1_position_mode', 'A5_margin_mode_cross', 'A6_leverage_and_caps_readable', 'A4_clock_skew']
+[A6-cap] ★★ 2026-08-22: a symbol whose venue max is BELOW the expected bracket may sit at its own max
+  OK       at its own max (10x, venue cap 10x) the account ARMS and A6 is verified + counted  — {'armed': True, 'n_capped_below_expected': 1, 'n_capped_at_own_max': 1, 'n_leverage_off_expected': 0}
+  OK       still at the expected 20x (cap 10x) it ARMS too — consistent but UNTRADABLE, and says so  — {'armed': True, 'n_capped_still_at_expected_untradable': 1}
+  OK       but 10x on a name whose venue max is 75x is OFF-bracket -> ArmingRefused (old rule intact)
+
+ALL PASS

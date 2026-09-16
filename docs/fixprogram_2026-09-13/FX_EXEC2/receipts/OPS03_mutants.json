@@ -1,0 +1,151 @@
+{
+ "device": "ops03_mutants.py",
+ "device_sha256": "fa4996aada8fef1a333dc245aeb1b909d0d5cdf684baac3a612963ca0a1f75f5",
+ "clone": "/Users/haosiyu/cc_tmp/fx_exec2",
+ "clone_head": "7399b10a0e040ea73dcb45498812aa4881b28db5",
+ "file_sha_before": {
+  "live/rate_budget.py": "4a0df59429b8e59dcbaf1fd2f55b91570aec6dc73d083c8a37318520b9867e2d",
+  "live/tests_weight_shaper_sliding.py": "11cd81dca6d29a3e0533564a8a52a873d9c8d1b6af911e2c84c8d8bba3d77949"
+ },
+ "file_sha_after": {
+  "live/rate_budget.py": "4a0df59429b8e59dcbaf1fd2f55b91570aec6dc73d083c8a37318520b9867e2d",
+  "live/tests_weight_shaper_sliding.py": "11cd81dca6d29a3e0533564a8a52a873d9c8d1b6af911e2c84c8d8bba3d77949"
+ },
+ "tree_restored_bitwise": true,
+ "n_mutants": 7,
+ "n_killable": 6,
+ "n_killed": 6,
+ "n_survived_as_declared": 1,
+ "results": [
+  {
+   "id": "BASELINE",
+   "rc": 0,
+   "n_failed": 0,
+   "failed": [],
+   "verdict": "green"
+  },
+  {
+   "id": "M1_back_to_fixed_window",
+   "file": "live/rate_budget.py",
+   "applied": true,
+   "breaks": "reinstate a FIXED window (drop the whole window when its first entry ages out) — the defect itself",
+   "expected_red_cell_contains": "no sliding 60s window of admitted weight",
+   "rc": 1,
+   "n_failed": 2,
+   "which": [
+    "★★★ R1 no sliding 60s window of admitted weight exceeds WEIGHT_PER_MIN (old fixed window admits 1,800 within 0.6s)"
+   ],
+   "failed": [
+    "★★★ R1 no sliding 60s window of admitted weight exceeds WEIGHT_PER_MIN (old fixed window admits 1,800 within 0.6s)",
+    "★★ R1 the third spend was pushed past the boundary rather than admitted at 60.1"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M2_oversize_dropped_silently",
+   "file": "live/rate_budget.py",
+   "applied": true,
+   "breaks": "drop an oversized spend instead of admitting and naming it — a silent loss of a real request",
+   "expected_red_cell_contains": "admitted once and NAMED in stats",
+   "rc": 1,
+   "n_failed": 1,
+   "which": [
+    "★★ N2 it is admitted once and NAMED in stats rather than silently let through"
+   ],
+   "failed": [
+    "★★ N2 it is admitted once and NAMED in stats rather than silently let through"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M3_off_by_one_at_the_cap",
+   "file": "live/rate_budget.py",
+   "applied": true,
+   "breaks": "wait at the cap instead of above it — spends summing to exactly the cap would now block",
+   "expected_red_cell_contains": "exactly the cap are admitted with 0 waits",
+   "rc": 1,
+   "n_failed": 1,
+   "which": [
+    "★★ N1 three spends summing to exactly the cap are admitted with 0 waits"
+   ],
+   "failed": [
+    "★★ N1 three spends summing to exactly the cap are admitted with 0 waits"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M4_wrong_window_horizon",
+   "file": "live/rate_budget.py",
+   "applied": true,
+   "breaks": "prune on a 6 s horizon instead of 60 s, so the window under-counts and a drip spread over a minute is admitted in full",
+   "expected_red_cell_contains": "the third must WAIT",
+   "rc": 1,
+   "n_failed": 1,
+   "which": [
+    "★★★ N7 500 at t=0/20/40 — the third must WAIT; a window shorter than 60s would admit all three"
+   ],
+   "failed": [
+    "★★★ N7 500 at t=0/20/40 — the third must WAIT; a window shorter than 60s would admit all three"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M5_weight_in_window_running_total",
+   "file": "live/rate_budget.py",
+   "applied": true,
+   "breaks": "report the lifetime total as the window figure — the exact confusion OPS-03 C is correcting in the log line",
+   "expected_red_cell_contains": "they must not be the same",
+   "rc": 1,
+   "n_failed": 1,
+   "which": [
+    "★★★ N8 weight_in_window is 40 (this window) while weight_spent is 740 (all time) — they must not be the same number"
+   ],
+   "failed": [
+    "★★★ N8 weight_in_window is 40 (this window) while weight_spent is 740 (all time) — they must not be the same number"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M6_wait_not_counted",
+   "file": "live/rate_budget.py",
+   "applied": true,
+   "breaks": "shape the traffic but do not record that anything was shaped — the acceptance line would read waits=0",
+   "expected_red_cell_contains": "the blocked spend waits, is counted",
+   "rc": 1,
+   "n_failed": 1,
+   "which": [
+    "★★ N5 the blocked spend waits, is counted, and its seconds are accumulated"
+   ],
+   "failed": [
+    "★★ N5 the blocked spend waits, is counted, and its seconds are accumulated"
+   ],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "KILLED"
+  },
+  {
+   "id": "M7_wait_for_a_whole_window",
+   "file": "live/rate_budget.py",
+   "applied": true,
+   "breaks": "always sleep for the OLDEST entry regardless of how much room is needed — safe but needlessly slow; this mutant is expected to SURVIVE, and it is here to show the suite does not pretend to test cost",
+   "expected_red_cell_contains": "__EXPECTED_TO_SURVIVE__",
+   "rc": 0,
+   "n_failed": 0,
+   "which": [],
+   "failed": [],
+   "crashed_no_summary": false,
+   "tail": null,
+   "verdict": "SURVIVED AS DECLARED"
+  }
+ ]
+}

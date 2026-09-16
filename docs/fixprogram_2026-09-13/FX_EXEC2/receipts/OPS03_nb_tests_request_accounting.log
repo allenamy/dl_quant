@@ -1,0 +1,31 @@
+[A] the path that carries most of our traffic now spends the dimension that bans us
+  OK   ★★★ ONE market-data call moves the REQUEST counter by exactly 1 — measured on the budget itself, so a comment mentioning spend_request cannot satisfy it — requests 0 -> 1
+  OK   ★★ and the weight counter still moves by the call's weight (the half that already worked) — weight 0 -> 5
+
+[B] a retried request is a real request on the venue's books
+  OK   ★★★ three attempts spend three request slots, not one — the throttle is INSIDE the retry loop now; outside it, a struggling venue got free traffic from us at the exact moment our accounting most needed to match theirs — requests +3 over 3 attempts
+
+[C] we finally read the venue's number for our biggest traffic source
+  OK   ★★★ the header reading is recorded, attributed to the market-data host — [{'host': 'fapi.binance.com', 'path': '/fapi/v1/klines', 'kind': 'venue_header', 'used_weight_1m': 111, 'order_count_1m': 7, 'ts': 1789532210.547164}]
+
+[D] the venue counts per IP x host, so the wallet does too
+  OK   ★★★ MEASURED: in LIVE the market-data host and the broker host are the SAME string, so one counter carries both — which is why production is weaker than what we tested on — ('https://fapi.binance.com', 'https://fapi.binance.com')
+  OK   ★★★ ...and on TESTNET they are NOT, so a testnet reading of the venue's counter could never have been compared against our tally for both paths — `6152 vs 1000` was not a measurement of one quantity — https://testnet.binancefuture.com
+  OK   ★★ spending on one host does not move another host's wallet
+  OK   ★★ but the aggregate still gates underneath — removing a cap is not part of fixing an accounting error
+
+[E] every new pacer used to grant one completely unpaced call
+  OK   ★★★ a SECOND pacer's first call is paced against the FIRST pacer's last — two instances per anchor (the stale-order sweep, then k-cancel) meant one unpaced cancel at the loop boundary, which is a sufficient mechanism for 0C's 0.11 s interval — waited 10.00s
+
+[F] A5: the threshold no longer depends on whether something earlier read exchangeInfo
+  OK   ★★★ with the limits unread the backstop reports itself INACTIVE — not a silent third behaviour, and not an invented default that would look armed while resting on a number nobody read — not read yet
+  OK   ★★★ and the two live thresholds are REPORTED rather than inferred — 1920 on mainnet's 2400, 4800 on testnet's 6000. Same machine, two guards, and nothing used to say which one was in force — (1920, 4800)
+
+[G] red capability — take the request dimension back out
+  OK   M2 markers each appear exactly once in the production source — (1, 1)
+  OK   M1 market-data path leaves the request budget (the original defect): injection target matches exactly once — count=1
+  OK   ★★★ M1 market-data path leaves the request budget (the original defect) => the whole klines/funding path is invisible to the dimension -1003 refuses on: the request counter moves by 0, so the BEHAVIOURAL assertion above goes red — requests +0
+  OK   M2 throttle back outside the retry loop: injection target matches exactly once — count=1
+  OK   ★★★ M2 throttle back outside the retry loop => one throttle covers up to three real requests: the request counter moves by 1, so the BEHAVIOURAL assertion above goes red — requests +1
+
+16/16 passed

@@ -1,0 +1,35 @@
+[①] the reason a symbol was unreadable is recorded, per symbol, per endpoint
+  OK    venue_fills exposes the per-symbol failure record  — <function last_read_failures at 0x10db49550>
+  OK    ★★ the 502 symbol is recorded with a distinguishable class  — {'endpoint': '/fapi/v1/allOrders', 'error_class': 'http_502', 'detail': 'VenueError: [None] HTTP 502', 'attempts': 2}
+  OK    ★★ the timeout symbol is recorded as a DIFFERENT class  — {'endpoint': '/fapi/v1/allOrders', 'error_class': 'timeout', 'detail': 'TimeoutError: read timed out', 'attempts': 2}
+  OK    ★★ 502 and timeout do not collapse into one class  — http_502 vs timeout
+  OK    ★ an EMPTY response is not a failure (it was reached and said nothing)  — in_failures=False in_coverage=True
+  OK    ★ a healthy symbol appears in neither the failure record nor as unknown
+  OK    the endpoint is named, so an endpoint-level fault is attributable  — /fapi/v1/allOrders
+
+[①] the same for the trades reader (both readers had the identical swallow)
+  OK    ★★ userTrades failures are recorded too, and name their own endpoint  — {'endpoint': '/fapi/v1/userTrades', 'error_class': 'http_502', 'detail': 'VenueError: [None] HTTP 502', 'attempts': 2}
+
+[②] bounded retry — transient recovers, exhausted stays UNKNOWN
+  OK    ★★ a symbol that fails once and then answers IS read (retry engaged)  — calls=2 out=['FLAKYUSDT']
+  OK    ★ ...and it took more than one attempt (the retry is real, not a relabel)  — 2
+  OK    ★★ EXHAUSTED RETRY STILL MEANS UNKNOWN — never an empty-but-reached answer  — out=[] coverage=[]
+  OK    ★ the per-call attempt count is bounded (N=2, not unbounded)  — 2
+  OK    ★ and the exhausted symbol is still in the failure record with its reason  — ['E502USDT']
+
+[②-L2] a second sweep re-asks ONLY the unknowns, and exhaustion is still UNKNOWN
+  OK    ★★ the second sweep recovers symbols the first pass could not read  — ['AUSDT', 'BUSDT', 'CUSDT']
+  OK    ★ ...and coverage reflects it  — ['AUSDT', 'BUSDT', 'CUSDT']
+  OK    ★★ the failure record is CLEARED for symbols the sweep recovered
+  OK    ★★ the sweep re-asks ONLY the unknowns (a symbol already read is not re-queried)  — A=3 B=1 C=1
+  OK    ★★ an outage outlasting the sweep leaves every symbol UNKNOWN  — out={} cov=set()
+  OK    ★ ...with the reason still on the record  — ['AUSDT', 'BUSDT', 'CUSDT']
+  OK    ★ ...and the work is bounded: 2 passes x 2 attempts per symbol  — {'AUSDT': 4, 'BUSDT': 4, 'CUSDT': 4}
+  OK    ★ no sweep happens when the first pass reached everything (no idle 60s)  — returned without waiting
+
+[①] minute-level rate peaks, so 'we were rate-limited' can be ruled in or out
+  OK    the budget reports a minute-level PEAK, not only a running total  — ['orders_peak_per_min', 'weight_peak_per_min']
+
+  22 checks run
+
+ALL PASS

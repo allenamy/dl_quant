@@ -1,0 +1,61 @@
+[A] the venue hands us the deadline; until now nothing read it
+  OK   ★★★ the real 08-01 message parses to its exact epoch (52 minutes of ban) — 1785575459.446 vs 1785575459.446
+  OK   ★★★ the -1003 variant that names NO deadline yields None — 'we do not know when it lifts' must not read as 'it has lifted'
+  OK   ★★ 10 digits are seconds, 13 are milliseconds — the unit is decided by the digit count, not assumed (reading seconds as ms puts the deadline in 1970, i.e. 'already lifted')
+  OK   ★★ 11-12 digits are neither unit and are REFUSED rather than guessed
+  OK   ★★★ a later refusal cannot SHORTEN a standing ban — the deadline is a max, so a stale reading can never send the next caller back in early — 1785575459.446
+  OK   ★★ ban_state answers the question any path needs: banned, until when, how long left — 600.0
+  OK   ★★ and it is not banned once the deadline passes
+  OK   ★★★ a ban on one host does not silence the other — two counters, two answers
+  OK   ★★ ...and asking WITHOUT naming a host lands in its own bucket, not in whichever host was asked about first — an unattributed question must not borrow another host's answer
+  OK   ★★★ a rate refusal with no deadline leaves deadline_known FALSE and banned FALSE — the honest pair: we were refused, and we cannot say when it lifts
+  OK   ★ is_rate_limited(code=-1003, http=418) is True — three surfaces, one meaning (418/429 arrive with no body to carry a code at all)
+  OK   ★ is_rate_limited(code=-1015, http=400) is True — three surfaces, one meaning (418/429 arrive with no body to carry a code at all)
+  OK   ★ is_rate_limited(code=None, http=429) is True — three surfaces, one meaning (418/429 arrive with no body to carry a code at all)
+  OK   ★ is_rate_limited(code=None, http=418) is True — three surfaces, one meaning (418/429 arrive with no body to carry a code at all)
+  OK   ★ is_rate_limited(code=-2011, http=400) is False — three surfaces, one meaning (418/429 arrive with no body to carry a code at all)
+  OK   ★ is_rate_limited(code=None, http=500) is False — three surfaces, one meaning (418/429 arrive with no body to carry a code at all)
+  OK   ★★★ the ban is recorded by _request itself, so a caller that never learns to ask cannot make it invisible — one observation point, like the rate-limit headers beside it — VenueError until=1785575459.446
+
+[B] a throttle that lifts inside the phase's budget is simply waited out
+  OK   ★★★ it waits once and then completes — nothing is left resting — unresolved=[] waits=1 cancelled=2
+  OK   ★★ the wait length comes from the VENUE's deadline, not from a timer of ours — [4.0]
+  OK   ★★★ and nothing is pinned — a resolved cancel must leave no standing claim
+
+[C] ★★★ a 52-minute ban: zero further requests, and that is the CORRECT action
+  OK   ★★★ ZERO cancel requests are sent after the ban became known — retrying inside a ban we can see is more traffic at exactly the moment the venue is counting it — calls=['AAAUSDT', 'BBBUSDT'] (after the refusal: 0)
+  OK   ★★★ and it does not sleep for 52 minutes waiting either — the anchor is not held open — waits=0 slept=[]
+  OK   ★★★ all three unfinished names are reported unresolved, including the two never attempted — a name we chose not to send is still an order on the book — ['BBBUSDT', 'CCCUSDT', 'DDDUSDT']
+  OK   ★★ the refusal is stated in the VENUE's terms (its remaining seconds and lift time), not as 'retries exhausted' — venue rate ban with 3120s remaining (lifts 2026-08-01T09:10:59Z) exceeds this phase's 88s of room
+
+[D] refused with no lift time: the deadline is UNKNOWN, so nothing is retried
+  OK   ★★★ it does not retry against a clock it does not have — waits=0 unresolved=['AAAUSDT', 'BBBUSDT']
+  OK   ★★ and the reason says UNKNOWN rather than inventing a duration — venue refused with a rate limit and named no lift time — the deadline is UNKNOWN, so no retry can be justified and none is attempted
+
+[E] the finding is written down, because the process that found it exits
+  OK   ★★ both names are pinned — {'added': 2, 'already': 0, 'total': 2, 'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/pin_e_3tbhvn82/stuck_orders.json'}
+  OK   ★★★ re-pinning keeps the ORIGINAL since_utc — the age of a stuck order is how long it has been on the book, and refreshing it on every retry resets the one number an operator uses to judge urgency — ({'DOGEUSDT': '2026-09-16T04:15:31Z', 'TIAUSDT': '2026-09-16T04:15:31Z'}, {'DOGEUSDT': '2026-09-16T04:15:31Z', 'TIAUSDT': '2026-09-16T04:15:31Z'})
+  OK   ★★ but the attempt count and last_seen do move, so 'still stuck' is distinguishable from 'noticed once'
+  OK   ★★★ identity is the ORDER, not the symbol — a second stuck DOGE order is a second pin, because a symbol-keyed pin would let one order's decision cover another's — {'added': 1, 'already': 0, 'total': 3, 'path': '/var/folders/st/mzrzjsw17550kc9jp7g6gglc0000gn/T/pin_e_3tbhvn82/stuck_orders.json'}
+  OK   ★★ a pin is cleared only for a STATED reason, and only the named order goes
+  OK   ★★★ an unreadable pin file is NOT quietly replaced with a fresh one — losing the record of a resting order is the one direction that costs money, so the write refuses
+  OK   ★★★ the two unresolved names are on disk with the client id that identifies the actual resting order, in the tree belonging to the broker's OWN mode — ['DOGEUSDT', 'TIAUSDT']
+  OK   ★★ each pin carries why it could not be cancelled — ['venue refused with a rate limit and named no lift time — the deadline is UNKNOWN, so no retry can be justified and none is attempted']
+  OK   ★★★ a broker that cannot say which mode it is gets NO guess — writing a live order's pin into whichever tree paths_for defaults to is the cross-mode error this repo has paid for three times — ['PIN WRITE FAILED (RuntimeError: broker names no mode — refusing to guess which state tree these pins belong in) — 1 resting order(s) are recorded NOWHERE outside this run']
+
+[F] under a ban, `errors` is EMPTY and `unresolved` is not
+  OK   ★★★ MEASURED: a rate-limited refusal produces ZERO entries in `errors` — so the pre-existing alarm, which keys on `errors`, would have said NOTHING about two orders left on the book — errors=[] unresolved=['DOGEUSDT', 'TIAUSDT']
+  OK   ★★★ the anchor escalates on `unresolved`, at CRITICAL, separately from the `errors` alarm — an order still on the book is a fact about our money, not about our request
+  OK   ★★ and every clause of that page is carried from the cancel report rather than worded in
+
+[G] red capability — break each property in the PRODUCTION file
+  OK   M1 pin write removed: injection target matches exactly once — count=1
+  OK   ★★★ M1 pin write removed => the two names exist only in this process and die with it, and this suite's assertion goes red
+  OK   M2 ban deadline ignored (retry anyway): injection target matches exactly once — count=1
+  OK   ★★★ M2 ban deadline ignored (retry anyway) => a 52-minute ban is hammered with more requests / the anchor is held open, and this suite's assertion goes red
+  OK   M3 unknown deadline treated as lifted: injection target matches exactly once — count=1
+  OK   ★★★ M3 unknown deadline treated as lifted => every remaining cancel is sent into a standing ban, and this suite's assertion goes red
+  OK   M4 pins keyed by symbol only: injection target matches exactly once — count=1
+  OK   ★★★ M4 pins keyed by symbol only => a second stuck order on the same name silently replaces the first, and this suite's assertion goes red
+
+46/46 passed

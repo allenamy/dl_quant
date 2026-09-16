@@ -1,0 +1,18 @@
+OPS-03 A · AST retention and the lead's pinned-assertion check. OLD = e808697, NEW = working tree.
+
+-- the two suites the ruling pins must be BYTE-IDENTICAL to e808697 --
+live/tests_request_budget.py           old 13c548db6a27271d new 13c548db6a27271d  IDENTICAL
+live/tests_rate_backstop_window.py     old cde79f6f6048f73f new cde79f6f6048f73f  IDENTICAL
+
+-- does any pinned assertion encode FIXED-window behaviour? (the ruling says stop and report if so) --
+tests_rate_backstop_window: weight-shaper references:
+0
+tests_request_budget: the only weight assertion ->
+54:      _s["weight_in_window"] == 109 and _s["requests_in_last_60s"] == 109,
+55:      f"weight {_s['weight_in_window']}/{RB.WEIGHT_PER_MIN}, "
+VERDICT: '109 weight-1 spends leave 109 in the window' is true of a FIXED window and of a SLIDING one
+         (the 109 calls land in the same millisecond). It encodes the CAP RATIO, not the window shape.
+         Nothing pinned encodes fixed-window behaviour -> no stop condition. Both suites rc=0 unchanged.
+
+-- AST retention over every changed .py --
+live/rate_budget.py                    old sites 0 | new sites 0 | lost 0 | added 0 | names ['check']

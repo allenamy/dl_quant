@@ -1,0 +1,33 @@
+[A] the counter is read, and the PEAK is what survives
+  OK   ★★★ the peak is kept, not the last reading — the caps are per minute, so the last value of a quiet moment says nothing about the burst that preceded it — (4800, 30)
+  OK   ★★ header names are matched case-insensitively — HTTP header case is not ours to assume
+  OK   ★★ the ORDER counter is a separate quota and is read separately
+
+[B] ★★★ the gap IS the out-of-band measurement
+  OK   ★★★ venue says 1100, this process spent 300 ⇒ gap 800 — that 800 is traffic no budget of ours can see, and before this it was a hypothesis nobody could size — 800
+  OK   ★★ and the gap keeps its PEAK too — a later quiet reading must not erase the evidence
+
+[C] the backstop waits at 80% of the PUBLISHED limit
+  OK   ★★ at 66% of the published limit it does not wait — []
+  OK   ★★★ at exactly 80% it DOES wait — the threshold is inclusive, because a boundary that only fires above the line leaves the line itself unprotected — [5.0]
+  OK   ★★ the ORDER quota is checked independently — 1000/1200 is over 80% while weight is idle, and one quota's calm says nothing about the other — [5.0]
+
+[D] limits are READ from exchangeInfo, never written down
+  OK   ★★★ the published limits come from exchangeInfo's rateLimits, not a constant — our own log had said 'venue publishes 2400 weight', which is the MAINNET number printed beside a TESTNET run whose real limit is 6000
+  OK   ★★★ and an UNREADABLE limit disables the backstop rather than inventing a generous default — a fabricated cap would be a guess wearing a published figure's authority
+  OK   ★★ the stale mainnet figure is gone from the EMITTED budget line (the comments above it still quote it, on purpose, as the thing that was wrong) — RRED from the -1003 text seen 2026-07-29T12:00Z, which "
+            f"named 6000 requests
+
+[E] observed on the ERROR path too — the -1003 response is the informative one
+  OK   ★★★ headers are read from HTTPError as well as from a success — observing only on the happy path would blind us at exactly the moment the venue is telling us why it refused
+
+[F] the shaper is still there — the authority did not replace it
+  OK   ★★★ rate_budget still spends on every request. The header cannot pace anything: it only exists AFTER a request has gone out. Front-line shaper and backstop authority are two jobs, and deleting either leaves a real hole — {'requests_spent': 1, 'weight_spent': 5}
+  OK   ★★ and the backstop runs BEFORE the shaper spends, so a wait is not charged as usage
+  OK   ★★★ the caps were NOT lowered — 'our limit was too loose' was the obvious hypothesis and measurement refuted it: testnet publishes 6000/min and our cap is 1000
+
+[G] the anchor records it, and an abnormal gap pages once
+  OK   ★★ the anchor log carries the decided-on quantity, the reported-only peak, and the gap — each labelled as what it is
+  OK   ★★ a large gap alarms through the shared episode mechanism, so a persistent out-of-band source pages once rather than every anchor
+
+ALL PASS  (17 checks)

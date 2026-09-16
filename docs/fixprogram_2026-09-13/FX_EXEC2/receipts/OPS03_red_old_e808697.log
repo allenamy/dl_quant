@@ -1,0 +1,36 @@
+[R1] ★★★ the sliding window holds across the boundary burst
+  FAIL  ★★★ R1 no sliding 60s window of admitted weight exceeds WEIGHT_PER_MIN (old fixed window admits 1,800 within 0.6s)  — {'sliding_max': 1800, 'cap': 1000, 'admitted': [(0.0, 100), (59.5, 900), (60.1, 900)]}
+  OK    ★★ R1 all three spends are eventually admitted (shaping delays, it never drops)  — [(0.0, 100), (59.5, 900), (60.1, 900)]
+  FAIL  ★★ R1 the third spend was pushed past the boundary rather than admitted at 60.1  — 60.1
+
+[R2] the checker is not the thing being tested: a replica of the OLD shaper breaches
+  OK    ★★★ R2 the old fixed-window shaper DOES breach the sliding cap on this sequence  — {'sliding_max': 1800, 'cap': 1000, 'admitted': [(0.0, 100), (59.5, 900), (60.1, 900)]}
+
+[N1] exactly at the cap: admitted, no wait
+  OK    ★★ N1 three spends summing to exactly the cap are admitted with 0 waits  — {'weight_spent': 1000, 'orders_spent': 0, 'weight_waits': 0, 'order_waits': 0, 'wait_seconds': 0.0, 'weight_peak_per_min': 1000, 'orders_peak_per_min': 0, 'weight_in_window': 1000, 'requests_in_last_60s': 0, 'orders_in_last_60s': 0}
+
+[N2] a single spend larger than the cap terminates and is named
+  OK    ★★★ N2 an oversized spend does not spin: it returns (waiting can never make room for it)
+  FAIL  ★★ N2 it is admitted once and NAMED in stats rather than silently let through  — {'weight_spent': 1250, 'orders_spent': 0, 'weight_waits': 1, 'order_waits': 0, 'wait_seconds': 60.25, 'weight_peak_per_min': 0, 'orders_peak_per_min': 0, 'weight_in_window': 1250, 'requests_in_last_60s': 0, 'orders_in_last_60s': 0}
+
+[N3] two threads never exceed the cap in a sliding window
+  OK    ★★★ N3 30 concurrent 50-weight spends (1,500 total) never exceed the cap in any sliding 60s window  — {'sliding_max': 1000, 'n': 30}
+  OK    ★★ N3 and all of them were admitted  — 1500
+
+[N4] the stats keys keep their meaning
+  OK    ★★★ N4 weight_in_window is the SLIDING sum — tests_request_budget's `== 109` still holds verbatim  — 109
+  OK    ★★ N4 weight_peak_per_min is the sliding peak  — 109
+
+[N5] a wait is counted, and the spend lands after it
+  OK    ★★ N5 the blocked spend waits, is counted, and its seconds are accumulated  — {'waits': 1, 'wait_s': 59.25, 'landed_at': 60.25}
+  OK    ★★ N5 and the weight was spent, not dropped  — 1010
+
+[N6] the ORDER and REQUEST shapers are untouched
+  OK    ★★ N6 the order shaper still enforces its 10s sub-cap (the 101st order waits)  — {'order_waits': 1}
+  OK    ★★ N6 the request shaper still counts every request in its sliding 60s window  — 50
+
+12/15 checks passed
+FAILED:
+  ★★★ R1 no sliding 60s window of admitted weight exceeds WEIGHT_PER_MIN (old fixed window admits 1,800 within 0.6s)
+  ★★ R1 the third spend was pushed past the boundary rather than admitted at 60.1
+  ★★ N2 it is admitted once and NAMED in stats rather than silently let through
