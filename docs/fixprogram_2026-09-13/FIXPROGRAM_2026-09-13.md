@@ -1348,3 +1348,42 @@ fx_w6c 加 EXE-01 flatten 范围切分格, fx_exec 加 G7-E5/EXE-07 标尺格, �
 |---|---|
 | **R16-D1**(P2) 资金费 v2 的未来间隔影响过去特征 | 病灶在 `r6_panel_splice.py:107` 的 `median(iv_full[sel])`(sel 是整段 cut 之后事件), run24 原样执行该 EMA 块。**修它要重建面板**, 属数据线下一轮。复审同时指出: 我方当前特征用 v0/now, **此缺陷不在具名 current 资金费计算中**, 不得扩大为所有输入泄漏。 |
 | `v4_gate_common.finalize` 把 UNAVAILABLE 打成 FAIL | 该文件是 [U] G0 冻结装置(sha `24e813f1`)。出口码正确(非零), 仅标签混同。**待裁定后改。** |
+
+---
+
+## §40 NOSLEEP-1(P2): 防休眠守卫的**证据层**已失效 12 小时 —— 根因为日志涨过读取超时(2026-09-16, lead)
+
+### 40.1 现象(实盘 `state/anchor_runs.log` 逐锚)
+```
+09-15 04:47Z .. 09-16 00:46Z   ok=True   log_verified=True   slept_since_guard=0   ← 连续 6 锚健康
+09-16 04:47Z                   ok=False  log_verified=False  slept_since_guard=None ← 翻转
+09-16 08:47Z / 12:47Z          ok=False  log_verified=False  slept_since_guard=None ← 持续
+```
+守卫**本身没掉**(caffeinate pid 815, `guard_age_h` 37→45 一路在涨, `power=AC`)。**失效的是证据层。**
+
+### 40.2 根因(实测, 非推断)
+```
+pmset -g log   rc=0   耗时 71.9 s   stdout 180,441,035 字节(180 MB)
+ops/check_nosleep.py  sleep_events()  ->  _run(["pmset","-g","log"], timeout=60)
+```
+**读一次要 72 秒, 装置超时 60 秒 ⇒ 必然超时 ⇒ `_run` 返回非零 ⇒ `sleep_events` 返回 `None`。**
+这是**缓慢累积型退化**: 日志逐日增长, 某天越过阈值。本次越过点 = 2026-09-16 04:47Z。
+
+### 40.3 ★ 装置的行为是**对的**, 不要改它那部分
+`sleep_events` 的 docstring 原话:
+> 「Returns **None (not [])** when the log cannot be read: an EMPTY LIST MEANS 'IT DID NOT SLEEP'
+> and must never be produced by a failure to look. **Absence of evidence is its own value here.**」
+
+它拒绝把「没看成」说成「没睡过」, 并因此让 `ok=False`。**这正是本纲领一整天在别处要求的纪律。**
+
+### 40.4 真实暴露 = 无; 缺的只是证明
+同一次实测里 **`Entering Sleep state` 的行数 = 0** —— 那 180 MB 日志里**没有任何睡眠事件**。
+机器确实没睡。**缺的是「能在超时内证明它没睡」的能力, 不是安全性本身。**
+
+### 40.5 待修(NOSLEEP-1, P2) —— 修法方向, 未做
+`pmset -g log` **不支持时间窗过滤**, 所以加大超时只是把阈值往后推, 日志继续涨还会再犯。
+候选:
+- 改用统一日志的时间窗查询(`log show --predicate … --last <interval>`), 只取所需区间;
+- 或保留 `pmset` 但**流式读取 + 提前终止**(匹配到区间外即停), 不把 180 MB 全部物化;
+- 无论哪种, **必须保住 `None ≠ []` 这条语义** —— 读不到就是读不到。
+**不得**用「加大超时」当作修复并宣称已解决: 那只是把同一个缓慢退化推迟。
