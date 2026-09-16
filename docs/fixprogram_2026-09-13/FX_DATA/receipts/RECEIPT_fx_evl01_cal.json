@@ -1,0 +1,504 @@
+{
+ "device": "fx_evl01_cal.py",
+ "self_sha256": "146f27746c1b15d7daf1d02c4f1f2fbeaf8db95ffab149510004fa01daecc748",
+ "module_sha256": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/fx_evl01_cal.py",
+  "out/trd/RECEIPT_fx_evl01_cal.json"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "inputs": {
+  "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s42.npz": "352ac36fb319532756da71e7cc405fb0dcde6f36f6e28a57f1f681177bcfd339",
+  "/workspace/uplift_2026-09-11/r3k/arms/A0_PWR230k_s2027.npz": "aa44e18fb6bcfa7ef54f1708d070b0a2a7d5333f6cea63dfca94fecf59be1c7b",
+  "/workspace/review_scratch/refute_C6_2/altrun/meta_newprod_v4.npz": "0e3c09ac86c727ac1a7893889918e3b367463fd059a154f5e320eed47f5725c3",
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/review_scratch/health_check/masks/umask_UPIT_CRYPTO.npz": "47d87b5165b695a7d9b340134a189dd6a2165c837bab35808b699ffac3f7f1b5"
+ },
+ "utc_start": "2026-09-16T03:54Z",
+ "d1_delta_bps_per_anchor_per_gross": 0.05,
+ "a0_device": {
+  "path": "/workspace/uplift_2026-09-11/w10_sleeve.py",
+  "sha256": "b88e35a46b93d712422e6b6d60bf163b841be147d49278131b63f0f47a490650"
+ },
+ "D_price_channel_delta_bps": {
+  "42": {
+   "config_CAL": "log",
+   "anchors": 10039,
+   "delta_on_pnl_sm": {
+    "W_FULL": {
+     "n": 10039,
+     "mean_bps": -0.045852535978375825,
+     "median_bps": -0.12957568073204873,
+     "max_abs_bps": 1793.0943902517047,
+     "share_over_D1": 0.9182189461101703
+    },
+    "W_ALPHA": {
+     "n": 9139,
+     "mean_bps": 0.20750119325137317,
+     "median_bps": -0.11918018221299327,
+     "max_abs_bps": 701.9664745896911,
+     "share_over_D1": 0.918043549622497
+    },
+    "by_year": {
+     "2022": {
+      "anchors": 2010,
+      "mean_bps": -1.2843783660011374,
+      "median_bps": -0.12819495604782882,
+      "max_abs_bps": 1793.0943902517047,
+      "share_over_D1": 0.8761194029850746
+     },
+     "2023": {
+      "anchors": 2190,
+      "mean_bps": -0.00973066064024952,
+      "median_bps": -0.06754232163538852,
+      "max_abs_bps": 19.686987202240676,
+      "share_over_D1": 0.8579908675799087
+     },
+     "2024": {
+      "anchors": 2196,
+      "mean_bps": -0.32273898470195606,
+      "median_bps": -0.30774385505598334,
+      "max_abs_bps": 279.9544617094809,
+      "share_over_D1": 0.9298724954462659
+     },
+     "2025": {
+      "anchors": 2190,
+      "mean_bps": -0.23672778888074839,
+      "median_bps": -0.4025274405285252,
+      "max_abs_bps": 186.03537854398596,
+      "share_over_D1": 0.9680365296803652
+     },
+     "2026": {
+      "anchors": 1453,
+      "mean_bps": 2.319178060448626,
+      "median_bps": 0.9966671609212295,
+      "max_abs_bps": 701.9664745896911,
+      "share_over_D1": 0.9745354439091535
+     }
+    },
+    "worst_anchors": [
+     {
+      "ts": "2022-06-07T20:00Z",
+      "bps": -1793.0943902517047
+     },
+     {
+      "ts": "2026-07-01T16:00Z",
+      "bps": 701.9664745896911
+     },
+     {
+      "ts": "2024-01-03T12:00Z",
+      "bps": 279.9544617094809
+     },
+     {
+      "ts": "2025-11-06T20:00Z",
+      "bps": 186.03537854398596
+     },
+     {
+      "ts": "2025-10-11T12:00Z",
+      "bps": 147.84570662244718
+     },
+     {
+      "ts": "2025-12-31T08:00Z",
+      "bps": -128.03772765597222
+     },
+     {
+      "ts": "2025-10-13T08:00Z",
+      "bps": 78.29702096196402
+     },
+     {
+      "ts": "2025-07-10T00:00Z",
+      "bps": -70.02210444807942
+     },
+     {
+      "ts": "2025-12-14T12:00Z",
+      "bps": 63.570953968135896
+     },
+     {
+      "ts": "2025-10-25T16:00Z",
+      "bps": 51.0312926350967
+     }
+    ]
+   },
+   "delta_on_pnl_ex_smr": {
+    "W_FULL": {
+     "n": 10039,
+     "mean_bps": 0.08881116720943277,
+     "median_bps": -0.09138665038854074,
+     "max_abs_bps": 1778.246426344584,
+     "share_over_D1": 0.9123418667197928
+    },
+    "W_ALPHA": {
+     "n": 9139,
+     "mean_bps": 0.32680603496949423,
+     "median_bps": -0.08240489822261902,
+     "max_abs_bps": 759.5861380301482,
+     "share_over_D1": 0.9122442280337018
+    },
+    "by_year": {
+     "2022": {
+      "anchors": 2010,
+      "mean_bps": -1.1251114438733048,
+      "median_bps": -0.10205903658172233,
+      "max_abs_bps": 1778.246426344584,
+      "share_over_D1": 0.8656716417910447
+     },
+     "2023": {
+      "anchors": 2190,
+      "mean_bps": 0.01647046334646413,
+      "median_bps": -0.04806381954224215,
+      "max_abs_bps": 19.451690415349862,
+      "share_over_D1": 0.8392694063926941
+     },
+     "2024": {
+      "anchors": 2196,
+      "mean_bps": -0.317839384911038,
+      "median_bps": -0.30118006220133486,
+      "max_abs_bps": 273.23641598073704,
+      "share_over_D1": 0.9312386156648452
+     },
+     "2025": {
+      "anchors": 2190,
+      "mean_bps": -0.021995935130290974,
+      "median_bps": -0.3415669212899081,
+      "max_abs_bps": 200.90433461952338,
+      "share_over_D1": 0.9671232876712329
+     },
+     "2026": {
+      "anchors": 1453,
+      "mean_bps": 2.6587235941308047,
+      "median_bps": 1.2131769690203724,
+      "max_abs_bps": 759.5861380301482,
+      "share_over_D1": 0.9759119064005506
+     }
+    },
+    "worst_anchors": [
+     {
+      "ts": "2022-06-07T20:00Z",
+      "bps": -1778.246426344584
+     },
+     {
+      "ts": "2026-07-01T16:00Z",
+      "bps": 759.5861380301482
+     },
+     {
+      "ts": "2024-01-03T12:00Z",
+      "bps": 273.23641598073704
+     },
+     {
+      "ts": "2025-11-06T20:00Z",
+      "bps": 200.90433461952338
+     },
+     {
+      "ts": "2025-10-11T12:00Z",
+      "bps": 163.76388770046339
+     },
+     {
+      "ts": "2025-12-31T08:00Z",
+      "bps": -121.14766561691755
+     },
+     {
+      "ts": "2025-10-13T08:00Z",
+      "bps": 84.383165870025
+     },
+     {
+      "ts": "2025-07-10T00:00Z",
+      "bps": -69.11345939170494
+     },
+     {
+      "ts": "2025-12-14T12:00Z",
+      "bps": 67.47943026043077
+     },
+     {
+      "ts": "2025-10-25T16:00Z",
+      "bps": 53.343548524510844
+     }
+    ]
+   }
+  },
+  "2027": {
+   "config_CAL": "log",
+   "anchors": 10039,
+   "delta_on_pnl_sm": {
+    "W_FULL": {
+     "n": 10039,
+     "mean_bps": -0.025301077898712887,
+     "median_bps": -0.1213939411388376,
+     "max_abs_bps": 1793.0943902517047,
+     "share_over_D1": 0.9171232194441677
+    },
+    "W_ALPHA": {
+     "n": 9139,
+     "mean_bps": 0.23007653931349553,
+     "median_bps": -0.11145890721994232,
+     "max_abs_bps": 687.066702853167,
+     "share_over_D1": 0.9168399168399168
+    },
+    "by_year": {
+     "2022": {
+      "anchors": 2010,
+      "mean_bps": -1.2843783660011374,
+      "median_bps": -0.12819495604782882,
+      "max_abs_bps": 1793.0943902517047,
+      "share_over_D1": 0.8761194029850746
+     },
+     "2023": {
+      "anchors": 2190,
+      "mean_bps": -0.001353638436124504,
+      "median_bps": -0.06530091558790269,
+      "max_abs_bps": 21.060790004580934,
+      "share_over_D1": 0.85662100456621
+     },
+     "2024": {
+      "anchors": 2196,
+      "mean_bps": -0.3456903634613411,
+      "median_bps": -0.30240361212634437,
+      "max_abs_bps": 260.756414184401,
+      "share_over_D1": 0.9298724954462659
+     },
+     "2025": {
+      "anchors": 2190,
+      "mean_bps": -0.09210065817855669,
+      "median_bps": -0.3306878139381996,
+      "max_abs_bps": 188.527778914034,
+      "share_over_D1": 0.9634703196347032
+     },
+     "2026": {
+      "anchors": 1453,
+      "mean_bps": 2.2652470353643257,
+      "median_bps": 0.9932133717029819,
+      "max_abs_bps": 687.066702853167,
+      "share_over_D1": 0.9759119064005506
+     }
+    },
+    "worst_anchors": [
+     {
+      "ts": "2022-06-07T20:00Z",
+      "bps": -1793.0943902517047
+     },
+     {
+      "ts": "2026-07-01T16:00Z",
+      "bps": 687.066702853167
+     },
+     {
+      "ts": "2024-01-03T12:00Z",
+      "bps": 260.756414184401
+     },
+     {
+      "ts": "2025-11-06T20:00Z",
+      "bps": 188.527778914034
+     },
+     {
+      "ts": "2025-10-11T12:00Z",
+      "bps": 150.43445520101398
+     },
+     {
+      "ts": "2025-12-31T08:00Z",
+      "bps": -123.73048130103824
+     },
+     {
+      "ts": "2026-04-04T12:00Z",
+      "bps": -83.03227536208853
+     },
+     {
+      "ts": "2025-10-13T08:00Z",
+      "bps": 77.19523364561367
+     },
+     {
+      "ts": "2025-07-10T00:00Z",
+      "bps": -75.71821762837914
+     },
+     {
+      "ts": "2025-12-14T12:00Z",
+      "bps": 66.55280001181647
+     }
+    ]
+   },
+   "delta_on_pnl_ex_smr": {
+    "W_FULL": {
+     "n": 10039,
+     "mean_bps": 0.11768211581811129,
+     "median_bps": -0.08767014110905695,
+     "max_abs_bps": 1778.246426344584,
+     "share_over_D1": 0.911146528538699
+    },
+    "W_ALPHA": {
+     "n": 9139,
+     "mean_bps": 0.3585201670498668,
+     "median_bps": -0.07764826324833922,
+     "max_abs_bps": 745.5506309557609,
+     "share_over_D1": 0.9109311740890689
+    },
+    "by_year": {
+     "2022": {
+      "anchors": 2010,
+      "mean_bps": -1.1251114438733048,
+      "median_bps": -0.10205903658172233,
+      "max_abs_bps": 1778.246426344584,
+      "share_over_D1": 0.8656716417910447
+     },
+     "2023": {
+      "anchors": 2190,
+      "mean_bps": 0.02309982994897343,
+      "median_bps": -0.04728106618381671,
+      "max_abs_bps": 20.83655717049429,
+      "share_over_D1": 0.8397260273972603
+     },
+     "2024": {
+      "anchors": 2196,
+      "mean_bps": -0.330821318554602,
+      "median_bps": -0.2987234348518357,
+      "max_abs_bps": 256.7192443678446,
+      "share_over_D1": 0.9271402550091075
+     },
+     "2025": {
+      "anchors": 2190,
+      "mean_bps": 0.15312623429674452,
+      "median_bps": -0.2751771745464853,
+      "max_abs_bps": 204.69088474793995,
+      "share_over_D1": 0.9657534246575342
+     },
+     "2026": {
+      "anchors": 1453,
+      "mean_bps": 2.6038770115148973,
+      "median_bps": 1.2365773680773378,
+      "max_abs_bps": 745.5506309557609,
+      "share_over_D1": 0.975223675154852
+     }
+    },
+    "worst_anchors": [
+     {
+      "ts": "2022-06-07T20:00Z",
+      "bps": -1778.246426344584
+     },
+     {
+      "ts": "2026-07-01T16:00Z",
+      "bps": 745.5506309557609
+     },
+     {
+      "ts": "2024-01-03T12:00Z",
+      "bps": 256.7192443678446
+     },
+     {
+      "ts": "2025-11-06T20:00Z",
+      "bps": 204.69088474793995
+     },
+     {
+      "ts": "2025-10-11T12:00Z",
+      "bps": 167.51800391548852
+     },
+     {
+      "ts": "2025-12-31T08:00Z",
+      "bps": -117.29195135471817
+     },
+     {
+      "ts": "2025-10-13T08:00Z",
+      "bps": 83.85305914806445
+     },
+     {
+      "ts": "2026-04-04T12:00Z",
+      "bps": -79.256319793544
+     },
+     {
+      "ts": "2025-07-10T00:00Z",
+      "bps": -74.55013462243703
+     },
+     {
+      "ts": "2025-12-14T12:00Z",
+      "bps": 70.82331163876407
+     }
+    ]
+   }
+  }
+ },
+ "B_not_measured": "CAL also enters legs(), whose leg returns set the msharpe seat weights over LOOK=900, so a real CAL=simple run would carry different W. The numbers above hold W at the CAL=log arm and change only the accounting, so they size the accounting channel, not the whole trap. A paired CAL=simple arm run is NOT part of this device.",
+ "checks": [
+  {
+   "check": "P.s42.arm_is_CAL_log",
+   "ok": true,
+   "detail": {
+    "CAL": "log"
+   }
+  },
+  {
+   "check": "P.s42.arm_is_MEMBERS_TOPN_829_m1",
+   "ok": true,
+   "detail": {
+    "MEMBERS_TOPN": 829,
+    "UMASK_SCOPE": "m1"
+   }
+  },
+  {
+   "check": "P.s42.pnl_rebuilt_from_W_and_y4_within_float32_storage",
+   "ok": true,
+   "detail": {
+    "cells": 10039,
+    "max_abs_bps": 8.09154346370633e-06,
+    "max_rel": 0.00039239907722296325,
+    "max_over_float32_bound": 0.01793017060814385,
+    "bound": "8 * eps32 * sum|w[m]*yv| * 1e4"
+   }
+  },
+  {
+   "check": "P.s42.pnl_ex_rebuilt_from_W_and_y4_within_float32_storage",
+   "ok": true,
+   "detail": {
+    "cells": 10039,
+    "max_abs_bps": 8.610721977220237e-06,
+    "max_rel": 0.0010936232782822169,
+    "max_over_float32_bound": 0.018218193250967595,
+    "bound": "8 * eps32 * sum|w[m]*yv| * 1e4"
+   }
+  },
+  {
+   "check": "P.s2027.arm_is_CAL_log",
+   "ok": true,
+   "detail": {
+    "CAL": "log"
+   }
+  },
+  {
+   "check": "P.s2027.arm_is_MEMBERS_TOPN_829_m1",
+   "ok": true,
+   "detail": {
+    "MEMBERS_TOPN": 829,
+    "UMASK_SCOPE": "m1"
+   }
+  },
+  {
+   "check": "P.s2027.pnl_rebuilt_from_W_and_y4_within_float32_storage",
+   "ok": true,
+   "detail": {
+    "cells": 10039,
+    "max_abs_bps": 8.09154346370633e-06,
+    "max_rel": 0.00039239907722296325,
+    "max_over_float32_bound": 0.01608342107964042,
+    "bound": "8 * eps32 * sum|w[m]*yv| * 1e4"
+   }
+  },
+  {
+   "check": "P.s2027.pnl_ex_rebuilt_from_W_and_y4_within_float32_storage",
+   "ok": true,
+   "detail": {
+    "cells": 10039,
+    "max_abs_bps": 8.610721977220237e-06,
+    "max_rel": 0.00022173848122309577,
+    "max_over_float32_bound": 0.01616077273125838,
+    "bound": "8 * eps32 * sum|w[m]*yv| * 1e4"
+   }
+  }
+ ],
+ "n_checks": 8,
+ "n_failed": 0,
+ "failed": [],
+ "runtime_s": 2.5,
+ "utc_end": "2026-09-16T03:54Z"
+}
