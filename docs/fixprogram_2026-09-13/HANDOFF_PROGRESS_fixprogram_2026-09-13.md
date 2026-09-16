@@ -137,3 +137,30 @@ OPS-01 · OPS-02 · 回滚动词双演练 · Mac 盘满清理 23 个陈旧克隆
   - **FX-W6C 已停**(头 3f85c0e; 叠加 diff `docs/receipts/fx_w6c.diff` = ef60f85..3f85c0e, 17 文件 +1726 −18, sha 3c9fd45d; 研究仓 49fea5f2 / b750a5d4 / ff77d8ed / 6c3136a8 / 0116ec74 / 0e16499b)。**3f85c0e 全电池**: `battery_final3_3f85c0e_20260913T170150Z`, 17:01:50–17:17:56Z, rc 1, 138 行中 136 rc 0, 两红均为环境(tests_env_loading 无 .env; tests_entrypoint_wiring 睡眠日志格, 未改动的 ef60f85 同样红)⇒ 作为有效收据。**偏差**: 该电池提前 3 分钟于 17:05Z 窗口前启动、未取 BATTERY.lock、且违反 lead「本会话不再跑电池」指令(工作者疑因上下文压缩丢消息); 16:51Z 的 final2 电池由 lead 中止(meta 中「sender unknown」即 lead)。EXE-01 历史触发回放: 08-01 / 08-21 / 08-26 / 09-12 均 LOCAL(2 名, 0.42–1.84%), 09-09 LADDER(52 名)。未开始: W6C-B13 · W6C-I6 · cond4 修前转账日定价 · 平仓行时间戳。
 
 - **执行器三分支合并须知(部署前必做)**: fx_exec(`fix/known-issues-2026-09-13`)· fx_exec2(`fix/ledger-alarms-2026-09-13`)· fx_w6c(`fix/exe01-proportional-response`)**都基于 ef60f85 且改动重叠文件** —— 已知重叠: `scheduler/anchor_loop.py`(fx_exec2 持久化块 fills 写入守卫约 L2519–2560 / fx_exec reshape·withhold·universe gate·complete_anchor 留存告警文本 / fx_w6c halt_kind)· `live/reconcile.py` · `ops/assert_anchor_artifacts.py` · `ops/gate_coverage.py` · `run_acceptance.sh`(fx_exec ⇄ fx_w6c)· `live/per_name_stop.py` 文案(fx_exec E6)· `pilot_log.collapse_supersedes` 键变更(fx_exec2)被 watchdog 消费(fx_w6c)· `pilot_metrics.py` 重冻结(fx_exec2)。**接手者须**: 按「后提交者变基」规则把三条链叠加到 ef60f85 上(建议顺序 fx_w6c → fx_exec → fx_exec2, 逐步解决冲突并记录每处手工合并), 在叠加树上跑逐项红绿格(tests_proportional_response / tests_fills_write_guard / tests_per_name_stop / tests_ledger_notary / tests_rank_monitor_input 等)与**一次完整电池**(窗口 + BATTERY.lock), 生成一个叠加 diff 与逐文件 sha 清单 —— 被复审与被部署的对象是叠加树, 不是三条单链(先例: ef60f85 的第六轮叠加电池)。
+
+---
+## 9 v3.4 增量(2026-09-16 02:4x–03:0xZ · 重启后复工)
+
+用户字(09-16):「先恢复深查和抛物线 cron, 然后继续修复」。
+
+**9.1 定时任务已恢复**(会话级, 7 天后自动过期; 到期须重建)
+- 每锚深查: 本地 `9 1,5,9,13,17,21 * * *`(锚收尾后 ~1h09m), 用户模板逐字 + 「lead 更正附注(2026-09-13 受据)」块 —— 更正 ⑥ 回滚动词(kill 不是回滚; `bootout` / `disable` / `enable`+`bootstrap`, 收据 `OPS_rollback_verb_drill2_20260913T144746Z.log`)· ② 重写基线 19–20% → ~27%(09-13 16Z 实测 27.90%)· ③ maker 份额 ≈74–78%、费 ≈2.4–2.7 bps(X-COST fdee4894)· ④ guard_twin 判词读 `~/guard_twin/state/latest.json` 与 `compare.jsonl`; 并附已知实盘假阳性(E9 NO_PRODUCER、EXE-03 reshape 翻转)与「本纲领无任何修复已部署(运行树仍 ef60f85), 深查只读」。
+- 抛物线起始前向日志: 本地 `52 14 * * *`, 用户文本逐字 + 更正附注(提交须显式 pathspec, aud-kb CRON-11; 前向值取自 ±0.30 硬裁 float16 缓存, CRON-12)。
+
+**9.2 公证清单补提交**(511639fc, 16 份 08-31..09-15)
+- 事实: `com.hsy.notary` 每日「7 files notarized」后 `git add` rc=128 `Unable to read current working directory: Operation not permitted`(launchd TCC), 已 **16 天**未入库(E10 事实 F2 当时为 13 天); launchctl 末次退出码 1。
+- **口径降级(引用必带)**: 这 16 份的提交时间戳是 lead 的 09-16, **不是公证当日**, 故只保有「自 09-16 起内容不可改」, 不再有「当日第三方时间戳」。v1 契约缺陷(合法追加读成篡改 42/43 天)见 REPORT_FX_EXEC §E10; v2 在 fx_exec 分支上, 未部署。
+- **待裁(随复审包)**: 公证器配置 branch=multi-asset-v2 而研究仓在 research/book-uplift-2026-09-11, 且 TCC 不解则部署后每日 HIGH —— 三选项: 改配置 / 移出 Desktop 仓 / 解 TCC。
+
+**9.3 实盘现状(09-16 02:52Z 只读核)**: shadowloop 797 · sidecar 801 · combolive 812 · w4liqcapture 808 · nosleep 815 均在; `com.dlquant.live.anchor` 日历作业在册; 末锚 `2026-09-16T00:56:45Z anchor done rc=0`, 该锚 fapi 峰值权重 847/2400、订单 205、backstop_waits=0。
+
+**9.4 六条修复线已重启**(全部是新代理, 旧同事在会话重启后已消失 ⇒ **接手一律以 FIXPROGRAM §8–§11 与各 REPORT 内的「lead 裁定」为准, 不以工作者自述为准**)
+| 线 | 克隆 / 分支 | 起点头 | 本轮队列 |
+|---|---|---|---|
+| FX-EXEC | `cc_tmp/fx_exec` `fix/known-issues-2026-09-13` | 48e9938 | NEW-02(flatten 行 attempt_idx 2 vs 订单行 1)→ gate_coverage 重复项 + 唯一性断言 → 全电池 → EXE-04(Q6 跨窗残差继承) |
+| FX-W6C | `cc_tmp/fx_w6c` `fix/exe01-proportional-response` | 3f85c0e | B13(缺最新回读 ⇒ 具名盲 + 停开仓, 永不平书)→ I6(先测可达性)→ cond4 修前转账日定价(裁定 (a))→ 平仓行时间戳(NEW-01/F-I5)→ 全电池 |
+| FX-EXEC2 | `cc_tmp/fx_exec2` `fix/ledger-alarms-2026-09-13` | e808697 | LED-08 冻结参照漂移检查(退回件)→ ALM-06 独立收入账本 CUM 告警(退回件)→ LED-04 看门狗侧接口 → OPS-03 A+C → BNB 换算 → 终版 diff + 全电池 |
+| FX-PROD | `cc_tmp/fx_prod` `fix/train-serve-parity-2026-09-13` | afd94a2 | PROD-27(重写静默跳过 ⇒ 具名 HIGH + 余量趋势告警)→ P12(先测 `state_H_f10` 第二写者)→ P5 席位播种 → 换装 dry run(沙箱 + 时间守卫)→ 换装计划 |
+| FX-DATA | 研究仓 | — | 可交易性构建器重跑 → TRD-02/04 → FND-01/02/03(用 P9 八月表 366763a4)→ HOL-01(沙箱副本)→ LIN-01 → RET-02 / UNI-03 / EVL-01 → D2/D3 |
+| FX-TRAIN | 研究仓 | — | 十月链(TRN-01/02/03/14…27 + R1/R2 + PROD-21), 按 10-01 截止风险排序; TRN-02 九月清单写入仍受「先证无目录级哈希」门 |
+- 未重启(排队中): FX-MODEL(模型输入族 FEA-01 / TIM-01 / UNI-01 / TRD-05 / P11 的成对重训, 待 FX-DATA 构建器修复落地)· AUD-KB(M4 合并 + 去重 + 终版 AUDIT_KB)。
