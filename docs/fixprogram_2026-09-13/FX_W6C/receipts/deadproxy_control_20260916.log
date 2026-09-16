@@ -1,0 +1,23 @@
+FX-W6C dead-proxy control, 2026-09-16 04:33:47-04:42:06Z
+
+QUESTION: which suites in run_acceptance.sh actually reach the network? The §8 ruling names only
+tests_entrypoint_wiring. A grep for urlopen/http cannot answer it (13 suites match, most are stubs).
+CONTROL: run the same 141 suites with http_proxy/https_proxy pointed at 127.0.0.1:9 and no_proxy
+cleared, so no request can leave the machine. Any suite whose rc CHANGES depends on reaching the
+network. Safe outside the battery window BY CONSTRUCTION: nothing can go out.
+
+RESULT (141 suites compared against the normal-network sweep):
+  tests_signal_and_loop   normal rc=0 -> dead-proxy rc=1
+     binance_broker.VenueTransportError: [None] GET /fapi/v1/ticker/bookTicker:
+     URLError: [Errno 61] Connection refused
+     => it constructs real BinanceBroker objects and DOES make a public GET.
+        /fapi/v1/ticker/bookTicker carries documented weight 5 (binance_broker._WEIGHTS).
+  tests_imports           normal rc=1 -> dead-proxy rc=0
+     NOT a network effect: the normal sweep ran at head 168b080, before ledger_amendments was
+     registered in PRODUCTION_MODULES (9c75b60). Same tree, same result.
+  every other suite: unchanged.
+
+CONSEQUENCE: the battery's network surface is larger than §8 states. tests_signal_and_loop is a
+second public-GET path, and it is in the battery list. Any out-of-window run of the suite set —
+including my own non-network sweeps at 03:32Z and 04:14Z — made at least one real public GET.
+This control is the mechanical guard: outside the window, sweep with sweep_deadproxy_control.sh.
