@@ -1,0 +1,85 @@
+{
+ "device": "fm_gate_b_repro_king.py",
+ "self_sha256": "578d9ea99ba819aeefc0951935c3926942b1f73e62de5ae5d203e4d97c7d83e4",
+ "utc_start": "2026-09-16T05:08:50Z",
+ "python": "3.11.10",
+ "numpy": "2.4.6",
+ "lightgbm": "4.7.0",
+ "prereg_sha256": "d17ea08949e8d2c731327b75d14dc3c4cf5bc75ec5584b5a63ddfc84fe73f671",
+ "gate": "B-REPRO (king)",
+ "device_used": "cpu",
+ "writes_nothing_but_the_receipt": true,
+ "threading_caveat": "LightGBM is deterministic given identical data, params AND thread count; thread count changes histogram summation order. The original run's effective thread count is not recorded anywhere, so a 2024/2025 mismatch may be threading rather than a real irreproducibility. Declared before running. A failure is NOT waved through.",
+ "omp_num_threads_env": "4",
+ "inputs": {
+  "/workspace/data/wide_fea_v4_meta.npz": "12ea42c4557093f10f954f648db9239f4dd8283ea365ba299f31bd81e7e5ab51",
+  "/workspace/data/wide_fea_v4.npy": "268f6c9c247cdf1fffb6cea442437ab21b3f13993f9d821cfb09f417417cad7a",
+  "/workspace/live_pins.json": "fd27fe485417d307e5bc41ee382a2db098118bee1fe2a13ebde98c7e7d3caece",
+  "/workspace/shadow_bundle_v4/slow2026.txt": "f23657710f3a6d0068bca8a95082965d694de805195ef143be64951c0f2f203a",
+  "/workspace/review_scratch/king_v4/SLOW_v4.npy": "dde19142d017c37dd9bae564ab4a32a4b9b068f6aef8acc91e7ea329f4f1c8a6"
+ },
+ "K0_feature_order_and_support": {
+  "PASS": true,
+  "n_kept": 78,
+  "n_builder_cols": 82,
+  "meaning": "this is what king's arm B must freeze in place of mu/sd (pod_export_bundle_v4.py:47)"
+ },
+ "rows": {
+  "n_rows": 2749209,
+  "n_cols": 78,
+  "by_year": {
+   "2022": 304434,
+   "2023": 410358,
+   "2024": 601406,
+   "2025": 849811,
+   "2026": 583200
+  }
+ },
+ "per_fold": {
+  "K_2026_saved_booster": {
+   "year": 2026,
+   "nan_pattern_equal": true,
+   "cells_compared": 583200,
+   "cells_bitwise_equal": 583200,
+   "maxabs": 0.0,
+   "PASS_bitwise": true,
+   "PASS_1e-5": true,
+   "reconstruction_needed": false
+  },
+  "K_2024_refit": {
+   "year": 2024,
+   "nan_pattern_equal": true,
+   "cells_compared": 601406,
+   "cells_bitwise_equal": 601406,
+   "maxabs": 0.0,
+   "PASS_bitwise": true,
+   "PASS_1e-5": true,
+   "reconstruction_needed": true,
+   "n_train_rows": 714792,
+   "wall_s": 35.9
+  },
+  "K_2025_refit": {
+   "year": 2025,
+   "nan_pattern_equal": true,
+   "cells_compared": 849811,
+   "cells_bitwise_equal": 849811,
+   "maxabs": 0.0,
+   "PASS_bitwise": true,
+   "PASS_1e-5": true,
+   "reconstruction_needed": true,
+   "n_train_rows": 1316198,
+   "wall_s": 41.0
+  }
+ },
+ "summary": {
+  "K0_feature_parity": true,
+  "K_2026_saved_booster_PASS": true,
+  "K_2026_bitwise": true,
+  "refits_PASS": true,
+  "n_refits": 2
+ },
+ "GATE_B_REPRO_KING": "PASS",
+ "consequence": "arm B is AVAILABLE for the king family: the 2024/2025 fold boosters, which were never saved, are reproducible from identical data and parameters.",
+ "utc_end": "2026-09-16T05:10:12Z",
+ "wall_s": 85.7
+}
