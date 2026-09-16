@@ -1,0 +1,24 @@
+{
+ "old": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/fx_train/trn03/tests_old_10b00289.py",
+ "new": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/tests_pipeline_gates.py",
+ "old_top_level": 187,
+ "new_top_level": 193,
+ "retained_in_order": 186,
+ "changed": [
+  "With@L1369: with tempfile.TemporaryDirectory() as d:"
+ ],
+ "expected_changed": {
+  "With@L1369: with tempfile.TemporaryDirectory() as d:": "The [T] D1 call-site cell inside this block asserted _DRV.count(\"prereq_refit_sidecar\") == 1. TRN-03 adds an np_export stage that legitimately needs the SAME binding, so counting call sites became the wrong specification. Replaced by a strictly stronger assertion for what the cell protects: EVERY call is parsed out (however it is wrapped \u2014 the arms call sits inside a one-line for/done) and must carry the full bound argument tail, the arms call is still asserted byte-identically, and the set of stages carrying a call is pinned to {arms, np_export}. Deleting a binding and adding an unbound one both still fail. No other statement in this block changed."
+ },
+ "added": [
+  "With@L1369: with tempfile.TemporaryDirectory() as d:",
+  "Assign@L1917: _XNEW = f\"{HERE}/pod_f10_np_export_v4.py\"",
+  "Assign@L1918: _XOLD = f\"{HERE}/pod_f10_np_export_v4.r0_3e304c27.py\"",
+  "Assign@L1919: _XOLD_SHA = \"3e304c27\"",
+  "FunctionDef@L1922: def _xsec(text, start, end=\"\\nfi\\n\"):",
+  "FunctionDef@L1932: def _xside(d, seed=42, inputs=True, **over):",
+  "With@L1954: with tempfile.TemporaryDirectory() as _xd:"
+ ],
+ "PASS": true
+}
+SUMMARY fx_ast_retention old=187 retained=186 changed=1 expected=1 added=7 PASS=True

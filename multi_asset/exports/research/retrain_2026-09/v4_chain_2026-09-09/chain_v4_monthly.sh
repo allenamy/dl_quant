@@ -254,6 +254,32 @@ if want refit; then
   done
 fi
 
+# ── np_export (the file the live DL leg loads), FX-TRAIN TRN-03/TRN-14 2026-09-16 ───────────────────────────────────────────────────────────
+# Before this stage existed the deployable npz was made by a manual call to T/pod_f10_np_export.py, whose defaults pointed at the IN-SERVICE
+# generation and which wrote the artifact BEFORE its own V1 gate decided (FACT_TABLE_TRN 03.1-03.3). Every locator below is explicit, the
+# sidecar binding is chain_lib's prereq_refit_sidecar (the same contract the arms stage uses — not a second implementation), and the program
+# refuses to write on a V1 FAIL. F10_BEST_EP_RULE must stay the literal that matches BEST_EP_FIX in the refit stage above (asserted by [X]).
+if want np_export; then
+  prereq_receipt np_export preflight "$R/v4_gates/preflight.json" PREFLIGHT
+  for SD in $SEED_LIST; do
+    prereq_marker np_export refit_s$SD "$R/refit_s$SD.log" REFIT_DONE
+    prereq_file np_export pt_s$SD "$F8/models/f10_live_s$SD.pt"
+    prereq_refit_sidecar np_export refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"
+  done
+  guard np_export
+  for SD in $SEED_LIST; do
+    NPO=$F8/models/f10_live_s${SD}_np.npz; NPR=$R/v4_gates/NP_EXPORT_s$SD.json
+    stage "np_export s$SD: F10_OUT=$F8 F10_DLW=$DLW_RAW -> $NPO (generation $BUNDLE_GENERATION, rule fix7)"
+    env F10_OUT=$F8 F10_DLW=$DLW_RAW SEED=$SD F10_SIDECAR=$F8/models/f10_live_s$SD.json F10_NP_OUT=$NPO \
+        F10_NP_RECEIPT=$NPR F10_GENERATION=$BUNDLE_GENERATION F10_BEST_EP_RULE=fix7 \
+        "$PY" "$D/pod_f10_np_export_v4.py" > "$R/np_export_s$SD.log" 2>&1; rc=$?
+    stage "np_export s$SD rc=$rc $(tail -1 "$R/np_export_s$SD.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "np_export_s${SD}_rc_$rc" 3
+    check_marker "$R/np_export_s$SD.log" "NP_EXPORT_DONE"; [ -f "$NPO" ] || die "np_export_s${SD}_npz_missing" 1
+    NP_SRC=$(gate_sha "$D/pod_f10_np_export_v4.py") || die "np_export_source_unreadable" 3
+    require_gate "$NPR" gate=F10_NP_EXPORT self_sha=$NP_SRC pt=$F8/models/f10_live_s$SD.pt refit_sidecar=$F8/models/f10_live_s$SD.json npz=$NPO
+  done
+fi
+
 # ── book layer: dev tree + arms ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if want arms; then
   prereq_receipt arms preflight "$R/v4_gates/preflight.json" PREFLIGHT

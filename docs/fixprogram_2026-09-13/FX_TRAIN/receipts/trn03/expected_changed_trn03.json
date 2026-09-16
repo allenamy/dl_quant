@@ -1,0 +1,3 @@
+{
+ "With@L1369: with tempfile.TemporaryDirectory() as d:": "The [T] D1 call-site cell inside this block asserted _DRV.count(\"prereq_refit_sidecar\") == 1. TRN-03 adds an np_export stage that legitimately needs the SAME binding, so counting call sites became the wrong specification. Replaced by a strictly stronger assertion for what the cell protects: EVERY call is parsed out (however it is wrapped — the arms call sits inside a one-line for/done) and must carry the full bound argument tail, the arms call is still asserted byte-identically, and the set of stages carrying a call is pinned to {arms, np_export}. Deleting a binding and adding an unbound one both still fail. No other statement in this block changed."
+}

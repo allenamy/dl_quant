@@ -1417,8 +1417,22 @@ with tempfile.TemporaryDirectory() as d:
     check("★★★ [T] D1(f) the helper FAILS CLOSED on its own arguments: called with the round-2 five-argument form (no expected seed, no refit source) ⇒ rc 3 'MANDATORY arguments', never a quieter check",
           _rc_n == 3 and "MANDATORY arguments" in _o_n and "FAIL_arms_prereq_refit_s42" in _o_n, (_rc_n, _o_n[-160:]))
     _DRV = open(f"{HERE}/chain_v4_monthly.sh").read()
-    check("★★★ [T] D1 call site: chain_v4_monthly.sh has exactly one prereq_refit_sidecar call and it passes the loop seed $SD and $D/pod_f10_refit_v4.py (a helper that fails closed is only useful if the driver actually binds it)",
-          _DRV.count("prereq_refit_sidecar") == 1 and 'prereq_refit_sidecar arms refit_s$SD "$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"' in _DRV)
+    # 2026-09-16 (FX-TRAIN TRN-03): this assertion USED TO BE `count == 1`. The np_export stage legitimately needs the same binding,
+    # so counting call sites became the wrong specification. It is replaced by a STRICTLY STRONGER one for what the cell protects:
+    # EVERY call must be bound (loop seed + refit source), the arms call is still asserted verbatim, and the set of stages that
+    # carry a call is pinned — so neither deleting a binding nor adding an unbound one passes. Recorded in the AST-retention
+    # expected-changed list with this reason; no other old statement moved.
+    _PRS = []                                            # (stage, name, argument tail) of every call, however it is wrapped (the arms call sits inside a one-line for/done)
+    for _l in _DRV.splitlines():
+        if _l.strip().startswith("#"):
+            continue
+        for _m in _re.finditer(r"prereq_refit_sidecar\s+([^\s;]+)\s+([^\s;]+)\s+([^;]*?)\s*(?:;|$)", _l):
+            _PRS.append((_m.group(1), _m.group(2), _m.group(3).strip()))
+    _PR_ARGS = '"$F8/models/f10_live_s$SD.json" "$DLW_RAW" "$F8" "$SD" "$D/pod_f10_refit_v4.py"'
+    check("★★★ [T] D1 call site: EVERY prereq_refit_sidecar call in chain_v4_monthly.sh passes the loop seed $SD and $D/pod_f10_refit_v4.py, the arms call is byte-identical to the reviewed one, and the stages carrying a call are exactly {arms, np_export} (a helper that fails closed is only useful if the driver actually binds it — and an unbound second call must not slip in behind a count)",
+          len(_PRS) == 2 and all(a == _PR_ARGS for _, _, a in _PRS)
+          and ("prereq_refit_sidecar arms refit_s$SD " + _PR_ARGS) in _DRV
+          and sorted(st for st, _, _ in _PRS) == ["arms", "np_export"], _PRS)
     # ── D1 no-drift, by AST rather than by grep: a gate may not require a field the writer emits only SOMETIMES (lead's condition, round 3) ──
     import ast as _ast
     _RT = _ast.parse(open(f"{HERE}/pod_f10_refit_v4.py").read()); _emit = set(); _egk = []; _roles = []; _rpaths = []; _req = []; _cond = []
@@ -1893,6 +1907,156 @@ with tempfile.TemporaryDirectory() as _wd:
     # W13 — the gate reads the device directory, not a name: renaming does not create evidence
     check("★★ [W] TRN-27 W13: the gate's picture of the device dir is measured, not parsed from filenames — every archived snapshot it uses is one whose sha it hashed itself (the `.rN_<sha8>` label is only a hint)",
           _WR1.startswith("0fe5ec55") and _sha(f"{HERE}/v4_gate_step2_m.r2_b2f9cfd4.py").startswith("b2f9cfd4") and _WS2 != _WR1, (_WS2[:12], _WR1[:12]))
+
+# ── [X] FX-TRAIN TRN-03 + TRN-14 (2026-09-16; FACT_TABLE_TRN §TRN-03/§TRN-14): the deployable F10 numpy model was made by a manual
+#     call to a program with three silent defaults that wrote the artifact BEFORE its own V1 gate decided, into the IN-SERVICE
+#     directory. pod_f10_np_export_v4.py refuses every default, binds the checkpoint to the refit sidecar, and lets the verdict
+#     decide the write. NOTE: torch is not installed on the Mac, so every cell here exercises the part that runs BEFORE the torch
+#     import (that ordering is the point: a refusal must not need the heavy stack). The V1 path, the write and the bitwise
+#     positive control against the in-service artifact run on pod2 and are carried as committed receipts, not by this suite.
+_XNEW = f"{HERE}/pod_f10_np_export_v4.py"
+_XOLD = f"{HERE}/pod_f10_np_export_v4.r0_3e304c27.py"
+_XOLD_SHA = "3e304c27"                                     # prefix asserted below; the ancestor is T/pod_f10_np_export.py
+
+
+def _xsec(text, start, end="\nfi\n"):
+    """The section between two markers, or "" when either is absent — so a cell run against the PRE-FIX sources FAILS cleanly
+    instead of raising (a red must be for the right reason, not a crash)."""
+    i = text.find(start)
+    if i < 0:
+        return ""
+    j = text.find(end, i + len(start))
+    return text[i + len(start): j if j >= 0 else len(text)]
+
+
+def _xside(d, seed=42, inputs=True, **over):
+    """A refit sidecar with the complete key set, beside a fake .pt whose sha it carries. inputs=True also creates the three
+    input files the exporter locates, so a cell can reach the SIDECAR checks (which run before the torch import) instead of
+    stopping at the earlier missing-input refusal."""
+    pt = f"{d}/models/f10_live_s{seed}.pt"
+    os.makedirs(f"{d}/models", exist_ok=True)
+    if inputs:
+        for sub in (f"{d}/dlw/data/dlw_targets.npz", f"{d}/dlw/data/dlw_fea82.npz", f"{d}/data/f8_fea89.npz"):
+            os.makedirs(os.path.dirname(sub), exist_ok=True)
+            open(sub, "wb").write(b"placeholder: this cell never reaches the loader\n")
+    open(pt, "wb").write(b"not a real checkpoint, but a real file with a real sha\n")
+    m = {"seed": seed, "best_ep_rule": "fix7", "best_ep_kept": 7, "env_given": {"SEED": str(seed), "F10_DLW": f"{d}/dlw", "F10_OUT": d, "BEST_EP_FIX": "7"},
+         "inputs": {"targets": "t", "fea82": "f", "fea89": "g", "legs": "l"}, "inputs_sha256": {"targets": "0" * 64},
+         "pt": pt, "pt_sha256": _sha(pt), "self_sha256": "1" * 64, "trained_through": 1788120000,
+         "trained_through_label_utc": "2025-12-07T12:00:00Z", "trained_through_pool_end_utc": "2026-08-30T20:00:00Z",
+         "trained_through_tr1_end_utc": "2025-12-08T00:00:00Z", "data_axis_end_utc": "2026-08-30T20:00:00Z"}
+    m.update(over)
+    sc = f"{d}/models/f10_live_s{seed}.json"
+    json.dump(m, open(sc, "w"), indent=1)
+    return pt, sc
+
+
+with tempfile.TemporaryDirectory() as _xd:
+    def _xrun(d, extra=None, seed=42, no_env=False):
+        """Run the new exporter; returns (rc, out, receipt-or-None, npz_exists)."""
+        npo = f"{d}/out/f10_live_s{seed}_np.npz"
+        rcp = f"{d}/receipt_s{seed}.json"
+        env = {} if no_env else {"F10_OUT": d, "F10_DLW": f"{d}/dlw", "SEED": str(seed),
+                                 "F10_SIDECAR": f"{d}/models/f10_live_s{seed}.json", "F10_NP_OUT": npo,
+                                 "F10_NP_RECEIPT": rcp, "F10_GENERATION": "v4_2026-10", "F10_BEST_EP_RULE": "fix7"}
+        env.update(extra or {})
+        for k in ("F10_OUT", "F10_DLW", "SEED", "F10_NP_OUT", "F10_SIDECAR", "F10_NP_RECEIPT", "F10_GENERATION", "F10_BEST_EP_RULE",
+                  "F10_NP_REPLACE_SHA256", "F10_NP_COMPARE"):
+            env.setdefault(k, "")
+        rc, out = run(["pod_f10_np_export_v4.py"], env)
+        return rc, out, (json.load(open(rcp)) if os.path.exists(rcp) else None), os.path.exists(npo)
+
+    # X1 — no env: the fixed program refuses by NAME before importing anything heavy; the ancestor had defaults for three of them
+    _d1 = f"{_xd}/x1"; os.makedirs(_d1)
+    rc, out, r, npz = _xrun(_d1, no_env=True)
+    _old_src = open(_XOLD).read()
+    check("★★★ [X] TRN-03 X1: with an empty environment the v4 exporter refuses rc 2 and NAMES all eight required locators, before importing torch (torch is not even installed here — a refusal must not need the heavy stack); the ancestor supplied SEED / F10_OUT / F10_DLW from defaults instead",
+          rc == 2 and "NP_EXPORT_REFUSED" in out and all(k in out for k in ("F10_OUT", "F10_DLW", "SEED", "F10_NP_OUT", "F10_SIDECAR", "F10_NP_RECEIPT", "F10_GENERATION", "F10_BEST_EP_RULE"))
+          and not npz and 'os.environ.get("F10_OUT", "/workspace/f8_ext")' in _old_src, (rc, out[-200:]))
+
+    # X2 — a missing input is a NAMED PASS=false receipt, not a crash, and nothing is written
+    _d2 = f"{_xd}/x2"; os.makedirs(_d2); _xside(_d2, inputs=False)
+    rc, out, r, npz = _xrun(_d2)
+    check("★★★ [X] TRN-03 X2: with the .pt present but the targets/fea files absent ⇒ rc 3, a PASS=false receipt that NAMES each missing input, wrote_npz false and no file at F10_NP_OUT",
+          rc == 3 and r is not None and r["PASS"] is False and r["wrote_npz"] is False and r["REFUSED"]["why"] == "missing_inputs"
+          and set(r["REFUSED"]["missing"]) >= {"targets", "fea82", "fea89"} and not npz, (rc, r and r.get("REFUSED"), npz))
+
+    # X3 — a missing sidecar key is a refusal, never a skipped check
+    _d3 = f"{_xd}/x3"; os.makedirs(_d3); _pt, _sc = _xside(_d3)
+    _m = json.load(open(_sc)); del _m["trained_through_label_utc"]; del _m["pt_sha256"]; json.dump(_m, open(_sc, "w"))
+    rc, out, r, npz = _xrun(_d3)
+    check("★★★ [X] TRN-03 X3: a sidecar missing keys ⇒ rc 3 'sidecar_incomplete' listing exactly the missing keys ('a missing key is a refusal, never a skipped check'), nothing written",
+          rc == 3 and r["REFUSED"]["why"] == "sidecar_incomplete" and set(r["REFUSED"]["missing_keys"]) == {"trained_through_label_utc", "pt_sha256"} and not npz, (rc, r and r.get("REFUSED")))
+
+    # X4 — the sidecar is a CLAIM about which checkpoint; it is verified by recomputing the sha
+    _d4 = f"{_xd}/x4"; os.makedirs(_d4); _pt, _sc = _xside(_d4)
+    open(_pt, "wb").write(b"a DIFFERENT checkpoint with the same name\n")          # the .pt changed after the sidecar was written
+    rc, out, r, npz = _xrun(_d4)
+    check("★★★ [X] TRN-03 X4: the .pt replaced after the sidecar was written ⇒ rc 3 'pt_sha_mismatch' with the recomputed sha next to the sidecar's claim — the binding is verified by hashing, not by the path matching",
+          rc == 3 and r["REFUSED"]["why"] == "pt_sha_mismatch" and r["REFUSED"]["recomputed"] == _sha(_pt) and not npz, (rc, r and r.get("REFUSED")))
+
+    # X5 — seed must agree in all four places (the round-3 refit lesson, applied to the export)
+    _d5 = f"{_xd}/x5"; os.makedirs(_d5); _pt, _sc = _xside(_d5)
+    _m = json.load(open(_sc)); _m["seed"] = 2027; _m["env_given"]["SEED"] = "2027"; json.dump(_m, open(_sc, "w"))
+    rc, out, r, npz = _xrun(_d5)
+    check("★★★ [X] TRN-03 X5: a seed-2027 sidecar in the seed-42 slot ⇒ rc 3 'seed_disagreement' naming the sidecar seed and env_given.SEED against the expected seed, nothing written",
+          rc == 3 and r["REFUSED"]["why"] == "seed_disagreement" and r["REFUSED"]["sidecar_seed"] == 2027 and r["REFUSED"]["expected_seed"] == 42 and not npz, (rc, r and r.get("REFUSED")))
+
+    # X6 — the epoch rule the month contract asked for must be the rule the checkpoint was fitted under
+    _d6 = f"{_xd}/x6"; os.makedirs(_d6); _pt, _sc = _xside(_d6, best_ep_rule="argmax")
+    rc, out, r, npz = _xrun(_d6)
+    check("★★★ [X] TRN-03 X6: a sidecar whose best_ep_rule is 'argmax' while the stage asks for fix7 ⇒ rc 3 'best_ep_rule_mismatch' (E-0907 family: the deployed file must not silently be an argmax model), nothing written",
+          rc == 3 and r["REFUSED"]["why"] == "best_ep_rule_mismatch" and r["REFUSED"]["sidecar"] == "argmax" and not npz, (rc, r and r.get("REFUSED")))
+
+    # X7 — overwriting a deployment artifact is an explicit, checked act
+    _d7 = f"{_xd}/x7"; os.makedirs(f"{_d7}/out"); _pt, _sc = _xside(_d7)
+    _m7 = json.load(open(_sc)); del _m7["best_ep_kept"]; json.dump(_m7, open(_sc, "w"))   # so the SECOND run has a later, deterministic refusal to reach
+    _existing = f"{_d7}/out/f10_live_s42_np.npz"; open(_existing, "wb").write(b"the artifact that is already deployed\n")
+    rc, out, r, npz = _xrun(_d7)
+    _refused = rc == 3 and r["REFUSED"]["why"] == "output_exists" and r["REFUSED"]["current_sha256"] == _sha(_existing)
+    rc2, out2, r2, _ = _xrun(_d7, {"F10_NP_REPLACE_SHA256": _sha(_existing)})
+    check("★★★ [X] TRN-03 X7: an existing F10_NP_OUT ⇒ rc 3 'output_exists' quoting the sha on disk; naming that sha in F10_NP_REPLACE_SHA256 gets past that check and the program proceeds to the NEXT refusal (here sidecar_incomplete), with the existing file still byte-unchanged — the ancestor overwrote the in-service file by default, and did so even on a FAILED gate",
+          _refused and rc2 == 3 and r2["REFUSED"]["why"] == "sidecar_incomplete" and open(_existing, "rb").read() == b"the artifact that is already deployed\n",
+          (rc, r and r["REFUSED"]["why"], rc2, r2 and r2["REFUSED"]["why"]))
+
+    # X8 — the legacy escape hatch cannot become a way to produce a file
+    _d8 = f"{_xd}/x8"; os.makedirs(_d8); _xside(_d8)
+    rc, out, r, npz = _xrun(_d8, {"F10_SIDECAR": "NONE_LEGACY_ARTIFACT"})
+    _src = open(_XNEW).read()
+    check("★★★ [X] TRN-03 X8: legacy compare mode without F10_NP_COMPARE ⇒ rc 3 'legacy_mode_without_compare'; and in the source the legacy branch ends in finalize() with no np.savez anywhere inside it — the escape hatch for the sidecar-less in-service checkpoint can never write a deployable file",
+          rc == 3 and r["REFUSED"]["why"] == "legacy_mode_without_compare" and not npz
+          and "NP_EXPORT_NO_WRITE" in _src and _xsec(_src, "if LEGACY:", "# ── (g)") != "" and "np.savez" not in _xsec(_src, "if LEGACY:", "# ── (g)"), (rc, r and r.get("REFUSED")))
+
+    # X9 — STATIC: the ancestor's two defects are in the archived file and absent from the new one
+    _old_savez, _old_exit = _old_src.find("np.savez("), _old_src.find("sys.exit(0 if ok else 3)")
+    _new_savez, _new_guard = _src.find("np.savez(tmp"), _src.find("if not v1_ok:")
+    check("★★★ [X] TRN-03 X9 (STATIC, the defect itself): in the ancestor `np.savez(` stands BEFORE `sys.exit(0 if ok else 3)` — a FAILED V1 still left a complete deployable file; in v4 the only write stands AFTER the `if not v1_ok:` refusal, and none of the three silent defaults survives",
+          0 <= _old_savez < _old_exit and 0 <= _new_guard < _new_savez
+          and all(d in _old_src for d in ('os.environ.get("SEED", "42")', 'os.environ.get("F10_OUT", "/workspace/f8_ext")', 'os.environ.get("F10_DLW", "/workspace/dlw_ext")'))
+          and not any(d in _src for d in ('os.environ.get("SEED"', 'os.environ.get("F10_OUT"', 'os.environ.get("F10_DLW"')),
+          (_old_savez < _old_exit, _new_guard < _new_savez))
+
+    # X10 — STATIC: TRN-14, the three time-stamps are carried and the legacy key is explained, not silently reused
+    check("★★★ [X] TRN-14 X10 (STATIC): the npz carries trained_through_label_utc / trained_through_pool_end_utc / trained_through_tr1_end_utc / data_axis_end_utc from the sidecar, keeps the legacy `trained_through` so no reader breaks, and states in the file that it is the DATA AXIS END (measured: the in-service value 1788120000 is max(E_ts) of the targets file, not the pool end — FACT_TABLE 03.10)",
+          all(k in _src for k in ("trained_through_label_utc", "trained_through_pool_end_utc", "trained_through_tr1_end_utc", "data_axis_end_utc"))
+          and '"trained_through": np.int64(data_axis_end)' in _src and "trained_through_meaning" in _src and "data axis end" in _src)
+
+    # X11 — STATIC: the driver stage passes every locator explicitly and reuses chain_lib's sidecar contract
+    _drv = open(f"{HERE}/chain_v4_monthly.sh").read()
+    _np_stage = _xsec(_drv, "if want np_export; then")
+    check("★★★ [X] TRN-03 X11 (STATIC): the np_export stage passes all eight locators explicitly, reuses chain_lib's prereq_refit_sidecar (the same contract the arms stage uses — not a second implementation), requires the receipt through require_gate, and dies rather than continue when the exporter refuses",
+          all(k + "=" in _np_stage for k in ("F10_OUT", "F10_DLW", "SEED", "F10_SIDECAR", "F10_NP_OUT", "F10_NP_RECEIPT", "F10_GENERATION", "F10_BEST_EP_RULE"))
+          and "prereq_refit_sidecar np_export" in _np_stage and "require_gate" in _np_stage and "gate=F10_NP_EXPORT" in _np_stage
+          and 'die "np_export_s${SD}_rc_$rc" 3' in _np_stage and "check_marker" in _np_stage)
+
+    # X12 — STATIC: the duplicated epoch-rule literal is asserted equal to the refit stage's (duplication WITH an equality assertion)
+    _refit_stage = _xsec(_drv, "if want refit; then")
+    check("★★★ [X] TRN-03 X12 (STATIC): the np_export stage's F10_BEST_EP_RULE and the refit stage's BEST_EP_FIX are the same rule written twice — this cell is the equality assertion that keeps them together (fix7 ⇔ BEST_EP_FIX=7)",
+          "F10_BEST_EP_RULE=fix7" in _np_stage and "BEST_EP_FIX=7" in _refit_stage and "BEST_EP_FIX=-1" not in _np_stage)
+
+    # X13 — the archived ancestor is the September program, by sha
+    check("★★ [X] TRN-03 X13: the archived ancestor pod_f10_np_export_v4.r0_3e304c27.py hashes to the September program 3e304c27… (the `.r0_<sha8>` label is a hint; this is the measurement)",
+          _sha(_XOLD).startswith(_XOLD_SHA), _sha(_XOLD)[:16])
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)
