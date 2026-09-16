@@ -1,0 +1,197 @@
+{
+ "device": "fx_hol01_provenance.py",
+ "self_sha256": "19aceb6e05b296f79b9e7d49cbe29bcab62d06c5004524741e9d52c10aa91f2a",
+ "module_sha256": "a9fad82ce26845a6f3d61cfa9077a6286949346e92c1fbfea17a663363264914",
+ "numpy": "2.4.6",
+ "argv": [
+  "devices/fx_hol01_provenance.py",
+  "out/trd/RECEIPT_fx_hol01_provenance.json"
+ ],
+ "env": {
+  "HOME": "/root",
+  "LC_CTYPE": "C.UTF-8",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "PYTHONPATH": "/workspace/fx_data_2026-09-13/common"
+ },
+ "inputs": {
+  "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_rawbuild_x0910.npz": "92a870a79cfaf130dacc35daba2ad7a16490ca3a47e1e7d3a8a398a066f96f58",
+  "/workspace/data/wide_panel_4h_v2ext.npz": "5e67c0559daa904d8f0526b6e268e93dcb45aab89d82646cf79a794445481116",
+  "/workspace/data/wide_panel_4h_v3splice.npz": "c5d10f6ae31fa3f97006a8678c78382479a5380ae9d7f7af8386d2284ae3e90d",
+  "/workspace/uplift_2026-09-11/r6/r6_chain.sh": "acd39ebe0ca936a6f3dc868f496e2255d244d0c3d4ee2b29576bec71558fce1b",
+  "/workspace/pod_panel_ext.py": "db7f0474b64fb3098a8d1a6af29f61423d7b99c74c6834eb6424b77d1642b5ac",
+  "/workspace/data/dlnative_5m_wide829_f16_holefix2_x0910.npz": "8115299410cd5e8df46ecc5ac7baf312d9f593d94f3b4c3dc46471bd37e00336"
+ },
+ "utc_start": "2026-09-16T04:17Z",
+ "R_reference_panel": {
+  "path": "/workspace/uplift_2026-09-11/r6/out/wide_panel_4h_rawbuild_x0910.npz",
+  "sha256": "92a870a79cfaf130dacc35daba2ad7a16490ca3a47e1e7d3a8a398a066f96f58",
+  "bytes": 235163986,
+  "anchors": 10099,
+  "first": "2022-01-31T00:00Z",
+  "last": "2026-09-10T00:00Z",
+  "symbols": 829,
+  "keys": [
+   "Y24",
+   "Y4",
+   "elig",
+   "f_amihud_24h",
+   "f_asz_24h",
+   "f_cpos_24h",
+   "f_fund_ema",
+   "f_fund_ema_v1",
+   "f_fund_ema_v2",
+   "f_fund_iv",
+   "f_fund_now",
+   "f_mom_30d",
+   "f_mom_7d",
+   "f_mom_7d_x24",
+   "f_range_24h",
+   "f_rev_24h",
+   "f_rev_3d",
+   "f_rev_4h",
+   "f_tbf_24h",
+   "f_vol_7d",
+   "f_volq_ratio",
+   "symbols",
+   "ts"
+  ],
+  "produced_by": "r6_chain.sh step S4 (committed at uplift_2026-09-11/r6_devices/r6_chain.sh): CACHE_IN=<holefix2 x0910> PANEL_OUT=<this file> python /workspace/pod_panel_ext.py, builder UNMODIFIED",
+  "builder_sha256": "db7f0474b64fb3098a8d1a6af29f61423d7b99c74c6834eb6424b77d1642b5ac",
+  "cache_sha256": "8115299410cd5e8df46ecc5ac7baf312d9f593d94f3b4c3dc46471bd37e00336",
+  "chain_sha256": "acd39ebe0ca936a6f3dc868f496e2255d244d0c3d4ee2b29576bec71558fce1b",
+  "receipt_of_its_own": false,
+  "note": "this is the one hole-fixed full-history 4h panel that exists; AD_D used it as its reference"
+ },
+ "B_away_from_hole_cells": {
+  "anchor": "2022-01-31T00:00Z",
+  "key": "f_mom_30d",
+  "v3splice_vs_rebuild_diff_cells": 136,
+  "v2ext_vs_rebuild_diff_cells": 0,
+  "v3splice_vs_v2ext_diff_cells": 136,
+  "of_the_v3splice_diff_cells_how_many_have_v3splice_equal_to_v2ext": 0,
+  "max_abs_diff_v3_vs_rebuild": 0.01563262939453125,
+  "examples": [
+   {
+    "symbol": "1000SHIBUSDT",
+    "v3splice": -0.3803333640098572,
+    "v2ext": -0.3810247778892517,
+    "rebuild": -0.3810247778892517
+   },
+   {
+    "symbol": "1000XECUSDT",
+    "v3splice": -0.2973101735115051,
+    "v2ext": -0.2978680729866028,
+    "rebuild": -0.2978680729866028
+   },
+   {
+    "symbol": "1INCHUSDT",
+    "v3splice": -0.3030863404273987,
+    "v2ext": -0.3073166012763977,
+    "rebuild": -0.3073166012763977
+   },
+   {
+    "symbol": "AAVEUSDT",
+    "v3splice": -0.4563118815422058,
+    "v2ext": -0.46069496870040894,
+    "rebuild": -0.46069496870040894
+   },
+   {
+    "symbol": "ADAUSDT",
+    "v3splice": -0.1684848666191101,
+    "v2ext": -0.17276734113693237,
+    "rebuild": -0.17276734113693237
+   },
+   {
+    "symbol": "AKROUSDT",
+    "v3splice": -0.46494460105895996,
+    "v2ext": -0.468555212020874,
+    "rebuild": -0.468555212020874
+   },
+   {
+    "symbol": "ALGOUSDT",
+    "v3splice": -0.48776310682296753,
+    "v2ext": -0.4933096766471863,
+    "rebuild": -0.4933096766471863
+   },
+   {
+    "symbol": "ALICEUSDT",
+    "v3splice": -0.5324780344963074,
+    "v2ext": -0.5360123515129089,
+    "rebuild": -0.5360123515129089
+   },
+   {
+    "symbol": "ALPHAUSDT",
+    "v3splice": -0.49369728565216064,
+    "v2ext": -0.4973336458206177,
+    "rebuild": -0.4973336458206177
+   },
+   {
+    "symbol": "ANKRUSDT",
+    "v3splice": -0.15783768892288208,
+    "v2ext": -0.16063958406448364,
+    "rebuild": -0.16063958406448364
+   },
+   {
+    "symbol": "ANTUSDT",
+    "v3splice": -0.5167250037193298,
+    "v2ext": -0.52102130651474,
+    "rebuild": -0.52102130651474
+   },
+   {
+    "symbol": "ARPAUSDT",
+    "v3splice": -0.37967056035995483,
+    "v2ext": -0.3814224600791931,
+    "rebuild": -0.3814224600791931
+   }
+  ],
+  "reading": "f_mom_30d looks back 30 days. 2022-01-31T00:00Z is the first common anchor and the rebuild's cache starts 2022-01-01, so the rebuild has exactly the minimum history there while the older lineage carried more. If v3splice equals v2ext on these cells and both differ from the rebuild, the difference is a lookback boundary of the splice, not a hole; the counts above decide it rather than the wording."
+ },
+ "F_funding_keys_v3splice_vs_rebuild": {
+  "f_fund_now": {
+   "cells": 8322331,
+   "pattern_diff": 1029913,
+   "only_v3splice_finite": 0,
+   "only_rebuild_finite": 1029913,
+   "value_diff_cells_gt_1e-6_rel": 0,
+   "max_abs_value_diff": 0.0
+  },
+  "f_fund_iv": {
+   "cells": 8322331,
+   "pattern_diff": 1029913,
+   "only_v3splice_finite": 0,
+   "only_rebuild_finite": 1029913,
+   "value_diff_cells_gt_1e-6_rel": 138,
+   "max_abs_value_diff": 3.0
+  },
+  "f_fund_ema": {
+   "cells": 8322331,
+   "pattern_diff": 1029963,
+   "only_v3splice_finite": 50,
+   "only_rebuild_finite": 1029913,
+   "value_diff_cells_gt_1e-6_rel": 0,
+   "max_abs_value_diff": 2.3283064365386963e-10
+  },
+  "f_fund_ema_v1": {
+   "cells": 8322331,
+   "pattern_diff": 1029963,
+   "only_v3splice_finite": 50,
+   "only_rebuild_finite": 1029913,
+   "value_diff_cells_gt_1e-6_rel": 804,
+   "max_abs_value_diff": 0.005106990924105048
+  },
+  "f_fund_ema_v2": {
+   "cells": 8322331,
+   "pattern_diff": 1029963,
+   "only_v3splice_finite": 50,
+   "only_rebuild_finite": 1029913,
+   "value_diff_cells_gt_1e-6_rel": 1800,
+   "max_abs_value_diff": 0.06040997803211212
+  }
+ },
+ "F_note": "a pattern difference means one panel has a funding value where the other has none \u2014 a coverage difference from the canonical EMA continuation, not a disagreement about a value. It must not be added to the value-difference counts.",
+ "runtime_s": 7.6,
+ "utc_end": "2026-09-16T04:17Z"
+}
