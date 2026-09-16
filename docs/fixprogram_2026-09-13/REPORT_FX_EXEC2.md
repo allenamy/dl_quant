@@ -502,3 +502,36 @@ Still unmeasured in the ledger. An offline proxy passed a 498/498 positive contr
 **BNB conversion caliber (ruling requested).** BNB-fee legs (08-05 12Z, both 08-21 batches, 08-26, and part of 09-06) will stay fee_unknown with reason commission_non_usdt_unconverted even after the exact backfill; the three-bucket rule never folds an unconverted BNB fee to 0 or to a guessed price. **〔lead 裁定 17:0xZ: 口径 = BNBUSDT 现货 1m K 线中含成交时刻那根的收盘价(data.binance.vision 静态存档, 允许的公开拉取), 逐行记录换算价、来源 zip 与 sha 与口径名 `bnb_spot_1m_close_at_fill`; 永续 BNB 标记价作敏感性列只报不入; 未拉到对应分钟 ⇒ 保持 fee_unknown 并具名, 不插补。实现与首次运行随复审后。〕**
 
 **Not checked.** Whether userTrades still serves 08-01 (venue retention); REPORT mode will show no_trades if not. The exact device has never been executed, by design; its first run is the lead's.
+
+---
+## LED-08 后续 · 冻结参照漂移检查(克隆 7399b10; 研究仓 43e23718 / 3b0366c5 / 7dee0e04 / 5abbdf4c / 1a9d803f / f2d80a3d / 11042bfa; 未部署; lead 逐字转录 2026-09-16 03:2xZ)
+
+**问题。** 我在 469c3f3 里装的滚动带是「前 ≤42 个已交易非重建锚」= 恰好七天的 4h 锚 ⇒ **一周之内就会把台阶位移重新居中, 然后什么都不报**。**缺陷在我自己的修复里, 不在 ef60f85**: ef60f85 的固定 10% taker 线**确实**会在这个台阶上响(它在 101 份真实报告里响了 51 次, 这正是它被替换的原因)。格 [R0] 记录此事, 免得两者被混为一谈。
+
+**事实**(FACT_TABLE_EXEC2 2026-09-16 附录 D1–D9; 装置 `led08_drift_reference.py` sha256 `9a85421efb5b2c21…`, **在运行之前**由 3b0366c5 提交; 收据 `LED08_drift_reference.json`, 88 份账本文件各自 sha256):
+- **D1**: 实测, 滚动带**已经**吸收了 X-COST 的那次崩塌 —— 到最新账本槽为止它持满 42 槽, 自身 taker 中位 **21.58%**, 且什么都不报; 而同一本书在参照窗里是 **5.01%**。
+- **D2/D3**: 冻结参照 = X-COST 的 S1a, 名义槽 **1787875200..1788264000**: 27 槽, 0 停机, 0 重建; taker 中位 **0.05010273247425126**(MAD 0.02345233920549095), |net/gross| 中位 **0.003638**(MAD 0.0022960000000000003)。**27/0/0 这个人口与 X-COST 那个独立写成的装置所选的完全一致** —— 这是本项里唯一真正独立的对照。
+- **D4(请复审最先查这一处)**: **口径不是 X-COST 的。** X-COST 的 93.1% 是**成交级** `venue_maker_flag` 的 M/(M+T), 在去重成交上按名义合并; 本报告的 taker 份额是**订单行**中类型为 `topup_taker` 的 |filled_notional| 占比, 逐锚。一张被场所以 taker 成交的 maker 单(from_reject MARKET、chase IOC)对前者是 taker, 对后者是 **maker**。两者在此处相差约 2 pp 是**算术巧合, 不是构造上的一致**。config 声明本报告口径, 并把 X-COST 的标为 `NOT_this_caliber`。钉的是本报告口径, 因为那才是告警所判的量。
+- **D5**: taker 漂移 **+16.570 pp** vs 线 10.431 pp ⇒ **报警**; |net/gross| **+0.664 pp** vs 1.021 pp ⇒ 不报。5% 硬顶不动。
+- **D6**: 仅费侧换算 +16.570 pp × 3.00 bps × 0.0472 换手 = **+0.0235 bps/锚/gross**, 对冻结的 K2 δ 0.05 —— 一次**真实的水平位移**, 仅就费用而言**落在书层带以下**。
+- **D9(具名而非接受的缺口)**: **没有任何 launchd plist 引用 `ops/daily_summary.py`, 它也不在 `CRON_TEMPLATES_2026-09-04.md` 里** ⇒ 把判词放在那里意味着今天没有东西调度它。**levels 仍每锚经报告基线行到 Telegram。** 调度归 K5 / lead; 我没有在 LED-08 里加作业。(lead 登记为 **OPS-04, P1 投递**。)
+
+**阈值 —— 已陈述, 且是给 K5 的 PROPOSAL。** `|median_now − median_ref| > 3 × 1.4826 × MAD_ref`, 两侧各 ≥12 个合格锚。它**故意**用单锚离散度作为中位数位移的尺子, 即按构造不敏感, 好让一天一次的页报不在寻常波动上响; 敏感版(3 × 中位数 SE = taker 的 2.516 pp)已算出、记进 config `_basis`、**不使用**。**经济量印在判词旁边而不进触发条件** —— 突变体 M2 钉住这一点。把 δ 折进去会让已记录的那次崩塌沉默, 而那恰恰是我们要看见的东西。
+
+**修复。** 新纯模块 `live/cost_drift.py`; 新 `config/cost_drift_reference.json`。taker 份额的定义**没有被二次实现** —— `window_levels` 把报告自己的 `order_facts` 当作可调用对象接进来, 于是第二份实现不可能与消费该比较的读者漂移开。判词只活在 `ops/daily_summary.py`(一次运行一份报告 = 结构性地一天至多一次告警, 无需写状态标志, 汇总仍保持只读); `ops/anchor_report.py` 印两个 level 与 Δ 但什么都不 raise。**读不出来的参照 config 会被在行上点名 —— 永不写成「无漂移」。**
+
+**重算门。** 日汇总本来就读每一天的账本, 因此每次运行都重新推导被钉住的 level, 并具名 `reference_recompute_mismatch` / `reference_window_unavailable`。**钉住的值仍然生效 —— 这正是「冻结」的含义; 重算是内容门, 不是再拟合。** 刚才对着真实的 14:27Z 账本副本跑, 打印 `参照重算门: MATCH (27 锚, 容差 1e-12)`, 即被钉住的数字可以经读者自己的路径从真实账本字节复现。
+
+**我自己的测试找到的一个设计洞。** 参照 MAD 为 0 会让线变成 0, 于是**任何**差异都会「越线」。退化参照现在**拒绝给判词**并说明理由; 两个 level 与 Δ 仍照印, 所以没有任何东西被藏起来 —— 被收回的只是那句自动判词。
+
+**证据。** 在 **e808697** 上用最终套件跑红: 10/26, 14 FAIL, rc 1, **无崩溃**(`CDRIFT_red_old_e808697.log`)。绿: `tests_cost_drift` 47/47。邻格 11 个套件 + gate_coverage, 全 rc 0: tests_anchor_report_builder · tests_daily_summary · tests_anchor_series · tests_readers_three_bucket · tests_rehearsal_anchor · tests_frozen_inputs · tests_flatten_exit_cost · tests_realised_amendment · tests_imports · tests_static_names · tests_pilot_log。对 e808697 的 AST 保留: 6 个被改 .py 上 **0 丢失**。突变体 **8/8 KILLED**, 树逐位还原。
+
+**突变体找出的两个真洞, 都在我声称任何结论之前修掉(lead 记为通用形态 `test_and_output_sharing_a_string_is_a_false_green_family`)**: (i) 我的合成前后窗 MAD 相同, 于是套件分不清「按冻结参照缩放」与「按当前带缩放」—— 重新植入自校准缺陷的 **M1 存活**。现在后窗离散度加宽为 3 倍以贴近真实书(ref MAD 0.02345 vs band MAD 0.06200), 并加了一格断言线来自参照。(ii) 判词格只在 stdout 里 grep 「漂移越线」, 而**汇总表行本身就含这几个字** ⇒ **M8(照印 level、不 raise)存活**。现在有一格要求确有被 raise 的告警行, 且 [P9] 直接测 `summary_warnings`。我还把突变体运行器改成**单独报 CRASHED**, 因为 M1 最初表现为 rc 1 + 空 FAILED 列表, 即 traceback 冒充红格。
+
+**已登记**: run_acceptance SUITES · gate_coverage SUITE_SCOPE(五个已声明盲区)· rebalance_id 普查 · frozen_inputs NOT_MODEL_INPUT。
+
+**未证明。** 电池**不**从真实 08-28..09-01 订单行重新推导**已装船的参照** —— 那是已提交的装置加运行期门; 我量过一份逐字夹具为 774 KB gzip 并拒绝了它(理由: 重复运行期门, 代价是复审 diff 里多一个二进制块), 改由 [P8] 静态钉住 taker 份额定义, 使静默改动变红。Telegram 传输与 launchd 未动。**漂移按中位数测, 所以一次不改变中位数的混合变化对它不可见。**
+
+**共享文件协调**(已直接告知 fx-exec 与 fx-w6c): 7399b10 里动了三个共享文件, **每处都是纯追加** —— `ops/gate_coverage.py`(新增一条 SUITE_SCOPE `tests_cost_drift`, 插在 `tests_anchor_report_builder` 键之前, 未改任何既有条目文本)· `run_acceptance.sh`(在 `tests_anchor_report_builder` 之后新增一行 SUITES)· `ops/daily_summary.py`(新块紧接在 `# ── the rotation question` 注释之前, 与 fx-exec 的 `account_facts` 约 L191-193 那处不相交)。另 `live/frozen_inputs.py`(新增一个 NOT_MODEL_INPUT 键)与 `live/tests_anchor_report_builder.py` / `live/tests_rehearsal_anchor.py` 的**仅夹具搭建**改动(未触任何断言文本; AST 0 丢失)。
+
+**lead 裁定(§14.3-3)**: 判据与口径按本交付定稿; **δ 不进触发条件**(检测与实质性分层); 口径声明必须一直留着; MAD_ref=0 的退化参照拒绝判词并说明理由。
