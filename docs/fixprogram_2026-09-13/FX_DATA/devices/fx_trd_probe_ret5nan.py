@@ -70,8 +70,15 @@ for i in range(len(r_)):
 rec["cells_state_without_finite_ret5"] = {
     "total": int(len(r_)), "TRADED": int((S[r_, c_] == T.TRADED).sum()), "UNTRADED": int((S[r_, c_] == T.UNTRADED).sum()),
     "classes": cls, "by_bar_close": dict(sorted(rows_by_ts.items(), key=lambda kv: -kv[1])[:20]),
-    "distinct_symbols": len(per_sym), "cells_not_on_the_first_bar_of_the_cache": detail[:200]}
+    "distinct_symbols": len(per_sym), "cells_not_on_the_first_bar_of_the_cache": detail[:200],
+    "symbols_with_no_such_cell": sorted(set(syms) - set(per_sym))}
+# amendment (2026-09-16, before the second run): why 826 and not 829 — name the symbols with no data bar at all,
+# instead of inferring it from 829 - 826. A symbol contributes exactly one "first bar of symbol" cell iff it has any data bar.
+nbars = have.sum(0)
+rec["symbol_data_coverage"] = {"symbols": len(syms), "symbols_with_no_data_bar": [syms[j] for j in np.where(nbars == 0)[0]],
+                               "symbols_with_data_but_no_trade": [syms[j] for j in np.where((nbars > 0) & ~(S == T.TRADED).any(0))[0]],
+                               "min_data_bars_among_symbols_with_data": int(nbars[nbars > 0].min())}
 rec["runtime_s"] = round(time.time() - T0, 1); rec["utc_end"] = utc(time.time())
 json.dump(rec, open(OUT, "w"), indent=1)
 print("FX_TRD_PROBE_DONE", json.dumps(rec["cells_state_without_finite_ret5"]["classes"]),
-      json.dumps({"total": int(len(r_)), "distinct_symbols": len(per_sym)}), flush=True)
+      json.dumps({"total": int(len(r_)), "distinct_symbols": len(per_sym)}), json.dumps(rec["symbol_data_coverage"]), flush=True)
