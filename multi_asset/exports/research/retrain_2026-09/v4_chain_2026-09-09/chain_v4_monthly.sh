@@ -109,7 +109,7 @@ fi
 # ── cache coverage gate ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 if want cache; then
   prereq_receipt cache preflight "$R/v4_gates/preflight.json" PREFLIGHT
-  guard cache; stage "cache: coverage gate v2 on $CACHE"
+  guard cache; clean_env; CLEAN_ENV_C=("${CLEAN_ENV[@]}"); stage "cache: coverage gate v2 on $CACHE"
   "$PY" "$D/cache_coverage_gate_v2.py" "$CACHE" > "$R/cache_coverage.log" 2>&1; rc=$?
   "$PY" - "$R/v4_gates/cache_coverage.json" "$CACHE" "$rc" "$R/cache_coverage.log" <<'PYEOF'
 import hashlib, json, sys, time
@@ -120,6 +120,20 @@ with open(cache, "rb") as f:
 json.dump({"gate": "CACHE_COVERAGE_v2", "PASS": rc == 0, "rc": rc, "cache": cache, "cache_sha256": h.hexdigest(), "log_tail": open(log).read()[-2000:], "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, open(out, "w"), indent=1)
 PYEOF
   stage "cache gate rc=$rc $(tail -1 "$R/cache_coverage.log" | cut -c1-120)"; [ $rc -eq 0 ] || die "cache_coverage_rc_$rc" 3
+  # ── RAW_PATCH_COVERAGE (FX-TRAIN TRN-02): the second statement about this cache as a training input — that the raw-return patch
+  #    covers EVERY clipped bar of it and that each patch row still addresses its recorded ts and symbol. STEP1 part A cannot see an
+  #    OMISSION (a bar missing from the patch leaves RAW == CLIP there, so there is no difference to find), which is how E-0908-B can
+  #    return silently on a new month: the September patch on the r6 x0910 cache leaves AKEUSDT / BULLAUSDT / WOOUSDT at +0.30.
+  #    It runs HERE, beside the cache gate, and the data stage requires its receipt as a PREREQUISITE — so the data stage's five
+  #    sealed subprocesses are unchanged, and no subset invocation can reach a builder without the receipt.
+  #    Manifest path = the fixed sibling rule of v4_rawpatch_lib.manifest_path_for (<patch> minus .npz, plus .manifest.json): no new
+  #    month-contract key, because the delivered contracts pin 46 keys verbatim.
+  RPM=${RAW_PATCH%.npz}.manifest.json; RPR=$R/v4_gates/RAW_PATCH_COVERAGE.json
+  stage "cache: RAW_PATCH_COVERAGE gate on $CACHE + $RAW_PATCH (manifest $RPM)"
+  env -i "${CLEAN_ENV_C[@]}" CACHE=$CACHE RAW_PATCH=$RAW_PATCH RAW_PATCH_MANIFEST=$RPM RAWPATCH_OUT=$RPR "$PY" "$D/v4_gate_rawpatch.py" > "$R/raw_patch_coverage.log" 2>&1; rc=$?
+  stage "rawpatch gate rc=$rc $(tail -1 "$R/raw_patch_coverage.log" | cut -c1-140)"; [ $rc -eq 0 ] || die "raw_patch_coverage_rc_$rc" 3
+  RP_SRC=$(gate_sha "$D/v4_gate_rawpatch.py") || die "gate_source_unreadable_v4_gate_rawpatch" 3
+  require_gate "$RPR" gate=RAW_PATCH_COVERAGE self_sha=$RP_SRC cache=$CACHE raw_patch=$RAW_PATCH raw_patch_manifest=$RPM
 fi
 
 # ── data chain ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -127,6 +141,12 @@ if want data; then
   prereq_receipt data preflight "$R/v4_gates/preflight.json" PREFLIGHT
   prereq_receipt data cache_coverage "$R/v4_gates/cache_coverage.json" CACHE_COVERAGE_v2
   prereq_json_eq data cache_identity "$R/v4_gates/cache_coverage.json" cache_sha256 "$(gate_sha "$CACHE")"   # the cache the coverage gate passed is the cache this stage reads
+  # FX-TRAIN TRN-02: the raw-patch coverage receipt is a PREREQUISITE of this stage, produced by the cache stage. As a prerequisite it
+  # is checked before the guard, so no subset invocation (V4_STAGES=data) can reach a builder without it, and require_gate re-verifies
+  # that the receipt's recorded cache / patch / manifest shas are the files THIS stage is about to read.
+  prereq_receipt data raw_patch_coverage "$R/v4_gates/RAW_PATCH_COVERAGE.json" RAW_PATCH_COVERAGE
+  RPM=${RAW_PATCH%.npz}.manifest.json; RP_SRC=$(gate_sha "$D/v4_gate_rawpatch.py") || die "gate_source_unreadable_v4_gate_rawpatch" 3
+  require_gate "$R/v4_gates/RAW_PATCH_COVERAGE.json" gate=RAW_PATCH_COVERAGE self_sha=$RP_SRC cache=$CACHE raw_patch=$RAW_PATCH raw_patch_manifest=$RPM
   guard data; DL=$R/chain_v4_data.log; : > "$DL"; clean_env
   mkdir -p "$DLW_RAW/data" "$DLW_RAW/results" "$DLW_CLIP/data" "$DLW_CLIP/results" "$F8/data" "$F8/results" "$F8/preds" "$F8/models" "$F8/logs" "$F8/gates" "$(dirname "$KING_FEA")" || die "data_mkdir" 1
   stage "data: RAW targets (holefix2 + raw_patch) -> $DLW_RAW"

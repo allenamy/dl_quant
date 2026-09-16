@@ -65,24 +65,6 @@ def main():
     NW = len(syms); TT = CD.shape[0]; BTC_T = syms.index("BTCUSDT")
     log(f"cache {TT}x{NW}x{CD.shape[2]} ts {CTS[0]}..{CTS[-1]}")
     assert np.all(np.diff(CTS) == 300), "缓存 ts 非等距 300s"
-    # ★ FX-TRAIN TRN-02 (2026-09-13, AUDIT_TRAIN 7e1ecf9a; docs/fixprogram_2026-09-13/FX_TRAIN/FACT_TABLE_TRN.md §TRN-02): the raw-return patch used to be
-    #   applied BLINDLY (below) — nothing checked that it covers every clipped bar of THIS cache (the September patch on the r6 x0910 cache leaves AKE/BULLA/WOO at
-    #   +0.30, fact 02.6) or that row/col still address its ts/symbol. It is now verified FIRST, before any cumulative sum: v4_rawpatch_lib G1-G9 on the cache
-    #   loaded above with the manifest at the sibling path <patch>.manifest.json; FAIL => rc 3, results/raw_patch_coverage.json, no targets. The bytes verified are
-    #   the bytes applied (one read). The CLIP build (DLWT_RAW_PATCH empty) is unchanged.
-    _pp = os.environ.get("DLWT_RAW_PATCH"); _P = None
-    if _pp:
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import io as _io, v4_rawpatch_lib as _RPL
-        _pb = open(_pp, "rb").read()
-        _cov = _RPL.verify_files(CD[:, :, 0], CTS, syms, _pp, CACHE, cache_sha256=rep["input_sha256"]["cache"])
-        _cov["applied_bytes_sha256"] = hashlib.sha256(_pb).hexdigest()
-        _cov["applied_bytes_are_verified_bytes"] = _cov["applied_bytes_sha256"] == _cov.get("raw_patch_sha256")
-        if not _cov["applied_bytes_are_verified_bytes"]: _cov["PASS"] = False; _cov.setdefault("fails", []).append("patch_changed_between_read_and_verify")
-        rep["raw_patch_coverage"] = {k: _cov.get(k) for k in ("PASS", "fails", "summary", "raw_patch", "raw_patch_sha256", "manifest", "manifest_sha256", "lib_sha256")}
-        json.dump(_cov, open(f"{OUT}/results/raw_patch_coverage.json", "w"), indent=1, default=str)
-        if not _cov["PASS"]:
-            log("TARGETS_REFUSED raw_patch_coverage FAIL %s -> %s/results/raw_patch_coverage.json (no targets written)" % (_cov.get("fails"), OUT)); sys.exit(3)
-        _P = np.load(_io.BytesIO(_pb)); log("raw patch coverage PASS %s" % json.dumps(_cov.get("summary")))
     r5 = CD[:, :, 0].astype(np.float32)
     fin = np.isfinite(r5)
     r5z = np.where(fin, r5, 0).astype(np.float32)
@@ -93,8 +75,9 @@ def main():
     CS_r2 = np.concatenate([z1, np.cumsum(r5z.astype(np.float64) ** 2, 0)])
     _rt = CD[:, :, RET_CH].astype(np.float32); _rtz = np.where(np.isfinite(_rt), _rt, 0).astype(np.float32)   # target channel only
     assert np.array_equal(np.isfinite(_rt), np.isfinite(CD[:, :, 0])), "target channel finiteness must equal ch0"
-    if _pp:   # FX-TRAIN TRN-02: _P = the bytes verified above (coverage PASS), not a second read of the path
-        assert RET_CH == 0; _rtz[_P["row"], _P["col"]] = _P["raw32"].astype(np.float32)   # exact float32 raw returns on the clipped bars (PREREG_caliber_program section 3)
+    _pp = os.environ.get("DLWT_RAW_PATCH")
+    if _pp:
+        _P = np.load(_pp); assert RET_CH == 0; _rtz[_P["row"], _P["col"]] = _P["raw32"].astype(np.float32)   # exact float32 raw returns on the clipped bars (PREREG_caliber_program section 3)
         log("raw patch applied: %d bars from %s" % (len(_P["row"]), _pp))
     CS_L = np.concatenate([z1, np.cumsum(np.log1p(_rtz.astype(np.float64)), 0)]); del _rt, _rtz
     CS_q = np.concatenate([z1, np.cumsum(qvz, 0, dtype=np.float64)])

@@ -1,0 +1,47 @@
+START 2026-09-16T04:21:08Z
+aef0bfd668c3e42e92385780ad1880bcbbdd7d380957fce3e4f6979e5ad2f646  /workspace/fx_train_2026-09-13/trn02_final/v4_rawpatch_lib.py
+db68f3bfc5f316f83bcb871af815a5e26d0ac4c96387275fb84a8d66d6db0ad5  /workspace/fx_train_2026-09-13/trn02_final/v4_rawpatch_manifest.py
+a534a8cbf8586009995a8ea173b64b0bff6753e46f4b89142738f5683f13a4c8  /workspace/fx_train_2026-09-13/trn02_final/v4_gate_rawpatch.py
+4568bea6063fd21f600f4ab31eb2f17aa73ee296b62171967c285b19cffd44e0  /workspace/fx_train_2026-09-13/trn02_final/pod_dlw_targets_raw.py
+adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b  /workspace/fx_train_2026-09-13/trn02_final_iso/sept/raw_patch.npz
+adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b  /workspace/fx_train_2026-09-13/trn02_final_iso/sept_on_x0910/raw_patch.npz
+94e8e8c119ea719a4ed1544813d433d00c39148a8e916018435ac10402a6f149  /workspace/fx_train_2026-09-13/trn02_final_iso/x0910/raw_patch.npz
+== S3_manifest_sept
+S3_manifest_sept rc=0
+cache dlnative_5m_wide829_f16_holefix2.npz TT 490753 candidates 953 | patch rows 952 | sources ['/workspace/review_scratch/raw5m_kl']
+RAWPATCH_MANIFEST_DONE {"candidates": 953, "patch_rows": 952, "kept": 952, "kept_rederived_bitwise": 952, "not_clipped": 1, "clipped_missing": 0, "unresolved": 0, "patch_rows_not_candidates": 0} -> /w
+== S3_manifest_x0910
+S3_manifest_x0910 rc=0
+cache dlnative_5m_wide829_f16_holefix2_x0910.npz TT 493633 candidates 956 | patch rows 955 | sources ['/workspace/review_scratch/raw5m_kl', '/workspace/uplift_2026-09-11/r6/dl/klines']
+RAWPATCH_MANIFEST_DONE {"candidates": 956, "patch_rows": 955, "kept": 955, "kept_rederived_bitwise": 955, "not_clipped": 1, "clipped_missing": 0, "unresolved": 0, "patch_rows_not_candidates": 0} -> /w
+== S3_manifest_sept_on_x0910
+S3_manifest_sept_on_x0910 rc=0
+cache dlnative_5m_wide829_f16_holefix2_x0910.npz TT 493633 candidates 956 | patch rows 952 | sources ['/workspace/review_scratch/raw5m_kl', '/workspace/uplift_2026-09-11/r6/dl/klines']
+RAWPATCH_MANIFEST_DONE {"candidates": 956, "patch_rows": 952, "kept": 952, "kept_rederived_bitwise": 952, "not_clipped": 1, "clipped_missing": 3, "unresolved": 0, "patch_rows_not_candidates": 0} -> /w
+== S4_gate_sept
+S4_gate_sept rc=0
+RAW_PATCH_COVERAGE PASS {"TT": 490753, "NW": 829, "n_candidates": 953, "n_patch": 952, "n_not_clipped": 1, "n_unaccounted": 0}
+RAW_PATCH_COVERAGE PASS -> /workspace/fx_train_2026-09-13/receipts/trn02_final/S4_gate_sept.json
+== S4_gate_x0910
+S4_gate_x0910 rc=0
+RAW_PATCH_COVERAGE PASS {"TT": 493633, "NW": 829, "n_candidates": 956, "n_patch": 955, "n_not_clipped": 1, "n_unaccounted": 0}
+RAW_PATCH_COVERAGE PASS -> /workspace/fx_train_2026-09-13/receipts/trn02_final/S4_gate_x0910.json
+== S4_gate_sept_on_x0910
+S4_gate_sept_on_x0910 rc=3
+RAW_PATCH_COVERAGE FAIL {"TT": 493633, "NW": 829, "n_candidates": 956, "n_patch": 952, "n_not_clipped": 1, "n_unaccounted": 3}
+RAW_PATCH_COVERAGE FAIL -> /workspace/fx_train_2026-09-13/receipts/trn02_final/S4_gate_sept_on_x0910.json
+== S5_builder_fixed_red
+S5_builder_fixed_red rc=3
+[   21.2s] cache 493633x829x7 ts 1640995200..1789084800
+[   44.4s] TARGETS_REFUSED raw_patch_coverage FAIL ['G8_no_clipped_missing_no_unresolved', 'G9_partition'] -> /workspace/fx_train_2026-09-13/trn02_final_iso/tg_red/results/raw_patch_coverage.json (no 
+/workspace/fx_train_2026-09-13/trn02_final_iso/tg_red/data:
+total 978
+drwxrwxrwx 2 root root       1 Sep 16 04:26 .
+drwxrwxrwx 4 root root 1000403 Sep 16 04:26 ..
+
+/workspace/fx_train_2026-09-13/trn02_final_iso/tg_red/results:
+total 1959
+drwxrwxrwx 2 root root 1000403 Sep 16 04:26 .
+drwxrwxrwx 4 root root 1000403 Sep 16 04:26 ..
+-rw-rw-rw- 1 root root    4135 Sep 16 04:26 raw_patch_coverage.json
+END 2026-09-16T04:27:02Z

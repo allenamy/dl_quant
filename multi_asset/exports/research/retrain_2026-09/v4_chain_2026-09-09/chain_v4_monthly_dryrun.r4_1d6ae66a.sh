@@ -51,14 +51,6 @@ while IFS= read -r line; do
   dk=${line%%=*}; dv=${line#*=}
   case " $DKEYS " in *" $dk "*) ;; *) dbad="$dbad | unregistered key $dk"; continue ;; esac
   case $dseen in *" $dk "*) dbad="$dbad | duplicate key $dk"; continue ;; esac; dseen="$dseen$dk "
-  # FXR-TRN-1 (independent review, 2026-09-16): the containment test below is LEXICAL, and the dryrun root is never created, so
-  # realpath cannot resolve it. A value such as <root>/root/../../elsewhere matches the prefix and escapes. A derived contract path
-  # never legitimately contains a '..' component, so one is refused outright — for R and for every located key — BEFORE the prefix
-  # test. Wrapping in slashes makes the single pattern cover a leading '../', an interior '/../' and a trailing '/..'.
-  case $dk in
-    V4_MONTH|MONTHS_ALL|SEEDS|BUNDLE_GENERATION|EXPORT_ARM) ;;   # the only keys that are labels, not locators
-    *) case "/$dv/" in *"/../"*) dbad="$dbad | $dk=$dv contains a '..' path component (lexical containment can be escaped)"; continue ;; esac ;;
-  esac
   case $dk in
     V4_MONTH|MONTHS_ALL|SEEDS|MWF_ROOT|BUNDLE_GENERATION|EXPORT_ARM|GATE_STEP1|GATE_STEP2) ;;
     PY) [ "$dv" = "$PYX" ] || dbad="$dbad | PY=$dv is not the interpreter $PYX" ;;

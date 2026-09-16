@@ -1,0 +1,155 @@
+{
+ "rules": "v4_rawpatch_lib G1-G9",
+ "checks": {
+  "G1_schema": {
+   "ok": true,
+   "n": 952,
+   "bad": [],
+   "dtypes": {
+    "row": "<i8",
+    "col": "<i8",
+    "ts": "<i8",
+    "symbol": "<U15",
+    "raw32": "<f4",
+    "clip16": "<f2"
+   }
+  },
+  "G2_addressing": {
+   "ok": true,
+   "out_of_bounds": [],
+   "ts_mismatch": [],
+   "symbol_mismatch": [],
+   "cache_cell_ne_clip16": [],
+   "clip16_not_clip_value": [],
+   "n_bad": 0
+  },
+  "G3_values": {
+   "ok": true,
+   "rows_bad": [],
+   "n_bad": 0
+  },
+  "G4_unique": {
+   "ok": true,
+   "duplicates": []
+  },
+  "G5_manifest_binding": {
+   "ok": true,
+   "schema": "v4_raw_patch_manifest/1",
+   "manifest_cache_sha256": "8115299410cd5e8df46ecc5ac7baf312d9f593d94f3b4c3dc46471bd37e00336",
+   "cache_sha256": "8115299410cd5e8df46ecc5ac7baf312d9f593d94f3b4c3dc46471bd37e00336",
+   "manifest_raw_patch_sha256": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+   "raw_patch_sha256": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b"
+  },
+  "G6_kept_rederived_from_source": {
+   "ok": true,
+   "n_kept_entries": 952,
+   "n_patch": 952,
+   "bad": [],
+   "n_bad": 0,
+   "sources_bad": {}
+  },
+  "G7_not_clipped_evidenced": {
+   "ok": true,
+   "n_not_clipped": 1,
+   "bad": [],
+   "n_bad": 0
+  },
+  "G8_no_clipped_missing_no_unresolved": {
+   "ok": false,
+   "clipped_missing": [
+    {
+     "row": 491301,
+     "col": 46,
+     "ts": 1788385500,
+     "ts_utc": "2026-09-02 21:45Z",
+     "symbol": "AKEUSDT",
+     "cache_value": 0.300048828125,
+     "close_t": 0.034895,
+     "close_prev": 0.024489,
+     "src_t": "/workspace/uplift_2026-09-11/r6/dl/klines/AKEUSDT/2026-09-02.zip",
+     "src_prev": "/workspace/uplift_2026-09-11/r6/dl/klines/AKEUSDT/2026-09-02.zip",
+     "rv": 0.42492547674466086
+    },
+    {
+     "row": 491940,
+     "col": 168,
+     "ts": 1788577200,
+     "ts_utc": "2026-09-05 03:00Z",
+     "symbol": "BULLAUSDT",
+     "cache_value": 0.300048828125,
+     "close_t": 0.041331,
+     "close_prev": 0.026526,
+     "src_t": "/workspace/uplift_2026-09-11/r6/dl/klines/BULLAUSDT/2026-09-05.zip",
+     "src_prev": "/workspace/uplift_2026-09-11/r6/dl/klines/BULLAUSDT/2026-09-05.zip",
+     "rv": 0.5581316444243383
+    },
+    {
+     "row": 492211,
+     "col": 784,
+     "ts": 1788658500,
+     "ts_utc": "2026-09-06 01:35Z",
+     "symbol": "WOOUSDT",
+     "cache_value": 0.300048828125,
+     "close_t": 0.01112,
+     "close_prev": 0.00855,
+     "src_t": "/workspace/uplift_2026-09-11/r6/dl/klines/WOOUSDT/2026-09-06.zip",
+     "src_prev": "/workspace/uplift_2026-09-11/r6/dl/klines/WOOUSDT/2026-09-06.zip",
+     "rv": 0.3005847953216374
+    }
+   ],
+   "unresolved": [],
+   "n_clipped_missing": 3,
+   "n_unresolved": 0
+  },
+  "G9_partition": {
+   "ok": false,
+   "n_candidates": 956,
+   "n_patch": 952,
+   "n_not_clipped": 1,
+   "candidates_unaccounted": [
+    {
+     "row": 491301,
+     "col": 46,
+     "ts": "2026-09-02 21:45Z",
+     "symbol": "AKEUSDT"
+    },
+    {
+     "row": 491940,
+     "col": 168,
+     "ts": "2026-09-05 03:00Z",
+     "symbol": "BULLAUSDT"
+    },
+    {
+     "row": 492211,
+     "col": 784,
+     "ts": "2026-09-06 01:35Z",
+     "symbol": "WOOUSDT"
+    }
+   ],
+   "n_unaccounted": 3,
+   "rows_not_candidates": [],
+   "n_extra": 0
+  }
+ },
+ "PASS": false,
+ "fails": [
+  "G8_no_clipped_missing_no_unresolved",
+  "G9_partition"
+ ],
+ "summary": {
+  "TT": 493633,
+  "NW": 829,
+  "n_candidates": 956,
+  "n_patch": 952,
+  "n_not_clipped": 1,
+  "n_unaccounted": 3
+ },
+ "raw_patch": "/workspace/fx_train_2026-09-13/trn02_final_iso/sept_on_x0910/raw_patch.npz",
+ "manifest": "/workspace/fx_train_2026-09-13/trn02_final_iso/sept_on_x0910/raw_patch.manifest.json",
+ "cache": "/workspace/data/dlnative_5m_wide829_f16_holefix2_x0910.npz",
+ "raw_patch_sha256": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+ "manifest_sha256": "0c4ec3a217221d753d0bd33d08d9b1d91191f3300588ca6b08cfb65bd7c2808c",
+ "lib_sha256": "aef0bfd668c3e42e92385780ad1880bcbbdd7d380957fce3e4f6979e5ad2f646",
+ "applied_bytes_sha256": "adecf276bcfd89f4e661b201f6718bafd803cf89556a1e159c6f08a271b0bb4b",
+ "applied_bytes_are_verified_bytes": true
+}

@@ -1,0 +1,27 @@
+{
+ "old": "/Users/haosiyu/cc_tmp/claude-501/-Users-haosiyu-Desktop-quant-research/b9646a9e-31a1-4eb3-a08b-e8ea13fdceb0/scratchpad/fx_train/trn02/tests_old_HEAD.py",
+ "new": "multi_asset/exports/research/retrain_2026-09/v4_chain_2026-09-09/tests_pipeline_gates.py",
+ "old_top_level": 196,
+ "new_top_level": 202,
+ "retained_in_order": 194,
+ "changed": [
+  "With@L972: with tempfile.TemporaryDirectory() as d:",
+  "With@L1242: with tempfile.TemporaryDirectory() as d:"
+ ],
+ "expected_changed": {
+  "With@L972: with tempfile.TemporaryDirectory() as d:": "The _fake_root fixture lives here. TRN-02 adds ONE file to it: raw_patch.manifest.json, the coverage gate manifest located by the sibling rule of RAW_PATCH. Purely additive \u2014 the fake root gains a file, no existing key or assertion changes.",
+  "With@L1242: with tempfile.TemporaryDirectory() as d:": "The [S] driver cells and their fail-closed mock interpreter live here. TRN-02 adds ONE branch to the mock (v4_gate_rawpatch.py -> a PASS receipt signed with the REAL gate source sha, which is what the driver require_gate pins) and the _RPSHA that signs it. No existing assertion is weakened: the reviewed [S] B-R3 cells still pin the data stage FIVE sealed subprocesses verbatim, which is exactly why the gate is PRODUCED in the cache stage and REQUIRED by the data stage instead of being dispatched inside it."
+ },
+ "added": [
+  "With@L972: with tempfile.TemporaryDirectory() as d:",
+  "With@L1243: with tempfile.TemporaryDirectory() as d:",
+  "Assign@L2187: _ZLIB, _ZGATE, _ZMAN = f\"{HERE}/v4_rawpatch_lib.py\", \"v4_gate_rawpatch.py\", \"v4_rawpatch_manifest.py",
+  "Assign@L2188: _ZBUILD_NEW, _ZBUILD_OLD = \"pod_dlw_targets_raw.py\", \"pod_dlw_targets_raw.r1_d7c52823.py\"",
+  "With@L2189: with tempfile.TemporaryDirectory() as _zd:",
+  "Assign@L2415: _F1_OLD, _F1_NEW = f\"{HERE}/chain_v4_monthly_dryrun.r4_1d6ae66a.sh\", f\"{HERE}/chain_v4_monthly_dryru",
+  "Assign@L2416: _F1_SEP = f\"{HERE}/v4_month_2026-09.env\"",
+  "With@L2417: with tempfile.TemporaryDirectory() as _f1d:"
+ ],
+ "PASS": true
+}
+SUMMARY fx_ast_retention old=196 retained=194 changed=2 expected=2 added=8 PASS=True

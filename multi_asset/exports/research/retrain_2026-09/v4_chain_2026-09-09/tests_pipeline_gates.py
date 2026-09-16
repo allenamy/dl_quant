@@ -1006,6 +1006,7 @@ with tempfile.TemporaryDirectory() as d:
         root = f"{dd}/root"; os.makedirs(f"{root}/v4_gates", exist_ok=True); os.makedirs(f"{root}/funding", exist_ok=True)
         def touch(rel):
             p = f"{root}/{rel}"; os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(b"x"); return p
+        touch("raw_patch.manifest.json")   # FX-TRAIN TRN-02: the coverage gate's manifest, located by the sibling rule of RAW_PATCH
         keys = dict(V4_MONTH="2026-99", R=root, PY=PY, CACHE=touch("cache.npz"), PANEL_SPLICE=touch("splice.npz"), PANEL_KING=touch("king_panel.npz"), RAW_PATCH=touch("raw_patch.npz"), HOLE_CELLS=touch("holes.npz"),
                     DLW_RAW=f"{root}/dlw_v4raw", DLW_CLIP=f"{root}/dlw_hf3", F8=f"{root}/f8_v4", KING_FEA=f"{root}/data/wide_fea_v4.npy", KING_META=f"{root}/data/wide_fea_v4_meta.npz",
                     MONTHS_ALL="202501,202502", SEEDS="42", MWF_ROOT="mwf_v4b", BUNDLE_OUT=f"{root}/bundle", BUNDLE_TAR=f"{root}/bundle.tar.gz", BUNDLE_GENERATION="v4_test", BUNDLE_BASE=touch("base.json"),
@@ -1262,7 +1263,7 @@ with tempfile.TemporaryDirectory() as d:
           "PREV_CLAMP_BUILDER_SHA256" in _keys46 and len(_keys46) == 46 and "PREV_CLAMP_BUILDER_SHA256=b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac" in open(f"{HERE}/v4_month_2026-09.env").read()
           and json.load(open(f"{HERE}/receipts/monthly_chain_2026-09-12/pod2_root/preflight.json"))["device_sha256"]["pod_fea_ext_clamp.py"] == "b9f9c72816241715fc4b767950420e74f50adbbbcfc4ea77b362407ab5efa4ac" == _sha(f"{HERE}/pod_fea_ext_clamp.py"), (len(_keys46), _sha(f"{HERE}/pod_fea_ext_clamp.py")[:12]))
     # ── B-R1 / B-R3 on the DRIVER with a fail-closed mock interpreter (the researcher's shape: logs every call, delegates only v4_gate_common / heredocs / -c to the real interpreter, exits 77 otherwise) ──
-    _MOCK = f"{d}/mock_python"; _MLOG = f"{d}/mock_calls.jsonl"
+    _MOCK = f"{d}/mock_python"; _MLOG = f"{d}/mock_calls.jsonl"; _RPSHA = _sha(f"{HERE}/v4_gate_rawpatch.py")
     open(_MOCK, "w").write(f'''#!{PY}
 import json, os, sys, subprocess
 LOG = {_MLOG!r}; a = sys.argv[1:]; n = os.path.basename(a[0]) if a else ""
@@ -1270,6 +1271,20 @@ open(LOG, "a").write(json.dumps({{"argv": a, "env": {{k: os.environ.get(k) for k
 if n in ("v4_gate_common.py", "-", "v4_months.py") or (a and a[0] == "-c"): sys.exit(subprocess.call([{PY!r}, "-B"] + a, stdin=sys.stdin))
 def w(p, b=b"x"): os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "wb").write(b)
 if n == "cache_coverage_gate_v2.py": sys.exit(0)
+if n == "v4_gate_rawpatch.py":   # FX-TRAIN TRN-02: the mock cannot run the real gate on fake inputs, so it writes the receipt the
+    import hashlib               # driver's require_gate would accept — self_sha256 is the REAL gate source, pinned by the caller
+    def _sh(q):
+        h = hashlib.sha256()
+        with open(q, "rb") as f:
+            for c in iter(lambda: f.read(1 << 24), b""): h.update(c)
+        return h.hexdigest()
+    ip = {{"cache": os.environ["CACHE"], "raw_patch": os.environ["RAW_PATCH"], "raw_patch_manifest": os.environ["RAW_PATCH_MANIFEST"]}}
+    os.makedirs(os.path.dirname(os.environ["RAWPATCH_OUT"]), exist_ok=True)
+    json.dump({{"gate": "RAW_PATCH_COVERAGE", "PASS": True, "self_sha256": {_RPSHA!r}, "inputs_path": ip,
+               "inputs_sha256": {{k: _sh(v) for k, v in ip.items()}}, "utc": "mock", "argv": a,
+               "receipt_schema": "v4_gate_common/2 (gate, PASS, self_sha256, inputs_sha256 bound)"}},
+              open(os.environ["RAWPATCH_OUT"], "w"), indent=1)
+    sys.exit(0)
 if n == "pod_dlw_targets_raw.py": w(os.environ["DLWT_OUT"] + "/data/dlw_targets.npz", ("raw" if os.environ.get("DLWT_RAW_PATCH") else "clip").encode()); sys.exit(0)
 if n == "b82.py": w(os.environ["F171_OUT"] + "/data/dlw_fea82.npz"); sys.exit(0)
 if n == "b89.py": w(os.environ["F8_OUT"] + "/data/f8_fea89.npz"); sys.exit(0)
@@ -2161,6 +2176,308 @@ with tempfile.TemporaryDirectory() as _yd:
     _yst = _xsec(_ydrv, "if want legs; then")
     check("★★★ [Y] TRN-17 Y9 (STATIC): the legs stage passes LEGS_MAX_NO_PANEL=5 and the driver DERIVES that 5 in a comment from 288-48 = 240 rows = 5 four-hour anchors — a bound whose origin is written down is auditable; a bare 5 would be a tolerance",
           "LEGS_MAX_NO_PANEL=5" in _yst and "288" in _yst and "48" in _yst and "5 four-hour anchors" in _yst)
+
+# ── [Z] FX-TRAIN TRN-02 (2026-09-16; FACT_TABLE_TRN §TRN-02): the raw-return patch was applied BLINDLY. Nothing checked that it
+#     covers every clipped bar of THIS cache, or that a row/col still addresses its recorded ts/symbol, and STEP1 part A cannot see
+#     an OMISSION — a bar missing from the patch leaves RAW == CLIP there, so there is no difference to find. That is how E-0908-B
+#     (clip then compound wrote -48% as +55%) can return silently on a new month. v4_rawpatch_lib G1-G9 + v4_gate_rawpatch.py make
+#     coverage a program condition, and pod_dlw_targets_raw.py verifies the same rules on the bytes it applies, before any cumsum.
+#     Every cell builds a real triple (cache, patch, manifest) with the real shapes and the real kline-CSV convention, runs the real
+#     manifest generator, then mutates ONE thing. The builder only ever runs through run_sandboxed (E-0912-B static rule).
+_ZLIB, _ZGATE, _ZMAN = f"{HERE}/v4_rawpatch_lib.py", "v4_gate_rawpatch.py", "v4_rawpatch_manifest.py"
+_ZBUILD_NEW, _ZBUILD_OLD = "pod_dlw_targets_raw.py", "pod_dlw_targets_raw.r1_d7c52823.py"
+with tempfile.TemporaryDirectory() as _zd:
+    import time                                            # the suite header does not import it; the kline CSV month label needs it
+    import importlib.util as _ilu
+    _zspec = _ilu.spec_from_file_location("v4_rawpatch_lib_t", _ZLIB); _ZL = _ilu.module_from_spec(_zspec); _zspec.loader.exec_module(_ZL)
+    _C16 = np.float16(0.3)
+
+    def _zmk(tag, drop_clipped=False):
+        """A 20-row x 4-symbol cache with TWO clipped bars (+0.30 and -0.30) and ONE unclipped bar whose true return rounds to
+        float16(0.3) (the NMRUSDT case, fact 02.7), the kline CSVs that close them, and a patch built from the cache.
+        drop_clipped=True omits the +0.30 bar from the patch — the E-0908-B omission the old chain could not see."""
+        d = f"{_zd}/{tag}"; os.makedirs(f"{d}/kl", exist_ok=True)
+        TT, NW = 20, 4
+        t0 = 1780000000 - (1780000000 % 300)
+        ts = np.arange(TT, dtype=np.int64) * 300 + t0
+        syms = ["BTCUSDT", "BBBUSDT", "CCCUSDT", "DDDUSDT"]   # pod_dlw_targets_raw indexes BTCUSDT for its BTC vol column
+        data = np.zeros((TT, NW, 7), np.float16)
+        data[:, :, 0] = np.float16(0.001)
+        cells = [(5, 0, +1, 0.4249), (9, 1, -1, -0.5581), (12, 2, +1, 0.29993)]   # (row, col, sign, TRUE return); the third is NOT clipped
+        for r, c, sg, rv in cells:
+            data[r, c, 0] = _C16 if sg > 0 else -_C16
+        np.savez(f"{d}/cache.npz", ts=ts, symbols=np.array(syms), data=data,
+                 ch=np.array(["ret5", "range", "cpos", "log_qv", "log_cnt", "log_avgsz", "tbf"]))   # = pod_dlw_targets_raw CHN_EXPECT
+        np.savez(f"{d}/panel.npz", ts=ts[::48][:1], note=np.array(["a panel FILE must exist: the builder hashes it before the "
+                                                                  "coverage check, so without one the cell would die earlier"]))
+        # kline CSVs: close time = open_time//1000 + 300, close in column 4, 11 columns, no header
+        per_sym = {}
+        for r, c, sg, rv in cells:
+            per_sym.setdefault(c, []).append((int(ts[r]), rv))
+        for c, rows in per_sym.items():
+            lines = []
+            for t, rv in rows:
+                prev, cur = 100.0, 100.0 * (1.0 + rv)
+                # read_closes: close_ts = open_time_ms // 1000 + 300, close = column 4, 11 columns, no header
+                lines.append(",".join([str((t - 600) * 1000), "0", "0", "0", repr(prev)] + ["0"] * 6))   # closes at t-300
+                lines.append(",".join([str((t - 300) * 1000), "0", "0", "0", repr(cur)] + ["0"] * 6))    # closes at t
+            mon = time.strftime("%Y-%m", time.gmtime(int(rows[0][0])))
+            open(f"{d}/kl/{syms[c]}_{mon}.csv", "w").write("\n".join(lines) + "\n")
+        keep = [(r, c, sg, rv) for r, c, sg, rv in cells if abs(rv) > 0.3 and not (drop_clipped and r == 5)]
+        np.savez(f"{d}/patch.npz", row=np.array([k[0] for k in keep], np.int64), col=np.array([k[1] for k in keep], np.int64),
+                 ts=np.array([int(ts[k[0]]) for k in keep], np.int64), symbol=np.array([syms[k[1]] for k in keep]),
+                 raw32=np.array([np.float32(100.0 * (1.0 + k[3]) / 100.0 - 1.0) for k in keep], np.float32),
+                 clip16=np.array([(_C16 if k[2] > 0 else -_C16) for k in keep], np.float16))
+        return d
+
+    def _zmanifest(d, extra=None):
+        env = {"CACHE": f"{d}/cache.npz", "RAW_PATCH": f"{d}/patch.npz", "KLINE_SOURCES": f"{d}/kl",
+               "MANIFEST_OUT": f"{d}/patch.manifest.json"}
+        env.update(extra or {})
+        return run([_ZMAN], env)
+
+    def _zgate(d, extra=None):
+        env = {"CACHE": f"{d}/cache.npz", "RAW_PATCH": f"{d}/patch.npz", "RAW_PATCH_MANIFEST": f"{d}/patch.manifest.json",
+               "RAWPATCH_OUT": f"{d}/receipt.json"}
+        env.update(extra or {})
+        rc, out = run([_ZGATE], env)
+        r = json.load(open(env["RAWPATCH_OUT"])) if os.path.exists(env["RAWPATCH_OUT"]) else None
+        return rc, out, r
+
+    def _zpatch_edit(d, **cols):
+        z = dict(np.load(f"{d}/patch.npz", allow_pickle=False))
+        z.update(cols)
+        np.savez(f"{d}/patch.npz", **z)
+
+    # Z1 — the valid triple: the real manifest generator classifies all three candidates, and the gate PASSes
+    _d = _zmk("z1")
+    _rcm, _om = _zmanifest(_d)
+    _rc, _out, _r = _zgate(_d)
+    _man = json.load(open(f"{_d}/patch.manifest.json"))
+    check("★★★ [Z] TRN-02 Z1 (positive): the real manifest generator classifies 2 clipped bars as kept (raw32 re-derived bitwise from the kline closes) and the unclipped bar that merely ROUNDS to float16(0.3) as not_clipped, with 0 clipped_missing and 0 unresolved; the gate then PASSes rc 0",
+          _rcm == 0 and _rc == 0 and _r["PASS"] is True
+          and _man["counts"]["kept"] == 2 and _man["counts"]["kept_rederived_bitwise"] == 2
+          and _man["counts"]["not_clipped"] == 1 and _man["counts"]["clipped_missing"] == 0 and _man["counts"]["unresolved"] == 0,
+          (_rcm, _rc, _man["counts"]))
+
+    # Z2 — THE DEFECT: a clipped bar missing from the patch, and the proof that a RAW-vs-CLIP difference cannot see it
+    _d = _zmk("z2", drop_clipped=True)
+    _rcm, _om = _zmanifest(_d)
+    _rc, _out, _r = _zgate(_d)
+    _man = json.load(open(f"{_d}/patch.manifest.json"))
+    _ch0 = np.load(f"{_d}/cache.npz", allow_pickle=True)["data"][:, :, 0]
+    check("★★★ [Z] TRN-02 Z2 (the defect, E-0908-B): a clipped bar omitted from the patch ⇒ the manifest records it as clipped_missing and the gate FAILs rc 3; and the cache cell there is still exactly float16(0.30), i.e. RAW == CLIP at that cell — which is why STEP1 part A, built from patch rows, has no difference to find and cannot see the omission",
+          _rcm == 0 and _man["counts"]["clipped_missing"] == 1 and _rc == 3 and _r["PASS"] is False
+          and _ch0[5, 0] == _C16, (_rcm, _rc, _man["counts"], float(_ch0[5, 0])))
+
+    # Z3/Z4/Z5 — G2 addressing: the row/col must still be the recorded ts, symbol and clip value
+    for _tag, _kw, _why in (("z3", {"ts": None}, "ts"), ("z4", {"symbol": None}, "symbol"), ("z5", {"clip16": None}, "clip16")):
+        _d = _zmk(_tag)
+        _zmanifest(_d)
+        _z = dict(np.load(f"{_d}/patch.npz", allow_pickle=False))
+        if _why == "ts":
+            _z["ts"] = _z["ts"] + 300
+        elif _why == "symbol":
+            _z["symbol"] = np.array(["ZZZUSDT"] * len(_z["symbol"]))
+        else:
+            _z["clip16"] = (_z["clip16"].astype(np.float32) * np.float32(0.5)).astype(np.float16)
+        np.savez(f"{_d}/patch.npz", **_z)
+        _rc, _out, _r = _zgate(_d)
+        check(f"★★★ [Z] TRN-02 {_tag.upper()} (G2 addressing, {_why}): a patch whose rows no longer address the recorded {_why} ⇒ rc 3 PASS=false — the patch is an (row, col) WRITE into the return matrix, so 'it is the same file' is not the same claim as 'it still points at the same bar'",
+              _rc == 3 and _r["PASS"] is False and _r["fails"], (_rc, _r and _r.get("fails")))
+
+    # Z6 — G3 values: a raw32 that is not past the clip, or whose sign disagrees with the stored clip
+    _d = _zmk("z6")
+    _zmanifest(_d)
+    _zpatch_edit(_d, raw32=np.array([0.1, -0.5581], np.float32))
+    _rc, _out, _r = _zgate(_d)
+    check("★★★ [Z] TRN-02 Z6 (G3 values): a patch row whose raw32 is inside the clip band (|0.1| <= 0.3) ⇒ rc 3 — a 'raw' return that is not past the clip is not a raw return, whatever the file says",
+          _rc == 3 and _r["PASS"] is False, (_rc, _r and _r.get("fails")))
+
+    # Z7 — G4 uniqueness
+    _d = _zmk("z7")
+    _zmanifest(_d)
+    _z = dict(np.load(f"{_d}/patch.npz", allow_pickle=False))
+    _z = {k: np.concatenate([v, v[:1]]) for k, v in _z.items()}
+    np.savez(f"{_d}/patch.npz", **_z)
+    _rc, _out, _r = _zgate(_d)
+    check("★★★ [Z] TRN-02 Z7 (G4): a duplicated (row, col) in the patch ⇒ rc 3 — two writes to one cell make the applied value depend on order",
+          _rc == 3 and _r["PASS"] is False, (_rc, _r and _r.get("fails")))
+
+    # Z8/Z9 — G5 binding: the manifest is a claim ABOUT a cache and a patch, verified by re-hashing both
+    _d = _zmk("z8")
+    _zmanifest(_d)
+    _zc = dict(np.load(f"{_d}/cache.npz", allow_pickle=True))
+    _zc["data"] = _zc["data"].copy(); _zc["data"][0, 3, 0] = np.float16(0.002)
+    np.savez(f"{_d}/cache.npz", **_zc)
+    _rc8, _o8, _r8 = _zgate(_d)
+    _d = _zmk("z9")
+    _zmanifest(_d)
+    _zpatch_edit(_d, raw32=np.array([0.4249, -0.5582], np.float32))
+    _rc9, _o9, _r9 = _zgate(_d)
+    check("★★★ [Z] TRN-02 Z8/Z9 (G5 binding): editing the CACHE after the manifest was written ⇒ rc 3; editing the PATCH after the manifest was written ⇒ rc 3. The manifest's cache_sha256 / raw_patch_sha256 are re-computed from the files, so a manifest can never be 'about' a file it no longer describes",
+          _rc8 == 3 and _r8["PASS"] is False and _rc9 == 3 and _r9["PASS"] is False, (_rc8, _rc9))
+
+    # Z10 — G6: the close pair is RE-READ from the recorded source, whose sha must still match
+    _d = _zmk("z10")
+    _zmanifest(_d)
+    _src = sorted(f for f in os.listdir(f"{_d}/kl"))[0]
+    open(f"{_d}/kl/{_src}", "a").write("0,0,0,0,0,0,0,0,0,0,0\n")
+    _rc, _out, _r = _zgate(_d)
+    check("★★★ [Z] TRN-02 Z10 (G6): appending a line to a recorded kline source after the manifest was written ⇒ rc 3 — every patch row's raw32 is re-derived from the SOURCE at gate time, and the source's identity is part of the claim",
+          _rc == 3 and _r["PASS"] is False, (_rc, _r and _r.get("fails")))
+
+    # Z11 — G7: the attack that would HIDE an omission — relabel the omitted clipped bar as "not clipped"
+    _d = _zmk("z11", drop_clipped=True)
+    _zmanifest(_d)
+    _m = json.load(open(f"{_d}/patch.manifest.json"))
+    _moved = _m["clipped_missing"].pop(0)
+    _m["not_clipped"].append({k: v for k, v in _moved.items() if k != "kind"})
+    json.dump(_m, open(f"{_d}/patch.manifest.json", "w"), indent=1)
+    _rc, _out, _r = _zgate(_d)
+    check("★★★ [Z] TRN-02 Z11 (G7, the attack that would hide an omission): moving the omitted clipped bar from clipped_missing into not_clipped — so the manifest CLAIMS it was never clipped and G8/G9 would both be satisfied — ⇒ rc 3, because G7 re-reads that bar's own recorded source and finds |rv| = 0.4249 > 0.3. The recorded rv is never trusted: rewriting it alone changes nothing, which is why this cell attacks the CLASSIFICATION instead",
+          _rc == 3 and _r["PASS"] is False and any("G7" in f for f in _r.get("fails", [])),
+          (_rc, _r and _r.get("fails")))
+
+    # Z12 — a missing manifest is a named FAIL, never a skip
+    _d = _zmk("z12")
+    _zmanifest(_d)
+    os.remove(f"{_d}/patch.manifest.json")
+    _rc, _out, _r = _zgate(_d)
+    _zZ = np.load(f"{_d}/cache.npz", allow_pickle=True)
+    _lib_rep = _ZL.verify_files(_zZ["data"][:, :, 0], _zZ["ts"].astype(np.int64), [str(x) for x in _zZ["symbols"]],
+                                f"{_d}/patch.npz", f"{_d}/cache.npz")
+    check("★★★ [Z] TRN-02 Z12: with the manifest deleted, the GATE refuses rc 3 at the file layer with REFUSED.missing_files naming raw_patch_manifest (PASS=false receipt still written), and the LIB — which the builder calls through the sibling rule — returns PASS=false with the named reason manifest_missing and the path it looked under. Two layers, two named refusals, no skip on either",
+          _rc == 3 and _r["PASS"] is False and _r["REFUSED"]["missing_files"]["raw_patch_manifest"].endswith("patch.manifest.json")
+          and _lib_rep["PASS"] is False and _lib_rep["fails"] == ["manifest_missing"]
+          and "manifest.json" in _lib_rep["checks"]["manifest_missing"]["why"],
+          (_rc, _r and _r.get("REFUSED"), _lib_rep.get("fails")))
+
+    # Z13 — the manifest generator never overwrites and never touches a patch
+    _d = _zmk("z13")
+    _zmanifest(_d)
+    _before = _sha(f"{_d}/patch.npz")
+    _rc2, _o2 = _zmanifest(_d)
+    check("★★★ [Z] TRN-02 Z13: re-running the manifest generator over an existing manifest ⇒ rc 2 REFUSED ('a manifest is never overwritten'), and the patch file is byte-unchanged — the generator classifies, it never repairs",
+          _rc2 == 2 and "REFUSED" in _o2 and _sha(f"{_d}/patch.npz") == _before, (_rc2, _o2[-140:]))
+
+    # Z14 — the BUILDER: the fixed one refuses before any cumulative sum; the pre-fix one applies the patch blindly
+    _d = _zmk("z14", drop_clipped=True)
+    _zmanifest(_d)
+    _be = {"DLWT_CACHE": f"{_d}/cache.npz", "DLWT_PANEL": f"{_d}/panel.npz", "DLWT_RET_CH": "0",
+           "DLWT_RAW_PATCH": f"{_d}/patch.npz"}
+    _rcn, _on, _wn = run_sandboxed(_ZBUILD_NEW, dict(_be, DLWT_OUT=f"{_d}/out_new"), f"{_d}/out_new")
+    _rco, _oo, _wo = run_sandboxed(_ZBUILD_OLD, dict(_be, DLWT_OUT=f"{_d}/out_old"), f"{_d}/out_old")
+    check("★★★ [Z] TRN-02 Z14 (the builder): on a patch that omits a clipped bar, the fixed builder exits 3 with TARGETS_REFUSED raw_patch_coverage naming G8/G9, writes results/raw_patch_coverage.json and NO targets — it refuses right after the cache load, before any cumulative sum. The archived pre-fix builder never mentions the omission at all: it APPLIES the patch and then dies further down, on this small fixture's anchor arithmetic (the zero-size reduction at the E-window assert, which stands after the patch write). Neither writes targets here — the difference is whether the omission is ever noticed",
+          _rcn == 3 and "TARGETS_REFUSED raw_patch_coverage" in _on and "G8_no_clipped_missing_no_unresolved" in _on and "G9_partition" in _on
+          and os.path.exists(f"{_d}/out_new/results/raw_patch_coverage.json")
+          and not os.path.exists(f"{_d}/out_new/data/dlw_targets.npz")
+          and "TARGETS_REFUSED" not in _oo and "raw_patch_coverage" not in _oo and "zero-size array" in _oo
+          and not os.path.exists(f"{_d}/out_old/data/dlw_targets.npz"),
+          (_rcn, _rco, _on[-200:], _oo[-140:]))
+
+    # Z15 — STATIC: the driver's manifest path expression is the lib's rule, written twice, asserted equal here
+    _zdrv = open(f"{HERE}/chain_v4_monthly.sh").read()
+    _zstage = _xsec(_zdrv, "if want data; then")
+    _zbash_rule = "RPM=${RAW_PATCH%.npz}.manifest.json"
+    check("★★★ [Z] TRN-02 Z15 (STATIC, duplication WITH an equality assertion): the driver derives the manifest path as ${RAW_PATCH%.npz}.manifest.json and v4_rawpatch_lib.manifest_path_for does the same thing in Python; this cell holds them equal on a real path, so the two spellings cannot drift apart",
+          _zbash_rule in _zstage
+          and _ZL.manifest_path_for("/workspace/m2026-10/raw_patch.npz") == "/workspace/m2026-10/raw_patch.manifest.json"
+          and _ZL.manifest_path_for("/tmp/p") == "/tmp/p.manifest.json")
+
+    # Z16 — STATIC: the gate is PRODUCED in the cache stage and REQUIRED as a prerequisite of the data stage
+    _zcache = _xsec(_zdrv, "if want cache; then")
+    _i_gate = _zcache.find("v4_gate_rawpatch.py")
+    _i_creq = _zcache.find("gate=RAW_PATCH_COVERAGE")
+    _i_pre = _zstage.find("prereq_receipt data raw_patch_coverage")
+    _i_dreq = _zstage.find("gate=RAW_PATCH_COVERAGE")
+    _i_guard = _zstage.find("guard data")
+    _i_raw = _zstage.find("DLWT_OUT=$DLW_RAW")
+    check("★★★ [Z] TRN-02 Z16 (STATIC): the coverage gate runs in the CACHE stage (sealed with env -i and the allowlist, dying rc 3 on failure) and the DATA stage requires its receipt as a PREREQUISITE — before its own guard and long before the RAW builder — so a subset run such as V4_STAGES=data cannot reach a builder without it. Putting it here rather than inside the data stage leaves that stage's five reviewed subprocesses untouched; the CLIP build still gets DLWT_RAW_PATCH= explicitly empty (B-R3 unchanged)",
+          0 <= _i_gate and 0 <= _i_creq and 'die "raw_patch_coverage_rc_$rc" 3' in _zcache
+          and 'env -i "${CLEAN_ENV_C[@]}" CACHE=$CACHE RAW_PATCH=$RAW_PATCH' in _zcache
+          and 0 <= _i_pre < _i_guard and 0 <= _i_dreq < _i_guard and _i_guard < _i_raw
+          and "DLWT_RAW_PATCH= " in _zstage,
+          (_i_gate, _i_creq, _i_pre, _i_dreq, _i_guard, _i_raw))
+
+    # Z17 — STATIC: the builder verifies the BYTES IT APPLIES, not the path a second time
+    _zb = open(f"{HERE}/{_ZBUILD_NEW}").read()
+    _zo = open(f"{HERE}/{_ZBUILD_OLD}").read()
+    check("★★★ [Z] TRN-02 Z17 (STATIC): the fixed builder reads the patch ONCE, verifies those bytes, and loads the arrays from the same buffer (applied_bytes_are_verified_bytes), so nothing can change between the check and the write; the archived pre-fix builder simply np.load()s the path and assigns",
+          "applied_bytes_are_verified_bytes" in _zb and "np.load(_io.BytesIO(_pb))" in _zb
+          and "_P = np.load(_pp); assert RET_CH == 0" in _zo and "applied_bytes" not in _zo)
+
+# ── [V2] FXR-TRN-1 (independent review, 2026-09-16): the dryrun's containment test is LEXICAL and its root is never created, so
+#     realpath cannot resolve it — <root>/root/../../elsewhere matches the prefix "$ROOT/root/" and escapes the negative control's
+#     own sandbox. TRN-19 added that containment check; this is the hole left in it. A derived contract path never legitimately
+#     contains a '..' component, so one is now refused outright, for R and for every locator, BEFORE the prefix test. Same method
+#     as [V]: the archived pre-fix dryrun and the current one run on the SAME stub interpreter, and no cell can write anywhere real.
+_F1_OLD, _F1_NEW = f"{HERE}/chain_v4_monthly_dryrun.r4_1d6ae66a.sh", f"{HERE}/chain_v4_monthly_dryrun.sh"
+_F1_SEP = f"{HERE}/v4_month_2026-09.env"
+with tempfile.TemporaryDirectory() as _f1d:
+    _F1_KEYS = [k for k in open(f"{HERE}/chain_lib.sh").read().split('V4_MONTH_KEYS="', 1)[1].split('"', 1)[0].split()]
+    _F1_LAB = {"V4_MONTH": "2026-09", "MONTHS_ALL": "202501", "SEEDS": "42", "BUNDLE_GENERATION": "v4_dryrun",
+               "EXPORT_ARM": "A1", "GATE_STEP1": "v4_gate_step1.py", "GATE_STEP2": "v4_gate_step2.py"}
+
+    def _f1stub(tag, victim, bad):
+        """A stub interpreter that answers the derivation with a contract in which ONE key escapes through '..'."""
+        p = f"{_f1d}/stub_{tag}.sh"
+        body = '#!/bin/bash\nif [ "$#" -eq 4 ]; then\n  for k in $3; do case $k in\n'
+        for k in _F1_KEYS:
+            if k in _F1_LAB:
+                body += f'    {k}) echo "{k}={_F1_LAB[k]}" ;;\n'
+        body += f'    {victim}) echo "{victim}={bad}" ;;\n'   # FIRST: a later branch for the same key would shadow it
+        body += '    PY) echo "PY=$4" ;;\n'
+        body += '    R) echo "R=$2/root" ;;\n'
+        body += '    *) echo "$k=$2/root/stub_$k" ;;\n  esac; done\n  exit 0\nfi\n'
+        body += f'exec {PY} "$@"\n'      # every OTHER role (the contract parser inside load_month_env) is the real interpreter
+        open(p, "w").write(body)
+        os.chmod(p, 0o755)
+        return p
+
+    def _f1run(script, stub, tag):
+        par = f"{_f1d}/run_{tag}"
+        os.makedirs(par, exist_ok=True)
+        pr = subprocess.run(["bash", script, _F1_SEP, par], capture_output=True, text=True,
+                            env={"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "PY": stub}, cwd=HERE, timeout=180)
+        sub = [f"{par}/{x}" for x in os.listdir(par)]
+        root = sub[0] if sub else None
+        return pr.returncode, pr.stdout + pr.stderr, bool(root and os.path.exists(f"{root}/driver.out"))
+
+    # V2a — a locator that climbs out of the sandbox with '..'
+    _st = _f1stub("a", "CACHE", "$2/root/../../fx_train_escape/cache.npz")
+    _o, _n = _f1run(_F1_OLD, _st, "oa"), _f1run(_F1_NEW, _st, "na")
+    check("★★★ [V2] FXR-TRN-1 (a): a derived CACHE of <root>/root/../../fx_train_escape/cache.npz matches the prefix \"$ROOT/root/\" lexically ⇒ the pre-fix dryrun accepted it and RAN THE DRIVER; the fixed dryrun refuses rc 2 naming the '..' component and never runs the driver",
+          _o[0] == 0 and _o[2] and _n[0] == 2 and "contains a '..' path component" in _n[1] and "CACHE=" in _n[1] and not _n[2],
+          (_o[0], _o[2], _n[0], _n[2], _n[1][-220:]))
+
+    # V2b — R itself climbing out: the one key whose equality test looks airtight
+    _st = _f1stub("b", "R", "$2/root/..")
+    _o, _n = _f1run(_F1_OLD, _st, "ob"), _f1run(_F1_NEW, _st, "nb")
+    check("★★★ [V2] FXR-TRN-1 (b): R = <root>/root/.. ⇒ both versions refuse (the R equality test already caught it), but the fixed one names the '..' component rather than only 'R is not <root>/root' — the refusal says what is wrong, not merely that something is",
+          _o[0] == 2 and _n[0] == 2 and "contains a '..' path component" in _n[1] and not _n[2], (_o[0], _n[0], _n[1][-200:]))
+
+    # V2c — a trailing '..' and an interior one are the same defect; one pattern covers both plus a leading one
+    _st = _f1stub("c", "DLW_RAW", "$2/root/dlw/..")
+    _o, _n = _f1run(_F1_OLD, _st, "oc"), _f1run(_F1_NEW, _st, "nc")
+    check("★★★ [V2] FXR-TRN-1 (c): a TRAILING '..' (<root>/root/dlw/..) also escapes the lexical prefix ⇒ pre-fix rc 0 with the driver run, fixed rc 2; wrapping the value in slashes makes one pattern cover leading, interior and trailing components",
+          _o[0] == 0 and _o[2] and _n[0] == 2 and "contains a '..' path component" in _n[1] and not _n[2], (_o[0], _n[0], _n[1][-200:]))
+
+    # V2d — the label keys keep their exemption, and a legitimate contract still passes
+    _o, _n = _f1run(_F1_OLD, PY, "od"), _f1run(_F1_NEW, PY, "nd")
+    check("★★★ [V2] FXR-TRN-1 (d) POSITIVE: with the REAL interpreter both dryruns still DRYRUN_PASS rc 0 — the new refusal costs nothing on a derivation that never uses '..', so the negative control is not weakened into uselessness",
+          _o[0] == 0 and _n[0] == 0 and "DRYRUN_PASS" in _n[1], (_o[0], _n[0], _n[1][-160:]))
+
+    # V2e — STATIC: the '..' test runs BEFORE the prefix test, and only true labels are exempt from it
+    _f1src = open(_F1_NEW).read()
+    _i_dots = _f1src.find("contains a '..' path component")
+    _i_pref = _f1src.find('*) case $dv in "$ROOT/root/"*)')
+    _i_lab = _f1src.find("the only keys that are labels, not locators")
+    check("★★★ [V2] FXR-TRN-1 (e) STATIC: the '..' refusal stands BEFORE the lexical prefix test, and the keys exempt from it are only the five true labels (V4_MONTH / MONTHS_ALL / SEEDS / BUNDLE_GENERATION / EXPORT_ARM) — GATE_STEP1/2 are filenames resolved against the device dir and are NOT exempt, because '../evil.py' there would load a gate from outside it",
+          0 <= _i_dots < _i_pref and _i_lab > 0
+          and "V4_MONTH|MONTHS_ALL|SEEDS|BUNDLE_GENERATION|EXPORT_ARM) ;;" in _f1src
+          and "V4_MONTH|MONTHS_ALL|SEEDS|BUNDLE_GENERATION|EXPORT_ARM|GATE_STEP1|GATE_STEP2)" not in _f1src,
+          (_i_dots, _i_pref, _i_lab))
 
 print(f"\n{'ALL PASS' if not FAILS else 'FAILURES: ' + str(FAILS)}  ({N[0]} checks)")
 sys.exit(1 if FAILS else 0)

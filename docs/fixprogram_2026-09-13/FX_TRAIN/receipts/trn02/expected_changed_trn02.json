@@ -1,0 +1,4 @@
+{
+ "With@L972: with tempfile.TemporaryDirectory() as d:": "The _fake_root fixture lives here. TRN-02 adds ONE file to it: raw_patch.manifest.json, the coverage gate manifest located by the sibling rule of RAW_PATCH. Purely additive — the fake root gains a file, no existing key or assertion changes.",
+ "With@L1242: with tempfile.TemporaryDirectory() as d:": "The [S] driver cells and their fail-closed mock interpreter live here. TRN-02 adds ONE branch to the mock (v4_gate_rawpatch.py -> a PASS receipt signed with the REAL gate source sha, which is what the driver require_gate pins) and the _RPSHA that signs it. No existing assertion is weakened: the reviewed [S] B-R3 cells still pin the data stage FIVE sealed subprocesses verbatim, which is exactly why the gate is PRODUCED in the cache stage and REQUIRED by the data stage instead of being dispatched inside it."
+}
